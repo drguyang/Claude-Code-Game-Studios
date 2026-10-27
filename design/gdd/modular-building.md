@@ -458,6 +458,10 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 | **EC-23-09** | 联机(P1b):两名玩家同时拆 / 放同一格 | 主机唯一判定 + 唯一 Append(ADR-005);**后到的判定重跑**,第一个成功者赢,失败者收到「被占用」拒绝。**P0 无联机,此语义仅登记** | 45(传输)+ 23(判定) |
 | **EC-23-10** | `StructureModified` 只改朝向 / 变体,不改模块 | `modified_fields` 只含对应位;23 Append;24 重算邻接。**不发第二条 `StructureRemoved + Placed`**(同一 `structure_id`,连续身份)。**改朝向须过 `Modifiable` 占用检查**(规则十) | 23 |
 | **EC-23-11** | 拆除时返还失败(20 库存已满 / 不可扣) | 返还走 20 的标准入库路径;**失败 = 掉落在地上**(世界流 `DropSpawned`,归 20 / 25)。**不静默吞返还**(评审,qa-lead #7 —— `DropSpawned` 发出者 = 20 结算,23 触发;测试文件归属在 AC-23-16 载体写明) | 20(结算)+ 23(触发) |
+
+> 🔁 **2026-10-27 P0 收窄(用户裁定「地面掉落」· R17 闭合批)**:本条原文把「走 20 的标准入库路径」定为**成功分支**,仅「**失败** = 掉落在地上」。P0 **无 20 侧结算路径**(拾取 / 入库编排未落)⇒ 本批把**成功分支也走地面掉落** —— 拆除即按 F-23-3 算 `Refund`,由 23 触发、20 落地发一条**普通 `DropSpawned`**(锚点 = 被拆结构锚点格、`item_key` = `module.build_item_key`、`qty` = Refund、id 由 `IIdAuthority` 铸造)。
+> ⚠️ **这是收窄不是重设计**:两种分支都是「返还物进世界、不吞」,变的只是它落在哪(地上,玩家走过来捡即可)。`DropSpawned` 一支事件同时覆盖两种分支 ⇒ P1b 接上入库路径时,成功分支改发 `DropClaimed` 即可,**事件形状不变**。
+> ⚠️ **判据落点随之订正**:「不静默吞返还」由 **23 侧 spy-sink 测试**钉(`Tests/EditMode/ModularBuilding/structure_kinds_test.cs` 的 `test_r17_remove_emitsRefundDropSpawned` / `test_r17_removeNonexistent_emitsNoRefund` / `test_r17_zeroRefundRatio_emitsStructureRemovedOnly`),**不由 20 的 fold 兜底** —— fold 只看得到流里**有**什么,看不到「本该有而没有」的事件(那要一份「应发清单」= 第二真源)。
 | **EC-23-12** | 放置被 42 渲染层取消(玩家中途取消放置) | **sim 侧零事件**(意图未提交);42 只是预览。**无「半放置」状态** —— 放置判定要么成功要么拒绝,没有中间态 | 42(预览)+ 23(判定) |
 | **EC-23-13** | 开档基线重放(`BakedInitial` 与事件流的关系) | **`Overlay(0) := BakedInitial`**(规则三);玩家对初始家具的**第一次**改动 = 第一条 `StructureRemoved`。`BakedInitial` 不进流、不存档(评审裁定 B3) | 23 + 关卡工具(ADR-022 导出) |
 

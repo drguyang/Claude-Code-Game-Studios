@@ -88,8 +88,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 buildItemKey: 0,
                 refundable: 1));
 
+            var sink = new CapturingSink(_events);
             _writer = new StructureWriter(
-                new CapturingSink(_events), _world.Structures, _encoder, _catalog, _world);
+                sink, _world.Structures, _encoder, _catalog, _world,
+                DaYiJingCheng.Tests.TestDropWriter.Create(sink));
         }
 
         // ══════════ 0. 前置:未放置时全可走(防「恒 false」冒充判据)══════════
@@ -155,7 +157,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.IsFalse(_world.IsEffectivelyWalkable(anchor), "前置:放置后须不可走");
 
             // Act
-            bool removed = _writer.Remove(sid, tick: 2);
+            bool removed = _writer.Remove(sid, tick: 2, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
 
             // Assert
             Assert.IsTrue(removed, "Remove 须返回 true");
@@ -175,7 +177,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // Act / Assert
             long first = _writer.Place(anchor, ModuleLShape, 0, 0, tick: 1);
             Assert.IsFalse(_world.IsEffectivelyWalkable(anchor));
-            _writer.Remove(first, tick: 2);
+            _writer.Remove(first, tick: 2, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             Assert.IsTrue(_world.IsEffectivelyWalkable(anchor), "第一轮拆除后须恢复");
 
             long second = _writer.Place(anchor, ModuleLShape, 0, 0, tick: 3);
@@ -199,7 +201,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(ModuleLShape, _world.GetModuleAt(anchor),
                 "放置后 `World.GetModuleAt` 须经真注册表报出 module_id");
 
-            _writer.Remove(sid, tick: 2);
+            _writer.Remove(sid, tick: 2, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             Assert.AreEqual(-1, _world.GetModuleAt(anchor), "拆除后须回到 -1");
         }
 
@@ -216,8 +218,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_world_e2e_withoutOccupancyWiring_walkableUnchanged()
         {
             // Arrange: 写者不接 `World`(结构照进注册表,Overlay 不动)
+            var detachedSink = new CapturingSink(_events);
             var detached = new StructureWriter(
-                new CapturingSink(_events), _world.Structures, _encoder, _catalog, new NullOccupancy());
+                detachedSink, _world.Structures, _encoder, _catalog, new NullOccupancy(),
+                DaYiJingCheng.Tests.TestDropWriter.Create(detachedSink));
             var anchor = new WorldPos(2, 0, 2);
 
             // Act
@@ -243,8 +247,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // Arrange: 真烘焙产物(缺 ⇒ 抛,不静默降级 —— DataCookedDisk 的 E-13 口径)
             var realCatalog = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
+            var realSink = new CapturingSink(_events);
             var realWriter = new StructureWriter(
-                new CapturingSink(_events), _world.Structures, _encoder, realCatalog, _world);
+                realSink, _world.Structures, _encoder, realCatalog, _world,
+                DaYiJingCheng.Tests.TestDropWriter.Create(realSink));
             var anchor = new WorldPos(2, 0, 2);
             var second = new WorldPos(3, 0, 2);
 
@@ -257,7 +263,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "真目录两格模块:非锚点足迹格须不可走(只挡锚点 ⇒ 生产数据未真吸收)");
             Assert.AreEqual(2, _world.OccupiedCount);
 
-            realWriter.Remove(sid, tick: 2);
+            realWriter.Remove(sid, tick: 2, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             Assert.IsTrue(_world.IsEffectivelyWalkable(anchor), "真目录:拆除后锚点须恢复");
             Assert.IsTrue(_world.IsEffectivelyWalkable(second), "真目录:拆除后非锚点格须恢复");
         }

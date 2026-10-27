@@ -106,9 +106,24 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         private EventStream _stream;
         private StructureWriter _writer;
 
+        /// <summary>每个 memo 已投递到的**流下标**(游标;memo 诞生时 = 当时的流长度)。</summary>
+        /// <remarks>
+        /// ⚠️ **为什么需要游标而不沿用「投递末条 / 用 `InvalidationCount` 当索引」**
+        /// (2026-10-27 R17 闭合批实测踩过):批 3 起 `StructureWriter.Remove` 是**一因两果** ——
+        /// 先发 `StructureRemoved`(失效键),再追发返还的 `DropSpawned`(**不是**失效键)。
+        /// 于是「投递末条」投到的是 `DropSpawned` ⇒ memo 视作 no-op ⇒ 缓存从不失效 ⇒
+        /// 拆除后返回陈旧值,两条夹具转红,**而产品行为完全正确**。
+        /// 同型的第二处隐患:`InvalidationCount` 数是「被吸收的 `Structure*` 条数」,
+        /// 一旦流里混入非失效键事件,它就**不再等于流下标**,拿它当索引会漏投或重投。
+        /// ⇒ 游标只回答一个问题:「这个 memo 还没看过哪些事件」,与失效键闭集**解耦**。
+        /// </remarks>
+        private System.Collections.Generic.Dictionary<ClinicEnvironmentMemo, int> _feedCursor;
+
         [SetUp]
         public void SetUp()
         {
+            _feedCursor = new System.Collections.Generic.Dictionary<ClinicEnvironmentMemo, int>();
+
             // ── 真 `WorldGeometry`(全格可走;POI / 资源网格填 -1 = 「无」)──
             var terrain = new TerrainCell[Size, 1, Size];
             for (int x = 0; x < Size; x++)
@@ -157,7 +172,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             _pool = new InMemoryBlobPool();
             _encoder = new PayloadEncoder(_pool);
             _stream = new EventStream(new FakeIdAuthority(), new NoPresence());
-            _writer = new StructureWriter(_stream, _world.Structures, _encoder, _modules, _world);
+            _writer = new StructureWriter(_stream, _world.Structures, _encoder, _modules, _world,
+                                          DaYiJingCheng.Tests.TestDropWriter.Create(_stream));
         }
 
         // ══════════════════ ① AC-24-04:双求值逐位(独立实例化)══════════════════
@@ -378,7 +394,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
             // Act:建造第三张床 —— 事件真入流,再投递给 memo
             _writer.Place(new WorldPos(2, 0, 0), ModuleBed, 0, 0, tick: 3);
-            FeedLastEvent(memo);
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation l2 = memo.Get();
 
             // Assert:失效发生
@@ -411,8 +427,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(memo.Get().EnvMod.Raw, Is.EqualTo(2 * EEnvOneSixteenthRaw), "前提:L₁ = ward,EnvMod 8192");
 
             // Act:拆掉一张床
-            Assert.That(_writer.Remove(second, tick: 3), Is.True, "前提:拆除须成功");
-            FeedLastEvent(memo);
+            Assert.That(_writer.Remove(second, tick: 3, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio), Is.True, "前提:拆除须成功");
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation after = memo.Get();
 
             // Assert:不得返回陈旧值
@@ -457,7 +473,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // Act:改第二张床的朝向 —— 真生产路径(StructureWriter.Modify 发 StructureModified)
             Assert.That(_writer.Modify(second, newOrientation: 1, newVariant: null, tick: 3), Is.True,
                 "前提:Modify 须成功(朝向确实变化 ⇒ modified_fields 非 0)");
-            FeedLastEvent(memo);
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation l2 = memo.Get();
 
             // Assert 1:失效发生了(这是本测的主判据 —— 与值是否变化无关)
@@ -565,8 +581,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(memo.GetDto().RoomNameId, Is.EqualTo(1), "前提:L₁ = ward(编号 1)");
 
             // Act:拆一张 ⇒ 无房间类型匹配
-            Assert.That(_writer.Remove(second, tick: 3), Is.True, "前提:拆除须成功");
-            FeedLastEvent(memo);
+            Assert.That(_writer.Remove(second, tick: 3, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio), Is.True, "前提:拆除须成功");
+            FeedPendingEvents(memo);
 
             // Assert
             ClinicEnvDto after = memo.GetDto();
@@ -592,7 +608,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // Act:同 tick(tick=5)连放两张床 —— 两条 StructurePlaced 都入流
             _writer.Place(new WorldPos(0, 0, 0), ModuleBed, 0, 0, tick: 5);
             _writer.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 5);
-            FeedAllPendingEvents(memo);
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation after = memo.Get();
 
             // Assert:终态 = 两床 ⇒ ward
@@ -962,15 +978,17 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             var memo = NewMemo();
             memo.Get();                                                        // 空医馆
             _writer.Place(new WorldPos(2, 0, 0), ModuleSurgeryTable, 0, 0, tick: 1);
-            FeedLastEvent(memo); memo.Get();
+            FeedPendingEvents(memo); memo.Get();
             _writer.Place(new WorldPos(4, 0, 0), ModuleSterileCabinet, 0, 0, tick: 2);
-            FeedLastEvent(memo);
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation replayed = memo.Get();
 
             // ── 路径 B:另起同终态布局的 World,直接求值(零事件投递)──
             World terminal = NewEmptyWorld();
+            var terminalSink = new NullSink();
             var terminalWriter = new StructureWriter(
-                new NullSink(), terminal.Structures, _encoder, _modules, terminal);
+                terminalSink, terminal.Structures, _encoder, _modules, terminal,
+                DaYiJingCheng.Tests.TestDropWriter.Create(terminalSink));
             terminalWriter.Place(new WorldPos(2, 0, 0), ModuleSurgeryTable, 0, 0, tick: 1);
             terminalWriter.Place(new WorldPos(4, 0, 0), ModuleSterileCabinet, 0, 0, tick: 2);
 
@@ -1008,19 +1026,21 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // ── 路径 A:床(0) + 床(1) + 外壳(2) ⇒ 拆外壳 ⇒ 终态 = 两床 ──
             var memo = NewMemo();
             _writer.Place(new WorldPos(0, 0, 0), ModuleBed, 0, 0, tick: 1);
-            FeedLastEvent(memo); memo.Get();
+            FeedPendingEvents(memo); memo.Get();
             _writer.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 2);
-            FeedLastEvent(memo); memo.Get();
+            FeedPendingEvents(memo); memo.Get();
             long shell = _writer.Place(new WorldPos(2, 0, 0), ModuleShell, 0, 0, tick: 3);
-            FeedLastEvent(memo); memo.Get();
-            Assert.That(_writer.Remove(shell, tick: 4), Is.True);
-            FeedLastEvent(memo);
+            FeedPendingEvents(memo); memo.Get();
+            Assert.That(_writer.Remove(shell, tick: 4, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio), Is.True);
+            FeedPendingEvents(memo);
             ClinicEnvEvaluation replayed = memo.Get();
 
             // ── 路径 B:直接两床 ──
             World terminal = NewEmptyWorld();
+            var terminalSink = new NullSink();
             var terminalWriter = new StructureWriter(
-                new NullSink(), terminal.Structures, _encoder, _modules, terminal);
+                terminalSink, terminal.Structures, _encoder, _modules, terminal,
+                DaYiJingCheng.Tests.TestDropWriter.Create(terminalSink));
             terminalWriter.Place(new WorldPos(0, 0, 0), ModuleBed, 0, 0, tick: 1);
             terminalWriter.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 2);
 
@@ -1045,24 +1065,30 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             return ClinicEnvironmentEvaluator.Evaluate(view, _furniture, _rooms, _contexts, _adj);
         }
 
-        /// <summary>新建 memo(接本 fixture 的真 World 与四份真表)。</summary>
+        /// <summary>新建 memo(接本 fixture 的真 World 与四份真表),并把它的流游标定位到**当前流尾**
+        /// (新 memo 只关心此后发生的事;此前的事件由构造时的布局快照已体现)。</summary>
         private ClinicEnvironmentMemo NewMemo()
-            => new ClinicEnvironmentMemo(
+        {
+            var memo = new ClinicEnvironmentMemo(
                 _world.Structures, _modules, _furniture, _rooms, _contexts, _adj,
                 _roomNames, _contextNames);
+            _feedCursor[memo] = _stream.Events.Count;
+            return memo;
+        }
 
-        /// <summary>把**最后一条**入流事件投递给 memo(单条变更的常规投递形)。</summary>
-        private void FeedLastEvent(ClinicEnvironmentMemo memo)
-            => memo.Apply(_stream.Events[_stream.Events.Count - 1]);
-
-        /// <summary>把**尚未投递过**的事件全部投递给 memo(批量变更 / 同 tick 多事件)。
-        /// <para>⚠️ 计数基线取自 memo 自己的 `InvalidationCount` —— 本测不另立游标状态。</para>
+        /// <summary>把 memo **尚未看过**的事件全部投递给它。
+        /// <para>⚠️ 语义是「自上次投递以来新增的全部事件」,**不是**「最后一条」——
+        /// 一批写者动作可以产出多条事件(`Remove` = `StructureRemoved` + 返还 `DropSpawned`),
+        /// 而**:只有失效键会改缓存、其余是 no-op** ⇒ 漏投失效键 = 静默返回陈旧值。
+        /// 逐条投递的顺序与流内顺序一致(重放形)。</para>
         /// </summary>
-        private void FeedAllPendingEvents(ClinicEnvironmentMemo memo)
+        private void FeedPendingEvents(ClinicEnvironmentMemo memo)
         {
-            int start = memo.InvalidationCount;
+            if (!_feedCursor.TryGetValue(memo, out int start))
+                start = 0;                      // 非 `NewMemo` 造的 memo:从流头补全
             for (int i = start; i < _stream.Events.Count; i++)
                 memo.Apply(_stream.Events[i]);
+            _feedCursor[memo] = _stream.Events.Count;
         }
 
         /// <summary>另起一个同尺寸的空 `World`(重放等价的路径 B 用)。</summary>

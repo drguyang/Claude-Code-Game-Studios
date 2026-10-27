@@ -169,8 +169,10 @@ namespace DaYiJingCheng.Tests.PlayMode.ClinicMachine
                 ? new BuildModulesCatalog(new AddressablesDataProvider().Load<BuildModulesDataSet>())
                 : new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
 
-            return new StructureWriter(new NullSink(), registry, new PayloadEncoder(new InMemoryBlobPool()),
-                                       catalogue, new NoopOccupancy());
+            var sink = new NullSink();
+            return new StructureWriter(sink, registry, new PayloadEncoder(new InMemoryBlobPool()),
+                                       catalogue, new NoopOccupancy(),
+                                       DaYiJingCheng.Tests.PlayMode.TestDropWriter.Create(sink));
         }
 
         // ══════════════════ 测试替身(无判据)══════════════════

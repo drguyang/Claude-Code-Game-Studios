@@ -9,6 +9,10 @@
 //   - 主机唯一 Append(通过构造时传入的 IEventSink)
 //   - 全部整数载荷,无 float
 //   - **载荷编码经 IPayloadEncoder**(ADR-029 §③:零手搓 PayloadRef)
+//   - **拆除返还 = 另发一条 DropSpawned**(2026-10-27 · R17 闭合批 ·
+//     用户裁定「地面掉落」)。返还物进**世界流**、由 20 落地(写者 = `DropEventWriter`),
+//     23 只触发不写 —— 与 `entities.yaml` `DropSpawned.author` 的
+//     「落地写者 = 20 / 触发方」口径一致。详见 `Remove` 的 remarks。
 //
 // ⚠️ 2026-10-02(ADR-029 接线支 Story 007)删除本文件内的三支 payload struct 副本:
 //   StructurePlacedPayload / StructureRemovedPayload / StructureModifiedPayload
@@ -168,6 +172,7 @@ namespace DaYiJingCheng.Sim.World
         private readonly IPayloadEncoder _encoder;
         private readonly IModuleCatalog _moduleCatalog;
         private readonly IWorldOccupancy _occupancy;
+        private readonly DropEventWriter _dropWriter;
         private long _nextStructureId = 1;
 
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
@@ -177,22 +182,39 @@ namespace DaYiJingCheng.Sim.World
         /// 本类内不得出现 <c>new PayloadRef(</c>(ADR-029 §③ 的门判据)。
         /// </param>
         /// <param name="moduleCatalog">
-        /// 模块目录 —— 用于取 `LocalOccupancy` 算**真足迹**(C1)。
+        /// 模块目录 —— 用于取 `LocalOccupancy` 算**真足迹**(C1),
+        /// 以及拆除时取 `Cost`(算返还量)与 `BuildItemKey`(返还算哪个物品)。
         /// </param>
         /// <param name="occupancy">
         /// 世界占用表写面 —— **放置/拆除须同步 Overlay**(C2)。
         /// 可传 null 表示「不接线」(向后兼容;但 F-23-1 对已放置结构将不生效)。
         /// </param>
+        /// <param name="dropWriter">
+        /// 20 的三支掉落写者(2026-10-27 R17 闭合批新增)—— 拆除返还物由
+        /// **23 触发、20 落地**(`entities.yaml` `DropSpawned.author`:落地写者 = 20)。
+        /// <para>⚠️ <b>必填,构造期 fail-closed(N-r1 同口径)</b>:<c>null</c> ⇒ 构造抛。
+        /// 若做成可选 + 默认 null,「忘了接线」会退化成**拆除静默不返还** —— 那正是
+        /// 2026-10-03 评审 C1/C2 判过的形态(C1 = 占用集退化、C2 = Overlay 不写),
+        /// 且当时已有测试把退化路径断言为正确行为。本批不再重犯:不可省的东西不进默认值。</para>
+        /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="eventSink"/> /
+        /// <paramref name="registry"/> / <paramref name="encoder"/> /
+        /// <paramref name="dropWriter"/> 任一为 null。</exception>
         public StructureWriter(IEventSink eventSink, StructureInstanceRegistry registry,
                                IPayloadEncoder encoder,
                                IModuleCatalog moduleCatalog = null,
-                               IWorldOccupancy occupancy = null)
+                               IWorldOccupancy occupancy = null,
+                               DropEventWriter dropWriter = null)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
             _moduleCatalog = moduleCatalog;
             _occupancy = occupancy;
+            _dropWriter = dropWriter ?? throw new ArgumentNullException(nameof(dropWriter),
+                "未注入 DropEventWriter —— 拆除返还物由 23 触发、20 落地(DropSpawned),"
+                + "静默不返还 = 吞玩家材料,且与 AC-23-16「不静默吞返还」直接冲突。"
+                + "确实不需要返还的测试请显式传一个带 CapturingSink 的真写者(可 grep 的声明)。");
         }
 
         /// <summary>下一个可用 structure_id(不递增,仅预览)。</summary>
@@ -247,9 +269,42 @@ namespace DaYiJingCheng.Sim.World
             return structureId;
         }
 
-        /// <summary>拆除模块(Append StructureRemoved 事件)。</summary>
-        public bool Remove(long structureId, long tick)
+        /// <summary>拆除模块(Append <c>StructureRemoved</c>,并按 F-23-3 返还)。</summary>
+        /// <param name="structureId">待拆结构(合法性由 <see cref="DemolishChecker.Check"/> 判 ——
+        /// 本方法不重复判定,与既有分工一致)。</param>
+        /// <param name="tick">拆除 tick。</param>
+        /// <param name="demolishRefundRatio">返还率 `DEMOLISH_REFUND_RATIO`(**Q16.16 raw**;
+        /// P0 恒 `65536` = 1.0 全额返还)。</param>
+        /// <returns>拆除是否发生(结构不存在 ⇒ <c>false</c>,零事件)。</returns>
+        /// <remarks>
+        /// <para><b>返还链(2026-10-27 R17 闭合批 · 用户裁定「地面掉落」)</b>:
+        /// 拆除后按 F-23-3 算 <c>Refund = ⌊cost(m) × R⌋</c>,经
+        /// <see cref="DropEventWriter.RecordSpawned"/> 发一条**普通 <c>DropSpawned</c>** ——
+        /// 锚点 = 被拆结构锚点格、<c>item_key</c> = <c>module.BuildItemKey</c>、
+        /// <c>qty</c> = Refund、id 由 20 侧经 `IIdAuthority` 铸造。</para>
+        /// <para>⚠️ <b>与 EC-23-11 原文的关系(收窄,已在 GDD 就地加注)</b>:原文把
+        /// 「走 20 的标准入库路径」定为**成功分支**,仅「失败 = 掉落在地上」。P0 无 20 侧
+        /// 结算路径(拾取/入库编排未落)⇒ 本批把**成功分支也走地面掉落**。语义上仍是
+        /// 「返还物进世界、不吞」,变的是它落在哪 —— 玩家走过来捡即可。
+        /// 这是**收窄不是重设计**:`DropSpawned` 一支事件覆盖两种分支,P1b 接上入库路径时
+        /// 只需在成功分支改发 `DropClaimed`,事件形状不变。</para>
+        /// <para>⚠️ <b>为什么返还不由 fold 兜底</b>:fold 只看得到流里**有**什么,
+        /// 看不到「本该有而没有」的 <c>DropSpawned</c>(那要一份「应发清单」= 第二真源)。
+        /// ⇒ AC-23-16 的「不静默吞返还」判据落在**本类的测试**(spy-sink 断事件存在),
+        /// 不在 fold(`InventoryFold.cs` 的 `StructureRemoved` 分支已就地写明)。</para>
+        /// <para>⚠️ <b>返还量为 0 或模块不可返还 ⇒ 不发事件</b>:<c>qty = 0</c> 的
+        /// <c>DropSpawned</c> 是畸形载荷(`DropEventWriter.ValidateSpawned` 直接拒),
+        /// 而 <c>refundable = false</c> 的消耗性家具本就无返还(EC-23-08)。
+        /// 两种情形都**不是**「吞返还」—— 没有可返还之物。</para>
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="demolishRefundRatio"/>
+        /// &lt; 0(Q16.16 raw 不得为负;0 = 零返还,合法)。</exception>
+        public bool Remove(long structureId, long tick, int demolishRefundRatio)
         {
+            if (demolishRefundRatio < 0)
+                throw new ArgumentOutOfRangeException(nameof(demolishRefundRatio),
+                    demolishRefundRatio, "返还率是 Q16.16 raw,不得为负(0 = 零返还,合法)");
+
             if (!_registry.TryGet(structureId, out var inst))
                 return false;
 
@@ -266,7 +321,39 @@ namespace DaYiJingCheng.Sim.World
             var evt = new SimEvent(tick, PatientId.None, -1 /* 未发号哨兵 O-1 */, EventKind.StructureRemoved, payload);
             _eventSink.Append(evt);
 
+            // ── 返还(F-23-3)—— 在 StructureRemoved **之后**发 ──────────────
+            //    ⚠️ 顺序有意义:拆除是**因**,返还是**果**。同 tick 相邻 Seq 由
+            //    `EventStream` 按写入序自发(O-1),故「先 Removed 后 DropSpawned」
+            //    在流里是稳定可读的因果序,不靠 tick 区分。
+            EmitRefund(inst, tick, demolishRefundRatio);
+
             return true;
+        }
+
+        /// <summary>按 F-23-3 发返还 <c>DropSpawned</c>(`Remove` 的尾部;零返还时静默不发)。</summary>
+        private void EmitRefund(in StructureInstance inst, long tick, int demolishRefundRatio)
+        {
+            // 目录缺失 / 模块不在目录 ⇒ 无 cost 与 build_item_key 真源 ⇒ 不返还。
+            // ⚠️ 这是**可观测**的静默:Place 侧对同一情形是 fail-closed 抛(无目录算不出足迹),
+            //    拆除侧不能抛 —— 那会让「旧存档里已不存在的 module_id」把拆解整个炸掉
+            //    (EC-23-07:目录漂移下结构**保留为不透明实例**,不是让世界停摆)。
+            //    ⇒ 此处记 Debug 级不变量失败由既有「不透明实例」路径承担,本方法直接返回。
+            if (_moduleCatalog == null) return;
+            ModuleDefinition? defOpt = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
+            if (!defOpt.HasValue) return;
+
+            ModuleDefinition def = defOpt.Value;
+
+            // refundable = 0 ⇒ 消耗性家具,无返还(EC-23-08 的 `refundable = false` 档)
+            if (def.Refundable == 0) return;
+
+            int refund = RefundCalculator.CalculateRefund(def.Cost, demolishRefundRatio);
+            if (refund <= 0) return;   // 零返还 ≠ 吞返还(qty=0 的实例不该存在)
+
+            // ⚠️ **自有写者自铸**:本类持 `DropEventWriter`(它持 `IIdAuthority`),
+            //    调 `RecordSpawned` 让 20 侧铸号 —— 23 不碰 `IIdAuthority`,
+            //    避免出现第二个铸造点(承 S20-15 R-3 双铸造点冲突的订正)。
+            _dropWriter.RecordSpawned(tick, inst.Anchor, def.BuildItemKey, refund);
         }
 
         /// <summary>修改模块(朝向/变体,Append StructureModified 事件)。</summary>

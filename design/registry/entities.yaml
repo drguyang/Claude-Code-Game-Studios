@@ -2542,11 +2542,12 @@ constants:
       - design/gdd/inventory-and-items.md                          # 20:fold 读方
       - design/gdd/foraging.md                                     # 17:采集三连发(Amendment K)
       - design/gdd/death-and-respawn.md                            # 29:玩家死亡掉落清单
+      - design/gdd/modular-building.md                             # 23:拆除返还触发(EC-23-11 · 2026-10-27 R17 闭合批)
     unit: kind
     stream: world
-    author: "20 库存与物品(落地写者;触发方 ∈ {17 / 18 / 25 / 29} 见 constraint)"
+    author: "20 库存与物品(落地写者;触发方 ∈ {17 / 18 / 23 / 25 / 29} 见 constraint)"
     payload_schema: "instance_id: i64; spawn_anchor: 格 WorldPos; item_key: i32(物品表 ordinal); qty: i32"
-    constraint: "落**世界流**(ADR-009 §二/§五);载荷 = { instance_id, spawn_anchor, item_key, qty }(全整数);`instance_id` 由 `IIdAuthority.ItemInstanceId.Next()` 发放,**不本地铸造**(D-21-27);`spawn_anchor` = 出生锚点,**格坐标 WorldPos**(ADR-015 §三 就地修订,原「定点坐标」作废 —— 空间位置一律整数格);**位置 / 物理轨迹不进流**(表现态,走 45 网络层,重建从 7a 快照取,§五);`Patient = PatientId.None`;**落地写者 = 20** —— 触发方 ∈ {17 采集三连发 / 18 起货溢出派生 / 25 敌人死亡 / 29 玩家死亡},⚠️ 17 侧「主机同 tick 连发」未逐字点名 Drop* 两支写者,本登记采 ADR-009 §三/§五 + Amendment J ④ 的一致口径(18 溢出「由 20 派生、18 不写」明文),实现期若 17 GDD 改口径回改本条;有界性 ≤ 玩家携带量上界(库存容量,每实例一件,死亡一次性落地,随后只减不增)"
+    constraint: "落**世界流**(ADR-009 §二/§五);载荷 = { instance_id, spawn_anchor, item_key, qty }(全整数);`instance_id` 由 `IIdAuthority.ItemInstanceId.Next()` 发放,**不本地铸造**(D-21-27);`spawn_anchor` = 出生锚点,**格坐标 WorldPos**(ADR-015 §三 就地修订,原「定点坐标」作废 —— 空间位置一律整数格);**位置 / 物理轨迹不进流**(表现态,走 45 网络层,重建从 7a 快照取,§五);`Patient = PatientId.None`;**落地写者 = 20** —— 触发方 ∈ {17 采集三连发 / 18 起货溢出派生 / **23 拆除返还** / 25 敌人死亡 / 29 玩家死亡},⚠️ 17 侧「主机同 tick 连发」未逐字点名 Drop* 两支写者,本登记采 ADR-009 §三/§五 + Amendment J ④ 的一致口径(18 溢出「由 20 派生、18 不写」明文),实现期若 17 GDD 改口径回改本条;有界性 ≤ 玩家携带量上界(库存容量,每实例一件,死亡一次性落地,随后只减不增)"
     added: 2026-09-20
     revised: ""
 

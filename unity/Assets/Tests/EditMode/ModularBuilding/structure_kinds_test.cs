@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
@@ -20,6 +21,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         private StructureWriter _writer;
         private List<SimEvent> _appendedEvents;
         private InMemoryBlobPool _pool;
+        private IPayloadEncoder _encoder;
+        /// <summary>目录(提为字段 —— 「消耗性模块」类夹具须在 `Place` 前改造它)。</summary>
+        private MinimalModuleCatalog _catalog;
 
         [SetUp]
         public void Setup()
@@ -29,13 +33,19 @@ namespace DaYiJingCheng.Tests.ModularBuilding
 
             // ADR-029 §③:载荷编码经 IPayloadEncoder —— 测试用内存池
             _pool = new InMemoryBlobPool();
-            var encoder = new PayloadEncoder(_pool);
+            _encoder = new PayloadEncoder(_pool);
+            _catalog = new MinimalModuleCatalog();
 
             // Mock IEventSink
             var mockSink = new MockEventSink(evt => _appendedEvents.Add(evt));
-            // ⚠️ N-r1:fail-closed 要求注入目录/占用表(生产路径不得静默退化)
-            _writer = new StructureWriter(mockSink, _registry, encoder,
-                                          new MinimalModuleCatalog(), new NoopOccupancy());
+            // ⚠️ N-r1:fail-closed 要求注入目录/占用表/掉落写者(生产路径不得静默退化)
+            // ⚠️ 掉落写者用**同一个 sink** ⇒ 一条 `_appendedEvents` 里同时看得到
+            //    `StructureRemoved` 与它触发的 `DropSpawned`(因果序可直接断言)。
+            // ⚠️ 池必须与 `PayloadOf` 用的 `_pool` **同一个** —— 否则本文件回读载荷
+            //    会从错误的池里取到零值(2026-10-27 实测:事件在、字段全 0)。
+            _writer = new StructureWriter(mockSink, _registry, _encoder,
+                                          _catalog, new NoopOccupancy(),
+                                          DaYiJingCheng.Tests.TestDropWriter.Create(mockSink, _pool));
         }
 
         /// <summary>经池 + codec 取回强类型载荷(ADR-029 的合法读路径)。</summary>
@@ -66,25 +76,146 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         // AC-23-10: Remove 事件
+        // ⚠️ 2026-10-27 R17 闭合批:断言从「恰 1 条」改为「恰 2 条且因果有序」——
+        //    拆除触发的返还 `DropSpawned` 是**新增的正确行为**(EC-23-11 / AC-23-16)。
+        //    `MinimalModuleCatalog` 的 cost = 1、R = 1.0 ⇒ refund = 1 ⇒ 必发一条。
+        //    「不吞返还」的正向判据见 `test_r17_remove_emitsRefundDropSpawned`。
         [Test]
         public void test_remove_emitsStructureRemoved()
         {
             long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _appendedEvents.Clear();
 
-            bool removed = _writer.Remove(sid, 101);
+            bool removed = _writer.Remove(sid, 101, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             Assert.IsTrue(removed);
-            Assert.AreEqual(1, _appendedEvents.Count);
-            Assert.AreEqual(EventKind.StructureRemoved, _appendedEvents[0].Kind);
+            Assert.AreEqual(2, _appendedEvents.Count,
+                "拆除 = StructureRemoved + 返还 DropSpawned 两条(2026-10-27 R17 闭合)");
+            Assert.AreEqual(EventKind.StructureRemoved, _appendedEvents[0].Kind,
+                "拆除是**因**,须先发");
+            Assert.AreEqual(EventKind.DropSpawned, _appendedEvents[1].Kind,
+                "返还是**果**,须后发(同 tick 相邻 Seq 由写入序自然得到)");
         }
 
         // AC-23-10: Remove 不存在的 id 返回 false
         [Test]
         public void test_remove_nonexistent_returnsFalse()
         {
-            bool removed = _writer.Remove(999, 100);
+            bool removed = _writer.Remove(999, 100, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             Assert.IsFalse(removed);
             Assert.AreEqual(0, _appendedEvents.Count);
+        }
+
+        // ══════════ AC-23-16:拆除返还走 DropSpawned(spy-sink · 2026-10-27)══════════
+        //
+        // 判据载体说明(`modular-building.md:558` AC-23-16 的评审判定):
+        //   「`refund_cases.json` 含『20 库存满』用例 + spy-sink 断言 `DropSpawned` 存在;
+        //     `DropSpawned` 发出者 = 20 结算(23 触发),归 20 侧测试文件」
+        //   ⇒ 本组夹具断的正是「23 侧触发**真的发生了**」。20 侧的落地(载荷字节、
+        //     id 铸造)由 `DropEventWriter` 自己的测试覆盖,本文件不重复。
+
+        /// <summary>AC-23-16 正向:拆除返还必须发出一条 <c>DropSpawned</c>,
+        /// 且 <c>qty</c> / <c>item_key</c> / <c>spawn_anchor</c> 三者逐项正确。</summary>
+        [Test]
+        public void test_r17_remove_emitsRefundDropSpawned()
+        {
+            var anchor = new WorldPos(4, 0, 7);
+            long sid = _writer.Place(anchor, 1, 0, 0, tick: 100);
+            _appendedEvents.Clear();
+
+            _writer.Remove(sid, tick: 101,
+                DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
+
+            // ⚠️ **因果序**(2026-10-27 证伪轮补):变异 Q 把 `EmitRefund` 挪到
+            //    `StructureRemoved` 的 `Append` **之前**(果先于因),本条原先用
+            //    `Single(e => e.Kind == DropSpawned)` 按种类定位 ⇒ **对顺序零判别力**,
+            //    当时只靠另一条夹具的 `[0]/[1]` 下标断言才转红。此处把顺序钉在本条自己身上:
+            //    「拆除是因、返还是果」必须可由本条独立判定。
+            Assert.AreEqual(EventKind.StructureRemoved, _appendedEvents[0].Kind,
+                "因须先于果:第一条是拆除");
+            Assert.AreEqual(EventKind.DropSpawned, _appendedEvents[1].Kind,
+                "因须先于果:第二条才是返还(同 tick 相邻 Seq 由写入序自发)");
+
+            SimEvent drop = _appendedEvents.Single(e => e.Kind == EventKind.DropSpawned);
+            DropSpawnedPayload p = PayloadOf<DropSpawnedPayload>(drop);
+
+            // MinimalModuleCatalog: cost = 1, buildItemKey = 0;R = 1.0 ⇒ refund = 1
+            Assert.AreEqual(1, p.Qty, "Refund = ⌊cost × R⌋ = ⌊1 × 1.0⌋ = 1(F-23-3)");
+            Assert.AreEqual(0, p.ItemKey, "item_key 取自 module.BuildItemKey(不是猜的)");
+            Assert.AreEqual(anchor, p.SpawnAnchor, "返还物落在**被拆结构的锚点格**(地面掉落)");
+            Assert.AreEqual(PatientId.None, drop.Patient, "世界流事件不污染 max(patient_id)");
+        }
+
+        /// <summary>AC-23-16 反向:结构不存在 ⇒ 零事件(<b>不</b>发幻影返还)。</summary>
+        [Test]
+        public void test_r17_removeNonexistent_emitsNoRefund()
+        {
+            Assert.IsFalse(_writer.Remove(999, tick: 100,
+                DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio));
+            Assert.AreEqual(0, _appendedEvents.Count,
+                "拆不存在的结构 ⇒ 既无 StructureRemoved 也无 DropSpawned");
+        }
+
+        /// <summary>AC-23-16 边界:<c>R = 0</c> ⇒ <c>Refund = 0</c> ⇒ **不发** <c>DropSpawned</c>
+        /// (qty = 0 的实例不该存在,`DropEventWriter` 会直接拒)。</summary>
+        [Test]
+        public void test_r17_zeroRefundRatio_emitsStructureRemovedOnly()
+        {
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, tick: 100);
+            _appendedEvents.Clear();
+
+            Assert.IsTrue(_writer.Remove(sid, tick: 101, demolishRefundRatio: 0),
+                "零返还率下拆除**本身仍成功** —— 只是无物可返");
+
+            Assert.AreEqual(1, _appendedEvents.Count);
+            Assert.AreEqual(EventKind.StructureRemoved, _appendedEvents[0].Kind,
+                "Refund = 0 ⇒ 无 DropSpawned(零返还 ≠ 吞返还:没有可返还之物)");
+        }
+
+        /// <summary>AC-23-16 边界(EC-23-08):<c>refundable = 0</c> 的**消耗性**模块 ⇒
+        /// 拆除仍成功、<b>但不发</b> <c>DropSpawned</c>(消耗品本无物可返)。</summary>
+        /// <remarks>
+        /// ⚠️ **本条是 2026-10-27 证伪轮补的**:变异 K(停用 `Refundable == 0` 守卫)
+        /// 在加入本条之前**全绿 96/96** ⇒ 该守卫零判别力。根因在夹具而非产品:
+        /// `MinimalModuleCatalog.Add` 走 `ModuleDefinition` 的可选形参 `refundable`,恒取 1,
+        /// 于是**没有任何夹具造得出消耗性模块**。⇒ 同批给目录加了 `AddConsumable`。
+        /// <para>与 <see cref="test_r17_zeroRefundRatio_emitsStructureRemovedOnly"/> 的区别:
+        /// 那条是**返还率 = 0**(玩家侧调参),本条是**模块不可返**(内容侧属性)——
+        /// 两条走的是 `EmitRefund` 里**不同**的守卫,须各有一条变异。</para>
+        /// </remarks>
+        [Test]
+        public void test_r17_nonRefundableModule_emitsNoDropSpawned()
+        {
+            const int ConsumableModuleId = 77;
+            _catalog.AddConsumable(ConsumableModuleId, new[] { new WorldPos(0, 0, 0) });
+            long sid = _writer.Place(new WorldPos(2, 0, 2), ConsumableModuleId, 0, 0, tick: 100);
+            _appendedEvents.Clear();
+
+            Assert.IsTrue(_writer.Remove(sid, tick: 101,
+                    DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio),
+                "消耗性模块**仍可拆**(拆除不是返还的前置 —— 返还率再高也不返)");
+
+            Assert.AreEqual(1, _appendedEvents.Count,
+                "refundable = 0 ⇒ 只有 StructureRemoved(EC-23-08 的消耗性档)");
+            Assert.AreEqual(EventKind.StructureRemoved, _appendedEvents[0].Kind);
+            Assert.IsFalse(_appendedEvents.Any(e => e.Kind == EventKind.DropSpawned),
+                "消耗性家具无返还物 —— 发 DropSpawned 会有凭空变出的材料");
+        }
+
+        /// <summary>AC-23-16 契约:<c>dropWriter</c> 为 null ⇒ **构造期** fail-closed
+        /// (N-r1 同口径 —— 不可省的东西不进默认值)。</summary>
+        [Test]
+        public void test_r17_noDropWriter_throwsAtConstruction()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(
+                () => new StructureWriter(new MockEventSink(_ => { }), _registry, _encoder,
+                                          new MinimalModuleCatalog(), new NoopOccupancy()),
+                "未注入 DropEventWriter ⇒ 构造期即抛(不是拖到 Remove 才静默不返还)");
+            // ⚠️ `ParamName` 是**形参名**(`dropWriter`),不是类型名 —— 2026-10-27 实测踩过。
+            //    判据用 `Contains("dropWriter")` 而非 `"DropEventWriter"`。
+            Assert.AreEqual("dropWriter", ex.ParamName,
+                "须是因缺 dropWriter 形参而抛(不是别的原因被撞上)");
+            StringAssert.Contains("DropEventWriter", ex.Message,
+                "消息须点明缺的是什么类型 —— 只给形参名读者看不出该补哪个依赖");
         }
 
         // AC-23-11: Modify 只载物理形态位
@@ -123,7 +254,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 构造事件序列
             _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);   // id=1
             long sid2 = _writer.Place(new WorldPos(1, 0, 0), 2, 0, 0, 101); // id=2
-            _writer.Remove(sid2, 102);
+            _writer.Remove(sid2, 102, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
             _writer.Modify(1, newOrientation: 90, newVariant: null, 200);
 
             // 重建 —— ⚠️ 2026-10-02(ADR-029 接线支):原实现读 `Payload.BlobId` 当 structure_id,
@@ -242,6 +373,18 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             new System.Collections.Generic.Dictionary<int, ModuleDefinition>();
         public void Add(int id, WorldPos[] local) =>
             _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 }, cost: 1, buildItemKey: 0);
+
+        /// <summary>登记一个**消耗性**模块(`refundable = 0`,EC-23-08 档)。</summary>
+        /// <remarks>
+        /// ⚠️ **此重载的存在理由是 2026-10-27 证伪轮实测出的覆盖缺口**:变异 K
+        /// (停用 `if (def.Refundable == 0) return;`)在加入本重载前**全绿 96/96** ——
+        /// 即「消耗性家具不返还」这条生产判据在整套夹具里**零判别力**。
+        /// 根因:无参 `Add` 硬编码 `new ModuleDefinition(...)`,而 `refundable` 是**可选形参**
+        /// 恒取默认 1 ⇒ 夹具**造不出**消耗性模块,判据再对也没人能测它。
+        /// </remarks>
+        public void AddConsumable(int id, WorldPos[] local) =>
+            _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 },
+                                             cost: 1, buildItemKey: 0, refundable: 0);
         /// <summary>任意 id 都返回单格定义(本文件不测足迹)。</summary>
         public ModuleDefinition? GetModuleDefinition(int moduleId)
         {

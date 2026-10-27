@@ -89,8 +89,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
             // 真写者:真目录 + 真注册表(occupancy 传 null ⇒ 只测注册表侧;
             // 本测不判 Overlay —— `IsEffectivelyWalkable` 另有一测,见下)
-            _writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                          _catalogue, occupancy: new NoopOccupancy());
+            var sink = new CapturingSink(_events);
+            _writer = new StructureWriter(sink, _registry, _encoder,
+                                          _catalogue, occupancy: new NoopOccupancy(),
+                                          dropWriter: DaYiJingCheng.Tests.TestDropWriter.Create(sink));
         }
 
         /// <summary>经**真装配**构造匹配服务(不是 `new ClinicRoomMatchingService(...)` 手接)。</summary>
@@ -302,7 +304,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             CompositionRootServices bag = AssembleWithRealRegistry();
             Assert.That(bag.ClinicRoomMatching.Match().RoomType, Is.EqualTo("ward"), "前提:两床 ⇒ ward");
 
-            Assert.That(_writer.Remove(a, tick: 3), Is.True);
+            Assert.That(_writer.Remove(a, tick: 3, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio), Is.True);
             ClinicRoomMatchOutcome after = bag.ClinicRoomMatching.Match();
 
             Assert.That(after.RoomType, Is.Not.EqualTo("ward"),

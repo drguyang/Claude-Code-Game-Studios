@@ -34,9 +34,11 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             _encoder = new PayloadEncoder(_pool);
             _registry = new StructureInstanceRegistry();
             _events = new List<SimEvent>();
+            var sink = new CapturingSink(_events);
             _writer = new StructureWriter(
-                new CapturingSink(_events), _registry, _encoder,
-                new MinimalModuleCatalog(), new NoopOccupancy());   // N-r1:注入以过 fail-closed
+                sink, _registry, _encoder,
+                new MinimalModuleCatalog(), new NoopOccupancy(),          // N-r1:注入以过 fail-closed
+                DaYiJingCheng.Tests.TestDropWriter.Create(sink));
         }
 
         private T PayloadOf<T>(SimEvent evt) where T : struct
@@ -69,7 +71,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             long sid = _writer.Place(new WorldPos(5, 0, 6), 7, 180, 1, 100);
             _events.Clear();
 
-            Assert.IsTrue(_writer.Remove(sid, 101));
+            Assert.IsTrue(_writer.Remove(sid, 101, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio));
             var p = PayloadOf<StructureRemovedPayload>(_events[0]);
             Assert.AreEqual(sid, p.StructureId);
             Assert.AreEqual(new WorldPos(5, 0, 6), p.Cell);
@@ -157,8 +159,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_ac2334_writerRequiresEncoder()
         {
+            var sink = new CapturingSink(new List<SimEvent>());
             Assert.Throws<ArgumentNullException>(
-                () => new StructureWriter(new CapturingSink(new List<SimEvent>()), _registry, null),
+                () => new StructureWriter(sink, _registry, null,
+                                          dropWriter: DaYiJingCheng.Tests.TestDropWriter.Create(sink)),
                 "encoder 为 null 须抛(唯一编码路径不可省)");
         }
 

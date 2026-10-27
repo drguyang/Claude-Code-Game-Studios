@@ -56,8 +56,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog, new NoopOccupancy());
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog, new NoopOccupancy(),
+                                             DaYiJingCheng.Tests.TestDropWriter.Create(sink));
 
             long sid = writer.Place(new WorldPos(10, 0, 10), moduleId: 7, orientation: 0, variant: 0, tick: 1);
 
@@ -74,8 +76,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 同源性:Register 用的足迹须 == PlaceableChecker 对同一模块/朝向算出的足迹
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog, new NoopOccupancy());
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog, new NoopOccupancy(),
+                                             DaYiJingCheng.Tests.TestDropWriter.Create(sink));
 
             var anchor = new WorldPos(3, 0, 4);
             long sid = writer.Place(anchor, 7, orientation: 90, variant: 0, tick: 1);
@@ -96,8 +100,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
             var occupancy = new SpyOccupancy();
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog, occupancy);
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog, occupancy,
+                                             DaYiJingCheng.Tests.TestDropWriter.Create(sink));
 
             writer.Place(new WorldPos(10, 0, 10), 7, 0, 0, tick: 1);
 
@@ -112,11 +118,13 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
             var occupancy = new SpyOccupancy();
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog, occupancy);
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog, occupancy,
+                                             DaYiJingCheng.Tests.TestDropWriter.Create(sink));
 
             long sid = writer.Place(new WorldPos(10, 0, 10), 7, 0, 0, tick: 1);
-            writer.Remove(sid, tick: 2);
+            writer.Remove(sid, tick: 2, DaYiJingCheng.Tests.TestDropWriter.P0RefundRatio);
 
             Assert.AreEqual(1, occupancy.FreeCalls, "C2:Remove 须调用 FreeCells");
             Assert.AreEqual(2, occupancy.LastFreed.Count, "须释放**完整足迹**");
@@ -130,7 +138,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // ⚠️ **2026-10-03 反转**:初版本测名为 `noCatalog_noOccupancy_noThrow`,
             //    断言「不抛」—— 那等于把 **C1/C2 的静默退化路径合法化**(第二轮评审 N-r1)。
             //    现改为 **fail-closed**:无目录 ⇒ 抛。
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder);
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             dropWriter: DaYiJingCheng.Tests.TestDropWriter.Create(sink));
             var ex = Assert.Throws<InvalidOperationException>(
                 () => writer.Place(new WorldPos(1, 0, 1), 7, 0, 0, tick: 1),
                 "未注入 IModuleCatalog ⇒ 须 fail-closed(静默兜底 {anchor} = C1 复现)");
@@ -142,8 +152,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // moduleId 不在目录 ⇒ 不得拿 {anchor} 冒充真足迹
             var catalog = new StubCatalog();   // 空目录
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog, new NoopOccupancy());
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog, new NoopOccupancy(),
+                                             DaYiJingCheng.Tests.TestDropWriter.Create(sink));
             Assert.Throws<InvalidOperationException>(
                 () => writer.Place(new WorldPos(1, 0, 1), 999, 0, 0, tick: 1),
                 "moduleId 不在目录 ⇒ fail-closed");
@@ -157,8 +169,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             catalog.Add(7, LShapeLocal);
             // ⚠️ 本用例**刻意不传** occupancy(上一轮我的批量替换误加了 `NoopOccupancy`,
             //    致该测失去判据 —— 已修正)
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
-                                             catalog);
+            var sink = new CapturingSink(_events);
+            var writer = new StructureWriter(sink, _registry, _encoder,
+                                             catalog,
+                                             dropWriter: DaYiJingCheng.Tests.TestDropWriter.Create(sink));
             var ex = Assert.Throws<InvalidOperationException>(
                 () => writer.Place(new WorldPos(1, 0, 1), 7, 0, 0, tick: 1),
                 "未注入 IWorldOccupancy ⇒ 须 fail-closed(C2:Overlay 不写)");
