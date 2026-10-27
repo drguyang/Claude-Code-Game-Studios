@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `StackKey = (item_key, quality)` 从 21a 取,20 侧零重定义点;`stack_max`/`weight` 按 int 参与整数运算;容器实例 qty 恒 1(不变量断言);折重 = `自重 + Σ 子件 weight×qty`(整数);摆放序 = 纯 `instance_id` 升序函数(可重放、无第三输入)
 - Forbidden: 嵌套容器(P0 `children` 恒空,出现写入 = 构建期拒绝);20 自建堆叠规则或跨品级合并;为呈现新增第二容量真值(AC-20-24 单调契约半边);把排序/自动整理做进机制层(42 规则五禁)
-- Guardrail: 布局参数(`COLUMNS` / `ROWS_PER_PAGE`)归 42 未定 ⇒ 本故事只交付「给定 COLUMNS 的落位纯函数」+ BLOCKED-BY-R9 标注(AC-20-20 走查半边在 Story 006)
+- Guardrail: 布局参数(`COLUMNS` / `ROWS_PER_PAGE`)~~归 42 未定 ⇒ 本故事只交付「给定 COLUMNS 的落位纯函数」+ BLOCKED-BY-R9 标注~~ **✅ 2026-10-27 R9 已回写:`COLUMNS = 4` / `ROWS_PER_PAGE = 3`(`design/ux/inventory-container-20.md:98`,Approved 2026-09-22)** ⇒ 落位纯函数的**实际入参值已定**;符号级参数化保留(重调不触机制),但不再是「未定值」(AC-20-20 走查半边在 Story 006)
 
 ---
 
@@ -140,7 +140,7 @@
 
 - Story 001:folds/投影;Story 004:CarryLoad 与容量裁决(折重只给定义件)
 - Story 005:消耗转移原子性(堆叠扣减的多栈形状 ✅ OQ-20-10 已于 2026-10-06 裁「相邻多条 N 条」;余 R2 `reason` 值域)
-- Story 006:药箱界面、翻页、色盲非颜色通道走查(AC-20-20/23 的呈现半边,BLOCKED-BY-R9)
+- Story 006:药箱界面、翻页、色盲非颜色通道走查(AC-20-20/23 的呈现半边,~~BLOCKED-BY-R9~~ **R9 ✅ 已回写 2026-10-27,仅剩走查未执行**)
 - skeuomorphic-ui(42)epic:`COLUMNS`/布局、ModalId `InventoryContainer` 模态、器具第三材质档(木/皮/铜)元件
 - item-database epic:`StackKey` 与 `weight` schema 本体(21a F4)
 
@@ -366,6 +366,31 @@ python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-11-stackin
    **构建期**这一处按 `CLAUDE.md` §BuildGate「构建绿 ≠ 门跑了」口径**未做探针轮** ⇒
    不记绿,须另跑探针轮(门内插无条件 `errs.Add("[PROBE]…")` ⇒ 要求构建 `Failure`)方可主张。
 
+   > ✅ **2026-10-27 结案 —— 探针轮已跑,三件套齐**。原文不删,留作「这条曾欠了多久」的记录。
+   >
+   > **做法**:在 `InventoryDtoFloatGate.RunAll()` 开头插无条件失败项 + 提前 `return`,
+   > 走 **player 构建路径**(`-runTests -testPlatform StandaloneLinux64`;该路径下
+   > TestRunner 调 `BuildPipeline.BuildPlayer` ⇒ 必然触发 `OnPreprocessBuild`)。
+   >
+   > | # | 要素 | 实测 |
+   > |---|---|---|
+   > | 1 | 探针串在构建日志 | ✅ `unity/Logs/build-probe-invdtogate3.log:2314` |
+   > | 2 | 栈帧 = 目标类 `OnPreprocessBuild` | ✅ `AssemblyGates/BuildGate:OnPreprocessBuild (BuildReport) (at Assets/Editor.Tools.Gates/AssemblyGates.cs:1310)`,链上 = `BuildPipelineInterfaces:OnBuildPreProcess` → `BuildPipeline:BuildPlayer` |
+   > | 3 | 构建因它失败 | ✅ `BuildFailedException: [AssemblyGates] 构建前门失败 1 条(...)` · `Build Finished, Result: Failure.` |
+   >
+   > **还原 = SHA-256 逐字节**:`2ce7e366…69ce70` 前后相同 · `grep -c "PROBE"` = 0 ·
+   > `git diff --stat` 空。**未用** `git checkout` / `git stash`。
+   >
+   > ⚠️ **必须看栈帧,不能只看探针串** —— 同日志 `:484` 也有该串,但那一条的栈帧是
+   > `AssemblyGates/<>c:<RegisterReloadHook>b__49_0`(**reload 钩子**,不是构建)。
+   > 只看「串出现了几次」会得出错误结论。
+   >
+   > ⚠️ **本条只解 `InventoryDtoFloatGate` 这一道门**。`RunAll` 其余 14 道共享同一
+   > `OnPreprocessBuild` 调用点(栈帧已证),但**各自判据体是否被走到未逐条探针**
+   > (某门内部可能提前 `return`)—— 按「未见不声称」不推广。
+   >
+   > 完整分类见 `production/qa/evidence/closeout-blockers-triage-2026-10-27.md` §4。
+
 ---
 
 ## Dependencies
@@ -475,7 +500,7 @@ S20-10 把「`|Inventory| × stack_max × max(weight) < 2^31` 防御断言」当
 | 1 | P0 门 ①②(容器 qty ≡ 1 / quality ≡ 1) | **Story 010**(需先有 `is_container` 判据载体) |
 | 2 | `CARRY_CAP > 0` 构建期校验 | **Story 004** |
 | 3 | AC-20-22 品级不可分视觉的专用夹具 | **AC-20-22 自身实现轮**(本件摆放函数已满足该性质,但**无断言钉住** ⇒ 按 `NOT-RUN` 登记) |
-| 4 | AC-20-20 / 23 的呈现半边 | **Story 006**(BLOCKED-BY-R9) |
+| 4 | AC-20-20 / 23 的呈现半边 | **Story 006**(~~BLOCKED-BY-R9~~ **R9 ✅ 已回写 2026-10-27**) |
 
 ---
 

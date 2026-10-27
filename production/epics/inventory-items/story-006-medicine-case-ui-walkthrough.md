@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 界面只读 Story 001 投影 + Story 004 `CarryRatioDto`,状态变更一律经意图(拾/放/用)回主机/fold,零本地乐观状态;四档 = slack 的单调不增函数(阈值 42 侧旋钮);焦点路径完整覆盖(仅手柄可选中);`ModalId.InventoryContainer` 走闭集既有成员(零新增枚举)
 - Forbidden: 负重条/百分比/数字(AC-20-10);网格背包形态(42 规则五);排序/自动整理按钮;第二容量真值/在 42 侧判载重(谓词归 20,BL-27 分工);模态期间 20 被绕过直接写流(写权 = 主机/20 事务);拾取 jingle / 满箱警告音(AC-20-11)
-- Guardrail: AC-20-20 走查**BLOCKED-BY-R9**(页可见集归 42 未完全定 + 二维几何焦点在「同一箱内容+同一方向键 ⇒ 同一目标」的稳定性依赖 R9 ①② 子项)—— 前提未回写前不得记绿;R8(翻页消费者)已回写可用
+- Guardrail: ~~AC-20-20 走查**BLOCKED-BY-R9**~~ **✅ 2026-10-27 R9 已回写解除** —— `COLUMNS = 4` / `ROWS_PER_PAGE = 3` 已由 `design/ux/inventory-container-20.md:98`(Approved 2026-09-22)裁定,载重四档与品级非颜色通道亦有具名落点(同件 §6 / §11),并已汇总进 `skeuomorphic-ui.md` §Dependencies 二。**剩「走查本身未执行」按 `NOT-RUN` 记,不是 BLOCKED**;R8(翻页消费者)2026-09-25 已回写可用
 
 ---
 
@@ -33,7 +33,7 @@
 
 - [ ] **AC-20-10** [L]: `GIVEN` 药箱从空到满,`WHEN` 人工走查,`THEN` 满溢感可读(不看数字也知能否再装),且无任何负重条/百分比(主创签核)
 - [ ] **AC-20-11** [L]: `GIVEN` 全部库存音效,`WHEN` 人工听测,`THEN` 零状态播报音(无拾取 jingle / 无满箱警告)—— 与 AC-44-09 联合
-- [ ] **AC-20-20** [I] ⚠️ **BLOCKED-BY-R9**: `GIVEN` 箱内器物超一屏,`WHEN` 手柄仅用 `PagePrev/PageNext` + 方向键,`THEN` 可遍历全部器物,且同一箱内容 + 同一方向键 ⇒ 同一焦点目标(稳定且可达);序 = `instance_id` 升序(「入箱序」废止);`COLUMNS`/`ROWS_PER_PAGE` 归 42
+- [ ] **AC-20-20** [I] ~~⚠️ **BLOCKED-BY-R9**~~ **✅ R9 已回写 2026-10-27**: `GIVEN` 箱内器物超一屏,`WHEN` 手柄仅用 `PagePrev/PageNext` + 方向键,`THEN` 可遍历全部器物,且同一箱内容 + 同一方向键 ⇒ 同一焦点目标(稳定且可达);序 = `instance_id` 升序(「入箱序」废止);`COLUMNS = 4` / `ROWS_PER_PAGE = 3`(42 已裁,见 `design/ux/inventory-container-20.md:98`)。**本条仍未勾 = 走查未执行(`NOT-RUN`),不是缺前置**
 - [ ] **AC-20-23** [L]: `GIVEN` 色盲模拟 + 仅手柄走查药箱,`WHEN` 区分两品级同种器物,`THEN` 存在非颜色通道(形状/药签文字)承载品级差异(记号具体形态归 42)
 - [ ] **读数契约(本故事可自证的半边)**: 42 侧四档由 `slack = cap − carry_load` 相减得出;断言 20/42 接缝中 `CARRY_CAP` 唯一来源、四档切换对 `carry_load` 单调不增(承 AC-20-24 的 20 侧已证 + 本故事出分档函数的形状测试)
 
@@ -44,7 +44,7 @@
 *Derived from ADR-013 §Decision(主)/ BL-27 分工:*
 
 1. 屏 = 模态 ③ `InventoryContainer`(闭集既有员,ADR-013 Amendment B 七员口径);UXML/USS 走 42 元件库,器具质感第三材质档(木/皮/铜)已裁(任务规则钉)—— 药箱外观 = 拟物器具,禁背包格视觉。
-2. 数据流:`InventoryOf` 只读快照 → 摆放序(Story 003 纯函数)→ 落位(col/row,`COLUMNS` 为 42 旋钮);翻页 = 可见集切分(R9 的页可见集子项未完全定 ⇒ 先按「稳定序 + 页容量」最小实现,BLOCKED-BY-R9 标注保留)。
+2. 数据流:`InventoryOf` 只读快照 → 摆放序(Story 003 纯函数)→ 落位(col/row,`COLUMNS = 4` 为 42 已裁旋钮);翻页 = 可见集切分(`row ≥ ROWS_PER_PAGE = 3` 即换页;~~R9 的页可见集子项未完全定 ⇒ 先按「稳定序 + 页容量」最小实现~~ —— **✅ 2026-10-27 R9 已回写,两参数已定值**,不必再走最小实现兜底)。
 3. 焦点:UI Toolkit 官方导航桥(`NavigationMoveEvent`),焦点单栈门(药箱模态开 ⇒ 世界动作栈闭,承 `IModalState` 只读契约);键鼠与手柄双导航等价可达(AC-20-20 手柄半边 + AC-20-23)。
 4. 四档呈现:合盖受阻 = 第四档的拟物语义(满时盖不上的视觉/动效),零数字;分档函数单调不增断言以整数序列穷举(EditMode 可测部分)。
 5. 音效接线:库存相关触发只经 cue 白名单(44 侧断言),18/20 无 jingle;本故事只提供「无播报音源」的素材清单核对(与 audio-system epic 联合)。
@@ -79,10 +79,10 @@
   - When: 求档。
   - Then: 档号随 carry_load 单调不增(松弛度视角)且只由 slack 决定(无第二输入);接缝 cap 值 = 20 的 `CARRY_CAP`(对象同一)。
   - Edge cases: 阈值相邻平段(档不变);W_MIN>1 临界带不误判「满」。
-- **AC-20-20** [I](BLOCKED-BY-R9,机制半边先测)。
+- **AC-20-20** [I](~~BLOCKED-BY-R9~~ **R9 ✅ 已回写 2026-10-27**;机制半边与走查半边现均可做)。
   - Given: 超一屏夹具(>COLUMNS×ROWS 件);手柄独占。
   - When: PageNext + 方向键遍历。
-  - Then: 全部器物可达、无死角;同内容同按键序列 ⇒ 同焦点目标(两次遍历路径逐位比);顺序 = instance_id 升序可见。R9 未回写 ⇒ 走查判据半边未勾(禁借形状绿)。
+  - Then: 全部器物可达、无死角;同内容同按键序列 ⇒ 同焦点目标(两次遍历路径逐位比);顺序 = instance_id 升序可见。~~R9 未回写 ⇒ 走查判据半边未勾~~ —— **✅ 2026-10-27 R9 已回写**:判据半边**不再缺前置**,本条未勾的唯一原因是**走查未执行**,按 `NOT-RUN` 记(禁借形状绿纪律不变)。
   - Edge cases: 中途增删一件(投影变化)⇒ 焦点重定位确定性;末页回翻。
 - **AC-20-11 / 23** [L]: 音效听测 + 色盲手柄走查。
   - Given: 录音样本 / 色盲模拟 + 两品级同种器物对。
@@ -105,7 +105,7 @@
 
 ## Dependencies
 
-- Depends on: Story 003(摆放序),Story 004(读数契约),Story 005(意图事务),skeuomorphic-ui epic(元件库材质档 + ModalId 接线,既有 Complete 件直连),R9 完整回写(AC-20-20 走查半边前提,部分未回写 ⇒ BLOCKED-BY 保留),S5/ADR-013 假设 6 spike(桌面侧)
+- Depends on: Story 003(摆放序),Story 004(读数契约),Story 005(意图事务),skeuomorphic-ui epic(元件库材质档 + ModalId 接线,既有 Complete 件直连),~~R9 完整回写(AC-20-20 走查半边前提,部分未回写 ⇒ BLOCKED-BY 保留)~~ **✅ R9 2026-10-27 已回写,依赖解除**,S5/ADR-013 假设 6 spike(桌面侧)
 - Unlocks: `AC-42-F1` 走查轮的库存屏项;数值轮满档体验校正
 
 ---
