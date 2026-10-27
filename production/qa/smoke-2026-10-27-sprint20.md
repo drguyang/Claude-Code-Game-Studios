@@ -1,7 +1,10 @@
 # Smoke Check Report(S20 · sprint-20)
 
 **Date**: 2026-10-27
-**Sprint**: sprint-20(16 件中 **8 件 done**、3 件 ready-for-dev、5 件 backlog)
+**Sprint**: sprint-20(**17 件**中 **11 件 done**、3 件 ready-for-dev、3 件 backlog)
+> 🔁 **2026-10-27 订正(QA 签核 C-8)**:本行原写「16 件中 8 件 done、3 件 ready-for-dev、5 件 backlog」
+> —— **陈旧值**,且与下方覆盖率表自算(`done 10`)亦不等。现改为与本报告三元组 commit `5bdd226` 一致的实测值。
+> 复算:`git show 5bdd226:production/sprint-status.yaml` ⇒ `17 {'done': 11, 'ready-for-dev': 3, 'backlog': 3}`。
 **Engine**: Unity 6.3 LTS(6000.3.24f1)
 **QA Plan**: `production/qa/qa-plan-sprint-20-2026-10-25.md`
 **Smoke 清单**: `tests/smoke/critical-paths.md`(**该文件自述「当前是清单,不是可执行门」**)
@@ -110,12 +113,13 @@ test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none
 
 ## Test Coverage
 
-sprint-20 全部 16 件,逐件核声明的证据路径(两棵树都扫过:`unity/Assets/Tests/EditMode|PlayMode/` 与 `tests/`)。
+sprint-20 全部 **17 件**,逐件核声明的证据路径(两棵树都扫过:`unity/Assets/Tests/EditMode|PlayMode/` 与 `tests/`)。
 
 | Story | Type | 状态 | 声明载体 | 实际 |
 |---|---|---|---|---|
 | S20-1 clinic-004 交付边界 | Integration | done | `EditMode/ClinicMachine/clinic_env_delivery_test.cs` | **COVERED** ✅ |
 | S20-2 clinic-005 纯度重放 + Memoize | Integration | done | `EditMode/ClinicMachine/clinic_purity_replay_test.cs` | **COVERED** ✅ |
+| S20-2a TD-building-01 两半全补 | Integration | done | `EditMode/ModularBuilding/world_end_to_end_test.cs` + `demolish_refund_from_catalog_test.cs` | **COVERED** ✅ 8 + 12 |
 | S20-3 foraging-001 品种闭包 + 装载校验 | Logic | done | `EditMode/Foraging/foraging_data_load_test.cs` + `foraging_bake_wiring_test.cs` | **COVERED** ✅ |
 | S20-4 processing-001 配方子集 + Admissible | Logic | ready-for-dev | `EditMode/Processing/admissible_predicate_test.cs` | **EXPECTED** —— `[ ] Not yet created` |
 | S20-5 判别力收紧轮(TD-clinic-02/08/09) | Logic(推断) | done | 证伪轮 + 收紧测 | **COVERED**(`ClinicMachine/` 11 件) |
@@ -131,7 +135,13 @@ sprint-20 全部 16 件,逐件核声明的证据路径(两棵树都扫过:`unity
 | S20-15 foraging-006 novelty 接线 | Logic | backlog | — | **EXPECTED** —— `[ ] Not yet created` |
 | S20-16 foraging-003 三事件 + 身份铸造 | Logic | done | `Foraging/harvest_orchestrator_test.cs` | **COVERED** ✅ |
 
-**Summary**: **COVERED 10** · **EXPECTED 6** · **MISSING 0** · **MANUAL 0**
+**Summary**: **COVERED 11** · **EXPECTED 6** · **MISSING 0** · **MANUAL 0**(17 件)
+
+> 🔁 **2026-10-27 订正(QA 签核 C-7)**:原写 `COVERED 10`,因**整行缺席 `S20-2a`**(表内 16 行 vs yaml 17 件)。
+> 补行后 `COVERED 10 → 11`。⚠️ 缺席 ≠ 无证据 —— `S20-2a` 载体实测在盘(8 + 12),
+> 故 `MISSING 0` 这个断言**当时也成立**,错的只是「逐件核」这句自述(覆盖率被**低估**,方向与 C-3 同)。
+> 复算:`grep -c '^| S20-' production/qa/smoke-2026-10-27-sprint20.md` ⇒ **17**;
+> `grep -c '^  - id: "S20-' production/sprint-status.yaml` ⇒ **17**。
 
 ### 🔁 2026-10-27 加注:6 条 `EXPECTED` 混了两种语义(QA 签核 C-3)
 
@@ -159,30 +169,33 @@ print(len([t for t in r.iter('test-case')
 # 实跑:29
 ```
 
-**⇒ 修正后的口径**:本报告执行时 **COVERED 10 · EXPECTED 6(4 未开工 + 2 当日补齐)**;
-到 `2026-10-27` 收口轮,其中 **2 条已转 COVERED** ⇒ **有效 COVERED 12 · 未开工 4 · MISSING 0**。
-⚠️ 上表**原文不删**(它是本报告执行时刻的真实快照),本节只作语义拆分,**不改写原表**。
+**⇒ 修正后的口径**:本报告执行时 **COVERED 11 · EXPECTED 6(4 未开工 + 2 当日补齐)**;
+到 `2026-10-27` 收口轮,其中 **2 条已转 COVERED** ⇒ **有效 COVERED 13 · 未开工 4 · MISSING 0**。
+⚠️ **原 16 行原文不删**(它们是本报告执行时刻的真实快照),本节只作语义拆分;
+**唯一的结构性改动是 2026-10-27 补入 `S20-2a` 行**(C-7 处置,见下节)—— 该行本应存在,是**补漏**不是改写。
 
 ---
 
-### ⚠️ 另发现两处缺陷(超出 C-3 面,已登记待裁,**本注未修**)
+### ✅ 2026-10-27 处置:原「两处缺陷」已修(C-7 补行 / C-8 改实测值)
 
-> 这两条是写 C-3 加注时核表核出来的,**不是 C-3 的一部分**。按「原文不删,就地加注」纪律,
-> 此处**只登记不动表** —— 修表须另裁(改的是本报告的事实断言面,不是注释面)。
+> **本节原先写的是「已登记待裁,本注未修」**。用户 **2026-10-27 裁定:「C-7 补行,C-8 改成实测值」**
+> ⇒ 两条**均已落地**。下文保留原登记文本(原文不删),每条末尾追加 ✅ 处置行。
 
-**缺陷 ①:覆盖率表整行缺席 `S20-2a`**
+**缺陷 ①(C-7):覆盖率表整行缺席 `S20-2a`** — ✅ **已补行**
 
-- **事实**:表内 `S20-*` 行 = **16** 条;`production/sprint-status.yaml` 件数 = **17**(含 `S20-2a`)。
+- **原事实**:表内 `S20-*` 行 = **16** 条;`production/sprint-status.yaml` 件数 = **17**(含 `S20-2a`)。
   复算:`grep -c '^  - id: "S20-' production/sprint-status.yaml` ⇒ **17**;
-  表内 `grep -c '^| S20-'` ⇒ **16**。
+  表内 `grep -c '^| S20-'` ⇒ **16**(修前)。
 - **缺席件**:`S20-2a`(TD-building-01 两半全补)—— `status: done` @ `2026-10-25`,
   载体实测在盘:`ModularBuilding/world_end_to_end_test.cs`(**8**)+ `demolish_refund_from_catalog_test.cs`(**12**)。
 - **后果**:`MISSING 0` 这个断言**成立**(缺席 ≠ 无证据),但「逐件核」这句**不成立** ——
   表内少一件,且少的是**有证据的那一件** ⇒ 覆盖率被**低估**,方向与 C-3 同。
+- **✅ 处置**:已在上表 `S20-2` 之后补入 `S20-2a` 行(载体 8 + 12);Summary `COVERED 10 → 11`。
+  复算:`grep -c '^| S20-' production/qa/smoke-2026-10-27-sprint20.md` ⇒ **17** ✅
 
-**缺陷 ②:报告头部的件数与状态分布与本报告自己的三元组 commit 不符**
+**缺陷 ②(C-8):报告头部的件数与状态分布与本报告自己的三元组 commit 不符** — ✅ **已改实测值**
 
-- **头部写**(`:4`):「16 件中 **8 件 done**、3 件 ready-for-dev、5 件 backlog」。
+- **原头部写**(`:4`):「16 件中 **8 件 done**、3 件 ready-for-dev、5 件 backlog」。
 - **实测**(本报告三元组 commit `5bdd226`):**17 件**,`done 11` / `ready-for-dev 3` / `backlog 3`。
   复算:
   ```bash
@@ -195,11 +208,13 @@ print(len([t for t in r.iter('test-case')
   print(sum(c.values()), dict(c))"
   # 实跑:17 {'done': 11, 'ready-for-dev': 3, 'backlog': 3}
   ```
-- **同时**:表内 16 行的「状态」列自算 = `done 10 / ready 3 / backlog 3`,**也不等于**头部的 `8/3/5`。
+- **同时**:原表内 16 行的「状态」列自算 = `done 10 / ready 3 / backlog 3`,**也不等于**头部的 `8/3/5`。
   ⇒ 头部的三个数**既不匹配 yaml,也不匹配本表** —— 是**陈旧值**(最接近 `ebe532e` 时刻的
   `17 件 / done 8 / ready 3 / backlog 6`,仍差 backlog 1 与总数 1)。
-- **性质**:这是**现行态断言**而非历史陈述,按 control-manifest 二分本可直接改;
-  但改它等于改写本报告的**已提交事实**,故**登记待裁**,不在本注自裁。
+- **性质**:这是**现行态断言**而非历史陈述,按 control-manifest 二分本可直接改。
+- **✅ 处置**:头部已改为 `17 件 / done 11 / ready 3 / backlog 3`(与三元组 commit 一致)。
+  **补入 `S20-2a` 后表内 17 行自算 = `done 11 / ready 3 / backlog 3` ⇒ 三方现已全部对齐**:
+  头部 = yaml = 本表。复算:见上方 `5bdd226` 命令 + `grep -c '^| S20-'` ⇒ 17。
 
 > 📌 **S20-16 订正**:卡面 `:102` 有**已划掉**的 `~~gather_identity_reflection_test.cs~~ — 不存在`。
 > 本表按未划掉的载体计。划掉项是卡面自己留的闭环记录,不是遗漏(初扫时我误报过一次,已收回)。
@@ -245,7 +260,7 @@ S20-9 回归无异常,佐证是本件**零生产调用方**(`FurnaceState` / `Ig
 
 ## Missing Test Evidence
 
-**无。** 10 COVERED · 6 EXPECTED · **0 MISSING**。
+**无。** **11 COVERED** · 6 EXPECTED · **0 MISSING**(17 件;`S20-2a` 已按 C-7 补行)
 
 但须点名两处**证据件自身的问题**(证据件也是证据件,不是例外):
 
