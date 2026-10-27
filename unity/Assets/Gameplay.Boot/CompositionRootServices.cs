@@ -259,6 +259,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         public StructureWriter StructureWriter { get; }
 
         /// <summary>
+        /// 世界读档重建服务(S20-18 · 2026-10-28)。
+        /// <para><b>null ⇔ 装配时未传 <c>world</c></b>(无世界即无从重建;既有 100+ 处
+        /// <c>Assemble</c> 调用方都不传 ⇒ 仍为 null)。</para>
+        /// <para><b>唯一生产调用点 = <c>LoadSequencer</c> 的 <c>afterRestore</c> 钩子</b>
+        /// (与库存投影同在):读档完成、流已 `Restore` 之后,先重建库存投影、再重建世界。</para>
+        /// <para>⚠️ <b>「已装配」≠「读档已可用」</b>:<c>BootRoot.RequestLoad</c> 今日零调用方
+        /// (UI 存档位未接线),且 <c>StructureWriter.Place</c> 生产零调用点 ⇒ 生产流里
+        /// 永不含 <c>StructurePlaced</c> ⇒ 本服务在生产上<b>恒空跑</b>(逐条登记在
+        /// <c>sprint-20</c> §十 S20-18 的「挂标不记绿」第 1 条)。</para>
+        /// </summary>
+        public WorldLoadService WorldLoad { get; }
+
+        /// <summary>
         /// 7a 存档服务(S19-1)。
         /// <para><b>`null` ⇔ 装配时未指定存档目录</b>(`Assemble(..., saveBasePath: null)`),
         /// 是**合法状态**,不是半装配 —— 与 <see cref="AudioRenderAssembled"/> 同款
@@ -389,7 +402,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          LoadSequencer loadSequencer = null,
                                          InventoryLoadService inventoryLoad = null,
                                          World world = null,
-                                         StructureWriter structureWriter = null)
+                                         StructureWriter structureWriter = null,
+                                         WorldLoadService worldLoad = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -459,6 +473,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 由 Assemble 的装配断言拦(它才是构造点)。
             World = world;
             StructureWriter = structureWriter;
+            // S20-18(2026-10-28):世界读档重建服务。同款「不补构造」—— 补构造需要
+            // decoder / modules 目录,那是 Assemble 的知识。传了 world 却没传本件 ⇒
+            // 读档后世界不重建(旧世界残留)—— 故 Assemble 在 `world != null` 的同一支路里
+            // 必然构造它,本 ctor 只负责转交。
+            WorldLoad = worldLoad;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

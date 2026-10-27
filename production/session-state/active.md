@@ -11770,3 +11770,34 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 **挂标不记绿(5 条,一条未勾)**:世界烘焙数据仍零产出(AC-23-08 第三半边仍无载体)· `Place/Remove` 生产发起方归 42(`O-23-6`)· `ClinicCellSource` 接真源归 24 · `World` 生命周期后果(不随场景卸载销毁)归 ADR-023 拆序轮 · `PlaceableChecker` 本轮**不接**(非「忘接」)
 
 **未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交)。
+
+---
+
+## Session Extract — S20-18 World 生命周期轮(2026-10-28 收口)
+
+**卡片**:`production/sprints/sprint-20.md` §十 · S20-18
+**状态**:`done`(`production/sprint-status.yaml` 已置 `done` / `completed: 2026-10-28`)
+**原件**:`production/qa/evidence/impl-s20-18-world-lifecycle-2026-10-28.md`
+
+**改动的文件**
+- 新增 `unity/Assets/Sim/World/StructureRestore.cs`(`StructureRestoreOp` / `StructureRestorer.RebuildFromDecoded`,先清后重放 + 失败回滚)
+- 新增 `unity/Assets/Gameplay.Boot/WorldLoadService.cs`(Boot 层解码组装,四支 fail-closed;`Rebuild()` `:114`)
+- 改 `unity/Assets/Sim/World/World.cs`(`Reset()` `:51`,清 `_slotOccupied` `:54`)
+- 改 `unity/Assets/Sim/World/StructureKinds.cs`(注册表 `Reset()` `:188` / `Restore()`;`StructureWriter.Modify` 补 `:477/:478/:481`)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRoot.cs`(`worldLoad` 构造 `:889` + `afterRestore` 钩子 `:707-711`)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRootServices.cs`(`WorldLoad` 属性)
+- 改 `unity/Assets/Tests/EditMode/ClinicMachine/clinic_purity_replay_test.cs`(订正非法朝向 `1` → `90`)
+- 新增 `unity/Assets/Tests/EditMode/ModularBuilding/structure_restore_test.cs`(13 测)
+- 新增 `unity/Assets/Tests/EditMode/ModularBuilding/world_load_service_test.cs`(13 测)
+- 新增 `tools/falsify/specs/s20-18-world-lifecycle-restore.json`(18 变异)
+
+**验证**
+- 证伪轮 **18 条变异零逃逸**(主轮 17 = 15 exact + 2 超集;M1/M6 订正预期后单跑复验 exact;补 M12 覆盖 AC-10 另一分支)。还原 SHA-256 逐字节通过 · 指纹未变 · `FALSIFY-` 零残留
+- 回归 EditMode `5601 / 5566 / 0 / 35`(基线 `5575 / 5540 / 0 / 35`,+26/+26)@ `2026-10-27T22:59Z` · `c784d88`
+  PlayMode `238 / 234 / 0 / 2 / 2`(退出码 2,基线同,零回归)@ `2026-10-27T23:02Z` · `c784d88`
+
+**挂标不记绿(6 条,一条未勾)**:重放器生产实效 = 零(`.Place(` 生产调用点实测 0)· ADR-023 §⑤ 场景拆序不在面内 · `RequestLoad` 仍零调用方 · `BuildSlotCatalog` 仍空 · `Modify` 修复只覆盖足迹随朝向变化 · 在场视图/视觉侧仍不在读档重建面
+
+**NOT-RUN(1 条)**:`afterRestore` 钩子内 `worldLoad?.Rebuild()` 的调用本身无夹具钉住(`CompositionRoot.cs:707-711`)—— 有 `file:line` 但无可跑命令
+
+**未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交)。

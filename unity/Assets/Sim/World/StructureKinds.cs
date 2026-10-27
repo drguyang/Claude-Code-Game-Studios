@@ -98,7 +98,16 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>更新实例(朝向/变体)。</summary>
-        public bool Update(long structureId, int? newOrientation, int? newVariant)
+        /// <param name="newOccupiedCells">
+        /// 旋转后的**新足迹**(可 null)。
+        /// <para>⚠️ <b>2026-10-28(S20-18)新增</b>:原签名只更新朝向/变体字段,足迹**沿用旧值**。
+        /// 而足迹随朝向变(`PlaceableChecker.ComputeOccupiedCells` 吃 orientation)⇒
+        /// 旋转非方形模块后注册表里记的是**旧足迹**,与占用表、与 24 的布局析出全部错位。
+        /// 现由调用方(唯一生产调用者 = <see cref="StructureWriter.Modify"/>)传入重算后的真足迹;
+        /// 传 null = 足迹不变(仅变体位变化时的合法情形,也保住既有直调方的原行为)。</para>
+        /// </param>
+        public bool Update(long structureId, int? newOrientation, int? newVariant,
+                           IReadOnlyList<WorldPos> newOccupiedCells = null)
         {
             if (!_instances.TryGetValue(structureId, out var inst))
                 return false;
@@ -107,7 +116,8 @@ namespace DaYiJingCheng.Sim.World
             int variant = newVariant ?? inst.Variant;
 
             _instances[structureId] = new StructureInstance(
-                inst.StructureId, inst.Anchor, inst.ModuleId, orientation, variant, inst.OccupiedCells);
+                inst.StructureId, inst.Anchor, inst.ModuleId, orientation, variant,
+                newOccupiedCells ?? inst.OccupiedCells);
             return true;
         }
 
@@ -153,10 +163,67 @@ namespace DaYiJingCheng.Sim.World
                 yield return kv.Value;
         }
 
-        /// <summary>清空(重建用)。</summary>
+        /// <summary>
+        /// 清空实例表(**不复位发号计数器**)。
+        /// <para>⚠️ <b>2026-10-28(S20-18):读档重建请用 <see cref="Reset"/>,不要用本方法</b> ——
+        /// 本方法只清 `_instances`,发号计数器保持原值。两者混用会让重放后的第一条新结构
+        /// 拿到「旧水位 + 1」的 id(存档里可能已存在该 id)。保留本方法是为「清表但续号」
+        /// 这一独立语义(现有零生产调用点,见类注),不是重建入口。</para>
+        /// </summary>
         public void Clear()
         {
             _instances.Clear();
+        }
+
+        /// <summary>
+        /// 清空实例表 **并复位发号计数器**(读档重建入口)。S20-18 新增。
+        /// <para><b>为什么必须复位</b>:重放按事件原号落库(<see cref="Restore"/> 会重新抬高高水位),
+        /// 若计数器停在旧水位,重放后再 <see cref="Register"/> 会从旧水位续号 —— 而重放出来的
+        /// 实例可能恰好占到那之间 ⇒ 号段不连续但**不撞号**,语义上却把「高水位 = max(id)+1」
+        /// 这条可重构不变量(ADR-006 Amendment B 同型)破了。</para>
+        /// <para>⚠️ 本方法<b>只清注册表</b> —— 世界占用表(`World._slotOccupied`)由
+        /// <see cref="World.Reset"/> 一并清,二者的唯一调用者是
+        /// <see cref="StructureRestorer"/> 的重放入口。</para>
+        /// </summary>
+        public void Reset()
+        {
+            _instances.Clear();
+            _nextStructureId = 1;
+        }
+
+        /// <summary>
+        /// 按**事件原号**落库一条实例(世界流重放专用)。S20-18 新增。
+        /// <para>与 <see cref="Register"/> 的分工:<c>Register</c> 是<b>写路径</b>(自己发号);
+        /// 本方法是<b>重建路径</b>(号从 `StructurePlaced` 载荷里来)。重放**不得**用
+        /// `Register` —— 那会重新发号,读档后的 structure id 就与存档里的事件、以及
+        /// 下游可能已引用的 id 全部错位。</para>
+        /// <para>同号重复落库 = 覆盖(流的写入侧不会产生同号两条 `StructurePlaced`,
+        /// 真出现说明流已损坏;此处覆盖而非抛,与 <see cref="Update"/> 的既有语义一致)。</para>
+        /// </summary>
+        /// <param name="structureId">事件载荷里的 `structure_id`(必须 &gt; 0)。</param>
+        /// <param name="occupiedCells">完整占用格集。**不接受 null** —— 重放必须带真足迹,
+        /// 静默退回 `{anchor}` 会复现 C1(多格模块的非锚点足迹格不进实例表)。</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="structureId"/> ≤ 0。</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="occupiedCells"/> 为 null。</exception>
+        public void Restore(long structureId, WorldPos anchor, int moduleId, int orientation, int variant,
+                            IReadOnlyList<WorldPos> occupiedCells)
+        {
+            if (structureId <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(structureId), structureId,
+                    "重放的 structure_id 必须 > 0 —— ≤ 0 表示载荷损坏或解码错位,"
+                    + "静默落库会让 id 空间出现非法值(与 `PatientId.None = -1` 哨兵混淆)。");
+            if (occupiedCells == null)
+                throw new ArgumentNullException(
+                    nameof(occupiedCells),
+                    "重放必须带真足迹 —— 静默退回 {anchor} 会复现 C1(多格模块的非锚点格不进实例表)。");
+
+            _instances[structureId] =
+                new StructureInstance(structureId, anchor, moduleId, orientation, variant, occupiedCells);
+
+            // 高水位 = max(id) + 1(ADR-006 Amendment B 同型的「计数器 + 高水位可重构」)。
+            if (structureId >= _nextStructureId)
+                _nextStructureId = structureId + 1;
         }
     }
 
@@ -372,10 +439,46 @@ namespace DaYiJingCheng.Sim.World
             if (modifiedFields == 0)
                 return false; // 无变更
 
-            _registry.Update(structureId, newOrientation, newVariant);
-
             int orientation = newOrientation ?? inst.Orientation;
             int variant = newVariant ?? inst.Variant;
+
+            // ── S20-18(2026-10-28):足迹随朝向变,必须同步改占用表与实例足迹 ─────────
+            // ⚠️ **原实现的缺陷(实测,2026-10-28)**:本方法只 `_registry.Update(...)`,
+            //    全程**零** `FreeCells` / `OccupyCells`,且 `Update` 收的还是**旧足迹**
+            //    ⇒ 旋转非方形模块后**旧格仍不可走、新格仍可走**(违 F-23-1),注册表里
+            //    记的也仍是旧足迹。对照 `Place`(占 `occupied`)、`Remove`(释
+            //    `inst.OccupiedCells`),只有本方法漏 ⇒ 是遗漏,不是设计。
+            // ⚠️ `ModifiableChecker` 早已算出 `newCells` 并逐格校验「新格 ∖ 旧格 全空」,
+            //    只是写路径**没用它** —— 本处与之同源(`PlaceableChecker.ComputeOccupiedCells`)。
+            // ⚠️ **变体不参与足迹**(该函数的形参无 variant)⇒ 仅变体位变化时不动占用表,
+            //    也不查目录(省一次装载面依赖)。
+            IReadOnlyList<WorldPos> newCells = null;
+            if ((modifiedFields & 1) != 0)
+            {
+                if (_moduleCatalog == null)
+                    throw new InvalidOperationException(
+                        "StructureWriter 未注入 IModuleCatalog —— 无法重算旋转后的足迹。" +
+                        "静默沿用旧足迹会让占用表与实际朝向分叉(F-23-1),故 fail-closed(同 Place)。");
+
+                var defOpt = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
+                if (!defOpt.HasValue)
+                    throw new InvalidOperationException(
+                        $"moduleId={inst.ModuleId} 不在模块目录内 —— 无法重算旋转后的足迹。" +
+                        "静默沿用旧足迹会复现 F-23-1,故 fail-closed(同 Place)。");
+
+                if (_occupancy == null)
+                    throw new InvalidOperationException(
+                        "StructureWriter 未注入 IWorldOccupancy —— 旋转不会改 Overlay ⇒ " +
+                        "F-23-1 对旋转后的足迹不生效。故 fail-closed(同 Place)。");
+
+                newCells = PlaceableChecker.ComputeOccupiedCells(defOpt.Value, inst.Anchor, orientation);
+
+                // 先释旧、后占新:两集合可重叠(1×1 模块旋转前后同格),bool 表上幂等。
+                _occupancy.FreeCells(inst.OccupiedCells);
+                _occupancy.OccupyCells(newCells);
+            }
+
+            _registry.Update(structureId, newOrientation, newVariant, newCells);
 
             // ADR-029 §③:载荷经 IPayloadEncoder —— 六字段全载(含 ModifiedFields 位掩码)。
             // ⚠️ 2026-10-02 修复:原实现把 orientation / variant **算出却未放进载荷**

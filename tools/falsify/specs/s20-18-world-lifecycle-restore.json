@@ -1,0 +1,300 @@
+{
+  "name": "S20-18 World 生命周期轮 —— 重置 / 重放 / Modify 足迹 / 读档接线(AC-1…AC-10)",
+  "mode": "EditMode",
+  "filter": "StructureRestoreTest;world_load_service_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **预期是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **17 条变异,不是卡面写的 9 条** —— 卡面把 AC-8(装配接线)与 AC-9(端到端重建)并成一条,",
+    "   但两者是**两个正交属性**,且可由不同的单行守卫分别击破(AC-8 在 CompositionRoot,",
+    "   AC-9 在 WorldLoadService)⇒ 一条变异**证不了两个**(承「一属性一条变异」)。",
+    "   故拆成 M8(AC-8)/ M9(AC-9),总数 9 → 10;卡面已同步订正。",
+    "⚠️ **再 +7 条(M11 / G1–G6),总数 10 → 17** —— 第一轮 10 条只覆盖了 AC 的**主干断言**,",
+    "   漏掉了同批夹具里的两类 S12-4 命中形态:① **幂等**(`test_ac9f`);② **定义域收窄**",
+    "   (参数为 null ⇒ 抛,共 8 条断言)。逐条补上后:",
+    "   · M11 打「重建前不清世界」(与 M9「应用了什么」正交);",
+    "   · G1–G6 各打一条 fail-closed 守卫(G1 events / G2 decoder / G3 world /",
+    "     G4 moduleCatalog / G5 ops / G6 Modify 的目录守卫)。",
+    "   ⚠️ **G4 一变异两红是刻意**:同一守卫有**两个入口**(直接构造重放器 / 经 `WorldLoadService`),",
+    "   两个夹具各证一次 —— 不是判别面不清。",
+    "⚠️ **跨文件面**:M1/M2/M6/M10 在 `Sim/World`(被多个夹具共用),M8 在 `Gameplay.Boot`。",
+    "   故 filter 必须收窄到本卡两个夹具 —— 否则 `world_end_to_end_test` / `clinic_purity_replay_test`",
+    "   等会一起红,红集不可归因。",
+    "⚠️ **AC-9 的红集天然带连带**:它是 AC-3/4/5 的端到端集成,**任何**一条重放语义被破坏,",
+    "   `test_ac9a`(完整流重建)都会红。故 M3/M4/M5 的 expectRed 里含 ac9a —— 那是**同一条属性",
+    "   从集成面被再证一次**,不是判别面不清。",
+    "⚠️ **2026-10-28 首轮实跑后:M1 / M6 各订正一条预期(均 += `test_ac9f`)** —— 两条都是**预期漏列**,不是变异打偏:`test_ac9f` 是本轮**最后**补进去的夹具(它的首版是假绿,被改写成「重建→弄脏→再重建」),而 M1/M6 的预期是在它之前推演的 ⇒ 两条的 `_expectRed_justification` 里都**没有**把它算进去。**原预期与订正理由逐字保留在各变异的 `_note` 里**,主轮结果照实登记为「15 exact + 2 超集」,订正后单跑两条复验 exact。**不把订正后的结果冒充主轮结果。**",
+    "⚠️ **2026-10-28 主轮后补 M12(总数 17 → 18)** —— 理由 = **分支覆盖**而非新属性:AC-10 是**合取判据**(旧格可走 ∧ 新格不可走),而主轮只有 M10(打「释放旧格」半边)。「占用新格」半边**零反证** ⇒ 补 M12(同一判据的另一分支),单跑复验。这是 `review-workflow` Phase 8b 的 `Branch(分支覆盖)` 列在证伪轮上的对应动作。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-ac1-worldResetOccupancyClearRemoved",
+      "file": "unity/Assets/Sim/World/World.cs",
+      "line": 54,
+      "expect": "            Array.Clear(_slotOccupied, 0, _slotOccupied.Length);",
+      "replace": "            // FALSIFY-M1:停用占用表清零(重置只清实例表 ⇒ 旧世界的占用格残留)",
+      "expectRed": [
+        "test_ac1_reset_clearsOccupancyAndRegistry",
+        "test_ac7a_unknownModuleId_throwsAndLeavesWorldEmpty",
+        "test_ac7b_removedUnknownId_throwsAndLeavesWorldEmpty",
+        "test_ac7c_modifiedUnknownId_throwsAndLeavesWorldEmpty",
+        "test_ac9_streamWithPlaced_rebuildsWorldToStreamShape",
+        "test_ac9b_emptyStream_clearsWorld",
+        "test_ac9f_secondRebuild_startsFromCleanSlate"
+      ],
+      "exactRed": true,
+      "_why": "AC-1 的判据 = 「`Reset()` 后 `OccupiedCount == 0` 且 `Structures.Count == 0`」。删掉占用表清零 ⇒ 占用计数留在 2 ⇒ AC-1 首断言红。",
+      "_expectRed_justification": "推演逐条:① ac1 —— `OccupiedCount` 2 ≠ 0 ⇒ 红;② ac7a/b/c —— 三个原子性夹具的判据是「抛后世界 = **重置后的空态**」,而空态的**占用半边**由这一行负责 ⇒ 2 ≠ 0 ⇒ 红(实例表由 `_structures.Reset()` 清,所以 `Structures.Count == 0` 仍绿,红在占用那一行);③ ac9a —— 世界先被弄脏 6 格,重放后应为 4 ⇒ 6 ≠ 4 ⇒ 红(且残留格仍不可走);④ ac9b —— 空流后应为 0 ⇒ 2 ≠ 0 ⇒ 红。**不该红的**:ac2(只断发号)、ac3/ac4/ac5(重放会重新占用同一批格,或随后全部释放 ⇒ 净计数不变)、ac6(不查占用)、ac9c/ac9d/ac9e/ac9f(重放最终落点与残留格重叠或随后释放)、ac8x(不碰 World)、ac10/ac10b(走写者,不经 Reset)。故预期恰 6 条。",
+      "_note": "这 6 条红的**共同属性**就是「重置必须把占用表清干净」—— ac7 组从**失败回滚**面、ac9 组从**读档端到端**面各再证一次。\n\n⚠️ **2026-10-28 首轮实跑订正(预期漏列,非变异改动)**:原 `expectRed` 六条,**漏了 `test_ac9f`**。原推演理由逐字:「ac9f(重放最终落点与残留格重叠或随后释放)」—— **该理由事实错误**:ac9f 的残留结构在 `(3,0,3)`,流内结构在 `(1,0,1)`,二者**不相邻、不重叠**;停掉占用表清零后,残留格在第二次重建后**仍被占** ⇒ `IsEffectivelyWalkable(strayAnchor)` 为假 ⇒ 红。**归因**:多出的这一红由**本变异直接蕴含**(占用未清 ⇒ 残留格仍挡路),不是「打到预期之外的断言」。订正后单跑 M1 复验 exact(见证据原件 §三)。"
+    },
+    {
+      "name": "M2-ac2-registryResetIdCounterRemoved",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 191,
+      "expect": "            _nextStructureId = 1;",
+      "replace": "            // FALSIFY-M2:Reset 不复位发号计数器(Clear 的老行为)",
+      "expectRed": [
+        "test_ac2_reset_resetsIdCounter"
+      ],
+      "exactRed": true,
+      "_why": "AC-2 的判据 = 「`Reset()` 后第一次 `Register` 返回 1」。不复位 ⇒ 计数器停在 4 ⇒ 返回 4 ⇒ 红。",
+      "_expectRed_justification": "推演:① ac2 —— 4 ≠ 1 ⇒ 红。② ac6 —— 重放 `Placed(5)` 后由 `Restore` 把高水位抬到 6(与 Reset 无关)⇒ 新结构仍取 6 ⇒ 绿。③ ac3/ac4/ac5/ac7x/ac9x —— 断言里没有「重放后新发号的数值」,id 一律取写者/载荷的返回值 ⇒ 绿。④ ac1 —— 只断 Count 与占用 ⇒ 绿。故预期恰 1 条。"
+    },
+    {
+      "name": "M3-ac3-replayPlacedOccupancyWriteRemoved",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 188,
+      "expect": "                    _world.OccupyCells(cells);",
+      "replace": "                    // FALSIFY-M3:重放放置不写占用表(实例落库、格子仍可走)",
+      "expectRed": [
+        "test_ac3_replayPlaced_restoresFootprintAndWalkability",
+        "test_ac9_streamWithPlaced_rebuildsWorldToStreamShape"
+      ],
+      "exactRed": true,
+      "_why": "AC-3 的判据 = 「重放后实例明细 / 占用表 / 可走性与放置时**逐格一致**」。停用占用写 ⇒ 实例落库但 `OccupiedCount == 0` 且足迹格仍可走 ⇒ 红。",
+      "_expectRed_justification": "推演逐条:① ac3 —— `OccupiedCount` 0 ≠ 2,且 `IsFalse(walkable(anchor))` 红;② ac9a —— 重放两条后 `OccupiedCount` 0 ≠ 4 ⇒ 红。**不该红的**:ac4 —— `Placed` 不占、`Removed` 释放(置 false,幂等)⇒ 净空,判据仍满足;ac5 —— `Modified` 分支**自带** `OccupyCells(newCells)`,`Placed` 不占也能走到正确终态;ac6 —— 不查占用;ac7a/b/c —— 抛出后由 `catch` 里的 `Reset()` 清空;ac9c/ac9d/ac9e/ac9f —— 同 ac5/ac4 理由(终态由 `Modified`/`Removed` 收尾,或最终归零);ac8x —— 不碰重放。故预期恰 2 条。"
+    },
+    {
+      "name": "M4-ac4-replayRemovedOccupancyFreeRemoved",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 200,
+      "expect": "                    _world.FreeCells(inst.OccupiedCells);",
+      "replace": "                    // FALSIFY-M4:重放拆除不释放足迹(结构没了、格子仍挡路)",
+      "expectRed": [
+        "test_ac4_replayPlaceThenRemove_leavesWorldEmpty",
+        "test_ac9d_streamWithPlaceThenRemove_leavesNothingBehind",
+        "test_ac9e_streamWithForeignKinds_skippedWithoutSideEffects"
+      ],
+      "exactRed": true,
+      "_why": "AC-4 的判据 = 「`Placed → Removed` 重放 ⇒ 净空(占用归零)」。停用释放 ⇒ 占用停在 2 ⇒ 红。",
+      "_expectRed_justification": "推演逐条:① ac4 —— `OccupiedCount` 2 ≠ 0,且 `IsTrue(walkable(anchor))` 红;② ac9d / ac9e —— 两条都构造「放置 + 拆除」的流,重放后占用 2 ≠ 0 ⇒ 红。**不该红的**:ac5 —— `Modified` 分支有自己的 `FreeCells`(第 215 行),互不影响;ac9a —— 流里没有 `StructureRemoved`;ac7b —— `Removed(2)` 在 `TryGet` 处就抛,走不到 `FreeCells`;ac9c/ac9f —— 无拆除事件或终态不查占用归零(ac9f 连跑两次都落在同一占用值,幂等仍成立)。故预期恰 3 条。"
+    },
+    {
+      "name": "M5-ac5-replayModifiedUsesStaleOrientation",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 213,
+      "expect": "                    IReadOnlyList<WorldPos> cells = FootprintOf(inst.ModuleId, inst.Anchor, op.Orientation, index);",
+      "replace": "                    IReadOnlyList<WorldPos> cells = FootprintOf(inst.ModuleId, inst.Anchor, inst.Orientation, index); // FALSIFY-M5:用旧朝向算足迹",
+      "expectRed": [
+        "test_ac5_replayRotate_movesFootprint",
+        "test_ac9c_streamWithModified_appliesRotatedFootprint"
+      ],
+      "exactRed": true,
+      "_why": "AC-5 的判据 = 「重放旋转 ⇒ 旧足迹释放、新足迹占用,且与 `ComputeOccupiedCells(新朝向)` 逐格相等」。用旧朝向算 ⇒ 足迹原地不动(实例的 `Orientation` 字段倒是变成 90)⇒ 三条断言红。",
+      "_expectRed_justification": "推演逐条:① ac5 —— `OccupiedCells` 仍是旧足迹、旧第二格仍不可走、新第二格仍可走 ⇒ 红;② ac9c —— 同一属性的端到端版 ⇒ 红。**不该红的**:ac3/ac4/ac6/ac9a/ac9d/ac9e —— 流里没有 `StructureModified`;ac7c —— `Modified(2)` 在 `TryGet` 处抛;ac9f —— 无旋转。故预期恰 2 条。",
+      "_note": "⚠️ 实例的 `Orientation` 字段仍会正确变成 90(那一行是 `Restore(..., op.Orientation, ...)`,本变异没动它)⇒ 红的是**足迹**三断言,不是朝向断言。这正是「足迹与朝向字段必须是同一函数的两面」的判别面。"
+    },
+    {
+      "name": "M6-ac6-replayHighWaterBumpRemoved",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 226,
+      "expect": "                _nextStructureId = structureId + 1;",
+      "replace": "                _nextStructureId = _nextStructureId; // FALSIFY-M6:停用高水位抬升",
+      "expectRed": [
+        "test_ac6_replayKeepsIdsAndBumpsHighWater",
+        "test_ac9f_secondRebuild_startsFromCleanSlate"
+      ],
+      "exactRed": true,
+      "_why": "AC-6 的判据 = 「重放保号**且**高水位 = `max(id)+1` ⇒ 重放后 `Place` 不撞号」。不抬高水位 ⇒ 重放 id=5 之后,新 `Place` 仍从 1 开始 ⇒ 撞号 ⇒ 红。",
+      "_expectRed_justification": "推演:① ac6 —— `next` 1 ≠ 6 ⇒ 红。② 其余夹具:重放后**没有**新的 `Register`(ac9x 里的 `writer.Place` 都发生在重放**之前**)⇒ 绿。③ ac2 —— 它断的是 `Reset()` 后的发号,与 `Restore` 无关 ⇒ 绿。故预期恰 1 条。",
+      "_note": "变异写成 `_nextStructureId = _nextStructureId;` 而非删行:删行会让 `if` 变成空语句块(**仍可编译**),但那两行是一对,单行替换只能动第二行 —— 写成自赋值同时满足「可编译」与「语义消失」。\n\n⚠️ **2026-10-28 首轮实跑订正(预期漏列,非变异改动)**:原 `expectRed` 恰一条 `test_ac6`,**漏了 `test_ac9f`**。原推演理由逐字:「其余夹具:重放后**没有**新的 `Register`(ac9x 里的 `writer.Place` 都发生在重放**之前**)」—— **ac9f 例外**:它**在第一次重建之后**再 `PlantStructureOutsideStream`。机制:不抬高高水位 ⇒ `Reset()` 后 `_nextStructureId` 停在 1 ⇒ 残留写者的 `Register` **也返回 1** ⇒ 覆盖掉流内 id=1 的实例 ⇒ `Structures.Count` 不增 ⇒ ac9f 的前置断言「世界已被弄脏」为假 ⇒ 红。**归因**:由**本变异直接蕴含**(高水位不抬 ⇒ 新发号撞号)。订正后单跑 M6 复验 exact(见证据原件 §三)。"
+    },
+    {
+      "name": "M7-ac7-replayAtomicResetRemoved",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 174,
+      "expect": "                _world.Reset();",
+      "replace": "                // FALSIFY-M7:失败回滚不再清世界(留「重放了一半」的中间态)",
+      "expectRed": [
+        "test_ac7a_unknownModuleId_throwsAndLeavesWorldEmpty",
+        "test_ac7b_removedUnknownId_throwsAndLeavesWorldEmpty",
+        "test_ac7c_modifiedUnknownId_throwsAndLeavesWorldEmpty"
+      ],
+      "exactRed": true,
+      "_why": "AC-7 的后半句 = 「**抛后世界仍为重置后的空态**(原子性)」。删掉 `catch` 里的重置 ⇒ 第一条已应用的部分留在世界里 ⇒ 三个夹具的 `Structures.Count == 0` / `OccupiedCount == 0` 红。",
+      "_expectRed_justification": "推演逐条:① ac7a —— 第一条 `Placed` 已落库(1 条实例 / 2 格),第二条在 `FootprintOf` 抛 ⇒ 残留 ⇒ 红;② ac7b —— `Placed` 落库后 `Removed(2)` 抛 ⇒ 残留 ⇒ 红;③ ac7c —— 同上 ⇒ 红。**不该红的**:ac7d(ops 为 null —— 在 `World.Reset()` **之前**就抛,与本行无关)、ac7e(构造期抛)、其余全部夹具(不构造失败路径)。故预期恰 3 条。",
+      "_note": "⚠️ 三条的红都在**断言的后半句**(世界为空),异常类型与消息仍绿 —— 这正是本变异想单独分离的那个属性。"
+    },
+    {
+      "name": "M8-ac8-worldLoadWiringRemoved",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 889,
+      "expect": "                    worldLoad = new WorldLoadService(() => stream.Events, decoder, world, modulesCatalog);",
+      "replace": "                    worldLoad = null; // FALSIFY-M8:读档钩子不接世界重建",
+      "expectRed": [
+        "test_ac8_assembleWithWorldAndSavePath_yieldsWorldLoad",
+        "test_ac8c_assembleWithWorldButNoSavePath_stillYieldsWorldLoad"
+      ],
+      "exactRed": true,
+      "_why": "AC-8 的判据 = 「给 `world` ⇒ `CompositionRootServices.WorldLoad != null`」。让赋值消失 ⇒ 恒 null ⇒ 红。",
+      "_expectRed_justification": "推演:① ac8a —— `IsNotNull(WorldLoad)` 红;② ac8c —— 同一条判据的另一形态(无 saveBasePath 也要造)⇒ 红。**不该红的**:ac8b(期望就是 null)、ac8d～ac8g(直接 `new WorldLoadService`,`CompositionRoot` 不参与)、ac9x(直接构造服务,不读服务袋)、`StructureRestoreTest` 全部。故预期恰 2 条。",
+      "_note": "⚠️ 本变异让读档钩子**静默失效** —— 这正是要防的失败模式:`afterRestore` 里 `worldLoad?.Rebuild()` 是空操作,读档后旧世界原地不动,而**没有任何异常**。"
+    },
+    {
+      "name": "M9-ac9-rebuildDropsAllOps",
+      "file": "unity/Assets/Gameplay.Boot/WorldLoadService.cs",
+      "line": 114,
+      "expect": "            return _restorer.RebuildFromDecoded(ops);",
+      "replace": "            return _restorer.RebuildFromDecoded(Array.Empty<StructureRestoreOp>()); // FALSIFY-M9:解码结果被丢弃",
+      "expectRed": [
+        "test_ac9_streamWithPlaced_rebuildsWorldToStreamShape",
+        "test_ac9c_streamWithModified_appliesRotatedFootprint",
+        "test_ac9d_streamWithPlaceThenRemove_leavesNothingBehind",
+        "test_ac9e_streamWithForeignKinds_skippedWithoutSideEffects"
+      ],
+      "exactRed": true,
+      "_why": "AC-9 的判据 = 「含建造事件的流 ⇒ `Rebuild()` 后世界恢复到流所述形态」。把解码结果换成空序列 ⇒ 世界被清空但什么都没重建 ⇒ 红。",
+      "_expectRed_justification": "推演逐条:① ac9a —— `applied` 0 ≠ 2 ⇒ 红(第一条断言就红);② ac9c —— 0 ≠ 2 ⇒ 红;③ ac9d —— 0 ≠ 2 ⇒ 红;④ ac9e —— 0 ≠ buildKinds(2) ⇒ 红。**不该红的**:ac9b —— 空流的期望就是「世界被清空」,传空序列**恰好**兑现它 ⇒ 绿(⚠️ 这是本条变异**证不了**的一面,由 M1 覆盖);ac9f —— 它判的是「第二次(以及第一次)重建都从零开始」:本变异下两次重建都得到**同一个空的**世界,`countAfterFirst` = 0、第二次也是 0 ⇒ 相等 ⇒ 绿(该条的判别力由 M11 承载,不由本变异);ac8x 与 `StructureRestoreTest` 全部(不经本类)⇒ 绿。"
+    },
+    {
+      "name": "M10-ac10-modifyFootprintFreeRemoved",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 477,
+      "expect": "                _occupancy.FreeCells(inst.OccupiedCells);",
+      "replace": "                // FALSIFY-M10:旋转只占新足迹、不释放旧足迹",
+      "expectRed": [
+        "test_ac10_modifyAppliesFootprintChange"
+      ],
+      "exactRed": true,
+      "_why": "AC-10 的判据 = 「`Modify` 旋转后旧足迹**可走**、新足迹**不可走**」。不释放旧足迹 ⇒ 旧格仍挡路、总占用数变 3 ⇒ 红。",
+      "_expectRed_justification": "推演:① ac10 —— `IsTrue(walkable(oldSecond))` 红,且 `OccupiedCount` 3 ≠ 2 红。**不该红的**:ac10b(构造期就抛,走不到这行)、ac5(走**重放器**的 `Modified` 分支,不是写者)、ac9c —— 它把 `Modify` 结果当**输入**去重建,重建前 `RebuildFromDecoded` 会 `Reset()` 清掉写者留下的脏占用 ⇒ 终态仍正确 ⇒ 绿。`clinic_purity_replay_test`(EC-24-05)会因同样的脏占用转红,但它在 filter 之外 ⇒ 不计入。故预期恰 1 条。",
+      "_note": "⚠️ 与 `Place`(占)/ `Remove`(释)对照,M10 打的正是「三处里唯一漏掉的那处」—— 这也是本卡病因③的回归判据。"
+    },
+    {
+      "name": "M12-ac10-modifyFootprintOccupyRemoved",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 478,
+      "expect": "                _occupancy.OccupyCells(newCells);",
+      "replace": "                // FALSIFY-M12:停用旋转后的新足迹占用",
+      "expectRed": [
+        "test_ac10_modifyAppliesFootprintChange"
+      ],
+      "exactRed": true,
+      "_why": "M10 只打「释放旧足迹」半边;本变异打**另一半** —— 「占用新足迹」。AC-10 的判据是合取(旧格可走 **且** 新格不可走),两半必须各有一条变异,否则「新格不可走」这半边零反证(承 sprint-18 S18-2 的教训:4/4 全红却没有一条打产出侧)。",
+      "_expectRed_justification": "推演:① ac10 —— 新足迹格 `(1,0,2)` 未被占 ⇒ `IsEffectivelyWalkable` 为真 ⇒ 「新格须不可走」断言红。② 同一测的 `OccupiedCount` 也红:先 `FreeCells(旧足迹)` 已把**两格**全释放,随后不再 `OccupyCells` ⇒ 占用数 = **0** ≠ 断言里的 2(同一条夹具内,不扩散)。③ ac5 / ac9c 走的是**重放器**而非 `StructureWriter.Modify` ⇒ 不受影响。④ ac10b 在 `FreeCells` **之前**就抛(目录守卫),根本走不到这一行 ⇒ 绿。故预期恰 1 条。",
+      "_note": "M12 是**主轮之后**补的第 17+1 条(2026-10-28):主轮 17 条里 AC-10 只有一个变异,覆盖不到「新足迹占用」这半边。补入后总数为 18,单独复验。"
+    },
+    {
+      "name": "M11-ac9-rebuildInitialResetRemoved",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 159,
+      "expect": "            _world.Reset();",
+      "replace": "            // FALSIFY-M11:重建前不清世界(重放叠在旧世界之上)",
+      "expectRed": [
+        "test_ac9_streamWithPlaced_rebuildsWorldToStreamShape",
+        "test_ac9b_emptyStream_clearsWorld",
+        "test_ac9f_secondRebuild_startsFromCleanSlate"
+      ],
+      "exactRed": true,
+      "_why": "「重建 = **先清后放**」的**清**半边。它是一条与 M9(应用了什么)正交的属性:重放的内容对,但不清世界 ⇒ 旧内容跨过重建存活。",
+      "_expectRed_justification": "推演逐条:① ac9a —— 世界里的脏结构不清 ⇒ `Count` 3 ≠ 2 ⇒ 红;② ac9b —— 空流时分不清「清了」与「没动」,本变异选后者 ⇒ `Count` 1 ≠ 0 ⇒ 红;③ ac9f —— 第二次重建前弄脏的世界不被清 ⇒ `Count` 2 ≠ 1 ⇒ 红(该条的判别力由本变异承载 —— 首版「连跑两次比数值」对**任何**确定性函数都恒成立,是假绿,已订正为「弄脏后再重建」)。**不该红的**:ac3/ac4/ac5/ac6 —— 它们的重放起点本就干净,或写者造的结构与重放同号同格(覆盖);ac7a/b/c —— 异常由 `catch` 里的第二次 `Reset()` 兜底;ac9c/ac9d/ac9e —— 同 ac3 理由(同号覆盖 / 世界本就空);ac1/ac2/ac10 —— 不经重放器。故预期恰 3 条。",
+      "_note": "⚠️ 与 M1 的分工:M1 打的是 `World.Reset()` **内部**少了占用清零;M11 打的是重放器**根本没调** `Reset()`。两者是两条不同的守卫,各留一条变异(同一函数的两面不能互相顶替)。"
+    },
+    {
+      "name": "G1-ac8-nullEventsGuardDisabled",
+      "file": "unity/Assets/Gameplay.Boot/WorldLoadService.cs",
+      "line": 53,
+      "expect": "            _events = events ?? throw new ArgumentNullException(nameof(events));",
+      "replace": "            _events = events; // FALSIFY-G1:停用 events 的空依赖守卫",
+      "expectRed": [
+        "test_ac8e_noEventsSource_throws"
+      ],
+      "exactRed": true,
+      "_why": "AC-8 家族的 fail-closed 面:空依赖必须在**构造期**抛(否则运行期才 NRE,且报错点离病因很远)。",
+      "_expectRed_justification": "推演:只有 ac8e 传 `events = null` ⇒ 恰 1 条。其余夹具都传真委托。故预期恰 1 条。"
+    },
+    {
+      "name": "G2-ac8-nullDecoderGuardDisabled",
+      "file": "unity/Assets/Gameplay.Boot/WorldLoadService.cs",
+      "line": 54,
+      "expect": "            _decoder = decoder ?? throw new ArgumentNullException(",
+      "replace": "            _decoder = decoder; if (false) throw new ArgumentNullException( // FALSIFY-G2:停用 decoder 守卫",
+      "expectRed": [
+        "test_ac8d_noDecoder_throws"
+      ],
+      "exactRed": true,
+      "_why": "本卡**新增**的那条 fail-closed(「未注入解码器 ⇒ 拒绝以空投影冒充『世界为空』」)。停用 ⇒ 构造不再抛 ⇒ `Assert.Throws` 红。",
+      "_expectRed_justification": "推演:只有 ac8d 传 `decoder = null` ⇒ 恰 1 条。⚠️ 保留 `if (false) throw …(` 的语法骨架是为让下一行的实参 + `);` 仍有归属(单行替换删不掉跨行实参)。故预期恰 1 条。"
+    },
+    {
+      "name": "G3-ac8-nullWorldGuardDisabled",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 132,
+      "expect": "            _world = world ?? throw new ArgumentNullException(nameof(world));",
+      "replace": "            _world = world; if (false) throw new ArgumentNullException(nameof(world)); // FALSIFY-G3:停用 world 守卫",
+      "expectRed": [
+        "test_ac8f_noWorld_throws"
+      ],
+      "exactRed": true,
+      "_why": "重放器的 world 空依赖守卫(经 `WorldLoadService` 传导成 AC-8 的一条)。",
+      "_expectRed_justification": "推演:① ac8f —— `new WorldLoadService(events, decoder, null, catalog)` 经本守卫 ⇒ 停用后不抛 ⇒ 红;② ac7e —— 它传 `world = _world`(非 null)、`catalog = null`,走的是 G4 那条守卫 ⇒ 本条不受影响 ⇒ 绿。故预期恰 1 条。"
+    },
+    {
+      "name": "G4-ac7-nullModuleCatalogGuardDisabled",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 133,
+      "expect": "            _moduleCatalog = moduleCatalog ?? throw new ArgumentNullException(",
+      "replace": "            _moduleCatalog = moduleCatalog; if (false) throw new ArgumentNullException( // FALSIFY-G4:停用目录守卫",
+      "expectRed": [
+        "test_ac7e_nullCatalog_throwsAtConstruction",
+        "test_ac8g_noModuleCatalog_throws"
+      ],
+      "exactRed": true,
+      "_why": "「空目录 ⇒ 无法算足迹 ⇒ 静默退化为 `{anchor}` 即 C1 复现」—— 同一个守卫有**两个入口**(直接构造重放器 / 经 `WorldLoadService`),故一条变异两处红是**同一属性被两个夹具各证一次**,不是判别面不清。",
+      "_expectRed_justification": "推演:① ac7e —— `new StructureRestorer(_world, null)` ⇒ 停用后不抛 ⇒ 红;② ac8g —— `new WorldLoadService(events, decoder, _world, null)` ⇒ 经同一守卫 ⇒ 红。其余夹具目录都非 null ⇒ 绿。故预期恰 2 条。"
+    },
+    {
+      "name": "G5-ac7-nullOpsGuardDisabled",
+      "file": "unity/Assets/Sim/World/StructureRestore.cs",
+      "line": 157,
+      "expect": "            if (ops == null) throw new ArgumentNullException(nameof(ops));",
+      "replace": "            if (false) throw new ArgumentNullException(nameof(ops)); // FALSIFY-G5:停用 ops 守卫",
+      "expectRed": [
+        "test_ac7d_nullOps_throws"
+      ],
+      "exactRed": true,
+      "_why": "AC-7 的第四条腿:`ops` 为 null 须抛 `ArgumentNullException`,而不是让空引用撞在后面的 `ops.Count` 上(异常类型变了,调用方区分不出「参数错」与「实现错」)。",
+      "_expectRed_justification": "推演:① ac7d —— 停用后 null 传到 `ops.Count` ⇒ `NullReferenceException`,而夹具期望 `ArgumentNullException` ⇒ 红;② 其余夹具的 ops 都非 null。⚠️ 副作用:该夹具里 `_world.Reset()` 会真的执行,但世界本就空 ⇒ 无他测受影响。故预期恰 1 条。"
+    },
+    {
+      "name": "G6-ac10-modifyCatalogGuardDisabled",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 458,
+      "expect": "                if (_moduleCatalog == null)",
+      "replace": "                if (false) // FALSIFY-G6:停用 Modify 的目录守卫",
+      "expectRed": [
+        "test_ac10b_modifyWithoutCatalog_throwsBeforeTouchingWorld"
+      ],
+      "exactRed": true,
+      "_why": "AC-10 的 fail-closed 半边:无目录时**不许**沿用旧足迹(那会让占用表与实际朝向分叉,F-23-1)。停用 ⇒ 变成空引用。",
+      "_expectRed_justification": "推演:① ac10b —— 停用后 `_moduleCatalog.GetModuleDefinition(...)` ⇒ `NullReferenceException`,而夹具期望 `InvalidOperationException` ⇒ `Assert.Throws` 红;② 其余夹具的写者都带目录 ⇒ 绿。故预期恰 1 条。"
+    }
+  ]
+}

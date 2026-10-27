@@ -471,7 +471,15 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(memo.InvalidationCount, Is.EqualTo(0), "前提:尚未投递任何 Structure* 事件");
 
             // Act:改第二张床的朝向 —— 真生产路径(StructureWriter.Modify 发 StructureModified)
-            Assert.That(_writer.Modify(second, newOrientation: 1, newVariant: null, tick: 3), Is.True,
+            // ⚠️ **2026-10-28(S20-18)夹具订正:朝向值 `1` → `90`**。`1` **不是合法朝向**
+            //    —— `PlaceableChecker.ComputeOccupiedCells` 的 switch 只认 `0/90/180/270`,
+            //    其余**抛** `ArgumentException`(`PlaceableChecker.cs:127-131`)。
+            //    此前 `Modify` 从不重算足迹 ⇒ 非法值被静默存下并原样进载荷;
+            //    S20-18 修好「旋转必须改占用表」后,非法朝向会**当场抛**。
+            //    ⇒ 这是**夹具用了非法输入**,不是生产行为回归;订正为合法值 `90`。
+            //    (床是 1 格足迹 ⇒ 旋转前后足迹恒为锚点格,本测的 `EnvMod` / `RoomType`
+            //     不变断言因此照旧成立。)
+            Assert.That(_writer.Modify(second, newOrientation: 90, newVariant: null, tick: 3), Is.True,
                 "前提:Modify 须成功(朝向确实变化 ⇒ modified_fields 非 0)");
             FeedPendingEvents(memo);
             ClinicEnvEvaluation l2 = memo.Get();

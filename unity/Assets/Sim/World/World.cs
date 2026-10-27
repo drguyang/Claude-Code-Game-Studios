@@ -37,6 +37,23 @@ namespace DaYiJingCheng.Sim.World
             _slotOccupied = new bool[geometry.TotalCells];
         }
 
+        /// <summary>
+        /// 把世界重置为「空」—— **读档重建前的第一步**(S20-18 · 2026-10-28)。
+        /// <para>清两样**派生态**:结构实例表(含发号计数器,<see cref="StructureInstanceRegistry.Reset"/>)
+        /// + 占用表 <c>_slotOccupied</c> 全零。</para>
+        /// <para><b>刻意不清的另两样</b>:<c>_geometry</c>(世界几何)与 <c>_slotCatalog</c>(槽位骨架)
+        /// —— 它们是 ADR-015 的**烘焙静态层**,读档不改变;清零它们等于把静态数据当成状态,
+        /// 且 `WorldGeometry` 根本没有「重建为空」的入口(`WorldLattice.cs:295-298` 明令)。</para>
+        /// <para>⚠️ <b>唯一生产调用者 = <see cref="StructureRestorer"/> 的重放入口</b>:重置与
+        /// 重放必须成对(只重置不重放 ⇒ 房子全消失;只重放不重置 ⇒ 旧世界残留并叠加)。
+        /// 故本方法**不单独接进任何启动/读档路径**,只作为重放入口内部的第一步。</para>
+        /// </summary>
+        public void Reset()
+        {
+            _structures.Reset();
+            Array.Clear(_slotOccupied, 0, _slotOccupied.Length);
+        }
+
         // ── 占用查询(Overlay.blocked = slot_occupied 投影) ──
 
         /// <summary>检查格是否被占用。越界返回 false(fail-closed)。</summary>

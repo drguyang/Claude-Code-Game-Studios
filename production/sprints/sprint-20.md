@@ -548,3 +548,121 @@ cooked 产物里**零份**世界数据;世界数据的唯一作者 = ADR-022 关
 **元教训**:AC 的判据若是「源码文本某形态恰 N 处」,必须配**文本级**变异;配行为变异会得到
 「绿而零反证」,且看起来完全正常。
 
+
+---
+
+### S20-18 — World 生命周期轮(`World` 重置 + 世界流重建 + `Modify` 足迹修复)
+
+| 项 | 内容 |
+|---|---|
+| **Owner** | unity-specialist |
+| **复杂度** | **M** |
+| **前置(全部 ✅)** | S20-17(`World` / `StructureWriter` 生产构造点已落,`2026-10-28`)· `PoiStateMachine.RebuildFromDecoded`(`Sim/World/PoiStateMachine.cs:161`,同型先例)· `InventoryLoadService`(`Gameplay.Boot`,`_afterRestore` 钩子的既有消费者)· `IPayloadDecoder`(ADR-031,S12-12 实现轮) |
+
+#### 病因:S20-17 显式留下的后果,且比「没销毁」更糟一层
+
+S20-17 的卡内「挂标不记绿」第 4 条逐字:「**`World` 的生命周期后果** —— 世界挂在 `BootRoot`
+(常驻)之上 ⇒ 换关 / 读档后「旧世界还在」这件事**本卡不处理**,归 ADR-023 拆序轮的实现期义务。」
+本卡即该义务的兑现。勘察后,**缺口是三层,不是一层**(逐条实测):
+
+1. **没有重置入口。** `StructureInstanceRegistry.Clear()`(`Sim/World/StructureKinds.cs:157-160`)
+   只清 `_instances` —— **不清 `World._slotOccupied`、不复位 `_nextStructureId`**;
+   `World` 本身零 `Reset`。⇒ 旧世界**既没销毁,也没法销毁**。
+2. **没有重放器。** `StructurePlaced` / `Removed` / `Modified` 的读方只有表现层只读查询
+   (`Gameplay.Presentation/PatientAI/ClinicKnowledge.cs`、`ClinicEnvironmentMemo.cs` 的失效键),
+   `StructureInstanceRegistry` **从不被世界流重建**。⇒ 就算清零,读档后世界会**变空**
+   —— 那比残留更糟(房子的记忆全没了)。
+3. **写侧本身漏一处。** `StructureWriter.Modify`(`:360-391`)只算位掩码 + `_registry.Update`
+   + 发事件,**既不 `FreeCells` 旧足迹、也不 `OccupyCells` 新足迹**,且 `Update` 收的仍是
+   **旧足迹**(`:101-112` 传 `inst.OccupiedCells`)。对照 `Place`(`:264` 占用)与
+   `Remove`(`:313-315` 释放),只有 `Modify` 漏。⇒ **旋转非方形模块后,旧格仍不可走、新格仍可走**
+   (违 F-23-1)。这条是重放正确性的硬前置:流是唯一真源,**重放还原真足迹、现场不还原 ⇒ 两者分叉**。
+
+#### 边界
+
+- **只做 sim 侧 `World` 对象**(`DaYiJingCheng.Sim.World.World`),**不碰 ADR-023 §⑤ 的场景 / Addressables 拆序**。
+  `unity/Assets/Scenes/World.unity` 存在(仅 `Ground` + `Directional Light`),但**不在 BuildSettings、零加载点** ⇒ 该线无触发面。
+- **世界几何不动**:`WorldGeometry` / `BuildSlotCatalog` 来自烘焙静态层(ADR-015),读档不改变 ⇒ `Reset()` 只清派生态两样。
+- 重建形态照 `PoiStateMachine.RebuildFromDecoded` 的既有纪律:**`Sim` 侧不自行解码**(够不着 `Sim.Codec`,ADR-029 / ADR-031 甲案),由 Boot 层解码后喂入。
+
+#### AC(逐条可判伪 · 禁借绿)
+
+| # | 判据 | 载体 |
+|---|---|---|
+| **AC-1** | `World.Reset()` 后 `OccupiedCount == 0` 且 `Structures.Count == 0` | `structure_restore_test` |
+| **AC-2** | 注册表 `Reset()` **复位发号** ⇒ 其后第一次 `Register` 返回 `1` | 同上 |
+| **AC-3** | `Placed` 序列重放后:实例明细 / 占用表 / `IsEffectivelyWalkable` 与放置时**逐格一致**(含多格足迹) | 同上 |
+| **AC-4** | `Placed → Removed` 重放 ⇒ 净空(占用归零) | 同上 |
+| **AC-5** | `Placed → Modified(旋转)` 重放 ⇒ 旧足迹释放、新足迹占用,且与 `ComputeOccupiedCells(新朝向)` **逐格相等** | 同上 |
+| **AC-6** | 重放**按事件原号保号**且高水位 = `max(id)+1` ⇒ 重放后 `Place` 新结构不撞号 | 同上 |
+| **AC-7** | fail-closed:**目录未注入 / `moduleId` 不在目录 / `Removed`·`Modified` 指向不存在 id** ⇒ 各抛,且**抛后世界仍为重置后的空态**(原子性) | 同上 |
+| **AC-8** | 装配接线:给 `world` + 存档目录 ⇒ `CompositionRootServices.WorldLoad != null`;**不给 `world` ⇒ `null`**(既有 100+ 调用方零行为变化) | `world_load_service_test` |
+| **AC-9** | 端到端:含 `StructurePlaced` 的流 ⇒ `Rebuild()` 后世界恢复到流所述形态;**空流 ⇒ 世界被清空**(不是残留) | 同上 |
+| **AC-10** | `StructureWriter.Modify` 旋转后 ⇒ 旧足迹**可走**、新足迹**不可走**、注册表记录**新足迹** | `structure_restore_test` |
+
+**证伪轮(S12-4 · 一属性一变异 · SHA-256 逐字节还原)**:**18 条**变异,逐条对上一个属性
+(AC-1 / AC-2 / AC-3 / AC-4 / AC-5 / AC-6 / AC-7 ×3 / **AC-8** ×3 / **AC-9** ×2 / AC-10 ×2,
+另 6 条参数守卫)。spec 落 `tools/falsify/specs/s20-18-world-lifecycle-restore.json`。
+
+> ⚠️ **本卡原写「9 条(AC-8+9 合一条)」,实现轮改为 10 条** —— 理由:AC-8(装配接线:
+> `WorldLoad` 非 null)与 AC-9(端到端重建:世界恢复到流所述形态)是**两个正交属性**,
+> 而且能各自被**一条不同文件的单行守卫**击破(M8 在 `CompositionRoot.cs:889`、
+> M9 在 `WorldLoadService.cs:114`)⇒ 一条变异**证不了两个**(承「一属性一条变异」)。
+> 合并形态的实际后果是:不管选哪一行,总有一个 AC 的判据面**零反证**。
+> **原文不删,就地改数并留此注。**
+>
+> ⚠️ **第二次订正:10 条 → 17 条**(实现轮收口前) —— 10 条只覆盖 **AC 主干断言**,
+> 漏掉 S12-4 命中形态里的**两类**:④ 一次性 / 幂等类 与 ⑤ 阈值边界(参数守卫)类。
+> 逐项补:
+> - **M11**(`StructureRestore.cs:159` 重建前 `Reset()`)—— 首版 10 条里 `test_ac9f` **零反证**
+>   (它的首版形态本身就是假绿,见证据原件 §二),补 M11 才把它钉住;
+> - **G1–G6**(六个参数守卫:events / decoder / world / moduleCatalog / ops / catalog-in-Modify)——
+>   六个 `ArgumentNullException` 守卫此前**一条反证都没有**,而「入口即拒」类判据
+>   **不反证就等于没测**(只断异常类型会被下层同类型异常冒充)。
+> **两条订正的方向相反**:第一次是「一个 AC 拆成两条变异」,第二次是「同一批 AC 补上此前零覆盖的
+> 判据形态」。**原文不删,就地改数并留此注。**
+>
+> ⚠️ **第三次订正:17 条 → 18 条**(主轮**跑完之后**补 **M12**) —— 理由 = **分支覆盖**,不是新属性:
+> AC-10 是**合取判据**(旧格可走 **∧** 新格不可走),而主轮只有 M10 打「释放旧足迹」半边,
+> `StructureKinds.cs:478` `OccupyCells(newCells)` 那半边**零反证**。这与
+> `review-workflow` Phase 8b 新增 `Branch(分支覆盖)` 列是同一件事在证伪轮上的落实
+> (sprint-18 S18-2 的产物侧分支零反证就是这样漏掉的)。M12 单跑 = exact。
+
+#### 挂标不记绿(如实,禁勾)
+
+1. **重放器的生产实效 = 零。** `StructureWriter.Place` 的生产调用点 `grep` 实测 **0**
+   (`grep -rn "\.Place(" unity/Assets --include=*.cs | grep -v "/Tests/"` 零命中)⇒
+   生产流**永不含** `StructurePlaced` ⇒ 重放器在生产上**恒空跑**,只有夹具走到。
+   与 `RequestLoad` 本身「通电待信」同格。**不得**把「重放器已接线」读成「读档已可用」。
+2. **ADR-023 §⑤ 场景 / Addressables 拆序不在面内** —— 那要等 `World.unity` 真被 additive 加载。
+3. **`RequestLoad` 仍零调用方**(UI 存档位接线轮才激活)。
+4. **`BuildSlotCatalog` 仍空** ⇒ 占用格仍无法与槽位区域对账(`AC-23-08` 第三半边仍无载体)。
+5. **`Modify` 修复只覆盖「足迹随朝向变化」** —— 朝向合法性仍由上游 `ModifiableChecker` 守,本批不重复判定。
+6. **在场视图 / `PatientAppearedDriver` 内存态 / 视觉侧** 仍不在读档重建面(`LoadSequencer` 类头注的既有清单),
+   本批**只加世界注册表一项**,不代它清账。
+
+#### 实施结果(2026-10-28 收口)
+
+**原件**:`production/qa/evidence/impl-s20-18-world-lifecycle-2026-10-28.md`
+
+| 项 | 结果 |
+|---|---|
+| **AC** | AC-1…AC-10 **全部已落 + 已证**(逐条 Landed / Proven 分列见原件 §二) |
+| **新增夹具** | `structure_restore_test`(13 测)· `world_load_service_test`(13 测)= **26 测** |
+| **证伪轮** | **18 条变异,零逃逸**(主轮 17:15 exact + 2 超集;两条超集订正预期后单跑复验 exact;另补 M12 覆盖 AC-10 的另一分支)。还原 = SHA-256 逐字节通过 · 受保护路径指纹未变 · `FALSIFY-` 零残留 |
+| **回归 EditMode** | `5601 / 5566 / 0 / 35` @ `2026-10-27T22:59Z` · 最终树批 · `c784d88`;基线 `5575 / 5540 / 0 / 35`(引用自 S20-17 收口记录)⇒ **+26 / +26,零失败** |
+| **回归 PlayMode** | `238 / 234 / 0 / 2 / 2`(退出码 2,基线同)@ `2026-10-27T23:02Z` · `c784d88` ⇒ **逐项相同,零回归** |
+
+**实现轮的三次自纠(均留痕,不是「一次写对」)**:
+
+1. **`test_ac9f` 首版是假绿** —— 原版断言「连跑两次结果相同」,对**任何**确定性函数恒成立 ⇒ 零判别力。
+   改写为「重建 → 弄脏世界 → 再重建 → 脏结构必须消失」,由 M11 反证。
+2. **卡内证伪轮条数第二次订正(10 → 17,后补 M12 至 18)** —— 原因见上方两处 ⚠️;
+   M12 是**主轮之后**按 `Branch(分支覆盖)` 纪律补的(AC-10 是合取判据,首次只覆盖了一半)。
+3. **订正了一处既有夹具的非法输入** —— `clinic_purity_replay_test.cs` 用 `newOrientation: 1`
+   (合法值只有 `0/90/180/270`,`PlaceableChecker.cs:127` 对其余抛)。以前 `Modify` 不重算足迹
+   所以非法值被静默存下;本批修好占用同步后它会当场抛。**这是夹具用了非法输入,不是生产回归**。
+
+**未及核查(NOT-RUN,禁借绿)**:`afterRestore` 钩子内 `worldLoad?.Rebuild()` 的**调用本身**
+无夹具钉住(`CompositionRoot.cs:707-711`)—— 给了 `file:line` 但给不出能证明它真被调用的命令
+⇒ 按 NOT-RUN 登记,不计入任何判据面。另:真存档往返、`World.unity` 真加载后的行为均未验(挂标 1/2/3)。

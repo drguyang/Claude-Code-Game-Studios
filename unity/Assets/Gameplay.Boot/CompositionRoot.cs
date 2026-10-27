@@ -436,6 +436,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25):下文 if 内构造
             // (依赖三件存档侧组件,saveBasePath 为 null ⇒ 同 null)。
             LoadSequencer loadSequencer = null;
+            // ── 世界读档重建服务(S20-18 · 2026-10-28)—— 下文 `if (world != null)` 内构造 ──
+            // ⚠️ **声明在 `if (saveBasePath)` 之外**:它要被上面那个 `LoadSequencer` 的
+            //    `afterRestore` 闭包**捕获**;而闭包建立时 `world` / `modulesCatalog` 尚未解析
+            //    (注册表取自 `world.Structures` 在本段之后)。闭包捕获的是**变量**,
+            //    晚赋值照样可见 ⇒ 不必把 `LoadSequencer` 的构造后移(那会打乱既有次序注释)。
+            // ⚠️ 未接世界 ⇒ 恒 null ⇒ `afterRestore` 里 `worldLoad?.Rebuild()` 为空操作,
+            //    既有 100+ 处 `Assemble()` 调用方零行为变化。
+            WorldLoadService worldLoad = null;
             // ── 瞬时源(规则十四「一个量」)—— 2026-10-25 用户裁定「生产接线今日不为零,现在修」──
             // 实装 = NoPendingMedicalActionQuery(读急救通道 Armed 态取反;W5 要求的
             // 「独立于流的内存态」就此兑现 —— 不是流内累积钩子,被证伪的形态不回归)。
@@ -687,7 +695,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 用户裁定原话:「在装配根加「读档后重建库存投影」」。
                     // ⚠️ 用 `Rebuild()` 的默认 `enforceGates: true` —— 读进来的存档若含
                     //   违例 build_part,**读档即失败**(P0 范围门 ③ 的强制点)。
-                    afterRestore: () => inventoryLoad.Rebuild());
+                    //
+                    // 🔁 <b>2026-10-28 追加(S20-18)</b>:同一钩子里重建世界(实例表 + 占用表)。
+                    // 病因 = S20-17 卡内「挂标不记绿」第 4 条那个后果 —— 世界挂在 `BootRoot` 上常驻,
+                    // 读档后**旧世界还在**,且当时**既无重置入口、也无重放器** ⇒ 只能沉默。
+                    // ⚠️ **次序** = 库存在前、世界在后。两条**互不依赖**(都只读流,彼此不读对方产物)
+                    //    ⇒ 次序不构成契约;写成定序只为可复现(同一存档两次读档得到同一日志序)。
+                    // ⚠️ **任一抛 ⇒ 读档整体失败**(`LoadSequencer.Load` 不 catch)——
+                    //    世界重建不了说明存档 / 静态数据有问题,静默吞掉会让下游拿到旧世界。
+                    // ⚠️ `worldLoad` 未接世界时为 null ⇒ 空操作(既有调用方零行为变化)。
+                    afterRestore: () =>
+                    {
+                        inventoryLoad.Rebuild();
+                        worldLoad?.Rebuild();
+                    });
             }
 
 
@@ -856,6 +877,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    首轮只好退化成「停用守卫」,而那种形态改不动被扫描的文本 ⇒ 判据零反证。
                     //    合成一行后 `structureWriter = null;` 即可同时满足「可编译」与「字面量消失」。
                     structureWriter = new StructureWriter(stream, structures, encoder, modulesCatalog, world, dropEventWriter);
+
+                    // ── 世界读档重建服务(S20-18 · 2026-10-28)──────────────────────────
+                    // 四支依赖全来自本装配已有实例,零新增装配边:
+                    //   `() => stream.Events`(委托形式 ⇒ 读档换流后自动适应,与
+                    //   `InventoryLoadService` 同形)/ decoder(IPayloadDecoder,ADR-031)/
+                    //   world(被重建的世界)/ modulesCatalog(**同一实例** —— 另建第二个
+                    //   会让足迹重算与放置判定取自两份目录,那正是 C1 的形态)。
+                    // ⚠️ 本类**只解码**;重放本体在 `Sim` 的 `StructureRestorer`(`Sim` 够不着 codec,
+                    //    承 ADR-025 §① / ADR-029 甲案)。两层分工见 `WorldLoadService` 类头注。
+                    worldLoad = new WorldLoadService(() => stream.Events, decoder, world, modulesCatalog);
                 }
                 // ⚠️ **只传 structures 不传 world ⇒ 无结构写者**:写者的 `occupancy` 与
                 //    `registry` 必须指向**同一个**世界(占用表与世界注册表分叉 = C1/C2 复现)。
@@ -1197,7 +1228,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 🔁 2026-10-28 S20-17:世界 + 23 的结构写者。
                                                // 两者**同源**(writer 的 occupancy 就是 world),
                                                // 且 writer 只在 world != null 时非 null —— 见上方构造段。
-                                               world, structureWriter);
+                                               world, structureWriter,
+                                               // 🔁 2026-10-28 S20-18:世界读档重建服务。
+                                               // 与 `world` **同 null 性**(无世界即无从重建),
+                                               // 且只在 `world != null` 的支路里构造 —— 见上方。
+                                               worldLoad);
         }
 
         /// <summary>
