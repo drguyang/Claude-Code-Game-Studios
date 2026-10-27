@@ -204,12 +204,22 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | S3 | ✅ **实测通过(含 S-4 补强)** | 2026-09-23 同装置。**判据 1(⑤ 前提)**:外部亲代实例 unload 后 `alive=**True**` ⇒ 不销毁,**泄漏形态成立**;场景内亲代实例 `alive=False`(随层级亡,非反例)。**判据 2(S-4)**:bundle `baseline=1 → 载入后 4 → unload 后 2 → 两 handle Release 后 **1**(=baseline)` ⇒ **refcount 归零**;中间段证实「handle 未全 Release 时 bundle 仍被引」的已知形态存在。**判据 3(可观测)**:故意漏 Release ⇒ `leak_alive=**True**` · `leak_bundles=**2**(>baseline)` · 补释放后 `final=1` ⇒ **漏了能被看见**。**新机制发现**(源实读 2.10.3 实跑确认):`handle_valid_after_scene_unload ext=True inScene=False` ⇒ 场景内亲代实例的 tracked handle 被 `CleanupSceneInstances` **自动释放**,**不得手动 ReleaseInstance** | ADR-023 S3 勾选 ✅ |
 | S4 | ✅ **实测通过** | 2026-09-23 · Unity 6000.3.24f1:**A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.65 ms** · max=**24.19 ms** · total=**293.0 ms**(逐点 14.18/19.26/12.81/12.74)→ 单次换场约 15 ms ≈ **0.9 帧**@60fps,**可接受**。**B 路**(单场景双根 `SetActive` ×20)avg=**0.0114 ms** · max=**0.2056 ms** · total=0.228 ms(亚毫秒,量具已修为 `Elapsed.TotalMilliseconds`)⇒ **A/B 量级比 ≈ 1285×**。**机制建议**:细粒度 chunk 激活宜走**单场景多根 `SetActive`**;场景 load/unload 只用于世界整体换入换出。**量级差即结论,不产新 ADR** | ADR-023 S4 勾选 ✅ |
 | F7(59 绿) | ✅ **已实测通过** | 2026-09-23 · Unity 6000.3.24f1 · Test Runner **EditMode 标签页**:`GoldenHashV1Test` 43 条 + 既有 16 条 = **59 绿全过**(16 旧 + 43 新;任一红 = 实现漂移,本次无) | ADR-012 §Validation F7 勾选 ✅(仅 EditMode 条;三格矩阵未跑,不借绿) |
-| 假设 6 | ⬜ 未跑(用户裁定缓办,集中一轮) | 判据 ④(单一 `UI/Navigate`,无双绑)已在【超算】按 `.inputactions` 按钮表**静态核实通过**;①②③ 须手柄腿 | ADR-013 §6.6 + S5 激活与否 |
+| 假设 6 | 🟡 **自动化腿已跑(2026-10-27),行为面仍 `NOT-RUN`** | **判据③ ✅ 9/9**(3×3 全可达)· **判据② 引擎侧前提 ✅**(同输入 `ChildOrder→btn-1-2` vs `PositionXY→btn-2-1` ⇒ 几何序生效,非树序退化)· **判据① / 判据② 方向语义 = `NOT-RUN`**(IL 实证:`FocusController.SwitchFocusOnEvent` / `FocusNextInDirection` / `EventDispatcher.Dispatch` 全为 `assembly` internal ⇒ 进入默认动作阶段的公开入口不存在)· 判据④ 仍引用【超算】静态核实 | ADR-013 §6.6 + S5 激活与否 |
 
 > ✅ **2026-09-23 S1/S3/S4 三条全部实测通过,已回填 ADR-023 §Validation Criteria(勾选 + 数字)**。
 > S1/S3 前两跑的「红」已定性为**装置读数缺陷**(§8 坑 A / 坑 B),**非** ADR 结论 —— 修复后本轮全绿,判决以本轮为准。
-> **本批仍未结**:F7 的 59 绿待【桌面】EditMode 确认 · 假设 6 缓办(S5 随之休眠)。
-> ⚠️ **借绿禁令仍适用**:F7 未确认前,ADR-012 §Validation F7 不勾;假设 6 未跑,ADR-013 §6.6 不动。
+> **本批仍未结**:F7 的 59 绿待【桌面】EditMode 确认 · ~~假设 6 缓办~~ **→ 2026-10-27 自动化腿已跑,见下**。
+> ⚠️ **借绿禁令仍适用**:F7 未确认前,ADR-012 §Validation F7 不勾;~~假设 6 未跑,ADR-013 §6.6 不动~~ **→ ADR-013 §6.6 仍不动**(自动化腿只补了判据③ 与判据② 的引擎侧前提,行为面 `NOT-RUN`)。
+
+> 🔁 **2026-10-27 自动化腿批(假设 6)**:新增
+> `unity/Assets/Tests/PlayMode/SkeuomorphicUI/u1_assump6_gamepad_focus_spike_test.cs`,
+> `-batchmode -nographics` 实跑 **total=5 / passed=3 / failed=0 / inconclusive=2**。
+> **判据③ ✅**(9/9 可达)· **判据② 引擎侧前提 ✅**(两环落点不同 ⇒ 几何序生效)·
+> **判据① 与判据② 方向语义 = `NOT-RUN`**(结构障碍,非能力不足)。
+> 证伪轮已做(变异 `xyRing` → `ChildOrder` ⇒ 目标断言**恰红**,其余不动;SHA-256 逐字节还原)。
+> 原件 = `production/qa/evidence/spike-assump6-2026-10-27.md`。
+> ⚠️ **仍未结**:判据 ①②的行为面 + 手感四问归【桌面】人工手柄腿 ——
+> **假设 6 不得标「已实测通过」**,ADR-013 §6.6 的「半可信」状态不变,S5 继续休眠。
 
 ## 7. 残留与后续(出本批)
 
