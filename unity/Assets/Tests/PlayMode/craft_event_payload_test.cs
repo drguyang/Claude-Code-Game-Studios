@@ -469,17 +469,23 @@ namespace DaYiJingCheng.Tests.PlayMode.Processing
 
             Assert.IsNotNull(fold, "fold 必须能跑完(读 Craft 时不崩)");
 
-            InventoryFoldGap gap = fold.Gaps.FirstOrDefault(
-                g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable);
-            Assert.IsNotNull(gap,
+            // ⚠️ **此处曾用 `FirstOrDefault` + `Assert.IsNotNull(gap, …)` —— 那是一条假绿断言。**
+            //    `InventoryFoldGap` 是 `readonly struct`(InventoryFold.cs:256),值类型装箱后
+            //    **永不为 null**,`FirstOrDefault` 找不到时返回 **default struct** 而非 null
+            //    ⇒ `IsNotNull` 恒过。2026-10-27 批 4 的变异 M-B4-2(静默丢产出)实测:
+            //    先红的是下面那条 `RegistryId`(default struct 的 Kind=0 ⇒ RegistryId="R18"),
+            //    **不是** `IsNotNull`。现改为 `Any` 谓词断言 —— 找不到即红。
+            Assert.That(fold.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable), Is.True,
                 "fold 对产出侧报 R15 的**现行形态** `CraftRecipeNotInTable` —— " +
                 "本夹具无配方表,查不到号必须**显式可见**;静默丢产出会让「表没装载」" +
                 "伪装成「炮制没出货」");
+            InventoryFoldGap gap = fold.Gaps.Single(
+                g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable);
             Assert.AreEqual("R15", gap.RegistryId, "仍归 R15 涟漪登记行");
 
-            Assert.IsFalse(fold.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey),
-                "旧的 `CraftOutputWithoutItemKey`(结构性缺位)口径已随 R15 闭合退役 —— " +
-                "若它仍出现,说明 fold 没走新的查表链");
+            // ⚠️ 2026-10-27 批 4:原断言的 `CraftOutputWithoutItemKey` **枚举值已从枚举移除**
+            //    (旧形态零产生点,用户裁定「乙」删死代码)⇒ 这条反向断言编译不过,也确实无对象。
+            //    本测的判别力由上一条 `Any` 谓词断言承担(已由变异 M-B4-2 反证:静默丢产出 ⇒ 该条红)。
         }
 
         // ══════════════════════════════════════════════════════════════════

@@ -169,46 +169,52 @@ namespace DaYiJingCheng.Sim
         public long StackKey => ((long)ItemOrdinal << 32) | (uint)Quality;
     }
 
-    /// <summary>缺口类别 —— 前四类**逐条**对应 §涟漪登记的一个 R 行;其余是完整性不变量。</summary>
+    /// <summary>缺口类别 —— R 相关的**逐条**对应 §涟漪登记的一个 R 行;其余是完整性不变量。</summary>
+    /// <remarks>
+    /// ⚠️ **2026-10-27 R15–R18 闭合批(批 4)删除了三个「旧形态」枚举值** ——
+    /// `CraftOutputWithoutItemKey`(R15)/ `StructurePlacementWithoutActor`(R16)/
+    /// `StructureRemovalWithoutRefundIdentity`(R17)。三者都是**结构性缺位**口径
+    /// (「载荷永远装不下这个位」),在闭包落地后**零产生点**,只在 `RegistryId` 的
+    /// switch 里挂着。
+    /// <para><b>为什么删而不是留</b>(用户 2026-10-27 裁定「乙」):留着会让将来的读者
+    /// 以为「这条缺口还可能被报」,而它对应的四条口径(R15 显式 ordinal / R16 单机归唯一玩家 /
+    /// R17 地面掉落 / R18 各源侧载)**都没有向载荷加字段** ⇒ 旧形态在结构上已不可达。
+    /// 且 `RegistryId` 是**穷举 switch**,删掉后任何新产生点都必须先登记才能编译 —— 这是
+    /// 承 ADR-024「白名单须显式」的同一条纪律。</para>
+    /// <para><b>安全前提(已实测)</b>:本枚举**没有任何序列化面**(全仓无 codec / 存档引用)、
+    /// 无 `(int)` 数字依赖、无 `Sim` 外的装配引用 ⇒ 删除 + 重编号不产生兼容性问题。
+    /// 复算:<c>grep -rn "InventoryFoldGapKind" unity/Assets --include=*.cs</c>
+    /// 仅命中本文件 + 两个测试文件。</para>
+    /// </remarks>
     public enum InventoryFoldGapKind
     {
-        /// <summary>**R15** —— `Craft` 的产出物无法确定 `item_key`(载荷无 output item_key 位;
-        /// 且 `recipe_id` 在全仓无 <c>int → Recipe</c> 映射)。⇒ 增益侧建不出 `(item_key, quality)`。</summary>
-        CraftOutputWithoutItemKey = 0,
-
-        /// <summary>**R16** —— `StructurePlaced` 无 actor 位 ⇒ 建造扣料记不到人。</summary>
-        StructurePlacementWithoutActor = 1,
-
-        /// <summary>**R17** —— `StructureRemoved` 返还物既无 <c>instance_id</c> 也无 `item_key`。</summary>
-        StructureRemovalWithoutRefundIdentity = 2,
-
         /// <summary>**R18** —— 某实例在整个流里**没有任何品级来源**
         /// (无 `ResourceHarvested.out_quality`,也非 `Craft` 产出)。</summary>
-        InstanceWithoutQualitySource = 3,
+        InstanceWithoutQualitySource = 0,
 
         /// <summary>**实例 id 复用** —— `DropSpawned` 撞上一个已存在且未归零的 id
         /// (违 ADR-006 机制 A 不变量②:号不回收)。</summary>
-        DuplicateInstanceId = 4,
+        DuplicateInstanceId = 1,
 
         /// <summary>**引用未出生的实例** —— `DropClaimed` / `DropDespawned` / `Craft` 投料
         /// 点名了流里从未出生(或已归零)的 id;或 `ResourceHarvested` 有而
         /// `DropSpawned` 缺失。世界流不完整 = 投影不可信。</summary>
-        DanglingInstanceReference = 5,
+        DanglingInstanceReference = 2,
 
         /// <summary>**重复归属** —— 同一实例被 `DropClaimed` 两次(转移须走
         /// `DropSpawned → DropClaimed` 新序列,不是二次 claim)。</summary>
-        DuplicateClaim = 6,
+        DuplicateClaim = 3,
 
         /// <summary>**非法扣减量** —— `DropDespawned.qty ≤ 0` 或 &gt; 该实例当前 qty
         /// (后者属畸形输入:主机应整体拒绝、世界流零事件)。</summary>
-        InvalidDespawnQuantity = 7,
+        InvalidDespawnQuantity = 4,
 
         /// <summary>**扣减超出持有** —— `Craft.ActualConsumed[i]` 越界,或投料实例的持有者
         /// ≠ `Craft.actor_id`(投料只能扣自己箱里的)。</summary>
-        ConsumptionExceedsHolding = 8,
+        ConsumptionExceedsHolding = 5,
 
         /// <summary>**品级来源互相矛盾** —— 同一实例被两处给出不同 `quality`。</summary>
-        ConflictingQualitySource = 9,
+        ConflictingQualitySource = 6,
 
         /// <summary>**载荷组内不等长** —— `Craft` 的 `InputInstanceIds ⟷ ActualConsumed`
         /// 或 `OutputQty ⟷ OutputQuality ⟷ OutputInstanceIds` 长度不一致(registry 约束)。
@@ -216,7 +222,7 @@ namespace DaYiJingCheng.Sim
         /// (「坏数据不进字节面」)⇒ 合规 codec 写出的流到不了本分支。留着是为读侧收到
         /// 别端写坏的数据 / 生产池实现变更时**不静默错算**;测试侧亦无法用真 codec 构造
         /// 该形态 ⇒ 该分支**未被夹具钉住**(Proven = ✗,登记在 story 的 Test Evidence)。</para></summary>
-        MalformedPayloadPairing = 10,
+        MalformedPayloadPairing = 7,
 
         // ══════════════════════════════════════════════════════════════════
         // 2026-10-27 R15–R18 闭合批新增 —— 查表 / 归属不可判的**显式**缺口。
@@ -224,26 +230,26 @@ namespace DaYiJingCheng.Sim
         //    不是「拿不到就算 0」。照 `RequireComplete()` 的既有纪律。
         // ══════════════════════════════════════════════════════════════════
 
-        /// <summary>**R15(新形态)** —— `Craft.recipe_id` 在配方表里查无此号 ⇒ 产出物
-        /// 确定不了 `item_key`。与旧 <see cref="CraftOutputWithoutItemKey"/> 的区别:
-        /// 旧的报「载荷无位」(结构性缺位,永远修不好);本条报「表里没有这一号」
-        /// (数据 / 版本不一致,可修)。</summary>
-        CraftRecipeNotInTable = 11,
+        /// <summary>**R15** —— `Craft.recipe_id` 在配方表里查无此号 ⇒ 产出物
+        /// 确定不了 `item_key`。这是**数据 / 版本不一致**(可修),不是载荷缺位。
+        /// <para>⚠️ 旧形态 `CraftOutputWithoutItemKey`(「载荷无 output item_key 位」)
+        /// 已于 2026-10-27 批 4 随闭包删除 —— 产出 `item_key` 现由 `recipe_id` 查表折出。</para></summary>
+        CraftRecipeNotInTable = 8,
 
-        /// <summary>**R15(新形态)** —— 配方查到了,但其 `outputs` 行数与载荷的
+        /// <summary>**R15** —— 配方查到了,但其 `outputs` 行数与载荷的
         /// `OutputQty` / `OutputQuality` / `OutputInstanceIds` 行数不一致 ⇒ 无法逐行对位建行。
         /// <para>⚠️ 这是**数据一致性**缺口(配方表版本 ≠ 载荷产生时的配方表版本),
         /// 不是载荷畸形(后者归 <see cref="MalformedPayloadPairing"/>)。</para></summary>
-        CraftOutputCountMismatch = 12,
+        CraftOutputCountMismatch = 9,
 
-        /// <summary>**R16(新形态)** —— 建造扣料归因不可判:``SolePlayer == null``
+        /// <summary>**R16** —— 建造扣料归因不可判:``SolePlayer == null``
         /// (多玩家 / 零玩家 / 未接 registry)或 `StructurePlaced.module_id` 不在模块目录。</summary>
-        BuildCostAttributionUnresolved = 13,
+        BuildCostAttributionUnresolved = 10,
 
-        /// <summary>**R16(新形态)** —— 建造扣料**量不足**:唯一玩家名下该建材的库存
+        /// <summary>**R16** —— 建造扣料**量不足**:唯一玩家名下该建材的库存
         /// 少于 `cost(m)`。主机应整体拒绝、世界流零事件 ⇒ 流里出现即畸形
         /// (同 <see cref="InvalidDespawnQuantity"/> 的判据形态)。</summary>
-        BuildCostExceedsHolding = 14,
+        BuildCostExceedsHolding = 11,
     }
 
     /// <summary>一条缺口 —— 带**可追溯的定位**(R 编号 + Kind + 全序键 + 实例 id)。</summary>
@@ -281,13 +287,10 @@ namespace DaYiJingCheng.Sim
             {
                 switch (Kind)
                 {
-                    case InventoryFoldGapKind.CraftOutputWithoutItemKey: return "R15";
                     case InventoryFoldGapKind.CraftRecipeNotInTable: return "R15";
                     case InventoryFoldGapKind.CraftOutputCountMismatch: return "R15";
-                    case InventoryFoldGapKind.StructurePlacementWithoutActor: return "R16";
                     case InventoryFoldGapKind.BuildCostAttributionUnresolved: return "R16";
                     case InventoryFoldGapKind.BuildCostExceedsHolding: return "R16";
-                    case InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity: return "R17";
                     case InventoryFoldGapKind.InstanceWithoutQualitySource: return "R18";
                     default: return string.Empty;
                 }

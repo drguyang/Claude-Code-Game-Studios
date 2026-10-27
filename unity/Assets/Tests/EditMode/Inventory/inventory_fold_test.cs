@@ -761,7 +761,10 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
 
             InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
-            Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey), Is.False);
+            // ⚠️ 2026-10-27 批 4:原断言 `Gaps.Any(g => g.Kind == CraftOutputWithoutItemKey)` 已删 ——
+            //    该枚举值随 R15 闭包**从枚举里移除**(旧形态零产生点,用户裁定「乙」删死代码)。
+            //    本测真正要断的仍是下面这条:`outputs` 为空 ⇒ **零产出行、零缺口**。
+            Assert.That(r.Gaps, Is.Empty, "只扣不出的 Craft 不产生任何缺口(产出组为空 = 合法的空集)");
             Assert.That(r.IsComplete, Is.True, "只扣不出的 Craft 落在全可重建子域内");
         }
 

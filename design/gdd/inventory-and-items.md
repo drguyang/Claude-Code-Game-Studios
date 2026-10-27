@@ -123,7 +123,15 @@
 | **被拾取** | `DropClaimed` | 世界流 | **主机**(承 ADR-020 §四 的 Append 纪律)|
 | **被消耗 —— 炮制** | `Craft`(**含 `ActualConsumed`**) | 世界流 | **18**(20 执行扣减,不另发事件)|
 | **被消耗 —— 建造** | `StructurePlaced`(被接受后) | 世界流 | **23**(20 执行扣减,不另发事件)|
-| **归还 —— 拆除建造** | `StructureRemoved` | 世界流 | **23**(P0 全额返还,20 执行入箱)|
+| **归还 —— 拆除建造** | ~~`StructureRemoved`~~ → **`DropSpawned`**(2026-10-27 R17 闭合)** | 世界流 | **23 触发 → 20 落地**(P0 全额返还,**地面掉落**)|
+
+> 🔁 **2026-10-27 就地订正(R17 闭合批 · 用户裁定「地面掉落」)**:本行原写「`StructureRemoved` / 23 / 20 执行入箱」。
+> 现行口径:**23 在拆除后另发一条普通 `DropSpawned`**(`qty = ⌊cost × R⌋`、`item_key = module.build_item_key`、
+> 锚点 = 被拆结构锚点格),由 20 落地 —— `StructureRemoved` 本身**不承载返还物**,也就**不进库存谓词集**。
+> **理由**:P0 无 20 侧结算路径(拾取 / 入库编排未落),故 EC-23-11 的**成功分支也走地面掉落**;
+> `DropSpawned` 一支事件覆盖两种分支,事件形状不变(P1b 接上入库路径时成功分支改发 `DropClaimed`)。
+> **⚠️ 这是收窄不是重设计** —— 语义仍是「返还物进世界、不吞」,变的是它落在哪。
+> 详见 `modular-building.md` EC-23-11 的加注与 `Sim/World/StructureKinds.cs` 的 `Remove` remarks。
 | **被消耗 —— 用药** | **`DropDespawned`**(既有 Kind;载荷 `{ instance_id, qty, reason }`,`qty` + `reason` 归 **20 / R-2**) | 世界流 | **20** |
 | **被消耗 —— 用药(跨栈 · N 栈 N 条)** | 同一次用药可选**多个实例** ⇒ **N 条**同 `tick` 相邻 `DropDespawned`(**OQ-20-10** ✅ 2026-10-06 取 ①) | 世界流 | **20** |
 | **被转移**(给予 / 交易 · P1a) | `DropSpawned`(给予者格)⟶ `DropClaimed`(受赠者) | 世界流 | **主机** |
@@ -139,6 +147,12 @@
 > P0 拆除**全额返还**(`DEMOLISH_REFUND_RATIO = 1`,`modular-building.md:124`)⇒
 > 「建了又拆」的材料**必须**能回到库存,而它回到库存的事实**只在 `StructureRemoved` 里**
 > (23 在该事件后把 `build_part` 交回 20)。**谓词集补入 `StructureRemoved`**。
+
+> 🔁 **2026-10-27 本段已被 R17 闭合批推翻(原文保留作闭环记录)**:BL-2 的**问题诊断**仍然成立
+> (原 fold 谓词集确实缺归还路径),但它给的**解法**(把 `StructureRemoved` 补进谓词集)已作废 ——
+> `StructureRemoved` 的载荷 `{structure_id, cell, module_id}` **没有 `instance_id` / `item_key` / `qty`**,
+> 补进谓词集也建不出任何库存行。现行解法 = **23 另发一条普通 `DropSpawned`**(详上方规则一的订正注)。
+> ⇒ **`StructureRemoved` 移出谓词集**,`DropSpawned` 本就其中。
 > **第二半(扣减侧栈归属)**:`cost(m)` 只是**数量**纯函数,**不含品级**,而品级是**独立堆**(规则三)
 > ⇒ 「扣了哪一栈」未定则重建不可确定。**但 23 已冻结 `StructurePlaced` 无 provenance 字段**
 > (`modular-building.md:256`,改载荷破 `AC-23-09` 字节稳定)⇒ 20 **不得要求 23 补 `consumed:[(instance_id,qty)]`**。
@@ -148,8 +162,13 @@
 > 若 21a 使某 `build_part` 有 `quality > 1`,选栈规则即成为唯一裁决点 —— 归 **OQ-20-6(新)**。
 
 ```
-InventoryOf(player) = fold( 世界流, 谓词 ∈ {DropSpawned, DropClaimed, DropDespawned, StructureRemoved, Craft.ActualConsumed, StructurePlaced, **ResourceHarvested**} )
+InventoryOf(player) = fold( 世界流, 谓词 ∈ {DropSpawned, DropClaimed, DropDespawned, Craft.ActualConsumed, StructurePlaced, **ResourceHarvested**} )
 ```
+
+> 🔁 **2026-10-27 就地订正(R17 闭合批)**:上式原含 **`StructureRemoved`**(BL-2 于首轮评审补入)。
+> 现行口径**已把它移出** —— 返还物改由 23 另发一条**普通 `DropSpawned`** 承载,
+> 后者本就在谓词集内 ⇒ 若同时保留 `StructureRemoved`,**同一笔返还会被两个载体各算一次**(双计)。
+> 实现:`InventoryFold.Fold` 的 `case EventKind.StructureRemoved` 现为显式 no-op 并附理由注释。
 
 > **✅ `OQ-20-1` 已结清(用户裁定 2026-09-18):全部复用既有 Kind —— 零新增。**
 > 裁决理由与机制:
@@ -627,7 +646,7 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 | **`CARRY_CAP` 未定值** | `CanCarry` **无法求值** ⇒ 20 装载期**硬失败**(禁 null 兜底) | ADR-014 §五(E-13 同款纪律) |
 | **库存索引被清空(重建期)** | 从**三流 ∪ 基线**重算,**结果逐位相同** | 规则一 · AC-20-03 |
 | **加载后 `next` 与既有 id 冲突** | ⚠️ **原「不可达」为假**(首轮评审 BL-1③)—— 高水位只扫三流会**漏 `BakedInitial` 的无事件 `structure_id`**,与共用 `IIdAuthority` 空间的结构行撞号。**修正**:扫描集 = 三流 ∪ `BakedInitial`;跨域高水位归 7a / ADR-010(登记前置) | 规则二 |
-| **建材料扣除**(23) | 在 `StructurePlaced` **被接受后**扣(23 规则七);**P0 拆除全额返还**(`DEMOLISH_REFUND_RATIO = 1`)—— 返还经 `StructureRemoved` 入箱(BL-2 补入 fold 谓词) | 23 规则七 `:124` · 规则一 |
+| **建材料扣除**(23) | 在 `StructurePlaced` **被接受后**扣(23 规则七);**P0 拆除全额返还**(`DEMOLISH_REFUND_RATIO = 1`)—— 返还经 **23 另发的 `DropSpawned`** 落地（~~经 `StructureRemoved` 入箱~~ 原 BL-2 口径，2026-10-27 R17 闭合批订正：`StructureRemoved` 载荷无 `instance_id`/`item_key`/`qty`，补进谓词集也建不出行） | 23 规则七 `:124` · 规则一 · `modular-building.md` EC-23-11 加注 |
 | **容器自身进箱** | ⚠️ **P0 禁**(用户裁定 2026-09-19,BL-7③)—— 可装子件的容器(瓷瓶 / 盒)**P0 不进箱**,消解「进 / 出容器」无事件载体的第二真源缺口;折重口径见规则三推荐 4;**P1a 放开**。**2026-10-26 措辞澄清**:禁的是「容器**进容器**」(= `children` 不含容器型子件),**不是** `children` 恒空 —— 见规则十 `:558` 的订正注 | 规则七 / OQ-20-4 |
 | **`item_key` 不在物品表** | **不可达** —— 烘焙期闭集校验(承 21a §Schema 的构建期门) | 21a · ADR-014 |
 | **7a 快照与三流冲突** | **三流为准**(快照 = 优化非真相) | 规则一 · ADR-010 |
@@ -644,7 +663,7 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 | **21a 物品与配方数据库** | 21a → 20 | **数据** | `stackable / stack_max / weight / category`;品级是实例属性;**堆叠基数交付**(21a `:184`) | ✅ `item-database.md:434` · `:800` |
 | **21a `Recipe`** | 21a → 20 | **公式** | F1 的**唯一求解器**(20 **不求值**,只装卸) | ✅ `item-database.md:461` |
 | **`IIdAuthority`** | ADR-010 → 20 | **机制** | `ItemInstanceId.Next()`(**主机唯一**) | ✅ **ADR-010 §五**(机制 A;原标「✅ ADR-005 · D-21-26」为**假绿**,见规则二 推荐1①)· 21a 侧 `D-21-26` 登记债**未回收** |
-| **世界流** | ADR-009 → 20 | **真源** | `DropSpawned/Claimed/Despawned` · `Craft` · `StructurePlaced` / **`StructureRemoved`** | ✅ ADR-009 §三;**⚠️ 2026-10-26 实测**:七类 Kind **全部有载荷位缺项**具体化为 R15–R18 四条(见 §涟漪登记),不再概括为「未定稿」 |
+| **世界流** | ADR-009 → 20 | **真源** | `DropSpawned/Claimed/Despawned` · `Craft` · `StructurePlaced`（~~`StructureRemoved`~~ 2026-10-27 移出谓词集，见规则一订正注） | ✅ ADR-009 §三；**⚠️ 2026-10-26 实测**：七类 Kind **全部有载荷位缺项**具体化为 R15–R18 四条 → **✅ 2026-10-27 四条全部闭合**（均为「既有事件 / 既有表 / 既有目录」求解，**未向载荷加字段**；见 §涟漪登记 R15–R18 闭合记录） |
 | **✅ 前置 1:`D-21-29`** | 21a → 11 → 20 | **换算字段** | 「一剂 → 几份」的份数来源(规则九) | ✅ **已认领 2026-10-06** —— 21a `drug_profile.portions_per_dose`,求值在 11,20 只收 `qty`(= `portions`)。**余阻塞 = R2 载荷 / BL-31 跨栈**,与 OQ-20-5 已闭合的「份数来源」不同源 |
 | **✅ 前置 2:`Craft` 全序键 `D-21-28`** | ADR-005/18/45 → 20 | **定序** | 同 tick 多次结算的稳定定序(`AC-20-03` 逐位重建的前提) | ✅ **已裁(2026-09-19,18 首轮评审 [甲])** —— 三流全序键 `(Tick, StreamPriority, Patient=None, Seq)`,见 `processing.md` 注④ |
 | **🟡 前置 3:`DropDespawned` 载荷 `qty`** | R-2/ADR-009 → 20 | **载荷** | 实例级部分消耗(规则九 BL-5) | 🟡 **2026-10-26 实测收窄**:`qty` **字段已在载荷里**(`WorldPayloads.cs:70-74` = `{InstanceId, Qty, Reason}`)⇒ 卡面「`qty` 未定稿」**已陈旧**;真开项只剩 **`reason` 值域表**(`entities.yaml:2576` 仍标「档表归 R-2 定稿」)。**⚠️ `reason` 不阻塞 fold**(fold 只读 `instance_id` + `qty`,不读 `reason`)⇒ 本前置对 `AC-20-03` **实际已解阻**,对 `AC-20-16` 的 audit 面仍开。**✅ 事件形状半边已裁 2026-10-06(`OQ-20-10` 取 ① 相邻多条)** ⇒ R2 落定时**不得**按「单事件」定稿(见本件头触发条件③) |
@@ -653,10 +672,10 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 | **✅ 前置 6:18 的 `Craft` 产出 `instance_id` 位** | processing / ADR-009 → 20 | **载荷** | 18 的产出物须有 id 落点(规则二三载体之一) | ✅ **R10 已认领(2026-09-19,18 首轮评审修订)** —— `Craft` 载荷已补 `output_instance_ids[]`(主机于点火 tick 经 `ItemInstanceId.Next()` 依全序键顺序铸造,`processing.md` 规则八 R-18-A)。**20 侧折叠规则须同步**:起货 = 读 `Craft.output_instance_ids` 而非起货时现铸(O-18-R4 与下方 R-11 同批)|
 | **⏳ 前置 6b:`Craft` 起货溢出的 `DropSpawned` 派生(O-18-R4)** | processing → 20 | **折叠规则** | 起货时点容量溢出 ⇒ 20 从 `Craft` 事件**派生** `DropSpawned`(于医馆格);**18 不写流**;复用 `OQ-20-1` 既有 Kind 纪律 | ⏳ **待 20 二轮回收**(2026-09-19 由 18 首轮评审提出) |
 | **✅ 前置 7:17 铸造点口径随 BL-1 同步** | foraging → 20 | **口径** | 17 的「铸造点 = 拾取时」须改为「`DropSpawned` 时由主机铸」 | ✅ **R11 已闭合(2026-09-19 · 2026-10-26 实测复核)** —— `foraging.md:203` 逐字「铸造点 = `DropSpawned`(`ResourceHarvested` 同 tick 引用同一 id)」,`:210` 双向记账结清。**卡面「`foraging.md:93-97` 仍旧口径」已陈旧**(该段现为「17 不拥有的两层」表,与铸造点无关) |
-| **⏳ 前置 8:`Craft` 产出的 `item_key` 载体**(R15,2026-10-26 新) | processing + 21a + ADR-009 → 20 | **载荷** | 产出物是**什么** —— `CraftPayload` 只有 `OutputQty/OutputQuality/OutputInstanceIds`,**无 output item_key 位**;且 `recipe_id`(i32)在全仓**无 `int → Recipe` 映射**(`Recipe.RecipeId` 是 string,烘焙产物无 ordinal,`_ordinal_baseline.json` 只有物品 registry) | ⏳ **R15 未落地** —— 不落地则 fold 增益侧建不出 `(item_key, quality)` 堆叠键 |
-| **⏳ 前置 9:建造扣料归属(R16,2026-10-26 新)** | 23 → 20 | **归因** | `StructurePlaced` 无 actor 位 ⇒ 多玩家时扣减记不到人;P0 单机可退化但**退化是推断不是裁定** | ⏳ **R16 未落地** |
-| **⏳ 前置 10:`StructureRemoved` 返还载荷(R17,2026-10-26 新)** | 23 + ADR-009 → 20 | **载荷** | 返还物既无 `instance_id` 也无 `item_key`;BL-21 只说「必新铸」,未定「铸出来落进哪条事件的哪个位」 | ⏳ **R17 未落地** |
-| **⏳ 前置 11:`DropSpawned` 的 `quality`(R18,2026-10-26 新)** | ADR-009 / 25 / 27 / 29 → 20 | **载荷** | 17 路径已由 `ResourceHarvested.out_quality` 补齐;25/27/29/18 起货溢出**无品级载体** | ⏳ **R18 未落地** |
+| **✅ 前置 8:`Craft` 产出的 `item_key` 载体**(R15) | 21a → 20 | **查表** | 产出物是**什么** —— `CraftPayload` 只有 `OutputQty/OutputQuality/OutputInstanceIds`,**无 output item_key 位**;且 `recipe_id`(i32)在全仓**无 `int → Recipe` 映射** | ✅ **R15 已闭合 2026-10-27** —— 用户裁定「**显式 ordinal + baseline**」:配方表补 `Recipe.Ordinal`,烘焙链产出 append-only ordinal baseline ⇒ `recipe_id` 查表得 `outputs[]` 逐行 `item_key`。**未走载荷扩列**(产出 `item_key` 由 `recipe_id` 派生,不新增位) |
+| **✅ 前置 9:建造扣料归属(R16)** | 23 → 20 | **归因** | `StructurePlaced` 无 actor 位 ⇒ 多玩家时扣减记不到人;P0 单机可退化但**退化是推断不是裁定** | ✅ **R16 已闭合 2026-10-27** —— 用户裁定**甲案**「P0 单机 ⇒ 建造扣料/返还恒归**唯一玩家**」(显式口径,联机前须回看)。**未走载荷扩列**(不加 `actor_id`,故 `AC-23-09` 字节稳定不受影响) |
+| **✅ 前置 10:`StructureRemoved` 返还载荷(R17)** | 23 → 20 | **触发** | 返还物既无 `instance_id` 也无 `item_key`;BL-21 只说「必新铸」,未定「铸出来落进哪条事件的哪个位」 | ✅ **R17 已闭合 2026-10-27** —— 用户裁定「**地面掉落**」:23 拆后**另发一条普通 `DropSpawned`**(复用既有四字段载荷,`item_key` 由 `module.build_item_key` 取、`instance_id` 由 20 侧 `IIdAuthority` 铸),`StructureRemoved` **移出库存谓词集**。**⚠️ 未走载荷扩列** ⇒ 无需 ADR-009 Amendment(其 §五 的 `DropSpawned.Payload` 形状一字未改) |
+| **✅ 前置 11:`DropSpawned` 的 `quality`(R18)** | 20（本件）| **折叠规则** | 17 路径已由 `ResourceHarvested.out_quality` 补齐;25/27/29/18 起货溢出**无品级载体** | ✅ **R18 已闭合 2026-10-27** —— 用户裁定**丙案**「各源走各自 `*Applied` 事件侧载」:fold 侧立**三桶品级白名单**(① 17 `ResourceHarvested.out_quality` ② 18 `Craft.OutputQuality` ③ `build_part` **恒 1** —— 直接引 `BL-28`,`modular-building.md` 已裁)。**未走载荷扩列**(`DropSpawned` 不加 `quality` 位) |
 
 ### 下游(依赖 20 的)
 
@@ -665,7 +684,7 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 | **17 采集** | 承载 `ItemInstance`(采到即入箱,`instance_id` 在 `DropSpawned` 由主机铸 —— 规则一 BL-1 改判后 17 侧口径须对齐) | ✅ `foraging.md:244`(登记其反向义务 —— **本 GDD 回填**;⚠️ 17 侧「铸造点 = 拾取时」须随 BL-1 改判同步) |
 | **18 炮制** | 消耗 inputs / 产出 outputs(`ActualConsumed` 纯函数) | 🟡 `processing.md`(已成稿,**20↔18 互为依赖**:18 算量、20 搬运)。⚠️ **`D-21-29` 不归 18**(规则九不认识药性) —— 2026-10-06 裁归 21a 字段 + 11 求值,**18 无回填义务** | |
 | **11 处方用药** | 药物从库存取(`DropDespawned{instance_id, qty}`)| 🟡 `prescription-and-medication.md`(**11 已裁定不做 `dose→份数` 的「定义」,但做「求值」** —— `D-21-29` ✅ 2026-10-06 裁:字段归 21a `portions_per_dose`,换算 `portions = dose × portions_per_dose` 由 11 算;**20 只收 `qty`,不换算**) |
-| **23 建造** | 建材料扣除(规则七)+ **`StructureRemoved` 返还入箱**(BL-2) | ✅ `modular-building.md:247-256` |
+| **23 建造** | 建材料扣除(规则七)+ **返还物经 23 另发的 `DropSpawned` 落地**(~~`StructureRemoved` 返还入箱~~ BL-2 原口径,2026-10-27 R17 闭合批订正 —— 详规则一订正注) | ✅ `modular-building.md:247-256` · `:459` EC-23-11 加注 |
 | **29 死亡与复活** | `InventoryOf` 的世界流投影(F-29-3)+ **回捡约束**(BL-7② 用户裁定)**✅ 已与 29 共裁**(2026-09-19 · 29 首轮评审修订:规则五 + AC-29-17) | ✅ `death-and-respawn.md` 规则五 / F-29-3 |
 | **25 格斗** | 器材 / 弹道的存在与数量 | ⚠️ **25 侧无落点**(推荐 5:`combat-and-weapon-lines.md` 全文 grep「库存/弹药/消耗」零命中)—— 该消费者**待 25 补登记**,20 的读数接口先立 |
 | **52 随机事件导演** | `CarryLoad` / `CarryRatioDto`(强度轴) | ✅ `random-events.md:816`(⚠️ `CARRY_CAP` 单源改归 20,BL-6 ①;「药量」语义口径 = OQ-20-7) |
@@ -862,7 +881,7 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 | --- | --- | --- |
 | **AC-20-01** | **[A]** | `GIVEN` 20 的代码路径,`WHEN` 检索 `instance_id` 赋值点,`THEN` **唯一来源** = `IIdAuthority.ItemInstanceId.Next()`,**零**本地计数器(规则二) |
 | **AC-20-02** | **[A]** | `GIVEN` 客户端拾取,`WHEN` 检索,`THEN` **零**客户端铸 id 路径 —— 意图上行、id 由主机回填(规则二) |
-| **AC-20-03** | **[A]** ⚠️ **`BLOCKED-BY-R2 / R3 / R10 / R11 / OQ-20-5`(二轮 BL-32:此前只在 `:386` 正文挂标,表行漏标;且原标只列三前置,漏 R3 / R10 / R11)** —— **2026-10-26 追加 `R15 / R16 / R17 / R18`**(实现轮前置核实揭出四处**载荷位不存在**;见 §涟漪登记 R15–R18 段)。**⇒ 现行阻塞源 = 九件**,其中 **`R15`(Craft 产出 item_key)/ `R17`(StructureRemoved 返还 id+item_key)/ `R18`(DropSpawned quality)三条使 fold 在「增益 / 归还 / 非 17 来源品级」三个面上结构性不可重建**,不是「值未定稿」而是「位不存在」 | `GIVEN` 一份存档,`WHEN` 清空 20 的内存索引并从三流重建,`THEN` `InventoryOf` **逐位相同**(规则一 · ADR-009 §一)。**前置五件**:① `Craft` 载荷 + 产出 `instance_id` 位(**R10**,BL-21)· ② `D-21-28` 全序键(⏳ 待裁)· ③ **`DropDespawned.qty`**(R2;原注漏列)· ④ 高水位扫描集含 `BakedInitial`(**R3**)· ⑤ 17 侧铸造点口径同步(**R11**,BL-1 改判的下游义务)。**二轮追加 = BL-21**(fold 增益侧:18 产出 / 23 返还两路无 id 载体)。**⚠️ 2026-10-26 前置核实后的实际状态**:② 已裁[甲]且 `EventOrderKey` 已实现 · ③ 的 `qty` **字段已存在**(`WorldPayloads.cs:70`),余项只有 `reason` 值域且**不阻塞 fold** · ⑤ 已闭合(`foraging.md:203`)⇒ **真正仍开 = R2(reason 值域,轻)· R3(高水位接线,重)· R15/R16/R17/R18(载荷缺位,重)** |
+| **AC-20-03** | **[A]** ✅ **2026-10-27 部分解阻 — `R15 / R16 / R17 / R18` 四条全部闭合**(均未向载荷加字段,见 §涟漪登记闭合记录);**仍开 = `R2`(reason 值域,不阻塞 fold)· `R3`(高水位接线,重)· `R10` / `R11` / `OQ-20-5`**。⚠️ **下游注**:R17 移除 `StructureRemoved` 出谓词集后,本条「归还侧」的折叠路径改经 `DropSpawned`;「23 是否真的发了那条 `DropSpawned`」**不是 fold 的可判事实** ⇒ 由 23 侧 spy-sink 测试承担(`structure_kinds_test.cs` 的 `test_r17_*`),本条不主张它。 ⚠️ **原 `BLOCKED-BY` 记载如下(历史,不删)**:`BLOCKED-BY-R2 / R3 / R10 / R11 / OQ-20-5`(二轮 BL-32:此前只在 `:386` 正文挂标,表行漏标;且原标只列三前置,漏 R3 / R10 / R11)** —— **2026-10-26 追加 `R15 / R16 / R17 / R18`**(实现轮前置核实揭出四处**载荷位不存在**;见 §涟漪登记 R15–R18 段)。**⇒ 现行阻塞源 = 九件**,其中 **`R15`(Craft 产出 item_key)/ `R17`(StructureRemoved 返还 id+item_key)/ `R18`(DropSpawned quality)三条使 fold 在「增益 / 归还 / 非 17 来源品级」三个面上结构性不可重建**,不是「值未定稿」而是「位不存在」 | `GIVEN` 一份存档,`WHEN` 清空 20 的内存索引并从三流重建,`THEN` `InventoryOf` **逐位相同**(规则一 · ADR-009 §一)。**前置五件**:① `Craft` 载荷 + 产出 `instance_id` 位(**R10**,BL-21)· ② `D-21-28` 全序键(⏳ 待裁)· ③ **`DropDespawned.qty`**(R2;原注漏列)· ④ 高水位扫描集含 `BakedInitial`(**R3**)· ⑤ 17 侧铸造点口径同步(**R11**,BL-1 改判的下游义务)。**二轮追加 = BL-21**(fold 增益侧:18 产出 / 23 返还两路无 id 载体)。**⚠️ 2026-10-26 前置核实后的实际状态**:② 已裁[甲]且 `EventOrderKey` 已实现 · ③ 的 `qty` **字段已存在**(`WorldPayloads.cs:70`),余项只有 `reason` 值域且**不阻塞 fold** · ⑤ 已闭合(`foraging.md:203`)⇒ **真正仍开 = R2(reason 值域,轻)· R3(高水位接线,重)· R15/R16/R17/R18(载荷缺位,重)** |
 | **AC-20-04** | **[A]** | `GIVEN` 堆叠,`WHEN` 检索 `StackKey`,`THEN` 唯一 = `(item_key, quality)`(规则三 · 21a F4) |
 | **AC-20-05** | **[A]** | `GIVEN` 20 的代码路径,`WHEN` 检索 `EFF` / `QualityMod` / `quality_distribution` 的求值,`THEN` **零**(规则五:20 不求值) |
 | **AC-20-06** | **[A]** | `GIVEN` 超容量拾取,`WHEN` 请求,`THEN` **整体拒绝**,`InventoryOf` **零变化**,地面实例**留存**(规则六) |
@@ -945,17 +964,74 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 
 | # | 落点 | 内容 | owner | 关联 BLOCKING | **依赖它的 AC(⚠️ 未落地前这些 AC 一律是 `BLOCKED-BY`)** |
 | --- | --- | --- | --- | --- | --- |
-| **R15** | **18(processing)+ 21a + ADR-009 / `entities.yaml`(新)** | **`Craft` 的产出物**无法确定 `item_key` —— 三处叠加:① `CraftPayload` 十位里产出组只有 `OutputQty ⟷ OutputQuality ⟷ OutputInstanceIds` **逐行对位**,**没有产出 `item_key` 位**(`WorldPayloads.cs:88-95`)⇒ 知道「出了 3 份、品级 2、id=42」却**不知道出的是什么**;② 即使补 `recipe_id` 也**解不出**:载荷 `RecipeId` 是 **i32「21a 表 ordinal」**(`:88`),而 `Recipe.RecipeId` 是 **string**(`Recipe.cs:38`),烘焙产物配方表**无 ordinal 字段**(`CookedWriter.cs:223-247` `WriteRecipe` 只写 `RecipeId` 字符串),`assets/data/_ordinal_baseline.json` **只有物品一个 registry** ⇒ **全仓不存在任何 `int → Recipe` 映射**(`grep` 零命中);③ 且 `entities.yaml:2532` 写 `recipe_id: i32(21a 表 ordinal)` 而 `item-database.md:416` 写 `` `recipe_id` | string | 稳定标识 `` —— **两处权威件类型口径直接冲突**。**⇒ 本行要求两件**:**(a)** 产出组补 `output_item_keys[]: i32[]`(与 `OutputQty` 等长对位),**或**裁定「由 `recipe_id` + outputs 行序派生」(则须先有 ordinal 映射);**(b)** 定 `recipe_id` 究竟是 int-ordinal 还是 string(先补映射表入 `_ordinal_baseline.json` 第二个 registry,或反向裁剪 registry 措辞) | **18(processing)下一轮 · 21a(ordinal)· ADR-009(`entities.yaml` 口径)** | BL-21(三载体之二)· 新 | **AC-20-03**(fold 增益侧**完全**不闭合 —— 产出入库建不出 `(item_key, quality)` 堆叠键) |
-| **R16** | **23(modular-building)+ ADR-009 / `entities.yaml`(新)** | **建造扣料扣谁的库存**未定 —— `StructurePlacedPayload` 五字段 `{structure_id, cell, module_id, orientation, variant}` **无 actor 位**(`WorldPayloads.cs:110-116`),而 20 的 fold 是 `InventoryOf(player)`(`:151`)**按玩家归因**。`Craft` 有 `actor_id`(R-18-A ①「归因位」),建造**没有** ⇒ 多玩家时**扣减记不到人**。**P0 单机可退化**(`game-concept.md:26` 玩家数 = 单人为主;`camera-and-viewpoint.md:695` P0 单相机单玩家),但**退化是推断不是裁定** —— 本件全文无「P0 建造扣料归唯一玩家」这一句。**⇒ 本行要求二选一**:**(a)** 裁「P0 单玩家 ⇒ 建造扣料/返还恒归该唯一玩家」(登记为显式口径,联机前须回看);**(b)** `StructurePlaced` 补 actor 位(破 `AC-23-09` 字节稳定 ⇒ 须 23 走 amend) | **23 下一轮 · 用户(口径裁)** | 新 | **AC-20-03**(建造扣减侧 —— 归属未定则 fold 不知往谁的索引扣)、**AC-20-14** |
-| **R17** | **23(modular-building)+ ADR-009 / `entities.yaml`(新)** | **`StructureRemoved` 返还物**既**无 `instance_id`** 又**无 `item_key`** —— 载荷三字段 `{structure_id, cell, module_id}`(`WorldPayloads.cs:127-137`)。BL-21 已把该路径记为「**必新铸**」(`:213`),但**只说「要铸」,没说「铸出来落进哪条事件的哪个位」**:返还走 `StructureRemoved` 本身 → 无位可落;走派生 `DropSpawned` → 需 20 派生 + 需 `item_key`(可由 `module_id → BuildItemKey` 读目录得,**此半已闭合** —— 缺口② 2026-10-26 补的 `build_item_key` 外键)但 **`quality` 仍无位**(见 R18)。**并且**:`StructureRemoved` **不在 R1–R14 任何一行里**(BL-21 的三载体③ 从未升为 R 行)⇒ 这是「引用却无登记」失效模式的又一实例 | **23 下一轮 · ADR-009(载荷位)** | BL-21(三载体之三)· 新 | **AC-20-03**(归还侧 —— 返还款进不了 fold) |
-| **R18** | **ADR-009 / `entities.yaml`(新)** | **`DropSpawned` 无 `quality` 位** —— 载荷四字段 `{instance_id, spawn_anchor, item_key, qty}`(`WorldPayloads.cs:41-44`)。**17 路径已闭合**(品级走 `ResourceHarvested.out_quality`,同 `instance_id`,ADR-009 Amendment K);**但** 其余触发方 —— 25 战斗掉落 / 27 敌人掉落 / 29 死亡掉落 / 18 起货溢出(Amendment J ④)—— **都没有 quality 载体** ⇒ 这些来源的实例 `quality` 在流里**不可重建**。`death-and-respawn.md:142` 的 `DropSpawned { instance_id = i.id, …, item_key = i.key, qty = i.qty }` 逐字漏 `quality`,而 29 掉的是**背包里已有实例**(其 `quality` 存在于掉落前状态,但**掉落事件本身不带**) ⇒ 重放时该实例品级丢失 | **ADR-009 / 25 / 27 / 29 下一轮** | 新 | **AC-20-03**(品级侧对 17 以外来源不闭合) |
+| **✅ R15**(已闭合 2026-10-27) | **18(processing)+ 21a + ADR-009 / `entities.yaml`(新)** | **`Craft` 的产出物**无法确定 `item_key` —— 三处叠加:① `CraftPayload` 十位里产出组只有 `OutputQty ⟷ OutputQuality ⟷ OutputInstanceIds` **逐行对位**,**没有产出 `item_key` 位**(`WorldPayloads.cs:88-95`)⇒ 知道「出了 3 份、品级 2、id=42」却**不知道出的是什么**;② 即使补 `recipe_id` 也**解不出**:载荷 `RecipeId` 是 **i32「21a 表 ordinal」**(`:88`),而 `Recipe.RecipeId` 是 **string**(`Recipe.cs:38`),烘焙产物配方表**无 ordinal 字段**(`CookedWriter.cs:223-247` `WriteRecipe` 只写 `RecipeId` 字符串),`assets/data/_ordinal_baseline.json` **只有物品一个 registry** ⇒ **全仓不存在任何 `int → Recipe` 映射**(`grep` 零命中);③ 且 `entities.yaml:2532` 写 `recipe_id: i32(21a 表 ordinal)` 而 `item-database.md:416` 写 `` `recipe_id` | string | 稳定标识 `` —— **两处权威件类型口径直接冲突**。**⇒ 本行要求两件**:**(a)** 产出组补 `output_item_keys[]: i32[]`(与 `OutputQty` 等长对位),**或**裁定「由 `recipe_id` + outputs 行序派生」(则须先有 ordinal 映射);**(b)** 定 `recipe_id` 究竟是 int-ordinal 还是 string(先补映射表入 `_ordinal_baseline.json` 第二个 registry,或反向裁剪 registry 措辞) | **18(processing)下一轮 · 21a(ordinal)· ADR-009(`entities.yaml` 口径)** | BL-21(三载体之二)· 新 | **AC-20-03**(fold 增益侧**完全**不闭合 —— 产出入库建不出 `(item_key, quality)` 堆叠键) |
+| **✅ R16**(已闭合 2026-10-27) | **23(modular-building)+ ADR-009 / `entities.yaml`(新)** | **建造扣料扣谁的库存**未定 —— `StructurePlacedPayload` 五字段 `{structure_id, cell, module_id, orientation, variant}` **无 actor 位**(`WorldPayloads.cs:110-116`),而 20 的 fold 是 `InventoryOf(player)`(`:151`)**按玩家归因**。`Craft` 有 `actor_id`(R-18-A ①「归因位」),建造**没有** ⇒ 多玩家时**扣减记不到人**。**P0 单机可退化**(`game-concept.md:26` 玩家数 = 单人为主;`camera-and-viewpoint.md:695` P0 单相机单玩家),但**退化是推断不是裁定** —— 本件全文无「P0 建造扣料归唯一玩家」这一句。**⇒ 本行要求二选一**:**(a)** 裁「P0 单玩家 ⇒ 建造扣料/返还恒归该唯一玩家」(登记为显式口径,联机前须回看);**(b)** `StructurePlaced` 补 actor 位(破 `AC-23-09` 字节稳定 ⇒ 须 23 走 amend) | **23 下一轮 · 用户(口径裁)** | 新 | **AC-20-03**(建造扣减侧 —— 归属未定则 fold 不知往谁的索引扣)、**AC-20-14** |
+| **✅ R17**(已闭合 2026-10-27) | **23(modular-building)+ ADR-009 / `entities.yaml`(新)** | **`StructureRemoved` 返还物**既**无 `instance_id`** 又**无 `item_key`** —— 载荷三字段 `{structure_id, cell, module_id}`(`WorldPayloads.cs:127-137`)。BL-21 已把该路径记为「**必新铸**」(`:213`),但**只说「要铸」,没说「铸出来落进哪条事件的哪个位」**:返还走 `StructureRemoved` 本身 → 无位可落;走派生 `DropSpawned` → 需 20 派生 + 需 `item_key`(可由 `module_id → BuildItemKey` 读目录得,**此半已闭合** —— 缺口② 2026-10-26 补的 `build_item_key` 外键)但 **`quality` 仍无位**(见 R18)。**并且**:`StructureRemoved` **不在 R1–R14 任何一行里**(BL-21 的三载体③ 从未升为 R 行)⇒ 这是「引用却无登记」失效模式的又一实例 | **23 下一轮 · ADR-009(载荷位)** | BL-21(三载体之三)· 新 | **AC-20-03**(归还侧 —— 返还款进不了 fold) |
+| **✅ R18**(已闭合 2026-10-27) | **ADR-009 / `entities.yaml`(新)** | **`DropSpawned` 无 `quality` 位** —— 载荷四字段 `{instance_id, spawn_anchor, item_key, qty}`(`WorldPayloads.cs:41-44`)。**17 路径已闭合**(品级走 `ResourceHarvested.out_quality`,同 `instance_id`,ADR-009 Amendment K);**但** 其余触发方 —— 25 战斗掉落 / 27 敌人掉落 / 29 死亡掉落 / 18 起货溢出(Amendment J ④)—— **都没有 quality 载体** ⇒ 这些来源的实例 `quality` 在流里**不可重建**。`death-and-respawn.md:142` 的 `DropSpawned { instance_id = i.id, …, item_key = i.key, qty = i.qty }` 逐字漏 `quality`,而 29 掉的是**背包里已有实例**(其 `quality` 存在于掉落前状态,但**掉落事件本身不带**) ⇒ 重放时该实例品级丢失 | **ADR-009 / 25 / 27 / 29 下一轮** | 新 | **AC-20-03**(品级侧对 17 以外来源不闭合) |
 
 > **⭕ 本节登记时的自陈边界**:上述四条的**实测依据均为 2026-10-26 当日的一次 `grep` / 读码**,
 > 而非逐件复核 —— 尤其 R15③ 的「两处权威件类型冲突」只核了 `entities.yaml:2532` 与 `item-database.md:416` 两行,
 > **未展开 21a 全文核查是否另有仲裁文字**;R18 只核了 25/27/29/18 四处的**事件发出描述**,
 > **未逐份核它们的 GDD 是否另有「掉落品级恒 1」类裁定**。⇒ **本节结论按「已见即登记、未见不声称」读**。
 
-> **本轮(二轮修订)20 内已闭**:BL-21(规则二改述 + 三载体逐条枚举)· BL-22(「入箱序」废止 → id 升序 + 二维落位)·
+#### ✅ R15–R18 闭合记录(2026-10-27 · 用户四项裁定 · 均**未**向载荷加字段)
+
+> **⚠️ 本段是闭合记录,不重写上方 R15–R18 表格**(原表格保留作登记时的实况)。
+> **四条口径的共同点值得单记**:R15–R18 当初登记为「**载荷位本身不存在**」,
+> 而四项裁定**没有一条**走「补字段」路线 —— 全部改用**既有事件 / 既有表 / 既有目录**求解。
+> ⇒ 上表「owner = ADR-009(载荷位)」的**五处**预期**全部落空**,**ADR-009 一字未改**
+> (其 §五 `DropSpawned.Payload` 四字段、`StructurePlaced` / `StructureRemoved` / `Craft` 载荷形状均未动,
+> `AC-23-09` 字节稳定性未受影响)。这是本轮最值得记的结构性结论:**缺位 ≠ 必须加位**。
+
+| # | 裁定 | 实际载体 | 落点 | 旧形态枚举值 |
+| --- | --- | --- | --- | --- |
+| **R15** | **显式 ordinal + baseline** | 配方表补 `Recipe.Ordinal` + append-only ordinal baseline;`recipe_id` 查表得 `outputs[]` 逐行 `item_key` | `InventoryFold.BuildRecipeIndex` / `ApplyCraftOutputs`(三跳链:recipe → output 行 → 物品表) | ~~`CraftOutputWithoutItemKey`~~ **已删除** |
+| **R16** | **甲: P0 单机 ⇒ 恒归唯一玩家** | `InventoryFoldContext.SolePlayer`(注入)+ 模块目录取 `cost(m)` | `InventoryFold.ApplyBuildCost`;归因不可判 / 量不足 ⇒ 两条**新**显式缺口 | ~~`StructurePlacementWithoutActor`~~ **已删除** |
+| **R17** | **23 拆时另发 `DropSpawned`(地面掉落)** | 复用既有 `DropSpawned` 四字段;`item_key` 取 `module.build_item_key`、`qty = ⌊cost × R⌋`、id 由 20 侧铸 | `StructureWriter.EmitRefund`(23 触发)+ `InventoryFold` **不参与**(`StructureRemoved` 移出谓词集) | ~~`StructureRemovalWithoutRefundIdentity`~~ **已删除** |
+| **R18** | **丙: 各源走各自 `*Applied` 事件侧载** | fold 侧**三桶品级白名单**:① 17 `ResourceHarvested.out_quality` ② 18 `Craft.OutputQuality` ③ `build_part` **恒 1**(引 BL-28) | `InventoryFold` 尾段①的三桶判定 | `InstanceWithoutQualitySource` **保留**(仍是活缺口 —— 三桶都不覆盖时如实报) |
+
+> **枚举清理(用户 2026-10-27 裁定「乙:删掉死代码」)**:R15 / R16 / R17 的**旧形态**枚举值
+> (`CraftOutputWithoutItemKey` / `StructurePlacementWithoutActor` / `StructureRemovalWithoutRefundIdentity`)
+> 在闭包后**零产生点**,只剩 `RegistryId` 的 switch 挂着。三者已删除并重编号。
+> **为什么不留**:留着会让读者以为「这条缺口还可能被报」,而它们对应的旧形态在结构上已不可达;
+> 且 `RegistryId` 是**穷举 switch** ⇒ 删除后任何新产生点都必须先登记才能编译(承 ADR-024 白名单纪律)。
+> **安全前提已实测**:`InventoryFoldGapKind` 无序列化面、无 `(int)` 数字依赖、无 `Sim` 外装配引用。
+
+**回归与反证(批 4 收口 · 2026-10-28 01:32 CST · 全量 · `9d10b10` + 未提交批 4)**:
+
+| 套件 | 结果 | 基线(批 3 · `9d10b10`) | 差 |
+| --- | --- | --- | --- |
+| EditMode | `5567 / 5532 / 0 / 35` | `5567 / 5532 / 0 / 35` | 0 |
+| PlayMode | `238 / 234 / 0 / 2 inconclusive / 2 skipped` | `238 / 234 / 0` | 0 |
+
+复算命令(工程路径须指向 `unity/`,不得用仓库根):
+```bash
+~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -nographics \
+  -projectPath "$PWD/unity" -runTests -testPlatform EditMode \
+  -testResults "$PWD/unity/Logs/editmode.xml" -logFile "$PWD/unity/Logs/editmode.log"
+# 解析:total/passed/failed/inconclusive/skipped 从 <test-run> 属性读
+```
+
+| 变异 | 停用什么 | 期望红 | 实测 |
+| --- | --- | --- | --- |
+| **M-B4-1** | `ApplyCraftOutputs` 的 `if (nQty == 0) return;`(零产出守卫) | `test_craftZeroOutput_raisesNoCraftOutputGap` | ✅ 1/1 红 |
+| **M-B4-2b** | `ApplyCraftOutputs` 的 `CraftRecipeNotInTable` 出口(改为静默 `return`) | `test_ac1811_craftIsConsumedSideReadableByInventoryFold` | ✅ 1/1 红 |
+| **M-B4-2**(首跑) | 同上 | 同左 | ⚠️ 红在**错误的那条断言**上 —— 见下 |
+
+> **⚠️ 批 4 顺带抓出一条假绿(同族形态第五次的又一实例)**:`test_ac1811_…` 原用
+> `fold.Gaps.FirstOrDefault(…)` + `Assert.IsNotNull(gap, …)`。`InventoryFoldGap` 是
+> **`readonly struct`**(`InventoryFold.cs:256`)⇒ 值类型装箱**永不为 null**,
+> `FirstOrDefault` 找不到时返回 **default struct**,`IsNotNull` **恒过**。
+> 首轮 M-B4-2 红的是它下面那条 `Assert.AreEqual("R15", gap.RegistryId)` ——
+> default struct 的 `Kind = 0`(= `InstanceWithoutQualitySource`)⇒ `RegistryId = "R18"`,
+> 于是「红在 R18 ≠ R15」,**看起来像在测别的东西**。若那条 `AreEqual` 不存在,
+> 这个变异会**全绿逃逸**。已改为 `Assert.That(fold.Gaps.Any(g => g.Kind == …), Is.True, …)`,
+> M-B4-2b 复验红在该条(消息逐字命中)。
+> **同族普查**:全仓 `IsNotNull` + 变量名含 `gap` 仅此 1 处;EditMode 五处一律用 `Single(…)`
+> (找不到即抛),无此问题。命令:
+> `grep -rn "IsNotNull(.*[Gg]ap" unity/Assets/Tests tests`
+
+
 > BL-24(AC-20-21 自指谓词 + OQ-20-9)· BL-25(AC-20-22 换本件可证形状,改判请求外抛 R13)·
 > BL-26(`W_MIN` 形式,禁 `== cap`)· **BL-27(用户裁定:单调契约,不新增形状 —— AC-20-24 + R9 ④ + Knobs 删第二真值)**·
 > **BL-28(用户裁定:P0 `build_part` 的 `quality` 恒 1,规则三)**· BL-29(AC-20-19 改可判伪正向谓词)·

@@ -740,6 +740,41 @@ ADR-006 Amendment C(跨流全序键)与 Amendment D(真源 = 两流并集)在 AD
 **未结(不在本 ADR 裁决面上)**:29 的 `OQ-29-4`(冷却期内再次致死的语义)· `OQ-29-5`
 (`DEATH_COOLDOWN` 值)· `OQ-29-6`(回程载体的 P0 形态)· 24 的床格选定规则 · 9 的 `SelfLimited` 实现落点。
 
+### Amendment M —— R15–R18 **不需**载荷扩列(2026-10-27 裁定纪录)
+
+> **本 Amendment 是「审查过、结论 = 不改」的登记**,不是一次裁决。记它的理由:
+> `inventory-and-items.md` 的 §涟漪登记 R15–R18 四条曾把 owner 写作
+> **「ADR-009 / `entities.yaml`(载荷位)」** —— 若不留这条纪录,后来者读那四行
+> 会以为「本 ADR 欠一次载荷扩列」,而实际上**扩列已被裁掉**。
+
+**背景**:`inventory-and-items.md` 于 2026-10-26 实现轮前置核实中登记 R15–R18 四条
+「**载荷位本身不存在**」的缺口,并把 owner 指向本 ADR(因载荷形状归 §五):
+`Craft` 产出无 `item_key` 位 · `StructurePlaced` 无 `actor` 位 ·
+`StructureRemoved` 返还物无 `instance_id` / `item_key` · `DropSpawned` 无 `quality` 位。
+四条当时的共同设想是「补字段」。
+
+**2026-10-27 用户四项裁定,无一走扩列**:
+
+| # | 裁定 | 载体 | 本 ADR 是否改动 |
+|---|---|---|---|
+| R15 | 显式 ordinal + baseline | 配方表补 `Recipe.Ordinal`;`recipe_id` 查表折出产出行 | ❌ 不改 |
+| R16 | P0 单机 ⇒ 建造扣料恒归唯一玩家 | `InventoryFoldContext.SolePlayer` 注入 | ❌ 不改 |
+| R17 | 23 拆时**另发一条普通 `DropSpawned`**(地面掉落) | 复用 §五 既有四字段载荷 | ❌ 不改 |
+| R18 | 各源走各自 `*Applied` 事件侧载 | fold 侧三桶品级白名单 | ❌ 不改 |
+
+**结论**:
+- §五 的 `DropSpawned.Payload = { instance_id, spawn_anchor, item_key, qty }` **一字未改**;
+  `StructurePlaced` / `StructureRemoved` / `Craft` 三支载荷形状同样未动。
+- ⇒ `modular-building.md` 的 `AC-23-09`(字节流稳定)**不受影响** —— 这正是 R16 乙案
+  (加 `actor_id`)与 R18 乙案(加 `quality`)被否的直接原因之一。
+- ⚠️ **R17 的落地改的是「谁发 `DropSpawned`」,不是「`DropSpawned` 长什么样」**:
+  触发方集合 `{17 / 18 / 25 / 29}` → `{17 / 18 / **23** / 25 / 29}`,
+  该变更已按 ADR-024 ① 落 `entities.yaml` 的 `author` / `constraint` / `referenced_by`
+  三字段(`DropSpawned` 条目),**不需本 ADR 修改**。
+
+**未结(不在本条裁决面上)**:`R2`(`DropDespawned.reason` 值域)· `R3`(实例高水位扫描集
+含 `BakedInitial`,且生产调用点为零)· `R10` 起货溢出派生 · `R11` 已闭合。
+
 ## Alternatives Considered
 
 ### Alternative 1: 全量进流(一切世界状态事件化)
