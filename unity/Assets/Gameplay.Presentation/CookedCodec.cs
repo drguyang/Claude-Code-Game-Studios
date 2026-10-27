@@ -87,9 +87,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const uint ExpectedItemSchemaVersion = 2u;
 
         /// <summary><c>item_database_recipes.cooked.bytes</c>(含结算常量)的 schema_version 期望值。
-        /// <para>仍是 1 —— 2026-10-26 的 <c>Ordinal</c> 变更只落在 <see cref="ItemDef"/>,未触及 recipe 载荷。
-        /// 与 <see cref="ExpectedItemSchemaVersion"/> 分列即「按产物演化」的落地形态。</para></summary>
-        public const uint ExpectedRecipeSchemaVersion = 1u;
+        /// <para><b>1 → 2(2026-10-27)</b>:<see cref="Recipe.Ordinal"/> 作为每条配方的首字段写入载荷
+        /// ⇒ 布局已变。这与物品表 2026-10-26 的 <c>ItemDef.Ordinal</c> 变更(1 → 2)是**同一类**变更,
+        /// 但**各自独立抬版**:当时 recipes 载荷一字未改,便明写「仍是 1」;今天它真变了,才抬。
+        /// 「按产物演化」的判据不是「一起抬」,而是「**变了才抬,变了必须抬**」。</para>
+        /// <para>⚠️ 抬版的直接后果:任何 2026-10-27 之前烘出的 <c>item_database_recipes.cooked.bytes</c>
+        /// 会被 <see cref="OpenChecked"/> 拒收(启动期硬失败 E-13)—— 这是**期望行为**,
+        /// 必须重烘而不是放宽读方(放宽 = 按新布局读旧字节,静默错位)。</para></summary>
+        public const uint ExpectedRecipeSchemaVersion = 2u;
 
         private static BinaryReader OpenChecked(byte[] bytes, uint requiredSchemaVersion, out uint configVersion)
         {
@@ -194,6 +199,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         {
             var recipe = new Recipe
             {
+                Ordinal = r.ReadInt32(),      // 首字段写端同序(CookedWriter.WriteRecipe)
                 RecipeId = ReadString(r),
                 Owner = (RecipeOwner)r.ReadInt32(),
                 Inputs = ReadRecipeEntries(r),

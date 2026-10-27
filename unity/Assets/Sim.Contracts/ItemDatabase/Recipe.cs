@@ -34,6 +34,16 @@ namespace DaYiJingCheng.Sim.Contracts
     /// 跨 base 转化合法(柳树皮 → 水杨酸是 P0 核心形态,§Edge Cases)。</summary>
     public struct Recipe
     {
+        /// <summary>表内序号(<c>≥ 0</c>;ADR-006 D-21-13 的整数枚举形,与 <see cref="ItemDef.Ordinal"/> 同族)。
+        /// <para>载荷侧消费方 = <c>CraftPayload.RecipeId</c>(int)—— 该字段自 ADR-014 §五 起就自称
+        /// 「21a 表 ordinal」,但 2026-10-27 前全仓**无 int → Recipe 映射**,故 fold 读不出 Craft 的产出物
+        /// (InventoryFold 的 R15 缺口)。本属性即该映射的键。</para>
+        /// <para>⚠️ <b>append-only</b>:唯一性与「不改号 / 不改义 / 不复用」交
+        /// <c>OrdinalBaselineGate</c>(<c>_ordinal_baseline.json</c> 的 <c>recipe_database</c> 注册表),
+        /// 不在本类型内校验。合法变更只有一种:追加新条目、取新号。</para>
+        /// </summary>
+        public int Ordinal { get; set; }
+
         /// <summary>稳定标识。</summary>
         public string RecipeId { get; set; }
 

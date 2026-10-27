@@ -68,7 +68,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] GatherKeys = { "ecosystem", "parts", "qty_per_node", "quality_character", "quality_distribution" };
         private static readonly string[] GatherRequiredKeys = { "ecosystem", "parts", "qty_per_node" };
         private static readonly string[] RecipeRecordKeys =
-            { "recipe_id", "owner", "inputs", "outputs", "duration_ticks", "skill_gate", "min_quality", "boundary_state" };
+            { "ordinal", "recipe_id", "owner", "inputs", "outputs", "duration_ticks", "skill_gate", "min_quality", "boundary_state" };
         private static readonly string[] RecipeRequiredKeys = RecipeRecordKeys;
         private static readonly string[] ConstantsKeys =
             { "schema_version", "_note", "qty_mult_min", "qty_mult_max", "skill_mod_cap", "qual_mod_cap", "equip_mod_cap",
@@ -77,6 +77,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] ConstantsRequiredKeys =
             { "qty_mult_min", "qty_mult_max", "skill_mod_cap", "qual_mod_cap", "equip_mod_cap", "env_mod_min", "env_mod_max",
               "retain_min", "retain_max", "eff_min", "eff_max", "max_quality", "skill_cap", "perceptible_floor" };
+
+        /// <summary><c>item_database_constants.json</c> 的作者态 schema_version 期望值。
+        /// <para>⚠️ <b>2026-10-27 起本表有自己的常量</b>。此前它借 recipes 的
+        /// <c>ExpectedRecipeSchemaVersion</c>(理由「两表同产物」),recipes 抬版到 2 后
+        /// 那个借用立刻变假(constants 一字未改却被要求 2)。</para>
+        /// <para><b>它是作者态版本,不是 cooked 版本</b>:constants 与 recipes 装在同一份
+        /// <c>item_database_recipes.cooked.bytes</c> 里,产物头只有一个 schema_version
+        /// (= recipes 的)。本常量只支配「源 JSON 里该写几」—— 两者今天都是 1/2 不同步,
+        /// 这正是「同产物 ≠ 同 schema」的具象。</para></summary>
+        private const uint ConstantsSourceSchemaVersion = 1u;
 
         /// <summary>绑定三个已词法通过的 DOM。</summary>
         public static BindPackage BindAll(JsonNode itemsRoot, JsonNode recipesRoot, JsonNode constantsRoot)
@@ -142,9 +152,13 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void BindConstants(JsonNode root, BindPackage pkg)
         {
             const string fileLabel = "item_database_constants.json";
-            // constants 仍为 1 —— 结算常量表本批未改。
+            // constants 仍为 1 —— 结算常量表 2026-10-27 未改。
+            // ⚠️ **2026-10-27 就地拆耦**:此前本行借 `ExpectedRecipeSchemaVersion`
+            //    (理由是两表同产物)。recipes 抬版到 2 后这个借用**立刻变成假话** ——
+            //    constants 的作者态一字未改,却被要求 2。故改用本文件自己的常量。
+            //    「同产物」不是「同 schema」:一份 .cooked 装两个源文件,各自版本独立演化。
             CheckSchemaAndUnknownTop(root, ConstantsKeys, fileLabel, pkg,
-                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion);
+                ConstantsSourceSchemaVersion);
             AddMissingRequired(root, ConstantsRequiredKeys, fileLabel, pkg);
 
             Fix? qmMin = BindRequiredFix(root, "qty_mult_min", fileLabel, pkg);
@@ -541,7 +555,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void BindRecipes(JsonNode root, BindPackage pkg)
         {
             const string fileLabel = "item_database_recipes.json";
-            // recipes 仍为 1 —— 2026-10-26 的 Ordinal 变更未触及 recipe 载荷。
+            // recipes 自 2026-10-27 起为 2(Recipe.Ordinal,R15 根因修复);与读方同源。
             CheckSchemaAndUnknownTop(root, TopRecipesKeys, fileLabel, pkg,
                 DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion);
 
@@ -572,6 +586,30 @@ namespace DaYiJingCheng.EditorTools.Bake
             AddMissingRequired(rec, RecipeRequiredKeys, label, pkg);
 
             var recipe = new Recipe();
+
+            // ordinal:必填、JSON 整数 token、≥ 0(ADR-006 D-21-13 / ADR-014 §五 承接条③)。
+            // 唯一性与 append-only 交 RunOrdinalGates(baker 层,需全表视角 + 基线文件)。
+            // ⚠️ 与物品表同款(read-fail 分明):字符串编码单独报一条,不与「类型错」混为一谈。
+            if (rec.TryGet("ordinal", out JsonNode rOrd))
+            {
+                if (rOrd.Kind == JsonNodeKind.Integer)
+                {
+                    if (rOrd.Int < 0 || rOrd.Int > int.MaxValue)
+                        pkg.Errors.Add($"{label}:\"ordinal\" 须 ∈ [0, int.MaxValue] —— 实际 {rOrd.RawText}" +
+                                       "(CraftPayload.recipe_id 是 int 位宽)");
+                    else
+                        recipe.Ordinal = (int)rOrd.Int;
+                }
+                else if (rOrd.Kind == JsonNodeKind.String)
+                {
+                    pkg.Errors.Add($"{label}:ordinal 以字符串编码(token=\"{rOrd.Str}\") —— " +
+                                   "须为 JSON 整数 token(ordinal 是计数不是定点,不走 FixParse)");
+                }
+                else
+                {
+                    pkg.Errors.Add($"{label}:\"ordinal\" 须为 JSON 整数 token");
+                }
+            }
 
             if (rec.TryGet("recipe_id", out JsonNode rid) && rid.Kind == JsonNodeKind.String)
                 recipe.RecipeId = rid.Str;

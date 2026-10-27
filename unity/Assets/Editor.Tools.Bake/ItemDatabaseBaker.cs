@@ -86,7 +86,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         public static BakeResult BakeFromSourceText(
             string itemsJson, string recipesJson, string constantsJson,
             ISet<string> mapsToInjury = null,
-            OrdinalBaselineRegistry baseline = null)
+            OrdinalBaselineRegistry baseline = null,
+            OrdinalBaselineRegistry recipeBaseline = null)
         {
             // ── 阶段1:词法(JsonTextReader 仅词法;错误即抛,不再绑定)──
             var errors = new List<string>();
@@ -109,6 +110,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             // ordinal 表自洽(段①)+ append-only(段②)。段② 只在给了基线时跑 —— 夹具注入
             // 无基线可用,但**表自洽**那半仍然要跑(见 OrdinalBaselineGate 头注「两半,不合并」)。
             RunOrdinalGates(pkg, pkg.Errors, baseline);
+            // 配方表同款两道段(2026-10-27 · R15 根因修复;键 = recipe_id 单段)。
+            RunRecipeOrdinalGates(pkg, pkg.Errors, recipeBaseline);
             if (pkg.Errors.Count > 0)
                 throw new BakeValidationException(pkg.Errors);
 
@@ -156,14 +159,29 @@ namespace DaYiJingCheng.EditorTools.Bake
                 baselineErrors.Add(
                     $"{OrdinalBaselineReader.FileName}:找不到注册表 \"{BaselineRegistryId}\" —— " +
                     "生产路径必须有本表的基线条目,否则 append-only 门无从比对");
+            // 配方表那一份:同样「缺失即硬失败」,不因「反正是新加的」而降级为跳过 ——
+            // 缺它 ⇒ recipes 的改号同样会静默通过(与 2026-10-26 物品表那次同一形态)。
+            OrdinalBaselineRegistry recipeBaseline =
+                OrdinalBaselineReader.Find(registries, RecipeBaselineRegistryId);
+            if (recipeBaseline == null && baselineErrors.Count == 0)
+                baselineErrors.Add(
+                    $"{OrdinalBaselineReader.FileName}:找不到注册表 \"{RecipeBaselineRegistryId}\" —— " +
+                    "生产路径必须有配方表的基线条目,否则 recipes 的 append-only 门无从比对");
             if (baselineErrors.Count > 0)
                 throw new BakeValidationException(baselineErrors);
 
-            return BakeFromSourceText(itemsJson, recipesJson, constantsJson, null, baseline);
+            return BakeFromSourceText(
+                itemsJson, recipesJson, constantsJson, null, baseline, recipeBaseline);
         }
 
         /// <summary>本表在 <c>_ordinal_baseline.json</c> 里的注册表 id。</summary>
         public const string BaselineRegistryId = "item_database";
+
+        /// <summary>配方表在 <c>_ordinal_baseline.json</c> 里的注册表 id(2026-10-27 追加)。
+        /// <para>⚠️ 两张表**各自一个注册表**,不合并:物品表的号是「物品身份」,配方表的号是
+        /// 「配方身份」,同号不同义。合并会让一条改号在两个域里同时换义,违反 append-only 的
+        /// 「一个键只能占一个号」判据。</para></summary>
+        public const string RecipeBaselineRegistryId = "recipe_database";
 
         /// <summary>ConfigVersion 哈希的命名源(键 = 固定文件名,与磁盘发现一致)。
         /// <para>公开:测试套件 data_pipeline_bake_test 须以同名源独立复算 DeriveConfigVersion 对拍。</para>
@@ -349,6 +367,54 @@ namespace DaYiJingCheng.EditorTools.Bake
                 AddAll(errors, OrdinalBaselineGate.Validate(
                     baseline.Entries, current, BaselineRegistryId));
         }
+
+        /// <summary><b>配方表</b>的 ordinal 两道段(段① 恒跑,段② 仅当 <paramref name="baseline"/> 非 null)。
+        /// <para>与 <see cref="RunOrdinalGates"/> 同构但**不复用同一把键** —— 配方表的键是
+        /// <c>recipe_id</c>(单段),物品表是 <c>(base_id, processing_state)</c>(两段)。
+        /// 硬把两表塞进一个函数,就得把「怎么拼键」写成按表分支,而那正是
+        /// <c>DefaultKeyFields</c> 兜底要避免的形态。</para>
+        /// <para>⚠️ <b>本条是 InventoryFold R15 缺口的根因修复</b>:<c>CraftPayload.RecipeId</c>(int)
+        /// 与配方表之间此前全仓无映射 ⇒ fold 读不出产出物 <c>item_key</c>。冻结 ordinal 后,
+        /// 该映射成为**可判伪的契约**而不是注释里的一句话。</para>
+        /// </summary>
+        private static void RunRecipeOrdinalGates(
+            BindPackage pkg, List<string> errors, OrdinalBaselineRegistry baseline)
+        {
+            var current = new List<OrdinalBaselineGate.Entry>(pkg.Recipes.Count);
+            for (int i = 0; i < pkg.Recipes.Count; i++)
+            {
+                Recipe rec = pkg.Recipes[i].Rec;
+
+                // 键段序以基线声明为准(与物品表同一条理由:基线改字段序属越权修订,应改数据)。
+                IReadOnlyList<string> keyFields = baseline?.KeyFields ?? DefaultRecipeKeyFields;
+                var parts = new List<string>(keyFields.Count);
+                for (int k = 0; k < keyFields.Count; k++)
+                {
+                    string f = keyFields[k];
+                    if (string.Equals(f, "recipe_id", StringComparison.Ordinal))
+                        parts.Add(rec.RecipeId ?? string.Empty);
+                    else
+                    {
+                        errors.Add($"[ordinal:recipe_database] 基线 key_fields 含本表无对应取值的字段 \"{f}\" " +
+                                   "—— 本表只能拼 recipe_id(见 _ordinal_baseline.json)");
+                        parts.Add(string.Empty);
+                    }
+                }
+
+                current.Add(new OrdinalBaselineGate.Entry(
+                    rec.Ordinal, OrdinalBaselineReader.JoinKey(parts)));
+            }
+
+            AddAll(errors, OrdinalBaselineGate.ValidateTableOrdinals(current, RecipeBaselineRegistryId));
+
+            if (baseline != null)
+                AddAll(errors, OrdinalBaselineGate.Validate(
+                    baseline.Entries, current, RecipeBaselineRegistryId));
+        }
+
+        /// <summary>无基线时(夹具注入)的配方表默认拼键字段 —— 与 <c>_ordinal_baseline.json</c> 的
+        /// <c>key_fields</c> 一致。**不是**第二真源:基线条目存在时以基线声明为准。</summary>
+        private static readonly string[] DefaultRecipeKeyFields = { "recipe_id" };
 
         /// <summary>无基线时(夹具注入)的默认拼键字段 —— 与 <c>_ordinal_baseline.json</c> 的
         /// <c>key_fields</c> 一致。**不是**第二真源:基线条目存在时以基线声明为准。</summary>

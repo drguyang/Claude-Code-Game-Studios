@@ -492,16 +492,86 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             Assert.That(ex.Message, Does.Contain("未知键"));
         }
 
-        /// <summary>schema_version 改 99 ⇒ 拒并点名 schema_version(ADR-010 §七 致命面)。</summary>
+        /// <summary>schema_version 改成错误值 ⇒ 拒并点名 schema_version(ADR-010 §七 致命面)。</summary>
+        /// <remarks>
+        /// ⚠️ <b>2026-10-27 订正 —— 本测曾因写死字面量而失去判别力</b>:原实现写
+        /// <c>Replace("\"schema_version\": 1", …)</c>,把「正确值」硬编码成 1。
+        /// recipes 的 schema_version 抬到 2 后 <c>Replace</c> **匹配不到任何东西**,
+        /// 源文本原样通过 ⇒ 断言「必抛」当场红。它今天红是因为方向是「必抛」;
+        /// 若同样的写法用在「必不抛」上,就会**无声地绿**。
+        /// ⇒ 正确值一律从 <see cref="DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion"/>
+        /// 派生,并先断言「种子与常量一致」,使前提失效时红在**前提**而不是红在断言。
+        /// </remarks>
         [Test]
         public void test_binding_schemaVersionMismatch_bakeFails()
         {
             ReadLegalTriple(out string itemsJson, out string recipesJson, out string constantsJson);
-            string mutated = recipesJson.Replace("\"schema_version\": 1", "\"schema_version\": 99");
+
+            string current = "\"schema_version\": " +
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion;
+            Assert.That(recipesJson, Does.Contain(current),
+                "种子 recipes 的 schema_version 与读方常量不一致 —— 本测前提失效;" +
+                "先对齐种子,不要把断言放宽成「随便改改就红」");
+
+            string mutated = recipesJson.Replace(current, "\"schema_version\": 99");
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
                 ItemDatabaseBaker.BakeFromSourceText(itemsJson, mutated, constantsJson));
             Assert.That(ex.Message, Does.Contain("schema_version"));
+        }
+
+        /// <summary><b>Recipe.Ordinal 的烘焙往返</b>:写到 cooked 里的号读回来必须逐条等。
+        /// <para>⚠️ 本条补的是一个真实的**判据空洞**:<c>Recipe.Ordinal</c> 于 2026-10-27 加入
+        /// (InventoryFold R15 的映射键),但全仓 <c>ReadRecipeDataSet</c> 的测试调用点**为零**
+        /// ⇒ 写端 <c>CookedWriter.WriteRecipe</c> 与读端 <c>CookedCodec.ReadRecipe</c>
+        /// 的字段序此前**没有任何东西钉住**。两边的 int 位宽一样,写读错位**不会崩**,
+        /// 只会静默换值 —— 与 ADR-014 承接条 ③ 要消灭的是同一类失败。</para>
+        /// <para>判据不是「往返非空」,而是**逐条等号 + 与源 JSON 的 ordinal 一致 +
+        /// 表内互不相同**(后者防「读端恒写 0」这种全零仍能自洽的形态)。</para>
+        /// </summary>
+        [Test]
+        public void test_recipeOrdinal_survivesCookedRoundTrip()
+        {
+            ReadLegalTriple(out string itemsJson, out string recipesJson, out string constantsJson);
+
+            BakeResult baked = ItemDatabaseBaker.BakeFromSourceText(itemsJson, recipesJson, constantsJson);
+            // ⚠️ RecipeDataSet 住 DaYiJingCheng.Sim(unity/Assets/Sim/ItemDatabase/RecipeDataSet.cs:9),
+            //    **不在** Sim.Contracts —— 它含 Settlement 常量,按 ADR-025 §① 属 Sim 侧。
+            DaYiJingCheng.Sim.RecipeDataSet decoded =
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ReadRecipeDataSet(baked.RecipesCooked);
+
+            Assert.That(decoded.Recipes, Is.Not.Null.And.Length.GreaterThan(0),
+                "空配方集会让下面对 count 的断言平凡通过");
+
+            // ① 与源 JSON 的 ordinal 逐条等(顺序 = 源文件行序,写端不重排)。
+            //    解析走 JsonStage1Lexer —— **与烘焙门同一套词法器**(装配内 internal,经
+            //    Editor.Tools.Bake/AssemblyInfo.cs 的 InternalsVisibleTo 可见),不另抄解析器。
+            Assert.That(JsonStage1Lexer.TryParse(recipesJson, out JsonNode srcRoot, out string lexErr), Is.True,
+                $"源词法失败:{lexErr}");
+            Assert.That(srcRoot.TryGet("recipes", out JsonNode srcRows) && srcRows?.Items != null, Is.True,
+                "源缺 recipes[] —— 本测前提失效");
+
+            List<int> sourceOrdinals = new List<int>();
+            foreach (JsonNode row in srcRows.Items)
+            {
+                Assert.That(row.TryGet("ordinal", out JsonNode ordNode) && ordNode.Kind == JsonNodeKind.Integer,
+                    Is.True, "源每条配方须有整数 ordinal 字段");
+                sourceOrdinals.Add((int)ordNode.Int);
+            }
+
+            Assert.That(sourceOrdinals.Count, Is.EqualTo(decoded.Recipes.Length),
+                "源与产物的条目数须相等");
+            for (int i = 0; i < sourceOrdinals.Count; i++)
+                Assert.That(decoded.Recipes[i].Ordinal, Is.EqualTo(sourceOrdinals[i]),
+                    $"第 {i} 条({decoded.Recipes[i].RecipeId})的 ordinal 在 cooked 往返后变了 —— " +
+                    "写读字段序不一致或漏写");
+
+            // ② 表内互不相同 —— 这一条才挡得住「读端恒返回 0」:全零也能让 ① 在
+            //    源也全零时通过,但那样表自洽门早该红;这里独立再挡一次。
+            var seen = new HashSet<int>();
+            foreach (DaYiJingCheng.Sim.Contracts.Recipe r in decoded.Recipes)
+                Assert.That(seen.Add(r.Ordinal), Is.True,
+                    "ordinal 在产物里重复 ⇒ 载荷侧 CraftPayload.RecipeId 无法唯一定位配方");
         }
     }
 }

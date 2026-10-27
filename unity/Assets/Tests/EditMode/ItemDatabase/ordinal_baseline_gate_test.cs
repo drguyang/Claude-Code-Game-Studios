@@ -323,5 +323,145 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             Assert.That(ex.Message, Does.Contain("被两个键占用"),
                 "无基线的夹具路径仍须跑段①(表自洽),不得整条跳过");
         }
+
+        // ══════════ 配方表那一半(2026-10-27 · R15 根因修复)══════════
+        //
+        // 物品表的两半早已有门,配方表此前**一条都没有** —— 而 CraftPayload.recipe_id
+        // 的注释自 ADR-014 §五 起就自称「21a 表 ordinal」,却与全仓无映射。
+        // 下面四条钉住:① 基线里真有这张表;② 生产数据对得上;③ 改号必红;
+        // ④ 缺这份基线同样硬失败(不因「新加的」而降级为跳过)。
+
+        /// <summary>基线里须有 <c>recipe_database</c> 注册表,且 key_fields = ["recipe_id"]。</summary>
+        [Test]
+        public void test_repoBaseline_containsRecipeDatabaseRegistry()
+        {
+            var parseErrors = new List<string>();
+            List<OrdinalBaselineRegistry> regs = OrdinalBaselineReader.ReadFromRepo(RepoRoot, parseErrors);
+            Assert.That(parseErrors, Is.Empty, () => string.Join("\n", parseErrors));
+
+            OrdinalBaselineRegistry reg = OrdinalBaselineReader.Find(
+                regs, ItemDatabaseBaker.RecipeBaselineRegistryId);
+            Assert.That(reg, Is.Not.Null, "基线须含 recipe_database 注册表(否则配方改号静默通过)");
+            Assert.That(reg.Entries.Count, Is.GreaterThan(0), "条目不得为空,否则门无判据");
+            Assert.That(reg.KeyFields, Is.EqualTo(new[] { "recipe_id" }),
+                "key_fields 须与生产拼键一致(配方表的键是单段 recipe_id)");
+        }
+
+        /// <summary><b>正向对照</b>:真实配方表对真实基线 ⇒ 零错误。</summary>
+        [Test]
+        public void test_repoRecipes_baselineMatchesCurrentTable_exactly()
+        {
+            var parseErrors = new List<string>();
+            OrdinalBaselineRegistry reg = OrdinalBaselineReader.Find(
+                OrdinalBaselineReader.ReadFromRepo(RepoRoot, parseErrors),
+                ItemDatabaseBaker.RecipeBaselineRegistryId);
+            Assert.That(parseErrors, Is.Empty, () => string.Join("\n", parseErrors));
+            Assert.That(reg, Is.Not.Null);
+
+            Assert.DoesNotThrow(() => ItemDatabaseBaker.BakeFromRepo(RepoRoot),
+                "生产路径烘焙须全程零错误(配方表段① + 段② 均已过)");
+        }
+
+        /// <summary><b>反向证伪</b>:配方 ordinal 互换 ⇒ 必红,且报文点名「改义」。
+        /// <para>⚠️ 必须走 <c>BakeFromSourceText(recipeBaseline: …)</c> —— 只调门发现不了
+        /// 「baker 忘了把基线传给门」这层接线漏。</para></summary>
+        [Test]
+        public void test_falsification_swapRecipeOrdinals_bakeFailsCitingRepurposing()
+        {
+            string itemsJson = File.ReadAllText(Path.Combine(SeedDir, ItemDatabaseBaker.ItemsFileName));
+            string recipesJson = File.ReadAllText(Path.Combine(SeedDir, ItemDatabaseBaker.RecipesFileName));
+            string constantsJson = File.ReadAllText(Path.Combine(SeedDir, ItemDatabaseBaker.ConstantsFileName));
+
+            // dry_willow_bark(0) ⟷ extract_salicylic(1)。
+            // ⚠️ 三路替换带 \u0000 哨兵 —— 与物品表那条同款,防「先改 0→1 再改 1→0」双改成 0。
+            StringAssert.Contains("\"ordinal\": 0,", recipesJson, "夹具自证:ordinal 0 须存在");
+            StringAssert.Contains("\"ordinal\": 1,", recipesJson, "夹具自证:ordinal 1 须存在");
+            string mutated = recipesJson
+                .Replace("\"ordinal\": 0,", "\"ordinal\": \u0000SWAP\u0000,")
+                .Replace("\"ordinal\": 1,", "\"ordinal\": 0,")
+                .Replace("\"ordinal\": \u0000SWAP\u0000,", "\"ordinal\": 1,");
+            Assert.That(mutated, Is.Not.EqualTo(recipesJson), "变异须真的改动源文本(否则本条无判别力)");
+
+            var parseErrors = new List<string>();
+            OrdinalBaselineRegistry recipeBaseline = OrdinalBaselineReader.Find(
+                OrdinalBaselineReader.ReadFromRepo(RepoRoot, parseErrors),
+                ItemDatabaseBaker.RecipeBaselineRegistryId);
+            Assert.That(parseErrors, Is.Empty, () => string.Join("\n", parseErrors));
+            Assert.That(recipeBaseline, Is.Not.Null);
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ItemDatabaseBaker.BakeFromSourceText(
+                    itemsJson, mutated, constantsJson, null, null, recipeBaseline));
+
+            Assert.That(ex.Message, Does.Contain("改义"), "须点名改义,而不只是任意一条无关错误");
+            Assert.That(ex.Message, Does.Contain(ItemDatabaseBaker.RecipeBaselineRegistryId),
+                "报文须点名 recipe_database —— 否则与物品表那道的红无法区分");
+        }
+
+        /// <summary><b>反向证伪</b>:临时仓库里三份数据齐、基线缺 recipe_database 那一条 ⇒ 硬失败。
+        /// <para>与「基线文件整个缺失」不同:文件在、只是少了一个注册表 —— 这正是
+        /// 「门静默跳过新表」最可能的形态。</para></summary>
+        [Test]
+        public void test_falsification_recipeRegistryMissingFromBaseline_bakeFromRepoFailsLoudly()
+        {
+            string tempRoot = Path.Combine(Path.GetTempPath(),
+                "recipe_registry_missing_" + Guid.NewGuid().ToString("N"));
+            string dataDir = Path.Combine(tempRoot, "assets", "data");
+            Directory.CreateDirectory(dataDir);
+            try
+            {
+                foreach (string name in new[] {
+                    ItemDatabaseBaker.ItemsFileName,
+                    ItemDatabaseBaker.RecipesFileName,
+                    ItemDatabaseBaker.ConstantsFileName })
+                {
+                    File.Copy(Path.Combine(SeedDir, name), Path.Combine(dataDir, name));
+                }
+
+                // 基线:保留 item_database,砍掉 recipe_database 那一段。
+                string baselineJson = File.ReadAllText(
+                    Path.Combine(SeedDir, OrdinalBaselineReader.FileName));
+                int cut = baselineJson.IndexOf("\"id\": \"recipe_database\"", StringComparison.Ordinal);
+                Assert.That(cut, Is.GreaterThan(0), "夹具自证:基线里须能定位到 recipe_database 段");
+                // 回退到该段前面的 "{",再删到条目数组闭合处 —— 用解析结果重建更稳,避免手数括号。
+                var parseErrors = new List<string>();
+                List<OrdinalBaselineRegistry> regs =
+                    OrdinalBaselineReader.Parse(baselineJson, parseErrors);
+                Assert.That(parseErrors, Is.Empty, () => string.Join("\n", parseErrors));
+                Assert.That(OrdinalBaselineReader.Find(regs, ItemDatabaseBaker.RecipeBaselineRegistryId),
+                    Is.Not.Null, "夹具自证:原基线里须有 recipe_database");
+
+                // 重建一份「只有 item_database」的基线(经同一 Reader 的 Parse 反向验证形状)。
+                OrdinalBaselineRegistry items = OrdinalBaselineReader.Find(
+                    regs, ItemDatabaseBaker.BaselineRegistryId);
+                Assert.That(items, Is.Not.Null);
+                var sb = new System.Text.StringBuilder();
+                sb.Append("{\"schema_version\":1,\"_note\":\"fixture\",\"registries\":[");
+                sb.Append("{\"id\":\"item_database\",\"source\":\"")
+                  .Append(items.Source).Append("\",\"field\":\"ordinal\",\"key_fields\":[\"base_id\",\"processing_state\"],")
+                  .Append("\"note\":\"fixture\",\"entries\":[");
+                for (int i = 0; i < items.Entries.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    string key = items.Entries[i].Key;
+                    string[] parts = key.Split(OrdinalBaselineReader.KeySeparator);
+                    sb.Append("{\"ordinal\":").Append(items.Entries[i].Ordinal)
+                      .Append(",\"base_id\":\"").Append(parts[0])
+                      .Append("\",\"processing_state\":\"").Append(parts[1]).Append("\"}");
+                }
+                sb.Append("]}]}");
+                File.WriteAllText(Path.Combine(dataDir, OrdinalBaselineReader.FileName), sb.ToString());
+
+                BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                    ItemDatabaseBaker.BakeFromRepo(tempRoot));
+
+                Assert.That(ex.Message, Does.Contain(ItemDatabaseBaker.RecipeBaselineRegistryId),
+                    "报文须点名缺失的注册表 id —— 「反正是新加的所以跳过」正是要消灭的形态");
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot)) Directory.Delete(tempRoot, true);
+            }
+        }
     }
 }

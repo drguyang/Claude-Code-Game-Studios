@@ -19,6 +19,19 @@
         { "ordinal": 7, "base_id": "wooden_splint", "processing_state": "raw" },
         { "ordinal": 8, "base_id": "wooden_post", "processing_state": "raw" }
       ]
+    },
+    {
+      "id": "recipe_database",
+      "source": "assets/data/item_database_recipes.json",
+      "field": "ordinal",
+      "key_fields": ["recipe_id"],
+      "note": "21a 配方表。载荷侧消费方 = CraftPayload.recipe_id(int ordinal)。2026-10-27 前本表与物品表 2026-10-26 之前同态:ordinal 是**隐式行序**(JSON 数组下标),无字段、无门 ⇒ 重排一次即静默错读;而 CraftPayload.recipe_id 的注释一直自称「21a 表 ordinal」却与全仓无映射(InventoryFold R15 缺口的根因:产出物确定不了 item_key)。本批显式化为 ordinal 字段并冻结,值取当时的行序 0–3(**语义零变更** —— 既有夹具用常量 ordinal,不查表)。",
+      "entries": [
+        { "ordinal": 0, "recipe_id": "dry_willow_bark" },
+        { "ordinal": 1, "recipe_id": "extract_salicylic" },
+        { "ordinal": 2, "recipe_id": "craft_wooden_splint" },
+        { "ordinal": 3, "recipe_id": "assemble_wooden_post" }
+      ]
     }
   ]
 }

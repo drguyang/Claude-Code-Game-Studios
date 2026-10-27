@@ -222,6 +222,9 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         private static void WriteRecipe(BinaryWriter w, Recipe recipe)
         {
+            // ordinal 打头(2026-10-27,recipes schema 1→2)—— 读方 ReadRecipe 同序。
+            // 与 WriteItems 同款:它是载荷侧 CraftPayload.RecipeId 的映射键,不是展示字段。
+            w.Write(recipe.Ordinal);
             WriteString(w, recipe.RecipeId);
             w.Write((int)recipe.Owner);
             WriteRecipeEntries(w, recipe.Inputs);
