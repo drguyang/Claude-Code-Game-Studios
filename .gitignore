@@ -109,7 +109,13 @@ unity/Assets/AddressableAssetsData/link.xml.meta
 # (`git ls-files test-results.xml` 命中),裸写 `test-results.xml` 会连它一起忽略 ——
 # 已跟踪文件虽不受影响,但会让规则语义与意图不符(2026-10-19,第十二片提交时发现)。
 # 结果以 `unity/Logs/*.xml`(已被上方 `[Ll]ogs/` 覆盖)为留档,本文件不入库。
-unity/test-results.xml
+#
+# 🔁 2026-10-28 **放宽为裸文件名**:上文「仓根 `test-results.xml` 已入库」的前提**已消失** ——
+# 那份 2026-10-19 的 6 用例单跑结果(`Telemetry.F2WiringTest`)由用户裁定删除并随本批提交。
+# 裸写后,无论 cwd 是仓库根还是 `unity/`,跑测副产物一律不会冒出来。
+# 放宽前核过**反例不被误伤**:`git ls-files | grep -i test-results` 删后零命中;
+# 全仓仅两处同名(`./test-results.xml` 已删、`./unity/test-results.xml` 本就要忽略),无其他需入库的同名件。
+test-results.xml
 # Addressables:只忽略**机器本地产物**(逐平台内容状态),组定义本身是作者态,**须入库**。
 #
 # ⚠️ 2026-10-17 收窄(原为整目录忽略)—— 依据与实测见下:

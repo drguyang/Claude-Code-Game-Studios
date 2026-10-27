@@ -6777,6 +6777,12 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **`.gitignore` 提交 `efcaa22`**:加 `unity/test-results.xml`(+6 行)。**规则带 `unity/` 前缀锚定** ——
   仓根另有**已入库**的 `test-results.xml`(`git ls-files` 命中),裸写文件名会连它一起忽略。
   实测:`check-ignore` 对 `unity/` 那份命中、对仓根那份无命中。
+  - 🔁 **2026-10-28 前提消失,规则已放宽为裸 `test-results.xml`**(原文保留作历史):上文「仓根另有
+    **已入库**的 `test-results.xml`」这份文件由用户裁定删除 —— 它是 2026-10-19 一次 6 用例单跑
+    (`DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest`,6/6 绿)的副产物,放仓库根无留档价值,
+    其证据面早已被 `unity/Logs/*.xml` 的全量留档覆盖。`git rm` 后 `git ls-files | grep -i test-results`
+    零命中 ⇒ `efcaa22` 的 `unity/` 前缀锚定理据不再成立,裸名不会误伤任何入库件
+    (全仓仅两处同名,另一处 `unity/test-results.xml` 本就要忽略)。
 - **已推送(用户 2026-10-19 指令)**:`4294a27..efcaa22` → `origin/main`(快进,无强推)。
   ⚠️ **实际推送 4 个提交,非 2 个** —— 第十片 `6220d5e` / 第十一片 `1371834` 此前**一直只在本地**,
   随本次一并推送。本地与远端同步(`main...origin/main` 无领先/落后)。
