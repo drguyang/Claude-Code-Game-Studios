@@ -418,6 +418,7 @@
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | open | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
+| `TD-itemdb-02` | `item-database` | open | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
@@ -517,6 +518,22 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十三订(`TD-itemdb-02` 立债 · 金标准无发号场景 · 2026-10-27 · 债面)** ——
+> 变化 = **`条目 124 → 125`**(+1)· **`open 75 → 76`**(+1)· **`Y 100 → 101`**(+1)·
+> **`未闭 P0 面 62 → 63`**(+1)· **`epic 分布 8/31 → 9/31`**(+1)。
+> 单一变化源:`TD-itemdb-02` 入表,`P0 面` = **`Y`(R1)** —— 归属 `item-database` ∈ 31 个 P0 epic。
+> 单一变化源之缘由:把 `TD-processing-07` 的修法方向 ③(金标准无发号场景)**另立为独立债**,
+> 因为它与 `-07` **归属 / 判据 / 可闭合性三样全不同**(发号器住 `disease-simulation`;`-07` 是对拍结论、
+> 本条是对拍的前提;`-07` 等外部矩阵、本条今天就能造)。三条理由逐条见该条「为何不并入本条」行。
+> 🔴 **一处如实登记的算术错误**:起草时我**没跑命令**,预测「`item-database` 本就在分布里 ⇒ `8/31` 不动」。
+> **实跑为 `9/31`** —— `TD-itemdb-01` 是 `closed`,而 `live` 集只算未闭 ⇒ 该 epic 此前不在分布里。
+> 该错误预测已在条目正文末留档(不删),它正是「数字须带可跑复算命令」要拦的形态。
+> 🔴 **第二处同类错误(同批自查抓出)**:「债描述」原写三份金标准为「19 · **40** · **52** 条」,
+> **两个数都没有出处**。实跑 `grep -v '^#' … | grep -vc '^[[:space:]]*$'` ⇒ **19 / 32 / 43**
+> (40 / 52 疑为把 GDD 的 AC 数当成场景数;`grep -vc '^#'` 的宽松口径还会把 `medcons` 的 3 个空行算进去得 35)。
+> 已就地订正 + 在「实测」① 附可跑命令。**同一轮、同一人、同一条纪律,连犯两次** —— 一并留档。
+> **复算**:`python3 tools/debtcount/debtcount.py --print`(实得 125 / 63 / 9)。
+>
 > 🔁 **四十二订(`TD-processing-07` 立债 · AC-18-15 的 `Seq` 发号维 · 2026-10-27 · 债面)** ——
 > 变化 = **`条目 123 → 124`**(+1)· **`open 74 → 75`**(+1)· **`Y 99 → 100`**(+1)·
 > **`未闭 P0 面 61 → 62`**(+1)· **`epic 分布 7/31 → 8/31`**(+1)。
@@ -542,6 +559,12 @@ PYEVAL
 > **落点**:`processing.md` AC-18-15 表行 + 新增 🔴 第二处注 · `story-004:107` 加注不追改 · 本条「修法方向」②。
 > **数字一位不动**((`条目 124` · `未闭 P0 面 62` · `epic 8/31`)—— 本追加只改判据措辞,不加不减索引行。
 > ⚠️ **本条**仍 `open`** —— 修法方向 ③(金标准侧 `golden-v1.txt` 无发号场景)未做,那是它唯一的实质残项。
+>
+> 🔁 **同日再追加(金标准残项另立 `TD-itemdb-02` · 四十三订)** —— ⚠️ **上一句「③ 是本条仍 open 的唯一实质残项」
+> 已订正**:③ 不是一个残项,是**另一条债**。立它的三条理由(归属 / 判据 / 可闭合性全不同 —— 尤其
+> 「`-07` 等外部矩阵,而它**今天就能造**」)见 `TD-itemdb-02` 的「为何不并入本条」行。
+> **本条现行的闭合条件不再包含 ③**,只剩:ADR-012 三格矩阵落地后,按 AC-18-15 已订正的措辞造对拍夹具
+> (含同 tick 两玩家场景 + 判别力正控)。
 >
 > 🔁 **四十一订(§五 输出块改脚本直生成 · 2026-10-27 · 机制面)** ——
 > **数字一位不动**:`条目 123` · `未闭 P0 面 61` · `epic 分布 7/31` 全部保持。
@@ -804,12 +827,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 124 | 状态 {'open': 75, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 23, '~~**Y**~~': 1}
-未闭 P0 面 = 62 （已闭但曾标 P0 面的 38 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 62 条,分布在 8/31 个 epic
+条目 125 | 状态 {'open': 76, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 23, '~~**Y**~~': 1}
+未闭 P0 面 = 63 （已闭但曾标 P0 面的 38 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 9/31 个 epic
     medical-consequences: 20  audio-system: 17          clinic-machine: 15
-    telemetry-analytics: 5    disease-simulation: 2     patient-ai: 1
-    processing: 1             skeuomorphic-ui: 1
+    telemetry-analytics: 5    disease-simulation: 2     item-database: 1
+    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4370,6 +4393,32 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 > **`P0 面 = Y`(R1)** —— 归属 `processing` ∈ 31 个 P0 epic,正文**未**自陈「不阻塞 P0 出口」。
 > ⚠️ **本条的 `Y` 使 `processing` 首次进入 M3 出口分布**,即「该 epic 名下 TD 的 P0 面 = 0」这条合取
 > 从此**不可能**在 `processing` 上成立,直到本条闭合。这是用户 2026-10-27 明示裁定的后果,不是副作用。
+> 🔁 **2026-10-27 追加**:本条的「修法方向 ③」**已另立为独立债 `TD-itemdb-02`** ——
+> 理由见该条「为何不并入本条」。
+
+### TD-itemdb-02 — 金标准集无任何**发号器**场景:`Seq` 的跨平台逐位性缺独立基准
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 全库**三份**金标准(`item_database` **19** 条 · `medcons` **32** 条 · `telemetry` **43** 条 · 🔴 2026-10-27 实跑订正,见「实测」①)中,**无一份覆盖事件发号**。`B03_sim_event_header_bytes` 看似有关,实则**无关**:它的 `Seq` 是**手写常量 5**(夹具 `:200-201`),钉的是**编码器**输出稳定,与「发号器发得对」零关系。⇒ AC-18-15 的 `Seq` 维、以及 `disease-simulation` 侧发号的跨平台半边,**都没有可对拍的基准**。<br>⚠️ **归属精确化**(起草时写成「`AC-16`(Seq 单调 + 复位)」,不确切):`AC-16` 正文是「**跨流全序 `(Tick, StreamPriority, Patient, Seq)` + 乱序不变**」;「**`Seq` 由宿主在 `Append` 时按 `(Tick, Patient)` 分配、每 tick 复位**」是**规则段** `design/gdd/disease-simulation.md:196-198`。测试件头部 `:5` 的「`AC-16`: 流侧(Seq 单调 + 复位)」是**该件的自述映射**,不是 GDD 的 AC 文本 |
+| **实测(逐条可跑)** | ① **场景数**(⚠️ 先排除注释**与空行** —— `grep -vc '^#'` 会把 `medcons` 的 3 个空行算进去,得 35 而非 32,原稿的 40 / 52 即此类没有出处的算术):<br>&nbsp;&nbsp;`for f in tests/unit/item_database/golden/golden-v1.txt tests/golden/medcons/golden-v1.txt tests/golden/telemetry/golden-v1.txt; do printf "%-55s %s\n" "$f" "$(grep -c -v -e '^#' -e '^[[:space:]]*$' "$f")"; done`<br>&nbsp;&nbsp;⇒ **19 / 32 / 43**。场景名族:`S01…S16`+`B01…B03`(item_database)· `A01…A05`+`N01`+`C01`+`B01…B20`(medcons)· `R01…R12`+`Q01…Q08`+`F1_*`+`K01…K06`(telemetry)—— **无一族是发号**。<br>&nbsp;&nbsp;⚠️ **另有第四份金标准是内联的**(非 `.txt`):`unity/Assets/Tests/EditMode/Sim/golden_hash_v1_test.cs`(SplitMix64 / `FixMul` 黄金向量)—— `grep -c 'Seq\|EventStream'` ⇒ **各 0**。四份全无发号,结论不变。<br>② `grep -rn "_currentSeq\|seq_reset" tests/` ⇒ **0** —— Python 侧**没有任何发号参考实现**。<br>③ 发号器是**四条分支**的纯函数(`Sim/EventStream.cs:227-257` —— 逐行可核:`:228` 组复位判据 / `:230` 置 0 / `:236` 同组 `++` / `:241-246` 恢复批播种 / `:252-255` 显式 `Seq` 门控):<br>&nbsp;&nbsp;ⓐ 组复位(`Tick` 或 `Patient` 变 ⇒ `_currentSeq = 0`)· ⓑ 同组递增(`++`)· ⓒ 恢复批播种(`_restoredGroupMax` **只抬不压**)· ⓓ 显式 `Seq ≥ 0` 原样保留但**计数器仍前进**(`event_stream_test.cs:155-158` 逐字钉死,锚点是 `:158` 的 `Assert.AreEqual(2L, …)`)。⇒ 独立参考实现要重写**四条**,不是一条 |
+| **为何 P0 面 = Y**(R1) | 归属 `item-database` ∈ 31 个 P0 epic,正文**未**自陈「不阻塞 P0 出口」。用户 2026-10-27 裁定 Y,**与 `TD-processing-07` 同判** —— 两者是「跨平台对拍载体缺位」的两个面(缺判据 / 缺基准),同一性质 |
+| **为何不并入 `TD-processing-07`**<br>(三条,逐条可核) | ① **归属不同**:发号器住 `unity/Assets/Sim/EventStream.cs`,是 **`disease-simulation`** 的系统(`event_stream_test.cs` 也在 `Tests/EditMode/DiseaseSimulation/`),**不是 18 的**;`TD-processing-07` 的承载面是 18 的 AC-18-15。<br>② **判据不同**:`-07` 要的是「两平台 `Seq` 序列逐位相同**且不全为 0**」(判别力正控);本条要的是「**金标准存在,且 Python 参考实现与 C# 独立同值**」—— 前者是对拍结论,后者是对拍的**前提**。<br>③ **可闭合性不同(最要紧)**:`-07` 依赖 ADR-012 三格矩阵(未落,且 E-2a 已裁 EXTERNAL·无法完成);本条**只依赖造一份 `golden-v2` + 一个 Python 参考实现 ⇒ 今天就能做**。并入会把一条「可做但未做」的债挂到一条「等外部」的债上,使它的闭合条件被误读成外部阻塞 |
+| **修法方向** | ① **Python 独立参考实现**:照 `golden_v1_reference.py` 的「与 C# 零共享代码」纪律,重写发号四条分支(不复用 C#,不读 C# 结果);② **场景集**(至少覆盖四条分支各一 + 边界):组复位(Tick 变 / Patient 变各一)· 同组递增(序号 0/1/2)· **同 tick 同 `Patient` 两事件**(即 `-07` 要的判别力场景,两条 `Craft` 均 `Patient=None` ⇒ 0 与 1)· 恢复批播种(组最大值 +1 抬升,含「只抬不压」的反例)· 显式 `Seq ≥ 0` 保留但仍占计数器号(`event_stream_test.cs:155-158` 的语义)· 哨兵 `Seq = -1` vs 合法 `Seq = 0` 不可混淆(O-1 修复);③ **版本化**:按 ADR-012 裁决③(**新版本目录 + 变更日志 + 全体平台同时重签 + 旧版保留**),不得就地改 `golden-v1.txt`;④ **防自指**:C# 侧只读、永不回写(`AC-21a-28` 同纪律) |
+| **触发条件** | 任何一轮真的开始做跨平台对拍时(与 `TD-processing-07` 同批,但**不**等 ADR-012 矩阵 —— 金标准可先造);或发号规则(`disease-simulation.md:196-198`)要做跨平台半边时 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-itemdb-02** | `item-database` | **open** | **Y** | R1 |
+
+> **`P0 面 = Y`(R1)** —— 归属 `item-database` ∈ 31 个 P0 epic,不自陈「不阻塞 P0 出口」。
+> ⚠️ **`item-database` 由此进入 M3 出口分布** —— `TD-itemdb-01` 是 `closed`,而 `live` 集**只算未闭**
+> ⇒ 该 epic 此前**不在**分布里;本条(`open`)使它出现。**`epic 分布 8/31 → 9/31`**。
+> **复算**:`python3 tools/debtcount/debtcount.py --print` → 实得 `63` / `9/31`,分布行含 `item-database: 1`。
+> 🔴 **一处当场自我订正**:起草本条时我**没有跑命令**,照算术预测成「`item-database` 本就在分布里
+> ⇒ `8/31` 一位不动」。**实测为 `9/31`** —— 错因是把 `closed` 的 `TD-itemdb-01` 当成了计入分布的。
+> 该错误预测在此**如实留档**(不删),因为它正是「数字须带可跑复算命令」那条纪律要拦的形态:
+> 照抄自己的算术,而不是跑一遍。
 
 ### 七、L7(W8)已当场修复 —— 2026-10-27
 
