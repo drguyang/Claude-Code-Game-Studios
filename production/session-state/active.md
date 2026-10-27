@@ -11745,3 +11745,28 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 > `test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot` 是**反向夹具**,
 > 把「今天世界流只增 1 条」钉成红灯条件,20 落地后转红 = **期待**而非故障。
 > 实测:测试件内零 `Ignore` 标记。
+
+---
+
+## Session Extract — S20-17 World 场景装配轮(2026-10-28 收口)
+
+**卡片**:`production/sprints/sprint-20.md` §十 · S20-17
+**状态**:`done`(`production/sprint-status.yaml` 已置 `done` / `completed: 2026-10-28`)
+**原件**:`production/qa/evidence/impl-s20-17-world-assembly-2026-10-28.md`
+
+**改动的文件**
+- 新增 `unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs`(合成世界工厂;`new World(` 唯一落点 `:109`)
+- 改 `unity/Assets/Gameplay.Boot/BootRoot.cs`(启动序造世界 `:213` + `IsSyntheticWorld` + `world:` 实参)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRoot.cs`(两重载 + `AssembleCore` 增 `world`;注册表取自 `world.Structures` `:819`;写者构造 `:858`;两份真源守卫)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRootServices.cs`(`World` / `StructureWriter` 两属性)
+- 新增 `unity/Assets/Tests/EditMode/ModularBuilding/world_assembly_wiring_test.cs`(8 条)
+- 新增 `tools/falsify/specs/s20-17-world-assembly-wiring.json`(5 变异 + 两轮失败留档)
+
+**验证**
+- 证伪轮 **5/5 恰如预期**(第三轮;前两轮分别因「行为变异打文本判据」与「一夹具担两属性」失败,均已订正)
+- 回归 EditMode `5575 / 5540 / 0 / 35`(基线 `5567 / 5532 / 0 / 35`;用例级仅在 new = 本批 8 条,仅在 old 空)
+  PlayMode `238 / 234 / 0 / 2 / 2`(退出码 2,用例级与基线零差异)
+
+**挂标不记绿(5 条,一条未勾)**:世界烘焙数据仍零产出(AC-23-08 第三半边仍无载体)· `Place/Remove` 生产发起方归 42(`O-23-6`)· `ClinicCellSource` 接真源归 24 · `World` 生命周期后果(不随场景卸载销毁)归 ADR-023 拆序轮 · `PlaceableChecker` 本轮**不接**(非「忘接」)
+
+**未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交)。

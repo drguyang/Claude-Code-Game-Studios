@@ -241,12 +241,12 @@ stories:
     name: "World 场景装配轮(World / StructureWriter 生产构造点 + 装配根接线)"
     file: "production/sprints/sprint-20.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
+    completed: "2026-10-28"
     note: "**收口后追加件(2026-10-28 用户裁定「直接在 sprint-20 排一张装配轮的卡」)**;卡面 = `sprint-20.md` §十 S20-17(本 sprint 于 2026-10-27 收口,本件为重开追加,不推翻 §九 判定)。病因:`CompositionRoot.cs:787-796` 逐字记「`structures` 生产树零构造、`new World(` 同样零构造」并指名「BootRoot 的 World 场景装配轮」;`impl-s20-2a-building01-2026-10-25.md:176` 的 N5 条记「本件未做」—— 而 `TD-building-01` 已于 2026-10-25 closed 且 N5 未转债 ⇒ 缺口零载体。边界 = **最小合成世界**(`WorldGeometry(TerrainCell[16,1,16], new int[256], new int[256])` + `new BuildSlotCatalog()` 空目录),理由:`assets/data/` 零份 `world_*` JSON、`DataCooked/` 25 份产物零份世界数据、其唯一作者 ADR-022 已被裁「不立 epic、不排期」(`p0-remaining-roadmap:1088`)。AC 5 条:①`new World(` 生产 0→1 ②`new StructureWriter(` 生产 0→1 ③装配后 `ClinicRoomMatching != null` ④`World` 端到端经装配路径 Place→blocked / Remove→free ⑤`DropEventWriter` 缺注入即抛。证伪轮 5 变异(AC-1/2 的变异形态 = 删构造行)。**挂标不记绿 5 条**:世界烘焙数据仍零产出(`AC-23-08` 第三半边仍无载体)· `Place`/`Remove` 生产发起方归 42 `O-23-6`(→ 交付 = 写者已装配,**不是**玩家能拆房)· `ClinicCellSource` 接真源归 24 侧 · `World` 生命周期归属须卡内裁定否则 AC-3 不得绿 · `PlaceableChecker` 接不接须裁定留痕。**将掀几债预估 0–1 条**。"
 
 # 追加率预留:1 件(承 CAPACITY-MODEL §3.1;retro-19 行动项 2:规划期逐件附「将掀几债」预估,

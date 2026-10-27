@@ -110,6 +110,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="inputActions">项目级动作资产(story-009 R-9.5:生产 = BootRoot 传
         /// <c>InputSystem.actions</c>;null = 逻辑层模式 —— 通道不解析动作,Attach 非法,
         /// FeedForTest 可用。⚠️ 不得经 Addressables 装载第二实例 = 违 AC-3-A1 单实例纪律)。</param>
+        /// <param name="world">世界实例(S20-17 · 2026-10-28)。给了 ⇒ ① 注册表取自
+        /// <see cref="World.Structures"/>(单一真源)② 装配一个 <see cref="StructureWriter"/>
+        /// (23 的 <c>Place</c> / <c>Remove</c> 写者)。null = 无世界(既有 117 处调用方,
+        /// 行为零变化)。⚠️ <b>与 <paramref name="structures"/> 同给且不同实例 ⇒ 抛</b>
+        /// (两份注册表 = 两份真源)。</param>
         /// <returns>装配完成的服务袋(绝不为 null)。</returns>
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
         /// fail-loud 兜底断言 —— 上游构造器已抛 / 参数检查先 ANE)。</exception>
@@ -121,10 +126,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             ClinicKnowledge clinicKnowledge = null,
             TelemetryAnalyticsTuning? telemetryKnobs = null,
             StructureInstanceRegistry structures = null,
-            string saveBasePath = null)
+            string saveBasePath = null,
+            World world = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
                             0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
-                            structures, saveBasePath);
+                            structures, saveBasePath, world);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -134,6 +140,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="blobPool">不可变 blob 池(同时作编码器的写面 <see cref="IBlobSink"/>)。</param>
         /// <param name="worldSeed">世界种子(存档头;派生 patient_seed)。</param>
         /// <param name="registry">病种注册表(见 <see cref="Assemble(IReadOnlyList{DiseaseRegistryEntry})"/>)。</param>
+        /// <param name="world">世界实例(S20-17;见另一重载的同名参数)。</param>
         /// <returns>装配完成的服务袋(绝不为 null)。</returns>
         /// <exception cref="ArgumentNullException">任一引用依赖为 null(参数名具名)。</exception>
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
@@ -149,14 +156,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        ClinicKnowledge clinicKnowledge = null,
                                                        TelemetryAnalyticsTuning? telemetryKnobs = null,
                                                        StructureInstanceRegistry structures = null,
-                                                       string saveBasePath = null)
+                                                       string saveBasePath = null,
+                                                       World world = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
                                 inputActions, audio, clinicKnowledge, telemetryKnobs, structures,
-                                saveBasePath);
+                                saveBasePath, world);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -170,7 +178,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              ClinicKnowledge clinicKnowledge,
                                                              TelemetryAnalyticsTuning? telemetryKnobs,
                                                              StructureInstanceRegistry structures,
-                                                             string saveBasePath)
+                                                             string saveBasePath,
+                                                             World world)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -786,7 +795,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⇒ 本段把它们接成 `ClinicRoomMatchingService`(装配层胶水,零新增判据)。
             //
             // ⚠️ **`structures` 从哪来**:23 的 `StructureInstanceRegistry` 今日在生产树**零构造**
-            //    (`new World(` 同样零构造,见 `TD-building-01` 实测 ①)。本装配**不自建**一个 ——
+            //    (`new World` 的构造同样零构造,见 `TD-building-01` 实测 ①)。本装配**不自建**一个 ——
             //    那会造出「装配层私有的世界」,与将来的 `World` 实例分叉(两份注册表 = 两份真源)。
             //    故:
             //      · 调用方给了(`BootRoot` 的 World 场景装配轮 / 测试注入真 `World.Structures`)
@@ -798,7 +807,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 装载失败(产物缺失 / 解码抛)⇒ **不吞**:本段在装配期抛(E-13 同口径)。
             //    ⚠️ 但只在 `structures != null` 时才装载 —— 未接世界时不该因为「产物缺失」
             //    让 77 处既有 `Assemble()` 调用方集体转红(那会把本接线变成全局回归)。
+            // ── S20-17(2026-10-28):世界优先于裸注册表 ────────────────────────────
+            // `world != null` ⇒ 注册表**取自** `world.Structures`,不另建:
+            // 两条独立的注册表就是两份真源(§上面的 ⚠️ 已写明)。同给且不同实例 ⇒ 抛。
+            if (world != null)
+            {
+                if (structures != null && !ReferenceEquals(structures, world.Structures))
+                    throw new InvalidOperationException(
+                        "Assemble: 同时传了 structures 与 world,且两者不是同一个注册表实例 —— "
+                        + "那是两份建造真源,建造判定会分叉。请只传 world(注册表从它取)。");
+                structures = world.Structures;
+            }
+
             ClinicRoomMatchingService clinicRoomMatching = null;
+            StructureWriter structureWriter = null;
             if (structures != null)
             {
                 BuildModulesDataSet buildModules = dataProvider != null
@@ -811,11 +833,33 @@ namespace DaYiJingCheng.Gameplay.Boot
                     ? dataProvider.Load<ClinicRoomDataSet>()
                     : DataCookedDisk.LoadClinicRoom();
 
+                var modulesCatalog = new BuildModulesCatalog(buildModules);
                 clinicRoomMatching = new ClinicRoomMatchingService(
                     structures,
-                    new BuildModulesCatalog(buildModules),
+                    modulesCatalog,
                     clinicFurniture.Catalogue,
                     clinicRooms.Table);
+
+                // ── 23 的结构写者(S20-17 新增)────────────────────────────────
+                // 六支依赖全部来自本装配已有的实例,零新增装配边:
+                //   stream(EventStream · IEventSink)/ structures(上面已定)/
+                //   encoder(IPayloadEncoder · ADR-029)/ modulesCatalog(上面已建 ——
+                //   ⚠️ **共用同一个实例**,另建第二个 = 两份模块目录,`GetModuleDefinition`
+                //   在两边可能不同源)/ world(作 IWorldOccupancy · `OccupyCells` 写它的 Overlay)/
+                //   dropEventWriter(上面 :761 已建 —— 拆除返还,DropSpawned)。
+                // ⚠️ **后两支在本装配里已有唯一实例**,不复用会撞「两处 `new …(`」类判据。
+                if (world != null)
+                {
+                    // ⚠️ **刻意写成单行**(2026-10-28 证伪轮 M2 逃逸后订正):AC-2 的判据是
+                    //    「源码里该构造恰 1 处」⇒ 变异必须能**删掉这一行字面量**。
+                    //    跨行调用时单行替换删不掉(删首行会留下孤立实参 = 编译失败),
+                    //    首轮只好退化成「停用守卫」,而那种形态改不动被扫描的文本 ⇒ 判据零反证。
+                    //    合成一行后 `structureWriter = null;` 即可同时满足「可编译」与「字面量消失」。
+                    structureWriter = new StructureWriter(stream, structures, encoder, modulesCatalog, world, dropEventWriter);
+                }
+                // ⚠️ **只传 structures 不传 world ⇒ 无结构写者**:写者的 `occupancy` 与
+                //    `registry` 必须指向**同一个**世界(占用表与世界注册表分叉 = C1/C2 复现)。
+                //    `ClinicRoomMatching` 仍可只读注册表工作 ⇒ 这一支保持既有行为(零回归)。
             }
 
             // ── 42 侧只读源(sprint-08 S1.1 件 E 起:病名册条目集接入)──
@@ -1149,7 +1193,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                loadSequencer,
                                                // 🔁 2026-10-27 S20-10/11/12 修复轮:20 的库存实体
                                                // 装载链(三条孤儿函数的唯一生产调用点 —— 见该类头注)。
-                                               inventoryLoad);
+                                               inventoryLoad,
+                                               // 🔁 2026-10-28 S20-17:世界 + 23 的结构写者。
+                                               // 两者**同源**(writer 的 occupancy 就是 world),
+                                               // 且 writer 只在 world != null 时非 null —— 见上方构造段。
+                                               world, structureWriter);
         }
 
         /// <summary>

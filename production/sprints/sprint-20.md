@@ -487,3 +487,64 @@ cooked 产物里**零份**世界数据;世界数据的唯一作者 = ADR-022 关
 5. **`PlaceableChecker` 是否接进装配** —— 若接,「空槽位目录 ⇒ 建造永不合法」即从潜在缺口转真;
    **接则不接,卡内裁定并留痕**,不得沉默二选一。
 
+#### 实施裁定(2026-10-28 实施轮 · 卡内留痕,承上列第 4 / 5 项的强制要求)
+
+**裁定 A —— `World` 的生命周期归 `BootRoot`。**
+实例在 `BootRoot.Start()` 的启动序里由 `MinimalWorldFactory.Create()` 造出,
+交给 `CompositionRoot.Assemble(world:)`,再经 `CompositionRootServices.World` 长期持有。
+**不**挂 `World.unity` 的 additive 根。理由三条:
+① ADR-023 §② 要求 `World.unity` **零 gameplay GameObject** —— 世界数据是烘焙产物,
+场景里摆一个 `World` 持有者即第二真源;
+② 拆序六步(ADR-023 ⑤)要 `ReleaseInstance` 全部 Addressables 产物并断言登记簿空 ——
+世界若挂在场景根上,卸载顺序会与「服务袋仍持引用」冲突;
+③ `BootRoot` 是启动序唯一承载(类注:只驱动、不持 sim 真值),世界是**装配产物**而非 sim 状态,
+与 `SaveService` / `LoadSequencer` 同格。
+⚠️ 后果如实登记:**世界不随场景卸载而销毁**(`BootRoot` 常驻)⇒ 换关 / 读档后
+「旧世界还在」这件事**本卡不处理**,归 ADR-023 拆序轮的实现期义务。
+
+**裁定 B —— `PlaceableChecker` 本轮**不接**进装配。**
+`StructureWriter.Place` 今日**不调用**它(它只算足迹 + 写占用);把它接进装配需要
+「建造合法性」的判定面(槽位区域 / 地形 / 模组规则),那是 23 的 GDD 规则面,
+且空槽位目录会让每一次放置都被判非法 —— 一旦接上,`AC-4` 的 `Place` 将**永远失败**。
+⇒ 本轮**只装写者、不装合法性门**;`AC-23-08` 第三半边仍无载体(挂标 1 不解除)。
+此处明确:**这是「不接」,不是「忘接」**。
+
+**偏差 C —— AC-1 的落点比卡原文深一层(就地加注,原文不删)。**
+卡 AC-1 写「落点 = `Gameplay.Boot/BootRoot.cs`」;实施落点为
+**`Gameplay.Boot/MinimalWorldFactory.cs:109`**,由 `BootRoot.cs` 的
+`MinimalWorldFactory.Create()` 调用。
+理由:`WorldLattice.cs:295-298` 明令 `WorldGeometry` 不得有「按尺寸造空白世界」的入口 ⇒
+「合成」这件事必须**显式具名**且**带响亮日志**,一个 300 行的启动序里塞不下这段论证。
+判据不变:AC-1 的**可复算命令**(生产树 `new World(` 恰 1 命中)**照样成立**;
+另加一条接线判据 `test_ac201b_bootRootActuallyCallsTheWorldFactory` 钉住「它不是死工厂」。
+⚠️ 若认为必须逐字落 `BootRoot.cs`,那要放弃工厂的封装 —— 属**可回退的设计取舍**,非判据妥协。
+
+#### 实施结果(2026-10-28 · 收口)
+
+**判定:AC-1…AC-5 全部「已落 + 已证」;证伪轮 5/5 恰如预期(第三轮);全量回归零漂移。**
+原件 = `production/qa/evidence/impl-s20-17-world-assembly-2026-10-28.md`。
+
+| # | 落点 | 判据载体 |
+|---|---|---|
+| AC-1 | `Gameplay.Boot/MinimalWorldFactory.cs:109` | `test_ac201_*`;反证 M1 |
+| AC-1b | `Gameplay.Boot/BootRoot.cs:213` | `test_ac201b_*`(钉住「不是死工厂」) |
+| AC-2 | `Gameplay.Boot/CompositionRoot.cs:858` | `test_ac202_*`;反证 M2 |
+| AC-3 | `CompositionRoot.cs:819`(注册表取自 `world.Structures`) | `test_ac203_*`;反证 M3 |
+| AC-4 | 写者 `occupancy` = 同一 `World` | `test_ac204_*`;反证 M4 |
+| AC-5 | `Sim/World/StructureKinds.cs:214`(既有) | `test_ac205_*`;反证 M5 |
+
+**回归(三元组:截至 `2026-10-28 04:26 CST` · 批次 `S20-17 收口 全量`(最终树,注释清理后重跑)· commit `a42d2df` + 本批未提交)**:
+| 套件 | 结果 | 基线(批 4) | 差 |
+|---|---|---|---|
+| EditMode | `5575 / 5540 / 0 / 35` | `5567 / 5532 / 0 / 35` | **+8 / +8 / 0 / 0**(用例级:仅在 new 8 条全为 `world_assembly_wiring_test`,仅在 old **空集**) |
+| PlayMode | `238 / 234 / 0 / 2 inconclusive / 2 skipped`(退出码 `2`) | `238 / 234 / 0 / 2 / 2` | **0**(用例级逐条比对,零差异) |
+
+⚠️ **证伪轮前两轮都失败过,两轮都不是「预期写对了」**:
+① 第 1 轮 M2 **逃逸** —— 变异是「停用 `if (world != null)` 守卫」,而 AC-2 判的是**源码文本字面量恰 1 处**;
+行为变异改不动文本 ⇒ 零判别力却照绿。② 第 2 轮 M2 转红但**多红一条 ac203** ——
+根因是**一个夹具担了两个属性**(ac203 同时断言匹配服务与写者)。
+两次处置都不改预期迁就实测:第 1 轮改变异形态(为此把写者构造合成**单行**,源码处已注明
+「可读性换判据可证伪」),第 2 轮把夹具拆窄。完整实况留在 spec 的 `_history_…firstRun` / `secondRun`。
+**元教训**:AC 的判据若是「源码文本某形态恰 N 处」,必须配**文本级**变异;配行为变异会得到
+「绿而零反证」,且看起来完全正常。
+

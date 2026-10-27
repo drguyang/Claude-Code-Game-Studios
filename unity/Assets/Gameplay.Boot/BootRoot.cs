@@ -70,6 +70,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private bool _booted;
 
+        /// <summary>
+        /// 本启动序装载的世界是否是**最小合成世界**(S20-17 · 2026-10-28)。
+        /// <para>真 ⇔ <see cref="MinimalWorldFactory.Create"/> 的产物(16×1×16 全 walkable +
+        /// 空槽位目录),即「世界烘焙数据尚未产出」的状态。</para>
+        /// <para>⚠️ <b>这是可观测的诊断位,不是游戏状态</b>(本类不持有 sim 真值,见类注):
+        /// 它只陈述「装配从哪来」。世界数据落地后由装载路径替换 ⇒ 本属性应随之为 false。</para>
+        /// </summary>
+        public bool IsSyntheticWorld { get; private set; }
+
         /// <summary>44 侧装配缝(story-018)—— <see cref="BuildAudioSeams"/> 的产物。
         /// <para>本类只**持有引用**用于卸载期释放(<see cref="AudioClipLibrary.Dispose"/>);
         /// cue 语义 / 状态一律不在此(ADR-013 §9 C3 · ADR-018 §一)。</para></summary>
@@ -183,6 +192,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "检查 ProjectSettings/EditorBuildSettings.asset 的 com.unity.input.settings.actions" +
                     "(期望 guid 052faaac586de48259a63d0c4782560b)。急救直读通道与 UI 输入将不可用。");
 
+            // ── 2.8 World 场景装配轮(S20-17 · 2026-10-28)────────────────────────────
+            // 病因:`CompositionRoot.cs:787-796` 逐字记着「23 的 `StructureInstanceRegistry`
+            //   在生产树**零构造**(`new World` 的构造同样零构造)」,并指名「`BootRoot` 的 World
+            //   场景装配轮」。`impl-s20-2a-building01-2026-10-25.md:176` 的 N5 把这件事记为
+            //   「本件未做」,而 `TD-building-01` 已于 2026-10-25 结案 ⇒ 缺口零载体。
+            //
+            // ⚠️ **为什么是「合成」而不是「装载」** —— 世界几何的真源 = ADR-022 关卡工具产出
+            //    → ADR-014 烘焙的 `world_*.cooked`。今日**三样全无**(`assets/data/` 零份
+            //    `world_*` JSON、DataCooked 的 25 份产物里零份世界数据),而关卡工具已被裁定
+            //    「不立 epic、不排期」⇒ 装配轮**没有可装载的输入**。用户 2026-10-28 裁定边界
+            //    取「最小合成世界」。详见 `MinimalWorldFactory` 的文件头。
+            //
+            // ⚠️ **本装配解除了哪些、没解除哪些**:
+            //    解除:① `World` 在生产路径上**存在**;② `StructureWriter` 有生产实例
+            //          (`Place` / `Remove` 可被调用);③ `ClinicRoomMatching` 首次非 null。
+            //    **没解除**:建造的**发起方**归 42 的建造交互(`O-23-6`),今日零调用点
+            //          ⇒ 「写者存在」≠「玩家能建造」;`BuildSlotCatalog` 为空 ⇒
+            //          `AC-23-08` 第三半边仍无载体。逐条登记在 sprint-20 §十的卡里。
+            var world = MinimalWorldFactory.Create();
+            IsSyntheticWorld = true;
+
             _services = CompositionRoot.Assemble(
                 registry: null,
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
@@ -194,7 +224,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // EditMode 夹具不给 ⇒ 它们不构造 SaveService(否则各在用户数据目录造一份)。
                 // ⚠️ 今日 `Checkpoint` / `Load` 仍必然抛(叙事上下文驱动源未接通,
                 //    fail-closed,TD-persist-04)—— 目录就位 ≠ 功能可用。
-                saveBasePath: Path.Combine(Application.persistentDataPath, "saves"));
+                saveBasePath: Path.Combine(Application.persistentDataPath, "saves"),
+                // S20-17:世界交给装配根 —— 注册表从 `world.Structures` 取(不另传 structures,
+                // 否则「同给且不同实例」的 fail-closed 断言会抛),`StructureWriter` 由它构造。
+                world: world);
 
             // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
             // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但

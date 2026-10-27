@@ -16,6 +16,7 @@ using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Foraging;                      // HarvestOrchestrator(S20-15)
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Sim.Contracts.SkillSystem;         // NoveltyTracker(S20-15)
+using DaYiJingCheng.Sim.World;                         // World / StructureWriter(S20-17 装配轮)
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation;             // ClinicRoomMatchingService(TD-building-01 读侧)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
@@ -237,6 +238,27 @@ namespace DaYiJingCheng.Gameplay.Boot
         public ClinicRoomMatchingService ClinicRoomMatching { get; }
 
         /// <summary>
+        /// 世界实例(S20-17 装配轮 · 2026-10-28)。
+        /// <para><b>null ⇔ 装配时未传入 <c>world</c></b>(既有 117 处 <c>Assemble</c> 调用方
+        /// 都不传 ⇒ 仍为 null,与 <see cref="ClinicRoomMatching"/> 同款「可观测而非静默」)。</para>
+        /// <para>⚠️ <b>生产路径今日给的是 <c>MinimalWorldFactory.Create()</c> 的合成世界</b> ——
+        /// 16×1×16 全 walkable + 空槽位目录。世界烘焙数据零产出(唯一作者 ADR-022 关卡工具
+        /// 已裁定不排期),故本属性非 null <b>不等于</b>「世界内容正确」。那条差别由
+        /// <c>BootRoot.IsSyntheticWorld</c> 与 <c>MinimalWorldFactory</c> 的启动日志承载。</para>
+        /// </summary>
+        public World World { get; }
+
+        /// <summary>
+        /// 23 的结构写者(<c>Place</c> / <c>Remove</c>)(S20-17 装配轮 · 2026-10-28)。
+        /// <para>构造条件 = 装配时传了 <see cref="World"/>(或仅传了注册表,见
+        /// <c>CompositionRoot.Assemble</c>)。<b>null ⇔ 无世界</b>。</para>
+        /// <para>⚠️ <b>「已装配」≠「可被玩家触发」</b>:<c>Place</c> / <c>Remove</c> 的
+        /// <b>生产发起方</b>归 42 的建造交互(<c>O-23-6</c>),今日零调用点。本属性只证明
+        /// 写者<b>存在且可被调用</b>(通电待信,承 <c>LoadSequencer.RequestLoad</c> 同形态)。</para>
+        /// </summary>
+        public StructureWriter StructureWriter { get; }
+
+        /// <summary>
         /// 7a 存档服务(S19-1)。
         /// <para><b>`null` ⇔ 装配时未指定存档目录</b>(`Assemble(..., saveBasePath: null)`),
         /// 是**合法状态**,不是半装配 —— 与 <see cref="AudioRenderAssembled"/> 同款
@@ -365,7 +387,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          RandomEventsDirectorDriver randomEventsDirector = null,
                                          IClinicCellSource clinicCells = null,
                                          LoadSequencer loadSequencer = null,
-                                         InventoryLoadService inventoryLoad = null)
+                                         InventoryLoadService inventoryLoad = null,
+                                         World world = null,
+                                         StructureWriter structureWriter = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -429,6 +453,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             ClinicCells = clinicCells;
             LoadSequencer = loadSequencer;
             InventoryLoad = inventoryLoad;
+            // S20-17(2026-10-28):世界与 23 的结构写者。两者**成对**由装配根传入 ——
+            // ctor 不做「有 world 无 writer」的补构造:补构造需要 modules 目录 / DropEventWriter,
+            // 那是 Assemble 的知识,不该藏在 DTO 里。传了 world 却没传 writer ⇒ 玩家可走但不可建造,
+            // 由 Assemble 的装配断言拦(它才是构造点)。
+            World = world;
+            StructureWriter = structureWriter;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

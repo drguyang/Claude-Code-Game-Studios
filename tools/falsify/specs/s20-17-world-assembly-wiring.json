@@ -1,0 +1,109 @@
+{
+  "name": "S20-17 World 场景装配轮 —— 生产构造点 + 装配根接线(AC-1…AC-5)",
+  "mode": "EditMode",
+  "filter": "world_assembly_wiring_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **预期是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **AC-1 / AC-2 的变异形态 = 让构造行消失**(卡面逐字要求「删除构造行」,不是改参数)——",
+    "   因为这两条的判据就是「该行存在且恰一处」。删掉会让依赖该实例的夹具一起红,故 expectRed 逐条列全。",
+    "⚠️ 五条变异**跨三个文件**:`MinimalWorldFactory.cs`(AC-1)· `CompositionRoot.cs`(AC-2 / AC-3)· ",
+    "   `StructureKinds.cs`(AC-4 / AC-5)。后两个文件被别的夹具共用 ⇒ 每次变异**必须**用 filter 收窄到本夹具,",
+    "   否则红集会混进无关文件的结果。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-ac1-worldConstructionLineRemoved",
+      "file": "unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs",
+      "line": 109,
+      "expect": "            return new World(geometry, slotCatalog);",
+      "replace": "            return null; // FALSIFY-M1:让 `new World(` 从生产树消失(卡面要求的形态)",
+      "expectRed": [
+        "test_ac201_worldConstructedExactlyOnceInProductionTree",
+        "test_ac203_assembleWithWorld_yieldsClinicRoomMatching",
+        "test_ac203c_worldAndForeignRegistry_throws",
+        "test_ac204_placeThenRemove_throughAssembledServices"
+      ],
+      "exactRed": true,
+      "_why": "AC-1 的判据 = 「生产树 `new World(` 恰 1 处」。删掉构造行 ⇒ 计数 0 ⇒ 首选判据红。⚠️ **连带**:工厂返回 null 后,所有「传世界」的夹具拿到 null ⇒ 装配根不构造匹配服务与写者 ⇒ ac203 / ac204 红;ac203c 的 fail-closed 只因 world != null 才触发 ⇒ 也红。ac201b(工厂被调)与 ac203b(不传世界)不受影响 —— 前者判的是调用点、后者本就 null。",
+      "_expectRed_justification": "推演逐条:① ac201 —— 命中数 0 ≠ 1 ⇒ 红;② ac203 —— `services.ClinicRoomMatching` 为 null ⇒ 红(第一断言先红);③ ac203c —— `Assemble(structures: foreign, world: null)` 不进 world 分支 ⇒ 不抛 ⇒ `Assert.Throws` 红;④ ac204 —— `Assert.IsNotNull(writer)` 红。**不该红的**:ac201b(BootRoot 仍写着 `MinimalWorldFactory.Create()`)、ac202(写者构造行未动)、ac203b(不传世界,期望就是 null)、ac205(仍以 dropWriter=null 构造,仍抛)。故预期恰 4 条。"
+    },
+    {
+      "name": "M2-ac2-structureWriterConstructionLineRemoved",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 858,
+      "expect": "                    structureWriter = new StructureWriter(stream, structures, encoder, modulesCatalog, world, dropEventWriter);",
+      "replace": "                    structureWriter = null; // FALSIFY-M2:让 `new StructureWriter(` 从生产树消失(卡面要求的形态)",
+      "expectRed": [
+        "test_ac202_structureWriterConstructedExactlyOnceInProductionTree",
+        "test_ac204_placeThenRemove_throughAssembledServices"
+      ],
+      "exactRed": true,
+      "_why": "AC-2 的判据 = 「生产树 `new StructureWriter(` 恰 1 处」。让构造行消失 ⇒ 计数 0 ⇒ 首选判据红;写者随之 null ⇒ ac204 的 `Assert.IsNotNull(writer)` 红。",
+      "_expectRed_justification": "推演(第三轮定稿):① ac202 —— 命中数 0 ≠ 1 ⇒ 红;② ac204 —— writer 为 null ⇒ `Assert.IsNotNull(writer)` 红。**不该红的**:ac203(名字已收窄为只判匹配服务)、ac203b、ac203c、ac201、ac201b、ac205。故预期恰 2 条。⚠️ 前两轮的实况分别见 `_history_…firstRun` / `_history_…secondRun` —— 两轮都不是「预期写对了」,而是**变异形态**与**夹具边界**先后被证伪。",
+      "_history_2026-10-28_firstRun": {
+        "settled_form": "首轮形态**不是**这个 —— 是「把 `if (world != null)` 改成 `if (false)`」,因为当时构造是**跨两行**的,单行替换删不掉它。",
+        "observed": "实跑 total=8 passed=6 failed=2;红 = ac203 + ac204;**ac202 逃逸**(驱动判「夹具假绿」)。",
+        "root_cause": "**不是夹具缺陷,是变异打错靶**:`if (false)` 只停用运行期守卫,**改不动被扫描的源码文本** ⇒ 对「字面量恰 1 处」这条判据零判别力。",
+        "fix": "把构造改成**单行**(`CompositionRoot.cs:858`),使 `structureWriter = null;` 既能编译又能让字面量消失;本文件的 expect/replace 随之更新。⚠️ 这是**生产代码的可读性妥协换取判据可证伪**,已在源码处留注说明。",
+        "lesson": "AC 的判据若是「源码文本某形态恰 N 处」,变异形态必须**真能改掉那段文本**;「停用守卫」类是行为变异,对文本判据天然无效。"
+      },
+      "_history_2026-10-28_secondRun": {
+        "observed": "形态修正后 M2 真的删掉了字面量 ⇒ ac202 转红(首轮逃逸已消除),但**红集多一条** `test_ac203_...`(当时名 `_AndWriter`)。驱动判「红的条数与预期不符 ⇒ 判别面不清」。",
+        "root_cause": "**夹具缺陷,责任在编排方**:首版 ac203 同时断言 `ClinicRoomMatching != null` 与 `StructureWriter != null` —— 一个夹具担两个属性。M2 删写者 ⇒ 连带弄红 AC-3 的夹具。",
+        "fix": "从 ac203 删掉写者断言(写者存在性归 ac202 源码扫描 + ac204 前置断言),夹具随之改名为 `test_ac203_assembleWithWorld_yieldsClinicRoomMatching`。**没有**用「把 ac203 加进 expectRed」来迁就 —— 那会把判别面糊在一起。",
+        "expectRed_final": [
+          "test_ac202_structureWriterConstructedExactlyOnceInProductionTree",
+          "test_ac204_placeThenRemove_throughAssembledServices"
+        ]
+      }
+    },
+    {
+      "name": "M3-ac3-worldToRegistryLinkRemoved",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 819,
+      "expect": "                structures = world.Structures;",
+      "replace": "                structures = null; // FALSIFY-M3:世界不给注册表",
+      "expectRed": [
+        "test_ac203_assembleWithWorld_yieldsClinicRoomMatching",
+        "test_ac204_placeThenRemove_throughAssembledServices"
+      ],
+      "exactRed": true,
+      "_why": "AC-3 的判据 = 「经生产装配路径后 `ClinicRoomMatching != null`」。世界→注册表这条线被切断 ⇒ `structures` 仍 null ⇒ 整段 `if (structures != null)` 不进入 ⇒ 匹配服务与写者都不构造。",
+      "_expectRed_justification": "推演:① ac203 —— ClinicRoomMatching 为 null ⇒ 红;② ac204 —— writer 为 null ⇒ 红;③ ac202 —— 源码里 `new StructureWriter(` 仍在 ⇒ 绿;④ ac203b(不传世界)绿;⑤ ac203c —— 它的 throw 在 `structures = null;` **之后**执行吗?**否**:foreign 检查在前、赋值在后,但变异把赋值改掉了,**检查仍在** ⇒ `structures != null && !ReferenceEquals(...)` ⇒ foreign 非 null 且不等于 world.Structures ⇒ 仍抛 ⇒ 绿。故预期恰 2 条。"
+    },
+    {
+      "name": "M4-ac4-occupancyWriteRemoved",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 260,
+      "expect": "            _occupancy.OccupyCells(occupied);",
+      "replace": "            // FALSIFY-M4:停用 Overlay 写入(放置不再影响可走性)",
+      "expectRed": [
+        "test_ac204_placeThenRemove_throughAssembledServices"
+      ],
+      "exactRed": true,
+      "_why": "AC-4 的判据 = 「经装配根产出的写者放置后,世界不可走」。停用 `OccupyCells` ⇒ 放置成功但占用表不动 ⇒ `IsFalse(world.IsEffectivelyWalkable(anchor))` 红。⚠️ 本变异住在 `Sim/World`(被多个夹具共用),故 filter 必须收窄到本夹具 —— 否则 `world_end_to_end_test` 等会一起红,红集不可归因。",
+      "_expectRed_justification": "推演:只影响「放置后查可走」的断言 ⇒ 本夹具内只有 ac204 构造了该场景。其余四个夹具不 Place ⇒ 绿。故预期恰 1 条。"
+    },
+    {
+      "name": "M5-ac5-dropWriterFailClosedDisabled",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 214,
+      "expect": "            _dropWriter = dropWriter ?? throw new ArgumentNullException(nameof(dropWriter),",
+      "replace": "            _dropWriter = dropWriter; if (false) throw new ArgumentNullException(nameof(dropWriter), // FALSIFY-M5:停用 fail-closed",
+      "expectRed": [
+        "test_ac205_structureWriterWithoutDropWriter_throwsBeforeAnyDownstreamCall"
+      ],
+      "exactRed": true,
+      "_why": "AC-5 的判据 = 「`DropEventWriter` 未注入 ⇒ 构造期抛」。把 `?? throw` 换成直接赋值 + 不可达 throw ⇒ 不抛。⚠️ 此形态**保留**了抛的语义文本(`if (false) throw ...`),只为让下一行的消息片段仍有归属(单行替换删不掉跨行实参)。",
+      "_expectRed_justification": "推演:只有该夹具以 dropWriter=null 构造 ⇒ 恰 1 条。其余夹具都传了真写者(或根本不构造)。故预期恰 1 条。"
+    }
+  ]
+}
