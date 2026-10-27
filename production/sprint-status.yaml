@@ -20,7 +20,7 @@ goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foragin
 start: "2026-10-25"
 end: ""
 generated: "2026-10-25"
-updated: "2026-10-26"
+updated: "2026-10-27"
 
 stories:
   - id: "S20-1"
@@ -72,13 +72,13 @@ stories:
     name: "processing-001 配方子集 + 可采纳谓词"
     file: "production/epics/processing/story-001-recipe-subset-and-admissible-predicate.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "AC-18-18 三段非空前置;若撞 TD-medcons-11(CLI 烘焙入口缺口)挂标不记绿"
+    completed: "2026-10-27"
+    note: "2026-10-27 收口。29 条夹具全绿(24 实现 + 5 评审修复轮)。证伪轮 8/8 恰如预期(原 6 + M7/M8 钉 AR1 两处 query 校验);SHA-256 逐字节还原通过,零 FALSIFY 残留。全量 5414/5379/0/35,前基线 5409/5374/0/35 ⇒ +5/+5 零回归,非通过集新增 0 消失 0。评审原件 review-s20-4-2026-10-27.md(原判 APPROVED WITH SUGGESTIONS 零 BLOCKING;5 项 Required 全修 + AR2 接口继承一并落地 ⇒ APPROVED)。⚠️ 记分诚实度:AC-18-10 = 2/3 真 + 炉半边 Spy 桩(真装配归 Story 004);AC-18-20 = 结构性证明(两条路径零生产调用点,真接线归 42 / Story 002);AC-18-05 扫描面已由 asmdef includePlatforms 派生覆盖全部进构建装配。AR3/AR4/T7 三项建议未采纳,理由见评审原件 §五,未入债册。本 story 抓到三条假绿:行为等价掩盖结构分叉 / 空洞正控(正控未调被测循环)/ fail-closed 自述对 default(struct) 不成立"
   - id: "S20-5"
     name: "接受侧判别力收紧轮(TD-clinic-02/08/09)"
     file: "docs/tech-debt-register.md"
@@ -105,13 +105,13 @@ stories:
     name: "治理盘点轮(retro-19 行动项 4+5:W6–W10 / QA 2 条 / medcons 整块策略 / audio-026 裁定)"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
-    note: "四裁变三裁:④ TD-audio-026 已随 2026-10-25 清债轮裁定(丙案「完全构造」+ 释放半边,债册结案块);剩 ① W6–W10 逐条 / ② QA 2 条 / ③ medcons 20 条整块策略 —— 留痕进债册"
+    completed: "2026-10-27"
+    note: "2026-10-27 收口。用户三裁(逐条定案 / 如实登记为已解除 / 16 本轮修 19 条按触发)。**W6–W10 五条各有具名去向**:W6 → 新债 `TD-persist-08`(Load 67 / Restore 43 物理行,但**纯代码行 39 / 36 均不超 40** ⇒ 口径未裁前不可判「超」)· W7(a) → 新债 `TD-enemy-03`(`acc = Fix.Zero` 于路径耗尽,F-27-4 无此定义;`enemy-ai.md:714` 引 F-27-7 不成立)· **W7(b) 已由 `TD-enemy-02` 结案覆盖**(2026-10-25 甲案删 StepAccumulator)· **W8 当场修**(头注「三类」→「四类」+ 补 ④ `eventKey < 0`;**返工一次**:首版只改头注,方法 doc 仍「三类」,是跑判据时才发现的)· **W9 / W10 显式豁免**(零生产调用点 / 存档路径非热路径,各带触发条件)。**C-2 已实质满足**:AC-7a-20 载体 0→4 · TD-persist-04 closed · CompositionRoot.cs:415 真实例;C-5 不可复验但已由 S20-4 的 SHA 入库判据取代。**TD-medcons-16 当场删夹具结案**(对行序回归零判别力:两次走同一 Dictionary 枚举);其余 19 条按各自触发条件挂,不设统一期限。**账务四十四订**:条目 125→127 · open 76→77 · closed 43→44 · N 23→24 · 未闭 P0 面 63→63(**两位相抵,非未动**)· epic 分布 9/31→10/31(enemy-ai 重回分布)。"
 
   # ══════════════════════════════════════════════════════════════════════════
   # 追加批 · 2026-10-26 —— 采集链路解锁链(用户裁定「甲:按链路顺序做到底」)
