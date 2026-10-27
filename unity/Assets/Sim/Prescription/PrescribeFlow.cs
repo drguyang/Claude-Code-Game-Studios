@@ -95,12 +95,19 @@ namespace DaYiJingCheng.Sim.Prescription
     /// <remarks>
     /// ⚠️ <c>kDifficulty</c> 是**可空**的,存在理由 = 让「缺参」在类型上可表达 ——
     /// F-11.5 要求「缺 ⇒ 不发成长 **且** 断言硬失败(非静默跳过)」,若不可空则该判据不可测。
+    /// <para>⚠️ <b>2026-10-27 评审 AR2 —— 继承 <see cref="ISkillLevelQuery"/>,不再重复声明
+    /// <c>QueryLevel</c></b>:<c>QueryLevel</c> 原本在本接口与
+    /// <see cref="ISkillLevelQuery"/>(<c>Sim.Contracts</c>,S20-4 为 18 的只读需求拆出)各写一遍,
+    /// 签名逐字相同。两个互不相干的接口 + 一个将来要写的适配器 ⇒ **同一份等级有两条可以各自
+    /// 漂移的读路径**,而「它们必须一致」只能靠纪律。改成继承后:
+    /// ① <see cref="ISkillLevelQuery"/> 成为 <c>QueryLevel</c> 的**唯一声明处**;
+    /// ② 任何 <c>ISkillGrowthPort</c> 实现**自动**满足 18 的只读需求 ⇒ 适配器与漂移面同时消失;
+    /// ③ 「等级只有一个读面」从纪律升为**编译期事实**。</para>
+    /// <para>⚠️ 隔离方向**未变**:谓词只收 <see cref="ISkillLevelQuery"/>,拿不到
+    /// <see cref="EmitGrowth"/>。继承让「成长端口**是**一种等级查询」,不让「等级查询**能**成长」。</para>
     /// </remarks>
-    public interface ISkillGrowthPort
+    public interface ISkillGrowthPort : ISkillLevelQuery
     {
-        /// <summary>只读等级查询(P0 只读)。</summary>
-        int QueryLevel(int actorId, int skillId);
-
         /// <summary>成长入口(30 的 <c>EmitGrowth</c>)。11 只在 <c>GateHit</c> 为真时调用。</summary>
         /// <param name="noveltyHint">新颖度**提示** —— 非判定(真源在 30 的词典)。</param>
         /// <param name="kDifficulty">难度系数(<c>Fix</c>)。</param>

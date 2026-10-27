@@ -1,0 +1,140 @@
+{
+  "name": "S20-4 —— F-18.2 准入两道门 / 候选集三条件合取 / 同源调用点的守卫反证（AC-18-05 · AC-18-10 · AC-18-20）",
+  "mode": "EditMode",
+  "filter": "AdmissiblePredicateTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "本 spec 覆盖 processing-001 的 Falsifiability Gate:**6 条变异**,一属性一条变异(禁叠加)。",
+    "命中形态:③定义域收窄(技能门 / 品级门 / 空实例集 / owner 子集)· ⑤阈值边界(两道门的 ≥ 取等侧)· ②共存互斥(同一函数零第二实现)。",
+    "基线(2026-10-27 实现轮实测全绿):EditMode AdmissiblePredicateTest **22/22 passed / 0 failed / 0 skipped**(unity/Logs/s20-4-admissible.xml)。",
+    "锚点复核命令(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-4-admissible-predicate.json --check-only",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **本轮自查抓到的一条假绿面(已修,留痕)** —— 不是变异抓的,是读代码抓的:",
+    "   `ProcessingCandidateSet.IsCandidate` 初版自写 `Judge(...) == AdmissionRejection.None`,",
+    "   而 `AdmissiblePredicate.IsAdmitted` 的头注声称自己是「`AdmissionRejection.None` 的唯一比较处」。",
+    "   **两者直接矛盾** ⇒ 「算不算过」有第二个定义点。当时 8 组合 iff 矩阵**全绿** ——",
+    "   行为等价**掩盖了**结构分叉:改 `IsAdmitted` 的口径时,候选集会静默不跟随。",
+    "   ⇒ 已改为经 `IsAdmitted`,并补两条夹具:符号面(`AdmissionRejection.None` 全程序集唯一处)",
+    "     + IL 面(`IsCandidate` 必须 `call IsAdmitted`)。**这两条正是本条注释的判据化。**",
+    "   教训:「唯一定义点」写进注释时须当场 grep 全部出现点 —— **注释不是门**。",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **不可证伪 / 不立变异的守卫(如实登记,禁假装覆盖)**:",
+    "   ① `AdmissiblePredicate.Judge` 的两条 `ArgumentNullException` 前置 —— 停用后 `NullReferenceException`",
+    "      与「抛 ArgumentNullException」是**不同异常类型**,`Assert.Throws<ArgumentNullException>` 仍会红;",
+    "      但**没有一条变异能只停用 null 检查而不改变其它行为**(停用即等于删掉两行,不构成「守卫失效」形态)。",
+    "      null 语义由 `test_ac1820_nullInputs_failClosed` 正向覆盖,**不经反证**。",
+    "   ② `CandidateQuery` 构造器的三条 null 检查同理。",
+    "   ③ `ProcessingCandidateSet.Evaluate` 的 `recipes == null` 抛 —— 同上,正向覆盖不经反证。",
+    "⚠️ 已覆盖但**判别面受限**的守卫(如实登记,勿读成全面验证):",
+    "   ④ M1 / M2 各自只红「技能门」/「品级门」的判别面 —— 两门**同时**不过时的次序语义由",
+    "      `test_ac1810_skillGateRejectedBeforeQuality_soReasonIsSkillGate` 单独承担(它也随 M1 红)。",
+    "   ⑤ AC-18-05 的源码扫描面 = `Assets/Sim/**`(18 程序集),**不含** `Sim.Contracts` / 消费侧装配;",
+    "      跨装配的使用点由 S20-8(processing-002)的 AC-18-02 结算路径扫描另行覆盖,不在本 spec 面内。",
+    "⭐ 2026-10-27 评审修复轮补 M7 / M8:AR1(`default(CandidateQuery)` 绕过构造器)的守卫是**两处**校验 —— 一条变异证不了另一条(M7 只红逐条路径,M8 只红批量空表分支)。承「一属性一条变异」纪律。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-skillGateDropped",
+      "file": "unity/Assets/Sim/Processing/AdmissiblePredicate.cs",
+      "line": 122,
+      "expect": "            if (skillLevels.QueryLevel(actorId, CraftSkillId) < recipe.SkillGate)",
+      "replace": "            if (false && skillLevels.QueryLevel(actorId, CraftSkillId) < recipe.SkillGate) // FALSIFY-M1:停用技能门",
+      "expectRed": [
+        "test_ac1810_evaluatePreservesOrderAndAgreesWithIsCandidate",
+        "test_ac1810_iffMatrix_allEightCombinations",
+        "test_ac1810_skillGateRejectedBeforeQuality_soReasonIsSkillGate",
+        "test_ac1820_judge_queriesTheCraftSkill_notAnyOther",
+        "test_ac1820_pureFunction_sameInputSameOutput_noCrossCallState"
+      ],
+      "exactRed": true,
+      "_why": "`skill_gate` 是 F-18.2 的第一道门(规则三:门槛**非系数**)。停用后等级不足的玩家仍进候选集 ⇒ iff 矩阵的「gate 不过」四格全错。附带红四条:**四条都是同一属性的不同侧面**(批量路径一致性 / 全矩阵 / 拒绝理由具名 / 查询技能 id / 每次求值恰查一次),不是判别面不清 —— 它们各自断言了「等级被真的读了」的不同后果。⚠️ `judge_queriesTheCraftSkill` 与 `pureFunction` 转红说明它们其实也**间接**依赖门的短路位置:门一停用,`QueryLevel` 仍被调用但结果被忽略,`CallCount` 断言(`== 1`)因提前返回路径改变而失败。"
+    },
+    {
+      "name": "M2-minQualityDropped",
+      "file": "unity/Assets/Sim/Processing/AdmissiblePredicate.cs",
+      "line": 137,
+      "expect": "            if (minQuality < recipe.MinQuality)",
+      "replace": "            if (false && minQuality < recipe.MinQuality) // FALSIFY-M2:停用品级闸",
+      "expectRed": [
+        "test_ac1810_iffMatrix_allEightCombinations",
+        "test_ac1810_minIsOverNamedInstances_notPerInputRow"
+      ],
+      "exactRed": true,
+      "_why": "`min_quality` 是 F-18.2 的第二道门(规则三:准入闸,**不改幅值**)。停用后差料被放行 ⇒ iff 矩阵的「quality 不过」四格全错;`minIsOverNamedInstances` 直接钉「{5,1} 的 min=1 < 3 却不拒」。⚠️ **`test_ac1805_minQuality_neverEntersAmplitudeExpression` 不红** —— 它是源码面扫描,与本守卫的存废无关,这是**正确**的(它测的是「有没有被拿去做调制」,不是「有没有生效」)。"
+    },
+    {
+      "name": "M3-previewBecomesSecondImplementation",
+      "file": "unity/Assets/Sim/Processing/AdmissiblePredicate.cs",
+      "line": 165,
+      "expect": "            => IsAdmitted(Judge(in recipe, actorId, consumedQualities, skillLevels));",
+      "replace": "        {\n            // FALSIFY-M3:把预答改成内联复制一份判据(行为等价,方法引用不同)\n            AdmissionRejection SecondJudge(Recipe r, int a, IReadOnlyList<int> q)\n            {\n                if (skillLevels.QueryLevel(a, CraftSkillId) < r.SkillGate) return AdmissionRejection.SkillGate;\n                if (q.Count == 0) return AdmissionRejection.NoConsumedInstances;\n                int min = int.MaxValue;\n                for (int i = 0; i < q.Count; i++) if (q[i] < min) min = q[i];\n                if (min < r.MinQuality) return AdmissionRejection.MinQuality;\n                return AdmissionRejection.None;\n            }\n\n            return IsAdmitted(SecondJudge(recipe, actorId, consumedQualities));\n        }",
+      "expectRed": [
+        "test_ac1820_bothCallSites_callTheSameMethodReference"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-20 的核心判据:**同一函数,零第二实现**(不是「行为相同的两份」)。变异把预答改成内联复制一份判据 —— 行为**完全等价**,所有行为面夹具(iff 矩阵 / 边界 / 纯函数性)**全部保持绿**,只有 IL 面的「两个调用点 `call` 的是同一个 `MethodReference`」会红。⚠️ **这一条是本 spec 的判别力核心**:它证明「行为等价」与「同源」是**两个不同的属性**,而后者只能靠符号面断言。"
+    },
+    {
+      "name": "M4-emptyInstancesShortCircuitDropped",
+      "file": "unity/Assets/Sim/Processing/AdmissiblePredicate.cs",
+      "line": 125,
+      "expect": "            if (consumedQualities.Count == 0)",
+      "replace": "            if (false) // FALSIFY-M4:停用空集短路(落到 min 循环的 int.MaxValue 上)",
+      "expectRed": [
+        "test_ac1810_emptyInstances_shortCircuitsFalseWithNamedReason"
+      ],
+      "exactRed": true,
+      "_why": "空实例集 = `min over ∅` 无定义。停用短路后 `minQuality` 保持 `int.MaxValue` ⇒ `int.MaxValue < MinQuality` 为假 ⇒ **放行** —— 一个料都没点名的配方会进候选集。这是 F-18.2 补注① 最危险的失效面(比「料差」严重得多:它把「上层没传实例」伪装成「料很好」)。⚠️ 该变异**只红一条**,因为 iff 矩阵用的是 `MinQ-1`(非空但差)而非空集 —— 两者是**不同的输入域**,刻意分开。"
+    },
+    {
+      "name": "M5-minQualityLeaksIntoAmplitudePath",
+      "file": "unity/Assets/Sim/Processing/ProcessingCandidateSet.cs",
+      "line": 135,
+      "expect": "            if (recipe.Owner != RecipeOwner.Process)",
+      "replace": "            // FALSIFY-M5:人为把 min_quality 拉进幅值路径\n            int amplitudeProbe = recipe.MinQuality * 2;\n            if (amplitudeProbe < 0) return false;\n\n            if (recipe.Owner != RecipeOwner.Process)",
+      "expectRed": [
+        "test_ac1805_minQuality_usedOnlyInsideAdmissiblePredicate"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-05 的实质:**`min_quality` 的使用点 ⊆ `Admissible` 谓词**,零幅值调制路径(规则三 · 21a `:167` —— 品级出口只有 F5)。变异在候选集里引入一次 `MinQuality * 2` ⇒ 源码面扫描(18 整个程序集)点名 `ProcessingCandidateSet.cs` 行号。⚠️ 该变异**行为上完全无害**(`amplitudeProbe < 0` 对合法品级恒假),因此**所有行为面夹具保持绿** —— 这正是 AC-18-05 必须用**符号面**判据的理由:幅值调制可以是「当前不起作用」的。"
+    },
+    {
+      "name": "M6-ownerSubsetFilterDropped",
+      "file": "unity/Assets/Sim/Processing/ProcessingCandidateSet.cs",
+      "line": 135,
+      "expect": "            if (recipe.Owner != RecipeOwner.Process)",
+      "replace": "            if (false && recipe.Owner != RecipeOwner.Process) // FALSIFY-M6:停用子集划分",
+      "expectRed": [
+        "test_ac1810_evaluatePreservesOrderAndAgreesWithIsCandidate",
+        "test_ac1810_iffReverse_nonProcessOwnerNeverCandidate"
+      ],
+      "exactRed": true,
+      "_why": "`owner == process` 是配方子集划分的**唯一判据**(21a D-21-30),不是「processing_state 是否变化」的约定。停用后 craft / build 配方涌进炮制候选集 ⇒ iff 的**反向**(进了候选集 ⇒ 三条件全真)被击穿 —— 这正是 `iffReverse` 存在的理由(单向蕴含在此变异下仍成立)。批量路径 `Evaluate` 也红,因为它同样走 `IsCandidate`。⚠️ **注意 M5 与 M6 用同一行作锚点**:两者互斥,不可同时应用;驱动器按 spec 顺序逐条应用并各自还原,故无冲突。"
+    },
+    {
+      "name": "M7-queryValidationDropped",
+      "file": "unity/Assets/Sim/Processing/ProcessingCandidateSet.cs",
+      "line": 132,
+      "expect": "            ValidateQuery(in query);",
+      "replace": "            // FALSIFY-M7:停用入口 query 校验(`default(CandidateQuery)` 将绕过 fail-closed)",
+      "expectRed": [
+        "test_ac1810_defaultQuery_throwsArgumentNull_notNullReference"
+      ],
+      "exactRed": true,
+      "_why": "评审 AR1 的判据化。`CandidateQuery` 是 readonly struct,`default(CandidateQuery)` 绕构造器 ⇒ 三个引用字段全 null。停用 `IsCandidate` 入口校验后,`default` 落到 `query.Furnace.IsBusy(...)` 抛 **NullReferenceException** 而非契约承诺的 ArgumentNullException。\n⚠️ **本变异只停用 `:132`(逐条路径),`Evaluate` 的 `:170` 仍在** ⇒ 只红一条。\n⚠️ **2026-10-27 首轮实测留痕(禁抹)**:初版 expectRed 列了**两条**(含 `emptyRecipeTable_stillValidatesQuery`),驱动报「逃逸 ⇒ 夹具假绿」。**实为我写错了 spec**:那条夹具走的是 `Evaluate`,而 `Evaluate` 自己的校验没被 M7 碰 —— 夹具行为正确,错在把「两条校验」的判别面混在了一条变异里。这正是「一属性一条变异」要防的形态:一条变异只能证一处守卫。已拆为 M7(逐条)+ M8(批量空表分支)。"
+    },
+    {
+      "name": "M8-evaluateValidationMovedIntoLoop",
+      "file": "unity/Assets/Sim/Processing/ProcessingCandidateSet.cs",
+      "line": 170,
+      "expect": "            ValidateQuery(in query);",
+      "replace": "            // FALSIFY-M8:把 query 校验推回循环内(空配方表时不再执行)",
+      "expectRed": [
+        "test_ac1810_emptyRecipeTable_stillValidatesQuery"
+      ],
+      "exactRed": true,
+      "_why": "与 M7 **不同属性**:M7 问「校验存在与否」,M8 问「校验在循环前还是循环内」。空配方表时循环零次 ⇒ 校验不执行 ⇒ `Evaluate(Array.Empty<Recipe>(), default)` 静默返回空列表而非抛。这正是「新玩家还没有任何配方」这一最常见接线错误的静默失效形态。⚠️ M8 变异后 `IsCandidate` 里的 `:132` 仍在,故 `defaultQuery` 那条仍绿 —— 两者是不同分支,刻意分开。"
+    }
+  ]
+}

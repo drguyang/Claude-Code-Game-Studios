@@ -1,12 +1,12 @@
 # Story 001: 炮制配方子集筛选与准入谓词 Admissible
 
 > **Epic**: 炮制
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-27
 
 ## Context
 
@@ -206,15 +206,38 @@
 
 **Story Type**: Logic
 **Required evidence**:
-- Logic: `unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs` — must exist and pass
-  （⚠️ 本 story 尚未开工；已落地的是 **AC-18-18 一项**，真身
-  `unity/Assets/Tests/EditMode/Processing/recipe_owner_partition_test.cs`，账本见
-  `tests/integration/processing/README.md`。其余 AC 的测试件仍归本 story 实现轮。）
+- Logic: `unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs` — **已落盘,29 条全绿**
+  （2026-10-27 实现 + 评审修复轮；`unity/Logs/s20-4-fix.xml` = `29/29/0/0`）
 - AC-18-18:**机制三段**(非空 / 并 / 交)打合成集 + **真表覆盖度**打真表 ——
   **两段皆已可判**（2026-10-20 补口后）；**各自记分,禁合并成一条绿**。
   判别力已由**证伪轮**证明：删 craft / 删 build / craft 改 process ⇒ 真表测**三次全转红**
+  （真身 `unity/Assets/Tests/EditMode/Processing/recipe_owner_partition_test.cs`,6 条）
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing
+
+### AC → 载体映射(2026-10-27)
+
+| AC | 载体 | 记分 |
+|---|---|---|
+| **AC-18-05** | `admissible_predicate_test.cs` 4 条(符号扫描 / 正控 / 幅值调制 / 白名单活性) | ✅ **全绿**(扫描面 = 全部**进构建**装配,由 asmdef `includePlatforms` 派生) |
+| **AC-18-10** | `admissible_predicate_test.cs` 11 条(iff 8 组合 / 反向 / 边界 / 实例集 min / 空集 / 次序 / 跨玩家 / 保序 / null / default query / 单炉恰一次) | ⚠️ **2/3 真 + 炉半边桩** —— 第三条件「单炉空闲」只有 `ISingleFurnaceQuery` Spy 桩,真装配归 Story 004。**不得读成全绿** |
+| **AC-18-20** | `admissible_predicate_test.cs` 10 条(IL 方法引用相同 / 同源门 / 零比较 / 正控 / 唯一定义点 / 经 `IsAdmitted` / 纯函数 / 技能号 / 查询技能 / null) | ✅ **结构性证明** —— 两条路径**零生产调用点**,证明的是「若调用则同源」。真接线归 42(预答)/ Story 002(终裁) |
+| **AC-18-18** | `recipe_owner_partition_test.cs`(6 条,真身)+ 本文件存在性守卫 | ✅ **两段分别记分**:① 机制 6/6 绿 ② 真表 4 配方 `{process:2, craft:1, build:1}` 三子集非空。⚠️ ② 不证配方内容正确 |
+
+### 证伪轮(8/8 恰如预期)
+
+| 变异 | 转红 |
+|---|---|
+| M1 技能门停用 | 5 条 |
+| M2 品级闸停用 | 2 条 |
+| M3 预答内联复制判据(**行为等价**) | 1 条(`bothCallSites_callTheSameMethodReference`) |
+| M4 空集短路停用 | 1 条 |
+| M5 `min_quality` 渗入幅值路径 | 1 条 |
+| M6 owner 子集过滤停用 | 2 条 |
+| M7 入口 query 校验停用 | 1 条 |
+| M8 query 校验移进循环 | 1 条 |
+
+规格 `tools/falsify/specs/s20-4-admissible-predicate.json`;SHA-256 逐字节还原通过,`FALSIFY-` 零残留。
 
 ---
 
@@ -227,4 +250,31 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-27
+**Criteria**: 4/4 AC 有判据面(AC-18-10 为 2/3 + 桩,AC-18-20 为结构性 —— 见上方映射表)
+**Deviations**: 无 BLOCKING。评审 3 项建议**未采纳**(AR3 `Judge` 收 internal / AR4 品级集别名化 / T7 测试命名整批改),理由见 `production/qa/evidence/review-s20-4-2026-10-27.md` §五。**未登记进债册** —— 属「建议未采纳」而非已确认技术债。
+**Test Evidence**: Logic → `unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs`(29 条)
+**Code Review**: Complete → `production/qa/evidence/review-s20-4-2026-10-27.md`(原判 APPROVED WITH SUGGESTIONS;修复后 **APPROVED**)
+
+### 回归三元组
+
+`5414 / 5379 / 0 / 35` @ **2026-10-27 10:07 CST** · 批次 **S20-4 评审修复轮(全量)** · commit **`51193cf`**
+前基线 `5409 / 5374 / 0 / 35` @ 09:44 CST ⇒ **+5 / +5,失败 0→0,skipped 35→35,非通过集新增 0 消失 0**
+
+### 关键实现决策
+
+1. **`ISingleFurnaceQuery` 作为接缝**:把事件流 / 解码器放进谓词签名会让客户端预答路径**物理上不可用**,AC-18-20 的同源要求随之落空。
+2. **`ISkillLevelQuery` 从 `ISkillGrowthPort` 隔离**,但**用继承而非适配器**(评审 AR2):`ISkillGrowthPort : ISkillLevelQuery` ⇒ `QueryLevel` 只有一个声明处,「等级只有一个读面」成为**编译期事实**。
+3. **`IsAdmitted` 作为「算不算过」的唯一定义点**:两个包装只转调,IL 面可断「零比较指令」。这是 AC-18-20 唯一能被机械断言的形式。
+
+### 本 story 抓到的三条假绿(均留痕)
+
+1. **行为等价掩盖结构分叉**(实现期自查,读代码抓到):`IsCandidate` 曾自写 `== AdmissionRejection.None`,8 组合 iff 矩阵**全绿**。已补符号面 + IL 面两条夹具。
+2. **空洞正控**(评审核查 T1):`AmplitudeOffenders` 的正控只在字面量上跑 `IndexOf`,**从未调用被测循环** —— 把判据的 `'*'` 改成 `'+'` 它照样绿。已抽成方法让正控真调判据;反证 P1 现能转红。
+3. **失效自述**(评审核查 AR1):`CandidateQuery` 是 `readonly struct`,`default` 绕构造器,故「任一引用参数为 null ⇒ fail-closed」对 `default` 不成立。已在消费侧补 `ValidateQuery`,并拆 M7/M8 两条变异分别钉两处校验。
+
+### 残余(禁借绿)
+
+- **AC-18-10 第三条件**真装配归 Story 004(`ISingleFurnaceQuery` 的 Boot 实现)。
+- **AC-18-20 两条路径零生产调用点**:预答接线归 42,终裁接线归 Story 002。
+- **AC-18-05 白名单靠人维护**:新增合法的运行期 `MinQuality` 读取点须同步加白名单(白名单条目**失效即红**,已有夹具)。
