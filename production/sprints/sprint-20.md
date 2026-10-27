@@ -1,6 +1,11 @@
 # Sprint 20 — **`2026-10-25`** 起 · clinic 链尾 + A-2 机制起步 + 判别力债清偿
 
 **周期**:`2026-10-25` 起 → **实际收口 `2026-10-27`**(不设结束日期口径,做完即收 —— 承 sprint-14…19 同例)。
+
+> 🔁 **2026-10-28 重开(用户裁定「直接在 sprint-20 排一张装配轮的卡」)** —— 本 sprint 于 `2026-10-27`
+> 收口,现**追加一个收口后工作项 `S20-17`**(World 场景装配轮),见 §十。
+> ⚠️ **不推翻 §九 的收口判定**:收口时刻的读数(17/17 done · smoke PASS · 未闭 P0 面 63)
+> 在**那一刻**为真;本批只新增一件,**既有 17 件状态一字未动**。
 > ✅ **收口日 `2026-10-27` 已补记**。retro-19 行动项 3(收口四件套与最后一个实现轮**同日**)
 > **本轮首次兑现** —— 最后一个实现轮 = S20-4 评审修复轮 + S20-7 治理盘点轮,均 10-27;
 > 头部收口日 / §九 / retro / CAPACITY-MODEL 行四件**同日完成**。
@@ -274,6 +279,10 @@ M3 Exit 第二条合取 ⇒ 假 —— 63 条,分布在 10/31 个 epic
 > 🔁 **本条已被后来的事实推翻(原文不删,留作闭环记录)**。
 > 用户 2026-10-27 裁定「不转」后,**同日**又下达 `S20-8 → S20-13 → S20-14 → S20-15` 全链实现指令
 > ⇒ 四件**全部落地并转 `done`**(含 S20-15 的强制证伪轮)。现在 `sprint-status.yaml` 为 **17/17 done**。
+>
+> 🔁 **2026-10-28 再注**:上句的 **17/17** 是**收口时刻**的读数;§十 追加 `S20-17` 后该分母已变 ——
+> 现为 **17/18 done**(新增那件 `ready-for-dev`)。**17 件的 `done` 状态一字未动**,
+> 变的只是分母。引本行时须连读本注,不得把「17/17」当成当下值。
 > 复算:`python3 -c "import yaml,collections;d=yaml.safe_load(open('production/sprint-status.yaml'));print(len(d['stories']),collections.Counter(s['status'] for s in d['stories']))"`
 > ⇒ `17 Counter({'done': 17})`。
 >
@@ -415,3 +424,66 @@ S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,�
 > 🔁 **2026-10-27 订正**:链尾四件同日补齐 ⇒ **完成率 `8/8 = 100%`**。
 > ⚠️ **但上面那句「代价」不变,而且更重** —— 追加量是预留的 8 倍,这件事**不因为都做完了而变轻**:
 > 计划被追加打穿是**过程缺陷**,结局圆满不撤销它。容量模型的口径修复仍是 sprint-21 的必办项。
+
+---
+
+## §十 收口后追加批(2026-10-28 · 用户裁定「直接在 sprint-20 排一张装配轮的卡」)
+
+> ⚠️ **本批在 sprint-20 收口(`2026-10-27`)之后**。`sprint-status.yaml` 由 **17 件 → 18 件**,
+> 其余 17 件的 `status:` / `completed:` 一字未动。
+
+### S20-17 — World 场景装配轮(`World` / `StructureWriter` 生产构造点 + 装配根接线)
+
+| 项 | 内容 |
+|---|---|
+| **Owner** | unity-specialist |
+| **复杂度** | **M** |
+| **前置(全部 ✅)** | ADR-023 三场景制(`Boot.unity` / `World.unity` 已建,2026-10-09~11)· `CompositionRoot.Assemble` 的 `structures` 参数位(`CompositionRoot.cs:123`)· `BuildModulesCatalog` 生产实现(S17-6)· `DropEventWriter` 三段写者(S20-14) |
+
+#### 病因:两处引用、零排期载体(承 `SP-10` 同型失效模式)
+
+- `unity/Assets/Gameplay.Boot/CompositionRoot.cs:787-796` 逐字:「`structures` 从哪来:23 的
+  `StructureInstanceRegistry` 今日在生产树**零构造**(`new World(` 同样零构造……」;
+  注释指名「**`BootRoot` 的 World 场景装配轮**」。
+- `production/qa/evidence/impl-s20-2a-building01-2026-10-25.md:176` 的 **N5** 条:
+  「生产装配根 `CompositionRoot` 的 `new World(` —— 另属一层,本件未做」,处置写「后续装配轮」。
+- `TD-building-01` 已于 2026-10-25 `closed`,**N5 未转成新债** ⇒ 该缺口今日**零载体**。
+- `production/epics/` 无对应 story;`sprint-20` 原任务表无对应卡。
+
+#### 边界:最小合成世界(**用户 2026-10-28 裁定**)
+
+`World(WorldGeometry, BuildSlotCatalog)` 的两个实参**都用最小合成值**:
+
+- `WorldGeometry(TerrainCell[16,1,16], new int[256], new int[256])` —— 全 walkable、POI / 资源格全 `NONE`
+- `new BuildSlotCatalog()` —— **空槽位目录**(`RegisterSlot` 零调用)
+
+**理由(实测)**:`assets/data/` **零份** `world_*` JSON;`unity/Assets/DataCooked/` 的 **25 份**
+cooked 产物里**零份**世界数据;世界数据的唯一作者 = ADR-022 关卡工具,已裁定「不立 epic、不排期」
+(`p0-remaining-roadmap-2026-10-20.md:1088`)。**装配不依赖这些数据** —— `World` 的两个实参都能合成。
+
+#### AC(逐条可判伪 · 禁借绿)
+
+| # | 判据 | 可复算命令 / 落点 |
+|---|---|---|
+| **AC-1** | 生产树 `new World(` 由 **0 → 1**,落点 = `Gameplay.Boot/BootRoot.cs` | `grep -rn "new World(" unity/Assets --include=*.cs \| grep -v "/Tests/"` ⇒ 恰 1 命中 |
+| **AC-2** | 生产树 `new StructureWriter(` 由 **0 → 1**,落点同上 | 同上换符号 ⇒ 恰 1 命中 |
+| **AC-3** | 经**生产装配路径**后 `CompositionRootServices.ClinicRoomMatching != null` | 今日 `structures == null` ⇒ 恒 `null`(`CompositionRoot.cs:806`);夹具断言非 null |
+| **AC-4** | `World` 端到端**经装配根产出的服务**(非测试自建):`Place → IsEffectivelyWalkable == false`;`Remove → true` | 同一夹具内两步;判据同 S20-2a,差异只在**入口** |
+| **AC-5** | `StructureWriter` 构造 fail-closed:`DropEventWriter` 未注入 ⇒ 构造期抛 | `Assert.Throws<ArgumentNullException>` + 「抛前下游零调用」副作用断言 |
+
+**证伪轮(S12-4 · 一属性一变异 · SHA-256 逐字节还原)**:AC-1…AC-5 各一条。
+⚠️ **AC-1 / AC-2 的变异形态 = 删除构造行**(不是改参数)—— 这两条的判据就是「该行存在」,
+改参数不触及判据。
+
+#### 挂标不记绿(如实,禁勾)
+
+1. **世界烘焙数据** —— `world_geometry` / `world_buildslots` 仍零产出;`BuildSlotCatalog` 是空目录
+   ⇒ `AC-23-08` 第三半边(占用格 ⊆ `BuildSlotRegion`)**仍无载体**,本卡**不解除**。
+2. **`StructureWriter.Place` / `Remove` 的生产发起方** —— 归 42 的建造交互(`O-23-6`),**不在面内**。
+   ⇒ **本卡交付 = 「写者已装配、可被调用」,不是「玩家能拆房」**。此句须与 AC-2 同读。
+3. **`ClinicCellSource` 接真源** —— 装配后**具备条件**(registry 不再为 null),但接线归 24 侧,不在面内。
+4. **`World` 的生命周期归属** —— 挂在 `BootRoot` 还是 `World` 场景的 additive 根,须在卡内**明确裁定并留痕**;
+   未定 ⇒ **AC-3 不得标绿**(ADR-023 §① 三场景制的直接后果,不预设答案)。
+5. **`PlaceableChecker` 是否接进装配** —— 若接,「空槽位目录 ⇒ 建造永不合法」即从潜在缺口转真;
+   **接则不接,卡内裁定并留痕**,不得沉默二选一。
+
