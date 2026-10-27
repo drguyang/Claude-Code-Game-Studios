@@ -1,12 +1,12 @@
 # Story 002: F1 调用契约与四修正项供料(spy 可证)
 
 > **Epic**: 炮制
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-27
 
 ## Context
 
@@ -110,7 +110,17 @@
 - Logic: `unity/Assets/Tests/EditMode/Processing/f1_call_contract_test.cs` — must exist and pass(spy + 扫描器族)
 - [L](AC-18-10b):走查证据归 42 面板交付轮(EXTERNAL 半边;机制侧供数测试在本文件)
 
-**Status**: [ ] Not yet created
+**Status**: ✅ 已创建并通过
+
+| 项 | 结果 | 复算命令 / 出处 |
+|---|---|---|
+| 夹具文件 | `unity/Assets/Tests/EditMode/Processing/f1_call_contract_test.cs`(**1523** 行,42 个方法 / **51** 个用例) | `wc -l <该文件>` |
+| 定向跑测 | **51 / 51 passed · 0 failed · 0 skipped** | `unity test unity --mode EditMode --output <xml> --filter F1CallContractTest` |
+| 全量回归 | **5464 / 5429 / 0 / 35** vs 基线 **5413 / 5378 / 0 / 35** ⇒ **+51 == 新增 51,零回归** | `unity/Logs/f1-s20-8-full.xml` vs `unity/Logs/s20-7-full.xml` |
+| 证伪轮 | **19/19 恰如预期**(第 7 轮)+ SHA-256 逐字节还原 + `FALSIFY-` 零残留 | `tools/falsify/specs/s20-8-f1-call-contract.json` |
+| 评审原件 | `production/qa/evidence/review-s20-8-2026-10-27.md` | — |
+
+**基线溯源三元组**:截至 `2026-10-27T05:47Z` · 批次 `S20-8 收口轮` · commit `e095b7b`(工作树未提交)
 
 ---
 
@@ -123,4 +133,57 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-27
+**Criteria**: **AC 记分 5 全绿 / 1 半绿 / 1 NOT-RUN**(共 7 条;禁把「本体跑通」读成「全绿」)
+**Code Review**: 已完成 —— 两路**并行独立**评审(unity-specialist C# 侧 / qa-tester 可测性侧),
+原件 `production/qa/evidence/review-s20-8-2026-10-27.md`。1 BLOCKING 同报 ×2 路 + 3 条 qa 独有 BLOCKING + 8 条 ADVISORY;全部结清或如实登记为部分完成。
+
+### 逐条 AC 出处
+
+| AC | 判定 | 载体 |
+|---|---|---|
+| AC-18-01 | ⚠️ **半绿** | ① `test_ac1801_solverCalledExactlyOnce` + IL 面 `test_ac1801_il_settleInvokesSolverExactlyOnce`;③ `test_ac1801_noSecondSettlementImplementationInProcessingAssembly` + `test_ac1801_canonicalWhitelistHasNoProcessingEntry` + 各自正控;② `test_ac1801_outputArraysAreSameReference_notCopies` + `test_ac1801_scalarOutputsPassedThroughVerbatim`(7/7 出参)。**「交给 20」腿 NOT-RUN** |
+| AC-18-02 | ✅ | `test_ac1802_noArithmeticInSettlementPath` + `test_ac1802_il_noArithmeticInProcessingNamespace`(指令面 + 调用面)+ 4 条正控/注释面 |
+| AC-18-03 | ✅ | `test_ac1803_skillLevelPassedThrough_equalsQueryResult` + `test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim`(5 档)+ `queriesCraftSkill` + `queriesTheInputActor` + `craftSkillId_matchesRegistryEnum` |
+| AC-18-04 | ✅ | `test_ac1804_neverReadsDrugIdentitySymbols` + `test_ac1804_il_neverReferencesDrugIdentitySymbols`(call 目标 + ldfld 字段名)+ 两条正控 |
+| AC-18-06 | ✅ | `test_ac1806_envModComponentsPassedThroughVerbatim`(4 组越界)+ `test_ac1806_il_settlementClassHasNoAddSub` + `test_ac1806_il_addSubScannerPositiveControl` |
+| AC-18-14 | ✅ | `test_ac1814_inconsistentCapTable_throwsHard` / `_boundaryEqualityPasses` / `_oneStepBelowBoundaryThrows` / `_consistentTableDoesNotThrow` / `_delegatesToSinglePredicate_noDuplicatedInequality` / `_sharedNegativeFixture_sameTableAs21a`(与 21a 同读 `tests/unit/item_database/fixtures/invalid_cap_sum.json`) |
+| AC-18-10b | ⛔ **NOT-RUN** | EXTERNAL · BLOCKED-BY-42;42 炮制面板未交付,**机制侧供数正确不构成该条证据** |
+
+### ⚠️ 六条边界(须与「5 全绿」同读,禁只引记分)
+
+1. **AC-18-01② 的「交给 20」腿无载体** —— 生产侧零调用点(story §Out of Scope 把接线推给 Story 003)。
+   现有断言只证「`Settle` 的返回值 == solver 的返回值」,那是 `return solver(...)` 的**平凡推论**。
+   `test_ac1801_hasProductionCallSite` 钉住该事实;Story 003 接线后**须把该断言翻转**。
+2. **AC-18-01 Edge「失败路径 F1 零调用」半边 NOT-RUN** —— 原 `failurePath_neverCallsSolver` 是**恒真断言**
+   (断一个刚 `new`、从未传给任何东西的 spy 的计数 = 0),已整条重写为
+   `test_ac1801_settleDoesNotRejudgeAdmission`(测「18 不重复判准入」)。「调用方在准入不过时不调 `Settle`」
+   需 Story 001↔002 接线,当前无载体。
+3. **`test_defaultStruct_failsClosedAtConsumptionSite` 无专属变异,且这不是缺陷** —— 该属性由两条守卫
+   **冗余**保证(`default(Recipe)` 的 `Outputs`/`Inputs` 同为 null),单行替换驱动无法同时停用两条
+   ⇒ 对该驱动形态不可变异。已如实登记在 spec `_note` ⓪④。
+4. **`test_ac1801_retryTwice_isTwoIndependentCalls` 只有前半被变异证明** —— 后半
+   `ReferenceEquals(first.OutputQtyRef, second.OutputQtyRef)` 断的是**两个 spy 各自持有的数组**,
+   生产码即使真缓存也不会红 ⇒ 构造性真,不构成 AC 证据。已登记在 spec `_note` ⓪″。
+5. **AC-18-02 / 04 的「零算式 / 零药」是「符号不出现」形态,无 `if` 可停用** —— 其判别力由**夹具内正控**
+   承担(走真链路,非另写 `IndexOf`)。**正控 ≠ 证伪轮**,两者不可互替:正控证「扫描器有判别力」,
+   证伪轮证「生产码在承重」。本条只有前者。
+6. **AC-18-14 主执行在 21a 烘焙管线**(OQ-18-2 已裁 [甲]),本件只断 **18 的防御半边**;
+   21a 侧执行 AC 待 `O-18-R2` 回写。
+
+### 评审遗留(A-6 · 本轮不改 story 正文,在此登记)
+
+story §Implementation Notes 1 与实现有**两处字段名偏差**,方向都正确(实现跟的是 GDD F-18.1 表 `:424`):
+- `RecipeId` → 实际传 `Recipe`(值类型,携 `Inputs`/`Outputs` 两数组);
+- `consumedInstances` → 实际传 `InputQuality`(int)。
+
+**为什么不改 story 正文**:改设计件与实现件是两类改动,且 story 已 Complete —— 正文留着能看出
+「当时怎么想的、后来为什么改」。此处登记即为闭环记录。
+
+### 关键教训(本 story 实测命中,非假想)
+
+- **补了断言不等于有判别力** —— spy 的 `EnvModTotal`/`SumOfModifiers` 原为 `0`,恰等于 `default(Fix)`
+  ⇒ 「18 把出参换成 default」的变异**前后同值**,断言补了也是空的。改成两两互异且非零后才真正可判。
+- **证伪轮跑到一半改被变异文件 = 那一轮作废** —— 第 5 轮我改了测试文件,前半段与后半段跑的不是同一份代码;
+  `TaskStop` 又中断在还原之前,留下 `FALSIFY-M3` 残留须手工还原。
+  承记忆 `feedback_falsify_concurrent_edit_window`,该条**本轮实测命中过一次**。

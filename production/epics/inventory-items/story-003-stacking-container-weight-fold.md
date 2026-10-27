@@ -73,6 +73,12 @@
 - [x] **AC-20-12**: `GIVEN` 容器界面(机制半边),`WHEN` 检索,`THEN` 非网格、零排序/零自动整理(20 侧:摆放序函数不含任何按 weight/品级/时间的重排路径)
 - [x] **AC-20-15**: `GIVEN` 全部 20 的输出 DTO,`WHEN` 递归反射扫描,`THEN` 无 `float` 字段(门 A · 与 AC-44-B1 同型)
 - [ ] **P0 范围门(规则三/十,BL-7③ + BL-28)** —— ⛔ ③ 已勾、①② **BLOCKED-BY Story 010**: 容器实例 `qty`/`quality` 恒 1;~~`children` 恒空~~ **`children` 不含容器型子件**;`build_part` 实例 `quality` 恒 1 —— 三条各立机器断言(不变量破坏 = 构建失败),P1a 解除时以夹具反证扩展点
+  > 🔁 **2026-10-27 就地加注(原文不删)**:③ 的**强制点**此前不存在(评审 `review-s20-11-inventory-003` B-1:`BuildPartQualityGate` 零生产调用点,
+  > 「不变量破坏 = 构建失败」是一句无执行体的自述)。现已在 **`InventoryLoadService.EnforceBuildPartQuality`**
+  > (`unity/Assets/Gameplay.Boot/InventoryLoadService.cs`)接上唯一强制点。
+  > ⚠️ **判据面从「构建期」改为「装载期」** —— 门在读档 / 投影重建时抛(`requireValid`),
+  > 不是编译 / 打包时。原措辞「构建失败」保留,不改写 AC 原文;判据的**实际语义**以本注为准。
+  > ⚠️ 「构建期 `RunAll` 是否真执行」仍 `NOT-RUN`(见下方已知边界 6)—— 本轮**未做**探针轮。
 - [x] **折重不变量(OQ-20-4 结清口径)**: `Σ(容器 + 子件)` 折重 = 空箱自重 + 子件逐件,无双重计数;整数域求值,先乘后加(与 Story 004 的 `CarryLoad` 共用加法件)
 
 ---

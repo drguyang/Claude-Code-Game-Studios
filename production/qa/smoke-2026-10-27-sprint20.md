@@ -1,10 +1,15 @@
 # Smoke Check Report(S20 · sprint-20)
 
 **Date**: 2026-10-27
-**Sprint**: sprint-20(**17 件**中 **11 件 done**、3 件 ready-for-dev、3 件 backlog)
-> 🔁 **2026-10-27 订正(QA 签核 C-8)**:本行原写「16 件中 8 件 done、3 件 ready-for-dev、5 件 backlog」
-> —— **陈旧值**,且与下方覆盖率表自算(`done 10`)亦不等。现改为与本报告三元组 commit `5bdd226` 一致的实测值。
-> 复算:`git show 5bdd226:production/sprint-status.yaml` ⇒ `17 {'done': 11, 'ready-for-dev': 3, 'backlog': 3}`。
+**Sprint**: sprint-20(**17 件全部 done**)
+> 🔁 **2026-10-27 二次订正(链尾四件完成后 · 本条为最新)**:上两版写的是**本报告执行时刻**
+> (commit `5bdd226`)的快照:「17 件中 11 件 done、3 件 ready-for-dev、3 件 backlog」。
+> 同日 S20-4 / S20-8 / S20-13 / S20-14 / S20-15 全部落地 ⇒ 现为 **17/17 done**。
+> 复算:`python3 -c "import yaml;d=yaml.safe_load(open('production/sprint-status.yaml'));from collections import Counter;print(len(d['stories']),Counter(s['status'] for s in d['stories']))"`
+> ⇒ `17 Counter({'done': 17})`。
+>
+> > 🔁 **2026-10-27 一次订正(QA 签核 C-8,原文不删)**:本行原写「16 件中 8 件 done、3 件 ready-for-dev、5 件 backlog」
+> > —— **陈旧值**,且与下方覆盖率表自算(`done 10`)亦不等。当时改为与三元组 commit `5bdd226` 一致的实测值。
 **Engine**: Unity 6.3 LTS(6000.3.24f1)
 **QA Plan**: `production/qa/qa-plan-sprint-20-2026-10-25.md`
 **Smoke 清单**: `tests/smoke/critical-paths.md`(**该文件自述「当前是清单,不是可执行门」**)
@@ -34,6 +39,80 @@
 > ⚠️ **PlayMode 基线已失效,不可再引用**:QA plan 与既有 smoke 报告统一引用的
 > `202/202/0/0`(@ `2026-10-25 12:35Z` · `conv-playmode`)跑于 `InventoryFold.cs` 入库(`ebe532e` · 10-26 18:20)**之前**。
 > 本轮 `204/204/0/0` 应作为新基线,**三元组 = 上表**。
+
+### 🔁 2026-10-27 三度实测(链尾四件完成后 · 本条为最新基线,原文不删)
+
+上表 `5385/5350/0/35` 与 `204/204/0/0` 是 **`smoke-fix` 轮**(commit `5bdd226`)的快照。
+同日后半段 S20-4 / S20-8 / S20-13 / S20-14 / S20-15 五件陆续落地,全量回归已重跑:
+
+| 套件 | 退出码 | XML | 增量核对 |
+|---|---|---|---|
+| EditMode(全量) | **0** | `total=5529 passed=5494 failed=0 inconclusive=0 skipped=35` | `5529 − 5385 = +144`(五件的夹具 + 改造,见下) |
+| PlayMode(全量) | **0** | `total=229 passed=228 failed=0 inconclusive=0 skipped=1` | `229 − 204 = +25` |
+
+**新基线三元组**:截至时刻 `2026-10-27T09:34Z` · 批次 `S20-15 批(链尾收口)` · commit `e095b7b`(工作树含未提交改动)
+
+### 🔁 2026-10-27 四度实测(C-4 三条 BLOCKING 当场修完后 · **本条为最新基线**)
+
+> **立此段缘由**:上表 `5529/5494/0/35` 是 **C-4 修复之前**的快照。修复轮新增
+> `inventory_load_service_test.cs`(18 条)并改了三个既有测试件(+1/+2/+2),
+> **旧数已失效** —— 继续引用它就是「借绿」(照抄陈旧全量回归数当本次的全量)。
+
+| 套件 | 退出码 | XML | 增量核对 |
+|---|---|---|---|
+| EditMode(全量) | **0** | `total=5552 passed=5517 failed=0 inconclusive=0 skipped=35` | `5552 − 5529 = +23` |
+| PlayMode(全量) | ⬜ **本轮未跑** | — | 修复轮零 PlayMode 改动(`git status` 可复核)⇒ 维持 `229/228/0/1`,**但那是引用不是实跑** |
+
+**增量等式(可复算)**:
+```
+inventory_load_service_test.cs  18  (新增文件)
+carry_load_adjudication_test.cs +1  (溢出哨兵)
+inventory_fold_test.cs          +2  (ConflictingQualitySource / qty<=0)
+stacking_container_rules_test.cs +2 (部分吸纳 / 尾部部分栈)
+                                ---
+                                +23  ✅ = 5552 − 5529
+```
+
+**复算命令(可直接跑)**:
+```bash
+cd unity
+for f in inventory_load_service_test carry_load_adjudication_test \
+         stacking_container_rules_test inventory_fold_test; do
+  echo -n "$f: "; grep -c '\[Test\]' Assets/Tests/EditMode/Inventory/$f.cs
+done
+# 实得:18 / 55 / 35 / 30;全家族 sum = 178
+grep -c '\[Test\]' Assets/Tests/EditMode/Inventory/*.cs | awk -F: '{s+=$2} END {print s}'
+# 实得:178
+```
+
+**三元组(四度)**:截至时刻 `2026-10-27T11:41Z` · 批次 `C-4 修复轮` · commit `e095b7b`(工作树含未提交改动)
+
+> ⚠️ **PlayMode 本轮未实跑** —— 修复轮**零 PlayMode 改动**(`InventoryLoadService` 与其夹具全在
+> EditMode 树;`LoadSequencer` 的改动由 EditMode 夹具覆盖)。故 `229/228/0/1` **是引用值,
+> 不是本轮实跑值**。若下一轮动了 PlayMode 树,此数须重跑后再引用。
+
+> ⚠️ **这组数不是本报告「跑出来的」,而是从链尾各件的评审原件汇总而来** ——
+> 逐件溯源(引用自,不重新盖本次时间戳):
+> - S20-15 全量 = `review-s20-15-2026-10-27.md:247-252`(其 §7.1 含 `5529 − 5519 = 10` 的增量等式)
+> - 前一件 S20-14 收口 = `review-s20-14-2026-10-27.md:274`(`5519/5484/0/35` · `229/228/0/1`)
+> - 再前 `smoke-fix` 轮 = 本页上表(`5385/5350/0/35` · `204/204/0/0`)
+> ⇒ **PlayMode 自 `smoke-fix` 后 +25**,但 `204 → 229` 这一步跨了 S20-13/14/15 三件,本页不逐件拆 ——
+> 逐件数字见各件评审原件,本页只记**收口态**。
+
+**复算(可直接跑)**:
+```bash
+python3 -c "
+import xml.etree.ElementTree as ET
+for f in ('reg-edit-s2015','reg-play-s2015'):
+    r=ET.parse('$CLAUDE_JOB_DIR/tmp/'+f+'.xml').getroot()
+    print(f, {k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+# 实得:reg-edit-s2015 {'total':'5529','passed':'5494','failed':'0',...,'skipped':'35'}
+#       reg-play-s2015 {'total':'229','passed':'228','failed':'0',...,'skipped':'1'}
+```
+
+> ⚠️ **`skipped` 从 0 变 1(PlayMode)是正常的**:S20-15 未动 PlayMode 树,
+> 新建的 `inventory_atomicity_test.cs` 属 S20-14;`229` 与 S20-14 收口**逐位相同** ⇒ 零回归。
+> EditMode 的 35 条 skipped 自 `smoke-fix` 起未变(均为既有的 `Assert.Ignore` 项)。
 
 ---
 
@@ -121,27 +200,52 @@ sprint-20 全部 **17 件**,逐件核声明的证据路径(两棵树都扫过:`u
 | S20-2 clinic-005 纯度重放 + Memoize | Integration | done | `EditMode/ClinicMachine/clinic_purity_replay_test.cs` | **COVERED** ✅ |
 | S20-2a TD-building-01 两半全补 | Integration | done | `EditMode/ModularBuilding/world_end_to_end_test.cs` + `demolish_refund_from_catalog_test.cs` | **COVERED** ✅ 8 + 12 |
 | S20-3 foraging-001 品种闭包 + 装载校验 | Logic | done | `EditMode/Foraging/foraging_data_load_test.cs` + `foraging_bake_wiring_test.cs` | **COVERED** ✅ |
-| S20-4 processing-001 配方子集 + Admissible | Logic | ready-for-dev | `EditMode/Processing/admissible_predicate_test.cs` | **EXPECTED** —— `[ ] Not yet created` |
+| S20-4 processing-001 配方子集 + Admissible | Logic | **done** | `EditMode/Processing/admissible_predicate_test.cs` | **COVERED** ✅ 37 `[Test]` |
 | S20-5 判别力收紧轮(TD-clinic-02/08/09) | Logic(推断) | done | 证伪轮 + 收紧测 | **COVERED**(`ClinicMachine/` 11 件) |
 | S20-6 TD-prescription-07 材质分类器 | Logic(推断) | done | 单测 + 反证 | **COVERED** |
-| S20-7 治理盘点轮 | Config/Data(推断) | ready-for-dev | 无(零新代码) | **EXPECTED** |
-| S20-8 processing-002 F1 调用契约 | Logic | ready-for-dev | — | **EXPECTED** —— `[ ] Not yet created` |
+| S20-7 治理盘点轮 | Config/Data(推断) | **done** | 无(零新代码) | **EXPECTED**(治理轮,载体是债册与证据件) |
+| S20-8 processing-002 F1 调用契约 | Logic | **done** | `EditMode/Processing/f1_call_contract_test.cs` | **COVERED** ✅ 39 `[Test]` + 12 `[TestCase]` |
 | S20-9 processing-004 单炉空闲判定 | Logic | done | `EditMode/Processing/furnace_timing_no_process_state_test.cs` | **COVERED** ✅ 31 条 |
 | S20-10 inventory-001 InventoryOf 折叠 | Logic | done | `EditMode/Inventory/inventory_fold_test.cs` | **COVERED** ✅ |
 | S20-11 inventory-003 堆叠/容器/折重 | Logic | done | `EditMode/Inventory/stacking_container_rules_test.cs` + `EditMode/Sim/gate_wiring_manifest_test.cs` | **COVERED** ✅ |
 | S20-12 inventory-004 CanCarry/载重 | Logic | done | `EditMode/Inventory/carry_load_adjudication_test.cs` + `Sim/gate_wiring_manifest_test.cs` | **COVERED** ✅ |
-| S20-13 processing-003 Craft 落流 | Logic | backlog | — | **EXPECTED** —— `[ ] Not yet created` |
-| S20-14 inventory-005 事务模板 | Logic | backlog | — | **EXPECTED** —— `[ ] Not yet created` |
-| S20-15 foraging-006 novelty 接线 | Logic | backlog | — | **EXPECTED** —— `[ ] Not yet created` |
+| S20-13 processing-003 Craft 落流 | Logic | **done** | `EditMode/Processing/craft_ignition_guards_test.cs` + `PlayMode/craft_event_payload_test.cs` | **COVERED** ✅ 15 `[Test]` + PlayMode 件 |
+| S20-14 inventory-005 事务模板 | Logic | **done** | `EditMode/Inventory/drop_event_writer_guards_test.cs` + `no_negative_ack_test.cs` + `PlayMode/inventory_atomicity_test.cs` | **COVERED** ✅ 32 + 8 + 9 |
+| S20-15 foraging-006 novelty 接线 | Logic | **done** | `EditMode/Foraging/harvest_novelty_wiring_test.cs` | **COVERED** ✅ 11 `[Test]` |
 | S20-16 foraging-003 三事件 + 身份铸造 | Logic | done | `Foraging/harvest_orchestrator_test.cs` | **COVERED** ✅ |
 
-**Summary**: **COVERED 11** · **EXPECTED 6** · **MISSING 0** · **MANUAL 0**(17 件)
+**Summary**: **COVERED 16** · **EXPECTED 1** · **MISSING 0** · **MANUAL 0**(17 件)
 
-> 🔁 **2026-10-27 订正(QA 签核 C-7)**:原写 `COVERED 10`,因**整行缺席 `S20-2a`**(表内 16 行 vs yaml 17 件)。
-> 补行后 `COVERED 10 → 11`。⚠️ 缺席 ≠ 无证据 —— `S20-2a` 载体实测在盘(8 + 12),
-> 故 `MISSING 0` 这个断言**当时也成立**,错的只是「逐件核」这句自述(覆盖率被**低估**,方向与 C-3 同)。
-> 复算:`grep -c '^| S20-' production/qa/smoke-2026-10-27-sprint20.md` ⇒ **17**;
-> `grep -c '^  - id: "S20-' production/sprint-status.yaml` ⇒ **17**。
+> 🔁 **2026-10-27 二次订正(链尾四件完成后 · 本条为最新)**:原写 `COVERED 11 · EXPECTED 6`。
+> 该值是**本报告执行时刻**(`smoke-fix` @ 01:13–01:20,commit `5bdd226`)的快照 ——
+> 当时 S20-4/8/13/14/15 五件尚未落地。**同日后续**这五件全部完成并各有测试件在盘:
+>
+> | 件 | 测试件 | 用例 |
+> |---|---|---|
+> | S20-4 | `EditMode/Processing/admissible_predicate_test.cs` | 37 `[Test]` |
+> | S20-8 | `EditMode/Processing/f1_call_contract_test.cs` | 39 `[Test]` + 12 `[TestCase]` |
+> | S20-13 | `EditMode/Processing/craft_ignition_guards_test.cs` + `PlayMode/craft_event_payload_test.cs` | 15 `[Test]` |
+> | S20-14 | `EditMode/Inventory/drop_event_writer_guards_test.cs` + `no_negative_ack_test.cs` + `PlayMode/inventory_atomicity_test.cs` | 32 + 8 + 9 |
+> | S20-15 | `EditMode/Foraging/harvest_novelty_wiring_test.cs` | 11 `[Test]` |
+>
+> ⇒ `COVERED 11 → 16`;`EXPECTED 6 → 1`(仅剩 S20-7 治理轮,零新代码,载体是债册与证据件)。
+> **`MISSING 0` 不变** —— 它本来就成立,变的只是「已覆盖」的分子。
+>
+> 复算(可直接跑):
+> ```bash
+> grep -c '^| S20-' production/qa/smoke-2026-10-27-sprint20.md          # 17
+> grep -c '^  - id: "S20-' production/sprint-status.yaml                # 17
+> grep -c 'COVERED' production/qa/smoke-2026-10-27-sprint20.md          # 见下表逐行
+> # 五件的测试件在盘:
+> ls unity/Assets/Tests/EditMode/Processing/{admissible_predicate,f1_call_contract,craft_ignition_guards}_test.cs \
+>    unity/Assets/Tests/EditMode/Inventory/{drop_event_writer_guards,no_negative_ack}_test.cs \
+>    unity/Assets/Tests/EditMode/Foraging/harvest_novelty_wiring_test.cs
+> ```
+>
+> > 🔁 **2026-10-27 一次订正(QA 签核 C-7,原文不删)**:更早一版写 `COVERED 10`,
+> > 因**整行缺席 `S20-2a`**(表内 16 行 vs yaml 17 件)。补行后 `10 → 11`。
+> > ⚠️ 缺席 ≠ 无证据 —— `S20-2a` 载体实测在盘(8 + 12),故 `MISSING 0` 当时也成立,
+> > 错的只是「逐件核」这句自述(覆盖率被**低估**,方向与 C-3 同)。
 
 ### 🔁 2026-10-27 加注:6 条 `EXPECTED` 混了两种语义(QA 签核 C-3)
 
@@ -173,6 +277,22 @@ print(len([t for t in r.iter('test-case')
 到 `2026-10-27` 收口轮,其中 **2 条已转 COVERED** ⇒ **有效 COVERED 13 · 未开工 4 · MISSING 0**。
 ⚠️ **原 16 行原文不删**(它们是本报告执行时刻的真实快照),本节只作语义拆分;
 **唯一的结构性改动是 2026-10-27 补入 `S20-2a` 行**(C-7 处置,见下节)—— 该行本应存在,是**补漏**不是改写。
+
+> 🔁 **2026-10-27 三度订正(本节写完后 · 原文不删)**:上表「① 未开工」四件
+> (`S20-8` `S20-13` `S20-14` `S20-15`)**同日全部落地**,各自夹具有实测用例数
+> (39+12 / 15+PlayMode / 32+8+9 / 11)。⇒ 「有效 COVERED 13 · 未开工 4」**已失效**,
+> 现为 **COVERED 16 · 未开工 0 · EXPECTED 1 · MISSING 0**(仅剩 S20-7 治理轮,零新代码)。
+> 复算:
+> ```bash
+> for f in Processing/f1_call_contract Processing/craft_ignition_guards \
+>          Inventory/drop_event_writer_guards Inventory/no_negative_ack \
+>          Foraging/harvest_novelty_wiring; do
+>   printf '%-45s %s\n' "$f" "$(grep -c '\[Test\]' unity/Assets/Tests/EditMode/$f\_test.cs)"
+> done
+> # 实得:39 / 15 / 32 / 8 / 11
+> ```
+> ⚠️ 本节保留的价值 = **记录当时的语义拆分动作**(把「未开工」与「执行时点未落地」分开);
+> 它拆分得对,只是**被拆分的那批件**随后都做完了。
 
 ---
 
@@ -260,13 +380,17 @@ S20-9 回归无异常,佐证是本件**零生产调用方**(`FurnaceState` / `Ig
 
 ## Missing Test Evidence
 
-**无。** **11 COVERED** · 6 EXPECTED · **0 MISSING**(17 件;`S20-2a` 已按 C-7 补行)
+**无。** **COVERED 16** · 1 EXPECTED · **0 MISSING**(17 件;`S20-2a` 已按 C-7 补行)
+
+> 🔁 **2026-10-27 三度订正(原文不删)**:原写「11 COVERED · 6 EXPECTED」= 本报告执行时刻的快照。
+> 链尾五件(S20-4 / 8 / 13 / 14 / 15)同日落地后,`EXPECTED` 只剩 `S20-7`(治理轮,零新代码)
+> ⇒ 见上方 §Test Coverage 的三度实测表。**`0 MISSING` 两版都成立**,变的只是分子。
 
 但须点名两处**证据件自身的问题**(证据件也是证据件,不是例外):
 
 | # | 项 | 事实 |
 |---|---|---|
-| 1 | **PlayMode 基线已失效** | `202/202/0/0`(@ 10-25 12:35Z)跑于 `InventoryFold.cs` 入库前。新基线 = `204/204/0/0` @ `2026-10-27 01:16 CST` · `smoke-fix` · `5bdd226`+2 改动。 |
+| 1 | **PlayMode 基线已失效** | `202/202/0/0`(@ 10-25 12:35Z)跑于 `InventoryFold.cs` 入库前。新基线 = `204/204/0/0` @ `2026-10-27 01:16 CST` · `smoke-fix` · `5bdd226`+2 改动。**🔁 又一次失效**:链尾四件后为 `229/228/0/1` @ `2026-10-27T09:34Z` · `S20-15 批` · `e095b7b`(见上方三度实测表)。 |
 | 2 | **A–D 无可执行化** | `tests/smoke/critical-paths.md` 至今零可执行判据。不是本轮的债,但**是 P0 收口前必须兑现的债** —— 否则每次 smoke-check 的 A–D 只能记 N/A。**已立债册条目 `TD-smoke-01`**(`docs/tech-debt-register.md`,2026-10-27 三十六订,`P0 面 = N`)。 |
 
 ---
@@ -279,6 +403,13 @@ S20-9 回归无异常,佐证是本件**零生产调用方**(`FurnaceState` / `Ig
 
 > ⚠️ **本 PASS 的边界**:A–D 22 条是 **N/A 不是 PASS**;PlayMode 的 204 条里新增的 2 条是**扫描器自证**,
 > 不是新的游戏行为覆盖。可玩面在本轮**未被任何自动化判据覆盖**(无构建可跑)。
+>
+> 🔁 **2026-10-27 三度实测后的边界(补注,原判不改)**:链尾五件落地后两套件为
+> EditMode `5529/5494/0/35` · PlayMode `229/228/0/1`(三元组见上方三度实测表)。
+> **PASS 判定不变** —— 零红依旧。但边界**更宽了一点**:新增的用例全部是
+> **Logic / Integration 级**(编排器、写者守卫、载荷落流),**仍无一条覆盖可玩面**;
+> A–D 22 条**仍是 N/A**。⇒ 「PASS」这个字在这份报告里始终只表示
+> **自动化套件零红 + 用户确认无异常**,不表示游戏能玩。
 
 ---
 
@@ -302,3 +433,19 @@ python3 -c "import xml.etree.ElementTree as ET;r=next(ET.parse('unity/Logs/fix-g
 
 > ⚠️ **跑 Unity 测试时 `-batchmode … -runTests` 不得带 `-quit`** —— 会让 Unity 在测试启动前退出,
 > 20 秒空跑、零 XML(本 session 2026-10-26 实测踩过一次)。
+
+### 🔁 三度实测的复算命令(本条为最新基线)
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+
+# EditMode(链尾收口)—— 预期 5529 5494 0 0 35
+python3 -c "import xml.etree.ElementTree as ET;r=next(ET.parse('$CLAUDE_JOB_DIR/tmp/reg-edit-s2015.xml').iter('test-run'));print(r.get('total'),r.get('passed'),r.get('failed'),r.get('inconclusive'),r.get('skipped'))"
+
+# PlayMode(链尾收口)—— 预期 229 228 0 0 1
+python3 -c "import xml.etree.ElementTree as ET;r=next(ET.parse('$CLAUDE_JOB_DIR/tmp/reg-play-s2015.xml').iter('test-run'));print(r.get('total'),r.get('passed'),r.get('failed'),r.get('inconclusive'),r.get('skipped'))"
+```
+
+> ⚠️ **XML 在 `$CLAUDE_JOB_DIR/tmp/` 是 job 临时目录,会被清理** —— 上面的数值同时
+> 抄进了 `production/qa/evidence/review-s20-15-2026-10-27.md:247-252`(含 §7.1 逐项增量等式),
+> 那是**持久件**。要长期复算请引那个文件,不要依赖本命令能重跑。

@@ -1,5 +1,99 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-27 · sprint-20 收口后六项跟进(用户「1 完成 2 完成三格矩阵 3 修复 4 修复 5 更新 6 裁决」)
+
+> ⚠️ **本节是最新状态;下方所有小节(sprint-19 / TD-enemy-02 等)**
+> **是历史记录,不代表当前进度** —— 当前 sprint 为 **sprint-20(已收口)**,不是 sprint-19。
+
+**六项全部已落盘,未提交。**
+
+| # | 项 | 结果 | 载体 |
+|---|---|---|---|
+| 1 | **C-4** 三件补独立评审 | 三份原件已交付。**2 份判 `CHANGES REQUIRED`**(S20-10 / S20-11)· 1 份 `APPROVED WITH SUGGESTIONS`(S20-12) | `production/qa/evidence/review-s20-1[012]-*.md` |
+| 2 | **C-2** 三格矩阵 | 用户裁「落两格 + 第三格登记未达」⇒ 新立工具并**实跑通过**;`AC-18-15` **仍不勾** | `tools/determinism-matrix/` · `production/qa/evidence/ac18-15-two-cell-matrix-2026-10-27.md` |
+| 3 | **C-5** 证据件自称评审替代物 | 5 处措辞已订正 | 5 份 `impl-*.md` |
+| 4 | smoke 基线失效 | 三度实测 `EditMode 5529/5494/0/35` · `PlayMode 229/228/0/1`;覆盖率表五行已补 | `production/qa/smoke-2026-10-27-sprint20.md` |
+| 5 | DoD 第 4 条 | 改为 `COVERED 16 · EXPECTED 1 · MISSING 0` + 可复算块 | `production/sprints/sprint-20.md` |
+| 6 | 链计划文件去留 | **改名**(不归档)`sprint-21-candidate-…` → `sprint-20-collection-chain-plan.md` | 同名文件 + 2 处引用 |
+
+### C-2 实测结果(两格 VERIFIED,`exit 0`)
+
+| 项 | 实测 |
+|---|---|
+| 格 1 Mono | `EditMode 53/53/0/0` · `PlayMode 3/3/0/0` |
+| 格 2 IL2CPP-x64 | `StandaloneLinux64 3/3/0/0`(构建并运行 player) |
+| 双格 19 条 vs 金标准 | 均**逐位相同** |
+| 双格彼此 | **逐位相同** |
+| 后端标记相异 | `Mono` vs `IL2CPP` ✅ |
+| ProjectSettings 还原 | **SHA-256 逐字节 = 基线**,`git status` 零输出 |
+
+⚠️ **`AC-18-15` 仍不勾,两条理由(缺一都够)**:
+① **判据面差异** —— 矩阵测的是 item-database 的 19 条黄金哈希,**不是** processing 三出参;
+processing 侧**零黄金夹具**(`grep -rln "golden\|Golden" unity/Assets/Tests/EditMode/Processing/` 零命中)。
+② ADR-012 判据 = 三格齐 + 常驻 + 版本化刷新协议,三样缺两样半。
+
+### 本轮修掉的三个工具缺陷(实测暴露,非预想)
+
+1. **过滤器漏一族** —— 首跑 EditMode 只到 48 测(漏 `ItemDatabase.DeterminismGoldenFixturesTest`);
+2. **player 腿未注入 env** —— 首跑 IL2CPP `3 测里 1 测 Skipped`,19 条就地断言整段没跑;
+3. **后端归位字节不等** —— `SetMono` 写显式 `Standalone: 0`,基线无该键 ⇒ 改「字节副本 cp 回 + SHA-256」。
+
+### C-4 抓出的三条 BLOCKING 级发现(**已当场修完**,2026-10-27)
+
+> 🔁 **原文不删,就地加注**:本节此前写「已进债册,勿随 C-4 关闭而消失」,
+> 且记了三个 `TD-inventory-0*` 编号。**用户随后裁定「不进21也不记债,现在完成」**
+> ⇒ 三件**当场修完**,债册里**没有**这三个编号(`grep -c "TD-inventory" docs/tech-debt-register.md` = **0**)。
+
+| 原发现 | 处置 | 落点 |
+|---|---|---|
+| `InventoryFold` 零生产调用点 | ✅ 建「装载库存实体」链 | `unity/Assets/Gameplay.Boot/InventoryLoadService.cs`(新建)+ `CompositionRoot.cs` 装配 + `LoadSequencer` 读档后钩子 |
+| `BuildPartQualityGate` 零调用点 | ✅ 接上唯一强制点(判据面 = 装载期) | 同上 `EnforceBuildPartQuality` |
+| 两条同义反复断言 | ✅ 改为由被测件产出被断言值 | `carry_load_adjudication_test.cs` |
+
+**证伪轮**:5/5 变异全红、5/5 文件 SHA-256 逐字节还原(见各 `review-s20-1[012]-*.md` §六)。
+**诚实边界**:`IsComplete` 在真实存档上**仍恒 false**(R16/R17/R18 载荷缺位未补);
+「玩家看得到库存」未接线;`FoldWeight` / `StacksOf` 仍零生产调用点。
+
+> 🔁 **2026-10-27 就地订正(原文不删)**:上句原写「`FoldWeight` / `StacksOf` / **`CanCarry`** 仍零生产调用点」
+> —— **`CanCarry` 那一半是错的**,属「按结论凑表述」。实测命令与输出:
+> ```bash
+> cd unity && grep -rn "CarryLoadSolver\.CanCarry(" Assets --include=*.cs | grep -v "^Assets/Tests/"
+> # Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs:168
+> # Assets/Sim/Processing/IgnitionAdmission.cs:137
+> # Assets/Sim/ItemDatabase/InventoryTransaction.cs:220   ⇒ wc -l = 3
+> ```
+> ⚠️ **必带 `CarryLoadSolver.` 前缀** —— 裸 `grep "CanCarry"` 会把定义行 + 两处文档注释数进去(得 **6**)。
+> ⇒ **3 处**真调用点(`CarryCapExistenceGate` 是门自身按 AC-20-21 调真实现,不是旁路)。
+> `review-s20-12-inventory-004-2026-10-27.md:139` 原文就写着「`CanCarry` 有真实生产调用点(3 处),✅ 已接线」
+> —— 是我汇总时把三个名字并成一串,没逐个复算。
+> 另两个(`FoldWeight` / `StacksOf`)本轮已复核,**仍为零**:
+> `FoldWeight` 仅定义 + `<see cref>` 注释;`StacksOf` 仅定义一处。
+
+### 未做
+
+- **未提交任何东西**(用户未下提交指令)。
+- `sprint-21` 未开;sprint-status 的 C-2 行未改状态(仍 `done` 的 sprint-20 计划)。
+
+### 🔁 收口后自查轮(2026-10-27)· 三处表述错误已就地订正
+
+> **性质**:不是用户新指令,是**回头复算自己的产出**时抓到的错。按
+> `feedback_evidence_wording_by_conclusion`(按结论凑表述)+ `coding-standards.md`
+> §数字须带可跑复算命令,逐条订正并留痕。
+
+| # | 错误 | 真值 | 订正落在 |
+|---|---|---|---|
+| 1 | 把 `CanCarry` 列进「仍零生产调用点」串 | **3 处**真调用点(`CarryCapExistenceGate.cs:168` · `IgnitionAdmission.cs:137` · `InventoryTransaction.cs:220`) | `active.md` 本块 · `qa-signoff-sprint-20:567` · `sprint-20.md:330` |
+| 2 | 配的复算命令 `grep "CanCarry"` 数到 **6**(含定义行 + 两处文档注释) | 正确命令须带 `CarryLoadSolver.` 前缀 ⇒ **3** | 三处订正块均改写了命令并明写「不要用裸 grep」 |
+| 3 | C-5 段的第三条复算写「零命中」,靠 `grep -v "订正\|不是"` 撑 | 实跑 **2 条**,同文件 `:6` 原文 + `:11` 撤回注记 —— 过滤器既排不掉原文,也没说明白在排什么 | `qa-signoff-sprint-20` C-5 复算块 |
+
+**共同病灶**:三处都是「把几个名字并成一串,只复算了其中一两个」。**没有一处是代码错**
+—— 修的全是**文档里的数**。修完后逐条实跑验证,输出贴在各订正块内。
+
+**未受影响的结论**:C-4 三条 BLOCKING 的修复本身(建链 / 接线 / 改写断言)与证伪轮
+`5/5 全红` 不受这三处影响 —— 那部分是**代码 + 实跑**,不是表述。
+
+---
+
 ## Sprint 19 收口轮(2026-10-25 · ✅ 已提交 `9bbef11`)
 
 - **retro**:`production/retrospectives/retro-sprint-19-2026-10-25.md`(5/5 计划内完成率回满 ·

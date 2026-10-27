@@ -1,12 +1,12 @@
 # Story 003: Craft 事件载荷十字 + 点火即落流 + 全序键铸造
 
 > **Epic**: 炮制
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-27
 
 ## Context
 
@@ -31,9 +31,15 @@
 
 *From GDD `design/gdd/processing.md`, scoped to this story:*
 
-- [ ] **AC-18-16** [I]: 一次炮制读世界流 ⇒ ① `Craft` 落**点火 tick**;② 载荷**五位齐**(actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed,R-18-A);③ `output_instance_ids` 于点火 tick 由主机经 `ItemInstanceId.Next()` 依全序键顺序铸造(认领 20 R10);④ 全序键 = `(Tick, StreamPriority, Patient=None, Seq)`(D-21-28[甲])
-- [ ] **AC-18-11**: 一次炮制读 `Craft` 载荷 ⇒ 含 `ActualConsumed[]`(21a AC-21a-52 实现侧归 18,承注③)
-- [ ] **AC-18-25**: `OQ-18-4` 真实配方未冻结时,以**合成夹具配方**跑 AC-18-11 / AC-18-16 仍全绿 —— 字段形状与恒在性义务不因内容未定而豁免(注③)
+- [x] **AC-18-16** [I]: 一次炮制读世界流 ⇒ ① `Craft` 落**点火 tick**;② 载荷**五位齐**(actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed,R-18-A);③ `output_instance_ids` 于点火 tick 由主机经 `ItemInstanceId.Next()` 依全序键顺序铸造(认领 20 R10);④ 全序键 = `(Tick, StreamPriority, Patient=None, Seq)`(D-21-28[甲])
+   - ③ 的**事件内**半边由 `CraftEventWriter` 索引序循环显式保证(证伪 M8 倒置 ⇒ 红);
+     **事件间**半边由新增 `test_ac1816_crossEvent_mintOrderFollowsFullOrderKey` 覆盖(证伪 M12 ⇒ 红)。
+     ⚠️ 事件间的成立依赖「主机串行 ⇒ 调用序 = 入流序」的**架构前提**,代码里零显式排序 —— 已在评审原件 §三 G-1 如实登记。
+- [x] **AC-18-11**: 一次炮制读 `Craft` 载荷 ⇒ 含 `ActualConsumed[]`(21a AC-21a-52 实现侧归 18,承注③)
+   - 载体:`test_ac1811_actualConsumed_presentAndEqualsSettlementOutput`(逐位等于 F1 出参)。
+     证伪 M9(实耗抹 0)/ M10(产出量抹 1)各自转红 ⇒ 该判据对**值**有判别力。
+- [x] **AC-18-25**: `OQ-18-4` 真实配方未冻结时,以**合成夹具配方**跑 AC-18-11 / AC-18-16 仍全绿 —— 字段形状与恒在性义务不因内容未定而豁免(注③)
+   - 载体:`test_ac1825_syntheticFixture_shapesHoldWithoutRealRecipeData`。全量无真实配方数据参与。
 - [ ] **AC-18-19** [I]: 任意运行期炮制验守恒律 `Σ(weight × ActualConsumed) ≥ Σ(weight × produced × QM⁻¹)` ⇒ 不破。⚠️ **EXTERNAL · BLOCKED-BY-21a(O-18-R3)** —— 21a 构建期聚合式与运行期逐条 Round 不同形(Edge Cases 反例),真修归 21a,回写未落 ⇒ **不得记绿**;本故事只交运行期反例复现夹具
 
 ---
@@ -95,10 +101,18 @@
 
 **Story Type**: Integration
 **Required evidence**:
-- Integration: `unity/Assets/Tests/PlayMode/craft_event_payload_test.cs` — must exist and pass(spy-sink + fold 交叉)
-- Logic(载荷整数域/形状): `unity/Assets/Tests/EditMode/Processing/craft_payload_shape_test.cs`
 
-**Status**: [ ] Not yet created
+- Integration(端到端落流 · 真装配):`unity/Assets/Tests/PlayMode/craft_event_payload_test.cs`
+- Logic(写者 / 事务 fail-closed 守卫):`unity/Assets/Tests/EditMode/Processing/craft_ignition_guards_test.cs`
+- *(既有,不重复造)* 载荷形状 / 编码往返 / 全序键排序:`unity/Assets/Tests/EditMode/ItemDatabase/craft_event_payload_test.cs`(story-009 交付,AC-21a-52 面)
+
+> ⚠️ **2026-10-27 落地订正**:本表原登记的第二条路径 `craft_payload_shape_test.cs` **不存在且不拟创建** ——
+> 载荷形状与 round-trip 已由 story-009 的 `Tests/EditMode/ItemDatabase/craft_event_payload_test.cs`
+> (408 行,9 条用例)覆盖,再造一份是重复记绿。实际落地的 EditMode 件改为**守卫面**
+> (`craft_ignition_guards_test.cs`),它覆盖的正是两份既有件都碰不到的一面(拒收 / fail-closed)。
+> 「一 AC 允许多载体」,但**不允许把同一载体换名字记两次**。
+
+**Status**: [x] 已创建并实跑(2026-10-27) —— 见 `## Completion Notes`
 
 ---
 
@@ -111,4 +125,31 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-27
+**Criteria**: 3/4 通过(AC-18-16 / AC-18-11 / AC-18-25);**AC-18-19 不勾** —— `EXTERNAL · BLOCKED-BY-21a(O-18-R3)`,真修归 21a,本 story 只交运行期反例复现夹具(`[Ignore]`,不记绿)。
+**Deviations**: 无 BLOCKING。三处已在评审原件登记(不掩盖):
+- **§三 G-1** —— AC-18-16③ 的「事件间」半边依赖「主机串行 ⇒ 调用序 = 入流序」的架构前提,代码零显式排序。已由夹具覆盖(反转会红),但「实现是否该显式排序」**本件不裁**,归 GDD 轮。
+- **§三 G-2** —— `payloadTenFields` 只断存在性/类型/长度,不断值(设计如此)。值面由另两条夹具承担,**两者不可互相冒充**。
+- **§三 G-4** —— `FurnaceState.IsBusy` 的半开区间 `[start, start+duration)` 是**实现选择**,GDD 未规定完成 tick 当拍是否仍算忙。
+
+**Test Evidence**:
+- Integration(端到端落流 · 真装配):`unity/Assets/Tests/PlayMode/craft_event_payload_test.cs` —— **15/15/0/1**(1 skip = AC-18-19 的 `[Ignore]`)
+- Logic(写者 / 事务 fail-closed 守卫):`unity/Assets/Tests/EditMode/Processing/craft_ignition_guards_test.cs` —— **15/15/0/0**
+
+**Falsifiability Gate(S12-4)**: **PASS**
+- 命中形态:① 定序 · ③ 定义域收窄 · ④ 一次性/幂等 · ⑤ 阈值边界 · 共存互斥
+- PlayMode 册 `s20-13-craft-ignition.json` **9/9 恰如预期**(`exit 0`)
+- EditMode 册 `s20-13-craft-ignition-guards.json` **11/11 恰如预期**(`exit 0`,第三轮)
+- 三轮还原均 **SHA-256 逐字节**通过,`grep -c "FALSIFY-"` 两文件均为 0
+
+**全量回归**(三元组 `2026-10-27T07:59Z` · sprint-20 · S20-13 批 · `e095b7b`):
+- EditMode **total 5479 / passed 5444 / failed 0 / skipped 35**
+- PlayMode **total 220 / passed 219 / failed 0 / skipped 1**
+- ⚠️ 首轮全量有 **4 红**,全部归因并修复(2 条是我实现的真违规、1 条门判据越权、1 条探针点作废)—— 详见评审原件 §六。
+- ⚠️ **本轮改动了三处本 story 之外的文件**,均为修复上述真缺陷的必要落点,理由逐条登记于 §六:
+  `unity/Assets/Editor.Tools.Gates/WriterExistenceGate.cs`(撤 `Craft` 豁免)· 
+  `unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs`(门判据收窄)· 
+  `unity/Assets/Tests/EditMode/Sim/writer_existence_gate_test.cs`(探针换名)· 
+  `unity/Assets/Sim/Processing/AdmissiblePredicate.cs`(枚举标签避让改名)。
+
+**Code Review**: 评审原件 `production/qa/evidence/review-s20-13-2026-10-27.md`(§一 原判定 · §二 修复落点 F-1…F-12 · §三 已登记缺口 · §四 证伪轮 · §五/§六 回归三元组)。

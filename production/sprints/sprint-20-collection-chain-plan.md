@@ -1,5 +1,24 @@
 # 计划 —— 采集链路解锁链（8 件 story · 2026-10-26 立）
 
+> 🔁 **2026-10-27 改名 + 结案(用户「6 裁决」)**
+>
+> **原名**:`sprint-21-candidate-collection-chain-plan.md`
+> **现名**:`sprint-20-collection-chain-plan.md`
+>
+> **改名的依据是事实,不是偏好** —— 链的 8 件**全部在 sprint-20 内落地**
+> (`S20-8` / `S20-13` / `S20-14` / `S20-15` 即本链的四件;`S20-4` = `processing/001`;
+> `S20-9`…`S20-12` / `S20-16` 为链上已完成的件)。原名写 `sprint-21-candidate` 有两处失真:
+> ① 它**从来不是候选** —— 用户 2026-10-26 裁定「甲:按链路顺序做到底」即已采纳;
+> ② **归属是 sprint-20**,不是 sprint-21。
+> ⇒ 保留原名会让下轮 `grep sprint-21` 找不到链的载体,同时让 `grep sprint-20` 漏掉它。
+>
+> **本件的现状 = 已完成的执行计划,不是待办**:
+> 8 件全部 `done`(复算见 §七),`AC-17-01` 已解除挂起。本件此后**只作历史与追溯用**,
+> 不再需要更新进度。
+>
+> ⚠️ **§二 的 Est 合计 51h 与「约 8 件 / 52h」的口径差**保留原样不加改 ——
+> 那是规划期的算术,与本件现在的用途(历史记录)无关;实测工时无从复算,不补造数字。
+
 > **立此件缘由**:`foraging-006`(采集侧 novelty 接线)的真实前置 = 20 的三个 `Drop*` 写者,
 > 而 20 侧写者熔在 `inventory-items/story-005` 的「统一写入事务模板」里,该件又有 5 个未开工前置。
 > ⇒ 「修 novelty 静默失效」这件事实际是一条 **8 件、约 52h** 的依赖链。
@@ -152,3 +171,35 @@ foreach (var (kind, reason) in ExemptKinds)
 - **立件人**:编排会话(用户裁定 甲 + 先出计划)
 - **用户裁定记录**:2026-10-26 —— ① 走甲(按链路做到底)· ② 先出计划再开工 · ③ 先做 processing-004 空闲判定半
 - **本件不改动任何 story 卡内容** —— 纯计划件
+- **2026-10-27 结案裁定**(用户「6 裁决」):① **改名**为 `sprint-20-collection-chain-plan.md`
+  (依据:8 件全在 sprint-20 落地,原名 `sprint-21-candidate` 的「候选」与「归属」双失真);
+  ② **不归档删除** —— 保留为历史执行记录(其中 §三 互锁破解 / §四 收口标准 /
+  §七 撤表时序坑均有长期参考价值)。
+
+## 九、结案状态(2026-10-27 实测)
+
+链上 8 件**全部 `done`**:
+
+| 件 | sprint-20 id | 状态 |
+|---|---|---|
+| `processing/001` 配方子集 + Admissible | `S20-4` | done |
+| `processing/002` F1 调用契约 | `S20-8` | done |
+| `processing/004` 单炉空闲判定 | `S20-9` | done |
+| `inventory/001` InventoryOf 投影 | `S20-10` | done |
+| `inventory/003` 堆叠 / 容器 / 折重 | `S20-11` | done |
+| `inventory/004` CanCarry / 载重 | `S20-12` | done |
+| `processing/003` Craft 落流 | `S20-13` | done |
+| `inventory/005` 统一事务模板 + Drop\* 写者 | `S20-14` | done |
+| `foraging/006` novelty 接线 + AC-17-01 | `S20-15` | done |
+
+（表内 9 行 = §二 的 9 个 story;「8 件」的原口径不含 `processing/001`,因它本就在 sprint-20 计划内,
+不重复计。）
+
+**复算**:
+```bash
+python3 -c "import yaml,collections;d=yaml.safe_load(open('production/sprint-status.yaml'));print(len(d['stories']),collections.Counter(s['status'] for s in d['stories']))"
+# 实跑:17 Counter({'done': 17})
+```
+
+⚠️ **本链的完成不解除 `AC-18-15`**(processing 的跨平台逐位重放)—— 那条挂的是 ADR-012
+矩阵面,归 `TD-ci-01`(EXTERNAL)。**链做完 ≠ AC-18-15 能勾。**

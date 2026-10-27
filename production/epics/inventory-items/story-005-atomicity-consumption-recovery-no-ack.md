@@ -1,12 +1,12 @@
 # Story 005: 装卸原子性、选栈消耗、死亡回捡与无负确认
 
 > **Epic**: 库存与物品
-> **Status**: Ready
+> **Status**: Complete —— **4/6 AC**(AC-20-06 / 07 / 17 / 25);AC-20-19 / AC-20-14 挂 **BLOCKED** 并给出可复算判据(见 §Acceptance Criteria 条目注与 §Completion Notes)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-27
 
 ## Context
 
@@ -31,12 +31,25 @@
 
 *From GDD `design/gdd/inventory-and-items.md`, scoped to this story:*
 
-- [ ] **AC-20-06**: `GIVEN` 超容量拾取,`WHEN` 请求,`THEN` 整体拒绝,`InventoryOf` 零变化,地面实例留存(规则六)
-- [ ] **AC-20-07**: `GIVEN` 炮制中途失败(容量不足),`WHEN` 结算,`THEN` 整体回滚(料不扣、货不出)(规则六)
-- [ ] **AC-20-17**: `GIVEN` 一次炮制/一次建造,`WHEN` 检索世界流,`THEN` 零 `ItemConsumed`/`ItemTransferred` 追加 Kind;扣减由 `Craft.ActualConsumed` / `StructurePlaced` 的 `cost(m)` 唯一推出(OQ-20-1 · 规则一①)
-- [ ] **AC-20-19** [已解除 BLOCKED-BY-R7]: `GIVEN` 玩家死亡后掉落物散落,`WHEN` 逐条检视 `DropClaimed`,`THEN` 每条 `DropClaimed` 的前置移动意图含该 drop 所在死亡格(可判伪正向谓词;OQ-25-1 已裁路甲 ⇒ 留 P0)
-- [ ] **AC-20-25**(BL-30①): `GIVEN` 20 全部代码路径与 `entities.yaml` Kind 闭集,`WHEN` 检索,`THEN` 零 `PickupRejected`/`IntentAck`/`ConsumeFailed` 类否定事件;被拒意图后世界流零新增(`InventoryOf` 前后逐位相同);禁向 45 索 ack 通道
-- [ ] **AC-20-14** [I]: `GIVEN` 23 的一次放置,`WHEN` 集成走查,`THEN` `build_part` 在 `StructurePlaced` **接受后**被扣除;P0 拆除**全额返还**(23 规则七)
+- [x] **AC-20-06**: `GIVEN` 超容量拾取,`WHEN` 请求,`THEN` 整体拒绝,`InventoryOf` 零变化,地面实例留存(规则六)
+- [x] **AC-20-07**: `GIVEN` 炮制中途失败(容量不足),`WHEN` 结算,`THEN` 整体回滚(料不扣、货不出)(规则六)
+- [x] **AC-20-17**: `GIVEN` 一次炮制/一次建造,`WHEN` 检索世界流,`THEN` 零 `ItemConsumed`/`ItemTransferred` 追加 Kind;扣减由 `Craft.ActualConsumed` / `StructurePlaced` 的 `cost(m)` 唯一推出(OQ-20-1 · 规则一①)
+  > ⚠️ **本 AC 只勾「零追加 Kind」这半**:`Enum.TryParse` 扫 `ItemConsumed`/`ItemTransferred` 双面(EditMode + PlayMode)已绿。
+  > 「扣减由 `cost(m)` 推出」那半依赖 `StructurePlacedPayload.cost` —— **该字段不存在**(R16),见 AC-20-14 的 BLOCKED 注。
+- [ ] **AC-20-19** [🔴 **BLOCKED**(2026-10-27 实测,非「已解除」)]: `GIVEN` 玩家死亡后掉落物散落,`WHEN` 逐条检视 `DropClaimed`,`THEN` 每条 `DropClaimed` 的前置移动意图含该 drop 所在死亡格(可判伪正向谓词;OQ-25-1 已裁路甲 ⇒ 留 P0)
+  > ⚠️ **原标注「已解除 BLOCKED-BY-R7」与实际不符,2026-10-27 就地订正**。R7 解除的是 **29 侧的设计裁决**;
+  > **29 的实现侧未落** —— `production/epics/death-respawn/story-002-drop-manifest-stream-reclaim.md` 仍 `Status: Ready`,
+  > 且 `DropEventWriter` 全仓**零生产调用点**(`grep -rn "new DropEventWriter" unity/Assets/ --include=*.cs | grep -v /Tests/` ⇒ 零命中)。
+  > 没有散落,就没有「散落后的回捡」这条链可检视。**本件交付写者与事务模板,不交付可运行的死亡回捡链路。**
+- [x] **AC-20-25**(BL-30①): `GIVEN` 20 全部代码路径与 `entities.yaml` Kind 闭集,`WHEN` 检索,`THEN` 零 `PickupRejected`/`IntentAck`/`ConsumeFailed` 类否定事件;被拒意图后世界流零新增(`InventoryOf` 前后逐位相同);禁向 45 索 ack 通道
+- [ ] **AC-20-14** [I] [🔴 **BLOCKED**(2026-10-27 实测 —— 载荷缺位)]: `GIVEN` 23 的一次放置,`WHEN` 集成走查,`THEN` `build_part` 在 `StructurePlaced` **接受后**被扣除;P0 拆除**全额返还**(23 规则七)
+  > ⚠️ **根因是载荷缺位,不是装配没做**。`StructurePlacedPayload`(`WorldPayloads.cs:110-116`)实测五字段
+  > `{StructureId, Cell, ModuleId, Orientation, Variant}` —— **无 `cost`、无 `actor`**。
+  > ⇒ 「扣减效果由 `StructurePlaced` 的 `cost(m)` 推出」这条判据**在结构上不可能成立**(缺口 R16),
+  > 且不知道扣谁的料。23 侧 `RefundCalculator.CalculateRefund(cost, ratio)` 的 `cost` 由**调用方传入**,
+  > 印证 cost 今天住在 23 的调用栈里、不在流里。
+  > ⇒ 须先解决 R16(扩 `StructurePlacedPayload` 或另立载体),那是 23 / 架构轮的活。
+  > **本件不擅自给载荷加字段** —— 那会改 ADR-024 登记的 `payload_schema`。
 
 ---
 
@@ -110,8 +123,32 @@
 **Required evidence**:
 - Integration: `unity/Assets/Tests/PlayMode/inventory_atomicity_test.cs` — must exist and pass
 - Logic(信令/registry 扫描): `unity/Assets/Tests/EditMode/Inventory/no_negative_ack_test.cs`
+- Logic(写者守卫 + 事务前置): `unity/Assets/Tests/EditMode/Inventory/drop_event_writer_guards_test.cs`
+- 证伪规格: `tools/falsify/specs/s20-14-drop-writers-and-transaction.json`(11 变异)
+- 评审原件: `production/qa/evidence/review-s20-14-2026-10-27.md`
 
-**Status**: [ ] Not yet created
+**Status**: [x] 三件均已创建并通过(2026-10-27):32 + 8 + 9 用例全绿;证伪轮 11/11 恰如预期
+**AC → 载体映射**:
+
+| AC | 载体 1 | 载体 2 | 载体 3 |
+|---|---|---|---|
+| AC-20-06 | `drop_event_writer_guards_test` `test_pickup_overCapacity_isRejectedWhole` / `..._exactlyAtCapacity_isAllowed` / `..._usesTheSingleCanCarryImplementation_verbatim` | `inventory_atomicity_test` `test_ac2006_*` ×3 | — |
+| AC-20-07 | `drop_event_writer_guards_test` `test_consume_duplicateInstanceInOneRequest_rejected` / `test_ticksAreAppendable_*` | `inventory_atomicity_test` `test_ac2007_*` ×2 | — |
+| AC-20-17 | `drop_event_writer_guards_test` `test_noConsumptionKindsExist` | `inventory_atomicity_test` `test_ac2017_noConsumptionKindAppearsInTheRun` | — |
+| AC-20-25 | `no_negative_ack_test` 全 8 条(registry / 枚举 / 载荷 / 接口四面) | `inventory_atomicity_test` `test_ac2025_*` ×3 | `drop_event_writer_guards_test` `test_rejectedPaths_writeNothing` / `test_noNegativeSignalEventKindsExistInEnum` |
+| AC-20-19 | — | — | **BLOCKED**(见 AC 条目注) |
+| AC-20-14 | — | — | **BLOCKED**(见 AC 条目注) |
+
+**Falsifiability Gate(S12-4)**:
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| ③ 定义域收窄 | 负 tick / 负 item_key / 负 claimer / 负 reason 四道入参守卫 | M1/M2/M5/M7:删守卫 ⇒ `test_spawned_negativeTick_...` / `..._negativeItemKey_...` / `test_claimed_negativeClaimer_throws` / `test_despawned_negativeReason_throws` 各 1 条红 |
+| ⑤ 阈值边界 | `qty < 1`(出生)、`qty < 1`(扣减)、`line.Qty > row.Qty` | M3/M6/M9:删守卫 ⇒ `test_spawned_zeroQty_...` / `test_despawned_zeroQty_throws` 各 1 条红;M9 ⇒ 2 条红(含 `test_rejectedPaths_writeNothing`) |
+| ④ 一次性/幂等 | 铸造点只有 `DropSpawned`;同请求不得重复点名 | M4(注入白铸)⇒ `test_claimed_doesNotMint_andDoesNotRespawn`;M8 ⇒ `test_consume_duplicateInstanceInOneRequest_rejected` |
+| ① 定序 | `TicksAreAppendable` 的**批内**与**基线接续**两半 | M10 ⇒ 2 条红;M11 ⇒ `test_ticksAreAppendable_batchRegressingBelowStream_rejected` |
+
+⚠️ **M11 首轮逃逸已修**(夹具 `{100,98}` → `{98,100}`):原夹具自身内含回退 ⇒ 删基线半仍被批内比较拦住 = 假绿。详见评审原件 §一.2。
 
 ---
 
@@ -124,4 +161,31 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-27
+**Criteria**: **4/6 通过**(AC-20-06 / 07 / 17 / 25);**2 条 BLOCKED**(AC-20-19 · AC-20-14)
+**Deviations**: 无 GDD/ADR 偏离;两条 BLOCKED 均已给出可复算的阻塞判据(见 §Acceptance Criteria 条目注)
+**Test Evidence**: `unity/Assets/Tests/EditMode/Inventory/drop_event_writer_guards_test.cs`(32)
+· `unity/Assets/Tests/EditMode/Inventory/no_negative_ack_test.cs`(8)
+· `unity/Assets/Tests/PlayMode/inventory_atomicity_test.cs`(9)—— 三件 49 用例全绿
+**Code Review**: Falsifiability Gate 完成(11 变异,首轮 8/11 → 修 1 条假绿 → 复跑 11/11);原件 `production/qa/evidence/review-s20-14-2026-10-27.md`
+
+### 交付性质(**必读,防误判为可运行链路**)
+
+本件交付 **`Drop*` 三支写者 + 统一事务模板** —— **形状完备 + 自足夹具**,
+**不是**可运行的掉落/回捡链路。判据:`DropEventWriter` 全仓**零生产调用点**
+(`grep -rn "new DropEventWriter" unity/Assets/ --include=*.cs | grep -v /Tests/` ⇒ 零命中)。
+
+四类触发方**全部未接线**,各自归各自装配轮:
+- `DropSpawned`:17 采集三连发 / 18 起货溢出 / 25 敌人死亡 / 29 玩家死亡散落
+- `DropClaimed`:拾取三段式判距住 4 的交互装配轮(ADR-009 §七)
+- `DropDespawned`:用药消耗编排归 11 的装配轮
+
+⚠️ 与 `S20-16`(foraging-003)同款交付性质,当时亦如实登记。**「有写者 ≠ 已接线」** ——
+`WriterExistenceGate.cs:162-174` 的撤豁免注释里已逐字写明这一点。
+
+### 留给下游的钩子
+
+- **S20-15** 会把 `HarvestOrchestrator` 的 `NullDropWriter` 换成真实现(即 `DropSpawned` 的第一类触发方接线);
+  届时 `test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot` 会**转红,那是期待不是故障**。
+- **AC-20-14 的解锁条件** = R16 结构缺口(扩 `StructurePlacedPayload` 加 `cost` + `actor`,
+  或另立载体)。**不在本件擅自加字段** —— 那会改 ADR-024 登记的 `payload_schema`。

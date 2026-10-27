@@ -1,12 +1,12 @@
 # Story 006: 采集侧新颖度接线 + 编排器生产装配 + AC-17-01 解除挂起
 
 > **Epic**: 采集
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-26
+> **Last Updated**: 2026-10-27
 
 ## Context
 
@@ -31,15 +31,30 @@
 
 *From GDD `skill-system.md` §3.2 规则二 + `foraging.md` 规则二/五:*
 
-- [ ] **AC-17-14(新)**: `GIVEN` 玩家首次采某品种,`WHEN` 采集成功,`THEN` `SkillGrown.novelty_class == First`(×3.0)
-- [ ] **AC-17-14b(新)**: `GIVEN` 同一玩家在冷却期(`< NOVELTY_COOLDOWN` tick)内再采同品种,`WHEN` 采集成功,`THEN` `novelty_class == Stale`(×0.2),且 `lastSeenTick` **不被推进**(冷却锁定)
-- [ ] **AC-17-14c(新)**: `GIVEN` 同一玩家超出冷却期后再采同品种,`WHEN` 采集成功,`THEN` `novelty_class == Normal`(×1.0),且 `lastSeenTick` 被推进
-- [ ] **AC-17-14d(新)**: `GIVEN` 两名不同玩家各自首采同一品种,`WHEN` 各自采集,`THEN` 两人**都是** `First`(GDD `:500` 按玩家独立,不共享)
-- [ ] **AC-17-14e(新)**: `GIVEN` 一次**失败**的采集(满载/余量不足/打断),`WHEN` 动作终止,`THEN` `NoveltyTracker` 状态**零变化**(不消耗「首次」奖励)
-- [ ] **AC-17-14f(新)**: `GIVEN` 采集侧 `novelty` 求值路径,`WHEN` 静态检查,`THEN` `HarvestRequest` **不含** `Novelty` 字段 —— 求值只在编排器内部发生,调用方**在类型层面无法**传错
-- [ ] **AC-17-14g(新)**: `GIVEN` `HarvestOrchestrator`, `WHEN` 扫描 `CompositionRoot`, `THEN` 有且**仅有一个**装配点(零调用点 = 未接线;多个 = 第二真源)
-- [ ] **AC-17-01(解除挂起)**: `GIVEN` 一次成功采集,`WHEN` 检索产出路径,`THEN` 恰发 `ResourceHarvested` + `DropSpawned` + `DropClaimed` 三条既有 Kind,零新增 Kind(规则二)
+- [x] **AC-17-14(新)**: `GIVEN` 玩家首次采某品种,`WHEN` 采集成功,`THEN` `SkillGrown.novelty_class == First`(×3.0)
+- [x] **AC-17-14b(新)**: `GIVEN` 同一玩家在冷却期(`< NOVELTY_COOLDOWN` tick)内再采同品种,`WHEN` 采集成功,`THEN` `novelty_class == Stale`(×0.2),且 `lastSeenTick` **不被推进**(冷却锁定)
+- [x] **AC-17-14c(新)**: `GIVEN` 同一玩家超出冷却期后再采同品种,`WHEN` 采集成功,`THEN` `novelty_class == Normal`(×1.0),且 `lastSeenTick` 被推进
+- [x] **AC-17-14d(新)**: `GIVEN` 两名不同玩家各自首采同一品种,`WHEN` 各自采集,`THEN` 两人**都是** `First`(GDD `:500` 按玩家独立,不共享)
+- [x] **AC-17-14e(新)**: `GIVEN` 一次**失败**的采集(满载/余量不足/打断),`WHEN` 动作终止,`THEN` `NoveltyTracker` 状态**零变化**(不消耗「首次」奖励)
+  > 🔁 **2026-10-27 实现轮订正**:本条的夹具首稿**是假绿**。它用 `objectId: -1` 作非法入参,
+  > 而 `NoveltyTracker.Query` **自己也守卫** `objectId < 0`(`NoveltyTracker.cs:73-75`),且守卫在
+  > 写字典**之前** ⇒ `Query` 提前跑也只抛、不留痕 ⇒ 那条 `Count == 0` 断言对**定序零判别力**。
+  > 证伪轮 M3 首轮红了 7 条,但**没有一条**来自这条断言。⇒ 改用 `qty: 0`(`Validate` **独有**的
+  > 守卫,`Query` 不看 qty)。详见 `production/qa/evidence/review-s20-15-2026-10-27.md` §一.2。
+- [x] **AC-17-14f(新)**: `GIVEN` 采集侧 `novelty` 求值路径,`WHEN` 静态检查,`THEN` `HarvestRequest` **不含** `Novelty` 字段 —— 求值只在编排器内部发生,调用方**在类型层面无法**传错
+  > 🔁 **2026-10-27 订正本条的证伪口径**:原表写「加回该字段 ⇒ AC-17-14f 红」,**该表述不准确** ——
+  > 加回字段是**编译期**变化,`falsify` 的行替换做不到(得同时改构造调用点)。
+  > 实测分两面:**类型面**由「编译期不可表达」承载(`test_ac1714f_harvestRequestHasNoNoveltyMember`
+  > 反射扫成员 + `…orchestratorTakesNoveltyTracker…` 断言构造收 `NoveltyTracker`、不收 `NoveltyClass`);
+  > **行为面**由变异 M6(novelty 恒为 `First`)承载,红 3 条。
+- [x] **AC-17-14g(新)**: `GIVEN` `HarvestOrchestrator`, `WHEN` 扫描 `CompositionRoot`, `THEN` 有且**仅有一个**装配点(零调用点 = 未接线;多个 = 第二真源)
+- [x] **AC-17-01(解除挂起)**: `GIVEN` 一次成功采集,`WHEN` 检索产出路径,`THEN` 恰发 `ResourceHarvested` + `DropSpawned` + `DropClaimed` 三条既有 Kind,零新增 Kind(规则二)
   **⚠️ 前置 = `inventory-items/story-005`(20 写者)Complete** —— 届时换掉 `NullDropWriter` 装配,`test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot` 会转红,**那是期待不是故障**
+  > ✅ **2026-10-27 已解除**:前置件 `inventory-items/story-005` 状态 = `Complete`(4/6 AC;其
+  > BLOCKED 的两条与「写者是否可用」无关)。反向夹具 `test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot`
+  > 已按预告**就地改判**为 `test_ac1701_nullDropWriterAssembly_writesOnlyResourceHarvested`
+  > (保留为注入缝的**负向对照**),并新增正向判据
+  > `test_ac1701_productionAdapter_writesAllThreeKinds_inOrder`(断言世界流恰三条 + 载荷共号 + 病史流恰一条 `SkillGrown`)。
 
 ---
 
@@ -157,17 +172,55 @@
 - `unity/Assets/Tests/EditMode/Foraging/harvest_novelty_wiring_test.cs` —— **新建**
 - `unity/Assets/Tests/EditMode/Foraging/harvest_orchestrator_test.cs` —— **改造**(删 `HarvestRequest.Novelty` 相关夹具,补 `NoveltyTracker` 注入)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing
 
-**Falsifiability Gate(S12-4 · 强制)**:
-
-| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+| 文件 | 行数 | 用例 |
 |---|---|---|
-| 定义域收窄 | 冷却判定 `elapsed >= cooldown` | 改 `>` ⇒ AC-17-14c 边界红 |
-| 定序 | `Query` 在 `Validate` 之后 | 把 `Query` 挪到 `Validate` 前 ⇒ AC-17-14e 红 |
-| 一次性/幂等 | 冷却内不推进 `lastSeenTick` | 冷却内也推进 ⇒ AC-17-14b 的 `Peek` 断言红 |
-| 共存/互斥 | 按玩家独立 | 键去掉 `actorId` ⇒ AC-17-14d 红 |
-| 类型面 | `HarvestRequest` 无 `Novelty` | 加回该字段 ⇒ AC-17-14f 红 |
+| `harvest_novelty_wiring_test.cs` | 404 | 11 `[Test]` |
+| `harvest_orchestrator_test.cs` | 727 | 14 `[Test]` + 7 `[TestCase]` |
+
+> 复算:`wc -l` 两件 · `grep -c '\[Test\]'` · `grep -c '\[TestCase'`
+
+**AC → 载体映射**:
+
+| AC | 载体 |
+|---|---|
+| 17-14 / 14b / 14c / 14d / 14e | `harvest_novelty_wiring_test.cs` 各一条同名 `test_ac1714*` |
+| 17-14f | `test_ac1714f_harvestRequestHasNoNoveltyMember`(反射)+ `test_ac1714f_orchestratorTakesNoveltyTrackerAndQueriesItItself` |
+| 17-14g | `test_ac1714g_compositionRoot_hasExactlyOne{Orchestrator,NoveltyTracker}ConstructionSite` + `…productionBag_exposesHarvest_wiredToTheSameNoveltyTracker` + `…productionBag_harvestWritesThroughToTheStream` |
+| 17-01 | `harvest_orchestrator_test.test_ac1701_productionAdapter_writesAllThreeKinds_inOrder` + `harvest_novelty_wiring_test.test_ac1714g_productionBag_harvestWritesThroughToTheStream` + 负向对照 `test_ac1701_nullDropWriterAssembly_writesOnlyResourceHarvested` |
+
+**Falsifiability Gate(S12-4 · 强制)** —— **PASS**
+
+规格:`tools/falsify/specs/s20-15-novelty-wiring.json`(9 变异;复算 `len(mutations)` ⇒ 9)
+驱动器:`python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-15-novelty-wiring.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked`
+
+**首轮 7/9 → 修 1 条夹具假绿 + 修 2 条 spec 靶点 → 复跑 9/9 恰如预期,`exit 0`**
+
+| 命中形态 | 变异 | 主要断言 | 反证:停用什么 ⇒ 哪条转红(实测) |
+|---|---|---|---|
+| ③ 定义域收窄 | M1 | 冷却判定 `elapsed >= cooldown`(`Query`) | 改 `>` ⇒ `test_ac1714c_…` 红(**1** 条) |
+| ③ 定义域收窄 | M2 | 同上,`Peek` 侧 | 改 `>` ⇒ `14b` + `14c` 红(**2** 条) |
+| ① 定序 | **M3** | `Query` 排在 `Validate` 之后 | `Validate` 抛出前泄漏一次 `Query` 副作用 ⇒ `test_ac1714e_…` 红(**1** 条) |
+| ④ 一次性/幂等 | M4 | 冷却内不推进 `lastSeenTick` | Stale 分支也推进 ⇒ `test_ac1714b_…` 红(**1** 条) |
+| 共存/互斥 | **M5** | 按玩家独立 | `NoveltyKey` 丢 `actorId` ⇒ `test_ac1714d_…` 红(**1** 条) |
+| 类型面(行为侧) | M6 | 载荷 novelty 来自追踪器状态 | 恒为 `First` ⇒ `14b` + `14c` + `14f` 红(**3** 条) |
+| 单装配点 | M7 | `new NoveltyTracker(` 恰 1 | 注入第二个 ⇒ `…OneNoveltyTrackerConstructionSite` 红(**1** 条) |
+| 单装配点 | M8 | `new HarvestOrchestrator(` 恰 1 | 注入第二个 ⇒ `…OneOrchestratorConstructionSite` 红(**1** 条) |
+| 写入口选错 | M9 | 适配器调 `RecordSpawnedWithId`(不自铸) | 两路都调 ⇒ `test_ac1701_…` + `…harvestWritesThroughToTheStream` 红(**2** 条) |
+
+**还原判据**:`SHA-256 逐字节校验通过` · 受保护路径指纹未变 · 窗口后 `grep -c "FALSIFY-"` 四件全 0。
+
+> ⚠️ **首轮两条不合格的形态**(如实留档,不删原表):
+> - **M5 打错靶**:只改 `Query` 的键构造,`Peek` 仍用真 `actorId` ⇒ 同一字典两套键 ⇒
+>   「哈希/相等不一致」脏状态 ⇒ 红 4 条。**那不是「按玩家独立被破坏」**。靶点改到
+>   `NoveltyKey` 构造函数(一处改 ⇒ `Equals`/`GetHashCode`/全调用点同步降级)。
+> - **M3 双重缺陷**:「把 `Query` 挪到 `Validate` 前」的字面实现 ⇒ 行替换做不到「移动」
+>   (只能整行替换)⇒ 退化成**执行两次** ⇒ 同键二查判 Stale ⇒ 红 7 条。**连带暴露
+>   AC-17-14e 夹具假绿**(见上方该 AC 的订正注)。
+>
+> ⚠️ **原表「加回 `Novelty` 字段 ⇒ AC-17-14f 红」已订正** —— 那是编译期变化,行替换做不到;
+> 现由「编译期不可表达 + M6 行为面」两面承载(见 AC-17-14f 条目注)。
 
 ---
 
@@ -184,4 +237,46 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-27
+**Criteria**: **8/8 passing**(AC-17-14 / 14b / 14c / 14d / 14e / 14f / 14g / AC-17-01)
+**Deviations**: 无 BLOCKING。三处**已登记缺口**见 §已知缺口(均不属本件裁决面)。
+**Test Evidence**: Integration —— `unity/Assets/Tests/EditMode/Foraging/harvest_novelty_wiring_test.cs`(11 用例,新建)+ `harvest_orchestrator_test.cs`(14 `[Test]` + 7 `[TestCase]`,改造)
+**Code Review**: 评审原件 `production/qa/evidence/review-s20-15-2026-10-27.md`
+
+### 交付性质(禁把「接线」读成「玩家采得到」)
+
+本件交付 = **编排器内部求值正确** + **它在生产装配里存在**。
+**生产触发点(「对着一株药材按 E」)仍归系统 4 的交互装配轮** —— 玩家今天按不到采集键。
+这与 S20-14 / S20-16 的交付性质同款,均已如实登记。
+
+### 关键裁定(用户 2026-10-27)
+
+**R-3 双铸造点冲突 → 甲案**:在 20 侧加「收已铸 id」入口,`RecordSpawned` 退为薄包装。
+
+| 段 | 行 | 职责 |
+|---|---|---|
+| `RecordSpawned(tick, anchor, key, qty)` | `DropEventWriter.cs:109` | **校验 → 铸号 → 委托**(既有公开面,行为不变) |
+| `RecordSpawnedWithId(tick, id, anchor, key, qty)` | `:147` | **新增**:收外部已铸 id(17 侧用) |
+| `ValidateSpawned(...)` | `:158` | 三条原守卫,两入口共用 |
+| `AppendSpawned(...)` | `:171` | **唯一 `Append` 路径**,两入口共用 |
+
+⇒ `RecordSpawned` 与 `RecordSpawnedWithId` 是**同一写者的两种形状,不是两条写路径**。
+⚠️ 实现细节上的第一处自查:`RecordSpawned` 里 **`ValidateSpawned` 必须排在 `NextItemInstanceId()` 之前** ——
+若照最简写法 `=> RecordSpawnedWithId(tick, _idAuthority.Next(), …)`,非法入参会**在校验之前烧掉一个号**
+(机制 A 计数器前进后不可回退)。
+
+适配器 `DropEventWriterAdapter` 显式调 `RecordSpawnedWithId`,**永不**调 `RecordSpawned`。
+
+### 本轮实测到的三处纠正(均不掩盖)
+
+| # | 事实 | 落点 |
+|---|---|---|
+| 1 | **AC-17-14e 夹具首稿是假绿** —— `objectId: -1` 这个非法入参被 `NoveltyTracker.Query` 自己也守卫,`Count == 0` 断言对定序零判别力 | 改 `qty: 0`(`Validate` 独有守卫);证伪 M3 现恰红 1 条 |
+| 2 | **spec M5 首稿打错靶** —— 只改 `Query` 侧键构造,`Peek` 仍用真 actorId ⇒ 脏状态 | 靶点移到 `NoveltyKey` 构造函数,一处改全体同步 |
+| 3 | **story 原表「加回 `Novelty` 字段 ⇒ 14f 红」表述不准确** —— 那是编译期变化 | 改由「编译期不可表达 + M6 行为面」两面承载 |
+
+### 将来点(代码内已留注释,非本件兜)
+
+`Query` 现排在 `Validate` 之后(`HarvestOrchestrator.cs:313`)。**`foraging/story-005`(动作原子性 +
+失败收敛,状态 `Ready`)落地后,满载 / 余量不足的失败会发生在 `Validate` 之后** ⇒
+届时须把 `Query` 移到那些失败判定**之后**,而不是移到写入之后。注释在 `:306-309`。

@@ -74,8 +74,16 @@
 > **不表示「全部满足」**。表内出现「⚠️ 不勾 + 具名理由」的行**不违反**本条。
 
 - [x] All Must Have tasks completed(本体交,半边挂标**不得记 `Complete`**)
-      > ⚠️ **本条按「计划内 7 件」判,不按 yaml 全部 17 件判**:计划内 7 件(S20-1…S20-7)**全 `done`**;
-      > **追加批 4 件未完成**(S20-8 `ready-for-dev` · S20-13/14/15 `backlog`)—— 见 §九「不记绿项」①。
+      > 🔁 **2026-10-27 订正(本条已由「部分完成」变为「全部完成」)**:原判「计划内 7 件全 `done`,
+      > 追加批 4 件未完成(S20-8 `ready-for-dev` · S20-13/14/15 `backlog`)」。
+      > 同日用户下达全链实现指令后,**17/17 全部 `done`** ⇒ 本条**不再需要按「计划内 7 件」的窄口径判**,
+      > 全量口径下亦成立。复算:
+      > ```bash
+      > python3 -c "import yaml,collections;d=yaml.safe_load(open('production/sprint-status.yaml'));print(len(d['stories']),collections.Counter(s['status'] for s in d['stories']))"
+      > # 实跑:17 Counter({'done': 17})
+      > ```
+      > > 🔁 **原记录(原文不删)**:计划内 7 件(S20-1…S20-7)**全 `done`**;追加批 4 件未完成
+      > > (S20-8 `ready-for-dev` · S20-13/14/15 `backlog`)—— 见 §九「不记绿项」①。
 - [x] All tasks pass acceptance criteria(逐条判定 + 判据;禁「已落盘」当判据)
       > 逐件判定表见各 story `## Completion Notes` 的 AC 映射表 + 证据件。**有 5 处「有判定但不勾」**:
       > `AC-18-15`(S20-9,EXTERNAL)· `AC-20-03`/`AC-20-16`(S20-10,结构性不可勾)·
@@ -84,8 +92,37 @@
 - [x] QA plan exists(`production/qa/qa-plan-sprint-20-*.md` —— **本轮规划批即跑 `/qa-plan sprint`**)
       > `production/qa/qa-plan-sprint-20-2026-10-25.md`(2026-10-25 落盘,规划批当日执行)。
 - [x] All Logic/Integration stories have passing unit/integration tests
-      > smoke 覆盖率表:**COVERED 10 · EXPECTED 6 · MISSING 0**。6 条 EXPECTED = 4 件未开工
-      > (S20-8/13/14/15)+ S20-4/S20-7 在 smoke 执行时刻尚未落地(两者均于 10-27 当日补上,见 §九)。
+      > 🔁 **2026-10-27 订正(链尾四件完成后 · 本条为最新)**:原记「**COVERED 10 · EXPECTED 6 · MISSING 0**」,
+      > 那是 smoke 报告执行时刻(`smoke-fix` @ 01:13–01:20,commit `5bdd226`)的快照。同日
+      > **S20-4 / S20-8 / S20-13 / S20-14 / S20-15 五件全部落地**且各有夹具有实测用例数 ⇒
+      > 现为 **COVERED 16 · EXPECTED 1 · MISSING 0**(仅剩 `S20-7` 治理轮,零新代码,载体是债册与证据件)。
+      >
+      > | 件 | 载体 | 用例 |
+      > |---|---|---|
+      > | S20-4 | `EditMode/Processing/admissible_predicate_test.cs` | 37 `[Test]` |
+      > | S20-8 | `EditMode/Processing/f1_call_contract_test.cs` | 39 `[Test]` + 12 `[TestCase]` |
+      > | S20-13 | `EditMode/Processing/craft_ignition_guards_test.cs`(+ `PlayMode/craft_event_payload_test.cs`) | 15 `[Test]` |
+      > | S20-14 | `EditMode/Inventory/drop_event_writer_guards_test.cs` + `no_negative_ack_test.cs`(+ `PlayMode/inventory_atomicity_test.cs`) | 32 + 8(9) |
+      > | S20-15 | `EditMode/Foraging/harvest_novelty_wiring_test.cs` | 11 `[Test]` |
+      >
+      > **复算(可直接跑)**:
+      > ```bash
+      > cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+      > grep -c '^| S20-' production/qa/smoke-2026-10-27-sprint20.md            # 17
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs        # 37
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Processing/f1_call_contract_test.cs            # 39
+      > grep -c '\[TestCase' unity/Assets/Tests/EditMode/Processing/f1_call_contract_test.cs          # 12
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Processing/craft_ignition_guards_test.cs       # 15
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Inventory/drop_event_writer_guards_test.cs     # 32
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Inventory/no_negative_ack_test.cs              # 8
+      > grep -c '\[Test\]' unity/Assets/Tests/EditMode/Foraging/harvest_novelty_wiring_test.cs        # 11
+      > ```
+      >
+      > ⚠️ **「有测试」≠「有独立评审」** —— 本条只判**证据存在且通过**;
+      > 评审面归 DoD 第 9 条,两者**不得合并记账**。
+      >
+      > > 🔁 **原记录(原文不删)**:COVERED 10 · EXPECTED 6 · MISSING 0。6 条 EXPECTED = 4 件未开工
+      > > (S20-8/13/14/15)+ S20-4/S20-7 在 smoke 执行时刻尚未落地。
 - [x] 每新增/改写夹具过证伪轮(同命令改→跑→还原,SHA-256 逐字节;一属性一条变异)
       > S20-1(F1–F3)· S20-2(F7 + 11/11)· S20-2a(四支)· S20-3(第四轮 7/7)· S20-4(M1–M8 + P1,8/8)·
       > S20-9(14/14)· S20-10(14/14)· S20-11(14/14)· S20-12(五轮 10/13→17/17)· S20-16(13 条全红)。
@@ -93,6 +130,11 @@
 - [x] Smoke check passed(`/smoke-check sprint`)
       > `production/qa/smoke-2026-10-27-sprint20.md` —— **Verdict: PASS**(EditMode 5385/5350/0/35 ·
       > PlayMode 204/204/0/0)。⚠️ 该 PASS 的边界已在报告内写明:A–D 22 条是 **N/A 不是 PASS**。
+      > 🔁 **2026-10-27 订正**:上数是 `smoke-fix` 轮(commit `5bdd226`)的快照。链尾四件落地后
+      > 全量为 **EditMode `5529 / 5494 / 0 / 35`** · **PlayMode `229 / 228 / 0 / 1`**
+      > (三元组 `2026-10-27T09:34Z` · `S20-15 批` · commit `e095b7b`)⇒ **PASS 判定不变**(零红依旧)。
+      > ⚠️ 但 **A–D 22 条仍是 N/A** —— 「PASS」在本 sprint 只表示自动化套件零红 + 用户确认无异常,
+      > **不表示游戏能玩**。详见 smoke 报告 §三度实测。
 - [x] QA sign-off:APPROVED 或 APPROVED WITH CONDITIONS(`/team-qa sprint`)
       > `production/qa/qa-signoff-sprint-20-2026-10-27.md` —— **APPROVED WITH CONDITIONS**(C-1…C-8;
       > 首版 6 条,10-27 写 C-3 加注时核表核出 C-7 / C-8 两条新缺陷后追加)。
@@ -102,13 +144,28 @@
 - [x] No S1 / S2 bugs
       > `production/qa/bugs/` 仅 `README.md`,零 `BUG-*.md`(复算命令见 QA 签核件 §Bugs Found)。
 - [x] 设计文档偏离已更新;代码已评审(双列结账表 + Branch 列)
-      > ⚠️ **本条部分成立,如实登记**:有独立评审原件的 = S20-1 / S20-2 / S20-3 / S20-4 / S20-9 / S20-16;
-      > **S20-10 / S20-11 卡内明写「本轮未走评审」**(`story-001:262-264` / `story-003:547-548`),
-      > 只做了实现+测试自证;**S20-12 卡内对此零陈述**,`production/qa/evidence/` 亦无对应 `review-*` 原件
-      > ⇒ 按「缺一即 `NOT-RUN`」读法登记为**未评审**。S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,
-      > 载体是证据件(`impl-*`)而非评审件。
-      > ⇒ **已评审 6 / 计划内 10 件,4 件无独立评审**。见 §九「不记绿项」②。
-      > 🔚 **2026-10-27 用户裁定:不补评(C-4 不转)** —— 该缺口**原样保留**,本条的「部分成立」判定不变。
+      > 🔁 **2026-10-27 补评轮订正**:上段「4 件无独立评审」**已消解** —— S20-10 / S20-11 / S20-12
+      > 三件的独立评审原件已补落盘(`review-s20-10-inventory-001` / `-11-inventory-003` /
+      > `-12-inventory-004`,均 `2026-10-27`)。
+      >
+      > | 件 | 原件 | 判定 |
+      > |---|---|---|
+      > | S20-10 inventory-001 | ✅ `review-s20-10-inventory-001-2026-10-27.md` | **CHANGES REQUIRED**(B-1 / B-2) |
+      > | S20-11 inventory-003 | ✅ `review-s20-11-inventory-003-2026-10-27.md` | **CHANGES REQUIRED**(B-1) |
+      > | S20-12 inventory-004 | ✅ `review-s20-12-inventory-004-2026-10-27.md` | **APPROVED WITH SUGGESTIONS**(W-1) |
+      >
+      > ⇒ **「有没有评审」这一条已成立**(10/10 有原件或具名理由)。⚠️ 但**「评审说了什么」是另一回事**:
+      > 三份里**两份是 `CHANGES REQUIRED`**,共抓出 3 条本 sprint 之前从未发现的缺陷
+      > (fold 零接线 / 门零调用点 / 同义反复断言)。**这些缺陷不因本次补评而消失** ——
+      > 它们是**新开的**工作项,须进 sprint-21 候选或债册。
+      > ⇒ 本条的 ✅ 只表示「评审动作已完成」,**不表示「代码已通过评审」**。禁混读。
+      >
+      > > 🔁 **2026-10-27 就地加注(原文不删)**:上句「须进 sprint-21 候选或债册」**已被用户推翻** ——
+      > > 「不进21也不记债,现在完成」⇒ 三条**当场修完**(详见本节末尾的处置表与三份原件 §六)。
+      >
+      > > 🔁 **原记录(原文不删)**:部分成立 —— 有独立评审原件的 = S20-1 / S20-2 / S20-3 / S20-4 / S20-9 / S20-16;
+      > > S20-10 / S20-11 卡内明写「本轮未走评审」,S20-12 零陈述 ⇒ 「已评审 6 / 计划内 10 件,
+      > > 4 件无独立评审」;用户当时裁定「不补评(C-4 不转)」—— **该裁定已被后续「1 完成」指令覆盖**。
 - [x] **收口四件套同日化**(retro-19 行动项 3):头部收口日 + §九 + retro + CAPACITY-MODEL 行
       > **四件均 `2026-10-27` 完成** —— 本 sprint 是 retro-19 行动项 3 立规后的**首次执行**,零滞后。
 
@@ -145,10 +202,10 @@
 | 收口要件 | 状态 | 凭据 |
 |---|---|---|
 | **计划内 S20-1…S20-7** | **7/7 全 `done`** | `production/sprint-status.yaml`(completed 2026-10-25…10-27) |
-| **追加批 S20-8…S20-16** | **5/9 `done` · 1 `ready-for-dev` · 3 `backlog`** | 同上;未完成 4 件见 §9.3 ①(**用户裁定「不转」**) |
-| DoD 10 条 | 全勾,零 `[ ]`(带 4 处加注) | 本文 §Definition of Done `:71-108` |
-| smoke-check | **PASS** | `production/qa/smoke-2026-10-27-sprint20.md`(EditMode `5385/5350/0/35` · PlayMode `204/204/0/0`) |
-| QA 签核 | **APPROVED WITH CONDITIONS** | `production/qa/qa-signoff-sprint-20-2026-10-27.md`;C-1…C-8(首版 6 条,10-27 追加 C-7/C-8;其中 C-3 / C-6 / C-7 / C-8 **已闭**,余 C-1 / C-2 / C-4 / C-5) |
+| **追加批 S20-8…S20-16** | **9/9 `done`** 🔁 | 同上;收口轮记的是「5/9 done · 未完成 4 件」,**同日链尾四件补齐后转 9/9** —— 见 §9.3 ①(该条已被事实推翻) |
+| DoD 10 条 | 全勾,零 `[ ]`(带 5 处加注) | 本文 §Definition of Done `:71-130` |
+| smoke-check | **PASS**(两版数,禁混读) | `production/qa/smoke-2026-10-27-sprint20.md` —— 收口轮 `EditMode 5385/5350/0/35` · `PlayMode 204/204/0/0`;🔁 **链尾收口后**:`EditMode 5529/5494/0/35` · `PlayMode 229/228/0/1`(@ `2026-10-27T09:34Z` · `S20-15 批` · `e095b7b`) |
+| QA 签核 | **APPROVED WITH CONDITIONS** | `production/qa/qa-signoff-sprint-20-2026-10-27.md`;C-1…C-8(首版 6 条,10-27 追加 C-7/C-8)。🔁 **收口后进展**:C-1(事实消解)· C-3 / C-4 / C-5 / C-6 / C-7 / C-8 **已闭**;余 **C-2(EXTERNAL,`TD-ci-01`)** —— 🔁 **2026-10-27 再收窄**:两格矩阵已实跑绿,`AC-18-15` 仍缺 processing 侧黄金夹具 + ARM64 格 + CI 常驻。<br>⚠️ **C-4 闭的是「有没有评审」,不是「代码通过评审」** —— 补评的三份里两份判 `CHANGES REQUIRED`,抓出 3 条新缺陷 |
 | 证伪轮 | 每件 ≥1 轮,全 exact | 见 DoD 第 5 条注;S20-4 / S20-7 有 `FALSIFY-` 零残留 + SHA-256 逐字节记录 |
 | 收口提交 | ✅ **已落 —— 即本提交** | 复算:`git log -1 --format='%h %s' -- production/sprints/sprint-20.md`;<br>sprint-20 实现区间 = `9bbef11`..`51193cf` 共 **41 笔**,收口提交为其后第 **3** 笔(`0a64faf` S20-4 · `34c75e9` S20-7 · 本笔四件套) |
 | 债册复算 | **已实跑** | 见 §9.2(`--print` 实跑输出,`--check` exit 0) |
@@ -212,45 +269,88 @@ M3 Exit 第二条合取 ⇒ 假 —— 63 条,分布在 10/31 个 epic
 
 ### 9.3 不记绿项(如实,非缺口)
 
-**① 追加批 4 件未完成 —— 🔚 用户裁定「不转」(2026-10-27)**
+**① 追加批 4 件未完成 —— 🔚 用户裁定「不转」→ ✅ 2026-10-27 事实消解**
 
-2026-10-26 用户裁定「甲:按链路顺序做到底」后,「采集链路解锁链」8 件入账(S20-8…S20-15,
-`processing-001` 即 S20-4 不重复计),另 S20-16 补记已完成件。本 sprint 内完成 5 件
-(S20-9/10/11/12/16),**4 件未完成**:
+> 🔁 **本条已被后来的事实推翻(原文不删,留作闭环记录)**。
+> 用户 2026-10-27 裁定「不转」后,**同日**又下达 `S20-8 → S20-13 → S20-14 → S20-15` 全链实现指令
+> ⇒ 四件**全部落地并转 `done`**(含 S20-15 的强制证伪轮)。现在 `sprint-status.yaml` 为 **17/17 done**。
+> 复算:`python3 -c "import yaml,collections;d=yaml.safe_load(open('production/sprint-status.yaml'));print(len(d['stories']),collections.Counter(s['status'] for s in d['stories']))"`
+> ⇒ `17 Counter({'done': 17})`。
+>
+> | 件 | 原状态 | 现状态 | 完成日 | 评审原件 |
+> |---|---|---|---|---|
+> | `S20-8` processing-002 F1 调用契约 | `ready-for-dev` | **`done`** | 2026-10-27 | `review-s20-8-2026-10-27.md` |
+> | `S20-13` processing-003 Craft 落流 | `backlog` | **`done`** | 2026-10-27 | `review-s20-13-2026-10-27.md` |
+> | `S20-14` inventory-005 事务模板 + **Drop\* 三支写者** | `backlog` | **`done`** | 2026-10-27 | `review-s20-14-2026-10-27.md` |
+> | `S20-15` foraging-006 novelty 接线 | `backlog` | **`done`** | 2026-10-27 | `review-s20-15-2026-10-27.md` |
+>
+> **连带解除的两条后果**(上文 `🔚 不转` 段列的风险):
+> - ✅ `S20-14` 落地后 `AC-17-01` **已解除挂起并勾选**(story-006 §AC-17-01 的 2026-10-27 注)。
+> - ✅ 「下次 sprint 规划轮必须重新发现这 4 件」**不再需要** —— 它们已 `done`。
+>
+> ⚠️ **但「容量超支」这条不变**:追加批 8 件**全部真的做了**,超出 1 件预留的口径
+> 比原判断**更严重**,不是更轻。该重估义务仍归下次 sprint 规划轮。
 
-| 件 | 状态 | 阻塞 |
-|---|---|---|
-| `S20-8` processing-002 F1 调用契约 | `ready-for-dev` | 无未齐前置 |
-| `S20-13` processing-003 Craft 落流 | `backlog` | ← S20-9 |
-| `S20-14` inventory-005 事务模板 + **Drop\* 三支写者** | `backlog` | ← S20-10+11+12+13 |
-| `S20-15` foraging-006 novelty 接线 | `backlog` | ← S20-14(**链的终点**) |
+**② 4 件无独立评审 —— 🔚 用户裁定「不转」→ ⚠️ 部分消解(3 件已补,1 件未补)**
 
-**计划原件** = `production/sprints/sprint-21-candidate-collection-chain-plan.md`。
-⚠️ 该文件名仍写 `sprint-21` 而实际归属 sprint-20(文件内 `:103` 已自陈此不符,待裁是否改名)。
-⚠️ **容量**:`sprint-status.yaml:228-232` 已记「追加批已**超出** 1 件预留(8 件入账),
-须在下次 sprint 规划轮重估容量」—— 本结论不改。
+> 🔁 **2026-10-27 补评轮(本 sprint 收口后)**:用户下达「1 完成」(C-4)—— 补 S20-10 / S20-11 / S20-12
+> 三件的独立评审原件。**三件全部交付**,但**判定不是「齐了就清」**:
+>
+> | 件 | 原件 | 判定 | 最重的一条 |
+> |---|---|---|---|
+> | `S20-10` inventory-001 | `review-s20-10-inventory-001-2026-10-27.md` | **CHANGES REQUIRED** | B-1 `InventoryFold.Fold` **零生产调用点**,且对真实流 `IsComplete` 恒 `false` ⇒ `RequireComplete()` 必抛 |
+> | `S20-11` inventory-003 | `review-s20-11-inventory-003-2026-10-27.md` | **CHANGES REQUIRED** | B-1 `BuildPartQualityGate` **零调用点** = 第五形态假绿(AC 记绿的执法件不存在) |
+> | `S20-12` inventory-004 | `review-s20-12-inventory-004-2026-10-27.md` | **APPROVED WITH SUGGESTIONS** | W-1 两条同义反复断言冒充证明(`test:287` / `test:329-331`) |
+> | S20-8 / S20-13 / S20-14 / S20-15 | 各件 `review-s20-1x-2026-10-27.md` | — | 本就有 |
+>
+> ⚠️ **三条结构性发现,本 sprint 之前从未被发现**:
+> - **S20-10 B-1**:inventory 的 fold 口径**从未接进生产** —— 这是本条②一直担心的
+>   「fold 口径未获评审背书」的**实证**,而且比担心更糟(不是口径错,是**没接**)。
+> - **S20-11 B-1**:`BuildPartQualityGate` 零调用点 = **第五形态假绿**
+>   (「某件有门」的自述,实为一个从未被调用的类)。
+> - **S20-12 W-1**:两条同义反复断言(`long before = load; … EqualTo(before)` 与
+>   `long load = 10L; … LessThanOrEqualTo(cap)`)—— 与「自造断言顶替 AC 语义层」先例**完全同型**。
+>
+> ⇒ **评审判定本身是新的缺陷面**,须另立工作项。**不得**因「三份原件齐了」就把本条记成已清 ——
+> 恰恰相反,补评把它从「未评审的风险」变成了「**已证实的缺陷清单**」。
 
-> 🔚 **2026-10-27 用户裁定:不转**。上表 4 件**不做 sprint-21 承接承诺**,`sprint-status.yaml`
-> 中**保持原状态不动**(不改 `removed`、不改 `done`)。**后果如实登记**:
-> - `S20-14`(Drop\* 三支写者)是 `S20-15` 的唯一前置 ⇒ **链的终点仍一件未动**,
->   `AC-17-01` 保持不勾。
-> - 下次 sprint 规划轮**必须**重新发现这 4 件并决定去向 —— 这是本裁定唯一未关闭的风险。
-> - ⚠️ **「不转」≠「已处置」** —— 缺陷原样存在,只是决定不再投入。不得记作已清。
+> 🔁 **2026-10-27 就地加注(原文不删)**:**「须另立工作项」这一处置已被用户推翻**。
+> 用户原话:「**不进21也不记债,现在完成**」⇒ 三条发现**当场修完**:
+>
+> | 原发现 | 处置 | 落点 |
+> |---|---|---|
+> | `InventoryFold.Fold` 零生产调用点 | ✅ 建「装载库存实体」链 | `Gameplay.Boot/InventoryLoadService.cs`(新建)· `CompositionRoot` 装配 · `LoadSequencer` 读档后钩子 |
+> | `BuildPartQualityGate` 零调用点(**第五形态假绿**) | ✅ 接上唯一强制点 | 同上 `EnforceBuildPartQuality`(判据面 = **装载期**) |
+> | 两条同义反复断言 | ✅ 改为由被测件产出被断言值 | `carry_load_adjudication_test.cs` |
+>
+> **证伪**:5 条变异 5/5 全红 · 5 个文件 SHA-256 逐字节还原。
+> **回归**:`5552/5517/0/35`(`5529 + 23` 闭合)。
+> **债册零新增**:`grep -c "TD-inventory" docs/tech-debt-register.md` ⇒ **0**。
+> ⚠️ 未修完的:`IsComplete` 仍恒 false(R16–R18 载荷缺位)· 20b 呈现侧零改动 ·
+> `FoldWeight` / `StacksOf` 仍零生产调用点 —— 逐条见三份原件 §六。
+> > 🔁 **2026-10-27 就地订正(原文不删)**:本行原串里还有 **`CanCarry`**,**是错的** —— 它
+> > 有 **3 处**真生产调用点(`CarryCapExistenceGate.cs:168` / `IgnitionAdmission.cs:137` /
+> > `InventoryTransaction.cs:220`),`review-s20-12:139` 原文本就记「✅ 已接线」。
+> > 复算:`cd unity && grep -rn "CarryLoadSolver\.CanCarry(" Assets --include=*.cs | grep -v "^Assets/Tests/" | wc -l` ⇒ **3**。
+> > ⚠️ **不要**用不带类名前缀的 `grep "CanCarry"` —— 它把**定义行 + 两处文档注释**也数进去,得 **6**
+> > (本轮初稿就写错过一次,当场被复算抓回)。
+>
+> 复算:`ls -1 production/qa/evidence/review-s20-1[012]-*.md | wc -l` ⇒ **3**
 
-**② 4 件无独立评审**(见 DoD 第 9 条注):S20-10 / S20-11 卡内自陈未走评审,
+**②-原记录(原文不删)** S20-10 / S20-11 卡内自陈未走评审,
 S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,载体是证据件。
-⇒ **不计入「代码已评审」,但也不阻塞收口**(DoD 该条按「有判定 + 具名理由」成立)。
+⇒ **不计入「代码已评审」**。
 
-> 🔚 **2026-10-27 用户裁定:不转**(不补评)。**后果如实登记**:
-> S20-10 / S20-11 / S20-12 三件承重件**维持「无独立评审」**,`production/qa/evidence/` 下
-> 仍**零** `review-*` 原件覆盖它们;inventory 的 **fold 口径**会向后传导到 003/004/005,
-> 该口径**未获评审背书** —— 后续若因它返工,成本不追溯到本 sprint。
+> 🔚 **原裁定(2026-10-27,现已被「1 完成」指令推翻)**:不补评。后果登记为
+> 「inventory 的 fold 口径未获评审背书 —— 后续若因它返工,成本不追溯到本 sprint」。
+> ✅ **该后果已消解**:补评轮直接抓出 B-1 / B-2,证明这条「未评审」的判断当时是对的
+> —— **未评审的风险确实存在,且确实被后来的评审证实了**。
 
 **③ 5 处「有判定不勾」的 AC**(均有判据、有具名理由,禁读成全绿):
 
 | 件 | AC | 不勾理由 |
 |---|---|---|
-| S20-9 | `AC-18-15` | **EXTERNAL · BLOCKED-BY-ADR-012** —— 三格矩阵不存在 + F7 spike 未跑,不写桩 |
+| S20-9 | `AC-18-15` | **EXTERNAL · BLOCKED-BY-ADR-012** —— 三格矩阵不存在 + F7 spike 未跑,不写桩<br>🔁 **2026-10-27 收窄(仍不勾)**:两格矩阵(Mono + IL2CPP-x64)已实跑绿(`tools/determinism-matrix/run_matrix.py`,五条判据全过);**缺** ① processing 侧黄金夹具(矩阵测的是 item-database 的 19 条,非 processing 三出参)② ARM64 格(目标不存在)③ CI 常驻(EXTERNAL)。见 `production/qa/evidence/ac18-15-two-cell-matrix-2026-10-27.md` |
 | S20-10 | `AC-20-03` / `AC-20-16` | 前置核实揭出 R15/R16/R17/R18 四条载荷缺位 ⇒ **结构性不可勾** |
 | S20-11 | P0 门 ①②(容器 qty/quality 恒 1) | **BLOCKED-BY Story 010** —— P0 无「这是容器吗」的判据载体 |
 | S20-4 | `AC-18-10`(2/3 + 桩) | 炉半边是 Spy 桩,真装配归 Story 004 |
@@ -302,7 +402,7 @@ S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,�
 | 维度 | sprint-19 | sprint-20 |
 |---|---|---|
 | 计划内完成率 | 5/5 = **100%** | 7/7 = **100%** |
-| 追加件完成 | 轮面追加(9 类,以轮计) | **5/8 完成**,4 件结转(以**件**计,首次可量化) |
+| 追加件完成 | 轮面追加(9 类,以轮计) | **8/8 完成** 🔁(收口轮记 **5/8**,4 件结转;同日链尾补齐后转 8/8) |
 | 未闭 P0 面 | 76 → **69**(−7) | 69 → **63**(−6) |
 | 新立 P0 面债 | +5 | +4 |
 | 收口滞后 | 三连滞后(行动项 3 立项) | **零滞后**(四件套同日) |
@@ -311,3 +411,7 @@ S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,�
 > **追加率口径首次可量化** —— sprint-19 的「追加」以轮计、件数计法失真(见 CAPACITY-MODEL 19 行注);
 > sprint-20 的追加批是**具名 story**(S20-8…S20-16),故 `5/8 = 62.5%` 是第一次可比的追加完成率。
 > 代价:**追加量是预留额度(1 件)的 8 倍** —— 这是 retro-19 行动项 2「将掀几债」预估失效的直接证据。
+>
+> 🔁 **2026-10-27 订正**:链尾四件同日补齐 ⇒ **完成率 `8/8 = 100%`**。
+> ⚠️ **但上面那句「代价」不变,而且更重** —— 追加量是预留的 8 倍,这件事**不因为都做完了而变轻**:
+> 计划被追加打穿是**过程缺陷**,结局圆满不撤销它。容量模型的口径修复仍是 sprint-21 的必办项。

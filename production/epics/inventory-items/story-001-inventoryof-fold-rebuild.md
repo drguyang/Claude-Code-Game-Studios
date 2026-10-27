@@ -256,6 +256,29 @@ R18 `DropSpawned` 无 `quality`)。对不存在的位「占位」= 发明生产�
 | 2 | 按格视图(§Implementation Notes 2 提的「按玩家 / 按格」两视图) | **S20-11 / 006** —— 按格视图需 `spawn_anchor`,本件只做按玩家 |
 | 3 | `Max(instance_id)` 高水位扫流 | **S20-12 / Story 002** —— fold 消费 id,不生产 id |
 | 4 | `DropDespawned` 的生产端(用药消耗写者) | **Story 005** —— 本件只证 fold 侧能吃 |
+| **5** | ~~**`Fold` 零生产调用点;`IsComplete` 对任何真实流恒 `false` ⇒ `RequireComplete()` 必抛,契约 C-1/C-6 零兑现面**~~ **✅ 2026-10-27 已接线**(原文不删,就地加注) | **已完成** —— 见下方「修复轮接线」节。⚠️ 但 `IsComplete` 的**恒 false 性质未变**(R16/R17/R18 载荷缺位仍在),只是「有人调它」这一半兑现了 |
+
+### 修复轮接线(2026-10-27 · 评审 S20-10 B-1 / S20-11 B-1·W-2)
+
+> 用户裁定原话:「**不进21也不记债,现在完成**」+「**「装载库存实体」的链,现在建**」+「**在装配根加「读档后重建库存投影」**」。
+
+**接线落点**:`unity/Assets/Gameplay.Boot/InventoryLoadService.cs`(新建)——
+`Rebuild()` 一次跑完 Fold → 实体集 → `BuildPartQualityGate.RequireValid` → `CarryLoadSolver.Sum`;
+`LoadSequencer.Load` 的第 4 步(`afterRestore` 钩子)在**读档完成后**调它。
+
+**对 C-1…C-6 的更新(改的是「兑现面」,不是契约本身)**:
+
+| 承诺 | 契约是否变 | 今日兑现面 |
+|---|---|---|
+| C-1 | 否 | ✅ 有生产调用点(`InventoryLoadService.Rebuild`);⚠️ `IsComplete` 仍恒 false |
+| C-2 | 否 | fold **仍不解析** ordinal → `ItemKey`(本件本体零改动);解析发生在**装配层**(`InventoryLoadService`,它注入物品表)—— 这正是 C-2 要求的形态:「读物品表」没被塞进 fold |
+| C-3 | 否 | ✅ 品级仍只从载荷抄;`InventoryLoadService` 只**读** `row.Quality` |
+| C-4 | 否 | ✅ `CarryLoadSolver.Sum(projection, …, owner: InventoryProjection.NoOwner)` 求的就是未认领载重 |
+| C-5 | 否 | ⬜ `StacksOf` / 摆放序仍零生产调用点(归 20b 呈现侧) |
+| C-6 | 否 | ⚠️ `InventoryLoadResult.IsComplete` **转发了**这个契约,且文档明写「今天恒 false,下游必须读它」—— 但没有下游消费者读它(today) |
+| C-7 | 否 | ⬜ 性能门仍未落地 |
+
+**诚实边界**:本件接的是「**投影被重建出来**」,不是「**玩家看得到库存**」。20b 呈现侧零改动。
 
 ### 评审
 
