@@ -30,9 +30,15 @@
 //   ThreatDeferralCleared(reason=作废) → 折叠自动清(AC-52-48 的「清空」由流承载,
 //   不由本方法承载 —— 本方法只管预算两数)。
 //
-// ⚠️ 折叠期的三类流损坏 = fail-loud 抛(不静默忽略 —— 静默 = 迁移后槽集漂移,更糟):
+// ⚠️ 折叠期的四类流损坏 = fail-loud 抛(不静默忽略 —— 静默 = 迁移后槽集漂移,更糟):
 //   ① slotIndex 越界 [0, deferMax) ② 同槽二次挂起(一占一释配对,entities.yaml constraint)
-//   ③ 清未挂起的槽(同上)。写者侧已做同域校验 ⇒ 折叠再遇 = 流损坏 / deferMax 配置漂移。
+//   ③ 清未挂起的槽(同上) ④ `eventKey < 0`(非法键 —— 槽位合法但载荷被篡改 / 写者越界)。
+//   写者侧已做同域校验 ⇒ 折叠再遇 = 流损坏 / deferMax 配置漂移。
+//
+// 🔁 **2026-10-27 订正(S20-7 · sprint-19 评审 W8)**:原文写「**三类**」,而代码实抛**四条**
+//   `InvalidDataException`(④ 是 `:198` 的 `eventKey < 0`,当时漏记)。**头注少一类不是笔误** ——
+//   它让「折叠期损坏防御」的覆盖面看起来比实际小,读的人会以为 ④ 是遗漏而非设计。
+//   本订只改措辞,零行为变化(四条 throw 一位未动)。
 
 using System;
 using System.Collections.Generic;
@@ -176,8 +182,9 @@ namespace DaYiJingCheng.Sim
         /// <param name="e">流内事件(全序 —— 调用方保证按跨流全序键排序后喂入)。</param>
         /// <param name="decoder">载荷解码器(ADR-031 抽象点;实现住 Sim.Codec,注入)。</param>
         /// <param name="deferMax">挂起槽上界(DEFER_MAX;来自烘焙配置)。</param>
-        /// <exception cref="InvalidDataException">流损坏:槽越界 / 同槽双占 / 清未挂起槽
-        /// (头注「三类 fail-loud」—— 静默 = 迁移后槽集漂移)。</exception>
+        /// <exception cref="InvalidDataException">流损坏(头注「四类 fail-loud」,静默 = 迁移后槽集漂移):
+        /// 槽越界 / `eventKey &lt; 0` / 同槽双占 / 清未挂起槽。
+        /// ⚠️ 2026-10-27 订正:原写「三类」且只列三项,漏了 `eventKey &lt; 0`(与头注同一个错)。</exception>
         public static void FoldDeferEvent(BudgetState state, in SimEvent e, IPayloadDecoder decoder, int deferMax)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));

@@ -464,14 +464,14 @@ namespace DaYiJingCheng.Tests.MedConsequences
             Assert.AreEqual((uint)expectedPayload, ReadU32Le(output.Cooked, 16), "payloadLength 槽");
         }
 
-        [Test]
-        public void test_ac2_bake_cookedBytes_deterministic_sameSourceTwice()
-        {
-            var a = DelayTable53Bake.BakeFromRepo(RepoRoot());
-            var b = DelayTable53Bake.BakeFromRepo(RepoRoot());
-            Assert.AreEqual(Fnv1a(a.Cooked), Fnv1a(b.Cooked),
-                "同源两次烘焙逐字节一致(ADR-014 §二)");
-        }
+        // 🔁 **2026-10-27 删除(S20-7 · `TD-medcons-16` 结案)**:此处原有
+        //   `test_ac2_bake_cookedBytes_deterministic_sameSourceTwice` ——
+        //   `BakeFromRepo()` 调两次比对 FNV 哈希。**它对行序回归零判别力**:
+        //   两次调用走的是同一次 `Dictionary` 枚举,必得同序 ⇒ 停用行序排序它仍绿
+        //   (S11-9 同型假绿)。其 doc 自称「已由下方夹具替换」,但**删除动作未落**,
+        //   于是计数里长期含一条假绿。
+        //   **本条已删,判据由下方 `…_rowOrderIndependentOfInputOrder` 独占**。
+        //   ⚠️ 删除理由留档而非静默移除 —— 「这条为什么不能靠跑两次同源来证」本身是判据知识。
 
         /// <summary>
         /// ADR-014 §二 的**真判别**夹具(替换原「同函数同输入两次对拍」的假绿形制):

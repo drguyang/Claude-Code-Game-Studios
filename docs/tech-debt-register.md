@@ -316,7 +316,7 @@
 | `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-14` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-15` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-16` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
@@ -386,8 +386,10 @@
 | `TD-persist-05` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-08` | `persistence-service` | open | **N** | R4 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
+| `TD-enemy-03` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
@@ -836,12 +838,13 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 125 | 状态 {'open': 76, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 23, '~~**Y**~~': 1}
-未闭 P0 面 = 63 （已闭但曾标 P0 面的 38 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 9/31 个 epic
-    medical-consequences: 20  audio-system: 17          clinic-machine: 15
-    telemetry-analytics: 5    disease-simulation: 2     item-database: 1
-    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
+条目 127 | 状态 {'open': 77, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 24, '~~**Y**~~': 1}
+未闭 P0 面 = 63 （已闭但曾标 P0 面的 39 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 17          clinic-machine: 15
+    telemetry-analytics: 5    disease-simulation: 2     enemy-ai: 1
+    item-database: 1          patient-ai: 1             processing: 1
+    skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4451,3 +4454,275 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 
 > ⚠️ **本条的「已修」只覆盖 L7** —— 其余 7 条(L1–L6、L8)见上方六条债。
 > **不得**把本节读成「S20-9 评审遗留已清」。
+
+---
+
+## 2026-10-27 · S20-7 治理盘点轮(retro-19 行动项 4+5:W6–W10 / QA C-2·C-5 / medcons 20 条整块策略)
+
+**出处**:`production/retrospectives/retro-sprint-19-*.md` 行动项 4(W6–W10 五条评审遗留)
+与行动项 5(QA 签核 `qa-signoff-sprint-19-2026-10-25.md` 的 C-2 / C-5,以及 medcons 20 条债的整块处置策略)。
+**性质**:本轮的产物是**裁决 + 登记**,不是实现 —— 五条里**只有 W8 与 `TD-medcons-16` 当场修了**,
+其余按各自性质分别落为「新债 / 豁免 / 状态翻转」。
+
+**用户 2026-10-27 三裁(逐条照录,均取推荐案)**:
+
+| # | 问题 | 裁定 |
+|---|---|---|
+| ① | W6–W10 五条怎么处置 | **「逐条定案」** —— 不打包滚进下个 sprint,每条本轮给出**具名去向**(新债 / 结案 / 豁免) |
+| ② | QA 的 C-2 / C-5 怎么记 | **「如实登记为已解除」** —— C-2 已实质满足;C-5 不可复验但已由 S20-4 的新判据取代;**原登记不删** |
+| ③ | medcons 20 条怎么排 | **「16 本轮修,19 条按触发」** —— `TD-medcons-16` 当场删夹具结案;其余 19 条各按自带的触发条件挂,不设统一期限 |
+
+> ⚠️ **本节不重开任何既有裁定** —— 五条评审遗留的**原文**在 `review-sprint-19-*.md` 与
+> `qa-signoff-sprint-19-2026-10-25.md`,本节只记「它们现在归哪儿」。
+
+### 一、W6–W10 逐条去向
+
+| 条 | 内容(一行) | 去向 | 落点 |
+|---|---|---|---|
+| **W6** | `SaveService.Load` 67 行 / `EventStream.Restore` 43 行,均超「方法 ≤ 40 行」标准 | **新债** `TD-persist-08` | 见下方正文 |
+| **W7(a)** | `EnemyLocomotion.Advance` 路径耗尽时 `acc = Fix.Zero`,而 **F-27-4 无此定义** | **新债** `TD-enemy-03` | 见下方正文 |
+| **W7(b)** | 「两个步进算子并存」 | **已由 `TD-enemy-02` 结案覆盖**(2026-10-25 裁定甲「删 `StepAccumulator`」)⇒ **无需新立** | `TD-enemy-02` 结案块 |
+| **W8** | `EventBudget.cs` 头注写「三类流损坏」,代码实抛**四条** | **✅ 本轮当场修**(头注改「四类」+ 补 ④ `eventKey < 0` + 带日期的订正注) | `unity/Assets/Sim/EventBudget.cs:33-41` |
+| **W9** | `ITameable`(接口)/ `TameableFields`(`readonly struct`)—— struct 经接口使用会装箱 | **显式豁免**(非债) | 见下方「豁免登记」 |
+| **W10** | `SaveComposer.IdentityKey` 用字符串插值做键 | **显式豁免**(非债) | 见下方「豁免登记」 |
+
+> ⚠️ **W7 必须拆两半记** —— 原文把「算子双实现」与「`acc` 归零无定义」写在一起,
+> 但**前者 2026-10-25 已结案**,后者**至今无任何条目**。合并记会让 W7 看起来「已经处理过」。
+> **本轮拆开**:W7(b) 指向已结案条目,W7(a) 新立 `TD-enemy-03`。
+
+### 二、W9 / W10 的豁免登记(不是债,但须留判据)
+
+> **为何仍要登记**:两条都是**真问题**(不是误报),只是**今天够不着**。
+> 不登记 ⇒ 下一个人重新发现时无从知道「这被看过、判过、理由是这些」;
+> 登记成债 ⇒ 债册被「够不着的问题」稀释。⇒ **第三条路:显式豁免 + 具名触发条件**。
+
+| 条 | 判据(逐条可跑) | 为何今天不是债 | 触发条件(何时须改判为债) |
+|---|---|---|---|
+| **W9** | `grep -rn "ITameable\|TameableFields" unity/Assets --include=*.cs \| grep -v "Sim.Contracts/LogiPose.cs"` ⇒ **命中全部落在 `Tests/EditMode/EnemyAI/logi_pose_test.cs`**,生产侧**零调用点** | **装箱只在「经接口使用 struct」时发生**,而今天没有任何生产代码经 `ITameable` 使用 `TameableFields` ⇒ **零装箱现实**。两条都是 `TD-enemy-01` 落下的**形状占位**(S19-3),其存在理由本就是「先定形状、行为空集」 | **27 的每 tick 路径开始经 `ITameable` 使用敌人实体时** —— 那会把每 tick 一次装箱变成热路径分配 |
+| **W10** | `grep -n "IdentityKey" unity/Assets/Gameplay.Boot/SaveComposer.cs` ⇒ `:194` / `:202` 两处调用、`:216` 定义;所在装配件 = `Gameplay.Boot`(**不是 `Sim.Codec`**) | 它在**存档组装路径**上 —— 每次存档跑一遍、不是每 tick。字符串插值 + `HashSet<string>` 的分配量在「一次存档」的量级上**不可观测** | **存档路径变成热路径时**(例如自动存档频率升到秒级,或 `SaveComposer` 被挪进每 tick 的折叠链) |
+
+> ⚠️ **两条豁免的共同前提是「零/低频调用」,不是「写法没问题」**。
+> 若日后触发条件成立,**不得**以「已豁免」为由拒绝立债 —— 豁免只对**当下调用面**有效。
+
+### 三、W6 → `TD-persist-08`(新债)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `SaveService.Load`(`unity/Assets/Sim.Codec/SaveService.cs:668-734`)**67 行**;`EventStream.Restore`(`unity/Assets/Sim/EventStream.cs:120-162`)**43 行**。两者均超 `.claude/skills/code-review` Phase 4 的「方法 ≤ 40 行(不含数据声明)」标准 |
+| **实测(逐条可跑)** | ① 行数(物理行,含注释与空行):<br>`python3 - <<'EOF'`<br>`import re`<br>`def span(p,sig):`<br>`    L=open(p,encoding='utf-8').read().split('\n')`<br>`    i=next(i for i,l in enumerate(L) if sig in l); d=0; seen=False`<br>`    for j in range(i,len(L)):`<br>`        for ch in L[j]:`<br>`            d += ch=='{'; seen = seen or ch=='{'; d -= ch=='}'`<br>`            if seen and d==0: return (i+1,j+1,j-i+1)`<br>`print(span('unity/Assets/Sim.Codec/SaveService.cs','public void Load(SaveSlot slot)'))`<br>`print(span('unity/Assets/Sim/EventStream.cs','public void Restore(IReadOnlyList<SimEvent> events'))`<br>`EOF`<br>⇒ 实得 `(668, 734, 67)` / `(120, 162, 43)`。<br>② **去掉注释与空行后**:`SaveService.Load` = **39 行代码** · `EventStream.Restore` = **36 行代码** ⇒ **按「纯代码行」口径两者都不超 40**。⚠️ **这个差值是本条的核心事实,见下「为何 P0 面 = N」** |
+| **为何 P0 面 = N**(R4) | 归属 `persistence-service` ∈ 31 个 P0 epic,但**本条不自陈阻塞 P0 出口**,理由三条:<br>① **仓内没有泛用的 40 行门** —— 全仓唯一的行数门是 `unity/Assets/Tests/EditMode/Audio/s15_5_hygiene_test.cs` 的 `test_td032_3_splitMethods_withinLineBudget`,它**只钉音频侧三个方法**(`OnTickEdge` / `BuildAudioSeams` / `PruneAbsent`),是 `TD-audio-032` ③ 的专属夹具,**不是**可复用的规范闸。`TD-clinic-14` 早已登记同一事实:「**仓内无明文 40 行规则**,`code-review` 清单有该项但仅建议」。<br>② **口径本身有争议且此处偏向「不超」** —— 标准原文是「不含数据声明」,未明说注释算不算。按纯代码行计两者都 < 40;按物理行计两者都超。**在口径未裁前,「超 40 行」不是可机械判定的结论。**<br>③ **没有可观测后果** —— 两条都是**线性流程**(门 → 校验 → 解析 → 交出),超长的部分**几乎全是注释**(`Load` 的 67 物理行里 21 行是注释与空行;`Restore` 的 43 行里 4 行)。**读者负担真实存在,但它不是缺陷** |
+| **修法方向** | ① **先裁口径**(注释算不算行数),裁完才谈拆不拆;② 若按纯代码行,**两条都不超 ⇒ 本条可结**;③ 若按物理行,`Load` 的自然切点 = 「Gating 门」/「校验 + 迁移」/「Replaying 交出」三段(与源码里的 `── xx ──` 注释分节**逐字对应**),`Restore` 的自然切点 = 「两遍扫描」各自成方法 |
+| **触发条件** | ① 代码规范闸(≤40 行)真正落地时(**与 `TD-medcons-17` / `TD-clinic-14` 同批**);② 或 `SaveService.cs` / `EventStream.cs` 下一次实质改动时 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-persist-08** | `persistence-service` | **open** | **N** | R4 |
+
+> ⚠️ **本条与 `TD-medcons-17`(`ConsequenceEmitter.BuildDueRows` 51 行)、`TD-clinic-14`
+> (`ParseClause` ~82 行)是同一族的第三、四例** —— 三条都卡在同一个前置:**≤40 行没有门**。
+> **不得**把三条各修一遍然后假装规范已落实:真正的修法是**先立门**(那三条的触发条件已各自写明)。
+
+### 四、W7(a) → `TD-enemy-03`(新债)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `EnemyLocomotion.Advance`(`unity/Assets/Sim/EnemyLocomotion.cs:88-96`)在**路径耗尽**时执行 `acc = Fix.Zero` 并 `break`。而 **F-27-4 的权威伪码没有这个分支** —— 它在 `cell := Path[path_cursor + 1]` 处**无边界检查**,`|Path|−1` 之后的行为**整个 GDD 没有定义**。代码头注**自己承认**这一点:「把 acc 钳回溢出前余数不可得(公式无此定义),按『到达终点后 acc 归零』收口」 |
+| **实测(逐条可跑)** | ① 代码分支:`sed -n '85,97p' unity/Assets/Sim/EnemyLocomotion.cs` ⇒ `while (acc.Raw >= FixOne)` 内 `if (next >= path.Count) { acc = Fix.Zero; break; }`。<br>② GDD 伪码无守卫:`sed -n '673,684p' design/gdd/enemy-ai.md` ⇒ `cell := Path[path_cursor + 1]` 直取,无 `if`。<br>③ **`enemy-ai.md:714` 的引据不成立**:该行写「`acc < 0` ⇒ `Path` 越界读(**F-27-7 §`path_cursor` 的边界处理**)」,但 F-27-7 的实际内容(`:855-862`)**只讲重规划时游标的保留**(「重算后从新路径中找离当前格最近的节点作新游标」),**不讲路径走完怎么办**。<br>④ 现有夹具只钉「归零」这个**实现选择**,不钉「它是对的」:`grep -n "pathExhausted" unity/Assets/Tests/EditMode/EnemyAI/logi_pose_test.cs` ⇒ `:288` `test_advance_pathExhausted_staysAndClampsAcc`,断言 `Assert.AreEqual(0, acc.Raw, "acc 收口(不变式 0 ≤ acc < 1)")` |
+| **为何 P0 面 = Y**(R1) | 归属 `enemy-ai` ∈ 31 个 P0 epic,**且本条不自陈「不阻塞 P0 出口」**。与 `TD-processing-01…06` 的差别在**缺口的层级**:那六条缺的是**判据面强度**(行为有定义、判据弱);本条缺的是**规格本身** —— GDD 对「路径走完后 `acc` 怎么办」零字,而实现**替 GDD 做了一个决定**。<br>⚠️ **这是 `TD-enemy-01` / `TD-enemy-02` 之外的新缺口,不是它们的残留** —— 那两条都已 `closed`,且都不覆盖此面。 |
+| **为何不是「照代码补一句 GDD 就完」 | 三种收口各有不同后果,**选哪个是设计裁决不是文档补记**:<br>· **归零**(现实现):到终点后 `acc` 清零 ⇒ 若随后**重规划给出新路径**,首 tick 从 0 起算,不会吐积压量。代价:丢掉了「已经攒了半格」的进度 —— 但敌人本来就在终点站定,丢掉无害。<br>· **保留**(与 `Moving=false` 分支的纪律一致):`acc` 保持 ⇒ 但此时 `acc` 可能 ≥ `FIX_ONE`(循环因 `break` 退出时**尚未减去**那一格),**直接违反 `0 ≤ acc < FIX_ONE` 不变量**(EC-27-23)⇒ 除非另定「保留但钳到 `FIX_ONE − ε`」,那又是第三个未定义值。<br>· **归零后再置 `moving = false`**(现代码的注释建议「调用方在路径耗尽后应置 `moving=false`」):把责任推给调用方,而**调用方是 27 的行为程序,还没写**。<br>⇒ 这条**必须在 27 接线前裁**,否则调用方会按「已定义」的样子去写,而实际是**实现替规格做了决定** |
+| **修法方向** | ① **先裁语义**(GDD 轮):「路径走完后 `acc` 归零 / 保留 / 置 `moving=false`」三选一,写进 F-27-4 或 F-27-7;<br>② 裁定后**夹具从「钉实现」改为「钉规格」** —— 现有 `test_advance_pathExhausted_staysAndClampsAcc` 的断言文本「acc 收口」是**描述实现**,须改为引 GDD 条款;<br>③ 若裁定为「保留」,须同时定「保留到多少」(因为 `break` 时 `acc` 已 ≥ `FIX_ONE`) |
+| **触发条件** | **27 行为程序首次接线敌人步进时**(与 `TD-enemy-02` 结案块写的「接线时无选择面」同批 —— 那条解决的是「用哪个算子」,本条是「算子到终点后怎么办」) |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-enemy-03** | `enemy-ai` | **open** | **Y** | R1 |
+
+> ⚠️ **本条的 `Y` 使 `enemy-ai` 重新进入 M3 出口分布** —— `TD-enemy-01` / `02` 均 `closed`,
+> 而 `live` 集只算未闭 ⇒ 该 epic 此前**不在**分布里。**`epic 分布 9/31 → 10/31`**。
+> 复算:`python3 tools/debtcount/debtcount.py --print`。
+
+### 五、W8 结案(本轮当场修)
+
+| 侧 | 内容 |
+|---|---|
+| **原债** | `EventBudget.cs` 头注写「折叠期的**三类**流损坏 = fail-loud 抛」,而代码实抛**四条** `InvalidDataException`(`:195` 槽越界 / `:198` `eventKey < 0` / `:200` 同槽双占 / `:210` 清未挂起槽) |
+| **修法** | 头注改「**四类**」并把 ④ `eventKey < 0` 补进列表;附 2026-10-27 订正注说明「**头注少一类不是笔误** —— 它让防御面看起来比实际小」。**零行为变化**(四条 `throw` 一位未动) |
+| **判据** | ① `grep -n "四类" unity/Assets/Sim/EventBudget.cs` ⇒ **`:33`**(头注「四类流损坏」)与 **`:185`**(方法 doc「四类 fail-loud」)**两处命中**(措辞不同,故模式只能写「四类」不能写「四类流损坏」);② `grep -n "三类" unity/Assets/Sim/EventBudget.cs` ⇒ **仅 `:38` / `:187` 两处订正注**(引述旧措辞),**零残留的「三类」断言** |
+| **为何不需要证伪轮** | 本改**只动注释**,无执行体变化 ⇒ 无可变异之物。**如实登记:这不是「已验证」,是「无可验」** |
+| **回归(证明零行为变化)** | 全量 EditMode **5413 / 5378 / 0 / 35** @ `2026-10-27 10:51 CST` · 批次 **S20-7 全量(W8 注释改后)** · commit `51193cf` 工作树 ⇒ 对 10:36 的 `5413/5378/0/35` **四个计数逐位相同**。<br>⚠️ **全名级差集做不了,如实登记**:10:36 那次用的是**同一个 XML 路径**(`unity/Logs/s20-7-full.xml`),已被本次运行**覆盖**;仓内无副本(`find . -name "*.xml" -newermt "2026-10-27 10:30" ! -newermt "2026-10-27 10:45"` ⇒ 仅 `s20-7-medcons.xml`,那是 medcons 子集不是全量)。⇒ **「非通过集 35 条是同一批」这句话无据,已删**。可比对的只有四个计数。<br>⚠️ **这条回归的证明力本就有限**:注释改动**不该**改变任何测试结果 —— 跑它是为了排除「我改的不只是注释」,不是为了让 W8「被验证」 |
+
+> 🔴 **一处如实登记的返工**:本节的**首版**已经写了「`FoldDeferEvent` 的 doc 一并改了」,
+> 而当时**实际只改了头注** —— 方法 doc(`:185-186`)仍写「头注『三类 fail-loud』」且只列三项。
+> **是写完这句之后跑判据命令才发现的**(命令写的是 `grep "四类流损坏\|④ \`eventKey"` ⇒ 期望 `:33`/`:35`,
+> 实跑只有 `:33`/`:35` 命中头注,**方法 doc 那一处根本没被这条命令覆盖**)。
+> 处置:把方法 doc 一并改掉,并把判据换成**能同时覆盖两处**的形态(上方 ①② 两条)。
+> **教训**:「一并改了」是**动作自述**,不是判据 —— 判据必须能在**它没改**的时候变红。
+> 首版那条 `grep` 只钉了头注的措辞,**改没改方法 doc 它都绿**。
+
+### 六、`TD-medcons-16` 结案(本轮当场删夹具)
+
+| 侧 | 内容 |
+|---|---|
+| **原债** | `medcons_delayed_emit_test.cs:468` 的 `test_ac2_bake_cookedBytes_deterministic_sameSourceTwice` 对**行序回归零判别力**;新夹具 `:485` 已立且 doc 自称「替换」,但**删除动作未落** ⇒ 计数仍含一条假绿 |
+| **为何零判别力**(原债描述之外,本轮复核补) | 它两次调 `BakeFromRepo()`,而该函数**每次走同一个 `Dictionary` 枚举** ⇒ 两次结果必然相同。**要抓行序回归,必须改变枚举顺序再比** —— 那是它没做的事 |
+| **修法** | **删除该测试**,原位置留带日期的删除注(说明「删了什么 / 为何它没有判别力 / 替代件在哪」),承「原文不删」纪律 |
+| **判据** | `grep -n "test_ac2_bake_cookedBytes_deterministic_sameSourceTwice" unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs` ⇒ **零命中**(删除注里也不含该全名,避免误读为「还在」) |
+| **回归** | ① **medcons 子集**:`108 / 108 / 0 / 0`(`unity/Logs/s20-7-medcons.xml` @ 10:34)。<br>② **全量 EditMode**:`5413 / 5378 / 0 / 35` @ `2026-10-27 10:51 CST` · 批次 **S20-7 全量** · commit `51193cf` 工作树。基线 = `5414/5379/0/35`(`unity/Logs/s20-4-fix-full.xml` @ 10:07,S20-4 终态)⇒ **delta −1/−1**。<br>③ **全名级差集**(两份 XML 都在盘,可当场复算):**测试项新增 0 / 消失 1**,消失项恰为<br>`DaYiJingCheng.Tests.MedConsequences.MedconsDelayedEmitTest.test_ac2_bake_cookedBytes_deterministic_sameSourceTwice`;<br>**非通过集新增 0 / 消失 0**。⇒ 零回归,且减掉的正是本轮删的那一条。 |
+
+**复算(逐字可跑)**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 - <<'EOF'
+import xml.etree.ElementTree as ET
+def rd(f):
+    r=ET.parse(f).getroot()
+    return r,{tc.get('fullname') for tc in r.iter('test-case') if tc.get('result')!='Passed'}, \
+             {tc.get('fullname') for tc in r.iter('test-case')}
+o,onp,oall = rd('unity/Logs/s20-4-fix-full.xml')   # 基线 5414
+n,nnp,nall = rd('unity/Logs/s20-7-full.xml')       # 本次 5413
+print(f"基线 {o.get('total')}/{o.get('passed')}/{o.get('failed')}/{o.get('skipped')}")
+print(f"本次 {n.get('total')}/{n.get('passed')}/{n.get('failed')}/{n.get('skipped')}")
+print("测试项 新增", len(nall-oall), "消失", len(oall-nall))
+for x in sorted(oall-nall): print("  -", x)
+print("非通过集 新增", len(nnp-onp), "消失", len(onp-nnp))
+EOF
+# 期望:5414/5379/0/35 → 5413/5378/0/35;新增 0 消失 1(那条 test_ac2_bake…);非通过集 0/0
+```
+
+> ⚠️ **不要用 10:36 那次全量当基线** —— 它写进了**同一个 XML 路径**(`s20-7-full.xml`),
+> 已被本次运行覆盖,仓内无副本。**唯一在盘的全量基线 = `s20-4-fix-full.xml`(5414)**,
+> 它是**删夹具之前**的状态 ⇒ 与本轮的差正好隔离出「删了那一条」这一个变化。
+
+### 七、medcons 其余 19 条的整块策略(用户裁定③)
+
+> 🔴 **口径订正(本轮实测,与题面「20 条」不同)**:题面(源自 `sprint-20.md:44` / `retro-19` / QA 签核 C-2)
+> 一律写「medcons **20** 条」。**实测该 epic 名下未闭条目 = 19**,构成是
+> **18 条 `TD-medcons` + 1 条 `TD-s13-02`**(后者归属也是 `medical-consequences`)。
+> 复算:`awk '/<!-- TD-INDEX:BEGIN -->/{f=1} f && /medical-consequences/ && !/closed/{c++} /<!-- TD-INDEX:END -->/{if(f)exit} END{print c}' docs/tech-debt-register.md` ⇒ **19**。
+> ⇒ **本节的 19 = 未闭总数**(18 `TD-medcons` + `TD-s13-02`),**不是**「`TD-medcons-01…20` 里的 20 条」——
+> **20 号不存在**,编号 01–19 连续无缺。复算(**必须限定在索引块内 + 行首模式**):
+> `python3 -c "import re;t=open('docs/tech-debt-register.md',encoding='utf-8').read();b=re.search(r'<!-- TD-INDEX:BEGIN -->(.*?)<!-- TD-INDEX:END -->',t,re.S).group(1);ids=sorted(int(m.group(1)) for m in re.finditer(r'^\| \`TD-medcons-(\d\d)\`',b,re.M));print(ids[0],'..',ids[-1],'缺:',[n for n in range(1,ids[-1]+1) if n not in ids])"`
+> ⇒ 实得 `1 .. 19 缺: []`。
+> 🔴 **一处自指陷阱(留痕)**:首版判据写的是 `grep -c "TD-medcons-20" docs/tech-debt-register.md` ⇒ 期望 **0**。
+> **实跑得 1** —— 命中的**不是债条目,而是这条判据自己的文本**(裸串写在了本节里)。
+> ⇒ **判据文本污染了判据**。改用「索引块内 + 行首 + 编号连续性」三重限定后才成立。
+> **教训**:写「某串在全库零命中」这类判据时,**该串不能出现在判据自身所在的文件里**,
+> 否则命令第一次跑就是红的,而红的原因与债无关。
+> ⚠️ **「20」这个数在 `p0-remaining-roadmap:983` 与 `qa-signoff-sprint-16:229` 里也出现过** ——
+> 那些是**更早时点**的读数(当时 `TD-medcons-16` 仍未闭、且未扣 `TD-s13-04` 等已闭项),
+> 本轮**不追改**它们(原文不删),只在此写明今日口径。
+
+**裁定:不设统一期限,各按自带触发条件挂。** 理由 —— 这 19 条**不是同一类事**:
+
+| 触发面 | 条 | 共同点 |
+|---|---|---|
+| **数值轮** | `TD-medcons-01` · `-02` · `-15` · `-19` | 都要等**数值冻结 / 代价表 / U 档扩档**;数值用户自己调 ⇒ 今天动它等于替用户拍数 |
+| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · **`TD-s13-02`** | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源 |
+| **ADR-012 CI** | `TD-medcons-09` | 等三格矩阵;且矩阵本身 `EXTERNAL`(E-2a) |
+| **事件触发** | `-03`–`-08` · `-10` · `-11` · `-12` · `-14` | 等「**下一次真的碰到那个文件 / 那个签名**」;提前修 = 改一处、动一片 |
+| **规范闸** | `-17`(≤40 行) | 与 `TD-persist-08` / `TD-clinic-14` **同批** |
+
+> ⚠️ **「按触发」不等于「无限期」** —— 每条的触发条件**已经写在债册正文里**(上表只是归类),
+> 触发时**须当轮处理**,不得再次顺延。
+> ⚠️ **19 条全部 `P0 面 = Y`(R1)** —— 它们归属 `medical-consequences`(P0 epic)且**未自陈不阻塞出口**。
+> 这是**如实登记**,不是「这 19 条都不急」的相反证明。
+> ⚠️ **`TD-medcons-16` 已在本轮结案**(见 §六),故**不在**上表 19 条内 —— 上表是**结案之后**的活条目。
+
+### 八、QA 签核 sprint-19 的 C-2 / C-5(用户裁定②:如实登记为已解除)
+
+> **裁定口径**:「如实登记为**已解除**」—— **原登记不删**,在其下加注新事实。
+> ⚠️ **不是「补做」也不是「撤回」** —— C-2 是**后来被别的轮次满足的**,C-5 是**判据被换掉了**,
+> 两者都**不是当时判错了**。
+
+#### C-2 —— `AC-7a-20` 全树零载体 · `TD-persist-04` open
+
+| 侧 | 2026-10-25 原登记 | 2026-10-27 实测 |
+|---|---|---|
+| `AC-7a-20` 载体数 | `grep -rl 'AC-7a-20' unity/Assets/Tests/ tests/ production/epics/ \| wc -l` ⇒ **0** | **4** |
+| `TD-persist-04` | `open` | **`closed`** |
+| 装配根 | `CompositionRoot.cs:507` `narrativeContext = null` | `CompositionRoot.cs:415` `var narrativeContext = new NoPendingMedicalActionQuery();` |
+
+**复算命令**(可当场跑,输出须逐条对上):
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -rl 'AC-7a-20' unity/Assets/Tests/ tests/ production/epics/ | tee /dev/stderr | wc -l
+# 期望 4,且上面列出:checkpoint_fallback_test.cs / anchor_checkpoint_trigger_test.cs /
+#                     composition_root_test.cs / persistence-service/EPIC.md
+awk '/<!-- TD-INDEX:BEGIN -->/{f=1} f && /^\| `TD-persist-04`/{print} /<!-- TD-INDEX:END -->/{if(f)exit}' \
+  docs/tech-debt-register.md
+# 期望恰一行,状态列 = closed
+# ⚠️ 限定在索引块内:不加限定会连本节表格一起命中
+# ⚠️ **必须用 awk 只认第一个区间** —— 首版写的是
+#    `sed -n '/BEGIN/,/END/p'`,而这两个串在散文里也出现(`:461` / `:4193` / `:4604`),
+#    sed 会起**多个区间**,实测输出 4275 行(应为 131 行)。已改。
+grep -n 'new NoPendingMedicalActionQuery' unity/Assets/Gameplay.Boot/CompositionRoot.cs
+# 期望:415
+```
+
+**⇒ C-2 状态:✅ 已实质满足(2026-10-25 超期,由 `TD-persist-04` 结案轮兑现)**。
+⚠️ **原登记的 `0` 与 `CompositionRoot.cs:507` 不删** —— 它们记的是 2026-10-25 那一刻的真实读数。
+
+#### C-5 —— `fz-s193/` 备份目录不在盘,证伪轮的 SHA-256 还原不可复验
+
+| 侧 | 内容 |
+|---|---|
+| 原登记 | `ls -d fz-s19*` ⇒ 仅 `fz-s194`;S19-3 的「SHA-256 逐字节还原」**今天不可复验**,判 `NOT-RUN` |
+| 2026-10-27 实测 | `ls -d fz-s19*` ⇒ **仍仅 `fz-s194`** —— **备份确实找不回来了** |
+| 但判据已换 | S20-4 起采用**可入库的替代判据**:驱动把**起跑基线 SHA-256 打进输出**,证据件记下**终态**哈希 ⇒ 任何人 `sha256sum` 即可验证「文件确实回到了被变异前的样子」 |
+| 判据强度(如实登记) | 这验的是**结果**,**不是过程**。过程的可复演性由 `tools/falsify/unity_falsify.py` 的 `restore_all()` + `sha256()` 在**同一命令内**保证,不依赖任何留存目录 |
+
+**复算命令**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+ls -d fz-s19* 2>/dev/null        # 期望:仅 fz-s194(备份未找回)
+grep -n "restore_all\|def sha256" tools/falsify/unity_falsify.py   # 期望:两处定义都在
+grep -n "SHA-256(终态" production/qa/evidence/impl-s20-4-admissible-predicate-2026-10-27.md  # 期望命中 §七 表头
+```
+
+**⇒ C-5 状态:⚠️ 不可复验(备份永久丢失)· 已由 S20-4 的「SHA 入库」判据取代**。
+⚠️ **「取代」不等于「S19-3 那一轮被证明了」** —— S19-3 的还原过程**仍然无法复验**,这一点不变。
+C-5 的教训(「后续轮次须保留备份至收口」)已由替代判据**结构性消解**:新判据不产生需要保留的目录。
+
+### 九、本节新增/变更的账务(四十四订)
+
+| 动作 | 条目 | 影响 |
+|---|---|---|
+| `TD-medcons-16` `open → closed` | — | `open −1` / `closed +1` |
+| 新立 `TD-persist-08`(W6) | `persistence-service` / `N`(R4) | `条目 +1` · `open +1` · `N +1` |
+| 新立 `TD-enemy-03`(W7a) | `enemy-ai` / `Y`(R1) | `条目 +1` · `open +1` · `Y +1` · **`未闭 P0 面 +1`** · **`epic 分布 9/31 → 10/31`** |
+| W9 / W10 | 豁免,**不入索引** | 零影响 |
+| C-2 / C-5 | 加注,**不改索引** | 零影响 |
+
+**复算(唯一入口,勿手算)**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print
+```
+
+> ⚠️ **加行前实测**(`TD-medcons-16` 翻状态之后、两条新债入表之前):`条目 125 | 状态 {open:75, closed:44, partial:5, done:1} | P0 面 {Y:101, N:23} | 未闭 62 | 9/31`。
+> **加行后**由上方命令当场给出,**本节不手抄结果** —— 承四十一订「块改脚本直生成」的同一条纪律:
+> 手抄的读数会在下一次改动后静默过期。
+>
+> 🔴 **本轮净变化必须逐列读,不得只看「未闭 P0 面」** —— 以**本轮起手前**的块为准
+> (`条目 125 | open 76, closed 43, partial 5 | Y 101, N 23 | 未闭 63 | 9/31`,`--check` 当时报一致):
+>
+> | 列 | 起手 | 收口 | 净 |
+> |---|---|---|---|
+> | `条目` | 125 | **127** | **+2** |
+> | `open` | 76 | **77** | **+1** |
+> | `closed` | 43 | **44** | **+1** |
+> | `N` | 23 | **24** | **+1** |
+> | **`未闭 P0 面`** | **63** | **63** | **0** ← ⚠️ **两位相抵,不是没动** |
+> | **`epic 分布`** | **9/31** | **10/31** | **+1** |
+>
+> ⚠️ **「`未闭 P0 面` 一位不动」这一列最容易被误读成「本轮没碰 P0 面」** ——
+> 实际是**两件事互相抵消**:`TD-medcons-16` 结案(−1)· `TD-enemy-03` 新立(+1)。
+> **这与四订的形态同族**(结案 + 新债同批,两个统计数各自回原值),
+> ⇒ **禁止把「63 还是 63」写成「一位不动」** —— 该写法对**纯治理债**的轮次成立,对本轮不成立。
+> **`epic 分布` 才是本轮唯一单向变化的读数**:`medical-consequences 20 → 19`(仍有 19 条,不出分布)·
+> **`enemy-ai` 0 → 1**(重新进入分布,`TD-enemy-01/02` 均已 `closed`)· `persistence-service` 仍 0
+> (`TD-persist-08` 是 `N`,不进 `live` 集)。
