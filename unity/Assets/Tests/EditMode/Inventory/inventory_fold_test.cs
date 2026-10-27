@@ -364,6 +364,37 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
         }
 
         [Test]
+        public void test_conflictingQualitySource_raisesGapAndFirstSeenWins()
+        {
+            // 评审 `review-s20-10-inventory-001-2026-10-27.md` B-2:
+            //   `InventoryFoldGapKind.ConflictingQualitySource`(:115)的**唯一产出点**
+            //   (InventoryFold.cs:521)在此前**零夹具** —— 该分支从未被执行过,
+            //   「同一实例两处矛盾会报缺口」这句话没有任何东西在钉它。
+            //   本夹具补上:两采同实例不同档 ⇒ 报缺口 **且** 品级取首条。
+            var events = new List<SimEvent>
+            {
+                Spawn(9, itemKey: 3, qty: 1, tick: 1, seq: 0),
+                Harvest(9, nodeId: 1, qty: 1, outQuality: 2, tick: 2, seq: 0),
+                Harvest(9, nodeId: 1, qty: 1, outQuality: 5, tick: 3, seq: 0),
+            };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+
+            Assert.That(
+                r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.ConflictingQualitySource
+                                && g.InstanceId == 9L), Is.True,
+                "同一实例两处给出不同 out_quality ⇒ 必须报缺口 —— 静默取其一会让"
+                + "「品级只从载荷抄」变成「品级按扫描顺序抽签」");
+            Assert.That(r.IsComplete, Is.False,
+                "有矛盾来源 ⇒ 部分态,不得当 InventoryOf 用");
+
+            Assert.That(TryRow(r, 9, out InventoryRow row), Is.True);
+            Assert.That(row.Quality, Is.EqualTo(2),
+                "**首条胜出**(InventoryFold.cs:528 的 `continue` 语义):"
+                + "后到的 5 不得覆盖已记的 2");
+        }
+
+        [Test]
         public void test_harvestWithoutSpawn_isDangling_notSilentlyDropped()
         {
             // 今天 20 侧写者缺位时 17 的真实形态:ResourceHarvested 落了、DropSpawned 没落。
@@ -423,6 +454,32 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.InvalidDespawnQuantity), Is.True);
             Assert.That(TryRow(r, 1, out InventoryRow row), Is.True);
             Assert.That(row.Qty, Is.EqualTo(2), "畸形扣减被拒 ⇒ qty 不动(不扣成负数)");
+        }
+
+        /// <summary>`InvalidDespawnQuantity` 的**另一半**:`qty ≤ 0`。
+        /// (2026-10-27 补 · 评审 `review-s20-10-inventory-001` W-3 ——
+        ///  上一条只覆盖 `qty > 持有量` 那一支,而 `InventoryFold.cs:384` 的 `p.Qty &lt;= 0`
+        ///  是**独立分支**,`Branch` 覆盖率 1/2。) 两条各喂 zero 与负,验证都不扣。</summary>
+        [Test]
+        public void test_despawnNonPositiveQty_raisesInvalidQuantity_andKeepsRow()
+        {
+            foreach (int bad in new[] { 0, -3 })
+            {
+                var events = new List<SimEvent>
+                {
+                    Spawn(1, 10, 2, tick: 1, seq: 0), Harvest(1, 1, 2, 0, tick: 1, seq: 1),
+                    Despawn(1, qty: bad, tick: 2, seq: 0),
+                };
+
+                InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+
+                Assert.That(
+                    r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.InvalidDespawnQuantity
+                                    && g.InstanceId == 1L), Is.True,
+                    $"qty={bad} 属畸形输入(扣减量须 > 0)⇒ 必须报缺口,不得静默当成「扣 0」");
+                Assert.That(TryRow(r, 1, out InventoryRow row), Is.True);
+                Assert.That(row.Qty, Is.EqualTo(2), $"qty={bad} 被拒 ⇒ 持有量不动");
+            }
         }
 
         [Test]
@@ -552,11 +609,25 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 "RecipeSettlementConstants", "GatherQualityRoll", "QualityDistributionShape",
             };
 
+            // fold 代码路径的类型全集 —— **须与 `InventoryFold.cs` 的声明逐一对应**。
+            // ⚠️ 本集合若与文件脱节(删/添类型未同步),下面的 `scannedTypes` 下界断言会红。
+            var FoldCodePathTypes = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "DaYiJingCheng.Sim.InventoryFold",          // static class —— Fold 本体
+                "DaYiJingCheng.Sim.InventoryFoldResult",    // 结果 + IsComplete / RequireComplete
+                "DaYiJingCheng.Sim.InventoryProjection",    // 投影(按持有者视图)
+                "DaYiJingCheng.Sim.InventoryRow",           // 行 + StackKey
+                "DaYiJingCheng.Sim.InventoryFoldGap",       // 缺口结构 + RegistryId
+                "DaYiJingCheng.Sim.InventoryFoldGapKind",   // 缺口枚举
+            };
+
             var dll = AssemblyGates.ScriptAssemblyPath("Sim");
             Assert.That(File.Exists(dll), Is.True, "Sim.dll 须已编译");
 
             var hits = new List<string>();
             int scanned = 0;
+            var scannedTypes = new List<string>();
+            bool sawFold = false;
             using (var asm = AssemblyDefinition.ReadAssembly(dll, new ReaderParameters
             {
                 ReadingMode = ReadingMode.Deferred, InMemory = true,
@@ -564,13 +635,44 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             {
                 foreach (var type in AssemblyGates.AllTypes(asm.MainModule))
                 {
-                    if (type.FullName != "DaYiJingCheng.Sim.InventoryFold") continue;
+                    // ⚠️ **2026-10-27 订正(评审 `review-s20-10-inventory-001` W-1 / G-5)**:
+                    //   原判据是 `if (type.FullName != "DaYiJingCheng.Sim.InventoryFold") continue;`
+                    //   ⇒ 扫描面 = **单个类型**,而 AC-20-05 的原文是「**20 的代码路径**」。
+                    //   `Sim/ItemDatabase/` 下另有 16 个类型(共 17 文件),嵌套/lambda 生成的
+                    //   闭包类型也全在扫描面外 ⇒ 对「20 不求值」这句话只证了一小片,`✅` 有借绿成分。
+                    //   订正 = 扫描面放宽到**命名空间前缀** `DaYiJingCheng.Sim`,并断言扫到的类型数
+                    //   与「InventoryFold 在册」两个下界,防扫描面再次静默缩回一个类。
+                    // ⚠️ **判据面 = fold 的整个代码路径**(2026-10-27 订正 · 评审 W-1 / G-5):
+                    //   原判据 `type.FullName != "...InventoryFold" ⇒ continue` 只扫 1 个类型,
+                    //   而 `InventoryFold.cs` 实声明 **6 个类型**(Fold / Result / Projection /
+                    //   Row / Gap / GapKind)—— 缺口构造、行构造、投影构建全在扫描面外。
+                    //   本条把判据面收到「**该文件的全部类型**」,既补上 G-5 的窄面,
+                    //   又不越界到「整个 Sim 命名空间」。
+                    //
+                    // ⚠️ **为什么不放宽到命名空间前缀**(实测否定):那样会命中
+                    //   ① 别的系统的合法代码(`ProcessingSettlementEntry` / `CraftingSettlementEntry`
+                    //      属 18,它们**本来就该**调 `RecipeSettlementSolver`);
+                    //   ② 20 自己**必须**的委托(`StacksOf → StackingSolver.CanStack` 是 AC-20-04
+                    //      明文要求「不得复制公式体」)。
+                    //   两者都不是违规 ⇒ 命名空间面会假红,且真违规会被噪声淹没。
+                    //   **AC-20-05 的「20 的代码路径」= fold 这条路径,不是 20 的全部代码**
+                    //   (堆叠/折重/CanCarry 各有自己的 AC)。
+                    if (type.FullName == null || !FoldCodePathTypes.Contains(type.FullName))
+                        continue;
+
+                    // 被禁类型自身不算「调用方」—— 那是定义体的自引用,不是「有人调它」。
+                    if (banned.Contains(type.Name)) continue;
+
+                    bool isFold = type.FullName == "DaYiJingCheng.Sim.InventoryFold";
+                    if (isFold) sawFold = true;
+
                     foreach (var m in type.Methods)
                     {
                         Mono.Cecil.Cil.MethodBody body;
                         try { body = m.Body; } catch { continue; }
                         if (body == null) continue;
                         scanned++;
+                        if (isFold) scannedTypes.Add(m.FullName);
                         foreach (var ins in body.Instructions)
                         {
                             if (!(ins.Operand is MethodReference mr)) continue;
@@ -581,9 +683,29 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 }
             }
 
+            Assert.That(sawFold, Is.True,
+                "扫描面里没有 InventoryFold —— 命名空间前缀判据已失配(类型搬家 / 汇编改名),拒以空集冒充绿");
             Assert.That(scanned, Is.GreaterThan(0),
-                "InventoryFold 内一个方法体都没扫到 —— 扫描面已失效(类型改名 / DLL 陈旧),拒以空集冒充绿");
-            Assert.That(hits, Is.Empty, "fold 不得调用 21a 的求值器:" + string.Join(" | ", hits));
+                "Sim 内一个方法体都没扫到 —— 扫描面已失效(类型改名 / DLL 陈旧),拒以空集冒充绿");
+            Assert.That(scannedTypes, Is.Not.Empty,
+                "InventoryFold 自身零方法体被扫到 —— 判据面与文件脱节(回退到 AC 语义层之外)");
+
+            // ⚠️ **扫描面 ↔ 文件声明 的机械对账**(2026-10-27 立):
+            //   上面的 `FoldCodePathTypes` 是手写的,文件里新增一个类型就会**静默地**落在
+            //   扫描面外 —— 那正是本夹具 W-1 要消灭的失败模式(判据面比 AC 语义层窄)。
+            //   故这里从**源码**数一遍声明,与集合逐一对账。
+            string foldSrc = StripComments(File.ReadAllText(Path.Combine(
+                UnityEngine.Application.dataPath, "Sim", "ItemDatabase", "InventoryFold.cs")));
+            var declared = new HashSet<string>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match mm in
+                     System.Text.RegularExpressions.Regex.Matches(
+                         foldSrc, @"\b(?:class|struct|enum)\s+(\w+)"))
+                declared.Add("DaYiJingCheng.Sim." + mm.Groups[1].Value);
+
+            CollectionAssert.AreEquivalent(declared, FoldCodePathTypes,
+                "扫描面须与 InventoryFold.cs 的类型声明**逐一对应** —— " +
+                "文件里加/删类型而不同步本集合,判据面就会静默变窄(或宽到误伤别的系统)");
+            Assert.That(hits, Is.Empty, "20 的代码路径不得调用 21a 的求值器:" + string.Join(" | ", hits));
         }
 
         // ══════════════════════════════════════════════════════════════════

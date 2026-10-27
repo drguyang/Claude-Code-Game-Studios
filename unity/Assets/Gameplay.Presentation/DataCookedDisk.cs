@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using DaYiJingCheng.Sim.Contracts;   // ItemDataSet(21a 物品种子表 · 2026-10-27)
 using UnityEngine;
 
 namespace DaYiJingCheng.Gameplay.Presentation
@@ -80,5 +81,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>9 病种注册表(<c>disease_registry.cooked.bytes</c>;含全局 <c>W</c> / <c>TREND_EPS</c>)。</summary>
         public static DiseaseRegistryDataSet LoadDiseaseRegistry()
             => DiseaseRegistryCookedCodec.Read(ReadAll(AddressablesDataProvider.DiseaseRegistryAddress));
+
+        // ── 21a 物品种子表(S20-10/11/12 修复轮 · 2026-10-27)────────────────
+        // ⚠️ 同 `LoadDiseaseRegistry`:消费方是**生产装配**(`CompositionRoot` 的
+        //    `InventoryLoadService` 惰性取数),不只是测试。它在这里的意义 =
+        //    「provider 为 null」(EditMode / 未预载)时读**同一份**烘焙产物 + **同一个** codec。
+
+        /// <summary>21a 物品种子表(<c>item_database_items.cooked.bytes</c>)。
+        /// <para>⚠️ <b>惰性调用点</b>:生产走 <c>() =&gt; DataCookedDisk.LoadItems()</c>,
+        /// 只在首次库存投影重建时求值 —— 装配期零 IO(见 `InventoryLoadService` 类头注)。</para></summary>
+        public static ItemDataSet LoadItems()
+            => CookedCodec.ReadItemDataSet(ReadAll(AddressablesDataProvider.ItemsAddress));
     }
 }

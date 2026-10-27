@@ -148,10 +148,30 @@ namespace DaYiJingCheng.EditorTools.Gates
             //   逐 tick 调 TryStartAtTick)归 52 的接线轮。
 
             // ── 17 / 18 / 20 世界流(本批只落 17 的 ResourceHarvested)──
-            ("Craft", "18 炮制加工写者未落 —— 归 18 实现轮(P0 唯一发出方,entities.yaml author 注)(2026-10-10)"),
-            ("DropSpawned", "20 落地写者未落 —— 且它是 instance_id 的**铸造点**(foraging 规则三);归 20 实现轮(2026-10-10)"),
-            ("DropClaimed", "20 拾取归属写者未落 —— 拾取三段式(ADR-009 §七)判距与写入归 20/4 装配轮(2026-10-10)"),
-            ("DropDespawned", "20 掉落消亡写者未落 —— 归 20 实现轮(2026-10-10)"),
+            // ✅ 2026-10-27 撤 `Craft` 豁免(S20-13 · processing story-003 接线轮):
+            //   写者已落 —— `Sim/World/CraftEventWriter.cs`(18 的唯一 `Craft` 写入通道,
+            //   `Encode(EventKind.Craft, …)` = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」**强制同批撤表**
+            //   (承 `CaseClosed` / `CareApplied` / `PatientOutcomeChanged` / `ThreatDeferred` 先例)。
+            //   ⚠️ 与既有先例同格:**有写者 ≠ 已接线** —— 生产触发点(规则七五步事务)
+            //   已由 `Sim/Processing/CraftIgnitionTransaction` 落成真调用链,但**第 ④ 步
+            //   只接了容量预检 `IgnitionAdmission.CanAdmit`**,20 的 `Apply`(扣原料 / 铸库存行 /
+            //   落溢出)归 inventory-005(S20-14)。撤表只证「有写者」,不证「事务完整」。
+            //   正向存在性断言的载体 = `Tests/PlayMode/craft_event_payload_test.cs`
+            //   (AC-18-16 / 11 / 25;AC-18-19 为 EXTERNAL,不记绿)。
+            // ✅ 2026-10-27 撤 `DropSpawned` / `DropClaimed` / `DropDespawned` 三条豁免
+            //   (S20-14 · inventory story-005 写者轮):
+            //   三支写者已落 —— `Sim/World/DropEventWriter.cs`(20 的唯一掉落写入通道;
+            //   `Encode(EventKind.DropSpawned…)` / `…DropClaimed…` / `…DropDespawned…`
+            //   = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」**强制同批撤表**
+            //   (承 `CaseClosed` / `CareApplied` / `Craft` 先例)。
+            //   ⚠️ 与既有先例同格:**有写者 ≠ 已接线** —— 生产触发点仍归各自装配轮:
+            //   · `DropSpawned` 的四类触发方(17 采集三连发 / 18 起货溢出 / 25 敌人死亡 /
+            //     29 玩家死亡散落)全未接线;
+            //   · `DropClaimed` 的拾取三段式判距住 4 的交互装配轮(ADR-009 §七,吃表现态位置);
+            //   · `DropDespawned` 的用药消耗编排归 11 的装配轮。
+            //   撤表只证「有写者」,不证「已接线」。
 
             // ── 24 / 30 / 53 ──
             // ✅ 2026-10-22 撤 `CareApplied` 豁免:写者已落 ——

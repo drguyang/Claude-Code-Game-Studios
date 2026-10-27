@@ -51,6 +51,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         private ResourceHarvestWriter _harvestWriter;
         private SpyDropWriter _dropWriter;
         private SpyGrowthEmitter _growth;
+        private NoveltyTracker _novelty;
         private HarvestOrchestrator _orchestrator;
 
         [SetUp]
@@ -61,8 +62,11 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
                 _bag.EventSink, _bag.Encoder, _bag.Decoder, _bag.Stream.Events);
             _dropWriter = new SpyDropWriter(() => _bag.Stream.Count);
             _growth = new SpyGrowthEmitter();
+            // ⚠️ 每测一个**全新**追踪器 —— 它是有状态的(冷却字典)。复用会让上一测的
+            //    「首次」把下一测的「首次」变成 Stale,那是跨测污染,不是被测行为。
+            _novelty = new NoveltyTracker();
             _orchestrator = new HarvestOrchestrator(
-                _bag.IdAuthority, _harvestWriter, _dropWriter, _growth);
+                _bag.IdAuthority, _harvestWriter, _dropWriter, _growth, _novelty);
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -125,7 +129,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             //   · 载荷可解码 + 逐字段等值 ⇒ 把「编码 → 入池 → Append → 解码」整链钉住
             var adapter = new SkillGrownEmitterAdapter(_bag.EventSink, _bag.Encoder);
             var orch = new HarvestOrchestrator(
-                _bag.IdAuthority, _harvestWriter, NullDropWriter.Instance, adapter);
+                _bag.IdAuthority, _harvestWriter, NullDropWriter.Instance, adapter, _novelty);
 
             const long tick = 777;
             const int actorId = 42;
@@ -341,35 +345,108 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         }
 
         [Test]
-        public void test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot()
+        public void test_ac1701_nullDropWriterAssembly_writesOnlyResourceHarvested()
         {
-            // ⚠️ **本测是本件最重要的一条:它把「今天能做到什么」钉死。**
+            // 🔁 **2026-10-27 S20-15 就地改判(原文不删,转绿机理记于此)**。
             //
-            // 用 NullDropWriter(生产的空实现)装配时:
-            //   · 世界流只增 **ResourceHarvested 一条**(17 真的写了)
-            //   · Drop 两条 **不落流**(20 没有写者)
-            // ⇒ AC-17-01「恰发三条」**不成立**,该 AC 因此不勾。
+            // 原稿 `test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot` 的断言是
+            // 「NullDropWriter 装配下世界流只增 1 条」,并把它当成**反向夹具**:
+            // 「20 落地后若有人换掉 NullDropWriter,本测会红 —— 那时是期待不是故障」。
+            // **那一刻到了**:20 的两支写者已落(S20-14),S20-15 在生产装配点换上了
+            // `DropEventWriterAdapter`。故本测**改名为它真正在测的东西** ——
+            // 「`NullDropWriter` 这条**测试专用**空实现确实零写入」,不再冒充生产状态。
             //
-            // 若将来 20 落地后有人把 NullDropWriter 换成真实现,这条测试**会红** ——
-            // 那时应当更新它,而不是把 AC-17-01 悄悄改成绿:红的那一刻正是「三连发
-            // 终于能跑了」的信号,值得被看见。
+            // ⚠️ 保留它的价值:它是**注入缝的阴性对照**。下面的
+            // `test_ac1701_productionAdapter_writesAllThreeKinds` 是阳性面;若两条都绿,
+            // 说明「三条落流」不是装配的副作用,而是**换掉写者才发生** —— 那是 AC-17-01
+            // 「Drop* 由 20 写」这条归属判据的行为证据。
             var orch = new HarvestOrchestrator(
-                _bag.IdAuthority, _harvestWriter, NullDropWriter.Instance, _growth);
+                _bag.IdAuthority, _harvestWriter, NullDropWriter.Instance, _growth, _novelty);
 
             int before = WorldStreamCount();
             orch.Resolve(Req(actorId: 1, nodeId: 0, objectId: 0));
             int delta = WorldStreamCount() - before;
 
             Assert.That(delta, Is.EqualTo(1),
-                "NullDropWriter 装配下世界流只增 1 条(ResourceHarvested)。" +
-                "增了 " + delta + " 条说明 Drop 写者已接线 —— 届时须更新本测并复评 AC-17-01");
+                "NullDropWriter 是零写入空实现 ⇒ 世界流只增 ResourceHarvested 一条。实增 " + delta);
 
             var kinds = _bag.Stream.Events
                 .Skip(_bag.Stream.Events.Count - delta)
                 .Select(e => e.Kind)
                 .ToArray();
             Assert.That(kinds, Is.EqualTo(new[] { EventKind.ResourceHarvested }),
-                "唯一落流的是 ResourceHarvested(17 的 Kind);Drop* 两条归 20");
+                "装配空实现时唯一落流的是 ResourceHarvested(17 的 Kind)");
+        }
+
+        [Test]
+        public void test_ac1701_productionAdapter_writesAllThreeKinds_inOrder()
+        {
+            // ⚠️ **本测是 AC-17-01 解除挂起的判据本体**(S20-15)。
+            //    它走**生产适配器** `DropEventWriterAdapter` → 20 的 `DropEventWriter`,
+            //    即 `CompositionRoot` 里真实装配的那一条链(不是 spy)。
+            // ⚠️ 成长侧也必须走**生产适配器** `SkillGrownEmitterAdapter` —— 下面 ⑤ 要断言
+            //    病史流里真的多了一条 `SkillGrown`;若用 SpyGrowthEmitter,那条断言必然红
+            //    (spy 不写流)。首跑实测正是这么红的:夹具自己混了 spy 与生产链。
+            var writer = new DropEventWriter(_bag.EventSink, _bag.Encoder, _bag.IdAuthority);
+            var orch = new HarvestOrchestrator(
+                _bag.IdAuthority, _harvestWriter,
+                new DropEventWriterAdapter(writer),
+                new SkillGrownEmitterAdapter(_bag.EventSink, _bag.Encoder), _novelty);
+
+            int before = _bag.Stream.Events.Count;
+            HarvestResult r = orch.Resolve(Req(actorId: 5, nodeId: 2, objectId: 3));
+
+            // ⚠️ **按流别切面**,不要拿「全流增量」当世界流增量 —— 一次采集同时写
+            //    世界流三条 + 病史流一条(SkillGrown),混在一起数会得到四条。
+            var written = _bag.Stream.Events.Skip(before)
+                .Where(e => StreamRouting.Of(e.Kind) == StreamId.World)
+                .ToArray();
+
+            // ① 世界流恰三条 —— 不多不少
+            Assert.That(written.Select(e => e.Kind).ToArray(),
+                Is.EqualTo(new[]
+                {
+                    EventKind.DropSpawned,
+                    EventKind.ResourceHarvested,
+                    EventKind.DropClaimed,
+                }),
+                "一次成功采集须在世界流恰发三条,且**序**为 " +
+                "DropSpawned → ResourceHarvested → DropClaimed " +
+                "(出生须先于引用 —— 20 侧 InventoryOf fold 的读序前提,story-003 Notes 1)。" +
+                "实得:" + string.Join(" → ", written.Select(e => e.Kind)));
+
+            // ③ 三条共用同一个 instance_id(R11 铸造点当下性 —— 这次在**流里**核,不再靠 spy)
+            var spawned = _bag.Decoder.Decode<DropSpawnedPayload>(
+                EventKind.DropSpawned, written[0].Payload);
+            var harvested = _bag.Decoder.Decode<ResourceHarvestedPayload>(
+                EventKind.ResourceHarvested, written[1].Payload);
+            var claimed = _bag.Decoder.Decode<DropClaimedPayload>(
+                EventKind.DropClaimed, written[2].Payload);
+
+            Assert.That(spawned.InstanceId, Is.EqualTo(r.InstanceId.Value));
+            Assert.That(harvested.InstanceId, Is.EqualTo(r.InstanceId.Value));
+            Assert.That(claimed.InstanceId, Is.EqualTo(r.InstanceId.Value),
+                "三条载荷须共用同一 id —— 若 DropSpawned 是另一个号,说明适配器错调了自铸入口" +
+                "(RecordSpawned),一次采集烧了两个号");
+
+            // ④ 载荷内容对得上请求(防「三条都在但内容错」)
+            Assert.That(spawned.ItemKey, Is.EqualTo(0));
+            Assert.That(spawned.Qty, Is.EqualTo(1));
+            Assert.That(spawned.SpawnAnchor, Is.EqualTo(new WorldPos(3, 0, 7)),
+                "spawn_anchor = 节点整数格(不是 float 世界坐标)");
+            Assert.That(claimed.Claimer, Is.EqualTo(5), "claimer = 采集者");
+
+            // ⑤ 零新增 Kind(AC-20-17 同口径):除三条世界流 + SkillGrown 外,别无他物
+            var historyKinds = _bag.Stream.Events.Skip(before)
+                .Where(e => StreamRouting.Of(e.Kind) == StreamId.History)
+                .Select(e => e.Kind).ToArray();
+            Assert.That(historyKinds, Is.EqualTo(new[] { EventKind.SkillGrown }),
+                "病史流侧只增 SkillGrown 一条(采集的成长)");
+
+            // ⑥ 全流增量**总和**恰 4 —— 兜住「三条世界 + 一条病史,没有第五个别的东西」
+            //    （上两条各自按流别切面,合起来才是完备的「零新增」）
+            Assert.That(_bag.Stream.Events.Count - before, Is.EqualTo(4),
+                "一次采集的全流增量须恰 4 条(世界 3 + 病史 1)");
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -412,7 +489,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             // 这里用一个**会记录发号次数**的 spy 包住真发号器来观察时序。
             var spyIds = new CountingIdAuthority(_bag.IdAuthority);
             var orch = new HarvestOrchestrator(
-                spyIds, _harvestWriter, _dropWriter, _growth);
+                spyIds, _harvestWriter, _dropWriter, _growth, _novelty);
 
             orch.Resolve(Req(actorId: 1, nodeId: 0, objectId: 0));
 
@@ -448,12 +525,12 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             //      这一条比 ① 更强:它不依赖参数名(实现细节),只依赖「前置校验在发号之前」。
             var spyIds = new CountingIdAuthority(_bag.IdAuthority);
             var orch = new HarvestOrchestrator(
-                spyIds, _harvestWriter, _dropWriter, _growth);
+                spyIds, _harvestWriter, _dropWriter, _growth, _novelty);
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => orch.Resolve(
                 new HarvestRequest(tick, actorId, nodeId, new WorldPos(0, 0, 0),
                                    itemKeyOrdinal: 0, qty, quality,
-                                   skillId: 0, objectId: 0, NoveltyClass.First, Fix.One)),
+                                   skillId: 0, objectId: 0, Fix.One)),
                 why);
 
             Assert.That(ex.ParamName, Is.EqualTo("r"),
@@ -471,21 +548,25 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             Assert.That(_growth.Calls.Count, Is.EqualTo(0), "成长零调用");
         }
 
-        // ⚠️ **域界三面必须各有一例**(2026-10-26 收口轮补):novelty 下界 / novelty 上界 / xpGain 负值。
-        //    漏下界 ⇒ 守卫里 `(int)r.Novelty < 0` 那半条分支零覆盖,而 Phase 8b 要求
-        //    「多分支判定缺分支 ⇒ 该行 Proven 不得标 ✅」。
-        [TestCase(-1, 0L, "novelty 越下界 (NoveltyClass)(-1)")]
-        [TestCase(7, 0L, "novelty 越上界 (NoveltyClass)7 —— 有效域 [0, Normal=2]")]
+        // 🔁 **2026-10-27 S20-15:novelty 的两条用例已删除**(原文不删,机理记于此)。
+        //    原稿是 `[TestCase(-1,…)]` / `[TestCase(7,…)]` —— 它们构造 `(NoveltyClass)(-1)` /
+        //    `(NoveltyClass)7` 作为**入参**喂给 `HarvestRequest`,验编排器拒越界。
+        //    但 S20-15 把 `Novelty` 从入参**删除**(AC-17-14f:求值只在编排器内部发生)⇒
+        //    那个形状**在类型层面已不可表达** —— 用例会编译不过,而不是变红。
+        //    ⇒ 守卫随字段一起删除(`HarvestOrchestrator.Validate` 内留有就地注记)。
+        //    域界判据由 `NoveltyClass` 枚举本身 + `NoveltyTracker.Query` 的三值返回保证,
+        //    比运行期判一个 int 型枚举更硬。`xpGain` 那条**保留**(它仍是入参)。
         [TestCase(0, -1L, "xp_gain 为负 (Fix raw = -1)")]
-        public void test_b1_growthFieldsValidatedBeforeAnyWrite(int noveltyOrdinal, long xpGainRaw, string why)
+        public void test_b1_growthFieldsValidatedBeforeAnyWrite(int unusedNoveltyOrdinal, long xpGainRaw, string why)
         {
             // ⚠️ **本测补的是 2026-10-26 修 B-1 前的真缺陷**:原 `Validate` 只核 8 项,
             //    **不核 novelty / xpGain** —— 而这两项由 30 的 `SkillGrownEmitter.EmitGrowth`
             //    在**第 ⑤ 步**(最后一次写入之后)才核。彼时 id 已铸、`ResourceHarvested` 已落
             //    世界流、Drop 两条已请求 ⇒「写了一半」是**可观测**的。
+            //    2026-10-27 后 novelty 已不是入参,本测只剩 xpGain 一面;判据三件不变。
             //
             // 判据三件(与既有 `test_invalidRequest_throwsBeforeAnyWrite` 同款判别力):
-            //   ① `ParamName == "r"` —— 编排器以前置校验层的名字抛;若为 "novelty" / "xpGain"
+            //   ① `ParamName == "r"` —— 编排器以前置校验层的名字抛;若为 "xpGain"
             //      说明抛出点已退到下游 `EmitGrowth`,前置校验失效;
             //   ② 零消耗 instance_id —— 发号是副作用;
             //   ③ 流长不变 —— 半写的最直接判据。
@@ -493,14 +574,14 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
 
             var spyIds = new CountingIdAuthority(_bag.IdAuthority);
             var orch = new HarvestOrchestrator(
-                spyIds, _harvestWriter, _dropWriter, _growth);
+                spyIds, _harvestWriter, _dropWriter, _growth, _novelty);
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => orch.Resolve(
-                Req(novelty: (NoveltyClass)noveltyOrdinal, xpGain: new Fix(xpGainRaw))),
+                Req(xpGain: new Fix(xpGainRaw))),
                 why);
 
             Assert.That(ex.ParamName, Is.EqualTo("r"),
-                "抛出点须在编排器前置校验层(ParamName = nameof(r))。若为 'novelty' / 'xpGain'," +
+                "抛出点须在编排器前置校验层(ParamName = nameof(r))。若为 'xpGain'," +
                 "说明异常来自第 ⑤ 步 EmitGrowth —— 那时 id 已铸、ResourceHarvested 已落流:" + why);
 
             Assert.That(spyIds.CallCount, Is.EqualTo(0),
@@ -562,12 +643,12 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         private static HarvestRequest Req(
             long tick = 10, int actorId = 1, int nodeId = 0,
             WorldPos? cell = null, int itemKey = 0, int qty = 1,
-            int objectId = 0, NoveltyClass novelty = NoveltyClass.First,
+            int objectId = 0,
             Fix? xpGain = null)
             => new HarvestRequest(
                 tick, actorId, nodeId, cell ?? new WorldPos(3, 0, 7),
                 itemKey, qty, outQuality: 2,
-                skillId: (int)SkillId.采集, objectId, novelty, xpGain ?? Fix.One);
+                skillId: (int)SkillId.采集, objectId, xpGain ?? Fix.One);
 
         /// <summary>记录 17 提出的 Drop 要求的 spy。**不是** 20 的生产写者。</summary>
         /// <remarks>

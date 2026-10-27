@@ -1,0 +1,152 @@
+{
+ "name": "S20-15 —— 采集侧新颖度接线 + 生产装配的反证（AC-17-14 / 14b / 14c / 14d / 14e / 14f / 14g · AC-17-01）",
+ "mode": "EditMode",
+ "filter": "DaYiJingCheng.Tests.EditMode.Foraging",
+ "unityProject": "unity",
+ "_note": [
+  "判据 = 每变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+  "复算:`python3 -c \"import json;print(len(json.load(open('tools/falsify/specs/s20-15-novelty-wiring.json'))['mutations']))\"`",
+  "锚点复核(纯读,零写盘 —— README §并发读取禁令的推荐形态):",
+  "  python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-15-novelty-wiring.json --check-only",
+  "真跑(⚠️ 驱动器**不读** spec 的 guards 键,且 `--guard` 是**替换**默认值):",
+  "  python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-15-novelty-wiring.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+  "命中形态(逐条对得上 story-006 §Falsifiability Gate 的五类):",
+  "  ③定义域收窄 —— M1 / M2(冷却边界 ≥ vs >)",
+  "  ①定序 —— M3(非法请求也泄漏 novelty 副作用)",
+  "  ④一次性/幂等 —— M4(冷却内推进 lastSeenTick)",
+  "  共存互斥 —— M5(键去掉 actorId ⇒ 两玩家共享)",
+  "  类型面 + 求值来源 —— M6(novelty 恒定,不来自追踪器状态)",
+  "  单装配点 —— M7 / M8(生产装配出现第二处)",
+  "  写入口选错 —— M9(适配器改用自铸入口 ⇒ 一采集烧两号)",
+  "⚠️ 变异窗口纪律:跑之前已读完全部被变异文件;窗口内不读不编辑",
+  "   (承 tools/falsify/README.md §并发读取禁令 · feedback_falsify_concurrent_edit_window)。",
+  "",
+  "══ 首轮返工记录(2026-10-27,7/9 通过 → 修 2 条 → 复跑)══",
+  "M3 / M5 首轮不合格,两条**均为 spec 缺陷,生产码零改动**:",
+  "  M3 首轮 = 「把 Query 插在 Validate 前」的字面移动 ⇒ 注入的 Query 与 :313 的真 Query",
+  "     各跑一次 ⇒ 同键二查返回 Stale ⇒ 红 7 条(正常路径被误伤)。",
+  "     行替换**做不到移动**:它只能整行替换,不能删一行再加到别处。",
+  "     连带发现:14e 夹具原用 `objectId: -1`,而 `NoveltyTracker.Query` 自己也守卫该值",
+  "     (`:73-75`)且守卫在写字典之前 ⇒ 那条 `Count == 0` 对定序**零判别力**(假绿)。",
+  "     ⇒ 修夹具(改 `qty: 0`,Validate 独有守卫)+ 改变异为「抛出前泄漏副作用」。",
+  "  M5 首轮 = 只改 `Query` 的键构造 ⇒ `Peek` 仍用真 actorId ⇒ 同一字典两套键 ⇒",
+  "     「哈希/相等不一致」脏状态 ⇒ 红 4 条。**那不是「按玩家独立被破坏」**。",
+  "     ⇒ 靶点改到 `NoveltyKey` 构造函数(一处改、Equals/GetHashCode/全调用点同步降级)。",
+  "⚠️ 两条都是**我自己在 `_why` 里写过的禁忌,然后又违反了它** —— 变异靶点必须让",
+  "   「被破坏的语义」与「红的断言」一一对应,否则红得再多也是打错靶。"
+ ],
+ "mutations": [
+  {
+   "name": "M1-cooldownBoundaryInQueryIsExclusive",
+   "file": "unity/Assets/Sim.Contracts/SkillSystem/NoveltyTracker.cs",
+   "line": 93,
+   "expect": "            if (elapsed >= _cooldownTicks)",
+   "replace": "            if (elapsed > _cooldownTicks) // FALSIFY-M1:边界改 >",
+   "expectRed": [
+    "test_ac1714c_afterCooldown_yieldsNormal_andAdvancesLastSeen"
+   ],
+   "exactRed": true,
+   "_why": "⑤阈值边界:冷却判定 `elapsed >= cooldown` 改成 `>` 后,恰在边界上的一拍从 Normal 翻成 Stale。\n⚠️ 判别面**只有 14c**:14b 的同类断言走的是 `Peek`(`:123` 另一处比较),本变异打不到 ⇒ 两处比较各需一条变异(M2)。"
+  },
+  {
+   "name": "M2-cooldownBoundaryInPeekIsExclusive",
+   "file": "unity/Assets/Sim.Contracts/SkillSystem/NoveltyTracker.cs",
+   "line": 123,
+   "expect": "            return elapsed >= _cooldownTicks ? NoveltyClass.Normal : NoveltyClass.Stale;",
+   "replace": "            return elapsed > _cooldownTicks ? NoveltyClass.Normal : NoveltyClass.Stale; // FALSIFY-M2",
+   "expectRed": [
+    "test_ac1714b_withinCooldown_yieldsStale_andDoesNotAdvanceLastSeen",
+    "test_ac1714c_afterCooldown_yieldsNormal_andAdvancesLastSeen"
+   ],
+   "exactRed": true,
+   "_why": "⑤阈值边界,`Peek` 侧。14b 的核心断言(`Peek(…, 100+24000) == Normal`)与 14c 的边界断言(`Peek(…, 100+2×24000) == Normal`)都恰落在边界上 ⇒ 两条同时红。\n⚠️ 与 M1 分立,不是重复:`Query` 与 `Peek` 是**两个函数的两处比较**,单改一处另一处仍绿(承「一属性一条变异」—— 今天的安全属性与将来复用件的逻辑各留一条)。"
+  },
+  {
+   "name": "M3-sideEffectLeaksBeforeValidationThrows",
+   "file": "unity/Assets/Sim/Foraging/HarvestOrchestrator.cs",
+   "line": 300,
+   "expect": "            Validate(request);",
+   "replace": "            try { Validate(request); } catch (ArgumentOutOfRangeException) { if (request.Tick >= 0 && request.ActorId >= 0 && request.SkillId >= 0 && request.ObjectId >= 0) _novelty.Query(request.ActorId, request.SkillId, request.ObjectId, (int)request.Tick); throw; } // FALSIFY-M3",
+   "expectRed": [
+    "test_ac1714e_failedHarvest_leavesNoveltyStateUntouched"
+   ],
+   "exactRed": true,
+   "_why": "①定序。**这是本 spec 首轮返工的一处,过程如实记下**:\n\n【首轮写法与为何作废】首轮把变异写成把 `_novelty.Query(...)` **插在 `:300` 之前**(「把 Query 挪到 Validate 前」的字面实现)。实测红 **7** 条,而非预期 1 条 —— 根因是**注入的早 `Query` 与 `:313` 的真 `Query` 各跑一次**:同一键第二次查询返回 Stale ⇒ 正常路径全被误伤。**行替换做不到「移动」(只能整行替换,不能删一行再加到另一处),因此「字面移动」必然退化成「执行两次」**,判别面被污染。\n\n【现写法】在 `Validate` 抛出**之前**留下一次副作用,再原样 `throw;`。这是「非法请求也消耗首采奖励」这一**失效模式**的精确模型,且**零附带损伤**:合法请求 `Validate` 不抛 ⇒ 该分支根本不进 ⇒ 其余 8 条测试全绿。\n\n【守卫 `if (request.Tick >= 0 && …)` 为何必须有】`falsify` 的 filter 是 `…EditMode.Foraging`,**连带跑** `harvest_orchestrator_test.test_invalidRequest_throwsBeforeAnyWrite` 的 5 条 TestCase。其中 `tick 为负` / `actorId 为负` 两条若让注入的 `Query` 跑起来,`Query` 自己会抛 `currentTick < 0`,把 `ParamName` 从 `\"r\"` 变成 `\"currentTick\"` ⇒ 那两条假红。守卫把注入限制在「novelty 键本身合法」的请求上 ⇒ 只有 `qty` / `outQuality` / `nodeId` 类非法请求会漏出副作用。\n\n⚠️ **首轮还同时暴露了夹具的假绿(已修,见 §修复)**:14e 原用 `objectId: -1` 作非法入参,而 `NoveltyTracker.Query` **自己也守卫** `objectId < 0`(`NoveltyTracker.cs:73-75`)且守卫在写字典**之前** ⇒ `Query` 提前跑也只抛、不留痕 ⇒ 那条 `Count == 0` 断言对定序**零判别力**。首轮 14e 之所以红,靠的是**第二条**断言(载荷拿到 Stale),不是定序判据本身。现改用 `qty: 0`(Validate 独有守卫),`Count == 0` 才真正承判定序。"
+  },
+  {
+   "name": "M4-staleBranchAdvancesLastSeen",
+   "file": "unity/Assets/Sim.Contracts/SkillSystem/NoveltyTracker.cs",
+   "line": 101,
+   "expect": "            return NoveltyClass.Stale;",
+   "replace": "            _lastSeenTicks[key] = currentTick; return NoveltyClass.Stale; // FALSIFY-M4",
+   "expectRed": [
+    "test_ac1714b_withinCooldown_yieldsStale_andDoesNotAdvanceLastSeen"
+   ],
+   "exactRed": true,
+   "_why": "④一次性/幂等:「冷却锁定」= 冷却期内**不**推进 lastSeenTick(语义 = 冷却是从**首次**见它起算,不是从最后一次)。\n⚠️ 只断「第二条也是 Stale」的夹具对本变异**零判别力** —— 推进了也仍是 Stale。判别力来自 14b 那条 `Peek(…, 100+24000) == Normal`:推进到 1100 后 elapsed 只剩 23000 ⇒ 翻成 Stale ⇒ 红。"
+  },
+  {
+   "name": "M5-noveltyKeyDropsActor",
+   "file": "unity/Assets/Sim.Contracts/SkillSystem/NoveltyTracker.cs",
+   "line": 193,
+   "expect": "            ActorId = actorId;",
+   "replace": "            ActorId = 0; // FALSIFY-M5:键去掉 actorId",
+   "expectRed": [
+    "test_ac1714d_twoPlayersFirstHarvestSameSpecies_bothGetFirst"
+   ],
+   "exactRed": true,
+   "_why": "共存互斥:新颖度**按玩家独立**(GDD `:500`)。键丢掉 actorId 后两名玩家共享一条记录 ⇒ 第二人拿到 Stale 而非 First,`Count` 也从 2 变 1。\n\n⚠️ **靶点选在 `NoveltyKey` 构造函数,不在任一调用点** —— 这是本 spec 首轮返工的第二处,过程如实记下:\n\n【首轮写法与为何作废】首轮改的是 `Query` 的键构造(`:80` → `new NoveltyKey(0, skillId, objectId)`)。实测红 **4** 条(预期 1)。根因:**`Peek`(`:114`)仍用真 actorId 构造键**,于是同一个字典被两套键查 —— `Query` 写 (0,采集,3),`Peek` 查 (1,采集,3),查不到 ⇒ `Peek` 返回 First。14b / 14c 的 `Peek` 断言因此假红,14g 的同源断言同理。\n⇒ 该变异制造的是「**哈希分桶与相等判定不一致**」式的脏状态,**不是**「按玩家独立被破坏」。它测的东西和它声称测的东西不同。\n\n【现写法的好处】改 `NoveltyKey` 的字段赋值 ⇒ `Equals` / `GetHashCode` / `EnumerateSeenObjects` / 全部调用点**同时**降级到「忽略 actor」这一个语义上,是干净的**一致**降级。附带性质:绿的那 8 条证明「单玩家路径不因键退化而变」,红的那 1 条精确落在「两玩家」上 ⇒ 判别面恰好是 GDD `:500` 那一条。\n\n【为何不是 `Equals` 行】`:199` 的 `Equals` 与 `:203` 的 `GetHashCode` 是**两处**,只改任一处同样会造出不一致脏状态;改字段赋值是唯一「一处改、两处同步」的靶点。"
+  },
+  {
+   "name": "M6-noveltyConstantIgnoresTracker",
+   "file": "unity/Assets/Sim/Foraging/HarvestOrchestrator.cs",
+   "line": 315,
+   "expect": "                checked((int)request.Tick));",
+   "replace": "                checked((int)request.Tick)); novelty = NoveltyClass.First; // FALSIFY-M6",
+   "expectRed": [
+    "test_ac1714b_withinCooldown_yieldsStale_andDoesNotAdvanceLastSeen",
+    "test_ac1714c_afterCooldown_yieldsNormal_andAdvancesLastSeen",
+    "test_ac1714f_orchestratorTakesNoveltyTrackerAndQueriesItItself"
+   ],
+   "exactRed": true,
+   "_why": "类型面 + 求值来源:14f 的类型面半边(构造函数收 `NoveltyTracker` 而非 `NoveltyClass`)**无法行替换** —— 删形参会直接编译失败,那是一条**编译期**判据,不是红测试。故 M6 打它的**行为面**半边:载荷里的 novelty 若恒为 First,就证明它**没有**来自追踪器状态。\n⇒ 14f 的两面分别由 ① 编译期不可表达(本 spec 不承载,见 _manualProof 说明)② M6 行为面 共同覆盖。"
+  },
+  {
+   "name": "M7-secondNoveltyTrackerInAssembly",
+   "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+   "line": 713,
+   "expect": "            var noveltyTracker = new NoveltyTracker();",
+   "replace": "            var noveltyTracker = new NoveltyTracker(); var secondNovelty = new NoveltyTracker(); // FALSIFY-M7",
+   "expectRed": [
+    "test_ac1714g_compositionRoot_hasExactlyOneNoveltyTrackerConstructionSite"
+   ],
+   "exactRed": true,
+   "_why": "AC-17-14g 的追踪器半边:两处构造 ⇒ 诊断与采集各持一个追踪器,那是「按玩家独立」在**装配层**被破坏(比实现错误更隐蔽)。\n⚠️ 注入型变异:没有可删的守卫 —— 「恰一处」本身是判据。\n⚠️ 该第二实例未使用 ⇒ 只有构建告警,不影响任何行为 ⇒ **唯一**能观测它的就是数构造点的夹具(与本变异存在的理由互为印证)。"
+  },
+  {
+   "name": "M8-secondOrchestratorInAssembly",
+   "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+   "line": 740,
+   "expect": "                noveltyTracker);",
+   "replace": "                noveltyTracker); var secondHarvest = new HarvestOrchestrator(idAuthority, resourceHarvestWriter, new DropEventWriterAdapter(dropEventWriter), new SkillGrownEmitterAdapter(stream, encoder), noveltyTracker); // FALSIFY-M8",
+   "expectRed": [
+    "test_ac1714g_compositionRoot_hasExactlyOneOrchestratorConstructionSite"
+   ],
+   "exactRed": true,
+   "_why": "AC-17-14g 的编排器半边:零处 = 未接线;多处 = 第二真源(两个编排器各自推进追踪器)。\n⚠️ 两个编排器**共用**同一个 noveltyTracker 时行为未必立刻分叉 —— 但这正是它危险的地方:今天不分叉,明天谁改了其中一个的构造函数注入就分叉。判据必须是**结构**的(数构造点),不是行为的。"
+  },
+  {
+   "name": "M9-adapterUsesSelfMintingEntry",
+   "file": "unity/Assets/Sim/Foraging/HarvestOrchestrator.cs",
+   "line": 118,
+   "expect": "            => _writer.RecordSpawnedWithId(tick, instanceId, spawnAnchor, itemKey, qty);",
+   "replace": "            { _writer.RecordSpawned(tick, spawnAnchor, itemKey, qty); _writer.RecordSpawnedWithId(tick, instanceId, spawnAnchor, itemKey, qty); } // FALSIFY-M9:适配器误用自铸入口",
+   "expectRed": [
+    "test_ac1701_productionAdapter_writesAllThreeKinds_inOrder",
+    "test_ac1714g_productionBag_harvestWritesThroughToTheStream"
+   ],
+   "exactRed": true,
+   "_why": "R-3 双铸造点冲突的**直接判据**:适配器若改调自铸入口 `RecordSpawned`,一条采集会烧两个号、多写一条 `DropSpawned`(两条 id 不同)⇒ 世界流从「恰三条」变四条。\n⚠️ 变异写法是**两路都调**(先自铸再收 id),而不是「只调自铸」—— 只调自铸会让 `instanceId` 形参未使用,且 `Spawn` 签名传进来的 id 与落流的 id 不一致,**同样是红**,但那掩盖了「多烧一个号」这个真正要防的后果。两路都调把它显形为**多一条事件**。"
+  }
+ ]
+}

@@ -304,7 +304,8 @@ namespace DaYiJingCheng.Sim
         /// <param name="capacity">容量上限(已校验)。</param>
         /// <returns>能否装下。</returns>
         /// <exception cref="InvalidOperationException"><paramref name="currentLoad"/> &lt; 0,
-        /// 或候选的 weight / qty 域错误。</exception>
+        /// 或候选的 weight / qty 域错误;
+        /// 或 <c>currentLoad + candidate</c> 超 <c>long</c>(见下)。</exception>
         public static bool CanCarry(long currentLoad, int candidateUnitWeight, int candidateQty,
                                     CarryCapacity capacity)
         {
@@ -313,7 +314,29 @@ namespace DaYiJingCheng.Sim
                     $"[载重] CarryLoad = {currentLoad} < 0 —— 载重不可能为负;投影或求和出了错");
 
             long candidate = ContainerWeightFold.InstanceWeight(candidateUnitWeight, candidateQty);
-            return currentLoad + candidate <= capacity.Cap;
+
+            // ⚠️ **2026-10-27 订正(评审 `review-s20-12-inventory-004` W-3)**:
+            //   原实现是裸的 `currentLoad + candidate <= capacity.Cap` —— 比较点**无 `checked`**。
+            //   两入参都够大时(`currentLoad` 是**公开的裸 `long`**,`candidate` 可达 ≈ 2^62),
+            //   加法在 unchecked 上下文里**静默回绕为负** ⇒ `负 <= Cap` 恒真 ⇒ **静默放行**
+            //   (超载的候选被判成装得下)。这与 ADR-012 F7 的有符号溢出纪律直接冲突。
+            //   当下生产路径经 `Sum` 产出的 `load` 因四站 `checked` 不可逼近 2^63,故**当时不可达**;
+            //   但 `CanCarry` 是公开谓词,任何绕开 `Sum` 的调用方(或损坏的投影)都能触达 ⇒ 必须自己守。
+            //   修法 = 与 `ContainerWeightFold.InstanceWeight` **同款**:`checked` + 转具名异常,
+            //   不是返回 false(「算不出来」≠「装不下」,静默给 false 同样是谎报)。
+            long projected;
+            try
+            {
+                projected = checked(currentLoad + candidate);
+            }
+            catch (OverflowException)
+            {
+                throw new InvalidOperationException(
+                    $"[载重] {currentLoad} + {candidate} 超 long 承载 —— 载重求和溢出即输入已不可信" +
+                    "(真实数据须被 AC-21a-64 上界前置拦下);不得静默判 false 或回绕后放行");
+            }
+
+            return projected <= capacity.Cap;
         }
 
         /// <summary>「新增**任何**物品都一律放不进」的谓词 —— 满档呈现的机制半边(AC-20-18)。

@@ -65,7 +65,15 @@ namespace DaYiJingCheng.Sim.Processing
         SkillGate = 1,
 
         /// <summary>品级准入闸未达(`min(quality) &lt; min_quality`)。</summary>
-        MinQuality = 2,
+        /// <remarks>
+        /// ⚠️ <b>标签名刻意**不含** `MinQuality` 字面(2026-10-27 改名避让)</b>:
+        /// AC-18-05 的机械门按**标识符字面**扫「`MinQuality` 的使用点」,
+        /// 而枚举标签是「哪道门没过」的具名值,**不是**读字段做幅值调制(那才是 AC-18-05 要防的)。
+        /// 这两件事在门上不可区分 ⇒ 按 `coding-standards.md` §命名 —— 机械门避让表 处置:
+        /// **改标签避让**,不改门的语义(门仍守 `recipe.MinQuality` 的唯一读点在
+        /// <see cref="Judge"/> 内)。
+        /// </remarks>
+        QualityGate = 2,
 
         /// <summary>被点名的实例集为空 —— <c>min</c> over ∅ 无定义,按不通过处理。</summary>
         /// <remarks>
@@ -135,7 +143,7 @@ namespace DaYiJingCheng.Sim.Processing
             }
 
             if (minQuality < recipe.MinQuality)
-                return AdmissionRejection.MinQuality;
+                return AdmissionRejection.QualityGate;
 
             return AdmissionRejection.None;
         }

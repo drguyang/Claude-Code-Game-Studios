@@ -232,6 +232,19 @@ namespace DaYiJingCheng.Tests.Integration.ItemDatabase
             //    ⇒ 不是「把标识符塞进注释/字符串绕过」,是**字段名与公式出参同名**这一客观重合。
             { "Sim/ItemDatabase/InventoryFold.cs",
               "Craft 载荷字段的读取方(registry schema,ADR-024)—— 逐实例扣减消费数据,非自建公式体" },
+            // ⑥ `Craft` 世界流**写者**(processing story-003 · S20-13)—— 与 ② ③ ⑤ **同一性质**:
+            //    `settlement.ActualConsumed` / `settlement.OutputQuality` 是读**唯一求解器的返回值**
+            //    去填 registry 载荷位(AC-18-01② 明文要求「三出参与 F1 返回值同一引用、18 零再加工」),
+            //    属**搬运出参**;真正的 F1/F2 公式体住唯一求解器。
+            //    实证(2026-10-27):本文件对其余**七个**公式标识符
+            //    (`CeilDiv` / `Efficiency` / `Retain(` / `QtyMultiplier` / `SumOfModifiers` /
+            //     `QualityMod` / `EnvModTotal`)**全部零命中** —— 只有这两个出参字段名碰到。
+            //    ⚠️ 本类**不得**被读成「18 侧可以碰公式体」:它零算术、零求值,
+            //    且 IL 面另有 AC-18-02 的 `mul`/`div`/`rem` 零容忍扫描盯着(命名空间 `Sim.World`,
+            //    不在 `Processing` 命名空间扫面上 —— 但 AC-18-02 的**源文本**扫描按目录 `Sim/Processing`
+            //    收面,故本类也不在其内;两处豁免都显式登记,不静默)。
+            { "Sim/World/CraftEventWriter.cs",
+              "Craft 载荷的写入方 —— 搬运 F1 出参(AC-18-01② 同一引用)进 registry 载荷位,非自建公式体" },
         };
 
         [Test]

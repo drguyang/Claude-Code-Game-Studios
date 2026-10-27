@@ -264,6 +264,9 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
 
             long load = 0L;
             int accepted = 0, rejected = 0;
+            // 已接受实例的 (itemKey, qty) 台账 —— 供**生产件重算**用(2026-10-27 订正 W-1)。
+            // itemKey 直接取单件重量:本夹具只关心载重口径,不需要真实物品表。
+            var acceptedStacks = new List<(int itemKey, int qty)>();
 
             for (int step = 0; step < 1000; step++)
             {
@@ -276,6 +279,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 {
                     // ── 后置断言(归纳闭合):通过 ⇒ 后态仍然满足硬不变量 ──
                     load = checked(load + ContainerWeightFold.InstanceWeight(unit, qty));
+                    acceptedStacks.Add((unit, qty));
                     Assert.That(load, Is.LessThanOrEqualTo(capValue),
                         $"第 {step} 步:谓词通过后载重 {load} 越过 cap {capValue} —— " +
                         "CanCarry 与求和件口径不一致(AC-20-09 硬不变量)");
@@ -284,9 +288,24 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 else
                 {
                     // ── 拒绝 ⇒ 载重**不动**(原子性的一半;另一半归 Story 005)──
-                    long before = load;
+                    //
+                    // ⚠️ 2026-10-27 订正(评审 `review-s20-12-…` W-1 抓出的**同义反复断言**):
+                    //   原实现写 `long before = load; rejected++; Assert.That(load, Is.EqualTo(before))`
+                    //   —— `before` 与 `load` 之间**零语句**,且 `load` 是**按值传入** `ApplyGate` 的
+                    //   局部变量,谓词结构上**不可能**改它 ⇒ 该断言是**语言层面的恒真式**,零判别力。
+                    //
+                    //   订正判据:**不再自比**,改为拿**生产件**重算一遍与本轮累计量对拍 ——
+                    //   对「截至目前已接受的实例集」跑 `InventoryFold.Fold` + `CarryLoadSolver.Sum`,
+                    //   其总重**必须**等于循环里累加的 `load`。
+                    //   判别力:若有人把拒绝分支改成「照加不误」,`load` 会多出被拒的那份,
+                    //   而生产件重算的结果不含它 ⇒ 两者不等 ⇒ **本断言转红**。
+                    //   (空集时 `Sum` 恒 0 只是**起点**;随 accepted 增长它会被真实数据钉住。)
+                    long produced = CarryLoadSolver.Sum(
+                        ProjectionFor(0, acceptedStacks.ToArray()), static w => w, owner: 0);
+                    Assert.That(load, Is.EqualTo(produced),
+                        $"第 {step} 步:拒绝路径后累计载重 {load} ≠ 生产件重算 {produced} —— " +
+                        "被拒的候选不得进入载重累计(AC-20-09 原子性的另一半)");
                     rejected++;
-                    Assert.That(load, Is.EqualTo(before), "拒绝路径不得改载重");
                 }
             }
 
@@ -326,9 +345,38 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             Assert.That(CarryLoadSolver.CanCarry(4L, 3, candidateQty: 2, capacity), Is.True,
                 "4 + 3×2 = 10 == cap 10 ⇒ 允许(等号侧合法,`≤` 不是 `<`)");
 
-            long load = 10L;
-            Assert.That(load, Is.LessThanOrEqualTo(capacity.Cap),
-                "恰等界仍满足硬不变量");
+            // ⚠️ 2026-10-27 订正(评审 `review-s20-12-…` W-1 的第二条**同义反复断言**):
+            //   原写 `long load = 10L; Assert.That(load, Is.LessThanOrEqualTo(capacity.Cap))`
+            //   —— 断的是**测试自己写死的常量**,与生产件无关 ⇒ 零判别力。
+            //   订正:让**生产件自己产出**载重(4×1 + 3×2 = 10),再断言它恰等于 cap。
+            long produced = CarryLoadSolver.Sum(
+                ProjectionFor(0, (4, 1), (3, 2)), static w => w, owner: 0);
+            Assert.That(produced, Is.EqualTo(capacity.Cap),
+                "生产件产出的载重须恰等于 cap(4×1 + 3×2 = 10)");
+            Assert.That(produced, Is.LessThanOrEqualTo(capacity.Cap),
+                "恰等界仍满足硬不变量(`≤` 不是 `<`)");
+        }
+
+        /// <summary>**溢出哨兵**:`CanCarry` 的加法比较点须 `checked` ——
+        /// `currentLoad + candidate` 回绕为负时**不得**静默判「装得下」。
+        /// (2026-10-27 补 · 评审 `review-s20-12-inventory-004` W-3 ——
+        ///  story §QA Test Cases 明文要求本条,此前 `grep MaxValue|Overflow` 在本件零命中。)</summary>
+        [Test]
+        public void test_ac2009_overflowingSum_throwsInsteadOfSilentlyAdmitting()
+        {
+            var capacity = new CarryCapacity(int.MaxValue);
+
+            // currentLoad 是**公开的裸 `long`** —— 绕过 `Sum` 直接喂进来即可达。
+            // candidate = 4 × 2^30 ≈ 2^32;两者相加超 long.MaxValue ⇒ 回绕为负。
+            // 未 `checked` 时:`负 <= Cap` 恒真 ⇒ 返回 true = **静默放行超载**。
+            Assert.Throws<InvalidOperationException>(
+                () => CarryLoadSolver.CanCarry(long.MaxValue, 4, candidateQty: 1 << 30, capacity),
+                "求和溢出须抛具名异常,不得回绕后把超载判成装得下");
+
+            // 对照:同一对入参在**不溢出**时是正常判定(证明上面那条红的不是通用失败)。
+            Assert.That(CarryLoadSolver.CanCarry(long.MaxValue - 4L, 4, candidateQty: 1, capacity),
+                Is.False,
+                "long.MaxValue - 4 + 4 = long.MaxValue > cap ⇒ 合法地判「装不下」(不是抛)");
         }
 
         [Test]

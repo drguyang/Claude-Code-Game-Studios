@@ -200,10 +200,22 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
         /// 不引 JSON 库:asmdef 的 `includePlatforms` 是扁平字符串数组,取方括号内的内容判空即可。
         /// ⚠️ 找不到该键 ⇒ **当作进构建**(fail-closed:宁可多扫,不可漏扫 ——
         /// 漏扫会让「零命中」变成假绿,多扫最多产生一条需要白名单的命中)。
+        /// <para>⚠️ <b>测试装配一律不在面内(2026-10-27 订正)</b>:它们靠
+        /// <c>optionalUnityReferences: ["TestAssemblies"]</c> 声明身份,而 <b>`includePlatforms` 为空</b>
+        /// ⇒ 旧版只看后者会把 `Gameplay.Tests`(PlayMode)误判成「进玩家构建」。
+        /// 测试装配**从不随玩家构建出货**,把它算进「18 不得读 min_quality」的判据面是**判据越权**
+        /// (实测:S20-13 的 `craft_event_payload_test.cs` 只是在 fixture 里写 `MinQuality = 2`
+        /// 赋值,就被判成「品级出口越界」)。</para>
+        /// <para>「测试装配」的判据 = `optionalUnityReferences` 含 `TestAssemblies`
+        /// **或** `references` 含 `UnityEngine.TestRunner` —— 两者取一即足够,任一命中即排除。</para>
         /// </remarks>
         private static bool IsBuiltForPlayer(string asmdefPath)
         {
             string text = File.ReadAllText(asmdefPath);
+
+            // ── 测试装配:不进玩家构建 ⇒ 不在扫描面(见上 remarks)──
+            if (text.Contains("\"TestAssemblies\"") || text.Contains("\"UnityEngine.TestRunner\""))
+                return false;
             int key = text.IndexOf("\"includePlatforms\"", StringComparison.Ordinal);
             if (key < 0) return true;                       // 缺键 ⇒ 全平台
 

@@ -134,8 +134,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         [Test]
         public void test_b7_probe_waivedKindWithWriter_isRed()
         {
-            // 「已存在写者的 Kind 绝不豁免」——用豁免表内的真名 Craft 做探针:
+            // 「已存在写者的 Kind 绝不豁免」——用**仍挂在豁免表内**的真名做探针:
             // 声明 author + 有写者 ⇒ 判据 ① 红。
+            // ⚠️ 探针名会随豁免表退役而失效(2026-10-27:原用 `Craft`,S20-13 撤其豁免后
+            //    本探针的前提消失 ⇒ 改红。这不是门坏了,是探针点被用旧了)。
+            //    **将来 `CompoundTriggered` 的豁免若也被撤(9 的实现轮),这里必须同步换名。**
+            const string ProbeKind = "CompoundTriggered";
             string tmp = Path.Combine(Path.GetTempPath(),
                 "b7_waiver_probe_" + Guid.NewGuid().ToString("N"));
             string srcDir = Path.Combine(tmp, "src");
@@ -144,14 +148,14 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             try
             {
                 File.WriteAllText(yaml,
-                    "  - name: SimEvent.Kind.Craft\n" +
-                    "    stream: world\n" +
-                    "    author: \"probe 18\"\n");
-                WriteProbeWriter(srcDir, "CraftWriter.cs", "Craft");
+                    "  - name: SimEvent.Kind." + ProbeKind + "\n" +
+                    "    stream: history\n" +
+                    "    author: \"probe 9\"\n");
+                WriteProbeWriter(srcDir, "ProbeWriter.cs", ProbeKind);
 
                 var errs = WriterGate.Check(yaml, new[] { srcDir });
-                Assert.IsTrue(errs.Any(e => e.Contains("「Craft」") && e.Contains("豁免")),
-                    "Craft 有写者却挂豁免 ⇒ 判据 ① 红(豁免 = 红)。实测:\n"
+                Assert.IsTrue(errs.Any(e => e.Contains("「" + ProbeKind + "」") && e.Contains("豁免")),
+                    ProbeKind + " 有写者却挂豁免 ⇒ 判据 ① 红(豁免 = 红)。实测:\n"
                     + string.Join("\n", errs));
             }
             finally

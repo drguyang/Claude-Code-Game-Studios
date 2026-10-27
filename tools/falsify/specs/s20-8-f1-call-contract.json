@@ -1,0 +1,320 @@
+{
+  "name": "S20-8 —— F-18.1 调用契约 / 四修正项供料 / 装载期防御的守卫反证（AC-18-01 · 02 · 03 · 04 · 06 · 14）",
+  "mode": "EditMode",
+  "filter": "F1CallContractTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "本 spec 覆盖 processing-002 的 Falsifiability Gate:**19 条变异**,一属性一条变异(禁叠加)。",
+    "  复算:`python3 -c \"import json;print(len(json.load(open('tools/falsify/specs/s20-8-f1-call-contract.json'))['mutations']))\"` ⇒ 19",
+    "基线(2026-10-27 评审修复轮后实测全绿):EditMode F1CallContractTest **51/51 passed / 0 failed / 0 skipped**(unity/Logs/f1-baseline-r5.xml)。",
+    "  ⚠️ 46 → 51:评审修复轮补 5 条(`scalarOutputsPassedThroughVerbatim` / `hasProductionCallSite` / `il_settlementClassHasNoAddSub` / `il_addSubScannerPositiveControl` / `sharedNegativeFixture_sameTableAs21a`);`failurePath_neverCallsSolver` 重写为 `settleDoesNotRejudgeAdmission`(原版是恒真断言,不新增)。",
+    "  ⚠️ 16 → 19 条变异:补 M18(`OutputQuality` 置零)/ M19(`EnvModTotal` 置 default)/ M20(raw 域相加)—— 三条都对应评审抓出的**零断言**面。",
+    "命中形态:④一次性/幂等(恰调 1 次)· ③定义域收窄(null 配方两数组 / null 查询 / null 求解器)· ⑤阈值边界(cap 不等式取等)。",
+    "基线(2026-10-27 实测全绿):EditMode F1CallContractTest **46/46 passed / 0 failed / 0 skipped**。",
+    "  ⚠️ 37 → 44:2026-10-27 并入 IL 符号层断言 7 条(AC-18-01③ / 02 指令面 / 02 调用面 / 04 各 1 判据 + 3 条正控)。",
+    "  ⚠️ 44 → 46:同日补 story §QA Test Cases 两条边界用例(`failurePath_neverCallsSolver` / `retryTwice_isTwoIndependentCalls`)。",
+    "  ⚠️ 46 → **16 条变异**(原 17):M17 已删 —— 它与 M4 打**同一行、同一替换文本**,属完全重叠;",
+    "锚点复核命令(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-8-f1-call-contract.json --check-only",
+    "真跑命令(须显式带 --guard;⚠️ 驱动器**不读** spec 里的 guards 键,且 --guard 是**替换**默认值不是追加):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-8-f1-call-contract.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **本 spec 刻意不立变异的守卫**(如实登记,禁假装覆盖):",
+    "   ⓪′ ~~`test_ac1801_failurePath_neverCallsSolver` 无变异~~ —— **该测试已于 2026-10-27 评审修复轮整条重写**。",
+    "      原形态是**恒真断言**:`SpySolver spy = DefaultSpy(); Assert.That(spy.CallCount, Is.EqualTo(0))`",
+    "      —— 一个刚 new 出来、从未传给任何东西的 spy,计数**定义上**就是 0。整步不碰生产码,",
+    "      把 `Settle` 整个删掉它也照样绿。两位评审(C# 侧与可测性侧)**独立抓到同一条**。",
+    "      现名 `test_ac1801_settleDoesNotRejudgeAdmission`,测的是 `Settle` **真实可测的契约**:",
+    "      「我不判准入」—— 构造必然被拒的输入(技能 0 级),断它照样结算恰 1 次。",
+    "      「调用方在准入不过时**不调** Settle」这一腿**仍 NOT-RUN**(需 Story 001↔002 接线),已如实登记。",
+    "      AC-18-01① 的属性(M1 一施加它就红,而失败路径压根没变),属跨属性耦合,已解除。",
+    "   ⓪″ **`test_ac1801_retryTwice_isTwoIndependentCalls` 只有前半被变异证明** —— 如实登记:",
+    "      ① 前半「每次 Settle 恰调 1 次」由 **M1** 反证(调两次 ⇒ 两次计数都变 2 ⇒ 红),已入 M1 的 expectRed;",
+    "      ② 后半「两次结果数组是不同实例」**对生产码零判别力**,这是 2026-10-27 评审的订正结论 ——",
+    "         原稿写「驱动器只支持单行替换 ⇒ 无可立变异」,**措辞过强**:确实存在能打红该测的单行形态",
+    "         (如条件跳过)。真正的理由是更根本的一条:该断言 `ReferenceEquals(first.OutputQtyRef, second.OutputQtyRef)`",
+    "         断的是**两个 spy 各自持有的数组** —— 生产码即使真缓存了结果,两个不同 spy 仍返回各自数组 ⇒",
+    "         **无论生产码怎么写它都不会红**。故它是**构造性真**(夹具属性),不构成 AC 证据。",
+    "         如实登记,不假装有变异。",
+    "   ⓪ **AC-18-02 的 IL「调用面」与 AC-18-04 的 IL 符号面**已各有专属变异(M15 直调求解器 /",
+    "      M16 读 `TreatableByEntry.Polarity`)—— 这两条正是 2026-10-27 补 IL 层时**同时**补的,",
+    "      因为「加了断言不证判别力」= 断言面凭空增厚而承重不变。",
+    "   ① **AC-18-02 的零算式判据无法用变异反证** —— 它的守卫形态是「某个符号**不出现**」,",
+    "      没有 `if` 可以停用。要证它可判,唯一办法是**注入**一个 `Clamp(` 再要求转红。",
+    "      该注入由夹具内的正控 `test_ac1802_scannerPositiveControl_detectsInjectedArithmetic`",
+    "      承担(走真链路 StripComments → IdentifierOccurrences)。**正控 ≠ 证伪轮**,两者不可互替:",
+    "      正控证「扫描器有判别力」,证伪轮证「生产码在承重」。本条只有前者。",
+    "   ② **AC-18-01③ / AC-18-04 同型** —— 同为「符号不出现」,由各自正控承担。",
+    "      另:AC-18-01③ 的标识符表从权威件解析而来,若权威件与 18 侧同时漂移,",
+    "      扫描器仍会命中(因为读的是同一份表)—— 这一点由",
+    "      `test_ac1801_canonicalWhitelistHasNoProcessingEntry` 补一道(18 不得进白名单)。",
+    "   ③ **AC-18-14 的「不重抄不等式」判据**(`test_ac1814_delegatesToSinglePredicate_...`)",
+    "      同为符号不出现,无 `if` 可停 ⇒ 无变异。它的判别力来自:若有人把 `PositiveCapsRaw`",
+    "      复制进 18 目录,扫描即命中。",
+    "   ④ **`test_defaultStruct_failsClosedAtConsumptionSite` 无专属变异,且这不是缺陷** ——",
+    "      它验证「`default(ProcessingInputs)` 在消费侧被拒」,而该属性由**两条守卫冗余**保证:",
+    "      `default(Recipe)` 的 `Outputs` 与 `Inputs` **同为 null** ⇒ 停用任一条,另一条仍抛。",
+    "      单行驱动(`lines[ln-1] = replace`)无法同时停用两条 ⇒ **本属性对该驱动形态不可变异**。",
+    "      若两条守卫**同时**被删,`test_missingRecipeArraysOrQuery_failClosed` 的第一条断言",
+    "      (`new ProcessingInputs(default, …)`)同样会红 ⇒ 该退化仍被覆盖,只是由另一条夹具承担。",
+    "      ⇒ 本夹具是**冗余加固**(S20-4 `default(struct)` 教训的锚点),非假绿;已如实登记,不假装有变异。",
+    "   ⑤ **`InQ` / `ActorId` 的透传**(`test_ac1806_inputQualityPassedThroughVerbatim` /",
+    "      `test_ac1803_queriesTheInputActor_notAnyOther`)**已立变异**(M9 / M7)——",
+    "      这两条是本轮补的:首版夹具里改掉它们**不会红**,属漏判,已修。",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **AC-18-10b 完全不在本 spec 的判据面内** —— 它是 [L] 走查,EXTERNAL · BLOCKED-BY-42。",
+    "   机制侧供数正确**不构成**该条的证据(禁借绿,承 AC-18-18 纪律)。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-solverCalledTwice",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            solver(request, constants); return solver(request, constants); // FALSIFY-M1:调两次",
+      "expectRed": [
+        "test_ac1801_solverCalledExactlyOnce",
+        "test_ac1801_il_settleInvokesSolverExactlyOnce",
+        "test_ac1801_retryTwice_isTwoIndependentCalls"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-01① 的「恰 1 次」。调两次 = 白烧两炉(实耗扣两遍),而返回值看上去完全正常 —— 只有计数断言能抓到。⚠️ 注意本变异**不改返回值**,故 ReferenceEquals 那两条仍绿:这正是「一次一条属性」的意义。⚠️ **2026-10-27 IL 层并入后**:IL 的 `Invoke` 计数同样转红(体内确实出现两处 `call`),故 expectRed 含两条 —— 这不是「判别面不清」,是**同一属性的行为面与符号面各有一条断言**,两者都该红。⚠️ **2026-10-27 第 3 轮订正**:`test_ac1801_retryTwice_isTwoIndependentCalls` 也红 —— 该测断言「每次 Settle 恰调 1 次」,M1 让每次调 2 次 ⇒ **真实第二后果**(它钉的正是「每次点火各算一次」)。同时 `test_ac1801_failurePath_neverCallsSolver` **本轮已不再红** —— 它的正控从 `==1` 放宽到 `>0`,解除了对 AC-18-01① 的跨属性兼职。"
+    },
+    {
+      "name": "M2-outputQtyRebuilt",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            var r = solver(request, constants); return new RecipeSettlementResult((int[])r.OutputQty.Clone(), r.OutputQuality, r.Efficiency, r.ActualConsumed, r.QtyMultiplier, r.EnvModTotal, r.SumOfModifiers); // FALSIFY-M2:重建 OutputQty",
+      "expectRed": [
+        "test_ac1801_outputArraysAreSameReference_notCopies",
+        "test_ac1801_noSecondSettlementImplementationInProcessingAssembly"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-01② 的「同一引用」。**值完全相等**的重建(Clone)是这里最阴的形态:Is.EqualTo 全绿,只有 ReferenceEquals 能抓到。这条变异证明本夹具用的是引用判据而非值判据。⚠️ **2026-10-27 首轮证伪轮订正**:实跑额外红 `test_ac1801_noSecondSettlementImplementationInProcessingAssembly`,初版 expectRed 只列了一条 ⇒ 判「判别面不清」。复查判定:**这不是判别面不清,是同一变异的真实第二后果** —— `RecipeSettlementResult` 的构造需要全部 7 个参数,重建它**必然**在源码里写出 `OutputQuality` / `ActualConsumed`,而这两个词恰在 AC-21a-6 的公式体标识符表里(`recipe_settlement_solver_test.cs:197-198`)⇒ 18 侧文本扫描必然命中。**任何**重建出参的写法都躲不开(除非改 21a 的权威表,那更糟)。故两条红都是该红的,已如实补入。"
+    },
+    {
+      "name": "M3-actualConsumedRebuilt",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            var r = solver(request, constants); return new RecipeSettlementResult(r.OutputQty, r.OutputQuality, r.Efficiency, (int[])r.ActualConsumed.Clone(), r.QtyMultiplier, r.EnvModTotal, r.SumOfModifiers); // FALSIFY-M3:重建 ActualConsumed",
+      "expectRed": [
+        "test_ac1801_outputArraysAreSameReference_notCopies",
+        "test_ac1801_noSecondSettlementImplementationInProcessingAssembly"
+      ],
+      "exactRed": true,
+      "_why": "M2 的姊妹半边。两个出参数组各有独立断言 —— 只覆盖一个时,另一个被重建仍会全绿。一属性一条变异。⚠️ 额外的公式体扫描红与 M2 **同因同源**(重建 `RecipeSettlementResult` 必须写出 `ActualConsumed` / `OutputQuality`),见 M2 的订正说明。"
+    },
+    {
+      "name": "M4-recipeArraysCopied",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 195,
+      "expect": "                inputs.Recipe.Outputs,      // 直接转发(同一引用)—— AC-18-01②",
+      "replace": "                (RecipeEntry[])inputs.Recipe.Outputs.Clone(), // FALSIFY-M4:复制 Outputs",
+      "expectRed": [
+        "test_ac1801_requestArraysAreSameReferenceAsRecipe",
+        "test_pureFunction_sameInputSameRequest"
+      ],
+      "exactRed": true,
+      "_why": "入参侧的同引用纪律。复制配方数组本身**不改变任何结算结果**(F1 只读),故只有引用断言能抓到。⚠️ 这条同时暴露一个真实风险:复制会让 21a 侧对配方数组的就地修改不再反映回配方表。⚠️ **2026-10-27 第 3 轮订正**:`test_pureFunction_sameInputSameRequest` 也红 —— 本轮给该测补了两条数组引用断言(`ReferenceEquals(second.LastRequest.Outputs, first.LastRequest.Outputs)` 等),M4 每次 clone ⇒ 两次 request 的数组引用不同 ⇒ 该测转红。这是**真实第二后果**,同时**证明新补的断言有判别力**(补了没证 = 断言面凭空增厚)。原 M17 打的是同一行同一替换文本 ⇒ 与 M4 完全重叠,已删;数组引用的两面(「== 配方数组」/「两次调用间稳定」)由 M4 一条变异一并覆盖。"
+    },
+    {
+      "name": "M5-skillLevelPreDivided",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 192,
+      "expect": "            int skillLevel = skillLevels.QueryLevel(inputs.ActorId, CraftSkillId);",
+      "replace": "            int skillLevel = skillLevels.QueryLevel(inputs.ActorId, CraftSkillId) / 2; // FALSIFY-M5:预除",
+      "expectRed": [
+        "test_ac1803_skillLevelPassedThrough_equalsQueryResult",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(1)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(30)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(59)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(60)",
+        "test_ac1802_il_noArithmeticInProcessingNamespace",
+        "test_ac1806_il_settlementClassHasNoAddSub"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-03 的核心:GDD :508-514 的失败形态就是「在 int 域预先除尽」。⚠️ **level=0 那档不红** —— 0/2 = 0,变异前后同值。这不是夹具缺陷,而是算术事实:该档对本变异本就零判别力,把它写进 expectRed 会让 exactRed 判失败。其余 4 档全红。**这正是多档取值的价值**:只测 level=0 时本变异整体逃逸;只测 level=30 时能抓但抓不到「小等级被压成 0」这一具体失败形态。⚠️ **2026-10-27 IL 层并入后**:`/ 2` 是 `int` 除法 ⇒ `Assemble` 体内出现 `div` 指令 ⇒ AC-18-02 的 IL 指令面断言转红。**这是本变异顺带暴露的真实缺陷** —— 预先除尽**本身**就是一次「18 侧自行求值」,违反 AC-18-02 不只违反 AC-18-03。故它进 expectRed 是正确的,不是判别面不清。 ⚠️ **2026-10-27 第 5 轮订正**:额外红 `test_ac1806_il_settlementClassHasNoAddSub` —— **不是夹具缺陷,是编译器降级**:C# 的有符号 `x / 2` 编译为 `(x + ((x>>31)&1)) >> 1`,**编译器自己吐一条 `add`**。扫描器如实抓到了它。该 `add` 不是手写的加法,但生产码本就不该有任何算术(除归 AC-18-02 管)⇒ 这是**同一变异的双重覆盖**,两条都该红。"
+    },
+    {
+      "name": "M6-queriesWrongSkill",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 192,
+      "expect": "            int skillLevel = skillLevels.QueryLevel(inputs.ActorId, CraftSkillId);",
+      "replace": "            int skillLevel = skillLevels.QueryLevel(inputs.ActorId, 6); // FALSIFY-M6:查「采集」而非「炮制」",
+      "expectRed": [
+        "test_ac1803_queriesCraftSkill_notAnyOther"
+      ],
+      "exactRed": true,
+      "_why": "「查炮制」而不是「查某个技能」。⚠️ 用字面量 6(`SkillId.采集`)而非编造符号 —— 驱动器只做行替换,replace 必须能编译。选相邻的生产类技能(采集=6,炮制=7)是有意的:两者都是 `SkillCategory.生产`,若实现误用「生产类第一个」这类写法,本变异正好落在那条线上。⚠️ 本变异只让 `queriesCraftSkill` 红,等级恒等断言仍绿(等级仍是 QueryLevel 的返回值)—— 正是「一属性一条变异」。"
+    },
+    {
+      "name": "M7-queriesWrongActor",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 192,
+      "expect": "            int skillLevel = skillLevels.QueryLevel(inputs.ActorId, CraftSkillId);",
+      "replace": "            int skillLevel = skillLevels.QueryLevel(0, CraftSkillId); // FALSIFY-M7:查错玩家",
+      "expectRed": [
+        "test_ac1803_queriesTheInputActor_notAnyOther"
+      ],
+      "exactRed": true,
+      "_why": "查的是「这个玩家」的等级。若查 0 号,等级仍是 QueryLevel 的返回值 ⇒ 恒等断言全绿,只有 actorId 断言能抓到。⚠️ 这条是本轮补的:首版夹具里本变异**逃逸**(零红),属漏判。"
+    },
+    {
+      "name": "M8-envModClimateClamped",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 200,
+      "expect": "                inputs.EnvModClimate,       // 原样透传,零钳制 —— AC-18-06",
+      "replace": "                inputs.EnvModClimate.Raw < 0 ? Fix.Zero : inputs.EnvModClimate, // FALSIFY-M8:防御性 clamp",
+      "expectRed": [
+        "test_ac1806_envModComponentsPassedThroughVerbatim(\"-1\",\"1/2\")",
+        "test_ac1806_envModComponentsPassedThroughVerbatim(\"-2\",\"-2\")"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-06 / R-18-C 的核心:「好心 clamp」制造第二个钳制落点。⚠️ 变异只对**负的 climate** 生效 ⇒ 四档夹具里 climate<0 的两档(`-1` / `-2`)红,climate>0 的两档(`1` / `3/2`)不红。这是**判别力设计**:若夹具只取正值,本变异会整体逃逸。⚠️ **2026-10-27 首轮证伪轮订正**:初版 expectRed 只写了 `-1` 一档,实跑得 2 红 ⇒ 判「判别面不清」。复查后判定为**我的预期写漏**,非夹具缺陷 —— `(\"-2\",\"-2\")` 的 climate 同为负,同一行 clamp 必然同样触发。已补第二档。"
+    },
+    {
+      "name": "M9-inputQualityFromRecipe",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 198,
+      "expect": "                inputs.InputQuality,",
+      "replace": "                inputs.Recipe.MinQuality, // FALSIFY-M9:改用配方门槛冒充 InQ",
+      "expectRed": [
+        "test_ac1806_inputQualityPassedThroughVerbatim(1)",
+        "test_ac1806_inputQualityPassedThroughVerbatim(5)"
+      ],
+      "exactRed": true,
+      "_why": "F-18.2 BL-9 补注①:18 不得自行从配方取 min / 门槛冒充 InQ。⚠️ **inQ=3 那档不红** —— 夹具配方 `MinQuality = 3`,变异前后同值。这与 M5 的 level=0 同型:那一档对本变异零判别力,写进 expectRed 会让 exactRed 判失败。另两档(1 与 5)全红。**多档取值正是本条的判别力来源**:只测 inQ=3 时本变异整体逃逸。"
+    },
+    {
+      "name": "M10-outputsNullGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 178,
+      "expect": "            if (inputs.Recipe.Outputs == null)",
+      "replace": "            if (false) // FALSIFY-M10:停用 Outputs 的 fail-closed",
+      "expectRed": [
+        "test_missingRecipeArraysOrQuery_failClosed"
+      ],
+      "exactRed": true,
+      "_why": "Outputs 守卫**单独承重**。停用后「只有 Inputs、Outputs 为 null」的用例会漏过(Inputs 守卫管不到它)⇒ `test_missingRecipeArraysOrQuery_failClosed` 的第三条断言红。⚠️ **2026-10-27 首轮证伪轮订正**:初版 expectRed 还列了 `test_defaultStruct_failsClosedAtConsumptionSite`,实跑**逃逸**。复查判定:**不是夹具假绿,是我把属性错配到了它头上**。该夹具验证的是「`default(ProcessingInputs)` 在消费侧被拒」这一**更弱**的属性 —— 停用 Outputs 守卫后,`default(Recipe)` 的 `Inputs` 同样为 null,`Inputs` 守卫仍会抛 ⇒ 属性依然成立 ⇒ **夹具仍绿是正确的**。两条守卫对 `default(struct)` 是**冗余**的(这正是 `default(T)` 绕过构造器、必须在消费侧多重设防的意义)。Outputs 守卫的独立判别力由「只有 Inputs」那个用例承担 —— 它确实红了。⇒ 收窄 expectRed,不是放宽判据。"
+    },
+    {
+      "name": "M11-inputsNullGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 182,
+      "expect": "            if (inputs.Recipe.Inputs == null)",
+      "replace": "            if (false) // FALSIFY-M11:停用 Inputs 的 fail-closed",
+      "expectRed": [
+        "test_missingRecipeArraysOrQuery_failClosed"
+      ],
+      "exactRed": true,
+      "_why": "M10 的姊妹半边。**两个数组各有独立守卫** —— 只挡一个时另一个漏:夹具里「只有 Outputs」与「只有 Inputs」两个用例分别打两侧。"
+    },
+    {
+      "name": "M12-skillLevelsNullGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 186,
+      "expect": "            if (skillLevels == null)",
+      "replace": "            if (false) // FALSIFY-M12:停用查询的 fail-closed",
+      "expectRed": [
+        "test_missingRecipeArraysOrQuery_failClosed"
+      ],
+      "exactRed": true,
+      "_why": "缺查询的 fail-closed。停用后 `skillLevels.QueryLevel` 会 NRE —— 但那是**另一种异常类型**,ArgumentNullException 断言不会命中 ⇒ 红。这条同时证明夹具断的是**具名异常**而非「随便抛点什么」。"
+    },
+    {
+      "name": "M13-solverNullGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 240,
+      "expect": "            if (solver == null)",
+      "replace": "            if (false) // FALSIFY-M13:停用求解器的 fail-closed",
+      "expectRed": [
+        "test_nullSolver_failClosed"
+      ],
+      "exactRed": true,
+      "_why": "缺求解器的 fail-closed。停用后调 null 委托 ⇒ NullReferenceException ⇒ 与 ArgumentNullException 不同类 ⇒ 红。"
+    },
+    {
+      "name": "M14-capInequalityOffByOne",
+      "file": "unity/Assets/Sim/ItemDatabase/RecipeSettlementConstants.cs",
+      "line": 160,
+      "expect": "               <= constants.QtyMultMax.Raw - Fix.OneRaw;",
+      "replace": "               < constants.QtyMultMax.Raw - Fix.OneRaw; // FALSIFY-M14:把 <= 改成 <",
+      "expectRed": [
+        "test_ac1814_boundaryEqualityPasses"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-14 的取等侧。判据是 ≤ 而非 < —— 改成 < 后「左端恰等于右端」的合法表被误拒。⚠️ **本变异打的是 21a 侧的判据本体,不是 18 侧的委托行**:18 只是转发,取等语义归 `RecipeSettlementConstantTableValidator`(AC-21a-3)。这条变异证明 18 的 `ValidateConstantTable` 真的**委托到了**那个谓词 —— 若 18 自己抄了一份不等式,本变异打 21a 侧时 18 侧不会红,本 spec 就会逃逸。"
+    },
+    {
+      "name": "M15-il-directSolverCall",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 197,
+      "expect": "                skillLevel,                 // 传等级不传结果 —— AC-18-03",
+      "replace": "                skillLevel == 42 ? RecipeSettlementSolver.Solve(new RecipeSettlementRequest(inputs.Recipe.Outputs, inputs.Recipe.Inputs, 0, 1, Fix.Zero, Fix.Zero, Fix.Zero), default).OutputQty.Length : skillLevel, // FALSIFY-M15:绕过委托直接调求解器",
+      "expectRed": [
+        "test_ac1801_il_noDirectCallToUniqueSolver"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-01③ 的**符号面**:「18 程序集内第二求解实现 = 零」。本变异在 `Assemble` 里直接 `call RecipeSettlementSolver::Solve`,绕过注入的委托 —— 运行时 spy 仍只数到 1 次(它数的是委托调用),**只有 IL 符号扫描能抓到**。⚠️ **2026-10-27 第 5 轮订正**:原形态在 `skillLevel == 0` 时走 raw `0`,而 `test_ac1801_settleDoesNotRejudgeAdmission` 正是用技能 0 级构造「必然被拒」的输入 ⇒ 被牵连打红。已改为 `== 42`(夹具只用 0 / 30 两个等级,永不触发)⇒ 该测不再被本变异牵连,判别面收窄到 IL 面与等级档。⚠️ 教训:变异体的**触发条件**必须避开与本属性无关的夹具取值,否则 triage 会被噪声淹没。 ⚠️ **第 6 轮再订正(第 5 轮订正的连锁)**:改触发条件 `==42` 后,`levelNotPreDivided(0)` 不再红 —— 因为该档原本是靠「`skillLevel==0` 时走 raw 0」被牵连的,触发条件一改,牵连消失。**这是预期内的判据面收窄,不是夹具假绿** ——驱动器按 S12-4 措辞报「假绿」是它的**通用措辞**,此处实为「spec 期望未随变异形态同步更新」。⇒ expectRed 收窄为 IL 面一条。"
+    },
+    {
+      "name": "M16-il-drugFieldRead",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 197,
+      "expect": "                skillLevel,                 // 传等级不传结果 —— AC-18-03",
+      "replace": "                skillLevel + new TreatableByEntry(0, \"causal\").Polarity.Length, // FALSIFY-M16:读药物极性",
+      "expectRed": [
+        "test_ac1804_il_neverReferencesDrugIdentitySymbols",
+        "test_ac1803_skillLevelPassedThrough_equalsQueryResult",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(0)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(1)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(30)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(59)",
+        "test_ac1803_levelNotPreDivided_anyLevelPassesThroughVerbatim(60)",
+        "test_ac1806_il_settlementClassHasNoAddSub"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-04 的**符号面**:规则九「18 不认识药」。本变异读 `TreatableByEntry.Polarity` —— 它在 IL 里是 `ldfld` **字段引用**,不是 `call`。⚠️ **这条变异是 IL 层存在的第二个理由**:文本层扫 `polarity` 字面能抓到,但若有人改成 `tb[i].Polarity` 这种**没有字面 `polarity` 出现**的写法(变量名换掉),文本层就漏了,而 `ldfld` 的字段名永远是 `Polarity`。⚠️ **2026-10-27 首轮证伪轮订正**:实跑额外红 5 条等级恒等断言,初版 expectRed 只列 IL 那条。复查判定:**真实第二后果,非判别面不清** —— 变异体把等级换成 `Polarity.Length`(长度是字符串的**长度**而非等级),故所有等级断言必然不等。这恰恰说明本变异**不是纯符号面**的:它同时破坏了 AC-18-03。若要一个**纯**符号面变异,须让取值仍等于 `skillLevel` 而只多一次读药(如 `skillLevel + 0 * …Polarity.Length`)—— 但那会引入 `mul`,反而污染 AC-18-02 面。**取舍:保留当前形态,如实登记 7 条红**;M15 已单独证明「纯符号面、运行期零红」是可达的。 ⚠️ **2026-10-27 第 5 轮订正**:额外红 `test_ac1806_il_settlementClassHasNoAddSub` —— 与 M5 同因:M16 的替换文本 `skillLevel + new TreatableByEntry(...)` 里那个 `+` 是编译器直出的 `add`。**同一变异的双重覆盖**,如实补入。"
+    },
+    {
+      "name": "M18-outputQualityZeroed",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            var r0 = solver(request, constants); return new RecipeSettlementResult(r0.OutputQty, 0, r0.Efficiency, r0.ActualConsumed, r0.QtyMultiplier, r0.EnvModTotal, r0.SumOfModifiers); // FALSIFY-M18:OutputQuality 置零",
+      "expectRed": [
+        "test_ac1801_scalarOutputsPassedThroughVerbatim",
+        "test_ac1801_noSecondSettlementImplementationInProcessingAssembly"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-01② 点名的三个出参里,`outQuality` 在 2026-10-27 评审前**零断言**(grep 全文零命中)—— 这条变异补上它的判别力。⚠️ 注意重建 RecipeSettlementResult 必然在源码里写出 `OutputQuality`? **不会** —— 本变异用位置参数,源码里不出现字段名 ⇒ 不会误触发 `noSecondSettlementImplementation` 的文本扫描。这是刻意选的形态:只打标量透传这一条属性。 ⚠️ **2026-10-27 第 5 轮订正**:原稿断言「本变异用位置参数,源码里不出现字段名 ⇒ 不会误触发文本扫描」—— **该断言是错的,实测被打红**。根因:重建 `RecipeSettlementResult` 时必须把 7 个字段全部列出来(`r.OutputQty, 0, r.Efficiency, …`),而 `OutputQuality` / `Efficiency` / `EnvModTotal` / `SumOfModifiers` **四个都在 AC-21a-6 的 `FormulaIdentifiers` 权威表里**(`recipe_settlement_solver_test.cs:195-203`)。**任何**重建结果对象的写法都躲不开 —— 与 M2/M3 给出的结论完全一致。故两条红都是该红的,已如实补入。"
+    },
+    {
+      "name": "M19-envModTotalDefaulted",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            var r1 = solver(request, constants); return new RecipeSettlementResult(r1.OutputQty, r1.OutputQuality, r1.Efficiency, r1.ActualConsumed, r1.QtyMultiplier, default, r1.SumOfModifiers); // FALSIFY-M19:EnvModTotal 置 default",
+      "expectRed": [
+        "test_ac1801_scalarOutputsPassedThroughVerbatim",
+        "test_ac1801_noSecondSettlementImplementationInProcessingAssembly"
+      ],
+      "exactRed": true,
+      "_why": "四个 Fix 出参在评审前**全部零断言**。本变异选 EnvModTotal 是因为它原夹具值恰为 `Fix.Zero` ⇒ 若夹具值不改成 `-1/4`,本变异**不会红**。夹具已同步改成两两互异的非零值(见 SpySolver 构造注释),这正是「夹具值必须让变异可判别」的实例。 ⚠️ 额外红 `noSecondSettlementImplementation` 与 M18 同因同源(重建 `RecipeSettlementResult` 必然写出 `EnvModTotal` 等权威表标识符),不是判别面不清。"
+    },
+    {
+      "name": "M20-settleAddsRawComponents",
+      "file": "unity/Assets/Sim/Processing/ProcessingSettlementInputs.cs",
+      "line": 247,
+      "expect": "            return solver(request, constants);",
+      "replace": "            long falsifySum = inputs.EnvModClimate.Raw + inputs.EnvModClinic.Raw; return falsifySum == long.MinValue ? default : solver(request, constants); // FALSIFY-M20:raw 域相加",
+      "expectRed": [
+        "test_ac1806_il_settlementClassHasNoAddSub"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-06 的「18 侧零加法」在评审前**只有行为层覆盖** —— IL 指令面只按 mul/div/rem 前缀匹配,成员面只在操作数为 `Fix` 时命中。raw 域写法 `.Raw + .Raw` 编译成两条 ldfld + add,**两层扫描都看不见**。本变异正是那个规避形态。⚠️ 条件分支 `== long.MinValue` 是为让编译器不优化掉 falsifySum,不是业务逻辑。"
+    }
+  ]
+}

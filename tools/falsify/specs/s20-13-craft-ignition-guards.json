@@ -1,0 +1,154 @@
+{
+  "name": "S20-13 —— 写者 / 事务 fail-closed 守卫的反证（EditMode 分册）",
+  "mode": "EditMode",
+  "filter": "CraftIgnitionGuardsTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "复算:`python3 -c \"import json;print(len(json.load(open('tools/falsify/specs/s20-13-craft-ignition-guards.json'))['mutations']))\"` ⇒ 9",
+    "基线(2026-10-27 实测):EditMode CraftIgnitionGuardsTest **13 passed / 0 failed / 0 skipped**。",
+    "本册与 `s20-13-craft-ignition.json`(PlayMode 册)的分工:PlayMode 册打**语义**守卫(准入/单炉/容量/铸造次序/序键);",
+    "  本册打**入参 fail-closed** 守卫 —— 它们的失效形态是「静默写出一条坏载荷」,端到端测试碰不到(只跑合法路径)。",
+    "命中形态:③定义域收窄(七条 null / 越界入参)· ⑤阈值边界(`durationTicks < 1`)。",
+    "锚点复核(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-13-craft-ignition-guards.json --check-only",
+    "真跑(⚠️ --guard 是**替换**默认值不是追加):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-13-craft-ignition-guards.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "⚠️ 本条纪律:每个变异只停**一个**守卫(一属性一条变异);同时停两个会让「哪条守卫承重」不可归因。"
+  ],
+  "mutations": [
+    {
+      "name": "G1-writerTickGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 133,
+      "expect": "            if (tick < 0)",
+      "replace": "            if (false) // FALSIFY-G1:移除 tick 域守卫",
+      "expectRed": [
+        "test_writer_negativeTick_throws"
+      ],
+      "exactRed": true,
+      "_why": "负 tick 落流 = 全序键的时间分量非法,且 `EventStream` 的单调基线会被永久压在负数上。守卫一破,`Record` 会正常写完并返回 id —— 只有 `Throws` 断言能抓到。"
+    },
+    {
+      "name": "G2-writerRecipeIdGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 135,
+      "expect": "            if (recipeId < 0)",
+      "replace": "            if (false) // FALSIFY-G2:移除 recipe_id 域守卫",
+      "expectRed": [
+        "test_writer_negativeRecipeId_throws"
+      ],
+      "exactRed": true,
+      "_why": "负 recipe_id 会让 fold 侧完全无法把载荷映回配方表。这条与 G1 是**不同入参位**,删任一条只红对应那条 —— 这正是「一属性一条变异」的自证。"
+    },
+    {
+      "name": "G3-writerDurationGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 138,
+      "expect": "            if (durationTicks < 1)",
+      "replace": "            if (false) // FALSIFY-G3:移除 duration_ticks 域守卫",
+      "expectRed": [
+        "test_writer_zeroDurationTicks_throws"
+      ],
+      "exactRed": true,
+      "_why": "**阈值边界**形态。`duration_ticks = 0` 会让完成 tick == 点火 tick ⇒ 炉子立刻「完成」但产出尚未存在;`FurnaceState.TryGetLatest` 另有同域守卫(`DurationTicks < 1` 抛),但那是**读侧**——写侧不守就会先脏一条进流。"
+    },
+    {
+      "name": "G4-writerNullInputIdsGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 141,
+      "expect": "            if (inputInstanceIds == null)",
+      "replace": "            if (false) // FALSIFY-G4:移除 null 输入组守卫",
+      "expectRed": [
+        "test_writer_nullInputInstanceIds_throws"
+      ],
+      "exactRed": true,
+      "_why": "null 输入组若不抛,后面 `inputInstanceIds.Count` 会 NRE —— 表面也「抛了」,但抛的是**无上下文**的 NRE,与「明确的拒收」不是一回事。该夹具断言的是 `ArgumentNullException`,不是「随便抛点什么」。"
+    },
+    {
+      "name": "G5-writerNullConsumedGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 149,
+      "expect": "            if (consumed == null)",
+      "replace": "            if (false) // FALSIFY-G5:移除 null 实耗守卫",
+      "expectRed": [
+        "test_writer_onlyConsumedNull_throws_isSoleGuard"
+      ],
+      "exactRed": true,
+      "_why": "`consumed == null` 守卫。⚠️ **首轮实测逃逸**(2026-10-27):原夹具用 `default(RecipeSettlementResult)`,它的**三个数组同时为 null** ⇒ 删掉本条守卫后,紧接着的 `produced == null` 守卫抛出**同类型**异常 ⇒ `Assert.Throws<ArgumentNullException>` 照样满足。\n**修法**:新夹具 `test_writer_onlyConsumedNull_throws_isSoleGuard` 造「**只有 consumed 为 null**、produced 非空且长度对齐」的形态 ⇒ 本守卫成为唯一拦截点。⚠️ 同时保留 `default` 那条(它测的是「整个 default 不得写出载荷」,与「单点 null」是两个属性)。"
+    },
+    {
+      "name": "G6-transactionNullInputIdsGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 227,
+      "expect": "            if (request.InputInstanceIds == null)",
+      "replace": "            if (false) // FALSIFY-G6:移除输入实例集 null 守卫",
+      "expectRed": [
+        "test_transaction_nullInputInstanceIds_throwsAtEntry_beforeAnyWork"
+      ],
+      "exactRed": true,
+      "_why": "事务层输入实例集的 null 守卫。⚠️ **首轮实测逃逸**:删掉后 null 传到 `AdmissiblePredicate:115`,那里抛**同类型** `ArgumentNullException` ⇒ 只断类型的断言照样绿。\n**修法**:判据改成**副作用** —— `CountingSolver.Calls == 0`,即「抛之前求解器一次都没被调」。这才能区分「入口即拒」与「跑到第 ① 步才炸」。"
+    },
+    {
+      "name": "G7-transactionNullQualitiesGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 230,
+      "expect": "            if (request.InputQualities == null)",
+      "replace": "            if (false) // FALSIFY-G7:移除品级集 null 守卫",
+      "expectRed": [
+        "test_transaction_nullInputQualities_throwsAtEntry_notTreatedAsEmptySet"
+      ],
+      "exactRed": true,
+      "_why": "品级集 null 守卫。⚠️ **首轮实测逃逸**(同 G6:下游抛同类型异常)。\n**修法**:判据改成 `CountingSolver.Calls == 0`;并追加**对照** —— 「空集」是**合法输入**,走具名拒收(`NoConsumedInstances`)而非抛异常。两者必须可分,这才是本条真正守的东西。"
+    },
+    {
+      "name": "G8-transactionNullWriterGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 236,
+      "expect": "            if (writer == null)",
+      "replace": "            if (false) // FALSIFY-G8:移除写者 null 守卫",
+      "expectRed": [
+        "test_transaction_nullWriter_throwsInsteadOfSilentlySkippingAppend"
+      ],
+      "exactRed": true,
+      "_why": "写者为 null 若不守,第 ⑤ 步会 NRE —— 但**前三步已经跑完**(F1 白算一次、容量已判过)。更糟的变体是有人把 null 当成「跳过落流」:那会静默丢事件(玩家白烧一炉)。判据是入口抛 + `_sink.Count == 0`。"
+    },
+    {
+      "name": "G9-transactionNullWeightDelegateGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 233,
+      "expect": "            if (request.UnitWeightOfOutputLine == null)",
+      "replace": "            if (false) // FALSIFY-G9:移除重量解析 null 守卫",
+      "expectRed": [
+        "test_transaction_nullUnitWeightDelegate_throws"
+      ],
+      "exactRed": true,
+      "_why": "重量解析为 null 若不守,`OutputLinesOf` 会在调委托时 NRE —— 但那是在**容量检查内部**,而容量检查是规则七第 ④ 步。判据是入口抛,不是「第 ④ 步炸」。这条守的是「拒绝当作零重放行」(AC-18-12 的静默失效形态)。"
+    },
+    {
+      "name": "G10-writerQualityDomainGuardRemoved",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 165,
+      "expect": "            if (produced.Length > 0 && quality < 1)",
+      "replace": "            if (false) // FALSIFY-G10:移除品级域守卫",
+      "expectRed": [
+        "test_writer_zeroQuality_withProducedLines_throws"
+      ],
+      "exactRed": true,
+      "_why": "**2026-10-27 由 PlayMode 册迁来**(原 PlayMode M3)。该守卫在 PlayMode 面**零判别力** —— F1 的 F2 曲线经 `clamp(·,1,InQ)` 结构性保证 ≥ 1,端到端测试造不出越界品级。本册用 `RecipeSettlementResult` 公开构造函数绕过 F1 手工造 `OutputQuality = 0`,才让这条守卫有判别面。"
+    },
+    {
+      "name": "G11-writerMintsExtraIdBeforeLoop",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 181,
+      "expect": "            var outputIds = new long[produced.Length];",
+      "replace": "            var outputIds = new long[produced.Length];\n            _idAuthority.NextItemInstanceId(); // FALSIFY-G11:白铸一个 id(不进数组)",
+      "expectRed": [
+        "test_writer_lengthMatch_writes_positiveControlForMismatchTest",
+        "test_rejectedPaths_zeroAppendAndZeroIdMint",
+        "test_zeroOutputRecipe_mintsNoIds"
+      ],
+      "exactRed": true,
+      "_why": "**2026-10-27 由 PlayMode 册迁来**(原 PlayMode M7,原变异 `produced.Length + 1` 会越界抛,11 条全红 ⇒ 判别面不清,已改细)。本形态**只多铸一个、不进数组** ⇒ 载荷与返回值逐位不变、数组长度照旧、事件照写 —— 只有直接数 `ItemMints` 才观测得到。**三条红都是真后果**:①「恰 1 次/行」②合法路径正控计数 ③空产出组不得铸号。⚠️ id 计数器**不回滚** ⇒ 多铸一次 = 一个永久空洞,这是端到端测试看不见的面。"
+    }
+  ]
+}

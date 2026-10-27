@@ -47,20 +47,31 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly SaveService _saveService;
         private readonly AnchorCheckpointTrigger _anchorTrigger;
         private readonly CheckpointFallback _fallback;
+        private readonly Action _afterRestore;
 
         /// <param name="saveService">读档本体(生产 = 组合根装配实例)。</param>
         /// <param name="anchorTrigger">锚点触发器(读档后 <see cref="AnchorCheckpointTrigger.ResetCursor"/>;
         /// 与 saveService 同源装配 —— 规则十四「一个量」共享同一瞬时源)。</param>
         /// <param name="fallback">定时兜底(读档后 <see cref="CheckpointFallback.NotifyExternalCheckpoint"/>;
         /// 可 null —— saveBasePath 为 null 时三件同 null,本类也不构造)。</param>
+        /// <param name="afterRestore">**读档完成后**的派生态重建钩子(可 null)。
+        /// <para>🔁 <b>2026-10-27 新增(S20-10 B-1 接线)</b>:本类头注的「派生态未重建清单」
+        /// 此前**不含库存投影** —— `InventoryFold.Fold` 因此在生产侧零调用点、契约 C-1/C-6
+        /// 零兑现面。<b>库存投影是纯派生态**(ADR-009 §四:由事件流确定性重建、不持状态、
+        /// 不写流),与在场视图 / 视觉侧同格,故归本序列器的读档后钩子。</para>
+        /// <para>⚠️ <b>次序 = 在 <c>ResetCursor</c> 之后</b>:流已在 <c>SaveService.Load</c>
+        /// 内 `Restore` 完毕,钩子读的是**新流**。若钩子抛 ⇒ 读档整体失败(投影重建不了
+        /// 就说明存档有问题,静默吞掉会让下游拿到旧投影 —— 那是更坏的失败)。</para></param>
         /// <exception cref="ArgumentNullException">saveService 或 anchorTrigger 为 null。</exception>
         public LoadSequencer(SaveService saveService,
                              AnchorCheckpointTrigger anchorTrigger,
-                             CheckpointFallback fallback = null)
+                             CheckpointFallback fallback = null,
+                             Action afterRestore = null)
         {
             _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
             _anchorTrigger = anchorTrigger ?? throw new ArgumentNullException(nameof(anchorTrigger));
             _fallback = fallback;
+            _afterRestore = afterRestore;
         }
 
         /// <summary>本序列器消费的锚点触发器(同源钉观测面 —— 组合根测试断言它 == 服务袋实例)。</summary>
@@ -75,6 +86,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             _saveService.Load(slot);
             _anchorTrigger.ResetCursor();
             _fallback?.NotifyExternalCheckpoint();
+            // 🔁 **2026-10-27 新增(S20-10 B-1 接线)** —— 第 4 步:派生态重建。
+            // ⚠️ **次序 = 最后**:前三步都是本类原有的缝合义务,与流内容无关;
+            //    钩子读的是**新流**,放最后可保证它看到的流已是最终态(ResetCursor 不改流)。
+            // ⚠️ **钩子抛 ⇒ 读档整体失败**(不 catch):投影重建不了说明存档或静态数据
+            //    有问题,静默吞掉会让下游拿到旧投影 —— 那是更坏的失败(同 `SaveService.Load`
+            //    的 fail-loud 口径)。
+            _afterRestore?.Invoke();
         }
     }
 }

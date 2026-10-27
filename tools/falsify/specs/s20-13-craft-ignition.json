@@ -1,0 +1,140 @@
+{
+  "name": "S20-13 —— Craft 落流 / 点火事务的守卫反证（AC-18-11 · 12 · 16①②③④ · 25）",
+  "mode": "PlayMode",
+  "filter": "CraftEventPayloadTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "复算:`python3 -c \"import json;print(len(json.load(open('tools/falsify/specs/s20-13-craft-ignition.json'))['mutations']))\"` ⇒ 13",
+    "基线(2026-10-27 实测):PlayMode CraftEventPayloadTest **14 passed / 0 failed / 1 skipped**。",
+    "  skipped = `test_ac1819_conservationCounterExample_reproducible_notGreen`,带 [Ignore(\"BLOCKED-BY-21a O-18-R3\")] —— **有意挂起,不是绿**。",
+    "EditMode 侧守卫面单独一份 spec:`s20-13-craft-ignition-guards.json`(13/13 绿)。",
+    "命中形态:",
+    "  ③定义域收窄 —— M2(输入组不等长守卫)/ M3(品级域守卫)/ M4~M6(三条准入拒绝分支)",
+    "  ④一次性/幂等 —— M7(单炉守卫)/ M8(容量守卫)/ M9(每产出行恰一次铸造)",
+    "  ⑤阈值边界 —— M1(start_tick 的「点火 tick vs 完成 tick」是时间边界)",
+    "  ①定序 —— M12(铸造按产出行索引序)",
+    "  共存互斥 —— M13(Patient=None 与「不污染高水位」)",
+    "锚点复核(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-13-craft-ignition.json --check-only",
+    "真跑(⚠️ 驱动器不读 spec 的 guards 键,且 --guard 是**替换**默认值):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-13-craft-ignition.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "⚠️ 变异窗口纪律:跑之前已读完两个被变异文件;窗口内不读不编辑(承 tools/falsify/README.md §并发读取禁令)。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-startTickIsCompletionTick",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 188,
+      "expect": "                tick,                 // start_tick = 点火 tick(规则八「发起即落流」)",
+      "replace": "                tick + durationTicks, // FALSIFY-M1:start_tick 错填完成 tick",
+      "expectRed": [
+        "test_ac1812_completionTickCanIgniteAgain_furnaceFree",
+        "test_ac1816_craftLandsOnIgnitionTick_notCompletionTick",
+        "test_ac1816_outputInstanceIds_mintedAtIgnitionTick_inOutputLineOrder",
+        "test_ac1816_payloadTenFields_allPresentAndTyped"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-16① 的「落点火 tick 而非完成 tick」。这是**时间边界**形态:填完成 tick 时事件仍写、仍可解码、各数组仍全对 —— 只有 start_tick 那一条位不对。\n⚠️ **实测判别面 = 4 条(2026-10-27 小样轮)**,四条都是真后果,已逐条核过:\n  ① `craftLandsOnIgnitionTick` —— 直接判据(信封 tick ≠ 载荷 start_tick);\n  ② `payloadTenFields` —— 载荷 ③ start_tick 位;\n  ③ `outputInstanceIds_mintedAtIgnitionTick` —— 该用例第二次点火在 `Tick + DurationTicks`,变异后首炉的 CompleteTick 被右移,第二次点火撞单炉;\n  ④ `completionTickCanIgniteAgain_furnaceFree` —— 同上,完成 tick 不再空闲。\n  (`FurnaceState.cs:76` `CompleteTick => StartTick + DurationTicks` —— start_tick 是**算术输入**,   不是纯展示位,故错填必然波及单炉窗口。)"
+    },
+    {
+      "name": "M4-admissionRejectionPassedThrough",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 246,
+      "expect": "                return Rejected(admission);",
+      "replace": "                { } // FALSIFY-M4:准入拒不再短路,继续往下走",
+      "expectRed": [
+        "test_ac1812_admissionDenied_zeroCraftEvent",
+        "test_ac1812_minQualityGate_zeroCraftEvent"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-12 的「拒绝 = 零事件」。短路一旦移除,被拒的请求会一路走完 ③④⑤ 并**真的写一条 `Craft`** —— 玩家白烧一炉。两条都红是真实第二后果:技能门与品级门共用这一个短路,故两条准入用例同时失去保护。"
+    },
+    {
+      "name": "M5-furnaceBusyGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 252,
+      "expect": "                return Rejected(CraftRejection.FurnaceBusy);",
+      "replace": "                { } // FALSIFY-M5:单炉守卫不再短路",
+      "expectRed": [
+        "test_ac1812_furnaceBusy_zeroCraftEvent"
+      ],
+      "exactRed": true,
+      "_why": "规则八并发模型的「每玩家 1 炉」。移除后同玩家可在等待期内叠炉,且**第二条事件照样合法** —— 只有「零事件」断言能抓到。⚠️ 与 M4 打的是不同行、不同判据(单炉 vs 准入),符合「一属性一条变异」。"
+    },
+    {
+      "name": "M6-capacityGuardRemoved",
+      "file": "unity/Assets/Sim/Processing/CraftIgnitionTransaction.cs",
+      "line": 266,
+      "expect": "                return Rejected(CraftRejection.CapacityInsufficient);",
+      "replace": "                { } // FALSIFY-M6:容量守卫不再短路",
+      "expectRed": [
+        "test_ac1812_capacityInsufficient_zeroCraftEvent"
+      ],
+      "exactRed": true,
+      "_why": "规则七 ⑤ 的「20 接受后才写」。移除后装不下的请求照样落流 —— 而规则七附注明写此时**原料不扣、药不出、事件不落流**。⚠️ 正控 `test_ac1812_capacitySufficient_writes_...` 在变异下**仍绿**(它本来就是会写的那条),这正是正控存在的意义:证明零断言不是空转。"
+    },
+    {
+      "name": "M8-mintOrderReversed",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 183,
+      "expect": "                outputIds[k] = _idAuthority.NextItemInstanceId().Value;",
+      "replace": "                outputIds[produced.Length - 1 - k] = _idAuthority.NextItemInstanceId().Value; // FALSIFY-M8:铸造次序倒置",
+      "expectRed": [
+        "test_ac1816_outputInstanceIds_mintedAtIgnitionTick_inOutputLineOrder"
+      ],
+      "exactRed": true,
+      "_why": "**定序**形态:倒着铸。id 集合完全相同、长度相同、单调性仍成立 —— 只有「按产出行索引序」这条定序断言能抓到。这是本文件里最纯粹的「定序类」反证。"
+    },
+    {
+      "name": "M9-consumedArrayReplacedWithZero",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 191,
+      "expect": "                consumed,             // F1 出参原样(同一引用)—— AC-18-01②",
+      "replace": "                new int[consumed.Length], // FALSIFY-M9:实耗抹成 0",
+      "expectRed": [
+        "test_ac1811_actualConsumed_presentAndEqualsSettlementOutput"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-11 的「ActualConsumed 进载荷」。抹成 0 后载荷长度仍对、仍可解码、仍能过 codec —— 只有逐位比对能抓到。\n⚠️ **首轮实测订正**:原 expectRed 还列了 `test_ac1816_payloadTenFields_allPresentAndTyped`,**实测仍绿且这是正确的** —— 那条用例只断 `ActualConsumed.Length == InputInstanceIds.Length`(长度),不断值。把两者混记会让「载荷十位齐」与「逐位相等」两份证据互相冒充。"
+    },
+    {
+      "name": "M10-outputQtyReplacedWithOne",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 192,
+      "expect": "                produced,             // F1 出参原样(同一引用)—— AC-18-01②",
+      "replace": "                System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(produced, _ => 1)), // FALSIFY-M10:产出量抹成 1",
+      "expectRed": [
+        "test_ac1811_actualConsumed_presentAndEqualsSettlementOutput",
+        "test_ac1825_syntheticFixture_shapesHoldWithoutRealRecipeData"
+      ],
+      "exactRed": true,
+      "_why": "AC-18-01② 的「原样搬运」在产出量一侧。\n⚠️ **首轮逃逸,2026-10-27 已改夹具**:base qty 1 → 2(F1 算出 3),变异抹成 1 后逐位比对必不等。\n⚠️ **实测判别面 = 2 条**(小样轮):① `actualConsumed_...`(`CollectionAssert` 逐位比对 OutputQty)② `ac1825_syntheticFixture`(该用例自己在另一套合成数值上也做逐位比对)。\n⚠️ `test_ac1816_payloadTenFields` **仍绿且正确** —— 它只断 `OutputQty.All(q => q >= 1)`(结构性地板),不断具体值。若它某天红了,说明夹具或该用例被改坏了。"
+    },
+    {
+      "name": "M11-patientNotNone",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 202,
+      "expect": "                tick, PatientId.None, -1, EventKind.Craft, payloadRef));",
+      "replace": "                tick, new PatientId(0), -1, EventKind.Craft, payloadRef)); // FALSIFY-M11:Patient 不再是 None 哨兵",
+      "expectRed": [
+        "test_ac1816_fullOrderKey_worldStream_nonePatient_seqIssued",
+        "test_ac1816_craftDoesNotPollutePatientHighWaterMark"
+      ],
+      "exactRed": true,
+      "_why": "**共存互斥**形态(ADR-007 §四):世界流事件的 Patient 必须是 None,否则 `max(patient_id)` 高水位被污染 ⇒ 下个病人复用 0 号。两条红是**两个不同后果**(事件头字段 / 计数器),都该红 —— 一个变异确实有两个真后果,不是判别面不清。"
+    },
+    {
+      "name": "M12-seqPreAssigned",
+      "file": "unity/Assets/Sim/World/CraftEventWriter.cs",
+      "line": 202,
+      "expect": "                tick, PatientId.None, -1, EventKind.Craft, payloadRef));",
+      "replace": "                tick, PatientId.None, 7L, EventKind.Craft, payloadRef)); // FALSIFY-M12:写者自行发号(绕过主机)",
+      "expectRed": [
+        "test_ac1816_crossEvent_mintOrderFollowsFullOrderKey",
+        "test_ac1816_fullOrderKey_worldStream_nonePatient_seqIssued"
+      ],
+      "exactRed": true,
+      "_why": "ADR-005「主机唯一发号」。写者传 -1 是**哨兵契约**;自己填 7 会让 `Append` 不再发号(Seq ≥ 0 走「已发号」分支)⇒ 同 tick 多条事件全挤在 7 号上,全序键退化。\n⚠️ **实测判别面 = 2 条**(2026-10-27 全量轮),第 2 条是**真后果不是误报**:\n  ① `fullOrderKey_...` —— 直接判据(该 (Tick,Patient) 首号须为 0);\n  ② `crossEvent_mintOrderFollowsFullOrderKey` —— 两条同 tick `Craft` 的 Seq 相同时,\n     `EventOrder.Compare` 返回 0 ⇒ 全序键**不再能定序** ⇒ 「id 序 ⟺ 全序键序」这条交叉判据\n     当场失效。这正是该用例存在的目的:**全序键退化必须有人喊**。"
+    }
+  ]
+}

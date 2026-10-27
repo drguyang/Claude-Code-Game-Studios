@@ -13,7 +13,9 @@ using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
+using DaYiJingCheng.Sim.Foraging;                      // HarvestOrchestrator(S20-15)
 using DaYiJingCheng.Sim.Prescription;
+using DaYiJingCheng.Sim.Contracts.SkillSystem;         // NoveltyTracker(S20-15)
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation;             // ClinicRoomMatchingService(TD-building-01 读侧)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
@@ -124,6 +126,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>「查体 ⇒ 见过病 D」投影器(sprint-08 S1.1 件 B)—— 查体后写一条
         /// <c>SkillGrown</c>(诊断, 病种 D)落病史流;病名册条目集的数据源。</summary>
         public SeenDiseaseProjector SeenDisease { get; }
+
+        /// <summary>
+        /// 17 采集编排(S20-15)—— 一次成功采集的五步裁决(铸 id → 三条产出事件 → 成长)。
+        /// <para><b>本属性是本件解除 AC-17-01 挂起的**唯一**入口</b>:接线前
+        /// `new HarvestOrchestrator(` 全仓零生产构造点,采集链在运行期不存在。</para>
+        /// <para>⚠️ <b>生产触发点仍归 4 的交互装配轮</b>(「对着一株药材按 E」→ 判距 → 本编排)。
+        /// 「已装配」≠「玩家按得到」—— 与 <see cref="DropEventWriter"/> 同款的可观测边界。</para>
+        /// </summary>
+        public HarvestOrchestrator Harvest { get; }
+
+        /// <summary>
+        /// 新颖度追踪器(30 的运行期加速缓存,ADR-026)。
+        /// <para>⚠️ <b>与 <see cref="SeenDisease"/> 共用同一实例</b>(键含 <c>skillId</c>,
+        /// 诊断与采集两域永不共键 ⇒ 共用安全且必需 —— 另建实例 = 两个装配点,违 AC-17-14g)。
+        /// 暴露它不是为了让人另开一个,而是为了让「诊断侧与采集侧问的是不是同一个追踪器」
+        /// 成为**可判定**的(夹具直接比引用)。</para>
+        /// <para>⚠️ <b>不独立快照</b>(ADR-026 ⑥):真源在病史流的 <c>SkillGrown</c> 行;
+        /// 从流回填的实现**全仓仍为零**(见 story-006 §已知缺口 ①)。</para>
+        /// </summary>
+        public NoveltyTracker Novelty { get; }
 
         /// <summary>病名册条目源(sprint-08 S1.1 件 C)—— 已见集经词表反查 ⇒ 可指认
         /// <c>lexicon_id</c> 列表(守密:只出 lexicon_id,不出 disease_id)。</summary>
@@ -272,6 +294,21 @@ namespace DaYiJingCheng.Gameplay.Boot
         public LoadSequencer LoadSequencer { get; }
 
         /// <summary>
+        /// 20 库存实体装载服务(S20-10/11/12 修复轮 · 2026-10-27 用户裁定「「装载库存实体」的链,现在建」)。
+        /// <para><b>本属性是本轮三条 BLOCKING 的接线落点</b> ——
+        /// <c>InventoryFold.Fold</c>(S20-10 B-1)· <c>BuildPartQualityGate</c>(S20-11 B-1)·
+        /// <c>CarryLoadSolver.Sum</c>(S20-11 W-2) 三者此前**零生产调用点**,本服务的
+        /// `Rebuild()` 是它们的唯一调用者。</para>
+        /// <para>⚠️ <b>非 null 恒成立</b>(与 <see cref="SaveService"/> 不同:它不依赖存档目录)。
+        /// 但 <see cref="InventoryLoadService.Current"/> 在首次 <c>Rebuild()</c> 前为 null ——
+        /// 「装没装」看本属性,「重建没重建」看 <c>Current</c>。</para>
+        /// <para>⚠️ <b>生产触发点两处</b>:① 读档后(<see cref="LoadSequencer"/> 的 <c>afterRestore</c>
+        /// 钩子 —— 用户裁定「在装配根加「读档后重建库存投影」」);
+        /// ② 任何下游按需调 <c>Rebuild()</c>(20/20b 的呈现侧接线轮)。</para>
+        /// </summary>
+        public InventoryLoadService InventoryLoad { get; }
+
+        /// <summary>
         /// 「医馆格」判据源的生产占位(空集 fail-safe,真源归 23/24 接线轮)。
         /// <para><b>同源义务的单点发放</b>:写者 / 将来的 F1PipelineInput 构造 /
         /// 将来的规则十「无人」检测器三处消费**必须取本实例**,不得另立
@@ -300,6 +337,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          ExaminationLedger examinationLedger,
                                          ExamineDriver examineDriver,
                                          SeenDiseaseProjector seenDisease,
+                                         HarvestOrchestrator harvest,
+                                         NoveltyTracker novelty,
                                          LexiconBookSource lexiconBook,
                                          SimTickDriver tickDriver,
                                          PrescribeRequestDriver prescribeDriver,
@@ -325,7 +364,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          Func<uint?> currentConfigVersion = null,
                                          RandomEventsDirectorDriver randomEventsDirector = null,
                                          IClinicCellSource clinicCells = null,
-                                         LoadSequencer loadSequencer = null)
+                                         LoadSequencer loadSequencer = null,
+                                         InventoryLoadService inventoryLoad = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -349,6 +389,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;
             SeenDisease = seenDisease;
+            Harvest = harvest;
+            Novelty = novelty;
             LexiconBook = lexiconBook;
             TickDriver = tickDriver;
             PrescribeDriver = prescribeDriver;
@@ -386,6 +428,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             RandomEventsDirector = randomEventsDirector;
             ClinicCells = clinicCells;
             LoadSequencer = loadSequencer;
+            InventoryLoad = inventoryLoad;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

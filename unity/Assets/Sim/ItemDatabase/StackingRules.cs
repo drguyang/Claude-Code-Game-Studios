@@ -47,8 +47,14 @@ namespace DaYiJingCheng.Sim
         public readonly int TotalQty;
 
         /// <summary>本栈吸纳的实例 id(**升序**;单实例栈 = 长度 1)。
-        /// <para>⚠️ 多实例栈只在「几个实例同键同品级且合计未超 <c>stack_max</c>」时出现 ——
-        /// 是**读取视图的归并**,不代表流里发生过合并写入(合并写入归 Story 005 的事务模板)。</para></summary>
+        /// <para>⚠️ 多实例栈有两种来源 —— ① 几个实例同键同品级且合计未超 <c>stack_max</c>
+        /// (纯合并);② **部分吸纳**:某实例的一截进了本栈、剩余溢出到后续栈(2026-10-27 订正,
+        /// 评审 `review-s20-11-inventory-003` B-2)。两者都是**读取视图的归并/分摊**,
+        /// 不代表流里发生过合并写入(合并写入归 Story 005 的事务模板)。</para>
+        /// <para>⚠️ <b>故同一 id 可以合法地出现在多个栈里</b>(跨栈实例)—— 本字段的语义是
+        /// 「本栈**吸纳了**谁」,不是「谁**专属**本栈」。下游若需要「某实例分了几件到本栈」,
+        /// 本结构**不携带**该分摊量(结构性缺口,已在 B-2 登记);按 id 集判断
+        /// 「这一格要画哪几件」是合法用法,据此反推件数则不是。</para></summary>
         public readonly long[] InstanceIds;
 
         /// <summary>构造一栈(求解器专用入口)。</summary>
@@ -169,26 +175,38 @@ namespace DaYiJingCheng.Sim
                     }
 
                     // 溢出:原栈补满到 stackMax(21a 给出的 CurrentFinalQty),溢出量继续落新栈。
-                    stacks[openIdx] = new InventoryStack(
-                        open.StackKey, open.Key, open.Quality,
-                        split.CurrentFinalQty, open.InstanceIds);
+                    // ⚠️ **2026-10-27 订正(评审 `review-s20-11-inventory-003` B-2 路径 1)**:
+                    //   原实现直接传 `open.InstanceIds` ⇒ 本实例**已有一截进了这一栈**,
+                    //   却**不被记进该栈的 id 集**,与 `InventoryStack.InstanceIds` 的文档契约
+                    //   (「本栈吸纳的实例 id」)直接矛盾。常规数据即可到达:
+                    //   栈内已有 A(1)+B(1)=2、再落 C(qty=10)、stackMax=9 ⇒ C 有 7 件进了首栈,
+                    //   而首栈 `InstanceIds` 只有 [A,B] —— 下游按 id 集渲染会**漏画 C**。
+                    //   订正 = 走同一个 `Append`(与「未溢出」分支同一语义),不乱序、不复制一份。
+                    stacks[openIdx] = Append(open, inst, split.CurrentFinalQty);
                     remaining = split.OverflowQty;
                     openByKey.Remove(stackKey);          // 该键已无未满栈
                 }
 
                 // 落位:inst 可能被拆到多个栈(remaining 可 > stackMax)。
-                // 首栈承接 inst 自己的 id;再往后的栈**不含新实例 id**(它们只承载数量),
-                // ⇒ 用 inst.InstanceId 的重复登记是被禁止的,故后续栈的 InstanceIds 为空数组。
+                // 首栈承接 inst 自己的 id;再往后的栈**不含新实例 id** —— 但注意:
+                //   当上面那条溢出路径已经把 inst 记进原栈时,同一个 id 会**合法地**出现在两栈。
+                //   `InstanceIds` 的语义是「本栈**吸纳了**哪些实例」,不是「哪个实例**专属**本栈」。
                 bool first = true;
                 while (remaining > 0)
                 {
                     int take = remaining > def.StackMax ? def.StackMax : remaining;
                     long[] ids = first ? new[] { inst.InstanceId } : Array.Empty<long>();
                     stacks.Add(new InventoryStack(stackKey, inst.Key, inst.Quality, take, ids));
-                    if (first) openByKey[stackKey] = stacks.Count - 1;
                     remaining -= take;
                     first = false;
                 }
+
+                // ⚠️ **2026-10-27 订正(评审 `review-s20-11-inventory-003` B-2 路径 2)**:
+                //   原实现用 `if (first) openByKey[stackKey] = 首栈下标`,于是多栈切分后的
+                //   **尾部部分栈从不被登记为「未满栈」** ⇒ 下一个同键实例另开新栈而不去补满它。
+                //   订正 = 登记**最后一栈**(循环内除末次外每次 take 都恰为 stackMax,故只有末栈
+                //   可能是部分栈),再由下面的「末栈若已满」判据把它摘掉。
+                if (mergeable) openByKey[stackKey] = stacks.Count - 1;
 
                 // 末栈若已满,不能当作「未满栈」吸纳后续实例。
                 if (mergeable && openByKey.TryGetValue(stackKey, out int lastIdx) &&

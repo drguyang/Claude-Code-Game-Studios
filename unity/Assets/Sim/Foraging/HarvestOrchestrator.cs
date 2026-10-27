@@ -23,9 +23,18 @@
 //
 // ⚠️ **本件的 AC 记分(禁区:禁把「形状已备」读成「三连发能跑」)**:
 //     AC-17-05  / AC-17-05b  ✅ 真绿(17 侧自足)
-//     AC-17-01               ⚠️ **不勾** —— 「恰发三条」需要 20 的两个写者落流;
-//                               本件只证「17 正确地**要求了**这三条」,不证「三条真的进流」
-//     R11 邻接               ⚠️ **半边** —— 同上,`DropSpawned` 的 instance_id 由 20 写入
+//     AC-17-01               ✅ **2026-10-27 S20-15 转真绿** —— 20 的两支写者已落
+//                               (`Sim/World/DropEventWriter.cs`,S20-14),本卡把
+//                               `NullDropWriter` 换成 `DropEventWriterAdapter` 后
+//                               「三条真的进流」可验(见 `harvest_novelty_wiring_test`)
+//     R11 邻接               ✅ 同上 —— `DropSpawned` 真的落流,铸造点当下性可在流内核对
+//     AC-17-14 / 14b…14g     ✅ **本卡新增**(新颖度求值移入编排器内部)
+//
+// ⚠️ **双铸造点冲突的裁决(2026-10-27 用户裁定 · 甲案)**:17 侧在写任何事件**之前**铸 id
+//    (R11 / AC-17-05),而 20 的 `DropEventWriter.RecordSpawned` 自铸并返回 —— 二者直接桥接
+//    会**一次采集烧两个号**。裁决 = 20 侧增设 `RecordSpawnedWithId`(收已铸 id),
+//    自铸入口退化为「先校验 → 铸号 → 调它」的薄包装,两条入口**共用同一条 Append 路径**。
+//    ⇒ `IDropWriter.Spawn` 保持收 `ItemInstanceId`(17 的形状),适配器只做转发。
 //
 // ⚠️ **原子性(可证的形态,不是自述)**:`Validate` 在**任何写入之前**核完全部**十个**输入域
 //    (tick / actorId / nodeId / itemKey / qty / outQuality / skillId / objectId /
@@ -81,6 +90,36 @@ namespace DaYiJingCheng.Sim.Foraging
 
         /// <inheritdoc />
         public void Claim(long tick, ItemInstanceId instanceId, int claimer) { }
+    }
+
+    /// <summary><see cref="IDropWriter"/> 的**生产适配器** —— 转发到 20 的
+    /// <see cref="DropEventWriter"/>(S20-15)。</summary>
+    /// <remarks>
+    /// <para><b>为什么需要这一层</b>:<see cref="IDropWriter"/> 是 17 需要的**写入能力形状**
+    /// (收已铸 id),而 20 的生产写者 <see cref="DropEventWriter"/> 还带自铸入口与
+    /// <c>DropDespawned</c>。适配器把两者接起来,**零判据、零状态** —— 它不做任何决定。</para>
+    /// <para>⚠️ <b>必须调 <see cref="DropEventWriter.RecordSpawnedWithId"/>,不得调
+    /// <c>RecordSpawned</c></b> —— 后者会**再铸一个号**,而 17 传进来的 <c>instanceId</c>
+    /// 已被 <c>HarvestOrchestrator</c> 铸好并写进了 <c>ResourceHarvested</c>:
+    /// 两条事件各持一个号 ⇒ id 空洞 + R11 断言红。这是 R-3 冲突的**唯一正确落点**。</para>
+    /// </remarks>
+    public sealed class DropEventWriterAdapter : IDropWriter
+    {
+        private readonly DropEventWriter _writer;
+
+        /// <summary>构造适配器。</summary>
+        /// <param name="writer">20 的三支掉落写者(生产装配 = 同一实例)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="writer"/> 为 null。</exception>
+        public DropEventWriterAdapter(DropEventWriter writer)
+            => _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+
+        /// <inheritdoc />
+        public void Spawn(long tick, ItemInstanceId instanceId, WorldPos spawnAnchor, int itemKey, int qty)
+            => _writer.RecordSpawnedWithId(tick, instanceId, spawnAnchor, itemKey, qty);
+
+        /// <inheritdoc />
+        public void Claim(long tick, ItemInstanceId instanceId, int claimer)
+            => _writer.RecordClaimed(tick, instanceId, claimer);
     }
 
     /// <summary>
@@ -156,16 +195,21 @@ namespace DaYiJingCheng.Sim.Foraging
         /// <summary>成长:对象 id(对象 = **品种**,规则五)。</summary>
         public readonly int ObjectId;
 
-        /// <summary>成长:新颖度类别(值域与加权归 30)。</summary>
-        public readonly NoveltyClass Novelty;
-
         /// <summary>成长:本次 XP 增量(30 的 <c>XP_gain = BASE × K_difficulty × K_novelty</c> 算好后推入)。</summary>
         public readonly Fix XpGain;
 
         /// <summary>构造一次采集请求。</summary>
+        /// <remarks>
+        /// ⚠️ <b>无 <c>Novelty</c> 形参 —— 这是刻意的类型面约束(AC-17-14f)</b>:
+        /// 新颖度由编排器在内部向 <see cref="NoveltyTracker"/> 求值(见
+        /// <see cref="HarvestOrchestrator.Resolve"/>),
+        /// 调用方**在类型层面无法**传错。S20-15 之前的实现把 <c>NoveltyClass</c> 作为入参,
+        /// 那时「首次 / 冷却内 / 冷却外」全凭调用方自填 —— 一条能编译的调用就能把
+        /// 首采标成 Stale,而任何断言都无法从编排器一侧发现。
+        /// </remarks>
         public HarvestRequest(long tick, int actorId, int nodeId, WorldPos nodeCell,
                               int itemKeyOrdinal, int qty, int outQuality,
-                              int skillId, int objectId, NoveltyClass novelty, Fix xpGain)
+                              int skillId, int objectId, Fix xpGain)
         {
             Tick = tick;
             ActorId = actorId;
@@ -176,7 +220,6 @@ namespace DaYiJingCheng.Sim.Foraging
             OutQuality = outQuality;
             SkillId = skillId;
             ObjectId = objectId;
-            Novelty = novelty;
             XpGain = xpGain;
         }
     }
@@ -221,20 +264,26 @@ namespace DaYiJingCheng.Sim.Foraging
         private readonly ResourceHarvestWriter _harvestWriter;
         private readonly IDropWriter _dropWriter;
         private readonly IGrowthEmitter _growth;
+        private readonly NoveltyTracker _novelty;
 
         /// <summary>构造编排器。</summary>
         /// <param name="ids">发号权威(唯一合法 id 来源,D-21-27)。</param>
         /// <param name="harvestWriter">17 的 <c>ResourceHarvested</c> 写者。</param>
         /// <param name="dropWriter">20 的两个写者(未落时传 <see cref="NullDropWriter.Instance"/>)。</param>
         /// <param name="growth">成长入口(30)。</param>
+        /// <param name="novelty">新颖度追踪器(30 的运行期加速缓存,ADR-026)。
+        /// ⚠️ 生产装配**必须**与诊断共用同一实例(键含 <c>skillId</c>,两域永不相撞)——
+        /// 另建实例 = 两个装配点(违 AC-17-14g)。</param>
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
         public HarvestOrchestrator(IIdAuthority ids, ResourceHarvestWriter harvestWriter,
-                                    IDropWriter dropWriter, IGrowthEmitter growth)
+                                    IDropWriter dropWriter, IGrowthEmitter growth,
+                                    NoveltyTracker novelty)
         {
             _ids = ids ?? throw new ArgumentNullException(nameof(ids));
             _harvestWriter = harvestWriter ?? throw new ArgumentNullException(nameof(harvestWriter));
             _dropWriter = dropWriter ?? throw new ArgumentNullException(nameof(dropWriter));
             _growth = growth ?? throw new ArgumentNullException(nameof(growth));
+            _novelty = novelty ?? throw new ArgumentNullException(nameof(novelty));
         }
 
         /// <summary>
@@ -249,6 +298,21 @@ namespace DaYiJingCheng.Sim.Foraging
         {
             // ── 前置校验:全部在**任何写入之前**完成(原子性的结构保证)──
             Validate(request);
+
+            // ── ⑥ 新颖度求值(S20-15 · 求值移入编排器内部,ADR-026 / AC-17-14f)──
+            // ⚠️ **位置是本卡最容易写错的一行**,两个方向都错:
+            //   · 挪到 `Validate` **之前** ⇒ 非法请求也消耗「首次」奖励(AC-17-14e 红)。
+            //     `Query` 在首次 / 冷却期外会推进 `lastSeenTick`,那是**副作用**,不是纯查询。
+            //   · 挪到 ①(铸号)之后 ⇒ 非法请求虽已被 `Validate` 拦住,但**将来**
+            //     `foraging/story-005` 落地后,满载 / 余量不足的失败会发生在 `Validate`
+            //     **之后** —— 那时 `Query` 若已在写入段内,一次失败的采集会白白烧掉首采奖励。
+            //     ⇒ **届时须把本行移到那些失败判定之后**,而不是移动到写入之后。
+            // ⚠️ 时刻取值:本行排在 ① 之前,故用 `request.Tick` 即为本动作 tick(无偏移)。
+            // ⚠️ `checked` 承 `SeenDiseaseProjector.cs:101` 的既有口径 —— 超界 fail-loud,
+            //    **不静默截断**(截断会让 32 位溢出后的 tick 看起来像一次正常的「冷却已过」)。
+            NoveltyClass novelty = _novelty.Query(
+                request.ActorId, request.SkillId, request.ObjectId,
+                checked((int)request.Tick));
 
             // ── ① 铸 id(唯一铸造点;17 侧零本地铸造)──
             // ⚠️ 铸造点 = 「出生事件当下」的口径(R11):id 在写任何事件之前就确定,
@@ -272,7 +336,7 @@ namespace DaYiJingCheng.Sim.Foraging
 
             // ── ⑤ 成长(恰一条,对象 = 品种;不因三条产出事件多发)──
             _growth.Emit(request.Tick, request.ActorId, request.SkillId, request.ObjectId,
-                         request.Novelty, level: null, xpGain: request.XpGain);
+                         novelty, level: null, xpGain: request.XpGain);
 
             return new HarvestResult(instanceId, gatherSeq);
         }
@@ -302,11 +366,12 @@ namespace DaYiJingCheng.Sim.Foraging
             if (r.ObjectId < 0)
                 throw new ArgumentOutOfRangeException(nameof(r), r.ObjectId,
                     "object_id 为品种 ordinal(规则五:对象 = 品种),不得为负");
-            if ((int)r.Novelty < 0 || (int)r.Novelty > (int)NoveltyClass.Normal)
-                throw new ArgumentOutOfRangeException(nameof(r), (int)r.Novelty,
-                    "novelty_class ∈ [0, " + (int)NoveltyClass.Normal +
-                    "] —— 域界由 30 定义;越界须在此拒,不得留到第 ⑤ 步 EmitGrowth 才抛" +
-                    "(那时 id 已铸、ResourceHarvested 已落流)");
+            // 🔁 2026-10-27 S20-15:原此处核 `(int)r.Novelty` 的域界 —— **该守卫随字段一起删除**。
+            //    新颖度不再是入参(AC-17-14f),其域界由 `NoveltyClass` 的**类型本身**保证:
+            //    `_novelty.Query` 只返回枚举三值。⇒ 这一条校验收窄为**不可表达**,
+            //    比「运行期判定一个 int 型枚举是不是越界」更强。
+            //    ⚠️ 对应夹具 `test_b1_growthFieldsValidatedBeforeAnyWrite` 的两条 novelty 用例
+            //    同批删除(它们构造的入参形状已不存在),`xpGain` 那条保留。
             if (r.XpGain.Raw < 0)
                 throw new ArgumentOutOfRangeException(nameof(r), r.XpGain.Raw,
                     "xp_gain 须 ≥ 0(XP_gain 三因子均非负 ⇒ 负值 = 调用方算错)");

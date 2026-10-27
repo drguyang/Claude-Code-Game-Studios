@@ -1,0 +1,139 @@
+{
+  "name": "S20-14 —— Drop 三支写者 + 统一事务模板的反证（EditMode / PlayMode 两册合一的前半）",
+  "mode": "EditMode",
+  "filter": "DropEventWriterGuardsTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "复算:`python3 -c \"import json;print(len(json.load(open('tools/falsify/specs/s20-14-drop-writers-and-transaction.json'))['mutations']))\"` ⇒ 11",
+    "⚠️ 2026-10-27 订正:本行原写「⇒ 10」,**是笔误** —— M1…M11 共 11 条,`--check-only` 实报「✅ 11 条锚点全部对得上」。",
+    "  承「数字须带可跑复算命令」纪律:此处改成实得值,并留原文不删(便于追溯笔误来源)。",
+    "基线(2026-10-27 实测):EditMode DropEventWriterGuardsTest **32 passed / 0 failed / 0 skipped**。",
+    "本册打**入参 fail-closed 守卫**与**事务模板的每一道前置**。端到端面(PlayMode 册)只跑合法路径 + 一条被拒路径,",
+    "  碰不到「某一道具名前置被删后行为如何」—— 因为多道前置叠在一起时,删掉中间一道常常仍被下一道拦住(等价变异)。",
+    "  ⇒ 每条前置都要造一个「**只有它会拒**」的形态,这正是本册每条 _why 要说明的事。",
+    "命中形态:③定义域收窄(六条入参域)· ⑤阈值边界(qty<1 / Qty<=0 / Qty>row.Qty)· ④一次性幂等(铸造点恰一次)· 定序(tick 单调)。",
+    "锚点复核(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-14-drop-writers-and-transaction.json --check-only",
+    "真跑(⚠️ --guard 是**替换**默认值不是追加):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-14-drop-writers-and-transaction.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "⚠️ 本条纪律:每个变异只停**一个**守卫(一属性一条变异);同时停两个会让「哪条守卫承重」不可归因。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-spawnedTickGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 111,
+      "expect": "            if (tick < 0)",
+      "replace": "            if (false) // FALSIFY-M1:移除出生 tick 域守卫",
+      "expectRed": ["test_spawned_negativeTick_throwsWithoutSideEffect"],
+      "exactRed": true,
+      "_why": "负 tick 落流 = 全序键时间分量非法。⚠️ 该夹具**同时断 `ItemMints == 0`** —— 这才是关键:守卫在铸造**之前**,删掉它就会先铸一个号再抛,留下永久空洞(id 计数器不回滚)。只断 `Throws` 的夹具抓不到这一层。"
+    },
+    {
+      "name": "M2-spawnedItemKeyGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 113,
+      "expect": "            if (itemKey < 0)",
+      "replace": "            if (false) // FALSIFY-M2:移除 item_key 域守卫",
+      "expectRed": ["test_spawned_negativeItemKey_throwsWithoutSideEffect"],
+      "exactRed": true,
+      "_why": "与 M1 是**不同入参位**,删任一条只红对应那条 —— 「一属性一条变异」的自证。负 item_key 让 fold 侧无法把实例映回物品表。"
+    },
+    {
+      "name": "M3-spawnedQtyGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 116,
+      "expect": "            if (qty < 1)",
+      "replace": "            if (false) // FALSIFY-M3:移除出生份数域守卫",
+      "expectRed": ["test_spawned_zeroQty_throwsWithoutSideEffect"],
+      "exactRed": true,
+      "_why": "**阈值边界**形态。`qty = 0` 的实例建出来就立刻「归零」⇒ fold 的投影里它压根不出现,而流里却有一条出生事件 —— 重建面自相矛盾。"
+    },
+    {
+      "name": "M4-claimedClaimsNoMint_positiveControlBroken",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 152,
+      "expect": "            var payload = new DropClaimedPayload(instanceId.Value, claimer, tick);",
+      "replace": "            _idAuthority.NextItemInstanceId(); // FALSIFY-M4:归属路径白铸一个 id\n            var payload = new DropClaimedPayload(instanceId.Value, claimer, tick);",
+      "expectRed": ["test_claimed_doesNotMint_andDoesNotRespawn"],
+      "exactRed": true,
+      "_why": "规则二 BL-1:铸造点**只有** `DropSpawned`。本变异是**注入**而非删除(归属路径无可删的守卫)—— 白铸的号不进载荷、不进数组 ⇒ 事件逐位不变、条数不变、fold 结果不变,**只有直接数 `ItemMints` 才观测得到**。这是端到端测试看不见的面(id 空洞不可回滚)。⚠️ 该夹具若无 `ItemMints` 观测,本变异逃逸 —— 这正是它存在的原因。"
+    },
+    {
+      "name": "M5-claimedClaimerGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 148,
+      "expect": "            if (claimer < 0)",
+      "replace": "            if (false) // FALSIFY-M5:移除 claimer 域守卫",
+      "expectRed": ["test_claimed_negativeClaimer_throws"],
+      "exactRed": true,
+      "_why": "负 claimer 若放行,归因位会把世界级事件哨兵(`None = -1`)和合法玩家 id 混在同一域 —— ADR-007 §四 的哨兵可分性就此失效。"
+    },
+    {
+      "name": "M6-despawnedQtyGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 185,
+      "expect": "            if (qty < 1)",
+      "replace": "            if (false) // FALSIFY-M6:移除扣减份数域守卫",
+      "expectRed": ["test_despawned_zeroQty_throws"],
+      "exactRed": true,
+      "_why": "**阈值边界**形态。零份「减量」是无意义事件:fold 侧扣 0 不改投影,但流里多一条噪声,且会让「一次用药 N 条」的 N 计数虚高。"
+    },
+    {
+      "name": "M7-despawnedReasonGuardRemoved",
+      "file": "unity/Assets/Sim/World/DropEventWriter.cs",
+      "line": 188,
+      "expect": "            if (reason < 0)",
+      "replace": "            if (false) // FALSIFY-M7:移除 reason 域守卫",
+      "expectRed": ["test_despawned_negativeReason_throws"],
+      "exactRed": true,
+      "_why": "reason 是枚举序数(档表归 R-2)。负值放行 = 给 R-2 定稿时留一个「未定义档」的入口 —— 而 fold 侧按整数读,不会报错,只会把 -1 当一个合法档。"
+    },
+    {
+      "name": "M8-consumeDuplicateGuardRemoved",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryTransaction.cs",
+      "line": 166,
+      "expect": "                if (!seen.Add(line.InstanceId))",
+      "replace": "                if (false) // FALSIFY-M8:移除同请求重复点名守卫",
+      "expectRed": ["test_consume_duplicateInstanceInOneRequest_rejected"],
+      "exactRed": true,
+      "_why": "**逐条校验的结构性盲点**。背包 10 份、请求 `(1,6)+(1,6)`:两条各自 `6 <= 10` 全过 ⇒ 合计扣 12 > 10,会扣成负数。删掉本守卫后,没有任何其它前置会拦(实例存在 ✓、归属 ✓、各自不超量 ✓)—— 这正是「只有它会拒」的形态。"
+    },
+    {
+      "name": "M9-consumeQuantityExceedsGuardRemoved",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryTransaction.cs",
+      "line": 175,
+      "expect": "                if (line.Qty > row.Qty)",
+      "replace": "                if (false) // FALSIFY-M9:移除余量守卫",
+      "expectRed": [
+        "test_consume_quantityExceedsAvailable_rejected_boundaryIsInclusive",
+        "test_rejectedPaths_writeNothing"
+      ],
+      "exactRed": true,
+      "_why": "**阈值边界**形态,且该夹具同时钉了**等号侧合法**(`Qty == row.Qty` 必须 `None`)。变异后构造会扣成负数——GDD 规则九 Edge Cases 明写「不出现负 qty」。⚠️ 若夹具只测「恰等合法」不测「超量拒」,本变异逃逸。⚠️ **2026-10-27 首轮实测订正**:原稿只列 1 条,实得 2 条 —— `test_rejectedPaths_writeNothing` 的头一条断言正是 `(id=1, qty=99)` 打 qty=5 的行,同样靠这道守卫拒 ⇒ 它红是**真后果**(该夹具确实依赖本条守卫),不是判别面不清,故补入 expectRed。"
+    },
+    {
+      "name": "M10-ticksAreAppendableInternalRegressionRemoved",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryTransaction.cs",
+      "line": 274,
+      "expect": "                if (events[i].Tick < previous) return false;",
+      "replace": "                if (false) // FALSIFY-M10:移除批内 tick 回退判据",
+      "expectRed": [
+        "test_ticksAreAppendable_internalRegression_rejected",
+        "test_ticksAreAppendable_batchRegressingBelowStream_rejected"
+      ],
+      "exactRed": true,
+      "_why": "**定序**形态。该夹具刻意让**首条**高于流基线(`105 > 0`)、只有**批内自身**回退(`105 → 103`)—— 只看「首条 vs 流」的实现会放行,而 `EventStream` 会在第 2 条抛 ⇒ 第 1 条已入流 = 半途状态,正是本类要消灭的形态。⚠️ **2026-10-27 首轮实测订正**:原稿只列 1 条,实得 2 条 —— 实现里**只有这一处比较**(`previous` 初值取基线后逐条比对),删掉它两条拒绝夹具必然同时红。所以这里**不是**「判别面不清」,而是两条夹具共享同一行判据的必然结果;`exactRed` 仍然有意义(它挡住了「连正常路径也红」这类过粗变异)。"
+    },
+    {
+      "name": "M11-ticksAreAppendableBaselineRemoved",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryTransaction.cs",
+      "line": 271,
+      "expect": "            long previous = lastAppendedTick;",
+      "replace": "            long previous = long.MinValue; // FALSIFY-M11:忽略流基线",
+      "expectRed": ["test_ticksAreAppendable_batchRegressingBelowStream_rejected"],
+      "exactRed": true,
+      "_why": "与 M10 是**两个不同的判据面**:M10 守批内自洽,M11 守批与流的接续。⚠️ **2026-10-27 首轮实测:本变异逃逸(零红)—— 那条夹具当时是假绿**,根因见下:「等价变异」的原论证**是错的**。原文写的「两条夹具各只被一条守卫覆盖」不成立:夹具原稿是 `{100, 98}` + 基线 99,它**自身内含回退**(98 < 100),于是把 `previous` 初值改成 `long.MinValue` 后,批内比较 `98 < 100` 照样返回 false ⇒ 用例纹丝不动。**修法**:夹具改成 `{98, 100}`(批内单调),此时唯一能拒它的只剩「批首 98 < 基线 99」。这条修正是承 `[[feedback_self_referential_fixture]]` 的同族教训 —— 输入构造让变异前后结果相同 = 零判别力。"
+    }
+  ]
+}

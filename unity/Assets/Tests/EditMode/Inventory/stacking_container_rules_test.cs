@@ -183,9 +183,71 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             int sumOut = stacks.Sum(s => s.TotalQty);
             Assert.AreEqual(sumIn, sumOut, "切分后总量须守恒");
 
-            // 实例 id 不重复登记(溢出产生的后续栈不重复挂新实例 id)
+            // 实例 id 不重复登记 ⇒ ⚠️ **2026-10-27 订正(评审 `review-s20-11-inventory-003` B-2)**:
+            //   原断言是 `CollectionAssert.AllItemsAreUnique(allIds, "同一实例 id 不得在多个栈重复登记")`
+            //   —— 它把「id 全局唯一」写成了契约,而 `InstanceIds` 的真实语义是「**本栈吸纳了**谁」。
+            //   评审同时指出该断言对缺陷**零判别力**:漏记只会让集合更唯一,永远绿。
+            //   订正为**覆盖率判据**:每个输入实例都至少在一个栈的 id 集里出现(漏记 ⇒ 红)。
             var allIds = stacks.SelectMany(s => s.InstanceIds).ToArray();
-            CollectionAssert.AllItemsAreUnique(allIds, "同一实例 id 不得在多个栈重复登记");
+            foreach (ItemInstance inst in instances)
+                CollectionAssert.Contains(allIds, inst.InstanceId,
+                    $"实例 {inst.InstanceId} 的件数进了某些栈,其 id 却不在任何栈的 id 集里 —— " +
+                    "下游按 id 集渲染会漏画它(B-2 的原缺陷)");
+        }
+
+        /// <summary>**部分吸纳**:某实例的一截进了已有未满栈、剩余溢出到后续栈 ⇒
+        /// 该实例 id 须进**两栈**的 id 集(2026-10-27 补 · 评审 `review-s20-11-inventory-003` B-2 路径 1)。
+        /// <para>⚠️ 本条的存在缘由:原实现在溢出分支直接传 `open.InstanceIds`,把「已有一截进了
+        /// 这一栈」的实例**漏记**掉;而既有夹具的序列 `5/4/1` 恰好在 `4` 处填满,从未发生部分吸纳
+        /// ⇒ 对该缺陷零判别力。</para></summary>
+        [Test]
+        public void test_ac2004_partialAbsorption_recordsInstanceInBothStacks()
+        {
+            ItemDef[] defs = MakeDefs();      // willow stackMax = 9
+            var instances = new List<ItemInstance>
+            {
+                Inst(300, WillowRaw, 1, 1),
+                Inst(301, WillowRaw, 1, 1),   // 栈内 A+B = 2,未满
+                Inst(302, WillowRaw, 1, 10),  // C:先填 7 进首栈(补满到 9),余 3 落新栈
+            };
+
+            IReadOnlyList<InventoryStack> stacks = StackingRules.StacksOf(instances, Lookup(defs));
+
+            Assert.AreEqual(2, stacks.Count, "2 + 10 = 12 > stackMax 9 ⇒ 恰 2 栈");
+            Assert.AreEqual(9, stacks[0].TotalQty, "首栈补满");
+            Assert.AreEqual(3, stacks[1].TotalQty, "余量落第二栈");
+
+            CollectionAssert.Contains(stacks[0].InstanceIds, 302L,
+                "C 有 7 件进了首栈 ⇒ 首栈 id 集**必须含 C**(漏记 = 下游按 id 集渲染会漏画它)");
+            CollectionAssert.Contains(stacks[1].InstanceIds, 302L,
+                "C 的余 3 件进了第二栈 ⇒ 第二栈 id 集也含 C(跨栈实例是合法形态)");
+
+            int sumIn = instances.Sum(i => i.Qty);
+            int sumOut = stacks.Sum(s => s.TotalQty);
+            Assert.AreEqual(sumIn, sumOut, "切分后总量须守恒");
+        }
+
+        /// <summary>**尾部部分栈须被登记为未满栈**:多栈切分后的末栈若未满,
+        /// 下一个同键实例应去补满它,而不是另开新栈
+        /// (2026-10-27 补 · 评审 `review-s20-11-inventory-003` B-2 路径 2)。</summary>
+        [Test]
+        public void test_ac2004_tailPartialStack_absorbsNextInstance()
+        {
+            ItemDef[] defs = MakeDefs();      // willow stackMax = 9
+            var instances = new List<ItemInstance>
+            {
+                Inst(400, WillowRaw, 1, 12),  // 单实例跨栈:首栈 9 + 尾栈 3
+                Inst(401, WillowRaw, 1, 5),   // 尾栈还有 6 空位 ⇒ 应被补满到 9
+            };
+
+            IReadOnlyList<InventoryStack> stacks = StackingRules.StacksOf(instances, Lookup(defs));
+
+            Assert.AreEqual(2, stacks.Count,
+                "尾栈(3)吸收 5 后 = 8 ≤ 9 ⇒ 不应另开第三栈;" +
+                "原实现不登记尾部部分栈 ⇒ 会错误地开出第三栈");
+            Assert.AreEqual(9, stacks[0].TotalQty, "首栈满");
+            Assert.AreEqual(8, stacks[1].TotalQty, "3 + 5 = 8(尾栈被补,但未补满)");
+            CollectionAssert.Contains(stacks[1].InstanceIds, 401L, "尾栈 id 集须含新实例");
         }
 
         /// <summary>AC-20-04:容器实例(<c>Children.Length &gt; 0</c>)**永不参与合并** ——

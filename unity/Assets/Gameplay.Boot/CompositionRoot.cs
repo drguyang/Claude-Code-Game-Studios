@@ -27,6 +27,7 @@ using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.Contracts.SkillSystem;
+using DaYiJingCheng.Sim.Foraging;              // HarvestOrchestrator / DropEventWriterAdapter(S20-15)
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using DaYiJingCheng.Sim.Prescription;
@@ -378,6 +379,28 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 墨龄/G2 等都从袋内同一 source 读,保证「当前 tick」唯一口径。
             var tickDriver = new SimTickDriver();
 
+            // ── 20 库存实体装载链(S20-10/11/12 修复轮 · 2026-10-27 用户裁定「现在建」)──────
+            // 病因(评审 `review-s20-10-inventory-001` B-1 / `review-s20-11-inventory-003` B-1 与 W-2):
+            //   `InventoryFold.Fold` / `BuildPartQualityGate` / `CarryLoadSolver` 三者都是
+            //   「有本体、零生产调用点」的孤儿 —— 契约 C-1 / C-6 零兑现面,
+            //   P0 范围门 ③ 的「不变量破坏 = 构建失败」没有任何强制点。
+            //   本段是它们的**唯一生产装配点**(与 `HarvestOrchestrator` 的 AC-17-14g 同款形态)。
+            //
+            // ⚠️ **物品种子表走惰性取数**(`Func`,首次 `Rebuild()` 才求值)——
+            //   装配期零 IO:全仓 100+ 处 `Assemble` 调用点(多为 EditMode 夹具)
+            //   不该为本接线各付一次烘焙产物读取(同「`saveBasePath == null` ⇒ 不构造
+            //   `SaveService`」的判据:不为无关调用方制造依赖;同 `KindPriorityTable.Provider`
+            //   的既成形态)。
+            // ⚠️ 双路径同源(承 S1.2 惯例):provider != null ⇒ Addressables 真产物;
+            //   provider == null ⇒ `DataCookedDisk.LoadItems()` 直读**同一份**字节 +
+            //   **同一个** `CookedCodec` ⇒ 无第二真源。
+            var inventoryLoad = new InventoryLoadService(
+                () => stream.Events,
+                decoder,
+                () => dataProvider != null
+                    ? dataProvider.Load<ItemDataSet>().Items
+                    : DataCookedDisk.LoadItems().Items);
+
             // ── 7a 存档服务(S19-1 判据 ④ 位置半 + 委托半)────────────────────
             // 形态 = 甲-a(三家专家合成裁定 2026-10-24):`SaveService` 只认「拿到一坨字节」,
             //   折叠 / 行编码 / 布局**全在下面这个闭包里** ⇒ `Sim.Codec` 永不命名 `FoldRow`,
@@ -650,7 +673,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 裁定② 通电待信:生产触发点 = BootRoot.RequestLoad,今日零调用方;
                 //    派生态未重建清单(在场视图 / PatientAppearedDriver 计数 / 视觉)见
                 //    LoadSequencer 类头注(裁定① 窄轮如实登记)。
-                loadSequencer = new LoadSequencer(saveService, anchorCheckpointTrigger, checkpointFallback);
+                loadSequencer = new LoadSequencer(saveService, anchorCheckpointTrigger, checkpointFallback,
+                    // 🔁 <b>2026-10-27 新增</b>:读档完成后重建库存投影(派生态,ADR-009 §四)。
+                    // 用户裁定原话:「在装配根加「读档后重建库存投影」」。
+                    // ⚠️ 用 `Rebuild()` 的默认 `enforceGates: true` —— 读进来的存档若含
+                    //   违例 build_part,**读档即失败**(P0 范围门 ③ 的强制点)。
+                    afterRestore: () => inventoryLoad.Rebuild());
             }
 
 
@@ -711,6 +739,32 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   DiagnosisGrowthGate —— 该门需 IEventAuthority 生产实装,归 P1b/52,见类头注)。
             var noveltyTracker = new NoveltyTracker();
             var seenDisease = new SeenDiseaseProjector(vitals, noveltyTracker, stream, encoder);
+
+            // ── 17 采集编排 + 20 掉落写者的**唯一生产装配点**(S20-15 · AC-17-14g)──
+            //
+            // 接线前:`HarvestOrchestrator` 全仓**零生产构造点**(只有 6 处测试直接 `new`),
+            //   ⇒ 采集链在运行期**不存在**,`DropSpawned` / `DropClaimed` 的 17 类触发方
+            //     一直是「有写者、无调用者」。
+            //
+            // ⚠️ **`new HarvestOrchestrator(` 全仓须恰 1 处**(AC-17-14g 的判据面):
+            //   零处 = 未接线;多处 = 第二真源(两个编排器各自推进 `NoveltyTracker`,
+            //   冷却状态会分叉)。夹具 `test_ac1714g_*` 直接扫本文件的源码来钉这一点。
+            //
+            // ⚠️ **`noveltyTracker` 必须是上面那一个实例,不得另建**:NoveltyTracker 的键
+            //   是 `(actorId, skillId, objectId)` 三元组,诊断(`SkillId.诊断 = 0`)与采集
+            //   (`SkillId.采集 = 6`)永不共键 ⇒ 共用一个实例是**安全的**,且是**必需的**
+            //   (另建 = 两处 `new NoveltyTracker(`,AC-17-14g 判据即红)。
+            //
+            // ⚠️ **`DropEventWriterAdapter` 而非直接传 `DropEventWriter`**:后者不实现
+            //    `IDropWriter`(它的 `RecordSpawned` **自铸** id,而 17 侧已经铸好)。
+            //    见 `DropEventWriterAdapter` 的类注 —— R-3 双铸造点冲突的落点。
+            var dropEventWriter = new DropEventWriter(stream, encoder, idAuthority);
+            var resourceHarvestWriter = new ResourceHarvestWriter(stream, encoder, decoder, stream.Events);
+            var harvest = new HarvestOrchestrator(
+                idAuthority, resourceHarvestWriter,
+                new DropEventWriterAdapter(dropEventWriter),
+                new SkillGrownEmitterAdapter(stream, encoder),
+                noveltyTracker);
 
             // ── 病名册条目源(sprint-08 S1.1 件 C/D · 2026-10-12)──
             // 词表 = S1.0 已烘产物(`case_judgment_lexicon.cooked.bytes`),本批接入装载。
@@ -1040,6 +1094,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: AudioSourcePool 装配产出 null");
             if (patientCueDriver == null)
                 throw new InvalidOperationException("Assemble: PatientCueDriver 装配产出 null");
+            // S20-15:采集链四件 —— 任一为 null 即半装配(禁「装了一半的采集路径」)
+            if (dropEventWriter == null)
+                throw new InvalidOperationException("Assemble: DropEventWriter 装配产出 null");
+            if (resourceHarvestWriter == null)
+                throw new InvalidOperationException("Assemble: ResourceHarvestWriter 装配产出 null");
+            if (harvest == null)
+                throw new InvalidOperationException("Assemble: HarvestOrchestrator 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter
@@ -1049,7 +1110,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                worldSeed, vitals, deathCandidates,
                                                deathConsumer, deathCooldown, playerActors,
                                                casebookSource, examinationLedger, examineDriver,
-                                               seenDisease, lexiconBook,
+                                               seenDisease, harvest, noveltyTracker, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,
                                                portionsStore, emergencyCandidates,
                                                prescriptionPage, casebookCommands,
@@ -1085,7 +1146,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                randomEventsDirector, clinicCells,
                                                // 2026-10-25 Load 接线轮(TD-persist-04 义务②):
                                                // 读档缝合序列器(与三件存档侧组件同 null)。
-                                               loadSequencer);
+                                               loadSequencer,
+                                               // 🔁 2026-10-27 S20-10/11/12 修复轮:20 的库存实体
+                                               // 装载链(三条孤儿函数的唯一生产调用点 —— 见该类头注)。
+                                               inventoryLoad);
         }
 
         /// <summary>
