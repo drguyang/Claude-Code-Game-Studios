@@ -104,6 +104,7 @@
   - When: 比对三出参。
   - Then: 逐位同(本仓可证半边);`Ignore("EXTERNAL BLOCKED-BY-ADR-012")` 的跨平台项留桩。
   - Edge cases: 夹具每 tick 单 Craft 约束显式写入夹具生成器。
+    - 🔁 **2026-10-27 订正(本行不复述,以 GDD 为准)**:上面「每 tick 单 Craft」漏了「/玩家」—— 口径应为「**每玩家每 tick 至多一条 `Craft`**」。原写法与 AC-18-23「同 tick 两玩家各一点火 ⇒ 两条 `Craft` 均落流」相抵,且使 `Seq` 维恒真(全局单 Craft ⇒ 每条都是新 `(Tick, Patient)` 组 ⇒ `Seq` 恒 0)。**承「已 Complete 卡面的判据只加注不追改」** ⇒ 本行原文保留;订正详注见 `design/gdd/processing.md` AC-18-15 下方第二处注,债册落点 `TD-processing-07`。
 
 ---
 

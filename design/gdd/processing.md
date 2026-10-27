@@ -739,7 +739,7 @@ CompleteTick(craft) = craft.start_tick + recipe.duration_ticks
 | --- | --- | --- | --- |
 | **AC-18-13** | **[A]** | **BLOCKING** | `GIVEN` `F-18.3`,**WHEN** IL 层扫描,`THEN` `CompleteTick` 路径**零浮点、零墙钟 API**(`DateTime` / `Stopwatch` / `Time.*` = 零符号引用) |
 | **AC-18-14** | **[A]** | **BLOCKING** | `GIVEN` 装载期注入违反四 cap ↔ `QTY_MULT_MAX`(21a `:533`)的**合成**配方表,**WHEN** 18 装载路径求值,`THEN` **硬失败**(防御断言,非告警)。⚠️ **主执行 = 21a 烘焙管线**(OQ-18-2 已裁 [甲]),21a 侧执行 AC 尚未写 —— **本条只断 18 的防御半边** |
-| **AC-18-15** | **[I]** | **EXTERNAL · BLOCKED-BY-ADR-012** | `GIVEN` 同一 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)` —— **即 F-18.1 契约的全部入参**(🔴 2026-10-27 措辞订正,见下方注),**WHEN** 三格 CI(Mono/IL2CPP×2)重放,`THEN` 三出参**逐位相同**(镜像 AC-5-07 先例:三格矩阵不存在 + F7 int64 溢出 UB spike 未跑 ⇒ 不得记绿)。⚠️ **夹具限定每 tick 单 `Craft`**(D-21-28 已裁三流键 [甲],但 `Seq` 发号的跨平台逐位性同属 ADR-012 实测面) |
+| **AC-18-15** | **[I]** | **EXTERNAL · BLOCKED-BY-ADR-012** | `GIVEN` 同一 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)` —— **即 F-18.1 契约的全部入参**(🔴 2026-10-27 措辞订正,见下方注),**WHEN** 三格 CI(Mono/IL2CPP×2)重放,`THEN` 三出参**逐位相同**(镜像 AC-5-07 先例:三格矩阵不存在 + F7 int64 溢出 UB spike 未跑 ⇒ 不得记绿)。⚠️ **夹具限定「每玩家每 tick 至多一条 `Craft`」**(🔴 2026-10-27 订正:原写「每 tick 单 `Craft`」漏了「/玩家」,与 AC-18-23 相抵 —— 见下方第二处注。D-21-28 已裁三流键 [甲],`Seq` 发号的跨平台逐位性同属 ADR-012 实测面) |
 | **AC-18-16** | **[I]** | **BLOCKING** | `GIVEN` 一次炮制,`WHEN` 读世界流,`THEN` ① `Craft` 落**点火 tick**(非完成 tick);② 载荷**五位齐**:`actor_id` / `output_instance_ids[]` / `tool_cell` / `start_tick` / `ActualConsumed`(R-18-A);③ `output_instance_ids` 于点火 tick 由主机经 `ItemInstanceId.Next()` 依**全序键顺序**铸造(认领 20 前置 6 / R10);④ 全序键 = `(Tick, StreamPriority, Patient=None, Seq)`(D-21-28 裁定 [甲],注④) |
 | **AC-18-17** | **[A]** | **BLOCKING** | `GIVEN` 一炉进行中,`WHEN` 检查 18 程序集与 7a 段清单,`THEN` ① **18 程序集零 `[Serializable]` 类型**;② **7a 存档段清单不含任何 18 记录**(无进程态可存);③ 重放重建的 `CompleteTick` 与直算逐位相同(规则八 · `OQ-18-5`。⚠️ 措辞订正:原稿「存档任何字段不含」不可测 —— 「字段」是 7a 的实现细节,改为**程序集属性 + 段清单**两处机器可断言面) |
 | **AC-18-18** | **[A]** | **EXTERNAL · BLOCKED-BY-21a(O-18-R1)** | `GIVEN` `Recipe.owner` 字段落地(21a),`WHEN` 对 `{process, craft, build}` 三子集求并 / 交,`THEN` 并 = 全表、两两交 = ∅(R-18-B);**字段未落地前判据不可执行 ⇒ 不得记绿**(OQ-18-1 已裁 [甲] = 字段方案,裁决≠验收) |
@@ -775,6 +775,30 @@ CompleteTick(craft) = craft.start_tick + recipe.duration_ticks
 > **同步面**:`tr-registry.yaml` 的 `TR-processing-017` 与 `traceability-index.md` 原写「**四修正项**」——
 > 那比本 AC 更接近正确(四修正项的**入参**恰是 `L` / 输入实例集 / `EquipMod` / 两 EnvMod 分量),
 > 但它用**结果名**指代**入参**,与 AC-18-03 / 21a `:481` 的「传等级不传结果」相抵 ⇒ 两处一并订正为同一措辞。
+
+> **🔴 AC-18-15 的夹具限定订正(2026-10-27 · 承 `TD-processing-07`)**
+>
+> **原文**作「⚠️ 夹具限定**每 tick 单 `Craft`**」。这**不是一条独立约束,是一句被压掉的限定语** ——
+> 它的出处是本节上方的 R-18-E 裁定注(`:342`):
+>
+> > 「多炉情形已随单炉裁定收窄为「**同 tick 至多一炉/玩家**」」
+>
+> **`OQ-18-3` 裁的是 per-player 单炉**(`:348`「每玩家同时炉数 = **1**」),**不是 per-world**。
+> AC-18-15 抄过来时丢了「/玩家」三个字,于是从「每玩家至多一炉」变成了「全局每 tick 至多一条 `Craft`」。
+>
+> **这一压造出两处矛盾:**
+>
+> | # | 与谁相抵 | 内容 |
+> |---|---|---|
+> | ① | **AC-18-23**(同表邻居,**BLOCKING**) | 它明文写「**同 tick 两玩家**各一点火 ⇒ **两条 `Craft` 均落流**」。全局读法下,这正是 AC-18-15 夹具的**非法输入** ⇒ **同表两条 AC 互相排斥**,执行者必须二选一 |
+> | ② | **`Seq` 维**(本 AC 自己的 ⚠️ 附注) | 发号器按 `(Tick, Patient)` 组复位(`Sim/EventStream.cs:228-237`),而 `Craft` 的 `Patient = PatientId.None`。全局单 `Craft` ⇒ 每条都落进新组 ⇒ `Seq` **恒为 0** ⇒「三格 `Seq` 逐位相同」**数学上恒真**,判别力为零(详见债册 `TD-processing-07`) |
+>
+> **订正后**:「每玩家每 tick 至多一条 `Craft`」—— 两处同时解开。同 tick 两玩家各一条 `Craft` 是**合法输入**,
+> 两条均 `Patient=None` ⇒ 同组 ⇒ `Seq` 得 `0` 与 `1`,判别力出现。
+>
+> ⚠️ **这是「把丢掉的限定语装回去」,不是放松约束** —— 订正前后对**单个玩家**的约束强度**完全相同**;
+> 变的只是「不同玩家之间可否并发」,而那一问 `OQ-18-3` / `OQ-18-8` / AC-18-23 早就裁过是「允许」。
+> ⚠️ **`AC-18-15` 仍是 `EXTERNAL` 不勾** —— 本订正改的是夹具**可写性**,不是判据**已通过**。
 
 ### 组 D · 呈现 · 手感 · 音频(人工走查 / 听测)
 
