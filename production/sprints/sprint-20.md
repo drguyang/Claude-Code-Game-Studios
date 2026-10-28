@@ -431,6 +431,11 @@ S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,�
 
 > ⚠️ **本批在 sprint-20 收口(`2026-10-27`)之后**。`sprint-status.yaml` 由 **17 件 → 18 件**,
 > 其余 17 件的 `status:` / `completed:` 一字未动。
+>
+> ⚠️ **2026-10-28 追加注(上文原文不删)**:上文「17 → 18」是 **S20-17 落盘时**的口径。
+> 本批其后又落 **S20-18**(World 生命周期轮)与 **S20-19**(42 建造发起方接线)⇒ 本节实为
+> **三张卡**,`sprint-status.yaml` 现为 **20 件**(17 原有 + 3 追加);其余 17 件至今仍一字未动。
+> 复算:`python3 -c "import yaml;d=yaml.safe_load(open('production/sprint-status.yaml'));print(len(d['stories']))"` ⇒ `20`。
 
 ### S20-17 — World 场景装配轮(`World` / `StructureWriter` 生产构造点 + 装配根接线)
 
@@ -666,3 +671,92 @@ S20-17 的卡内「挂标不记绿」第 4 条逐字:「**`World` 的生命周�
 **未及核查(NOT-RUN,禁借绿)**:`afterRestore` 钩子内 `worldLoad?.Rebuild()` 的**调用本身**
 无夹具钉住(`CompositionRoot.cs:707-711`)—— 给了 `file:line` 但给不出能证明它真被调用的命令
 ⇒ 按 NOT-RUN 登记,不计入任何判据面。另:真存档往返、`World.unity` 真加载后的行为均未验(挂标 1/2/3)。
+
+---
+
+### S20-19 — 42 建造发起方接线(兑现 `O-23-6`)
+
+| 项 | 内容 |
+|---|---|
+| **Owner** | unity-specialist(规格段 + `ux-designer` 复审) |
+| **复杂度** | **M**(规格段 S + 接线段 M) |
+| **前置(全部 ✅)** | S20-17 / S20-18(`World` 与 `StructureWriter` 已装配、世界可由流重建)· `InventoryTransaction`(S20-14,先全验后落流)· `ModuleDefinition.Cost` / `BuildItemKey`(2026-10-25/26 两轮补)· `DemolishChecker` P0 返还率 1.0(`:84/:125`) |
+
+#### 用户裁定(2026-10-28,三项,与 S20-18 同批)
+
+| # | 裁定 | 取项 |
+|---|---|---|
+| ① | **范围** | **规格 + 逻辑接线** —— 幽灵预览只落接口与量化结果,**不做可见渲染** |
+| ② | **模态归属** | 建造 = **世界内操作态,不占 `ModalId`**(闭集维持 7 员) |
+| ③ | **材料成本** | **本轮接扣减**(按 `inventory-and-items.md` 规则六的原子单位) |
+
+#### 病因:五处实测缺口(`O-23-6` 登记已两个多月,一直是「待 42 下一轮」)
+
+1. **写侧发起方 = 0。** `grep -rn "\.Place(" unity/Assets --include=*.cs | grep -v "/Tests/"` → **0 行**。
+   `StructureWriter` 自 S20-17 起已装配(`CompositionRoot.cs:879`),但**没有任何生产代码调用它**
+   ⇒ 生产流**永不含** `StructurePlaced` ⇒ S20-18 的重放器在生产上恒空跑。
+2. **判定器零生产构造点。** `PlaceableChecker` / `DemolishChecker` 在 `Sim/World/` 之外
+   **零构造点**(实测:仅注释提及)⇒ 放置合法性在生产上**无处可判**。
+3. **零建造输入动作。** `InputSystem_Actions.inputactions` 只有 `Player`(Move/Look/Sprint/Jump/
+   Interact/Emergency/Attack/OpenInventory)与 `UI` 两图 —— **零建造动作**。
+4. **42 的 GDD 零建造交互章节。** `skeuomorphic-ui.md` 全文只有 `:1267` 一句「非纸面进度
+   (19 / 23 / 18)归世界器物状态,UI 不管」;`O-23-6` 的两缺口(手柄幽灵循环选择 / float→格
+   量化器)在 42 侧**从未成文**。
+5. **选料器全仓零实现。** 规则六 BL-23 定「玩家未点名 ⇒ id 升序兜底序」,但
+   `grep` 实测**零个**消费计划器(`InventoryTransaction.ValidateConsumption` 只验**已给定**的
+   `ConsumeLine[]`,不负责**选出**它们)。
+
+**两处已就绪,不必新写**(勘察结论,写进卡以免实施期重复劳动):
+
+- **量化器已有唯一实现**:`CellTransitionDetector.CellFromPosition`(`Mathf.FloorToInt` 三轴),
+  玩家移动路径在用(`PlayerController.cs:156`),`IPlayerMotor.cs:58` 逐字「实现必须走 `CellFromPosition`」
+  ⇒ 本卡只要求**同源**,不新建第二份。
+- **返还比已定**:`DemolishChecker.cs:84/:125` 逐字「P0 = 1.0 = 65536」,不新增旋钮。
+
+#### 边界
+
+- **只做 42 侧的「发起」**(输入 → 格 → 判定 → 调用写者),**不碰 23 的判定语义**
+  (`PlaceableChecker` / `DemolishChecker` 一行不改,只接线)。
+- **不碰 21a / 19 的库存语义**:扣减走既有 `InventoryTransaction` 模板;选料器只**排序选取**,
+  不新增消耗规则。
+- **不做幽灵预览的可见部分**(用户裁定 ①):不新增材质、不新增 world-space 标记、不改 URP。
+- **不新增 `ModalId`**(用户裁定 ②):`ModalId` 枚举零改动。
+- **不碰 ADR-023 §⑤ 场景拆序**,不碰 45 的联机上行(P1b)。
+
+#### AC(逐条可判伪 · 禁借绿)
+
+| # | 判据 | 载体 |
+|---|---|---|
+| **A-1** | `skeuomorphic-ui.md` 新增「建造交互」节,逐条覆盖 `O-23-6` 的两缺口(手柄幽灵**循环**选择 / float→格量化器声明为 `CellFromPosition` 单一实现点)+ 「建造模式不是模态」的论证;**`modular-building.md:511` 的 `O-23-6` 转 ✅** | 文档走查(**非测试**,不得计入判据面) |
+| **B-1** | 建造取格**只经** `CellTransitionDetector.CellFromPosition`;生产树无第二处 float→格 floor 转换 | 门 + 夹具 |
+| **B-2** | 非法放置**零副作用**:`PlaceableChecker.Check ≠ 通过` ⇒ `StructureWriter.Place` 调用 **0 次**、世界流 **0 条** | 夹具(副作用判据) |
+| **B-3** | 合法放置端到端:实例落库 + `IsEffectivelyWalkable == false` + 世界流 +1 | 夹具 |
+| **B-4** | 材料**先验后写**:不足 ⇒ 拒放、`Place` **0 次**、**零事件**;足够 ⇒ 消耗事件与 `StructurePlaced` **同一事务**落流 | 夹具 |
+| **B-5** | 选料器:玩家未点名 ⇒ **id 升序兜底**;跨栈 ⇒ N 条相邻 `Seq`;单请求内**不重复点名**同一实例 | 夹具 |
+| **B-6** | 拆除:`DemolishChecker.Check` 拒 ⇒ `StructureWriter.Remove` **0 次**;可拆 ⇒ 流 +1、返还按 P0 1.0 | 夹具 |
+| **B-7** | 开 / 关建造模式前后 `IModalState.Modal` **恒 `None`** | 夹具 |
+| **B-8** | 建造动作存在于 `.inputactions`,且 K&M + Gamepad **双绑重齐**(ADR-011) | 门(读资产)+ 夹具 |
+| **B-9** | `PlaceableChecker` / `DemolishChecker` 生产构造点 **0 → 1**,且经服务袋暴露 | grep + 夹具 |
+
+**证伪轮(S12-4 · 一属性一变异)**:B-1…B-9 各一条变异,预计 **9 条**。
+B-1 是门 ⇒ 变异形态 = 在建造链里插一处独立 `Mathf.FloorToInt`,要求门转红。
+B-2 / B-4 / B-6 的判据是**副作用**(调用次数 / 事件条数)⇒ 变异形态 = 把判定与调用**顺序颠倒**
+(先调用后判定),此时「结果状态」可能仍对,但副作用序错 —— 这类变异**只有副作用判据能抓**。
+
+#### 挂标不记绿(预估 7 条,如实,禁勾)
+
+1. **幽灵预览零渲染** —— 用户裁定 ①;42 只出「量化结果 + 合法性」的接口,不画。
+2. **建造模式的进入方式** —— 若 4 的交互系统尚未实现,本批只能**键位直绑**(`Build` 动作切换),
+   不是 ADR-009 §七 意义上的世界交互意图。**实施前须核 4 的实现状态**并如实登记。
+3. **不可放置原因的 UI 呈现** —— 42 只留拒绝原因枚举,不画提示。
+4. **客机建造上行**归 45(P1b;`EmergencyAttempt` 走可靠通道的同族问题,ADR-001 §一之三)。
+5. **`BuildPartQualityGate` 不参与放置判定** —— P0 建材 `quality` 恒 1(该门自己是**范围债执法体**),本批不重复施加。
+6. **拆除返还物的落点格** 由 20 定,本批只**触发**(`DropEventWriter` 已封装)。
+7. **建造音效 / cue 未接** 归 44。
+
+#### 待实施期核的事项(不是待裁,是待查)
+
+- 4 的交互系统实现状态(决定挂标 #2 的措辞,不改变 AC)。
+- `StructureWriter.Place` 的 `tick` 来源:须经 `ITickProvider.CurrentTick`(ADR-005 唯一时钟),不得读墙钟。
+- B-4 的「同一事务」判据须落到 `InventoryTransaction.Commit` 的实际调用点,不能只断言「两条事件都在流里」
+  —— 后者对「分两次写」也成立(**假绿风险已预判**)。

@@ -261,6 +261,18 @@ stories:
     completed: "2026-10-28"
     note: "**S20-17 卡内「挂标不记绿」第 4 条的兑现件**(2026-10-28 用户裁定「做 World 生命周期那一项」+「全批照做」)。卡面 = `sprint-20.md` §十 S20-18。病因三层:① `World` **无重置入口**(`StructureInstanceRegistry.Clear()` 只清 `_instances`,不清 `World._slotOccupied`、不复位 `_nextStructureId`);② **无世界流重放器**(`StructureInstanceRegistry` 从不被 `StructurePlaced/Removed/Modified` 重建 ⇒ 清零后世界会变空);③ `StructureWriter.Modify` **漏写占用**(只 `_registry.Update` 且传旧足迹,零 `FreeCells/OccupyCells` ⇒ 旋转非方形模块后旧格仍不可走、新格仍可走,违 F-23-1)。AC 10 条。形态照 `PoiStateMachine.RebuildFromDecoded`:`Sim` 侧不自行解码,Boot 层 `WorldLoadService` 解码后喂入。**挂标不记绿 6 条**:重放器生产实效 = 零(`StructureWriter.Place` 生产调用点 grep 实测 0 ⇒ 生产流永不含 `StructurePlaced`)· ADR-023 §⑤ 场景拆序不在面内(`World.unity` 零加载点)· `RequestLoad` 仍零调用方 · `BuildSlotCatalog` 仍空 · `Modify` 修复只覆盖足迹随朝向变化 · 在场视图/视觉侧仍不在读档重建面。**将掀几债预估 0 条**。**收口(2026-10-28)**:原件 = `production/qa/evidence/impl-s20-18-world-lifecycle-2026-10-28.md`;新增夹具 26 测;证伪轮 **18 条变异零逃逸**(主轮 17 = 15 exact + 2 超集,订正预期后复验 exact;另补 M12 覆盖 AC-10 的另一分支);EditMode `5601/5566/0/35`(+26/+26)· PlayMode `238/234/0/2/2`(零回归);NOT-RUN 1 条 = `afterRestore` 钩子内 `worldLoad?.Rebuild()` 的调用本身无夹具钉住。"
 
+  - id: "S20-19"
+    name: "42 建造发起方接线(兑现 O-23-6)"
+    file: "production/sprints/sprint-20.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "**S20-18 卡内「挂标不记绿」第 1 条的兑现件**(2026-10-28 用户裁定「做 42 侧建造发起方接线」)。卡面 = `sprint-20.md` §十 S20-19。**三项用户裁定**:① 范围 = 规格 + 逻辑接线(幽灵预览只落接口与量化结果,不做可见渲染)② 模态归属 = 建造不占 `ModalId`(闭集维持 7 员)③ 材料成本 = 本轮接扣减(按 `inventory-and-items.md` 规则六原子单位)。病因五处:① 写侧发起方 = 0(`StructureWriter.Place` 生产调用点 grep 实测 0 ⇒ 生产流永不含 `StructurePlaced` ⇒ S20-18 重放器在生产上恒空跑)② `PlaceableChecker` / `DemolishChecker` 零生产构造点 ③ `.inputactions` 零建造动作(仅 Player / UI 两图)④ 42 的 GDD 零建造交互章节(`skeuomorphic-ui.md` 只有 `:1267` 一句「非纸面进度归世界器物状态,UI 不管」)⑤ 选料器全仓零实现(`ValidateConsumption` 只验已给定的 `ConsumeLine[]`,不负责选出)。**两处已就绪不必新写**:量化器已有唯一实现 `CellTransitionDetector.CellFromPosition`(FloorToInt 三轴,`PlayerController.cs:156` 在用,`IPlayerMotor.cs:58` 逐字要求走它)⇒ AC 是「同源/无第二处」;返还比 P0 = 1.0 = 65536 已定(`DemolishChecker.cs:84/:125`),不新增旋钮。**AC 10 条**(A-1 文档走查 + B-1…B-9 判据):A-1 文档走查(`O-23-6` 转 ✅)· B-1 量化器同源门 + 夹具 · B-2 非法放置零副作用 · B-3 合法放置端到端 · B-4 材料先验后写 · B-5 选料器 id 升序兜底 / 跨栈 N 条 / 不重复点名 · B-6 拆除 · B-7 模态恒 None · B-8 输入动作双绑重 · B-9 检查器生产构造 0→1。证伪轮预计 9 条。**挂标不记绿预估 7 条**:幽灵预览零渲染 · 建造模式进入方式若为键位直绑而非世界交互意图 · 不可放置原因 UI 呈现 42 只留接口 · 客机上行归 45 · `BuildPartQualityGate` 不参与放置判定 · 拆除返还物落点格归 20 · 建造音效未接 44。"
+
 # 追加率预留:1 件(承 CAPACITY-MODEL §3.1;retro-19 行动项 2:规划期逐件附「将掀几债」预估,
 # 各 note 已含;入场即掀新债时先裁减 Should Have)
 #
