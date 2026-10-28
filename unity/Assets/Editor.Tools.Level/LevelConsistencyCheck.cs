@@ -219,18 +219,39 @@ namespace DaYiJingCheng.EditorTools.Level
             //    (ADR-022 §四)。合成一个列表会让「告警」与「硬失败」在类型上不可分。
             List<string> warnings = null;
             if (navSampler != null)
+            {
                 NavMeshConsistencyCheck.TryCheck(src, navSampler, out warnings);
+            }
+            else
+            {
+                // 🔁 **2026-10-29 评审 B-3 修复**:此前 `navSampler == null` 时**什么都不记**
+                //    ⇒ 「C3 没跑」与「C3 跑了且无告警」在报告上不可分。C1 / C2 / C2' 三处早已有
+                //    `NotRun` 登记,**C3 是唯一漏的**. 补齐,使四条的「未跑」口径一致。
+                notRun.Add("C3 导航格 ↔ NavMesh —— 未提供 NavMesh 采样器(本关卡无 NavMesh 输入)");
+            }
 
             // ── C2 可走性同源(**硬失败**,2026-10-29 story-006 起已实现)────────────────
             // ⚠️ 没有引擎侧输入 ⇒ `NotRun`,**不冒充绿**:C2 的整个语义是「两侧比一比」,
             //    只有一侧时「通过」这个结论根本不存在。
             if (engineParams.HasValue)
             {
-                // ⚠️ `TryCheck` 的返回值是「**无违例**」;这里**不看**它 —— 只看它填出来的列表。
-                //    (首版写成 `if (TryCheck(...)) AddRange(...)`,即「无违例时把空表加进去」
-                //     ⇒ 有违例时一条都不加 ⇒ C2 恒绿。夹具当场抓到,记于此。)
-                WalkabilityParityCheck.TryCheck(src.Terrain, engineParams.Value, out List<string> c2);
-                violations.AddRange(c2);
+                // 🔁 **2026-10-29 评审 B-2 修复**:此前只有「引擎侧缺失」登记 `NotRun`,
+                //    而**烘焙侧缺失**(`src.Terrain == null`)会走到 `WalkabilityParityCheck` 的
+                //    `if (terrain == null) return true` ⇒ 既不判红也不记 `NotRun` ⇒ **静默绿**。
+                //    两侧缺任何一侧都是「没跑」,口径必须对称。
+                if (src.Terrain == null)
+                {
+                    notRun.Add("C2 可走性同源 —— 本关卡未声明地形(`world_terrain`)," +
+                               "烘焙侧无值可比;引擎侧参数已提供但不构成一次比对");
+                }
+                else
+                {
+                    // ⚠️ `TryCheck` 的返回值是「**无违例**」;这里**不看**它 —— 只看它填出来的列表。
+                    //    (首版写成 `if (TryCheck(...)) AddRange(...)`,即「无违例时把空表加进去」
+                    //     ⇒ 有违例时一条都不加 ⇒ C2 恒绿。夹具当场抓到,记于此。)
+                    WalkabilityParityCheck.TryCheck(src.Terrain, engineParams.Value, out List<string> c2);
+                    violations.AddRange(c2);
+                }
             }
             else
             {
@@ -272,14 +293,51 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>跑检查并在任一硬失败时 `throw`(ADR-022 §②:构建期失败通道,非 `Debug.Assert`)。</summary>
+        /// <param name="src">关卡源。</param>
+        /// <param name="engineParams">
+        /// 引擎侧参数;**`null` ⇒ C2 登记 `NotRun`**(不冒充绿)。导出器应传
+        /// `CharacterControllerParamProbe.ProbeCurrent()`。
+        /// </param>
+        /// <returns>报告(供调用方/夹具核对;硬失败时已 `throw`,不会返回)。</returns>
         /// <exception cref="InvalidOperationException">任一硬失败。</exception>
-        public static void CheckOrThrow(LevelSource src)
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 评审 B-1 修复</b>:此前本方法**只判 `IsGreen`**,把
+        /// `Warnings` / `NotRun` / `Unimplemented` 整条丢弃 ⇒ 导出器(7 处调用)可以
+        /// **正常导出**一份违反 C2 的关卡,**且一行提示都不打印** —— 「没跑」被静默成「通过」。
+        /// <para>现口径:① 硬失败照旧 `throw`;② **告警与未跑项一律写进日志**
+        /// (`Debug.LogWarning` / `Debug.Log`),让「这一项今天没跑」在导出日志里可见;
+        /// ③ 返回报告,供夹具断言「它确实把未跑项交出去了」。</para>
+        /// </remarks>
+        public static CheckReport CheckOrThrow(LevelSource src, LatticeEngineParams? engineParams = null)
         {
-            CheckReport report = Check(src);
+            CheckReport report = Check(src, null, engineParams);
+
+            // ⚠️ 顺序:先把「没跑 / 有告警」落日志,再抛。反过来会让一次硬失败
+            //    把「另外几条根本没跑」这条信息盖掉。
+            //
+            // 🔁 **2026-10-29 复评 B-4 修复**:此前**逐条**打印。导出器有 7 个调用点,
+            //    乘以 `kinds × levels` 的循环,而今日 C1 / C3 / C2' 恒为 NotRun ⇒
+            //    每次成功导出都要刷 3 行常驻噪声。**常驻噪声会训练读者忽略日志**,
+            //    那正好把「未跑要可见」的初衷抵消掉。
+            //    ⇒ 改为**每类一条聚合行**。
+            if (report.Warnings.Count > 0)
+                UnityEngine.Debug.LogWarning(
+                    $"[关卡工具][告警 {report.Warnings.Count} 条] " + string.Join(" | ", report.Warnings));
+
+            if (report.NotRun.Count > 0)
+                UnityEngine.Debug.Log(
+                    $"[关卡工具][NOT-RUN {report.NotRun.Count} 条 · 不是通过] " + string.Join(" | ", report.NotRun));
+
+            // ⚠️ `Unimplemented` 自 story-006 起恒为空(七项全部实现)⇒ 此前的打印循环是
+            //    **死代码**(2026-10-29 复评 B-8),已删。若将来又有未实现项,`Check` 会把它们填进来,
+            //    届时须一并恢复打印 —— 判断依据是 `UnimplementedChecks` 是否非空。
+
             if (!report.IsGreen)
                 throw new InvalidOperationException(
                     "[关卡工具] world_buildslots 一致性检查失败(ADR-022 §四):\n  "
                     + string.Join("\n  ", report.Violations));
+
+            return report;
         }
     }
 }

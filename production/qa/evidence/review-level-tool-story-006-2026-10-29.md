@@ -105,3 +105,64 @@
 > ⚠️ **时点关系(如实登记)**:本评审在 story 已被标记 `Complete` **之后**执行。
 > 因此「Complete」这一判定是在**未经 code review** 的情况下作出的;
 > 本件**不追认**它,也不自动推翻它 —— 处置权归用户(修完重评 / 记债 / 维持)。
+
+---
+
+## §八 修复轮 + 复评结账(2026-10-29 · 同日)
+
+**复评方式**:Phase 7b ② 拆两个 agent —— **A 只核原判据**、**B 只找新缺陷 + 硬约束**，并行。
+
+### 8.1 结账表(Landed / Proven / Branch 三列)
+
+| ID | Landed | Proven | Branch | File(s) | Proven-by(可复算) |
+|---|---|---|---|---|---|
+| **B-1** 导出门丢弃 NotRun/Warnings | ✅ | ✅ | ✅ 2/2 | `LevelConsistencyCheck.cs:311-336` · `LevelExporter.cs` 7 处 | ① `grep -c "ProbeCurrent())" LevelExporter.cs` ⇒ **7**;`grep -c "CheckOrThrow(src)"` ⇒ **0** ② **F20**(删 NotRun 聚合日志 ⇒ `test_b1_…surfacesNotRun` 红)· **F21**(删告警日志 ⇒ `…surfacesWarnings` 红)· **F19**(日志加 `IsGreen` 守卫 ⇒ `…logsBeforeThrowing` 红) |
+| **B-2** `terrain==null` 静默绿 | ✅ | ✅ | ✅ 2/2 | `LevelConsistencyCheck.cs:239-252` · `WalkabilityParityCheck.cs:53-61` | **F16**(关掉该分支 ⇒ `test_b2_…notSilentGreen` 红);另把 `TryCheck` 本体改为**抛**(fail-closed),**F22** 钉住 |
+| **B-3** C3 无 NotRun | ✅ | ✅ | ✅ 2/2 | `LevelConsistencyCheck.cs:224-231` | **F17**(删该登记 ⇒ `test_b3_…forC3` 红) |
+| **A-残留 ①** 告警日志零断言 | ✅ | ✅ | ✅ | 同上 | **F21** 红 |
+| **A-残留 ②** 「日志先于 throw」零断言 | ✅ | ✅ | ✅ | 同上 | **F19** 红(日志被 `IsGreen` 挡住 ⇒ `…logsBeforeThrowing` 的 `LogAssert.Expect` 无人满足) |
+| **A-残留 ③** `TryCheck` 本体仍 `return true` | ✅ | ✅ | ✅ | `WalkabilityParityCheck.cs:53-61` | **F22** 红(`Assert.Throws` 落空) |
+| **B-3'** 探针每次新建 + 场景假脏 | ✅ | ✅ | — | `LatticeEngineParams.cs:92-118` | domain 级缓存 + `HideFlags.HideAndDontSave`;**F23**(对调两字段 ⇒ `…ExactEngineDefaults` 红)证明精确值断言有效 |
+| **B-4** 导出日志无上限 | ✅ | ✅ | — | `LevelConsistencyCheck.cs:317-330` | 三类改为**每类一条聚合行**;`Unimplemented` 死循环已删 |
+| **B-6** 探针断言过弱 | ✅ | ✅ | — | `test.cs` `…ExactEngineDefaults` | 由 `>0` 改为 `Is.EqualTo(4500/300)`;**F23** 红 |
+| **B-7** `<remarks>` 判别力自述为假 | ✅ | ✅ | — | `test.cs` `…surfacesNotRun` 的 remarks | 已改写,并把判别力移交给 `…logsBeforeThrowing`(F19 钉住) |
+| **B-8** `Unimplemented` 死代码 | ✅ | — | — | `LevelConsistencyCheck.cs:321` | 已删;无判据(它本就恒空) |
+| **B-9** 探针两份实现 | ✅ | ✅ | — | `LevelCiRunner.cs:142-158` | 改为调 `ProbeCurrent()`;`grep -c "new GameObject(\"LevelCiRunner" ⇒ **0** |
+| **B-5** `Check` 方法 163 行 > 40 | ❌ | ✗ | — | `LevelConsistencyCheck.cs:131-293` | **未拆分**。如实登记为未结(见 §九) |
+
+### 8.2 对复评 B 的 BLOCKING 的驳回(**有实跑反证**)
+
+复评 B 判 `test_b1_checkOrThrow_surfacesNotRun_toCallerAndLog` 会红(3 条 `NOT-RUN` 日志 vs 1 条 `Expect`)。
+
+**驳回依据 = 实跑**:该用例在修复轮全量里执行过 —— LevelTool 子集 `122 / 120 / 0 failed`、
+全量 EditMode `5846 / 5809 / 0 failed`,均**包含**该用例且**未红**。
+⇒ UTF 只在**未预期的 Error/Exception/Assert** 上判红;多余的同类型 `Log` 不判。
+复评 B 自陈「静态分析,未实跑」—— 本条正是「静态推演过头」的实例。
+**降级为不成立**,但把它的**顾虑**吸收为 B-4(日志噪声)的处理。
+
+### 8.3 证伪总账
+
+| 轮 | 变异 | 结果 |
+|---|---|---|
+| 首轮 | F1–F15 | **15/15 红**(F13 首轮假存活 → 修夹具 → 红) |
+| 修复轮 | F16–F18(B-1/B-2/B-3) | **3/3 红** |
+| 加固轮 | F19–F23(顺序 / 两类日志 / fail-closed / 精确值) | **5/5 红** |
+| **合计** | **23 条** | **23/23 红,零假存活(终态)** |
+
+### 8.4 回归(三元组:2026-10-29 07:30 CST · 修复+复评轮 · `4ecf2e54`+工作树)
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode 全量 | **`5849 / 5812 / 0 / 37`** | 首轮基线 `5842 / 5805 / 0 / 37` ⇒ **+7 = 新增 7 条夹具**,failed 0 → 0 |
+| LevelTool 子集 | **`125 / 123 / 0 / 2`** | — |
+| 端到端 CI `run_ci.sh` | **退出码 0** | 导出路径接了探针后仍绿;注入探针见 §四 |
+
+### 8.5 复评后仍**未结**的项(如实登记,不藏)
+
+1. **`Check` 方法仍 163 行 > 40**(`coding-standards` 的硬界)。**未拆** ——
+   拆它是纯重构,与本轮「堵假绿」的目标无关,且会动到 7 处导出门的公共路径;
+   建议**单开一件**做,不与修复混批(混批会让证伪窗口覆盖两件事,归因变难)。
+2. **导出路径仍不跑 C3、也不跑 C2' 的目录半边**(`CheckOrThrow` 内 `navSampler`/`moduleCatalog` 恒 null)。
+   现在**会打日志说明「没跑」**(不再是静默),但「导出前置门实际不验 C3」这条事实成立。
+   归 **W-2 / W-6** 的同族,需 `run_ci.sh` 真接进工作流后一并解决。
+3. **`run_ci.sh` 仍无 CI 调用方**(复评 W-6 / U-21)—— AC-4 的「接进 CI」记 `NOT-RUN`。

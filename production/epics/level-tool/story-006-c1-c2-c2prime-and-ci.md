@@ -1,8 +1,12 @@
 # Story 006: C1 两层漂移 + C2 可走性同源 + C2' collider 足迹同源 + CI 接线
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: **Complete ✅ 2026-10-29**(AC 6/6;证伪轮 15/15 红;CI 端到端探针成立;
-> 原件 `production/qa/evidence/impl-level-tool-story-006-2026-10-29.md`)
+> **Status**: **Complete ✅ 2026-10-29(评审轮已结)** —— AC 6/6;证伪 **23/23 红**;
+> CI 端到端探针成立(`0` 干净 / `1` 注入 / `2` 链坏);回归 `5849 / 5812 / 0 / 37`。
+> 评审 CHANGES REQUIRED 的 1 族 BLOCKING(`B-1`/`B-2`/`B-3`)**已修并复评结账**,
+> 原件 = `production/qa/evidence/review-level-tool-story-006-2026-10-29.md` §八。
+> ⚠️ **仍有一项未结**:`Check` 方法 163 行 > `coding-standards` 的 ≤40 界(纯重构,单开一件)。
+> 🔁 **留痕**:本 story 曾于评审前误标 `Complete`,评审判 CHANGES REQUIRED 后退回修复,现重新判定。
 > **Layer**: Tooling
 > **Type**: Integration
 > **Estimate**: M
@@ -265,3 +269,15 @@ AC-1 的判据用 `Dequantize(bakedInt)`。该函数归 **S2** 定义(逻辑侧�
   (接线轮基线 `5822 / 5787 / 0 / 35` ⇒ total **+20** = 新增 `[Test]` 恰 20)
 - PlayMode **`238 / 234 / 0 / 2 / 2`**(与基线逐项相同;进程退出码 2 由那 2 条 **Inconclusive** 引起,
   XML `failed = 0`,**与本轮无关**,如实登记)
+
+### 5. 评审轮(2026-10-29 同日 · 评审后退回再修)
+
+| 项 | 内容 |
+|---|---|
+| 判定 | `/code-review` 双专家 → **CHANGES REQUIRED**(1 族 BLOCKING:导出唯一门丢弃 `NotRun`/`Warnings`) |
+| 修复 | `CheckOrThrow` 改为**落日志 + 回传报告**;`terrain==null` 改 fail-closed(抛);C3 补 `NotRun`;导出器 7 处接 `ProbeCurrent()`;探针加 domain 级缓存并去重;日志改每类一条聚合行 |
+| 证伪 | 修复轮 **F16–F18** + 加固轮 **F19–F23**,连同首轮 F1–F15 ⇒ **23/23 红** |
+| 复评 | Phase 7b 拆 A(核原判据)/ B(找新缺陷) 并行;B 的唯一 BLOCKING 被**实跑反证**驳回(它自陈「静态分析,未实跑」) |
+| 回归 | EditMode `5849 / 5812 / 0 / 37`(首轮基线 `5842 / 5805 / 0 / 37` ⇒ +7 = 新增夹具) |
+| **未结** | `Check` 方法 **163 行 > 40**(`coding-standards`)—— **纯重构,单开一件**,不与修复混批(混批会让证伪窗口覆盖两件事,归因变难) |
+| 原件 | `production/qa/evidence/review-level-tool-story-006-2026-10-29.md`(§一 原判定 · §八 结账表) |

@@ -93,7 +93,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             // 全序 = (x, y, z) 升序。声明序不承载语义(重排 = 零信息)。
             var ordered = new List<SlotSpec>(src.Slots);
@@ -157,7 +157,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Walkable == null)
                 throw new InvalidOperationException(
@@ -206,7 +206,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Terrain == null)
                 throw new InvalidOperationException(
@@ -267,7 +267,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Ecozones == null)
                 throw new InvalidOperationException(
@@ -316,7 +316,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Poi == null)
                 throw new InvalidOperationException(
@@ -369,7 +369,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Resources == null)
                 throw new InvalidOperationException(
@@ -518,7 +518,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
-            LevelConsistencyCheck.CheckOrThrow(src);
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
             if (src.Walkable == null)
                 throw new InvalidOperationException(

@@ -109,15 +109,23 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <param name="src">关卡源。</param>
         /// <param name="controller">引擎侧控制器(C2 的另一半);`null` ⇒ C2 进 `NotRun`。</param>
         /// <param name="catalog">模块目录(C2' 的占用格真源);`null` ⇒ 足迹半边进 `NotRun`。</param>
-        /// <param name="navSampler">C3 采样器;`null` ⇒ 不跑 C3(与既有 `Check` 的语义一致)。</param>
+        /// <param name="navSampler">C3 采样器;`null` ⇒ 不跑 C3(并登记 `NotRun`)。</param>
+        /// <param name="engineParams">
+        /// 引擎侧参数(已量化)。**优先于** <paramref name="controller"/> —— CI 入口用
+        /// `CharacterControllerParamProbe.ProbeCurrent()` 取(带缓存),夹具可直接注入。
+        /// 两者都不给 ⇒ C2 进 `NotRun`。
+        /// </param>
         /// <returns>结果(退出码 + 报告)。</returns>
         public static LevelCiResult Run(LevelSource src, CharacterController controller = null,
-            IModuleCatalog catalog = null, Func<WorldPos, NavReachability> navSampler = null)
+            IModuleCatalog catalog = null, Func<WorldPos, NavReachability> navSampler = null,
+            LatticeEngineParams? engineParams = null)
         {
             try
             {
-                LatticeEngineParams? engine = null;
-                if (CharacterControllerParamProbe.TryRead(controller, out LatticeEngineParams p, out _))
+                // 显式给的参数优先(导出器/CI 用 ProbeCurrent 取);否则从 controller 现读。
+                LatticeEngineParams? engine = engineParams;
+                if (!engine.HasValue &&
+                    CharacterControllerParamProbe.TryRead(controller, out LatticeEngineParams p, out _))
                     engine = p;
 
                 CheckReport report = LevelConsistencyCheck.Check(src, navSampler, engine, catalog);
@@ -138,29 +146,25 @@ namespace DaYiJingCheng.EditorTools.Level
         public static void RunBatch()
         {
             LevelCiResult result;
-            GameObject probe = null;
             try
             {
                 LevelSource src = P0ClinicLevel.Define();
 
                 // 引擎侧参数的**唯一可信来源** = 一个真 `CharacterController`。
-                // ⚠️ 这里新建一个临时对象,读的是 **Unity 的默认参数** —— 因为今日
-                //    `PlayerController.ApplyControllerParameters` 还没有写 `slopeLimit` / `stepOffset`
-                //    (那两条归系统 1,见债册 `TD-player-01`)。**如实登记:本 CI 比的是
-                //    「烘焙值 vs 引擎默认」,不是「烘焙值 vs 玩家对象实测值」。**
-                //    哪天系统 1 开始写这两个值时,这里应改为从玩家的构造代码取同一份配置。
-                probe = new GameObject("LevelCiRunner_ControllerProbe");
-                var cc = probe.AddComponent<CharacterController>();
-
-                result = Run(src, cc, catalog: null, navSampler: NavMeshReachabilitySampler.For(src));
+                // 🔁 **2026-10-29 复评 B-9 修复**:此前这里**自己** new 了一个探针对象,
+                //    与导出器那 7 处是**两份同构实现**(连「比的是引擎默认、非玩家实测」的
+                //    自述都逐字重复)—— 单一出处被破坏,两处日后必然漂移。
+                //    现统一走 `CharacterControllerParamProbe.ProbeCurrent()`(带 domain 级缓存)。
+                // ⚠️ 它读的是 **Unity 的默认参数** —— 今日 `PlayerController` 尚未写
+                //    `slopeLimit` / `stepOffset`(那两条归系统 1,债册 `TD-player-01`)。
+                //    **如实登记:本 CI 比的是「烘焙值 vs 引擎默认」,不是「烘焙值 vs 玩家实测」。**
+                result = Run(src, controller: null, catalog: null,
+                             navSampler: NavMeshReachabilitySampler.For(src),
+                             engineParams: CharacterControllerParamProbe.ProbeCurrent());
             }
             catch (Exception ex)
             {
                 result = new LevelCiResult(ExitFatal, null, $"{ex.GetType().Name}: {ex.Message}");
-            }
-            finally
-            {
-                if (probe != null) UnityEngine.Object.DestroyImmediate(probe);
             }
 
             Console.WriteLine(result.Render());

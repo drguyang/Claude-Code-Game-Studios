@@ -80,6 +80,56 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
+        /// **临时探针**:自建一个 `CharacterController` 读「引擎当下会用的」参数。
+        /// <para>🔁 <b>2026-10-29 评审 B-1 修复新增</b>。导出器有 7 处一致性检查门,它们此前
+        /// 拿不到引擎侧输入 ⇒ C2 永远是 `NotRun`。本方法给它们一个统一来源。</para>
+        /// <para>⚠️ **它读到的是 Unity 的控制器默认值**(今日 `PlayerController` 尚未写
+        /// `slopeLimit` / `stepOffset` —— 那两条归系统 1)。这不是伪造:C2 的语义就是
+        /// 「烘焙值 vs 引擎**实际**值」,而实际值今天就是默认值。系统 1 开始写这两个值时,
+        /// 本方法应改为从玩家的构造代码取同一份配置。</para>
+        /// </summary>
+        /// <returns>量化后的参数;读不到(理论上不会)时 `null`。</returns>
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 复评 B-3 修复</b>:改为**每个 domain 只探一次**并缓存。
+        /// <para>原实现每次调用都 `new GameObject` + `AddComponent` + `DestroyImmediate`;
+        /// 导出器有 **7 个**调用点,叠加 `kinds × levels` 的循环 ⇒ 重复创建销毁引擎对象。
+        /// 更要紧的是 `DestroyImmediate` **不会撤销**已打开场景的 dirty 标记 ⇒ 菜单导出会留下
+        /// 「场景已修改」的假脏。</para>
+        /// <para>⚠️ **缓存的失效条件 = domain reload**(改代码 / 重进 Play)。今日探的是 Unity
+        /// 常量默认值,不会在 domain 内变;若将来系统 1 开始按存档写 `slopeLimit` / `stepOffset`,
+        /// 本缓存须同时改为「按玩家配置取」并显式失效点。</para>
+        /// </remarks>
+        public static LatticeEngineParams? ProbeCurrent()
+        {
+            if (_probeCached) return _probeValue;
+
+            var probe = new GameObject("LatticeEngineParams_Probe")
+            {
+                hideFlags = HideFlags.HideAndDontSave,   // 不进层级、不参与保存
+            };
+            try
+            {
+                var controller = probe.AddComponent<CharacterController>();
+                _probeValue = TryRead(controller, out LatticeEngineParams p, out _)
+                    ? p
+                    : (LatticeEngineParams?)null;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(probe);
+            }
+
+            _probeCached = true;
+            return _probeValue;
+        }
+
+        /// <summary>缓存命中标记(domain 内只探一次;见 <see cref="ProbeCurrent"/> 的 remarks)。</summary>
+        private static bool _probeCached;
+
+        /// <summary>缓存值。</summary>
+        private static LatticeEngineParams? _probeValue;
+
+        /// <summary>
         /// 把引擎侧的 `float` 值换算成量化整数(**away-from-zero**;**禁** ties-to-even)。
         /// </summary>
         /// <param name="value">引擎侧值(度 / 米)。</param>

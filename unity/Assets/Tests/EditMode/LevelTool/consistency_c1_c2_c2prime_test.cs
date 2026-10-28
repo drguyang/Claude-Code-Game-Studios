@@ -16,6 +16,7 @@
 //     只测「干净不报」时,一个「永不报」的实现也能过
 //     ⇒ **两个方向 + 一个干净基线**,三条合起来才钉住。
 
+using System;                        // InvalidOperationException / ArgumentNullException
 using System.Collections.Generic;
 using System.Linq;
 using DaYiJingCheng.EditorTools.Level;
@@ -146,6 +147,7 @@ namespace DaYiJingCheng.Tests.LevelTool
         public void test_ac1_noEngineParams_isNotRun_notGreenNotRed()
         {
             CheckReport report = LevelConsistencyCheck.Check(MakeSource());
+
 
             Assert.That(report.IsGreen, Is.True, "没有引擎侧输入不是缺陷 ⇒ 不得判红");
             Assert.That(Has(report.NotRun, "C2 可走性同源"), Is.True, "须登记为「未跑」");
@@ -401,7 +403,7 @@ namespace DaYiJingCheng.Tests.LevelTool
             }
             finally
             {
-                Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(go);
             }
         }
 
@@ -411,6 +413,133 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             Assert.That(CharacterControllerParamProbe.TryRead(null, out _, out string reason), Is.False);
             Assert.That(reason, Does.Contain("CharacterController"));
+        }
+
+        // ══════════════ 评审修复回归(2026-10-29 · B-1 / B-2 / B-3) ══════════════
+
+        /// <summary><b>B-2</b>:引擎侧有值但**烘焙侧缺地形** ⇒ C2 进 `NotRun`,不是静默绿。</summary>
+        /// <remarks><b>判别力</b>:去掉 `src.Terrain == null` 那一支 ⇒ 本测红(报告里 C2 既无违例也无未跑,
+        /// 读者会当成通过 —— 这正是评审抓到的形态)。</remarks>
+        [Test]
+        public void test_b2_engineParamsWithoutTerrain_isNotRun_notSilentGreen()
+        {
+            // 只声明槽位、不声明地形的关卡是合法形态(LevelSource 允许 terrain = null)。
+            var src = new LevelSource("no_terrain", 2, 1, 2, new List<SlotSpec>
+            {
+                new SlotSpec(0, 0, 0, SlotType.Decor, false),
+            });
+
+            CheckReport report = LevelConsistencyCheck.Check(
+                src, engineParams: new LatticeEngineParams(4500, 300));
+
+            Assert.That(report.IsGreen, Is.True, "缺地形不是缺陷本身 ⇒ 不得判红");
+            Assert.That(Has(report.NotRun, "C2 可走性同源"), Is.True,
+                "烘焙侧没有值可比 ⇒ 必须登记「未跑」,不能什么都不记");
+            Assert.That(Has(report.Violations, "C2"), Is.False, "缺一侧不得被伪造成违例");
+        }
+
+        /// <summary><b>B-3</b>:没有 NavMesh 采样器 ⇒ C3 也进 `NotRun`(与 C1/C2/C2' 口径一致)。</summary>
+        /// <remarks><b>判别力</b>:删掉 C3 的 `else` 分支 ⇒ 本测红 —— 届时「C3 没跑」与
+        /// 「C3 跑了且无告警」在报告上不可分。</remarks>
+        [Test]
+        public void test_b3_noNavSampler_isNotRun_forC3()
+        {
+            CheckReport report = LevelConsistencyCheck.Check(MakeSource(),
+                engineParams: new LatticeEngineParams(4500, 300));
+
+            Assert.That(Has(report.NotRun, "C3"), Is.True, "C3 无输入须登记未跑");
+            Assert.That(report.IsGreen, Is.True, "C3 缺输入不是硬失败");
+        }
+
+        /// <summary><b>B-1</b>:绿源时 `CheckOrThrow` 把报告**交还**调用方,并把未跑项写进日志。</summary>
+        /// <remarks>🔁 <b>2026-10-29 复评 B-7 修复</b>:原 remarks 声称「不喂 engineParams ⇒ 第一条断言红」,
+        /// **该断言为假** —— 不喂时 C2 自身也进 `NotRun`,`NotRun.Count > 0` 照样成立。
+        /// 现把「喂/不喂」的判别力**交给下面那条** `test_b1_checkOrThrow_logsBeforeThrowing`。
+        /// <para><b>判别力</b>:删掉 `CheckOrThrow` 里的 `NotRun` 聚合日志 ⇒ `LogAssert.Expect` 无人满足 ⇒ 红。</para></remarks>
+        [Test]
+        public void test_b1_checkOrThrow_surfacesNotRun_toCallerAndLog()
+        {
+            LevelSource src = MakeSource(bakedAtOrigin: true);
+
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Log, new System.Text.RegularExpressions.Regex("NOT-RUN"));
+
+            CheckReport report = LevelConsistencyCheck.CheckOrThrow(
+                src, new LatticeEngineParams(4500, 300));
+
+            Assert.That(report, Is.Not.Null, "须把报告交还给调用方(导出器/夹具可核)");
+            Assert.That(report.NotRun.Count, Is.GreaterThan(0),
+                "本关卡无视觉层 / 无足迹声明 ⇒ 必有未跑项;若为 0,说明它们又被丢了");
+        }
+
+        /// <summary><b>B-1 之顺序</b>:日志必须发生在 `throw` **之前** —— 否则一次硬失败会盖掉
+        /// 「另外几条根本没跑」这条信息。</summary>
+        /// <remarks>🔁 <b>2026-10-29 复评修复(Agent A 残留)</b>:此性质此前**零断言**
+        /// (原夹具喂的是绿源,`throw` 分支根本没走)。
+        /// <para><b>判别力</b>:把 `CheckOrThrow` 里的日志块移到 `if (!IsGreen) throw` **之后** ⇒
+        /// 本测的 `LogAssert.Expect` 无人满足 ⇒ 红。这是唯一能钉住顺序的形态。</para></remarks>
+        [Test]
+        public void test_b1_checkOrThrow_logsBeforeThrowing()
+        {
+            // 同时具备:① 必抛的违例(重复格)② 若干未跑项(无视觉层 / 无足迹 / 无采样器)
+            var bad = new LevelSource("bad", 2, 1, 2, new List<SlotSpec>
+            {
+                new SlotSpec(0, 0, 0, SlotType.Decor, false),
+                new SlotSpec(0, 0, 0, SlotType.Shell, false),
+            });
+
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Log, new System.Text.RegularExpressions.Regex("NOT-RUN"));
+
+            Assert.Throws<InvalidOperationException>(
+                () => LevelConsistencyCheck.CheckOrThrow(bad),
+                "重复格须抛(前置:本测确实走到 throw 分支)");
+        }
+
+        /// <summary><b>B-1 之告警面</b>:告警也必须在导出路径上被说出来。</summary>
+        /// <remarks><b>判别力</b>:删掉 `CheckOrThrow` 里的告警聚合日志 ⇒ 本测红。
+        /// 这一条补的是复评指出的「三类日志里只有 NotRun 被钉住」。</remarks>
+        [Test]
+        public void test_b1_checkOrThrow_surfacesWarnings_toLog()
+        {
+            // 逻辑层有开档家具、视觉层空 ⇒ C1 漂移(告警,不抛)
+            LevelSource src = MakeSource(bakedAtOrigin: true, visual: MakeVisual());
+
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Warning, new System.Text.RegularExpressions.Regex("告警"));
+
+            CheckReport report = LevelConsistencyCheck.CheckOrThrow(
+                src, new LatticeEngineParams(4500, 300));
+
+            Assert.That(report.Warnings.Count, Is.GreaterThan(0), "前置:C1 漂移确实产生了告警");
+            Assert.That(report.IsGreen, Is.True, "告警不使构建失败");
+        }
+
+        /// <summary>C2 的烘焙侧为 `null` ⇒ **抛**(fail-closed),不假装通过。</summary>
+        /// <remarks>🔁 <b>2026-10-29 复评修复(Agent A 残留)</b>:此前 `terrain == null` 直接
+        /// `return true` —— 把「没有比对对象」表达成「比对通过」。调用方当时靠外层守卫绕开,
+        /// 但那是调用方记得,不是契约。</remarks>
+        [Test]
+        public void test_c2_nullTerrain_throws_insteadOfPassingSilently()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+                WalkabilityParityCheck.TryCheck(null, new LatticeEngineParams(4500, 300), out _));
+        }
+
+        /// <summary><b>B-1 之导出面</b>:探针读到的量化值**稳定且精确**(不是一个「> 0」的模糊断言)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 复评 B-6 修复</b>:原断言只写 `> 0` / `>= 0`,值漂移抓不到。
+        /// <para><b>判别力</b>:把两个字段对调、或把量化单位改成 1、或把 away-from-zero 换成
+        /// 截断 ⇒ 本测红。导出器 7 处接线由 `grep -c "ProbeCurrent()" LevelExporter.cs == 7` 复算。</para></remarks>
+        [Test]
+        public void test_b1_probeCurrent_returnsExactEngineDefaults()
+        {
+            LatticeEngineParams? p = CharacterControllerParamProbe.ProbeCurrent();
+
+            Assert.That(p.HasValue, Is.True, "临时探针须读得到参数");
+            // Unity 6.3 `CharacterController` 默认:slopeLimit = 45°、stepOffset = 0.3 m
+            // (AC-0 spike 实测,见 LatticeParamQuantization 的 remarks)。
+            Assert.That(p.Value.SlopeLimitDegX100, Is.EqualTo(4500), "45.00° ⇒ 4500(0.01 度量子)");
+            Assert.That(p.Value.StepOffsetMm, Is.EqualTo(300), "0.300 m ⇒ 300(1 mm 量子)");
         }
     }
 }

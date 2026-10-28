@@ -18,6 +18,7 @@
 // 容差若为 2,「有人把 45° 改成 45.02°」这种真实漂移就会被吞掉。
 // ⇒ 1 是唯一自洽的取值,**且它必须由 `IsWithinOneQuantum` 定义,不能在这里写 `<= 1`**。
 
+using System;                        // ArgumentNullException(terrain 为 null 时 fail-closed)
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;   // LatticeParamQuantization(唯一出处)
 
@@ -35,15 +36,30 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>
         /// 跑两条同源判据(不抛;失败项进 `violations`)。
         /// </summary>
-        /// <param name="terrain">关卡的地形声明(烘焙侧整数真源;`null` ⇒ 本关卡没声明地形,不判)。</param>
+        /// <param name="terrain">
+        /// 关卡的地形声明(烘焙侧整数真源)。**不得为 `null`** —— 没有烘焙侧就**没有比对对象**;
+        /// 调用方须先判「本关卡是否声明了地形」并自行登记 `NotRun`。
+        /// </param>
         /// <param name="engine">引擎侧已量化的参数。</param>
         /// <param name="violations">输出:失败项(两条判据各自独立追加)。</param>
         /// <returns>两条都通过 ⇒ `true`。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="terrain"/> 为 null。</exception>
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 复评修复(Agent A 残留)</b>:此前 `terrain == null` 直接
+        /// `return true` —— 「**没有比对对象**」被表达成「**比对通过**」。
+        /// 调用方当时靠外层守卫绕开了它,但那只是**调用方**记得;任何新调用方都会再踩一次。
+        /// ⇒ 改为**抛**:唯一合法做法是由调用方在缺输入时登记 `NotRun`,而不是让本方法假装通过。
+        /// <para>这是 fail-closed:宁可让新调用方立刻炸,也不要让它静默绿。</para>
+        /// </remarks>
         public static bool TryCheck(TerrainSource terrain, LatticeEngineParams engine,
             out List<string> violations)
         {
             violations = new List<string>();
-            if (terrain == null) return true;
+            if (terrain == null)
+                throw new ArgumentNullException(
+                    nameof(terrain),
+                    "C2 的烘焙侧输入为 null —— 没有比对对象时**不存在**「通过」这个结论;" +
+                    "调用方须先判「本关卡是否声明了地形」并登记 NotRun");
 
             if (!LatticeParamQuantization.IsWithinOneQuantum(
                     engine.SlopeLimitDegX100, terrain.SlopeLimitDegX100))
