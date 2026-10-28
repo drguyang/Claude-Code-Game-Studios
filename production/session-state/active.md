@@ -12268,3 +12268,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **仍未结(如实)**:`Check` 方法 163 行 > 40 —— 纯重构,单开一件;**导出路径仍不跑 C3 / C2' 目录半边**(现在会打日志,不静默);
   `run_ci.sh` 仍无 CI 调用方(AC-4「接进 CI」记 NOT-RUN)。
 - **教训(第二次同型)**:我先把 story 标了 Complete 才跑评审 ⇒ 「未评审即收口」。评审原件 §七 已如实登记不追认。
+
+## Session Extract — `Check` 拆分轮(2026-10-29 · 纯重构)
+
+- **由来**:story-006 评审 `M-5` / 复评 `B-5` 登记的**唯一未结项**;当时**故意不混进修复批**(混批会让证伪窗口覆盖两件事)。
+- **结果**:`Check` **163 行 → 11 个方法,最长 35 行**(`CheckSlotCell`)。全文 344 → 402 行(增量全在注释)。
+- **等价性**:按**构造**论证(调用顺序逐字保持 / 早退等价于原守卫里的重复判界 / 空表 AddRange 是 no-op)。
+  一处**不可观测微差**已就地登记:`navSampler != null` 且 C3 零告警时,空 `List` → `Array.Empty`。
+- **拆分引入的唯一结构风险**:③之补 的保护从「守卫里重复判界」变成「只靠 ③ 的 `return`」,
+  而**盘上零夹具**覆盖「越界槽位 + 已声明可走性」⇒ 删掉 return 只会抛异常、无人变红。
+  ⇒ **补 1 条夹具**(三条断言:不抛 / 判红 / **不得冒充「不可通行」**)。
+- **证伪**:预判先写(新夹具红、老夹具绿)→ 实得 **`10 / 9 / 1`**,唯一红即新夹具;SHA-256 还原 `ebf26123…38c6`。
+  ⚠️ 实得异常是 `ArgumentOutOfRangeException` 而非预估的 `IndexOutOfRangeException`,红绿预判全中,只异常类型错。
+- **回归**:EditMode **`5850 / 5813 / 0 / 37`**(较拆分前 `5849 / 5812 / 0 / 37` **+1** = 新增夹具)·
+  LevelTool 子集 `126 / 124 / 0 / 2` · PlayMode **`238 / 234 / 0 / 2 / 2`**(逐项相同;退出码 2 由 2 条既有 Inconclusive 引起)。
+- **如实边界**:**纯重构没有「新属性」可证伪** ⇒ 其余 10 个方法的等价性只有「读代码」这一层依据,
+  `Proven` 记 **✗**(本仓 `feedback_refactor_falsifiability_ceiling`)。未跑 `/code-review`。
+- **不在范围内(未动)**:`Editor.Tools.Level/` 全树**仍有 18 个方法 > 40 行**(`TerrainSource.ctor` 90 ·
+  `LevelSource.ctor` 88 · `NavChunkSource.TryCheck` 69 …),属更早的代码,M-5 只点了几处。
+- **原件** = `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。

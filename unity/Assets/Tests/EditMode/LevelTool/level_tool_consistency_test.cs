@@ -100,6 +100,36 @@ namespace DaYiJingCheng.Tests.LevelTool
         }
 
         /// <summary>
+        /// 越界格 **且** 关卡已声明可走性 ⇒ 仍只报「超出声明范围」,**不得**去索引可走表。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 新增(`Check` 拆分轮)</b>。拆分前 ③之补 的守卫里**重复判过一次界**,
+        /// 越界格天然到不了索引那一句;拆分后改为「③ 命中即 `return`」,这层保护**只剩那一句
+        /// `return`**。没有本夹具时,删掉它只会得到 `IndexOutOfRangeException` 而**没有任何一条
+        /// 测试变红** —— 即「重构后的等价性」只在读代码时成立,在机器上不可判。
+        /// <para><b>判别力</b>:删掉 `CheckSlotCell` 里 ③ 命中后的 `return` ⇒ 本测红
+        /// (以异常形式,不是断言失败)。</para>
+        /// </remarks>
+        [Test]
+        public void test_levelTool_outOfRangeCell_withWalkableDeclared_doesNotIndexWalkable()
+        {
+            // 2×1×2 ⇒ 可走表 4 格;槽位 x=2 落在 [0,2) 之外。
+            var src = new LevelSource("t", 2, 1, 2, new List<SlotSpec>
+            {
+                new SlotSpec(2, 0, 1, SlotType.Decor, false),
+            }, walkable: new[] { 1, 1, 1, 1 });
+
+            CheckReport report = null;
+            Assert.DoesNotThrow(() => { report = LevelConsistencyCheck.Check(src); },
+                "越界格不得触发对可走表的越界索引");
+
+            Assert.That(report.IsGreen, Is.False, "越界格仍须判红");
+            Assert.That(Has(report, "超出声明范围"), Is.True, "报文须点名判据「超出声明范围」");
+            Assert.That(Has(report, "不可通行"), Is.False,
+                "越界格**不是**「不可通行格」—— 两者是不同判据,不得互相冒充");
+        }
+
+        /// <summary>
         /// `baked_initial = true` 但 `module_id = 0` ⇒ 违例(ADR-022 `:176` 的契约是 **`≥ 1`**)。
         /// <para>🔁 <b>2026-10-28 评审 S-1 修复(新增)</b>:首版判 `== SlotSpec.NoModule`(即 `== -1`),
         /// 差集 = `0` **从导出门漏过去**,只有绑定器 / codec 才拒。而导出器是「唯一作者」,

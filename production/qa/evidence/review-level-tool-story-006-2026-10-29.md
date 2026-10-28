@@ -128,7 +128,7 @@
 | **B-7** `<remarks>` 判别力自述为假 | ✅ | ✅ | — | `test.cs` `…surfacesNotRun` 的 remarks | 已改写,并把判别力移交给 `…logsBeforeThrowing`(F19 钉住) |
 | **B-8** `Unimplemented` 死代码 | ✅ | — | — | `LevelConsistencyCheck.cs:321` | 已删;无判据(它本就恒空) |
 | **B-9** 探针两份实现 | ✅ | ✅ | — | `LevelCiRunner.cs:142-158` | 改为调 `ProbeCurrent()`;`grep -c "new GameObject(\"LevelCiRunner" ⇒ **0** |
-| **B-5** `Check` 方法 163 行 > 40 | ❌ | ✗ | — | `LevelConsistencyCheck.cs:131-293` | **未拆分**。如实登记为未结(见 §九) |
+| **B-5** `Check` 方法 163 行 > 40 | ✅<br>**(2026-10-29 单开轮)** | **✗**(等价性按构造) | — | `LevelConsistencyCheck.cs` 拆为 11 个方法 | 原记「**未拆分**。如实登记为未结(见 §九)」—— **原文不删**。2026-10-29 单开轮已拆:163 → **最长 35 行**;补 1 条夹具钉住拆分引入的结构风险,反证 = 删 ③ 早退 ⇒ `…_doesNotIndexWalkable` 红(**`10 / 9 / 1`**)。<br>⚠️ `Proven` **刻意不标 ✅** —— 纯重构旧新值相等,**其余 10 个方法的等价性没有机器判据**(本仓 `feedback_refactor_falsifiability_ceiling`)。原件 = `impl-level-tool-check-split-2026-10-29.md` |
 
 ### 8.2 对复评 B 的 BLOCKING 的驳回(**有实跑反证**)
 
@@ -162,6 +162,11 @@
 1. **`Check` 方法仍 163 行 > 40**(`coding-standards` 的硬界)。**未拆** ——
    拆它是纯重构,与本轮「堵假绿」的目标无关,且会动到 7 处导出门的公共路径;
    建议**单开一件**做,不与修复混批(混批会让证伪窗口覆盖两件事,归因变难)。
+   > 🔁 **2026-10-29 单开轮已结(原文不删)**:`Check` **163 → 拆为 11 个方法,最长 35 行**
+   > (`CheckSlotCell`)。回归 EditMode `5850 / 5813 / 0 / 37`(较本表基线 **+1** = 新增夹具)、
+   > PlayMode `238 / 234 / 0 / 2 / 2`(逐项相同)。**等价性 ≠ 已证**(纯重构无新属性可证伪),
+   > 只钉住了拆分**引入**的那一处结构风险。原件 =
+   > `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。
 2. **导出路径仍不跑 C3、也不跑 C2' 的目录半边**(`CheckOrThrow` 内 `navSampler`/`moduleCatalog` 恒 null)。
    现在**会打日志说明「没跑」**(不再是静默),但「导出前置门实际不验 C3」这条事实成立。
    归 **W-2 / W-6** 的同族,需 `run_ci.sh` 真接进工作流后一并解决。

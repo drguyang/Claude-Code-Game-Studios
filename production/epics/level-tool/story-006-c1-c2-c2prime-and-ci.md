@@ -5,7 +5,9 @@
 > CI 端到端探针成立(`0` 干净 / `1` 注入 / `2` 链坏);回归 `5849 / 5812 / 0 / 37`。
 > 评审 CHANGES REQUIRED 的 1 族 BLOCKING(`B-1`/`B-2`/`B-3`)**已修并复评结账**,
 > 原件 = `production/qa/evidence/review-level-tool-story-006-2026-10-29.md` §八。
-> ⚠️ **仍有一项未结**:`Check` 方法 163 行 > `coding-standards` 的 ≤40 界(纯重构,单开一件)。
+> ✅ **原「未结」项已结(2026-10-29 单开轮)**:`Check` **163 行 → 拆为 11 个方法,最长 35 行**。
+> 纯重构;另补 1 条夹具钉住拆分引入的唯一结构风险。原件 =
+> `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。
 > 🔁 **留痕**:本 story 曾于评审前误标 `Complete`,评审判 CHANGES REQUIRED 后退回修复,现重新判定。
 > **Layer**: Tooling
 > **Type**: Integration
@@ -279,5 +281,5 @@ AC-1 的判据用 `Dequantize(bakedInt)`。该函数归 **S2** 定义(逻辑侧�
 | 证伪 | 修复轮 **F16–F18** + 加固轮 **F19–F23**,连同首轮 F1–F15 ⇒ **23/23 红** |
 | 复评 | Phase 7b 拆 A(核原判据)/ B(找新缺陷) 并行;B 的唯一 BLOCKING 被**实跑反证**驳回(它自陈「静态分析,未实跑」) |
 | 回归 | EditMode `5849 / 5812 / 0 / 37`(首轮基线 `5842 / 5805 / 0 / 37` ⇒ +7 = 新增夹具) |
-| **未结** | `Check` 方法 **163 行 > 40**(`coding-standards`)—— **纯重构,单开一件**,不与修复混批(混批会让证伪窗口覆盖两件事,归因变难) |
+| **已结**(2026-10-29 单开轮) | `Check` **163 行 → 11 个方法,最长 35 行**。纯重构,零可观测行为变更(一处空表 vs 空数组的不可观测微差已就地登记);**另补 1 条夹具**钉住拆分引入的唯一结构风险(③ 命中后的早退),反证 **`10 / 9 / 1`** 唯一红即该夹具。原件 = `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md` |
 | 原件 | `production/qa/evidence/review-level-tool-story-006-2026-10-29.md`(§一 原判定 · §八 结账表) |

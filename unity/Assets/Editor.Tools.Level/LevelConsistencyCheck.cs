@@ -134,162 +134,220 @@ namespace DaYiJingCheng.EditorTools.Level
             if (src == null) throw new ArgumentNullException(nameof(src));
 
             var violations = new List<string>();
+            var warnings = new List<string>();
             var notRun = new List<string>();
-            var seen = new HashSet<(int, int, int)>();
 
+            CheckSlots(src, violations);                                      // ① ② ③ ③之补 ④ ⑤
+            CheckEcozones(src, violations);                                   // C4(硬失败)
+            CheckNavMesh(src, navSampler, warnings, notRun);                  // C3(**告警**)
+            CheckWalkability(src, engineParams, violations, notRun);          // C2(硬失败)
+            CheckColliderFootprints(src, moduleCatalog, violations, notRun);  // C2'(硬失败)
+            CheckLayerDrift(src, warnings, notRun);                           // C1(**告警**)
+
+            // ⚠️ 拆分前 `warnings` 是惰性 `null`(无告警时构造实参传 `null`,ctor 填
+            //    `Array.Empty<string>()`)。拆分后它是常驻 `List`,故这里显式把空表折回 `null`,
+            //    让「无告警」时的可观测形状与拆分前一致。
+            //    (※) 如实登记一处**不可观测**的微差:拆分前若 `navSampler != null` 而 C3 零告警,
+            //    传出的是**空 `List`**;现在是 `Array.Empty`。两者 `Count == 0`、枚举结果相同,
+            //    经 `IReadOnlyList<string>` 无法区分 —— 故不构成行为变更,但也不是"逐字相同"。
+            return new CheckReport(violations, UnimplementedChecks,
+                warnings.Count == 0 ? null : warnings, notRun);
+        }
+
+        // ── ① ② ③ ③之补 ④ ⑤ —— 槽位逐条(2026-10-29 拆分:原 `Check` 163 行 > 40)──────
+        /// <summary>对每一条槽位声明跑 ①②③③之补④⑤ 五类判据。</summary>
+        private static void CheckSlots(LevelSource src, List<string> violations)
+        {
+            var seen = new HashSet<(int, int, int)>();
             for (int i = 0; i < src.Slots.Count; i++)
             {
                 SlotSpec s = src.Slots[i];
                 string where = $"slots[{i}]";
+                CheckSlotCell(src, s, where, seen, violations);      // ① ③ ③之补
+                CheckSlotType(s, where, violations);                 // ②
+                CheckSlotInitialModule(s, where, violations);        // ④ ⑤
+            }
+        }
 
-                // ① 重复格
-                if (!seen.Add((s.X, s.Y, s.Z)))
-                    violations.Add(
-                        $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 重复 —— " +
-                        "同一格两条槽位声明会让「取哪一条」成为隐式规则");
+        /// <summary>① 重复格 · ③ 格超出声明范围 · ③之补 槽位落在不可走的格上。</summary>
+        /// <param name="seen">跨槽位共享的已见格集合(**必须在调用方建一次**,不能每槽新建)。</param>
+        private static void CheckSlotCell(LevelSource src, SlotSpec s, string where,
+            HashSet<(int, int, int)> seen, List<string> violations)
+        {
+            // ① 重复格
+            if (!seen.Add((s.X, s.Y, s.Z)))
+                violations.Add(
+                    $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 重复 —— " +
+                    "同一格两条槽位声明会让「取哪一条」成为隐式规则");
 
-                // ② 类型越界(None = 哨兵;未定义枚举值同样拒)
-                if (s.Type == SlotType.None)
-                    violations.Add(
-                        $"world_buildslots:{where} slot_type = None —— " +
-                        "None 是「未分配」哨兵,不是合法槽位类型");
-                else if (!Enum.IsDefined(typeof(SlotType), s.Type))
-                    violations.Add(
-                        $"world_buildslots:{where} slot_type = {(int)s.Type} 不在 SlotType 闭集内");
-
-                // ③ 格超出声明范围
-                if (s.X < 0 || s.X >= src.Width || s.Y < 0 || s.Y >= src.Height ||
-                    s.Z < 0 || s.Z >= src.Depth)
-                    violations.Add(
-                        $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 超出声明范围 " +
-                        $"[0,{src.Width})×[0,{src.Height})×[0,{src.Depth}) —— 越界格在运行期永远不可达");
-
-                // ③之补(2026-10-29 · story-002):槽位落在**不可走**的格上。
-                //    ⚠️ 只在关卡声明了可走性时才可判(`Walkable == null` = 本关卡只声明槽位,
-                //    几何归别的关卡 / 夹具)⇒ 未声明就**不产生这条判据**,而不是默认「全可走」。
-                //    这条是 story-002 引入「外环不可走」时**必须**有的配套:本轮脚手架关卡真的
-                //    踩了它(第四格 `(7,1,7)` 落在 8×2×8 的边界环上,已改 `(6,1,6)`)——
-                //    没有这条判据,那个错误只能靠人眼在 128 个数里发现。
-                if (src.Walkable != null && (s.X >= 0 && s.X < src.Width
-                                             && s.Y >= 0 && s.Y < src.Height
-                                             && s.Z >= 0 && s.Z < src.Depth))
-                {
-                    int idx = (s.X * src.Height + s.Y) * src.Depth + s.Z;
-                    if (src.Walkable[idx] == 0)
-                        violations.Add(
-                            $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) **不可通行**却声明了槽位 —— " +
-                            "入口永远无法抵达该格 ⇒ 那条声明在运行期是死的(玩家造不到、也拆不到)");
-                }
-
-                // ④ `baked_initial = true` ⇒ 必须指明是哪件家具(2026-10-28 · schema 2)
-                //    ⚠️ 这条**在导出期**就拦,而不是等绑定器 —— 导出器是唯一作者,
-                //    作者的错在作者自己的工具里报,报文才指向「你少写了一个字段」。
-                //    🔁 **2026-10-28 评审 S-1 修复(原文不删,就地加注)**:首版判
-                //    `s.ModuleId == SlotSpec.NoModule`(即 `== -1`),而 ADR-022 `:176` 的契约是
-                //    **`module_id ≥ 1`**。差集 = `module_id = 0` 从导出门**漏过去**,
-                //    只有绑定器 / codec 才拒 —— 而导出器是「唯一作者」,作者的错就该在作者的
-                //    工具里报。现按契约判 `≤ 0`(`NoModule = -1` 与 `0` 一并拒),与 ADR 逐字对齐。
-                if (s.BakedInitial && s.ModuleId <= 0)
-                    violations.Add(
-                        $"world_buildslots:{where} 标了 baked_initial = true 却" +
-                        (s.ModuleId == SlotSpec.NoModule ? "没有 module_id" : $"给了非法 module_id = {s.ModuleId}") +
-                        " —— 开档既有家具必须指明是哪件家具,且 `module_id ≥ 1`(ADR-022);" +
-                        "运行期要按它算足迹并发 structure_id(GDD 规则三);" +
-                        "没写 / 写 0 = 那格开档「声明了占用但说不出被什么占用」");
-
-                // ⑤ `baked_initial = false` 却写了 module_id ⇒ 语义矛盾
-                //    ⚠️ 反方向的错同样要拦:它会让读者以为「这格有家具但没标初始占用」,
-                //    而实际行为是「空地可建」—— 两个字段的取值互相打脸。
-                if (!s.BakedInitial && s.ModuleId != SlotSpec.NoModule)
-                    violations.Add(
-                        $"world_buildslots:{where} 标了 baked_initial = false 却写了 " +
-                        $"module_id = {s.ModuleId} —— 二者矛盾(非初始占用的槽位没有既有家具," +
-                        "运行期会把它当空地);要声明开档家具请同时把 baked_initial 置 true");
+            // ③ 格超出声明范围
+            if (IsOutOfBounds(src, s))
+            {
+                violations.Add(
+                    $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 超出声明范围 " +
+                    $"[0,{src.Width})×[0,{src.Height})×[0,{src.Depth}) —— 越界格在运行期永远不可达");
+                // ⚠️ 越界格必然不在可走表内 ⇒ ③之补 无判据面。拆分前是在 ③之补 的守卫里
+                //    重复判了一次界;早退与原式**效果完全相同**,但省掉一次重复的边界表达式。
+                return;
             }
 
-            // ── C4 多边形合法性(story-003 起**已实现**;关卡声明了生态区才产生判据)────
+            // ③之补(2026-10-29 · story-002):槽位落在**不可走**的格上。
+            //    ⚠️ 只在关卡声明了可走性时才可判(`Walkable == null` = 本关卡只声明槽位,
+            //    几何归别的关卡 / 夹具)⇒ 未声明就**不产生这条判据**,而不是默认「全可走」。
+            //    这条是 story-002 引入「外环不可走」时**必须**有的配套:本轮脚手架关卡真的
+            //    踩了它(第四格 `(7,1,7)` 落在 8×2×8 的边界环上,已改 `(6,1,6)`)——
+            //    没有这条判据,那个错误只能靠人眼在 128 个数里发现。
+            if (src.Walkable == null) return;
+
+            int idx = (s.X * src.Height + s.Y) * src.Depth + s.Z;
+            if (src.Walkable[idx] == 0)
+                violations.Add(
+                    $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) **不可通行**却声明了槽位 —— " +
+                    "入口永远无法抵达该格 ⇒ 那条声明在运行期是死的(玩家造不到、也拆不到)");
+        }
+
+        /// <summary>③ 的判据:格是否落在 `[0,W)×[0,H)×[0,D)` 之外。</summary>
+        private static bool IsOutOfBounds(LevelSource src, SlotSpec s)
+            => s.X < 0 || s.X >= src.Width
+            || s.Y < 0 || s.Y >= src.Height
+            || s.Z < 0 || s.Z >= src.Depth;
+
+        /// <summary>② 类型越界(`None` = 哨兵;未定义枚举值同样拒)。</summary>
+        private static void CheckSlotType(SlotSpec s, string where, List<string> violations)
+        {
+            // ② 类型越界(None = 哨兵;未定义枚举值同样拒)
+            if (s.Type == SlotType.None)
+                violations.Add(
+                    $"world_buildslots:{where} slot_type = None —— " +
+                    "None 是「未分配」哨兵,不是合法槽位类型");
+            else if (!Enum.IsDefined(typeof(SlotType), s.Type))
+                violations.Add(
+                    $"world_buildslots:{where} slot_type = {(int)s.Type} 不在 SlotType 闭集内");
+        }
+
+        /// <summary>④ `baked_initial = true` ⇒ 必须指明是哪件家具 · ⑤ 反方向的语义矛盾。</summary>
+        private static void CheckSlotInitialModule(SlotSpec s, string where, List<string> violations)
+        {
+            // ④ `baked_initial = true` ⇒ 必须指明是哪件家具(2026-10-28 · schema 2)
+            //    ⚠️ 这条**在导出期**就拦,而不是等绑定器 —— 导出器是唯一作者,
+            //    作者的错在作者自己的工具里报,报文才指向「你少写了一个字段」。
+            //    🔁 **2026-10-28 评审 S-1 修复(原文不删,就地加注)**:首版判
+            //    `s.ModuleId == SlotSpec.NoModule`(即 `== -1`),而 ADR-022 `:176` 的契约是
+            //    **`module_id ≥ 1`**。差集 = `module_id = 0` 从导出门**漏过去**,
+            //    只有绑定器 / codec 才拒 —— 而导出器是「唯一作者」,作者的错就该在作者的
+            //    工具里报。现按契约判 `≤ 0`(`NoModule = -1` 与 `0` 一并拒),与 ADR 逐字对齐。
+            if (s.BakedInitial && s.ModuleId <= 0)
+                violations.Add(
+                    $"world_buildslots:{where} 标了 baked_initial = true 却" +
+                    (s.ModuleId == SlotSpec.NoModule ? "没有 module_id" : $"给了非法 module_id = {s.ModuleId}") +
+                    " —— 开档既有家具必须指明是哪件家具,且 `module_id ≥ 1`(ADR-022);" +
+                    "运行期要按它算足迹并发 structure_id(GDD 规则三);" +
+                    "没写 / 写 0 = 那格开档「声明了占用但说不出被什么占用」");
+
+            // ⑤ `baked_initial = false` 却写了 module_id ⇒ 语义矛盾
+            //    ⚠️ 反方向的错同样要拦:它会让读者以为「这格有家具但没标初始占用」,
+            //    而实际行为是「空地可建」—— 两个字段的取值互相打脸。
+            if (!s.BakedInitial && s.ModuleId != SlotSpec.NoModule)
+                violations.Add(
+                    $"world_buildslots:{where} 标了 baked_initial = false 却写了 " +
+                    $"module_id = {s.ModuleId} —— 二者矛盾(非初始占用的槽位没有既有家具," +
+                    "运行期会把它当空地);要声明开档家具请同时把 baked_initial 置 true");
+        }
+
+        // ── C4 多边形合法性(story-003 起**已实现**;关卡声明了生态区才产生判据)────────
+        /// <summary>C4:生态区多边形五项(内部重叠 / 顶点&lt;3 / 自交 / 零面积 / 重合顶点)。</summary>
+        private static void CheckEcozones(LevelSource src, List<string> violations)
+        {
             // ⚠️ 「声明了才判」而不是「没声明就判失败」:只声明槽位的关卡 / 夹具是合法用法,
             //    而 `ExportEcozones` 自己会对「未声明」硬失败 —— 两处职责不重复。
             if (src.Ecozones != null
                 && EcozonePolygonCheck.TryCheck(src.Ecozones, out List<string> ecoViolations))
                 violations.AddRange(ecoViolations);
+        }
 
-            // ── C3 导航格 ↔ NavMesh(**告警**,2026-10-29 story-005 起已实现)───────────
+        // ── C3 导航格 ↔ NavMesh(**告警**,2026-10-29 story-005 起已实现)───────────────
+        /// <summary>C3 的落点。告警进 <paramref name="warnings"/>,**永不进** `violations`。</summary>
+        private static void CheckNavMesh(LevelSource src, Func<WorldPos, NavReachability> navSampler,
+            List<string> warnings, List<string> notRun)
+        {
             // ⚠️ 告警**不进** `violations` —— C3 的语义就是「报出来但不使构建失败」
             //    (ADR-022 §四)。合成一个列表会让「告警」与「硬失败」在类型上不可分。
-            List<string> warnings = null;
             if (navSampler != null)
             {
-                NavMeshConsistencyCheck.TryCheck(src, navSampler, out warnings);
-            }
-            else
-            {
-                // 🔁 **2026-10-29 评审 B-3 修复**:此前 `navSampler == null` 时**什么都不记**
-                //    ⇒ 「C3 没跑」与「C3 跑了且无告警」在报告上不可分。C1 / C2 / C2' 三处早已有
-                //    `NotRun` 登记,**C3 是唯一漏的**. 补齐,使四条的「未跑」口径一致。
-                notRun.Add("C3 导航格 ↔ NavMesh —— 未提供 NavMesh 采样器(本关卡无 NavMesh 输入)");
+                NavMeshConsistencyCheck.TryCheck(src, navSampler, out List<string> c3);
+                warnings.AddRange(c3);
+                return;
             }
 
-            // ── C2 可走性同源(**硬失败**,2026-10-29 story-006 起已实现)────────────────
+            // 🔁 **2026-10-29 评审 B-3 修复**:此前 `navSampler == null` 时**什么都不记**
+            //    ⇒ 「C3 没跑」与「C3 跑了且无告警」在报告上不可分。C1 / C2 / C2' 三处早已有
+            //    `NotRun` 登记,**C3 是唯一漏的**. 补齐,使四条的「未跑」口径一致。
+            notRun.Add("C3 导航格 ↔ NavMesh —— 未提供 NavMesh 采样器(本关卡无 NavMesh 输入)");
+        }
+
+        // ── C2 可走性同源(**硬失败**,2026-10-29 story-006 起已实现)────────────────────
+        /// <summary>C2 的落点。两侧缺任一侧 ⇒ `NotRun`,**不冒充绿**。</summary>
+        private static void CheckWalkability(LevelSource src, LatticeEngineParams? engineParams,
+            List<string> violations, List<string> notRun)
+        {
             // ⚠️ 没有引擎侧输入 ⇒ `NotRun`,**不冒充绿**:C2 的整个语义是「两侧比一比」,
             //    只有一侧时「通过」这个结论根本不存在。
-            if (engineParams.HasValue)
-            {
-                // 🔁 **2026-10-29 评审 B-2 修复**:此前只有「引擎侧缺失」登记 `NotRun`,
-                //    而**烘焙侧缺失**(`src.Terrain == null`)会走到 `WalkabilityParityCheck` 的
-                //    `if (terrain == null) return true` ⇒ 既不判红也不记 `NotRun` ⇒ **静默绿**。
-                //    两侧缺任何一侧都是「没跑」,口径必须对称。
-                if (src.Terrain == null)
-                {
-                    notRun.Add("C2 可走性同源 —— 本关卡未声明地形(`world_terrain`)," +
-                               "烘焙侧无值可比;引擎侧参数已提供但不构成一次比对");
-                }
-                else
-                {
-                    // ⚠️ `TryCheck` 的返回值是「**无违例**」;这里**不看**它 —— 只看它填出来的列表。
-                    //    (首版写成 `if (TryCheck(...)) AddRange(...)`,即「无违例时把空表加进去」
-                    //     ⇒ 有违例时一条都不加 ⇒ C2 恒绿。夹具当场抓到,记于此。)
-                    WalkabilityParityCheck.TryCheck(src.Terrain, engineParams.Value, out List<string> c2);
-                    violations.AddRange(c2);
-                }
-            }
-            else
+            if (!engineParams.HasValue)
             {
                 notRun.Add("C2 可走性同源 —— 未提供引擎侧 `CharacterController` 参数" +
                            "(编辑期无 prefab / 场景实例;玩家对象由 BootRoot 运行期创建)");
+                return;
             }
 
-            // ── C2' 模板 collider 足迹同源(**硬失败**,同上)──────────────────────────
-            if (src.ModuleFootprints != null && src.ModuleFootprints.Count > 0)
+            // 🔁 **2026-10-29 评审 B-2 修复**:此前只有「引擎侧缺失」登记 `NotRun`,
+            //    而**烘焙侧缺失**(`src.Terrain == null`)会走到 `WalkabilityParityCheck` 的
+            //    `if (terrain == null) return true` ⇒ 既不判红也不记 `NotRun` ⇒ **静默绿**。
+            //    两侧缺任何一侧都是「没跑」,口径必须对称。
+            if (src.Terrain == null)
             {
-                int stepMm = src.Terrain != null ? src.Terrain.StepOffsetMm : 0;
-                bool ok = ColliderFootprintCheck.TryCheck(
-                    src.ModuleFootprints, stepMm, moduleCatalog, out List<string> c2p, out bool fpSkipped);
-                if (!ok) violations.AddRange(c2p);
-                if (fpSkipped)
-                    notRun.Add("C2' 足迹一致性 —— 未提供模块目录(`IModuleCatalog`),只跑了「高 collider」半边");
+                notRun.Add("C2 可走性同源 —— 本关卡未声明地形(`world_terrain`)," +
+                           "烘焙侧无值可比;引擎侧参数已提供但不构成一次比对");
+                return;
             }
-            else
+
+            // ⚠️ `TryCheck` 的返回值是「**无违例**」;这里**不看**它 —— 只看它填出来的列表。
+            //    (首版写成 `if (TryCheck(...)) AddRange(...)`,即「无违例时把空表加进去」
+            //     ⇒ 有违例时一条都不加 ⇒ C2 恒绿。夹具当场抓到,记于此。)
+            WalkabilityParityCheck.TryCheck(src.Terrain, engineParams.Value, out List<string> c2);
+            violations.AddRange(c2);
+        }
+
+        // ── C2' 模板 collider 足迹同源(**硬失败**,同上)────────────────────────────────
+        /// <summary>C2' 的落点。未声明足迹 / 未给模块目录的两半各自登记 `NotRun`。</summary>
+        private static void CheckColliderFootprints(LevelSource src, IModuleCatalog moduleCatalog,
+            List<string> violations, List<string> notRun)
+        {
+            if (src.ModuleFootprints == null || src.ModuleFootprints.Count == 0)
             {
                 notRun.Add("C2' 模板 collider 足迹同源 —— 本关卡未声明模块足迹(模块 prefab 归 23 素材轮)");
+                return;
             }
 
-            // ── C1 两层漂移(**告警**,同上)──────────────────────────────────────────
+            int stepMm = src.Terrain != null ? src.Terrain.StepOffsetMm : 0;
+            bool ok = ColliderFootprintCheck.TryCheck(
+                src.ModuleFootprints, stepMm, moduleCatalog, out List<string> c2p, out bool fpSkipped);
+            if (!ok) violations.AddRange(c2p);
+            if (fpSkipped)
+                notRun.Add("C2' 足迹一致性 —— 未提供模块目录(`IModuleCatalog`),只跑了「高 collider」半边");
+        }
+
+        // ── C1 两层漂移(**告警**,同上)──────────────────────────────────────────────
+        /// <summary>C1 的落点。与本文件其余告警同列进 <paramref name="warnings"/>。</summary>
+        private static void CheckLayerDrift(LevelSource src, List<string> warnings, List<string> notRun)
+        {
             // ⚠️ 返回值是「跑没跑」不是「绿没绿」—— 没跑就没跑,不许落成一条空告警。
-            if (LayerDriftCheck.TryCheck(src, src.VisualLayer, out List<string> c1))
-            {
-                if (c1.Count > 0)
-                {
-                    if (warnings == null) warnings = new List<string>();
-                    warnings.AddRange(c1);
-                }
-            }
-            else
+            if (!LayerDriftCheck.TryCheck(src, src.VisualLayer, out List<string> c1))
             {
                 notRun.Add("C1 两层漂移 —— 本关卡未声明视觉层(今日全库零视觉层资产)");
+                return;
             }
 
-            return new CheckReport(violations, UnimplementedChecks, warnings, notRun);
+            warnings.AddRange(c1);
         }
 
         /// <summary>跑检查并在任一硬失败时 `throw`(ADR-022 §②:构建期失败通道,非 `Debug.Assert`)。</summary>
