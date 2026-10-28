@@ -189,8 +189,14 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             var player = asset.actionMaps.First(m => m.name == "Player");
             var ui = asset.actionMaps.First(m => m.name == "UI");
 
+            // 🔁 **2026-10-28(S20-19)**:原期望 8 项,本批追加 4 个建造动作
+            //    (`Build` / `BuildPlace` / `BuildRotate` / `BuildRemove`)—— 兑现 `O-23-6`
+            //    的输入侧半边(原「42 补建造交互规格」)。GDD `input-system.md` 规则二表
+            //    同批追加四行;本断言随之扩列,**判据性质不变**(仍是「Player map 动作清单
+            //    恰如 GDD 表」的穷举比对,不是「至少包含」)。
             Assert.That(player.actions.Select(a => a.name).ToArray(),
-                Is.EqualTo(new[] { "Move", "Look", "Sprint", "Jump", "Interact", "Emergency", "Attack", "OpenInventory" }),
+                Is.EqualTo(new[] { "Move", "Look", "Sprint", "Jump", "Interact", "Emergency", "Attack", "OpenInventory",
+                                   "Build", "BuildPlace", "BuildRotate", "BuildRemove" }),
                 "规则二:Player map 动作清单(GDD 表)");
             Assert.That(ui.actions.Select(a => a.name).ToArray(),
                 Is.EqualTo(ExpectedUiActionNames),

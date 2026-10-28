@@ -15,7 +15,18 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Sim.World
 {
     /// <summary>世界状态(组合 Nav + Overlay)。</summary>
-    public sealed class World : IWorldOccupancy
+    /// <remarks>
+    /// <para>🔁 <b>2026-10-28(S20-19)</b>:除写面 <see cref="IWorldOccupancy"/> 外,
+    /// 另实现**读面** <see cref="IOccupancyQuery"/> —— 它此前**零生产实现**
+    /// (只有测试替身),而 <see cref="PlaceableChecker"/> / <see cref="DemolishChecker"/> /
+    /// <see cref="ModifiableChecker"/> 三个判定器都吃它 ⇒ 42 的建造发起方一接线就会撞上
+    /// 「判定器无生产构造点」。本类已有 <see cref="IsSlotOccupied"/>(同一判据),
+    /// 显式实现只是**把既有能力接到接口上**,零新增逻辑、零新增状态。</para>
+    /// <para>⚠️ 刻意用**显式接口实现**:`IsOccupied` 这个名字对 `World` 的读者不如
+    /// `IsSlotOccupied` 准确(它问的是「槽位占用表」,不是泛化的「占用」);
+    /// 显式实现让两个名字并存而不互相冒充。</para>
+    /// </remarks>
+    public sealed class World : IWorldOccupancy, IOccupancyQuery
     {
         private readonly WorldGeometry _geometry;               // 静态几何(ADR-015)
         private readonly StructureInstanceRegistry _structures; // 结构实例表(派生态)
@@ -64,6 +75,16 @@ namespace DaYiJingCheng.Sim.World
                 return false;
             return _slotOccupied[idx];
         }
+
+        /// <summary>
+        /// <see cref="IOccupancyQuery"/> 的实现 —— 与 <see cref="IsSlotOccupied"/> **同一判据**
+        /// (S20-19 · 2026-10-28)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 越界返回 false(与 <see cref="IsSlotOccupied"/> 一致,fail-closed)。
+        /// 判定器侧的 `OutOfRegion` 条件会先拦掉越界格,本处不重复判。
+        /// </remarks>
+        bool IOccupancyQuery.IsOccupied(WorldPos cell) => IsSlotOccupied(cell);
 
         /// <summary>获取占用表(用于合成 EffectiveWalkable)。</summary>
         public IReadOnlyList<bool> GetOccupancyArray()

@@ -59,6 +59,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
         private InteractionInputDriver _interactionDriver;
+        private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
         /// <summary>官方 UI 输入桥宿主(B-6-1)。<see cref="EnsureEventSystem"/> 建或复用;
         /// 面板 <c>selectableGameObject</c> 就绪后由 <see cref="BootstrapEventSystemSelection"/> 选中。</summary>
@@ -351,6 +352,32 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 登记后玩家才「是玩家」。⚠️ 只登记**本机玩家自己**的 id ——
             // 联机远端玩家的 id 归 45 的会话建立轮(ADR-001 第二 QoS 上行)。
             _services.PlayerActors.Register(actorId);
+
+            // ── 4.45. 建造发起方接线(S20-19 · 2026-10-28)────────────────────────
+            // 三条后置绑定(与 SetAuthor / SetViewer / BindPlayer 同格 —— actorId 在
+            // `Assemble` 之后才铸造,装配期拿不到):
+            //   ① 扣料归属 = 本机玩家(P0 甲案:建造扣料恒归唯一玩家);
+            //   ② 取格委托 = `PlayerController.Cell`(**唯一**量化器 `CellFromPosition`);
+            //   ③ 落流回调 = 重建库存投影(`StructurePlaced` 的扣减在 fold 里,不重建读不到新余量)。
+            //
+            // ⚠️ **默认幽灵模块 = 目录里 id 最小的那个** —— 玩家选料界面(42 的幽灵循环选择)
+            //   本批**未落地**,`SelectedModuleId` 是留给它的接缝。此默认值只为让
+            //   「按键 → 判定 → 落流」这条链在真实运行时可走通,不是设计决定。
+            var build = _services.BuildController;
+            if (build != null)
+            {
+                build.BindOwner(actorId);
+
+                int defaultModule = int.MaxValue;
+                foreach (int id in build.ModuleIds)
+                    if (id < defaultModule) defaultModule = id;
+
+                _buildDriver = new BuildInputDriver(
+                    build,
+                    () => _player != null ? _player.Cell : default,
+                    onCommitted: () => _services.InventoryLoad?.Rebuild());
+                _buildDriver.SelectedModuleId = defaultModule == int.MaxValue ? -1 : defaultModule;
+            }
 
             // 52 出诊启动接线(2026-10-25 接线轮):玩家 id 铸造后晚绑定到导演主循环壳
             // (id 在装配之后才生成 ⇒ 后置形态,承 NoPendingMedicalActionQuery.Bind 先例;
@@ -983,6 +1010,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 本 tick 的在场集+视觉位置;换热须已本 tick Step),拟物 UI 刷新之前
             // (查体后本帧即见值区有词)。
             _interactionDriver?.OnFrame();
+
+            // 建造输入(S20-19 · 2026-10-28):B 开关 / Enter 放置 / R 旋转 / Delete 拆除。
+            // ⚠️ 紧跟交互驱动:两者都读设备按下沿,互不依赖;建造在**非建造模式**下是纯 no-op。
+            _buildDriver?.OnFrame();
 
             // 听诊精度档位(B 轮 2026-10-20):**按帧**推 ramp(档变才 SetTargets;未接 table ⇒ null)。
             // ⚠️ 不挂 tick 边沿 —— ramp 是逐帧平滑(GDD F-44.1 注 ≥ 50 ms),tick 边沿 20 Hz 会跳。

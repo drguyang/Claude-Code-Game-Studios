@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
+using DaYiJingCheng.Gameplay.Presentation.Building;   // BuildController / BuildStockQuery / BuildOwnerSlot(S20-19)
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
@@ -842,6 +843,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             ClinicRoomMatchingService clinicRoomMatching = null;
             StructureWriter structureWriter = null;
+            BuildController buildController = null;      // S20-19:42 的建造发起方(null ⇔ 无世界)
             if (structures != null)
             {
                 BuildModulesDataSet buildModules = dataProvider != null
@@ -887,6 +889,40 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ 本类**只解码**;重放本体在 `Sim` 的 `StructureRestorer`(`Sim` 够不着 codec,
                     //    承 ADR-025 §① / ADR-029 甲案)。两层分工见 `WorldLoadService` 类头注。
                     worldLoad = new WorldLoadService(() => stream.Events, decoder, world, modulesCatalog);
+
+                    // ── 42 建造发起方接线(S20-19 · 2026-10-28)──────────────────────
+                    // 病因:`StructureWriter` 自 S20-17 起已装配,但**没有任何生产代码调用它**
+                    //   (`grep -rn "\.Place(" unity/Assets --include=*.cs | grep -v /Tests/` ⇒ 0)
+                    //   ⇒ 生产流永不含 `StructurePlaced` ⇒ S20-18 的世界重放器在生产上恒空跑。
+                    //   同时 `PlaceableChecker` / `DemolishChecker` / `ModifiableChecker` 三个判定器
+                    //   **零生产构造点**,`IStockQuery` 与 `IOccupancyQuery` 亦零生产实现。
+                    //
+                    // ⚠️ **owner 晚绑定**:玩家 actorId 在 `Assemble` 之后才由 `IIdAuthority` 铸造
+                    //   (`BootRoot.cs:346`)⇒ 传 int 会恒为 -1。`BuildOwnerSlot` 让
+                    //   `BuildController` 与 `BuildStockQuery` **共享同一个值**,绑定漏一处即分叉。
+                    //
+                    // ⚠️ **投影现取,不缓存**:投影是派生态(ADR-009 §一);`StructurePlaced` 的
+                    //   材料扣减在 fold 里,缓存一份 = 第二真源。
+                    var buildOwner = new BuildOwnerSlot();
+                    Func<InventoryProjection> buildProjection = () =>
+                    {
+                        // 首次查询前投影可能尚未建立(BootRoot 只在读档钩子里 Rebuild)——
+                        // 此处按需建一次。`Rebuild` 是 InventoryLoadService 的**唯一**重建入口。
+                        if (inventoryLoad.Current == null) inventoryLoad.Rebuild();
+                        return inventoryLoad.Current.Projection;
+                    };
+
+                    var buildStock = new BuildStockQuery(buildProjection, modulesCatalog, buildOwner);
+                    var placeableChecker = new PlaceableChecker(
+                        world.SlotCatalog, modulesCatalog, buildStock, world, presence);
+                    var demolishChecker = new DemolishChecker(structures, world, presence, modulesCatalog);
+                    var modifiableChecker = new ModifiableChecker(
+                        world.SlotCatalog, world, modulesCatalog, structures);
+
+                    buildController = new BuildController(
+                        placeableChecker, demolishChecker, modifiableChecker,
+                        structureWriter, structures, modulesCatalog,
+                        buildProjection, () => tickDriver.CurrentTick, buildOwner);
                 }
                 // ⚠️ **只传 structures 不传 world ⇒ 无结构写者**:写者的 `occupancy` 与
                 //    `registry` 必须指向**同一个**世界(占用表与世界注册表分叉 = C1/C2 复现)。
@@ -1232,7 +1268,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 🔁 2026-10-28 S20-18:世界读档重建服务。
                                                // 与 `world` **同 null 性**(无世界即无从重建),
                                                // 且只在 `world != null` 的支路里构造 —— 见上方。
-                                               worldLoad);
+                                               worldLoad,
+                                               // 🔁 2026-10-28 S20-19:42 的建造发起方。
+                                               // 与 `world` **同 null 性**(无世界即无槽位/占用/写者),
+                                               // 且只在 `world != null` 的支路里构造 —— 见上方。
+                                               buildController);
         }
 
         /// <summary>

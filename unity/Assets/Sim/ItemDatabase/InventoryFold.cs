@@ -331,6 +331,17 @@ namespace DaYiJingCheng.Sim
         /// <summary>按实例 id 查行。</summary>
         public bool TryGet(long instanceId, out InventoryRow row) => _byInstance.TryGetValue(instanceId, out row);
 
+        /// <summary>
+        /// 行表的**程序集内**只读视图(S20-19 · 2026-10-28)。
+        /// <para>用途单一:<see cref="DaYiJingCheng.Sim.World.BuildMaterialPlanner"/> 的选料算法
+        /// 要与 fold 内部的重建路径**共用同一份行表**,避免把投影再摊一遍(两份行表 = 两份真值切点)。
+        /// </para>
+        /// <para>⚠️ <b>`internal` 是刻意的</b>:它不是新的公开读面 —— 公开面仍是
+        /// <see cref="TryGet"/> / <see cref="InstancesOf"/> / <see cref="CanonicalForm"/>。
+        /// 暴露成 public 会让外部持有可变字典的引用(本类是「只读投影」的承诺)。</para>
+        /// </summary>
+        internal IReadOnlyDictionary<long, InventoryRow> Rows => _byInstance;
+
         /// <summary>某持有者名下的实例 id 集(**按 `instance_id` 升序** —— 换页 / 摆放序都读这一序)。
         /// 无实例时返回空数组(非 null)。</summary>
         public IReadOnlyList<long> InstancesOf(int owner)
@@ -955,45 +966,30 @@ namespace DaYiJingCheng.Sim
 
             if (need <= 0) return;      // cost 为 0 的模块不扣料(目录 AC 已约束 cost ≥ 1,流里出现 0 不扣也不错)
 
-            // ── 规则六兜底序:同 item_key 多栈按 instance_id 升序
-            List<long> candidates = OwnedIdsOf(rows, owner, itemOrdinal);
-            int available = 0;
-            for (int i = 0; i < candidates.Count; i++) available += rows[candidates[i]].Qty;
+            // ── 规则六兜底序(同 item_key 多栈按 instance_id 升序)────────────────
+            // 🔁 **2026-10-28(S20-19)**:选料算法改为**唯一实现点**
+            //    `BuildMaterialPlanner.Plan` —— 建造的**写前**路径(`BuildController.TryPlace`)
+            //    用的是同一函数。两条路径各写一份贪心 ⇒ 分歧时「主机验过 X 份、fold 扣了 Y 份」,
+            //    而两边测试各自全绿(静默的材料凭空增减)。本行起两处同源。
+            // ⚠️ 语义逐字不变:候选集 = 同 owner + 同 ordinal + qty > 0;不够则**整手不扣**。
+            BuildMaterialPlan plan = BuildMaterialPlanner.Plan(owner, itemOrdinal, need, rows);
 
-            if (available < need)
+            if (!plan.IsComplete)
             {
                 gaps.Add(Gap(InventoryFoldGapKind.BuildCostExceedsHolding, kind, at, 0L,
                     "structure_id=" + p.StructureId + " 需 " + need + " 份 item_key=" + itemOrdinal +
-                    ",而 actor=" + owner + " 名下只有 " + available + " 份 —— " +
+                    ",而 actor=" + owner + " 名下只有 " + plan.AvailableQty + " 份 —— " +
                     "主机应整体拒绝、世界流零事件;流里出现即畸形"));
                 return;
             }
 
-            int remaining = need;
-            for (int i = 0; i < candidates.Count && remaining > 0; i++)
+            for (int i = 0; i < plan.Lines.Length; i++)
             {
-                InventoryRow r = rows[candidates[i]];
-                int take = r.Qty < remaining ? r.Qty : remaining;
-                rows[candidates[i]] = new InventoryRow(r.InstanceId, r.ItemOrdinal, r.Quality,
-                    r.Qty - take, r.Owner);
-                remaining -= take;
+                ConsumeLine line = plan.Lines[i];
+                InventoryRow r = rows[line.InstanceId];
+                rows[line.InstanceId] = new InventoryRow(r.InstanceId, r.ItemOrdinal, r.Quality,
+                    r.Qty - line.Qty, r.Owner);
             }
-        }
-
-        /// <summary>收集某 actor 名下某 ordinal 的实例 id(**按 instance_id 升序**)。
-        /// 规则六的兜底序要求稳定序 ⇒ 显式排序,不靠字典枚举序。</summary>
-        private static List<long> OwnedIdsOf(Dictionary<long, InventoryRow> rows, int owner, int itemOrdinal)
-        {
-            var ids = new List<long>();
-            foreach (KeyValuePair<long, InventoryRow> kv in rows)
-            {
-                if (kv.Value.Owner != owner) continue;
-                if (kv.Value.ItemOrdinal != itemOrdinal) continue;
-                if (kv.Value.Qty <= 0) continue;
-                ids.Add(kv.Key);
-            }
-            ids.Sort();
-            return ids;
         }
 
         /// <summary>把行表摊成投影(含按持有者的升序视图)。归零行不出投影。</summary>

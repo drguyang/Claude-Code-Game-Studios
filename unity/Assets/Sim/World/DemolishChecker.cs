@@ -28,6 +28,15 @@ namespace DaYiJingCheng.Sim.World
     /// <summary>拆除合法性判定器。</summary>
     public sealed class DemolishChecker
     {
+        /// <summary>
+        /// `DEMOLISH_REFUND_RATIO` 的 **P0 值**(Q16.16 raw,= 1.0 = 全额返还)。
+        /// <para>🔁 <b>2026-10-28(S20-19)新增</b>:该值此前只以**注释**和测试里的
+        /// 字面量 `65536` 存在(`demolish_refund_from_catalog_test.cs:32` 等),
+        /// 生产侧**零具名定义** —— 42 的建造发起方一接线就要传它,没有常量就只能抄魔数。
+        /// 本常量是它的**唯一出处**;P1a 若引入折扣返还,改这里(且须同步 GDD 规则九)。</para>
+        /// </summary>
+        public const int P0DemolishRefundRatio = 65536;
+
         private readonly StructureInstanceRegistry _registry;
         private readonly IOccupancyQuery _occupancyQuery;
         private readonly IPresenceQuery _presenceQuery;

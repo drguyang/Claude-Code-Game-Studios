@@ -760,3 +760,39 @@ B-2 / B-4 / B-6 的判据是**副作用**(调用次数 / 事件条数)⇒ 变异
 - `StructureWriter.Place` 的 `tick` 来源:须经 `ITickProvider.CurrentTick`(ADR-005 唯一时钟),不得读墙钟。
 - B-4 的「同一事务」判据须落到 `InventoryTransaction.Commit` 的实际调用点,不能只断言「两条事件都在流里」
   —— 后者对「分两次写」也成立(**假绿风险已预判**)。
+
+---
+
+#### 实施轮就地加注(2026-10-28 · **原文不删**)
+
+> 本节记录实施期实测与卡面原文的**四处不符**。卡面原文一律保留(可追溯);
+> 凡与原文冲突处,**本节为准**,判据以本节给出的载体计。
+
+| # | 卡面原文 | 实施期实测 | 处置(判据以右列为准) |
+|---|---|---|---|
+| ① | **B-4** 后半句:「足够 ⇒ **消耗事件**与 `StructurePlaced` **同一事务**落流」 | **前提错**。`InventoryFold.ApplyBuildCost`(`InventoryFold.cs:929`)已按 `cost(m)` 从 `StructurePlaced` **反推**扣减(2026-10-27 R16 甲案)⇒ 再写消耗事件 = **双重扣减**,玩家建一个花两份料 | 建造的**唯一**流事件 = 一条 `StructurePlaced`。判据改为:**恰一条** `StructurePlaced` + **零** `DropDespawned` + 同一批事件喂 fold 后材料**恰少 `cost(m)`(`build_controller_test.cs::test_acB4_foldDeductsCostFromSameStream`)** |
+| ② | **B-5** 「跨栈 ⇒ N 条相邻 `Seq`」 | 同上 —— 无消耗事件,故**无 `Seq` 可数** | 载体改为纯函数产出物 `BuildMaterialPlan.Lines`:「跨栈」= N 条 `ConsumeLine`;「升序」= **数组序**;「不重复点名」= 同一 `InstanceId` 只出现一次(`build_material_planner_test.cs`) |
+| ③ | **B-8** 「K&M + Gamepad **双绑重齐**」 | 既有门 `action_asset_identity_test::test_input_asset_structure_p0_actions_each_cover_three_binding_groups` 要求**三组齐**(K&M / Gamepad / **XR**) | 4 个新动作(`Build` / `BuildPlace` / `BuildRotate` / `BuildRemove`)各配**三组**;XR 物理键与 `Attack`(grip)/ `Emergency`(trigger)**重叠** ⇒ 登记为挂标 #9 |
+| ④ | **B-7** 「开 / 关建造模式前后 `IModalState.Modal` 恒 `None`」 | **不可执行**:全仓**无** `IModalState` 聚合器(闭集 `ModalId` 只有枚举 + 各屏自述,**无单一读面**) | 判据改为**源码面**:建造链条五文件**剥注释后**零 `IModalState` / `ModalId` 记号(`build_controller_test.cs::test_acB7_buildPath_hasNoModalDependency`)。语义等价 —— 「建造不占模态」的强形式即「建造链条够不着模态集」 |
+
+**「待实施期核的事项」三条的结案**:
+
+- `tick` 来源 ✅ —— `CompositionRoot.cs:925` 传 `() => tickDriver.CurrentTick`,`tickDriver` = `ITickProvider`;**零墙钟读取**。
+- B-4 的「同一事务」判据 ✅ —— 随 ① 作废(不存在第二笔事件);改由「fold 从同一条流反推扣减」承载,
+  它同时钉住了「写前判定」与「重建判定」**同源**。
+- 4 的交互系统实现状态 ✅ —— **未实现** ⇒ 挂标 #2 的措辞按「键位直绑」如实落(见下)。
+
+#### 挂标不记绿(实施轮**补 2 条**,合计 **9** 条,一条未勾)
+
+8. **`BuildSlotCatalog` 生产侧仍空** —— `RegisterSlot` **零生产调用点**,`MinimalWorldFactory.cs:99`
+   造的是**空目录** ⇒ 生产 `PlaceableChecker.Check` 恒 `SlotNotFound` ⇒ **玩家今天仍然建不了东西**。
+   本批兑现的是「**接线 0 → 1**」,不是「可玩」。解锁归关卡工具(ADR-022)导出 `buildslots` 烘焙产物。
+   ⚠️ 夹具用**测试侧注册的槽位**跑通全链 —— 那条路径在生产上**尚不可达**,不得读成「建造已可玩」。
+9. **XR 绑重物理键重叠** —— 见上表 ③;P0 无 VR 建造(用户裁定 ① 的平面范围),重绑归 P1a。
+
+**同批另补两条实现期事实(不改 AC,只登记)**:
+
+- **玩家选料界面未落地** —— `BuildInputDriver.SelectedModuleId` 的默认值 = 目录**最小 module id**;
+  「玩家选哪个模块 / 已解锁哪些」归 42 / 21a 的选料界面(本批不画)。
+- **建造输入不查模态开集** —— 全仓无 `IModalState` 聚合器可查(见 ④)⇒ `Enter` 可能与 UI 的
+  `Submit` 双触发。归 42 的模态聚合器落地轮。

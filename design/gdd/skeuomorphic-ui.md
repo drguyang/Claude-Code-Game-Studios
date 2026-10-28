@@ -1348,6 +1348,92 @@ N 个 draw call,且与其它 UI 的批次无法合并),UI 帧时间上升 ——
 | 「X/5 已查」计数 | 任何计数 | **空行本身就是答案**(有格线无字 = 未查) |
 | 敌人血条 | —— | **敌人有**黄铜质读数条(黄铜侧);主角**永远没有** |
 
+### 三之二、建造交互(2026-10-28 新增 —— 兑现 `O-23-6` 的 42 半边)
+
+> 权威:本节由 `modular-building.md:511` 的 `O-23-6`(42 补建造交互规格 ——
+> 手柄幽灵**循环**选择 + float→格 floor 量化器)驱动。实施轮 = `sprint-20` §十 S20-19。
+
+#### 一、建造 = **世界内操作态**,不是模态(论证)
+
+「建造」在 42 里**没有纸面载体** —— 它不是一张摊开的纸,而是一次**世界内的动作**
+(放下 / 转一下 / 拆掉)。由此三条判据同时成立:
+
+1. **不占 `ModalId`** —— 闭集维持 **7 员**,不新增「建造」档(`ADR-013 §十`)。
+   「建造模式」是玩家的**操作态**,不是界面状态。
+2. **不参与焦点单栈门** —— 建造链条**够不着**模态集与焦点控制器
+   (`BuildController` / `BuildInputDriver` 对 `IModalState` / `ModalId` 零引用;
+   `sprint-20` §十 S20-19 的 `AC B-7` 以源码面判据钉住)。
+3. **不进三流、不存档** —— `IsBuildMode` / `SelectedModuleId` / `Orientation`
+   全是**表现态**(`ADR-009 §四` 派生态)⇒ 读档后回到「非建造模式 + 默认朝向」
+   是**正确**行为,不是丢状态。
+
+> ⚠️ 与「拟物」的关系:不摊开界面**不等于**不拟物。建造的拟物面在**世界器物**上
+> (材料的堆叠、结构的实体感),不在纸面上 —— 与 `:1267` 的「非纸面进度归世界器物状态」同源。
+
+#### 二、手柄幽灵**循环**选择
+
+幽灵(待放置模块的预览)有两维可调,循环序是**整数四向**、**无指针依赖**:
+
+| 维度 | 循环序 | 触发 | 说明 |
+|---|---|---|---|
+| **朝向** | `0° → 90° → 180° → 270° → 0°` | `BuildRotate` 按下沿 | **当前格无结构**时循环幽灵朝向;末尾回绕 |
+| **朝向(已放置)** | 相对当前 +90° | `BuildRotate` 按下沿 | **当前格有结构**时转那个结构(两条分支**互斥**,判据 = 格上有没有结构) |
+
+- **为什么是循环而不是自由旋转**:手柄没有指针,连续角度在拟物语境里也不成立
+  (家具的榫卯按 90° 分档)。四向整数旋转同时是 `F-23-2b` 的判定域 ——
+  表现侧的循环序与判定侧的合法朝向集**同一集合**,不会出现「看得见转不到」的角度。
+- ⚠️ **模块选择尚未落地**(挂标):`SelectedModuleId` 今日默认取目录**最小 module id**;
+  「玩家选哪个模块 / 已解锁哪些」归 42 × 21a 的**选料界面**(本批不画)。
+
+#### 三、float→格量化器 = `CellTransitionDetector.CellFromPosition`(**单一实现点**)
+
+- 建造收的是**已量化**的整数格 `WorldPos`,由调用方经 `Func<WorldPos>` 供给;
+  生产面 = `PlayerController.Cell`(`PlayerController.cs:407`),其内部即
+  `CellTransitionDetector.CellFromPosition`(`Mathf.FloorToInt` 三轴)。
+- **`IPlayerMotor.cs:58` 逐字要求实现必须走该函数** ⇒ 建造取格与移动取格**同源**。
+- **全仓不得出现第二处 float→格 floor 转换**;建造链条(`Gameplay.Presentation/Building/**`
+  与 `Gameplay.Boot/BuildInput*.cs`)内出现 `Mathf.FloorToInt` / `RoundToInt` / `CeilToInt`
+  即违例(`sprint-20` §十 S20-19 的 `AC B-1`)。
+  ⚠️ `PlayerController.GetCell()`(`:378-380`,用 `Mathf.RoundToInt`)是**旧路径**,
+  **不得**被建造链引用(`PRE-S19-C` 约束 ②)。
+
+#### 四、动作与绑重(`ADR-011` action-based)
+
+| 动作 | 类型 | K&M | Gamepad | XR | 语义 |
+|---|---|---|---|---|---|
+| `Build` | Button | `B` | `start` | `primary2DAxisClick` | 开 / 关建造模式(边沿) |
+| `BuildPlace` | Button | `Enter` | `buttonEast` | `secondary2DAxisClick` | 在当前格放置 |
+| `BuildRotate` | Button | `R` | `rightShoulder` | `grip` | 循环朝向 / 转结构 |
+| `BuildRemove` | Button | `Delete` | `leftShoulder` | `trigger` | 拆除当前格结构 |
+
+- **三组绑重齐**是既有门的硬要求(`action_asset_identity_test` 的 P0 动作覆盖判据)——
+  不得只配 K&M + Gamepad。
+- ⚠️ **XR 物理键与 `Attack`(grip)/ `Emergency`(trigger)重叠** —— P0 无 VR 建造
+  (用户裁定 ① 的平面范围),重绑归 **P1a**。
+- ⚠️ **建造输入不查模态开集** —— 全仓今日**无**「是否有模态摊开」的聚合读面
+  (`IModalState` 是逐屏自述,无聚合器)⇒ `Enter` 可能与 UI 的 `Submit` 双触发。
+  修法 = 42 的模态聚合器落地轮,本批不新造(那会越权改焦点单栈门)。
+
+#### 五、拒绝原因的呈现(**只留枚举,不画提示**)
+
+| 判定结果 | 42 的呈现义务(本批) | 呈现归属(后续) |
+|---|---|---|
+| `SlotNotFound` / `TypeMismatch` / `OutOfRegion` | 只把结果码交给调用方 | 幽灵的**红/灰**态归 42 视觉轮 |
+| `Occupied` / `EntityOnCell` | 同上 | 同上 |
+| `ModuleNotFound` / `InsufficientStock` | 同上 | 「材料不够」的**物性**表达(不是数字角标)归 42 视觉轮 |
+| `StructureNotFound` / `ShellNotRemovable` / `InventoryFull`(拆除) | 同上 | 同上 |
+
+> **铁律不变**:拒绝原因**不得**用计数 / 百分比 / 数字角标表达
+> (`§三 无血条 / 无小地图的替代反馈`);材料不足的可见面是**纸上墨迹的深浅**与
+> **堆叠的厚薄**,不是「3/4」。
+
+#### 六、本节的挂标(不记绿)
+
+1. **幽灵预览零渲染** —— 用户裁定 ①:本节只定义**量化结果 + 合法性**的接口,不画材质 / 不画 world-space 标记。
+2. **模块选择界面未落地** —— 见 §二 的 ⚠️。
+3. **拒绝原因的可视化** —— 见 §五,本批只留枚举。
+4. **建造音效 / cue** 归 44(本节不出 cue 表)。
+
 ### 四、无障碍(接口在 P0,**具体要求在 P2**)
 
 - 四处**接口**必须在 P0 存在(见 §Detailed Design 规则十):焦点元素命名挂点 · 文本缩放主题变量层 · 焦点可见样式契约 · **动效缩放挂点**。

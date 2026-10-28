@@ -154,6 +154,16 @@ D-A 裁定:**意图不驱动移动**)。
 | `PagePrev` / `PageNext` | `Button` | ✅ | 42 / 39 / **20** | 翻页(脉案 · 病名册 · **药箱末页**,BL-3)。**2026-09-25 R8 回写**:20 补入消费者 —— 20 的箱内翻页经 42 焦点头投递本动作(`inventory-and-items.md` R8;`AC-20-20` 手柄遍历全箱自此有 3 侧载体,`inventory-container-20.md` `[L]` 走查条的 R8 半边解除;R9(页可见集归 42)仍开放) |
 | `OpenInventory` | `Button` | ✅ | **20** | **评审后结清**:20 库存与物品**本就是 P0 Core**(`systems-index.md:54/477`)⇒ 动作归 20 |
 | `Attack` | `Button` | ✅ | **25** | **出手意图(2026-09-18 由 25 二轮回填,义务 R19b —— 此前 25:136 断言「Player = 3 的一个 action」而本表 11 行无载体 ⇒ 单机 P0 无法触发 25)**。语义归 25(规则〇):**按住连发 = 每 tick 一个新意图**,各自过占用门,不缓存不排队;**走普通 action 回调路径**,**不进急救直读通道**(`Armed` 期归 10 预约,`TR-concept-007` 预算不挪用 —— 25 §6.6 T1 二轮裁定 [甲])。本地起播判据 = 回调即在输入 poll 帧起播 clip(25 侧 AC,非 3 侧) |
+| `Build` | `Button` | ✅ | **42** | **建造模式开关(2026-10-28 S20-19 回填)**。语义归 42(`skeuomorphic-ui.md` §UI Requirements 三之二「建造交互」):**建造 = 世界内操作态,不占 `ModalId`**(闭集维持 7 员)。边沿触发;退出时清各动作边沿。K&M `B` · Gamepad `start` · XR `primary2DAxisClick` |
+| `BuildPlace` | `Button` | ✅ | **42** | **在当前整数格放置选中模块**(同上批)。判定归 23(`PlaceableChecker` 五条件),编排归 42,落流归 23(`StructureWriter`)。K&M `Enter` · Gamepad `buttonEast` · XR `secondary2DAxisClick` |
+| `BuildRotate` | `Button` | ✅ | **42** | **循环幽灵朝向 / 转已放置结构**(同上批)。**两条分支互斥**,判据 = 当前格上有没有结构;循环序 `0→90→180→270→0`(整数四向,与 `F-23-2b` 的合法朝向集**同一集合**)。K&M `R` · Gamepad `rightShoulder` · XR `grip` |
+| `BuildRemove` | `Button` | ✅ | **42** | **拆除当前格结构**(同上批)。判定归 23(`DemolishChecker`),返还由 23 发 `DropSpawned`。K&M `Delete` · Gamepad `leftShoulder` · XR `trigger` |
+
+> ⚠️ **2026-10-28 补注(建造四动作的三条已知边界)**:① **三组绑重齐**(K&M / Gamepad / XR)
+> 是既有门的硬要求,不得只配前两组;② **XR 物理键与 `Attack`(grip)/ `Emergency`(trigger)重叠**
+> —— P0 无 VR 建造,重绑归 **P1a**;③ **建造输入不查模态开集**(全仓无 `IModalState` 聚合器)⇒
+> `Enter` 可能与 UI `Submit` 双触发,修法归 42 的模态聚合器落地轮。三条均登记在
+> `sprint-20` §十 S20-19 的「挂标不记绿」。
 
 > **`Emergency` 的表达力缺口(评审登记 —— 这是本 GDD 最重的一条实质债)**:
 > 初稿写 `Button(hold)`,而 **P0 的那两个动作恰好是它表达不了的** ——

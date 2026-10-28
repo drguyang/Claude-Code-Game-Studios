@@ -1,0 +1,318 @@
+{
+  "name": "S20-19 42 建造发起方接线 —— 选料 / 编排 / 副作用 / 装配 / 动作资产(AC B-1…B-9)",
+  "mode": "EditMode",
+  "filter": "BuildMaterialPlannerTest;BuildStockQueryTest;BuildControllerTest;test_input_asset_structure_p0_actions_each_cover_three_binding_groups",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **15 条变异,不是卡面写的 9 条(B-1…B-9)** —— 理由 = **一属性一条变异**:",
+    "   B-4 是**两个正交属性**(不足 ⇒ 零副作用 / 足够 ⇒ 恰一条事件),B-5 是**六个正交属性**",
+    "   (升序 / 跨栈条数 / 不重复点名 / 不足整手拒 / owner 过滤 / 零行契约),B-6 是两条(拒 ⇒ 零副作用 / 可拆 ⇒ 返还)。",
+    "   一条变异证不了两个属性 ⇒ 9 条撑不住,故 15 条。",
+    "⚠️ **B-1 / B-7 是源码面门**,故变异形态 = **在源码里注入被禁记号**(真调用 / 字符串字面量),",
+    "   而不是改判定逻辑 —— 门的判据就是「记号是否出现」。",
+    "⚠️ **B-6 的「拒 ⇒ 零副作用」半边无独立变异**:`StructureWriter.Remove` 自身对未知 id 返回 false 且**不发事件**,",
+    "   所以「判定器放行 + 写者兜底」与「判定器拒绝」在副作用上不可分。该半边的判别力因此落在",
+    "   `test_acB6_removeUnknownId` 的**返回值断言**上,本文件如实不为其编造变异(禁借绿)。",
+    "⚠️ **M11 打的不是 `if (need <= 0)` 早退分支** —— 该分支与通用路径行为等价(见 M11 的 _expectRed_justification),",
+    "   无可证伪性;M11 打的是它承诺的**可观测契约**(零行)。",
+    "⚠️ **M15 改的是资产文件**(`.inputactions`),Unity 导入期可能重排该文件 —— 驱动在 Unity 退出后按原字节还原并做 SHA-256 校验;",
+    "   若退出码 3 说明还原失败,须人工介入(不得跳过)。",
+    "⚠️ **第二轮订正(2026-10-28,主轮 7 exact + 5 超集 + 3 逃逸)**:每条被改动的变异都带 `_round1_expectRed` / `_round1_result` / `_round1_note` 三个字段,**原预期与改因逐字保留**。三类根因:① M3 = 变异过宽(花括号截断了成功路径)⇒ 收窄;② M5 / M11 / M15 = 变异打错靶或预期推错 ⇒ 改靶 / 删预期 / 改 `groups` 字段;③ M6 / M8 / M9 / M10 = 预期写窄 ⇒ 补上各变异的真实后果。新增 M5b 作负对照(预期零红),机械证明 step② 的守卫与 step① 冗余。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-B1-requantize",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 133,
+      "expect": "            PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);",
+      "replace": "            int _falsifyQ = UnityEngine.Mathf.FloorToInt(0f); PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);",
+      "expectRed": [
+        "test_acB1_buildPath_doesNotReQuantizeCells"
+      ],
+      "exactRed": true,
+      "_why": "B-1 的判据 = 建造链条源码面零 `Mathf.*ToInt`。在 `TryPlace` 里插一处真量化 ⇒ 扫描面命中 ⇒ 门红。",
+      "_expectRed_justification": "全量 3 个夹具里只有 `test_acB1` 扫源码面;另两条门(`acB7` 扫 `IModalState`)与本变异无交集。`Gameplay.Presentation.asmdef` 的 `noEngineReferences: false` ⇒ `UnityEngine.Mathf` 全限定名可解析,不会因缺 using 而编译失败。"
+    },
+    {
+      "name": "M2-B7-modalToken",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 133,
+      "expect": "            PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);",
+      "replace": "            const string _falsifyModal = \"IModalState\"; PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);",
+      "expectRed": [
+        "test_acB7_buildPath_hasNoModalDependency"
+      ],
+      "exactRed": true,
+      "_why": "B-7 的判据 = 建造链条剥注释后零 `IModalState` / `ModalId` 记号。注入一个**字符串字面量**(`StripComments` 保留字符串内容)⇒ 门红。",
+      "_expectRed_justification": "只有 `test_acB7` 扫 `IModalState`/`ModalId`。局部 `const string` 合法且不产生编译错误;`acB1` 扫的是 `Mathf.*ToInt`,与 `IModalState` 无交集。"
+    },
+    {
+      "name": "M3-B2-sideeffectOnRejectPath",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 133,
+      "expect": "            PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);",
+      "replace": "            PlaceableResult check = _placeable.Check(moduleId, anchor, orientation); if (check != PlaceableResult.Success) { _writer.Place(anchor, moduleId, orientation, variant, _tick()); }   // FALSIFY-M3:拒绝分支内写",
+      "expectRed": [
+        "test_acB2_placeOnNonSlotCell_returnsSlotNotFoundWithZeroSideEffects",
+        "test_acB2_placeOnOccupiedCell_returnsOccupiedWithZeroSideEffects",
+        "test_acB2_placeWithUnboundOwner_isInsufficientWithZeroSideEffects",
+        "test_acB4_insufficientMaterial_rejectsWithoutTouchingWriter"
+      ],
+      "exactRed": true,
+      "_why": "B-2 的判据 = 判定不过时写者**零调用**。变异在 `Check` 之后、**拒绝分支内**加一次 `Place` ⇒ 返回值不变(仍返回原判),但世界流 +1、id 高水位 +1 ⇒ 只有副作用判据能抓。",
+      "_expectRed_justification": "四条都先过 ①(槽位/占用/库存门)再被拒:`SlotNotFound` / `Occupied` / `InsufficientStock`(未绑定 owner 与材料不足都走条件⑤)⇒ 全部走到变异点。其余用例要么直接成功(不经过拒绝分支),要么在 `DemolishChecker` 一侧(不受影响)。第 135 行 `return check;` 变成不可达 ⇒ 仅 CS0162 警告,不是错误。",
+      "_round1_expectRed": [
+        "test_acB2_placeOnNonSlotCell_returnsSlotNotFoundWithZeroSideEffects",
+        "test_acB2_placeOnOccupiedCell_returnsOccupiedWithZeroSideEffects",
+        "test_acB2_placeWithUnboundOwner_isInsufficientWithZeroSideEffects",
+        "test_acB4_insufficientMaterial_rejectsWithoutTouchingWriter"
+      ],
+      "_round1_result": "超集(预期 4 红 / 实得 9 红)",
+      "_round1_note": "⚠️ **主轮该变异过宽,已收窄(2026-10-28)**。原变异把 134 行改成 `if (cond) { Place(...); return check; }` —— 但 135 行 `return check;` 原本是**无花括号 if 的语句体**,加了花括号后它变成**无条件执行** ⇒ 成功路径也被截断,`_writer.Place`(146 行)永不执行 ⇒ 多红 5 条(B3 / B4 两条 / B6 / rotate)。那不是判别面不清,是**变异打出了第二个效果**。现改为在 133 行尾部追加一个独立的 if,134/135 原样不动 ⇒ 成功路径语义完整。"
+    },
+    {
+      "name": "M4-B3-footprintOnlyAnchor",
+      "file": "unity/Assets/Sim/World/StructureKinds.cs",
+      "line": 327,
+      "expect": "            _occupancy.OccupyCells(occupied);",
+      "replace": "            _occupancy.OccupyCells(new[] { anchor });   // FALSIFY-M4:只占锚点",
+      "expectRed": [
+        "test_acB3_legalPlace_appendsOneStructurePlacedAndBlocksWalkability",
+        "test_acB2_placeOnOccupiedCell_returnsOccupiedWithZeroSideEffects",
+        "test_rotateBy90_flipsFootprintAndAppendsOneModified"
+      ],
+      "exactRed": true,
+      "_why": "B-3 的判据 = **非锚点足迹格**也被占(F-23-1)。变异让写者只占锚点 ⇒ `IsEffectivelyWalkable(1,0,0)` 仍为 true ⇒ 红。",
+      "_expectRed_justification": "① acB3 直断非锚点格不可走 ⇒ 红;② acB2occupied 依赖「(1,0,0) 已被占」,现在未占 ⇒ 第二次放置返回 Success ⇒ 红;③ rotate 用例先断 `(1,0,0)` 不可走 ⇒ 红。acB6 只断锚点格与拆除后的释放 ⇒ 绿。"
+    },
+    {
+      "name": "M5-B4-insufficientFallsThrough",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 195,
+      "expect": "            return plan.IsComplete",
+      "replace": "            bool _falsifyComplete = true; return _falsifyComplete",
+      "expectRed": [
+        "test_acB4_insufficientMaterial_rejectsWithoutTouchingWriter",
+        "test_acB2_placeWithUnboundOwner_isInsufficientWithZeroSideEffects",
+        "test_planforModule_insufficient_returnsNotEnoughMaterial",
+        "test_hasStock_oneOfFour_isFalse",
+        "test_hasStock_unboundOwner_isFalse"
+      ],
+      "exactRed": true,
+      "_why": "B-4 的判据 = 材料不足 ⇒ 拒放、`Place` 零次。两处入口(`PlaceableChecker` 的 `IStockQuery` 与 `BuildController` 的 step②)**共用同一个谓词** `PlanForModule → plan.IsComplete`;变异把它钉成恒 true ⇒ 两条入口同时放行 ⇒ 红。",
+      "_expectRed_justification": "材料不足与「归属未绑定」在 `BuildController` 里走**同一个**早退(两者都是 `planResult != Success`)⇒ 一条变异两红是**同一守卫的两个输入**,不是判别面不清。第 143 行 `return PlaceableResult.InsufficientStock;` 变成不可达(CS0162 警告)。",
+      "_round1_expectRed": [
+        "test_acB4_insufficientMaterial_rejectsWithoutTouchingWriter",
+        "test_acB2_placeWithUnboundOwner_isInsufficientWithZeroSideEffects"
+      ],
+      "_round1_result": "逃逸(预期 2 红 / 实得 0 红)",
+      "_round1_note": "⚠️ **主轮该变异打的是不可达分支(2026-10-28)**。原靶点 = `BuildController.cs:142` 的 `if (planResult != Success)`。但 step① `PlaceableChecker.Check` 的第五条件(`PlaceableChecker.cs:100` `if (!_stockQuery.HasStock(moduleId))`)用的是**同一个** `BuildStockQuery → PlanForModule` ⇒ 不足时 step① 已返回,142 行**永不可达** ⇒ 变异必然逃逸。这不是夹具假绿,是**该守卫不可单独证伪**。现改打共用谓词本身;原守卫的冗余性另立 M5b 作**负对照**(预期零红)。",
+      "_round2_bug": "⚠️ **第二轮该变异未出判定(2026-10-28)** —— 订正脚本取 `rel = m5['file']` 算 `expect`,而 `file` 字段本身漏改 ⇒ `expect` 从 **BuildController.cs:195**(旋转守卫)读到原文,变异自洽地打在旋转守卫上 ⇒ 第 196 行 `throw` 失去归属 ⇒ **编译失败**(unity 退出码 6,无结果 XML)。驱动器据此判退出码 1(`verdict = max(verdict, EXIT_ESCAPE)`),**没有**误报全绿。已改 `file` 并重取 `expect`。"
+    },
+    {
+      "name": "M6-B4-doublePlace",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 146,
+      "expect": "            _writer.Place(anchor, moduleId, orientation, variant, _tick());",
+      "replace": "            _writer.Place(anchor, moduleId, orientation, variant, _tick()); _writer.Place(anchor, moduleId, orientation, variant, _tick());   // FALSIFY-M6:双写",
+      "expectRed": [
+        "test_acB3_legalPlace_appendsOneStructurePlacedAndBlocksWalkability",
+        "test_acB4_sufficientMaterial_appendsOnePlacedAndZeroDespawned",
+        "test_acB4_foldDeductsCostFromSameStream",
+        "test_acB6_remove_appendsRemovedAndRefundAndFreesCells"
+      ],
+      "exactRed": true,
+      "_why": "B-4 的判据 = **恰一条** `StructurePlaced`(「同一事务」的现行形态)。变异写两条 ⇒ 流 +2 且 fold 双倍扣料 ⇒ 红。",
+      "_expectRed_justification": "① acB3 断 `StreamCount == 1` ⇒ 红;② acB4sufficient 同 ⇒ 红;③ acB4fold 断余量 `8-4` 实得 `8-8` ⇒ 红。**`DropDespawned == 0` 那条断言与 `StreamCount == 1` 属同一断言类**(任何多写的消耗事件都会同时撑大计数),故共用本变异,不单列。acB2occupied 与 acB6 用**相对**计数 ⇒ 绿。",
+      "_round1_expectRed": [
+        "test_acB3_legalPlace_appendsOneStructurePlacedAndBlocksWalkability",
+        "test_acB4_sufficientMaterial_appendsOnePlacedAndZeroDespawned",
+        "test_acB4_foldDeductsCostFromSameStream"
+      ],
+      "_round1_result": "超集(预期 3 红 / 实得 4 红)",
+      "_round1_note": "⚠️ **主轮预期写窄,已补(2026-10-28)**。多红的一条 = 拆除夹具:双写使同一锚点落**两条**`StructurePlaced`(`StructureInstanceRegistry.Register` 每次分配**新 id**、按 id 存,不按锚点去重)⇒ `TryRemove` 拆掉一条后,`StructureIdAt(0,0,0)` 仍能反查到另一条 ⇒ `Is.LessThanOrEqualTo(0)` 断言红。这是双写的**真实后果**,不是判别面不清。"
+    },
+    {
+      "name": "M7-B5-descendingOrder",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 145,
+      "expect": "            ids.Sort();                                   // BL-23:instance_id 升序",
+      "replace": "            ids.Sort((a, b) => b.CompareTo(a));   // FALSIFY-M7:倒序",
+      "expectRed": [
+        "test_plan_rows_ascendingInstanceId_selectsLowestIdsFirst",
+        "test_plan_rows_crossStacks_emitsOneLinePerStack",
+        "test_plan_rows_exactAvailable_succeeds",
+        "test_plan_projectionAndRowsOverloads_yieldIdenticalPlan",
+        "test_planforModule_usesCatalogCostAndBuildItemKey"
+      ],
+      "exactRed": true,
+      "_why": "B-5 的判据 = BL-23 的 `instance_id` **升序**兜底序。变异改倒序 ⇒ 选取序反转 ⇒ 五条断具体选取序的用例全红。",
+      "_expectRed_justification": "五条都逐字断 `Show(plan)` 的字面量序列;单栈 / 不足 / 其他 owner / 其他 ordinal / qty≤0 / need≤0 六条只断条数或总数 ⇒ 绿。`test_plan_rows_insufficient` 返回空 Lines ⇒ 序无关 ⇒ 绿。"
+    },
+    {
+      "name": "M8-B5-partialConsumeAllowed",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 151,
+      "expect": "            if (available < need)",
+      "replace": "            if (false)   // FALSIFY-M8:停用「不足即整手拒绝」",
+      "expectRed": [
+        "test_plan_rows_insufficient_returnsEmptyLines_noPartialConsume",
+        "test_planforModule_insufficient_returnsNotEnoughMaterial",
+        "test_plan_rows_otherOwner_notCounted"
+      ],
+      "exactRed": true,
+      "_why": "B-5 的判据 = 不足时 `Lines` 为空(fail-closed,规则九 Edge Case「不部分扣」)。变异放行 ⇒ 产出半份计划 ⇒ 红。",
+      "_expectRed_justification": "① insufficient 直断 `Lines.Length == 0` ⇒ 红;② planforModule_insufficient 的 `Lines.Length == 0` 断言 ⇒ 红(它的 `r == NotEnoughMaterial` 半边仍绿 —— 因为 `IsComplete` 仍为 false)。",
+      "_round1_expectRed": [
+        "test_plan_rows_insufficient_returnsEmptyLines_noPartialConsume",
+        "test_planforModule_insufficient_returnsNotEnoughMaterial"
+      ],
+      "_round1_result": "超集(预期 2 红 / 实得 3 红)",
+      "_round1_note": "⚠️ **主轮预期写窄,已补(2026-10-28)**。多红的一条:`otherOwner` 夹具里自己只有 1 份、需要 2 份 ⇒ 停用「不足即整手拒绝」后**仍会产出半份计划**(`Lines = [1:1]`)⇒ 该夹具断的 `Lines.Length == 0` 红。它与 `insufficient` 是**同一守卫的两个输入**(自己的料不够),不是第二处判据。"
+    },
+    {
+      "name": "M9-B5-noRemainingClamp",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 159,
+      "expect": "                int take = r.Qty < remaining ? r.Qty : remaining;",
+      "replace": "                int take = r.Qty;   // FALSIFY-M9:不夹 remaining",
+      "expectRed": [
+        "test_plan_rows_singleStack_isNamedOnceOnly",
+        "test_plan_rows_crossStacks_emitsOneLinePerStack",
+        "test_plan_rows_ascendingInstanceId_selectsLowestIdsFirst",
+        "test_acB4_foldDeductsCostFromSameStream",
+        "test_plan_projectionAndRowsOverloads_yieldIdenticalPlan"
+      ],
+      "exactRed": true,
+      "_why": "B-5 的判据 = 单请求内**不重复点名**且每行只取该栈需要的那份。变异取整栈 ⇒ 单栈时取走 10 份(需要 3)⇒ 红。",
+      "_expectRed_justification": "三条的 `Show` 都逐字断每行份数;`exactAvailable`(2+2=4 恰等于 need)与 `planforModule`(1+3=4)在变异后**恰好不变** ⇒ 绿(它们钉的是「恰等界」,不是「夹取」)。",
+      "_round1_expectRed": [
+        "test_plan_rows_singleStack_isNamedOnceOnly",
+        "test_plan_rows_crossStacks_emitsOneLinePerStack",
+        "test_plan_rows_ascendingInstanceId_selectsLowestIdsFirst"
+      ],
+      "_round1_result": "超集(预期 3 红 / 实得 5 红)",
+      "_round1_note": "⚠️ **主轮预期写窄,已补(2026-10-28)**。多红两条:① `projectionAndRows` 断的是`Show(plan) == \"2:3,5:1\"` —— 不夹 `remaining` 时第二栈取满 3 份(得 `\"2:3,5:3\"`)⇒ 红;② `foldDeductsCostFromSameStream` —— fold 的 `ApplyBuildCost` 走**同一个** `Plan`,不夹 `remaining` ⇒ 扣走整栈 8 份而非 `cost = 4` ⇒ 余量 0 ≠ 4 ⇒ 红。两条都是该变异的真实后果。"
+    },
+    {
+      "name": "M10-B5-ownerFilterRemoved",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 139,
+      "expect": "                if (r.Owner != owner) continue;",
+      "replace": "                if (false) continue;   // FALSIFY-M10:停用 owner 过滤",
+      "expectRed": [
+        "test_plan_rows_otherOwner_notCounted",
+        "test_plan_rows_unboundOwner_isAlwaysInsufficient",
+        "test_hasStock_unboundOwner_isFalse",
+        "test_acB2_placeWithUnboundOwner_isInsufficientWithZeroSideEffects"
+      ],
+      "exactRed": true,
+      "_why": "B-5 的判据 = 只数**同 owner** 的栈。变异后别人的材料也能替自己建 ⇒ 三条红。",
+      "_expectRed_justification": "① otherOwner:可用量 11 ≥ 2 ⇒ `IsComplete` 变 true ⇒ 红;② unboundOwner:可用量 10 ≥ 1 ⇒ 红;③ `BuildStockQuery` 未绑定 ⇒ 经同一选料器放行 ⇒ `HasStock` 变 true ⇒ 红。其余用例的候选栈本就全属 owner 42 ⇒ 绿。",
+      "_round1_expectRed": [
+        "test_plan_rows_otherOwner_notCounted",
+        "test_plan_rows_unboundOwner_isAlwaysInsufficient",
+        "test_hasStock_unboundOwner_isFalse"
+      ],
+      "_round1_result": "超集(预期 3 红 / 实得 4 红)",
+      "_round1_note": "⚠️ **主轮预期写窄,已补(2026-10-28)**。多红的一条:归属未绑定 ⇒ owner = -1 ⇒ 停用 owner 过滤后**所有人的栈都算作 -1 的** ⇒ `HasStock` 转 true ⇒ step① 放行 ⇒ `Place` 被调用 ⇒ 该夹具的零副作用断言红。与 `unboundOwner` 选料器夹具是同一变异的两层投影。"
+    },
+    {
+      "name": "M11-B5-loopIgnoresRemaining",
+      "file": "unity/Assets/Sim/World/BuildMaterialPlanner.cs",
+      "line": 156,
+      "expect": "            for (int i = 0; i < ids.Count && remaining > 0; i++)",
+      "replace": "            for (int i = 0; i < ids.Count; i++)   // FALSIFY-M11:停用 remaining>0 终止",
+      "expectRed": [
+        "test_plan_rows_ascendingInstanceId_selectsLowestIdsFirst",
+        "test_plan_projectionAndRowsOverloads_yieldIdenticalPlan"
+      ],
+      "exactRed": true,
+      "_why": "「不夹终止条件 ⇒ 多出 `qty=0` 行」:变异让循环跑满候选栈 ⇒ 候选栈多于所需时仍追加 `ConsumeLine` ⇒ 两条断「行表逐字」的夹具红。",
+      "_expectRed_justification": "只有候选栈**多于**所需的两条夹具能看见多余行;`crossStacks` / `singleStack` / `exactAvailable` / `planforModule` 的候选恰被 need 用尽 ⇒ 循环自然在末栈结束 ⇒ 绿。⚠️ **`need ≤ 0` 那条不可证伪** —— `BuildMaterialPlanner.cs:147` 的 `if (need <= 0)` 早退在循环**之前**,且该早退与通用路径**行为等价**(`need ≤ 0 ⇒ available ≥ 0 ≥ need` ⇒ `available < need` 恒假 ⇒ 落到循环时 `remaining ≤ 0` ⇒ 循环零次 ⇒ 同样零行)。原预期把 `needZeroOrNegative` 列为红,**是我推错了**,不是夹具假绿。",
+      "_round1_expectRed": [
+        "test_plan_rows_needZeroOrNegative_isCompleteWithEmptyLines",
+        "test_plan_rows_ascendingInstanceId_selectsLowestIdsFirst",
+        "test_plan_projectionAndRowsOverloads_yieldIdenticalPlan"
+      ],
+      "_round1_result": "逃逸(预期 3 红 / 实得 2 红)",
+      "_round1_note": "⚠️ **主轮该变异逃逸,根因 = 预期写错(2026-10-28)**。原 `_why` 自陈「本条打的不是 `if (need <= 0)` 早退分支」,却仍把 `needZeroOrNegative` 列为预期红 —— 自相矛盾。该早退在循环之前且与通用路径等价 ⇒ 本变异**不可能**让它红。已删除该预期。**同时登记**:`BuildMaterialPlanner.cs:147` 的早退分支**无独立可证伪性**(冗余守卫),不为其编造变异。"
+    },
+    {
+      "name": "M12-B6-zeroRefundRatio",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 162,
+      "expect": "            bool removed = _writer.Remove(structureId, _tick(), DemolishChecker.P0DemolishRefundRatio);",
+      "replace": "            bool removed = _writer.Remove(structureId, _tick(), 0);   // FALSIFY-M12:返还率 0",
+      "expectRed": [
+        "test_acB6_remove_appendsRemovedAndRefundAndFreesCells"
+      ],
+      "exactRed": true,
+      "_why": "B-6 的判据 = 可拆 ⇒ 流 +1 且**返还按 P0 1.0**。变异把返还率传成 0 ⇒ `EmitRefund` 静默不发 ⇒ 返还条数 0 ⇒ 红。",
+      "_expectRed_justification": "只有 `test_acB6_remove...` 断 `DropSpawned == 1`;`test_acB6_removeUnknownId` 不落任何事件 ⇒ 绿。"
+    },
+    {
+      "name": "M13-B9-controllerNotWired",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 1275,
+      "expect": "                                               buildController);",
+      "replace": "                                               null);   // FALSIFY-M13:装配不交建造器",
+      "expectRed": [
+        "test_acB9_assembleWithWorld_yieldsBuildController"
+      ],
+      "exactRed": true,
+      "_why": "B-9 的判据 = 判定器生产构造点 0 → 1 且**经服务袋暴露**。变异在装配出口把建造器换成 null ⇒ 红。",
+      "_expectRed_justification": "只有 `test_acB9_assembleWithWorld` 断非 null;反向腿(`assembleWithoutWorld ⇒ null`)本来就期望 null ⇒ 绿。"
+    },
+    {
+      "name": "M14-rotate-domainRemoved",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 195,
+      "expect": "            if (deltaDegrees != 90 && deltaDegrees != 180 && deltaDegrees != 270)",
+      "replace": "            if (false)   // FALSIFY-M14:停用增量朝向定义域",
+      "expectRed": [
+        "test_rotateByIllegalDelta_throws"
+      ],
+      "exactRed": true,
+      "_why": "`TryRotateBy` 的**定义域收窄**(只接受 90/180/270)。变异停用 ⇒ 45 / 0 不再抛,而是落到判定器返回 `TypeMismatch` / `NoChange` ⇒ 红。",
+      "_expectRed_justification": "只有 `test_rotateByIllegalDelta_throws` 断抛;`test_rotateBy90...` 传的是合法 90 ⇒ 绿。"
+    },
+    {
+      "name": "M15-B8-xrBindingRemoved",
+      "file": "unity/Assets/InputSystem_Actions.inputactions",
+      "line": 564,
+      "expect": "                    \"groups\": \"XR\",",
+      "replace": "                    \"groups\": \"Keyboard&Mouse\",   // FALSIFY-M15:XR 组缺失",
+      "expectRed": [
+        "test_input_asset_structure_p0_actions_each_cover_three_binding_groups"
+      ],
+      "exactRed": true,
+      "_why": "B-8 的判据 = 四个建造动作**三组绑重齐**(K&M / Gamepad / XR)。变异把 `BuildRotate` 那条 XR 绑重的 **`groups` 字段**改成 `Keyboard&Mouse` ⇒ `GroupsOf(BuildRotate)` = {K&M, Gamepad} ≠ 三组 ⇒ 既有门红。",
+      "_expectRed_justification": "该门 `GroupsOf`(`action_asset_identity_test.cs:75-83`)读的是 **binding 的 `groups` 字段**,不是 `path` ⇒ 变异必须打在 `groups` 上。`<Keyboard>&Mouse` 是合法组名 ⇒ 资产导入不报错。⚠️ 同文件的 `test_input_asset_structure_openxr_bindings_use_generic_xrcontroller_layout` **也会**抓「XR 组挂了键盘路径」,但它**不在本 spec 的 filter 内** —— 那是规则三的 XR 布局门,与本 AC 不同面。",
+      "_round1_expectRed": [
+        "test_input_asset_structure_p0_actions_each_cover_three_binding_groups"
+      ],
+      "_round1_result": "逃逸(预期 1 红 / 实得 0 红)",
+      "_round1_note": "⚠️ **主轮该变异打错靶(2026-10-28)**。原变异把 `\"path\": \"<XRController>/grip\"` 改成 `\"<Keyboard>/r\"`,但**没动 `groups`** —— 该 binding 仍声明 `groups: \"XR\"` ⇒ 三组仍齐 ⇒ 门正确保持绿。这是「变异打错靶」(第 2 种假存活),**不是夹具假绿**。附带发现:三组门只按 `groups` 声明断组,不校验 `path` 与 `groups` 自洽 —— 该缺口由另一条门(规则三 XR 布局)覆盖,不在本 AC 面内。"
+    },
+    {
+      "name": "M5b-B4-stepTwoGuardIsRedundant",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 142,
+      "expect": "            if (planResult != BuildMaterialPlanResult.Success)",
+      "replace": "            if (false)   // FALSIFY-M5b:停用 step② 的材料早退(step① 已用同一谓词拦截)",
+      "expectRed": [],
+      "exactRed": true,
+      "_why": "**负对照**:停用 step② 的早退 ⇒ **预期零红**。它证明的不是「有守卫」,而是「这条守卫与 step① 冗余」—— 一旦将来 step① 不再共用同一谓词,本变异会转红并提示冗余已消失。",
+      "_expectRed_justification": "材料不足时 step① 已返回 `InsufficientStock` ⇒ 142 行不可达 ⇒ 停用它对任何夹具无影响。**空 expectRed = 断言「零红」**,驱动器判据 `expected.issubset(got)` 对空集恒真,再由 `exactRed` 要求 `got == expected` 即 got 必须为空。"
+    }
+  ]
+}

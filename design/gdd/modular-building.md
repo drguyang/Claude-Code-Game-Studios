@@ -508,7 +508,7 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 | `O-23-3` | 6 的 GDD `world-and-ecozones.md:781` 的「❌ 单边 —— 23 无 GDD」标注随本 GDD 落盘闭合为双向 | **6 / `world-and-ecozones.md`** | 本 GDD 落盘后立即 | ✅ **2026-09-17 已落**(:781 行改为双向,O-23-3 ✅) |
 | `O-23-4` | **24 的 GDD 须含 P0 最小邻接判定**(评审,game-designer #5)—— P0 切片验证「位置即逻辑」的隐性前置 | **24 / `systems-index.md`** | 24 的 GDD 开写时 | ✅ **2026-09-17 已兑现**(clinic-machine.md F-24-1 公共定义 `adj_sum`,整数 4 邻接 + ADJ_TABLE) |
 | `O-23-5` | **21a 冻结 `build_part` 无实例级语义**(评审,game-designer #6)—— `StructurePlaced` 无 provenance;改载荷 = 破 AC-23-09 字节稳定 | **21a / `item-database.md`** | 21a 下一轮修订 | ⏳ **待 21a 下一轮** |
-| `O-23-6` | **42 补建造交互规格**(评审,unity-specialist #5)—— 手柄幽灵循环选择 + float→格 floor 量化器 | **42 / `skeuomorphic-ui.md`** | 42 下一轮修订 | ⏳ **待 42 下一轮** |
+| `O-23-6` | **42 补建造交互规格**(评审,unity-specialist #5)—— 手柄幽灵循环选择 + float→格 floor 量化器 | **42 / `skeuomorphic-ui.md`** | 42 下一轮修订 | ✅ **2026-10-28 已落**(`skeuomorphic-ui.md` §UI Requirements 三之二「建造交互」:幽灵四向循环序 · `CellTransitionDetector.CellFromPosition` 单一量化点 · 建造 = 世界内操作态不占 `ModalId`;实施 = `sprint-20` §十 S20-19) |
 | `O-23-7` | **2 补 `Explore` 档内软拉近**(评审,unity-specialist #5)—— P0 医馆内越肩被墙遮挡 | **2 / `camera-and-viewpoint.md`** | 2 下一轮修订 | ⏳ **待 2 下一轮** |
 | `O-23-8` | **13 的 GDD 回填 `EffectiveWalkable` 读方**(评审 B1) | **13 / `patient-ai.md`** | 13 下一轮修订 | ⏳ **待 13 下一轮** |
 | `O-23-9` | **ADR-022 C2 挂模板 collider 足迹同源钩**(评审,unity-specialist #1)—— collider 高度 > `stepOffset` 除非可走过 | **ADR-022** | 本轮修订落盘 | ✅ **2026-09-17 已落**(§四 C2 补注) |

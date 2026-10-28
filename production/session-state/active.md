@@ -11801,3 +11801,54 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 **NOT-RUN(1 条)**:`afterRestore` 钩子内 `worldLoad?.Rebuild()` 的调用本身无夹具钉住(`CompositionRoot.cs:707-711`)—— 有 `file:line` 但无可跑命令
 
 **未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交)。
+
+
+## Session Extract — S20-19 42 建造发起方接线(2026-10-28 实施轮)
+
+**卡片**:`production/sprints/sprint-20.md` §十 · S20-19(兑现 `O-23-6`)
+**状态**:`in-progress`(`sprint-status.yaml` 已置)—— `/story-done` 与代码评审门**未跑**,故**不转 `done`**
+**原件**:`production/qa/evidence/impl-s20-19-build-initiator-2026-10-28.md`
+
+**改动的文件**
+- 新增 `unity/Assets/Sim/World/BuildMaterialPlanner.cs`(规则六 BL-23 兜底序的**唯一实现点**;写前路径与 fold 重建路径共用)
+- 新增 `unity/Assets/Gameplay.Presentation/Building/BuildController.cs`(判定 → 选料 → 落流,**零判据实现**)
+- 新增 `unity/Assets/Gameplay.Presentation/Building/BuildStockQuery.cs`(`IStockQuery` 生产实装)
+- 新增 `unity/Assets/Gameplay.Presentation/Building/BuildOwnerSlot.cs`(扣料归属晚绑定槽;与 `BuildStockQuery` **共享同一实例**)
+- 新增 `unity/Assets/Gameplay.Boot/BuildInputReader.cs`(四动作设备直读,承 `PlayerInputReader` 同构)
+- 新增 `unity/Assets/Gameplay.Boot/BuildInputDriver.cs`(建造模式状态机 + 幽灵朝向循环)
+- 改 `unity/Assets/Sim/ItemDatabase/InventoryFold.cs`(`ApplyBuildCost` 选料段委托 `BuildMaterialPlanner.Plan`;`InventoryProjection` 增 `internal Rows`;删已无引用的 `OwnedIdsOf`)
+- 改 `unity/Assets/Sim/World/World.cs`(显式实现 `IOccupancyQuery` —— 此前**零生产实现**)
+- 改 `unity/Assets/Sim/World/DemolishChecker.cs`(`P0DemolishRefundRatio = 65536` 提为 `public const`)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRoot.cs`(`:906-926` 建造装配 + `:1275` 服务袋交出)
+- 改 `unity/Assets/Gameplay.Boot/CompositionRootServices.cs`(`BuildController` 属性)
+- 改 `unity/Assets/Gameplay.Boot/BootRoot.cs`(`:355-381` 4.45 段:归属绑定 + 默认幽灵模块 + 驱动 + `OnFrame` 转发)
+- 改 `unity/Assets/InputSystem_Actions.inputactions`(+4 动作 / +12 绑重 K&M·Gamepad·XR 各一,**纯插入 168 行、0 删除**)
+- 改 `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(P0 动作期望清单 8 → 12)
+- 新增 `unity/Assets/Tests/EditMode/ModularBuilding/build_material_planner_test.cs`(22 测:Planner 17 + StockQuery 5)
+- 新增 `unity/Assets/Tests/EditMode/ModularBuilding/build_controller_test.cs`(16 测)
+- 新增 `tools/falsify/specs/s20-19-build-initiator.json`(16 变异,含 1 条负对照 M5b)
+
+**验证**
+- **证伪轮 = 三轮,不合并记账**。第一轮 15 变异 = **7 exact + 5 超集 + 3 逃逸**(退出码 1);三类失败**全部是规格缺陷**(M5 打不可达分支 · M11 预期推错 · M15 打错靶),**零夹具假绿**。订正后第二轮 16 变异 = 15 exact + 1 未出判定(M5 的 `file` 字段漏改 ⇒ 编译失败);M5 单跑复验 exact ⇒ **16/16 exact,但分两批跑**。还原 SHA-256 逐字节通过 · 指纹未变 · `FALSIFY-` 零残留
+- 回归 EditMode `5639 / 5604 / 0 / 0 / 35`(基线 `5601 / 5566 / 0 / 35`,**+38/+38**)@ `2026-10-28T00:31Z` · `314bf6a` + 未提交工作树
+  PlayMode `238 / 234 / 0 / 2 / 2`(基线同,**零回归**)@ `2026-10-28T00:32Z` · 同上
+  新增夹具单跑 `38 / 38 / 0 / 0 / 0` @ `2026-10-28T00:28Z`
+  判据等式:`5639 − 5601 = 38` = 本批新增测数(**恰等**)
+- ⚠️ 回归跑**之后**对 `BuildInputReader.cs` 做过一次**纯注释**订正(消除两处假自述:「B-7 断言模态恒 None」「Enter/Submit 冲突已被挡住」—— 两者当时都不成立)。零语义,未重跑;已在原件 §四 如实登记
+
+**AC 计分(分母 10 条)**:Proven ✅ 9 · 部分 1(B-6 的「拒 ⇒ 零副作用」半边)· Branch 未满 2 处(B-6 = 1/2、B-9 反例 = 1/2)
+
+**挂标不记绿(9 条,一条未勾)**
+1. 幽灵预览零渲染(用户裁定 ①)
+2. 建造模式进入 = **键位直绑**(4 的交互系统未实现)
+3. **`BuildSlotCatalog` 生产侧仍空** —— `RegisterSlot` 零生产调用点 ⇒ 生产 `PlaceableChecker.Check` **恒 `SlotNotFound`** ⇒ **玩家今天仍建不了东西**。本批兑现的是「接线 0 → 1」,**不是「可玩」**
+4. 不可放置原因无 UI 呈现(只留枚举)
+5. 客机建造上行归 45
+6. `BuildPartQualityGate` 不参与放置判定
+7. 拆除返还落点归 20
+8. 建造音效 / cue 归 44
+9. **建造输入不查模态开集** —— 全仓**无** `IModalState` 聚合器 ⇒ 建造模式开着且摊开脉案时,`Enter` 会**同时**被 UI `Submit` 与建造放置消费。**这是挂标,不是已修复**
+
+**NOT-RUN(1 条)**:`test_acB9_assembleWithoutWorld_yieldsNullBuildController` 的反例半边无独立变异 —— 要打破它须把整段装配**移出** `world != null` 分支,行替换做不到。Branch 记 1/2,不借绿
+
+**未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交);`/story-done` 与代码评审门未跑

@@ -20,6 +20,7 @@ using DaYiJingCheng.Sim.World;                         // World / StructureWrite
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation;             // ClinicRoomMatchingService(TD-building-01 读侧)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
+using DaYiJingCheng.Gameplay.Presentation.Building;   // BuildController(S20-19)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片)
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -272,6 +273,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         public WorldLoadService WorldLoad { get; }
 
         /// <summary>
+        /// 42 的建造发起方(S20-19 · 2026-10-28)—— 判定 + 选料 + 落流的编排器。
+        /// <para><b>null ⇔ 装配时未传 <c>world</c></b>(无世界即无槽位 / 占用 / 写者)。</para>
+        /// <para><b>它兑现了什么</b>:`StructureWriter.Place` / `Remove` 自 S20-17 起有生产实例,
+        /// 但**没有发起方**(`O-23-6` 登记两个多月)。本属性是那个发起方的编排层 ——
+        /// 输入侧(<c>BuildInputDriver</c>)住 `Gameplay.Boot`,在 `BootRoot` 里接线。</para>
+        /// <para>⚠️ <b>「已装配」仍 ≠ 「玩家能建造」</b>:① 扣料归属须 <see cref="Building.BuildController.BindOwner"/>
+        /// 绑定(玩家 actorId 在装配后才铸造);② `BuildSlotCatalog` 生产侧**仍空**
+        /// (`RegisterSlot` 零调用,`MinimalWorldFactory` 造空目录)⇒ `PlaceableChecker.Check`
+        /// 在生产上恒 `SlotNotFound`。两条都登记在 `sprint-20` §十 S20-19 的「挂标不记绿」。</para>
+        /// </summary>
+        public BuildController BuildController { get; }
+
+        /// <summary>
         /// 7a 存档服务(S19-1)。
         /// <para><b>`null` ⇔ 装配时未指定存档目录</b>(`Assemble(..., saveBasePath: null)`),
         /// 是**合法状态**,不是半装配 —— 与 <see cref="AudioRenderAssembled"/> 同款
@@ -403,7 +417,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          InventoryLoadService inventoryLoad = null,
                                          World world = null,
                                          StructureWriter structureWriter = null,
-                                         WorldLoadService worldLoad = null)
+                                         WorldLoadService worldLoad = null,
+                                         BuildController buildController = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -478,6 +493,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 读档后世界不重建(旧世界残留)—— 故 Assemble 在 `world != null` 的同一支路里
             // 必然构造它,本 ctor 只负责转交。
             WorldLoad = worldLoad;
+            // S20-19(2026-10-28):42 的建造发起方。同款「不补构造」—— 补构造需要槽位目录 /
+            // 三个判定器 / 投影读数,那是 Assemble 的知识。无世界 ⇒ 恒 null。
+            BuildController = buildController;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>
