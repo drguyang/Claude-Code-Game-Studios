@@ -949,11 +949,13 @@ DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
 
 #### 挂标不记绿(如实,禁勾)
 
-1. **生产 build 的 Addressables 装载面未接** —— `MinimalWorldFactory` 走 `DataCookedDisk`
-   (磁盘直读 `Assets/DataCooked/`),而 build 里该目录不存在 ⇒ 目录为空 + `LogError`。
-   修法:`world_buildslots` 进 `data-core` 组 + `AddressablesDataProvider.Load<WorldBuildSlotsDataSet>()`
-   + `MinimalWorldFactory` 收 provider。**本卡未做**(与 `CompositionRoot` 的 provider-first
-   形状不一致,是一处**已知偏离**)。
+1. ~~**生产 build 的 Addressables 装载面未接**~~(**2026-10-28 已兑现,原文不删** ——
+   `MinimalWorldFactory` 走 `DataCookedDisk`(磁盘直读 `Assets/DataCooked/`),而 build 里
+   该目录不存在 ⇒ 目录为空 + `LogError`。修法:`world_buildslots` 进 `data-core` 组 +
+   `AddressablesDataProvider.Load<WorldBuildSlotsDataSet>()` + `MinimalWorldFactory` 收 provider。
+   **本卡未做**(与 `CompositionRoot` 的 provider-first 形状不一致,是一处**已知偏离**)。
+   ⇒ **已由 §十二 修复轮全部兑现**:四处集合闭合 + 组条目 24→26 + catalog 重建
+   + 夹具 3 条 + 证伪 2/2 exact,原件 `fix-s20-20-slot-provider-surface-2026-10-28.md`。)
 2. **`BakedInitial` 运行期不应用** —— `BuildSlotCatalog` / `BuildSlot` 今日**没有承载该标记的字段**
    ⇒ 数据声明了、运行期不落地。`MinimalWorldFactory` 因此打 `LogWarning` 点名它,不静默。
 3. **C1–C6 七项未实现** —— 除槽位子集 3 条外的全部(需视觉层 / 地形 / 导航 / 生态区数据,
@@ -989,3 +991,38 @@ DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
 
 **余下非 BLOCK 项不变**:12 条 GAP 夹具待裁 · `A-25`(player 可用性 = 0)属设计上不改码 ·
 S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单关卡 / 世界几何)。
+
+---
+
+## §十二 S20-20 挂标 #1 修复轮(2026-10-28 · 用户指令「处理 #2:补 Addressables 装载面」)
+
+**`Status: Complete`** · 原件 `production/qa/evidence/fix-s20-20-slot-provider-surface-2026-10-28.md`
+
+病因两条,同一条装配链的两个缺口:
+① **生产 build 里槽位目录恒空** —— `MinimalWorldFactory` 只有磁盘那一半
+(`DataCookedDisk` 读 `Assets/DataCooked/`,该目录**不随玩家构建出货**);
+`AddressablesDataProvider` 侧**没有** `WorldBuildSlotsDataSet` 分支 ⇒ 连走对路的可能性都不存在。
+② **组条目缺席** —— 产物 2026-10-28 09:45 落盘,但盘上 26 份 / 组内 24 条(缺 `world_buildslots`
+与既有欠账 `foraging_constants`)。
+
+| 项 | 结果 |
+|---|---|
+| 修法 | **四处集合闭合**:`WorldBuildSlotsAddress` 常量 → `EnsureWorldBuildSlots()` → 进 `Preload()` → 进 `DataCoreAddresses`(22 → **23**);`MinimalWorldFactory.Create(IDataProvider)` **provider 优先**、`null` 才走磁盘兜底;`BootRoot` 传 `preloaded ? DataCorePreloader.Provider : null` |
+| 降级语义 | provider 失败 ⇒ **空目录 + `LogError`**,不静默回落磁盘;报文新增「装载源」(`SlotSourceLabel`),两条路径在日志上可分 |
+| 组与 catalog | 菜单实跑:组 24 → **26** 条;`BuildAddressablesContent` 重建 catalog(可复算:`strings …/catalog.bin \| grep -o "[a-z0-9_]*\.cooked\.bytes" \| sort -u \| wc -l` ⇒ **26**) |
+| 夹具 | `Tests/EditMode/Boot/world_slots_provider_wiring_test.cs` **3 条**:① 合成 1 行产物经 provider 送达 ⇒ 恰 1 格(盘上真产物 13 格);② provider 失败 ⇒ 空目录 + `LogError` 点名装载源;③ **A-5 §七-2 的 provider 半边** —— 三份表经 provider 送达时扣料仍恰少 `cost(m)` |
+| 既有门 | `provider_wiring_gate_test` 门①追加 address ↔ 产物名三条;门②③④(组条目 ⊇ 常量 / 组→盘文件 / 四处集合)**12/12 绿** |
+| 证伪轮 | `s20-20-slot-provider-surface.json` **2/2 exact**(M1 三元分支退回磁盘 ⇒ ① ② 红;M2 fold 物品表 provider 分支置空 ⇒ ③ 红);还原 SHA-256 逐字节通过,受保护路径指纹未变。⚠️ **首版 M1 是废轮**:锚点打在**条件行**并整行替换 ⇒ 三元分支悬空 ⇒ 编译失败(退出码 6、零 XML),已订正为动**分支**后重跑 |
+| 回归(三元组) | EditMode `5681/5646/0/0/35`(基线 `5678/5643` ⇒ **+3/+3**,等式 = 新增夹具 3 条)· PlayMode `238/234/0/2/2`(**零回归**;`exit=2` 系既有 2 条 `inconclusive`)@ `2026-10-28T03:09Z` · 本轮全量 · `56633bce` + 未提交工作树 |
+| 连带发现 | 源码级门 `world_assembly_wiring_test::test_ac201b` 断的是字面串 `MinimalWorldFactory.Create()` ⇒ 加实参后必红。**改判据不删断言**:现要求「调用了工厂」**且**「实参非无参」—— 无参正是本轮病灶形态,门的判别力反而更强 |
+| doc 订正 | `DataBakeMenu.BakeWorldBuildSlotsCore` 的「生产 build 的 Addressables 装载面**尚未接**」就地加注(原文不删) |
+
+**本件证明不了的 4 点**(禁借绿,原件 §七 逐条):
+① `BootRoot:214` 的实参无夹具(源码承担,未加文本级门);
+② Addressables 真实 catalog 的**装载**未测(字节走注入缝;条目存在性由门②按文件级判);
+③ `foraging_constants` 进组后仍**无消费者**(既有欠账,不在本轮裁决面);
+④ `DataCoreAddresses` 22 → 23 ⇒ 全局 `ConfigVersion` 组合值改变 ⇒ 旧存档头判「不匹配」
+(ADR-014 §五 的设计内行为;P0 无对外存档,未做兼容处理)。
+
+**S20-20 余下挂标不变**:#2 `BakedInitial` 运行期不应用 · #3 C1–C6 七项未实现 ·
+#4 关卡工具只服务一个关卡 · #5 世界几何仍是合成。

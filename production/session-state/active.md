@@ -11905,3 +11905,23 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **评审判定**:`CHANGES REQUIRED` → `APPROVED WITH SUGGESTIONS`(BLOCK 3 → 0)
 - **提交**:`85f248e8`(code+test+spec)· 本轮 docs 另提交
 - **证明不了 3 点**:见 `fix-a5-sole-player-2026-10-28.md` §七
+
+## Session Extract — S20-20 挂标 #1(Addressables 装载面)修复轮(2026-10-28)
+- **用户指令**:「处理 #2:补 Addressables 装载面」→「继续」→ 逐步推进
+- **病灶**:① 生产 build 槽位目录恒空(`MinimalWorldFactory` 只有 `DataCookedDisk` 磁盘腿,
+  `Assets/DataCooked` 不随包出货;`AddressablesDataProvider` 无 `WorldBuildSlotsDataSet` 分支);
+  ② 组条目缺席(盘上 26 份 / 组内 24 条,缺 `world_buildslots` + 既有欠账 `foraging_constants`)
+- **修法**:四处集合闭合(常量 → `EnsureWorldBuildSlots()` → `Preload()` → `DataCoreAddresses` 22→23);
+  `Create(IDataProvider)` provider 优先;`BootRoot` 传 provider;失败 ⇒ 空目录 + LogError(点名装载源)
+- **组/catalog**:`data-core` 24→26(菜单 batch 实跑)+ `BuildAddressablesContent` 重建(26 条)
+- **夹具**:`Tests/EditMode/Boot/world_slots_provider_wiring_test.cs`(3 条,含 A-5 §七-2 的 provider 半边)
+  · 接线门 `provider_wiring_gate_test` 12/12 绿
+- **证伪**:`s20-20-slot-provider-surface.json` **2/2 exact**;⚠️ 首版 M1 锚点打在条件行 ⇒ 编译失败
+  (退出码 6 / 零 XML)= **废轮**,已订正为动分支后重跑;还原 SHA-256 逐字节 · 受保护路径指纹未变
+- **连带发现**:`world_assembly_wiring_test::test_ac201b` 字面串判据必红 ⇒ 改判据(调用 + 实参非无参)
+- **回归三元组**:`2026-10-28T03:09Z` · 本轮全量 · `56633bce` + 未提交工作树
+  - EditMode `5681/5646/0/0/35`(基线 `5678/5643` ⇒ +3/+3 = 新增 3 夹具)
+  - PlayMode `238/234/0/2/2`(零回归;`exit=2` 系既有 2 条 inconclusive)
+- **证明不了 4 点**:`BootRoot:214` 实参无夹具 · 真实 catalog 装载未测 · `foraging_constants` 仍无消费者
+  · 全局 `ConfigVersion` 组合值改变(设计内)
+- **未做**:**commit**(无用户指令)
