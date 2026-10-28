@@ -99,7 +99,30 @@ namespace DaYiJingCheng.Sim.World
                     "重新回到基线请用 `Reset()`(它清空后按序重建,不会与既有实例撞号)");
 
             _moduleCatalogForBaseline = moduleCatalog;
-            ApplyBakedInitialBaseline();
+
+            // ── 原子性(2026-10-28 评审 B-1 修复)──────────────────────────
+            // ⚠️ **原文不删,就地加注**:初版只写 `_moduleCatalogForBaseline = moduleCatalog;`
+            //    然后直接调本体。那有两个后果,均属**静默**失败:
+            //    ① **半应用**:骨架 `[合法格, 非法 module_id 格]` 时,i=0 已 `Restore` 落库
+            //       且已 `OccupyCells` 占格,随后 i=1 抛 ⇒ 世界停在「开档少了几件、但少的那几件
+            //       的格已经被占住」的中间态,且**没有任何信号**;
+            //    ② **报文误导**:标志已置 ⇒ 调用方重试时收到「已应用过一次」,而它其实**从没
+            //       完整应用过** —— 报文把「失败了」说成了「做过了」。
+            //    ⇒ 现改为**全有或全无**:任一步抛 ⇒ 回滚到「未应用」态(实例表 / 占用表 / 标志 /
+            //       计数四样一起复位),再原样抛出。回滚**不重放基线**(那是 `Reset()` 的语义,
+            //       此处要的是「回到没应用过」)。
+            try
+            {
+                ApplyBakedInitialBaseline();
+            }
+            catch
+            {
+                _structures.Reset();                                   // 清实例表 + 复位发号
+                Array.Clear(_slotOccupied, 0, _slotOccupied.Length);   // 清占用
+                _moduleCatalogForBaseline = null;                      // 允许修好数据后重试
+                BakedInitialStructureCount = 0;
+                throw;
+            }
         }
 
         /// <summary>基线应用本体(<see cref="ApplyBakedInitial"/> 与 <see cref="Reset"/> 共用)。</summary>
@@ -175,7 +198,21 @@ namespace DaYiJingCheng.Sim.World
         {
             _structures.Reset();
             Array.Clear(_slotOccupied, 0, _slotOccupied.Length);
-            ApplyBakedInitialBaseline();   // 未注入目录 ⇒ 内部早退,行为与订正前一致
+            // ⚠️ **2026-10-28 评审 B-1 同型加固**:基线本体若在中途抛(骨架与目录不同源),
+            //    半应用会让世界停在「清了一半 + 落了半个基线」的中间态,而 `StructureRestorer`
+            //    的 catch 会**再调一次本方法** —— 那会把「回滚到空态」变成「再抛一次」,
+            //    原始异常被嵌套异常顶掉。⇒ 失败即清成**确定的空态**再抛。
+            try
+            {
+                ApplyBakedInitialBaseline();   // 未注入目录 ⇒ 内部早退,行为与订正前一致
+            }
+            catch
+            {
+                _structures.Reset();
+                Array.Clear(_slotOccupied, 0, _slotOccupied.Length);
+                BakedInitialStructureCount = 0;
+                throw;
+            }
         }
 
         // ── 占用查询(Overlay.blocked = slot_occupied 投影) ──

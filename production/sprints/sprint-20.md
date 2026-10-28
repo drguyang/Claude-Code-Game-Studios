@@ -516,7 +516,7 @@ cooked 产物里**零份**世界数据;世界数据的唯一作者 = ADR-022 关
 
 **偏差 C —— AC-1 的落点比卡原文深一层(就地加注,原文不删)。**
 卡 AC-1 写「落点 = `Gameplay.Boot/BootRoot.cs`」;实施落点为
-**`Gameplay.Boot/MinimalWorldFactory.cs:109`**,由 `BootRoot.cs` 的
+**`Gameplay.Boot/MinimalWorldFactory.cs:184`**,由 `BootRoot.cs:219` 的
 `MinimalWorldFactory.Create()` 调用。
 理由:`WorldLattice.cs:295-298` 明令 `WorldGeometry` 不得有「按尺寸造空白世界」的入口 ⇒
 「合成」这件事必须**显式具名**且**带响亮日志**,一个 300 行的启动序里塞不下这段论证。
@@ -531,12 +531,21 @@ cooked 产物里**零份**世界数据;世界数据的唯一作者 = ADR-022 关
 
 | # | 落点 | 判据载体 |
 |---|---|---|
-| AC-1 | `Gameplay.Boot/MinimalWorldFactory.cs:109` | `test_ac201_*`;反证 M1 |
-| AC-1b | `Gameplay.Boot/BootRoot.cs:213` | `test_ac201b_*`(钉住「不是死工厂」) |
-| AC-2 | `Gameplay.Boot/CompositionRoot.cs:858` | `test_ac202_*`;反证 M2 |
-| AC-3 | `CompositionRoot.cs:819`(注册表取自 `world.Structures`) | `test_ac203_*`;反证 M3 |
+| AC-1 | `Gameplay.Boot/MinimalWorldFactory.cs:184` | `test_ac201_*`;反证 M1 |
+| AC-1b | `Gameplay.Boot/BootRoot.cs:219` | `test_ac201b_*`(钉住「不是死工厂」) |
+| AC-2 | `Gameplay.Boot/CompositionRoot.cs:941` | `test_ac202_*`;反证 M2 |
+| AC-3 | `CompositionRoot.cs:882`(注册表取自 `world.Structures`)/ `:920`(服务构造) | `test_ac203_*`;反证 M3 |
 | AC-4 | 写者 `occupancy` = 同一 `World` | `test_ac204_*`;反证 M4 |
-| AC-5 | `Sim/World/StructureKinds.cs:214`(既有) | `test_ac205_*`;反证 M5 |
+| AC-5 | `Sim/World/StructureKinds.cs:281`(`_dropWriter` 断言;ctor 起于 `:270`) | `test_ac205_*`;反证 M5 |
+
+> 🔁 **2026-10-28 就地订正(承 `review-s20-17-2026-10-28.md` §五 S-1)** —— 上表**原写的四条坐标全漂**:
+> AC-1 `:109`→**`:184`** · AC-1b `:213`→**`:219`** · AC-2 `:858`→**`:941`** ·
+> AC-3 `:819`→**`:882`/`:920`** · AC-5 `:214`→**`:281`**。
+> **成因**:S20-19 / S20-20 在 `CompositionRoot` / `MinimalWorldFactory` 里插行,坐标未随动。
+> ⚠️ **AC-5 不是「行号偏移」而是「指错断言」**:原 `:214` 指向 `structureId <= 0` 那条守卫,
+> 与 AC-5 要的 `DropEventWriter` fail-closed **无关** —— 按旧坐标去读会读到无关代码。
+> **判据本身未失效**(下表 `grep` 命令实跑仍恰 1 命中),错的只是坐标。
+> 同一订正已同步到 `impl-s20-17-world-assembly-2026-10-28.md:32-37`。
 
 **回归(三元组:截至 `2026-10-28 04:26 CST` · 批次 `S20-17 收口 全量`(最终树,注释清理后重跑)· commit `a42d2df` + 本批未提交)**:
 | 套件 | 结果 | 基线(批 4) | 差 |
@@ -671,6 +680,16 @@ S20-17 的卡内「挂标不记绿」第 4 条逐字:「**`World` 的生命周�
 **未及核查(NOT-RUN,禁借绿)**:`afterRestore` 钩子内 `worldLoad?.Rebuild()` 的**调用本身**
 无夹具钉住(`CompositionRoot.cs:707-711`)—— 给了 `file:line` 但给不出能证明它真被调用的命令
 ⇒ 按 NOT-RUN 登记,不计入任何判据面。另:真存档往返、`World.unity` 真加载后的行为均未验(挂标 1/2/3)。
+
+> 🔁 **2026-10-28 评审修复轮(收口后,见 §十三)**:补做独立评审时查出 **2 条缺陷**并已修:
+> ① **B-1** `Placed` 重放**同号覆盖**时 `Restore` 不碰占用表 ⇒ 被覆盖实例的旧足迹
+> **永久阻塞**(`StructureRestore.cs:183-215`,与 `Removed`/`Modified` 两支对齐);
+> ② **B-1b** `StructureWriter.PeekNextId` 与注册表**双计数器**,基线先于写者 / `Reset` 复位
+> 两方向都静默脱钩(`StructureKinds.cs:287-299`),已删镜像字段改委托。
+> **证伪 M1 / M3 各恰 1 条红;还原 SHA-256 逐字节通过。**
+> ⇒ 上文「18 条变异」是**实现轮**的数;**修复轮另有 2 条**,合计 **20 条**。
+> 原件:`production/qa/evidence/review-s20-18-2026-10-28.md`。
+> ⚠️ **仍未结**:schema 迁移期基线 id 段归属(谁该赢)需 ADR 级裁定,本修复只保证足迹一致。
 
 ---
 
@@ -963,7 +982,17 @@ DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
    `BakedInitial` / `ModuleId`(`BuildSlotCatalog.cs:38,40`)+ `World.ApplyBakedInitial`
    (`World.cs:90`)发号 1…N 进 `StructureInstanceRegistry` + `CompositionRoot.cs:918` 在
    `StructureWriter` **构造之前**调用。那条 `LogWarning` 已删(缺口已闭,警告失去对象)。
-   证据件 `fix-s20-20-baked-initial-baseline-2026-10-28.md`;证伪 5 变异 + 补口 2 条守卫。)
+   证据件 `fix-s20-20-baked-initial-baseline-2026-10-28.md`;证伪 5 变异 + 补口 2 条守卫。
+   > 🔁 **2026-10-28 评审修复轮(见 §十三)**:补做独立评审时查出 **3 条缺陷**并已修:
+   > ① **B-1** `ApplyBakedInitial` 先置标志后跑本体 ⇒ 半应用 + 重试报文误导
+   > (`World.cs:101-128` `try/catch` 回滚四样;`Reset()` 同型加固 `:196-215`);
+   > ② **B-2** fail-closed 夹具骨架**单格** ⇒「零落库」断言**恒真**
+   > (改**三格** + 前置探针 + 占用/计数归零 + 可重试);
+   > ③ **S-1** 导出门判 `== NoModule(-1)`,而 ADR-022 `:176` 写 `≥ 1` ⇒ `module_id = 0` 漏过
+   > (`LevelConsistencyCheck.cs:103-119` 改 `<= 0`)。
+   > **证伪 M2 / M4 各恰 1 条红;还原 SHA-256 逐字节通过。**
+   > ⇒ 上文「5 变异 + 补口 2 条守卫」是**挂标 #2 实现轮**的数;**评审修复轮另有 2 条**。
+   > 原件:`production/qa/evidence/review-s20-20-2026-10-28.md`。
 3. **C1–C6 七项未实现** —— 除槽位子集 3 条外的全部(需视觉层 / 地形 / 导航 / 生态区数据,
    本批不产出)。清单在 `LevelConsistencyCheck.UnimplementedChecks`,**返回值里的数据**。
    > 🔁 **2026-10-28 实测:仍 7 条,一条未减**(`LevelConsistencyCheck.cs:57-66`)。
@@ -1048,3 +1077,72 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 
 **S20-20 余下挂标不变**:#2 `BakedInitial` 运行期不应用 · #3 C1–C6 七项未实现 ·
 #4 关卡工具只服务一个关卡 · #5 世界几何仍是合成。
+
+---
+
+## §十三 追加批评审补落 + 四条 BLOCKING 修复(2026-10-28 · 收口后第二轮)
+
+> **缘由**:sprint-20 收口后追加批的 S20-17 / S20-18 / S20-20 三件**零独立评审**,
+> 而 `story-done` 的「评审报告原件」条款是 **BLOCKING 级**(见
+> `coding-standards.md` §Review Evidence Standards)。补做评审时**查出 4 条真缺陷**,
+> 其中 2 条在本会话已提交的代码里(`d230eb36` 的 S20-20 挂标 #2)—— 故本轮 = **补原件 + 修缺陷**。
+
+### 三份评审原件(补落)
+
+| 对象 | 原件 | Verdict |
+|---|---|---|
+| S20-17 | `production/qa/evidence/review-s20-17-2026-10-28.md` | APPROVED WITH SUGGESTIONS(1 条须修 S-1 已订正) |
+| S20-18 | `production/qa/evidence/review-s20-18-2026-10-28.md` | 原 CHANGES REQUIRED ⇒ 修复后 **APPROVED** |
+| S20-20 | `production/qa/evidence/review-s20-20-2026-10-28.md` | 原 CHANGES REQUIRED ⇒ 修复后 **APPROVED** |
+
+> ⚠️ **三份均为事后补做**,评的是 **2026-10-28 当天树上的代码**,
+> **不追认**各卡收口时点的任何判定(承 `review-workflow` §不可追补)。
+
+### 四条缺陷(全部已修 + 已证)
+
+| ID | 缺陷 | 修法 | 落点 |
+|---|---|---|---|
+| **S20-20 B-1** | `ApplyBakedInitial` 先置标志后跑本体 ⇒ 半应用 + 重试报文误导 | `try/catch` 回滚(实例表 / 占用 / 标志 / 计数四样复位);`Reset()` 同型加固 | `Sim/World/World.cs:101-128` · `:196-215` |
+| **S20-20 B-2** | fail-closed 夹具骨架**单格** ⇒「零落库」断言**恒真** | 骨架改**三格**`[合法, 非法, 合法]` + **前置探针**(单格不抛世界证「合法格真会落库/占格」)+ 占用/计数归零 + 可重试 | `world_buildslots_bake_test.cs:523-601` |
+| **S20-20 S-1** | 导出门判 `== NoModule(-1)`,而 ADR-022 `:176` 写 `≥ 1` ⇒ `module_id = 0` 漏过 | 判据改 `<= 0`,报文按分支分措辞 | `LevelConsistencyCheck.cs:103-119` |
+| **S20-18 B-1** | `Placed` 重放同号覆盖 ⇒ `Restore` 不碰占用表 ⇒ 旧足迹**永久阻塞** | `Placed` 支先 `FreeCells(existing.OccupiedCells)`(与 `Removed`/`Modified` 同构) | `StructureRestore.cs:183-215` |
+| **S20-18 B-1b** | `StructureWriter.PeekNextId` 与注册表**双计数器**,两方向静默脱钩 | 删写者镜像字段,`PeekNextId` 委托注册表(唯一发号者) | `StructureKinds.cs:287-299` · `:329-332` |
+
+> **B-1b 是主会话复核时新查出的**,不在任何专家的原判定里 —— 补原件的过程本身发现了新缺陷。
+
+### 证伪轮(4 条,全部 exact)
+
+| 变异 | 打什么 | 期望红 | 实测 |
+|---|---|---|---|
+| **M1** | 删 `StructureRestore` `Placed` 支的 `FreeCells` | `test_ac6b` | 恰 1 条 ✅ |
+| **M2** | 删 `ApplyBakedInitial` 的 `try/catch` 回滚 | `…moduleNotInCatalogThrows` | 恰 1 条 ✅ |
+| **M3** | `PeekNextId` 退回常量(模拟镜像字段) | `test_peekNextId_delegatesToRegistry` | 恰 1 条 ✅ |
+| **M4** | 导出门判据改回 `== SlotSpec.NoModule` | `…WithModuleIdZero…` | 恰 1 条 ✅(`-1` 那条仍绿 ⇒ 两分支可分) |
+
+**还原**:四处 `cp 回 + SHA-256 逐字节`(**未用 `git checkout` / `git stash`**);
+`grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l` = **0**。
+
+### 回归(三元组)
+
+截至时刻 `2026-10-28 14:47 CST` · 批次 `S20-20 评审修复轮 · 全量` · commit `78d12421` + 本批未提交改动
+
+| 套件 | 结果(XML 原值) | 基线(S20-18 收口 · `c784d88`) | 差 |
+|---|---|---|---|
+| EditMode | `5698 / 5663 / 0 / 0 / 35` | `5694 / 5659 / 0 / 35` | **+4 / +4**,零失败 |
+| PlayMode | `238 / 234 / 0 / 2 / 2` | `238 / 234 / 0 / 2 / 2` | 逐项相同,零回归 |
+
+**+4 的用例级点名**(汇总差不算,须点名):
+`test_ac6b_replayPlacedOverBaselineId_releasesOldFootprint` ·
+`test_peekNextId_delegatesToRegistry_notLocalMirror` ·
+`test_levelTool_bakedInitialWithModuleIdZero_reportsViolation` ·
+`test_levelTool_bakedInitialWithoutModuleId_reportsViolation`。
+
+### 本轮明确未做(NOT-RUN,禁借绿)
+
+1. **`World.Reset()` 侧回滚无独立变异** —— 与 `ApplyBakedInitial` 共享同一语义,
+   但**不是同一个执行体**;按「一属性一条变异」严格说应有独立变异,本轮**未做**。
+2. **schema 迁移期基线 id 段归属未裁** —— B-1 的修复只保证**足迹一致**,
+   **不裁定「谁该赢」**(基线家具被 schema-1 存档里的结构顶替,是语义问题,需 ADR 级裁定)。
+3. **`BootRoot:214` 实参文本级门未加**(§十二 的 ① 项,本轮仍未做)。
+4. **真存档往返未跑**;`world_buildslots.cooked.bytes` 内容未逐字段解码。
+

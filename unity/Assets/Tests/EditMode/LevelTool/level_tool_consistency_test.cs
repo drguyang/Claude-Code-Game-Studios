@@ -89,11 +89,57 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(Has(report, "(4,0,1)"), Is.True, "报文须点名坏格坐标");
         }
 
+        /// <summary>
+        /// `baked_initial = true` 但 `module_id = 0` ⇒ 违例(ADR-022 `:176` 的契约是 **`≥ 1`**)。
+        /// <para>🔁 <b>2026-10-28 评审 S-1 修复(新增)</b>:首版判 `== SlotSpec.NoModule`(即 `== -1`),
+        /// 差集 = `0` **从导出门漏过去**,只有绑定器 / codec 才拒。而导出器是「唯一作者」,
+        /// 作者的错就该在作者自己的工具里报 —— 漏到绑定期等于把「少写一个字段」的报文
+        /// 指到下游,排查成本翻倍。</para>
+        /// <para>⚠️ 与 `-1`(完全没写)分开测:`-1` 走的是「没有 module_id」分支,`0` 走的是
+        /// 「给了非法值」分支 —— 两个分支各需一例(承「一属性一条变异」的 Branch 覆盖口径)。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把判据改回 `== SlotSpec.NoModule` ⇒ 本条红(0 不再被拒)。</remarks>
+        [Test]
+        public void test_levelTool_bakedInitialWithModuleIdZero_reportsViolation()
+        {
+            var src = new LevelSource("t", 4, 1, 4, new List<SlotSpec>
+            {
+                new SlotSpec(1, 0, 1, SlotType.Decor, bakedInitial: true, moduleId: 0),
+            });
+
+            CheckReport report = LevelConsistencyCheck.Check(src);
+
+            Assert.That(report.IsGreen, Is.False, "module_id = 0 须判红(ADR-022 契约是 ≥ 1)");
+            Assert.That(Has(report, "baked_initial"), Is.True, "报文须点名字段「baked_initial」");
+            Assert.That(Has(report, "module_id ≥ 1"), Is.True,
+                "报文须点名契约「module_id ≥ 1」—— 否则作者看不出合法值域");
+        }
+
+        /// <summary>
+        /// `baked_initial = true` 且 `module_id` 完全没写(`NoModule = -1`)⇒ 违例。
+        /// <para>与上一条同族但**不同分支**:这条走「没有 module_id」,上一条走「给了非法值」。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把判据的 `s.ModuleId &lt;= 0` 改成 `s.ModuleId &lt; 0` ⇒ 本条仍绿
+        /// (=-1 仍被拒)、上一条红 ⇒ 两条合起来钉住整个 `≤ 0` 面。</remarks>
+        [Test]
+        public void test_levelTool_bakedInitialWithoutModuleId_reportsViolation()
+        {
+            var src = new LevelSource("t", 4, 1, 4, new List<SlotSpec>
+            {
+                new SlotSpec(1, 0, 1, SlotType.Decor, bakedInitial: true),
+            });
+
+            CheckReport report = LevelConsistencyCheck.Check(src);
+
+            Assert.That(report.IsGreen, Is.False, "baked_initial=true 但无 module_id 须判红");
+            Assert.That(Has(report, "没有 module_id"), Is.True,
+                "报文须点名「没有 module_id」(与「给了非法值」分支的措辞分开)");
+        }
+
         /// <summary>`CheckOrThrow` 在违例时**真的抛**(ADR-022 §② 的构建期失败通道)。</summary>
         [Test]
         public void test_levelTool_checkOrThrow_throwsOnViolation()
-        {
-            var bad = new LevelSource("t", 4, 1, 4, new List<SlotSpec>
+        {            var bad = new LevelSource("t", 4, 1, 4, new List<SlotSpec>
             {
                 new SlotSpec(9, 0, 9, SlotType.Decor, false),
             });

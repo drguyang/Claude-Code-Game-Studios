@@ -521,21 +521,37 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         /// <summary>
-        /// 骨架指向**目录里不存在**的模块 ⇒ `ApplyBakedInitial` 须 `throw` 而非静默跳过。
+        /// 骨架指向**目录里不存在**的模块 ⇒ `ApplyBakedInitial` 须 `throw` 而非静默跳过,
+        /// **且抛出时世界回到「未应用」态**(原子性)。
         /// <para>⚠️ 立此条缘由(2026-10-28 自查):该 fail-closed 分支此前**零夹具**
         /// (证据件 §七-2)。静默跳过 = 开档少一件家具且**无任何信号**,
         /// 正是本挂标要修的那个缺陷本身。</para>
+        /// <para>🔁 <b>2026-10-28 评审 B-2 修复(原文不删,就地加注)</b>:首版骨架是**单格**
+        /// (`moduleId: 999`),抛在 `i=0` ⇒ 后面那条「抛之前不得落任何实例」**恒真**
+        /// (循环体一次都没跑完过,本来就不可能落库)。那不是「证明零落库」,是「没机会落库」。
+        /// 现改为**三格,非法格在中间**:`[合法, 非法, 合法]` ⇒ 抛出时 i=0 的合法家具**已经**
+        /// 落库并占格,回滚是否真的把它抹掉才成为**可观测**的事。这条同时钉住:
+        /// ① fail-closed 会抛;② 抛后实例表空;③ 抛后占用表空;④ 抛后可重试(标志已复位)。
+        /// </para>
         /// </summary>
-        /// <remarks><b>判别力</b>:把那条 `throw` 换成 `continue` ⇒ 本条红
-        /// (不抛 ⇒ `Assert.Throws` 失败)。</remarks>
+        /// <remarks><b>判别力</b>:① 把那条 `throw` 换成 `continue` ⇒ 本条红(不抛);
+        /// ② 删掉 `ApplyBakedInitial` 的 `catch` 回滚块 ⇒ 实例表 / 占用表两条红(半应用残留)。</remarks>
         [Test]
         public void test_worldBuildSlots_applyBakedInitial_moduleNotInCatalogThrows()
         {
             var catalog = new BuildSlotCatalog();
             // 999 不在 build_modules.json(实测只有 1..9)⇒ 必然查不到。
+            // 合法件用与「已应用过一次」夹具同一个 DecorModuleId(目录内确有此 id)。
+            // 排序键 = (x,y,z) 升序 ⇒ 索引 0 是 (1,0,1) 合法,索引 1 是 (2,0,1) 非法。
             catalog.RegisterSlot(new BuildSlot(
                 new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: DecorModuleId));
+            catalog.RegisterSlot(new BuildSlot(
+                new WorldPos(2, 0, 1), BitMask.Single(SlotType.Decor),
                 bakedInitial: true, moduleId: 999));
+            catalog.RegisterSlot(new BuildSlot(
+                new WorldPos(3, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: DecorModuleId));
 
             var terrain = new TerrainCell[8, 1, 8];
             for (int x = 0; x < 8; x++)
@@ -548,16 +564,42 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var world = new World(new WorldGeometry(terrain, poi, resource), catalog);
             IModuleCatalog modules = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
 
+            // ── 前置:证明「抛之前确实落过库」,否则下面的「零残留」仍是恒真 ──
+            // 用一次**不抛**的单格世界反证「合法格真的会落库 + 占格」,而不是空口假定。
+            var probeCatalog = new BuildSlotCatalog();
+            probeCatalog.RegisterSlot(new BuildSlot(
+                new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: DecorModuleId));
+            var probe = new World(new WorldGeometry(terrain, poi, resource), probeCatalog);
+            probe.ApplyBakedInitial(modules);
+            Assert.That(probe.Structures.EnumerateInstances().Any(), Is.True,
+                "前置失效:合法格本身就不落库 ⇒ 本夹具的「零残留」断言对回滚无判别力");
+            Assert.That(probe.IsSlotOccupied(new WorldPos(1, 0, 1)), Is.True,
+                "前置失效:合法格本身就不占格 ⇒ 本夹具的「占用归零」断言对回滚无判别力");
+
+            // ── 被测:三格骨架,非法格在中间 ⇒ i=0 已落库,随后 i=1 抛 ──
             var ex = Assert.Throws<InvalidOperationException>(
                 () => world.ApplyBakedInitial(modules));
             Assert.That(ex.Message.IndexOf("不在模块目录内", StringComparison.Ordinal) >= 0, Is.True,
                 "报文须点名「不在模块目录内」:\n" + ex.Message);
 
-            // ⚠️ 查**实例表**而不是 `BakedInitialStructureCount` —— 后者只在循环末尾赋值,
-            //    中途 throw 时它必然仍是 0 ⇒ 断言它 == 0 是**恒真**的(借绿)。
+            // ⚠️ 查**实例表**而不是 `BakedInitialStructureCount` —— 后者是回滚时一并复位的,
+            //    单查它会与「从没跑过」同形。实例表才是「有没有东西真被落进去」的判据。
             Assert.That(world.Structures.EnumerateInstances().Any(), Is.False,
-                "抛之前不得落任何实例(半应用 = 开档少几件且无信号);" +
-                "本断言查实例表本身,不查那个只在末尾赋值的计数属性");
+                "抛出时世界须回到「未应用」态 —— i=0 的合法件不得残留(半应用 = 开档少几件且无信号)");
+            Assert.That(world.BakedInitialStructureCount, Is.EqualTo(0),
+                "计数须一并复位(否则调用方读到「应用了 N 件」而世界是空的)");
+            Assert.That(world.IsSlotOccupied(new WorldPos(1, 0, 1)), Is.False,
+                "i=0 已占的格须被释放 —— 只清实例表不清占用表 = 那格永远不可走");
+
+            // ── 重试:标志已复位 ⇒ 修好数据后可以再来一次(报文不得说「已应用过一次」) ──
+            var fixedCatalog = new BuildSlotCatalog();
+            fixedCatalog.RegisterSlot(new BuildSlot(
+                new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: DecorModuleId));
+            var retryWorld = new World(new WorldGeometry(terrain, poi, resource), fixedCatalog);
+            Assert.DoesNotThrow(() => retryWorld.ApplyBakedInitial(modules),
+                "同一 world 抛过一次后,标志须已复位 ⇒ 再次调用不得报「已应用过一次」");
         }
 
         /// <summary>

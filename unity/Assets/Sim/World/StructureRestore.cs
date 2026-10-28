@@ -183,6 +183,27 @@ namespace DaYiJingCheng.Sim.World
                 case StructureRestoreKind.Placed:
                 {
                     IReadOnlyList<WorldPos> cells = FootprintOf(op.ModuleId, op.Anchor, op.Orientation, index);
+
+                    // ── 同号覆盖须先释放旧足迹(2026-10-28 评审 B-1 修复)─────────────
+                    // ⚠️ **原文不删,就地加注**:初版直接 `Restore` + `OccupyCells`。
+                    //    `Restore` 是**注册表操作,从不碰占用表** —— 它对同号是 `_instances[id] = …`
+                    //    静默覆盖(该语义本身有据,见 `Registry.Restore` 的文档)。但**占用表没人管**:
+                    //    被覆盖的那条实例的旧足迹**仍留在 `_slotOccupied` 里** ⇒ 那些格**永久不可走**,
+                    //    而且**没有任何信号**。
+                    // **可达路径(不是假想)**:基线占 `1..N`(`World.ApplyBakedInitial`),
+                    //    而 baseline 之前的存档(schema 1)里玩家放置从 `1` 起号 ⇒ 重放第一条
+                    //    `Placed(id=1)` 就撞上基线第 1 件 ⇒ 基线那件的足迹格永远阻塞。
+                    // **为什么修在这里而不是 `Restore` 里**:`Restore` 只认注册表,不知道占用表存在
+                    //    (注册表与占用表是两个对象,`World` 才是唯一知道两者的人都)。让 `Restore`
+                    //    去释放占用会**反转依赖方向**;而本类是「把流落进世界」的唯一入口,
+                    //    保持「实例表 ↔ 占用表」同步正是它的职责 —— 与 `Removed` / `Modified`
+                    //    两支已经在做的事完全同构(那两支都先 `FreeCells` 再动)。
+                    // ⚠️ **未结(不在本次修复面)**:schema-1 存档撞号后「基线家具被存档里的结构
+                    //    顶替」这个**语义**问题,本修复只保证**足迹一致**,不裁定「谁该赢」。
+                    //    见 `production/qa/evidence/review-s20-18-2026-10-28.md` §五。
+                    if (_world.Structures.TryGet(op.StructureId, out StructureInstance existing))
+                        _world.FreeCells(existing.OccupiedCells);
+
                     _world.Structures.Restore(op.StructureId, op.Anchor, op.ModuleId,
                                               op.Orientation, op.Variant, cells);
                     _world.OccupyCells(cells);

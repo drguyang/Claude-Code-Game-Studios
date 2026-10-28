@@ -29,12 +29,12 @@
 
 | # | 判据 | Landed(已落) | Proven(已证) | Proven-by(可复算) |
 |---|---|---|---|---|
-| **AC-1** | 生产树 `new World(` 0 → 1 | ✅ `Gameplay.Boot/MinimalWorldFactory.cs:109` | ✅ | `test_ac201_worldConstructedExactlyOnceInProductionTree`;反证 M1 |
-| **AC-1b** | 该构造点**真被装配根调用**(不是死工厂) | ✅ `Gameplay.Boot/BootRoot.cs:213` | ✅ | `test_ac201b_bootRootActuallyCallsTheWorldFactory` |
-| **AC-2** | 生产树 `new StructureWriter(` 0 → 1 | ✅ `Gameplay.Boot/CompositionRoot.cs:858` | ✅ | `test_ac202_structureWriterConstructedExactlyOnceInProductionTree`;反证 M2 |
-| **AC-3** | 经生产装配路径后 `ClinicRoomMatching != null` | ✅ 同上(注册表取自 `world.Structures`,`:819`) | ✅ | `test_ac203_assembleWithWorld_yieldsClinicRoomMatching`;反证 M3 |
+| **AC-1** | 生产树 `new World(` 0 → 1 | ✅ `Gameplay.Boot/MinimalWorldFactory.cs:184` | ✅ | `test_ac201_worldConstructedExactlyOnceInProductionTree`;反证 M1 |
+| **AC-1b** | 该构造点**真被装配根调用**(不是死工厂) | ✅ `Gameplay.Boot/BootRoot.cs:219` | ✅ | `test_ac201b_bootRootActuallyCallsTheWorldFactory` |
+| **AC-2** | 生产树 `new StructureWriter(` 0 → 1 | ✅ `Gameplay.Boot/CompositionRoot.cs:941` | ✅ | `test_ac202_structureWriterConstructedExactlyOnceInProductionTree`;反证 M2 |
+| **AC-3** | 经生产装配路径后 `ClinicRoomMatching != null` | ✅ 同上(注册表取自 `world.Structures`,**`:882`** / 服务构造 **`:920`**) | ✅ | `test_ac203_assembleWithWorld_yieldsClinicRoomMatching`;反证 M3 |
 | **AC-4** | `World` 端到端经**装配根产出的服务**:`Place → IsEffectivelyWalkable == false` / `Remove → true` | ✅ 写者 `occupancy` = 同一 `World` 实例 | ✅ | `test_ac204_placeThenRemove_throughAssembledServices`;反证 M4 |
-| **AC-5** | `StructureWriter` 构造 fail-closed:`DropEventWriter` 未注入 ⇒ 构造期抛 | ✅ 既有 `Sim/World/StructureKinds.cs:214` | ✅ | `test_ac205_structureWriterWithoutDropWriter_throwsBeforeAnyDownstreamCall`;反证 M5 |
+| **AC-5** | `StructureWriter` 构造 fail-closed:`DropEventWriter` 未注入 ⇒ 构造期抛 | ✅ 既有 `Sim/World/StructureKinds.cs:281`(ctor 起于 `:270`) | ✅ | `test_ac205_structureWriterWithoutDropWriter_throwsBeforeAnyDownstreamCall`;反证 M5 |
 | 附加 | 同给 `structures` 与 `world` 且不同实例 ⇒ 抛(防两份真源) | ✅ `CompositionRoot.cs` 的 `ReferenceEquals` 守卫 | ✅ | `test_ac203c_worldAndForeignRegistry_throws`;反证 M1 |
 | 附加 | 不传世界 ⇒ 两者仍 null(既有 100+ 调用方零行为变化) | ✅ | ✅ | `test_ac203b_assembleWithoutWorld_yieldsNulls` |
 
@@ -43,7 +43,7 @@
 > `grep -rn "new World(" … | grep -v "/Tests/"` 的命中数变成 **2 而不是 1** ——
 > 即**判据命令本身**被新写入的注释弄假。处置:把注释里的字面量去掉左括号(改写成
 > 「`new World` 的构造」),使卡面命令**原样成立、无需剥注释**。
-> 复算(期望各恰 1 行,且落点分别为 `MinimalWorldFactory.cs:109` / `CompositionRoot.cs:858`):
+> 复算(期望各恰 1 行,且落点分别为 `MinimalWorldFactory.cs:184` / `CompositionRoot.cs:941`):
 > ```bash
 > grep -rn "new World("          unity/Assets --include=*.cs | grep -v "/Tests/"
 > grep -rn "new StructureWriter(" unity/Assets --include=*.cs | grep -v "/Tests/"
@@ -51,7 +51,7 @@
 > 夹具侧仍**剥注释**再计数(双保险);注释清理后两侧口径一致。
 
 > **AC-1 的落点与卡面原文有出入**,已在卡内「偏差 C」留痕:卡写「落点 = `BootRoot.cs`」,
-> 实际构造行在 `MinimalWorldFactory.cs:109`、由 `BootRoot.cs:213` 调用。
+> 实际构造行在 `MinimalWorldFactory.cs:184`、由 `BootRoot.cs:219` 调用。
 > 理由:`WorldLattice.cs:295-298` 明令 `WorldGeometry` 不得有「按尺寸造空白世界」入口 ⇒
 > 「合成」必须显式具名 + 带响亮日志,300 行的启动序里塞不下这段论证。
 > **判据本身不变**(可复算命令照样恰 1 命中),另加 `ac201b` 钉住「不是死工厂」。
@@ -77,11 +77,11 @@ python3 tools/falsify/unity_falsify.py \
 
 | 变异 | 打什么 | 期望红 | 实测 | 判定 |
 |---|---|---|---|---|
-| **M1** | 删 `MinimalWorldFactory.cs:109` 的 `new World(` | ac201 / ac203 / ac203c / ac204 | 完全一致 | ✅ |
-| **M2** | 删 `CompositionRoot.cs:858` 的 `new StructureWriter(` | ac202 / ac204 | 完全一致 | ✅ |
+| **M1** | 删 `MinimalWorldFactory.cs:184` 的 `new World(` | ac201 / ac203 / ac203c / ac204 | 完全一致 | ✅ |
+| **M2** | 删 `CompositionRoot.cs:941` 的 `new StructureWriter(` | ac202 / ac204 | 完全一致 | ✅ |
 | **M3** | 断 `structures = world.Structures` 这条线 | ac203 / ac204 | 完全一致 | ✅ |
 | **M4** | 停 `StructureKinds.cs:260` 的 `_occupancy.OccupyCells(occupied);` | ac204 | 完全一致 | ✅ |
-| **M5** | 停 `StructureKinds.cs:214` 的 `dropWriter ?? throw` | ac205 | 完全一致 | ✅ |
+| **M5** | 停 `StructureKinds.cs:281` 的 `dropWriter ?? throw` | ac205 | 完全一致 | ✅ |
 
 还原:`SHA-256 逐字节校验通过`;受保护路径(`DataCooked` / `AddressableAssetsData`)指纹**未变**。
 
@@ -91,7 +91,7 @@ python3 tools/falsify/unity_falsify.py \
 |---|---|---|---|
 | **第 1 轮** | M2 **逃逸**:ac202 没红 | 变异形态 = 「把 `if (world != null)` 改成 `if (false)`」。而 AC-2 判的是**源码文本里字面量恰 1 处** —— 停用守卫改不动文本 ⇒ 对这条判据零判别力。当时构造是**跨两行**的,单行替换删不掉它(删首行 ⇒ 孤立实参 ⇒ 编译失败)。 | **变异形态** |
 | **第 2 轮** | M2 转红,但**多红一条 ac203** | 首版 `ac203` 同时断言 `ClinicRoomMatching != null` **和** `StructureWriter != null` —— 一个夹具担两个属性;M2 删写者 ⇒ 连带弄红 AC-3 的夹具。 | **夹具边界** |
-| **第 3 轮** | 5/5 恰如预期 | ① 把写者构造合成**单行**(`CompositionRoot.cs:858`),使 `structureWriter = null;` 既能编译又能让字面量消失;② `ac203` 拆窄为只判匹配服务,写者存在性归 ac202 / ac204。 | — |
+| **第 3 轮** | 5/5 恰如预期 | ① 把写者构造合成**单行**(`CompositionRoot.cs:941`),使 `structureWriter = null;` 既能编译又能让字面量消失;② `ac203` 拆窄为只判匹配服务,写者存在性归 ac202 / ac204。 | — |
 
 两轮处置都**没有**用「改预期去迁就实测」:
 第 1 轮改的是**变异形态**(并为此让生产代码写成单行,源码处已留注说明这是可读性换判据可证伪);

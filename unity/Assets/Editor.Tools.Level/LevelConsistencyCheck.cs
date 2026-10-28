@@ -103,11 +103,18 @@ namespace DaYiJingCheng.EditorTools.Level
                 // ④ `baked_initial = true` ⇒ 必须指明是哪件家具(2026-10-28 · schema 2)
                 //    ⚠️ 这条**在导出期**就拦,而不是等绑定器 —— 导出器是唯一作者,
                 //    作者的错在作者自己的工具里报,报文才指向「你少写了一个字段」。
-                if (s.BakedInitial && s.ModuleId == SlotSpec.NoModule)
+                //    🔁 **2026-10-28 评审 S-1 修复(原文不删,就地加注)**:首版判
+                //    `s.ModuleId == SlotSpec.NoModule`(即 `== -1`),而 ADR-022 `:176` 的契约是
+                //    **`module_id ≥ 1`**。差集 = `module_id = 0` 从导出门**漏过去**,
+                //    只有绑定器 / codec 才拒 —— 而导出器是「唯一作者」,作者的错就该在作者的
+                //    工具里报。现按契约判 `≤ 0`(`NoModule = -1` 与 `0` 一并拒),与 ADR 逐字对齐。
+                if (s.BakedInitial && s.ModuleId <= 0)
                     violations.Add(
-                        $"world_buildslots:{where} 标了 baked_initial = true 却没有 module_id —— " +
-                        "开档既有家具必须指明是哪件家具(运行期要按它算足迹并发 structure_id," +
-                        "GDD 规则三);没写 = 那格开档「声明了占用但说不出被什么占用」");
+                        $"world_buildslots:{where} 标了 baked_initial = true 却" +
+                        (s.ModuleId == SlotSpec.NoModule ? "没有 module_id" : $"给了非法 module_id = {s.ModuleId}") +
+                        " —— 开档既有家具必须指明是哪件家具,且 `module_id ≥ 1`(ADR-022);" +
+                        "运行期要按它算足迹并发 structure_id(GDD 规则三);" +
+                        "没写 / 写 0 = 那格开档「声明了占用但说不出被什么占用」");
 
                 // ⑤ `baked_initial = false` 却写了 module_id ⇒ 语义矛盾
                 //    ⚠️ 反方向的错同样要拦:它会让读者以为「这格有家具但没标初始占用」,

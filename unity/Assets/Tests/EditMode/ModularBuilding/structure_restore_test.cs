@@ -237,7 +237,115 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.IsTrue(_world.Structures.TryGet(5, out _), "id=5 须仍在(未被新结构覆盖)");
         }
 
+        /// <summary>
+        /// `StructureWriter.PeekNextId` 须与**注册表**同一计数器,不得自己镜像一份。
+        /// <para>🔁 <b>2026-10-28(S20-18 评审 · 新增)</b>:写者侧原有一个 `_nextStructureId`
+        /// 镜像字段,两条路径上会与注册表**双向脱钩**,且都静默:① 基线在写者构造**之前**
+        /// 跑(`CompositionRoot.cs:917` vs `:941`)⇒ 注册表已到 `N+1` 而镜像仍是 1;
+        /// ② `World.Reset()` 复位注册表 ⇒ 镜像停在旧高水位。两方向都让 `PeekNextId`
+        /// 报一个**不会真的发出**的号,而它唯一的消费方(`build_controller_test:189`)
+        /// 正是拿它当「`Place` 有没有真被调用」的判据。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把 `PeekNextId` 改回读本类私有字段 ⇒ 本条红
+        /// (基线已把注册表推到 2,镜像仍是 1)。</remarks>
+        [Test]
+        public void test_peekNextId_delegatesToRegistry_notLocalMirror()
+        {
+            // Arrange:带基线的世界 —— 基线落 1 件后,注册表的下一号必须是 2
+            var slots = new BuildSlotCatalog();
+            slots.RegisterSlot(new BuildSlot(
+                new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: ModuleBunk));
+
+            var terrain = new TerrainCell[Size, 1, Size];
+            for (int x = 0; x < Size; x++)
+                for (int z = 0; z < Size; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            int total = Size * 1 * Size;
+            var poi = new int[total];
+            var resource = new int[total];
+            for (int i = 0; i < total; i++) { poi[i] = -1; resource[i] = -1; }
+
+            var world = new World(new WorldGeometry(terrain, poi, resource), slots);
+
+            // 关键:**写者在基线之后构造**(与生产序 CompositionRoot.cs:917 → :941 同序)
+            world.ApplyBakedInitial(_catalog);
+            Assert.AreEqual(1, world.BakedInitialStructureCount, "前置:基线须落 1 件");
+
+            var sink = new CapturingSink(new List<SimEvent>());
+            var writer = new StructureWriter(
+                sink, world.Structures, _encoder, _catalog, world,
+                DaYiJingCheng.Tests.TestDropWriter.Create(sink));
+
+            // Assert:镜像字段此时会是 1(构造时注册表已到 2)⇒ 只有委托才给出 2
+            Assert.AreEqual(2L, writer.PeekNextId,
+                "`PeekNextId` 须读注册表 —— 基线已占 id=1,下一号是 2;"
+                + "报 1 意味着它会预告一个已被占用的号");
+            Assert.AreEqual(world.Structures.PeekNextId, writer.PeekNextId,
+                "写者与注册表须是**同一个**计数器(两个计数器 = 两条静默脱钩路径)");
+        }
+
         // ══════════ AC-7:fail-closed —— 三种坏输入各抛,且抛后世界为空 ══════════
+
+        /// <summary>
+        /// 重放 `Placed` **同号覆盖**已有实例 ⇒ 被覆盖那条的**旧足迹必须释放**。
+        /// <para>🔁 <b>2026-10-28 评审 B-1 修复(新增)</b>:`Registry.Restore` 对同号是
+        /// `_instances[id] = …` 静默覆盖,且它**从不碰占用表** ⇒ 旧足迹格永久不可走、无信号。
+        /// **可达路径**:基线占 `1..N`(`World.ApplyBakedInitial`),而 baseline 之前的存档
+        /// (schema 1)里玩家放置从 `1` 起号 ⇒ 重放第一条 `Placed(id=1)` 就撞上基线第 1 件。</para>
+        /// <para>⚠️ <b>夹具必须走「基线」这条腿</b>,不能用「先 Place 再 Rebuild」:后者里
+        /// `RebuildFromDecoded` 内部先 `Reset()`,把预置实例与占用**都清光了** ⇒ 重放那条
+        /// `Placed(1, …)` 是**新建**而非覆盖 ⇒ 断言全部恒真。基线之所以能存活,是因为
+        /// `World.Reset()` 的语义是「回基线」而不是「回空」(`_moduleCatalogForBaseline` 仍在)。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:删掉 `StructureRestorer.Apply` 的 `Placed` 支里那段
+        /// `if (TryGet) FreeCells(existing.OccupiedCells)` ⇒ 本条红(旧格仍不可走)。</remarks>
+        [Test]
+        public void test_ac6b_replayPlacedOverBaselineId_releasesOldFootprint()
+        {
+            // Arrange:造一个**带基线**的世界 —— 槽位 (1,0,1) 的 baked_initial 家具 = ModuleBunk,
+            //          足迹 = [(1,0,1),(2,0,1)],拿到 id=1(基线发号从 1 起)。
+            var baselineSlots = new BuildSlotCatalog();
+            baselineSlots.RegisterSlot(new BuildSlot(
+                new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: ModuleBunk));
+
+            var terrain = new TerrainCell[Size, 1, Size];
+            for (int x = 0; x < Size; x++)
+                for (int z = 0; z < Size; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            int total = Size * 1 * Size;
+            var poi = new int[total];
+            var resource = new int[total];
+            for (int i = 0; i < total; i++) { poi[i] = -1; resource[i] = -1; }
+
+            var baselineWorld = new World(new WorldGeometry(terrain, poi, resource), baselineSlots);
+            baselineWorld.ApplyBakedInitial(_catalog);
+
+            Assert.AreEqual(1, baselineWorld.BakedInitialStructureCount, "前置:基线须恰好 1 件");
+            Assert.IsTrue(baselineWorld.Structures.TryGet(1, out _), "前置:基线须拿到 id=1");
+            Assert.IsFalse(baselineWorld.IsEffectivelyWalkable(new WorldPos(1, 0, 1)),
+                "前置:基线锚点格须不可走");
+            Assert.IsFalse(baselineWorld.IsEffectivelyWalkable(new WorldPos(2, 0, 1)),
+                "前置:基线非锚点格须不可走");
+
+            // Act:重放一条**同号** id=1,锚点换到 (1,0,3) ⇒ 足迹 = [(1,0,3),(2,0,3)]
+            //      `RebuildFromDecoded` 内部 `Reset()` 会把基线**重新应用**回 id=1 ⇒ 覆盖真发生。
+            new StructureRestorer(baselineWorld, _catalog).RebuildFromDecoded(new[]
+            {
+                StructureRestoreOp.Placed(1, new WorldPos(1, 0, 3), ModuleBunk, 0, 0),
+            });
+
+            // Assert:新足迹被占、**旧足迹(基线那件)被释放**、实例表仍只有 1 条
+            Assert.IsFalse(baselineWorld.IsEffectivelyWalkable(new WorldPos(1, 0, 3)), "新足迹锚点须不可走");
+            Assert.IsFalse(baselineWorld.IsEffectivelyWalkable(new WorldPos(2, 0, 3)), "新足迹非锚点须不可走");
+            Assert.IsTrue(baselineWorld.IsEffectivelyWalkable(new WorldPos(1, 0, 1)),
+                "被覆盖实例的**旧锚点格**须恢复可走 —— 否则它永久阻塞且无任何信号");
+            Assert.IsTrue(baselineWorld.IsEffectivelyWalkable(new WorldPos(2, 0, 1)),
+                "被覆盖实例的**旧非锚点格**须恢复可走(同族:只放锚点会漏这一格)");
+            Assert.AreEqual(1, baselineWorld.Structures.Count, "同号覆盖后实例表仍只有 1 条");
+            Assert.AreEqual(2, baselineWorld.OccupiedCount, "占用总数须 = 新足迹 2 格(旧 2 格已释放)");
+        }
 
         [Test]
         public void test_ac7a_unknownModuleId_throwsAndLeavesWorldEmpty()

@@ -192,6 +192,13 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>
+        /// 下一个可用 structure_id(不递增,仅预览)。
+        /// <para>⚠️ 这是**唯一**发号计数器 —— `StructureWriter.PeekNextId` 委托到这里
+        /// (2026-10-28 S20-18 评审:写者侧原有一份镜像,与本文脱钩后双向静默出错)。</para>
+        /// </summary>
+        public long PeekNextId => _nextStructureId;
+
+        /// <summary>
         /// 按**事件原号**落库一条实例(世界流重放专用)。S20-18 新增。
         /// <para>与 <see cref="Register"/> 的分工:<c>Register</c> 是<b>写路径</b>(自己发号);
         /// 本方法是<b>重建路径</b>(号从 `StructurePlaced` 载荷里来)。重放**不得**用
@@ -240,7 +247,6 @@ namespace DaYiJingCheng.Sim.World
         private readonly IModuleCatalog _moduleCatalog;
         private readonly IWorldOccupancy _occupancy;
         private readonly DropEventWriter _dropWriter;
-        private long _nextStructureId = 1;
 
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
         /// <param name="registry">结构实例表。</param>
@@ -285,7 +291,17 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>下一个可用 structure_id(不递增,仅预览)。</summary>
-        public long PeekNextId => _nextStructureId;
+        /// <remarks>
+        /// 🔁 **2026-10-28(S20-18 评审)**:原实现读本类自己的 `_nextStructureId` 镜像字段,
+        /// 而**真正发号的是注册表**(<see cref="StructureInstanceRegistry.Register"/>)。
+        /// 两个计数器会在两条路径上脱钩,且都是**静默**:
+        /// ① `World.ApplyBakedInitial` 在 `StructureWriter` 构造**之前**跑
+        /// (`CompositionRoot.cs:917` vs `:941`)⇒ 基线把注册表推到 `N+1`,而本类镜像仍是 `1`;
+        /// ② `World.Reset()` 把注册表复位到 `1`,而本类镜像**停在旧高水位**。
+        /// 两个方向都让 `PeekNextId` 报一个**不会真的发出**的号。
+        /// ⇒ 现直接委托注册表(唯一发号者),镜像字段删除。
+        /// </remarks>
+        public long PeekNextId => _registry.PeekNextId;
 
         /// <summary>放置模块(Append StructurePlaced 事件)。</summary>
         public long Place(WorldPos anchor, int moduleId, int orientation, int variant, long tick)
@@ -314,8 +330,6 @@ namespace DaYiJingCheng.Sim.World
                 PlaceableChecker.ComputeOccupiedCells(defOpt.Value, anchor, orientation);
 
             long structureId = _registry.Register(anchor, moduleId, orientation, variant, occupied);
-            if (structureId >= _nextStructureId)
-                _nextStructureId = structureId + 1;
 
             // ── C2:同步世界占用表(F-23-1 EffectiveWalkable 的写路径)──────
             // ⚠️ **fail-closed(N-r1)**:未注入 `occupancy` ⇒ 抛。
