@@ -842,13 +842,13 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 129 | 状态 {'open': 79, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 26, '~~**Y**~~': 1}
-未闭 P0 面 = 63 （已闭但曾标 P0 面的 39 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
+条目 131 | 状态 {'open': 81, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
+未闭 P0 面 = 64 （已闭但曾标 P0 面的 39 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 64 条,分布在 11/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
     telemetry-analytics: 5    disease-simulation: 2     enemy-ai: 1
-    item-database: 1          patient-ai: 1             processing: 1
-    skeuomorphic-ui: 1
+    item-database: 1          patient-ai: 1             persistence-service: 1
+    processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
