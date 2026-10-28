@@ -11976,3 +11976,24 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   `条目 131 / open 79 / closed 46 / partial 5 / 未闭 P0 面 64 / 11 of 31 epics` —— **零变动**
   (TD-building-02 状态维持 `open`、`P0 面` 维持 `N`)。
 - **判据状态**:`ADR-033 §Validation` V-1…V-7 **全部未跑(禁借绿)**。
+
+## Session Extract — 2026-10-28 · TD-persist-09 裁定(ADR-034:存档 v2 载荷段)
+
+- **用户指令**:「按建议走 ADR-034」(授权总方向 = v2 带载荷段;细项本轮就地裁定,§Status 已声明「未经逐条确认、实现轮前可改」)。
+- **落盘 3 件**:
+  - `docs/architecture/adr-034-save-v2-payload-segment.md`(新,Accepted,386 行)
+  - `docs/tech-debt-register.md`(TD-persist-09 修法方向 ① 内追加「✅ 裁定已落」四点收窄;
+    另在「实测」③ **就地加注**命令订正 —— 原文不删)
+  - `.claude/docs/technical-preferences.md`(ADR-034 条目 + 尾部状态 `001–034` + 非 Required 列表)
+- **核心裁定**:布局 `头部|事件段|折叠段|载荷段`,`CurrentSaveVersion` 1→2;
+  **载荷段 = 引用驱动**(存活引用 distinct BlobId 升序;折叠病人载荷天然不写);
+  折叠段改自定长读取(今日 `SaveService.cs:760` 吃掉全部剩余字节);读档先装池再解事件;
+  新增 `IBlobRestoreSink`(住 `Sim.Codec`);**v1 不迁移**(ⓐ 字节从未落盘 + ⓑ `TailBody` 末尾等长禁追加)。
+- **与债册的差异(已明写)**:债册 `:4838`「无法去重已折叠病人的载荷」**属整池 dump**,不属本裁 ⇒ 本裁**收窄**了该代价;但 R1(体积无实测基线)**仍成立**。
+- **起草期三处自查**:① 「IBlobSink 零生产实现」错(实为**零落盘实现**;`grep ': IBlobSink'` 匹配不到 `: IBlobPool, IBlobSink`);② 「禁位置打包」误归 ADR-006 §五(实为 ADR-010 §一 `:186`);③ ADR-010 §一 ④「SaveVersion 仍为 1」的表面冲突已显式调和。
+- **未落**:实现五件(接口 / `SaveComposer` 载荷段 / `SaveService` 自定长+装池+版本门 / `InMemoryBlobPool.Restore` / **翻 `test_ac9g` 边界段**)。
+- **计数**:`python3 tools/debtcount/debtcount.py --check` ⇒ ✅ exit 0;
+  `条目 131 / open 79 / closed 46 / partial 5 / 未闭 P0 面 64 / 11 of 31 epics` —— **零变动**
+  (`TD-persist-09` 维持 `open`、`P0 面` 维持 `Y`:裁定 ≠ 实现)。
+- **判据状态**:`ADR-034 §Validation` V-1…V-7 **全部未跑(禁借绿)**;⚠️ **V-1 必是「既有夹具由红转绿」**(`world_load_service_test.cs:550-571`),不是纯增量。
+- **下一项**:`ADR-033` 四件 + `ADR-034` 五件 **同批实现**(单独落任一侧都不成立)。
