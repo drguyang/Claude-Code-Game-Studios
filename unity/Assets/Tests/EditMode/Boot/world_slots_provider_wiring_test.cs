@@ -56,7 +56,7 @@ namespace DaYiJingCheng.Tests.Boot
 
         /// <summary>合成 1 行产物 —— 与真产物(13 行)在**格数**上可区分。</summary>
         private const string SyntheticSingleSlotJson = @"{
-  ""schema_version"": 1,
+  ""schema_version"": 2,
   ""level_id"": ""p0_clinic_provider_probe"",
   ""world_size"": [16, 1, 16],
   ""slots"": [

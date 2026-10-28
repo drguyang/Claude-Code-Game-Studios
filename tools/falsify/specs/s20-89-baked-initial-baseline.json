@@ -1,0 +1,72 @@
+{
+  "name": "S20-89 挂标 #2 —— 开档基线 `Overlay(0) := BakedInitial` 的落地判据",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_buildslots_bake_test",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节。",
+    "⚠️ **一属性一条变异**(承 `feedback_falsify_one_guard_per_property`):",
+    "  本 spec 三条变异各打**一个独立属性**,互不覆盖 ——",
+    "  M1 = 「装配路径真的调用了基线应用」(挂了 = 声明了不应用,挂标 #2 原形态);",
+    "  M2 = 「发号确定 / 连续」(挂了 = 读档两次得两套 id);",
+    "  M3 = 「重置回基线而非回空」(挂了 = 读档丢房子)。",
+    "  删任一条 ⇒ 那一面零覆盖,故三条缺一不可。",
+    "⚠️ **受保护路径须用命令行 `--guard` 传**,spec 内的 `guards` 字段**驱动不读**",
+    "  (实测 `unity_falsify.py:342` 只认 `args.guard`,否则退回 `DEFAULT_GUARDS`)——",
+    "  本 spec 须这样跑:`--guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData`。",
+    "  ⚠️ 这一条是本轮自查发现的:**首版 spec 写了 `guards` 字段却零效果**,属「自述有门其实没门」同族。",
+    "⚠️ expectRed 是**先写死的推演值**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **M1 是 `exactRed: false`**:它同时会让 §六 的另两条红(它们都走 `CompositionRoot.Assemble`,",
+    "  基线未应用 ⇒ `BakedInitialStructureCount == 0` ⇒ 前置断言先炸)。这是**同一属性的多处观察**,",
+    "  不是判别面不清 —— 故 M1 用 `expectRed` 列全三条 + `exactRed: false`。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-compositionRootSkipsBaseline",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 918,
+      "expect": "                    world.ApplyBakedInitial(modulesCatalog);",
+      "replace": "                    { }   // FALSIFY-M1:基线不应用(挂标 #2 原形态)",
+      "expectRed": [
+        "test_worldBuildSlots_bakedInitial_isAppliedThroughProductionAssembly",
+        "test_worldBuildSlots_reset_returnsToBaselineNotEmpty"
+      ],
+      "exactRed": false,
+      "_why": "删掉装配层的基线应用 ⇒ `BakedInitialStructureCount` 恒 0 ⇒ 两条红。**这条是挂标 #2 的直接判据**:病在装配层,不是 `World` 的方法本身(后者由 M2/M3 分别承)。⚠️ 用 `{ }` 而非直接删行,是为了让 `if (world != null)` 的花括号配对不被破坏(编译失败 = 废轮,承 2026-10-28 首版 M1 的教训)。",
+      "_expectRed 订正记录": [
+        "🔁 **2026-10-28 首轮实测后订正**:初版 `expectRed` 列了**三条**(含 `idsAreDeterministic…`),",
+        "  实测第三条未红 ⇒ 驱动判「逃逸」。**查证后确认这不是夹具假绿,而是 spec 写错**:",
+        "  重写后的 `idsAreDeterministic` 走**手造 World + 直接 `ApplyBakedInitial`**,不经",
+        "  `CompositionRoot` ⇒ 与 M1 变异的那一行**结构性解耦**(这正是重写的目的 ——",
+        "  首版走装配层才会被 M1 的「两边都是空集」借绿)。",
+        "  ⇒ 收成两条。**M1/M2/M3 自此各打一个独立属性,互不代偿**(一属性一条变异)。",
+        "  ⚠️ 这同时是一次**教训登记**:证伪轮的 `expectRed` 也是断言,写宽了会把自己的",
+        "  解耦误报成「逃逸」。判「假绿」前须先问「这条夹具**本来**该不该被这个变异影响」。"
+      ]
+    },
+    {
+      "name": "M2-baselineSortRemoved",
+      "file": "unity/Assets/Sim/World/World.cs",
+      "line": 116,
+      "expect": "            baked.Sort((a, b) =>",
+      "replace": "            if (false) baked.Sort((a, b) =>   // FALSIFY-M2:发号不排序(按枚举序)",
+      "expectRed": [
+        "test_worldBuildSlots_bakedInitial_idsAreDeterministicAndContiguous"
+      ],
+      "exactRed": false,
+      "_why": "停用 `(x,y,z)` 升序排序 ⇒ 发号顺序 = `Dictionary` 枚举序。**诚实的判别力边界**:同一进程内两次 `MinimalWorldFactory.Create()` 造出的 `BuildSlotCatalog` 插入序相同 ⇒ 两次枚举序**也相同** ⇒ 本条可能**仍绿**。故 M2 只能证「排序参与发号」的**存在性**(删掉它至少让判据失去唯一确定性来源),不能证「跨机器会漂」。真实跨机器漂移须跨进程实测,本轮不做 —— 见证据件 §诚实边界。"
+    },
+    {
+      "name": "M3-resetSkipsBaselineReapply",
+      "file": "unity/Assets/Sim/World/World.cs",
+      "line": 178,
+      "expect": "            ApplyBakedInitialBaseline();   // 未注入目录 ⇒ 内部早退,行为与订正前一致",
+      "replace": "            { }   // FALSIFY-M3:重置回空世界(订正前的错误语义)",
+      "expectRed": [
+        "test_worldBuildSlots_reset_returnsToBaselineNotEmpty"
+      ],
+      "exactRed": true,
+      "_why": "删掉 `Reset()` 里的基线重应用 ⇒ 重置后占用表与实例表全空 ⇒ 该条的前两条断言(`BakedInitialStructureCount` / `OccupiedCount` 回到基线)同时红。**只红这一条**:另两条不调 `Reset()`。"
+    }
+  ]
+}

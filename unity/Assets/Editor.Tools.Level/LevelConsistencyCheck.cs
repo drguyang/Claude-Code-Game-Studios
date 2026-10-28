@@ -18,6 +18,8 @@
 //   ① 重复格           —— 同一 `(x,y,z)` 声明两次(会让「取哪一条」成为隐式规则)
 //   ② 类型越界         —— `SlotType.None`(哨兵)/ 枚举未定义值
 //   ③ 格超出声明范围   —— 格不在 `[0,W)×[0,H)×[0,D)`
+//   ④ `baked_initial = true` 却无 `module_id`(2026-10-28 · schema 2)
+//   ⑤ `baked_initial = false` 却写了 `module_id`(同上,反方向)
 //
 // ⚠️ **不假装实现**:上面七条未实装项在 `CheckReport.Unimplemented` 里逐条列出,
 //    由调用方(导出器 / 测试)可读 —— 这不是注释里的自述,是返回值里的数据。
@@ -97,6 +99,24 @@ namespace DaYiJingCheng.EditorTools.Level
                     violations.Add(
                         $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 超出声明范围 " +
                         $"[0,{src.Width})×[0,{src.Height})×[0,{src.Depth}) —— 越界格在运行期永远不可达");
+
+                // ④ `baked_initial = true` ⇒ 必须指明是哪件家具(2026-10-28 · schema 2)
+                //    ⚠️ 这条**在导出期**就拦,而不是等绑定器 —— 导出器是唯一作者,
+                //    作者的错在作者自己的工具里报,报文才指向「你少写了一个字段」。
+                if (s.BakedInitial && s.ModuleId == SlotSpec.NoModule)
+                    violations.Add(
+                        $"world_buildslots:{where} 标了 baked_initial = true 却没有 module_id —— " +
+                        "开档既有家具必须指明是哪件家具(运行期要按它算足迹并发 structure_id," +
+                        "GDD 规则三);没写 = 那格开档「声明了占用但说不出被什么占用」");
+
+                // ⑤ `baked_initial = false` 却写了 module_id ⇒ 语义矛盾
+                //    ⚠️ 反方向的错同样要拦:它会让读者以为「这格有家具但没标初始占用」,
+                //    而实际行为是「空地可建」—— 两个字段的取值互相打脸。
+                if (!s.BakedInitial && s.ModuleId != SlotSpec.NoModule)
+                    violations.Add(
+                        $"world_buildslots:{where} 标了 baked_initial = false 却写了 " +
+                        $"module_id = {s.ModuleId} —— 二者矛盾(非初始占用的槽位没有既有家具," +
+                        "运行期会把它当空地);要声明开档家具请同时把 baked_initial 置 true");
             }
 
             return new CheckReport(violations, UnimplementedChecks);

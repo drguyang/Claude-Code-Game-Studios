@@ -73,7 +73,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_worldBuildSlots_productionCore_rejectsOutOfBoundsCell()
         {
             string tempRoot = MakeTempRepoRoot(
-                "{\"schema_version\":1,\"level_id\":\"tmp\",\"world_size\":[4,1,4]," +
+                "{\"schema_version\":2,\"level_id\":\"tmp\",\"world_size\":[4,1,4]," +
                 "\"slots\":[{\"cell\":[9,0,0],\"slot_type\":\"Decor\",\"baked_initial\":false}]}");
             try
             {
@@ -103,7 +103,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_worldBuildSlots_productionCore_acceptsValidRow()
         {
             string tempRoot = MakeTempRepoRoot(
-                "{\"schema_version\":1,\"level_id\":\"tmp\",\"world_size\":[4,1,4]," +
+                "{\"schema_version\":2,\"level_id\":\"tmp\",\"world_size\":[4,1,4]," +
                 "\"slots\":[{\"cell\":[1,0,1],\"slot_type\":\"Decor\",\"baked_initial\":false}]}");
             try
             {
@@ -127,14 +127,14 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_worldBuildSlots_emptyTable_isRejected()
             => AssertRejected(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[]}",
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[]}",
                 "为空表");
 
         /// <summary>重复格 ⇒ 拒。</summary>
         [Test]
         public void test_worldBuildSlots_duplicateCell_isRejected()
             => AssertRejected(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
                 "{\"cell\":[1,0,1],\"slot_type\":\"Decor\",\"baked_initial\":false}," +
                 "{\"cell\":[1,0,1],\"slot_type\":\"Shell\",\"baked_initial\":false}]}",
                 "重复");
@@ -143,7 +143,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_worldBuildSlots_noneSlotType_isRejected()
             => AssertRejected(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
                 "{\"cell\":[1,0,1],\"slot_type\":\"None\",\"baked_initial\":false}]}",
                 "SlotType 闭集");
 
@@ -151,7 +151,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_worldBuildSlots_missingBakedInitial_isRejected()
             => AssertRejected(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
                 "{\"cell\":[1,0,1],\"slot_type\":\"Decor\"}]}",
                 "baked_initial");
 
@@ -159,9 +159,68 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_worldBuildSlots_unknownKey_isRejected()
             => AssertRejected(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
-                "{\"cell\":[1,0,1],\"slot_type\":\"Decor\",\"baked_initial\":false,\"tier\":2}]}",
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Decor\",\"baked_initial\":false,\"module_id\":null,\"tier\":2}]}",
                 "未知键");
+
+        // ══════════════════ 三之二 · schema 2 的 `module_id` 域门 ══════════════════
+        //
+        // ⚠️ 这两条是 S20-20 挂标 #2 的核心:此前 `baked_initial = true` 只声明「这格开档
+        //    已占用」,**说不出被什么占用** ⇒ 运行期算不出足迹、发不出 `structure_id`
+        //    (GDD 规则三要求初始家具进实例表)。`module_id` 就是那个缺的字段。
+        //    两侧都拒:true 无 id(算不出)与 false 有 id(自相矛盾)。
+
+        /// <summary>`baked_initial = true` 但 `module_id` 为 null ⇒ 拒。</summary>
+        /// <remarks><b>判别力</b>:把 `TryReadModuleId` 的 `if (bakedInitial)` 分支停用
+        /// ⇒ 本条红(不再拒,开档家具静默丢失足迹)。</remarks>
+        [Test]
+        public void test_worldBuildSlots_bakedInitialTrueWithoutModuleId_isRejected()
+            => AssertRejected(
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Shell\",\"baked_initial\":true,\"module_id\":null}]}",
+                "module_id");
+
+        /// <summary>`baked_initial = true` 且**整个字段缺席** ⇒ 同样拒(缺 = 作者遗漏)。</summary>
+        /// <remarks><b>判别力</b>:若把「缺席」当成合法 null 放行 ⇒ 本条红;
+        /// 它与上一条各挡一面(显式 null vs 漏写),不能互相代偿。</remarks>
+        [Test]
+        public void test_worldBuildSlots_bakedInitialTrueMissingModuleIdField_isRejected()
+            => AssertRejected(
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Shell\",\"baked_initial\":true}]}",
+                "module_id");
+
+        /// <summary>`baked_initial = false` 却写了 `module_id` ⇒ 拒(自相矛盾)。</summary>
+        /// <remarks><b>判别力</b>:删掉 `TryReadModuleId` 的 `!isNull` 分支 ⇒ 本条红。
+        /// 这条**不是**上两条的对称赘述 —— 它挡的是反方向的错:读者会以为「有家具但没占」。</remarks>
+        [Test]
+        public void test_worldBuildSlots_bakedInitialFalseWithModuleId_isRejected()
+            => AssertRejected(
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Decor\",\"baked_initial\":false,\"module_id\":7}]}",
+                "module_id");
+
+        /// <summary>`module_id = 0`(哨兵位)⇒ 拒。</summary>
+        /// <remarks><b>判别力</b>:把 `n.Int &lt; 1` 的比较改成 `&lt; 0` ⇒ 本条红。</remarks>
+        [Test]
+        public void test_worldBuildSlots_moduleIdZero_isRejected()
+            => AssertRejected(
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Shell\",\"baked_initial\":true,\"module_id\":0}]}",
+                "module_id");
+
+        /// <summary>合法行(`true` + 真 id)⇒ **放行**,且 id 原样保留(证明上四条不是「恒拒」)。</summary>
+        [Test]
+        public void test_worldBuildSlots_bakedInitialTrueWithModuleId_isAccepted()
+        {
+            WorldBuildSlotsBinder.BindResult r = WorldBuildSlotsBinder.Bind(
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"cell\":[1,0,1],\"slot_type\":\"Shell\",\"baked_initial\":true,\"module_id\":8}]}");
+
+            Assert.That(r.Rows.Count, Is.EqualTo(1));
+            Assert.That(r.Rows[0].BakedInitial, Is.True);
+            Assert.That(r.Rows[0].ModuleId, Is.EqualTo(8), "module_id 须原样保留,不做映射");
+        }
 
         // ══════════════════ 四 · 确定性 + 读方 ↔ 写方镜像 ══════════════════
 
@@ -198,7 +257,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.That(decoded.Depth, Is.EqualTo(output.Bound.Depth));
             Assert.That(decoded.ConfigVersion, Is.EqualTo(output.ConfigVersion),
                 "头槽 ConfigVersion 须与烘焙输出一致");
-            Assert.That(decoded.SchemaVersion, Is.EqualTo(1u), "头槽 schema_version 须 = 1");
+            Assert.That(decoded.SchemaVersion, Is.EqualTo(2u), "头槽 schema_version 须 = 2");
 
             for (int i = 0; i < expected.Count; i++)
             {
@@ -210,6 +269,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 Assert.That(got.AllowedMask, Is.EqualTo(1 << want.TypeOrdinal),
                     $"rows[{i}].allowed_mask 须 = 1 << {want.TypeOrdinal}");
                 Assert.That(got.BakedInitial, Is.EqualTo(want.BakedInitial), $"rows[{i}].baked_initial");
+                // schema 2:module_id 往返(schema 1 时这一行无从写起 —— 字段根本不存在)
+                Assert.That(got.ModuleId, Is.EqualTo(want.ModuleId), $"rows[{i}].module_id");
             }
         }
 
@@ -251,7 +312,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
 
             // Decor 3×3 区里的一格**空地**(种子定义见 P0ClinicLevel:6..8 × 6..8;
             // (6,0,6) 是唯一那格 `baked_initial = true` 的已占用格 —— 刻意不用它:
-            // 运行期今日不应用初始占用,用它会让本测在「占用真的开始生效」那天悄悄变味)。
+            // 🔁 2026-10-28(S20-20 挂标 #2)订正 —— 原文「运行期今日不应用初始占用」已过期,
+            //    基线**现已应用**(`World.ApplyBakedInitial`),用 (6,0,6) 会得到 `Occupied`;
+            //    本条判的是「空地可建」,所以仍取空地 (7,0,7)。下面另立一条腿专门判基线。
             var anchor = new WorldPos(7, 0, 7);
             Assert.That(world.SlotCatalog.IsValidSlot(anchor), Is.True,
                 "Decor 区的锚点格须在目录内(种子与装载的坐标对不上 ⇒ 数据与世界不是同一张图纸)");
@@ -269,6 +332,258 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "真实槽位 + 匹配模块不得再返回 SlotNotFound(本条 = 本任务的目的判据)");
             Assert.That(result, Is.EqualTo(PlaceableResult.Success),
                 $"全条件应满足(实得 {result})");
+        }
+
+        // ══════════════════ 六 · 开档基线真的应用了(S20-20 挂标 #2)══════════════════
+        //
+        // ⚠️ 这一节判的是 **`Overlay(0) := BakedInitial`**(GDD 规则三 / 评审裁定 B3)。
+        //    此前 `BuildSlotCatalog` 无承载字段 ⇒ 数据声明了、运行期不应用;那正是挂标 #2。
+        //
+        // ⚠️ 走**生产装配入口** `CompositionRoot.Assemble(world:)`,不是测试手调
+        //    `world.ApplyBakedInitial` —— 后者只能证明「那个方法能用」,证明不了
+        //    「装配路径会调它」。挂标 #2 的病灶正在装配这一层。
+
+        /// <summary>经生产装配 ⇒ 基线占用落在**种子声明的那几格**上,且初始家具进了实例表。</summary>
+        /// <remarks>
+        /// <para><b>判别力</b>:把 `CompositionRoot` 里那行 `world.ApplyBakedInitial(modulesCatalog)`
+        /// 删掉 ⇒ `BakedInitialStructureCount == 0` 与「(1,0,1) 不可走」两条同时红。</para>
+        /// <para>⚠️ **格数不写死**(种子一改就红且红得离真因很远);改判「种子声明了哪些格,
+        /// 那几格就占着」—— 判据从数据推出,不从常量抄。</para>
+        /// </remarks>
+        [Test]
+        public void test_worldBuildSlots_bakedInitial_isAppliedThroughProductionAssembly()
+        {
+            World world = MinimalWorldFactory.Create();
+            CompositionRoot.Assemble(world: world);
+
+            WorldBuildSlotsBake.BakeOutput output = WorldBuildSlotsBake.BakeFromRepo(RepoRoot);
+            var declared = output.Bound.Rows.Where(r => r.BakedInitial).ToList();
+            Assert.That(declared.Count, Is.GreaterThan(0),
+                "前置:种子须至少一格 baked_initial = true(否则本节零观察面)");
+
+            Assert.That(world.BakedInitialStructureCount, Is.EqualTo(declared.Count),
+                $"已应用的初始家具数须 = 种子声明数 {declared.Count}(数据说 5 格,运行期就得有 5 件)");
+
+            foreach (WorldBuildSlotsBinder.SlotRow row in declared)
+            {
+                var cell = new WorldPos(row.X, row.Y, row.Z);
+                Assert.That(world.IsSlotOccupied(cell), Is.True,
+                    $"({row.X},{row.Y},{row.Z}) 声明了 baked_initial = true ⇒ 开档须已占用");
+                Assert.That(world.IsEffectivelyWalkable(cell), Is.False,
+                    $"({row.X},{row.Y},{row.Z}) 被初始家具占着 ⇒ 27/13 读到的须是不可走");
+                Assert.That(world.GetModuleAt(cell), Is.EqualTo(row.ModuleId),
+                    $"({row.X},{row.Y},{row.Z}) 的模块 id 须是种子写的 {row.ModuleId} —— " +
+                    "「占了但不知道被什么占」等于没应用");
+            }
+
+            // 反向半边:非 baked_initial 的槽位必须是**空的** —— 否则上面那些断言
+            // 可能只是「全世界都占着」(那会让它们全部无判别力)。
+            foreach (WorldBuildSlotsBinder.SlotRow row in
+                     output.Bound.Rows.Where(r => !r.BakedInitial).Take(3))
+            {
+                var cell = new WorldPos(row.X, row.Y, row.Z);
+                Assert.That(world.IsSlotOccupied(cell), Is.False,
+                    $"({row.X},{row.Y},{row.Z}) 是空地 ⇒ 不得被基线占(否则「基线应用了」与" +
+                    "「整个骨架都占着」不可区分)");
+            }
+        }
+
+        /// <summary>
+        /// 发号确定性夹具用的模块 id = 7(`chamber_pot`,Decor,足迹 `[[0,0,0]]` 单格)。
+        /// <para>⚠️ 写字面量而非引用目录常量:自指判据在变异时两边一起动,零红逃逸
+        /// (承本文件头的判别力纪律)。</para>
+        /// </summary>
+        private const int DecorModuleId = 7;
+
+        /// <summary>
+        /// 基线发号**确定性**:同一份数据跑两遍 ⇒ 同一批 `structure_id`,且 id 恰为 1..N 连续。
+        /// <para>⚠️ 这是 GDD 规则三「`Overlay` 是派生态、可逐条重建」的前提 —— 发号若随
+        /// 字典迭代序漂移,两次读档会得到两套 id,而下游(24 的布局析出)按 id 引用。</para>
+        /// </summary>
+        /// <remarks>
+        /// <para>🔁 <b>2026-10-28 证伪轮 M1/M2 双逃逸后重写(原文不删)</b>:首版走
+        /// `CompositionRoot.Assemble` 造世界,于是 **M1(装配层不应用基线)下两边都是空集**
+        /// —— `ids` 为空、`BakedInitialStructureCount` 都是 0 ⇒ **三条断言全部平凡成立**。
+        /// 这是本项目反复抓过的「**空集借绿**」形态(同 `S-2` 的空子集借绿)。
+        /// 现改为**手造骨架**:① 显式前置断言 `ids.Count &gt; 0`(空集直接红,堵死平凡成立);
+        /// ② 不走装配层 ⇒ 与 M1 解耦,本条专判 `World` 自己的发号属性。</para>
+        /// <para><b>判别力</b>(M2 已实测):把 `baked.Sort(...)` 停用 ⇒ 发号顺序退回
+        /// `BuildSlotCatalog._slots` 的枚举序。**构造的关键**是让插入序 ≠ (x,y,z) 升序
+        /// (下方刻意乱序注册)⇒ 排序一旦停用,id 与格的对应就变 ⇒ 本条红。</para>
+        /// </remarks>
+        [Test]
+        public void test_worldBuildSlots_bakedInitial_idsAreDeterministicAndContiguous()
+        {
+            // ⚠️ **刻意乱序注册**(z 递减),使「插入序」与「(x,y,z) 升序」**不同** ——
+            //    否则停用排序也得到同一结果,夹具必然假绿(M2 首版就是这么逃逸的)。
+            BuildSlotCatalog MakeSkeleton()
+            {
+                var catalog = new BuildSlotCatalog();
+                for (int i = 3; i >= 1; i--)
+                    catalog.RegisterSlot(new BuildSlot(
+                        new WorldPos(i, 0, 1), BitMask.Single(SlotType.Decor),
+                        bakedInitial: true, moduleId: DecorModuleId));
+                return catalog;
+            }
+
+            World MakeWorld()
+            {
+                var terrain = new TerrainCell[8, 1, 8];
+                for (int x = 0; x < 8; x++)
+                    for (int z = 0; z < 8; z++)
+                        terrain[x, 0, z] = new TerrainCell(true, 0);
+                var poi = new int[64];
+                var resource = new int[64];
+                for (int i = 0; i < 64; i++) { poi[i] = -1; resource[i] = -1; }
+                return new World(new WorldGeometry(terrain, poi, resource), MakeSkeleton());
+            }
+
+            IModuleCatalog modules = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
+
+            World first = MakeWorld();
+            first.ApplyBakedInitial(modules);
+            World second = MakeWorld();
+            second.ApplyBakedInitial(modules);
+
+            // ── 前置:**非空**(堵死「空集借绿」—— 首版正是死在这里)──
+            Assert.That(first.BakedInitialStructureCount, Is.EqualTo(3),
+                "前置:3 格 baked_initial ⇒ 须真有 3 件初始家具;" +
+                "为 0 说明基线未应用(此时下面每条都会平凡成立 = 假绿)");
+
+            Assert.That(first.BakedInitialStructureCount, Is.EqualTo(second.BakedInitialStructureCount),
+                "两次装配的初始家具数须相同");
+
+            var ids = new List<long>();
+            foreach (StructureInstance inst in first.Structures.EnumerateInstances())
+                ids.Add(inst.StructureId);
+            ids.Sort();
+            Assert.That(ids, Is.EqualTo(
+                    Enumerable.Range(1, ids.Count).Select(i => (long)i).ToList()),
+                "基线实例 id 须恰为 1..N 连续(空号 = 发号路径有别的来源)");
+
+            // ── 本条的主判据:**id 与格的对应由 (x,y,z) 升序决定**,与注册序无关 ──
+            //    停用排序 ⇒ 按注册序(z 递减)发号 ⇒ x=1 的格拿到 id 3 ⇒ 红。
+            for (int x = 1; x <= 3; x++)
+            {
+                long id = first.Structures.GetInstanceAt(new WorldPos(x, 0, 1));
+                Assert.That(id, Is.EqualTo((long)x),
+                    $"格 ({x},0,1) 的 structure_id 须 = {x} —— 发号按 (x,y,z) 升序," +
+                    "与骨架的注册序无关;红在此处 = 排序没生效(字典枚举序漏进来了)");
+            }
+
+            // ── 同一格在两次装配里得到**同一个** id ──
+            foreach (StructureInstance inst in first.Structures.EnumerateInstances())
+            {
+                long otherId = second.Structures.GetInstanceAt(inst.Anchor);
+                Assert.That(otherId, Is.EqualTo(inst.StructureId),
+                    $"格 ({inst.Anchor.X},{inst.Anchor.Y},{inst.Anchor.Z}) 两次装配的 id 不同 ⇒ 发号非确定性");
+            }
+        }
+
+        /// <summary>
+        /// `ApplyBakedInitial` 的**只许一次**守卫:第二次调用须 `throw`,且报文点名「已应用过一次」。
+        /// <para>⚠️ 立此条缘由(2026-10-28 自查):该守卫此前**有代码、零夹具**
+        /// (证据件 §七-1)。它挡的是「基线把 id 1…N 重新 `Restore` 到已被玩家改动过的实例表上,
+        /// 静默覆盖玩家同号结构」—— 静默失败,故必须有证明。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:删掉 `if (_moduleCatalogForBaseline != null) throw` 那三行
+        /// ⇒ 本条红(第二次调用不抛)。</remarks>
+        [Test]
+        public void test_worldBuildSlots_applyBakedInitial_secondCallThrows()
+        {
+            BuildSlotCatalog MakeSkeleton()
+            {
+                var catalog = new BuildSlotCatalog();
+                catalog.RegisterSlot(new BuildSlot(
+                    new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                    bakedInitial: true, moduleId: DecorModuleId));
+                return catalog;
+            }
+
+            var terrain = new TerrainCell[8, 1, 8];
+            for (int x = 0; x < 8; x++)
+                for (int z = 0; z < 8; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            var poi = new int[64];
+            var resource = new int[64];
+            for (int i = 0; i < 64; i++) { poi[i] = -1; resource[i] = -1; }
+
+            var world = new World(new WorldGeometry(terrain, poi, resource), MakeSkeleton());
+            IModuleCatalog modules = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
+
+            world.ApplyBakedInitial(modules);   // 第一次:允许
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => world.ApplyBakedInitial(modules));
+            Assert.That(ex.Message.IndexOf("已应用过一次", StringComparison.Ordinal) >= 0, Is.True,
+                "报文须点名「已应用过一次」(否则任何 InvalidOperationException 都能让本夹具变绿):\n"
+                + ex.Message);
+        }
+
+        /// <summary>
+        /// 骨架指向**目录里不存在**的模块 ⇒ `ApplyBakedInitial` 须 `throw` 而非静默跳过。
+        /// <para>⚠️ 立此条缘由(2026-10-28 自查):该 fail-closed 分支此前**零夹具**
+        /// (证据件 §七-2)。静默跳过 = 开档少一件家具且**无任何信号**,
+        /// 正是本挂标要修的那个缺陷本身。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把那条 `throw` 换成 `continue` ⇒ 本条红
+        /// (不抛 ⇒ `Assert.Throws` 失败)。</remarks>
+        [Test]
+        public void test_worldBuildSlots_applyBakedInitial_moduleNotInCatalogThrows()
+        {
+            var catalog = new BuildSlotCatalog();
+            // 999 不在 build_modules.json(实测只有 1..9)⇒ 必然查不到。
+            catalog.RegisterSlot(new BuildSlot(
+                new WorldPos(1, 0, 1), BitMask.Single(SlotType.Decor),
+                bakedInitial: true, moduleId: 999));
+
+            var terrain = new TerrainCell[8, 1, 8];
+            for (int x = 0; x < 8; x++)
+                for (int z = 0; z < 8; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            var poi = new int[64];
+            var resource = new int[64];
+            for (int i = 0; i < 64; i++) { poi[i] = -1; resource[i] = -1; }
+
+            var world = new World(new WorldGeometry(terrain, poi, resource), catalog);
+            IModuleCatalog modules = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => world.ApplyBakedInitial(modules));
+            Assert.That(ex.Message.IndexOf("不在模块目录内", StringComparison.Ordinal) >= 0, Is.True,
+                "报文须点名「不在模块目录内」:\n" + ex.Message);
+
+            // ⚠️ 查**实例表**而不是 `BakedInitialStructureCount` —— 后者只在循环末尾赋值,
+            //    中途 throw 时它必然仍是 0 ⇒ 断言它 == 0 是**恒真**的(借绿)。
+            Assert.That(world.Structures.EnumerateInstances().Any(), Is.False,
+                "抛之前不得落任何实例(半应用 = 开档少几件且无信号);" +
+                "本断言查实例表本身,不查那个只在末尾赋值的计数属性");
+        }
+
+        /// <summary>
+        /// `World.Reset()` 回到**基线**而不是空世界(GDD 规则三的 `Overlay(t) := BakedInitial ⊕ 事件`)。
+        /// <para>⚠️ 这条挡的是「读档丢房子」:重置是读档重放的第一步,若它清空基线,
+        /// 玩家每次读档后外壳与开档家具全部消失 —— 而**所有既有夹具都看不出来**
+        /// (它们造的世界没有基线)。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把 `World.Reset` 里的 `ApplyBakedInitialBaseline()` 调用删掉
+        /// ⇒ 本条红(占用数从「基线数」变 0)。</remarks>
+        [Test]
+        public void test_worldBuildSlots_reset_returnsToBaselineNotEmpty()
+        {
+            World world = MinimalWorldFactory.Create();
+            CompositionRoot.Assemble(world: world);
+
+            int baselineStructures = world.BakedInitialStructureCount;
+            int baselineOccupied = world.OccupiedCount;
+            Assert.That(baselineStructures, Is.GreaterThan(0), "前置:须已应用基线");
+
+            world.Reset();
+
+            Assert.That(world.BakedInitialStructureCount, Is.EqualTo(baselineStructures),
+                "重置后初始家具数须回到基线数(重置 = 回基线,不是回空 —— 规则三)");
+            Assert.That(world.OccupiedCount, Is.EqualTo(baselineOccupied),
+                "重置后占用数须回到基线数");
         }
 
         // ══════════════════ 辅助 ══════════════════

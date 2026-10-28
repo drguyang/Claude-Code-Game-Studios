@@ -1,0 +1,31 @@
+{
+  "name": "S20-88 结清 §七-1 —— `BootRoot` 实参的文本级门(`test_ac201b` 二次收紧后的判别力)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_assembly_wiring_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节。",
+    "⚠️ 本 spec 证的是「`test_ac201b` 二次收紧后**真的**能区分『真分支是 Provider』与『真分支是 null』」。",
+    "  上一版判据 `Create(\\s*\\w+\\s*\\?` 对本变异**是绿的**(离线复算见证据件 §七-1),故本变异同时也是那条收紧的必要性证明。",
+    "⚠️ 一属性一条变异:本变异只动 `BootRoot` 的**真分支实参**,不动 `MinimalWorldFactory` 内部 —— 后者由 `s20-20-slot-provider-surface.json` 的 M1 承担。",
+    "⚠️ expectRed 是先写死的推演值(承 README「不得把实得抄进 exactRed」)。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-bootRootProviderArgNulled",
+      "file": "unity/Assets/Gameplay.Boot/BootRoot.cs",
+      "line": 219,
+      "expect": "            var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null);",
+      "replace": "            var world = MinimalWorldFactory.Create(preloaded ? null : null);   // FALSIFY-M1:真分支换成 null",
+      "expectRed": [
+        "test_ac201b_bootRootActuallyCallsTheWorldFactory"
+      ],
+      "exactRed": true,
+      "_why": "真分支换成 null ⇒ 生产构建只走磁盘兜底 ⇒ 槽位目录恒空(S20-20 挂标 #1 原形态)。收紧后的判据要求真分支逐字是 `DataCorePreloader.Provider` ⇒ 红。**上一版判据对本变异是绿的**(它只要求「实参是三元」)—— 这正是 §七-1 那条「钉形状不钉内容」的实证。其余 7 条不受影响:`new World(` / `new StructureWriter(` 计数、AC-3/AC-4 走的是 `MinimalWorldFactory.Create()`(无参,不经 BootRoot)、AC-5 是写者构造。"
+    }
+  ]
+}

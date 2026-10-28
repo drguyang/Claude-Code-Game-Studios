@@ -31,7 +31,13 @@ namespace DaYiJingCheng.EditorTools.Level
         public const string FileName = "world_buildslots.json";
 
         /// <summary>本表的 schema_version(单一出处 = 本常量;读方 codec 的期望值与它同值)。</summary>
-        public const uint SchemaVersion = 1u;
+        /// <remarks>⚠️ <b>2026-10-28(S20-20 挂标 #2):1 → 2</b> —— 行对象新增 `module_id`
+        /// (开档既有家具的模块 id)。旧 schema 1 的产物**无**该字段 ⇒ 读方必须拒
+        /// (`WorldBuildSlotsCookedCodec.ExpectedSchemaVersion` 同值 2)。
+        /// ⚠️ 三处**必须同时**改:本常量 / `WorldBuildSlotsCookedCodec.ExpectedSchemaVersion` /
+        /// `WorldBuildSlotsBinder.RowKeys` —— 前两者由绑定器的 `ReadSchemaVersion` 交叉校验
+        /// (它以 codec 常量为期望值),故本常量若漏改,真种子烘焙**当场**报「schemaVersion ≠ 期望」。</remarks>
+        public const uint SchemaVersion = 2u;
 
         // ⚠️ **此处曾有 `SlotTypeNames` / `DeriveSlotTypeNames()`**(名字表 + 名字→序数派生)。
         //    2026-10-28 代码评审 **A-21** 后删除,两半各有归处 ——
@@ -77,8 +83,17 @@ namespace DaYiJingCheng.EditorTools.Level
                 sb.Append("    {\"cell\": [")
                   .Append(Num(s.X)).Append(", ").Append(Num(s.Y)).Append(", ").Append(Num(s.Z))
                   .Append("], \"slot_type\": ").Append(Quote(TypeName(s.Type)))
-                  .Append(", \"baked_initial\": ").Append(s.BakedInitial ? "true" : "false")
-                  .Append('}')
+                  .Append(", \"baked_initial\": ").Append(s.BakedInitial ? "true" : "false");
+                // ⚠️ `module_id` **恒出现**(schema 2):`baked_initial = false` 的行写 `null`,
+                //    而不是省略字段 —— 「省略」与「写了 null」在读者眼里是两件事
+                //    (前者像作者遗漏,后者是明确声明「本格无既有家具」),与
+                //    `baked_initial` 必填的既有口径同源。
+                sb.Append(", \"module_id\": ");
+                if (s.BakedInitial)
+                    sb.Append(Num(s.ModuleId));
+                else
+                    sb.Append("null");
+                sb.Append('}')
                   .Append(i + 1 < ordered.Count ? ",\n" : "\n");
             }
 

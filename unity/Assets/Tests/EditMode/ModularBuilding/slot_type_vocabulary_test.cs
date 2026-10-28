@@ -100,7 +100,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         /// <summary>绑定一张只有一格的最小表。</summary>
         private static WorldBuildSlotsBinder.BindResult BindSingleSlot(string typeName)
             => WorldBuildSlotsBinder.Bind(
-                "{\"schema_version\":1,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
+                "{\"schema_version\":2,\"level_id\":\"t\",\"world_size\":[4,1,4],\"slots\":[" +
                 "{\"cell\":[1,0,1],\"slot_type\":\"" + typeName + "\",\"baked_initial\":false}]}");
     }
 }

@@ -16,9 +16,13 @@
 //      · **Shell 4 格 = `true`** —— 外壳(墙 / 地基)在开档时**就存在**,这是外壳的定义;
 //      · **Decor 9 格 = 1 格 `true` + 8 格 `false`** —— 一格里已摆着家具(证明 `true` 分支有真实取值),
 //        其余 8 格是**空地**(证明 `false` 分支可建)。
-//    ⚠️ 但 **运行期今日仍不应用初始占用**(`BuildSlotCatalog` 没有承载它的字段)——
+//    ⚠️ ~~但 **运行期今日仍不应用初始占用**(`BuildSlotCatalog` 没有承载它的字段)——
 //    `MinimalWorldFactory` 因此在遇到 `BakedInitial == true` 的行时**打一条 LogWarning**,
-//    不让「数据声明了、运行期没落地」变成静默。该缺口登记在交付报告里。
+//    不让「数据声明了、运行期没落地」变成静默。该缺口登记在交付报告里。~~
+//    **🔁 2026-10-28(S20-20 挂标 #2)该缺口已闭合,原文不删**:`BuildSlot` 现承载
+//    `BakedInitial` + `ModuleId`(schema 2),`World.ApplyBakedInitial` 在生产装配路径上
+//    应用基线(占足迹 + 进实例表 + 确定性发号)。`MinimalWorldFactory` 的那条 LogWarning
+//    已随之删除(它报的正是这个已闭合的缺口)。
 
 using System;
 using System.Collections.Generic;
@@ -52,6 +56,21 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>见 <see cref="DecorPreOccupiedDx"/>。</summary>
         public const int DecorPreOccupiedDz = 0;
 
+        /// <summary>
+        /// 那格初始 Decor 的模块 id(`build_modules.json` 的 7 = `chamber_pot`)。
+        /// <para>🔁 <b>2026-10-28(S20-20 挂标 #2)新增</b>(schema 1→2):`baked_initial = true`
+        /// 现在**必须**指明是哪件家具 —— 运行期要按它算足迹、并给初始家具发 `structure_id`
+        /// (GDD 规则三)。取 `chamber_pot` 的理由:它是单格足迹(`[[0,0,0]]`)、`Decor` 类型、
+        /// `refundable = true` —— 玩家对它的第一次改动(第一条 `StructureRemoved`)能走通返还链,
+        /// 是规则三「玩家对初始家具的第一次改动 = 第一条 StructureRemoved」的可达面。</para>
+        /// </summary>
+        public const int DecorPreOccupiedModuleId = 7;
+
+        /// <summary>Shell 条带用的模块 id(`build_modules.json` 的 8 = `refundable: false`)。</summary>
+        /// <remarks>⚠️ 外壳 **`refundable = false`** —— 与 GDD 规则三/§「P0 外壳不可拆」一致:
+        /// `DemolishChecker` 会按该位拒拆,返还链根本不会启动。</remarks>
+        public const int ShellModuleId = 8;
+
         /// <summary>Shell 条带的 x 起点。</summary>
         public const int ShellStripXStart = 1;
         /// <summary>Shell 条带的长度(格)。</summary>
@@ -63,6 +82,7 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 产出 P0 医馆的声明式关卡源。
         /// <para>槽位集:① `x ∈ [6,8] × z ∈ [6,8]` 的 **9 格 Decor**(3×3,足以容纳一个 3×3 足迹);
         /// ② `x ∈ [1,4] × z = 1` 的 **4 格 Shell**(外壳分支可达)。</para>
+        /// <para>开档基线 = 5 格(4 Shell + 1 Decor),各有真 `module_id`(schema 2)。</para>
         /// </summary>
         public static LevelSource Define()
         {
@@ -70,13 +90,18 @@ namespace DaYiJingCheng.EditorTools.Level
 
             for (int dx = 0; dx < 3; dx++)
                 for (int dz = 0; dz < 3; dz++)
+                {
+                    bool preOccupied = dx == DecorPreOccupiedDx && dz == DecorPreOccupiedDz;
                     slots.Add(new SlotSpec(
                         DecorOriginX + dx, 0, DecorOriginZ + dz, SlotType.Decor,
-                        bakedInitial: dx == DecorPreOccupiedDx && dz == DecorPreOccupiedDz));
+                        bakedInitial: preOccupied,
+                        moduleId: preOccupied ? DecorPreOccupiedModuleId : SlotSpec.NoModule));
+                }
 
             for (int i = 0; i < ShellStripLength; i++)
                 slots.Add(new SlotSpec(
-                    ShellStripXStart + i, 0, ShellStripZ, SlotType.Shell, bakedInitial: true));
+                    ShellStripXStart + i, 0, ShellStripZ, SlotType.Shell,
+                    bakedInitial: true, moduleId: ShellModuleId));
 
             return new LevelSource(LevelId, Width, Height, Depth, slots);
         }

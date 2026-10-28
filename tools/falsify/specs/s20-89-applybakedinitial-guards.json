@@ -1,0 +1,42 @@
+{
+  "name": "S20-89 补口 —— `ApplyBakedInitial` 两条 fail-closed 守卫的反证",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_buildslots_bake_test",
+  "unityProject": "unity",
+  "_note": [
+    "立此 spec 缘由:证据件 `fix-s20-20-baked-initial-baseline-2026-10-28.md` §七-1/§七-2",
+    "自陈两条守卫**有代码、零反证**。本轮补夹具后一并补反证(否则新夹具本身没被证伪)。",
+    "⚠️ **一属性一条变异**:M4 = 「只许一次」;M5 = 「模块不在目录 ⇒ 不静默跳过」。",
+    "  两者是**不同的失败模式**(前者防覆盖玩家结构,后者防静默少一件家具),不可合并。",
+    "⚠️ **受保护路径须用命令行 `--guard` 传**(spec 内 `guards` 字段驱动不读)。",
+    "⚠️ expectRed 是**先写死的推演值**,不得把实得抄进去。",
+    "⚠️ 与 `s20-89-baked-initial-baseline.json` **分开跑**:那份的 M2/M3 也打 `World.cs`,",
+    "  混在一起会让 exactRed 的判别面互相污染。"
+  ],
+  "mutations": [
+    {
+      "name": "M4-secondApplyAllowed",
+      "file": "unity/Assets/Sim/World/World.cs",
+      "line": 96,
+      "expect": "            if (_moduleCatalogForBaseline != null)",
+      "replace": "            if (false)   // FALSIFY-M4:停用「只许一次」守卫",
+      "expectRed": [
+        "test_worldBuildSlots_applyBakedInitial_secondCallThrows"
+      ],
+      "exactRed": true,
+      "_why": "停用守卫 ⇒ 第二次 `ApplyBakedInitial` 不抛 ⇒ `Assert.Throws<InvalidOperationException>` 失败 ⇒ 该条红。**只红这一条**:其余夹具都不连调两次。"
+    },
+    {
+      "name": "M5-missingModuleSilentlySkipped",
+      "file": "unity/Assets/Sim/World/World.cs",
+      "line": 137,
+      "expect": "                if (!defOpt.HasValue)",
+      "replace": "                if (false)   // FALSIFY-M5:模块不在目录也静默跳过",
+      "expectRed": [
+        "test_worldBuildSlots_applyBakedInitial_moduleNotInCatalogThrows"
+      ],
+      "exactRed": true,
+      "_why": "停用 fail-closed ⇒ 不抛 ⇒ 继续走 `defOpt.Value`(**对 `ModuleDefinition?` 取 Value 于 null 上会抛 `InvalidOperationException`**,但那是 `Nullable` 的,报文不含「不在模块目录内」⇒ 本条的**报文关键词断言**红,这正是该断言存在的理由)。⚠️ 本条同时验证了「断言打报文关键词而非异常类型」的必要性:若只断 `Throws<InvalidOperationException>`,**这个变异会逃逸**(两层抛的是同一个异常类型)。"
+    }
+  ]
+}

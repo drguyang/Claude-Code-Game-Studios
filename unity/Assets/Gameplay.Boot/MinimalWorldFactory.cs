@@ -84,7 +84,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 的槽位来源是磁盘兜底 ⇒ 槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`。
         /// 生产调用点 = `BootRoot` 启动序(传 `DataCorePreloader.Provider`)。</para></param>
         /// <returns>新的 <see cref="World"/> 实例(每次调用都是独立实例 —— 两份注册表
-        /// 就是两份真源,调用方须自己保证只建一次)。</returns>
+        /// 就是两份真源,调用方须自己保证只建一次)。
+        /// <para>⚠️ <b>开档基线不由本方法应用</b>(2026-10-28 · S20-20 挂标 #2):应用基线
+        /// 需要**模块目录**,而目录由 <c>CompositionRoot</c> 在装配段才构造(它读
+        /// `build_modules.cooked`,与槽位产物是两个地址)。工厂只负责把
+        /// `BakedInitial` / `ModuleId` **装进目录**;基线由装配段调
+        /// <see cref="World.ApplyBakedInitial"/> 落地。**不在这里顺手造一个目录** ——
+        /// 那会变成第二份目录(与 `CompositionRoot` 的那份可能不同源)。</para></returns>
         public static World Create(IDataProvider dataProvider = null)
         {
             int total = SizeX * SizeY * SizeZ;
@@ -243,19 +249,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                         $"槽位格 ({row.Cell.X},{row.Cell.Y},{row.Cell.Z}) 越出合成世界 " +
                         $"{SizeX}×{SizeY}×{SizeZ} —— 槽位数据与工厂几何不是同一张图纸");
 
-                catalog.RegisterSlot(new BuildSlot(row.Cell, new BitMask(row.AllowedMask)));
+                catalog.RegisterSlot(new BuildSlot(
+                    row.Cell, new BitMask(row.AllowedMask),
+                    bakedInitial: row.BakedInitial, moduleId: row.ModuleId));
                 if (row.BakedInitial) bakedInitialCount++;
             }
 
-            // ⚠️ `BuildSlotCatalog` / `BuildSlot` **今日无承载 `BakedInitial` 的字段**
-            //   ⇒ 数据声明了初始占用,运行期**不应用**。这里响亮登记,不让它静默。
-            if (bakedInitialCount > 0)
-                Debug.LogWarning(
-                    $"[S20-20][合成世界] 槽位骨架里有 {bakedInitialCount} 格标了 `baked_initial = true`," +
-                    "但 `BuildSlotCatalog` 尚无承载该标记的字段 ⇒ **运行期不应用初始占用**" +
-                    "(开档不会自动生成既有家具 / 外壳)。该缺口已登记,不在本工厂静默吞掉。");
-
-            note = $"槽位 {catalog.Count} 格(baked_initial {bakedInitialCount} 格未应用)," +
+            note = $"槽位 {catalog.Count} 格(baked_initial {bakedInitialCount} 格,待装配期应用)," +
                    $"声明范围 {data.Width}×{data.Height}×{data.Depth}," +
                    $"ConfigVersion = 0x{data.ConfigVersion:X8}";
             return catalog;

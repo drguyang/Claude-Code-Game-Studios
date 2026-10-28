@@ -22,7 +22,7 @@ using DaYiJingCheng.Sim.World;   // SlotType(唯一真源;ADR-022 §① 允许�
 
 namespace DaYiJingCheng.EditorTools.Level
 {
-    /// <summary>一条槽位声明(整数格 + 类型 + 初始占用标记)。</summary>
+    /// <summary>一条槽位声明(整数格 + 类型 + 初始占用标记 + 初始家具模块 id)。</summary>
     public readonly struct SlotSpec
     {
         /// <summary>格 x(i32)。</summary>
@@ -37,10 +37,24 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>初始占用标记(ADR-022 §三:`BakedInitial`;开档既有家具 / 外壳)。</summary>
         public readonly bool BakedInitial;
 
+        /// <summary>
+        /// 开档既有家具的模块 id(`BakedInitial == true` 时必填;否则须为
+        /// <see cref="NoModule"/>)。
+        /// <para>🔁 <b>2026-10-28(S20-20 挂标 #2)新增</b>(schema 1→2):此前只声明「这格开档
+        /// 已占用」,不声明「被什么占用」⇒ 运行期即使应用基线也算不出足迹、更发不出
+        /// `structure_id`(GDD 规则三要求初始家具进实例表)。</para>
+        /// </summary>
+        public readonly int ModuleId;
+
+        /// <summary>「本槽位开档无既有家具」的哨兵值(与 `Sim.World.BuildSlot.NoModule` 同值)。</summary>
+        public const int NoModule = -1;
+
         /// <summary>构造一条槽位声明。</summary>
-        public SlotSpec(int x, int y, int z, SlotType type, bool bakedInitial)
+        /// <param name="moduleId">`BakedInitial == true` 时须 ≥ 1;否则留默认
+        /// <see cref="NoModule"/>(导出器与绑定器两侧都会拒「true 但无 module_id」)。</param>
+        public SlotSpec(int x, int y, int z, SlotType type, bool bakedInitial, int moduleId = NoModule)
         {
-            X = x; Y = y; Z = z; Type = type; BakedInitial = bakedInitial;
+            X = x; Y = y; Z = z; Type = type; BakedInitial = bakedInitial; ModuleId = moduleId;
         }
 
         /// <summary>格坐标(整数三元组)。</summary>

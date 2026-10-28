@@ -34,8 +34,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             { "schema_version", "level_id", "world_size", "slots" };
 
         /// <summary>行对象白名单。</summary>
+        /// <remarks>🔁 <b>2026-10-28(schema 1→2)</b>:新增 `module_id` —— 开档既有家具的模块 id。
+        /// ⚠️ 必须与 `LevelExporter` 的写出字段**逐字对应**:白名单比写方窄 ⇒ 真种子烘焙当场
+        /// 报「未知键」;比写方宽 ⇒ 旧产物能混过。</remarks>
         internal static readonly string[] RowKeys =
-            { "cell", "slot_type", "baked_initial" };
+            { "cell", "slot_type", "baked_initial", "module_id" };
 
         /// <summary>槽位类型名 → 枚举序数(Sim `SlotType` 的镜像;**不含 `None`**)。</summary>
         /// <remarks>⚠️ 作者态写**字符串名**而非枚举序数:枚举重排会静默改语义(承 ADR-014 §四
@@ -64,11 +67,16 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>初始占用标记(`BakedInitial`;ADR-022 §三)。</summary>
             public readonly bool BakedInitial;
 
+            /// <summary>开档既有家具的模块 id(`BakedInitial == false` 时为 -1)。</summary>
+            public readonly int ModuleId;
+
             /// <summary>构造一行(测试 / 物化用)。</summary>
-            public SlotRow(int x, int y, int z, int typeOrdinal, string typeName, bool bakedInitial)
+            public SlotRow(int x, int y, int z, int typeOrdinal, string typeName, bool bakedInitial,
+                           int moduleId = -1)
             {
                 X = x; Y = y; Z = z;
                 TypeOrdinal = typeOrdinal; TypeName = typeName; BakedInitial = bakedInitial;
+                ModuleId = moduleId;
             }
 
             /// <summary>允许类型位掩码(`1 &lt;&lt; TypeOrdinal`;运行时 `BuildSlot` 的形)。</summary>
@@ -219,6 +227,10 @@ namespace DaYiJingCheng.EditorTools.Bake
             bool bakedInitial = false;
             if (!TryReadBakedInitial(row, where, out bakedInitial, errors)) ok = false;
 
+            // `module_id` —— schema 2:布尔与 id 的**一致性**(两侧都拒)
+            int moduleId = -1;
+            if (!TryReadModuleId(row, where, bakedInitial, out moduleId, errors)) ok = false;
+
             if (!ok) return null;
 
             // 域门 ④ 格超出声明范围
@@ -239,7 +251,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return null;
             }
 
-            return new SlotRow(x, y, z, typeOrdinal, typeName, bakedInitial);
+            return new SlotRow(x, y, z, typeOrdinal, typeName, bakedInitial, moduleId);
         }
 
         /// <summary>`cell` —— `[x, y, z]` 三元 i32 数组。</summary>
@@ -321,6 +333,65 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return false;
             }
             bakedInitial = n.Bool;
+            return true;
+        }
+
+        /// <summary>
+        /// `module_id` —— 开档既有家具的模块 id(schema 2 新增)。
+        /// <para>规则:**`baked_initial = true` ⇒ 须为 ≥ 1 的整数;`false` ⇒ 须为 JSON `null`
+        /// (或整数字段缺席)。两侧都拒 —— 任一方向的自相矛盾都是静默缺陷:
+        /// 前者会让运行期「声明了占用却算不出足迹」,后者会让读者以为「有家具但没占」。</para>
+        /// </summary>
+        /// <remarks>⚠️ 报文字面量 `module_id` / `baked_initial` 是夹具的判据锚点(禁自指)。</remarks>
+        private static bool TryReadModuleId(
+            JsonNode row, string where, bool bakedInitial, out int moduleId, List<string> errors)
+        {
+            moduleId = -1;
+            bool present = row.TryGet("module_id", out JsonNode n);
+
+            // 缺字段按 null 处理(与显式 null 等价 —— 都是「本格无既有家具」)。
+            bool isNull = !present || n.Kind == JsonNodeKind.Null;
+
+            if (bakedInitial)
+            {
+                if (isNull)
+                {
+                    errors.Add(
+                        $"{FileName}:{where} baked_initial = true 但 module_id 为 " +
+                        (present ? "null" : "缺字段") +
+                        " —— 开档既有家具必须指明是哪件家具(运行期按它算足迹并发 structure_id," +
+                        "GDD 规则三);说不出的占用 = 静默缺陷");
+                    return false;
+                }
+                if (n.Kind != JsonNodeKind.Integer)
+                {
+                    errors.Add(
+                        $"{FileName}:{where}.module_id 须为 JSON 整数(实得 {n.Kind}={n.RawText}) —— " +
+                        "模块 id 是 i32(entities.yaml 的载荷形),写字符串会让读者以为它是名字");
+                    return false;
+                }
+                if (n.Int < 1 || n.Int > int.MaxValue)
+                {
+                    errors.Add(
+                        $"{FileName}:{where}.module_id = {n.Int} 须在 [1, {int.MaxValue}] —— " +
+                        "≤ 0 是哨兵位(`-1` = 无既有家具),不是合法模块 id");
+                    return false;
+                }
+                moduleId = (int)n.Int;
+                return true;
+            }
+
+            // baked_initial = false:只接受 null / 缺席;写了具体 id 就是矛盾。
+            if (!isNull)
+            {
+                errors.Add(
+                    $"{FileName}:{where} baked_initial = false 却写了 module_id = " +
+                    (n.Kind == JsonNodeKind.Integer ? n.Int.ToString() : $"{n.Kind}={n.RawText}") +
+                    " —— 二者矛盾(非初始占用的槽位没有既有家具,运行期按空地处理);" +
+                    "要声明开档家具请同时把 baked_initial 置 true");
+                return false;
+            }
+
             return true;
         }
     }

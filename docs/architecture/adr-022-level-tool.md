@@ -169,6 +169,17 @@ assets/data/
                           //   含 **初始占用标记 `BakedInitial`**(开档既有家具 / 外壳)
                           //   —— Overlay(0) := BakedInitial;外壳必须走初始占用路径
                           //   (否则 P1a 拆墙要改 6 的静态 Nav,overlay 模型做不到)
+                          //   🔁 **2026-10-28(schema 1 → 2 · S20-20 挂标 #2)**:每行另带
+                          //   `module_id` —— 开档既有家具**是哪件家具**。行形:
+                          //     { cell:[x,y,z], slot_type:"<SlotType 名>",
+                          //       baked_initial: <bool>, module_id: <int 或 null> }
+                          //   契约:`baked_initial = true` ⇒ `module_id ≥ 1`(必填);
+                          //         `false` ⇒ `module_id = null`。两侧都由域门拒(导出期 + 绑定期
+                          //         + 读方 codec 三重),不存在「一半真一半假」的放行路径。
+                          //   ⚠️ **为什么必须补这个字段**:schema 1 只说「这格开档已占用」,
+                          //   说不出「被什么占用」⇒ 运行期算不出足迹、发不出 `structure_id`
+                          //   (规则三要求初始家具进实例表、玩家第一次改动 = 第一条
+                          //   `StructureRemoved`)。**「说不出的占用」是静默缺陷**,不是简化。
   world_nav_{chunk}.json  // 导航格:按 chunk 切片(键 = ADR-015 §四 的同一 chunk)
                           //   { cell, walkable: bool, cost: int }
   world_terrain.json      // TERRAIN_TABLE(地貌材质 → K)· terrain_id 表 · slopeLimit · stepOffset

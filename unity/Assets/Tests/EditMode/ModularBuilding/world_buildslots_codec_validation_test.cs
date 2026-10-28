@@ -12,6 +12,11 @@
 // ⚠️ **本件自造字节**:不依赖盘上产物,也就不怕「产物还没重烘」。20 字节头按
 //   `Sim.Contracts.CookedFormat` 的登记布局写(magic / fmt / schema / config / payloadLen)。
 //
+// 🔁 **2026-10-28(schema 2 · S20-20 挂标 #2)**:行对象尾追 `module_id`(6×i32/行),
+//   头槽 `schema_version` 期望 2。本件随之补三组夹具 —— ① schema 1 旧产物被拒;
+//   ② `baked_initial = 1` 但 `module_id < 1` 被拒;③ `baked_initial = 0` 但 `module_id != -1` 被拒。
+//   ⚠️ ②③ 是**读方**的纵深防御门(烘焙期 `WorldBuildSlotsBinder` 已有同款门),两处各有夹具。
+//
 // ⚠️ 不写盘(`FsWriteBoundaryGate` 无关)。
 
 using System;
@@ -101,16 +106,63 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_worldBuildSlots_codec_zeroRows_isRejected()
             => AssertRejected(BuildCooked(allowedMask: 32, bakedInitial: 0, rowCount: 0), "行数");
 
+        // ══════════════════ 四 · schema 2 新门(`module_id`)══════════════════
+
+        /// <summary>
+        /// schema 1 旧产物(行尾无 `module_id`)⇒ 拒,且报文点名「schemaVersion」。
+        /// </summary>
+        /// <remarks><b>判别力</b>:把 `ExpectedSchemaVersion` 改回 1 并删掉版本门 ⇒ 本条红。
+        /// <para>⚠️ 本条造的是**真正旧形态**:行只有 5 个 i32,不是「6 个 i32 但版本号写成 1」
+        /// —— 后者会先被 `AssertFullyConsumed` 的「长度不符」截住,测不到版本门。</para></remarks>
+        [Test]
+        public void test_worldBuildSlots_codec_schemaOneProduct_isRejected()
+        {
+            byte[] legacy = BuildCooked(
+                allowedMask: 64, bakedInitial: 0, rowCount: 1, schemaVersion: 1u, legacyRowLayout: true);
+
+            var ex = Assert.Throws<InvalidDataException>(() => WorldBuildSlotsCookedCodec.Read(legacy));
+            Assert.That(ex.Message.IndexOf("schemaVersion", StringComparison.Ordinal) >= 0, Is.True,
+                "报文须点名 schemaVersion(而非泛化的「长度不符」):\n" + ex.Message);
+        }
+
+        /// <summary>
+        /// `baked_initial = 1` 但 `module_id = 0` ⇒ 拒(开档家具说不出是哪件)。
+        /// </summary>
+        /// <remarks><b>判别力</b>:删掉 `bakedInitial != 0 &amp;&amp; moduleId &lt; 1` 那条 ⇒ 本条红。</remarks>
+        [Test]
+        public void test_worldBuildSlots_codec_bakedInitialTrueWithoutModuleId_isRejected()
+            => AssertRejected(
+                BuildCooked(allowedMask: 64, bakedInitial: 1, moduleId: 0), "module_id");
+
+        /// <summary>
+        /// `baked_initial = 0` 却带 `module_id = 8` ⇒ 拒(与 `baked_initial` 自相矛盾)。
+        /// </summary>
+        /// <remarks><b>判别力</b>:删掉 `else if (moduleId != -1)` 那条 ⇒ 本条红。
+        /// <para>⚠️ 与上一条**分家**造:只删一侧守卫时,另一侧必须仍红 —— 这是两个独立分支。</para></remarks>
+        [Test]
+        public void test_worldBuildSlots_codec_moduleIdWithoutBakedInitial_isRejected()
+            => AssertRejected(
+                BuildCooked(allowedMask: 64, bakedInitial: 0, moduleId: 8), "module_id");
+
         // ══════════════════ 辅助:自造合法头 + 可控行 ══════════════════
 
         /// <summary>
         /// 造一份结构完整、只让**行内值**可控的 cooked 字节
-        /// (头:magic `DYJC` / fmt 1 / schema 1 / config `0xDEADBEEF` / 载荷长度)。
+        /// (头:magic `DYJC` / fmt 1 / schema 2 / config `0xDEADBEEF` / 载荷长度)。
         /// </summary>
-        private static byte[] BuildCooked(int allowedMask, int bakedInitial, int rowCount = 1)
+        /// <param name="moduleId">行尾模块 id。传 <c>null</c> ⇒ 按 `bakedInitial` 自动配一个
+        /// **一致**的值(1 ⇒ 8 / 0 ⇒ -1),让「只想测别的字段」的用例不必逐个重复传参;
+        /// 要测 `module_id` 门本身则显式传值。</param>
+        /// <param name="schemaVersion">头槽 schema(默认 2;测旧产物时传 1)。</param>
+        /// <param name="legacyRowLayout"><c>true</c> ⇒ 按 **schema 1** 的 5×i32 行布局写
+        /// (无 `module_id`),用于构造「真正的旧产物」。</param>
+        private static byte[] BuildCooked(
+            int allowedMask, int bakedInitial, int rowCount = 1,
+            int? moduleId = null, uint schemaVersion = 2u, bool legacyRowLayout = false)
         {
             const int headerSize = 20;
-            int payloadLen = 16 + rowCount * 20;   // 4×i32 头 + 行 × 5×i32
+            int fieldsPerRow = legacyRowLayout ? 5 : 6;
+            int payloadLen = 16 + rowCount * fieldsPerRow * 4;   // 4×i32 头 + 行 × n×i32
             var bytes = new byte[headerSize + payloadLen];
 
             bytes[0] = (byte)'D';
@@ -118,9 +170,11 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             bytes[2] = (byte)'J';
             bytes[3] = (byte)'C';
             WriteU32(bytes, 4, 1u);                  // formatVersion
-            WriteU32(bytes, 8, 1u);                  // schemaVersion
+            WriteU32(bytes, 8, schemaVersion);       // schemaVersion
             WriteU32(bytes, 12, 0xDEADBEEFu);        // configVersion
             WriteU32(bytes, 16, (uint)payloadLen);   // payloadLength
+
+            int resolvedModuleId = moduleId ?? (bakedInitial != 0 ? 8 : -1);
 
             int o = headerSize;
             WriteI32(bytes, ref o, 16);              // world_size_x
@@ -134,6 +188,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 WriteI32(bytes, ref o, 1);           // z
                 WriteI32(bytes, ref o, allowedMask);
                 WriteI32(bytes, ref o, bakedInitial);
+                if (!legacyRowLayout) WriteI32(bytes, ref o, resolvedModuleId);
             }
 
             return bytes;

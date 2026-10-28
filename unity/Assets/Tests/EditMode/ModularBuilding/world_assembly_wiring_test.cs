@@ -94,9 +94,18 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             //    ① 真的调用工厂;② 实参**不是**无参(无参 ⇒ 只走磁盘兜底 ⇒ 玩家构建槽位目录恒空)。
             Assert.IsTrue(code.Contains("MinimalWorldFactory.Create("),
                 "BootRoot 须调用 `MinimalWorldFactory.Create(` —— 否则世界只在一个死工厂里被造");
-            Assert.IsTrue(Regex.IsMatch(code, @"MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?"),
-                "world 工厂须收到**数据装载面**实参(形如 `preloaded ? DataCorePreloader.Provider : null`)——" +
-                "无参调用 ⇒ 槽位骨架只走 `DataCookedDisk` 磁盘兜底 ⇒ 玩家构建里该目录不存在 ⇒" +
+            // ⚠️ 2026-10-28 二次收紧(结清 `fix-s20-20-slot-provider-surface-2026-10-28.md` §七-1):
+            //    上一版判据是 `Create(\s*\w+\s*\?` —— 它只要求「实参是三元表达式」,
+            //    **真分支是什么都不管**。实测三种形态:
+            //      · `Create(preloaded ? DataCorePreloader.Provider : null)` ⇒ 绿(正确)
+            //      · `Create(preloaded ? null : null)`                      ⇒ **仍绿**(病灶!)
+            //      · `Create(null ? foo : null)`                            ⇒ **仍绿**(病灶!)
+            //    ⇒ 它钉的是「形状」不是「内容」。现要求真分支**逐字**是 `DataCorePreloader.Provider`:
+            //    生产装载面只此一处,把它换成 null / 别的字段就是「静默退回磁盘兜底」。
+            Assert.IsTrue(Regex.IsMatch(code, @"MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?\s*DataCorePreloader\.Provider\s*:"),
+                "world 工厂的**真分支**须逐字是 `DataCorePreloader.Provider`(形如 " +
+                "`preloaded ? DataCorePreloader.Provider : null`)—— 只要求「实参是三元」不够:" +
+                "`preloaded ? null : null` 同样是三元,但那样生产构建仍只走磁盘兜底 ⇒ " +
                 "槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`(S20-20 挂标 #1 原形态)");
             Assert.IsTrue(Regex.IsMatch(code, @"world:\s*world"),
                 "BootRoot 须把世界以具名实参 `world: world` 交给 `CompositionRoot.Assemble`");
@@ -183,10 +192,22 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var anchor = new WorldPos(2, 0, 2);
             var second = new WorldPos(3, 0, 2);        // 非锚点足迹格
 
-            // 前置:未放置 ⇒ 两格可走(否则下面的 false 可能是「本来就 false」)
+            // ⚠️ **2026-10-28(S20-20 挂标 #2)判据订正 —— 原文不删**:
+            //    上一版这里是 `Assert.AreEqual(0, world.OccupiedCount, "前置:未放置 ⇒ 占用表须空")`。
+            //    开档基线 `Overlay(0) := BakedInitial`(GDD 规则三)落地后,新造的世界**不是空的**
+            //    —— 它有 5 格基线占用(4 Shell + 1 Decor)。那条断言会红,而**红的不是缺陷**。
+            //    ⚠️ 但也不能简单改成 `AreEqual(5, …)` —— 那是**把基线格数写死进夹具**,
+            //    种子一改(加一格家具)就红,且红的地方离真因很远。
+            //    ⇒ 改为**点名判据**:目标两格必须是空的、基线格必须已占。
+            //    这比「计数 = 0」**更精确**(计数相等不等于「这两格空」)。
             Assert.IsTrue(world.IsEffectivelyWalkable(anchor), "前置:未放置 ⇒ 锚点须可走");
             Assert.IsTrue(world.IsEffectivelyWalkable(second), "前置:未放置 ⇒ 非锚点足迹格须可走");
-            Assert.AreEqual(0, world.OccupiedCount, "前置:未放置 ⇒ 占用表须空");
+            Assert.IsFalse(world.IsSlotOccupied(anchor), "前置:锚点不在开档基线的占用里");
+            Assert.IsFalse(world.IsSlotOccupied(second), "前置:非锚点足迹格不在基线占用里");
+            // 基线真的应用了(否则下面的「拆除后回到基线」会退化成「回到空」,两种世界都绿)
+            Assert.Greater(world.BakedInitialStructureCount, 0,
+                "前置:世界须已应用开档基线 —— 否则本测的「基线」二字名不副实");
+            int baselineOccupied = world.OccupiedCount;
 
             // ── Act 1:Place ─────────────────────────────────────────
             long structureId = writer.Place(anchor, moduleSurgeryTable, 0, 0, tick: 0);
@@ -197,9 +218,11 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.IsFalse(world.IsEffectivelyWalkable(second),
                 "放置后**非锚点足迹格**也须不可走(C1 同型:只测锚点会漏掉足迹退化)");
             // ⚠️ `OccupiedCount` 数的是**占用格**不是实例(`World.cs:127` 遍历 overlay 计数):
-            //    `surgery_table` 足迹两格 ⇒ 2。首轮曾把这里写成 1(按「一条实例」理解),
+            //    `surgery_table` 足迹两格 ⇒ +2。首轮曾把这里写成 1(按「一条实例」理解),
             //    实跑红「Expected 1 But was 2」—— 是**夹具写错**,不是生产缺陷,已就地订正。
-            Assert.AreEqual(2, world.OccupiedCount, "放置后占用格须恰 2(两格足迹)");
+            //    🔁 2026-10-28:改为「基线 + 2」而非绝对 2(基线格数不写死,见上)。
+            Assert.AreEqual(baselineOccupied + 2, world.OccupiedCount,
+                $"放置后占用格须 = 基线 {baselineOccupied} + 两格足迹");
 
             // ── Act 2:Remove ────────────────────────────────────────
             bool removed = writer.Remove(structureId, tick: 1, demolishRefundRatio: 65536);
@@ -210,7 +233,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "拆除后锚点须恢复可走(AC-4 反腿)");
             Assert.IsTrue(world.IsEffectivelyWalkable(second),
                 "拆除后非锚点足迹格也须恢复可走");
-            Assert.AreEqual(0, world.OccupiedCount, "拆除后占用表须回到空");
+            // ⚠️ 「回到基线」不是「回到空」—— 拆除释放的是**该结构的足迹**,
+            //    开档基线(外壳 / 既有家具)不因拆掉一件玩家放的东西而消失。
+            Assert.AreEqual(baselineOccupied, world.OccupiedCount,
+                "拆除后占用表须回到**开档基线**(不是空 —— 基线不进流、不随拆除消失,规则三)");
         }
 
         // ══════════════ AC-5:写者构造 fail-closed ══════════════

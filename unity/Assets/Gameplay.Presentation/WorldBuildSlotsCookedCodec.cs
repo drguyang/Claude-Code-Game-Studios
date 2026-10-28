@@ -9,7 +9,9 @@
 //   world_buildslots.cooked
 //     i32 world_size_x; i32 world_size_y; i32 world_size_z;
 //     i32 row_count;
-//     row_count × { i32 x; i32 y; i32 z; i32 allowed_mask; i32 baked_initial }
+//     row_count × { i32 x; i32 y; i32 z; i32 allowed_mask; i32 baked_initial; i32 module_id }
+//
+// ⚠️ **`module_id` 是 schema 2 追加的行尾字段**(2026-10-28 · S20-20 挂标 #2)。
 //
 // ⚠️ **行序 = (x,y,z) 升序**(写方已排序;读方不依赖读入序做任何计算)。
 //
@@ -38,14 +40,19 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public readonly int AllowedMask;
 
         /// <summary>初始占用标记(`BakedInitial`;ADR-022 §三)。
-        /// <para>⚠️ `BuildSlotCatalog` / `BuildSlot` **今日无承载该标记的字段** ⇒ 装配侧
-        /// (`MinimalWorldFactory`)遇 <c>true</c> 时打 LogWarning,不让「数据声明了、运行期没应用」静默。</para></summary>
+        /// <para>🔁 2026-10-28(schema 2):本行另带 <see cref="ModuleId"/> —— 开档既有家具
+        /// 的模块 id。`BakedInitial == true` 时它 ≥ 1;否则 -1。</para></summary>
         public readonly bool BakedInitial;
 
+        /// <summary>开档既有家具的模块 id(`BakedInitial == false` 时为 -1)。</summary>
+        /// <remarks>🔁 <b>2026-10-28(S20-20 挂标 #2)新增</b>:装配侧按它算足迹并把初始家具
+        /// 落进实例表(GDD 规则三),不再是「声明了占用却不知道被什么占用」。</remarks>
+        public readonly int ModuleId;
+
         /// <summary>构造一行。</summary>
-        public WorldBuildSlotRow(WorldPos cell, int allowedMask, bool bakedInitial)
+        public WorldBuildSlotRow(WorldPos cell, int allowedMask, bool bakedInitial, int moduleId = -1)
         {
-            Cell = cell; AllowedMask = allowedMask; BakedInitial = bakedInitial;
+            Cell = cell; AllowedMask = allowedMask; BakedInitial = bakedInitial; ModuleId = moduleId;
         }
     }
 
@@ -89,7 +96,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const string ProductName = "world_buildslots";
 
         /// <summary>本产物的作者态 schema_version 期望值(per-product,照 `CookedFormat.SchemaVersion` 先例)。</summary>
-        public const uint ExpectedSchemaVersion = 1u;
+        /// <remarks>⚠️ <b>2026-10-28:1 → 2</b> —— 行对象新增 `module_id`(开档既有家具的模块 id)。
+        /// 旧产物按本常量被**拒收**(E-13),不会按新契约误读。
+        /// <para>🔁 <b>同日自查订正</b>:原稿写「版本门**先**在 `Read` 尾部校验」—— **是错的**,
+        /// 那时门实际排在行循环**之后**。真正的 schema 1 旧产物(行只有 5 个 i32)会先在第 N 行
+        /// 第 6 个 `ReadInt32()` 撞 `EndOfStreamException`(它**不是** `InvalidDataException`),
+        /// 运维看到的是「流意外结束」而非「版本不符,请重烘」。现门已提到读载荷**之前**。</para></remarks>
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>合法 <c>allowed_mask</c> 的上界(含):覆盖 `Sim.World.SlotType` 的**实际**最大位。</summary>
         /// <remarks>⚠️ 从 <c>SlotType</c> 派生而非写死 `127`(2026-10-28 评审 A-22):
@@ -121,6 +134,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
             using (BinaryReader r = CookedReadUtil.OpenChecked(bytes, ProductName, out uint configVersion))
             {
+                // ⚠️ **版本门必须排在读载荷之前**(2026-10-28 自查订正):原实现把它放在
+                //    `AssertFullyConsumed` 之后,于是**真正的 schema 1 旧产物**(行只有 5 个 i32)
+                //    会先在第 N 行的第 6 个 `ReadInt32()` 撞 `EndOfStreamException` ——
+                //    运维看到的是「流意外结束」,而不是「版本不符,请重烘」。
+                //    先判版本 ⇒ 报文直指真因;长度校验仍是第二道(防同版本号的字节损坏)。
+                uint schemaVersion = ReadU32Le(bytes, 8);
+                if (schemaVersion != ExpectedSchemaVersion)
+                    throw new InvalidDataException(
+                        $"[cooked] {ProductName} schemaVersion = {schemaVersion},期望 " +
+                        $"{ExpectedSchemaVersion} —— 布局演进后不得按旧契约读(E-13)。" +
+                        "重烘:大医精诚/数据管线/烘焙 world_buildslots");
+
                 int width = r.ReadInt32();
                 int height = r.ReadInt32();
                 int depth = r.ReadInt32();
@@ -142,6 +167,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     int z = r.ReadInt32();
                     int allowedMask = r.ReadInt32();
                     int bakedInitial = r.ReadInt32();
+                    int moduleId = r.ReadInt32();          // schema 2 行尾追加
                     // ⚠️ 值域**双侧**收紧(2026-10-28 代码评审 A-22):此前只拒 `== 0`,
                     //    负值 / 超出 `SlotType` 最大位的掩码一律放行;`bakedInitial != 0`
                     //    又把 2 / -1 / 任意非零静默收成 true。结构字段严、值域松 = 同一缺口的两个半边。
@@ -155,18 +181,28 @@ namespace DaYiJingCheng.Gameplay.Presentation
                             $"[cooked] {ProductName} rows[{i}].baked_initial = {bakedInitial} —— " +
                             "写方契约只写 0/1;非 0/1 必然是损坏或 bool→int 编码漂移" +
                             "(曾考虑按「非零即真」宽容,但那会把 0b10 之类的位掩码静默读成 true)");
+                    // ⚠️ `module_id` 与 `baked_initial` 的**一致性**在读取期也校验(2026-10-28 · schema 2):
+                    //    烘焙期已有同款门,此处是纵深防御 —— 字节损坏 / 有人手工改产物都会落在这里。
+                    if (bakedInitial != 0)
+                    {
+                        if (moduleId < 1)
+                            throw new InvalidDataException(
+                                $"[cooked] {ProductName} rows[{i}].module_id = {moduleId} —— " +
+                                "baked_initial = 1 的行必须带 ≥ 1 的模块 id(开档家具说不出是哪件 " +
+                                "⇒ 运行期算不出足迹,基线会静默少一件家具)");
+                    }
+                    else if (moduleId != -1)
+                    {
+                        throw new InvalidDataException(
+                            $"[cooked] {ProductName} rows[{i}].module_id = {moduleId} —— " +
+                            "baked_initial = 0 的行 module_id 必须为 -1(非初始占用的槽位没有既有家具;" +
+                            "写具体 id = 与 baked_initial 自相矛盾)");
+                    }
                     rows[i] = new WorldBuildSlotRow(
-                        new WorldPos(x, y, z), allowedMask, bakedInitial != 0);
+                        new WorldPos(x, y, z), allowedMask, bakedInitial != 0, moduleId);
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);
-
-                uint schemaVersion = ReadU32Le(bytes, 8);
-                if (schemaVersion != ExpectedSchemaVersion)
-                    throw new InvalidDataException(
-                        $"[cooked] {ProductName} schemaVersion = {schemaVersion},期望 " +
-                        $"{ExpectedSchemaVersion} —— 布局演进后不得按旧契约读(E-13)。" +
-                        "重烘:大医精诚/数据管线/烘焙 world_buildslots");
 
                 return new WorldBuildSlotsDataSet(rows, width, height, depth, schemaVersion, configVersion);
             }

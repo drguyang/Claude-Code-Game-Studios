@@ -25,16 +25,33 @@ namespace DaYiJingCheng.Sim.World
         Shell   = 6   // 外壳类(墙 / 地基 —— P0 不可拆除)
     }
 
-    /// <summary>单槽位定义(整数坐标 + 允许的模块类型)。</summary>
+    /// <summary>单槽位定义(整数坐标 + 允许的模块类型 + 开档基线)。</summary>
     public readonly struct BuildSlot
     {
         public readonly WorldPos Position;      // 锚点格(整数)
         public readonly BitMask AllowedTypes;  // 允许的 SlotType 位掩码
 
-        public BuildSlot(WorldPos position, BitMask allowedTypes)
+        /// <summary>开档既有占用标记(`BakedInitial`;GDD `modular-building.md` 规则三 / ADR-022 §三)。</summary>
+        /// <remarks>🔁 <b>2026-10-28(S20-20 挂标 #2)新增</b>:此前本结构**无承载该标记的字段**
+        /// ⇒ 数据声明了初始占用、运行期不应用(缺口由 `MinimalWorldFactory` 的 LogWarning 登记)。
+        /// 现在它是 `Overlay(0) := BakedInitial`(规则三)的输入之一。</remarks>
+        public readonly bool BakedInitial;
+
+        /// <summary>开档既有家具的模块 id(`BakedInitial == false` 时为 <see cref="NoModule"/>)。</summary>
+        /// <remarks>⚠️ 初始家具**不合成 `StructurePlaced` 事件**(规则三),它的 `structure_id`
+        /// 由 `World.ApplyBakedInitial` 按 (x,y,z) 升序**确定性发号** —— 同一次加载两次得到同一批 id。</remarks>
+        public readonly int ModuleId;
+
+        /// <summary>「本槽位开档无既有家具」的哨兵值(与 `poiGrid = -1` 同族的负值哨兵)。</summary>
+        public const int NoModule = -1;
+
+        public BuildSlot(WorldPos position, BitMask allowedTypes,
+                         bool bakedInitial = false, int moduleId = NoModule)
         {
             Position = position;
             AllowedTypes = allowedTypes;
+            BakedInitial = bakedInitial;
+            ModuleId = moduleId;
         }
 
         /// <summary>检查指定类型是否允许。</summary>

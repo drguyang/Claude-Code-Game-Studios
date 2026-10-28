@@ -11,7 +11,11 @@
 //     i32 world_size_y
 //     i32 world_size_z
 //     i32 row_count
-//     row_count × { i32 x; i32 y; i32 z; i32 allowed_mask; i32 baked_initial }
+//     row_count × { i32 x; i32 y; i32 z; i32 allowed_mask; i32 baked_initial; i32 module_id }
+//
+// ⚠️ **`module_id` 是 schema 2 追加的行尾字段**(2026-10-28 · S20-20 挂标 #2)。
+//    行尾追加而非插在中间 —— 承 `BuildModulesCookedWriter` 的 schema 演进纪律:
+//    中间插入会让「旧读方按旧长度读」变成**错位**而非**拒收**。
 //
 // ⚠️ **行序 = (x, y, z) 升序**而非声明序 —— 声明序在作者重排 `slots[]` 时会静默改变字节流,
 //    而槽位骨架是**集合**(重排零信息)。这条口径与 `BuildModulesCookedWriter` 的
@@ -57,6 +61,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                     w.Write(r.Z);
                     w.Write(r.AllowedMask);            // 1 << TypeOrdinal
                     w.Write(r.BakedInitial ? 1 : 0);
+                    w.Write(r.ModuleId);               // schema 2 行尾追加;-1 = 无既有家具
                 }
                 w.Flush();
                 return ClinicMachineCookedWriter.FinishHeader(

@@ -900,6 +900,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 赋值(不是 `var` 声明):实例在上面已声明 —— fold 的 R16 闭包按引用捕获它
                 //    (A-5 修复轮)。仍**只构造一处**。
                 modulesCatalog = new BuildModulesCatalog(buildModules);
+
+                // ── 开档基线 `Overlay(0) := BakedInitial`(S20-20 挂标 #2 · 2026-10-28)────
+                // 病因:`BuildSlotCatalog` 曾无承载 `BakedInitial` 的字段 ⇒ 槽位数据声明了
+                //   开档家具、运行期不应用(开档医馆是空的)。现 `BuildSlot` 承载
+                //   `BakedInitial` + `ModuleId`(schema 2),本段把它落地。
+                //
+                // ⚠️ **位置必须在 `StructureWriter` / `WorldLoadService` 构造之前**,且
+                //    **必须在任何 `Place` 之前** —— 基线按 (x,y,z) 升序发号 1…N,
+                //    之后玩家新放的结构从 N+1 起续号;若基线晚于放置,基线会覆盖玩家的实例
+                //    (`StructureInstanceRegistry.Restore` 同号 = 覆盖)。
+                // ⚠️ **只在传了 world 时应用**(`world != null` 才有基线概念;裸注册表形态
+                //    没有世界、也就没有占用表可写)。`ApplyBakedInitial` 自带「只许一次」守卫。
+                // ⚠️ 应用基线**不发任何事件**(规则三:开档家具不合成 `StructurePlaced`,
+                //    基线占用不进流、不存档)⇒ 本段零 `IEventSink` 接触。
+                if (world != null)
+                    world.ApplyBakedInitial(modulesCatalog);
+
                 clinicRoomMatching = new ClinicRoomMatchingService(
                     structures,
                     modulesCatalog,
