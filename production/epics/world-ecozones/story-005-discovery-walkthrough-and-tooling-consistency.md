@@ -86,6 +86,22 @@
 **Depends on**: Story 003 / 004(发现与激活机制稳定)· ADR-022 关卡工具 CI(外部产物)· 42 的发现反馈通道(外部 epic)
 **Unlocks**: 本 epic Definition of Done([L] SIGN-OFF 入账,EXTERNAL 项以 CI 产物或数值轮解冻为凭)
 
+> 🔁 **2026-10-28 —— 「ADR-022 关卡工具 CI」这个外部依赖的承接者变了(原文不删)**
+>
+> **此前**:该依赖**无承接者** —— 关卡工具没有 epic、没有 story、不在任何 sprint 表里
+> (`p0-remaining-roadmap-2026-10-20.md` §七 SP-10,2026-10-21 裁定「不立 epic、不排期」)。
+> 本 story 的 EXTERNAL 阻塞**因此成立且无解**。
+>
+> **现在**:用户 2026-10-28 裁定**推翻该处置**,立 `production/epics/level-tool/`(EPIC + 6 stories)。
+> ⇒ 本 story 的 EXTERNAL 依赖**有了承接者**。
+>
+> ⚠️ **但阻塞仍未解除** —— 承接者存在 ≠ 产物已存在。本 story 需要的 CI 产物是
+> **C1 / C2 / C3 三条检查真的在跑**(对应 `level-tool/story-005` 的 C3 与 `story-006` 的 C1 / C2)。
+> 在那两个 story 完成前,**本 story 的第三、四条 AC 仍为 NOT-RUN**。
+>
+> ⚠️ **不得据此把本 story 转 Complete** —— 「依赖有了承接者」不构成「依赖已满足」。
+> 这与本仓反复记录的口径一致:**载体已建 ≠ 测试可跑**。
+
 ---
 
 ## Completion Notes

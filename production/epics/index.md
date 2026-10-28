@@ -36,6 +36,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 6 stories | Complete ✅ 2026-10-03(6/6 story;N1/N5 已修 · 本轮 109/109 绿;**未闭登记 = N3 白名单判据(待 27 侧落地)+ Story 005 走查 EXTERNAL**) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | Complete ✅ 2026-10-02(2/2;002 = ADR-029 契约支) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
+| **level-tool** | **Tooling** | **54 关卡工具**(**不计入 P0 的 31 项**) | **无 GDD** —— 产出契约 = `docs/architecture/adr-022-level-tool.md` | **6 stories** | **Ready(未实现)** —— **2026-10-28 立**,同日**推翻 2026-10-21 的「不立 epic、不排期」裁定**(见 `p0-remaining-roadmap-2026-10-20.md` §七 SP-10 🔁 注记)。⚠️ **立件 ≠ 缺口已闭**:SP-10 列的实测缺口仍须逐条兑现。**运行期零存在 · 不进构建 · 门 A 不约束** |
 
 ---
 

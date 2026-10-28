@@ -11925,3 +11925,23 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **证明不了 4 点**:`BootRoot:214` 实参无夹具 · 真实 catalog 装载未测 · `foraging_constants` 仍无消费者
   · 全局 `ConfigVersion` 组合值改变(设计内)
 - **未做**:**commit**(无用户指令)
+
+## Session Extract — S20-20 挂标 #2–#5 + Addressables 收尾(2026-10-28 下午)
+- **用户指令**:「S20-20 余下挂标 #2–#5 … 现在继续完成」
+- **#2 BakedInitial 全量(含实例表)**:schema 1→2 + 每行 `module_id`;初始家具拿真 `structure_id`
+  (`StructureInstanceRegistry`)。13 槽位 / `baked_initial=true` 5 条 / 带 `module_id` 5 条
+- **#3–#5 关卡工具**:**推翻 2026-10-21 裁定(SP-10「不立 epic、不排期」)**,立
+  `production/epics/level-tool/` = **EPIC(239 行)+ 6 stories**。⚠️ **立件 ≠ 缺口已闭**
+- **涟漪五处全部落盘**(逐条复算命令写进 EPIC §涟漪表):
+  `p0-remaining-roadmap` SP-10 🔁 · `systems-index` 54 行 · `epics/index.md` 新行 ·
+  `tech-debt-register` `TD-building-01` 🔁(⑨仍成立 / ⑩已过期)· `world-ecozones/story-005` EXTERNAL
+- **Addressables 内容重建 —— 6 轮,前 5 轮全废**:
+  - addr5 卡在 `[Indexing] Starting Initial Indexing for Assets`,**`BuildAddressablesContent` 从未开始**
+  - addr6(关 `Search.settings:24 indexOnEditorStartup`)**成功**:内容已构建 1 / Start Indexing 0 /
+    `Exiting batchmode successfully` 1 / 退出码 0 / buildlayout 13:52:43 含 `world_buildslots`
+  - catalog 吃的是新字节(`ConfigVersion=0x59BBBA04`,12:32:50 重烘版)
+  - ⚠️ **归因不成立**:addr6 同时改了 3 项(`-quit` / 去重复 executeMethod / 关索引)
+  - 还原:`Search.settings` SHA-256 逐字节 = `0b3e5423…` ✅
+- **记录在案的错误**:① `-projectPath "$PWD"` 在仓库根跑(CLAUDE.md 明写禁止,「不是不知道,是没照做」)
+  ② addr5 停后退出路径 FMOD TLS 断言崩溃(与构建无关)
+- **未做**:**commit**(无用户指令)· `BootRoot:214` 实参文本级门(§七-1,本轮明确未做)

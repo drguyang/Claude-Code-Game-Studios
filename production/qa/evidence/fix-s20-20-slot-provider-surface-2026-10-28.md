@@ -186,6 +186,57 @@ PY
    `BootRoot.cs:214` 的源码承担,EditMode 夹具不跑 `BootRoot` 全链(它要 Addressables
    初始化 + 场景)。可证伪的替代面 = 源码级断言(候选:在 `provider_wiring_gate_test`
    追加「`MinimalWorldFactory.Create(` 的调用点须带 provider 实参」的文本扫描),本轮**未做**。
+
+   > 🔁 **2026-10-28 追补(本轮已做,原文不删)** —— 上述候选**已落地**,但落点不是
+   > `provider_wiring_gate_test`,而是 **`world_assembly_wiring_test.cs:105`**
+   > (`test_ac201b` 的二次收紧):那里本来就是 `BootRoot.cs` 的源码级门,把判据并进去
+   > 比新开一处更省。判据现要求**真分支逐字**是 `DataCorePreloader.Provider`:
+   > ```
+   > MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?\s*DataCorePreloader\.Provider\s*:
+   > ```
+   > ⚠️ **上一版判据钉的是「形状」不是「内容」** —— 离线复算(6 个形态)实测:
+   >
+   > | 形态 | 旧判据 `Create\(\s*\w+\s*\?` | 新判据 |
+   > |---|---|---|
+   > | `Create(preloaded ? DataCorePreloader.Provider : null)` | 绿(正确) | 绿 |
+   > | `Create(preloaded ? null : null)` | **绿(病灶)** | **红** |
+   > | `Create(null ? foo : null)` | **绿(病灶)** | **红** |
+   > | `Create(preloaded ? null : DataCorePreloader.Provider)`(假分支错) | **绿(病灶)** | **红** |
+   > | `Create()`(无参) | 红 | 红 |
+   > | 空白变体 | 绿 | 绿 |
+   >
+   > 复算命令(自包含):
+   > ```bash
+   > python3 - <<'PY'
+   > import re
+   > pat = r"MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?\s*DataCorePreloader\.Provider\s*:"
+   > old = r"MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?"
+   > for v in ["Create(preloaded ? DataCorePreloader.Provider : null)",
+   >           "Create(preloaded ? null : null)",
+   >           "Create(null ? foo : null)",
+   >           "Create(preloaded ? null : DataCorePreloader.Provider)",
+   >           "Create()",
+   >           "Create( preloaded  ?  DataCorePreloader.Provider  : null)"]:
+   >     s = "MinimalWorldFactory." + v
+   >     print(bool(re.search(old, s)), bool(re.search(pat, s)), v)
+   > PY
+   > ```
+   > 预期:第 2–4 行旧判据 `True`、新判据 `False`。
+   >
+   > **真变异轮**(不是只有离线推演):`tools/falsify/specs/s20-88-bootroot-provider-arg-gate.json`
+   > 把 `BootRoot.cs:219` 的真分支换成 `null` ⇒ **恰 1 条红**(`test_ac201b…`,8 条里 7 绿),
+   > 还原 SHA-256 逐字节通过、受保护路径指纹未变。
+   > ```bash
+   > python3 tools/falsify/unity_falsify.py \
+   >   --spec tools/falsify/specs/s20-88-bootroot-provider-arg-gate.json \
+   >   --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData
+   > ```
+   >
+   > ⚠️ **仍是源码级判据,不是运行期观测** —— 本件仍**没有**任何夹具真的跑 `BootRoot`
+   > 全链并断言「provider 被请求过」。所以本条从「无门」升为「有文本门」,
+   > **不升为「已实测」**。该门的判别力只覆盖「实参写法」,不覆盖「运行时该实参真的非 null」。
+   > ⚠️ 另:证据件 §三 记的 `BootRoot.cs:214` 是**当时**的行号;本轮(2026-10-28 追补)
+   > 实测该行已漂到 **`:219`**(上方注释块长了 5 行)。原文不删,以此处为准。
 2. **`Addressables` 真实 catalog 的装载未测** —— 字节取自注入缝。真实 catalog 里是否有该条目
    由门②(组条目 ⊇ 全部 `*Address` 常量)钉,那是**文件级**判据,不是装载实测。
 3. **`foraging_constants` 登记后的运行期面** —— 本轮不新增它的 provider 分支,
