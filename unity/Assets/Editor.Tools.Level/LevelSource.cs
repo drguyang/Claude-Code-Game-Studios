@@ -97,6 +97,14 @@ namespace DaYiJingCheng.EditorTools.Level
         public readonly TerrainSource Terrain;
 
         /// <summary>
+        /// 生态区多边形声明(ADR-022 §三 `world_ecozones.json`)。
+        /// <para>🔁 <b>2026-10-29(story-003 AC-1)新增</b>。`null` = **本关卡未声明生态区**
+        /// —— 此时 <see cref="LevelExporter.ExportEcozones"/> **硬失败**(不合成空表:
+        /// 空表与「未声明」在产物上不可分,而 `EcozoneOf` 恒 `None` 正是本 story 要消灭的状态)。</para>
+        /// </summary>
+        public readonly EcozoneSource Ecozones;
+
+        /// <summary>
         /// 格边长 `LATTICE_SIZE`(**整数毫米**;ADR-015 §三 / GDD F-6-1)。
         /// <para>🔁 <b>2026-10-29(story-002 AC-1)新增</b>。`0` = 未声明(几何导出硬失败)。</para>
         /// <para>⚠️ **数值归用户数值轮**(GDD 同时用它推 F-6-1 的隧穿下界)。本类只承载。</para>
@@ -118,7 +126,8 @@ namespace DaYiJingCheng.EditorTools.Level
         /// / `latticeSizeMm` 为负。</exception>
         public LevelSource(
             string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots,
-            IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0)
+            IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0,
+            EcozoneSource ecozones = null)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -170,6 +179,7 @@ namespace DaYiJingCheng.EditorTools.Level
             }
 
             LatticeSizeMm = latticeSizeMm;
+            Ecozones = ecozones;
         }
 
         /// <summary>

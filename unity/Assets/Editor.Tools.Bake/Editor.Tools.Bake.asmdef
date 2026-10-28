@@ -3,6 +3,7 @@
     "rootNamespace": "DaYiJingCheng.EditorTools.Bake",
     "references": [
         "Editor.Tools.Gates",
+        "Editor.Tools.Level",
         "Sim",
         "Sim.Contracts",
         "Gameplay.Presentation",

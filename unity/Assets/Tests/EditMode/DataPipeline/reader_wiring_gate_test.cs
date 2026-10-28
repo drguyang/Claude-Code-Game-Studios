@@ -488,7 +488,10 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 .Add(CommittedDiseaseActionAxis())
                 // ⚠️ 9 病种注册表(2026-10-22 B1 接真后组合根**即时** Load)——
                 //    同上,只为装配面完备。本门不跑 tick ⇒ 真表 id 从 2 起无影响。
-                .Add(DataCookedDisk.LoadDiseaseRegistry());
+                .Add(DataCookedDisk.LoadDiseaseRegistry())
+                // ⚠️ 生态区表(story-003 AC-5 接线后组合根**即时** Load)⇒ 缺它装配当场抛。
+                //    本门不读区划语义,只为装配面完备。
+                .Add(DataCookedDisk.LoadWorldEcozones());
 
         private sealed class MultiTableProvider : IDataProvider
         {

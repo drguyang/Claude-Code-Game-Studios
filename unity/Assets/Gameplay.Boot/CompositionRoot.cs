@@ -1190,10 +1190,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    与 story-021 之前的硬编码 `false` **行为等价**。差别是**形状**:真值源到位后
             //    只需给本处三个注入缝,`PatientCueDriver` 与本装配的调用点均不再改
             //    (债项 `TD-audio-033` ② 仍 open:两份行为态分叉)。
-            // 注入优先(测试 / 读档轮可从真装载面给);null ⇒ 组合根自建**空**生态区表
-            // (装载面未接时的今日形态 —— `EcozoneOf` 恒 `None`)。
+            // 注入优先(测试 / 读档轮可从真装载面给);null ⇒ 组合根自建生态区表。
+            // 🔁 **2026-10-29(关卡工具 story-003 AC-5)**:自建的那张表**不再是空表** ——
+            //    它从 `world_ecozones.cooked` 装载(provider 优先,磁盘兜底),
+            //    ⇒ `EcozoneOf` 对区内格首次有真值。原文「自建**空**生态区表(装载面未接)」已过期。
             ClinicKnowledge knowledge = clinicKnowledge ?? new ClinicKnowledge(
-                new RegistryClinicKnowledgeSource(new EcozoneRegistry()));
+                new RegistryClinicKnowledgeSource(LoadEcozoneRegistry(dataProvider)));
             var clinicDirectory = new ClinicKnowledgeDirectory(
                 knowledge,
                 // 锚点格 = 在场登记簿的逻辑格(不读表现态位置,ADR-016 §三)。
@@ -1479,6 +1481,37 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (events.Count == 0) return false;
             EventKind kind = events[events.Count - 1].Kind;
             return kind == EventKind.CaseClosed || kind == EventKind.PatternRecognized;
+        }
+
+        /// <summary>
+        /// 从烘焙产物装载生态区注册表(story-003 AC-5:`EcozoneOf` 的真值来源)。
+        /// <para>provider 优先(玩家构建唯一存在的路径),`null` ⇒ `DataCookedDisk` 兜底
+        /// (EditMode / 夹具)—— 两条路读**同一份** cooked 字节 + **同一个** codec。</para>
+        /// <para>⚠️ **任何失败都冒泡**(E-13):没装载的生态区表会让 `EcozoneOf` 对每一格回
+        /// `None`,而 `None` 是**合法结果**(GDD EC-6-10)⇒ 静默降级**看起来完全正常**。
+        /// 那正是本仓反复记的「假绿」形态,故此处不设 `catch`。</para>
+        /// <para>⚠️ <b>可见性 = `public`</b>:EditMode 夹具经 public 面**直调**按真值表逐条钉
+        /// 「区内格回该区 id / 区外格回 `None`」两个方向(承 `MinimalWorldFactory.IsRecoverableSlotLoadFailure`
+        /// 的先例 —— 「EditMode 测试经 public 面直调检查器,免 `InternalsVisibleTo`」)。
+        /// 若改回 `private`,夹具将**编译失败**而非静默跳过。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">产物缺失(E-13 口径 —— provider / 磁盘同款)。</exception>
+        /// <exception cref="InvalidDataException">产物损坏 / 空表。</exception>
+        public static EcozoneRegistry LoadEcozoneRegistry(IDataProvider dataProvider)
+        {
+            WorldEcozonesDataSet data = dataProvider != null
+                ? dataProvider.Load<WorldEcozonesDataSet>()
+                : DataCookedDisk.LoadWorldEcozones();
+
+            var registry = new EcozoneRegistry();
+            for (int i = 0; i < data.Zones.Count; i++)
+            {
+                WorldEcozoneRow row = data.Zones[i];
+                // `Register` 的廉价校验(顶点<3 / 重合相邻 / 自交)在此是**纵深防御** ——
+                // C4 已在烘焙期拒过;它若在这里抛,说明产物被手工改过(违反 ADR-022 §二)。
+                registry.Register(new EcozonePolygon(new EcozoneId(row.EcozoneId), row.Vertices));
+            }
+            return registry;
         }
 
         private static uint ResolveGlobalConfigVersion(IDataProvider dataProvider)

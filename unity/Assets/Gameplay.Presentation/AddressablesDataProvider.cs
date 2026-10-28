@@ -179,6 +179,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>单一出处 = <see cref="WorldTerrainDataSet.CookedFileName"/>。</remarks>
         public const string WorldTerrainAddress = WorldTerrainDataSet.CookedFileName;
 
+        /// <summary>生态区多边形 address(关卡工具 story-003 · 2026-10-29)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldEcozonesDataSet.CookedFileName"/>。</remarks>
+        public const string WorldEcozonesAddress = WorldEcozonesDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -225,6 +229,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         // 世界几何 / 地形表(关卡工具 story-002 · 2026-10-29):struct 解码形 ⇒ 可空承载。
         private WorldGeometryDataSet? _worldGeometry;
         private WorldTerrainDataSet? _worldTerrain;
+        // 生态区多边形(关卡工具 story-003 · 2026-10-29):struct 解码形 ⇒ 可空承载。
+        private WorldEcozonesDataSet? _worldEcozones;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -384,6 +390,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWorldTerrain();
                 return (TDataSet)(object)_worldTerrain.Value;
             }
+            if (typeof(TDataSet) == typeof(WorldEcozonesDataSet))
+            {
+                EnsureWorldEcozones();
+                return (TDataSet)(object)_worldEcozones.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -401,7 +412,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)" +
                 " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)" +
                 " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)" +
-                " + 世界几何 / 地形表(关卡工具 story-002 2026-10-29:WorldGeometryDataSet / WorldTerrainDataSet)");
+                " + 世界几何 / 地形表(关卡工具 story-002 2026-10-29:WorldGeometryDataSet / WorldTerrainDataSet)" +
+                " + 生态区多边形(关卡工具 story-003 2026-10-29:WorldEcozonesDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -435,6 +447,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldBuildSlots();
             EnsureWorldGeometry();
             EnsureWorldTerrain();
+            EnsureWorldEcozones();
         }
 
         private void EnsureItems()
@@ -891,7 +904,24 @@ namespace DaYiJingCheng.Gameplay.Presentation
             }
         }
 
-        /// <summary>取字节的唯一出口:注入缝优先,否则走 Addressables。
+        private void EnsureWorldEcozones()
+        {
+            if (_worldEcozones.HasValue) return;
+            byte[] bytes = FetchBytes(WorldEcozonesAddress);
+            try
+            {
+                _worldEcozones = WorldEcozonesCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 生态区多边形 cooked 解码失败(address={WorldEcozonesAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>取字节的唯一出口:注入缝优先,否则走 Addressables。</summary>
         /// 一切失败路径带 [E-13] 上下文 rethrow,绝不返回 null。</summary>
         private byte[] FetchBytes(string address) =>
             _byteSource == null ? FetchFromAddressables(address) : FetchFromByteSource(address);

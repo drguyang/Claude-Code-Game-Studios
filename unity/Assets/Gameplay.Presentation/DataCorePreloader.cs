@@ -188,7 +188,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 2026-10-21 TD-building-01 读侧追加 23 模块目录后共 **21** 条;
         /// 2026-10-22 B1 接真追加 9 病种注册表后共 **22** 条;
         /// 2026-10-28 S20-20 装载面追加建造槽位骨架后共 **23** 条;
-        /// 2026-10-29 关卡工具 story-002 追加世界几何 / 地形表后共 **25** 条
+        /// 2026-10-29 关卡工具 story-002 追加世界几何 / 地形表后共 **25** 条;
+        /// 2026-10-29 关卡工具 story-003 追加生态区多边形后共 **26** 条
         /// —— 与 `Preload()` 的
         /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
         internal static readonly string[] DataCoreAddresses =
@@ -241,6 +242,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             //    前三次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量**四处集合相等**,漏一处即红。
             AddressablesDataProvider.WorldGeometryAddress,
             AddressablesDataProvider.WorldTerrainAddress,
+            // 生态区多边形(关卡工具 story-003 · 2026-10-29:`EcozoneOf` 的真值来源)。
+            AddressablesDataProvider.WorldEcozonesAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

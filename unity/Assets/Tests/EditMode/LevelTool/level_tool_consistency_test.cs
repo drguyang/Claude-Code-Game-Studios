@@ -35,8 +35,11 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(report.IsGreen, Is.True,
                 "真种子须全绿,实际违例:\n" + string.Join("\n", report.Violations));
             Assert.That(src.Slots.Count, Is.EqualTo(13), "P0 种子 = 9 Decor + 4 Shell");
-            Assert.That(report.Unimplemented.Count, Is.EqualTo(7),
-                "ADR-022 §四 的 C1–C6 里本批未实现的**恰好 7 条** —— " +
+            // 🔁 **2026-10-29(关卡工具 story-003 AC-6)7 → 5**:C4 / C5 已实现并移出本表,
+            //    剩 C1 / C2 / C2' / C3 / C6。判据形态不变(少报 = 把未实现伪装成已实现)。
+            //    ⚠️ 用例名里的 `Seven` 是历史名,保留不改 —— 改名会让 grep 断链(原文不删的纪律)。
+            Assert.That(report.Unimplemented.Count, Is.EqualTo(5),
+                "ADR-022 §四 的 C1–C6 里尚未实现的**恰好 5 条** —— " +
                 "少报 = 把未实现伪装成已实现(禁借绿):\n" + string.Join("\n", report.Unimplemented));
         }
 

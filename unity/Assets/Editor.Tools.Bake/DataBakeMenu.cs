@@ -118,6 +118,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// `world_size` 装载期互相断言;只烘一份 = 启动期硬失败。</para></summary>
         public const string WorldTerrainCookedAssetName = WorldTerrainBake.CookedFileName;
 
+        /// <summary>产物文件名(生态区多边形 = `world_ecozones.json`;关卡工具 story-003 · 2026-10-29)。
+        /// <para>⚠️ 作者态 JSON 的**唯一作者 = 关卡工具**,手写违反 ADR-022 §二。
+        /// 运行期消费方 = `CompositionRoot` 的生态区注册表装配(`EcozoneOf` 的真值来源)。</para></summary>
+        public const string WorldEcozonesCookedAssetName = WorldEcozonesBake.CookedFileName;
+
         /// <summary>产物文件名(17 采集调参表 = `foraging_constants.json`;S20-3 评审 W-3 甲案的兑现件)。
         /// <para>⚠️ 与运行期地址**尚无常量** —— 17 的 `IDataProvider` 消费方在 story-002/004 实现,
         /// 届时在此登记地址常量(承 <see cref="InteractionKindsCookedAssetName"/> 同款注记:
@@ -883,6 +888,48 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
                     $"slopeLimit = {result.Bound.SlopeLimitDegX100}(0.01°)," +
                     $"stepOffset = {result.Bound.StepOffsetMm} mm," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙生态区多边形(<c>world_ecozones.json</c> —— 关卡工具 story-003):
+        /// 仓库 <c>assets/data/world_ecozones.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldEcozonesBinder"/>(结构门 + **C4 五项几何门**:聚合 throw)
+        /// → deterministic 编码 → <see cref="WorldEcozonesCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 运行期消费方 = `CompositionRoot.LoadEcozoneRegistry`,且**无降级路径**。</para>
+        /// </summary>
+        public static WorldEcozonesBake.BakeOutput BakeWorldEcozonesCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldEcozonesBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙生态区多边形并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_ecozones(生态区多边形 · 关卡工具)")]
+        public static void BakeWorldEcozones()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                WorldEcozonesBake.BakeOutput result = BakeWorldEcozonesCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldEcozonesCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldEcozonesCookedAssetName} = {result.Cooked.Length} B," +
+                    $"生态区 {result.Bound.Zones.Count} 个," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

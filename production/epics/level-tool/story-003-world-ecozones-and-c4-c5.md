@@ -1,12 +1,12 @@
 # Story 003: `world_ecozones` 导出 + C4 多边形合法性 + C5 边界单一源
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Tooling
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ## Context
 
@@ -60,27 +60,27 @@ ls assets/data/world_ecozones.json unity/Assets/DataCooked/world_ecozones.cooked
 
 ## Acceptance Criteria
 
-- [ ] **AC-1(BLOCKING)** —— **`world_ecozones.json` 由工具导出**:
+- [x] **AC-1(BLOCKING)** —— **`world_ecozones.json` 由工具导出**:
       形状 = `{ ecozone_id, name, vertices: WorldPos[] }`(整数多边形,**开集语义**)。
       **判据**:顶点坐标全部整数(零浮点);`ecozone_id` 唯一。
-- [ ] **AC-2(BLOCKING)** —— **C4 五项退化全部实现为硬失败**,各有一条负向夹具:
+- [x] **AC-2(BLOCKING)** —— **C4 五项退化全部实现为硬失败**,各有一条负向夹具:
       ① **重叠**(两多边形内部相交)② **顶点 < 3** ③ **自交**(边相交)
       ④ **零面积** ⑤ **重合顶点**(同一多边形内重复顶点)。
       **判据**:五项各有一条「注入该退化 ⇒ 检查抛」的夹具,**`exactRed` 逐条**。
       ⚠️ **五项不得合并成一条夹具** —— 一个夹具验五项,停用任一分支时其余四项仍红,
       判别面不可分(承 `feedback_falsify_one_guard_per_property`)。
-- [ ] **AC-3(BLOCKING)** —— **C5 边界单一源实现**:
+- [x] **AC-3(BLOCKING)** —— **C5 边界单一源实现**:
       视觉层生态区遮罩**由整数多边形生成**,并检测「存在手画第二份」的情形。
       **判据**:① 遮罩生成路径可复算(同输入两次生成**逐字节相同**);
       ② 注入一份「与多边形不一致的遮罩」⇒ 检查**抛**。
-- [ ] **AC-4(BLOCKING)** —— **烘焙 + 进组**:`world_ecozones.cooked` 落
+- [x] **AC-4(BLOCKING)** —— **烘焙 + 进组**:`world_ecozones.cooked` 落
       `unity/Assets/DataCooked/`,进 `data-core` 组。
       **判据**:组条目数 **+1**;catalog 重建后可查。
-- [ ] **AC-5(BLOCKING)** —— **运行期装载面接通**:
+- [x] **AC-5(BLOCKING)** —— **运行期装载面接通**:
       `CompositionRoot.cs:1171` 的 `new EcozoneRegistry()`(空表)被**装载路径**替换。
       **判据**:真产物在库时,`EcozoneOf` 对一个**区内格**回**该区 id**(不是 `None`);
       对一个**区外格**回 `None`。**两个方向都要** —— 只测区内会让「恒回 0」逃逸。
-- [ ] **AC-6** —— **`UnimplementedChecks` 长度 7 → 5**(C4 / C5 两条移出)。
+- [x] **AC-6** —— **`UnimplementedChecks` 长度 7 → 5**(C4 / C5 两条移出)。
       **判据**:数组长度 == 5,且剩余五条仍是 C1 / C2 / C2' / C3 / C6。
 
 ---
@@ -160,6 +160,30 @@ ADR-022 §四 只写「重叠」两个字。三种可能的口径:
   (C4 五项各一条 + C5 两条 + 装载面两方向)
 - ⚠️ **既有 `ecozone_registry_test.cs` 须保持全绿** —— 本 story 只加装载面,不改算法
 
+### AC → 载体映射(一 AC 可多载体)
+
+| AC | 载体 | 文件 |
+|---|---|---|
+| AC-1 | 3 条 `[Test]` | `Tests/EditMode/LevelTool/ecozone_polygon_check_test.cs` |
+| AC-2 | 6 条(五项各一 + 贴边边界半条) | 同上 |
+| AC-3 | 3 条(确定性 1 + 比对器 2) | 同上 |
+| AC-4 | 1 条 + 漂移门参数化用例 `drift[world_ecozones.cooked.bytes]` + **真 batch 实跑** | 同上 · `Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` · 证据件 §五.3 |
+| AC-5 | 2 条(区内/区外两方向 + 装配根接线扫描) | `ecozone_polygon_check_test.cs` |
+| AC-6 | 2 条 | `ecozone_polygon_check_test.cs`(更正:`level_source_generalization_test.cs` 的 `test_ac4_unimplementedChecks_…`)+ `level_tool_consistency_test.cs` 的 `test_levelTool_realSeed_…` |
+
+### 反证记录(S12-4 强制)`反证:停用 <守卫> ⇒ <测试名> 红`
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 定义域收窄 ×5 | C4 五项退化各被排除 | 停用 ①重叠 ⇒ `test_ac2_overlap_interiorsIntersect_throws` 红 · ②顶点<3 ⇒ `test_ac2_fewerThanThreeVertices_throws` 红 · ③自交 ⇒ `test_ac2_selfIntersection_throws` 红 · ④零面积 ⇒ `test_ac2_zeroArea_throws` 红 · ⑤重合顶点 ⇒ `test_ac2_coincidentAdjacentVertices_throws` 红(**各恰 1 条,五项判别面可分**) |
+| 共存/互斥 | 「贴边合法」↔「内部重叠非法」 | 把边界点并入内部 ⇒ `test_ac2_sharedEdge_neighbouringZones_doNotFail` 红(并连带 13 条导出链夹具 —— C4 是每次导出的前置门) |
+| 一次性/幂等 | 同输入两次生成逐字节相同 | 遮罩头掺 `Guid.NewGuid()` ⇒ `test_ac3_mask_generatedTwice_bitIdentical` 红 |
+| 阈值边界 | `UnimplementedChecks` 恰 5 条 | 把 C4 / C5 加回 ⇒ 2 条红(`test_ac4_unimplementedChecks_…` + `test_levelTool_realSeed_…`) |
+| 定义域收窄(接线) | 地址表 / 装载面 / 装配根 | 删地址表条目 ⇒ `test_ac4_addressInPreloadList_andProductExists` 红;装载面退回空表 ⇒ `test_ac5_loadEcozoneRegistry_…` 红;装配根退回 `new EcozoneRegistry()` ⇒ `test_ac5_compositionRoot_wires…` 红 |
+
+**全轮记录**:15 条变异 / 预判 17 红 / **实得 31 红** / **零假绿**;两条超判已逐条独立论证。
+原件:`production/qa/evidence/impl-level-tool-story-003-2026-10-29.md` §三。
+
 ---
 
 ## Dependencies
@@ -178,3 +202,25 @@ ADR-022 §四 只写「重叠」两个字。三种可能的口径:
 3. **`EcozoneOf` 的跨机器逐位一致性** —— 归 ADR-012 的黄金夹具矩阵,不在本 story。
 4. **生态区与天气 / 病人 AI 的行为联动** —— 本 story 只让 `EcozoneOf` **有真值**;
    消费侧的行为是否正确归 5 / 13 的实现轮。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-29
+**Criteria**: **6/6 通过**(AC-1 … AC-6 全部有载体且实跑绿)
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/LevelTool/ecozone_polygon_check_test.cs`
+(15 条 `[Test]`)+ 漂移门参数化用例 `drift[world_ecozones.cooked.bytes]`。
+原件 `production/qa/evidence/impl-level-tool-story-003-2026-10-29.md`。
+**Deviations**: **无 BLOCKING**。ADVISORY 两条,均已如实登记、不改判据面:
+1. **AC-4 的「组条目数 +1」无专打变异** —— 判据落在 Addressables 资产上,EditMode 无 locator。
+   实跑证据 = `BuildAddressablesContent` 输出「29 个条目已入组」+ 盘上 29 份产物(证据件 §五.3)。
+2. **C5 的「乙路」(视觉层遮罩逐像素比对)未跑** —— 视觉层资产尚不存在(美术轮)。
+   甲路(生成器是唯一写入面)已落地。
+**Regression**:
+EditMode `5770 / 5735 / 0 / 0 / 35`(@ `2026-10-29 02:22:27 CST` · S3 收口终跑 · `3f446e70`+工作树);
+基线 `5754 / 5719` ⇒ 等式 `5770 − 5754 = 16` = 15 条新 `[Test]` + 1 条漂移门参数化用例,**消失 0**。
+PlayMode `238 / 234 / 0 / 2 / 2`,与基线**逐项相同**(零回归;退出码 2 系既有 `Inconclusive` 所致)。
+⚠️ **首跑全量红 20 条**(`MultiTableProvider 无 WorldEcozonesDataSet`)—— 根因与修法见证据件 §八④。
+**Code Review**: **Pending**(`/code-review` 未跑,归用户触发 —— 与 story-001 / story-002 同)。
+**Falsifiability Gate**: **PASS** —— 15 条变异全部转红,零假绿。

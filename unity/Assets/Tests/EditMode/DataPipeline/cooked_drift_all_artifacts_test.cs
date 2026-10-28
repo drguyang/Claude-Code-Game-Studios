@@ -257,6 +257,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => WorldGeometryBake.BakeFromRepo(root).Cooked),
             new ArtifactBake(WorldTerrainBake.CookedFileName,
                 root => WorldTerrainBake.BakeFromRepo(root).Cooked),
+
+            // ── 生态区多边形(1 份;关卡工具 story-003 落盘,2026-10-29)──
+            //    ⚠️ 本门**第七次**遇到「新增产物」这一步 —— 与上两条同批,已按同一口径处理。
+            //    ⚠️ 委托走**裸烘焙** `BakeFromRepo`(同 S2 的两条):C4 几何门**在 binder 里**,
+            //    所以这条委托同时把「手改多边形而不重烘」与「多边形非法却硬塞进产物」都钉住。
+            new ArtifactBake(WorldEcozonesBake.CookedFileName,
+                root => WorldEcozonesBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -400,7 +407,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-26(同日,S20-3 W-3):24 → 25(+foraging_constants,甲案补烘落盘)。
             // 2026-10-28(S20-20):25 → 26(+world_buildslots,关卡工具导出 + 烘焙落盘)。
             // 2026-10-29(关卡工具 story-002):26 → 28(+world_geometry / world_terrain,几何 + 地形表)。
-            const int pinnedDeclared = 28; // 2026-10-29 实测(28 份)
+            // 2026-10-29(关卡工具 story-003):28 → 29(+world_ecozones,生态区多边形)。
+            const int pinnedDeclared = 29; // 2026-10-29 实测(29 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -60,6 +60,9 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 而升号 = 旧产物被拒收 = 一次无谓的重烘。</remarks>
         public const uint GeometrySchemaVersion = 1u;
 
+        /// <summary>`world_ecozones.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        public const uint EcozonesSchemaVersion = 1u;
+
         /// <summary>`world_terrain.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
         public const uint TerrainSchemaVersion = 1u;
 
@@ -222,6 +225,55 @@ namespace DaYiJingCheng.EditorTools.Level
             sb.Append(",\n");
             sb.Append("  \"slope_limit_deg_x100\": ").Append(Num(t.SlopeLimitDegX100)).Append(",\n");
             sb.Append("  \"step_offset_mm\": ").Append(Num(t.StepOffsetMm)).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 序列化 `world_ecozones.json`(story-003 AC-1)。
+        /// <para>形状 = `schema_version` + `level_id` + `zones: [{ecozone_id, name, vertices}]`。</para>
+        /// <para>⚠️ **顶点写 `[x, z]` 二元组,不是三元组** —— GDD F-6-3 §四 明写「横轴是 z,
+        /// 不是 y」且 y 不参与判定。把恒 0 的 y 写进文件会造出一个「看起来像字段的常量」,
+        /// 读者会以为它有意义(本仓反复清的形态)。</para>
+        /// <para>⚠️ **零浮点**;`ecozone_id` 唯一与 C4 五项由 <see cref="LevelConsistencyCheck"/> 统一跑。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 关卡未声明生态区 / 任一 C4 违例(GDD AC-6-19 五类退化)。</exception>
+        public static string ExportEcozones(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Ecozones == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明生态区 ⇒ 拒绝导出 world_ecozones。" +
+                    "不合成空表:空表与「未声明」在产物上不可分,而 `EcozoneOf` 恒 None 正是 story-003 要消灭的状态");
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)EcozonesSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            // 行序 = ecozone_id 升序 ⇒ 作者重排声明不改变字节流(与 slots / terrain_table 同源)。
+            List<EcozoneZoneSpec> zones = src.Ecozones.SortedById();
+
+            sb.Append("  \"zones\": [\n");
+            for (int i = 0; i < zones.Count; i++)
+            {
+                EcozoneZoneSpec z = zones[i];
+                sb.Append("    {\"ecozone_id\": ").Append(Num(z.Id))
+                  .Append(", \"name\": ").Append(Quote(z.Name))
+                  .Append(", \"vertices\": [");
+                for (int v = 0; v < z.Vertices.Length; v++)
+                {
+                    if (v > 0) sb.Append(", ");
+                    sb.Append('[').Append(Num(z.Vertices[v].X)).Append(", ")
+                      .Append(Num(z.Vertices[v].Z)).Append(']');
+                }
+                sb.Append("]}")
+                  .Append(i + 1 < zones.Count ? ",\n" : "\n");
+            }
+            sb.Append("  ]\n");
             sb.Append("}\n");
             return sb.ToString();
         }

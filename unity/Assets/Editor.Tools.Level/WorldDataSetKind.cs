@@ -42,8 +42,8 @@ namespace DaYiJingCheng.EditorTools.Level
     /// <para>序数是**取值的一部分**(用于确定性遍历序);**不得重排、不得插入中间值** ——
     /// 要加第 8 类就追加在末尾。</para>
     /// <para>⚠️ 本枚举的「闭集」是**契约面**闭集,不是「已实现」闭集:今日
-    /// <see cref="BuildSlots"/> / <see cref="Geometry"/> / <see cref="Terrain"/> 三有序列化器,
-    /// 其余四类由 <see cref="WorldDataSets.UnimplementedByStory"/> 逐条点名归属 story。</para>
+    /// <see cref="BuildSlots"/> / <see cref="Geometry"/> / <see cref="Terrain"/> / <see cref="Ecozones"/>
+    /// 四有序列化器,其余三类由 <see cref="WorldDataSets.UnimplementedByStory"/> 逐条点名归属 story。</para>
     /// </remarks>
     public enum WorldDataSetKind
     {
@@ -53,7 +53,7 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>世界几何(尺寸 + 每格可走性 + `LATTICE_SIZE`)。**S2(story-002)起已实现**。</summary>
         Geometry = 1,
 
-        /// <summary>生态区多边形。归属 = S3。</summary>
+        /// <summary>生态区多边形(C4 五项 + C5 单一源)。**S3(story-003)起已实现**。</summary>
         Ecozones = 2,
 
         /// <summary>POI 定义。归属 = S4。</summary>
@@ -93,7 +93,6 @@ namespace DaYiJingCheng.EditorTools.Level
         public static readonly IReadOnlyDictionary<WorldDataSetKind, string> UnimplementedByStory =
             new Dictionary<WorldDataSetKind, string>
             {
-                { WorldDataSetKind.Ecozones,  "待 S3 产出(生态区多边形 + C4/C5)" },
                 { WorldDataSetKind.Poi,       "待 S4 产出(POI 定义导出 + 运行期装载)" },
                 { WorldDataSetKind.Resources, "待 S4 产出(资源点导出 + 运行期装载)" },
                 { WorldDataSetKind.NavChunk,  "待 S5 产出(导航格按 chunk 切片)" },
@@ -174,6 +173,7 @@ namespace DaYiJingCheng.EditorTools.Level
                 { WorldDataSetKind.BuildSlots, LevelExporter.ExportBuildSlots },
                 { WorldDataSetKind.Geometry,   LevelExporter.ExportGeometry },
                 { WorldDataSetKind.Terrain,    LevelExporter.ExportTerrain },
+                { WorldDataSetKind.Ecozones,   LevelExporter.ExportEcozones },
             };
     }
 }

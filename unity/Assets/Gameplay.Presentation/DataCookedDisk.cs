@@ -74,6 +74,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static WorldTerrainDataSet LoadWorldTerrain()
             => WorldTerrainCookedCodec.Read(ReadAll(WorldTerrainDataSet.CookedFileName));
 
+        /// <summary>生态区多边形(<c>world_ecozones.cooked.bytes</c>;story-003)。
+        /// <para>消费方 = `CompositionRoot` 的生态区注册表装配。失败语义同
+        /// <see cref="LoadWorldGeometry"/>(硬失败,空表亦然)。</para></summary>
+        public static WorldEcozonesDataSet LoadWorldEcozones()
+            => WorldEcozonesCookedCodec.Read(ReadAll(WorldEcozonesDataSet.CookedFileName));
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

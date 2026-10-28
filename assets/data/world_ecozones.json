@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "level_id": "p0_clinic",
+  "zones": [
+    {"ecozone_id": 0, "name": "clinic_ward", "vertices": [[1, 1], [8, 1], [8, 14], [1, 14]]},
+    {"ecozone_id": 1, "name": "herb_courtyard", "vertices": [[8, 1], [14, 1], [14, 14], [8, 14]]}
+  ]
+}

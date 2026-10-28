@@ -10,8 +10,10 @@
 // · C2 可走性同源(slopeLimit/stepOffset) —— **未实现**:需要 `world_terrain.json`(待 S6;s.t. 待 S2)。
 // · C2' 模板 collider 足迹同源 —— **未实现**:需要模块模板 prefab(待 S6;素材归 23 的素材轮)。
 // · C3 导航格 ↔ NavMesh(告警) —— **未实现**:需要 `world_nav_*.json` 与 NavMesh(待 S5 产出)。
-// · C4 多边形合法性            —— **未实现**:需要 `world_ecozones.json`(待 S3 产出)。
-// · C5 边界单一源              —— **未实现**:需要视觉层遮罩(待 S3 产出)。
+// · C4 多边形合法性            —— ✅ **已实现(story-003 · 2026-10-29)**:`EcozonePolygonCheck`
+//     (五项:内部重叠 / 顶点<3 / 自交 / 零面积 / 重合顶点),在 `Check` 里随生态区声明一并跑。
+// · C5 边界单一源              —— ✅ **已实现(story-003 · 2026-10-29)**:`EcozoneMaskGenerator`(生成)
+//     + `EcozoneMaskCheck.Verify`(比对)。⚠️ **乙路(比对已有视觉遮罩)无真实资产可验**,见该件文件头。
 // · C6 切片完整性               —— **未实现**:需要 `world_nav_{chunk}.json`(待 S5 产出)。
 //
 // 🔁 **2026-10-29(story-001 AC-4)措辞订正,原文不删**:上面七行原写作「**本批不产出**」——
@@ -28,6 +30,7 @@
 //   ③之补 槽位落在**不可走**的格上(2026-10-29 · story-002;仅当关卡声明了可走性)
 //   ④ `baked_initial = true` 却无 `module_id`(2026-10-28 · schema 2)
 //   ⑤ `baked_initial = false` 却写了 `module_id`(同上,反方向)
+//   ⑥ **C4 生态区多边形五项**(story-003;见 `EcozonePolygonCheck`)
 //
 // ⚠️ **不假装实现**:上面七条未实装项在 `CheckReport.Unimplemented` 里逐条列出,
 //    由调用方(导出器 / 测试)可读 —— 这不是注释里的自述,是返回值里的数据。
@@ -68,8 +71,6 @@ namespace DaYiJingCheng.EditorTools.Level
             "C2 可走性同源(需 world_terrain.json —— 待 S6 产出;该数据集本身待 S2)",
             "C2' 模板 collider 足迹同源(需模块 prefab —— 待 S6 产出;素材归 23 素材轮)",
             "C3 导航格↔NavMesh(需 world_nav_*.json —— 待 S5 产出)",
-            "C4 多边形合法性(需 world_ecozones.json —— 待 S3 产出)",
-            "C5 边界单一源(需视觉层遮罩 —— 待 S3 产出)",
             "C6 切片完整性(需 world_nav_{chunk}.json —— 待 S5 产出)",
         };
 
@@ -150,6 +151,13 @@ namespace DaYiJingCheng.EditorTools.Level
                         $"module_id = {s.ModuleId} —— 二者矛盾(非初始占用的槽位没有既有家具," +
                         "运行期会把它当空地);要声明开档家具请同时把 baked_initial 置 true");
             }
+
+            // ── C4 多边形合法性(story-003 起**已实现**;关卡声明了生态区才产生判据)────
+            // ⚠️ 「声明了才判」而不是「没声明就判失败」:只声明槽位的关卡 / 夹具是合法用法,
+            //    而 `ExportEcozones` 自己会对「未声明」硬失败 —— 两处职责不重复。
+            if (src.Ecozones != null
+                && EcozonePolygonCheck.TryCheck(src.Ecozones, out List<string> ecoViolations))
+                violations.AddRange(ecoViolations);
 
             return new CheckReport(violations, UnimplementedChecks);
         }

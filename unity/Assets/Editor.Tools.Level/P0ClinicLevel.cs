@@ -120,7 +120,8 @@ namespace DaYiJingCheng.EditorTools.Level
                 LevelId, sizeX, sizeY, sizeZ, slots,
                 walkable: BuildWalkable(sizeX, sizeY, sizeZ),
                 terrain: BuildTerrain(sizeX, sizeY, sizeZ),
-                latticeSizeMm: LatticeSizeMm);
+                latticeSizeMm: LatticeSizeMm,
+                ecozones: BuildEcozones());
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -175,6 +176,40 @@ namespace DaYiJingCheng.EditorTools.Level
                         walkable[(x * sizeY + y) * sizeZ + z] = onRing ? 0 : 1;
                     }
             return walkable;
+        }
+
+        /// <summary>
+        /// 本关卡的生态区声明(**两个占位区,共一条边**;story-003)。
+        /// <para>⚠️ **不是设计产物**:名称与形状都是占位,`world-ecozones` 的叙事 / 关卡设计轮
+        /// 会整个替换(`world-and-ecozones.md` 的生态区内容不在本工具边界内)。</para>
+        /// <para>⚠️ **为什么刻意让两区共享一条边**:GDD F-6-3 §二 的「开集 + 裁决序」只有在
+        /// **贴边相邻**时才被检验 —— 共享边上每格同属两区**边界**,由 `min(id)` 裁决。
+        /// 若两个区各留一格缝,`NONE` 会吞掉这一整类情形,AC-5 的「区内 / 区外两方向」
+        /// 也就退化成「有 / 无」两条互不相干的断言。</para>
+        /// <para>⚠️ 两区都不覆盖**外环墙格**(`x ∈ {0,15} ∨ z ∈ {0,15}`)⇒ 那些格是
+        /// `EcozoneId.None`(真空野地)。`NONE` 是**合法结果**(GDD EC-6-10),不是缺数据。</para>
+        /// </summary>
+        private static EcozoneSource BuildEcozones()
+        {
+            // 顶点序 = 逆时针闭合环(**首尾不重复**;重复会让 C4 ⑤ 直接拒)。
+            // 只用 x / z;y 恒 0 且不参与判定(GDD F-6-3 §四)。
+            static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
+
+            var zones = new List<EcozoneZoneSpec>
+            {
+                // 医馆前厅:x ∈ [1,8] × z ∈ [1,14]
+                new EcozoneZoneSpec(0, "clinic_ward", new[]
+                {
+                    P(1, 1), P(8, 1), P(8, 14), P(1, 14),
+                }),
+                // 药圃:x ∈ [8,14] × z ∈ [1,14] —— 与上面**共享 x = 8 这条边**
+                new EcozoneZoneSpec(1, "herb_courtyard", new[]
+                {
+                    P(8, 1), P(14, 1), P(14, 14), P(8, 14),
+                }),
+            };
+
+            return new EcozoneSource(zones);
         }
 
         /// <summary>本关卡的地形声明(单行表 `terrain_id = 0`;每格都指向它)。</summary>

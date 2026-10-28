@@ -155,7 +155,10 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                         ReadCommitted("interaction_kinds.cooked.bytes")))
                     .Add(DiagnosisCookedDisk.LoadSigns())
                     .Add(DiagnosisCookedDisk.LoadReadFloor())
-                    .Add(DiagnosisCookedDisk.LoadJudgmentLexicon()));
+                    .Add(DiagnosisCookedDisk.LoadJudgmentLexicon())
+                    // 生态区表(story-003 AC-5 接线后组合根**即时** Load)—— 缺它装配当场抛。
+                    // 本测不读区划语义,只为装配面完备(同上方六份产物:盘上真件,零合成)。
+                    .Add(DataCookedDisk.LoadWorldEcozones()));
 
         /// <summary>把真表行集按 id 取出来(前提断言用 —— 缺行要**当场说清**而不是下游空转)。</summary>
         private static DiseaseRegistryEntry Row(DiseaseRegistryDataSet table, int diseaseId)

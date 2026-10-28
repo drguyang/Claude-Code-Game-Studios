@@ -387,6 +387,9 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 //    `dataProvider != null` 时对它做**即时** Load ⇒ 缺它装配当场抛。
                 //    走 `DataCookedDisk` = 盘上真产物 + 同一 codec(零 Fake)。
                 //    ⚠️ 本测不跑 tick、`SpawnNext` 不查注册表 ⇒ 真表 id 从 2 起不影响本测。
-                .Add(DataCookedDisk.LoadDiseaseRegistry());
+                .Add(DataCookedDisk.LoadDiseaseRegistry())
+                // ⚠️ 生态区表(story-003 AC-5 接线后组合根**即时** Load)⇒ 缺它装配当场抛。
+                //    本测不读区划语义,只为装配面完备。
+                .Add(DataCookedDisk.LoadWorldEcozones());
     }
 }

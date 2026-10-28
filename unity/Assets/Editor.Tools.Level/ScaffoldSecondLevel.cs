@@ -90,7 +90,23 @@ namespace DaYiJingCheng.EditorTools.Level
                 LevelId, sizeX, sizeY, sizeZ, slots,
                 walkable: BuildWalkable(sizeX, sizeY, sizeZ),
                 terrain: BuildTerrain(sizeX, sizeY, sizeZ),
-                latticeSizeMm: P0ClinicLevel.LatticeSizeMm);
+                latticeSizeMm: P0ClinicLevel.LatticeSizeMm,
+                ecozones: BuildEcozones());
+        }
+
+        /// <summary>生态区声明(**单个占位区**;与 `P0ClinicLevel` 的两个区在**形状上不同**)。
+        /// <para>⚠️ 为什么只有一个区:本关卡是**脚手架**,它要证的是「生态区来自数据,
+        /// 且第二关卡可以有自己的声明」—— 一个区就够。数量 / 形状归关卡设计轮。</para></summary>
+        private static EcozoneSource BuildEcozones()
+        {
+            static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
+            return new EcozoneSource(new List<EcozoneZoneSpec>
+            {
+                new EcozoneZoneSpec(0, "scaffold_zone", new[]
+                {
+                    P(1, 1), P(6, 1), P(6, 6), P(1, 6),
+                }),
+            });
         }
 
         // ⚠️ 以下两件与 `P0ClinicLevel` 的对应方法**形状相同、数值也相同**(外环 1 格不可走、

@@ -121,7 +121,9 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                         ReadCommitted("interaction_kinds.cooked.bytes")))
                     .Add(DiagnosisCookedDisk.LoadSigns())
                     .Add(DiagnosisCookedDisk.LoadReadFloor())
-                    .Add(DiagnosisCookedDisk.LoadJudgmentLexicon()));
+                    .Add(DiagnosisCookedDisk.LoadJudgmentLexicon())
+                    // 生态区表(story-003 AC-5 接线后组合根**即时** Load)—— 缺它装配当场抛。
+                    .Add(DataCookedDisk.LoadWorldEcozones()));
 
         private static DiseaseRegistryDataSet Table() => DataCookedDisk.LoadDiseaseRegistry();
 

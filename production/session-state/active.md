@@ -12117,3 +12117,32 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **未做**:`/code-review` 未跑(归用户触发,与 story-001 同)。
 - **下一步**:`level-tool/story-003`(生态区多边形 + C4/C5)与 `story-004`(POI / 资源)——
   两者都只依赖 S2,彼此零共享状态,可并行。
+
+## Session Extract — level-tool/story-003 实现轮(2026-10-29)
+
+- **对象**:`production/epics/level-tool/story-003-world-ecozones-and-c4-c5.md`(**Status: Complete**,6/6 AC)
+- **落点**:工具侧 `EcozoneSource`(C4 五项)· `EcozoneMask`(C5 生成/比对)· `P0ClinicLevel.BuildEcozones`
+  (两区共享 `x = 8`,让开集 `min(id)` 仲裁有真对象)· `ScaffoldSecondLevel` 一个区 · `LevelExporter.ExportEcozones`
+  + `EcozonesSchemaVersion` · `LevelConsistencyCheck.UnimplementedChecks` **7 → 5** · `WorldDataSetKind` 未实现 4 → 3;
+  烘焙 `WorldEcozones{Bake,Binder,CookedWriter}` 三件 + 菜单 + `Editor.Tools.Bake.asmdef` 加 `Editor.Tools.Level`;
+  运行期 `WorldEcozonesCookedCodec` · 三处装载面 + `CompositionRoot.LoadEcozoneRegistry`(public)。
+- **产物**:`assets/data/world_ecozones.json`(263 B,`c228df16…`)· `DataCooked/world_ecozones.cooked.bytes`
+  (104 B,`f20f0dc…`,ConfigVersion `0x80A6253B`)· `data-core` 组条目 **28 → 29**,catalog 重建(29 == 盘上 29)。
+- **证伪轮**:**15 条变异全部转红,零假绿**;**预判 17 红 / 实得 31 红**,两条超判逐条独立论证
+  (M1 撞上同 AC 的另一条逐字符子串断言;M9 因 C4 是**每次导出**的前置门而炸 14 条)。六份被变异件 SHA-256 逐字节还原。
+- **回归**(三元组 `2026-10-29 02:22:27 / 02:23:02 CST` · S3 收口终跑 · `3f446e70`+工作树):
+  EditMode `5770/5735/0/0/35`(基线 `5754/5719` ⇒ `5770−5754 = 16` = 15 新 `[Test]` + 1 漂移门参数化用例,消失 0);
+  PlayMode `238/234/0/2/2`(**零回归**;退出码 2 系既有 `Inconclusive`,与基线同形)。
+- **首跑全量红 20 条(同一根因,全是我引入的)**:生态区表成了**装配期必需输入**,而 5 个测试夹具的
+  `MultiTableProvider` 只登记各自关心的表 ⇒ 装配当场抛。按仓内既有先例在 5 个夹具补
+  `.Add(DataCookedDisk.LoadWorldEcozones())` 并写明理由。
+  ⚠️ 连带后果:**将来任何用 provider 装配 `CompositionRoot` 的新夹具都必须登记它**,否则以同一报错红且指向 provider。
+- **本轮自己的五处错误**:① asmdef 写了 `//` 注释(严格 JSON 不认)② 文档注释里重复 `**`
+  ③ `test_ac3_unimplementedKind` 的靶必须随实现轮前移(改打 `Poi`/S4)
+  ④ 上面那 20 条回归 ⑤ **`-testFilter` 不吃逗号分隔** ⇒ `total=0 exit=0` 静默跳过
+  ⇒ 追加纪律:**判「跑过了」看 XML 的 `total > 0`,不看退出码**。
+- **原件**:`production/qa/evidence/impl-level-tool-story-003-2026-10-29.md`
+- **未做**:`/code-review` 未跑(归用户触发,与 story-001 / 002 同);**C5 乙路**(视觉层遮罩逐像素比对)——
+  视觉层资产尚不存在,归美术轮。
+- **下一步**:`level-tool/story-004`(POI / 资源点)与 `story-005`(导航格切片 + C6/C3)——
+  两者都只依赖 S2,与 S3 零共享状态。

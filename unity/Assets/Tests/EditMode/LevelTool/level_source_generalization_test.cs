@@ -207,25 +207,30 @@ namespace DaYiJingCheng.Tests.LevelTool
                 "Geometry 自 story-002 起已实现");
             Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Terrain), Is.True,
                 "Terrain 自 story-002 起已实现");
-            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(4),
-                "未实现类别 = Ecozones / Poi / Resources / NavChunk 四类 —— " +
+            // 🔁 **2026-10-29(关卡工具 story-003)**:Ecozones 也转已实现。
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Ecozones), Is.True,
+                "Ecozones 自 story-003 起已实现");
+            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(3),
+                "未实现类别 = Poi / Resources / NavChunk 三类 —— " +
                 "条数变了说明有类别移了队却没同步另一侧");
         }
 
         /// <summary>AC-3:未实现类别 ⇒ 抛,报文点名**归属 story**(不是「未实现」四个字了事)。</summary>
-        /// <remarks>⚠️ **2026-10-29(story-002)换靶**:本条原先用 `Geometry` 当「未实现」样例,
-        /// 而 story-002 之后它已实现 ⇒ 换成仍归 S3 的 `Ecozones`(判据形态一字未变:
-        /// 抛 + 报文含归属 story 号 + 含文件名)。</remarks>
+        /// <remarks>⚠️ **本条的靶会随实现进度前移,这是刻意的**:它判的是「未实现类别 ⇒ 抛 + 点名归属」,
+        /// 而「哪一类未实现」是**随时间变的**。
+        /// · story-001:`Geometry` → story-002 实现后换 `Ecozones`
+        /// · story-002:`Ecozones` → story-003 实现后换 `Poi`(归 S4)
+        /// ⇒ 每条实现轮都得把它前移一格。**判据形态一字未变**(抛 + 报文含归属 story 号 + 含文件名)。</remarks>
         [Test]
         public void test_ac3_unimplementedKind_throwsNamingOwningStory()
         {
             LevelSource src = LevelCatalog.Define("p0_clinic");
 
             var ex = Assert.Throws<NotSupportedException>(
-                () => LevelExporter.Export(WorldDataSetKind.Ecozones, src));
+                () => LevelExporter.Export(WorldDataSetKind.Poi, src));
 
-            Assert.That(ex.Message, Does.Contain("S3"), "报文须点名归属 story(S3)");
-            Assert.That(ex.Message, Does.Contain("world_ecozones"));
+            Assert.That(ex.Message, Does.Contain("S4"), "报文须点名归属 story(S4)");
+            Assert.That(ex.Message, Does.Contain("world_poi"));
         }
 
         // ─────────────────────────── AC-4 ───────────────────────────
@@ -237,8 +242,13 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             string[] items = LevelConsistencyCheck.UnimplementedChecks;
 
-            Assert.That(items.Length, Is.EqualTo(7),
-                "本 story 不实现任何 C1–C6 检查 ⇒ 条数必须仍是 7(变少 = 越界,变多 = 闭集漂移)");
+            // 🔁 **2026-10-29(关卡工具 story-003 AC-6)判据订正 7 → 5**,原文不删:
+            //    story-001 时本项判「仍 7 条」—— 那时一条 C1–C6 都没实现。
+            //    story-003 实现了 **C4 / C5** ⇒ 两条移出本表,剩 C1 / C2 / C2' / C3 / C6 五条。
+            //    ⚠️ 判据形态不变:**变少 = 越界**(没实现却从表里删),**变多 = 闭集漂移**。
+            Assert.That(items.Length, Is.EqualTo(5),
+                "story-003 起 C4 / C5 已实现 ⇒ 未实现项须恰为 5 条(C1 / C2 / C2' / C3 / C6);" +
+                "变少 = 越界(没实现却删了),变多 = 闭集漂移");
 
             foreach (string item in items)
             {
