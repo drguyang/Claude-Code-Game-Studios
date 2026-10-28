@@ -12222,3 +12222,18 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **如实登记的缺口**:`NavLattice` **未接生产装配**(归 6 / ADR-023 ⑥);导航格切片不进
   「首次 Step 前常驻」(ADR-022 §五 明确排除);`ChunkActivator` 仍零生产消费者。
 - **下一步**:S6(C1 / C2 / C2')—— 本 epic 最后一件。
+
+## Session Extract — P0 完全梳理 + 资产面接入排期(2026-10-29 · 三件已提交)
+
+- **ac0df528** `milestones/README.md §五`:补 **M3 灰盒登记表**(兑现 `art-bible §8.11.4` D1)。
+  盘上实测:M2 登记的 **31 项灰盒,产出 = 0**;`World.unity` = 2 个 GameObject。
+  M3 Exit 维持两条合取(**只登记,不升第三条** —— 用户裁定)。
+- **f28273c8** `milestones/p0-sweep-2026-10-29.md`(新建):P0 完全梳理 ——
+  分母 31 epic / 229 story / 203 Complete / 26 未闭;债 132 条 / 未闭 P0 面 **63** / 10 epic;
+  八道门 **6 清 / 2 未清**(G-1 仍卡 sprint-23)+ 孤儿 `TD-net-01`;
+  资产面 **2D 有料(18 张贴图)/ 3D 空盘(0 网格)**;插入四卡。
+- **2eb83b8d** `p0-remaining-roadmap §6.5.4 + §七`:插入 **`A2-1`**(sprint-26)·
+  **`A2-2`**(sprint-29)· **`GB-1` / `GB-2`**(sprint-28);新增 **SP-11 / 12 / 13** 三条陈旧前提。
+- **需用户裁的两项(只登记不排期)**:① `clinic-machine/story-001` 卡 `In Review`,缺复核动作;
+  ② `persistence-service/story-001` 已 QA 退回,§6.5 无 7a 本体排期行(而 7b 三条 AC 依赖它)。
+- **下一步**:征询是否按建议补位两项;或回到 `level-tool/story-006`(C1 / C2 / C2′)。
