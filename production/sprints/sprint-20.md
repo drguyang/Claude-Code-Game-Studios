@@ -956,12 +956,34 @@ DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
    **本卡未做**(与 `CompositionRoot` 的 provider-first 形状不一致,是一处**已知偏离**)。
    ⇒ **已由 §十二 修复轮全部兑现**:四处集合闭合 + 组条目 24→26 + catalog 重建
    + 夹具 3 条 + 证伪 2/2 exact,原件 `fix-s20-20-slot-provider-surface-2026-10-28.md`。)
-2. **`BakedInitial` 运行期不应用** —— `BuildSlotCatalog` / `BuildSlot` 今日**没有承载该标记的字段**
-   ⇒ 数据声明了、运行期不落地。`MinimalWorldFactory` 因此打 `LogWarning` 点名它,不静默。
+2. ~~**`BakedInitial` 运行期不应用**~~(**2026-10-28 已兑现,原文不删** ——
+   原文:`BuildSlotCatalog` / `BuildSlot` 今日**没有承载该标记的字段** ⇒ 数据声明了、运行期不落地。
+   `MinimalWorldFactory` 因此打 `LogWarning` 点名它,不静默。
+   ⇒ **已由挂标 #2 修复轮全部兑现**:schema 1→2(每行另带 `module_id`)+ `BuildSlot` 承载
+   `BakedInitial` / `ModuleId`(`BuildSlotCatalog.cs:38,40`)+ `World.ApplyBakedInitial`
+   (`World.cs:90`)发号 1…N 进 `StructureInstanceRegistry` + `CompositionRoot.cs:918` 在
+   `StructureWriter` **构造之前**调用。那条 `LogWarning` 已删(缺口已闭,警告失去对象)。
+   证据件 `fix-s20-20-baked-initial-baseline-2026-10-28.md`;证伪 5 变异 + 补口 2 条守卫。)
 3. **C1–C6 七项未实现** —— 除槽位子集 3 条外的全部(需视觉层 / 地形 / 导航 / 生态区数据,
    本批不产出)。清单在 `LevelConsistencyCheck.UnimplementedChecks`,**返回值里的数据**。
+   > 🔁 **2026-10-28 实测:仍 7 条,一条未减**(`LevelConsistencyCheck.cs:57-66`)。
+   > **承接者已立**:`production/epics/level-tool/story-006-c1-c2-c2prime-and-ci.md`。
+   > ⚠️ **立件 ≠ 缺口已闭** —— 本卡不改判,本条**维持未闭**。
 4. **关卡工具只服务一个关卡** —— `P0ClinicLevel` 是硬编码的 16×1×16。多关卡 / chunk 切片归完整工具。
+   > 🔁 **2026-10-28 实测:仍硬编码**(`P0ClinicLevel.cs:37` `Width = 16` · `:46` `LevelId = "p0_clinic"`;
+   > `LevelExporter.cs:120` 仍写死 `P0ClinicLevel.Define()`)。
+   > **承接者已立**:`level-tool/story-001-level-source-generalization.md`。
+   > ⚠️ 同上,**维持未闭**。
 5. **世界几何仍是合成** —— 地形全 walkable、POI / 资源格全 -1。本卡只让「槽位判定」这一面有真数据。
+   > 🔁 **2026-10-28 实测:仍合成**(`MinimalWorldFactory.cs:43` 自陈「地形全 walkable + POI / 资源格全 `-1`」;
+   > `BootRoot.cs:220` `IsSyntheticWorld = true`)。`assets/data/world_*.json` 仅 **1 件**
+   > (ADR-022 §三 要 7 件)。
+   > **承接者已立**:`level-tool/story-002-world-geometry-and-terrain.md`。
+   > ⚠️ 同上,**维持未闭**。
+
+> 📌 **本节的 5 条,2026-10-28 实测汇总:1 条已闭(#1)· 1 条已闭(#2)· 3 条未闭(#3/#4/#5)**。
+> 未闭三条**全部有了承接者**(`production/epics/level-tool/`,2026-10-28 立),但
+> **承接者存在 ≠ 缺口已闭** —— 6 个 story 一条未实现。逐条复算命令见各条 🔁 注记。
 
 ---
 
