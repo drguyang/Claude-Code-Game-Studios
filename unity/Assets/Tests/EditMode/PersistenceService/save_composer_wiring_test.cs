@@ -47,10 +47,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
             ulong worldSeed,
             uint configVersion,
             long tick,
-            IReadOnlyList<FoldRow> existingFoldedRows = null)
+            IReadOnlyList<FoldRow> existingFoldedRows = null,
+            IBlobPool blobPool = null)
             => SaveService.AddChecksum(SaveComposer.Compose(
                 allEvents, folded, decoder, codec, worldSeed, configVersion, tick,
-                existingFoldedRows));
+                existingFoldedRows, blobPool: blobPool));
     }
 
     public class SaveComposerWiringTest
@@ -121,14 +122,65 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 decoder: _decoder);
         }
 
-        /// <summary>v1 布局读回帮助:事件段 + 折叠段(与 SaveService.ParseBody 同口径)。</summary>
+        /// <summary>
+        /// v2 布局读回帮助:事件段 + 折叠段 + 载荷段(与 <c>SaveService.ParseBody</c> 同口径)。
+        /// <para>🔁 <b>2026-10-28 ADR-034 就地改写(原文不删)</b>:原文写「v1 布局:事件段 + 折叠段」
+        /// 且折叠段用 <c>DecodeSegment(r.ReadBytes(r.Remaining))</c> —— 「剩下的全给它」。
+        /// 在 v2 下那么读会把载荷段一起吞进折叠段。改为:按 count 精确读折叠段 → 消费载荷段
+        /// → 末尾读尽断言(载荷段已是最后一段,尾随字节即布局漂移)。</para>
+        /// </summary>
         private static void ParseBody(
             byte[] bytes, out IReadOnlyList<SimEvent> events, out IReadOnlyList<FoldRow> foldRows)
         {
             var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
-            // 复合体:事件段用无读尽断言的读(其后还有折叠段),末段由折叠段读尽闭合。
+            // 复合体:事件段用无读尽断言的读(其后还有折叠段与载荷段)。
             events = SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
-            foldRows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+
+            // 折叠段:count 前缀 + count × 定长行(游标版只消费折叠段本身)
+            foldRows = FoldRowCodec.ReadSegment(ref r);
+
+            // 载荷段:本文件不验载荷内容(归载荷段专项测试),但必须**消费掉**
+            // —— 否则下面的读尽断言会落在载荷段中间。
+            int payloadCount = r.ReadInt32LittleEndian();
+            Assert.GreaterOrEqual(payloadCount, 0, "载荷段 count 为负 = 已损坏");
+            for (int i = 0; i < payloadCount; i++)
+            {
+                r.ReadInt32LittleEndian(); // blobId
+                int length = r.ReadInt32LittleEndian();
+                Assert.GreaterOrEqual(length, 0, "载荷长度不能为负");
+                r.ReadBytes(length);
+            }
+
+            r.EnsureFullyConsumed(); // 载荷段是末段 ⇒ 尾随字节 = 布局漂移或损坏
+        }
+
+        /// <summary>只取载荷段的 BlobId(不验内容)—— 载荷段专项断言用(ADR-034 §②)。</summary>
+        private static IReadOnlyList<int> ReadPayloadIds(byte[] bytes)
+        {
+            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
+            FoldRowCodec.ReadSegment(ref r);
+
+            int count = r.ReadInt32LittleEndian();
+            var ids = new List<int>(count);
+            for (int i = 0; i < count; i++)
+            {
+                ids.Add(r.ReadInt32LittleEndian());
+                int length = r.ReadInt32LittleEndian();
+                r.ReadBytes(length);
+            }
+            r.EnsureFullyConsumed();
+            return ids;
+        }
+
+        /// <summary>空池 —— 「被引用的 blob 查无」的夹具(不去改 `InMemoryBlobPool` 的内部状态)。</summary>
+        private sealed class EmptyBlobPool : IBlobPool
+        {
+            public bool TryGetBlob(int blobId, out ReadOnlyMemory<byte> blob)
+            {
+                blob = default;
+                return false;
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -183,7 +235,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 0xABCDUL, configVersion: 3U, tick: 10L);
+                worldSeed: 0xABCDUL, configVersion: 3U, tick: 10L, blobPool: _pool);
 
             Assert.IsNotNull(bytes);
             Assert.IsTrue(SaveService.ValidateChecksum(bytes), "产出的字节须自校验通过");
@@ -215,7 +267,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.DoesNotThrow(() => ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 20L),
+                worldSeed: 1UL, configVersion: 0U, tick: 20L, blobPool: _pool),
                 "豁免 ⇒ 无折叠行 ⇒ 组版不得抛");
         }
 
@@ -234,7 +286,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.DoesNotThrow(() => ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 20L));
+                worldSeed: 1UL, configVersion: 0U, tick: 20L, blobPool: _pool));
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -262,20 +314,19 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // Act
             byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 30L);
+                worldSeed: 1UL, configVersion: 0U, tick: 30L, blobPool: _pool);
 
             // Assert —— 事件段:被折病人的**病史流**行已抹;折叠段:行在场。
             // ⚠️ 断言面收窄到病史流:夹具里的 CaseEvent 也带 PatientA,但那是病例流
             //    行 —— 折叠只抹病史流,病例行不是被折对象(ADR-008 §六 折叠不物理化)。
-            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
-            IReadOnlyList<SimEvent> back = SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
+            // 🔁 2026-10-28 ADR-034:改走 v2 的 ParseBody 帮助(原为裸游标 + 吃尽剩余)。
+            ParseBody(bytes, out IReadOnlyList<SimEvent> back, out IReadOnlyList<FoldRow> rows);
             Assert.IsFalse(back.Any(e => e.Patient.Value == PatientA
                                       && StreamRouting.Of(e.Kind) == StreamId.History),
                 "被折病人的病史行须已从事件段抹除(折叠丢弃流位置;病例流行不在折叠面)");
             Assert.IsFalse(back.Any(e => e.Kind == EventKind.DiseaseOnset),
                 "被折病人的 onset 行不得残留在事件段");
 
-            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
             Assert.AreEqual(1, rows.Count, "折叠段须恰有该病人一行");
             Assert.AreEqual(PatientA, rows[0].PatientId, "行须保留 patient_id(ADR-006 Amendment B)");
             Assert.AreEqual(DiseaseSelfLimit, rows[0].DiseaseId);
@@ -303,11 +354,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 40L, existingFoldedRows: carried);
+                worldSeed: 1UL, configVersion: 0U, tick: 40L, existingFoldedRows: carried, blobPool: _pool);
 
-            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
-            SimEventListCodec.ReadWithinBody(ref r, new SaveCodec()); // 跳过事件段
-            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+            // 🔁 2026-10-28 ADR-034:改走 v2 的 ParseBody 帮助(原为裸游标 + 吃尽剩余)。
+            ParseBody(bytes, out _, out IReadOnlyList<FoldRow> rows);
 
             Assert.AreEqual(3, rows.Count, "既有 1 行 + 新折 2 行 = 3 行");
             Assert.AreEqual(3, rows[0].PatientId, "既有行在前(行序确定性)");
@@ -324,13 +374,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 10L);
+                worldSeed: 1UL, configVersion: 0U, tick: 10L, blobPool: _pool);
 
-            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
-            SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
-            Assert.GreaterOrEqual(r.Remaining, 4, "折叠段 count 前缀须在场(v1 必备段)");
-            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
-            Assert.AreEqual(0, rows.Count, "无折叠 ⇒ 零行,段 = count 前缀 4 字节");
+            // 🔁 2026-10-28 ADR-034:原断言「`r.Remaining >= 4` ⇒ 折叠段 count 前缀在场」——
+            //    v2 下 `Remaining` 还含载荷段,该式**恒真**、失去判别力。改为经 ParseBody
+            //    精确读三段(v2 必备段 = 折叠段 + 载荷段);缺任一段 ParseBody 直接抛。
+            ParseBody(bytes, out _, out IReadOnlyList<FoldRow> rows);
+            Assert.AreEqual(0, rows.Count, "无折叠 ⇒ 零行,折叠段 = count 前缀 4 字节");
         }
 
         [Test]
@@ -345,12 +395,85 @@ namespace DaYiJingCheng.Tests.PersistenceService
             };
 
             byte[] withPredicate = ComposeSigned.Compose(
-                events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 10L);
+                events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 10L, blobPool: _pool);
             byte[] neverFold = ComposeSigned.Compose(
-                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L);
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L, blobPool: _pool);
 
             CollectionAssert.AreEqual(withPredicate, neverFold,
                 "谓词假 ⇒ 折叠路径零参与 ⇒ 字节逐位相同(折叠不得改变无折档)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 载荷段(ADR-034 §②)—— V-2 / V-5 / V-6 的可复算判据
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_payloadSegment_excludesFoldedPatientsBlobs()
+        {
+            // **V-2** 引用驱动 + 「折叠之后才取引用」:
+            // 被折病人的病史行连同其载荷一起不进档 —— 否则它的 blob 永远随档漂流、永不回收。
+            var events = new[]
+            {
+                Onset(10L, PatientA, DiseaseSelfLimit),
+                Outcome(20L, PatientA, DiseaseSelfLimit, PatientOutcome.Died),
+                CaseEvent(10L, PatientA, EventKind.CaseOpened),
+                CaseEvent(30L, PatientA, EventKind.CaseClosed),
+            };
+            Assert.IsTrue(Predicate(events).Folded(PatientA), "前提:该病人须可折");
+
+            // 对照(缺了它,「折后为空」与「本来就没有载荷」不可分)
+            byte[] unfolded = ComposeSigned.Compose(
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 30L, blobPool: _pool);
+            Assert.AreEqual(2, ReadPayloadIds(unfolded).Count,
+                "对照:不折时两条病史事件各带一条载荷");
+
+            // 本体
+            byte[] folded = ComposeSigned.Compose(
+                events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 30L, blobPool: _pool);
+            CollectionAssert.IsEmpty(ReadPayloadIds(folded),
+                "被折病人的载荷不得写进存档(折叠抹掉的病史行不得贡献 blob)");
+        }
+
+        [Test]
+        public void test_payloadSegment_missingBlob_failsAtWriteNotAtLoad()
+        {
+            // **V-5** fail-closed 的两种缺法:池里查无 / 根本没给池。
+            // 判据面 = **写档时**抛,不是读档时 —— 后者会让坏档先落盘,故障推迟到下一次读档。
+            var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
+
+            var exMissing = Assert.Throws<InvalidOperationException>(() => ComposeSigned.Compose(
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L,
+                blobPool: new EmptyBlobPool()));
+            StringAssert.Contains("BlobId", exMissing.Message,
+                "报文须点名查无的 BlobId");
+            StringAssert.Contains("读不回来", exMissing.Message,
+                "报文须点出「写出的是读不回来的档」—— 否则读者会以为只是少写了一段");
+
+            var exNoPool = Assert.Throws<InvalidOperationException>(() => ComposeSigned.Compose(
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L, blobPool: null));
+            StringAssert.Contains("IBlobPool", exNoPool.Message,
+                "未注入池也须抛(不得把「缺池」当「零载荷」)");
+        }
+
+        [Test]
+        public void test_payloadSegment_sameBlobIdWrittenOnce()
+        {
+            // **V-6** 去重:两条事件引用同一 blob ⇒ 载荷段只写一次
+            // (不去重则档体积随引用数膨胀,且同号重复条目会让读侧的严格递增校验拒收)。
+            PayloadRef shared = _encoder.Encode(EventKind.DiseaseOnset,
+                new DiseaseOnsetPayload(10L, DiseaseSelfLimit, PatientA, Seed, 0L));
+            var events = new[]
+            {
+                new SimEvent(10L, new PatientId(PatientA), 0L, EventKind.DiseaseOnset, shared),
+                new SimEvent(11L, new PatientId(PatientB), 0L, EventKind.DiseaseOnset, shared),
+            };
+
+            byte[] bytes = ComposeSigned.Compose(
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 11L, blobPool: _pool);
+
+            var ids = ReadPayloadIds(bytes);
+            Assert.AreEqual(1, ids.Count, "同一 BlobId 被两条事件引用 ⇒ 载荷段只写一次");
+            Assert.AreEqual(shared.BlobId, ids[0], "写进去的须正是被引用的那个号");
         }
 
         /// <summary>恒假谓词 —— 反向判据用:任何病人都不折。</summary>
@@ -371,9 +494,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
 
             byte[] a = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
-                                            0x1234UL, 5U, 10L);
+                                            0x1234UL, 5U, 10L, blobPool: _pool);
             byte[] b = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
-                                            0x1234UL, 5U, 10L);
+                                            0x1234UL, 5U, 10L, blobPool: _pool);
 
             CollectionAssert.AreEqual(a, b, "同样输入 ⇒ 逐字节相同(ADR-012 黄金夹具前提)");
         }
@@ -397,7 +520,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             };
 
             byte[] bytes = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
-                                                1UL, 0U, 11L);
+                                                1UL, 0U, 11L, blobPool: _pool);
 
             IReadOnlyList<SimEvent> back;
             IReadOnlyList<FoldRow> foldRows;

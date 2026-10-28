@@ -63,6 +63,10 @@ namespace DaYiJingCheng.Sim.Codec
         /// 🔁 TD-persist-03 修复轮:复合体里事件段**不读尽**是常态 ⇒ 读尽断言上移给
         /// 调用方(存档体末段须读尽,由 <c>SaveService.ParseBody</c> 经折叠段的
         /// 读尽校验闭合)。段边界 = 折叠段自描述的 count 前缀。
+        /// <para>🔁 <b>2026-10-28 ADR-034 就地加注</b>:布局已是 v2 = 事件段 + 折叠段 + **载荷段**,
+        /// 且折叠段**不再**是末段(故它不能再靠「吃尽剩余 + 段末校验」闭合)。
+        /// 读尽断言现落在**载荷段**末:`SaveService.ParseBody` 末尾的
+        /// <c>EnsureFullyConsumed</c>。本节其余口径(段边界 = count 前缀)不变。</para>
         /// </summary>
         /// <exception cref="ArgumentNullException"><paramref name="codec"/> 为 null。</exception>
         /// <exception cref="InvalidDataException">count 为负 / 超上界 / 内部事件解码失败。</exception>

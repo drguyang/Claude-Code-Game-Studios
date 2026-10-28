@@ -887,6 +887,20 @@
   `InMemoryBlobPool.Restore` / **把 `test_ac9g` 边界段翻成反面**);`ADR-034 §Validation` **V-1…V-7 全部未跑
   (禁借绿)**,**V-1 必是「既有夹具由红转绿」而非纯增量**。⚠️ **R3 = 发布前门**:今日零真实存档 ⇒ v1 不可读
   **零损失**,但**首次对外发放存档后即不可逆**。Engine Knowledge Risk **LOW**(纯 BCL 字节布局与 C# 接口)。
+  **✅ 2026-10-28 实现轮已落(上段「未落 / 全部未跑」状态终结,原文不删)**:五件逐件落盘 ——
+  `Sim.Codec/IBlobRestoreSink.cs:34` · `Gameplay.Boot/SaveComposer.cs:128/170` ·
+  `Sim.Codec/SaveService.cs:719/803/899` · `Sim.Codec/InMemoryBlobPool.cs:71` ·
+  `world_load_service_test.cs:556-599`(边界段翻红为绿 = 上段预言的「既有夹具由红转绿」,**已兑现**)。
+  `ADR-034 §Validation` **V-1…V-7 全部勾选**;证据原件 =
+  `production/qa/evidence/impl-adr034-save-v2-payload-segment-2026-10-28.md`;
+  `TD-persist-09` **closed**(结案判决见债册)。回归 EditMode `5714/5679/0/35` · PlayMode `238/234/0/2/2`
+  (@ 2026-10-28 23:16 CST · `9ba8cbb6`+工作树)。
+  **实跑修正(首轮 6 红)**:① 生产装配根把**同一个** `InMemoryBlobPool` 同时用作编码写面与读档装载面
+  ⇒「本会话写过 → 本会话读回」必撞同号 ⇒ `Restore` 改为「同号**同内容** ⇒ 幂等 no-op;同号**异内容** ⇒ 仍抛」
+  (契约与 ADR-034 §⑤ 同批加注);② `FoldedPredicateTest` 构造子形参 12 → **13**。
+  **同批如实登记一条覆盖退步**:`SaveService` ↔ `SaveMigrationChain` 的**接缝**今日无集成夹具
+  (`[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2)` 空区间所致)⇒ 新债 **`TD-persist-10`**
+  (`P0 面 = N`;`CurrentSaveVersion` 再升时自动消解)。⚠️ **R3 仍是发布前门**(上段口径不变)。
 
 > **本日志状态**:全部 ADR(001–**034**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;

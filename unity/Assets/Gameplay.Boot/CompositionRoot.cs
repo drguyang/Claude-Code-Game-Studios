@@ -550,7 +550,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                         existingFoldedRows: stream.FoldedRows,
                         // 🔁 2026-10-25 AC-7a-07:`Compose` 现返回**不含校验和**的字节
                         //    (SHA256 移到 worker),`combined` 的合成缓冲从本池租。
-                        bufferPool: saveBufferPool);
+                        bufferPool: saveBufferPool,
+                        // 🔁 2026-10-28 ADR-034 §②:载荷段**引用驱动** —— 组版时对折叠后
+                        //    存活事件取 distinct BlobId,逐个从本池取字节写进存档。
+                        //    缺池而确有引用 ⇒ `SaveComposer` 抛(拒绝写出读不回来的档)。
+                        blobPool: blobPool);
                 };
 
                 // 重放 + 折叠行交出 —— `TD-persist-03` 修复轮(2026-10-24,用户四裁定):
@@ -691,6 +695,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     replaySink: replaySink,
                     foldedRowSink: foldedRowSink,
                     compose: compose,
+                    // 🔁 2026-10-28 ADR-034 §⑤:读档时把存档里的 blob 按号装回**同一个**池
+                    //    (与编码器/解码器共用 ⇒ 装完之后既有 `PayloadRef` 直接可解)。
+                    //    不传 ⇒ 遇到带载荷的档 `Load` 抛(不静默跳过)。
+                    blobRestoreSink: blobPool,
                     // AC-7a-17 · TD-persist-06:退出保存失败的「记日志」落点。
                     // ⚠️ `SaveService` **不抛**写盘失败(退出路径上抛 = 卡退),故
                     //    GDD「不阻塞退出 **+ 记日志**」里的后半句只能经这条委托兑现。

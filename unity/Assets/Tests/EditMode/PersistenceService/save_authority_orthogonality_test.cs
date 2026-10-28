@@ -70,7 +70,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private byte[] Compose(IReadOnlyList<SimEvent> events)
             => SaveService.AddChecksum(SaveComposer.Compose(
                    events, new NeverFoldedPredicate(), _decoder,
-                   new SaveCodec(), 0x5EEDUL, 3U, 12L));
+                   new SaveCodec(), 0x5EEDUL, 3U, 12L, blobPool: _pool));
 
         // ══════════════════════════════════════════════════════════════════
         // A. 组版函数的参数集逐字不含 authority 类型

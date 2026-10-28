@@ -405,6 +405,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         /// 不是 23:缺口在存档布局与池实现,不在建造投影)。</para>
         /// <para>本测**下方那段边界实测**把这条边界从「注释里的声明」变成「跑出来的断言」:
         /// 空池 + 同一份存档 ⇒ 抛,且报文点名 `BlobId`。</para>
+        /// <para>🔁 <b>2026-10-28 ADR-034 就地加注(上面两段原文不删 —— 它们记录的是裁定前的真实边界)</b>:
+        /// v2 起存档**带载荷段**,`SaveComposer` 组版时把存活引用的 blob 字节写进末段,
+        /// `SaveService.Load` 装进注入的 `IBlobRestoreSink`。⇒ 主流程那两处 `blobRestoreSink: _pool`
+        /// 依然成立(复用同一个池仍能读回),而**下方那段边界实测已就地翻转**为
+        /// 「**全新空池** + 同一份存档 ⇒ 读档装回后 `Rebuild` 成功、朝向逐位保持」。
+        /// 原段自陈「`TD-persist-09` 兑现时本段会转红,届时须改成本测的反面」—— 本段即那一反面。</para>
         ///
         /// <para><b>判别力(证伪轮实测,不是推演)</b>:</para>
         /// <para>· **M10**(`SimEventCodec.Encode` 把 `e.Payload` 写成 `default`)⇒ **恰 1 条红,正是本测**
@@ -446,8 +452,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     compose: _ => SaveComposer.Compose(
                         saveStream.Events, AlwaysFolded(), _decoder, new SaveCodec(),
                         worldSeed: 1UL, configVersion: 0U, tick: 2L,
-                        existingFoldedRows: saveStream.FoldedRows),
-                    writeScheduler: action => action());
+                        existingFoldedRows: saveStream.FoldedRows, blobPool: _pool),
+                    writeScheduler: action => action(), blobRestoreSink: _pool);
                 svc.Checkpoint(new SaveSlot(0));
 
                 string savePath = Path.Combine(dir, "save_0.bin");
@@ -472,8 +478,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     compose: _ => SaveComposer.Compose(
                         fresh.Events, AlwaysFolded(), _decoder, new SaveCodec(),
                         worldSeed: 1UL, configVersion: 0U, tick: 2L,
-                        existingFoldedRows: fresh.FoldedRows),
-                    writeScheduler: action => action());
+                        existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
+                    writeScheduler: action => action(), blobRestoreSink: _pool);
                 svcLoad.Load(new SaveSlot(0));
 
                 Assert.AreEqual(2, fresh.Count, "读回的事件条数须 == 落盘的条数");
@@ -547,28 +553,105 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 // ══ 交叉校验:旧世界仍在原地(证明重建作用在新实例上,没偷改 `_world`)══
                 Assert.AreEqual(2, _world.Structures.Count, "旧世界不受影响(本测不测它的重建)");
 
-                // ══════════ 边界的**实测**(不是注释里的声明)══════════
-                // 生产装配根今日 = `CompositionRoot.cs:132` 的 `new InMemoryBlobPool()` ⇒
-                // **进程重启后池是空的**,而存档只带 `PayloadRef` 三元组、不带载荷字节。
-                // ⇒ 上面那段之所以能绿,靠的是「同一个池实例跨重启存活」这个人造前提。
-                // 本段把该前提**拿掉**,证明它的确是前提:空池 + 同一份存档 ⇒ 抛,且报文点名池。
+                // ══════════ 跨进程边界 —— **ADR-034 §②/§④ 已闭合**(2026-10-28 就地翻转)══════════
                 //
-                // ⚠️ **这不是「已知会红所以不断言」的借绿** —— 它是**正向断言一个已知失败**:
-                //    今天的行为就是「跨进程读档不可用」,把它钉住,`TD-persist-09` 兑现时
-                //    本段会**转红**(届时须改成本测的反面),从而强制有人来更新登记。
-                var emptyPool = new InMemoryBlobPool();
-                var decoderWithoutBlobs = new PayloadDecoder(emptyPool);
-                var ex = Assert.Throws<InvalidOperationException>(
-                    () => new WorldLoadService(() => fresh.Events, decoderWithoutBlobs,
-                                               NewFlatWorld(new BuildSlotCatalog()), _catalog)
-                              .Rebuild(),
-                    "空 blob 池 + 真存档 ⇒ 必须抛。若这里绿了,说明载荷字节其实进了存档 —— " +
-                    "那与本测上方 remarks 的边界陈述矛盾,须重查 TD-persist-09 的前提");
+                // 🔁 **原文(裁定前,保留作闭环记录)**:「生产装配根今日 = `CompositionRoot.cs:132`
+                //    的 `new InMemoryBlobPool()` ⇒ 进程重启后池是空的,而存档只带 `PayloadRef`
+                //    三元组、不带载荷字节 ⇒ 上面那段之所以能绿,靠的是『同一个池实例跨重启存活』
+                //    这个人造前提。本段把该前提拿掉,证明它的确是前提:空池 + 同一份存档 ⇒ 抛,
+                //    且报文点名池。**这不是借绿 —— 它是正向断言一个已知失败**:`TD-persist-09`
+                //    兑现时本段会转红(届时须改成本测的反面)。」
+                //
+                // **本段即那一反面**:v2 存档带载荷段 ⇒ 上面那条「转红」的预言已兑现。
+                // 判据 = 全新空池 + 同一份存档 ⇒ Load 装回 ⇒ Rebuild 成功,且**载荷内容**
+                // (朝向 90)逐位保持 —— 只断「不抛」不足以排除「装错号 / 截断」。
+                var restoredPool = new InMemoryBlobPool();
+                Assert.AreNotSame(_pool, restoredPool, "前提:装回用的是**全新**池,不是复用");
 
-                StringAssert.Contains("blob", ex.Message,
-                    "报文须点名 blob 池查无 —— 否则读者会把它误读成「存档损坏」");
-                StringAssert.Contains("BlobId", ex.Message,
-                    "报文须给出 BlobId —— 「查无」与「损坏」在类型上可分(ADR-031 §②)");
+                var freshForRestored = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+                IReadOnlyList<SimEvent> pendingRestored = null;
+                var svcRestore = new SaveService(
+                    dir, new SaveCodec(),
+                    folded: AlwaysFolded(),
+                    narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                    replaySink: events => pendingRestored = events,
+                    foldedRowSink: bytes => freshForRestored.Restore(
+                        pendingRestored ?? throw new InvalidOperationException("折叠段先于事件段到达"),
+                        FoldRowCodec.DecodeSegment(bytes)),
+                    writeScheduler: action => action(),
+                    blobRestoreSink: restoredPool);
+                svcRestore.Load(new SaveSlot(0));
+
+                Assert.AreEqual(2, restoredPool.Count,
+                    "载荷段须真的装回 2 条 blob(两条建造事件各一条)");
+
+                World rebuiltFromDisk = NewFlatWorld(new BuildSlotCatalog());
+                Assert.DoesNotThrow(
+                    () => new WorldLoadService(() => freshForRestored.Events,
+                                               new PayloadDecoder(restoredPool),
+                                               rebuiltFromDisk, _catalog).Rebuild(),
+                    "载荷已随存档落盘 ⇒ 全新空池装回后须能重建(ADR-034 §②/§④ 的端到端判据)");
+
+                Assert.AreEqual(2, rebuiltFromDisk.Structures.Count, "装回后重建须长出两件结构");
+                Assert.IsTrue(rebuiltFromDisk.Structures.TryGet(id2, out StructureInstance r2b),
+                    $"id2={id2} 须由装回的载荷重建");
+                Assert.AreEqual(90, r2b.Orientation,
+                    "载荷**内容**须逐字节往返 —— 若装错号 / 截断,朝向会变 0(只断「不抛」抓不到)");
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { /* 清理失败不掩盖断言 */ }
+            }
+        }
+
+        /// <summary>
+        /// ADR-034 §④ 的 fail-closed:存档**含载荷条目**而读侧未注入 `IBlobRestoreSink` ⇒
+        /// `Load` 抛,且报文点名 `blobRestoreSink`。
+        /// <para>为什么要单独钉:静默跳过装载**不会红** —— 读档照常返回事件列表,只是每次解码
+        /// 都得到「未驻留」。那正是 `TD-persist-09` 原本的症状,静默跳过等于把它藏回去。</para>
+        /// </summary>
+        [Test]
+        public void test_load_payloadsPresentWithoutRestoreSink_isRejected()
+        {
+            string dir = Path.Combine(Path.GetTempPath(),
+                                      "dyjq_worldload_norestore_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                _writer.Place(new WorldPos(1, 0, 1), ModuleBunk, 0, 0, tick: 1);
+
+                var saveStream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+                foreach (SimEvent e in _stream) saveStream.Append(e);
+
+                var svcWrite = new SaveService(
+                    dir, new SaveCodec(),
+                    folded: AlwaysFolded(),
+                    narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                    replaySink: _ => { },
+                    foldedRowSink: _ => { },
+                    compose: _ => SaveComposer.Compose(
+                        saveStream.Events, AlwaysFolded(), _decoder, new SaveCodec(),
+                        worldSeed: 1UL, configVersion: 0U, tick: 1L,
+                        existingFoldedRows: saveStream.FoldedRows, blobPool: _pool),
+                    writeScheduler: action => action());
+                svcWrite.Checkpoint(new SaveSlot(0));
+
+                // 读侧**刻意不注入** blobRestoreSink
+                var svcLoad = new SaveService(
+                    dir, new SaveCodec(),
+                    folded: AlwaysFolded(),
+                    narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                    replaySink: _ => { },
+                    foldedRowSink: _ => { },
+                    writeScheduler: action => action());
+
+                var ex = Assert.Throws<InvalidOperationException>(
+                    () => svcLoad.Load(new SaveSlot(0)),
+                    "存档带载荷而未注入装载面 ⇒ 必须抛,不得静默跳过");
+                StringAssert.Contains("blobRestoreSink", ex.Message,
+                    "报文须点名缺的是哪一个形参 —— 否则读者会误读成「存档损坏」");
+                StringAssert.Contains("未驻留", ex.Message,
+                    "报文须点出静默跳过会造成的症状(解码得到「未驻留」)");
             }
             finally
             {

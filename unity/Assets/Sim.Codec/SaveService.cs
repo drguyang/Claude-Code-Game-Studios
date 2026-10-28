@@ -53,6 +53,13 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly IReadOnlyList<ISaveMigration> _migrations;
 
         /// <summary>
+        /// blob 池的按号装载面(ADR-034 §⑤)。<see cref="Load"/> 在交出事件 / 折叠段
+        /// **之前**用它把载荷段装进池 —— 否则任何解码都撞「查无此 BlobId」。
+        /// <para>可空:空载荷段不要求注入;有载荷条目而无注入 ⇒ 抛。</para>
+        /// </summary>
+        private readonly IBlobRestoreSink _blobRestoreSink;
+
+        /// <summary>
         /// 退出保存的时间预算(ms,`SAVE_EXIT_RETRY_TIMEOUT` 旋钮 · GDD 规则十三)。
         /// <para>缺省 = <see cref="ExitSaveRetrier.DefaultTimeoutMillis"/>(1000 ms)。</para>
         /// </summary>
@@ -147,7 +154,8 @@ namespace DaYiJingCheng.Sim.Codec
             int exitSaveRetryMillis = ExitSaveRetrier.DefaultTimeoutMillis,
             Action<Exception, Exception> exitSaveFailureSink = null,
             Action<Action> writeScheduler = null,
-            SaveBufferPool bufferPool = null)
+            SaveBufferPool bufferPool = null,
+            IBlobRestoreSink blobRestoreSink = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -171,6 +179,10 @@ namespace DaYiJingCheng.Sim.Codec
             _writeScheduler = writeScheduler;
             _writeQueue = writeScheduler == null ? null : new SaveWriteQueue(writeScheduler);
             _bufferPool = bufferPool ?? new SaveBufferPool();
+            // ⚠️ 载荷装载面(ADR-034 §⑤)**可空,但不是静默跳过**:存档里真有载荷条目
+            //    而本形参为 null ⇒ Load 在装池那一步抛具名异常(见 Load 的「先装池」段)。
+            //    空载荷段(旧档 / 无引用)不要求注入 —— 那时没有任何东西会丢。
+            _blobRestoreSink = blobRestoreSink;
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
             // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
             //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
@@ -654,17 +666,22 @@ namespace DaYiJingCheng.Sim.Codec
                            SaveIncompleteFlag.ClearedMarker);
 
         /// <summary>
-        /// 读档。`Gating` → `Verifying` → 头部解析 → 迁移链三分支 → `Replaying`
-        /// (事件列表 + 折叠段原始字节,经注入委托交出)。
+        /// 读档。`Gating` → `Verifying` → 头部解析 → **v1 拒收门** → 迁移链三分支 →
+        /// `Replaying`(装 blob 池 → 事件列表 → 折叠段原始字节)。
         /// <para>🔁 `TD-persist-03` 修复轮:状态重建 = 装配根把两者喂给
         /// <c>EventStream.Restore(events, rows)</c>(绕 CAP、留去重/单调、Seq 不重发);
         /// 本类只解出与交出。委托次序 = 先事件、后折叠段(见构造器 doc)。</para>
+        /// <para>🔁 <b>2026-10-28 ADR-034</b>:新增(一)v1 拒收门 —— `<c>PayloadSegmentMinVersion</c>`
+        /// 以下的档**不得**下沉到迁移链(载荷字节从未落盘,迁移在信息论上不可能);
+        /// (二)装池步 —— 载荷段解出的 blob 在交出事件列表**之前**装进注入的池。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// 未注入 <c>narrativeContext</c>(fail-closed);不在叙事上下文内;槽位已锁;
-        /// 未注入 <c>replaySink</c>。
+        /// 未注入 <c>replaySink</c>;存档含载荷而未注入 <c>blobRestoreSink</c>。
         /// </exception>
-        /// <exception cref="InvalidDataException">存档损坏且无法回退;magic 不符。</exception>
+        /// <exception cref="InvalidDataException">
+        /// 存档损坏且无法回退;magic 不符;版本早于载荷段布局(ADR-034 §⑥)。
+        /// </exception>
         public void Load(SaveSlot slot)
         {
             // ── Gating:安全上下文门(与写同钩,规则十四) ──
@@ -690,6 +707,21 @@ namespace DaYiJingCheng.Sim.Codec
                     $"存档版本 {header.SaveVersion} > 当前 {SaveHeader.CurrentSaveVersion}" +
                     "—— 前向不兼容,拒绝载入");
 
+            // ── v1 拒收门(ADR-034 §⑥)—— **必须早于**迁移链分支 ──
+            //
+            // v1 及更早的布局**没有载荷段**:blob 字节从未写出,信息论上补不出来
+            // ⇒ 不存在、也不可能写出 v1→v2 的迁移脚本(不是「还没写」)。
+            // 若让 v1 下沉进迁移链,空链会抛「版本 1 没有对应迁移脚本」—— 读起来像漏写脚本,
+            // 而真实原因是**信息从未存在**。两句话的处置一样(都拒绝),但归因相反。
+            //
+            // ⚠️ **与 `SaveMigrationChain` 的第二条不变量同源**:它要求迁移步「末尾等长」
+            // (`TailBody` 取末 N 字节比对)⇒ 连「往末尾补载荷字节」都被结构性地禁掉。
+            if (header.SaveVersion < SaveHeader.PayloadSegmentMinVersion)
+                throw new InvalidDataException(
+                    $"存档版本 {header.SaveVersion} 早于 v{SaveHeader.PayloadSegmentMinVersion}" +
+                    "(首个带载荷段的布局)—— v1 及更早**没有载荷字节**,载荷从未落盘," +
+                    "信息不存在 ⇒ 无法迁移(ADR-034 §⑥)。这不是缺迁移脚本");
+
             // SaveVersion == CurrentSaveVersion ⇒ 直通;
             // SaveVersion < CurrentSaveVersion ⇒ 逐版本升(WorldSeed 逐位保留)。
             //
@@ -702,6 +734,16 @@ namespace DaYiJingCheng.Sim.Codec
             // 全库零 v0 写入者)⇒ `migrations` 缺省为空集合 ⇒ 任何 `<` 的档都会走到
             // 「断链」并抛 `InvalidOperationException`。这不是回归,是**同一处置换了个
             // 更准确的类型**:原来说「升链尚未实现」,现在说「版本 k 没有对应脚本」。
+            //
+            // 🔁 **2026-10-28 ADR-034 §⑥ 就地加注(上段原文不删)**:`CurrentSaveVersion`
+            // 已由 1 升到 2,故上段的字面值**已陈旧**;而更实质的变化是:上段描述的
+            // 「任何 `<` 的档都走到断链」**今天不再成立** —— 所有 `< 2` 的档在更上方被
+            // v1 拒收门拦下(`PayloadSegmentMinVersion = 2`),根本到不了本分支。
+            // ⇒ **本分支今日无任何可达输入**(`[2, 2)` 是空区间)。这不是缺陷,是
+            // 「v2 是首个带载荷段的布局」的必然;等 `CurrentSaveVersion` 再升 3 时自动复活。
+            // ⚠️ 由此**失去一条接线夹具**:`save_slot_contract_test` 的
+            // 「注册脚本 ⇒ 链真的被调用」此前用「当前版本 − 1」造旧档,现被拒收门截住 ⇒
+            // 该条已就地改写为「v1 档**不得**下沉到链」的反向钉子(详见该文件 🔁 注)。
             if (header.SaveVersion < SaveHeader.CurrentSaveVersion)
             {
                 // 链工作在「不含校验和」形态(magic + 其余),迁完再补回校验和。
@@ -725,7 +767,14 @@ namespace DaYiJingCheng.Sim.Codec
 
             IReadOnlyList<SimEvent> events;
             byte[] foldedSegment;
-            ParseBody(data, out events, out foldedSegment);
+            IReadOnlyList<PayloadEntry> payloads;
+            ParseBody(data, out events, out foldedSegment, out payloads);
+
+            // ── 装池(ADR-034 §④:先装池,**再**解事件)──
+            // 顺序不可换:`replaySink` / `foldedRowSink` 的装配根实现会立刻开始解码载荷,
+            // 而解码要读池。先解事件后装池 ⇒ 每一个带载荷的事件都会解出「未驻留」。
+            InstallPayloads(payloads);
+
             _replaySink(events);
             _foldedRowSink(foldedSegment);
 
@@ -734,13 +783,28 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>
-        /// 解存档体:v1 布局 = <c>事件段(count 前缀 + 逐事件)</c> + <c>折叠段(count 前缀 + 定长行)</c>。
+        /// 解存档体:v2 布局 = <c>事件段(count 前缀 + 逐事件)</c> + <c>折叠段(count 前缀 + 定长行)</c>
+        /// + <c>载荷段(count 前缀 + 逐 blob)</c>。
         /// <para>事件段由 <see cref="SimEventListCodec"/> 读尽;其后<b>必跟</b>折叠段
-        /// (ADR-010 §一 增补,2026-10-24)—— 不足 4 字节 count 前缀即抛(旧两段式布局
-        /// 是本批之前的形态,按损坏拒收)。</para>
-        /// <para>⚠️ 折叠段以<b>原始字节</b>交出(本类看不见 <c>FoldRow</c>,解码归装配根)。</para>
+        /// (ADR-010 §一 增补,2026-10-24);折叠段之后<b>必跟</b>载荷段(ADR-034 §②,2026-10-28)。
+        /// 三段皆自描述 count 前缀 ⇒ 全程按形状精确读,末尾 <see cref="CodecReader.EnsureFullyConsumed"/>
+        /// 兜底(尾随字节 = 布局漂移或损坏)。</para>
+        /// <para>⚠️ 折叠段以<b>原始字节</b>交出(本类看不见 <c>FoldRow</c>,解码归装配根);
+        /// 载荷段以<b>已解的 <c>(blobId, bytes)</c> 对</b>交出(本类认得布局宽度,见
+        /// <see cref="SaveLayout"/>),由调用方装进 <see cref="IBlobRestoreSink"/>。</para>
         /// </summary>
-        private void ParseBody(byte[] data, out IReadOnlyList<SimEvent> events, out byte[] foldedSegment)
+        /// <remarks>
+        /// 🔁 <b>2026-10-28 ADR-034 §③ 就地改写(原文不删)</b>:折叠段此前读法是
+        /// <c>r.ReadBytes(r.Remaining)</c> —— 「剩下的全给它」。那段代码在 v1 下是**对的**
+        /// (折叠段是最后一段),但正是它让「追加载荷段」在结构上不可能:任何追加都会
+        /// 被折叠段吞掉,再被 <c>FoldRowCodec.DecodeSegment</c> 的「读尽校验」判成损坏。
+        /// ⇒ 改为 <c>count × <see cref="SaveLayout.FoldRowSize"/></c> 精确读。
+        /// </remarks>
+        private void ParseBody(
+            byte[] data,
+            out IReadOnlyList<SimEvent> events,
+            out byte[] foldedSegment,
+            out IReadOnlyList<PayloadEntry> payloads)
         {
             int offset = SaveHeaderCodec.HeaderSize;
             if (data.Length < offset)
@@ -748,16 +812,116 @@ namespace DaYiJingCheng.Sim.Codec
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");
 
             var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
-            // 🔁 复合体读:事件段后还有折叠段 ⇒ 用无读尽断言的 ReadWithinBody;
-            //    存档体的读尽由折叠段的自描述 count + 其读尽校验闭合(DecodeSegment)。
+            // 🔁 复合体读:事件段后还有折叠段与载荷段 ⇒ 用无读尽断言的 ReadWithinBody;
+            //    存档体的读尽由最末的载荷段闭合(见本方法末尾的 EnsureFullyConsumed)。
             events = SimEventListCodec.ReadWithinBody(ref r, _codec);
 
+            // ── 折叠段 ──
             if (r.Remaining < 4)
                 throw new InvalidDataException(
-                    $"存档事件段后缺折叠段(v1 布局 = 头部 + 事件段 + 折叠段),仅剩 {r.Remaining} 字节" +
+                    $"存档事件段后缺折叠段(v2 布局 = 头部 + 事件段 + 折叠段 + 载荷段)," +
+                    $"仅剩 {r.Remaining} 字节" +
                     "—— 旧两段式布局按损坏拒收(TD-persist-03 修复轮起折叠段为必备段)");
 
-            foldedSegment = r.ReadBytes(r.Remaining);
+            int foldStart = r.Position;
+            int foldCount = r.ReadInt32LittleEndian();
+            if (foldCount < 0)
+                throw new InvalidDataException($"折叠段 count={foldCount} 为负 —— 已损坏");
+            long foldBytes = (long)foldCount * SaveLayout.FoldRowSize;
+            if (foldBytes > r.Remaining)
+                throw new InvalidDataException(
+                    $"折叠段 count={foldCount} 需 {foldBytes} 字节,仅剩 {r.Remaining} —— 已损坏");
+
+            // 段 = count 前缀 + 行字节(整体交出;行内容归装配根解,本类看不见 FoldRow)。
+            foldedSegment = new byte[4 + (int)foldBytes];
+            Array.Copy(data, offset + foldStart, foldedSegment, 0, foldedSegment.Length);
+            r.ReadBytes((int)foldBytes); // 只推进游标
+
+            // ── 载荷段(ADR-034 §②)──
+            if (r.Remaining < 4)
+                throw new InvalidDataException(
+                    $"存档折叠段后缺载荷段(v2 布局 = 头部 + 事件段 + 折叠段 + 载荷段)," +
+                    $"仅剩 {r.Remaining} 字节 —— v1 档须在 Load 的版本门被拒," +
+                    "走到这里说明版本号与布局不符");
+
+            int payloadCount = r.ReadInt32LittleEndian();
+            if (payloadCount < 0)
+                throw new InvalidDataException($"载荷段 count={payloadCount} 为负 —— 已损坏");
+            // 每条至少 8 字节定长头 ⇒ 分配前先用剩余字节复验(防损坏 count 触发巨额分配)
+            if ((long)payloadCount * SaveLayout.PayloadEntryHeaderSize > r.Remaining)
+                throw new InvalidDataException(
+                    $"载荷段 count={payloadCount} 至少需 " +
+                    $"{payloadCount * (long)SaveLayout.PayloadEntryHeaderSize} 字节," +
+                    $"仅剩 {r.Remaining} —— 已损坏");
+
+            var entries = new PayloadEntry[payloadCount];
+            int prevBlobId = int.MinValue;
+            for (int i = 0; i < payloadCount; i++)
+            {
+                if (r.Remaining < SaveLayout.PayloadEntryHeaderSize)
+                    throw new InvalidDataException(
+                        $"载荷段第 {i} 条头不足 {SaveLayout.PayloadEntryHeaderSize} 字节" +
+                        $"(仅剩 {r.Remaining})—— 已损坏");
+
+                int blobId = r.ReadInt32LittleEndian();
+                int length = r.ReadInt32LittleEndian();
+
+                if (blobId < 0)
+                    throw new InvalidDataException($"载荷段第 {i} 条 BlobId={blobId} 为负 —— 已损坏");
+                if (i > 0 && blobId <= prevBlobId)
+                    throw new InvalidDataException(
+                        $"载荷段 BlobId 须严格递增,第 {i} 条 {blobId} ≤ 前一条 {prevBlobId}" +
+                        "—— 重复或乱序 = 布局漂移(写侧 ADR-034 §② 恒升序去重)");
+                if (length < 0)
+                    throw new InvalidDataException($"载荷段 BlobId={blobId} 长度 {length} 为负 —— 已损坏");
+                if (length > r.Remaining)
+                    throw new InvalidDataException(
+                        $"载荷段 BlobId={blobId} 声明 {length} 字节,仅剩 {r.Remaining} —— 已损坏");
+
+                entries[i] = new PayloadEntry(blobId, r.ReadBytes(length));
+                prevBlobId = blobId;
+            }
+
+            // 载荷段是最后一段 ⇒ 尾随字节无处可去。
+            r.EnsureFullyConsumed();
+            payloads = entries;
+        }
+
+        /// <summary>
+        /// 把载荷段解出的 blob 按号装进注入的池(ADR-034 §④ 的第一步)。
+        /// <para>空载荷段(无任何存活载荷引用)不要求注入池 —— 那时没有任何东西会丢。
+        /// 非空而池缺失 ⇒ <b>抛</b>,不得静默跳过:跳过 = 后续每次解码都解出「未驻留」,
+        /// 而那正是这条债原本的症状。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 存档含载荷条目但未注入 <c>blobRestoreSink</c>。
+        /// </exception>
+        private void InstallPayloads(IReadOnlyList<PayloadEntry> payloads)
+        {
+            if (payloads.Count == 0) return;
+
+            if (_blobRestoreSink == null)
+                throw new InvalidOperationException(
+                    $"存档含 {payloads.Count} 个载荷 blob(首个 BlobId={payloads[0].BlobId})," +
+                    "但 SaveService 未注入 blobRestoreSink —— 拒绝读档" +
+                    "(静默跳过装载 ⇒ 每个带载荷的事件都解出「未驻留」,正是 TD-persist-09 的症状;" +
+                    "装配点 = Gameplay.Boot 组合根)");
+
+            for (int i = 0; i < payloads.Count; i++)
+                _blobRestoreSink.Restore(payloads[i].BlobId, payloads[i].Bytes);
+        }
+
+        /// <summary>载荷段里的一条:<c>(blobId, 原始字节)</c>。仅本类内部传递。</summary>
+        private readonly struct PayloadEntry
+        {
+            public readonly int BlobId;
+            public readonly byte[] Bytes;
+
+            public PayloadEntry(int blobId, byte[] bytes)
+            {
+                BlobId = blobId;
+                Bytes = bytes;
+            }
         }
 
         private void RequireNarrativeContext()

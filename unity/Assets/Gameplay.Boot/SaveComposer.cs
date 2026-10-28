@@ -77,8 +77,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// = 当年 fail-loud 要防的同一件事。生产路径恒传;缺省 null 视为空
         /// (全新会话首存,折叠段只含本轮新折的行)。</para>
         /// </param>
-        /// <returns>完整存档字节:头部 + 事件段 + 折叠段(含校验和)。</returns>
-        /// <exception cref="ArgumentNullException">任一引用入参为 null。</exception>
+        /// <param name="blobPool">
+        /// 不可变 blob 池**读面**(ADR-034 §②)—— 载荷段的来源。
+        /// <para>⚠️ <b>引用驱动</b>:只写<b>存活事件(折叠抹行之后)实际引用到</b>的 distinct
+        /// <c>PayloadRef.BlobId</c>,升序。已折叠病人的载荷因病史行已被抹除而**天然不进档**。</para>
+        /// <para>⚠️ <b>缺 blob ⇒ 抛,不得跳过</b>(ADR-034 §Implementation Guidelines 3):
+        /// 跳过 = 写出一份「今天能存、明天读不出」的存档,失败点在读档、离现场很远。</para>
+        /// <para><b>可空</b>:仅当<b>没有任何</b>事件引用载荷(<c>Payload.Length &gt; 0</c>)时允许省略 ——
+        /// 此时载荷段写 <c>count = 0</c>,布局仍完整。有引用而无池 ⇒ 抛。</para>
+        /// </param>
+        /// <returns>不含校验和的存档体:头部 + 事件段 + 折叠段 + 载荷段(ADR-034 v2 布局)。</returns>
+        /// <exception cref="ArgumentNullException">任一必填引用入参为 null。</exception>
+        /// <exception cref="InvalidOperationException">有载荷引用但 <paramref name="blobPool"/> 为 null;
+        /// 或池里查无该 blob(引用驱动不跳过)。</exception>
         public static byte[] Compose(
             IReadOnlyList<SimEvent> allEvents,
             IFoldedPredicate folded,
@@ -88,7 +99,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             uint configVersion,
             long tick,
             IReadOnlyList<FoldRow> existingFoldedRows = null,
-            SaveBufferPool bufferPool = null)
+            SaveBufferPool bufferPool = null,
+            IBlobPool blobPool = null)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
@@ -111,13 +123,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
             byte[] events = SimEventListCodec.Encode(finalEvents, codec);
             byte[] foldedSegment = FoldRowCodec.EncodeSegment(rowsAccum);
+            // 🔁 ADR-034 §② —— 载荷段必须在**折叠之后**的 finalEvents 上取引用:
+            //    折叠抹除的病史行不得贡献 blob(否则已折叠病人的载荷永远写进存档,永不回收)。
+            byte[] payloadSegment = EncodePayloadSegment(finalEvents, blobPool);
 
+            int total = header.Length + events.Length + foldedSegment.Length + payloadSegment.Length;
             var combined = bufferPool == null
-                ? new byte[header.Length + events.Length + foldedSegment.Length]
-                : bufferPool.Rent(header.Length + events.Length + foldedSegment.Length);
+                ? new byte[total]
+                : bufferPool.Rent(total);
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(events, 0, combined, header.Length, events.Length);
             Array.Copy(foldedSegment, 0, combined, header.Length + events.Length, foldedSegment.Length);
+            Array.Copy(payloadSegment, 0, combined,
+                header.Length + events.Length + foldedSegment.Length, payloadSegment.Length);
 
             // 🔁 **2026-10-25 AC-7a-07:本方法**不再**加校验和(原文 `return SaveService.AddChecksum(combined)`)。
             //
@@ -137,6 +155,65 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `AddChecksum` 拷贝后由 worker 归还(见 `SaveService.Checkpoint`)。
             //    本方法不知道下游何时用完,归还早了会被覆写。
             return combined;
+        }
+
+        /// <summary>
+        /// 编载荷段(ADR-034 §②):<c>count:i32 + count × {blobId:i32, length:i32, byte[length]}</c>。
+        /// <para><b>引用驱动</b> —— 集合 = <paramref name="events"/> 里出现的 distinct
+        /// <c>PayloadRef.BlobId</c>(只取 <c>Length &gt; 0</c> 的引用:<c>Length == 0</c>
+        /// 是「零载荷」占位,<c>PayloadRef</c> 的 doc 已为该形态留语义)。</para>
+        /// <para><b>升序</b>是确定性要求:集合序不得依赖遍历序,否则两台机器写出的
+        /// 同态存档字节不同,ADR-012 的字节级黄金夹具无从固定。</para>
+        /// <para>⚠️ <b>缺 blob / 缺池 ⇒ 抛</b>(fail-closed):跳过 = 写出一份读不回来的存档,
+        /// 而失败点会推迟到**下次读档**才爆 —— 那正是 `TD-persist-09` 的形态。</para>
+        /// </summary>
+        private static byte[] EncodePayloadSegment(
+            IReadOnlyList<SimEvent> events, IBlobPool blobPool)
+        {
+            // ① 收集 + 升序去重
+            var ids = new List<int>();
+            for (int i = 0; i < events.Count; i++)
+            {
+                if (events[i].Payload.Length > 0) ids.Add(events[i].Payload.BlobId);
+            }
+            ids.Sort();
+            int unique = 0;
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (unique == 0 || ids[unique - 1] != ids[i]) ids[unique++] = ids[i];
+            }
+            ids.RemoveRange(unique, ids.Count - unique);
+
+            // ② 零引用 ⇒ 空段(count = 0)。布局仍完整 —— 读者恒见 4 字节。
+            if (ids.Count == 0)
+            {
+                var empty = new CodecWriter(4);
+                empty.WriteInt32LittleEndian(0);
+                return empty.ToArray();
+            }
+
+            if (blobPool == null)
+                throw new InvalidOperationException(
+                    $"存档将写出 {ids.Count} 个载荷 blob(BlobId 最小 = {ids[0]})," +
+                    "但未注入 IBlobPool —— 拒绝写出一份读不回来的存档" +
+                    "(ADR-034 §Implementation Guidelines 3:缺 blob 须 fail-closed,不得跳过)");
+
+            // ③ 逐条写(升序 ⇒ 读者可校验严格递增)
+            var w = new CodecWriter(4 + ids.Count * SaveLayout.PayloadEntryHeaderSize);
+            w.WriteInt32LittleEndian(ids.Count);
+            for (int i = 0; i < ids.Count; i++)
+            {
+                int blobId = ids[i];
+                if (!blobPool.TryGetBlob(blobId, out ReadOnlyMemory<byte> blob))
+                    throw new InvalidOperationException(
+                        $"持久化失败:存档引用 BlobId={blobId},但池里查无该 blob" +
+                        "—— 拒绝写出一份读不回来的存档(ADR-034 R4)。" +
+                        "⚠️ 「查无」与「载荷损坏」不同类:前者是池的状态,后者是字节的问题");
+                w.WriteInt32LittleEndian(blobId);
+                w.WriteInt32LittleEndian(blob.Length);
+                w.WriteBytes(blob.Span);
+            }
+            return w.ToArray();
         }
 
         /// <summary>

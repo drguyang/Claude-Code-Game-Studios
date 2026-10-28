@@ -4,6 +4,8 @@
 //   ADR-010 §二 —— 折叠行 = (onset, 病种_id, patient_id, patient_seed, outcome, t_end)
 //   ADR-010 §一 增补(本批,2026-10-24)—— 存档体 v1 布局 = 头部 + 事件段 + 折叠段
 //     (三流合为单列表;折叠段紧随事件段,count 前缀自描述,**无需头部偏移字段**)
+//   🔁 ADR-034(2026-10-28)—— v2 在折叠段之后**再加载荷段** ⇒ 折叠段不再是最后一段,
+//     读侧必须按 count 精确读(行宽单一源移到 Sim.Codec/SaveLayout.FoldRowSize)
 //   Sim/FoldRow.cs —— 六字段形状与逐字次序(黄金夹具按此序钉)
 //   ADR-006 Amendment B —— patient_id 必留(高水位重构依赖)
 //   docs/tech-debt-register.md TD-persist-03 动作 ⑤(六条实测,本类兑现 B-2)
@@ -51,7 +53,11 @@ namespace DaYiJingCheng.Gameplay.Boot
     public static class FoldRowCodec
     {
         /// <summary>单行定长字节数 = 8 + 4 + 4 + 8 + 4 + 8(六字段,全定宽)。</summary>
-        public const int RowSize = 36;
+        /// <para>🔁 <b>2026-10-28 ADR-034 §③:本常量改为 <see cref="SaveLayout.FoldRowSize"/> 的别名</b>,
+        /// 不再是字面量 36。病因:v2 起 <c>SaveService.ParseBody</c>(Sim.Codec)必须按
+        /// <c>count × 行宽</c> **精确**读出折叠段(否则载荷段无处可放),而它看不见本类;
+        /// 两处各写一个 36 = 静默漂移风险。⇒ 单一源移到 Sim.Codec(两侧都可见的装配)。</para>
+        public const int RowSize = SaveLayout.FoldRowSize;
 
         /// <summary>合法 outcome 域:<see cref="PatientOutcome.Recovered"/>(1)·
         /// <see cref="PatientOutcome.Died"/>(2)。0 = 哨兵,解码期即拒。</summary>
@@ -106,15 +112,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 读折叠段。段须恰好读尽 —— 多一个字节即抛(与 <c>SimEventListCodec</c> 同款
-        /// 「防长度写错但前 N 行对」的静默错读防线)。
+        /// 从存档体游标读折叠段(<c>count:i32 + count × 定长行</c>),**只消费折叠段本身**,
+        /// <b>不</b>要求读尽 —— 其后可能还有载荷段(ADR-034 §③,2026-10-28 新增)。
         /// </summary>
-        /// <exception cref="InvalidDataException">
-        /// count 为负 / count 超出剩余字节上界 / 某行 outcome 非法 / 段未读尽。
-        /// </exception>
-        public static IReadOnlyList<FoldRow> DecodeSegment(ReadOnlySpan<byte> segment)
+        /// <remarks>
+        /// 与 <see cref="DecodeSegment(ReadOnlySpan{byte})"/> 的分工:那个吃「恰好一段的字节」,
+        /// 要求段末读尽(<c>SaveService.Load</c> 交出的就是这个切片);本重载吃
+        /// 「游标 + 段在游标处」,段后可以有别的段。⇒ **装配侧**用前者,**能看到整个体的调用方**
+        /// (测试 / 未来的调试工具)用后者。两者共享同一行宽与同一 outcome 域校验。
+        /// </remarks>
+        /// <exception cref="InvalidDataException">count 为负 / 超出剩余字节上界 / 某行 outcome 非法。</exception>
+        public static IReadOnlyList<FoldRow> ReadSegment(ref CodecReader r)
         {
-            var r = new CodecReader(segment);
             int count = r.ReadInt32LittleEndian();
             if (count < 0)
                 throw new InvalidDataException($"折叠段 count={count} 为负");
@@ -125,6 +134,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             var rows = new FoldRow[count];
             for (int i = 0; i < count; i++)
                 rows[i] = ReadRow(ref r);
+            return rows;
+        }
+
+        /// <summary>
+        /// 读折叠段。段须恰好读尽 —— 多一个字节即抛(与 <c>SimEventListCodec</c> 同款
+        /// 「防长度写错但前 N 行对」的静默错读防线)。
+        /// </summary>
+        /// <exception cref="InvalidDataException">
+        /// count 为负 / count 超出剩余字节上界 / 某行 outcome 非法 / 段未读尽。
+        /// </exception>
+        public static IReadOnlyList<FoldRow> DecodeSegment(ReadOnlySpan<byte> segment)
+        {
+            var r = new CodecReader(segment);
+            // 🔁 2026-10-28 ADR-034 §③:读体抽到 ReadSegment(与「游标版」共用一套 count 复验
+            //    与行解码);本重载只多加一条「段末必读尽」。
+            IReadOnlyList<FoldRow> rows = ReadSegment(ref r);
 
             if (r.Remaining != 0)
                 throw new InvalidDataException(

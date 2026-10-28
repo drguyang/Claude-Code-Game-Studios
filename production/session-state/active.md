@@ -11997,3 +11997,35 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`TD-persist-09` 维持 `open`、`P0 面` 维持 `Y`:裁定 ≠ 实现)。
 - **判据状态**:`ADR-034 §Validation` V-1…V-7 **全部未跑(禁借绿)**;⚠️ **V-1 必是「既有夹具由红转绿」**(`world_load_service_test.cs:550-571`),不是纯增量。
 - **下一项**:`ADR-033` 四件 + `ADR-034` 五件 **同批实现**(单独落任一侧都不成立)。
+
+## Session Extract — 2026-10-28 · ADR-034 实现轮(存档 v2 载荷段五件)
+
+- **用户指令**:「开始动实现」(承「完成一项提交再继续一项」)。
+- **实现五件全部落盘**(逐件 `file:line` 见证据件 §二):
+  `Sim.Codec/IBlobRestoreSink.cs`(新)· `Sim.Codec/SaveLayout.cs`(新,`FoldRowSize` 单一源)·
+  `SaveComposer` 载荷段(引用驱动 + 折叠**之后**取引用 + 缺 blob/缺池 fail-closed)·
+  `SaveService`(v1 拒收门 `:719` 早于迁移链 · 三段按形状精确读 `:803` · 读尽移载荷段后 `:886` ·
+  装池 `:899` **先于**解事件)· `InMemoryBlobPool.Restore:71` · `FoldRowCodec.ReadSegment`。
+- **接线**:`CompositionRoot.cs:557`(写面)· `:701`(装载面),⚠️ **传同一个池实例**。
+- **判据**:`ADR-034 §Validation` **V-1…V-7 全部勾选**(V-1 = 既有夹具由红转绿,**预言兑现**:
+  `test_ac9g` 边界段 `world_load_service_test.cs:556-599` 由「正向断言失败」翻成「装回后重建成功 +
+  `Orientation == 90` 内容判据」)。V-3 本轮**新补直夹具**(`fold_row_codec_test.cs:132`,
+  与 `:118` 吃同一份「段 + 尾巴」缓冲、结论相反);V-4 断言补到判据要求的 `v1` / `载荷字节` 逐字。
+- **回归**:EditMode `5714/5679/0/35` · PlayMode `238/234/0/2/2`(零回退;2 条 inconclusive 为既有
+  `Assert.Inconclusive` 历史登记)@ **2026-10-28 23:16 CST** · `9ba8cbb6`+工作树。
+  等式 `5714−5709=5` = `git diff` 新增 `[Test]` 5 条、删除 0 条。**基线 5709 是算术推得**(改动前未另跑全量,已如实标注)。
+- **实跑修正(首轮 6 红)**:① 5 条 `blobId=0 已装载` —— **我的设计错**:装配根把同一个池同时用作
+  编码写面与装载面 ⇒「本会话写 → 本会话读回」必撞同号 ⇒ `Restore` 改「同号同内容幂等 / 异内容仍抛」;
+  ② `FoldedPredicateTest` 构造子形参 12 → 13。
+- **如实登记的覆盖退步**:`test_load_olderSaveVersion_withChain_migratesAndLoads` 在 v2 下**不可构造**
+  (`[2,2)` 空区间)⇒ 换反向钉(`save_slot_contract_test.cs:510`,断言版本门先于链、链零调用);
+  但 `SaveService` ↔ 迁移链的**接缝今日零覆盖** ⇒ 新债 **`TD-persist-10`**(`P0 面 = N`,再升版本时自动消解)。
+  ⚠️ **不得**以「链本体有单元夹具」记作已覆盖(实测 `save_migration_chain_test.cs` 不走 `Load`)。
+- **债册**:`TD-persist-09` **closed**(含结案判决块:主症状闭 / 触发条件③被结构性取消 / 残余三项)。
+  计数 `131→132 条` · `open 79→79` · `closed 46→47` · `未闭 P0 面 64→63` · `epic 11/31→10/31`;
+  `debtcount --check` ⇒ ✅ exit 0。
+- **本轮自己的错误**:① 险些按位置传 `SaveComposer` 形参(会把池绑到 `bufferPool`);② 写过一条恒真断言
+  (`IndexOf>=0 ? "未驻留" : ""`),自查改掉;③ 曾据摘要口述「迁移链正面路径由 chain_test 钉住」,
+  实测不成立 ⇒ 改登记为覆盖退步。
+- **未落 / 下一项**:`ADR-033` 四件(`StructureIdRemap` + 接线 + 写回接缝 + 固化)仍 `open`
+  (`TD-building-02`);载荷段只是它的**载体**,四件须同批。

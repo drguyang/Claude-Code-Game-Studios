@@ -11,6 +11,7 @@ using System;
 using System.IO;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
@@ -125,6 +126,30 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             var ex = Assert.Throws<InvalidDataException>(() => FoldRowCodec.DecodeSegment(padded));
             StringAssert.Contains("未读尽", ex.Message);
+        }
+
+        [Test]
+        public void test_foldrowcodec_readSegment_stopsAtSegmentBoundary()
+        {
+            // ADR-034 §Validation **V-3** —— 折叠段**自定长**:段后挂着别的段(载荷段)时,
+            // 按段长读,**不**把尾随字节判成损坏。
+            //
+            // 与上一条互为对照(同一份「段 + 尾巴」缓冲,两种读法结论相反):
+            // · `DecodeSegment`(吃「恰好一段」的切片)⇒ 抛「未读尽」;
+            // · `ReadSegment`(吃游标 + 段在游标处)⇒ 只吃 `4 + 36×count`,尾巴原样留下。
+            var rows = new[] { Sample() };
+            byte[] good = FoldRowCodec.EncodeSegment(rows);
+            const int trailing = 8;   // 载荷段的 `count:i32` = 0 + 一条「id=0, len=0」占位
+            byte[] withTrailer = new byte[good.Length + trailing];
+            Array.Copy(good, withTrailer, good.Length);
+
+            var r = new CodecReader(withTrailer.AsSpan());
+            System.Collections.Generic.IReadOnlyList<FoldRow> back = FoldRowCodec.ReadSegment(ref r);
+
+            Assert.AreEqual(1, back.Count);
+            Assert.AreEqual(rows[0], back[0], "段内内容逐字段不变");
+            Assert.AreEqual(trailing, r.Remaining,
+                "只吃 [count:i32][36B × count] —— 尾随字节须原样留给下一个段");
         }
 
         [Test]

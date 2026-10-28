@@ -603,10 +603,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 🔁 2026-10-25 TD-persist-04 ① 裁定轮(甲案):第四形参 `Func<bool>` →
             //    `INarrativeContextQuery`(瞬时源具名接口,住 Sim.Contracts;
             //    「一个量」在类型层成立)。位置不变,其余逐位断言不受影响。
-            Assert.AreEqual(12, ps.Length,
+            // 🔁 2026-10-28 ADR-034 §⑤:12 → 13(末尾增 `blobRestoreSink` —— 读档按号装池;
+            //    前十二个位置**不变**,故下方逐位类型断言全部仍成立)。
+            Assert.AreEqual(13, ps.Length,
                 "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
                 "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink, " +
-                "writeScheduler, bufferPool)");
+                "writeScheduler, bufferPool, blobRestoreSink)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,

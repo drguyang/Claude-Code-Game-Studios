@@ -48,18 +48,23 @@ namespace DaYiJingCheng.Tests.PersistenceService
         // 夹具工厂
         // ══════════════════════════════════════════════════════════════════
 
-        /// <summary>组版一个最小合法存档:v1 布局 = 头部 + 事件段 + 折叠段(count=0),再补校验和。
-        /// 🔁 2026-10-24 TD-persist-03:折叠段成必备段,夹具同批更新(两段式按损坏拒收)。</summary>
+        /// <summary>组版一个最小合法存档:v2 布局 = 头部 + 事件段 + 折叠段(count=0)+ 载荷段(count=0)。
+        /// 🔁 2026-10-24 TD-persist-03:折叠段成必备段,夹具同批更新(两段式按损坏拒收)。
+        /// 🔁 2026-10-28 ADR-034 §②:载荷段成必备段,夹具同批更新 —— 缺它 `ParseBody`
+        /// 报「折叠段后缺载荷段」(v1 档由版本门先行拒收,走不到那里)。</summary>
         private static byte[] MinimalSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
                                                long tick = 100L, IReadOnlyList<SimEvent> events = null)
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
-            byte[] folded = new byte[] { 0, 0, 0, 0 }; // 折叠段 count = 0(v1 必备段)
-            var combined = new byte[header.Length + body.Length + folded.Length];
+            byte[] folded = new byte[] { 0, 0, 0, 0 };   // 折叠段 count = 0(v2 必备段)
+            byte[] payloads = new byte[] { 0, 0, 0, 0 }; // 载荷段 count = 0(v2 必备段)
+            var combined = new byte[header.Length + body.Length + folded.Length + payloads.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(body, 0, combined, header.Length, body.Length);
             Array.Copy(folded, 0, combined, header.Length + body.Length, folded.Length);
+            Array.Copy(payloads, 0, combined,
+                header.Length + body.Length + folded.Length, payloads.Length);
             // 🔁 **2026-10-25 AC-7a-07 口径变更**:`compose` 委托的契约已改为
             // **返回未签名**字节(用户裁定「Compose 返回未签名」)—— 校验和由 worker
             // 在后台补(`AddChecksum` 也在非主线程,AC-7a-07 两半之一)。
@@ -458,13 +463,19 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "同版本 ⇒ 直通");
         }
 
-        /// <summary>造一份「旧版本」存档(版本 = 当前 − 1,正文 = 空事件列表)。</summary>
-        private static byte[] OlderVersionSave(ulong worldSeed = 1UL)
+        /// <summary>
+        /// 造一份「早于载荷段布局」的存档(版本 = <c>PayloadSegmentMinVersion − 1</c> = v1)。
+        /// <para>🔁 <b>2026-10-28 ADR-034 §⑥ 就地改写(原文不删)</b>:此前名为
+        /// <c>OlderVersionSave</c>、版本写「当前 − 1」。v2 起「当前 − 1」恰 = v1,
+        /// 而 v1 已被版本门单列拒收 ⇒ 语义收窄为**明确取 v1**,名字随之改。</para>
+        /// </summary>
+        private static byte[] PrePayloadSave(ulong worldSeed = 1UL)
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL);
             // 同前:`AddChecksum` 之前 saveVersion 在 4..7
             header[SaveHeaderCodec.SaveVersionOffsetFixed] =
-                (byte)(SaveHeader.CurrentSaveVersion - 1);
+                (byte)(SaveHeader.PayloadSegmentMinVersion - 1);
+            // 正文形状无关紧要 —— 版本门在解析之前就拒。
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             var combined = new byte[header.Length + body.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
@@ -473,62 +484,68 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_load_olderSaveVersion_withEmptyChain_failsClosed()
+        public void test_load_prePayloadVersion_isRejectedWithDedicatedMessage()
         {
-            // 判据 ⑦b 第三分支:`SaveVersion < CurrentSaveVersion` ⇒ **逐版本升级**。
+            // 🔁 **2026-10-28 ADR-034 §⑥ 就地改写(原文不删)** —— 原条 =
+            // `test_load_olderSaveVersion_withEmptyChain_failsClosed`,断言空链撞旧档抛
+            // 「断裂 / 没有对应迁移脚本」。
             //
-            // 🔁 **2026-10-25 改写(`TD-persist-05` 动作 ③ · `AC-7a-14`)**:
-            //    本条此前断言抛 `NotSupportedException`(报文「升链尚未实现,归 TD-persist-03」)。
-            //    链框架已落地 ⇒ `SaveService` 现在**调链**,而链在「没有对应脚本」时抛
-            //    `InvalidOperationException`(报文「断链」+ 点名缺哪一级 + 列出已注册级)。
-            //
-            // ⚠️ **行为没变,类型变了**:今日零真实历史版本 ⇒ 生产装配注册的链是空的
-            //    ⇒ 任何旧档仍被**拒绝**(fail-closed)。这不是「升级成功了」,
-            //    「逐版本升 + WorldSeed 逐位不变」的判据面由 `save_migration_chain_test.cs`
-            //    以测试内假迁移步钉住 —— 真实 v0→v1 脚本仍不存在,因为**历史 v0 从未存在过**。
+            // v2 起 v1 档**在链之前**被版本门拦下:载荷字节从未落盘 ⇒ 迁移在信息论上
+            // 不可能(不是「还没写脚本」)。两条历史注记(2026-10-25 `TD-persist-05` 动作 ③ /
+            // 2026-10-25 AC-7a-14)关于「链框架已落地、空链仍 fail-closed」的描述对
+            // **v2 以后的旧档**依然成立,只是 v1 这一档改由版本门先接住。
             var svc = ReadyService();
-            svc.SaveBytes(new SaveSlot(0), OlderVersionSave());
+            svc.SaveBytes(new SaveSlot(0), PrePayloadSave());
 
-            var ex = Assert.Throws<InvalidOperationException>(
+            var ex = Assert.Throws<InvalidDataException>(
                 () => svc.Load(new SaveSlot(0)),
-                "空链撞上旧版本档须 fail-closed 拒绝,不得按当前布局静默解析");
-            StringAssert.Contains("断裂", ex.Message);
-            StringAssert.Contains("没有对应迁移脚本", ex.Message);
+                "v1 档须被版本门拒收,不得按 v2 布局静默解析");
+            // V-4 判据逐字:报文须**同时**点名版本(`v1`)与原因(`载荷字节`),
+            // 且归因**不得**落到「缺脚本」—— 否则读者会去写一个信息论上不存在的脚本。
+            StringAssert.Contains("v1", ex.Message);
+            StringAssert.Contains("载荷字节", ex.Message);
+            StringAssert.Contains("信息不存在", ex.Message);
+            StringAssert.DoesNotContain("没有对应迁移脚本", ex.Message,
+                "归因不得落到「缺脚本」—— 真实原因是载荷字节从未存在");
         }
 
         [Test]
-        public void test_load_olderSaveVersion_withChain_migratesAndLoads()
+        public void test_load_prePayloadVersion_neverReachesMigrationChain()
         {
-            // 正面:注册了对应脚本 ⇒ **真的迁过去并读档成功**。
-            // 这条是上面那条的对照 —— 缺了它,「拒绝」与「链根本没被调用」不可分。
+            // 判据:版本门**先于**迁移链。正向钉子 = 注册一条 v1 起始的假迁移步,
+            // 断言它**一次都没被调用**;有人把版本门挪到链之后,本条立刻转红。
+            //
+            // ⚠️ **本条替代了 `..._withChain_migratesAndLoads`(2026-10-28 ADR-034 §⑥)**:
+            //    原条以「当前 − 1」造旧档并断言「链真的被调用」。v2 起
+            //    `[PayloadSegmentMinVersion, CurrentSaveVersion)` = `[2, 2)` 是**空区间**
+            //    ⇒ 「`SaveService` 会调用链」这条接线**今日无任何可达输入**。
+            //    该性质只剩单元级夹具(`save_migration_chain_test.cs` 直接调
+            //    `SaveMigrationChain.Migrate`);此处保留其反面 —— 「v1 档不得下沉到链」,
+            //    而那恰是 ADR-034 §⑥ 要求的方向。
             var calls = new List<uint>();
-            IReadOnlyList<SimEvent> replayed = null;
             var svc = ReadyService(
-                replaySink: ev => replayed = ev,
                 migrations: new List<ISaveMigration>
                 {
-                    new PaddingMigration(SaveHeader.CurrentSaveVersion - 1, calls),
+                    new PaddingMigration(SaveHeader.PayloadSegmentMinVersion - 1, calls),
                 });
-            svc.SaveBytes(new SaveSlot(0), OlderVersionSave(0xFEEDFACECAFEBEEFUL));
+            svc.SaveBytes(new SaveSlot(0), PrePayloadSave());
 
-            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)),
-                "注册了对应脚本 ⇒ 须迁到当前版本并读档成功");
-            CollectionAssert.AreEqual(new[] { SaveHeader.CurrentSaveVersion - 1 }, calls,
-                "链的该级须被真的执行一次");
-            Assert.IsNotNull(replayed, "迁移后仍须走到 Replaying(不得静默提前返回)");
+            Assert.Throws<InvalidDataException>(() => svc.Load(new SaveSlot(0)));
+            CollectionAssert.IsEmpty(calls,
+                "版本门须在迁移链之前 —— v1 档一旦下沉进链,空链的「没有对应迁移脚本」会掩盖真实原因");
         }
 
         [Test]
-        public void test_load_olderSaveVersion_doesNotLockSlot()
+        public void test_load_prePayloadVersion_doesNotLockSlot()
         {
-            // 拒绝发生在 `Verifying` 之后的迁移链判定段,**早于**读档锁置位
+            // 拒绝发生在 `Verifying` 之后、读档锁置位之前
             // ⇒ 旧档载入失败不得永久锁槽(`sprint-19.md` §S19-1 R-1 的相邻形态)。
             var svc = ReadyService();
-            svc.SaveBytes(new SaveSlot(0), OlderVersionSave());
+            svc.SaveBytes(new SaveSlot(0), PrePayloadSave());
 
-            Assert.Throws<InvalidOperationException>(() => svc.Load(new SaveSlot(0)));
+            Assert.Throws<InvalidDataException>(() => svc.Load(new SaveSlot(0)));
             Assert.IsFalse(svc.Ledger.IsLocked(new SaveSlot(0)),
-                "迁移链拒绝不得锁槽 —— 锁只在 Verifying + 迁移链全通过后置位");
+                "版本门拒绝不得锁槽 —— 锁只在 Verifying + 迁移链全通过后置位");
         }
 
         /// <summary>

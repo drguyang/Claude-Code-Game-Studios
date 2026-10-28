@@ -100,8 +100,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: stream.FoldedRows),
-                writeScheduler: action => action());
+                    existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                writeScheduler: action => action(), blobRestoreSink: _pool);
             svc.Checkpoint(new SaveSlot(0));
 
             // ══ Act:「进程重启」⇒ 新流 + 同目录 Load,恢复闭包 = Restore ══
@@ -119,8 +119,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     fresh.Events, PredicateOf(fresh), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: fresh.FoldedRows),
-                writeScheduler: action => action());
+                    existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
+                writeScheduler: action => action(), blobRestoreSink: _pool);
             svcLoad.Load(new SaveSlot(0));
 
             // ══ Assert:恢复态 == 直接重放所得(AC-7a-01 形状的三点)══
@@ -141,7 +141,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             byte[] secondSave = File.ReadAllBytes(Path.Combine(_testDir, "save_1.bin"));
             var r = new CodecReader(secondSave.AsSpan(SaveHeaderCodec.HeaderSize));
             SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
-            IReadOnlyList<FoldRow> carried = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+            // 🔁 2026-10-28 ADR-034 §③:改按 count 精确读(原 `DecodeSegment(r.ReadBytes(r.Remaining))`
+            //    在 v2 下会把其后的载荷段一起吞进折叠段 ⇒ 报「未读尽」)。
+            IReadOnlyList<FoldRow> carried = FoldRowCodec.ReadSegment(ref r);
             Assert.AreEqual(1, carried.Count,
                 "读档后的下一次 Checkpoint:折叠行经 existingFoldedRows 回写,不静默消失");
             Assert.AreEqual(PatientA, carried[0].PatientId);

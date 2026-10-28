@@ -94,9 +94,9 @@ namespace DaYiJingCheng.Tests.Boot
                 compose: _ => SaveComposer.Compose(
                     _stream.Events, PredicateOf(), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: _stream.FoldedRows),
+                    existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
                 // 夹具与生产的唯一差别:同步内联(断言确定;生产 = Task.Run)。
-                writeScheduler: action => action());
+                writeScheduler: action => action(), blobRestoreSink: _pool);
         }
 
         /// <summary>写侧:同一流的组版 + Checkpoint(槽 1)。</summary>
@@ -111,8 +111,8 @@ namespace DaYiJingCheng.Tests.Boot
                 compose: _ => SaveComposer.Compose(
                     _stream.Events, PredicateOf(), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: _stream.FoldedRows),
-                writeScheduler: action => action());
+                    existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
+                writeScheduler: action => action(), blobRestoreSink: _pool);
             svc.Checkpoint(new SaveSlot(1));
         }
 

@@ -57,6 +57,14 @@ namespace DaYiJingCheng.Sim.Codec
             _pos += value.Length;
         }
 
+        /// <summary>写一段原始字节(不写长度前缀)。载荷段的 blob 字节走这条 —— 免一次中间数组。</summary>
+        public void WriteBytes(ReadOnlySpan<byte> value)
+        {
+            Ensure(value.Length);
+            value.CopyTo(_buffer.AsSpan(_pos));
+            _pos += value.Length;
+        }
+
         public void WriteInt32LittleEndian(int value)
         {
             Ensure(4);

@@ -387,7 +387,8 @@
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-08` | `persistence-service` | open | **N** | R4 |
-| `TD-persist-09` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-10` | `persistence-service` | open | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-03` | `enemy-ai` | open | **Y** | R1 |
@@ -842,13 +843,13 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 131 | 状态 {'open': 79, 'closed': 46, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
-未闭 P0 面 = 64 （已闭但曾标 P0 面的 39 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 64 条,分布在 11/31 个 epic
+条目 132 | 状态 {'open': 79, 'closed': 47, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 28, '~~**Y**~~': 1}
+未闭 P0 面 = 63 （已闭但曾标 P0 面的 40 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
     telemetry-analytics: 5    disease-simulation: 2     enemy-ai: 1
-    item-database: 1          patient-ai: 1             persistence-service: 1
-    processing: 1             skeuomorphic-ui: 1
+    item-database: 1          patient-ai: 1             processing: 1
+    skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4843,6 +4844,21 @@ python3 tools/debtcount/debtcount.py --print
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
 | **TD-persist-09** | `persistence-service` | **open** | **Y** | R1 |
+| 🔁 **2026-10-28 实现轮:上表状态已由 `open` 转 `closed`**(原文不删)。结案判决见下方
+「✅ 结案」块;`docs/tech-debt-register.md:390` 的索引行同批更新。 |
+
+### ✅ 结案(2026-10-28 · ADR-034 实现轮)
+
+| 项 | 结论 |
+|---|---|
+| **主症状已闭** | 「载荷字节不进存档 ⇒ 跨进程读档不可用」**已消除**:存档带载荷段(引用驱动),读档先装池再解事件。端到端判据 = `world_load_service_test.cs:427` `test_ac9g_realSaveBytes_roundTripRebuildsWorld` —— **全新空池**(`AreNotSame` 断言前提)+ 同一份存档 ⇒ `Load` 装回 2 条 blob ⇒ `Rebuild()` 成功,且 `Orientation == 90`(**载荷内容**逐位保持,不只断「不抛」)。 |
+| **V-1 的形态** | **既有测试由红转绿**,不是纯增量 —— 该夹具末段原为「正向断言一个已知失败」(自注「TD-persist-09 兑现时本段会转红」),本轮翻成反面。原文保留为 🔁 闭环记录(`:556-599`)。 |
+| **触发条件 ③ 被结构性取消** | 原触发条件 「`IBlobSink` 首个生产实现落地时」**不再适用**:ADR-034 §② 裁定**存档即载体** ⇒ blob 池**无需**跨会话存活,`IBlobSink` 的落盘实现**不是**本债的必需件。仍无落盘实现这件事**不在本债面内**(它是 45 网络侧 / 7a 的选择,不阻塞读档)。 |
+| **残余(不属本条)** | ① 体积上界无实测基线 = **ADR-034 §Risks R1**(ADR 内登记,不另立债);② `SaveService` ↔ 迁移链接缝的夹具缺口 = **新债 `TD-persist-10`**;③ ADR-033 的「固化」仍待实现 —— 载荷段只是它的**载体**,四件同批仍 `open`(`TD-building-02`)。 |
+| **回归** | EditMode `5714/5679/0/35` · PlayMode `238/234/0/2/2` · 2026-10-28 23:16 CST · `9ba8cbb6`+工作树。 |
+
+> ⚠️ **本条闭不代表「持久化面已干净」** —— `TD-persist-10`(接缝夹具)与
+> `TD-building-02`(ADR-033 四件)仍 `open`,两者都与本条的落点相邻。
 
 > ⚠️ **本条使 `persistence-service` 首次进入 M3 出口分布**(`TD-persist-08` 是 `N`,不进 `live` 集)。
 > 复算:`python3 tools/debtcount/debtcount.py --print`。
@@ -4853,6 +4869,35 @@ python3 tools/debtcount/debtcount.py --print
 > `条目 129 → 130` · `open 79 → 80` · `Y 102 → 103` · **`未闭 P0 面 63 → 64`** ·
 > **`epic 分布 10/31 → 11/31`**(`persistence-service` 由 0 变 1)。
 > ⚠️ **`未闭 P0 面` 本轮是单向 +1**(不是相抵)—— 与上一轮「结案 + 新债相抵」的形态**不同**,别照抄那句话。
+
+---
+
+## 2026-10-28 · ADR-034 实现轮新揭:`SaveService` ↔ 迁移链的接缝无夹具(1 条 · `TD-persist-10`)
+
+**出处**:`docs/architecture/adr-034-save-v2-payload-segment.md` 的实现轮。该轮把 v1 档在
+迁移链**之前**用版本门截住(`SaveService.cs:719`),连带使原来的接线夹具
+`test_load_olderSaveVersion_withChain_migratesAndLoads` **失去可达输入**,被替换为反向钉。
+换成反向钉是**正确的**方向,但**代价**是本条。
+
+### TD-persist-10 — `SaveService` ↔ `SaveMigrationChain` 的接缝无集成夹具
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `SaveService.Load` 的迁移分支(`SaveService.cs:747`)今日**无任何集成夹具**。「注册了对应脚本 ⇒ `SaveService` 真的调链、真的迁过去、迁完真的读档成功」这条接线,只有 `SaveMigrationChain.Migrate` 的**本体**单元夹具兜底。 |
+| **实测(逐条可跑)** | ① `grep -c "new SaveService(\|\.Load(" unity/Assets/Tests/EditMode/PersistenceService/save_migration_chain_test.cs` ⇒ **0**(该文件只测链本体 + `SaveService.AddChecksum/StripChecksum/ValidateChecksum` 三处**静态**接缝,`:256-276`)。<br>② `grep -cni "migrat\|迁移" unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs` ⇒ **0**。<br>③ `grep -rln "ISaveMigration" unity/Assets/Tests/` ⇒ **3** 件,逐件排除:`save_migration_chain_test.cs`(本体,①已证不走 `Load`)· `folded_predicate_test.cs`(只断言构造子第八形参**类型**,`:625`)· `save_slot_contract_test.cs`(**反向**钉,断言版本门先于链、链零调用)。 |
+| **为什么今日不可构造** | v2 起 `[PayloadSegmentMinVersion, CurrentSaveVersion) = [2, 2)` 是**空区间** ⇒ 造不出「版本 < 当前 **且** 不被版本门截住」的档。不是「还没写」,是**判据在该常量下无输入**。 |
+| **为什么是债而不是「可接受」** | 反向钉只保证「版本门在链**之前**」;它**不保证**「门放行后链真的被调用、返回值真的被用、迁完真的读档成功」。把 `migrated` 丢掉仍用 `data`、或调完链仍返回原字节 —— 反向钉**全绿**。⇒ 这条接线今日**只靠读代码守**。 |
+| **何时自动消解** | `CurrentSaveVersion` 首次再升(2 → 3)时 `[2, 3)` 非空 ⇒ 可造 v2 档 + 注册 v2→v3 脚本,夹具可重建。该时点由 `ADR-010 §七` 的布局演进触发,**本轮不能预定**。 |
+| **归属** | **7a 持久化(`persistence-service`)**。 |
+| **`P0 面 = N` 的理由** | 它**不自陈阻塞 P0 出口**:迁移链分支今日**零可达输入**(无真实历史存档,`CurrentSaveVersion` 从未升过级),即便有也 **fail-closed**(版本门拒收 `< 2`)。承 §一 R1 宽判据。⚠️ **一旦 `CurrentSaveVersion` 升级,本理由立即失效** —— 见「何时自动消解」。 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-persist-10** | `persistence-service` | **open** | **N** | R1 |
+
+> ⚠️ **本条与 `TD-persist-09` 相反方向**:`-09` 是**功能**缺口(已闭),本条是**测试覆盖**缺口
+> (新立)。两者的共同教训:**「换成一个更好的夹具」不等于「没有损失」** —— 反向钉更强,
+> 但它守的是**另一个性质**。
 
 ---
 
