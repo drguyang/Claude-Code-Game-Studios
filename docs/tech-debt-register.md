@@ -387,6 +387,7 @@
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-08` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-09` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-03` | `enemy-ai` | open | **Y** | R1 |
@@ -4777,3 +4778,39 @@ python3 tools/debtcount/debtcount.py --print
 > **`enemy-ai` 0 → 1**(重新进入分布,`TD-enemy-01/02` 均已 `closed`)· `persistence-service` 仍 0
 > (`TD-persist-08` 是 `N`,不进 `live` 集)。
 
+
+---
+
+## 2026-10-28 · S20-20 §七-2 真存档往返轮新揭:载荷字节不在存档里(1 条 · `TD-persist-09`)
+
+**出处**:`review-s20-20-2026-10-28.md` §七-2 的补做轮。为「真存档往返未跑」补夹具
+`test_ac9g_realSaveBytes_roundTripRebuildsWorld`(`Tests/EditMode/ModularBuilding/world_load_service_test.cs`)时,
+为了让夹具能跑通,刻意让**同一个 blob 池实例**跨「重启」存活。把这个人为前提**拿掉**之后
+(用全新空池),重建**抛** —— 于是这条边界从「注释里的声明」变成了可观测事实。
+
+### TD-persist-09 — 载荷字节不进存档:跨进程读档今日不可用
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 存档字节只携带 `PayloadRef` 三元组(`BlobId / Offset / Length`,ADR-006 Amendment G-2 的池寻址),**不携带载荷字节本身**。而生产装配根 `CompositionRoot.cs:132` 用的是 `new InMemoryBlobPool()` —— **进程内存**。⇒ **进程重启后池是空的**,读档时任何需要解码载荷的路径(世界结构重建 / 病史回放 / 遥测)都会撞「查无此 BlobId」。 |
+| **实测(逐条可跑)** | ① **存档里没有载荷段**:`grep -n "Blob\|blob" unity/Assets/Sim.Codec/SaveComposer.cs unity/Assets/Sim.Codec/SaveService.cs` ⇒ **零命中**。ADR-010 §一 的 v1 布局(`:156-175`)= 头部 + 事件段 + 折叠段 + (快照段/分册态段「留待后续」),**无载荷段**。<br>② **生产池是进程内存**:`grep -n "InMemoryBlobPool" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ `:132` `AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(), …)`。<br>③ **`IBlobSink` 生产实现为零**:`grep -rn ": IBlobSink" unity/Assets --include=*.cs` ⇒ 只有 `InMemoryBlobPool`(测试载体)+ 两个测试内 `MemoryBlobSink`;**无任何落盘实现**。<br>④ **行为已钉住**:`test_ac9g_realSaveBytes_roundTripRebuildsWorld` 末段用空池重跑同一份存档 ⇒ 断言 `InvalidOperationException`,报文须含 `blob` 与 `BlobId`(ADR-031 §② 的「查无 vs 损坏」可分)。**实跑 14/14 绿**。 |
+| **为什么这是债而不是「设计如此」** | `IBlobPool.cs` 头注与 ADR-010 §三 义务 15 都把池的生命周期归 **7a 存档侧 / 45 网络侧各自实现**,并明写「落盘 = 传输 = 同一段字节」。**今日两侧都没有实现者** —— 义务 15 只补了**签名**(`int Store(ReadOnlySpan<byte>)`),没补**落盘**。⇒ 这不是「决定不做」,是**委派出去的义务无人认领**。 |
+| **为什么不是 `TD-persist-08` 的残留** | `-08` 是「`Load` / `Restore` 超 40 行」的**规范面**债,与本条零重叠。两条都住 `persistence-service`,但面不同。 |
+| **修法方向(未裁,须先裁语义)** | 三种收口各有代价,**选哪个是架构裁决不是实现细节**:<br>① **存档加载荷段** —— 布局从 v1 升 v2(`SaveVersion` 递增),`SaveComposer` 多写一段 blob 表;读档时先装池再解事件。代价:存档体积随载荷线性涨(载荷不可变 ⇒ 无法去重已折叠病人的载荷),且 `SaveVersion` 首次递增会**激活 `TD-building-02` 的撞号面**。<br>② **读档后重建池** —— 从事件流的 `PayloadRef` + 别的持久源重建。但「别的持久源」今天**不存在**,等于把问题推给下一个系统。<br>③ **要求读档路径不依赖载荷** —— 即 `PayloadRef` 只当身份、内容一概不读。但这与 `WorldLoadService` / `TelemetryReporter` / `CaseCloseDecider` 的**现状直接冲突**(它们都调 `IPayloadDecoder`)。⇒ **③ 不可行**。 |
+| **触发条件** | ① **P0 首次对外发放存档**(与 `TD-building-02` 同一触发条件,两者会在同一次改动里同时被激活);② 或 `CurrentSaveVersion` 首次递增时;③ 或 `IBlobSink` 首个生产实现落地时(**那时本条转为「已验证」或「已闭」,取决于落地方案**)。 |
+| **归属** | **7a 持久化(`persistence-service`)**,承 ADR-010 §三 义务 15 与 `IBlobPool.cs` 头注的既有委派口径。**不挂 23** —— 23 只是**首个撞上的消费者**,缺口在布局与池实现,不在建造投影。 |
+| **`P0 面 = Y` 的理由** | 归属 `persistence-service` ∈ 31 个 P0 epic,**且本条不自陈「不阻塞 P0 出口」**:P0 的存档一旦要能跨会话读回,本条就必须先闭。⚠️ **今日可达性 = 零**(与 `TD-building-02` 同因:盘上无真实存档 · `RequestLoad` 零调用方),但**可达性为零 ≠ 不阻塞** —— 承 §一 R1 宽判据。 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-persist-09** | `persistence-service` | **open** | **Y** | R1 |
+
+> ⚠️ **本条使 `persistence-service` 首次进入 M3 出口分布**(`TD-persist-08` 是 `N`,不进 `live` 集)。
+> 复算:`python3 tools/debtcount/debtcount.py --print`。
+> ⚠️ **本条与 `TD-building-02` 是一对**:两者都由「基线 / 池」这类**新增持久面**在
+> 「P0 首次发放存档」那一刻同时激活。修任一之前,须先看另一条的触发条件是否也已满足。
+
+> **本条落盘后的实测读数**(`python3 tools/debtcount/debtcount.py --print` 同款切块脚本):
+> `条目 129 → 130` · `open 79 → 80` · `Y 102 → 103` · **`未闭 P0 面 63 → 64`** ·
+> **`epic 分布 10/31 → 11/31`**(`persistence-service` 由 0 变 1)。
+> ⚠️ **`未闭 P0 面` 本轮是单向 +1**(不是相抵)—— 与上一轮「结案 + 新债相抵」的形态**不同**,别照抄那句话。

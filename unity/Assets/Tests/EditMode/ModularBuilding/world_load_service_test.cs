@@ -21,9 +21,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
+using DaYiJingCheng.Tests.DiseaseSimulation;   // FakeIdAuthority / FakePresenceQuery
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.ModularBuilding
@@ -373,6 +375,263 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         private sealed class DiscardingSink : IEventSink
         {
             public void Append(in SimEvent e) { }
+        }
+
+        // ══════════ 真存档字节往返(结清 `review-s20-20` §七-2)══════════
+
+        /// <summary>
+        /// **世界结构**经 `SaveService` 真落盘 → 新流读回 → `WorldLoadService` 重建 ⇒
+        /// 世界形态与落盘前逐项相同。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>补的是什么(§七-2 原文)</b>:「`WorldLoadService` 的端到端只在夹具层验过,
+        /// 真实存档字节流未过」。既有 `test_ac9_*` 系列的事件是**内存构造的 `SimEvent` 列表**,
+        /// 从头到尾没有字节落过盘;`save_replay_roundtrip_test` 走真文件但只覆盖**病史流**
+        /// (病人 onset / outcome / 折叠),**零建造事件**。本测把两半边接起来。</para>
+        ///
+        /// <para><b>为什么必须走真文件而不是内存往返</b>:存档字节流是**唯一真源**的载体。
+        /// 内存往返测的是「对象引用还在」,真文件往返测的是「字节里真的写了足够重建的信息」——
+        /// 后者才会暴露「codec 少写一个字段」「头部偏移错位」这类只有落盘才现形的缺陷。</para>
+        ///
+        /// <para>⚠️ <b>本测证明不了「跨进程」</b> —— 载荷 blob 池是**进程内存对象**
+        /// (`InMemoryBlobPool`,生产装配根 `CompositionRoot.cs:132` 就是 `new InMemoryBlobPool()`),
+        /// 而存档字节只携带 `PayloadRef` 三元组
+        /// (`BlobId/Offset/Length`,ADR-006 Amendment G-2 的 blob 池寻址),
+        /// **不携带载荷字节本身** —— `SaveComposer` / `SaveService` 全文零 blob 引用,
+        /// ADR-010 §一 的 v1 布局(头部 + 事件段 + 折叠段)也**没有载荷段**。
+        /// ⇒ 本测刻意让**同一个池实例**跨「重启」存活,模拟「池仍在内存」。
+        /// 这是当前实现的真实边界:**跨进程读档须先裁「载荷字节存哪」**,
+        /// 那不在本测面内 —— 登记为 **`TD-persist-09`**(归属 `persistence-service`,
+        /// 不是 23:缺口在存档布局与池实现,不在建造投影)。</para>
+        /// <para>本测**下方那段边界实测**把这条边界从「注释里的声明」变成「跑出来的断言」:
+        /// 空池 + 同一份存档 ⇒ 抛,且报文点名 `BlobId`。</para>
+        ///
+        /// <para><b>判别力(证伪轮实测,不是推演)</b>:</para>
+        /// <para>· **M10**(`SimEventCodec.Encode` 把 `e.Payload` 写成 `default`)⇒ **恰 1 条红,正是本测**
+        /// (报文 `StructurePlaced: 缺字段(已见 mask=0x0,应为 0x1F)`)。`test_ac9_*` 系列是**内存构造的
+        /// `SimEvent`**,不经 codec ⇒ 它们照样绿。**这是本测的独占面:字节里真的带了载荷引用。**</para>
+        /// <para>· **M9**(注掉 `RebuildFromDecoded` 开头的 `_world.Reset()`)⇒ 本测红,但**不独占**
+        /// (同轮另有 `ac9` / `ac9b` / `ac9f` 三条红)。「残留被清」这面旧夹具也覆盖。</para>
+        /// <para>· **M11**(`PayloadCodec.Encode(in StructurePlacedPayload)` 把 `p.Orientation` 写成 `0`)
+        /// ⇒ 本测红,但**不独占**(`ac9` 同红,它走生产编码路径)。</para>
+        /// <para>⇒ **诚实结论:本测的独占判别力 = M10 那一条。** 另两面它参与但不独占 ——
+        /// 不得把「本测红了」当成「这两面只有它能抓」。</para>
+        /// </remarks>
+        [Test]
+        public void test_ac9g_realSaveBytes_roundTripRebuildsWorld()
+        {
+            string dir = Path.Combine(Path.GetTempPath(),
+                                      "dyjq_worldload_roundtrip_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                // ══ Arrange:落盘前 —— 两条建造事件进流(朝向 0 与 90,覆盖旋转分支)══
+                long id1 = _writer.Place(new WorldPos(1, 0, 1), ModuleBunk, 0, 0, tick: 1);
+                long id2 = _writer.Place(new WorldPos(1, 0, 3), ModuleBunk, 90, 0, tick: 2);
+
+                Assert.AreEqual(2, _stream.Count, "前置:流里恰两条建造事件");
+                Assert.AreEqual(2, _world.Structures.Count, "前置:世界里恰两条");
+                Assert.AreEqual(4, _world.OccupiedCount, "前置:两条 × 两格 = 4");
+
+                // ══ Act ①:Checkpoint 真落盘 ══
+                var saveStream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+                foreach (SimEvent e in _stream) saveStream.Append(e);
+
+                var svc = new SaveService(
+                    dir, new SaveCodec(),
+                    folded: AlwaysFolded(),
+                    narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                    replaySink: _ => { },
+                    foldedRowSink: _ => { },
+                    compose: _ => SaveComposer.Compose(
+                        saveStream.Events, AlwaysFolded(), _decoder, new SaveCodec(),
+                        worldSeed: 1UL, configVersion: 0U, tick: 2L,
+                        existingFoldedRows: saveStream.FoldedRows),
+                    writeScheduler: action => action());
+                svc.Checkpoint(new SaveSlot(0));
+
+                string savePath = Path.Combine(dir, "save_0.bin");
+                Assert.That(File.Exists(savePath), Is.True, "Checkpoint 须真的落出一个文件");
+                long sizeOnDisk = new FileInfo(savePath).Length;
+                Assert.That(sizeOnDisk, Is.GreaterThan(SaveHeaderCodec.HeaderSize),
+                    $"存档须大于头部({sizeOnDisk} B)");
+
+                // ══ Act ②:「重启」—— 新流 + 同目录 Load ══
+                // ⚠️ blob 池**刻意复用同一实例**(见上方 remarks):存档只带 PayloadRef,
+                //    不带载荷字节。跨进程边界不在本测面内。
+                var fresh = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+                IReadOnlyList<SimEvent> pending = null;
+                var svcLoad = new SaveService(
+                    dir, new SaveCodec(),
+                    folded: AlwaysFolded(),
+                    narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                    replaySink: events => pending = events,
+                    foldedRowSink: bytes => fresh.Restore(
+                        pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),
+                        FoldRowCodec.DecodeSegment(bytes)),
+                    compose: _ => SaveComposer.Compose(
+                        fresh.Events, AlwaysFolded(), _decoder, new SaveCodec(),
+                        worldSeed: 1UL, configVersion: 0U, tick: 2L,
+                        existingFoldedRows: fresh.FoldedRows),
+                    writeScheduler: action => action());
+                svcLoad.Load(new SaveSlot(0));
+
+                Assert.AreEqual(2, fresh.Count, "读回的事件条数须 == 落盘的条数");
+
+                // ══ Act ③:从读回的流重建**一个新世界** ══
+                // ⚠️ **为什么必须换新 World 实例**(而不是复用 `_world`)——这是本测判别力的
+                //    核心。`_world` 上已经有那两件结构(`Act ①` 里写者放进去的),
+                //    若在它上面重建,「重建成功」与「重建根本没跑」在**实例表/占用表上
+                //    完全同形** ⇒ 断言全绿而什么都没测(「靶点对但靶场里没有靶」)。
+                //    换新世界后,那两件必须**由字节往返 + 重放**重新长出来。
+                World rebuilt = NewFlatWorld(new BuildSlotCatalog());
+
+                // 再往新世界里放几条**不在存档里**的残留 ⇒ 重建须把它们清掉。
+                // (重建本体开头的 `Reset()` 是这些断言的唯一守卫。)
+                //
+                // ⚠️ **为什么先放两条 dummy**(2026-10-28 实跑抓到的自伤):
+                //    新世界的注册表从 1 起号,而存档里的 id 也是 1、2 ⇒ 若残留直接拿
+                //    `strayId = 1`,它**与重放出来的 id1 撞号**,`TryGet(strayId)` 会返回
+                //    id1 的实例 ⇒ 「残留不得存活」这条断言变成**不可判**(红在撞号,不在残留)。
+                //    两条 dummy 把水位推到 3,残留拿 4,与 {id1=1, id2=2} 不相交。
+                var strayAnchor = new WorldPos(3, 0, 3);
+                PlantOutsideStream(rebuilt, new WorldPos(3, 0, 0));   // dummy, id = 1
+                PlantOutsideStream(rebuilt, new WorldPos(4, 0, 0));   // dummy, id = 2
+                long strayId = PlantOutsideStream(rebuilt, strayAnchor); // 残留, id = 3
+                Assert.Greater(strayId, id2,
+                    $"前置:残留 id({strayId}) 须大于存档里的最大 id({id2}) —— " +
+                    "否则下面「残留不得存活」会因撞号而不可判");
+                Assert.AreEqual(3, rebuilt.Structures.Count, "前置:新世界里有三条残留");
+                Assert.IsFalse(rebuilt.IsEffectivelyWalkable(strayAnchor), "前置:残留占着格");
+
+                int applied = new WorldLoadService(() => fresh.Events, _decoder, rebuilt, _catalog)
+                                  .Rebuild();
+
+                // ══ Assert:新世界形态 == 落盘前的旧世界 ══
+                Assert.AreEqual(2, applied, "须恰重放两条(与落盘前同数)");
+                Assert.AreEqual(2, rebuilt.Structures.Count,
+                    "实例表条数须由**字节往返**重建 —— 三条残留须被清掉");
+                Assert.AreEqual(4, rebuilt.OccupiedCount, "占用格数须还原");
+                Assert.IsFalse(rebuilt.Structures.TryGet(strayId, out _),
+                    "存档外的残留不得存活(否则「重建」没发生)");
+                Assert.IsTrue(rebuilt.IsEffectivelyWalkable(strayAnchor), "残留的足迹格须恢复可走");
+
+                Assert.IsTrue(rebuilt.Structures.TryGet(id1, out StructureInstance r1),
+                    $"id1={id1} 须按原号重建(发号经字节往返不变)");
+                Assert.IsTrue(rebuilt.Structures.TryGet(id2, out StructureInstance r2),
+                    $"id2={id2} 须按原号重建");
+
+                Assert.AreEqual(0, r1.Orientation, "id1 朝向须为 0");
+                Assert.AreEqual(90, r2.Orientation,
+                    "id2 朝向须为 90 —— 若 codec 丢了 orientation,这里会变 0");
+                Assert.AreEqual(new WorldPos(1, 0, 1), r1.Anchor, "id1 锚点须原样");
+                Assert.AreEqual(new WorldPos(1, 0, 3), r2.Anchor, "id2 锚点须原样");
+                CollectionAssert.AreEquivalent(
+                    new[] { new WorldPos(1, 0, 1), new WorldPos(2, 0, 1) }, r1.OccupiedCells,
+                    "id1 足迹须为旋转前形态");
+                CollectionAssert.AreEquivalent(
+                    new[] { new WorldPos(1, 0, 3), new WorldPos(1, 0, 4) }, r2.OccupiedCells,
+                    "id2 足迹须为旋转后形态(朝向 90 ⇒ (0,1) 方向)");
+
+                Assert.IsFalse(rebuilt.IsEffectivelyWalkable(new WorldPos(1, 0, 1)),
+                    "重建后占用格须不可走");
+                Assert.IsFalse(rebuilt.IsEffectivelyWalkable(new WorldPos(1, 0, 4)),
+                    "重建后占用格须不可走(旋转腿)");
+                Assert.IsTrue(rebuilt.IsEffectivelyWalkable(new WorldPos(2, 0, 3)),
+                    "未占用的格须可走(否则「全不可走」也会让上面两条绿)");
+
+                // 高水位须按重放抬回 ⇒ 下一个号 = max(id)+1
+                Assert.AreEqual(id2 + 1, rebuilt.Structures.PeekNextId,
+                    "读档后高水位须 == max(id)+1(ADR-006 Amendment B 同型)");
+
+                // ══ 交叉校验:旧世界仍在原地(证明重建作用在新实例上,没偷改 `_world`)══
+                Assert.AreEqual(2, _world.Structures.Count, "旧世界不受影响(本测不测它的重建)");
+
+                // ══════════ 边界的**实测**(不是注释里的声明)══════════
+                // 生产装配根今日 = `CompositionRoot.cs:132` 的 `new InMemoryBlobPool()` ⇒
+                // **进程重启后池是空的**,而存档只带 `PayloadRef` 三元组、不带载荷字节。
+                // ⇒ 上面那段之所以能绿,靠的是「同一个池实例跨重启存活」这个人造前提。
+                // 本段把该前提**拿掉**,证明它的确是前提:空池 + 同一份存档 ⇒ 抛,且报文点名池。
+                //
+                // ⚠️ **这不是「已知会红所以不断言」的借绿** —— 它是**正向断言一个已知失败**:
+                //    今天的行为就是「跨进程读档不可用」,把它钉住,`TD-persist-09` 兑现时
+                //    本段会**转红**(届时须改成本测的反面),从而强制有人来更新登记。
+                var emptyPool = new InMemoryBlobPool();
+                var decoderWithoutBlobs = new PayloadDecoder(emptyPool);
+                var ex = Assert.Throws<InvalidOperationException>(
+                    () => new WorldLoadService(() => fresh.Events, decoderWithoutBlobs,
+                                               NewFlatWorld(new BuildSlotCatalog()), _catalog)
+                              .Rebuild(),
+                    "空 blob 池 + 真存档 ⇒ 必须抛。若这里绿了,说明载荷字节其实进了存档 —— " +
+                    "那与本测上方 remarks 的边界陈述矛盾,须重查 TD-persist-09 的前提");
+
+                StringAssert.Contains("blob", ex.Message,
+                    "报文须点名 blob 池查无 —— 否则读者会把它误读成「存档损坏」");
+                StringAssert.Contains("BlobId", ex.Message,
+                    "报文须给出 BlobId —— 「查无」与「损坏」在类型上可分(ADR-031 §②)");
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { /* 清理失败不掩盖断言 */ }
+            }
+        }
+
+        /// <summary>
+        /// 建一个 `Size × 1 × Size` 全可走世界 —— 与 `Setup` 同形,供「重启后新世界」使用。
+        /// </summary>
+        private static World NewFlatWorld(BuildSlotCatalog slots)
+        {
+            var terrain = new TerrainCell[Size, 1, Size];
+            for (int x = 0; x < Size; x++)
+                for (int z = 0; z < Size; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+
+            int total = Size * 1 * Size;
+            var poi = new int[total];
+            var resource = new int[total];
+            for (int i = 0; i < total; i++)
+            {
+                poi[i] = -1;
+                resource[i] = -1;
+            }
+
+            return new World(new WorldGeometry(terrain, poi, resource), slots);
+        }
+
+        /// <summary>往**指定**世界放一条不进流的结构(本文件的两个世界都要能塞)。</summary>
+        private static long PlantOutsideStream(World world, WorldPos anchor)
+        {
+            var discard = new DiscardingSink();
+            var stray = new StructureWriter(
+                discard, world.Structures, new PayloadEncoder(new InMemoryBlobPool()), ModuleCatalog,
+                world, DaYiJingCheng.Tests.TestDropWriter.Create(discard));
+            return stray.Place(anchor, ModuleBunk, 0, 0, tick: 999);
+        }
+
+        /// <summary>与 `Setup` 逐字同款的模块目录(静态版,供静态 helper 用)。</summary>
+        private static TestModuleCatalog ModuleCatalog
+        {
+            get
+            {
+                var catalog = new TestModuleCatalog();
+                catalog.RegisterModule(new ModuleDefinition(
+                    moduleId: ModuleBunk,
+                    slotType: SlotType.Decor,
+                    localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0), new WorldPos(1, 0, 0) },
+                    validOrientations: new[] { 0, 90, 180, 270 },
+                    cost: 4,
+                    buildItemKey: 0,
+                    refundable: 1));
+                return catalog;
+            }
+        }
+
+        /// <summary>「永不折叠」谓词 —— 世界流无病人,本测不涉及折叠,给个恒假即可。</summary>
+        private static IFoldedPredicate AlwaysFolded() => new NeverFolded();
+
+        private sealed class NeverFolded : IFoldedPredicate
+        {
+            public bool Folded(int patientId) => false;
         }
     }
 }

@@ -1155,6 +1155,19 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 >
 > **+1 的用例级点名**:`test_b1p_reset_baselineThrowsMidway_leavesDefiniteEmptyState` = 恰 1 条新增,零删除。
 
+> 🔁 **2026-10-28 §七-2 真存档往返轮(原文上表不删,下方为新实测)** —— 三元组:
+> 截至时刻 `2026-10-28T10:22Z` · 批次 `§七-2 往返轮 · 全量` · commit `f58cb2c6`(工作树含本批未提交改动)。
+>
+> | 套件 | 结果(XML 原值) | 上一轮(M5 补做) | 差 |
+> |---|---|---|---|
+> | EditMode | `5701 / 5666 / 0 / 0 / 35` | `5699 / 5664 / 0 / 0 / 35` | **+2 / +2**,零失败 |
+> | PlayMode | `238 / 234 / 0 / 2 / 2` | `238 / 234 / 0 / 2 / 2` | 逐项相同,零回归 |
+>
+> **`+2` 的用例级点名**(汇总差不算,须点名):① `test_ac9g_realSaveBytes_roundTripRebuildsWorld`
+> —— **本轮**新增;② `test_worldBuildSlots_productMatchesSourceJson_fieldByField` —— 由
+> `f58cb2c6` 引入,该批**只跑 targeted 未跑全量** ⇒ 在本轮才首次计入全量数。
+> ⇒ 本轮真实新增 = **1** 条。**不得**把 `+2` 全记在本轮头上。
+
 ### 本轮明确未做(NOT-RUN,禁借绿)
 
 1. ~~**`World.Reset()` 侧回滚无独立变异** —— 与 `ApplyBakedInitial` 共享同一语义,
@@ -1183,4 +1196,19 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
    > ⚠️ **仍是源码级判据,不是运行期观测** —— 无夹具真跑 `BootRoot` 全链。
    > 另:证据件里记的 `BootRoot.cs:214` 是当时行号,实测已漂到 **`:219`**。
 4. **真存档往返未跑**;`world_buildslots.cooked.bytes` 内容未逐字段解码。
+   > 🔁 **2026-10-28 两半全闭**(原文不删)。① **真存档往返**:新增夹具
+   > `test_ac9g_realSaveBytes_roundTripRebuildsWorld`(`world_load_service_test.cs`)——
+   > `SaveService.Checkpoint` 落真文件 → 新流 `Load` → `WorldLoadService.Rebuild()` 到
+   > **新建的 World 实例**上(不是落盘前那个),并先塞三条**不在存档里**的残留要求全清。
+   > ② **产物逐字段解码**:`test_worldBuildSlots_productMatchesSourceJson_fieldByField`
+   > (`world_buildslots_bake_test.cs`,`f58cb2c6` 引入)—— 正则解析源 JSON + 独立解码产物字节,
+   > 两端都不经被测件。详见 `review-s20-20-2026-10-28.md` §七-2 / §七-3。
+   >
+   > ⚠️ **补做过程中新揭一条债**:载荷 blob 池是**进程内存**(`CompositionRoot.cs:132`),
+   > 而存档字节只带 `PayloadRef`、不带载荷字节,ADR-010 §一 的 v1 布局也**无载荷段**
+   > ⇒ **跨进程读档今日不可用**。该边界已从「注释里的声明」升级为**跑出来的断言**
+   > (夹具末段:空池 + 同一份存档 ⇒ 断言抛,报文须含 `BlobId`)。
+   > 登记为 **`TD-persist-09`**(归属 `persistence-service`,`P0 面 = Y`)。
+   > ⚠️ **编号订正**:我先把它记成 `TD-building-04` —— **错了**,缺口在存档布局与池实现,
+   > 不在建造投影;挂 23 会让 epic 分布记错一格。
 
