@@ -430,7 +430,7 @@
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | open | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | open | **N** | R1 |
-| `TD-building-03` | `modular-building` | open | **N** | R1 |
+| `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | open | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
@@ -842,7 +842,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 131 | 状态 {'open': 81, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
+条目 131 | 状态 {'open': 80, 'closed': 45, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
 未闭 P0 面 = 64 （已闭但曾标 P0 面的 39 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 64 条,分布在 11/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
@@ -3599,9 +3599,37 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **归属** | **23**(模块化建造),与 `TD-building-01` / `-02` 同 epic。按同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
 | **`P0 面 = N` 的理由** | 这是**判据完备性**的缺口,不是产品缺陷 —— 夹具已在盘上且其**部分**判别力已由 M7 实测(见 `review-s20-20` §七-3)。缺的是「独占面」的证明,不影响任何交付判据的真值。按 §一 R4 记 **N**;⚠️ 若将来有人以「本夹具已证 `diskMatchesFreshBake` 盲区」为由做结论,须先还本债。 |
 
+> ✅ **2026-10-28 已闭 —— 独占面实测成立**(原文不删,下方为实测记录)。
+>
+> **变异 M1**:`WorldBuildSlotsCookedWriter.CompareCell` 的排序键 `(x,y,z)` 改 `(z,y,x)`,
+> **重烘产物**(`DataBakeMenu.BakeWorldBuildSlots`,batch),再跑本夹具。
+>
+> | 判据 | 结果 | 意义 |
+> |---|---|---|
+> | **域门** | **全过**(`烘焙完成` 出现 1 次,零失败) | 变异落在「合法但错」区间 —— 这正是 M8 失败的地方 |
+> | `test_…_diskMatchesFreshBake` | **✅ 绿** | **旧夹具完全看不见** —— 盘上 == 现烘(两边一样地错)。**这就是「独占面」的定义** |
+> | `test_…_productMatchesSourceJson_fieldByField` | **🔴 红** | 只有它能抓 |
+> | `test_…_cookedRoundTrip_isFieldwiseIdentical` | **🔴 红** | 见下方订正 |
+>
+> **实得 2 红 / 我预判 1 红** —— 按纪律**没有把实得抄进预期**,先逐条论证:
+> `cookedRoundTrip:245-252` 的 `expected` 侧**硬编码 (x,y,z) 升序**(不是「跟着写方排序」),
+> 而解码结果跟产物序 ⇒ 序变了必红。**我原判「它按同一排序比两侧」是错的**,
+> 预判据此订正为 2 条,**理由独立于实得**。
+>
+> **还原**:两文件 SHA-256 逐字节通过(Writer `7a00b9c4…8be` · product `60075ce4…21b`),
+> `FALSIFY-` 零残留;还原后重跑 **23/23 全绿**。
+>
+> ⚠️ **本轮同时订正本条原列的形态清单** —— 原写「① `allowed_mask` 位映射读反 · ② 行序读错 ·
+> ③ 整行漏掉」,**其中 ① 不可行**:新夹具 `:383` 逐字写着
+> 「`allowed_mask` —— 归槽位域门,**本条不比**」⇒ 该变异**零红**,不在本夹具判据面内。
+> 原清单是**未经实读夹具**写的,已就地订正。
+>
+> ⚠️ **本债结的是「有一条可行变异形态且实测独占」,不是「所有误读形态都已被覆盖」** ——
+> ② 已实测;③(整行漏掉)仍未构造。若将来有人要更强的保证,须另立。
+
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-building-03** | `modular-building` | **open** | **N** | R1 |
+| **TD-building-03** | `modular-building` | ~~**open**~~ **closed** | **N** | R1 |
 
 > **本条使 `条目 128 → 129`**,`open 78 → 79`;**`未闭 P0 面 = 63` 一位不动**(P0 面 = N);
 > **M3 Exit ② 的 epic 分布亦不动**。
