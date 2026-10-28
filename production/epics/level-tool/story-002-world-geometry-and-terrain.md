@@ -207,16 +207,17 @@ ADR-022 §四 **C2** 的判据是 `|engineParam − Dequantize(bakedInt)| ≤ 1 
 + 实现原件 `production/qa/evidence/impl-level-tool-story-002-2026-10-29.md`
 **Falsifiability Gate**: **PASS** —— 13 条变异(一属性一条),预判 15 红 / 实得 **15 红**,
 逐条命中预判用例,零多余红零漏红;六次还原 SHA-256 逐字节回到原值
-**Deviations**:
-- ⚠️ **§Implementation Notes 的「乙案」被收窄为「甲案」** —— 合成支**整体删除**,
+**Deviations**:三条,已于 **2026-10-29 由用户逐条裁定「维持现状」**(无遗留待裁项):
+
+- ✅ **§Implementation Notes 的「乙案」被收窄为「甲案」(用户裁定维持)** —— 合成支**整体删除**,
   `MinimalWorldFactory` 成为纯装载器。三条理由见实现原件 §六①
   (与 AC-5 语义冲突 / 「产物缺失」与「产物损坏」类型上不可分 / 合成支零可达)。
-  **请用户裁定**:接受收窄,还是要求补回乙的降级支。
-- **量化约定住 `Sim.Contracts` 且只定整数侧**(不提供 float 反量化函数)—— 理由见该类型文件头;
+  ~~待用户裁定:接受收窄,还是要求补回乙的降级支。~~ ⇒ **裁定:维持甲案**。
+- ✅ **量化约定住 `Sim.Contracts` 且只定整数侧(用户裁定维持)** —— 不提供 float 反量化函数;
   C2 的比对归 S6,届时直接引用 `LatticeParamQuantization.IsWithinOneQuantum`,不另抄公式。
-- **P0 医馆的几何 / 地形数值全是占位**:外墙环 1 格不可走(60/256)、单行地形表
-  (`K_TERRAIN_MAX` 恒 1)、`LATTICE_SIZE` 1000 mm、`slopeLimit` 4500 / `stepOffset` 300
-  (取 AC-0 实测的引擎默认值)。**数值归用户数值轮**。
+- ✅ **P0 医馆的几何 / 地形数值全是占位(用户裁定维持)** —— 外墙环 1 格不可走(60/256)、
+  单行地形表(`K_TERRAIN_MAX` 恒 1)、`LATTICE_SIZE` 1000 mm、`slopeLimit` 4500 / `stepOffset` 300
+  (取 AC-0 实测的引擎默认值)。**数值(含外墙环的玩法面改动)归用户数值轮**。
 
 **Code Review**: 未跑(`/code-review` 归用户触发,与 story-001 同)。
 
