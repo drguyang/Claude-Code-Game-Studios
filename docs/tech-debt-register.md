@@ -3571,6 +3571,9 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **今日可达性** | **零** —— 实查盘上**无任何真实存档**(`~/.config/unity3d/DefaultCompany/*/` 下只有 `prefs`,`find` 无 `.dyjq` / `save*.bin`);且 `CurrentSaveVersion = 1` 自 `3491198d` 起**从未变过**,`SaveService` 的 `migrations` 默认 `Array.Empty`(`SaveService.cs:162`)⇒ **零个已注册的 `ISaveMigration`**。⇒ 不存在「旧格式存档被迁移链送来」的路径。 |
 | **卡住的判据** | 无 AC 直接判此形态。B-1 的夹具 `test_ac6b_replayPlacedOverBaselineId_releasesOldFootprint` 断言的是**足迹一致**(旧格恢复可走),**刻意不断言**「谁该赢」—— 它用基线腿构造撞号,只为让 `FreeCells` 那半边可观测。 |
 | **解除动作** | **须裁**(ADR 级),不是实现动作。两问:<br>① **存档赢还是基线赢?** 若「基线赢」⇒ 重放遇到基线号段内的 `Placed` 须**拒收**(fail-closed),而不是覆盖;<br>② **若「存档赢」** ⇒ 基线家具被顶替是**预期**行为,须在 GDD 规则三补一句「基线可被存档覆盖」,否则 `Overlay(t) := BakedInitial ⊕ 事件` 的 `⊕` 语义在这一形态下**无定义**。<br>⚠️ **本债不为它设判据,只登记** —— 与 `TD-building-01` 的「写侧归 42」同口径。 |
+| **✅ 裁定已落(2026-10-28 · 用户裁定 A)** | 上面两问**都没选** —— 用户裁定**第三路「两边都留」**:<br>① **基线恒占 `1..N`,不被覆盖**;存档结构**整体平移** `K := N`(基线件数,**与存档内容无关**)到基线号段之外,**不被丢弃** ⇒ `Overlay(t) := BakedInitial ⊕ 平移(事件序列)`。<br>② **判据(唯一)**:存在 `Placed` 且其 `StructureId ∈ [1, N]`。`Removed` / `Modified` 引用基线号是**正常后基线行为**,**不触发**(放宽成「任一操作命中号段」会让**每一份拆过初始家具的正常存档**被误判)。<br>③ 判据的**充要性**由既有事实给出(非启发式):后基线存档的 `Placed` 必取 `≥ N+1`(`CompositionRoot.cs:918` 先应用基线 → `StructureKinds.cs:233-235` 推高高水位 → `:290` `Register` 取 `_nextStructureId++`)⇒ `Placed.id ≤ N` **当且仅当**写在基线诞生之前。<br>④ **⚠️ 固化是硬义务,而且必须「同会话」**:平移结果须在**同一次载入内写回事件流**(存档写的是事件流,不是重建出的世界)。**「下次自然固化」不够** —— 否则会写出**混合存档**(旧空间 `Placed(1..M)` 与新空间结构事件并存),而 `StructureRemoved(基线号)` 在两种含义间**不可区分** ⇒ 下次载入**删错结构 + 基线家具复活**(`ADR-033 §④之补` 给可复算反例)。<br>**权威件** = `docs/architecture/adr-033-structure-id-collision-on-load.md`(Accepted)。**GDD 回写** = `modular-building.md` 规则三补注 + 新 `EC-23-14` + `AC-23-02` 指针。 |
+| **⚠️ 起草期自查(2026-10-28 · 我自己的错误,原文不删)** | 方案呈报时我写过「结果写回内存事件流,**下次存档自然固化**」。**这句话是错的** —— 实查 `SaveHeader.cs:20-33` **无载荷段**,`structure_id` 住在 `StructurePlacedPayload`(`WorldPayloads.cs:112`)里,而**载荷字节根本不进存档**(本册 `TD-persist-09`)⇒ **v1 存档连 id 都不携带**,「下次存档自然固化」**没有载体**。<br>⇒ 本债的**实现**与本册 `TD-persist-09` 的 **v2 存档布局**是**硬耦合**,不是「顺手一起做」。**只做重映射不做固化 = 精确复现 ADR-033 Alt 4 的漂移反例**(id 每次读档全变、高水位无界上涨)。 |
+| **实现残留(↔ `TD-persist-09`)** | 未落**四**件:`StructureIdRemap`(纯函数,住 `Sim` —— ADR-025 §① 零 codec)· 接线(`WorldLoadService.Rebuild()` 解码后 / `RebuildFromDecoded` 前)· **写回事件流的接缝**(`IPayloadEncoder` + 整表替换;载入路径今日**只读**,C4)· 载荷持久化(v2 布局)。**四者同批**;`ADR-033 §Validation` 的 V-1…V-6 **全部未跑(禁借绿)**。⇒ 本条**状态维持 `open`**:语义已裁 ≠ 债已清。 |
 | **触发条件** | 三者任一成立即须裁:<br>① `SaveHeader.CurrentSaveVersion` **首次递增**(⇒ 出现真实迁移链,旧存档可能被送来);<br>② 任何 `ISaveMigration` **被注册**(同上);<br>③ P0 首次**对外发放存档**(此前开发存档可直接丢弃)。<br>⇒ 在①–③ 全不成立期间,**本条是「已登记但今日不可达」**,不阻塞任何交付。 |
 | **归属** | **23**(模块化建造)—— 与 `TD-building-01` 同 epic。⚠️ 该 epic 已标 `Complete ✅ 2026-10-03`;按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
 | **与 `TD-building-01` 的关系** | **不合并、不互抵**。`TD-building-01` 是「生产装配根零落点」(已在 2026-10-28 部分解除);本条是「撞号的**语义**未裁」。前者是**有没有**的问题,后者是**对不对**的问题 —— 装配根接通**不蕴含**语义已裁,反之亦然。 |
@@ -3585,6 +3588,13 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⚠️ **`P0 面 = N` 是「今日不可达」的判断,不是「不重要」** —— 三个触发条件任一成立即须改回 `Y`,
 > 见本行「触发条件」列。这正是 §一 R4 存在的作用:不让「暂时够不着」的债冒充 P0 出口障碍,
 > 也不让它因够不着而**从册上消失**。
+
+> 🔁 **2026-10-28 补记 —— 语义已裁,债未清,计数零变动。**
+> 用户的裁定 A 结清的是本条的**「语义未裁」**半边(权威件 = `adr-033`,Accepted);
+> **实现半边未落** ⇒ 状态**维持 `open`**,`P0 面` **维持 `N`**(触发条件 ①–③ 仍全假)。
+> ⇒ **本节不作任何 `open → closed` 改动,`debtcount` 计数逐位不变。**
+> ⚠️ **不得**把本条读成「已结」:ADR `Accepted` 表示**方向已裁**,不表示任何判据已通过
+> (`ADR-033 §Validation` V-1…V-7 全部未跑)。
 
 ### TD-building-03 — 「烘焙器误读源」这一面没有可实测的变异形态(判据面缺口)
 
@@ -4825,7 +4835,7 @@ python3 tools/debtcount/debtcount.py --print
 | **实测(逐条可跑)** | ① **存档里没有载荷段**:`grep -n "Blob\|blob" unity/Assets/Sim.Codec/SaveComposer.cs unity/Assets/Sim.Codec/SaveService.cs` ⇒ **零命中**。ADR-010 §一 的 v1 布局(`:156-175`)= 头部 + 事件段 + 折叠段 + (快照段/分册态段「留待后续」),**无载荷段**。<br>② **生产池是进程内存**:`grep -n "InMemoryBlobPool" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ `:132` `AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(), …)`。<br>③ **`IBlobSink` 生产实现为零**:`grep -rn ": IBlobSink" unity/Assets --include=*.cs` ⇒ 只有 `InMemoryBlobPool`(测试载体)+ 两个测试内 `MemoryBlobSink`;**无任何落盘实现**。<br>④ **行为已钉住**:`test_ac9g_realSaveBytes_roundTripRebuildsWorld` 末段用空池重跑同一份存档 ⇒ 断言 `InvalidOperationException`,报文须含 `blob` 与 `BlobId`(ADR-031 §② 的「查无 vs 损坏」可分)。**实跑 14/14 绿**。 |
 | **为什么这是债而不是「设计如此」** | `IBlobPool.cs` 头注与 ADR-010 §三 义务 15 都把池的生命周期归 **7a 存档侧 / 45 网络侧各自实现**,并明写「落盘 = 传输 = 同一段字节」。**今日两侧都没有实现者** —— 义务 15 只补了**签名**(`int Store(ReadOnlySpan<byte>)`),没补**落盘**。⇒ 这不是「决定不做」,是**委派出去的义务无人认领**。 |
 | **为什么不是 `TD-persist-08` 的残留** | `-08` 是「`Load` / `Restore` 超 40 行」的**规范面**债,与本条零重叠。两条都住 `persistence-service`,但面不同。 |
-| **修法方向(未裁,须先裁语义)** | 三种收口各有代价,**选哪个是架构裁决不是实现细节**:<br>① **存档加载荷段** —— 布局从 v1 升 v2(`SaveVersion` 递增),`SaveComposer` 多写一段 blob 表;读档时先装池再解事件。代价:存档体积随载荷线性涨(载荷不可变 ⇒ 无法去重已折叠病人的载荷),且 `SaveVersion` 首次递增会**激活 `TD-building-02` 的撞号面**。<br>② **读档后重建池** —— 从事件流的 `PayloadRef` + 别的持久源重建。但「别的持久源」今天**不存在**,等于把问题推给下一个系统。<br>③ **要求读档路径不依赖载荷** —— 即 `PayloadRef` 只当身份、内容一概不读。但这与 `WorldLoadService` / `TelemetryReporter` / `CaseCloseDecider` 的**现状直接冲突**(它们都调 `IPayloadDecoder`)。⇒ **③ 不可行**。 |
+| **修法方向(未裁,须先裁语义)** | 三种收口各有代价,**选哪个是架构裁决不是实现细节**:<br>① **存档加载荷段** —— 布局从 v1 升 v2(`SaveVersion` 递增),`SaveComposer` 多写一段 blob 表;读档时先装池再解事件。代价:存档体积随载荷线性涨(载荷不可变 ⇒ 无法去重已折叠病人的载荷),且 `SaveVersion` 首次递增会**激活 `TD-building-02` 的撞号面**。<br>🔁 **2026-10-28 双向补记**:该面的**语义已裁**(`docs/architecture/adr-033-structure-id-collision-on-load.md`,Accepted —— 两边都留 / 存档结构 id 平移)。但 ADR-033 的**「固化」正需要本条的载荷段** —— 载荷字节不进存档 ⇒ 平移后的 id **无处持久化** ⇒ 判据每次读档重新触发、id 漂移。⇒ **两侧必须同批落**,单独实现任一侧都**不成立**(ADR-033 §Risks R1 的硬约束)。<br>② **读档后重建池** —— 从事件流的 `PayloadRef` + 别的持久源重建。但「别的持久源」今天**不存在**,等于把问题推给下一个系统。<br>③ **要求读档路径不依赖载荷** —— 即 `PayloadRef` 只当身份、内容一概不读。但这与 `WorldLoadService` / `TelemetryReporter` / `CaseCloseDecider` 的**现状直接冲突**(它们都调 `IPayloadDecoder`)。⇒ **③ 不可行**。 |
 | **触发条件** | ① **P0 首次对外发放存档**(与 `TD-building-02` 同一触发条件,两者会在同一次改动里同时被激活);② 或 `CurrentSaveVersion` 首次递增时;③ 或 `IBlobSink` 首个生产实现落地时(**那时本条转为「已验证」或「已闭」,取决于落地方案**)。 |
 | **归属** | **7a 持久化(`persistence-service`)**,承 ADR-010 §三 义务 15 与 `IBlobPool.cs` 头注的既有委派口径。**不挂 23** —— 23 只是**首个撞上的消费者**,缺口在布局与池实现,不在建造投影。 |
 | **`P0 面 = Y` 的理由** | 归属 `persistence-service` ∈ 31 个 P0 epic,**且本条不自陈「不阻塞 P0 出口」**:P0 的存档一旦要能跨会话读回,本条就必须先闭。⚠️ **今日可达性 = 零**(与 `TD-building-02` 同因:盘上无真实存档 · `RequestLoad` 零调用方),但**可达性为零 ≠ 不阻塞** —— 承 §一 R1 宽判据。 |

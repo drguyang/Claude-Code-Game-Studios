@@ -150,6 +150,26 @@ Overlay(t)      := BakedInitial ⊕ Structure* 事件序列   // 重放:基线 �
 - 初始家具的 `structure_id` 由 `BakedInitial` 定义时分配(进实例表,规则七),玩家对初始家具的**第一次**改动
   = 第一条 `StructureRemoved`(基线对应行),之后世界流照常。
 
+> 🔁 **2026-10-28 补注 —— `⊕` 在「**同号**」形态下的语义([ADR-033](../architecture/adr-033-structure-id-collision-on-load.md)
+> · 用户裁定 A「**两边都留**」)**。原文只写了 `BakedInitial ⊕ 事件序列`,**未定义两边争用同一个
+> `structure_id` 时**谁赢 —— 而该形态**真实存在**:基线由 `d230eb36`(2026-10-28)引入,
+> **该日之前**写下的存档里 `ApplyBakedInitial` 尚不存在,玩家放置自然从 `structure_id = 1` 起号。
+> (⚠️ 多处件曾把该形态写成「**schema-1 存档**」—— **那是误称**:本仓「schema 1」专指
+> `world_buildslots.json` 的**作者态 JSON 格式**,与存档格式 `SaveHeader.CurrentSaveVersion` 无关。
+> 真实的类别是**时序**,不是版本号。)
+>
+> **现口径**:`Overlay(t) := BakedInitial ⊕ 平移(事件序列)`,其中
+> - **基线恒占 `1..N`**,**不被覆盖**;**存档结构也不被丢弃** —— 二者整体平移后并集;
+> - **判据(唯一)**:存在 `Placed` 且其 `StructureId ∈ [1, N]`。
+>   `Removed` / `Modified` 引用基线号是**正常后基线行为**(见上一行),**不触发**;
+> - **平移量** `K := N`(基线件数,**与存档内容无关**),映射 `id → id + N`;
+>   `Removed` / `Modified` 的引用**同一映射**;
+> - ⚠️ **平移结果须在「同一次载入」内写回事件流**(存档写的是事件流)——**「下次自然固化」不够**:
+>   否则会写出**混合存档**(旧空间 `Placed(1..M)` 与新空间结构事件并存),而 `StructureRemoved(基线号)`
+>   在两种含义间**不可区分** ⇒ 删错结构 + 基线家具复活(`ADR-033 §④之补`)。⇒ **实现随 v2 存档布局**
+>   (`TD-persist-09`)同批,今日不可达(无真实存档 / 无迁移链);**不得**做成 `ISaveMigration`
+>   —— 迁移链对事件正文**逐字节**断言不变。
+
 23 在每次占用变更时产出**覆盖层** `OccupancyOverlay: WorldPos → blocked?`:
 一个格被模块占用 ⇒ 该格 `blocked = true`(占用的可走性侧含义)。合成规则(F-23-1):
 
@@ -464,6 +484,7 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 > ⚠️ **判据落点随之订正**:「不静默吞返还」由 **23 侧 spy-sink 测试**钉(`Tests/EditMode/ModularBuilding/structure_kinds_test.cs` 的 `test_r17_remove_emitsRefundDropSpawned` / `test_r17_removeNonexistent_emitsNoRefund` / `test_r17_zeroRefundRatio_emitsStructureRemovedOnly`),**不由 20 的 fold 兜底** —— fold 只看得到流里**有**什么,看不到「本该有而没有」的事件(那要一份「应发清单」= 第二真源)。
 | **EC-23-12** | 放置被 42 渲染层取消(玩家中途取消放置) | **sim 侧零事件**(意图未提交);42 只是预览。**无「半放置」状态** —— 放置判定要么成功要么拒绝,没有中间态 | 42(预览)+ 23(判定) |
 | **EC-23-13** | 开档基线重放(`BakedInitial` 与事件流的关系) | **`Overlay(0) := BakedInitial`**(规则三);玩家对初始家具的**第一次**改动 = 第一条 `StructureRemoved`。`BakedInitial` 不进流、不存档(评审裁定 B3) | 23 + 关卡工具(ADR-022 导出) |
+| **EC-23-14** | **基线诞生前的存档**:其玩家放置从 `structure_id = 1` 起号,与 `BakedInitial` 的 `1..N` **撞号** | **两边都留**(ADR-033,2026-10-28 用户裁定 A):基线恒占 `1..N`**不被覆盖**,存档结构**整体平移** `K := N`(基线件数)到基线号段之外,**不被丢弃**。判据 = 存在 `Placed` 且 id ∈ `[1,N]`(`Removed` / `Modified` 引用基线号是**正常**后基线行为,**不触发**)。⚠️ 平移结果须在**同一次载入内写回事件流**(「下次自然固化」不够 —— 混合存档里 `StructureRemoved(基线号)` 不可区分 ⇒ 删错结构)⇒ 实现随 v2 布局(`TD-persist-09`)同批;⚠️ **不得**做成 `ISaveMigration`(迁移链逐字节禁改正文)。**今日可达性 = 零**(无真实存档 / 无迁移链 / 无对外发放) | 23 + 7a(存档布局) |
 
 > **规则六的判据落点**:以上任何一条若在 P0 实现时需要「改 sim 侧代码才能支持 P1a 自由建造」,
 > 即为回归(AC-23-BL)。
@@ -535,7 +556,7 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 | # | 级别 | 判据 | 载体 |
 |---|------|------|------|
 | **AC-23-01** | [L] BLOCKING | **GIVEN** 槽位骨架 + 模块目录,**WHEN** 执行 F-23-2 **五条件**,`THEN` ①锚点 ∈ 允许格集 ∧ 类型匹配 ②占用全空 ③**占用格全在 `BuildSlotRegion` 内** ④骨架未改 ⑤目录 + 库存可及 **∧ 占用格无实体** —— 任一不满足 `Placeable = false`,且**不 Append 任何事件**。⚠️ 条件④在 P0 恒真(无改骨架 API),矩阵以 ①/②/③/⑤ 为主 | `placeable_cases.json`(含负偏移越界用例) |
-| **AC-23-02** | [L] BLOCKING | **GIVEN** `StructurePlaced` 序列,**WHEN** 重放,`THEN` 重建的 `slot_occupied` / `structure_at` / **`Overlay`**(评审,ai-programmer #4 扩展)与事件序列**逐位一致**(占用真相 = `BakedInitial ⊕ 事件`纯函数,规则三)。**期望终态表独立钉死**(评审,qa-lead #8 —— 不得由同一重建代码算出,防循环自证) | 重放对拍 + 独立夹具 |
+| **AC-23-02** | [L] BLOCKING | **GIVEN** `StructurePlaced` 序列,**WHEN** 重放,`THEN` 重建的 `slot_occupied` / `structure_at` / **`Overlay`**(评审,ai-programmer #4 扩展)与事件序列**逐位一致**(占用真相 = `BakedInitial ⊕ 事件`纯函数,规则三)。**期望终态表独立钉死**(评审,qa-lead #8 —— 不得由同一重建代码算出,防循环自证)。🔁 2026-10-28:同号支的 `⊕` 语义见 **EC-23-14 / ADR-033**(基线不被覆盖,存档 id 平移),该支判据 V-1…V-7 **全部未跑**(禁借绿) | 重放对拍 + 独立夹具 |
 | **AC-23-03** | [L] BLOCKING | **GIVEN** 静态 `Nav` + 23 的 `Overlay`(缝一),**WHEN** 合成 `EffectiveWalkable`,`THEN` = `Nav.walkable ∧ ¬Overlay.blocked`,且 27 / 13 的读接口**只暴露合成结果**(无 `Nav` 原件泄漏);**玩家不读**(评审裁定 B2) | `effective_walkable.json` + 接口断言 |
 | **AC-23-04** | [L] BLOCKING | **GIVEN** 同一占用表,**WHEN** 以 `slot_occupied` 与 `Overlay.blocked` 两个访问器读写,`THEN` 两者恒一致。**载体 = 反射断言 `Overlay` 类型无任何自有存储字段**(无 `bool[]` / `Dictionary` 成员;`blocked` 必须是 `slot_occupied` 的纯函数)+ **Place+Remove 混合序列的逐步不变量检查**(评审,qa-lead #1)—— 不允许两套副本漂移 | 反射断言 + 混合序列单测 |
 | **AC-23-05** | [L] BLOCKING | **GIVEN** 四向朝向的模块,**WHEN** 应用 F-23-2b 整数旋转,`THEN` 占用格集正确且**零浮点中间量**。**载体升级(评审,qa-lead #9)**:类型级反射断言(字段 / 参数类型 ∈ 整数集,与 `PresentationDtoGuard` AC-37-15 同构);grep 仅辅助 | `rotation_cases.json` + 反射断言 |
