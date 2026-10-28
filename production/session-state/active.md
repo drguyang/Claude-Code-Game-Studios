@@ -12237,3 +12237,20 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **需用户裁的两项(只登记不排期)**:① `clinic-machine/story-001` 卡 `In Review`,缺复核动作;
   ② `persistence-service/story-001` 已 QA 退回,§6.5 无 7a 本体排期行(而 7b 三条 AC 依赖它)。
 - **下一步**:征询是否按建议补位两项;或回到 `level-tool/story-006`(C1 / C2 / C2′)。
+
+## Session Extract — 关卡工具 story-006 收口(2026-10-29 · ✅ AC 6/6 · `4ecf2e54`)
+
+- **交付**:C1(`LayerDriftCheck`)· C2(`WalkabilityParityCheck`)· C2'(`ColliderFootprintCheck`)·
+  `LatticeEngineParams` 探针 · `LevelCiRunner` + `tools/level/run_ci.sh`(退出码 0/1/2 三态);
+  `CheckReport` 增**第三态 `NotRun`**;`UnimplementedChecks` **3 → 0**;两处 ADR 回指(AC-6)。
+- **证伪轮 15/15 红**;首轮抓到一条**假绿 F13**(夹具 `0.0125f × 1000` 不在中点)⇒ 修夹具后转红。
+- **端到端 CI 探针**:干净 ⇒ 0;注入 `SlopeLimitDegX100 4500→3000` ⇒ **1** 且点名 `C2 slopeLimit`;
+  还原 SHA-256 `d34be19b…8be90` 逐字节一致。
+- **回归**:EditMode `5842/5805/0/37` · PlayMode `238/234/0/2/2`(基线 `5822/5787/0/35`)。
+- **本轮自身三处错误**(证据件 §七):① C2 接线写成 `if(TryCheck) AddRange` ⇒ 恒绿;
+  ② 证伪驱动器 `-testFilter` 漏类名 ⇒ 15 条全 `total=0`、整轮「全绿」实为没跑;③ F13 夹具边界。
+- **如实边界**:AC-5 的「0」= 七项有实现,**不是**七项在生产上都跑出了结论;
+  C1 / C2' 生产上进 `NotRun`(零视觉层资产 / 零模块 prefab)。
+- **epic 状态**:`level-tool` 6/6 ⇒ **Complete**(DoD 8 项勾选,其中 ecozones EXTERNAL 记**部分解除**)。
+- **下一步**:本 epic 无剩余 story。可回 `p0-remaining-roadmap` §6.5 序列摆下一件;
+  `/code-review` 尚未对本 epic 跑过(lean 模式,建议 epic 收口时补一轮)。
