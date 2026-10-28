@@ -25,7 +25,9 @@
     "   无可证伪性;M11 打的是它承诺的**可观测契约**(零行)。",
     "⚠️ **M15 改的是资产文件**(`.inputactions`),Unity 导入期可能重排该文件 —— 驱动在 Unity 退出后按原字节还原并做 SHA-256 校验;",
     "   若退出码 3 说明还原失败,须人工介入(不得跳过)。",
-    "⚠️ **第二轮订正(2026-10-28,主轮 7 exact + 5 超集 + 3 逃逸)**:每条被改动的变异都带 `_round1_expectRed` / `_round1_result` / `_round1_note` 三个字段,**原预期与改因逐字保留**。三类根因:① M3 = 变异过宽(花括号截断了成功路径)⇒ 收窄;② M5 / M11 / M15 = 变异打错靶或预期推错 ⇒ 改靶 / 删预期 / 改 `groups` 字段;③ M6 / M8 / M9 / M10 = 预期写窄 ⇒ 补上各变异的真实后果。新增 M5b 作负对照(预期零红),机械证明 step② 的守卫与 step① 冗余。"
+    "⚠️ **第二轮订正(2026-10-28,主轮 7 exact + 5 超集 + 3 逃逸)**:每条被改动的变异都带 `_round1_expectRed` / `_round1_result` / `_round1_note` 三个字段,**原预期与改因逐字保留**。三类根因:① M3 = 变异过宽(花括号截断了成功路径)⇒ 收窄;② M5 / M11 / M15 = 变异打错靶或预期推错 ⇒ 改靶 / 删预期 / 改 `groups` 字段;③ M6 / M8 / M9 / M10 = 预期写窄 ⇒ 补上各变异的真实后果。新增 M5b 作负对照(预期零红),机械证明 step② 的守卫与 step① 冗余。",
+    "⚠️ **第三轮补证(2026-10-28,`/story-done` Falsifiability Gate 判定 BLOCKING 后补)** ——命中项有两条**未反证**,补 M16 / M17:① **B-6 的「拒 ⇒ 零副作用」半边**:上一版 `_note` 断言「该半边无独立变异,不为其编造变异」—— **该结论过宽,已被本轮证伪**。它对 `StructureNotFound` 分支成立(写者自己兜底、不发事件),但对 `EntityOnCell` / `ShellNotRemovable` 两条分支**不成立**:结构真实存在 ⇒ 判定器一放行,写者就真的会落流。补夹具 `test_acB6_removeWithEntityOnCell_…` + M16 后转红 ⇒ 该半边有判别力。**原文不删,就地加注**:上一版 `_note` 的「无独立变异」只应读作「**对 unknownId 分支**无独立变异」。② **B-9 的反例半边**(`world == null ⇒ null`):此前只有正例(M13 打 `:1275`)被反证。补 M17 打 `:874` 的世界守卫 ⇒ `assembleWithoutWorld` 转红。⇒ 命中项反证覆盖由「9/11」升至「11/11」。",
+    "⚠️ **第三轮实跑结果(2026-10-28T01:08–01:20Z,18 变异一次跑)**:**17 exact · 0 超集 · 1 逃逸(M17)**。逃逸物 = M17,根因 **「靶点对,但靶场里没有靶」**(见 M17 的 `_round3_note`):`buildController` 的赋值在两层守卫合取内(`:847 ∧ :874`),原预期那条裸 `Assemble()` 两层同时为假 ⇒ 单层停用零可观察。补夹具 `test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController`(第一层真 / 第二层假)后,**M17 单跑复验 = exact**(`tools/falsify/specs/s20-19-m17-single.json`,末行「证伪轮通过:1 个变异全部恰如预期」)。⇒ 全 18 条全部 exact,但**分两批**:17 条出自第三轮同一次运行,M17 出自补夹具后的单跑。**不得**把这句读成「一次 18 条全绿」。与此同时:**M16 在第三轮一次通过**(补的 B-6 夹具 + 变异同轮 exact),该条不需单跑。"
   ],
   "mutations": [
     {
@@ -313,6 +315,37 @@
       "exactRed": true,
       "_why": "**负对照**:停用 step② 的早退 ⇒ **预期零红**。它证明的不是「有守卫」,而是「这条守卫与 step① 冗余」—— 一旦将来 step① 不再共用同一谓词,本变异会转红并提示冗余已消失。",
       "_expectRed_justification": "材料不足时 step① 已返回 `InsufficientStock` ⇒ 142 行不可达 ⇒ 停用它对任何夹具无影响。**空 expectRed = 断言「零红」**,驱动器判据 `expected.issubset(got)` 对空集恒真,再由 `exactRed` 要求 `got == expected` 即 got 必须为空。"
+    },
+    {
+      "name": "M16-B6-demolishGuardBypassed",
+      "file": "unity/Assets/Gameplay.Presentation/Building/BuildController.cs",
+      "line": 159,
+      "expect": "            if (check != DemolishResult.Success)",
+      "replace": "            if (false)   // FALSIFY-M16:停用拆除判定早退(放行到写者)",
+      "expectRed": [
+        "test_acB6_removeWithEntityOnCell_returnsEntityOnCellWithZeroSideEffects"
+      ],
+      "exactRed": true,
+      "_why": "B-6 的「拒 ⇒ 零副作用」半边的判别力。夹具让 `DemolishChecker` 在一条**存在且可拆**的结构上返回 `EntityOnCell`;停用早退后控制流落到 `StructureWriter.Remove` ⇒ 落 `StructureRemoved` + 返还 `DropSpawned` ⇒ 流的条数断言与「不得释放占用格」断言同时转红。",
+      "_expectRed_justification": "① 只有 `removeWithEntityOnCell` 走 `EntityOnCell` 分支(全夹具唯一的 presence 桩 `PresenceOnCell` 只在该条用);② `test_acB6_removeUnknownId` **不会**红 —— 未知 id 时 `StructureWriter.Remove` 自己 `return false` 且不发事件(`StructureKinds.cs:369-376`)⇒ 返回值仍是 `StructureNotFound`、流仍是零新增。**这一条恰恰是本轮要登记的**:unknownId 夹具对判定器的判别力为 **0**,它证的是写者的兜底。③ `test_acB6_remove_appendsRemovedAndRefundAndFreesCells` 走 Success 路径,与早退无关 ⇒ 绿。"
+    },
+    {
+      "name": "M17-B9-worldGuardAlwaysTrue",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 874,
+      "expect": "                if (world != null)",
+      "replace": "                if (true)   // FALSIFY-M17:世界守卫恒真(无世界也进装配)",
+      "expectRed": [
+        "test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController"
+      ],
+      "exactRed": true,
+      "_why": "B-9 的**反例半边**(`world == null ⇒ BuildController == null`)的判别力。守卫恒真后,无世界路径进入建造装配段:`world` 为 null ⇒ `world.SlotCatalog`(`:917`)/ `new StructureWriter(…, world, …)`(`:881`)其一抛 ⇒ 夹具红(异常替代 null)。⚠️ 这是「**移出守卫分支**」的可编译替身:整段搬出 `{ }` 会留下孤立的 `}` ⇒ 编译失败,单行替换做不到;把守卫改成恒真在语义上**等价于**让段落在 world 为 null 时执行。",
+      "_expectRed_justification": "① 只给注册表不给世界 ⇒ `:847` 为真(进入)、`:874` 为假(不进入)。停用 `:874` 后,装配段在 `world == null` 下执行:`new StructureWriter(…, world: null, …)`(`:881`)或 `world.SlotCatalog`(`:917`)或 `new DemolishChecker(structures, world: null, …)`(`:918`)必有一处抛 ⇒ 夹具红。② `assembleWithWorld`(`:874` 本来就为真)与裸 `assembleWithoutWorld`(`:847` 拦在前)均不受本变异影响 ⇒ 绿。",
+      "_round3_expectRed": [
+        "test_acB9_assembleWithoutWorld_yieldsNullBuildController"
+      ],
+      "_round3_result": "逃逸(预期 1 红 / 实得 0 红)",
+      "_round3_note": "⚠️ **第三轮该变异逃逸(2026-10-28)**。逃逸**不是** spec 的靶点错 —— `:874` 确实是 `world` 那一层的守卫;错在**没有任何夹具走到它**:`buildController` 的赋值在**两层守卫的合取**内 —— `:847 structures != null` ∧ `:874 world != null`。原预期打的那条 `assembleWithoutWorld` 走裸 `Assemble()`,两层**同时为假** ⇒ 单独停用 `:874` 不改变任何可观察量 ⇒ 对**任何单层守卫**零判别力(合取使然,不是夹具写错)。补夹具 `test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController`(第一层真、第二层假)后,`:874` 单独成为决定项 ⇒ 本变异转红。**这是「扫不到被测装配」的同族 —— 靶点对,但靶场里没有靶**。"
     }
   ]
 }

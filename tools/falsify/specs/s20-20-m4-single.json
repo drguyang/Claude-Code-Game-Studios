@@ -1,0 +1,30 @@
+{
+  "name": "S20-20 M4 单跑复验(baked_initial 必填门)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_buildslots_bake_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "为什么单跑:M4 第一版替换是**规格缺陷**(把 if 改成单行带块 ⇒ 原拒绝块降级为无条件裸块 ⇒ 变异体「恒拒」⇒ 9 红超集)。",
+    "第二版加了一行 `if (false)` 把原拒绝块变成永不进入的子句。本文件只装这一条,用于给第二版拿**驱动口径**的 exact 证据。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ expectRed 先写死,不抄实得。"
+  ],
+  "mutations": [
+    {
+      "name": "M4-bakedInitialRequiredDisabled",
+      "file": "unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBinder.cs",
+      "line": 311,
+      "expect": "            if (!row.TryGet(\"baked_initial\", out JsonNode n))",
+      "replace": "            if (!row.TryGet(\"baked_initial\", out JsonNode n)) { bakedInitial = false; return true; }   // FALSIFY-M4\n            if (false)   // FALSIFY-M4:原拒绝块永不进入",
+      "expectRed": [
+        "test_worldBuildSlots_missingBakedInitial_isRejected"
+      ],
+      "exactRed": true,
+      "_why": "域门 ⑤ —— 「没写」与「明写 false」不同。停用后缺字段被静默当成 false ⇒ `Assert.Throws` 拿到 null ⇒ 红。其余 11 条不受影响(真种子与各负向夹具的行都带该字段,或被更早的门拒掉)。"
+    }
+  ]
+}

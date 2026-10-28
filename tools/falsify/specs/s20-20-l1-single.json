@@ -1,0 +1,33 @@
+{
+  "name": "S20-20 L1 单跑复验(重复格检查 + 夹具解耦后)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.LevelTool.level_tool_consistency_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "为什么单跑:L1 第一轮是超集(2 红),根因是 `export_runsConsistencyCheck` 与「重复格守卫」**耦合**。",
+    "修法 = **解耦夹具**(违例源改成 `(SlotType)99` 闭集外值),不是把预期改宽。",
+    "本文件只装这一条,用于给解耦后的 L1 拿**驱动口径**的 exact 证据。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ expectRed 先写死,不抄实得。"
+  ],
+  "mutations": [
+    {
+      "name": "L1-duplicateCellCheckDisabled",
+      "file": "unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs",
+      "line": 79,
+      "expect": "                if (!seen.Add((s.X, s.Y, s.Z)))",
+      "replace": "                if (false && !seen.Add((s.X, s.Y, s.Z)))   // FALSIFY-L1:停用重复格检查",
+      "expectRed": [
+        "test_levelTool_duplicateCell_reportsViolation"
+      ],
+      "exactRed": true,
+      "_why": "重复格让「取哪一条」成为隐式规则。停用后两条重复声明都过 ⇒ 报告全绿 ⇒ 该夹具的 `IsGreen == false` 断言红。真种子无重复格 ⇒ `realSeed` 仍绿。",
+      "_round1_result": "超集(预期 1 红 / 实得 2 红:另含 `test_levelTool_export_runsConsistencyCheck`)",
+      "_round1_note": "⚠️ **判别面不清,根因是夹具耦合,不是变异过宽(2026-10-28)**。`export_runsConsistencyCheck` 首版的违例源用的是**重复格** ⇒ 它证明的其实是「重复格守卫」,而不是「导出路径跑检查」⇒ 停用重复格守卫后它必然同红。**修法 = 解耦夹具(改违例形态为 `(SlotType)99` 闭集外值),不是把预期改宽** —— 改宽会把「一条夹具同时钉两条属性」当成正常,那正是判别面不清的定义。解耦后 L4(停用 `CheckOrThrow` 调用)仍**单独**红本条,证明「导出跑检查」这半边有独立载体。"
+    }
+  ]
+}

@@ -55,6 +55,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static BuildModulesDataSet LoadBuildModules()
             => BuildModulesCookedCodec.Read(ReadAll(BuildModulesDataSet.CookedFileName));
 
+        /// <summary>建造槽位骨架(<c>world_buildslots.cooked.bytes</c>;ADR-022 §三导出契约的烘焙产物)。
+        /// <para>⚠️ 消费方 = <c>MinimalWorldFactory.Create()</c>(装配期世界工厂)。
+        /// 产物缺失 / 损坏 ⇒ 本方法**抛**(E-13 口径);「降级为空目录」的判断在**调用方**
+        /// (`MinimalWorldFactory` 显式 catch + LogError + 横幅),不在本方法里静默。</para></summary>
+        public static WorldBuildSlotsDataSet LoadBuildSlots()
+            => WorldBuildSlotsCookedCodec.Read(ReadAll(WorldBuildSlotsDataSet.CookedFileName));
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

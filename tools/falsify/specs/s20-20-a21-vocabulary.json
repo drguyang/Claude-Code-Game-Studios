@@ -1,0 +1,60 @@
+{
+  "name": "S20-20 代码评审 A-21 修复轮(槽位类型词表由 Sim.SlotType 派生)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.slot_type_vocabulary_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节(不是 grep 变异串)。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期),按「夹具过期」处理而不是「逃逸」。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **一属性一条变异**:M1=序数=枚举值 / M2=名字大小写敏感 / M7=None 不入闭集。",
+    "⚠️ **本件证明不了的那一件事**:今天枚举连续(`None=0 … Shell=6`),`下标+1` 与 `枚举值` **数值相等** ⇒ 没有任何夹具能区分这两种实现。M1 钉的是「当前映射就是这六对字面量」,枚举一重排/插值立刻转红把决定权交回人。此点已写进夹具头注,不当作已证。",
+    "⚠️ **M7 预期是超集(3 条全红)**,不是 exact —— 删 `continue` 后 `None`(值 0)撞上紧随其后的 `[1,30]` 位域守卫 ⇒ **静态构造抛** ⇒ fixture 每条都红。这是设计上的双保险,如实记 3 条、exactRed=false。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-ordinalIsClrValue",
+      "file": "unity/Assets/Editor.Tools.Bake/SlotTypeVocabulary.cs",
+      "line": 59,
+      "expect": "                map.Add(name, v);",
+      "replace": "                map.Add(name, v - 1);   // FALSIFY-M1:序数改成「下标从 0 起」",
+      "expectRed": [
+        "test_slotTypeVocabulary_nameToOrdinal_isLiteralPinned",
+        "test_worldBuildSlots_binderMask_matchesLiteralBitForEachType"
+      ],
+      "exactRed": true,
+      "_why": "A-21 的核心属性 —— 序数 = **CLR 枚举值**,不是名字表下标。减一后 Bed=0…Shell=5:字面量钉板红;binder 的 Shell 序数 6→5 与掩码 64→32 双红。`noneUnknownAndCaseVariant` 不读序数 ⇒ 保持绿。"
+    },
+    {
+      "name": "M2-nameLookupIsCaseSensitive",
+      "file": "unity/Assets/Editor.Tools.Bake/SlotTypeVocabulary.cs",
+      "line": 38,
+      "expect": "            var map = new Dictionary<string, int>(values.Length, StringComparer.Ordinal);",
+      "replace": "            var map = new Dictionary<string, int>(values.Length, StringComparer.OrdinalIgnoreCase);   // FALSIFY-M2",
+      "expectRed": [
+        "test_slotTypeVocabulary_noneUnknownAndCaseVariant_areRejected"
+      ],
+      "exactRed": true,
+      "_why": "A-21 的边界属性 —— 作者拼错大小写(`decor`)必须被拒,不得被当成等价写法静默接受。改成忽略大小写后 `TryGetOrdinal(\"decor\")` 返回 true ⇒ 该条红;另两条不碰大小写 ⇒ 绿。"
+    },
+    {
+      "name": "M7-noneStaysOutOfClosedSet",
+      "file": "unity/Assets/Editor.Tools.Bake/SlotTypeVocabulary.cs",
+      "line": 43,
+      "expect": "                if (t == SlotType.None) continue;",
+      "replace": "                if (false && t == SlotType.None) continue;   // FALSIFY-M7",
+      "expectRed": [
+        "test_slotTypeVocabulary_nameToOrdinal_isLiteralPinned",
+        "test_slotTypeVocabulary_noneUnknownAndCaseVariant_areRejected",
+        "test_worldBuildSlots_binderMask_matchesLiteralBitForEachType"
+      ],
+      "exactRed": false,
+      "_why": "A-21 的哨兵属性 —— `None`(值 0)是「未分配」,不得进合法闭集。停用该行后 `None` 撞上紧随其后的 `[1,30]` 位域守卫 ⇒ 静态构造抛 ⇒ 每条都红(TypeInitializationException)。**超集是设计使然**(两道守卫都挡 None),如实记 3 条。"
+    }
+  ]
+}

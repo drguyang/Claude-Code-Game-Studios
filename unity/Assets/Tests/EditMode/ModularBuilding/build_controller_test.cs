@@ -383,6 +383,52 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.That(StreamCount, Is.EqualTo(streamBefore), "拒绝路径不得落任何事件");
         }
 
+        /// <summary>
+        /// B-6 的「判定器拒绝 ⇒ 零副作用」半边 —— **可证伪的那一半**。
+        /// <para>⚠️ 为什么不能只靠 `removeUnknownId`:那条夹具挡在
+        /// <see cref="StructureWriter.Remove"/> **自己的兜底**前面 —— 未知 id 时写者
+        /// `return false` 且**不发事件** ⇒「判定器放行 + 写者兜底」与「判定器拒绝」
+        /// 在返回值与副作用上**都不可分**,它对判定器零判别力。</para>
+        /// <para>⇒ 必须让判定器挡在一条**存在且可拆**的结构前面。`DemolishChecker` 有两条
+        /// 可达拒绝分支,本夹具走 `EntityOnCell`(另一条 `ShellNotRemovable` 需
+        /// `SlotType.Shell` 模块,本夹具目录里没有)。</para>
+        /// </summary>
+        [Test]
+        public void test_acB6_removeWithEntityOnCell_returnsEntityOnCellWithZeroSideEffects()
+        {
+            // Arrange ①:先合法放一个(占 (0,0,0) 与 (1,0,0))—— 用「无实体」存在性桩
+            Assert.That(_controller.TryPlace(Module, new WorldPos(0, 0, 0), 0),
+                Is.EqualTo(PlaceableResult.Success));
+            long id = _controller.StructureIdAt(new WorldPos(0, 0, 0));
+            int streamBefore = StreamCount;
+
+            // Arrange ②:**只换 presence 一支** —— 结构真的存在,只是格上有人
+            var blocked = new BuildController(
+                new PlaceableChecker(_slots, _catalog,
+                    new BuildStockQuery(() => _projection, _catalog, _ownerSlot),
+                    _world, new AlwaysEmptyPresence()),
+                new DemolishChecker(_world.Structures, _world, new PresenceOnCell(), _catalog),
+                new ModifiableChecker(_slots, _world, _catalog, _world.Structures),
+                _writer, _world.Structures, _catalog, () => _projection, () => 100L, _ownerSlot);
+
+            // Act
+            DemolishResult r = blocked.TryRemove(id);
+
+            // Assert ①:判定器真的挡了(而不是写者兜底成 StructureNotFound)
+            Assert.That(r, Is.EqualTo(DemolishResult.EntityOnCell));
+
+            // Assert ②:写者**零调用** —— 流里既无 `StructureRemoved` 也无返还 `DropSpawned`
+            Assert.That(StreamCount, Is.EqualTo(streamBefore),
+                "拒绝路径不得落任何事件(尤其不得发返还 `DropSpawned`)");
+            Assert.That(_stream.Count(e => e.Kind == EventKind.StructureRemoved), Is.EqualTo(0));
+
+            // Assert ③:拒绝不得产生「半拆」状态 —— 实例仍在、占用格仍被占
+            Assert.That(_world.Structures.TryGet(id, out _), Is.True,
+                "被拒的拆除不得移除结构实例");
+            Assert.That(_world.IsEffectivelyWalkable(new WorldPos(0, 0, 0)), Is.False,
+                "被拒的拆除不得释放占用格");
+        }
+
         // ══════════════════════════════════════════════════════════════════
         // 旋转(幽灵循环的落点)—— `TryRotateBy` 的定义域
         // ══════════════════════════════════════════════════════════════════
@@ -517,6 +563,29 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "`world == null` 时不得凭空造一个没有世界可写的建造器");
         }
 
+        /// <summary>
+        /// B-9 反例半边的**可证伪路径**:给了注册表、但**没给世界**。
+        /// <para>⚠️ 为什么不靠 `assembleWithoutWorld` 一条:`buildController` 的赋值在
+        /// **两层守卫的合取**之内 —— `:847 structures != null` ∧ `:874 world != null`。
+        /// 裸 `Assemble()` 时两层**同时为假**,单独停用任一层都不改变可观察量
+        /// ⇒ 那条夹具对**任何单层守卫**都零判别力(不是它错,是合取使然)。</para>
+        /// <para>本条让第一层为真、第二层为假 ⇒ `world` 那一层**单独**成为决定项,
+        /// 停用它就会让装配段在 `world == null` 下执行并抛。</para>
+        /// </summary>
+        [Test]
+        public void test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController()
+        {
+            // Arrange:只给注册表(既有 77 处调用方里「接了世界注册表但没接 World」的形态)
+            StructureInstanceRegistry structures = MinimalWorldFactory.Create().Structures;
+
+            // Act
+            CompositionRootServices services = CompositionRoot.Assemble(structures: structures);
+
+            // Assert:无世界 ⇒ 建造器不得存在 —— 写者的 occupancy 与 registry 必须同指一个世界
+            Assert.That(services.BuildController, Is.Null,
+                "只给注册表不给世界时不得造建造器(否则占用表与世界注册表分叉 = C1/C2 复现)");
+        }
+
         [Test]
         public void test_moduleIds_projectsCatalog()
         {
@@ -586,6 +655,19 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             private readonly List<SimEvent> _sink;
             public CapturingSink(List<SimEvent> sink) => _sink = sink;
             public void Append(in SimEvent e) => _sink.Add(e);
+        }
+
+        /// <summary>
+        /// 存在性替身:**每个格上都有人**。
+        /// <para>用于走 `DemolishChecker.Check` 的 `EntityOnCell` 分支 —— 共享替身
+        /// (`AlwaysEmptyPresence`)恒 false,走不到这条分支。</para>
+        /// </summary>
+        private sealed class PresenceOnCell : IPresenceQuery
+        {
+            public bool IsPresent(PatientId patientId) => true;
+            public int PresentCount => 1;
+            public bool IsPresentAt(WorldPos cell) => true;
+            public IReadOnlyCollection<int> PresentPatientIds() => new[] { 0 };
         }
     }
 }

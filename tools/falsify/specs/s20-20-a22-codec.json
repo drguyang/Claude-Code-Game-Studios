@@ -1,0 +1,46 @@
+{
+  "name": "S20-20 代码评审 A-22 修复轮(codec 值域双侧收紧)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_buildslots_codec_validation_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 先写死,不抄实得。**",
+    "⚠️ **一属性一条变异**:M3=掩码双侧值域 / M4=baked_initial 严格布尔。两个属性都在同一个 `for` 循环里,但**互不覆盖**(M3 不碰 bool,M4 不碰掩码)。",
+    "⚠️ **本件证明不了的那一件事**:`MaxAllowedMask` 若被写死成 `127`(而不是从枚举派生),今天的夹具**分不出**—— 值相等。`test_worldBuildSlots_codec_maxAllowedMask_isCurrentEnumCeiling` 钉的是「当前上界 = 127」,枚举扩展时会红,把「要不要改契约」交回人。此点不当作已证。"
+  ],
+  "mutations": [
+    {
+      "name": "M3-allowedMaskDomainBothSides",
+      "file": "unity/Assets/Gameplay.Presentation/WorldBuildSlotsCookedCodec.cs",
+      "line": 148,
+      "expect": "                    if (allowedMask <= 0 || allowedMask > MaxAllowedMask)",
+      "replace": "                    if (allowedMask == 0)   // FALSIFY-M3:退回「只拒 0」的旧形态",
+      "expectRed": [
+        "test_worldBuildSlots_codec_allowedMaskNegative_isRejected",
+        "test_worldBuildSlots_codec_allowedMaskBeyondEnumBits_isRejected"
+      ],
+      "exactRed": true,
+      "_why": "A-22 的病根原形 —— 「结构严、值域松」。退回只拒 0 后,`-1`(全位置位 ⇒ 任何模块都匹配)与 `128`(位在枚举之外 ⇒ 任何真实模块都不匹配)双双放行 ⇒ 两条负例红;上界正例 127 与单比特正例 64 本就该放行 ⇒ 绿。"
+    },
+    {
+      "name": "M4-bakedInitialStrictBoolean",
+      "file": "unity/Assets/Gameplay.Presentation/WorldBuildSlotsCookedCodec.cs",
+      "line": 153,
+      "expect": "                    if (bakedInitial != 0 && bakedInitial != 1)",
+      "replace": "                    if (false)   // FALSIFY-M4:退回「非零即真」",
+      "expectRed": [
+        "test_worldBuildSlots_codec_bakedInitialNotBoolean_isRejected",
+        "test_worldBuildSlots_codec_bakedInitialNegative_isRejected"
+      ],
+      "exactRed": true,
+      "_why": "A-22 的另一半 —— 非 0/1 被静默收成 true。停用后 2 与 -1 都被读成 `true` ⇒ 两条负例红;正例(0 / 1)不受影响 ⇒ 绿。"
+    }
+  ]
+}

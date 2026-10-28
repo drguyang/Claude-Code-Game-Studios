@@ -1,0 +1,86 @@
+{
+  "name": "S20-20 建造槽位骨架全链(BuildSlotCatalog 生产侧)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.ModularBuilding.world_buildslots_bake_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **一属性一条变异**:M1 = 生产装配真的注册;M2 = 越界域门;M3 = 重复格域门;M4 = baked_initial 必填;M5 = 行序 (x,y,z) 升序。",
+    "⚠️ **M5 预期 2 条红,不是 1 条** —— 行序反转后,`cookedRoundTrip`(与升序期望逐行比)红,**且** `diskMatchesFreshBake`(盘上产物是升序烘的)同红。少写一条 = 判别面不清。",
+    "⚠️ **M4 的替换把 if 语句写成单行带块**,原 `{ … }` 变成裸块(C# 合法)⇒ 可编译。改错会编译失败而不是转红 —— 那时按 2 处理,不要当成逃逸。",
+    "⚠️ **第一轮实跑结果(2026-10-28):4 exact + 1 超集(M4)**。M4 的超集是**规格缺陷**(把 if 改成单行带块 ⇒ 原拒绝块降级为**无条件裸块** ⇒ 变异体退化成「恒拒」),不是夹具缺陷、不是生产缺陷。已按 `_round1_replace` / `_round1_result` / `_round1_note` 三字段保留原样与改因,并另跑 `s20-20-m4-single.json` 单条复验。⚠️ **本文件的 M4 已换成第二版,但「本 spec 整体实跑」只做过第一轮** ⇒ 不得声称「本 spec 5/5 一次通过」。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-registerSlotLoopDisabled",
+      "file": "unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs",
+      "line": 189,
+      "expect": "                catalog.RegisterSlot(new BuildSlot(row.Cell, new BitMask(row.AllowedMask)));",
+      "replace": "                // FALSIFY-M1:停用 RegisterSlot(装载了但不进目录)",
+      "expectRed": [
+        "test_worldBuildSlots_minimalWorld_catalogNonEmptyAndCheckNotSlotNotFound"
+      ],
+      "exactRed": true,
+      "_why": "本任务的**目的判据** —— 「生产装配把烘焙行真的注册进 BuildSlotCatalog」。停用后 `catalog.Count == 0`,而 `LoadSlotCatalog` 仍成功返回 ⇒ 端到端夹具的 `Count > 0` 与 `IsValidSlot(anchor)` 两条断言同时红。"
+    },
+    {
+      "name": "M2-outOfBoundsGateDisabled",
+      "file": "unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBinder.cs",
+      "line": 223,
+      "expect": "            if (sizeOk && (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth))",
+      "replace": "            if (false)   // FALSIFY-M2:停用越界域门",
+      "expectRed": [
+        "test_worldBuildSlots_productionCore_rejectsOutOfBoundsCell"
+      ],
+      "exactRed": true,
+      "_why": "域门 ④ —— 越界格在运行期永远不可达。停用后 `(9,0,0)` 在 `world_size=[4,1,4]` 下被放行 ⇒ 该夹具不再抛 ⇒ 红。`acceptsValidRow`(合法行)本就不进这条分支 ⇒ 绿。"
+    },
+    {
+      "name": "M3-duplicateCellGateDisabled",
+      "file": "unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBinder.cs",
+      "line": 232,
+      "expect": "            if (!seenCells.Add((x, y, z)))",
+      "replace": "            if (false && !seenCells.Add((x, y, z)))   // FALSIFY-M3:停用重复格域门",
+      "expectRed": [
+        "test_worldBuildSlots_duplicateCell_isRejected"
+      ],
+      "exactRed": true,
+      "_why": "域门 ② —— 重复格让「取哪一条」成为隐式规则。停用后两条 `(1,0,1)` 都过 ⇒ 不抛 ⇒ 该夹具红。其余夹具不含重复格 ⇒ 绿。"
+    },
+    {
+      "name": "M4-bakedInitialRequiredDisabled",
+      "file": "unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBinder.cs",
+      "line": 311,
+      "expect": "            if (!row.TryGet(\"baked_initial\", out JsonNode n))",
+      "replace": "            if (!row.TryGet(\"baked_initial\", out JsonNode n)) { bakedInitial = false; return true; }   // FALSIFY-M4\n            if (false)   // FALSIFY-M4:原拒绝块永不进入",
+      "expectRed": [
+        "test_worldBuildSlots_missingBakedInitial_isRejected"
+      ],
+      "exactRed": true,
+      "_why": "域门 ⑤ —— 「没写」与「明写 false」不同(前者是作者遗漏)。停用后缺 `baked_initial` 的行被静默当成 false ⇒ 该夹具不再抛 ⇒ 红。「静默当成 false」正是这条门要防的失效模式,故本变异直接复现它。",
+      "_round1_replace": "            if (!row.TryGet(\"baked_initial\", out JsonNode n)) { bakedInitial = false; return true; }   // FALSIFY-M4:缺字段不再拒",
+      "_round1_result": "超集(预期 1 红 / 实得 9 红)",
+      "_round1_note": "⚠️ **第一版替换是规格缺陷,不是夹具缺陷,也不是生产缺陷(2026-10-28)**。原替换把 `if` 写成单行带块,其后的 `{ errors.Add(…); return false; }` 于是变成**裸块语句 —— 无条件执行** ⇒ 变异体退化成「**恒拒**」(任何解析得动的行都被判缺 `baked_initial`),故凡走行解析的夹具全红(9 条)。判据 = 9 条红的报文全是「缺 baked_initial」而非「断言不符」。**修法**:多写一行 `if (false)` 把原拒绝块变成它永不进入的子句 —— 驱动支持 `replace` 内嵌 `\\n`(`lines[ln-1]` 赋多行字符串后 `join` 生效)。⚠️ 教训:把 `if (cond) stmt;` 改成单行带块后,**紧随其后的块会从 if 的 body 降级为裸块** —— 改 if 结构时须一并看下一行。"
+    },
+    {
+      "name": "M5-cookedRowOrderReversed",
+      "file": "unity/Assets/Editor.Tools.Bake/WorldBuildSlotsCookedWriter.cs",
+      "line": 43,
+      "expect": "            rows.Sort(CompareCell);",
+      "replace": "            rows.Sort((a, b) => CompareCell(b, a));   // FALSIFY-M5:行序反向",
+      "expectRed": [
+        "test_worldBuildSlots_cookedRoundTrip_isFieldwiseIdentical",
+        "test_worldBuildSlots_diskMatchesFreshBake"
+      ],
+      "exactRed": true,
+      "_why": "行序契约 = (x,y,z) 升序(ADR-014 deterministic)。反转后:① `cookedRoundTrip` 逐行与升序期望比 ⇒ 位置对不上 ⇒ 红;② 盘上产物是**升序**烘的,而现烘是降序 ⇒ 字节不同 ⇒ `diskMatchesFreshBake` 同红。⚠️ **少写第 ② 条就是判别面不清** —— 这两个红都是本变异的真实后果。"
+    }
+  ]
+}

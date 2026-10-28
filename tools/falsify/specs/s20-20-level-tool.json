@@ -1,0 +1,99 @@
+{
+  "name": "S20-20 关卡工具(槽位子集三条硬检查 + 导出确定性)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.LevelTool.level_tool_consistency_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "为什么单列这一轮:`LevelConsistencyCheck` 的三条硬检查与「导出前先跑检查」此前**零夹具** ——",
+    "按 `coding-standards.md` §「某件有门」,那几条只能记 NOT-RUN。本轮把它们逐条打成「真会红」。",
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ expectRed 先写死,不抄实得。",
+    "⚠️ **一属性一条变异**:L1 重复格 / L2 `None` 哨兵 / L3 越界格 / L4 导出前真的跑检查 / L5 导出主键升序 / L6 未实现项如实申报 7 条。",
+    "⚠️ **L3 的替换只停用 x/y 两轴**(保留 z 轴):`if (false) { } else if (` 让原多行条件退化成只查 z。",
+    "   ⚠️ 若替换写成 `if (false`,会把下一行的续行变成语法错误 ⇒ **编译失败而不是转红**,那时按退出码 2 处理,不要当成逃逸。",
+    "⚠️ **L5 打的是比较器的 X 主键**(反向),不是删 sort:删 sort 后仍有 Y/Z 主键兜底,而本种子的 Y 恒 0、Z 恰好也把 Shell 排在 Decor 前 ⇒ 删 sort **测不出来**(会逃逸)。",
+    "⚠️ **L6 的替换是空串** ⇒ 数组少一条(原行留空行,C# 允许尾随逗号)。",
+    "⚠️ **本轮实跑结果(2026-10-28):5 exact + 1 超集(L1)**。L1 的超集根因 = **夹具耦合**(`export_runsConsistencyCheck` 用重复格当违例源 ⇒ 停用重复格守卫后必然同红),不是变异过宽。修法 = **解耦夹具**(违例源改 `(SlotType)99` 闭集外值),并单跑 `s20-20-l1-single.json` 复验。**本 spec 整体只跑过一轮,不得声称「6/6 一次通过」。**"
+  ],
+  "mutations": [
+    {
+      "name": "L1-duplicateCellCheckDisabled",
+      "file": "unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs",
+      "line": 79,
+      "expect": "                if (!seen.Add((s.X, s.Y, s.Z)))",
+      "replace": "                if (false && !seen.Add((s.X, s.Y, s.Z)))   // FALSIFY-L1:停用重复格检查",
+      "expectRed": [
+        "test_levelTool_duplicateCell_reportsViolation"
+      ],
+      "exactRed": true,
+      "_why": "重复格让「取哪一条」成为隐式规则。停用后两条重复声明都过 ⇒ 报告全绿 ⇒ 该夹具的 `IsGreen == false` 断言红。真种子无重复格 ⇒ `realSeed` 仍绿。",
+      "_round1_result": "超集(预期 1 红 / 实得 2 红:另含 `test_levelTool_export_runsConsistencyCheck`)",
+      "_round1_note": "⚠️ **判别面不清,根因是夹具耦合,不是变异过宽(2026-10-28)**。`export_runsConsistencyCheck` 首版的违例源用的是**重复格** ⇒ 它证明的其实是「重复格守卫」,而不是「导出路径跑检查」⇒ 停用重复格守卫后它必然同红。**修法 = 解耦夹具(改违例形态为 `(SlotType)99` 闭集外值),不是把预期改宽** —— 改宽会把「一条夹具同时钉两条属性」当成正常,那正是判别面不清的定义。解耦后 L4(停用 `CheckOrThrow` 调用)仍**单独**红本条,证明「导出跑检查」这半边有独立载体。"
+    },
+    {
+      "name": "L2-noneSlotTypeCheckDisabled",
+      "file": "unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs",
+      "line": 85,
+      "expect": "                if (s.Type == SlotType.None)",
+      "replace": "                if (false)   // FALSIFY-L2:停用 None 哨兵检查",
+      "expectRed": [
+        "test_levelTool_noneSlotType_reportsViolation"
+      ],
+      "exactRed": true,
+      "_why": "`SlotType.None` 是「未分配」哨兵。停用后 `else if (!Enum.IsDefined(...))` 接手 —— 而 `None = 0` **是**枚举已定义值 ⇒ 也不判红 ⇒ 报告全绿 ⇒ 该夹具红。⚠️ 这正是本变异值得跑的地方:两个分支**都不**拦 None,证明前一条不是冗余。"
+    },
+    {
+      "name": "L3-outOfRangeCheckXYDisabled",
+      "file": "unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs",
+      "line": 94,
+      "expect": "                if (s.X < 0 || s.X >= src.Width || s.Y < 0 || s.Y >= src.Height ||",
+      "replace": "                if (false) { } else if (   // FALSIFY-L3:只停用 x/y 两轴",
+      "expectRed": [
+        "test_levelTool_outOfRangeCell_reportsViolation"
+      ],
+      "exactRed": true,
+      "_why": "越界格运行期永远不可达。夹具给的是 x=4(在 `[0,4)` 之外),停用 x/y 两轴后只剩 z 轴判定 ⇒ 不判红 ⇒ 报告全绿 ⇒ 该夹具红。真种子无越界格 ⇒ 其余夹具绿。"
+    },
+    {
+      "name": "L4-exportSkipsConsistencyCheck",
+      "file": "unity/Assets/Editor.Tools.Level/LevelExporter.cs",
+      "line": 44,
+      "expect": "            LevelConsistencyCheck.CheckOrThrow(src);",
+      "replace": "            // FALSIFY-L4:导出不再跑一致性检查",
+      "expectRed": [
+        "test_levelTool_export_runsConsistencyCheck"
+      ],
+      "exactRed": true,
+      "_why": "ADR-022 §② 要求门在**导出路径上**执行,而不是「工具里有个检查函数」。停用后违例源照样导出成 JSON ⇒ 该夹具的 `Assert.Throws` 拿到 null ⇒ 红。其余夹具不经导出路径(或源本就合法)⇒ 绿。"
+    },
+    {
+      "name": "L5-exportPrimaryKeyReversed",
+      "file": "unity/Assets/Editor.Tools.Level/LevelExporter.cs",
+      "line": 50,
+      "expect": "                int cmp = a.X.CompareTo(b.X);",
+      "replace": "                int cmp = b.X.CompareTo(a.X);   // FALSIFY-L5:主键反向 ⇒ 不再是 (x,y,z) 升序",
+      "expectRed": [
+        "test_levelTool_export_isDeterministic"
+      ],
+      "exactRed": true,
+      "_why": "导出行序契约 = `(x,y,z)` 升序(声明序重排 = 零信息)。主键反向 ⇒ X 从大到小 ⇒ `(6,0,6)` 出现在 `(1,0,1)` 之前 ⇒ 该夹具的顺序断言红。**两次导出仍逐字符相同** ⇒ 「确定性」那半边不会红 —— 这正是要保留的区分:确定 ≠ 有序。"
+    },
+    {
+      "name": "L6-unimplementedListTrimmed",
+      "file": "unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs",
+      "line": 62,
+      "expect": "            \"C6 切片完整性(需 world_nav_{chunk}.json —— 本批不产出)\",",
+      "replace": "",
+      "expectRed": [
+        "test_levelTool_realSeed_passesSlotSubsetChecks_andDeclaresSevenUnimplemented"
+      ],
+      "exactRed": true,
+      "_why": "「未实现项」是**返回值里的数据**,不是注释 —— 少报一条 = 把未实现伪装成已实现(假完备)。删一条 ⇒ `Unimplemented.Count` 6 ≠ 7 ⇒ 该夹具红。其余 6 条不读该清单 ⇒ 绿。"
+    }
+  ]
+}

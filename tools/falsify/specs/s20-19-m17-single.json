@@ -1,0 +1,51 @@
+{
+  "name": "S20-19 M17 单跑复验",
+  "mode": "EditMode",
+  "filter": "BuildMaterialPlannerTest;BuildStockQueryTest;BuildControllerTest;test_input_asset_structure_p0_actions_each_cover_three_binding_groups",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ **15 条变异,不是卡面写的 9 条(B-1…B-9)** —— 理由 = **一属性一条变异**:",
+    "   B-4 是**两个正交属性**(不足 ⇒ 零副作用 / 足够 ⇒ 恰一条事件),B-5 是**六个正交属性**",
+    "   (升序 / 跨栈条数 / 不重复点名 / 不足整手拒 / owner 过滤 / 零行契约),B-6 是两条(拒 ⇒ 零副作用 / 可拆 ⇒ 返还)。",
+    "   一条变异证不了两个属性 ⇒ 9 条撑不住,故 15 条。",
+    "⚠️ **B-1 / B-7 是源码面门**,故变异形态 = **在源码里注入被禁记号**(真调用 / 字符串字面量),",
+    "   而不是改判定逻辑 —— 门的判据就是「记号是否出现」。",
+    "⚠️ **B-6 的「拒 ⇒ 零副作用」半边无独立变异**:`StructureWriter.Remove` 自身对未知 id 返回 false 且**不发事件**,",
+    "   所以「判定器放行 + 写者兜底」与「判定器拒绝」在副作用上不可分。该半边的判别力因此落在",
+    "   `test_acB6_removeUnknownId` 的**返回值断言**上,本文件如实不为其编造变异(禁借绿)。",
+    "⚠️ **M11 打的不是 `if (need <= 0)` 早退分支** —— 该分支与通用路径行为等价(见 M11 的 _expectRed_justification),",
+    "   无可证伪性;M11 打的是它承诺的**可观测契约**(零行)。",
+    "⚠️ **M15 改的是资产文件**(`.inputactions`),Unity 导入期可能重排该文件 —— 驱动在 Unity 退出后按原字节还原并做 SHA-256 校验;",
+    "   若退出码 3 说明还原失败,须人工介入(不得跳过)。",
+    "⚠️ **第二轮订正(2026-10-28,主轮 7 exact + 5 超集 + 3 逃逸)**:每条被改动的变异都带 `_round1_expectRed` / `_round1_result` / `_round1_note` 三个字段,**原预期与改因逐字保留**。三类根因:① M3 = 变异过宽(花括号截断了成功路径)⇒ 收窄;② M5 / M11 / M15 = 变异打错靶或预期推错 ⇒ 改靶 / 删预期 / 改 `groups` 字段;③ M6 / M8 / M9 / M10 = 预期写窄 ⇒ 补上各变异的真实后果。新增 M5b 作负对照(预期零红),机械证明 step② 的守卫与 step① 冗余。",
+    "⚠️ **第三轮补证(2026-10-28,`/story-done` Falsifiability Gate 判定 BLOCKING 后补)** ——命中项有两条**未反证**,补 M16 / M17:① **B-6 的「拒 ⇒ 零副作用」半边**:上一版 `_note` 断言「该半边无独立变异,不为其编造变异」—— **该结论过宽,已被本轮证伪**。它对 `StructureNotFound` 分支成立(写者自己兜底、不发事件),但对 `EntityOnCell` / `ShellNotRemovable` 两条分支**不成立**:结构真实存在 ⇒ 判定器一放行,写者就真的会落流。补夹具 `test_acB6_removeWithEntityOnCell_…` + M16 后转红 ⇒ 该半边有判别力。**原文不删,就地加注**:上一版 `_note` 的「无独立变异」只应读作「**对 unknownId 分支**无独立变异」。② **B-9 的反例半边**(`world == null ⇒ null`):此前只有正例(M13 打 `:1275`)被反证。补 M17 打 `:874` 的世界守卫 ⇒ `assembleWithoutWorld` 转红。⇒ 命中项反证覆盖由「9/11」升至「11/11」。"
+  ],
+  "mutations": [
+    {
+      "name": "M17-B9-worldGuardAlwaysTrue",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 874,
+      "expect": "                if (world != null)",
+      "replace": "                if (true)   // FALSIFY-M17:世界守卫恒真(无世界也进装配)",
+      "expectRed": [
+        "test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController"
+      ],
+      "exactRed": true,
+      "_why": "B-9 的**反例半边**(`world == null ⇒ BuildController == null`)的判别力。守卫恒真后,无世界路径进入建造装配段:`world` 为 null ⇒ `world.SlotCatalog`(`:917`)/ `new StructureWriter(…, world, …)`(`:881`)其一抛 ⇒ 夹具红(异常替代 null)。⚠️ 这是「**移出守卫分支**」的可编译替身:整段搬出 `{ }` 会留下孤立的 `}` ⇒ 编译失败,单行替换做不到;把守卫改成恒真在语义上**等价于**让段落在 world 为 null 时执行。",
+      "_expectRed_justification": "① 只给注册表不给世界 ⇒ `:847` 为真(进入)、`:874` 为假(不进入)。停用 `:874` 后,装配段在 `world == null` 下执行:`new StructureWriter(…, world: null, …)`(`:881`)或 `world.SlotCatalog`(`:917`)或 `new DemolishChecker(structures, world: null, …)`(`:918`)必有一处抛 ⇒ 夹具红。② `assembleWithWorld`(`:874` 本来就为真)与裸 `assembleWithoutWorld`(`:847` 拦在前)均不受本变异影响 ⇒ 绿。",
+      "_round3_expectRed": [
+        "test_acB9_assembleWithoutWorld_yieldsNullBuildController"
+      ],
+      "_round3_result": "逃逸(预期 1 红 / 实得 0 红)",
+      "_round3_note": "⚠️ **第三轮该变异逃逸(2026-10-28)**。逃逸**不是** spec 的靶点错 —— `:874` 确实是 `world` 那一层的守卫;错在**没有任何夹具走到它**:`buildController` 的赋值在**两层守卫的合取**内 —— `:847 structures != null` ∧ `:874 world != null`。原预期打的那条 `assembleWithoutWorld` 走裸 `Assemble()`,两层**同时为假** ⇒ 单独停用 `:874` 不改变任何可观察量 ⇒ 对**任何单层守卫**零判别力(合取使然,不是夹具写错)。补夹具 `test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController`(第一层真、第二层假)后,`:874` 单独成为决定项 ⇒ 本变异转红。**这是「扫不到被测装配」的同族 —— 靶点对,但靶场里没有靶**。"
+    }
+  ]
+}

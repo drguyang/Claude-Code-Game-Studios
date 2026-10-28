@@ -1,7 +1,7 @@
 {
     "name": "Editor.Tools.Level",
     "rootNamespace": "DaYiJingCheng.EditorTools.Level",
-    "references": [],
+    "references": [ "Sim" ],
     "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

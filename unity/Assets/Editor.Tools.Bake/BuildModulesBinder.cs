@@ -56,8 +56,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ 这是**镜像**而非引用:`Editor.Tools.Bake` 引用 `Sim` 是允许的(编辑期程序集),
         /// 但此处刻意用字符串名而不是 `SlotType` 值 —— 作者态数据里出现 CLR 枚举序数会在
         /// 枚举重排时静默改语义(承 ADR-014 §四「`Fix` 写字符串」同款理由)。</para></summary>
-        internal static readonly string[] SlotTypeNames =
-            { "Bed", "Table", "Cabinet", "Plot", "Decor", "Shell" };
+        /// <remarks>⚠️ **2026-10-28 代码评审 A-21 修复**:此前的「枚举值 = 名字表下标 + 1」已作废 ——
+        /// 手写表与 `Sim` 枚举之间**没有任何门**,插值即静默错配。现名与序数全部来自
+        /// <see cref="SlotTypeVocabulary"/>(派生自 `Sim.World.SlotType`)。原文不删,留作闭环记录。</remarks>
+        internal static string[] SlotTypeNames => SlotTypeVocabulary.Names;
 
         /// <summary>`DEMOLISH_REFUND_RATIO` 的 Q16.16 raw(P0 恒 = 1,规则九;P1a 才 < 1)。</summary>
         /// <remarks>⚠️ 本件**不读** 23 的旋钮真源(该旋钮今日无作者态载体)—— 它是**具名常数**,
@@ -279,19 +281,14 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return false;
 
             name = raw;
-            for (int i = 0; i < SlotTypeNames.Length; i++)
-            {
-                if (string.Equals(SlotTypeNames[i], raw, StringComparison.Ordinal))
-                {
-                    // 枚举值 = 名字表下标 + 1(SlotType 的 None = 0,故 Bed = 1)
-                    moduleType = i + 1;
-                    return true;
-                }
-            }
+            // 枚举值 = **CLR 枚举值**(与 `BitMask.Single(t) => 1 << (int)t` 同源;
+            // 旧口径「下标 + 1」已作废,见 2026-10-28 评审 A-21)。
+            if (SlotTypeVocabulary.TryGetOrdinal(raw, out moduleType))
+                return true;
 
             errors.Add(
                 $"{FileName}:{where}.module_type=\"{raw}\" 不在 SlotType 枚举名闭集 " +
-                "{" + string.Join(", ", SlotTypeNames) + "} 内 —— " +
+                "{" + SlotTypeVocabulary.ClosedSetText() + "} 内 —— " +
                 "拼错会被读成 None,而 None 让所有槽位恒不匹配(静默失效)");
             return false;
         }

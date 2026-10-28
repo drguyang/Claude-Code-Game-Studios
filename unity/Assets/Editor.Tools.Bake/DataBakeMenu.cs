@@ -103,6 +103,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// **接线归 23 的装配轮**,不在本件(承「补烘 ≠ 登记 ≠ 接线」三分)。</para></summary>
         public const string BuildModulesCookedAssetName = "build_modules.cooked.bytes";
 
+        /// <summary>产物文件名(建造槽位骨架 = `world_buildslots.json`;ADR-022 §三导出契约的烘焙产物)。
+        /// <para>⚠️ 作者态 JSON 的**唯一作者 = 关卡工具**(`Editor.Tools.Level.LevelExporter`),
+        /// 手写该 JSON 违反 ADR-022 §二。</para></summary>
+        public const string WorldBuildSlotsCookedAssetName = WorldBuildSlotsBake.CookedFileName;
+
         /// <summary>产物文件名(17 采集调参表 = `foraging_constants.json`;S20-3 评审 W-3 甲案的兑现件)。
         /// <para>⚠️ 与运行期地址**尚无常量** —— 17 的 `IDataProvider` 消费方在 story-002/004 实现,
         /// 届时在此登记地址常量(承 <see cref="InteractionKindsCookedAssetName"/> 同款注记:
@@ -723,6 +728,54 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"模块 {result.Bound.Rows.Count} 件," +
                     $"furn_type 去重 {BuildModulesBake.DeclaredFurnTypes(result.Bound).Count} 个" +
                     $"(全部 ⊆ FURN_TYPES 闭集 {furn.Bound.Rows.Count} 类型 ✓)," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙建造槽位骨架(<c>world_buildslots.json</c> —— ADR-022 §三导出契约):
+        /// 仓库 <c>assets/data/world_buildslots.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldBuildSlotsBinder"/>(五条域门:**聚合 throw**)
+        /// → deterministic 编码 → <see cref="WorldBuildSlotsCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 本方法是 <see cref="WorldBuildSlotsBake"/> 的**唯一生产调用点链路**
+        /// (菜单 → Bake → Binder → CookedWriter)。绕过它 = 五条域门永不执行。</para>
+        /// <para>⚠️ 运行期消费方 = <c>MinimalWorldFactory.Create()</c>(经
+        /// <c>DataCookedDisk.LoadBuildSlots()</c> 读**同一份**字节)。生产 build 的
+        /// Addressables 装载面**尚未接**(见交付报告「没做的事」)。</para>
+        /// </summary>
+        public static WorldBuildSlotsBake.BakeOutput BakeWorldBuildSlotsCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldBuildSlotsBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙建造槽位骨架并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_buildslots(建造槽位骨架 · ADR-022)")]
+        public static void BakeWorldBuildSlots()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                WorldBuildSlotsBake.BakeOutput result = BakeWorldBuildSlotsCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldBuildSlotsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldBuildSlotsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"槽位 {result.Bound.Rows.Count} 格," +
+                    $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

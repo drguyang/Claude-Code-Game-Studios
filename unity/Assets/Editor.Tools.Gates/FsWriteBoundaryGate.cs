@@ -104,6 +104,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// 起草时又没想起本门,真树断言 `test_realTestTree_zeroRed` 第三次点名。
         /// **三发同一形态** ⇒ 起草新测试时「用到 `Application.dataPath` 就查本表」应成为肌肉记忆,
         /// 而不是等真树断言来抓。
+        /// ⚠️ 第 9 条(`world_buildslots_bake_test`,`S20-20` 关卡工具轮)是**同一形态的第四例** ——
+        /// 同样是写完才想起本门。**肌肉记忆仍未形成**,该条经验继续有效。
         /// </summary>
         public static readonly Declaration[] Declarations =
         {
@@ -154,6 +156,14 @@ namespace DaYiJingCheng.EditorTools.Gates
                          "再读 `assets/data/` 的两张真种子表与 `Assets/DataCooked/` 的产物;" +
                          "写目标一律落 `Path.GetTempPath()/djc-buildmodules-<guid>/`," +
                          "`finally` 里整棵删掉(跨表同源负向夹具造最小仓根用)",
+            },
+            new Declaration
+            {
+                FileSuffix = "EditMode/ModularBuilding/world_buildslots_bake_test.cs",
+                Reason = "`Application.dataPath` 仅用于**读** —— 由它推出 `RepoRoot`," +
+                         "再读 `assets/data/world_buildslots.json` 真种子与 `Assets/DataCooked/` 的产物;" +
+                         "写目标一律落 `Path.GetTempPath()/djc-buildslots-<guid>/`," +
+                         "`finally` 里整棵删掉(域门负向夹具造最小仓根用)—— 不写仓库",
             },
             new Declaration
             {

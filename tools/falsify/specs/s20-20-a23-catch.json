@@ -1,0 +1,46 @@
+{
+  "name": "S20-20 代码评审 A-23 修复轮(装载失败判据抽具名谓词)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Boot.minimal_world_slot_load_failure_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ **expectRed 先写死,不抄实得。**",
+    "⚠️ **一属性一条变异**:M5=`ArgumentNullException` 排除 / M6=`ArgumentOutOfRangeException` 排除。两条**不可合并**(C# 里 `catch (ArgumentException)` 会吞掉两个子类,少挡一条就漏一类编码缺陷)。",
+    "⚠️ **本件证明不了的那一件事**:夹具钉的是**谓词**,不是「`Create()` 那条 `catch` 真的调用了它」。后者需要盘上一份损坏的 cooked 产物,而 `LoadSlotCatalog` 读真实数据目录、不可注入 ⇒ 该半边**登记为未证**。把 `when (IsRecoverableSlotLoadFailure(ex))` 改成 `when (true)` 是本轮**已知的逃逸面**。"
+  ],
+  "mutations": [
+    {
+      "name": "M5-argumentNullPropagates",
+      "file": "unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs",
+      "line": 184,
+      "expect": "            if (ex is ArgumentNullException) return false;          // 编码缺陷",
+      "replace": "            if (false && ex is ArgumentNullException) return false;   // FALSIFY-M5",
+      "expectRed": [
+        "test_isRecoverable_programmingDefects_propagate",
+        "test_isRecoverable_argumentNullTypedAsArgumentException_stillPropagates"
+      ],
+      "exactRed": true,
+      "_why": "A-23 的第一条排除 —— `ArgumentNullException` 是编码缺陷信号,吞掉会把开发者引向「重烘产物」。停用后它落进裸 `ArgumentException` 分支(它确实是其子类)⇒ 两条夹具红(第二条正是「静态类型写成基类」那个陷阱)。`environmentFailures` 不含它 ⇒ 绿。"
+    },
+    {
+      "name": "M6-argumentOutOfRangePropagates",
+      "file": "unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs",
+      "line": 185,
+      "expect": "            if (ex is ArgumentOutOfRangeException) return false;    // 编码缺陷",
+      "replace": "            if (false && ex is ArgumentOutOfRangeException) return false;   // FALSIFY-M6",
+      "expectRed": [
+        "test_isRecoverable_programmingDefects_propagate",
+        "test_isRecoverable_argumentNullTypedAsArgumentException_stillPropagates"
+      ],
+      "exactRed": true,
+      "_why": "A-23 的第二条排除,与 M5 同构但**独立属性**。停用后它落进裸 `ArgumentException` 分支 ⇒ 同样的两条夹具红。"
+    }
+  ]
+}

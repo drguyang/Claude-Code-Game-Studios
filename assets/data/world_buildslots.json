@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "level_id": "p0_clinic",
+  "world_size": [16, 1, 16],
+  "slots": [
+    {"cell": [1, 0, 1], "slot_type": "Shell", "baked_initial": true},
+    {"cell": [2, 0, 1], "slot_type": "Shell", "baked_initial": true},
+    {"cell": [3, 0, 1], "slot_type": "Shell", "baked_initial": true},
+    {"cell": [4, 0, 1], "slot_type": "Shell", "baked_initial": true},
+    {"cell": [6, 0, 6], "slot_type": "Decor", "baked_initial": true},
+    {"cell": [6, 0, 7], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [6, 0, 8], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [7, 0, 6], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [7, 0, 7], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [7, 0, 8], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [8, 0, 6], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [8, 0, 7], "slot_type": "Decor", "baked_initial": false},
+    {"cell": [8, 0, 8], "slot_type": "Decor", "baked_initial": false}
+  ]
+}
