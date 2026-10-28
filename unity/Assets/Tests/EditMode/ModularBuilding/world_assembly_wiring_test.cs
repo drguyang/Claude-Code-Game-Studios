@@ -89,8 +89,15 @@ namespace DaYiJingCheng.Tests.ModularBuilding
 
             string code = StripComments(File.ReadAllText(bootRoot));
 
-            Assert.IsTrue(code.Contains("MinimalWorldFactory.Create()"),
-                "BootRoot 须调用 `MinimalWorldFactory.Create()` —— 否则世界只在一个死工厂里被造");
+            // ⚠️ 2026-10-28(S20-20 装载面):原判据是字面串 `MinimalWorldFactory.Create()` ——
+            //    实参加上装载面之后它必然对不上。**改判据而非删断言**:现在同时钉两件事 ——
+            //    ① 真的调用工厂;② 实参**不是**无参(无参 ⇒ 只走磁盘兜底 ⇒ 玩家构建槽位目录恒空)。
+            Assert.IsTrue(code.Contains("MinimalWorldFactory.Create("),
+                "BootRoot 须调用 `MinimalWorldFactory.Create(` —— 否则世界只在一个死工厂里被造");
+            Assert.IsTrue(Regex.IsMatch(code, @"MinimalWorldFactory\.Create\(\s*[A-Za-z_]\w*\s*\?"),
+                "world 工厂须收到**数据装载面**实参(形如 `preloaded ? DataCorePreloader.Provider : null`)——" +
+                "无参调用 ⇒ 槽位骨架只走 `DataCookedDisk` 磁盘兜底 ⇒ 玩家构建里该目录不存在 ⇒" +
+                "槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`(S20-20 挂标 #1 原形态)");
             Assert.IsTrue(Regex.IsMatch(code, @"world:\s*world"),
                 "BootRoot 须把世界以具名实参 `world: world` 交给 `CompositionRoot.Assemble`");
         }

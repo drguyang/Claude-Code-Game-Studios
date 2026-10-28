@@ -27,6 +27,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 19b4f2737a30c11d789d0115befc2ba5
+    m_Address: clinicmachine_context_names.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2acd8b9efdb5c01a98ebf08d38cdc4de
     m_Address: item_database_furniture.cooked.bytes
     m_ReadOnly: 0
@@ -47,6 +53,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3ef7f0c365c0b387dbb394adddf60258
     m_Address: clinicmachine_context.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4059235d3151e63a0b5d1829a047fa55
+    m_Address: foraging_constants.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core
@@ -123,20 +135,20 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: fe47c87128c4cb623b371b1f9b730bd3
-    m_Address: clinicmachine_room_names.cooked.bytes
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - data-core
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 19b4f2737a30c11d789d0115befc2ba5
-    m_Address: clinicmachine_context_names.cooked.bytes
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - data-core
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1e0ba87ce199509ca823ebef18bd1e0
     m_Address: audio_events.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e4df59ccaa5539b44a249cb388a975b3
+    m_Address: world_buildslots.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e67ef82b2b120c5bdbbd246d0179fa7e
+    m_Address: disease_registry.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core
@@ -153,8 +165,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: e67ef82b2b120c5bdbbd246d0179fa7e
-    m_Address: disease_registry.cooked.bytes
+  - m_GUID: fe47c87128c4cb623b371b1f9b730bd3
+    m_Address: clinicmachine_room_names.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core

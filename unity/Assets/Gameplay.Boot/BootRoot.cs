@@ -211,7 +211,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    **没解除**:建造的**发起方**归 42 的建造交互(`O-23-6`),今日零调用点
             //          ⇒ 「写者存在」≠「玩家能建造」;`BuildSlotCatalog` 为空 ⇒
             //          `AC-23-08` 第三半边仍无载体。逐条登记在 sprint-20 §十的卡里。
-            var world = MinimalWorldFactory.Create();
+            // ⚠️ 2026-10-28(S20-20 装载面补接):**必须**传 provider —— 此前无参调用使槽位骨架
+            //    只能走 `DataCookedDisk` 的磁盘路径,而 `Assets/DataCooked` 不随玩家构建出货
+            //    ⇒ 生产构建的槽位目录**恒空**(`PlaceableChecker` 恒 `SlotNotFound`)。
+            //    预载失败(未重建 catalog / 组条目缺)⇒ 传 null 走磁盘兜底(编辑器可读,
+            //    玩家构建必失败 ⇒ 空目录 + LogError,与接线前同形,不静默)。
+            var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null);
             IsSyntheticWorld = true;
 
             _services = CompositionRoot.Assemble(

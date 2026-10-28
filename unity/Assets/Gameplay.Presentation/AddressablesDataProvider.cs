@@ -163,6 +163,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>单一出处 = <see cref="DiseaseRegistryDataSet.CookedFileName"/>(读方 DataSet 与 address 共用同一常量)。</remarks>
         public const string DiseaseRegistryAddress = DiseaseRegistryDataSet.CookedFileName;
 
+        /// <summary>建造槽位骨架 address(S20-20 装载面 · 2026-10-28)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldBuildSlotsDataSet.CookedFileName"/>
+        /// (写方 `WorldBuildSlotsBake.CookedFileName` / 读方 DataSet 同值;本常量是第三处引用而非第三处定义)。
+        /// <para>⚠️ 本地址此前**只**出现在 `MinimalWorldFactory` 的磁盘兜底路径(`DataCookedDisk`)上 ——
+        /// 生产构建里 `Assets/DataCooked` 不随包出货 ⇒ 槽位目录恒空。本常量 = 那条读侧的生产装载面。</para></remarks>
+        public const string WorldBuildSlotsAddress = WorldBuildSlotsDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -204,6 +211,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private BuildModulesDataSet? _buildModules;
         // 9 病种注册表(2026-10-22 B1 接真):struct 解码形 ⇒ 可空承载。
         private DiseaseRegistryDataSet? _diseaseRegistry;
+        // 建造槽位骨架(S20-20 装载面 · 2026-10-28):struct 解码形 ⇒ 可空承载。
+        private WorldBuildSlotsDataSet? _worldBuildSlots;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -346,6 +355,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureDiseaseRegistry();
                 return (TDataSet)(object)_diseaseRegistry.Value;
             }
+            // ── S20-20 装载面(2026-10-28):建造槽位骨架(唯一运行期读侧)──
+            if (typeof(TDataSet) == typeof(WorldBuildSlotsDataSet))
+            {
+                EnsureWorldBuildSlots();
+                return (TDataSet)(object)_worldBuildSlots.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -361,7 +376,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 24 两张词表(2026-10-26 裁定 ①-C/②-C:ClinicRoomNameDataSet / ClinicContextNameDataSet)" +
                 " + 21a 家具目录(O-24-1:ClinicFurnitureDataSet)" +
                 " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)" +
-                " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)");
+                " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)" +
+                " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -392,6 +408,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureClinicFurniture();
             EnsureBuildModules();
             EnsureDiseaseRegistry();
+            EnsureWorldBuildSlots();
         }
 
         private void EnsureItems()
@@ -788,6 +805,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 9 病种注册表 cooked 解码失败(address={DiseaseRegistryAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        // ── S20-20 装载面(2026-10-28):建造槽位骨架 ──
+
+        private void EnsureWorldBuildSlots()
+        {
+            if (_worldBuildSlots.HasValue) return;
+            byte[] bytes = FetchBytes(WorldBuildSlotsAddress);
+            try
+            {
+                _worldBuildSlots = WorldBuildSlotsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 建造槽位骨架 cooked 解码失败(address={WorldBuildSlotsAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

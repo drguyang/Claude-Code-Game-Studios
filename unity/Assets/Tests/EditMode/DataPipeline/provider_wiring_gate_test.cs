@@ -176,6 +176,18 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             Assert.That(AddressablesDataProvider.DiseaseRegistryAddress,
                 Is.EqualTo(DiseaseRegistryDataSet.CookedFileName),
                 "9 病种注册表的 address 与读方 DataSet 声明的产物名不一致 ⇒ 同上");
+            // 2026-10-28 S20-20 装载面:建造槽位骨架(S20-20 挂标 #1 的兑现点)。
+            // ⚠️ 本条同时钉**写方 → 读方**两个名字面:菜单常量 / baker 常量 / DataSet 常量三方一致,
+            //    否则「菜单烘出的文件名」与「运行期查的 address」分叉(缺一即 E-13)。
+            Assert.That(AddressablesDataProvider.WorldBuildSlotsAddress,
+                Is.EqualTo(DataBakeMenu.WorldBuildSlotsCookedAssetName),
+                "建造槽位骨架的 address 与菜单产物名不一致 ⇒ 启动预载查不到该文件(E-13 硬失败)");
+            Assert.That(AddressablesDataProvider.WorldBuildSlotsAddress,
+                Is.EqualTo(WorldBuildSlotsBake.CookedFileName),
+                "建造槽位骨架的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.WorldBuildSlotsAddress,
+                Is.EqualTo(WorldBuildSlotsDataSet.CookedFileName),
+                "建造槽位骨架的 address 与读方 DataSet 声明的产物名不一致 ⇒ 同上");
         }
 
         // ══════════════════ ② data-core 组 ⊇ 全部 address 常量 ══════════════════

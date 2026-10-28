@@ -1,0 +1,47 @@
+{
+  "name": "S20-20 挂标 #1 修复轮(槽位骨架的 Addressables 装载面 + fold 三份表的 provider 分支)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Boot.world_slots_provider_wiring_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节(不是 grep 变异串)。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期),按「夹具过期」处理而不是「逃逸」。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ expectRed 是本轮先写死的推演值,不是实跑抄来的(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ 一属性一条变异:M1 = 「provider 那条腿真的被走」(装载面本身);M2 = 「fold 的三份表真的经 provider 送达」(A-5 §七-2 的 provider 半边)。两条打不同的文件、不同的语义面。",
+    "⚠️ 本件证明不了的那一件事:M1 证明『代码请求了 provider 且用了它返回的字节』,证明不了『Addressables 真实 catalog 里有这个世界产物』—— 后者由 provider_wiring_gate_test 的门②(组条目 ⊇ 全部 address 常量)钉,不在本夹具面内。",
+    "⚠️ M1 的预期红是**两条**:① 直接读 provider(注入地址零请求);② 期待 provider 失败路径响亮报错(实际根本没走 provider,盘上有产物 ⇒ 静默成功)⇒ 两条断言各挡一面,不是「一条变异顺带红了」。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-slotsProviderPathDropped",
+      "file": "unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs",
+      "line": 224,
+      "expect": "                ? dataProvider.Load<WorldBuildSlotsDataSet>()",
+      "replace": "                ? DataCookedDisk.LoadBuildSlots()   // FALSIFY-M1:读侧退回磁盘兜底(S20-20 接线前的形态)",
+      "expectRed": [
+        "test_slots_withProvider_usesProviderArtifact_notDisk",
+        "test_slots_providerFailure_degradesToEmptyCatalogAndNamesSource"
+      ],
+      "exactRed": true,
+      "_why": "把三元表达式**真分支**换成磁盘兜底 ⇒ provider 恒不被读。① 的注入地址零请求且槽位变 13 格;② 的 provider 失败根本没发生 ⇒ 盘上产物装载成功、`LogAssert.Expect` 要的那条 LogError 不打 ⇒ 红。③(fold 的 provider 半边)不依赖槽位装载 ⇒ 保持绿。",
+      "_priorAttempt": "⚠️ 首次锚点打在 **:223 的条件行**(`… = dataProvider != null`)并把整行替换成以 `;` 结尾的赋值 ⇒ 后续两行三元分支悬空 ⇒ **编译失败(驱动退出码 6、零 XML)**,该轮不计为证据(不是「逃逸」也不是「通过」)。原文不删:该失败形态 = 「变异必须语法自洽」,已记入证据件 §五。"
+    },
+    {
+      "name": "M2-foldItemsProviderBranchNeutered",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 434,
+      "expect": "                ? dataProvider.Load<ItemDataSet>()",
+      "replace": "                ? default(ItemDataSet)   // FALSIFY-M2:provider 分支返回空表",
+      "expectRed": [
+        "test_a5_foldContext_tablesLoadedThroughProvider_deductsExactlyCost"
+      ],
+      "exactRed": true,
+      "_why": "provider 非 null 时 fold 拿到**空物品表** ⇒ `DropClaimed` 的建造件无从入账 ⇒ 扣料不发生 / 持有量为 0 ≠ Leftover ⇒ ③ 红。① 只关心槽位装载、② 只关心失败路径 ⇒ 两条保持绿。⚠️ 本变异不碰磁盘分支:另一条夹具(`inventory_fold_sole_player_wiring_test`,走 `dataProvider == null`)因此不受影响 —— 这正是「provider 半边零夹具」本条要补的那一半。"
+    }
+  ]
+}

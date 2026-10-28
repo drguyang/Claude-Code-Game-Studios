@@ -749,6 +749,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ 运行期消费方 = <c>MinimalWorldFactory.Create()</c>(经
         /// <c>DataCookedDisk.LoadBuildSlots()</c> 读**同一份**字节)。生产 build 的
         /// Addressables 装载面**尚未接**(见交付报告「没做的事」)。</para>
+        /// <para>⚠️ <b>2026-10-28 订正(原文不删,留作闭环记录)</b>:上一句的「尚未接」**已过期** ——
+        /// S20-20 装载面修复轮接上了 `AddressablesDataProvider.EnsureWorldBuildSlots()`
+        /// (进 `Preload()` + `DataCorePreloader.DataCoreAddresses`),`MinimalWorldFactory.Create(provider)`
+        /// **provider 优先**、磁盘只在 `null` 时兜底。⇒ 本菜单烘完**必须**再跑
+        /// 「确保 data-core Addressables 组」**和**「构建 Addressables 内容」两个菜单,
+        /// 否则玩家构建的 `Preload()` 查不到该 address(E-13 启动期硬失败)。</para>
         /// </summary>
         public static WorldBuildSlotsBake.BakeOutput BakeWorldBuildSlotsCore(string repoRoot)
         {

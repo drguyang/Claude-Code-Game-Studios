@@ -47,6 +47,7 @@
 using System;
 using System.IO;   // InvalidDataException(装载期硬失败的异常类型)
 using DaYiJingCheng.Gameplay.Presentation;   // DataCookedDisk / WorldBuildSlotsDataSet
+using DaYiJingCheng.Sim.Contracts;           // IDataProvider(槽位骨架的生产装载面)
 using DaYiJingCheng.Sim.World;
 using UnityEngine;   // Debug.LogWarning(本文件属装配层,门 A 不约束)
 
@@ -76,9 +77,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         public const int SizeZ = 16;
 
         /// <summary>建造一个最小合成世界。</summary>
+        /// <param name="dataProvider">槽位骨架的**生产**装载面(data-core Addressables);
+        /// <c>null</c> ⇒ 退回 <see cref="DataCookedDisk"/> 的磁盘路径(**仅编辑器 / 夹具**——
+        /// 玩家构建里 <c>Assets/DataCooked</c> 不随包出货,该路径必失败并走「空目录 + 响亮登记」)。
+        /// <para>⚠️ 2026-10-28(S20-20 装载面补接):本参数此前**不存在**,于是生产构建**唯一**
+        /// 的槽位来源是磁盘兜底 ⇒ 槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`。
+        /// 生产调用点 = `BootRoot` 启动序(传 `DataCorePreloader.Provider`)。</para></param>
         /// <returns>新的 <see cref="World"/> 实例(每次调用都是独立实例 —— 两份注册表
         /// 就是两份真源,调用方须自己保证只建一次)。</returns>
-        public static World Create()
+        public static World Create(IDataProvider dataProvider = null)
         {
             int total = SizeX * SizeY * SizeZ;
 
@@ -113,7 +120,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             string failureSummary = null;
             try
             {
-                slotCatalog = LoadSlotCatalog(out failureSummary);
+                slotCatalog = LoadSlotCatalog(dataProvider, out failureSummary);
                 slotsLoaded = true;
             }
             // ⚠️ **`ArgumentException` 须排除其两个子类**(2026-10-28 代码评审 A-23):
@@ -131,6 +138,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Debug.LogError(
                     "[S20-20][合成世界] 槽位骨架装载失败 ⇒ 槽位目录为空," +
                     "PlaceableChecker 将恒 SlotNotFound(玩家建不了任何东西)。"
+                    + "装载源 —— " + SlotSourceLabel(dataProvider) + "。"
                     + "异常摘要 —— " + failureSummary);
             }
 
@@ -140,7 +148,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "[S20-20][合成世界] World 的**几何仍是合成的最小几何** —— "
                     + $"{SizeX}×{SizeY}×{SizeZ} 全 walkable,POI / 资源格全无。"
                     + $"但**建造槽位骨架来自烘焙产物** `{WorldBuildSlotsDataSet.CookedFileName}`"
-                    + $"(槽位 {slotCatalog.Count} 格;唯一作者 = ADR-022 关卡工具)。"
+                    + $"(槽位 {slotCatalog.Count} 格;装载源 = {SlotSourceLabel(dataProvider)};"
+                    + "唯一作者 = ADR-022 关卡工具)。"
                     + "⇒ 「槽位判定」这一面有真数据;「地形 / 生态区 / 资源点」仍无数据。"
                     + "横幅出现属**预期**,不是故障;世界几何数据落地后本工厂应被装载路径替换。");
             }
@@ -156,7 +165,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    `assets` + `/data` 连写 —— 它是「玩家构建零 JSON 直读」的判据,
                     //    注释会被剥离、字面量不会。诊断文案里提路径同样算命中 ⇒ 改写指向文件名。
                     + "修法:先跑关卡工具导出 `world_buildslots.json`(作者态数据目录),"
-                    + "再跑「烘焙 world_buildslots」菜单。横幅出现属**预期**,不是故障。");
+                    + "再跑「烘焙 world_buildslots」菜单"
+                    // ⚠️ 2026-10-28(S20-20 装载面):走生产装载面时,**组条目**是第二个独立失败源
+                    //    —— 产物在盘上但没进 `data-core` 组 ⇒ `FetchBytes` 查不到 ⇒ 同一条 LogError。
+                    //    不写这句,开发者会去重烘一份本来就在的产物。
+                    + (dataProvider != null
+                        ? ",最后跑「确保 data-core Addressables 组」(新产物在盘上 ≠ 在组里)"
+                        : "")
+                    + "。横幅出现属**预期**,不是故障。");
             }
 
             return new World(geometry, slotCatalog);
@@ -195,13 +211,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 任何不合格(空表 / 行落在合成世界几何之外)⇒ 显式抛,由 <see cref="Create"/>
         /// 决定「降级为空目录 + 响亮登记」—— 本方法**不**吞异常。</para>
         /// </summary>
+        /// <param name="dataProvider">生产装载面;<c>null</c> ⇒ 磁盘兜底(见 <see cref="Create"/>)。</param>
         /// <param name="note">成功时的人读摘要(失败时经异常承载,本参数为 null)。</param>
-        /// <exception cref="InvalidOperationException">产物缺失(<c>DataCookedDisk</c> 的 E-13 口径)。</exception>
+        /// <exception cref="InvalidOperationException">产物缺失(E-13 口径 —— provider / 磁盘同款)。</exception>
         /// <exception cref="InvalidDataException">产物损坏 / 空表 / 行越出合成世界几何。</exception>
-        private static BuildSlotCatalog LoadSlotCatalog(out string note)
+        private static BuildSlotCatalog LoadSlotCatalog(IDataProvider dataProvider, out string note)
         {
             note = null;
-            WorldBuildSlotsDataSet data = DataCookedDisk.LoadBuildSlots();
+            // ⚠️ 生产优先:provider 走 `data-core`(玩家构建里唯一存在的路径);
+            //    磁盘兜底只服务编辑器 / 夹具 —— 两条路读的是**同一份 cooked 字节 + 同一 codec**。
+            WorldBuildSlotsDataSet data = dataProvider != null
+                ? dataProvider.Load<WorldBuildSlotsDataSet>()
+                : DataCookedDisk.LoadBuildSlots();
 
             if (data.Rows.Count == 0)
                 throw new InvalidDataException(
@@ -239,5 +260,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                    $"ConfigVersion = 0x{data.ConfigVersion:X8}";
             return catalog;
         }
+
+        /// <summary>装载源的人读标签(横幅 / LogError 用)。
+        /// <para>⚠️ 存在的理由:两条装载路**都会**成功,「槽位 13 格」这句话在两条路上同形 ——
+        /// 不标源就无法从日志判断生产路径(provider)到底有没有被走到。</para></summary>
+        private static string SlotSourceLabel(IDataProvider dataProvider)
+            => dataProvider != null ? "data-core Addressables" : "DataCooked 磁盘兜底(仅编辑器 / 夹具)";
     }
 }
