@@ -77,8 +77,48 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>槽位表(声明序;导出时按 (x,y,z) 升序重排)。</summary>
         public readonly IReadOnlyList<SlotSpec> Slots;
 
-        /// <summary>构造关卡源。尺寸非法 / 槽位表为 null ⇒ 抛(作者错误,不当默认值吞掉)。</summary>
-        public LevelSource(string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots)
+        /// <summary>
+        /// 每格可走性(**整数布尔** 0/1;长度须 = `Width×Height×Depth`;索引 = `(x*H + y)*D + z`,
+        /// 与运行期 <c>WorldGeometry.ToIndex</c> 同一公式)。
+        /// <para>🔁 <b>2026-10-29(story-002 AC-1)新增</b>。`null` = **本关卡未声明几何**
+        /// —— 此时 <see cref="LevelExporter.ExportGeometry"/> **硬失败**(不合成「全可走」:
+        /// 那会让「可走性来自产物」在 AC-4 的判据上不可判别,承 ADR-022 §二「工具是唯一作者」)。</para>
+        /// <para>⚠️ 用 <c>int</c> 而非 <c>bool[]</c>:导出面要求「零浮点 + 纯整数」,
+        /// 而 `bool[]` 到 JSON 的映射需要读方猜约定;0/1 是自描述的。</para>
+        /// </summary>
+        public readonly IReadOnlyList<int> Walkable;
+
+        /// <summary>
+        /// 地形声明(`TERRAIN_TABLE` + 每格 `terrain_id` + 控制器参数量化值)。
+        /// <para>🔁 <b>2026-10-29(story-002 AC-2)新增</b>。`null` = **本关卡未声明地形**
+        /// —— 此时 <see cref="LevelExporter.ExportTerrain"/> **硬失败**(F-6-2:`max over` 空集无定义)。
+        /// 否则其 <see cref="TerrainSource.CellTerrainId"/> 长度须与本关卡的格总数相等。</para>
+        /// </summary>
+        public readonly TerrainSource Terrain;
+
+        /// <summary>
+        /// 格边长 `LATTICE_SIZE`(**整数毫米**;ADR-015 §三 / GDD F-6-1)。
+        /// <para>🔁 <b>2026-10-29(story-002 AC-1)新增</b>。`0` = 未声明(几何导出硬失败)。</para>
+        /// <para>⚠️ **数值归用户数值轮**(GDD 同时用它推 F-6-1 的隧穿下界)。本类只承载。</para>
+        /// </summary>
+        public readonly int LatticeSizeMm;
+
+        /// <summary>世界总格数(`Width × Height × Depth`;越界即抛,见构造)。</summary>
+        public readonly int TotalCells;
+
+        /// <summary>
+        /// 构造关卡源。尺寸非法 / 槽位表为 null ⇒ 抛(作者错误,不当默认值吞掉)。
+        /// <para>几何三件(`walkable` / `terrain` / `latticeSizeMm`)为 `null`/`0` ⇒
+        /// **允许构造但几何导出会硬失败** —— 只声明槽位的关卡(以及只测槽位子集的夹具)是合法用法。</para>
+        /// </summary>
+        /// <param name="walkable">每格可走性(0/1;长度须 = 世界格数;为 <c>null</c> = 未声明)。</param>
+        /// <param name="terrain">地形声明(为 <c>null</c> = 未声明)。</param>
+        /// <param name="latticeSizeMm">格边长(毫米;`0` = 未声明)。</param>
+        /// <exception cref="ArgumentException">`walkable` 含非 0/1 值 / 长度不符 / 地形每格数组长度不符
+        /// / `latticeSizeMm` 为负。</exception>
+        public LevelSource(
+            string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots,
+            IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -88,6 +128,61 @@ namespace DaYiJingCheng.EditorTools.Level
             LevelId = levelId;
             Width = width; Height = height; Depth = depth;
             Slots = slots ?? throw new ArgumentNullException(nameof(slots));
+
+            // 格总数用 long 算再落 int:W×H×D 在 int 上可回绕,回绕值落回 [0, int.MaxValue] 后
+            // 与真实格数比较会**静默通过**(承 WorldGeometry.ToIndex 的同一条纪律)。
+            long total = (long)width * height * depth;
+            if (total > int.MaxValue)
+                throw new ArgumentOutOfRangeException(
+                    nameof(width), $"世界格总数 {total} 超出 int 域 —— 一维索引公式 (x*H+y)*D+z 不可表示");
+            TotalCells = (int)total;
+
+            if (latticeSizeMm < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(latticeSizeMm), $"LATTICE_SIZE 量化值 = {latticeSizeMm} mm 不得为负(0 = 未声明)");
+
+            if (walkable != null)
+            {
+                if (walkable.Count != TotalCells)
+                    throw new ArgumentException(
+                        $"每格可走性数组长度 = {walkable.Count},须等于世界格数 {TotalCells} —— " +
+                        "长度不齐 = 可走性与几何不是同一张图纸", nameof(walkable));
+                for (int i = 0; i < walkable.Count; i++)
+                {
+                    if (walkable[i] != 0 && walkable[i] != 1)
+                        throw new ArgumentException(
+                            $"每格可走性第 {i} 项 = {walkable[i]} —— 只接受 0/1(不可通行用 0 表达;" +
+                            "非 0/1 会让读方猜「非零即真」,而 0b10 之类的位值是真值域里的假值)",
+                            nameof(walkable));
+                }
+                var copyW = new int[walkable.Count];
+                for (int i = 0; i < walkable.Count; i++) copyW[i] = walkable[i];
+                Walkable = Array.AsReadOnly(copyW);
+            }
+
+            if (terrain != null)
+            {
+                if (terrain.CellTerrainId.Count != TotalCells)
+                    throw new ArgumentException(
+                        $"每格 terrain_id 数组长度 = {terrain.CellTerrainId.Count},真值来自 TerrainSource;" +
+                        $"本关卡的世界格数 = {TotalCells}", nameof(terrain));
+                Terrain = terrain;
+            }
+
+            LatticeSizeMm = latticeSizeMm;
+        }
+
+        /// <summary>
+        /// 格坐标 → 一维索引(`(x*H + y)*D + z`);与 <see cref="Walkable"/> /
+        /// <see cref="TerrainSource.CellTerrainId"/> / 运行期 <c>WorldGeometry.ToIndex</c> **同一公式**。
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">坐标越界(不做静默钳位 —— 越界即作者错误)。</exception>
+        public int CellIndex(int x, int y, int z)
+        {
+            if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
+                throw new ArgumentOutOfRangeException(
+                    nameof(x), $"格 ({x},{y},{z}) 超出 {Width}×{Height}×{Depth}");
+            return (x * Height + y) * Depth + z;
         }
     }
 }

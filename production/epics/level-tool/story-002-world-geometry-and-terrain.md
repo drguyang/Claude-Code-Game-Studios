@@ -1,12 +1,12 @@
 # Story 002: `world_geometry` / `world_terrain` 导出 + 烘焙 + 运行期装载
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Tooling(工具侧)+ Core(运行期装载面)
 > **Type**: Integration
 > **Estimate**: L
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ## Context
 
@@ -62,7 +62,7 @@ ls unity/Assets/DataCooked/world_geometry.cooked.bytes \
 
 ## Acceptance Criteria
 
-- [ ] **AC-0(spike · BLOCKING)** —— **Terrain API 行为实测**:
+- [x] **AC-0(spike · BLOCKING)** —— **Terrain API 行为实测**:
       在 6.3 LTS 上实测 `TerrainData` / `Terrain` 的以下三项,**结果写入证据件**:
       ① `TerrainData.GetHeight` 的返回精度与坐标系(世界格 ↔ 归一化);
       ② `TerrainCollider` 与 `TerrainData` 的可走性关系(`slopeLimit` 在哪一侧生效);
@@ -70,26 +70,26 @@ ls unity/Assets/DataCooked/world_geometry.cooked.bytes \
       **判据**:三条各有**实测输出**(日志 / 探针件),**不是文档引用**。
       ⚠️ **本 AC 未过则本 story 不得继续** —— post-cutoff API 的假设是 MEDIUM 风险的来源。
 
-- [ ] **AC-1(BLOCKING)** —— **`world_geometry.json` 由工具导出**:
+- [x] **AC-1(BLOCKING)** —— **`world_geometry.json` 由工具导出**:
       形状 = 世界尺寸 + **每格可走性(整数布尔)** + `LATTICE_SIZE`。
       **判据**:导出的产物里**零浮点字面量**(JSON 里所有数字都能被整数解析器读入)。
-- [ ] **AC-2(BLOCKING)** —— **`world_terrain.json` 由工具导出**:
+- [x] **AC-2(BLOCKING)** —— **`world_terrain.json` 由工具导出**:
       形状 = `TERRAIN_TABLE`(`terrain_id → {K_speed, K_accel, K_decel}`,**`Fix` 写字符串**)
       + `terrain_id` 表 + `slopeLimit` / `stepOffset`(**整数量化后的值**)。
       **判据**:`K_speed` 等字段在 JSON 里是**字符串**(`"3/4"`)而非 JSON 数字 ——
       承 ADR-014 §二的反浮点纪律。
-- [ ] **AC-3(BLOCKING)** —— **两份产物经 ADR-014 烘焙成 `.cooked`**:
+- [x] **AC-3(BLOCKING)** —— **两份产物经 ADR-014 烘焙成 `.cooked`**:
       `world_geometry.cooked` / `world_terrain.cooked` 落 `unity/Assets/DataCooked/`,
       **进 `data-core` 组**。
       **判据**:`data-core` 组条目数**增加 2**;catalog 重建后两条目可查。
-- [ ] **AC-4(BLOCKING)** —— **运行期装载面接通**:
+- [x] **AC-4(BLOCKING)** —— **运行期装载面接通**:
       `MinimalWorldFactory` 被**装载路径替换**(或改为「有产物则装载,无产物则合成 + LogWarning」)。
       **判据**:真产物存在时,**`IsSyntheticWorld` 为 false**,且
       `WorldGeometry` 的尺寸 / 可走性来自产物(**不是** 16×1×16 全 true)。
-- [ ] **AC-5(BLOCKING)** —— **`TERRAIN_TABLE` 空表 = 装载期硬失败**:
+- [x] **AC-5(BLOCKING)** —— **`TERRAIN_TABLE` 空表 = 装载期硬失败**:
       构造一个空 `TERRAIN_TABLE` 的产物 ⇒ 装载**抛**(不是静默降级为全 walkable)。
       **判据**:F-6-2 的「空表硬失败」有夹具。
-- [ ] **AC-6** —— **`K_TERRAIN_MAX` 有消费者**:
+- [x] **AC-6** —— **`K_TERRAIN_MAX` 有消费者**:
       `TerrainCell.KSpeedIdx` 的「全仓零消费者」状态解除 —— 至少一处读它做量程校验。
       **判据**:`grep -c KSpeedIdx` 的非定义侧 ≥ 1。
       ⚠️ **本 AC 只要求「有消费者」,不要求「消费得对」** —— 后者归系统 1 的实现轮。
@@ -195,3 +195,37 @@ ADR-022 §四 **C2** 的判据是 `|engineParam − Dequantize(bakedInt)| ≤ 1 
 3. **Terrain 资产本体是否存在** —— 本 story 的产物是**整数逻辑层**;
    美术地形由第三方工具 + 手工整理(ADR-022 §二),不在本 story 边界内。
 4. **多 chunk 的世界** —— 本 story 的几何是**单块**;chunk 切片归 **S5**(且只切导航格)。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-29
+**Criteria**: **7/7 passing**(AC-0 spike + AC-1 … AC-6)
+**Test Evidence**: Integration —— `unity/Assets/Tests/EditMode/LevelTool/world_geometry_load_test.cs`
+(14 条 `[Test]`,全绿)+ spike 原件 `production/qa/evidence/spike-terrain-api-6.3-2026-10-29.md`
++ 实现原件 `production/qa/evidence/impl-level-tool-story-002-2026-10-29.md`
+**Falsifiability Gate**: **PASS** —— 13 条变异(一属性一条),预判 15 红 / 实得 **15 红**,
+逐条命中预判用例,零多余红零漏红;六次还原 SHA-256 逐字节回到原值
+**Deviations**:
+- ⚠️ **§Implementation Notes 的「乙案」被收窄为「甲案」** —— 合成支**整体删除**,
+  `MinimalWorldFactory` 成为纯装载器。三条理由见实现原件 §六①
+  (与 AC-5 语义冲突 / 「产物缺失」与「产物损坏」类型上不可分 / 合成支零可达)。
+  **请用户裁定**:接受收窄,还是要求补回乙的降级支。
+- **量化约定住 `Sim.Contracts` 且只定整数侧**(不提供 float 反量化函数)—— 理由见该类型文件头;
+  C2 的比对归 S6,届时直接引用 `LatticeParamQuantization.IsWithinOneQuantum`,不另抄公式。
+- **P0 医馆的几何 / 地形数值全是占位**:外墙环 1 格不可走(60/256)、单行地形表
+  (`K_TERRAIN_MAX` 恒 1)、`LATTICE_SIZE` 1000 mm、`slopeLimit` 4500 / `stepOffset` 300
+  (取 AC-0 实测的引擎默认值)。**数值归用户数值轮**。
+
+**Code Review**: 未跑(`/code-review` 归用户触发,与 story-001 同)。
+
+### 本轮顺带抓到的三处真回归(全是我自己引入的,已在原件 §4.2 逐条登记)
+
+1. 新增两份 `*.cooked.bytes` 却未登记产物漂移门 ⇒ `noGhostArtifact` + `pinnedDeclared` 双红
+   (**本门第六次抓到同类漏登记**)。补齐后 `pinnedDeclared` **26 → 28**,
+   顺带把 ADR-022 §②「无第二作者」钉到了几何 / 地形上。
+2. `MinimalWorldFactory` 一条异常报文里写了作者态目录路径 ⇒ `RuntimeSourceGuard`(AC-21a-48)红。
+   改文案后绿;已在该文件头写明「注释安全、**报文**会红」。
+3. `WorldLattice.cs` 里 `TerrainCell.KSpeedIdx` 的注释仍声称「全仓零消费者」—— **现在是假的**。
+   已就地加注三道消费者(烘焙期 binder / 装载期 codec / 装配期 `ValidateTerrainSpeedIndices`)。

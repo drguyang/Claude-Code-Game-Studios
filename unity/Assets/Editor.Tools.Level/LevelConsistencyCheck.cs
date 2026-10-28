@@ -25,6 +25,7 @@
 //   ① 重复格           —— 同一 `(x,y,z)` 声明两次(会让「取哪一条」成为隐式规则)
 //   ② 类型越界         —— `SlotType.None`(哨兵)/ 枚举未定义值
 //   ③ 格超出声明范围   —— 格不在 `[0,W)×[0,H)×[0,D)`
+//   ③之补 槽位落在**不可走**的格上(2026-10-29 · story-002;仅当关卡声明了可走性)
 //   ④ `baked_initial = true` 却无 `module_id`(2026-10-28 · schema 2)
 //   ⑤ `baked_initial = false` 却写了 `module_id`(同上,反方向)
 //
@@ -106,6 +107,23 @@ namespace DaYiJingCheng.EditorTools.Level
                     violations.Add(
                         $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 超出声明范围 " +
                         $"[0,{src.Width})×[0,{src.Height})×[0,{src.Depth}) —— 越界格在运行期永远不可达");
+
+                // ③之补(2026-10-29 · story-002):槽位落在**不可走**的格上。
+                //    ⚠️ 只在关卡声明了可走性时才可判(`Walkable == null` = 本关卡只声明槽位,
+                //    几何归别的关卡 / 夹具)⇒ 未声明就**不产生这条判据**,而不是默认「全可走」。
+                //    这条是 story-002 引入「外环不可走」时**必须**有的配套:本轮脚手架关卡真的
+                //    踩了它(第四格 `(7,1,7)` 落在 8×2×8 的边界环上,已改 `(6,1,6)`)——
+                //    没有这条判据,那个错误只能靠人眼在 128 个数里发现。
+                if (src.Walkable != null && (s.X >= 0 && s.X < src.Width
+                                             && s.Y >= 0 && s.Y < src.Height
+                                             && s.Z >= 0 && s.Z < src.Depth))
+                {
+                    int idx = (s.X * src.Height + s.Y) * src.Depth + s.Z;
+                    if (src.Walkable[idx] == 0)
+                        violations.Add(
+                            $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) **不可通行**却声明了槽位 —— " +
+                            "入口永远无法抵达该格 ⇒ 那条声明在运行期是死的(玩家造不到、也拆不到)");
+                }
 
                 // ④ `baked_initial = true` ⇒ 必须指明是哪件家具(2026-10-28 · schema 2)
                 //    ⚠️ 这条**在导出期**就拦,而不是等绑定器 —— 导出器是唯一作者,

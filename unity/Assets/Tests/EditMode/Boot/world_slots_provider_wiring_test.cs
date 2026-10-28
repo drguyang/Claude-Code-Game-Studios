@@ -89,7 +89,11 @@ namespace DaYiJingCheng.Tests.Boot
             {
                 requested.Add(address);
                 if (address == AddressablesDataProvider.WorldBuildSlotsAddress) return synthetic;
-                throw new InvalidOperationException($"本夹具只供槽位产物,不该请求 {address}");
+                // 🔁 **2026-10-29(关卡工具 story-002)**:世界几何与地形表成了**必需**产物 ——
+                //    `MinimalWorldFactory.Create(provider)` 现在先读它们(且**无降级路径**),
+                //    然后才读槽位。不供这两份 ⇒ 本夹具会死在几何加载上,测不到槽位那一面。
+                //    ⚠️ 这是**夹具补齐**,不是判据放宽:本测判的仍是「槽位读的是 provider 而非磁盘」。
+                return RealProduct(address);
             });
 
             World world = MinimalWorldFactory.Create(provider);
@@ -112,8 +116,19 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_slots_providerFailure_degradesToEmptyCatalogAndNamesSource()
         {
+            // 🔁 **2026-10-29(关卡工具 story-002)判据**收窄**,原文不删**:
+            //    此前 provider 对**任何** address 都抛。story-002 之后世界几何 / 地形表是
+            //    必需产物且**无降级路径**(AC-5:空表硬失败)—— 全抛会让本测先撞在几何加载上,
+            //    而它要判的是**槽位**那一侧的响亮降级。
+            //    ⇒ 现在只有**槽位地址**抛;几何 / 地形照常供给真实盘上产物。
+            //    ⚠️ 收窄的是**输入构造**,不是判据:两条断言(空目录 + 报文点名装载源)一字未改。
+            //    几何加载的硬失败面另由 `world_geometry_load_test` 的 AC-5 段覆盖。
             AddressablesDataProvider provider = MakeProvider(address =>
-                throw new InvalidOperationException("组条目缺失(夹具模拟)"));
+            {
+                if (address == AddressablesDataProvider.WorldBuildSlotsAddress)
+                    throw new InvalidOperationException("组条目缺失(夹具模拟)");
+                return RealProduct(address);
+            });
 
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex(
                 @"槽位骨架装载失败.*装载源 —— data-core Addressables"));
@@ -164,13 +179,16 @@ namespace DaYiJingCheng.Tests.Boot
 
         /// <summary>真产物字节源(只读 `Assets/DataCooked/`,零写盘)。</summary>
         private static AddressablesDataProvider MakeRealProductProvider()
-            => MakeProvider(address =>
-            {
-                string path = Path.Combine(CookedDir, address);
-                Assert.That(File.Exists(path), Is.True,
-                    $"盘上产物缺失:{path} —— 重烘:「大医精诚/数据管线」全量烘焙");
-                return File.ReadAllBytes(path);
-            });
+            => MakeProvider(RealProduct);
+
+        /// <summary>按 address 读盘上真产物(只读;缺失即 `Assert.Fail` 并点名重烘入口)。</summary>
+        private static byte[] RealProduct(string address)
+        {
+            string path = Path.Combine(CookedDir, address);
+            Assert.That(File.Exists(path), Is.True,
+                $"盘上产物缺失:{path} —— 重烘:「大医精诚/数据管线」全量烘焙");
+            return File.ReadAllBytes(path);
+        }
 
         /// <summary>经内部构造缝造 provider(internal ⇒ 反射;先例
         /// `clinic_machine_cooked_codec_test.cs:387` / `tutorial_content_provider_load_test.cs:50`)。

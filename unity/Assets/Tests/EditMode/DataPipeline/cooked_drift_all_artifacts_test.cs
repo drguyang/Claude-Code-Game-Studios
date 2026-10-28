@@ -245,6 +245,18 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    ⇒ 手改 JSON 不重烘 = 本门红,即 ADR-022 §② 「无第二作者」的可证伪落点。
             new ArtifactBake(WorldBuildSlotsBake.CookedFileName,
                 root => WorldBuildSlotsBake.BakeFromRepo(root).Cooked),
+
+            // ── 世界几何 / 地形表(2 份;关卡工具 story-002 落盘,2026-10-29)──
+            //    ⚠️ **本门第六次抓到同类漏登记** —— story-002 落了两份新产物却没登记,
+            //    全量回归首跑即红两条(`noGhostArtifact` + `pinnedDeclared` 26→28)。
+            //    ⚠️ 委托走**裸烘焙** `BakeFromRepo`(同上方 21a / 23 / 9 / 17 / 槽位骨架口径:
+            //    菜单层的 `BakeWorldGeometryCore` 只多做落盘与组注册,不改编码 ⇒ 字节相同)。
+            //    ⚠️ 这两条同时把 ADR-022 §②「无第二作者」钉在几何 / 地形上:
+            //    手改 `world_geometry.json` / `world_terrain.json` 而不重烘 ⇒ 本门红。
+            new ArtifactBake(WorldGeometryBake.CookedFileName,
+                root => WorldGeometryBake.BakeFromRepo(root).Cooked),
+            new ArtifactBake(WorldTerrainBake.CookedFileName,
+                root => WorldTerrainBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -387,7 +399,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 裁定 ①-C / ②-C 的两张词表)。前值 22 = 2026-10-22 实测(+disease_registry 前值 21)。
             // 2026-10-26(同日,S20-3 W-3):24 → 25(+foraging_constants,甲案补烘落盘)。
             // 2026-10-28(S20-20):25 → 26(+world_buildslots,关卡工具导出 + 烘焙落盘)。
-            const int pinnedDeclared = 26; // 2026-10-28 实测(26 份)
+            // 2026-10-29(关卡工具 story-002):26 → 28(+world_geometry / world_terrain,几何 + 地形表)。
+            const int pinnedDeclared = 28; // 2026-10-29 实测(28 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -26,7 +26,8 @@
 
 using System;
 using System.Collections.Generic;
-using DaYiJingCheng.Sim.World;   // SlotType(唯一真源,2026-10-28 评审 A-21)
+using DaYiJingCheng.Sim.Contracts;   // Fix(地形表的 K_accel / K_decel;ADR-014 §二)
+using DaYiJingCheng.Sim.World;       // SlotType(唯一真源,2026-10-28 评审 A-21)
 
 namespace DaYiJingCheng.EditorTools.Level
 {
@@ -111,7 +112,96 @@ namespace DaYiJingCheng.EditorTools.Level
 
             // 尺寸的**唯一出处**(16×1×16,单层平面)。原为 `Width` / `Height` / `Depth` 三个
             // 公共常量,2026-10-29 删除(理由见上方 🔁 注)—— 不要再把它们加回来。
-            return new LevelSource(LevelId, 16, 1, 16, slots);
+            const int sizeX = 16;
+            const int sizeY = 1;
+            const int sizeZ = 16;
+
+            return new LevelSource(
+                LevelId, sizeX, sizeY, sizeZ, slots,
+                walkable: BuildWalkable(sizeX, sizeY, sizeZ),
+                terrain: BuildTerrain(sizeX, sizeY, sizeZ),
+                latticeSizeMm: LatticeSizeMm);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // 以下三件是 **story-002** 新增的几何 / 地形声明。
+        // ⚠️ 全部是**占位形状**,不是设计产物:
+        //    · 外墙环的可走性 = 「医馆是一间屋子」的最小表达;
+        //    · 单行地形表 = 「暂时只有一种地面」;
+        //    · LATTICE_SIZE / slopeLimit / stepOffset 的**具体数值**归**用户数值轮**
+        //      (GDD F-6-1 的下界由 LATTICE_SIZE 推,ADR-022 §Out of Scope 逐字点名数值归用户)。
+        //    关卡设计轮替换本文件时,这三件整个重写 —— 不是在上面加格子。
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>格边长 `LATTICE_SIZE`(整数毫米;GDD F-6-1 / ADR-015 §三)。</summary>
+        /// <remarks>⚠️ **占位值,归用户数值轮**。取 1000 mm = 1 米/格:本轮它只需 `> 0`
+        /// (`WorldLatticeParams` 的 F-6-1 守卫要求),真实取值须与 `SPEED_MODE_MAX` / `MAX_DT` /
+        /// `SAFETY_MARGIN` 一起裁定 —— 那四个量同属数值轮。</remarks>
+        public const int LatticeSizeMm = 1000;
+
+        /// <summary>`slopeLimit` 的量化值(0.01 度;量子见 `LatticeParamQuantization`)。</summary>
+        /// <remarks>⚠️ **占位值,归用户数值轮**。取 4500(= 45.00°)= **AC-0 spike 实测到的
+        /// `CharacterController.slopeLimit` 引擎默认值**。这样 C2(S6)在今天的默认控制器下
+        /// 偏差**恰为 0**;玩家控制器一旦改了这个脚本参数,C2 就该红 —— 那正是它要抓的漂移。</remarks>
+        public const int SlopeLimitDegX100 = 4500;
+
+        /// <summary>`stepOffset` 的量化值(毫米)。</summary>
+        /// <remarks>⚠️ **占位值,归用户数值轮**。取 300(= 0.300 m)= **AC-0 spike 实测到的
+        /// `CharacterController.stepOffset` 引擎默认值**,口径同上一条。</remarks>
+        public const int StepOffsetMm = 300;
+
+        /// <summary>外轮廓墙环的厚度(格)。</summary>
+        /// <remarks>取 1:单层世界的一圈墙。> 1 会让「屋子」在 16×16 里只剩不到 12×12 的内部,
+        /// 而本关卡的槽位区(见 <see cref="DecorOriginX"/> 起)不依赖更大的内部。</remarks>
+        public const int WallRingThickness = 1;
+
+        /// <summary>
+        /// 每格可走性(0/1;索引 = `(x*H + y)*D + z`)。
+        /// <para><b>外墙环不可走</b>(距任一边界 &lt; <see cref="WallRingThickness"/>),内部全可走。</para>
+        /// <para>⚠️ **为什么这里必须有不可走的格**:story-002 AC-4 的判据是「可走性来自产物,
+        /// **不是** 16×1×16 全 true」。若本关卡的声明与旧的合成世界**逐格相同**,那条判据
+        /// 在**任何夹具**上都不可判别(同值变异 —— 见 `feedback_refactor_falsifiability_ceiling`)。
+        /// 一圈墙让「读到的是产物」这件事在数值上可观测。</para>
+        /// </summary>
+        private static IReadOnlyList<int> BuildWalkable(int sizeX, int sizeY, int sizeZ)
+        {
+            var walkable = new int[sizeX * sizeY * sizeZ];
+            for (int x = 0; x < sizeX; x++)
+                for (int y = 0; y < sizeY; y++)
+                    for (int z = 0; z < sizeZ; z++)
+                    {
+                        bool onRing = x < WallRingThickness || x >= sizeX - WallRingThickness
+                                   || z < WallRingThickness || z >= sizeZ - WallRingThickness;
+                        walkable[(x * sizeY + y) * sizeZ + z] = onRing ? 0 : 1;
+                    }
+            return walkable;
+        }
+
+        /// <summary>本关卡的地形声明(单行表 `terrain_id = 0`;每格都指向它)。</summary>
+        /// <remarks>
+        /// <para>⚠️ **单行表 = 占位**。`K_speed = 1` 是 F-6-2 的**基准地貌**
+        /// (AC-6-08 要求 `K_speed == 1` 恰好一行),`K_accel` / `K_decel` 取 `1`(恒等)。
+        /// ⇒ `K_TERRAIN_MAX` 今天恒 = 1。这不是缺陷:它是「数值未裁」的如实表达,
+        /// 首个真实地貌(木地板 / 泥土 / 石阶)归用户数值轮 + 关卡设计轮。</para>
+        /// <para>⚠️ 每个人都指向 `terrain_id = 0`(含不可走的墙环格):**可走性与地貌正交**
+        /// —— 墙也有地面材质,只是走不上去。用「墙的 terrain_id 也必须是 0」换取
+        /// 「表只有一行」,比给墙编一个 `K_speed ≥ 2` 的假地貌诚实。</para>
+        /// </remarks>
+        private static TerrainSource BuildTerrain(int sizeX, int sizeY, int sizeZ)
+        {
+            int total = sizeX * sizeY * sizeZ;
+            var rows = new List<TerrainRowSpec>
+            {
+                new TerrainRowSpec(
+                    terrainId: 0,
+                    name: "wood_floor",
+                    kSpeed: 1,
+                    kAccel: Fix.FromRational(1, 1),
+                    kDecel: Fix.FromRational(1, 1)),
+            };
+
+            var cellTerrainId = new int[total];   // 全 0 = 全指向 terrain_id 0(见上方注释)
+            return new TerrainSource(rows, cellTerrainId, SlopeLimitDegX100, StepOffsetMm, total);
         }
     }
 }

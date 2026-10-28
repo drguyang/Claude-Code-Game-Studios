@@ -277,8 +277,15 @@ namespace DaYiJingCheng.Sim.World
         /// 速度档位索引(>= 0,&lt; K_speed 表长度)。
         /// <para>⚠️ 本字段的上界由 **ADR-014 阶段 2 烘焙器白名单**强制(它是唯一同时看得见
         /// K_speed 表与地形数组的组件),不在 <see cref="WorldGeometry"/> 构造期 ——
-        /// 几何装载入口收不到表。当前**全仓零消费者**(grep 可证)⇒ 无现役失效面;
-        /// 首个消费者落地的同一批须把该白名单断言一并补齐。</para>
+        /// 几何装载入口收不到表。</para>
+        /// <para>🔁 <b>2026-10-29(关卡工具 story-002)后「全仓零消费者」这句**已过期**,原文不删</b>:
+        /// 本字段现在有三道真正的消费者 ——
+        /// ① **烘焙期**(`WorldTerrainBinder`):`terrain_id` 必须存在于表内,并解析成**行下标**再落 cooked;
+        /// ② **装载期**(`WorldTerrainCookedCodec`):逐格断言下标 ∈ `[0, row_count)`;
+        /// ③ **装配期**(`MinimalWorldFactory.ValidateTerrainSpeedIndices`,**public**):逐格读回
+        /// <see cref="KSpeedIdx"/> 做量程校验 —— 这是本字段**第一个真正的读者**。
+        /// （`Sim` 不引用装配层,故本节只点名不 `<see cref>`。）
+        /// ⚠️ 但**速度求值**(F-1-3 / F-6-1 展开)仍未消费它 —— 归系统 1 的实现轮。</para>
         /// </summary>
         public readonly int KSpeedIdx;
 

@@ -187,7 +187,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 2026-10-21 S17-2 前置追加 24 医馆三表后共 **19** 条;同轮 O-24-1 追加 21a 家具目录后共 **20** 条;
         /// 2026-10-21 TD-building-01 读侧追加 23 模块目录后共 **21** 条;
         /// 2026-10-22 B1 接真追加 9 病种注册表后共 **22** 条;
-        /// 2026-10-28 S20-20 装载面追加建造槽位骨架后共 **23** 条
+        /// 2026-10-28 S20-20 装载面追加建造槽位骨架后共 **23** 条;
+        /// 2026-10-29 关卡工具 story-002 追加世界几何 / 地形表后共 **25** 条
         /// —— 与 `Preload()` 的
         /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
         internal static readonly string[] DataCoreAddresses =
@@ -235,6 +236,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // 建造槽位骨架(S20-20 装载面,2026-10-28:合成世界槽位目录的生产来源)。
             // ⚠️ 本条是**第三次**同型补登记,前两次(BuildModules / DiseaseRegistry)的教训逐字适用。
             AddressablesDataProvider.WorldBuildSlotsAddress,
+            // 世界几何 / 地形表(关卡工具 story-002 · 2026-10-29:合成世界被装载路径替换的输入)。
+            // ⚠️ 本条是**第四次**同型补登记(BuildModules / DiseaseRegistry / WorldBuildSlots 之后),
+            //    前三次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量**四处集合相等**,漏一处即红。
+            AddressablesDataProvider.WorldGeometryAddress,
+            AddressablesDataProvider.WorldTerrainAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

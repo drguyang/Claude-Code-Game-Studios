@@ -199,20 +199,33 @@ namespace DaYiJingCheng.Tests.LevelTool
             }
 
             Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.BuildSlots), Is.True,
-                "BuildSlots 是本 story 唯一已实现的一类");
+                "BuildSlots 自 S20-20 起已实现");
+            // 🔁 **2026-10-29(关卡工具 story-002)**:Geometry / Terrain 也转已实现。
+            //    ⚠️ 本条此前只钉 BuildSlots;现在必须逐条钉「该实现的都实现了」——
+            //    否则「序列化器登记漏一条」会让 @story-002 的导出入口静默退回 NotSupported。
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Geometry), Is.True,
+                "Geometry 自 story-002 起已实现");
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Terrain), Is.True,
+                "Terrain 自 story-002 起已实现");
+            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(4),
+                "未实现类别 = Ecozones / Poi / Resources / NavChunk 四类 —— " +
+                "条数变了说明有类别移了队却没同步另一侧");
         }
 
         /// <summary>AC-3:未实现类别 ⇒ 抛,报文点名**归属 story**(不是「未实现」四个字了事)。</summary>
+        /// <remarks>⚠️ **2026-10-29(story-002)换靶**:本条原先用 `Geometry` 当「未实现」样例,
+        /// 而 story-002 之后它已实现 ⇒ 换成仍归 S3 的 `Ecozones`(判据形态一字未变:
+        /// 抛 + 报文含归属 story 号 + 含文件名)。</remarks>
         [Test]
         public void test_ac3_unimplementedKind_throwsNamingOwningStory()
         {
             LevelSource src = LevelCatalog.Define("p0_clinic");
 
             var ex = Assert.Throws<NotSupportedException>(
-                () => LevelExporter.Export(WorldDataSetKind.Geometry, src));
+                () => LevelExporter.Export(WorldDataSetKind.Ecozones, src));
 
-            Assert.That(ex.Message, Does.Contain("S2"), "报语文须点名归属 story(S2)");
-            Assert.That(ex.Message, Does.Contain("world_geometry"));
+            Assert.That(ex.Message, Does.Contain("S3"), "报文须点名归属 story(S3)");
+            Assert.That(ex.Message, Does.Contain("world_ecozones"));
         }
 
         // ─────────────────────────── AC-4 ───────────────────────────

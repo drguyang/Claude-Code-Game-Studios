@@ -170,6 +170,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 生产构建里 `Assets/DataCooked` 不随包出货 ⇒ 槽位目录恒空。本常量 = 那条读侧的生产装载面。</para></remarks>
         public const string WorldBuildSlotsAddress = WorldBuildSlotsDataSet.CookedFileName;
 
+        /// <summary>世界几何 address(关卡工具 story-002 · 2026-10-29)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldGeometryDataSet.CookedFileName"/>
+        /// (写方 `WorldGeometryBake.CookedFileName` / 读方 DataSet 同值)。</remarks>
+        public const string WorldGeometryAddress = WorldGeometryDataSet.CookedFileName;
+
+        /// <summary>地形表 address(关卡工具 story-002 · 2026-10-29)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldTerrainDataSet.CookedFileName"/>。</remarks>
+        public const string WorldTerrainAddress = WorldTerrainDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -213,6 +222,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DiseaseRegistryDataSet? _diseaseRegistry;
         // 建造槽位骨架(S20-20 装载面 · 2026-10-28):struct 解码形 ⇒ 可空承载。
         private WorldBuildSlotsDataSet? _worldBuildSlots;
+        // 世界几何 / 地形表(关卡工具 story-002 · 2026-10-29):struct 解码形 ⇒ 可空承载。
+        private WorldGeometryDataSet? _worldGeometry;
+        private WorldTerrainDataSet? _worldTerrain;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -361,6 +373,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWorldBuildSlots();
                 return (TDataSet)(object)_worldBuildSlots.Value;
             }
+            // ── 关卡工具 story-002(2026-10-29):世界几何 / 地形表 ──
+            if (typeof(TDataSet) == typeof(WorldGeometryDataSet))
+            {
+                EnsureWorldGeometry();
+                return (TDataSet)(object)_worldGeometry.Value;
+            }
+            if (typeof(TDataSet) == typeof(WorldTerrainDataSet))
+            {
+                EnsureWorldTerrain();
+                return (TDataSet)(object)_worldTerrain.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -377,7 +400,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 21a 家具目录(O-24-1:ClinicFurnitureDataSet)" +
                 " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)" +
                 " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)" +
-                " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)");
+                " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)" +
+                " + 世界几何 / 地形表(关卡工具 story-002 2026-10-29:WorldGeometryDataSet / WorldTerrainDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -409,6 +433,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureBuildModules();
             EnsureDiseaseRegistry();
             EnsureWorldBuildSlots();
+            EnsureWorldGeometry();
+            EnsureWorldTerrain();
         }
 
         private void EnsureItems()
@@ -824,6 +850,42 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 建造槽位骨架 cooked 解码失败(address={WorldBuildSlotsAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        // ── 关卡工具 story-002(2026-10-29):世界几何 / 地形表 ──
+
+        private void EnsureWorldGeometry()
+        {
+            if (_worldGeometry.HasValue) return;
+            byte[] bytes = FetchBytes(WorldGeometryAddress);
+            try
+            {
+                _worldGeometry = WorldGeometryCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 世界几何 cooked 解码失败(address={WorldGeometryAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureWorldTerrain()
+        {
+            if (_worldTerrain.HasValue) return;
+            byte[] bytes = FetchBytes(WorldTerrainAddress);
+            try
+            {
+                _worldTerrain = WorldTerrainCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 地形表 cooked 解码失败(address={WorldTerrainAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

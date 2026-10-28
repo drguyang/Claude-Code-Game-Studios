@@ -19,7 +19,8 @@
 
 using System;
 using System.Collections.Generic;
-using DaYiJingCheng.Sim.World;   // SlotType(唯一真源)
+using DaYiJingCheng.Sim.Contracts;   // Fix(地形表的 K_accel / K_decel;ADR-014 §二)
+using DaYiJingCheng.Sim.World;       // SlotType(唯一真源)
 
 namespace DaYiJingCheng.EditorTools.Level
 {
@@ -67,6 +68,10 @@ namespace DaYiJingCheng.EditorTools.Level
         /// </summary>
         public static LevelSource Define()
         {
+            // ⚠️ 第四格原为 `(7, 1, 7)`。story-002 引入「外环不可走」之后,`x = 7` 落在
+            //    8×2×8 的边界环上 ⇒ 那格不可通行,而「槽位落在走不到的格上」是数据自相矛盾
+            //    (入口永远无法抵达)。改 `(6, 1, 6)`:仍在 `y = 1`(AC-2 的「第二层有槽位」
+            //    判据不受影响),且落在内部。
             var slots = new List<SlotSpec>
             {
                 new SlotSpec(DecorFreeX, 0, DecorFreeZ, SlotType.Decor, bakedInitial: false),
@@ -74,10 +79,58 @@ namespace DaYiJingCheng.EditorTools.Level
                              bakedInitial: true, moduleId: DecorModuleId),
                 new SlotSpec(ShellX, 0, ShellZ, SlotType.Shell,
                              bakedInitial: true, moduleId: ShellModuleId),
-                new SlotSpec(7, 1, 7, SlotType.Decor, bakedInitial: false),
+                new SlotSpec(6, 1, 6, SlotType.Decor, bakedInitial: false),
             };
 
-            return new LevelSource(LevelId, 8, 2, 8, slots);
+            const int sizeX = 8;
+            const int sizeY = 2;
+            const int sizeZ = 8;
+
+            return new LevelSource(
+                LevelId, sizeX, sizeY, sizeZ, slots,
+                walkable: BuildWalkable(sizeX, sizeY, sizeZ),
+                terrain: BuildTerrain(sizeX, sizeY, sizeZ),
+                latticeSizeMm: P0ClinicLevel.LatticeSizeMm);
+        }
+
+        // ⚠️ 以下两件与 `P0ClinicLevel` 的对应方法**形状相同、数值也相同**(外环 1 格不可走、
+        //    单行地形表 `terrain_id = 0`)。**刻意不抽公用工具**:本关卡是**脚手架**,
+        //    它的存在意义就是「与第一关卡不同」;把两者的地形声明合并成一个共用方法,
+    //    会让「第二个关卡的地形可以独立声明」这件事在代码上不成立 ——
+        //    而那正是本关卡要证的事(AC-2)。真实第二关卡来时本文件整个替换。
+
+        /// <summary>每格可走性(外环 1 格不可走;索引 = `(x*H + y)*D + z`)。</summary>
+        private static IReadOnlyList<int> BuildWalkable(int sizeX, int sizeY, int sizeZ)
+        {
+            var walkable = new int[sizeX * sizeY * sizeZ];
+            for (int x = 0; x < sizeX; x++)
+                for (int y = 0; y < sizeY; y++)
+                    for (int z = 0; z < sizeZ; z++)
+                    {
+                        bool onRing = x == 0 || x == sizeX - 1 || z == 0 || z == sizeZ - 1;
+                        walkable[(x * sizeY + y) * sizeZ + z] = onRing ? 0 : 1;
+                    }
+            return walkable;
+        }
+
+        /// <summary>本关卡的地形声明(单行表 `terrain_id = 0`,全格指向它)。</summary>
+        /// <remarks>⚠️ 单行 / `K_speed = 1` 是**占位**,归用户数值轮(与 `P0ClinicLevel` 同口径)。</remarks>
+        private static TerrainSource BuildTerrain(int sizeX, int sizeY, int sizeZ)
+        {
+            int total = sizeX * sizeY * sizeZ;
+            var rows = new List<TerrainRowSpec>
+            {
+                new TerrainRowSpec(
+                    terrainId: 0,
+                    name: "wood_floor",
+                    kSpeed: 1,
+                    kAccel: Fix.FromRational(1, 1),
+                    kDecel: Fix.FromRational(1, 1)),
+            };
+
+            var cellTerrainId = new int[total];
+            return new TerrainSource(
+                rows, cellTerrainId, P0ClinicLevel.SlopeLimitDegX100, P0ClinicLevel.StepOffsetMm, total);
         }
     }
 }

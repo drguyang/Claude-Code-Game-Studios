@@ -217,7 +217,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    预载失败(未重建 catalog / 组条目缺)⇒ 传 null 走磁盘兜底(编辑器可读,
             //    玩家构建必失败 ⇒ 空目录 + LogError,与接线前同形,不静默)。
             var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null);
-            IsSyntheticWorld = true;
+            // 🔁 **2026-10-29(关卡工具 story-002)此处置 `false`,原文不删**:
+            //    此前恒 `true` —— 世界几何由 `MinimalWorldFactory` **合成**(16×1×16 全 walkable),
+            //    因为 `world_*.json` / `world_*.cooked` 三样全无。story-002 之后
+            //    `MinimalWorldFactory` 是**纯装载器**(几何 / 可走性 / 速度档全部来自烘焙产物,
+            //    产物缺失即启动期硬失败),合成支已删除 ⇒ 本属性在当前生产路径上**恒 false**。
+            //    ⚠️ 属性本身保留:它是 PlayMode 可断言的可观测诊断位,且 AC-4 的判据援引它。
+            //    若将来重新引入合成支(须另裁,理由见 `MinimalWorldFactory` 文件头 ①②③),
+            //    这里必须重新如实赋值 —— 不得让它变成「写着 false 但可能合成」。
+            IsSyntheticWorld = false;
 
             _services = CompositionRoot.Assemble(
                 registry: null,

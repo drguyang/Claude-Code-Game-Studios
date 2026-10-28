@@ -108,6 +108,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// 手写该 JSON 违反 ADR-022 §二。</para></summary>
         public const string WorldBuildSlotsCookedAssetName = WorldBuildSlotsBake.CookedFileName;
 
+        /// <summary>产物文件名(世界几何 = `world_geometry.json`;关卡工具 story-002 · 2026-10-29)。
+        /// <para>⚠️ 作者态 JSON 的**唯一作者 = 关卡工具**,手写违反 ADR-022 §二。
+        /// 运行期消费方 = `MinimalWorldFactory.Create()`(**无降级路径**:产物缺失即启动期硬失败)。</para></summary>
+        public const string WorldGeometryCookedAssetName = WorldGeometryBake.CookedFileName;
+
+        /// <summary>产物文件名(地形表 = `world_terrain.json`;关卡工具 story-002 · 2026-10-29)。
+        /// <para>⚠️ 与 <see cref="WorldGeometryCookedAssetName"/> **必须同批烘焙**:两者的
+        /// `world_size` 装载期互相断言;只烘一份 = 启动期硬失败。</para></summary>
+        public const string WorldTerrainCookedAssetName = WorldTerrainBake.CookedFileName;
+
         /// <summary>产物文件名(17 采集调参表 = `foraging_constants.json`;S20-3 评审 W-3 甲案的兑现件)。
         /// <para>⚠️ 与运行期地址**尚无常量** —— 17 的 `IDataProvider` 消费方在 story-002/004 实现,
         /// 届时在此登记地址常量(承 <see cref="InteractionKindsCookedAssetName"/> 同款注记:
@@ -782,6 +792,97 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"[大医精诚] 烘焙完成:{WorldBuildSlotsCookedAssetName} = {result.Cooked.Length} B," +
                     $"槽位 {result.Bound.Rows.Count} 格," +
                     $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙世界几何(<c>world_geometry.json</c> —— 关卡工具 story-002):
+        /// 仓库 <c>assets/data/world_geometry.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldGeometryBinder"/>(四条域门:**聚合 throw**)
+        /// → deterministic 编码 → <see cref="WorldGeometryCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 运行期消费方 = <c>MinimalWorldFactory.Create()</c>,且**无降级路径** ——
+        /// 产物缺失 / 损坏 = 启动期硬失败。⇒ 烘完**必须**再跑「确保 data-core Addressables 组」
+        /// 与「构建 Addressables 内容」两个菜单。</para>
+        /// </summary>
+        public static WorldGeometryBake.BakeOutput BakeWorldGeometryCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldGeometryBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙世界几何并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_geometry(世界几何 · 关卡工具)")]
+        public static void BakeWorldGeometry()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                WorldGeometryBake.BakeOutput result = BakeWorldGeometryCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldGeometryCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldGeometryCookedAssetName} = {result.Cooked.Length} B," +
+                    $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
+                    $"LATTICE_SIZE = {result.Bound.LatticeSizeMm} mm," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙地形表(<c>world_terrain.json</c> —— 关卡工具 story-002):
+        /// 仓库 <c>assets/data/world_terrain.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldTerrainBinder"/>(六条域门:**聚合 throw**)
+        /// → deterministic 编码 → <see cref="WorldTerrainCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 与 <see cref="BakeWorldGeometryCore"/> **必须同批** —— 两份产物的
+        /// <c>world_size</c> 在装载期互相断言。</para>
+        /// </summary>
+        public static WorldTerrainBake.BakeOutput BakeWorldTerrainCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldTerrainBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙地形表并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_terrain(地形表 · 关卡工具)")]
+        public static void BakeWorldTerrain()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                WorldTerrainBake.BakeOutput result = BakeWorldTerrainCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldTerrainCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldTerrainCookedAssetName} = {result.Cooked.Length} B," +
+                    $"TERRAIN_TABLE {result.Bound.Rows.Count} 行," +
+                    $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
+                    $"slopeLimit = {result.Bound.SlopeLimitDegX100}(0.01°)," +
+                    $"stepOffset = {result.Bound.StepOffsetMm} mm," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

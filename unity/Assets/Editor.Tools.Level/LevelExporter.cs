@@ -27,7 +27,8 @@ using System.Collections.Generic;
 using System.Globalization;   // InvariantCulture —— 跨区域性逐字节确定性(A-18)
 using System.IO;
 using System.Text;
-using DaYiJingCheng.Sim.World;   // SlotType(唯一真源)
+using DaYiJingCheng.Sim.Contracts;   // Fix(地形表的 K_accel / K_decel;ADR-014 §二)
+using DaYiJingCheng.Sim.World;       // SlotType(唯一真源)
 using UnityEngine;   // Application.dataPath(本程序集为编辑期工具,不进玩家构建)
 
 namespace DaYiJingCheng.EditorTools.Level
@@ -51,7 +52,17 @@ namespace DaYiJingCheng.EditorTools.Level
         /// ⚠️ 三处**必须同时**改:本常量 / `WorldBuildSlotsCookedCodec.ExpectedSchemaVersion` /
         /// `WorldBuildSlotsBinder.RowKeys` —— 前两者由绑定器的 `ReadSchemaVersion` 交叉校验
         /// (它以 codec 常量为期望值),故本常量若漏改,真种子烘焙**当场**报「schemaVersion ≠ 期望」。</remarks>
-        public const uint SchemaVersion = 2u;
+        public const uint BuildSlotsSchemaVersion = 2u;
+
+        /// <summary>`world_geometry.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        /// <remarks>⚠️ **每类数据集各有一个 schema 号**(承 ADR-014 §五 的 per-product 口径):
+        /// 三类的布局各自演进,共用一个号会让「改 A 却被迫升 B 的号」成为常态,
+        /// 而升号 = 旧产物被拒收 = 一次无谓的重烘。</remarks>
+        public const uint GeometrySchemaVersion = 1u;
+
+        /// <summary>`world_terrain.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        public const uint TerrainSchemaVersion = 1u;
+
 
         // ⚠️ **此处曾有 `SlotTypeNames` / `DeriveSlotTypeNames()`**(名字表 + 名字→序数派生)。
         //    2026-10-28 代码评审 **A-21** 后删除,两半各有归处 ——
@@ -83,7 +94,7 @@ namespace DaYiJingCheng.EditorTools.Level
 
             var sb = new StringBuilder();
             sb.Append("{\n");
-            sb.Append("  \"schema_version\": ").Append(Num((int)SchemaVersion)).Append(",\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)BuildSlotsSchemaVersion)).Append(",\n");
             sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
             sb.Append("  \"world_size\": [")
               .Append(Num(src.Width)).Append(", ")
@@ -117,6 +128,140 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
+        /// 序列化 `world_geometry.json`(story-002 AC-1)。
+        /// <para>形状 = `schema_version` + `level_id` + `world_size` + `lattice_size_mm` + `walkable`。</para>
+        /// <para>⚠️ **零浮点**:全部字段都是 JSON 整数(AC-1 的判据;`LATTICE_SIZE` 以**毫米整数**承载 ——
+        /// ADR-015 §三 的格边量子就是 mm)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 关卡未声明可走性(`Walkable == null`)或未声明 `LATTICE_SIZE` ——
+        /// **不合成「全可走」**:那会让 AC-4 的「可走性来自产物」在任何夹具上不可判别
+        /// (同值变异),也把「没数据」伪装成「全都走得通」。</exception>
+        public static string ExportGeometry(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Walkable == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明每格可走性 ⇒ 拒绝导出 world_geometry。" +
+                    "不合成「全可走」:合成值与本关卡的真空值不可分辨," +
+                    "「可走性来自产物」就失去观察面(AC-4)");
+            if (src.LatticeSizeMm <= 0)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明 LATTICE_SIZE(= {src.LatticeSizeMm} mm ⇒ 须 > 0;GDD F-6-1)");
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)GeometrySchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            sb.Append("  \"world_size\": [")
+              .Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ")
+              .Append(Num(src.Depth)).Append("],\n");
+            sb.Append("  \"lattice_size_mm\": ").Append(Num(src.LatticeSizeMm)).Append(",\n");
+            sb.Append("  \"walkable\": ");
+            AppendFlatIntArray(sb, src.Walkable, perLine: src.Height * src.Depth);
+            sb.Append("\n}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 序列化 `world_terrain.json`(story-002 AC-2)。
+        /// <para>形状 = `terrain_table`(`terrain_id → {k_speed, k_accel, k_decel}`)
+        /// + `cell_terrain_id` + `slope_limit_deg_x100` + `step_offset_mm`。</para>
+        /// <para>⚠️ **`K_accel` / `K_decel` 写字符串**(`"1"` / `"3/4"`)—— ADR-014 §二:
+        /// `Fix` 字段物理上不可能住 JSON 数字,写数字等于给浮点泄漏开后门。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">关卡未声明地形表。</exception>
+        public static string ExportTerrain(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Terrain == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明 TERRAIN_TABLE ⇒ 拒绝导出 world_terrain" +
+                    "(F-6-2:K_TERRAIN_MAX = max over 空集**无定义**,装载期硬失败)");
+
+            TerrainSource t = src.Terrain;
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)TerrainSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            // ⚠️ `world_size` **重复出现在两个产物里**,这是刻意的:它不是「第二真源」,
+            //    而是让 `cell_terrain_id` 在**烘焙期**就能自校验(否则「数组长度对不对」只能等装载期
+            //    拿几何侧来比),且装载期可以断言两份产物的尺寸**相等** —— 那正是
+            //    「地形是从另一版关卡烘的」这类漂移的唯一抓法。
+            sb.Append("  \"world_size\": [")
+              .Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ")
+              .Append(Num(src.Depth)).Append("],\n");
+            // 表按 `terrain_id` 升序 ⇒ 声明序重排不改变字节流(与 slots 的 (x,y,z) 全序同源)。
+            var rows = new List<TerrainRowSpec>(t.Rows);
+            rows.Sort((a, b) => a.TerrainId.CompareTo(b.TerrainId));
+
+            sb.Append("  \"terrain_table\": [\n");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                TerrainRowSpec r = rows[i];
+                sb.Append("    {\"terrain_id\": ").Append(Num(r.TerrainId))
+                  .Append(", \"name\": ").Append(Quote(r.Name))
+                  .Append(", \"k_speed\": ").Append(Num(r.KSpeed))
+                  .Append(", \"k_accel\": ").Append(Quote(FixLiteral(r.KAccel)))
+                  .Append(", \"k_decel\": ").Append(Quote(FixLiteral(r.KDecel)))
+                  .Append('}')
+                  .Append(i + 1 < rows.Count ? ",\n" : "\n");
+            }
+            sb.Append("  ],\n");
+            sb.Append("  \"cell_terrain_id\": ");
+            AppendFlatIntArray(sb, t.CellTerrainId, perLine: src.Height * src.Depth);
+            sb.Append(",\n");
+            sb.Append("  \"slope_limit_deg_x100\": ").Append(Num(t.SlopeLimitDegX100)).Append(",\n");
+            sb.Append("  \"step_offset_mm\": ").Append(Num(t.StepOffsetMm)).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 一维整数数组的确定性排版:每 <paramref name="perLine"/> 项一行(缩进 4 空格)。
+        /// <para>⚠️ `perLine` 取 `Height × Depth` ⇒ 每个 x 一层一行,切片与索引公式
+        /// `(x*H + y)*D + z` 的**连续段**重合 —— 作者读 JSON 时看到的行边界就是 x 的边界。</para>
+        /// </summary>
+        private static void AppendFlatIntArray(StringBuilder sb, IReadOnlyList<int> values, int perLine)
+        {
+            if (perLine < 1) perLine = 1;
+            sb.Append("[\n");
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (i % perLine == 0) sb.Append("    ");
+                sb.Append(Num(values[i]));
+                bool last = i + 1 == values.Count;
+                if (!last) sb.Append(", ");
+                if ((i + 1) % perLine == 0 || last) sb.Append('\n');
+            }
+            sb.Append("  ]");
+        }
+
+        /// <summary>
+        /// `Fix` → **可被 `FixParse` 读回**的确定性字面量(ADR-014 §二:`Fix` 在 JSON 里写字符串)。
+        /// <para>整值(`raw % 65536 == 0`)⇒ `"1"`;否则 ⇒ `"raw/65536"`(分子分母皆整数,
+        /// `FixParse.FromRatio` 精确还原 ⇒ 往返**逐位**无损)。</para>
+        /// <para>⚠️ 刻意**不**输出 `"0.75"` 这类小数写法 —— `FixParse` 会拒它,而且那正是本仓
+        /// 反复抓到的浮点泄漏形态。</para>
+        /// </summary>
+        private static string FixLiteral(Fix value)
+        {
+            const long one = Fix.OneRaw;   // 1.0 的 raw 表示(Q16.16)
+            long raw = value.Raw;
+            if (raw % one == 0) return (raw / one).ToString(CultureInfo.InvariantCulture);
+            return raw.ToString(CultureInfo.InvariantCulture) + "/" + one.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
         /// 按**数据集类别**序列化(AC-3 的分派面)。
         /// <para>本方法**不含任何 kind 分支** —— 分派表在 `WorldDataSets.Serializers`;
         /// 新增一类只在那里加一行,本类主体一字不动。</para>
@@ -143,19 +288,30 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
-        /// 导出某关卡的建造槽位骨架到 `<repoRoot>/assets/data/&lt;WorldDataSets.FileNameFor&gt;`。
-        /// <para>基准关卡 ⇒ `world_buildslots.json`(契约字面);其他关卡 ⇒ `world_buildslots_{level_id}.json`。</para>
+        /// 导出某关卡的**全部已实现类别**到 `<repoRoot>/assets/data/&lt;WorldDataSets.FileNameFor&gt;`。
+        /// <para>基准关卡 ⇒ `world_{kind}.json`(契约字面);其他关卡 ⇒ `world_{kind}_{level_id}.json`。</para>
+        /// <para>🔁 **2026-10-29(story-002)**:此前只导 `BuildSlots`。几何 / 地形落地后,
+        /// 「导出一个关卡」若仍只写槽位,调用方就得记住「还要再导两次」——
+        /// 那是一条**必须靠记忆维持**的接线,漏一次就是「产物里少一份、装载期硬失败」。
+        /// 现在循环 `WorldDataSets.All` 的已实现子集,新增一类**不改本方法**。</para>
         /// </summary>
+        /// <returns>实际写出的文件名(顺序 = <see cref="WorldDataSets.All"/> 的声明序)。</returns>
         /// <exception cref="ArgumentException"><paramref name="levelId"/> 不在 <see cref="LevelCatalog"/> 内。</exception>
-        /// <exception cref="InvalidOperationException">一致性检查硬失败。</exception>
-        public static void ExportLevelToRepo(string repoRoot, string levelId)
+        /// <exception cref="InvalidOperationException">一致性检查硬失败 / 某类所需的声明缺失。</exception>
+        public static IReadOnlyList<string> ExportLevelToRepo(string repoRoot, string levelId)
         {
             if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
             LevelSource src = LevelCatalog.Define(levelId);
-            ExportTo(WorldDataSetKind.BuildSlots,
-                     Path.Combine(repoRoot, "assets", "data",
-                                  WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, levelId)),
-                     src);
+
+            var written = new List<string>();
+            foreach (WorldDataSetKind kind in WorldDataSets.All)
+            {
+                if (!WorldDataSets.IsImplemented(kind)) continue;
+                string fileName = WorldDataSets.FileNameFor(kind, levelId);
+                ExportTo(kind, Path.Combine(repoRoot, "assets", "data", fileName), src);
+                written.Add(fileName);
+            }
+            return written;
         }
 
         /// <summary>
@@ -166,18 +322,24 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 可验证,又不在作者态目录留垃圾。</para>
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="levelId"/> 不在 <see cref="LevelCatalog"/> 内。</exception>
-        public static string ExportLevelToStaging(string repoRoot, string levelId)
+        public static IReadOnlyList<string> ExportLevelToStaging(string repoRoot, string levelId)
         {
             if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
             LevelSource src = LevelCatalog.Define(levelId);
-            string path = Path.Combine(repoRoot, "unity", "Logs", "level-tool",
-                                       WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, levelId));
-            ExportTo(WorldDataSetKind.BuildSlots, path, src);
-            return path;
+
+            var written = new List<string>();
+            foreach (WorldDataSetKind kind in WorldDataSets.All)
+            {
+                if (!WorldDataSets.IsImplemented(kind)) continue;
+                string fileName = WorldDataSets.FileNameFor(kind, levelId);
+                ExportTo(kind, Path.Combine(repoRoot, "unity", "Logs", "level-tool", fileName), src);
+                written.Add(fileName);
+            }
+            return written;
         }
 
-        /// <summary>导出**基准关卡**到 `<repoRoot>/assets/data/world_buildslots.json`(保留入口)。</summary>
-        public static void ExportToRepo(string repoRoot)
+        /// <summary>导出**基准关卡**到 `<repoRoot>/assets/data/`(全部已实现类别)。</summary>
+        public static IReadOnlyList<string> ExportToRepo(string repoRoot)
             => ExportLevelToRepo(repoRoot, LevelCatalog.CanonicalLevelId);
 
         /// <summary>batch 入口:导出**基准关卡**到本工程所在仓库的 `assets/data/`。</summary>
@@ -185,9 +347,10 @@ namespace DaYiJingCheng.EditorTools.Level
         public static void ExportP0ClinicToRepo()
         {
             string repoRoot = RepositoryRoot();
-            ExportToRepo(repoRoot);
-            string fileName = WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, LevelCatalog.CanonicalLevelId);
-            Debug.Log($"[关卡工具] 已导出 {fileName} → {Path.Combine(repoRoot, "assets", "data", fileName)}");
+            IReadOnlyList<string> written = ExportToRepo(repoRoot);
+            for (int i = 0; i < written.Count; i++)
+                Debug.Log($"[关卡工具] 已导出 {written[i]} → " +
+                          Path.Combine(repoRoot, "assets", "data", written[i]));
         }
 
         /// <summary>batch 入口:导出**第二关卡(脚手架)**到 `unity/Logs/level-tool/`(gitignored 暂存区)。</summary>
@@ -196,8 +359,10 @@ namespace DaYiJingCheng.EditorTools.Level
         public static void ExportScaffoldLevelToStaging()
         {
             string repoRoot = RepositoryRoot();
-            string path = ExportLevelToStaging(repoRoot, ScaffoldSecondLevel.LevelId);
-            Debug.Log($"[关卡工具] 已导出(暂存){ScaffoldSecondLevel.LevelId} → {path}");
+            IReadOnlyList<string> written = ExportLevelToStaging(repoRoot, ScaffoldSecondLevel.LevelId);
+            for (int i = 0; i < written.Count; i++)
+                Debug.Log($"[关卡工具] 已导出(暂存){ScaffoldSecondLevel.LevelId} → " +
+                          Path.Combine(repoRoot, "unity", "Logs", "level-tool", written[i]));
         }
 
         /// <summary>仓库根(`unity/Assets` 的上两级)。</summary>

@@ -62,6 +62,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static WorldBuildSlotsDataSet LoadBuildSlots()
             => WorldBuildSlotsCookedCodec.Read(ReadAll(WorldBuildSlotsDataSet.CookedFileName));
 
+        /// <summary>世界几何(<c>world_geometry.cooked.bytes</c>;ADR-022 §三导出契约的烘焙产物)。
+        /// <para>⚠️ 消费方 = <c>MinimalWorldFactory.Create()</c>(装配期世界工厂)的**磁盘兜底**。
+        /// 与槽位骨架不同:**本方法抛 ⇒ 装配期硬失败**,没有「降级为合成世界」的路径 ——
+        /// 合成世界正是 story-002 要消灭的状态(它会以「兼容路径」的名义永久存活)。</para></summary>
+        public static WorldGeometryDataSet LoadWorldGeometry()
+            => WorldGeometryCookedCodec.Read(ReadAll(WorldGeometryDataSet.CookedFileName));
+
+        /// <summary>地形表(<c>world_terrain.cooked.bytes</c>)。消费方 = 同上;失败语义同
+        /// <see cref="LoadWorldGeometry"/>(硬失败,空表亦然 —— AC-5)。</summary>
+        public static WorldTerrainDataSet LoadWorldTerrain()
+            => WorldTerrainCookedCodec.Read(ReadAll(WorldTerrainDataSet.CookedFileName));
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

@@ -1,109 +1,128 @@
-// 最小合成世界 —— **装配期**的世界实例工厂(S20-17 · 2026-10-28)。
+// 装配期世界工厂 —— **世界几何的唯一装配入口**(S20-17 起 · 2026-10-28;story-002 改为装载 · 2026-10-29)。
 //
 // ═══════════════════════════════════════════════════════════════════════════
-// 为什么需要这个文件
+// 本文件的历史与现状(两段,第一段原文保留)
 // ═══════════════════════════════════════════════════════════════════════════
-// `CompositionRoot.cs:787-796` 逐字记着:23 的 `StructureInstanceRegistry` 在生产树
-// **零构造**(`new World` 的构造同样零构造),并指名「`BootRoot` 的 World 场景装配轮」。
-// `impl-s20-2a-building01-2026-10-25.md:176` 的 N5 条把这件事记为「本件未做」,
-// 而 `TD-building-01` 已于 2026-10-25 结案 ⇒ 该缺口今日**零载体**。
-// 本文件即该轮的第一块:让 `World` 在生产装配路径上**存在**。
+// **2026-10-28(S20-17)**:`CompositionRoot.cs` 逐字记着「23 的 `StructureInstanceRegistry`
+// 在生产树**零构造**(`new World` 的构造同样零构造)」。本文件是那一轮的第一块 —— 让 `World`
+// 在生产装配路径上**存在**。当时世界几何的三种来源(作者态 `world_*.json` /
+// `DataCooked/world_*.cooked` / 关卡工具的产出)**一样都不存在**,所以只能造一个
+// ⚠️ 本文件是**运行期**源码,`RuntimeSourceGuard`(AC-21a-48)会剥掉注释后扫**字符串字面量**里的
+// 「作者态目录」字样。**注释里写路径名是安全的**(全仓大量注释如此),**异常报文里写就会红** ——
+// 2026-10-29 实测:一条 `InvalidDataException` 报文的文案里带了路径写法,全量回归红了一条,
+// 改成「作者态数据目录」才绿。**改本文件的报文时避开该字样。**
+// **最小合成世界**(16×1×16 全 walkable),并强制打一条 `LogWarning` 作诊断锚点。
 //
-// ═══════════════════════════════════════════════════════════════════════════
-// 为什么是「合成」而不是「装载」—— 这一条必须读懂再改
-// ═══════════════════════════════════════════════════════════════════════════
-// 世界几何的真源 = ADR-022 关卡工具产出的 `world_geometry.json` → ADR-014 烘焙 →
-// `world_*.cooked`。今日**三样全无**:`assets/data/` 零份 `world_*` JSON、
-// `unity/Assets/DataCooked/` 的 25 份 cooked 产物里零份世界数据,
-// 而关卡工具已被裁定「不立 epic、不排期」(`p0-remaining-roadmap-2026-10-20.md:1088`)。
-// ⇒ 装配轮**没有可装载的输入**。用户 2026-10-28 裁定:边界取「最小合成世界」。
+// **2026-10-29(关卡工具 story-002)**:那三样现在都有了 —— 关卡工具导出
+// `world_geometry.json` / `world_terrain.json` → ADR-014 烘焙 → `world_geometry.cooked` /
+// `world_terrain.cooked` → `data-core` 预载。⇒ **合成支被删除**,本类成为纯粹的**装载器**:
+// 几何尺寸 / 每格可走性 / 每格速度档下标**全部**来自烘焙产物。
 //
-// ⚠️ **本工厂不是在给 `WorldGeometry` 开后门**。`WorldLattice.cs:295-298` 的
-//    `WorldGeometry` 文档逐字写着「刻意**没有**『按尺寸造一个空白世界』的入口:
-//    未装载的世界若默认可走,烘焙缺数据就从『启动期硬失败』退化成『全世界默认可走』
-//    的静默失败」。那条约束**仍然成立,本文件不修改它** —— `WorldGeometry` 依旧只从
-//    成形数组构造,依旧在装载期做量程 / 长度校验。
-//    差别在于**谁在承担「我知道这是合成的」这件事**:
-//      · `WorldGeometry` 的空白入口会让**任何**调用方都悄悄拿到一个可走世界;
-//      · 本工厂只服务**装配期这一处**,且强制配一条响亮日志(见下)。
-//
-// ⚠️ **响亮登记(禁静默)**:`Create()` 每次都打一条 `LogWarning`。理由 ——
-//    一个全 walkable 的 16×1×16 世界与「真世界」在 `IsEffectivelyWalkable` 上不可区分,
-//    若不打日志,将来「世界变成空的 / 建造永远合法」这类症状会被误诊为逻辑缺陷,
-//    而不是「世界数据从未产出」。这条日志就是那个诊断锚点。
-//    `BootRoot` 另置 `IsSyntheticWorld` 可观测属性(PlayMode 可断言)。
+// ⚠️ **合成支为什么整体删掉,而不是留成「无产物则合成」的兼容路径**
+//    (story-002 §Implementation Notes 的「乙」案是后者;本轮**取窄**,如实登记供用户裁定):
+//    ① **它与 AC-5 在同一入口上产生两种语义** —— AC-5 要求「`TERRAIN_TABLE` 空表 ⇒ 装载**抛**」,
+//       而「无产物则合成」要求「产物不在 ⇒ 静默造一个全可走世界」。两条判据在同一段
+//       `try` 里只能二选一,而 AC-5 是 BLOCKING。
+//    ② **判别「产物缺失」与「产物损坏」不可靠**:`AddressablesDataProvider` 把两种失败
+//       都包成 `InvalidOperationException`(见其 `Ensure*` 的 `catch … throw new
+//       InvalidOperationException`),按异常类型分不开 ⇒ 合成支会把「字节损坏」
+//       当成「没有数据」吞下去。那正是本仓反复抓到的「假绿」形态。
+//    ③ **合成支今日零可达**:两份产物随本 story 提交入库,`data-core` 组已登记。
+//    ⇒ 终态(故事卡称「甲」)就是现在这个形态。**若将来确需合成支**(例如「开发者未烘培」的
+//      友好降级),须**另裁**并同时解决 ② 的判别问题 —— 不得在 `catch` 里顺手加一条。
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // 边界(本卡不解除的,逐条如实)
 // ═══════════════════════════════════════════════════════════════════════════
-// · ~~`BuildSlotCatalog` 是**空目录**(`RegisterSlot` 零调用)⇒ `IsInBuildSlotRegion`
-//   恒 false~~(**2026-10-28 S20-20 起过期**,原文不删):槽位骨架现从
-//   `world_buildslots.cooked.bytes` 装载并 `RegisterSlot`(产物由关卡工具导出 + 烘焙)。
-//   ⚠️ 但仍**只**是 13 格骨架 —— `AC-23-08` 第三半边的覆盖面 = 那 13 格,不是「任意格」。
-// · 地形全 walkable + POI / 资源格全 `-1` ⇒ `EcozoneOf` / 资源点查询在本世界上
-//   只有「没有」这一个答案 —— 这不是「已实现」,是「没有数据」。
-// · 本工厂**不**提供任何写入面:世界内容只能由后续关卡工具轮替换。
+// · **POI / 资源格仍全 `-1`**(无) —— 归 story S4。`WorldGeometry` 要求这两个数组与
+//   几何等长,故本文件按「无」填满;S4 落地后由它自己的产物供给,不改本文件的结构。
+// · **`WorldLatticeParams` 仍不构造** —— 它的 6 个数值里只有 `LatticeSizeMm` 与 K_speed 表
+//   来自产物,其余四个(`SPEED_MODE_MAX` / `K_CONTEXT_MAX` / `MAX_DT` / `SAFETY_MARGIN`)
+//   **全归用户数值轮**。本文件**不**给它们填默认值:那会让 F-6-1 的不等式以「猜的数」成立。
+// · **第一层之外的 y 只有 1 格**(P0 关卡声明 16×1×16);多层世界归关卡设计轮。
+// · 本工厂**不**提供任何写入面:世界内容只能由关卡工具 + 烘焙链替换。
 
 using System;
 using System.IO;   // InvalidDataException(装载期硬失败的异常类型)
-using DaYiJingCheng.Gameplay.Presentation;   // DataCookedDisk / WorldBuildSlotsDataSet
-using DaYiJingCheng.Sim.Contracts;           // IDataProvider(槽位骨架的生产装载面)
+using DaYiJingCheng.Gameplay.Presentation;   // DataCookedDisk / 三份世界数据集
+using DaYiJingCheng.Sim.Contracts;           // IDataProvider(生产装载面)
 using DaYiJingCheng.Sim.World;
-using UnityEngine;   // Debug.LogWarning(本文件属装配层,门 A 不约束)
+using UnityEngine;   // Debug(本文件属装配层,门 A 不约束)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
     /// <summary>
-    /// 装配期最小合成世界工厂(S20-17)。
-    /// <para>产出 <see cref="World"/>:16×1×16 全 walkable 地形 + 空槽位目录 +
-    /// 空结构实例表。用地取代「世界烘焙数据」—— 后者今日零产出,唯一作者
-    /// ADR-022 关卡工具已被裁定不排期。</para>
-    /// <para>⚠️ <b>每次调用都打一条 <see cref="Debug.LogWarning(string)"/></b>:合成世界
-    /// 与真世界在可走性查询上不可区分,不登记就会被误诊为逻辑缺陷。详见文件头。</para>
+    /// 装配期世界工厂:从烘焙产物装载世界几何 + 地形表,并注册建造槽位。
+    /// <para>⚠️ <b>本类不做任何合成</b> —— 几何三件(尺寸 / 可走性 / 速度档下标)全部来自
+    /// <c>world_geometry.cooked</c> 与 <c>world_terrain.cooked</c>。产物缺失或损坏 =
+    /// **启动期硬失败**(E-13),没有「退回全可走世界」的路径。详见文件头 ①②③。</para>
+    /// <para>⚠️ <b>槽位骨架是唯一的例外</b>:它装载失败仍降级为**空目录** + `LogError` +
+    /// 横幅(今日行为,S20-20 起)。理由见 <see cref="IsRecoverableSlotLoadFailure"/>:
+    /// 空槽位目录的症状是「玩家建不了东西」,是可诊断的显式降级;而空几何的症状是
+    /// 「世界不存在」,没有可继续运行的下游。</para>
     /// </summary>
     public static class MinimalWorldFactory
     {
-        /// <summary>合成世界的 X 轴格数。</summary>
-        /// <remarks>选 16 而非 1:单格世界会让「足迹格 / 非锚点格」类判据退化成
-        /// 同义反复(`place` 与 `OCCUPY` 落在同一格)。16×16 容得下一个 2×2 模组的整足迹。</remarks>
-        public const int SizeX = 16;
-
-        /// <summary>合成世界的 Y 轴格数。</summary>
-        /// <remarks>1 = 单层平面。P0 的医馆是平面为主形态(`technical-preferences.md` §XR
-        /// 「平面为主形态」),不做多层世界。</remarks>
-        public const int SizeY = 1;
-
-        /// <summary>合成世界的 Z 轴格数。</summary>
-        public const int SizeZ = 16;
-
-        /// <summary>建造一个最小合成世界。</summary>
-        /// <param name="dataProvider">槽位骨架的**生产**装载面(data-core Addressables);
-        /// <c>null</c> ⇒ 退回 <see cref="DataCookedDisk"/> 的磁盘路径(**仅编辑器 / 夹具**——
-        /// 玩家构建里 <c>Assets/DataCooked</c> 不随包出货,该路径必失败并走「空目录 + 响亮登记」)。
-        /// <para>⚠️ 2026-10-28(S20-20 装载面补接):本参数此前**不存在**,于是生产构建**唯一**
-        /// 的槽位来源是磁盘兜底 ⇒ 槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`。
-        /// 生产调用点 = `BootRoot` 启动序(传 `DataCorePreloader.Provider`)。</para></param>
+        /// <summary>建造一个世界(从烘焙产物装载)。</summary>
+        /// <param name="dataProvider">**生产**装载面(data-core Addressables);
+        /// <c>null</c> ⇒ 退回 <see cref="DataCookedDisk"/> 的磁盘路径(**仅编辑器 / 夹具** ——
+        /// 玩家构建里 <c>Assets/DataCooked</c> 不随包出货,该路径必失败)。
+        /// <para>生产调用点 = `BootRoot` 启动序(传 `DataCorePreloader.Provider`)。</para></param>
         /// <returns>新的 <see cref="World"/> 实例(每次调用都是独立实例 —— 两份注册表
         /// 就是两份真源,调用方须自己保证只建一次)。
-        /// <para>⚠️ <b>开档基线不由本方法应用</b>(2026-10-28 · S20-20 挂标 #2):应用基线
-        /// 需要**模块目录**,而目录由 <c>CompositionRoot</c> 在装配段才构造(它读
-        /// `build_modules.cooked`,与槽位产物是两个地址)。工厂只负责把
-        /// `BakedInitial` / `ModuleId` **装进目录**;基线由装配段调
-        /// <see cref="World.ApplyBakedInitial"/> 落地。**不在这里顺手造一个目录** ——
-        /// 那会变成第二份目录(与 `CompositionRoot` 的那份可能不同源)。</para></returns>
+        /// <para>⚠️ <b>开档基线不由本方法应用</b>:应用基线需要**模块目录**,而目录由
+        /// <c>CompositionRoot</c> 在装配段才构造。工厂只负责把 `BakedInitial` / `ModuleId`
+        /// **装进目录**;基线由装配段调 <see cref="World.ApplyBakedInitial"/> 落地。</para></returns>
+        /// <exception cref="InvalidDataException">产物损坏 / 尺寸不符 / 空地形表 / 越界下标 —— 启动期硬失败。</exception>
         public static World Create(IDataProvider dataProvider = null)
         {
-            int total = SizeX * SizeY * SizeZ;
+            WorldGeometryDataSet geo = dataProvider != null
+                ? dataProvider.Load<WorldGeometryDataSet>()
+                : DataCookedDisk.LoadWorldGeometry();
+            WorldTerrainDataSet ter = dataProvider != null
+                ? dataProvider.Load<WorldTerrainDataSet>()
+                : DataCookedDisk.LoadWorldTerrain();
 
-            // 全 walkable 地形。kSpeedIdx 取 0(合法下标;本世界的 TerrainSpeedRow 表
-            // 不参与任何判据 —— 没有消费者读它,见文件头「边界」)。
-            var terrain = new TerrainCell[SizeX, SizeY, SizeZ];
-            for (int x = 0; x < SizeX; x++)
-                for (int y = 0; y < SizeY; y++)
-                    for (int z = 0; z < SizeZ; z++)
-                        terrain[x, y, z] = new TerrainCell(true, 0);
+            // ── 两份产物的尺寸对账 ────────────────────────────────────────────────
+            // 两份产物各自带 `world_size`(刻意冗余)。不相等 = 「地形是从另一版关卡烘的」,
+            // 那会让每格的下标含义整体错位 —— 而那在运行期**看不出来**(只是地面材质错格)。
+            if (geo.SizeX != ter.SizeX || geo.SizeY != ter.SizeY || geo.SizeZ != ter.SizeZ)
+                throw new InvalidDataException(
+                    $"世界几何与地形表的声明尺寸不一致:几何 {geo.SizeX}×{geo.SizeY}×{geo.SizeZ}," +
+                    $"地形 {ter.SizeX}×{ter.SizeY}×{ter.SizeZ} —— 两份产物不是同一次导出的结果," +
+                    "重跑「导出 p0_clinic 到作者态数据目录」+ 两个烘焙菜单");
+
+            int sizeX = geo.SizeX, sizeY = geo.SizeY, sizeZ = geo.SizeZ;
+            int total = geo.TotalCells;
+
+            if (ter.CellSpeedIndex.Length != total)
+                throw new InvalidDataException(
+                    $"地形表每格数组长度 = {ter.CellSpeedIndex.Length},与几何格总数 {total} 不符");
+
+            // ── 地形格:可走性来自几何产物,速度档下标来自地形产物 ────────────────
+            var terrain = new TerrainCell[sizeX, sizeY, sizeZ];
+            int walkableCount = 0;
+            for (int x = 0; x < sizeX; x++)
+                for (int y = 0; y < sizeY; y++)
+                    for (int z = 0; z < sizeZ; z++)
+                    {
+                        // ⚠️ 索引公式与 `WorldGeometry.ToIndex` / `LevelSource.CellIndex` 逐字相同:
+                        //    `(x*SizeY + y)*SizeZ + z`。三处若漂移,错格是**静默**的。
+                        int idx = (x * sizeY + y) * sizeZ + z;
+
+                        bool walkable = geo.Walkable[idx] != 0;
+                        if (walkable) walkableCount++;
+                        terrain[x, y, z] = new TerrainCell(walkable, ter.CellSpeedIndex[idx]);
+                    }
+
+            // ★ **`TerrainCell.KSpeedIdx` 的首个消费者**(story-002 AC-6)。
+            //   此前它的上界只有「ADR-014 阶段 2 白名单」这一条**纸面**约定 —— 类自身的 doc
+            //   逐字写着「当前**全仓零消费者**」。越界下标不会抛,只会让归 1 的速度求值
+            //   取出另一行的 K_accel / K_decel(错格、无异常)。
+            ValidateTerrainSpeedIndices(terrain, ter.Rows.Count);
 
             // POI / 资源格全 -1(= 无)。长度须与 terrain 齐,否则 WorldGeometry 装载期抛。
+            // ⚠️ 归 story S4;本文件**不**预留占位数组的写入面(那会变成第二真源)。
             var poiGrid = new int[total];
             var resourceGrid = new int[total];
             for (int i = 0; i < total; i++)
@@ -114,19 +133,13 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             var geometry = new WorldGeometry(terrain, poiGrid, resourceGrid);
 
-            // ── 槽位骨架:从 cooked 产物装载(S20-20 · 2026-10-28)─────────────────────────
-            // 病因:`RegisterSlot` 此前**零生产调用点** ⇒ `PlaceableChecker.Check` 恒
-            //   `SlotNotFound` ⇒ 玩家建不了任何东西。本段是那唯一的生产装载点。
-            //
-            // ⚠️ **失败时保留今日行为(空目录),但**不静默**:异常摘要走 `LogError`,
-            //   横幅走 `LogWarning` 并**如实**说明「槽位产物缺失或损坏 ⇒ 目录为空」。
-            //   `catch` 面刻意收窄到「装载链路会抛的那几类」—— 编程错误(如 NRE)照常冒泡。
+            // ── 槽位骨架:从 cooked 产物装载(S20-20 · 2026-10-28)─────────────────
             BuildSlotCatalog slotCatalog;
             bool slotsLoaded;
             string failureSummary = null;
             try
             {
-                slotCatalog = LoadSlotCatalog(dataProvider, out failureSummary);
+                slotCatalog = LoadSlotCatalog(dataProvider, sizeX, sizeY, sizeZ, out failureSummary);
                 slotsLoaded = true;
             }
             // ⚠️ **`ArgumentException` 须排除其两个子类**(2026-10-28 代码评审 A-23):
@@ -134,58 +147,72 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    (某次重构把 null 传进装载链),被本 catch 吞掉后会打出一条
             //    「槽位产物缺失或损坏…修法:先跑关卡工具导出 JSON」—— **把开发者引向重烘产物,
             //    而真因在代码**。上面那句「编程错误照常冒泡」此前**只对 NRE 成立**。
-            //    仍保留裸 `ArgumentException`:装载链路自己会抛它(`DataCookedDisk` 的空产物名)。
-            //    `NotSupportedException` 已删 —— 全链路无已证实的抛出源,留着只是扩面。
             catch (Exception ex) when (IsRecoverableSlotLoadFailure(ex))
             {
                 slotCatalog = new BuildSlotCatalog();   // 空目录(与今日行为一致)
                 slotsLoaded = false;
                 failureSummary = $"{ex.GetType().Name}: {ex.Message}";
                 Debug.LogError(
-                    "[S20-20][合成世界] 槽位骨架装载失败 ⇒ 槽位目录为空," +
+                    "[S20-20][世界装载] 槽位骨架装载失败 ⇒ 槽位目录为空," +
                     "PlaceableChecker 将恒 SlotNotFound(玩家建不了任何东西)。"
                     + "装载源 —— " + SlotSourceLabel(dataProvider) + "。"
                     + "异常摘要 —— " + failureSummary);
             }
 
-            if (slotsLoaded)
-            {
-                Debug.LogWarning(
-                    "[S20-20][合成世界] World 的**几何仍是合成的最小几何** —— "
-                    + $"{SizeX}×{SizeY}×{SizeZ} 全 walkable,POI / 资源格全无。"
-                    + $"但**建造槽位骨架来自烘焙产物** `{WorldBuildSlotsDataSet.CookedFileName}`"
-                    + $"(槽位 {slotCatalog.Count} 格;装载源 = {SlotSourceLabel(dataProvider)};"
-                    + "唯一作者 = ADR-022 关卡工具)。"
-                    + "⇒ 「槽位判定」这一面有真数据;「地形 / 生态区 / 资源点」仍无数据。"
-                    + "横幅出现属**预期**,不是故障;世界几何数据落地后本工厂应被装载路径替换。");
-            }
-            else
-            {
-                Debug.LogWarning(
-                    "[S20-20][合成世界] World 用**最小合成几何**构造 —— "
-                    + $"{SizeX}×{SizeY}×{SizeZ} 全 walkable;"
-                    + "**槽位产物缺失或损坏 ⇒ 槽位目录为空**(原因见上一条 LogError)。"
-                    + "⇒ 建造槽位判定恒为「不在区域内」,AC-23-08 第三半边无载体。"
-                    // ⚠️ 本节**刻意不写作者态数据目录的字面路径**(2026-10-28 全量回归抓出):
-                    //    `RuntimeSourceGuard`(AC-21a-48)扫运行期源码的**字符串字面量**里有没有
-                    //    `assets` + `/data` 连写 —— 它是「玩家构建零 JSON 直读」的判据,
-                    //    注释会被剥离、字面量不会。诊断文案里提路径同样算命中 ⇒ 改写指向文件名。
-                    + "修法:先跑关卡工具导出 `world_buildslots.json`(作者态数据目录),"
-                    + "再跑「烘焙 world_buildslots」菜单"
-                    // ⚠️ 2026-10-28(S20-20 装载面):走生产装载面时,**组条目**是第二个独立失败源
-                    //    —— 产物在盘上但没进 `data-core` 组 ⇒ `FetchBytes` 查不到 ⇒ 同一条 LogError。
-                    //    不写这句,开发者会去重烘一份本来就在的产物。
-                    + (dataProvider != null
-                        ? ",最后跑「确保 data-core Addressables 组」(新产物在盘上 ≠ 在组里)"
-                        : "")
-                    + "。横幅出现属**预期**,不是故障。");
-            }
+            string slotNote = slotsLoaded
+                ? $"槽位 {slotCatalog.Count} 格"
+                : "槽位目录为空(见上一条 LogError)";
+
+            // ⚠️ **本条是 `Log` 而非 `LogWarning`**(story-002 起):合成世界已不存在,
+            //    「几何来自产物」是**正常状态**,不是需要诊断锚点的异常。
+            //    只有槽位装载失败那条是真的异常(它仍是 `LogError`)。
+            Debug.Log(
+                $"[世界装载] 几何来自烘焙产物 —— {sizeX}×{sizeY}×{sizeZ}," +
+                $"可走 {walkableCount}/{total} 格,TERRAIN_TABLE {ter.Rows.Count} 行" +
+                $"(K_TERRAIN_MAX = {ter.KTerrainMax}),LATTICE_SIZE = {geo.LatticeSizeMm} mm;" +
+                $"{slotNote};装载源 = {SlotSourceLabel(dataProvider)}。" +
+                "（POI / 资源格仍全无 —— 归 S4。）");
 
             return new World(geometry, slotCatalog);
         }
 
         /// <summary>
-        /// 「装载失败是否可降级」。**这是那条 `catch` 判据的唯一出处**(不内联在 catch 里)。
+        /// **`TerrainCell.KSpeedIdx` 的量程校验**(story-002 AC-6 的兑现面)。
+        /// <para>逐格读回 `KSpeedIdx` 并断言 `0 ≤ idx &lt; terrainTableRowCount`。</para>
+        /// <para>⚠️ <b>这是 `TerrainCell.KSpeedIdx` 在全仓的第一个、也是当前唯一的读者</b> ——
+        /// 该字段此前只有「ADR-014 阶段 2 白名单」这条纸面约定守着,类自身的 doc 逐字写着
+        /// 「当前**全仓零消费者**⇒ 无现役失效面」。AC-6 只要求「有消费者」,
+        /// **不要求「消费得对」** —— 真正的速度求值归系统 1 的实现轮。</para>
+        /// <para>⚠️ <b>可见性 = `public`</b>:读侧 codec 已经拒过越界下标,所以生产数据**打不出**
+        /// 这条失败分支 —— 若把它藏在 `private`,那份判据就是一条**无人能证伪**的断言。
+        /// 公开它,夹具可以用手工构造的 <see cref="TerrainCell"/> 数组直接命中
+        /// (承 `IsRecoverableSlotLoadFailure` 的同款理由)。</para>
+        /// </summary>
+        /// <param name="terrain">已构造的地形格(三维)。</param>
+        /// <param name="terrainTableRowCount">`TERRAIN_TABLE` 的行数(合法下标的上界,不含)。</param>
+        /// <exception cref="InvalidDataException">存在越界 / 负的 `KSpeedIdx`。</exception>
+        public static void ValidateTerrainSpeedIndices(TerrainCell[,,] terrain, int terrainTableRowCount)
+        {
+            if (terrain == null) throw new ArgumentNullException(nameof(terrain));
+            if (terrainTableRowCount < 1)
+                throw new InvalidDataException(
+                    $"TERRAIN_TABLE 行数 = {terrainTableRowCount} —— 须 ≥ 1(GDD F-6-2)");
+
+            int sizeX = terrain.GetLength(0), sizeY = terrain.GetLength(1), sizeZ = terrain.GetLength(2);
+            for (int x = 0; x < sizeX; x++)
+                for (int y = 0; y < sizeY; y++)
+                    for (int z = 0; z < sizeZ; z++)
+                    {
+                        int kSpeedIdx = terrain[x, y, z].KSpeedIdx;
+                        if (kSpeedIdx < 0 || kSpeedIdx >= terrainTableRowCount)
+                            throw new InvalidDataException(
+                                $"地形速度档下标越界:格 ({x},{y},{z}) 的 KSpeedIdx = {kSpeedIdx}," +
+                                $"TERRAIN_TABLE 行数 = {terrainTableRowCount} —— 查表会取出越界行");
+                    }
+        }
+
+        /// <summary>
+        /// 「装载体失败是否可降级」。**这是那条 `catch` 判据的唯一出处**(不内联在 catch 里)。
         ///
         /// <para>⚠️ 存在的理由(2026-10-28 代码评审 **A-23**):判据内联时它**无法被夹具钉住** ——
         /// 「`ArgumentNullException` 会不会被吞」只能靠读代码回答。抽成具名谓词后,
@@ -197,8 +224,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// —— 它们是**编码缺陷**的信号,吞掉后会打成「产物缺失或损坏…修法:先跑关卡工具导出」,
         /// **把开发者引向重烘产物,而真因在代码**。</para>
         /// <para>⚠️ <b>可见性 = `public`</b>:EditMode 夹具经 public 面直调按真值表逐条钉
-        /// (承 `AssemblyGates` 的先例 —— 「EditMode 测试经 public 面直调检查器,
-        /// 免 `InternalsVisibleTo`」)。若改回 `internal`,夹具将编译失败而非静默跳过。</para>
+        /// (承 `AssemblyGates` 的先例)。若改回 `internal`,夹具将编译失败而非静默跳过。</para>
         /// </summary>
         public static bool IsRecoverableSlotLoadFailure(Exception ex)
         {
@@ -214,14 +240,18 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>
         /// 从烘焙产物装载槽位骨架并注册进 <see cref="BuildSlotCatalog"/>。
-        /// <para>⚠️ 任何不合格(空表 / 行落在合成世界几何之外)⇒ 显式抛,由 <see cref="Create"/>
+        /// <para>⚠️ 任何不合格(空表 / 行越出世界几何)⇒ 显式抛,由 <see cref="Create"/>
         /// 决定「降级为空目录 + 响亮登记」—— 本方法**不**吞异常。</para>
         /// </summary>
         /// <param name="dataProvider">生产装载面;<c>null</c> ⇒ 磁盘兜底(见 <see cref="Create"/>)。</param>
+        /// <param name="sizeX">世界 X 格数(**来自几何产物**,不是常量 —— 2026-10-29 起)。</param>
+        /// <param name="sizeY">世界 Y 格数。</param>
+        /// <param name="sizeZ">世界 Z 格数。</param>
         /// <param name="note">成功时的人读摘要(失败时经异常承载,本参数为 null)。</param>
         /// <exception cref="InvalidOperationException">产物缺失(E-13 口径 —— provider / 磁盘同款)。</exception>
-        /// <exception cref="InvalidDataException">产物损坏 / 空表 / 行越出合成世界几何。</exception>
-        private static BuildSlotCatalog LoadSlotCatalog(IDataProvider dataProvider, out string note)
+        /// <exception cref="InvalidDataException">产物损坏 / 空表 / 行越出世界几何。</exception>
+        private static BuildSlotCatalog LoadSlotCatalog(
+            IDataProvider dataProvider, int sizeX, int sizeY, int sizeZ, out string note)
         {
             note = null;
             // ⚠️ 生产优先:provider 走 `data-core`(玩家构建里唯一存在的路径);
@@ -240,14 +270,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 WorldBuildSlotRow row = data.Rows[i];
 
-                // 与**本工厂**的合成几何对账:产物声明 16×1×16,工厂也造 16×1×16。
-                // 越界槽位在运行期永远不可达(玩家走不到),那是数据与世界的静默错配。
-                if (row.Cell.X < 0 || row.Cell.X >= SizeX ||
-                    row.Cell.Y < 0 || row.Cell.Y >= SizeY ||
-                    row.Cell.Z < 0 || row.Cell.Z >= SizeZ)
+                // 与**几何产物**对账(2026-10-29 起:对账对象从「工厂造的常量尺寸」换成
+                // 「世界实际尺寸」)。越界槽位在运行期永远不可达(玩家走不到)。
+                if (row.Cell.X < 0 || row.Cell.X >= sizeX ||
+                    row.Cell.Y < 0 || row.Cell.Y >= sizeY ||
+                    row.Cell.Z < 0 || row.Cell.Z >= sizeZ)
                     throw new InvalidDataException(
-                        $"槽位格 ({row.Cell.X},{row.Cell.Y},{row.Cell.Z}) 越出合成世界 " +
-                        $"{SizeX}×{SizeY}×{SizeZ} —— 槽位数据与工厂几何不是同一张图纸");
+                        $"槽位格 ({row.Cell.X},{row.Cell.Y},{row.Cell.Z}) 越出世界几何 " +
+                        $"{sizeX}×{sizeY}×{sizeZ} —— 槽位数据与几何产物不是同一张图纸");
 
                 catalog.RegisterSlot(new BuildSlot(
                     row.Cell, new BitMask(row.AllowedMask),
