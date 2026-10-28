@@ -99,5 +99,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 只在首次库存投影重建时求值 —— 装配期零 IO(见 `InventoryLoadService` 类头注)。</para></summary>
         public static ItemDataSet LoadItems()
             => CookedCodec.ReadItemDataSet(ReadAll(AddressablesDataProvider.ItemsAddress));
+
+        /// <summary>21a 配方表 + 全局结算常量(<c>item_database_recipes.cooked.bytes</c>)。
+        /// <para>⚠️ <b>惰性调用点</b>(2026-10-28 A-5 修复轮):生产走
+        /// <c>() =&gt; DataCookedDisk.LoadRecipes()</c>,只在首次库存投影重建时求值 ——
+        /// 与 <see cref="LoadItems"/> 同格。消费者 = `InventoryFoldContext.Recipes`
+        /// (R15:`Craft.RecipeId` → `Recipe.Outputs`);在此之前 **fold 侧从无配方表**,
+        /// 每条有产出的 `Craft` 都报 <c>CraftRecipeNotInTable</c>。</para></summary>
+        public static DaYiJingCheng.Sim.RecipeDataSet LoadRecipes()
+            => CookedCodec.ReadRecipeDataSet(ReadAll(AddressablesDataProvider.RecipesAddress));
     }
 }

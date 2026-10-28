@@ -1,0 +1,45 @@
+{
+  "name": "S20-19 A-5 修复轮(fold 的 SolePlayer = 建造门读的同一个 BuildOwnerSlot)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Boot.inventory_fold_sole_player_wiring_test",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红;受保护路径零 diff;还原 = SHA-256 逐字节(不是 grep 变异串)。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期),按「夹具过期」处理而不是「逃逸」。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "⚠️ expectRed 是本轮先写死的推演值,不是实跑抄来的(承 README「不得把实得抄进 exactRed」)。",
+    "⚠️ 一属性一条变异:M1 = 「绑定后扣料」那一面(缺点换/扣错人)/ M2 = 「绑定前 fail-closed」那一面(把『不知道扣谁』变成『扣给 -1』)。两条打同一行、替换不同 —— 因为这一行同时承载两个语义,而两个语义各需独立反证。",
+    "⚠️ 本件证明不了的那一件事:M1 只能证明『fold 读到的是槽里那个 id』,证明不了『槽里的 id 就是玩家』—— 后者由 BootRoot 铸造序保证(`BindOwner(actorId)` 与本机玩家 id 同源),不在本夹具面内。",
+    "⚠️ 靶测选择说明:两条变异**都不碰** `InventoryFold` 本体 —— fold 的 R16 逻辑本来就对(它一直在老实报缺口),A-5 的病在装配。改 fold 会让本 spec 证到错误的对象。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-solePlayerDropped",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 453,
+      "expect": "                    buildOwner.IsBound ? buildOwner.Owner : (int?)null));",
+      "replace": "                    (int?)null));   // FALSIFY-M1:退回「foldContext 无 SolePlayer」的 A-5 原状",
+      "expectRed": [
+        "test_a5_afterOwnerBoundViaBuildController_foldDeductsExactlyCost"
+      ],
+      "exactRed": true,
+      "_why": "退回 A-5 原状:绑定了也传 null ⇒ fold 仍走「归因不可判」出口 ⇒ ② 的「缺口消失」与「材料恰少 cost(m)」两条同时红。① 本来就期待缺口与零扣减 ⇒ 保持绿。"
+    },
+    {
+      "name": "M2-failClosedGuardDropped",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 453,
+      "expect": "                    buildOwner.IsBound ? buildOwner.Owner : (int?)null));",
+      "replace": "                    buildOwner.Owner));   // FALSIFY-M2:去掉 IsBound 守卫,未绑定(-1)也当归属",
+      "expectRed": [
+        "test_a5_beforeOwnerBound_foldReportsAttributionGapAndDeductsNothing"
+      ],
+      "exactRed": true,
+      "_why": "未绑定时槽里是 `-1`(哨兵),去掉守卫后 fold 拿到 -1 而非 null ⇒ 不再报 `BuildCostAttributionUnresolved`(改报持有不足)⇒ ① 的缺口断言红。⚠️ 材料仍不会被扣(owner -1 名下无栈),所以 ① 的「一份不少」仍绿 —— **这正是 fail-closed 与「扣错人」的区别**,本变异钉的是前者那一条断言。② 先绑 42 ⇒ 该行求值不变 ⇒ 保持绿。"
+    }
+  ]
+}

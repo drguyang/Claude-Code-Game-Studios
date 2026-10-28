@@ -404,12 +404,53 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 双路径同源(承 S1.2 惯例):provider != null ⇒ Addressables 真产物;
             //   provider == null ⇒ `DataCookedDisk.LoadItems()` 直读**同一份**字节 +
             //   **同一个** `CookedCodec` ⇒ 无第二真源。
+            //
+            // ── 扣料归属槽(A-5 修复轮 · 2026-10-28)──────────────────────────────
+            // 权威:`inventory-and-items.md` 规则六 + R16 甲案(2026-10-27 用户裁定:
+            //   **P0 单机 ⇒ 建造扣料恒归唯一玩家**)。
+            // 病因(评审 `review-s20-19-2026-10-28.md` §5.5「A-5 升级版」):
+            //   `InventoryFoldContext.SolePlayer` 生产侧**从未赋值**(本处原只传 3 形参 ⇒
+            //   `InventoryFoldContext.None`)⇒ `ApplyBuildCost` 每次都走「归因不可判」出口 ⇒
+            //   **建造扣料在玩家路径上从不发生**(材料凭空不减,`IsComplete` 恒 false)。
+            // 修法 = **单实例两读者**:`BuildController` / `BuildStockQuery` / fold 全部读本槽
+            //   ⇒ A-5 原判定「库存门读 A、扣料归 B」的分叉在结构上不可能 —— 只有一个 int。
+            // ⚠️ 必须在 `InventoryLoadService` 之前建:`foldContext` 是闭包,按引用捕获本槽。
+            // ⚠️ 绑定仍由 `BootRoot` 在玩家 id 铸造后 `BindOwner`(后置形态,装配期拿不到 id)。
+            //   绑定前 `Owner = -1` ⇒ fold 拿 `null` ⇒ 仍是 **fail-closed 的显式缺口**
+            //   (`BuildCostAttributionUnresolved`),不是静默扣错人。
+            var buildOwner = new BuildOwnerSlot();
+
+            // 模块目录的**提升声明**(原文在 `if (structures != null)` 内,`var` 局部):
+            // R16 要 `cost(m)` 与 `build_item_key`,而 fold 上下文在本段就要建(闭包按引用捕获)。
+            // ⚠️ 仍是**唯一实例**(后面 `StructureWriter` / `BuildStockQuery` / `BuildController`
+            //   共用它),不新增第二份目录。无世界 / 无结构时保持 null ⇒ fold 报显式缺口。
+            BuildModulesCatalog modulesCatalog = null;
+
+            // 三份查表源(A-5 修复轮补齐:此前 fold 侧**三份全无**,R15/R16/R18 每条都缺口)。
+            // 惰性 + **单次解码**:`items` 同时喂「实例实体集反查」与 R18 的 `build_part` 判定,
+            // 缓存的是**版本化烘焙表**(不是派生态投影 —— 投影每次 Rebuild 全量重算)。
+            ItemDataSet? itemsSeed = null;
+            Func<ItemDataSet> loadItemsSeed = () => itemsSeed ??= (dataProvider != null
+                ? dataProvider.Load<ItemDataSet>()
+                : DataCookedDisk.LoadItems());
+
+            RecipeDataSet? recipesSeed = null;
+            Func<RecipeDataSet> loadRecipesSeed = () => recipesSeed ??= (dataProvider != null
+                ? dataProvider.Load<RecipeDataSet>()
+                : DataCookedDisk.LoadRecipes());
+
             var inventoryLoad = new InventoryLoadService(
                 () => stream.Events,
                 decoder,
-                () => dataProvider != null
-                    ? dataProvider.Load<ItemDataSet>().Items
-                    : DataCookedDisk.LoadItems().Items);
+                () => loadItemsSeed().Items,
+                // fold 前取的**快照**(承 `InventoryFoldContext` 的纯函数性要求):
+                // 每次 Rebuild 重新读一次槽 —— 绑定前后结果不同是**设计**(fail-closed → 可扣料),
+                // 同一时刻同一份流 fold 两次仍是同一结果(槽在两次之间没动)。
+                () => new InventoryFoldContext(
+                    loadItemsSeed(),
+                    loadRecipesSeed(),
+                    modulesCatalog,
+                    buildOwner.IsBound ? buildOwner.Owner : (int?)null));
 
             // ── 7a 存档服务(S19-1 判据 ④ 位置半 + 委托半)────────────────────
             // 形态 = 甲-a(三家专家合成裁定 2026-10-24):`SaveService` 只认「拿到一坨字节」,
@@ -856,7 +897,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                     ? dataProvider.Load<ClinicRoomDataSet>()
                     : DataCookedDisk.LoadClinicRoom();
 
-                var modulesCatalog = new BuildModulesCatalog(buildModules);
+                // ⚠️ 赋值(不是 `var` 声明):实例在上面已声明 —— fold 的 R16 闭包按引用捕获它
+                //    (A-5 修复轮)。仍**只构造一处**。
+                modulesCatalog = new BuildModulesCatalog(buildModules);
                 clinicRoomMatching = new ClinicRoomMatchingService(
                     structures,
                     modulesCatalog,
@@ -900,10 +943,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ **owner 晚绑定**:玩家 actorId 在 `Assemble` 之后才由 `IIdAuthority` 铸造
                     //   (`BootRoot.cs:346`)⇒ 传 int 会恒为 -1。`BuildOwnerSlot` 让
                     //   `BuildController` 与 `BuildStockQuery` **共享同一个值**,绑定漏一处即分叉。
+                    //   🔁 **2026-10-28(A-5 修复轮)**:本槽的构造点上移到 `InventoryLoadService`
+                    //   之前 —— 第三个读者是 fold 的 `InventoryFoldContext.SolePlayer`
+                    //   (扣料归因)。**不再在此处 `new`**:另起一个槽 = 两个各自绑定的 int,
+                    //   正是 A-5 原判定描述的「库存门按 actor 5 放行、fold 从 actor 0 扣」。
                     //
                     // ⚠️ **投影现取,不缓存**:投影是派生态(ADR-009 §一);`StructurePlaced` 的
                     //   材料扣减在 fold 里,缓存一份 = 第二真源。
-                    var buildOwner = new BuildOwnerSlot();
                     Func<InventoryProjection> buildProjection = () =>
                     {
                         // 首次查询前投影可能尚未建立(BootRoot 只在读档钩子里 Rebuild)——
