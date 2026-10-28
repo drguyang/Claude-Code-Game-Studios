@@ -184,6 +184,20 @@ assets/data/
                           //   { cell, walkable: bool, cost: int }
   world_terrain.json      // TERRAIN_TABLE(地貌材质 → K)· terrain_id 表 · slopeLimit · stepOffset
 
+//   🔁 **2026-10-29 多关卡命名(加性扩展 · `level-tool/story-001` 实现轮)**
+//   上面七个名字是**基准关卡**(`level_id = p0_clinic`)的文件名 —— **契约字面一字未改**。
+//   多关卡以**加性**方式扩展:非基准关卡 ⇒ `world_{kind}_{level_id}.json`
+//   (例:`world_buildslots_scaffold_second.json`)。单一出处 = `WorldDataSets.FileNameFor(kind, levelId)`。
+//   · **为什么是加性而不是把基准关卡也加后缀**(story-001 卡面 §Implementation Notes 的「甲」):
+//     `world_buildslots.json` 被**运行期链路的五个常量**硬引用(`WorldBuildSlotsBinder.FileName` ·
+//     `WorldBuildSlotsBake.CookedFileName` · `WorldBuildSlotsCookedCodec` 的两个 ·
+//     `DataCookedDisk` · Addressables `DataCoreAddresses` 组条目)外加两份盘上产物
+//     ⇒ 改名 = 重烘 + 重建 Addressables 内容 + 装载面回归,那是 **S2 / S4**(运行期多关卡装载)的面。
+//   · ⚠️ **`world_nav` 不按 level 命名** —— 它的后缀参数是 **chunk**(ADR-022 §五);
+//     `FileNameFor(NavChunk, …)` 显式抛,避免产出 `world_nav_<level>.json` 这种「看起来合理」的错名。
+//   · ⚠️ 基准关卡是否**将来**也并入统一后缀,归 **S2** 连同本 ADR 的一次窄修订一起裁;
+//     本注记**不预先裁决**那一问。
+
 // ② CI 检查入口 —— 对已提交关卡跑(承 ADR-015:317 / ADR-016:442 的「在关卡工具中存在」)
 tools/level/Check.cs  →  LevelTool.ConsistencyCheck(LevelSource src) → CheckReport
     C1 两层漂移 · C2 可走性同源 · C3 导航格↔NavMesh · C4 多边形合法性 · C5 边界单一源 · C6 切片完整性

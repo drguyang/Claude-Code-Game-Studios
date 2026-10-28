@@ -9,10 +9,18 @@
 //   零随机 / 零字典迭代序 ⇒ 同一 `LevelSource` 两次导出**逐字节相同**。
 //
 // ⚠️ **本文件是 `assets/data/world_buildslots.json` 的唯一作者** —— 手写该 JSON 违反
-//    ADR-022 §二(逻辑层「只能由关卡工具编写并导出」)。唯一合法产法:
-//      batch: `Unity -batchmode -projectPath unity -executeMethod
+//    ADR-022 §二(逻辑层「只能由关卡工具编写并导出」)。合法产法:
+//      batch(基准关卡 ⇒ `assets/data/`):`Unity -batchmode -projectPath unity -executeMethod
 //              DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo`
-//      或 `LevelExporter.ExportToRepo()`(测试 / 菜单同调用)。
+//      batch(第二关卡 ⇒ `unity/Logs/level-tool/`,gitignored 暂存区):
+//              `… -executeMethod …LevelExporter.ExportScaffoldLevelToStaging`
+//      代码:`LevelExporter.ExportLevelToRepo(repoRoot, levelId)` / `ExportLevelToStaging(…)`。
+//
+// 🔁 **2026-10-29(story-001)泛化**:此前本类只有 `ExportToRepo(repoRoot)`:
+//    关卡**写死** `P0ClinicLevel.Define()`、文件名**写死** `FileName` 常量 ⇒ 第二关卡 / 第二类数据集
+//    都**没有入口**。现在两条都由单一出处给出 —— 关卡走 `LevelCatalog`,文件名走
+//    `WorldDataSets.FileNameFor(kind, levelId)`;新增一类数据集**不改本类主体**
+//    (序列化器登记在 `WorldDataSets.Serializers`,本类只提供 `BuildSlots` 的那一个)。
 
 using System;
 using System.Collections.Generic;
@@ -27,8 +35,14 @@ namespace DaYiJingCheng.EditorTools.Level
     /// <summary>槽位骨架的确定性 JSON 导出器。</summary>
     public static class LevelExporter
     {
-        /// <summary>作者态文件名(ADR-022 §三的导出契约)。</summary>
-        public const string FileName = "world_buildslots.json";
+        // 🔁 **2026-10-29(story-001)此处删除了 `public const string FileName = "world_buildslots.json";`。**
+        //    理由:多关卡之后「文件名」不再是常量 —— 它由 `WorldDataSets.FileNameFor(kind, levelId)` 给出。
+        //    留着一个恒定返回基准关卡名的常量 = **两个出处**,而它们的分离是**静默**的
+        //    (基准关卡改 id 时,常量不会跟着变)。
+        //    ⇒ 名字的字面量现在**只**在 `WorldDataSets.BaseName` 出现一次。
+        //    ⚠️ 本类**不**再提供等价的公开访问器:全仓对旧 `FileName` 的消费方 = **零**
+        //    (唯一用法在本类自己的两处日志里),再挂一个无消费方的属性只会重演
+        //    2026-10-28 评审 A-21 删掉的「零消费方死 API」。
 
         /// <summary>本表的 schema_version(单一出处 = 本常量;读方 codec 的期望值与它同值)。</summary>
         /// <remarks>⚠️ <b>2026-10-28(S20-20 挂标 #2):1 → 2</b> —— 行对象新增 `module_id`
@@ -102,31 +116,88 @@ namespace DaYiJingCheng.EditorTools.Level
             return sb.ToString();
         }
 
-        /// <summary>写盘到任意路径(调用方须保证路径在允许面内 —— 测试只给它 `Path.GetTempPath()`)。</summary>
-        public static void ExportTo(string path, LevelSource src)
+        /// <summary>
+        /// 按**数据集类别**序列化(AC-3 的分派面)。
+        /// <para>本方法**不含任何 kind 分支** —— 分派表在 `WorldDataSets.Serializers`;
+        /// 新增一类只在那里加一行,本类主体一字不动。</para>
+        /// </summary>
+        /// <exception cref="NotSupportedException">该类尚无序列化器。</exception>
+        public static string Export(WorldDataSetKind kind, LevelSource src)
+            => WorldDataSets.Serialize(kind, src);
+
+        // ⚠️ **此处曾有二参 `ExportTo(string path, LevelSource src)`**(隐含 `BuildSlots`),实现轮内删除。
+        //    与上面删掉的 `FileName`、下面 `LevelCatalog.TryDefine` 同一条纪律(2026-10-28 评审 A-21):
+        //    **零消费方的死 API**(`grep -rn 'ExportTo(' --include=*.cs` 排除本文件后零命中)。
+        //    保留它还有个具体害处:它是「类别」这一概念的**第二个隐式默认值** ——
+        //    调用点看不出自己在导出哪一类,而 AC-3 的全部意义就是让类别**在调用点显式**。
+
+        /// <summary>按类别写盘到任意路径。</summary>
+        /// <exception cref="NotSupportedException">该类尚无序列化器。</exception>
+        public static void ExportTo(WorldDataSetKind kind, string path, LevelSource src)
         {
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("路径为空", nameof(path));
             string dir = Path.GetDirectoryName(Path.GetFullPath(path));
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
             // UTF-8 **无 BOM**(BOM 会让字节流随编辑器差异漂移,破坏 ConfigVersion 的可复算性)。
-            File.WriteAllText(path, ExportBuildSlots(src), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            File.WriteAllText(path, Export(kind, src), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
-        /// <summary>导出 P0 医馆到 `<repoRoot>/assets/data/world_buildslots.json`。</summary>
+        /// <summary>
+        /// 导出某关卡的建造槽位骨架到 `<repoRoot>/assets/data/&lt;WorldDataSets.FileNameFor&gt;`。
+        /// <para>基准关卡 ⇒ `world_buildslots.json`(契约字面);其他关卡 ⇒ `world_buildslots_{level_id}.json`。</para>
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="levelId"/> 不在 <see cref="LevelCatalog"/> 内。</exception>
         /// <exception cref="InvalidOperationException">一致性检查硬失败。</exception>
-        public static void ExportToRepo(string repoRoot)
+        public static void ExportLevelToRepo(string repoRoot, string levelId)
         {
             if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
-            ExportTo(Path.Combine(repoRoot, "assets", "data", FileName), P0ClinicLevel.Define());
+            LevelSource src = LevelCatalog.Define(levelId);
+            ExportTo(WorldDataSetKind.BuildSlots,
+                     Path.Combine(repoRoot, "assets", "data",
+                                  WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, levelId)),
+                     src);
         }
 
-        /// <summary>batch 入口:导出 P0 医馆到**本工程所在仓库**。</summary>
+        /// <summary>
+        /// 导出某关卡到**暂存区** `<repoRoot>/unity/Logs/level-tool/&lt;文件名&gt;`(`.gitignore:257` 已忽略整树)。
+        /// <para>⚠️ **为什么需要它**:非基准关卡写进 `assets/data/` 会变成一份**没有消费者**的作者态数据
+        /// (烘焙入口按 `WorldBuildSlotsBinder.FileName` 单点读基准关卡的文件,永远不会读它)
+        /// ⇒ 盘上多一份「看起来像数据、其实没人读」的 JSON。暂存区保证「导出确实跑通」这件事
+        /// 可验证,又不在作者态目录留垃圾。</para>
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="levelId"/> 不在 <see cref="LevelCatalog"/> 内。</exception>
+        public static string ExportLevelToStaging(string repoRoot, string levelId)
+        {
+            if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
+            LevelSource src = LevelCatalog.Define(levelId);
+            string path = Path.Combine(repoRoot, "unity", "Logs", "level-tool",
+                                       WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, levelId));
+            ExportTo(WorldDataSetKind.BuildSlots, path, src);
+            return path;
+        }
+
+        /// <summary>导出**基准关卡**到 `<repoRoot>/assets/data/world_buildslots.json`(保留入口)。</summary>
+        public static void ExportToRepo(string repoRoot)
+            => ExportLevelToRepo(repoRoot, LevelCatalog.CanonicalLevelId);
+
+        /// <summary>batch 入口:导出**基准关卡**到本工程所在仓库的 `assets/data/`。</summary>
         /// <remarks>⚠️ `Application.dataPath` 仅用于推导仓库根(`unity/Assets` 的上两级)。</remarks>
         public static void ExportP0ClinicToRepo()
         {
             string repoRoot = RepositoryRoot();
             ExportToRepo(repoRoot);
-            Debug.Log($"[关卡工具] 已导出 {FileName} → {Path.Combine(repoRoot, "assets", "data", FileName)}");
+            string fileName = WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, LevelCatalog.CanonicalLevelId);
+            Debug.Log($"[关卡工具] 已导出 {fileName} → {Path.Combine(repoRoot, "assets", "data", fileName)}");
+        }
+
+        /// <summary>batch 入口:导出**第二关卡(脚手架)**到 `unity/Logs/level-tool/`(gitignored 暂存区)。</summary>
+        /// <remarks>AC-5 要求「至少两个关卡各有一条可跑的 batch 命令」;本入口是第二条。
+        /// ⚠️ 不写 `assets/data/` 的理由见 <see cref="ExportLevelToStaging"/>。</remarks>
+        public static void ExportScaffoldLevelToStaging()
+        {
+            string repoRoot = RepositoryRoot();
+            string path = ExportLevelToStaging(repoRoot, ScaffoldSecondLevel.LevelId);
+            Debug.Log($"[关卡工具] 已导出(暂存){ScaffoldSecondLevel.LevelId} → {path}");
         }
 
         /// <summary>仓库根(`unity/Assets` 的上两级)。</summary>

@@ -33,17 +33,23 @@ namespace DaYiJingCheng.EditorTools.Level
     /// <summary>P0 医馆的槽位骨架种子。</summary>
     public static class P0ClinicLevel
     {
-        /// <summary>世界 X 格数(与 `MinimalWorldFactory.SizeX` 同值)。</summary>
-        public const int Width = 16;
-
-        /// <summary>世界 Y 格数(单层平面,与 `MinimalWorldFactory.SizeY` 同值)。</summary>
-        public const int Height = 1;
-
-        /// <summary>世界 Z 格数(与 `MinimalWorldFactory.SizeZ` 同值)。</summary>
-        public const int Depth = 16;
-
-        /// <summary>关卡 id(导出 JSON 的 `level_id`)。</summary>
+        /// <summary>关卡 id(导出 JSON 的 `level_id`;**同时是** <see cref="LevelCatalog.CanonicalLevelId"/>)。</summary>
         public const string LevelId = "p0_clinic";
+
+        // 🔁 **2026-10-29(story-001 AC-1)此处删除了三个尺寸常量,原文不删、保持删除。**
+        //    删掉的:`public const int Width = 16;` / `Height = 1;` / `Depth = 16;`
+        //    (各自带一句「与 `MinimalWorldFactory.SizeX/Y/Z` 同值」的注释)。
+        //
+        //    **为什么删而不是留着**:那三个常量是「**第二条读尺寸的路**」—— 任何调用方
+        //    (或未来的导出器)写 `P0ClinicLevel.Width`,就会绕过 `LevelSource` 这唯一载体,
+        //    而那正是 story-001 病灶 ① 的形态(「换一个关卡要改源码」)。留成常量等于留着那条路。
+        //    ⇒ 尺寸现在**只有一个出处** = `Define()` 里构造 `LevelSource` 的那三个实参;
+        //      夹具 `level_source_generalization_test::test_ac1_*` 用反射钉住「本类不再有这三个成员」。
+        //
+        //    ⚠️ 「与 `MinimalWorldFactory.SizeX/Y/Z` 同值」这条**约束本身仍然有效** ——
+        //    它只是不再是「两个常量同值」,而是「运行期合成世界的尺寸 == 本关卡的声明尺寸」。
+        //    该等式由 `MinimalWorldFactory` 侧的既有装载链与夹具覆盖;本工具**不引用**运行期装配
+        //    (工具只产出数据,不读运行期状态)。
 
         /// <summary>Decor 3×3 区的原点(x 起)。</summary>
         public const int DecorOriginX = 6;
@@ -103,7 +109,9 @@ namespace DaYiJingCheng.EditorTools.Level
                     ShellStripXStart + i, 0, ShellStripZ, SlotType.Shell,
                     bakedInitial: true, moduleId: ShellModuleId));
 
-            return new LevelSource(LevelId, Width, Height, Depth, slots);
+            // 尺寸的**唯一出处**(16×1×16,单层平面)。原为 `Width` / `Height` / `Depth` 三个
+            // 公共常量,2026-10-29 删除(理由见上方 🔁 注)—— 不要再把它们加回来。
+            return new LevelSource(LevelId, 16, 1, 16, slots);
         }
     }
 }

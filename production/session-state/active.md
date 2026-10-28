@@ -12060,3 +12060,32 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   改各节自带的小表(`:3585`)**不影响计数** —— 本轮先改了后者,计数没动,才回头改前者。
 - **本轮自己的错误**:① 预判表三条写保守/漏项(M4 漏看夹具 `M=4>N=3`;M6 漏了 e2e 也会红;M8 写成「可能零红」);
   ② 起初只打算修装配根,自查后改为修 `EventStream` 源头(理由见上)。
+
+---
+
+## Session Extract —— level-tool story-001 实现轮(2026-10-29)
+
+- **Story**:`production/epics/level-tool/story-001-level-source-generalization.md` —— **Complete**
+- **兑现**:`sprint-20.md:255` 的 S20-20 挂标 **#4「关卡工具只服务一个关卡」**(已就地改判 ✅ 已闭)
+- **落点**:`Editor.Tools.Level/` 新增 `WorldDataSetKind.cs`(7 类闭集 + 分派表)/ `LevelCatalog.cs`(2 关卡)/
+  `ScaffoldSecondLevel.cs`(8×2×8 脚手架);改 `P0ClinicLevel.cs`(删三尺寸常量)/ `LevelExporter.cs`
+  (删 `FileName` 常量,加 kind 分派 + 两个无参 batch 入口)/ `LevelConsistencyCheck.cs`(措辞「本批」→「待 Sx」,仍 7 条)
+- **夹具**:`unity/Assets/Tests/EditMode/LevelTool/level_source_generalization_test.cs`(14 条,零写盘)
+- **AC-3 哨兵**:新分派路径产物的 SHA-256 报 = `1c946bff…`(=< 重构前盘上产物);真 batch 导出跑前/跑后同哈希
+- **证伪轮**:**12 条变异全部转红**(预判与实得逐条一致)。⚠️ M10 **首跑无效** ——
+  变异器同文件多编辑「后一次覆写前一次」,y=1 只挪了一格 ⇒ 判据仍绿;修复后重跑转红(应用后 `y=1` 条数 = 0)。
+- **回归**:EditMode `5738/5703/0/0/35` @ 2026-10-29 00:45 CST · level-tool story-001 **提交前终跑**
+  (跑前/跑后工作树均 17 个改动 ⇒ 跑测未改文件)· `37265728`+工作树。
+  基线 `5724/5689/0/0/35` ⇒ 等式 `5738 − 5724 = 14` = 新增 `[Test]` 计数,**零回归**。
+- **既有产物未动**:`assets/data/world_buildslots.json` = `1c946bff…` · `DataCooked/world_buildslots.cooked.bytes`
+  = `60075ce4…`(348 B);`git status --porcelain assets/data/ unity/Assets/DataCooked/` ⇒ 空。
+- **本轮自己的五处错误(已在原件 §六 逐条登记)**:
+  ① 测试条数写 12(实为 **14**);② **变异器同文件多编辑互相覆写**(M10 首跑未生效);
+  ③ drift 门 filter 命名空间少一层(`Tests.DataPipeline` 实为 `Tests.Unit.DataPipeline`)⇒ `total=0 exit=0`
+  —— **没查**,不是通过;按正确 FQN 补跑 **30/30**;
+  ④ 自己新加零消费方死 API `LevelCatalog.TryDefine` ⇒ 删;⑤ 保留改动前既存的零消费方
+  `LevelExporter.ExportTo(path, src)` ⇒ 删。⚠️ ④⑤ 在回归跑完之后才发现 ⇒ **删除后重跑**,
+  两次逐位相同(目标 `14/14` · 全量 `5738/5703/0/0/35`)。
+- **原件**:`production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`
+- **未做**:`/code-review` 未跑(归用户触发)。
+- **下一步**:`level-tool/story-002`(`world_geometry` / `world_terrain`),它是 S3–S6 的硬前置。

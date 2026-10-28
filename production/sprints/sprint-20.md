@@ -252,7 +252,7 @@
 | **S20-20** | 1 | **✅ 已闭** —— §十二 修复轮(Addressables 装载面) | 原文已划掉,原件 `fix-s20-20-slot-provider-surface-2026-10-28.md` |
 | | 2 | **✅ 已闭** —— 挂标 #2 修复轮(`BakedInitial` 运行期应用) | 原文已划掉,原件 `fix-s20-20-baked-initial-baseline-2026-10-28.md` |
 | | 3 | **仍开** —— C1–C6 七项未实现 | `LevelConsistencyCheck.cs:57-66` 仍是 **7** 条;复算:`sed -n '/UnimplementedChecks =/,/};/p' unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs \| grep -c '^            "'` ⇒ **7**。承接者 `level-tool/story-006` |
-| | 4 | **仍开** —— 关卡工具只服务一个关卡 | `P0ClinicLevel.cs:37` `Width = 16` · `:46` `LevelId = "p0_clinic"`(实测);承接者 `level-tool/story-001` |
+| | 4 | **✅ 已闭(2026-10-29)** —— `level-tool/story-001` 实现轮:尺寸常量删除、两关卡并存、两条 batch 入口各自实跑产出一份 JSON | 原判据(`P0ClinicLevel` 的 `Width` / `Height` / `Depth` 三常量 + 单一 `LevelId`)已随常量删除而消失。复算:`grep -c 'public const int \(Width\|Height\|Depth\)' unity/Assets/Editor.Tools.Level/P0ClinicLevel.cs` ⇒ **0**;`grep -c 'LevelId = "' unity/Assets/Editor.Tools.Level/LevelCatalog.cs` ⇒ **2**。实跑产物 `unity/Logs/level-tool/world_buildslots_scaffold_second.json` 的 `world_size = [8, 2, 8]`(≠ P0 的 `[16, 1, 16]`)。原件 `production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`。<br>⚠️ 本行**只闭「工具只服务一个关卡」**;运行期能否装载第二关是 S2 的面,本行不代它作保 |
 | | 5 | **仍开** —— 世界几何仍是合成 | `MinimalWorldFactory.cs:43` 自陈「地形全 walkable + POI / 资源格全 `-1`」;复算:`ls assets/data/world_*.json \| wc -l` ⇒ **1**(ADR-022 §三 要 7 件) |
 
 ⚠️ **两处口径须同读**:

@@ -6,13 +6,20 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // 本件只实现「适用于槽位子集」的那几条;**其余逐条如实登记为未实现**
 // ═══════════════════════════════════════════════════════════════════════════
-// · C1 两层漂移(告警)        —— **未实现**:需要视觉层地形 / 摆件数据(本批不产出)。
-// · C2 可走性同源(slopeLimit/stepOffset) —— **未实现**:需要 `world_terrain.json`(本批不产出)。
-// · C2' 模板 collider 足迹同源 —— **未实现**:需要模块模板 prefab(归 23 的素材轮)。
-// · C3 导航格 ↔ NavMesh(告警) —— **未实现**:需要 `world_nav_*.json` 与 NavMesh(本批不产出)。
-// · C4 多边形合法性            —— **未实现**:需要 `world_ecozones.json`(本批不产出)。
-// · C5 边界单一源              —— **未实现**:需要视觉层遮罩(本批不产出)。
-// · C6 切片完整性               —— **未实现**:需要 `world_nav_{chunk}.json`(本批不产出)。
+// · C1 两层漂移(告警)        —— **未实现**:需要视觉层地形 / 摆件数据(待 S6 产出)。
+// · C2 可走性同源(slopeLimit/stepOffset) —— **未实现**:需要 `world_terrain.json`(待 S6;s.t. 待 S2)。
+// · C2' 模板 collider 足迹同源 —— **未实现**:需要模块模板 prefab(待 S6;素材归 23 的素材轮)。
+// · C3 导航格 ↔ NavMesh(告警) —— **未实现**:需要 `world_nav_*.json` 与 NavMesh(待 S5 产出)。
+// · C4 多边形合法性            —— **未实现**:需要 `world_ecozones.json`(待 S3 产出)。
+// · C5 边界单一源              —— **未实现**:需要视觉层遮罩(待 S3 产出)。
+// · C6 切片完整性               —— **未实现**:需要 `world_nav_{chunk}.json`(待 S5 产出)。
+//
+// 🔁 **2026-10-29(story-001 AC-4)措辞订正,原文不删**:上面七行原写作「**本批不产出**」——
+//    那个「本批」指的是 S20-20 的最小关卡工具卡(它当时只做 `world_buildslots` 一类)。
+//    `production/epics/level-tool/` 立件后,「本批」已不存在;继续用它会让读者以为
+//    「这些检查永远不会有」,而事实是它们**各有归属 story**(S3 / S5 / S6)。
+//    ⇒ 措辞改为「待 Sx 产出」;**条数与实现状态一个字都没变**(仍 7 条,仍全部未实现)。
+//    夹具 `test_ac4_*` 用否定断言钉住「本批」不得回归。
 //
 // 本件实装(全部硬失败,`throw`):
 //   ① 重复格           —— 同一 `(x,y,z)` 声明两次(会让「取哪一条」成为隐式规则)
@@ -36,7 +43,7 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>硬失败项(每条带判据关键词;空 = 绿)。</summary>
         public readonly IReadOnlyList<string> Violations;
 
-        /// <summary>ADR-022 §四 里**本批未实现**的检查项(逐条如实登记,不是注释)。</summary>
+        /// <summary>ADR-022 §四 里**尚未实现**的检查项(逐条如实登记,不是注释)。</summary>
         public readonly IReadOnlyList<string> Unimplemented;
 
         /// <summary>构造报告。</summary>
@@ -56,13 +63,13 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>未实现项清单(单一出处;报告与测试共用)。</summary>
         public static readonly string[] UnimplementedChecks =
         {
-            "C1 两层漂移(需视觉层数据 —— 本批不产出)",
-            "C2 可走性同源(需 world_terrain.json —— 本批不产出)",
-            "C2' 模板 collider 足迹同源(需模块 prefab —— 归 23 素材轮)",
-            "C3 导航格↔NavMesh(需 world_nav_*.json —— 本批不产出)",
-            "C4 多边形合法性(需 world_ecozones.json —— 本批不产出)",
-            "C5 边界单一源(需视觉层遮罩 —— 本批不产出)",
-            "C6 切片完整性(需 world_nav_{chunk}.json —— 本批不产出)",
+            "C1 两层漂移(需视觉层数据 —— 待 S6 产出)",
+            "C2 可走性同源(需 world_terrain.json —— 待 S6 产出;该数据集本身待 S2)",
+            "C2' 模板 collider 足迹同源(需模块 prefab —— 待 S6 产出;素材归 23 素材轮)",
+            "C3 导航格↔NavMesh(需 world_nav_*.json —— 待 S5 产出)",
+            "C4 多边形合法性(需 world_ecozones.json —— 待 S3 产出)",
+            "C5 边界单一源(需视觉层遮罩 —— 待 S3 产出)",
+            "C6 切片完整性(需 world_nav_{chunk}.json —— 待 S5 产出)",
         };
 
         /// <summary>跑槽位子集的三条硬检查(不抛;失败项进 <see cref="CheckReport.Violations"/>)。</summary>

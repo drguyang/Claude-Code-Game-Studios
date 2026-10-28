@@ -1,12 +1,12 @@
 # Story 001: 关卡源模型泛化 —— 多关卡 + 数据集拆分
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Tooling
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ## Context
 
@@ -89,26 +89,26 @@ done
 
 ## Acceptance Criteria
 
-- [ ] **AC-1(BLOCKING)** —— **`LevelSource` 成为唯一关卡载体,尺寸来自数据**:
+- [x] **AC-1(BLOCKING)** —— **`LevelSource` 成为唯一关卡载体,尺寸来自数据**:
       `P0ClinicLevel` 的 `Width` / `Height` / `Depth` **常量删除**(或降为**默认值**且
       被 `LevelSource` 覆盖),`LevelSource` 的尺寸字段是唯一真源。
       **判据**:构造一个 **8×2×8** 的 `LevelSource` 并导出,产物里 `world_size` 恰为
       `[8, 2, 8]` —— **不是** `[16, 1, 16]`。
-- [ ] **AC-2(BLOCKING)** —— **至少两个关卡并存**:
+- [x] **AC-2(BLOCKING)** —— **至少两个关卡并存**:
       新增第二个关卡定义(尺寸与 `p0_clinic` **不同**),两者各自导出到
       `world_buildslots_{level_id}.json`(或 ADR-022 §三 允许的等价命名)。
       **判据**:两次导出产出的文件**内容不同**(尺寸行 + 槽位行),且**都**过一致性检查。
       ⚠️ **反例**:把 `P0ClinicLevel` 复制一份改个名字**不算** —— 判据要求两关尺寸不同。
-- [ ] **AC-3(BLOCKING)** —— **数据集类别成为一等概念**:
+- [x] **AC-3(BLOCKING)** —— **数据集类别成为一等概念**:
       引入 `WorldDataSetKind`(闭集 = ADR-022 §三 的 7 类 + `nav_{chunk}` 的参数化),
       导出器按 kind 分派,**新增一类不需要改导出器主体**。
       **判据**:本 story 结束时 `world_buildslots` 走新路径导出,**逐字节等于**改动前的产物
       (`sha256sum` 对比)—— 证明重构**零行为变化**。
-- [ ] **AC-4** —— **`UnimplementedChecks` 的措辞同步**:
+- [x] **AC-4** —— **`UnimplementedChecks` 的措辞同步**:
       `LevelConsistencyCheck` 里「本批不产出」的措辞须改为「**待 S2–S6 产出**」,
       因为它说的「本批」是 S20-20 那个最小卡,不是本 epic。
       **判据**:该数组**长度仍为 7**(本 story 不实现任何检查),但每条的理由不再指向一个已不存在的「本批」。
-- [ ] **AC-5** —— **batch 入口泛化**:`ExportP0ClinicToRepo` 的硬编码被
+- [x] **AC-5** —— **batch 入口泛化**:`ExportP0ClinicToRepo` 的硬编码被
       `ExportLevelToRepo(levelId)` 取代(或等价),**至少两个关卡各有一条可跑的 batch 命令**。
       **判据**:两条命令实跑各产出一份 JSON。
 
@@ -214,3 +214,44 @@ ADR-022 §三 的导出契约写的是 `world_buildslots.json`(**无** level 后
    本 story 的估时不变但验收形态变。
 3. **chunk 切片**(`world_nav_{chunk}`)**不在本 story** —— `WorldDataSetKind` 里
    它只是**参数化的一类**,实际切片归 S5。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-29
+**Criteria**: 5/5 passing(AC-1 · AC-2 · AC-3 · AC-4 · AC-5)
+**Deviations**: 无 BLOCKING / 无 ADVISORY
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/LevelTool/level_source_generalization_test.cs`(14 条)
+**Code Review**: 未跑(`/code-review` 归用户触发;本件仅完成实现 + 反证 + 回归)
+**原件**: `production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`
+
+### 验收摘要
+
+| 项 | 结果 |
+|---|---|
+| **AC-1** 尺寸来自数据 | `P0ClinicLevel` 的 `Width`/`Height`/`Depth` **已删除**;反射夹具钉住其缺席(M2 反证) |
+| **AC-2** 两关卡并存 | `p0_clinic` 16×1×16 + `scaffold_second` 8×2×8;实跑产物 `world_size = [8, 2, 8]` 且含 `y = 1` 槽位 |
+| **AC-3** 零行为变化 | 新分派路径产物的 SHA-256 = 重构前 `1c946bff…`,**且真 batch 导出跑前跑后同一哈希** |
+| **AC-4** 措辞同步 | `UnimplementedChecks` 仍 **7** 条,措辞改「待 Sx 产出」(M6 反证) |
+| **AC-5** batch 入口 | 两条命令**各自实跑 EXIT=0**,各产出一份 JSON(5a 落 `assets/data/`,5b 落 `unity/Logs/level-tool/`) |
+
+### 反证(S12-4 Falsifiability Gate)
+
+**12 条变异全部转红**,预判与实得逐条一致(其中 M10 首跑因变异器 bug 无效,修复后重跑转红)。
+命中形态:共存互斥(M4)· 定义域收窄(M8)· 阈值边界(M6)· 零行为变化金标准(M12)。
+**Gate = PASS**。逐条见原件 §三。
+
+### 回归(三元组)
+
+EditMode `5738/5703/0/0/35`(基线 `5724/5689/0/0/35` ⇒ **+14/+14,零回归**;
+等式 `5738 − 5724 = 14` = 新增夹具 `[Test]` 计数)
+@ 2026-10-29 00:45 CST · level-tool story-001 **提交前终跑**(跑前/跑后工作树均 17 个改动 ⇒ 跑测未改文件)· `37265728`+工作树。
+
+### 本轮如实登记的五处自身错误(原件 §六)
+
+① 测试条数写 12(实为 **14**);② **变异器同文件多编辑互相覆写** ⇒ M10 首跑未生效;
+③ drift 门 filter 命名空间少一层 ⇒ `total=0 exit=0`(**没查**,不是通过);
+④ 自己新加了零消费方死 API `LevelCatalog.TryDefine` ⇒ 删除;
+⑤ 保留了改动前就存在的零消费方 `LevelExporter.ExportTo(path, src)` ⇒ 删除。
+⚠️ ④⑤ 是**回归跑完之后**才发现的 ⇒ 删除后**重跑**目标夹具 + 全量回归,两次逐位相同。
