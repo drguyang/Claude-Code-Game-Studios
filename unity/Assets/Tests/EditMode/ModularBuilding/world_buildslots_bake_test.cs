@@ -288,6 +288,118 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.That(disk, Is.EqualTo(fresh), "盘上产物与现烘字节不一致 ⇒ 忘了重烘");
         }
 
+        /// <summary>
+        /// 盘上产物**逐字段**等于作者态源 JSON —— 即「产物内容对不对」,而非「产物与现烘一致」。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么必须有这一条(2026-10-28 补 · 结清 `review-s20-20` §七-3)</b>:
+        /// 上一条 `test_worldBuildSlots_diskMatchesFreshBake` 只证明**盘上 == 现烘**。
+        /// 若烘焙器自身有 bug(`baked_initial` 全写成 false / `module_id` 写成 -1 / 行序乱),
+        /// 两边**一样地错** ⇒ 那条**照样绿**。本条把判据钉在**作者态源 JSON**上,
+        /// 绕开烘焙器(正则逐字段解析,不调 `WorldBuildSlotsBake`、不调生产 codec)——
+        /// 两端都不经被测件,故无自指。</para>
+        /// <para><b>判别力(实测 M7 · 2026-10-28)</b>:把**盘上产物**第 0 行的 `baked_initial`
+        /// 由 `1` 改成 `0`(偏移 52)⇒ 本测红,报文点名「第 0 行与源 JSON 不符 ——
+        /// 产物 = (1,0,1,False,8),源 = (1,0,1,True,8)」。</para>
+        /// <para>⚠️ <b>如实登记 M7 的判别力边界</b>:该变异**不是本测独占** —— 同轮另有 4 条红
+        /// (`diskMatchesFreshBake` / `bakedInitial_isAppliedThroughProductionAssembly` /
+        /// `minimalWorld_catalogNonEmpty` / `reset_returnsToBaselineNotEmpty`)。
+        /// 也就是说「产物内容被改」这件事,**旧夹具也能察觉**(经由「盘上 ≠ 现烘」这条)。
+        /// 本测**独占**的那一面是「**烘焙器误读源**」—— 此时盘上 == 现烘(两边一样地错),
+        /// `diskMatchesFreshBake` **必绿**,只有本测能抓。</para>
+        /// <para>⚠️ <b>该独占面本轮未能实测</b>:尝试的变异(M8:Binder 的 `bakedInitial = n.Bool`
+        /// 改恒 `false`)被**烘焙期域门**当场拒收(`baked_initial = 0` 的行 `module_id` 须为 -1),
+        /// 重烘失败、产物未变 ⇒ 造不出「盘上 == 现烘但内容错」的现场。
+        /// ⇒ 该面**只经离线推演**,不标已证 —— 承「本轮未运行其判据 ⇒ 不得标 Proven ✅」。
+        /// 要实测它,须先找一个**能同时过域门**的误读形态(见 `TD-building-03`)。</para>
+        /// <para>⚠️ <b>零 JSON 库</b>:`EditMode.asmdef` 是 `overrideReferences: true`,
+        /// `precompiledReferences` 只有 `nunit.framework.dll` / `Mono.Cecil.dll` ⇒ 测试树
+        /// **够不着** Newtonsoft。故用正则按行解析 —— 源文件是「一槽位一行」的扁平结构,
+        /// 正则足以逐字段取全,且比引一个 JSON 库更不容易把格式错误读成「解析成功」。</para>
+        /// <para>⚠️ <b>本测不验什么</b>:`allowed_mask` 的位含义归 `BuildModulesBinder`
+        /// 与槽位域门(已由本文件其余夹具覆盖),本条只比对「产物 vs 源」的**逐字段相等**。</para>
+        /// </remarks>
+        [Test]
+        public void test_worldBuildSlots_productMatchesSourceJson_fieldByField()
+        {
+            string jsonPath = Path.Combine(RepoRoot, "assets", "data", "world_buildslots.json");
+            string cookedPath = Path.Combine(
+                RepoRoot, "unity", "Assets", "DataCooked", "world_buildslots.cooked.bytes");
+            Assert.That(File.Exists(jsonPath), Is.True, $"源 JSON 不存在:{jsonPath}");
+            Assert.That(File.Exists(cookedPath), Is.True, $"产物不存在:{cookedPath}");
+
+            string json = File.ReadAllText(jsonPath, System.Text.Encoding.UTF8);
+
+            // ── 源侧:顶层三件 ──
+            var schemaM = System.Text.RegularExpressions.Regex.Match(
+                json, @"""schema_version""\s*:\s*(\d+)");
+            Assert.That(schemaM.Success, Is.True, "源 JSON 里取不到 schema_version");
+            uint srcSchema = uint.Parse(schemaM.Groups[1].Value);
+
+            var sizeM = System.Text.RegularExpressions.Regex.Match(
+                json, @"""world_size""\s*:\s*\[\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\]");
+            Assert.That(sizeM.Success, Is.True, "源 JSON 里取不到 world_size");
+            var srcSize = (int.Parse(sizeM.Groups[1].Value),
+                           int.Parse(sizeM.Groups[2].Value),
+                           int.Parse(sizeM.Groups[3].Value));
+
+            // ── 源侧:逐槽位(每行一条;字段序与 `assets/data/world_buildslots.json` 一致)──
+            var rowRe = new System.Text.RegularExpressions.Regex(
+                @"\{\s*""cell""\s*:\s*\[\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\s*," +
+                @"\s*""slot_type""\s*:\s*""(\w+)""\s*," +
+                @"\s*""baked_initial""\s*:\s*(true|false)\s*," +
+                @"\s*""module_id""\s*:\s*(null|-?\d+)\s*\}");
+            var srcRows = new List<(int X, int Y, int Z, bool Baked, int ModuleId)>();
+            foreach (System.Text.RegularExpressions.Match m in rowRe.Matches(json))
+            {
+                int mid = m.Groups[6].Value == "null" ? -1 : int.Parse(m.Groups[6].Value);
+                srcRows.Add((int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value),
+                             int.Parse(m.Groups[3].Value), m.Groups[5].Value == "true", mid));
+            }
+            Assert.That(srcRows.Count, Is.GreaterThan(0),
+                "扫描键守卫 —— 源侧一条槽位都没解析出来,下面的比对会被「两边都空」满足");
+
+            // ── 产物侧:独立解码(不经生产 codec,避免自指)──
+            byte[] b = File.ReadAllBytes(cookedPath);
+            Assert.That(b.Length, Is.GreaterThanOrEqualTo(36), "产物短于「头 20 + 尺寸 16」");
+            Assert.That(System.Text.Encoding.ASCII.GetString(b, 0, 4), Is.EqualTo("DYJC"),
+                "魔数不符 —— 产物损坏或不是本产物");
+
+            int off = 20;   // magic(4) + formatVer(4) + schemaVer(4) + ConfigVersion(4) + payloadLen(4)
+            int ReadI32() { int v = BitConverter.ToInt32(b, off); off += 4; return v; }
+
+            // ⚠️ 头字段偏移:`0` magic · `4` formatVer · `8` schemaVer · `12` ConfigVersion · `16` payloadLen。
+            //    (`CookedFormat.HeaderSize = 20` = 4 + 四个 u32。)
+            Assert.That(BitConverter.ToUInt32(b, 8), Is.EqualTo(srcSchema),
+                "产物 schemaVer 须等于源 schema_version");
+            int cx = ReadI32(), cy = ReadI32(), cz = ReadI32(), n = ReadI32();
+            Assert.That((cx, cy, cz), Is.EqualTo(srcSize), "产物 world_size 须等于源 world_size");
+            Assert.That(n, Is.EqualTo(srcRows.Count), "产物 row_count 须等于源槽位数");
+
+            var prodRows = new List<(int X, int Y, int Z, bool Baked, int ModuleId)>();
+            for (int i = 0; i < n; i++)
+            {
+                int x = ReadI32(), y = ReadI32(), z = ReadI32();
+                ReadI32();                       // allowed_mask —— 归槽位域门,本条不比
+                bool baked = ReadI32() == 1;
+                prodRows.Add((x, y, z, baked, ReadI32()));
+            }
+            Assert.That(off, Is.EqualTo(b.Length), "解到文件尾 —— 字节数须与 row_count 自洽");
+
+            // ── 逐行比对(产物行序 = (x,y,z) 升序,与源同序)──
+            for (int i = 0; i < n; i++)
+            {
+                Assert.That(prodRows[i], Is.EqualTo(srcRows[i]),
+                    $"第 {i} 行与源 JSON 不符 —— 产物 = {prodRows[i]},源 = {srcRows[i]}");
+            }
+
+            // ── 两个计数的显式点名(逐行比对已蕴含,但让失败报文直说「几件家具」)──
+            Assert.That(prodRows.Count(r => r.Baked), Is.EqualTo(srcRows.Count(r => r.Baked)),
+                "产物 baked_initial 条数须等于源");
+            Assert.That(prodRows.Count(r => r.ModuleId >= 1), Is.EqualTo(srcRows.Count(r => r.ModuleId >= 1)),
+                "产物带 module_id 的条数须等于源(开档家具必须知道自己是哪件)");
+        }
+
         // ══════════════════ 五 · 端到端(生产装配路径)══════════════════
 
         /// <summary>

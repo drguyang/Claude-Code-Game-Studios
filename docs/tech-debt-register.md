@@ -429,6 +429,7 @@
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | open | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | open | **N** | R1 |
+| `TD-building-03` | `modular-building` | open | **N** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -839,7 +840,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 128 | 状态 {'open': 78, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 25, '~~**Y**~~': 1}
+条目 129 | 状态 {'open': 79, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 26, '~~**Y**~~': 1}
 未闭 P0 面 = 63 （已闭但曾标 P0 面的 39 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
@@ -3582,6 +3583,28 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⚠️ **`P0 面 = N` 是「今日不可达」的判断,不是「不重要」** —— 三个触发条件任一成立即须改回 `Y`,
 > 见本行「触发条件」列。这正是 §一 R4 存在的作用:不让「暂时够不着」的债冒充 P0 出口障碍,
 > 也不让它因够不着而**从册上消失**。
+
+### TD-building-03 — 「烘焙器误读源」这一面没有可实测的变异形态(判据面缺口)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 2026-10-28 新增夹具 `test_worldBuildSlots_productMatchesSourceJson_fieldByField` 的**独占判别面**是「**烘焙器误读源**」—— 即 `assets/data/world_buildslots.json` 被 Binder 读错,产物内容因此错,但**盘上产物 == 现烘产物**(两边一样地错)⇒ 既有的 `test_worldBuildSlots_diskMatchesFreshBake` **必绿**,只有新夹具能抓。**该面至今没有实测过的变异形态。** |
+| **为什么重要** | 「有夹具」≠「夹具的独占面被证明」。若不补,这条夹具的**核心卖点**(补上 `diskMatchesFreshBake` 的盲区)只经**离线推演**,属「本轮未运行其判据 ⇒ 不得标 Proven ✅」的同族。 |
+| **本轮尝试(M8)与失败原因** | 变异:`WorldBuildSlotsBinder.TryReadBakedInitial` 的 `bakedInitial = n.Bool` 改恒 `false`。<br>**结果**:重烘**直接失败** —— 烘焙期域门当场拒收,报文大意「`baked_initial = 0` 的行 `module_id` 须为 -1」。因源 JSON 里那 5 条同时带 `module_id ≥ 1`,该组合自相矛盾 ⇒ **产物未变** ⇒ 造不出「盘上 == 现烘但内容错」的现场。<br>**这不是域门的缺陷,是域门在起作用** —— 它恰好把这一类误读**挡在产物之外**。副作用是:这一类误读因此**天然无法进产物**,也就**无法被这条夹具观测到**。 |
+| **真正的缺口(本债的核心)** | 域门只覆盖**自相矛盾**的误读(如 `baked_initial` 与 `module_id` 不一致)。**能同时过域门**的误读形态仍可能存在,例如:<br>① 把 `allowed_mask` 的位映射读反(`Shell`/`Decor` 互换)—— 两值都合法;<br>② 行序排序键读错(`(x,y,z)` 改成别的序)—— 排序后仍合法;<br>③ 把某个 `baked_initial = false` 的槽位**整行漏掉**(`row_count` 自洽地变小)。<br>这三类都能过域门,且都只在「盘上 == 现烘」下才与源不符 ⇒ **正是本夹具的独占面**。 |
+| **解除动作** | 为 ①–③ 各构造**一个能过域门**的变异形态,重烘(成功),再跑本夹具,要求**恰 1 条红**(本测),且 `diskMatchesFreshBake` **绿**。<br>⚠️ 关键在于**变异必须落在「合法但错」的区间** —— 落在非法区间会被域门挡住(如本轮 M8),那样测的是域门而非本夹具。 |
+| **触发条件** | `assets/data/world_buildslots.json` 下次变更时(行集或槽位类型变了,变异形态须跟着重挑);或 `world_buildslots` 的域门被修改时。 |
+| **归属** | **23**(模块化建造),与 `TD-building-01` / `-02` 同 epic。按同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
+| **`P0 面 = N` 的理由** | 这是**判据完备性**的缺口,不是产品缺陷 —— 夹具已在盘上且其**部分**判别力已由 M7 实测(见 `review-s20-20` §七-3)。缺的是「独占面」的证明,不影响任何交付判据的真值。按 §一 R4 记 **N**;⚠️ 若将来有人以「本夹具已证 `diskMatchesFreshBake` 盲区」为由做结论,须先还本债。 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-building-03** | `modular-building` | **open** | **N** | R1 |
+
+> **本条使 `条目 128 → 129`**,`open 78 → 79`;**`未闭 P0 面 = 63` 一位不动**(P0 面 = N);
+> **M3 Exit ② 的 epic 分布亦不动**。
+> ⚠️ **本条与 `TD-building-02` 的性质不同**:02 是「语义未裁」,03 是「判据未证」。
+> 两者都记 `P0 面 = N`,但理由不同 —— 02 是**今日不可达**,03 是**不影响任何判据真值**。
 
 > **`P0 面 = Y`** —— 归属 epic `modular-building` ∈ 31 个 P0 epic(承 §一 **R1 宽判据**)。
 > ⚠️ **本条使 `未闭 P0 面` 从 72 变 73**,且 **`modular-building` 由「名下零债」变为「名下 1 条」**
