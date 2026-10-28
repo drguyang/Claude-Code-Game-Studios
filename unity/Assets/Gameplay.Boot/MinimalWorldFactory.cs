@@ -121,14 +121,41 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   取出另一行的 K_accel / K_decel(错格、无异常)。
             ValidateTerrainSpeedIndices(terrain, ter.Rows.Count);
 
-            // POI / 资源格全 -1(= 无)。长度须与 terrain 齐,否则 WorldGeometry 装载期抛。
-            // ⚠️ 归 story S4;本文件**不**预留占位数组的写入面(那会变成第二真源)。
+            // ── POI **定义** / 资源点:从 cooked 产物填格(story-004 AC-4 / AC-5)──────────
+            // ⚠️ 两份产物都是**即时** Load(与几何 / 地形同款):缺任一份 = 启动期硬失败。
+            //    静默降级成「全 -1」会让 `PoiStateMachine` 的 `_poiIdSet` 零成员、
+            //    `ResourceGrid` 恒无 —— 那在运行期**看起来完全正常**(GDD EC-6-10 的「无」是合法结果),
+            //    正是本仓反复记的假绿形态。
+            WorldPoiDataSet poiData = dataProvider != null
+                ? dataProvider.Load<WorldPoiDataSet>()
+                : DataCookedDisk.LoadWorldPoi();
+            WorldResourcesDataSet resourceData = dataProvider != null
+                ? dataProvider.Load<WorldResourcesDataSet>()
+                : DataCookedDisk.LoadWorldResources();
+
             var poiGrid = new int[total];
             var resourceGrid = new int[total];
             for (int i = 0; i < total; i++)
             {
                 poiGrid[i] = -1;
                 resourceGrid[i] = -1;
+            }
+
+            // ⚠️ 索引公式与上面地形格 / `WorldGeometry.ToIndex` / `LevelSource.CellIndex` **逐字相同**:
+            //    `(x*SizeY + y)*SizeZ + z`。四处若漂移,错格是**静默**的。
+            // ⚠️ 越界在这里是**抛**而不是钳位:尺寸对账已过,越界只可能是产物被手工改过
+            //    (工具侧 `ValidateAgainstLevel` 在导出 / 烘焙两处都拒过)。
+            for (int i = 0; i < poiData.Pois.Count; i++)
+            {
+                WorldPoiRow row = poiData.Pois[i];
+                int idx = CellIndexChecked(row.Cell, sizeX, sizeY, sizeZ, "world_poi", i);
+                poiGrid[idx] = row.PoiId;
+            }
+            for (int i = 0; i < resourceData.Resources.Count; i++)
+            {
+                WorldResourceRow row = resourceData.Resources[i];
+                int idx = CellIndexChecked(row.Cell, sizeX, sizeY, sizeZ, "world_resources", i);
+                resourceGrid[idx] = row.ResourceId;
             }
 
             var geometry = new WorldGeometry(terrain, poiGrid, resourceGrid);
@@ -170,8 +197,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 $"[世界装载] 几何来自烘焙产物 —— {sizeX}×{sizeY}×{sizeZ}," +
                 $"可走 {walkableCount}/{total} 格,TERRAIN_TABLE {ter.Rows.Count} 行" +
                 $"(K_TERRAIN_MAX = {ter.KTerrainMax}),LATTICE_SIZE = {geo.LatticeSizeMm} mm;" +
-                $"{slotNote};装载源 = {SlotSourceLabel(dataProvider)}。" +
-                "（POI / 资源格仍全无 —— 归 S4。）");
+                $"{slotNote};POI {poiData.Pois.Count} 个,资源点 {resourceData.Resources.Count} 个;" +
+                $"装载源 = {SlotSourceLabel(dataProvider)}。");
 
             return new World(geometry, slotCatalog);
         }
@@ -191,6 +218,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="terrain">已构造的地形格(三维)。</param>
         /// <param name="terrainTableRowCount">`TERRAIN_TABLE` 的行数(合法下标的上界,不含)。</param>
         /// <exception cref="InvalidDataException">存在越界 / 负的 `KSpeedIdx`。</exception>
+        /// <summary>
+        /// 格坐标 → 一维索引,越界即抛(为 POI / 资源点填格用)。
+        /// <para>⚠️ 公式与 `WorldGeometry.ToIndex` / `LevelSource.CellIndex` **逐字相同**;
+        /// 三处若漂移,错格是**静默**的(打到别的格,无异常)。</para>
+        /// <para>⚠️ **不做钳位**:越界只可能是产物被手工改过 —— 工具侧与烘焙侧都已拒过,
+        /// 钳位会把「产物坏了」变成「布局看起来对但有格子丢了」。</para>
+        /// </summary>
+        /// <exception cref="InvalidDataException">格越出声明尺寸。</exception>
+        private static int CellIndexChecked(
+            WorldPos cell, int sizeX, int sizeY, int sizeZ, string product, int rowIndex)
+        {
+            if (cell.X < 0 || cell.X >= sizeX || cell.Y < 0 || cell.Y >= sizeY ||
+                cell.Z < 0 || cell.Z >= sizeZ)
+                throw new InvalidDataException(
+                    $"[cooked] {product} 第 {rowIndex} 行的格 ({cell.X},{cell.Y},{cell.Z}) " +
+                    $"超出世界尺寸 {sizeX}×{sizeY}×{sizeZ} —— 产物被手工改过?" +
+                    "(工具侧与烘焙侧都已拒过越界)");
+            return (cell.X * sizeY + cell.Y) * sizeZ + cell.Z;
+        }
+
         public static void ValidateTerrainSpeedIndices(TerrainCell[,,] terrain, int terrainTableRowCount)
         {
             if (terrain == null) throw new ArgumentNullException(nameof(terrain));

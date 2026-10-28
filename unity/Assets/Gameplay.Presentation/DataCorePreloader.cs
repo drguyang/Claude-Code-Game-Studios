@@ -244,6 +244,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.WorldTerrainAddress,
             // 生态区多边形(关卡工具 story-003 · 2026-10-29:`EcozoneOf` 的真值来源)。
             AddressablesDataProvider.WorldEcozonesAddress,
+            // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29:`PoiGrid` / `ResourceGrid` 的真值来源)。
+            AddressablesDataProvider.WorldPoiAddress,
+            AddressablesDataProvider.WorldResourcesAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

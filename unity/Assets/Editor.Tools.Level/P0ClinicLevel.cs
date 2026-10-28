@@ -121,7 +121,9 @@ namespace DaYiJingCheng.EditorTools.Level
                 walkable: BuildWalkable(sizeX, sizeY, sizeZ),
                 terrain: BuildTerrain(sizeX, sizeY, sizeZ),
                 latticeSizeMm: LatticeSizeMm,
-                ecozones: BuildEcozones());
+                ecozones: BuildEcozones(),
+                poi: BuildPoi(),
+                resources: BuildResources());
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -210,6 +212,57 @@ namespace DaYiJingCheng.EditorTools.Level
             };
 
             return new EcozoneSource(zones);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // 以下两件是 **story-004** 新增的 POI 定义 / 资源点声明。
+        // ⚠️ 全部是**占位形状**(承 §上文「数值归用户数值轮」的同一纪律):
+        //    · POI 的 `type` 取值闭集归 **6 的 GDD**;本处 `1` / `2` 只是两个**不同的**整数,
+        //      用来让「json 里读得回原值」这条判据有判别力(全填同一个数会让它恒真)。
+        //    · `guard_ref` 取稳「乙案」= 整数**档位**(story-004 §Implementation Notes):
+        //      27 的敌人定义集今日不存在,取甲案会引入未定义的跨系统引用。
+        //    · 资源 id `1` / `2` 同理 —— 17 采集的资源类型表里尚无 id 词表。
+        //    关卡设计轮 + 数值轮替换本文件时,这两件整个重写,不是在数组里加两条。
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>本关卡的 POI **定义**(三个,两个在前厅一个在药圃)。</summary>
+        /// <remarks>
+        /// <para>⚠️ 一格一条(`PoiSource` 构造即校验);格坐标必须可走且在两区之内
+        /// —— 否则「走近 POI 被发现」的走查(world-ecozones/story-005)没有可站的位置。</para>
+        /// <para>⚠️ 本方法**只产出定义**;`PoiState`(未发现 / 已发现 / 已解决)住在世界流,
+        /// 唯一写者是系统 6。工具程序集里连这个类型名都不出现(story-004 AC-6)。</para>
+        /// </remarks>
+        private static PoiSource BuildPoi()
+        {
+            static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
+
+            var pois = new List<PoiSpec>
+            {
+                new PoiSpec(0, P(4, 4),  type: 1, guardRef: 2),   // 前厅 · 强守卫
+                new PoiSpec(1, P(11, 7), type: 2, guardRef: 1),   // 药圃 · 中守卫
+                new PoiSpec(2, P(3, 12), type: 1, guardRef: 0),   // 前厅 · 无守卫
+            };
+            return new PoiSource(pois);
+        }
+
+        /// <summary>本关卡的资源点声明(四个,两区各两个;格与 POI 格互不重叠)。</summary>
+        /// <remarks>
+        /// <para>⚠️ **一格一条**(与 POI 同款):运行期 `ResourceGrid` 每格只有一个 `int`,
+        /// 同格两条会被静默丢弃 ⇒ `ResourceSource` 构造期即拒。</para>
+        /// <para>⚠️ `ecozone_id` 只引用、不校验(存在性归 S6 的 C 系列,见 `ResourceSource.cs` 文件头)。</para>
+        /// </remarks>
+        private static ResourceSource BuildResources()
+        {
+            static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
+
+            var rows = new List<ResourceSpec>
+            {
+                new ResourceSpec(1, P(2, 2),  ecozoneId: 0),
+                new ResourceSpec(2, P(10, 2), ecozoneId: 1),
+                new ResourceSpec(2, P(12, 12), ecozoneId: 1),
+                new ResourceSpec(1, P(5, 9),  ecozoneId: 0),
+            };
+            return new ResourceSource(rows);
         }
 
         /// <summary>本关卡的地形声明(单行表 `terrain_id = 0`;每格都指向它)。</summary>

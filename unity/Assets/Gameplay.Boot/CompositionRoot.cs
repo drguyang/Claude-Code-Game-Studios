@@ -1484,6 +1484,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 从烘焙产物装载 POI **定义**的 id 集(story-004 AC-4②:`PoiStateMachine` 的初始登记面)。
+        /// <para>provider 优先(玩家构建唯一存在的路径),`null` ⇒ `DataCookedDisk` 兜底
+        /// (EditMode / 夹具)—— 两条路读**同一份** cooked 字节 + **同一个** codec。</para>
+        /// <para>⚠️ **任何失败都冒泡**(E-13):空 id 集会让状态机对**每一个** `poi_id` 都回
+        /// `NotRegistered`,而那是**合法返回值** ⇒ 静默降级**看起来完全正常**。
+        /// 那正是本仓反复记的假绿形态,故此处不设 `catch`。</para>
+        /// <para>⚠️ 可见性 = `public`:夹具经 public 面直调,按真产物逐条钉「登记了哪几个 id」
+        /// (承 `LoadEcozoneRegistry` 的先例)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">产物缺失(E-13 口径)。</exception>
+        /// <exception cref="InvalidDataException">产物损坏 / 空表。</exception>
+        public static IReadOnlyList<int> LoadPoiIds(IDataProvider dataProvider)
+        {
+            WorldPoiDataSet data = dataProvider != null
+                ? dataProvider.Load<WorldPoiDataSet>()
+                : DataCookedDisk.LoadWorldPoi();
+
+            var ids = new int[data.Pois.Count];
+            for (int i = 0; i < data.Pois.Count; i++) ids[i] = data.Pois[i].PoiId;
+            return Array.AsReadOnly(ids);
+        }
+
+        /// <summary>
         /// 从烘焙产物装载生态区注册表(story-003 AC-5:`EcozoneOf` 的真值来源)。
         /// <para>provider 优先(玩家构建唯一存在的路径),`null` ⇒ `DataCookedDisk` 兜底
         /// (EditMode / 夹具)—— 两条路读**同一份** cooked 字节 + **同一个** codec。</para>

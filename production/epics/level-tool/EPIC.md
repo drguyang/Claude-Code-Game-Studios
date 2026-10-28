@@ -3,7 +3,7 @@
 > **Layer**: **Tooling**(编辑期 / 构建期 —— **运行期零存在**,不进构建)
 > **GDD**: **无** —— 它是工具不是玩法系统;产出契约 + 一致性检查 = **ADR-022**
 > **Architecture Module**: `unity/Assets/Editor.Tools.Level/`(asmdef `Editor.Tools.Level`)
-> **Status**: **In Progress** —— **S1 / S2 / S3 已 Complete(2026-10-29)**;S4–S6 **未实现**
+> **Status**: **In Progress** —— **S1 / S2 / S3 / S4 已 Complete(2026-10-29)**;S5–S6 **未实现**
 > (本 epic **2026-10-28 立**,同日推翻 2026-10-21 的「不立 epic、不排期」裁定)
 > **Stories**: 6 stories — see table below
 > **Manifest Version**: 2026-10-15
@@ -155,7 +155,7 @@ grep -n 'const int Width\|const int Height\|const int Depth\|LevelId =' \
 | **001** | 关卡源模型泛化 —— 多关卡 + 数据集拆分 | **#4 关卡工具只服务一个关卡** | — | Logic | M | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`) |
 | **002** | `world_geometry` / `world_terrain` 导出 + 烘焙 + 运行期装载 | **#5 世界几何仍是合成**(地形半边) | 001 | Integration | L | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-002-2026-10-29.md`) |
 | **003** | `world_ecozones` 导出 + C4 多边形合法性 + C5 边界单一源 | **#3 C1–C6**(C4/C5 两条) | 002 | Logic | L | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-003-2026-10-29.md`) |
-| **004** | `world_poi` / `world_resources` 导出 + 运行期定义装载 | **#5 世界几何仍是合成**(POI / 资源半边) | 002 | Integration | M | 未实现 |
+| **004** | `world_poi` / `world_resources` 导出 + 运行期定义装载 | **#5 世界几何仍是合成**(POI / 资源半边) | 002 | Integration | M | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-004-2026-10-29.md`) |
 | **005** | `world_nav_{chunk}` 切片 + C6 切片完整性 + C3 告警 | **#3 C1–C6**(C6/C3 两条)· **#4** 的 chunk 半边 | 002 | Logic | L | 未实现 |
 | **006** | C1 两层漂移 + C2 可走性同源 + C2' collider 足迹同源 + CI 接线 | **#3 C1–C6**(C1/C2/C2' 三条) | 002 · 003 | Integration | M| 未实现 |
 

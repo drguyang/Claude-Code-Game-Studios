@@ -39,6 +39,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2348d2df9bf6ac59a80b783e4131fea6
+    m_Address: world_resources.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2acd8b9efdb5c01a98ebf08d38cdc4de
     m_Address: item_database_furniture.cooked.bytes
     m_ReadOnly: 0
@@ -137,6 +143,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c4bba4bbcba3a4dee9a2566f5a60dddc
     m_Address: 53_outcome_table.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c6af4251f106c493284d90fdebee04b5
+    m_Address: world_poi.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core

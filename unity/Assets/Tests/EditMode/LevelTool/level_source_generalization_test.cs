@@ -210,8 +210,13 @@ namespace DaYiJingCheng.Tests.LevelTool
             // 🔁 **2026-10-29(关卡工具 story-003)**:Ecozones 也转已实现。
             Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Ecozones), Is.True,
                 "Ecozones 自 story-003 起已实现");
-            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(3),
-                "未实现类别 = Poi / Resources / NavChunk 三类 —— " +
+            // 🔁 **2026-10-29(关卡工具 story-004)**:Poi / Resources 也转已实现。
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Poi), Is.True,
+                "Poi 自 story-004 起已实现");
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Resources), Is.True,
+                "Resources 自 story-004 起已实现");
+            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(1),
+                "未实现类别只剩 NavChunk(S5)—— " +
                 "条数变了说明有类别移了队却没同步另一侧");
         }
 
@@ -220,6 +225,8 @@ namespace DaYiJingCheng.Tests.LevelTool
         /// 而「哪一类未实现」是**随时间变的**。
         /// · story-001:`Geometry` → story-002 实现后换 `Ecozones`
         /// · story-002:`Ecozones` → story-003 实现后换 `Poi`(归 S4)
+        /// · story-003:`Poi` → story-004 实现后换 `NavChunk`(归 S5;**这是最后一格** ——
+        ///   再前移就无处可去,那时本测须改成「闭集内每一类都已实现」)
         /// ⇒ 每条实现轮都得把它前移一格。**判据形态一字未变**(抛 + 报文含归属 story 号 + 含文件名)。</remarks>
         [Test]
         public void test_ac3_unimplementedKind_throwsNamingOwningStory()
@@ -227,10 +234,10 @@ namespace DaYiJingCheng.Tests.LevelTool
             LevelSource src = LevelCatalog.Define("p0_clinic");
 
             var ex = Assert.Throws<NotSupportedException>(
-                () => LevelExporter.Export(WorldDataSetKind.Poi, src));
+                () => LevelExporter.Export(WorldDataSetKind.NavChunk, src));
 
-            Assert.That(ex.Message, Does.Contain("S4"), "报文须点名归属 story(S4)");
-            Assert.That(ex.Message, Does.Contain("world_poi"));
+            Assert.That(ex.Message, Does.Contain("S5"), "报文须点名归属 story(S5)");
+            Assert.That(ex.Message, Does.Contain("world_nav"));
         }
 
         // ─────────────────────────── AC-4 ───────────────────────────

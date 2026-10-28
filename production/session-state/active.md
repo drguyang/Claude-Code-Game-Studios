@@ -12146,3 +12146,32 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   视觉层资产尚不存在,归美术轮。
 - **下一步**:`level-tool/story-004`(POI / 资源点)与 `story-005`(导航格切片 + C6/C3)——
   两者都只依赖 S2,与 S3 零共享状态。
+
+## Session Extract — level-tool/story-004 实现轮(2026-10-29)
+
+- **对象**:`production/epics/level-tool/story-004-world-poi-and-resources.md`(**Status: Complete**,6/6 AC)
+- **落点**:工具侧 `PoiSource`(一格一条 / id 唯一 / 越界)· `ResourceSource`(同格门 / ecozone 倾向只引用不校验)
+  · `LevelSource` 两字段 · `P0ClinicLevel`(3 POI + 4 资源)· `ScaffoldSecondLevel`(1 POI + 2 资源)
+  · `LevelExporter.ExportPoi/ExportResources` · `WorldDataSetKind` 未实现 3 → 1;
+  烘焙 `World{Poi,Resources}{Bake,Binder,CookedWriter}` 六件 + 两条菜单;
+  运行期两个 codec + 三处装载面 + `MinimalWorldFactory` 填两格 + `CompositionRoot.LoadPoiIds`(public)。
+- **产物**:`assets/data/world_{poi,resources}.json`(295 B / 346 B)·
+  `DataCooked/world_{poi,resources}.cooked.bytes`(96 B / 104 B)· `data-core` 组条目 **29 → 31**(31 == 盘上 31)。
+- **证伪轮**:**15 条变异全部转红,零假绿**;**预判 16 红 / 实得 17 红**,唯一超判(M4)已独立论证
+  —— 写 `4.0` 后同一份文本过烘焙门被 `TryReadI32` 拒收,是烘焙门在起作用。九份被变异件 SHA-256 逐字节还原。
+- **回归**(三元组 `2026-10-29 02:58:16 / 02:58:51 CST` · S4 收口终跑 · `b05d57d2`+工作树):
+  EditMode `5789/5754/0/0/35`(基线 `5770/5735` ⇒ `5789−5770 = 19` = 17 新 `[Test]` + 2 漂移门参数化,**消失 0**);
+  PlayMode `238/234/0/2/2`(**零回归**)。**首跑全量零红** —— §八④ 那条在定向跑阶段就修掉了。
+- **本轮自己的四处错误**:① **设计冲突**:初稿允许「一格多种资源」,而运行期 `ResourceGrid` 每格只有一个 `int`
+  ⇒ 同格第二条被**静默**丢弃;改为构造期拒绝 + 读侧纵深防御(要做「一格多种」是 ADR 级改动)
+  ② 三条编译期错误(异常报文用了 `PoiStateMachine` ⇒ AC-6 文本判据红,改**代码**不改判据;`world.GetPoiId` 应为 `world.Geometry.GetPoiId`;缺 using)
+  ③ `test_ac5_codec` 手拼坏产物没改头部载荷长度 ⇒ **因错的理由**失败
+  ④ `world_geometry_load_test` 的字节源「只供三件产物」⇒ 两条红(与 S3 §八④ 同型,**第二次撞**)
+- **刻意缩回的边界(§七.1)**:**没**把 `PoiStateMachine` 接进 `CompositionRoot.Assemble` ——
+  它需要 `IEventAuthority`,全仓零生产实装且已被 `SeenDiseaseProjector.cs:23-26` 登记为 P1b 缺口,
+  `out_of_bounds_rejection_test` 还有夹具断言「零生产实装」。塞生产占位 = 私自关掉已登记的缺口。
+  本轮只接定义侧(`LoadPoiIds`),机器在夹具里由测试替身构造。
+- **原件**:`production/qa/evidence/impl-level-tool-story-004-2026-10-29.md`
+- **未做**:`/code-review` 未跑(归用户触发)。
+- **下一步**:`level-tool/story-005`(导航格按 chunk 切片 + C6 切片完整性 + C3 告警)——
+  本 epic 只剩 S5 与 S6(后者依赖 S5)。

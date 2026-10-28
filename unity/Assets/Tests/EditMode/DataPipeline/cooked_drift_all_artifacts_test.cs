@@ -264,6 +264,11 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    所以这条委托同时把「手改多边形而不重烘」与「多边形非法却硬塞进产物」都钉住。
             new ArtifactBake(WorldEcozonesBake.CookedFileName,
                 root => WorldEcozonesBake.BakeFromRepo(root).Cooked),
+            // 2026-10-29(关卡工具 story-004):POI 定义 / 资源点。
+            new ArtifactBake(WorldPoiBake.CookedFileName,
+                root => WorldPoiBake.BakeFromRepo(root).Cooked),
+            new ArtifactBake(WorldResourcesBake.CookedFileName,
+                root => WorldResourcesBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -408,7 +413,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-28(S20-20):25 → 26(+world_buildslots,关卡工具导出 + 烘焙落盘)。
             // 2026-10-29(关卡工具 story-002):26 → 28(+world_geometry / world_terrain,几何 + 地形表)。
             // 2026-10-29(关卡工具 story-003):28 → 29(+world_ecozones,生态区多边形)。
-            const int pinnedDeclared = 29; // 2026-10-29 实测(29 份)
+            // 2026-10-29(关卡工具 story-004):29 → 31(+world_poi / world_resources,POI 定义 / 资源点)。
+            const int pinnedDeclared = 31; // 2026-10-29 实测(31 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -183,6 +183,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>单一出处 = <see cref="WorldEcozonesDataSet.CookedFileName"/>。</remarks>
         public const string WorldEcozonesAddress = WorldEcozonesDataSet.CookedFileName;
 
+        /// <summary>POI **定义** address(关卡工具 story-004 · 2026-10-29)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldPoiDataSet.CookedFileName"/>。</remarks>
+        public const string WorldPoiAddress = WorldPoiDataSet.CookedFileName;
+
+        /// <summary>资源点 address(关卡工具 story-004 · 2026-10-29)。</summary>
+        /// <remarks>单一出处 = <see cref="WorldResourcesDataSet.CookedFileName"/>。</remarks>
+        public const string WorldResourcesAddress = WorldResourcesDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -231,6 +239,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private WorldTerrainDataSet? _worldTerrain;
         // 生态区多边形(关卡工具 story-003 · 2026-10-29):struct 解码形 ⇒ 可空承载。
         private WorldEcozonesDataSet? _worldEcozones;
+        // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29):struct 解码形 ⇒ 可空承载。
+        private WorldPoiDataSet? _worldPoi;
+        private WorldResourcesDataSet? _worldResources;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -395,6 +406,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWorldEcozones();
                 return (TDataSet)(object)_worldEcozones.Value;
             }
+            if (typeof(TDataSet) == typeof(WorldPoiDataSet))
+            {
+                EnsureWorldPoi();
+                return (TDataSet)(object)_worldPoi.Value;
+            }
+            if (typeof(TDataSet) == typeof(WorldResourcesDataSet))
+            {
+                EnsureWorldResources();
+                return (TDataSet)(object)_worldResources.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -413,7 +434,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)" +
                 " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)" +
                 " + 世界几何 / 地形表(关卡工具 story-002 2026-10-29:WorldGeometryDataSet / WorldTerrainDataSet)" +
-                " + 生态区多边形(关卡工具 story-003 2026-10-29:WorldEcozonesDataSet)");
+                " + 生态区多边形(关卡工具 story-003 2026-10-29:WorldEcozonesDataSet)" +
+                " + POI 定义 / 资源点(关卡工具 story-004 2026-10-29:WorldPoiDataSet / WorldResourcesDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -448,6 +470,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldGeometry();
             EnsureWorldTerrain();
             EnsureWorldEcozones();
+            EnsureWorldPoi();
+            EnsureWorldResources();
         }
 
         private void EnsureItems()
@@ -916,6 +940,40 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 生态区多边形 cooked 解码失败(address={WorldEcozonesAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureWorldPoi()
+        {
+            if (_worldPoi.HasValue) return;
+            byte[] bytes = FetchBytes(WorldPoiAddress);
+            try
+            {
+                _worldPoi = WorldPoiCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] POI 定义 cooked 解码失败(address={WorldPoiAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureWorldResources()
+        {
+            if (_worldResources.HasValue) return;
+            byte[] bytes = FetchBytes(WorldResourcesAddress);
+            try
+            {
+                _worldResources = WorldResourcesCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 资源点 cooked 解码失败(address={WorldResourcesAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

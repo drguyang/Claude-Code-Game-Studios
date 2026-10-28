@@ -105,6 +105,24 @@ namespace DaYiJingCheng.EditorTools.Level
         public readonly EcozoneSource Ecozones;
 
         /// <summary>
+        /// POI **定义**集(ADR-022 §三 `world_poi.json`;ADR-021 §①:定义 = 派生态)。
+        /// <para>🔁 <b>2026-10-29(story-004 AC-1)新增</b>。`null` = **本关卡未声明 POI**
+        /// —— 此时 <see cref="LevelExporter.ExportPoi"/> **硬失败**(不合成空表:
+        /// 空表会让 `PoiStateMachine` 的 `_poiIdSet` 零成员,`PoiStateChanged` 永不发出,
+        /// 而「零 POI」与「未声明」在产物上不可分)。</para>
+        /// <para>⚠️ 只承载**定义**;**状态**(`PoiState`)住世界流,唯一写者 = 系统 6
+        /// —— 本字段在类型层面就够不到状态(story-004 AC-6)。</para>
+        /// </summary>
+        public readonly PoiSource Poi;
+
+        /// <summary>
+        /// 资源点集(ADR-022 §三 `world_resources.json`)。
+        /// <para>🔁 <b>2026-10-29(story-004 AC-2)新增</b>。`null` = **本关卡未声明资源**
+        /// —— 此时 <see cref="LevelExporter.ExportResources"/> **硬失败**(理由同 <see cref="Poi"/>)。</para>
+        /// </summary>
+        public readonly ResourceSource Resources;
+
+        /// <summary>
         /// 格边长 `LATTICE_SIZE`(**整数毫米**;ADR-015 §三 / GDD F-6-1)。
         /// <para>🔁 <b>2026-10-29(story-002 AC-1)新增</b>。`0` = 未声明(几何导出硬失败)。</para>
         /// <para>⚠️ **数值归用户数值轮**(GDD 同时用它推 F-6-1 的隧穿下界)。本类只承载。</para>
@@ -127,7 +145,7 @@ namespace DaYiJingCheng.EditorTools.Level
         public LevelSource(
             string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots,
             IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0,
-            EcozoneSource ecozones = null)
+            EcozoneSource ecozones = null, PoiSource poi = null, ResourceSource resources = null)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -180,6 +198,8 @@ namespace DaYiJingCheng.EditorTools.Level
 
             LatticeSizeMm = latticeSizeMm;
             Ecozones = ecozones;
+            Poi = poi;
+            Resources = resources;
         }
 
         /// <summary>

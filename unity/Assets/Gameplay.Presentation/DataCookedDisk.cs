@@ -80,6 +80,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static WorldEcozonesDataSet LoadWorldEcozones()
             => WorldEcozonesCookedCodec.Read(ReadAll(WorldEcozonesDataSet.CookedFileName));
 
+        /// <summary>从磁盘读 POI 定义(EditMode / 夹具兜底 —— 与 provider 读同一份字节 + 同一个 codec)。</summary>
+        public static WorldPoiDataSet LoadWorldPoi()
+            => WorldPoiCookedCodec.Read(ReadAll(WorldPoiDataSet.CookedFileName));
+
+        /// <summary>从磁盘读资源点(同上)。</summary>
+        public static WorldResourcesDataSet LoadWorldResources()
+            => WorldResourcesCookedCodec.Read(ReadAll(WorldResourcesDataSet.CookedFileName));
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

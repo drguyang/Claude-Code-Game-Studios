@@ -66,6 +66,12 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>`world_terrain.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
         public const uint TerrainSchemaVersion = 1u;
 
+        /// <summary>`world_poi.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        public const uint PoiSchemaVersion = 1u;
+
+        /// <summary>`world_resources.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        public const uint ResourcesSchemaVersion = 1u;
+
 
         // ⚠️ **此处曾有 `SlotTypeNames` / `DeriveSlotTypeNames()`**(名字表 + 名字→序数派生)。
         //    2026-10-28 代码评审 **A-21** 后删除,两半各有归处 ——
@@ -272,6 +278,129 @@ namespace DaYiJingCheng.EditorTools.Level
                 }
                 sb.Append("]}")
                   .Append(i + 1 < zones.Count ? ",\n" : "\n");
+            }
+            sb.Append("  ]\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 序列化 `world_poi.json`(story-004 AC-1)。
+        /// <para>形状 = `schema_version` + `level_id` + `level_size` +
+        /// `pois: [{poi_id, cell: [x, y, z], type, guard_ref}]`。</para>
+        /// <para>⚠️ **`level_size` 也写进去** —— 绑定器靠它把「格越界」判在**烘焙期**,
+        /// 而不是等到运行期填格时才发现下标落空。这与 `world_geometry` 冗余写尺寸同源。</para>
+        /// <para>⚠️ **只出定义**;`PoiState` 不出现在本文件能表达的任何类型里(ADR-021 / ADR-022 §六)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 关卡未声明 POI / 任一定义的格越界。</exception>
+        public static string ExportPoi(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Poi == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明 POI ⇒ 拒绝导出 world_poi。" +
+                    "不合成空表:空表与「未声明」在产物上不可分,而状态机的 id 集会零成员、" +
+                    "POI 状态变更事件永不发出 —— 那正是 story-004 要消灭的状态");
+
+            src.Poi.ValidateAgainstLevel(src.Width, src.Height, src.Depth);
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)PoiSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            sb.Append("  \"level_size\": [").Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ").Append(Num(src.Depth)).Append("],\n");
+
+            // 行序 = poi_id 升序 ⇒ 作者重排声明不改变字节流。
+            List<PoiSpec> pois = src.Poi.SortedById();
+
+            sb.Append("  \"pois\": [\n");
+            for (int i = 0; i < pois.Count; i++)
+            {
+                PoiSpec p = pois[i];
+                sb.Append("    {\"poi_id\": ").Append(Num(p.PoiId))
+                  .Append(", \"cell\": [").Append(Num(p.Cell.X)).Append(", ")
+                  .Append(Num(p.Cell.Y)).Append(", ").Append(Num(p.Cell.Z)).Append(']')
+                  .Append(", \"type\": ").Append(Num(p.Type))
+                  .Append(", \"guard_ref\": ").Append(Num(p.GuardRef))
+                  .Append('}')
+                  .Append(i + 1 < pois.Count ? ",\n" : "\n");
+            }
+            sb.Append("  ]\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 序列化 `world_resources.json`(story-004 AC-2)。
+        /// <para>形状 = `schema_version` + `level_id` + `level_size` +
+        /// `resources: [{resource_id, cell: [x, y, z], ecozone_id}]`。</para>
+        /// <para>⚠️ **格与 POI 格冲突 ⇒ 硬失败**(AC-2③):同一格既是 POI 又是资源点,
+        /// 在运行期表现为 `PoiGrid[i]` 与 `ResourceGrid[i]` 同时非 `-1`,而两条查询各自
+        /// 「看起来都对」—— 那是**静默**的数据错配,只能在导出期拦。</para>
+        /// <para>⚠️ 本方法**不**校验 `ecozone_id` 是否存在(跨数据集门归 S6 的 C 系列;
+        /// 理由见 `ResourceSource.cs` 文件头)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 关卡未声明资源 / 任一格越界 / 格与 POI 格冲突。</exception>
+        public static string ExportResources(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Resources == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明资源点 ⇒ 拒绝导出 world_resources。" +
+                    "不合成空表(理由同 world_poi:空表与「未声明」不可分,而资源格全 -1 " +
+                    "正是 story-004 要消灭的状态)");
+
+            src.Resources.ValidateAgainstLevel(src.Width, src.Height, src.Depth);
+
+            // ── AC-2③:资源格不得与 POI 格重复 ──────────────────────────────────
+            if (src.Poi != null)
+            {
+                var poiCells = new HashSet<(int, int, int)>();
+                for (int i = 0; i < src.Poi.Pois.Count; i++)
+                    poiCells.Add((src.Poi.Pois[i].Cell.X, src.Poi.Pois[i].Cell.Y, src.Poi.Pois[i].Cell.Z));
+
+                var clashes = new List<string>();
+                for (int i = 0; i < src.Resources.Resources.Count; i++)
+                {
+                    ResourceSpec r = src.Resources.Resources[i];
+                    if (poiCells.Contains((r.Cell.X, r.Cell.Y, r.Cell.Z)))
+                        clashes.Add($"resources[{i}] resource_id={r.ResourceId} 落在 POI 格 " +
+                                    $"({r.Cell.X},{r.Cell.Y},{r.Cell.Z})");
+                }
+                if (clashes.Count > 0)
+                    throw new InvalidOperationException(
+                        "[关卡工具] 资源点与 POI 格冲突(一格不能既是 POI 又是资源点):" +
+                        string.Join(";", clashes));
+            }
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)ResourcesSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            sb.Append("  \"level_size\": [").Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ").Append(Num(src.Depth)).Append("],\n");
+
+            List<ResourceSpec> rows = src.Resources.SortedByKey();
+
+            sb.Append("  \"resources\": [\n");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                ResourceSpec r = rows[i];
+                sb.Append("    {\"resource_id\": ").Append(Num(r.ResourceId))
+                  .Append(", \"cell\": [").Append(Num(r.Cell.X)).Append(", ")
+                  .Append(Num(r.Cell.Y)).Append(", ").Append(Num(r.Cell.Z)).Append(']')
+                  .Append(", \"ecozone_id\": ").Append(Num(r.EcozoneId))
+                  .Append('}')
+                  .Append(i + 1 < rows.Count ? ",\n" : "\n");
             }
             sb.Append("  ]\n");
             sb.Append("}\n");

@@ -452,15 +452,55 @@ namespace DaYiJingCheng.Tests.LevelTool
             b[offset + 3] = (byte)((value >> 24) & 0xFF);
         }
 
-        /// <summary>按 address 供字节;未列出的 address ⇒ 明确失败(口径同 `world_slots_provider_wiring_test`)。</summary>
+        /// <summary>按 address 供字节;未列出的 address ⇒ 明确失败(口径同 `world_slots_provider_wiring_test`)。
+        /// <para>🔁 <b>2026-10-29(关卡工具 story-004)</b>:`MinimalWorldFactory.Create` 起还要即时 Load
+        /// `world_poi` / `world_resources`(它们在 S4 之前不存在)。本夹具按**几何产物自己声明的尺寸**
+        /// 现场烘两份最小合法产物 —— 不用盘上那份真种子,因为本类的几个夹具刻意用 4×1×4 / 8×2×8
+        /// 这类**小于真种子**的合成世界,真种子的格会整体越界(`CellIndexChecked` 会抛)。
+        /// ⚠️ 尺寸从 `geom` 解出来而不是另传参数:多一个参数就多一处可能与世界不一致的真源。</para></summary>
         private static AddressablesDataProvider MakeProvider(byte[] geom, byte[] terr, byte[] slots)
-            => MakeProvider(address =>
+        {
+            // 惰性:只在真被问到时才解尺寸(故障注入类夹具走另一个重载,不会到这里)。
+            byte[] poi = null, resources = null;
+            byte[] BuildPoi()
+            {
+                WorldGeometryDataSet g = WorldGeometryCookedCodec.Read(geom);
+                return WorldPoiBake.BakeFromSourceText(
+                    PoiJson("probe", g.SizeX, g.SizeY, g.SizeZ)).Cooked;
+            }
+            byte[] BuildResources()
+            {
+                WorldGeometryDataSet g = WorldGeometryCookedCodec.Read(geom);
+                return WorldResourcesBake.BakeFromSourceText(
+                    ResourcesJson("probe", g.SizeX, g.SizeY, g.SizeZ)).Cooked;
+            }
+
+            return MakeProvider(address =>
             {
                 if (address == AddressablesDataProvider.WorldGeometryAddress) return geom;
                 if (address == AddressablesDataProvider.WorldTerrainAddress) return terr;
                 if (address == AddressablesDataProvider.WorldBuildSlotsAddress) return slots;
-                throw new InvalidOperationException($"本夹具只供世界三件产物,不该请求 {address}");
+                if (address == AddressablesDataProvider.WorldPoiAddress) return poi ??= BuildPoi();
+                if (address == AddressablesDataProvider.WorldResourcesAddress) return resources ??= BuildResources();
+                throw new InvalidOperationException($"本夹具只供世界五件产物,不该请求 {address}");
             });
+        }
+
+        /// <summary>一条 POI 定义的最小产物(格取 `(1,0,1)`,尺寸由调用方给)。</summary>
+        private static string PoiJson(string levelId, int w, int h, int d)
+            => "{\"schema_version\":1,\"level_id\":\"" + levelId + "\",\"level_size\":["
+             + w + "," + h + "," + d + "],\"pois\":[{\"poi_id\":0,\"cell\":[1,0,1],"
+             + "\"type\":1,\"guard_ref\":0}]}";
+
+        /// <summary>一条资源点的最小产物(格取 `(1,0,1)` 之外的 `(2,0,2)`;w/d < 3 时退到 `(0,0,0)`)。
+        /// <para>⚠️ 与 POI **不得同格**(AC-2③):两处刻意取不同的格。</para></summary>
+        private static string ResourcesJson(string levelId, int w, int h, int d)
+        {
+            int x = w >= 3 ? 2 : 0, z = d >= 3 ? 2 : 0;
+            return "{\"schema_version\":1,\"level_id\":\"" + levelId + "\",\"level_size\":["
+                 + w + "," + h + "," + d + "],\"resources\":[{\"resource_id\":1,\"cell\":["
+                 + x + ",0," + z + "],\"ecozone_id\":-1}]}";
+        }
 
         /// <summary>经内部构造缝造 provider(internal ⇒ 反射;先例 `world_slots_provider_wiring_test`)。</summary>
         private static AddressablesDataProvider MakeProvider(Func<string, byte[]> byteSource)

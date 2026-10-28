@@ -123,6 +123,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// 运行期消费方 = `CompositionRoot` 的生态区注册表装配(`EcozoneOf` 的真值来源)。</para></summary>
         public const string WorldEcozonesCookedAssetName = WorldEcozonesBake.CookedFileName;
 
+        /// <summary>`world_poi` 产物名(关卡工具 story-004)。</summary>
+        public const string WorldPoiCookedAssetName = WorldPoiBake.CookedFileName;
+
+        /// <summary>`world_resources` 产物名(关卡工具 story-004)。</summary>
+        public const string WorldResourcesCookedAssetName = WorldResourcesBake.CookedFileName;
+
         /// <summary>产物文件名(17 采集调参表 = `foraging_constants.json`;S20-3 评审 W-3 甲案的兑现件)。
         /// <para>⚠️ 与运行期地址**尚无常量** —— 17 的 `IDataProvider` 消费方在 story-002/004 实现,
         /// 届时在此登记地址常量(承 <see cref="InteractionKindsCookedAssetName"/> 同款注记:
@@ -930,6 +936,91 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{WorldEcozonesCookedAssetName} = {result.Cooked.Length} B," +
                     $"生态区 {result.Bound.Zones.Count} 个," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 POI **定义**(<c>world_poi.json</c> —— 关卡工具 story-004):
+        /// 仓库 <c>assets/data/world_poi.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldPoiBinder"/>(结构门 + 越界门:聚合 throw)
+        /// → deterministic 编码 → <see cref="WorldPoiCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 运行期消费方 = `MinimalWorldFactory`(填 `PoiGrid`)+ `CompositionRoot`(喂
+        /// `PoiStateMachine` 的初始 id 集),且**无降级路径**。</para>
+        /// </summary>
+        public static WorldPoiBake.BakeOutput BakeWorldPoiCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldPoiBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙 POI 定义并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_poi(POI 定义 · 关卡工具)")]
+        public static void BakeWorldPoi()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                WorldPoiBake.BakeOutput result = BakeWorldPoiCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldPoiCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldPoiCookedAssetName} = {result.Cooked.Length} B," +
+                    $"POI {result.Bound.Pois.Count} 个," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙资源点(<c>world_resources.json</c> —— 关卡工具 story-004):
+        /// 仓库 <c>assets/data/world_resources.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldResourcesBinder"/>(结构门 + 越界门 + 同格门:聚合 throw)
+        /// → deterministic 编码 → <see cref="WorldResourcesCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 运行期消费方 = `MinimalWorldFactory`(填 `ResourceGrid`),**无降级路径**。</para>
+        /// </summary>
+        public static WorldResourcesBake.BakeOutput BakeWorldResourcesCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldResourcesBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙资源点并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_resources(资源点 · 关卡工具)")]
+        public static void BakeWorldResources()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                WorldResourcesBake.BakeOutput result = BakeWorldResourcesCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldResourcesCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldResourcesCookedAssetName} = {result.Cooked.Length} B," +
+                    $"资源点 {result.Bound.Resources.Count} 个," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

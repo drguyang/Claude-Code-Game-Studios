@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "level_id": "p0_clinic",
+  "level_size": [16, 1, 16],
+  "pois": [
+    {"poi_id": 0, "cell": [4, 0, 4], "type": 1, "guard_ref": 2},
+    {"poi_id": 1, "cell": [11, 0, 7], "type": 2, "guard_ref": 1},
+    {"poi_id": 2, "cell": [3, 0, 12], "type": 1, "guard_ref": 0}
+  ]
+}

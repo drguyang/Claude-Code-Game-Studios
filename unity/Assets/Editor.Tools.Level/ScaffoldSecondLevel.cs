@@ -91,8 +91,29 @@ namespace DaYiJingCheng.EditorTools.Level
                 walkable: BuildWalkable(sizeX, sizeY, sizeZ),
                 terrain: BuildTerrain(sizeX, sizeY, sizeZ),
                 latticeSizeMm: P0ClinicLevel.LatticeSizeMm,
-                ecozones: BuildEcozones());
+                ecozones: BuildEcozones(),
+                poi: BuildPoi(),
+                resources: BuildResources());
         }
+
+        /// <summary>POI 定义(**单个占位**,与 `P0ClinicLevel` 的三个在数量上不同)。
+        /// <para>⚠️ 为什么只有一个:本关卡是**脚手架**,它要证的是「POI 定义来自数据,
+        /// 且第二关卡可以有自己的声明」—— 一个就够。数量 / 类型归关卡设计轮。</para></summary>
+        private static PoiSource BuildPoi()
+            => new PoiSource(new List<PoiSpec>
+            {
+                new PoiSpec(0, new WorldPos(4, 0, 4), type: 1, guardRef: 1),
+            });
+
+        /// <summary>资源点(**两条**;一条在生态区内、一条不带生态区倾向)。
+        /// <para>⚠️ 第二条刻意用 `ecozone_id = -1` —— 它让「无倾向」这条取值在真产物上
+        /// **有观察面**(全填 0 的实现会在这里露馅)。</para></summary>
+        private static ResourceSource BuildResources()
+            => new ResourceSource(new List<ResourceSpec>
+            {
+                new ResourceSpec(3, new WorldPos(2, 0, 4), ecozoneId: 0),
+                new ResourceSpec(3, new WorldPos(2, 1, 5), ecozoneId: ResourceSpec.NoEcozone),
+            });
 
         /// <summary>生态区声明(**单个占位区**;与 `P0ClinicLevel` 的两个区在**形状上不同**)。
         /// <para>⚠️ 为什么只有一个区:本关卡是**脚手架**,它要证的是「生态区来自数据,
