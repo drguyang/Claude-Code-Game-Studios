@@ -431,7 +431,7 @@
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | open | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
-| `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | open | **N** | R3-裁 |
+| `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -842,7 +842,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 131 | 状态 {'open': 80, 'closed': 45, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
+条目 131 | 状态 {'open': 79, 'closed': 46, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 27, '~~**Y**~~': 1}
 未闭 P0 面 = 64 （已闭但曾标 P0 面的 39 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 64 条,分布在 11/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
@@ -4899,3 +4899,116 @@ python3 tools/debtcount/debtcount.py --print
 > **`未闭 P0 面 64 → 64`**(不动)· **`epic 分布 11/31 → 11/31`**(不动)。
 > ⇒ 治理面 R3-裁 的正确形态:**只有「条目 / open / N」三项动,三个出口判据全不动**。
 > ⚠️ 与 `TD-persist-09`(归属 epic,`未闭 P0 面` 单向 +1)形态**不同**,别照抄它的句子。
+
+---
+
+### TD-ci-02 关闭记录 —— 「④ Build 自足 + ② 构建前自检」已落,判据经 5 条变异实测
+
+> ✅ **2026-10-28 已闭(用户裁定「②自检 + ④Build 自足」)**。上方债描述与六格矩阵**原文不删** ——
+> 它们记的是**修之前**的实测。本节只记**修了什么、凭什么说它成立**。
+
+#### 一、修法落点(全部在 `unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs`)
+
+| # | 落点 | 做了什么 |
+|---|---|---|
+| **④ Build 自足** | `BuildAddressablesContentCore` `:1176` | 构建前**无条件**先调 `EnsureDataCoreGroupCore(settings, cookedDirRel, groupName)` ⇒ 单条 `-executeMethod` 即可「先确保组、再构建」,双命令形态**不再必要** |
+| **② 构建前自检** | `:1179-1181` → 纯谓词 `ThrowIfEntryCountMismatched` `:1220` | 组内条目数 ≠ `DataCooked` 下 `*.cooked.bytes` 件数 ⇒ `throw`,**两侧都拦**(组少 / 组多) |
+| **可注入实现体** | `BuildAddressablesContentCore(settings, cookedDirRel, groupName)` `:1166` | 与 `EnsureDataCoreGroupCore` 同款两半分离 ⇒ 三个失败分支可被夹具命中,**零资产写入** |
+
+方法内顺序**固定**:`settings == null` 守卫 → ④ Ensure → ② 自检 → `BuildPlayerContent`。
+
+**为什么 ④ 必须排在 ② 之前**:若先自检再 Ensure,则「盘上新烘了产物、组还没登记」这个**最常见**
+的情形会直接抛 —— 而那恰恰是 Ensure 存在的理由。先 Ensure 让自检面对「已修好」的状态,
+只负责抓「Ensure 也修不好的」那一类(Ensure 实现回归 / 组被手工改坏)。
+
+#### 二、夹具(7 条)
+
+`unity/Assets/Tests/EditMode/DataPipeline/build_addressables_self_sufficiency_test.cs` —— 基线 **7/7 绿**
+(`unity/Logs/td-ci-02-new3.xml`)。复算:
+
+```bash
+cd unity && ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -projectPath "$PWD" \
+  -runTests -testPlatform EditMode \
+  -testFilter "DaYiJingCheng.Tests.DataPipeline.build_addressables_self_sufficiency_test" \
+  -testResults "$PWD/Logs/x.xml" -logFile "$PWD/Logs/x.log"
+```
+
+⚠️ **本夹具不测「`BuildPlayerContent` 真的被调用了」** —— 那会真构建、落 `Library/`。该边界如实登记,不借绿。
+
+#### 三、证伪轮(5 条变异;每条「改 → 跑 → 还原」在**同一脚本**内完成)
+
+| 变异 | 预判红 | **实测红** | 红的是哪几条 |
+|---|---|---|---|
+| **M1** 删相等短路(`if (inGroup == onDisk) return;` → `if (true) return;`) | 3 | **3** | `mismatch_throws` / `bothDirectionsThrow` / `usesPassedValuesNotConstants` |
+| **M2** `==` → `>` | 1 | **3** | 多出 `doesNotThrow` + `usesPassedValuesNotConstants` —— **预判错,见下** |
+| **M3** 删 ④ 的 `EnsureDataCoreGroupCore(...)` 调用 | 2 | **2** | 两条 `buildCore_*` |
+| **M4** 交换 ④ / ② 顺序 | 2 | **2** | 同上两条 |
+| **M5** 删 Build 自己的 `settings == null` 守卫 | 1 | **1** | `settingsMissing_throws` |
+
+**M2 预判错,理由独立于实得**:`>` 在**相等**时为假 ⇒ 该变异同时破坏「相等不抛」与「单侧短路」
+两条属性((26,26) 与 (9,5) 都转红)。⇒ 这条变异**本身违反「一属性一条变异」**,是我脚本设计的问题。
+
+**M5 首轮未生效,已用唯一锚点重做**:old 串在文件里**命中 2 次** —— `ResetPlayModeToAssetDatabase`
+(`:1616`)的 null 守卫与 Build 那处**逐字相同**(同样以 `恢复。");` 结尾)。改用尾部
+`// ④ 自足` 作锚点后命中 1 次,实测 1 红。
+
+> 🔴 **M5 同时抓出本轮自己写的一个假绿(已修)**:首版 `test_buildCore_settingsMissing_throws`
+> 只断「抛 `InvalidOperationException` 且报文含 `git checkout`」。而 `EnsureDataCoreGroupCore` 的
+> 分支 ① 对**同一个 `null`** 抛**同类型**异常、报文**也含** `git checkout` ⇒ 删掉 Build 的守卫时
+> **照绿**。这正是「只断异常类型会被下层同类型异常冒充」那个失效模式。
+> 现判据改为 `Does.Not.Contain("不要手建设置")`(该句为 Ensure ① 独有)⇒ M5 转红。
+
+#### 四、还原与零残留
+
+`DataBakeMenu.cs` SHA-256 逐字节 = `d6f88b3f9356af63f8e0f69217decc59e21529da7d9a8742764f3161de9c9941`
+(5 轮变异 + 1 次重做,**每轮跑完即还原并当场校验哈希**);`FALSIFY-` 串零残留。
+另:无效的 M5 那轮跑的是**已还原**文件,得 7/7 —— 顺带再确认一次还原态全绿。
+
+#### 五、顺手补的一处接线缺口
+
+`unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs` 的 `test_wiring_bakeMenuEntriesExist`
+原 `expected` 名单 **4 项,不含 `BuildAddressablesContent`** —— 而它在本债之后是 data-core
+出货路径的**唯一入口**(它自己会先 Ensure)。已增列并注明缘由(该测试的设计就是「菜单方法消失 ⇒ 红」)。
+
+#### 六、为什么不建临时 Addressables 组
+
+`CountGroupEntries` 需要一个真 `AddressableAssetSettings`。夹具若建临时组,会写进入库的
+`AddressableAssetsData/`(2026-10-17 已发生过:失败的测试把假标签写进了入库资产)。
+⇒ ① 抽纯谓词 `ThrowIfEntryCountMismatched(int, int, string)` 直测两条分支,**零资产写入**;
+② 另两条 `buildCore_*` 走「不存在组名 / 空产物目录」,Ensure 的对应分支在**任何写入之前**抛
+(该「先验后改」性质由 `pipeline_gate_test` 另行钉住)。
+
+#### 七、全量回归(基线三元组)
+
+**截至时刻** `2026-10-28 21:19 / 21:22`(本地) · **批次** 全量 EditMode + PlayMode(`TD-ci-02` 收口轮) · **commit** `3307a931`
+
+| 套件 | 本轮 | 基线(`s20-73-addr-docs-regress-*` @ 2026-10-28 20:02 / 20:03 · `3307a931`) | 差 |
+|---|---|---|---|
+| EditMode | `5709 / 5674 / 0`(skip 35) | `5702 / 5667 / 0`(skip 35) | **+7 / +7 / 0**(恰为本轮新增夹具数) |
+| PlayMode | `238 / 234 / 0`(inconclusive 2 · skip 2) | `238 / 234 / 0`(inconclusive 2 · skip 2) | **0 / 0 / 0** |
+
+复算:
+```bash
+python3 - <<'EOF'
+import xml.etree.ElementTree as ET
+for n in ('td-ci-02-full-editmode','td-ci-02-full-playmode'):
+    r=ET.parse(f'unity/Logs/{n}.xml').getroot()
+    print(n, {k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})
+EOF
+```
+
+> ⚠️ **PlayMode 的 `exit=2` 不是失败,且不是本轮引入**:Unity 把 **inconclusive** 计入退出码。
+> 实测 ① 本轮 XML `failed=0`;② inconclusive/skipped 的**集合与基线逐条相同**
+> (`test_u1assump6_judgement1/2_*_notRun` ×2 inconclusive · `test_ac1819_*` / `test_u1assump6_focusRing_*` ×2 skipped);
+> ③ 三份历史 PlayMode 日志(`s20-73-addr-docs-regress` / `s20-73-full` / `s20-72-full`)**都含同一句**
+> `Exiting with code 2 (Failed). One or more tests failed.`
+> ⇒ 该退出码自基线起就存在。**如实登记,不读成绿也不读成红。**
+
+#### 八、账务
+
+`open 80 → 79` · `closed 45 → 46` · **`条目 131` 不动** · **`未闭 P0 面 64` 不动**(治理面 `P0 面 = N`)·
+**epic 分布 11/31 不动**。复算:`python3 tools/debtcount/debtcount.py --print`。
+
+> ⚠️ **本债结的是「假绿的必要条件已消除」,不是「CI 常驻矩阵能跑了」** —— 后者是 `TD-ci-01`
+> (EXTERNAL,缺凭证),**仍 open**。本条只保证:一旦 CI 真跑,`BuildAddressablesContent`
+> 单条调用就会先 Ensure 再构建、且条目数不等即硬失败,**不会再报绿而 catalog 是旧的**。

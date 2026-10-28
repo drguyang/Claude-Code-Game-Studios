@@ -1128,16 +1128,57 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ 本菜单此前**不存在** —— 全库唯一调用 <c>BuildPlayerContent</c> 的是
         /// <c>U1SpikeSetup</c>(它顺带切 Play Mode 到 Existing Build,是另一个坑)。
         /// 本菜单只做构建,不动任何设置。</para>
+        /// <para>🔁 <b>2026-10-28 结清 `TD-ci-02`(用户裁定 ②自检 + ④Build 自足)</b>:</para>
+        /// <para><b>④ 自足</b> —— 本方法**自己先调 <see cref="EnsureDataCoreGroupCore"/></b>,
+        /// 再构建。缘由:Unity batchmode 写**多条** <c>-executeMethod</c> 时**只跑第一条**,
+        /// 其余静默丢弃、退出码仍 0(六格判别矩阵见 <c>TD-ci-02</c>)。此前「先 Ensure 再 Build」
+        /// 的最自然写法(两条 <c>-executeMethod</c>)**只跑第一步** ⇒ 组建好了、catalog 没重建
+        /// ⇒ 新条目 address 查不到 Location ⇒ PlayMode 启动序整条挂,而进程**报绿**。
+        /// 现在两步合成一条命令,写两条也不会漏 —— 因为 Build 自己就会 Ensure。</para>
+        /// <para><b>② 自检</b> —— 构建前断言「组内条目数 == <c>DataCooked</c> 下
+        /// <c>*.cooked.bytes</c> 件数」,不等即 <c>throw</c>。缘由:这是「组漏了某个产物」
+        /// 这一整类缺陷的**通用**判据 —— 不依赖人记得先跑 Ensure,也不依赖 Ensure 实现正确。
+        /// 二者叠加:④ 给正确路径,② 兜住任何走错路的人。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/构建 Addressables 内容(BuildPlayerContent)")]
         public static void BuildAddressablesContent()
         {
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            BuildAddressablesContentCore(
+                AddressableAssetSettingsDefaultObject.Settings,
+                $"Assets/{CookedDirName}",
+                DataCoreGroup);
+        }
+
+        /// <summary>
+        /// <see cref="BuildAddressablesContent()"/> 的**可注入实现体** —— 设置对象 / 产物目录 /
+        /// 组名为形参,使 ② 的自检分支可被夹具命中(与 <see cref="EnsureDataCoreGroupCore"/> 同款两半分离)。
+        /// <para>顺序**固定**:① 设置缺失硬失败 → ④ Ensure(先验后改,失败则设置零改动)→
+        /// ② 条目数自检 → 构建。</para>
+        /// <para>⚠️ <b>④ 排在 ② 之前</b>:若先自检再 Ensure,则在「盘上新烘了产物但组还没登记」
+        /// 这个**最常见**的情形下会直接抛 —— 而那恰恰是 Ensure 存在的理由。先 Ensure 让自检
+        /// 面对的是「修好之后」的状态,自检于是只负责抓「Ensure 也修不好的」那一类
+        /// (如 Ensure 实现回归、或组被手工改坏)。</para>
+        /// </summary>
+        /// <param name="settings">Addressables 设置(注入 <c>null</c> ⇒ 命中设置缺失分支)。</param>
+        /// <param name="cookedDirRel">产物目录(工程相对路径;指向空目录 ⇒ 自检必然不等)。</param>
+        /// <param name="groupName">组名(注入一个不存在的名字 ⇒ Ensure 的组缺失分支先命中)。</param>
+        /// <exception cref="InvalidOperationException">设置缺失 / 组缺失 / 产物目录空 / 条目数与产物数不等。</exception>
+        public static void BuildAddressablesContentCore(
+            AddressableAssetSettings settings, string cookedDirRel, string groupName)
+        {
             if (settings == null)
                 throw new InvalidOperationException(
                     "[大医精诚] Addressables 设置缺失 —— 组定义已随仓库入库" +
                     "(unity/Assets/AddressableAssetsData/)。" +
                     "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复。");
+
+            // ④ 自足:先确保组(内部含三条硬失败;失败则在任何写入前抛出)
+            EnsureDataCoreGroupCore(settings, cookedDirRel, groupName);
+
+            // ② 自检:组内条目数须 == 盘上产物数(先 Ensure 后自检,理由见方法注释)
+            int onDisk = CountCookedProducts(cookedDirRel);
+            int inGroup = CountGroupEntries(settings, groupName);
+            ThrowIfEntryCountMismatched(inGroup, onDisk, cookedDirRel);
 
             // 签名 = `static void BuildPlayerContent(out AddressablesPlayerBuildResult)`
             // (2.10.3 实读;先例 U1SpikeSetup.cs:242)—— 成败只能读 `result.Error`。
@@ -1149,7 +1190,54 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             Debug.Log(
                 "[大医精诚] Addressables 内容已构建 —— catalog 现含全部组条目。" +
+                $"({inGroup} 条,与盘上 {onDisk} 个产物一致)" +
                 "⚠️ 本产物落 unity/Library/(gitignored,机器本地)⇒ 新检出后须重跑本菜单。");
+        }
+
+        /// <summary>数产物目录下的 <c>*.cooked.bytes</c> 件数(② 自检的左侧)。</summary>
+        private static int CountCookedProducts(string cookedDirRel)
+        {
+            int n = 0;
+            foreach (string guid in AssetDatabase.FindAssets("t:TextAsset", new[] { cookedDirRel }))
+                if (Path.GetFileName(AssetDatabase.GUIDToAssetPath(guid))
+                        .EndsWith(".cooked.bytes", StringComparison.Ordinal))
+                    n++;
+            return n;
+        }
+
+        /// <summary>
+        /// ② 自检的**纯谓词半边**(承 `EnsureDataCoreGroupCore` 同款两半分离形态):
+        /// 条目数 ≠ 产物数 ⇒ <c>throw</c>;相等 ⇒ 静默返回。
+        /// <para>⚠️ 抽成谓词的理由:<c>CountGroupEntries</c> 需要一个真 <c>AddressableAssetSettings</c>,
+        /// 而夹具**建临时组会污染入库的 <c>AddressableAssetSettings.asset</c>**
+        /// (2026-10-17 已发生过:失败的测试把假标签写进了入库资产)。本谓词只吃两个 <c>int</c>,
+        /// 夹具可直测「不等必抛」与「相等不抛」两条分支,零资产写入。</para>
+        /// </summary>
+        /// <param name="inGroup">组内条目数。</param>
+        /// <param name="onDisk">产物目录下 <c>*.cooked.bytes</c> 件数。</param>
+        /// <param name="cookedDirRel">产物目录(仅用于报文)。</param>
+        /// <exception cref="InvalidOperationException">两数不等。</exception>
+        public static void ThrowIfEntryCountMismatched(int inGroup, int onDisk, string cookedDirRel)
+        {
+            if (inGroup == onDisk) return;
+
+            throw new InvalidOperationException(
+                $"[大医精诚] data-core 组条目数 = {inGroup},而 {cookedDirRel} 下有 " +
+                $"{onDisk} 个 *.cooked.bytes —— 不相等 ⇒ catalog 会缺条目," +
+                "新产物的 address 查不到 Location(PlayMode 启动序整条挂)。" +
+                "⚠️ 别用两条 `-executeMethod` 拼「先 Ensure 再 Build」:" +
+                "Unity batchmode **只执行第一条**,其余静默丢弃且退出码仍为 0。" +
+                "本菜单已自足(自己会 Ensure),单条调用即可。");
+        }
+
+        /// <summary>数组内条目数(② 自检的右侧;组缺失返回 0 —— 但那时 Ensure 已先抛)。</summary>
+        private static int CountGroupEntries(AddressableAssetSettings settings, string groupName)
+        {
+            AddressableAssetGroup group = settings.FindGroup(groupName);
+            if (group == null) return 0;
+            int n = 0;
+            foreach (AddressableAssetEntry _ in group.entries) n++;
+            return n;
         }
 
         /// <summary>

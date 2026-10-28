@@ -1305,6 +1305,9 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
    > 由此新揭 **`TD-ci-02`**:`BuildAddressablesContent` 不调 `EnsureDataCoreGroup`,
    > 两入口无合并 ⇒ 写成两条 `-executeMethod` 时**组建好但 catalog 不重建、退出码 0** = 假绿。
    > 详见 `review-s20-20-2026-10-28.md` §七-6 与债册 `TD-ci-02`。
+   > 🔁 **2026-10-28 同日已闭**(用户裁定「②自检 + ④Build 自足」)—— 落点 / 5 条变异实测 /
+   > 还原哈希 / 账务见债册 `TD-ci-02 关闭记录`。⚠️ `TD-ci-01`(CI 常驻矩阵缺凭证)仍 open,
+   > 本条只消除「一旦 CI 真跑会踩的假绿」这一半。
    > ⚠️ **诚实边界**:「只跑第一条」是**六格归纳**非源码级机制说明(Unity 未文档化);
    > `addr5` 那格来自上一轮日志(本轮未重跑),但本轮 `double-exec` / `double-noquit`
    > 两格同形态且为本轮实测 ⇒ 结论不依赖旧日志。

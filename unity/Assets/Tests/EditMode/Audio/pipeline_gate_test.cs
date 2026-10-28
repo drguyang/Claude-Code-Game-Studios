@@ -1344,7 +1344,11 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         /// <summary>接线:菜单是 binder 的**唯一调用点链路**存在性自检 ——
-        /// 两个烘焙菜单项与两个组菜单项必须存在(否则门永不执行)。</summary>
+        /// 两个烘焙菜单项与两个组菜单项必须存在(否则门永不执行)。
+        /// <para>🔁 <b>2026-10-28 增列 `BuildAddressablesContent`(`TD-ci-02` ④)</b>:该菜单是
+        /// 「烘焙产物 → catalog」的**唯一**入口,且 `TD-ci-02` 之后它**自己会先跑 Ensure**
+        /// (batchmode 只执行第一条 `-executeMethod`,两条拼不出「先 Ensure 再 Build」)。
+        /// 它一旦被改名/删除,整条 data-core 出货路径静默失效 —— 与其余四个菜单项同款风险。</para></summary>
         [Test]
         public void test_wiring_bakeMenuEntriesExist()
         {
@@ -1356,6 +1360,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             {
                 "BakeAudioEvents", "BakeAudioSettingsRegistry",
                 "EnsureDataCoreGroup", "EnsureAudioGroup",
+                "BuildAddressablesContent",   // TD-ci-02 ④:自足的出货入口
             };
             foreach (string name in expected)
                 Assert.That(menu.GetMethod(name, BindingFlags.Public | BindingFlags.Static), Is.Not.Null,
