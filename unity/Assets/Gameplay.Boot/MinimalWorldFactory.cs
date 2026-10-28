@@ -43,6 +43,7 @@
 // · 本工厂**不**提供任何写入面:世界内容只能由关卡工具 + 烘焙链替换。
 
 using System;
+using System.Collections.Generic;   // Dictionary(导航格按 chunk 装载)
 using System.IO;   // InvalidDataException(装载期硬失败的异常类型)
 using DaYiJingCheng.Gameplay.Presentation;   // DataCookedDisk / 三份世界数据集
 using DaYiJingCheng.Sim.Contracts;           // IDataProvider(生产装载面)
@@ -200,7 +201,85 @@ namespace DaYiJingCheng.Gameplay.Boot
                 $"{slotNote};POI {poiData.Pois.Count} 个,资源点 {resourceData.Resources.Count} 个;" +
                 $"装载源 = {SlotSourceLabel(dataProvider)}。");
 
-            return new World(geometry, slotCatalog);
+            // ── 导航格切片:装载 + 建 NavLattice(story-005 接线轮,2026-10-29)──────
+            // ⚠️ 与上面几份**不同,这里不是 `Load<T>()`**:导航格是「一个类型 N 个产物」,
+            //    类型分派表达不了 chunk 号 ⇒ 走 codec 的按 chunk 入口。
+            // ⚠️ **「世界对不上」⇒ 本世界没有导航格数据**(`nav = null`,回落到几何产物的可走性)。
+            //    这不是降级,是**语义**:导航格切片描述的是**某一个**世界(尺寸 + chunk 划分都写在
+            //    产物头里);尺寸对不上就说明「这些切片不是这个世界产出的」,该世界本就无导航格。
+            //    夹具用 4×1×4 之类的**合成世界**直驱本工厂时正走这条 ⇒ 它们不该被迫烘导航格。
+            //    ⚠️ 真正损坏(长度不符 / 魔数错)仍会从 codec 抛 `InvalidDataException`,
+            //    与「尺寸不符」同类型 ⇒ 一并落这条分支;P0 生产侧的「必须接上」由夹具
+            //    `nav_streaming_wiring_test::test_factory_worldHasNavLattice_…` 单独钉住
+            //    (它拿**真产物**跑,若真损坏那条会红)。
+            NavLattice navLattice = null;
+            string navNote;
+            try
+            {
+                navLattice = LoadNavLattice(geo, dataProvider, out int navChunkCount);
+                navNote = $"导航格 {navChunkCount} 片已装载并全驻留;" +
+                          $"chunk = {geo.ChunkSizeX}×{geo.ChunkSizeY}×{geo.ChunkSizeZ}," +
+                          $"流式半径 = {NavStreamingRadius}";
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is FileNotFoundException)
+            {
+                navNote = $"导航格**未接**(本世界的尺寸与盘上切片不符 ⇒ 这些切片不属于本世界):{ex.Message}";
+            }
+
+            Debug.Log($"[世界装载] {navNote}。");
+
+            return new World(geometry, slotCatalog, navLattice, NavStreamingRadius);
+        }
+
+        /// <summary>
+        /// P0 的 chunk 流式半径(chunk 单位)。
+        /// <para>⚠️ **`1` 是刻意的**:P0 的 chunk 划分 = 2×1×2,半径 1 ⇒ 任何玩家格都覆盖全部 4 块
+        /// ⇒ 与「未接导航格」逐格等价,**零行为变更**。流式真正生效要等大世界的关卡设计轮 ——
+        /// 那时调这个数(或改成本关卡的声明字段)才会看到「未驻留 = block」的生产面。</para>
+        /// </summary>
+        public const int NavStreamingRadius = 1;
+
+        /// <summary>
+        /// 按 chunk 装载导航格切片并建 <see cref="NavLattice"/>。
+        /// <para>⚠️ **chunk 数由几何产物推出**(`geo.Topology`),不写死 —— 与切片器 / 运行期 codec
+        /// 同一个函数(`ChunkTopology.ForWorld`)。</para>
+        /// <para>⚠️ 每片的 `world_size` / `chunk_size` 与几何产物**逐项对账**:对不上 = 两份产物
+        /// 来自不同版本的关卡,而症状(某些格永远查不到)离病根极远。</para>
+        /// </summary>
+        /// <exception cref="InvalidDataException">某片自报的尺寸与几何产物不符。</exception>
+        private static NavLattice LoadNavLattice(
+            WorldGeometryDataSet geo, IDataProvider dataProvider, out int chunkCount)
+        {
+            ChunkTopology topo = geo.Topology;
+            chunkCount = topo.ChunkCount;
+
+            var chunks = new Dictionary<int, IReadOnlyList<int>>(chunkCount);
+            for (int i = 0; i < chunkCount; i++)
+            {
+                WorldNavChunkDataSet nav = dataProvider is AddressablesDataProvider ap
+                    ? ap.LoadNavChunk(i)
+                    : DataCookedDisk.LoadWorldNavChunk(i);
+
+                if (nav.WorldSizeX != geo.SizeX || nav.WorldSizeY != geo.SizeY || nav.WorldSizeZ != geo.SizeZ)
+                    throw new InvalidDataException(
+                        $"[世界装载] 导航格第 {i} 片自报世界尺寸 " +
+                        $"{nav.WorldSizeX}×{nav.WorldSizeY}×{nav.WorldSizeZ},而几何产物是 " +
+                        $"{geo.SizeX}×{geo.SizeY}×{geo.SizeZ} —— 两份产物来自不同版本的关卡");
+
+                if (nav.ChunkSizeX != geo.ChunkSizeX || nav.ChunkSizeY != geo.ChunkSizeY ||
+                    nav.ChunkSizeZ != geo.ChunkSizeZ)
+                    throw new InvalidDataException(
+                        $"[世界装载] 导航格第 {i} 片自报 chunk 尺寸 " +
+                        $"{nav.ChunkSizeX}×{nav.ChunkSizeY}×{nav.ChunkSizeZ},而几何产物是 " +
+                        $"{geo.ChunkSizeX}×{geo.ChunkSizeY}×{geo.ChunkSizeZ} —— " +
+                        "两侧的 chunk 划分不是同一个函数算出来的");
+
+                chunks.Add(nav.ChunkIndex, System.Array.AsReadOnly(nav.Walkable));
+            }
+
+            return new NavLattice(
+                geo.SizeX, geo.SizeY, geo.SizeZ,
+                geo.ChunkSizeX, geo.ChunkSizeY, geo.ChunkSizeZ, chunks);
         }
 
         /// <summary>

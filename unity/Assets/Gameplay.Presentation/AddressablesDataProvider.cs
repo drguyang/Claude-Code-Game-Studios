@@ -438,6 +438,33 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + POI 定义 / 资源点(关卡工具 story-004 2026-10-29:WorldPoiDataSet / WorldResourcesDataSet)");
         }
 
+        /// <summary>
+        /// **按需**读一块导航格切片(story-005 接线轮)。
+        /// <para>⚠️ 与 <see cref="Load{TDataSet}"/> 分家的理由:那里是「一个类型一个产物」的分派,
+        /// 而导航格是「一个类型 **N 个**产物(每 chunk 一份)」—— `T` 表达不了 chunk 号。</para>
+        /// <para>⚠️ **刻意不进 <see cref="DataCoreAddresses"/> / <see cref="Preload"/>**:
+        /// ADR-022 §五 逐字把逻辑导航格排除在 ADR-014 §五 的「首次 Step 前常驻」之外。
+        /// 它们在 <c>data-core</c> 组里**有地址**(组条目 35 份含它们),只是**不预载** ——
+        /// 地址空间与预载清单是两件事。</para>
+        /// </summary>
+        /// <param name="chunkIndex">chunk 一维索引。</param>
+        /// <exception cref="InvalidOperationException">地址不可解析 / cooked 解码失败(启动期硬失败口径)。</exception>
+        public WorldNavChunkDataSet LoadNavChunk(int chunkIndex)
+        {
+            string address = WorldNavChunkDataSet.CookedFileNameFor(chunkIndex);
+            byte[] bytes = FetchBytes(address);
+            try
+            {
+                return WorldNavChunkCookedCodec.Read(bytes, chunkIndex);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 导航格切片 cooked 解码失败(address={address})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
         /// <exception cref="InvalidOperationException">任一产物装载失败(启动期硬失败)。</exception>
         public void Preload()

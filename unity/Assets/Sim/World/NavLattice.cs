@@ -18,10 +18,19 @@
 //     前者是「没装载」,后者是「装载了、这格就是不可走」。合并两者会让
 //     「数据缺失」与「数据说不可走」在类型上不可分。
 //
-// ⚠️ **本类不可变**:构造时给定驻留集合,之后不增不减。要变 = 造一个新的
-//    (与 `PoiStateMachine` / `EcozoneRegistry` 同款的「装载期一次性构造」纪律)。
-//    可变会让「同一格在两次查询之间换了答案」成为可能,而那种非确定性
-//    在任何重放判据下都无法归因。
+// 🔁 **2026-10-29(story-005 收口后的接线轮)就地订正,原文不删**:
+//    这里原先写「**本类不可变**:构造时给定驻留集合,之后不增不减 …… 可变会让
+//    「同一格在两次查询之间换了答案」成为可能,而那种非确定性在任何重放判据下都无法归因」。
+//
+//    **那段理由对「数据」成立,对「驻留」不成立** —— ADR-022 §五 与 ADR-023 ⑥ 的语义
+//    恰恰就是「同一格在不同时刻可能驻留 / 不驻留」;而它**仍然确定**,因为驻留集是
+//    纯函数:`ChunkActivator.ComputeActiveChunks(玩家格)` ⇒ 同一事件流重放 ⇒ 同一驻留序列。
+//    真正的非确定性来自「不经事件流的第二输入」(墙钟 / 表现态位置),那由 ADR-016 §三 禁掉。
+//
+//    ⇒ 现形状:**数据装载源 + 驻留集**两者分离 ——
+//      · `_sourceChunks`:构造期一次性给定的全部切片(**不变**,装载期构造纪律不变);
+//      · `_resident` :派生集,由 <see cref="SetResidency"/> 按激活器的纯函数结果重写。
+//    `SetResidency` 只改驻留位、不碰数据 ⇒ 「未驻留 = block」在类型上始终可观测。
 
 using System;
 using System.Collections.Generic;
@@ -39,7 +48,8 @@ namespace DaYiJingCheng.Sim.World
         private readonly int _sizeY;
         private readonly int _sizeZ;
         private readonly ChunkTopology _topology;
-        private readonly int[][] _chunkCells;   // [chunkIndex] ⇒ 稠密可走性;null = 未驻留
+        private readonly int[][] _chunkCells;   // [chunkIndex] ⇒ 稠密可走性;null = **无数据**
+        private readonly bool[] _resident;      // [chunkIndex] ⇒ 当前是否驻留(派生集)
 
         /// <summary>本导航格的世界尺寸 + chunk 划分。</summary>
         public ChunkTopology Topology => _topology;
@@ -50,9 +60,41 @@ namespace DaYiJingCheng.Sim.World
             get
             {
                 int n = 0;
-                for (int i = 0; i < _chunkCells.Length; i++) if (_chunkCells[i] != null) n++;
+                for (int i = 0; i < _chunkCells.Length; i++)
+                    if (_resident[i] && _chunkCells[i] != null) n++;
                 return n;
             }
+        }
+
+        /// <summary>某 chunk 当前是否驻留(诊断 / 夹具用;`IsWalkable` 不依赖它做二次判断)。</summary>
+        /// <param name="chunkIndex">chunk 一维索引。</param>
+        public bool IsResident(int chunkIndex)
+        {
+            if (chunkIndex < 0 || chunkIndex >= _resident.Length) return false;
+            return _resident[chunkIndex] && _chunkCells[chunkIndex] != null;
+        }
+
+        /// <summary>
+        /// **重写驻留集**(ADR-022 §五 / ADR-023 ⑥:系统 6 按 `ChunkActivator` 的纯函数结果调用)。
+        /// <para>⚠️ 只改驻留位,**不碰数据** —— 「有数据但不驻留」与「根本无数据」在
+        /// <see cref="IsWalkable"/> 上同回 `false`(都是 block),但 <see cref="IsResident"/> 分得开。</para>
+        /// <para>⚠️ 索引集超出「有数据的 chunk」的部分被忽略(激活器可能给出整张网格,
+        /// 而本世界只装载了一部分产物)。</para>
+        /// </summary>
+        /// <param name="activeChunks">按 <see cref="ChunkTopology.ChunkToIndex"/> 索引的激活位图。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="activeChunks"/> 为 null。</exception>
+        /// <exception cref="ArgumentException">位图长度不等于 chunk 总数。</exception>
+        public void SetResidency(IReadOnlyList<bool> activeChunks)
+        {
+            if (activeChunks == null) throw new ArgumentNullException(nameof(activeChunks));
+            if (activeChunks.Count != _topology.ChunkCount)
+                throw new ArgumentException(
+                    $"激活位图长度 = {activeChunks.Count},须等于本世界的 chunk 数 {_topology.ChunkCount} —— " +
+                    "长度不齐会让激活集整体错位(静默:驻留的块与玩家所在的块不是同一批)",
+                    nameof(activeChunks));
+
+            for (int i = 0; i < _resident.Length; i++)
+                _resident[i] = activeChunks[i] && _chunkCells[i] != null;
         }
 
         /// <summary>
@@ -113,6 +155,12 @@ namespace DaYiJingCheng.Sim.World
                 }
                 _chunkCells[idx] = copy;
             }
+
+            // 构造后**默认全驻留**:给了数据的块视为已在场。
+            // ⚠️ 这让既有的「不在字典里 = block」夹具语义不变(那几块**没有数据**),
+            //    而「有数据但不驻留」是新增的第二种 block 来源,由 `SetResidency` 产生。
+            _resident = new bool[_topology.ChunkCount];
+            for (int i = 0; i < _chunkCells.Length; i++) _resident[i] = _chunkCells[i] != null;
         }
 
         /// <summary>该格是否可走;越界 / 未驻留 chunk ⇒ <c>false</c>(block)。</summary>
@@ -126,7 +174,11 @@ namespace DaYiJingCheng.Sim.World
             WorldPos chunk = _topology.WorldToChunk(cell);
             int chunkIndex = _topology.ChunkToIndex(chunk);
             int[] cells = _chunkCells[chunkIndex];
-            if (cells == null) return false;   // ⚠️ 未驻留 ⇒ block(AC-1 的判据)
+            // ⚠️ **未驻留 ⇒ block**(AC-1 的判据)。两种来源同回 false:
+            //    ① 本世界没有这一块的数据(`cells == null`)② 有数据但当前不驻留。
+            //    合并成一条 `if` 是**故意的**:对调用方而言两者语义相同(「现在查不到这一格」),
+            //    区分它们只在诊断面(`IsResident` / `ResidentChunkCount`)。
+            if (cells == null || !_resident[chunkIndex]) return false;
 
             int lx = cell.X - chunk.X * _topology.ChunkSizeX;
             int ly = cell.Y - chunk.Y * _topology.ChunkSizeY;

@@ -52,15 +52,57 @@ namespace DaYiJingCheng.Sim.World
         /// </summary>
         public int BakedInitialStructureCount { get; private set; }
 
+        /// <summary>
+        /// 可走性的 **Nav 半边**来源(`null` = 回落到几何产物的可走性 —— 见
+        /// <see cref="IsEffectivelyWalkable"/> 的注)。
+        /// <para>🔁 <b>2026-10-29(接线轮)新增</b>。</para>
+        /// </summary>
+        private readonly INavLattice _nav;
+
+        /// <summary>本世界的导航格(未接 ⇒ `null`)。</summary>
+        public INavLattice Nav => _nav;
+
+        /// <summary>chunk 驻留驱动(未接导航格 ⇒ `null`)。</summary>
+        public NavChunkStreaming NavStreaming => _navStreaming;
+
+        private readonly NavChunkStreaming _navStreaming;
+
         /// <summary>构造 World。</summary>
-        public World(WorldGeometry geometry, BuildSlotCatalog slotCatalog)
+        /// <param name="nav">
+        /// 导航格(ADR-022 §五 / ADR-023 ⑥)。**`null` = 未接导航格产物**,
+        /// 可走性的 Nav 半边回落到 `world_geometry.walkable`(逐格内容与导航格切片**同源**,
+        /// 故全驻留时两者等价)。生产装配(`MinimalWorldFactory`)须给。
+        /// </param>
+        /// <param name="navStreamingRadius">
+        /// 流式半径(chunk 单位;`0` = 只驻留玩家所在块)。仅当 <paramref name="nav"/> 是
+        /// <see cref="NavLattice"/> 时生效 —— 其他实现自带驻留语义,本类不去驱动它。
+        /// </param>
+        public World(WorldGeometry geometry, BuildSlotCatalog slotCatalog, INavLattice nav = null,
+                     int navStreamingRadius = 0)
         {
             _geometry = geometry;
             _slotCatalog = slotCatalog ?? throw new ArgumentNullException(nameof(slotCatalog));
             _structures = new StructureInstanceRegistry();
+            _nav = nav;
+
+            // ⚠️ 驱动只对 `NavLattice` 有意义(它才有「驻留位」这一概念)。别的实现
+            //    (例如将来的 GPU 版 / 夹具替身)其可走性由自己决定,本类不替它重推。
+            if (nav is NavLattice lattice)
+                _navStreaming = new NavChunkStreaming(lattice, navStreamingRadius);
 
             // 初始化占用表(WorldGeometry 的 TotalCells)
             _slotOccupied = new bool[geometry.TotalCells];
+        }
+
+        /// <summary>
+        /// 收到一条 `ActorCellEntered` 的格 ⇒ 重推 chunk 驻留(ADR-023 ⑥ · 写者是 1,
+        /// **本方法不是写者**,只读事件里的格)。
+        /// <para>未接导航格 ⇒ 空操作(不是错误:未接的装配本就没有驻留概念)。</para>
+        /// </summary>
+        /// <param name="cell">事件载荷里的整数格(**不是**表现态位置)。</param>
+        public void OnActorCellEntered(WorldPos cell)
+        {
+            _navStreaming?.OnActorCellEntered(cell);
         }
 
         /// <summary>
@@ -286,8 +328,16 @@ namespace DaYiJingCheng.Sim.World
             if (idx < 0 || idx >= _slotOccupied.Length)
                 return false;
 
-            TerrainCell terrain = _geometry.GetTerrain(cell);
-            return terrain.Walkable && !_slotOccupied[idx];
+            // 🔁 **2026-10-29(接线轮)**:Nav 半边从「直接读几何产物」改为「读 `INavLattice`」。
+            //    · 接了导航格 ⇒ 可走性经 chunk 驻留判定(**未驻留 = block**,ADR-022 §五);
+            //    · 未接(`_nav == null`)⇒ 回落几何产物 —— **两条来源逐格内容同源**
+            //      (`world_nav_*` 切的就是 `world_geometry.walkable` 那一份数组),
+            //      故全驻留时行为等价;差别只在「部分驻留」这一新面。
+            bool navWalkable = _nav != null
+                ? _nav.IsWalkable(cell)
+                : _geometry.GetTerrain(cell).Walkable;
+
+            return navWalkable && !_slotOccupied[idx];
         }
 
         /// <summary>获取格的 EffectiveWalkable(用于 27/13 查询接口)。</summary>

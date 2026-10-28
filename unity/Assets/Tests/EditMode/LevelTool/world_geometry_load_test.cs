@@ -466,6 +466,7 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             // 惰性:只在真被问到时才解尺寸(故障注入类夹具走另一个重载,不会到这里)。
             byte[] poi = null, resources = null;
+            byte[][] navChunkCache = null;
             byte[] BuildPoi()
             {
                 WorldGeometryDataSet g = WorldGeometryCookedCodec.Read(geom);
@@ -486,8 +487,42 @@ namespace DaYiJingCheng.Tests.LevelTool
                 if (address == AddressablesDataProvider.WorldBuildSlotsAddress) return slots;
                 if (address == AddressablesDataProvider.WorldPoiAddress) return poi ??= BuildPoi();
                 if (address == AddressablesDataProvider.WorldResourcesAddress) return resources ??= BuildResources();
-                throw new InvalidOperationException($"本夹具只供世界五件产物,不该请求 {address}");
+                // 🔁 **2026-10-29(导航格接线轮)新增**:工厂现在按**几何产物自己的** chunk 划分
+                //    去要导航格切片 ⇒ 本夹具必须供 N 片(而不是真实 P0 的那 4 片)。
+                //    ⚠️ **这是同型问题的第三次**:S3 §八④(生态区)/ S4 §八④(POI/资源点)都记着
+                //    「每加一份装配期必需的产物,所有用 provider 装配的夹具都要跟着登记」。
+                //    **不放宽工厂的失败分支来绕** —— 那会把「装错世界」与「夹具没供」一起吞掉。
+                if (navChunkCache == null)
+                {
+                    WorldGeometryDataSet g = WorldGeometryCookedCodec.Read(geom);
+                    navChunkCache = new byte[g.Topology.ChunkCount][];
+                }
+                for (int i = 0; i < navChunkCache.Length; i++)
+                {
+                    if (address != WorldNavChunkDataSet.CookedFileNameFor(i)) continue;
+                    return navChunkCache[i] ??= BuildNavChunk(geom, i);
+                }
+                throw new InvalidOperationException($"本夹具只供世界六类产物,不该请求 {address}");
             });
+        }
+
+        /// <summary>由**几何产物自己的** walkable 切出第 <paramref name="chunkIndex"/> 片并烘成 cooked。</summary>
+        /// <remarks>⚠️ 刻意走真切片器(`NavChunkSlicer`)而不是手搓:夹具若自己写一份划分,
+        /// 它与生产侧的「同源」就不可检验了。</remarks>
+        private static byte[] BuildNavChunk(byte[] geom, int chunkIndex)
+        {
+            WorldGeometryDataSet g = WorldGeometryCookedCodec.Read(geom);
+            System.Collections.Generic.IReadOnlyList<NavChunkSlice> slices = NavChunkSlicer.Slice(
+                g.SizeX, g.SizeY, g.SizeZ, g.ChunkSizeX, g.ChunkSizeY, g.ChunkSizeZ, g.Walkable);
+            NavChunkSlice s = slices[chunkIndex];
+
+            string json = "{\"schema_version\":1,\"level_id\":\"probe\",\"world_size\":["
+                          + g.SizeX + "," + g.SizeY + "," + g.SizeZ + "],\"chunk_size\":["
+                          + g.ChunkSizeX + "," + g.ChunkSizeY + "," + g.ChunkSizeZ + "],\"chunk_index\":"
+                          + s.ChunkIndex + ",\"chunk\":[" + s.ChunkX + "," + s.ChunkY + "," + s.ChunkZ
+                          + "],\"walkable\":[" + string.Join(",", s.Walkable) + "]}";
+
+            return WorldNavChunkBake.BakeFromSourceText(json, s.ChunkIndex).Cooked;
         }
 
         /// <summary>一条 POI 定义的最小产物(格取 `(1,0,1)`,尺寸由调用方给)。</summary>

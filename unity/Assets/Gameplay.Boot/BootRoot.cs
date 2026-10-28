@@ -927,6 +927,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                                    delta,
                                    StepVitals);
 
+            // chunk 驻留驱动(ADR-023 ⑥ · 系统 6):读**最后一条已进流的 `ActorCellEntered`** 的格,
+            // 纯函数重推激活集。⚠️ 刻意读 `LastCommittedCell` 而不是 `transform.position` ——
+            // 后者是表现态,用它驱动会让驻留序列不可重放(ADR-016 §三)。
+            // ⚠️ 放在 `PumpFrame` 之后:本帧提交发生在帧内 tick 边沿,出来后读到的已是最新格。
+            if (_services != null && _services.World != null && _player != null)
+                _services.World.OnActorCellEntered(_player.LastCommittedCell);
+
             // 病人出现驱动:仅在**本帧真推进了 tick** 时驱动(未推进 = 无 tick 边沿)
             if (_tickDriver.CurrentTick > tickBefore
                 && _services != null && _services.PatientAppearedDriver != null)

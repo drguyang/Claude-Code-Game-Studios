@@ -113,6 +113,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         private int _actorId;
         private WorldPos _lastCommittedCell = new WorldPos(-1, -1, -1);
         private WorldPos _pendingCell = new WorldPos(-1, -1, -1);
+
+        /// <summary>
+        /// **最后一条已 Append 的 `ActorCellEntered` 的格**(未提交过 ⇒ `(-1,-1,-1)`)。
+        /// <para>🔁 <b>2026-10-29(接线轮)新增</b>:chunk 激活的驱动面(ADR-023 ⑥ 要求
+        /// 「只读 `ActorCellEntered` 的格」)。本属性返回的正是**已进流的那一格**,
+        /// 不是 `transform.position` —— 后者是表现态,读它会让驻留序列不可重放(ADR-016 §三)。</para>
+        /// <para>⚠️ 它**不**暴露 `_pendingCell`(采样到但尚未提交的格):那个格还没进流,
+        /// 用它驱动激活等于用「未发生的事件」推进世界状态。</para>
+        /// </summary>
+        public WorldPos LastCommittedCell => _lastCommittedCell;
         private bool _hasPending;
 
         // ── S19-2:跨格边沿锁存器(IPlayerMotor.ConsumeCellChanged 的承载)─────────
