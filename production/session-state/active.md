@@ -12254,3 +12254,17 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **epic 状态**:`level-tool` 6/6 ⇒ **Complete**(DoD 8 项勾选,其中 ecozones EXTERNAL 记**部分解除**)。
 - **下一步**:本 epic 无剩余 story。可回 `p0-remaining-roadmap` §6.5 序列摆下一件;
   `/code-review` 尚未对本 epic 跑过(lean 模式,建议 epic 收口时补一轮)。
+
+## Session Extract — story-006 评审轮 + 修复 + 复评(2026-10-29 · `a71d5072`)
+
+- **评审**:双专家并行 → **CHANGES REQUIRED**(1 族 BLOCKING:B-1 导出门丢 NotRun/Warnings · B-2 terrain null 静默绿 · B-3 C3 无 NotRun)。
+  原件 `production/qa/evidence/review-level-tool-story-006-2026-10-29.md`。
+- **修复**:`CheckOrThrow` 落日志(每类聚合一行)+ 回传报告;`TryCheck` 对 null **抛**(fail-closed);
+  导出器 **7 处**接 `ProbeCurrent()`;探针 **domain 级缓存** + 去重(CI 与导出器共用);
+  `Unimplemented` 死循环删除;探针断言改精确值。
+- **证伪**:**23/23 红**(首轮 F1–F15 · 修复轮 F16–F18 · 加固轮 F19–F23),零假存活。
+- **复评**:Phase 7b 拆 A/B 并行;B 的唯一 BLOCKING 被**实跑反证**驳回(它自陈"静态分析,未实跑")。
+- **回归**:EditMode `5849/5812/0/37`(首轮 `5842/5805/0/37` ⇒ +7 夹具)· `run_ci.sh` 退出码 0。
+- **仍未结(如实)**:`Check` 方法 163 行 > 40 —— 纯重构,单开一件;**导出路径仍不跑 C3 / C2' 目录半边**(现在会打日志,不静默);
+  `run_ci.sh` 仍无 CI 调用方(AC-4「接进 CI」记 NOT-RUN)。
+- **教训(第二次同型)**:我先把 story 标了 Complete 才跑评审 ⇒ 「未评审即收口」。评审原件 §七 已如实登记不追认。
