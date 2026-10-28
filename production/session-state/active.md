@@ -11852,3 +11852,38 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 **NOT-RUN(1 条)**:`test_acB9_assembleWithoutWorld_yieldsNullBuildController` 的反例半边无独立变异 —— 要打破它须把整段装配**移出** `world != null` 分支,行替换做不到。Branch 记 1/2,不借绿
 
 **未完成**:本批改动**尚未 commit**(项目规矩:无用户指令不提交);`/story-done` 与代码评审门未跑
+
+## Session Extract — S20-19 收口轮 `/story-done`(2026-10-28)
+- **判定**:`COMPLETE WITH NOTES` —— AC 10/10 Proven · Falsifiability Gate BLOCKING → **PASS**
+- **Gate 首判 BLOCKING 的两处未反证项**(都不是「代码错」,是「没补证明」):
+  ① **B-6「拒 ⇒ 零副作用」**:实施轮判「无独立判别力」**只对 `StructureNotFound` 成立**;
+     `DemolishChecker.Check` 另有 `ShellNotRemovable` / `EntityOnCell` 两条**可达**分支(结构真实存在)
+     ⇒ 补夹具 `test_acB6_removeWithEntityOnCell_…` + 变异 **M16**(停 `BuildController.cs:159` 早退)⇒ 红
+  ② **B-9 反例半边**:赋值在 `:847 ∧ :874` **两层守卫合取**内;裸 `Assemble()` 两层同时为假
+     ⇒ 对任何单层守卫零判别力 ⇒ 补夹具 `test_acB9_assembleWithStructuresButNoWorld_…` + **M17** ⇒ 红
+- **证伪轮第三轮**:18 变异 = **17 exact + 1 逃逸(M17)**;M17 单跑复验 exact
+  ⇒ 全 18 exact 但**分三批,不合并记账**
+  - M17 逃逸根因 = **「靶点对,但靶场里没有靶」**(新形态,与打不可达分支/预期推错/打错靶同族不同型)
+- **回归三元组**(收口轮 · `3ae5599` + 未提交工作树):
+  - EditMode `5641/5606/0/0/35` @ `2026-10-28T01:25Z`(基线 `5601/5566/0/35` ⇒ **+40/+40**,等式 `5641−5601=40` 恰等)
+  - PlayMode `238/234/0/2/2` @ `2026-10-28T01:25Z`(**零回归**;退出码 8 = 2 条 `inconclusive`,非失败)
+- **改动文件**:`build_controller_test.cs`(+2 夹具 → BuildControllerTest 18)· spec `s20-19-build-initiator.json`(16→18 变异)
+  · 新建 `tools/falsify/specs/s20-19-m17-single.json` · 证据件 · `sprint-20.md` 卡尾 · `sprint-status.yaml`(S20-19 → `done`)
+- **未做**:`/code-review`(lean 模式门控,登记为「未评审」,**不记作已通过**)· **commit**(无用户指令)
+- **挂标 9 条一条未勾**;其中 #3 `BuildSlotCatalog` 生产侧仍空 ⇒ **玩家今天仍建不了东西**(接线 0→1 ≠ 可玩)
+
+## Session Extract — S20-20 + 代码评审修复轮(A-21/A-22/A-23)(2026-10-28)
+- **用户指令链**:「实现这三条」→ 只做 #3 BuildSlotCatalog → 先做最小关卡工具(合规)→ **「A-21 那几条一并改掉」**
+- **S20-20 交付**:最小关卡工具(`Editor.Tools.Level` 4 件)+ 烘焙 3 件 + 读方 codec + `DataCookedDisk.LoadBuildSlots` + 装配装载段;真产物 `assets/data/world_buildslots.json`(13 格)· `world_buildslots.cooked.bytes`(296 B / `0x146822D2`)
+- **AC C-1…C-7 全绿**:夹具 19 测(`world_buildslots_bake_test` 12 · `level_tool_consistency_test` 7)
+- **代码评审真跑**(用户触发,lean 不适用):原件 `production/qa/evidence/review-s20-19-2026-10-28.md`,判定 `CHANGES REQUIRED`
+  - 原 2 BLOCK 已结清:**A-21**(消镜像 → `SlotTypeVocabulary` 派生)· **Q-7**(报文断言 + 修好夹具后重跑 L4)
+  - **余 1 BLOCK = A-5 升级版**:`InventoryFoldContext.SolePlayer` 生产侧**零赋值**(`CompositionRoot.cs:407`)⇒ `ApplyBuildCost` 恒发 gap ⇒ **建造扣料在玩家路径上从不发生**。**未改码,待用户裁**
+- **修复轮**:A-21 / A-22 / A-23 三份 spec 证伪 **7/7 恰如预期**(6 exact + 1 设计内超集 M7);A-18 `Landed ✅ / Proven ✗`(跨区域性差异本机造不出,理由见评审件 §5.5)
+- **回归三元组**(`2026-10-28T02:30Z` · 修复轮后全量 · `3ae5599e` + 未提交工作树):
+  - EditMode `5676/5641/0/0/35`(基线 `5641/5606/0/0/35` ⇒ **+35/+35**;等式 `5676−5641=35` = 19 + 16 恰等)
+  - PlayMode `238/234/0/2/2`(**零回归**;`exit=2` 仅 2 条既有 `inconclusive`)
+  - ⚠️ 别把 `unity/Logs/full-editmode.xml`(10:04,`5660/5622/3`)当基线 —— 那是抓出 3 红的运行
+- **改动文件**:`SlotTypeVocabulary.cs`(新)· `WorldBuildSlotsBinder` / `BuildModulesBinder`(第四份副本)· `Editor.Tools.Level` 4 件 + asmdef(引 `Sim`)· `WorldBuildSlotsCookedCodec` · `MinimalWorldFactory` · 3 件新夹具 · 3 份新 spec · 两份证据件 · `sprint-20.md` · `sprint-status.yaml`(新增 S20-20 行 → done)
+- **挂标不记绿 3 条**:Addressables 装载面未接 · `BakedInitial` 运行期不应用 · C1–C6 七项未实现
+- **未做**:**commit**(无用户指令)

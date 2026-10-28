@@ -678,6 +678,7 @@ S20-17 的卡内「挂标不记绿」第 4 条逐字:「**`World` 的生命周�
 
 | 项 | 内容 |
 |---|---|
+| **Type** | **`Integration`**(主) · `Logic`(次) —— 见下方「类型与 TR 归属」 |
 | **Owner** | unity-specialist(规格段 + `ux-designer` 复审) |
 | **复杂度** | **M**(规格段 S + 接线段 M) |
 | **前置(全部 ✅)** | S20-17 / S20-18(`World` 与 `StructureWriter` 已装配、世界可由流重建)· `InventoryTransaction`(S20-14,先全验后落流)· `ModuleDefinition.Cost` / `BuildItemKey`(2026-10-25/26 两轮补)· `DemolishChecker` P0 返还率 1.0(`:84/:125`) |
@@ -689,6 +690,54 @@ S20-17 的卡内「挂标不记绿」第 4 条逐字:「**`World` 的生命周�
 | ① | **范围** | **规格 + 逻辑接线** —— 幽灵预览只落接口与量化结果,**不做可见渲染** |
 | ② | **模态归属** | 建造 = **世界内操作态,不占 `ModalId`**(闭集维持 7 员) |
 | ③ | **材料成本** | **本轮接扣减**(按 `inventory-and-items.md` 规则六的原子单位) |
+
+#### 类型与 TR 归属(2026-10-28 收口轮补登)
+
+> 为什么补:`/story-done` 的 Test Evidence 门依赖 `Type:` 字段,Phase 2 的 requirement 核对
+> 依赖 `TR-ID`。本卡原两者皆空 ⇒ 两项 ADVISORY。**下表全部引用 `docs/architecture/tr-registry.yaml`
+> 的既有条目,零新增 TR** —— 建造发起方接线是既有需求的**实现**,不是新需求。
+
+**`Type: Integration`** 的依据:本卡的 AC 跨 **42(呈现 / 编排)· 23(建造核心判定)· 21a(库存投影)**
+三个系统,且 B-9 直接判「装配是否成立」—— 按 `qa-plan` skill 的混合故事判据(取实现风险最高者),
+Integration 为主;其判据载体本身是纯逻辑(选料 / 判定),故次类型记 `Logic`。
+
+**`Type: Integration` 的证据载体(声明了 Integration 就抬高证据门,须写明载体)**:
+`unity/Assets/Tests/EditMode/ModularBuilding/build_controller_test.cs` —— 真 `World`(真 `BuildSlotCatalog`
++ 真占用表)· 真 `StructureWriter` · 真 `PlaceableChecker` / `DemolishChecker`,按
+`coding-standards.md` §Test Evidence 的「**同树 `EditMode/[System]/` 真装配件**」条款计入 Integration 载体,
+不额外要求 PlayMode 件。
+⚠️ **如实登记一处替身**:`IPresenceQuery` 走测试替身(`AlwaysEmptyPresence` / `PresenceOnCell`),
+因为该路径**生产实现尚未存在** ⇒ 「真实占位病人 ⇒ 拒绝放置」这条依赖**未在真装配下验过**。
+这不掩盖 B-2/B-6 的判据(它们判的是「判定器拒绝 ⇒ 写者零调用」,与 PRESENCE 的真假无关),
+但若将来接上真 presence,须补一条真装配回归。
+
+| AC | TR-ID | 该 TR 的现行 requirement(节录) |
+|---|---|---|
+| **A-1** | `TR-building-004` · `TR-skeuoui-007` · `TR-skeuoui-009` | 整数格判定面(A-1 的「量化器单一实现点」半边)· 42 只渲染永不持有游戏状态(幽灵预览)· 模态闭集契约(A-1 的「建造不是模态」论证半边) |
+| **B-1** | `TR-building-004` | 全部放置 / 可居判定走整数格,禁 Physics / NavMesh 进入判定面 |
+| **B-2** | `TR-building-004` | 同上(拒绝路径的判定同属整数格面) |
+| **B-3** | `TR-building-001` · `TR-building-002` | 三个 `Structure*` Kind 落世界流 · 建造图层 Overlay = BakedInitial ⊕ 事件流派生 |
+| **B-4** | `TR-inventory-001` | 库存 = 世界流的纯投影(`InventoryOf = fold`);7a 快照是优化非真相 |
+| **B-5** | `TR-inventory-001` | 同上 —— 选料是同一投影的纯函数,不引入第二真源 |
+| **B-6** | `TR-building-001`(`TR-building-009` 为**延伸**) | 三个 `Structure*` Kind 落世界流 · 〔延伸〕Refund 截断例外(守恒律回写义务,与拆除返还率的**方向**相关但**不覆盖**该 AC) |
+| **B-7** | `TR-skeuoui-009` · `TR-skeuoui-007` | `IModalState` 契约(闭集 7 员)· 42 不持游戏状态 |
+| **B-8** | `TR-input-002` | 三套绑重(K&M + Gamepad + OpenXR)同表共存 |
+| **B-9** | `TR-building-007` | 23 程序集零呈现引用;42 不是建造状态写者 |
+
+⚠️ **三处如实标注**:
+① `TR-building-004` 现行 `status: partial`(其 note 写明「『禁 Physics』由禁令推定而非逐字段条款,
+执法断言归实现轮)」—— B-1 的源码面门(`test_acB1_buildPath_doesNotReQuantizeCells`)是该
+「实现轮」的一部分,**不据此把该 TR 转 `covered`**(转结需另做全量核对)。
+② **未映射**:「建造扣料 = `StructurePlaced` 的 `cost(m)` 反推」这条没有专属 TR
+(最接近的是 `TR-inventory-001`,但它讲的是投影与真源,不讲扣料时机)⇒ 该判据的真源是
+`design/gdd/inventory-and-items.md` 规则六 + `modular-building.md:124`,**不在 registry 面内**,
+如实登记为 registry 缺口,不在本卡内自行造 TR。
+③ **B-6 的 `TR-building-009` 标了「延伸」** —— 该 TR 的 requirement 是「Refund 截断例外未回写
+ADR-006 守恒律」(`status: partial`),讲的是**守恒律回写义务**;B-6 判的是**拆除返还比例 P0 = 1.0**
+与「拒 ⇒ 零副作用」,两者**方向相关但不互相覆盖**。标「延伸」= 不主张 B-6 使该 TR 转绿。
+
+**一条 TR 可映射多条 AC,同一 AC 也可映射多条 TR**(本表两个方向都有)—— 这是**覆盖关系**,不是
+一对一编号。转 `covered` 的判定一律走 registry 自身的 `status` 字段,**不由本表推定**。
 
 #### 病因:五处实测缺口(`O-23-6` 登记已两个多月,一直是「待 42 下一轮」)
 
@@ -796,3 +845,118 @@ B-2 / B-4 / B-6 的判据是**副作用**(调用次数 / 事件条数)⇒ 变异
   「玩家选哪个模块 / 已解锁哪些」归 42 / 21a 的选料界面(本批不画)。
 - **建造输入不查模态开集** —— 全仓无 `IModalState` 聚合器可查(见 ④)⇒ `Enter` 可能与 UI 的
   `Submit` 双触发。归 42 的模态聚合器落地轮。
+
+#### 收口轮(2026-10-28 · `/story-done`)
+
+**`Status: Complete`** · 证据原件 `production/qa/evidence/impl-s20-19-build-initiator-2026-10-28.md`
+
+| 项 | 结果 |
+|---|---|
+| AC 计分(分母 10) | **Proven ✅ 10** · Branch 全覆盖(B-6 2/2 · B-9 2/2)**[实施轮为 9 + 部分 1]** |
+| Falsifiability Gate | **首判 BLOCKING** ⇒ 补 2 夹具 + 2 变异 ⇒ **PASS** |
+| 证伪轮 | 18 变异全 exact,**分三批**:第三轮同轮 17 + M17 单跑 1(实施轮的 M5 单跑仍计入) |
+| 回归(三元组) | EditMode `5641/5606/0/0/35`(+40/+40,`5641−5601=40` 恰等)· PlayMode `238/234/0/2/2`(零回归)@ `2026-10-28T01:25Z` · 收口轮 · `3ae5599` + 未提交工作树 |
+
+**收口轮补的两处 —— 都不是「改代码」,是「补证明」**:
+
+1. **B-6 的「拒 ⇒ 零副作用」半边** —— 实施轮判「无独立判别力」,该结论**只对 `StructureNotFound` 分支成立**。
+   `DemolishChecker.Check` 另有两条**可达**拒绝分支(`ShellNotRemovable` / `EntityOnCell`),
+   结构**真实存在**时判定器一放行写者就真会落流 ⇒ 可证伪。补
+   `test_acB6_removeWithEntityOnCell_returnsEntityOnCellWithZeroSideEffects` + **M16**(停用
+   `BuildController.cs:159` 的拆除早退)⇒ 转红。
+2. **B-9 的反例半边** —— `buildController` 的赋值夹在**两层守卫的合取**内
+   (`CompositionRoot.cs:847 structures != null` ∧ `:874 world != null`)。裸 `Assemble()` 让两层
+   **同时为假** ⇒ 单独停用任一层都不改变可观察量(合取使然)。补
+   `test_acB9_assembleWithStructuresButNoWorld_yieldsNullBuildController`(第一层真、第二层假)
+   让 `:874` **单独成为决定项** ⇒ **M17** 转红。
+   ⚠️ **M17 第三轮先逃逸后才补夹具**:该逃逸既不是靶点错、也不是夹具写错,而是
+   **「靶点对,但靶场里没有靶」** —— 与 §五之二 三种根因同族不同型,已登记在 spec 的
+   `_round3_note` 里。
+
+**挂标不记绿 9 条一条未勾**(状态不变)。其中 #3 仍是最重的一条:
+`BuildSlotCatalog` 生产侧仍空 ⇒ 生产 `PlaceableChecker.Check` 恒 `SlotNotFound` ⇒
+**玩家今天仍建不了东西**。本卡兑现的是「接线 0 → 1」,**不是「可玩」**。
+
+**代码评审门**:`production/review-mode.txt` = `lean` ⇒ LP-CODE-REVIEW 走 `AskUserQuestion` 分支
+(本收口轮未跑 `/code-review`,如实登记,**不记作已评审**)。
+
+---
+
+### S20-20 — 最小关卡工具 + 建造槽位骨架全链(兑现 S20-19 挂标 #3)
+
+| 项 | 内容 |
+|---|---|
+| **Type** | **`Integration`**(主) · `Config/Data`(次) —— 编辑期工具 → 烘焙管线 → 运行期装载 三段 |
+| **Owner** | unity-specialist |
+| **复杂度** | **M** |
+| **前置(全部 ✅)** | ADR-022(关卡工具 = 逻辑层唯一作者)· ADR-014(两阶段烘焙)· ADR-025 §④(asmdef 清单已含 `Editor.Tools.Level`)· `BuildSlotCatalog`(`Sim/World` 既有,零改动) |
+| **用户裁定(2026-10-28)** | ① 只做挂标 #3(`BuildSlotCatalog` 生产侧);② **先做最小关卡工具(合规)** —— 不手写种子数据 |
+
+#### 病因(为什么不能只补一份 JSON)
+
+`S20-19` 的挂标 #3 原文:`BuildSlotCatalog` 生产侧空 ⇒ 生产 `PlaceableChecker.Check` 恒
+`SlotNotFound` ⇒ 玩家建不了任何东西。
+
+最省事的修法是往 `assets/data/` 手写一份 `world_buildslots.json`。**这条路是架构违规**:
+ADR-022 §二 裁决「逻辑层整数数据**只能由关卡工具**编写导出」,手写 = 绕过唯一作者。
+⇒ 用户裁定走合规路径:**先实现最小关卡工具**,再由它导出数据。
+
+⚠️ 同时如实登记一处**先前的裁定冲突**:`p0-remaining-roadmap-2026-10-20.md:1088` 记着
+「关卡工具不立 epic、不排期」。本卡**不解除**该裁定 —— 它是「最小」工具(单关卡、单子集、
+7 条 C 检查里 **5 条明确未实现**),不是 ADR-022 意义上的完整工具。二者关系:
+
+| | ADR-022 完整关卡工具 | 本卡的最小工具 |
+|---|---|---|
+| 产出面 | `world_{geometry,ecozones,poi,resources,buildslots,nav,terrain}` **七类** | **仅** `world_buildslots` |
+| C1–C6 | 六项全实现 | **槽位子集 3 条**(其余 7 条进 `CheckReport.Unimplemented`,是**返回值里的数据**,不是注释) |
+| 排期 | 仍不排期 | 本卡一次性 |
+
+#### 交付物(9 件,全部新建/最小改动)
+
+| # | 文件 | 作用 |
+|---|---|---|
+| 1 | `unity/Assets/Editor.Tools.Level/LevelSource.cs` | 声明式关卡源:`SlotSpec{X,Y,Z,Type,BakedInitial}` + 尺寸;`SlotType` 是 Sim 枚举名的**镜像**(本程序集刻意零引用,漂移由烘焙期「名字不在闭集」硬失败暴露) <br>⚠️ **2026-10-28 代码评审 A-21 后本条已过期(原文不删)**:「枚举镜像 + 本程序集刻意零引用」**作废** —— `Editor.Tools.Level.asmdef` 现 `references: ["Sim"]`,`LevelSource` 直接用 `Sim.World.SlotType`;名字↔序数唯一出处 = `Editor.Tools.Bake/SlotTypeVocabulary.cs`(派生自同一枚举,带 `[1,30]` 位域守卫)。理由:镜像与运行期 `1 << (int)type` 之间**没有任何门**,唯一联系是「枚举值恰好 = 下标 + 1」这个**从未被断言的巧合** |
+| 2 | `unity/Assets/Editor.Tools.Level/P0ClinicLevel.cs` | 具体种子:9 格 Decor(3×3)+ 4 格 Shell 条 = 13 格,余 243 格非槽位 |
+| 3 | `unity/Assets/Editor.Tools.Level/LevelExporter.cs` | 确定性 JSON(UTF-8 **无 BOM**、字段序固定、行序 (x,y,z) 升序);导出前调 `LevelConsistencyCheck.CheckOrThrow` |
+| 4 | `unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs` | 槽位子集 3 条硬失败(重复格 / `None` 与未定义枚举 / 越界)+ **7 条未实现项清单** |
+| 5 | `unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBinder.cs` | 五道域门,聚合 `throw`(承 ADR-014 §四) |
+| 6 | `unity/Assets/Editor.Tools.Bake/WorldBuildSlotsCookedWriter.cs` | deterministic 二进制,行序 (x,y,z) 升序,20 字节头沿用 `ClinicMachineCookedWriter` |
+| 7 | `unity/Assets/Editor.Tools.Bake/WorldBuildSlotsBake.cs` + `DataBakeMenu.BakeWorldBuildSlots` | 烘焙入口 + 菜单项 |
+| 8 | `unity/Assets/Gameplay.Presentation/WorldBuildSlotsCookedCodec.cs` + `DataCookedDisk.LoadBuildSlots()` | 读方,与写方镜像 |
+| 9 | `unity/Assets/Gameplay.Boot/MinimalWorldFactory.cs` | `Create()` 从产物装载并 `RegisterSlot`;**失败保留空目录 + `LogError` + 如实横幅** |
+
+#### 本次真产物(非手写)
+
+```
+assets/data/world_buildslots.json            13 格(Decor 9 · Shell 4),由 `LevelExporter` 导出
+unity/Assets/DataCooked/world_buildslots.cooked.bytes   296 B,ConfigVersion = 0x146822D2
+```
+
+导出命令(可复算):`Unity -batchmode -projectPath unity -executeMethod
+DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
+
+#### AC(逐条可判伪)
+
+| # | 判据 | 载体 |
+|---|---|---|
+| **C-1** | 真种子过五道域门,且 Decor / Shell **两个类型分支都可达** | 夹具 |
+| **C-2** | 生产核(`DataBakeMenu.BakeWorldBuildSlotsCore`)**真会拒**越界格,报文含判据词 + 坏格坐标 + 表名前缀 | 夹具(报文关键词) |
+| **C-3** | 同一最小仓根换成合法行 ⇒ 生产核**放行**(证明 C-2 不是「核恒抛」) | 夹具(与 C-2 成对) |
+| **C-4** | 其余域门各有一条负向夹具:空表 / 重复格 / `None` / 缺 `baked_initial` / 未知键 | 夹具 ×5 |
+| **C-5** | 同源两次烘焙**逐位一致**;cooked 往返**逐字段相等**;盘上产物 = 现烘字节 | 夹具 ×3 |
+| **C-6** | **目的判据**:`MinimalWorldFactory.Create().SlotCatalog.Count > 0`,且真实槽位 `Check(...)` **不再** `SlotNotFound` | 夹具(端到端) |
+| **C-7** | `BakedInitial` **两侧都有真实取值**(有 `true` 也有 `false`)—— 全 true 意味着「开档医馆已建满」= 玩家无可建格 | 夹具 |
+
+#### 挂标不记绿(如实,禁勾)
+
+1. **生产 build 的 Addressables 装载面未接** —— `MinimalWorldFactory` 走 `DataCookedDisk`
+   (磁盘直读 `Assets/DataCooked/`),而 build 里该目录不存在 ⇒ 目录为空 + `LogError`。
+   修法:`world_buildslots` 进 `data-core` 组 + `AddressablesDataProvider.Load<WorldBuildSlotsDataSet>()`
+   + `MinimalWorldFactory` 收 provider。**本卡未做**(与 `CompositionRoot` 的 provider-first
+   形状不一致,是一处**已知偏离**)。
+2. **`BakedInitial` 运行期不应用** —— `BuildSlotCatalog` / `BuildSlot` 今日**没有承载该标记的字段**
+   ⇒ 数据声明了、运行期不落地。`MinimalWorldFactory` 因此打 `LogWarning` 点名它,不静默。
+3. **C1–C6 七项未实现** —— 除槽位子集 3 条外的全部(需视觉层 / 地形 / 导航 / 生态区数据,
+   本批不产出)。清单在 `LevelConsistencyCheck.UnimplementedChecks`,**返回值里的数据**。
+4. **关卡工具只服务一个关卡** —— `P0ClinicLevel` 是硬编码的 16×1×16。多关卡 / chunk 切片归完整工具。
+5. **世界几何仍是合成** —— 地形全 walkable、POI / 资源格全 -1。本卡只让「槽位判定」这一面有真数据。
