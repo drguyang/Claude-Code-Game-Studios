@@ -428,6 +428,7 @@
 | `TD-foraging-02` | `foraging` | open | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | open | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
+| `TD-building-02` | `modular-building` | open | **N** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -838,7 +839,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 127 | 状态 {'open': 77, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 24, '~~**Y**~~': 1}
+条目 128 | 状态 {'open': 78, 'closed': 44, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 25, '~~**Y**~~': 1}
 未闭 P0 面 = 63 （已闭但曾标 P0 面的 39 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
@@ -3556,6 +3557,31 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
 | **TD-building-01** | `modular-building` | **open** | **Y** | R1 |
+
+### TD-building-02 — 基线诞生前的存档撞号:基线家具被存档里的结构顶替(语义未裁)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `StructureRestore.Apply` 的 `Placed` 支对**同号** `structure_id` 是**覆盖**语义(`StructureInstanceRegistry.Restore` 的既有文档:同号 = `_instances[id] = …`)。2026-10-28 的 B-1 修复让该支**先释放旧足迹**再落库,保证**实例表 ↔ 占用表一致**;但**没有裁定「谁该赢」** —— 基线家具被存档里的同号结构顶替,是否**正确**? |
+| **前提订正(重要 · 2026-10-28)** | 本债**原始表述的前提是错的**,须先纠:<br>**错误措辞**:「**schema-1 存档**里玩家放置从 `1` 起号」—— 该措辞出现在 `StructureRestore.cs:193`(已就地订正)、`review-s20-18-2026-10-28.md:58/:152`、`review-s20-20-2026-10-28.md:85`、`sprint-20.md:1166`。<br>**错在哪**:仓库里「schema 1」**专指 `world_buildslots.json` 的作者态 JSON 格式**(见 `fix-s20-20-baked-initial-baseline-2026-10-28.md` §一 ③ / §二:旧 schema 1 行只有 `{cell, slot_type, baked_initial}`,无 `module_id`),与**存档格式** `SaveVersion`(`SaveHeader.CurrentSaveVersion = 1`)是两个互不相干的量。原文把两者混成一个词。<br>**真实的类别是时序**:基线由 `d230eb36`(2026-10-28)引入;该日**之前**写下的存档里**没有基线**(`ApplyBakedInitial` 尚不存在),玩家放置的 id 自然从 `1` 起。<br>**同一会话内不可达(已证)**:`CompositionRoot.cs:918` 应用基线、`:941` 构造 writer,二者**共用同一个 `structures` 注册表**;`Restore` 抬高高水位(`StructureKinds.cs:233-235`),`Register` 取 `_nextStructureId++`(`:290`)⇒ 基线之后玩家拿到的必然是 `N+1, N+2…`。**撞号只在「基线诞生前的存档被今天的代码重放」时出现。** |
+| **正常路径已裁(GDD)** | `modular-building.md:150-151` 逐字:「初始家具的 `structure_id` 由 `BakedInitial` 定义时分配(进实例表,规则七),玩家对初始家具的**第一次**改动 = 第一条 `StructureRemoved`(基线对应行)」。⇒ **玩家拆除走 `Removed`,不撞号。** 本债只覆盖**重放一条 `Placed` 到基线已占的号**这一形态。 |
+| **今日可达性** | **零** —— 实查盘上**无任何真实存档**(`~/.config/unity3d/DefaultCompany/*/` 下只有 `prefs`,`find` 无 `.dyjq` / `save*.bin`);且 `CurrentSaveVersion = 1` 自 `3491198d` 起**从未变过**,`SaveService` 的 `migrations` 默认 `Array.Empty`(`SaveService.cs:162`)⇒ **零个已注册的 `ISaveMigration`**。⇒ 不存在「旧格式存档被迁移链送来」的路径。 |
+| **卡住的判据** | 无 AC 直接判此形态。B-1 的夹具 `test_ac6b_replayPlacedOverBaselineId_releasesOldFootprint` 断言的是**足迹一致**(旧格恢复可走),**刻意不断言**「谁该赢」—— 它用基线腿构造撞号,只为让 `FreeCells` 那半边可观测。 |
+| **解除动作** | **须裁**(ADR 级),不是实现动作。两问:<br>① **存档赢还是基线赢?** 若「基线赢」⇒ 重放遇到基线号段内的 `Placed` 须**拒收**(fail-closed),而不是覆盖;<br>② **若「存档赢」** ⇒ 基线家具被顶替是**预期**行为,须在 GDD 规则三补一句「基线可被存档覆盖」,否则 `Overlay(t) := BakedInitial ⊕ 事件` 的 `⊕` 语义在这一形态下**无定义**。<br>⚠️ **本债不为它设判据,只登记** —— 与 `TD-building-01` 的「写侧归 42」同口径。 |
+| **触发条件** | 三者任一成立即须裁:<br>① `SaveHeader.CurrentSaveVersion` **首次递增**(⇒ 出现真实迁移链,旧存档可能被送来);<br>② 任何 `ISaveMigration` **被注册**(同上);<br>③ P0 首次**对外发放存档**(此前开发存档可直接丢弃)。<br>⇒ 在①–③ 全不成立期间,**本条是「已登记但今日不可达」**,不阻塞任何交付。 |
+| **归属** | **23**(模块化建造)—— 与 `TD-building-01` 同 epic。⚠️ 该 epic 已标 `Complete ✅ 2026-10-03`;按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
+| **与 `TD-building-01` 的关系** | **不合并、不互抵**。`TD-building-01` 是「生产装配根零落点」(已在 2026-10-28 部分解除);本条是「撞号的**语义**未裁」。前者是**有没有**的问题,后者是**对不对**的问题 —— 装配根接通**不蕴含**语义已裁,反之亦然。 |
+| **`P0 面 = N` 的理由** | 承 §一 R1 宽判据本应为 `Y`(归属 `modular-building` ∈ 31 个 P0 epic),但**今日可达性 = 零**(无真实存档 / 无迁移链 / 无对外发放)。按 §一 **R4** 的「触发条件是否在 P0 内可满足」口径记 **N**,并在「触发条件」列写明三个触发点。⚠️ **一旦 ①–③ 任一成立,本行须改回 `Y`** —— 改判据是「触发条件变了」,不是「重新评估」。 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-building-02** | `modular-building` | **open** | **N** | R1 |
+
+> **本条使 `条目 127 → 128`**,`open 77 → 78`;**`未闭 P0 面 = 63` 一位不动**(P0 面 = N)。
+> ⇒ **M3 Exit ② 的 epic 分布亦不动**(`modular-building` 本就在分布里)。
+> ⚠️ **`P0 面 = N` 是「今日不可达」的判断,不是「不重要」** —— 三个触发条件任一成立即须改回 `Y`,
+> 见本行「触发条件」列。这正是 §一 R4 存在的作用:不让「暂时够不着」的债冒充 P0 出口障碍,
+> 也不让它因够不着而**从册上消失**。
 
 > **`P0 面 = Y`** —— 归属 epic `modular-building` ∈ 31 个 P0 epic(承 §一 **R1 宽判据**)。
 > ⚠️ **本条使 `未闭 P0 面` 从 72 变 73**,且 **`modular-building` 由「名下零债」变为「名下 1 条」**

@@ -291,8 +291,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         /// 重放 `Placed` **同号覆盖**已有实例 ⇒ 被覆盖那条的**旧足迹必须释放**。
         /// <para>🔁 <b>2026-10-28 评审 B-1 修复(新增)</b>:`Registry.Restore` 对同号是
         /// `_instances[id] = …` 静默覆盖,且它**从不碰占用表** ⇒ 旧足迹格永久不可走、无信号。
-        /// **可达路径**:基线占 `1..N`(`World.ApplyBakedInitial`),而 baseline 之前的存档
-        /// (schema 1)里玩家放置从 `1` 起号 ⇒ 重放第一条 `Placed(id=1)` 就撞上基线第 1 件。</para>
+        /// **可达路径**:基线占 `1..N`(`World.ApplyBakedInitial`),而**基线诞生之前**写下的存档
+        /// 里玩家放置从 `1` 起号 ⇒ 重放第一条 `Placed(id=1)` 就撞上基线第 1 件。</para>
+        /// <para>⚠️ **措辞订正(2026-10-28)**:原文写「baseline 之前的存档(**schema 1**)」——
+        /// 「schema 1」在仓库里专指 `world_buildslots.json` 的**作者态 JSON 格式**,
+        /// 与**存档格式** `SaveVersion`(`CurrentSaveVersion = 1`)无关。真实类别是**时序**:
+        /// 基线由 `d230eb36`(2026-10-28)引入。见债册 `TD-building-02`。</para>
         /// <para>⚠️ <b>夹具必须走「基线」这条腿</b>,不能用「先 Place 再 Rebuild」:后者里
         /// `RebuildFromDecoded` 内部先 `Reset()`,把预置实例与占用**都清光了** ⇒ 重放那条
         /// `Placed(1, …)` 是**新建**而非覆盖 ⇒ 断言全部恒真。基线之所以能存活,是因为

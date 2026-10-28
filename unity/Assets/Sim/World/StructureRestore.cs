@@ -191,16 +191,23 @@ namespace DaYiJingCheng.Sim.World
                     //    被覆盖的那条实例的旧足迹**仍留在 `_slotOccupied` 里** ⇒ 那些格**永久不可走**,
                     //    而且**没有任何信号**。
                     // **可达路径(不是假想)**:基线占 `1..N`(`World.ApplyBakedInitial`),
-                    //    而 baseline 之前的存档(schema 1)里玩家放置从 `1` 起号 ⇒ 重放第一条
+                    //    而**基线诞生之前**写下的存档里玩家放置从 `1` 起号 ⇒ 重放第一条
                     //    `Placed(id=1)` 就撞上基线第 1 件 ⇒ 基线那件的足迹格永远阻塞。
+                    // ⚠️ **措辞订正(2026-10-28)**:原文写「baseline 之前的存档(**schema 1**)」——
+                    //    **用词错误**。仓库里「schema 1」专指 **`world_buildslots.json` 的作者态
+                    //    JSON 格式**(见 `fix-s20-20-baked-initial-baseline-2026-10-28.md` §一 ③/§二),
+                    //    与**存档格式** `SaveVersion`(`SaveHeader.CurrentSaveVersion = 1`)是两个东西。
+                    //    真实的类别是**时序**:基线由 `d230eb36`(2026-10-28)引入,该日之前写下的存档
+                    //    里**没有基线**,玩家 id 自然从 1 起。原文不删,以此处为准。
                     // **为什么修在这里而不是 `Restore` 里**:`Restore` 只认注册表,不知道占用表存在
                     //    (注册表与占用表是两个对象,`World` 才是唯一知道两者的人都)。让 `Restore`
                     //    去释放占用会**反转依赖方向**;而本类是「把流落进世界」的唯一入口,
                     //    保持「实例表 ↔ 占用表」同步正是它的职责 —— 与 `Removed` / `Modified`
                     //    两支已经在做的事完全同构(那两支都先 `FreeCells` 再动)。
-                    // ⚠️ **未结(不在本次修复面)**:schema-1 存档撞号后「基线家具被存档里的结构
-                    //    顶替」这个**语义**问题,本修复只保证**足迹一致**,不裁定「谁该赢」。
-                    //    见 `production/qa/evidence/review-s20-18-2026-10-28.md` §五。
+                    // ⚠️ **未结(不在本次修复面)**:撞号后「基线家具被存档里的结构顶替」这个
+                    //    **语义**问题,本修复只保证**足迹一致**,不裁定「谁该赢」。
+                    //    见 `production/qa/evidence/review-s20-18-2026-10-28.md` §五,
+                    //    以及债册 `TD-building-02`(2026-10-28 登记,含前提订正)。
                     if (_world.Structures.TryGet(op.StructureId, out StructureInstance existing))
                         _world.FreeCells(existing.OccupiedCells);
 
