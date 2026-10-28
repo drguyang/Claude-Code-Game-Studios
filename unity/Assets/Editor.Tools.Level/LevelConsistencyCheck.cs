@@ -6,9 +6,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // 本件只实现「适用于槽位子集」的那几条;**其余逐条如实登记为未实现**
 // ═══════════════════════════════════════════════════════════════════════════
-// · C1 两层漂移(告警)        —— **未实现**:需要视觉层地形 / 摆件数据(待 S6 产出)。
-// · C2 可走性同源(slopeLimit/stepOffset) —— **未实现**:需要 `world_terrain.json`(待 S6;s.t. 待 S2)。
-// · C2' 模板 collider 足迹同源 —— **未实现**:需要模块模板 prefab(待 S6;素材归 23 的素材轮)。
+// · C1 两层漂移(告警)        —— ✅ **已实现(story-006 · 2026-10-29)**:`LayerDriftCheck`
+//     (双向比对:逻辑有家具 ⇒ 视觉不能空;视觉有实体 ⇒ 逻辑不能是空地)。⚠️ 输入 =
+//     作者侧 `VisualLayerSource`,今日全库零视觉层资产 ⇒ 生产上必然进 `NotRun`。
+// · C2 可走性同源(slopeLimit/stepOffset) —— ✅ **已实现(story-006 · 2026-10-29)**:
+//     `WalkabilityParityCheck`(两条独立判据;偏差公式 = `LatticeParamQuantization.IsWithinOneQuantum`)。
+//     ✅ **今天唯一能在生产上真跑出结论的一条** —— 引擎侧 = 真 `CharacterController` 探针。
+// · C2' 模板 collider 足迹同源 —— ✅ **已实现(story-006 · 2026-10-29)**:`ColliderFootprintCheck`
+//     (取**乙路**:作者侧声明 + 检查逻辑;prefab 侧那一半**未跑**,素材归 23)。
 // · C3 导航格 ↔ NavMesh(告警) —— ✅ **已实现(story-005 · 2026-10-29)**:`NavMeshConsistencyCheck`
 //     (三态 Reachable / Unreachable / Unknown;`Unknown` 不告警,依据 = NavMesh spike)。
 //     告警进 `CheckReport.Warnings`,**不进** `Violations` —— 合成一个列表会让「告警」与
@@ -64,15 +69,27 @@ namespace DaYiJingCheng.EditorTools.Level
         /// </summary>
         public readonly IReadOnlyList<string> Warnings;
 
+        /// <summary>
+        /// **未跑**项(第三态:检查已实现,但这一次**没有输入可判**)。
+        /// <para>🔁 <b>2026-10-29(story-006 AC-1/2/3)新增</b>。与另两态**刻意分家**:
+        /// 写进 `Violations` 是**谎报**(把「没输入」说成「有缺陷」),
+        /// 写进 `Warnings` 或干脆不写是**借绿**(把「没跑」读成「跑过且干净」)。
+        /// 三态在类型上可分,是这个字段存在的全部理由。</para>
+        /// <para>先例 = C3 的 `NavReachability.Unknown`(story-005):不知道就明说不知道。</para>
+        /// </summary>
+        public readonly IReadOnlyList<string> NotRun;
+
         /// <summary>构造报告。</summary>
         /// <param name="warnings">告警项;`null` = 无告警(向后兼容既有两参调用点)。</param>
+        /// <param name="notRun">未跑项;`null` = 无(向后兼容)。</param>
         public CheckReport(
             IReadOnlyList<string> violations, IReadOnlyList<string> unimplemented,
-            IReadOnlyList<string> warnings = null)
+            IReadOnlyList<string> warnings = null, IReadOnlyList<string> notRun = null)
         {
             Violations = violations ?? throw new ArgumentNullException(nameof(violations));
             Unimplemented = unimplemented ?? throw new ArgumentNullException(nameof(unimplemented));
             Warnings = warnings ?? Array.Empty<string>();
+            NotRun = notRun ?? Array.Empty<string>();
         }
 
         /// <summary>是否全绿(**只看硬失败** —— 告警不影响本判据)。</summary>
@@ -83,12 +100,15 @@ namespace DaYiJingCheng.EditorTools.Level
     public static class LevelConsistencyCheck
     {
         /// <summary>未实现项清单(单一出处;报告与测试共用)。</summary>
-        public static readonly string[] UnimplementedChecks =
-        {
-            "C1 两层漂移(需视觉层数据 —— 待 S6 产出)",
-            "C2 可走性同源(需 world_terrain.json —— 待 S6 产出;该数据集本身待 S2)",
-            "C2' 模板 collider 足迹同源(需模块 prefab —— 待 S6 产出;素材归 23 素材轮)",
-        };
+        /// <remarks>
+        /// 🔁 <b>2026-10-29(story-006 AC-5)</b>:由 3 条 → <b>0 条</b>。C1 / C2 / C2' 三条
+        /// 本轮全部落地(`LayerDriftCheck` / `WalkabilityParityCheck` / `ColliderFootprintCheck`)。
+        /// <para>⚠️ <b>「实现」不等于「今天有结论」</b> —— 其中的 C1 / C2' 需要作者侧声明作输入,
+        /// 而今日全库零视觉层资产、零模块 prefab ⇒ 它们在**生产上**必然进 `NotRun`。
+        /// 把它读成「三项都验过了」是本仓反复记录的第五种假绿形态
+        /// (用一句自述顶替一个从未存在的门)。**判据面如实登记在 `NotRun` 里,不进 `Warnings`。**</para>
+        /// </remarks>
+        public static readonly string[] UnimplementedChecks = Array.Empty<string>();
 
         /// <summary>跑槽位子集的硬检查(不抛;失败项进 <see cref="CheckReport.Violations"/>)。
         /// <para>⚠️ C6 不在这里:**它需要切片集合**,而切片是 `ExportNavChunks` 的产物 ——
@@ -101,11 +121,20 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 即「无告警」,而不是「全部矛盾」)。传 `null` 与传一个恒 `Unknown` 的采样器行为等价,
         /// 但前者不付出逐格调用的代价。
         /// </param>
-        public static CheckReport Check(LevelSource src, Func<WorldPos, NavReachability> navSampler = null)
+        /// <param name="engineParams">
+        /// 引擎侧的格点参数(C2 的另一半);**`null` = 没有引擎侧输入 ⇒ C2 进 `NotRun`**。
+        /// 取法见 `CharacterControllerParamProbe.TryRead`。
+        /// </param>
+        /// <param name="moduleCatalog">
+        /// 模块目录(C2' 的占用格真源);**`null` ⇒ C2' 只跑高度判据**,足迹那一半进 `NotRun`。
+        /// </param>
+        public static CheckReport Check(LevelSource src, Func<WorldPos, NavReachability> navSampler = null,
+            LatticeEngineParams? engineParams = null, IModuleCatalog moduleCatalog = null)
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
             var violations = new List<string>();
+            var notRun = new List<string>();
             var seen = new HashSet<(int, int, int)>();
 
             for (int i = 0; i < src.Slots.Count; i++)
@@ -192,7 +221,54 @@ namespace DaYiJingCheng.EditorTools.Level
             if (navSampler != null)
                 NavMeshConsistencyCheck.TryCheck(src, navSampler, out warnings);
 
-            return new CheckReport(violations, UnimplementedChecks, warnings);
+            // ── C2 可走性同源(**硬失败**,2026-10-29 story-006 起已实现)────────────────
+            // ⚠️ 没有引擎侧输入 ⇒ `NotRun`,**不冒充绿**:C2 的整个语义是「两侧比一比」,
+            //    只有一侧时「通过」这个结论根本不存在。
+            if (engineParams.HasValue)
+            {
+                // ⚠️ `TryCheck` 的返回值是「**无违例**」;这里**不看**它 —— 只看它填出来的列表。
+                //    (首版写成 `if (TryCheck(...)) AddRange(...)`,即「无违例时把空表加进去」
+                //     ⇒ 有违例时一条都不加 ⇒ C2 恒绿。夹具当场抓到,记于此。)
+                WalkabilityParityCheck.TryCheck(src.Terrain, engineParams.Value, out List<string> c2);
+                violations.AddRange(c2);
+            }
+            else
+            {
+                notRun.Add("C2 可走性同源 —— 未提供引擎侧 `CharacterController` 参数" +
+                           "(编辑期无 prefab / 场景实例;玩家对象由 BootRoot 运行期创建)");
+            }
+
+            // ── C2' 模板 collider 足迹同源(**硬失败**,同上)──────────────────────────
+            if (src.ModuleFootprints != null && src.ModuleFootprints.Count > 0)
+            {
+                int stepMm = src.Terrain != null ? src.Terrain.StepOffsetMm : 0;
+                bool ok = ColliderFootprintCheck.TryCheck(
+                    src.ModuleFootprints, stepMm, moduleCatalog, out List<string> c2p, out bool fpSkipped);
+                if (!ok) violations.AddRange(c2p);
+                if (fpSkipped)
+                    notRun.Add("C2' 足迹一致性 —— 未提供模块目录(`IModuleCatalog`),只跑了「高 collider」半边");
+            }
+            else
+            {
+                notRun.Add("C2' 模板 collider 足迹同源 —— 本关卡未声明模块足迹(模块 prefab 归 23 素材轮)");
+            }
+
+            // ── C1 两层漂移(**告警**,同上)──────────────────────────────────────────
+            // ⚠️ 返回值是「跑没跑」不是「绿没绿」—— 没跑就没跑,不许落成一条空告警。
+            if (LayerDriftCheck.TryCheck(src, src.VisualLayer, out List<string> c1))
+            {
+                if (c1.Count > 0)
+                {
+                    if (warnings == null) warnings = new List<string>();
+                    warnings.AddRange(c1);
+                }
+            }
+            else
+            {
+                notRun.Add("C1 两层漂移 —— 本关卡未声明视觉层(今日全库零视觉层资产)");
+            }
+
+            return new CheckReport(violations, UnimplementedChecks, warnings, notRun);
         }
 
         /// <summary>跑检查并在任一硬失败时 `throw`(ADR-022 §②:构建期失败通道,非 `Debug.Assert`)。</summary>

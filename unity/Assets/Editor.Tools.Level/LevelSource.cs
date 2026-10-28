@@ -141,6 +141,22 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>chunk 边长 Z(格);见 <see cref="ChunkSizeX"/>。</summary>
         public readonly int ChunkSizeZ;
 
+        /// <summary>
+        /// 视觉层逐格占用声明(C1 的比对对象)。
+        /// <para>🔁 <b>2026-10-29(story-006 AC-3)新增</b>。`null` = **本关卡未声明视觉层**
+        /// —— 此时 C1 进 `CheckReport.NotRun`,**不冒充绿**(今日全库零视觉层资产,
+        /// `World.unity` 只有 `Directional Light` + `Ground`)。</para>
+        /// </summary>
+        public readonly VisualLayerSource VisualLayer;
+
+        /// <summary>
+        /// 模块模板的 collider 足迹声明(C2' 的比对对象)。
+        /// <para>🔁 <b>2026-10-29(story-006 AC-2)新增</b>。`null` = **未声明足迹**
+        /// —— 此时 C2' 进 `CheckReport.NotRun`。⚠️ 声明与**模块 prefab** 是否一致
+        /// **本批未跑**(prefab 归 23 素材轮,今日全库零 prefab)。</para>
+        /// </summary>
+        public readonly IReadOnlyList<ModuleFootprintSpec> ModuleFootprints;
+
         /// <summary>世界总格数(`Width × Height × Depth`;越界即抛,见构造)。</summary>
         public readonly int TotalCells;
 
@@ -158,7 +174,8 @@ namespace DaYiJingCheng.EditorTools.Level
             string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots,
             IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0,
             EcozoneSource ecozones = null, PoiSource poi = null, ResourceSource resources = null,
-            int chunkSizeX = 0, int chunkSizeY = 0, int chunkSizeZ = 0)
+            int chunkSizeX = 0, int chunkSizeY = 0, int chunkSizeZ = 0,
+            VisualLayerSource visualLayer = null, IReadOnlyList<ModuleFootprintSpec> moduleFootprints = null)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -213,6 +230,14 @@ namespace DaYiJingCheng.EditorTools.Level
             Ecozones = ecozones;
             Poi = poi;
             Resources = resources;
+
+            // 视觉层声明:C1 的比对对象。长度对账由 `VisualLayerSource` 自己判(单一出处)。
+            if (visualLayer != null && visualLayer.TotalCells != TotalCells)
+                throw new ArgumentException(
+                    $"视觉层声明的世界格数 = {visualLayer.TotalCells},本关卡 = {TotalCells} —— " +
+                    "两者不是同一张图纸(C1 会比到别人的格上)", nameof(visualLayer));
+            VisualLayer = visualLayer;
+            ModuleFootprints = moduleFootprints;
 
             // chunk 三件:要么全声明(≥1),要么全为零(= 未声明)。
             // ⚠️ 半声明(如 X=8 而 Y=0)在 `ChunkTopology.ForWorld` 必抛,但那时报文指向

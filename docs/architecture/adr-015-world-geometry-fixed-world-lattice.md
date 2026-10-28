@@ -325,6 +325,11 @@ R-10 写明建造网格在「chunk / collider / NavMesh 动态 carving 成本」
 - [ ] **两层一致性检查**在关卡工具中存在,并能在 CI 里对已提交关卡跑一遍(`ADR-014` 陈旧门同构)。
       **✅ 2026-09-16 有执行点** —— 关卡工具已由 ADR-022 落盘(Tooling 层,行 54);
       本判据 = **ADR-022 §四 的 C1–C6**(C2 = 可走性同源)。
+      **✅ 2026-10-29 回指到具体检查(story-006 AC-6)**:C1 = `unity/Assets/Editor.Tools.Level/LayerDriftCheck.cs`
+      (告警)· C2 = `WalkabilityParityCheck.cs`(硬失败,`slopeLimit` / `stepOffset` **各一条**判据)·
+      C2' = `ColliderFootprintCheck.cs`(硬失败)· CI 入口 = `LevelCiRunner.cs`
+      + `tools/level/run_ci.sh`(退出码 0 / 1 / 2 三态:无硬失败 / 有硬失败 / 链跑不起来)。
+      ⚠️ **C1 与 C2' 今日在生产上进 `NotRun`**(零视觉层资产 / 零模块 prefab)—— 有实现不等于有结论。
 - [ ] **可走性同源(BLOCKING · 2026-09-16 新增)**:`slopeLimit` / `stepOffset` 由**关卡工具与逻辑层同源定义**
       (§一之补);装载期校验两侧一致,**不一致即硬失败**(不静默降级)。
       *验证:系统 1 的 `AC-1-33` ② 同判据;检查落 **ADR-022 §四 C2**(**硬失败**)。*

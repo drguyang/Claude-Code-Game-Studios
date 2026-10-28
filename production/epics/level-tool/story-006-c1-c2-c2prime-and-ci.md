@@ -1,12 +1,13 @@
 # Story 006: C1 两层漂移 + C2 可走性同源 + C2' collider 足迹同源 + CI 接线
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-10-29**(AC 6/6;证伪轮 15/15 红;CI 端到端探针成立;
+> 原件 `production/qa/evidence/impl-level-tool-story-006-2026-10-29.md`)
 > **Layer**: Tooling
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ## Context
 
@@ -66,29 +67,29 @@ ADR-022 的立件缘由逐字写着:
 
 ## Acceptance Criteria
 
-- [ ] **AC-1(BLOCKING)** —— **C2 可走性同源 = 硬失败**:
+- [x] **AC-1(BLOCKING)** —— **C2 可走性同源 = 硬失败**:
       `|engineParam − Dequantize(bakedInt)| ≤ 1 量子`,对 `slopeLimit` **与** `stepOffset` **各一条**。
       **判据**:① 注入一处超 1 量子的偏差 ⇒ **抛**;② 注入恰 1 量子的偏差 ⇒ **不抛**(边界);
       ③ 注入超 1 量子 +1 单位 ⇒ **抛**。
       ⚠️ **三条缺一不可** —— 只测「超了会抛」时,一个「阈值写得很松」的实现也能通过。
       ⚠️ `slopeLimit` 与 `stepOffset` **各一条夹具** —— 两者是不同的量,不得合并。
-- [ ] **AC-2(BLOCKING)** —— **C2' 模板 collider 足迹同源 = 硬失败**:
+- [x] **AC-2(BLOCKING)** —— **C2' 模板 collider 足迹同源 = 硬失败**:
       collider 高度 > `stepOffset` ⇒ **抛**,**除非**模块显式声明可走过(如地毯)。
       **判据**:① 高 collider 无声明 ⇒ 抛;② 高 collider **有**声明 ⇒ 不抛
       (证明「例外路径可达」,不是「恒抛」);③ 足迹与占用格不一致 ⇒ 抛。
-- [ ] **AC-3(BLOCKING)** —— **C1 两层漂移 = 告警**:
+- [x] **AC-3(BLOCKING)** —— **C1 两层漂移 = 告警**:
       逻辑占用格 ↔ 视觉地形不矛盾。
       **判据**:① 注入漂移 ⇒ **报出告警**;② **不**使构建失败。
       ⚠️ **必须验「报出」** —— 「永远不报」也满足 ②,那是告警类检查的经典假绿。
-- [ ] **AC-4(BLOCKING)** —— **CI 接线**:
+- [x] **AC-4(BLOCKING)** —— **CI 接线**:
       整个 C1–C6 检查链可在 **CI 里跑**(不需要打开编辑器 GUI)。
       **判据**:① 一条命令跑完 C1–C6;② 硬失败项以**非零退出码**体现;
       ③ 告警项以**零退出码 + 可读输出**体现。
       ⚠️ **判据须给 `file:line` + 一条能证明它会红的命令**(承
       `coding-standards.md` §「某件有门」的自述纪律)。
-- [ ] **AC-5(BLOCKING)** —— **`UnimplementedChecks` 长度 == 0**:
+- [x] **AC-5(BLOCKING)** —— **`UnimplementedChecks` 长度 == 0**:
       C1–C6 七项全部实现。**判据**:数组为空 ⇒ 本 epic 的 DoD 达成。
-- [ ] **AC-6** —— **两条 Validation 判据落地**:
+- [x] **AC-6** —— **两条 Validation 判据落地**:
       `ADR-015 §Validation:317` 与 `ADR-016 §Validation:442` 的「在关卡工具中存在」
       可被指到**具体检查**(C1 / C3)。
       **判据**:两处 ADR 文本各加一条回指注记(指向本 story 的检查实现)。
@@ -183,6 +184,26 @@ AC-1 的判据用 `Dequantize(bakedInt)`。该函数归 **S2** 定义(逻辑侧�
 - ⚠️ **既有 `locomotion_chain_test.cs` 的 `test_ac133_*` 须保持全绿** ——
   本 story 给 `AC-1-33②` 提供**参数来源**,不得改它的判据
 
+**✅ 2026-10-29 交付**:
+- 夹具 `consistency_c1_c2_c2prime_test.cs` **20 条**,全绿(LevelTool 子集 `118 / 116 / 0 / 2`)。
+- **CI 门**:`tools/level/run_ci.sh` → `LevelCiRunner.RunBatch`;**端到端实跑**干净 ⇒ 退出码 **0**、
+  注入 `SlopeLimitDegX100 4500→3000` ⇒ 退出码 **1** 且报文点名 `C2 slopeLimit`;
+  还原 **SHA-256 `d34be19b…8be90` 逐字节一致**。
+- **证伪轮 15 条全红**(含一条首轮假存活 F13,修夹具后转红)。
+- `test_ac133_*` **未改动**,随全量 EditMode 跑绿。
+- 原件 = `production/qa/evidence/impl-level-tool-story-006-2026-10-29.md`。
+
+**证伪反证(S12-4 模板)**:
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 阈值边界(C2) | `\|engine−baked\| ≤ 1 量子` | F1 停用 slope 判据 · F2 停用 step 判据 · F3 阈值放宽到 2 · **各 1 条红** |
+| 阈值边界(C2' 等高) | `高度 > stepOffset`(严格) | F4 改 `>=` ⇒ 等高夹具红 |
+| 定义域收窄(C2' 例外) | 「有声明 ⇒ 不抛」 | F5 删例外分支 ⇒ 该条红 |
+| 共存互斥(C1 双向) | 方向① / 方向② / 干净基线 | F8 停方向① · F9 停方向② · F10 恒报 ⇒ **各 1 条红** |
+| 一次性/幂等(CI 三态) | 0 / 1 / 2 三个退出码 | F11 恒 0 · F12 合并 1 与 2 ⇒ 各 1 条红 |
+| 量化口径(ADR-006) | 半量子 away-from-zero | F13 换 `Math.Round` ⇒ 红(**首轮假存活,修夹具后成立**) |
+
 ---
 
 ## Dependencies
@@ -201,3 +222,46 @@ AC-1 的判据用 `Dequantize(bakedInt)`。该函数归 **S2** 定义(逻辑侧�
 3. **CI 门在真实 CI 环境(而非本机)的行为** —— 本 story 只证明本机命令会红。
 4. **`slopeLimit` / `stepOffset` 的数值合理性** —— 用户数值轮。
 5. **量化函数的正确性** —— 归 S2;本 story 只用不验。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-29
+**Criteria**: **6 / 6 passing**(AC-1 … AC-6 全勾;AC-5 的口径见下)
+**Deviations**: 无 blocking;三处旧夹具随判据迁移改了形态(见下 §2)
+**Test Evidence**: Integration — `unity/Assets/Tests/EditMode/LevelTool/consistency_c1_c2_c2prime_test.cs`(20 条)
++ CI 门实跑证据(原件 `production/qa/evidence/impl-level-tool-story-006-2026-10-29.md`)
+**Code Review**: 未跑 `/code-review`(lean 模式;建议在 epic 收口时补一轮)
+
+### 1. AC-5 的口径(**必须这么读**)
+
+「`UnimplementedChecks` 长度 == 0」证明的是 **C1–C6 七项都有实现**,
+**不证明**「七项在生产上今天都跑出了结论」。今日真跑的只有 **C2** 与 **C3**;
+**C1 / C2' 在生产上必然进 `CheckReport.NotRun`**(第三态)—— 因为全库零视觉层资产、零模块 prefab。
+这三态在**类型上可分**(`Violations` / `Warnings` / `NotRun`),CI 每次都打印,不静默跳过。
+
+### 2. 三处旧夹具的形态变化(原文保留 + 加注,未删史)
+
+| 夹具 | 原判据 | 现形态 | 理由 |
+|---|---|---|---|
+| `level_tool_consistency_test::test_levelTool_realSeed_…` | `Unimplemented.Count == 3` | `== 0` | 三条已实现 |
+| `nav_chunk_slicing_test::test_ac6_…leavingThree` | 恰 3 条 | **`Assert.Ignore`** | **宾语消失** —— 不是跳过失败 |
+| `level_source_generalization_test::test_ac4_…` | 清单非空守卫 | **`Assert.Ignore`** | 同上 |
+
+⇒ 全量 EditMode 的 `skipped` 因此 35 → **37**。
+
+### 3. 本轮自身的三处错误(如实登记)
+
+1. `if (TryCheck(...)) AddRange(...)` —— **C2 恒绿**,被夹具当场抓到;
+2. 证伪驱动器首轮 `-testFilter` **漏类名** ⇒ 15 条全部 `total=0`、整轮「全绿」实为**一条没跑**;
+   已给驱动器补 `FILTER-MISS(未跑到)` 判据;
+3. F13 夹具的 `0.0125f × 1000` **不在中点**(实为 `12.500000186`)⇒ 对舍入模式零判别力;
+   改用 `0.5f × 1` 后转红。**修夹具,不改实现。**
+
+### 4. 回归
+
+- EditMode **`5842 / 5805 / 0 / 37`** @ 2026-10-29 07:04 CST · story-006 实现轮 · `5eba3a8e`+工作树
+  (接线轮基线 `5822 / 5787 / 0 / 35` ⇒ total **+20** = 新增 `[Test]` 恰 20)
+- PlayMode **`238 / 234 / 0 / 2 / 2`**(与基线逐项相同;进程退出码 2 由那 2 条 **Inconclusive** 引起,
+  XML `failed = 0`,**与本轮无关**,如实登记)

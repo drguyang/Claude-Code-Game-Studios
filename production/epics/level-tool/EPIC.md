@@ -3,11 +3,15 @@
 > **Layer**: **Tooling**(编辑期 / 构建期 —— **运行期零存在**,不进构建)
 > **GDD**: **无** —— 它是工具不是玩法系统;产出契约 + 一致性检查 = **ADR-022**
 > **Architecture Module**: `unity/Assets/Editor.Tools.Level/`(asmdef `Editor.Tools.Level`)
-> **Status**: **In Progress** —— **S1 / S2 / S3 / S4 已 Complete(2026-10-29)**;S5–S6 **未实现**
+> **Status**: **✅ Complete 2026-10-29 —— 6 / 6 story 全部 Complete**
+> (S1–S4 · S5(`4fe6742a`)· S6 · 原件均在 `production/qa/evidence/impl-level-tool-story-00X-2026-10-29.md`)
+> ⚠️ **「epic 完成」不等于「七项检查在生产上都跑出了结论」** —— C1 / C2' 需要作者侧声明作输入,
+> 而全库零视觉层资产、零模块 prefab ⇒ 它们在**生产上**进 `CheckReport.NotRun`(第三态),**不是绿**。
+> 见 `story-006` §Completion Notes 1。
 > (本 epic **2026-10-28 立**,同日推翻 2026-10-21 的「不立 epic、不排期」裁定)
 > **Stories**: 6 stories — see table below
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ---
 
@@ -156,8 +160,8 @@ grep -n 'const int Width\|const int Height\|const int Depth\|LevelId =' \
 | **002** | `world_geometry` / `world_terrain` 导出 + 烘焙 + 运行期装载 | **#5 世界几何仍是合成**(地形半边) | 001 | Integration | L | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-002-2026-10-29.md`) |
 | **003** | `world_ecozones` 导出 + C4 多边形合法性 + C5 边界单一源 | **#3 C1–C6**(C4/C5 两条) | 002 | Logic | L | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-003-2026-10-29.md`) |
 | **004** | `world_poi` / `world_resources` 导出 + 运行期定义装载 | **#5 世界几何仍是合成**(POI / 资源半边) | 002 | Integration | M | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-004-2026-10-29.md`) |
-| **005** | `world_nav_{chunk}` 切片 + C6 切片完整性 + C3 告警 | **#3 C1–C6**(C6/C3 两条)· **#4** 的 chunk 半边 | 002 | Logic | L | 未实现 |
-| **006** | C1 两层漂移 + C2 可走性同源 + C2' collider 足迹同源 + CI 接线 | **#3 C1–C6**(C1/C2/C2' 三条) | 002 · 003 | Integration | M| 未实现 |
+| **005** | `world_nav_{chunk}` 切片 + C6 切片完整性 + C3 告警 | **#3 C1–C6**(C6/C3 两条)· **#4** 的 chunk 半边 | 002 | Logic | L | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-005-2026-10-29.md`) |
+| **006** | C1 两层漂移 + C2 可走性同源 + C2' collider 足迹同源 + CI 接线 | **#3 C1–C6**(C1/C2/C2' 三条) | 002 · 003 | Integration | M | ✅ **Complete 2026-10-29**(原件 `production/qa/evidence/impl-level-tool-story-006-2026-10-29.md`;AC 6/6 · 证伪 15/15 红) |
 
 ### 为什么 C1/C2/C2' 排在最后(S6)而不是最先
 
@@ -178,17 +182,27 @@ C5 无对象。**先做 C2 会得到一个只能拿夹具自证的检查**(本�
 
 本 epic 完成须**同时**满足:
 
-- [ ] **7 类数据集全部存在**(JSON + cooked),且 `data-core` 组条目齐
-- [ ] **C1–C6 七项全部实现**,`UnimplementedChecks` **数组为空**(判据 = 该数组长度 == 0)
-- [ ] **每个硬失败项(C2/C2'/C4/C5/C6)各有一条「注入缺陷 ⇒ 检查转红」的负向夹具**
+- [x] **7 类数据集全部存在**(JSON + cooked),且 `data-core` 组条目齐
+      ✅ 实测:`ls assets/data/ | grep world` ⇒ 10 件(geometry/terrain/ecozones/poi/resources/buildslots + nav 0–3);
+      `unity/Assets/DataCooked/` 同名 10 件 cooked;`data-core` 组 **35** 条
+- [x] **C1–C6 七项全部实现**,`UnimplementedChecks` **数组为空**(判据 = 该数组长度 == 0)
+      ⚠️ 读作「七项都有实现」,不读作「七项在生产上都跑出了结论」—— C1 / C2' 生产上进 `NotRun`
+- [x] **每个硬失败项(C2/C2'/C4/C5/C6)各有一条「注入缺陷 ⇒ 检查转红」的负向夹具**
+      ✅ C2/C2' = story-006 证伪 F1–F7;C4/C5 = story-003;C6 = story-005(各自原件)
       —— 只有正向绿不算(承本仓「假绿」纪律)
-- [ ] **告警项(C1/C3)各有「注入漂移 ⇒ 报出告警但不失败」的夹具**
-- [ ] **至少 2 个关卡**能导出(证明 S1 的泛化不是「把 1 改成 2」)
-- [ ] **运行期装载面接通**:`world_geometry` / `world_ecozones` / `world_poi` /
+- [x] **告警项(C1/C3)各有「注入漂移 ⇒ 报出告警但不失败」的夹具**
+      ✅ C1 = story-006 F8/F9(双向)+ F10(「恒报」杀手);C3 = story-005
+- [x] **至少 2 个关卡**能导出(证明 S1 的泛化不是「把 1 改成 2」)
+      ✅ `LevelCatalog.LevelIds` = `P0ClinicLevel` + `ScaffoldSecondLevel`,各有 `Define()` 支与导出夹具
+- [x] **运行期装载面接通**:`world_geometry` / `world_ecozones` / `world_poi` /
       `world_resources` 各有生产装载路径,**且 `MinimalWorldFactory` 被装载路径替换**
-      (它的 `LogWarning` 是本 epic 完成时应消失的诊断锚点)
-- [ ] `world-ecozones/story-005` 的 EXTERNAL 前置解除(它的判据逐字是「关卡工具 CI」)
-- [ ] SP-10 行的 🔁 注记与 `systems-index.md` / `production/epics/index.md` 三处口径一致
+      ✅ `MinimalWorldFactory` 已改读 `DataCooked` 产物(story-002 起),其**合成世界分支与 `LogWarning` 锚点已消失**;
+      导航格另经 `LoadNavLattice` 装载(story-005 接线轮)
+- [x] `world-ecozones/story-005` 的 EXTERNAL 前置部分解除
+      ◐ **工具 CI 半边 = 解除**(`tools/level/run_ci.sh` 可跑,退出码分级已端到端实测);
+      ⚠️ **两层一致性抽样半边仍不可判** —— 它要「肉眼核对视觉层地形可读性」,而视觉层尚未产出
+- [x] SP-10 行的 🔁 注记与 `systems-index.md` / `production/epics/index.md` 三处口径一致
+      ✅ 2026-10-28 立件轮已落(复算见 `p0-remaining-roadmap` SP-10 行的 📌 取件前必读)
 
 > ⚠️ **本 epic 不承诺 P0 时间内完成**。它是**被排期**,不是**被承诺**。
 > 排期理由见 §立件缘由;完成时点归 sprint 计划,不在本文件断言。

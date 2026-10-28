@@ -528,6 +528,9 @@ NavMesh 烘焙成本)| Feature | MEDIUM | 13 / 27」。它把三件不同层次�
 - [ ] **导航格 ↔ NavMesh 一致性检查**在关卡工具中存在,且能对已提交关卡跑一遍
       **✅ 2026-09-16 有执行点** —— 关卡工具已由 **ADR-022** 落盘(Tooling 层,行 54);
       本判据 = **ADR-022 §四 C3**(告警;§五 C6 保证导航格按 chunk 切片无遗漏)
+      **✅ 2026-10-29 回指到具体检查(story-006 AC-6)**:C3 判据 = `unity/Assets/Editor.Tools.Level/NavMeshConsistencyCheck.cs`
+      (三态 `Reachable` / `Unreachable` / `Unknown`);生产采样器 = `NavMeshReachabilitySampler.cs`;
+      CI 入口 = `LevelCiRunner.cs` + `tools/level/run_ci.sh`(告警**不**影响退出码)。
 - [ ] **TR 推进**:`TR-randomevents-028` → covered;`TR-randomevents-029` → covered
       (registry + traceability-index 同步)
 

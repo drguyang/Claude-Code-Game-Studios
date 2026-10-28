@@ -265,6 +265,14 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             string[] items = LevelConsistencyCheck.UnimplementedChecks;
 
+            // 🔁 **2026-10-29(story-006 AC-5)**:清单归零 ⇒ 本测的宾语(那三条的措辞)已不存在。
+            //    这里**不能**改成「Length == 0 就通过」—— 那是空扫描自证,正是原守卫要防的形态。
+            //    改为显式「无宾语」登记:不计绿、不冒充跑过。
+            if (items.Length == 0)
+                Assert.Ignore(
+                    "NOT-RUN: `UnimplementedChecks` 已归零(story-006 AC-5: C1 / C2 / C2' 全部落地)" +
+                    " —— 本测的判据对象(未实现项的措辞)已不存在,不是通过。");
+
             Assert.That(items.Length, Is.GreaterThan(0), "扫描键守卫:清单为空则下面的逐条断言会被「什么都不查」满足");
 
             foreach (string item in items)

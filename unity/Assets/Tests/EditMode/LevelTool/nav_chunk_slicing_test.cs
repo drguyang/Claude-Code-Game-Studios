@@ -471,21 +471,17 @@ namespace DaYiJingCheng.Tests.LevelTool
         // ══════════════════ AC-6:未实现项 5 → 3 ══════════════════
 
         /// <summary>AC-6:`UnimplementedChecks` 恰 3 条,且 C3 / C6 **已移出**。</summary>
-        /// <remarks><b>判别力</b>:少删一条 ⇒ 长度不符;C3/C6 还留着 ⇒ 第二条断言红。</remarks>
+        /// <remarks><b>判别力</b>:少删一条 ⇒ 长度不符;C3/C6 还留着 ⇒ 第二条断言红。
+        /// <para>🔁 <b>2026-10-29(story-006 AC-5)原文保留 + 判据迁走</b>:C1 / C2 / C2' 已全部落地,
+        /// 清单归零 ⇒ 本条「恰 3 条」的判据**已无宾语**。当前条数判据 = story-006 的
+        /// `consistency_c1_c2_c2prime_test::test_ac5_unimplementedChecks_isEmpty`(判 0 条)。
+        /// 本方法**不删**:它记录的是「C3 / C6 移出」那一刻的判据,删掉会让那一轮的证据消失。</para></remarks>
         [Test]
         public void test_ac6_unimplementedChecks_dropsC3AndC6_leavingThree()
         {
-            string[] items = LevelConsistencyCheck.UnimplementedChecks;
-
-            Assert.That(items.Length, Is.EqualTo(3),
-                "story-005 起 C3 / C6 已实现 ⇒ 未实现项须恰为 3 条(C1 / C2 / C2');" +
-                "变少 = 越界(没实现却删了),变多 = 闭集漂移");
-
-            string joined = string.Join("\n", items);
-            Assert.That(joined, Does.Not.Contain("C3 "), "C3 已实现,不应还在未实现清单里");
-            Assert.That(joined, Does.Not.Contain("C6 "), "C6 已实现,不应还在未实现清单里");
-            Assert.That(joined, Does.Contain("C1 "), "C1 仍归 S6,须在清单里");
-            Assert.That(joined, Does.Contain("C2 "), "C2 仍归 S6,须在清单里");
+            Assert.Ignore("NOT-RUN: 本测的宾语已不存在 —— 2026-10-29 story-006 起 `UnimplementedChecks` 归零" +
+                          "(C1 / C2 / C2' 全部落地)。**这不是通过,是无宾语**。" +
+                          "当前判据见 `consistency_c1_c2_c2prime_test::test_ac5_unimplementedChecks_isEmpty`。");
         }
 
         // ══════════════════════════ 工具 ══════════════════════════

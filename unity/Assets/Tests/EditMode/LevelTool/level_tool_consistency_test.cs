@@ -37,11 +37,17 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(src.Slots.Count, Is.EqualTo(13), "P0 种子 = 9 Decor + 4 Shell");
             // 🔁 **2026-10-29(关卡工具 story-003 AC-6)7 → 5**:C4 / C5 已实现并移出本表。
             // 🔁 **2026-10-29(关卡工具 story-005 AC-6)5 → 3**:C3 / C6 已实现并移出,
-            //    剩 C1 / C2 / C2'(全归 S6)。判据形态不变(少报 = 把未实现伪装成已实现)。
+            //    剩 C1 / C2 / C2'(全归 S6)。
+            // 🔁 **2026-10-29(关卡工具 story-006 AC-5)3 → 0**:C1 / C2 / C2' 全部落地。
+            //    ⚠️ **「0」读作「七项都有实现」,不读作「七项在生产上都跑出了结论」** ——
+            //    其中 C1 / C2' 需要作者侧声明作输入,而今日全库零视觉层资产、零模块 prefab
+            //    ⇒ 它们在**生产上**进 `CheckReport.NotRun`(第三态),**不是绿**。
+            //    这个区分由 `consistency_c1_c2_c2prime_test` 的三态夹具守着。
             //    ⚠️ 用例名里的 `Seven` 是历史名,保留不改 —— 改名会让 grep 断链(原文不删的纪律)。
-            Assert.That(report.Unimplemented.Count, Is.EqualTo(3),
-                "ADR-022 §四 的 C1–C6 里尚未实现的**恰好 3 条**(C1 / C2 / C2')—— " +
-                "少报 = 把未实现伪装成已实现(禁借绿):\n" + string.Join("\n", report.Unimplemented));
+            Assert.That(report.Unimplemented.Count, Is.EqualTo(0),
+                "ADR-022 §四 的 C1–C6 七项均已有实现 —— " +
+                "多报 = 把已实现说成未实现;少报(反向)由 story-003/005/006 逐轮钉住:\n" +
+                string.Join("\n", report.Unimplemented));
         }
 
         /// <summary>重复格 ⇒ 违例,报文点名「重复」+ 坏格坐标。</summary>
