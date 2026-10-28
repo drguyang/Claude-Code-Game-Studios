@@ -1179,6 +1179,18 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 > **`+1` 的用例级点名**:`test_b1q_rebuild_rollbackAlsoThrows_originalExceptionNotMasked`
 > = 恰 1 条新增,零删除。复算见 `production/qa/evidence/review-s20-20-2026-10-28.md` §六。
 
+> 🔁 **2026-10-28 §七-6 Addressables 重建复跑轮(原文各轮不删,下方为新实测)** —— 三元组:
+> 截至时刻 `2026-10-28T12:04Z` · 批次 `§七-6 重建复跑轮 · 全量` · commit `b53a53d6`(工作树含本批未提交改动)。
+>
+> | 套件 | 结果(XML 原值) | 上一轮(§七-1 嵌套异常轮) | 差 |
+> |---|---|---|---|
+> | EditMode | `5702 / 5667 / 0 / 0 / 35` | `5702 / 5667 / 0 / 0 / 35` | **全零** |
+> | PlayMode | `238 / 234 / 0 / 2 / 2` | `238 / 234 / 0 / 2 / 2` | **全零** |
+>
+> **全零是预期形态** —— 本轮是**纯文档 + 只读实验**,零代码改动 ⇒ 用例数不应变。
+> (⚠️ 反过来说:若本轮出现 `+N`,那才是异常信号。)
+> 复算见 `production/qa/evidence/review-s20-20-2026-10-28.md` §六 的同轮块。
+
 ### 本轮明确未做(NOT-RUN,禁借绿)
 
 1. ~~**`World.Reset()` 侧回滚无独立变异** —— 与 `ApplyBakedInitial` 共享同一语义,
@@ -1230,3 +1242,26 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
    > ⚠️ **编号订正**:我先把它记成 `TD-building-04` —— **错了**,缺口在存档布局与池实现,
    > 不在建造投影;挂 23 会让 epic 分布记错一格。
 
+5. **未跑 `Addressables` 内容重建**(§十三 之后新增,承 `review-s20-20` §七-6)。
+   > 🔁 **2026-10-28 已闭(且实测证伪了上一轮的归因)**(原文不删)。三件事:
+   >
+   > ① **「理论上不影响烘焙产物」已实测证实**:复跑后产物**逐字节不变**
+   > (`catalog.bin` SHA-256 `f52175cb…5cd3` · `BuildResultHash` `5d2deedb…8ce`,
+   > **连续四轮同值**),而 `BuildStartTime` 每轮都在变(`13:52:34`→`19:23:46`→`19:25:52`→`19:44:15`)
+   > ⇒ 构建真跑了,这轮改动(`Editor.Tools.Level`)不进产物。
+   > `CatalogFreshnessGateTest` **3/3 绿**(含 `_premise` 探针),见 `unity/Logs/s20-73-catalog-gate.xml`。
+   >
+   > ② ⚠️ **上一轮的归因「必须关 Search 索引」被证伪**。索引开关**全程 `true`**
+   > (`Search.settings` mtime 停在 `13:53:22`、SHA-256 `0b3e5423…`),而本轮**四格成功构建
+   > 全在索引开启下跑成**。真实原因是 `addr6` 同时改了三样(`-quit` / 去重复 `-executeMethod` /
+   > 关索引),**归因落在错的那一样上**。索引对构建成败无因果:有 `-quit` 时索引根本不启动,
+   > 无 `-quit` 时索引在**构建之后**才启动(`noquit` `:715`→`:742`)。
+   >
+   > ③ **真实必要条件 = 单条 `-executeMethod`**(六格判别矩阵,正序两格 Ensure 跑/Build 不跑、
+   > 反序一格 Build 跑/Ensure 不跑 ⇒ **Unity batchmode 只执行第一条,其余静默丢弃,零警告**)。
+   > 由此新揭 **`TD-ci-02`**:`BuildAddressablesContent` 不调 `EnsureDataCoreGroup`,
+   > 两入口无合并 ⇒ 写成两条 `-executeMethod` 时**组建好但 catalog 不重建、退出码 0** = 假绿。
+   > 详见 `review-s20-20-2026-10-28.md` §七-6 与债册 `TD-ci-02`。
+   > ⚠️ **诚实边界**:「只跑第一条」是**六格归纳**非源码级机制说明(Unity 未文档化);
+   > `addr5` 那格来自上一轮日志(本轮未重跑),但本轮 `double-exec` / `double-noquit`
+   > 两格同形态且为本轮实测 ⇒ 结论不依赖旧日志。

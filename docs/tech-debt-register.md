@@ -431,6 +431,7 @@
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | open | **N** | R1 |
 | `TD-building-03` | `modular-building` | open | **N** | R1 |
+| `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | open | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -4814,3 +4815,59 @@ python3 tools/debtcount/debtcount.py --print
 > `条目 129 → 130` · `open 79 → 80` · `Y 102 → 103` · **`未闭 P0 面 63 → 64`** ·
 > **`epic 分布 10/31 → 11/31`**(`persistence-service` 由 0 变 1)。
 > ⚠️ **`未闭 P0 面` 本轮是单向 +1**(不是相抵)—— 与上一轮「结案 + 新债相抵」的形态**不同**,别照抄那句话。
+
+---
+
+## 2026-10-28 · S20-20 §七-6 Addressables 重建复跑新揭:双 `-executeMethod` 只跑第一条(1 条 · `TD-ci-02`)
+
+**出处**:`review-s20-20-2026-10-28.md` §七-6 的补做轮。该轮原只为「未跑 Addressables 内容重建」
+补一次复跑,却在**归因上一轮的失败**时发现上一轮记的原因(「必须关 Search 索引」)**是错的**,
+而真正的必要条件(单条 `-executeMethod`)背后藏着一条**退出码 0 的假绿**。
+
+### TD-ci-02 — Unity batchmode 只执行第一条 `-executeMethod`,其余静默丢弃
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | Unity `-batchmode` 命令行里写**多条** `-executeMethod` 时,**只有第一条被执行**,其余**静默丢弃**,且**无任何警告**。`DataBakeMenu.BuildAddressablesContent` 与 `DataBakeMenu.EnsureDataCoreGroup` 是**两个独立菜单项**,前者**不调用**后者 ⇒ 想「先确保组、再构建」而写成两条 `-executeMethod`(最自然的写法,也是 2026-10-28 实际用过的那条命令)**只会跑第一步**:组被建好、`data-core.asset` 被改写,但 **catalog 不重建** ⇒ 新增条目的 address 查不到 Location ⇒ PlayMode 启动序整条挂掉,而**进程退出码 = 0**。 |
+| **实测(六格判别矩阵 · 逐条可跑)** | 见下表。判据 = `grep -n "data-core 组就绪\|Addressables 内容已构建\|Starting Initial Indexing\|Exiting batchmode" unity/Logs/<轮>.log`。<br>**正序两格**(Ensure→Build):Ensure 跑、**Build 零痕迹**;`double-exec` 有 `-quit` ⇒ 正常 `Exiting :486`;**`double-noquit` 无 `-quit` ⇒ 索引 `:428` 卡住、进程不退出(我 kill)**。<br>**反序一格**(Build→Ensure):**Build 跑 `:688`、Ensure 零痕迹** ⇒ 排除了「Ensure 会把后续吞掉」这个解释,坐实「只跑第一条」。<br>**单条三格**全部成功(`:819` / `:811` / `:715`)。 |
+| **警告为零** | `grep -ci "executeMethod.*only\|multiple.*executeMethod\|ignoring.*executeMethod"` 在五份日志上**全为 0** ⇒ 静默,不是「有警告但被忽略」。 |
+| **为什么这是债而不是「用法错误」** | ① Unity **官方文档未记载**该限制 —— `EditorCommandLineArguments.html` 的 `-executeMethod` 段(`6000.0` Manual)只写「Execute the static method as soon as Unity opens the project」,**单数、无多值说明**,也未提「仅第一个生效」。② 用户面对的是**退出码 0 + 一条成功日志**(`data-core 组就绪`),**没有任何信号**提示「第二步没跑」。③ 后果是 PlayMode 启动序整条挂掉(见 `BuildAddressablesContent` 自身文档自述的症状),而构建侧**报绿**。⇒ 本项目最忌的**假绿**形态,与 `TD-audio-01e`(「报绿而组实际缺失」)**同族**。 |
+| **触发条件** | ① 任何人/任何脚本把「确保组 + 构建内容」写成两条 `-executeMethod` 作 CI 前置步时;**即刻可达**(`addr5` 就是这么跑的)。② 新增 `.cooked.bytes` 产物后走这条双命令路径 ⇒ 组有了、catalog 没更新 ⇒ PlayMode 9 条启动序测试全红,而 CI 绿。 |
+| **修法方向(未裁,三种)** | ① **加一个合并入口** —— 新增 `[MenuItem] BuildDataCoreAndAddressables()`,内部先 `EnsureDataCoreGroup()` 再 `BuildAddressablesContent()`,并在两份 doc 里写明「CI 前置步用这个,不要写两条 `-executeMethod`」。代价:要证明合并入口真的会跑完两步(须有进程级夹具)。<br>② **构建前自检** —— `BuildAddressablesContent` 开头断言「组条目数 == `DataCooked` 下 `*.cooked.bytes` 数」,不等则 `throw`。代价:把「该先跑 Ensure」变成硬失败,但**没解决「用户不知道要先跑」**。<br>③ **只写文档** —— 在两处 doc 加警示。代价:纪律靠人守,`addr5` 证明人会踩。<br>⇒ 倾向 **① + ②** 组合(①给正确路径,②兜住走错路的人),但**须先裁**,不在此自裁。 |
+| **归属** | **治理面**(跨 epic · 数据管线菜单的 CI 前置步形态),承 §一 **R3 裁量判据**。**不挂 `modular-building`** —— 债在**调用形态**(命令行约定)与**菜单结构**(两个入口无合并),不在建造投影。**也不并入 `TD-ci-01`** —— `-01` 是「CI 常驻矩阵因缺凭证从未真跑」(EXTERNAL,agent 侧无解),本条是「CI 一旦真跑就会踩的假绿」(agent 侧可修),两者**因不同、解法不同**。 |
+| **`P0 面 = N` 的理由** | 无归属 epic(治理面),承 §一 R3 裁量判据;`addr5` 是**手工跑的复跑轮**,不是 P0 出口必经路径。⚠️ 但**一旦 CI 常驻矩阵能跑起来(`TD-ci-01` 解除),本条立刻变成 CI 必踩的假绿** ⇒ 两条有**时序耦合**:修 `TD-ci-01` 之前应先看本条。 |
+
+| 轮次 | `-executeMethod` | `-quit` | Ensure | **Build** | 索引行 | Exiting |
+|---|---|---|---|---|---|---|
+| `s20-89-addr5` | **2**(Ensure→Build) | ✗ | ✅ `:406` | **✗ 零痕迹** | `:445` | ✗(崩溃) |
+| `s20-89-addr6` | 1(Build) | ✅ | — | ✅ `:819` | 无 | ✅ `:856` |
+| `s20-73-addr-rerun` | 1(Build) | ✅ | — | ✅ `:811` | 无 | ✅ `:849` |
+| `s20-73-addr-noquit` | 1(Build) | ✗ | — | ✅ `:715` | `:742` | ✗ |
+| `s20-73-addr-double-exec` | **2**(Ensure→Build) | ✅ | ✅ `:407` | **✗ 零痕迹** | 无 | ✅ `:486` |
+| `s20-73-addr-reverse-exec` | **2**(Build→Ensure) | ✅ | **✗ 零痕迹** | ✅ `:688` | 无 | ✅ `:725` |
+| `s20-73-addr-double-noquit` | **2**(Ensure→Build) | ✗ | ✅ `:389` | **✗ 零痕迹** | `:428` | ✗(我 kill) |
+
+> ⚠️ **上一轮的错误归因(本条同时是它的订正记录)**:`addr5` 卡死 / `addr6` 成功后,
+> 当时记下的结论是「**必须关 `Search.settings:24 indexOnEditorStartup`**」。本轮实测:
+> 索引开关**全程 `true`**(`Search.settings` mtime 停在 `13:53:22`、SHA-256 `0b3e5423…`),
+> 而本轮**四格成功构建全都在索引开启下跑成** ⇒ 「必须关索引」**被证伪**。
+> 真实原因是 `addr6` 同时改了**三样**(`-quit` / 去重复 `-executeMethod` / 关索引),
+> **归因落在错的那一样上**。索引对构建成败**无因果**:
+> 有 `-quit` 时索引根本不启动(`rerun`/`double-exec`/`reverse-exec` 索引行 = 无),
+> 无 `-quit` 时索引在**构建之后**才启动(`noquit` `:715`→`:742`;`double-noquit` `:389`→`:428`)。
+> ⇒ 这是「**同时改多项 ⇒ 归因错误**」的实例,登记在此以免下一轮再照抄那条结论。
+
+> ⚠️ **「只跑第一条」是六格归纳,不是源码级机制说明** —— Unity 未文档化此事,
+> 无官方出处可引。`addr5` 那格来自**上一轮日志**(本轮未重跑),但本轮补的
+> `double-exec` / `double-noquit` 两格同形态且为本轮实测 ⇒ 结论不依赖旧日志。
+> `addr5` 的崩溃(FMOD TLS 断言)与「只跑第一条」**无关** —— 它发生在
+> `Application is shutting down...` **之后**(退出路径)。
+> ⚠️ **`double-noquit` 也崩了**(同型 FMOD TLS,亦在 shutting down 之后,由我 TERM/KILL 触发);
+> 排除「崩溃导致 Build 没跑」的论据**只用 `double-exec`**(`-quit`、零崩溃、正常 `Exiting :486`,
+> 而 Build 同样零痕迹),不用 `double-noquit`。
+
+> **本条落盘后的实测读数**(`python3 tools/debtcount/debtcount.py --print`,实跑输出照抄):
+> `条目 130 → 131` · `open 80 → 81` · `Y 103 → 103`(不动)· **`N 26 → 27`** ·
+> **`未闭 P0 面 64 → 64`**(不动)· **`epic 分布 11/31 → 11/31`**(不动)。
+> ⇒ 治理面 R3-裁 的正确形态:**只有「条目 / open / N」三项动,三个出口判据全不动**。
+> ⚠️ 与 `TD-persist-09`(归属 epic,`未闭 P0 面` 单向 +1)形态**不同**,别照抄它的句子。
