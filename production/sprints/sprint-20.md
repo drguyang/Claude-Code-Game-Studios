@@ -1111,7 +1111,7 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 
 > **B-1b 是主会话复核时新查出的**,不在任何专家的原判定里 —— 补原件的过程本身发现了新缺陷。
 
-### 证伪轮(4 条,全部 exact)
+### 证伪轮(5 条,全部 exact)
 
 | 变异 | 打什么 | 期望红 | 实测 |
 |---|---|---|---|
@@ -1119,8 +1119,15 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 | **M2** | 删 `ApplyBakedInitial` 的 `try/catch` 回滚 | `…moduleNotInCatalogThrows` | 恰 1 条 ✅ |
 | **M3** | `PeekNextId` 退回常量(模拟镜像字段) | `test_peekNextId_delegatesToRegistry` | 恰 1 条 ✅ |
 | **M4** | 导出门判据改回 `== SlotSpec.NoModule` | `…WithModuleIdZero…` | 恰 1 条 ✅(`-1` 那条仍绿 ⇒ 两分支可分) |
+| **M5** 🔁 | 删 `World.Reset()` 的 `catch` 三行回滚(留 `throw`) | `test_b1p_reset_baselineThrowsMidway_…` | 恰 1 条 ✅(16 条里 15 绿) |
 
-**还原**:四处 `cp 回 + SHA-256 逐字节`(**未用 `git checkout` / `git stash`**);
+> 🔁 **M5 是 2026-10-28 补做的第 5 条**(原文 4 条不删)。它补 `World.Reset()` 侧的回滚——
+> 该半边此前只有阅读验证,却标着 `Proven ✅`,**自相矛盾**(Phase 8b:未跑判据不得标已证)。
+> **此前认定它不可达是错的**:生产注入的是接口 `IModuleCatalog`,注入方可改其返回 ⇒
+> 真造得出「基线中途抛」。夹具用**两件**开档家具(第一件落库、第二件模块被撤)才有残留可观测
+> —— 单件时回滚前后都是空,**无判别力**。实测残留 `Expected: 0 / But was: 1`。
+
+**还原**:五处 `cp 回 + SHA-256 逐字节`(**未用 `git checkout` / `git stash`**);
 `grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l` = **0**。
 
 ### 回归(三元组)
@@ -1138,12 +1145,32 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 `test_levelTool_bakedInitialWithModuleIdZero_reportsViolation` ·
 `test_levelTool_bakedInitialWithoutModuleId_reportsViolation`。
 
+> 🔁 **2026-10-28 M5 补做轮(原文上表不删)** —— 三元组:
+> 截至时刻 `2026-10-28T09:17Z` · 批次 `M5 补做轮 · 全量` · commit `28c9584c`(工作树含本批未提交改动)。
+>
+> | 套件 | 结果(XML 原值) | 基线 | 差 |
+> |---|---|---|---|
+> | EditMode | `5699 / 5664 / 0 / 0 / 35` | `5698 / 5663 / 0 / 35`(本文件上一表) | **+1 / +1**,零失败 |
+> | PlayMode | `238 / 234 / 0 / 2 / 2` | `238 / 234 / 0 / 2 / 2` | 逐项相同,零回归 |
+>
+> **+1 的用例级点名**:`test_b1p_reset_baselineThrowsMidway_leavesDefiniteEmptyState` = 恰 1 条新增,零删除。
+
 ### 本轮明确未做(NOT-RUN,禁借绿)
 
-1. **`World.Reset()` 侧回滚无独立变异** —— 与 `ApplyBakedInitial` 共享同一语义,
-   但**不是同一个执行体**;按「一属性一条变异」严格说应有独立变异,本轮**未做**。
+1. ~~**`World.Reset()` 侧回滚无独立变异** —— 与 `ApplyBakedInitial` 共享同一语义,
+   但**不是同一个执行体**;按「一属性一条变异」严格说应有独立变异,本轮**未做**。~~
+   > 🔁 **2026-10-28 已闭**(原文不删):补夹具 + 变异 **M5**,实测恰 1 条红、SHA-256 还原通过。
+   > ⚠️ **仍未覆盖的子项**:「嵌套异常不遮蔽原始异常」需 `StructureRestorer` 的第二次
+   > `Reset()` 也抛才可观测 —— 本夹具不覆盖,**该子项仍开,不以 M5 借绿**。
 2. **schema 迁移期基线 id 段归属未裁** —— B-1 的修复只保证**足迹一致**,
    **不裁定「谁该赢」**(基线家具被 schema-1 存档里的结构顶替,是语义问题,需 ADR 级裁定)。
-3. **`BootRoot:214` 实参文本级门未加**(§十二 的 ① 项,本轮仍未做)。
+3. ~~**`BootRoot:214` 实参文本级门未加**(§十二 的 ① 项,本轮仍未做)。~~
+   > 🔁 **2026-10-28 订正:该项已做**(原文不删)。落点不在 `provider_wiring_gate_test`,
+   > 而在 `world_assembly_wiring_test.cs:105`(`test_ac201b` 二次收紧)—— 那里本来就是
+   > `BootRoot.cs` 的源码级门。判据要求真分支**逐字**是 `DataCorePreloader.Provider`;
+   > 上一版只要求「实参是三元」⇒ `Create(preloaded ? null : null)` 仍绿(病灶)。
+   > 变异 spec = `tools/falsify/specs/s20-88-bootroot-provider-arg-gate.json`(已入库)。
+   > ⚠️ **仍是源码级判据,不是运行期观测** —— 无夹具真跑 `BootRoot` 全链。
+   > 另:证据件里记的 `BootRoot.cs:214` 是当时行号,实测已漂到 **`:219`**。
 4. **真存档往返未跑**;`world_buildslots.cooked.bytes` 内容未逐字段解码。
 

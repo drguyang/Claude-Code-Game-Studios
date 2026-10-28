@@ -460,7 +460,110 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(0, inst.Orientation, "抛前不得改实例朝向");
         }
 
+        // ══════════ B-1'(`World.Reset()` 的回滚半边)—— 证伪轮 M5 的靶 ══════════
+
+        /// <summary>
+        /// `Reset()` 在基线**中途**抛 ⇒ 世界须停在**确定的空态**(实例表 0 / 占用表 0 / 计数 0),
+        /// 而不是「清了一半 + 落了半个基线」。
+        /// <para><b>为什么这条此前只标「阅读验证」</b>:`Reset()` 的 <c>catch</c> 看起来不可达 ——
+        /// 基线抛 = 槽位骨架与模块目录不同源,而数据在开档后不该变。**但它可达**,路径是
+        /// <b>目录桩可变</b>:生产实现注入的是接口 <see cref="IModuleCatalog"/>,任何注入方
+        /// 都能在两次 `Reset()` 之间改变其返回。本夹具就把这个输入真造出来,而不是推演它。</para>
+        /// <para><b>判别力</b>:删掉 `Reset()` 的 <c>catch</c> 里那三行清空 ⇒ 本例红
+        /// (实例表残留第 1 件 / 占用表残留 2 格 / 计数残留 1)。</para>
+        /// <para>⚠️ <b>前置探针不可省</b>:健康目录下同一基线必须**真的**落下 2 条 / 4 格 ——
+        /// 否则「归零」断言会被「基线压根没跑」满足(空集借绿,S20-20 B-2 的同款教训)。</para>
+        /// <para>⚠️ <b>本夹具证明不了</b>:① 真实存档往返;② 嵌套异常**不遮蔽原始异常**那一面
+        /// (那要 `StructureRestorer` 的第二次 `Reset()` 也抛,本夹具不覆盖 —— 如实登记)。</para>
+        /// </summary>
+        [Test]
+        public void test_b1p_reset_baselineThrowsMidway_leavesDefiniteEmptyState()
+        {
+            // Arrange:两件开档家具 —— 第一件 ModuleBunk(1,0,1)、第二件 ModuleBed(3,0,1)
+            var catalog = new RevocableModuleCatalog();
+            catalog.RegisterModule(BunkDefinition(ModuleBunk));
+            catalog.RegisterModule(BunkDefinition(ModuleBed));
+
+            var slots = new BuildSlotCatalog();
+            slots.RegisterSlot(new BuildSlot(new WorldPos(1, 0, 1),
+                BitMask.Single(SlotType.Decor), bakedInitial: true, moduleId: ModuleBunk));
+            slots.RegisterSlot(new BuildSlot(new WorldPos(3, 0, 1),
+                BitMask.Single(SlotType.Decor), bakedInitial: true, moduleId: ModuleBed));
+
+            World world = NewFlatWorld(slots);
+            world.ApplyBakedInitial(catalog);
+
+            // ── 前置探针:健康目录下基线**真的**落下 2 条 / 4 格 ──
+            Assert.AreEqual(2, world.Structures.Count,
+                "前置:两件开档家具都须落库 —— 否则下面的「归零」断言是空集借绿");
+            Assert.AreEqual(4, world.OccupiedCount, "前置:2 件 × 2 格 = 4 格须被占");
+            Assert.AreEqual(2, world.BakedInitialStructureCount, "前置:计数须为 2");
+
+            // ── Act:让第二件家具的模块"消失" ⇒ 基线第 1 件成功、第 2 件抛 ──
+            catalog.RevokedModuleId = ModuleBed;
+            var ex = Assert.Throws<InvalidOperationException>(() => world.Reset());
+            StringAssert.Contains("不在模块目录内", ex.Message,
+                "抛须来自基线本体的「不同源」判据,不是别处的同类型异常");
+
+            // ── Assert:确定空态,不是「清了一半 + 落了半个基线」──
+            Assert.AreEqual(0, world.Structures.Count,
+                "基线中途抛后实例表须归零 —— 残留第 1 件 = 世界停在中间态且无任何信号");
+            Assert.AreEqual(0, world.OccupiedCount, "基线中途抛后占用表须归零");
+            Assert.AreEqual(0, world.BakedInitialStructureCount, "基线中途抛后计数须归零");
+        }
+
         // ══════════ 夹具 ══════════
+
+        /// <summary>第二件开档家具(与 <see cref="ModuleBunk"/> 不同号)—— 让基线有「第一件成功、第二件抛」的形态。</summary>
+        private const int ModuleBed = 8;
+
+        /// <summary>两格足迹的模块定义(与 `Setup` 里 <see cref="ModuleBunk"/> 同形,可换号)。</summary>
+        private static ModuleDefinition BunkDefinition(int moduleId)
+            => new ModuleDefinition(
+                moduleId: moduleId,
+                slotType: SlotType.Decor,
+                localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0), new WorldPos(1, 0, 0) },
+                validOrientations: new[] { 0, 90, 180, 270 },
+                cost: 4,
+                buildItemKey: 0,
+                refundable: 1);
+
+        /// <summary>全 walkable 的 5×1×5 平世界(无 POI / 无资源),槽位骨架由调用方给。</summary>
+        private static World NewFlatWorld(BuildSlotCatalog slots)
+        {
+            var terrain = new TerrainCell[Size, 1, Size];
+            for (int x = 0; x < Size; x++)
+                for (int z = 0; z < Size; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            int total = Size * 1 * Size;
+            var poi = new int[total];
+            var resource = new int[total];
+            for (int i = 0; i < total; i++) { poi[i] = -1; resource[i] = -1; }
+            return new World(new WorldGeometry(terrain, poi, resource), slots);
+        }
+
+        /// <summary>
+        /// 可「撤掉」某个模块的目录桩 —— 这是让 <see cref="World.Reset"/> 的 <c>catch</c>
+        /// **可达**的唯一手段:生产注入的是接口,任何注入方都能在两次 `Reset()` 之间改其返回。
+        /// </summary>
+        private sealed class RevocableModuleCatalog : IModuleCatalog
+        {
+            private readonly Dictionary<int, ModuleDefinition> _modules = new Dictionary<int, ModuleDefinition>();
+
+            /// <summary>被撤掉的模块号;`-1` = 不撤。</summary>
+            public int RevokedModuleId = -1;
+
+            public void RegisterModule(ModuleDefinition def) => _modules[def.ModuleId] = def;
+
+            public ModuleDefinition? GetModuleDefinition(int moduleId)
+                => moduleId == RevokedModuleId
+                    ? (ModuleDefinition?)null
+                    : (_modules.TryGetValue(moduleId, out ModuleDefinition def) ? def : (ModuleDefinition?)null);
+
+            public bool ContainsModule(int moduleId) => _modules.ContainsKey(moduleId);
+
+            public IReadOnlyCollection<int> GetAllModuleIds() => _modules.Keys;
+        }
 
         private sealed class CapturingSink : IEventSink
         {
