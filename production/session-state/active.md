@@ -11887,3 +11887,21 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **改动文件**:`SlotTypeVocabulary.cs`(新)· `WorldBuildSlotsBinder` / `BuildModulesBinder`(第四份副本)· `Editor.Tools.Level` 4 件 + asmdef(引 `Sim`)· `WorldBuildSlotsCookedCodec` · `MinimalWorldFactory` · 3 件新夹具 · 3 份新 spec · 两份证据件 · `sprint-20.md` · `sprint-status.yaml`(新增 S20-20 行 → done)
 - **挂标不记绿 3 条**:Addressables 装载面未接 · `BakedInitial` 运行期不应用 · C1–C6 七项未实现
 - **未做**:**commit**(无用户指令)
+
+## Session Extract — S20-19 A-5 修复轮(2026-10-28)
+- **用户指令**:「处理 A-5:修掉 SolePlayer 赋值」→ 中途「提交」→ 再「提交」
+- **病灶**:`CompositionRoot.cs:407`(修前)构造 `InventoryLoadService` 只传 3 形参 ⇒ `foldContext = null`
+  ⇒ `InventoryFoldContext.None` ⇒ `SolePlayer` 恒 null ⇒ `ApplyBuildCost` 每次走「归因不可判」出口
+  ⇒ **建造扣料在玩家路径上从不发生**。**连带**:None 的 `Items`/`Recipes`/`Modules` 也全为默认,
+  只补 `SolePlayer` 仍扣不动(`Modules == null` 走同一条缺口)
+- **修法**:`BuildOwnerSlot` 构造点上移到 `InventoryLoadService` 之前 ⇒ 建造门/库存门/fold 同读一个 int;
+  `modulesCatalog` 声明同批提升(仍唯一实例);三份表惰性单次解码;新增 `DataCookedDisk.LoadRecipes()`
+- **夹具**:`Tests/EditMode/Boot/inventory_fold_sole_player_wiring_test.cs`(装配级 2 条)
+  ① 绑定前 = 缺口 + 材料一份不少;② 经 `BuildController.BindOwner` 后 = 缺口消失 + 恰少 `cost(m)`
+- **证伪**:`s20-19-a5-sole-player.json` **2/2 exact**;还原 SHA-256 逐字节通过;受保护路径指纹未变
+- **回归三元组**:`2026-10-28T02:49Z` · A-5 修复轮全量 · `85f248e8`
+  - EditMode `5678/5643/0/0/35`(基线 `5676/5641` ⇒ +2/+2,等式 = 新增 2 夹具)
+  - PlayMode `238/234/0/2/2`(零回归;`exit=2` 系既有 2 条 inconclusive)
+- **评审判定**:`CHANGES REQUIRED` → `APPROVED WITH SUGGESTIONS`(BLOCK 3 → 0)
+- **提交**:`85f248e8`(code+test+spec)· 本轮 docs 另提交
+- **证明不了 3 点**:见 `fix-a5-sole-player-2026-10-28.md` §七

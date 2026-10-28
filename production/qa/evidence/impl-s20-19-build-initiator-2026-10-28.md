@@ -331,11 +331,11 @@ grep -rn "FALSIFY-" unity/Assets --include=*.cs --include=*.inputactions
 | **卡内 `TR-` ID** | ADVISORY ~~零条~~ ⇒ ✅ **2026-10-28 补充轮已修** | 原判:实测**零条**(卡以 `O-23-6` 与 GDD 节号代替),`tr-registry` 无从查起。现:同小节补 10 条 AC → 9 个既有 TR 的映射表(**零新增 TR**),并如实登记 2 处缺口(`TR-building-004` 仍 `partial`;建造扣料时机**无专属 TR`) |
 | **Manifest 版本 staleness** | 不适用 | 卡面无 `Manifest Version` 字段 |
 | **Falsifiability Gate** | **BLOCKING → PASS** | 首判 2 处未反证 ⇒ 补 M16 / M17 后均转红 |
-| **代码评审门 `LP-CODE-REVIEW`** | **已跑 · 判定 `CHANGES REQUIRED`** | 原件 `review-s20-19-2026-10-28.md`(2026-10-28 用户指令触发)。**不记作「已通过」**:原 2 条 BLOCK 已结清,余 1 条 BLOCK = `A-5` 升级版(扣料从不发生),待裁 |
+| **代码评审门 `LP-CODE-REVIEW`** | **已跑 · 判定 `APPROVED WITH SUGGESTIONS`**(2026-10-28 A-5 修复轮后) | 原件 `review-s20-19-2026-10-28.md`(2026-10-28 用户指令触发)。原 3 条 BLOCK(`A-21` / `Q-7` / `A-5`)全部结清:A-5 由 `85f248e8` 消掉「两个各自绑定的 int」,反证 **2/2 exact**,回归 `5678/5643`(+2/+2)· PlayMode 零回归;原件 = `fix-a5-sole-player-2026-10-28.md`。~~判 `CHANGES REQUIRED` / 余 1 条 BLOCK 待裁~~(原文保留) |
 | **`QL-TEST-COVERAGE`** | 跳过(lean) | 同上门控规则 |
 
 **Verdict:`COMPLETE WITH NOTES`** —— 全部 AC 通过、无 BLOCKING 偏离、Falsifiability Gate = PASS;
-携带的 notes = ① ~~Story Type / TR-ID 两项 ADVISORY~~ **✅ 2026-10-28 补充轮已修(见上两行)** ② ~~代码评审门未跑~~ **✅ 已真跑,判定 `CHANGES REQUIRED`(余 1 条 BLOCK = A-5 升级版,待裁)** ③ 挂标 9 条未勾。
+携带的 notes = ① ~~Story Type / TR-ID 两项 ADVISORY~~ **✅ 2026-10-28 补充轮已修(见上两行)** ② ~~代码评审门未跑~~ **✅ 已真跑;A-5 修复轮后判定 `APPROVED WITH SUGGESTIONS`,BLOCK 3 → 0**(见 `fix-a5-sole-player-2026-10-28.md`) ③ 挂标 9 条未勾。
 
 > ⚠️ **本判定在 2026-10-28 补充轮(三项 backfill)** 之后**未重跑** —— 上表 AC 覆盖 / Falsifiability
 > 两行的证据是**补充轮之前**的树。补充轮新增的文件(关卡工具 / 烘焙 / 运行时加载 / 夹具)会改变

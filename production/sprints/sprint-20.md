@@ -960,3 +960,32 @@ DaYiJingCheng.EditorTools.Level.LevelExporter.ExportP0ClinicToRepo -quit`
    本批不产出)。清单在 `LevelConsistencyCheck.UnimplementedChecks`,**返回值里的数据**。
 4. **关卡工具只服务一个关卡** —— `P0ClinicLevel` 是硬编码的 16×1×16。多关卡 / chunk 切片归完整工具。
 5. **世界几何仍是合成** —— 地形全 walkable、POI / 资源格全 -1。本卡只让「槽位判定」这一面有真数据。
+
+---
+
+## §十一 S20-19 代码评审 A-5 修复轮(2026-10-28 · 用户指令「处理 A-5:修掉 SolePlayer 赋值」)
+
+**`Status: Complete`** · 原件 `production/qa/evidence/fix-a5-sole-player-2026-10-28.md`
+
+评审原件 `review-s20-19-2026-10-28.md` 在收口后**真跑**过一次(lean 模式下用户触发),
+判定 `CHANGES REQUIRED`,余下**唯一 BLOCK = A-5**:`InventoryFoldContext.SolePlayer`
+生产侧零赋值 ⇒ `ApplyBuildCost` 恒走「归因不可判」出口 ⇒ **建造扣料在玩家路径上从不发生**。
+本轮结清它。
+
+| 项 | 结果 |
+|---|---|
+| 修法 | **消掉分叉本身**,不是补赋值:`BuildOwnerSlot` 构造点上移到 `InventoryLoadService` 之前 ⇒ `BuildController` / `BuildStockQuery` / fold 读**同一个 int**;未绑定期 `Owner = -1` ⇒ fold 拿 `null` ⇒ fail-closed |
+| 连带补齐 | `InventoryFoldContext` 的 `Items` / `Recipes` / `Modules` 此前**全为默认**(只补 `SolePlayer` 仍扣不动 —— `Modules == null` 走同一条缺口);新增 `DataCookedDisk.LoadRecipes()` |
+| 夹具 | `Tests/EditMode/Boot/inventory_fold_sole_player_wiring_test.cs`(装配级 2 条:绑定前 fail-closed / 绑定后恰扣 `cost(m)`) |
+| 证伪轮 | `s20-19-a5-sole-player.json` **2/2 exact**(M1 退回 `(int?)null` ⇒ 绑定后那条红;M2 去掉 `IsBound` 守卫 ⇒ 绑定前那条红);还原 SHA-256 逐字节通过,受保护路径指纹未变 |
+| 回归(三元组) | EditMode `5678/5643/0/0/35`(基线 `5676/5641` ⇒ **+2/+2**,等式 = 新增夹具 2 条)· PlayMode `238/234/0/2/2`(**零回归**;`exit=2` 系既有 2 条 `inconclusive`)@ `2026-10-28T02:49Z` · A-5 修复轮全量 · `85f248e8`(工作树干净) |
+| 评审判定 | `CHANGES REQUIRED` → **`APPROVED WITH SUGGESTIONS`**(BLOCK 3 → 0) |
+
+**本件证明不了的 3 点**(禁借绿,已在原件 §七 逐条登记):
+① 「槽里的 id 就是玩家」靠 `BootRoot` 铸造序,夹具里 `Owner = 42` 是夹具值;
+② Addressables(`dataProvider != null`)那一半零夹具;
+③ 将来若加「读档后立即 Rebuild」,须同时在绑定后补一次 —— 否则存档里的 `StructurePlaced`
+会以 `SolePlayer = null` 折叠一次并被缓存。
+
+**余下非 BLOCK 项不变**:12 条 GAP 夹具待裁 · `A-25`(player 可用性 = 0)属设计上不改码 ·
+S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单关卡 / 世界几何)。
