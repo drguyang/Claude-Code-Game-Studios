@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "level_id": "p0_clinic",
   "world_size": [16, 1, 16],
+  "chunk_size": [8, 1, 8],
   "lattice_size_mm": 1000,
   "walkable": [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 

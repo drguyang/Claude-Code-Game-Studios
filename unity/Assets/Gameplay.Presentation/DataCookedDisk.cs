@@ -88,6 +88,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static WorldResourcesDataSet LoadWorldResources()
             => WorldResourcesCookedCodec.Read(ReadAll(WorldResourcesDataSet.CookedFileName));
 
+        /// <summary>
+        /// 从磁盘读**一块导航格切片**(`world_nav_{chunk}.cooked.bytes`;story-005)。
+        /// <para>⚠️ 与上面几份**刻意不同**:导航格切片**不进** <c>DataCorePreloader</c> 的
+        /// 「首次 Step 前常驻」清单 —— ADR-022 §五 逐字补注:ADR-014 §五 的常驻约束
+        /// 「只约束小体量启动前置数据,逻辑导航格除外」。切片按需装载,归系统 6 的
+        /// chunk 激活器(ADR-023 ⑥)。</para>
+        /// <para>本方法供装配侧 / 夹具按需读一块;`chunkIndex` 与载荷里的索引不符 ⇒ 抛(防装错)。</para>
+        /// </summary>
+        public static WorldNavChunkDataSet LoadWorldNavChunk(int chunkIndex)
+            => WorldNavChunkCookedCodec.Read(
+                ReadAll(WorldNavChunkDataSet.CookedFileNameFor(chunkIndex)), chunkIndex);
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

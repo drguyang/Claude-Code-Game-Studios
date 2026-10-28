@@ -123,7 +123,10 @@ namespace DaYiJingCheng.EditorTools.Level
                 latticeSizeMm: LatticeSizeMm,
                 ecozones: BuildEcozones(),
                 poi: BuildPoi(),
-                resources: BuildResources());
+                resources: BuildResources(),
+                chunkSizeX: ChunkSizeX,
+                chunkSizeY: ChunkSizeY,
+                chunkSizeZ: ChunkSizeZ);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -135,6 +138,22 @@ namespace DaYiJingCheng.EditorTools.Level
         //      (GDD F-6-1 的下界由 LATTICE_SIZE 推,ADR-022 §Out of Scope 逐字点名数值归用户)。
         //    关卡设计轮替换本文件时,这三件整个重写 —— 不是在上面加格子。
         // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// chunk 边长(格;story-005 AC-2② · ADR-015 §四)。
+        /// <para>⚠️ **用户裁定值(2026-10-29)**:`8×1×8` ⇒ 16×1×16 的世界切成
+        /// `2×1×2 = **4** 个 chunk`(索引 `0..3`),`data-core` 组条目 31 → 35。</para>
+        /// <para>⚠️ 取 `1` 作 Y 轴边长不是偶然:本关卡是**单层**(`Height = 1`),
+        /// 用 8 会在 Y 轴上切出一个 7/8 空衬垫的块 —— 那是「chunk 尺寸不随关卡形状」
+        /// 的形态,而 chunk 划分的唯一要求是**每格恰好覆盖一次**。</para>
+        /// <para>⚠️ 三个数值归**用户裁定**,不由本工具推导:`ChunkTopology.ForWorld` 只负责
+        /// 由它们算划分,不替它们取值。</para>
+        /// </summary>
+        public const int ChunkSizeX = 8;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public const int ChunkSizeY = 1;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public const int ChunkSizeZ = 8;
 
         /// <summary>格边长 `LATTICE_SIZE`(整数毫米;GDD F-6-1 / ADR-015 §三)。</summary>
         /// <remarks>⚠️ **占位值,归用户数值轮**。取 1000 mm = 1 米/格:本轮它只需 `> 0`

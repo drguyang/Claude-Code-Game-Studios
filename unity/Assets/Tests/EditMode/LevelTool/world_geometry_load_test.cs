@@ -397,15 +397,19 @@ namespace DaYiJingCheng.Tests.LevelTool
             var terrain = new TerrainSource(
                 rows, cellTerrainId, P0ClinicLevel.SlopeLimitDegX100, P0ClinicLevel.StepOffsetMm, total);
 
+            // ⚠️ chunk 尺寸自 story-005 起是几何导出的**必填**项(AC-2② 要求几何产物声明
+            //    自己按什么划分)。本夹具只测几何 / 地形,故取任意合法值 —— 但**必须给**,
+            //    否则 `ExportGeometry` 会用「未声明 chunk 尺寸」硬失败,与本夹具的题意无关。
             return new LevelSource(levelId, w, h, d, new List<SlotSpec>
             {
                 new SlotSpec(w / 2, 0, d / 2, SlotType.Decor, false),
-            }, walkable: walkable, terrain: terrain, latticeSizeMm: latticeSizeMm);
+            }, walkable: walkable, terrain: terrain, latticeSizeMm: latticeSizeMm,
+               chunkSizeX: 2, chunkSizeY: 2, chunkSizeZ: 2);
         }
 
         private static string GeometryJson(string levelId, int w, int h, int d, int[] walkable)
-            => "{\"schema_version\":1,\"level_id\":\"" + levelId + "\",\"world_size\":[" + w + "," + h + "," + d
-             + "],\"lattice_size_mm\":1000,\"walkable\":[" + string.Join(",", walkable) + "]}";
+            => "{\"schema_version\":2,\"level_id\":\"" + levelId + "\",\"world_size\":[" + w + "," + h + "," + d
+             + "],\"chunk_size\":[2,2,2],\"lattice_size_mm\":1000,\"walkable\":[" + string.Join(",", walkable) + "]}";
 
         /// <summary>造一份 `world_terrain` 源文本(<paramref name="rows"/> 行,逐格 id 由 <paramref name="perCell"/> 给)。</summary>
         private static string TerrainJson(

@@ -9,12 +9,17 @@
 // · C1 两层漂移(告警)        —— **未实现**:需要视觉层地形 / 摆件数据(待 S6 产出)。
 // · C2 可走性同源(slopeLimit/stepOffset) —— **未实现**:需要 `world_terrain.json`(待 S6;s.t. 待 S2)。
 // · C2' 模板 collider 足迹同源 —— **未实现**:需要模块模板 prefab(待 S6;素材归 23 的素材轮)。
-// · C3 导航格 ↔ NavMesh(告警) —— **未实现**:需要 `world_nav_*.json` 与 NavMesh(待 S5 产出)。
+// · C3 导航格 ↔ NavMesh(告警) —— ✅ **已实现(story-005 · 2026-10-29)**:`NavMeshConsistencyCheck`
+//     (三态 Reachable / Unreachable / Unknown;`Unknown` 不告警,依据 = NavMesh spike)。
+//     告警进 `CheckReport.Warnings`,**不进** `Violations` —— 合成一个列表会让「告警」与
+//     「硬失败」在类型上不可分,而 C3 的全部语义正是「报出来但不使构建失败」。
 // · C4 多边形合法性            —— ✅ **已实现(story-003 · 2026-10-29)**:`EcozonePolygonCheck`
 //     (五项:内部重叠 / 顶点<3 / 自交 / 零面积 / 重合顶点),在 `Check` 里随生态区声明一并跑。
 // · C5 边界单一源              —— ✅ **已实现(story-003 · 2026-10-29)**:`EcozoneMaskGenerator`(生成)
 //     + `EcozoneMaskCheck.Verify`(比对)。⚠️ **乙路(比对已有视觉遮罩)无真实资产可验**,见该件文件头。
-// · C6 切片完整性               —— **未实现**:需要 `world_nav_{chunk}.json`(待 S5 产出)。
+// · C6 切片完整性               —— ✅ **已实现(story-005 · 2026-10-29)**:`NavChunkSliceCheck`
+//     (漏格 / 重复格 = **两条独立**硬失败)。⚠️ **不在本类里跑** —— 它需要切片集合,
+//     而切片是 `LevelExporter.ExportNavChunks` 的产物,由该入口产出后**立即**校验(理由见 `Check` 的注)。
 //
 // 🔁 **2026-10-29(story-001 AC-4)措辞订正,原文不删**:上面七行原写作「**本批不产出**」——
 //    那个「本批」指的是 S20-20 的最小关卡工具卡(它当时只做 `world_buildslots` 一类)。
@@ -37,7 +42,8 @@
 
 using System;
 using System.Collections.Generic;
-using DaYiJingCheng.Sim.World;   // SlotType(唯一真源,2026-10-28 评审 A-21)
+using DaYiJingCheng.Sim.Contracts;   // WorldPos(C3 采样器的格形参)
+using DaYiJingCheng.Sim.World;       // SlotType(唯一真源,2026-10-28 评审 A-21)
 
 namespace DaYiJingCheng.EditorTools.Level
 {
@@ -50,14 +56,26 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>ADR-022 §四 里**尚未实现**的检查项(逐条如实登记,不是注释)。</summary>
         public readonly IReadOnlyList<string> Unimplemented;
 
+        /// <summary>
+        /// **告警**项(ADR-022 §四 里判定为「只影响表现,不退化为构建失败」的那几条 —— 今日 = C3)。
+        /// <para>🔁 <b>2026-10-29(story-005 AC-4)新增</b>。与 <see cref="Violations"/> **刻意分家**:
+        /// 合成一个列表会让「告警」与「硬失败」在类型上不可分,而 C3 的全部语义就是
+        /// 「报出来但**不**使构建失败」。</para>
+        /// </summary>
+        public readonly IReadOnlyList<string> Warnings;
+
         /// <summary>构造报告。</summary>
-        public CheckReport(IReadOnlyList<string> violations, IReadOnlyList<string> unimplemented)
+        /// <param name="warnings">告警项;`null` = 无告警(向后兼容既有两参调用点)。</param>
+        public CheckReport(
+            IReadOnlyList<string> violations, IReadOnlyList<string> unimplemented,
+            IReadOnlyList<string> warnings = null)
         {
             Violations = violations ?? throw new ArgumentNullException(nameof(violations));
             Unimplemented = unimplemented ?? throw new ArgumentNullException(nameof(unimplemented));
+            Warnings = warnings ?? Array.Empty<string>();
         }
 
-        /// <summary>是否全绿。</summary>
+        /// <summary>是否全绿(**只看硬失败** —— 告警不影响本判据)。</summary>
         public bool IsGreen => Violations.Count == 0;
     }
 
@@ -70,12 +88,20 @@ namespace DaYiJingCheng.EditorTools.Level
             "C1 两层漂移(需视觉层数据 —— 待 S6 产出)",
             "C2 可走性同源(需 world_terrain.json —— 待 S6 产出;该数据集本身待 S2)",
             "C2' 模板 collider 足迹同源(需模块 prefab —— 待 S6 产出;素材归 23 素材轮)",
-            "C3 导航格↔NavMesh(需 world_nav_*.json —— 待 S5 产出)",
-            "C6 切片完整性(需 world_nav_{chunk}.json —— 待 S5 产出)",
         };
 
-        /// <summary>跑槽位子集的三条硬检查(不抛;失败项进 <see cref="CheckReport.Violations"/>)。</summary>
-        public static CheckReport Check(LevelSource src)
+        /// <summary>跑槽位子集的硬检查(不抛;失败项进 <see cref="CheckReport.Violations"/>)。
+        /// <para>⚠️ C6 不在这里:**它需要切片集合**,而切片是 `ExportNavChunks` 的产物 ——
+        /// 由 `LevelExporter` 在产出后立即跑 <see cref="NavChunkSliceCheck"/>。
+        /// 把 C6 塞进本方法只能靠「本方法自己再切一遍」,那会让「校验的」与「导出的」变成
+        /// 两份可能不同的切片(story AC-3 的判据正是「注入的坏切片要被拦」)。</para>
+        /// </summary>
+        /// <param name="navSampler">
+        /// C3 的采样器;**`null` = 不跑 C3**(本关卡没有 NavMesh 输入 —— 等价于全 `Unknown`,
+        /// 即「无告警」,而不是「全部矛盾」)。传 `null` 与传一个恒 `Unknown` 的采样器行为等价,
+        /// 但前者不付出逐格调用的代价。
+        /// </param>
+        public static CheckReport Check(LevelSource src, Func<WorldPos, NavReachability> navSampler = null)
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
 
@@ -159,7 +185,14 @@ namespace DaYiJingCheng.EditorTools.Level
                 && EcozonePolygonCheck.TryCheck(src.Ecozones, out List<string> ecoViolations))
                 violations.AddRange(ecoViolations);
 
-            return new CheckReport(violations, UnimplementedChecks);
+            // ── C3 导航格 ↔ NavMesh(**告警**,2026-10-29 story-005 起已实现)───────────
+            // ⚠️ 告警**不进** `violations` —— C3 的语义就是「报出来但不使构建失败」
+            //    (ADR-022 §四)。合成一个列表会让「告警」与「硬失败」在类型上不可分。
+            List<string> warnings = null;
+            if (navSampler != null)
+                NavMeshConsistencyCheck.TryCheck(src, navSampler, out warnings);
+
+            return new CheckReport(violations, UnimplementedChecks, warnings);
         }
 
         /// <summary>跑检查并在任一硬失败时 `throw`(ADR-022 §②:构建期失败通道,非 `Debug.Assert`)。</summary>

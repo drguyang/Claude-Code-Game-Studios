@@ -11,6 +11,9 @@
 //     i32 world_size_y
 //     i32 world_size_z
 //     i32 lattice_size_mm
+//     i32 chunk_size_x                    ← schema 2 起
+//     i32 chunk_size_y                    ← schema 2 起
+//     i32 chunk_size_z                    ← schema 2 起
 //     i32 cell_count
 //     cell_count × i32 walkable          (0/1)
 //
@@ -49,6 +52,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                 w.Write(bound.Height);
                 w.Write(bound.Depth);
                 w.Write(bound.LatticeSizeMm);
+                // 🔁 2026-10-29(story-005 AC-2② · schema 2):chunk 尺寸。
+                //    ⚠️ 位置固定在 `lattice_size_mm` 之后、`cell_count` 之前 ——
+                //    读方 `WorldGeometryCookedCodec` 逐字对齐同一序;错位不会报「布局不符」,
+                //    只会让 `cell_count` 读到一个 chunk 边长,然后由长度门前置失败(报文指错)。
+                w.Write(bound.ChunkSizeX);
+                w.Write(bound.ChunkSizeY);
+                w.Write(bound.ChunkSizeZ);
                 w.Write(bound.Walkable.Count);
                 for (int i = 0; i < bound.Walkable.Count; i++)
                     w.Write(bound.Walkable[i]);

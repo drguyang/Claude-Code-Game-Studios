@@ -30,21 +30,46 @@
 //   ⚠️ **`NavChunk` 刻意不在 `FileNameFor` 里给名字**:它的后缀参数是 **chunk 号**,
 //     不是 `level_id`(ADR-022 §五)。用一个「假装是 level」的名字命名它,会产出
 //     `world_nav_p0_clinic.json` —— 一个**语义错误但看起来合理**的文件名。
-//     ⇒ `FileNameFor(NavChunk, …)` 显式抛,切片命名归 **S5**。
+//     ⇒ `FileNameFor(NavChunk, …)` 显式抛(**至今仍然抛**,判据未松)。
+//     ✅ **切片命名自 story-005 起由 `NavChunkFileName(levelId, chunkIndex)` 给出**:
+//       基准关卡 ⇒ `world_nav_{chunk}.json`;其他关卡 ⇒ `world_nav_{level_id}_{chunk}.json`。
+//       两个入口**并存且职责不同**:`FileNameFor` 的后缀是 level,`NavChunkFileName` 的是 chunk。
 
 using System;
 using System.Collections.Generic;
 
 namespace DaYiJingCheng.EditorTools.Level
 {
+    /// <summary>
+    /// 一份导出的产物(**文件名 + 文本**)。
+    /// <para>🔁 <b>2026-10-29(story-005)</b>:分派表的值从 `Func&lt;LevelSource, string&gt;` 改为
+    /// `Func&lt;LevelSource, IReadOnlyList&lt;DataSetProduct&gt;&gt;`。缘由 = `NavChunk`
+    /// **一类出 N 份**(每个 chunk 一份,ADR-022 §五),单字符串的值域**表达不了**它;
+    /// 而给 `NavChunk` 开一条旁路(在导出器里 `if (kind == NavChunk)`)正是本类存在的理由
+    /// 所要消灭的形态(「新增一类不改导出器主体」)。</para>
+    /// </summary>
+    public readonly struct DataSetProduct
+    {
+        /// <summary>作者态文件名(如 `world_nav_0.json`)。</summary>
+        public readonly string FileName;
+        /// <summary>确定性 JSON 文本。</summary>
+        public readonly string Json;
+
+        /// <summary>构造。</summary>
+        public DataSetProduct(string fileName, string json)
+        {
+            FileName = fileName ?? throw new ArgumentNullException(nameof(fileName));
+            Json = json ?? throw new ArgumentNullException(nameof(json));
+        }
+    }
+
     /// <summary>ADR-022 §三 的 7 类世界数据集(闭集)。</summary>
     /// <remarks>
     /// <para>序数是**取值的一部分**(用于确定性遍历序);**不得重排、不得插入中间值** ——
     /// 要加第 8 类就追加在末尾。</para>
-    /// <para>⚠️ 本枚举的「闭集」是**契约面**闭集,不是「已实现」闭集:今日
-    /// <see cref="BuildSlots"/> / <see cref="Geometry"/> / <see cref="Terrain"/> / <see cref="Ecozones"/>
-    /// / <see cref="Poi"/> / <see cref="Resources"/> 六有序列化器,其余一类(<see cref="NavChunk"/>)
-    /// 由 <see cref="WorldDataSets.UnimplementedByStory"/> 点名归属 story。</para>
+    /// <para>⚠️ 本枚举的「闭集」是**契约面**闭集。**2026-10-29(story-005)起全部 7 类都有序列化器**
+    /// ⇒ <see cref="WorldDataSets.UnimplementedByStory"/> 已清空。两表**互补**的判据不变:
+    /// 新增一类却只登记一边 ⇒ 夹具红。</para>
     /// </remarks>
     public enum WorldDataSetKind
     {
@@ -67,7 +92,7 @@ namespace DaYiJingCheng.EditorTools.Level
         /// **S2(story-002)起已实现**。</summary>
         Terrain = 5,
 
-        /// <summary>导航格(**按 chunk 切片** —— 后缀参数是 chunk,不是 level)。归属 = S5。</summary>
+        /// <summary>导航格(**按 chunk 切片** —— 后缀参数是 chunk,不是 level)。**S5(story-005)起已实现**。</summary>
         NavChunk = 6,
     }
 
@@ -91,11 +116,12 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <para>⚠️ 这是**返回值里的数据**,不是注释里的自述 —— 新增一类却忘了在这里删条目,
         /// 夹具会红(「已实现」与「未实现」不允许同时成立)。</para>
         /// </summary>
+        /// <remarks>🔁 <b>2026-10-29(story-005)</b>:**本表已清空** —— ADR-022 §三 的 7 类
+        /// 全部有序列化器。表**保留**(不删):`Serialize` 的无序列化分支仍要读它,
+        /// 且将来加第 8 类时它是登记处;删掉它会让「未实现」与「闭集外」合并成一个错误串。
+        /// ⚠️ 夹具 `test_ac3_kindClosedSet_…` 相应从「未实现恰 1 条」改为「**闭集内每一类都已实现**」。</remarks>
         public static readonly IReadOnlyDictionary<WorldDataSetKind, string> UnimplementedByStory =
-            new Dictionary<WorldDataSetKind, string>
-            {
-                { WorldDataSetKind.NavChunk,  "待 S5 产出(导航格按 chunk 切片)" },
-            };
+            new Dictionary<WorldDataSetKind, string>();
 
         /// <summary>文件名主干(`world_buildslots` / `world_nav` …),不含扩展名与后缀。</summary>
         /// <exception cref="ArgumentOutOfRangeException">未定义的枚举值。</exception>
@@ -139,19 +165,40 @@ namespace DaYiJingCheng.EditorTools.Level
                 : baseName + "_" + levelId + ".json";
         }
 
+        /// <summary>
+        /// `world_nav` 的**切片文件名**(后缀 = chunk 号,不是 level;ADR-022 §五)。
+        /// </summary>
+        /// <param name="levelId">关卡 id。</param>
+        /// <param name="chunkIndex">chunk 一维索引(≥ 0)。</param>
+        /// <exception cref="ArgumentException"><paramref name="levelId"/> 为空 / <paramref name="chunkIndex"/> 为负。</exception>
+        public static string NavChunkFileName(string levelId, int chunkIndex)
+        {
+            if (string.IsNullOrEmpty(levelId))
+                throw new ArgumentException("level_id 不得为空", nameof(levelId));
+            if (chunkIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(chunkIndex), $"chunk 索引不得为负(实得 {chunkIndex})");
+
+            // 基准关卡 ⇒ `world_nav_{chunk}.json`(ADR-022 §三/§五 的契约字面);
+            // 其他关卡 ⇒ `world_nav_{level_id}_{chunk}.json`(与 `FileNameFor` 的后缀口径同源,
+            // 承 story-001 §命名形状的加性扩展)。
+            return levelId == LevelCatalog.CanonicalLevelId
+                ? "world_nav_" + chunkIndex + ".json"
+                : "world_nav_" + levelId + "_" + chunkIndex + ".json";
+        }
+
         /// <summary>该类数据集**是否已有序列化器**。</summary>
         public static bool IsImplemented(WorldDataSetKind kind) => Serializers.ContainsKey(kind);
 
         /// <summary>
-        /// 按类别序列化关卡源(AC-3 的分派面)。
+        /// 按类别序列化关卡源(AC-3 的分派面;**可出多份**)。
         /// <para>新增一类 = **加一条 <see cref="Serializers"/> 行 + 一个序列化方法**,
-        /// 不改本方法体,也不改导出器主体。</para>
+        /// 不改导出器主体。</para>
         /// </summary>
         /// <exception cref="NotSupportedException">该类尚无序列化器(报文点名归属 story)。</exception>
-        public static string Serialize(WorldDataSetKind kind, LevelSource src)
+        public static IReadOnlyList<DataSetProduct> SerializeAll(WorldDataSetKind kind, LevelSource src)
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
-            if (Serializers.TryGetValue(kind, out Func<LevelSource, string> serializer))
+            if (Serializers.TryGetValue(kind, out Func<LevelSource, IReadOnlyList<DataSetProduct>> serializer))
                 return serializer(src);
 
             string owner = UnimplementedByStory.TryGetValue(kind, out string reason)
@@ -162,19 +209,35 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
+        /// 按类别序列化**单份**产物(便捷面;多份类别如 `NavChunk` 会抛并指路)。
+        /// </summary>
+        /// <exception cref="NotSupportedException">该类尚无序列化器 / 该类出多份。</exception>
+        public static string Serialize(WorldDataSetKind kind, LevelSource src)
+        {
+            IReadOnlyList<DataSetProduct> products = SerializeAll(kind, src);
+            if (products.Count != 1)
+                throw new NotSupportedException(
+                    $"[关卡工具] 数据集类别 {kind}({BaseName(kind)})出 **{products.Count} 份**,不是单份 —— " +
+                    "请用 SerializeAll / ExportLevelToRepo(单份入口表达不了「每 chunk 一个文件」)");
+            return products[0].Json;
+        }
+
+        /// <summary>
         /// `kind → 序列化器` 的分派表(**单一出处**)。
         /// <para>⚠️ 键集与 <see cref="UnimplementedByStory"/> 的键集**互补**:并集 = <see cref="All"/>,
         /// 交集 = 空。夹具 `level_source_generalization_test` 钉住这两条。</para>
         /// </summary>
-        private static readonly IReadOnlyDictionary<WorldDataSetKind, Func<LevelSource, string>> Serializers =
-            new Dictionary<WorldDataSetKind, Func<LevelSource, string>>
+        private static readonly IReadOnlyDictionary<WorldDataSetKind, Func<LevelSource, IReadOnlyList<DataSetProduct>>>
+            Serializers =
+            new Dictionary<WorldDataSetKind, Func<LevelSource, IReadOnlyList<DataSetProduct>>>
             {
-                { WorldDataSetKind.BuildSlots, LevelExporter.ExportBuildSlots },
-                { WorldDataSetKind.Geometry,   LevelExporter.ExportGeometry },
-                { WorldDataSetKind.Terrain,    LevelExporter.ExportTerrain },
-                { WorldDataSetKind.Ecozones,   LevelExporter.ExportEcozones },
-                { WorldDataSetKind.Poi,        LevelExporter.ExportPoi },
-                { WorldDataSetKind.Resources,  LevelExporter.ExportResources },
+                { WorldDataSetKind.BuildSlots, LevelExporter.ExportBuildSlotsProducts },
+                { WorldDataSetKind.Geometry,   LevelExporter.ExportGeometryProducts },
+                { WorldDataSetKind.Terrain,    LevelExporter.ExportTerrainProducts },
+                { WorldDataSetKind.Ecozones,   LevelExporter.ExportEcozonesProducts },
+                { WorldDataSetKind.Poi,        LevelExporter.ExportPoiProducts },
+                { WorldDataSetKind.Resources,  LevelExporter.ExportResourcesProducts },
+                { WorldDataSetKind.NavChunk,   LevelExporter.ExportNavChunkProducts },
             };
     }
 }

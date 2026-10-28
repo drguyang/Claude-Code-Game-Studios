@@ -81,6 +81,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b14c89d013a72df19e4ddb4e6d0117d
+    m_Address: world_nav_3.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7b43b39c5604f0fcdb2d176cc7e2ff2f
     m_Address: diagnosis_read_floor.cooked.bytes
     m_ReadOnly: 0
@@ -141,6 +147,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c462ac323ee68f7eb966a756edae60ba
+    m_Address: world_nav_2.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c4bba4bbcba3a4dee9a2566f5a60dddc
     m_Address: 53_outcome_table.cooked.bytes
     m_ReadOnly: 0
@@ -149,6 +161,18 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c6af4251f106c493284d90fdebee04b5
     m_Address: world_poi.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc7c274778d031c5fac2a7d80e7603cc
+    m_Address: world_nav_0.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d059e9e2c6ad52ae39c8666b892f629f
+    m_Address: world_nav_1.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core

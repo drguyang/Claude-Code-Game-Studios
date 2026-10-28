@@ -906,6 +906,103 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// **P0 出货的导航格切片产物名**(4 份;story-005 · 用户裁定 chunk = 8×1×8 ⇒ 2×1×2)。
+        /// <para>⚠️ 为什么**写死四个字面量**而不是全部由 `WorldNavChunkBake.CookedFileNameFor(i)` 拼:</para>
+        /// <para>① 盘上**到底有哪几份产物**是一个**出货事实**,不是运行期推导 —— 它与「怎么切」是两件事,
+        /// 混成一个表达式会让「改了 chunk 尺寸」悄悄改变产物集合,而组条目 / 地址 / 漂移门都不会跟着动。</para>
+        /// <para>② 漂移门 `test_sweep_declaredArtifactNames_allTriaged` 按**字面量**
+        /// （`"&lt;名&gt;.cooked.bytes"`)扫源码枚举「声明的产物名」。拼接式名字在那条正则下**不存在**
+        /// ⇒ 首跑实测「声明 31 ≠ 钉定 35」。**修的是名字的形态,不是判据**。</para>
+        /// <para>③ `BakeWorldNavChunksCore` 会断言「几何产物推出的 chunk 数 == 本表长度」,
+        /// 所以本表变旧时**先红在烘焙**而不是先红在打包。</para>
+        /// </summary>
+        public static readonly string[] WorldNavChunkCookedAssetNames =
+        {
+            "world_nav_0.cooked.bytes",
+            "world_nav_1.cooked.bytes",
+            "world_nav_2.cooked.bytes",
+            "world_nav_3.cooked.bytes",
+        };
+
+        /// <summary>
+        /// 烘焙**全部导航格切片**(<c>world_nav_{chunk}.json</c> —— 关卡工具 story-005)。
+        /// <para>chunk 数**不写死**:从 <c>world_geometry.json</c> 的 `world_size` + `chunk_size`
+        /// 经 <see cref="DaYiJingCheng.Sim.World.ChunkTopology.ForWorld"/> 推出 —— 与切片器、
+        /// 运行期 codec **同一个函数**(story-005 AC-2②)。写死一个「4」会让「换关卡 / 换 chunk 尺寸」
+        /// 之后少烘几片或多烘几片,而症状是运行期「那几格永远查不到」(静默)。</para>
+        /// <para>⚠️ 依赖 <c>world_geometry.json</c> 先导出 —— 它是 chunk 划分的唯一声明处。</para>
+        /// </summary>
+        public static IReadOnlyList<WorldNavChunkBake.BakeOutput> BakeWorldNavChunksCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+
+            string geometryPath = Path.Combine(repoRoot, "assets", "data", WorldGeometryBinder.FileName);
+            if (!File.Exists(geometryPath))
+                throw new BakeValidationException(new List<string>
+                {
+                    $"作者态源不存在:{geometryPath} —— 导航格切片的 chunk 数由几何产物的 " +
+                    "world_size + chunk_size 决定,故须先导出 / 存在于该路径",
+                });
+
+            WorldGeometryBinder.BindResult geometry =
+                WorldGeometryBinder.Bind(File.ReadAllText(geometryPath, System.Text.Encoding.UTF8));
+            DaYiJingCheng.Sim.World.ChunkTopology topo =
+                DaYiJingCheng.Sim.World.ChunkTopology.ForWorld(
+                    geometry.Width, geometry.Height, geometry.Depth,
+                    geometry.ChunkSizeX, geometry.ChunkSizeY, geometry.ChunkSizeZ);
+
+            // 出货产物集合必须与几何推出的划分**一致** —— 不一致时在这里先红。
+            if (topo.ChunkCount != WorldNavChunkCookedAssetNames.Length)
+                throw new BakeValidationException(new List<string>
+                {
+                    $"几何产物推出 {topo.ChunkCount} 个 chunk,而 P0 登记的导航格产物有 " +
+                    $"{WorldNavChunkCookedAssetNames.Length} 份 —— 两组不一致。\n" +
+                    "改了 chunk 尺寸就必须同批:① 本表(WorldNavChunkCookedAssetNames)" +
+                    "② data-core 组 ③ 漂移门的 BakedArtifacts / pinnedDeclared。",
+                });
+
+            var outputs = new List<WorldNavChunkBake.BakeOutput>(topo.ChunkCount);
+            for (int i = 0; i < topo.ChunkCount; i++)
+                outputs.Add(WorldNavChunkBake.BakeFromRepo(repoRoot, i));
+            return outputs;
+        }
+
+        /// <summary>烘焙全部导航格切片并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_nav(导航格切片 · 关卡工具)")]
+        public static void BakeWorldNavChunks()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                IReadOnlyList<WorldNavChunkBake.BakeOutput> results = BakeWorldNavChunksCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                var sb = new System.Text.StringBuilder();
+                sb.Append("[大医精诚] 烘焙完成:world_nav 共 ").Append(results.Count).Append(" 片");
+                for (int i = 0; i < results.Count; i++)
+                {
+                    // 名字取自登记表(而不是 `CookedFileNameFor` 现场拼)——
+                    // 让「盘上写了哪几份」与「登记了哪几份」出自同一处。
+                    string name = WorldNavChunkCookedAssetNames[results[i].Bound.ChunkIndex];
+                    File.WriteAllBytes(Path.Combine(cookedDir, name), results[i].Cooked);
+                    sb.Append("\n  ").Append(name).Append(" = ").Append(results[i].Cooked.Length).Append(" B, ")
+                      .Append("chunk = ").Append(results[i].Bound.ChunkIndex).Append(", ")
+                      .Append("ConfigVersion = 0x").Append(results[i].ConfigVersion.ToString("X8"));
+                }
+                AssetDatabase.Refresh();
+                sb.Append($"\n({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+                Debug.Log(sb.ToString());
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
         /// 烘焙生态区多边形(<c>world_ecozones.json</c> —— 关卡工具 story-003):
         /// 仓库 <c>assets/data/world_ecozones.json</c>(**由关卡工具导出,不得手写**)
         /// → <see cref="WorldEcozonesBinder"/>(结构门 + **C4 五项几何门**:聚合 throw)

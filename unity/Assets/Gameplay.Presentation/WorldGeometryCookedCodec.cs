@@ -9,6 +9,7 @@
 //   world_geometry.cooked
 //     i32 world_size_x; i32 world_size_y; i32 world_size_z;
 //     i32 lattice_size_mm;
+//     i32 chunk_size_x; i32 chunk_size_y; i32 chunk_size_z;   ← schema 2 起
 //     i32 cell_count;
 //     cell_count × i32 walkable(0/1)
 //
@@ -21,6 +22,7 @@
 
 using System;
 using System.IO;
+using DaYiJingCheng.Sim.World;   // ChunkTopology(chunk 划分的唯一函数,story-005 AC-2②)
 
 namespace DaYiJingCheng.Gameplay.Presentation
 {
@@ -44,6 +46,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 本字段由 codec **校验**(须 &gt; 0)并如实交出来,接线归数值轮之后的装配轮。</remarks>
         public readonly int LatticeSizeMm;
 
+        /// <summary>chunk 边长 X(格;schema 2 起)。**几何侧的 chunk 划分**的唯一取值来源。</summary>
+        public readonly int ChunkSizeX;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public readonly int ChunkSizeY;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public readonly int ChunkSizeZ;
+
         /// <summary>每格可走性(0/1;索引 = `(x*SizeY + y)*SizeZ + z`)。</summary>
         public readonly int[] Walkable;
 
@@ -55,15 +64,26 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>构造。</summary>
         public WorldGeometryDataSet(int sizeX, int sizeY, int sizeZ, int latticeSizeMm,
+                                    int chunkSizeX, int chunkSizeY, int chunkSizeZ,
                                     int[] walkable, uint schemaVersion, uint configVersion)
         {
             SizeX = sizeX; SizeY = sizeY; SizeZ = sizeZ;
-            LatticeSizeMm = latticeSizeMm; Walkable = walkable;
+            LatticeSizeMm = latticeSizeMm;
+            ChunkSizeX = chunkSizeX; ChunkSizeY = chunkSizeY; ChunkSizeZ = chunkSizeZ;
+            Walkable = walkable;
             SchemaVersion = schemaVersion; ConfigVersion = configVersion;
         }
 
         /// <summary>世界总格数。</summary>
         public int TotalCells => SizeX * SizeY * SizeZ;
+
+        /// <summary>
+        /// 本产物声明的 chunk 划分(经 <see cref="ChunkTopology.ForWorld"/> —— 与导航格切片器**同源**)。
+        /// <para>⚠️ 这是 story-005 AC-2② 的检验面:同一格的 chunk 键,从**几何产物**算一次、
+        /// 从**导航格切片**算一次,两者必须相等。若本属性改走另一套公式,那条检验会红。</para>
+        /// </summary>
+        public ChunkTopology Topology =>
+            ChunkTopology.ForWorld(SizeX, SizeY, SizeZ, ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     }
 
     /// <summary>世界几何(<c>world_geometry.cooked.bytes</c>)的运行期解码器。</summary>
@@ -77,7 +97,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 两者不可互相引用(编辑期程序集不进构建),但绑定器的 `ReadSchemaVersion` 以**本常量**
         /// 为期望值 ⇒ 导出侧写成 2 而这里还是 1 时,烘焙**当场**报 `schema_version ≠ 期望`。
         /// 那是这对「两份字面量」的机械守护。</remarks>
-        public const uint ExpectedSchemaVersion = 1u;
+        /// <remarks>🔁 <b>2026-10-29(story-005 AC-2②):1 → 2</b> —— 载荷追加 3 个 i32
+        /// (`chunk_size_x/y/z`)。旧布局产物**必须被拒**:按新契约读旧字节会把
+        /// `cell_count` 读成 `chunk_size_x`,`AssertFullyConsumed` 之前就先撞长度门,
+        /// 报文指向「长度不符」而不是「版本不符,请重烘」。</remarks>
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>读世界几何。</summary>
         /// <param name="bytes">cooked 字节(含 20 字节头)。</param>
@@ -116,6 +140,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                         "(GDD F-6-1:SPEED_MAX × MAX_DT × SAFETY_MARGIN ≤ LATTICE_SIZE," +
                         "右端为 0 时不等式恒假但无人求值 ⇒ 静默失效)");
 
+                // 🔁 2026-10-29(story-005 AC-2② · schema 2):chunk 尺寸,位置固定在
+                //    `lattice_size_mm` 之后、`cell_count` 之前(写方逐字对齐)。
+                int chunkSizeX = r.ReadInt32();
+                int chunkSizeY = r.ReadInt32();
+                int chunkSizeZ = r.ReadInt32();
+                if (chunkSizeX < 1 || chunkSizeY < 1 || chunkSizeZ < 1)
+                    throw new InvalidDataException(
+                        $"[cooked] {ProductName} chunk_size = ({chunkSizeX},{chunkSizeY},{chunkSizeZ}) —— " +
+                        "三维须 ≥ 1(chunk_size 是「导航格切片用的 chunk 键」与「几何侧划分」同源的唯一取值来源;" +
+                        "为 0 时 ChunkTopology.ForWorld 必抛,报文会指向「数值非法」而不是「产物损坏」)");
+
                 int cellCount = r.ReadInt32();
                 if (cellCount != total)
                     throw new InvalidDataException(
@@ -143,7 +178,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);
 
                 return new WorldGeometryDataSet(
-                    sizeX, sizeY, sizeZ, latticeSizeMm, walkable, schemaVersion, configVersion);
+                    sizeX, sizeY, sizeZ, latticeSizeMm,
+                    chunkSizeX, chunkSizeY, chunkSizeZ,
+                    walkable, schemaVersion, configVersion);
             }
         }
 

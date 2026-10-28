@@ -32,8 +32,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         public const string FileName = "world_geometry.json";
 
         /// <summary>根对象白名单(ADR-014 §三:未知键 = 构建失败)。</summary>
+        /// <remarks>🔁 <b>2026-10-29(story-005 AC-2②)</b>:schema 2 起追加 `chunk_size`。</remarks>
         internal static readonly string[] RootKeys =
-            { "schema_version", "level_id", "world_size", "lattice_size_mm", "walkable" };
+            { "schema_version", "level_id", "world_size", "chunk_size", "lattice_size_mm", "walkable" };
 
         /// <summary>绑定结果(已通过全部域门)。</summary>
         public readonly struct BindResult
@@ -48,6 +49,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>格边长 `LATTICE_SIZE`(整数毫米;F-6-1)。</summary>
             public readonly int LatticeSizeMm;
 
+            /// <summary>chunk 边长(格;story-005 AC-2② 的「几何侧划分」)。</summary>
+            public readonly int ChunkSizeX;
+            /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+            public readonly int ChunkSizeY;
+            /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+            public readonly int ChunkSizeZ;
+
             /// <summary>每格可走性(0/1;索引 = `(x*H + y)*D + z`)。</summary>
             public readonly IReadOnlyList<int> Walkable;
 
@@ -56,10 +64,13 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             /// <summary>构造绑定结果。</summary>
             public BindResult(int width, int height, int depth, int latticeSizeMm,
+                              int chunkSizeX, int chunkSizeY, int chunkSizeZ,
                               IReadOnlyList<int> walkable, uint schemaVersion)
             {
                 Width = width; Height = height; Depth = depth;
-                LatticeSizeMm = latticeSizeMm; Walkable = walkable; SchemaVersion = schemaVersion;
+                LatticeSizeMm = latticeSizeMm;
+                ChunkSizeX = chunkSizeX; ChunkSizeY = chunkSizeY; ChunkSizeZ = chunkSizeZ;
+                Walkable = walkable; SchemaVersion = schemaVersion;
             }
 
             /// <summary>世界总格数。</summary>
@@ -102,15 +113,61 @@ namespace DaYiJingCheng.EditorTools.Bake
             int latticeSizeMm = 0;
             bool latticeOk = TryReadLatticeSize(root, out latticeSizeMm, errors);
 
+            // ②之补 chunk 尺寸(story-005 AC-2②)
+            int chunkSizeX = 0, chunkSizeY = 0, chunkSizeZ = 0;
+            bool chunkOk = TryReadChunkSize(root, out chunkSizeX, out chunkSizeY, out chunkSizeZ, errors);
+
             // ③ / ④ 可走性数组
             IReadOnlyList<int> walkable = null;
             if (sizeOk) walkable = TryReadWalkable(root, total, errors);
 
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
-            // `latticeOk` / `walkable != null` 在 errors 为空时必然为真(上面已 throw),
+            // `latticeOk` / `chunkOk` / `walkable != null` 在 errors 为空时必然为真(上面已 throw),
             // 这里不做 `if (x == null) throw` 的冗余分支 —— 那会造出不可达的失败通道。
-            return new BindResult(width, height, depth, latticeSizeMm, walkable, schemaVersion);
+            return new BindResult(width, height, depth, latticeSizeMm,
+                                  chunkSizeX, chunkSizeY, chunkSizeZ, walkable, schemaVersion);
+        }
+
+        /// <summary>`chunk_size` —— `[cx, cy, cz]` 三个 ≥ 1 的整数(**schema 2 起必填**)。</summary>
+        /// <remarks>⚠️ 这条门存在的理由不是「字段要齐」:AC-2② 的判据是「导航格切片的 chunk 键
+        /// 与**几何侧**划分同源」。几何不声明 chunk 尺寸 ⇒ 「几何侧的划分」没有定义 ⇒
+        /// 「同源」无从检验,判据退化为空话。</remarks>
+        private static bool TryReadChunkSize(
+            JsonNode root, out int chunkSizeX, out int chunkSizeY, out int chunkSizeZ, List<string> errors)
+        {
+            chunkSizeX = chunkSizeY = chunkSizeZ = 0;
+
+            if (!root.TryGet("chunk_size", out JsonNode n) || n.Kind != JsonNodeKind.Array)
+            {
+                errors.Add(
+                    $"{FileName}:缺 chunk_size 数组 —— schema 2 起必填。" +
+                    "它是「导航格切片用的 chunk 键」与「几何侧 chunk 划分」同源检验的唯一取值来源 " +
+                    "(story-005 AC-2②);缺了它,同源无从检验");
+                return false;
+            }
+            if (n.Items.Count != 3)
+            {
+                errors.Add($"{FileName}:chunk_size 须为 [cx, cy, cz] 三元数组(实得 {n.Items.Count} 项)");
+                return false;
+            }
+
+            var comp = new int[3];
+            for (int c = 0; c < 3; c++)
+            {
+                JsonNode item = n.Items[c];
+                if (item.Kind != JsonNodeKind.Integer || item.Int < 1 || item.Int > int.MaxValue)
+                {
+                    errors.Add(
+                        $"{FileName}:chunk_size[{c}] 须为 [1, {int.MaxValue}] 的整数" +
+                        $"(实得 {item.Kind}={item.RawText})");
+                    return false;
+                }
+                comp[c] = (int)item.Int;
+            }
+
+            chunkSizeX = comp[0]; chunkSizeY = comp[1]; chunkSizeZ = comp[2];
+            return true;
         }
 
         /// <summary>`world_size` —— `[W,H,D]` 三个 ≥ 1 的整数。</summary>

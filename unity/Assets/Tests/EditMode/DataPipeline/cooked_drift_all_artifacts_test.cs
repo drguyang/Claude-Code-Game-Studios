@@ -269,6 +269,17 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => WorldPoiBake.BakeFromRepo(root).Cooked),
             new ArtifactBake(WorldResourcesBake.CookedFileName,
                 root => WorldResourcesBake.BakeFromRepo(root).Cooked),
+            // 2026-10-29(关卡工具 story-005):导航格切片,4 份(P0 = 2×1×2 chunk,用户裁定)。
+            // ⚠️ 条数**写死 4** 是刻意的:P0 关卡的 chunk 划分是**数据**(8×1×8),不是运行期算出来的;
+            //    若将来改了 chunk 尺寸,本表与 `pinnedDeclared` 须同批重签 —— 那正是本门的要求。
+            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[0],
+                root => WorldNavChunkBake.BakeFromRepo(root, 0).Cooked),
+            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[1],
+                root => WorldNavChunkBake.BakeFromRepo(root, 1).Cooked),
+            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[2],
+                root => WorldNavChunkBake.BakeFromRepo(root, 2).Cooked),
+            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[3],
+                root => WorldNavChunkBake.BakeFromRepo(root, 3).Cooked),
         };
 
         /// <summary>
@@ -414,7 +425,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-29(关卡工具 story-002):26 → 28(+world_geometry / world_terrain,几何 + 地形表)。
             // 2026-10-29(关卡工具 story-003):28 → 29(+world_ecozones,生态区多边形)。
             // 2026-10-29(关卡工具 story-004):29 → 31(+world_poi / world_resources,POI 定义 / 资源点)。
-            const int pinnedDeclared = 31; // 2026-10-29 实测(31 份)
+            // 🔁 2026-10-29(story-005):31 → 35(导航格 4 片;世界几何是**重烘**不是新增)。
+            const int pinnedDeclared = 35; // 2026-10-29 实测(35 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -12200,3 +12200,25 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   4 份切片烘焙 + 运行期 codec + 按需加载组 · `UnimplementedChecks` 5 → 3 ·
   `WorldDataSets.UnimplementedByStory` 1 → 0(**最后一格**,`test_ac3_unimplementedKind_…`
   须改成「闭集内每一类都已实现」)。
+
+---
+
+## Session Extract — level-tool/story-005 实现轮收口(2026-10-29 · ✅ AC 6/6 · 待提交)
+
+> 上一条「S5 尚未动手的部分」清单 **已全部兑现**,本节是收口状态。
+
+- **AC 6/6**:`INavLattice` + `NavLattice`(未驻留 = block)· 4 片切片 + chunk 同源 ·
+  C6 两条独立硬失败 · C3 三态告警 · 烘焙 + 进组 · `UnimplementedChecks` 5 → 3。
+- **`WorldDataSets.UnimplementedByStory` 1 → 0**(最后一格已清空);
+  `test_ac3_unimplementedKind_…` 已按预言改成 `test_ac3_everyKindInClosedSet_isImplemented`。
+- **几何 schema 1 → 2**(`chunk_size`):已重烘 `world_geometry.cooked.bytes` = 1076 B。
+- **产物**:`world_nav_{0..3}.json`(各 402 B)+ `world_nav_{0..3}.cooked.bytes`(各 308 B);
+  `data-core` 组 **31 → 35**,与盘上 35 份一致。
+- **证伪轮**:16 条变异**全部转红**,零假绿;唯一超判 M12(1 → 2)已独立论证。
+- **回归**:EditMode `5814 / 5779 / 0 / 0 / 35`(@ 05:08:55 CST)· PlayMode `238 / 234 / 0 / 2 / 2`
+  (@ 05:11:09 CST)。等式 `5814 − 5789 = 25` = 21 新 `[Test]` + 4 漂移门用例 + 2 改名(净 0)。
+- **本轮自己的三处错误**(证据件 §八):① 漂移扫描器扫不到**拼接式**产物名(首跑全量才暴露,
+  修的是名字形态、判据一字未松)② `chunk` 三元组下界误用 1(实为 0)③ 两处夹具自身形状错。
+- **如实登记的缺口**:`NavLattice` **未接生产装配**(归 6 / ADR-023 ⑥);导航格切片不进
+  「首次 Step 前常驻」(ADR-022 §五 明确排除);`ChunkActivator` 仍零生产消费者。
+- **下一步**:S6(C1 / C2 / C2')—— 本 epic 最后一件。

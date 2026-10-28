@@ -215,47 +215,57 @@ namespace DaYiJingCheng.Tests.LevelTool
                 "Poi 自 story-004 起已实现");
             Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Resources), Is.True,
                 "Resources 自 story-004 起已实现");
-            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(1),
-                "未实现类别只剩 NavChunk(S5)—— " +
-                "条数变了说明有类别移了队却没同步另一侧");
+            // 🔁 **2026-10-29(关卡工具 story-005)**:NavChunk 也转已实现 ⇒ **闭集内全部已实现**,
+            //    未实现表 **清空**。这是最后一格 —— 此后本断言的方向变成「少了谁」而不是「还剩谁」。
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.NavChunk), Is.True,
+                "NavChunk 自 story-005 起已实现");
+            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(0),
+                "未实现表须清空 —— ADR-022 §三 的 7 类已全部有序列化器;" +
+                "非零说明有条目没随实现同步移除(两个清单必须互补)");
         }
 
-        /// <summary>AC-3:未实现类别 ⇒ 抛,报文点名**归属 story**(不是「未实现」四个字了事)。</summary>
-        /// <remarks>⚠️ **本条的靶会随实现进度前移,这是刻意的**:它判的是「未实现类别 ⇒ 抛 + 点名归属」,
-        /// 而「哪一类未实现」是**随时间变的**。
-        /// · story-001:`Geometry` → story-002 实现后换 `Ecozones`
-        /// · story-002:`Ecozones` → story-003 实现后换 `Poi`(归 S4)
-        /// · story-003:`Poi` → story-004 实现后换 `NavChunk`(归 S5;**这是最后一格** ——
-        ///   再前移就无处可去,那时本测须改成「闭集内每一类都已实现」)
-        /// ⇒ 每条实现轮都得把它前移一格。**判据形态一字未变**(抛 + 报文含归属 story 号 + 含文件名)。</remarks>
+        /// <summary>AC-3:**闭集内每一类都已实现** —— 未实现靶已无处可前移(story-005 起)。</summary>
+        /// <remarks>🔁 **本条的靶随实现进度前移了四次,这是最后一次**:
+        /// story-001 `Geometry` → story-002 `Ecozones` → story-003 `Poi` → story-004 `NavChunk`。
+        /// story-004 的卡片逐字写:「**再前移就无处可去,那时本测须改成『闭集内每一类都已实现』**」。
+        /// <para>⇒ 本测现在的形态是:**闭集内不得有一类抛 `NotSupportedException`**,
+        /// 且 `UnimplementedByStory` 为空。判据方向从「点名还剩谁」变成「点名少了谁」。</para>
+        /// <para><b>判别力</b>:把任一类从 `Serializers` 里删掉 ⇒ 该类的 `Export` 抛 ⇒ 本测红,
+        /// 且报文会点名**是哪一类**(循环里逐类 assert)。</para>
+        /// </remarks>
         [Test]
-        public void test_ac3_unimplementedKind_throwsNamingOwningStory()
+        public void test_ac3_everyKindInClosedSet_isImplemented()
         {
             LevelSource src = LevelCatalog.Define("p0_clinic");
 
-            var ex = Assert.Throws<NotSupportedException>(
-                () => LevelExporter.Export(WorldDataSetKind.NavChunk, src));
+            Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(0),
+                "未实现表须为空 —— 再有条目 = 有类别退队了");
 
-            Assert.That(ex.Message, Does.Contain("S5"), "报文须点名归属 story(S5)");
-            Assert.That(ex.Message, Does.Contain("world_nav"));
+            foreach (WorldDataSetKind kind in WorldDataSets.All)
+            {
+                Assert.That(WorldDataSets.IsImplemented(kind), Is.True,
+                    $"{kind} 没有序列化器 —— 闭集里每一类都该已实现(story-005 是最后一格)");
+
+                Assert.DoesNotThrow(() => WorldDataSets.SerializeAll(kind, src),
+                    $"{kind} 声明为已实现,但序列化时抛了 —— 「有登记」与「跑得通」不是同一件事");
+            }
         }
 
         // ─────────────────────────── AC-4 ───────────────────────────
 
-        /// <summary>AC-4:`UnimplementedChecks` **仍是 7 条**(本 story 不实现任何检查),但措辞不再指向「本批」。</summary>
-        /// <remarks><b>判别力</b>:把任一条改成已实现而删掉 ⇒ 长度 ≠ 7 ⇒ 红(越界);把「本批」写回 ⇒ 红。</remarks>
+        /// <summary>AC-4:`UnimplementedChecks` 的措辞不再指向「本批」,且每条点名归属 story。</summary>
+        /// <remarks>🔁 **条数判据已迁走**:story-001 判「7 条」→ story-003 判「5 条」→ story-005 判「3 条」。
+        /// 逐轮的条数断言**已在 story-005 收敛到 `nav_chunk_slicing_test::test_ac6_unimplementedChecks_…`**
+        /// (那一条同时钉住「C3 / C6 已移出」)。本测保留的是**与条数无关的那一半**:
+        /// 措辞纪律 —— 这就是标题里「stillSeven」被去掉的原因。
+        /// <para><b>判别力</b>:把「本批」写回任一条 ⇒ 红;某条不点名归属 story ⇒ 红。</para>
+        /// </remarks>
         [Test]
-        public void test_ac4_unimplementedChecks_stillSeven_andNoLongerSaysThisBatch()
+        public void test_ac4_unimplementedChecks_noLongerSaysThisBatch_andNamesOwningStory()
         {
             string[] items = LevelConsistencyCheck.UnimplementedChecks;
 
-            // 🔁 **2026-10-29(关卡工具 story-003 AC-6)判据订正 7 → 5**,原文不删:
-            //    story-001 时本项判「仍 7 条」—— 那时一条 C1–C6 都没实现。
-            //    story-003 实现了 **C4 / C5** ⇒ 两条移出本表,剩 C1 / C2 / C2' / C3 / C6 五条。
-            //    ⚠️ 判据形态不变:**变少 = 越界**(没实现却从表里删),**变多 = 闭集漂移**。
-            Assert.That(items.Length, Is.EqualTo(5),
-                "story-003 起 C4 / C5 已实现 ⇒ 未实现项须恰为 5 条(C1 / C2 / C2' / C3 / C6);" +
-                "变少 = 越界(没实现却删了),变多 = 闭集漂移");
+            Assert.That(items.Length, Is.GreaterThan(0), "扫描键守卫:清单为空则下面的逐条断言会被「什么都不查」满足");
 
             foreach (string item in items)
             {

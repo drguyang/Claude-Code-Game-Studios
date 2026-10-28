@@ -57,6 +57,19 @@ namespace DaYiJingCheng.EditorTools.Level
         public const int ShellModuleId = 8;
 
         /// <summary>
+        /// chunk 边长(格;story-005 AC-2②)。
+        /// <para>⚠️ **刻意与 <see cref="P0ClinicLevel.ChunkSizeX"/> 不同**(`4×1×4` vs `8×1×8`):
+        /// 「chunk 尺寸来自关卡数据」若两关同值,任一实现写死常量都能通过夹具 ——
+        /// 那正是「尺寸来自数据」这类判据的经典同值退化(承 story-001 AC-1 的同一条纪律)。</para>
+        /// <para>本关 `8×2×8` ⇒ `2×2×2 = **8** 个 chunk`(索引 `0..7`);只导到暂存区,不烘焙。</para>
+        /// </summary>
+        public const int ChunkSizeX = 4;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public const int ChunkSizeY = 1;
+        /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
+        public const int ChunkSizeZ = 4;
+
+        /// <summary>
         /// 产出脚手架的声明式关卡源。
         /// <para>槽位集(4 条,横跨 y = 0 / y = 1 两层):
         /// ① `(2,0,2)` Decor 空地(`baked_initial = false`);
@@ -93,7 +106,10 @@ namespace DaYiJingCheng.EditorTools.Level
                 latticeSizeMm: P0ClinicLevel.LatticeSizeMm,
                 ecozones: BuildEcozones(),
                 poi: BuildPoi(),
-                resources: BuildResources());
+                resources: BuildResources(),
+                chunkSizeX: ChunkSizeX,
+                chunkSizeY: ChunkSizeY,
+                chunkSizeZ: ChunkSizeZ);
         }
 
         /// <summary>POI 定义(**单个占位**,与 `P0ClinicLevel` 的三个在数量上不同)。

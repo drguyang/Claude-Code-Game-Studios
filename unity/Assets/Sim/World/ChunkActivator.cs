@@ -38,6 +38,50 @@ namespace DaYiJingCheng.Sim.World
             ChunksZ = chunksZ;
         }
 
+        /// <summary>
+        /// **chunk 划分的唯一函数**(2026-10-29 · 关卡工具 story-005 AC-2②)。
+        /// <para>由「世界尺寸 + chunk 尺寸」推出完整的 <see cref="ChunkTopology"/>
+        /// (chunk 数 = 各轴**向上取整**)。</para>
+        /// <para>⚠️ <b>本方法是「几何侧 / 导航格侧用同一个函数算 chunk」的**唯一**载体</b> ——
+        /// `WorldGeometryDataSet.ChunkTopology`(运行期,读烘焙产物)、
+        /// `NavChunkSlicer.Slice`(工具,切导航格)、`NavLattice`(运行期,查格)
+        /// 三处**都调它**,不得各自写一遍 `(x + n - 1) / n` 或 `x >> s`:
+        /// 两处各算一次 = 两边可以独立漂移,而漂移的表现是「某几格永远查不到」
+        /// (静默,不是崩溃)。</para>
+        /// <para>⚠️ chunk **不是坐标原点**(ADR-015 §四):本方法只产出**分块索引**,
+        /// 格坐标仍是全局整数格。</para>
+        /// </summary>
+        /// <param name="sizeX">世界 X 格数(&gt; 0)。</param>
+        /// <param name="sizeY">世界 Y 格数(&gt; 0)。</param>
+        /// <param name="sizeZ">世界 Z 格数(&gt; 0)。</param>
+        /// <param name="chunkSizeX">chunk X 边长(格,&gt; 0)。</param>
+        /// <param name="chunkSizeY">chunk Y 边长(格,&gt; 0)。</param>
+        /// <param name="chunkSizeZ">chunk Z 边长(格,&gt; 0)。</param>
+        /// <exception cref="ArgumentOutOfRangeException">任一尺寸 &lt; 1。</exception>
+        public static ChunkTopology ForWorld(
+            int sizeX, int sizeY, int sizeZ, int chunkSizeX, int chunkSizeY, int chunkSizeZ)
+        {
+            if (sizeX < 1 || sizeY < 1 || sizeZ < 1)
+                throw new ArgumentOutOfRangeException(
+                    nameof(sizeX), $"世界尺寸须 ≥ 1(实得 {sizeX}×{sizeY}×{sizeZ})");
+            if (chunkSizeX < 1 || chunkSizeY < 1 || chunkSizeZ < 1)
+                throw new ArgumentOutOfRangeException(
+                    nameof(chunkSizeX), $"chunk 尺寸须 ≥ 1(实得 {chunkSizeX}×{chunkSizeY}×{chunkSizeZ})");
+
+            // 向上取整:用 long 算再落 int —— 与 WorldGeometry.ToIndex 同一条回绕纪律。
+            long cx = ((long)sizeX + chunkSizeX - 1) / chunkSizeX;
+            long cy = ((long)sizeY + chunkSizeY - 1) / chunkSizeY;
+            long cz = ((long)sizeZ + chunkSizeZ - 1) / chunkSizeZ;
+            if (cx > int.MaxValue || cy > int.MaxValue || cz > int.MaxValue)
+                throw new ArgumentOutOfRangeException(
+                    nameof(sizeX), $"chunk 数 ({cx},{cy},{cz}) 超出 int 域");
+
+            return new ChunkTopology(chunkSizeX, chunkSizeY, chunkSizeZ, (int)cx, (int)cy, (int)cz);
+        }
+
+        /// <summary>chunk 总数。</summary>
+        public int ChunkCount => ChunksX * ChunksY * ChunksZ;
+
         /// <summary>WorldPos → chunk 坐标。</summary>
         public WorldPos WorldToChunk(WorldPos worldPos)
         {

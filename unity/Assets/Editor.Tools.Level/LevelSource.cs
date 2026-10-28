@@ -129,6 +129,18 @@ namespace DaYiJingCheng.EditorTools.Level
         /// </summary>
         public readonly int LatticeSizeMm;
 
+        /// <summary>
+        /// chunk 边长 X(格)。
+        /// <para>🔁 <b>2026-10-29(story-005 AC-2②)新增</b>。`0` = 未声明(几何 / 导航格导出均硬失败)。</para>
+        /// <para>⚠️ 三个分量**必须同时**声明或**同时**为零 —— chunk 是三维划分,
+        /// 单轴为 0 会让 `ChunkTopology.ForWorld` 抛,而那属于作者错误、不是可选状态。</para>
+        /// </summary>
+        public readonly int ChunkSizeX;
+        /// <summary>chunk 边长 Y(格);见 <see cref="ChunkSizeX"/>。</summary>
+        public readonly int ChunkSizeY;
+        /// <summary>chunk 边长 Z(格);见 <see cref="ChunkSizeX"/>。</summary>
+        public readonly int ChunkSizeZ;
+
         /// <summary>世界总格数(`Width × Height × Depth`;越界即抛,见构造)。</summary>
         public readonly int TotalCells;
 
@@ -145,7 +157,8 @@ namespace DaYiJingCheng.EditorTools.Level
         public LevelSource(
             string levelId, int width, int height, int depth, IReadOnlyList<SlotSpec> slots,
             IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0,
-            EcozoneSource ecozones = null, PoiSource poi = null, ResourceSource resources = null)
+            EcozoneSource ecozones = null, PoiSource poi = null, ResourceSource resources = null,
+            int chunkSizeX = 0, int chunkSizeY = 0, int chunkSizeZ = 0)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -200,6 +213,40 @@ namespace DaYiJingCheng.EditorTools.Level
             Ecozones = ecozones;
             Poi = poi;
             Resources = resources;
+
+            // chunk 三件:要么全声明(≥1),要么全为零(= 未声明)。
+            // ⚠️ 半声明(如 X=8 而 Y=0)在 `ChunkTopology.ForWorld` 必抛,但那时报文指向
+            //    「数值非法」而不是「你漏了一个轴」—— 在构造期分开判,报文才指得准。
+            if (chunkSizeX < 0 || chunkSizeY < 0 || chunkSizeZ < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(chunkSizeX),
+                    $"chunk 尺寸不得为负(实得 {chunkSizeX}×{chunkSizeY}×{chunkSizeZ};0 = 未声明)");
+
+            bool allZero = chunkSizeX == 0 && chunkSizeY == 0 && chunkSizeZ == 0;
+            bool allPositive = chunkSizeX >= 1 && chunkSizeY >= 1 && chunkSizeZ >= 1;
+            if (!allZero && !allPositive)
+                throw new ArgumentException(
+                    $"chunk 尺寸必须三轴**同时**声明或同时为零(实得 {chunkSizeX}×{chunkSizeY}×{chunkSizeZ})" +
+                    " —— 半声明会让「chunk 划分」在某一轴上没有定义", nameof(chunkSizeX));
+
+            ChunkSizeX = chunkSizeX;
+            ChunkSizeY = chunkSizeY;
+            ChunkSizeZ = chunkSizeZ;
+        }
+
+        /// <summary>
+        /// 本关卡的 chunk 划分(`ChunkTopology.ForWorld` —— 几何侧 / 导航格侧**同源**)。
+        /// <para>⚠️ 方法名**不得**叫 `ChunkTopology`:那会让方法名遮蔽类型名,
+        /// 方法体里的 `ChunkTopology.ForWorld(...)` 被解析成「对方法取成员」⇒ CS0119。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">未声明 chunk 尺寸。</exception>
+        public ChunkTopology GetChunkTopology()
+        {
+            if (ChunkSizeX <= 0 || ChunkSizeY <= 0 || ChunkSizeZ <= 0)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {LevelId} 未声明 chunk 尺寸 ⇒ 无法划分 chunk" +
+                    "(story-005 AC-2②:几何侧与导航格侧须用**同一个**划分函数)");
+            return ChunkTopology.ForWorld(Width, Height, Depth, ChunkSizeX, ChunkSizeY, ChunkSizeZ);
         }
 
         /// <summary>

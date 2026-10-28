@@ -57,8 +57,13 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>`world_geometry.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
         /// <remarks>⚠️ **每类数据集各有一个 schema 号**(承 ADR-014 §五 的 per-product 口径):
         /// 三类的布局各自演进,共用一个号会让「改 A 却被迫升 B 的号」成为常态,
-        /// 而升号 = 旧产物被拒收 = 一次无谓的重烘。</remarks>
-        public const uint GeometrySchemaVersion = 1u;
+        /// 而升号 = 旧产物被拒收 = 一次无谓的重烘。
+        /// <para>🔁 <b>2026-10-29(story-005 AC-2②):1 → 2</b> —— 新增根键 `chunk_size`。
+        /// 缘由是 AC 逼出来的,不是偏好:AC-2② 要求「文件名里的 chunk 键与**几何侧** chunk 划分
+        /// 用同一个函数算」⇒ 几何产物必须**声明**自己按什么划分 ⇒ 不声明则「几何侧的划分」
+        /// 这个概念不存在,同源无从检验。连带 `WorldGeometryCookedCodec.ExpectedSchemaVersion`
+        /// 同值改 2 + 载荷追加 3 个 i32。</para></remarks>
+        public const uint GeometrySchemaVersion = 2u;
 
         /// <summary>`world_ecozones.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
         public const uint EcozonesSchemaVersion = 1u;
@@ -138,7 +143,9 @@ namespace DaYiJingCheng.EditorTools.Level
 
         /// <summary>
         /// 序列化 `world_geometry.json`(story-002 AC-1)。
-        /// <para>形状 = `schema_version` + `level_id` + `world_size` + `lattice_size_mm` + `walkable`。</para>
+        /// <para>形状(schema 2)= `schema_version` + `level_id` + `world_size` + **`chunk_size`**
+        /// + `lattice_size_mm` + `walkable`。`chunk_size` 自 story-005 AC-2② 起必填 ——
+        /// 它是「导航格切片用的 chunk 键」与「几何侧 chunk 划分」同源检验的唯一取值来源。</para>
         /// <para>⚠️ **零浮点**:全部字段都是 JSON 整数(AC-1 的判据;`LATTICE_SIZE` 以**毫米整数**承载 ——
         /// ADR-015 §三 的格边量子就是 mm)。</para>
         /// </summary>
@@ -160,6 +167,11 @@ namespace DaYiJingCheng.EditorTools.Level
             if (src.LatticeSizeMm <= 0)
                 throw new InvalidOperationException(
                     $"[关卡工具] {src.LevelId} 未声明 LATTICE_SIZE(= {src.LatticeSizeMm} mm ⇒ 须 > 0;GDD F-6-1)");
+            if (src.ChunkSizeX <= 0 || src.ChunkSizeY <= 0 || src.ChunkSizeZ <= 0)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明 chunk 尺寸 ⇒ 拒绝导出 world_geometry。" +
+                    "AC-2② 要求「导航格切片用的 chunk 键」与「几何侧 chunk 划分」同源 ⇒ " +
+                    "几何产物必须声明自己按什么划分;不声明则同源无从检验");
 
             var sb = new StringBuilder();
             sb.Append("{\n");
@@ -169,6 +181,12 @@ namespace DaYiJingCheng.EditorTools.Level
               .Append(Num(src.Width)).Append(", ")
               .Append(Num(src.Height)).Append(", ")
               .Append(Num(src.Depth)).Append("],\n");
+            // ⚠️ `chunk_size` 写在 `lattice_size_mm` **之前**(schema 2 的字段序固定):
+            //    它是「几何的一个属性」,与 `LATTICE_SIZE`(格边长)同层。
+            sb.Append("  \"chunk_size\": [")
+              .Append(Num(src.ChunkSizeX)).Append(", ")
+              .Append(Num(src.ChunkSizeY)).Append(", ")
+              .Append(Num(src.ChunkSizeZ)).Append("],\n");
             sb.Append("  \"lattice_size_mm\": ").Append(Num(src.LatticeSizeMm)).Append(",\n");
             sb.Append("  \"walkable\": ");
             AppendFlatIntArray(sb, src.Walkable, perLine: src.Height * src.Depth);
@@ -451,14 +469,135 @@ namespace DaYiJingCheng.EditorTools.Level
         public static string Export(WorldDataSetKind kind, LevelSource src)
             => WorldDataSets.Serialize(kind, src);
 
+        // ── 分派表用的「单份类别」适配器(2026-10-29 · story-005)────────────────────
+        // ⚠️ 这六个方法**只**转换形状(`string` → 一份 `DataSetProduct`),不含任何逻辑 ——
+        //    序列化的真身仍是上面那六个 `ExportXxx`。抽出来是因为分派表的**值域**改成了
+        //    「可以是多份」(NavChunk),而单份类别不该为此改写各自的导出实现。
+        //    文件名由 `WorldDataSets.FileNameFor` 给出(**单一出处**,与 AC-5 的命名判据同源)。
+
+        /// <summary>分派表适配:`BuildSlots` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportBuildSlotsProducts(LevelSource src)
+            => Single(WorldDataSetKind.BuildSlots, src, ExportBuildSlots(src));
+        /// <summary>分派表适配:`Geometry` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportGeometryProducts(LevelSource src)
+            => Single(WorldDataSetKind.Geometry, src, ExportGeometry(src));
+        /// <summary>分派表适配:`Terrain` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportTerrainProducts(LevelSource src)
+            => Single(WorldDataSetKind.Terrain, src, ExportTerrain(src));
+        /// <summary>分派表适配:`Ecozones` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportEcozonesProducts(LevelSource src)
+            => Single(WorldDataSetKind.Ecozones, src, ExportEcozones(src));
+        /// <summary>分派表适配:`Poi` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportPoiProducts(LevelSource src)
+            => Single(WorldDataSetKind.Poi, src, ExportPoi(src));
+        /// <summary>分派表适配:`Resources` 的单份产物。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportResourcesProducts(LevelSource src)
+            => Single(WorldDataSetKind.Resources, src, ExportResources(src));
+
+        private static IReadOnlyList<DataSetProduct> Single(WorldDataSetKind kind, LevelSource src, string json)
+            => new[] { new DataSetProduct(WorldDataSets.FileNameFor(kind, src.LevelId), json) };
+
+        /// <summary>`world_nav_{chunk}.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        public const uint NavChunkSchemaVersion = 1u;
+
+        /// <summary>
+        /// 序列化 `world_nav_{chunk}.json` 的**全部切片**(story-005 AC-2)。
+        /// <para>流程 = 切片(`ChunkTopology.ForWorld` 的**同一**划分)→ **C6 硬失败校验**
+        /// → C3 告警(生产 NavMesh 采样器)→ 逐块出文本。</para>
+        /// <para>⚠️ **C6 在本方法里跑**(不在 `LevelConsistencyCheck.Check` 里):它的输入是
+        /// **刚产出的切片集合**,而不是「本方法自己再切一遍」。这样「校验的」与「导出的」
+        /// 是同一份对象 —— 且把「任何来源的坏切片集合」喂给 `NavChunkSliceCheck` 都能被拦
+        /// (AC-3 的两条负向夹具正是这么造的)。</para>
+        /// <para>⚠️ **C3 只告警**:`warnings` 逐条 `Debug.LogWarning`,不 `throw`
+        /// (AC-4 ②「不使构建失败」)。⚠️ 无 baked NavMesh 时三态全 `Unknown` ⇒ **零告警**
+        /// (依据见 `NavMeshConsistencyCheck` 文件头),而不是「全矛盾」。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 未声明可走性 / 未声明 chunk 尺寸 / **C6 切片完整性失败**(漏格或重复格)。</exception>
+        public static IReadOnlyList<DataSetProduct> ExportNavChunks(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src);
+
+            if (src.Walkable == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明每格可走性 ⇒ 拒绝导出 world_nav。" +
+                    "不合成「全可走」:那会让 AI 在墙里寻路,而产物上看不出任何异常");
+            if (src.ChunkSizeX <= 0 || src.ChunkSizeY <= 0 || src.ChunkSizeZ <= 0)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明 chunk 尺寸 ⇒ 拒绝导出 world_nav" +
+                    "(ADR-022 §五:{chunk} 键 = ADR-015 §四 的同一 chunk)");
+
+            IReadOnlyList<NavChunkSlice> slices = NavChunkSlicer.Slice(
+                src.Width, src.Height, src.Depth,
+                src.ChunkSizeX, src.ChunkSizeY, src.ChunkSizeZ, src.Walkable);
+
+            // ── C6 切片完整性 = **硬失败**(ADR-022 §四)──────────────────────────
+            if (!NavChunkSliceCheck.TryCheck(
+                    src.Width, src.Height, src.Depth,
+                    src.ChunkSizeX, src.ChunkSizeY, src.ChunkSizeZ, slices, out List<string> c6))
+                throw new InvalidOperationException(
+                    "[关卡工具] C6 切片完整性检查失败(ADR-022 §四 —— 本项是硬失败,不是告警):\n  "
+                    + string.Join("\n  ", c6));
+
+            // ── C3 导航格 ↔ NavMesh = **告警** ───────────────────────────────────
+            if (NavMeshConsistencyCheck.TryCheck(src, NavMeshReachabilitySampler.For(src), out List<string> c3)
+                == false)
+            {
+                for (int i = 0; i < c3.Count; i++) Debug.LogWarning(c3[i]);
+            }
+
+            var products = new List<DataSetProduct>(slices.Count);
+            for (int i = 0; i < slices.Count; i++)
+                products.Add(new DataSetProduct(
+                    WorldDataSets.NavChunkFileName(src.LevelId, slices[i].ChunkIndex),
+                    RenderNavChunk(src, slices[i])));
+            return products;
+        }
+
+        /// <summary>分派表适配:`NavChunk` 的多份产物(每 chunk 一文件)。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportNavChunkProducts(LevelSource src)
+            => ExportNavChunks(src);
+
+        /// <summary>把单个切片渲染成确定性 JSON 文本。</summary>
+        private static string RenderNavChunk(LevelSource src, NavChunkSlice slice)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)NavChunkSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            // ⚠️ `world_size` 与 `chunk_size` **重复写进每一份切片**,与 `world_terrain` 冗余写尺寸同源:
+            //    它们让「这份切片属于哪个世界、按什么划分」在**烘焙期**就能自校验,
+            //    而不必等装载期拿几何侧来比 —— 后者会把「产物配错了世界」误诊成「数据损坏」。
+            sb.Append("  \"world_size\": [")
+              .Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ")
+              .Append(Num(src.Depth)).Append("],\n");
+            sb.Append("  \"chunk_size\": [")
+              .Append(Num(src.ChunkSizeX)).Append(", ")
+              .Append(Num(src.ChunkSizeY)).Append(", ")
+              .Append(Num(src.ChunkSizeZ)).Append("],\n");
+            sb.Append("  \"chunk_index\": ").Append(Num(slice.ChunkIndex)).Append(",\n");
+            sb.Append("  \"chunk\": [")
+              .Append(Num(slice.ChunkX)).Append(", ")
+              .Append(Num(slice.ChunkY)).Append(", ")
+              .Append(Num(slice.ChunkZ)).Append("],\n");
+            sb.Append("  \"walkable\": ");
+            // 每行 = 一个 y 层(与 `(lx*chunkSizeY + ly)*chunkSizeZ + lz` 的连续段重合)。
+            AppendFlatIntArray(sb, slice.Walkable, perLine: src.ChunkSizeZ);
+            sb.Append("\n}\n");
+            return sb.ToString();
+        }
+
         // ⚠️ **此处曾有二参 `ExportTo(string path, LevelSource src)`**(隐含 `BuildSlots`),实现轮内删除。
         //    与上面删掉的 `FileName`、下面 `LevelCatalog.TryDefine` 同一条纪律(2026-10-28 评审 A-21):
         //    **零消费方的死 API**(`grep -rn 'ExportTo(' --include=*.cs` 排除本文件后零命中)。
         //    保留它还有个具体害处:它是「类别」这一概念的**第二个隐式默认值** ——
         //    调用点看不出自己在导出哪一类,而 AC-3 的全部意义就是让类别**在调用点显式**。
 
-        /// <summary>按类别写盘到任意路径。</summary>
-        /// <exception cref="NotSupportedException">该类尚无序列化器。</exception>
+        /// <summary>按类别写盘到任意路径(单份类别)。</summary>
+        /// <exception cref="NotSupportedException">该类尚无序列化器 / 该类出多份。</exception>
         public static void ExportTo(WorldDataSetKind kind, string path, LevelSource src)
         {
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("路径为空", nameof(path));
@@ -475,24 +614,18 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 「导出一个关卡」若仍只写槽位,调用方就得记住「还要再导两次」——
         /// 那是一条**必须靠记忆维持**的接线,漏一次就是「产物里少一份、装载期硬失败」。
         /// 现在循环 `WorldDataSets.All` 的已实现子集,新增一类**不改本方法**。</para>
+        /// <para>🔁 **2026-10-29(story-005)**:改用 `SerializeAll` —— `NavChunk` 一类出 N 份
+        /// (每 chunk 一个文件)。文件名由**序列化器**给出(它知道 chunk 数),
+        /// 本方法不再自己拼名字 ⇒ 名字与内容出自同一处,不可能分家。</para>
         /// </summary>
-        /// <returns>实际写出的文件名(顺序 = <see cref="WorldDataSets.All"/> 的声明序)。</returns>
+        /// <returns>实际写出的文件名(顺序 = <see cref="WorldDataSets.All"/> 的声明序,类内按 chunk 索引升序)。</returns>
         /// <exception cref="ArgumentException"><paramref name="levelId"/> 不在 <see cref="LevelCatalog"/> 内。</exception>
         /// <exception cref="InvalidOperationException">一致性检查硬失败 / 某类所需的声明缺失。</exception>
         public static IReadOnlyList<string> ExportLevelToRepo(string repoRoot, string levelId)
         {
             if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
             LevelSource src = LevelCatalog.Define(levelId);
-
-            var written = new List<string>();
-            foreach (WorldDataSetKind kind in WorldDataSets.All)
-            {
-                if (!WorldDataSets.IsImplemented(kind)) continue;
-                string fileName = WorldDataSets.FileNameFor(kind, levelId);
-                ExportTo(kind, Path.Combine(repoRoot, "assets", "data", fileName), src);
-                written.Add(fileName);
-            }
-            return written;
+            return WriteAll(src, Path.Combine(repoRoot, "assets", "data"));
         }
 
         /// <summary>
@@ -507,14 +640,23 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             if (string.IsNullOrEmpty(repoRoot)) throw new ArgumentNullException(nameof(repoRoot));
             LevelSource src = LevelCatalog.Define(levelId);
+            return WriteAll(src, Path.Combine(repoRoot, "unity", "Logs", "level-tool"));
+        }
 
+        /// <summary>把某关卡的全部已实现类别写到 <paramref name="dir"/>(两处导出入口的共用体)。</summary>
+        private static IReadOnlyList<string> WriteAll(LevelSource src, string dir)
+        {
+            Directory.CreateDirectory(dir);
             var written = new List<string>();
+            var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             foreach (WorldDataSetKind kind in WorldDataSets.All)
             {
                 if (!WorldDataSets.IsImplemented(kind)) continue;
-                string fileName = WorldDataSets.FileNameFor(kind, levelId);
-                ExportTo(kind, Path.Combine(repoRoot, "unity", "Logs", "level-tool", fileName), src);
-                written.Add(fileName);
+                foreach (DataSetProduct product in WorldDataSets.SerializeAll(kind, src))
+                {
+                    File.WriteAllText(Path.Combine(dir, product.FileName), product.Json, utf8NoBom);
+                    written.Add(product.FileName);
+                }
             }
             return written;
         }

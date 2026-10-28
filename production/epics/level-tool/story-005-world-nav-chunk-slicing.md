@@ -1,12 +1,12 @@
 # Story 005: `world_nav_{chunk}` 切片 + C6 切片完整性 + C3 告警
 
 > **Epic**: 关卡工具(54 · Tooling 层)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Tooling
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-28
+> **Last Updated**: 2026-10-29
 
 ## Context
 
@@ -197,3 +197,40 @@ ADR-022 §五 逐字:「`{chunk}` 键 = `ADR-015 §四` 的同一 chunk」。
 4. **`INavLattice` 的形状若被 ADR 否决** —— AC-1 的载体变,判据不变;
    本 story 的估时**会变**。
 5. **C3 的 post-cutoff API 假设** —— 若 spike 推翻,须回 ADR-022 追加裁决。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-29
+**Criteria**: **6/6 通过**
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/LevelTool/nav_chunk_slicing_test.cs`
+(21 条 `[Test]`)+ 漂移门参数化用例 ×4 + C3 前置 spike
+`production/qa/evidence/spike-navmesh-6.3-2026-10-29.md`。原件
+`production/qa/evidence/impl-level-tool-story-005-2026-10-29.md`。
+
+**Deviations**: **无 BLOCKING**。ADVISORY 四条,均如实登记:
+1. **`NavLattice` 未接生产装配** —— 谁在什么时候 `Mount` 哪一块归系统 6 的 chunk 激活轮
+   (ADR-023 ⑥)。本轮只出**数据**与**承载类型**;`DataCookedDisk.LoadWorldNavChunk`
+   今日只有夹具消费方。**「生产装配里有一张导航格」未证**。
+2. **导航格切片刻意不进「首次 Step 前常驻」** —— ADR-022 §五 明确把逻辑导航格排除在
+   ADR-014 §五 的常驻约束之外。`test_ac5_navChunksAreNotInFirstStepPreloadList` 钉住当下口径。
+3. **`maxDistance` 口径 NOT-RUN** —— spike 如实登记(无真实 NavMesh 资产)。
+   C3 的三态设计**不依赖**该口径。
+4. **`ChunkActivator` 仍零生产消费者** —— `ChunkTopology` 的「零消费方」问题本轮只解开一半
+   (`NavLattice` / 几何 codec 用了它,激活器没有)。
+
+**Regression**:
+EditMode `5814 / 5779 / 0 / 0 / 35`(@ `2026-10-29 05:08:55 CST` · S5 收口终跑 · `e9d951dd`+工作树);
+基线 `5789 / 5754` ⇒ 等式 `5814 − 5789 = 25` = 21 条新 `[Test]` + 4 条漂移门参数化用例
++ 2 条**改名**(净 0),**真正消失 0 条**。
+PlayMode `238 / 234 / 0 / 2 / 2`(@ `2026-10-29 05:11:09 CST`),与基线**逐项相同**(零回归)。
+
+**Code Review**: **Pending**(`/code-review` 未跑,归用户触发 —— 与 story-001/002/003/004 同)。
+
+**Falsifiability Gate**: **PASS** —— 16 条变异全部转红,零假绿;一条超判(M12)已独立论证。
+
+**跨 story 后果(AC 逼出来的,不是偏好)**:AC-2② 要求「导航格切片的 chunk 键与**几何侧**
+chunk 划分用同一个函数算」⇒ 几何产物必须**声明**自己按什么划分 ⇒ `world_geometry.json`
+新增根键 `chunk_size`、**schema 1 → 2**,连带 `WorldGeometryCookedCodec` / 绑定器 / 写方
+与漂移门哈希重签。已同批落盘(重烘 1076 B)。
