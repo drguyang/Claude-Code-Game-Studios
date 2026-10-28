@@ -122,6 +122,19 @@ namespace DaYiJingCheng.Sim
             if (events == null) throw new ArgumentNullException(nameof(events));
             if (foldedRows == null) throw new ArgumentNullException(nameof(foldedRows));
 
+            // 🔁 **2026-10-28 新增守卫 —— 自引用入参先物化快照。**
+            //   失效模式(实测踩到,非假想):`FoldedRows => _foldedRows` 把**内部列表实例**
+            //   以 `IReadOnlyList` 暴露出去;若调用方把 `stream.FoldedRows` 原样传回来
+            //   (最自然的「整表替换」写法,生产装配根正是这么写的),下面 `:138` 的
+            //   `Clear()` 会在 `_foldedRows.AddRange(foldedRows)` **之前把同一个列表清空**
+            //   ⇒ 末尾 `AddRange` 把空列表加回自己 ⇒ **折叠行被静默抹掉,零异常、零日志**。
+            //   后果不是少一条记录:`GetNextPatientId` 的高水位依赖折叠行(ADR-006
+            //   Amendment B),抹掉就有 **patient_id 重用**风险;存档折叠段亦会变空。
+            //   ⇒ 守卫放在**拥有该列表的类**里(而非各调用点),使「传自身」成为合法用法;
+            //      夹具 `test_load_curePreservesFoldedRows` 钉住该形态。
+            if (ReferenceEquals(foldedRows, _foldedRows))
+                foldedRows = new List<FoldRow>(_foldedRows);
+
             // 折叠行先于事件校验(违例抛出时流零污染 —— 与单调断言同款选位)。
             var seenRows = new HashSet<long>();
             for (int i = 0; i < foldedRows.Count; i++)

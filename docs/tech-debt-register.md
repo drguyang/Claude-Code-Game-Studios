@@ -430,7 +430,7 @@
 | `TD-foraging-02` | `foraging` | open | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | open | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
-| `TD-building-02` | `modular-building` | open | **N** | R1 |
+| `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
@@ -843,7 +843,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 132 | 状态 {'open': 79, 'closed': 47, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 28, '~~**Y**~~': 1}
+条目 132 | 状态 {'open': 78, 'closed': 48, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 28, '~~**Y**~~': 1}
 未闭 P0 面 = 63 （已闭但曾标 P0 面的 40 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 63 条,分布在 10/31 个 epic
     medical-consequences: 19  audio-system: 17          clinic-machine: 15
@@ -3574,7 +3574,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | **须裁**(ADR 级),不是实现动作。两问:<br>① **存档赢还是基线赢?** 若「基线赢」⇒ 重放遇到基线号段内的 `Placed` 须**拒收**(fail-closed),而不是覆盖;<br>② **若「存档赢」** ⇒ 基线家具被顶替是**预期**行为,须在 GDD 规则三补一句「基线可被存档覆盖」,否则 `Overlay(t) := BakedInitial ⊕ 事件` 的 `⊕` 语义在这一形态下**无定义**。<br>⚠️ **本债不为它设判据,只登记** —— 与 `TD-building-01` 的「写侧归 42」同口径。 |
 | **✅ 裁定已落(2026-10-28 · 用户裁定 A)** | 上面两问**都没选** —— 用户裁定**第三路「两边都留」**:<br>① **基线恒占 `1..N`,不被覆盖**;存档结构**整体平移** `K := N`(基线件数,**与存档内容无关**)到基线号段之外,**不被丢弃** ⇒ `Overlay(t) := BakedInitial ⊕ 平移(事件序列)`。<br>② **判据(唯一)**:存在 `Placed` 且其 `StructureId ∈ [1, N]`。`Removed` / `Modified` 引用基线号是**正常后基线行为**,**不触发**(放宽成「任一操作命中号段」会让**每一份拆过初始家具的正常存档**被误判)。<br>③ 判据的**充要性**由既有事实给出(非启发式):后基线存档的 `Placed` 必取 `≥ N+1`(`CompositionRoot.cs:918` 先应用基线 → `StructureKinds.cs:233-235` 推高高水位 → `:290` `Register` 取 `_nextStructureId++`)⇒ `Placed.id ≤ N` **当且仅当**写在基线诞生之前。<br>④ **⚠️ 固化是硬义务,而且必须「同会话」**:平移结果须在**同一次载入内写回事件流**(存档写的是事件流,不是重建出的世界)。**「下次自然固化」不够** —— 否则会写出**混合存档**(旧空间 `Placed(1..M)` 与新空间结构事件并存),而 `StructureRemoved(基线号)` 在两种含义间**不可区分** ⇒ 下次载入**删错结构 + 基线家具复活**(`ADR-033 §④之补` 给可复算反例)。<br>**权威件** = `docs/architecture/adr-033-structure-id-collision-on-load.md`(Accepted)。**GDD 回写** = `modular-building.md` 规则三补注 + 新 `EC-23-14` + `AC-23-02` 指针。 |
 | **⚠️ 起草期自查(2026-10-28 · 我自己的错误,原文不删)** | 方案呈报时我写过「结果写回内存事件流,**下次存档自然固化**」。**这句话是错的** —— 实查 `SaveHeader.cs:20-33` **无载荷段**,`structure_id` 住在 `StructurePlacedPayload`(`WorldPayloads.cs:112`)里,而**载荷字节根本不进存档**(本册 `TD-persist-09`)⇒ **v1 存档连 id 都不携带**,「下次存档自然固化」**没有载体**。<br>⇒ 本债的**实现**与本册 `TD-persist-09` 的 **v2 存档布局**是**硬耦合**,不是「顺手一起做」。**只做重映射不做固化 = 精确复现 ADR-033 Alt 4 的漂移反例**(id 每次读档全变、高水位无界上涨)。 |
-| **实现残留(↔ `TD-persist-09`)** | 未落**四**件:`StructureIdRemap`(纯函数,住 `Sim` —— ADR-025 §① 零 codec)· 接线(`WorldLoadService.Rebuild()` 解码后 / `RebuildFromDecoded` 前)· **写回事件流的接缝**(`IPayloadEncoder` + 整表替换;载入路径今日**只读**,C4)· 载荷持久化(v2 布局)。**四者同批**;`ADR-033 §Validation` 的 V-1…V-6 **全部未跑(禁借绿)**。⇒ 本条**状态维持 `open`**:语义已裁 ≠ 债已清。 |
+| **实现残留(↔ `TD-persist-09`)** | ~~未落**四**件~~ **✅ 2026-10-28 四件全部落盘(原文不删)**:① `StructureIdRemap` —— `unity/Assets/Sim/World/StructureIdRemap.cs`(纯函数,住 `Sim`,只 `using System` / `System.Collections.Generic` ⇒ 引用集不变)· ② 接线 —— `WorldLoadService.cs:149-171`(解码后 / `RebuildFromDecoded` 前)· ③ 写回事件流的接缝 —— `WorldLoadService.cs:74-79` + `:186-231` + `CompositionRoot.cs:976`(经 `IPayloadEncoder` 重编码三条结构类事件、`EventStream.Restore` 整表替换;事件头 `Tick`/`Patient`/`Seq`/`Kind` 不动)· ④ 载荷持久化(v2 布局)= 上一提交 `a03a62c4`。**四者同批成立。** ⇒ 本条 **closed**,见下方结案判决块。 |
 | **触发条件** | 三者任一成立即须裁:<br>① `SaveHeader.CurrentSaveVersion` **首次递增**(⇒ 出现真实迁移链,旧存档可能被送来);<br>② 任何 `ISaveMigration` **被注册**(同上);<br>③ P0 首次**对外发放存档**(此前开发存档可直接丢弃)。<br>⇒ 在①–③ 全不成立期间,**本条是「已登记但今日不可达」**,不阻塞任何交付。 |
 | **归属** | **23**(模块化建造)—— 与 `TD-building-01` 同 epic。⚠️ 该 epic 已标 `Complete ✅ 2026-10-03`;按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
 | **与 `TD-building-01` 的关系** | **不合并、不互抵**。`TD-building-01` 是「生产装配根零落点」(已在 2026-10-28 部分解除);本条是「撞号的**语义**未裁」。前者是**有没有**的问题,后者是**对不对**的问题 —— 装配根接通**不蕴含**语义已裁,反之亦然。 |
@@ -3582,7 +3582,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-building-02** | `modular-building` | **open** | **N** | R1 |
+| **TD-building-02** | `modular-building` | closed | **N** | R1 |
 
 > **本条使 `条目 127 → 128`**,`open 77 → 78`;**`未闭 P0 面 = 63` 一位不动**(P0 面 = N)。
 > ⇒ **M3 Exit ② 的 epic 分布亦不动**(`modular-building` 本就在分布里)。
@@ -3596,6 +3596,36 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⇒ **本节不作任何 `open → closed` 改动,`debtcount` 计数逐位不变。**
 > ⚠️ **不得**把本条读成「已结」:ADR `Accepted` 表示**方向已裁**,不表示任何判据已通过
 > (`ADR-033 §Validation` V-1…V-7 全部未跑)。
+
+> ✅ **2026-10-28 结案 —— 实现四件落盘,V-1…V-7 全部有载体且逐条反证转红。**
+> **判决**:本条 **closed**。上一条补记的「计数零变动」**只对当时那个时点成立**,现被本块取代(原文不删)。
+>
+> **① 主症状已闭。** 基线诞生前的存档重放时,基线家具**不再**被存档里的同号结构顶替 ——
+> 存档结构整体平移 `K := N` 到基线号段之外,**两边都留**(ADR-033 §①/③)。
+> 载入期判据 = ∃ `Placed` 且 `id ∈ [1, N]`(只扫 `Placed`);命中则**同会话固化**把平移后的 id
+> 写回事件流(§④之补的混合存档不变量)。
+>
+> **② 判据面**(证据原件 = `production/qa/evidence/impl-adr033-structure-id-remap-2026-10-28.md`):
+> V-1 / V-4 / V-5 / V-6 / V-7 **✅**;V-2 **✅(无专打变异,靠 M8/M6 间接红 —— 已如实登记)**;
+> V-3 **⚠️ 按可判定口径实现**(ADR 原文「与旧号段两两不交」字面不可满足,已在该 ADR §Validation 就地加注,
+> **是否修订措辞待用户裁定**)。
+> 证伪轮 **9 条变异(一属性一条)全部转红**,还原判据 = SHA-256 逐字节(未用 `git checkout` / `git stash`)。
+>
+> **③ 本轮附带修掉一处由固化接缝引入的缺陷**(与本条判据无关,不做成掩盖):
+> `EventStream.Restore` 在「把 `stream.FoldedRows` 传回自己」时,`Clear()` 会先清空同一列表
+> ⇒ 折叠行被**静默抹除**(影响 `GetNextPatientId` 高水位 —— ADR-006 Amendment B)。
+> 守卫已落在 `EventStream.Restore`(自引用即物化快照),夹具 `test_load_curePreservesFoldedRows`,反证 M9。
+>
+> **④ 回归**:EditMode `5724/5689/0/0/35` @ 2026-10-28 23:44 CST · PlayMode `238/234/0/2/2` @ 23:52 CST
+> (均 `a03a62c4` + 工作树)。等式 `5724 − 5714 = 10` = 新增测试文件的 `[Test]` 计数。
+> ⚠️ PlayMode 两轮 `EXIT=2` 而 XML `failed=0` —— UTF 把 `Inconclusive` 计成非通过;**上轮退出码未留档**,故只断言计数未变。
+>
+> **⑤ `P0 面` 仍记 `N`,不改回 `Y`。** 理由与「触发条件 ①–③」一致:实现落盘**不改变**「今日可达性 = 零」
+> (盘上仍无真实存档 / 无迁移链 / 未对外发放)。⚠️ 触发条件任一成立时,本行须改回 `Y` ——
+> 那是「触发条件变了」,不是「重新评估」。
+>
+> **⑥ 残余(不属本条)**:① V-2 缺专打变异;② V-3 措辞待裁;③ 固化每轮会在内存池留孤儿 blob
+> (存档侧无影响 —— 载荷段引用驱动,ADR-034 §②);④ `TD-ci-01` 与本条无关。
 
 ### TD-building-03 — 「烘焙器误读源」这一面没有可实测的变异形态(判据面缺口)
 
@@ -4854,11 +4884,13 @@ python3 tools/debtcount/debtcount.py --print
 | **主症状已闭** | 「载荷字节不进存档 ⇒ 跨进程读档不可用」**已消除**:存档带载荷段(引用驱动),读档先装池再解事件。端到端判据 = `world_load_service_test.cs:427` `test_ac9g_realSaveBytes_roundTripRebuildsWorld` —— **全新空池**(`AreNotSame` 断言前提)+ 同一份存档 ⇒ `Load` 装回 2 条 blob ⇒ `Rebuild()` 成功,且 `Orientation == 90`(**载荷内容**逐位保持,不只断「不抛」)。 |
 | **V-1 的形态** | **既有测试由红转绿**,不是纯增量 —— 该夹具末段原为「正向断言一个已知失败」(自注「TD-persist-09 兑现时本段会转红」),本轮翻成反面。原文保留为 🔁 闭环记录(`:556-599`)。 |
 | **触发条件 ③ 被结构性取消** | 原触发条件 「`IBlobSink` 首个生产实现落地时」**不再适用**:ADR-034 §② 裁定**存档即载体** ⇒ blob 池**无需**跨会话存活,`IBlobSink` 的落盘实现**不是**本债的必需件。仍无落盘实现这件事**不在本债面内**(它是 45 网络侧 / 7a 的选择,不阻塞读档)。 |
-| **残余(不属本条)** | ① 体积上界无实测基线 = **ADR-034 §Risks R1**(ADR 内登记,不另立债);② `SaveService` ↔ 迁移链接缝的夹具缺口 = **新债 `TD-persist-10`**;③ ADR-033 的「固化」仍待实现 —— 载荷段只是它的**载体**,四件同批仍 `open`(`TD-building-02`)。 |
+| **残余(不属本条)** | ① 体积上界无实测基线 = **ADR-034 §Risks R1**(ADR 内登记,不另立债);② `SaveService` ↔ 迁移链接缝的夹具缺口 = **新债 `TD-persist-10`**;③ ~~ADR-033 的「固化」仍待实现 —— 载荷段只是它的**载体**,四件同批仍 `open`(`TD-building-02`)~~ **✅ 2026-10-28 已落且 `TD-building-02` 已 closed**(原文不删):固化接缝 = `WorldLoadService` 的可选形参对 + `CompositionRoot.cs:976`,载荷段是它的载体,四件同批成立。 |
 | **回归** | EditMode `5714/5679/0/35` · PlayMode `238/234/0/2/2` · 2026-10-28 23:16 CST · `9ba8cbb6`+工作树。 |
 
 > ⚠️ **本条闭不代表「持久化面已干净」** —— `TD-persist-10`(接缝夹具)与
 > `TD-building-02`(ADR-033 四件)仍 `open`,两者都与本条的落点相邻。
+> 🔁 **2026-10-28 补记(原文不删)**:`TD-building-02` **已 closed**(四件落盘 + V-1…V-7 有载体);
+> `TD-persist-10` **仍 `open`** ⇒ 本句的结论「持久化面未干净」**仍然成立**,只是原因少了一条。
 
 > ⚠️ **本条使 `persistence-service` 首次进入 M3 出口分布**(`TD-persist-08` 是 `N`,不进 `live` 集)。
 > 复算:`python3 tools/debtcount/debtcount.py --print`。

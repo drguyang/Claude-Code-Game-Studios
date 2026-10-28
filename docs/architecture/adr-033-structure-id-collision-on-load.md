@@ -416,17 +416,26 @@ public static class StructureIdRemap
 
 | # | 判据 | 状态 |
 |---|---|---|
-| **V-1** | **判据必要性**:构造「后基线存档 + 一条引用基线号的 `Removed`」⇒ **不触发**(id 不跳号) | **未跑** |
-| **V-2** | **判据充分性**:构造「前基线存档(含 `Placed(1)`)」⇒ **触发** | **未跑** |
-| **V-3** | **三方不交**:平移后号段与 `1..N`、与旧号段**两两不交** | **未跑** |
-| **V-4** | **幂等**(需固化载体):固化后重跑 ⇒ 恒等 | **未跑** |
-| **V-5** | **Alt 3 / Alt 5 反例各一条夹具**(证明「只平移撞号的那些」在 `M>N` 时撞、不固化会漂) | **未跑** |
-| **V-6** | 全量回归无回退 | **未跑** |
-| **V-7** | **混合存档不变量**:任何被写出的存档,结构 id 空间**非全旧即全新**(§④之补)。反例夹具 = 未固化路径下「拆基线家具 + 放置」⇒ 下次载入**删错结构** | **未跑** |
+| **V-1** | **判据必要性**:构造「后基线存档 + 一条引用基线号的 `Removed`」⇒ **不触发**(id 不跳号) | **✅ 2026-10-28** · `test_remap_collisionCriterion_onlyPlacedWithinBaseline`(V-1 段)+ `test_load_postBaselineSave_isUntouched` · 反证 M1(删 `Kind == Placed` 合取 ⇒ 2 条红) |
+| **V-2** | **判据充分性**:构造「前基线存档(含 `Placed(1)`)」⇒ **触发** | **✅ 2026-10-28**(⚠️ 无专打变异)· `test_remap_collisionCriterion_onlyPlacedWithinBaseline`(V-2 段)+ `test_load_preBaselineSave_shiftsIdsAndCuresStream` · 间接反证 M8 / M6 |
+| **V-3** | **三方不交**:平移后号段与 `1..N`、与旧号段**两两不交** | **⚠️ 按可判定口径实现** · `test_remap_shiftedRange_isDisjointFromBaselineAndInjective`(断言 `min(平移后) > N` + **单射**)· 反证 M4 ⇒ 该条红 + 2 条 · **措辞缺陷见下方 🔁** |
+| **V-4** | **幂等**(需固化载体):固化后重跑 ⇒ 恒等 | **✅ 2026-10-28** · `test_load_preBaselineSave_shiftsIdsAndCuresStream`(二次 `Rebuild` 段)· 反证 M5(删固化 ⇒ 红) |
+| **V-5** | **Alt 3 / Alt 5 反例各一条夹具**(证明「只平移撞号的那些」在 `M>N` 时撞、不固化会漂) | **✅ 2026-10-28** · Alt 3 = `test_remap_wholeShift_remainsInjectiveWhenMaxIdExceedsBaseline`;Alt 5 = `test_remap_withoutCure_driftsEachReload_alt5Counterexample` · 反证 M4(整体平移被改坏 ⇒ 两条同时红) |
+| **V-6** | 全量回归无回退 | **✅ 2026-10-28** · EditMode `5724/5689/0/0/35` @ 23:44 CST · PlayMode `238/234/0/2/2` @ 23:52 CST(均 `a03a62c4` + 工作树) |
+| **V-7** | **混合存档不变量**:任何被写出的存档,结构 id 空间**非全旧即全新**(§④之补)。反例夹具 = 未固化路径下「拆基线家具 + 放置」⇒ 下次载入**删错结构** | **✅ 2026-10-28** · `test_load_preBaselineSave_shiftsIdsAndCuresStream`(`Collides` 复扫段)+ `test_load_collisionWithoutCureCapability_throwsAndLeavesStreamIntact`(未固化路径**不存在** —— fail-closed)· 反证 M5 / M6 |
 
-> ⚠️ **V-1…V-7 全部未跑,禁借绿。** `Accepted` 表示**方向已裁**,不表示任何判据已通过。
-> V-1…V-5 / V-7 须随实现批落(它们需要 `StructureIdRemap` 存在);**V-4 还需要固化载体**
-> ⇒ 在 v2 布局之前 **V-4 物理上不可跑**。
+> ⚠️ **原文不删,就地加注。** 上面三行原文(「V-1…V-7 全部未跑,禁借绿」等)在实现轮之前成立;
+> 现状态以表格「状态」列为准。证据原件 =
+> `production/qa/evidence/impl-adr033-structure-id-remap-2026-10-28.md`。
+>
+> 🔁 **2026-10-28 实现轮补记(三点,均为如实登记)**:
+> ① **V-3 的原文措辞字面不可满足** ——「与旧号段两两不交」在 `M > N` 时**恒假**(旧 `1..6` vs 新 `4..9` 必交),
+>    在 `M ≤ N` 时又与第一条重复(旧号段 ⊆ `1..N`)。本轮按**可判定对**实现(`min > N` + 单射)并只证这两条。
+>    **ADR 文本未改** —— 是否修订该条措辞**待用户裁定**(见证据件 §六 的两条独立反例)。
+> ② **V-2 没有一条专打它的变异**(其夹具与 V-1 共用同一个 `[Test]`),当前靠 M8 / M6 间接红覆盖。**未补夹具**,如实登记。
+> ③ **本轮另抓到一处与本 ADR 判据无关、但由固化接缝引入的缺陷**:`EventStream.Restore` 在「把
+>    `stream.FoldedRows` 传回自己」时会把折叠行静默抹掉(`Clear()` 先清同一列表)⇒ 已在
+>    `EventStream.Restore` 加自引用守卫 + 第 10 条夹具 + 反证 M9。详见证据件 §四。
 
 ## GDD Requirements Addressed
 

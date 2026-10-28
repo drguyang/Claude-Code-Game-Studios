@@ -956,7 +956,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //   会让足迹重算与放置判定取自两份目录,那正是 C1 的形态)。
                     // ⚠️ 本类**只解码**;重放本体在 `Sim` 的 `StructureRestorer`(`Sim` 够不着 codec,
                     //    承 ADR-025 §① / ADR-029 甲案)。两层分工见 `WorldLoadService` 类头注。
-                    worldLoad = new WorldLoadService(() => stream.Events, decoder, world, modulesCatalog);
+                    // 🔁 **2026-10-28 ADR-033 §④之补**:追加两个可选形参 = **撞号固化**能力。
+                    //   `encoder` = 本装配已有的 `IPayloadEncoder`(ADR-029)—— 平移后的 id 须重新编码;
+                    //   `cureStream` = 「整表替换」接缝,生产实现即 `EventStream.Restore`(折叠行原样带走)。
+                    //   ⚠️ **两者都传**,缺一即等于没能力(命中判据时 `Rebuild` 会抛 —— fail-closed)。
+                    //   ⚠️ `stream` 用**委托捕获变量**(不是捕获当前实例)⇒ 读档换流后 `cureStream`
+                    //      自动写到**新的**流上,与 `() => stream.Events` 同形。
+                    // 🔁 **2026-10-28 实跑修正 —— 「折叠行原样带走」曾是个**自引用陷阱**,已修在源头。**
+                    //   `FoldedRows => _foldedRows` 返回的是**内部列表实例**;而 `EventStream.Restore`
+                    //   先 `Clear()`(其 `:294` 会 `_foldedRows.Clear()`)、末尾才
+                    //   `_foldedRows.AddRange(foldedRows)`。传自身 ⇒ `AddRange` 把已清空的空列表
+                    //   加回自己 ⇒ **每次固化静默抹掉全部折叠行**(`GetNextPatientId` 高水位依赖它们,
+                    //   ADR-006 Amendment B;存档折叠段亦会变空)。
+                    //   ⇒ 守卫落在 `EventStream.Restore` 内(自引用即先物化快照),本行保持自然写法;
+                    //      夹具 `test_load_curePreservesFoldedRows` 钉住该形态。
+                    worldLoad = new WorldLoadService(
+                        () => stream.Events, decoder, world, modulesCatalog,
+                        encoder: encoder,
+                        cureStream: cured => stream.Restore(cured, stream.FoldedRows));
 
                     // ── 42 建造发起方接线(S20-19 · 2026-10-28)──────────────────────
                     // 病因:`StructureWriter` 自 S20-17 起已装配,但**没有任何生产代码调用它**

@@ -12029,3 +12029,34 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   实测不成立 ⇒ 改登记为覆盖退步。
 - **未落 / 下一项**:`ADR-033` 四件(`StructureIdRemap` + 接线 + 写回接缝 + 固化)仍 `open`
   (`TD-building-02`);载荷段只是它的**载体**,四件须同批。
+
+## ADR-033 实现轮 —— 结构 id 撞号归一化(2026-10-28 · 接续上节)
+
+- **四件同批落盘**(载荷段 = 上一提交 `a03a62c4`):① `unity/Assets/Sim/World/StructureIdRemap.cs`
+  (纯函数,只 `using System` / `System.Collections.Generic` ⇒ `Sim` 引用集不变)· ② 接线
+  `WorldLoadService.cs:149-171`(解码后 / `RebuildFromDecoded` 前;基线件数在**重放之前**读)·
+  ③ 固化接缝 `:74-79` + `:186-231` + `CompositionRoot.cs:976`(只重编码三条结构类事件,
+  `Tick`/`Patient`/`Seq`/`Kind` 一律不动)· ④ 载荷段载体(`a03a62c4`)。
+- **固化形状 = 本轮就地裁定**(ADR 未写,未经用户逐条确认;与 ADR-034 同款披露):可选形参对
+  `(IPayloadEncoder encoder, Action<IReadOnlyList<SimEvent>> cureStream)`;两者皆缺而命中判据 ⇒ **抛**
+  (fail-closed —— 静默跳过 = 允许写出混合存档)。**固化在重放成功之后**才做(反证 M7)。
+- **判据**:`ADR-033 §Validation` V-1…V-7 **全部有载体**;证伪轮 **M1–M9 九条变异全部转红**,
+  还原判据 = SHA-256 逐字节(未用 `git checkout` / `git stash`)。三条**实得 > 预判**已先独立论证再订正。
+- **回归**:EditMode `5724/5689/0/0/35` @ 23:44 CST · PlayMode `238/234/0/2/2` @ 23:52 CST
+  (均 `a03a62c4`+工作树)。等式 `5724−5714=10` = 新增测试文件的 `[Test]` 计数;已跟踪文件 `[Test]` 增删均 0。
+  ⚠️ PlayMode 两轮 `EXIT=2` 而 XML `failed=0`、`<failure>` 0 个 ⇒ UTF 把 `Inconclusive` 计成非通过;
+  **上轮退出码未留档**,只断言计数与未通过项身份未变。
+- **本轮抓到的真 bug(我自己的接线缺陷,非夹具问题)**:`EventStream.Clear()` 会清 `_foldedRows`,
+  而 `Restore` 先 `Clear()` 后 `AddRange(foldedRows)`;我在装配根传的 `stream.FoldedRows` **就是那个内部列表**
+  ⇒ 每次固化把折叠行**静默抹掉**(零异常),波及 `GetNextPatientId` 高水位(ADR-006 Amendment B)。
+  守卫改落在**拥有该列表的类**(`EventStream.Restore` 自引用即物化快照),而非调用点 —— 否则下个调用者再踩一次,
+  且**无法被夹具钉住**(夹具不走装配根)。夹具 = 第 10 条 `test_load_curePreservesFoldedRows`,反证 M9。
+- **两处如实登记的残留**:① **V-3 原文「与旧号段两两不交」字面不可满足**(`M>N` 恒假 / `M≤N` 与前一条重复),
+  按可判定对(`min > N` + 单射)实现,**是否修订 ADR 措辞待用户裁定**;② **V-2 无专打变异**
+  (与 V-1 共用一条 `[Test]`),靠 M8 / M6 间接红覆盖。
+- **债册**:`TD-building-02` **closed**(`P0 面` 仍 `N` —— 实现落盘不改变「今日可达性 = 零」)。
+  计数 `open 79→78` · `closed 47→48` · `未闭 P0 面 63` 不变 · `epic 10/31` 不变;`debtcount --check` ⇒ ✅ exit 0。
+  ⚠️ **踩点提醒**:`debtcount` 只读 `<!-- TD-INDEX:BEGIN -->`…`END` 区间内的索引行(`:301-436`),
+  改各节自带的小表(`:3585`)**不影响计数** —— 本轮先改了后者,计数没动,才回头改前者。
+- **本轮自己的错误**:① 预判表三条写保守/漏项(M4 漏看夹具 `M=4>N=3`;M6 漏了 e2e 也会红;M8 写成「可能零红」);
+  ② 起初只打算修装配根,自查后改为修 `EventStream` 源头(理由见上)。

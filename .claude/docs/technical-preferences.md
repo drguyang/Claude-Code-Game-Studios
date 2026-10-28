@@ -853,6 +853,22 @@
   (触发条件 ①–③ 仍全假);`ADR-033 §Validation` **V-1…V-7 全部未跑(禁借绿)**。
   **GDD 回写**:`modular-building.md` 规则三补注 + 新 `EC-23-14` + `AC-23-02` 指针。
   Engine Knowledge Risk **LOW**(纯整数与程序集边界,零 post-cutoff API)。
+  **✅ 2026-10-28 实现轮已落(上段「维持 open / 全部未跑」状态终结,原文不删)**:四件同批 ——
+  `Sim/World/StructureIdRemap.cs`(纯函数)+ `Gameplay.Boot/WorldLoadService.cs:149-171`(接线)+
+  `:74-79`/`:186-231`(固化接缝,只重编码三条结构类事件,事件头不动)+ 载荷段载体(`a03a62c4`)。
+  **固化形状由本轮就地裁定**(ADR 未写,未经用户逐条确认):可选形参对
+  `(encoder, cureStream)`,两者皆缺而命中判据 ⇒ **抛**(fail-closed,拒绝「只平移不固化」= 混合存档)。
+  `ADR-033 §Validation` V-1…V-7 **全部有载体**;证伪轮 **9 条变异全部转红**(SHA-256 逐字节还原)。
+  `TD-building-02` **closed**(`P0 面` 仍 `N` —— 实现落盘不改变「今日可达性 = 零」)。
+  证据原件 = `production/qa/evidence/impl-adr033-structure-id-remap-2026-10-28.md`。
+  **两处如实登记的残留**:① **V-3 原文「与旧号段两两不交」字面不可满足**(`M>N` 恒假 / `M≤N` 与前一条重复),
+  本轮按可判定对(`min > N` + 单射)实现,**是否修订 ADR 措辞待用户裁定**;② **V-2 无专打变异**
+  (其夹具与 V-1 共用一条 `[Test]`),靠 M8 / M6 间接红覆盖。
+  **同批抓到并修掉一处我自己的接线缺陷**:`EventStream.Restore` 在「把 `stream.FoldedRows` 传回自己」时
+  `Clear()` 会先清空同一列表 ⇒ 折叠行**静默抹除**(影响 `GetNextPatientId` 高水位,ADR-006 Amendment B);
+  守卫落在 `EventStream.Restore`(自引用即物化快照),夹具 `test_load_curePreservesFoldedRows`,反证 M9。
+  回归 EditMode `5724/5689/0/0/35` · PlayMode `238/234/0/2/2`(@ 2026-10-28 23:44 / 23:52 CST · `a03a62c4`+工作树;
+  等式 `5724 − 5714 = 10` = 新增测试文件的 `[Test]` 计数)。
 
 - [ADR-034 ✅ Accepted 2026-10-28]**存档 v2 布局 —— 载荷段(blob 池持久化)** ——
   `docs/architecture/adr-034-save-v2-payload-segment.md`。**结清 `TD-persist-09` 的裁定半边;

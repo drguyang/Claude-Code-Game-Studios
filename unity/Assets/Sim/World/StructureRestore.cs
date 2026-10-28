@@ -136,6 +136,16 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>
+        /// 基线件数 <c>N</c> —— 关卡基线的初始家具占 <c>1..N</c>(ADR-033 §①)。
+        /// <para>ADR-033 的平移量 <c>K := N</c> 与撞号判据 `Placed.id ∈ [1, N]` 都以它为准,
+        /// 故由本类透出,避免调用方另起一条「从别处数基线件数」的路。</para>
+        /// <para>⚠️ <b>须在世界完成基线落库之后读</b>:<see cref="World.Reset"/> 会把它归零,
+        /// 而 <see cref="RebuildFromDecoded"/> 末尾按重放结果重定 ⇒ 读档路径上正确的读点是
+        /// **解码之后、重放之前**(基线已就位,重放尚未开始)。</para>
+        /// </summary>
+        public int BaselineStructureCount => _world.BakedInitialStructureCount;
+
+        /// <summary>
         /// 按**事件全序**重放已解码的建造事件:先清空世界,再逐条落库。
         /// </summary>
         /// <param name="ops">
