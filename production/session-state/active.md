@@ -12175,3 +12175,28 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **未做**:`/code-review` 未跑(归用户触发)。
 - **下一步**:`level-tool/story-005`(导航格按 chunk 切片 + C6 切片完整性 + C3 告警)——
   本 epic 只剩 S5 与 S6(后者依赖 S5)。
+
+## Session Extract — level-tool/story-005:spike 已落,实现未开始(2026-10-29)
+
+- **状态**:**S5 未实现**。本段只落了 C3 的 NavMesh spike + 一个**用户裁定**。
+- **用户裁定(2026-10-29)**:P0 医馆的 **chunk 粒度 = 8×1×8**(16×1×16 世界 ⇒ **4 个 chunk**,
+  `data-core` 组条目 **31 → 35**)。理由:1 个 chunk 的「按 chunk 切片」与 C6 几乎没有观察面。
+- **spike 原件**:`production/qa/evidence/spike-navmesh-6.3-2026-10-29.md`
+  探针 `unity/Assets/Editor.Tools.Level/NavMeshProbe.cs`(菜单 + `-executeMethod`),日志 `unity/Logs/s5-spike.log`。
+  **三项实测**:① 空场景 `SamplePosition` ⇒ **false**(不抛、不假成功);
+  ② `maxDistance` 口径 **NOT-RUN**(无真实 NavMesh 资产);
+  ③ `CalculateTriangulation()` ⇒ **ok, vertices=0** ⇒ **可作「有没有 NavMesh 数据」的存在性探针**。
+  ⇒ C3 分三态 `Reachable` / `Unreachable` / `Unknown`,**`Unknown` 不告警**
+  (否则 P0 无 NavMesh 资产 ⇒ 每个可走格报一次,上千条噪声)。
+  **无需回 ADR-022 追加裁决**(story §诚实边界 5 的触发条件未成立)。
+- **勘察到的既有件(重要)**:`ChunkTopology` / `ChunkActivator` **已存在**
+  (`unity/Assets/Sim/World/ChunkActivator.cs`,含 `WorldToChunk` / `ChunkToWorldOrigin` / `ChunkToIndex`),
+  但**零生产消费者**(只有 `chunk_activation_test`)。`INavLattice` 仍**全仓零命中**。
+- ⚠️ **S5 有一处跨 story 后果,动手前须知道**:AC-2② 要求「文件名里的 chunk 键与**几何侧** chunk 划分
+  用同一个函数算」⇒ 几何产物必须声明 chunk 划分 ⇒ `world_geometry.json` 要加 `chunk_size` 字段、
+  **schema 1 → 2**,连带 `WorldGeometryCookedCodec` / 漂移门哈希重签。这是 AC 逼出来的,不是偏好。
+- **S5 尚未动手的部分**:`INavLattice` 落地 · 几何 schema 2 · `ExportNavChunk` + 命名 ·
+  C6(漏格 / 重复格两条独立) · C3(告警进 `CheckReport.Warnings`,不是 `Violations`) ·
+  4 份切片烘焙 + 运行期 codec + 按需加载组 · `UnimplementedChecks` 5 → 3 ·
+  `WorldDataSets.UnimplementedByStory` 1 → 0(**最后一格**,`test_ac3_unimplementedKind_…`
+  须改成「闭集内每一类都已实现」)。
