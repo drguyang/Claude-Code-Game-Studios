@@ -9,6 +9,11 @@
 //   `StructureInstanceRegistry` / `StructureWriter` / `StructureRestorer` 全是生产类型。
 //   测试件只两样:`CapturingSink`(`IEventSink` 的最小实现)与 `TestModuleCatalog`
 //   (`placeable_checker_test.cs` 的既有序目替身,1 格与 2 格两种足迹)。
+//   🔁 **2026-10-28 就地订正(原文不删)**:上句「只两样」自 B-1' 轮起**已不准确** ——
+//   本文件**自带的桩有两个**:`CapturingSink` 与 `RevocableModuleCatalog`
+//   (B-1' 轮为造「基线中途抛」引入;本轮 §七-1 又给它加了 `RevokeAfterLookups` 查询配额)。
+//   `TestModuleCatalog` 住在 `placeable_checker_test.cs`(别文件的既有序目替身),不算本文件的。
+//   **现状 = 本文件自带 2 个桩 + 引用 1 个外来桩**,称「只两样」会让读者以为目录只有一个桩。
 //
 // ⚠️ **本文件的判据全部是行为面的**(占用表 / 实例表 / 可走性 / 抛出),没有一条是
 //   「源码文本里某字面量恰 N 处」—— 故证伪轮的变异形态一律为**行为变异**,
@@ -516,6 +521,118 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(0, world.BakedInitialStructureCount, "基线中途抛后计数须归零");
         }
 
+        /// <summary>
+        /// **回滚本身也抛**时,调用方看到的须是**原始异常**(重放失败的原因),
+        /// 不是回滚失败抛的那条 —— 否则根因被嵌套异常顶掉,报文把读者指向错误的层。
+        /// <para><b>这是 §七-1 明确登记为「仍未覆盖」的那一半</b>(2026-10-28 原文不删):
+        /// 「嵌套异常不遮蔽原始异常」需 <see cref="StructureRestorer.RebuildFromDecoded"/> 的
+        /// <b>第二次</b> <c>Reset()</c> 也抛才可观测 —— 上一个夹具
+        /// (<see cref="test_b1p_reset_baselineThrowsMidway_leavesDefiniteEmptyState"/>)
+        /// 只造了第一次 `Reset()` 抛,故不覆盖本面。</para>
+        ///
+        /// <para><b>怎么真造出这个输入(不是推演)</b>:两次 `Reset()` 之间目录必须**从好变坏**。
+        /// `RevokedModuleId` 只能表达「全程坏」,所以用
+        /// <see cref="RevocableModuleCatalog.RevokeAfterLookups"/> 给模块号一个**查询配额**:
+        /// 首次 `Reset()` 的基线查它时配额还有 ⇒ 成功;第二次 `Reset()` 再查时配额已尽 ⇒ 抛。</para>
+        ///
+        /// <para><b>时序(逐拍,对应代码行;行号按 2026-10-28 修复后的树)</b>:</para>
+        /// <para>① `RebuildFromDecoded` → `_world.Reset()`(`StructureRestore.cs:159`)⇒ 基线两件都落库 ✅</para>
+        /// <para>② `Apply(ops[0])` → `FootprintOf(999)` ⇒ 抛「重放第 0 条:moduleId=999 不在模块目录内」</para>
+        /// <para>③ `catch` → 回滚 `_world.Reset()`(`:195`)⇒ 基线第二件的配额已尽 ⇒ 抛「槽位 (3,0,1) …」</para>
+        /// <para>④ `throw;`(`:202`)—— <b>修复前到不了</b>(③ 先抛)⇒ 调用方看到的是基线那条</para>
+        ///
+        /// <para><b>判别力(实测,不是推演)</b> —— 本夹具在修复前后各跑一次,结论是
+        /// <b>它抓到了一个真缺陷</b>,不是判据过严:</para>
+        /// <para>· <b>修复前</b>:实测红,报文实值
+        /// <c>"槽位 (3,0,1) 的 `module_id = 8` 不在模块目录内 —— 槽位骨架与模块目录不同源…"</c>
+        /// ⇒ 回滚失败那条把根因顶掉了。</para>
+        /// <para>· <b>修复后</b>:17/17 全绿。</para>
+        /// <para>· <b>M12</b>(把回滚退回裸 `_world.Reset(); throw;`)⇒ <b>恰 1 条红,正是本测</b>
+        /// —— <b>独占</b>:同轮另 16 条全绿。「嵌套异常不遮蔽原始异常」这一面只有本夹具在守。</para>
+        /// <para>· <b>M13</b>(回滚包住后把 `throw;` 改成 `return 0`)⇒ <b>4 条红</b>
+        /// (`ac7a` / `ac7b` / `ac7c` / 本测),**不独占** —— 它打的是另一条属性
+        /// 「原始异常必须真的被送出」,而 ac7 三条本来就断言「必须抛」。
+        /// 按「一属性一条变异」,两条属性各留一条:M12 守「不被顶掉」,M13 守「真的送出」。</para>
+        /// <para>⚠️ <b>为什么必须钉前缀而不是只断类型</b>:两条报文**都含**「不在模块目录内」、
+        /// 同为 `InvalidOperationException` ⇒ 只断类型或短语包含**分不开**。
+        /// 这正是 `feedback_fail_fast_needs_sideeffect_assert` 的同族纪律。</para>
+        ///
+        /// <para>⚠️ <b>前置探针不可省</b>:同一条重放、同一份基线,**配额放宽**时必须抛「重放第 0 条」
+        /// —— 否则「回滚失败」这个前提本身没被证明存在(空集借绿)。</para>
+        /// <para>⚠️ <b>配额须是 2,不是 1</b> —— 见本体段注释的逐拍复算。</para>
+        /// </summary>
+        [Test]
+        public void test_b1q_rebuild_rollbackAlsoThrows_originalExceptionNotMasked()
+        {
+            // ══════ 前置探针:配额放宽 ⇒ 回滚成功,原始异常浮出 ══════
+            {
+                var catalog = new RevocableModuleCatalog();
+                catalog.RegisterModule(BunkDefinition(ModuleBunk));
+                catalog.RegisterModule(BunkDefinition(ModuleBed));
+                catalog.RevokeAfterLookups(ModuleBed, 99);   // 两次 Reset 都够用
+
+                World world = NewFlatWorld(BaselineSlots());
+                world.ApplyBakedInitial(catalog);
+                Assert.AreEqual(2, world.BakedInitialStructureCount, "前置:基线须落 2 件");
+
+                var probe = Assert.Throws<InvalidOperationException>(
+                    () => new StructureRestorer(world, catalog).RebuildFromDecoded(BrokenReplayOps()));
+                StringAssert.Contains("重放第 0 条", probe.Message,
+                    "前置:配额够时回滚成功 ⇒ 原始异常须浮出(否则本测的「遮蔽」面根本不存在)");
+            }
+
+            // ══════ 本体:配额卡在「只够第一次 Reset」 ⇒ 回滚也抛 ══════
+            var catalog2 = new RevocableModuleCatalog();
+            catalog2.RegisterModule(BunkDefinition(ModuleBunk));
+            catalog2.RegisterModule(BunkDefinition(ModuleBed));
+            // 基线按 (x,y,z) 升序发号 ⇒ 先查 ModuleBunk(1,0,1)、后查 ModuleBed(3,0,1)。
+            // ⚠️ **配额须是 2,不是 1** —— 逐拍复算(ModuleBed 每应用一次基线被查一次):
+            //   ① `ApplyBakedInitial` 应用基线      → 配额 2→1 ✅
+            //   ② `RebuildFromDecoded` 首次 `Reset()` → 配额 1→0 ✅(正是这一步要成功)
+            //   ③ `catch` 里第二次 `Reset()`          → 配额 0 ⇒ 抛(本测要的那一拍)
+            //   配额写 1 会让 ② 就抛,回滚成功、原始异常浮出 ⇒ 本测退化成前置探针,
+            //   「遮蔽」面根本没被构造出来(⚠️ 这是**写夹具时的推演复算**,不是实跑结论;
+            //   首版确实写成了 1,在落盘前按上述时序自己算出来改掉)。
+            catalog2.RevokeAfterLookups(ModuleBed, 2);
+
+            World world2 = NewFlatWorld(BaselineSlots());
+            world2.ApplyBakedInitial(catalog2);
+            Assert.AreEqual(2, world2.BakedInitialStructureCount, "前置:基线须落 2 件");
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => new StructureRestorer(world2, catalog2).RebuildFromDecoded(BrokenReplayOps()));
+
+            // ── 判据:原始异常 vs 回滚异常,靠**前缀**分辨 ──
+            StringAssert.Contains("重放第 0 条", ex.Message,
+                "调用方须看到**原始**异常(重放失败的原因)。报文实值里没有「重放第 0 条」"
+                + " ⇒ 回滚失败的那条把根因顶掉了(报错把读者指向基线/目录,而真正的病因是流里的 moduleId)");
+            StringAssert.Contains("moduleId=999", ex.Message,
+                "原始异常须带上真正的病因(流里那个不在目录内的模块号)");
+            StringAssert.DoesNotContain("槽位 (", ex.Message,
+                "报文不得是回滚侧的「槽位 (…)」—— 那是**回滚失败**,不是读档失败的原因;"
+                + "两者同类型同短语,只能靠这处前缀分辨");
+
+            // ── 世界仍须停在确定的空态(回滚虽失败,`World.Reset` 自己的 catch 清了)──
+            Assert.AreEqual(0, world2.Structures.Count, "回滚失败后实例表仍须为空");
+            Assert.AreEqual(0, world2.OccupiedCount, "回滚失败后占用表仍须全零");
+            Assert.AreEqual(0, world2.BakedInitialStructureCount, "回滚失败后计数须归零");
+        }
+
+        /// <summary>B-1' / B-1q 共用的两件基线槽位 —— 第一件 <see cref="ModuleBunk"/>、第二件 <see cref="ModuleBed"/>。</summary>
+        private static BuildSlotCatalog BaselineSlots()
+        {
+            var slots = new BuildSlotCatalog();
+            slots.RegisterSlot(new BuildSlot(new WorldPos(1, 0, 1),
+                BitMask.Single(SlotType.Decor), bakedInitial: true, moduleId: ModuleBunk));
+            slots.RegisterSlot(new BuildSlot(new WorldPos(3, 0, 1),
+                BitMask.Single(SlotType.Decor), bakedInitial: true, moduleId: ModuleBed));
+            return slots;
+        }
+
+        /// <summary>一条**首条就坏**的重放序列(`moduleId` 不在目录内)⇒ `FootprintOf` 立刻抛。</summary>
+        private static StructureRestoreOp[] BrokenReplayOps()
+            => new[] { StructureRestoreOp.Placed(100, new WorldPos(2, 0, 2), ModuleMissing, 0, 0) };
+
         // ══════════ 夹具 ══════════
 
         /// <summary>第二件开档家具(与 <see cref="ModuleBunk"/> 不同号)—— 让基线有「第一件成功、第二件抛」的形态。</summary>
@@ -557,12 +674,34 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             /// <summary>被撤掉的模块号;`-1` = 不撤。</summary>
             public int RevokedModuleId = -1;
 
+            /// <summary>
+            /// 「还允许被查到几次」—— 模块号 → 剩余次数。查一次减一,归零后视同撤掉。
+            /// <para>用途:构造「**同一次调用内**目录前后不一致」的时序 —— `RevokedModuleId`
+            /// 只能表达「全程坏」,而 <see cref="StructureRestorer.RebuildFromDecoded"/> 的
+            /// <c>catch</c> 需要「首次 `Reset()` 时目录还好、第二次 `Reset()` 时已坏」。</para>
+            /// </summary>
+            private readonly Dictionary<int, int> _lookupsLeft = new Dictionary<int, int>();
+
             public void RegisterModule(ModuleDefinition def) => _modules[def.ModuleId] = def;
 
+            /// <summary>让 <paramref name="moduleId"/> 只在被查 <paramref name="allowedLookups"/> 次之内可查。</summary>
+            public void RevokeAfterLookups(int moduleId, int allowedLookups)
+                => _lookupsLeft[moduleId] = allowedLookups;
+
             public ModuleDefinition? GetModuleDefinition(int moduleId)
-                => moduleId == RevokedModuleId
-                    ? (ModuleDefinition?)null
-                    : (_modules.TryGetValue(moduleId, out ModuleDefinition def) ? def : (ModuleDefinition?)null);
+            {
+                if (moduleId == RevokedModuleId) return null;
+
+                if (_lookupsLeft.TryGetValue(moduleId, out int left))
+                {
+                    if (left <= 0) return null;      // 配额用尽 ⇒ 视同撤掉
+                    _lookupsLeft[moduleId] = left - 1;
+                }
+
+                return _modules.TryGetValue(moduleId, out ModuleDefinition def)
+                    ? def
+                    : (ModuleDefinition?)null;
+            }
 
             public bool ContainsModule(int moduleId) => _modules.ContainsKey(moduleId);
 
