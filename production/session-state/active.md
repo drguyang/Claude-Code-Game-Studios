@@ -12089,3 +12089,31 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **原件**:`production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`
 - **未做**:`/code-review` 未跑(归用户触发)。
 - **下一步**:`level-tool/story-002`(`world_geometry` / `world_terrain`),它是 S3–S6 的硬前置。
+
+## Session Extract — level-tool/story-002 实现轮(2026-10-29 · commit `a60dcfc6`)
+
+- **对象**:`production/epics/level-tool/story-002-world-geometry-and-terrain.md`(**Status: Complete**,7/7 AC)
+- **落点(52 件)**:工具侧 `TerrainSource` / `LevelSource` 扩展 / `P0ClinicLevel` 外墙环 + 地形表 /
+  `LevelExporter.ExportGeometry+ExportTerrain` / `LevelConsistencyCheck` 新增「槽位落在不可走格上」;
+  烘焙 `World{Geometry,Terrain}{Bake,Binder,CookedWriter}` 六件 + 两条菜单;运行期两个 CookedCodec +
+  `AddressablesDataProvider`(2 address / 2 Ensure*)+ `DataCorePreloader`(23→25)+ `DataCookedDisk`;
+  `MinimalWorldFactory` **改为纯装载器**(合成支删除);`Sim.Contracts/LatticeParamQuantization`。
+- **产物**:`assets/data/world_{geometry,terrain}.json` · `DataCooked/world_{geometry,terrain}.cooked.bytes`
+  (1064 B / 1096 B)· `data-core` 组条目 **26 → 28**,catalog 重建(28 == 盘上 28)。
+- **AC-0 spike 推翻了实现前两条假设**:`GetHeight(int,int)` 吃索引且返回**米**;heightmap 是 **16 位**量化。
+  `slopeLimit` **不在 Terrain 侧**,是 `CharacterController` 的属性。原件 `spike-terrain-api-6.3-2026-10-29.md`。
+- **证伪轮**:**13 条变异(一属性一条),预判 15 红 / 实得 15 红**,逐条命中预判用例,零多余零漏;
+  六次还原 SHA-256 逐字节。
+- **回归**(三元组 `2026-10-29 01:36 / 01:37 CST` · 提交前终跑 · `b7a5956d`+工作树):
+  EditMode `5754/5719/0/0/35`(基线 `5738/5703` ⇒ `5754−5738 = 16` = 14 新夹具 + 2 漂移门按产物展开 26→28);
+  PlayMode `238/234/0/2/2`(**零回归**)。
+- **首跑全量抓到 3 条真回归(全是我引入的)**:① 产物漂移门漏登记(本门**第六次**抓同类)②
+  `MinimalWorldFactory` 异常报文里写作者态目录路径 ⇒ `RuntimeSourceGuard` 红 ③
+  `WorldLattice.cs` 的 `KSpeedIdx` 注释仍称「全仓零消费者」(**现在是假的**)。
+- **三处裁定 / 收窄(用户未逐条确认,待裁)**:① 故事卡「乙案」收窄为「甲案」(合成支整体删,理由 3 条);
+  ② 量化约定住 `Sim.Contracts` 但只定整数侧;③ P0 几何 / 地形数值全是占位(外墙环 60/256、单行地形表、
+  `LATTICE_SIZE` 1000、`slopeLimit` 4500 / `stepOffset` 300 = AC-0 实测引擎默认值)。
+- **原件**:`production/qa/evidence/impl-level-tool-story-002-2026-10-29.md`
+- **未做**:`/code-review` 未跑(归用户触发,与 story-001 同)。
+- **下一步**:`level-tool/story-003`(生态区多边形 + C4/C5)与 `story-004`(POI / 资源)——
+  两者都只依赖 S2,彼此零共享状态,可并行。
