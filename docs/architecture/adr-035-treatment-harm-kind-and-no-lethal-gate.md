@@ -386,7 +386,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 | # | 工作 | 验收判据 |
 |---|---|---|
 | S1 | 普查 `compounds[]` | ✅ **2026-10-29 已跑** —— 结论 = **零输入可达(两层都空)**,形式 = **canary**(N-4′)。原件 `production/qa/evidence/s1-compounds-census-2026-10-29.md`;连带发现 **R5** |
-| S2 | `53_cost_table.json` 骨架(空 `rows`) | 惰性:既有回归零变动 |
+| S2 | `53_cost_table.json` 骨架(空 `rows`) | ✅ **2026-10-29 已落** —— 内容严格照 §Decision ② 字面(`null` = 值归内容轮;不加 `_note`,与 53 族两张表一致)。**「惰性」是静态论证,不是回归数**:该文件**今日零读方**(`grep` 无命中)⇒ 无可执行路径可跑,未跑任何测试。原件 `production/qa/evidence/t1-s2-cost-table-skeleton-2026-10-29.md`。⚠️ 与 `data-files.md`「禁孤儿条目」有**有时限的偏离**,消解点 = S3 |
 | S3 | `CostTableBinder`(N-1 / N-3 / N-4 + 单射 + 未知字段拒收 + `rows`/`harm_kind_enabled` 一致性) | 每条拒收 ≥1 夹具 + ≥3 条反例(防判据过宽) |
 | S4 | `CostTable53` 只读视图 + 构造器纵深防御 | 绕过 Bake 直构表亦拒 |
 | S5 | 新 Kind 三字段登记 + kindgen 重生成 + 枚举末尾追加 + `SimEventCodec.cs:84` 串同步 | A1–A5 全绿;37 → **38**(16 history);贴重跑输出 |
