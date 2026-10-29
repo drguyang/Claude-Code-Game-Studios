@@ -3331,3 +3331,19 @@ constants:
     constraint: "落**病史流**(病人侧;与 DiseaseOnset / InjuryOnset / CareApplied 同流 —— 9 的主场,可随终态折叠)。**写者 = 9**(终态判定方 = F4 九态求值方 = Step 执行方 = 主机;ADR-005 主机唯一 Append)。**`t_end` 不进载荷** —— 折叠行的 `t_end` 取事件头部 `Tick`。**`disease_id` 必带** —— F4 的 `d` = argmax(:1120 补注),终态是**逐病种**的结论,不是病人级读法。⚠️ **原子性义务(硬)**:9 须在**判出终态的那一 tick** 写出本事件;漏写 ⇒ 「流里有终态」与「F4 重放说终态」漂移 ⇒ 该病人**永不折叠**,且无机械门可扫(唯一反查判据 = 「Folded(p)=false 而 F4 重放为终态」)。有界性 = 每病人每病种至多一条(吸收态),`Σ_p |D_p| ≤ PATIENT_APPEARANCE_CAP × |D_max|`,**与 tick 频率无关**(扩展 ADR-008 §六,不重写)"
     added: 2026-10-21
     revised: ""
+
+  - name: SimEvent.Kind.TreatmentHarmOnset
+    status: active
+    source: docs/architecture/adr-035-treatment-harm-kind-and-no-lethal-gate.md   # 本件 §Decision ④(命名首现归 ADR-035)
+    referenced_by:
+      - docs/architecture/adr-035-treatment-harm-kind-and-no-lethal-gate.md   # ④ 载荷 / 所有权 / 有界性;⑤ 53 写者面扩张
+      - design/gdd/medical-consequences.md   # OQ-53-8 [A]:禁忌 / 过量代价 P0 开、限定伤 / 后遗、永不作死亡代价
+      - design/gdd/disease-simulation.md     # 接口铁律二:伤情词表唯一归 9(injury_id 是外键)
+      - docs/tech-debt-register.md           # TD-medcons-15(实现半边)· TD-sim-03(N-1 可行集为空)
+    unit: kind
+    stream: history
+    author: "53 医疗后果与责任(禁忌结算方 = 主机,ADR-005;ADR-035 §Decision ⑤ 显式扩张 53 的写者面 —— 世界流 + 病史流恰此一支)"
+    payload_schema: "tick: i64(事件头 SimEvent.Tick 的复述)· patient_id: i32(受药者;IIdAuthority 机制 A)· injury_id: i32(**外键 → 9 伤情注册表闭集**,非内联属性副本)· harm_kind: i32(CostHarmKind 枚举:Contraindication=0 / Overdose=1)· severity_band: i32(引用 9 域的伤情档位,**不是**后果分值 —— AC-53-01)· seq: i64(主机 Append 时分配,ADR-005)。全部整数域、零 Fix、零引用类型(ADR-024 A2)"
+    constraint: "落**病史流**(病人侧;与 InjuryOnset / DiseaseOnset / CareApplied 同流 —— 9 的主场,可随终态折叠)。**写者 = 53**(禁忌结算方 = 主机唯一 Append,ADR-005;本条经 ADR-035 §Decision ⑤ 显式扩张 53 的写者面,不得再扩第三支)。**injury_id 是外键** —— 53 不得持伤情属性副本(disease-simulation.md:671-672 接口铁律二);**severity_band 是档位引用** —— 分值住在 9 的词表里,`band → magnitude` 换算归 9(ADR-035 §Implementation 5),守 AC-53-01「53 零后果数值字段」。**有界性 ≤ 每完成一次用药至多 1 条**(禁忌命中才写),与 tick 频率无关(扩展 ADR-008 §六,不重写)。⚠️ **过量支在 P0 挂起**(ADR-035 §Decision ⑥):`Overdose` 成员保留但构建期拒收,解除条件 = TD-sim-02 + TD-prescription-09 两条均结案"
+    added: 2026-10-30
+    revised: ""

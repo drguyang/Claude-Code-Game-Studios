@@ -354,4 +354,31 @@ namespace DaYiJingCheng.Sim.Contracts
             FlagId = flagId; NewValue = newValue;
         }
     }
+
+    /// <summary>ADR-035 §Decision ④(用药伤害 onset · 写者 = **53**)。禁忌命中时写一条 ——
+    /// **效果一律外键**,53 不持任何伤害属性副本(`disease-simulation.md:671-672` 接口铁律二)。
+    /// <para><b>为什么是 <c>SeverityBand</c> 而不是 <c>Magnitude</c></b>:分值住在 9 的词表里,
+    /// <c>band → magnitude</c> 的换算归 9(ADR-035 §Implementation 5)⇒ 53 只持**档位引用**,
+    /// 守 <c>AC-53-01</c>「53 零后果数值字段」。这是 ADR-035 的**一处新裁**,不是既有惯例的推论。</para>
+    /// <para><b>有界性</b> ≤ 每完成一次用药至多 1 条(禁忌命中才写),与 tick 频率无关
+    /// (扩展 ADR-008 §六,不重写)。</para>
+    /// <para>⚠️ <c>HarmKind = Overdose</c> 在 P0 **挂起**(ADR-035 §Decision ⑥):成员保留,
+    /// 但写入方与代价表都会拒 —— 解除条件 = TD-sim-02 + TD-prescription-09 两条均结案。</para>
+    /// </summary>
+    public readonly struct TreatmentHarmOnsetPayload
+    {
+        public readonly long Tick;           // 事件头 SimEvent.Tick 的复述(registry 要求载荷自述)
+        public readonly int PatientId;       // 受药者(IIdAuthority 机制 A)
+        public readonly int InjuryId;        // **外键** → 9 伤情注册表闭集(非内联属性副本)
+        public readonly int HarmKind;        // CostHarmKind 枚举(Contraindication=0 / Overdose=1)
+        public readonly int SeverityBand;    // 引用 9 域的档位;不是后果分值(AC-53-01)
+        public readonly long Seq;            // 主机 Append 时分配(ADR-006 Amendment A/C)
+
+        public TreatmentHarmOnsetPayload(long tick, int patientId, int injuryId, int harmKind,
+            int severityBand, long seq)
+        {
+            Tick = tick; PatientId = patientId; InjuryId = injuryId;
+            HarmKind = harmKind; SeverityBand = severityBand; Seq = seq;
+        }
+    }
 }

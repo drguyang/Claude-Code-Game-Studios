@@ -150,27 +150,27 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ AC-29-04: 分派完备性(32 + 2)══════════
 
-        /// <summary>可由 Encode&lt;T&gt; 表达的 35 支(37 − Judgment 两支;2026-10-25 TD-persist-04 起 36→37 / 34→35)。</summary>
+        /// <summary>可由 Encode&lt;T&gt; 表达的 36 支(38 − Judgment 两支;2026-10-30 ADR-035 起 37→38 / 35→36)。</summary>
         private static readonly EventKind[] EncodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>()
                 .Where(k => k != EventKind.JudgmentRecorded && k != EventKind.JudgmentRevised)
                 .ToArray();
 
         [Test]
-        public void test_ac2904_dispatchCovers35Kinds()
+        public void test_ac2904_dispatchCovers36Kinds()
         {
-            Assert.AreEqual(35, EncodableKinds.Length,
-                "可编码 Kind 须恰 35 支(37 总 − 2 Judgment;2026-10-25 TD-persist-04 起 36→37:加 HouseCallStarted)");
+            Assert.AreEqual(36, EncodableKinds.Length,
+                "可编码 Kind 须恰 36 支(38 总 − 2 Judgment;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset)");
 
             // 与 PayloadCodec 的具名 Encode 重载集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Encode" && !m.IsGenericMethodDefinition)
                 .ToList();
 
-            // 35 支单参重载 + 2 支双参(Judgment)重载 = 37
+            // 36 支单参重载 + 2 支双参(Judgment)重载 = 38
             int singleArg = named.Count(m => m.GetParameters().Length == 1);
             int doubleArg = named.Count(m => m.GetParameters().Length == 2);
-            Assert.AreEqual(35, singleArg, "单参具名 Encode 重载须恰 35");
+            Assert.AreEqual(36, singleArg, "单参具名 Encode 重载须恰 36");
             Assert.AreEqual(2, doubleArg, "双参(Judgment)具名 Encode 重载须恰 2");
         }
 

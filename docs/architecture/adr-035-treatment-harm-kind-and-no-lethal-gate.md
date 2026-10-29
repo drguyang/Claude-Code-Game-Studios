@@ -7,8 +7,10 @@
 **本件只钉形状,不实现。** 表 / Kind / 门 / 夹具一律未落盘 —— §Validation V-1…V-10 **全部未跑(禁借绿)**。
 ⚠️ **2026-10-29 例外(唯一):S1 的普查已跑**(只读,未落任何盘)—— 见 §Risks R2 / R5。
 🔁 **2026-10-29/30 状态推进(如实登记,覆盖上句的「未落盘」)**:T1 的 **S1 普查**(只读)· **S2 空表**
-(`53_cost_table.json`)· **S3 绑定器 + 19 条夹具**(19/19 绿,证伪 3 组 6 变异)均已落。
-⇒ 本件**已部分实现**;**S4–S7 未开工**;**V-1…V-8 仍未跑**,**V-9 / V-10 已证**。
+(`53_cost_table.json`)· **S3 绑定器 + 19 条夹具**(19/19 绿,证伪 3 组 6 变异)· **S4 只读视图 + 13 条夹具**
+(13/13 绿,证伪 4 变异)· **S5 新 Kind 全链**(38 支 / 16·5·17,证伪 5 变异)均已落。
+⇒ 本件**已部分实现**;**S6 / S7 未开工**;**V-5 仍不过**(无构建路径);**V-1…V-4 / V-6…V-8 仍未跑**,
+**V-9 / V-10 已证**。
 Accepted 表示「方向已裁」,不表示任何判据已通过。
 
 > ⚠️ **本件不解除 `TD-medcons-15` 的「真跑」阻塞。** 见 §Risks R1:禁忌支的材料(11 的载荷缺「命中禁忌」)
@@ -392,7 +394,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 | S2 | `53_cost_table.json` 骨架(空 `rows`) | ✅ **2026-10-29 已落** —— 内容严格照 §Decision ② 字面(`null` = 值归内容轮;不加 `_note`,与 53 族两张表一致)。**「惰性」是静态论证,不是回归数**:该文件**今日零读方**(`grep` 无命中)⇒ 无可执行路径可跑,未跑任何测试。原件 `production/qa/evidence/t1-s2-cost-table-skeleton-2026-10-29.md`。⚠️ 与 `data-files.md`「禁孤儿条目」有**有时限的偏离**,消解点 = S3 |
 | S3 | `CostTableBinder`(N-1 / N-3 / **N-4′** + 单射 + 未知字段拒收 + `rows`/`harm_kind_enabled` 一致性) | ✅ **2026-10-30 已落** —— `CostTableBinder.cs` + **19 条夹具,19/19 绿**;证伪轮 **3 组 6 变异**,每组**恰好**红预期 2 条,SHA-256 逐字节还原。原件 `production/qa/evidence/t1-s3-cost-table-binder-2026-10-30.md`。⚠️ **V-5 仍未过**(本表无 CookedWriter / DataBakeMenu 入口 ⇒ 今天不存在「构建」路径,只在绑定器层证了 N-1);**连带实测订正 R5 / `TD-sim-03`**:R1-22 禁止**急性保持型**伤情非致死 ⇒ 合法落点须是自限型或平台型 |
 | S4 | `CostTable53` 只读视图 + 构造器纵深防御 | ✅ **2026-10-30 已落** —— `CostTable53.cs`(Sim)+ `CostHarmKind`(Sim.Contracts,S5 的载荷同用)+ **13 条夹具,13/13 绿**;证伪 4 变异 ⇒ **恰好 4 红**。**L3 按「同一拒收」也查 `lethal`**(比 §Key Interfaces 草稿多一条,理由见证据件 §一)。原件 `production/qa/evidence/t1-s4-cost-table53-view-2026-10-30.md`。⚠️ **零读方**:无 CookedWriter / 菜单 / 装配点 |
-| S5 | 新 Kind 三字段登记 + kindgen 重生成 + 枚举末尾追加 + `SimEventCodec.cs:84` 串同步 | A1–A5 全绿;37 → **38**(16 history);贴重跑输出 |
+| S5 | 新 Kind 三字段登记 + kindgen 重生成 + 枚举末尾追加 + `SimEventCodec.cs:84` 串同步 | ✅ **2026-10-30 已落** —— A1–A5 全过(`kindgen --check`:42 struct / 170 字段受判);**37 → 38**,分布 **16 / 5 / 17**,registry 与 `StreamRouting.g.cs` 两侧逐项相同。证伪 5 变异:M1/M2(删编解码分派)各 **2 红** · M3(`DefaultPathMarker` 加数字)**1 红** · M4(插中间)**2 红** · **M5(改路由)本地 0 红 = 无夹具**,守卫在 CI 的「重生成后一致性」步(已实测会红)。⚠️ **零写者**:53 的结算路径归 T2,b7 具名豁免为凭据。原件 `production/qa/evidence/t1-s5-treatment-harm-onset-2026-10-30.md` |
 | S6 | 改 §Decision ⑤ 的两处文本 | 代码 remarks 与卡面 Forbidden 不再自相矛盾 |
 | S7 | **证伪轮** | M1 注入 `lethal=true` 行 ⇒ binder throw;M2 `injury_id` 指向致死行 ⇒ throw;M3 新 Kind 插中间 ⇒ 旧存档解码错(可做静态论证 + 一条夹具);**SHA-256 逐字节还原** |
 | S8 | `AC-5` 表级半边改判 | **仅在 S3 + S7 落盘后**才可把 PARTIAL 收窄;S5 前翻 = 门无宾语 |

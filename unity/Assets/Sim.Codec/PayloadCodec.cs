@@ -29,9 +29,18 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
-    /// <summary>37 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-25 TD-persist-04 起 36→37:加 HouseCallStarted)。</summary>
+    /// <summary>38 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset)。</summary>
     public static partial class PayloadCodec
     {
+        /// <summary>
+        /// **default 分支的特征串**(不含数字)。生产报文与测试探针都引用它 —— 目的是消解
+        /// `TD-persist-11`:原先探针键是「不在 37 支闭集内」,**支数一改探针就静默失效**
+        /// (夹具仍绿但抓不到「枚举加了成员而分派表漏接」)。
+        /// <para>⚠️ **本常量不得含数字**:含了就退回原缺陷。夹具
+        /// `test_tdPersist11_defaultMarker_isNumberFreeAndOnDefaultPath` 钉住这一点。</para>
+        /// </summary>
+        public const string DefaultPathMarker = "[codec-default]";
+
         // ── 分发 ──────────────────────────────────────────────────────────
 
         /// <summary>
@@ -87,8 +96,9 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.ConsequenceResolved:       return DecodeConsequenceResolved(payloadBytes);
                 case EventKind.PlayerDied:                return DecodePlayerDied(payloadBytes);
                 case EventKind.HouseCallStarted:          return DecodeHouseCallStarted(payloadBytes);
+                case EventKind.TreatmentHarmOnset:        return DecodeTreatmentHarmOnset(payloadBytes);
                 default:
-                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 37 支闭集内");
+                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 38 支闭集内 {DefaultPathMarker}");
             }
         }
 

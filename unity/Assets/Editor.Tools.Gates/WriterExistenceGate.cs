@@ -199,6 +199,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             //  中间撤过 CaseClosed / PatternRecognized / JudgmentRevised / SkillGrown),
             //  撤后亦非 23。**任何写死的条数都会在下一次撤表时失效** ⇒ 本条此后只陈述
             //  「递减」,不复述数字;要数字请跑类头那段复算命令。
+            // ── 53 医疗后果与责任 ──
+            // ⏳ 2026-10-30 ADR-035 §Decision ④ 新登记 `TreatmentHarmOnset`:写者 = 53(禁忌结算方),
+            //   但**写者尚未落地** —— 代价表 / 结算路径归 ADR-035 的 **T2**(前置 = `TD-prescription-09`
+            //   结案 + `TD-sim-03`)。写者落地的那一批**必须同批撤本条**(判据① 强制;承既有先例)。
+            ("TreatmentHarmOnset",
+             "2026-10-30 ADR-035 §Decision ④ 新登记;写者 = 53,尚未落地 —— 归 T2(前置 TD-prescription-09 + TD-sim-03)"),
         };
 
         // ══════════════════════════════════════════════════════════════════

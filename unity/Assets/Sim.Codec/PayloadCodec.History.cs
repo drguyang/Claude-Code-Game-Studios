@@ -598,5 +598,45 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
             return new HistoryFlagChangedPayload(flagId, newValue);
         }
+
+        // ── ADR-035 · TreatmentHarmOnset(写者 = 53 · 病史流)────────────────────
+        // tag: 1 Tick · 2 PatientId · 3 InjuryId · 4 HarmKind · 5 SeverityBand · 6 Seq
+        // ⚠️ InjuryId 是**外键**(9 伤情注册表);SeverityBand 是**档位引用**,不是后果分值(AC-53-01)。
+
+        public static byte[] Encode(in TreatmentHarmOnsetPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt64(1, p.Tick);
+            w.WriteFieldInt32(2, p.PatientId);
+            w.WriteFieldInt32(3, p.InjuryId);
+            w.WriteFieldInt32(4, p.HarmKind);
+            w.WriteFieldInt32(5, p.SeverityBand);
+            w.WriteFieldInt64(6, p.Seq);
+            return w.ToArray();
+        }
+
+        private static TreatmentHarmOnsetPayload DecodeTreatmentHarmOnset(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            long tick = 0, seq = 0;
+            int patientId = 0, injuryId = 0, harmKind = 0, severityBand = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.TreatmentHarmOnset), ref seen))
+                {
+                    case 1: tick = r.ReadInt64LittleEndian(); break;
+                    case 2: patientId = r.ReadInt32LittleEndian(); break;
+                    case 3: injuryId = r.ReadInt32LittleEndian(); break;
+                    case 4: harmKind = r.ReadInt32LittleEndian(); break;
+                    case 5: severityBand = r.ReadInt32LittleEndian(); break;
+                    case 6: seq = r.ReadInt64LittleEndian(); break;
+                    default: throw new InvalidDataException($"TreatmentHarmOnset: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.TreatmentHarmOnset), seen, (1u << 6) - 1);
+            r.EnsureFullyConsumed();
+            return new TreatmentHarmOnsetPayload(tick, patientId, injuryId, harmKind, severityBand, seq);
+        }
     }
 }

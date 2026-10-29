@@ -23,8 +23,8 @@
 //    「判据可跑且能打出漂移」,**不证**「烘焙器会在漂移时 throw」。
 // 4. **AC-11-22 的 7a 序列化白名单半边** —— ✅ **2026-10-15 S11-4 已落判据**(原记 BLOCKED-BY-7a)。
 //    **载体识别(非 AC 文本收窄 —— AC 一字未动)**:AC 原文为「**7a 的序列化器**两个 Kind
-//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 37 支闭集 ∩ `PayloadCodec.DecodeBoxed`
-//    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛「不在 37 支闭集内」)。
+//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 38 支闭集 ∩ `PayloadCodec.DecodeBoxed`
+//    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛 `DefaultPathMarker` 特征串)。
 //    ⚠️ 7a **从未有过**独立的「存档白名单**表**」—— `ADR-010` 与 `persistence-service.md`
 //    全文皆无此产物;原 NOT-RUN 把它读成一张数据表,故判为未落地。
 //    ⚠️ 现有 `codecHasBothBranchesForThisKind` **只覆盖 `DrugTreatmentApplied` 一支** ——
@@ -611,7 +611,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         {
             // AC-11-22 半边②逐字兑现:「7a 的序列化器**两个 Kind 均在白名单内**」。
             // 判据 = **正向可往返** —— 不在分派表内的 Kind 落 `DecodeBoxed` 的 default
-            //   (`PayloadCodec.cs:88-89`,抛「不在 37 支闭集内」)⇒「能往返」⇔「在表内」。
+            //   (`PayloadCodec` 的 default 分支,含 `DefaultPathMarker`)⇒「能往返」⇔「在表内」。
             // ① DrugTreatmentApplied(11 写);② EmergencyTreatmentApplied(10 写 ——
             //   AC 同句「两者不互相构造」的另一半,**现有 `codecHasBothBranchesForThisKind`
             //   只覆盖了 ①** —— 那正是本半边的真缺口)。
@@ -640,14 +640,14 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // ⚠️ 本条的严格度**超出** AC-11-22 原文(原文只点名两个 Kind)—— 其价值在
             //   「枚举加了成员而 `PayloadCodec.cs:53-87` 的手写 `case` 漏接」这一真风险;
             //   `EncodeBoxed` 侧的 default 同型(`PayloadEncoder.cs:137-138`)。
-            // 探针 = 任一 T 的 `Decode<T>`:落 default ⇒ 消息含特征串「不在 37 支闭集内」;
+            // 探针 = 任一 T 的 `Decode<T>`:落 default ⇒ 消息含特征串 `PayloadCodec.DefaultPathMarker`;
             //   已登记成员的解析失败消息是各解码器自己的文本,不含该串。
             // 可捕获性:删任一行 `case` ⇒ 立刻红。
             var closure = (EventKind[])Enum.GetValues(typeof(EventKind));
-            Assert.AreEqual(37, closure.Length,
-                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 37 支;变更哨兵 —— " +
+            Assert.AreEqual(38, closure.Length,
+                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 38 支;变更哨兵 —— " +
                 "若本次变更**有意**增删 Kind,须先改 registry 再重跑 kindgen。" +
-                "2026-10-25 TD-persist-04 起 36 → 37:加 HouseCallStarted)");
+                "2026-10-30 ADR-035 起 37 → 38:加 TreatmentHarmOnset)");
 
             var unlisted = new List<string>();
             foreach (EventKind k in closure)
@@ -655,11 +655,33 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
                 try { PayloadCodec.Decode<InjuryOnsetPayload>(k, ReadOnlySpan<byte>.Empty); }
                 catch (Exception ex)
                 {
-                    if (ex.Message.Contains("不在 37 支闭集内")) unlisted.Add(k.ToString());
+                    if (ex.Message.Contains(PayloadCodec.DefaultPathMarker)) unlisted.Add(k.ToString());
                 }
             }
             CollectionAssert.IsEmpty(unlisted,
                 "以下 Kind 落在 codec 分派表 default —— 白名单闭集不完整:" + string.Join(",", unlisted));
+        }
+
+        /// <summary>`TD-persist-11`:`default` 分支的特征串**不含数字**,且确实挂在 default 路径上。</summary>
+        /// <remarks>
+        /// <para>原先探针键是「不在 37 支闭集内」⇒ **支数一改(37→38)探针就静默失效**:夹具仍绿,
+        /// 却再也抓不到「枚举加了成员而分派表漏接」——正是该债记的形态。</para>
+        /// <para>本夹具钉两件:① 未定义的 kind 走 default 且报文含 <see cref="PayloadCodec.DefaultPathMarker"/>;
+        /// ② <b>该串不含数字</b> —— 若有人把支数拼回去(如 `[codec-default-38]`),② 立刻转红,
+        /// 缺陷形态一复活就被测出。</para>
+        /// </remarks>
+        [Test]
+        public void test_tdPersist11_defaultMarker_isNumberFreeAndOnDefaultPath()
+        {
+            var unknown = (EventKind)9999;
+            var ex = Assert.Throws<InvalidDataException>(
+                () => PayloadCodec.Decode<InjuryOnsetPayload>(unknown, ReadOnlySpan<byte>.Empty));
+            StringAssert.Contains(PayloadCodec.DefaultPathMarker, ex.Message,
+                "default 分支报文须含该特征串;实得:" + ex.Message);
+
+            foreach (char c in PayloadCodec.DefaultPathMarker)
+                Assert.That(char.IsDigit(c), Is.False,
+                    "特征串不得含数字 —— 否则支数一改就静默失效(TD-persist-11 的原缺陷形态)");
         }
 
         [Test]

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """kindgen —— SimEvent.Kind 单一真源生成器 + 构建期断言(ADR-024 §⑤)。
 
-输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 37 支,stream/author/payload_schema 必填)
+输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 38 支,stream/author/payload_schema 必填)
        unity/Assets/Sim.Contracts/EventKind.cs(C# 侧镜像)
 输出 : unity/Assets/Sim/StreamRouting.g.cs(Kind→StreamId 纯函数 switch)
 
@@ -51,7 +51,7 @@ INT_TYPE_TOKENS = ("i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64")
 ARRAY_UNBOUNDED_OK = ("上界", "≤", "MAX", "cap", "有界")   # [] 出现须在 schema 里找到界证据
 
 # ── A2 严格形(载荷 struct 字段类型白名单)───────────────────────────────────────
-# 载荷 struct 命名约定:EventKind.X ⟷ XPayload(A5 的姊妹面;实测 35/35 命中)。
+# 载荷 struct 命名约定:EventKind.X ⟷ XPayload(A5 的姊妹面;实测 36/36 命中)。
 PAYLOAD_SUFFIX = "Payload"
 
 # 白名单 = 整数原始类型 8 种宽度(同 registry INT_TYPE_TOKENS 的量纲)+ bool。
@@ -168,7 +168,7 @@ def a2_payload_types(kinds, rep, stats):
     """A2 严格形:载荷 **struct 字段类型** ∈ 整数域白名单(可达闭包,每个字段只判一次)。
 
     ⚠️ B-2 修复点(2026-10-15,补评原件 `review-case-system-story-001-retro-2026-10-15.md` §二):
-    旧实现对 registry **散文** grep `float|double`,实测 35 支命中仅 4 次且**全落否定语境**
+    旧实现对 registry **散文** grep `float|double`,实测 36 支命中仅 4 次且**全落否定语境**
     (case 流 5 支命中 **0** ⇒ 内层循环体执行 0 次)⇒ 断言永不可能触发,且对象不是字段类型。
     本实现把断言对象换成 C# 字段声明、判据换成**白名单**(白名单外一律拒),并加非空跑守卫。
     """
@@ -308,8 +308,8 @@ def main():
 
     kinds = parse_registry()
     rep = []
-    if len(kinds) != 37:
-        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 37(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37)")
+    if len(kinds) != 38:
+        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 38(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37;2026-10-30 ADR-035 TreatmentHarmOnset 起 37 → 38)")
     stats = {"structs": 0, "fields": 0}          # A2 非空跑证据(随成功行打印)
     a1_streams(kinds, rep)
     a2_payload_types(kinds, rep, stats)

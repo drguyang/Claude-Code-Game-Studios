@@ -194,7 +194,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_encoder_dispatchesThisKind()
         {
-            // PayloadEncoder.EncodeBoxed 的 default 抛「不在 37 支闭集内」;
+            // PayloadEncoder.EncodeBoxed 的 default 抛`DefaultPathMarker` 特征串;
             // 能编码 ⇔ 在分派表内(与 drug_event_test 的探针同款口径)。
             var sink = new MemoryBlobSink();
             var encoder = new PayloadEncoder(sink);

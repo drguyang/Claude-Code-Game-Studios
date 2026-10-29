@@ -12985,3 +12985,24 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **仍未**:零读方(无 CookedWriter / 菜单 / 装配点);**V-5 仍不过**(要「构建 Failure」);
   S5–S7 未开工;`TD-sim-03` 仍卡 T2。
 - 原件 `production/qa/evidence/t1-s4-cost-table53-view-2026-10-30.md`。
+
+## Session Extract — ADR-035 T1·S5 新 Kind `TreatmentHarmOnset`(2026-10-30)
+
+- **交付(15 处)**:`entities.yaml` 追加条款(stream: history / author / payload_schema / constraint)·
+  `kindgen.py` 断言 37→38 + 三处注释 · `StreamRouting.g.cs` 重生成(16/5/17 = 38)·
+  `EventKind.cs` **末尾追加区**加成员 · `HistoryPayloads.cs` 新 payload(6 字段)· `PayloadCodec.History.cs`
+  Encode/Decode(tag 1..6)· `PayloadCodec.cs` 分派 + 新常量 `DefaultPathMarker` · `PayloadEncoder.cs` 分派 ·
+  `SimEventCodec.cs:84` 报文 · `WriterExistenceGate.cs` b7 具名豁免 · 三条支数哨兵 37/35 → 38/36 + 新夹具。
+- **判据**:`kindgen --check` A1–A5 全过(42 struct / 170 字段);registry 38 = 生成物 38,分布 16/5/17 两侧相同。
+- **回归**:EditMode **6018/5981/0/37** · PlayMode **238/234/0/2/2**(@ 2026-10-30 01:01–01:02 CST · `2df0830f`+工作树)。
+  PlayMode 与基线逐位相同;37 条 skipped 全是既有 NOT-RUN 登记,逐条核对无一条来自本轮。
+- **证伪(5 变异)**:M1/M2 删编解码分派 ⇒ 各 **2 红** · M3 marker 加数字 ⇒ **1 红** ·
+  M4 成员插中间 ⇒ **2 红**(黄金字节 + b7 日期夹具)· **M5 改路由 ⇒ 0 红**(本地无夹具)。
+- **三处如实登记**:① 上一轮我把 `s5-compile.log`(2026-10-29 04:43 的旧 LevelTool 运行)里的
+  `WorldPos` / `LevelSource.ChunkTopology()` 三条错误**误归因**给 S5 —— 实测 S5 的真实失败**只有** `CS1513`;
+  ② `CS1513` 修好后又暴露 `PayloadCodec.cs:39` 的 `CS0116`(const 放在命名空间里)—— 语法错会**掩盖**语义错;
+  ③ M4 顺带抓出我自己引入的真缺陷:b7 豁免理由串缺登记日期(`test_b7_waiverTable_everyEntryHasDatedReason` 红),已修。
+- **`TD-persist-11` 结案**(修法方向 ①):探针键改成不含数字的 `DefaultPathMarker` + 新夹具钉「不含数字」。
+- **仍未**:零写者(53 结算路径归 T2);**V-5 仍不过**(无 CookedWriter / 菜单 ⇒ 今天没有「构建」路径);
+  S6 / S7 未开工;`TD-sim-03` 未动。
+- 原件 `production/qa/evidence/t1-s5-treatment-harm-onset-2026-10-30.md`。

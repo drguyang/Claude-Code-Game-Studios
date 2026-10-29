@@ -393,7 +393,7 @@
 | `TD-persist-08` | `persistence-service` | open | **N** | R4 |
 | `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-10` | `persistence-service` | open | **N** | R1 |
-| `TD-persist-11` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-03` | `enemy-ai` | open | **Y** | R1 |
@@ -849,7 +849,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 138 | 状态 {'open': 59, 'closed': 75, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 35, '~~**Y**~~': 1}
+条目 138 | 状态 {'open': 58, 'closed': 76, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 35, '~~**Y**~~': 1}
 未闭 P0 面 = 35 （已闭但曾标 P0 面的 67 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 35 条,分布在 10/31 个 epic
     medical-consequences: 17  telemetry-analytics: 5    clinic-machine: 4
@@ -5402,6 +5402,19 @@ Accepted,**只钉形状、不实现**)。该件四项用户裁定中的**裁定 
 **把三条都当 `Y` 会多算 1**。epic 分布同理,只多两个 epic 的计数(其中一个此前不在分布里)。
 
 复算:`python3 tools/debtcount/debtcount.py --print`。
+
+#### ✅ 结案(2026-10-30 · ADR-035 T1·S5 同批)
+
+| 项 | 结论 |
+|---|---|
+| **修法方向 ①落盘** | 探针键改为**不含数字的稳定串** `PayloadCodec.DefaultPathMarker = "[codec-default]"`;`PayloadCodec.cs` 的 `default` 报文与 `drug_event_test` 的探针**引用同一常量** ⇒ 改串时两侧同改,不会再出现「改了报文、探针静默退化」。 |
+| **「何时消解」的条件逐条核对** | 原文要求:**任一方向落盘 且 有一条「改报文字面 ⇒ 探针仍能抓漏接」的夹具**;并明写「**仅把 `37` 改成 `38` 不算消解**」。<br>① 方向落盘 ✅(见上)。<br>② 夹具 ✅ `test_tdPersist11_defaultMarker_isNumberFreeAndOnDefaultPath` —— 它钉两件:**报文含该串**、**该串不含数字**。**M3 实测**:把常量改成 `"[codec-default-38]"` ⇒ 该夹具**转红**(证伪轮 1 红,其余全绿)。<br>③ 「仅改数字不算消解」✅ 本轮**没有**把 `37` 改 `38` 当作结案依据 —— 支数同步是 S5 的**另一件事**(`kindgen` 断言 + 三条哨兵),与本条无关。 |
+| **「抓漏接」能力仍在(实测)** | **M1/M2**:删掉 `PayloadCodec.DecodeBoxed` / `PayloadEncoder.EncodeBoxed` 里 `TreatmentHarmOnset` 的 `case` ⇒ `test_adr031_allKinds_roundTripThroughDecoder` + `test_ac2908_allEncodableKinds_roundTrip` **各 2 红**。探针换了键之后,**仍然抓得到「枚举加了成员而分派表漏接」**。 |
+| **未做的一半(如实登记)** | 修法方向 ②(手写 7 处收敛到 kindgen 生成的**单一常量**)未做。今日仍是 7+1 处字面量 —— 它们**不再是探针键**,故**不再能被静默绕过**,但「同一数字抄在多处」的形态仍在。**不因此重开本条**(原文的「何时消解」是「任一方向」),它的残余价值已由 `drug_event_test.cs:647` / `payload_decoder_test.cs:295` / `payload_encoder_test.cs:162` 三条**支数哨兵**承担 —— 下次加 Kind 时它们会强制有人把数字改一遍。 |
+| **回归** | EditMode **6018 / 5981 / 0 / 37** @ 2026-10-30 01:01 CST · `S5 收口全量` · `2df0830f`+工作树。原件 `production/qa/evidence/t1-s5-treatment-harm-onset-2026-10-30.md` §三。 |
+
+> ⚠️ **本条闭 ≠ 「字面量面已干净」** —— 见上「未做的一半」。若将来有人主张把 7 处字面量收敛,
+> 那是**另一条债**(尚未登记),不是本条的残留。
 
 ---
 
