@@ -146,7 +146,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// **未声明变体轴的多元素材行**恒为 <c>assets[0]</c>。
         /// 生产路径按条目的声源实体选变体,见 <see cref="ResolveCue(in AudioCueDto,int)"/>。</remarks>
         public AudioClip Resolve(int cue)
-            => Resolve(cue, cue, 0, 0);
+            // ⚠️ 非 DTO 查询路径(不解 cue 的强度语义)⇒ 强度取 0 = 弱桶,与接线前「恒第一个桶」同形。
+            => Resolve(cue, cue, 0, 0, 0);
 
         /// <summary>cue × Tier × 患者身份 → clip(story-020 · AC-44-02 运行期半边)。
         /// <para><b>只有 <c>variant_axis</c> 已声明的行才走选择器</b>(story-020 重裁 ①):
@@ -161,7 +162,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 单测可分家以复现「表里无行」路径)。</param>
         /// <param name="tier">精度档(0–2;设备级,本机恒 0)。</param>
         /// <param name="identity">患者身份(确定性输入;环境音取 cue 自身)。</param>
-        public AudioClip Resolve(int cue, int tableCueId, int tier, int identity)
+        /// <param name="intensity">强度(0..255;`AudioCueDto.Intensity`,决定 F-44.6 的桶 —— `TD-audio-034` ①)。</param>
+        public AudioClip Resolve(int cue, int tableCueId, int tier, int identity, int intensity)
         {
             if (cue < 0 || cue >= _table.RowCount) return null;
             if (!_clips.TryGetValue(cue, out AudioClip[] loaded)) return null;
@@ -179,7 +181,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             // 变体行:三维立方体 (性别层 × 三桶 × 层内变体)。构建期 ValidateVariantAxis 已保证
             // 素材数整除三桶 ⇒ 每个格子非空 ⇒ **无死变体、无空桶坍陷**(重裁 ③)。
             int size = VoiceVariantLib.VariantCubeSize(loaded.Length);
-            int variant = VoiceVariantLib.SelectVariantCube(cue, tier, identity, size);
+            int variant = VoiceVariantLib.SelectVariantCube(cue, tier, identity, size, intensity);
 
             AudioClip clip = variant >= 0 && variant < loaded.Length ? loaded[variant] : null;
             return clip ?? first;
@@ -191,7 +193,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="tier">本机精度档(0–2)。</param>
         public AudioClip ResolveCue(in AudioCueDto cueDto, int tier = 0)
             => Resolve(cueDto.Cue, cueDto.Cue, tier,
-                       cueDto.Source >= 0 ? cueDto.Source : cueDto.Cue);
+                       cueDto.Source >= 0 ? cueDto.Source : cueDto.Cue,
+                       cueDto.Intensity);
 
         // ══════════ 变体选择辅助(story-020 重裁,2026-10-18)══════════
 

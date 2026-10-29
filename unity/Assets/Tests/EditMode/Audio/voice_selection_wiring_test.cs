@@ -74,7 +74,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             {
                 for (int identity = 0; identity < 12; identity++)
                 {
-                    AudioClip clip = _library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity);
+                    AudioClip clip = _library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity, 0);
                     Assert.That(clip, Is.Not.Null, $"tier={tier} identity={identity} 解析到 null");
 
                     int picked = Array.IndexOf(row.Assets, clip.name);
@@ -82,7 +82,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                         $"tier={tier} identity={identity}:选中 {clip.name} 不属本行 assets[] —— 越界取用");
 
                     int size = VoiceVariantLib.VariantCubeSize(row.Assets.Length);
-                    int expectedPos = VoiceVariantLib.SelectVariantCube(voiceOrdinal, tier, identity, size);
+                    int expectedPos = VoiceVariantLib.SelectVariantCube(voiceOrdinal, tier, identity, size, 0);
                     Assert.That(picked, Is.EqualTo(expectedPos),
                         $"tier={tier} identity={identity}:选中位置 {picked},选择器位置 {expectedPos}");
 
@@ -101,12 +101,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             _library = Library(RealSeedAndVoiceOrdinal().Item1);
             Type lib = typeof(AudioClipLibrary);
 
-            // Assert ①:选择入口存在,取 `(int cue, int tableCueId, int tier, int identity)`
+            // Assert ①:选择入口存在,取 `(int cue, int tableCueId, int tier, int identity, int intensity)`
+            // 🔁 2026-10-29(`TD-audio-034` ①):第 5 参 = 强度 —— 桶输入自此来自 `AudioCueDto.Intensity`。
             MethodInfo resolve = lib.GetMethod("Resolve",
                 BindingFlags.Public | BindingFlags.Instance, null,
-                new[] { typeof(int), typeof(int), typeof(int), typeof(int) }, null);
+                new[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int) }, null);
             Assert.That(resolve, Is.Not.Null,
-                "AudioClipLibrary.Resolve(int,int,int,int) 不存在 —— 选择入口缺失(AC-020-1)");
+                "AudioClipLibrary.Resolve(int,int,int,int,int) 不存在 —— 选择入口缺失(AC-020-1)");
 
             // Assert ②:生产 44 二进制（Gameplay.Presentation 里的 44 类型）对变体选择函数有真调用
             // (story-020 重裁 ③:选择入口改为 VoiceVariantLib.SelectVariantCube —— 见 §重裁)
@@ -133,12 +134,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Act + Assert:单素材行任意身份恒该条
             string only = table.Row(single).Assets[0];
             for (int identity = 0; identity < 5; identity++)
-                Assert.That(_library.Resolve(single, single, 1, identity).name, Is.EqualTo(only),
+                Assert.That(_library.Resolve(single, single, 1, identity, 0).name, Is.EqualTo(only),
                     "单素材行不得被选择面改动");
 
             // 越界 / 表里无行 / 负 ordinal ⇒ null
-            Assert.That(_library.Resolve(-1, -1, 0, 0), Is.Null);
-            Assert.That(_library.Resolve(table.RowCount, table.RowCount, 0, 0), Is.Null);
+            Assert.That(_library.Resolve(-1, -1, 0, 0, 0), Is.Null);
+            Assert.That(_library.Resolve(table.RowCount, table.RowCount, 0, 0, 0), Is.Null);
             // ⚠️ 变体库单行且 CueId 恒 = cue 自身 ⇒ 「表里无行」路径在生产不可达(烘焙门
             // `ValidateVoiceVariantLib` 的另一半已覆盖);此处只钉 SelectVariant 的 -1 合同本身。
             Assert.That(VoiceVariantLib.SelectVariant(
@@ -160,8 +161,8 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Act + Assert
             for (int identity = 0; identity < 20; identity++)
             {
-                string a = _library.Resolve(voiceOrdinal, voiceOrdinal, 0, identity)?.name;
-                string b = _library.Resolve(voiceOrdinal, voiceOrdinal, 0, identity)?.name;
+                string a = _library.Resolve(voiceOrdinal, voiceOrdinal, 0, identity, 0)?.name;
+                string b = _library.Resolve(voiceOrdinal, voiceOrdinal, 0, identity, 0)?.name;
                 Assert.That(a, Is.Not.Null.And.EqualTo(b), $"identity={identity} 两次调用不一致(非确定性)");
             }
         }
@@ -178,7 +179,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             {
                 var distinct = new HashSet<string>(StringComparer.Ordinal);
                 for (int identity = 0; identity < 8; identity++)
-                    distinct.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity).name);
+                    distinct.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity, 0).name);
                 Assert.That(distinct.Count, Is.GreaterThan(1),
                     $"tier={tier}:8 名患者听到同一条咳嗽({string.Join(",", distinct)})—— " +
                     "身份维度没进选择键(AC-020-2)");
@@ -197,7 +198,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Act:身份 0–7 在 tier 1 下选出的变体
             var picked = new List<string>();
             for (int identity = 0; identity < 8; identity++)
-                picked.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, 1, identity).name);
+                picked.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, 1, identity, 0).name);
 
             // Assert:出现的变体数 = 8 名患者能分到的槽宽(≥ 2 条,且都合法)
             Assert.That(picked.Distinct().Count(), Is.GreaterThanOrEqualTo(2),
@@ -253,9 +254,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Act:枚举身份(取表行数的整数倍 —— 覆盖哈希全域)
             var reachable = new HashSet<string>(StringComparer.Ordinal);
             const int identities = 20000;
-            for (int tier = 0; tier <= 2; tier++)
-                for (int identity = 0; identity < identities; identity++)
-                    reachable.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity).name);
+            // 🔁 2026-10-29(`TD-audio-034` ①):12 条 = 3 桶 × 4 槽宽 ⇒ 须**跨桶**扫,
+            // 否则强度恒 0 只到弱桶,12 条永远不可达。
+            foreach (int intensity in new[] { 0, 128, 255 })
+                for (int tier = 0; tier <= 2; tier++)
+                    for (int identity = 0; identity < identities; identity++)
+                        reachable.Add(_library.Resolve(
+                            voiceOrdinal, voiceOrdinal, tier, identity, intensity).name);
 
             // Assert:12 条逐条可达
             var missing = row.Assets.Where(a => !reachable.Contains(a)).ToList();
@@ -283,8 +288,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             target.PlayOneShot(new AudioCueDto(voiceOrdinal, 128, new Int3(0, 0, 0), patientB, false));
 
             // Assert:池里两个源的 clip 名 = 生产选择器按各自身份算出的那条
-            string expectedA = library.Resolve(voiceOrdinal, voiceOrdinal, 0, patientA).name;
-            string expectedB = library.Resolve(voiceOrdinal, voiceOrdinal, 0, patientB).name;
+            // 🔁 2026-10-29(`TD-audio-034` ①):桶来自 `AudioCueDto.Intensity` ⇒ 期望值必须用
+            // 上面 DTO 传的 **128**(中桶),不是 0 —— 否则量的是「强度没用上」。
+            string expectedA = library.Resolve(voiceOrdinal, voiceOrdinal, 0, patientA, 128).name;
+            string expectedB = library.Resolve(voiceOrdinal, voiceOrdinal, 0, patientB, 128).name;
             Assert.That(pool.SourceForActor(patientA).clip.name, Is.EqualTo(expectedA),
                 "患者 A 的声源 clip ≠ 按 Source 选出的变体 —— 身份没到选择器");
             Assert.That(pool.SourceForActor(patientB).clip.name, Is.EqualTo(expectedB));
@@ -315,7 +322,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
                 for (int identity = 0; identity < 16; identity++)
                 {
-                    string picked = _library.Resolve(ordinal, ordinal, 0, identity).name;
+                    string picked = _library.Resolve(ordinal, ordinal, 0, identity, 0).name;
                     Assert.That(picked, Is.EqualTo(row.Assets[0]),
                         $"`{row.Cue}` 未声明 variant_axis(其 assets[] 是不同素材,不是变体), " +
                         $"身份 {identity} 却选到了 {picked} —— 应恒取 assets[0]={row.Assets[0]}");
@@ -344,7 +351,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
                 var distinct = new HashSet<string>(StringComparer.Ordinal);
                 for (int identity = 0; identity < 32; identity++)
-                    distinct.Add(_library.Resolve(ordinal, ordinal, 0, identity).name);
+                    distinct.Add(_library.Resolve(ordinal, ordinal, 0, identity, 0).name);
                 Assert.That(distinct.Count, Is.GreaterThan(1),
                     $"`{row.Cue}` 声明了 variant_axis,32 名患者却听到同一条 —— 变体选择没接上");
             }
@@ -363,27 +370,34 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 int size = VoiceVariantLib.VariantCubeSize(n);
                 Assert.That(size, Is.EqualTo(n / 3), $"n={n}:每桶宽度应为 {n / 3}");
 
+                // 🔁 2026-10-29(`TD-audio-034` ①):桶来自 Intensity ⇒ 可达性须**跨桶**扫,
+                // 三个代表强度各覆盖一个桶(0 弱 / 128 中 / 255 强)。
                 var reached = new HashSet<int>();
-                for (int identity = 0; identity < 4096; identity++)
-                {
-                    int v = VoiceVariantLib.SelectVariantCube(cue: 0, tier: 0, identity: identity, size: size);
-                    Assert.That(v, Is.InRange(0, n - 1), $"n={n}:选出越界位置 {v}");
-                    reached.Add(v);
-                }
+                foreach (int intensity in new[] { 0, 128, 255 })
+                    for (int identity = 0; identity < 4096; identity++)
+                    {
+                        int v = VoiceVariantLib.SelectVariantCube(
+                            cue: 0, tier: 0, identity: identity, size: size, intensity: intensity);
+                        Assert.That(v, Is.InRange(0, n - 1), $"n={n}:选出越界位置 {v}");
+                        reached.Add(v);
+                    }
                 Assert.That(reached.Count, Is.EqualTo(n),
                     $"n={n}:仅 {reached.Count}/{n} 个变体可达 —— 存在死变体(重裁 ③)");
 
                 // 空桶检测:每个桶都必须被选中过(强桶坍回弱桶会让某桶零命中)
+                // 🔁 **2026-10-29(`TD-audio-034` ①)**:桶的输入从「身份」改为 **`Intensity`**
+                //    (GDD F-44.3 :377)。⇒ 三桶可达性须按**强度扫描**证明;原先按身份扫描 4096 个
+                //    identity 的写法钉的是**旧语义**,改判后它本来就该红。
                 var buckets = new HashSet<int>();
-                for (int identity = 0; identity < 4096; identity++)
-                    buckets.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity, size) / size);
+                for (int intensity = 0; intensity <= 255; intensity++)
+                    buckets.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity: 0, size, intensity) / size);
                 Assert.That(buckets.Count, Is.EqualTo(3), $"n={n}:只有 {buckets.Count} 个桶被选中(存在空桶)");
             }
 
             // 非法形状 ⇒ 显式 −1(不猜、不截余)
             Assert.That(VoiceVariantLib.VariantCubeSize(4), Is.EqualTo(-1), "4 条不整除三桶 ⇒ 拒选,不得截余");
             Assert.That(VoiceVariantLib.VariantCubeSize(0), Is.EqualTo(-1));
-            Assert.That(VoiceVariantLib.SelectVariantCube(0, 0, 7, -1), Is.EqualTo(-1));
+            Assert.That(VoiceVariantLib.SelectVariantCube(0, 0, 7, -1, 0), Is.EqualTo(-1));
         }
 
         /// <summary>重裁 ③ 的构建期半边:声明了变体轴但素材数不整除三桶 ⇒ 门拒收。</summary>

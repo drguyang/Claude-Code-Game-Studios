@@ -305,15 +305,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="identity">患者身份(确定性输入)。</param>
         /// <param name="size">每桶变体数(<see cref="VariantCubeSize"/>)。</param>
         /// <returns>素材位置 ∈ <c>[0, size × 3)</c>;入参非法 ⇒ −1。</returns>
-        public static int SelectVariantCube(int cue, int tier, int identity, int size)
+        public static int SelectVariantCube(int cue, int tier, int identity, int size, int intensity)
         {
             if (size <= 0) return -1;
-            // 身份 → [0,3) 定桶;同身份再混 cue 与层内上一维 ⇒ 层内位置。
+            // 🔁 **2026-10-29(`TD-audio-034` ①)**:桶输入从「身份」改为 **`Intensity`**
+            //    (GDD F-44.3 `:377` `variant = SelectVariant(CueId, Tier, bucket(u))`,`u` = `AudioCueDto.Intensity`)。
+            //    此前该字段在音频选择路径**零消费** ⇒ 同一病人同一 cue 无论咳得多重恒走同一桶,
+            //    F-44.6 的三档分桶**运行期结构性不可达**。
+            //    身份**仍在**:它决定桶内位置(同一病人同强度 ⇒ 同一句尾变体,不随 tick 抖动)。
             // ⚠️ 全程 uint 域(unchecked 回绕 = 定义性行为;禁有符号右移,承 ADR-005 Amendment G / ADR-012 F7)
             unchecked
             {
                 uint seed = (uint)identity ^ ((uint)cue * 2654435761u);
-                int bucket = IdentityScalar((int)seed, 3);
+                // ⚠️ 走**既有的** `ComputeBucket`(F-44.6 的唯一分桶实现,阈值 `BucketLow/High` 归用户)。
+                //    它此前**零生产调用方** —— 那正是本条债的缺口:函数在、没人调。
+                int clamped = intensity < 0 ? 0 : intensity > 255 ? 255 : intensity;
+                int bucket = (int)ComputeBucket((byte)clamped);
                 uint seed2 = seed ^ 40503u ^ ((uint)(bucket + 1) * 2246822519u);
                 int within = IdentityScalar((int)seed2, size);
                 return bucket * size + within;
