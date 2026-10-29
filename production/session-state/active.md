@@ -1,5 +1,25 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-29 · `TD-audio-032` ③ 行数界半边(批 C,接 `dc958f58`)
+
+**用户指令**:「开032」。③ 的 `BuildAudioSeams` 半边结案 ⇒ 全条 `open` → **`partial`**(① 仍 open)。
+
+- `BuildAudioSeams` **45 → 30 物理行**;抽出 `ResolveMixerOrFail` / `ApplyPlayerBusDefaultsOrFail`(各 13 行,
+  原文案与抛点一字未改);补 `using System.Collections.Generic;`。
+- 新夹具 `test_td032_3_buildAudioSeams_withinLineBudget`(与既有的 `PatientCueDriver` 那条**分开** ——
+  合成一条会让「哪一半红了」不可分辨,正是 S15-7 的教训)。
+- **证伪 3/3 全红**(主方法→45 / 两个私有方法各→43),3 次 SHA-256 逐字节还原。
+- **⚠️ 本轮踩坑(第一次证伪 2/2 假存活)**:v1 只垫 8 行(30→38,仍 ≤40)⇒ 绿是**正确行为**,
+  是**变异太弱**;而我的离线复算脚本 `StripComments` 漏一步 `i+=1`,算成 37 行 ⇒ 我先怀疑
+  `CallerFilePath` 读错文件,方向错了。靠「阈值临时改 1 逼出真实值 30」定案。
+  **纪律:假存活的第一排查顺序是「变异是否越过阈值」,不是「夹具是否失明」。**
+- 回归:EditMode **`5870 / 5833 / 0 / 0 / 37`** @ 2026-10-29 13:27 CST · 全量 · `dc958f58`+工作树;
+  PlayMode `238 / 234 / 0 / 2 / 2`(逐位同基线)。
+- 证据原件:`production/qa/evidence/impl-td-audio-032-3-linebudget-2026-10-29.md`。
+- **债册现值**:条目 133 · `open 64` · `closed 62` · `partial 6` · **未闭 P0 面 47**(audio-system 12)。
+
+---
+
 ## 2026-10-29 · `TD-audio-035` ① 换源轮(批 C)
 
 > ⚠️ **本节是最新状态**;下方「2026-10-27 · sprint-20 收口后六项」及更早小节是历史记录。

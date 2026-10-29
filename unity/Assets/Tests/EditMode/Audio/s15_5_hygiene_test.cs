@@ -350,6 +350,33 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             }
         }
 
+        /// <summary>`TD-audio-032` ③ 的**第二半边**(S15-7 起登记未修):`BootRoot.BuildAudioSeams`
+        /// 原 45 物理行 &gt; 40。</summary>
+        /// <remarks><b>判别力</b>:往 `BuildAudioSeams` 里垫满 41 行 ⇒ 本测红(见反证记录)。
+        /// <para>⚠️ 本测**不**复用 `PatientCueDriver.cs` 那次扫描:两者是不同文件、不同方法集,
+        /// 合成一条会让「哪一半红了」不可分辨(S15-7 记的正是「拆分动作只兑现一半 = 未证」)。</para></remarks>
+        [Test]
+        public void test_td032_3_buildAudioSeams_withinLineBudget()
+        {
+            // Arrange
+            string src = StripComments(File.ReadAllText(Path.Combine(RepoRoot(), "unity", "Assets",
+                "Gameplay.Boot", "BootRoot.cs")));
+
+            // Assert:主方法只许编排;两个抽出来的私有方法各自 ≤ 40 物理行
+            foreach (string sig in new[]
+                     {
+                         "public static AudioAssemblySeams BuildAudioSeams(",
+                         "private static AudioMixer ResolveMixerOrFail(",
+                         "private static IReadOnlyList<string> ApplyPlayerBusDefaultsOrFail(",
+                     })
+            {
+                int lines = ExtractMethodText(src, sig).Split('\n').Length;
+                Assert.That(lines, Is.LessThanOrEqualTo(40),
+                    $"「{sig}」实得 {lines} 物理行 > 40 —— `TD-audio-032` ③ 的 BuildAudioSeams 半边" +
+                    "(S15-7 实测 45 行)回潮,或拆分把超标搬进了新的私有方法");
+            }
+        }
+
         [Test]
         public void test_td032_3_budgetMeasuresThePreSplitBody()
         {

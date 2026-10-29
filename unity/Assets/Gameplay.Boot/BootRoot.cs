@@ -22,6 +22,7 @@
 //    六步」只实现当下半边同纪律)。届时再抽,本注即登记点。
 
 using System;
+using System.Collections.Generic;    // IReadOnlyList<string>(A-5 错误的返回形,TD-audio-032 ③ 拆分后进签名)
 using System.IO;                     // Path.Combine(7a 存档目录,S19-1)
 using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
@@ -801,15 +802,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             var clips = new AudioClipLibrary(table);
 
             // ③ 混音器解析(A-7)—— **先于 clip 预载**:fail-loud 分支不该先走一遍 catalog。
-            AudioMixer mixer = mixerLoader != null ? mixerLoader() : clips.LoadMixer();
-            if (mixer == null)
-            {
-                throw new InvalidOperationException(
-                    "[BootRoot][story-018][A-7] 混音器解析不到(address = " +
-                    AudioClipLibrary.AudioMixerAddress + ")—— Addressables 组未登记或 catalog 未重建。" +
-                    "修法:跑菜单「大医精诚/数据管线/确保 audio Addressables 组」再「构建 Addressables 内容」。" +
-                    "⚠️ 不得静默跳过:混音器缺失 ⇒ 七总线拓扑与音量滑块全失效(A-5/A-6)。");
-            }
+            AudioMixer mixer = ResolveMixerOrFail(clips, mixerLoader);
 
             // ② clip 预载(A-2)—— 逐行按事件表 assets[] 的 bare 名装载。
             // ⚠️ 缺条目**不抛**(承 AudioClipLibrary 头注:素材存在性已由构建期 D6 门拦下,
@@ -819,8 +812,47 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ④ 总线解析器(A-6 运行期半边):七总线名 → AudioMixerGroup。
             var buses = new AudioBusResolver(mixer);
 
-            // ⑤ 玩家总线音量(A-5)。⚠️ Bootstrap 已在本场景加载前跑过(那时 resolver 还是 null)
-            //    ⇒ 此处赋值后必须**显式** ApplyDefaults,不能等自动入口。
+            // ⑤ 玩家总线音量(A-5)。
+            var errors = ApplyPlayerBusDefaultsOrFail(mixer);
+
+            return new AudioAssemblySeams
+            {
+                Clips = clips,
+                Buses = buses,
+                BusVolumeErrors = errors,
+                Table = table,
+            };
+        }
+
+        /// <summary>③ 混音器解析(A-7)。解析不到 = **装配错**,不是环境降级面 ⇒ 抛,不得静默跳过。
+        /// <para>🔁 2026-10-29(`TD-audio-032` ③ 收尾)从 `BuildAudioSeams` 抽出 —— 原文案与抛点一字未改。</para></summary>
+        /// <param name="clips">clip 库(生产路径用它装载混音器)。</param>
+        /// <param name="mixerLoader">测试注入缝(null ⇒ 走生产路径)。</param>
+        /// <returns>已解析的混音器(非 null)。</returns>
+        /// <exception cref="InvalidOperationException">解析不到。</exception>
+        private static AudioMixer ResolveMixerOrFail(AudioClipLibrary clips, Func<AudioMixer> mixerLoader)
+        {
+            AudioMixer mixer = mixerLoader != null ? mixerLoader() : clips.LoadMixer();
+            if (mixer == null)
+            {
+                throw new InvalidOperationException(
+                    "[BootRoot][story-018][A-7] 混音器解析不到(address = " +
+                    AudioClipLibrary.AudioMixerAddress + ")—— Addressables 组未登记或 catalog 未重建。" +
+                    "修法:跑菜单「大医精诚/数据管线/确保 audio Addressables 组」再「构建 Addressables 内容」。" +
+                    "⚠️ 不得静默跳过:混音器缺失 ⇒ 七总线拓扑与音量滑块全失效(A-5/A-6)。");
+            }
+            return mixer;
+        }
+
+        /// <summary>⑤ 玩家总线音量默认集(A-5),失败即抛(半初始化已由初始化器自行回退)。
+        /// <para>⚠️ `Bootstrap()` 已在本场景加载前跑过(那时 resolver 还是 null)⇒ 此处赋值后
+        /// 必须**显式** `ApplyDefaults`,不能等自动入口。</para>
+        /// <para>🔁 2026-10-29(`TD-audio-032` ③ 收尾)从 `BuildAudioSeams` 抽出 —— 原文案与抛点一字未改。</para></summary>
+        /// <param name="mixer">已解析的混音器。</param>
+        /// <returns>错误列表(空 = 全部成功)。</returns>
+        /// <exception cref="InvalidOperationException">存在失败项。</exception>
+        private static IReadOnlyList<string> ApplyPlayerBusDefaultsOrFail(AudioMixer mixer)
+        {
             PlayerBusVolumeInitializer.MixerResolver = () => mixer;
             var errors = PlayerBusVolumeInitializer.ApplyDefaults(
                 mixer, PlayerBusVolumeInitializer.FactoryDefaults);
@@ -830,14 +862,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "[BootRoot][story-018][A-5] 玩家总线音量初始化失败(半初始化已回退,零 SetFloat):\n" +
                     string.Join("\n", errors));
             }
-
-            return new AudioAssemblySeams
-            {
-                Clips = clips,
-                Buses = buses,
-                BusVolumeErrors = errors,
-                Table = table,
-            };
+            return errors;
         }
 
         /// <summary>
