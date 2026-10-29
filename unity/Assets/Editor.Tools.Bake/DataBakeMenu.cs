@@ -50,6 +50,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(8 门槛定表;F-8.1 / AC-8-5…8-8 的烘焙产物)。</summary>
         public const string DiagnosisReadFloorCookedAssetName = "diagnosis_read_floor.cooked.bytes";
 
+        /// <summary>`ai_patient.json` 的产物名(`TD-audio-032` ① · 2026-10-29)。
+        /// <para>⚠️ **单一出处** = <see cref="DaYiJingCheng.Gameplay.PatientAI.PatientAiDataSet.CookedFileName"/>
+        /// —— 菜单写盘名与 Addressables address 共用同一常量(两处各写字面量 = 第二真源)。</para></summary>
+        public const string AiPatientCookedAssetName =
+            DaYiJingCheng.Gameplay.PatientAI.PatientAiDataSet.CookedFileName;
+
         /// <summary>F-8.3 阴性把握度定表产物名(story 004)。</summary>
         public const string DiagnosisNegativeConfidenceCookedAssetName =
             "diagnosis_negative_confidence.cooked.bytes";
@@ -275,6 +281,42 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{DiagnosisReadFloorCookedAssetName} = {result.Cooked.Length} B, " +
                     $"{result.Table.Count} 档定表,ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 13 病人 AI 的调参常量表(`TD-audio-032` ① · 2026-10-29):
+        /// 仓库 <c>assets/data/ai_patient.json</c> → 校验(**聚合 throw**)→ 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="PatientAiBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind)—— 两族硬约束的「构建期硬失败」由此兑现;
+        /// 运行期 13 只见烘焙产物,零 JSON 解析(ADR-014 §二)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 ai_patient(13 调参常量表)")]
+        public static void BakeAiPatient()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                PatientAiBaker.BakeOutput result = PatientAiBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, AiPatientCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{AiPatientCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"cue_intervals(severe={result.Data.CueIntervals.Severe}, " +
+                    $"mild={result.Data.CueIntervals.Mild}, recover={result.Data.CueIntervals.Recover}), " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)

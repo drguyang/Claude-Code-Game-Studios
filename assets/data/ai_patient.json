@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "_note": "13 病人 AI 的调参常量表(ADR-014 两阶段烘焙)。两节:cue_intervals(咳嗽/呻吟的档间隔)与 behavior_bands(行为分档阈值)。⚠️ 全部数值 = 现有代码常量 CueIntervals.Default / BehaviorBands.Default 的**照抄**,不是数值轮调过的真值 —— 本轮只把「代码常量」搬进数据表(TD-audio-032 ①),不改值。真值随数值轮由用户落此文件。",
+  "cue_intervals": {
+    "_note": "CUE_INTERVAL[*] —— 按症状档取的 cue 间隔(分段常函数,不插值)。硬约束 0 < severe < mild <= recover(GDD F-13.5 / §Tuning 三)。",
+    "severe": 40,
+    "mild": 90,
+    "recover": 120
+  },
+  "behavior_bands": {
+    "_note": "BEHAVIOR_BAND_* —— 值域 [0,1] 的呈现分档线。硬约束 MILD_MIN < SEEK_MIN < COLLAPSE_MIN < DEATH_BAND_MIN < 1 · RECOVER_MAX < MILD_MIN · 0 < HYST < SEEK_MIN(GDD F-13.1 / §Tuning 一)。⚠️ 13 自己的呈现分档,与 9 的九态阈值是两个集合(不要求相等,OQ-13-2 归数值轮)。⚠️ Fix 字段一律写**分子/分母**(ADR-014 §三 FixParse 拒浮点字面量),不写小数。",
+    "mild_min": "1/5",
+    "seek_min": "9/20",
+    "collapse_min": "3/4",
+    "recover_max": "1/10",
+    "hyst": "1/10",
+    "death_band_min": "9/10"
+  }
+}

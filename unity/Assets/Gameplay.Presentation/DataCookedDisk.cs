@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using DaYiJingCheng.Gameplay.PatientAI;   // PatientAiDataSet(TD-audio-032 ①)
 using DaYiJingCheng.Sim.Contracts;   // ItemDataSet(21a 物品种子表 · 2026-10-27)
 using UnityEngine;
 
@@ -87,6 +88,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>从磁盘读资源点(同上)。</summary>
         public static WorldResourcesDataSet LoadWorldResources()
             => WorldResourcesCookedCodec.Read(ReadAll(WorldResourcesDataSet.CookedFileName));
+
+        /// <summary>从磁盘读 13 调参常量表(`TD-audio-032` ① · 2026-10-29;同上)。
+        /// <para>⚠️ 与 `DiagnosisCookedDisk.LoadAiPatient` **同源同码**(两者都是
+        /// 「EditMode 无 Addressables 时的真产物直读」);分别挂在两个 disk 类是因为
+        /// 调用方各自的命名空间不同,不是两份实现 —— 底层都是 `PatientAiCookedCodec.Read`。</para></summary>
+        public static PatientAiDataSet LoadAiPatient()
+            => PatientAiCookedCodec.Read(ReadAll(PatientAiDataSet.CookedFileName));
 
         /// <summary>
         /// 从磁盘读**一块导航格切片**(`world_nav_{chunk}.cooked.bytes`;story-005)。

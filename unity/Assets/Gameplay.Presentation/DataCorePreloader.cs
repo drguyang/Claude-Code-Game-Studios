@@ -247,6 +247,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29:`PoiGrid` / `ResourceGrid` 的真值来源)。
             AddressablesDataProvider.WorldPoiAddress,
             AddressablesDataProvider.WorldResourcesAddress,
+            // 13 调参常量表(`TD-audio-032` ① · 2026-10-29:`CueIntervals` / `BehaviorBands` 的生产载体)。
+            // ⚠️ 本条是**第五次**同型补登记(BuildModules / DiseaseRegistry / WorldBuildSlots /
+            //    WorldGeometry 之后),前四次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量
+            //    **四处集合相等**,漏一处即红。
+            AddressablesDataProvider.AiPatientAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

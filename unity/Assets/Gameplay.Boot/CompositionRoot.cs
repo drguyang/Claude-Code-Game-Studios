@@ -1227,9 +1227,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                 p => presence.TryGetCell(p, out WorldPos anchor)
                         ? (true, anchor) : (false, default));
 
-            var behaviorDirector = new PatientBehaviorDirector(vitals, BehaviorBands.Default);
+            // ── 13 的两族调参:读烘焙产物,不再用代码常量(`TD-audio-032` ① · 2026-10-29)──
+            // ⚠️ 两条路径读**同一份** baked 字节 + 同一解码器(与诊断表同款,无第二真源):
+            //   · dataProvider != null(生产:BootRoot 经 Addressables)⇒ provider 装载;
+            //   · dataProvider == null(EditMode / 测试:既有 Assemble 调用方不传)
+            //     ⇒ DiagnosisCookedDisk 从 Assets/DataCooked 直读同一产物。
+            // ⚠️ `CueIntervals.Default` / `BehaviorBands.Default` 自此**退为兜底** ——
+            //   只在「该路径不可用」时被运行期类型自身的默认值语义引用,装配层不再取它们。
+            PatientAiDataSet aiPatientTable;
+            if (dataProvider != null)
+                aiPatientTable = dataProvider.Load<PatientAiDataSet>();
+            else
+                aiPatientTable = DiagnosisCookedDisk.LoadAiPatient();
+
+            var behaviorDirector = new PatientBehaviorDirector(vitals, aiPatientTable.BehaviorBands);
             var patientCueDriver = new PatientCueDriver(
                 audioSink, vitals, presence, behaviorDirector,
+                intervals: aiPatientTable.CueIntervals,
                 coughCue: audio != null && audio.TryResolveCue(CoughCueName, out int coughOrdinal)
                     ? coughOrdinal : (int?)null,
                 breathCue: audio != null && audio.TryResolveCue(BreathCueName, out int breathOrdinal)

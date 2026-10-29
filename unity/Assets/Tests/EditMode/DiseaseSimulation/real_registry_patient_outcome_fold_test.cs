@@ -123,7 +123,10 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                     .Add(DiagnosisCookedDisk.LoadReadFloor())
                     .Add(DiagnosisCookedDisk.LoadJudgmentLexicon())
                     // 生态区表(story-003 AC-5 接线后组合根**即时** Load)—— 缺它装配当场抛。
-                    .Add(DataCookedDisk.LoadWorldEcozones()));
+                    .Add(DataCookedDisk.LoadWorldEcozones())
+                    // 13 调参常量表(TD-audio-032 ① 接线后组合根**即时** Load)—— 缺它装配当场抛。
+                    // 本测不读 cue / 行为分档语义,只为装配面完备(盘上真件,零合成)。
+                    .Add(DataCookedDisk.LoadAiPatient()));
 
         private static DiseaseRegistryDataSet Table() => DataCookedDisk.LoadDiseaseRegistry();
 

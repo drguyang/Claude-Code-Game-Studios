@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation.Input;
 using DaYiJingCheng.Gameplay.Presentation.Settings;
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;
@@ -83,6 +84,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>病名册词表 address(sprint-08 S1.1 件 D;S1.0 已烘未接)。</summary>
         public const string JudgmentLexiconAddress = SignsAddr.Lexicon;
+
+        /// <summary>13 调参常量表 address(`TD-audio-032` ① · 2026-10-29)。
+        /// <para>⚠️ 单一出处 = <see cref="PatientAiDataSet.CookedFileName"/>(菜单写盘名与 address 共用同一常量)。</para></summary>
+        public const string AiPatientAddress = PatientAiDataSet.CookedFileName;
 
         /// <summary>音频事件表 address(S14-6;AC-44-D4 —— 表走 ADR-014 烘焙管线,运行期零 JSON 解析器)。
         /// <para>⚠️ 单一出处 = <see cref="AudioEventDataSet.CookedFileName"/>(菜单写盘名与 address 共用同一常量)。</para></summary>
@@ -212,6 +217,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private InteractionKindDataSet? _interactionKinds;
         // 阴性把握度定表(2026-10-20 补接线):struct ⇒ 可空承载。
         private DiagnosisNegativeConfidenceDataSet? _negativeConfidence;
+        // 13 调参常量表(TD-audio-032 ① · 2026-10-29):struct ⇒ 可空承载。
+        private PatientAiDataSet? _aiPatient;
         // 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮接线):均 struct ⇒ 可空承载。
         private PrescriptionActionsDataSet? _prescriptionActions;
         private DiseaseActionAxisDataSet? _diseaseActionAxis;
@@ -271,6 +278,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 EnsureReadFloor();
                 return (TDataSet)(object)_readFloor.Value;
+            }
+            // ── TD-audio-032 ①(2026-10-29):13 调参常量表 ──
+            if (typeof(TDataSet) == typeof(PatientAiDataSet))
+            {
+                EnsureAiPatient();
+                return (TDataSet)(object)_aiPatient.Value;
             }
             // ── S1.1 件 D(2026-10-12):病名册词表经 codec 装载 ──
             if (typeof(TDataSet) == typeof(LexiconDataSet))
@@ -499,6 +512,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldEcozones();
             EnsureWorldPoi();
             EnsureWorldResources();
+            EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
         }
 
         private void EnsureItems()
@@ -561,6 +575,24 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 8 门槛定表 cooked 解码失败(address={ReadFloorTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>13 调参常量表装载(`TD-audio-032` ① · 2026-10-29)。
+        /// <para>与 <see cref="EnsureReadFloor"/> 同款:E-13 硬失败,绝不降级。</para></summary>
+        private void EnsureAiPatient()
+        {
+            if (_aiPatient.HasValue) return;
+            byte[] bytes = FetchBytes(AiPatientAddress);
+            try
+            {
+                _aiPatient = PatientAiCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 13 调参常量表 cooked 解码失败(address={AiPatientAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

@@ -345,7 +345,7 @@
 | `TD-audio-029` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-030` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-031` | `audio-system` | closed | **Y** | R1 |
-| `TD-audio-032` | `audio-system` | partial | **Y** | R1 |
+| `TD-audio-032` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-033` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-034` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-035` | `audio-system` | closed | **Y** | R1 |
@@ -844,10 +844,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 61, 'closed': 67, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
-未闭 P0 面 = 42 （已闭但曾标 P0 面的 59 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 42 条,分布在 10/31 个 epic
-    medical-consequences: 19  audio-system: 7           telemetry-analytics: 5
+条目 133 | 状态 {'open': 61, 'closed': 68, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
+未闭 P0 面 = 41 （已闭但曾标 P0 面的 60 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 41 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 6           telemetry-analytics: 5
     clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
@@ -1397,6 +1397,50 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > `TD-audio-034`① 仍在)**。后续不得据本行 closed 推定 AC-44-03 的 `[L]` 半边已判。 |
 | **TD-audio-031** | **静态装配缝生产赋值后无回收(条件性)+ `BuildAudioSeams` 异常路径泄漏预载资产。** ① `BootRoot.cs:488` 赋 `AudioSettingsRegistry.Provider`、`:542` 赋 `PlayerBusVolumeInitializer.MixerResolver`(两者皆 public static),而 `OnDestroy`(`:725-757`)只 dispose `PatientVisualSpawner` / `EmergencyChannel` / `PatientCueDriver` / `AudioPool` / `clipLibrary` **五件,不置 null 两缝** ⇒ 跨 Play 轮悬垂指向已 `Addressables.Release` 的对象。⚠️ **编排方实测细化(故判条件性,非必现缺陷)**:`EditorSettings.asset:27-28` `m_EnterPlayModeOptionsEnabled: 1` + `m_EnterPlayModeOptions: 0` ⇒ **完整域重载**,静态每 Play 复位 ⇒ 今天靠域重载 + Unity `==null` 重载**巧合**兜底;若该设置被关(域重载关闭是常见加速手段),即刻咬人。对照:测试侧**自己复位**(`runtime_assembly_test.cs:440/:469`)。② `BuildAudioSeams`(`BootRoot.cs:513-559`,**S15-7 复核:方法体 45 行**)在 `clips.Preload()` **成功之后**若 `new AudioBusResolver(mixer)` 抛(缺组)或 `ApplyDefaults` errors 抛 ⇒ 已装载的 ≤15 个 clip **无 `Dispose()`**(N 个 Addressables 句柄悬挂)。 | `review-story-018-*` §三 N-5/N-6;`BootRoot.cs:488/:542/:513-559/:725-757`;`EditorSettings.asset:27-28`;对照 `runtime_assembly_test.cs:440/:469` | **下一次触及 `BootRoot` 生命周期时**(44 收口轮 / ADR-023 场景拆序实现轮皆可,后者本就要审 `OnDestroy` 的对称性):`OnDestroy` 增两行置 null + `BuildAudioSeams` 在两条抛路径前 `clipLibrary.Dispose()`。⚠️ **加固须附反证**(承 Phase 8b:动作 ≠ 已证)——夹具断言「拆 Boot 后 `MixerResolver == null`」,停用那两行 ⇒ 转红。⚠️ **2026-10-18 复核(S15-7):本条两半均未修**(实测 `OnDestroy:725-757` 无置 null;`:526` 与 `:543` 两处抛前均无 `Dispose`),债行引用的行号已就地刷新(原 `:479/:541/:520-546/:709-738` 全部漂移)。<br>**✅ 2026-10-29(两半同批结案 —— 全条 `open` → `closed`)**:**① 静态装配缝回收** —— `OnDestroy` 末尾新增两行置 null:`AudioSettingsRegistry.Provider = null` · `PlayerBusVolumeInitializer.MixerResolver = null`(顺序在 `_audioSeams = null` 之后)。原文「今天靠完整域重载巧合兜底」的口径**不变** —— `EditorSettings.asset` 的 `m_EnterPlayModeOptionsEnabled: 1` + `m_EnterPlayModeOptions: 0` 仍是今日不炸的唯一原因;本轮的修复只是让「关掉域重载」这一条件不再是缺陷。**② 异常路径泄漏** —— `Preload()` 之后的两条抛点(`AudioBusResolver` 缺组 / `ApplyDefaults` errors)统一包进 `BuildBusFaceOrRelease`,catch → `clips.Dispose()`(幂等)→ `throw;`(异常类型与报文原样保留)。**为什么用 try/catch 而不是「先判断再抛」**:两处抛点的判据都由**被调方**给出,在调用方复算 = 第二真源。**新增注入缝 `busResolverFactory`(第 4 参)**:判据是「抛之前已预载的 clip 被 Dispose」,而 EditMode 下**造不出缺组混音器** —— 实测 `AudioMixer` **不是** `ScriptableObject`(`CS0311`,不能 `CreateInstance`)、`AudioMixerController` **不在公共 API**(`CS0246`),而按名删组必须动盘上的**作者态** `.mixer`(不可接受)。⇒ 该 `catch` 只能经缝跑到,与既有 `mixerLoader` / `clipLoader` 同一模式(它们存在的理由原文就写着「EditMode 无从断言 ⇒ 接线退化为不可证伪的口头承诺」)。**同时新增 `clipLoader` / `clipRelease` 两缝** ——生产路径下 `_handles` 恒空、`Dispose` 是空操作,**零判别力**。**判据**:`audio_seam_release_test`(3 测)—— ① 抛路径逐个释放(`Released == Loaded`,不是布尔);② **反向守卫** 成功路径 `Released == 0`(否则「无脑 Dispose」也能让 ① 变绿,而那会把活库销毁);③ `OnDestroy` 方法体内两行置 null(剥注释 + 配平括号取体)。**证伪 4/4 全红 / 4 次 SHA-256 逐字节还原**:M1 删 `Provider = null` · M2 删 `MixerResolver = null` · M3 删 catch 里的 `Dispose` · **M4 无脑 Dispose(`Preload` 后立刻释放)⇒ 转红的恰是 `successPath_doesNotRelease`**,证明反向守卫方向正确。⚠️ **如实登记一处无独立夹具的分支**:A-5 抛路径。`ApplyDefaults` 的 errors 来自 `ValidateDefaults(keys)` —— 校验的是 `FactoryDefaults` 这个**代码常量集**的键,生产路径上**恒不抛**;在混音器上写错参数名触发不了它(`SetFloat` 返回值被忽略,且 EditMode 下 `SetFloat` 对任何名字都返回 false)。它与 ① 共享同一个 `try/catch`(结构上被覆盖),**但没有独立夹具,不假装钉过**。**顺带修**:`BuildAudioSeams` 因新增 try/catch 一度回涨到 48 行(超 `TD-audio-032` ③ 的 40 行界)⇒ 抽出 `BuildBusFaceOrRelease`(21 行),主方法回到 **31 行**;`s15_5_hygiene_test` 的签名表加第 4 条。证据原件 = `production/qa/evidence/impl-td-audio-031-seam-release-2026-10-29.md`。
 | **TD-audio-032** | **44 侧四项低-微卫生问题(合并立案,逐项各有落点)。** ① **调参常量入生产**:`CueIntervals.Default` / `BehaviorBands.Default` 以代码常量进生产(`CompositionRoot.cs` 构造 `PatientCueDriver` 时 `intervals: null` ⇒ 落 `Default`),未走 ADR-014 cooked 数据表 ⇒ 与 `.claude/docs/coding-standards.md`「gameplay 值不硬编码 / data-driven」相抵(可辩护面 = P0 无表行,`ai_patient.json` 不存在,见 `impl-s18-*` §七 行 5)。② **`(int)tick` 截断**:`PatientCueDriver.cs:132/:143/:165` 把 long `tick`(ADR-005 抽象点)截成 int 做簿记 ⇒ > 2³¹ tick(≈3.8 年@20 Hz)后 entry/lastEmit 回绕;同函数签名收 long、簿记用 int = 口径不一。③ **方法超 40 行且无夹具钉界**:`OnTickEdge` ≈57 行(`:109-168`)· `BuildAudioSeams` ≈47 行(`:504-550`)。④ **簿记清扫面不完整 + 每边沿分配**:`PruneAbsent`(`:174-176`)只跟 `_breathHandles` 的键清三本簿记 ⇒ 无呼吸句柄但发过咳的病人其 `_entryTick` / `_lastEmitTick` 行永不清(会话内单调增长,界内缓慢);另每 tick 边沿 `new List<int>`(GC 微噪声);⚠️ **同族第三处(编排方对码复核补)**:`PresenceRegistry.cs:52-57`
+<br>**✅ 2026-10-29(① 结案 —— 全条 `partial` → `closed`;②③④ 已于 S15-5 结)**:13 的两族调参常量
+**搬进烘焙管线**(`CueIntervals.Default` / `BehaviorBands.Default` 自此退为兜底,装配层不再取)。
+
+**账面第 8 例滞后**(逐项实测,②③④ **原文所述缺陷早已消失**):
+
+| # | 债行断言 | 实测 | 判 |
+|---|---|---|---|
+| ① | 调参常量以代码常量进生产 | `intervals` 是可空参数、生产不传 ⇒ 落 `Default`;`CompositionRoot:1230` 直取 `BehaviorBands.Default` | ✅ **本轮修** |
+| ② | `(int)tick` 截断 | 字典是 `long`,注释自带「S15-5 · TD-audio-032 ②」 | ❌ 账面滞后 |
+| ③ | `OnTickEdge` ≈57 行 · `BuildAudioSeams` ≈47 行 | 实测 **28** 行 / **31** 行,均在 40 界内 | ❌ 账面滞后 |
+| ④ | `PruneAbsent` 只跟呼吸句柄 · 每 tick 分配 | 扫**五表并集** + 在场集白名单;快照成员变动时才重建 | ❌ 账面滞后 |
+
+**实现**:`assets/data/ai_patient.json`(两节:`cue_intervals` 3 个 int / `behavior_bands` 6 个定点串)
+→ `PatientAiBinder`(白名单 + `FixParse` + **复用运行期 `Validate`**,不重写约束表)
+→ `PatientAiCookedWriter`(20 头 + 36 载荷)→ `PatientAiCookedCodec`(E-13 硬失败)
+→ `PatientAiBaker` + 菜单 → `CompositionRoot` 读表(provider / 直读双路径)。
+
+⚠️ **`behavior_bands` 走定点串而非 float,是 GDD 的要求不是我的选择** ——
+`patient-ai.md` 规则五逐字:「`ai_patient.json` 里**禁 `float` 字段**,非空间量写 `int` 或定点串」。
+⇒ 六个阈值经 `FixParse` → Q16.16 **必然量化**(离线复算:`1/10 × 65536 = 6553.6` ⇒ 进位 ⇒
+`0.100006104`;`3/4` 则精确)。**这是定点域的本质,不是缺陷**;但断言必须写对
+(首版我按截断写 ⇒ `recover_max` / `hyst` 两条实跑红)。
+
+**证伪 12/12 全红**(每条打一条判据)· 还原后三文件 SHA-256 逐字节 = 变异前。
+⚠️ **首轮 2/2 假存活(M3/M8),两条都是「靶场里没有靶」**:
+- M3(Fix 字段不要求字符串):夹具原用**字符串** `"0.20"`(走 `FixParse` 拒浮点那条),
+  变异打的是**类型检查** ⇒ 删掉后字符串路径仍报错。补 `test_jsonNumberInFixField`(JSON **数字**)。
+- M8(载荷长度不校验):读方有**两条长度判据**,头声明 36 时**完全等价**;
+  截断夹具被头校验先吃掉。补 `test_cookedSelfConsistentButWrongLength`(头声明 40、实得 40)。
+
+**⚠️ 首跑全量 26 红 —— 新产物未登记的**六处**连锁(A–F),不是一处**:
+`DataCoreAddresses` 缺地址 · `Preload()` 缺 `EnsureAiPatient()` · `BakedArtifacts` 缺条目 +
+`pinnedDeclared` 35→36 · `data-core.asset` 组缺条目 · **5 个测试文件的 `MultiTableProvider`
+替身没准备该表**(20 条)`InvalidOperationException` · **catalog 未重建**(组 36 ≠ catalog 35)。
+⇒ **A–D 是「五处集合相等」纪律的第五次同型事故**(前四:BuildModules / DiseaseRegistry /
+WorldBuildSlots / WorldGeometry)—— 逐处注释都写着「前几次的教训逐字适用」,**我还是四处一起漏**。
+**E 是新形态**:`Assemble` 每多读一张表,所有注入假 provider 的测试都要同步 —— 装配面对测试替身的耦合。
+
+**回归**:EditMode `5915 / 5878 / 0 / 0 / 37`(exit 0)· PlayMode `238 / 234 / 0 / 2 / 2`
+(与基线逐位相同)· 全量 · `54e94578` + 工作树。等式 `5895 + 19(新夹具)+ 1(漂移门参数化展开)= 5915`。
+证据原件 = `production/qa/evidence/impl-td-audio-032-1-patient-ai-table-2026-10-29.md`。
+
+⚠️ **本债结案 ≠ 「13 的数值已定稿」**:六个阈值 = 现有常量的**照抄**,只搬存放位置;
+真值归用户数值轮。**量化差(≤ 9e-6)对 13 行为的影响 NOT-RUN**(属数值轮)。
 <br>**✅ 2026-10-18 部分结案(S15-5)—— ②③④⑤ 结,① 仍 open(归 13 数据轮,触发条件不变)**:② `PatientCueSchedule.Decide` 的三个 tick 形参 + `PatientCueDriver` 两本簿记改 `long`,夹具 `test_td032_2_driver_keepsTickPastIntMax` 跨 2^31 边界连跑(反证:调用处 `(int)tick` ⇒ 红)。③ `OnTickEdge` 拆成 `StepOnePatient` / `DecideFor` / `EmitOneShotIfDue`(`PruneAbsent` 拆成 `PruneIfAbsent` / `PruneOneAbsent`),`test_td032_3_splitMethods_withinLineBudget` 按**源码物理行**钉 ≤40,并带**计数器自校准**(把 60 行体喂进去必须判超界);反证 = 给 `OnTickEdge` 垫 40 行 ⇒ 红。④ `PresenceRegistry.PresentPatientIds()` 改为**成员变动才重建**的快照(反证:每次 `ToArray` ⇒ 红);`PruneAbsent` 清扫面改为**五本表并集 + 在场集白名单**,并新增可观测面 `TrackedPatientCount`(反证:只清呼吸句柄 ⇒ 红)。⑤ `runtime_assembly_test` 的 bus 列对拍补 `RowCount > 0` 前置。⚠️ **⑤ 的判别力如实登记**:该夹具的 `AudioClipLibrary` 构造**本身**已对零行表 fail-loud ⇒ 守卫删掉后夹具**仍红**(空表注入反证:删守卫 ⇒ `test_ac018_2_busName_*` 红)—— 即守卫今天是**防御纵深**,不是唯一判别面。<br>**⚠️ 2026-10-18 刷账(S15-7)—— 两处口径订正**:① **③ 的行号已漂移** —— `BuildAudioSeams` 现行 = `BootRoot.cs:513-559`(方法体 `{`(:515) → `}`(:559)= **45 行**,仍 >40 ⇒ **③ 的该半边仍 open**,本结案注此前未刷行号);② **④ 的「每拍零分配」只兑现了一半** —— 数组分配确实省了,但 `PruneAbsent` 每拍仍 `_presentScratch.Clear()` 后全量 `foreach` 拷贝一遍在集(**O(N) 拷贝仍在**,只是不再 GC)。本行判据(② long / ③ 拆分+夹具 / ④ 快照 / ⑤ 守卫)成立,该两处**只订正措辞,不改判定**。原件 = `production/qa/evidence/impl-s15-5-audio-hygiene-2026-10-18.md`。<br>**✅ 2026-10-29(③ 的 `BuildAudioSeams` 半边结案 —— 全条转 `partial`,① 仍 open)**:S15-7 刷账记着「`BuildAudioSeams` 45 行仍 >40 ⇒ ③ 的该半边仍 open」。本轮补掉那一半:`BuildAudioSeams` **45 → 30 行**,原 `③` 混音器解析段与 `⑤` 玩家总线音量段抽成 `ResolveMixerOrFail` / `ApplyPlayerBusDefaultsOrFail`(各 13 行,**原文案与抛点一字未改**)。夹具 `s15_5_hygiene_test::test_td032_3_buildAudioSeams_withinLineBudget` 按**源码物理行**钉三条签名,与既有的 `test_td032_3_splitMethods_withinLineBudget`(钉 `PatientCueDriver`)分开 —— 合成一条会让「哪一半红了」不可分辨。**证伪 3/3 全红 / 3 次 SHA-256 逐字节还原**:M1 主方法垫到 45 · M2 `ResolveMixerOrFail` 垫到 43 · M3 `ApplyPlayerBusDefaultsOrFail` 垫到 43。⚠️ **同轮踩坑如实登记(第一次证伪 2/2 假存活)**:v1 变异只垫 8 行 ⇒ 30→38,仍 ≤40 ⇒ **绿是正确行为**,是**变异太弱**而非夹具失明;而我当时的离线复算脚本 `StripComments` 漏了一步 `i+=1`,把注释行的换行重复计入、算成 37 行,于是**先怀疑 `CallerFilePath` 读错文件,方向错了**。诊断轮(阈值临时改 1 逼出真实值 = 30)才定案。**判据记入纪律**:证伪假存活的第一排查顺序是「变异是否越过阈值」,不是「夹具是否失明」。证据原件 = `production/qa/evidence/impl-td-audio-032-3-linebudget-2026-10-29.md`。
 `PresentPatientIds() => _present.ToArray()` ⇒ **每调用一次复制一个数组**(tick 泵每拍调它)。
 ⚠️ B 侧草稿原判「`PresentPatientIds()` 复用登记簿数组、未见新数组分配」(`C-5.3`)**有误**,本行为更正后的口径。

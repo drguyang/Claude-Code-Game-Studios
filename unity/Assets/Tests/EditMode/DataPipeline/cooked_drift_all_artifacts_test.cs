@@ -73,6 +73,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using DaYiJingCheng.EditorTools.Bake;
+using DaYiJingCheng.Gameplay.PatientAI;   // PatientAiDataSet.CookedFileName
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.DataPipeline
@@ -280,6 +281,11 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => WorldNavChunkBake.BakeFromRepo(root, 2).Cooked),
             new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[3],
                 root => WorldNavChunkBake.BakeFromRepo(root, 3).Cooked),
+            // 2026-10-29(`TD-audio-032` ①):13 调参常量表。
+            //    ⚠️ 本门**第八次**遇到「新增产物」这一步 —— 前七次的教训逐字适用:
+            //    落盘后首跑全量必红两条(`noGhostArtifact` 点名 + `declared ≠ pinned`)。
+            new ArtifactBake(PatientAiDataSet.CookedFileName,
+                root => PatientAiBaker.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -426,7 +432,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-29(关卡工具 story-003):28 → 29(+world_ecozones,生态区多边形)。
             // 2026-10-29(关卡工具 story-004):29 → 31(+world_poi / world_resources,POI 定义 / 资源点)。
             // 🔁 2026-10-29(story-005):31 → 35(导航格 4 片;世界几何是**重烘**不是新增)。
-            const int pinnedDeclared = 35; // 2026-10-29 实测(35 份)
+            const int pinnedDeclared = 36; // 2026-10-29 实测(36 份;+1 = ai_patient,TD-audio-032 ①)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -141,6 +141,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af21101e7b21a28ddb761db52b77b4cb
+    m_Address: ai_patient.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b6ba4a04f5b21f0c4ab9599a427a49a0
     m_Address: diagnosis_negative_confidence.cooked.bytes
     m_ReadOnly: 0

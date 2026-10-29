@@ -15,6 +15,7 @@
 using System;
 using System.IO;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
+using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using UnityEngine;
 
@@ -87,6 +88,28 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 throw new InvalidOperationException(
                     $"[E-13][disk] {LexiconAssetName} 解码失败(兜底装载路径)—— 启动/装配期硬失败:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>13 调参常量表产物名(`TD-audio-032` ① · 2026-10-29;与 provider 同值)。</summary>
+        private const string AiPatientAssetName = "ai_patient.cooked.bytes";
+
+        /// <summary>读 13 调参常量表(硬失败同上)。
+        /// <para>🔁 2026-10-29(`TD-audio-032` ①):13 的两族调参此前是**代码常量**
+        /// (<c>CueIntervals.Default</c> / <c>BehaviorBands.Default</c>),与
+        /// <c>coding-standards.md</c>「gameplay 值不硬编码」相抵。现改读烘焙产物。</para></summary>
+        public static PatientAiDataSet LoadAiPatient()
+        {
+            byte[] bytes = ReadAll(AiPatientAssetName);
+            try
+            {
+                return PatientAiCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][disk] {AiPatientAssetName} 解码失败(兜底装载路径)—— 启动/装配期硬失败:{ex.Message}",
                     ex);
             }
         }
