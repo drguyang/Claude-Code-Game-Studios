@@ -183,6 +183,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dcc974f0d54731c29b3ac24624f6dbad
+    m_Address: 53_cost_table.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: df8e792c5451e6266ae5961f11991b77
     m_Address: clinicmachine_room.cooked.bytes
     m_ReadOnly: 0

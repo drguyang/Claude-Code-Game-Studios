@@ -177,6 +177,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             new ArtifactBake(DataBakeMenu.DelayTableCookedAssetName,
                 root => DelayTable53Bake.BakeFromRepo(root).Cooked),
 
+            // ── 53 用药代价表(1 份;ADR-035 T1·S9,2026-10-30)──
+            //    ⚠️ 产物今日**无运行期读者**(`CostTable53` 的装配点归 T2)——
+            //    登记它的理由不是「有人在读」,而是「构建前门 `CostTableGate` 跑的正是同一次烘焙」,
+            //    产物落盘后本门才能逐字节钉住「门验的表 == 出货的表」。
+            new ArtifactBake(DataBakeMenu.CostTableCookedAssetName,
+                root => CostTable53Bake.BakeFromRepo(root).Cooked),
+
             // ── 48 教学内容(1 份;S17-3 story-001 AC-5 接线,2026-10-21)──
             new ArtifactBake(DataBakeMenu.TutorialContentCookedAssetName,
                 root => TutorialContentBake.BakeFromRepo(root).Cooked),
@@ -432,7 +439,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-29(关卡工具 story-003):28 → 29(+world_ecozones,生态区多边形)。
             // 2026-10-29(关卡工具 story-004):29 → 31(+world_poi / world_resources,POI 定义 / 资源点)。
             // 🔁 2026-10-29(story-005):31 → 35(导航格 4 片;世界几何是**重烘**不是新增)。
-            const int pinnedDeclared = 36; // 2026-10-29 实测(36 份;+1 = ai_patient,TD-audio-032 ①)
+            // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
+            const int pinnedDeclared = 37; // 2026-10-30 实测(37 份;+1 = 53_cost_table)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

@@ -13025,3 +13025,25 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   **未重跑全量**,差异仅为注释与文档(如实登记,不拿上次的全量数当本轮)。
 - **仍未**:`V-5 / V-6 / V-7` 未跑(载体 S9 未落);S7 未开工;`TD-sim-03` 未动。
 - 原件 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md`。
+
+## Session Extract — ADR-035 T1·S9 构建路径(2026-10-30)
+
+- **交付**:`CostTableCookedWriter`(编码)· `CostTable53Bake`(装载 + **外键字符串 → 注册表整数 id** 解析 +
+  两源 ConfigVersion)· `CostTableGate`(`IPreprocessBuildWithReport`)· `Cli/CostTableProbeBuildCli`
+  (探针轮用最小 player 构建入口)· `DataBakeMenu.BakeCostTable` · `cost_table_bake_test`(**10 条**)。
+- **四点实现期判断**:① 门住 `Editor.Tools.Bake` 不住 `Gates` —— `Bake → Gates` 边**已存在**,反向 = 循环引用;
+  ② cooked 存**整数** `injury_id`(运行期 `CostTableRow.InjuryId` 是 int + ADR-014「玩家构建零解析器」);
+  ③ `ConfigVersion` **两源一起**派生(否则改注册表不改版本号);④ 空表合法(`row_count = 0`)。
+- **探针轮五次构建**:基线 `Success` → 门内无条件失败项 `Failure`(探针串 + 栈帧 + `utp` 止于 Preprocess Player)
+  → **V-5** 致死行 `Failure`(报文点名 `rows[0] … INJ_HEMORRHAGE` + `N-1`)→ **V-6** `Failure`
+  → **V-7** `Failure` → **还原后 `Success`**。四处还原 SHA-256 逐字节一致。
+- **三连红(全部是「加一份产物」的真实成本,不是误报)**:③ 产物名哨兵 36→37 + 落盘 →
+  ④ data-core 组 36≠37(跑「确保 data-core 组」)→ ⑤ catalog 36≠37(跑「构建 Addressables 内容」)。
+  **改动 = 产物清单 + Addressables 组 + catalog 三处登记 + 一次重烘 + 一次 catalog 重建。**
+- **回归**:EditMode **6029/5992/0/37** · PlayMode **238/234/0/2/2**(@ 2026-10-30 07:27 CST · `37f9f154`+工作树)。
+  等式 `6029 − 6018 = 11` = 新夹具 10 + `BakedArtifacts` 参数化用例 1。
+- **ADR-035**:S9 行 ✅;V-5 / V-6 / V-7 已证 ⇒ **V-1…V-10 全部已证**;§Status 写明
+  「已证只到形状/门/文本一层,T2/T3 仍被 `TD-prescription-09` / `TD-sim-03` / `TD-sim-02` 卡住」。
+- **仍未**:S7(**证伪轮**)/ S8 未开工;`CostTable53` 仍**零运行期读方**(归 T2);
+  **CI 不产出 player** ⇒ 构建门今日只在本机构建生效。
+- 原件 `production/qa/evidence/t1-s9-build-path-2026-10-30.md`。

@@ -8,10 +8,11 @@
 ⚠️ **2026-10-29 例外(唯一):S1 的普查已跑**(只读,未落任何盘)—— 见 §Risks R2 / R5。
 🔁 **2026-10-29/30 状态推进(如实登记,覆盖上句的「未落盘」)**:T1 的 **S1 普查**(只读)· **S2 空表**
 (`53_cost_table.json`)· **S3 绑定器 + 19 条夹具**(19/19 绿,证伪 3 组 6 变异)· **S4 只读视图 + 13 条夹具**
-(13/13 绿,证伪 4 变异)· **S5 新 Kind 全链**(38 支 / 16·5·17,证伪 5 变异)· **S6 两处文本订正**均已落;
-**S9(构建路径)已于 2026-10-30 由用户裁定追加并登记,未落**。
-⇒ 本件**已部分实现**;**S7 未开工**;**V-5 / V-6 / V-7 仍未跑**(执行载体 = S9,今日不存在可执行到它们的构建路径);
-**V-1…V-4 / V-8 已证 · V-9 / V-10 已证**。
+(13/13 绿,证伪 4 变异)· **S5 新 Kind 全链**(38 支 / 16·5·17,证伪 5 变异)· **S6 两处文本订正** ·
+**S9 构建路径**(烘焙链 + 构建前门 + 探针轮五次构建)均已落。
+⇒ 本件**已部分实现**;**S7 未开工**;**V-1…V-10 全部已证**。
+⚠️ 「全部已证」只到**形状 / 门 / 文本**这一层 —— **T2(禁忌支真跑)/ T3(过量支真跑)仍被上游债卡住**
+(`TD-prescription-09` / `TD-sim-03` / `TD-sim-02`),`TD-medcons-15` 的实现半边仍 `open`。
 Accepted 表示「方向已裁」,不表示任何判据已通过。
 
 > ⚠️ **本件不解除 `TD-medcons-15` 的「真跑」阻塞。** 见 §Risks R1:禁忌支的材料(11 的载荷缺「命中禁忌」)
@@ -383,6 +384,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 ## Migration Plan
 
 **全部未落盘。** 实现轮的最小切片(顺序不可换)。
+🔁 **2026-10-30**:上句已不成立 —— **S1–S6 + S9 已落**,仅 **S7 / S8 未开工**(逐行看右列)。原文保留。
 
 **分档(2026-10-29 收窄,判据见 §Risks R1)**:<br>
 **T1 = S1–S7 + S9**(形状件 —— **零上游债、零数值**;S1 的普查是 N-4 必要性的前置,不是材料依赖。
@@ -400,7 +402,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 | S6 | 改 §Decision ⑤ 的两处文本 | ✅ **2026-10-30 已落** —— 两处:① `ConsequenceEmitter.cs:93` 的类 remarks(把「一个类的写入范围」与「53 的系统写者面」拆开,并把 ADR-035 §Decision ⑤ 补进文件头权威来源);② `story-003` 的 Control Manifest **Forbidden** 行(由系统级禁令收窄为「本 story 范围内」+ 日期注)。**V-8 已证**:两文件 grep 各 **0 命中**(原句只留在本件 C-2 行作历史记录)。⚠️ 本处只改文本,**不新增任何断言** —— 「卡面不再自相矛盾」是人工判读,不是机械门。原件 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md` |
 | S7 | **证伪轮** | M1 注入 `lethal=true` 行 ⇒ binder throw;M2 `injury_id` 指向致死行 ⇒ throw;M3 新 Kind 插中间 ⇒ 旧存档解码错(可做静态论证 + 一条夹具);**SHA-256 逐字节还原** |
 | S8 | `AC-5` 表级半边改判 | **仅在 S3 + S7 落盘后**才可把 PARTIAL 收窄;S5 前翻 = 门无宾语 |
-| S9 | **构建路径** —— 让 `CostTableBinder` 有一条**会被构建真的执行到**的链:<br>① `CostTable53Bake`(compute)+ `CostTableCookedWriter`(encode,承 ADR-014 §二 同源两次烘焙逐位一致)+ `DataBakeMenu` 入口(承 `DelayTableCookedWriter` / `BakeDelayTable` 先例);<br>② `AssemblyGates` 新增 `CostTableGate`(**构建前门**,`IPreprocessBuildWithReport`),对 repo 的 `53_cost_table.json` + `9` 的注册表跑 binder,`errs` 非空 ⇒ `BuildFailedException` | **探针轮三件套**(承 `CLAUDE.md` §构建前门):<br>① 注入 `lethal=true` 行 ⇒ **构建 `Result: Failure`**(不是「绑定器抛异常」);<br>② 报文**点名该行**(行号 / `injury_id`);<br>③ 栈帧给出该门的 `OnPreprocessBuild`;<br>还原判据 = SHA-256 逐字节 + 还原后同路径**绿**(两侧都要,禁只断「会红」)。<br>⚠️ **S9 未落时 V-5 / V-6 / V-7 只能记「绑定器层拒收」,不得记「构建 Failure」** —— 这正是 S3 / S4 证据件里登记的现状。<br>⚠️ **顺序**:S9 须在 **S7 之前** —— 证伪轮的靶场要含「构建门」这一面,否则那条变异无处可打 |
+| S9 | **构建路径** —— 让 `CostTableBinder` 有一条**会被构建真的执行到**的链:<br>① `CostTable53Bake`(compute)+ `CostTableCookedWriter`(encode,承 ADR-014 §二 同源两次烘焙逐位一致)+ `DataBakeMenu` 入口(承 `DelayTableCookedWriter` / `BakeDelayTable` 先例);<br>② `AssemblyGates` 新增 `CostTableGate`(**构建前门**,`IPreprocessBuildWithReport`),对 repo 的 `53_cost_table.json` + `9` 的注册表跑 binder,`errs` 非空 ⇒ `BuildFailedException` | **探针轮三件套**(承 `CLAUDE.md` §构建前门):<br>① 注入 `lethal=true` 行 ⇒ **构建 `Result: Failure`**(不是「绑定器抛异常」);<br>② 报文**点名该行**(行号 / `injury_id`);<br>③ 栈帧给出该门的 `OnPreprocessBuild`;<br>还原判据 = SHA-256 逐字节 + 还原后同路径**绿**(两侧都要,禁只断「会红」)。<br>⚠️ **S9 未落时 V-5 / V-6 / V-7 只能记「绑定器层拒收」,不得记「构建 Failure」** —— 这正是 S3 / S4 证据件里登记的现状。<br>⚠️ **顺序**:S9 须在 **S7 之前** —— 证伪轮的靶场要含「构建门」这一面,否则那条变异无处可打。<br>🔁 **2026-10-30 实现期订正(原文不删)**:上句「② `AssemblyGates` 新增 `CostTableGate`」**不可照字面实现** —— 程序集边 `Editor.Tools.Bake → Editor.Tools.Gates` **已存在**(Bake 的 asmdef 引用了它),反向再引 = **循环引用**,Unity 直接拒绝编译;而门必须调用 `CostTableBinder`(住 Bake)。⇒ 实际落点 = `Editor.Tools.Bake/CostTableGate.cs`,**自带** `IPreprocessBuildWithReport`(Unity 按反射发现,与 `AssemblyGates.BuildGate` 并列),**不经** `AssemblyGates.RunAll()`。代价:门的清单位于两处,已在该文件头注明。**同轮另发现**:全仓**零** `BuildPipeline.BuildPlayer` 调用(CI 只跑测试)⇒ `IPreprocessBuildWithReport` 此前**没有任何执行者**;故 S9 同批新增探针轮载体 `Cli/CostTableProbeBuildCli.cs`(产物落系统临时目录 —— 首版放 `Library/` 被 Unity 直接拒,实测)。<br>✅ **2026-10-30 已落** —— 交付 `CostTableCookedWriter` / `CostTable53Bake` / `CostTableGate` / `CostTableProbeBuildCli` / `DataBakeMenu.BakeCostTable` + **10 条夹具**;**探针轮五次构建**:基线 `Success` → 门内无条件失败项 `Failure`(探针串 + 栈帧 + `utp` 止于 `Preprocess Player` 三件套齐)→ **V-5** 致死行 `Failure`(报文点名 `rows[0] … INJ-HEMORRHAGE` + `N-1`)→ **V-6** `Failure` → **V-7** `Failure` → **还原后 `Success`**;还原 SHA-256 逐字节一致。⚠️ **CI 不产出 player**,故本门今日只在**本机构建**生效。原件 `production/qa/evidence/t1-s9-build-path-2026-10-30.md` |
 
 **必须等数值轮**:行键集合 · 档数 · `max_severity_band` · 实际选用的 `injury_id` · 是否复用 `DelayTable` 的延迟
 (**⚠️ 若代价走 `ConsequenceResolved` 的延迟路径,须同时给 `CostInjury` 加一行 `delay_ticks`,
@@ -408,16 +410,18 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 
 ## Validation Criteria
 
-> ⚠️ **V-1…V-9 全部未跑。Accepted 表示方向已裁,不表示任何判据已通过。禁借绿。**
+> ⚠️ ~~**V-1…V-9 全部未跑。Accepted 表示方向已裁,不表示任何判据已通过。禁借绿。**~~
+> 🔁 **2026-10-30:V-1…V-10 全部已证**(原文保留)。⚠️ 但「已证」只覆盖**形状 / 门 / 文本** ——
+> **T2 / T3 的「真跑」仍被 `TD-prescription-09` / `TD-sim-03` / `TD-sim-02` 卡住**,
+> 不得把 V 全绿读成「药害机制已可用」。
 
 - [x] **V-1**(**2026-10-30 已证 · S5**)registry 条目三字段齐(`stream: history` / `author` / `payload_schema`),A1–A5 全绿 —— `python3 tools/kindgen/kindgen.py --check` ⇒ 「A1–A5 全过 · 42 个载荷 struct / 170 个字段类型受判(非空跑)」
 - [x] **V-2**(**2026-10-30 已证 · S5**)38 支 / 分布 **16 · 5 · 17**,registry 与生成物两侧逐项相同(`grep -c "^  - name: SimEvent.Kind\." design/registry/entities.yaml` ⇒ 38;`for s in History Case World; do grep -c "=> StreamId.$s," unity/Assets/Sim/StreamRouting.g.cs; done` ⇒ 16 / 5 / 17)
 - [x] **V-3**(**2026-10-30 已证 · S5**)`SimEventCodec.cs` 闭集数串 = 38,与新总数一致
 - [x] **V-4**(**2026-10-30 已证 · S5**)新成员位于追加区末尾 ⇒ **旧成员值零位移**;判据 = 黄金字节夹具 `test_simCodec_simEventHeader_matchesGoldenBytes` 绿,**且证伪轮 M4**(把成员插到 `InjuryOnset` 之后)令其**转红** —— 两侧都有,不是只断「绿」
-- [ ] **V-5** N-1 变异(注入 `lethal=true` 行)⇒ 构建 Failure 且报文点名该行
-      ⚠️ **执行载体 = S9**(2026-10-30 用户裁定「加 S9」)。S9 未落 ⇒ 本条**只能记「绑定器层拒收」**,不得记「构建 Failure」—— 今日 `53_cost_table.json` 零读方、无 CookedWriter、无 `DataBakeMenu` 入口,**不存在可执行到该判据的构建路径**
-- [ ] **V-6** `rows` 非空而 `harm_kind_enabled` 为空 ⇒ 构建拒收 — 载体同 V-5(S9)
-- [ ] **V-7** `harm_kind_enabled` 含 `overdose` ⇒ 构建拒收(过量支挂起) — 载体同 V-5(S9)
+- [x] **V-5**(**2026-10-30 已证 · S9**)N-1 变异(注入 `lethal=true` 行)⇒ 构建 Failure 且报文点名该行 —— 实跑 `Build Finished, Result: Failure.`,报文 `53_cost_table.json:rows[0] injury_id「INJ_HEMORRHAGE」的 lethal = true —— **N-1**`,栈帧 `CostTableGate/PreprocessBuild:OnPreprocessBuild`,`utp` 停在 `Preprocess Player`;还原后同路径 `Result: Success`
+- [x] **V-6**(**2026-10-30 已证 · S9**)`rows` 非空而 `harm_kind_enabled` 为空 ⇒ 构建 Failure,报文点名 R4 /「静默跳过」
+- [x] **V-7**(**2026-10-30 已证 · S9**)`harm_kind_enabled` 含 `overdose` ⇒ 构建 Failure,报文点名 `TD-sim-02`
 - [x] **V-8**(**2026-10-30 已证 · S6**)§Decision ⑤ 两处文本已改,`grep` 不再出现「只写 `ConsequenceResolved`(世界流;53 不写病史流」的原句 ——<br>
       判据(两文件各 0 命中):`grep -c '只写 \`ConsequenceResolved\`(世界流;53 不写病史流' unity/Assets/Sim/Consequences/ConsequenceEmitter.cs production/epics/medical-consequences/story-003-delayed-emit-and-world-stream.md`<br>
       ⚠️ 该串仍**留在本件 §Problem Statement 的 C-2 行** —— 那是「原冲突长什么样」的历史记录,**不属于「两处文本」**;按「原文不删」纪律刻意保留

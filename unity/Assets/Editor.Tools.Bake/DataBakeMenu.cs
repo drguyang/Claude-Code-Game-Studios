@@ -75,6 +75,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(53 延迟表;F-53.2 / story-003 的烘焙产物)。</summary>
         public const string DelayTableCookedAssetName = "53_delay_table.cooked.bytes";
 
+        /// <summary>产物文件名(53 用药代价表;ADR-035 T1·S9 的烘焙产物)。
+        /// <para>⚠️ 今日**无运行期读者**(`CostTable53` 的装配点归 ADR-035 T2)——
+        /// 本菜单的职责只是把「校验 → 产物」这条链建起来,使构建门前有东西可跑。</para></summary>
+        public const string CostTableCookedAssetName = "53_cost_table.cooked.bytes";
+
         /// <summary>产物文件名(48 教学内容;S17-3 story-001 / AC-5 的烘焙产物)。
         /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.TutorialContentAddress</c> /
         /// <c>TutorialContentTable.CookedFileName</c> 同值(边界程序集不引用本编辑期装配,
@@ -542,6 +547,44 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"{result.Bound.Rows.Count} 行(定义域 = 回响轴三值), " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 53 用药代价表(ADR-035 T1·S9):仓 <c>assets/data/53_cost_table.json</c> +
+        /// <c>assets/data/disease_registry.json</c> → 校验(**聚合 throw**:N-1 / N-3 / N-4′ canary /
+        /// 单射 / 未知字段 / `rows`↔`harm_kind_enabled` 一致性)→ 外键解析 → 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="CostTableBinder"/> 的**唯一写盘链路**
+        /// (菜单 → <c>CostTable53Bake.BakeFromRepo</c> → Bind → <c>CostTableCookedWriter.Write</c>)。
+        /// 绕过它 = binder 永不执行 = 六项校验形同虚设(与 BakeDelayTable 同型先例)。</para>
+        /// <para>⚠️ **本菜单不是构建门** —— 构建期强制点是 <see cref="CostTableGate"/>
+        /// (它在每次构建前跑同一套校验,失败即中止构建)。本菜单只负责**产出**。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 53_cost_table(53 用药代价表)")]
+        public static void BakeCostTable()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                CostTable53Bake.BakeOutput result = CostTable53Bake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, CostTableCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{CostTableCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Rows.Count} 行, ConfigVersion = 0x{result.ConfigVersion:X8}");
+                foreach (string w in result.Bound.Warnings)
+                    Debug.LogWarning("[大医精诚] 烘焙告警:" + w);
             }
             catch (BakeValidationException ex)
             {
