@@ -365,7 +365,7 @@
 | `TD-audio-107` | `audio-system` | open | **N** | R4 |
 | `TD-audio-108` | `audio-system` | open | **N** | R4 |
 | `TD-audio-109` | `audio-system` | closed | **Y** | R1 |
-| `TD-listen-01` | `audio-system` | open | **Y** | R1 |
+| `TD-listen-01` | `audio-system` | closed | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
 | `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
 | `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
@@ -844,13 +844,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 57, 'closed': 72, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 99, 'N': 33, '~~**Y**~~': 1}
-未闭 P0 面 = 35 （已闭但曾标 P0 面的 64 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 35 条,分布在 10/31 个 epic
+条目 133 | 状态 {'open': 56, 'closed': 73, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 99, 'N': 33, '~~**Y**~~': 1}
+未闭 P0 面 = 34 （已闭但曾标 P0 面的 65 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 34 条,分布在 9/31 个 epic
     medical-consequences: 19  telemetry-analytics: 5    clinic-machine: 4
-    audio-system: 1           disease-simulation: 1     enemy-ai: 1
-    item-database: 1          patient-ai: 1             processing: 1
-    skeuomorphic-ui: 1
+    disease-simulation: 1     enemy-ai: 1               item-database: 1
+    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -2410,6 +2409,26 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 - `AC-019-6`(10-c)卡面判据保留在
   `production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md` §面 10-c 节首声明之后。
   **依赖 L-1(判据 ② 两极中的「停止」极)与 L-3(判据 ① 的「急促」段时长)** —— 这两项不清则不可执行。
+
+#### ✅ 2026-10-29 结案(用户裁定「关掉 TD-listen-01」)
+
+**本债的使命是「前置」,前置已全部满足;四份协议也各有归宿 ⇒ 不再作为阻断项存在。**
+
+| 协议 | 覆盖判据 | 归宿 |
+|---|---|---|
+| ② `main-channel-listen-evidence.md` | `AC-44-17` | **已执行**(2 人 · 6 题精简版)并回填 ⇒ `TD-audio-103` closed |
+| ③ `voice-variant-listen-evidence-2026-10-20.md` | `AC-44-03 / 04` | **已执行**并回填 ⇒ `TD-audio-102` closed |
+| ① `breath-layers-listen-evidence.md` | `AC-44-02 / 08` | **转 P2**(用户裁定)⇒ `TD-audio-101` P0 面 `Y→N` |
+| ④ `s19-breath-transition-listening-2026-10-18.md` | `AC-44-10` | **转 P2**(用户裁定)⇒ `TD-audio-100` P0 面 `Y→N` |
+
+**五个阻断项全部已清**(2026-10-29):L-1 离场路径 · L-2 听诊档位回写 · L-3 病程时长 ·
+L-4 同屏时序 · L-6 listener 挂点。
+
+⚠️ **本结案不主张任何判据通过** —— 它只关闭「执行前置未满足」这件事:
+- ① ④ 的判据**没有被测过**,它们随 `AC-44-02 / 08 / 10` 一并**转 P2**;
+- ② ③ 的判据**已执行但为定性口径**(见各协议件的执行记录),其中 `AC-44-17` 的
+  **判对率从未测出**,`AC-44-03` **无判对率**;
+- 本行 `closed` **不等于** `AC-44-02 / 08 / 10` 已通过,也**不等于** `AC-44-17 / 03` 的量化达标。
 
 **触发条件**:L-1 / L-2 任一落地(它们是纯接线,不依赖数值轮)即可**部分**执行 ——
 先跑不依赖病程时长的项(AC-44-03 主判据的四条中「同病人一致 / 无变声器感 / 性别不串」三条、
