@@ -368,7 +368,7 @@
 | `TD-listen-01` | `audio-system` | open | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
 | `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
-| `TD-audio-025` | `disease-simulation` | open | **Y** | R1 |
+| `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
@@ -844,11 +844,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 61, 'closed': 68, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
-未闭 P0 面 = 41 （已闭但曾标 P0 面的 60 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 41 条,分布在 10/31 个 epic
+条目 133 | 状态 {'open': 60, 'closed': 69, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
+未闭 P0 面 = 40 （已闭但曾标 P0 面的 61 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 40 条,分布在 10/31 个 epic
     medical-consequences: 19  audio-system: 6           telemetry-analytics: 5
-    clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
+    clinic-machine: 4         disease-simulation: 1     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
 ```
@@ -1491,7 +1491,49 @@ story-018 `## 实现轮记录`。**三条均非 story-018 引入**,是它跑动�
 
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
-| **TD-audio-025** | **9 侧 `ComputeTrend` 恒 0,13 的痊愈锁存被**整条停用**。** `Sim/ProgressionEvaluator.cs:439` 的 `ComputeTrend` 返回 `Fix.Zero`(该文件头自陈「保留占位(tripwire,归 M2 可玩级)· **不得当成本批缺陷删改**」)。而 `BehaviorMap.EvaluateTerminal` 的痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真** ⇒ 每个新出现的病人(position ≈ 0)首拍即被锁存「痊愈」⇒ `BreathShouldLive` 恒 false ⇒ **呼吸层永不启动、一次性 cue 永不发射**。**2026-10-18 用户裁定「本轮就修」**,已加 `BehaviorMap.TrendWired = false` 门(停用 ≠ 误判:「已痊愈」是终局,误判不可逆)。 | 实机取证(修复前 `tick=2` 起 `term=True emit=False breath=None`);`impl-s18-*` §五 | **9 侧实现 F2 中心差分 `(Progress(t+W/2) − Progress(t−W/2))/W` + `TREND_EPS` 死区(归 M2 可玩级 / 数值轮)** —— 届时把 `TrendWired` 改 `true`,并复跑 13 全套:两侧 NOT-RUN 哨兵(`behavior_map_test.cs::test_ac13b1_terminalLatch_recoversDoNotResurrect` · `audio_wiring_test.cs::test_ac018_6_patientCueDriver_runsOnRealTickPump`)**会转红,须改回真断言,禁删哨兵** |
+| **TD-audio-025** | **9 侧 `ComputeTrend` 恒 0,13 的痊愈锁存被**整条停用**。** `Sim/ProgressionEvaluator.cs:439` 的 `ComputeTrend` 返回 `Fix.Zero`(该文件头自陈「保留占位(tripwire,归 M2 可玩级)· **不得当成本批缺陷删改**」)。而 `BehaviorMap.EvaluateTerminal` 的痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真** ⇒ 每个新出现的病人(position ≈ 0)首拍即被锁存「痊愈」⇒ `BreathShouldLive` 恒 false ⇒ **呼吸层永不启动、一次性 cue 永不发射**。**2026-10-18 用户裁定「本轮就修」**,已加 `BehaviorMap.TrendWired = false` 门(停用 ≠ 误判:「已痊愈」是终局,误判不可逆)。 | 实机取证(修复前 `tick=2` 起 `term=True emit=False breath=None`);`impl-s18-*` §五 | ~~**9 侧实现 F2 中心差分 `(Progress(t+W/2) − Progress(t−W/2))/W` + `TREND_EPS` 死区(归 M2 可玩级 / 数值轮)** —— 届时把 `TrendWired` 改 `true`,并复跑 13 全套:两侧 NOT-RUN 哨兵(`behavior_map_test.cs::test_ac13b1_terminalLatch_recoversDoNotResurrect` · `audio_wiring_test.cs::test_ac018_6_patientCueDriver_runsOnRealTickPump`)**会转红,须改回真断言,禁删哨兵**~~<br>✅ **2026-10-29 已结(见下方结案块)** —— 处置条件由用户裁定**改写为甲案**,不是照原文执行 |
+>
+> ✅ **结案块(2026-10-29 · 音频债批 · 用户裁定甲案「13 改吃后向差分」· `open → closed`)**
+>
+> | 动作 | 落点 | 内容 |
+> |---|---|---|
+> | ① 处置条件改写(用户裁) | `AskUserQuestion` 2026-10-29 | **甲:13 改吃后向差分**。原债行要求的**中心差分**被否 —— 依据 GDD `disease-simulation.md:923-924` 的分工:中心差分 = 8 的**展示读数**(读未来 `t+W/2`,非因果);后向差分 = **状态转移用**(只读过去,因果)。13 做的是**终态锁存**(不可逆的状态转移)⇒ 必须吃因果量 |
+> | ② 9 侧 trend 换源 | `Gameplay.Boot/DiseaseVitalsService.cs:300-305` | `GetVitals` 的 trend 由 `result.Trend`(恒 0 占位)改为 `ProgressionEvaluator.ComputeTrendBackward(...)` —— **同一个已实现且已接线(F4)的函数**,不新增第二套趋势算法(禁第二真源) |
+> | ③ 门由 `const` 改属性 | `Gameplay.Presentation/PatientAI/BehaviorMap.cs:129` | `public const bool TrendWired = false` → `public static bool TrendWired { get; private set; } = false` |
+> | ④ 门只开不关 | 同上 `:136-139` | `ConfigureTrendWired(bool)` = `if (wired) TrendWired = true;` —— 防运行期误调**静默停用**已生效的痊愈判据 |
+> | ⑤ 测试专用复位口 | 同上 `:145-146` | `ResetTrendWiredForTest()`,标 `EditorBrowsable(Never)`;生产代码不得调用 |
+> | ⑥ 装配层按 W 配置 | `Gameplay.Boot/CompositionRoot.cs:319` | `BehaviorMap.ConfigureTrendWired(trendWindowTicks > 0)` —— **不是硬编码 `true`** |
+> | ⑦ 哨兵改真断言 | `Tests/EditMode/PatientAI/behavior_map_test.cs` | `test_ac13b1_terminalLatch_recoversDoNotResurrect` 由 NOT-RUN 哨兵改回真断言(**未删哨兵**,承债行要求) |
+> | ⑧ 补靶 7 条 | `behavior_map_test.cs`(+3)· `Tests/EditMode/DiseaseSimulation/w_trend_eps_vitals_end_to_end_test.cs`(+4) | 见下方「证伪轮」 |
+>
+> **⚠️ ⑥ 为什么必须跟 `W` 走(本轮最关键的设计判断)**:`ComputeTrendBackward` 在 `W ≤ 0` 时
+> **短路返回 0**(`:260`)。故硬编码 `true` ⇒ `W` 未填时**重现同一个故障**(「刚发病」误锁「已痊愈」);
+> 硬编码 `false` ⇒ 数值填好后**仍然停用**。两者都不对。正解 = `W > 0` ⇒ 趋势真的是算出来的 ⇒ 门开。
+> **数值一填即自动生效,无需再改代码。**
+>
+> **证伪轮(S12-4 · 改 → 跑 → 原子还原 → SHA-256)**:
+> **首轮 7 变异 = 3 红 / 4 假存活** ⇒ 补靶 ⇒ **复跑 8 变异 = 8/8 全红**。
+> 首轮两种假存活形态:①「**靶场里没有靶**」(M1 门恒开 / M3 去掉 trend 合取项 —— 变异打的分支无可达输入);
+> ②「**靶场选错**」(M6 装配层恒开 / M7 trend 改回占位 —— 变异体住 `CompositionRoot` /
+> `DiseaseVitalsService`,而 `BehaviorMapTest` 直接调 `PatientBehavior.Step` 喂字面量,**那次运行根本没跑到它**)。
+> ⚠️ 后者比前者更隐蔽:夹具是绿的、变异也真的改了代码,**只是不在同一条执行路径上**。
+> 补靶后逐条红点见原件 §三。
+> **一属性一条**(承 `feedback_falsify_one_guard_per_property`):`if (wired) TrendWired = true;`
+> 这一行有**两个独立属性**(「只开不关」与「不无视入参」)⇒ 两条专属夹具 + 两条变异,红点是**不同测试**。
+>
+> **回归三元组**:EditMode **`5923 / 5886 / 0 / 37`** @ 2026-10-29 · 全量(无 filter) · `48ba0555`+工作树
+> (等式 `5915 + 8 = 5923`,`+8` = 两个改动夹具的新增 `[Test]` 数,`git diff | grep -c '^+\s*\[Test\]'` 实测 8);
+> PlayMode **`238 / 234 / 0 / 2 / 2`** @ 同日 · 全量 · 同 commit —— **与基线逐位相同,零回归**。
+> **⚠️ 行为零变化(如实登记)**:真表 `trend_window_ticks` **仍为 0**(`assets/data/disease_registry.json:11`,
+> 数值轮未裁)⇒ 门仍关 ⇒ 13 的痊愈锁存**仍停用**,与 2026-10-18 修复后**逐位一致**。
+> 本轮证的是「**管道通了 + 门跟着数据走**」,不是「痊愈锁存已启用」。
+> **原件** = `production/qa/evidence/impl-td-audio-025-trend-backward-2026-10-29.md`。
+>
+> **⚠️ 残余(不随 closed 消失)**:
+> ① **数值轮** —— `W` / `TREND_EPS` 的真值仍归用户(`OQ-9-1` 已于 2026-10-23 裁为乙案,与本条无关);
+> ② **`audio_wiring_test.cs::test_ac018_6_patientCueDriver_runsOnRealTickPump` 的复核义务** ——
+> 该测注释已就地订正为「`W` 一旦配置须重新复核」,**但复核动作本身未做**(`W` 今日仍 0 ⇒ 无可复核);
+> ③ 8 的**展示读数**仍走中心差分(未接),归 8 —— 与本条无交集。
 | **TD-audio-026** | **`CompositionRoot.Assemble()` 无条件构造 `AudioSourcePool`(含 GameObject 根)⇒ EditMode 测试泄漏。** `CompositionRoot.cs:321` 的 `new AudioSourcePool(busResolver: audio?.Buses)` 即便 `audio == null` 也执行,而该构造函数会建 GameObject 根(`AudioSourcePool.cs:65`,`hideFlags = DontSave`);`CompositionRootServices` **无 `IDisposable`**、既有 Boot 测试**无 TearDown**(全库 30 处 `Assemble()` 调用)⇒ 每次装配遗留一个池根节点。**生产侧不受影响**(`BootRoot.OnDestroy` 已调 `AudioPool.Dispose()`)。「无音频也建池」在 AC-018-4 单池不变量下**可辩护**(池是 ADR-028 ① 唯一所有者的承载物;「装了没装」的判据是 `AudioRenderAssembled`),但泄漏属实。<br>⚠️ **2026-10-18 补评批加注(该泄漏的**下游症状已实测** = 评审 S3-b)**:`test_ac018_4_assemble_createsExactlyOnePoolRoot`(`runtime_assembly_test.cs:400`)断言「池根恰一个」,而本夹具 `TearDown`(`:85`)**只清自己跑过的池** ⇒ 该测的绿**依赖别的夹具也做了池根清理** = **执行序敏感**(假红风险,承本行 30 处 `Assemble()` 无 TearDown 的根因)。⇒ **还本债时须连带把该测改为自隔离**(夹具前断言基线为 0),否则「单池不变量」的判据在他夹具变更时会静默转红。 | `impl-s18-*` §六 ②;`CompositionRoot.cs:321`;`AudioSourcePool.cs:65` | **是否改惰性构造须用户裁**(设计取舍,非缺陷);若判泄漏可接受,则只须在测试侧补 TearDown / 或给装配袋加 `IDisposable` |
 >
 > ✅ **结案块(2026-10-25 · 清债轮 · 用户裁定丙案「完成必要资产进行完全构造」· `open → closed`)**

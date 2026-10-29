@@ -107,6 +107,13 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [TearDown]
         public void ResetInjectionSeam() => KindPriorityTable.Provider = null;
 
+        /// <summary>`BehaviorMap.TrendWired` 是**只开不关**的静态门 ⇒ 跨夹具会残留。
+        /// <para>⚠️ 每测前后都复位(2026-10-29 `TD-audio-025`):不复位则本文件的「W=0 门须关」
+        /// 判据会被前一条测试打开的门污染成假红。</para></summary>
+        [SetUp]
+        [TearDown]
+        public void ResetTrendGate() => DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.ResetTrendWiredForTest();
+
         // ══════════════════════════════════════════════════════════════════════
         // 合成病种 —— 自限型,先升后衰
         // ══════════════════════════════════════════════════════════════════════
@@ -382,6 +389,101 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             Assert.That(registry.Rows.Count, Is.EqualTo(1), "本夹具恰一条病种");
             Assert.That(registry.Rows[0].DiseaseId, Is.EqualTo(DiseaseId),
                 "行集 id 须与建档 id 一致 —— 不一致则 Step 的「病种不在注册表内」会 fail-loud");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ④ 装配面接 13 —— `TD-audio-025`(2026-10-29 · 用户裁定甲案)
+        // ══════════════════════════════════════════════════════════════════════
+        //
+        // 病因:9 侧 `GetVitals` 的 trend 曾是**恒 0 的占位**(`result.Trend`),而 13 的
+        // `EvaluateTerminal` 痊愈判据 `position ≤ RECOVER_MAX ∧ trend ≤ 0` 在 trend 恒 0 时
+        // **恒真** ⇒ 每个新出现病人首拍即锁存「痊愈」(终局,不可逆)⇒ 呼吸层永不启动。
+        //
+        // 甲案两件事,各需一条判据(缺任一则另一半零覆盖):
+        //   ① **值面**:trend 改由 `ComputeTrendBackward` 产出 ⇒ W > 0 时必须**非零**
+        //      (变异:改回 `result.Trend` ⇒ 恒 0 ⇒ 下面第一条红);
+        //   ② **门面**:13 的痊愈锁存门跟着 `W` 走 ⇒ W = 0 时**必须关**
+        //      (变异:装配层硬开 `ConfigureTrendWired(true)` ⇒ 第二条红)。
+        //
+        // ⚠️ 两条都**必须走真装配**(`CompositionRoot.Assemble` → `DiseaseVitalsService`),
+        //    因为变异体就住这两处。`BehaviorMapTest` 直接调 `PatientBehavior.Step` 喂字面量,
+        //    根本不经它们 ⇒ 拿它当靶场是**靶场选错**(证伪轮 M6/M7 假存活的根因)。
+
+        /// <summary>W &gt; 0 ⇒ `GetVitals` 的 trend **必须非零**(后向差分真的在算)。
+        /// <para><b>判别力</b>:把 `GetVitals` 的 trend 来源改回 `result.Trend`
+        /// (中心差分占位,恒 0)⇒ 本测红。</para>
+        /// <para>⚠️ 取样 tick 取 <c>τ = W</c>(上升段中部):`Progress(W) − Progress(0)`
+        /// 两项一正一零,差值显著 ⇒ 不依赖对定点 exp 的逐位预估。</para></summary>
+        [Test]
+        public void test_vitals_trend_isComputedNotZero_whenWindowConfigured()
+        {
+            const long W = 100;
+            DiseaseRegistryDataSet registry = Bake(w: W, epsRaw: 0);
+
+            CompositionRootServices bag = AssembleViaProvider(registry);
+            PatientId patient = bag.PatientSpawner.SpawnNext(DiseaseId, tick: 0);
+            DiseaseVitalsService svc = bag.VitalsService;
+
+            for (long tick = 0; tick <= W; tick++) svc.OnTickEdge(tick);
+
+            VitalsDto vitals = svc.GetVitals(patient);
+            Assert.That(vitals.Trend, Is.GreaterThan(0f),
+                $"W={W} 已配置,τ={W} 处于上升段 ⇒ trend 必须为正 —— 实得 {vitals.Trend}。\n" +
+                "恒 0 = 仍在用 `result.Trend`(中心差分占位)⇒ 13 的痊愈判据 `trend ≤ 0` 恒真 " +
+                "⇒ 新病人首拍误锁「痊愈」(终局不可逆)");
+        }
+
+        /// <summary>W = 0(未配置)⇒ trend **恰为 0**(管道通但数值未填)。
+        /// <para>这是上一条的**阴性对照**:证明上一条的正值来自 W,不是来自噪声或残余状态。
+        /// 同时钉住「`W ≤ 0` 不求值」这条短路(禁代拍数值轮的量)。</para></summary>
+        [Test]
+        public void test_vitals_trend_isExactlyZero_whenWindowNotConfigured()
+        {
+            DiseaseRegistryDataSet registry = Bake(w: 0, epsRaw: 0);
+
+            CompositionRootServices bag = AssembleViaProvider(registry);
+            PatientId patient = bag.PatientSpawner.SpawnNext(DiseaseId, tick: 0);
+            DiseaseVitalsService svc = bag.VitalsService;
+
+            for (long tick = 0; tick <= 100; tick++) svc.OnTickEdge(tick);
+
+            VitalsDto vitals = svc.GetVitals(patient);
+            Assert.That(vitals.Trend, Is.EqualTo(0f),
+                $"W=0 ⇒ `ComputeTrendBackward` 短路返回 0 —— 实得 {vitals.Trend}。" +
+                "非零 = `windowTicks <= 0` 的短路失效(会代拍数值轮的量)");
+        }
+
+        /// <summary>W = 0 ⇒ 13 的痊愈锁存门**必须关**。
+        /// <para><b>判别力</b>:把装配层的 `ConfigureTrendWired(trendWindowTicks &gt; 0)`
+        /// 改成 `ConfigureTrendWired(true)`(无视 W 硬开)⇒ 本测红。</para>
+        /// <para>语义:trend 不可用时 `position ≤ RECOVER_MAX` 既可能是痊愈也可能是**刚发病**,
+        /// 两者在 position 上不可分 ⇒ 判据不可用。</para></summary>
+        [Test]
+        public void test_assembly_trendGate_staysClosed_whenWindowNotConfigured()
+        {
+            DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.ResetTrendWiredForTest();
+            Assert.That(DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.TrendWired, Is.False,
+                "前置:门默认关");
+
+            AssembleViaProvider(Bake(w: 0, epsRaw: 0));
+
+            Assert.That(DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.TrendWired, Is.False,
+                "W=0 装配后门被打开了 —— 装配层没看 W 就硬开;" +
+                "这会让「刚发病」被误锁「已痊愈」(2026-10-18 实机故障原形)");
+        }
+
+        /// <summary>W &gt; 0 ⇒ 13 的痊愈锁存门**必须开**(与上一条配对,缺它则「门恒关」也绿)。
+        /// <para>⚠️ 门只开不关 ⇒ 上一条与本条共用静态量,靠 `[SetUp]`/`[TearDown]` 复位隔离。</para></summary>
+        [Test]
+        public void test_assembly_trendGate_opens_whenWindowConfigured()
+        {
+            DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.ResetTrendWiredForTest();
+
+            AssembleViaProvider(Bake(w: 100, epsRaw: 0));
+
+            Assert.That(DaYiJingCheng.Gameplay.PatientAI.BehaviorMap.TrendWired, Is.True,
+                "W=100 装配后门仍关 —— 数值已配置但痊愈锁存**仍然停用**;" +
+                "「门跟着 W 走」没接上(与硬编码 false 是同一个失效面)");
         }
 
         // ══════════════════════════════════════════════════════════════════════

@@ -106,23 +106,44 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         //  Terminal 锁存位(GDD §States 一-ter)
         // ═══════════════════════════════════════════════════════════
 
-        /// <summary>`VitalsDto.Trend` 是否已由 9 侧**真接线**。
-        /// <para>⚠️ <b>现为 <c>false</c></b> —— `Sim/ProgressionEvaluator.ComputeTrend` 是
-        /// **已登记的 tripwire 占位(恒 0)**,其文件头明写「保留占位…**不得当成本批缺陷删改**」
-        /// (归 M2 可玩级 / 数值轮)。</para>
-        /// <para>⚠️ <b>为什么必须显式成一个开关</b>:`EvaluateTerminal` 的痊愈判据是
-        /// `position ≤ RECOVER_MAX ∧ trend ≤ 0`,而它要回答的是「position 低 = 痊愈 **还是**
-        /// 刚发病」—— 这两者**只能靠 trend 区分**。trend 恒 0 时 `trend ≤ 0` 恒真 ⇒
-        /// **每一个新出现的病人(position ≈ 0)在首拍就被锁存「痊愈」** ⇒
-        /// `PatientCueSchedule.BreathShouldLive` 恒 false ⇒ 呼吸层永不启动、一次性 cue
-        /// 永不发射(2026-10-18 实机取证:`tick=2` 起 `term=True emit=False breath=None`)。</para>
-        /// <para>⇒ 未接线期间**整条痊愈锁存停用**(禁用 ≠ 误判:误判会把「刚发病」当成「已痊愈」,
-        /// 而「已痊愈」在 GDD §States 一-ter 里是**终局**,一旦锁存不可逆)。死亡锁存不受影响
-        /// (它只依赖 position)。</para>
-        /// <para>⚠️ <b>接线后的动作</b>:把本常量改 <c>true</c>,并复跑 13 全套
-        /// (痊愈判据随之恢复 GDD 字面;`test_ac13b1_terminalLatch_recoversDoNotResurrect`
-        /// 的 NOT-RUN 哨兵会转红,届时须把它改回真断言)。</para></summary>
-        public const bool TrendWired = false;
+        /// <summary>`VitalsDto.Trend` 是否**可用**(即 9 侧真的给出了非恒 0 的趋势)。
+        /// <para>🔁 **2026-10-29(`TD-audio-025` · 用户裁定甲案)**:由 <c>const false</c> 改为
+        /// **按数据配置判定**的静态属性。</para>
+        /// <para><b>原状</b>:`const TrendWired = false` —— 因 `Sim/ProgressionEvaluator.ComputeTrend`
+        /// 是恒 0 的 tripwire 占位,而 `EvaluateTerminal` 的痊愈判据 `position ≤ RECOVER_MAX ∧ trend ≤ 0`
+        /// 在 trend 恒 0 时**恒真** ⇒ 每个新出现病人首拍即锁存「痊愈」⇒ 呼吸层永不启动
+        /// (2026-10-18 实机取证:`tick=2` 起 `term=True emit=False breath=None`)。</para>
+        /// <para><b>为什么从 `const` 改成属性</b>:甲案把 9 侧喂给 13 的量从**中心差分**
+        /// (恒 0 的占位)换成**后向差分**(`ComputeTrendBackward`,已实现),但该函数的输出
+        /// **仍取决于 `W` / `TREND_EPS` 两个数值** —— 两者为 0 时它照样返回 0。
+        /// ⇒ 硬编码 `true` 会在数值未填时**重现同一个故障**;硬编码 `false` 又会在数值填好后
+        /// **仍然停用**痊愈锁存(需要人再改一次代码)。两者都不对。
+        /// **正解 = 门跟着「数据是否配置」走**:`W > 0` ⇒ 趋势真的是算出来的 ⇒ 痊愈判据可用。</para>
+        /// <para>⚠️ <b>为什么必须显式成一个开关</b>:`EvaluateTerminal` 要回答「position 低 = 痊愈
+        /// **还是**刚发病」,这两者**只能靠 trend 区分**。trend 恒 0 时判据恒真 ⇒ 误锁。
+        /// **禁用 ≠ 误判**:误判会把「刚发病」当成「已痊愈」,而「已痊愈」是**终局**,
+        /// 一旦锁存不可逆。死亡锁存不受影响(它只依赖 position)。</para>
+        /// <para>⚠️ **接线后的动作**已由本属性自动完成(数值一填即生效);
+        /// 但复跑 13 全套时 `test_ac13b1_terminalLatch_recoversDoNotResurrect`
+        /// 的 NOT-RUN 哨兵会转红,届时须把它改回**真断言**(禁删哨兵)。</para></summary>
+        public static bool TrendWired { get; private set; } = false;
+
+        /// <summary>由装配层告知「趋势量现在是否可用」(`W` 已配置 ⇒ <c>true</c>)。
+        /// <para>⚠️ 只在**装配期**调一次(`CompositionRoot`);运行期不变 —— 它不是状态,是配置投影。</para>
+        /// <para>⚠️ 本方法**只能**把门从 false 打开,不能反向关 —— 防止运行期某处误调把已生效的
+        /// 痊愈判据悄悄停用(那是静默行为变更)。</para></summary>
+        /// <param name="wired">`W`(趋势窗口 tick)&gt; 0 ⇒ 趋势量可用。</param>
+        public static void ConfigureTrendWired(bool wired)
+        {
+            if (wired) TrendWired = true;
+        }
+
+        /// <summary>**仅供测试**复位到默认态(门关)。
+        /// <para>⚠️ 存在的理由:`ConfigureTrendWired` 只开不关(防运行期静默停用),
+        /// 而 EditMode 夹具要在同一进程里验「门开」与「门关」两种形态 ⇒ 需要一个复位口。
+        /// **生产代码不得调用** —— 它会让已生效的痊愈判据被悄悄停用。</para></summary>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static void ResetTrendWiredForTest() => TrendWired = false;
 
         /// <summary>`Terminal(p)` 的**单次求值**(置位判据)。
         /// <para>⚠️ 本方法**不锁存** —— 锁存由 <see cref="PatientBehavior"/> 持有;
@@ -131,7 +152,7 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public static TerminalFlag EvaluateTerminal(float position, float trend, in BehaviorBands bands)
         {
             // 痊愈锁存:RECOVER_MAX 与 DEATH_BAND_MIN 之间是活着的病程,只在两端置位。
-            // ⚠️ `TrendWired` 门:trend 未接线 ⇒ 本判据**不可用**(position 低既可能是痊愈,
+            // ⚠️ `TrendWired` 门:trend 不可用 ⇒ 本判据**不可用**(position 低既可能是痊愈,
             //    也可能是刚发病)—— 见 TrendWired 注。**不得**在此处用 `trend <= 0` 的
             //    「恒真」形态绕过该门。
             if (TrendWired && position <= bands.RecoverMax && trend <= 0f)

@@ -294,6 +294,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             //     `BehaviorMap.EvaluateTerminal` 的痊愈判据而在首拍即终局(呼吸层恒不起);
             //     该缺陷已修(`BehaviorMap.TrendWired` 门控痊愈锁存,见其注)⇒
             //     非终局病人在被驱动的那一刻就 `BreathAction.Begin`。
+            //  🔁 **2026-10-29(`TD-audio-025` 甲案)**:门由 `const false` 改为**跟着 `W` 走**;
+            //     `W` 今日仍为 0(数值轮未裁)⇒ 门仍关 ⇒ **本断言的行为与 10-18 完全一致**。
+            //     `W` 一旦配置,门自动打开、痊愈锁存恢复 —— 那时本断言须重新复核(见 `TrendWired` 注)。
             //  ⚠️ 判别力:删掉 `ApplyBreath` 的 Begin 分支 / 删掉 `_breathCue` 解析 ⇒ 转红。
             if (services.Presence.PresentCount > 0)
             {

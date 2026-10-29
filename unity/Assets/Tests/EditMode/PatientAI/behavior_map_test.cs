@@ -320,31 +320,119 @@ namespace DaYiJingCheng.Tests.PatientAI
         [Test]
         public void test_ac13b1_terminalLatch_recoversDoNotResurrect()
         {
-            // ⚠️ **NOT-RUN 哨兵(禁借绿 · 2026-10-18 立)** —— 本条 AC-13-B1 的**痊愈半边**
-            //    当前**不可判**:痊愈锁存依赖 `VitalsDto.Trend`,而 trend 今日是 9 侧的
-            //    tripwire 占位(恒 0,`Sim/ProgressionEvaluator.ComputeTrend` 自陈
-            //    「保留占位…不得当成本批缺陷删改」)⇒ `BehaviorMap.TrendWired == false`
-            //    ⇒ 痊愈锁存**整条停用**(见 `TrendWired` 注:启用它会让**每个新出现的病人**
-            //    在首拍即被锁存「痊愈」—— 2026-10-18 实机取证)。
-            //    ⚠️ 本哨兵**有意可红**:trend 接线后把 `TrendWired` 改 true ⇒ 它转红 ⇒
-            //    须把下方注释掉的断言**改回真断言**,而**不是**删掉哨兵。
-            //    ⚠️ 锁存的「不复活」单调性另有**死亡半边**的活测试
-            //    (`test_ac13b1_terminalLatch_deathIsMonotonic`),该半条不受本停用影响。
-            Assert.IsFalse(BehaviorMap.TrendWired,
-                "NOT-RUN 哨兵:trend 已接线 ⇒ 把本测改回真断言(痊愈锁存 + 不复活),勿删哨兵");
+            // 🔁 **2026-10-29(`TD-audio-025` · 用户裁定甲案):NOT-RUN 哨兵已改回真断言。**
+            //
+            // 原哨兵(2026-10-18)写的是「trend 未接线 ⇒ 痊愈锁存整条停用」,并留下三条注释掉的
+            // 断言待接线后恢复。**现在接线了**:9 侧 `GetVitals` 的 trend 来源已由恒 0 的
+            // `result.Trend`(中心差分占位)换成 `ComputeTrendBackward`(后向差分,已实现),
+            // 且 `BehaviorMap.TrendWired` 由 `const false` 改为**跟着 `W` 是否配置走**的属性。
+            //
+            // ⚠️ **本测必须显式打开门**:`TrendWired` 的默认值仍是 false(`W` 未配置时的正确态),
+            //    而本测要验的是**门开之后**的行为。故先 `ConfigureTrendWired(true)`。
+            //    ⚠️ `ConfigureTrendWired` 只开不关(见其注)⇒ 会污染同 fixture 的其它测
+            //    ⇒ 下方 `TearDown` 复原。**这不是可选项**:状态泄漏会让「门关」的测假红/假绿。
+            BehaviorMap.ConfigureTrendWired(true);
+            try
+            {
+                var b = new PatientBehavior();
+                b.Step(Bands.RecoverMax - 0.01f, -0.5f, Bands, knowsClinic: true);
+
+                Assert.IsTrue(b.Terminal.Latched, "痊愈线以下 + trend ≤ 0 ⇒ Terminal 置位");
+                Assert.AreEqual(TerminalCause.Recovered, b.Terminal.Cause, "成因须为 Recovered");
+
+                var frozen = b.Current;
+                b.Step(0.80f, +0.9f, Bands, knowsClinic: true);   // 回升假输入
+                Assert.AreEqual(frozen, b.Current, "终态后 position 回升不得改出(闩锁,单调)");
+            }
+            finally
+            {
+                BehaviorMap.ResetTrendWiredForTest();
+            }
+        }
+
+        /// <summary>**门关时**仍不得据 position 低判痊愈(2026-10-18 实机故障的回归守卫)。
+        /// <para>⚠️ 本条是**哨兵的活体**:原哨兵被改回真断言后,「未配置时不得误锁」这一面
+        /// 若无人钉,就会在将来某次改动中静默丢失。本测把它独立出来。</para></summary>
+        [Test]
+        public void test_ac13b1_terminalLatch_trendUnwired_doesNotLatchRecovered()
+        {
+            BehaviorMap.ResetTrendWiredForTest();
+            Assert.IsFalse(BehaviorMap.TrendWired, "前置:门默认关");
 
             var b = new PatientBehavior();
             b.Step(Bands.RecoverMax - 0.01f, -0.5f, Bands, knowsClinic: true);
             Assert.IsFalse(b.Terminal.Latched,
-                "trend 未接线 ⇒ **不得**据 position 低判痊愈(否则新出现病人首拍即终局," +
-                "呼吸层与一次性 cue 永不启动)");
+                "trend 不可用 ⇒ **不得**据 position 低判痊愈(否则新出现病人首拍即终局," +
+                "呼吸层与一次性 cue 永不启动 —— 2026-10-18 实机取证)");
+        }
 
-            // ── trend 接线后应恢复的断言(现停用,**勿删**)──────────────────
-            // Assert.IsTrue(b.Terminal.Latched, "痊愈线以下 + trend ≤ 0 ⇒ Terminal 置位");
-            // Assert.AreEqual(TerminalCause.Recovered, b.Terminal.Cause, "成因须为 Recovered");
-            // var frozen = b.Current;
-            // b.Step(0.80f, +0.9f, Bands, knowsClinic: true);   // 回升假输入
-            // Assert.AreEqual(frozen, b.Current, "终态后 position 回升不得改出(闩锁,单调)");
+        /// <summary>**门开 + position 低 + trend 上升** ⇒ 仍不得锁存痊愈。
+        /// <para>⚠️ 这是 `trend ≤ 0` 这一**合取项**的专属靶场(证伪轮 M3 假存活后补,
+        /// 2026-10-29)。原夹具只喂 `trend = −0.5`(恒满足 `trend ≤ 0`)⇒ 把该合取项删掉
+        /// 结果不变 ⇒ **该分支零覆盖**。</para>
+        /// <para>语义:position 尚低**且**正在上升 = **刚发病**(与「已痊愈」在 position 上
+        /// 不可分,只能靠 trend 方向区分)。把这种情况判成痊愈 = 终局误锁,不可逆。</para></summary>
+        [Test]
+        public void test_ac13b1_terminalLatch_lowPositionButRisingTrend_doesNotLatchRecovered()
+        {
+            BehaviorMap.ConfigureTrendWired(true);
+            try
+            {
+                var b = new PatientBehavior();
+                b.Step(Bands.RecoverMax - 0.01f, +0.5f, Bands, knowsClinic: true);
+
+                Assert.IsFalse(b.Terminal.Latched,
+                    $"position={Bands.RecoverMax - 0.01f}(≤ RECOVER_MAX)但 trend=+0.5 > 0 ⇒ " +
+                    "这是**刚发病**,不是痊愈 ⇒ 不得锁存(痊愈判据的 `trend ≤ 0` 合取项失效即误锁)");
+            }
+            finally
+            {
+                BehaviorMap.ResetTrendWiredForTest();
+            }
+        }
+
+        /// <summary>门**只能开不能关**:已开之后 `ConfigureTrendWired(false)` 不得把它关掉。
+        /// <para>⚠️ 2026-10-29 补(证伪轮 M1 假存活)。该属性防的是「运行期某处误调把已生效的
+        /// 痊愈判据悄悄停用」—— 那是静默行为变更,且只在运行时才显形。</para></summary>
+        [Test]
+        public void test_configureTrendWired_cannotCloseOnceOpen()
+        {
+            BehaviorMap.ResetTrendWiredForTest();
+            try
+            {
+                BehaviorMap.ConfigureTrendWired(true);
+                Assert.IsTrue(BehaviorMap.TrendWired, "前置:true 应开门");
+
+                BehaviorMap.ConfigureTrendWired(false);
+                Assert.IsTrue(BehaviorMap.TrendWired,
+                    "已开的门被 `ConfigureTrendWired(false)` 关掉了 —— 运行期误调会静默停用痊愈判据");
+            }
+            finally
+            {
+                BehaviorMap.ResetTrendWiredForTest();
+            }
+        }
+
+        /// <summary>`ConfigureTrendWired(false)` 打在**已关**的门上 ⇒ 不得把门打开。
+        /// <para>⚠️ 2026-10-29 补(证伪轮 M1 假存活)。M1 把实现改成 `TrendWired = true`
+        /// (**无视入参**恒开)—— 上一条「不能关」抓不到它,本条才是它的专属靶。</para></summary>
+        [Test]
+        public void test_configureTrendWired_falseOnClosedGate_doesNotOpen()
+        {
+            BehaviorMap.ResetTrendWiredForTest();
+            try
+            {
+                Assert.IsFalse(BehaviorMap.TrendWired, "前置:门默认关");
+
+                BehaviorMap.ConfigureTrendWired(false);
+                Assert.IsFalse(BehaviorMap.TrendWired,
+                    "`ConfigureTrendWired(false)` 把门打开了 —— 入参被无视;" +
+                    "`W == 0` 时门必须关(否则「刚发病」被误锁「已痊愈」)");
+            }
+            finally
+            {
+                BehaviorMap.ResetTrendWiredForTest();
+            }
         }
 
         [Test]

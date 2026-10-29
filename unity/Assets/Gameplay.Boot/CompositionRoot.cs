@@ -311,6 +311,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw,
                 treatableBy, actorClassOf, deathCandidates);
 
+            // ── 13 的痊愈锁存门:跟着「趋势量是否已配置」走(`TD-audio-025` · 2026-10-29)──
+            // ⚠️ **不是 `TrendWired = true` 硬开** —— `ComputeTrendBackward` 在 `W ≤ 0` 时
+            //    照样返回 0,硬开会让「刚发病」被误锁「已痊愈」(那是终局,不可逆)。
+            //    正确判据 = `W > 0`(趋势窗口已配置 ⇒ 趋势真的是算出来的)。
+            // ⚠️ 只在装配期调一次;`ConfigureTrendWired` 只开不关(见其注)。
+            BehaviorMap.ConfigureTrendWired(trendWindowTicks > 0);
+
             // ── 死亡消费侧装配(2026-10-24 · 29 story-004 的装配轮)──────────
             // 管线序(story-004 实现注 2):`DeathCandidate → DeathAllowed 门 → PlayerDied`。
             // 三件在这里接成一条链,且**门在任何写流之前**(写者内再复核一次,双闸)。

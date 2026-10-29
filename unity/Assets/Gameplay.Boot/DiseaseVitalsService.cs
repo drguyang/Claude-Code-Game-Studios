@@ -277,8 +277,32 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (position.Raw < Fix.ZeroRaw) position = Fix.Zero;
             if (position.Raw > Fix.OneRaw) position = Fix.One;
 
-            // trend:tripwire 恒 0(ComputeTrend 未接;阶段 0 口径保留占位)
-            Fix trend = result.Trend;
+            // ── trend:`trend_backward`(后向差分)—— **不是** `result.Trend`(中心差分)──
+            //
+            // 🔁 **2026-10-29(`TD-audio-025` · 用户裁定甲案)**:原文写
+            //   「trend:tripwire 恒 0(ComputeTrend 未接;阶段 0 口径保留占位)」
+            //   ⇒ `result.Trend` 恒 0 ⇒ 13 的 `EvaluateTerminal` 痊愈判据 `trend ≤ 0` **恒真**
+            //   ⇒ 每个新出现病人(position ≈ 0)首拍即锁存「痊愈」⇒ 呼吸层永不启动。
+            //
+            // **为什么换成后向差分,而不是去实现中心差分**:
+            //   · GDD `disease-simulation.md:923-924` 的分工是 —— 中心差分 `trend(t)` = **8 的展示读数**
+            //     (读未来 `t + W/2`,非因果);后向 `trend_backward(t)` = **状态转移用**(只读过去,因果)。
+            //   · 13 用这个量做的是**终态锁存**(`TerminalFlag`),那是一次**不可逆**的状态转移
+            //     (`patient-ai.md` 规则:一旦锁存不再重新求值)⇒ 它必须吃**因果**的量。
+            //     用「读未来的展示量」做不可逆判定,本质上就是把非因果引进表现层。
+            //   · `ComputeTrendBackward` **已实现且已接线**(`DiseaseVitalsService` 的 F4 路径,2026-10-22),
+            //     本处只是把**同一个实现**再喂给 13,不新增第二套趋势算法(禁第二真源)。
+            //
+            // ⚠️ **`W` / `TREND_EPS` 仍为 0(数值轮未裁)** ⇒ 本函数返回 0 ⇒ 与改动前**行为相同**
+            //   (13 仍看到 trend = 0)。这不是「没修」—— 是「管道通了、数值未填」:
+            //   数值一填,13 的痊愈锁存立即按 GDD 字面生效,无需再改代码。
+            //   承 `DiseaseVitalsService` 的 F4 路径同款口径(它也已通管、同样等数值)。
+            Fix trend = ProgressionEvaluator.ComputeTrendBackward(
+                entry, course.OnsetTick, _lastTick, course.Doses, _worldSeed, course.Patient,
+                windowTicks: _trendWindowTicks,
+                trendEpsRaw: _trendEpsRaw,
+                doseClampBound: null,
+                treatableBy: _treatableBy);
 
             // ── signs:tripwire —— 恒空 ⇒ mask = 0 / count = 0 ──
             // F2 的 `Project(Progress, 病种)ⱼ` 需要**阈值**,而词表内容与阈值归 8
