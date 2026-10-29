@@ -98,6 +98,8 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <param name="source">生态区声明。</param>
         /// <param name="violations">违例报文(每条点名判据关键词)。</param>
         /// <returns>是否有违例。</returns>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 47 行 &gt; 40):id 唯一 / 逐区 / 两两重叠
+        /// 各成一个私有方法 —— **执行次序与报文原文逐字未变**。</remarks>
         public static bool TryCheck(EcozoneSource source, out List<string> violations)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -105,7 +107,17 @@ namespace DaYiJingCheng.EditorTools.Level
 
             List<EcozoneZoneSpec> zones = source.SortedById();
 
-            // ── id 唯一(AC-1 附带;不属于 C4 五项,但同一趟检)──────────────
+            CheckIdUniqueness(zones, violations);          // id 唯一(AC-1 附带)
+            for (int i = 0; i < zones.Count; i++)
+                CheckOneZone(zones[i], violations);        // ② ⑤ ③ ④
+            CheckInteriorOverlap(zones, violations);       // ① 两两
+
+            return violations.Count > 0;
+        }
+
+        /// <summary>id 唯一(AC-1 附带;不属于 C4 五项,但同一趟检)。</summary>
+        private static void CheckIdUniqueness(List<EcozoneZoneSpec> zones, List<string> violations)
+        {
             var seen = new HashSet<int>();
             for (int i = 0; i < zones.Count; i++)
             {
@@ -118,17 +130,13 @@ namespace DaYiJingCheng.EditorTools.Level
                         $"world_ecozones:zones[{i}] ecozone_id = {zones[i].Id} 重复 —— " +
                         "同一 id 两份几何会让「哪一份生效」成为注册顺序的函数");
             }
+        }
 
-            // ── 逐区:② ⑤ ③ ④ ─────────────────────────────────────────────
-            for (int i = 0; i < zones.Count; i++)
-            {
-                EcozoneZoneSpec z = zones[i];
-                CheckOneZone(z, violations);
-            }
-
-            // ── ① 内部重叠(两两)──────────────────────────────────────────
-            // ⚠️ 只在两区都**已通过** ②⑤③④ 时才判 —— 退化多边形的「内部」无定义,
-            //    对它们求交会把一个假象报成重叠,掩盖真因。
+        /// <summary>① 内部重叠(两两)。</summary>
+        /// <remarks>⚠️ 只在两区都**已通过** ②⑤③④ 时才判 —— 退化多边形的「内部」无定义,
+        /// 对它们求交会把一个假象报成重叠,掩盖真因。</remarks>
+        private static void CheckInteriorOverlap(List<EcozoneZoneSpec> zones, List<string> violations)
+        {
             for (int a = 0; a < zones.Count; a++)
             {
                 if (!IsSimple(zones[a])) continue;
@@ -142,8 +150,6 @@ namespace DaYiJingCheng.EditorTools.Level
                             "开集语义下两区内部相交会让同一格同属两区)");
                 }
             }
-
-            return violations.Count > 0;
         }
 
         /// <summary>跑 C4 并在任一违例时 `throw`(ADR-022 §②:构建期失败通道)。</summary>
@@ -157,33 +163,49 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>单区四项(② ⑤ ③ ④),各一条独立判据。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 55 行 &gt; 40):四项各成一个私有方法。
+        /// ⚠️ ② 不通过时**仍然** `return` —— 后续三项对退化输入无意义且会产出误报。</remarks>
         private static void CheckOneZone(EcozoneZoneSpec z, List<string> violations)
         {
+            if (!HasEnoughVertices(z, violations)) return;   // ②
+
             WorldPos[] v = z.Vertices;
-            string where = $"生态区 {z.Id}";
+            CheckDuplicateAdjacentVertices(v, z.Id, violations);   // ⑤
+            CheckSelfIntersection(v, z.Id, violations);            // ③
+            CheckZeroArea(v, z.Id, violations);                    // ④
+        }
 
-            // ② 顶点 < 3
-            if (v == null || v.Length < 3)
-            {
-                violations.Add(
-                    $"world_ecozones:{where} 顶点数 = {v?.Length ?? 0} —— 须 ≥ 3" +
-                    "(AC-6-19 ②:少于 3 个顶点的多边形没有内部,射线法无定义)");
-                return;   // 后续三项对退化输入无意义,且会产出误报
-            }
+        /// <summary>② 顶点 &lt; 3。</summary>
+        /// <returns>`false` = 退化输入,后续三项不跑。</returns>
+        private static bool HasEnoughVertices(EcozoneZoneSpec z, List<string> violations)
+        {
+            WorldPos[] v = z.Vertices;
+            if (v != null && v.Length >= 3) return true;
 
+            violations.Add(
+                $"world_ecozones:生态区 {z.Id} 顶点数 = {v?.Length ?? 0} —— 须 ≥ 3" +
+                "(AC-6-19 ②:少于 3 个顶点的多边形没有内部,射线法无定义)");
+            return false;
+        }
+
+        /// <summary>⑤ 重合相邻顶点(含首尾相连那一对)。</summary>
+        private static void CheckDuplicateAdjacentVertices(WorldPos[] v, int id, List<string> violations)
+        {
             int n = v.Length;
-
-            // ⑤ 重合相邻顶点(含首尾相连那一对)
             for (int i = 0; i < n; i++)
             {
                 int j = (i + 1) % n;
                 if (v[i].X == v[j].X && v[i].Z == v[j].Z)
                     violations.Add(
-                        $"world_ecozones:{where} 第 {i} 与第 {j} 个顶点重合 " +
+                        $"world_ecozones:生态区 {id} 第 {i} 与第 {j} 个顶点重合 " +
                         $"({v[i].X},{v[i].Z}) —— 零长边使射线法无定义(AC-6-19 ⑤)");
             }
+        }
 
-            // ③ 自交(非相邻边**真交叉**)
+        /// <summary>③ 自交(非相邻边**真交叉**)。</summary>
+        private static void CheckSelfIntersection(WorldPos[] v, int id, List<string> violations)
+        {
+            int n = v.Length;
             for (int i = 0; i < n; i++)
             {
                 int i2 = (i + 1) % n;
@@ -194,12 +216,16 @@ namespace DaYiJingCheng.EditorTools.Level
                         continue;   // 相邻边共享端点,不可能真交叉
                     if (ProperlyCross(v[i], v[i2], v[j], v[j2]))
                         violations.Add(
-                            $"world_ecozones:{where} 自交:边 {i}→{i2} 与边 {j}→{j2} 真交叉 " +
+                            $"world_ecozones:生态区 {id} 自交:边 {i}→{i2} 与边 {j}→{j2} 真交叉 " +
                             "(AC-6-19 ③:射线法对自交多边形无定义)");
                 }
             }
+        }
 
-            // ④ 零面积(shoelace 数 = 0 ⇒ 全部顶点共线 ⇒ 没有内部)
+        /// <summary>④ 零面积(shoelace 数 = 0 ⇒ 全部顶点共线 ⇒ 没有内部)。</summary>
+        private static void CheckZeroArea(WorldPos[] v, int id, List<string> violations)
+        {
+            int n = v.Length;
             long twiceArea = 0;
             for (int i = 0; i < n; i++)
             {
@@ -207,9 +233,10 @@ namespace DaYiJingCheng.EditorTools.Level
                 WorldPos b = v[(i + 1) % n];
                 twiceArea += (long)a.X * b.Z - (long)b.X * a.Z;
             }
+
             if (twiceArea == 0)
                 violations.Add(
-                    $"world_ecozones:{where} 面积 = 0(全部顶点共线)—— " +
+                    $"world_ecozones:生态区 {id} 面积 = 0(全部顶点共线)—— " +
                     "零面积多边形的内部为空集,归属判定恒不可达(AC-6-19 ④)");
         }
 

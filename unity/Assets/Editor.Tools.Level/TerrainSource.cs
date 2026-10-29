@@ -96,75 +96,9 @@ namespace DaYiJingCheng.EditorTools.Level
             if (rows == null) throw new ArgumentNullException(nameof(rows));
             if (cellTerrainId == null) throw new ArgumentNullException(nameof(cellTerrainId));
 
-            // ① 空表 = F-6-2 的硬失败面(max over 空集无定义)。作者期就拦,别等装载。
-            if (rows.Count == 0)
-                throw new ArgumentException(
-                    "TERRAIN_TABLE 行数为 0 —— F-6-2:`K_TERRAIN_MAX := max over terrain_id`," +
-                    "max over 空集**无定义** ⇒ 装载期硬失败。不可用「全 walkable」代替", nameof(rows));
-
-            var byId = new HashSet<int>();
-            int baselineRows = 0;
-            for (int i = 0; i < rows.Count; i++)
-            {
-                TerrainRowSpec r = rows[i];
-                if (r.TerrainId < 0)
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 须 ≥ 0", nameof(rows));
-                if (!byId.Add(r.TerrainId))
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 重复 —— " +
-                        "同一 id 两行会让「取哪一行」成为隐式规则", nameof(rows));
-                if (string.IsNullOrEmpty(r.Name))
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 name 为空 —— 名字是 authoring 可读性的一半,空名让报文无从指认",
-                        nameof(rows));
-                if (r.KSpeed <= 0)
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 K_speed = {r.KSpeed} 须 > 0(AC-6-08;" +
-                        "不可通行用 walkable = false 表达,不用速度 0 —— 速度 0 会让 F-6-1 的隧穿断言恒绿)",
-                        nameof(rows));
-                if (r.KAccel.Raw <= 0)
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 K_accel = {r.KAccel.Raw} raw 须 > 0(AC-6-08)", nameof(rows));
-                if (r.KDecel.Raw <= 0)
-                    throw new ArgumentException(
-                        $"TERRAIN_TABLE 第 {i} 行 K_decel = {r.KDecel.Raw} raw 须 > 0(AC-6-08)", nameof(rows));
-                if (r.KSpeed == 1) baselineRows++;
-            }
-
-            // ② AC-6-08:`K_speed == 1`(基准地貌)**恰好一行**。
-            if (baselineRows != 1)
-                throw new ArgumentException(
-                    $"TERRAIN_TABLE 中 K_speed == 1(基准地貌)须**恰好一行**,实际 = {baselineRows} —— " +
-                    "零行 ⇒ 没有基准可参照;多行 ⇒ 「哪一行是基准」成为隐式规则", nameof(rows));
-
-            // ③ 每格 id 必须指向表里存在的行,且长度与几何一致。
-            if (cellTerrainId.Count != totalCells)
-                throw new ArgumentException(
-                    $"每格 terrain_id 数组长度 = {cellTerrainId.Count},须等于世界格数 {totalCells} —— " +
-                    "长度不齐 = 地表与几何不是同一张图纸", nameof(cellTerrainId));
-            for (int i = 0; i < cellTerrainId.Count; i++)
-            {
-                if (!byId.Contains(cellTerrainId[i]))
-                    throw new ArgumentException(
-                        $"每格 terrain_id 第 {i} 项 = {cellTerrainId[i]} 不在 TERRAIN_TABLE " +
-                        "{" + string.Join(", ", SortedIds(byId)) + "} 内 —— 运行期查表会取出越界行",
-                        nameof(cellTerrainId));
-            }
-
-            // ④ 控制器参数的量程 —— 判据**不在这里**,在 `LatticeParamQuantization`(单一出处)。
-            //    本节只负责把它执行出来:量纲(量子)与上下界都由那个类型给出,
-            //    读侧 codec 调的是同一对谓词 ⇒ 「作者侧放行的值」与「装载侧放行的值」不可能是两套。
-            if (!LatticeParamQuantization.IsValidSlopeLimit(slopeLimitDegX100))
-                throw new ArgumentOutOfRangeException(
-                    nameof(slopeLimitDegX100),
-                    $"slopeLimit 量化值 = {slopeLimitDegX100}(0.01 度)超出 " +
-                    $"(0, {LatticeParamQuantization.SlopeLimitMaxUnits}] —— 即 (0°, 90°]");
-            if (!LatticeParamQuantization.IsValidStepOffset(stepOffsetMm))
-                throw new ArgumentOutOfRangeException(
-                    nameof(stepOffsetMm),
-                    $"stepOffset 量化值 = {stepOffsetMm} mm 超出 " +
-                    $"[0, {LatticeParamQuantization.StepOffsetMaxUnits}]");
+            HashSet<int> byId = ValidateRows(rows);          // ① + ②
+            ValidateCells(cellTerrainId, totalCells, byId);  // ③
+            ValidateControllerParams(slopeLimitDegX100, stepOffsetMm);   // ④
 
             var copy = new TerrainRowSpec[rows.Count];
             for (int i = 0; i < rows.Count; i++) copy[i] = rows[i];
@@ -175,6 +109,101 @@ namespace DaYiJingCheng.EditorTools.Level
             CellTerrainId = Array.AsReadOnly(cells);
             SlopeLimitDegX100 = slopeLimitDegX100;
             StepOffsetMm = stepOffsetMm;
+        }
+
+        // ── 构造期的四段校验(2026-10-29 拆分:原 ctor 90 行 > 40)──────────────
+        // ⚠️ **各段的执行次序与报文原文逐字未变** —— 次序决定「同时有多处非法时报哪一条」。
+        //    ① 空表 → ② 逐行 → ②' 基准行数 → ③ 每格 → ④ 控制器参数,与拆分前完全一致。
+
+        /// <summary>① 空表守卫 + ② 逐行校验 + ②' 基准行数守卫。</summary>
+        /// <returns>表内出现过的全部 `terrain_id`(供 ③ 的每格查找)。</returns>
+        private static HashSet<int> ValidateRows(IReadOnlyList<TerrainRowSpec> rows)
+        {
+            // ① 空表 = F-6-2 的硬失败面(max over 空集无定义)。作者期就拦,别等装载。
+            if (rows.Count == 0)
+                throw new ArgumentException(
+                    "TERRAIN_TABLE 行数为 0 —— F-6-2:`K_TERRAIN_MAX := max over terrain_id`," +
+                    "max over 空集**无定义** ⇒ 装载期硬失败。不可用「全 walkable」代替", nameof(rows));
+
+            var byId = new HashSet<int>();
+            int baselineRows = 0;
+            for (int i = 0; i < rows.Count; i++)
+                ValidateOneRow(rows[i], i, byId, ref baselineRows);
+
+            // ② AC-6-08:`K_speed == 1`(基准地貌)**恰好一行**。
+            if (baselineRows != 1)
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 中 K_speed == 1(基准地貌)须**恰好一行**,实际 = {baselineRows} —— " +
+                    "零行 ⇒ 没有基准可参照;多行 ⇒ 「哪一行是基准」成为隐式规则", nameof(rows));
+
+            return byId;
+        }
+
+        /// <summary>② 单行校验(id 非负 / 不重复 / 名字非空 / 三个系数 &gt; 0),并累计基准行数。</summary>
+        private static void ValidateOneRow(TerrainRowSpec r, int i, HashSet<int> byId, ref int baselineRows)
+        {
+            // ⚠️ 这里的 `"rows"` 就是 `nameof(rows)` 的字面值 —— `rows` 不在本方法作用域内,
+            //    改用字面量**不改变** `ParamName`,而换成 `nameof(byId)` 会(那是可观测差异)。
+            if (r.TerrainId < 0)
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 须 ≥ 0", "rows");
+            if (!byId.Add(r.TerrainId))
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 重复 —— " +
+                    "同一 id 两行会让「取哪一行」成为隐式规则", "rows");
+            if (string.IsNullOrEmpty(r.Name))
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 name 为空 —— 名字是 authoring 可读性的一半,空名让报文无从指认",
+                    "rows");
+            if (r.KSpeed <= 0)
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 K_speed = {r.KSpeed} 须 > 0(AC-6-08;" +
+                    "不可通行用 walkable = false 表达,不用速度 0 —— 速度 0 会让 F-6-1 的隧穿断言恒绿)",
+                    "rows");
+            if (r.KAccel.Raw <= 0)
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 K_accel = {r.KAccel.Raw} raw 须 > 0(AC-6-08)", "rows");
+            if (r.KDecel.Raw <= 0)
+                throw new ArgumentException(
+                    $"TERRAIN_TABLE 第 {i} 行 K_decel = {r.KDecel.Raw} raw 须 > 0(AC-6-08)", "rows");
+
+            if (r.KSpeed == 1) baselineRows++;
+        }
+
+        /// <summary>③ 每格 id 必须指向表里存在的行,且长度与几何一致。</summary>
+        private static void ValidateCells(IReadOnlyList<int> cellTerrainId, int totalCells, HashSet<int> byId)
+        {
+            if (cellTerrainId.Count != totalCells)
+                throw new ArgumentException(
+                    $"每格 terrain_id 数组长度 = {cellTerrainId.Count},须等于世界格数 {totalCells} —— " +
+                    "长度不齐 = 地表与几何不是同一张图纸", nameof(cellTerrainId));
+
+            for (int i = 0; i < cellTerrainId.Count; i++)
+            {
+                if (!byId.Contains(cellTerrainId[i]))
+                    throw new ArgumentException(
+                        $"每格 terrain_id 第 {i} 项 = {cellTerrainId[i]} 不在 TERRAIN_TABLE " +
+                        "{" + string.Join(", ", SortedIds(byId)) + "} 内 —— 运行期查表会取出越界行",
+                        nameof(cellTerrainId));
+            }
+        }
+
+        /// <summary>④ 控制器参数的量程。</summary>
+        /// <remarks>判据**不在这里**,在 `LatticeParamQuantization`(单一出处)。本节只负责把它执行出来:
+        /// 量纲(量子)与上下界都由那个类型给出,读侧 codec 调的是同一对谓词 ⇒
+        /// 「作者侧放行的值」与「装载侧放行的值」不可能是两套。</remarks>
+        private static void ValidateControllerParams(int slopeLimitDegX100, int stepOffsetMm)
+        {
+            if (!LatticeParamQuantization.IsValidSlopeLimit(slopeLimitDegX100))
+                throw new ArgumentOutOfRangeException(
+                    nameof(slopeLimitDegX100),
+                    $"slopeLimit 量化值 = {slopeLimitDegX100}(0.01 度)超出 " +
+                    $"(0, {LatticeParamQuantization.SlopeLimitMaxUnits}] —— 即 (0°, 90°]");
+            if (!LatticeParamQuantization.IsValidStepOffset(stepOffsetMm))
+                throw new ArgumentOutOfRangeException(
+                    nameof(stepOffsetMm),
+                    $"stepOffset 量化值 = {stepOffsetMm} mm 超出 " +
+                    $"[0, {LatticeParamQuantization.StepOffsetMaxUnits}]");
         }
 
         /// <summary>`terrain_id → 表内下标`(**单一出处**;导出、绑定、装载共用同一张表推导)。</summary>

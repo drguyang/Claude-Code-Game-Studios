@@ -186,62 +186,103 @@ namespace DaYiJingCheng.EditorTools.Level
             Width = width; Height = height; Depth = depth;
             Slots = slots ?? throw new ArgumentNullException(nameof(slots));
 
-            // 格总数用 long 算再落 int:W×H×D 在 int 上可回绕,回绕值落回 [0, int.MaxValue] 后
-            // 与真实格数比较会**静默通过**(承 WorldGeometry.ToIndex 的同一条纪律)。
-            long total = (long)width * height * depth;
-            if (total > int.MaxValue)
-                throw new ArgumentOutOfRangeException(
-                    nameof(width), $"世界格总数 {total} 超出 int 域 —— 一维索引公式 (x*H+y)*D+z 不可表示");
-            TotalCells = (int)total;
+            TotalCells = ComputeTotalCells(width, height, depth);
+            ValidateLatticeSize(latticeSizeMm);
 
-            if (latticeSizeMm < 0)
-                throw new ArgumentOutOfRangeException(
-                    nameof(latticeSizeMm), $"LATTICE_SIZE 量化值 = {latticeSizeMm} mm 不得为负(0 = 未声明)");
-
-            if (walkable != null)
-            {
-                if (walkable.Count != TotalCells)
-                    throw new ArgumentException(
-                        $"每格可走性数组长度 = {walkable.Count},须等于世界格数 {TotalCells} —— " +
-                        "长度不齐 = 可走性与几何不是同一张图纸", nameof(walkable));
-                for (int i = 0; i < walkable.Count; i++)
-                {
-                    if (walkable[i] != 0 && walkable[i] != 1)
-                        throw new ArgumentException(
-                            $"每格可走性第 {i} 项 = {walkable[i]} —— 只接受 0/1(不可通行用 0 表达;" +
-                            "非 0/1 会让读方猜「非零即真」,而 0b10 之类的位值是真值域里的假值)",
-                            nameof(walkable));
-                }
-                var copyW = new int[walkable.Count];
-                for (int i = 0; i < walkable.Count; i++) copyW[i] = walkable[i];
-                Walkable = Array.AsReadOnly(copyW);
-            }
-
-            if (terrain != null)
-            {
-                if (terrain.CellTerrainId.Count != TotalCells)
-                    throw new ArgumentException(
-                        $"每格 terrain_id 数组长度 = {terrain.CellTerrainId.Count},真值来自 TerrainSource;" +
-                        $"本关卡的世界格数 = {TotalCells}", nameof(terrain));
-                Terrain = terrain;
-            }
+            Walkable = CopyWalkable(walkable, TotalCells);
+            Terrain = ValidateTerrain(terrain, TotalCells);
 
             LatticeSizeMm = latticeSizeMm;
             Ecozones = ecozones;
             Poi = poi;
             Resources = resources;
 
-            // 视觉层声明:C1 的比对对象。长度对账由 `VisualLayerSource` 自己判(单一出处)。
-            if (visualLayer != null && visualLayer.TotalCells != TotalCells)
-                throw new ArgumentException(
-                    $"视觉层声明的世界格数 = {visualLayer.TotalCells},本关卡 = {TotalCells} —— " +
-                    "两者不是同一张图纸(C1 会比到别人的格上)", nameof(visualLayer));
-            VisualLayer = visualLayer;
+            VisualLayer = ValidateVisualLayer(visualLayer, TotalCells);
             ModuleFootprints = moduleFootprints;
 
-            // chunk 三件:要么全声明(≥1),要么全为零(= 未声明)。
-            // ⚠️ 半声明(如 X=8 而 Y=0)在 `ChunkTopology.ForWorld` 必抛,但那时报文指向
-            //    「数值非法」而不是「你漏了一个轴」—— 在构造期分开判,报文才指得准。
+            // ⚠️ 这三行**不能**挪进 `ValidateChunkSizes` —— `ChunkSize*` 是 `readonly`,
+            //    只能在构造器里赋值(CS0191)。校验与落值因此拆成两步。
+            ValidateChunkSizes(chunkSizeX, chunkSizeY, chunkSizeZ);
+            ChunkSizeX = chunkSizeX;
+            ChunkSizeY = chunkSizeY;
+            ChunkSizeZ = chunkSizeZ;
+        }
+
+        // ── 构造期的六段校验(2026-10-29 拆分:原 ctor 88 行 > 40)──────────────
+        // ⚠️ **各段的执行次序与报文原文逐字未变** —— 次序决定「同时有多处非法时报哪一条」。
+
+        /// <summary>格总数 + `int` 域守卫。</summary>
+        /// <remarks>格总数用 long 算再落 int:W×H×D 在 int 上可回绕,回绕值落回 `[0, int.MaxValue]` 后
+        /// 与真实格数比较会**静默通过**(承 `WorldGeometry.ToIndex` 的同一条纪律)。</remarks>
+        private static int ComputeTotalCells(int width, int height, int depth)
+        {
+            long total = (long)width * height * depth;
+            if (total > int.MaxValue)
+                throw new ArgumentOutOfRangeException(
+                    nameof(width), $"世界格总数 {total} 超出 int 域 —— 一维索引公式 (x*H+y)*D+z 不可表示");
+            return (int)total;
+        }
+
+        /// <summary>格边长量化值守卫。</summary>
+        private static void ValidateLatticeSize(int latticeSizeMm)
+        {
+            if (latticeSizeMm < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(latticeSizeMm), $"LATTICE_SIZE 量化值 = {latticeSizeMm} mm 不得为负(0 = 未声明)");
+        }
+
+        /// <summary>可走性数组的**长度对账 + 0/1 值域 + 防御性拷贝**;`null` 入参 ⇒ `null` 出参。</summary>
+        private static IReadOnlyList<int> CopyWalkable(IReadOnlyList<int> walkable, int totalCells)
+        {
+            if (walkable == null) return null;
+
+            if (walkable.Count != totalCells)
+                throw new ArgumentException(
+                    $"每格可走性数组长度 = {walkable.Count},须等于世界格数 {totalCells} —— " +
+                    "长度不齐 = 可走性与几何不是同一张图纸", nameof(walkable));
+
+            var copy = new int[walkable.Count];
+            for (int i = 0; i < walkable.Count; i++)
+            {
+                if (walkable[i] != 0 && walkable[i] != 1)
+                    throw new ArgumentException(
+                        $"每格可走性第 {i} 项 = {walkable[i]} —— 只接受 0/1(不可通行用 0 表达;" +
+                        "非 0/1 会让读方猜「非零即真」,而 0b10 之类的位值是真值域里的假值)",
+                        nameof(walkable));
+                copy[i] = walkable[i];
+            }
+
+            return Array.AsReadOnly(copy);
+        }
+
+        /// <summary>地形声明的格数对账;`null` 入参 ⇒ `null` 出参。</summary>
+        private static TerrainSource ValidateTerrain(TerrainSource terrain, int totalCells)
+        {
+            if (terrain == null) return null;
+
+            if (terrain.CellTerrainId.Count != totalCells)
+                throw new ArgumentException(
+                    $"每格 terrain_id 数组长度 = {terrain.CellTerrainId.Count},真值来自 TerrainSource;" +
+                    $"本关卡的世界格数 = {totalCells}", nameof(terrain));
+            return terrain;
+        }
+
+        /// <summary>视觉层声明的格数对账(C1 的比对对象);`null` 入参 ⇒ `null` 出参。</summary>
+        /// <remarks>长度对账由 `VisualLayerSource` 自己判(单一出处),这里只比「是不是同一张图纸」。</remarks>
+        private static VisualLayerSource ValidateVisualLayer(VisualLayerSource visualLayer, int totalCells)
+        {
+            if (visualLayer != null && visualLayer.TotalCells != totalCells)
+                throw new ArgumentException(
+                    $"视觉层声明的世界格数 = {visualLayer.TotalCells},本关卡 = {totalCells} —— " +
+                    "两者不是同一张图纸(C1 会比到别人的格上)", nameof(visualLayer));
+            return visualLayer;
+        }
+
+        /// <summary>chunk 三轴的**全声明或全为零**守卫(落值仍在构造器里,`readonly` 所限)。</summary>
+        /// <remarks>⚠️ 半声明(如 X=8 而 Y=0)在 `ChunkTopology.ForWorld` 必抛,但那时报文指向
+        /// 「数值非法」而不是「你漏了一个轴」—— 在构造期分开判,报文才指得准。</remarks>
+        private static void ValidateChunkSizes(int chunkSizeX, int chunkSizeY, int chunkSizeZ)
+        {
             if (chunkSizeX < 0 || chunkSizeY < 0 || chunkSizeZ < 0)
                 throw new ArgumentOutOfRangeException(
                     nameof(chunkSizeX),
@@ -253,10 +294,6 @@ namespace DaYiJingCheng.EditorTools.Level
                 throw new ArgumentException(
                     $"chunk 尺寸必须三轴**同时**声明或同时为零(实得 {chunkSizeX}×{chunkSizeY}×{chunkSizeZ})" +
                     " —— 半声明会让「chunk 划分」在某一轴上没有定义", nameof(chunkSizeX));
-
-            ChunkSizeX = chunkSizeX;
-            ChunkSizeY = chunkSizeY;
-            ChunkSizeZ = chunkSizeZ;
         }
 
         /// <summary>

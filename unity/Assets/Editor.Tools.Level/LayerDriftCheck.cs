@@ -43,14 +43,31 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 一个返回「无告警」的 `bool` 会让「没输入」与「比过且干净」在类型上不可分,
         /// 而 C1 的全部意义就是区分这两者。
         /// </remarks>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 56 行 &gt; 40):两个方向各成一个私有方法,
+        /// 共享的 `reported` / `total` 走 `ref`(顺序敏感:**方向 ① 必须先于方向 ②**,
+        /// 否则「截断后先报哪几条」会变)。</remarks>
         public static bool TryCheck(LevelSource src, VisualLayerSource visual, out List<string> warnings)
         {
             warnings = new List<string>();
             if (src == null || visual == null) return false;
 
-            // 逻辑侧「开档有实体」的格集:只认 `BakedInitial` 的槽位。
-            // ⚠️ 非 `BakedInitial` 的槽位是**空地可建** —— 视觉层上它就该是空的,
-            //    把它也算成「有实体」会让每一块空地都变成漂移(而那正是正常状态)。
+            HashSet<(int X, int Y, int Z)> logicSolid = CollectLogicSolid(src);
+            int reported = 0, total = 0;
+
+            ReportLogicSolidNotInVisual(src, visual, logicSolid, warnings, ref reported, ref total);
+            ReportVisualSolidNotInLogic(src, visual, logicSolid, warnings, ref reported, ref total);
+
+            if (total > MaxReported)
+                warnings.Add($"{DriftKey}:另有 {total - MaxReported} 处未逐条列出(共 {total} 处)");
+
+            return true;
+        }
+
+        /// <summary>逻辑侧「开档有实体」的格集。</summary>
+        /// <remarks>只认 `BakedInitial` 的槽位。⚠️ 非 `BakedInitial` 的槽位是**空地可建** ——
+        /// 视觉层上它就该是空的,把它也算成「有实体」会让每一块空地都变成漂移(而那正是正常状态)。</remarks>
+        private static HashSet<(int X, int Y, int Z)> CollectLogicSolid(LevelSource src)
+        {
             var logicSolid = new HashSet<(int X, int Y, int Z)>();
             for (int i = 0; i < src.Slots.Count; i++)
             {
@@ -61,9 +78,13 @@ namespace DaYiJingCheng.EditorTools.Level
                 logicSolid.Add((s.X, s.Y, s.Z));
             }
 
-            int reported = 0, total = 0;
+            return logicSolid;
+        }
 
-            // 方向 ①:逻辑说「有家具」⇒ 视觉不能是空的
+        /// <summary>方向 ①:逻辑说「有家具」⇒ 视觉不能是空的。</summary>
+        private static void ReportLogicSolidNotInVisual(LevelSource src, VisualLayerSource visual,
+            HashSet<(int X, int Y, int Z)> logicSolid, List<string> warnings, ref int reported, ref int total)
+        {
             foreach ((int x, int y, int z) in logicSolid)
             {
                 int idx = (x * src.Height + y) * src.Depth + z;
@@ -74,11 +95,15 @@ namespace DaYiJingCheng.EditorTools.Level
                         $"{DriftKey}:格 ({x},{y},{z}) 逻辑层声明**开档有实体**," +
                         "视觉层该格高度为 0 —— 玩家会看见一张桌子凭空出现在空地上");
             }
+        }
 
-            // 方向 ②:视觉说「有东西」⇒ 逻辑层不能是空地
-            //    ⚠️ 没有这一半的话,一个「只扫逻辑侧」的实现会让「视觉层多出一堵墙」
-            //    这种漂移永远不被报出 —— 而那正是玩家最常看见的一种(`V-6-7`:未发现的 POI
-            //    不得被视觉提前暴露,反方向同理)。
+        /// <summary>方向 ②:视觉说「有东西」⇒ 逻辑层不能是空地。</summary>
+        /// <remarks>⚠️ 没有这一半的话,一个「只扫逻辑侧」的实现会让「视觉层多出一堵墙」
+        /// 这种漂移永远不被报出 —— 而那正是玩家最常看见的一种(`V-6-7`:未发现的 POI
+        /// 不得被视觉提前暴露,反方向同理)。</remarks>
+        private static void ReportVisualSolidNotInLogic(LevelSource src, VisualLayerSource visual,
+            HashSet<(int X, int Y, int Z)> logicSolid, List<string> warnings, ref int reported, ref int total)
+        {
             for (int x = 0; x < src.Width; x++)
                 for (int y = 0; y < src.Height; y++)
                     for (int z = 0; z < src.Depth; z++)
@@ -93,11 +118,6 @@ namespace DaYiJingCheng.EditorTools.Level
                                 $"{visual.CellHeightMm[idx]} mm),逻辑层该格**没有开档占用** —— " +
                                 "玩家会看见一堵墙挡路,而判定说这里是空地(可建 / 可走)");
                     }
-
-            if (total > MaxReported)
-                warnings.Add($"{DriftKey}:另有 {total - MaxReported} 处未逐条列出(共 {total} 处)");
-
-            return true;
         }
     }
 }

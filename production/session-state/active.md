@@ -12287,3 +12287,20 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **不在范围内(未动)**:`Editor.Tools.Level/` 全树**仍有 18 个方法 > 40 行**(`TerrainSource.ctor` 90 ·
   `LevelSource.ctor` 88 · `NavChunkSource.TryCheck` 69 …),属更早的代码,M-5 只点了几处。
 - **原件** = `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。
+
+## Session Extract — 全树方法拆分批 2(2026-10-29 · 纯重构)
+
+- **范围**:`Editor.Tools.Level/` 下 **9 个文件、19 个方法**(另加批 1 的 `Check`,全树共 20 处)。
+- **终态**:168 个方法 · **最长 40 行** · **超 40 行 = 零**(复算命令见证据件 §一)。
+- ⚠️ **第 19 个是 `ColliderFootprintCheck.TryCheck`(56 行),原清单里没有** —— 首版扫描器只认
+  「声明行以 `(` 结尾」,跨行声明没认出来。**修准扫描器才看见**。评审 M-5 的「两个 TryCheck 各 56」
+  指的就是它 + `LayerDriftCheck`。
+- **自己抓到并修掉的一处可观测变更**:`TerrainSource.ValidateOneRow` 初稿写成 `nameof(byId)`
+  ⇒ `ArgumentException.ParamName` 从 `"rows"` 变成 `"byId"`,报文尾巴也会变。改回字面量 `"rows"`。
+  复核:`git diff` 对比 nameof 出现次数,净变化 = 5 处 `nameof(rows)` → `"rows"`,字符串不变。
+- **一次编译失败(3 条 CS0191)**:`readonly` 字段不能在 helper 里赋值 ⇒ 改成「校验下放、赋值留 ctor」。
+- **回归**:EditMode **`5850 / 5813 / 0 / 37`**(与拆前**逐项相同**)· LevelTool 子集 `126 / 124 / 0 / 2` ·
+  PlayMode **`238 / 234 / 0 / 2 / 2`**。
+- **如实边界**:**纯重构无新属性可证伪**,本批**零新增夹具**;等价性靠「逐段搬运 + 按构造论证 + 全量回归逐项相同」,
+  `Proven` 记 **✗**。`TerrainApiSpike` 四个探针的唯一风险是 `Emit` 日志**行序漂移**,保序靠逐条对照,**无机器判据**。
+- **原件** = `production/qa/evidence/impl-level-tool-method-split-2026-10-29.md`。

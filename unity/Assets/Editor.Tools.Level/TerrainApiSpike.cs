@@ -106,6 +106,8 @@ namespace DaYiJingCheng.EditorTools.Level
         // ① `TerrainData` 高度的返回精度与坐标系(世界格 ↔ 归一化)
         // ═══════════════════════════════════════════════════════════════════
 
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 62 行 &gt; 40):四段判据各成一个私有方法,
+        /// **`Emit` 的调用次序逐条未变** —— 本件是 spike,日志顺序本身就是证据的一部分。</remarks>
         private static void ProbeA_HeightPrecisionAndCoordinates(StringBuilder log)
         {
             TerrainData td = BuildRampTerrain(out float[,] authored);
@@ -114,12 +116,24 @@ namespace DaYiJingCheng.EditorTools.Level
             Emit(log, "A.heightmapResolution", res.ToString());
             Emit(log, "A.size", F(size.x) + "x" + F(size.y) + "x" + F(size.z));
 
+            EmitA_SampleAndCornerVerdicts(log, td, authored, res, out float n00, out float n11, out float nMid);
+            EmitA_NormalizedVerdict(log, n00, n11, nMid);
+            EmitA_InterpolatedHeightVerdict(log, td, size, nMid);
+            EmitA_UlpProbe(log);
+
+            UnityEngine.Object.DestroyImmediate(td);
+        }
+
+        /// <summary>A 的取样点 + 判据 1(角值是否复现)。</summary>
+        private static void EmitA_SampleAndCornerVerdicts(StringBuilder log, TerrainData td,
+            float[,] authored, int res, out float n00, out float n11, out float nMid)
+        {
             // 取样点三组:
             //   网格首/尾角 = 索引 (0,0) 与 (res-1,res-1),归一化 0 与 1,世界 0 m 与 size.x/z;
             //   网格中点   = 索引 (res/2,res/2),归一化 0.5,世界 (size/2)。
-            float n00 = (float)InvokeSample(td, "GetHeight", 0f, 0f);
-            float n11 = (float)InvokeSample(td, "GetHeight", 1f, 1f);
-            float nMid = (float)InvokeSample(td, "GetHeight", 0.5f, 0.5f);
+            n00 = (float)InvokeSample(td, "GetHeight", 0f, 0f);
+            n11 = (float)InvokeSample(td, "GetHeight", 1f, 1f);
+            nMid = (float)InvokeSample(td, "GetHeight", 0.5f, 0.5f);
             Emit(log, "A.getHeight_0_0", F(n00));
             Emit(log, "A.getHeight_1_1", F(n11));
             Emit(log, "A.getHeight_0p5_0p5", F(nMid));
@@ -133,22 +147,32 @@ namespace DaYiJingCheng.EditorTools.Level
                  (Mathf.Abs(n00 - authored[0, 0]) < 1e-6f).ToString());
             Emit(log, "A.corner11_matchesAuthoredNormalized",
                  (Mathf.Abs(n11 - authored[res - 1, res - 1]) < 1e-6f).ToString());
+        }
 
-            // 判据 2:返回量是不是**归一化**(值域 [0,1])—— 斜坡顶作者写 1.0,size.y = 10 m。
-            //   若返回米,顶点会是 10 ⇒ max > 1。
+        /// <summary>A 的判据 2:返回量是不是**归一化**(值域 [0,1])。</summary>
+        /// <remarks>斜坡顶作者写 1.0,size.y = 10 m。若返回米,顶点会是 10 ⇒ max &gt; 1。</remarks>
+        private static void EmitA_NormalizedVerdict(StringBuilder log, float n00, float n11, float nMid)
+        {
             Emit(log, "A.observed_max", F(Mathf.Max(n00, Mathf.Max(n11, nMid))));
             Emit(log, "A.returns_normalized_in_0_1",
                  (n11 >= 0f && n11 <= 1f && Mathf.Abs(n11 - 1f) < 1e-4f).ToString());
+        }
 
-            // 判据 3:`GetInterpolatedHeight` 是否返回**米**,且 == 归一化 × size.y。
+        /// <summary>A 的判据 3:`GetInterpolatedHeight` 是否返回**米**,且 == 归一化 × size.y。</summary>
+        private static void EmitA_InterpolatedHeightVerdict(StringBuilder log, TerrainData td,
+            Vector3 size, float nMid)
+        {
             float i00 = (float)InvokeSample(td, "GetInterpolatedHeight", 0f, 0f);
             float iMid = (float)InvokeSample(td, "GetInterpolatedHeight", size.x * 0.5f, size.z * 0.5f);
             Emit(log, "A.interpHeight_world00", F(i00));
             Emit(log, "A.interpHeight_worldMid", F(iMid));
             Emit(log, "A.interp_equals_normalized_x_sizeY",
                  (Mathf.Abs(iMid - nMid * size.y) < 1e-3f).ToString());
+        }
 
-            // 判据 4:最小可分辨高度差 —— 作者侧写 1e-6 的差,读回是否仍可分。
+        /// <summary>A 的判据 4:最小可分辨高度差(作者侧写 1e-6 的差,读回是否仍可分)。</summary>
+        private static void EmitA_UlpProbe(StringBuilder log)
+        {
             var probe = new TerrainData();
             probe.heightmapResolution = Res;
             probe.size = new Vector3(16f, 10f, 16f);
@@ -165,7 +189,6 @@ namespace DaYiJingCheng.EditorTools.Level
             Emit(log, "A.ulp_probe_delta", F(pb - pa));
             Emit(log, "A.ulp_probe_distinguishable", (pa != pb).ToString());
 
-            UnityEngine.Object.DestroyImmediate(td);
             UnityEngine.Object.DestroyImmediate(probe);
         }
 
@@ -176,10 +199,24 @@ namespace DaYiJingCheng.EditorTools.Level
         // 所以它**不能**判定 `GetInterpolatedHeight` 吃的是哪一套。本节的取样点刻意选在
         // **两种读法给出不同答案**的位置上 —— 那才叫判据。
 
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 75 行 &gt; 40):坐标系判据 / 索引面 /
+        /// `GetSteepness` 三块各成一个私有方法,**`Emit` 次序逐条未变**。</remarks>
         private static void ProbeA2_CoordinateConvention(StringBuilder log)
         {
-            // 纯 x 向斜坡:height[z,x] = x/(res-1) ⇒ 归一化高度在 x 方向线性 0→1。
-            // 世界尺寸 16×10×16 ⇒ 世界高度 = 归一化 × 10 m,x 向世界跨度 16 m。
+            TerrainData td = BuildPureXRamp();
+
+            EmitA2_InterpConventionVerdict(log, td);
+            EmitA2_IndexFace(log, td);
+
+            UnityEngine.Object.DestroyImmediate(td);
+
+            EmitA2_SteepnessConvention(log);
+        }
+
+        /// <summary>纯 x 向斜坡:`height[z,x] = x/(res-1)`。</summary>
+        /// <remarks>世界尺寸 16×10×16 ⇒ 世界高度 = 归一化 × 10 m,x 向世界跨度 16 m。</remarks>
+        private static TerrainData BuildPureXRamp()
+        {
             var td = new TerrainData();
             td.heightmapResolution = Res;
             td.size = new Vector3(16f, 10f, 16f);
@@ -188,7 +225,12 @@ namespace DaYiJingCheng.EditorTools.Level
                 for (int x = 0; x < Res; x++)
                     ramp[z, x] = (float)x / (Res - 1);
             td.SetHeights(0, 0, ramp);
+            return td;
+        }
 
+        /// <summary>A2 的决定性取样:`GetInterpolatedHeight` 吃归一化还是世界米。</summary>
+        private static void EmitA2_InterpConventionVerdict(StringBuilder log, TerrainData td)
+        {
             // 决定性取样:x = 0.25。
             //   若吃归一化 ⇒ 归一化高度 0.25 ⇒ **2.5 m**
             //   若吃世界米 ⇒ 世界 x = 0.25 m,即归一化 0.25/16 = 0.015625 ⇒ **0.15625 m**
@@ -198,7 +240,11 @@ namespace DaYiJingCheng.EditorTools.Level
                  (Mathf.Abs(atQuarter - 2.5f) < 0.01f).ToString());
             Emit(log, "A2.interp_takes_worldMeters",
                  (Mathf.Abs(atQuarter - 0.15625f) < 0.01f).ToString());
+        }
 
+        /// <summary>A2 的索引面:`GetHeight(int,int)` 取首/中/末 + 越界是否被钳。</summary>
+        private static void EmitA2_IndexFace(StringBuilder log, TerrainData td)
+        {
             // `GetHeight(int,int)` 的索引面:以**网格索引**直接取首/中/末三个样本。
             // 期望(若「索引 + 米」):0 / 5 / 10。
             Emit(log, "A2.getHeightIndex_0", F((float)InvokeRaw(td, "GetHeight", 0, 0)));
@@ -216,12 +262,15 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 clampNote = "throws:" + ex.GetType().Name;
             }
+
             Emit(log, "A2.getHeightIndex_overlast", clampNote);
             Emit(log, "A2.heightmapWidth", td.heightmapWidth.ToString());
             Emit(log, "A2.heightmapHeight", td.heightmapHeight.ToString());
+        }
 
-            UnityEngine.Object.DestroyImmediate(td);
-
+        /// <summary>A2 的 `GetSteepness` 坐标系判据。</summary>
+        private static void EmitA2_SteepnessConvention(StringBuilder log)
+        {
             // `GetSteepness` 的坐标系 —— 用一个**坡度随 x 变化**的面(h = x²),
             // 使「归一化」与「世界米」在同一个数值上给出不同读数。
             var td2 = new TerrainData();
@@ -286,15 +335,28 @@ namespace DaYiJingCheng.EditorTools.Level
         // ② `TerrainCollider` 与 `TerrainData` 的可走性关系(`slopeLimit` 在哪一侧生效)
         // ═══════════════════════════════════════════════════════════════════
 
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 41 行 &gt; 40):API 面 / 单位 / 控制器默认值
+        /// 三块各成一个私有方法,**`Emit` 次序逐条未变**。</remarks>
         private static void ProbeB_SlopeLimitOwnership(StringBuilder log)
+        {
+            EmitB_ApiSurface(log);
+            EmitB_SteepnessUnit(log);
+            EmitB_ControllerDefaults(log);
+        }
+
+        /// <summary>B 的 API 面:哪个类型带 `slopeLimit` / `GetSteepness`。</summary>
+        private static void EmitB_ApiSurface(StringBuilder log)
         {
             Emit(log, "B.terrain_has_slopeLimit", HasProperty(typeof(Terrain), "slopeLimit").ToString());
             Emit(log, "B.terrainCollider_has_slopeLimit", HasProperty(typeof(TerrainCollider), "slopeLimit").ToString());
             Emit(log, "B.terrainData_has_slopeLimit", HasProperty(typeof(TerrainData), "slopeLimit").ToString());
             Emit(log, "B.characterController_has_slopeLimit", HasProperty(typeof(CharacterController), "slopeLimit").ToString());
             Emit(log, "B.terrainData_has_getSteepness", HasMethod(typeof(TerrainData), "GetSteepness").ToString());
+        }
 
-            // `GetSteepness` 的**单位**实测:造一个 45° 斜面(水平 10 m 升 10 m)。
+        /// <summary>B 的单位实测:造一个 45° 斜面(水平 10 m 升 10 m)。</summary>
+        private static void EmitB_SteepnessUnit(StringBuilder log)
+        {
             var td = new TerrainData();
             td.heightmapResolution = Res;
             td.size = new Vector3(10f, 10f, 10f);
@@ -310,7 +372,12 @@ namespace DaYiJingCheng.EditorTools.Level
             Emit(log, "B.getSteepness_0p1_0p5", F(steepLow));
             Emit(log, "B.steepness_is_degrees_45", (Mathf.Abs(steepMid - 45f) < 1f).ToString());
 
-            // CharacterController.slopeLimit / stepOffset 的**实际取值与量纲**。
+            UnityEngine.Object.DestroyImmediate(td);
+        }
+
+        /// <summary>B 的 `CharacterController.slopeLimit` / `stepOffset` 实际取值与量纲。</summary>
+        private static void EmitB_ControllerDefaults(StringBuilder log)
+        {
             var go = new GameObject("SpikeCC");
             try
             {
@@ -324,8 +391,6 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
-
-            UnityEngine.Object.DestroyImmediate(td);
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -344,29 +409,26 @@ namespace DaYiJingCheng.EditorTools.Level
 
             // (b) 走 **AssetDatabase** 往返:建资产 → 存 → 重新 Load → 从新引用读高度 → 删。
             //     这一条才是「编辑期工具能不能**从盘上的美术地形资产**取数」的实测面。
+            EmitC_AssetRoundtrip(log);
+        }
+
+        /// <summary>C 的 (b) 段:`AssetDatabase` 往返。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ProbeC_EditModeAssetReadability"/> 61 行 &gt; 40)。
+        /// ⚠️ 建目录 / 读回 / 删目录三块拆开,但 **`Emit` 次序与 `try/catch/finally` 的语义未变**
+        /// (异常仍先于 7 条结果行打出)。</remarks>
+        private static void EmitC_AssetRoundtrip(StringBuilder log)
+        {
             bool created = false, loadedOk = false, deleted = false;
             float fromAsset = float.NaN;
             int assetResolution = -1;
             Vector3 assetSize = default;
+
             try
             {
-                if (!AssetDatabase.IsValidFolder(TempFolder))
-                    created = AssetDatabase.CreateFolder("Assets", "TerrainSpikeTemp") != string.Empty;
-
-                TerrainData authored = BuildRampTerrain(out _);
-                string assetPath = TempFolder + "/SpikeTerrain.asset";
-                AssetDatabase.CreateAsset(authored, assetPath);
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-
-                var reloaded = AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath);
-                loadedOk = reloaded != null;
-                if (loadedOk)
-                {
-                    fromAsset = (float)InvokeSample(reloaded, "GetHeight", 0.5f, 0.5f);
-                    assetResolution = reloaded.heightmapResolution;
-                    assetSize = reloaded.size;
-                }
+                // ⚠️ `CreateTempFolder()` 必须留在 try 内 —— 原实现如此:建目录若抛,
+                //    要落到下面的 catch 并打出 `C.asset_roundtrip_exception`。移出去会改变行为。
+                created = CreateTempFolder();
+                (loadedOk, fromAsset, assetResolution, assetSize) = ReadBackAsset();
             }
             catch (Exception ex)
             {
@@ -374,15 +436,7 @@ namespace DaYiJingCheng.EditorTools.Level
             }
             finally
             {
-                if (AssetDatabase.IsValidFolder(TempFolder))
-                {
-                    deleted = AssetDatabase.DeleteAsset(TempFolder);
-                    AssetDatabase.Refresh();
-                }
-                else
-                {
-                    deleted = true;   // 目录从未建起 = 无需删
-                }
+                deleted = DeleteTempFolder();
             }
 
             Emit(log, "C.folder_created", created.ToString());
@@ -392,6 +446,42 @@ namespace DaYiJingCheng.EditorTools.Level
             Emit(log, "C.asset_size", F(assetSize.x) + "x" + F(assetSize.y) + "x" + F(assetSize.z));
             Emit(log, "C.temp_folder_deleted", deleted.ToString());
             Emit(log, "C.temp_folder_gone_after", (!AssetDatabase.IsValidFolder(TempFolder)).ToString());
+        }
+
+        /// <summary>建资产 → 存 → 重新 Load → 读回高度 / 分辨率 / 尺寸。</summary>
+        /// <returns>读回的四元组;未 Load 到 ⇒ `(false, NaN, -1, default)`。</returns>
+        private static (bool loadedOk, float fromAsset, int resolution, Vector3 size) ReadBackAsset()
+        {
+            TerrainData authored = BuildRampTerrain(out _);
+            string assetPath = TempFolder + "/SpikeTerrain.asset";
+            AssetDatabase.CreateAsset(authored, assetPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            var reloaded = AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath);
+            if (reloaded == null) return (false, float.NaN, -1, default);
+
+            return (true,
+                (float)InvokeSample(reloaded, "GetHeight", 0.5f, 0.5f),
+                reloaded.heightmapResolution,
+                reloaded.size);
+        }
+
+        /// <summary>建临时目录;已存在 ⇒ `false`(与「本次没建」同义)。</summary>
+        private static bool CreateTempFolder()
+        {
+            if (AssetDatabase.IsValidFolder(TempFolder)) return false;
+            return AssetDatabase.CreateFolder("Assets", "TerrainSpikeTemp") != string.Empty;
+        }
+
+        /// <summary>删临时目录;本来就不存在 ⇒ `true`(无需删也算删掉了)。</summary>
+        private static bool DeleteTempFolder()
+        {
+            if (!AssetDatabase.IsValidFolder(TempFolder)) return true;   // 目录从未建起 = 无需删
+
+            bool ok = AssetDatabase.DeleteAsset(TempFolder);
+            AssetDatabase.Refresh();
+            return ok;
         }
 
         // ═══════════════════════════════════════════════════════════════════

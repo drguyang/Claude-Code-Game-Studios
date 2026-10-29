@@ -167,6 +167,11 @@
    > PlayMode `238 / 234 / 0 / 2 / 2`(逐项相同)。**等价性 ≠ 已证**(纯重构无新属性可证伪),
    > 只钉住了拆分**引入**的那一处结构风险。原件 =
    > `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。
+   >
+   > 🔁 **2026-10-29 第二批(全树)**:`M-5` 只点了「`Check` ≈142 · `LevelSource` 构造 ≈88 ·
+   > 两个 `TryCheck` 各 56」四处的**一部分**;实测全树共 **20 个** >40 行方法。第二批拆掉其余
+   > **19 个**,终态 **168 个方法 / 最长 40 行 / 超 40 行 = 零**。回归逐项相同。
+   > 原件 = `production/qa/evidence/impl-level-tool-method-split-2026-10-29.md`。
 2. **导出路径仍不跑 C3、也不跑 C2' 的目录半边**(`CheckOrThrow` 内 `navSampler`/`moduleCatalog` 恒 null)。
    现在**会打日志说明「没跑」**(不再是静默),但「导出前置门实际不验 C3」这条事实成立。
    归 **W-2 / W-6** 的同族,需 `run_ci.sh` 真接进工作流后一并解决。

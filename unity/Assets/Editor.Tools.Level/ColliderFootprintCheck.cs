@@ -89,53 +89,66 @@ namespace DaYiJingCheng.EditorTools.Level
             if (specs == null) return true;
 
             for (int i = 0; i < specs.Count; i++)
-            {
-                ModuleFootprintSpec spec = specs[i];
-                string where = $"module {spec.ModuleId}";
-
-                // ① 模块 id 合法性 —— 与 `LevelConsistencyCheck` 的 `module_id ≥ 1` 同一条契约
-                //    (ADR-022:176)。这里再判一次是因为足迹声明可以独立于槽位存在。
-                if (spec.ModuleId <= 0)
-                {
-                    violations.Add(
-                        $"{FootprintKey} [{i}] module id = {spec.ModuleId} 须 ≥ 1 —— " +
-                        "0 / 负数不是合法的模块 id(ADR-022 `module_id ≥ 1`)");
-                    continue;   // id 非法时后面的比对没有意义(会取到别人的定义)
-                }
-
-                // ② 高 collider ⇒ 除非显式声明可走过
-                //    ⚠️ 判据是**严格大于**:等于 stepOffset 的模块正好是「一步能迈上去」的上限,
-                //    把它判失败会让「恰好合规」的模块无法表达。
-                if (spec.ColliderHeightMm > stepOffsetMm && !spec.WalkOverDeclared)
-                {
-                    violations.Add(
-                        $"{HighColliderKey} {where} collider 高 {spec.ColliderHeightMm} mm > " +
-                        $"stepOffset {stepOffsetMm} mm,且**未声明**可走过 —— " +
-                        "玩家会被它的碰撞体挡住,而整数格说这格可走 ⇒ 两套答案(ADR-022 §四 C2')");
-                }
-
-                // ③ 足迹与目录占用格一致
-                if (catalog == null)
-                {
-                    footprintSkipped = true;
-                    continue;
-                }
-
-                ModuleDefinition? defOpt = catalog.GetModuleDefinition(spec.ModuleId);
-                if (!defOpt.HasValue)
-                {
-                    violations.Add(
-                        $"{FootprintKey} {where} 不在模块目录里 —— " +
-                        "足迹声明引用了一个不存在的模块(改 id 后忘了同改另一边)");
-                    continue;
-                }
-
-                string mismatch = CompareOccupancy(spec.LocalOccupancy, defOpt.Value.LocalOccupancy);
-                if (mismatch != null)
-                    violations.Add($"{FootprintKey} {where} {mismatch}");
-            }
+                CheckOneSpec(specs[i], i, stepOffsetMm, catalog, violations, ref footprintSkipped);
 
             return violations.Count == 0;
+        }
+
+        // ── 单模块三段(2026-10-29 拆分:原 TryCheck 56 行 > 40)──────────────────
+        // ⚠️ **各段的次序与报文原文逐字未变**;① 不合法时后面的比对**不跑**(会取到别人的定义)。
+
+        /// <summary>单模块的 ① id 合法性 + ② 高 collider,然后转 ③。</summary>
+        private static void CheckOneSpec(ModuleFootprintSpec spec, int i, int stepOffsetMm,
+            IModuleCatalog catalog, List<string> violations, ref bool footprintSkipped)
+        {
+            string where = $"module {spec.ModuleId}";
+
+            // ① 模块 id 合法性 —— 与 `LevelConsistencyCheck` 的 `module_id ≥ 1` 同一条契约
+            //    (ADR-022:176)。这里再判一次是因为足迹声明可以独立于槽位存在。
+            if (spec.ModuleId <= 0)
+            {
+                violations.Add(
+                    $"{FootprintKey} [{i}] module id = {spec.ModuleId} 须 ≥ 1 —— " +
+                    "0 / 负数不是合法的模块 id(ADR-022 `module_id ≥ 1`)");
+                return;   // id 非法时后面的比对没有意义(会取到别人的定义)
+            }
+
+            // ② 高 collider ⇒ 除非显式声明可走过
+            //    ⚠️ 判据是**严格大于**:等于 stepOffset 的模块正好是「一步能迈上去」的上限,
+            //    把它判失败会让「恰好合规」的模块无法表达。
+            if (spec.ColliderHeightMm > stepOffsetMm && !spec.WalkOverDeclared)
+            {
+                violations.Add(
+                    $"{HighColliderKey} {where} collider 高 {spec.ColliderHeightMm} mm > " +
+                    $"stepOffset {stepOffsetMm} mm,且**未声明**可走过 —— " +
+                    "玩家会被它的碰撞体挡住,而整数格说这格可走 ⇒ 两套答案(ADR-022 §四 C2')");
+            }
+
+            CheckFootprintAgainstCatalog(spec, where, catalog, violations, ref footprintSkipped);
+        }
+
+        /// <summary>③ 足迹与目录占用格一致(缺目录 ⇒ 记 `footprintSkipped`,不是通过)。</summary>
+        private static void CheckFootprintAgainstCatalog(ModuleFootprintSpec spec, string where,
+            IModuleCatalog catalog, List<string> violations, ref bool footprintSkipped)
+        {
+            if (catalog == null)
+            {
+                footprintSkipped = true;
+                return;
+            }
+
+            ModuleDefinition? defOpt = catalog.GetModuleDefinition(spec.ModuleId);
+            if (!defOpt.HasValue)
+            {
+                violations.Add(
+                    $"{FootprintKey} {where} 不在模块目录里 —— " +
+                    "足迹声明引用了一个不存在的模块(改 id 后忘了同改另一边)");
+                return;
+            }
+
+            string mismatch = CompareOccupancy(spec.LocalOccupancy, defOpt.Value.LocalOccupancy);
+            if (mismatch != null)
+                violations.Add($"{FootprintKey} {where} {mismatch}");
         }
 
         /// <summary>比较两份占用格集合(顺序无关;**重复项也算不一致** —— 重复即语义歧义)。</summary>

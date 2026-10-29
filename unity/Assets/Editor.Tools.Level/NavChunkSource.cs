@@ -99,32 +99,43 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 WorldPos chunk = topo.IndexToChunk(ci);
                 var cells = new int[(int)chunkCells];   // 衬垫格保持 0(世界之外 = 不可走)
-
-                int baseX = chunk.X * chunkSizeX;
-                int baseY = chunk.Y * chunkSizeY;
-                int baseZ = chunk.Z * chunkSizeZ;
-
-                for (int lx = 0; lx < chunkSizeX; lx++)
-                {
-                    int x = baseX + lx;
-                    if (x >= sizeX) break;
-                    for (int ly = 0; ly < chunkSizeY; ly++)
-                    {
-                        int y = baseY + ly;
-                        if (y >= sizeY) break;
-                        for (int lz = 0; lz < chunkSizeZ; lz++)
-                        {
-                            int z = baseZ + lz;
-                            if (z >= sizeZ) break;
-                            cells[(lx * chunkSizeY + ly) * chunkSizeZ + lz] =
-                                walkable[(x * sizeY + y) * sizeZ + z];
-                        }
-                    }
-                }
-
+                FillChunkCells(cells, chunk, sizeX, sizeY, sizeZ,
+                    chunkSizeX, chunkSizeY, chunkSizeZ, walkable);
                 result.Add(new NavChunkSlice(ci, chunk.X, chunk.Y, chunk.Z, Array.AsReadOnly(cells)));
             }
+
             return result;
+        }
+
+        /// <summary>把世界可走性搬进一个 chunk 的局部数组(越界处 `break`,衬垫保持 0)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="Slice"/> 50 行 &gt; 40)。
+        /// ⚠️ 三层都用的 `break`(而不是 `continue`)是原样保留的 —— 轴越界后该轴之后的局部坐标
+        /// 只会更越界,`break` 是**等价且更快**的写法,改成 `continue` 结果一样但慢一档。</remarks>
+        private static void FillChunkCells(int[] cells, WorldPos chunk,
+            int sizeX, int sizeY, int sizeZ,
+            int chunkSizeX, int chunkSizeY, int chunkSizeZ, IReadOnlyList<int> walkable)
+        {
+            int baseX = chunk.X * chunkSizeX;
+            int baseY = chunk.Y * chunkSizeY;
+            int baseZ = chunk.Z * chunkSizeZ;
+
+            for (int lx = 0; lx < chunkSizeX; lx++)
+            {
+                int x = baseX + lx;
+                if (x >= sizeX) break;
+                for (int ly = 0; ly < chunkSizeY; ly++)
+                {
+                    int y = baseY + ly;
+                    if (y >= sizeY) break;
+                    for (int lz = 0; lz < chunkSizeZ; lz++)
+                    {
+                        int z = baseZ + lz;
+                        if (z >= sizeZ) break;
+                        cells[(lx * chunkSizeY + ly) * chunkSizeZ + lz] =
+                            walkable[(x * sizeY + y) * sizeZ + z];
+                    }
+                }
+            }
         }
     }
 
@@ -158,6 +169,21 @@ namespace DaYiJingCheng.EditorTools.Level
             int total = sizeX * sizeY * sizeZ;
             var coverCount = new int[total];
 
+            AccumulateCoverage(slices, topo, sizeX, sizeY, sizeZ,
+                chunkSizeX, chunkSizeY, chunkSizeZ, coverCount, violations);
+
+            ReportMissingCells(coverCount, sizeY, sizeZ, violations);
+            ReportDuplicateCells(coverCount, sizeY, sizeZ, violations);
+
+            return violations.Count == 0;
+        }
+
+        /// <summary>统计每格被多少个切片覆盖(形状非法的切片先把报文收进 `violations`)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="TryCheck"/> 69 行 &gt; 40)。</remarks>
+        private static void AccumulateCoverage(IReadOnlyList<NavChunkSlice> slices, ChunkTopology topo,
+            int sizeX, int sizeY, int sizeZ, int chunkSizeX, int chunkSizeY, int chunkSizeZ,
+            int[] coverCount, List<string> violations)
+        {
             for (int s = 0; s < slices.Count; s++)
             {
                 NavChunkSlice slice = slices[s];
@@ -189,8 +215,13 @@ namespace DaYiJingCheng.EditorTools.Level
                     }
                 }
             }
+        }
 
-            // ── ① 漏格:某世界格不在任何切片里 ───────────────────────────────────
+        /// <summary>① 漏格:某世界格不在任何切片里。</summary>
+        private static void ReportMissingCells(int[] coverCount, int sizeY, int sizeZ,
+            List<string> violations)
+        {
+            int total = coverCount.Length;
             for (int i = 0; i < total && violations.Count < MaxReported; i++)
             {
                 if (coverCount[i] != 0) continue;
@@ -200,8 +231,13 @@ namespace DaYiJingCheng.EditorTools.Level
                     "该格在运行期永远查不到导航数据(表现为「那格不可走」)," +
                     "AI 会绕远路而不是报错;切片集合必须覆盖每一格恰一次");
             }
+        }
 
-            // ── ② 重复格:某世界格出现在两个以上切片里 ───────────────────────────
+        /// <summary>② 重复格:某世界格出现在两个以上切片里。</summary>
+        private static void ReportDuplicateCells(int[] coverCount, int sizeY, int sizeZ,
+            List<string> violations)
+        {
+            int total = coverCount.Length;
             for (int i = 0; i < total && violations.Count < MaxReported; i++)
             {
                 if (coverCount[i] <= 1) continue;
@@ -211,8 +247,6 @@ namespace DaYiJingCheng.EditorTools.Level
                     "同格两个答案 ⇒ 「取哪一份」取决于遍历序(非确定性)," +
                     "而两份数据若不同,重放不再逐位一致");
             }
-
-            return violations.Count == 0;
         }
 
         /// <summary>违反项的报出上限(防一整张世界全漏时刷屏;超出即截断,不静默)。</summary>

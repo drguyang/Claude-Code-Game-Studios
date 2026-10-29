@@ -95,16 +95,7 @@ namespace DaYiJingCheng.EditorTools.Level
 
             LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
-            // 全序 = (x, y, z) 升序。声明序不承载语义(重排 = 零信息)。
-            var ordered = new List<SlotSpec>(src.Slots);
-            ordered.Sort((a, b) =>
-            {
-                int cmp = a.X.CompareTo(b.X);
-                if (cmp != 0) return cmp;
-                cmp = a.Y.CompareTo(b.Y);
-                if (cmp != 0) return cmp;
-                return a.Z.CompareTo(b.Z);
-            });
+            List<SlotSpec> ordered = OrderSlots(src.Slots);
 
             var sb = new StringBuilder();
             sb.Append("{\n");
@@ -117,28 +108,49 @@ namespace DaYiJingCheng.EditorTools.Level
             sb.Append("  \"slots\": [\n");
 
             for (int i = 0; i < ordered.Count; i++)
-            {
-                SlotSpec s = ordered[i];
-                sb.Append("    {\"cell\": [")
-                  .Append(Num(s.X)).Append(", ").Append(Num(s.Y)).Append(", ").Append(Num(s.Z))
-                  .Append("], \"slot_type\": ").Append(Quote(TypeName(s.Type)))
-                  .Append(", \"baked_initial\": ").Append(s.BakedInitial ? "true" : "false");
-                // ⚠️ `module_id` **恒出现**(schema 2):`baked_initial = false` 的行写 `null`,
-                //    而不是省略字段 —— 「省略」与「写了 null」在读者眼里是两件事
-                //    (前者像作者遗漏,后者是明确声明「本格无既有家具」),与
-                //    `baked_initial` 必填的既有口径同源。
-                sb.Append(", \"module_id\": ");
-                if (s.BakedInitial)
-                    sb.Append(Num(s.ModuleId));
-                else
-                    sb.Append("null");
-                sb.Append('}')
-                  .Append(i + 1 < ordered.Count ? ",\n" : "\n");
-            }
+                AppendSlot(sb, ordered[i], isLast: i + 1 >= ordered.Count);
 
             sb.Append("  ]\n");
             sb.Append("}\n");
             return sb.ToString();
+        }
+
+        /// <summary>按 `(x, y, z)` 升序排槽位。</summary>
+        /// <remarks>全序 = `(x, y, z)` 升序。声明序不承载语义(重排 = 零信息)。</remarks>
+        private static List<SlotSpec> OrderSlots(IReadOnlyList<SlotSpec> slots)
+        {
+            var ordered = new List<SlotSpec>(slots);
+            ordered.Sort((a, b) =>
+            {
+                int cmp = a.X.CompareTo(b.X);
+                if (cmp != 0) return cmp;
+                cmp = a.Y.CompareTo(b.Y);
+                if (cmp != 0) return cmp;
+                return a.Z.CompareTo(b.Z);
+            });
+
+            return ordered;
+        }
+
+        /// <summary>序列化一行槽位。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ExportBuildSlots"/> 51 行 &gt; 40)。</remarks>
+        private static void AppendSlot(StringBuilder sb, SlotSpec s, bool isLast)
+        {
+            sb.Append("    {\"cell\": [")
+              .Append(Num(s.X)).Append(", ").Append(Num(s.Y)).Append(", ").Append(Num(s.Z))
+              .Append("], \"slot_type\": ").Append(Quote(TypeName(s.Type)))
+              .Append(", \"baked_initial\": ").Append(s.BakedInitial ? "true" : "false");
+            // ⚠️ `module_id` **恒出现**(schema 2):`baked_initial = false` 的行写 `null`,
+            //    而不是省略字段 —— 「省略」与「写了 null」在读者眼里是两件事
+            //    (前者像作者遗漏,后者是明确声明「本格无既有家具」),与
+            //    `baked_initial` 必填的既有口径同源。
+            sb.Append(", \"module_id\": ");
+            if (s.BakedInitial)
+                sb.Append(Num(s.ModuleId));
+            else
+                sb.Append("null");
+            sb.Append('}')
+              .Append(isLast ? "\n" : ",\n");
         }
 
         /// <summary>
@@ -227,8 +239,23 @@ namespace DaYiJingCheng.EditorTools.Level
               .Append(Num(src.Width)).Append(", ")
               .Append(Num(src.Height)).Append(", ")
               .Append(Num(src.Depth)).Append("],\n");
-            // 表按 `terrain_id` 升序 ⇒ 声明序重排不改变字节流(与 slots 的 (x,y,z) 全序同源)。
-            var rows = new List<TerrainRowSpec>(t.Rows);
+            AppendTerrainTable(sb, t.Rows);
+
+            sb.Append("  \"cell_terrain_id\": ");
+            AppendFlatIntArray(sb, t.CellTerrainId, perLine: src.Height * src.Depth);
+            sb.Append(",\n");
+            sb.Append("  \"slope_limit_deg_x100\": ").Append(Num(t.SlopeLimitDegX100)).Append(",\n");
+            sb.Append("  \"step_offset_mm\": ").Append(Num(t.StepOffsetMm)).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>序列化 `terrain_table` 段(按 `terrain_id` 升序)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ExportTerrain"/> &gt; 40 行)。
+        /// 表按 `terrain_id` 升序 ⇒ 声明序重排不改变字节流(与 slots 的 (x,y,z) 全序同源)。</remarks>
+        private static void AppendTerrainTable(StringBuilder sb, IReadOnlyList<TerrainRowSpec> sourceRows)
+        {
+            var rows = new List<TerrainRowSpec>(sourceRows);
             rows.Sort((a, b) => a.TerrainId.CompareTo(b.TerrainId));
 
             sb.Append("  \"terrain_table\": [\n");
@@ -243,14 +270,8 @@ namespace DaYiJingCheng.EditorTools.Level
                   .Append('}')
                   .Append(i + 1 < rows.Count ? ",\n" : "\n");
             }
+
             sb.Append("  ],\n");
-            sb.Append("  \"cell_terrain_id\": ");
-            AppendFlatIntArray(sb, t.CellTerrainId, perLine: src.Height * src.Depth);
-            sb.Append(",\n");
-            sb.Append("  \"slope_limit_deg_x100\": ").Append(Num(t.SlopeLimitDegX100)).Append(",\n");
-            sb.Append("  \"step_offset_mm\": ").Append(Num(t.StepOffsetMm)).Append("\n");
-            sb.Append("}\n");
-            return sb.ToString();
         }
 
         /// <summary>
@@ -379,26 +400,7 @@ namespace DaYiJingCheng.EditorTools.Level
 
             src.Resources.ValidateAgainstLevel(src.Width, src.Height, src.Depth);
 
-            // ── AC-2③:资源格不得与 POI 格重复 ──────────────────────────────────
-            if (src.Poi != null)
-            {
-                var poiCells = new HashSet<(int, int, int)>();
-                for (int i = 0; i < src.Poi.Pois.Count; i++)
-                    poiCells.Add((src.Poi.Pois[i].Cell.X, src.Poi.Pois[i].Cell.Y, src.Poi.Pois[i].Cell.Z));
-
-                var clashes = new List<string>();
-                for (int i = 0; i < src.Resources.Resources.Count; i++)
-                {
-                    ResourceSpec r = src.Resources.Resources[i];
-                    if (poiCells.Contains((r.Cell.X, r.Cell.Y, r.Cell.Z)))
-                        clashes.Add($"resources[{i}] resource_id={r.ResourceId} 落在 POI 格 " +
-                                    $"({r.Cell.X},{r.Cell.Y},{r.Cell.Z})");
-                }
-                if (clashes.Count > 0)
-                    throw new InvalidOperationException(
-                        "[关卡工具] 资源点与 POI 格冲突(一格不能既是 POI 又是资源点):" +
-                        string.Join(";", clashes));
-            }
+            ThrowIfResourcesClashWithPoi(src);
 
             var sb = new StringBuilder();
             sb.Append("{\n");
@@ -411,18 +413,49 @@ namespace DaYiJingCheng.EditorTools.Level
 
             sb.Append("  \"resources\": [\n");
             for (int i = 0; i < rows.Count; i++)
-            {
-                ResourceSpec r = rows[i];
-                sb.Append("    {\"resource_id\": ").Append(Num(r.ResourceId))
-                  .Append(", \"cell\": [").Append(Num(r.Cell.X)).Append(", ")
-                  .Append(Num(r.Cell.Y)).Append(", ").Append(Num(r.Cell.Z)).Append(']')
-                  .Append(", \"ecozone_id\": ").Append(Num(r.EcozoneId))
-                  .Append('}')
-                  .Append(i + 1 < rows.Count ? ",\n" : "\n");
-            }
+                AppendResourceRow(sb, rows[i], isLast: i + 1 >= rows.Count);
+
             sb.Append("  ]\n");
             sb.Append("}\n");
             return sb.ToString();
+        }
+
+        /// <summary>序列化一行资源点。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ExportResources"/> 41 行 &gt; 40)。</remarks>
+        private static void AppendResourceRow(StringBuilder sb, ResourceSpec r, bool isLast)
+        {
+            sb.Append("    {\"resource_id\": ").Append(Num(r.ResourceId))
+              .Append(", \"cell\": [").Append(Num(r.Cell.X)).Append(", ")
+              .Append(Num(r.Cell.Y)).Append(", ").Append(Num(r.Cell.Z)).Append(']')
+              .Append(", \"ecozone_id\": ").Append(Num(r.EcozoneId))
+              .Append('}')
+              .Append(isLast ? "\n" : ",\n");
+        }
+
+        /// <summary>AC-2③:资源格不得与 POI 格重复。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ExportResources"/> 59 行 &gt; 40)。
+        /// ⚠️ 汇总所有冲突**一次报出**(不是撞到第一个就抛)—— 作者一次改完才不用反复试。</remarks>
+        private static void ThrowIfResourcesClashWithPoi(LevelSource src)
+        {
+            if (src.Poi == null) return;
+
+            var poiCells = new HashSet<(int, int, int)>();
+            for (int i = 0; i < src.Poi.Pois.Count; i++)
+                poiCells.Add((src.Poi.Pois[i].Cell.X, src.Poi.Pois[i].Cell.Y, src.Poi.Pois[i].Cell.Z));
+
+            var clashes = new List<string>();
+            for (int i = 0; i < src.Resources.Resources.Count; i++)
+            {
+                ResourceSpec r = src.Resources.Resources[i];
+                if (poiCells.Contains((r.Cell.X, r.Cell.Y, r.Cell.Z)))
+                    clashes.Add($"resources[{i}] resource_id={r.ResourceId} 落在 POI 格 " +
+                                $"({r.Cell.X},{r.Cell.Y},{r.Cell.Z})");
+            }
+
+            if (clashes.Count > 0)
+                throw new InvalidOperationException(
+                    "[关卡工具] 资源点与 POI 格冲突(一格不能既是 POI 又是资源点):" +
+                    string.Join(";", clashes));
         }
 
         /// <summary>
@@ -520,6 +553,26 @@ namespace DaYiJingCheng.EditorTools.Level
 
             LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
 
+            ThrowIfNavNotExportable(src);
+
+            IReadOnlyList<NavChunkSlice> slices = NavChunkSlicer.Slice(
+                src.Width, src.Height, src.Depth,
+                src.ChunkSizeX, src.ChunkSizeY, src.ChunkSizeZ, src.Walkable);
+
+            RunC6AndC3(src, slices);
+
+            var products = new List<DataSetProduct>(slices.Count);
+            for (int i = 0; i < slices.Count; i++)
+                products.Add(new DataSetProduct(
+                    WorldDataSets.NavChunkFileName(src.LevelId, slices[i].ChunkIndex),
+                    RenderNavChunk(src, slices[i])));
+            return products;
+        }
+
+        /// <summary>`world_nav` 的两条前置:可走性 + chunk 尺寸。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ExportNavChunks"/> 41 行 &gt; 40)。</remarks>
+        private static void ThrowIfNavNotExportable(LevelSource src)
+        {
             if (src.Walkable == null)
                 throw new InvalidOperationException(
                     $"[关卡工具] {src.LevelId} 未声明每格可走性 ⇒ 拒绝导出 world_nav。" +
@@ -528,11 +581,11 @@ namespace DaYiJingCheng.EditorTools.Level
                 throw new InvalidOperationException(
                     $"[关卡工具] {src.LevelId} 未声明 chunk 尺寸 ⇒ 拒绝导出 world_nav" +
                     "(ADR-022 §五:{chunk} 键 = ADR-015 §四 的同一 chunk)");
+        }
 
-            IReadOnlyList<NavChunkSlice> slices = NavChunkSlicer.Slice(
-                src.Width, src.Height, src.Depth,
-                src.ChunkSizeX, src.ChunkSizeY, src.ChunkSizeZ, src.Walkable);
-
+        /// <summary>C6 切片完整性(**硬失败**)+ C3 导航格 ↔ NavMesh(**告警**)。</summary>
+        private static void RunC6AndC3(LevelSource src, IReadOnlyList<NavChunkSlice> slices)
+        {
             // ── C6 切片完整性 = **硬失败**(ADR-022 §四)──────────────────────────
             if (!NavChunkSliceCheck.TryCheck(
                     src.Width, src.Height, src.Depth,
@@ -542,18 +595,10 @@ namespace DaYiJingCheng.EditorTools.Level
                     + string.Join("\n  ", c6));
 
             // ── C3 导航格 ↔ NavMesh = **告警** ───────────────────────────────────
-            if (NavMeshConsistencyCheck.TryCheck(src, NavMeshReachabilitySampler.For(src), out List<string> c3)
-                == false)
+            if (!NavMeshConsistencyCheck.TryCheck(src, NavMeshReachabilitySampler.For(src), out List<string> c3))
             {
                 for (int i = 0; i < c3.Count; i++) Debug.LogWarning(c3[i]);
             }
-
-            var products = new List<DataSetProduct>(slices.Count);
-            for (int i = 0; i < slices.Count; i++)
-                products.Add(new DataSetProduct(
-                    WorldDataSets.NavChunkFileName(src.LevelId, slices[i].ChunkIndex),
-                    RenderNavChunk(src, slices[i])));
-            return products;
         }
 
         /// <summary>分派表适配:`NavChunk` 的多份产物(每 chunk 一文件)。</summary>

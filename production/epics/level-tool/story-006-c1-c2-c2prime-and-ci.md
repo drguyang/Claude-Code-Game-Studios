@@ -8,6 +8,9 @@
 > ✅ **原「未结」项已结(2026-10-29 单开轮)**:`Check` **163 行 → 拆为 11 个方法,最长 35 行**。
 > 纯重构;另补 1 条夹具钉住拆分引入的唯一结构风险。原件 =
 > `production/qa/evidence/impl-level-tool-check-split-2026-10-29.md`。
+> ✅ **同日后继批**:`Editor.Tools.Level/` **全树**另拆 **19 个** >40 行方法
+> (9 个文件,含两个构造器),终态 **168 个方法 / 最长 40 行 / 超 40 行 = 零**。
+> 原件 = `production/qa/evidence/impl-level-tool-method-split-2026-10-29.md`。
 > 🔁 **留痕**:本 story 曾于评审前误标 `Complete`,评审判 CHANGES REQUIRED 后退回修复,现重新判定。
 > **Layer**: Tooling
 > **Type**: Integration

@@ -48,6 +48,8 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>渲染成可读文本(CI 日志 / 终端)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 43 行 &gt; 40):四类列表交给 <see cref="AppendList"/>,
+        /// 每类的报文头 / 后缀由调用点给出 —— 四条原文逐字保留。</remarks>
         public string Render()
         {
             var sb = new StringBuilder();
@@ -59,37 +61,29 @@ namespace DaYiJingCheng.EditorTools.Level
                 return sb.ToString();
             }
 
-            if (Report.Violations.Count > 0)
-            {
-                sb.AppendLine($"  ✗ 硬失败 {Report.Violations.Count} 条:");
-                foreach (string v in Report.Violations) sb.AppendLine($"      · {v}");
-            }
-            else
-            {
-                sb.AppendLine("  ✓ 无硬失败");
-            }
-
-            if (Report.Warnings.Count > 0)
-            {
-                sb.AppendLine($"  ⚠ 告警 {Report.Warnings.Count} 条(**不**使构建失败):");
-                foreach (string w in Report.Warnings) sb.AppendLine($"      · {w}");
-            }
-
+            AppendList(sb, "✗ 硬失败", "条:", Report.Violations, emptyLine: "  ✓ 无硬失败");
+            AppendList(sb, "⚠ 告警", "条(**不**使构建失败):", Report.Warnings);
             // ⚠️ `NotRun` 永远打印 —— 它是「没跑」与「跑过且干净」在日志上的唯一区分。
-            if (Report.NotRun.Count > 0)
-            {
-                sb.AppendLine($"  ○ 未跑 {Report.NotRun.Count} 条(无输入,不是通过):");
-                foreach (string n in Report.NotRun) sb.AppendLine($"      · {n}");
-            }
-
-            if (Report.Unimplemented.Count > 0)
-            {
-                sb.AppendLine($"  ? 尚未实现 {Report.Unimplemented.Count} 条:");
-                foreach (string u in Report.Unimplemented) sb.AppendLine($"      · {u}");
-            }
+            AppendList(sb, "○ 未跑", "条(无输入,不是通过):", Report.NotRun);
+            AppendList(sb, "? 尚未实现", "条:", Report.Unimplemented);
 
             sb.AppendLine($"  退出码 = {ExitCode}(0 无硬失败 / 1 有硬失败 / 2 链跑不起来)");
             return sb.ToString();
+        }
+
+        /// <summary>打印一类条目:<paramref name="label"/> + 条数 + <paramref name="suffix"/>,逐条缩进。</summary>
+        /// <param name="emptyLine">该列为空时改打这一行;`null` = 空就什么都不打。</param>
+        private static void AppendList(StringBuilder sb, string label, string suffix,
+            IReadOnlyList<string> items, string emptyLine = null)
+        {
+            if (items.Count == 0)
+            {
+                if (emptyLine != null) sb.AppendLine(emptyLine);
+                return;
+            }
+
+            sb.AppendLine($"  {label} {items.Count} {suffix}");
+            foreach (string item in items) sb.AppendLine($"      · {item}");
         }
     }
 

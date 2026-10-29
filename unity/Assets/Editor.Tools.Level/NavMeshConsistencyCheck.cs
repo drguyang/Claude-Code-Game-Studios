@@ -81,32 +81,7 @@ namespace DaYiJingCheng.EditorTools.Level
             for (int x = 0; x < src.Width; x++)
                 for (int y = 0; y < src.Height; y++)
                     for (int z = 0; z < src.Depth; z++)
-                    {
-                        int idx = (x * src.Height + y) * src.Depth + z;
-                        bool logicalWalkable = src.Walkable[idx] == 1;
-
-                        NavReachability reach = sampler(new WorldPos(x, y, z));
-                        if (reach == NavReachability.Unknown) continue;   // 无 NavMesh 数据 ⇒ 不告警
-
-                        bool navReachable = reach == NavReachability.Reachable;
-
-                        if (logicalWalkable && !navReachable)
-                        {
-                            if (warnings.Count >= MaxReported) { truncated++; continue; }
-                            warnings.Add(
-                                $"[关卡工具] C3 格 ({x},{y},{z}) **逻辑可走**但 NavMesh **不可达** —— " +
-                                "AI 会绕过玩家走得通的地方(玩家看得见、AI 看不见);" +
-                                "该矛盾只影响表现,不使构建失败(ADR-022 §四 C3)");
-                        }
-                        else if (!logicalWalkable && navReachable)
-                        {
-                            if (warnings.Count >= MaxReported) { truncated++; continue; }
-                            warnings.Add(
-                                $"[关卡工具] C3 格 ({x},{y},{z}) **逻辑不可走**但 NavMesh **可达** —— " +
-                                "AI 会走进玩家走不通的地方(表现穿墙);" +
-                                "该矛盾只影响表现,不使构建失败(ADR-022 §四 C3)");
-                        }
-                    }
+                        CheckCell(src, sampler, x, y, z, warnings, ref truncated);
 
             if (truncated > 0)
                 warnings.Add(
@@ -114,6 +89,39 @@ namespace DaYiJingCheng.EditorTools.Level
                     "截断是为了可读;总数不为 0 就说明两侧仍有漂移");
 
             return warnings.Count == 0;
+        }
+
+        /// <summary>单格的 C3 判据(两个方向各一条报文)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="TryCheck"/> 50 行 &gt; 40)。
+        /// ⚠️ 截断守卫**仍在拼串之前** —— 原先就是先判上限再拼报文,提前拼只是多一次分配,
+        /// 但保持原次序可以省掉解释成本。</remarks>
+        private static void CheckCell(LevelSource src, Func<WorldPos, NavReachability> sampler,
+            int x, int y, int z, List<string> warnings, ref int truncated)
+        {
+            int idx = (x * src.Height + y) * src.Depth + z;
+            bool logicalWalkable = src.Walkable[idx] == 1;
+
+            NavReachability reach = sampler(new WorldPos(x, y, z));
+            if (reach == NavReachability.Unknown) return;   // 无 NavMesh 数据 ⇒ 不告警
+
+            bool navReachable = reach == NavReachability.Reachable;
+
+            if (logicalWalkable && !navReachable)
+            {
+                if (warnings.Count >= MaxReported) { truncated++; return; }
+                warnings.Add(
+                    $"[关卡工具] C3 格 ({x},{y},{z}) **逻辑可走**但 NavMesh **不可达** —— " +
+                    "AI 会绕过玩家走得通的地方(玩家看得见、AI 看不见);" +
+                    "该矛盾只影响表现,不使构建失败(ADR-022 §四 C3)");
+            }
+            else if (!logicalWalkable && navReachable)
+            {
+                if (warnings.Count >= MaxReported) { truncated++; return; }
+                warnings.Add(
+                    $"[关卡工具] C3 格 ({x},{y},{z}) **逻辑不可走**但 NavMesh **可达** —— " +
+                    "AI 会走进玩家走不通的地方(表现穿墙);" +
+                    "该矛盾只影响表现,不使构建失败(ADR-022 §四 C3)");
+            }
         }
     }
 }

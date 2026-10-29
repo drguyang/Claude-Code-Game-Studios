@@ -28,6 +28,8 @@ namespace DaYiJingCheng.EditorTools.Level
     public static class NavMeshProbe
     {
         /// <summary>跑三项探针并打出结论行(每行以 `[SPIKE-NAV]` 开头,便于 grep)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 51 行 &gt; 40):四项探针各成一个私有方法,
+        /// **当场执行**的次序与每行原文逐字不变。</remarks>
         [MenuItem("大医精诚/关卡工具/[spike] NavMesh 采样 API 实测")]
         public static void Run()
         {
@@ -35,7 +37,18 @@ namespace DaYiJingCheng.EditorTools.Level
             sb.AppendLine("[SPIKE-NAV] ==== com.unity.ai.navigation 采样 API 实测 ====");
             sb.AppendLine($"[SPIKE-NAV] unity = {Application.unityVersion}");
 
-            // ── ① 无 baked NavMesh 时的行为 ──────────────────────────────────────
+            bool sampled = ProbeSampleWithoutNavMesh(sb);
+            ProbeMaxDistanceSemantics(sb);
+            ProbeTriangulation(sb);
+            AppendConclusion(sb, sampled);
+
+            Debug.Log(sb.ToString());
+        }
+
+        /// <summary>① 无 baked NavMesh 时 `SamplePosition` 的行为。</summary>
+        /// <returns>是否命中(抛异常按「未命中」计,并把异常写进日志)。</returns>
+        private static bool ProbeSampleWithoutNavMesh(StringBuilder sb)
+        {
             sb.AppendLine($"[SPIKE-NAV] NavMesh.GetSettingsCount = {NavMesh.GetSettingsCount()}");
 
             bool sampled;
@@ -53,14 +66,22 @@ namespace DaYiJingCheng.EditorTools.Level
                 sampled = false;
                 sampleOutcome = $"抛 {ex.GetType().Name}: {ex.Message}";
             }
-            sb.AppendLine($"[SPIKE-NAV] ① SamplePosition(无 NavMesh) => {sampleOutcome}");
 
-            // ── ② maxDistance 的口径(水平 vs 三维)────────────────────────────
+            sb.AppendLine($"[SPIKE-NAV] ① SamplePosition(无 NavMesh) => {sampleOutcome}");
+            return sampled;
+        }
+
+        /// <summary>② `maxDistance` 的口径(水平 vs 三维)。</summary>
+        private static void ProbeMaxDistanceSemantics(StringBuilder sb)
+        {
             // 空场景里没法测口径(无 NavMesh 时恒 false)⇒ 如实登记「本项在无场景数据时不可判」。
             sb.AppendLine("[SPIKE-NAV] ② maxDistance 口径 => 无 baked NavMesh ⇒ 本项判定不了" +
                           "(须有真实 NavMesh 资产才能测;本 spike 如实登记为 NOT-RUN)");
+        }
 
-            // ── ③ NavMeshBuilder / 三角化在 batch 里可跑吗 ─────────────────────
+        /// <summary>③ `NavMeshBuilder` / 三角化在 batch 里是否可跑。</summary>
+        private static void ProbeTriangulation(StringBuilder sb)
+        {
             try
             {
                 NavMeshTriangulation tri = NavMesh.CalculateTriangulation();
@@ -71,14 +92,15 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 sb.AppendLine($"[SPIKE-NAV] ③ CalculateTriangulation => 抛 {ex.GetType().Name}: {ex.Message}");
             }
+        }
 
-            // ── ④ 结论建议 ────────────────────────────────────────────────────
+        /// <summary>④ 结论建议(由 ① 的观测值决定,不是常量)。</summary>
+        private static void AppendConclusion(StringBuilder sb, bool sampled)
+        {
             sb.AppendLine("[SPIKE-NAV] ==== 结论 ====");
             sb.AppendLine(sampled
                 ? "[SPIKE-NAV] 空场景也命中 ⇒ C3 **不能**把 SamplePosition 当唯一判据(须先确认有 baked 数据)"
                 : "[SPIKE-NAV] 空场景不命中 ⇒ C3 可在「无 NavMesh 数据」时退化为「无法判定」,不误报告警");
-
-            Debug.Log(sb.ToString());
         }
     }
 }
