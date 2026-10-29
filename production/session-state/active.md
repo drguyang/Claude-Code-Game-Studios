@@ -13006,3 +13006,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **仍未**:零写者(53 结算路径归 T2);**V-5 仍不过**(无 CookedWriter / 菜单 ⇒ 今天没有「构建」路径);
   S6 / S7 未开工;`TD-sim-03` 未动。
 - 原件 `production/qa/evidence/t1-s5-treatment-harm-onset-2026-10-30.md`。
+
+## Session Extract — ADR-035 T1·S6 文本订正 + S9 登记(2026-10-30)
+
+- **S6(已落)**:两处文本 —— ① `ConsequenceEmitter.cs:93` 的类 remarks(把「**一个类的**写入范围」与
+  「**53 的系统**写者面」拆开;病史流那一支是 `TreatmentHarmOnset`、写者在 T2 的组件,**不是本类**)+
+  文件头补 `ADR-035 §Decision ⑤` 权威来源;② `story-003:30` 的 Forbidden 由系统级禁令收窄为「**本 story 范围内**」+ 日期注。
+  ⚠️ **收窄措辞,不删条目** —— 卡面的 Forbidden 对本 story 仍然成立,错的是把故事边界当成了系统能力上限。
+- **V-8 已证**:`grep -c '只写 \`ConsequenceResolved\`(世界流;53 不写病史流'` 对两个目标文件各 **0 命中**;
+  该串仍留在 ADR 自己的 C-2 行(历史记录)+ V-8 判据引文,不在判据面内(已在 ADR 明写,不靠读者推断)。
+- **S9 已登记(未落)**:用户裁定「加 S9」。交付面 = ① `CostTable53Bake` + `CostTableCookedWriter` +
+  `DataBakeMenu` 入口;② `AssemblyGates` 新增 `CostTableGate`(`IPreprocessBuildWithReport`)。
+  验收 = 探针轮三件套(构建 `Result: Failure` + 报文点名该行 + 栈帧给出门),**外加还原后同路径绿**。
+  顺序:S9 须在 **S7 之前**(证伪靶场要含构建门这一面)。
+- **V-1…V-4 同批补勾**(S5 已实跑,只是当时没回填):A1–A5 / 38 支 16·5·17 两侧一致 / codec 串 / 追加区零位移
+  (黄金字节绿 + M4 反证红,两侧都有)。
+- **测试**:本轮只跑受影响两套件 —— `MedConsequences 140/140` · `Unit.Sim 393/393`。
+  **未重跑全量**,差异仅为注释与文档(如实登记,不拿上次的全量数当本轮)。
+- **仍未**:`V-5 / V-6 / V-7` 未跑(载体 S9 未落);S7 未开工;`TD-sim-03` 未动。
+- 原件 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md`。

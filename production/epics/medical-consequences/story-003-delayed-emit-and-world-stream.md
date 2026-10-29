@@ -27,8 +27,15 @@
 
 **Control Manifest Rules (this layer)**:
 - Required: 写流经 `IEventAuthority` 查权 + 主机 `Append` 发 `Seq`;EmitTick 计算纯整数;载荷构造只有整数域重载(编译面锁死)
-- Forbidden: 缓存「待发表」进字段(派生态不落私有态,每次现算);载荷渗 case_id / 病例指针;53 写病史流/病例流(只写世界流)
+- Forbidden: 缓存「待发表」进字段(派生态不落私有态,每次现算);载荷渗 case_id / 病例指针;**本 story 范围内**不得写病史流 / 病例流(本 story 只写世界流)
 - Guardrail: 每病例至多一条后果事件(发出幂等从流可判:已发 ⇒ 不再发,判据读流非读内存)
+
+> ⚠️ **2026-10-30 Forbidden 行订正(ADR-035 §Decision ⑤ 兑现 · S6)**
+> 原 Forbidden 写的是「53 写病史流/病例流(只写世界流)」—— 那是**系统级**禁令,ADR-035
+> **显式扩张** 53 的写者面为「世界流 + 病史流**恰一支**」(`TreatmentHarmOnset`,写者归 T2 的禁忌结算组件)。
+> **本 story 的范围一字未变**:它仍然只写 `ConsequenceResolved`(世界流)。
+> 订正只做一件事 —— 把「本 story 的类范围」与「53 的系统写者面」拆开,否则两处文本自相矛盾。
+> 原文按纪律保留在 git 历史与本条转述中;原件 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md`。
 
 ---
 

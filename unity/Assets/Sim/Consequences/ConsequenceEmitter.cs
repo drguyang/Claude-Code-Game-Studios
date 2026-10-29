@@ -20,6 +20,8 @@
 //   ADR-009 §一/§二(后果状态 = 模拟态进流)· §六(世界流有界性)
 //   ADR-008 §二 跨流全序键 `(Tick, StreamPriority, Patient, Seq)`(排序经 `EventOrder`)
 //   ADR-024 §① 真源 = entities.yaml(本 Kind `stream: world` / `author: 53` / `Patient = patient_id`)
+//   ADR-035 §Decision ⑤(2026-10-30)53 的**系统级**写者面 = 世界流 + 病史流**恰一支**
+//     (`TreatmentHarmOnset`,写者住 T2 的禁忌结算组件)—— **本类**的写入面不受影响
 //   ADR-029 §③ 载荷唯一编码路径 = `IPayloadEncoder`(本类内禁 `new PayloadRef(`,b6 门强制)
 //   ADR-005(主机唯一 Append;header `Seq = -1` 未发号哨兵,由 EventStream 发号 —— 同 PoiStateMachine /
 //     CaseCloseWriter / PatternRecognitionWriter 三先例)
@@ -90,8 +92,14 @@ namespace DaYiJingCheng.Sim.Consequences
     /// <para><b>零跨 tick 可变态</b>(AC-53-06 / 卡面 Forbidden):本类的实例字段全是构造期注入的
     /// **不可变协作方**(全 <c>readonly</c>,零集合字段、零「待发表」字段);待发行集是
     /// <see cref="Emit"/> 每次调用现算的局部量 ⇒ 任意流前缀重放与在线态逐位一致。</para>
-    /// <para><b>只写 <see cref="EventKind.ConsequenceResolved"/></b>(世界流;53 不写病史流 / 病例流 ——
-    /// 卡面 Forbidden)。判定归 story-002,聚合归 story-001,呈现归 story-004。</para>
+    /// <para><b>本类只写 <see cref="EventKind.ConsequenceResolved"/></b>(世界流)。判定归 story-002,
+    /// 聚合归 story-001,呈现归 story-004。</para>
+    /// <para>⚠️ <b>2026-10-30 订正(ADR-035 §Decision ⑤ · S6)</b>:此处原写「53 不得写病史流 / 病例流」,
+    /// 把**一个类的**写入范围**当成了整个系统的**禁令 —— 前者是故事边界,后者是架构裁决,**两者不是一件事**。
+    /// ADR-035 §Decision ⑤ **显式扩张 53 的写者面**为「世界流 + 病史流**恰一支**」:
+    /// 病史流那一支是 <see cref="EventKind.TreatmentHarmOnset"/>,写者在 T2 的禁忌结算组件,
+    /// <b>不是本类</b>(本类的写入面一字未变);病例流仍然零写入。
+    /// 原句已改,理由见 ADR-035 §Decision ⑤ 与 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md`。</para>
     /// </remarks>
     public sealed class ConsequenceEmitter
     {
