@@ -130,11 +130,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             string saveBasePath = null,
             World world = null,
             int? diagnosisQueryLevelOverride = null,
-            int? patientRegistryIndexOverride = null)
+            int? patientRegistryIndexOverride = null,
+            DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
                             0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
                             structures, saveBasePath, world, diagnosisQueryLevelOverride,
-                            patientRegistryIndexOverride);
+                            patientRegistryIndexOverride, subtitleSink);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -163,7 +164,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        string saveBasePath = null,
                                                        World world = null,
                                                        int? diagnosisQueryLevelOverride = null,
-                                                       int? patientRegistryIndexOverride = null)
+                                                       int? patientRegistryIndexOverride = null,
+                                                       DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
@@ -171,7 +173,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
                                 inputActions, audio, clinicKnowledge, telemetryKnobs, structures,
                                 saveBasePath, world, diagnosisQueryLevelOverride,
-                                patientRegistryIndexOverride);
+                                patientRegistryIndexOverride, subtitleSink);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -188,7 +190,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              string saveBasePath,
                                                              World world,
                                                              int? diagnosisQueryLevelOverride = null,
-                                                             int? patientRegistryIndexOverride = null)
+                                                             int? patientRegistryIndexOverride = null,
+                                                             DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -1285,7 +1288,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 breathCue: audio != null && audio.TryResolveCue(BreathCueName, out int breathOrdinal)
                     ? breathOrdinal : (int?)null,
                 knowsClinic: clinicDirectory.KnowsClinic,
-                hasCourse: p => vitals.Courses.TryGet(p, out _));
+                hasCourse: p => vitals.Courses.TryGet(p, out _),
+                // ── 字幕投递(`AC-44-15` `[L]` 半 · 2026-10-29 · 缺口 B)──────────
+                // ⚠️ **文本源 = 事件表 `subtitle_text` 列**(AC 原文「文本本体 = 44 维护的事件表」)。
+                //    本处只做「ordinal → 该行文本」的查表,不硬编码任何台词。
+                // ⚠️ `audio == null`(预载失败)⇒ 两个缝都 null ⇒ 不投递(与播音同款降级面)。
+                subtitleSink: subtitleSink,
+                subtitleTextOf: audio != null
+                    ? (Func<int, string>)(ordinal => SubtitleTextOf(audio.Table, ordinal))
+                    : null);
             // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
             casebookSource.BindCommands(casebookCommands);
             // 后置接回(2):戥子档数真源 —— 处方驱动(构造序所限,见 BindPrescribeDriver 注)
@@ -1627,6 +1638,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "只有后者持有全部 22 条产物地址(DataCorePreloader.DataCoreAddresses)。");
 
             return addressables.LoadGlobalConfigVersion();
+        }
+
+        /// <summary>cue ordinal → 事件表的 `subtitle_text` 列(`AC-44-15` `[A]` 半的读侧)。
+        /// <para>⚠️ **文本本体 = 44 维护的事件表**(AC 原文逐字)⇒ 本处只查表,不硬编码台词。</para>
+        /// <para>越界 / 该行无字幕 ⇒ 返回 <c>null</c>(调用方据此不投递 —— 空字幕会盖掉上一条)。</para></summary>
+        private static string SubtitleTextOf(AudioEventDataSet? table, int ordinal)
+        {
+            if (!table.HasValue) return null;
+            AudioEventDataSet t = table.Value;
+            if (ordinal < 0 || ordinal >= t.RowCount) return null;
+            return t.Row(ordinal).SubtitleText;
         }
 
         private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()

@@ -48,6 +48,16 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class PatientCueDriver
     {
         private readonly IAudioCueSink _sink;
+
+        /// <summary>字幕接收口(42 侧 · `AC-44-15` `[L]` 半 · 2026-10-29)。
+        /// <para>⚠️ **null = 不投递**(62 处既有 EditMode 夹具不传 ⇒ 行为逐位不变)。</para>
+        /// <para>⚠️ 文本**不经 44 转发** —— `AC-44-15` 原文:「44 不新增出向口,
+        /// 文本本体 = 事件表 `subtitle_text`,**上游发射点解析**」。本驱动就是那个发射点。</para></summary>
+        private readonly DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink _subtitleSink;
+
+        /// <summary>cue ordinal → 字幕文本(null = 该 cue 无字幕)。
+        /// <para>由装配层从事件表 `subtitle_text` 列解析后注入(**不在此硬编码**)。</para></summary>
+        private readonly Func<int, string> _subtitleTextOf;
         private readonly IVitalsQuery _vitals;
         private readonly PresenceRegistry _presence;
         private readonly PatientBehaviorDirector _behavior;
@@ -111,8 +121,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                                 PatientBehaviorDirector behavior, CueIntervals? intervals = null,
                                 int? coughCue = null, int? breathCue = null,
                                 Func<PatientId, bool> knowsClinic = null,
-                                Func<PatientId, bool> hasCourse = null)
+                                Func<PatientId, bool> hasCourse = null,
+                                DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
+                                Func<int, string> subtitleTextOf = null)
         {
+            _subtitleSink = subtitleSink;
+            _subtitleTextOf = subtitleTextOf;
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _vitals = vitals ?? throw new ArgumentNullException(nameof(vitals));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -326,6 +340,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                 PatientCueEmit.Emit(_sink, patientId, _coughCue.Value, position,
                                     cell.X, cell.Y, cell.Z, looped: false);
                 EmitCount++;
+
+                // ── 字幕**并行投递**(AC-44-15 双投递的文本半边 · 2026-10-29)──
+                // ⚠️ **与播音并列,不替代**:cue 仍走 44(上面那行),文本直投 42。
+                //    这是 AC 原文的形状(「44 不新增出向口」),不是本处的取舍。
+                // ⚠️ `_subtitleSink == null` ⇒ 不投(62 处既有夹具不传 ⇒ 零行为变化)。
+                // ⚠️ 文本为 null/空 ⇒ **不 Show**(空字幕会盖掉上一条真实字幕 ——
+                //    `Show` 是「替换当前行」语义,不是追加)。
+                if (_subtitleSink != null && _subtitleTextOf != null)
+                {
+                    string text = _subtitleTextOf(_coughCue.Value);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        // 说话人 = 「病人」(P0 固定 —— 与 `CueKind.Cough` 固定同口径;
+                        // 说话人识别本身是 49 的细化面,见 accessibility-requirements:95)。
+                        _subtitleSink.Show(
+                            new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("病人", text));
+                    }
+                }
             }
             _lastEmitTick[patientId] = tick;
         }

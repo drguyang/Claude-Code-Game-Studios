@@ -549,6 +549,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         // 白名单(2026-09-26 审查口径):BCL / DaYiJingCheng.Sim.Contracts.*(别写「DTO 族」字面
         // —— IAudioCueSink / IPositionalChannel / WorldPosLatest 字段会假红)/ UnityEngine.Audio*
         // / UnityEngine.Object 子类 / 44 前缀自身。
+        //
+        // 🔁 **2026-10-29 第四条按程序集放宽**(触发件:`MonoOutputApplier`,AC-44-13 mono 开关):
+        // `UnityEngine.AudioSpeakerMode` 的**命名空间是根 `UnityEngine`**(不含 `.Audio` 段),
+        // 但**程序集是 `UnityEngine.AudioModule`** —— 前缀规则按命名空间写,天然漏掉它。
+        // 该程序集只装声音类型(AudioSource / AudioClip / AudioSettings / ... ,无任何游戏状态)
+        // ⇒ **按程序集放行,与本白名单「只持声音状态」的判据同义**,不是为变绿而放宽。
+        // ⚠️ 放宽的**边界**:仍**不**放行根 `UnityEngine` 命名空间的其它类型 —— 负例
+        //    `test_fieldTypes_simStateAndEngineNonAudioField_reportsRed` 的 `Vector3` 继续红。
         private static bool IsAllowedFieldLeaf(Type t)
         {
             if (IsBclAssembly(AssemblyNameOf(t))) return true;
@@ -556,6 +564,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             if (ns.StartsWith("DaYiJingCheng.Sim.Contracts", StringComparison.Ordinal)) return true;
             if (IsAudioPrefix(ns)) return true;
             if (ns.StartsWith("UnityEngine.Audio", StringComparison.Ordinal)) return true;
+            if (AssemblyNameOf(t) == "UnityEngine.AudioModule") return true;   // 2026-10-29 见上
             if (typeof(UnityEngine.Object).IsAssignableFrom(t)) return true;
             return false;
         }
@@ -575,8 +584,8 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 {
                     if (IsAllowedFieldLeaf(leaf)) continue;
                     errs.Add($"[B4] {t.FullName}.{f.Name} 的字段类型「{leaf.FullName}」∉ 白名单 " +
-                             "{BCL, Sim.Contracts.*, UnityEngine.Audio*, UnityEngine.Object 子类, " +
-                             "44 自身} —— 44 不持游戏状态,只持声音状态(AC-44-B4)");
+                             "{BCL, Sim.Contracts.*, UnityEngine.Audio*, UnityEngine.AudioModule 程序集, " +
+                             "UnityEngine.Object 子类, 44 自身} —— 44 不持游戏状态,只持声音状态(AC-44-B4)");
                 }
             }
             return errs;

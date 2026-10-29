@@ -82,10 +82,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public bool IsSyntheticWorld { get; private set; }
 
+        /// <summary>设置链(42 设置壳读它;44 渲染它 —— 两侧都不持值)。
+        /// <para>⚠️ 启动序 2.65 之前为 <c>null</c>(装配未跑)。</para></summary>
+        public AudioSettingsRuntime AudioSettings => _audioSettings;
+
         /// <summary>44 侧装配缝(story-018)—— <see cref="BuildAudioSeams"/> 的产物。
         /// <para>本类只**持有引用**用于卸载期释放(<see cref="AudioClipLibrary.Dispose"/>);
         /// cue 语义 / 状态一律不在此(ADR-013 §9 C3 · ADR-018 §一)。</para></summary>
         private AudioAssemblySeams _audioSeams;
+
+        /// <summary>设置链(2026-10-29 · `TD-audio-105` 缺口 A)。持有引用供运行期写入;
+        /// 值真源在 <see cref="AudioSettingsRuntime.Store"/>,本类不镜像任何设置值。</summary>
+        private AudioSettingsRuntime _audioSettings;
 
         /// <summary>3 的设备态(启动序 2.9 挂接;TD-epic-01 第八片 —— cause 判据的输入面)。</summary>
         private Input.DeviceStateManager _deviceState;
@@ -183,6 +191,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 预载失败(provider == null)⇒ 缝不接:`Assemble` 走 `NullRenderTarget` 链,
             //    `AudioRenderAssembled = false` 可观测 —— 不是静默失败。
             _audioSeams = BuildAudioSeams(preloaded ? DataCorePreloader.Provider : null);
+
+            // ── 2.65 设置链装配(2026-10-29 · `TD-audio-105` 缺口 A)──────────────
+            // 病因:`AudioSettingsStore` 生产**零构造点**、`MixerPushSink` **零接线**、
+            //   `mono_enabled` **零消费方** ⇒ 玩家在 42 设置壳拨任何东西都不产生声学变化。
+            // 本段把三件接成一条链(store → push mixer / mono 设备级)。
+            // ⚠️ **次序**:在 `BuildAudioSeams` 之后(它赋值 `MixerResolver`,本段要读它),
+            //   在 `CompositionRoot.Assemble` 之前(装配只消费 seams,不消费 store)。
+            // ⚠️ 失败**不阻断启动**(设置是偏好面,非核心循环)—— 逐条 `Debug.LogError` 登记。
+            _audioSettings = new AudioSettingsRuntime(
+                sidecarDirectory: null,                                  // 默认 = persistentDataPath/settings
+                mixerResolver: PlayerBusVolumeInitializer.MixerResolver);
+            foreach (string err in _audioSettings.Startup())
+                Debug.LogError("[BootRoot][settings] " + err);
 
             // ── 2.5 项目级动作资产 fail-loud(story-009 R-9.5 · AC-9-01)──
             // 通道装载 = InputSystem.actions(原稿 Addressables 路径被实测推翻:该资产是

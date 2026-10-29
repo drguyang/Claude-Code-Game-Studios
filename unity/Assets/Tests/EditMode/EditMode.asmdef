@@ -15,6 +15,7 @@
         "Gameplay.Boot",
         "Gameplay.Input",
         "Gameplay.Presentation",
+        "Gameplay.UI",
         "Unity.InputSystem",
         "Unity.Addressables",
         "Unity.Addressables.Editor",

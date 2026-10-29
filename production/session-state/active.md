@@ -12691,3 +12691,39 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   而 **AC-44-02 原文零人数要求** —— 唯一权威出处只有 AC-44-17 一处。已就地订正。
 - **提交**:`2dd83807`。
 - **下一步**:等 2 名被试实听 → 回填三份协议件 → 才能关 100/101/102/103。
+
+## Session Extract — TD-audio-105 缺口 A/B/C 实现批(2026-10-29)
+
+- **用户裁定**:① 完成 A + B ② **缺口 C 提前到现在做,不管排期** ③ (追问 42 是否提前 P0)
+  **新立 42 字幕 story**(42 本就 P0、24/25 story 已完;「整体提前」不可执行)。
+- **A —— mono 的真实承载面(推翻债册账面假设)**:债册原写「往 `.mixer` 加 `mono_enabled`」,
+  实测**推翻** —— Unity 6.3 的 mono 是**设备级 `AudioSpeakerMode`**(`monodis` 反汇编
+  `UnityEngine.AudioModule.dll`:`AudioListener` 无 forceMono;`AudioSettings.speakerMode` 已废弃;
+  官方修法 = `GetConfiguration` → 改 → `Reset`)。按账面修法会造出**永不生效的假开关**。
+  落点:`MonoOutputApplier`(注入缝 `GetSpeakerMode`/`SetSpeakerMode`)+ `AudioSettingsRuntime`
+  (**整条设置链的首个生产装配点**)+ `BootRoot` 2.65 段接线。两处设计判断:关 mono 还原
+  **开之前的设备模式**(不硬编码 Stereo,防 5.1/7.1 静默降级)· 重复开不覆盖还原目标。
+- **B —— 字幕文本的出向半边**:`AC-44-15` 原文逐字 **「44 不新增出向口,文本本体 = 44 维护的
+  事件表 `subtitle_text` 字段,**上游发射点**解析」** ⇒ 我最初打算「给 44 加出向口」是**错的**,
+  已推翻。上游发射点 = `PatientCueDriver`(`PatientCueEmit.Emit` 的唯一生产调用方),现在**双投递**:
+  播音 `sink.Emit` + 文本 `ISubtitleSink.Show`。空文本不 `Show`(会盖掉上一条)。
+- **C —— 42 字幕元件(提前做)**:`SubtitleLine`(`ISubtitleSink`,**无 `ShouldShow` 反问**)+
+  `SubtitleLineView`(UI Toolkit `Label`;说话人**前置 + 方括号** = 非颜色差异)+
+  `story-026-subtitle-rendering.md`。**不解除 49 的 P2 细化权**。
+  **42 不判时机**的机械判据 = 反射断言(不含 Timer/Duration/AutoHide/…)。
+- **证伪 13/13 全红**(12 主变异 + M13 补跑),四件 SHA-256 逐一还原 OK。
+  **首轮 M4 假存活已修**:`Startup`/`ApplyAfterChange` 曾**直调** `PushToMixer` 绕过 sink。
+  **M13 的必要性**:`test_startup_pushGoesThroughSink_notDirectCall` **对 M4 天生免疫**
+  (它自己就把 sink 换成替身)⇒ 按「一属性一条变异」补跑,红 1/8,正是该条夹具。
+- **回归三元组**:EditMode **`5955 / 5918 / 0 / 0 / 37`** · PlayMode **`238 / 234 / 0 / 2 / 2`**
+  @ 2026-10-29 19:14 CST · 全量 · `e22d2bd8`+工作树。等式 `5929 + 26 = 5955`(新增夹具 26 条)。
+- **⚠️ 首轮回归 1 红(真阳性)**:`test_fieldTypes_production44_withinWhitelist`(AC-44-B4 白名单门)
+  —— `UnityEngine.AudioSpeakerMode` 的**命名空间是根 `UnityEngine`**(不含 `.Audio` 段),
+  程序集才是 `UnityEngine.AudioModule`;门的前缀规则按命名空间写,天然漏掉它。
+  处置 = **按程序集放行**(非为变绿而放宽,该程序集只装声音类型),**边界由既有负例 `Vector3` 看守**。
+  **我的过失**:写新字段类型时只跑该件夹具、没跑全量,才让它漏到收口。
+- **债册现值(可复算 `python3 tools/debtcount/debtcount.py --print`)**:条目 133 · `open 60` ·
+  `closed 69` · `partial 3` · **未闭 P0 面 40**(audio-system 6)。
+- **⚠️ 本批不结任何债**:`TD-audio-105` 维持 `open` —— **缺口 D**(13 的可见对应物,
+  `BLOCKED-BY 42` 冗余通道)未做 ⇒ `AC-44-12` 仍 `NOT-RUN`;`AC-44-15` 的 `[L]` 人工听测未跑。
+  100/101/102/103 仍待听测。
