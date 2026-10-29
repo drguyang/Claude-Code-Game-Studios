@@ -12937,3 +12937,16 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **读数**:条目 137→138 · open 58→59 · P0 面 Y 101→102 · **未闭 P0 面 34→35** · epic 10/31 不动。
 - **原件**:`production/qa/evidence/s1-compounds-census-2026-10-29.md`。提交 `a0b1b8fd`。
 - **仍未跑**:ADR-035 V-1…V-10(**S1 普查是唯一例外**);T1 的 S2–S7 **未开工**。
+
+## Session Extract — ADR-035 T1·S2(2026-10-29)
+
+- **落盘**:`assets/data/53_cost_table.json`(空 `rows`,内容严格照 `ADR-035 §Decision ②` 字面)。
+  两处判断:`null` = 值归内容轮(不省略字段);不加 `_note`(53 族无此惯例,且 ADR-014 阶段 2 拒未知字段)。
+- **先查后动(四格)**:JSON 合法 / 重复键 0 · **零引用(孤儿)** · 不撞两道既有数据门
+  (它们只扫 `DataCooked` 盘上幽灵与源码里的产物名字面量;**无门枚举 `assets/data/*.json`**)·
+  `assets/data/` 非 Unity 资产树(无 `.meta`)、未被 gitignore。
+- **如实登记**:与 `data-files.md`「禁孤儿条目」有**有时限的偏离**,消解点 = **S3**;
+  「惰性 = 零回归」是**静态论证不是回归数**(无读方 ⇒ 无路径可跑,**未跑任何测试**)。
+- 原件 `production/qa/evidence/t1-s2-cost-table-skeleton-2026-10-29.md`;提交 `3e06b992`。
+- **下一步 = S3**:`CostTableBinder`(N-1 / **N-4′ canary** / R4 空表窗口 / V-10 的告警 + 单射 + 未知字段拒收)。
+  ⚠️ S3 须同时决定 `null` 的读取语义(本表今日把 `null` 写进了数据)。
