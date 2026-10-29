@@ -12883,4 +12883,4 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   EditMode 基线 `5978 / 5941 / 0 / 0 / 37` ⇒ `+7` = 新增 `[Test]` 6(新文件)+ 1(`event_stream_test`)。
 - **债册**:`open 56→54` · `closed 73→75` · `partial 3` 不变 · **未闭 P0 面 34 → 32**;
   medical-consequences **19 → 17**。`TD-clinic-17`(同文件另一口子)**仍 open**,已就地补注防误读。
-- 证据原件:`production/qa/evidence/impl-td-medcons-10-14-2026-10-29.md`。
+- 证据原件:`production/qa/evidence/impl-td-medcons-10-14-2026-10-29.md`。提交:`0cf2e533`(10 文件)。
