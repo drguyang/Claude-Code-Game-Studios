@@ -67,5 +67,42 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(positions.Count, Is.GreaterThan(1),
                 "桶内位置全同 —— 身份维掉了,同一强度的所有病人会听到同一条变体");
         }
+        [Test]
+        public void test_gender_comesFromIdentity_bothLayersReachable()
+        {
+            // 🔁 2026-10-29(`TD-audio-034` ② 的**直钉**夹具 —— 此前只有间接覆盖):
+            //    性别层由身份最低位确定性派生,同一 intensity 下两性都必须被分到。
+            int size = VoiceVariantLib.VariantSlotWidth(Total);
+            int genderSpan = VoiceVariantLib.BucketCount * size;   // 3 × 2 = 6,即两性段的分界
+
+            var seen = new System.Collections.Generic.HashSet<int>();
+            for (int identity = 0; identity < 16; identity++)
+            {
+                int pos = VoiceVariantLib.SelectVariantCube(0, 0, identity, size, 128);
+                int layer = pos / genderSpan;      // 0 = 男段,1 = 女段
+                Assert.That(layer, Is.EqualTo(VoiceVariantLib.GenderOf(identity)),
+                    $"identity={identity}:位置 {pos} 落在性别层 {layer},而 GenderOf 说 " +
+                    $"{VoiceVariantLib.GenderOf(identity)} —— 性别层与派生值不一致");
+                seen.Add(layer);
+            }
+
+            Assert.That(seen.Count, Is.EqualTo(VoiceVariantLib.GenderLayers),
+                $"16 个身份只落到 {seen.Count} 个性别层 —— 另一性别的 6 条素材永不可达(死变体)");
+        }
+
+        [Test]
+        public void test_gender_isStableForSameIdentity()
+        {
+            // 同一病人同一强度 ⇒ 恒定同一性(不随 cue 之外的任何东西抖动)
+            int size = VoiceVariantLib.VariantSlotWidth(Total);
+            for (int identity = 0; identity < 8; identity++)
+            {
+                int first = VoiceVariantLib.SelectVariantCube(0, 0, identity, size, 200);
+                for (int repeat = 0; repeat < 4; repeat++)
+                    Assert.That(VoiceVariantLib.SelectVariantCube(0, 0, identity, size, 200),
+                        Is.EqualTo(first), $"identity={identity} 的选择不稳定 —— 违反确定性");
+            }
+        }
+
     }
 }
