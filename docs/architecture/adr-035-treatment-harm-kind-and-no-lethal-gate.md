@@ -10,7 +10,7 @@
 (`53_cost_table.json`)· **S3 绑定器 + 19 条夹具**(19/19 绿,证伪 3 组 6 变异)· **S4 只读视图 + 13 条夹具**
 (13/13 绿,证伪 4 变异)· **S5 新 Kind 全链**(38 支 / 16·5·17,证伪 5 变异)· **S6 两处文本订正** ·
 **S9 构建路径**(烘焙链 + 构建前门 + 探针轮五次构建)均已落。
-⇒ 本件**已部分实现**;**S7 未开工**;**V-1…V-10 全部已证**。
+⇒ 本件**已部分实现**;**S1–S7 + S9 全部已落,仅 S8 未开工**;**V-1…V-10 全部已证**。
 ⚠️ 「全部已证」只到**形状 / 门 / 文本**这一层 —— **T2(禁忌支真跑)/ T3(过量支真跑)仍被上游债卡住**
 (`TD-prescription-09` / `TD-sim-03` / `TD-sim-02`),`TD-medcons-15` 的实现半边仍 `open`。
 Accepted 表示「方向已裁」,不表示任何判据已通过。
@@ -384,7 +384,9 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 ## Migration Plan
 
 **全部未落盘。** 实现轮的最小切片(顺序不可换)。
-🔁 **2026-10-30**:上句已不成立 —— **S1–S6 + S9 已落**,仅 **S7 / S8 未开工**(逐行看右列)。原文保留。
+🔁 **2026-10-30**:上句已不成立 —— **S1–S7 + S9 已落**,仅 **S8 未开工**(逐行看右列)。原文保留。
+🔁 **2026-10-30 二次推进**:S7 已落(证伪轮 6 变异 / 9 红全部恰好);**仅 S8 未开工**,
+且 S8 的前置条件(S3 + S7 落盘)**已满足** ⇒ `AC-5` 的表级半边现在**可以**改判了。
 
 **分档(2026-10-29 收窄,判据见 §Risks R1)**:<br>
 **T1 = S1–S7 + S9**(形状件 —— **零上游债、零数值**;S1 的普查是 N-4 必要性的前置,不是材料依赖。
@@ -400,7 +402,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 | S4 | `CostTable53` 只读视图 + 构造器纵深防御 | ✅ **2026-10-30 已落** —— `CostTable53.cs`(Sim)+ `CostHarmKind`(Sim.Contracts,S5 的载荷同用)+ **13 条夹具,13/13 绿**;证伪 4 变异 ⇒ **恰好 4 红**。**L3 按「同一拒收」也查 `lethal`**(比 §Key Interfaces 草稿多一条,理由见证据件 §一)。原件 `production/qa/evidence/t1-s4-cost-table53-view-2026-10-30.md`。⚠️ **零读方**:无 CookedWriter / 菜单 / 装配点 |
 | S5 | 新 Kind 三字段登记 + kindgen 重生成 + 枚举末尾追加 + `SimEventCodec.cs:84` 串同步 | ✅ **2026-10-30 已落** —— A1–A5 全过(`kindgen --check`:42 struct / 170 字段受判);**37 → 38**,分布 **16 / 5 / 17**,registry 与 `StreamRouting.g.cs` 两侧逐项相同。证伪 5 变异:M1/M2(删编解码分派)各 **2 红** · M3(`DefaultPathMarker` 加数字)**1 红** · M4(插中间)**2 红** · **M5(改路由)本地 0 红 = 无夹具**,守卫在 CI 的「重生成后一致性」步(已实测会红)。⚠️ **零写者**:53 的结算路径归 T2,b7 具名豁免为凭据。原件 `production/qa/evidence/t1-s5-treatment-harm-onset-2026-10-30.md` |
 | S6 | 改 §Decision ⑤ 的两处文本 | ✅ **2026-10-30 已落** —— 两处:① `ConsequenceEmitter.cs:93` 的类 remarks(把「一个类的写入范围」与「53 的系统写者面」拆开,并把 ADR-035 §Decision ⑤ 补进文件头权威来源);② `story-003` 的 Control Manifest **Forbidden** 行(由系统级禁令收窄为「本 story 范围内」+ 日期注)。**V-8 已证**:两文件 grep 各 **0 命中**(原句只留在本件 C-2 行作历史记录)。⚠️ 本处只改文本,**不新增任何断言** —— 「卡面不再自相矛盾」是人工判读,不是机械门。原件 `production/qa/evidence/t1-s6-text-correction-2026-10-30.md` |
-| S7 | **证伪轮** | M1 注入 `lethal=true` 行 ⇒ binder throw;M2 `injury_id` 指向致死行 ⇒ throw;M3 新 Kind 插中间 ⇒ 旧存档解码错(可做静态论证 + 一条夹具);**SHA-256 逐字节还原** |
+| S7 | **证伪轮** | M1 注入 `lethal=true` 行 ⇒ binder throw;M2 `injury_id` 指向致死行 ⇒ throw;M3 新 Kind 插中间 ⇒ 旧存档解码错(可做静态论证 + 一条夹具);**SHA-256 逐字节还原** — ✅ **2026-10-30 已落**。⚠️ **本行字面的三条在 S3 / S5 已跑过**(M1 与 M2 是**同一个判据**,都走 `lethal == true`;M3 = S5 的 M4),照抄重跑只多三行绿 —— 故本轮改为 ① 用覆盖表逐条指回既有实测,② 补上**从未被证伪的那一层**:S9 的烘焙 / 门链 **6 条变异**(产物整数外键 / ConfigVersion 覆盖两源 / 行序规范化 / 空表合法 / 门不吞错 / 门永不抛)⇒ **6 变异 / 9 红,全部恰好**;六次 SHA-256 逐字节还原,**零 `FALSIFY-` 残留**。**T1 全链合计 21 条变异 + 5 次探针构建**,覆盖表见原件 `production/qa/evidence/t1-s7-falsification-2026-10-30.md` §二。⚠️ **两处已知缺口如实登记**:S5 的 M5(路由)**本地 0 红**;S3/S4/S5 的判据**未重打** |
 | S8 | `AC-5` 表级半边改判 | **仅在 S3 + S7 落盘后**才可把 PARTIAL 收窄;S5 前翻 = 门无宾语 |
 | S9 | **构建路径** —— 让 `CostTableBinder` 有一条**会被构建真的执行到**的链:<br>① `CostTable53Bake`(compute)+ `CostTableCookedWriter`(encode,承 ADR-014 §二 同源两次烘焙逐位一致)+ `DataBakeMenu` 入口(承 `DelayTableCookedWriter` / `BakeDelayTable` 先例);<br>② `AssemblyGates` 新增 `CostTableGate`(**构建前门**,`IPreprocessBuildWithReport`),对 repo 的 `53_cost_table.json` + `9` 的注册表跑 binder,`errs` 非空 ⇒ `BuildFailedException` | **探针轮三件套**(承 `CLAUDE.md` §构建前门):<br>① 注入 `lethal=true` 行 ⇒ **构建 `Result: Failure`**(不是「绑定器抛异常」);<br>② 报文**点名该行**(行号 / `injury_id`);<br>③ 栈帧给出该门的 `OnPreprocessBuild`;<br>还原判据 = SHA-256 逐字节 + 还原后同路径**绿**(两侧都要,禁只断「会红」)。<br>⚠️ **S9 未落时 V-5 / V-6 / V-7 只能记「绑定器层拒收」,不得记「构建 Failure」** —— 这正是 S3 / S4 证据件里登记的现状。<br>⚠️ **顺序**:S9 须在 **S7 之前** —— 证伪轮的靶场要含「构建门」这一面,否则那条变异无处可打。<br>🔁 **2026-10-30 实现期订正(原文不删)**:上句「② `AssemblyGates` 新增 `CostTableGate`」**不可照字面实现** —— 程序集边 `Editor.Tools.Bake → Editor.Tools.Gates` **已存在**(Bake 的 asmdef 引用了它),反向再引 = **循环引用**,Unity 直接拒绝编译;而门必须调用 `CostTableBinder`(住 Bake)。⇒ 实际落点 = `Editor.Tools.Bake/CostTableGate.cs`,**自带** `IPreprocessBuildWithReport`(Unity 按反射发现,与 `AssemblyGates.BuildGate` 并列),**不经** `AssemblyGates.RunAll()`。代价:门的清单位于两处,已在该文件头注明。**同轮另发现**:全仓**零** `BuildPipeline.BuildPlayer` 调用(CI 只跑测试)⇒ `IPreprocessBuildWithReport` 此前**没有任何执行者**;故 S9 同批新增探针轮载体 `Cli/CostTableProbeBuildCli.cs`(产物落系统临时目录 —— 首版放 `Library/` 被 Unity 直接拒,实测)。<br>✅ **2026-10-30 已落** —— 交付 `CostTableCookedWriter` / `CostTable53Bake` / `CostTableGate` / `CostTableProbeBuildCli` / `DataBakeMenu.BakeCostTable` + **10 条夹具**;**探针轮五次构建**:基线 `Success` → 门内无条件失败项 `Failure`(探针串 + 栈帧 + `utp` 止于 `Preprocess Player` 三件套齐)→ **V-5** 致死行 `Failure`(报文点名 `rows[0] … INJ-HEMORRHAGE` + `N-1`)→ **V-6** `Failure` → **V-7** `Failure` → **还原后 `Success`**;还原 SHA-256 逐字节一致。⚠️ **CI 不产出 player**,故本门今日只在**本机构建**生效。原件 `production/qa/evidence/t1-s9-build-path-2026-10-30.md` |
 
