@@ -15,7 +15,7 @@
 | # | 阻断 | 今日状态 | 判据 |
 |---|---|---|---|
 | **L-6** | 运行时零 active `AudioListener`(全场景静音) | ✅ **已修(账面滞后)** | `BootRoot.cs:490` `cameraObj.AddComponent<UnityEngine.AudioListener>()`,修于 2026-10-20 |
-| **L-1** | 无病人离场路径 | ⛔ **尝试被撤回 —— 与 AC-019-6 判据冲突**(见 §六) | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
+| **L-1** | 无病人离场路径 | ✅ **已修(甲案)** | 终态 ∧ 无活呼吸句柄 ∧ 尾音不在衰减中 ⇒ `RemovePresent`;EditMode `5854/5817/0/0/37` · PlayMode `238/234/0/2/2` 均零红 | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
 | **L-2** | 听诊档位恒最低档 | ❌ **仍 open** | `CompositionRoot.cs:810` 仍是局部 `int queryLevel = 1;`,全文件无回写 |
 | **L-3** | 病程被占位曲线压到 1.55 s | 🟡 **已落(乙案)· 未经夹具验证** | 新增 `DiseaseId=2 / fallback_audition` 长曲线 + 装配层常量开关 `AuditionDiseaseForListening`(默认 `false` ⇒ 零行为变化);EditMode `5852/5815/0/0/37` 零红 |
 | **L-4** | 刷人间隔 20 s/人 | ✅ **已修** | `PatientAppearedDriver` `SpawnIntervalTicks` 400 → **60**(20 s/人 → 3 s/人);EditMode 全量 `5852/5815/0/0/37` 零红 |
@@ -162,3 +162,16 @@ firstReadable ≤ 60 tick
 | **丙** | L-1 留债,承认「P0 没有离场路径」是有意为之 | 三个病人只增不减;`PruneAbsent` 永不自然触发 |
 
 **在裁定之前 L-1 保持原状(生产零调用方),原尝试已撤回,SHA-256 级还原(EditMode 复跑零红)。**
+
+
+### 六之一 · L-1 裁定与落地(2026-10-29 收尾)
+
+**用户裁定:甲案** —— 移除推迟到尾音收口之后。已落地:
+
+- 判据:`behavior.Terminal.Latched ∧ !_breathHandles.ContainsKey(id) ∧ !_tailStartTick.ContainsKey(id)`
+- 落点:`PatientCueDriver.StepOnePatient` 排入 `_exitScratch`,`OnTickEdge` **循环外**统一 `RemovePresent`
+  (遍历中改登记簿会动它正在遍历的快照)
+- **夹具**:`unity/Assets/Tests/EditMode/Audio/patient_exit_on_terminal_test.cs`(2 条,两侧都断)
+- **证伪 2/2**:M1 终态判据短路成 `false` ⇒ 正面夹具红;M2 去掉终态判据 ⇒ 反面夹具红。均 `RESTORE-OK`(SHA-256)
+- ⚠️ **M1 首版变异编译失败**(删掉语句体导致 CS1023 `Embedded statement cannot be a declaration`)⇒
+  驱动器报 `NO-XML` 而**不是** `RED-命中`。**这条没被算成证明** —— 改成 `if (false && ...)` 重跑才转红。

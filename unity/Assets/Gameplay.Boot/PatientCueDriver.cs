@@ -82,6 +82,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         //   `_tailDone` 按值不进三流,封口值亦不进任何 sink —— 见 `IsBreathTailDone`。
         private readonly Dictionary<int, double> _tailDone = new Dictionary<int, double>();
 
+        /// <summary>本拍可离场(终态 ∧ 尾音已收口)的病人,循环外统一移除(`TD-listen-01` 的 L-1 · 甲案)。</summary>
+        /// <remarks>⚠️ **不得在 <c>foreach (PresentPatientIds())</c> 里直接改登记簿** —— 会动遍历中的快照。</remarks>
+        private readonly List<PatientId> _exitScratch = new List<PatientId>();
+
         /// <summary>构造。</summary>
         /// <param name="sink">44 的 cue 界面(非 null;ADR-018 §一「只入不出」)。</param>
         /// <param name="vitals">9 的体征查询(唯一取数入口,AC-13-A2)。</param>
@@ -223,9 +227,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (tick < 0) throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
 
             LastDrivenTick = tick;
+            _exitScratch.Clear();
             // 在场集快照(登记簿快照只在成员变动时重建 ⇒ 稳态零分配,TD-audio-032 ④)。
             foreach (int patientId in _presence.PresentPatientIds())
                 StepOnePatient(patientId, tick);
+
+            // 🔁 **2026-10-29(`TD-listen-01` 的 L-1 · **甲案**,用户裁定)**:终态病人**等尾音收口后**才离场。
+            //    此前 `IPresenceWriter.RemovePresent` 生产零调用方 ⇒ 病人永不退场。
+            //    ⚠️ **为什么不能一锁存就移除**(上一版实测 6 红):`AC-019-6` 的语义是
+            //    「**终态持续期间**尾音只衰减一次、永不重启」—— 病人一走,`PruneAbsent` 立刻清
+            //    `_tailDone` / `_tailStartTick` ⇒ 协议在观测窗口内消失。甲案把移除**推迟到尾音收口之后**,
+            //    两条判据因此不再争夺同一段时间轴。
+            //    ⚠️ 判据 = 终态 ∧ 无活呼吸句柄 ∧ 尾音不在衰减中(`_tailDone` 已收口或从未有过呼吸)。
+            for (int i = 0; i < _exitScratch.Count; i++)
+                _presence.RemovePresent(_exitScratch[i]);
 
             // ⛔ **2026-10-29:`TD-listen-01` 的 L-1 尝试被撤回** —— 曾在此按
             //    `behavior.Terminal.Latched` 调 `_presence.RemovePresent(...)`,实测**6 条既有 AC 转红**:
@@ -251,6 +266,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             _behavior.Step(id, _knowsClinic(id));
             PatientBehavior behavior = _behavior.For(id);
             VitalsDto v = _vitals.GetVitals(id);
+
+            // L-1 甲案:终态 ∧ 尾音已收口(或从未起过呼吸)⇒ 排入本拍结束后的离场队列。
+            // ⚠️ 尾音**正在衰减**(`_tailStartTick` 有行)时不得移除 —— 那正是 AC-019-6 的观测窗。
+            if (behavior.Terminal.Latched
+                && !_breathHandles.ContainsKey(patientId)
+                && !_tailStartTick.ContainsKey(patientId))
+                _exitScratch.Add(id);
 
 
             CueDispatch dispatch = DecideFor(patientId, id, behavior, v, tick);
