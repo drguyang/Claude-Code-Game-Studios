@@ -155,6 +155,99 @@ namespace DaYiJingCheng.Tests.Boot
                 "文本为 null ⇒ 不得 Show(空字幕会盖掉上一条真实字幕)");
         }
 
+        /// <summary>**字幕会自己收起**(2026-10-29 · `AC-44-15` 的「屏幕上有字幕」不常驻)。
+        /// <para>⚠️ 42 不判时机(`E-12b`)⇒ 收尾只能由上游记账。不加这一条,
+        /// 第一条咳嗽的台词会永远停在屏幕上。</para></summary>
+        [Test]
+        public void test_subtitle_hidesAfterHoldTicks()
+        {
+            var presence = new PresenceRegistry();
+            var (driver, audio, subtitle) = MakeDriver(withSubtitle: true, presence);
+            presence.AddPresent(new PatientId(1), new WorldPos(0, 0, 0));
+
+            for (long t = 10; t <= 60; t++) driver.OnTickEdge(t);
+            Assert.That(audio.EmitCount, Is.GreaterThan(0), "前置:至少发过一次咳");
+            Assert.That(subtitle.Shown.Count, Is.GreaterThan(0), "前置:至少显示过一次字幕");
+
+            // ⚠️ **先让病人离场再推进** —— 否则不可判:咳嗽每 ~40 tick 再发一次,
+            //    每次 `Show` 都把停留窗从头算(新字幕替换旧字幕),于是「末 tick + 61」
+            //    那一刻**可能刚好吃到新一次咳嗽** ⇒ 永远测不到收起。
+            //    (首版夹具就是这么红的:诊断实测 emit=2 / hideAt 被推到 1060。)
+            //    病人离场后不再有新字幕,停留窗才是确定的。
+            presence.RemovePresent(new PatientId(1));
+
+            long after = driver.LastDrivenTick + PatientCueDriver.SubtitleHoldTicksDefault + 1;
+            driver.OnTickEdge(after);
+
+            Assert.That(subtitle.HideCount, Is.GreaterThan(0),
+                "到点须收起 —— 否则字幕常驻");
+        }
+
+        /// <summary>**停留窗内不得提前收起**(玩家还没读完)。</summary>
+        [Test]
+        public void test_subtitle_notHiddenWithinHoldWindow()
+        {
+            var presence = new PresenceRegistry();
+            var (driver, _, subtitle) = MakeDriver(withSubtitle: true, presence);
+            presence.AddPresent(new PatientId(1), new WorldPos(0, 0, 0));
+
+            for (long t = 10; t <= 60; t++) driver.OnTickEdge(t);
+
+            // ⚠️ 前置必断:本测断言的是「**不该**收起」—— 若一个字幕都没显示过,
+            //    这条断言就是**空真**(没东西可收),对变异毫无判别力。
+            Assert.That(subtitle.Shown.Count, Is.GreaterThan(0),
+                "前置:至少显示过一次字幕(否则「未收起」是空真)");
+
+            // ⚠️ **基线必须是绝对量 0,不能取「循环后当前值」** ——
+            //    取证伪轮实测(2026-10-29):变异若在**循环内**就提前收起,
+            //    取当前值会把违规样本一起吸收掉(`before=1 / after=1` ⇒ 断言相等 ⇒ 假存活)。
+            //    停窗 = 60 tick、首次咳嗽 ≥ tick 10 ⇒ 到点 ≥ 70,循环(≤60)**全程不该收**。
+            Assert.That(subtitle.HideCount, Is.Zero,
+                "停留窗内(循环全程)不得发生任何一次收起 —— 提前收起 = 玩家没读完字就没了");
+
+            // 再离场推进一拍:窗仍未到(到点 ≥ 70 > 61),仍不得收。
+            presence.RemovePresent(new PatientId(1));
+            driver.OnTickEdge(driver.LastDrivenTick + 1);
+
+            Assert.That(subtitle.HideCount, Is.Zero,
+                "停留窗内不得收起(字幕在玩家读完之前消失比常驻更糟)");
+        }
+
+        /// <summary>**票据为 0 / 负数 ⇒ 构造期拒绝** —— 那等于「立刻收起」。</summary>
+        [Test]
+        public void test_subtitleHoldTicks_nonPositive_throws()
+        {
+            var presence = new PresenceRegistry();
+            var vitals = new FixedVitals(0.55f);
+            var behavior = new PatientBehaviorDirector(vitals, BehaviorBands.Default);
+            var audio = new RecordingAudioSink();
+            var subtitle = new RecordingSubtitleSink();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PatientCueDriver(
+                audio, vitals, presence, behavior,
+                coughCue: CoughOrdinal, knowsClinic: _ => true, hasCourse: _ => true,
+                subtitleSink: subtitle, subtitleTextOf: _ => CoughText,
+                subtitleHoldTicks: 0));
+        }
+
+        /// <summary>**全量收尾时字幕一并收起**(场景卸载 / 读档前不留残行)。</summary>
+        [Test]
+        public void test_stopAll_hidesSubtitle()
+        {
+            var presence = new PresenceRegistry();
+            var (driver, _, subtitle) = MakeDriver(withSubtitle: true, presence);
+            presence.AddPresent(new PatientId(1), new WorldPos(0, 0, 0));
+            for (long t = 10; t <= 60; t++) driver.OnTickEdge(t);
+            int before = subtitle.HideCount;
+
+            // 前置必断:没有字幕可收时,「StopAll 收起」也是空真。
+            Assert.That(subtitle.Shown.Count, Is.GreaterThan(0), "前置:至少显示过一次字幕");
+
+            driver.StopAll();
+
+            Assert.That(subtitle.HideCount, Is.GreaterThan(before), "StopAll 须收起字幕");
+        }
+
         /// <summary>**字幕不是播音的替代** —— 播音面必须仍然工作。
         /// <para>⚠️ 这条防的是「为了投字幕而跳过 `sink.Emit`」的退化形态。</para></summary>
         [Test]

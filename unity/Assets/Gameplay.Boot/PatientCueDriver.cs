@@ -63,6 +63,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ **null = 不投递**(既有夹具不传 ⇒ 行为逐位不变)。</para>
         /// <para>⚠️ 与字幕同款:文本/字形不经 44 转发 —— 44 只入不出,可见物由**上游发射点**直投 42。</para></summary>
         private readonly DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink _cueMarkSink;
+
+        /// <summary>字幕的**自动收尾**记账(2026-10-29 · `AC-44-15` 的「屏幕上有字幕」)。
+        /// <para>⚠️ 42 **不判时机**(`E-12b`)⇒ 「字幕停留多久」只能由**上游**记账并调 `Hide`。
+        /// 不加这一条,字幕会一直停在屏幕上(第一条咳嗽的台词永不消失)。</para>
+        /// <para>`-1` = 当前没有待收尾的字幕。</para></summary>
+        private long _subtitleHideAtTick = -1;
+
+        /// <summary>字幕停留 tick 数(默认 <see cref="SubtitleHoldTicksDefault"/>)。
+        /// <para>⚠️ **P0 占位值** —— 呈现规格(停多久 / 淡出与否)归 49 的 P2 细化面;
+        /// 此处只保证「不会常驻」。</para></summary>
+        private readonly int _subtitleHoldTicks;
+
+        /// <summary>字幕默认停留 = **60 tick = 3.0 s @ 20 Hz**(`TICK_SECONDS = 0.05`)。</summary>
+        public const int SubtitleHoldTicksDefault = 60;
         private readonly IVitalsQuery _vitals;
         private readonly PresenceRegistry _presence;
         private readonly PatientBehaviorDirector _behavior;
@@ -129,11 +143,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                                 Func<PatientId, bool> hasCourse = null,
                                 DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
                                 Func<int, string> subtitleTextOf = null,
-                                DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
+                                DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null,
+                                int subtitleHoldTicks = SubtitleHoldTicksDefault)
         {
             _subtitleSink = subtitleSink;
             _subtitleTextOf = subtitleTextOf;
             _cueMarkSink = cueMarkSink;
+            _subtitleHoldTicks = subtitleHoldTicks > 0
+                ? subtitleHoldTicks
+                : throw new ArgumentOutOfRangeException(nameof(subtitleHoldTicks), subtitleHoldTicks,
+                    "字幕停留 tick 数须 > 0 —— 0 或负数等于「立刻收起」," +
+                    "那会让字幕在玩家读完之前消失,比常驻更糟。");
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _vitals = vitals ?? throw new ArgumentNullException(nameof(vitals));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -263,6 +283,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             for (int i = 0; i < _exitScratch.Count; i++)
                 _presence.RemovePresent(_exitScratch[i]);
 
+            TickSubtitleHold(tick);
+
             // ⛔ **2026-10-29:`TD-listen-01` 的 L-1 尝试被撤回** —— 曾在此按
             //    `behavior.Terminal.Latched` 调 `_presence.RemovePresent(...)`,实测**6 条既有 AC 转红**:
             //    `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` 等。
@@ -348,7 +370,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                     cell.X, cell.Y, cell.Z, looped: false);
                 EmitCount++;
 
-                DeliverVisualChannels(patientId, dispatch.Kind);
+                DeliverVisualChannels(patientId, dispatch.Kind, tick);
             }
             _lastEmitTick[patientId] = tick;
         }
@@ -357,7 +379,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 两路都与播音**并列,不替代** —— 播音已在上游完成,本方法只补视觉面。</para>
         /// <para>⚠️ 抽成独立方法的原因:行预算门(`TD-audio-032` ③)要求
         /// `EmitOneShotIfDue` ≤ 40 物理行,塞进去会 41 行。</para></summary>
-        private void DeliverVisualChannels(int patientId, CueKind kind)
+        private void DeliverVisualChannels(int patientId, CueKind kind, long tick)
         {
             // ── 字幕(AC-44-15 双投递的文本半边 · 2026-10-29)──
             // ⚠️ 文本为 null/空 ⇒ **不 Show**(空字幕会盖掉上一条真实字幕 ——
@@ -367,8 +389,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 string text = _subtitleTextOf(_coughCue.Value);
                 if (!string.IsNullOrEmpty(text))
+                {
                     _subtitleSink.Show(
                         new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("病人", text));
+                    // 记账:到点由 `TickSubtitleHold` 收起(42 不判时机)。
+                    _subtitleHideAtTick = tick + _subtitleHoldTicks;
+                }
             }
 
             // ── 非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)──
@@ -377,6 +403,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ `_cueMarkSink == null` ⇒ 不投(既有夹具不传 ⇒ 零行为变化)。
             _cueMarkSink?.Mark(new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkData(
                 patientId, PatientCueVisualMap.Of(kind)));
+        }
+
+        /// <summary>字幕到点收起(`AC-44-15` 的「屏幕上有字幕」不常驻)。
+        /// <para>⚠️ 判据 = **整数 tick 比较**,不读墙钟(与尾音衰减同款纪律)。</para></summary>
+        private void TickSubtitleHold(long tick)
+        {
+            if (_subtitleHideAtTick < 0 || tick < _subtitleHideAtTick) return;
+            _subtitleHideAtTick = -1;
+            _subtitleSink?.Hide();
         }
 
         /// <summary>在场集收缩后清理簿记(离场 / 死亡病人的句柄不得残留)。</summary>
@@ -453,6 +488,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             _tailStartTick.Clear();
             _tailDone.Clear();
             _cueMarkSink?.ClearAll();   // 可见物同口径:场景卸载 / 读档前不留残影
+            _subtitleHideAtTick = -1;
+            _subtitleSink?.Hide();      // 字幕同口径:卸载前不留残行
             for (int i = 0; i < handles.Count; i++)
                 _sink.EndLoop(handles[i]);
         }

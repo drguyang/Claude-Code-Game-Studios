@@ -66,6 +66,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 装配完成后再挂到 UI 根上 —— 与 <see cref="CompositionRootServices.EmergencyCandidates"/>
         /// 的「先装配、后 MountTo」同序,只是本件的缝恰好是构造参数。</para></summary>
         private DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkView _cueMarks;
+
+        /// <summary>语声字幕元件(`AC-44-15` `[L]` 半 · 2026-10-29)。
+        /// <para>⚠️ 与 <see cref="_cueMarks"/> 同序:装配前构造(它是 `Assemble` 的入参),
+        /// 装配后挂 UI 根。**不挂**则「屏幕上有字幕」这条判据在运行期不存在。</para></summary>
+        private DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView _subtitle;
         private InteractionInputDriver _interactionDriver;
         private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
@@ -275,6 +280,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 缺口 D:病人 cue 的非色相可见对应物 —— 元件先造,装配后再挂 UI 根(见字段注)。
             _cueMarks = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkView();
+            // AC-44-15 [L]:语声字幕元件 —— 同序(先造、后挂)。
+            _subtitle = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView();
 
             _services = CompositionRoot.Assemble(
                 registry: null,
@@ -298,7 +305,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 病人 cue 的非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)。
                 // ⚠️ **本处是唯一生产装配点** —— 不给 ⇒ `PatientCueDriver` 一路不投递,
                 //    AC-13-F1 的「默认可见」在运行期就不存在(禁借绿:缝存在 ≠ 面上有东西)。
-                cueMarkSink: _cueMarks);
+                cueMarkSink: _cueMarks,
+                // 语声字幕(`AC-44-15` `[L]` 半 · 2026-10-29)。文本源由装配根从事件表解析,
+                // 此处只给**呈现载体**;不给则运行期无字幕可看(判据只落在单元夹具里 = 借绿)。
+                subtitleSink: _subtitle);
 
             // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
             // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但
@@ -596,7 +606,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_cueMarks != null)
             {
                 UnityEngine.UIElements.VisualElement uiRoot = _uiDriver.GetUiRoot();
-                if (uiRoot != null) uiRoot.Add(_cueMarks);
+                if (uiRoot != null)
+                {
+                    uiRoot.Add(_cueMarks);
+                    if (_subtitle != null) uiRoot.Add(_subtitle);
+                }
             }
             // ── 6.1 写通道注入(sprint-08 S1.1 件 F1):病名栏 Submit → 装配层写者 ──
             // 42 只渲染不持状态(ADR-013 §9 C3)⇒ 病名栏 Submit 经命令面转发给装配层的
