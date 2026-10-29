@@ -209,14 +209,17 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         [Test]
         public void test_silentCaptureOnGroup_masterAtMinus74_red()
         {
-            // Arrange:真资产 + 把 Master 的 Default 捕获值改成事故值
+            // Arrange:真资产 + **注入** Master 的 Default 捕获(事故值)
+            // 🔁 2026-10-29(`TD-audio-027` 修复轮):原写法是 `Replace("hash: 0", "hash: -74.14725")`
+            //    —— 它**依赖资产里带着那行 bug**。本轮修掉资产(删掉 `Default` 快照误捕获的
+            //    Master 电平行)后,替换找不到目标 ⇒ 变异不生效 ⇒ 本测红。
+            //    ⇒ 改为**自己注入**那一行,不再依赖生产资产的偶然状态。
+            //    这样资产修好之后本测仍能造出事故形态,且「资产里没有该行」不再是失败原因。
             string yaml = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
             // Master 组 m_Volume 哈希(实测 2026-10-20;换资产须同步)
             const string masterVolumeHash = "4b26ff2484ad0dd3dbba5a2756453a2e";
-            string sabotaged = yaml.Replace(
-                $"{masterVolumeHash}: 0",
-                $"{masterVolumeHash}: -74.14725");
-            Assert.That(sabotaged, Is.Not.EqualTo(yaml), "变异未生效 —— Master 的捕获行没被替换到");
+            string sabotaged = InjectDefaultSnapshotCapture(yaml, masterVolumeHash, "-74.14725");
+            Assert.That(sabotaged, Is.Not.EqualTo(yaml), "变异未生效 —— Default 快照的捕获行没被注入");
 
             // Act
             IReadOnlyList<string> errors =
@@ -240,12 +243,11 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         [Test]
         public void test_silentCaptureOnGroup_aboveLegacyFloor_zeroFromLegacyGate()
         {
-            // Arrange
+            // Arrange(🔁 2026-10-29 `TD-audio-027` 修复轮:改为**注入**,不再依赖资产带 bug)
             string yaml = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
             const string masterVolumeHash = "4b26ff2484ad0dd3dbba5a2756453a2e";
-            string sabotaged = yaml.Replace(
-                $"{masterVolumeHash}: 0",
-                $"{masterVolumeHash}: -74.14725");
+            string sabotaged = InjectDefaultSnapshotCapture(yaml, masterVolumeHash, "-74.14725");
+            Assert.That(sabotaged, Is.Not.EqualTo(yaml), "变异未生效 —— Default 快照的捕获行没被注入");
 
             // Act:旧判据(≤ −80)
             IReadOnlyList<string> legacyErrors =
@@ -1150,6 +1152,42 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             string path = Path.Combine(all);
             Assert.That(File.Exists(path), Is.True, $"仓库文件缺失:{path}");
             return File.ReadAllText(path);
+        }
+
+        /// <summary>往 `Default` 快照注入一条组电平捕获(夹具自造事故形态,不依赖资产里已有该行)。
+        /// <para>🔁 2026-10-29(`TD-audio-027` 修复轮)新立。原夹具用
+        /// <c>yaml.Replace("hash: 0", "hash: -74.14725")</c> —— 它**依赖生产资产带着那行 bug**
+        /// (债册记的听测误操作残留)。本轮把资产修好之后,替换找不到目标 ⇒ 夹具红。
+        /// 夹具不该以「生产代码有缺陷」为前提。</para>
+        /// <para>⚠️ 两种形态都要处理:`m_FloatValues: {{}}`(空捕获)与已有捕获键(追加一行)。
+        /// 只处理后者会让本测在「资产是干净的」时静默失败。</para></summary>
+        /// <param name="yaml">`.mixer` 原文。</param>
+        /// <param name="volumeHash">目标组的 <c>m_Volume</c> 哈希(32 hex)。</param>
+        /// <param name="db">注入的 dB 值(字符串,保留原文精度)。</param>
+        /// <returns>注入后的文本(未找到 `Default` 快照 ⇒ 原样返回,由调用方断言不等)。</returns>
+        private static string InjectDefaultSnapshotCapture(string yaml, string volumeHash, string db)
+        {
+            const string anchor = "  m_Name: Default\n";
+            int nameAt = yaml.IndexOf(anchor, StringComparison.Ordinal);
+            if (nameAt < 0) return yaml;
+
+            int floatAt = yaml.IndexOf("  m_FloatValues:", nameAt, StringComparison.Ordinal);
+            if (floatAt < 0) return yaml;
+            int lineEnd = yaml.IndexOf('\n', floatAt);
+            if (lineEnd < 0) return yaml;
+
+            string valueLine = yaml.Substring(floatAt, lineEnd - floatAt);   // "  m_FloatValues: …"
+            string injected = $"    {volumeHash}: {db}";
+
+            // 形态 A:`m_FloatValues: {}`(空捕获,本仓修好后的样子)→ 展开成块
+            if (valueLine.EndsWith("{}", StringComparison.Ordinal))
+            {
+                string head = valueLine.Substring(0, valueLine.Length - 2).TrimEnd();  // "  m_FloatValues:"
+                return yaml.Substring(0, floatAt) + head + "\n" + injected + yaml.Substring(lineEnd);
+            }
+
+            // 形态 B:已有捕获块 → 在该行后追加一行(保持原行不动)
+            return yaml.Substring(0, lineEnd) + "\n" + injected + yaml.Substring(lineEnd);
         }
 
         /// <summary>错误集里是否含指定片段(不依赖执行次序 —— 门按规则聚合,顺序不作契约)。</summary>

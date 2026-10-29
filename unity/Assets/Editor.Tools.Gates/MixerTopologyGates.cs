@@ -553,6 +553,34 @@ namespace DaYiJingCheng.EditorTools.Gates
                 volumeHashToGroup[doc.VolumeHash] = doc.Name;
             }
 
+            // 🔁 **2026-10-29(`TD-audio-027`):求交对象从「exposed 参数名集」扩至
+            //    「玩家可设电平的完整落点集」**。病因(债册原文):
+            //    `Master` 组的**原始电平**(`m_Volume: 4b26ff…`)不在 `m_ExposedParameters`
+            //    参数名集里 —— 它是 `AudioMixerController` 根组的内部电平,非 exposed
+            //    ⇒ 任何快照捕获 Master 原始电平均**判绿通过**。失效形态是将来式:
+            //    若把 Master 原始电平调成全局 headroom(如 −3 dB),`Default` 快照会在每次
+            //    切入时**静默打回 0** —— 正是本项目明令警惕的静默类失败。
+            //    实测已发生过一次:story-018 听测期在 Mixer 窗口选中 `Default` 后动了 Master
+            //    电位器,资产里留下了 `4b26ff…: 0`(`60580ad6`),而门**全程判绿**。
+            //
+            // ⚠️ **为什么「根组 Master」要特判纳入**:两总线组(Music / Ambience / …)的原始
+            //    电平**不属于玩家可设落点** —— 它们由快照过渡驱动,捕获它们是正常的;
+            //    只有**根组 Master** 的电平是全局 headroom,玩家不设、快照也不该动。
+            //    不加这个特判会把 Paused 等快照的合法 duck/总线捕获一起误红。
+            string rootGroupName = null;
+            foreach (MixerDoc doc in docs)
+                if (doc.ClassName == MixerClassName && doc.MasterGroupId != 0 &&
+                    groupNames.TryGetValue(doc.MasterGroupId, out string rootName))
+                { rootGroupName = rootName; break; }
+
+            if (rootGroupName == null)
+                errors.Add("[NOT-RUN 守卫] 未解析到根组(Master)—— 「快照不得捕获根组原始电平」" +
+                           "这一半判据不可执行(拒空集冒充绿)");
+
+            // 玩家可设电平的**完整落点集**:exposed 参数名 + 根组原始电平
+            var playerSettable = new HashSet<string>(exposed, StringComparer.Ordinal);
+            if (rootGroupName != null) playerSettable.Add(rootGroupName);
+
             foreach (MixerDoc snap in docs)
             {
                 if (snap.ClassName != SnapshotClassName) continue;
@@ -560,26 +588,33 @@ namespace DaYiJingCheng.EditorTools.Gates
                 {
                     if (!groupNames.TryGetValue(target, out string groupName))
                         continue;   // 非组 fileID 的键(参数哈希?)—— 对齐点,不误红
-                    if (exposed.Contains(groupName))
-                        errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家 exposed 参数「{groupName}」—— " +
-                                   "快照参数集 ∩ 玩家 exposed 集 ≠ ∅(进出快照会打回玩家滑块值," +
-                                   "两级组结构纪律,GDD §States / story AC②)");
+                    if (playerSettable.Contains(groupName))
+                        errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家可设电平「{groupName}」—— " +
+                                   "快照参数集 ∩ 玩家可设电平集 ≠ ∅(进出快照会打回玩家滑块值" +
+                                   (groupName == rootGroupName
+                                       ? ";根组 Master 电平 = 全局 headroom,快照捕获它会让 headroom " +
+                                         "在每次切入时静默打回 —— TD-audio-027"
+                                       : "") +
+                                   ";两级组结构纪律,GDD §States / story AC②)");
                 }
                 foreach (string literal in snap.CaptureNames)
                 {
                     // 32-hex 捕获键 = 组电平参数哈希 ⇒ 经 m_Volume 反查组名后参与交集
                     if (volumeHashToGroup.TryGetValue(literal, out string byHash))
                     {
-                        if (exposed.Contains(byHash))
-                            errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家 exposed 组「{byHash}」" +
+                        if (playerSettable.Contains(byHash))
+                            errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家可设电平组「{byHash}」" +
                                        $"(键 {literal} = 该组 m_Volume 哈希)—— 快照参数集 ∩ 玩家 " +
-                                       "exposed 集 ≠ ∅(进出快照会打回玩家滑块值,两级组结构纪律," +
-                                       "GDD §States / story AC②)");
+                                       "可设电平集 ≠ ∅(进出快照会打回玩家滑块值" +
+                                       (byHash == rootGroupName
+                                           ? ";根组 Master 电平 = 全局 headroom —— TD-audio-027"
+                                           : "") +
+                                       ";两级组结构纪律,GDD §States / story AC②)");
                         continue;
                     }
-                    if (exposed.Contains(literal))
-                        errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家 exposed 参数「{literal}」—— " +
-                                   "快照参数集 ∩ 玩家 exposed 集 ≠ ∅(AC②)");
+                    if (playerSettable.Contains(literal))
+                        errors.Add($"[AC②] 快照「{snap.Name}」捕获玩家可设电平「{literal}」—— " +
+                                   "快照参数集 ∩ 玩家可设电平集 ≠ ∅(AC②)");
                 }
             }
 

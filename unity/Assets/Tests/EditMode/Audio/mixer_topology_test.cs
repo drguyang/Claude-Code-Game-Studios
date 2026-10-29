@@ -358,6 +358,48 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 Is.True, () => string.Join("\n", errors));
         }
 
+        /// <summary>`TD-audio-027` 负例:快照捕获**根组 Master 的原始电平** ⇒ 红。
+        /// <para>这是收严后的新增判据面。收严前:Master 原始电平**不在** `m_ExposedParameters`
+        /// 参数名集里(它是根组内部电平,非 exposed)⇒ 该捕获**判绿通过**。失效形态是将来式 ——
+        /// 若把 Master 原始电平调成全局 headroom(如 −3 dB),`Default` 快照会在每次切入时
+        /// **静默打回 0**(本项目明令警惕的静默类失败)。</para></summary>
+        [Test]
+        public void test_snapshotCapture_rootGroupRawVolume_reportsRed()
+        {
+            // Arrange:Default 快照捕获根组(夹具 fileID 2000 = Master)电平 −3 dB
+            string yaml = readFixture("invalid_snapshot_captures_root_group.yaml");
+
+            // Act
+            IReadOnlyList<string> errors = MixerTopologyGates.ValidateSnapshotExposedDisjoint(yaml);
+
+            // Assert ①:必红
+            Assert.That(errors, Is.Not.Empty,
+                "快照捕获根组 Master 原始电平必红 —— 收严前这一形态判绿(TD-audio-027)");
+
+            // Assert ②:诊断点名 Master 与债号(可行动,不是泛泛的「交集非空」)
+            Assert.That(errors.Any(e => e.Contains("Master") && e.Contains("TD-audio-027")),
+                Is.True, () => "诊断须点名根组与债号:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>`TD-audio-027` 反向守卫:两总线组(Music 等)的原始电平**不属**玩家可设落点
+        /// —— 它们由快照过渡驱动,捕获它们是合法的。</summary>
+        /// <remarks><b>判别力</b>:把收严写成「任何组电平都不许捕获」⇒ 本测红
+        /// (合法夹具的 Paused 快照捕获了 duck_* 组,那是设计内的)。</remarks>
+        [Test]
+        public void test_snapshotCapture_busGroupRawVolume_stillAllowed()
+        {
+            // Arrange:合法夹具的 Paused 捕获 7 条 duck_* 组电平 —— 设计内
+            string yaml = readFixture("valid_mixer_topology.yaml");
+
+            // Act
+            IReadOnlyList<string> errors = MixerTopologyGates.ValidateSnapshotExposedDisjoint(yaml);
+
+            // Assert:收严只针对**根组 + 玩家 exposed**,不得把 duck 捕获误红
+            Assert.That(errors, Is.Empty,
+                "收严把 duck 组捕获误红了 —— 那些是快照过渡的合法落点:\n" +
+                string.Join("\n", errors));
+        }
+
         /// <summary>两级组结构负例:单级总线(缺 duck_music 组)⇒ 红。</summary>
         [Test]
         public void test_singleLevelBus_reportsRed()

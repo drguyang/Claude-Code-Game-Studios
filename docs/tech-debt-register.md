@@ -340,7 +340,7 @@
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-026` | `audio-system` | closed | **Y** | R1 |
-| `TD-audio-027` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-027` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-028` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-029` | `audio-system` | open | **Y** | R1 |
 | `TD-audio-030` | `audio-system` | closed | **Y** | R1 |
@@ -844,10 +844,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 63, 'closed': 63, 'partial': 6, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
-未闭 P0 面 = 46 （已闭但曾标 P0 面的 55 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 46 条,分布在 10/31 个 epic
-    medical-consequences: 19  audio-system: 11          telemetry-analytics: 5
+条目 133 | 状态 {'open': 62, 'closed': 64, 'partial': 6, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
+未闭 P0 面 = 45 （已闭但曾标 P0 面的 56 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 45 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 10          telemetry-analytics: 5
     clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
@@ -1365,7 +1365,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
-| **TD-audio-027** | **AC② 门(快照捕获 ∩ 玩家 exposed = ∅)不覆盖「快照捕获 `Master` 原始电平」。** `MixerTopologyGates.ValidateSnapshotExposedDisjoint` 把捕获键经各组 `m_Volume` 哈希反查成**组名**,再与 `doc.Exposed`(= `m_ExposedParameters` 的**参数名集**:`bus_volume_*` + `tier_*`)求交。`Master` 组的**原始电平**(`m_Volume: 4b26ff…`,`:551`)**不在该参数名集里**(它是 `AudioMixerController` 根组的内部电平,非 exposed)⇒ 任何快照捕获 Master 原始电平均**判绿通过**。实测触发样:`Default` 快照的 `m_FloatValues` 由 `{}` 变为 `{4b26ff…: 0}`(听测期在 Mixer 窗口选中 Default 快照后动了 Master 电位器所致,编辑器行为、非代码路径)。失效形态是**将来式**:若日后把 Master 原始电平调成全局 headroom(如 −3 dB),`Default` 快照会在每次切入时**静默打回 0** —— 本项目明令警惕的**静默**类失败。 | `impl-s18-*` §十(含 diff + 两批复跑);`unity/Assets/Audio/DaYiJingCheng.mixer:551 / :583-584`;`MixerTopologyGates.cs:527-585`(反查逻辑)与 `:532-535`(`exposed` 名集构造) | **下一次触及混音器资产拓扑时**还债(素材批 `OQ-44-2` / 44 收口轮皆可):把 AC② 判据的求交对象从「exposed 参数名集」扩至**「玩家可设电平的完整落点集」** —— 即含各总线**原始电平哈希**(经 `GroupVolumeHashByName` 反查后,**根组 Master 须特判纳入**),并补一条**负例夹具**(快照捕获 Master ⇒ 红)坐实判别力。⚠️ **本批不改门**——它是 003 的资产,改它须回 story-003 的复评口径 + 证伪轮。 |
+| **TD-audio-027** | **AC② 门(快照捕获 ∩ 玩家 exposed = ∅)不覆盖「快照捕获 `Master` 原始电平」。** `MixerTopologyGates.ValidateSnapshotExposedDisjoint` 把捕获键经各组 `m_Volume` 哈希反查成**组名**,再与 `doc.Exposed`(= `m_ExposedParameters` 的**参数名集**:`bus_volume_*` + `tier_*`)求交。`Master` 组的**原始电平**(`m_Volume: 4b26ff…`,`:551`)**不在该参数名集里**(它是 `AudioMixerController` 根组的内部电平,非 exposed)⇒ 任何快照捕获 Master 原始电平均**判绿通过**。实测触发样:`Default` 快照的 `m_FloatValues` 由 `{}` 变为 `{4b26ff…: 0}`(听测期在 Mixer 窗口选中 Default 快照后动了 Master 电位器所致,编辑器行为、非代码路径)。失效形态是**将来式**:若日后把 Master 原始电平调成全局 headroom(如 −3 dB),`Default` 快照会在每次切入时**静默打回 0** —— 本项目明令警惕的**静默**类失败。 | `impl-s18-*` §十(含 diff + 两批复跑);`unity/Assets/Audio/DaYiJingCheng.mixer:551 / :583-584`;`MixerTopologyGates.cs:527-585`(反查逻辑)与 `:532-535`(`exposed` 名集构造) | **下一次触及混音器资产拓扑时**还债(素材批 `OQ-44-2` / 44 收口轮皆可):把 AC② 判据的求交对象从「exposed 参数名集」扩至**「玩家可设电平的完整落点集」** —— 即含各总线**原始电平哈希**(经 `GroupVolumeHashByName` 反查后,**根组 Master 须特判纳入**),并补一条**负例夹具**(快照捕获 Master ⇒ 红)坐实判别力。⚠️ **本批不改门**——它是 003 的资产,改它须回 story-003 的复评口径 + 证伪轮。 |<br>**✅ 2026-10-29(结案 —— 全条 `open` → `closed`)**:**① 门收严** —— `ValidateSnapshotExposedDisjoint` 的求交对象由「exposed 参数名集」扩至**「玩家可设电平的完整落点集」** = exposed ∪ **根组 Master**。根组经 `AudioMixerController.MasterGroupId` 解析;**解析不到 ⇒ `NOT-RUN 守卫`**(拒空集冒充绿)。⚠️ **根组特判是刻意的、不可省**:两总线组(Music / Ambience / …)的原始电平由快照过渡驱动,捕获它们是**设计内**的(`Paused` 快照捕获 7 条 `duck_*`);只有**根组 Master** 的电平是全局 headroom,玩家不设、快照也不该动。不加特判会把合法夹具整片误红(反证 M2 实测连带 4 条合法测转红)。**② 资产修复** —— `unity/Assets/Audio/DaYiJingCheng.mixer` 的 `Default` 快照删掉`4b26ff…: 0`(根组 Master 电平捕获)。该行由 **`60580ad6`(story-018 听测提交)**带入,与债册记的「听测期在 Mixer 窗口选中 Default 后动了 Master 电位器」逐字吻合 —— **编辑器误操作残留,非设计意图**。⚠️ 它是本条债的**活证据**:门全程判绿,而资产里已带着该形态。**③ 负例夹具** —— `tests/integration/audio_system/fixtures/invalid_snapshot_captures_root_group.yaml`(= 合法夹具的 `Default` 捕获根组 −3 dB)+ 两条测试:`test_snapshotCapture_rootGroupRawVolume_reportsRed`(必红且诊断点名 `Master` 与债号)· `test_snapshotCapture_busGroupRawVolume_stillAllowed`(**反向守卫**:duck 组捕获仍合法)。**证伪 2/2 成功**:M1 停用收严(根组移出玩家可设集)⇒ 负例转红;M2 过度收严(全部组电平都当玩家可设)⇒ 反向守卫转红(连带 4 条合法夹具测)。⚠️ **本轮踩坑两处,如实登记**:**(a) 我改资产击穿了两条既有夹具** —— `BreathLayersTest` 的 `test_silentCaptureOnGroup_masterAtMinus74_red` 与 `…_aboveLegacyFloor_zeroFromLegacyGate` 用 `yaml.Replace("<hash>: 0", "<hash>: -74.14725")` 造变异,**前提是生产资产里带着那行 bug**。删掉后替换找不到目标 ⇒ 变异不生效 ⇒ 两条红(第二条的「变异未生效」守卫正是夹具自带的,说明夹具写得好)。修法 = 新立 `InjectDefaultSnapshotCapture`,**自己注入**该行(两种形态都处理:`m_FloatValues: {}` 空捕获 / 已有捕获块)。**夹具不该以「生产代码有缺陷」为前提**。这条是**全量回归抓到的,不是自查发现的** —— 「跑全量」不可省。**(b) 证伪判据方向写反** —— M1 最初被我报成「假存活」,实为误读 `Expected: not <empty> But was: <empty>`:该报文正是「停用守卫 ⇒ 测试转红」的成功形态。这是本轮**第二次**同类失误(前一次 = `TD-audio-032` 的「变异太弱」),共同点 = **证伪判据的方向/强度没先自检就写进脚本**。证据原件 = `production/qa/evidence/impl-td-audio-027-ac2-root-group-2026-10-29.md`。
 
 
 ---
