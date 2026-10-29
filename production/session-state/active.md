@@ -12968,3 +12968,20 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **ADR-035**:S3 行 ✅;V-9 / V-10 已证;**V-5 仍未过**(无 CookedWriter / DataBakeMenu ⇒ 今天没有「构建」路径)。
   §Status 加「已部分实现」注(覆盖原「未落盘」)。S4–S7 未开工。
 - 原件 `production/qa/evidence/t1-s3-cost-table-binder-2026-10-30.md`。
+
+## Session Extract — ADR-035 T1·S4 `CostTable53` 只读视图(2026-10-30)
+
+- **交付**:`Sim/Consequences/CostTable53.cs`(Row / Table{IsEmpty,RowCount,TryLookup} / CreateTable,
+  构造期拷贝行集)+ `Sim.Contracts/CostHarmKind.cs`(Contraindication=0 / Overdose=1,**成员只许追加**)
+  + `Tests/EditMode/MedConsequences/cost_table53_test.cs`(**13 条**)。
+- **三处判断**:① L3 按 §Decision ③ 的「**复述同一拒收**」**也查 `lethal`**(比 Key Interfaces 草稿多一条:
+  不查则绕过 Bake 直构就能塞致死行);② N-3 的「结局轴**符号**」在整数域退化为「id 不在注册表内」,
+  不另设同义分支;③ 过量行**拒收**而非静默忽略(静默忽略正是 W-4 / R4 的形态)。
+- **测试**:13 / 13 绿。首跑**编译错**(漏 `using DaYiJingCheng.Sim.Contracts;`)⇒ 又一次
+  「exit 0 + 无 XML」的假绿(本会话第 **3** 次)。
+- **证伪**:4 变异(N-1 / kind / 过量闸 / 单射)⇒ **恰好 4 红**,SHA-256 逐字节还原。
+  ⚠️ M4 机理:关掉单射后 `Dictionary.Add` 抛**另一条** `ArgumentException` ⇒ 只断「会抛」的夹具会假绿;
+  本夹具断报文含「单射」,故仍转红。
+- **仍未**:零读方(无 CookedWriter / 菜单 / 装配点);**V-5 仍不过**(要「构建 Failure」);
+  S5–S7 未开工;`TD-sim-03` 仍卡 T2。
+- 原件 `production/qa/evidence/t1-s4-cost-table53-view-2026-10-30.md`。

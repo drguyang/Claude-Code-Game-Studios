@@ -391,7 +391,7 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 | S1 | 普查 `compounds[]` | ✅ **2026-10-29 已跑** —— 结论 = **零输入可达(两层都空)**,形式 = **canary**(N-4′)。原件 `production/qa/evidence/s1-compounds-census-2026-10-29.md`;连带发现 **R5** |
 | S2 | `53_cost_table.json` 骨架(空 `rows`) | ✅ **2026-10-29 已落** —— 内容严格照 §Decision ② 字面(`null` = 值归内容轮;不加 `_note`,与 53 族两张表一致)。**「惰性」是静态论证,不是回归数**:该文件**今日零读方**(`grep` 无命中)⇒ 无可执行路径可跑,未跑任何测试。原件 `production/qa/evidence/t1-s2-cost-table-skeleton-2026-10-29.md`。⚠️ 与 `data-files.md`「禁孤儿条目」有**有时限的偏离**,消解点 = S3 |
 | S3 | `CostTableBinder`(N-1 / N-3 / **N-4′** + 单射 + 未知字段拒收 + `rows`/`harm_kind_enabled` 一致性) | ✅ **2026-10-30 已落** —— `CostTableBinder.cs` + **19 条夹具,19/19 绿**;证伪轮 **3 组 6 变异**,每组**恰好**红预期 2 条,SHA-256 逐字节还原。原件 `production/qa/evidence/t1-s3-cost-table-binder-2026-10-30.md`。⚠️ **V-5 仍未过**(本表无 CookedWriter / DataBakeMenu 入口 ⇒ 今天不存在「构建」路径,只在绑定器层证了 N-1);**连带实测订正 R5 / `TD-sim-03`**:R1-22 禁止**急性保持型**伤情非致死 ⇒ 合法落点须是自限型或平台型 |
-| S4 | `CostTable53` 只读视图 + 构造器纵深防御 | 绕过 Bake 直构表亦拒 |
+| S4 | `CostTable53` 只读视图 + 构造器纵深防御 | ✅ **2026-10-30 已落** —— `CostTable53.cs`(Sim)+ `CostHarmKind`(Sim.Contracts,S5 的载荷同用)+ **13 条夹具,13/13 绿**;证伪 4 变异 ⇒ **恰好 4 红**。**L3 按「同一拒收」也查 `lethal`**(比 §Key Interfaces 草稿多一条,理由见证据件 §一)。原件 `production/qa/evidence/t1-s4-cost-table53-view-2026-10-30.md`。⚠️ **零读方**:无 CookedWriter / 菜单 / 装配点 |
 | S5 | 新 Kind 三字段登记 + kindgen 重生成 + 枚举末尾追加 + `SimEventCodec.cs:84` 串同步 | A1–A5 全绿;37 → **38**(16 history);贴重跑输出 |
 | S6 | 改 §Decision ⑤ 的两处文本 | 代码 remarks 与卡面 Forbidden 不再自相矛盾 |
 | S7 | **证伪轮** | M1 注入 `lethal=true` 行 ⇒ binder throw;M2 `injury_id` 指向致死行 ⇒ throw;M3 新 Kind 插中间 ⇒ 旧存档解码错(可做静态论证 + 一条夹具);**SHA-256 逐字节还原** |
