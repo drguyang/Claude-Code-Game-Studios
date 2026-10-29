@@ -1,5 +1,23 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-29 · `TD-audio-029` 按账面滞后结案(批 C 收尾)
+
+**用户指令**:「开029.提交」。**结论:债行所判形态早在 S15-5(`910aa793`,2026-10-18)消失,债行未刷**
+⇒ 纯登记订正,**零代码改动**。全条 `open` → **`closed`**。
+
+- 债行判据逐条实测**均不成立**:
+  「`PlayOneShot` 无 Stop/Release 对偶」⇒ 有(`AudioSourceRenderTarget.cs:169` `EnqueueOneShot`);
+  「`_free` 恒空」⇒ 回流(夹具 `:125` 用 `Is.SameAs(first)` 钉复用同一条实例);
+  「`ActiveCount` 计入静音源」⇒ 播完回落(两条夹具各断 `ActiveCount == 0`)。
+- 生产接线:`BootRoot.cs:1100` tick 边沿调 `OneShotReclaimPump.Pump`(20 Hz,挂在 `PatientCueDriver` 之前)。
+- 证伪:S15-5 证据件 §四 **F3**(删「刚排队」标记消耗 ⇒ `oneShot_pending_afterPlay_…` 转红)。
+- **本轮复核**:`test_td029_*` **7/7 全绿**。
+- **债册现值**:条目 133 · `open 61` · `closed 65` · `partial 6` · **未闭 P0 面 44**(audio-system 9)。
+- ⚠️ **同族第 6 例**(前五:`TD-audio-106` · `TD-clinic-04` · `TD-listen-01` L-6 · `TD-audio-034` ② · `TD-audio-033` ②)。
+  **结论:债册不能直接采信,每条动手前须先核账面。**
+
+---
+
 ## 2026-10-29 · `TD-audio-027` AC② 求交面收严(批 C,接 `8b25a049`)
 
 **用户指令**:「开027.提交」。全条 `open` → **`closed`**。
