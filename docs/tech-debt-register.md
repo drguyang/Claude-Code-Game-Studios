@@ -321,7 +321,7 @@
 | `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
-| `TD-s13-02` | `medical-consequences` | partial | **Y** | R1 |
+| `TD-s13-02` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-s13-01` | `（跨 epic · 治理／code-review skill）` | partial | **N** | R3-裁 |
 | `TD-s13-03` | `（跨 epic · 治理／sprint 冒烟）` | closed | **N** | R3-裁 |
 | `TD-s13-04` | `prescription-medication` | closed | **Y** | R1 |
@@ -849,10 +849,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 138 | 状态 {'open': 58, 'closed': 76, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 35 （已闭但曾标 P0 面的 67 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 35 条,分布在 10/31 个 epic
-    medical-consequences: 17  telemetry-analytics: 5    clinic-machine: 4
+条目 138 | 状态 {'open': 58, 'closed': 77, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 34 （已闭但曾标 P0 面的 68 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 34 条,分布在 10/31 个 epic
+    medical-consequences: 16  telemetry-analytics: 5    clinic-machine: 4
     disease-simulation: 3     enemy-ai: 1               item-database: 1
     patient-ai: 1             prescription-medication: 1processing: 1
     skeuomorphic-ui: 1
@@ -1255,7 +1255,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
 | TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 ✅ **2026-10-29 结案(用户裁定「收窄到出现类事件」)** —— `EventStream` 增 `IsPatientAppearance`(今日恰 = `DiseaseOnset`,ADR-030 ①),CAP 只对该类生效 ⇒ 离屏病人的后果不再被当成新病人拒收;`ConsequenceEmitter` 的类头接缝登记与 S-B2 报文同批改注(CAP **不再**是本件成因,守卫保留)。旧夹具 `test_w5_…_capsThrowPropagates_notSwallowed` **由红转绿**并改名为 `test_tdMedcons14_…_emitsDespiteFullCap`(旧断言以文字留档 —— 留一条绿的旧断言等于把缺陷钉成规格) |
-| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」** |
+| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」**。<br>🔁 **2026-10-30 再记(不改状态,`open` 维持)**:`ADR-035` 的 **T1 全部落盘**(S1–S7 + S9;`§Validation` **V-1…V-10 全部已证**),其连带后果 = **story-003 的 AC-5 由 PARTIAL 转 PASS(判据面)**(`TD-s13-02` 据此 **closed**)。⇒ 本条今日**只剩实现半边**:`T2`(真实禁忌行 —— 须 `TD-prescription-09` + `TD-sim-03`)/ `T3`(过量支 —— 再加 `TD-sim-02`)。**本条保持 `open`**,因为「药害机制从未跑过真实材料」这件事仍然成立 |
 
 
 ## 2026-10-17 · medcons story-003 复核(S13-6 新判据实测轮)
@@ -1284,7 +1284,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
 | TD-s13-01 | **S13-6 判据实测未兑现**:卡面 =「下一次重评两位专家均在轮次上限内交付报告」;story-003 评审实测 `tools-programmer` 撞 20 轮、`qa-tester` 撞 10 轮均零报告交回。⇒ **prompt 拆小 + 「先出报告」预声明不足以保证限内交付**,需再改机制(候选:硬切分勘察面 / 强制增量落盘 / 每次工具调用配额) | `review-medcons-story-003-2026-10-16.md:20-22` · 治理件 §S13-6 补记 | ✅ **2026-10-17 机制已改(用户裁定)** —— `code-review` SKILL §Phase 7b ③「增量落盘」+ 判据收窄为「草稿非空且覆盖清单过半」;旧判据作废。**残留:新判据仍为前瞻性,须下次真实重评实测**(`grep -n "增量落盘" .claude/skills/code-review/SKILL.md` 可复核存在性) |
-| TD-s13-02 | **story-003 AC-5 PARTIAL 未上挂到 epic / sprint DoD**:W-4 代价表永不致死形状门未兑现(已转 `TD-medcons-15`),而 53 epic DoD 写「AC-53-01…15 全部 verified」⇒ **4 story 全 Complete ≠ AC 全验** | story-003 `Completion Notes` W-4 · sprint-13 DoD 第 4 条 | ✅ **2026-10-17 已上挂** —— 53 epic 头部 / story-003 头部与 QA AC-5 行均已写明;**可执行半边已补测**(`test_ac5_outcomeEnumClosure_*`,反证注入 `CostLethal` ⇒ 恰 2 红)。**残留 = 表级半边无载体**(全仓无代价表)⇒ `TD-medcons-15` 结清前 53 epic 不得收口 |
+| TD-s13-02 | **story-003 AC-5 PARTIAL 未上挂到 epic / sprint DoD**:W-4 代价表永不致死形状门未兑现(已转 `TD-medcons-15`),而 53 epic DoD 写「AC-53-01…15 全部 verified」⇒ **4 story 全 Complete ≠ AC 全验** | story-003 `Completion Notes` W-4 · sprint-13 DoD 第 4 条 | ✅ **2026-10-17 已上挂** —— 53 epic 头部 / story-003 头部与 QA AC-5 行均已写明;**可执行半边已补测**(`test_ac5_outcomeEnumClosure_*`,反证注入 `CostLethal` ⇒ 恰 2 红)。**残留 = 表级半边无载体**(全仓无代价表)⇒ `TD-medcons-15` 结清前 53 epic 不得收口。<br>✅ **2026-10-30 结案(ADR-035 S8)**:上句的**唯一残留**(表级半边无载体)**已消除** —— 载体在 T1 的 S2/S3/S7/S9 落齐,且**真机构建实测**:V-5 探针下 `BuildPipeline` 构建 `Result: Failure`,报文点名 `rows[0] injury_id「INJ_HEMORRHAGE」的 lethal = true —— N-1`,还原后同路径 `Success`。⇒ story-003 的 **AC-5 由 PARTIAL 转 PASS(判据面)**(见 story-003 头 + EPIC 头部 2026-10-30 注)。**本条 closed**;⚠️ 本 epic 仍不得收口 —— DoD 的其它条目与 T2/T3 真跑面未动,见 `TD-medcons-15` |
 | TD-s13-03 | **sprint-13 冒烟未执行、未登记**:本 DoD 清单无语料 smoke 条,`qa-plan-sprint-13-2026-10-16.md:229` 的「Smoke check 通过」停在 `[ ]`;最新冒烟件仍是 `smoke-2026-10-15.md`(仅自动面,人工 Batch 全 NOT RUN) | `production/sprints/sprint-13.md` 收口记录 ③ | ✅ **2026-10-17 用户裁定结案(按用户陈述登记)**:用户称「我在其他 epic 听过了,没问题」⇒ 以**用户人耳陈述**补记为本 sprint 的人工冒烟证据;**本 sprint 无独立冒烟件**(无可复算判据,不可证伪为「真听过」)。若后续 sprint 的冒烟件与此陈述冲突,以冒烟件为准。<br>⚠️ **2026-10-17 复核补记**:本行的依据 = 「本 DoD 清单与 qa-plan 第 229 行均无执行记录」。第 229 行**已复核成立**;**DoD 清单本身未找到**(`sprint-13.md` 的 DoD 节无冒烟条目)⇒ 「清单中漏列」一说**不成立**,以本行为准 |
 | TD-s13-04 | **S13-7 三签未完成(本 sprint 的收口前置)**:2026-10-17 曾裁定「不签、按缺口登记收口」,同日用户更正为「**S13-7 重新修复完成**」——三签是 AC-11-12 / AC-11-13 / AC-11-21 三条 BLOCKING `[L]` 的分母,**不得转债降级**(否则等于把未验判据移走、让分母变小)。agent 侧走查包 / 截图 / 像素比对 / 三条结论已齐,**只差真人签署** | 签核件 §7(已撤回)→ §8 · `sprint-13.md` 收口记录 | ✅ **2026-10-17 已结清** —— 三签齐(dr_guyang 兼任,签核件 §9),§5 义务 1–5 已全部回填;S13-7 → done |
 
@@ -4980,7 +4980,7 @@ EOF
 | 触发面 | 条 | 共同点 |
 |---|---|---|
 | **数值轮** | `TD-medcons-01` · `-02` · `-15` · `-19` | 都要等**数值冻结 / 代价表 / U 档扩档**;数值用户自己调 ⇒ 今天动它等于替用户拍数 |
-| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · **`TD-s13-02`** | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源 |
+| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · ~~**`TD-s13-02`**~~ | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;~~`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源~~ ⇒ 🔁 **2026-10-30:`TD-s13-02` 已 closed**(ADR-035 S8,残留半边由 T1 的 S2/S3/S7/S9 补齐)**,本组只剩 `-13` / `-18`** |
 | **ADR-012 CI** | `TD-medcons-09` | 等三格矩阵;且矩阵本身 `EXTERNAL`(E-2a) |
 | **事件触发** | `-03`–`-08` · `-10` · `-11` · `-12` · `-14` | 等「**下一次真的碰到那个文件 / 那个签名**」;提前修 = 改一处、动一片 |
 | **规范闸** | `-17`(≤40 行) | 与 `TD-persist-08` / `TD-clinic-14` **同批** |

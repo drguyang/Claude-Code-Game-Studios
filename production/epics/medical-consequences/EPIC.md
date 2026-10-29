@@ -11,6 +11,10 @@
 > **⚠️ 2026-10-17 收口前置(sprint-13 核对派生 · `TD-s13-02`)**:story-003 为 `Complete` 但 **AC-5 PARTIAL**
 > (W-4 代价表永不致死形状门未兑现,转 `TD-medcons-15`)⇒ 本 epic DoD 的「AC-53-01…15 全部 verified」
 > **在 `TD-medcons-15` 结清前不成立**。**4 story 全 Complete ≠ AC 全验,不得据此收口。**
+> **✅ 2026-10-30 改判(`ADR-035` S8 · 原文不删)**:story-003 的 **AC-5 已由 PARTIAL 转 PASS(判据面)** ——
+> 表级半边在 T1 的 S2/S3/S7/S9 里落齐,**且有真机构建拒收的实测**(V-5 探针:`Result: Failure` 且点名该行)。
+> ⚠️ **本 epic DoD 仍不因此成立**:`AC-53-01…15` 的其余条目与 T2/T3 的真跑面**未动**,
+> 且「Given 禁忌代价表行」的真实实例仍缺(`TD-sim-03`)。**本条只结 `TD-s13-02` 的残留,不结本 epic。**
 > **🚧 2026-10-29 补注(`ADR-035` 裁定轮,不改本 epic 的 `Status` 与任何 story 状态)**:
 > `TD-medcons-15` 的**形状半边已结** —— `ADR-035`(2026-10-29 Accepted)把代价表的四层所有权 / 表形状 /
 > 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件全部钉住。**但实现半边仍 open**,

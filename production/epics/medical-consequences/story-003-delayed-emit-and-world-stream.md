@@ -12,6 +12,22 @@
 > (Outcome 闭集恰 6 成员 + 零致死语义;反证:注入 `CostLethal` ⇒ 该测 + `test_ac5301_*` 恰 2 红)。
 > **仍 PARTIAL 的只有「致死行在 P0 表 = 构建期拒收」** —— 需要**代价表**载体,全仓今日无该表
 > ⇒ 判据无宾语,归 `TD-medcons-15` / 数值轮。**不得据本条推定 AC-5 已全验。**
+>
+> **✅ 2026-10-30 改判(`ADR-035 §Migration Plan` 的 S8)—— AC-5 = PASS(判据面)**
+> 上面那句「无载体」**已不成立**:表级半边在 T1 的 S2 / S3 / S7 / S9 四批里落齐,并**在真实构建上实测过**。
+> | 判据面 | 载体 | 实测 |
+> |---|---|---|
+> | 类型级封闭 | `medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_*` | 闭集恰 6 成员,零致死语义;反证注入 `CostLethal` ⇒ 恰 2 红 |
+> | 表级拒收(绑定器) | `cost_table_binder_test.cs`(19 条)里 N-1 / N-3 / R4 | 证伪 6 变异,**每组恰好**红预期 2 条 |
+> | 表级拒收(运行期纵深) | `cost_table53_test.cs`(13 条)L3 | 证伪 4 变异 ⇒ **恰好 4 红** |
+> | **构建期拒收(V-5)** | `CostTableGate` + `CostTableProbeBuildCli` | **真实 `BuildPipeline` 构建 `Result: Failure`**,报文点名 `rows[0] injury_id「INJ_HEMORRHAGE」的 lethal = true —— N-1`;还原后同路径 `Success` |
+>
+> 原件:`t1-s3-*` / `t1-s4-*` / `t1-s7-falsification-*` / `t1-s9-build-path-2026-10-30.md`。
+>
+> ⚠️ **这次改判只覆盖 AC-5 的 Then 句**。**「Given 禁忌代价表行」的真实实例今日仍不存在**
+> (注册表 5 件伤情全 `lethal=true`,`TD-sim-03`)⇒ 机制的**正面路径从未跑过真实材料**。
+> 那条**不属 AC-5 的判据面**(AC-5 判的是「致死行进不来」,不是「表里有行」),归 **T2**。
+> **不得**把本行读成「药害机制已可用」。
 
 ## Context
 
@@ -109,6 +125,9 @@
   - Edge cases: 9 判「走」+ 后果并存 ⇒ 无因果混写(结局轴只读)
   - **2026-10-17 载体登记**:Then 句的前半(**类型级封闭**)= `medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_hasNoLethalMember_costPathCantExpressDeath`;
     后半(**表级拒收**)= **无载体 —— 全仓无代价表**,`TD-medcons-15`。
+    🔁 **2026-10-30 补登(原文不删)**:后半现在有载体 —— `cost_table_binder_test.cs`(绑定器层)+
+    `cost_table53_test.cs`(运行期纵深)+ **`CostTableGate` 的真机构建拒收**(V-5 探针:
+    `Result: Failure` 且点名该行)。详见本文件头 `AC-5 状态` 段的改判块。
 
 > **补录 AC-6 / AC-7(2026-10-16 · `/qa-plan sprint` 回填,只增不改上方五条)** ——
 > 原因为 2026-09-28 建卡时这三项尚未立案:`ConsequenceResolved` Kind 于 2026-09-19 直登 registry、
