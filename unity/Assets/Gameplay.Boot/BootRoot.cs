@@ -28,6 +28,7 @@ using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
+using DaYiJingCheng.Gameplay.Presentation.Diagnosis;   // DiagnosisReadFloorEvaluator.TierIndex(L-2 切档缝日志)
 using DaYiJingCheng.Gameplay.Presentation.Input;      // DeviceSwitchTuningDataSet(第十一片取值缝)
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
@@ -259,7 +260,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 saveBasePath: Path.Combine(Application.persistentDataPath, "saves"),
                 // S20-17:世界交给装配根 —— 注册表从 `world.Structures` 取(不另传 structures,
                 // 否则「同给且不同实例」的 fail-closed 断言会抛),`StructureWriter` 由它构造。
-                world: world);
+                world: world,
+                // 听测期切档缝(`TD-listen-01` L-2 · 2026-10-29)。见 `ResolveDiagnosisQueryLevelOverride`。
+                diagnosisQueryLevelOverride: ResolveDiagnosisQueryLevelOverride(),
+                // 听测期病种索引缝(`TD-listen-01` L-3 · 2026-10-29)。见 `ResolvePatientRegistryIndexOverride`。
+                patientRegistryIndexOverride: ResolvePatientRegistryIndexOverride());
 
             // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
             // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但
@@ -759,6 +764,68 @@ namespace DaYiJingCheng.Gameplay.Boot
         public static TelemetryAnalyticsTuning? ResolveTelemetryKnobs(IDataProvider provider)
         {
             return provider?.Load<TelemetryAnalyticsDataSet>().Tuning;
+        }
+
+        /// <summary>听测期诊断 / 听诊档位覆盖缝(`TD-listen-01` **L-2**,2026-10-29 用户裁定「修」)。
+        /// <para><b>病因</b>:`CompositionRoot` 的 <c>queryLevel</c> 是局部常量 <c>1</c> 且全库零回写
+        /// ⇒ <c>TierIndex(1) = 0</c>(<c>1 &lt; SLOT_BOUNDS[0] = 10</c>)⇒ **恒最低档**
+        /// ⇒ `AC-44-02` 的三档 forced-choice **没有第二 / 第三档可听**。</para>
+        /// <para><b>本缝的形状</b>:读环境变量 <c>DYJC_DIAG_QUERY_LEVEL</c>(**诊断技能等级**,非档序),
+        /// 合法 ⇒ 返回该值;<b>未设 / 非法 ⇒ 返回 <c>null</c></b>(= 装配层回落常量 1,逐位不变)。</para>
+        /// <para>⚠️ <b>传的是技能等级,不是档序</b>:档位由
+        /// <see cref="DiagnosisReadFloorEvaluator.TierIndex"/> 按
+        /// <c>SLOT_BOUNDS = {10, 20, 50}</c> 求出。要听三档,分别传
+        /// <c>1</c>(→ 档 0 低)· <c>10</c>(→ 档 1 中)· <c>20</c>(→ 档 2 高)。
+        /// 传 <c>0/1/2</c> 会**全部落在档 0**(那正是本债原来的故障形态)。</para>
+        /// <para>⚠️ **非法值不静默兜底成合法值** —— 那会让「我设了 20 但听的是 1」成为静默故障;
+        /// 非法即打一条 warning 并返回 null(可观测,不 fail-hard:听测是开发期动作,
+        /// 不该因环境变量打错而阻断启动)。</para>
+        /// <para><b>为何是环境变量而不是按键 dev 开关</b>:① 本仓**零 dev 开关先例**
+        /// (`grep DevSwitch/DebugSwitch` 全仓无生产命中),新造一套交互 = 新立机制;
+        /// ② 环境变量在**启动前**设定,天然不可在运行期被误改;③ 它对 109 处 EditMode 调用方
+        /// **结构性不可达**(它们不经 <see cref="Start"/>)⇒ 零回归风险。</para>
+        /// <para>⚠️ <b>不越界到 30 的生产契约</b>:<c>ISkillLevelQuery.QueryLevel</c> 仍是真等级的
+        /// 唯一来源;本缝只是**听测期的受控注入**,不是等级系统(承债册 L-2 解除条件原文
+        /// 「或在听测期提供受控注入缝」)。</para></summary>
+        /// <returns>覆盖值(诊断技能等级,≥ 0);null = 未给 / 非法 ⇒ 装配层用默认常量 1。</returns>
+        public static int? ResolveDiagnosisQueryLevelOverride()
+        {
+            string raw = Environment.GetEnvironmentVariable("DYJC_DIAG_QUERY_LEVEL");
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            if (!int.TryParse(raw.Trim(), out int level) || level < 0)
+            {
+                Debug.LogWarning($"[BootRoot] DYJC_DIAG_QUERY_LEVEL=\"{raw}\" 非法(须 ≥ 0 的整数技能等级)" +
+                                 " ⇒ 忽略,诊断 / 听诊档位回落默认常量 1");
+                return null;
+            }
+            int tier = DiagnosisReadFloorEvaluator.TierIndex(level);
+            Debug.Log($"[BootRoot] 诊断 / 听诊档位覆盖:技能等级 {level} ⇒ 档 {tier}" +
+                      "(DYJC_DIAG_QUERY_LEVEL;听测期专用)");
+            return level;
+        }
+
+        /// <summary>听测期病人病种索引覆盖缝(`TD-listen-01` **L-3**,2026-10-29 用户裁定「修」)。
+        /// <para><b>病因</b>:`CompositionRoot` 原用**编译期常量** `AuditionDiseaseForListening`
+        /// 选注册表条目 ⇒ 听测须改代码重编,而「改完忘改回」会把听测用的长曲线漏进出货包(静默)。</para>
+        /// <para><b>本缝的形状</b>:读环境变量 <c>DYJC_AUDITION_REGISTRY_INDEX</c>(整数索引),
+        /// 合法 ⇒ 返回该值;<b>未设 / 非法 ⇒ 返回 <c>null</c></b>(= 装配层回落索引 0,逐位不变)。
+        /// ⚠️ **越界由装配层 fail-loud**,不在本缝钳位 —— 见 `CompositionRoot` 的越界断言。</para>
+        /// <para>⚠️ <b>为什么索引而不是布尔</b>:布尔只能表达「第 0 条 or 第 1 条」,将来若加第三条
+        /// 听测曲线就要再改一次签名;索引把「选哪条」交回数据侧(注册表顺序),不写死条目数。</para></summary>
+        /// <returns>覆盖索引(≥ 0);null = 未给 / 非法 ⇒ 装配层用索引 0。</returns>
+        public static int? ResolvePatientRegistryIndexOverride()
+        {
+            string raw = Environment.GetEnvironmentVariable("DYJC_AUDITION_REGISTRY_INDEX");
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            if (!int.TryParse(raw.Trim(), out int index) || index < 0)
+            {
+                Debug.LogWarning($"[BootRoot] DYJC_AUDITION_REGISTRY_INDEX=\"{raw}\" 非法" +
+                                 "(须 ≥ 0 的整数索引)⇒ 忽略,病人病种回落索引 0");
+                return null;
+            }
+            Debug.Log($"[BootRoot] 病人病种索引覆盖 = {index}" +
+                      "(DYJC_AUDITION_REGISTRY_INDEX;听测期专用)");
+            return index;
         }
 
         /// <summary>设备切换迟滞六旋钮的**取值缝**(TD-epic-01 第十一片)。

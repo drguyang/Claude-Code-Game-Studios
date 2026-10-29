@@ -128,10 +128,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             TelemetryAnalyticsTuning? telemetryKnobs = null,
             StructureInstanceRegistry structures = null,
             string saveBasePath = null,
-            World world = null)
+            World world = null,
+            int? diagnosisQueryLevelOverride = null,
+            int? patientRegistryIndexOverride = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
                             0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
-                            structures, saveBasePath, world);
+                            structures, saveBasePath, world, diagnosisQueryLevelOverride,
+                            patientRegistryIndexOverride);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -158,14 +161,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        TelemetryAnalyticsTuning? telemetryKnobs = null,
                                                        StructureInstanceRegistry structures = null,
                                                        string saveBasePath = null,
-                                                       World world = null)
+                                                       World world = null,
+                                                       int? diagnosisQueryLevelOverride = null,
+                                                       int? patientRegistryIndexOverride = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
                                 inputActions, audio, clinicKnowledge, telemetryKnobs, structures,
-                                saveBasePath, world);
+                                saveBasePath, world, diagnosisQueryLevelOverride,
+                                patientRegistryIndexOverride);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -180,7 +186,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              TelemetryAnalyticsTuning? telemetryKnobs,
                                                              StructureInstanceRegistry structures,
                                                              string saveBasePath,
-                                                             World world)
+                                                             World world,
+                                                             int? diagnosisQueryLevelOverride = null,
+                                                             int? patientRegistryIndexOverride = null)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -365,16 +373,28 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
             // 驱动 = 每 tick 边沿按节奏调 SpawnNext;节奏 = 每 N tick 一个病人(见驱动类头注)。
-            // 🔁 **2026-10-29(`TD-listen-01` 的 L-3)**:听测开关。默认 `false` ⇒ 取
-            //    注册表第 0 条(`DiseaseId = 1`,Q1 判据所钉的那条),行为与接线前逐位相同。
-            //    **听测会话**把本常量改 `true` ⇒ 取第 1 条(`DiseaseId = 2 / fallback_audition`,
-            //    长曲线,呼吸可听窗口 ≈ 10.2 s)。改回 `false` 再提交。
-            //    ⚠️ 刻意做成**装配层常量**而不是运行期开关或测试专用 API ——
-            //       后者会把「听测」这份意图带进生产接口(承 `TD-clinic-15` / R-13 同一纪律)。
-            const bool AuditionDiseaseForListening = false;
+            // 🔁 **2026-10-29(`TD-listen-01` 的 L-3)**:病人病种索引 = **装配期可覆盖形参**。
+            //    未给(`null`,109 处既有调用方的默认)⇒ 取注册表第 **0** 条
+            //    (`DiseaseId = 1`,Q1 判据所钉的那条),行为与接线前**逐位相同**。
+            //    给值 ⇒ 取该索引(听测用第 1 条 `DiseaseId = 2 / fallback_audition`,
+            //    长曲线,呼吸可听窗口 ≈ 10.2 s)。
+            //
+            //    ⚠️ **为什么从 `const bool` 改成形参**:原形态是**编译期常量**,听测须
+            //       改代码重编 —— 而「改完忘改回」会把听测曲线漏进出货包(静默)。
+            //       形参 + 环境变量(`DYJC_AUDITION_REGISTRY_INDEX`)把这件事变成**启动期**决定,
+            //       且对 109 处既有 EditMode 调用方**结构性不可达** ⇒ 零回归风险。
+            //    ⚠️ **语义保持中性**:形参名是 `patientRegistryIndexOverride`(索引),
+            //       不是「听测开关」—— 不把听测意图带进生产接口(承 `TD-clinic-15` / R-13 纪律)。
+            //    ⚠️ 越界索引 ⇒ **fail-loud**(不静默钳位):钳到 0 会让「我设了 1 但听的是 0」
+            //       成为静默故障,与 L-2 同一判据。
+            int registryIndex = patientRegistryIndexOverride ?? 0;
+            if (registryIndex < 0 || registryIndex >= resolvedRegistry.Count)
+                throw new InvalidOperationException(
+                    $"Assemble: patientRegistryIndexOverride={registryIndex} 越界 —— " +
+                    $"注册表只有 {resolvedRegistry.Count} 条(索引须 ∈ [0, {resolvedRegistry.Count - 1}])。" +
+                    "静默钳位会让「设了 N 但听的是别的」成为静默故障");
             var patientDriver = new PatientAppearedDriver(
-                spawner, presence, resolvedRegistry,
-                registryIndex: AuditionDiseaseForListening ? 1 : 0);
+                spawner, presence, resolvedRegistry, registryIndex: registryIndex);
 
             // ── 病例开账写者 + 驱动(sprint-05 T1.2):把 CaseOpenWriter 接进 tick 边沿序列 ──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
@@ -823,7 +843,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   —— 初始档数值归数值轮,机制面从「恒 0」解冻。
             // ⚠️ 本值同时是听诊档位的**唯一出处**(B 轮 2026-10-20):音频档位 = `TierIndex(本值)`,
             //    下面 audio 段的 `AudioTierDriver` **引用本变量**,不得另写字面量 1(两处 = 两处分叉)。
-            int queryLevel = 1;
+            // 🔁 **2026-10-29(`TD-listen-01` L-2 切档缝)**:由 `const 1` 改为**可覆盖的装配期形参**。
+            //    `diagnosisQueryLevelOverride == null` ⇒ 取上面那个常量 1(**逐位不变**,109 处既有
+            //    调用方全不传 ⇒ 零行为变化)。听测期由启动序传入 0 / 1 / 2 三值,使 AC-44-02 的
+            //    三档 forced-choice 真的有第二 / 第三档可听。
+            //    ⚠️ **为什么是装配期形参而不是静态可变缝**:静态缝跨夹具残留(本项目已因此踩过
+            //    多次);形参的作用域天然是「这一次装配」,且不引入第二个真源。
+            //    ⚠️ **不越界到 30 的生产契约**:`ISkillLevelQuery.QueryLevel` 仍是唯一真等级来源;
+            //    本覆盖是**听测期的受控注入**,不是等级系统本身(见债册 L-2 解除条件)。
+            const int DefaultDiagnosisQueryLevel = 1;
+            int queryLevel = diagnosisQueryLevelOverride ?? DefaultDiagnosisQueryLevel;
             var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: queryLevel);
             examineDriver.SetLexicon(examineRows, in readFloor);
 

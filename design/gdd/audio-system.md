@@ -1170,9 +1170,15 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
   WHEN 永不触发,断言恒绿)。**接线存在性 + AC-44-17 听测**合起来才是主通道的验收。
 - **AC-44-17** `[L]`(2026-09-25 二轮 F6 新增 —— 主通道**听测验收**,门级 = 人工证据
   `production/qa/evidence/` + 签署):**GIVEN** 病人呼吸三态(平稳 → 急促 → 停顿),
-  **WHEN** 双盲 forced-choice 听测(隔一道门/墙,三对判别 (0,1)(1,2)(0,2),n ≥ 6 人 ×
+  **WHEN** 双盲 forced-choice 听测(隔一道门/墙,三对判别 (0,1)(1,2)(0,2),**n ≥ 2 人** ×
   每对 ≥ 8 次),**THEN** 判对率 ≥ 75% 且**三态均可辨**(具体化协议承 qa 含糊词清单;
   「可辨」自此有量)。**玩家能隔门听出转危 = §Player Fantasy 的可验形态**。
+  > 🔁 **2026-10-29 用户裁定:被试数 `n ≥ 6 人` → `n ≥ 2 人`**(原文值保留于上句的修订记录,
+  > 不删改判据本体其余部分)。**理由**:项目无外部被试资源,`n ≥ 6` 使该 AC 在 P0 期内
+  > **结构性不可达成**(与 `TD-audio-103` 的同一阻塞)。**降格是明示裁定,不是判据被稀释** ——
+  > 判对率门槛(≥ 75% 总 / 每对 ≥ 65%)与试次下限(每对 ≥ 8 次)均**未动**。
+  > ⚠️ **连带须同步**(缺一即两处口径分叉):`production/epics/audio-system/story-013-*.md` ·
+  > `production/qa/evidence/main-channel-listen-evidence.md` · `docs/tech-debt-register.md` **L-5**。
 - **AC-44-18** `[A]`(2026-09-25 二轮 F8 新增 —— 音乐例外护栏载体):**GIVEN** 战斗乐层
   (`EncounterMusicLayer`)事件表行,**WHEN** 校验,**THEN** ① `xfade_ms ≥ MUSIC_XFADE_MIN_MS`
   (G1,断言 = 构建期数值比较);② `trigger_source = EncounterMusicLayer` 且 G1–G3 护栏

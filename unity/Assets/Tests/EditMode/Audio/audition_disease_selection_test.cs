@@ -90,5 +90,71 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "听测曲线的上升常数须**严格长于**接线曲线 —— " +
                 "否则可听窗口仍被压在 1 s 内,L-3 等于没修");
         }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 装配层 —— 上面三条只证「驱动支持索引」,**不证「装配层能把它设成 1」**
+        // ══════════════════════════════════════════════════════════════════════
+        //
+        // 🔁 **2026-10-29 补(用户裁定「4 处前置全修」)**。原形态是
+        //   `const bool AuditionDiseaseForListening = false` —— **编译期常量**,
+        //   听测须改代码重编,而「改完忘改回」会把听测曲线漏进出货包(静默)。
+        //   现改为装配期形参 `patientRegistryIndexOverride`(与 L-2 同构)。
+        //
+        // ⚠️ 判别力:把 `patientRegistryIndexOverride ?? 0` 改回 `int registryIndex = 0`
+        //   (即无视形参)⇒ 下面第一条红。
+
+        /// <summary>装配层**未给覆盖** ⇒ spawn 出的病人是接线病种(`DiseaseId = 1`)。
+        /// <para>钉的是「109 处既有调用方零行为变化」—— 它们全不传该形参。</para></summary>
+        [Test]
+        public void test_assemble_noOverride_spawnsWiringDisease()
+        {
+            Assert.That(SpawnDiseaseIdViaAssemble(null), Is.EqualTo(1),
+                "未给覆盖 ⇒ 必须是接线病种(DiseaseId = 1)。取到 2 = 生产行为被悄悄改掉了");
+        }
+
+        /// <summary>装配层**给覆盖 = 1** ⇒ spawn 出的病人是听测病种(`DiseaseId = 2`)。
+        /// <para>这是 L-3 的**核心判据**:没有它,「听测病种可选」只停留在驱动层。</para></summary>
+        [Test]
+        public void test_assemble_override1_spawnsAuditionDisease()
+        {
+            Assert.That(SpawnDiseaseIdViaAssemble(1), Is.EqualTo(2),
+                "给覆盖 = 1 ⇒ 必须是听测病种(DiseaseId = 2)。取到 1 = 装配层没把形参传下去");
+        }
+
+        /// <summary>装配层**越界索引 ⇒ fail-loud**,不静默钳位。
+        /// <para>静默钳到 0 会让「我设了 5 但听的是 0」成为静默故障(与 L-2 同一判据)。</para></summary>
+        [Test]
+        public void test_assemble_outOfRangeIndex_failsLoud()
+        {
+            Assert.Throws<System.InvalidOperationException>(
+                () => SpawnDiseaseIdViaAssemble(5),
+                "越界索引须 fail-loud(不静默钳位)");
+        }
+
+        /// <summary>经**真装配**驱动一拍,回读 `DiseaseOnset.DiseaseId`。
+        /// <para>⚠️ **必须让装配出来的 `PatientAppearedDriver` 挑病种** —— 若本辅助方法自己
+        /// 按 `overrideIndex` 调 `SpawnNext`,那测的就是本方法自己,形参有没有传到驱动**完全测不到**
+        /// (自指夹具,承 `feedback_self_referential_fixture`)。</para>
+        /// <para>走 `CompositionRoot.Assemble`(caller 传合成注册表 ⇒ ① 级),
+        /// 不用真 dataProvider —— 本测不关心其余数据表。</para></summary>
+        private static int SpawnDiseaseIdViaAssemble(int? overrideIndex)
+        {
+            var registry = new[] { Entry(1, "fallback"), Entry(2, "fallback_audition") };
+            CompositionRootServices bag = CompositionRoot.Assemble(
+                registry: registry,
+                patientRegistryIndexOverride: overrideIndex);
+
+            // 装配出来的驱动跑一拍 —— 病种由**它的** registryIndex 决定,不由本测决定。
+            bag.PatientAppearedDriver.OnTickEdge(0);
+
+            SimEvent? onset = null;
+            for (int i = 0; i < bag.Stream.Events.Count; i++)
+                if (bag.Stream.Events[i].Kind == EventKind.DiseaseOnset) onset = bag.Stream.Events[i];
+            Assert.That(onset.HasValue, Is.True, "前置:驱动一拍后须有恰好一条 DiseaseOnset");
+
+            DiseaseOnsetPayload p = bag.Decoder.Decode<DiseaseOnsetPayload>(
+                EventKind.DiseaseOnset, onset.Value.Payload);
+            return p.DiseaseId;
+        }
     }
 }

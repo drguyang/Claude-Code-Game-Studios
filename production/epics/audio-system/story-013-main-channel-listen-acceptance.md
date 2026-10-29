@@ -20,7 +20,8 @@
 **Engine Notes**: 听测为 [L] 人工证据(门级 = 人工签署,非 BLOCKING 断言 —— 硬标 [L] BLOCKING = 谎报可测试性);协议承 qa 二轮具体化(双盲 forced-choice)。
 
 **Control Manifest Rules (this layer)**:
-- Required: 证据落 `production/qa/evidence/` + 签署 · 协议 = 双盲 forced-choice(n ≥ 6 × 三对 ≥ 8 次)
+- Required: 证据落 `production/qa/evidence/` + 签署 · 协议 = 双盲 forced-choice(n ≥ 2 × 三对 ≥ 8 次)
+  > 🔁 2026-10-29 用户裁定:`n ≥ 6` → `n ≥ 2`(AC-44-17 原文同批改判;试次 ≥ 8 / 判对率 ≥ 75% **未动**)
 - Forbidden: 以「接线断言绿」代替听测(AC-44-16 与 AC-44-17 合起来才是验收)· 听测无对照组
 - Guardrail: 分叉的只有音 —— 听测在单机本机档做(D-A 语义,不引入联机变量)
 
@@ -30,7 +31,7 @@
 
 *From GDD `design/gdd/audio-system.md`, scoped to this story:*
 
-- [ ] **AC-44-17** [L]:GIVEN 病人呼吸三态(平稳 → 急促 → 停顿),WHEN **双盲 forced-choice** 听测(隔一道门/墙;三对判别 (0,1)(1,2)(0,2);n ≥ 6 人 × 每对 ≥ 8 次),THEN **判对率 ≥ 75% 且三态均可辨** —— `production/qa/evidence/main-channel-listen-evidence.md` + 签署。
+- [ ] **AC-44-17** [L]:GIVEN 病人呼吸三态(平稳 → 急促 → 停顿),WHEN **双盲 forced-choice** 听测(隔一道门/墙;三对判别 (0,1)(1,2)(0,2);n ≥ 2 人 × 每对 ≥ 8 次),THEN **判对率 ≥ 75% 且三态均可辨** —— `production/qa/evidence/main-channel-listen-evidence.md` + 签署。
 
 ---
 
@@ -56,7 +57,7 @@
 *Written at story creation(lean mode — QL-STORY-READY skipped;specs self-authored from AC text). The developer implements against these — do not invent new test cases during implementation.*
 
 - **AC-44-17**: 双盲听测。
-  - Setup: 病人三态音频段(同素材源,仅态别不同);隔门场景;被试 n ≥ 6,不参与素材制作。
+  - Setup: 病人三态音频段(同素材源,仅态别不同);隔门场景;被试 n ≥ 2,不参与素材制作。
   - Verify: 三对 forced-choice(0,1)(1,2)(0,2),每对 ≥ 8 次/人;记录对/错与置信。
   - Pass condition: 总判对率 ≥ 75% 且每对单独判对率 ≥ 65%(三态均可辨,防一对拉平);证据 + 签署入 `production/qa/evidence/main-channel-listen-evidence.md`。
   - Edge cases: 被试可见提示/视觉线索 ⇒ 该轮作废(盲法破坏);参数调过(TierMap/衰减)后须**重跑**(旧证据不可复用)。
@@ -81,7 +82,7 @@
 **Criteria**: 1/1 passing(AC-44-17 [L] 文档判据:AC 存在且挂点正确 + 证据文档登记;听测本身 = 人工执行,不在自动化覆盖面)
 **Deviations**(均 ADVISORY):
 1. **本 story 是 Visual/Feel 类型,AC-44-17 是 [L](人工听测)**:双盲 forced-choice 无法自动化。EditMode 测试覆盖**文档判据**(AC-44-17 存在且挂点正确 + 证据文档登记),这正是 [L] AC 在自动化层面能覆盖的最大面。文件头注释明确声明了这一边界,与 coding-standards 对 [L] 的处理一致。
-2. **证据文档登记为"待执行"**:`production/qa/evidence/main-channel-listen-evidence.md` 登记听测协议(双盲 forced-choice / n ≥ 6 / 三对 ≥ 8 次 / 判对率 ≥ 75%)+ 三态定义 + 当前状态(待执行/需被试排期)+ 失败分支。听测是人工执行,当前阶段无法自动化。
+2. **证据文档登记为"待执行"**:`production/qa/evidence/main-channel-listen-evidence.md` 登记听测协议(双盲 forced-choice / n ≥ 2 / 三对 ≥ 8 次 / 判对率 ≥ 75%)+ 三态定义 + 当前状态(待执行/需被试排期)+ 失败分支。听测是人工执行,当前阶段无法自动化。
 3. **零代码 story**:本 story 几乎零代码 —— 它验收 Story 004(呼吸语义素材)+ Story 008(空间化接线)+ Story 009(交接后稳定态)的合成效果。
 
 **评审与修复**:双评审并行(代码质量面 0 BLOCKING + QA 覆盖面 0 BLOCKING)→ 全修:
