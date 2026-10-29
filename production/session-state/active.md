@@ -1,5 +1,27 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-29 · `TD-audio-035` ① 换源轮(批 C)
+
+> ⚠️ **本节是最新状态**;下方「2026-10-27 · sprint-20 收口后六项」及更早小节是历史记录。
+
+**用户指令**:「开035代码债」。本轮**只结 ①**,②③ 仍 open(触发点未到 + 原文前提有误),
+债务计数**未变**(索引行仍 `partial / Y`,未闭 P0 面不变)。
+
+| # | 子项 | 结论 | 落点 |
+|---|---|---|---|
+| ① `latticeSize` | ✅ **结案(换源)** | `MinimalWorldFactory.Create(p, out int mm)` → `BootRoot` 2.8 → `AudioAssemblySeams.ApplyLatticeFromWorldGeometry`(mm→m 唯一换算 `MetersFromMillimetres`)→ 组合根;缝默认值 `1f → 0f` |
+| ② 遮挡 | ⛔ 仍 open | 触发点未到;且查出**缝形状不可用**(`Func<bool>` 无 cell/listener、每次 Spawn 只求值一次)⇒ 须先改签名 |
+| ③ 表列 | ⛔ 仍 open | **原文前提有误**:`priority_class` 全表零行零门;`min/max_distance` 仅 `WorldBreath_Baseline` 一行 |
+
+- **回归三元组**:EditMode **`5869 / 5832 / 0 / 0 / 37`** @ 2026-10-29 11:41 CST · 全量 · `ca8ed516`+工作树;
+  PlayMode **`238 / 234 / 0 / 2 / 2`**(与基线逐位相同,exit 2 同形)。
+  等式 `5860 + 2(885ac990 的性别直钉)+ 7(本轮 6+1)= 5869`。
+- **证伪**:6 变异全红 / 6 次 SHA-256 逐字节还原。
+- **证据原件**:`production/qa/evidence/impl-td-audio-035-1-lattice-source-2026-10-29.md`。
+- **⚠️ 本轮踩坑(已写进证据件 §六)**:**Unity 只认最后一条 `-testFilter`** —— 首跑传三个 filter
+  实际只执行最后一个,`total=11 failed=0` 看着全绿,另两个夹具**根本没跑**,连 `FILTER-MISS`
+  也拦不住(因为 `total` 不为 0)。⇒ 多夹具一律**逐条串行跑**。
+
 ## 2026-10-27 · sprint-20 收口后六项跟进(用户「1 完成 2 完成三格矩阵 3 修复 4 修复 5 更新 6 裁决」)
 
 > ⚠️ **本节是最新状态;下方所有小节(sprint-19 / TD-enemy-02 等)**

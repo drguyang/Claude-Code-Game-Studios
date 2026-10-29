@@ -2,10 +2,16 @@
 // GDD:design/gdd/audio-system.md F-44.4(:376「worldPos = LatticeToWorld(Cell) —— 表现层换算,禁反推」)
 // ADR-015 §三(WorldPos = 单一整数格)· ADR-018 §二(禁从 float 反推逻辑格)
 //
-// ⚠️ **格→米比例(`latticeSize`)走参入,本类不自持常量** —— 该量的上界归系统 6
-//    (`world-and-ecozones.md:504` 的 `LATTICE_SIZE` **至今无值**;`combat-and-weapon-lines.md`
+// ⚠️ **格→米比例(`latticeSize`)走参入,本类不自持常量** —— 该量归系统 6
+//    (`world-and-ecozones.md:504` 的 `LATTICE_SIZE`;`combat-and-weapon-lines.md`
 //    的 `OQ-25-5` 已裁「`cell_size` 上界归 6,25 不裁」)。44 若在此自造比例 = 第二真源
 //    (承 ADR-024 §⑥ 单一出处纪律);调用方(装配层)从 6 侧取值后传入。
+// 🔁 **2026-10-29(`TD-audio-035` ①)**:此处原文写「`LATTICE_SIZE` **至今无值**」——
+//    已过期。6 侧自关卡工具 story-002 起在 `world_geometry.json` 里带 `lattice_size_mm`
+//    (经 ADR-014 烘成 `world_geometry.cooked`),并经
+//    `MinimalWorldFactory.Create(…, out int latticeSizeMm)` 出到运行期;
+//    装配层用 `AudioAssemblySeams.ApplyLatticeFromWorldGeometry` 换算并灌入。
+//    ⚠️ 数值本身仍是 6 侧的用户数值轮占位 —— 换源 ≠ 定值。
 // ⚠️ **单向**:整数格 → float 世界坐标。反向(float → 逻辑格)在本类**结构性不存在**,
 //    且全 44 命名空间由 `test_latticeToWorld_noFloatToWorldPosMethod` 反射守(AC-44-D2)。
 

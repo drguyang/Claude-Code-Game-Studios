@@ -75,7 +75,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>CompositionRoot</c> 在装配段才构造。工厂只负责把 `BakedInitial` / `ModuleId`
         /// **装进目录**;基线由装配段调 <see cref="World.ApplyBakedInitial"/> 落地。</para></returns>
         /// <exception cref="InvalidDataException">产物损坏 / 尺寸不符 / 空地形表 / 越界下标 —— 启动期硬失败。</exception>
-        public static World Create(IDataProvider dataProvider = null)
+        public static World Create(IDataProvider dataProvider = null) => Create(dataProvider, out _);
+
+        /// <summary>同上,并把**几何产物声明的格边长**带出来(`LATTICE_SIZE`,整数毫米)。
+        /// <para>🔁 <b>2026-10-29(`TD-audio-035` ① 换源轮)新增</b>:该量此前**没有任何运行期出口** ——
+        /// 产物里有、日志里打过,但装配层取不到 ⇒ 44 的空间化换算只能读自己的占位常量。</para>
+        /// <para>⚠️ **它仍是 6 的值,不是 44 的值**:`P0ClinicLevel.LatticeSizeMm` 自陈「占位值,
+        /// 归用户数值轮」⇒ 本出口解决的是**换源**(单一真源),不是**定值**。数值轮改关卡侧一处,
+        /// 44 的米制尺度随之变 —— 那正是 `TD-audio-035` ① 要求的性质。</para></summary>
+        /// <param name="dataProvider">同 <see cref="Create(IDataProvider)"/>。</param>
+        /// <param name="latticeSizeMm">出口:格边长(整数毫米;由 codec 校验 `&gt; 0`,见
+        /// <c>WorldGeometryCookedCodec</c> 的装载断言)。</param>
+        /// <returns>同 <see cref="Create(IDataProvider)"/>。</returns>
+        /// <exception cref="InvalidDataException">同 <see cref="Create(IDataProvider)"/>。</exception>
+        public static World Create(IDataProvider dataProvider, out int latticeSizeMm)
         {
             WorldGeometryDataSet geo = dataProvider != null
                 ? dataProvider.Load<WorldGeometryDataSet>()
@@ -83,6 +96,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             WorldTerrainDataSet ter = dataProvider != null
                 ? dataProvider.Load<WorldTerrainDataSet>()
                 : DataCookedDisk.LoadWorldTerrain();
+
+            // 格边长的唯一运行期出口(`TD-audio-035` ①)—— 与下面那条 `[世界装载]` 日志同一变量
+            // (日志印的与会话拿到的**不可能分叉**)。codec 已在读产物时断言 `> 0`。
+            latticeSizeMm = geo.LatticeSizeMm;
 
             // ── 两份产物的尺寸对账 ────────────────────────────────────────────────
             // 两份产物各自带 `world_size`(刻意冗余)。不相等 = 「地形是从另一版关卡烘的」,

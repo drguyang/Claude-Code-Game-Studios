@@ -94,17 +94,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
         // ── 空间化种子值(S15-4 · TD-audio-028)──────────────────────────────
         // ⚠️ **这三个量的「正式家」不在 44**,它们是**代偿常量**:
-        //    · LatticeSize 归**系统 6**(`LatticeToWorld` 文件头明令「44 不得自造比例」;
-        //      6 侧 `LATTICE_SIZE` 至今无值)⇒ 1f 是 P0 占位,**与 `PlayerController.GetCell()`
-        //      的 `RoundToInt(world)` 隐含的「1 世界单位 = 1 格」对齐**,不是 6 的裁定值;
+        //    · LatticeSize 归**系统 6**(`LatticeToWorld` 文件头明令「44 不得自造比例」)。
+        //      🔁 **2026-10-29(`TD-audio-035` ①)**:6 的值**已有运行期出口**
+        //      (`world_geometry.cooked` 的 `lattice_size_mm` → `MinimalWorldFactory.Create(…, out)`),
+        //      生产路径经 `AudioAssemblySeams` 灌入 ⇒ 本常量退为**兜底**(只在装配层拿不到
+        //      世界几何的 EditMode 路径生效),**不再是**生产取值;
         //    · Min/MaxDistance 归**事件表**(行级 `min_distance` / `max_distance` 列已在表里、
         //      已有构建期键存在性门),但 `AudioEventDataSet.AudioEventRow` **未承载**这两列
         //      ⇒ 本类的是**兜底**,表列一旦接入就以表为准;
         //    · PriorityClass 归 **GDD rank_key 公式**(`:848` 的类序),事件表无此列。
         //    ⚠️ **全部登记为债**,数值归用户(数值轮)。见 `TD-audio-028` 与 `TD-audio-035`。
 
-        /// <summary>格边长(米)的 **P0 占位** —— 与 `PlayerController.GetCell()` 的
-        /// `RoundToInt(world)` 同一约定。⚠️ 正式值归系统 6(见上注)。</summary>
+        /// <summary>格边长(米)的**兜底值** —— 只在装配层拿不到 6 的世界几何时生效
+        /// (`TD-audio-035` ① 起,生产路径由 <c>world_geometry</c> 的 `lattice_size_mm` 供给)。
+        /// <para>⚠️ 取 1f 的理由不再是「P0 占位」,而是**与今天的产物同值**:生产语义下
+        /// 它是 6 的 1000 mm 的米制形态;把它当「44 的裁定值」读 = 第二真源(见上注)。</para></summary>
         public const float LatticeSizePlaceholder = 1f;
 
         /// <summary>空间化声源的**最近距离**(米)—— `min_distance` 表列的兜底种子值。</summary>

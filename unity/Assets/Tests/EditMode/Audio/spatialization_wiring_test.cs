@@ -220,6 +220,11 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             AudioAssemblySeams seams = BootRoot.BuildAudioSeams(
                 new TableProvider(BakedTable()), mixerLoader: RealMixer);
             Assert.That(seams, Is.Not.Null, "前置:缝已接");
+            // 🔁 2026-10-29(`TD-audio-035` ①):缝的格边长默认已是 **0 = 未供给**
+            //    (旧默认 1f 是悄悄生效的 44 自造比例)。本测改用 6 的值 2500 mm ⇒ 2.5 m,
+            //    使下面那条「渲染目标的格边长 == 缝给的格边长」**有判别力**
+            //    (组合根若忽略缝值回落 1 m,断言即红)。
+            AudioAssemblySeams.ApplyLatticeFromWorldGeometry(seams, 2500);
 
             // Act
             CompositionRootServices bag = CompositionRoot.Assemble(audio: seams);

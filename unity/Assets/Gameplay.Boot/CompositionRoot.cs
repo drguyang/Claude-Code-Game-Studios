@@ -1134,9 +1134,12 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // ── 空间化链接线(S15-4 · TD-audio-028 · 用户裁定四项)──────────────
             // 导演**共享**上面那个池(AC-018-4 单池不变量 / ADR-028 ① —— **禁**走自建池重载)。
-            // ⚠️ 格边长 = `AudioAssemblySeams.LatticeSize`(**此前零读取方的死字段**,本轮起成为唯一入参);
-            //    它今天的 1f 是 **P0 占位**,正式值归系统 6(`LatticeToWorld` 头注明令 44 不自造)。
-            // ⚠️ 遮挡输入**本轮恒 false**(用户裁定):真 raycast 未实现,登记 `TD-audio-028` 残留。
+            // ⚠️ 格边长 = `AudioAssemblySeams.LatticeSize`(**唯一入参**,归系统 6)。
+            //    🔁 2026-10-29(`TD-audio-035` ① 换源):生产路径上缝里的值来自
+            //    `MinimalWorldFactory.Create(…, out latticeSizeMm)` 的几何产物(`BootRoot` 赋值),
+            //    **不是** 44 自造常量;`AudioTuning.LatticeSizePlaceholder` 退为**兜底** ——
+            //    仅当调用方没给世界几何(62 处 EditMode 夹具直调本方法时即如此)时生效。
+            // ⚠️ 遮挡输入**本轮恒 false**(用户裁定):真 raycast 未实现,登记 `TD-audio-035` ②。
             float latticeSize = audio?.LatticeSize > 0f
                 ? audio.LatticeSize : AudioTuning.LatticeSizePlaceholder;
             SpatializationDirector spatialDirector = null;

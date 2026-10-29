@@ -221,8 +221,7 @@ namespace DaYiJingCheng.Tests.LevelTool
                 "产物里 (0,0,0) 声明为 0 ⇒ 须不可走(全可走的合成世界会在这里露馅)");
         }
 
-        /// <summary>AC-4(真产物):盘上那份 `world_geometry` 的可走性**不是全 true**。</summary>
-        /// <remarks><b>判别力</b>:把 `P0ClinicLevel` 的外墙环改回全可走 ⇒ 本测红。
+        /// <summary>AC-4(真产物):盘上那份 `world_geometry` 的可走性**不是全 true**。</summary>        /// <remarks><b>判别力</b>:把 `P0ClinicLevel` 的外墙环改回全可走 ⇒ 本测红。
         /// 该判据就是故事卡「不是 16×1×16 全 true」那一句的字面兑现。</remarks>
         [Test]
         public void test_ac4_realProduct_walkabilityIsNotAllTrue()
@@ -238,6 +237,29 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(geo.SizeX, Is.EqualTo(16));
             Assert.That(geo.SizeY, Is.EqualTo(1));
             Assert.That(geo.SizeZ, Is.EqualTo(16));
+        }
+
+        /// <summary>AC-4(`TD-audio-035` ① 换源):`Create(…, out latticeSizeMm)` 把**产物声明的**
+        /// 格边长带出运行期,而不是任何常量。</summary>
+        /// <remarks><b>判别力</b>:夹具用 **2500 mm**(产物里任何常量都不是这个值)。
+        /// 把工厂的出口改成 `latticeSizeMm = 1000`(或写死 1)⇒ 本测红。
+        /// <para>⚠️ 本测钉的是**出口存在且来自产物**,不是**数值正确**(数值 = 用户数值轮)。</para></remarks>
+        [Test]
+        public void test_ac4_latticeSizeOutParam_comesFromArtifact()
+        {
+            const int w = 4, h = 1, d = 4;
+            byte[] geom = WorldGeometryBake.BakeFromSourceText(
+                GeometryJson("probe_lattice", w, h, d, AllWalkable(w, h, d), latticeSizeMm: 2500)).Cooked;
+            byte[] terr = WorldTerrainBake.BakeFromSourceText(
+                TerrainJson("probe_lattice", w, h, d, rows: 1, perCell: _ => 0)).Cooked;
+            byte[] slots = WorldBuildSlotsBake.BakeFromSourceText(
+                SlotsJson("probe_lattice", w, h, d)).Cooked;
+
+            World world = MinimalWorldFactory.Create(MakeProvider(geom, terr, slots), out int latticeSizeMm);
+
+            Assert.That(world.Geometry.SizeX, Is.EqualTo(w), "前置:世界建起来了(否则 out 值无意义)");
+            Assert.That(latticeSizeMm, Is.EqualTo(2500),
+                "出口不是产物声明的 2500 mm —— 说明格边长在装配层被某个常量顶替");
         }
 
         // ══════════════════════ AC-5:空 TERRAIN_TABLE = 装载期硬失败 ══════════════════════
@@ -407,9 +429,11 @@ namespace DaYiJingCheng.Tests.LevelTool
                chunkSizeX: 2, chunkSizeY: 2, chunkSizeZ: 2);
         }
 
-        private static string GeometryJson(string levelId, int w, int h, int d, int[] walkable)
+        private static string GeometryJson(string levelId, int w, int h, int d, int[] walkable,
+                                           int latticeSizeMm = 1000)
             => "{\"schema_version\":2,\"level_id\":\"" + levelId + "\",\"world_size\":[" + w + "," + h + "," + d
-             + "],\"chunk_size\":[2,2,2],\"lattice_size_mm\":1000,\"walkable\":[" + string.Join(",", walkable) + "]}";
+             + "],\"chunk_size\":[2,2,2],\"lattice_size_mm\":" + latticeSizeMm
+             + ",\"walkable\":[" + string.Join(",", walkable) + "]}";
 
         /// <summary>造一份 `world_terrain` 源文本(<paramref name="rows"/> 行,逐格 id 由 <paramref name="perCell"/> 给)。</summary>
         private static string TerrainJson(

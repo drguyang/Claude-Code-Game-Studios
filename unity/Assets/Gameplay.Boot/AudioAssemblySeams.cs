@@ -38,8 +38,44 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 解析成 ordinal,而不是在代码里写死 `(int)CueKind`(见 `PatientCueDriver` 头注)。</para></summary>
         public AudioEventDataSet? Table;
 
-        /// <summary>格边长(米)—— 空间化换算用;≤ 0 ⇒ 用 1 m(仅当无空间化需求时合法)。</summary>
-        public float LatticeSize = 1f;
+        /// <summary>格边长(**米**)—— 空间化换算用。
+        /// <para>🔁 <b>2026-10-29(`TD-audio-035` ① 换源轮)</b>:默认值由 <c>1f</c> 改为 <c>0f</c>。
+        /// <c>0</c> = **未供给**(不是「1 米」),组合根据此回落 <c>AudioTuning.LatticeSizePlaceholder</c>
+        /// —— 旧默认值 <c>1f</c> 是一份**悄悄生效的 44 自造比例**,与 6 的产物同值纯属巧合。</para>
+        /// <para>生产赋值点 = `BootRoot`(取 <c>MinimalWorldFactory.Create(…, out latticeSizeMm)</c>
+        /// 的产物值,经 <see cref="ApplyLatticeFromWorldGeometry"/> 换算)。</para></summary>
+        public float LatticeSize;
+
+        /// <summary>毫米 → 米(**唯一换算处**;48 的边界量在 6 侧是整数毫米,44 侧要米)。
+        /// <para>⚠️ 为什么换算住这里而不是 `LatticeToWorld`:`LatticeToWorld` 的契约是「格 → 世界坐标」,
+        /// 它的 <c>latticeSize</c> 入参**已经是米**;单位换算是**数据边界**的事,住装配层。
+        /// 两处各写一次 `/ 1000f` = 第二真源。</para></summary>
+        /// <param name="latticeSizeMm">格边长(整数毫米;须 <c>&gt; 0</c>)。</param>
+        /// <returns>格边长(米)。</returns>
+        /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="latticeSizeMm"/> ≤ 0。</exception>
+        public static float MetersFromMillimetres(int latticeSizeMm)
+        {
+            if (latticeSizeMm <= 0)
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(latticeSizeMm), latticeSizeMm,
+                    "LATTICE_SIZE 须 > 0(毫米)—— 0 会让全部格塌到原点,负值镜像世界;" +
+                    "GDD F-6-1 的右端为 0 时不等式恒假但无人求值 ⇒ 静默失效");
+            }
+            return latticeSizeMm / 1000f;
+        }
+
+        /// <summary>把 6 的世界几何产物声明的格边长写进缝(生产唯一写入点 = `BootRoot`)。
+        /// <para><paramref name="seams"/> 为 <c>null</c>(预载失败 ⇒ 缝不接)⇒ **空操作**
+        /// —— 与「缝不接 ⇒ `NullRenderTarget` 链」同一处置,不是静默降级:
+        /// 那条路径上 `AudioRenderAssembled = false` 本就可观测。</para></summary>
+        /// <param name="seams">音频装配缝(可为 null)。</param>
+        /// <param name="latticeSizeMm">6 的 `LATTICE_SIZE`(整数毫米)。</param>
+        public static void ApplyLatticeFromWorldGeometry(AudioAssemblySeams seams, int latticeSizeMm)
+        {
+            if (seams == null) return;
+            seams.LatticeSize = MetersFromMillimetres(latticeSizeMm);
+        }
 
         /// <summary>玩家总线音量初始化的**结果**(A-5):`ApplyDefaults` 的返回错误列表。
         /// <para>⚠️ <b>为什么把它带出来</b> —— 这是「启动序**真的**跑了 <c>ApplyDefaults</c>」的

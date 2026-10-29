@@ -216,7 +216,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⇒ 生产构建的槽位目录**恒空**(`PlaceableChecker` 恒 `SlotNotFound`)。
             //    预载失败(未重建 catalog / 组条目缺)⇒ 传 null 走磁盘兜底(编辑器可读,
             //    玩家构建必失败 ⇒ 空目录 + LogError,与接线前同形,不静默)。
-            var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null);
+            // ── ① 格边长换源(`TD-audio-035` ① · 2026-10-29)────────────────────────
+            // 病因:44 的空间化换算此前读 `AudioTuning.LatticeSizePlaceholder`(44 自造的 1f),
+            //   而 `LATTICE_SIZE` 归**系统 6** —— `LatticeToWorld` 文件头明令「44 不得自造比例」。
+            //   6 侧的载体早已存在(关卡工具 story-002 起 `world_geometry` 带 `lattice_size_mm`,
+            //   经 ADR-014 烘进 `world_geometry.cooked`),但**运行期无出口** ⇒ 装配层取不到。
+            //   本处接上那条出口,44 侧从此只**消费** 6 的值。
+            // ⚠️ 数值本身**未定**(`P0ClinicLevel.LatticeSizeMm` 自陈「占位值,归用户数值轮」)
+            //   —— 本轮改的是**来源**,不是**数值**。数值轮改 6 侧一处,44 的米制尺度随之变。
+            // ⚠️ 赋值**必须在 `Assemble` 之前**:组合根在装配期一次性把该值交给
+            //   `SpatializationDirector` / `AudioSourceRenderTarget`,之后再写不生效。
+            var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null,
+                                                  out int latticeSizeMm);
+            AudioAssemblySeams.ApplyLatticeFromWorldGeometry(_audioSeams, latticeSizeMm);
             // 🔁 **2026-10-29(关卡工具 story-002)此处置 `false`,原文不删**:
             //    此前恒 `true` —— 世界几何由 `MinimalWorldFactory` **合成**(16×1×16 全 walkable),
             //    因为 `world_*.json` / `world_*.cooked` 三样全无。story-002 之后
