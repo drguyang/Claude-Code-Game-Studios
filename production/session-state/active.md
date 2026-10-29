@@ -12395,3 +12395,14 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   `2236bf8a`+工作树 —— 与上一轮**逐位相同**,`+[Test]`/`+[TestCase]` = 0/0。
 - **债册现值**:条目 133 · `open 67` · `closed 60` · `partial 5` · **未闭 P0 面 52**(clinic-machine 4)。
 - **余 2 条 clinic**(触发点均不在当下):`TD-clinic-16`(S25,CI runner 批)· `TD-clinic-17`(S6,lexer 加固轮)。
+
+## PlayMode 回归(clinic 修复轮之二收口 · 2026-10-29)
+
+- **三元组**:PlayMode **`238 / 234 / 0 / 2 / 2`** @ **2026-10-29 09:40 CST** · 全量(无 filter) ·
+  HEAD `ee49221c` + 工作树(本轮零 `.cs` 改动 —— 工作树在跑前已提交干净)。退出码 **2**。
+- **对照基线**:`238 / 234 / 0 / 2 / 2`(同口径)—— **逐位相同**,零回归。
+- **两条 Inconclusive 是既有的具名占位**,不是新失败:
+  `U1Assump6GamepadFocusSpikeTest.test_u1assump6_judgement1_doubleTrigger_notRun` ·
+  `..._judgement2_directionalSemantics_notRun` —— 方法名自带 `_notRun`,是 U1 假设 6 spike 的**故意未跑**标记。
+- ⚠️ **退出码 2 的含义如实登记**:Unity Test Runner 在有 Inconclusive 时以非零码退出;
+  `failed = 0` 是判据行。**不把退出码 2 写成绿,也不写成红** —— 它与基线同形。
