@@ -1,5 +1,30 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-29 · `TD-audio-031` 装配缝回收 + 异常路径释放(批 C,接 `cdcb9a8c`)
+
+**用户指令**:「开031」。两半同批 ⇒ 全条 `open` → **`closed`**。
+
+- **①** `OnDestroy` 末尾置 null 两条静态缝(`AudioSettingsRegistry.Provider` /
+  `PlayerBusVolumeInitializer.MixerResolver`),顺序在 `_audioSeams = null` 之后。
+- **②** `Preload()` 之后的两条抛点统一包进 `BuildBusFaceOrRelease`(catch → `clips.Dispose()` 幂等 →
+  `throw;` 保留原异常类型与报文)。
+- **新增 3 条注入缝**:`clipLoader` / `clipRelease` / `busResolverFactory`。
+  ⚠️ 理由不是「方便测试」,是**实测硬约束**:`AudioMixer` **不是** `ScriptableObject`(`CS0311`)、
+  `AudioMixerController` **不在公共 API**(`CS0246`)、按名删组必须动盘上**作者态** `.mixer`(不可接受)
+  ⇒ EditMode 造不出缺组混音器,那条 catch 只能经缝跑到;而生产路径下 `_handles` 恒空、`Dispose` 空操作
+  ⇒ 无缝则**零判别力**。
+- 新夹具 `audio_seam_release_test`(3 测,含**反向守卫**「成功路径释放数 = 0」)。
+- **证伪 4/4 全红 / 4 次 SHA-256 还原**;**M4「无脑 Dispose」转红的恰是反向守卫那条**。
+- 回归:EditMode **`5873 / 5836 / 0 / 0 / 37`** @ 2026-10-29 13:47 CST · 全量 · `cdcb9a8c`+工作树
+  (`5870 + 3`);PlayMode `238 / 234 / 0 / 2 / 2`(逐位同基线)。
+- ⚠️ **如实登记**:A-5 抛路径**无独立夹具**(`ValidateDefaults` 校验的是代码常量集的键,生产恒不抛);
+  「关域重载后不咬人」与「跨 Play 轮无悬挂」均 **NOT-RUN**。
+- 顺带:`BuildAudioSeams` 因 try/catch 一度回涨 48 行 ⇒ 抽 `BuildBusFaceOrRelease`,回到 31 行,
+  `s15_5_hygiene_test` 签名表加第 4 条。
+- **债册现值**:条目 133 · `open 63` · `closed 63` · `partial 6` · **未闭 P0 面 46**(audio-system 11)。
+
+---
+
 ## 2026-10-29 · `TD-audio-032` ③ 行数界半边(批 C,接 `dc958f58`)
 
 **用户指令**:「开032」。③ 的 `BuildAudioSeams` 半边结案 ⇒ 全条 `open` → **`partial`**(① 仍 open)。

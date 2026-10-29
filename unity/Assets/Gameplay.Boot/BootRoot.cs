@@ -790,11 +790,27 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="provider">data-core provider(null ⇒ 缝不接,返回 null)。</param>
         /// <param name="mixerLoader">混音器装载缝(null ⇒ 走生产路径
         /// <see cref="AudioClipLibrary.LoadMixer"/>)。测试注入假件以覆盖 fail-loud 分支。</param>
+        /// <param name="clipLoader">clip 装载缝(null ⇒ 走生产路径 Addressables)。测试注入假件以
+        /// **观测释放**:`TD-audio-031` ② 的判据是「抛之前已预载的 clip 被 Dispose」,而
+        /// EditMode 无 catalog ⇒ 生产路径下 `_handles` 恒空、`Dispose` 是空操作、**零判别力**。
+        /// 经缝装来的 clip 由缝方持有,释放走 <see cref="AudioClipLibrary.Preload"/> 的
+        /// <c>internalRelease</c> 通道。</param>
+        /// <param name="clipRelease">释放缝方 clip 的回调(null ⇒ 交由缝方自行释放)。</param>
+        /// <param name="busResolverFactory">总线解析缝(null ⇒ 生产路径 `new AudioBusResolver(mixer)`)。
+        /// <para>⚠️ **为什么需要这条缝**(`TD-audio-031` ②,2026-10-29):该子项的判据是
+        /// 「抛之前已预载的 clip 被 Dispose」,而唯一生产可达的抛点是 `AudioBusResolver`
+        /// 的**缺组**分支。EditMode 下**造不出缺组混音器** —— 实测 `AudioMixer` 不是
+        /// `ScriptableObject`(不能 `CreateInstance`)、`AudioMixerController` 不在公共 API
+        /// (改组必须动盘上的作者态资产,不可接受)。⇒ 只有经缝注入一个必抛的解析器,
+        /// 才能让那条 catch 真的被跑到(否则该分支只有纸面存在,零判别力)。</para></param>
         /// <returns>装配缝(provider 为 null 时返回 null)。</returns>
         /// <exception cref="InvalidOperationException">混音器解析不到(A-7)· 玩家音量默认集
         /// 键覆盖校验失败(A-5)。两者都是装配错,不是环境降级面。</exception>
         public static AudioAssemblySeams BuildAudioSeams(IDataProvider provider,
-                                                         Func<AudioMixer> mixerLoader = null)
+                                                         Func<AudioMixer> mixerLoader = null,
+                                                         Func<string, AudioClip> clipLoader = null,
+                                                         Action<AudioClip> clipRelease = null,
+                                                         Func<AudioMixer, AudioBusResolver> busResolverFactory = null)
         {
             if (provider == null) return null;   // 缝不接:NullRenderTarget 链,可观测
 
@@ -807,13 +823,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ② clip 预载(A-2)—— 逐行按事件表 assets[] 的 bare 名装载。
             // ⚠️ 缺条目**不抛**(承 AudioClipLibrary 头注:素材存在性已由构建期 D6 门拦下,
             //    运行期 miss = 装配错,记数可观测);是否真齐由 PlayMode 断言 MissingCues 为空。
-            clips.Preload();
+            clips.Preload(loader: clipLoader, internalRelease: clipRelease);
 
-            // ④ 总线解析器(A-6 运行期半边):七总线名 → AudioMixerGroup。
-            var buses = new AudioBusResolver(mixer);
-
-            // ⑤ 玩家总线音量(A-5)。
-            var errors = ApplyPlayerBusDefaultsOrFail(mixer);
+            // ④⑤ 总线解析 + 玩家音量 —— 失败即释放已预载 clip(`TD-audio-031` ②)。
+            var buses = BuildBusFaceOrRelease(mixer, clips, busResolverFactory,
+                                              out IReadOnlyList<string> errors);
 
             return new AudioAssemblySeams
             {
@@ -822,6 +836,41 @@ namespace DaYiJingCheng.Gameplay.Boot
                 BusVolumeErrors = errors,
                 Table = table,
             };
+        }
+
+        /// <summary>④ 总线解析 + ⑤ 玩家总线音量;任一步抛 ⇒ **先释放已预载的 clip** 再重抛。
+        /// <para>🔁 2026-10-29(`TD-audio-031` ②,新立):`Preload` 成功之后,`AudioBusResolver`
+        /// 的构造(缺组)与 `ApplyDefaults`(errors)都可能抛 —— 而抛出去之后**没有任何人持有
+        /// <paramref name="clips"/>** ⇒ ≤15 个 Addressables 句柄随异常一起悬挂(下次 Play 前
+        /// 不会有人 Release)。</para>
+        /// <para>⚠️ 用 try/catch 而不是「先判断再抛」:两处抛点的判据都由**被调方**给出,
+        /// 在调用方复算一遍 = 第二真源。catch → Dispose → 重抛,异常类型与报文原样保留。</para></summary>
+        /// <param name="mixer">已解析的混音器。</param>
+        /// <param name="clips">已预载的 clip 库(抛路径上由本方法负责释放)。</param>
+        /// <param name="busResolverFactory">总线解析缝(null ⇒ 生产路径)。</param>
+        /// <param name="errors">出口:A-5 的错误列表(空 = 全部成功)。</param>
+        /// <returns>已解析的总线面。</returns>
+        /// <exception cref="InvalidOperationException">缺组(A-6)或音量默认集失败(A-5)。</exception>
+        private static AudioBusResolver BuildBusFaceOrRelease(AudioMixer mixer, AudioClipLibrary clips,
+                                                             Func<AudioMixer, AudioBusResolver> busResolverFactory,
+                                                             out IReadOnlyList<string> errors)
+        {
+            try
+            {
+                // ④ 总线解析器(A-6 运行期半边):七总线名 → AudioMixerGroup。
+                var buses = busResolverFactory != null
+                    ? busResolverFactory(mixer)
+                    : new AudioBusResolver(mixer);
+
+                // ⑤ 玩家总线音量(A-5)。
+                errors = ApplyPlayerBusDefaultsOrFail(mixer);
+                return buses;
+            }
+            catch
+            {
+                clips.Dispose();   // 幂等(`_disposed` 守卫);重抛保留原异常类型与报文
+                throw;
+            }
         }
 
         /// <summary>③ 混音器解析(A-7)。解析不到 = **装配错**,不是环境降级面 ⇒ 抛,不得静默跳过。
@@ -1154,6 +1203,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services?.AudioPool?.Dispose();
             if (_audioSeams?.Clips is AudioClipLibrary clipLibrary) clipLibrary.Dispose();
             _audioSeams = null;
+
+            // 🔁 2026-10-29(`TD-audio-031` ①):**两条静态装配缝置 null**。
+            // 病因:`AudioSettingsRegistry.Provider`(由 `ApplyAudioSettingsProvider` 赋值)与
+            //   `PlayerBusVolumeInitializer.MixerResolver`(由 `ApplyPlayerBusDefaultsOrFail` 赋值)
+            //   都是 `public static`,而本方法此前**只 dispose 五件、不置 null 两缝** ⇒
+            //   它们跨 Play 轮悬垂指向已 `Addressables.Release` 的 provider / mixer。
+            // ⚠️ **今天为什么没炸**:`EditorSettings.asset` 的 `m_EnterPlayModeOptionsEnabled: 1`
+            //   + `m_EnterPlayModeOptions: 0` ⇒ **完整域重载**,静态每次 Play 复位。
+            //   该设置一旦关掉(域重载关闭是常见的加速手段),即刻咬人 —— 故本债判「条件性」。
+            // ⚠️ **顺序**:必须在 `_audioSeams = null` **之后**(上面那条 dispose 依赖 `_audioSeams`);
+            //   两条缝与 `_audioSeams` 无引用关系,置 null 只是断静态根引用。
+            AudioSettingsRegistry.Provider = null;
+            PlayerBusVolumeInitializer.MixerResolver = null;
 
             _booted = false;
             _player = null;

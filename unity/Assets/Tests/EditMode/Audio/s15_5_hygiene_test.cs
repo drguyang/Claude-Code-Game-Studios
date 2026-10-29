@@ -368,6 +368,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                          "public static AudioAssemblySeams BuildAudioSeams(",
                          "private static AudioMixer ResolveMixerOrFail(",
                          "private static IReadOnlyList<string> ApplyPlayerBusDefaultsOrFail(",
+                         "private static AudioBusResolver BuildBusFaceOrRelease(",
                      })
             {
                 int lines = ExtractMethodText(src, sig).Split('\n').Length;
