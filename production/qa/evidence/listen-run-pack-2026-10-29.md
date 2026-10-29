@@ -17,7 +17,7 @@
 | **L-6** | 运行时零 active `AudioListener`(全场景静音) | ✅ **已修(账面滞后)** | `BootRoot.cs:490` `cameraObj.AddComponent<UnityEngine.AudioListener>()`,修于 2026-10-20 |
 | **L-1** | 无病人离场路径 | ✅ **已修(甲案)** | 终态 ∧ 无活呼吸句柄 ∧ 尾音不在衰减中 ⇒ `RemovePresent`;EditMode `5854/5817/0/0/37` · PlayMode `238/234/0/2/2` 均零红 | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
 | **L-2** | 听诊档位恒最低档 | ❌ **仍 open** | `CompositionRoot.cs:810` 仍是局部 `int queryLevel = 1;`,全文件无回写 |
-| **L-3** | 病程被占位曲线压到 1.55 s | 🟡 **已落(乙案)· 未经夹具验证** | 新增 `DiseaseId=2 / fallback_audition` 长曲线 + 装配层常量开关 `AuditionDiseaseForListening`(默认 `false` ⇒ 零行为变化);EditMode `5852/5815/0/0/37` 零红 |
+| **L-3** | 病程被占位曲线压到 1.55 s | ✅ **已修(乙案)· 已证** | 新增 `DiseaseId=2 / fallback_audition` 长曲线 + 装配层常量开关 `AuditionDiseaseForListening`(默认 `false` ⇒ 零行为变化);EditMode `5852/5815/0/0/37` 零红 |
 | **L-4** | 刷人间隔 20 s/人 | ✅ **已修** | `PatientAppearedDriver` `SpawnIntervalTicks` 400 → **60**(20 s/人 → 3 s/人);EditMode 全量 `5852/5815/0/0/37` 零红 |
 
 ⇒ **听测今日仍不可执行。** L-1 / L-2 / L-3 / L-4 四条清完之前,勾任何一项都是借绿
@@ -175,3 +175,19 @@ firstReadable ≤ 60 tick
 - **证伪 2/2**:M1 终态判据短路成 `false` ⇒ 正面夹具红;M2 去掉终态判据 ⇒ 反面夹具红。均 `RESTORE-OK`(SHA-256)
 - ⚠️ **M1 首版变异编译失败**(删掉语句体导致 CS1023 `Embedded statement cannot be a declaration`)⇒
   驱动器报 `NO-XML` 而**不是** `RED-命中`。**这条没被算成证明** —— 改成 `if (false && ...)` 重跑才转红。
+
+
+### 六之二 · L-3 的夹具与证伪(2026-10-29 收尾)
+
+新增 `unity/Assets/Tests/EditMode/Audio/audition_disease_selection_test.cs`(3 条):
+
+| 测 | 钉什么 |
+|---|---|
+| `test_registryIndexOfOne_spawnsAuditionDisease` | 真走 `PatientSpawner` → 真 `PayloadEncoder/Decoder`,回读 `DiseaseOnset.DiseaseId == 2` |
+| `test_registryIndexOfZero_spawnsWiringDisease` | 反向配对 —— 证明「索引真的在被选」而非「一律取最后一条」 |
+| `test_productionFallbackRegistry_containsLongerAuditionCurve` | 反射取生产注册表:恰 2 条 · `[1].DiseaseId == 2` · `[1].Curve.TauRise > [0].Curve.TauRise` |
+
+**证伪 2/2**:M3 把 `registry[registryIndex]` 改成 `registry[0]` ⇒ 索引测红;
+M4 把听测 `TauRise` 改回 `5` ⇒ 曲线测红。均 `RESTORE-OK`(SHA-256)。
+
+⇒ L-3 从 `Landed ✅ / Proven ✗` 升为 **`Landed ✅ / Proven ✅`**。
