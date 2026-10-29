@@ -1,5 +1,28 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
+## 2026-10-29 · `TD-audio-109` 第二半按账面滞后结案(批 D,第 7 例)
+
+**用户指令**:「开d」。债行写「7 WARNING 待议、未裁定」—— **该措辞早已被评审原件自己的 §裁定表取代**
+⇒ 纯登记订正,**零代码改动**。全条 `partial` → **`closed`**。
+
+7 条 WARNING 的归属(评审原件 `review-s15-code-2026-10-17.md:238-240`)逐条实测**全部落地**:
+
+| W | 归属 | 实测 |
+|---|---|---|
+| W-2 大小写 | story-017 | ✅ `GetFiles(dir,"*")` + `FilterAudioNames` 谓词过滤;`test_d5b_*` 3 条 |
+| W-3 45行/CC15 | story-017 | ✅ 实算 **10 行**;`test_d5c` + `test_d5d`(加固不改判定) |
+| W-4 组归属弱 | `TD-audio-01d` | ✅ closed,且原危害陈述**被证伪**(每组各自成 bundle) |
+| W-5 不可自举 | `TD-audio-01b` | ✅ closed(改 `throw`;「自举」被裁不采纳) |
+| W-7 新 clone 未验 | `TD-audio-01c` | ✅ closed(真 clone 复测 54/54) |
+| W-1 / W-6 | 不改(用户裁定) | ✅ 已登记「Music 改短须重裁」 |
+
+`story-017` = **Complete**;**本轮复核** `PipelineGateTest` **98/98 全绿**。
+- **债册现值**:条目 133 · `open 61` · `closed 66` · `partial 5` · **未闭 P0 面 43**(audio-system 8)。
+- ⚠️ **同族第 7 例**(前六:`TD-audio-106` · `TD-clinic-04` · `TD-listen-01` L-6 · `TD-audio-034` ② ·
+  `TD-audio-033` ② · `TD-audio-029`)。**债册不能直接采信,每条动手前须先核账面。**
+
+---
+
 ## 2026-10-29 · `TD-audio-029` 按账面滞后结案(批 C 收尾)
 
 **用户指令**:「开029.提交」。**结论:债行所判形态早在 S15-5(`910aa793`,2026-10-18)消失,债行未刷**

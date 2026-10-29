@@ -364,7 +364,7 @@
 | `TD-audio-106` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-107` | `audio-system` | open | **N** | R4 |
 | `TD-audio-108` | `audio-system` | open | **N** | R4 |
-| `TD-audio-109` | `audio-system` | partial | **Y** | R1 |
+| `TD-audio-109` | `audio-system` | closed | **Y** | R1 |
 | `TD-listen-01` | `audio-system` | open | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
 | `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
@@ -844,10 +844,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 61, 'closed': 65, 'partial': 6, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
-未闭 P0 面 = 44 （已闭但曾标 P0 面的 57 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 44 条,分布在 10/31 个 epic
-    medical-consequences: 19  audio-system: 9           telemetry-analytics: 5
+条目 133 | 状态 {'open': 61, 'closed': 66, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
+未闭 P0 面 = 43 （已闭但曾标 P0 面的 58 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 43 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 8           telemetry-analytics: 5
     clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
@@ -1752,7 +1752,7 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 | TD-audio-106 | AC-44-13 | ~~出厂默认分支**空真**~~ ⇒ **✅ 2026-10-18 结案**(推 epic 前的逐条对码复测所得 —— 该债行内容**早在 S14-5 已被清偿,债行未刷**,与本册「账面滞后」失效模式同型第二例) | **原判定**:story-011 B2 把断言删空 → `Assert.Inconclusive`。**实测现状**:断言已恢复且有生产宾语 —— `settings_exposure_test.cs:316 test_monoOption_factoryDefault_fromBakedPartition`(存在 + 类型 `Bool` + 出厂默认来自**烘焙分区**)+ `:292 test_bakedRegistry_missingFactoryDefault_rejected`(补「字段整个不写」绕过面,`:290` 注释逐字自陈)。生产侧 = `PlayerBusVolumeInitializer.FactoryDefaults` 改读烘焙注册表,原 C# 常量降为回退。<br>**复跑取证(2026-10-18 本批,batch)**:`unity test unity --mode EditMode --filter "…SettingsExposureTest"` ⇒ **31 / 31 通过**(`unity/Logs/epic44-recheck-td106.xml`,⚠️ 过滤器用**命名空间限定名** —— 短式会 `total=0` 空跑) | ~~出厂默认值定稿时~~ ⇒ **已兑现**。<br>⚠️ **结案范围收窄(禁溢出)**:本条结的是「**断言被删空 = 空真**」这一种失败形态;**AC-44-13 自身仍留一处已登记缺口** —— story-011 `:48` 逐字「⚠️ **mono 的运行期载体 = 缺口**:`.mixer` 的 `m_ExposedParameters` 恰 12 员**不含 `mono_enabled`**,mixer 侧映射是尚未裁定的资产拓扑问题」⇒ 该缺口**不随本条结案**,归混音器资产拓扑批(`OQ-44-2` 同族,与 `TD-audio-027` 同一触发面) |
 | TD-audio-107 | AC-44-07 / D7 | 联机运行面未对拍 | story-007 `4 人双实例对拍 = BLOCKED-BY-45`;Completion Notes `### NOT-RUN` | **45 网络层 P1b 落地时** |
 | TD-audio-108 | AC-44-E2 | DSP P95 实测未做 | story-012 `NOT-RUN`:须真 GPU + 真音频回调 | 目标硬件定稿时 |
-| TD-audio-109 | AC-44-D5 / D6 | ~~音频组测试 `Assert.Ignore`;EPIC `:28` 自承 D6 假绿~~ ⇒ **🟡 2026-10-18 半边结案**(第一半 ✅,第二半待用户裁) | **第一半(假绿 → 已闭,本批复跑取证)**:全仓 grep `Assert.Ignore` / `Assert.Inconclusive` 在 44 侧**仅剩一处**且是正当副作用守卫(`pipeline_gate_test.cs:1578` —— `finally` 未把 Play Mode 写回原值才触发,**非**判据跳过);`test_d5_*` / `test_d6_*` 现打**真生产件** `AudioAssetGroupGates.ValidateSettings()`(读真 `AddressableAssetSettings`)+ `AudioAssetExistence`(D6 谓词单一出处,门强制、`assetRoot` 必填)+ 非空守卫(`:248-257` 逐字「无 .wav ⇒ D5(a) 与 D6 正向同时空洞为真 = 假绿」)。⇒ **复跑**:`--filter "DaYiJingCheng.Tests.Unit.Audio.PipelineGateTest"` ⇒ **98 / 98 通过**(`unity/Logs/epic44-recheck-td109.xml`)· D6 正向半边由真种子证明。<br>**第二半(仍开)**:story-015 评审的 **7 WARNING 待议** —— `story-015:181` 逐字「**未裁定,登记待议**」:W-2/W-3 → story-010 加固轮 · W-4/W-5/W-7 → 并入 `TD-audio-01` 面 · W-1/W-6 → GDD `OQ-44-2` 已覆盖不改;且 `review-s15-code-2026-10-17.md` 双列结账表自陈「结清 **2/14**,余 12 条如实留作未结」 | 下次动 `AudioAssetGroupGates` 时 ⇒ **第一半已闭**;**第二半的出路 = 用户裁 7 WARNING 的归属**(W-2/W-3 归 story-010 加固轮要不要开工 / W-4/5/7 是否真并入 `TD-audio-01`),**不是**再跑测试 |
+| TD-audio-109 | AC-44-D5 / D6 | ~~音频组测试 `Assert.Ignore`;EPIC `:28` 自承 D6 假绿~~ ⇒ **🟡 2026-10-18 半边结案**(第一半 ✅,第二半待用户裁) | **第一半(假绿 → 已闭,本批复跑取证)**:全仓 grep `Assert.Ignore` / `Assert.Inconclusive` 在 44 侧**仅剩一处**且是正当副作用守卫(`pipeline_gate_test.cs:1578` —— `finally` 未把 Play Mode 写回原值才触发,**非**判据跳过);`test_d5_*` / `test_d6_*` 现打**真生产件** `AudioAssetGroupGates.ValidateSettings()`(读真 `AddressableAssetSettings`)+ `AudioAssetExistence`(D6 谓词单一出处,门强制、`assetRoot` 必填)+ 非空守卫(`:248-257` 逐字「无 .wav ⇒ D5(a) 与 D6 正向同时空洞为真 = 假绿」)。⇒ **复跑**:`--filter "DaYiJingCheng.Tests.Unit.Audio.PipelineGateTest"` ⇒ **98 / 98 通过**(`unity/Logs/epic44-recheck-td109.xml`)· D6 正向半边由真种子证明。<br>**第二半(仍开)**:story-015 评审的 **7 WARNING 待议** —— `story-015:181` 逐字「**未裁定,登记待议**」:W-2/W-3 → story-010 加固轮 · W-4/W-5/W-7 → 并入 `TD-audio-01` 面 · W-1/W-6 → GDD `OQ-44-2` 已覆盖不改;且 `review-s15-code-2026-10-17.md` 双列结账表自陈「结清 **2/14**,余 12 条如实留作未结」 | 下次动 `AudioAssetGroupGates` 时 ⇒ **第一半已闭**;**第二半的出路 = 用户裁 7 WARNING 的归属**(W-2/W-3 归 story-010 加固轮要不要开工 / W-4/5/7 是否真并入 `TD-audio-01`),**不是**再跑测试 |<br>**✅ 2026-10-29 第二半按账面滞后结案(第 7 例 —— 7 WARNING 的归属 2026-10-17 就已裁定并全部落地,债行未刷)**:债行写「**第二半(仍开)**:story-015 评审的 7 WARNING 待议 —— `story-015:181` 逐字「未裁定,登记待议」」。**该措辞已被评审原件自己的 §裁定表取代**:`review-s15-code-2026-10-17.md:238-240` 三行裁定 ——① W-2 / W-3 → **新立 `story-017-audio-gate-hardening`**;② W-4 / W-5 / W-7 → **并入 `TD-audio-01`**;③ W-1 / W-6 → **不改**(GDD §OQ-44-2 附节已覆盖)。逐条实测现状:**W-2(大小写敏感)** ✅ 已修 —— `AudioAssetGroupGates.cs:275` `Directory.GetFiles(dir, "*")` + `FilterAudioNames` 谓词过滤(不再是 `"*.wav"` glob);夹具 `test_d5b_audioAssetName_extensionCaseInsensitive` · `test_d5b_filterAudioNames_threeCaseFormsAllKept` · `test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob`(后者按**源文本**断言枚举必经 `FilterAudioNames`)。**W-3(45 行 / CC 15)** ✅ 已修 —— 本轮实算 `ValidateEntries` **10 行**;夹具 `test_d5c_validateEntries_withinLineAndComplexityBudget` + `test_d5d_errorSetIsByteIdentical`(加固不改变判定结果 = AC-44-D5d)。**W-4(组归属判据弱于 AC)** ✅ `TD-audio-01d` **closed**,且原判定的**危害陈述被证伪**(`BuildPlayerContent` 产物实测每组各自成 bundle ⇒ 不存在「打进主包」;GDD `:1104-1105` 明文「判据 = 组区分,不是组叫什么名字」)。**W-5(`EnsureAudioGroup` 不可自举)** ✅ `TD-audio-01b` **closed**(改 `throw` + 恢复指引;「自举」方向被裁为不采纳 —— `GetSettings(create:true)` 会建分叉的假绿)。**W-7(全新 clone 路径未验)** ✅ `TD-audio-01c` **closed**(真 `git clone` 到空目录复测 **54/54**;且该关切因 01a 组定义入库而**结构性消解**)。**W-1 / W-6(`music_*` 的 loadType / Streaming)** —— 用户裁定**不改**,已登记「Music 素材若改短须重裁」。**`story-017` 状态 = `Complete`**(AC-44-D5b / D5c / D5d 三勾)。**本轮复核**:`PipelineGateTest` **98/98 全绿**,含 `test_d5b_*` 3 条 + `test_d5c_*` 1 条 + `test_d5d_*` 1 条。⚠️ **本条不改任何代码** —— 纯登记订正(第一半早已结于 2026-10-18,第二半的归属早已落地)。⚠️ **同族第 7 例**(前六:`TD-audio-106` · `TD-clinic-04` · `TD-listen-01` 的 L-6 · `TD-audio-034` ② · `TD-audio-033` ② · `TD-audio-029`)。**结论不变:债册不能直接采信,每条动手前须先核账面。**
 
 **⚠️ 另两类不计入上表但须知悉**:
 
