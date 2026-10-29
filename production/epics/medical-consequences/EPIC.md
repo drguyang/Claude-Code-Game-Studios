@@ -11,6 +11,13 @@
 > **⚠️ 2026-10-17 收口前置(sprint-13 核对派生 · `TD-s13-02`)**:story-003 为 `Complete` 但 **AC-5 PARTIAL**
 > (W-4 代价表永不致死形状门未兑现,转 `TD-medcons-15`)⇒ 本 epic DoD 的「AC-53-01…15 全部 verified」
 > **在 `TD-medcons-15` 结清前不成立**。**4 story 全 Complete ≠ AC 全验,不得据此收口。**
+> **🚧 2026-10-29 补注(`ADR-035` 裁定轮,不改本 epic 的 `Status` 与任何 story 状态)**:
+> `TD-medcons-15` 的**形状半边已结** —— `ADR-035`(2026-10-29 Accepted)把代价表的四层所有权 / 表形状 /
+> 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件全部钉住。**但实现半边仍 open**,
+> 且卡两条上游债(`TD-sim-02` = 9 的 F1 缺毒性项 · `TD-prescription-09` = 11 载荷缺「命中禁忌」)⇒
+> 上方两条收口前置**继续有效**:`TD-medcons-15` 结清前本 epic 仍不得收口,
+> `ADR-035 §Validation V-1…V-8` **全部未跑**(禁借绿)。证据原件 =
+> `production/qa/evidence/review-tdmedcons-15-2026-10-29.md`。
 > **Stories**: 4 stories created(2026-09-28 `/create-stories`)
 
 ## Overview

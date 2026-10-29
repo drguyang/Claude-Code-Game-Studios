@@ -12884,3 +12884,26 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **债册**:`open 56→54` · `closed 73→75` · `partial 3` 不变 · **未闭 P0 面 34 → 32**;
   medical-consequences **19 → 17**。`TD-clinic-17`(同文件另一口子)**仍 open**,已就地补注防误读。
 - 证据原件:`production/qa/evidence/impl-td-medcons-10-14-2026-10-29.md`。提交:`0cf2e533`(10 文件)。
+
+## Session Extract — `TD-medcons-15` 裁定轮:ADR-035 立件 + 三条新债(2026-10-29)
+
+- **用户四项裁定**:① **立 ADR 钉形状,不做实现** · ② **伤支开**,新 Kind `TreatmentHarmOnset` ·
+  ③ **立两条上游债,过量支挂起** · ④ **`INJ_COMA` 不排除,昏迷合法**(⚠️ 与三路专家中两份意见相反)。
+- **产出**:`docs/architecture/adr-035-treatment-harm-kind-and-no-lethal-gate.md`(Accepted · 只钉形状)。
+  四层所有权(词表 9 / 触发面 11 / 表本体 53 / 结算 53)· 表形状 `53_cost_table.json`(效果一律外键,
+  53 零伤害属性副本)· 「永不致死」= ADR-014 阶段 2 跨表断言 N-1/N-3/N-4(**N-2 因裁定 ④ 不存在**)·
+  `severity_band` 而非 `magnitude`(本件**新裁**,分值住 9 的词表)· 53 写者面扩张(推翻
+  `ConsequenceEmitter.cs:93` 卡面 Forbidden)。
+- **两处起草期自查**:① 初稿「11 载荷缺剂量」**说过头** —— `drug_potency` 就是 `dose_potency`(剂量修正后的值),
+  缺的只是**原始档位**;② `dose_range.hi` 是戥子**物理限位** ⇒ **11 的 P0 不产生超量值**,
+  故「补 `dose` 字段」不是正确解法(超量材料应在 9 侧)。ADR C-5 / C-5′ / R1 / §⑥ 已同批订正。
+- **三条新债**(债册 `条目 133 → 136`,§五 已重生成 + `--check` 通过):
+  - `TD-sim-02` · `disease-simulation` · `Y`/R1 —— 9 的 F1 无毒性项,超量 = 饱和截断(no-op)。
+  - `TD-prescription-09` · `prescription-medication` · `Y`/R1 —— 载荷零字段表达「命中禁忌」。
+  - `TD-persist-11` · `persistence-service` · `N`/R4 —— codec「37 支」字面量**生产码 8 处**,
+    且 `drug_event_test.cs:658` **拿该串当探针键** ⇒ 只改一处会让白名单完整性夹具**静默退化恒绿**。
+  - 读数:**`未闭 P0 面 32 → 34`**(三中二 Y)· **epic 分布 `9/31 → 10/31`**(+`prescription-medication`)。
+- **证据原件**:`production/qa/evidence/review-tdmedcons-15-2026-10-29.md`(三份草稿合并件,
+  含 5 处分歧与采纳理由 + 未及核查总表 + Phase 8b 双列结账表;**草稿已删**)。
+- **未跑**:ADR-035 §Validation **V-1…V-8 全部未跑**;`AC-5` 表级半边**仍 PARTIAL**;
+  `TD-medcons-15` **仍 open**;N-4 的必要性(`compounds[]` 普查)**未证**。

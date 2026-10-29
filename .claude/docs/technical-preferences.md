@@ -918,7 +918,38 @@
   (`[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2)` 空区间所致)⇒ 新债 **`TD-persist-10`**
   (`P0 面 = N`;`CurrentSaveVersion` 再升时自动消解)。⚠️ **R3 仍是发布前门**(上段口径不变)。
 
-> **本日志状态**:全部 ADR(001–**034**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-035 ✅ Accepted 2026-10-29]**用药伤害的 Kind 归属与「永不致死」机械门(禁忌 / 过量代价表的形状)** ——
+  `docs/architecture/adr-035-treatment-harm-kind-and-no-lethal-gate.md`。
+  **`TD-medcons-15` 的裁定件**(W-4:`AC-5` / `OQ-53-8` 的代价表**从未存在** ⇒ Then 句「致死行在 P0 表 =
+  构建期拒收」**没有宾语**)。用户四项裁定(2026-10-29,逐条照准):① **只钉形状,不做实现**;
+  ② **伤支开**,新 Kind `TreatmentHarmOnset`;③ **过量支挂起**,立两条上游债;
+  ④ **`INJ_COMA` 不排除,昏迷合法**(⚠️ **与三路专家中两份意见相反**,残余风险落 §Risks R3 + O-1)。
+  裁决:**四层所有权拆分**(A 词表归 **9** / B 触发条件面归 **11** / C 表本体归 **53** / D 结算执行归 **53**,
+  并**显式钉住「C 与 D 是两条独立结论,不互相推出」**);**表形状** = `assets/data/53_cost_table.json`,
+  效果一律**外键引用** 9 的 `INJ_*`(53 表内**零伤害属性副本、零 `Fix`**),`rows` 非空而 `harm_kind_enabled`
+  为空 ⇒ **构建期拒收**(防「静默空表 = 有门的假绿」);**「永不致死」= ADR-014 阶段 2 的跨表断言
+  N-1 / N-3 / N-4**(**N-2「排除 `INJ_COMA`」因用户裁定 ④ 而不存在**;**N-4 的必要性今日未证** ——
+  实现轮须先普查 `compounds[]`,确无该形态则须登记为「零输入可达的门」而非已兑现守卫);
+  **新 Kind `TreatmentHarmOnset`**(病史流 · author = **53** · 载荷
+  `{tick, patient_id, injury_id, harm_kind, severity_band, seq}`,全整数域)——
+  用 `severity_band` 而非 `magnitude` 是本件的**一处新裁**(分值住 9 的词表换算,守 `AC-53-01`);
+  **53 写者面扩张** = 世界流 + 病史流**恰一支**,**显式推翻** `ConsequenceEmitter.cs:93` 的卡面 Forbidden
+  (同批须改该 remarks 与 story-003 的 Control Manifest 段)。**驳回**:复用 `InjuryOnset`(载荷语义 =
+  「被谁打的」,药害无攻击者 —— **与 ADR-030 驳回 Alt 2 逐字同型**;专家稿「物化归 25」同驳:伤情词表归 9,
+  让 25 持「档 → magnitude」表 = 给 9 的词表造第二真源)· 只做后遗支(`AC-5` 的「伤」半边将永不落地)·
+  伤情落世界流(9 的 D_p 将从两条流重建,`Folded(p)` / CatchUp / 存档折叠全改)· 运行期 clamp / 设计纪律
+  (本项目已五次抓过「自述顶替门」的假绿)。**⚠️ 本件不解除实现阻塞**:禁忌支材料缺在 **11**(载荷零字段
+  表达「命中禁忌」)、过量支材料缺在 **9**(F1 无毒性项,超量被饱和截断 = no-op)⇒ 新立 **`TD-sim-02`** /
+  **`TD-prescription-09`**,§⑥ 把过量支解除条件定死为**两条均结案**;§Validation **V-1…V-8 全部未跑(禁借绿)**。
+  **两处起草期自查**:① 初稿写「11 载荷缺剂量」**说过头了** —— `drug_potency` 就是 `dose_potency`
+  (「剂量修正后的值」),缺的只是**原始档位**,已就地订正(C-5 / C-5′ / R1 / §⑥);
+  ② `dose_range.hi` 是戥子**物理限位** ⇒ **11 的 P0 不产生超量值**,故「补一个 `dose` 字段」不是正确解法
+  (超量材料应在 9 侧,与 `TD-sim-02` 同源)。**同轮另立 `TD-persist-11`**(codec 的「37 支」字面量
+  生产码共 **8 处**,且 `drug_event_test.cs:658` 拿该串当**探针键** ⇒ 只改一处会让那条白名单完整性夹具
+  **静默退化为恒绿**)。证据原件 = `production/qa/evidence/review-tdmedcons-15-2026-10-29.md`
+  (三路专家意见合并件,含分歧与采纳理由)。Engine Knowledge Risk **LOW**(纯数据边界与构建期断言,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**035**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
@@ -932,10 +963,11 @@
 > Accepted;文件号按落盘时序)。
 > **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
 > Pre-Production 开工门的技术侧**无阻塞项**。
-> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
+> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
 > 结清 `PRE-S18-C`)· ADR-033(结构 id 撞号,结清 `TD-building-02` 的语义半边)·
 > ADR-034(存档 v2 载荷段,结清 `TD-persist-09` 的裁定半边)· ADR-028(audio 小裁批)·
-> ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)**
+> ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)** ·
+> **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)**
 > 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists
