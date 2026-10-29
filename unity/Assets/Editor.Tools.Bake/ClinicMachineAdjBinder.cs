@@ -73,27 +73,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             var errors = new List<string>();
 
-            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 阶段1 词法失败:{lexErr}" });
+            JsonNode root = ClinicMachineSchema.BeginTable(
+                json, ClinicMachineSchema.AdjRootKeys, FileName, errors, out uint schemaVersion);
 
-            if (root.Kind != JsonNodeKind.Object)
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 根须为对象(实得 {root.Kind})" });
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                root, ClinicMachineSchema.AdjRootKeys, "根", FileName, errors);
-
-            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(root, FileName, errors);
-
-            long nMax = 0;
-            ClinicMachineSchema.ReadRequiredPositiveInt(root, "n_max", "根", FileName, errors, out nMax);
-
-            Fix wMin = Fix.Zero;
-            bool hasWMin = ClinicMachineSchema.ReadRequiredFix(root, "w_min", "根", FileName, errors, out wMin);
-
-            Fix wMax = Fix.Zero;
-            bool hasWMax = ClinicMachineSchema.ReadRequiredFix(root, "w_max", "根", FileName, errors, out wMax);
+            ReadRootScalars(root, errors,
+                out long nMax, out Fix wMin, out bool hasWMin, out Fix wMax, out bool hasWMax);
 
             // ⚠️ 早 throw 豁免点:无 pairs 数组 ⇒ 行层校验结构上不可达。
             if (!root.TryGet("pairs", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
@@ -113,6 +97,37 @@ namespace DaYiJingCheng.EditorTools.Bake
                 if (pair.HasValue) pairs.Add(pair.Value);
             }
 
+            AssertTableWide(pairs, seen, nMax, wMin, hasWMin, wMax, hasWMax, errors);
+
+            if (errors.Count > 0) throw new BakeValidationException(errors);
+
+            return new BindResult(pairs, nMax, wMin, wMax, schemaVersion);
+        }
+
+        /// <summary>根层三个标量(<c>n_max</c> / <c>w_min</c> / <c>w_max</c>);缺失或坏 token 落 errors。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="Bind"/> 50 行 &gt; 40;债册 `TD-clinic-14` / 评审 S16)。
+        /// **三个字段的读取次序与报文原文逐字未变**。</remarks>
+        private static void ReadRootScalars(
+            JsonNode root, List<string> errors,
+            out long nMax, out Fix wMin, out bool hasWMin, out Fix wMax, out bool hasWMax)
+        {
+            nMax = 0;
+            ClinicMachineSchema.ReadRequiredPositiveInt(root, "n_max", "根", FileName, errors, out nMax);
+
+            wMin = Fix.Zero;
+            hasWMin = ClinicMachineSchema.ReadRequiredFix(root, "w_min", "根", FileName, errors, out wMin);
+
+            wMax = Fix.Zero;
+            hasWMax = ClinicMachineSchema.ReadRequiredFix(root, "w_max", "根", FileName, errors, out wMax);
+        }
+
+        /// <summary>表级三门:非空 → O-24-5 两条界 → AC-24-06 对称(**此次序是契约**)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="Bind"/> 50 行 &gt; 40;债册 `TD-clinic-14` / 评审 S16)。
+        /// 三门**不可重排** —— 聚合 throw 的报文次序是 ADR-014 确定性面的一部分(`TD-clinic-06` 同族关注点)。</remarks>
+        private static void AssertTableWide(
+            List<AdjPair> pairs, Dictionary<string, long> seen,
+            long nMax, Fix wMin, bool hasWMin, Fix wMax, bool hasWMax, List<string> errors)
+        {
             if (pairs.Count == 0 && errors.Count == 0)
                 errors.Add($"{FileName}:pairs 为空 —— 空邻接表让 adj_sum 恒 0(静默中性),拒");
 
@@ -124,10 +139,6 @@ namespace DaYiJingCheng.EditorTools.Bake
             // AC-24-06:对称门(**绑定后**遍历全部对)
             if (pairs.Count > 0)
                 AssertSymmetry(pairs, seen, errors);
-
-            if (errors.Count > 0) throw new BakeValidationException(errors);
-
-            return new BindResult(pairs, nMax, wMin, wMax, schemaVersion);
         }
 
         /// <summary>逐行解析(白名单 + W 域 + 重复键)。</summary>

@@ -102,18 +102,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             bool membershipEnforced =
                 furnTypeSource != null && furnTypeSource.TryGetTypes(out furnTypes) && furnTypes != null;
 
-            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 阶段1 词法失败:{lexErr}" });
-
-            if (root.Kind != JsonNodeKind.Object)
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 根须为对象(实得 {root.Kind})" });
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                root, ClinicMachineSchema.RoomRootKeys, "根", FileName, errors);
-
-            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(root, FileName, errors);
+            JsonNode root = ClinicMachineSchema.BeginTable(
+                json, ClinicMachineSchema.RoomRootKeys, FileName, errors, out uint schemaVersion);
 
             // ⚠️ 早 throw 豁免点:无 rooms 数组 ⇒ 行层校验结构上不可达。
             if (!root.TryGet("rooms", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
@@ -122,28 +112,27 @@ namespace DaYiJingCheng.EditorTools.Bake
                 throw new BakeValidationException(errors);
             }
 
-            var rooms = new List<RoomDef>();
-            var seenRoomTypes = new HashSet<string>(StringComparer.Ordinal);
-
-            for (int i = 0; i < rowsNode.Items.Count; i++)
-            {
-                RoomDef? room = ParseRoom(
-                    rowsNode.Items[i], i, seenRoomTypes, membershipEnforced, furnTypes, errors);
-                if (room.HasValue) rooms.Add(room.Value);
-            }
+            // 🔁 2026-10-29(债册 `TD-clinic-07` / 评审 R-19):`FurnMembershipEnforced` 原先是
+            //    **独立算出**的(只问「来源在不在」),与 `AssertFurnMember` **有没有真的跑**无关
+            //    ⇒ 哨兵会撒谎:删掉成员资格调用,标志仍为 true,而正面夹具照样绿。
+            //    改为**计数实际执行次数**:0 次 ⇒ 门没跑过 ⇒ 哨兵为 false。
+            List<RoomDef> rooms = ParseRooms(
+                rowsNode, membershipEnforced, furnTypes, errors, out int memberChecks);
 
             if (rooms.Count == 0 && errors.Count == 0)
                 errors.Add($"{FileName}:rooms 为空 —— 空表让所有布局恒 ROOM_NONE(整表静默失效),拒");
 
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
-            return new BindResult(rooms, membershipEnforced, schemaVersion);
+            // 哨兵口径(2026-10-29 改):**来源可用 且 至少真的执行过一次成员资格门**。
+            return new BindResult(rooms, membershipEnforced && memberChecks > 0, schemaVersion);
         }
 
         /// <summary>解析单个房间类型。</summary>
         private static RoomDef? ParseRoom(
             JsonNode row, int i, HashSet<string> seenRoomTypes,
-            bool membershipEnforced, IReadOnlyCollection<string> furnTypes, List<string> errors)
+            bool membershipEnforced, IReadOnlyCollection<string> furnTypes, List<string> errors,
+            ref int memberChecks)
         {
             string where = $"rooms[{i}]";
             if (row.Kind != JsonNodeKind.Object)
@@ -159,6 +148,49 @@ namespace DaYiJingCheng.EditorTools.Bake
                     row, "room_type", where, FileName, errors, out string roomType))
                 return null;
 
+            List<RoomClause> clauses = ParseClauses(
+                row, where, roomType, membershipEnforced, furnTypes, errors, ref memberChecks);
+
+            if (clauses == null || clauses.Count == 0) return null;
+
+            if (!seenRoomTypes.Add(roomType))
+            {
+                errors.Add($"{FileName}:{where} room_type「{roomType}」重复 —— 每房间类型恰一谓词");
+                return null;
+            }
+
+            return new RoomDef(roomType, clauses);
+        }
+
+        /// <summary>逐房间解析(声明序;<c>room_type</c> 去重跨行共享)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="Bind"/> 52 行 &gt; 40;债册 `TD-clinic-14` / 评审 S16)。
+        /// <paramref name="memberChecks"/> 见 <see cref="Bind"/> 里哨兵口径的注释。</remarks>
+        private static List<RoomDef> ParseRooms(
+            JsonNode rowsNode, bool membershipEnforced, IReadOnlyCollection<string> furnTypes,
+            List<string> errors, out int memberChecks)
+        {
+            var rooms = new List<RoomDef>();
+            var seenRoomTypes = new HashSet<string>(StringComparer.Ordinal);
+            memberChecks = 0;
+
+            for (int i = 0; i < rowsNode.Items.Count; i++)
+            {
+                RoomDef? room = ParseRoom(
+                    rowsNode.Items[i], i, seenRoomTypes, membershipEnforced, furnTypes, errors,
+                    ref memberChecks);
+                if (room.HasValue) rooms.Add(room.Value);
+            }
+
+            return rooms;
+        }
+
+        /// <summary>子句数组:存在性 / 非空 / 逐条解析;任一结构失败返回 <c>null</c>。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="ParseRoom"/> 52 行 &gt; 40;债册 `TD-clinic-14` / 评审 S16)。
+        /// **报文原文与判定次序逐字未变**。</remarks>
+        private static List<RoomClause> ParseClauses(
+            JsonNode row, string where, string roomType, bool membershipEnforced,
+            IReadOnlyCollection<string> furnTypes, List<string> errors, ref int memberChecks)
+        {
             if (!row.TryGet("clauses", out JsonNode clausesNode) || clausesNode.Kind != JsonNodeKind.Array)
             {
                 errors.Add($"{FileName}:{where}(room_type=\"{roomType}\") 缺 clauses 数组");
@@ -177,103 +209,142 @@ namespace DaYiJingCheng.EditorTools.Bake
             for (int c = 0; c < clausesNode.Items.Count; c++)
             {
                 RoomClause? clause = ParseClause(
-                    clausesNode.Items[c], $"{where}.clauses[{c}]", membershipEnforced, furnTypes, errors);
+                    clausesNode.Items[c], $"{where}.clauses[{c}]", membershipEnforced, furnTypes, errors,
+                    ref memberChecks);
                 if (clause.HasValue) clauses.Add(clause.Value);
             }
 
-            if (clauses.Count == 0) return null;
-
-            if (!seenRoomTypes.Add(roomType))
-            {
-                errors.Add($"{FileName}:{where} room_type「{roomType}」重复 —— 每房间类型恰一谓词");
-                return null;
-            }
-
-            return new RoomDef(roomType, clauses);
+            return clauses;
         }
 
         /// <summary>解析单条子句(AC-24-12 已实现半边)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 82 行 &gt; 40;债册 `TD-clinic-14` / 评审 S16):
+        /// 头部 / 邻接支 / 计数支各成一个私有方法,**校验次序与报文原文逐字未变**。
+        /// <para>🔁 <b>2026-10-29 同批</b>(债册 `TD-clinic-07` / 评审 R-19):新增
+        /// <paramref name="memberChecks"/> —— 让「成员资格门真的执行过」可被观测,
+        /// 见 <see cref="Bind"/> 里哨兵口径的改动。</para></remarks>
         private static RoomClause? ParseClause(
             JsonNode clause, string where,
-            bool membershipEnforced, IReadOnlyCollection<string> furnTypes, List<string> errors)
+            bool membershipEnforced, IReadOnlyCollection<string> furnTypes, List<string> errors,
+            ref int memberChecks)
         {
+            if (!TryReadClauseHead(clause, where, errors, out ClinicClauseKind kind, out string type))
+                return null;
+
+            // 挂标半边(成员资格):仅在来源可用时执行;缺席由哨兵自陈。
+            if (membershipEnforced)
+            {
+                AssertFurnMember(type, where, furnTypes, errors);
+                memberChecks++;
+            }
+
+            string neighborType = null;
+            ClinicClauseDirection direction = ClinicClauseDirection.None;
+
+            if (kind == ClinicClauseKind.AdjacencyMinCount)
+            {
+                if (!TryReadAdjacency(clause, where, membershipEnforced, furnTypes, errors,
+                        ref memberChecks, out neighborType, out direction))
+                    return null;
+            }
+
+            int min = 0;
+            if ((kind == ClinicClauseKind.MinCount || kind == ClinicClauseKind.AdjacencyMinCount)
+                && !TryReadMin(clause, where, errors, out min))
+                return null;
+
+            return new RoomClause(kind, type, neighborType, direction, min);
+        }
+
+        /// <summary>子句头:须对象 · `kind` 必填且 ∈ 闭集 · 未知键白名单 · `type` 必填。</summary>
+        private static bool TryReadClauseHead(JsonNode clause, string where, List<string> errors,
+            out ClinicClauseKind kind, out string type)
+        {
+            kind = default;
+            type = null;
+
             if (clause.Kind != JsonNodeKind.Object)
             {
                 errors.Add($"{FileName}:{where} 须为对象(实得 {clause.Kind})");
-                return null;
+                return false;
             }
 
             if (!clause.TryGet("kind", out JsonNode kindNode) || kindNode.Kind != JsonNodeKind.String)
             {
                 errors.Add($"{FileName}:{where} 缺字符串 kind(子句类型必填)");
-                return null;
+                return false;
             }
 
             // AC-24-12 已实现半边:未知子句类型 = 构建失败(单机制,不另设分支)。
-            if (!ClinicMachineSchema.TryClauseKind(kindNode.Str, out ClinicClauseKind kind))
+            if (!ClinicMachineSchema.TryClauseKind(kindNode.Str, out kind))
             {
                 errors.Add(
                     $"{FileName}:{where} 未知子句类型 kind=\"{kindNode.Str}\" —— AC-24-12 / 规则二:" +
                     "子句类型是闭集 {" + string.Join(" / ", ClinicMachineSchema.ClauseKindLiterals) + "};" +
                     "闭集外一律 schema 错(收进表即错误,非「给它一个行为」)");
-                return null;
+                return false;
             }
 
             ClinicMachineSchema.RejectUnknownKeys(
                 clause, ClinicMachineSchema.ClauseKeysByKind[(int)kind], where, FileName, errors);
 
+            return ClinicMachineSchema.ReadRequiredString(clause, "type", where, FileName, errors, out type);
+        }
+
+        /// <summary>邻接支:`neighbor_type` 必填 · 成员资格 · 方向闭集与确定性。</summary>
+        private static bool TryReadAdjacency(JsonNode clause, string where,
+            bool membershipEnforced, IReadOnlyCollection<string> furnTypes, List<string> errors,
+            ref int memberChecks, out string neighborType, out ClinicClauseDirection direction)
+        {
+            neighborType = null;
+            direction = ClinicClauseDirection.None;
+
             if (!ClinicMachineSchema.ReadRequiredString(
-                    clause, "type", where, FileName, errors, out string type))
-                return null;
+                    clause, "neighbor_type", where, FileName, errors, out neighborType))
+                return false;
 
-            // 挂标半边(成员资格):仅在来源可用时执行;缺席由哨兵自陈。
             if (membershipEnforced)
-                AssertFurnMember(type, where, furnTypes, errors);
-
-            string neighborType = null;
-            ClinicClauseDirection direction = ClinicClauseDirection.None;
-            int min = 0;
-
-            if (kind == ClinicClauseKind.AdjacencyMinCount)
             {
-                if (!ClinicMachineSchema.ReadRequiredString(
-                        clause, "neighbor_type", where, FileName, errors, out neighborType))
-                    return null;
-
-                if (membershipEnforced)
-                    AssertFurnMember(neighborType, where, furnTypes, errors);
-
-                // 方向确定性(GDD 规则二 2026-09-17 复核;同 adj_sum 的 +x/+y 单向查法)
-                if (!clause.TryGet("direction", out JsonNode dirNode) || dirNode.Kind != JsonNodeKind.String)
-                {
-                    errors.Add(
-                        $"{FileName}:{where} 邻接子句缺字符串 direction —— 规则二:" +
-                        "方向确定性是承重判据(同 adj_sum 的 +x/+y 单向查法)");
-                    return null;
-                }
-                if (!ClinicMachineSchema.TryClauseDirection(dirNode.Str, out direction))
-                {
-                    errors.Add(
-                        $"{FileName}:{where} 未知方向 direction=\"{dirNode.Str}\" —— 规则二:" +
-                        "方向闭集 = {+x, +y}(ADR-015 §五 的基向量 (1,0) / (0,1))");
-                    return null;
-                }
+                AssertFurnMember(neighborType, where, furnTypes, errors);
+                memberChecks++;
             }
 
-            if (kind == ClinicClauseKind.MinCount || kind == ClinicClauseKind.AdjacencyMinCount)
+            // 方向确定性(GDD 规则二 2026-09-17 复核;同 adj_sum 的 +x/+y 单向查法)
+            if (!clause.TryGet("direction", out JsonNode dirNode) || dirNode.Kind != JsonNodeKind.String)
             {
-                if (!ClinicMachineSchema.ReadRequiredPositiveInt(
-                        clause, "min", where, FileName, errors, out long minValue))
-                    return null;
-                if (minValue > int.MaxValue)
-                {
-                    errors.Add($"{FileName}:{where}.min={minValue} 超出 int 域");
-                    return null;
-                }
-                min = (int)minValue;
+                errors.Add(
+                    $"{FileName}:{where} 邻接子句缺字符串 direction —— 规则二:" +
+                    "方向确定性是承重判据(同 adj_sum 的 +x/+y 单向查法)");
+                return false;
             }
 
-            return new RoomClause(kind, type, neighborType, direction, min);
+            if (!ClinicMachineSchema.TryClauseDirection(dirNode.Str, out direction))
+            {
+                errors.Add(
+                    $"{FileName}:{where} 未知方向 direction=\"{dirNode.Str}\" —— 规则二:" +
+                    "方向闭集 = {+x, +y}(ADR-015 §五 的基向量 (1,0) / (0,1))");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>计数支:`min` 必填且为正整数,且不超 `int` 域。</summary>
+        private static bool TryReadMin(JsonNode clause, string where, List<string> errors, out int min)
+        {
+            min = 0;
+            if (!ClinicMachineSchema.ReadRequiredPositiveInt(
+                    clause, "min", where, FileName, errors, out long minValue))
+                return false;
+
+            if (minValue > int.MaxValue)
+            {
+                errors.Add($"{FileName}:{where}.min={minValue} 超出 int 域");
+                return false;
+            }
+
+            min = (int)minValue;
+            return true;
         }
 
         /// <summary>AC-24-12 挂标半边:子句引用类型须 ∈ 注入的闭集。</summary>

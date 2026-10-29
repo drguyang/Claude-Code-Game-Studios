@@ -341,3 +341,37 @@
 - **代码评审**:✅ 已过 —— `production/qa/evidence/review-clinic-001-2026-10-20.md`,
   `CHANGES REQUIRED → APPROVED WITH SUGGESTIONS`,4 🔴 → 0。
 - **Scope**:实现发生在 2026-10-20/21,今日**无法回溯核对改动集**,如实登记为不可核。
+
+**2026-10-29 · 修复轮(三条 ADVISORY 残余的清偿 · 用户指令「完成修复」)**
+
+> 承上节的 `ADVISORY 遗留` 三条。**上节原文不删** —— 本节是清偿记录,不是改写。
+
+- **① 「15 条 🟡 未修」→ 实清 8 条,余 6 条各自立债**。逐条核账后发现原文的 15 条**不是 15 条独立债**:
+  `TD-clinic-02/08/09`(R-09 / R-21 / S24)早已由 sprint-20 的 S20-5 轮结案、`TD-clinic-04`(R-10c)
+  登记时该断言**已经改过**(陈旧条目)。本轮实修 **7 条**:
+  | 债 | 项 | 落点 |
+  |---|---|---|
+  | `TD-clinic-03` | R-10b | 夹具断言 `"direction"` → `"未知方向"`(原 token 被两条报文共用) |
+  | `TD-clinic-05` | R-10d | 夹具断言 `"须为 JSON 字符串"` → `"Fix 字面量"`(原 token 被两条守卫共用) |
+  | `TD-clinic-06` | R-18 | 新增聚合 throw 的**顺序**断言(`surprise` 的 `IndexOf` < `5/4`) |
+  | `TD-clinic-07` | R-19 | `Bind` 哨兵由「来源在不在」改为**计数实际执行次数**(`memberChecks`) |
+  | `TD-clinic-11` | D4 | `ContextBinder.ParseRow` 档集外时 `ok = false` |
+  | `TD-clinic-13` | S19 | 新 `ClinicMachineSchema.BeginTable` —— 五个 binder 的**逐字重复前言**合一(实测 **5** 份,债册原记「三」是抽样) |
+  | `TD-clinic-14` | S16 | 拆 `ParseClause` 82→32 · `AssertFurnTableShape` 62→31;连带 `Bind` 52→32 · `ParseRoom` 52→32 · `AssertOverflowBounds` 51→32 · `AdjBinder.Bind` 50→35 |
+  **证伪 5 条**(R-10b / R-10d / R-18 / R-19 ×2)全部「恰 1 条红且正是期望那条」;
+  **`TD-clinic-11` 的 `Proven = ✗`** —— 缺陷今日不可观测,**无法**构造反证(如实登记,不写成已证)。
+- **② `TR-clinic-006` 已翻转** `partial → covered`:note 里的「`OQ-24-5` 未裁」依据已废
+  (该 OQ 2026-10-07 裁 `n_max = 64`),断言 `AssertOverflowBounds` 早已实测落地。
+  ⚠️ 同表 `TR-clinic-007` / `TR-clinic-009` 的 `gap` **疑似同样陈旧**(其措辞指向的 story-002 / 004
+  均 `Complete`),但**本轮未核实际落点 ⇒ 未动、不主张已 covered**。
+- **③ `EPIC.md` 的 002–005 四行 `Ready` 已订正为 `Complete`**(四份 story 文件的 `Status:` 早已是
+  `Complete`,复算命令见 EPIC 内的注)。
+- **新立 1 条债**:`TD-clinic-18` —— `TD-clinic-14` 只登记了**两个方法**(抽样),全族普查后
+  **另有 5 处 > 40 行**(`AdjBinder.ParsePair` 57 / `ContextBinder.ParseRow` 60 /
+  `ContextNamesBinder.ParseRow` 48 / `RoomNamesBinder.ParseRow` 49 / `TablesBake.Bake` 45)。
+  **本轮未改它们**(不在原登记面内,不借此扩权)。
+- **回归(三元组)**:EditMode **`5852 / 5815 / 0 / 0 / 37`** @ **2026-10-29 09:10 CST** ·
+  **全量(无 filter)** · HEAD `87b9d893` + 本轮工作树。基线 `5850 / 5813 / 0 / 37`(story-006 评审轮);
+  差值 **+2/+2** 归 `dad1f582` 的 2 条 `[Test]`(**非本轮**)—— 本轮 `git diff` 的
+  `+[Test]` / `+[TestCase]` 计数 = **0 / 0**。
+- **未跑(不变)**:PlayMode;IL2CPP 三格(矩阵级)。

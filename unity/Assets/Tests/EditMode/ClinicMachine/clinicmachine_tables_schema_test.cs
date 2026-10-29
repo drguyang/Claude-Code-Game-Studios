@@ -438,7 +438,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 ClinicMachineTablesBake.BindRoomForTest(
                     FixtureText("invalid_room_direction.json"), null));
 
-            AssertErrorsContain(ex, "direction");
+            // 🔁 2026-10-29(债册 TD-clinic-03 / 评审 R-10b):原断言「direction」是**共用 token** ——
+            //    `RoomBinder` 的两条报文(`邻接子句缺字符串 direction` :250 / `未知方向 direction=` :257)
+            //    都含它 ⇒ 走错分支也满足。改钉**唯一分支前缀**「未知方向」。
+            AssertErrorsContain(ex, "未知方向");
         }
 
         [Test]
@@ -523,7 +526,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
                 ClinicMachineTablesBake.BindContextForTest(json));
 
-            AssertErrorsContain(ex, "须为 JSON 字符串");
+            // 🔁 2026-10-29(债册 TD-clinic-05 / 评审 R-10d):原断言「须为 JSON 字符串」被
+            //    `ReadRequiredString`(Schema:380)与 `ReadRequiredFix`(Schema:410)**共用** ⇒
+            //    走错守卫也满足。改钉 `ReadRequiredFix` **独有**的「Fix 字面量」。
+            AssertErrorsContain(ex, "Fix 字面量");
         }
 
         [Test]
@@ -539,6 +545,18 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
             Assert.That(ex.Errors.Count, Is.GreaterThanOrEqualTo(2));
             AssertErrorsContain(ex, "surprise", "5/4");
+
+            // 🔁 2026-10-29(债册 TD-clinic-06 / 评审 R-18):原测只断条数与子串,**不钉顺序** ——
+            //    而聚合 throw 的**顺序**是 ADR-014 确定性面的一部分(同输入两次烘焙须逐位一致)。
+            //    钉:**未知键(前言段)先于** 采样行段的 `k_speed` 越界 —— 即
+            //    `RejectUnknownKeys` 必须先于逐行解析执行。调换两段 ⇒ 本断言红。
+            string joinedOrder = string.Join("; ", ex.Errors);
+            int idxUnknownKey = joinedOrder.IndexOf("surprise", StringComparison.Ordinal);
+            int idxKSpeed = joinedOrder.IndexOf("5/4", StringComparison.Ordinal);
+            Assert.That(idxUnknownKey, Is.GreaterThanOrEqualTo(0), "未知键报文缺失");
+            Assert.That(idxKSpeed, Is.GreaterThanOrEqualTo(0), "k_speed 报文缺失");
+            Assert.That(idxUnknownKey, Is.LessThan(idxKSpeed),
+                "聚合顺序须为「前言段(未知键)先于逐行段(k_speed)」;实得全集 = " + joinedOrder);
         }
 
         // ════════════════════════════════════════════════════════════════════

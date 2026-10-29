@@ -4148,8 +4148,8 @@
     requirement: "加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界)"
     domain: Core
     adr: ADR-006
-    status: partial
-    note: "D-R3 回填(2026-09-21)。守恒律框架在(ADR-006),⚠️ n_max 悬于 OQ-24-5 未裁 ⇒ 断言无参数可写。"
+    status: covered
+    note: "D-R3 回填(2026-09-21);🔁 2026-10-29 回填轮由 partial → covered。原 note 的依据已失效 —— OQ-24-5 于 2026-10-07 已裁 n_max = 64(design/gdd/clinic-machine.md:449),断言自此有参数可写。落点 = ClinicMachineSchema.AssertOverflowBounds(nMax, tierMax, wMinRaw, wMaxRaw, errors)(n_max × TIER_MAX < 2^31 的 int32 门 + |W_MIN| <= W_MAX 的 int64 界健全性),由 ClinicMachineAdjBinder.Bind 以表内 n_max 调用。接受侧判别力由 TD-clinic-02(R-09)结案轮的反证钉住。"
   - id: TR-clinic-007
     system: clinic-machine
     gdd: design/gdd/clinic-machine.md

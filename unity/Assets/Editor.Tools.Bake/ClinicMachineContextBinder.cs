@@ -72,18 +72,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             var errors = new List<string>();
 
-            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 阶段1 词法失败:{lexErr}" });
-
-            if (root.Kind != JsonNodeKind.Object)
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 根须为对象(实得 {root.Kind})" });
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                root, ClinicMachineSchema.ContextRootKeys, "根", FileName, errors);
-
-            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(root, FileName, errors);
+            JsonNode root = ClinicMachineSchema.BeginTable(
+                json, ClinicMachineSchema.ContextRootKeys, FileName, errors, out uint schemaVersion);
 
             // ⚠️ 早 throw 豁免点(同 DelayTableBinder):无 contexts 数组 ⇒ 行层校验结构上不可达。
             if (!root.TryGet("contexts", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
@@ -140,6 +130,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                 // AC-24-05:档集白名单单机制 —— 档集外(含 0 / 负 / 5/4 / 1/2)同一条规则。
                 if (!ClinicMachineSchema.IsAllowedKSpeed(kSpeed.Raw))
                 {
+                    // 🔁 2026-10-29(债册 TD-clinic-11 / 评审 D4):此前只 `errors.Add`,`ok` 未置 false
+                    //    ⇒ **非法行仍被塞进 `rows`**。当前无害(throw 发生在 `K_CONTEXT_MAX` 派生之前),
+                    //    但一旦将来把这条 throw 降级为告警,非法行就会污染派生集 ⇒ 派生值静默漂移。
+                    //    加固后不产生**今日**可观测差异(仍在同一处 throw),只堵住那条降级路径。
+                    ok = false;
                     errors.Add(
                         $"{FileName}:{where}(room_type=\"{roomType ?? "?"}\") k_speed raw={kSpeed.Raw} " +
                         $"∉ 档集 {{{ClinicMachineSchema.KSpeedLiteralsText()}}} —— AC-24-05 / F-24-3 / OQ-24-1:" +

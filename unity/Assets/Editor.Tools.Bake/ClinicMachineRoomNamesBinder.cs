@@ -75,18 +75,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             var errors = new List<string>();
 
-            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 阶段1 词法失败:{lexErr}" });
-
-            if (root.Kind != JsonNodeKind.Object)
-                throw new BakeValidationException(
-                    new List<string> { $"{FileName} 根须为对象(实得 {root.Kind})" });
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                root, ClinicMachineSchema.RoomNamesRootKeys, "根", FileName, errors);
-
-            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(root, FileName, errors);
+            JsonNode root = ClinicMachineSchema.BeginTable(
+                json, ClinicMachineSchema.RoomNamesRootKeys, FileName, errors, out uint schemaVersion);
 
             // ⚠️ 早 throw 豁免点:无 rooms 数组 ⇒ 行层校验结构上不可达。
             if (!root.TryGet("rooms", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)

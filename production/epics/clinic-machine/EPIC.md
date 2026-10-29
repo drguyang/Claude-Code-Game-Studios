@@ -28,6 +28,12 @@
 
 > 登记处:`docs/architecture/tr-registry.yaml`(`id: TR-clinic-*`,共 10 条)。
 > 计数(2026-09-28 实测):**10 条 = 5 covered + 4 partial + 1 gap(TR-clinic-007 房间连通算法无 ADR,由本 epic story-002 兑现机制层)**;U 项不阻塞实现轮。
+> 🔁 **2026-10-29 回填轮**:`TR-clinic-006` partial → covered(原 note 的依据 `OQ-24-5 未裁` 已失效,
+> 该 OQ 于 2026-10-07 裁 `n_max = 64`)⇒ **当前 6 covered + 3 partial + 1 gap**。
+> ⚠️ **同表另有 2 行的状态疑似陈旧但本轮未动**(不代改,须各自核):
+> `TR-clinic-007`(`gap`,措辞说机制归 story-002,而 story-002 已 `Complete`)·
+> `TR-clinic-009`(`gap`,交付边界归 story-004,而 story-004 已 `Complete`)。
+> 本轮**没有**核它们的实际落点 ⇒ **不主张它们已 covered**。
 
 | TR-ID | Requirement | Status |
 |-------|-------------|--------|
@@ -36,7 +42,7 @@
 | TR-clinic-003 | EnvMod(环境修正)在定点域内透传,边界不中转 float | partial(ADR-006+014) |
 | TR-clinic-004 | CONTEXT_TABLE 经 ADR-014 烘焙管线出货;条目数硬上限 K_CONTEXT_MAX | covered(ADR-014) |
 | TR-clinic-005 | ADJ_TABLE 对称性 = 加载期硬门(不对称即失败) | covered(ADR-014) |
-| TR-clinic-006 | 加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界) | partial(ADR-006) |
+| TR-clinic-006 | 加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界) | covered(ADR-006) —— 2026-10-29 由 partial 翻转 |
 | TR-clinic-007 | 房间连通性析出算法与 ROOM_NONE 哨兵(围合判定) | gap —— 机制归 story-002 |
 | TR-clinic-008 | 格分类三态:非医馆格 / 内部格 / 阈值格的归类判据 | partial(ADR-015) |
 | TR-clinic-009 | 语义不泄漏:9 只收乘子,不收「医馆」语义概念 | gap —— 交付边界归 story-004 |
@@ -55,17 +61,19 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 烘焙表与 schema 构建门 | Config-Data | **Complete**(2026-10-29) | ADR-014/006 |
-| 002 | 房间析出与连通规则 | Logic | Ready | ADR-015/005 |
-| 003 | 乘子求值 F-24-1/2/3 | Logic | Ready | ADR-005/006 |
-| 004 | 乘子交付边界与 ClinicEnvDto | Integration | Ready | ADR-025/013/006 |
-| 005 | 纯函数重放与 Memoize 失效 | Integration | Ready | ADR-016/005 |
+| 002 | 房间析出与连通规则 | Logic | **Complete** | ADR-015/005 |
+| 003 | 乘子求值 F-24-1/2/3 | Logic | **Complete**(2026-10-21) | ADR-005/006 |
+| 004 | 乘子交付边界与 ClinicEnvDto | Integration | **Complete**(2026-10-25) | ADR-025/013/006 |
+| 005 | 纯函数重放与 Memoize 失效 | Integration | **Complete** | ADR-016/005 |
 | 006 | 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03 | Logic | **Complete**(2026-10-21) | ADR-015/005 |
 
 > 🔁 **2026-10-29 收口轮订正(原文不删)**:story-001 转 `Complete`(AC 7/7 · 夹具类 42/42 ·
-> 补证伪 8/8 转红)。⚠️ **本表 002–005 四行的 `Ready` 是陈旧值** —— 四份 story 文件的
-> `Status:` 均为 `Complete`。复算:
-> `for f in production/epics/clinic-machine/story-00*.md; do grep -m1 '^> \*\*Status' "$f"; done`
-> 本行只订正 001(收口对象),**002–005 的陈旧不代为改写** —— 留待 EPIC 回填轮统一处理。
+> 补证伪 8/8 转红)。
+> ⚠️ **002–005 四行的 `Ready` 曾是陈旧值** —— 四份 story 文件的 `Status:` 早已是 `Complete`。
+> **2026-10-29 同批一并订正**(用户指令「完成修复」):四行改为 `Complete`,理由由各自的
+> `Status:` 行与其 Completion Notes 承载。复算:
+> `for f in production/epics/clinic-machine/story-00*.md; do printf '%s ' "$(basename $f)"; grep -m1 '^> \*\*Status' "$f"; done`
+> ⇒ **本 epic 6/6 全 `Complete`**。
 
 > 🔁 **2026-10-21 新增 story-006** —— 立卡缘由:**`AC-24-03` 此前无主**(`grep -l AC-24-03 story-*.md` = 空;
 > 001–005 五件全不认领),而「布局 → 房间类型」匹配全树零实现(`MatchRoom`/`RoomTypeOf`/`EvaluateClause` = 0)。

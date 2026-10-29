@@ -198,7 +198,15 @@ namespace DaYiJingCheng.EditorTools.Bake
                 }
             }
 
-            // ② F-24-1 / OQ-24-6:W_MIN < 0 < W_MAX 且 |W_MIN| <= W_MAX(否则 Φ 定义不健全)
+            // ② F-24-1 / OQ-24-6:W 域符号 + 界健全性
+            AssertWeightBoundsSane(wMinRaw, wMaxRaw, errors);
+        }
+
+        /// <summary>O-24-5 之 ②:W 域须跨零且 <c>|W_MIN| &lt;= W_MAX</c>(否则 Φ 定义不健全)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="AssertOverflowBounds"/> 51 行 &gt; 40;
+        /// 债册 `TD-clinic-14` / 评审 S16)。**三条报文的原文与判定次序逐字未变**。</remarks>
+        private static void AssertWeightBoundsSane(long wMinRaw, long wMaxRaw, List<string> errors)
+        {
             if (!(wMinRaw < 0))
             {
                 errors.Add(
@@ -236,6 +244,73 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
         }
 
+        /// <summary><c>type</c> 支:非空字符串 + 目录内唯一(闭集值归 21a,此处只校 token 种类)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="AssertFurnRow"/> 45 行 &gt; 40;
+        /// 债册 `TD-clinic-14` / 评审 S16)。**两条报文原文逐字未变**。</remarks>
+        private static void AssertFurnType(
+            JsonNode row, string where, HashSet<string> seenTypes, string fileName, List<string> errors)
+        {
+            if (!row.TryGet("type", out JsonNode typeNode) || typeNode.Kind != JsonNodeKind.String ||
+                string.IsNullOrEmpty(typeNode.Str))
+            {
+                errors.Add($"{fileName}:{where}.type 缺失或非非空字符串" +
+                           $"({(typeNode == null ? "缺失" : typeNode.Kind.ToString())})");
+            }
+            else if (!seenTypes.Add(typeNode.Str))
+            {
+                errors.Add(
+                    $"{fileName}:{where}.type「{typeNode.Str}」重复 —— 家具目录每类型恰一行" +
+                    "(重复会让「取哪一行」成为隐式规则 = 静默失序)");
+            }
+        }
+
+        /// <summary>表前言四步的唯一实现:阶段 1 词法 → 根须为对象 → 根键白名单 → <c>schema_version</c>。</summary>
+        /// <remarks>🔁 <b>2026-10-29 抽取</b>(债册 `TD-clinic-13` / 评审 S19)—— 原先五份 binder
+        /// (Room / Context / Adj / RoomNames / ContextNames)各抄一遍**逐字相同**的四步。
+        /// <para>⚠️ 债册原文记「**三** binder」是**抽样非普查**;本轮实测 **5** 份(复算:
+        /// <c>grep -c '阶段1 词法失败' ClinicMachine*Binder.cs</c>,五份各 1)。</para>
+        /// <para>两条 <c>throw</c> 与白名单/版本校验的**报文原文、判定次序逐字未变**。</para>
+        /// </remarks>
+        /// <param name="json">源文本。</param>
+        /// <param name="rootKeys">该表允许的根键白名单。</param>
+        /// <param name="fileName">报错用的源文件名。</param>
+        /// <param name="errors">聚合错误列表(根键 / 版本违例落在其中,不抛)。</param>
+        /// <param name="schemaVersion">源 <c>schema_version</c>(写方头槽的取值来源)。</param>
+        /// <returns>已通过白名单校验的根节点。</returns>
+        /// <exception cref="BakeValidationException">词法失败 / 根非对象(此两步不可聚合 —— 无根节点可继续)。</exception>
+        internal static JsonNode BeginTable(
+            string json, string[] rootKeys, string fileName, List<string> errors, out uint schemaVersion)
+        {
+            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
+                throw new BakeValidationException(
+                    new List<string> { $"{fileName} 阶段1 词法失败:{lexErr}" });
+
+            if (root.Kind != JsonNodeKind.Object)
+                throw new BakeValidationException(
+                    new List<string> { $"{fileName} 根须为对象(实得 {root.Kind})" });
+
+            RejectUnknownKeys(root, rootKeys, "根", fileName, errors);
+            schemaVersion = ReadSchemaVersion(root, fileName, errors);
+            return root;
+        }
+
+        /// <summary>FURN_TABLE 前导段:词法 + 根须为对象 + 根键白名单 + schema_version + 声明 <c>tier_max</c>。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(原 <see cref="AssertFurnTableShape"/> 45 行 &gt; 40;
+        /// 债册 `TD-clinic-14` / 评审 S16)。**两条 throw 的报文与判定次序逐字未变**。
+        /// <para><c>tier_max</c> 可选(缺省 = 本类具名常数):它是 **21a 声明家** 的字段,
+        /// 真文件 <c>item_database_furniture.json</c> 必带;形状夹具则可省。声明后按声明值校行。</para></remarks>
+        private static JsonNode ReadFurnRoot(string json, List<string> errors, out long declaredTierMax)
+        {
+            const string fileName = "FURN_TABLE";
+            JsonNode root = BeginTable(json, FurnRootKeys, fileName, errors, out _);
+
+            declaredTierMax = TierMax;
+            if (root.TryGet("tier_max", out JsonNode tierMaxNode) && tierMaxNode.Kind == JsonNodeKind.Integer)
+                declaredTierMax = tierMaxNode.Int;
+
+            return root;
+        }
+
         /// <summary>AC-24-08 的**已实现半边**:FURN_TABLE 的字段形状断言
         /// (字段存在 + token 种类 ∈ {整数域 / Fix 字符串} + <c>tier</c> 域)。
         /// <para>⚠️ **不是** AC-24-08 通过:该 AC 挂 <c>BLOCKED-BY-O-24-1</c>(闭集来源 = 21a 家具目录)。
@@ -247,24 +322,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <exception cref="BakeValidationException">词法失败 / 字段缺失 / token 种类不符 / tier 越界(聚合)。</exception>
         public static void AssertFurnTableShape(string json)
         {
-            if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
-                throw new BakeValidationException(new List<string> { $"FURN_TABLE 阶段1 词法失败:{lexErr}" });
-
-            if (root.Kind != JsonNodeKind.Object)
-                throw new BakeValidationException(
-                    new List<string> { $"FURN_TABLE 根须为对象(实得 {root.Kind})" });
-
             var errors = new List<string>();
             const string fileName = "FURN_TABLE";
 
-            RejectUnknownKeys(root, FurnRootKeys, "根", fileName, errors);
-            ReadSchemaVersion(root, fileName, errors);
-
-            // `tier_max` 可选(缺省 = 本类的具名常数):它是 **21a 声明家** 的字段,
-            // 真文件 `item_database_furniture.json` 必带;形状夹具则可省。声明后按声明值校行。
-            long declaredTierMax = TierMax;
-            if (root.TryGet("tier_max", out JsonNode tierMaxNode) && tierMaxNode.Kind == JsonNodeKind.Integer)
-                declaredTierMax = tierMaxNode.Int;
+            JsonNode root = ReadFurnRoot(json, errors, out long declaredTierMax);
 
             if (!root.TryGet("furn", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
             {
@@ -283,53 +344,48 @@ namespace DaYiJingCheng.EditorTools.Bake
             // D2:重复 type 与三姊妹 binder 同纪律 —— 每家具类型恰一行。
             var seenTypes = new HashSet<string>(StringComparer.Ordinal);
 
+            // 🔁 2026-10-29 拆分(原 ~62 行 > 40;债册 `TD-clinic-14` / 评审 S16):
+            //    行体下沉到 `AssertFurnRow`,**校验次序与报文原文逐字未变**。
             for (int i = 0; i < rowsNode.Items.Count; i++)
-            {
-                JsonNode row = rowsNode.Items[i];
-                string where = $"furn[{i}]";
-                if (row.Kind != JsonNodeKind.Object)
-                {
-                    errors.Add($"{fileName}:{where} 须为对象(实得 {row.Kind})");
-                    continue;
-                }
-
-                RejectUnknownKeys(row, FurnRowKeys, where, fileName, errors);
-
-                // type —— 字符串(家具类型 id;闭集值归 21a,本处只校 token 种类)
-                if (!row.TryGet("type", out JsonNode typeNode) || typeNode.Kind != JsonNodeKind.String ||
-                    string.IsNullOrEmpty(typeNode.Str))
-                {
-                    errors.Add($"{fileName}:{where}.type 缺失或非非空字符串" +
-                               $"({(typeNode == null ? "缺失" : typeNode.Kind.ToString())})");
-                }
-                else if (!seenTypes.Add(typeNode.Str))
-                {
-                    errors.Add(
-                        $"{fileName}:{where}.type「{typeNode.Str}」重复 —— 家具目录每类型恰一行" +
-                        "(重复会让「取哪一行」成为隐式规则 = 静默失序)");
-                }
-
-                // tier —— int 计数(ADR-006 D-21-17:不在 Fix 解析集),域 [0, TIER_MAX]
-                if (!row.TryGet("tier", out JsonNode tierNode))
-                {
-                    errors.Add($"{fileName}:{where} 缺 tier —— 缺字段 = 构建失败(O-24-1)");
-                }
-                else if (tierNode.Kind != JsonNodeKind.Integer)
-                {
-                    errors.Add($"{fileName}:{where}.tier 须为整数字面量(实得 {tierNode.Kind}={tierNode.RawText})" +
-                               " —— tier 是 int 计数,移出 Fix 解析集(D-21-17)");
-                }
-                else if (tierNode.Int < 0 || tierNode.Int > declaredTierMax)
-                {
-                    errors.Add($"{fileName}:{where}.tier={tierNode.Int} ∉ [0, TIER_MAX={declaredTierMax}]" +
-                               " —— GDD F-24-2 档位域(0 = 无档)");
-                }
-
-                // e_env —— Fix 字符串(ADR-014 §四:禁数值 token)
-                ReadRequiredFix(row, "e_env", where, fileName, errors, out _);
-            }
+                AssertFurnRow(rowsNode.Items[i], i, seenTypes, declaredTierMax, fileName, errors);
 
             if (errors.Count > 0) throw new BakeValidationException(errors);
+        }
+
+        /// <summary>单行家具目录校验:类型重复 / tier 域 / `e_env` 须为 Fix 字符串(逐行不抛,聚合到 errors)。</summary>
+        private static void AssertFurnRow(JsonNode row, int i, HashSet<string> seenTypes,
+            long declaredTierMax, string fileName, List<string> errors)
+        {
+            string where = $"furn[{i}]";
+            if (row.Kind != JsonNodeKind.Object)
+            {
+                errors.Add($"{fileName}:{where} 须为对象(实得 {row.Kind})");
+                return;
+            }
+
+            RejectUnknownKeys(row, FurnRowKeys, where, fileName, errors);
+
+            // type —— 字符串(家具类型 id;闭集值归 21a,本处只校 token 种类)
+            AssertFurnType(row, where, seenTypes, fileName, errors);
+
+            // tier —— int 计数(ADR-006 D-21-17:不在 Fix 解析集),域 [0, TIER_MAX]
+            if (!row.TryGet("tier", out JsonNode tierNode))
+            {
+                errors.Add($"{fileName}:{where} 缺 tier —— 缺字段 = 构建失败(O-24-1)");
+            }
+            else if (tierNode.Kind != JsonNodeKind.Integer)
+            {
+                errors.Add($"{fileName}:{where}.tier 须为整数字面量(实得 {tierNode.Kind}={tierNode.RawText})" +
+                           " —— tier 是 int 计数,移出 Fix 解析集(D-21-17)");
+            }
+            else if (tierNode.Int < 0 || tierNode.Int > declaredTierMax)
+            {
+                errors.Add($"{fileName}:{where}.tier={tierNode.Int} ∉ [0, TIER_MAX={declaredTierMax}]" +
+                           " —— GDD F-24-2 档位域(0 = 无档)");
+            }
+
+            // e_env —— Fix 字符串(ADR-014 §四:禁数值 token)
+            ReadRequiredFix(row, "e_env", where, fileName, errors, out _);
         }
 
         /// <summary>schema_version 读取 + 与运行时头契约比对(只做域检查形同虚设 —— 承 OutcomeTableBinder R-4)。</summary>

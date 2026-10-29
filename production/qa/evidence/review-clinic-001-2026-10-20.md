@@ -223,3 +223,38 @@ S19 · S16 · R-13 · S25 · S6 —— 均为判别力收紧或建议项,不阻�
 3. 修复轮**只跑了 EditMode**;PlayMode / IL2CPP 三格仍 NOT RUN。
 4. 剩余 15 条 🟡 **未处理**,其中 **R-09(`AssertOverflowBounds` 接受侧判别力≈0)** 与
    **R-10b/c/d(另三处共用 token)** 与已修项同族,建议下一轮一并收。
+
+---
+
+### 七之四 · 第二轮修复轮结账(2026-10-29 · 用户指令「完成修复」)
+
+**性质**:本条是**同一份评审对象的后续修复轮**,不是重评 —— 评的是**当下**代码,**不追认**原判定
+(承 `.claude/docs/review-workflow.md` §不可追补)。原 §七 表**不删不改**,本轮另起一表。
+
+**新三元组**:EditMode `total=5852 passed=5815 failed=0 inconclusive=0 skipped=37` ·
+截至 `2026-10-29 09:10 CST` · 批次 `全量(无 -testFilter)` · HEAD `87b9d893` + 本轮工作树 · 退出码 **0**
+**增量核对**:基线 `5850/5813/0/37` ⇒ **+2/+2**,但本轮 `git diff` 的 `+[Test]` / `+[TestCase]`
+计数 = **0 / 0** —— 那 +2 归 `dad1f582`(story-006 评审轮的 2 条新测),**不是本轮**。
+
+| ID | 债册号 | Landed | Proven | File(s) | Proven-by(可复算) |
+|---|---|---|---|---|---|
+| **R-10b** | `TD-clinic-03` | ✅ | ✅ | `clinicmachine_tables_schema_test.cs`(`"direction"` → `"未知方向"`) | 证伪:把「未知方向」报文前缀改成与「缺字符串」分支同前缀 ⇒ `test_room_clause_direction_invalid_rejected` **红**;旧断言下**存活** |
+| **R-10d** | `TD-clinic-05` | ✅ | ✅ | 同上(`"须为 JSON 字符串"` → `"Fix 字面量"`) | 证伪:`ReadRequiredFix` 报文改回与 `ReadRequiredString` 同前缀 ⇒ `test_fix_field_json_number_token_rejected` **红** |
+| **R-18** | `TD-clinic-06` | ✅ | ✅ | 同上(新增 `IndexOf("surprise") < IndexOf("5/4")`) | 证伪:聚合 throw 前 `errors.Reverse()` ⇒ `test_multiple_errors_aggregated_in_single_throw` **红** |
+| **R-19** | `TD-clinic-07` | ✅ | ✅ | `ClinicMachineRoomBinder.cs`(`memberChecks` 计数;哨兵 = `membershipEnforced && memberChecks > 0`) | 证伪 M-a(摘 `AssertFurnMember`)⇒ `..._rejects_type_outside_injected_source` **红**;M-b(摘 `memberChecks++`)⇒ `..._enforced_with_injected_source` **红** |
+| **D4** | `TD-clinic-11` | ✅ | **✗** | `ClinicMachineContextBinder.ParseRow`(`ok = false`) | **无反证可造** —— 缺陷今日不可观测(throw 在 `K_CONTEXT_MAX` 派生之前),加固只堵「将来把 throw 降级为告警」那条路径。按 8b:合法的诚实状态,**不得读成已证** |
+| **S19** | `TD-clinic-13` | ✅ | ✅ | `ClinicMachineSchema.BeginTable`(新)+ 5 binder 接线 | 复算:`grep -c '阶段1 词法失败' unity/Assets/Editor.Tools.Bake/ClinicMachine*Binder.cs` ⇒ 五份各 **0**;全量回归零红 |
+| **S16** | `TD-clinic-14` | ✅ | ✅ | `ParseClause` 82→32 · `AssertFurnTableShape` 62→31 · `Bind` 52→32 · `ParseRoom` 52→32 · `AssertOverflowBounds` 51→32 · `AdjBinder.Bind` 50→35 | 复算:逐方法扫「声明行 → 配对 `}`」跨度;族内 `>40` 的残余见 `TD-clinic-18`(5 条,**不含**本行任一方法) |
+| **R-10c** | `TD-clinic-04` | ✅(前轮已落) | ✅ | 同上文件 `"ENV_MOD_MIN"` 断言 | **本轮零改动** —— 核账发现登记时已修,陈旧条目,直接关闭 |
+
+**判据纠偏(须连带读)**:`TD-clinic-14` 的原文只登记**两个方法**(抽样)。全族普查后**另有 5 处仍 > 40 行**,
+已立 **`TD-clinic-18`**。把本表 `S16` 行读成「族内已无超长方法」= **借绿**。
+同型纠偏第二条:`S19` 原文记「**三** binder 重复」,实测 **5** 份。
+
+### 七之五 · 本轮仍未处理(禁借绿)
+1. 余 **6 条** 🟡:`S23`(`TD-clinic-10`)· `D8`(`TD-clinic-12`)· `R-13`(`TD-clinic-15`)·
+   `S25`(`TD-clinic-16`)· `S6`(`TD-clinic-17`)· 新增 `TD-clinic-18`。
+2. **`D8` 需用户裁定**:字符串字段是否需要长度上界;需要的话**上界值由用户给**
+   (自行定值 = 在 24 侧硬编码 gameplay 值,违 `coding-standards`「Gameplay values must be data-driven」)。
+3. **本轮只跑 EditMode**;PlayMode / IL2CPP 三格仍 NOT RUN(与首轮同)。
+4. `TR-clinic-007` / `TR-clinic-009` 的 `gap` 疑似陈旧,**未核、未动**。
