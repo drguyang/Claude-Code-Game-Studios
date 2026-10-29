@@ -226,6 +226,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 在场集快照(登记簿快照只在成员变动时重建 ⇒ 稳态零分配,TD-audio-032 ④)。
             foreach (int patientId in _presence.PresentPatientIds())
                 StepOnePatient(patientId, tick);
+
+            // ⛔ **2026-10-29:`TD-listen-01` 的 L-1 尝试被撤回** —— 曾在此按
+            //    `behavior.Terminal.Latched` 调 `_presence.RemovePresent(...)`,实测**6 条既有 AC 转红**:
+            //    `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` 等。
+            //    根因:`AC-019-6` 的尾音协议要求终态病人**继续留在在场集**(尾音正好在此区间内
+            //    衰减一次且不得重启);一旦移除,`PruneAbsent` 立即清掉 `_tailDone` 等簿记 ⇒
+            //    协议无从观测。**这是判据冲突,不是实现细节** —— 见
+            //    `production/qa/evidence/listen-run-pack-2026-10-29.md` §六。
         }
 
         /// <summary>单病人一拍:取数 → 簿记 → 13 调度 → 呼吸层 / 尾音 / 一次性 cue。</summary>
@@ -243,6 +251,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _behavior.Step(id, _knowsClinic(id));
             PatientBehavior behavior = _behavior.For(id);
             VitalsDto v = _vitals.GetVitals(id);
+
 
             CueDispatch dispatch = DecideFor(patientId, id, behavior, v, tick);
             ApplyBreath(patientId, id, dispatch.Breath, v.Position, cell, tick);

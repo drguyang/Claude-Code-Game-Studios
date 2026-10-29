@@ -66,9 +66,12 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <param name="spawner">病人创建器(9 的 DiseaseOnset 写者)。</param>
         /// <param name="presence">在场登记写面(spawn 后须登记,否则 EventStream 的 AC-15 拒收)。</param>
-        /// <param name="registry">病种注册表(取第一个条目的 DiseaseId;空表 fail-loud)。</param>
+        /// <param name="registry">病种注册表(默认取第一个条目;空表 fail-loud)。</param>
+        /// <param name="registryIndex">取第几条(2026-10-29 · `TD-listen-01` 的 L-3:听测专用病种 = 1)。
+        /// 默认 0 ⇒ 与接线前**逐位相同**。</param>
         public PatientAppearedDriver(PatientSpawner spawner, IPresenceWriter presence,
-                                      IReadOnlyList<DiseaseRegistryEntry> registry)
+                                      IReadOnlyList<DiseaseRegistryEntry> registry,
+                                      int registryIndex = 0)
         {
             _spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -77,7 +80,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new ArgumentException(
                     "注册表为空 —— 无病种可 spawn;组合根的最小内联注册表应至少 1 条(R1-17)",
                     nameof(registry));
-            _diseaseId = registry[0].DiseaseId;
+            if (registryIndex < 0 || registryIndex >= registry.Count)
+                throw new ArgumentOutOfRangeException(
+                    nameof(registryIndex), registryIndex,
+                    $"registryIndex 须在 [0, {registry.Count}) —— 越界会取到不存在的病种");
+            _diseaseId = registry[registryIndex].DiseaseId;
         }
 
         /// <summary>

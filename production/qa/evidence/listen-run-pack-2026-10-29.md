@@ -15,9 +15,9 @@
 | # | 阻断 | 今日状态 | 判据 |
 |---|---|---|---|
 | **L-6** | 运行时零 active `AudioListener`(全场景静音) | ✅ **已修(账面滞后)** | `BootRoot.cs:490` `cameraObj.AddComponent<UnityEngine.AudioListener>()`,修于 2026-10-20 |
-| **L-1** | 无病人离场路径 | ❌ **仍 open** | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
+| **L-1** | 无病人离场路径 | ⛔ **尝试被撤回 —— 与 AC-019-6 判据冲突**(见 §六) | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
 | **L-2** | 听诊档位恒最低档 | ❌ **仍 open** | `CompositionRoot.cs:810` 仍是局部 `int queryLevel = 1;`,全文件无回写 |
-| **L-3** | 病程被占位曲线压到 1.55 s | ⛔ **受阻 —— 设计判据冲突,须裁定**(见 §五) | 尝试拉长曲线 ⇒ 当场打红两条既有 Q1 判据,已撤回 |
+| **L-3** | 病程被占位曲线压到 1.55 s | 🟡 **已落(乙案)· 未经夹具验证** | 新增 `DiseaseId=2 / fallback_audition` 长曲线 + 装配层常量开关 `AuditionDiseaseForListening`(默认 `false` ⇒ 零行为变化);EditMode `5852/5815/0/0/37` 零红 |
 | **L-4** | 刷人间隔 20 s/人 | ✅ **已修** | `PatientAppearedDriver` `SpawnIntervalTicks` 400 → **60**(20 s/人 → 3 s/人);EditMode 全量 `5852/5815/0/0/37` 零红 |
 
 ⇒ **听测今日仍不可执行。** L-1 / L-2 / L-3 / L-4 四条清完之前,勾任何一项都是借绿
@@ -129,3 +129,36 @@ firstReadable ≤ 60 tick
 | **丙** | 接受窗口 < 1 s,听测改用**手动逐档触发**(不走自然病程) | 协议要重写,且与三份既有协议件的「自然病程下判别」口径不符 |
 
 **在裁定之前,L-3 保持原值,L-1 / L-2 保持 open,两个人仍不能开听。**
+
+
+---
+
+## 六、L-1 的判据冲突(2026-10-29 实测)
+
+**尝试**:按裁定「表现侧终态锁存驱动」,在 `PatientCueDriver.OnTickEdge` 的遍历之后,
+对 `Terminal.Latched` 的病人调 `_presence.RemovePresent(...)`(遍历中不动登记簿)。
+
+**结果**:EditMode 当场 **6 红**,全部指向同一件事 —— **终态病人必须继续留在在场集**:
+
+| 红测 | 它钉的是什么 |
+|---|---|
+| `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` | 方法名即判据:「**终态持续期间**尾音只衰减一次、永不重启」 |
+| `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | 停顿/停止的边界依赖病人在场 |
+| `test_ac019_4_pauseLifespan_isBoundedByTailRamp` | 尾音寿命 = ramp 上界 |
+| `test_ac019_4_stopAll_clearsTailBookkeeping` | 停止清簿记 |
+| `test_tail_drivenByLoopGain_decaysFromSteadyGain_noOneShot` · `test_tail_doneBookkeeping_isNotByteQuantized` | 尾音簿记 |
+
+**根因**:移除 ⇒ 在场集收缩 ⇒ `PruneAbsent` 立刻清掉 `_tailDone` / `_tailStartTick` 等簿记
+⇒ 尾音协议**在观测窗口内消失**。`AC-019-6` 的语义恰恰是「终态之后**还要在场一段时间**」。
+
+⇒ **「终态 ⇒ 离场」与「AC-019-6」不可同时成立**,与 L-3 是同一类冲突(两条已验收判据争夺同一段时间轴)。
+
+### 三条出路(请裁一条)
+
+| 案 | 做法 | 代价 |
+|---|---|---|
+| **甲** | 移除**推迟到尾音完成之后**(`_tailDone` 为真再 `RemovePresent`) | 改动最小、最可能同时满足两方;须补一条夹具证明「尾音完成后确实离场」 |
+| **乙** | 移除**只对痊愈**(`TerminalCause.Recovered`)生效,死亡仍留场 | 死亡病人的尾音协议不动;但「死者一直在场」这个怪形态保留 |
+| **丙** | L-1 留债,承认「P0 没有离场路径」是有意为之 | 三个病人只增不减;`PruneAbsent` 永不自然触发 |
+
+**在裁定之前 L-1 保持原状(生产零调用方),原尝试已撤回,SHA-256 级还原(EditMode 复跑零红)。**

@@ -358,7 +358,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
             // 驱动 = 每 tick 边沿按节奏调 SpawnNext;节奏 = 每 N tick 一个病人(见驱动类头注)。
-            var patientDriver = new PatientAppearedDriver(spawner, presence, resolvedRegistry);
+            // 🔁 **2026-10-29(`TD-listen-01` 的 L-3)**:听测开关。默认 `false` ⇒ 取
+            //    注册表第 0 条(`DiseaseId = 1`,Q1 判据所钉的那条),行为与接线前逐位相同。
+            //    **听测会话**把本常量改 `true` ⇒ 取第 1 条(`DiseaseId = 2 / fallback_audition`,
+            //    长曲线,呼吸可听窗口 ≈ 10.2 s)。改回 `false` 再提交。
+            //    ⚠️ 刻意做成**装配层常量**而不是运行期开关或测试专用 API ——
+            //       后者会把「听测」这份意图带进生产接口(承 `TD-clinic-15` / R-13 同一纪律)。
+            const bool AuditionDiseaseForListening = false;
+            var patientDriver = new PatientAppearedDriver(
+                spawner, presence, resolvedRegistry,
+                registryIndex: AuditionDiseaseForListening ? 1 : 0);
 
             // ── 病例开账写者 + 驱动(sprint-05 T1.2):把 CaseOpenWriter 接进 tick 边沿序列 ──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
@@ -1555,11 +1564,56 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()
-        {
-            var entry = new DiseaseRegistryEntry
+            => new[]
             {
-                DiseaseId = 1,
-                DiseaseKey = "fallback",
+                CreateFallbackEntry(1, "fallback", WiringCurve()),
+                // 🔁 **2026-10-29(`TD-listen-01` 的 L-3,用户裁定「乙案:另配一条听测专用病种」)**:
+                //    第二条**只服务听测**。理由:Q1 判据钉死 `firstReadable ≤ 60 tick`,
+                //    而 60 tick 的预算把 `SeekMin(0.45) → DeathBandMin(0.90)` 的呼吸可听窗口
+                //    压到 <1 s(`20+3.70·T ≤ 60 ⇒ T ≤ 10.8 ⇒ 窗口 ≤ 0.85 s`)。
+                //    ⇒ 「按 E 不必等」与「呼吸窗口够听」在**同一条曲线**上不可同时成立。
+                //    本条目把两者拆开:`DiseaseId = 1` 原封不动(守 Q1),`= 2` 用长曲线供听测。
+                //    ⚠️ 听测开关在装配处(`AuditionDiseaseForListening`),默认关 ⇒ 生产行为零变化。
+                CreateFallbackEntry(2, "fallback_audition", AuditionCurve()),
+            };
+
+        /// <summary>听测专用长曲线:可听窗口 ≈ 10.2 s(实算见 <see cref="CreateFallbackRegistry"/> 的注)。</summary>
+        /// <remarks>⚠️ **接线期可复验性数值,不是玩法数值** —— 真病程值仍归数值轮。</remarks>
+        private static NaturalProgressCurve AuditionCurve() => new NaturalProgressCurve
+        {
+            Incubation = 20,
+            APeak = Fix.One,
+            TauRise = new Fix(120 * Fix.OneRaw),    // 原 5 ⇒ 拉长 24×(窗口 0.85 s → 10.2 s)
+            TauPeak = 400,
+            TauFall = new Fix(600 * Fix.OneRaw),
+            Plateau = true,
+            SelfLimit = false,
+            Sigma = null,
+            BoundaryMode = "monotone",
+        };
+
+        /// <summary>接线默认曲线(Q1 判据所钉的那条 —— **不得改动**,见 <see cref="CreateFallbackRegistry"/>)。</summary>
+        private static NaturalProgressCurve WiringCurve() => new NaturalProgressCurve
+        {
+            Incubation = 20,
+            APeak = Fix.One,
+            TauRise = new Fix(5 * Fix.OneRaw),
+            TauPeak = 40,
+            TauFall = new Fix(600 * Fix.OneRaw),
+            Plateau = true,
+            SelfLimit = false,
+            Sigma = null,
+            BoundaryMode = "monotone",
+        };
+
+        /// <summary>建一条接线期占位病种条目(参数化的只有 id / key / 曲线,其余字段同款)。</summary>
+        private static DiseaseRegistryEntry CreateFallbackEntry(
+            int diseaseId, string diseaseKey, NaturalProgressCurve curve)
+        {
+            return new DiseaseRegistryEntry
+            {
+                DiseaseId = diseaseId,
+                DiseaseKey = diseaseKey,
                 // 2026-10-21 S18-1:占位条目是**病种**,不是伤情(零值陷阱见 DiseaseKind 注释)。
                 // ⚠️ 本装配路径不调 RegistrySchemaValidator.Validate ⇒ R1_CHECK_31 不覆盖此处,
                 //    显式赋值是**纪律**不是**门**;生产侧消除随真病种表落地(ADR-014 阶段 2)。
@@ -1615,35 +1669,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //    R1-28(Sigma=null 不查)。
                 //    【数值性质】**接线期可复验性数值,不是玩法数值** —— 潜伏 20 tick(1 s @20 Hz)
                 //    + 上升 20 tick,τ=40(2 s)达峰;数值归用户轮,真病种表到位后整表替换。
-                Curve = new NaturalProgressCurve
-                {
-                    Incubation = 20,                    // 1 s 潜伏(保 τ=0 仍处潜伏的既有判据)
-                    APeak = Fix.One,                    // 峰值 1.0 ⇒ 越 floor(skill=1)≈0.9752
-                    // ⚠️ 禁 FixParse:它是**编辑期 / 烘焙期**类型(ADR-014 §二:玩家构建
-                    // 零 JSON 解析器、零 FixParse)⇒ 运行期源码出现它 = AC-21a-48 守卫恰红。
-                    // 故时间常数走 raw 域字面量:Q16.16 ⇒ N tick = N × Fix.OneRaw。
-                    TauRise = new Fix(5 * Fix.OneRaw),      // 上升常数 5 tick(陡)
-                    TauPeak = 40,                           // τ=40(2 s)达峰
-                // ⛔ **2026-10-29 尝试被撤回(债册 `TD-listen-01` 的 L-3)**:本轮曾把
-                //    `TauRise` 5→120 / `TauPeak` 40→400 以拉宽可听窗口,实测**当场打红两条既有判据**
-                //    (`test_q1_compositionRoot_examine_yieldsWords_atInitialSkill` /
-                //    `..._positionCrossesFloor_withinPlayerWait`)—— 后者钉死
-                //    **firstReadable ≤ 60 tick**,即「按 E 不必等」。⇒ **两条要求在同一曲线上不可同时成立**:
-                //    可读门槛 position ≥ 0.9752 在音频 `DeathBandMin(0.90)` **之后**,而 60 tick 的总预算
-                //    把 0.45→0.90 的区间压到 <1 s(数学上:20+3.70·T ≤ 60 ⇒ T ≤ 10.8 ⇒ 窗口 ≤ 0.85 s)。
-                //    **本冲突不是实现问题,是设计判据冲突,须用户裁定** —— 见
-                //    `production/qa/evidence/listen-run-pack-2026-10-29.md` §五。原值保持不动。
-                    TauFall = new Fix(600 * Fix.OneRaw),    // plateau 型下忽略(R1-25 不查)
-                    Plateau = true,                     // ★ 达峰后保持峰值,不衰减
-                    SelfLimit = false,                  // 与 Plateau 互斥(R1-20)
-                    Sigma = null,                       // 不覆盖,走全局默认
-                    BoundaryMode = "monotone",
-                },
+                // ⚠️ 2026-10-14 A 案:占位 null → **真配一张 plateau 型 F1 曲线**(此前「曲线面
+                //    校验跳过」的已知弱点就此闭合)。plateau ⇒ 达峰后恒返回 A_peak、不衰减,
+                //    「Play 一打开、过了潜伏就能按 E 且永远按得出词」成为曲线固有属性。
+                //    ⚠️ **曲线值已参数化**:`WiringCurve()`(Q1 判据所钉)/ `AuditionCurve()`(听测专用)。
+                //    ⚠️ 禁 FixParse(ADR-014 §二:玩家构建零 JSON 解析器)⇒ 时间常数走 raw 域字面量。
+                Curve = curve,
                 Relapse = null,          // 无复发(合法形态)
                 Scale = Fix.One,         // F2 position = Progress / SCALE 的分母;1 = 恒等 ⇒ position = 1.0
                 Signs = Array.Empty<SignEntry>(),
             };
-            return new[] { entry };
         }
     }
 }
