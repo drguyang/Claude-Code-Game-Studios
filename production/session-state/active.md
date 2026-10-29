@@ -12950,3 +12950,21 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 原件 `production/qa/evidence/t1-s2-cost-table-skeleton-2026-10-29.md`;提交 `3e06b992`。
 - **下一步 = S3**:`CostTableBinder`(N-1 / **N-4′ canary** / R4 空表窗口 / V-10 的告警 + 单射 + 未知字段拒收)。
   ⚠️ S3 须同时决定 `null` 的读取语义(本表今日把 `null` 写进了数据)。
+
+## Session Extract — ADR-035 T1·S3 `CostTableBinder`(2026-10-30 收口)
+
+- **交付**:`unity/Assets/Editor.Tools.Bake/CostTableBinder.cs`(canary N-4′ → 根层 → 行层 → R4 → V-10 告警)
+  + `unity/Assets/Tests/EditMode/MedConsequences/cost_table_binder_test.cs`(**19 条**)。
+- **测试**:19 / 19 绿。⚠️ **前两轮 exit 0 都是假绿**:① 编译错 CS0019(无 XML);② 带 `-quit` ⇒ 测试从未开始
+  (仓库标准命令**不带 `-quit`**)。判据 = **XML 存在 + 计数**,不是退出码。
+- **证伪轮(S12-4)**:3 组 6 变异,**每组恰好红预期 2 条**,SHA-256 逐字节还原。
+  A:停 N-1 + kind 闸 ⇒ {n1, n3_diseaseRow} · B:停 V-10 告警 + canary ⇒ {realSkeleton, n4prime_compounds}
+  · C:停 R4 + 逐行启用闸 ⇒ {r4, rowKindNotEnabled}。
+- **⚠️ 实测新发现(订正 `TD-sim-03`)**:`DiseaseRegistryBinder` 绑定期跑 **R1-22** ——
+  「急性保持型(双 false)仅当 lethal=true」;现存 5 件伤情**全是急性保持型** ⇒ **不是「没建行」,是「校验禁止」**。
+  合法落点须是**自限型 / 平台型**非致死伤情(或另裁 R1-22)。首轮 6 红里 5 条即此。
+- **自查抓到的一处自己的缺陷**:`harm_kind` 未启用原本写成「静默跳过」= R4 要防的形态;改为逐行报错,
+  且 R4 判据由「已绑定行数」改为「**源行数**」(否则永远不触发 = 零输入死门)。
+- **ADR-035**:S3 行 ✅;V-9 / V-10 已证;**V-5 仍未过**(无 CookedWriter / DataBakeMenu ⇒ 今天没有「构建」路径)。
+  §Status 加「已部分实现」注(覆盖原「未落盘」)。S4–S7 未开工。
+- 原件 `production/qa/evidence/t1-s3-cost-table-binder-2026-10-30.md`。
