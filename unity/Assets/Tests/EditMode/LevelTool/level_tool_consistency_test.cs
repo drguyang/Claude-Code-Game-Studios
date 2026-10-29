@@ -130,6 +130,66 @@ namespace DaYiJingCheng.Tests.LevelTool
         }
 
         /// <summary>
+        /// 同一槽位同时踩 ②(类型越界)与 ③(格越界)⇒ 报文次序须是 **② 在前、③ 在后**。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 代码评审 R-1 补钉</b>。拆分曾把 ② 挤到 ③ 之后
+        /// (`CheckSlotCell(①③③之补) → CheckSlotType(②)`)⇒ `Violations` 两条报文互换次序,
+        /// 而 `LevelCiRunner.Render` 与 `CheckOrThrow` 都按列表序输出 ⇒ 那是**可观测的**。
+        /// 当时全量回归「逐项相同」照不出来,因为**没有任何夹具构造「一行两个错」**。
+        /// <para><b>判别力</b>:把 `CheckSlots` 里的 `CheckSlotType` 挪到 `CheckSlotBounds` 之后
+        /// ⇒ 两条报文交换位置 ⇒ 本测红。</para>
+        /// </remarks>
+        [Test]
+        public void test_levelTool_slotWithBothTypeAndBoundsErrors_reportsTypeBeforeBounds()
+        {
+            var src = new LevelSource("t", 2, 1, 2, new List<SlotSpec>
+            {
+                // 同一行两个错:x = 2 越界(③)+ slot_type = None(②)
+                new SlotSpec(2, 0, 0, SlotType.None, false),
+            });
+
+            CheckReport report = LevelConsistencyCheck.Check(src);
+
+            Assert.That(report.Violations.Count, Is.EqualTo(2),
+                "两个错各一条:\n" + string.Join("\n", report.Violations));
+            Assert.That(report.Violations[0].IndexOf("None", StringComparison.Ordinal) >= 0, Is.True,
+                "② 类型越界须在**前**(拆分前的次序 ① ② ③ ③之补 ④ ⑤);实得第 0 条 = " + report.Violations[0]);
+            Assert.That(report.Violations[1].IndexOf("超出声明范围", StringComparison.Ordinal) >= 0, Is.True,
+                "③ 越界须在**后**;实得第 1 条 = " + report.Violations[1]);
+        }
+
+        /// <summary>
+        /// 越界格的**裸索引会命中一个合法且不可走的格** ⇒ 仍只报 ③ 那一条,不得多出「不可通行」。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 <b>2026-10-29 代码评审 Q2 补钉</b>。上一条夹具用 `x = 2`(正溢出),删掉 ③ 的早退会
+        /// **抛异常** ⇒ 能抓;但另两种实现仍骗得过它:
+        /// ① 把下标 **clamp** 到表尾;② 越界但 `(x*H+y)*D+z` **恰好落进合法区间**。
+        /// 这两种情况下「有没有真去索引」在**崩溃与否**上不可观测,只能在**报文个数**上观测。
+        /// <para>本例:世界 2×2×2(8 格),槽位 `(0,2,0)` 的 y 越界,而裸索引 `(0*2+2)*2+0 = 4`
+        /// 是**合法下标**;第 4 格与末格 7 都置不可走 ⇒ 一旦实现去索引(clamp 到 7 也一样),
+        /// 就会多出一条「不可通行」⇒ `Violations.Count` 变 2 ⇒ 本测红。</para>
+        /// </remarks>
+        [Test]
+        public void test_levelTool_outOfRangeCell_naiveIndexHitsWalkableCell_addsOnlyTheBoundsViolation()
+        {
+            var walkable = new[] { 1, 1, 1, 1, 0, 1, 1, 0 };   // 下标 4 与 7 不可走
+            var src = new LevelSource("t", 2, 2, 2, new List<SlotSpec>
+            {
+                new SlotSpec(0, 2, 0, SlotType.Decor, false),   // y=2 越界;裸索引 = 4
+            }, walkable: walkable);
+
+            CheckReport report = LevelConsistencyCheck.Check(src);
+
+            Assert.That(report.Violations.Count, Is.EqualTo(1),
+                "只该有一条(③ 越界);多出来的一定是「去索引了可走表」:\n" + string.Join("\n", report.Violations));
+            Assert.That(Has(report, "超出声明范围"), Is.True, "报文须点名判据「超出声明范围」");
+            Assert.That(Has(report, "不可通行"), Is.False,
+                "越界格**不是**「不可通行格」—— 两者是不同判据,不得互相冒充");
+        }
+
+        /// <summary>
         /// `baked_initial = true` 但 `module_id = 0` ⇒ 违例(ADR-022 `:176` 的契约是 **`≥ 1`**)。
         /// <para>🔁 <b>2026-10-28 评审 S-1 修复(新增)</b>:首版判 `== SlotSpec.NoModule`(即 `== -1`),
         /// 差集 = `0` **从导出门漏过去**,只有绑定器 / codec 才拒。而导出器是「唯一作者」,

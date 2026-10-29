@@ -128,7 +128,7 @@ namespace DaYiJingCheng.EditorTools.Level
             var byId = new HashSet<int>();
             int baselineRows = 0;
             for (int i = 0; i < rows.Count; i++)
-                ValidateOneRow(rows[i], i, byId, ref baselineRows);
+                ValidateOneRow(rows[i], i, byId, ref baselineRows, nameof(rows));
 
             // ② AC-6-08:`K_speed == 1`(基准地貌)**恰好一行**。
             if (baselineRows != 1)
@@ -140,32 +140,36 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>② 单行校验(id 非负 / 不重复 / 名字非空 / 三个系数 &gt; 0),并累计基准行数。</summary>
-        private static void ValidateOneRow(TerrainRowSpec r, int i, HashSet<int> byId, ref int baselineRows)
+        /// <param name="paramName">
+        /// 抛异常时用的 `ParamName`。**由调用方以 `nameof(rows)` 传入** ——
+        /// `rows` 不在本方法作用域,写字面量会让「将来重命名 ctor 形参」时 `ParamName` **静默漂移**
+        /// (🔁 2026-10-29 代码评审 Q3-5 指出)。
+        /// </param>
+        private static void ValidateOneRow(TerrainRowSpec r, int i, HashSet<int> byId, ref int baselineRows,
+            string paramName)
         {
-            // ⚠️ 这里的 `"rows"` 就是 `nameof(rows)` 的字面值 —— `rows` 不在本方法作用域内,
-            //    改用字面量**不改变** `ParamName`,而换成 `nameof(byId)` 会(那是可观测差异)。
             if (r.TerrainId < 0)
                 throw new ArgumentException(
-                    $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 须 ≥ 0", "rows");
+                    $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 须 ≥ 0", paramName);
             if (!byId.Add(r.TerrainId))
                 throw new ArgumentException(
                     $"TERRAIN_TABLE 第 {i} 行 terrain_id = {r.TerrainId} 重复 —— " +
-                    "同一 id 两行会让「取哪一行」成为隐式规则", "rows");
+                    "同一 id 两行会让「取哪一行」成为隐式规则", paramName);
             if (string.IsNullOrEmpty(r.Name))
                 throw new ArgumentException(
                     $"TERRAIN_TABLE 第 {i} 行 name 为空 —— 名字是 authoring 可读性的一半,空名让报文无从指认",
-                    "rows");
+                    paramName);
             if (r.KSpeed <= 0)
                 throw new ArgumentException(
                     $"TERRAIN_TABLE 第 {i} 行 K_speed = {r.KSpeed} 须 > 0(AC-6-08;" +
                     "不可通行用 walkable = false 表达,不用速度 0 —— 速度 0 会让 F-6-1 的隧穿断言恒绿)",
-                    "rows");
+                    paramName);
             if (r.KAccel.Raw <= 0)
                 throw new ArgumentException(
-                    $"TERRAIN_TABLE 第 {i} 行 K_accel = {r.KAccel.Raw} raw 须 > 0(AC-6-08)", "rows");
+                    $"TERRAIN_TABLE 第 {i} 行 K_accel = {r.KAccel.Raw} raw 须 > 0(AC-6-08)", paramName);
             if (r.KDecel.Raw <= 0)
                 throw new ArgumentException(
-                    $"TERRAIN_TABLE 第 {i} 行 K_decel = {r.KDecel.Raw} raw 须 > 0(AC-6-08)", "rows");
+                    $"TERRAIN_TABLE 第 {i} 行 K_decel = {r.KDecel.Raw} raw 须 > 0(AC-6-08)", paramName);
 
             if (r.KSpeed == 1) baselineRows++;
         }

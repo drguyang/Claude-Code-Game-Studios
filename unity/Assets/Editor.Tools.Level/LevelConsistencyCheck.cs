@@ -163,23 +163,33 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 SlotSpec s = src.Slots[i];
                 string where = $"slots[{i}]";
-                CheckSlotCell(src, s, where, seen, violations);      // ① ③ ③之补
-                CheckSlotType(s, where, violations);                 // ②
-                CheckSlotInitialModule(s, where, violations);        // ④ ⑤
+                // ⚠️ **次序是契约的一部分**:① ② ③ ③之补 ④ ⑤ —— 与拆分前逐条同序。
+                //    🔁 2026-10-29 代码评审 R-1:首版拆成了
+                //    `CheckSlotCell(①③③之补) → CheckSlotType(②) → …`,把 ② 挤到 ③ 之后,
+                //    ⇒ 同一槽位同时踩 ②(类型越界)与 ③(越界格)时,`Violations` 两条报文互换
+                //    次序,而 `LevelCiRunner.Render` / `CheckOrThrow` 都按列表序输出 ⇒ **可观测**。
+                //    当时无夹具构造该组合,所以全量回归「逐项相同」也照不出来。
+                CheckSlotDuplicate(s, where, seen, violations);   // ①
+                CheckSlotType(s, where, violations);              // ②
+                CheckSlotBounds(s, src, where, violations);       // ③ ③之补
+                CheckSlotInitialModule(s, where, violations);     // ④ ⑤
             }
         }
 
-        /// <summary>① 重复格 · ③ 格超出声明范围 · ③之补 槽位落在不可走的格上。</summary>
+        /// <summary>① 重复格。</summary>
         /// <param name="seen">跨槽位共享的已见格集合(**必须在调用方建一次**,不能每槽新建)。</param>
-        private static void CheckSlotCell(LevelSource src, SlotSpec s, string where,
+        private static void CheckSlotDuplicate(SlotSpec s, string where,
             HashSet<(int, int, int)> seen, List<string> violations)
         {
-            // ① 重复格
             if (!seen.Add((s.X, s.Y, s.Z)))
                 violations.Add(
                     $"world_buildslots:{where} 格 ({s.X},{s.Y},{s.Z}) 重复 —— " +
                     "同一格两条槽位声明会让「取哪一条」成为隐式规则");
+        }
 
+        /// <summary>③ 格超出声明范围 · ③之补 槽位落在不可走的格上。</summary>
+        private static void CheckSlotBounds(SlotSpec s, LevelSource src, string where, List<string> violations)
+        {
             // ③ 格超出声明范围
             if (IsOutOfBounds(src, s))
             {

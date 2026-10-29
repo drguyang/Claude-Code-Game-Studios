@@ -11,6 +11,11 @@
 > ✅ **同日后继批**:`Editor.Tools.Level/` **全树**另拆 **19 个** >40 行方法
 > (9 个文件,含两个构造器),终态 **168 个方法 / 最长 40 行 / 超 40 行 = 零**。
 > 原件 = `production/qa/evidence/impl-level-tool-method-split-2026-10-29.md`。
+> ⚠️ **同日后继批的代码评审**:CHANGES REQUIRED —— **2 条 BLOCKING**
+> (① 单槽位内 ② 与 ③ 的判据次序变了 ⇒ 违例报文互换,可观测;② spike 的元组返回吞掉异常路径的中间状态)。
+> **两条都已修 + 补 2 条夹具 + 2 条变异全红**,EditMode `5852 / 5815 / 0 / 37`。
+> ⇒ 「零可观测行为变更」这句话在评审时点**不成立**,修后才成立。
+> 原件 = `production/qa/evidence/review-level-tool-method-split-2026-10-29.md`。
 > 🔁 **留痕**:本 story 曾于评审前误标 `Complete`,评审判 CHANGES REQUIRED 后退回修复,现重新判定。
 > **Layer**: Tooling
 > **Type**: Integration

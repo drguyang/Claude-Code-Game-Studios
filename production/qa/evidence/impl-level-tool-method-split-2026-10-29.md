@@ -123,3 +123,23 @@ git diff -U0 -- unity/Assets/Editor.Tools.Level/ | grep '^+' | grep -o 'nameof([
 | 套件 | 结果 | 对照 |
 |---|---|---|
 | PlayMode | **`238 / 234 / 0 / 2 / 2`** @ 2026-10-29 08:01 CST · 同批 · 同 commit | 与基线**逐项相同**;进程退出码 2 由 2 条既有 **Inconclusive** 引起(`U1Assump6GamepadFocusSpikeTest` 的两条 `*_notRun`),XML `failed = 0` |
+
+---
+
+## §六 后补:代码评审轮(2026-10-29 · 同日)
+
+本件 §四 第 1 条说「等价性的依据 = 逐段搬运 + 按构造论证 + 全量回归逐项相同,**不是机器判据**」。
+**这句话是对的,而它下面的结论当时并不成立** —— 同日 `/code-review` 双专家并行,查出
+**2 条 BLOCKING**:
+
+| ID | 内容 | 性质 |
+|---|---|---|
+| **B-1** | 单个槽位内判据次序从 `① ② ③ ③之补 ④ ⑤` 变成 `① ③ ③之补 ② ④ ⑤` ⇒ 同一槽位同时踩 ②(类型)与 ③(越界)时 `Violations` 两条报文**互换次序**,而 `LevelCiRunner.Render` / `CheckOrThrow` 都按列表序输出 | **真·可观测行为变更** |
+| **B-2** | `TerrainApiSpike.ReadBackAsset` 用元组一次性返回,吞掉「`loadedOk` 已落定、随后 `InvokeSample` 抛」这一中间状态 | 仅异常路径,但改的是输出数值 |
+
+⇒ **本件开头「无可观测行为变更」的措辞,在评审时点不成立。** 已修 + 已补 2 条夹具 + 2 条变异全红;
+修复后 EditMode `5852 / 5815 / 0 / 37`。
+
+**这一轮最该记住的一点**:§四 第 1 条已经把「没有机器判据」写在了明面上,
+但**同一个文件里仍然把「零可观测行为变更」当结论用了**。写出保留条款 ≠ 结论自动受它约束。
+原件 = `production/qa/evidence/review-level-tool-method-split-2026-10-29.md`。

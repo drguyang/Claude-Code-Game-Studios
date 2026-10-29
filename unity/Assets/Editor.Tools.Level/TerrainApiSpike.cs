@@ -428,7 +428,20 @@ namespace DaYiJingCheng.EditorTools.Level
                 // ⚠️ `CreateTempFolder()` 必须留在 try 内 —— 原实现如此:建目录若抛,
                 //    要落到下面的 catch 并打出 `C.asset_roundtrip_exception`。移出去会改变行为。
                 created = CreateTempFolder();
-                (loadedOk, fromAsset, assetResolution, assetSize) = ReadBackAsset();
+
+                // 🔁 2026-10-29 代码评审 R-6:此处**不能**用一个元组一次性赋值。
+                //    原实现是**渐进赋值** —— `loadedOk` 先落定,随后 `InvokeSample` 才可能抛;
+                //    改成 `(...) = ReadBackAsset()` 后,一旦 `InvokeSample` 抛出,整条赋值都不发生
+                //    ⇒ `loadedOk` 停在 false、`assetResolution` 停在 -1、`assetSize` 停在 default,
+                //    spike 日志的数值面随之改变。逐句写回,保持可观测输出一致。
+                TerrainData reloaded = CreateAndReloadTerrainAsset();
+                loadedOk = reloaded != null;
+                if (loadedOk)
+                {
+                    fromAsset = (float)InvokeSample(reloaded, "GetHeight", 0.5f, 0.5f);
+                    assetResolution = reloaded.heightmapResolution;
+                    assetSize = reloaded.size;
+                }
             }
             catch (Exception ex)
             {
@@ -439,6 +452,13 @@ namespace DaYiJingCheng.EditorTools.Level
                 deleted = DeleteTempFolder();
             }
 
+            EmitC_AssetRoundtripResults(log, created, loadedOk, fromAsset, assetResolution, assetSize, deleted);
+        }
+
+        /// <summary>把 (b) 段的 7 条结果行一次性打出。<paramref name="created"/> 等值由调用方传入。</summary>
+        private static void EmitC_AssetRoundtripResults(StringBuilder log,
+            bool created, bool loadedOk, float fromAsset, int assetResolution, Vector3 assetSize, bool deleted)
+        {
             Emit(log, "C.folder_created", created.ToString());
             Emit(log, "C.asset_load_ok", loadedOk.ToString());
             Emit(log, "C.asset_getHeight_mid", F(fromAsset));
@@ -448,9 +468,9 @@ namespace DaYiJingCheng.EditorTools.Level
             Emit(log, "C.temp_folder_gone_after", (!AssetDatabase.IsValidFolder(TempFolder)).ToString());
         }
 
-        /// <summary>建资产 → 存 → 重新 Load → 读回高度 / 分辨率 / 尺寸。</summary>
-        /// <returns>读回的四元组;未 Load 到 ⇒ `(false, NaN, -1, default)`。</returns>
-        private static (bool loadedOk, float fromAsset, int resolution, Vector3 size) ReadBackAsset()
+        /// <summary>建资产 → 存 → 重新 Load,只返回 Load 到的引用(读值交给调用方逐句做)。</summary>
+        /// <returns>重新 Load 到的 `TerrainData`;失败 ⇒ `null`。</returns>
+        private static TerrainData CreateAndReloadTerrainAsset()
         {
             TerrainData authored = BuildRampTerrain(out _);
             string assetPath = TempFolder + "/SpikeTerrain.asset";
@@ -458,13 +478,7 @@ namespace DaYiJingCheng.EditorTools.Level
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            var reloaded = AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath);
-            if (reloaded == null) return (false, float.NaN, -1, default);
-
-            return (true,
-                (float)InvokeSample(reloaded, "GetHeight", 0.5f, 0.5f),
-                reloaded.heightmapResolution,
-                reloaded.size);
+            return AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath);
         }
 
         /// <summary>建临时目录;已存在 ⇒ `false`(与「本次没建」同义)。</summary>
