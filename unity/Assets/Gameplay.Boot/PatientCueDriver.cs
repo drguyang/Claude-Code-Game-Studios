@@ -58,6 +58,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>cue ordinal → 字幕文本(null = 该 cue 无字幕)。
         /// <para>由装配层从事件表 `subtitle_text` 列解析后注入(**不在此硬编码**)。</para></summary>
         private readonly Func<int, string> _subtitleTextOf;
+
+        /// <summary>病人 cue 的**非色相可见对应物**接收口(42 侧 · `AC-13-F1` 达成面 · 2026-10-29 · 缺口 D)。
+        /// <para>⚠️ **null = 不投递**(既有夹具不传 ⇒ 行为逐位不变)。</para>
+        /// <para>⚠️ 与字幕同款:文本/字形不经 44 转发 —— 44 只入不出,可见物由**上游发射点**直投 42。</para></summary>
+        private readonly DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink _cueMarkSink;
         private readonly IVitalsQuery _vitals;
         private readonly PresenceRegistry _presence;
         private readonly PatientBehaviorDirector _behavior;
@@ -123,10 +128,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                                 Func<PatientId, bool> knowsClinic = null,
                                 Func<PatientId, bool> hasCourse = null,
                                 DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
-                                Func<int, string> subtitleTextOf = null)
+                                Func<int, string> subtitleTextOf = null,
+                                DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
         {
             _subtitleSink = subtitleSink;
             _subtitleTextOf = subtitleTextOf;
+            _cueMarkSink = cueMarkSink;
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _vitals = vitals ?? throw new ArgumentNullException(nameof(vitals));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -341,25 +348,35 @@ namespace DaYiJingCheng.Gameplay.Boot
                                     cell.X, cell.Y, cell.Z, looped: false);
                 EmitCount++;
 
-                // ── 字幕**并行投递**(AC-44-15 双投递的文本半边 · 2026-10-29)──
-                // ⚠️ **与播音并列,不替代**:cue 仍走 44(上面那行),文本直投 42。
-                //    这是 AC 原文的形状(「44 不新增出向口」),不是本处的取舍。
-                // ⚠️ `_subtitleSink == null` ⇒ 不投(62 处既有夹具不传 ⇒ 零行为变化)。
-                // ⚠️ 文本为 null/空 ⇒ **不 Show**(空字幕会盖掉上一条真实字幕 ——
-                //    `Show` 是「替换当前行」语义,不是追加)。
-                if (_subtitleSink != null && _subtitleTextOf != null)
-                {
-                    string text = _subtitleTextOf(_coughCue.Value);
-                    if (!string.IsNullOrEmpty(text))
-                    {
-                        // 说话人 = 「病人」(P0 固定 —— 与 `CueKind.Cough` 固定同口径;
-                        // 说话人识别本身是 49 的细化面,见 accessibility-requirements:95)。
-                        _subtitleSink.Show(
-                            new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("病人", text));
-                    }
-                }
+                DeliverVisualChannels(patientId, dispatch.Kind);
             }
             _lastEmitTick[patientId] = tick;
+        }
+
+        /// <summary>一次发射的**两条视觉通道**(字幕 / 非色相可见物)。
+        /// <para>⚠️ 两路都与播音**并列,不替代** —— 播音已在上游完成,本方法只补视觉面。</para>
+        /// <para>⚠️ 抽成独立方法的原因:行预算门(`TD-audio-032` ③)要求
+        /// `EmitOneShotIfDue` ≤ 40 物理行,塞进去会 41 行。</para></summary>
+        private void DeliverVisualChannels(int patientId, CueKind kind)
+        {
+            // ── 字幕(AC-44-15 双投递的文本半边 · 2026-10-29)──
+            // ⚠️ 文本为 null/空 ⇒ **不 Show**(空字幕会盖掉上一条真实字幕 ——
+            //    `Show` 是「替换当前行」语义,不是追加)。
+            // ⚠️ 说话人 = 「病人」(P0 固定;说话人识别是 49 的细化面)。
+            if (_subtitleSink != null && _subtitleTextOf != null && _coughCue.HasValue)
+            {
+                string text = _subtitleTextOf(_coughCue.Value);
+                if (!string.IsNullOrEmpty(text))
+                    _subtitleSink.Show(
+                        new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("病人", text));
+            }
+
+            // ── 非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)──
+            // ⚠️ 类别取自 `dispatch.Kind`(13 的决策),**不在装配层写死咳嗽** ——
+            //    否则日后 13 选呻吟时可见物会静默停在咳嗽形。
+            // ⚠️ `_cueMarkSink == null` ⇒ 不投(既有夹具不传 ⇒ 零行为变化)。
+            _cueMarkSink?.Mark(new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkData(
+                patientId, PatientCueVisualMap.Of(kind)));
         }
 
         /// <summary>在场集收缩后清理簿记(离场 / 死亡病人的句柄不得残留)。</summary>
@@ -420,6 +437,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _lastEmitTick.Remove(patientId);
             _tailStartTick.Remove(patientId);   // 停止 ⇒ 尾音簿记一并清除(不残留衰减进度)
             _tailDone.Remove(patientId);        // 同理:封口态也不得跨「停止」存活(再出现 = 新病人)
+            _cueMarkSink?.ClearPatient(patientId);   // 可见物同口径:离场即摘,不留残影
         }
 
         /// <summary>全部呼吸层收尾(场景卸载 / 读档前)。</summary>
@@ -434,6 +452,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _lastEmitTick.Clear();
             _tailStartTick.Clear();
             _tailDone.Clear();
+            _cueMarkSink?.ClearAll();   // 可见物同口径:场景卸载 / 读档前不留残影
             for (int i = 0; i < handles.Count; i++)
                 _sink.EndLoop(handles[i]);
         }
@@ -449,6 +468,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                     if (!_breathCue.HasValue) break;
                     AudioCueDto cue = MakeBreathCue(patientId, position, cell, PatientCue.Intensity(position));
                     _breathHandles[patientId] = _sink.BeginLoop(cue);
+
+                    // ── 呼吸的可见对应物(`AC-13-F1` 第三类 · 缺口 D)──
+                    // ⚠️ 生命周期 = **呼吸层句柄的生命周期**(起 → 起形;离场 / StopAll → 摘除)。
+                    //    与播音同生命周期是刻意的:可见物是**同一件事的另一通道**,不是第二套状态。
+                    // ⚠️ 终局的「呼吸渐弱」不在本路承载(那是连续衰减 = 动效面,42 不判时机)——
+                    //    登记为 P1 细化项,见证据件 §不主张。
+                    _cueMarkSink?.Mark(new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkData(
+                        patientId, DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueVisual.Breath));
                     break;
 
                 case BreathAction.End:

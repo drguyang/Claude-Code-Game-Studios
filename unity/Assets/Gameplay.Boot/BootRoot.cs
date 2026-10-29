@@ -60,6 +60,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         private PlayerController _player;
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
+
+        /// <summary>病人 cue 的非色相可见对应物容器(`AC-13-F1` 的 42 侧达成面 · 缺口 D)。
+        /// <para>⚠️ 在 <see cref="_services"/> 装配**之前**构造(它是 `Assemble` 的入参),
+        /// 装配完成后再挂到 UI 根上 —— 与 <see cref="CompositionRootServices.EmergencyCandidates"/>
+        /// 的「先装配、后 MountTo」同序,只是本件的缝恰好是构造参数。</para></summary>
+        private DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkView _cueMarks;
         private InteractionInputDriver _interactionDriver;
         private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
@@ -267,6 +273,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    这里必须重新如实赋值 —— 不得让它变成「写着 false 但可能合成」。
             IsSyntheticWorld = false;
 
+            // 缺口 D:病人 cue 的非色相可见对应物 —— 元件先造,装配后再挂 UI 根(见字段注)。
+            _cueMarks = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkView();
+
             _services = CompositionRoot.Assemble(
                 registry: null,
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
@@ -285,7 +294,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 听测期切档缝(`TD-listen-01` L-2 · 2026-10-29)。见 `ResolveDiagnosisQueryLevelOverride`。
                 diagnosisQueryLevelOverride: ResolveDiagnosisQueryLevelOverride(),
                 // 听测期病种索引缝(`TD-listen-01` L-3 · 2026-10-29)。见 `ResolvePatientRegistryIndexOverride`。
-                patientRegistryIndexOverride: ResolvePatientRegistryIndexOverride());
+                patientRegistryIndexOverride: ResolvePatientRegistryIndexOverride(),
+                // 病人 cue 的非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)。
+                // ⚠️ **本处是唯一生产装配点** —— 不给 ⇒ `PatientCueDriver` 一路不投递,
+                //    AC-13-F1 的「默认可见」在运行期就不存在(禁借绿:缝存在 ≠ 面上有东西)。
+                cueMarkSink: _cueMarks);
 
             // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
             // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但
@@ -576,6 +589,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver = FindOrCreateSkeuoUi();
             if (_services.CasebookSource != null)
                 _uiDriver.Source = _services.CasebookSource;
+
+            // ── 6.0. 病人 cue 可见对应物挂载(`AC-13-F1` 达成面 · 2026-10-29 · 缺口 D)──
+            // 挂载 = 纯渲染资源(42 C3)。无 UI 根(panel 未就绪 / 测试自建空壳)⇒ 不挂,
+            // 逻辑树仍在(可见物照常写入,只是不渲染)—— 与 `MountTo` 同口径。
+            if (_cueMarks != null)
+            {
+                UnityEngine.UIElements.VisualElement uiRoot = _uiDriver.GetUiRoot();
+                if (uiRoot != null) uiRoot.Add(_cueMarks);
+            }
             // ── 6.1 写通道注入(sprint-08 S1.1 件 F1):病名栏 Submit → 装配层写者 ──
             // 42 只渲染不持状态(ADR-013 §9 C3)⇒ 病名栏 Submit 经命令面转发给装配层的
             // CasebookCommandRouter(实现 ICasebookCommandSink)。缺注入 ⇒ Submit 留空(不崩)。

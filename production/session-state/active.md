@@ -12727,3 +12727,36 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **⚠️ 本批不结任何债**:`TD-audio-105` 维持 `open` —— **缺口 D**(13 的可见对应物,
   `BLOCKED-BY 42` 冗余通道)未做 ⇒ `AC-44-12` 仍 `NOT-RUN`;`AC-44-15` 的 `[L]` 人工听测未跑。
   100/101/102/103 仍待听测。
+
+## Session Extract — TD-audio-105 缺口 D(2026-10-29)
+
+- **用户指令**:「完成DD」(= 补缺口 D:13 的「可见对应物」达成面)。
+- **权威原文**:`patient-ai.md:1088` **AC-13-F1**「咳嗽 / 呻吟 / 呼吸三类 cue 均有一个可见对应物,
+  且在**默认设置**下亦可见(**不需额外开关**)」+ 同处 2026-09-25 回填「须**非色相可辨**
+  (形状 / 明度 / 姿态承载)」。13 侧夹具自陈达成面 BLOCKED-BY 42。
+- **交付**:
+  - `PatientCueMark.cs`(42)—— 三态枚举 / 全整数 DTO(无 `disease_id`)/ `IPatientCueMarkSink`
+    (`Mark` · `ClearPatient` · `ClearAll`)/ **`ShapeByKind` 单一出处**。
+  - `PatientCueMarkView.cs`(42)—— UI Toolkit 容器;三态 `✳`/`〰`/`◎` **形状** +
+    `cue-mark-*` **字重(明度)** 双通道;容量 3;构造即 `display: Flex`。
+  - `PatientCueVisualMap.cs`(Boot)—— 13 `CueKind` → 42 三态;**未知值具名抛出不回落**。
+  - `PatientCueDriver` —— 一次性 cue → `Mark`;呼吸 `Begin` → `Mark`;`PruneOneAbsent` → `ClearPatient`;
+    `StopAll` → `ClearAll`。**`BootRoot` 是唯一生产装配点**(造元件 → 装配 → 挂 UI 根)。
+- **证伪 16/16 全红**,四件 SHA 逐一还原 OK。**两处如实登记**:
+  ① **D-D5 首轮假存活 = 我的变异写错**(`return` 放在 `throw` 之后 = 死代码),改成替换 `throw` 后转红;
+  ② **改名后 D-V1/V10/D1 三条锚点失效,已全部重做转红** —— 不重做则记录证的是改名前的代码。
+- **⚠️ 全量回归抓到 2 条真红(局部夹具看不见)**,均已修:
+  1. `test_td032_3_splitMethods_withinLineBudget` —— `EmitOneShotIfDue` 41 行 > 40 ⇒
+     抽出 `DeliverVisualChannels`(现 14 行)。
+  2. `test_ac42g6_noGlyphGeneration_noGlyphFields` —— 字段名 `GlyphByKind` 撞 AC-42-G6
+     「42 不自行生成字形」词表 ⇒ 改 `ShapeByKind` / `ShapeOf`。**改的是我的命名,不是放宽门**:
+     AC-13-F1 原文用的就是「**形状**」,这三样本就是形状标记而非字形变体族。
+  ⚠️ **同型第三次**:A/B/C 批是 `AudioSpeakerMode` 白名单,本批是行预算 + 字形词表 ——
+  **写完必须跑全量,只跑本件夹具必然漏跨件的门。**
+- **回归三元组**:EditMode **`5974 / 5937 / 0 / 0 / 37`** · PlayMode **`238 / 234 / 0 / 2 / 2`**
+  @ 2026-10-29 19:59 CST · 全量 · `0e6a5152`+工作树。等式 `5955 + 19 = 5974`(新增夹具 19 条)。
+- **⚠️ `TD-audio-105` 仍 open(余 2 条)**:① mono 两态**可闻差异需人工听测**;
+  ③ 字幕**屏幕上可见** = 元件在但**无生产挂载点**,呈现规格归 49(P2)。判据 ②④ 已绿。
+- **本件三处诚实边界**:「姿态 / 面色」形态**未交**(需病人本体渲染,P0 无载体)·
+  `Groan` **无生产生产者**(13 恒传 `Cough`)⇒ 只有映射级判据 · 呼吸「渐弱」连续衰减未做。
+- **提交**:`3927e022`(17 文件)。

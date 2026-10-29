@@ -131,11 +131,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             World world = null,
             int? diagnosisQueryLevelOverride = null,
             int? patientRegistryIndexOverride = null,
-            DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
+            DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
+            DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
                             0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
                             structures, saveBasePath, world, diagnosisQueryLevelOverride,
-                            patientRegistryIndexOverride, subtitleSink);
+                            patientRegistryIndexOverride, subtitleSink, cueMarkSink);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -165,7 +166,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        World world = null,
                                                        int? diagnosisQueryLevelOverride = null,
                                                        int? patientRegistryIndexOverride = null,
-                                                       DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
+                                                       DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
+                                                       DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
@@ -173,7 +175,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
                                 inputActions, audio, clinicKnowledge, telemetryKnobs, structures,
                                 saveBasePath, world, diagnosisQueryLevelOverride,
-                                patientRegistryIndexOverride, subtitleSink);
+                                patientRegistryIndexOverride, subtitleSink, cueMarkSink);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -191,7 +193,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              World world,
                                                              int? diagnosisQueryLevelOverride = null,
                                                              int? patientRegistryIndexOverride = null,
-                                                             DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null)
+                                                             DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
+                                                             DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -1296,7 +1299,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 subtitleSink: subtitleSink,
                 subtitleTextOf: audio != null
                     ? (Func<int, string>)(ordinal => SubtitleTextOf(audio.Table, ordinal))
-                    : null);
+                    : null,
+                // ── 非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)──
+                // ⚠️ 与字幕不同,**不依赖 `audio`**:可见物是给听障玩家的替代通道,
+                //    若也挂在 `audio != null` 上,则「音频装配失败」会连带夺走无障碍面。
+                cueMarkSink: cueMarkSink);
             // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
             casebookSource.BindCommands(casebookCommands);
             // 后置接回(2):戥子档数真源 —— 处方驱动(构造序所限,见 BindPrescribeDriver 注)
