@@ -1140,8 +1140,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    **不是** 44 自造常量;`AudioTuning.LatticeSizePlaceholder` 退为**兜底** ——
             //    仅当调用方没给世界几何(62 处 EditMode 夹具直调本方法时即如此)时生效。
             // ⚠️ 遮挡输入**本轮恒 false**(用户裁定):真 raycast 未实现,登记 `TD-audio-035` ②。
+            // 🔁 **2026-10-29(`TD-audio-035` ②,用户裁定甲案)**:遮挡链**已接** ——
+            //    缝 = `LatticeOcclusionProbe.IsBlocked`(整数格 Bresenham 视线走查,不引物理射线);
+            //    听者格来自 `AudioAssemblySeams.ListenerCell` 缝(相机格,由 BootRoot 注入)。
+            //    ⚠️ 世界几何未给(62 处 EditMode 夹具直调本方法)⇒ `occludedFor` 传 null ⇒
+            //    遮挡恒 false,但**这是「未装配」而非「判了没挡」** —— 由 `OcclusionEvaluations`
+            //    的可观测面区分(未接缝时不计数)。
             float latticeSize = audio?.LatticeSize > 0f
                 ? audio.LatticeSize : AudioTuning.LatticeSizePlaceholder;
+            Func<Int3, Int3, bool> occludedFor = audio?.OccludedFor;
             SpatializationDirector spatialDirector = null;
             ICueRenderTarget renderTarget;
             if (audio != null && audio.HasAny)
@@ -1154,8 +1161,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                                   ? audio.Clips.ResolveCue(cue) : null,
                                                           cue => audio.Clips != null
                                                                   ? audio.Clips.BusOf(cue) : null,
-                                                          // 遮挡:用户 2026-10-18 裁定「本轮恒 false,登记缺口」
-                                                          occludedFor: () => false);
+                                                          occludedFor: occludedFor);
+                // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列的真源注入 —— 池与渲染目标
+                //    都要(池管 min/max distance,渲染目标管 priority_class 与 occlusion_lowpass)。
+                if (audio.Table.HasValue)
+                {
+                    sources.SetTable(audio.Table.Value);
+                    audioPool.SetTable(audio.Table.Value);
+                }
                 renderTarget = sources;
             }
             else

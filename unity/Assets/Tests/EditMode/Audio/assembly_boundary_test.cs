@@ -92,6 +92,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // (承 `PlayerBusVolumeInitializer.MixerResolver` 同款模式)。
             typeof(StethoscopePreloadGate), typeof(StethoscopePreloadGate.ClipLoadState),
             typeof(StethoscopePreloadGate.LoadStateQuery),
+            // **2026-10-29(`TD-audio-035` ②)增列(用户裁定甲案:扩允许面)** —— 遮挡缝的格载体。
+            // `SetListenerCell(Func<Int3>)` 让装配层把相机位置换成整数格喂给 44(ADR-015 §一
+            // 两层纪律:44 不读表现态 float)。`Int3` 是 `Sim.Contracts` 的**表现态整数锚点**
+            // (`Int3.cs:9` 逐字「表现态锚点,不进事件流、不参与 sim 判定」),且已是
+            // `AudioCueDto.Cell` 的字段类型 —— 本次只是让它**出现在签名里**,不是新的入口。
+            // 同 `RankSource` / `VoiceBucket` 先例(违 B3 字面而非 ADR-018 §一 本意)。
+            typeof(Int3),
         };
 
         // 44 实现的**项目接口**允许面(AC-44-B3 ①:原字面 = 「只有 IAudioCueSink」)。

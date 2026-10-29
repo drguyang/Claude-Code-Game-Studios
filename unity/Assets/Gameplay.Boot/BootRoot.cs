@@ -230,6 +230,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             var world = MinimalWorldFactory.Create(preloaded ? DataCorePreloader.Provider : null,
                                                   out int latticeSizeMm);
             AudioAssemblySeams.ApplyLatticeFromWorldGeometry(_audioSeams, latticeSizeMm);
+            // ── ② 遮挡链绑定(`TD-audio-035` ② · 2026-10-29 用户裁定甲案)──────────────
+            // 缝 = `LatticeOcclusionProbe.IsBlocked`(整数格 Bresenham 视线走查,**不引物理射线**);
+            // 输入 = 本世界几何的 `walkable`(P0 关卡的 16×1×16 外环墙**已存在** ⇒ 不需新数据)。
+            // 听者格在启动序第 5.1 步(相机装好之后)注入 —— 那时 `_cameraRig` 才存在。
+            AudioAssemblySeams.BindOcclusion(_audioSeams, world.Geometry);
             // 🔁 **2026-10-29(关卡工具 story-002)此处置 `false`,原文不删**:
             //    此前恒 `true` —— 世界几何由 `MinimalWorldFactory` **合成**(16×1×16 全 walkable),
             //    因为 `world_*.json` / `world_*.cooked` 三样全无。story-002 之后
@@ -511,6 +516,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 读的是**每帧实时**位置(委托),不是快照 —— 玩家移动时距离必须跟着变。
             if (_services.RenderTarget != null)
                 _services.RenderTarget.SetListenerPosition(_cameraRig.Camera.transform);
+
+            // ── 5.2. 遮挡的听者格(`TD-audio-035` ②)──────────────────────────
+            // 与 5.1 同一个参考点(主相机)—— 但走**整数格**而不是 float:
+            // ADR-015 §一 两层纪律要求遮挡输入是逻辑层格,44 不读表现态 float。
+            // ⚠️ 委托**每帧实时读**(玩家移动时遮挡必须跟着变),不是快照。
+            // ⚠️ 换算 = `FloorToInt(world / latticeSize)`,与 1 的 `GetCell()` 同一约定
+            //    (`player-controller-and-movement.md:162` 的跨格判定式);`latticeSize` 已由
+            //    上面 `ApplyLatticeFromWorldGeometry` 从 6 的产物取得。
+            if (_services.RenderTarget is AudioSourceRenderTarget sources
+                && _audioSeams != null && _audioSeams.OccludedFor != null)
+            {
+                Transform cam = _cameraRig.Camera.transform;
+                float lattice = _audioSeams.LatticeSize;
+                sources.SetListenerCell(() =>
+                {
+                    Vector3 p = cam.position;
+                    return new Int3(Mathf.FloorToInt(p.x / lattice),
+                                    Mathf.FloorToInt(p.y / lattice),
+                                    Mathf.FloorToInt(p.z / lattice));
+                });
+            }
 
             // ── 6. 拟物 UI 运行时装配(sprint-05 T2.1 / T2.2)──
             // ADR-023 §①:UI 载体由运行期生成。**例外(prefab 空壳)**:Boot.unity 预摆的

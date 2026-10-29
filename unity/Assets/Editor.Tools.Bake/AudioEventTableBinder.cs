@@ -182,6 +182,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             // story-020 重裁 ①:缺省 = 不是变体行(assets[] 是并列素材,非变体集)。
             row.VariantAxisRaw = RawOf(obj, "variant_axis");
 
+            // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列**全行承载**。
+            // 此前只有 `WorldBreath_Baseline` 一行有三列(且门只查那一行),`priority_class` 零行。
+            row.MinDistanceRaw = RawOf(obj, "min_distance");
+            row.MaxDistanceRaw = RawOf(obj, "max_distance");
+            row.OcclusionLowpassRaw = RawOf(obj, "occlusion_lowpass");
+            row.PriorityClassRaw = RawOf(obj, "priority_class");
+
             // ⚠️ subtitle_text 的三态:**缺失** = null / **在但空** = "" —— 两者对语声族都是失败,
             //    门据此区分诊断措辞(承 story-002 模型注)。
             if (obj.TryGet("subtitle_text", out JsonNode subNode))

@@ -43,7 +43,11 @@
         "1": {
           "passband_width_hz": 500
         }
-      }
+      },
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -54,7 +58,11 @@
       "bus": "Stethoscope",
       "loop": true,
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -70,7 +78,11 @@
         "jitter": 0.05
       },
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -84,7 +96,11 @@
       "max_distance": 12,
       "occlusion_lowpass": 1200,
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -96,7 +112,11 @@
       "loop": true,
       "xfade_ms": 4000,
       "whitelist_category": "MusicLayer",
-      "trigger_source": "EncounterMusicLayer"
+      "trigger_source": "EncounterMusicLayer",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     }
   ]
 }

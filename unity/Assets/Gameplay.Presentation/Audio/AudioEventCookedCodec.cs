@@ -78,10 +78,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             // story-020 重裁 ①:变体轴声明(null = 非变体行;写方同序追加)。
             string variantAxis = ReadString(b, ref pos);
 
+            // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列(写方同序追加,读方逐字对齐)。
+            string minDistanceRaw = ReadString(b, ref pos);
+            string maxDistanceRaw = ReadString(b, ref pos);
+            string occlusionLowpassRaw = ReadString(b, ref pos);
+            string priorityClassRaw = ReadString(b, ref pos);
+
             return new AudioEventRow(
                 cue, schemaVersion, loop, bus, whitelistCategory, triggerSource, clockRef,
                 subtitleText, xfadeRaw, assets, tierParams, hasPolicy, policyTrigger, policyJitter,
-                variantAxis);
+                variantAxis, minDistanceRaw, maxDistanceRaw, occlusionLowpassRaw, priorityClassRaw);
         }
 
         /// <summary>tier_map:定型序(TierMapKeys × TierMapColumns)—— 写方按序写,读方按序读。</summary>

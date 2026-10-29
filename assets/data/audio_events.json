@@ -50,7 +50,11 @@
       "whitelist_category": "ContinuousPhysiology",
       "trigger_source": "ContinuousPhysiology",
       "variant_axis": "voice_gender_intensity",
-      "subtitle_text": "咳…咳咳…"
+      "subtitle_text": "咳…咳咳…",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -61,7 +65,11 @@
       "bus": "Stethoscope",
       "loop": true,
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -77,7 +85,11 @@
         "jitter": 0.05
       },
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -91,7 +103,8 @@
       "max_distance": 12,
       "occlusion_lowpass": 1200,
       "whitelist_category": "ContinuousPhysiology",
-      "trigger_source": "ContinuousPhysiology"
+      "trigger_source": "ContinuousPhysiology",
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -103,7 +116,11 @@
       "loop": true,
       "xfade_ms": 4000,
       "whitelist_category": "MusicLayer",
-      "trigger_source": "EncounterMusicLayer"
+      "trigger_source": "EncounterMusicLayer",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -117,7 +134,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "WorldPerceptible",
-      "trigger_source": "WorldPerceptible"
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -129,7 +150,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "WorldPerceptible",
-      "trigger_source": "WorldPerceptible"
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -140,7 +165,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "WorldPerceptible",
-      "trigger_source": "WorldPerceptible"
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -152,7 +181,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "WorldPerceptible",
-      "trigger_source": "WorldPerceptible"
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -163,7 +196,11 @@
       "bus": "Stethoscope",
       "loop": false,
       "whitelist_category": "PlayerExamAction",
-      "trigger_source": "PlayerExamAction"
+      "trigger_source": "PlayerExamAction",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -175,7 +212,11 @@
       "bus": "Stethoscope",
       "loop": false,
       "whitelist_category": "PlayerExamAction",
-      "trigger_source": "PlayerExamAction"
+      "trigger_source": "PlayerExamAction",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -187,7 +228,11 @@
       "bus": "UICue",
       "loop": false,
       "whitelist_category": "PlayerExamAction",
-      "trigger_source": "PlayerExamAction"
+      "trigger_source": "PlayerExamAction",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -201,7 +246,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "PlayerAction",
-      "trigger_source": "PlayerAction"
+      "trigger_source": "PlayerAction",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -214,7 +263,11 @@
       "bus": "SFX",
       "loop": false,
       "whitelist_category": "PlayerAction",
-      "trigger_source": "PlayerAction"
+      "trigger_source": "PlayerAction",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -225,7 +278,11 @@
       "bus": "Ambience",
       "loop": true,
       "whitelist_category": "WorldPerceptible",
-      "trigger_source": "WorldPerceptible"
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -237,7 +294,11 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "喘着气,气色、神态,都在脸上。"
+      "subtitle_text": "喘着气,气色、神态,都在脸上。",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -249,7 +310,11 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "哼了一声,看明白了,就翻本子记一笔。"
+      "subtitle_text": "哼了一声,看明白了,就翻本子记一笔。",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -261,7 +326,11 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "叹口气,处置妥当,一个病例才算了结。"
+      "subtitle_text": "叹口气,处置妥当,一个病例才算了结。",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     },
     {
       "schema_version": 1,
@@ -273,7 +342,11 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "哼着小曲,要紧的,都写进册子。"
+      "subtitle_text": "哼着小曲,要紧的,都写进册子。",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     }
   ]
 }

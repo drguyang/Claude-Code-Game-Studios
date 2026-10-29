@@ -801,6 +801,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 Policy = null,
                 Assets = new List<string> { "sfx_breath_adventitious_fine.wav" },
                 PresentKeys = src.PresentKeys,
+                // 🔁 2026-10-29(`TD-audio-035` ③):改名副本须**继承**空间化四列 ——
+                //    本测的判据是「改名后仍判为附加音层行 ⇒ 恰好 2 条 NOT-RUN」;
+                //    漏继承 ⇒ 新门再报 4 条缺列 ⇒ `errors.Count == 2` 失效(单因隔离被污染)。
+                MinDistanceRaw = src.MinDistanceRaw,
+                MaxDistanceRaw = src.MaxDistanceRaw,
+                OcclusionLowpassRaw = src.OcclusionLowpassRaw,
+                PriorityClassRaw = src.PriorityClassRaw,
             };
             table.Rows = new List<AudioEventTableRow>(table.Rows) { renamed };
 
@@ -1336,6 +1343,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "{ \"schema_version\": 1, \"cue\": \"Voice_CareApplied_Death\", " +
                 "\"assets\": [\"vo_patient_cough_damp_f1.wav\"], \"bus\": \"Voice\", " +
                 "\"whitelist_category\": \"PlayerAction\", \"trigger_source\": \"PlayerAction\", " +
+                // 🔁 2026-10-29(`TD-audio-035` ③):注入行须**带全**空间化四列 —— 否则新门
+                //    会再报 4 条「缺列」,`errors.Count == 1` 的单因隔离就失效了。
+                "\"min_distance\": 1, \"max_distance\": 12, " +
+                "\"occlusion_lowpass\": 1200, \"priority_class\": 1, " +
                 "\"subtitle_text\": \"…\" }");
             AudioEventTable table = ParseTable(json);
             Assert.That(rowOf(table, "Voice_CareApplied_Death").Loop, Is.False, "夹具自证:loop 字段缺省 = 一次性");
@@ -1472,6 +1483,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 ClockRef = Str(m, "clock_ref"),
                 SubtitleText = m.ContainsKey("subtitle_text") ? Str(m, "subtitle_text") : null,
                 XfadeRaw = Get(m, "xfade_ms"),
+                // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列。⚠️ 本夹具自带一份 JSON 解析
+                //    (镜像生产 `AudioEventTableBinder`),**两处须同步** —— 漏了这里 ⇒
+                //    新门在真种子表 / 最小夹具上都读到 null ⇒ 44 条红,而根因是夹具没跟上,
+                //    不是数据缺列(本轮实测踩过)。
+                MinDistanceRaw = Get(m, "min_distance"),
+                MaxDistanceRaw = Get(m, "max_distance"),
+                OcclusionLowpassRaw = Get(m, "occlusion_lowpass"),
+                PriorityClassRaw = Get(m, "priority_class"),
                 PresentKeys = new List<string>(m.Keys),
             };
 
@@ -1709,6 +1728,199 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             while (i < s.Length && char.IsWhiteSpace(s[i]))
                 i++;
         }
+
+        // ══════════════ 空间化四列门(TD-audio-035 ③,2026-10-29)══════════════
+        //
+        // ⚠️ **为什么直调 `ValidateSpatialColumns` 而不是走总门**:总门会把注入行连带触发
+        //    规则 2 合法集 / 规则 7 必需集等,「错了几条」的断言就分不清红是谁的
+        //    (与规则 8 / 9 / AC-44-10 三条既有先例同一理由)。
+        //
+        // ⚠️ **本段的存在性缘由(实测,不是预防性)**:首轮证伪轮 M1(priority_class 域放宽
+        //    0..2 → 0..9)与 M2(删 `min > max` 判据)双双**假存活** —— 因为真种子表与最小夹具的
+        //    四列取值**全同**(`priority_class` 全 1、距离全 `(1,12)`),那两个分支**无输入可达**。
+        //    ⇒ 「靶点对,但靶场里没有靶」。本段就是给这两个分支各造一个可达输入。
+
+        /// <summary>正向:合法四列 ⇒ 零错误(反证:任何一条判据被停用后仍须绿 —— 本条是单因隔离的底)。</summary>
+        [Test]
+        public void test_spatialColumns_wellFormed_isGreen()
+        {
+            AudioEventTableRow row = SpatialRow("1", "12", "1200", "1");
+
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateSpatialColumns(new[] { row });
+
+            Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        }
+
+        /// <summary>定义域收窄:四列各缺一 ⇒ 各报一条,且报文点名**缺的是哪一列**。</summary>
+        [Test]
+        public void test_spatialColumns_missingColumn_reportsRed_perColumn()
+        {
+            string[] columns = { "min_distance", "max_distance", "occlusion_lowpass", "priority_class" };
+            for (int i = 0; i < columns.Length; i++)
+            {
+                AudioEventTableRow row = SpatialRow(
+                    i == 0 ? null : "1", i == 1 ? null : "12",
+                    i == 2 ? null : "1200", i == 3 ? null : "1");
+
+                IReadOnlyList<string> errors = AudioEventTableGates.ValidateSpatialColumns(new[] { row });
+
+                Assert.That(errors.Count, Is.EqualTo(1), $"{columns[i]}: " + string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain(columns[i]), "报文须点名缺的是哪一列");
+            }
+        }
+
+        /// <summary>非整数原文 ⇒ 红(空间化列一律整数域,ADR-006 边界契约)。</summary>
+        [Test]
+        public void test_spatialColumns_nonInteger_reportsRed()
+        {
+            AudioEventTableRow row = SpatialRow("1.5", "12", "1200", "1");
+
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateSpatialColumns(new[] { row });
+
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("不是整数"));
+        }
+
+        /// <summary>阈值边界:`min_distance` ≤ 0 ⇒ 红(0 / 负距离无衰减语义)。</summary>
+        [Test]
+        public void test_spatialColumns_minDistanceNonPositive_reportsRed()
+        {
+            foreach (string bad in new[] { "0", "-3" })
+            {
+                IReadOnlyList<string> errors =
+                    AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow(bad, "12", "1200", "1") });
+
+                Assert.That(errors.Count, Is.EqualTo(1), $"min={bad}: " + string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("min_distance"), string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("须 > 0"), string.Join("\n", errors));
+            }
+        }
+
+        /// <summary>阈值边界:`max_distance` ≤ 0 ⇒ 红,报文点名 `max_distance` 且给出「须 &gt; 0」。
+        /// <para>⚠️ **不断言「恰好 1 条」**(离线复算结论,非偷懒):`max ≤ 0` 的**单因隔离输入不存在** ——
+        /// · `min &gt; 0, max ≤ 0` ⇒ 必然同时触发「min &gt; max」;
+        /// · `min ≤ 0, max ≤ 0` ⇒ 必然同时触发「min ≤ 0」。
+        /// 本夹具首版断言 `Count == 1` 并取 `min=0` 做隔离,实跑即 2 红。⇒ 改为断言**该条存在**
+        /// (`max_distance` 判据真的会开火),重叠面的可分性另由
+        /// `test_spatialColumns_overlappingViolations_reportBothErrors` 钉。</para></summary>
+        [Test]
+        public void test_spatialColumns_maxDistanceNonPositive_reportsRed()
+        {
+            IReadOnlyList<string> errors =
+                AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("1", "0", "1200", "1") });
+
+            string joined = string.Join("\n", errors);
+            Assert.That(errors, Has.Some.Matches<string>(e => e.Contains("max_distance") && e.Contains("须 > 0")),
+                "max ≤ 0 判据必须开火并点名 max_distance:\n" + joined);
+        }
+
+        /// <summary>两判据**可分**:`min=1, max=0` 同时违「max ≤ 0」与「min &gt; max」⇒ **两条**错误。
+        /// <para>钉的是「值域判据与倒置判据不是同一个判据」—— 否则删掉任一条都察觉不到
+        /// (证伪轮 M2 打的就是倒置那条)。</para></summary>
+        [Test]
+        public void test_spatialColumns_overlappingViolations_reportBothErrors()
+        {
+            IReadOnlyList<string> errors =
+                AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("1", "0", "1200", "1") });
+
+            Assert.That(errors.Count, Is.EqualTo(2), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("max_distance"), "第一条 = 值域");
+            Assert.That(errors[1], Does.Contain("倒置"), "第二条 = 倒置");
+        }
+
+        /// <summary>**定序 / 倒置**:`min > max` ⇒ 红(衰减曲线两端倒置)。
+        /// <para>⚠️ 本条是证伪轮 M2 的可达输入 —— 真种子表恒 `(1,12)`,该分支在真表上永不可达。</para></summary>
+        [Test]
+        public void test_spatialColumns_minGreaterThanMax_reportsRed()
+        {
+            IReadOnlyList<string> errors =
+                AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("12", "1", "1200", "1") });
+
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("min_distance(12) > max_distance(1)"), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("倒置"), string.Join("\n", errors));
+        }
+
+        /// <summary>边界:`min == max` ⇒ **放行**(单点衰减是合法形状;门拒的是倒置,不是相等)。</summary>
+        [Test]
+        public void test_spatialColumns_minEqualsMax_isGreen()
+        {
+            IReadOnlyList<string> errors =
+                AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("5", "5", "1200", "1") });
+
+            Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        }
+
+        /// <summary>阈值边界:`occlusion_lowpass` ≤ 0 ⇒ 红(0 会把声音掐成静音,违 AC-44-D8 ①「穿门 ≠ 静音」)。</summary>
+        [Test]
+        public void test_spatialColumns_lowpassNonPositive_reportsRed()
+        {
+            foreach (string bad in new[] { "0", "-1" })
+            {
+                IReadOnlyList<string> errors =
+                    AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("1", "12", bad, "1") });
+
+                Assert.That(errors.Count, Is.EqualTo(1), $"lowpass={bad}: " + string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("occlusion_lowpass"), string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("穿门 ≠ 静音"), string.Join("\n", errors));
+            }
+        }
+
+        /// <summary>**定义域闭集**:`priority_class` ∉ {0,1,2} ⇒ 红;三值各放行。
+        /// <para>⚠️ 本条是证伪轮 M1 的可达输入 —— 真种子表全 19 行恒 `1`,越界分支在真表上永不可达。</para></summary>
+        [Test]
+        public void test_spatialColumns_priorityClassOutOfClosedSet_reportsRed()
+        {
+            foreach (string bad in new[] { "-1", "3", "9" })
+            {
+                IReadOnlyList<string> errors =
+                    AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("1", "12", "1200", bad) });
+
+                Assert.That(errors.Count, Is.EqualTo(1), $"pc={bad}: " + string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("priority_class"), string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("{0,1,2}"), string.Join("\n", errors));
+            }
+
+            // 反向:三值各放行(闭集是 {0,1,2},不是只有 1)
+            foreach (string ok in new[] { "0", "1", "2" })
+            {
+                Assert.That(
+                    AudioEventTableGates.ValidateSpatialColumns(new[] { SpatialRow("1", "12", "1200", ok) }),
+                    Is.Empty, $"pc={ok} 应在闭集内");
+            }
+        }
+
+        /// <summary>NOT-RUN 守卫:行集 null ⇒ 一条 NOT-RUN,不静默放行。</summary>
+        [Test]
+        public void test_spatialColumns_rowsNull_reportsNotRunGuard()
+        {
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateSpatialColumns(null);
+
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("NOT-RUN"), string.Join("\n", errors));
+        }
+
+        /// <summary>NOT-RUN 守卫:行本体 null ⇒ 一条 NOT-RUN(「没检查」≠「检查通过」)。</summary>
+        [Test]
+        public void test_spatialColumns_rowNull_reportsNotRunGuard()
+        {
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateSpatialColumns(new AudioEventTableRow[] { null });
+
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("NOT-RUN"), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("本体为 null"), string.Join("\n", errors));
+        }
+
+        /// <summary>造一行四列原文(null ⇒ 该列缺失)。</summary>
+        private static AudioEventTableRow SpatialRow(string min, string max, string lowpass, string priorityClass)
+            => new AudioEventTableRow
+            {
+                Cue = "Fixture_Spatial_Row",
+                MinDistanceRaw = min,
+                MaxDistanceRaw = max,
+                OcclusionLowpassRaw = lowpass,
+                PriorityClassRaw = priorityClass,
+            };
 
         /// <summary>取原文字段(缺失 ⇒ null,供 NOT-RUN 守卫区分「字段缺失」)。</summary>
         private static string Get(Dictionary<string, string> members, string key)

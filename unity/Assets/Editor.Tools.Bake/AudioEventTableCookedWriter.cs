@@ -99,6 +99,15 @@ namespace DaYiJingCheng.EditorTools.Bake
             // story-020 重裁 ①:变体轴声明(null = 非变体行)。**追加在末尾** ——
             // 既有字段偏移不变;读方 AudioEventCookedCodec.ReadRow 须同改。
             WriteString(w, row?.VariantAxisRaw);
+
+            // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列。**同样追加在末尾**(既有偏移不变),
+            // 读方 `AudioEventCookedCodec.ReadRow` 须逐字同序同改。
+            // ⚠️ 写**原文**而不是解析后的 int:`null` 与 `0` 必须可分(缺列 = 静默回落,
+            // 而 `0` 是非法值 —— 若在此把 null 折成 0,读方就无法区分「没给」与「给了非法值」)。
+            WriteString(w, row?.MinDistanceRaw);
+            WriteString(w, row?.MaxDistanceRaw);
+            WriteString(w, row?.OcclusionLowpassRaw);
+            WriteString(w, row?.PriorityClassRaw);
         }
 
         // ══════════════ tier_map(定型序 = TierMapKeys × TierMapColumns)══════════════

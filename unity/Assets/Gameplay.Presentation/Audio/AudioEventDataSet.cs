@@ -78,6 +78,24 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>本行是否为**变体行**(<c>variant_axis</c> 已声明)。</summary>
         public bool IsVariantRow => VariantAxis != null;
 
+        // 🔁 2026-10-29(`TD-audio-035` ③):空间化四列的**运行期承载**。
+        //    此前这些列只在 `WorldBreath_Baseline` 一行(且本类未编码它们)⇒ 运行期只能取
+        //    `AudioTuning` 的代码常量。现全行承载,`priority_class` 从零行变为 19 行。
+        //    ⚠️ 原文形式(`null` = 缺失),不在此解析 —— 解析与兜底归消费方
+        //    (`AudioSourceRenderTarget`),这样「缺列」与「值为 0」在类型上可分。
+
+        /// <summary><c>min_distance</c> 原文(null = 缺失)。</summary>
+        public readonly string MinDistanceRaw;
+
+        /// <summary><c>max_distance</c> 原文(null = 缺失)。</summary>
+        public readonly string MaxDistanceRaw;
+
+        /// <summary><c>occlusion_lowpass</c> 原文(null = 缺失)。</summary>
+        public readonly string OcclusionLowpassRaw;
+
+        /// <summary><c>priority_class</c> 原文(null = 缺失;GDD `:863` 类序 0/1/2)。</summary>
+        public readonly string PriorityClassRaw;
+
         /// <summary>构造一行(读方唯一调用点)。</summary>
         public AudioEventRow(
             string cue, uint schemaVersion, bool loop, string bus,
@@ -85,7 +103,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             string subtitleText, string xfadeRaw, string[] assets,
             IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> tierParams,
             bool hasPolicy, string policyTriggerPhaseRaw, string policyJitterRaw,
-            string variantAxis = null)
+            string variantAxis = null,
+            string minDistanceRaw = null, string maxDistanceRaw = null,
+            string occlusionLowpassRaw = null, string priorityClassRaw = null)
         {
             Cue = cue; SchemaVersion = schemaVersion; Loop = loop; Bus = bus;
             WhitelistCategory = whitelistCategory; TriggerSource = triggerSource; ClockRef = clockRef;
@@ -93,6 +113,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             TierParams = tierParams; HasPolicy = hasPolicy;
             PolicyTriggerPhaseRaw = policyTriggerPhaseRaw; PolicyJitterRaw = policyJitterRaw;
             VariantAxis = variantAxis;
+            MinDistanceRaw = minDistanceRaw; MaxDistanceRaw = maxDistanceRaw;
+            OcclusionLowpassRaw = occlusionLowpassRaw; PriorityClassRaw = priorityClassRaw;
         }
     }
 

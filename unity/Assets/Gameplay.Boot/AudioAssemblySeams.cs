@@ -14,8 +14,10 @@
 //   `RenderTargetKind`(`"null"` / `"sources"`),启动期日志与测试都可断言 ——
 //   「装了没装」不能靠猜。
 
+using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
+using DaYiJingCheng.Sim.Contracts;           // Int3(遮挡缝的双格入参;B3 白名单既有成员)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -87,6 +89,32 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>是否至少装配了渲染面(clip 或总线其一)。全 null ⇒ 视为「未装配」。</summary>
         public bool HasAny => Clips != null || Buses != null;
+
+        /// <summary>遮挡判定缝:**(听者格, 声源格) → 是否被挡**。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ②,用户裁定甲案)。生产赋值点 = `BootRoot`
+        /// (把 `LatticeOcclusionProbe.IsBlocked` 绑上世界几何);null = 未接遮挡链
+        /// (62 处 EditMode 夹具直调 `Assemble` 时即如此)。</para>
+        /// <para>⚠️ 委托形状 = `Func&lt;Int3, Int3, bool&gt;`,**不含任何 Sim 类型** ——
+        /// 44 的入口白名单(AC-44-B3)禁 `Sim` / `Sim.Codec` 类型进公开签名,`Int3` 住
+        /// `Sim.Contracts` 且是白名单既有成员。</para></summary>
+        public Func<Int3, Int3, bool> OccludedFor;
+
+        /// <summary>听者当前格的读取缝(相机格)。null ⇒ 44 以**声源格自身**为听者格
+        /// (零长视线 ⇒ 恒不遮挡,等价旧行为,且不伪造听者位置)。</summary>
+        public Func<Int3> ListenerCell;
+
+        /// <summary>把世界几何绑成遮挡缝(生产唯一写入点 = `BootRoot`)。
+        /// <para><paramref name="seams"/> 为 null(预载失败 ⇒ 缝不接)⇒ **空操作**,与
+        /// 「缝不接 ⇒ `NullRenderTarget` 链」同一处置。</para></summary>
+        /// <param name="seams">音频装配缝(可为 null)。</param>
+        /// <param name="geometry">世界几何(null ⇒ 不绑,遮挡链保持未接)。</param>
+        public static void BindOcclusion(AudioAssemblySeams seams,
+                                         DaYiJingCheng.Sim.World.WorldGeometry geometry)
+        {
+            if (seams == null) return;
+            if (geometry.SizeX <= 0 || geometry.SizeY <= 0 || geometry.SizeZ <= 0) return;
+            seams.OccludedFor = (from, to) => LatticeOcclusionProbe.IsBlocked(geometry, from, to);
+        }
 
         /// <summary>把 cue 名解析成事件表 ordinal(GDD 点名的 cue 才走此路;名字不在表内 ⇒ false)。
         /// <para>⚠️ 只在**装配期**调用一次(P0 表恒小,线性扫描可接受;见

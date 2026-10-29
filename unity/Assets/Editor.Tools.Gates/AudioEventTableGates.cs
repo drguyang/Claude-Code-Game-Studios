@@ -124,6 +124,21 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// **四种不同的世界声**(狗/马/锣/鸟,GDD :72)。没有本字段时运行期无法区分,只能一律当变体选 ⇒
         /// 「患者听到马而不是狗」。本字段把「这一行的 assets 是变体集」从**默认假设**改为**显式声明**。</remarks>
         public string VariantAxisRaw;
+
+        /// <summary><c>min_distance</c> 原文(null = 缺失)。🔁 2026-10-29(`TD-audio-035` ③)。</summary>
+        public string MinDistanceRaw;
+
+        /// <summary><c>max_distance</c> 原文(null = 缺失)。</summary>
+        public string MaxDistanceRaw;
+
+        /// <summary><c>occlusion_lowpass</c> 原文(null = 缺失)。</summary>
+        public string OcclusionLowpassRaw;
+
+        /// <summary><c>priority_class</c> 原文(null = 缺失)。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③):GDD `:863` 的 `rank_key` 第一键
+        /// (类序 0 = 自身/检查 &lt; 1 = 世界≈生理 &lt; 2 = 氛围)。此前**全表零行、零门** ⇒
+        /// 运行期只能取 `AudioTuning.PriorityClassWorldOrPhysiology` 常量,所有 cue 同档。</para></summary>
+        public string PriorityClassRaw;
     }
 
     /// <summary>音频事件表(顶层)—— <c>assets/data/audio_events.json</c> 的绑定前结构。</summary>
@@ -201,7 +216,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             "whitelist_category", "trigger_source", "clock_ref", "adventitious_policy",
             "xfade_ms", "subtitle_text",
             // 世界语境呼吸行参数(AC-44-16 的载体字段;断言归 Story 008,键在此预登记防假红)
-            "min_distance", "max_distance", "occlusion_lowpass",
+            // 🔁 2026-10-29(`TD-audio-035` ③,用户裁定乙案):三列**扩至全部行**并新增
+            // `priority_class` —— 原状是「只在 WorldBreath_Baseline 一行、priority_class 零行零门」,
+            // 运行期只能取 `AudioTuning` 的代码常量(所有 cue 同档 ⇒ rank_key 退化为纯距离)。
+            "min_distance", "max_distance", "occlusion_lowpass", "priority_class",
             // story-020 重裁 ①(2026-10-18):assets[] 的变体轴**显式声明**。
             // 缺省 = 不是变体行 ⇒ 运行期取 assets[0];声明了就按该轴选变体。
             "variant_axis",
@@ -309,7 +327,88 @@ namespace DaYiJingCheng.EditorTools.Gates
             errors.AddRange(ValidateSubtitles(table.Rows));
             errors.AddRange(ValidateNoTransitionOneShotCues(table.Rows));   // AC-44-10(story-019)
             errors.AddRange(ValidateVariantAxis(table.Rows));               // story-020 重裁 ①
+            errors.AddRange(ValidateSpatialColumns(table.Rows));            // TD-audio-035 ③
             return errors;
+        }
+
+        // ══════════ 空间化四列:全行承载 + 值域(TD-audio-035 ③,2026-10-29)══════════
+
+        /// <summary>空间化四列(`min_distance` / `max_distance` / `occlusion_lowpass` /
+        /// `priority_class`)**每行必带**且值在域内。
+        /// <para><b>为什么必须全行</b>:`TD-audio-035` ③ 的原状是三列**只在
+        /// `WorldBreath_Baseline` 一行**(门也只查那一行),`priority_class` **全表零行零门**
+        /// ⇒ 运行期只能取 `AudioTuning` 的代码常量 ⇒ `rank_key` 的第二、三键退化为纯距离 +
+        /// jitter,所有 cue 同档。**行级缺列 = 静默回落到代码常量**,那正是本门要堵的形态。</para>
+        /// <para>⚠️ 值域:距离须 &gt; 0 且 `min ≤ max`;`occlusion_lowpass` 须 &gt; 0
+        /// (「穿门 ≠ 静音」—— 0 会让低通把声音掐成静音,违 `AC-44-D8` ①);
+        /// `priority_class` ∈ {0,1,2}(GDD `:863` 类序闭集)。</para></summary>
+        /// <param name="rows">行集(null ⇒ NOT-RUN 守卫)。</param>
+        /// <returns>错误列表(空 = 通过)。</returns>
+        public static IReadOnlyList<string> ValidateSpatialColumns(IReadOnlyList<AudioEventTableRow> rows)
+        {
+            if (rows == null)
+                return new[]
+                {
+                    "[NOT-RUN 守卫 · TD-audio-035 ③] 行集缺失(null)—— 空间化列断言不可执行" +
+                    "(「没检查」与「检查通过」必须可区分)",
+                };
+
+            var errors = new List<string>();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                AudioEventTableRow row = rows[i];
+                string cue = row?.Cue ?? $"(第 {i} 行)";
+
+                if (row == null)
+                {
+                    // ⚠️ 措辞须带 `NOT-RUN` —— 与规则 3 的「本体为 null」守卫同一口径:
+                    //    「没检查」与「检查通过」必须可区分,且既有夹具对**每条** error 断言 NOT-RUN。
+                    errors.Add($"[NOT-RUN 守卫 · TD-audio-035 ③] 第 {i} 行本体为 null —— " +
+                               "空间化列断言无对象(「没检查」≠「检查通过」)");
+                    continue;
+                }
+
+                AppendSpatialColumnError(errors, cue, "min_distance", row.MinDistanceRaw);
+                AppendSpatialColumnError(errors, cue, "max_distance", row.MaxDistanceRaw);
+                AppendSpatialColumnError(errors, cue, "occlusion_lowpass", row.OcclusionLowpassRaw);
+                AppendSpatialColumnError(errors, cue, "priority_class", row.PriorityClassRaw);
+
+                // 值域(仅在原文可解析时判;缺失已由上面报过,不重复)
+                if (int.TryParse(row.MinDistanceRaw, out int min) &&
+                    int.TryParse(row.MaxDistanceRaw, out int max))
+                {
+                    if (min <= 0)
+                        errors.Add($"[TD-audio-035 ③] 行「{cue}」min_distance = {min} —— 须 > 0");
+                    if (max <= 0)
+                        errors.Add($"[TD-audio-035 ③] 行「{cue}」max_distance = {max} —— 须 > 0");
+                    if (min > max)
+                        errors.Add($"[TD-audio-035 ③] 行「{cue}」min_distance({min}) > max_distance({max}) " +
+                                   "—— 衰减曲线两端倒置");
+                }
+                if (int.TryParse(row.OcclusionLowpassRaw, out int lowpass) && lowpass <= 0)
+                    errors.Add($"[TD-audio-035 ③] 行「{cue}」occlusion_lowpass = {lowpass} —— 须 > 0" +
+                               "(0 会让低通把声音掐成静音,违 AC-44-D8 ①「穿门 ≠ 静音」)");
+                if (int.TryParse(row.PriorityClassRaw, out int pc) && (pc < 0 || pc > 2))
+                    errors.Add($"[TD-audio-035 ③] 行「{cue}」priority_class = {pc} —— 须 ∈ {{0,1,2}}" +
+                               "(GDD :863 类序闭集:自身/检查 0 < 世界≈生理 1 < 氛围 2)");
+            }
+            return errors;
+        }
+
+        /// <summary>单列存在性 + 可解析性(缺失 / 非整数各报一条)。</summary>
+        private static void AppendSpatialColumnError(List<string> errors, string cue,
+                                                     string column, string raw)
+        {
+            if (raw == null)
+            {
+                errors.Add($"[TD-audio-035 ③] 行「{cue}」缺空间化列「{column}」—— " +
+                           "每行必须带全四列(min_distance / max_distance / occlusion_lowpass / " +
+                           "priority_class);缺列 = 运行期静默回落到 AudioTuning 代码常量");
+                return;
+            }
+            if (!int.TryParse(raw, out _))
+                errors.Add($"[TD-audio-035 ③] 行「{cue}」的「{column}」原文「{raw}」不是整数 —— " +
+                           "空间化列一律整数域(ADR-006 边界契约)");
         }
 
         // ══════════ variant_axis:assets[] 的变体声明(story-020 重裁 ①,2026-10-18)══════════

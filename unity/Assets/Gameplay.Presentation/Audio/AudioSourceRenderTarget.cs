@@ -48,7 +48,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         // null ⇒ 退回**旧形态**(不写 transform.position)—— 只为既有 62 处无音频缝的
         // EditMode 调用保持行为;生产路径(组合根)恒非 null。
         private readonly SpatializationDirector _spatial;
-        private readonly Func<bool> _occludedFor;
+        private readonly Func<Int3, Int3, bool> _occludedFor;
+        private Func<Int3> _listenerCell;
+
+        /// <summary>事件表(空间化四列的**真源**)。null = 未注入 ⇒ 四列全走代码常量兜底。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③)。走 <see cref="SetTable"/> 后注入而不是构造参数:
+        /// 62 处既有 EditMode 调用不传表,加构造参数会全部编译不过;而「未注入 ⇒ 兜底」
+        /// 本身就是设计内的降级面(与 `AudioAssemblySeams.HasAny` 同款可观测)。</para></summary>
+        private AudioEventDataSet? _table;
 
         /// <summary>听者变换(世界坐标读它)。⚠️ 由装配层注入 —— 44 **不自己 `Find` 相机**
         /// (ADR-020 §七 的单挂点归 Boot;此处只读)。null ⇒ 距离记 0(排名退到 cell_jitter 键)。
@@ -117,13 +124,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="latticeSize">格边长(米)—— **与 director 构造函数收到的是同一个值**。</param>
         /// <param name="cueClipOf">cue → clip 的解析缝。</param>
         /// <param name="busForCue">cue ordinal → bus 名。</param>
-        /// <param name="occludedFor">遮挡判定缝(S15-4 用户裁定:本轮恒 `false`)。
-        /// null ⇒ 恒 false。⚠️ 真 raycast 未实现,见 `TD-audio-028`。</param>
+        /// <param name="occludedFor">遮挡判定缝:**声源格 + 听者格 → 是否被挡**。
+        /// <para>🔁 **2026-10-29(`TD-audio-035` ②,用户裁定甲案)** —— 原签名是 `Func<bool>`,
+        /// **无格入参、且只在 `Spawn` 求值一次** ⇒ 即便有了遮挡几何也表达不出「听者到**这一条**
+        /// 声源是否被挡」,更不随听者移动更新。现改为双格签名,由装配层注入
+        /// `Gameplay.Boot.LatticeOcclusionProbe`(整数格视线走查,**不用物理射线** ——
+        /// 理由见该类头注)。</para>
+        /// <para>null ⇒ 恒 false(未接遮挡链;`OcclusionEvaluations` 仍计数,可观测)。</para></param>
         /// <exception cref="ArgumentNullException"><paramref name="pool"/> / <paramref name="spatial"/> 为 null。</exception>
+        /// <remarks>⚠️ **听者格不在构造里收** —— 相机在启动序**更晚**才装配(BootRoot 第 5 步),
+        /// 而渲染目标在组合根装配期更早创建 ⇒ 构造期给它会是 null。与
+        /// <see cref="SetListenerPosition"/> 同一理由、同一模式:走 `SetListenerCell` 后注入。</remarks>
         public AudioSourceRenderTarget(AudioSourcePool pool, SpatializationDirector spatial,
                                        float latticeSize, Func<AudioCueDto, AudioClip> cueClipOf,
                                        Func<int, string> busForCue = null,
-                                       Func<bool> occludedFor = null)
+                                       Func<Int3, Int3, bool> occludedFor = null)
         {
             _pool = pool ?? throw new ArgumentNullException(nameof(pool));
             _spatial = spatial ?? throw new ArgumentNullException(nameof(spatial));
@@ -204,21 +219,68 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             AudioCueDto anchored = actorId == cue.Source
                 ? cue
                 : new AudioCueDto(cue.Cue, cue.Intensity, cue.Cell, actorId, cue.Looped);
-            _spatial.Spawn(anchored, PriorityClassOf(cue.Cue), _occludedFor != null && _occludedFor(),
-                           OcclusionLowpassHz, DistanceFromListener(cue.Cell));
+            _spatial.Spawn(anchored, PriorityClassOf(cue.Cue), IsOccluded(cue.Cell),
+                           OcclusionLowpassOf(cue.Cue), DistanceFromListener(cue.Cell));
             SpatializedCount++;
         }
 
-        /// <summary>遮挡低通的兜底值(Hz)。⚠️ **正式值归事件表 `occlusion_lowpass` 列** ——
-        /// 该列在表里、有构建期键存在性门,但 `AudioEventDataSet.AudioEventRow` 未承载它,
-        /// 故本轮取 `WorldBreath_Baseline` 行的现值作兜底(登记 `TD-audio-035`)。</summary>
+        /// <summary>遮挡判定的**求值次数**(可观测面 —— `> 0` 证明遮挡链真的被问过,
+        /// 不是「代码里有个 `occludedFor` 字段」)。</summary>
+        /// <remarks>🔁 2026-10-29(`TD-audio-035` ②):与 `SpatializedCount` 同性质。
+        /// ⚠️ 未接缝(`_occludedFor == null`)时**不计数** —— 那时「遮挡恒 false」是**未装配**,
+        /// 不是「判了没挡」,两者不可混为一谈。</remarks>
+        public int OcclusionEvaluations { get; private set; }
+
+        /// <summary>声源格相对听者格是否被挡(遮挡缝的双格求值,**每源每次 Spawn 一次**)。
+        /// <para>⚠️ 听者格由 `listenerCell` 缝给出;未给 ⇒ 以**声源格自身**为听者格 ⇒
+        /// 零长视线 ⇒ 恒 `false`(等价于旧行为,且**不伪造**一个「听者在某处」的假设)。</para></summary>
+        private bool IsOccluded(in Int3 sourceCell)
+        {
+            if (_occludedFor == null) return false;
+            Int3 listener = _listenerCell != null ? _listenerCell() : sourceCell;
+            OcclusionEvaluations++;
+            return _occludedFor(listener, sourceCell);
+        }
+
+        /// <summary>遮挡低通的**兜底值**(Hz)。🔁 2026-10-29(`TD-audio-035` ③):正式值已改由
+        /// 事件表 `occlusion_lowpass` 列承载(全 19 行),本常量只在「表未注入 / 行缺列」时生效。
+        /// <para>⚠️ 取 1200 的理由不再是「照抄 WorldBreath 行」,而是**与表内现值同值** ——
+        /// 生产语义下它就是表给的值,把它当「44 的裁定值」读 = 第二真源。</para></summary>
         private const float OcclusionLowpassHz = 1200f;
+
+        /// <summary>cue → 遮挡低通截止(Hz)。表未注入 / 行缺列 / 值非法 ⇒ 回落
+        /// <see cref="OcclusionLowpassHz"/> 并计 <see cref="SpatialParamFallbacks"/>。</summary>
+        private float OcclusionLowpassOf(int cue)
+        {
+            AudioEventRow? row = RowOf(cue);
+            if (row.HasValue)
+            {
+                string raw = row.Value.OcclusionLowpassRaw;
+                if (raw != null && int.TryParse(raw, out int hz) && hz > 0) return hz;
+            }
+            SpatialParamFallbacks++;
+            return OcclusionLowpassHz;
+        }
 
         /// <summary>注入听者变换(装配层在相机装好之后调用)。
         /// <para>为什么不搬进构造:相机在启动序**更晚**才装配(BootRoot 第 5 步),
         /// 而渲染目标更早创建 ⇒ 构造期给它会是 null。</para></summary>
         /// <param name="listener">听者的 <c>Transform</c>(通常 = 主相机;null ⇒ 距离记 0)。</param>
         public void SetListenerPosition(Transform listener) => _listener = listener;
+
+        /// <summary>注入听者**当前格**的读取缝(遮挡判定用;装配层在相机装好之后调用)。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ②)。与 <see cref="SetListenerPosition"/> 同一理由 ——
+        /// 相机在启动序更晚才装配,构造期给它会是 null。</para>
+        /// <para>⚠️ 传格而不是 `Transform`:44 的遮挡输入必须是**整数格**(ADR-015 §一 两层纪律),
+        /// 装配层负责把相机位置换成格,44 不读表现态 float。</para></summary>
+        /// <param name="cell">返回听者当前格的委托(null ⇒ 以声源格自身为听者格 ⇒ 恒不遮挡)。</param>
+        public void SetListenerCell(Func<Int3> cell) => _listenerCell = cell;
+
+        /// <summary>注入事件表(空间化四列的真源)。未注入 ⇒ 四列全走 `AudioTuning` 兜底。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③)。与 <see cref="SetListenerCell"/> 同款「后注入」模式
+        /// —— 62 处既有 EditMode 调用不传表,加构造参数会全部编译不过。</para></summary>
+        /// <param name="table">事件表(`AudioAssemblySeams.Table` 的同一个实例)。</param>
+        public void SetTable(AudioEventDataSet table) => _table = table;
 
         /// <summary>声源格到听者的**世界距离**(米)。未注入听者 ⇒ 0。</summary>
         /// <remarks>⚠️ 用 director **同一个** <see cref="LatticeSize"/> 换算,并经
@@ -230,11 +292,41 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             return Vector3.Distance(world, _listener.position);
         }
 
-        /// <summary>cue → 优先级类别(GDD `:848` 类序)。
-        /// <para>⚠️ **事件表无此列** ⇒ 本轮按「P0 只发病人 cue」这一事实取
-        /// <see cref="AudioTuning.PriorityClassWorldOrPhysiology"/>;新增世界线索 cue
-        /// 之前必须先补表列(登记 `TD-audio-035`)。</para></summary>
-        private static int PriorityClassOf(int cue) => AudioTuning.PriorityClassWorldOrPhysiology;
+        /// <summary>cue → 优先级类别(GDD `:863` 类序:自身/检查 0 &lt; 世界≈生理 1 &lt; 氛围 2)。
+        /// <para>🔁 **2026-10-29(`TD-audio-035` ③)**:由**查表**取代代码常量。原实现恒返回
+        /// <see cref="AudioTuning.PriorityClassWorldOrPhysiology"/> ⇒ 所有 cue 同档 ⇒
+        /// `rank_key` 的第二、三键退化为纯距离 + jitter。
+        /// 现读事件表行级 `priority_class`(全 19 行已承载,构建期门 `ValidateSpatialColumns`
+        /// 断言每行必带 + 值 ∈ {0,1,2})。</para>
+        /// <para>⚠️ **缺列仍回落代码常量**:`_table` 未注入(62 处 EditMode 夹具)或行缺列时
+        /// 返回兜底值 —— 这与「表给了值」在 <see cref="SpatialParamFallbacks"/> 上可分。</para></summary>
+        private int PriorityClassOf(int cue)
+        {
+            if (_table.HasValue)
+            {
+                AudioEventDataSet t = _table.Value;
+                if (cue >= 0 && cue < t.RowCount)
+                {
+                    string raw = t.Row(cue).PriorityClassRaw;
+                    if (raw != null && int.TryParse(raw, out int parsed)) return parsed;
+                }
+            }
+            SpatialParamFallbacks++;
+            return AudioTuning.PriorityClassWorldOrPhysiology;
+        }
+
+        /// <summary>空间化四列的**兜底次数**(可观测面:&gt; 0 证明「有列没查到、退回了代码常量」)。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③)。与 `OcclusionEvaluations` 同性质 ——
+        /// 判「表列真的被消费」看它,不看代码里有没有那一行。</para></summary>
+        public int SpatialParamFallbacks { get; private set; }
+
+        /// <summary>cue → 该行的空间化列原文(未注入表 / 越界 ⇒ null)。</summary>
+        private AudioEventRow? RowOf(int cue)
+        {
+            if (!_table.HasValue) return null;
+            AudioEventDataSet t = _table.Value;
+            return cue >= 0 && cue < t.RowCount ? t.Row(cue) : (AudioEventRow?)null;
+        }
 
         /// <summary>改循环 cue 的渲染增益(尾音 W-1 接线 · 2026-10-20)。
         /// <para>等价物 = 该循环 <c>AudioSource.volume</c>(线性 0..1);未知 / 已停句柄 ⇒ 返回 false

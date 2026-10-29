@@ -83,11 +83,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         private AudioSourceRenderTarget MakeTarget(AudioSourcePool pool, SpatializationDirector spatial,
                                                    float latticeSize = 1f, AudioClip clip = null,
-                                                   Func<bool> occluded = null)
+                                                   Func<Int3, Int3, bool> occluded = null)
         {
             // ⚠️ 总线缝传 null(**不挂组**)—— 本夹具的池不带 `AudioBusResolver`,
             //    传非 null 总线会被池 fail-loud 拒(禁静默落 Master,A-6)。总线归属归 A-6,
             //    与空间化无关,故此处刻意不覆盖。
+            // 🔁 2026-10-29(`TD-audio-035` ②):遮挡缝签名由 `Func<bool>` 改为
+            //    `Func<Int3, Int3, bool>`(双格入参)—— 本夹具随之收窄,判据面不变。
             AudioClip c = clip ?? MakeClip();
             return new AudioSourceRenderTarget(pool, spatial, latticeSize, _ => c, busForCue: null, occluded);
         }
@@ -328,7 +330,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             var pool = new AudioSourcePool();
             _cleanup.Add(pool.Root);
             var spatial = new SpatializationDirector(latticeSize: 1f, pool: pool);
-            AudioSourceRenderTarget target = MakeTarget(pool, spatial, occluded: () => false);
+            AudioSourceRenderTarget target = MakeTarget(pool, spatial, occluded: (from, to) => false);
 
             // Act
             target.PlayOneShot(Cue(source: 31, x: 0, y: 0, z: 0));
@@ -346,7 +348,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             var pool = new AudioSourcePool();
             _cleanup.Add(pool.Root);
             var spatial = new SpatializationDirector(latticeSize: 1f, pool: pool);
-            AudioSourceRenderTarget target = MakeTarget(pool, spatial, occluded: () => true);
+            AudioSourceRenderTarget target = MakeTarget(pool, spatial, occluded: (from, to) => true);
 
             // Act
             target.PlayOneShot(Cue(source: 33, x: 0, y: 0, z: 0));

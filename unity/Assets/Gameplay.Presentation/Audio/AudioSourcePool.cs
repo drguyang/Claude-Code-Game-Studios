@@ -296,6 +296,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             if (entry.Source == null)
                 entry.Source = _free.Count > 0 ? _free.Pop() : CreateSource();
 
+            // 🔁 2026-10-29(`TD-audio-035` ③):距离两端按**本行**的 `min_distance` /
+            //    `max_distance` 重设。原来只在 `CreateSource`(源**创建**点)pin 一次 ——
+            //    但源是**复用**的(闲置栈回流),第二次 Spawn 换了 cue 就会沿用上一条 cue 的距离。
+            //    生产语义 = 逐 cue 生效,故必须每次 Spawn 重设。
+            ApplySpatialDistance(entry.Source, cueId);
+
             entry.CellX = cellX; entry.CellY = cellY; entry.CellZ = cellZ;
             entry.CueId = cueId;
             // ⚠️ **未给 bus 不覆盖已登记归属**(2026-10-19):`bus == null` 有两种语义 ——
@@ -391,6 +397,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             UnityEngine.Object.Destroy(o);
         }
 
+        /// <summary>注入事件表(空间化四列的真源)。未注入 ⇒ 四列全走 `AudioTuning` 兜底。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③)。后注入模式 —— 既有 EditMode 调用不传表。</para></summary>
+        /// <param name="table">事件表(`AudioAssemblySeams.Table` 的同一个实例)。</param>
+        public void SetTable(AudioEventDataSet table) => _table = table;
+
+        /// <summary>事件表(空间化四列真源;null = 未注入)。</summary>
+        private AudioEventDataSet? _table;
+
         private AudioSource CreateSource()
         {
             var go = new GameObject("AudioSource");
@@ -411,10 +425,44 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             source.spatialBlend = 1f;
             source.rolloffMode = AudioRolloffMode.Logarithmic;
             source.dopplerLevel = 0f;
+            // ⚠️ 距离两端**不在这里**定 —— 它们逐 cue 变化,见 `ApplySpatialDistance`
+            //    (在 `SpawnCore` 里按本行的表列重设;此处只给兜底初值,防首帧读到 Unity 默认 1/500)。
             source.minDistance = AudioTuning.SpatialMinDistance;
             source.maxDistance = AudioTuning.SpatialMaxDistance;
             return source;
         }
+
+        /// <summary>按事件表行级的 `min_distance` / `max_distance` 重设距离两端
+        /// (`TD-audio-035` ③)。表未注入 / 行缺列 / 值非法 ⇒ 回落 `AudioTuning` 兜底并计数。</summary>
+        /// <param name="source">目标源(非 null)。</param>
+        /// <param name="cueId">cue ordinal(取行用)。</param>
+        private void ApplySpatialDistance(AudioSource source, int cueId)
+        {
+            float min = AudioTuning.SpatialMinDistance;
+            float max = AudioTuning.SpatialMaxDistance;
+
+            if (_table.HasValue)
+            {
+                AudioEventDataSet t = _table.Value;
+                if (cueId >= 0 && cueId < t.RowCount)
+                {
+                    AudioEventRow row = t.Row(cueId);
+                    bool minOk = int.TryParse(row.MinDistanceRaw, out int m1) && m1 > 0;
+                    bool maxOk = int.TryParse(row.MaxDistanceRaw, out int m2) && m2 > 0;
+                    if (minOk && maxOk && m1 <= m2) { min = m1; max = m2; }
+                    else SpatialParamFallbacks++;
+                }
+                else SpatialParamFallbacks++;
+            }
+            else SpatialParamFallbacks++;
+
+            source.minDistance = min;
+            source.maxDistance = max;
+        }
+
+        /// <summary>空间化四列的**兜底次数**(可观测面:&gt; 0 证明「有列没查到、退回了代码常量」)。
+        /// <para>🔁 2026-10-29(`TD-audio-035` ③)。判「表列真的被消费」看它,不看代码里有没有那一行。</para></summary>
+        public int SpatialParamFallbacks { get; private set; }
 
         private void ThrowIfDisposed()
         {
