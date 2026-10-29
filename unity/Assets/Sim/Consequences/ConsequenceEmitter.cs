@@ -48,12 +48,17 @@
 // EmitTick 升序 Append 兑现)。扩窗 = 纯性能改动、零语义变化(本选择不引入任何状态)。
 //
 // ⚠️ **跨域接缝登记(用户 2026-10-16 裁「照发 + 具名登记」,归 9 / 7a 轮)**:
-// `EventStream.Append` 的 AC-15 CAP 分支(EventStream.cs:77-84)对
-// `Patient != None` 的事件查在场:`!IsPresent(pid) ∧ PresentCount ≥ 24` ⇒ **throw**。
-// 本件的 `Patient` 恒为真 `patient_id`(registry `entities.yaml:2160` 不动)⇒
-// **离屏病人到期后果受该 CAP 分支约束**。本件**不 catch** —— 异常向上传播 = 主机语义
-// (静默吞掉后果会破 AC-53-14「后果状态进世界流」)。该接缝须 9/7a 裁(离屏病人是否
-// 应计入 PresentCount / 或后果支走 CAP 豁免)。
+// `EventStream.Append` 的 AC-15 CAP 分支对 `Patient != None` 的事件查在场:
+// `!IsPresent(pid) ∧ PresentCount ≥ 24` ⇒ **throw**。本件的 `Patient` 恒为真
+// `patient_id`(registry `entities.yaml:2160` 不动)⇒ **离屏病人到期后果受该 CAP 分支约束**。
+// 本件**不 catch** —— 异常向上传播 = 主机语义(静默吞掉后果会破 AC-53-14「后果状态进世界流」)。
+// 该接缝须 9/7a 裁(离屏病人是否应计入 PresentCount / 或后果支走 CAP 豁免)。
+//
+// ✅ **2026-10-29 该接缝已裁并落地(结清 `TD-medcons-14`)**:用户裁定 **CAP 收窄到「出现类」事件**
+// —— `EventStream.IsPatientAppearance` 今日恰 = `DiseaseOnset`(ADR-030 ①)。⇒ 后果
+// (`ConsequenceResolved`)属非出现类,**不再受 CAP 约束**,离屏病人的到期后果照发、不再抛。
+// 「不 catch」的纪律**不变**(它守的是「别把任何上游异常静默吞成漏后果」,与 CAP 面宽窄无关)。
+// 上文原登记按「原文不删」保留为历史。
 //
 // ⚠️ 门 A:本文件零 UnityEngine / 零 Sim.Codec;零定点量(F-53.2 全案纯整数)。
 
@@ -240,9 +245,11 @@ namespace DaYiJingCheng.Sim.Consequences
         /// **升序前缀**:<paramref name="due"/> 已按 EmitTick 升序,某病人「已有 <c>already</c> 条
         /// 后果」⇒ 其队首 <c>already</c> 行视为已发、跳过;其后的到期行才补发。
         /// ⚠️ 取**尾部**是同型静默面(队首到期行永不落地)。</para>
-        /// <para>现实触发路径 = 半提交:某病人第 k 条到期行被 <c>EventStream</c> 的 CAP/去重等分支
-        /// 拒绝/吞掉 ⇒ 流计数 k−1 而队首 k 条都在 <paramref name="due"/> ⇒ 前缀口径自洽补发;
-        /// 尾部口径下 k 行永远排不进 ⇒ 静默丢后果(破 AC-53-14)。</para>
+        /// <para>现实触发路径 = 半提交:某病人第 k 条到期行被 <c>EventStream</c> 的**去重**分支
+        /// 吞掉(重发幂等)⇒ 流计数 k−1 而队首 k 条都在 <paramref name="due"/> ⇒ 前缀口径自洽补发;
+        /// 尾部口径下 k 行永远排不进 ⇒ 静默丢后果(破 AC-53-14)。
+        /// <para>🔁 2026-10-29:原文此处把「CAP 分支」也列为成因 —— 随 `TD-medcons-14` 收窄,
+        /// 后果已不可能被 CAP 拒,故删去该举例(去重这一条仍成立)。</para></para>
         /// <para>⚠️ <b>调用方义务(见 <see cref="Emit"/> 的 <c>eligible</c> 文档)</b>:<paramref name="due"/>
         /// 必须是该病人**全部** <c>EmitTick ≤ now</c> 的到期行 —— 若上游按 lookback 下界裁过合格集,
         /// 已发行的队首行会脱离本集 ⇒ 余行 <c>queueIndex</c> 从 0 重数 ⇒ 被误判「已发」而**永久漏发**
@@ -272,9 +279,12 @@ namespace DaYiJingCheng.Sim.Consequences
         /// <returns>实际写入条数。</returns>
         /// <exception cref="InvalidOperationException">到期行 <c>EmitTick</c> 早于
         /// <paramref name="stream"/> 流尾 tick ⇒ 追加必撞 <c>EventStream</c> 的 BCD-码-3
-        /// 单调断言。此处**提前**以具名异常诊断(S-B2):现实路径 = CAP 半提交(前几条已入流、
-        /// 其余被 AC-15 拒)后他写者把流尾推进 ⇒ 补发时 overdue 行回退于流尾。跨域归属
-        /// (离屏病人后果是否应 CAP 豁免)归 9 / 7a 轮,见类头登记。</exception>
+        /// 单调断言。此处**提前**以具名异常诊断(S-B2):现实路径 = 半个提交(前几条已入流、
+        /// 其余在之后的 Emit 轮次才补)期间**他写者把流尾推进** ⇒ 补发时 overdue 行回退于流尾。
+        /// <para>🔁 <b>2026-10-29 改注</b>:原文把 Half-commit 的成因写成「其余被 AC-15 拒」
+        /// —— 随 `TD-medcons-14` 收窄(CAP 只管出现类),后果已不可能被 CAP 拒,该成因
+        /// **对本件不再可达**。守卫本身**保留**:他写者推进流尾与「跨 tick 分批补发」
+        /// 仍可造出同一形态,而裸 BCD-码-3 抛出的报文指不出成因。</para></exception>
         private int AppendDueRows(List<DueRow> pending, IReadOnlyList<SimEvent> stream)
         {
             // S-B2:预检「回退于流尾」——把不可恢复的 BCD-码-3 崩转为指向成因的具名失败。
@@ -287,10 +297,11 @@ namespace DaYiJingCheng.Sim.Consequences
                     throw new InvalidOperationException(
                         $"ConsequenceResolved 到期行 EmitTick={pending[0].EmitTick} 回退于流尾 " +
                         $"tick={streamTailTick} ⇒ 追加必撞 BCD-码-3(流须按 Tick 非降)。" +
-                        "现实成因 = 延迟窗内的半提交:前几条已入流、其余被 AC-15 CAP 分支拒收," +
-                        "此后他写者把流尾推进 ⇒ 补发不可能。**不得**吞掉本异常(静默漏后果会破 " +
-                        "AC-53-14「后果状态进世界流」);跨域归属(离屏病人后果是否应 CAP 豁免)" +
-                        "归 9 / 7a 轮裁(见类头跨域接缝登记)。");
+                        "现实成因 = 跨 tick 分批补发期间**他写者把流尾推进** ⇒ 补发不可能。" +
+                        "**不得**吞掉本异常(静默漏后果会破 AC-53-14「后果状态进世界流」)。" +
+                        "⚠️ 2026-10-29 起 CAP 不再是本件的成因(用户裁定收窄到出现类事件," +
+                        "结清 TD-medcons-14);若在此看到 AC-15 相关线索,说明有人放宽了 " +
+                        "EventStream.IsPatientAppearance。");
             }
 
             int written = 0;

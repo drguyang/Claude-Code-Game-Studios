@@ -65,6 +65,9 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         }
 
         // AC-15: CAP 拒收
+        // ⚠️ 载荷型已改(`TD-medcons-14` 收窄,2026-10-29):原用 `ActorCellEntered` —— 那是
+        //    **非出现类**事件,新口径下 CAP 不再管它 ⇒ 本测当时会转绿(失去判别力)。
+        //    现用 `DiseaseOnset`(唯一的出现类),判据对象与 CAP 的量纲对齐。
         [Test]
         public void test_cap_rejectsBeyond24()
         {
@@ -80,8 +83,40 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var newPatient = new PatientId(100);
             Assert.Throws<InvalidOperationException>(() =>
             {
-                _stream.Append(new SimEvent(0, newPatient, -1, EventKind.ActorCellEntered, default)); // -1 = 未发号哨兵 O-1
+                _stream.Append(new SimEvent(0, newPatient, -1, EventKind.DiseaseOnset, default)); // -1 = 未发号哨兵 O-1
             });
+        }
+
+        /// <summary>
+        /// `TD-medcons-14`(2026-10-29 用户裁定「收窄到出现类」):CAP 满 + 病人**离屏**时,
+        /// **非出现类**事件仍须入流 —— 否则离屏病人的后果(ConsequenceResolved)被当成
+        /// 「新病人」拒收,后果永久不发且异常沿 Emit 上抛。
+        /// </summary>
+        /// <remarks>
+        /// 判别力:**把 <c>IsPatientAppearance</c> 改回恒真(旧口径 `Patient != None`)⇒ 本测红**
+        /// (三个非出现类事件全部抛 AC-15);改回恒假 ⇒ <see cref="test_cap_rejectsBeyond24"/> 红。
+        /// 两侧各一条,防「一刀切放宽」与「一刀切收紧」两个方向。
+        /// </remarks>
+        [Test]
+        public void test_medcons14_offscreenNonAppearanceEvents_notCapped_onlyOnsetIs()
+        {
+            for (int i = 0; i < EventStream.PATIENT_APPEARANCE_CAP; i++)
+                _presenceQuery.Add(new PatientId(i));
+
+            // 病人 100 **不在场**,且 CAP 已满。
+            var offscreen = new PatientId(100);
+
+            // ① 非出现类(带真实 patient_id)⇒ 照常入流(不是新病人)。
+            _stream.Append(new SimEvent(0, offscreen, -1, EventKind.ConsequenceResolved, new PayloadRef(1, 0, 8)));
+            _stream.Append(new SimEvent(0, offscreen, -1, EventKind.CaseClosed, new PayloadRef(2, 0, 8)));
+            _stream.Append(new SimEvent(0, offscreen, -1, EventKind.CareApplied, new PayloadRef(3, 0, 8)));
+            Assert.AreEqual(3, _stream.Count, "非出现类事件不受 CAP 约束(TD-medcons-14 的正半)");
+
+            // ② 出现类 ⇒ 仍拒收(CAP 的守备面未被放宽 —— 反半)。
+            Assert.Throws<InvalidOperationException>(
+                () => _stream.Append(new SimEvent(0, offscreen, -1, EventKind.DiseaseOnset, new PayloadRef(4, 0, 8))),
+                "出现类事件在 CAP 满且离屏时仍须拒收(收窄不得退化为取消)");
+            Assert.AreEqual(3, _stream.Count, "拒收后流未被污染");
         }
 
         // AC-16: Seq 复位

@@ -97,9 +97,12 @@ namespace DaYiJingCheng.Tests.MedConsequences
             public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
         }
 
-        /// <summary>在场桩(**两段式**)—— W-5 已裁接缝的载体:<c>Arm=false</c> 时病人
-        /// 在场、在场数未封顶(放行前置 CaseClosed 入流);<c>Arm=true</c> 后目标病人
-        /// 转离屏且在场数打满 24 ⇒ 后果行入流被 AC-15 拒收、异常自 Emit 向上传播。</summary>
+        /// <summary>在场桩(**两段式**):<c>Arm=false</c> 时病人在场、在场数未封顶
+        /// (放行前置 CaseClosed 入流);<c>Arm=true</c> 后目标病人转离屏且在场数打满 24。
+        /// <para>🔁 <b>2026-10-29 改注</b>:旧注写「后果行入流被 AC-15 拒收、异常自 Emit
+        /// 向上传播」—— 那是 `TD-medcons-14` 收窄**之前**的实况。现 CAP 只管出现类事件,
+        /// 本桩的 <c>Arm=true</c> 用于证明「满 CAP + 离屏」**不再**拦住后果
+        /// (见 `test_tdMedcons14_offscreenPatientDueConsequence_emitsDespiteFullCap`)。</para></summary>
         private sealed class CapFullAndAbsent : IPresenceQuery
         {
             public bool Arm { get; set; }
@@ -1124,15 +1127,25 @@ namespace DaYiJingCheng.Tests.MedConsequences
         }
 
         /// <summary>
-        /// W-5 已裁接缝(**照发 + 具名登记**,归 9/7a):发射器**不 catch** EventStream 的
-        /// CAP 分支异常 ⇒ 主机语义(静默吞后果会破 AC-53-14)。
+        /// `TD-medcons-14`(**2026-10-29 用户裁定「CAP 收窄到出现类事件」后的正面判据**):
+        /// 病人**离屏** + 在场数满 24 ⇒ 到期后果**照发**,不再撞 AC-15。
+        /// </summary>
+        /// <remarks>
+        /// <para>🔁 <b>本条前身 = <c>test_w5_…_capsThrowPropagates_notSwallowed</c></b>,
+        /// 当时断言的是**相反**行为(抛且上抛不吞)—— 它钉住的是 W-5 登记的接缝形态,
+        /// 不是设计意图。用户裁定收窄后,该行为本身被判定为缺陷(离屏病人的后果被当成
+        /// 「新病人」拒收 ⇒ 后果永久不发,破 AC-53-14),故本条**由红转绿**。
+        /// 按「原文不删」纪律,旧断言在此以文字留档,不保留为可执行夹具 ——
+        /// 留一条绿的旧断言就等于把缺陷钉成规格。</para>
         /// <para>⚠️ 存根须**两段式**:<c>Arm=false</c> 放行前置 CaseClosed 入流
         /// (真病人 13 当时在场),<c>Arm=true</c> 才把该病人转成「离屏 + 在场数满 24」
         /// —— 否则连 CaseClosed 本身就被 AC-15 拒收,异常源与断言对象错位(F1/F3 教训:
         /// 夹具构造的事件时序必须与流不变量 BCD-码-3 一致)。</para>
-        /// </summary>
+        /// <para><b>判别力</b>:把 <c>EventStream.IsPatientAppearance</c> 改回恒真(旧口径)⇒
+        /// 本测红(重新抛 AC-15);改回恒假 ⇒ <c>event_stream_test.test_cap_rejectsBeyond24</c> 红。</para>
+        /// </remarks>
         [Test]
-        public void test_w5_offscreenPatientDueConsequence_capsThrowPropagates_notSwallowed()
+        public void test_tdMedcons14_offscreenPatientDueConsequence_emitsDespiteFullCap()
         {
             var table = LoadDelayTable();
             long delay = ResidualDelay(table);
@@ -1142,10 +1155,17 @@ namespace DaYiJingCheng.Tests.MedConsequences
             stream.Append(Ev(10, 13, 0, EventKind.CaseClosed));
 
             presence.Arm = true;                    // 病人 13 离场 + 在场数打满 24
-            var ex = Assert.Throws<InvalidOperationException>(() => emitter.Emit(
+            Assert.AreEqual(EventStream.PATIENT_APPEARANCE_CAP, presence.PresentCount,
+                "前置:CAP 须真的打满(否则本测无法区分「豁免」与「本来就不拦」)");
+
+            Assert.DoesNotThrow(() => emitter.Emit(
                 stream.Events, new[] { Eligible(10, 13, 0, Outcome53.Outcome.Residual) }, 10 + delay),
-                "CAP 满 + 离屏 ⇒ 异常向上传播(本件不 catch;接缝已在 ConsequenceEmitter 类头登记归 9/7a)");
-            Assert.That(ex.Message, Does.Contain("AC-15"), "须是 EventStream 的 AC-15 拒收");
+                "CAP 满 + 离屏 + 非出现类 ⇒ 不得抛(TD-medcons-14:后果不是新病人)");
+
+            var rows = stream.Events.Where(e => e.Kind == EventKind.ConsequenceResolved).ToList();
+            Assert.AreEqual(1, rows.Count, "后果须真的落地(静默丢弃同样破 AC-53-14)");
+            Assert.AreEqual(10 + delay, rows[0].Tick, "发出 tick = EmitTick(不在发出侧被推迟)");
+            Assert.AreEqual(13, rows[0].Patient.Value, "病人归因不被削成 None");
         }
 
         /// <summary>入参非法 fail-loud(eligible 行不是 CaseClosed ⇒ 不静默当「无痕」)。</summary>

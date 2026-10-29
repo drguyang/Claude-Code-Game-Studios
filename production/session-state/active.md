@@ -12863,3 +12863,24 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   **未闭 P0 面 35 → 34** · epic 分布 **10/31 → 9/31** ⇒ **audio-system 已归零**。
 - 两份已执行协议件(`main-channel` / `voice-variant`)头部加了同一句结案注。
 - **本批无代码改动**。提交:`1c84f03f`(5 文件)。
+
+## Session Extract — `TD-medcons-10` + `TD-medcons-14` 结案(2026-10-29)
+
+- **用户指令**:「ABC加起来19看起来都要修,先从A的4项开始」;`14` 的语义裁定 = **「收窄到出现类事件」**。
+- **A 组 4 项实况(先查后报,不照抄债册)**:
+  - `14` ✅ 本轮结案 —— `EventStream` 增 `IsPatientAppearance`(今日恰 = `DiseaseOnset`),
+    CAP 只管出现类 ⇒ 离屏病人的 `ConsequenceResolved` 不再被当成新病人拒收。
+  - `10` ✅ 本轮结案 —— `JsonStage1Lexer` 拒重复 property(影响 10+ binder);
+    实测 83 份 `assets/**/*.json` **零重复键** ⇒ 现网烘焙不受影响。
+  - `13` ❌ **卡装配轮**(`*.cooked` 无镜像读方;现在造读方 = 替装配轮发明契约)。
+  - `15` ❌ **卡数值轮**(禁忌/过量代价表要数值,数值归用户)。
+- **旧夹具由红转绿**:`test_w5_…_capsThrowPropagates_notSwallowed` → `test_tdMedcons14_…_emitsDespiteFullCap`。
+  **旧断言以文字留档,不留绿的副本** —— 留绿的旧断言 = 把缺陷钉成规格。
+- **证伪轮 3/3 全红**(S12-4):M1 恒真 ⇒ medcons14 红 · M2 恒假 ⇒ cap 红 · M3 词法器同键检查停用 ⇒ 3 条红。
+  还原 = **SHA-256 逐字节**;变异与跑测同命令内完成,窗口内零编辑。
+- **回归三元组**:EditMode **`5985 / 5948 / 0 / 0 / 37`** · PlayMode **`238 / 234 / 0 / 2 / 2`**
+  (@ 2026-10-29 · 全量 · `4042a0fc`+工作树)。
+  EditMode 基线 `5978 / 5941 / 0 / 0 / 37` ⇒ `+7` = 新增 `[Test]` 6(新文件)+ 1(`event_stream_test`)。
+- **债册**:`open 56→54` · `closed 73→75` · `partial 3` 不变 · **未闭 P0 面 34 → 32**;
+  medical-consequences **19 → 17**。`TD-clinic-17`(同文件另一口子)**仍 open**,已就地补注防误读。
+- 证据原件:`production/qa/evidence/impl-td-medcons-10-14-2026-10-29.md`。

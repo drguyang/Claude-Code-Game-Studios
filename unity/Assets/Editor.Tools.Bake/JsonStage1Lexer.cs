@@ -178,6 +178,24 @@ namespace DaYiJingCheng.EditorTools.Bake
                             throw new JsonReaderException($"对象内期待属性名,实得 {reader.TokenType}(@ 行{reader.LineNumber})");
 
                         string key = (string)reader.Value;
+                        int keyLine = reader.LineNumber;
+
+                        // ⚠️ 重复键拒收(TD-medcons-10 · 2026-10-29):`Props` 是 List,**同键可
+                        //    出现两次**;下游各 binder 有的线性取首、有的建 Dictionary 取后
+                        //    ⇒ 「哪一份生效」取决于**读者实现**而非 JSON 文本 —— 静默丢字段,
+                        //    且改一个 binder 的取法就能让同一份数据换含义。JSON 本身要求
+                        //    名字唯一(RFC 8259 §4),重复即作者态错误,须在**词法层**当场红
+                        //    (与上方「对象未闭合」同理:报错要落在坏掉的地方)。
+                        for (int i = 0; i < node.Props.Count; i++)
+                        {
+                            if (node.Props[i].Key == key)
+                            {
+                                throw new JsonReaderException(
+                                    $"对象内属性 \"{key}\" 重复(首次出现于本对象内,重复 @ 行{keyLine})" +
+                                    "—— 同名键会让「取首 / 取后」两种 binder 得不同值,是静默丢字段的入口");
+                            }
+                        }
+
                         if (!reader.Read())
                             throw new JsonReaderException($"属性 \"{key}\" 后无值(@ 行{reader.LineNumber})");
                         SkipComments(reader);

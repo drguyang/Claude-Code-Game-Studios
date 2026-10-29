@@ -10,7 +10,8 @@
 //   - Append 纯函数路由（Kind → StreamId）
 //   - Seq 发号器（每 tick 复位）
 //   - 去重（条件键:已发号 = 四元组 (Kind, Patient, Tick, Seq);未发号补 PayloadRef 身份 —— O-4）
-//   - 有界性（PATIENT_APPEARANCE_CAP = 24;跳过 PatientId.None —— O-5）
+//   - 有界性（PATIENT_APPEARANCE_CAP = 24;**只对出现类事件生效** —— 2026-10-29 收窄,
+//     结清 TD-medcons-14;跳过 PatientId.None —— O-5）
 //
 // ⚠️ 次序(承既有,测试面 F-4 登记):CAP 检查在去重**之前** ⇒ 病人已离场且 CAP 满时,
 //    重发事件先抛而非走去重短路。45 重传路径的重试语义须知悉(归 45 轮)。
@@ -175,6 +176,21 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
+        /// 该 <paramref name="kind"/> 是否属「**病人出现类**」—— 即会让某个病人开始存在
+        /// (进入模拟)的事件,CAP 只对这类事件生效。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>今日恰一支 = <see cref="EventKind.DiseaseOnset"/></b>(ADR-030 ①:病人出现与
+        /// 病程 onset 是同一个事件,不立第二支)。</para>
+        /// <para>⚠️ <b>维护义务</b>:新增「让病人进入模拟」的 Kind 时须<b>同批</b>加此处 ——
+        /// 漏加 = 该路径绕过 CAP,ADR-008 §六 的有界性论证当场失效(且是**静默**的,
+        /// 表现为 CAP 24 不再是硬界)。反之,<b>不得</b>为「顺手多护一点」把无关 Kind
+        /// 塞进来 —— 那正是 `TD-medcons-14` 的成因:离屏病人的后果事件被当成新病人拒收。</para>
+        /// </remarks>
+        private static bool IsPatientAppearance(EventKind kind)
+            => kind == EventKind.DiseaseOnset;
+
+        /// <summary>
         /// Append 的实现核。<see cref="Append"/> 传 <c>enforceCap: true</c>,
         /// <see cref="Restore"/> 传 <c>false</c>(读档重建,见其 doc)。
         /// ⚠️ 其余各关(去重 / 单调 / 发号器推进)两条路径<b>完全同路</b> ——
@@ -186,12 +202,22 @@ namespace DaYiJingCheng.Sim
             // 失效模式(O-5):世界事件(StructurePlaced / PoiStateChanged / ActorCellEntered …)
             // 带 PatientId.None,IsPresent(None) 恒 false ⇒ 在场满 CAP 时
             // 被误判「新病人」拒收 —— 玩家立刻不能盖房、POI 状态机与跨格事件全抛异常。
-            // ⚠️ 2026-10-09 批次 E 起,急救两支(EmergencyAttempt / EmergencyTreatmentApplied)
-            // 已带真实病人归因(不再是 None 举例)⇒ 会进本分支的在场/CAP 检查。
-            // CAP 守的是**同场被模拟病人数**(ADR-008 §六 有界性),None 不是病人 ⇒ 不进本分支。
             // ⚠️ Restore 路径绕过本关(用户 2026-10-24 裁定「三分化」):在场视图尚未重建,
             //    CAP 检查对恢复事件必然误抛;有界性由「存档自带的事件就是历史事实」保证。
-            if (enforceCap && e.Patient != PatientId.None && !_presenceQuery.IsPresent(e.Patient))
+            //
+            // ⚠️ **2026-10-29 收窄(用户裁定 · 结清 TD-medcons-14)**:判据由
+            //    「任何带真实 patient_id 的事件」收窄为「**出现类**事件」(<see cref="IsPatientAppearance"/>)。
+            //    失效模式(旧口径):离屏病人的后果事件(ConsequenceResolved)带真实 patient_id,
+            //    在场数满 24 时被当成「新病人」拒收 ⇒ 后果**永久不发**且异常沿 Emit 上抛,
+            //    破 AC-53-14(静默漏后果的反面:响亮地漏)。CAP 守的是**病人出现率**
+            //    (TR-disease-021 / ADR-008 §六),不是「任何跨格或有主事件」的流量闸。
+            //    口径依据:CAP 的量纲是「同场被模拟病人数」,只有「让某病人开始存在/进入模拟」
+            //    这一件事会改变它 —— 今天恰 = `DiseaseOnset`(ADR-030 ①:病人出现与病程 onset
+            //    是同一个事件,不立第二支)。
+            //    ⚠️ 新 Kind 若也属于「让病人进入模拟」,须**同批**加进 IsPatientAppearance,
+            //    否则该路径绕过 CAP(有界性论证失效);反之不得为省事把无关 Kind 塞进去。
+            if (enforceCap && IsPatientAppearance(e.Kind) && e.Patient != PatientId.None
+                && !_presenceQuery.IsPresent(e.Patient))
             {
                 if (_presenceQuery.PresentCount >= PATIENT_APPEARANCE_CAP)
                 {

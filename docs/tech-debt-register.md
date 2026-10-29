@@ -310,11 +310,11 @@
 | `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-09` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-10` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-10` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-12` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-14` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-14` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-15` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | open | **Y** | R1 |
@@ -844,10 +844,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 56, 'closed': 73, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 99, 'N': 33, '~~**Y**~~': 1}
-未闭 P0 面 = 34 （已闭但曾标 P0 面的 65 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 34 条,分布在 9/31 个 epic
-    medical-consequences: 19  telemetry-analytics: 5    clinic-machine: 4
+条目 133 | 状态 {'open': 54, 'closed': 75, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 99, 'N': 33, '~~**Y**~~': 1}
+未闭 P0 面 = 32 （已闭但曾标 P0 面的 67 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 32 条,分布在 9/31 个 epic
+    medical-consequences: 17  telemetry-analytics: 5    clinic-machine: 4
     disease-simulation: 1     enemy-ai: 1               item-database: 1
     patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
@@ -1237,7 +1237,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
-| TD-medcons-10 | **B-W1**:共享 JSON 词法器(`JsonStage1Lexer`)不拒重复 property —— 影响全部 10+ binder | story-003 评审 §二 B-W1 | 任一 binder 因重复键静默丢字段时;或词法器统一加固轮 |
+| TD-medcons-10 | **B-W1**:共享 JSON 词法器(`JsonStage1Lexer`)不拒重复 property —— 影响全部 10+ binder | story-003 评审 §二 B-W1 | 任一 binder 因重复键静默丢字段时;或词法器统一加固轮 ✅ **2026-10-29 结案** —— `JsonStage1Lexer.ReadValue` 对象分支在 `Props.Add` 前加同键扫描,违者抛 `JsonReaderException` 点名重复键;夹具 `json_stage1_lexer_duplicate_key_test.cs`(6 条,含 3 条反例防判据过宽);变异「停用同键检查」⇒ 3 条转红。**实测 83 份 `assets/**/*.json` 零重复键** ⇒ 现网烘焙不受影响 |
 | TD-medcons-11 | **B-W2**:`53_delay_table` 等表**无 CLI / CI 烘焙入口**(仅 `DataBakeMenu` 菜单项) | story-003 评审 §二 B-W2 | 运行期读方立案批须补 CLI 入口 |
 | TD-medcons-12 | **B-W3**:`DelayTableBinder.DomainRows` ordinal 与 Sim 侧 `DomainOutcomes` 的一致性断言**只防值分歧,不防改名** | story-003 评审 §二 B-W3 | 任一侧枚举改名时(当前由 `AssertDomainDeclarationsMatch` 兜值) |
 | TD-medcons-13 | **B-W4**:`DelayTableCookedWriter` 产出的 `*.cooked` **无镜像读方**(装载归装配轮) | story-003 评审 §二 B-W4 | 装配轮装载 53 表时 |
@@ -1248,7 +1248,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
-| TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 |
+| TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 ✅ **2026-10-29 结案(用户裁定「收窄到出现类事件」)** —— `EventStream` 增 `IsPatientAppearance`(今日恰 = `DiseaseOnset`,ADR-030 ①),CAP 只对该类生效 ⇒ 离屏病人的后果不再被当成新病人拒收;`ConsequenceEmitter` 的类头接缝登记与 S-B2 报文同批改注(CAP **不再**是本件成因,守卫保留)。旧夹具 `test_w5_…_capsThrowPropagates_notSwallowed` **由红转绿**并改名为 `test_tdMedcons14_…_emitsDespiteFullCap`(旧断言以文字留档 —— 留一条绿的旧断言等于把缺陷钉成规格) |
 | TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 |
 
 
@@ -3310,7 +3310,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
 | **TD-clinic-16** | **S25 · 测试读文件系统**(`assets/data/` + `tests/unit/clinic_machine/fixtures/`),与 `.claude/rules/test-standards.md`「Unit tests must not depend on external state (filesystem)」**字面相抵**。⚠️ **属本项目既有 EditMode 实践**(承 `Audio/settings_exposure_test.cs`),非本件新引入 | §二 S25 | **CI runner 落地时(ADR-012 矩阵)** —— 与 **TD-medcons-09 同触发点**,宜同批处置 |
-| **TD-clinic-17** | **S6 · 承继偏差(非本件文件)** —— `JsonStage1Lexer.cs:5-8` 取 `FloatParseHandling = Decimal`,而 ADR-014 原文钉 `None`(该文件自陈 Newtonsoft 无 `None` 成员)。行为拒收已由**阶段 2 结构化**封住,但**字面偏离应登记** | §二 S6(`JsonStage1Lexer.cs`) | **`JsonStage1Lexer` 统一加固轮**(与 TD-medcons-10「不拒重复 property」同轮 —— 两条都是该词法器的口子) |
+| **TD-clinic-17** | **S6 · 承继偏差(非本件文件)** —— `JsonStage1Lexer.cs:5-8` 取 `FloatParseHandling = Decimal`,而 ADR-014 原文钉 `None`(该文件自陈 Newtonsoft 无 `None` 成员)。行为拒收已由**阶段 2 结构化**封住,但**字面偏离应登记** | §二 S6(`JsonStage1Lexer.cs`) | **`JsonStage1Lexer` 统一加固轮**。🔁 **2026-10-29**:该轮的**重复 property 半边**已随 `TD-medcons-10` 单独结案(只动了 `ReadValue` 的同键检查);**本条(`FloatParseHandling`)仍未动、仍 open** —— 不要因为同一文件被改过就把本条一并记为已还 |
 
 | **TD-clinic-22** | **S16 的普查残项** —— `TD-clinic-14` 只登记了 `ParseClause` / `AssertFurnTableShape` **两个方法**(抽样),2026-10-29 结案轮做**全族普查**后发现同族**另有 5 处 > 40 行**:`ClinicMachineAdjBinder.ParsePair` 57 · `ClinicMachineContextBinder.ParseRow` 60 · `ClinicMachineContextNamesBinder.ParseRow` 48 · `ClinicMachineRoomNamesBinder.ParseRow` 49 · `ClinicMachineTablesBake.Bake` 45。**均未改动** —— 本轮只拆了「已触发的两个 + 自己改到的 `Bind` / `ParseRoom` / `AssertOverflowBounds`」,其余不在 `TD-clinic-14` 的登记面内,不借此扩权 | §二 S16(普查,非原登记面) | 规范闸 ≤40 行真正落地时(与 `TD-medcons-17` / `TD-persist-08` 同批);或任一方法下次实质改动时 ✅ **2026-10-29 结案** —— 见下方 §S23 结案块 |
 
