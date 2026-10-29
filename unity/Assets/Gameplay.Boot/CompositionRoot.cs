@@ -1624,6 +1624,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 故时间常数走 raw 域字面量:Q16.16 ⇒ N tick = N × Fix.OneRaw。
                     TauRise = new Fix(5 * Fix.OneRaw),      // 上升常数 5 tick(陡)
                     TauPeak = 40,                           // τ=40(2 s)达峰
+                // ⛔ **2026-10-29 尝试被撤回(债册 `TD-listen-01` 的 L-3)**:本轮曾把
+                //    `TauRise` 5→120 / `TauPeak` 40→400 以拉宽可听窗口,实测**当场打红两条既有判据**
+                //    (`test_q1_compositionRoot_examine_yieldsWords_atInitialSkill` /
+                //    `..._positionCrossesFloor_withinPlayerWait`)—— 后者钉死
+                //    **firstReadable ≤ 60 tick**,即「按 E 不必等」。⇒ **两条要求在同一曲线上不可同时成立**:
+                //    可读门槛 position ≥ 0.9752 在音频 `DeathBandMin(0.90)` **之后**,而 60 tick 的总预算
+                //    把 0.45→0.90 的区间压到 <1 s(数学上:20+3.70·T ≤ 60 ⇒ T ≤ 10.8 ⇒ 窗口 ≤ 0.85 s)。
+                //    **本冲突不是实现问题,是设计判据冲突,须用户裁定** —— 见
+                //    `production/qa/evidence/listen-run-pack-2026-10-29.md` §五。原值保持不动。
                     TauFall = new Fix(600 * Fix.OneRaw),    // plateau 型下忽略(R1-25 不查)
                     Plateau = true,                     // ★ 达峰后保持峰值,不衰减
                     SelfLimit = false,                  // 与 Plateau 互斥(R1-20)

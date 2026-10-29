@@ -46,7 +46,12 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class PatientAppearedDriver
     {
         /// <summary>出现节奏:tick 间隔。400 tick @ 20 Hz = 20 秒一个病人。</summary>
-        private const int SpawnIntervalTicks = 400;
+        // 🔁 **2026-10-29 听测前置批(`TD-listen-01` 的 L-4)**:原 400 tick = **20 s/人**,
+        //    而原本的病程只有 1.55 s ⇒ 三个人**永远不可能同时活着**(凑齐 3 人需 ~40 s)。
+        //    现值 60 tick = **3 s/人** ⇒ 3 人在 6 s 内到齐,而 L-3 拉长后的可听窗口 ≈ 10 s
+        //    ⇒ 三人同时在"活"的区间成立。
+        //    ⚠️ 本值自陈为「接线旋钮,非裁定项」(见文件头注)⇒ 改动不触碰任何 GDD 数值。
+        private const int SpawnIntervalTicks = 60;
 
         /// <summary>接线期病人数上限哨(B 案):真节奏(52)到位后删除本常量与相关分支。
         /// <para>不是 sim 硬界 —— <see cref="DaYiJingCheng.Sim.EventStream.PATIENT_APPEARANCE_CAP"/>

@@ -17,8 +17,8 @@
 | **L-6** | 运行时零 active `AudioListener`(全场景静音) | ✅ **已修(账面滞后)** | `BootRoot.cs:490` `cameraObj.AddComponent<UnityEngine.AudioListener>()`,修于 2026-10-20 |
 | **L-1** | 无病人离场路径 | ❌ **仍 open** | `grep -rn "RemovePresent" unity/Assets --include=*.cs` ⇒ 仅 `IPresenceWriter` 声明 + `PresenceRegistry` 定义 + 一条测试,**生产零调用方** |
 | **L-2** | 听诊档位恒最低档 | ❌ **仍 open** | `CompositionRoot.cs:810` 仍是局部 `int queryLevel = 1;`,全文件无回写 |
-| **L-3** | 病程被占位曲线压到 1.55 s | ❌ **仍 open** | fallback 曲线未动 |
-| **L-4** | 刷人间隔 20 s/人、每人 1.55 s 即死 | ❌ **仍 open** | `PatientAppearedDriver.cs:49` `SpawnIntervalTicks = 400`(20 Hz ⇒ 20 s/人) |
+| **L-3** | 病程被占位曲线压到 1.55 s | ⛔ **受阻 —— 设计判据冲突,须裁定**(见 §五) | 尝试拉长曲线 ⇒ 当场打红两条既有 Q1 判据,已撤回 |
+| **L-4** | 刷人间隔 20 s/人 | ✅ **已修** | `PatientAppearedDriver` `SpawnIntervalTicks` 400 → **60**(20 s/人 → 3 s/人);EditMode 全量 `5852/5815/0/0/37` 零红 |
 
 ⇒ **听测今日仍不可执行。** L-1 / L-2 / L-3 / L-4 四条清完之前,勾任何一项都是借绿
 (承三份协议件抬头的 ⛔ 声明)。
@@ -89,3 +89,43 @@
 
 > ⚠️ **本表任何 `<待填>` 未填 ⇒ 对应债不得转 `closed`。** 填完并由编排方复核后,
 > 才回填 `TD-audio-100 / 101 / 102 / 103 / 105` 与 `TD-listen-01`。
+
+
+---
+
+## 五、L-3 的判据冲突(2026-10-29 实测,须用户裁定)
+
+**尝试**:按裁定「只拉长占位曲线」,把 `CompositionRoot` 里 fallback 的
+`TauRise` 5 → 120、`TauPeak` 40 → 400,让 `SeekMin(0.45) → DeathBandMin(0.90)`
+的窗口从 **0.4 s** 拉到 **≈10.2 s**。
+
+**结果**:EditMode 当场 **2 红**:
+
+| 红测 | 为什么 |
+|---|---|
+| `test_q1_compositionRoot_positionCrossesFloor_withinPlayerWait` | 它钉死 **`firstReadable ≤ 60 tick`**(3 s),理由是 2026-10-12 第五轮 playtest 的病根「按 E 要等很久」。新曲线 `firstReadable ≈ 464 tick`,直接违约 |
+| `test_q1_compositionRoot_examine_yieldsWords_atInitialSkill` | 该测推进到 τ=60 就断言可读 |
+
+⇒ **两条要求在**同一条曲线上**数学上不可同时成立**:
+
+```
+可读门槛   position ≥ 0.9752(floor(skill=1))
+死亡带下限 position ≥ 0.90(DeathBandMin)⇒ BreathShouldLive = false
+firstReadable ≤ 60 tick
+
+指数上升 1-exp(-(τ-20)/T):
+  τ(0.975) = 20 + 3.70·T  ≤ 60   ⇒  T ≤ 10.8
+  可听窗口 = τ(0.90) − τ(0.45) = (2.303 − 0.598)·T ≤ 0.85 s
+```
+
+**即:只要「按 E 不必等」的 60 tick 判据不动,呼吸可听窗口就上不了 1 s。**
+
+### 三条出路(请裁一条)
+
+| 案 | 做法 | 代价 |
+|---|---|---|
+| **甲** | 放宽 Q1 判据(`firstReadable ≤ 60` → 按新曲线重定),让单条曲线同时满足 | 动了**已验收**的 playtest Q1 判据,须写明理由与新的等待预算 |
+| **乙** | 给听测**另配一条病种条目**(`DiseaseId = 2`,`DiseaseKey = "fallback_audition"`),长曲线只服务听测装配;`DiseaseId = 1` 原封不动 | 多一条接线期占位病种;`PatientAppearedDriver` 现在取 `registry[0]`,听测路径要能选第 2 条 |
+| **丙** | 接受窗口 < 1 s,听测改用**手动逐档触发**(不走自然病程) | 协议要重写,且与三份既有协议件的「自然病程下判别」口径不符 |
+
+**在裁定之前,L-3 保持原值,L-1 / L-2 保持 open,两个人仍不能开听。**
