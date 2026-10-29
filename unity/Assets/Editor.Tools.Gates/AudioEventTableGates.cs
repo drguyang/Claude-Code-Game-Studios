@@ -325,7 +325,10 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <c>AudioClipLibrary.Resolve</c>。</para></summary>
         /// <param name="rows">行集(null ⇒ NOT-RUN 守卫:门不可执行必须可区分)。</param>
         /// <returns>错误列表(空 = 通过)。</returns>
-        public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEventTableRow> rows)
+                /// <summary>变体行步长 = 性别层(2)× 桶数(3)(`TD-audio-034` ②)。</summary>
+        private const int VariantStride = 6;
+
+public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEventTableRow> rows)
         {
             var errors = new List<string>();
             if (rows == null)
@@ -364,10 +367,15 @@ namespace DaYiJingCheng.EditorTools.Gates
                     errors.Add($"`{cue}` 声明了 variant_axis 但 assets[] 为空 —— 变体轴无处落地");
                     continue;
                 }
-                if (n % VariantCubeTiers != 0)
+                // 🔁 **2026-10-29(`TD-audio-034` ②)**:除数从「三桶」改为 **2 性别 × 3 桶 = 6**。
+                //    素材真实排布是性别优先(`m1_1,m1_2, m2_1,…, f1_1,…`)⇒ 只整除 3 会让
+                //    「男弱 + 男中」被当成同一个桶(该 cue 的三档分桶此前因此**本身就是错的**)。
+                if (n % VariantStride != 0)
                 {
-                    errors.Add($"`{cue}` 的 assets[]={n} 条,不能被三桶整除(余 {n % VariantCubeTiers})" +
-                               " —— 末槽截余会产生永不可达的死变体;请补足或改层数(素材数 = 层数 × 3)");
+                    errors.Add($"`{cue}` 的 assets[]={n} 条,不能被「2 性别 × 3 桶」整除" +
+                               $"(余 {n % VariantStride}) —— 末槽截余会产生永不可达的死变体;" +
+                               "请补足或改层数(素材数 = 层数 × 2 × 3)" +
+                               ";且排列须**性别优先**(同一性别的三种强度相邻)");
                 }
             }
             return errors;

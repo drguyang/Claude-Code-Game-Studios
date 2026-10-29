@@ -180,7 +180,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             // 变体行:三维立方体 (性别层 × 三桶 × 层内变体)。构建期 ValidateVariantAxis 已保证
             // 素材数整除三桶 ⇒ 每个格子非空 ⇒ **无死变体、无空桶坍陷**(重裁 ③)。
-            int size = VoiceVariantLib.VariantCubeSize(loaded.Length);
+            int size = VoiceVariantLib.VariantSlotWidth(loaded.Length);
             int variant = VoiceVariantLib.SelectVariantCube(cue, tier, identity, size, intensity);
 
             AudioClip clip = variant >= 0 && variant < loaded.Length ? loaded[variant] : null;

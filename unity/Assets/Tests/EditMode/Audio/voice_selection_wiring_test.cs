@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                     Assert.That(picked, Is.GreaterThanOrEqualTo(0),
                         $"tier={tier} identity={identity}:选中 {clip.name} 不属本行 assets[] —— 越界取用");
 
-                    int size = VoiceVariantLib.VariantCubeSize(row.Assets.Length);
+                    int size = VoiceVariantLib.VariantSlotWidth(row.Assets.Length);
                     int expectedPos = VoiceVariantLib.SelectVariantCube(voiceOrdinal, tier, identity, size, 0);
                     Assert.That(picked, Is.EqualTo(expectedPos),
                         $"tier={tier} identity={identity}:选中位置 {picked},选择器位置 {expectedPos}");
@@ -361,14 +361,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         /// <summary>重裁 ③:对**任意**三的倍数,三桶恒等宽、逐格可达(无死变体 / 无空桶)。
         /// <para>首版的 `BucketBand` 截余形态让 4 条行第 4 条永不可达、2 条行强桶坍回弱桶。
-        /// 判别力:把 <see cref="VoiceVariantLib.VariantCubeSize"/> 改回 <c>max(1, n/3)</c> ⇒ 本条红。</para></summary>
+        /// 判别力:把 <see cref="VoiceVariantLib.VariantSlotWidth"/> 改回 <c>max(1, n/3)</c> ⇒ 本条红。</para></summary>
         [Test]
         public void test_ac020_3_variantCube_everySlotReachable_noDeadVariant_noEmptyBucket()
         {
-            foreach (int n in new[] { 3, 6, 12, 24 })
+            foreach (int n in new[] { 6, 12, 24 })
             {
-                int size = VoiceVariantLib.VariantCubeSize(n);
-                Assert.That(size, Is.EqualTo(n / 3), $"n={n}:每桶宽度应为 {n / 3}");
+                int size = VoiceVariantLib.VariantSlotWidth(n);
+                Assert.That(size, Is.EqualTo(n / 6), $"n={n}:每(性别 × 桶)格宽度应为 {n / 6}");
 
                 // 🔁 2026-10-29(`TD-audio-034` ①):桶来自 Intensity ⇒ 可达性须**跨桶**扫,
                 // 三个代表强度各覆盖一个桶(0 弱 / 128 中 / 255 强)。
@@ -390,13 +390,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 //    identity 的写法钉的是**旧语义**,改判后它本来就该红。
                 var buckets = new HashSet<int>();
                 for (int intensity = 0; intensity <= 255; intensity++)
-                    buckets.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity: 0, size, intensity) / size);
+                    buckets.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity: 0, size, intensity) % (VoiceVariantLib.BucketCount * size) / size);
                 Assert.That(buckets.Count, Is.EqualTo(3), $"n={n}:只有 {buckets.Count} 个桶被选中(存在空桶)");
             }
 
             // 非法形状 ⇒ 显式 −1(不猜、不截余)
-            Assert.That(VoiceVariantLib.VariantCubeSize(4), Is.EqualTo(-1), "4 条不整除三桶 ⇒ 拒选,不得截余");
-            Assert.That(VoiceVariantLib.VariantCubeSize(0), Is.EqualTo(-1));
+            Assert.That(VoiceVariantLib.VariantSlotWidth(4), Is.EqualTo(-1), "4 条不整除 2×3 六格 ⇒ 拒选,不得截余");
+            Assert.That(VoiceVariantLib.VariantSlotWidth(0), Is.EqualTo(-1));
             Assert.That(VoiceVariantLib.SelectVariantCube(0, 0, 7, -1, 0), Is.EqualTo(-1));
         }
 
@@ -420,7 +420,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             {
                 Cue = "Voice_Cough_Damp",
                 VariantAxisRaw = AudioEventTableGates.VariantAxisVoiceGenderIntensity,
-                Assets = new[] { "a.wav", "b.wav", "c.wav" },
+                // 🔁 2026-10-29(`TD-audio-034` ②):合法形状从 3 条(整除三桶)改为 **6 条**
+                // (2 性别 × 3 桶)—— 3 条在新步长下同样是死变体。
+                Assets = new[] { "a.wav", "b.wav", "c.wav", "d.wav", "e.wav", "f.wav" },
                 PresentKeys = new List<string> { "cue", "assets", "variant_axis" },
             };
             Assert.That(AudioEventTableGates.ValidateVariantAxis(new[] { good }), Is.Empty);

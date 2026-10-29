@@ -289,8 +289,24 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 不猜、不截余,让「不该出现的形状」显式暴露而非静默产生死变体。</para></summary>
         /// <param name="total">变体行素材数。</param>
         /// <returns>每桶变体数;不整除三桶 ⇒ −1(拒选)。</returns>
-        public static int VariantCubeSize(int total)
-            => total <= 0 || total % 3 != 0 ? -1 : total / 3;
+        public static int VariantSlotWidth(int total)
+            => total <= 0 || total % 6 != 0 ? -1 : total / 6;
+
+        /// <summary>变体行的**性别层数**(固定 2:男 / 女)。</summary>
+        public const int GenderLayers = 2;
+
+        /// <summary>变体行的**强度桶数**(固定 3:弱 / 中 / 强)。</summary>
+        public const int BucketCount = 3;
+
+        /// <summary>性别维的确定性派生 —— <b>由病人身份决定,不引入新数据、不读墙钟 / 不用 `Random`</b>。</summary>
+        /// <remarks>🔁 **2026-10-29(`TD-audio-034` ②,用户裁定「由病人身份确定性派生」)**。
+        /// GDD F-44.3 明写 gender 是**素材表声明(内容侧)**;表里 12 条素材按
+        /// <c>m1_1,m1_2, m2_1,m2_2, m3_1,m3_2, f1_1…f3_2</c> 排布(男性 6 条在前)⇒
+        /// 素材侧早已两性齐备,缺的一直是「某个病人该播哪一性」这个运行时输入。
+        /// <para>取身份最低位:同一病人**恒**同一性,不同病人均匀分到两性 ⇒ 12 条素材**全部可达**,
+        /// 不产生死变体(与 `ValidateVariantAxis` 的「无死变体」门一致)。</para>
+        /// <para>⚠️ 若日后 13 的病人 AI 给出真性别,改这一处即可(选择器只认它的返回值)。</para></remarks>
+        public static int GenderOf(int identity) => (int)((uint)identity & 1u);
 
         /// <summary>三维立方体选择:<c>(桶 × 层内变体)</c> 由身份决定,<c>Tier</c> 不参与(承 F-44.3
         /// 「Tier 参与回退不参与库轴」)。
@@ -303,8 +319,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="cue">cue ordinal(混进哈希,避免不同 cue 的患者序列完全同构)。</param>
         /// <param name="tier">精度档(≥ 0;不参与立方体轴)。</param>
         /// <param name="identity">患者身份(确定性输入)。</param>
-        /// <param name="size">每桶变体数(<see cref="VariantCubeSize"/>)。</param>
-        /// <returns>素材位置 ∈ <c>[0, size × 3)</c>;入参非法 ⇒ −1。</returns>
+        /// <param name="size">每(性别 × 桶)格的变体数(<see cref="VariantSlotWidth"/>)。</param>
+        /// <returns>素材位置 ∈ <c>[0, size × 3 × 2)</c>;入参非法 ⇒ −1。</returns>
         public static int SelectVariantCube(int cue, int tier, int identity, int size, int intensity)
         {
             if (size <= 0) return -1;
@@ -321,9 +337,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
                 //    它此前**零生产调用方** —— 那正是本条债的缺口:函数在、没人调。
                 int clamped = intensity < 0 ? 0 : intensity > 255 ? 255 : intensity;
                 int bucket = (int)ComputeBucket((byte)clamped);
+                // 🔁 **2026-10-29(`TD-audio-034` ②)**:布局改为 **性别优先** =
+                //    素材真实排布(`m1_1,m1_2, m2_1,m2_2, m3_1,m3_2, f1_1…`)。
+                //    ⚠️ 修前按 `total/3 = 4` 切桶 ⇒ 索引 0-3 被当成「弱桶」,
+                //    而它实际是「男弱 + 男中」⇒ **这个 cue 的三档分桶此前本身就是错的**。
                 uint seed2 = seed ^ 40503u ^ ((uint)(bucket + 1) * 2246822519u);
                 int within = IdentityScalar((int)seed2, size);
-                return bucket * size + within;
+                int gender = GenderOf(identity);
+                return gender * (BucketCount * size) + bucket * size + within;
             }
         }
 

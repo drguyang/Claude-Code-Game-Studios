@@ -20,14 +20,16 @@ namespace DaYiJingCheng.Tests.Unit.Audio
     [TestFixture]
     public sealed class IntensityBucketSelectionTest
     {
-        /// <summary>12 条素材 ⇒ 每桶 4 格(`VariantCubeSize` 的构建期门保证整除三桶)。</summary>
+        /// <summary>12 条素材 ⇒ 每(性别 × 桶)格 2 条(`VariantSlotWidth` 的构建期门保证整除 2×3)。</summary>
         private const int Total = 12;
 
         private static int BucketOf(int intensity, int identity)
         {
-            int size = VoiceVariantLib.VariantCubeSize(Total);
-            Assert.That(size, Is.EqualTo(4), "前置:12 条应给出每桶 4 格");
-            return VoiceVariantLib.SelectVariantCube(0, 0, identity, size, intensity) / size;
+            int size = VoiceVariantLib.VariantSlotWidth(Total);
+            Assert.That(size, Is.EqualTo(2), "前置:12 条应给出每(性别 × 桶)格 2 条");
+            // 布局 = gender 优先 ⇒ 桶须先剥掉性别段(3×size)
+            int pos = VoiceVariantLib.SelectVariantCube(0, 0, identity, size, intensity);
+            return pos % (VoiceVariantLib.BucketCount * size) / size;
         }
 
         [Test]
@@ -57,7 +59,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         public void test_withinBucket_stillVariesByIdentity()
         {
             // 身份**仍在**:同强度同桶下,不同身份应能取到桶内不同位置(否则变体库退化)
-            int size = VoiceVariantLib.VariantCubeSize(Total);
+            int size = VoiceVariantLib.VariantSlotWidth(Total);
             var positions = new System.Collections.Generic.HashSet<int>();
             for (int identity = 0; identity < 64; identity++)
                 positions.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity, size, 255) % size);
