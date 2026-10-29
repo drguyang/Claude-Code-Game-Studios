@@ -12336,3 +12336,21 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - ⚠️ **自查抓到一处**:内联复算脚本初版把「可选 `~~`」写成 `~~?`(`~` 是字面量)⇒ **只命中 1 行且不报错**;
   改为 `(?:~~)?(?:\*\*)?` 后 132/63。已把这条坑写进脚本注释,并从文档里**逐字抽出实跑**验证。
 - **落点**:`production/milestones/p0-sweep-2026-10-29.md` 新增 **§4.4**;§十 复算总表加两行指针。
+
+## Session Extract — /story-done clinic-machine/story-001(2026-10-29 · C-1 结)
+
+- **判定**:**COMPLETE WITH NOTES** —— AC **7/7**;`ClinicMachine` 命名空间 **`194 / 194 / 0 / 0`**;
+  本 story 夹具类 **42/42**。
+- **story 自列的三条「不转 Complete」理由逐条核**:① `FurnTypeClosureEnforced == false` **实质已解决**
+  (生产装配 `ClinicRoomMatchingService` 选真判据重载,story-006 落地;哨兵描述的是默认单参入口)
+  ② 15 条 🟡 **成立但归 ADVISORY**(评审终判 `APPROVED WITH SUGGESTIONS`,4🔴→0)③ IL2CPP **已被订正撤销**。
+- **补证伪 8/8 转红**(收口前置,用户裁定「先补证伪再收口」):每条变异下 `ClinicMachineTablesSchemaTest`
+  恰 **1 条红且正是期望那条**;8/8 `RESTORE-OK`(SHA-256 逐字节);轮末工作树零残留。
+- ⚠️ **首轮作废(留痕)**:把**文件名**当类名 ⇒ 8 条全 `total=0`(**一条没跑**)而退出码 0;
+  驱动器**没有 `total==0` 守卫**,记成了 `RED=NONE`。**与 story-006 同型的坑,第二次**。
+  修正驱动:`FILTER-MISS` 中止 / 要求期望夹具在红名单 / 变异后全绿判假存活;先跑基线 `42/42` 才开跑。
+- **更正一处少报**:原文「R-17 的 9 条新测只抽证 1 例」不准确 —— G5/G6 打的也在该族内,当时至少 3 条。
+- **ADVISORY 遗留**:① 15 条 🟡 未修 ② **`tr-registry.yaml` 的 `TR-clinic-006` 仍 `partial`**,
+  note 依据已失效(`OQ-24-5` 已于 2026-10-07 裁 `n_max = 64`)—— **本件未改注册表**,建议回填轮订正。
+- **同批订正**:`clinic-machine/EPIC.md` story-001 行 → Complete;并**加注** 002–005 四行 `Ready` 是陈旧值
+  (四份 story 文件均为 `Complete`),**不代为改写**。`p0-sweep` §5.3 的 `C-1` 行加「已落」注。

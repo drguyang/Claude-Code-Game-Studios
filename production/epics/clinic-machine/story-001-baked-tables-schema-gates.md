@@ -1,12 +1,12 @@
 # Story 001: 烘焙表与 schema 构建门
 
 > **Epic**: 医馆即机器
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Config-Data
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-21
+> **Last Updated**: 2026-10-29
 
 > **🔁 2026-10-21 挂标已解除(S17-4)** —— `O-24-1` 已兑现,闭集来源落地于
 > `assets/data/item_database_furniture.json`(21a 侧),生产链路强制由
@@ -223,6 +223,39 @@
 ② §评审残余 16 条 🟡(族 A 判别力借绿族 9 条)未修;
 ③ IL2CPP 三格 NOT-RUN。
 
+### 2026-10-29 补证伪轮 —— R-17 的 8 条边界夹具(收口前置)
+
+> **由来**:评审原件 §七之三 第 1 条登记「R-17 的 9 条新测只抽证 1 例(G3);其余 8 条判别力未经反证」。
+> 2026-10-29 收口轮按要求**逐条补证**。
+
+| 变异 | 被停用的守卫 | 转红夹具 | 结果 |
+|---|---|---|---|
+| **M1** | `ClinicMachineContextBinder` `contexts` 空表守卫 | `test_context_empty_table_rejected` | **RED 命中** |
+| **M2** | `ClinicMachineRoomBinder` `rooms` 空表守卫 | `test_room_empty_table_rejected` | **RED 命中** |
+| **M3** | `ClinicMachineRoomBinder` `clauses` 空数组守卫 | `test_room_empty_clauses_rejected` | **RED 命中** |
+| **M4** | `ClinicMachineAdjBinder` 重复键守卫 | `test_adj_duplicate_pair_rejected` | **RED 命中** |
+| **M5** | `ClinicMachineContextBinder` 重复 `room_type` 守卫 | `test_context_duplicate_room_type_rejected` | **RED 命中** |
+| **M6** | `ClinicMachineSchema` `nMax <= 0` 守卫 | `test_overflow_n_max_nonpositive_rejected` | **RED 命中** |
+| **M7** | `ClinicMachineSchema` `wMinRaw < 0` 守卫 | `test_adj_wmin_equals_wmax_rejected` | **RED 命中** |
+| **M8** | `ClinicMachineSchema` Fix 值 `null` 守卫 | `test_context_null_fix_value_rejected` | **RED 命中** |
+
+**每条都是 `total=42` 下恰好 1 条红,且就是期望的那条** ⇒ ① 该夹具有判别力;
+② 无交叉污染(不误伤邻条)。**8/8。**
+
+**还原**:每条 `cp` 回原文件后 **SHA-256 逐字节**比对一致(`RESTORE-OK` ×8);
+轮末 `git status --porcelain unity/Assets/Editor.Tools.Bake/` **零输出**。
+
+> ⚠️ **首轮作废并留痕(2026-10-29)**:第一次跑把**文件名**当类名
+> (`…ClinicMachine.clinicmachine_tables_schema_test`),8 条**全部 `total=0`(一条没跑)**而退出码 0;
+> 且驱动器**没有 `total==0` 守卫**,把「没跑到」记成了 `RED=NONE` —— 与 story-006 同型的坑,第二次。
+> 已重写驱动器:`total==0 ⇒ FILTER-MISS` 并**中止整轮**、要求**期望夹具在红名单里**、
+> 变异后全绿则判 `GREEN-假存活`。修正后先跑基线探测 **`42/42`** 确认过滤器命中,才开跑。
+
+> 🔁 **一处少报的更正**:原文「R-17 的 9 条新测**只抽证 1 例**」不准确 ——
+> 评审原件的 `G5` / `G6` 打的 `test_furn_empty_table_rejected` / `test_furn_duplicate_type_rejected`
+> **也在这 9 条里** ⇒ 当时至少覆盖 **3 条**,不是 1 条。本轮补 8 条后,
+> 该族除 `test_adj_empty_pairs_rejected`(G3 已证)外**全部有反证**。
+
 
 ---
 
@@ -282,3 +315,29 @@
   > 🔁 **2026-10-21 订正(晚于上句)**:本行写于 **2026-10-20 评审修复轮**,其「挂标不变」**已被 S17-4 取代**
   > —— 挂标已解除,两条 AC 已勾。**仍不转 `Complete` 的理由见 §Test Evidence「补记之二」④ 之后的三条**
   > (`FurnTypeClosureEnforced == false` / 评审残余 🟡 / IL2CPP 三格)。原文保留不删。
+
+**2026-10-29 · 收口轮(`/story-done` · lean)**
+
+- **判定**:**COMPLETE WITH NOTES** —— AC **7/7**;`ClinicMachine` 命名空间实跑 **`194 / 194 / 0 / 0`**;
+  本 story 夹具类 `ClinicMachineTablesSchemaTest` **42/42**。
+- **三条「不转 Complete」理由逐条核**:
+  - ① `FurnTypeClosureEnforced == false` —— ✅ **实质已解决**。生产装配 `ClinicRoomMatchingService`
+    选的是**真判据重载** `Extract(view, FURN_TYPES)`(story-006 落地);该哨兵描述的是
+    **默认单参入口**仍是代理,而生产链**不走默认入口**。`test_room_furn_membership_absent_sentinel_false`
+    正是钉「缺席可观测而非静默」。⇒ **不阻断本 story**。
+  - ② 评审残余 **15 条 🟡** —— ⚠️ **成立**,但评审终判为 `APPROVED WITH SUGGESTIONS`(4 🔴 已清零),
+    按 `coding-standards` 归 **ADVISORY**。
+  - ③ IL2CPP 三格 NOT-RUN —— ✅ **已被 2026-10-21 订正撤销**:
+    Linux-x64-IL2CPP 已于 09-24 实测 3/3;Linux-ARM64-IL2CPP 目标不存在(用户裁定长期未达);
+    CI 常驻缺凭证。属**矩阵级**,非本件个体判据。
+- **补证伪 8/8 转红**(见 §Test Evidence「2026-10-29 补证伪轮」)⇒ **Falsifiability Gate = PASS**。
+- **ADVISORY 遗留(不阻断)**:
+  1. 15 条 🟡 建议项未修(清单见 `review-clinic-001-2026-10-20.md` §二)。
+  2. ⚠️ **`tr-registry.yaml` 的 `TR-clinic-006` 仍记 `partial`**,note 写「n_max 悬于 `OQ-24-5` 未裁」
+     —— **该依据已失效**:`OQ-24-5` 于 **2026-10-07 裁定 `n_max = 64`**,且本 story 的溢出夹具
+     已按真边界 (715827882 通过 / 715827883 拒绝) 落地。**本件未改注册表**,建议回填轮订正
+     (与路线图 §七 **SP-9** 同族)。
+- **未跑**:PlayMode(本 story 是烘焙期 Config-Data,判据面在 EditMode);IL2CPP 三格(矩阵级,见上)。
+- **代码评审**:✅ 已过 —— `production/qa/evidence/review-clinic-001-2026-10-20.md`,
+  `CHANGES REQUIRED → APPROVED WITH SUGGESTIONS`,4 🔴 → 0。
+- **Scope**:实现发生在 2026-10-20/21,今日**无法回溯核对改动集**,如实登记为不可核。

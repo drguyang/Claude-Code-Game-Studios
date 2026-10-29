@@ -54,12 +54,18 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 烘焙表与 schema 构建门 | Config-Data | Ready | ADR-014/006 |
+| 001 | 烘焙表与 schema 构建门 | Config-Data | **Complete**(2026-10-29) | ADR-014/006 |
 | 002 | 房间析出与连通规则 | Logic | Ready | ADR-015/005 |
 | 003 | 乘子求值 F-24-1/2/3 | Logic | Ready | ADR-005/006 |
 | 004 | 乘子交付边界与 ClinicEnvDto | Integration | Ready | ADR-025/013/006 |
 | 005 | 纯函数重放与 Memoize 失效 | Integration | Ready | ADR-016/005 |
 | 006 | 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03 | Logic | **Complete**(2026-10-21) | ADR-015/005 |
+
+> 🔁 **2026-10-29 收口轮订正(原文不删)**:story-001 转 `Complete`(AC 7/7 · 夹具类 42/42 ·
+> 补证伪 8/8 转红)。⚠️ **本表 002–005 四行的 `Ready` 是陈旧值** —— 四份 story 文件的
+> `Status:` 均为 `Complete`。复算:
+> `for f in production/epics/clinic-machine/story-00*.md; do grep -m1 '^> \*\*Status' "$f"; done`
+> 本行只订正 001(收口对象),**002–005 的陈旧不代为改写** —— 留待 EPIC 回填轮统一处理。
 
 > 🔁 **2026-10-21 新增 story-006** —— 立卡缘由:**`AC-24-03` 此前无主**(`grep -l AC-24-03 story-*.md` = 空;
 > 001–005 五件全不认领),而「布局 → 房间类型」匹配全树零实现(`MatchRoom`/`RoomTypeOf`/`EvaluateClause` = 0)。
