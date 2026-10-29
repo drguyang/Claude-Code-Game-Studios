@@ -1187,6 +1187,13 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
   > 判对率门槛(≥ 75% 总 / 每对 ≥ 65%)与试次下限(每对 ≥ 8 次)均**未动**。
   > ⚠️ **连带须同步**(缺一即两处口径分叉):`production/epics/audio-system/story-013-*.md` ·
   > `production/qa/evidence/main-channel-listen-evidence.md` · `docs/tech-debt-register.md` **L-5**。
+  > 🔁 **2026-10-29 用户第二次裁定(试次与阈值,原文不删)**:
+  > 试次下限 **每对 ≥ 8 次(24 题/人)→ 6 题/人**;**取消分对**,改为**混合 6 题**;
+  > **不设通过阈值,只记数**。执行记录见 `main-channel-listen-evidence.md`。
+  > ⚠️ **这是一次明示降格,后果必须写在明面上**:本条自此**不再是一道能判红绿的量化闸门** ——
+  > 「判对率 ≥ 75% / 每对 ≥ 65%」两个数**从未被测出**,本 AC 的验收性质由**定量**退化为
+  > **定性观察 + 记数**。任何下游文档**不得**援引本条声称「判对率达标」。
+  > ⚠️ **恢复条款**:若日后补做 ≥8 次/对的双盲 forced-choice,按原判据结算,并把本注标为历史。
 - **AC-44-18** `[A]`(2026-09-25 二轮 F8 新增 —— 音乐例外护栏载体):**GIVEN** 战斗乐层
   (`EncounterMusicLayer`)事件表行,**WHEN** 校验,**THEN** ① `xfade_ms ≥ MUSIC_XFADE_MIN_MS`
   (G1,断言 = 构建期数值比较);② `trigger_source = EncounterMusicLayer` 且 G1–G3 护栏
