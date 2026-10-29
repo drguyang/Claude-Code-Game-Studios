@@ -12907,3 +12907,18 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   含 5 处分歧与采纳理由 + 未及核查总表 + Phase 8b 双列结账表;**草稿已删**)。
 - **未跑**:ADR-035 §Validation **V-1…V-8 全部未跑**;`AC-5` 表级半边**仍 PARTIAL**;
   `TD-medcons-15` **仍 open**;N-4 的必要性(`compounds[]` 普查)**未证**。
+
+## Session Extract — A 组三条解锁条件 + 两处收窄(2026-10-29 · 续)
+
+- **用户指令**:先「把 A 组剩下的三条列一下解锁条件」,随后「两条都做」。
+- **`TD-medcons-13` 前提已过期(实测)**:「无镜像读方」**不成立** —— 读方 `DelayTableCookedCodec.cs:31`、
+  装载 `AddressablesDataProvider.cs:132/:760`(预载 `:499` 调)、产物在盘且 `data-core.asset` 已登记地址。
+  **真正缺的是消费端**:`DelayTable53DataSet` 生产消费方 = **0**;`new ConsequenceEmitter` 生产码 = **0**
+  ⇒ 结算器无装配点。**解锁判据** = `ConsequenceEmitter` 由 `CompositionRoot` 构造且 `delayTable` 取自
+  `IDataProvider.Get<DelayTable53DataSet>()`。债目已加 2026-10-29 注(原文不删)。
+- **`ADR-035 R1` 收窄(用户裁定)**:由「实现轮开工前两条均结案」改为**三档** ——
+  **T1 形状件**(S1–S7:空表 / `CostTableBinder` / 视图 / Kind+kindgen / 文本 / 证伪)= **零上游债、零数值**;
+  **T2 禁忌支真跑** 须 `TD-prescription-09`;**T3 过量支真跑** 再加 `TD-sim-02`。
+  就地订正四处(§Status / §Risks R1 / §⑥ / §Migration Plan),原文留档;日志条目同步加 🔁 子句。
+- **`TD-medcons-20`**(正面理由未定)解锁 = 53 的 GDD 修订轮给出可复算理由;若落在「战斗 vs 药害」分野须 9/25 确认。
+- ⚠️ **仍未跑**:`ADR-035` V-1…V-8 全部未跑;T1 虽已解禁,**本轮未开建**。
