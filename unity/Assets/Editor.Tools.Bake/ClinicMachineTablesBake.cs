@@ -131,25 +131,30 @@ namespace DaYiJingCheng.EditorTools.Bake
                 contextJson, adjJson, roomJson, roomNamesJson, contextNamesJson, constantsJson,
                 furnTypeSource);
 
-        /// <summary>绑定入口(测试负例直接喂单表 JSON 串 —— 不落盘)。</summary>
-        public static ClinicMachineContextBinder.BindResult BindContextForTest(string json)
+        /// <summary>单表绑定入口(直接喂单表 JSON 串 —— 不落盘;五姊妹同款)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 改名</b>(债册 `TD-clinic-15` / 评审 R-13):原名 <c>Bind*ForTest</c>
+        /// 把**测试意图**带进了公开 API,而这些方法本身对任何调用方都成立(「用一段 JSON 绑一张表,不落盘」)。
+        /// <para>⚠️ **未改 `internal` + `InternalsVisibleTo`**:本仓既有实践是「测试经 public 面直调,
+        /// 免 IVT」(见 `CompositionRoot.cs:1518` / `AssemblyGates.cs:43` 两处先例)⇒ 改名即修,
+        /// 不新开一条与本仓惯例相反的可见性通道。</para></remarks>
+        public static ClinicMachineContextBinder.BindResult BindContextTable(string json)
             => ClinicMachineContextBinder.Bind(json);
 
         /// <summary>绑定入口(ADJ 单表)。</summary>
-        public static ClinicMachineAdjBinder.BindResult BindAdjForTest(string json)
+        public static ClinicMachineAdjBinder.BindResult BindAdjTable(string json)
             => ClinicMachineAdjBinder.Bind(json);
 
         /// <summary>绑定入口(ROOM 单表;可注入闭集来源)。</summary>
-        public static ClinicMachineRoomBinder.BindResult BindRoomForTest(
+        public static ClinicMachineRoomBinder.BindResult BindRoomTable(
             string json, IFurnTypeSource furnTypeSource)
             => ClinicMachineRoomBinder.Bind(json, furnTypeSource);
 
         /// <summary>绑定入口(房间名词表单表)。</summary>
-        public static ClinicMachineRoomNamesBinder.BindResult BindRoomNamesForTest(string json)
+        public static ClinicMachineRoomNamesBinder.BindResult BindRoomNamesTable(string json)
             => ClinicMachineRoomNamesBinder.Bind(json);
 
         /// <summary>绑定入口(情境词表单表)。</summary>
-        public static ClinicMachineContextNamesBinder.BindResult BindContextNamesForTest(string json)
+        public static ClinicMachineContextNamesBinder.BindResult BindContextNamesTable(string json)
             => ClinicMachineContextNamesBinder.Bind(json);
 
         // ════════════════════════════════════════════════════════════════════
@@ -171,17 +176,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 ClinicMachineContextNamesBinder.Bind(contextNamesJson);
 
             // 跨表断言(六文件齐备才可做)
-            var crossErrors = new List<string>();
-            BindConstants(constantsJson, crossErrors, out Fix envMin, out Fix envMax);
-
-            if (crossErrors.Count == 0)
-                AssertBaseEnvDomain(context, envMin, envMax, crossErrors);
-
-            // 词表覆盖门(不依赖常量表 —— 与上面两条独立,故不受 crossErrors 早退影响)
-            AssertRoomNameCoverage(context, room, roomNames, crossErrors);
-            AssertContextNameCoverage(context, contextNames, crossErrors);
-
-            if (crossErrors.Count > 0) throw new BakeValidationException(crossErrors);
+            AssertCrossTable(constantsJson, context, room, roomNames, contextNames);
 
             uint configVersion = ConfigVersionUtility.DeriveConfigVersion(new[]
             {
@@ -200,6 +195,29 @@ namespace DaYiJingCheng.EditorTools.Bake
                 ClinicMachineCookedWriter.WriteRoomNames(roomNames, configVersion),
                 ClinicMachineCookedWriter.WriteContextNames(contextNames, configVersion),
                 configVersion, context, adj, room, roomNames, contextNames);
+        }
+
+        /// <summary>跨表三门:常量域 → 词表覆盖(<c>ROOM_NAMES</c> / <c>CONTEXT_NAMES</c>),聚合后一次 throw。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(债册 `TD-clinic-22` / S16 普查残项)。**次序是契约**:
+        /// ① 常量表绑定(其失败会**早退**后一条域检查);② 词表覆盖门**不受** ① 影响(两条独立门)。
+        /// 报文原文与判定次序逐字未变。</remarks>
+        private static void AssertCrossTable(
+            string constantsJson, ClinicMachineContextBinder.BindResult context,
+            ClinicMachineRoomBinder.BindResult room,
+            ClinicMachineRoomNamesBinder.BindResult roomNames,
+            ClinicMachineContextNamesBinder.BindResult contextNames)
+        {
+            var crossErrors = new List<string>();
+            BindConstants(constantsJson, crossErrors, out Fix envMin, out Fix envMax);
+
+            if (crossErrors.Count == 0)
+                AssertBaseEnvDomain(context, envMin, envMax, crossErrors);
+
+            // 词表覆盖门(不依赖常量表 —— 与上面两条独立,故不受 crossErrors 早退影响)
+            AssertRoomNameCoverage(context, room, roomNames, crossErrors);
+            AssertContextNameCoverage(context, contextNames, crossErrors);
+
+            if (crossErrors.Count > 0) throw new BakeValidationException(crossErrors);
         }
 
         /// <summary>ROOM_NAMES 覆盖门:表内出现的每个 <c>room_type</c> 都须在词表里(裁定 ①-C)。

@@ -147,41 +147,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             Dictionary<string, long> seen, List<string> errors)
         {
             string where = $"pairs[{i}]";
-            if (row.Kind != JsonNodeKind.Object)
-            {
-                errors.Add($"{FileName}:{where} 须为对象(实得 {row.Kind})");
+            if (!ClinicMachineSchema.BeginRow(
+                    row, where, ClinicMachineSchema.AdjRowKeys, FileName, errors))
                 return null;
-            }
 
-            ClinicMachineSchema.RejectUnknownKeys(
-                row, ClinicMachineSchema.AdjRowKeys, where, FileName, errors);
+            bool ok = ReadEndpoints(row, where, errors, out string a, out string b);
 
-            bool ok = ClinicMachineSchema.ReadRequiredString(
-                row, "a", where, FileName, errors, out string a);
-            ok &= ClinicMachineSchema.ReadRequiredString(
-                row, "b", where, FileName, errors, out string b);
-
-            // D9:建键前拒控制字符 —— Key(a,b) = a + U+0001 + b 的单射性前提。
-            // 原注释声称「构建期另拒控制字符」但零实现;评审 D9 后补上(现在注释为真)。
-            if (ok)
-            {
-                ok &= ClinicMachineSchema.RejectControlChars(a, $"{where}.a", FileName, errors);
-                ok &= ClinicMachineSchema.RejectControlChars(b, $"{where}.b", FileName, errors);
-            }
-
-            if (!ClinicMachineSchema.ReadRequiredFix(
-                    row, "w", where, FileName, errors, out Fix w))
+            if (!ReadWeight(row, where, a, b, hasWMin, wMin, hasWMax, wMax, errors, out Fix w))
                 ok = false;
-            else if (hasWMin && hasWMax)
-            {
-                // W 域 [w_min, w_max](OQ-24-6:[−1/4, +1/4])
-                if (w.Raw < wMin.Raw || w.Raw > wMax.Raw)
-                {
-                    errors.Add(
-                        $"{FileName}:{where}(w(\"{a ?? "?"}\",\"{b ?? "?"}\")) w raw={w.Raw} " +
-                        $"∉ W 域 [{wMin.Raw}, {wMax.Raw}] —— F-24-1 / OQ-24-6(W 域 = [-1/4, +1/4])");
-                }
-            }
 
             if (!ok) return null;
 
@@ -198,6 +171,47 @@ namespace DaYiJingCheng.EditorTools.Bake
             seen[key] = w.Raw;
 
             return new AdjPair(a, b, w);
+        }
+
+        /// <summary>`a` / `b` 端点读取 + 控制字符拒(D9:键单射性 `a + U+0001 + b` 的前提)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(债册 `TD-clinic-22` / S16 普查残项)。报文原文与判定次序逐字未变。</remarks>
+        private static bool ReadEndpoints(
+            JsonNode row, string where, List<string> errors, out string a, out string b)
+        {
+            bool ok = ClinicMachineSchema.ReadRequiredString(
+                row, "a", where, FileName, errors, out a);
+            ok &= ClinicMachineSchema.ReadRequiredString(
+                row, "b", where, FileName, errors, out b);
+
+            // D9:建键前拒控制字符 —— Key(a,b) = a + U+0001 + b 的单射性前提。
+            // 原注释声称「构建期另拒控制字符」但零实现;评审 D9 后补上(现在注释为真)。
+            if (ok)
+            {
+                ok &= ClinicMachineSchema.RejectControlChars(a, $"{where}.a", FileName, errors);
+                ok &= ClinicMachineSchema.RejectControlChars(b, $"{where}.b", FileName, errors);
+            }
+
+            return ok;
+        }
+
+        /// <summary>`w` 读取 + W 域校验(域上下界缺席时只读不校 —— 该情形由 O-24-5 另行判)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(债册 `TD-clinic-22` / S16 普查残项)。**域校验仍只在读取成功后执行**。</remarks>
+        private static bool ReadWeight(
+            JsonNode row, string where, string a, string b,
+            bool hasWMin, Fix wMin, bool hasWMax, Fix wMax, List<string> errors, out Fix w)
+        {
+            if (!ClinicMachineSchema.ReadRequiredFix(row, "w", where, FileName, errors, out w))
+                return false;
+
+            // W 域 [w_min, w_max](OQ-24-6:[−1/4, +1/4])
+            if (hasWMin && hasWMax && (w.Raw < wMin.Raw || w.Raw > wMax.Raw))
+            {
+                errors.Add(
+                    $"{FileName}:{where}(w(\"{a ?? "?"}\",\"{b ?? "?"}\")) w raw={w.Raw} " +
+                    $"∉ W 域 [{wMin.Raw}, {wMax.Raw}] —— F-24-1 / OQ-24-6(W 域 = [-1/4, +1/4])");
+            }
+
+            return true;
         }
 
         /// <summary>AC-24-06:遍历全部 (a,b) 断言 <c>w(a,b) == w(b,a)</c>。</summary>

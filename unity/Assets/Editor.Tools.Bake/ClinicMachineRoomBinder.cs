@@ -135,14 +135,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             ref int memberChecks)
         {
             string where = $"rooms[{i}]";
-            if (row.Kind != JsonNodeKind.Object)
-            {
-                errors.Add($"{FileName}:{where} 须为对象(实得 {row.Kind})");
+            if (!ClinicMachineSchema.BeginRow(
+                    row, where, ClinicMachineSchema.RoomRowKeys, FileName, errors))
                 return null;
-            }
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                row, ClinicMachineSchema.RoomRowKeys, where, FileName, errors);
 
             if (!ClinicMachineSchema.ReadRequiredString(
                     row, "room_type", where, FileName, errors, out string roomType))

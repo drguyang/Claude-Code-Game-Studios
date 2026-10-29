@@ -97,35 +97,24 @@ namespace DaYiJingCheng.EditorTools.Bake
             JsonNode row, int i, HashSet<string> seenContextIds, HashSet<int> seenIds, List<string> errors)
         {
             string where = $"contexts[{i}]";
-            if (row.Kind != JsonNodeKind.Object)
-            {
-                errors.Add($"{FileName}:{where} 须为对象(实得 {row.Kind})");
+            if (!ClinicMachineSchema.BeginRow(
+                    row, where, ClinicMachineSchema.ContextNamesRowKeys, FileName, errors))
                 return null;
-            }
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                row, ClinicMachineSchema.ContextNamesRowKeys, where, FileName, errors);
 
             bool ok = ClinicMachineSchema.ReadRequiredString(
                 row, "context_id", where, FileName, errors, out string contextId);
 
-            // id 用 ReadRequiredPositiveInt:天然拒 0 / 负(与 room 词表同一纪律 —— 单机制)。
+            // id 用 ReadRequiredPositiveInt:天然拒 0 / 负(与 room 词表同一纪律 —— 单机制);
+            // 失败路径亦赋 0(与拆分前等价)。
             long idValue = 0;
-            if (ClinicMachineSchema.ReadRequiredPositiveInt(
-                    row, "id", where, FileName, errors, out long parsedId))
-                idValue = parsedId;
-            else
-                ok = false;
+            ok &= ClinicMachineSchema.ReadRequiredPositiveInt(
+                row, "id", where, FileName, errors, out idValue);
 
             if (!ok) return null;
 
-            if (idValue > int.MaxValue)
-            {
-                errors.Add($"{FileName}:{where}.id={idValue} 越 int 上界 —— 词表编号须在 int 域内");
+            if (!ClinicMachineSchema.TryCastVocabularyId(
+                    idValue, where, FileName, errors, out int id))
                 return null;
-            }
-
-            int id = (int)idValue;
 
             if (!seenContextIds.Add(contextId))
             {

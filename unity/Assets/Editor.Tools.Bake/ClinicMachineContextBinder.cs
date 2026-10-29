@@ -108,14 +108,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             JsonNode row, int i, HashSet<string> seenRoomTypes, List<string> errors)
         {
             string where = $"contexts[{i}]";
-            if (row.Kind != JsonNodeKind.Object)
-            {
-                errors.Add($"{FileName}:{where} 须为对象(实得 {row.Kind})");
+            if (!ClinicMachineSchema.BeginRow(
+                    row, where, ClinicMachineSchema.ContextRowKeys, FileName, errors))
                 return null;
-            }
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                row, ClinicMachineSchema.ContextRowKeys, where, FileName, errors);
 
             bool ok = ClinicMachineSchema.ReadRequiredString(
                 row, "room_type", where, FileName, errors, out string roomType);
@@ -123,29 +118,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 row, "context_id", where, FileName, errors, out string contextId);
 
             Fix kSpeed = Fix.Zero;
-            if (ClinicMachineSchema.ReadRequiredFix(
-                    row, "k_speed", where, FileName, errors, out Fix parsedKSpeed))
-            {
-                kSpeed = parsedKSpeed;
-                // AC-24-05:档集白名单单机制 —— 档集外(含 0 / 负 / 5/4 / 1/2)同一条规则。
-                if (!ClinicMachineSchema.IsAllowedKSpeed(kSpeed.Raw))
-                {
-                    // 🔁 2026-10-29(债册 TD-clinic-11 / 评审 D4):此前只 `errors.Add`,`ok` 未置 false
-                    //    ⇒ **非法行仍被塞进 `rows`**。当前无害(throw 发生在 `K_CONTEXT_MAX` 派生之前),
-                    //    但一旦将来把这条 throw 降级为告警,非法行就会污染派生集 ⇒ 派生值静默漂移。
-                    //    加固后不产生**今日**可观测差异(仍在同一处 throw),只堵住那条降级路径。
-                    ok = false;
-                    errors.Add(
-                        $"{FileName}:{where}(room_type=\"{roomType ?? "?"}\") k_speed raw={kSpeed.Raw} " +
-                        $"∉ 档集 {{{ClinicMachineSchema.KSpeedLiteralsText()}}} —— AC-24-05 / F-24-3 / OQ-24-1:" +
-                        "值域 (0,1] 由档集蕴含,档集外一律 schema 错(非「给它一个值」);" +
-                        $"违例值 = \"{(row.TryGet("k_speed", out JsonNode kn) ? kn.Str : "?")}\"");
-                }
-            }
-            else
-            {
-                ok = false;
-            }
+            if (!ReadKSpeed(row, where, roomType, errors, out kSpeed)) ok = false;
 
             Fix baseEnv = Fix.Zero;
             if (ClinicMachineSchema.ReadRequiredFix(
@@ -164,5 +137,37 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             return new ContextRow(roomType, contextId, kSpeed, baseEnv);
         }
+
+        /// <summary>`k_speed` 读取 + AC-24-05 档集白名单(档集外一律 schema 错,单机制无第二分支)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 拆分</b>(债册 `TD-clinic-22` / S16 普查残项)。报文原文逐字未变;
+        /// <b>`ok = false` 的位置未动</b> —— 它仍只在该分支内被置假(承 `TD-clinic-11` / D4 的加固口径)。</remarks>
+        private static bool ReadKSpeed(
+            JsonNode row, string where, string roomType, List<string> errors, out Fix kSpeed)
+        {
+            kSpeed = Fix.Zero;
+            if (!ClinicMachineSchema.ReadRequiredFix(
+                    row, "k_speed", where, FileName, errors, out Fix parsedKSpeed))
+                return false;
+
+            kSpeed = parsedKSpeed;
+            // AC-24-05:档集白名单单机制 —— 档集外(含 0 / 负 / 5/4 / 1/2)同一条规则。
+            if (!ClinicMachineSchema.IsAllowedKSpeed(kSpeed.Raw))
+            {
+                // 🔁 2026-10-29(债册 TD-clinic-11 / 评审 D4):此前只 `errors.Add`,`ok` 未置 false
+                //    ⇒ **非法行仍被塞进 `rows`**。当前无害(throw 发生在 `K_CONTEXT_MAX` 派生之前),
+                //    但一旦将来把这条 throw 降级为告警,非法行就会污染派生集 ⇒ 派生值静默漂移。
+                //    加固后不产生**今日**可观测差异(仍在同一处 throw),只堵住那条降级路径。
+                //    ⚠️ 拆到本方法后,「置假」由**返回 false** 表达(调用方 `ok = false`),语义等价。
+                errors.Add(
+                    $"{FileName}:{where}(room_type=\"{roomType ?? "?"}\") k_speed raw={kSpeed.Raw} " +
+                    $"∉ 档集 {{{ClinicMachineSchema.KSpeedLiteralsText()}}} —— AC-24-05 / F-24-3 / OQ-24-1:" +
+                    "值域 (0,1] 由档集蕴含,档集外一律 schema 错(非「给它一个值」);" +
+                    $"违例值 = \"{(row.TryGet("k_speed", out JsonNode kn) ? kn.Str : "?")}\"");
+                return false;
+            }
+
+            return true;
+        }
+
     }
 }

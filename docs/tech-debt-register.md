@@ -404,19 +404,19 @@
 | `TD-clinic-07` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-08` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-09` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-10` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-10` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-11` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-12` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-12` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-13` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-14` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-15` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-15` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-16` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-17` | `clinic-machine` | open | **Y** | R1 |
-| `TD-clinic-18` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-18` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-19` | `clinic-machine` | open | **N** | R4 |
 | `TD-clinic-20` | `clinic-machine` | open | **Y** | R4 |
 | `TD-clinic-21` | `clinic-machine` | open | **N** | R4 |
+| `TD-clinic-22` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-gate-01` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-02` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
@@ -844,11 +844,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 71, 'closed': 56, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 104, 'N': 28, '~~**Y**~~': 1}
-未闭 P0 面 = 56 （已闭但曾标 P0 面的 48 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 56 条,分布在 10/31 个 epic
-    medical-consequences: 19  audio-system: 17          clinic-machine: 8
-    telemetry-analytics: 5    disease-simulation: 2     enemy-ai: 1
+条目 133 | 状态 {'open': 67, 'closed': 60, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 104, 'N': 28, '~~**Y**~~': 1}
+未闭 P0 面 = 52 （已闭但曾标 P0 面的 52 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 52 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 17          telemetry-analytics: 5
+    clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
 ```
@@ -3133,7 +3133,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **TD-clinic-07** | **R-19** —— `_furn_membership_enforced_with_injected_source` 断言的是 **`FurnMembershipEnforced` 标志**(由 `Room:102-103` **独立算出**),而非 `AssertFurnMember` 的行为 ⇒ 删掉该调用本测仍绿。**判别力现由姊妹测 `test:352` 兜住**(故非 🔴) | §二 R-19(`test:337` · `Room:230`) | 姊妹测 `test:352` 被改/删时(届时本条即失去兜底) ✅ **2026-10-29 结案** —— 见下方 §族 A 结案块 |
 | **TD-clinic-08** | **R-21 · 弱接受侧** —— `test_constants_env_mod_min_negative_accepted` 仅 `DoesNotThrow`;`test_bake_from_repo_seed_tables_accepted` 仅 `Count > 0`(不证**哪些**行被接受) | §二 R-21(`test:213,443`) | 同上;与 TD-clinic-09 同批处理最省 |
 | **TD-clinic-09** | **S24 · 多条正向测只断言 `Count > 0`** ⇒ **语义值全错仍绿**。落点 `test:111-118,143-150,286-290,441-454`(与 R-21 同族,范围更大) | §二 S24 | 同上;建议与 TD-clinic-02 / 08 合成一次「接受侧判别力收紧」小轮 |
-| **TD-clinic-10** | **S23 · 11 条正向接受类未入证伪轮** —— 判别力**未经反证**(实现证据原件 §五.2 自陈)。含 `test_cooked_bytes_deterministic_for_same_source` / `test_multiple_errors_aggregated_in_single_throw` / `test_bake_from_repo_seed_tables_accepted` / `test_adj_symmetric_pairs_accepted` 等 | §二 S23 · 实现证据 §五.2 | 下一次对本件做的证伪轮(或本件任一守卫被改动时) |
+| **TD-clinic-10** | **S23 · 11 条正向接受类未入证伪轮** —— 判别力**未经反证**(实现证据原件 §五.2 自陈)。含 `test_cooked_bytes_deterministic_for_same_source` / `test_multiple_errors_aggregated_in_single_throw` / `test_bake_from_repo_seed_tables_accepted` / `test_adj_symmetric_pairs_accepted` 等 | §二 S23 · 实现证据 §五.2 | 下一次对本件做的证伪轮(或本件任一守卫被改动时) ✅ **2026-10-29 结案** —— 见下方 §S23 结案块 |
 
 > ✅ **结案块(2026-10-25 · 清债轮「接受侧判别力收紧」小轮 · TD-clinic-02 / 08 / 09 三债同批 `open → closed`)**
 > —— 承本节尾「族 A 的 9 条建议合成一次小轮」的处方,本轮取其判别力核心三条:
@@ -3153,15 +3153,15 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
 | **TD-clinic-11** | **D4 · `ContextBinder` 档集外时 `ok` 未置 `false`,非法行仍入 `rows`。** 当前**无害** —— throw 发生在 `K_CONTEXT_MAX` 派生之前。但若将来把 throw **降级为告警**,非法行会污染 `K_CONTEXT_MAX` 派生集 ⇒ **静默改变派生值**。修法 = 一行(`ok = false`) | §二 D4(`Context:136-149`) | **把 `k_speed` 档集违例的 throw 降级为告警时**;或 `K_CONTEXT_MAX` 派生被提前到行层校验之前时 ✅ **2026-10-29 结案** —— 见下方 §族 A 结案块 |
-| **TD-clinic-12** | **D8 · 字符串字段无长度上界** —— `room_type` / `context_id` / `type` / `a` / `b` 只校非空。⚠️ **本条已核对:不构成 ADR-014 合规缺口** —— ADR-014 的「长度校验」(`:197`)指的是**数组长度 = `MAX_QUALITY`**,非字符串上界。故为**真实但潜伏的健壮性项**,不是欠了一条 ADR 义务 | §二 D8(各 binder) | story-002 / 003 引入**外部作者输入的字符串字段**时;或任一字符串字段进入**落盘形状**(存档 / 网络)时 |
+| **TD-clinic-12** | **D8 · 字符串字段无长度上界** —— `room_type` / `context_id` / `type` / `a` / `b` 只校非空。⚠️ **本条已核对:不构成 ADR-014 合规缺口** —— ADR-014 的「长度校验」(`:197`)指的是**数组长度 = `MAX_QUALITY`**,非字符串上界。故为**真实但潜伏的健壮性项**,不是欠了一条 ADR 义务 | §二 D8(各 binder) | story-002 / 003 引入**外部作者输入的字符串字段**时;或任一字符串字段进入**落盘形状**(存档 / 网络)时 ✅ **2026-10-29 结案 —— 用户裁定「不设上界」** |
 
 ### 族 C · 结构性重构建议(3 条,纯建议)
 
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
 | **TD-clinic-13** | **S19 · 三 binder 前言四步逐字重复**(词法 → 根须对象 → `RejectUnknownKeys` → `ReadSchemaVersion` → 缺数组早 throw),可抽 `Schema.BeginTable(...)`。**不阻塞** | §二 S19(三 binder) | **第四张表加入本件同族烘焙管线时**(届时重复份数上升,抽取收益 > 改动面) ✅ **2026-10-29 结案** —— 见下方 §族 A 结案块(实测 **5** 份,非 3) |
-| **TD-clinic-14** | **S16 · 超 40 行** —— `ParseClause`(`Room:196-277`,~82 行)· `AssertFurnTableShape`(~62 行)。⚠️ 仓内**无明文 40 行规则**,`code-review` 清单有该项但仅建议 | §二 S16 | 下次动 `ParseClause` / `AssertFurnTableShape` 任一 ✅ **2026-10-29 结案** —— 见下方 §族 A 结案块(同批实测**族内 5 处仍 &gt;40**,已登记为 `TD-clinic-18`) |
-| **TD-clinic-15** | **R-13 · 测试专用 `public` 包装进生产装配面** —— `Bind*ForTest`(`TablesBake:102,106,110`)仅转发公开 `Bind`,**功能无碍**,但**命名把测试意图带进了生产 API** | §二 R-13 | `Bind*ForTest` 被**生产侧**引用时(即测试意图真正渗入生产前);或本件 API 面整理轮 |
+| **TD-clinic-14** | **S16 · 超 40 行** —— `ParseClause`(`Room:196-277`,~82 行)· `AssertFurnTableShape`(~62 行)。⚠️ 仓内**无明文 40 行规则**,`code-review` 清单有该项但仅建议 | §二 S16 | 下次动 `ParseClause` / `AssertFurnTableShape` 任一 ✅ **2026-10-29 结案** —— 见下方 §族 A 结案块(同批实测**族内 5 处仍 &gt;40**,已登记为 `TD-clinic-22`) |
+| **TD-clinic-15** | **R-13 · 测试专用 `public` 包装进生产装配面** —— `Bind*ForTest`(`TablesBake:102,106,110`)仅转发公开 `Bind`,**功能无碍**,但**命名把测试意图带进了生产 API** | §二 R-13 | `Bind*ForTest` 被**生产侧**引用时(即测试意图真正渗入生产前);或本件 API 面整理轮 ✅ **2026-10-29 结案** —— 见下方 §收尾结案块 |
 
 ### 族 D · 跨件 / 全仓既有实践(2 条,非本件独有)
 
@@ -3170,7 +3170,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **TD-clinic-16** | **S25 · 测试读文件系统**(`assets/data/` + `tests/unit/clinic_machine/fixtures/`),与 `.claude/rules/test-standards.md`「Unit tests must not depend on external state (filesystem)」**字面相抵**。⚠️ **属本项目既有 EditMode 实践**(承 `Audio/settings_exposure_test.cs`),非本件新引入 | §二 S25 | **CI runner 落地时(ADR-012 矩阵)** —— 与 **TD-medcons-09 同触发点**,宜同批处置 |
 | **TD-clinic-17** | **S6 · 承继偏差(非本件文件)** —— `JsonStage1Lexer.cs:5-8` 取 `FloatParseHandling = Decimal`,而 ADR-014 原文钉 `None`(该文件自陈 Newtonsoft 无 `None` 成员)。行为拒收已由**阶段 2 结构化**封住,但**字面偏离应登记** | §二 S6(`JsonStage1Lexer.cs`) | **`JsonStage1Lexer` 统一加固轮**(与 TD-medcons-10「不拒重复 property」同轮 —— 两条都是该词法器的口子) |
 
-| **TD-clinic-18** | **S16 的普查残项** —— `TD-clinic-14` 只登记了 `ParseClause` / `AssertFurnTableShape` **两个方法**(抽样),2026-10-29 结案轮做**全族普查**后发现同族**另有 5 处 > 40 行**:`ClinicMachineAdjBinder.ParsePair` 57 · `ClinicMachineContextBinder.ParseRow` 60 · `ClinicMachineContextNamesBinder.ParseRow` 48 · `ClinicMachineRoomNamesBinder.ParseRow` 49 · `ClinicMachineTablesBake.Bake` 45。**均未改动** —— 本轮只拆了「已触发的两个 + 自己改到的 `Bind` / `ParseRoom` / `AssertOverflowBounds`」,其余不在 `TD-clinic-14` 的登记面内,不借此扩权 | §二 S16(普查,非原登记面) | 规范闸 ≤40 行真正落地时(与 `TD-medcons-17` / `TD-persist-08` 同批);或任一方法下次实质改动时 |
+| **TD-clinic-22** | **S16 的普查残项** —— `TD-clinic-14` 只登记了 `ParseClause` / `AssertFurnTableShape` **两个方法**(抽样),2026-10-29 结案轮做**全族普查**后发现同族**另有 5 处 > 40 行**:`ClinicMachineAdjBinder.ParsePair` 57 · `ClinicMachineContextBinder.ParseRow` 60 · `ClinicMachineContextNamesBinder.ParseRow` 48 · `ClinicMachineRoomNamesBinder.ParseRow` 49 · `ClinicMachineTablesBake.Bake` 45。**均未改动** —— 本轮只拆了「已触发的两个 + 自己改到的 `Bind` / `ParseRoom` / `AssertOverflowBounds`」,其余不在 `TD-clinic-14` 的登记面内,不借此扩权 | §二 S16(普查,非原登记面) | 规范闸 ≤40 行真正落地时(与 `TD-medcons-17` / `TD-persist-08` 同批);或任一方法下次实质改动时 ✅ **2026-10-29 结案** —— 见下方 §S23 结案块 |
 
 **共同性质**:16 条**全部不阻塞**任何 sprint 的 DoD,亦**不阻塞**本件的挂标状态
 (本件转 `Complete` 的唯一门是 **TD-clinic-01**)。
@@ -3195,12 +3195,78 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | `TD-clinic-07`(R-19) | ✅ | ✅ | `ClinicMachineRoomBinder.cs`:`memberChecks` 计数取代「来源在不在」的独立求值,哨兵 = `membershipEnforced && memberChecks > 0` | 证伪 **M-a**:摘掉 `AssertFurnMember` 调用 ⇒ `test_room_furn_membership_rejects_type_outside_injected_source` **红**;**M-b**:摘掉 `memberChecks++` ⇒ `test_room_furn_membership_enforced_with_injected_source` **红**(证明哨兵由**实际执行次数**驱动) |
 | `TD-clinic-11`(D4) | ✅ | ✅ | `ClinicMachineContextBinder.ParseRow`:`ok = false` | ✅ **Proven = ✗(如实登记)** —— 该缺陷**今日不可观测**(throw 发生在 `K_CONTEXT_MAX` 派生之前),无从造「不修即红」的夹具。加固只堵**将来把 throw 降级为告警**那条路径;该路径未发生 ⇒ 证伪**不可行**,不是「跑了没红」 |
 | `TD-clinic-13`(S19) | ✅ | ✅ | 新增 `ClinicMachineSchema.BeginTable(json, rootKeys, fileName, errors, out schemaVersion)`;5 个 binder(Room / Context / Adj / RoomNames / ContextNames)+ `FURN_TABLE` 全部改走它 | 复算:`grep -c '阶段1 词法失败' unity/Assets/Editor.Tools.Bake/ClinicMachine*Binder.cs` ⇒ 五份**各 0**(0 行输出);`grep -c BeginTable` ⇒ 6 处调用。行为面:回归 `5852/5815/0/0/37` 零红 |
-| `TD-clinic-14`(S16) | ✅ | ✅ | `ParseClause` 82 → 32(`TryReadClauseHead` / `TryReadAdjacency` / `TryReadMin` 三支)· `AssertFurnTableShape` 62 → 31(`AssertFurnRow` / `AssertFurnType` / `ReadFurnRoot`)· 本轮连带 `Bind` 52 → 32 · `ParseRoom` 52 → 32 · `AssertOverflowBounds` 51 → 32 | 复算:对 `unity/Assets/Editor.Tools.Bake/ClinicMachine*.cs` 逐方法扫「声明行 → 配对 `}`」跨度,`>40` 的输出见 `TD-clinic-18`(5 条,**均非本轮改动的方法**)。行为面同一回归零红 |
+| `TD-clinic-14`(S16) | ✅ | ✅ | `ParseClause` 82 → 32(`TryReadClauseHead` / `TryReadAdjacency` / `TryReadMin` 三支)· `AssertFurnTableShape` 62 → 31(`AssertFurnRow` / `AssertFurnType` / `ReadFurnRoot`)· 本轮连带 `Bind` 52 → 32 · `ParseRoom` 52 → 32 · `AssertOverflowBounds` 51 → 32 | 复算:对 `unity/Assets/Editor.Tools.Bake/ClinicMachine*.cs` 逐方法扫「声明行 → 配对 `}`」跨度,`>40` 的输出见 `TD-clinic-22`(5 条,**均非本轮改动的方法**)。行为面同一回归零红 |
 
 > ⚠️ **`TD-clinic-11` 的 `Proven = ✗` 是本块唯一未闭合的列** —— 按 8b 标准这是**合法的诚实状态**
 > (缺陷今日不可观测 ⇒ 无法构造反证),**不得**读成「已证」。
 >
-> ⚠️ **`TD-clinic-14` 的结案口径须连带读 `TD-clinic-18`** —— 原文只登记两个方法(抽样)。
+> ⚠️ **`TD-clinic-14` 的结案口径须连带读 `TD-clinic-22`** —— 原文只登记两个方法(抽样)。
+> 若把本行读成「族内已无 > 40 行方法」即为**借绿**:普查实测仍有 **5** 处,已各自立债。
+
+### 族 A 收尾结案(2026-10-29 · 2 条 closed · 用户裁定)
+
+### S23 结案块(2026-10-29 · 2 条 closed · `TD-clinic-10` / `TD-clinic-22`)
+
+> **回归三元组**:EditMode `5852 / 5815 / 0 / 0 / 37` @ **2026-10-29 09:33 CST** · 全量(无 filter) ·
+> HEAD `2236bf8a` + 本次工作树。**与结案前逐位相同**(同上一条三元组)⇒ 本轮**零行为变更**,
+> 且 `+[Test]` / `+[TestCase]` = 0/0 ⇒ 既非借绿、也非删测。
+
+#### `TD-clinic-10`(S23)—— 8 条正向接受类入证伪轮
+
+原登记 11 条**未入证伪轮**。核账后 **3 条早已有反证**(`test_multiple_errors_aggregated_in_single_throw`
+= 本轮 R-18 变异;`test_room_furn_membership_enforced_with_injected_source` = 本轮 R-19 M-b;
+`test_adj_wmin_abs_gt_wmax_rejected` = 首轮 G2),**余 8 条本轮补齐,8/8 转红**:
+
+| 变异 | 改动(生产守卫) | 期望红 | 实测 |
+|---|---|---|---|
+| Sa | `ConfigVersionUtility.DeriveConfigVersion`:`uint hash = FnvOffset;` → `FnvOffset ^ (uint)DateTime.UtcNow.Ticks` | `test_cooked_bytes_deterministic_for_same_source` | ✅ red=1 |
+| Sb | `ClinicMachineTablesBake.AssertContextNameCoverage`:`known.Contains` → `!known.Contains` | `test_bake_from_repo_seed_tables_accepted` | ✅ red=3(含期望) |
+| Sc | `ClinicMachineAdjBinder.AssertSymmetry`:`mirrorRaw != p.W.Raw` → `==` | `test_adj_symmetric_pairs_accepted` | ✅ red=8(含期望) |
+| Sd | `ClinicMachineSchema.IsAllowedKSpeed`:`return true` → `return raw != 65536L` | `test_context_k_speed_boundary_one_accepted` | ✅ red=8(含期望) |
+| Se | `AssertFurnRow`:`tierNode.Int < 0` → `<= 0` | `test_furn_table_field_spec_accepted` | ✅ red=1 |
+| Sf | `AssertOverflowBounds`:`product >= Int32Limit` → `>= Int32Limit - 2` | `test_adj_n_max_boundary_floor_accepted` | ✅ red=2(含期望) |
+| Sg | 同上:`>= Int32Limit` → `>= Int32Max` | `test_overflow_bounds_exact_2pow31_minus_one_accepted` | ✅ red=1 |
+| Sh | `AssertEnvModMinNegative`:`if (!(envModMin.Raw < 0))` → `if (envModMin.Raw < 0)` | `test_constants_env_mod_min_negative_accepted` | ✅ red=5(含期望) |
+
+**全部 8/8 `RESTORE-OK`(SHA-256 逐字节)**;驱动器含 `total==0 ⇒ FILTER-MISS 中止` 与
+「期望夹具必须出现在红名单」两道守卫(承 story-006 / clinic story-001 两次「没跑记成绿」的教训)。
+⚠️ **`red=n` 大于 1 不削弱结论**:每条变异只要求**期望那一条**必红;连带红是同族夹具正常反应
+(例:Sb 翻转词表覆盖门会同时打到另两条同样走 `BakeFromRepo` 的测)。
+
+#### `TD-clinic-22`(S16 普查残项)—— 5 处 > 40 行全部拆完
+
+| 方法 | 拆前 | 拆后 | 支 |
+|---|---|---|---|
+| `ClinicMachineAdjBinder.ParsePair` | 57 | 32 | `ReadEndpoints` · `ReadWeight` |
+| `ClinicMachineContextBinder.ParseRow` | 60 | 27 | `ReadKSpeed` |
+| `ClinicMachineContextNamesBinder.ParseRow` | 48 | 39 | `BeginRow` · `TryCastVocabularyId` |
+| `ClinicMachineRoomNamesBinder.ParseRow` | 49 | 40 | 同上 |
+| `ClinicMachineTablesBake.Bake` | 45 | 33 | `AssertCrossTable` |
+
+**同批抽出两件共享件**(顺带把 `BeginTable` 之后的重复再降一档):
+`Schema.BeginRow`(5 个 binder 的「须为对象 + 行键白名单」逐字相同)·
+`Schema.TryCastVocabularyId`(2 个词表 binder 的 long→int 收窄逐字相同)。
+
+**Proven(纯重构,判据是「可观测面未变」)**:
+① **全量回归逐位相同**(`5852/5815/0/0/37`,与拆前同)⇒ 行为零变更;
+② **报文串逐字比对** —— 脚本抽出改动前后全部**带插值**的字符串字面量做多重集差:
+唯一差异是 5+2 份**同文**副本收敛到 `Schema` 里的 1+1 份(`{FileName}` → `{fileName}` 形参名,
+**渲染结果相同**),**无任何一条报文的文本或次序被改动**;
+③ **行数门实测**:对 `unity/Assets/Editor.Tools.Bake/ClinicMachine*.cs` 逐方法扫「声明行 → 配对 `}`」
+跨度,`>40` 输出 **0 条**。
+⚠️ **本轮自查抓到一处自己引入的报文变异并修掉**:`ReadWeight` 的报文一度被写成
+`w("a","b") )`(多一个空格),已还原为原文 `w("a","b"))` —— 凭 ② 的比对脚本发现,
+不是凭肉眼。
+
+---
+
+
+
+| 债 | Landed | Proven | 结案判据 |
+|---|---|---|---|
+| `TD-clinic-12`(D8) | ✅(**不改代码**) | ✅ | **用户裁定 2026-10-29:不设长度上界**。理由三条:① 自定上界 = 在 24 侧硬编码 gameplay 值,违 `coding-standards`「Gameplay values must be data-driven」;② ADR-014 的「长度校验」(`:197`)指**数组长度 = MAX_QUALITY**,不是字符串上界 ⇒ 本项**不是**欠一条 ADR 义务;③ 字符串只进**作者态 JSON**(烘焙期),不进存档 / 网络落盘形状 ⇒ 无攻击面。**结案 = 裁决已下 + 代码零改动**,不是「修好了」。⚠️ 触发条件若复现(字符串进落盘形状)⇒ 须重开。 |
+| `TD-clinic-15`(R-13) | ✅ | ✅ | 五个方法 `Bind{Context,Adj,Room,RoomNames,ContextNames}ForTest` → `…Table`(51 处调用点全改)。**未改 `internal` + IVT** —— 本仓既有实践是「测试经 public 面直调,免 IVT」(`CompositionRoot.cs:1518` / `AssemblyGates.cs:43` 两处先例)⇒ 改名即修,不新开与本仓惯例相反的可见性通道。**Proven-by**:`grep -rn "ForTest" --include=*.cs unity/Assets/Editor.Tools.Bake/` ⇒ 空;`ClinicMachine` 命名空间回归 `194/194/0/0`。 |
+
 > 若把本行读成「族内已无 > 40 行方法」即为**借绿**:普查实测仍有 **5** 处,已各自立债。
 
 ---

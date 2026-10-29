@@ -244,17 +244,25 @@ S19 · S16 · R-13 · S25 · S6 —— 均为判别力收紧或建议项,不阻�
 | **R-19** | `TD-clinic-07` | ✅ | ✅ | `ClinicMachineRoomBinder.cs`(`memberChecks` 计数;哨兵 = `membershipEnforced && memberChecks > 0`) | 证伪 M-a(摘 `AssertFurnMember`)⇒ `..._rejects_type_outside_injected_source` **红**;M-b(摘 `memberChecks++`)⇒ `..._enforced_with_injected_source` **红** |
 | **D4** | `TD-clinic-11` | ✅ | **✗** | `ClinicMachineContextBinder.ParseRow`(`ok = false`) | **无反证可造** —— 缺陷今日不可观测(throw 在 `K_CONTEXT_MAX` 派生之前),加固只堵「将来把 throw 降级为告警」那条路径。按 8b:合法的诚实状态,**不得读成已证** |
 | **S19** | `TD-clinic-13` | ✅ | ✅ | `ClinicMachineSchema.BeginTable`(新)+ 5 binder 接线 | 复算:`grep -c '阶段1 词法失败' unity/Assets/Editor.Tools.Bake/ClinicMachine*Binder.cs` ⇒ 五份各 **0**;全量回归零红 |
-| **S16** | `TD-clinic-14` | ✅ | ✅ | `ParseClause` 82→32 · `AssertFurnTableShape` 62→31 · `Bind` 52→32 · `ParseRoom` 52→32 · `AssertOverflowBounds` 51→32 · `AdjBinder.Bind` 50→35 | 复算:逐方法扫「声明行 → 配对 `}`」跨度;族内 `>40` 的残余见 `TD-clinic-18`(5 条,**不含**本行任一方法) |
+| **S16** | `TD-clinic-14` | ✅ | ✅ | `ParseClause` 82→32 · `AssertFurnTableShape` 62→31 · `Bind` 52→32 · `ParseRoom` 52→32 · `AssertOverflowBounds` 51→32 · `AdjBinder.Bind` 50→35 | 复算:逐方法扫「声明行 → 配对 `}`」跨度;族内 `>40` 的残余见 `TD-clinic-22`(5 条,**不含**本行任一方法) |
 | **R-10c** | `TD-clinic-04` | ✅(前轮已落) | ✅ | 同上文件 `"ENV_MOD_MIN"` 断言 | **本轮零改动** —— 核账发现登记时已修,陈旧条目,直接关闭 |
 
 **判据纠偏(须连带读)**:`TD-clinic-14` 的原文只登记**两个方法**(抽样)。全族普查后**另有 5 处仍 > 40 行**,
-已立 **`TD-clinic-18`**。把本表 `S16` 行读成「族内已无超长方法」= **借绿**。
+已立 **`TD-clinic-22`**。把本表 `S16` 行读成「族内已无超长方法」= **借绿**。
 同型纠偏第二条:`S19` 原文记「**三** binder 重复」,实测 **5** 份。
 
-### 七之五 · 本轮仍未处理(禁借绿)
-1. 余 **6 条** 🟡:`S23`(`TD-clinic-10`)· `D8`(`TD-clinic-12`)· `R-13`(`TD-clinic-15`)·
-   `S25`(`TD-clinic-16`)· `S6`(`TD-clinic-17`)· 新增 `TD-clinic-18`。
-2. **`D8` 需用户裁定**:字符串字段是否需要长度上界;需要的话**上界值由用户给**
-   (自行定值 = 在 24 侧硬编码 gameplay 值,违 `coding-standards`「Gameplay values must be data-driven」)。
+### 七之五 · 第二轮之后的余项(2026-10-29 追加)
+
+**第二轮(用户裁定后)又结 4 条**:
+| 债 | 项 | 判据 |
+|---|---|---|
+| `TD-clinic-10` | S23 | 8 条正向接受类**全部入证伪轮,8/8 转红**(Sa–Sh,`RESTORE-OK`);另 3 条原登记项早已有反证 |
+| `TD-clinic-12` | D8 | **用户裁定「不设上界」** —— 改动 = 0(裁决落盘 + 代码注释写明三条理由与重开触发条件) |
+| `TD-clinic-15` | R-13 | `Bind*ForTest` → `Bind*Table`(51 处);**不改 internal+IVT**(仓内既有实践 = public 面直调) |
+| `TD-clinic-22` | S16 普查残项 | 5 处 > 40 行全拆(57/60/48/49/45 → 32/27/39/40/33);同批抽 `Schema.BeginRow` + `TryCastVocabularyId` |
+
+**仍未处理(禁借绿)**:
+1. **2 条** 🟡 留债(触发点均不在当下):`S25`(`TD-clinic-16`,与 `TD-medcons-09` 同批,归 CI runner 落地)·
+   `S6`(`TD-clinic-17`,归 `JsonStage1Lexer` 统一加固轮)。
+2. `TR-clinic-007` → **covered**(核账后翻转);`TR-clinic-009` → **partial**(契约半 ✅ / 9 侧接线半 ✗)。
 3. **本轮只跑 EditMode**;PlayMode / IL2CPP 三格仍 NOT RUN(与首轮同)。
-4. `TR-clinic-007` / `TR-clinic-009` 的 `gap` 疑似陈旧,**未核、未动**。

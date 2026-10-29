@@ -28,12 +28,23 @@
 
 > 登记处:`docs/architecture/tr-registry.yaml`(`id: TR-clinic-*`,共 10 条)。
 > 计数(2026-09-28 实测):**10 条 = 5 covered + 4 partial + 1 gap(TR-clinic-007 房间连通算法无 ADR,由本 epic story-002 兑现机制层)**;U 项不阻塞实现轮。
-> 🔁 **2026-10-29 回填轮**:`TR-clinic-006` partial → covered(原 note 的依据 `OQ-24-5 未裁` 已失效,
-> 该 OQ 于 2026-10-07 裁 `n_max = 64`)⇒ **当前 6 covered + 3 partial + 1 gap**。
-> ⚠️ **同表另有 2 行的状态疑似陈旧但本轮未动**(不代改,须各自核):
-> `TR-clinic-007`(`gap`,措辞说机制归 story-002,而 story-002 已 `Complete`)·
-> `TR-clinic-009`(`gap`,交付边界归 story-004,而 story-004 已 `Complete`)。
-> 本轮**没有**核它们的实际落点 ⇒ **不主张它们已 covered**。
+> 🔁 **2026-10-29 回填轮**:三处订正 + **一处我自己写错的数字就地订正**。
+> ① `TR-clinic-006` partial → covered(原 note 的依据 `OQ-24-5 未裁` 已失效,该 OQ 2026-10-07 裁 `n_max = 64`);
+> ② `TR-clinic-007` gap → covered(story-002 已交付 + 23 条夹具 + F1/M3 反证;`adr` 仍 null);
+> ③ `TR-clinic-009` gap → partial(9 侧 GDD 条款 ✅ + 24 的 `ClinicEnvDto` 零语义 ✅;
+> **9 侧运行期消费未接线** ✗)。
+> ⚠️ **原文「10 条 = 5 covered + 4 partial + 1 gap」本身是错的** —— 实测原值是
+> **4 covered + 5 partial + 1 gap**(10 条总数正确,前两项对调)。我上一版据此写的
+> 「6 covered + 3 partial + 1 gap」**是错的**,此处就地订正为 **6 covered + 4 partial + 0 gap**。
+> 复算(**已实跑**,输出逐字如下):
+> ```
+> python3 -c "
+> import re,collections
+> s=open('docs/architecture/tr-registry.yaml',encoding='utf-8').read()
+> p=re.findall(r'- id: (TR-clinic-\d+)\n(?:.*\n)*?    status: (\w+)', s)
+> print(len(p), dict(collections.Counter(x[1] for x in p)))"
+> ⇒ 10 {'covered': 6, 'partial': 4}
+> ```
 
 | TR-ID | Requirement | Status |
 |-------|-------------|--------|
@@ -43,9 +54,9 @@
 | TR-clinic-004 | CONTEXT_TABLE 经 ADR-014 烘焙管线出货;条目数硬上限 K_CONTEXT_MAX | covered(ADR-014) |
 | TR-clinic-005 | ADJ_TABLE 对称性 = 加载期硬门(不对称即失败) | covered(ADR-014) |
 | TR-clinic-006 | 加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界) | covered(ADR-006) —— 2026-10-29 由 partial 翻转 |
-| TR-clinic-007 | 房间连通性析出算法与 ROOM_NONE 哨兵(围合判定) | gap —— 机制归 story-002 |
+| TR-clinic-007 | 房间连通性析出算法与 ROOM_NONE 哨兵(围合判定) | covered —— 2026-10-29 由 gap 翻转(story-002 已交付 + 23 夹具 + F1/M3 反证;adr 仍 null) |
 | TR-clinic-008 | 格分类三态:非医馆格 / 内部格 / 阈值格的归类判据 | partial(ADR-015) |
-| TR-clinic-009 | 语义不泄漏:9 只收乘子,不收「医馆」语义概念 | gap —— 交付边界归 story-004 |
+| TR-clinic-009 | 语义不泄漏:9 只收乘子,不收「医馆」语义概念 | partial —— 2026-10-29 由 gap 翻转(契约半 ✅ / 9 侧接线半 ✗) |
 | TR-clinic-010 | 24 零呈现引用 · 零音频直接触发(输出仅整数乘子与格分类) | partial(ADR-025+018) |
 
 ## Definition of Done

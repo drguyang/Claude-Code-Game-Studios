@@ -366,7 +366,7 @@
   均 `Complete`),但**本轮未核实际落点 ⇒ 未动、不主张已 covered**。
 - **③ `EPIC.md` 的 002–005 四行 `Ready` 已订正为 `Complete`**(四份 story 文件的 `Status:` 早已是
   `Complete`,复算命令见 EPIC 内的注)。
-- **新立 1 条债**:`TD-clinic-18` —— `TD-clinic-14` 只登记了**两个方法**(抽样),全族普查后
+- **新立 1 条债**:`TD-clinic-22` —— `TD-clinic-14` 只登记了**两个方法**(抽样),全族普查后
   **另有 5 处 > 40 行**(`AdjBinder.ParsePair` 57 / `ContextBinder.ParseRow` 60 /
   `ContextNamesBinder.ParseRow` 48 / `RoomNamesBinder.ParseRow` 49 / `TablesBake.Bake` 45)。
   **本轮未改它们**(不在原登记面内,不借此扩权)。
@@ -375,3 +375,24 @@
   差值 **+2/+2** 归 `dad1f582` 的 2 条 `[Test]`(**非本轮**)—— 本轮 `git diff` 的
   `+[Test]` / `+[TestCase]` 计数 = **0 / 0**。
 - **未跑(不变)**:PlayMode;IL2CPP 三格(矩阵级)。
+
+**2026-10-29 · 修复轮之二(用户裁定后 · 余项清零)**
+
+> 承上块的「余 6 条」,用户逐项裁定后本轮再结 **4 条**:
+
+- **`TD-clinic-12`(D8)**:用户裁定**不设字符串长度上界**。改动 = **0**(裁决落盘 + `ReadRequiredString`
+  的 `<remarks>` 写明三条理由与重开触发条件:任一字符串进落盘形状即失效)。
+- **`TD-clinic-15`(R-13)**:`Bind{Context,Adj,Room,RoomNames,ContextNames}ForTest` → `…Table`(51 处调用点)。
+  **未改 `internal` + `InternalsVisibleTo`** —— 仓内既有实践是「测试经 public 面直调,免 IVT」
+  (`CompositionRoot.cs:1518` / `AssemblyGates.cs:63` 两处先例)⇒ 改名即修。
+- **`TD-clinic-10`(S23)**:原登记 11 条「判别力未经反证」的正向接受类。核账发现 **3 条早已有反证**
+  (含本轮 R-18 / R-19 两条),**余 8 条本轮补齐,8/8 转红**(Sa–Sh,全部 `RESTORE-OK`)。
+- **`TD-clinic-22`**(本轮新立后即结):全族普查剩下的 **5 处 > 40 行**全拆
+  (`ParsePair` 57→32 · `ContextBinder.ParseRow` 60→27 · `ContextNamesBinder.ParseRow` 48→39 ·
+  `RoomNamesBinder.ParseRow` 49→40 · `TablesBake.Bake` 45→33),同批抽 `Schema.BeginRow` +
+  `Schema.TryCastVocabularyId` 两件共享件。
+- **回归(三元组)**:EditMode **`5852 / 5815 / 0 / 0 / 37`** @ **2026-10-29 09:33 CST** · 全量 · `2236bf8a`+工作树
+  —— 与上一轮**逐位相同**,`+[Test]`/`+[TestCase]` = 0/0 ⇒ 重构零行为变更。
+- **本轮自查抓到并修掉一处自己引入的报文变异**:`ReadWeight` 的报文一度多一个空格
+  (`w("a","b") )`),已还原;发现手段 = 改动前后**全部插值字符串字面量的多重集差**脚本,**不是肉眼**。
+- **余 2 条**(触发点均不在当下):`TD-clinic-16`(S25,归 CI runner 落地批)· `TD-clinic-17`(S6,归 lexer 加固轮)。

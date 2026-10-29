@@ -4156,8 +4156,8 @@
     requirement: "房间连通性析出算法与 ROOM_NONE 哨兵(围合判定)"
     domain: Core
     adr: null
-    status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 全库(22 份 ADR)零覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
+    status: covered
+    note: "D-R3 回填(2026-09-21)。❌ 全库零 ADR 覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件。 🔁 **2026-10-29 核实并订正:gap → covered** —— 原 gap 的依据「无实现」已失效。三件齐(同 TR-inventory-015 / TR-processing-015 的 covered 口径,**不依赖 adr 非空**):① 实现落点 = unity/Assets/Sim/Clinic/ClinicRoomExtraction.cs(4 邻接 ABS(dx)+ABS(dy)==1 连通析出)+ unity/Assets/Sim/Clinic/ClinicRoomId.cs(ROOM_NONE = (0,0) 哨兵,与真实 id 空间不交);② 夹具 = unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs(23 条 [Test],含 EC-24-01/07);③ 反证 = story-002 记录 F1(对角误并)/ M3(instance-as-cell 注入)两条变异转红,原件 production/qa/evidence/review-sprint17-batch1-2026-10-21.md §六之一。⚠️ adr 仍为 null —— 本 covered 指**需求已交付并被夹具钉住**,不指「已立 ADR」。"
   - id: TR-clinic-008
     system: clinic-machine
     gdd: design/gdd/clinic-machine.md
@@ -4172,8 +4172,8 @@
     requirement: "语义不泄漏:9 只收乘子,不收「医馆」语义概念(B2 落点须在 9 的 GDD 侧验证)"
     domain: Core
     adr: null
-    status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
+    status: partial
+    note: "D-R3 回填(2026-09-21)。❌ 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件。 🔁 **2026-10-29 核实并订正:gap → partial**(两半分开算,不合并记账)——**已钉的一半**:① 9 侧 GDD 明文验证成立(design/gdd/disease-simulation.md:650「9 只收 24 的护理动作事件,不感知医馆本身 —— 医馆只是一个 EnvMod 乘子」· :1491 同口径);② 24 交付面机械可判:ClinicEnvDto 字段集恰 = RoomNameId / ContextIds[] / EnvMod / EquipMod(零 disease_id、零医馆语义),夹具 test_clinicenvdto_dtoGuard_recursiveScan_clean + 活跃负例 ..._negativeFixture_nestedDiseaseField_caught(unity/Assets/Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs),反证 F2 = 停用 PresentationDtoGuard 词面检测 ⇒ 负例转红。**未钉的一半**:9 侧**运行期消费未接线** —— 全树 `grep -rn 'IClinicEnvQuery' unity/Assets/Sim/ --include=*.cs` 在 `Sim/Clinic/` 之外零命中(该通道未收敛一事另见 TD-clinic-20)⇒ 「9 只收乘子」今日**只在契约面与 GDD 面成立,运行期不可观测**。故 partial:契约半 ✅ / 接线半 ✗。"
   - id: TR-clinic-010
     system: clinic-machine
     gdd: design/gdd/clinic-machine.md

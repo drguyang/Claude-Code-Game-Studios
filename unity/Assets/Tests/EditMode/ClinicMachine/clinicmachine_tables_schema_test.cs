@@ -114,7 +114,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_context_k_speed_above_one_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(FixtureText("invalid_context_table.json")));
+                ClinicMachineTablesBake.BindContextTable(FixtureText("invalid_context_table.json")));
 
             AssertErrorsContain(ex, "k_speed", "5/4");
         }
@@ -123,7 +123,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_context_k_speed_zero_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(FixtureText("invalid_context_zero.json")));
+                ClinicMachineTablesBake.BindContextTable(FixtureText("invalid_context_zero.json")));
 
             AssertErrorsContain(ex, "k_speed", "档集");
         }
@@ -132,7 +132,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_context_k_speed_boundary_one_accepted()
         {
             // 边界双向的另一侧:"1/1" 解析后 = 档集成员 1(raw 65536)⇒ 必须通过。
-            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextForTest(
+            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextTable(
                 FixtureText("valid_context_boundary.json"));
 
             // 语义值断言(清债轮 · TD-clinic-09):只断 Count>0 时行内容全错仍绿。
@@ -155,7 +155,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_adj_asymmetric_value_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_table.json")));
+                ClinicMachineTablesBake.BindAdjTable(FixtureText("invalid_adj_table.json")));
 
             AssertErrorsContain(ex, "不对称", "surgery_table");
         }
@@ -164,7 +164,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_adj_single_sided_pair_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_single_sided.json")));
+                ClinicMachineTablesBake.BindAdjTable(FixtureText("invalid_adj_single_sided.json")));
 
             AssertErrorsContain(ex, "单向缺项", "chamber_pot");
         }
@@ -172,7 +172,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         [Test]
         public void test_adj_symmetric_pairs_accepted()
         {
-            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjForTest(
+            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjTable(
                 RepoDataText("clinicmachine_adj.json"));
 
             Assert.That(bound.Pairs.Count, Is.EqualTo(6));
@@ -244,7 +244,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_adj_n_max_boundary_floor_accepted()
         {
             // n_max = floor((2^31−1)/3) ⇒ ×3 = 2147483646 < 2^31。
-            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjForTest(
+            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjTable(
                 FixtureText("valid_adj_boundary.json"));
 
             Assert.That(bound.NMax, Is.EqualTo(715827882L));
@@ -265,7 +265,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // n_max = floor + 1 ⇒ ×3 = 2147483649 >= 2^31。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_overflow.json")));
+                ClinicMachineTablesBake.BindAdjTable(FixtureText("invalid_adj_overflow.json")));
 
             AssertErrorsContain(ex, "溢出界");
         }
@@ -274,7 +274,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_adj_wmin_abs_gt_wmax_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_wdomain.json")));
+                ClinicMachineTablesBake.BindAdjTable(FixtureText("invalid_adj_wdomain.json")));
 
             // 断言钉到「界健全性」子分支 —— 该 token 被 AssertOverflowBounds ②段三条报文共用
             // (「W_MIN…须 < 0」/「W_MAX…须 > 0」/「界健全性失败:|W_MIN| > W_MAX」),
@@ -365,7 +365,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         [Test]
         public void test_k_context_max_derived_from_table()
         {
-            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextForTest(
+            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextTable(
                 RepoDataText("clinicmachine_context.json"));
 
             long maxRaw = long.MinValue;
@@ -425,7 +425,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_room_unknown_clause_kind_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomForTest(
+                ClinicMachineTablesBake.BindRoomTable(
                     FixtureText("invalid_room_clause_kind.json"), null));
 
             AssertErrorsContain(ex, "未知子句类型", "proximity");
@@ -435,7 +435,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_room_clause_direction_invalid_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomForTest(
+                ClinicMachineTablesBake.BindRoomTable(
                     FixtureText("invalid_room_direction.json"), null));
 
             // 🔁 2026-10-29(债册 TD-clinic-03 / 评审 R-10b):原断言「direction」是**共用 token** ——
@@ -453,7 +453,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"[ { ""kind"": ""has_type"", ""type"": ""bed"" }, " +
                 @"{ ""kind"": ""has_type"", ""type"": ""cot"" } ] } ] }";
 
-            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomForTest(
+            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomTable(
                 roomJson, new StubFurnSource("bed", "cot"));
 
             Assert.That(bound.FurnMembershipEnforced, Is.True);
@@ -469,7 +469,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"{ ""kind"": ""has_type"", ""type"": ""cot"" } ] } ] }";
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomForTest(roomJson, new StubFurnSource("bed")));
+                ClinicMachineTablesBake.BindRoomTable(roomJson, new StubFurnSource("bed")));
 
             AssertErrorsContain(ex, "cot");
         }
@@ -479,7 +479,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // **缺口哨兵**:生产路径无闭集来源(O-24-1 未兑现)⇒ 必须显式自陈未强制。
             // O-24-1 落地后此测**转红是被要求的行为**,不得当回归修掉(承 S14-6 哨兵口径)。
-            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomForTest(
+            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomTable(
                 RepoDataText("clinicmachine_room.json"), null);
 
             Assert.That(bound.FurnMembershipEnforced, Is.False);
@@ -497,7 +497,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": ""0"" } ] }";
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(json));
+                ClinicMachineTablesBake.BindContextTable(json));
 
             AssertErrorsContain(ex, "未知键", "context");
         }
@@ -510,7 +510,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": ""0"" } ] }";
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(json));
+                ClinicMachineTablesBake.BindContextTable(json));
 
             AssertErrorsContain(ex, "schema_version");
         }
@@ -524,7 +524,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": 0 } ] }";
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(json));
+                ClinicMachineTablesBake.BindContextTable(json));
 
             // 🔁 2026-10-29(债册 TD-clinic-05 / 评审 R-10d):原断言「须为 JSON 字符串」被
             //    `ReadRequiredString`(Schema:380)与 `ReadRequiredFix`(Schema:410)**共用** ⇒
@@ -541,7 +541,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""5/4"", ""base_env"": ""0"" } ] }";
 
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(json));
+                ClinicMachineTablesBake.BindContextTable(json));
 
             Assert.That(ex.Errors.Count, Is.GreaterThanOrEqualTo(2));
             AssertErrorsContain(ex, "surprise", "5/4");
@@ -612,7 +612,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // 纯区间判据(0 < raw <= 65536),本测转红 —— 缺了它,29 条测试对
             // 「区间 vs 档集」分叉完全不可判(评审 R-08)。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(
+                ClinicMachineTablesBake.BindContextTable(
                     FixtureText("invalid_context_k_speed_not_in_set.json")));
 
             AssertErrorsContain(ex, "∉ 档集");
@@ -626,7 +626,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // 键 = a + U+0001 + b。a 含分隔符 ⇒ 不同 (a,b) 可拼出同一键 ⇒ 必须构建期拒。
             // 评审 D9:原注释声称有此门但零实现,本测是该门的判别面。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(
+                ClinicMachineTablesBake.BindAdjTable(
                     "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
                     " \"pairs\": [ { \"a\": \"bed\\u0001x\", \"b\": \"pot\", \"w\": \"1/8\" } ] }"));
 
@@ -665,7 +665,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_context_empty_table_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(
+                ClinicMachineTablesBake.BindContextTable(
                     "{ \"schema_version\": 1, \"contexts\": [] }"));
 
             AssertErrorsContain(ex, "contexts 为空");
@@ -675,7 +675,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_adj_empty_pairs_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(
+                ClinicMachineTablesBake.BindAdjTable(
                     "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
                     " \"pairs\": [] }"));
 
@@ -686,7 +686,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_room_empty_table_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomForTest(
+                ClinicMachineTablesBake.BindRoomTable(
                     "{ \"schema_version\": 1, \"rooms\": [] }", null));
 
             AssertErrorsContain(ex, "rooms 为空");
@@ -697,7 +697,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // 空谓词会匹配任一布局(房间身份退化为恒真),拒。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomForTest(
+                ClinicMachineTablesBake.BindRoomTable(
                     "{ \"schema_version\": 1, \"rooms\": [ { \"room_type\": \"ward\", \"clauses\": [] } ] }", null));
 
             AssertErrorsContain(ex, "clauses 为空");
@@ -708,7 +708,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // 同一有向对两行 ⇒ 「取哪一行」成为隐式规则(静默失序),拒。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(
+                ClinicMachineTablesBake.BindAdjTable(
                     "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
                     " \"pairs\": [" +
                     " { \"a\": \"bed\", \"b\": \"pot\", \"w\": \"1/8\" }," +
@@ -722,7 +722,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // 每房间类型恰一上下文行;重复 ⇒ 拒。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(
+                ClinicMachineTablesBake.BindContextTable(
                     "{ \"schema_version\": 1, \"contexts\": [" +
                     " { \"room_type\": \"ward\", \"context_id\": \"a\", \"k_speed\": \"1\", \"base_env\": \"0\" }," +
                     " { \"room_type\": \"ward\", \"context_id\": \"b\", \"k_speed\": \"1\", \"base_env\": \"0\" } ] }"));
@@ -745,7 +745,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // w_min == w_max 无法满足 W_MIN < 0 < W_MAX ⇒ 必拒。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindAdjForTest(
+                ClinicMachineTablesBake.BindAdjTable(
                     "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"1/4\", \"w_max\": \"1/4\"," +
                     " \"pairs\": [ { \"a\": \"bed\", \"b\": \"pot\", \"w\": \"1/8\" } ] }"));
 
@@ -757,7 +757,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         {
             // null 不是「缺字段」也不是合法 Fix —— 必填,拒。
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextForTest(
+                ClinicMachineTablesBake.BindContextTable(
                     "{ \"schema_version\": 1, \"contexts\": [ { \"room_type\": \"ward\"," +
                     " \"context_id\": \"a\", \"k_speed\": null, \"base_env\": \"0\" } ] }"));
 

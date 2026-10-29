@@ -264,6 +264,41 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
         }
 
+        /// <summary>词表编号收窄:<c>long</c> → <c>int</c>,越界即错(编号须在 int 域内)。</summary>
+        /// <remarks>🔁 <b>2026-10-29 抽取</b>(债册 `TD-clinic-22` / S16 普查残项)—— 两张词表 binder 的
+        /// 该段**逐字相同**。报文原文与判定次序逐字未变。</remarks>
+        internal static bool TryCastVocabularyId(
+            long idValue, string where, string fileName, List<string> errors, out int id)
+        {
+            id = 0;
+            if (idValue > int.MaxValue)
+            {
+                errors.Add($"{fileName}:{where}.id={idValue} 越 int 上界 —— 词表编号须在 int 域内");
+                return false;
+            }
+
+            id = (int)idValue;
+            return true;
+        }
+
+        /// <summary>行前言两步的唯一实现:须为对象 → 行键白名单。</summary>
+        /// <remarks>🔁 <b>2026-10-29 抽取</b>(债册 `TD-clinic-22` / S16 普查残项)—— 原先五个 binder 的
+        /// <c>ParsePair</c> / <c>ParseRoom</c> / <c>ParseRow</c> 各抄一遍**逐字相同**的两步。
+        /// <para>两条报文的原文与判定次序**逐字未变**。</para></remarks>
+        /// <returns><c>false</c> = 本行不是对象(调用方须 <c>return null</c>)。</returns>
+        internal static bool BeginRow(
+            JsonNode row, string where, string[] rowKeys, string fileName, List<string> errors)
+        {
+            if (row.Kind != JsonNodeKind.Object)
+            {
+                errors.Add($"{fileName}:{where} 须为对象(实得 {row.Kind})");
+                return false;
+            }
+
+            RejectUnknownKeys(row, rowKeys, where, fileName, errors);
+            return true;
+        }
+
         /// <summary>表前言四步的唯一实现:阶段 1 词法 → 根须为对象 → 根键白名单 → <c>schema_version</c>。</summary>
         /// <remarks>🔁 <b>2026-10-29 抽取</b>(债册 `TD-clinic-13` / 评审 S19)—— 原先五份 binder
         /// (Room / Context / Adj / RoomNames / ContextNames)各抄一遍**逐字相同**的四步。
@@ -422,6 +457,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>读取必填字符串(空串亦拒 —— 「写了但没值」不是「缺席」)。</summary>
+        /// <remarks>⚠️ **本函数刻意不校长度上界**(债册 `TD-clinic-12` / 评审 D8,**用户 2026-10-29 裁定「不设上界」**)。
+        /// 三条理由:① 自定上界 = 在 24 侧硬编码 gameplay 值,违 `coding-standards`
+        /// 「Gameplay values must be data-driven」;② ADR-014 的「长度校验」指的是**数组长度 = `MAX_QUALITY`**,
+        /// 不是字符串上界 ⇒ 本项不是欠一条 ADR 义务;③ 这些字符串只进**作者态 JSON**(烘焙期),
+        /// 不进存档 / 网络落盘形状 ⇒ 无攻击面。
+        /// <para>🔁 **触发条件**:一旦任一字符串字段进入**落盘形状**,本裁决即失效 —— 须重开该债并按落盘形状定上界。</para></remarks>
         internal static bool ReadRequiredString(
             JsonNode obj, string key, string where, string fileName, List<string> errors, out string value)
         {

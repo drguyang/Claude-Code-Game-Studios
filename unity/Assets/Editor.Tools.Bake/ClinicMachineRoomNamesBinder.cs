@@ -108,36 +108,24 @@ namespace DaYiJingCheng.EditorTools.Bake
             JsonNode row, int i, HashSet<string> seenTypes, HashSet<int> seenIds, List<string> errors)
         {
             string where = $"rooms[{i}]";
-            if (row.Kind != JsonNodeKind.Object)
-            {
-                errors.Add($"{FileName}:{where} 须为对象(实得 {row.Kind})");
+            if (!ClinicMachineSchema.BeginRow(
+                    row, where, ClinicMachineSchema.RoomNamesRowKeys, FileName, errors))
                 return null;
-            }
-
-            ClinicMachineSchema.RejectUnknownKeys(
-                row, ClinicMachineSchema.RoomNamesRowKeys, where, FileName, errors);
 
             bool ok = ClinicMachineSchema.ReadRequiredString(
                 row, "room_type", where, FileName, errors, out string roomType);
 
             // id 用 ReadRequiredPositiveInt:它天然拒 0 / 负 ⇒ 「0 保留给 ROOM_NONE」由类型机制守,
-            // 不靠另设一条 if(单机制,与 AC-24-05 的档集纪律同构)。
+            // 不靠另设一条 if(单机制,与 AC-24-05 的档集纪律同构);失败路径亦赋 0(与拆分前等价)。
             long idValue = 0;
-            if (ClinicMachineSchema.ReadRequiredPositiveInt(
-                    row, "id", where, FileName, errors, out long parsedId))
-                idValue = parsedId;
-            else
-                ok = false;
+            ok &= ClinicMachineSchema.ReadRequiredPositiveInt(
+                row, "id", where, FileName, errors, out idValue);
 
             if (!ok) return null;
 
-            if (idValue > int.MaxValue)
-            {
-                errors.Add($"{FileName}:{where}.id={idValue} 越 int 上界 —— 词表编号须在 int 域内");
+            if (!ClinicMachineSchema.TryCastVocabularyId(
+                    idValue, where, FileName, errors, out int id))
                 return null;
-            }
-
-            int id = (int)idValue;
 
             if (!seenTypes.Add(roomType))
             {

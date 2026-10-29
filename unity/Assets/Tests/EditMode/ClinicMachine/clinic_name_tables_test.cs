@@ -74,7 +74,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_idsComeFromAuthoringNotRowOrder()
         {
             ClinicMachineRoomNamesBinder.BindResult bound =
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     RepoDataText("clinicmachine_room_names.json"));
 
             Assert.That(bound.Rows.Count, Is.EqualTo(3), "真源三条(ward / surgery / herb_room)");
@@ -102,7 +102,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 " { \"room_type\": \"ward\", \"id\": 1 } ] }";
 
             ClinicMachineRoomNamesBinder.BindResult outOfOrder =
-                ClinicMachineTablesBake.BindRoomNamesForTest(reversedOrder);
+                ClinicMachineTablesBake.BindRoomNamesTable(reversedOrder);
 
             var byNameReversed = new Dictionary<string, int>(StringComparer.Ordinal);
             for (int i = 0; i < outOfOrder.Rows.Count; i++)
@@ -118,7 +118,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_idsComeFromAuthoring()
         {
             ClinicMachineContextNamesBinder.BindResult bound =
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     RepoDataText("clinicmachine_context_names.json"));
 
             var byName = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -140,7 +140,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 " { \"context_id\": \"ward_plain\", \"id\": 1 } ] }";
 
             ClinicMachineContextNamesBinder.BindResult outOfOrder =
-                ClinicMachineTablesBake.BindContextNamesForTest(reversedOrder);
+                ClinicMachineTablesBake.BindContextNamesTable(reversedOrder);
 
             var byNameReversed = new Dictionary<string, int>(StringComparer.Ordinal);
             for (int i = 0; i < outOfOrder.Rows.Count; i++)
@@ -161,7 +161,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_zeroId_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_zero_id.json")));
             AssertErrorsContain(ex, "id");
         }
@@ -171,7 +171,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_duplicateId_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_duplicate_id.json")));
             AssertErrorsContain(ex, "重复");
         }
@@ -180,7 +180,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_duplicateKey_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_duplicate_key.json")));
             AssertErrorsContain(ex, "重复");
         }
@@ -190,7 +190,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_empty_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_empty.json")));
             AssertErrorsContain(ex, "空");
         }
@@ -200,7 +200,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_unknownKey_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_unknown_key.json")));
             AssertErrorsContain(ex, "display_name");
         }
@@ -209,7 +209,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_duplicateId_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_duplicate_id.json")));
             AssertErrorsContain(ex, "重复");
         }
@@ -229,7 +229,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_empty_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_empty.json")));
             AssertErrorsContain(ex, "空");
         }
@@ -240,7 +240,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_zeroId_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_zero_id.json")));
             AssertErrorsContain(ex, "id");
         }
@@ -251,7 +251,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_duplicateKey_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_duplicate_key.json")));
             AssertErrorsContain(ex, "重复");
         }
@@ -262,7 +262,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_unknownKey_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_unknown_key.json")));
             AssertErrorsContain(ex, "display_name");
         }
@@ -273,7 +273,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_missingArray_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_missing_array.json")));
             AssertErrorsContain(ex, "contexts");
         }
@@ -290,7 +290,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_roomNames_idOverflow_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindRoomNamesForTest(
+                ClinicMachineTablesBake.BindRoomNamesTable(
                     FixtureText("invalid_room_names_id_overflow.json")));
             AssertErrorsContain(ex, "int 上界");
         }
@@ -301,7 +301,7 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_binder_contextNames_idOverflow_rejected()
         {
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
-                ClinicMachineTablesBake.BindContextNamesForTest(
+                ClinicMachineTablesBake.BindContextNamesTable(
                     FixtureText("invalid_context_names_id_overflow.json")));
             AssertErrorsContain(ex, "int 上界");
         }
