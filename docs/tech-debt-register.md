@@ -359,11 +359,11 @@
 | `TD-audio-101` | `audio-system` | open | **Y** | R1 |
 | `TD-audio-102` | `audio-system` | open | **Y** | R1 |
 | `TD-audio-103` | `audio-system` | open | **Y** | R1 |
-| `TD-audio-104` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-104` | `audio-system` | open | **N** | R4 |
 | `TD-audio-105` | `audio-system` | open | **Y** | R1 |
 | `TD-audio-106` | `audio-system` | closed | **Y** | R1 |
-| `TD-audio-107` | `audio-system` | open | **Y** | R1 |
-| `TD-audio-108` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-107` | `audio-system` | open | **N** | R4 |
+| `TD-audio-108` | `audio-system` | open | **N** | R4 |
 | `TD-audio-109` | `audio-system` | partial | **Y** | R1 |
 | `TD-listen-01` | `audio-system` | open | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
@@ -844,10 +844,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 133 | 状态 {'open': 67, 'closed': 60, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 104, 'N': 28, '~~**Y**~~': 1}
-未闭 P0 面 = 52 （已闭但曾标 P0 面的 52 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 52 条,分布在 10/31 个 epic
-    medical-consequences: 19  audio-system: 17          telemetry-analytics: 5
+条目 133 | 状态 {'open': 67, 'closed': 60, 'partial': 5, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 31, '~~**Y**~~': 1}
+未闭 P0 面 = 49 （已闭但曾标 P0 面的 52 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 49 条,分布在 10/31 个 epic
+    medical-consequences: 19  audio-system: 14          telemetry-analytics: 5
     clinic-machine: 4         disease-simulation: 2     enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
@@ -2243,7 +2243,7 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 | **L-2** | **听诊档位无回写路径** | `queryLevel` = `CompositionRoot.cs:258` 的**局部 `int = 1`**,全库零写回;`ExamineDriver` 也只在构造时收快照(`:56`)⇒ `TierIndex(1) = 0`(`1 < SLOT_BOUNDS[0] = 10`)**恒最低档** | AC-44-02 全条(三档 forced-choice 配对无第二/第三档可听)· 本轮甲案裁定的听感半边 |
 | **L-3** | **病程被占位曲线压缩到 1.55 s** | `CreateFallbackRegistry` 的 `fallback` 病种配 **plateau 型** `Curve`(`CompositionRoot.cs:609-625`):Incubation 20 tick · APeak 1.0 · TauRise 5 · TauPeak 40。实算:`τ=23` 跨 SeekMin(0.45)= **1.15 s**,`τ=31` 跨 DeathBandMin(0.90)= **1.55 s** ⇒ **「急促」档仅 0.4 s**,随后 `Terminal.Latched` ⇒ `BreathShouldLive = false`(连一次性 cue 一并停) | 10-c 判据 1/2/3/6(窗口存在但约 3 s 总长,人工判别余量极薄)· AC-44-17 三态时序 |
 | **L-4** | **同屏 3 病人需 ~40 s,且每人 1.55 s 即死** | `PatientAppearedDriver.SpawnIntervalTicks = 400`(20 Hz ⇒ **20 s/人**)· 上限哨 `MaxPatientsDuringWiring = 3` ⇒ 凑齐 3 人 ≈ 40 s,但依 L-3 每人 1.55 s 后静默 ⇒ **凑不齐同时"活"的三人** | AC-44-03 的「跨病人可辨 ≥2 对」· AC-44-04 的「多人交替咳嗽无爆音」· 10-c 的多病人对照 |
-| **L-6** | **运行时零 active AudioListener(全场景静音)** | `BootRoot.cs:305-307`(修前)禁用预摆 `Main Camera`(唯一 listener 持有者)后,运行时 `CameraRig` 相机(`:309-311`)**未挂 listener**;`AssertSingleAudioListener` 原用 `Resources.FindObjectsOfTypeAll`(**含 inactive**)计数 = 1 ⇒ 断言通过,**抓不到零 active**。2026-10-20 `Editor.log` 实测 **10 845 条** `There are no audio listeners in the scene`(首次出现于本次 Play 首帧,`:627`)。同日用户实机:「完全没声音」 | **全部音频听测**(无听音点 ⇒ 任何 cue 都听不见);本条同时**撤销**下方「今日确实可听」原判 |
+| **L-6** | **运行时零 active AudioListener(全场景静音)** | `BootRoot.cs:305-307`(修前)禁用预摆 `Main Camera`(唯一 listener 持有者)后,运行时 `CameraRig` 相机(`:309-311`)**未挂 listener**;`AssertSingleAudioListener` 原用 `Resources.FindObjectsOfTypeAll`(**含 inactive**)计数 = 1 ⇒ 断言通过,**抓不到零 active**。2026-10-20 `Editor.log` 实测 **10 845 条** `There are no audio listeners in the scene`(首次出现于本次 Play 首帧,`:627`)。同日用户实机:「完全没声音」 | **全部音频听测**(无听音点 ⇒ 任何 cue 都听不见);本条同时**撤销**下方「今日确实可听」原判 | ✅ **2026-10-29 复核:已修(账面滞后)** —— `BootRoot.cs:490` `cameraObj.AddComponent<UnityEngine.AudioListener>()`(注释「运行时主相机 = 唯一听音点」),修于 2026-10-20(同段注释 `:478-485` 记录了「listener 迁到 CameraRig 后测试间泄漏 ⇒ 全量 7 红」的那次实证)。**本行原文不删**:它描述的是 2026-10-20 之前的状态。
 
 > ⚠️ **L-3 的措辞纠正留痕**:本轮初次勘察时曾判「病程不存在」(据 plateau 判据外推),
 > **该结论下过头** —— 实算后病程**存在**但被压缩到 1.55 s。以本表为准,原判断作废。
