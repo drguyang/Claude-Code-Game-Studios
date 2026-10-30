@@ -122,6 +122,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "EditMode/MedConsequences/medcons_bake_ci_test.cs",
+                Reason = "`Application.dataPath` 仅用于**读**真实仓根的 assets/data/53_*.json 做副本;" +
+                         "写目标全部落在 Path.GetTempPath() 下的沙箱(自建 repo/cooked 两目录)," +
+                         "不碰仓库源与已入库产物 —— 见该文件头「全程在临时目录」段",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/Audio/statereport_walkthrough_probe.cs",
                 Reason = "`Application.dataPath` 仅用于**读** DataCooked / Audio;写目标走 Path.GetTempPath()",
             },

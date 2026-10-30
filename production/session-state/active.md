@@ -13448,3 +13448,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 证伪 2/2 全红(M2 → AC-6 真装配夹具;M3 → SB1),还原 SHA-256 一致。
 - 回归:EditMode `6152/6115/0/37` @16:03:36(+1/+1)· `TD-medcons-19` **closed**。
 - 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 16:05:08 CST ⇒ 与基线逐位相同(零回归)。
+
+### TD-medcons-11(53 三表 CLI/CI 烘焙入口)—— 2026-10-30
+- 新增 `MedConsTableBakeRunner`(`unity/Assets/Editor.Tools.Bake/`)+ `tools/bake/run_ci.sh`。
+  三态退出码 **0/1/2**(与 `LevelCiRunner` 同约定),`RunBatch` 为**单一** `-executeMethod`
+  (batchmode 只跑第一条,`TD-ci-02`)。
+- **两处实现轮实跑订正**:① 初版「边烘边写」⇒ 第二张失败时第一张已被覆盖(**打印不是阻止**),
+  改「全烘进内存 → `.tmp` + `Move` 原子落盘」;② 依赖面是**四份源三份产物**
+  (`CostTable53Bake` 还要读 `disease_registry.json` 做跨表断言)。
+- **证伪 M2 首轮假存活(如实登记)**:首版夹具「先跑干净轮建基线 → 逐字节比对」,
+  而同一份源烘出的字节与基线**逐字节相同** ⇒ 「写」与「不写」看不出差别 ⇒ 变异后 **4 条全绿**。
+  修法 = 失败轮前**清空产物目录**,断言「失败轮后目录仍为空」。
+- **M2 复跑已转红**:同一变异 ⇒ `3 passed / 1 failed`,红的是
+  `test_invalidSource_exitViolation_namesIt_andTouchesNoFile`,报文点名
+  `53_outcome_table.cooked.bytes 在**失败轮**里被写出`。还原 SHA-256 `19ce57dc…` 逐字节一致。
+- 回归(EditMode 全量):`6156/6119/0/37` @ 2026-10-30 16:34:49 CST · commit `cd2eb7b8`+工作树 ·
+  基线 `6152/6115/0/37` ⇒ **+4/+4**(= 新夹具的 4 条)。
+- 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 16:35:49 CST ⇒ 与基线逐位相同(零回归)。
+- 计数:`未闭 P0 面 16 → 14`(medical-consequences 已清空);`TD-medcons-11` **closed**。
+- **未提交**。

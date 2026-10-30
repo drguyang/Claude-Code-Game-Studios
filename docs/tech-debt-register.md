@@ -311,7 +311,7 @@
 | `TD-medcons-08` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-09` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-10` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-11` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-12` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-13` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-14` | `medical-consequences` | closed | **Y** | R1 |
@@ -850,12 +850,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 97, 'open': 39, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 15 （已闭但曾标 P0 面的 88 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 8/31 个 epic
+条目 139 | 状态 {'closed': 98, 'open': 38, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 14 （已闭但曾标 P0 面的 89 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
     telemetry-analytics: 5    clinic-machine: 4         enemy-ai: 1
-    item-database: 1          medical-consequences: 1   patient-ai: 1
-    processing: 1             skeuomorphic-ui: 1
+    item-database: 1          patient-ai: 1             processing: 1
+    skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -2014,6 +2014,81 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 
 ---
 
+## 2026-10-30 · 53 三表烘焙 CI 入口(`TD-medcons-11` 的解除件)
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-11`(53 表无 CLI / CI 烘焙入口)**
+>
+> **原判定**:「`53_delay_table` 等表**无 CLI / CI 烘焙入口**(仅 `DataBakeMenu` 菜单项)」,
+> 触发条件「运行期读方立案批须补 CLI 入口」。
+>
+> **实测订正(前提比原判定细,结论不变)**:`[MenuItem]` 方法**能被** `-executeMethod` 点名
+> (batch 下只是不会自动触发,见 `DataBakeMenu.cs:704-705` 自陈)⇒ **不是「跑不了」**。
+> 真正的缺口是三层:
+> ① **没有批量入口** —— 三张表是三个独立菜单项,而 batchmode **只执行第一条** `-executeMethod`
+>   (`TD-ci-02` 六格实测)⇒ 写三条命令只跑第一条,**退出码仍 0**(假绿);
+> ② **没有退出码语义** —— 校验失败靠 `throw`,batch 下进程码与「通过」不可区分;
+> ③ **没有任何脚本 / CI 真的去跑** —— `grep -rn "BakeDelayTable" .github/ tools/` ⇒ 零命中。
+>
+> **解**:新增 `MedConsTableBakeRunner`(`unity/Assets/Editor.Tools.Bake/`)+
+> `tools/bake/run_ci.sh`。三态退出码 **0/1/2** 与 `LevelCiRunner` 逐字同约定。
+>
+> **实现轮两处实跑订正(如实登记)**:
+> · **半套写入**:初版「边烘边写」,证伪 M1 实测第二张失败时第一张**已被覆盖** ——
+>   代码只**打印**中间态,而**打印不是阻止**。改为「三张全烘进内存 → 再 `.tmp` + `Move` 原子落盘」。
+> · **第四份输入**:`CostTable53Bake` 除读自己的表,还要读 **`disease_registry.json`**
+>   (跨表断言「永不致死」+ 外键解析)⇒ 本入口依赖面是**四份源、三份产物**。
+>   夹具首轮沙箱只拷三张表 ⇒ 第三张红、退出码 1(报文精确点名「注册表不存在:…」)。
+>
+> **判据(可复算)**:
+> ```bash
+> # ① 生产路径真跑(退出码须 0;三份产物须与烘焙前逐字节相同 —— deterministic)
+> bash tools/bake/run_ci.sh; echo "EXIT=$?"      # ⇒ EXIT=0
+> sha256sum unity/Assets/DataCooked/53_*.cooked.bytes
+>
+> # ② 入口存在且是**单一**入口(不是三条 -executeMethod)
+> grep -n "MedConsTableBakeRunner.RunBatch" tools/bake/run_ci.sh
+> ```
+> **实跑记录**:`EXIT=0`,三行 `✓`(176 B / 60 B / 124 B),烘焙前后三份 SHA-256 **逐字节相同**。
+>
+> **证伪 M1**:把 `53_delay_table.json` 的 `residual` 延迟改成 0 ⇒
+> **退出码 1**,报文点名 `rows[0]「residual」delay_ticks=0 ≤ 0` 与覆盖校验失败;
+> 源文件还原后 SHA-256 逐字节一致(`62095bcd…`)。
+> ⚠️ **该轮同时暴露了半套写入**(报文当时说「已写入 1 张」)—— 已按上面第一条订正。
+>
+> **载体**:`medcons_bake_ci_test.cs`(4 条:单一入口覆盖 / 干净轮绿且三份落盘 /
+> 违规轮退出码 1 且**磁盘零改动** / 两轮逐字节相同)。夹具全程在 `Path.GetTempPath()` 沙箱里,
+> 不碰仓库源与产物(`FsWriteBoundaryGate` 已具名声明)。
+>
+> ⚠️ **证伪 M2 首轮「假存活」(如实登记,已修)**:把入口退回「边烘边写」⇒ **4 条全绿**。
+> 归因:首版夹具是「先跑干净轮建基线 → 逐字节比对」,而**同一份源烘出的字节与基线逐字节相同**
+> ⇒ 「写」与「不写」在磁盘上**看不出差别**(真实值同构型假存活)。
+> **修法**:失败轮前**清空产物目录**,断言「失败轮后目录**仍为空**」—— 「没写」= 文件不存在。
+> 这条与 `TD-medcons-19` 的 M2 首轮是**同一类错**(选了一个变异前后结果相同的观测面)。
+>
+> ✅ **M2 复跑(修正后夹具)—— 已转红**:同一变异(在 `BakeOne` 循环内加
+> `File.WriteAllBytes(Path.Combine(cookedDir, TableNames[i]), baked[i])`,即退回「边烘边写」)⇒
+> **`3 passed / 1 failed`**,红的是 `test_invalidSource_exitViolation_namesIt_andTouchesNoFile`,
+> 报文 `53_outcome_table.cooked.bytes 在**失败轮**里被写出 —— 「全成功才落盘」失效`,
+> `Expected: False / But was: True`。**红的正是判据本身**(不是编译错、不是别的夹具连带)。
+> 还原后 `sha256sum` = `19ce57dcb0cdc915416dc5b06518a79106ac09c8f7f974356d851203b008e0d5` 逐字节一致,
+> `grep -n "FALSIFY-"` 零命中。
+> 复算:
+> ```bash
+> # 变异:在 MedConsTableBakeRunner.Run 的 ① 循环内加一行落盘;跑夹具;还原
+> python3 -c "import xml.etree.ElementTree as ET; r=ET.parse('<xml>').getroot();
+> print([t.get('name') for t in r.iter('test-case') if t.get('result')=='Failed'])"
+> # ⇒ ['test_invalidSource_exitViolation_namesIt_andTouchesNoFile']
+> sha256sum unity/Assets/Editor.Tools.Bake/MedConsTableBakeRunner.cs
+> # ⇒ 19ce57dcb0cdc915416dc5b06518a79106ac09c8f7f974356d851203b008e0d5(还原态)
+> ```
+>
+> **回归三元组(全量)**:截至 `2026-10-30 16:34:49 CST` · 批次 **TD-medcons-11 结案批** · commit `cd2eb7b8`+工作树
+> ⇒ EditMode `6156 / 6119 / 0 / 37`,基线 `6152 / 6115 / 0 / 37`(`TD-medcons-19` 终态,同日 16:03:36)
+> ⇒ **+4 / +4**,等式 `6156 − 6152 = 4` 恰为本轮新增的 4 条夹具。
+> 复算:`grep -c "\[Test\]" unity/Assets/Tests/EditMode/MedConsequences/medcons_bake_ci_test.cs` ⇒ **4**。
+
+---
+
 ## 2026-10-16 · medcons story-003 评审件具名待办(sprint-13 S13-2)
 
 **出处**:`production/qa/evidence/review-medcons-story-003-2026-10-16.md` §六 结账表。
@@ -2021,7 +2096,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
 | TD-medcons-10 | **B-W1**:共享 JSON 词法器(`JsonStage1Lexer`)不拒重复 property —— 影响全部 10+ binder | story-003 评审 §二 B-W1 | 任一 binder 因重复键静默丢字段时;或词法器统一加固轮 ✅ **2026-10-29 结案** —— `JsonStage1Lexer.ReadValue` 对象分支在 `Props.Add` 前加同键扫描,违者抛 `JsonReaderException` 点名重复键;夹具 `json_stage1_lexer_duplicate_key_test.cs`(6 条,含 3 条反例防判据过宽);变异「停用同键检查」⇒ 3 条转红。**实测 83 份 `assets/**/*.json` 零重复键** ⇒ 现网烘焙不受影响 |
-| TD-medcons-11 | **B-W2**:`53_delay_table` 等表**无 CLI / CI 烘焙入口**(仅 `DataBakeMenu` 菜单项) | story-003 评审 §二 B-W2 | 运行期读方立案批须补 CLI 入口 |
+| TD-medcons-11 | **B-W2**:`53_delay_table` 等表**无 CLI / CI 烘焙入口**(仅 `DataBakeMenu` 菜单项) | story-003 评审 §二 B-W2 | 运行期读方立案批须补 CLI 入口 ✅ **2026-10-30 结案** —— 见下方 §「2026-10-30 · 53 三表烘焙 CI 入口」 |
 | TD-medcons-12 | **B-W3**:`DelayTableBinder.DomainRows` ordinal 与 Sim 侧 `DomainOutcomes` 的一致性断言**只防值分歧,不防改名** | story-003 评审 §二 B-W3 | 任一侧枚举改名时(当前由 `AssertDomainDeclarationsMatch` 兜值) |
 | TD-medcons-13 | **B-W4**:`DelayTableCookedWriter` 产出的 `*.cooked` **无镜像读方**(装载归装配轮) | story-003 评审 §二 B-W4 | ~~装配轮装载 53 表时~~ ⚠️ **2026-10-29 实测订正(原文不删 · 状态仍 `open`)**:「**无镜像读方**」这个**前提已过期** —— ① 读方在:`DelayTableCookedCodec.cs:31` `Read(byte[])`;② 装载在:`AddressablesDataProvider.cs:132` 地址常量 · `:760` `EnsureDelayTable()` · **预载序列 `:499` 调它**;③ 产物在:`53_delay_table.cooked.bytes` 在盘,且 `data-core.asset` 内有 `m_Address: 53_delay_table.cooked.bytes`。**真正缺的是消费端**:`grep -rn "DelayTable53DataSet"`(排 provider / codec / Tests)⇒ **0**;`grep -rn "new ConsequenceEmitter"`(排 Tests)⇒ **0**(只有 `:109` 的构造子声明)⇒ **53 的结算器没有任何生产装配点,表装进来了没人要**。**解锁判据(可判定)**:`ConsequenceEmitter` 由 `CompositionRoot` 构造,且 `delayTable` 实参取自 `IDataProvider.Get<DelayTable53DataSet>()` —— 该条成立即可当场结。与 `TD-medcons-18` / `TD-s13-02` 同属装配轮(分组表见本册「装配轮(53 接线)」行) |
 
