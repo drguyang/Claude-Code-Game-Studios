@@ -214,8 +214,13 @@ what to do rather than what to avoid:
    title and 3-4 characters") lands where negations ("no handwriting, no text, empty
    pages") get quietly ignored.
 
-4. **No ImageMagick or ffmpeg on this box.** PIL only. It is at
-   `/XYFS01/sysu_tyu2_2/miniconda3/bin/python3`.
+4. **No ImageMagick or ffmpeg on this box.** PIL only, from the default `python3`
+   (conda base env — discover it rather than hardcoding:
+   `python3 -c "import sys, PIL; print(sys.executable, PIL.__version__)"`).
+   ⚠️ The absolute path previously recorded here,
+   `/XYFS01/sysu_tyu2_2/miniconda3/bin/python3`, **no longer exists** (verified
+   2026-10-30 — the whole `/XYFS01` mount is absent on this box now, cause not
+   established here). Do not re-add absolute interpreter paths to this skill.
 
 5. **Bash occasionally fails** with `claude-sonnet-5 is temporarily unavailable, so
    auto mode cannot determine the safety of Bash`. This is a harness hiccup, not a user
