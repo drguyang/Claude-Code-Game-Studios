@@ -1486,6 +1486,33 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.OverdoseSettler = new OverdoseSettler(
                 stream.Events, decoder, new VitalsQueryOrNone(vitals), costTable, overdoseThresholds,
                 encoder, services.EventSink);
+
+            // ── 🔁 2026-10-30(ADR-036 D2/D3/S4):53 的**判定链**生产装配 ─────────────
+            // 装配前三件全缺(ADR-036 §Context 六条实测):发射器零装配点 / `Judge.Evaluate`
+            // 零调用点 / D 路无真值。本段把 `Aggregate → Judge → Emit` 接成每 tick 的驱动。
+            //
+            // ⚠️ **D3 的惰性口径**:`dataProvider == null` ⇒ 两张表都拿不到 ⇒ **不构造驱动**
+            //    (`services.ConsequenceDriver` 保持 null)。语义 = **不发,不是不判** ——
+            //    与「表为空」行为一致(零事件)。**须有显式日志**才不与「机制未启用」同形;
+            //    日志点 = `BootRoot` 启动期(生产侧),不在此处打 —— EditMode 的 100+ 装配
+            //    调用方全部走 null 分支,在这里打会变成噪音,反而让人去屏蔽日志。
+            //
+            // ⚠️ **D5 契约**:同一个 `EventStream` 实例同时作读面(driver 的 `stream`)与写面
+            //    (`services.EventSink` ⇒ 同一个 `Stream`)。不是同一实例 ⇒ driver 构造期抛。
+            if (dataProvider != null)
+            {
+                OutcomeTable53DataSet outcomeTableDs = dataProvider.Load<OutcomeTable53DataSet>();
+                DelayTable53DataSet delayTableDs = dataProvider.Load<DelayTable53DataSet>();
+
+                var projection = new DiseaseProjectionAdapter(vitals);
+                var consequenceEmitter = new ConsequenceEmitter(
+                    services.EventSink, new P0HostEventAuthority(), encoder, delayTableDs.Table);
+
+                services.ConsequenceDriver = new ConsequenceDriver(
+                    stream, services.EventSink, consequenceEmitter, decoder, projection,
+                    outcomeTableDs.Table, resolvedRegistry, treatableBy, worldSeed);
+            }
+
             return services;
         }
 

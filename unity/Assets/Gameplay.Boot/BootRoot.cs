@@ -310,6 +310,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 此处只给**呈现载体**;不给则运行期无字幕可看(判据只落在单元夹具里 = 借绿)。
                 subtitleSink: _subtitle);
 
+            // ── 2.94 53 判定链的**惰性告警**(ADR-036 D3 · 2026-10-30)──
+            // 「空表 / 无数据源 ⇒ 不发」这个语义必须**可观察**,否则它与「机制未启用」同形
+            // (R-3:「惰性但不静默」)。装配层不打这条日志(那里是 EditMode 的 100+ 调用方),
+            // 生产启动序在此打一次。
+            if (_services.ConsequenceDriver == null)
+            {
+                Debug.LogWarning(
+                    "[BootRoot][ADR-036 D3] 53 判定链**未装配**(data-core 预载失败或 provider 为空)" +
+                    "⇒ 后果事件(`ConsequenceResolved`)不会产生。这是**惰性**,不是错误;" +
+                    "但与「机制未启用」同形,故在此显式告警一次。");
+            }
+
             // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
             // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但
             //   **零生产调用点** —— `Application.wantsToQuit` 全仓零命中。⇒ AC-7a-17 的
@@ -1322,6 +1334,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ 次序**必须在 `VitalsService.OnTickEdge` 之后** —— 它读的是 9 在本 tick
             //   求出的 `VitalsDto.PeakDrugLoad`,不是在流里现算(53 不自算毒性,`AC-53-01`)。
             _services.OverdoseSettler?.Step(tick);
+
+            // 🔁 2026-10-30(ADR-036 D2/S4):53 判定链驱动(每个结案病例的 `Aggregate → Judge → Emit`)。
+            //   ⚠️ **次序是硬约束(R4)**:必须排在 `VitalsService.OnTickEdge` **之后** ——
+            //   它经投影读 9 的 F4 态;排前面读到的是上一 tick 的态,**静默偏差一个 tick 且无报错**。
+            //   排在两个 Settler 之后还有一条理由:它们在本 tick 写入的伤害事件先入流,
+            //   判定读到的就是本 tick 的完整流(与「同 tick 同源」同口径)。
+            //   `null` = 无数据源 ⇒ 未装配(惰性:不发,不是不判)—— 启动期已在 `Start` 打日志。
+            _services.ConsequenceDriver?.OnTickEdge(tick);
         }
 
         /// <summary>

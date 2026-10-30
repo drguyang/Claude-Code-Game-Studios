@@ -49,6 +49,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 语义:`null` 或阈值空 ⇒ 过量代价**不结算**,与「表为空」一致(零事件)。</para></summary>
         public DaYiJingCheng.Sim.Consequences.OverdoseSettler OverdoseSettler { get; internal set; }
 
+        /// <summary>53 的**判定链驱动**(2026-10-30 · ADR-036 D2/D3/S4)。
+        /// <para>每个 tick 边沿跑 `Aggregate → Judge → Emit`,把「已结案病例」变成后果事件。</para>
+        /// <para>⚠️ **语义**:<c>null</c> = <b>未装配</b>(无 <see cref="IDataProvider"/> ⇒ 两张表都
+        /// 拿不到)。ADR-036 D3 的惰性口径:**不发,不是不判** —— 与「表为空」行为一致(零事件),
+        /// 但**须有显式日志**(<c>BootRoot</c> 启动期读本属性打一条),否则与「机制未启用」同形。</para>
+        /// <para>⚠️ 由 <c>Assemble</c> 在构造完本对象后赋值(与 <see cref="ContraindicationSettler"/>
+        /// 同款 —— 参数表已过长,再加一项会与 20+ 形参的装配顺序耦合)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.ConsequenceDriver ConsequenceDriver { get; internal set; }
+
         /// <summary>ID 发号权威(机制 A:计数器 + 高水位可重构,ADR-006 Amendment B)。</summary>
         public IIdAuthority IdAuthority { get; }
 

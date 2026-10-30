@@ -140,6 +140,59 @@ namespace DaYiJingCheng.Tests.MedConsequences
         }
 
         /// <summary>
+        /// `V-6`(ADR-036 D4)—— **生产口径** `careKinds` 三支**各有一条**处置时,三条都进 C 路。
+        /// <para>为什么需要这条:夹具默认集只有 `{ CareApplied }` —— 另两支在生产上「静默不计入」
+        /// 是**看不见的**(C 路少一行不会有任何报错,只会让 `CareLaneOf` 判成
+        /// `AppliedUnmatched` 而不是 `AppliedMatched`)。本条把三支一起喂,少一支即红。</para>
+        /// </summary>
+        [Test]
+        public void test_productionCareKinds_coversAllThreeKinds_notJustCareApplied()
+        {
+            var stream = new List<SimEvent>
+            {
+                EvC(20, 7, 0, actionId: 1),
+                EvE(21, 7, 0, treatmentId: 2),
+                EvD(22, 7, 0, treatmentId: 3),
+                Ev(100, 7, 0, EventKind.CaseClosed),
+            };
+
+            var groups = ConsequenceInputAggregator.Aggregate(
+                stream, Decoder, null, ConsequenceInputAggregator.ProductionCareKinds);
+
+            Assert.AreEqual(1, groups.Count, "恰一条结案");
+            Assert.AreEqual(3, groups[0].CareRecords.Count,
+                "生产口径须收满三支 —— 少一支 = 该支的处置在生产上不计入 C 路(静默)");
+            CollectionAssert.AreEqual(
+                new[] { EventKind.CareApplied, EventKind.EmergencyTreatmentApplied, EventKind.DrugTreatmentApplied },
+                groups[0].CareRecords.Select(r => r.Kind).ToArray(),
+                "三支的 Kind 须逐条保真(顺序 = 事件 Tick 升序)");
+        }
+
+        /// <summary>
+        /// `V-6` 的**负半**:生产口径之外不许多收 —— 喂一支**不在生产集里**的 Kind,
+        /// 它不得进 C 路。
+        /// <para>为什么需要:上一条钉「三支都在」,若生产集被写成「全收」它照样绿;本条钉上界。</para>
+        /// </summary>
+        [Test]
+        public void test_productionCareKinds_rejectsKindsOutsideTheSet()
+        {
+            var stream = new List<SimEvent>
+            {
+                EvC(20, 7, 0, actionId: 1),
+                Ev(21, 7, 0, EventKind.Craft),   // 同病人同窗,但不是处置(也不在闭集里)
+                Ev(100, 7, 0, EventKind.CaseClosed),
+            };
+
+            var groups = ConsequenceInputAggregator.Aggregate(
+                stream, Decoder, null, ConsequenceInputAggregator.ProductionCareKinds);
+
+            CollectionAssert.AreEqual(
+                new[] { EventKind.CareApplied },
+                groups[0].CareRecords.Select(r => r.Kind).ToArray(),
+                "生产集须是**上界**而不只是下界 —— 全收则本条红");
+        }
+
+        /// <summary>
         /// 聚合结果指纹 —— 逐位可比。**每一路都展开**:漏一路则置换不变测会假绿。
         /// ⚠️ 2026-10-15 接线轮:P/C 路已改解码行 ⇒ 指纹含**载荷内容**
         /// (LexiconId/Confidence、ActionId/Polarity)—— 比旧头级指纹更强(载荷置换也红)。

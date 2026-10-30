@@ -84,6 +84,36 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Dictionary<int, InjuryState> _outcomes =
             new Dictionary<int, InjuryState>();
 
+        /// <summary>
+        /// 每病人的 **F4 状态转移历史** —— `(tick, state)` 按 tick 升序,只在**状态变化**时追加
+        /// (2026-10-30 · ADR-036 D1 实现轮 · 用户裁定「9 加状态转移历史」)。
+        /// <para><b>为什么需要</b>:<c>ConsequenceInputAggregator.Aggregate</c> 按
+        /// <c>TryProject(patient, close.Tick)</c> 取 D 轴(`ConsequenceInputAggregator.cs:305`)
+        /// —— 它问的是**结案那一刻**。而 <see cref="_outcomes"/> 只有**当前**态:延迟窗内
+        /// (结案 tick 到 `EmitTick` 之间)driver 每个 tick 都要重算同一条历史结案,若拿当前态
+        /// 作答,「结案时未痊愈、之后痊愈」的病例会让 outcome 随 tick 漂移 ⇒ 后果发出时刻
+        /// 也随之漂移(静默)。</para>
+        /// <para><b>为什么是「转移历史」而不是「逐 tick 快照」</b>:九态是吸收/慢变结构,
+        /// 每病人至多 9 条转移 ⇒ 内存有界(≤ 9 × 在场病人),而逐 tick 快照是 O(tick)。
+        /// 查询 = 「最后一个 <c>tick ≤ 目标</c> 的转移」,与本类其余量一样是**派生态**。</para>
+        /// <para>⚠️ <b>零第二真源</b>:本表由 <see cref="_outcomes"/> 的写入点**同批**追加,
+        /// 唯一来源仍是事件流推进出的 F4 求值。</para>
+        /// </summary>
+        private readonly Dictionary<int, List<OutcomeTransition>> _outcomeHistory =
+            new Dictionary<int, List<OutcomeTransition>>();
+
+        /// <summary>一次 F4 状态转移(<see cref="_outcomeHistory"/> 的元素)。</summary>
+        private readonly struct OutcomeTransition
+        {
+            /// <summary>发生转移的 tick(首次求值也算一次「转移」:无 → 某态)。</summary>
+            public readonly long Tick;
+
+            /// <summary>该 tick 起的状态。</summary>
+            public readonly InjuryState State;
+
+            public OutcomeTransition(long tick, InjuryState state) { Tick = tick; State = state; }
+        }
+
         /// <summary>游标:已应用到 `Stream.Events` 的下标(只进不退)。</summary>
         private int _cursor;
 
@@ -219,6 +249,113 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!_outcomes.TryGetValue(p.Value, out InjuryState state))
                 throw new PatientCourseNotFoundException(p);
             return state;
+        }
+
+        /// <summary>最近一次 <see cref="OnTickEdge"/> 的 tick(未驱动时 = 0)。</summary>
+        /// <remarks>🔁 **2026-10-30(ADR-036 §Risks R4)**:本服务只保留**当前态**,
+        /// 不保留历史态 ⇒ `IDiseaseProjection` 的适配器必须能判「问的是不是当前 tick」,
+        /// 否则「问历史时刻」会被静默答成「此刻」。没有本属性,那条校验无处可写。</remarks>
+        public long LastTick => _lastTick;
+
+        /// <summary>尝试取九态(**未建档 / 未驱动到 ⇒ <c>false</c>,不抛**)。</summary>
+        /// <remarks>🔁 **2026-10-30(ADR-036 S1)**:与 <see cref="GetOutcome"/> **刻意并存** ——
+        /// 抛形是「调试视图入口」的契约(全零与真无症状不可区分,AC-20 前提);不抛形是
+        /// **边界**的契约(`IDiseaseProjection.TryProject` 的签名就是 `bool` + `out`)。
+        /// 「查不到」是正常退化,不是错误。</remarks>
+        public bool TryGetOutcome(PatientId p, out InjuryState state)
+            => _outcomes.TryGetValue(p.Value, out state);
+
+        /// <summary>
+        /// 取某病人在**历史某 tick** 的九态(`tick` 处的态 = 该 tick 及之前最后一次转移)。
+        /// </summary>
+        /// <param name="p">病人 id。</param>
+        /// <param name="tick">目标时刻(**须 ≤ <see cref="LastTick"/>**)。</param>
+        /// <param name="state">命中时写出该时刻的九态。</param>
+        /// <returns><c>true</c> = 该时刻已建档并求值过;<c>false</c> = 该时刻病人尚未出现
+        /// (或从未驱动)—— **正常退化**,不是错误。</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> &gt; <see cref="LastTick"/>
+        /// —— 未来时刻今天无从作答,静默给「此刻」是错答。</exception>
+        /// <remarks>
+        /// 🔁 **2026-10-30(ADR-036 D1 实现轮 · 用户裁定)**:本入口是 **53 的 D 路真值**的
+        /// 历史面。<c>ConsequenceInputAggregator.Aggregate</c> 按 `close.Tick` 问 D
+        /// (「结案那一刻是否已痊愈」),而延迟窗内该 tick 早已过去 ⇒ 必须能回溯。
+        /// <para>⚠️ 与 <see cref="TryGetOutcome"/> 的分工:后者 = 「**此刻**态的 O(1) 查询」
+        /// (9 侧既有消费面);本方法 = 「**某历史 tick** 态」,代价是一次顺序扫描
+        /// (每病人 ≤ 9 条转移 ⇒ 常数级)。**两者对 <see cref="LastTick"/> 时刻的结果必一致**
+        /// (同一份写入点维护,见 <see cref="RecordOutcomeTransition"/>)。</para>
+        /// </remarks>
+        public bool TryGetOutcomeAt(PatientId p, long tick, out InjuryState state)
+        {
+            if (tick > _lastTick)
+                throw new ArgumentOutOfRangeException(nameof(tick), tick,
+                    $"请求的是未来时刻(当前 tick = {_lastTick})—— 未来态今天无从作答");
+
+            state = default;
+            if (!_outcomeHistory.TryGetValue(p.Value, out List<OutcomeTransition> history)
+                || history == null || history.Count == 0)
+                return false;   // 该病人从未求值过 —— 无历史可答(正常退化)
+
+            // 升序表上取「最后一个 tick ≤ 目标」:线性扫(≤ 9 条)比二分更不易错。
+            bool found = false;
+            for (int i = 0; i < history.Count; i++)
+            {
+                if (history[i].Tick > tick) break;
+                state = history[i].State;
+                found = true;
+            }
+            return found;
+        }
+
+        /// <summary>
+        /// 诊断入口:某病人的**状态转移历史条数**(调试视图 / 夹具;生产不消费)。
+        /// </summary>
+        /// <param name="p">病人 id。</param>
+        /// <returns>历史条数;未建档 ⇒ 0。</returns>
+        /// <remarks>存在理由:`_outcomeHistory` 的有界性(≤ 九态数)**只能**用条数观测 ——
+        /// 「同 tick 只留一条」若失效,<see cref="TryGetOutcomeAt"/> 的**返回值仍然正确**
+        /// (后者取最后一条),唯一的症状是内存按 tick 线性增长。没有本入口,那条守卫无法被夹具钉住。</remarks>
+        public int OutcomeTransitionCount(PatientId p)
+            => _outcomeHistory.TryGetValue(p.Value, out List<OutcomeTransition> h) ? h.Count : 0;
+
+        /// <summary>
+        /// 追加一条状态转移(只在**状态变化**时)—— <see cref="_outcomeHistory"/> 的唯一写点。
+        /// </summary>
+        /// <param name="pid">病人 id。</param>
+        /// <param name="tick">本 tick。</param>
+        /// <param name="previous">本 tick 求值前的态(<c>null</c> = 首次求值)。</param>
+        /// <param name="current">本 tick 求得的新态。</param>
+        /// <remarks>
+        /// <b>为什么「首次求值」也算转移</b>:否则「发病后一直未变」的病人在历史上查不到任何态
+        /// ⇒ <see cref="TryGetOutcomeAt"/> 会对**结案前**的合法时刻答 <c>false</c>。
+        /// </remarks>
+        private void RecordOutcomeTransition(int pid, long tick, InjuryState? previous, InjuryState current)
+        {
+            if (!_outcomeHistory.TryGetValue(pid, out List<OutcomeTransition> history))
+            {
+                history = new List<OutcomeTransition>(8);
+                _outcomeHistory[pid] = history;
+                history.Add(new OutcomeTransition(tick, current));
+                return;
+            }
+
+            // ⚠️ **同 tick 只留一条** —— 防御性守卫:`StepAll` 逐 course 调本方法,而
+            //   `_outcomes[pid]` 是「最后一个 course 胜」。若某病人将来有**多个 course**,
+            //   每 tick 会追加 N 条 ⇒ 历史按 tick 线性增长,而本表的全部意义就是「有界」。
+            //   「同 tick 覆盖」与 `_outcomes` 的语义一致:该 tick 的态 = 该病人最后一次求值。
+            //   **今日零输入可达**(`DiseaseCourseBook` 拒同一病人的第二条 `DiseaseOnset`,
+            //   ADR-030 ① 甲案「病人出现是单次事件」)⇒ 与本类别处的「零输入可达守卫」同格,
+            //   不得宣称已被夹具钉住;可证伪的是「按 tick 增长」那一面(见投影夹具)。
+            if (history.Count > 0 && history[history.Count - 1].Tick == tick)
+            {
+                if (history[history.Count - 1].State != current)
+                    history[history.Count - 1] = new OutcomeTransition(tick, current);
+                return;
+            }
+
+            if (previous.HasValue && previous.Value == current)
+                return;   // 无变化 ⇒ 不追加(历史长度 ≤ 状态数)
+
+            history.Add(new OutcomeTransition(tick, current));
         }
 
         /// <summary>
@@ -454,6 +591,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     course, entry, result, tick, _worldSeed, _trendWindowTicks, _trendEpsRaw,
                     _treatableBy, _actorClassOf(pid));
                 _outcomes[pid] = current;
+                RecordOutcomeTransition(pid, tick, hadPrevious ? previous : (InjuryState?)null, current);
 
                 PublishDeathCandidateIfTransferred(
                     pid, hadPrevious ? previous : (InjuryState?)null, current, tick);

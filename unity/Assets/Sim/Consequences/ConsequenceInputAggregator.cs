@@ -55,8 +55,28 @@ namespace DaYiJingCheng.Sim.Consequences
         /// <summary>投影覆盖的 tick。</summary>
         public readonly long Tick;
 
+        /// <summary>
+        /// **痊愈位**(D 路真值)—— 「该病人在 <see cref="Tick"/> 时刻**是否已痊愈**」。
+        /// <para>🔁 **2026-10-30(ADR-036 D1 实现轮)**:此前本结构只有 <see cref="Tick"/>,
+        /// D 路在 Sim 侧**没有任何真值来源** ⇒ 判定表 18 格里 `Recovered` 那 6 格永不可达。
+        /// 现补此位;生产实现 = 9 的边界层(读 <c>DiseaseVitalsService.GetOutcome</c>)。</para>
+        /// <para>⚠️ **它不是 `PatientOutcome`**(ADR-032 的病程终态)—— 语义是「**结案那一刻是否痊愈**」,
+        /// 两者不恒等(ADR-036 D1 语义边界)。⚠️ 且今日该位**恒为 false**:9 的痊愈支受
+        /// `trend_window_ticks = 0` 门控未求值(ADR-036 §Risks R1)——「接口通」≠「6 格活」。</para>
+        /// </summary>
+        public readonly bool Recovered;
+
+        /// <summary>构造投影快照(痊愈位默认为 <c>false</c> —— 未接线 / 未求值时的保守值)。</summary>
+        public DiseaseProjectionSnapshot(long tick) : this(tick, recovered: false) { }
+
         /// <summary>构造投影快照。</summary>
-        public DiseaseProjectionSnapshot(long tick) { Tick = tick; }
+        /// <param name="tick">投影覆盖的 tick。</param>
+        /// <param name="recovered">该时刻是否已痊愈(D 路真值)。</param>
+        public DiseaseProjectionSnapshot(long tick, bool recovered)
+        {
+            Tick = tick;
+            Recovered = recovered;
+        }
     }
 
     /// <summary>P 路**解码行** —— `JudgmentRecorded` 载荷内容 + 事件头排序键。
@@ -184,6 +204,20 @@ namespace DaYiJingCheng.Sim.Consequences
     /// </summary>
     public static class ConsequenceInputAggregator
     {
+        /// <summary>
+        /// **生产口径**的「处置记录」Kind 集(GDD 规则五 · ADR-036 D4)。
+        /// <para>与 <see cref="CareRowOf"/> 的三臂 `switch` 一一对应 —— 少一支 = 该支的处置在生产上
+        /// **不计入 C 路**(静默,无报错)。</para>
+        /// <para>🔁 **2026-10-30(ADR-036 D4)**:此前只存在于夹具
+        /// (`CareKindsPerGddRule5 = { CareApplied }`,仅一支)。生产口径比测试宽 **三倍** ——
+        /// 这份差集是**新增覆盖面**,不得拿既有夹具当「三支都已证」。</para>
+        /// </summary>
+        public static readonly IReadOnlyList<EventKind> ProductionCareKinds = Array.AsReadOnly(new[]
+        {
+            EventKind.CareApplied,               // 4 的护理动作
+            EventKind.EmergencyTreatmentApplied, // 10 的急救处置(ADR-009 Amendment I)
+            EventKind.DrugTreatmentApplied,      // 11 的用药处置(ADR-009 Amendment I)
+        });
         /// <summary>
         /// 按**跨流全序键**聚合,产出每结案病例一组输入。
         /// <para>⚠️ **按 Tick 聚合,不按到达序**(GDD 规则四)—— 前向悬垂实测形:

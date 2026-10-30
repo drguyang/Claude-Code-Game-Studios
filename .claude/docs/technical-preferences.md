@@ -987,7 +987,20 @@
   R2 空表惰性与「未启用」同形;R3 `Aggregate` 每 tick 全流排序被搬上热路径(**不优化它** ——
   优化会动 AC-53-04 的结构性保证;逼近 tick 预算须**另开 ADR**)。
   **§Validation V-1…V-12 全部未跑(禁借绿)**。**三条债的解除动作 = S4(CompositionRoot 装配完成),
-  不是「ADR 写了」**。Engine Knowledge Risk **LOW**(纯装配与接口契约;`Sim` / `Sim.Contracts`
+  不是「ADR 写了」**。
+  **✅ 2026-10-30 实现轮(用户指令「全套」)** —— S1–S5 + S7 落盘:`DiseaseVitalsService` 增
+  **状态转移历史** + `TryGetOutcomeAt`(D7:延迟窗内**跨 tick 回溯** D 轴;原「非当前 tick 一律抛」
+  接不上驱动 ⇒ V-12 已订正)· `DiseaseProjectionAdapter` · `ConsequenceDriver`
+  (`Aggregate → Judge → Emit` + D5 `ReferenceEquals` + D6 两层 + **D8 桥**:C 轴命中位按轴查 /
+  U 的盐按世界级 `PatternRecognized` 解、无命中退化 32768 / 试药史**逐病人**)
+  · `ConsequenceEmitter` 去重键 **`(patient, closeTick, closeSeq)`**(实测「只剔 outcome」不够 ——
+  `emitTick` 由 outcome 派生,两个 outcome 延迟不同则键仍不等) · `CompositionRoot`/`BootRoot` 装配 ·
+  **`P0HostEventAuthority`(全仓首个 `IEventAuthority` 生产实装)**。
+  **V-1…V-12 全部有载体**;定向回归 **242/242**(MedConsequences);全量 EditMode **`6148/6111/0/37`**(@ 2026-10-30 15:08:42 CST · `5982b520`+工作树;基线 `6124/6087/0/37` ⇒ +24/+24)。**实跑修正一处性能缺陷**:
+  逐例问试药史会每次全排序整条流 ⇒ 2000 条时 **1135 ms/tick**,改「每 tick 扫一次」后
+  现实负载 **0.198 ms** · 压力口径(≈1008 条)**1.494 ms**(预算 50 ms)。
+  `TD-medcons-13` **closed**;`TD-medcons-18` → **`partial`**(D-1/D-3 结,D-2 仍 open);
+  `TD-medcons-19` 维持 `open`。Engine Knowledge Risk **LOW**(纯装配与接口契约;`Sim` / `Sim.Contracts`
   引用集一字不改,门 A / b2 / ADR-025 §① 全部继续成立)。
 
 > **本日志状态**:全部 ADR(001–**036**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,

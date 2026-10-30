@@ -398,17 +398,46 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         /// <para><b>当前判据(用户 2026-10-19 裁定:半边推到 P1b)</b>:P0 断言
         /// `IEventAuthority` 在 `unity/Assets/` 下**零生产实装**(排除 `Sim.Contracts` 契约面与测试树)。
         /// 该事实成立 ⇒ 本条绿(缺口已登记,归 P1b 联机轮);
-        /// 一旦出现生产实装 ⇒ 本条**红** ⇒ 须改为真驱动「真非主机进程被拒」。</para></summary>
+        /// 一旦出现生产实装 ⇒ 本条**红** ⇒ 须改为真驱动「真非主机进程被拒」。</para>
+        /// <para>🔁 **2026-10-30 订正(ADR-036 S4 装配轮)**:生产树里出现了一个
+        /// <c>P0HostEventAuthority</c> —— 但它是**P0 单机占位**(恒 `IsHost = true`,
+        /// 无对端、无角色切换),**不是**「真联机权威就绪」。若照原判据直接转红,
+        /// 逼出来的是「给占位写一条假的非主机路径」—— 那是把哨兵变成摆设。
+        /// ⇒ 现判据二分:**实现 <see cref="IP0AuthorityPlaceholder"/> 的占位不计入**;
+        /// 且**排除集必须非空**(否则这条排除条件将来会静默失效 —— 占位被删掉后,
+        /// 本测又会退化成「扫到空集就绿」的原形态,且没人会发现)。
+        /// 真正的转红条件不变:**出现不实现该标记的生产实装**。</para></summary>
         [Test]
         public void test_e3_realOnline_nonHostRejected_gapSentinel()
         {
-            string[] productionImplementations = FindProductionEventAuthorityImplementations();
+            string[] all = FindProductionEventAuthorityImplementations();
+            string[] placeholders = all
+                .Where(n => n != null && IsP0Placeholder(n))
+                .ToArray();
+            string[] real = all.Except(placeholders).ToArray();
 
-            Assert.That(productionImplementations, Is.Empty,
-                "AC-51-E3 的「真联机」半边仍登记为 P1b 缺口,但检测到 `IEventAuthority` 的生产实装:" +
-                string.Join(", ", productionImplementations) +
+            // 排除条件**自身**须可证伪:占位必须在场且恰是 P0 那个 —— 否则将来占位被删/改名,
+            // 「排除」会静默失效,本测退化成「扫到空集就绿」。
+            Assert.That(placeholders, Is.Not.Empty,
+                "未扫到任何 P0 占位权威 —— 占位被删/改名了?本测的排除条件必须同批订正" +
+                "(否则它会静默退化为『空集即绿』)。");
+            Assert.That(placeholders, Has.All.Contains("P0HostEventAuthority"),
+                "排除集里出现非 P0 占位的东西:" + string.Join(", ", placeholders));
+
+            Assert.That(real, Is.Empty,
+                "AC-51-E3 的「真联机」半边仍登记为 P1b 缺口,但检测到**非占位**的 `IEventAuthority` " +
+                "生产实装:" + string.Join(", ", real) +
                 " —— 缺口已就绪 ⇒ 本条哨兵必须改为真驱动(构造真非主机进程断言被拒)," +
                 "不得继续以「环境不具备」为由留绿。");
+        }
+
+        /// <summary>该类型是否声明为 P0 占位(实现 <c>IP0AuthorityPlaceholder</c>)。</summary>
+        private static bool IsP0Placeholder(string fullName)
+        {
+            Type t = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => { try { return a.GetType(fullName); } catch { return null; } })
+                .FirstOrDefault(x => x != null);
+            return t != null && typeof(IP0AuthorityPlaceholder).IsAssignableFrom(t);
         }
 
         /// <summary>扫描 `unity/Assets/` 下**生产树**里实现 <c>IEventAuthority</c> 的类型。

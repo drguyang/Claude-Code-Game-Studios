@@ -479,6 +479,15 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 // 🔁 2026-10-30(ADR-035 §⑤):装配现在**会**问代价表(53 的禁忌结算器要它)。
                 //    ⇒ 本类型不再是「接线错」。给**空表**(惰性形态:任何档都 miss)——
                 //    它不改变任何本测的判据面,也不会凭空产生 `TreatmentHarmOnset`。
+                // 🔁 2026-10-30(ADR-036 S4):装配现在**也**会问 53 的判定表与延迟表
+                //    (53 判定链的两张表)。⇒ 与上一条同因,不再是「接线错」。
+                //    ⚠️ 延迟表**构造期拒空**(定义域三支须全在)⇒ 只能给真表(从仓库源 JSON 现烘,
+                //    见 `MedCons53Tables`);不抄任何数值。
+                if (typeof(TDataSet) == typeof(DaYiJingCheng.Gameplay.Presentation.OutcomeTable53DataSet))
+                    return (TDataSet)(object)DaYiJingCheng.Tests.MedConsequences.MedCons53Tables.Outcome;
+                if (typeof(TDataSet) == typeof(DaYiJingCheng.Gameplay.Presentation.DelayTable53DataSet))
+                    return (TDataSet)(object)DaYiJingCheng.Tests.MedConsequences.MedCons53Tables.Delay;
+
                 if (typeof(TDataSet) == typeof(DaYiJingCheng.Gameplay.Presentation.CostTable53DataSet))
                     return (TDataSet)(object)new DaYiJingCheng.Gameplay.Presentation.CostTable53DataSet(
                         DaYiJingCheng.Sim.Consequences.CostTable53.CreateTable(

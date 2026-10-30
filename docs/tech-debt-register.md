@@ -313,12 +313,12 @@
 | `TD-medcons-10` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-12` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-13` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-14` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-15` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-18` | `medical-consequences` | partial | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
 | `TD-s13-02` | `medical-consequences` | closed | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 94, 'open': 42, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 18 （已闭但曾标 P0 面的 85 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 18 条,分布在 8/31 个 epic
-    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 4
+条目 139 | 状态 {'closed': 95, 'open': 40, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 17 （已闭但曾标 P0 面的 86 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 17 条,分布在 8/31 个 epic
+    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 3
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1888,6 +1888,75 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 >
 > **未一并处理(如实登记)**:同族 `TD-persist-08`(`SaveService` / `EventStream` 的超长方法)
 > 与「代码规范闸」本身**均未动**。本条只清 `BuildDueRows` 这一处。
+
+---
+
+## 2026-10-30 · ADR-036 装配轮(53 判定链的生产接线)
+
+**出处**:`production/epics` 无对应卡面 —— 三条债的触发条件写的是「装配轮」,而「装配轮」此前
+**不存在**;本轮由用户指令「全套」按 **ADR-036 §Migration Plan S1–S7** 执行。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-13`(装配缺失:53 的结算器无生产装配点)**
+>
+> **原判定**:`DelayTableCookedWriter` 产出的 `*.cooked` **无镜像读方**;2026-10-29 已实测订正为
+> 「读方 / 装载 / 产物**都在**,缺的是**消费端**」,并给出解锁判据(可判定):
+> 「`ConsequenceEmitter` 由 `CompositionRoot` 构造,且 `delayTable` 实参取自
+> `IDataProvider` 的 `DelayTable53DataSet` —— 该条成立即可当场结」。
+>
+> **本轮解**:两条判据**逐字成立**(可复算命令见下)。装配把整条链接成每 tick 的驱动:
+> `ConsequenceDriver`(`Aggregate → Judge → Emit`)由 `CompositionRoot` 构造,
+> 表源 = `dataProvider.Load<DelayTable53DataSet>()` / `Load<OutcomeTable53DataSet>()`,
+> 边沿驱动点在 `BootRoot.StepVitals`,**排在 `VitalsService.OnTickEdge` 之后**(ADR-036 R4)。
+>
+> ```bash
+> # ① 发射器的生产构造点(非测试)
+> grep -rn "new ConsequenceEmitter" unity/Assets --include=*.cs | grep -v /Tests/
+> #   ⇒ unity/Assets/Gameplay.Boot/CompositionRoot.cs:1508
+>
+> # ② 延迟表取自 IDataProvider
+> grep -rn "DelayTable53DataSet" unity/Assets --include=*.cs | grep -v /Tests/ \
+>   | grep -v Gameplay.Presentation
+> #   ⇒ unity/Assets/Gameplay.Boot/CompositionRoot.cs:1505
+>
+> # ③ 判定求值的生产调用点
+> grep -rn "Judge.Evaluate" unity/Assets --include=*.cs | grep -v /Tests/
+> #   ⇒ unity/Assets/Gameplay.Boot/ConsequenceDriver.cs:122(其余为注释)
+> ```
+>
+> **载体**:`medcons_driver_test.cs`(7 条,含端到端 / 幂等 / D5 / D6 两层 / 空表 / 惰性装配 /
+> 边沿次序源文本)+ `medcons_disease_projection_test.cs`(9 条)+ 聚合器上下界 2 条 +
+> 延迟窗 2 条 ⇒ MedConsequences 命名空间 **218 → 237**。
+> ⚠️ **本条的「解除」= 生产装配面存在**,不是「Recovered 6 格已可用」——
+> 后者仍被数值门(`trend_window_ticks = 0`)挡着(ADR-036 §Risks R1)。
+
+> 🔁 **2026-10-30 状态收窄 —— `TD-medcons-18`(三处 S3 缺陷)**:`open` → **`partial`**。
+> · **① D-1**(读流与写流非同一条流 ⇒ 差额静默失效)—— **已结**:
+>   `ConsequenceDriver` 构造期 `ReferenceEquals(stream, writeFace)` fail-loud(ADR-036 D5);
+>   反证载体 `test_d5_differentWriteFace_throwsAtConstruction`。
+> · **③ D-3**(同一 `CaseClosed` 不同 outcome 不去重)—— **已结,且实测比原判定更深一层**:
+>   键**只剔 `outcome` 不够** —— `emitTick` 由 outcome 派生,两个 outcome 延迟不同则键仍不等
+>   ⇒ 照发两条(夹具首轮实测 `emitted = 2`)。现键 = `(patient, closeTick, closeSeq)`。
+>   载体 `test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest` +
+>   `test_twoDifferentCaseCloses_sameOutcome_emitTwo_control`(对照半,防「恒合并」假绿)。
+> · **② D-2 仍 open**:「部分成功后抛异常不回填 `emittedCount` ⇒『不得 catch 重试』
+>   在类型面不可表达」—— 本轮**未动** `ConsequenceEmitter.AppendDueRows` 的失败路径,
+>   driver 侧只加了「遇抛即终止本 tick,不重试」的**注释级**约定。
+>   ⇒ 该半边的解除动作不变:**须在类型面表达**(如把 `emittedCount` 改为返回值的一部分 /
+>   引入 `EmitOutcome`  discriminated 结果),不得只靠注释。
+>
+> 🔁 **2026-10-30 连带(51 侧哨兵)** —— 装配需要一个 `IEventAuthority` 生产实现(发射器的写权门),
+> 而全仓此前**零生产实装**(`SeenDiseaseProjector.cs:23-26` 早已登记)。本轮新增
+> **`P0HostEventAuthority`**(恒 `IsHost = true` 的 P0 单机占位)。这触发了
+> `OutOfBoundsRejectionTest.test_e3_realOnline_nonHostRejected_gapSentinel` 的**设计内转红**
+> (该哨兵的判据就是「生产树一旦出现实装 ⇒ 缺口算就绪」)。
+> **处置**:哨兵**不收窄为绿**,而是加**二分** —— 实现 `IP0AuthorityPlaceholder` 的占位不计入
+> 「真联机权威」,且**排除集须非空**(否则排除条件将来会静默失效)。
+> ⇒ **AC-51-E3 的「真联机」半边**仍是 P1b 缺口;`P0HostEventAuthority` 不改变那条结论。
+
+> 🔁 **2026-10-30 状态不变 —— `TD-medcons-19`(两条自包含夹具判别力弱)**:仍 `open`。
+> 触发条件原文是「数值轮(U 档扩档)启动时一并补真装配面判据」—— 本轮**生产装配面已存在**
+> (见上条),但其两条夹具的**判别力**未重做;`test_ac6_bandCountSingleSource*` 用的
+> `BuildEligible` 仍是测试侧 helper。⇒ 本轮的装配为它**解除了前置**,不构成结案。
 
 ---
 
@@ -5654,7 +5723,7 @@ EOF
 | 触发面 | 条 | 共同点 |
 |---|---|---|
 | **数值轮** | `TD-medcons-01` · `-02` · `-15` · `-19` | 都要等**数值冻结 / 代价表 / U 档扩档**;数值用户自己调 ⇒ 今天动它等于替用户拍数 |
-| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · ~~**`TD-s13-02`**~~ | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;~~`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源~~ ⇒ 🔁 **2026-10-30:`TD-s13-02` 已 closed**(ADR-035 S8,残留半边由 T1 的 S2/S3/S7/S9 补齐)**,本组只剩 `-13` / `-18`** |
+| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · ~~**`TD-s13-02`**~~ | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;~~`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源~~ ⇒ 🔁 **2026-10-30:`TD-s13-02` 已 closed**(ADR-035 S8,残留半边由 T1 的 S2/S3/S7/S9 补齐)。🔁 **2026-10-30 再订(ADR-036 装配轮)**:`-13` **closed**(解锁判据逐字成立,见「2026-10-30 · ADR-036 装配轮」小节);`-18` → **`partial`**(D-1 / D-3 已结,D-2「`emittedCount` 回填 /『不得重试』类型面」仍 open)⇒ **本组只剩 `-18` 的 D-2 半边** |
 | **ADR-012 CI** | `TD-medcons-09` | 等三格矩阵;且矩阵本身 `EXTERNAL`(E-2a) |
 | **事件触发** | `-03`–`-08` · `-10` · `-11` · `-12` · `-14` | 等「**下一次真的碰到那个文件 / 那个签名**」;提前修 = 改一处、动一片 |
 | **规范闸** | `-17`(≤40 行) | 与 `TD-persist-08` / `TD-clinic-14` **同批** |

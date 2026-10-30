@@ -43,18 +43,49 @@ namespace DaYiJingCheng.Sim.Consequences
         /// <returns>true = 存在某病人 ≥ <see cref="TrialRunThreshold"/> 的连续 Drug run
         /// (无该病人的支持性 Judgment 打断)。</returns>
         public static bool HasTrialHistory(IReadOnlyList<SimEvent> stream)
-        {
-            if (stream == null || stream.Count == 0) return false;
+            => PatientsWithTrialHistory(stream).Count > 0;
 
-            // 有序扫描(置换不变 —— 与聚合器同口径,承 GDD 规则四按 Tick 不按到达序)。
+        /// <summary>
+        /// 判定**指定病人**是否有试药史痕迹(2026-10-30 · ADR-036 实现轮 · 用户裁定「逐病人」)。
+        /// </summary>
+        /// <param name="stream">事件流(任意到达序)。</param>
+        /// <param name="patient">只看该病人的事件;他人事件不延续也不打断。</param>
+        /// <returns>true = **该病人**存在 ≥ <see cref="TrialRunThreshold"/> 的连续 Drug run。</returns>
+        /// <remarks>
+        /// <b>为什么要有逐病人入口</b>:53 的判定是**逐病例**的(`Outcome = Judge(P,C,D,U)` 的
+        /// 输入集以一条结案为单位),而流级 <see cref="HasTrialHistory(IReadOnlyList{SimEvent})"/>
+        /// 的语义是「流里**有任一**病人满足」—— 用它当逐病例的 <c>HasTrialHistory</c>,
+        /// 会让「甲连开三副药」把**乙**的每条结案都判成试药史。两条边界的差集是**语义**差集,
+        /// 不是性能差集。
+        /// <para>⚠️ 与流级版本的关系:流级 ≡ 「∃ 病人 逐病人版本为真」。二者在不同输入下可同时为真
+        /// 但**不可互相推出** —— 流级为真不对任何具体病人成立。</para>
+        /// </remarks>
+        public static bool HasTrialHistory(IReadOnlyList<SimEvent> stream, PatientId patient)
+            => PatientsWithTrialHistory(stream).Contains(patient.Value);
+
+        /// <summary>
+        /// 一次扫流,返回**全部**有试药史痕迹的病人 id(逐病人语义,与逐次查询同口径)。
+        /// </summary>
+        /// <param name="stream">事件流(任意到达序)。</param>
+        /// <returns>满足 `run ≥ <see cref="TrialRunThreshold"/>` 的病人 id 集(空流 ⇒ 空集)。</returns>
+        /// <remarks>
+        /// 🔁 **2026-10-30(ADR-036 V-7 实测后)** —— 53 的 driver 每 tick 要对**每个已结案病例**
+        /// 问一次试药史。逐例调用 `HasTrialHistory(stream, patient)` 每次都会**复制并全排序整条流**
+        /// ⇒ 1000 例 × 2000 事件 = 1000 次全排序(实测把单 tick 推到 **1135 ms**,
+        /// 而 tick 预算是 50 ms)。本入口把排序降为**每 tick 一次**。
+        /// <para>语义与逐例版**逐位相同**:两者都是「该病人的连续 Drug run 是否 ≥ 阈值,
+        /// 且未被该病人的 `JudgmentRecorded` 打断」,跨病人互不影响。</para>
+        /// </remarks>
+        public static HashSet<int> PatientsWithTrialHistory(IReadOnlyList<SimEvent> stream)
+        {
+            var hits = new HashSet<int>();
+            if (stream == null || stream.Count == 0) return hits;
+
             var ordered = new List<SimEvent>(stream.Count);
             for (int i = 0; i < stream.Count; i++) ordered.Add(stream[i]);
             ordered.Sort((a, b) => EventOrder.Compare(in a, in b));
 
-            // D:逐病人 run 计数器 —— 病人 id ⇒ 该病人当前连续 Drug 条数。
-            // 换病人不再重置他人计数器(旧实现的静默丢失)。
             var runByPatient = new Dictionary<int, int>();
-
             for (int i = 0; i < ordered.Count; i++)
             {
                 SimEvent e = ordered[i];
@@ -62,21 +93,19 @@ namespace DaYiJingCheng.Sim.Consequences
 
                 if (e.Kind == EventKind.DrugTreatmentApplied)
                 {
-                    // 同病人延续 run;他人事件不触碰本计数器(「同一 patient 的连续序列」逐字)。
                     runByPatient.TryGetValue(patient, out int run);
                     run++;
                     runByPatient[patient] = run;
-                    if (run >= TrialRunThreshold) return true;
+                    if (run >= TrialRunThreshold) hits.Add(patient);
                 }
                 else if (e.Kind == EventKind.JudgmentRecorded)
                 {
-                    // 支持性判断打断**该病人**的 run(「无 JudgmentRecorded 支撑」逐字)。
                     if (runByPatient.ContainsKey(patient))
                         runByPatient[patient] = MinConsecutiveDrugs;
                 }
-                // 其余 Kind 不打断也不延续(闭集外事件与谓词无关)。
             }
-            return false;
+            return hits;
         }
+
     }
 }

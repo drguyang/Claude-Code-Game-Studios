@@ -13389,3 +13389,31 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 回归:EditMode `6124/6087/0/37` @13:42:35 · PlayMode `238/234/0/2/2` @13:43:30。
 - **计数**:`open 42 · closed 94 · partial 2 · 未闭 P0 面 20 → 18`。
 - **未提交**。
+
+### ADR-036 全套(53 判定链生产装配)—— 2026-10-30
+- 用户指令:**「全套」** ⇒ 按 ADR-036 §Migration Plan 实现 S1–S5 + S7(S6 债册归口同批)。
+- 两处 ADR 未覆盖的接缝 → **用户两次裁定**(均已落 ADR):
+  · **D7**:`Aggregate` 按 `close.Tick` 取 D,而 9 只有当前态 ⇒ **9 增状态转移历史**
+    (`_outcomeHistory` + `TryGetOutcomeAt`),适配器按「≤ 目标 tick 的最后一次转移」作答,
+    **只有未来 tick 抛**。R4 第二段与 V-12 已订正(原文留档)。
+  · **D8**:`Inputs53 → JudgeInputs` 桥三口径 —— C 轴命中位**按轴查** · U 的盐**按世界级
+    `PatternRecognized` 解**(无命中 ⇒ 32768 退化) · 试药史**逐病人**(新增重载)。
+- 代码:新增 `ConsequenceDriver` / `DiseaseProjectionAdapter` / `P0HostEventAuthority`(全仓首个
+  `IEventAuthority` 生产实装);改 `DiseaseVitalsService` · `ConsequenceEmitter`(去重键)·
+  `ConsequenceInputAggregator`(ProductionCareKinds)· `Outcome53`(RecoveryLaneOf)·
+  `TrialHistoryPredicate` · `CompositionRoot` · `BootRoot` · `CompositionRootServices`。
+- **实跑抓到的两处真问题**(均非夹具能预料的):
+  · 去重键「只剔 outcome」**不够** —— `emitTick` 由 outcome 派生 ⇒ 延迟不同则键仍不等 ⇒ 照发两条
+    (夹具首轮 `emitted = 2` 当场抓到)。现键 = `(patient, closeTick, closeSeq)`。
+  · 逐例问试药史每次**全排序整条流** ⇒ 2000 条时 **1135 ms/tick**。改「每 tick 扫一次」后
+    现实负载 **0.198 ms** · 压力口径(≈1008 条)**1.494 ms**(预算 50 ms)。
+- 夹具:MedConsequences **218 → 242**(投影 10 · 驱动 8 · 聚合 2 · 延迟窗 2)。
+  三个 `MultiTableProvider` 补 53 两表分支(装配现在会问;延迟表构造期拒空 ⇒ 只能现烘真表)。
+- 计数:`closed 94 → 95 · open 42 → 40 · partial 2 → 3 · 未闭 P0 面 18 → 17`。
+- **未提交**。
+- 回归(EditMode,全量):`6148/6111/0/37` @ 2026-10-30 15:08:42 CST · 基线 `6124/6087/0/37`
+  (2026-10-30 13:42:35)⇒ **+24/+24**,等式 `6148 − 6124 = 24` = 新增 `[Test]` 计数(投影 10 · 驱动 8 ·
+  聚合 2 · 延迟窗 2 + 复制/兜底)。commit `5982b520` + 工作树 · 批次 = ADR-036 全套。
+- 连带处置:`AC-51-E3` 哨兵按设计转红 ⇒ 未收窄为绿,改「占位 vs 真联机」二分 + 排除集非空判据。
+- 回归(PlayMode,全量):`238/234/0/2/2` @ 2026-10-30 15:09:49 CST · 基线同(`238/234/0/2/2`)
+  ⇒ **零回归**(2 inconclusive / 2 skipped 均为既有登记项)。

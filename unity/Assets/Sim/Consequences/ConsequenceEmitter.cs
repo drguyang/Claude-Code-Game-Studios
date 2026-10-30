@@ -193,13 +193,28 @@ namespace DaYiJingCheng.Sim.Consequences
         /// <para><b>行内去重</b>(卡面 Guardrail「每病例至多一条后果」的载体):同一
         /// <c>CaseClosed</c> 被喂两次(上游重复喂)时,仅取一条 —— 否则出两条后果,且
         /// <c>EventStream</c> 的未发号去重键含 <c>PayloadRef</c> 三字段而 blob 池**不 intern**
-        /// ⇒ 同内容两行 = 两键 = 去重抓不到 ⇒ 双发。去重键取五元组(零跨 tick 态,不破 AC-53-06)。</para>
+        /// ⇒ 同内容两行 = 两键 = 去重抓不到 ⇒ 双发。去重键取**结案身份**(零跨 tick 态,不破 AC-53-06)。
+        /// 🔁 **2026-10-30(ADR-036 D6)**:原为**五元组**(含 `outcome`)—— 那让「同一结案、不同 outcome」
+        /// 发两条后果(违 GDD「每病例至多一条」)。现剔除 `outcome`:同一 `CaseClosed` 只出一条。
+        /// 🔁 **2026-10-30 二轮(实测)**:仅剔 `outcome` **仍不够** —— `emitTick` 由 outcome 的延迟派生,
+        /// 两个 outcome 延迟不同则键仍不同、照发两条(夹具首轮红)。现键 = **(patient, closeTick, closeSeq)**,
+        /// 即「结案身份」;**零跨 tick 态**不变(仍是本函数内的局部集)。</para>
         /// </remarks>
         private List<DueRow> BuildDueRows(
             IReadOnlyList<(SimEvent CaseClosed, int Outcome)> eligible, long nowTick)
         {
             var due = new List<DueRow>();
-            var seen = new HashSet<(long, int, int, long, long)>();
+            // 🔁 **2026-10-30(ADR-036 D6 下层 · `TD-medcons-18` ③)**:去重键**剔除 outcome**。
+            //   原键 `(emitTick, patient, outcome, closeTick, seq)` 含 outcome ⇒ 同一 `CaseClosed`
+            //   若被以**不同 outcome** 重喂,两次都进 `seen` ⇒ **发两条后果**,违 GDD「每病例至多一条」。
+            //   上游「同一 CaseClosed 两个 outcome」本身是 bug,由 driver 层 fail-loud(ADR-036 D6 上层)。
+            // 🔁 **2026-10-30 二轮(实现轮实测修正)**:键从 `(emitTick, patient, closeTick, seq)`
+            //    再收成 **`(patient, closeTick, seq)`** —— 只剔 `outcome` **不够**。
+            //    实测:同一结案的两个 outcome 若延迟不同,`emitTick` 也不同 ⇒ 键仍不相等 ⇒
+            //    **照发两条**(夹具 `test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest`
+            //    首轮就是红的)。「同一结案」的身份与「何时发」无关 ⇒ `emitTick` 不该进身份键。
+            //    ⚠️ ADR-036 D6 的键式(**只剔 outcome**)已就地订正 —— 见该件 D6 的补注。
+            var seen = new HashSet<(int, long, long)>();
             if (eligible == null) return due;
 
             for (int i = 0; i < eligible.Count; i++)
@@ -215,8 +230,8 @@ namespace DaYiJingCheng.Sim.Consequences
                 if (emitTick > nowTick) continue;   // 仍在延迟窗内(证伪轮 ⑤ 的窗上界)
 
                 int patient = close.Patient.Value;
-                if (!seen.Add((emitTick, patient, outcome, close.Tick, close.Seq)))
-                    continue;   // 上游重复喂同一结案 ⇒ 只发一条(卡面 Guardrail)
+                if (!seen.Add((patient, close.Tick, close.Seq)))
+                    continue;   // 上游重复喂同一结案 ⇒ 只发一条(卡面 Guardrail · 键不含 outcome,见上)
 
                 due.Add(new DueRow(emitTick, patient, outcome, close.Tick, patient, close.Seq));
             }

@@ -18,6 +18,29 @@
 (`GetOutcome` 只返回当前态)。两条均见 §Risks R1 / R4 与 §Implementation Guidelines。
 **D1 不回炉。**
 
+🔁 **2026-10-30 实现轮补记 · 两项新裁定(用户逐条照准)** —— 实现 S3 时实测出**两处本件未覆盖的
+接缝**,两条都由用户裁定,现补为 **D7 / D8**:
+
+① **D7 · 「结案那一刻」的 D 须能回溯** —— 本件 §Risks R4 原写「`TryProject` 的 tick 只校验不回溯」,
+   而 `Aggregate` 是按 `close.Tick` 问 D 的(`:305`);延迟窗内每条历史结案都早于当前 tick
+   ⇒ 那条口径**在驱动上接不上**。裁定:**9 增「F4 状态转移历史」**(每病人只在状态变化时追加
+   `(tick, state)`,≤ 9 条),适配器按「≤ 目标 tick 的最后一次转移」作答,**只有未来 tick 抛**。
+   ⇒ §Risks R4 的第二段与 V-12 已就地订正(**原文留档**)。
+
+② **D8 · `Inputs53 → JudgeInputs` 的桥,三个取值口径** —— 本件只写「driver 内调 `Judge.Evaluate`」,
+   而 `Judge.Evaluate` 收的是 `JudgeInputs` 而非 `Inputs53`,桥从未被定义(生产侧
+   `new JudgeInputs` 零调用点)。裁定:**C 轴命中位按轴查** `∃ care: axis.TryGetPolarity(病种 key, care.ActionId)`
+   · **U 的盐**取世界级 `PatternRecognized` 中「盐 == `ComputeSaltedKey(seed, bit)` 且
+   `bit ∈` 本病例 `DiseaseSet`」的第一条(bit 升序),无命中 ⇒ 退化中点 32768 ·
+   **试药史位逐病人**(`TrialHistoryPredicate` 增逐病人重载 —— 流级口径会让甲的连续用药污染乙的结案)。
+
+✅ **2026-10-30 实现轮已落(S1–S5 + S7)** —— 代码:`DiseaseVitalsService` 增状态转移历史与
+`TryGetOutcomeAt` · `DiseaseProjectionAdapter` · `ConsequenceDriver`(含 D5/D6/D8 桥)·
+`ConsequenceEmitter` 去重键 · `CompositionRoot` + `BootRoot` 装配 · `P0HostEventAuthority`(全仓首个
+`IEventAuthority` 生产实装)· `TrialHistoryPredicate` 逐病人重载 + 每 tick 一次。
+**§Validation V-1…V-12 全部有载体**(含 V-7 实跑数;S6 债册归口见本件 §Risks R1 与债册)。
+定向回归 **242/242**(MedConsequences);**全量 EditMode `6148/6111/0/37`**(@ 2026-10-30 15:08:42 CST · 批次 = 本件实现轮 · `5982b520`+工作树),基线 `6124/6087/0/37` ⇒ **+24/+24**(= 新增 `[Test]` 计数);**全量 PlayMode `238/234/0/2/2`**(@ 15:09:49 CST)与基线**逐位相同**(零回归)。**S1b(数值轮)与 `-18` 的 D-2 半边仍 open**。
+
 ## Date
 
 2026-10-30
@@ -168,6 +191,18 @@ Engine Knowledge Risk **LOW**。
 - **上层(fail-loud)**:driver 内若发现同一 `CaseClosed` 两次投影的 outcome 不一致 ⇒ **抛** ——
   那是上游 bug,静默吞掉会让「为什么后果错了」永远查不出来。
 
+🔁 **2026-10-30 实现轮实测订正(下层键式,原文留档)**:**只剔 `outcome` 不够**。
+`emitTick = closeTick + DelayTable[outcome]` **由 outcome 派生** ⇒ 两个 outcome 延迟不同时
+`emitTick` 也不同,四元组 `(emitTick, patient, closeTick, seq)` 仍不相等 ⇒ **照发两条**
+(夹具 `test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest` 首轮即红,`emitted = 2`)。
+⇒ 现行键 = **`(patient, closeTick, closeSeq)`**(结案**身份**),`emitTick` 与 `outcome` 都不进身份键。
+「零跨 tick 态」不变(仍是函数内的局部集)。上层 fail-loud 的**可达性**另见 D8 后的补注。
+
+⚠️ **上层 fail-loud 今日零输入可达(如实登记)**:`Aggregate` 对每条 `CaseClosed` 只产一组,
+同一条结案在同一 tick 内的 D 也不可能两个值 ⇒ **冲突在 `OnTickEdge` 的路径上构造不出来**。
+它的载体只能是**直接调判据方法**(`ConsequenceDriver.AssertNoConflictingOutcomes`)。
+按 ADR-035 N-4 的纪律:这是「**零输入可达的门**」,不得宣称「守卫已兑现」。
+
 ## Architecture
 
 ```
@@ -280,8 +315,15 @@ CompositionRoot(装配)
 - **次序约束**:`ConsequenceDriver` 在 `BootRoot` 的 tick 边沿序列里**必须排在
   `VitalsService.OnTickEdge`(`BootRoot.cs:1314`)之后**;排在之前 ⇒ 读到的是**上一 tick** 的 F4 态
   —— 静默偏差一个 tick,不会有任何报错。
-- **形参陷阱**:`TryProject` 的 `tick` 只能**校验**(≠ 当前 tick 时 fail-loud),不能回溯。
-  实现轮若要真回溯,须另立「F4 历史态」查询面 —— **不得**由适配器自行近似。
+- ~~**形参陷阱**:`TryProject` 的 `tick` 只能**校验**(≠ 当前 tick 时 fail-loud),不能回溯。
+  实现轮若要真回溯,须另立「F4 历史态」查询面 —— **不得**由适配器自行近似。~~
+  (**2026-10-30 实现轮就地订正,原文留档**)—— 该口径**接不上驱动**:`Aggregate` 按
+  `close.Tick` 取 D,延迟窗内的历史结案恒早于当前 tick ⇒ 「只允许当前 tick」会让**第二 tick 起
+  全部抛**。用户裁定取 **D7**:9 增状态转移历史(`DiseaseVitalsService._outcomeHistory` +
+  `TryGetOutcomeAt`),适配器按「≤ 目标 tick 的最后一次转移」作答,**只有未来 tick 抛**。
+  「不得由适配器自行近似」这半句仍然成立 —— 回溯的事实来源在 **9 的转移历史**,不在适配器。
+
+**「次序约束」那一条(R4 上半)不受影响,仍然成立。**
 
 **本条不是新裁,是对既有实现的如实登记**;它在 §Implementation Guidelines 与 V-11 各留一处。
 
@@ -298,21 +340,30 @@ CompositionRoot(装配)
 但须:① 实现轮实测流长与耗时;② 若逼近 tick 预算(50 ms),**另开 ADR**,
 不得在本件内部改排序结构。
 
+🔁 **2026-10-30 实测(见 V-7)**:现实负载(144 条)**0.198 ms/tick** · 压力口径(≈1008 条)
+**1.494 ms/tick** —— **远低于** 50 ms ⇒ **R3 的触发条件未达到**,不另开 ADR。
+⚠️ 首版实测曾到 **1135 ms/tick**(2000 条),但归因不是 `Aggregate` 的排序,而是**本件新增的桥**
+逐例重排整条流问试药史(`TrialHistoryPredicate.HasTrialHistory(stream, patient)`)——
+改成每 tick 扫一次(`PatientsWithTrialHistory`)后降到 1.494 ms(同口径 ≈700×)。
+**这条写在这里的理由**:性能问题先怀疑**新加的代码**,不要先怀疑既有结构性设计。
+
 ## Performance Implications
 
 - 驱动频率 = tick(20 Hz,`TICK_SECONDS = 0.05`),**不随渲染帧**;
 - 单 tick 成本 = 全流排序 + 18 次查表 + (有到期行时)少量 `Append`;
-- 定量判据**本轮未测** —— 实现轮须给出「流长 N 条时单 tick 耗时」的实测数,登记进本件 V-7。
+- 定量(**2026-10-30 实跑**,EditMode 夹具 `test_v7_perTickCost_realisticLoad_withinTickBudget`):
+  现实负载 24 病人 × (1 结案 + 5 处置)= 144 条 ⇒ **0.198 ms/tick**;
+  压力口径 ≈1008 条 ⇒ **1.494 ms/tick**(只记录,非判据)。预算 `TICK_SECONDS = 50 ms`。
 
 ## Migration Plan
 
 | # | 步骤 | 归属 | 前置 |
 |---|---|---|---|
-| **S1** | 9 扩 `DiseaseProjectionSnapshot` + 生产实现 `IDiseaseProjection`(取 `DiseaseVitalsService.GetOutcome`) | 9 / 边界层 | **R1 已核通过**(判据 / 调用点 / 访问器均在) |
+| **S1** | 9 扩 `DiseaseProjectionSnapshot` + 生产实现 `IDiseaseProjection`(取 `DiseaseVitalsService.TryGetOutcomeAt`)+ **D7 状态转移历史** | 9 / 边界层 | **R1 已核通过**(判据 / 调用点 / 访问器均在) |
 | **S1b** | 数值轮裁 `trend_window_ticks` / `trend_eps` —— **只影响 `Recovered` 6 格是否可达**,不阻塞 S1–S5 | 数值轮(用户) | — |
-| **S2** | `ConsequenceEmitter.BuildDueRows` 去重键剔除 outcome(D6 下层) | 53 | — |
-| **S3** | `ConsequenceDriver`(Aggregate → Judge → Emit)+ 构造期 D5 断言 + D6 上层 fail-loud | `Gameplay.Boot` | S1 / S2 |
-| **S4** | `CompositionRoot` 装配(表装载 / driver 构造 / `OnTicks` 注册 / 空表告警 / **边沿次序排在 `VitalsService` 之后——R4**) | `Gameplay.Boot` | S3 |
+| **S2** | `ConsequenceEmitter.BuildDueRows` 去重键 → **结案身份 `(patient, closeTick, closeSeq)`**(D6 下层;⚠️ 实测「只剔 outcome」不够,见 D6 补注) | 53 | — |
+| **S3** | `ConsequenceDriver`(Aggregate → Judge → Emit)+ 构造期 D5 断言 + D6 上层 fail-loud + **D8 桥(`Inputs53 → JudgeInputs`)** | `Gameplay.Boot` | S1 / S2 |
+| **S4** | `CompositionRoot` 装配(表装载 / driver 构造)+ **`BootRoot.StepVitals` 边沿驱动(排在 `VitalsService` 之后——R4)**+ 缺席告警 + `P0HostEventAuthority` 占位 | `Gameplay.Boot` | S3 |
 | **S5** | 生产口径 `careKinds` 三支(D4)—— 并为三支各补一条夹具 | 53 | — |
 | **S6** | 债册归口:`TD-medcons-13` / `-18` / `-19` 改指本件 | 治理 | **S4 之后**才能结 |
 | **S7** | 性能实测(R3)并回填 V-7 | 实现轮 | S4 |
@@ -321,22 +372,31 @@ CompositionRoot(装配)
 
 ## Validation Criteria
 
-**V-1…V-12 全部未跑(禁借绿)。** 每条注明「判据 + 可复算载体」,实现轮逐条勾。
+🔁 **2026-10-30 实现轮** —— **V-1…V-12 全部已勾**(V-7 的实跑数见该行)。载体全部落在 `unity/Assets/Tests/EditMode/MedConsequences/`(medcons_driver_test ·
+medcons_disease_projection_test · medcons_aggregation_test · medcons_delayed_emit_test)。
+**定向复算命令**:
+
+```bash
+# 期望 242/242(218 基线 + 本件新增 24)
+#   Unity -batchmode -runTests -testPlatform EditMode \
+#     -testFilter DaYiJingCheng.Tests.MedConsequences
+```
+
 
 | # | 判据 | 载体 |
 |---|---|---|
-| V-1 | `DiseaseProjectionSnapshot` 带痊愈位,且 53 侧只经 `IDiseaseProjection` 取值 | 反射断言 + `grep` 53 侧零 9 类型引用 |
-| V-2 | 生产侧 `new ConsequenceEmitter(` **非空** | `grep -rn "new ConsequenceEmitter" unity/Assets \| grep -v /Tests/` |
-| V-3 | 生产侧 `Judge.Evaluate` 调用点**非空** | 同上形态 |
-| V-4 | driver 构造期读流≠写流 ⇒ fail-loud | 夹具:传入两条不同流 ⇒ 构造抛 |
-| V-5 | 同一 `CaseClosed` 不同 outcome 重喂 ⇒ **不产生两条后果** | 夹具:双喂 ⇒ `Emit` 返回 1 条;上层断言抛 |
-| V-6 | `careKinds` 三支各有一条夹具 | 三支各一 |
-| V-7 | 单 tick 耗时实测(流长 N 条) | 性能夹具 / 日志,数值回填本表 |
-| V-8 | 无 provider ⇒ 全链不发**且**有显式告警 | 夹具:空 provider ⇒ `Emitted = 0` + 日志断言 |
-| V-9 | 非主机调用 ⇒ 零写入(既有 AC 不回归) | 既有 `test_required_clientAuthorityGate_nonHostWritesNothing` |
-| V-10 | 空判定表时**不得**静默产出后果 | 夹具:空表 + 有结案 ⇒ 不发 |
-| V-11 | **边沿次序**:`ConsequenceDriver` 排在 `VitalsService.OnTickEdge` 之后 | 源文本 / 装配序断言(同 `TD-medcons-12` 载体 ③ 的形态)—— 排错的后果是**静默偏差一 tick**,无报错 |
-| V-12 | `TryProject` 收到非当前 tick ⇒ **fail-loud**(不近似成当前态) | 夹具:传 t−1 ⇒ 抛 |
+| V-1 ✅ | `DiseaseProjectionSnapshot` 带痊愈位,且 53 侧只经 `IDiseaseProjection` 取值 | `ConsequenceInputAggregator.cs:67` `Recovered` + `Outcome53.RecoveryLaneOf`;`grep -rn "DaYiJingCheng.Sim.DiseaseSimulation" unity/Assets/Sim/Consequences/` ⇒ **零命中** |
+| V-2 ✅ | 生产侧 `new ConsequenceEmitter(` **非空** | `grep -rn "new ConsequenceEmitter" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ `CompositionRoot.cs:1508` |
+| V-3 ✅ | 生产侧 `Judge.Evaluate` 调用点**非空** | ⇒ `ConsequenceDriver.cs:122` |
+| V-4 ✅ | driver 构造期读流≠写流 ⇒ fail-loud | `test_d5_differentWriteFace_throwsAtConstruction`(并断言报文含「同一实例」) |
+| V-5 ✅ | 同一 `CaseClosed` 不同 outcome 重喂 ⇒ **不产生两条后果** | 下层 `test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest` + 对照 `test_twoDifferentCaseCloses_sameOutcome_emitTwo_control`;上层 `test_d6_sameCaseClosedTwoOutcomes_throws`(**零输入可达**,载体只能直调) |
+| V-6 ✅ | `careKinds` 三支各有一条夹具 | `test_productionCareKinds_coversAllThreeKinds_notJustCareApplied`(三条全在)+ 上界 `test_productionCareKinds_rejectsKindsOutsideTheSet` |
+| V-7 ✅ | 单 tick 耗时实测:现实负载(144 条)< 50 ms;压力口径只记录 | `test_v7_perTickCost_realisticLoad_withinTickBudget` —— 实跑 **0.198 ms/tick**(现实)· **1.494 ms/tick**(≈1008 条)。首轮 1135 ms 的归因见 §Risks R3 |
+| V-8 ✅ | 无 provider ⇒ 全链**不装配**(不发)**且**有显式告警 | `test_noDataProvider_leavesDriverUnassembled`(`bag.ConsequenceDriver == null`)+ `test_bootRoot_warnsWhenDriverUnassembled`(源文本:`ConsequenceDriver == null` + `Debug.LogWarning`) |
+| V-9 ✅ | 非主机调用 ⇒ 零写入(既有 AC 不回归) | 既有 `test_required_clientAuthorityGate_nonHostWritesNothing`(MedConsequences 242/242 内含) |
+| V-10 ✅ | 空判定表时**不得**静默产出后果 | `test_emptyOutcomeTable_emitsNothing`(空表 + 真延迟表 + 真结案 ⇒ 零后果) |
+| V-11 ✅ | **边沿次序**:`ConsequenceDriver` 排在 `VitalsService.OnTickEdge` 之后 | `test_s4_bootRoot_drivesAfterVitals_onSameEdge`(`StepVitals` 方法体内两处 `IndexOf` 定序)+ `test_s4_compositionRoot_constructsDriver` |
+| V-12 ✅ | 🔁 **2026-10-30 订正(原文「收到非当前 tick ⇒ fail-loud」)**:`TryProject` 收到**未来** tick ⇒ 抛;收到**历史** tick ⇒ 按 9 的转移历史作答(且快照 `Tick` = 被问的时刻) | 夹具:`t+1` ⇒ 抛;`t−4` ⇒ 有投影且 `Tick = t−4`、与当前态解耦 |
 
 **R1 已核,但「已核」≠「已证」**:`Recovered` 6 格的可达性依赖 S1b(数值轮),
 在那之前 **V-1 只能证「接口通」,不能证「6 格活」** —— 不得借绿。

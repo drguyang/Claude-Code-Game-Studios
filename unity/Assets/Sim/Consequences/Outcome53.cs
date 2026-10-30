@@ -164,6 +164,16 @@ namespace DaYiJingCheng.Sim.Consequences
             return matched ? CareLane.AppliedMatched : CareLane.AppliedUnmatched;
         }
 
+        /// <summary>D 轴物化:病程投影快照 → 痊愈二态(真源 = 9 的投影边界,53 不判)。</summary>
+        /// <param name="d">病程投影快照(痊愈位见 <see cref="DiseaseProjectionSnapshot.Recovered"/>)。</param>
+        /// <remarks>
+        /// 🔁 **2026-10-30(ADR-036 D1 实现轮)**:此前 D 路**没有**映射函数 —— 快照只有 `Tick`,
+        /// 各夹具各自在测试侧从桩属性推,生产侧无从推导。本函数把「投影 → 键域」这一跳收进 53 自己,
+        /// 使**生产与夹具走同一条映射**(否则又是一处两份真源)。
+        /// </remarks>
+        public static RecoveryLane RecoveryLaneOf(in DiseaseProjectionSnapshot d)
+            => d.Recovered ? RecoveryLane.Recovered : RecoveryLane.NotRecovered;
+
         /// <summary>U 档切分:Q16.16 raw → 档序数(整数比较,零浮点;band_count=1 ⇒ 恒 0)。</summary>
         /// <remarks>
         /// <para>P0 默认 1 档 ⇒ band 恒 0(数值轮扩档后此处按均分切 —— 形状本件钉,

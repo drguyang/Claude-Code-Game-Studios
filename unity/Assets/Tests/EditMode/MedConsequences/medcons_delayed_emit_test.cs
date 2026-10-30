@@ -1528,6 +1528,82 @@ namespace DaYiJingCheng.Tests.MedConsequences
             => new ConsequenceEmitter(sink, new StubAuthority(), Encoder, table);
 
         // ════════════════════════════════════════════════════════════════════
+        // ADR-036 V-5 —— D6 下层:去重键**剔除 outcome**(2026-10-30)
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 同一 `CaseClosed` 被以**两个不同 outcome** 重喂 ⇒ 只发**一条**后果。
+        /// <para><b>为什么需要</b>:旧键是五元组(含 `outcome`)⇒ 同一结案的两种 outcome
+        /// 各自进 `seen`,**两条都发**,违 GDD「每病例至多一条」。剔除 outcome 后
+        /// 同一结案只出一条(首条胜)。</para>
+        /// <para><b>为什么不会被「延迟不同」绕开</b>:本条取 <c>nowTick = 100 + max(两延迟)</c>
+        /// —— 两个 `EmitTick` **都已到期**,旧键下必然发两条;新键下第二条在
+        /// <c>seen.Add</c> 处被丢弃。</para>
+        /// <para><b>这条钉的是纵深防御,不是上游正确性</b>:上游「同一结案两个 outcome」
+        /// 本身是 driver 层的 bug(ADR-036 D6 上层 fail-loud)。本条只保证
+        /// **即便上游漏了**,流里也不会出现两条。</para>
+        /// </summary>
+        [Test]
+        public void test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest()
+        {
+            DelayTable53.Table table = LoadDelayTable();
+            EventStream stream = NewStream();
+            ConsequenceEmitter emitter = NewEmitter(stream, table);
+
+            long dResidual = ResidualDelay(table);
+            long dRecurrence = RecurrenceDelay(table);
+            SimEvent close = Ev(100, 7, 0, EventKind.CaseClosed);
+
+            var eligible = new (SimEvent CaseClosed, int Outcome)[]
+            {
+                (close, (int)Outcome53.Outcome.Residual),
+                (close, (int)Outcome53.Outcome.Recurrence),
+            };
+
+            long nowTick = 100 + Math.Max(dResidual, dRecurrence);
+            ConsequenceEmitResult r = emitter.Emit(stream.Events, eligible, nowTick, out int emitted);
+
+            Assert.AreEqual(ConsequenceEmitResult.Emitted, r);
+            Assert.AreEqual(1, emitted, "同一结案只发一条 —— 五元组旧键此处会是 2");
+            Assert.AreEqual(1, ConsequenceCount(stream.Events),
+                "流里该结案的后果行数须恰为 1");
+
+            // 胜者是**插入序第一条**(Residual)—— 且它带的是自己的 EmitTick,
+            // 不是「两条合并后的某个时刻」(淘汰而非合并)。
+            SimEvent row = stream.Events.First(e => e.Kind == EventKind.ConsequenceResolved);
+            Assert.AreEqual(100 + dResidual, row.Tick,
+                "胜者按其自身延迟到期 —— 若第二条被合并进来,这里会漂");
+            var payload = Decoder.Decode<ConsequenceResolvedPayload>(
+                EventKind.ConsequenceResolved, row.Payload);
+            Assert.AreEqual((int)Outcome53.Outcome.Residual, payload.Outcome,
+                "首条胜:写出的 outcome 须是插入序第一条");
+        }
+
+        /// <summary>
+        /// V-5 的**对照半**:两条**不同结案**、outcome 相同 ⇒ 各发一条(**不合并**)。
+        /// <para>没有这一半,「只发一条」可能是「恒合并」的假绿 —— GDD `:323`
+        /// 明写「延迟期内再次结案 ⇒ 各自发、不合并、不覆盖」。</para>
+        /// </summary>
+        [Test]
+        public void test_twoDifferentCaseCloses_sameOutcome_emitTwo_control()
+        {
+            DelayTable53.Table table = LoadDelayTable();
+            EventStream stream = NewStream();
+            ConsequenceEmitter emitter = NewEmitter(stream, table);
+
+            int outcome = (int)Outcome53.Outcome.Residual;
+            var eligible = new (SimEvent CaseClosed, int Outcome)[]
+            {
+                (Ev(100, 7, 0, EventKind.CaseClosed), outcome),
+                (Ev(120, 8, 0, EventKind.CaseClosed), outcome),
+            };
+
+            emitter.Emit(stream.Events, eligible, 120 + ResidualDelay(table), out int emitted);
+
+            Assert.AreEqual(2, emitted, "不同结案各自发 —— 去重键须含结案身份(close tick / seq / patient)");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
         // 表值读取 helper(**读表不抄值**)
         // ════════════════════════════════════════════════════════════════════
 
