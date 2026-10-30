@@ -92,6 +92,18 @@ namespace DaYiJingCheng.EditorTools.Bake
                     w.Write(rows[i].SeverityBand);
                 }
 
+                // ── 尾段:过量档位线(2026-10-30)─────────────────────────────
+                // ⚠️ **尾段式**,不动上面的逐行布局。理由与 `PrescriptionActionsCookedWriter`
+                //   同一个:行内插字段会让**旧产物**解出错位数据(静默);尾段式在旧产物上
+                //   读越界 ⇒ 抛(fail-loud),而「旧产物读不出新段」本来就是要重烘的信号。
+                // 布局:`threshold_count: i32` + 逐项 `Fix.raw: i64`(升序,由 Binder 保证)。
+                w.Write(bound.OverdoseBandThresholds?.Count ?? 0);
+                if (bound.OverdoseBandThresholds != null)
+                {
+                    for (int i = 0; i < bound.OverdoseBandThresholds.Count; i++)
+                        w.Write(bound.OverdoseBandThresholds[i].Raw);
+                }
+
                 w.Flush();
                 return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);
             }

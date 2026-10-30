@@ -84,16 +84,19 @@ namespace DaYiJingCheng.Tests.MedConsequences
         }
 
         /// <summary>拼一张代价表(JSON 文本;字段刻意用调用方给的原文,便于注入非法 token)。</summary>
+        /// <param name="extraRoot">额外根键片段(**不带尾逗号**),如 <c>"overdose_band_thresholds": ["1"]</c>。</param>
         private static string CostTable(
             string enabled = "[\"contraindication\"]",
             string maxSeverity = "null",
             string rows = "",
             string bands = "{ \"contraindication\": null }",
-            string schemaVersion = "1")
+            string schemaVersion = "1",
+            string extraRoot = "")
             => "{ \"schema_version\": " + schemaVersion
              + ", \"harm_kind_enabled\": " + enabled
              + ", \"bands\": " + bands
              + ", \"max_severity_band\": " + maxSeverity
+             + (extraRoot.Length > 0 ? ", " + extraRoot.TrimEnd(',', ' ') : "")
              + ", \"rows\": [" + rows + "] }";
 
         /// <summary>一行合法代价(指向非致死伤情;须配 <see cref="RegistryWithOneNonLethalInjury"/>)。</summary>
@@ -129,12 +132,30 @@ namespace DaYiJingCheng.Tests.MedConsequences
             CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), RealRegistry());
 
             Assert.That(r.SchemaVersion, Is.EqualTo(1u));
-            Assert.That(r.Rows, Has.Count.EqualTo(3), "真实表 = 三档阶梯(档 0..2)");
-            Assert.That(r.Rows.Select(x => x.Band), Is.EqualTo(new[] { 0, 1, 2 }), "档序数须自 0 起连续");
-            Assert.That(r.Rows.Select(x => x.InjuryId),
+
+            // 🔁 2026-10-30:过量支解除后真实表 = 3 禁忌档 + 2 过量档 = 5 行。
+            //   按 harm_kind 分组断言,不依赖源文件里的行排布 —— 行序是作者态,不该被钉死。
+            Assert.That(r.Rows, Has.Count.EqualTo(5), "真实表 = 三禁忌档 + 两过量档");
+
+            List<CostTableBinder.CostRow> contra =
+                r.Rows.Where(x => x.HarmKind == "contraindication").ToList();
+            Assert.That(contra, Has.Count.EqualTo(3), "禁忌支 = 三档阶梯(档 0..2)");
+            Assert.That(contra.Select(x => x.Band), Is.EqualTo(new[] { 0, 1, 2 }), "档序数须自 0 起连续");
+            Assert.That(contra.Select(x => x.InjuryId),
                 Is.EqualTo(new[] { "INJ_BLUNT", "INJ_DRUG_HARM", "INJ_DRUG_HARM" }),
-                "档映射:0=钝击(轻),1/2=药毒(中/重)");
-            Assert.That(r.Rows.Select(x => x.SeverityBand), Is.EqualTo(new[] { 2, 3, 4 }));
+                "禁忌档映射:0=钝击(轻),1/2=药毒(中/重)");
+            Assert.That(contra.Select(x => x.SeverityBand), Is.EqualTo(new[] { 2, 3, 4 }));
+
+            List<CostTableBinder.CostRow> overdose =
+                r.Rows.Where(x => x.HarmKind == "overdose").ToList();
+            Assert.That(overdose, Has.Count.EqualTo(2), "过量支 = 两档");
+            Assert.That(overdose.Select(x => x.Band), Is.EqualTo(new[] { 0, 1 }));
+            Assert.That(overdose.Select(x => x.InjuryId),
+                Is.EqualTo(new[] { "INJ_DRUG_HARM", "INJ_DRUG_HARM" }), "过量两档均落药毒");
+            Assert.That(overdose.Select(x => x.SeverityBand), Is.EqualTo(new[] { 3, 4 }));
+
+            Assert.That(r.OverdoseBandThresholds, Has.Count.EqualTo(2),
+                "真实表须带两条过量档位线(档数与 bands.overdose 同源)");
             Assert.That(string.Join(" | ", r.Warnings), Does.Not.Contain("TD-sim-03"),
                 "注册表现有非致死伤情 ⇒ 不得再报 V-10(该告警是条件性的);实得:" +
                 string.Join(" | ", r.Warnings));
@@ -344,15 +365,71 @@ namespace DaYiJingCheng.Tests.MedConsequences
             AssertMessageHas(ex, "未启用");
         }
 
-        /// <summary>§⑥:启用 `overdose` ⇒ 拒(过量支挂起,解除条件是两条债)。</summary>
+        /// <summary>🔁 2026-10-30:启用 `overdose` 而**缺** `overdose_band_thresholds` ⇒ 拒。原名
+        /// <c>test_overdoseEnabled_isRejected</c>(原判据 = 只要启用就拒,已于 §⑥ 解除后撤销)。</summary>
+        /// <remarks>
+        /// <para><b>原文(保留)</b>:「§⑥:启用 `overdose` ⇒ 拒(过量支挂起,解除条件是两条债)」。</para>
+        /// <para><b>现判据</b>:启用本身合法,但**启用而没有档位线**等于「表里那几行永不生效」——
+        /// 与 `ADR-035 §Risks R4` 的静默跳过同型,故仍拒,只是理由换了。</para>
+        /// <para>⚠️ 本条的判别力:若把 `ReadOverdoseThresholds` 里那条联动删掉,本测转红
+        /// (启用过量 + 无阈值 ⇒ 不再抛)。它**不**覆盖「阈值非递增 / 档数不一致」两条,
+        /// 那两条有各自的夹具。</para>
+        /// </remarks>
         [Test]
-        public void test_overdoseEnabled_isRejected()
+        public void test_overdoseEnabled_withoutThresholds_isRejected()
         {
             BakeValidationException ex = AssertRejected(
                 CostTable(enabled: "[\"contraindication\",\"overdose\"]"),
                 RegistryWithOneNonLethalInjury());
-            AssertMessageHas(ex, "overdose");
-            AssertMessageHas(ex, "TD-sim-02");
+            AssertMessageHas(ex, "overdose_band_thresholds");
+        }
+
+        /// <summary>🔁 2026-10-30:启用 `overdose` **且**给了递增档位线 ⇒ 通过。</summary>
+        [Test]
+        public void test_overdoseEnabled_withThresholds_isAccepted()
+        {
+            CostTableBinder.BindResult r = CostTableBinder.Bind(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\", \"3/2\"],",
+                          rows: Row(kind: "overdose", band: 0)),
+                RegistryWithOneNonLethalInjury());
+            Assert.That(r.OverdoseBandThresholds, Has.Count.EqualTo(2), "两条档位线须原样绑定");
+            Assert.That(r.OverdoseBandThresholds[1].Raw, Is.GreaterThan(r.OverdoseBandThresholds[0].Raw),
+                "须保持升序(构建期已拒非递增)");
+        }
+
+        /// <summary>档位线**非严格递增** ⇒ 拒(后者结构性不可达,与 R1-37 的死词条同型)。</summary>
+        [Test]
+        public void test_overdoseThresholds_notStrictlyIncreasing_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\", \"1\"],"),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "严格递增");
+        }
+
+        /// <summary>档位线项数与 `bands.overdose` 不一致 ⇒ 拒(某档要么无下界、要么永不命中)。</summary>
+        [Test]
+        public void test_overdoseThresholdCount_mismatchesBands_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          bands: "{ \"contraindication\": 3, \"overdose\": 3 }",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\", \"3/2\"],"),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "不一致");
+        }
+
+        /// <summary>档位线非空但 `harm_kind_enabled` 不含 `overdose` ⇒ 拒(声明了却没人查)。</summary>
+        [Test]
+        public void test_overdoseThresholdsWithoutEnabledKind_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\"],"),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "不含");
         }
 
         /// <summary>单射:`(harm_kind, band)` 重复 ⇒ 拒。</summary>

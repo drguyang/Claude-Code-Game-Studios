@@ -315,7 +315,7 @@
 | `TD-medcons-12` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-14` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-15` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-15` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
@@ -372,7 +372,7 @@
 | `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
 | `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
-| `TD-sim-02` | `disease-simulation` | open | **Y** | R1 |
+| `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-04` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
@@ -850,11 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'open': 56, 'closed': 80, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 32 （已闭但曾标 P0 面的 71 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 32 条,分布在 9/31 个 epic
-    medical-consequences: 16  telemetry-analytics: 5    clinic-machine: 4
-    disease-simulation: 2     enemy-ai: 1               item-database: 1
+条目 139 | 状态 {'open': 54, 'closed': 82, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 30 （已闭但曾标 P0 面的 73 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 30 条,分布在 9/31 个 epic
+    medical-consequences: 15  telemetry-analytics: 5    clinic-machine: 4
+    disease-simulation: 1     enemy-ai: 1               item-database: 1
     patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
@@ -1255,7 +1255,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
 | TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 ✅ **2026-10-29 结案(用户裁定「收窄到出现类事件」)** —— `EventStream` 增 `IsPatientAppearance`(今日恰 = `DiseaseOnset`,ADR-030 ①),CAP 只对该类生效 ⇒ 离屏病人的后果不再被当成新病人拒收;`ConsequenceEmitter` 的类头接缝登记与 S-B2 报文同批改注(CAP **不再**是本件成因,守卫保留)。旧夹具 `test_w5_…_capsThrowPropagates_notSwallowed` **由红转绿**并改名为 `test_tdMedcons14_…_emitsDespiteFullCap`(旧断言以文字留档 —— 留一条绿的旧断言等于把缺陷钉成规格) |
-| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」**。<br>🔁 **2026-10-30 再记(不改状态,`open` 维持)**:`ADR-035` 的 **T1 全部落盘**(S1–S7 + S9;`§Validation` **V-1…V-10 全部已证**),其连带后果 = **story-003 的 AC-5 由 PARTIAL 转 PASS(判据面)**(`TD-s13-02` 据此 **closed**)。⇒ 本条今日**只剩实现半边**:`T2`(真实禁忌行 —— 须 `TD-prescription-09` + `TD-sim-03`)/ `T3`(过量支 —— 再加 `TD-sim-02`)。**本条保持 `open`**,因为「药害机制从未跑过真实材料」这件事仍然成立。<br>🔁 **2026-10-30 第三记(不改状态,`open` 维持)**:三条 T2/T3 前置**各有进展但无一结清** —— ① **`TD-sim-03` 已 `closed`**(注册表现有 `INJ_BLUNT`,非致死伤情从 0 件 → 1 件);② **`TD-prescription-09` `open` → `partial`**(载荷第八项 `ContraindicationBand` 已落,「判定」半边仍缺 ⇒ 今日恒 `-1`);③ `TD-sim-02` 未动。⇒ **T2 仍不可开工**:缺的是**真实行内容**(代价表 `rows` 仍空)+ 11 的判定。另:53 的**运行期读方**已落(`CostTable53CookedCodec` + provider 接线 + 12 条夹具),即「表装进来没人要」这条已消除 |
+| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」**。<br>🔁 **2026-10-30 再记(不改状态,`open` 维持)**:`ADR-035` 的 **T1 全部落盘**(S1–S7 + S9;`§Validation` **V-1…V-10 全部已证**),其连带后果 = **story-003 的 AC-5 由 PARTIAL 转 PASS(判据面)**(`TD-s13-02` 据此 **closed**)。⇒ 本条今日**只剩实现半边**:`T2`(真实禁忌行 —— 须 `TD-prescription-09` + `TD-sim-03`)/ `T3`(过量支 —— 再加 `TD-sim-02`)。**本条保持 `open`**,因为「药害机制从未跑过真实材料」这件事仍然成立。<br>🔁 **2026-10-30 第三记(不改状态,`open` 维持)**:三条 T2/T3 前置**各有进展但无一结清** —— ① **`TD-sim-03` 已 `closed`**(注册表现有 `INJ_BLUNT`,非致死伤情从 0 件 → 1 件);② **`TD-prescription-09` `open` → `partial`**(载荷第八项 `ContraindicationBand` 已落,「判定」半边仍缺 ⇒ 今日恒 `-1`);③ `TD-sim-02` 未动。⇒ **T2 仍不可开工**:缺的是**真实行内容**(代价表 `rows` 仍空)+ 11 的判定。另:53 的**运行期读方**已落(`CostTable53CookedCodec` + provider 接线 + 12 条夹具),即「表装进来没人要」这条已消除<br>🔁 **2026-10-30 第四记(✅ `open` → `closed`)**:本条的全部要件已兑现 —— ① **代价表已建**:`53_cost_table.json` = 3 禁忌行 + **2 过量行**,`harm_kind_enabled` = `[contraindication, overdose]`,`overdose_band_thresholds` = `["1","3/2"]`,产物 **124 B / 5 行**;② **T2 禁忌支真跑**:`ContraindicationSettler`(真表真查);③ **T3 过量支真跑**:`TD-sim-02` 结案后由 9 的 `PeakDrugLoad` 供料,`OverdoseSettler` + `OverdoseEvaluator` 结算,`CostTable53.RejectHarmKind` 与 `CostTableBinder` 的两处「过量即拒」挂起分支**同批撤销**;④ `ADR-035 §Validation` V-1…V-10 已于 2026-10-30 全部证毕。⇒ 原判据「代价表本身未建」**已不成立**,本条结案。⚠️ **结案 ≠ 药害在实玩中可撞见**:后者取决于 `drug_potency` / `half_life` 与阈值的组合,数值已给(过量档线约两剂 / 三剂),但**未做实际游玩验证** —— 归 playtest,不挂本债。 |
 
 
 ## 2026-10-17 · medcons story-003 复核(S13-6 新判据实测轮)
@@ -5365,6 +5365,18 @@ Accepted,**只钉形状、不实现**)。该件四项用户裁定中的**裁定 
 | **何时消解** | 9 的配方 / 数值轮给 F1 增一条毒性项,**或**另立一个可读的「累积过量」状态量。⚠️ 该量的语义**不得与 `Progress` 单值纠缠**(否则 `trend` 符号反转那类问题复发 —— 见 F1 取舍 3 与校验 15 的既有论证)。本条消解前,53 的过量档**无输入源**。 |
 | **归属** | **9 疾病与伤情模拟(`disease-simulation`)**。 |
 | **`P0 面 = Y` 的理由** | 归属 epic ∈ 31 个 P0 epic,且本条**不自陈**不阻塞 P0 出口 —— 它正是 `OQ-53-8` 已裁 P0 的「过量」半边无法落地的原因。承 §一 R1 宽判据。 |
+
+### ✅ 2026-10-30 结案(`open` → `closed`)—— `TD-sim-02`
+
+| 侧 | 内容 |
+|---|---|
+| **裁定** | 用户两项:① 走**独立状态量**,**不进 `Progress`**(不是「F1 增一条毒性项」—— 那与本节自写的「不得与 `Progress` 单值纠缠」相抵);② 「过量」按**同一味药**(`处置_id`)累积。 |
+| **已落(9 侧)** | `Sim/ProgressionEvaluator.cs` 新增 `ComputePeakDrugLoad(doses, currentTick)` —— `max_p Σ_{i: 处置_idᵢ=p} \|drug_potencyᵢ\| × Decay(Δᵢ)`,**纯函数**、事件流产、O(n²)(n = 该病人处置条数)。经 `Sim.Contracts/VitalsDto.cs` 的第 5 字段 `PeakDrugLoad` 输出(`Fix`,与 `drug_potency` 同量纲)。**不进 F1 / 不进 `trend` / 不进存档**(派生态,可由三流重建)。 |
+| **前置事实** | `game-concept.md:322` 的原话是「同一个**槽**反复灌同类药」,但 **12 药物槽是 P1a** 且 `DrugTreatmentAppliedPayload` 无槽标识 ⇒ **P0 无「槽」结构**,按字面实现不可行。⇒ 分组键取 `处置_id`;槽落地后**只改分组键,不动载荷**。 |
+| **为什么阈值不在 9** | `MAX_ACTIVE_DOSE` / `single_dose_max` 两个 F1 旋钮**至今待定**(`doseClampBound` 生产路径为 `null`)⇒ 拿它们归一化会让门槛依赖两个未裁定的数。⇒ 档位线由 **53 的代价表**给(`overdose_band_thresholds`,升序绝对量),9 只出「物质基础的量」。 |
+| **夹具** | `Tests/EditMode/DiseaseSimulation/peak_drug_load_test.cs` **10 条**:零剂量 / 单剂 / 负 potency 取绝对值 / 衰减单调 / **同药累加** / **异药取最大不求和** / 三组取峰 / 未来剂量不计 / `half_life ≤ 0` 跳过 / 负 id 照样分组。 |
+| **证伪** | 变异 M1(删掉 `if (b.TreatmentId != a.TreatmentId) continue;` ⇒ 任意药累加)⇒ **2 红**(`test_differentDrugs_takesMaxNotSum` / `test_threeDrugs_peakIsTheLargestGroup`);SHA-256 `c7c538a7…b44f` 逐字节还原。 |
+| **连带** | `ADR-035 §⑥` 的解除条件(本条 + `TD-prescription-09`)两条**均已结案** ⇒ `TD-medcons-15` 的 T3 档解锁(见其行)。GDD `disease-simulation.md` 的 F1 节已登记本量与 F1 的分界。 |
 
 ### TD-prescription-09 — 11 的致害材料缺口:载荷零字段表达「命中禁忌」;P0 剂量形态不产生超量值
 

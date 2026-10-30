@@ -1468,11 +1468,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    (与「机制未启用」逐位一致,不静默造代价)。
             CostTable53.Table costTable = CostTable53.CreateTable(
                 null, Array.Empty<CostTable53.Row>(), maxSeverityBand: null);
+            IReadOnlyList<Fix> overdoseThresholds = Array.Empty<Fix>();
             if (dataProvider != null)
-                costTable = dataProvider.Load<CostTable53DataSet>().Table;
+            {
+                CostTable53DataSet dataSet = dataProvider.Load<CostTable53DataSet>();
+                costTable = dataSet.Table;
+                overdoseThresholds = dataSet.OverdoseBandThresholds;
+            }
 
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);
+
+            // 🔁 2026-10-30(`TD-sim-02` 结清后):过量支的结算器。
+            //   读 9 的 `VitalsDto.PeakDrugLoad`(经 `VitalsQueryOrNone` —— 与 11 的禁忌判定
+            //   共用同一个门面:无病程的病人返回 default 而不是炸掉整帧)。
+            //   阈值空 = 过量支未启用 ⇒ 结算器恒不发事件(惰性形态,与空表同款)。
+            services.OverdoseSettler = new OverdoseSettler(
+                stream.Events, decoder, new VitalsQueryOrNone(vitals), costTable, overdoseThresholds,
+                encoder, services.EventSink);
             return services;
         }
 

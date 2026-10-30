@@ -13150,3 +13150,31 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - ⚠️ **残留**:相位四档是本轮取的值(非推导);`DIS_NEURASTHENIA` 四条体征全为 `Subjective` 族
   ⇒ 掩码非 0 但仍只覆盖一个通道(设计事实,改需另裁);`INJ_DRUG_HARM` 仍待并入 R2 表(归 9 的 GDD 轮)。
 - **未提交**。原件 `production/qa/evidence/numeric-round-sign-thresholds-2026-10-30.md`。
+
+## Session Extract — `ADR-035` T3 过量支落地(2026-10-30 第五批)
+
+- **用户指令**:「这些」(承接上一条对 `TD-medcons-15` / `TD-sim-02` 的分析)。两项裁定:
+  **① 9 侧走独立状态量、不进 `Progress`;② 「过量」按同一味药(`处置_id`)累积**。
+- **前置事实**:`game-concept.md:322` 说「同一个**槽**反复灌同类药」,但 **12 药物槽是 P1a**,
+  且载荷无槽标识 ⇒ **P0 无槽结构**,按字面不可行 ⇒ 分组键取 `处置_id`。
+- **9 侧(结清 `TD-sim-02`)**:`ProgressionEvaluator.ComputePeakDrugLoad`
+  = `max_p Σ |drug_potency| × Decay`(纯函数 / 不进 F1 / 不进 trend / 不进存档)· 经
+  `VitalsDto.PeakDrugLoad` 输出 · `DiseaseVitalsService.GetVitals` 接线。
+- **53 侧(结清 `TD-medcons-15`)**:`OverdoseEvaluator`(定档,`load ≥ threshold[i]` 闭区间)
+  + `OverdoseSettler`(独立于禁忌结算器 —— 一个是事件驱动、一个是状态驱动)
+  + `53_cost_table.json` 加 `overdose` kind / `bands.overdose=2` / `overdose_band_thresholds=["1","3/2"]` / 2 行
+  + cooked **尾段式**追加阈值段 · 撤销 `CostTable53` 与 `CostTableBinder` 两处「过量即拒」挂起。
+- **自查修掉一处缺陷**:`BandOfInjury` 初版只按 `injury_id` 反查,而真实表两档同伤情
+  ⇒ 重建会取最大档 ⇒ **漏发更高档**;改 `(injury_id, severity_band)` 双键 + 首匹配(歧义取最小档)。
+- **夹具**:`peak_drug_load_test`(10)· `overdose_settler_test`(16)· binder +4 改判 1 ·
+  bake +1 改判 1 · `cost_table53_test` 改判 1 · codec 夹具构造补尾段。
+- **证伪轮(3 变异)**:M1 任意药累加 ⇒ **2 红**;M2 取消只升不降 ⇒ **1 红**;
+  M3 停用启用-无阈值联动 ⇒ **2 红**;三者 SHA-256 逐字节还原。
+- **回归**:EditMode `6100/6063/0/37` @11:17:35 · PlayMode `238/234/0/2/2` @11:18:37
+  (`5134ea82`+工作树)。等式 `6100−6069=31`(新增 26+5−删 1);PlayMode 零变化。
+- **重烘**:`53_cost_table.cooked.bytes` **124 B / 5 行 / `0xF9F11ED3`**(前 72 B / 3 行)。
+- **债**:`TD-sim-02` **closed** · `TD-medcons-15` **closed**。计数
+  `open 54 · closed 82 · partial 2 · 未闭 P0 面 30`(前 32)。
+- ⚠️ **残留**:未做实际游玩验证(判据链通 ≠ 玩家会撞到)· 槽分组归 P1a ·
+  档位线 `1`/`3/2` 是本轮取的数(改它只动 JSON + 重烘)。
+- **未提交**。原件 `production/qa/evidence/impl-od-t3-2026-10-30.md`。

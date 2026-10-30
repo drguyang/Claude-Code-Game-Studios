@@ -332,8 +332,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                     $"求值器自产了 {evaluatorSigns.Length} 条 signs,而注册表投影(entry.Signs + appear_at)" +
                     "才是 F2 的现行唯一来源 —— 两条来源并存时不得静默择一;须先裁谁的语义为准(AC-21)");
 
+            // ── 累积药量(🔁 2026-10-30 · `TD-sim-02` 的消解落点)──────────────────
+            //   同一味药的最大当前体内药量(绝对值),供 53 的代价表判「过量」。
+            //   ⚠️ **不进 Progress / 不进 trend / 不进存档** —— 它是事件流的纯函数(派生态),
+            //   理由见 `ProgressionEvaluator.ComputePeakDrugLoad` 的 remarks。
+            //   与 signs 的投影一样是**全整数域**求值,不读 DTO 的 float 字段。
+            Fix peakDrugLoad = ProgressionEvaluator.ComputePeakDrugLoad(course.Doses, _lastTick);
+
             return new VitalsDto(position.ToFloat(), trend.ToFloat(),
-                                 signChannelMask: signChannelMask, signCount: signCount);
+                                 signChannelMask: signChannelMask, signCount: signCount,
+                                 peakDrugLoad: peakDrugLoad);
         }
 
         // ── apply 层:解码 + 归档 ─────────────────────────────────────────────

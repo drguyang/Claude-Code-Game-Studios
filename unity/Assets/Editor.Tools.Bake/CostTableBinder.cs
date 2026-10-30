@@ -48,7 +48,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         public const string KindOverdose = "overdose";
 
         private static readonly string[] RootKeys =
-            { "schema_version", "harm_kind_enabled", "bands", "max_severity_band", "rows" };
+            { "schema_version", "harm_kind_enabled", "bands", "max_severity_band",
+              "overdose_band_thresholds", "rows" };
 
         private static readonly string[] RowKeys =
             { "harm_kind", "band", "injury_id", "severity_band" };
@@ -89,9 +90,17 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// </summary>
             public readonly List<string> Warnings;
 
-            public BindResult(List<CostRow> rows, uint schemaVersion, List<string> warnings)
+            /// <summary>
+            /// 过量各档的**下界**(升序;`Fix`,与 `drug_potency` 同量纲)。
+            /// 空 = 过量支未启用。2026-10-30 新增(承 `OverdoseEvaluator`)。
+            /// </summary>
+            public readonly List<Fix> OverdoseBandThresholds;
+
+            public BindResult(List<CostRow> rows, uint schemaVersion, List<string> warnings,
+                              List<Fix> overdoseBandThresholds = null)
             {
                 Rows = rows; SchemaVersion = schemaVersion; Warnings = warnings;
+                OverdoseBandThresholds = overdoseBandThresholds ?? new List<Fix>();
             }
         }
 
@@ -122,6 +131,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             RegistryView registry = LoadRegistry(registryJson, errors);
             int? maxSeverity = ReadMaxSeverityBand(root, errors);
             Dictionary<string, int> bandCounts = ReadBands(root, enabled, warnings, errors);
+            List<Fix> overdoseThresholds = ReadOverdoseThresholds(root, enabled, bandCounts, errors);
 
             var rows = ParseRows(rowsNode, enabled, maxSeverity, bandCounts, registry, errors);
 
@@ -139,7 +149,92 @@ namespace DaYiJingCheng.EditorTools.Bake
             WarnIfNoNonLethalInjury(registry, warnings);
 
             if (errors.Count > 0) throw new BakeValidationException(errors);
-            return new BindResult(rows, schemaVersion, warnings);
+            return new BindResult(rows, schemaVersion, warnings, overdoseThresholds);
+        }
+
+        // ═════════════════════ ③ 过量档阈值(2026-10-30)═════════════════════
+
+        /// <summary>
+        /// 读 `overdose_band_thresholds` —— 过量各档的**下界**(`Fix` 字符串数组,升序)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>量纲</b>:与 `drug_potency` 相同(绝对值),**不是**比值。理由见
+        /// `Sim.Contracts/OverdoseEvaluator.cs` 头注:`MAX_ACTIVE_DOSE` / `single_dose_max`
+        /// 两个 F1 旋钮至今待定,拿它们归一化会让门槛依赖两个未裁定的数。</para>
+        /// <para><b>为什么必须严格递增</b>:非递增会让某一档结构性不可达 —— 与 R1-37 的
+        /// 「死词条」同型,且更隐蔽(档位只在运行期按 `≥` 比较,写重了不报错、只是永不命中)。
+        /// ⇒ 构建期直接拒。</para>
+        /// <para><b>启用面的联动</b>:`harm_kind_enabled` 含 `overdose` 而本键缺席 ⇒ 拒
+        /// (启用过量却没有档位线 = 表里那几行永不生效,静默跳过同型);
+        /// 不含 `overdose` 而本键非空 ⇒ 告警(声明了但没人查)。</para>
+        /// </remarks>
+        private static List<Fix> ReadOverdoseThresholds(
+            JsonNode root, List<string> enabled, Dictionary<string, int> bandCounts, List<string> errors)
+        {
+            var result = new List<Fix>();
+            bool present = root.TryGet("overdose_band_thresholds", out JsonNode node)
+                           && node.Kind != JsonNodeKind.Null;
+            bool overdoseEnabled = enabled.Contains(KindOverdose);
+
+            if (!present)
+            {
+                if (overdoseEnabled)
+                    errors.Add($"{FileName}:harm_kind_enabled 含 `{KindOverdose}` 但缺 " +
+                               "overdose_band_thresholds —— 启用过量却没有档位线 ⇒ 该 kind 的行永不生效");
+                return result;
+            }
+
+            if (node.Kind != JsonNodeKind.Array)
+            {
+                errors.Add($"{FileName}:overdose_band_thresholds 须为数组(实得 {node.Kind})");
+                return result;
+            }
+
+            for (int i = 0; i < node.Items.Count; i++)
+            {
+                JsonNode item = node.Items[i];
+                // ⚠️ Fix 必须写成**字符串**(ADR-014 §三:JSON 数字会经 double 中转,绕开 FixParse)。
+                if (item.Kind != JsonNodeKind.String)
+                {
+                    errors.Add($"{FileName}:overdose_band_thresholds[{i}] 须为字符串(Fix 字面量," +
+                               $"如 \"1/4\";实得 {item.Kind}={item.RawText})");
+                    continue;
+                }
+                Fix v;
+                try { v = FixParse.Parse(item.Str); }
+                catch (Exception ex)
+                {
+                    errors.Add($"{FileName}:overdose_band_thresholds[{i}]「{item.Str}」不是合法 Fix" +
+                               $"({ex.Message})");
+                    continue;
+                }
+                if (v.Raw <= 0)
+                {
+                    errors.Add($"{FileName}:overdose_band_thresholds[{i}] 须 > 0(实得 {item.Str})");
+                    continue;
+                }
+                if (result.Count > 0 && v.Raw <= result[result.Count - 1].Raw)
+                {
+                    errors.Add($"{FileName}:overdose_band_thresholds 须**严格递增** —— " +
+                               $"[{i}]「{item.Str}」不大于上一档 ⇒ 该档结构性不可达");
+                    continue;
+                }
+                result.Add(v);
+            }
+
+            if (result.Count > 0 && bandCounts.TryGetValue(KindOverdose, out int declared)
+                && declared != result.Count)
+            {
+                errors.Add($"{FileName}:bands.{KindOverdose}={declared} 与 " +
+                           $"overdose_band_thresholds 的项数 {result.Count} 不一致 —— " +
+                           "档数与档位线必须同源,否则某档要么无下界、要么永不命中");
+            }
+
+            if (result.Count > 0 && !overdoseEnabled)
+                errors.Add($"{FileName}:overdose_band_thresholds 非空但 harm_kind_enabled 不含 " +
+                           $"`{KindOverdose}` —— 声明了档位线却没人查(静默跳过同型)");
+
+            return result;
         }
 
         // ═════════════════════ ① canary(N-4′)═════════════════════
@@ -230,14 +325,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                     continue;
                 }
                 string kind = item.Str;
-                if (string.Equals(kind, KindOverdose, StringComparison.Ordinal))
-                {
-                    errors.Add($"{FileName}:harm_kind_enabled 含 `{KindOverdose}` —— " +
-                               "**过量支在 P0 挂起**(ADR-035 §Decision ⑥):解除条件 = TD-sim-02 + " +
-                               "TD-prescription-09 两条均结案。改数据不解除,须先结那两条债");
-                    continue;
-                }
-                if (!string.Equals(kind, KindContraindication, StringComparison.Ordinal))
+                // 🔁 2026-10-30:`overdose` 的拒收分支已撤销 —— ADR-035 §Decision ⑥ 的解除条件
+                //   「TD-sim-02 + TD-prescription-09 两条均结案」当日满足(前者由 9 侧
+                //   `ProgressionEvaluator.ComputePeakDrugLoad` + `VitalsDto.PeakDrugLoad` 结清)。
+                //   ⚠️ 但「能开启」≠「必须开启」:是否启用仍由作者态本数组决定;
+                //   启用而未给 `overdose_band_thresholds` ⇒ 见 ReadOverdoseThresholds 的拒收。
+                if (!string.Equals(kind, KindContraindication, StringComparison.Ordinal) &&
+                    !string.Equals(kind, KindOverdose, StringComparison.Ordinal))
                 {
                     errors.Add($"{FileName}:harm_kind_enabled[{i}]「{kind}」∉ 闭集 " +
                                $"{{{KindContraindication}, {KindOverdose}}}");

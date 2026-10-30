@@ -40,10 +40,27 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>词条计数(表现层选素材档用;空集 = 豁免类合法形态的「无主观词条」)。</summary>
         public readonly int SignCount;
 
-        public VitalsDto(float position, float trend, int signChannelMask, int signCount)
+        /// <summary>
+        /// **同一味药的最大当前体内药量**(`Σ |drug_potency| × Decay`,按 `处置_id` 分组取最大;
+        /// Q16.16,与 `drug_potency` 同量纲)。2026-10-30 数值轮 · `TD-sim-02` 的消解落点。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>这不是 `Progress` 的一部分</b> —— 它不进 F1、不进 `trend`、不进存档,
+        /// 是病史事件流的纯函数(派生态)。理由见
+        /// <c>ProgressionEvaluator.ComputePeakDrugLoad</c> 的 remarks:
+        /// 把「过量」塞进 `Progress` 单值会让 `trend` 符号反转那类问题复发。</para>
+        /// <para><b>消费者</b>:53 的代价表 —— 由它按自己的 `overdose_band_thresholds`
+        /// 判「多少算过量、分几档」。9 只给**物质基础的量**,不判后果(band 归 53)。</para>
+        /// <para>不传 = `default` = 0 = **无累积药量**(测试 stub 的合法默认值)。</para>
+        /// </remarks>
+        public readonly Fix PeakDrugLoad;
+
+        public VitalsDto(float position, float trend, int signChannelMask, int signCount,
+                         Fix peakDrugLoad = default)
         {
             Position = position; Trend = trend;
             SignChannelMask = signChannelMask; SignCount = signCount;
+            PeakDrugLoad = peakDrugLoad;
         }
     }
 

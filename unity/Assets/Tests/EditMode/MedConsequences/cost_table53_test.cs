@@ -120,14 +120,27 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         // ══════════════════════ 三、§⑥ / 单射 / 上界 / 空注册表 ══════════════════════
 
-        /// <summary>§⑥:过量支挂起 ⇒ 表里出现 `Overdose` 行一律拒。</summary>
+        /// <summary>🔁 2026-10-30:过量行**合法**(§⑥ 解除后);原名 <c>test_overdoseKind_isRejected</c>。</summary>
+        /// <remarks>
+        /// <para><b>原文(保留)</b>:「§⑥:过量支挂起 ⇒ 表里出现 `Overdose` 行一律拒」。
+        /// 该判据已于 2026-10-30 撤销 —— `ADR-035 §Decision ⑥` 的解除条件
+        /// 「`TD-sim-02` + `TD-prescription-09` 均结案」当日满足。</para>
+        /// <para>⚠️ <b>反转不是弱化</b>:原测验证「过量行被拒」,现测验证「过量行被**接受且查得到**」——
+        /// 前者由撤销的拒收分支保证,后者由 <c>TryLookup</c> 的实际命中保证。
+        /// 若撤销分支时**忘了同时放开闭集**或**放开了但行没进表**,本条都会红。</para>
+        /// <para>⚠️ 过量支**是否启用**仍由作者态 `harm_kind_enabled` 决定(构建期由
+        /// `CostTableBinder` 校验)—— 运行期视图不判「该不该启用」,只判「行合不合法」。</para>
+        /// </remarks>
         [Test]
-        public void test_overdoseKind_isRejected()
+        public void test_overdoseKind_isAccepted_andLookupHits()
         {
-            var row = new CostTable53.Row(Kind(CostHarmKind.Overdose), 0, 1, 0);
-            ArgumentException ex = AssertRejected(new[] { row });
-            AssertMessageHas(ex, "Overdose");
-            AssertMessageHas(ex, "TD-sim-02");
+            var row = new CostTable53.Row(Kind(CostHarmKind.Overdose), 0, 1, 3);
+            CostTable53.Table t = CostTable53.CreateTable(Registry(), new[] { row }, maxSeverityBand: 4);
+
+            Assert.That(t.TryLookup(Kind(CostHarmKind.Overdose), 0, out int injury, out int sev), Is.True,
+                "过量行须被接受并查得到(§⑥ 解除后)");
+            Assert.That(injury, Is.EqualTo(1));
+            Assert.That(sev, Is.EqualTo(3));
         }
 
         /// <summary>闭集:未知 `harm_kind` ⇒ 拒。</summary>

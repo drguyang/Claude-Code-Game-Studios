@@ -7,8 +7,13 @@
 //     (N-1 致死 / kind 须伤情 / 单射 / §⑥ 过量挂起 / 槽外键)—— 本件**不重做**这些校验,零漂移。
 //
 // ⚠️ 载荷布局(全部 little-endian;与写方逐字对称):
-//    row_count : i32(0 = 空表,**合法** —— S2 的惰性形态)
+//    row_count   : i32(0 = 空表,**合法** —— S2 的惰性形态)
 //    row_count × { harm_kind: i32, band: i32, injury_id: i32, severity_band: i32 }
+//    threshold_count : i32(**尾段**,2026-10-30 追加;0 = 过量支未启用)
+//    threshold_count × { threshold_raw: i64 }(升序;`Fix` Q16.16)
+//
+// ⚠️ **尾段是追加的,不是行内插字段**:行内插会让旧产物解出错位数据(静默)。
+//   尾段式在旧产物上读越界 ⇒ 抛 ⇒ 启动期硬失败。旧产物须重烘(菜单「烘焙 53 代价表」)。
 //
 // ⚠️ **行序**:写方按 `(harm_kind, band)` 规范化过;读方按序读入后交 `CreateTable`,
 //   **不依赖读入序做任何计算** —— 序只影响诊断输出。
@@ -30,6 +35,7 @@ using System.Collections.Generic;
 using System.IO;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Consequences;
+using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Presentation
 {
@@ -66,13 +72,24 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     rows.Add(new CostTable53.Row(harmKind, band, injuryId, severityBand));
                 }
 
+                // ── 尾段:过量档位线(2026-10-30;与写方逐字对称)─────────────
+                // ⚠️ 旧产物(本段之前烘的)在 `ReadInt32` 处即越界 ⇒ 抛 ⇒ 启动期硬失败。
+                //   这是**预期**行为:格式变了必须重烘,静默容忍会让过量支读到 0 档线。
+                int thresholdCount = r.ReadInt32();
+                if (thresholdCount < 0)
+                    throw new InvalidDataException(
+                        $"[cooked] 53_cost_table 过量档位线数 = {thresholdCount} —— 不得为负(E-13)");
+                var overdoseThresholds = new List<Fix>(thresholdCount);
+                for (int i = 0; i < thresholdCount; i++)
+                    overdoseThresholds.Add(new Fix(r.ReadInt64()));
+
                 CookedReadUtil.AssertFullyConsumed(r, "53_cost_table");
 
                 try
                 {
                     // maxSeverityBand = null:产物不含该值(见文件头的 L3 缺口登记)。
                     CostTable53.Table table = CostTable53.CreateTable(registry, rows, null);
-                    return new CostTable53DataSet(table, configVersion);
+                    return new CostTable53DataSet(table, configVersion, overdoseThresholds);
                 }
                 catch (ArgumentException ex)
                 {
@@ -94,11 +111,19 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>烘焙时从源数据集派生的内容版本号(u32,ADR-014 §五)。</summary>
         public readonly uint ConfigVersion;
 
+        /// <summary>
+        /// 过量各档的**下界**(升序;`Fix`,与 `drug_potency` 同量纲)。空 = 过量支未启用。
+        /// 2026-10-30 新增(承 `OverdoseEvaluator`)。
+        /// </summary>
+        public readonly IReadOnlyList<Fix> OverdoseBandThresholds;
+
         /// <summary>构造解码形。</summary>
-        public CostTable53DataSet(CostTable53.Table table, uint configVersion)
+        public CostTable53DataSet(CostTable53.Table table, uint configVersion,
+                                  IReadOnlyList<Fix> overdoseBandThresholds = null)
         {
             Table = table;
             ConfigVersion = configVersion;
+            OverdoseBandThresholds = overdoseBandThresholds ?? Array.Empty<Fix>();
         }
     }
 }

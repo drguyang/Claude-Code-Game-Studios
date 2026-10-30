@@ -123,14 +123,21 @@ namespace DaYiJingCheng.Sim.Consequences
 
         // ═════════════════════ 纵深防御拒收 ═════════════════════
 
-        /// <summary>`harm_kind` 闭集闸:过量支挂起(§⑥),未知值一律拒。</summary>
+        /// <summary>`harm_kind` 闭集闸:未知值一律拒。</summary>
+        /// <remarks>
+        /// 🔁 **2026-10-30:过量支解除挂起** —— `ADR-035 §Decision ⑥` 的解除条件是
+        /// 「`TD-sim-02` + `TD-prescription-09` 两条均结案」,两者当日均已 closed:
+        /// · `TD-prescription-09`:禁忌判定的承载 + 判定两侧(2026-10-30 早批);
+        /// · `TD-sim-02`:9 侧新增 `ProgressionEvaluator.ComputePeakDrugLoad` +
+        ///   `VitalsDto.PeakDrugLoad`(独立状态量,不进 `Progress`)。
+        /// ⇒ 原「出现 `harm_kind=Overdose` 一律拒」的分支**撤销**,改为与其他合法值同路。
+        /// ⚠️ 但「表里能放过量行」≠「过量支已启用」—— 启用与否由**作者态**
+        /// `53_cost_table.json` 的 `harm_kind_enabled` 决定,构建期由 `CostTableBinder` 校验。
+        /// </remarks>
         private static void RejectHarmKind(int harmKind)
         {
             if (harmKind == (int)CostHarmKind.Contraindication) return;
-            if (harmKind == (int)CostHarmKind.Overdose)
-                throw new ArgumentException(
-                    "代价表出现 harm_kind=Overdose —— **过量支在 P0 挂起**(ADR-035 §Decision ⑥):" +
-                    "解除条件 = TD-sim-02 + TD-prescription-09 两条均结案");
+            if (harmKind == (int)CostHarmKind.Overdose) return;   // 🔁 2026-10-30 解除(见 remarks)
             throw new ArgumentException(
                 $"代价表 harm_kind={harmKind} ∉ 闭集 {{Contraindication, Overdose}}");
         }

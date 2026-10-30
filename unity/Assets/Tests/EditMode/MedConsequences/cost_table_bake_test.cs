@@ -55,13 +55,17 @@ namespace DaYiJingCheng.Tests.MedConsequences
             return json.Substring(0, at) + replacement + json.Substring(at + needle.Length);
         }
 
+        /// <param name="extraRoot">额外根键片段(**不带尾逗号**)。</param>
         private static string CostTable(string rows = "",
                                         string enabled = "[\"contraindication\"]",
-                                        string maxSeverity = "null")
+                                        string maxSeverity = "null",
+                                        string bands = "{ \"contraindication\": null }",
+                                        string extraRoot = "")
             => "{ \"schema_version\": 1"
              + ", \"harm_kind_enabled\": " + enabled
-             + ", \"bands\": { \"contraindication\": null }"
+             + ", \"bands\": " + bands
              + ", \"max_severity_band\": " + maxSeverity
+             + (extraRoot.Length > 0 ? ", " + extraRoot.TrimEnd(',', ' ') : "")
              + ", \"rows\": [" + rows + "] }";
 
         private static string Row(int band = 0, int severity = 0, string injury = "INJ_HEMORRHAGE",
@@ -85,7 +89,13 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 int sev = ReadI32Le(cooked, ref offset);
                 rows.Add((hk, band, injury, sev));
             }
-            Assert.That(offset, Is.EqualTo(cooked.Length), "载荷长度须与 row_count 严格自洽");
+            // 尾段(2026-10-30):threshold_count: i32 + 逐项 i64。
+            // ⚠️ 漏读这一段会让下方「长度自洽」断言转红 —— 那正是尾段式**能被读方发现**的理由。
+            int thresholdCount = ReadI32Le(cooked, ref offset);
+            Assert.That(thresholdCount, Is.GreaterThanOrEqualTo(0), "过量档位线数不得为负");
+            offset += thresholdCount * 8;
+
+            Assert.That(offset, Is.EqualTo(cooked.Length), "载荷长度须与 row_count + 尾段严格自洽");
             return rows;
         }
 
@@ -128,13 +138,16 @@ namespace DaYiJingCheng.Tests.MedConsequences
         /// 下面本文件里的合成空表夹具继续守着 —— 真实表不再空,不等于「空表不再合法」。
         /// </remarks>
         [Test]
-        public void test_realTable_bakesThreeRows()
+        public void test_realTable_bakesRealRows()
         {
+            // 🔁 2026-10-30:过量支解除后真实表 = 3 禁忌 + 2 过量 = 5 行(原断言 3)。
             CostTable53Bake.BakeOutput o = CostTable53Bake.BakeFromJson(RealCostTable(), RealRegistry());
 
             Assert.That(o.Cooked, Is.Not.Null);
-            Assert.That(o.Bound.Rows, Has.Count.EqualTo(3), "真实表 = 三档阶梯");
-            Assert.That(DecodeRows(o.Cooked), Has.Count.EqualTo(3), "cooked 行数须与绑定集一致");
+            Assert.That(o.Bound.Rows, Has.Count.EqualTo(5), "真实表 = 三禁忌档 + 两过量档");
+            Assert.That(DecodeRows(o.Cooked), Has.Count.EqualTo(5), "cooked 行数须与绑定集一致");
+            Assert.That(o.Bound.OverdoseBandThresholds, Has.Count.EqualTo(2),
+                "真实表须带两条过量档位线");
         }
 
         /// <summary>同源两次烘焙逐位一致(ADR-014 §二)。</summary>
@@ -251,17 +264,40 @@ namespace DaYiJingCheng.Tests.MedConsequences
             Assert.That(string.Join(" | ", errs), Does.Contain("harm_kind_enabled"));
         }
 
-        /// <summary>**V-7 的判据面**:启用 `overdose` ⇒ 门红(§⑥ 过量支挂起)。</summary>
+        /// <summary>**V-7 的判据面**(🔁 2026-10-30 改判):过量**启用而无档位线** ⇒ 门红。</summary>
+        /// <remarks>
+        /// <para><b>原文(保留)</b>:「启用 `overdose` ⇒ 门红(§⑥ 过量支挂起),报文须点名
+        /// `TD-sim-02`」。§⑥ 解除后「启用即红」已不成立。</para>
+        /// <para><b>现判据</b>:门仍须对**未完成的过量配置**红 —— 启用 `overdose` 却不给
+        /// `overdose_band_thresholds` ⇒ 该 kind 的行永不生效(静默跳过同型)。</para>
+        /// <para>⚠️ 判别力:删掉 `ReadOverdoseThresholds` 的联动分支 ⇒ 本测转红(errs 为空)。</para>
+        /// </remarks>
         [Test]
-        public void test_gate_overdoseEnabled_isRed()
+        public void test_gate_overdoseEnabledWithoutThresholds_isRed()
         {
             string reg = RegistryWithOneNonLethalInjury();
             List<string> errs = CostTableGate.RunFromJson(
                 CostTable(enabled: "[\"contraindication\",\"overdose\"]"), reg);
 
             Assert.That(errs, Is.Not.Empty);
-            Assert.That(string.Join(" | ", errs), Does.Contain("TD-sim-02"),
-                "过量支挂起的解除条件是 TD-sim-02 + TD-prescription-09,报文须点名");
+            Assert.That(string.Join(" | ", errs), Does.Contain("overdose_band_thresholds"),
+                "启用过量而无档位线 ⇒ 门须红并点名缺的键");
+        }
+
+        /// <summary>🔁 2026-10-30:过量**完整配置** ⇒ 门绿(原判据下这里恒红)。</summary>
+        [Test]
+        public void test_gate_overdoseFullyConfigured_isGreen()
+        {
+            string reg = RegistryWithOneNonLethalInjury();
+            List<string> errs = CostTableGate.RunFromJson(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          bands: "{ \"contraindication\": 3, \"overdose\": 1 }",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\"]",
+                          rows: Row(0, 1, kind: "overdose")),
+                reg);
+            Assert.That(errs, Is.Empty,
+                "过量配置完整(启用 + 档数 + 档位线 + 行)时门不得报错;实得:" +
+                string.Join(" | ", errs));
         }
     }
 }

@@ -394,6 +394,20 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 **T2 = 填禁忌行并让它真跑**(须 `TD-prescription-09` 结案 **+ `TD-sim-03` 结案**(注册表须先有 ≥1 件 `lethal=false` 伤情,否则无行可填 ⇒ 真空真,见 §Risks R5)+ 内容轮给行内容 / 档数)<br>
 **T3 = 启用过量档**(`harm_kind_enabled` 允许 `overdose`;再加 `TD-sim-02`)
 
+> 🔁 **2026-10-30 T3 已落 —— §⑥ 的解除条件两条均已结案**(用户两项裁定:
+> ① 9 侧走**独立状态量**、不进 `Progress`;② 「过量」按**同一味药**(`处置_id`)累积)。
+> **9 侧**(结清 `TD-sim-02`):`ProgressionEvaluator.ComputePeakDrugLoad` ——
+> `max_p Σ |drug_potency| × Decay`,纯函数、事件流产、**不进 F1 / 不进 trend / 不进存档**;
+> 经 `VitalsDto.PeakDrugLoad` 输出(`disease-simulation.md` 的 F1 节已登记它与 F1 的分界)。
+> **53 侧**:`OverdoseEvaluator`(定档纯函数,判据 = `load ≥ threshold[i]`,闭区间下界)
+> + `OverdoseSettler`(**独立于** `ContraindicationSettler` —— 前者的驱动是「一条用药事件」,
+> 后者是「一个 tick 的体内药量」,合并会让归因失效)+ 代价表新根键
+> `overdose_band_thresholds`(升序绝对量,与 `drug_potency` 同量纲)。
+> **取消两处挂起**:`CostTable53.RejectHarmKind` 的 `Overdose` 拒收分支、
+> `CostTableBinder` 的 `harm_kind_enabled` 含 `overdose` 即拒 —— 改为「启用而无档位线 ⇒ 拒」。
+> ⚠️ **判据链跑通 ≠ 实玩可撞见**:后者取决于 `drug_potency` / `half_life` 与阈值的关系,
+> 数值轮已给值(`1` / `3/2`,约两剂 / 三剂)。
+
 > 🔁 **2026-10-30 T2 全链已落(用户裁定「数据 + 53 结算 + 11 的禁忌判定」)** ——
 > ① **代价表填入三行真实代价**(`bands.contraindication = 3` / `max_severity_band = 4`;
 > 档 0 → `INJ_BLUNT`/2,档 1·2 → `INJ_DRUG_HARM`/3·4),产物 72 B;

@@ -1317,6 +1317,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `DrugTreatmentApplied`,与体征链无数据依赖;放在同一 tick 边沿是为了让伤害事件
             //    与用药事件落在**同一个 tick**(承 ADR-035 §④「伤害事件的时间 = 用药事件的时间」)。
             _services.ContraindicationSettler?.Step(tick);
+
+            // 🔁 2026-10-30(`TD-sim-02` 结清后):过量结算。
+            //   ⚠️ 次序**必须在 `VitalsService.OnTickEdge` 之后** —— 它读的是 9 在本 tick
+            //   求出的 `VitalsDto.PeakDrugLoad`,不是在流里现算(53 不自算毒性,`AC-53-01`)。
+            _services.OverdoseSettler?.Step(tick);
         }
 
         /// <summary>

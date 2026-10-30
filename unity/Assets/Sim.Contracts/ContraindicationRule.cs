@@ -13,9 +13,11 @@
 //   且 `VitalsDto` 的 `float` 两个字段**不参与**(`disease-simulation.md:772` 禁 sim 读回),
 //   本判据只用整数位域 ⇒ 11 的「零浮点」不破。
 //
-// ⚠️ **今日生产环境该位域恒为 0**(`DiseaseVitalsService.ComputeVitals` 的 `signChannelMask: 0`
-//   —— F2 投影未接线,9 侧产不出词条)⇒ 判据在生产里**恒不命中**。这不是本文件的本事缺陷,
-//   是 9 侧的接线缺口;登记为债,不在本文件兜底(兜底 = 自造体征)。
+// 🔁 **2026-10-30 订正(原文保留)**:原注写「今日生产环境该位域恒为 0(F2 投影未接线)⇒
+//   判据在生产里恒不命中」。该缺口已由 `TD-sim-04` 结清 —— 9 的 `signs[].appear_at`
+//   按行相位派生定稿(48 条全可达),`DiseaseVitalsService` 按 `position ≥ appear_at`
+//   投影出非零掩码。⇒ 判据在生产路径上**可命中**,不再依赖注入。
+//   ⚠️ 但仍不在本文件兜底:掩码为 0 时判据就是「未命中」,不得自造体征。
 
 using System.Collections.Generic;
 

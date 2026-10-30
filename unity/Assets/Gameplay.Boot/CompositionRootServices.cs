@@ -42,6 +42,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 语义:`null` ⇒ 禁忌代价**不结算**,与「表为空」行为一致(都是零事件)。</para></summary>
         public DaYiJingCheng.Sim.Consequences.ContraindicationSettler ContraindicationSettler { get; internal set; }
 
+        /// <summary>53 的**过量**结算器(2026-10-30 · ADR-035 §⑥ 解除后)。
+        /// <para>与 <see cref="ContraindicationSettler"/> **刻意分成两个对象**:前者由「一条用药事件」
+        /// 驱动(离散),后者由「一个 tick 的体内药量」驱动(连续累积)。合并会把两种游标语义
+        /// 塞进同一个 `Step`,出错时无法归因 —— 见 `OverdoseSettler` 文件头。</para>
+        /// <para>⚠️ 语义:`null` 或阈值空 ⇒ 过量代价**不结算**,与「表为空」一致(零事件)。</para></summary>
+        public DaYiJingCheng.Sim.Consequences.OverdoseSettler OverdoseSettler { get; internal set; }
+
         /// <summary>ID 发号权威(机制 A:计数器 + 高水位可重构,ADR-006 Amendment B)。</summary>
         public IIdAuthority IdAuthority { get; }
 

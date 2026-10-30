@@ -518,6 +518,68 @@ namespace DaYiJingCheng.Sim
             return r.ARel * ExpNeg(tau - r.Interval, r.TauFall);
         }
 
+        // ── 累积药量(TD-sim-02 · 2026-10-30 数值轮)──────────────────────────
+
+        /// <summary>
+        /// **同一味药的最大当前体内药量** ——
+        /// `max_p Σ_{i : 处置_idᵢ = p} |drug_potencyᵢ| × Decay(t − tickᵢ, half_lifeᵢ)`。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么不加进 F1</b>:F1 的药物项是**治疗**项(降 `Progress`),且带对称 clamp
+        /// 「超限 = 饱和截断」(GDD 校验 15,用户裁定)。过量若要「有毒」,就得让超出部分反向抬
+        /// `Progress` —— 那会把两种语义纠缠在同一个单值上,`trend` 符号反转那类问题复发。
+        /// ⇒ 按 `TD-sim-02` 自带的约束,本量**独立于 `Progress`**:不进 F1、不进 `trend`、
+        /// 不进存档(它是病史事件流的**纯函数**,可由三源重建,属派生态)。</para>
+        /// <para><b>为什么不按「槽」分组</b>:`game-concept.md:322` 的原话是「同一个**槽**反复灌
+        /// 同类药」,但 **12 药物槽是 P1a**,且 `DrugTreatmentAppliedPayload` 无槽标识 ⇒ P0
+        /// 没有「槽」这个结构。现按 <c>TreatmentId</c>(同一味药)分组 —— 用户 2026-10-30 裁定。
+        /// 槽落地后若要把分组键换成槽,**只改本函数**,不动任何载荷。</para>
+        /// <para><b>为什么取绝对值</b>:药效符号随数据走(`DrugPotency` 为负 = 对症降病情),
+        /// 但「体内积了多少药」与方向无关 —— 灌一剂强效对症药与灌一剂强效对因药,
+        /// 过量的物质基础相同。</para>
+        /// <para><b>范围</b>:与 F1 的 <c>[polarity = causal] ∧ [处置 ∈ treatable_by]</c> 两道门
+        /// **无关** —— 吃错药(离牌)照样在体内积着。这正是「过量」区别于「药效」的地方:
+        /// 后者只管对症,前者只管物质。</para>
+        /// <para><b>复杂度</b>:O(n²),n = 该病人处置条数(P0 为几十量级)。改为增量维护需先
+        /// 登记确定性前提(按首次出现序分组),本轮不做。</para>
+        /// </remarks>
+        /// <param name="doses">该病人全部处置(两条剂量类 Kind 归一后的输入面)。</param>
+        /// <param name="currentTick">求值 tick;未来剂量(<c>tick &gt; currentTick</c>)不计。</param>
+        public static Fix ComputePeakDrugLoad(IReadOnlyList<TreatmentDose> doses, long currentTick)
+        {
+            if (doses == null || doses.Count == 0) return Fix.Zero;
+
+            Fix peak = Fix.Zero;
+            for (int i = 0; i < doses.Count; i++)
+            {
+                TreatmentDose a = doses[i];
+                if (a.HalfLife <= 0 || a.Tick > currentTick) continue;
+
+                Fix load = Fix.Zero;
+                for (int j = 0; j < doses.Count; j++)
+                {
+                    TreatmentDose b = doses[j];
+                    if (b.TreatmentId != a.TreatmentId) continue;
+                    if (b.HalfLife <= 0 || b.Tick > currentTick) continue;
+                    Fix decay = Decay(currentTick - b.Tick, b.HalfLife);
+                    if (decay.Raw == 0) continue;
+                    load += AbsFix(b.DrugPotency) * decay;
+                }
+                if (load.Raw > peak.Raw) peak = load;
+            }
+            return peak;
+        }
+
+        /// <summary><see cref="Fix"/> 的绝对值。
+        /// <para>⚠️ 与 <c>Math.Abs(long)</c> 刻意不同:后者在 <c>long.MinValue</c> 上抛
+        /// <c>OverflowException</c>,而求值链不得因一个病态输入炸掉整帧 ⇒ 饱和到
+        /// <c>long.MaxValue</c>。</para></summary>
+        private static Fix AbsFix(Fix v)
+        {
+            if (v.Raw >= 0) return v;
+            return v.Raw == long.MinValue ? new Fix(long.MaxValue) : new Fix(-v.Raw);
+        }
+
         // ── 处置和式(批次 C 接真)────────────────────────────────────────────
 
         /// <summary>

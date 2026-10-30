@@ -55,18 +55,36 @@ namespace DaYiJingCheng.Tests.MedConsequences
             b[off + 3] = (byte)((v >> 24) & 0xFF);
         }
 
+        /// <summary>常规形态:行集 + **空的**过量档位线(过量支未启用)。</summary>
         private static byte[] PayloadWithRows(params (int HarmKind, int Band, int InjuryId, int Sev)[] rows)
+            => PayloadWithRowsAnd(rows, System.Array.Empty<long>());
+
+        /// <param name="odThresholds">尾段的过量档位线(`Fix` raw,升序)。空 = 过量支未启用。
+        /// 2026-10-30 起布局多了这一段 —— **旧布局(无尾段)会被读越界拒收**,这是预期行为。</param>
+        private static byte[] PayloadWithRowsAnd(
+            (int HarmKind, int Band, int InjuryId, int Sev)[] rows, long[] odThresholds)
         {
-            var bytes = new List<byte>(4 + rows.Length * 16);
+            var bytes = new List<byte>(4 + rows.Length * 16 + 4 + odThresholds.Length * 8);
             void W(int v)
             {
                 bytes.Add((byte)(v & 0xFF)); bytes.Add((byte)((v >> 8) & 0xFF));
                 bytes.Add((byte)((v >> 16) & 0xFF)); bytes.Add((byte)((v >> 24) & 0xFF));
             }
+            void W64(long v)
+            {
+                W((int)(v & 0xFFFFFFFF)); W((int)((v >> 32) & 0xFFFFFFFF));
+            }
             W(rows.Length);
             foreach (var r in rows) { W(r.HarmKind); W(r.Band); W(r.InjuryId); W(r.Sev); }
+
+            // 尾段:过量档位线
+            W(odThresholds.Length);
+            foreach (long t in odThresholds) W64(t);
             return bytes.ToArray();
         }
+
+        /// <summary>无行、无过量档位线的空表载荷(最常见的惰性形态)。</summary>
+        private static byte[] EmptyPayload() => PayloadWithRows(System.Array.Empty<(int, int, int, int)>());
 
         private static InvalidDataException AssertRejected(
             byte[] cooked, string because, IReadOnlyList<DiseaseRegistryEntry> registry = null)
