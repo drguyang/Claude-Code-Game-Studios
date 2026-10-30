@@ -13760,3 +13760,25 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   - `TD-building-04` —— `structure_id` 用独立 `_nextStructureId`,与 ADR-010 §三 义务 12 不符;
     顺带记明:因此 GDD `:648` 设想的「与结构行撞号」**今天不会发生**(两面都要记)。P0 面 N,须 ADR 级裁定。
 - 债册:`条目 139 → 141` · `closed 111` · `open 24 → 26` · 未闭 P0 面仍 **0** · `--check` exit 0。
+
+---
+
+## 2026-10-31 · `S21-3` 收口(processing 判别力债 ×6 → 3 闭 / 3 留开)
+
+**做法**:开卡按 R1 逐条跑复算命令;**先做能做的,留开的逐条给可跑理由**。
+
+- **已闭 3 条**:
+  - `TD-processing-01` —— 正例先用 `DropSpawned` 种子塞出非空库存,并加前置断言「种子确实改变了投影」;
+    证伪 **M1**(容量裁决恒放行)⇒ 5 条 `ac1812` 转红(**超集**,目标在红集内)。
+  - `TD-processing-02` —— 新增 `test_ac1817b_typeScan_hasDiscriminatingPower`(同一 token 打到必然命中的
+    `Tests/EditMode/Processing`)⇒ 零引用门有负控;证伪 **M2**(`SaveComposer` 引用 `FurnaceState`)**exact**。
+  - `TD-processing-05` —— `IgnitionAdmissionResult` 构造期守卫(`(true,≠-1)` / `(false,<0)` 抛)+
+    `Pass()` / `RejectAt(i)` 工厂,`CanAdmit` 两个返回点改走工厂;4 条夹具;证伪 **M3****exact**。
+- **留开 3 条(理由已复核)**:
+  - `-03` 须 **ADR-008** 裁「同键 `Craft`」语义(`.Seq` 仍 1 处非断言)—— 裁决面,不在实现卡内。
+  - `-04` `BusyActorCount` **零生产调用方**、无实测压力;单遍扫描会动「`IsBusy` 唯一判据」守卫。
+  - `-06` 触发条件**已成立**(`SaveService.Load` 已落),但真装配往返需独立卡,**本卡未做**。
+- **回归**(三元组 `2026-10-31T07:30 CST` · S21-3 全量 · `59b986ef`+未提交):
+  EditMode `6196/6159/0/0/37`(+5/+5 恰等)· PlayMode `238/234/0/2/2`(零回归)。
+- **证伪**:3/3 全红;SHA-256 还原 3/3;`FALSIFY-` 残留 0。
+- 债册:`closed 111 → 114` · `open 26 → 23` · 未闭 P0 面仍 **0** · `--check` exit 0。

@@ -52,13 +52,13 @@ stories:
     name: "processing 判别力债 ×6(TD-processing-01…06)"
     file: "docs/tech-debt-register.md#td-processing-01"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "六条同编译单元,但**逐条一条反证、逐条独立提交**(R3:合并成一次证伪轮会让六条一起红)。内容:AC-18-12 正例恒真 / AC-18-17② 降级判据无负控 / 同键 `Craft` 语义未定义 / `BusyActorCount` O(A×E) / `IgnitionAdmissionResult` 可独立构造 / AC-18-17 跨存档往返用例缺位。⚠️ 开卡前先跑每条债自己的复算命令(R1)。"
+    completed: "2026-10-31"
+    note: "**✅ 6 条中 3 条闭、3 条如实留开**。闭的:`-01` 正例改非空库存 + 前置守卫(证伪 M1 超集 5 红)· `-02` 补负控(证伪 M2 exact)· `-05` 构造期守卫 + 具名工厂(证伪 M3 exact)。**留开且理由已复核**:`-03` 须 ADR-008 裁「同键 Craft」语义(`.Seq` 仍 1 处非断言)· `-04` `BusyActorCount` 零生产调用方、无实测压力(单遍会动「IsBusy 唯一判据」守卫)· `-06` 触发条件已成立(`SaveService.Load` 已落)但真装配往返需独立卡,本卡未做。回归三元组 `2026-10-31T07:30 CST` · S21-3 全量:EditMode `6196/6159/0/0/37`(+5/+5 恰等)· PlayMode `238/234/0/2/2`(零回归)。"
 
   - id: "S21-4"
     name: "clinic 自指判据 ×2(TD-clinic-19 / TD-clinic-21)"

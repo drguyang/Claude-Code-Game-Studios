@@ -100,6 +100,12 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
 
         /// <summary>造一炉:actor <paramref name="actorId"/> 于 <paramref name="startTick"/> 点火,
         /// 时长 <paramref name="durationTicks"/>。</summary>
+        /// <summary>造一条「库存里已有东西」的种子事件(TD-processing-01 正例的前置用)。</summary>
+        private SimEvent SeedDrop(long instanceId, int itemKey, int qty)
+            => new SimEvent(0L, PatientId.None, -1, EventKind.DropSpawned,
+                _encoder.Encode(EventKind.DropSpawned,
+                    new DropSpawnedPayload(instanceId, new WorldPos(0, 0, 0), itemKey, qty)));
+
         private SimEvent Burn(int actorId, long startTick, long durationTicks, long seq = 0)
             => Craft(actorId, startTick, durationTicks, startTick, seq);
 
@@ -413,8 +419,14 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             var sink = new SpySink();
             var port = new GatedApplyPort();
 
-            var stream = new List<SimEvent>();
+            // 🔁 TD-processing-01:原版用**空流**,「库存逐位不变」结构性恒真(空流折两次必然同值)。
+            //    现改为先塞一条真实库存,让 `before` 非空 —— 断言才有东西可丢。
+            var stream = new List<SimEvent> { SeedDrop(instanceId: 901, itemKey: 3, qty: 2) };
+            string emptyForm = InventoryFold.Fold(new List<SimEvent>(), _decoder, InventoryFoldContext.None)
+                                           .Projection.CanonicalForm();
             string before = InventoryFold.Fold(stream, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
+            Assert.That(before, Is.Not.EqualTo(emptyForm),
+                "前置不成立:种子没有改变库存投影 ⇒ 下面的「逐位不变」仍是结构性恒真(TD-processing-01 复现)");
 
             bool ignited = TryIgnite(stream, sink, port, actorId: 1, tick: 100,
                                      currentLoad: 0L, outputs: outputs, capacity: capacity);
@@ -786,6 +798,45 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
         // AC-18-17 · 无进程态三重门
         // ══════════════════════════════════════════════════════════════════
 
+        // ══════════════════════════════════════════════════════════════════
+        // TD-processing-05 · `IgnitionAdmissionResult` 的两字段不得自相矛盾
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_td05_passFactory_hasCanonicalShape()
+        {
+            IgnitionAdmissionResult r = IgnitionAdmissionResult.Pass();
+            Assert.That(r.Admitted, Is.True);
+            Assert.That(r.RejectedLineIndex, Is.EqualTo(-1), "放行时被拒行下标必须是 -1");
+        }
+
+        [Test]
+        public void test_td05_rejectAt_namesTheLine()
+        {
+            IgnitionAdmissionResult r = IgnitionAdmissionResult.RejectAt(2);
+            Assert.That(r.Admitted, Is.False);
+            Assert.That(r.RejectedLineIndex, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void test_td05_rejectAtNegative_throws()
+        {
+            Assert.That(() => IgnitionAdmissionResult.RejectAt(-1),
+                Throws.TypeOf<ArgumentOutOfRangeException>(),
+                "拒绝必须点名被拒行(≥ 0),-1 是「放行」的哨兵,不得复用");
+        }
+
+        [Test]
+        public void test_td05_ctorRejectsSelfContradictoryCombinations()
+        {
+            Assert.That(() => new IgnitionAdmissionResult(true, 3),
+                Throws.TypeOf<ArgumentOutOfRangeException>(),
+                "(true, 3) = 放行却点名被拒行 —— 自相矛盾(TD-processing-05 的原始形态)");
+            Assert.That(() => new IgnitionAdmissionResult(false, -1),
+                Throws.TypeOf<ArgumentOutOfRangeException>(),
+                "(false, -1) = 拒绝却不点名 —— 下游读 RejectedLineIndex 会拿到无意义的 -1");
+        }
+
         [Test]
         public void test_ac1817a_processingNamespace_hasNoSerializableTypes()
         {
@@ -886,6 +937,35 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             Assert.That(hits, Is.Empty,
                 "存档侧引用了 18 类型 ⇒ 存在「把进程态写进存档」的路径(AC-18-17 ②):\n  "
                 + string.Join("\n  ", hits));
+        }
+
+        /// <summary>TD-processing-02 负控:同一个「18 类型引用」源码谓词打到**必然含这些名字的目录**上必须命中。
+        /// <para>缺它时,上面那条「零引用」无法区分「存档侧真的没引用」与「谓词什么都没扫到」。</para></summary>
+        [Test]
+        public void test_ac1817b_typeScan_hasDiscriminatingPower()
+        {
+            string[] furnaceTypes =
+            {
+                "FurnaceState", "FurnaceOccupancy", "IgnitionAdmission",
+                "IgnitionAdmissionResult", "OutputLoadLine",
+            };
+            // 本测试件自己就在这个目录里,且**必然**引用上表全部名字 ⇒ 扫描器必须命中。
+            string dir = Path.Combine(RepoRoot(), "unity", "Assets", "Tests", "EditMode", "Processing");
+            Assert.That(Directory.Exists(dir), Is.True, $"负控扫描面不存在 —— {dir}");
+
+            var hits = new List<string>();
+            int scanned = 0;
+            foreach (string file in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
+            {
+                scanned++;
+                string code = StripComments(File.ReadAllText(file));
+                foreach (string t in furnaceTypes)
+                    if (code.IndexOf(t, StringComparison.Ordinal) >= 0) hits.Add($"{Path.GetFileName(file)}:{t}");
+            }
+
+            Assert.That(scanned, Is.GreaterThan(0), "负控扫描面为空 —— 本负控自身无判别力");
+            Assert.That(hits, Is.Not.Empty,
+                "谓词在**必然含 18 类型名**的目录上零命中 ⇒ 上一条「存档侧零引用」是扫了个空(假绿)");
         }
 
         [Test]

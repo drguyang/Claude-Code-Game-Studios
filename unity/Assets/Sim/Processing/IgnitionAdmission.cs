@@ -72,10 +72,36 @@ namespace DaYiJingCheng.Sim.Processing
         /// </summary>
         public readonly int RejectedLineIndex;
 
-        /// <summary>构造。</summary>
+        /// <summary>构造。
+        /// <para>⚠️ <b>两个字段的合法组合只有两种</b>:<c>(true, -1)</c> 与 <c>(false, i≥0)</c>。
+        /// 原先是**纯约定**(类型面不阻止 <c>(false, -1)</c> 或 <c>(true, 3)</c> 这种自相矛盾的值
+        /// —— 那会让下游「读 <c>RejectedLineIndex</c> 定位被拒行」拿到一个无意义的数
+        /// (债 `TD-processing-05`)。现在把约定**变成构造期守卫**,并给出具名工厂。</para>
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><c>(true, 非 -1)</c> 或
+        /// <c>(false, 负数)</c> —— 两种组合都自相矛盾。</exception>
         public IgnitionAdmissionResult(bool admitted, int rejectedLineIndex)
         {
+            if (admitted && rejectedLineIndex != -1)
+                throw new ArgumentOutOfRangeException(nameof(rejectedLineIndex), rejectedLineIndex,
+                    "Admitted = true 时 RejectedLineIndex 必须为 -1(放行却点名被拒行 = 自相矛盾)");
+            if (!admitted && rejectedLineIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(rejectedLineIndex), rejectedLineIndex,
+                    "Admitted = false 时必须点名被拒行下标(≥ 0)");
             Admitted = admitted; RejectedLineIndex = rejectedLineIndex;
+        }
+
+        /// <summary>放行(唯一合法形态:<c>Admitted = true</c> / <c>RejectedLineIndex = -1</c>)。</summary>
+        public static IgnitionAdmissionResult Pass() => new IgnitionAdmissionResult(true, -1);
+
+        /// <summary>拒绝并点名第 <paramref name="lineIndex"/> 行产出装不下。</summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineIndex"/> &lt; 0。</exception>
+        public static IgnitionAdmissionResult RejectAt(int lineIndex)
+        {
+            if (lineIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(lineIndex), lineIndex,
+                    "被拒行下标必须 ≥ 0(拒绝必须点名)");
+            return new IgnitionAdmissionResult(false, lineIndex);
         }
 
         /// <inheritdoc />
@@ -135,13 +161,13 @@ namespace DaYiJingCheng.Sim.Processing
             {
                 OutputLoadLine line = outputs[i];
                 if (!CarryLoadSolver.CanCarry(load, line.UnitWeight, line.Qty, capacity))
-                    return new IgnitionAdmissionResult(false, i);
+                    return IgnitionAdmissionResult.RejectAt(i);
 
                 // 后态载重 = 前态 + 本行重量;同样只经 `ContainerWeightFold`(不另写乘法)。
                 load = checked(load + ContainerWeightFold.InstanceWeight(line.UnitWeight, line.Qty));
             }
 
-            return new IgnitionAdmissionResult(true, -1);
+            return IgnitionAdmissionResult.Pass();
         }
     }
 }

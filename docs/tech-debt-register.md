@@ -331,11 +331,11 @@
 | `TD-prescription-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-08` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-09` | `prescription-medication` | closed | **Y** | R1 |
-| `TD-processing-01` | `processing` | open | **N** | R4 |
-| `TD-processing-02` | `processing` | open | **N** | R4 |
+| `TD-processing-01` | `processing` | closed | **N** | R4 |
+| `TD-processing-02` | `processing` | closed | **N** | R4 |
 | `TD-processing-03` | `processing` | open | **N** | R4 |
 | `TD-processing-04` | `processing` | open | **N** | R4 |
-| `TD-processing-05` | `processing` | open | **N** | R4 |
+| `TD-processing-05` | `processing` | closed | **N** | R4 |
 | `TD-processing-06` | `processing` | open | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
@@ -852,7 +852,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 141 | 状态 {'closed': 111, 'open': 26, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
+条目 141 | 状态 {'closed': 114, 'open': 23, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5596,6 +5596,18 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **修法方向** | 待 `20.Apply` 落地后,把正例改成「走真装配、真的可能改库存」的形态;或明确降级为「负控为主判据」并写进 AC 措辞 |
 | **触发条件** | S20-14(`inventory-005` 统一事务模板)落地时 |
 
+#### TD-processing-01 关闭记录 —— 正例改用「非空库存」并加前置守卫
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-3`)。上方债描述**原文不删**。
+
+- **修法**:`test_ac1812_rejection_appendsZeroCraftAndLeavesInventoryBitIdentical` 先塞一条真实
+  `DropSpawned`(itemKey=3 / qty=2)作种子库存,再断言「拒绝后投影**逐位不变**」;并加**前置断言**
+  「种子确实改变了投影(否则下面那条仍是空流折两次的结构性恒真)」。
+- **证伪**:**M1**(容量裁决恒放行 —— 把 `if (!CanCarry(...))` 改成 `if (false)`)
+  ⇒ 正例 + 4 条 `ac1812` 转红(**超集**,目标用例在红集内)。还原 SHA-256 OK。
+- **残留(不属本条)**:生产的库存写路径仍是「fold 消费事件」,没有独立 `Apply` API ——
+  本条修的是**判据面**,不是写路径。
+
 ### TD-processing-02 — AC-18-17② 是降级判据且无负控
 
 | 侧 | 内容 |
@@ -5605,6 +5617,18 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **为何 P0 面 = N** | 降级判据仍**成立**(无引用 ⇒ 无处可写 18 记录,逻辑蕴含关系有效),只是**比原文弱**。真正的段清单判据要等 7a 提供机器可读清单。AC-18-17 ①(程序集零 `[Serializable]`)与 ③(重放重建 `CompleteTick` 逐位相同)另有夹具且有负控 |
 | **修法方向** | ① 让 7a 输出机器可读的段清单常量,恢复原话判据;② 或补负控(造一条含 18 类型的样本文件,证明扫描器能抓到) |
 | **触发条件** | 7a 提供段清单常量时;或 S20-14 真装配落地时 |
+
+#### TD-processing-02 关闭记录 —— 补负控(`S21-3` 修法方向 ②)
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-3`;取修法方向 ②「补负控」)。原文不删。
+
+- **修法**:新增 `test_ac1817b_typeScan_hasDiscriminatingPower` —— 把同一组 18 类型 token 打到
+  `Tests/EditMode/Processing`(那里**必然**出现这些名字)⇒ 必须**非空命中**。
+  缺它时,「存档侧零引用」分不清「真没有」与「谓词什么都没扫到」。
+- **证伪**:**M2**(在 `SaveComposer.cs` 里引用 `FurnaceState`)⇒ `test_ac1817b_saveComposerReferencesNoProcessingTypes`
+  **恰 1 条红**(exact)。还原 SHA-256 OK。
+- **残留(设计内)**:判据仍是**降级形式**(零类型引用),不是原文的「段清单」——
+  7a 至今没有机器可读的段清单常量。本轮闭的是「无负控」半边;**判据强度**那一半随 7a 段清单落地再评。
 
 ### TD-processing-03 — 「同键 `Craft`」语义未定义:W7 Seq 定序零断言 + M2 同键取先入者
 
@@ -5640,6 +5664,17 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **修法方向** | ① 收成单字段(`int? RejectedLineIndex` 或哨兵值);② 或加构造期断言(`if (admitted && rejectedLineIndex != -1) throw`);③ 或改为静态工厂 `Admitted()` / `Rejected(index)` 且构造器私有 |
 | **触发条件** | 低优先;下一次触碰 `IgnitionAdmission.cs` 时顺手做 |
 
+#### TD-processing-05 关闭记录 —— 构造期守卫 + 具名工厂
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-3`)。原文不删。
+
+- **修法**:`IgnitionAdmissionResult` 的构造器加两条守卫 —— `(true, ≠ -1)` 与 `(false, < 0)` 一律
+  `ArgumentOutOfRangeException`;新增具名工厂 `Pass()` / `RejectAt(i)`;`IgnitionAdmission.CanAdmit`
+  的两个返回点改走工厂(生产不再手拼组合)。
+- **夹具 4 条**:`test_td05_passFactory_hasCanonicalShape` · `test_td05_rejectAt_namesTheLine` ·
+  `test_td05_rejectAtNegative_throws` · `test_td05_ctorRejectsSelfContradictoryCombinations`。
+- **证伪**:**M3**(去掉构造期守卫)⇒ `test_td05_ctorRejectsSelfContradictoryCombinations` **恰 1 条红**(exact)。
+
 ### TD-processing-06 — AC-18-17 的「跨存档往返」用例缺位
 
 | 侧 | 内容 |
@@ -5652,11 +5687,11 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-processing-01** | `processing` | **open** | **N** | R4 |
-| **TD-processing-02** | `processing` | **open** | **N** | R4 |
+| **TD-processing-01** | `processing` | **closed** | **N** | R4 |
+| **TD-processing-02** | `processing` | **closed** | **N** | R4 |
 | **TD-processing-03** | `processing` | **open** | **N** | R4 |
 | **TD-processing-04** | `processing` | **open** | **N** | R4 |
-| **TD-processing-05** | `processing` | **open** | **N** | R4 |
+| **TD-processing-05** | `processing` | **closed** | **N** | R4 |
 | **TD-processing-06** | `processing` | **open** | **N** | R4 |
 
 > **`P0 面 = N`(六条同判)** —— 承 §一 **R4**:归属 `processing` ∈ 31 个 P0 epic,
@@ -5664,6 +5699,17 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 > **共同形态**:story 已 `Complete`、AC 已勾,缺的是**判据面强度**或**测试载体**,不是产品行为。
 > **不改变 `未闭 P0 面`**。
 >
+> 🔁 **2026-10-31(S21-3 复核轮 · 逐条跑复算命令后的现状)**:
+> `-01` / `-02` / `-05` **已闭**(各自的关闭记录见上)。**以下三条仍开,理由已复核**:
+> · **`-03`** 仍开 —— `grep -c "\.Seq" …/furnace_timing_no_process_state_test.cs` ⇒ **1**(非断言);
+>   修法要求**先由 ADR-008 裁「同键 `Craft`」语义**,属裁决面,不在实现卡内。
+> · **`-04`** 仍开 —— `grep -rn "BusyActorCount" unity/Assets --include=*.cs | grep -v /Tests/` ⇒
+>   只有定义(`FurnaceState.cs:211`),**零调用方**;无实测压力,不改写(单遍扫描会动
+>   「`IsBusy` 是唯一判据」这道守卫,风险大于收益)。
+> · **`-06`** 仍开,但**触发条件已成立** —— `SaveService.Load` 已落地(ADR-034 实现轮);
+>   真装配往返(`compose → 写盘 → 读回 → 重放 → CompleteTick 逐位相同`)需要一个独立卡,
+>   本卡**未做**,不在此处借绿。
+
 > 🔁 **2026-10-27 四十二订追加 `TD-processing-07`,且它的 P0 面 = `Y`(R1)** ——
 > 与上表六条**不同判**,理由见该条正文。**⚠️ 本表末的「六条同判」只对 `-01…-06` 成立,
 > 不得读成七条。** 数字变化:`未闭 P0 面 61 → 62` · `epic 分布 7/31 → 8/31`
