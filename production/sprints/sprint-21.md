@@ -57,6 +57,13 @@
 | `S21-7` | **persistence ×2**:`TD-persist-08` · `TD-persist-10` | unity-specialist | **S** | 无 | `-08`:51 行 → ≤40 **且补 ≤40 界夹具**;`-10`:补 `SaveService` ↔ `SaveMigrationChain` 接缝夹具,空区间 `[2,2)` 下须说明走哪条路径 |
 | `S21-8` | **挂标订正 + `level-tool` 两件复核** | unity-specialist | **S** | 无 | ① `S20-17` #1 / `S20-20` #3 / #5 三条挂标**按复算订正为已闭**(账面已改,见 sprint-20 §十四 14.4);② 修 `MinimalWorldFactory.cs:35-37` 的**过期注释**(它说「POI/资源仍全 -1 —— 归 story S4」,而 `:147-172` 已在装载);③ 复跑三条判据并在 sprint-20 §9.1.1 留 🔁 标记 |
 
+> ✅ **`S21-1` 已于 `2026-10-31` 结案**(用户裁定「结案 + 只立向前约定」)。
+> 开卡时按 R1 先跑复算命令,发现**环已由事实消解**:`inventory-001` / `processing-003` 均已 `Complete`
+> (立债时三件皆 `Ready`),`inventory-002` 的三个前置全部满足。
+> 处置:债 → `closed`(带复算证据)· **不改**三方 `Depends on` 原文(改已完成件 = 改历史)·
+> 立向前约定 `.claude/docs/coding-standards.md` §「依赖写法:形状 vs 实现」(只约束新件)。
+> **未做**:`/story-readiness` 未实跑,留给 `S21-2` 开工前;`S21-1` 判的是它读取的输入(四件上游 `Status`)。
+
 ### Should Have(须先出裁定,或体量待定)
 
 | ID | 卡 | 复杂度 | 前置 | 说明 |

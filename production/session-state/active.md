@@ -13720,3 +13720,20 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 ### 状态
 - 工作树:`sprint-20.md` / `sprint-21.md` / `sprint-status.yaml` / `qa-plan-sprint-21-2026-10-31.md` /
   `session-state/active.md` —— **未 commit**(用户未指令)。
+
+---
+
+## 2026-10-31 · `S21-1` 结案(用户指令「开 S21-1」)
+
+**结论:`TD-deps-01` 的环已由事实消解,不是判据失效。**
+- 开卡先跑复算命令(R1):`inventory-001` / `processing-003` 均已 `Complete`(立债时三件皆 `Ready`)
+  ⇒ `inventory-002` 三个前置(`inventory-001` / `item-database-008` / ADR-025)全满足。
+- **用户裁定**:「结案 + 只立向前约定」。
+- 落盘:① 债册 `TD-deps-01` `open → closed` + 关闭记录块(带复算命令与实跑输出);
+  ② `.claude/docs/coding-standards.md` 新节「依赖写法:形状 vs 实现」——**只约束新建 story**,
+  含判定法「若 X 是永不执行的空实现,我还能编译且夹具通过吗」;
+  ③ `sprint-status.yaml` S21-1 → `done`。
+- **不改**三方 `Depends on` 原文(两件已 Complete,改即改历史)。
+- **未做**:`/story-readiness` 未实跑 —— 那是 `S21-2` 的开工步;本卡判的是它读取的输入。
+- 债册:`closed 110 → 111` · `open 25 → 24` · 未闭 P0 面仍 **0** · `--check` exit 0。
+- 账面滞后**同族第 8 例**(本次形态 = 完成度推进,非判据失效)。

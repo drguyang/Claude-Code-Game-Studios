@@ -28,13 +28,13 @@ stories:
     name: "解 TD-deps-01 三方依赖环(inventory-002 的开工前置)"
     file: "docs/tech-debt-register.md#td-deps-01"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
-    note: "**为什么必须排第一**:`inventory-001` → `processing-003` → `inventory-002` → `inventory-001` 的 `Depends on` 是**闭环**,三件所需形状全在盘(`CraftPayload` / `ResourceHarvestedPayload` / `DropSpawnedPayload` / `IIdAuthority` 契约均已 Complete)。不解环,`S21-2` 一开就被 `story-readiness` / `dev-story` Phase 2 判 BLOCKED。修法不预设(收窄描述 / 改校验口径二选一),本轮裁定并落债册。"
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 结案(用户裁定「结案 + 只立向前约定」)**。开卡时按 R1 先跑该债自己的复算命令,发现**环已由事实消解**:`inventory-001` 与 `processing-003` 均已 `Complete`(立债时三件皆 `Ready`),`inventory-002` 的三个前置(`inventory-001` / `item-database-008` / ADR-025)全部满足 ⇒ 依赖校验不会再判 BLOCKED。**处置**:① `TD-deps-01` → `closed`(带复算证据,原文不删);② **不改三方 `Depends on` 原文**(两件已 Complete,改即改历史);③ 立**向前约定** `.claude/docs/coding-standards.md` §「依赖写法:形状 vs 实现」——只对新建 story 生效。**未做**:`/story-readiness` 本身未实跑,判的是它读取的输入(四件上游 `Status`)已逐件实测；该 skill 留给 `S21-2` 开工前跑。债册 `--check` exit 0。"
 
   - id: "S21-2"
     name: "inventory-002 id 铸造权威与高水位重构"

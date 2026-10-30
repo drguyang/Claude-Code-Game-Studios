@@ -435,7 +435,7 @@
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
 | `TD-foraging-01` | `foraging` | open | **N** | R4 |
 | `TD-foraging-02` | `foraging` | open | **N** | R4 |
-| `TD-deps-01` | `（跨 epic · inventory-items / processing）` | open | **N** | R3-裁 |
+| `TD-deps-01` | `（跨 epic · inventory-items / processing）` | closed | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
@@ -850,7 +850,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 110, 'open': 25, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+条目 139 | 状态 {'closed': 111, 'open': 24, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5341,12 +5341,61 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-deps-01** | 跨 epic(`inventory-items` / `processing`) | **open** | **N** | R3-裁 |
+| **TD-deps-01** | 跨 epic(`inventory-items` / `processing`) | **closed** | **N** | R3-裁 |
 
 > **`P0 面 = N`** —— 承 §一 **R3 裁量判据**:本条是**排期/依赖描述**层面的问题,
 > 不破任何形状或契约判据,故不阻塞 P0 出口。但它会**让依赖校验死锁**,
 > 属**须在下次排期前解决**的流程债。记 `N` 而非 `Y` 的理由同 `TD-foraging-01`:
 > 出口判据问的是「形状与契约是否成立」,本条不破任何形状。
+
+#### TD-deps-01 关闭记录 —— 环已由事实消解(两件 `Complete`),写法约定向前生效
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-1`;用户裁定「结案 + 只立向前约定」)。
+> 上方债描述**原文不删** —— 它记的是 **`2026-10-26`** 的实测。
+
+**一、事实:环不在了**
+
+| 边 | 立债时(`2026-10-26`) | 实测(`2026-10-31`) |
+|---|---|---|
+| `inventory-001` | `Ready` | **`Complete`** |
+| `processing-003` | `Ready` | **`Complete`** |
+| `inventory-002` | `Ready` | `Ready` |
+
+⇒ `inventory-002` 的三个前置**全部满足**:`inventory-001` `Complete` · `item-database-008` `Complete` ·
+ADR-025 `Accepted`。`dev-story` Phase 2 / `story-readiness` 的依赖校验对它**不再报 BLOCKED**。
+
+复算(实跑输出已贴):
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -h -m1 'Status\*\*' production/epics/inventory-items/story-00{1,2}-*.md \
+     production/epics/processing/story-003-*.md production/epics/item-database/story-008-*.md
+# ⇒ inventory-001: Complete / inventory-002: Ready / processing-003: Complete / item-database-008: Complete
+```
+
+**二、处置(用户 `2026-10-31` 裁定)**
+
+- **不改三方 story 的 `Depends on` 原文** —— `inventory-001` / `processing-003` 已 `Complete`,
+  改已完成件的依赖行 = **改历史**;`inventory-002` 的三个前置已全 `Complete`,改它无收益。
+- **立向前约定**:`.claude/docs/coding-standards.md` §「依赖写法:形状 vs 实现」—— **只对新建 story 生效**,
+  不追改旧件。
+- 选此而非「改校验口径」的理由:改口径要动 `dev-story` / `story-readiness` 两个 skill 的判定逻辑,
+  而**问题出在作者怎么写**,不在校验器怎么读。改写法是一行纪律,改校验是一处机制 + 一轮回归。
+
+**三、为什么这不是「误报」**
+
+立债时三方**确实**都是 `Ready`,环**确实**会让校验死锁(当时任一件都开不了)。
+它消失的方式是**事实推进(两件做完了)**,不是**判定错误** ——
+与 `TD-audio-029` 那类「判据早已不成立、账面没刷」是两种形态:**本条的判据当时成立,现在被完成度超越**。
+
+**四、本债不覆盖的残留**
+
+`processing-003` 的 `Depends on` 仍写着 `inventory-items Story 002`(实现),而它实际只需
+`IIdAuthority` **契约**(`Sim.Contracts/Abstractions.cs:41-48`)。该件已 `Complete`,原文保留、
+**不追改**(同二);约定只约束新件。
+
+> ⚠️ **账面滞后同族第 8 例**(前七:`TD-audio-106` · `TD-clinic-04` · `TD-listen-01` L-6 ·
+> `TD-audio-034` ② · `TD-audio-033` ② · `TD-audio-029` · `TD-audio-109`)。
+> 本次形态是「**完成度推进**」而非「判据失效」—— 但处置相同:**动手前先跑该债自己的复算命令**。
 
 ---
 
