@@ -6801,3 +6801,49 @@ python3 tools/debtcount/debtcount.py --check
 # ⇒ ✅ §五 输出块与索引块一致
 ```
 ⚠️ **`skeuomorphic-ui` 自此退出 M3 出口分布**(该 epic 名下唯一未闭 P0 债就是本条)。
+
+---
+
+## 2026-10-30 · `TD-clinic-16` 勘察轮 —— 触发条件已被满足,但**性质比原判定轻**(未结案)
+
+> ⏸ **本条仍 `open`**。本轮只做勘察。
+>
+> **原判定**:「**S25 · 测试读文件系统**(`assets/data/` + `tests/unit/clinic_machine/fixtures/`),
+> 与 `test-standards.md`『Unit tests must not depend on external state (filesystem)』**字面相抵**」,
+> 触发条件 = **CI runner 落地时(ADR-012 矩阵)**。
+>
+> **实测一(触发条件已满足)**:`.github/workflows/unity-tests.yml` **已存在**且跑 EditMode / PlayMode
+> (两个 job)。⇒ 按原判定的字面,本条的触发条件**今天已经成立**,不是「将来时」。
+>
+> **实测二(性质:只读,不污染)**:
+> ```bash
+> grep -rn "File.WriteAll\|Directory.CreateDirectory\|StreamWriter" \
+>   unity/Assets/Tests/EditMode/ClinicMachine/*.cs
+> # ⇒ 仅 build_modules_bake_test.cs:386 / :404 两处,且**落点全部在 Path.GetTempPath()**
+> #    (该文件的 remarks 已自陈「落盘一律 Path.GetTempPath()…真仓库 assets/data/ 一字不动」)
+> ```
+> ⇒ 其余所有 `File.ReadAllText` 调用点都是**只读**:读 `assets/data/*.json`(作者态源表)
+> 与 `tests/unit/clinic_machine/fixtures/*`(违例夹具)。
+>
+> **⇒ 本条的真实风险比原判定轻**:它**不会**污染仓库(零写入),风险只有两条:
+> ① **可移植性** —— 夹具依赖仓根的相对布局(`RepoRoot()` 上溯),换目录结构即红;
+> ② **口径** —— 规则字面说「不得依赖文件系统」,而这些测试**确实依赖**(只读也是依赖)。
+>
+> **为什么本轮不改(如实登记)**:把「读作者态 JSON」改成「内联字面量」会让夹具**失去
+> 「测的就是真表」这个价值** —— 那正是本项目反复强调的「夹具与被测对象的同源性」。
+> 二者是**真实张力**,不是谁写错了:
+> · 内联 ⇒ 夹具自洽、可移植,但**不再验证真表**(表改坏了它仍绿);
+> · 读真表 ⇒ 验证真表,但依赖仓根布局。
+> ⇒ 这是**设计取舍**,须裁决,不是「照规则改一遍」。
+>
+> **可行的三个方向(须裁决)**:
+> · **A(推荐)** —— **修订规则措辞**:把 `test-standards.md` 的「不得依赖 external state」
+>   明确为「**不得依赖可变的**外部状态(写盘 / 网络 / DB);**只读**作者态夹具是允许的,
+>   但须在文件头具名声明它读哪些路径」。零代码改动,且把已有的实践**写进规则**
+>   (今天的事实就是「多数夹具读真表」,规则与执行已脱节 —— 与本项目抓过的
+>   「规则与执行脱节三轮」同型)。
+> · **B** —— 全部内联:牺牲「验证真表」,换可移植性。**不推荐**。
+> · **C** —— 造一份「夹具专用副本」入 `tests/`,测试只读副本。折中,但副本会漂
+>   (与本项目 `TD-audio-01` 的「日期副本」同型风险)。
+>
+> ⚠️ **本轮**不**声称已修** —— 索引行状态**维持 `open`**。
