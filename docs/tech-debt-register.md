@@ -371,7 +371,7 @@
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
 | `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
 | `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
-| `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
+| `TD-sim-01` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-04` | `disease-simulation` | closed | **Y** | R1 |
@@ -850,12 +850,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'open': 54, 'closed': 82, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 30 （已闭但曾标 P0 面的 73 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 30 条,分布在 9/31 个 epic
+条目 139 | 状态 {'open': 53, 'closed': 83, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 29 （已闭但曾标 P0 面的 74 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 29 条,分布在 8/31 个 epic
     medical-consequences: 15  telemetry-analytics: 5    clinic-machine: 4
-    disease-simulation: 1     enemy-ai: 1               item-database: 1
-    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
+    enemy-ai: 1               item-database: 1          patient-ai: 1
+    processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -5365,6 +5365,18 @@ Accepted,**只钉形状、不实现**)。该件四项用户裁定中的**裁定 
 | **何时消解** | 9 的配方 / 数值轮给 F1 增一条毒性项,**或**另立一个可读的「累积过量」状态量。⚠️ 该量的语义**不得与 `Progress` 单值纠缠**(否则 `trend` 符号反转那类问题复发 —— 见 F1 取舍 3 与校验 15 的既有论证)。本条消解前,53 的过量档**无输入源**。 |
 | **归属** | **9 疾病与伤情模拟(`disease-simulation`)**。 |
 | **`P0 面 = Y` 的理由** | 归属 epic ∈ 31 个 P0 epic,且本条**不自陈**不阻塞 P0 出口 —— 它正是 `OQ-53-8` 已裁 P0 的「过量」半边无法落地的原因。承 §一 R1 宽判据。 |
+
+### ✅ 2026-10-30 结案(`open` → `closed`)—— `TD-sim-01`
+
+| 侧 | 内容 |
+|---|---|
+| **原文的实测已过期** | 本债 2026-10-20 立案时记「`unity/Assets/` 全树 grep `SelfLimited`(C#,排除注释行)⇒ **0 处**」。**该状态在结案时已不成立** —— 实现与调用点均已落地,只是债册未跟。原文不删,保留作闭环记录。 |
+| **解除动作逐条对照** | ①「给判死路径加 `entity` 形参(**或**并列独立谓词 `SelfLimited(entity, d)`」⇒ **取后者**:`Sim/EntityDeathGates.cs:194` 的 `SelfLimited(ActorClass actorClass, DiseaseRegistryEntry entry)`;签名是 `(ActorClass, DiseaseRegistryEntry)` 而非 `(PatientId, …)` —— `ActorClass` 才是判死谓词的实体维度(Player / Patient / HumanEnemy / Beast),`PatientId` 推不出来。②「补一条夹具证明同病种对 Player 与 NPC 判死不同」⇒ `entity_death_gates_test.cs` 的 `test_selfLimited_sameEntryDiffersByActorClass`(**其余入参完全相同,只差 ActorClass**;玩家 false / 敌人 true)。③「不改任何 `self_limit` 数据值」⇒ 注册表 15 行的 `self_limit` 未动。 |
+| **实现口径(与 `OQ-25-1` 路甲一致)** | `EntityDeathGates.SelfLimited` 三段:`combatant ⇒ true`(自限门恒开,死亡支关闭)/ **战伤破例** `Player ∧ d.Kind = Injury ∧ d ∈ 白名单 ∧ lethal ⇒ false` / 其余取注册表 `self_limit(d)`。`Curve == null` 的 legacy 条目返回 `false`(与 `Validate` 对 `Curve == null` 跳过曲线面校验同口径)。 |
+| **调用点(证明不是「写了没人用」)** | ① **F4 死亡支**:`F4OutcomeEvaluator.cs:170-171` —— `LethalFor(actorClass, entry) && !EntityDeathGates.SelfLimited(actorClass, entry) && …`,即 GDD `:1086-1090` 的四条件合取。② `PlayerDiedWriter.cs:110`(自限门恒开 ⇒ 不写 `PlayerDied`)。③ `DeathCandidateConsumer.cs:118`(`!SelfLimited` ⇒ 才进死亡候选)。 |
+| **实测** | `Unity -batchmode -runTests -testPlatform EditMode -testFilter DaYiJingCheng.Tests.DiseaseSimulation.EntityDeathGatesTest` ⇒ **21 / 21 passed / 0 failed**(@ 2026-10-30 **11:26:13 CST** · `8bd2d3a0` + 工作树)。含**战伤破例的四条反例** `test_battleInjuryExemption_neg1..neg4`(非 Player / 非 injury / 不在白名单 / 非致死 —— 各返回注册表原值),即三个合取条件**每一个都有独立反例**,不是「全真才过」的一条正向。 |
+| **⚠️ 本条结案 ≠ 下游 AC 自动转绿** | 「卡住的判据」列的下游项(`death-respawn` 的 AC-29-01/02/05/08/10/17 · `combat-weapons` 的 AC-25-6-08 · 9 的 `story-005` 判死路径)**不由本条决定** —— 本条解除的是**谓词缺位**这一根因;那些 AC 各有自己的判据面(窗口条件 / `last_intervention` 聚合 / 端到端装配),须在各自轮次实测转绿。**不得以本条 `closed` 反推它们已绿。** |
+| **归属** | 9(疾病与伤情模拟)—— 维持原文。 |
 
 ### ✅ 2026-10-30 结案(`open` → `closed`)—— `TD-sim-02`
 
