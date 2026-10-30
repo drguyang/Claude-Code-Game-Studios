@@ -350,8 +350,10 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
             // equip:score = tier(bed)=1(tier=0 的 chamber_pot 不计)⇒ raw = 1 × 65536 = 65536,
             // 再经 F-24-2 的**单钳制**到 EQUIP_MOD_CAP = 1/4 = 16384(EQUIP_MOD_CAP < 1 的二值语义)。
             Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, source);
-            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
-                "tier=0 的家具须被排除 ⇒ score=1 ⇒ 钉顶到 EQUIP_MOD_CAP(raw 16384)");
+            // ⚠️ 期望值写**字面量**,不引 `ClinicModifierEvaluator.EquipModCapRaw`(TD-clinic-19 同形态):
+            // 直引被测常量 ⇒ 变异常量时两边一起动 ⇒ 对「CAP 值本身」零判别力。
+            Assert.That(equip.Raw, Is.EqualTo(16384L),
+                "tier=0 的家具须被排除 ⇒ score=1 ⇒ 钉顶到 EQUIP_MOD_CAP(raw 16384,字面锚)");
 
             // 反向判别:tier=0 若被误计入,score 仍是 1(chamber_pot tier 恰为 0),
             // 故上一条**不能**单独证明排除 —— 用「只有 tier=0 家具」的布局补一条:

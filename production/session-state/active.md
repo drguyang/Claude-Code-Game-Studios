@@ -13782,3 +13782,31 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   EditMode `6196/6159/0/0/37`(+5/+5 恰等)· PlayMode `238/234/0/2/2`(零回归)。
 - **证伪**:3/3 全红;SHA-256 还原 3/3;`FALSIFY-` 残留 0。
 - 债册:`closed 111 → 114` · `open 26 → 23` · 未闭 P0 面仍 **0** · `--check` exit 0。
+
+---
+
+## 2026-10-31 · `S21-4` 收口(clinic 自指判据 ×2 → 两条全闭 + 抓出第 7 处)
+
+**做法**:先按 R1 跑该债自己的复算命令,再改判据;证伪轮用**同一变异做前后对照**。
+
+- **`TD-clinic-19`(闭)** —— `clinic_modifier_eval_test.cs` 6 处 CAP 断言改字面锚
+  `private const long CapRawLiteral = 16384L;`;`clinic_modifier_eval_test.cs:316` 保留一条
+  **独立**断言钉常量本身的值(「值没变」与「用它的地方不受它影响」是两件事)。
+  🔍 **同轮新发现**:`grep -rn "EquipModCapRaw" unity/Assets/Tests/` 命中**另一文件**
+  `clinic_furniture_catalogue_test.cs:353` 的同形态自指断言 —— 债描述写 6 处,**实测 7 处**;
+  已就地修(字面 `16384L`)。
+- **证伪 = 前后对照(同一变异 `/4 → /2`)**:
+  - **M1(修前)**:6 红 / **exact**;但 `test_traitsSource_feedsEvaluator_endToEnd` **未红** ⇒ 第 7 处零判别力。
+  - **M1b(补第 7 处后)**:7 红 = 上 6 + 该条 ⇒ 「修前不红 / 修后红」,不是两次独立断言。
+- **`TD-clinic-21`(闭)** —— 由散文登记升为**双向活跃守卫**
+  `test_td21_constructorStillRejectsDuplicateRoomType`(正:同 `room_type` 两行 ⇒ `ArgumentException`;
+  反:唯一 ⇒ `Throws.Nothing`,防「构造器整体坏了」冒充)。
+  - **M2**(只禁 `ContainsKey`)⇒ **0 红** —— 弱变异(`Add` 仍抛同名异常),**如实记、不作证据**。
+  - **M2b**(真放宽:`if(false)` + 索引器赋值)⇒ **2 红**。
+  - **M3**(构造器无条件抛)⇒ **4 红**,含本测 ⇒ 反向断言有效。
+  - ⚠️ **与卡面判据的差异**:卡面写「`grep` 级判据」,**实给行为判据**(加强,非削减)。
+  - **P1a 三条同步义务逐字保留**在关闭记录里,放宽时本测会先红。
+- **回归**(三元组 `2026-10-31T07:50–07:52 CST` · S21-4 全量 · `cf5c3130`+未提交):
+  EditMode `6197/6160/0/0/37`(+1/+1 恰等)· PlayMode `238/234/0/2/2`(零回归)。
+- **证伪**:还原 SHA-256 4/4;`FALSIFY-` 残留 0。
+- 债册:`closed 114 → 116` · `open 23 → 21` · 未闭 P0 面仍 **0** · `--check` exit 0。

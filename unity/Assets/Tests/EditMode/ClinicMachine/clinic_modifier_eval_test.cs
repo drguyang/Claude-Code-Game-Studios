@@ -29,6 +29,14 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
     [TestFixture]
     public class ClinicModifierEvalTest
     {
+        /// <summary>CAP 的字面锚(1/4 ⇒ raw 16384)。
+        /// <para>⚠️ **判据不得引用被测常量本身**(`TD-clinic-19`):若写
+        /// `Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw)`,把常量改坏时断言两边一起动 ⇒
+        /// 对「CAP 值本身」零判别力(自指判据,本项目已知形态)。
+        /// ⇒ 本文件所有 CAP 断言用**字面量**,并由一条独立断言钉住常量本身的值。</para>
+        /// </summary>
+        private const long CapRawLiteral = 16384L;
+
         // ══════════════════ 夹具 ══════════════════
 
         private sealed class FakeView : IPlacedStructureReadView
@@ -304,8 +312,32 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
 
             Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, traits);
 
-            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw));
+            Assert.That(equip.Raw, Is.EqualTo(CapRawLiteral), "CAP 必须恰为 16384(字面锚)");
             Assert.That(ClinicModifierEvaluator.EquipModCapRaw, Is.EqualTo(16384), "CAP = 1/4 ⇒ raw 16384");
+        }
+
+        /// <summary>**TD-clinic-21 守卫**:构造器仍拒 `room_type` 重复 ⇒ 生产路径上 `contexts[]`
+        /// 恒 ≤ 1 元素。若 P1a 放宽这条唯一性,本测会**当场转红**,逼执行者先去读债册
+        /// `TD-clinic-21` 的三条同步义务(排序语义 / 生产路径多元素夹具 / `_byRoomType` 重定义)。
+        /// <para>⚠️ 本测**证明的是「约束还在」**,不是「多情境已可用」—— 后者是 P1a 的面。</para>
+        /// </summary>
+        [Test]
+        public void test_td21_constructorStillRejectsDuplicateRoomType()
+        {
+            var rows = new[]
+            {
+                new ClinicContextRow("ward", "a", new Fix(65536), new Fix(0)),
+                new ClinicContextRow("ward", "b", new Fix(65536), new Fix(0)),
+            };
+
+            Assert.That(() => new ClinicContextTable(rows, new Fix(65536)),
+                Throws.TypeOf<ArgumentException>(),
+                "room_type 唯一性被放宽了 —— P1a 多情境的触发条件已成立,须先执行 TD-clinic-21 的三条同步义务");
+
+            // 反向守卫:唯一类型时不抛(否则上面那条可能是「构造器坏了一律抛」的假绿)。
+            var ok = new[] { new ClinicContextRow("ward", "a", new Fix(65536), new Fix(0)) };
+            Assert.That(() => new ClinicContextTable(ok, new Fix(65536)), Throws.Nothing,
+                "唯一 room_type 也抛 ⇒ 上一条的「拒绝」不是唯一性守卫,而是构造器整体坏了");
         }
 
         /// <summary>`CAP &lt; 1` 的二值语义:score ≥ 1 一律钉顶,**不存在 1 与 CAP 之间的中间值**。</summary>
@@ -329,7 +361,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
                 var traits = new FakeTraits(rows);
                 Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, traits);
 
-                Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+                Assert.That(equip.Raw, Is.EqualTo(CapRawLiteral),
                     $"score = {score} 必须钉顶(CAP < 1 的二值语义)");
             }
         }
@@ -350,7 +382,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
 
             Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, traits);
 
-            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+            Assert.That(equip.Raw, Is.EqualTo(CapRawLiteral),
                 "100000 × 65536 须在 int64 内算,再钳顶(回绕会给出 0)");
         }
 
@@ -378,7 +410,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
 
             Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, new FakeTraits(rows));
 
-            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw));
+            Assert.That(equip.Raw, Is.EqualTo(CapRawLiteral), "CAP 必须恰为 16384(字面锚)");
         }
 
         // ══════════════════ ⑥ 硬失败面 ══════════════════
@@ -662,18 +694,18 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
                 // ① 全称不变量:恒在闭区间内
                 Assert.That(actual, Is.GreaterThanOrEqualTo(0L),
                     $"第 {iter} 组(n={n}, Σtier={expectedScore}):EquipMod 须 ≥ 0");
-                Assert.That(actual, Is.LessThanOrEqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+                Assert.That(actual, Is.LessThanOrEqualTo(CapRawLiteral),
                     $"第 {iter} 组(n={n}, Σtier={expectedScore}):EquipMod 须 ≤ EQUIP_MOD_CAP");
 
                 // ② 精确值:clamp(Σtier × 65536, 0, CAP),独立手算
                 long expectedRaw = expectedScore * Fix.OneRaw;
-                if (expectedRaw > ClinicModifierEvaluator.EquipModCapRaw)
-                    expectedRaw = ClinicModifierEvaluator.EquipModCapRaw;
+                if (expectedRaw > CapRawLiteral)
+                    expectedRaw = CapRawLiteral;
 
                 Assert.That(actual, Is.EqualTo(expectedRaw),
                     $"第 {iter} 组(n={n}, Σtier={expectedScore}):须为 clamp 后的 {expectedRaw}");
 
-                if (expectedRaw == ClinicModifierEvaluator.EquipModCapRaw) pinnedCases++;
+                if (expectedRaw == CapRawLiteral) pinnedCases++;
             }
 
             // 采样守卫:CAP = 1/4 < 1 ⇒ 任何 Σtier ≥ 1 都钉顶;本组绝大多数样本须落在此形态,
@@ -702,7 +734,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
             Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, traits);
 
             // Σtier 若把 −100 算进去 = −98 ⇒ 钳下界归 0;正确实现 = 2 ⇒ 钉顶。
-            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+            Assert.That(equip.Raw, Is.EqualTo(CapRawLiteral),
                 "负档位不得进和:若进和则档位和被拉成负数 ⇒ 下钳到 0(≠ CAP)");
         }
 

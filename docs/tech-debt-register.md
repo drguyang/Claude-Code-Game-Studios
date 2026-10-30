@@ -420,9 +420,9 @@
 | `TD-clinic-16` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-17` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-18` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-19` | `clinic-machine` | open | **N** | R4 |
+| `TD-clinic-19` | `clinic-machine` | closed | **N** | R4 |
 | `TD-clinic-20` | `clinic-machine` | closed | **Y** | R4 |
-| `TD-clinic-21` | `clinic-machine` | open | **N** | R4 |
+| `TD-clinic-21` | `clinic-machine` | closed | **N** | R4 |
 | `TD-clinic-22` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-gate-01` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-02` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
@@ -852,7 +852,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 141 | 状态 {'closed': 114, 'open': 23, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
+条目 141 | 状态 {'closed': 116, 'open': 21, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5208,9 +5208,35 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-clinic-19** | `clinic-machine` | **open** | **N** | R4 |
+| **TD-clinic-19** | `clinic-machine` | **closed** | **N** | R4 |
 
 > **`P0 面 = N`**(复核债)⇒ 条目 `110 → 111`,`open +1`;**未闭 P0 面 62 一位不动**。
+
+#### TD-clinic-19 关闭记录 —— 六处改字面锚,并在同轮抓出**第 7 处**
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-4`)。上方债描述**原文不删**。
+
+- **修法**:`clinic_modifier_eval_test.cs` 新增 `private const long CapRawLiteral = 16384L;`,全部 **6 处**
+  CAP 断言改引它(原 `:307/:332/:353/:381/:705` 四处 `Is.EqualTo` + `:665-676` 的 `expectedRaw` 钳位与
+  `pinnedCases` 计数)。原 `:308` 的字面钉 (`Is.EqualTo(16384)`) 保留,现位于 `:316`,**作为常量本身的独立锚**。
+  ⚠️ **常量与字面锚是两条独立断言**:前者证明「值没变」,后者证明「用到它的地方期望值不受它影响」。
+- **🔍 同轮新发现(债描述只写了 6 处,实测是 7 处)**:全仓 `grep -rn "EquipModCapRaw" unity/Assets/Tests/`
+  命中**另一文件** `clinic_furniture_catalogue_test.cs:353` 的同形态自指断言。**已就地修**(改字面 `16384L`)。
+  复核命令:
+  ```bash
+  grep -rn "ClinicModifierEvaluator.EquipModCapRaw" unity/Assets/Tests/ | grep -v "^.*//"
+  # 修复后 ⇒ 仅命中 clinic_modifier_eval_test.cs:316(常量本身的独立锚)与 clinic_purity_replay_test.cs:35(注释)
+  ```
+- **证伪(M1 / M1b 对照,同一变异 `EquipModCapRaw = Fix.OneRaw / 4 → / 2`)**:
+
+  | 轮 | 状态 | 红 | 结论 |
+  |---|---|---|---|
+  | **M1** | 修**前**(只有 6 处字面锚) | **6 红** —— `_largeScore_int64NoWrap` · `_negativeTier_excludedFromScore` · `_nMaxBoundary_noWrap` · `_positiveScores_haveNoIntermediateValue` · `_property_anyTierVector_inClosedRange` · `_sumAboveCap_pinsToCap` | 6 处字面锚**确有判别力**;但 `test_traitsSource_feedsEvaluator_endToEnd` **未红** ⇒ 第 7 处零判别力(自指) |
+  | **M1b** | 修**后**(补第 7 处) | **7 红** = 上 6 + `test_traitsSource_feedsEvaluator_endToEnd` | 第 7 处**已具判别力**;「修前不红 / 修后红」是同一条变异下的对照,不是两次独立断言 |
+
+  还原两轮均 SHA-256 `OK`,`FALSIFY-` 残留 **0**。
+- **口径**:M1 的 6 红与「6 处 CAP 断言」**恰好相等** ⇒ **exact**(不是超集)。M1b 的 7 红同理 exact。
+- **残留(不属本条)**:`clinic_purity_replay_test.cs:35` 的提及是**注释**(自述「一律不引」),不是断言,不在修法面内。
 
 ---
 
@@ -5288,10 +5314,37 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-clinic-21** | `clinic-machine` | **open** | **N** | R4 |
+| **TD-clinic-21** | `clinic-machine` | **closed** | **N** | R4 |
 
 > **`P0 面`**:`TD-clinic-20` = **Y**(24→42 交付通道是 P0 面内的架构债);
 > `TD-clinic-21` = **N**(P1a 形态,不进 P0 出口判据)。
+
+#### TD-clinic-21 关闭记录 —— 从「散文登记」升为「活跃守卫」
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-4`)。上方债描述**原文不删**。
+
+- **本条的是什么**:不是「多情境不能用」(那是 P1a 的已裁形态),而是**「放宽构造器时须同步做的三件事」
+  只登记在散文里,没有任何东西在执行 `room_type` 唯一性被改动的那一刻逼人回读**。
+- **修法**:`clinic_modifier_eval_test.cs` 新增
+  `test_td21_constructorStillRejectsDuplicateRoomType`,**双向**:
+  - 正:两行同 `room_type` ⇒ `Throws.TypeOf<ArgumentException>()`(唯一性还在 ⇒ 生产路径 `contexts[]` 恒 ≤ 1);
+  - 反:单行唯一 ⇒ `Throws.Nothing`(**否则**上一条可能是「构造器整体坏了、一律抛」的假绿)。
+- **⚠️ 与卡面判据的差异(如实登记)**:卡面写「须给 `grep` 级判据」,**实给了行为判据**。
+  理由:`grep` 打在构造器源码文本上是**文本级**检查 —— 改写实现但不改行为时会误红,改行为但保留字样时会漏红。
+  行为断言直接钉**属性本身**,故更强。**不是削减**。
+- **证伪(两向各一条,证明两个断言都不是装饰)**:
+
+  | 变异 | 内容 | 红 | 证明 |
+  |---|---|---|---|
+  | **M2** | 只禁 `if (_byRoomType.ContainsKey(...))`(改 `if (false)`) | **0 红** | **弱变异,不作为证据** —— `Add` 仍抛同类异常,行为未变 |
+  | **M2b** | 真放宽:`if (false)` **且** `Add` 改索引器赋值 | **2 红** —— `test_td21_constructorStillRejectsDuplicateRoomType` + `test_clinic_contextTable_duplicateRoomType_throws` | 唯一性守卫**确有**判别力,且守卫在放宽时**会**转红(触发条件可被观测) |
+  | **M3** | 构造器无条件抛 | **4 红**,含 `test_td21_constructorStillRejectsDuplicateRoomType` | **反向断言**有效(否则 M2b 的红可能是「构造器坏了」冒充) |
+
+  还原 SHA-256 3/3 `OK`,`FALSIFY-` 残留 **0**。
+- **⚠️ 本条闭的是「无守卫」,不是「三件事已做」**。原债的三条 P1a 同步义务(**逐字保留**):
+  ① 复核 `CollectContextIdsFromRows` 的 ordinal 排序仍是期望语义;② 补一条**走生产路径**的多元素夹具;
+  ③ 复核 `TryGetBaseEnv` / `TryGetKSpeed` 的 `_byRoomType` 字典在多行同类型时的行为。
+  ⇒ **P1a 轮放宽构造器时,本测会先红**,红信息里点名了这三条义务的去处(债册本条)。
 
 ---
 

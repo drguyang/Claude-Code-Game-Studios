@@ -84,6 +84,27 @@
 > @ `2026-10-31T07:30 CST` · S21-3 全量。
 > `TD-building-04`(`structure_id` 未走 `IIdAuthority`,与 ADR-010 §三 义务 12 不符)。
 
+> ✅ **`S21-4` 已于 `2026-10-31` 收口(两条全闭,且同轮抓出债描述漏计的第 7 处)** ——
+> **`TD-clinic-19`**:6 处 CAP 断言改字面锚 `CapRawLiteral = 16384L`;`clinic_modifier_eval_test.cs:316`
+> 保留一条**独立**断言钉常量本身的值(证明「值没变」与「用它的地方不受它影响」是两件事)。
+> 🔍 **同轮新发现**:全仓 `grep -rn "EquipModCapRaw" unity/Assets/Tests/` 命中**另一文件**
+> (`clinic_furniture_catalogue_test.cs:353`)的同形态自指断言 —— 债描述写的是 6 处,**实测 7 处**;
+> 已就地修(字面 `16384L`)。
+> **证伪 = 同一变异下的前后对照**(`EquipModCapRaw = Fix.OneRaw / 4 → / 2`):
+> **M1**(修前)**6 红 / exact** —— 6 处字面锚确有判别力,但 `test_traitsSource_feedsEvaluator_endToEnd` **未红**
+> ⇒ 第 7 处零判别力;**M1b**(补第 7 处后)**7 红** = 上 6 + 该条 ⇒ 「修前不红 / 修后红」。
+> **`TD-clinic-21`**:由散文登记升为**双向活跃守卫** `test_td21_constructorStillRejectsDuplicateRoomType`
+> (正:同 `room_type` 两行 ⇒ `ArgumentException`;反:唯一 ⇒ `Throws.Nothing`,防「构造器整体坏了」冒充)。
+> **M2**(只禁 `ContainsKey`)**0 红** —— 弱变异(`Add` 仍抛同名异常),**如实记、不作证据**;
+> **M2b**(真放宽:`if(false)` + 索引器赋值)**2 红** ⇒ 守卫在面对触发条件时**会**转红;
+> **M3**(构造器无条件抛)**4 红**,含本测 ⇒ 反向断言不是装饰。
+> ⚠️ **与卡面判据的差异(如实登记)**:卡面写「须给 `grep` 级判据」,**实给行为判据** ——
+> grep 打在源码文本上会「改写实现但不改行为时误红 / 改行为但保留字样时漏红」,行为断言直接钉属性本身,
+> **是加强不是削减**。**P1a 三条同步义务逐字保留**在本条关闭记录里,放宽时会由本测先红。
+> **回归**:EditMode `6197/6160/0/0/37`(+1/+1 恰等 = 新增 1 测)· PlayMode `238/234/0/2/2`(零回归)
+> @ `2026-10-31T07:50–07:52 CST` · S21-4 全量 · `cf5c3130`+未提交。
+> 还原 SHA-256 4/4,`FALSIFY-` 残留 0;债册 `closed 114 → 116` · `open 23 → 21` · `--check` exit 0。
+
 ### Should Have(须先出裁定,或体量待定)
 
 | ID | 卡 | 复杂度 | 前置 | 说明 |
