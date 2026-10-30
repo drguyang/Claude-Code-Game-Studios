@@ -168,6 +168,30 @@ namespace DaYiJingCheng.Tests.MedConsequences
                     }
         }
 
+        /// <summary>
+        /// `TD-medcons-06` 载体 —— `Judge.Evaluate(inputs, null)` ⇒ `ArgumentNullException`。
+        /// <para><b>判别力</b>:去掉守卫后 `table.TryLookup(…)` 抛的是 `NullReferenceException`
+        /// (**不同类型**)⇒ 本条必红,不存在「下层同型异常冒充」的面。再钉
+        /// `ParamName == "table"`,使将来若给 `Evaluate` 增加第二个可为 null 的形参,
+        /// 本条不会被**另一个**守卫顶替成绿。</para>
+        /// <para>⚠️ 不断言「null 守卫在试药史短路之前」—— 那是实现次序,不是契约:
+        /// 试药史分支**不需要**判定表,若将来把两者调序也说得通。本条的契约只有一条:
+        /// **判定表缺失 = 依赖注入断裂,必须显式拒绝**。</para>
+        /// </summary>
+        [Test]
+        public void test_judge_evaluateNullTable_throwsArgumentNull_namedTable()
+        {
+            var inputs = new Outcome53.JudgeInputs(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedMatched,
+                Outcome53.RecoveryLane.Recovered, hasTrialHistory: false, uBand: 0, uRaw: 0);
+
+            var ex = Assert.Throws<ArgumentNullException>(
+                () => Outcome53.Judge.Evaluate(inputs, null),
+                "判定表为 null ⇒ 须显式拒绝,不得静默回落到默认出口");
+            Assert.AreEqual("table", ex.ParamName,
+                "须点名形参 table —— 防将来新增的第二个 null 守卫冒充本条");
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // AC-53-08 —— 53 自算正确性;零 37 verdict 读取;D 仅经命中位
         // ════════════════════════════════════════════════════════════════════

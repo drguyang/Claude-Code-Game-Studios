@@ -13310,3 +13310,25 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`2ab87d46` + 工作树)。等式 `6115−6114=1`。
 - **计数**:`open 47 · closed 89 · partial 2 · 未闭 P0 面 24 → 23`。
 - **未提交**。
+
+## Session Extract — 结案 `TD-medcons-06`(2026-10-30 第十二批)
+
+- **用户指令**:「解除下一个 p0 登记债」。原判定:`Judge.Evaluate(inputs, null)` 的
+  `ArgumentNullException` **无测试**;触发 = 下次动 `Judge.Evaluate` 签名时。
+- **实测**:触发条件尚未满足(签名 2026-10-15 返工后未再动),但本条**可直接还** ——
+  守卫就在 `Outcome53.cs:326`,缺的只是夹具。同目录姊妹件都已有 null 守卫夹具
+  (`contraindication_settler` 5 / `cost_table53` 2 / `cost_table53_cooked_codec` 2 /
+  `overdose_settler` 1),唯独 `Judge.Evaluate` 没有 ⇒ **是遗漏,不是取舍**。
+- **补 1 条载体**(该类 43 → 44):`test_judge_evaluateNullTable_throwsArgumentNull_namedTable`。
+  两条断言各钉一件事:① `ArgumentNullException`(**不同类型**判别 —— 删守卫后
+  `table.TryLookup` 抛 NRE,不存在同型冒充);② `ParamName == "table"`(防将来第二个
+  null 形参用自己的守卫顶替)。
+- **刻意不断言**:「null 守卫在试药史短路之前」—— 那是实现次序不是契约(试药史分支
+  不需要判定表)。写进夹具注释。
+- **证伪两轮**:M1 删守卫 ⇒ 1 红;M2 守卫保留、`nameof(table)`→`nameof(inputs)`
+  (仍抛、类型不变)⇒ 1 红(ParamName 断言 —— 只断「会抛」会假绿)。
+  SHA-256 逐字节还原(`Outcome53.cs ad4b1d0f…a38`)。
+- **回归**:EditMode `6116/6079/0/37` @13:01:51 · PlayMode `238/234/0/2/2` @13:02:46
+  (`c5603c6b` + 工作树)。等式 `6116−6115=1`。
+- **计数**:`open 46 · closed 90 · partial 2 · 未闭 P0 面 23 → 22`。
+- **未提交**。

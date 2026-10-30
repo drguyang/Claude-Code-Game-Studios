@@ -306,7 +306,7 @@
 | `TD-medcons-03` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-04` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-05` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-06` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-09` | `medical-consequences` | closed | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 89, 'open': 47, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 23 （已闭但曾标 P0 面的 80 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 23 条,分布在 8/31 个 epic
-    medical-consequences: 9   telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 90, 'open': 46, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 22 （已闭但曾标 P0 面的 81 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 22 条,分布在 8/31 个 epic
+    medical-consequences: 8   telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1610,6 +1610,53 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > # ③ 定向
 > #   Unity -batchmode -runTests -testPlatform EditMode \
 > #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 43/43
+> ```
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-06`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:`Judge.Evaluate(inputs, null)` 的 `ArgumentNullException` **无测试**。
+> 触发条件 =「下次动 `Judge.Evaluate` 签名时」。
+>
+> **实测**:触发条件**尚未**满足(签名自 2026-10-15 返工后未再动),但本条是**可直接还**的
+> —— 守卫就在 `Outcome53.cs` 里(`if (table == null) throw new ArgumentNullException(nameof(table));`),
+> 缺的只是一条直驱夹具。同目录姊妹件(`contraindication_settler_test` 5 条 /
+> `overdose_settler_test` / `cost_table53_test` / `cost_table53_cooked_codec_test`)都已各有
+> null 守卫夹具,**唯独 `Judge.Evaluate` 没有** —— 不是设计取舍,是遗漏。
+>
+> **补 1 条载体**(该类 **43 → 44**):`test_judge_evaluateNullTable_throwsArgumentNull_namedTable`。
+> 两条断言,各自钉一件事:
+> · `Assert.Throws<ArgumentNullException>` —— **不同类型**的判别:守卫被删后
+>   `table.TryLookup(…)` 抛的是 `NullReferenceException` ⇒ 不存在「下层同型异常冒充」的面;
+> · `ex.ParamName == "table"` —— 防**将来新增的第二个 null 形参**用自己的守卫顶替成本条。
+>
+> **刻意不断言的一件事(写进夹具注释)**:「null 守卫位于试药史短路**之前**」。
+> 那是实现次序、不是契约 —— 试药史分支**不需要**判定表,将来调序也说得通。
+> 本条的契约只有一条:**判定表缺失 = 依赖注入断裂,必须显式拒绝**。
+>
+> **证伪两轮**:
+> · **M1**:删掉 `if (table == null) throw …` ⇒ **1 红**(`Assert.Throws<ArgumentNullException>`
+>   拿到的是别的异常类型)。
+> · **M2**:守卫保留、只把 `nameof(table)` 换成 `nameof(inputs)`(**仍然抛、异常类型不变**)
+>   ⇒ **1 红**,红的是 `ParamName` 断言。⇒ 若只断「会抛」,M2 会**假绿**。
+> · 两轮均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`Outcome53.cs ad4b1d0f…a38`),未用 `git checkout`。
+>
+> **回归**:EditMode `6116 / 6079 / 0 / 37` @ 2026-10-30 **13:01:51 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **13:02:46 CST**(`c5603c6b` + 工作树)。
+> 等式 `6116 − 6115 = 1` = 新增的 1 条载体;PlayMode **逐位一致**。
+>
+> **可复算命令**:
+> ```bash
+> # ① 守卫与其夹具都在(改前:守卫在,夹具零命中)
+> grep -n "if (table == null)" unity/Assets/Sim/Consequences/Outcome53.cs
+> grep -rn "evaluateNullTable" unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs
+>
+> # ② 姊妹件的 null 守卫夹具(说明本条是遗漏而非取舍)
+> grep -rc "ArgumentNullException" unity/Assets/Tests/EditMode/MedConsequences/*.cs
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 44/44
 > ```
 
 ---
