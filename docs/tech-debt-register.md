@@ -337,7 +337,7 @@
 | `TD-processing-04` | `processing` | open | **N** | R4 |
 | `TD-processing-05` | `processing` | open | **N** | R4 |
 | `TD-processing-06` | `processing` | open | **N** | R4 |
-| `TD-processing-07` | `processing` | partial | **Y** | R1 |
+| `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -369,7 +369,7 @@
 | `TD-audio-109` | `audio-system` | closed | **Y** | R1 |
 | `TD-listen-01` | `audio-system` | closed | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
-| `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
+| `TD-prescription-06` | `patient-ai` | open | ~~**Y**~~ | R1 |
 | `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-01` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
@@ -381,7 +381,7 @@
 | `TD-epic-01-a` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-b` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
-| `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-d` | `telemetry-analytics` | open | ~~**Y**~~ | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | partial | **Y** | R1 |
 | `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | closed | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 108, 'open': 26, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 4 （已闭但曾标 P0 面的 99 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 4 条,分布在 3/31 个 epic
-    telemetry-analytics: 2    patient-ai: 1             processing: 1
+条目 139 | 状态 {'closed': 108, 'open': 26, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+未闭 P0 面 = 1 （已闭但曾标 P0 面的 99 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 1 条,分布在 1/31 个 epic
+    telemetry-analytics: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -2174,7 +2174,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | TD-prescription-03 | ~~**AC-11-12 的「拟物载体可读」半必红**~~ ⇒ **✅ 2026-10-18 结案(随根因 TD-01)** —— 原根因「`BrassScaleElement.TickCount` 是总档数(与当前档无关)⇒ 载体不可读当前档」已被逐档形态兑现:复图每行恰一个金档块且位置阶梯(行 k = 第 k 档)⇒ **走查 A3 真人目视 ✅ 可读**,主创**二分签转两半均 ✅ ⇒ 整体 ✅**。⚠️ 观感限制「低密度读数(常态档近乎不可见,仅落焦档金芯露出)」在裁定前已如实登记,用户裁「**够用,不增强**」⇒ 不触发 44 调参增强债 | 走查包 §2/§9(历史判定);重跑报告 §2;`prescription-and-medication.md:977` | ~~同 TD-prescription-01~~ **已还** |
 | TD-prescription-04 | ~~**全案音频链未接通 ⇒ AC-11-21 不可判**~~ ⇒ **✅ 2026-10-18 结案**(清账见本行末列)—— 原判定:人工实测进 Play 后场景**完全无任何声音**。根因:全案**零 `IAudioCueSink` 实现**(仅接口定义)· `Boot.unity` **零 `AudioSource`**(仅 1 个 `AudioListener`)· `assets/audio/` **空目录** · 44 epic 的 **story-015/016 仍 `Ready`**(音频资产接入两条未做)· `audio_events.json` 仅 5 条(零处方条目)。⚠️ **证伪原预判「结构性静默」** —— 真相是整条链没通,「无音」不能归因于「设计成静默」 | 走查包 §11.7;44 EPIC §范围边界声明(2026-10-03) | **44 story-015 / 016 素材接入后**须重走 AC-11-21。⚠️ **影响超出 11**:全案任何音频类 AC 的听测半边(含 `AC-44-09`)在素材接入前**均不可判**,建议 44 侧一并登记。<br>⚠️ **2026-10-17 复核(只读实测,本批未重走 AC-11-21)**:本条原列的**四条根因里两条已过期** —— ① `IAudioCueSink` 已有真实现 `Gameplay.Presentation/Audio/CueRenderSink.cs:56`(原「零实现」不成立);② `audio_events.json` 已 15 行(原「5 行零处方条目」不成立;**处方条目是否存在未逐条核**)。仍成立的:③ `Boot.unity` 零 `AudioSource`、且全仓未查见 `new CueRenderSink(` 的**运行期**装配点;④ 素材已落地(story-015/016),原「素材未接入」表述不再成立。⇒ **触发条件未满足**(须在真机上重走),但读者不得再引用本行「零实现 / 5 行」作为现状。<br>**✅ 2026-10-18 结案(触发条件已兑现)** —— 本条四条根因**逐条清账**:① `IAudioCueSink` 真实现 ✅(10-17 已核)② 事件表 15 行 ✅ ③ `Boot.unity` 零 `AudioSource` / 零运行期装配点 ⇒ **由 story-018(S14-10)装配落地**(A-1…A-7 七处缺口全补 · 证伪 14/14 · `impl-s18-*` §一)④ 素材 ✅(story-015/016)。**「接入后重走 AC-11-21」已兑现**:2026-10-18 用户实机听测 ⇒ **`Page_Turn` / `Cabinet_Prop` 等处方/交互音效零状态播报** ⇒ **`AC-11-21` ⚫ → ✅**(签核件 §7 · 听测件 `audio-wiring-listening-2026-10-18.md`),同批 `AC-44-09` 听测半边转 ✅。⚠️ **本条原列触发条件「story-015/016 素材接入」本身已被取代** —— 真正阻塞的是 **`TD-audio-023` 的运行期装配**(素材 10-17 就齐了而链没通),故本条的实际清偿路径 = 023 结清 + 听测。⚠️ **实听覆盖面**(本次逐条核清,闭合 10-17 遗留的「处方条目是否存在未逐条核」):**与处方相邻的只有 `Page_Turn` / `Cabinet_Prop` 两条交互 cue,无任何「给药 / 疗效」类条目** ⇒ 「给药 jingle」子面当时**无物可听**,本条 ✅ 记的是「现表处方/交互 cue 实听零播报 **+** 全表白名单门机械化已证」,**不记**「已实听过给药音效」;判据成立靠**全表构建期白名单门**(`AC-018-7`,新增播报类 cue 当场拒收,无需回头补听)+ **11 侧零独立 `AudioCue`** |
 | TD-prescription-05 | **色盲模拟前置不可执行** —— UI 面板 `m_RenderMode: 0`(ScreenSpaceOverlay)⇒ 走相机后处理的色盲模拟**盖不到 UI**;Unity 6 URP `Rendering Debugger` 无 colorblind 栏。⇒ AC-11-13 的「色盲模拟下」前置**结构上无法满足** | 走查包 §11.4;`PanelSettings.asset:18` · `rendering.md:230` | **✅ 2026-10-17 主创已签裁定:另立无障碍模拟通道** —— 归 49 无障碍 / ADR-013 修订;**不在 sprint-13 内**,未排期 |
-| TD-prescription-06 | **病人占位胶囊**(非 11 范围,附带发现)—— 方笺页截图中 `rgb(255,0,255)` 品红占 13.89%(x 165..592, y 264..391),遮挡画面右半 ⇒ 影响方笺页视觉完整性 | 走查包 §11.5;截图 `unity/Logs/shots/20261016_111446_1x.png` | 13 病人 AI / 美术资产轮交付真病人模型时 |
+| TD-prescription-06 | **病人占位胶囊**(非 11 范围,附带发现)—— 方笺页截图中 `rgb(255,0,255)` 品红占 13.89%(x 165..592, y 264..391),遮挡画面右半 ⇒ 影响方笺页视觉完整性 | 走查包 §11.5;截图 `unity/Logs/shots/20261016_111446_1x.png` | ~~13 病人 AI / 美术资产轮交付真病人模型时~~ 🔁 **2026-10-30 订正(用户裁定转 P2)**:「真病人模型」是**读窄了** —— P0 sweep 里程碑 `:308` 已裁定「一个**单色人形 proxy 灰盒**即可,**不需要真美术资产**」(同件 `:231` 交付物表亦写「病人灰盒 proxy(单色,非品红)」)。本条的病 = 品红 `rgb(255,0,255)`(Unity 缺资源占位符默认色)**占屏 13.89% 且遮挡方笺页右半**,换成任一单色人形胶囊 / 柱体即解除,与 13 的美术资产轮**无关**。⇒ 触发条件改为「**P2 的 3D proxy 灰盒批**」;`P0 面` 已按用户裁定转 `~~Y~~` |
 
 **共同性质**:6 条**均不阻塞 story-005 转 Complete**(走查为 ADVISORY 级,且缺口本身即 AC-11-13 `ELSE` 分支的设计预期),
 但**须留痕**。**TD-prescription-01 是根因**(02/03 是其直接后果),还债须先处置它;
@@ -3091,7 +3091,7 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 | TD-epic-01-a | **`IPayloadDecoder` 的类型校验只覆盖「Kind → 单一载荷类型」,不覆盖「同类多载荷」的情形** —— `JudgmentRecorded` / `JudgmentRevised` 是两个 Kind 各自的类型,但调用方极易写成一个 `case` 覆盖两者统一解(`TelemetryReporter` 正是如此,两处)。接口层**无法**在编译期拦住这类错配;运行期抛出的异常又被 `catch → skipped` 的惯用写法吞掉 | `Sim.Contracts/IPayloadDecoder.cs`(契约面)· 各调用方 | 再出现第三个「同族多 Kind」的载荷时;或 `IPayloadDecoder` 需做一次窄修订时 |
 | TD-epic-01-b | **「解码失败 → 计 skipped」的吞异常写法会把编码侧缺陷伪装成数据质量问题** —— `skipped` 只在报告里给个数,不区分「载荷未驻留 / 损坏 / **类型错配**」。第十六片的缺陷正是以 skipped=1 的形式存在,而端到端夹具从不造改写事件 ⇒ 全量 3912 条无一条红 | `Gameplay.Boot/TelemetryReporter.cs`(`DecodeJudgmentRecord` / `DecodeMisdiagnosisRecord` 的 `catch`) | 下一次动任一解码委托时(建议:catch 里按异常类型分流,类型错配**不**转 skipped 而是抛) |
 | TD-epic-01-c | **既有端到端夹具不造 `JudgmentRevised`** —— 该缺陷能潜伏的前提。F1 侧已由第十六片 C1 覆盖,F2 侧已补回归夹具;但 `Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs` 仍未覆盖改写路径 | `Tests/EditMode/Boot/telemetry_{wiring,debug_view}_test.cs` | ~~下一次动这两个文件时~~ ✅ **2026-10-30 结案** —— 见下方 §「2026-10-30 · `TD-epic-01-c` 结案」 |
-| TD-epic-01-d | **`In Review` 两条 story 的未验半边** · story-008:`AC-51-C3`(ADR-012 三格矩阵载体未建,NOT-RUN)· story-010:`AC-51-E3` 的真实联机非主机拒绝(NOT-RUN,`IEventAuthority` 全仓零生产实装,`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | `production/epics/telemetry-analytics/story-008-*.md` · `story-010-*.md` | ① 载体/实装落地时;② **epic 级复评批**时须重评这两条 story 能否转 `Complete`(不得原地自升) |
+| TD-epic-01-d | **`In Review` 两条 story 的未验半边** · story-008:`AC-51-C3`(ADR-012 三格矩阵载体未建,NOT-RUN)· story-010:`AC-51-E3` 的真实联机非主机拒绝(NOT-RUN,`IEventAuthority` 全仓零生产实装,`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | `production/epics/telemetry-analytics/story-008-*.md` · `story-010-*.md` | 🔁 **2026-10-30 用户裁定:转 P2** ⇒ `P0 面` `Y` → `~~Y~~`,**状态维持 `open`**(工作没做完,只是不挡 P0 出口)。理由:两半前置**均卡外部** —— ① `AC-51-C3` 需 ADR-012 常驻三格矩阵(CI 凭据未配即**静默跳过** + ARM64 目标不存在);② `AC-51-E3` 真联机半边需 **P1b 网络层**。~~原:① 载体/实装落地时;② **epic 级复评批**时须重评这两条 story 能否转 `Complete`(不得原地自升)~~ |
 | TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | ~~epic 级复评批~~ ✅ **2026-10-30 复核已做**(`partial`) —— 见下方 §「`TD-epic-01-e` 复核轮」;残留 = AC-19-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN,**AC 勾选状态仍不得动** |
 
 **共同性质**:a–c 是同一缺陷的三个面(契约面 / 吞异常面 / 夹具面),**均已由第十六片的两个回归夹具钉住行为**,
@@ -5632,7 +5632,7 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-processing-07** | `processing` | **open** | **Y** | R1 |
+| **TD-processing-07** | `processing` | **partial** | **~~Y~~** | R1 |
 
 > **`P0 面 = Y`(R1)** —— 归属 `processing` ∈ 31 个 P0 epic,正文**未**自陈「不阻塞 P0 出口」。
 > ⚠️ **本条的 `Y` 使 `processing` 首次进入 M3 出口分布**,即「该 epic 名下 TD 的 P0 面 = 0」这条合取
@@ -7339,12 +7339,12 @@ grep -n "ClinicRoomId" unity/Assets/Sim.Contracts/*.cs                          
 | 债 | 原状态 | 排查后 | 依据 |
 |---|---|---|---|
 | `TD-epic-01-a` | open | **closed** | 三项自陈前提里两项已被证伪、第三项(「再出现第三个同族多 Kind」)已满足且已按期望处理;具体缺陷实例(`TelemetryReporter` 两处)2026-10-19 已修 |
-| `TD-processing-07` | open | **partial** | 修法 ③ 的产出物(`golden-v2` + Python 参考实现 + C# 对拍 + CI 同步 job)**已落**;③ 的**验收**(三格逐位)仍卡外部 |
+| `TD-processing-07` | open | **partial** | 修法 ③ 的产出物(`golden-v2` + Python 参考实现 + C# 对拍 + CI 同步 job)**已落**;③ 的**验收**(三格逐位)仍卡外部。🔁 **2026-10-30 用户裁定转 P2** ⇒ `P0 面` → `~~Y~~` |
 | `TD-epic-01-e` | open | **partial**(本轮早先) | 复核已做;AC 勾选仍待 3 条 NOT-RUN 结清 |
 | `TD-clinic-20` | open | **open**(病因改判) | 原文病因「通道未收敛」已过期(`GetDto()` 已兑现);真实病因 = 契约签名 `GetEnv(int)` 与 `ClinicRoomId`(64 位)**结构性不符**,且该接口零实装零调用点 |
 | `TD-clinic-18` | open | open | 前置未变:`IClinicReviveCell` 全树零命中;`clinic-machine.md` 无「床类家具 / 复活点」正文 |
-| `TD-prescription-06` | open | open | 前置未变:无病人真模型资产(`find -iname "*patient*.prefab"` 零命中) |
-| `TD-epic-01-d` | open | open | 两半前置均未变:① CI 凭据未配(`:58-59` 缺凭据即**静默跳过**);② `IEventAuthority` 唯一实装是 `P0HostEventAuthority`,实现 `IP0AuthorityPlaceholder` ⇒ 被哨兵正确排除 |
+| `TD-prescription-06` | open | open | 🔁 **2026-10-30 订正 + 转 P2** —— 排查轮写的「前置 = 无病人真模型资产」**读窄了**:P0 sweep `:308` 早已裁定「**单色人形 proxy 灰盒**即可,不需要真美术资产」。本条的病只是品红占屏 13.89%,灰盒即解 ⇒ `P0 面` → `~~Y~~`,归 P2 的 3D proxy 批 |
+| `TD-epic-01-d` | open | open | 两半前置**确实均未变**:① CI 凭据未配(`:58-59` 缺凭据即**静默跳过**);② `IEventAuthority` 唯一实装是 `P0HostEventAuthority`,实现 `IP0AuthorityPlaceholder` ⇒ 被哨兵正确排除。🔁 **2026-10-30 用户裁定转 P2** ⇒ `P0 面` → `~~Y~~` |
 
 **计数**:`未闭 P0 面 7 → 6`(`TD-epic-01-a` 结案)· `open 30 → 28` · `partial 3 → 4` · `closed 105 → 106`。
 ⚠️ `TD-processing-07` 的 `open → partial` **不改变**未闭面(`partial` 仍计入)。
@@ -7512,3 +7512,53 @@ grep -c "AC-24-13\|AC-24-14" design/gdd/clinic-machine.md   # ⇒ 4(表行 2 + �
 `clinic-machine` **退出** M3 出口分布(其名下未闭 P0 面 = 0)。
 ⚠️ `TD-processing-07` 的 `open → partial` 与 `TD-epic-01-e` 的 `open → partial`
 **不改变**未闭面(`partial` 仍计入)。
+
+---
+
+## 2026-10-30 · 用户裁定:三条债转 P2(`P0 面 Y → N`,状态不变)
+
+> **用户裁定(2026-10-30)**:「`TD-processing-07` 与 `TD-epic-01-d` 放到 P2 去」;
+> `TD-prescription-06` 同批一并转 P2(其前置经核实为**灰盒资产即可**,见下)。
+>
+> **执行口径 = 既有先例**(`TD-audio-100` / `TD-audio-101` 的 2026-10-29 裁定):
+> **只改 `P0 面` 列(`Y` → `~~Y~~` 删除线态),`状态` 列一字不动。**
+> ⚠️ **状态不变是刻意的** —— 工作没做完,只是**不挡 P0 出口**。
+> 删除线态由 `debtcount` 的 `r[3].strip("*")` 天然排除出 `live` 集,不需要改脚本。
+
+| 债 | 原 `P0 面` | 现 | 转 P2 的理由 |
+|---|---|---|---|
+| `TD-processing-07` | `Y` | `~~Y~~` | 验收半(**三格逐位**)需 ADR-012 常驻矩阵 + ARM64 目标,二者均非本项目当前可产出:CI 凭据未配(缺凭据即**静默跳过**),pinned 工具链 46 个 BuildTarget **无任何 arm 目标**(用户 2026-09 已裁定长期未达) |
+| `TD-epic-01-d` | `Y` | `~~Y~~` | 两半前置均卡外部:① story-008 的 `AC-51-C3` 需同一矩阵(同上);② story-010 的 `AC-51-E3` 真联机半边需 **P1b 网络层**(`IEventAuthority` 唯一实装 `P0HostEventAuthority` 是占位,被缺口哨兵正确排除) |
+| `TD-prescription-06` | `Y` | `~~Y~~` | 前置 = **灰盒 3D proxy,不是真美术资产**;归 **13 病人 AI / 美术资产轮**,该轮不在 P0 关键路径 |
+
+### `TD-prescription-06` 的前置澄清(用户 2026-10-30 提问的答复)
+
+用户问:「这个是需要 3d 真实资产还是灰盒资产也行?」**答案 = 灰盒就行。**
+
+裁定**早已在 P0 sweep 里程碑里定过**,逐字(`production/milestones/p0-sweep-2026-10-29.md:308`):
+
+> `TD-prescription-06` —— 病人占位胶囊品红 `rgb(255,0,255)` 占屏 13.89%(x 165..592, y 264..391)
+> | `patient-ai` | **3D** —— 一个**单色人形 proxy 灰盒**即可,**不需要真美术资产**
+
+同件 `:231` 的交付物表也写「3D · **病人灰盒 proxy**(单色,非品红)」。
+
+**「需可识别人形」的准确读法**:原判定(`:2177`)写「需可识别人形」,指的是
+**能看出是个人形**(而非真人级模型)。品红 `rgb(255,0,255)` 是 Unity **缺资源占位符的默认色**;
+本条的病是它**占屏 13.89% 且遮挡方笺页画面右半**,换成任一单色人形胶囊 / 柱体即解除。
+⚠️ **不是**「要等 13 病人 AI 的美术资产轮交付真模型」—— 那是我在上一条排查轮里
+按债册原文「13 病人 AI / 美术资产轮交付真病人模型时」的**字面读法**,读窄了。
+⇒ 已在 `:2177` 的触发条件列就地加注订正(原文留档)。
+
+### 计数变化
+
+`未闭 P0 面 4 → 1`(仅剩 `TD-epic-01-e`)· `P0 面 {'Y': 103→100, '~~Y~~': 1→4}` ·
+`epic 分布 3/31 → 1/31`(`patient-ai` / `processing` / 部分 `telemetry-analytics` 退出)。
+⚠️ `TD-epic-01-e` 的 `partial` 仍计入未闭面(`partial` 不算已闭)。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|epic|P0 面"
+# ⇒ 未闭 P0 面 = 1
+# ⇒ P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+# ⇒ telemetry-analytics: 1
+```
