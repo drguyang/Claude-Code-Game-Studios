@@ -329,7 +329,7 @@
 | `TD-prescription-02` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
-| `TD-prescription-08` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-prescription-08` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-09` | `prescription-medication` | closed | **Y** | R1 |
 | `TD-processing-01` | `processing` | open | **N** | R4 |
 | `TD-processing-02` | `processing` | open | **N** | R4 |
@@ -850,11 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 100, 'open': 36, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 12 （已闭但曾标 P0 面的 91 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
+条目 139 | 状态 {'closed': 101, 'open': 35, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 92 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 5/31 个 epic
     clinic-machine: 4         telemetry-analytics: 4    enemy-ai: 1
-    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
+    patient-ai: 1             processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -2461,7 +2461,7 @@ story-018 `## 实现轮记录`。**三条均非 story-018 引入**,是它跑动�
 > `threeBranches_mapped` + `unknownRootClass_failsLoud` 2 红(两条契约新测);两轮 SHA-256 逐字节还原一致、零残留。
 > **原件** = `production/qa/evidence/impl-tddc-2026-10-25.md`。
 > ⚠️ **`implement` 分支现无黄铜外实现消费方**(OQ-IC-4 面)—— 分类器面已就位,消费方落地归 42 后续 story;本条 closed 不预支该消费面。 |
-| **TD-prescription-08** | **`BrassScaleElement.TickCount` write-only 死状态** —— 该自动属性(`BrassScaleElement.cs:51`)**生产侧零读**:唯一疑似消费者 `PrescribeRequestDriver.cs:99` 读的是 **`DentchDoseSelector.TickCount`**(同名的**另一个**属性,非本元件);本元件的 `TickCount` 仅**测试**读(`dentch_input_test.cs:69/609/612/614`)。⚠️ **易混读**:两名同名不同物,不得据 selector 侧有消费者推断本元件侧也有。**2026-10-18 用户裁定:落债**(不在 story-025 修复范围) | `review-story-025-2026-10-18.md` §三 R-4;`BrassScaleElement.cs:51`;`PrescribeRequestDriver.cs:99` | **42 epic 清理轮** —— 删字段,或接上真消费者(若「总档数」确需在元件上可见) |
+| **TD-prescription-08** | **`BrassScaleElement.TickCount` write-only 死状态** —— 该自动属性(`BrassScaleElement.cs:51`)**生产侧零读**:唯一疑似消费者 `PrescribeRequestDriver.cs:99` 读的是 **`DentchDoseSelector.TickCount`**(同名的**另一个**属性,非本元件);本元件的 `TickCount` 仅**测试**读(`dentch_input_test.cs:69/609/612/614`)。⚠️ **易混读**:两名同名不同物,不得据 selector 侧有消费者推断本元件侧也有。**2026-10-18 用户裁定:落债**(不在 story-025 修复范围) | `review-story-025-2026-10-18.md` §三 R-4;`BrassScaleElement.cs:51`;`PrescribeRequestDriver.cs:99` | **42 epic 清理轮** —— 删字段,或接上真消费者(若「总档数」确需在元件上可见) ✅ **2026-10-30 结案(删字段)** —— 见下方 §「2026-10-30 · `TD-prescription-08` 结案」 |
 
 ---
 
@@ -6663,3 +6663,141 @@ python3 tools/debtcount/debtcount.py --check
 
 **回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 17:28:51 CST` ·
 commit `50c06493`+工作树 ⇒ 与基线(`TD-epic-01-c` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。
+
+---
+
+## 2026-10-30 · `TD-clinic-17` 勘察轮 —— 偏离是真的,**错的是 ADR 不是代码**(未结案)
+
+> ⏸ **本条仍 `open`**。本轮只做勘察 —— 因为「改代码」与「改 ADR」两个方向**都已排除一个**,
+> 剩下的那个是 **ADR 修订**,按协作协议须用户裁决。
+>
+> **权威实测(不再是「文件自陈」)**:
+> ```bash
+> grep -n "T:Newtonsoft.Json.FloatParseHandling\|F:Newtonsoft.Json.FloatParseHandling" \
+>   "unity/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.xml"
+> # ⇒ 恰 **3 行**:`T:`(类型)+ `F:.Double` + `F:.Decimal`
+> # ⇒ **没有 `.None` 成员**
+> ```
+> 另从 `Newtonsoft.Json.dll` 的 `#Strings` 堆复核:独立 `None` 串**全 DLL 仅 1 处**,且其邻域是
+> `ReadAsDateTime` / `SwitchToLocalTime` / `ParserTimeZone` —— 属 **`DateParseHandling`**,
+> 不属 `FloatParseHandling`。
+>
+> **⇒ 结论(与债册原判据一致,但现在有权威出处)**:
+> ADR-014 `:174` 与 `:372` 的 `FloatParseHandling = None` **在 Newtonsoft 里不存在**,
+> 该字面**不可实现**。`JsonStage1Lexer.cs:131` 取 `Decimal` 是**唯一可行的最接近值**
+> (`Double` 只有 15–17 位有效数字,`Decimal` 有 28–29 位 ⇒ 后者更接近 JSON 原文)。
+> 代码侧**无需改动**。
+>
+> **为什么不影响正确性(顺带核实,防止「反正有偏差就都不管」)**:
+> `Fix` 字段按 ADR-014 阶段 2 **写字符串**(`"offset": "3/4"`),**从不走 `JsonToken.Float`**
+> (`JsonStage1Lexer.cs:250-257` 的 `Float` 分支只服务非 `Fix` 的浮点字段);
+> 且 ADR-006 禁 `float` 进存档与事件流。⇒ 该偏离**无运行期后果**,纯文档保真度问题。
+>
+> **可行的两个收口方向(须裁决)**:
+> · **方向 A(推荐)** —— **修订 ADR-014**:把两处 `FloatParseHandling = None` 改为
+>   `Decimal`(并注明「Newtonsoft 无 `None` 成员,`Decimal` 为最接近『不走 `double`』的取值,
+>   行为拒收由阶段 2 承担」)。**纯文档,零代码改动,零涟漪**。
+> · **方向 B** —— 换掉 `FloatParseHandling` 的用法(自实现数字扫描,不经 Newtonsoft 的
+>   float 解析)。代价 = 重写词法器的数字分支 + 失去 Newtonsoft 的转义/注释处理,收益为零
+>   (功能上今天已无后果)⇒ **不推荐**。
+>
+> ⚠️ **本轮**不**声称已修** —— 索引行状态**维持 `open`**。
+
+---
+
+## 2026-10-30 · `TD-prescription-08` 结案(`BrassScaleElement.TickCount` 死状态)
+
+> ✅ **2026-10-30 结案 —— `TD-prescription-08`(`BrassScaleElement.TickCount` write-only)**
+>
+> **原判定**:「该自动属性(`BrassScaleElement.cs:51`)**生产侧零读**:唯一疑似消费者
+> `PrescribeRequestDriver.cs:99` 读的是 `DentchDoseSelector.TickCount`(同名的**另一个**属性,
+> 非本元件);本元件的 `TickCount` 仅**测试**读」。
+>
+> **实测复核(前提比原判定多一处,结论不变)**:
+> 原判定说「唯一疑似消费者」—— 但实测**还有第二个写入点**:
+> `DentchDoseSelector.LoadInto`(`:281` 的 `element.TickCount = _detents.Length`)。
+> ⚠️ **两个写入点、零个读取点** —— 这比原判定记的还更死。
+> ```bash
+> grep -rn "\.TickCount" unity/Assets --include=*.cs | grep -v "selector.TickCount"
+> # ⇒ 删除前:CasebookScreen.cs:529(写)· DentchDoseSelector.cs:281(写)· 测试读若干
+> # ⇒ 无任何「生产侧读 BrassScaleElement.TickCount」的调用点
+> ```
+>
+> **解(四处改动,同批)**:
+> ① `BrassScaleElement.cs` —— **删属性** + 原位留带日期的删除注(说明「为何它是死状态」
+>    与「易混读警告」:同名属性 `DentchDoseSelector.TickCount` **仍在**,删本处不影响它);
+> ② `CasebookScreen.cs:529` —— 删该赋值;doc 改述「档数由已生成的档形态数承载
+>    (`DetentCount`),零降级数字读数」;
+> ③ `DentchDoseSelector.LoadInto` —— **语义收窄为「只校验,不写状态」**。
+>    ⚠️ **刻意不改调 `SetDetents`**:那个 API 要求 `focusedOrdinal ∈ [1, count]`(越界一律抛,
+>    禁钳位),而本类**不持有落焦档**(落焦是 42 侧交互态,由 `CasebookScreen` 逐行传 `rowOrdinal`)
+>    ⇒ 硬套一个落焦档会凭空发明本类不知道的量。
+> ④ 两条测试 —— `dentch_dose_form_test.cs` 的白名单清空(它唯一的条目就是被删属性的
+>    backing field)+ 零调用的 `BackingFieldName` 辅助一并删;`dentch_input_test.cs`
+>    的 `test_loadInto_brassElement_tickCountIsBound` **重写**为
+>    `test_loadInto_brassElement_validatesAndDoesNotWriteState`(钉收窄后的真实语义)。
+>
+> **⚠️ 白名单清空后判据变强而非变弱**:此前 `TickCount` 的 backing field 被豁免,
+> 若有人把剂量状态塞进它,那条 AC-025-2 判据抓不到;现在**任何**可写字段都要过禁止子串关。
+> 并补了「零可写字段 ⇒ 判据会空转」的守卫(本项目抓过的「空扫描 = 假绿」形态)。
+>
+> **⚠️ 本轮未做证伪轮(如实登记,理由)**:本改动**删除**的是「只写不读的字段」,
+> 其安全属性 = 「删掉后行为不变」。要证伪它需要一条**能观测到那个赋值**的夹具,
+> 而「零读取点」正是本债的前提 ⇒ **不存在这样的夹具**(这正是它当初被登记为死状态的原因)。
+> ⇒ 用**回归**代替:EditMode `SkeuomorphicUI` 全族 **20/20 绿**;PlayMode
+> `dentch_input_test` 结果见下。
+>
+> **回归(子集,先跑)**:EditMode `SkeuomorphicUI` 全族 **20 / 20 / 0**;
+> PlayMode `PrescriptionMedication.dentch_input_test` **49 / 49 / 0**(该文件 `[Test]` 计数 = 49,
+> 逐位相同 ⇒ 重写的那条测试在盘上且跑了)。
+> ⚠️ **一次如实登记的踩坑**:首次 PlayMode 跑用了 `DaYiJingCheng.Tests.PrescriptionMedication.dentch_input_test`
+> 作 `-testFilter` ⇒ **`total=0`**(该文件的实际命名空间是
+> `DaYiJingCheng.Tests.PlayMode.PrescriptionMedication`)。
+> **`total=0` 不是绿** —— 它是「一条都没跑」;若当成通过,就是本项目抓过多次的「空扫描假绿」。
+
+---
+
+## 2026-10-30 · `TD-processing-07` 修法方向 ③ 结清(本条**仍 open**,但残项已变)
+
+> 🔁 **本条 `open` 状态不变,只订正「残项是哪个」** —— 原文末句写
+> 「**⚠️ ③ 是本条仍 open 的唯一实质原因**(①② 已落)」,**这句已过期**。
+>
+> **③ 已由 `TD-itemdb-02` 结案(2026-10-30)兑现**:那条债立的正是「金标准集无任何**发号器**场景」,
+> 其产出 `tests/golden/eventstream/golden-v2.txt` 里 **`S04_same_tick_two_crafts_patientNone`**
+> 就是本条 ③ 要的那个判别力场景 —— 同 tick 两条 `Patient=None` 事件 ⇒ `Seq` 得 `0` 与 `1`
+> (**不是**恒 `0`)。该场景在 C# 侧由 `seq_issuance_golden_test.cs` 逐位对拍,并通过证伪 M6
+> (去掉 Patient 维 ⇒ S02/S07/S11 红)钉住判别力。
+>
+> **⇒ 本条现在的残项只剩 ①**:在 **ADR-012 三格矩阵的跨平台对拍集**里接入该场景。
+> ① 依赖矩阵本身(未落,`TD-processing-07` 原文已自陈「等外部」),**今天物理上做不了**。
+>
+> **本轮的边界(如实登记)**:`TD-itemdb-02` 补的是**金标准与参考实现**,不是**跨平台矩阵**。
+> 两者是不同层:金标准回答「发号规则是什么」(已答),矩阵回答「三平台是否逐位相同」(未答)。
+> ⇒ **不得**把 `TD-itemdb-02` 的结案读成「`TD-processing-07` 已解」。
+>
+> **判据(可复算,核 S04 场景真存在且非恒零)**:
+> ```bash
+> grep -n "S04_same_tick_two_crafts_patientNone" tests/golden/eventstream/golden-v2.txt
+> # ⇒ S04_same_tick_two_crafts_patientNone 0,1        ← 两个不同值,不是恒 0
+> grep -n "S04" unity/Assets/Tests/EditMode/DiseaseSimulation/seq_issuance_golden_test.cs
+> # ⇒ 场景定义在 C# 侧,由 test_seqIssuance_matchesGoldenV2 逐位对拍
+> ```
+
+**回归三元组(全量)**:截至 `2026-10-30 17:46:45 CST` · 批次 **`TD-prescription-08` 结案批** ·
+commit `cb5a1bc4`+工作树 ⇒ EditMode `6162 / 6125 / 0 / 37`,基线 `6162 / 6125 / 0 / 37`
+(`TD-itemdb-02` 终态,同日 17:27)⇒ **逐位相同(零回归)**。
+⚠️ **本轮零新增测试是预期的,不是漏写**:改动是**删死字段**,没有新行为可测;
+唯一被重写的夹具(`test_loadInto_*`)是**替换**而非新增 ⇒ `[Test]` 计数不变。
+(等式 `6162 − 6162 = 0` 与「新增 0 条」一致。)
+
+**回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 17:48:02 CST` ·
+commit `cb5a1bc4`+工作树 ⇒ 与基线(`TD-itemdb-02` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。
+
+**计数**:`未闭 P0 面 12 → 11` · `closed 100 → 101`。复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep "未闭 P0 面"
+# ⇒ 未闭 P0 面 = 11 （已闭但曾标 P0 面的 92 条不计）
+python3 tools/debtcount/debtcount.py --check
+# ⇒ ✅ §五 输出块与索引块一致
+```
+⚠️ **`skeuomorphic-ui` 自此退出 M3 出口分布**(该 epic 名下唯一未闭 P0 债就是本条)。

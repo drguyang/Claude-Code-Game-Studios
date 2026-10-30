@@ -47,8 +47,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass
             Add(_detentBand);
         }
 
-        /// <summary>档位刻度数(整形量;档位语义归 11)。</summary>
-        public int TickCount { get; set; }
+        // ⚠️ **2026-10-30 删除 `TickCount`(TD-prescription-08)** —— 该自动属性此前
+        //    **生产侧零读**:唯一写入点 `CasebookScreen.cs:529` 只写不读,而本元件内部
+        //    一切档位判据走的都是 `DetentCount`(= `_detentBand.childCount`,由**已生成的形态**
+        //    反查),**从不回看那个入参**。
+        //    ⇒ 它是纯死状态,且与 AC-025-2「元件不得持可变的剂量状态」**同向**
+        //    (保留一个只写不读的 `int` 只会诱使后来者以为它承载语义)。
+        //    ⚠️ **易混读**:`PrescribeRequestDriver.DoseDetentCount` 读的是
+        //    **`DentchDoseSelector.TickCount`**(同名的**另一个**属性,不是本元件的)——
+        //    两处同名不同物,删本处**不影响**那一条。
 
         /// <summary>当前已生成的档形态数(0 = 未装载)。</summary>
         public int DetentCount => _detentBand.childCount;

@@ -367,11 +367,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         public void test_ac025_2_element_exposesNoMutableDoseState()
         {
             // 结构判据:元件上不得存在可写字段承载剂量 / 选中档(AC-025-2)。
-            // ⚠️ 2026-10-18 评审 R-5:`TickCount` 是**自动属性**,其编译器生成字段名是
-            //    `<TickCount>k__BackingField` —— 白名单写 `"TickCount"` **永不命中**
-            //    ⇒ 旧白名单是**死码**,该测当时通过纯属巧合(该名恰好不含禁止子串)。
-            //    现按 backing field 形状匹配,并加「白名单须真命中」守卫防再次静默失效。
-            string[] allowed = { BackingFieldName("TickCount") };
+            // 🔁 **2026-10-30(TD-prescription-08 结案轮)**:白名单**清空**。
+            //    它此前唯一的条目是 `<TickCount>k__BackingField` —— 那个属性已被删除
+            //    (生产侧零读的死状态),白名单随之失效。
+            //    ⚠️ **白名单清空后本条判据变强,不是变弱**:此前 `TickCount` 的 backing field
+            //    被豁免,若有人把剂量状态塞进它,本测抓不到;现在**任何**可写字段都必须过禁止子串关。
+            //    ⚠️ 保留「白名单须真命中」那条守卫的**精神**:下方 `whitelisted == 0` 断言钉住
+            //    「白名单此刻确实是空的」—— 若将来有人加条目,必须同时想清「为什么它可写」。
+            string[] allowed = Array.Empty<string>();
             string[] forbidden = { "Dose", "Selected", "Current", "Ordinal", "Focus", "Detent" };
 
             var writable = typeof(BrassScaleElement)
@@ -381,9 +384,15 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 .ToList();
 
             int whitelisted = writable.RemoveAll(n => allowed.Contains(n));
-            Assert.GreaterOrEqual(whitelisted, 1,
-                "白名单须**真命中** `TickCount` 的 backing field —— 恒不生效的白名单是死码(评审 R-5)。" +
-                $"实测可写字段:[{string.Join(", ", writable)}]");
+            Assert.AreEqual(0, whitelisted,
+                "白名单已清空(TD-prescription-08 删除了它唯一的条目)—— 若重新加条目," +
+                "须同时证明「该可写字段不承载剂量状态」");
+
+            // ⚠️ 空集守卫:若元件上**一个**可写字段都没有,下面的循环会**空转通过**
+            //    ⇒ 判据退化为恒真(本项目抓过的「空扫描 = 假绿」形态)。
+            //    今日元件有若干可写字段(`_detentBand` 等),故该断言同时是**前提检查**。
+            Assert.That(writable.Count, Is.GreaterThan(0),
+                "元件上零可写字段 —— 那说明扫描面坏了(或元件被重构),本判据会空转");
 
             foreach (string name in writable)
             {
@@ -393,8 +402,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
         }
 
-        /// <summary>C# 自动属性的编译器生成字段名(评审 R-5:白名单必须按此形状匹配)。</summary>
-        private static string BackingFieldName(string property) => $"<{property}>k__BackingField";
+        // ⚠️ **2026-10-30 删除 `BackingFieldName(string)`** —— 它唯一的调用方是上面那条
+        //    测试的白名单,而白名单已随 `TD-prescription-08`(删 `TickCount`)清空。
+        //    留一个零调用的辅助 = 死码,且会让后来者以为「按 backing field 形状匹配」
+        //    这条纪律仍在这里被执行(实际已无判据用它)。
 
         private static string ShapeSignature(BrassScaleElement element)
         {

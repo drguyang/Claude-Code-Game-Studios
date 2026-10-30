@@ -13510,3 +13510,37 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 回归(EditMode 全量):`6162/6125/0/37` @ 2026-10-30 17:27 CST(基线 `6159/6122/0/37` ⇒ **+3/+3**)。
 - 回归(PlayMode 全量):`238/234/0/2/2` @ 17:28:51 CST ⇒ 逐位相同(零回归)。
 - 计数:`未闭 P0 面 13 → 12`;`TD-itemdb-02` **closed**;`item-database` 退出 M3 分布。
+- **已提交 `cb5a1bc4`**。
+
+### TD-processing-07 修法方向 ③ —— 2026-10-30 结清(本条仍 open)
+- 原文末句「③ 是本条仍 open 的唯一实质原因」**已过期** —— ③ 由 `TD-itemdb-02` 兑现:
+  `golden-v2.txt` 的 `S04_same_tick_two_crafts_patientNone` 就是 ③ 要的判别力场景
+  (同 tick 两条 `Patient=None` ⇒ `Seq` 得 `0` 与 `1`,不是恒 `0`)。
+- **本条残项只剩 ①**(接入 ADR-012 三格矩阵)—— 依赖矩阵本身,今天物理上做不了。
+- ⚠️ **边界**:`TD-itemdb-02` 补的是「发号规则是什么」(金标准层),不是「三平台是否逐位相同」
+  (矩阵层)⇒ 不得读成 `TD-processing-07` 已解。
+
+### TD-clinic-17(FloatParseHandling 偏离)—— 2026-10-30 勘察轮,仍 open
+- **权威实测**:`com.unity.nuget.newtonsoft-json` 的 `Newtonsoft.Json.xml` 里
+  `FloatParseHandling` 枚举**只有 `Double` 和 `Decimal` 两个成员**,**无 `None`**。
+  ⇒ ADR-014 `:174` / `:372` 写的 `FloatParseHandling = None` **字面不可实现**;
+  `JsonStage1Lexer.cs:131` 取 `Decimal` 是唯一可行值,且更接近原文(28 位有效数字 vs double 的 15-17)。
+- **代码侧无需改动**;错的是 ADR。两个收口方向已登记(A 修订 ADR / B 重写词法器),**须用户裁决**。
+- ⚠️ 顺带核实:`Fix` 字段按 ADR-014 阶段 2 **写字符串**,从不走 `JsonToken.Float`
+  ⇒ 该偏离**无运行期后果**,纯文档保真度问题。
+
+### TD-prescription-08(BrassScaleElement.TickCount 死状态)—— 2026-10-30
+- 实测复核:原判定说「唯一疑似消费者是 selector」,但**还有第二个写入点**
+  (`DentchDoseSelector.LoadInto:281`)。⇒ **两个写入点、零个读取点**,比原判定记的更死。
+- 四处改动:删属性 / 删 `CasebookScreen:529` 的赋值 / `LoadInto` 收窄为「只校验不写状态」/
+  两条测试改(白名单清空 + 重写 `test_loadInto_*`)。
+- ⚠️ **刻意不改调 `SetDetents`**:它要求 `focusedOrdinal ∈ [1,count]`,而 selector **不持有落焦档**
+  ⇒ 硬套会凭空发明一个本类不知道的量。
+- ⚠️ **本轮无证伪轮(如实登记)**:删「只写不读的字段」,要证伪需一条能观测那个赋值的夹具 ——
+  而「零读取点」正是本债的前提 ⇒ 不存在这样的夹具。用回归代替。
+- ⚠️ **一次踩坑**:PlayMode 首次 `-testFilter` 用了错的命名空间 ⇒ **`total=0`**。
+  **`total=0` 不是绿**(它是「一条都没跑」);改对后 49/49。
+- 回归(EditMode 全量):`6162/6125/0/37` @ 2026-10-30 17:46:45 CST ⇒ 与基线**逐位相同**(零回归;
+  本轮零新增测试是预期的 —— 改动是删死字段,唯一重写的夹具是**替换**不是新增)。
+- 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 17:48:02 CST ⇒ 逐位相同(零回归)。
+- 计数:`未闭 P0 面 12 → 11`;`TD-prescription-08` **closed**;`skeuomorphic-ui` 退出 M3 分布。

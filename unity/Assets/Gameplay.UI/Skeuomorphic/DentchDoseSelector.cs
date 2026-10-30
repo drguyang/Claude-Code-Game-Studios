@@ -269,16 +269,26 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public bool IsAtTopDetent(int ordinal) => ordinal >= _detents.Length;
 
         /// <summary>
-        /// 把本选择器的刻度数**装载进黄铜侧读数元件**(AC-42-F3 黄铜分支)。
-        /// <para>这是「刻度数由本类提供、禁第二真源」的**唯一**接线点 ——
-        /// 语义量归本类,形态归 42 元件。</para>
+        /// 校验黄铜侧读数元件可接收本选择器的刻度数(**只校验,不写状态**)。
+        /// <para>⚠️ <b>2026-10-30(`TD-prescription-08` 结案轮)语义收窄</b>:
+        /// 本方法此前最后一行是 <c>element.TickCount = _detents.Length</c> ——
+        /// 那个属性已删除(生产侧零读的死状态),故该赋值**不复存在**。</para>
+        /// <para>⚠️ <b>为什么不改调 `SetDetents(count, focusedOrdinal)`</b>:那个 API 要求
+        /// <c>focusedOrdinal ∈ [1, count]</c>(越界一律抛,禁钳位),而本类**不持有落焦档**
+        /// —— 落焦是 42 侧的交互态,由 <c>CasebookScreen</c> 逐行按 <c>rowOrdinal</c> 传入。
+        /// 硬套一个落焦档会凭空发明一个本类不知道的量。</para>
+        /// <para><b>当前的真实接线面</b>:刻度数的**唯一真源** = 本类的 <see cref="TickCount"/>;
+        /// 元件的**形态**由调用方经 <c>SetDetents</c> 逐档建出(形态数 = 档数,由
+        /// <c>DetentCount</c> 反查)。本方法保留的意义 = <b>fail-loud 的契约检查</b>
+        /// (元件为 null 时当场抛,而不是等下游 NullReference)。</para>
         /// </summary>
         /// <param name="element">黄铜侧刻度元件(42 侧交付)。</param>
         /// <exception cref="ArgumentNullException">元件为 null。</exception>
         public void LoadInto(BrassScaleElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
-            element.TickCount = _detents.Length;
+            // ⚠️ 刻意**不写**任何状态 —— 见上方 doc:本类的语义量归本类,形态归 42 元件,
+            //    两者之间**没有**「刻度数入参」这个中间载体(那正是被删掉的死状态)。
         }
     }
 }

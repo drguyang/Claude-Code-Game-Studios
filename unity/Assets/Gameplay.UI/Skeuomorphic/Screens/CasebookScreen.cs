@@ -497,7 +497,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <para>档数 = <see cref="ICasebookDtoSource.DoseDetentCount"/>(= <c>hi − lo + 1</c>);
         /// 每档一行,<c>userData</c> = **显式 ordinal**(非显示索引)。</para>
         /// <para>黄铜刻度读数元件 <see cref="BrassScaleElement"/>(<c>AC-42-F3</c> 黄铜分支):
-        /// <c>TickCount</c> = 档数(**零降级数字读数**,承 ADR-013 §十-B 义务②)。</para>
+        /// 档数由**已生成的档形态数**承载(<c>DetentCount</c>),**零降级数字读数**
+        /// (承 ADR-013 §十-B 义务②)。⚠️ 2026-10-30 删除了此前那个只写不读的
+        /// <c>TickCount</c> 入参(`TD-prescription-08`)。</para>
         /// <para><c>AC-025-4</c>(2026-10-18):每行**携带该行自己的**档位形态 —— 第 k 行
         /// <c>SetDetents(档数, k)</c> ⇒ 第 k 档被几何放大。原先每行一个恒同的
         /// <c>Label("戥子档")</c> 不承载任何逐档信息(行与行完全同形),
@@ -520,13 +522,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             _builtDetentCount = detentCount;
 
-            // 黄铜读数元件(懒建一次;TickCount 随档数刷新)
+            // 黄铜读数元件(懒建一次)。
+            // ⚠️ **2026-10-30**:此处曾写 `_brassScale.TickCount = detentCount` —— 删掉了
+            //    (`TD-prescription-08`)。那行是**只写不读**的死状态:元件内部一切档位判据
+            //    走 `DetentCount`(= 已生成形态数),从不回看该入参;而下方循环**按档数
+            //    逐档建形态**,形态数即档数 —— 语义由**结构**承载,不靠这个 `int`。
             if (_brassScale == null)
             {
                 _brassScale = new BrassScaleElement();
                 _dentchDoses.Add(_brassScale);
             }
-            _brassScale.TickCount = detentCount;
 
             // 清旧档位行(重入 / 换药 ⇒ 不留残留 = 零第二真相残影);保留黄铜元件
             for (int i = _dentchDoses.childCount - 1; i >= 0; i--)

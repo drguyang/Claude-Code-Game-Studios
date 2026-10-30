@@ -606,19 +606,30 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
         }
 
         [Test]
-        public void test_loadInto_brassElement_tickCountIsBound()
+        public void test_loadInto_brassElement_validatesAndDoesNotWriteState()
         {
-            // 真跨组件绑定:刻度数由本类**装载**进黄铜侧元件(禁第二真源)。
-            // ⚠️ 原稿断言 `Detents.Count == TickCount` 是 `x == x` 恒真(两者同源同一字段);
-            //    本测改走真绑定路径 —— 未调 LoadInto 前元件刻度数须为默认,调后须等于落点数。
+            // 🔁 **2026-10-30(`TD-prescription-08` 结案轮)重写**:
+            //    原测 `test_loadInto_brassElement_tickCountIsBound` 断言的是
+            //    `element.TickCount`(该属性已删 —— 生产侧零读的死状态)。
+            //    现钉的是**收窄后的真实语义**:`LoadInto` 只做 fail-loud 契约检查,
+            //    **不写任何状态**;刻度数的真源仍在 selector,形态由调用方经 `SetDetents` 建。
             var sel = new DentchDoseSelector(ProfileWith(new DoseRange(1, 5)), DentchDoseSelector.RegisteredMaxDoseDetents);
             var element = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass.BrassScaleElement();
-            Assert.AreEqual(0, element.TickCount, "未装载前元件刻度数须为默认值(反控:证本测非恒真)。");
+
+            // 前提:元件此刻未装载任何档形态(反控 —— 证下一条断言非恒真)
+            Assert.AreEqual(0, element.DetentCount, "未调 SetDetents 前元件形态数为 0");
 
             sel.LoadInto(element);
-            Assert.AreEqual(sel.Detents.Count, element.TickCount,
-                "装载后黄铜元件刻度数须等于落点数(禁第二真源)。");
-            Assert.AreEqual(5, element.TickCount, "dose_range=(1,5) ⇒ 5 个落点。");
+
+            // 核心断言:`LoadInto` **不**替调用方建形态(它不知道落焦档,建不出来)
+            Assert.AreEqual(0, element.DetentCount,
+                "LoadInto 不得建形态 —— 它没有落焦档信息,硬建只能凭空发明一个");
+
+            // 真源的接线面仍在:selector 提供刻度数,调用方用它 + 落焦档建形态
+            Assert.AreEqual(5, sel.TickCount, "dose_range=(1,5) ⇒ 5 个落点(本类提供刻度数)");
+            element.SetDetents(sel.TickCount, focusedOrdinal: 1);
+            Assert.AreEqual(sel.TickCount, element.DetentCount,
+                "按 selector 的刻度数建形态后,形态数 = 刻度数(零第二真源)");
         }
 
         [Test]
