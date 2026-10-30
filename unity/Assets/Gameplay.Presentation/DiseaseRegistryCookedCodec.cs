@@ -194,7 +194,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     string signKey = CookedReadUtil.ReadString32(
                         r, $"{ProductName}.{where}.signs[{i}].sign_key");
                     int channelMask = r.ReadInt32();
-                    signs[i] = signKey == null ? null : new SignEntry(signKey, channelMask);
+                    long appearAtRaw = r.ReadInt64();   // 2026-10-30 F2 投影阈值(Fix raw)
+                    signs[i] = signKey == null ? null : new SignEntry(signKey, channelMask, new Fix(appearAtRaw));
                 }
                 e.Signs = signs;
             }

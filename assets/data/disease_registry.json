@@ -35,11 +35,13 @@
       "signs": [
         {
           "sign_key": "sign_wound_stab",
-          "channel_mask": 32
+          "channel_mask": 32,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_moan",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "匕首类。A_peak/Scale = 1.00 ⇒ 单独存在时峰值 position 顶满。τ_peak = 300 tick(15 s)。Lethality=2 满足校验 4(急性保持型须 lethal)。trauma_half_life=60(3 s)来自 OQ-25-7。"
@@ -68,11 +70,13 @@
       "signs": [
         {
           "sign_key": "sign_wound_laceration",
-          "channel_mask": 32
+          "channel_mask": 32,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_moan",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "短兵。A_peak/Scale = 0.60 —— 五种里最低,「要持续累积到峰值才致死」。τ_peak = 600 tick(30 s),最缓的两种之一。另:破伤风的 causes 指向本伤(GDD :435),但那条归 47 的 GDD 轮,不在本行。"
@@ -101,23 +105,28 @@
       "signs": [
         {
           "sign_key": "sign_wound_hemorrhage",
-          "channel_mask": 32
+          "channel_mask": 32,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_pallor",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_voice_weak",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/3"
         },
         {
           "sign_key": "sign_cold_clammy",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "2/5"
         },
         {
           "sign_key": "sign_pulse_rapid",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "2/5"
         }
       ],
       "_rowNote": "**状态型**伤情(GDD :372),10 止血的对象。A_peak/Scale = 1.00,τ_peak = 200 tick(10 s)—— 五种里最快达峰,符合「失血是持续流失」。⚠️ 三案成员(甲/乙/丙)均为此伤(he-returns.md §四),故本行的致死节奏直接决定该段剧情的手感。"
@@ -146,11 +155,13 @@
       "signs": [
         {
           "sign_key": "sign_wound_claw",
-          "channel_mask": 32
+          "channel_mask": 32,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_moan",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "熊 · 狼(52 的 P0 兽池)。A_peak/Scale = 0.85,τ_peak = 500 tick(25 s)。"
@@ -179,11 +190,13 @@
       "signs": [
         {
           "sign_key": "sign_wound_bite",
-          "channel_mask": 32
+          "channel_mask": 32,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_moan",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "狼 · 野狗。A_peak/Scale = 0.75,τ_peak = 700 tick(35 s)—— 五种里最慢达峰(咬合撕裂有过程,见 combat-and-weapon-lines.md:1499 的呈现语义)。"
@@ -211,19 +224,23 @@
       "signs": [
         {
           "sign_key": "sign_diaphoresis",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/3"
         },
         {
           "sign_key": "sign_jaundice",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "3/5"
         },
         {
           "sign_key": "sign_hepatosplenomegaly",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "2/5"
         },
         {
           "sign_key": "sign_no_organomegaly",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "self_limit + 复发块(relapse 块未建,见本文件 _relapseNote)。因有复发块,永不入痊愈;lethal 保留(GDD :429,2026-09-16 裁定)。F4 死亡支要求 self_limit=false ⇒ 死亡支永不触发。"
@@ -251,11 +268,13 @@
       "signs": [
         {
           "sign_key": "sign_flush",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_joint_swelling",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/3"
         }
       ],
       "_rowNote": "self_limit(热退即缓)。急性;compounds → DIS_HEART_FAILURE(旗舰共病,compounds 块未建)。"
@@ -283,27 +302,33 @@
       "signs": [
         {
           "sign_key": "sign_pallor",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_dyspnea_speech",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "1/2"
         },
         {
           "sign_key": "sign_orthopnea",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/2"
         },
         {
           "sign_key": "sign_tachypnea",
-          "channel_mask": 8
+          "channel_mask": 8,
+          "appear_at": "2/5"
         },
         {
           "sign_key": "sign_rales",
-          "channel_mask": 8
+          "channel_mask": 8,
+          "appear_at": "2/5"
         },
         {
           "sign_key": "sign_lung_clear",
-          "channel_mask": 8
+          "channel_mask": 8,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "plateau。慢性迁延不退;毛地黄对症(缓和,不逆转)。care 类成员(GDD :294)。A_peak/Scale=DEATH×1.15 ⇒ 校验 4b 过。"
@@ -331,15 +356,18 @@
       "signs": [
         {
           "sign_key": "sign_flush",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_delirium",
-          "channel_mask": 2
+          "channel_mask": 2,
+          "appear_at": "3/5"
         },
         {
           "sign_key": "sign_relative_bradycardia",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "1/2"
         }
       ],
       "_rowNote": "plateau,长平台期。care 类成员。显示名保留「伤寒」,8 在脉案注现代名「肠伤寒」。incubation=1200(1 分钟潜伏)。"
@@ -367,15 +395,18 @@
       "signs": [
         {
           "sign_key": "sign_flush",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_rash",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/3"
         },
         {
           "sign_key": "sign_koplik",
-          "channel_mask": 1
+          "channel_mask": 1,
+          "appear_at": "1/2"
         }
       ],
       "_rowNote": "self_limit,自限性代表。柳树皮对症 + 判断「自限,不必重药」。"
@@ -403,19 +434,23 @@
       "signs": [
         {
           "sign_key": "sign_curled",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/3"
         },
         {
           "sign_key": "sign_abd_tenderness",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "2/5"
         },
         {
           "sign_key": "sign_abd_soft",
-          "channel_mask": 16
+          "channel_mask": 16,
+          "appear_at": "1/20"
         },
         {
           "sign_key": "sign_purulent_stool",
-          "channel_mask": 128
+          "channel_mask": 128,
+          "appear_at": "2/5"
         }
       ],
       "_rowNote": "急性保持型。care 类成员(GDD :294)。照护杠杆适用(K8 保留):越阈 + 照护停止后过窗口死。A_peak/Scale=1.0 ⇒ 4b 过且无余量。"
@@ -443,23 +478,28 @@
       "signs": [
         {
           "sign_key": "sign_trismus",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/2"
         },
         {
           "sign_key": "sign_opisthotonus",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "3/5"
         },
         {
           "sign_key": "sign_neck_stiffness",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/2"
         },
         {
           "sign_key": "sign_risus",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "3/5"
         },
         {
           "sign_key": "sign_neck_supple",
-          "channel_mask": 4
+          "channel_mask": 4,
+          "appear_at": "1/20"
         }
       ],
       "_rowNote": "急性保持型。handle=none(发病后 P0 无解)。护理不刷新窗口(K8 收窄)。incubation=6000(5 分钟)体现「潜伏 → 发病极重」。"
@@ -487,19 +527,23 @@
       "signs": [
         {
           "sign_key": "sign_fatigue",
-          "channel_mask": 64
+          "channel_mask": 64,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_insomnia",
-          "channel_mask": 64
+          "channel_mask": 64,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_palpitation",
-          "channel_mask": 64
+          "channel_mask": 64,
+          "appear_at": "1/5"
         },
         {
           "sign_key": "sign_low_mood",
-          "channel_mask": 64
+          "channel_mask": 64,
+          "appear_at": "1/5"
         }
       ],
       "_rowNote": "豁免类(plateau ∧ lethal=false),空体征。永不入痊愈。"
@@ -526,7 +570,7 @@
         "boundary_mode": "monotone"
       },
       "signs": [
-        { "sign_key": "sign_moan", "channel_mask": 2 }
+        { "sign_key": "sign_moan", "channel_mask": 2, "appear_at": "1/20" }
       ],
       "_rowNote": "⚠️ **草案值,待用户数值轮调**。钝击伤 = 拳 / 摔 / 刃背(combat-and-weapon-lines.md:344-345 的三处映射)。**形态必须是自限型**(self_limit=true ∧ lethal=false):R1-22 禁止急性保持型非致死,而 `INJ_BLUNT` 不在死亡白名单(death-and-respawn.md:96 五项)⇒ 它只能「见好」。⇒ 副作用:钝击从此**永不致死**且**自行消退** —— 这是本条与 R2 其余五项在语义上的分水岭。A_peak/Scale = 0.20(< CRITICAL 0.30),峰值 τ_peak = 120 tick(6 s),回落到 τ_fall = 600(30 s)。体征只给 `sign_moan`(钝击无破口 ⇒ 不见血,复用既有体征键,**不新增 8 的体征行**)。"
     },
@@ -552,9 +596,9 @@
         "boundary_mode": "monotone"
       },
       "signs": [
-        { "sign_key": "sign_pallor", "channel_mask": 1 },
-        { "sign_key": "sign_delirium", "channel_mask": 2 },
-        { "sign_key": "sign_fatigue", "channel_mask": 64 }
+        { "sign_key": "sign_pallor", "channel_mask": 1, "appear_at": "1/5" },
+        { "sign_key": "sign_delirium", "channel_mask": 2, "appear_at": "3/5" },
+        { "sign_key": "sign_fatigue", "channel_mask": 64, "appear_at": "1/5" }
       ],
       "_rowNote": "⚠️ **草案值,待用户数值轮调**。药毒 = 53 代价表的**中/重两档**落点(用户 2026-10-30 裁定「新增一件药害专用非致死伤情」;R2 闭集 11 → 12)。**为什么需要它**:R2 原 11 项里零「药害」词,而 `TOX_ENVENOMATION` 是 `kind: poison`(disease-simulation.md:374)⇒ 不能被 N-1 当伤情外键指向;只靠 `INJ_BLUNT` 会让「吃错药」与「被打了一棍」在数据层不可分。⚠️ **须并入 `disease-simulation.md` 的 R2 枚举表**(11 → 12)才算词表收口 —— 该文档改动归 9 的 GDD 轮,本轮只落数据行。**形态必须是自限型**(同 `INJ_BLUNT` 的理由:R1-22 禁急性保持型非致死,且它不在死亡白名单)⇒ 药毒**永不致死**且**自行消退**。A_peak/Scale = 0.30(= CRITICAL 档,低于 DEATH 0.58),峰值 τ_peak = 180 tick(9 s)比钝击更慢更久(中毒的起效慢于外伤),τ_fall = 900(45 s)。体征取 面色 / 语声 / 主观 三通道(均为既有体征键,**不新增 8 的体征行**)。"
     }

@@ -374,7 +374,7 @@
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
 | `TD-sim-02` | `disease-simulation` | open | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
-| `TD-sim-04` | `disease-simulation` | open | **Y** | R1 |
+| `TD-sim-04` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
@@ -850,11 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'open': 57, 'closed': 79, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 33 （已闭但曾标 P0 面的 70 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 33 条,分布在 9/31 个 epic
+条目 139 | 状态 {'open': 56, 'closed': 80, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 32 （已闭但曾标 P0 面的 71 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 32 条,分布在 9/31 个 epic
     medical-consequences: 16  telemetry-analytics: 5    clinic-machine: 4
-    disease-simulation: 3     enemy-ai: 1               item-database: 1
+    disease-simulation: 2     enemy-ai: 1               item-database: 1
     patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
@@ -5518,3 +5518,26 @@ $ python3 -I -c "import json;d=json.load(open('assets/data/disease_registry.json
 | **何时消解** | 8 的体征词表 + 阈值落地 ⇒ 9 的 `ComputeVitals` 产出非零 `signChannelMask`,**且**有一条端到端夹具用**真实** `DiseaseVitalsService`(非 `StubVitals`)跑出非零档。**仅「接线改了」不算消解。** |
 | **归属** | **9(接线枢轴)**,真源在 **8**(词表 + 阈值)。11 / 53 两侧均不兜底 —— 自造体征 = 第二真源。 |
 | **`P0 面 = Y` 的理由** | `OQ-53-8` 已裁 P0 开药害代价侧 ⇒ 它是 P0 已裁支路**能否被玩家感知**的直接前置。 |
+#### ✅ 2026-10-30 结案(判据已跑)
+
+**消解判据原文**:「8 的体征词表 + 阈值落地 ⇒ 9 的 `ComputeVitals` 产出非零 `signChannelMask`,
+**且**有一条端到端夹具用**真实** `DiseaseVitalsService`(非 `StubVitals`)跑出非零档。」
+
+**两半都落了,且前提被就地订正**:
+
+| 半 | 落点 |
+|---|---|
+| 阈值从哪来 | ⚠️ 原判据写「8 的词表 + 阈值」—— **实测 8 的表里没有阈值**(`diagnosis_signs.json` 字段 = `sign_id`/`display_词`/`channel`/`reveal_by`/`tier_named`/`polarity`/`neg_weight`)。⇒ 改由 **9 的注册表**承载:`signs[].appear_at`(Fix 字符串,域 `(0,1]`,新校验 **R1-37**) |
+| 投影 | `DiseaseVitalsService.ComputeVitals`:`Signⱼ 出现 ⇔ position ≥ appear_atⱼ`,掩码 = 出现词条的 `channel_mask` 按位或,计数 = 出现词条数(全整数 `Fix` 比较) |
+| 端到端夹具 | `Tests/EditMode/DiseaseSimulation/f2_sign_projection_test.cs::test_realVitals_produceANonSentinelBand` —— **真** `CompositionRoot.Assemble` + 真注册表行 + 真 `DiseaseVitalsService`,掩码 65 ⇒ 11 的判据返回**档 0**(非哨兵) |
+
+**同文件另三条**钉的是投影规则本身:逐词条门控(不可达阈值永不出现)、**对 position 单调**(不是对 tick ——
+过了 τ_peak 掩码**正确地**回缩,按 tick 断言会把正确行为判红,首版实测即红)、单体征行只投自己的通道。
+
+**tripwire 保留但换了守护对象**:从「9 没阈值,谁产 signs 谁越界」改为「求值器自产的 `result.Signs`
+与注册表投影并存时不得静默择一」。
+
+⚠️ **仍未做(不属本条)**:48 个 `appear_at` 值与各处曲线数值全是**草案**,归用户数值轮。
+⚠️ **本条结案 = 「判据能跑通」,不是「药害在实际游玩中可被撞见」** —— 后者取决于病程走到够深的位置,
+归内容 / 数值轮。
+

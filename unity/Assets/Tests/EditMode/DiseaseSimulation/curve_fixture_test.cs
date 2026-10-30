@@ -260,12 +260,12 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             //    若不改,本用例会**假绿**(报错原因变成「掩码 0」以外的另一条,甚至直接通过)。
             //    改取 1<<20(远在闭集外,且短期内不会被新通道占用)。
             var e1 = SyntheticDiseaseFixture.Create();
-            e1.Signs[0] = new SignEntry("synth_bogus", 1 << 20);
+            e1.Signs[0] = new SignEntry("synth_bogus", 1 << 20, new Fix(Fix.OneRaw / 5));
             Assert.AreEqual(29, AssertRejects(e1).RuleNumber, "channel_mask 含未定义位须报 R1-29");
 
             // Arrange ② —— 零掩码(非零要求)
             var e2 = SyntheticDiseaseFixture.Create();
-            e2.Signs[0] = new SignEntry("synth_bogus", 0);
+            e2.Signs[0] = new SignEntry("synth_bogus", 0, new Fix(Fix.OneRaw / 5));
             Assert.AreEqual(29, AssertRejects(e2).RuleNumber, "channel_mask = 0 须报 R1-29");
         }
 
@@ -274,7 +274,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         {
             // Arrange —— 违 R1 表 signs[] 词键非空
             var e = SyntheticDiseaseFixture.Create();
-            e.Signs[0] = new SignEntry("", SignChannels.Face);
+            e.Signs[0] = new SignEntry("", SignChannels.Face, new Fix(Fix.OneRaw / 5));
 
             // Act / Assert
             Assert.AreEqual(29, AssertRejects(e).RuleNumber, "空 SignKey 须报 R1-29");

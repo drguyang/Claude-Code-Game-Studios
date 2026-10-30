@@ -76,9 +76,15 @@ namespace DaYiJingCheng.Sim
         /// <summary>通道位(∈ <see cref="SignChannels.All"/> 按位或,非零 —— 写入期白名单校验)。</summary>
         public int ChannelMask;
 
-        public SignEntry(string signKey, int channelMask)
+        /// <summary>F2 投影阈值(2026-10-30 `<c>TD-sim-04</c>` · `D-9-R`)。
+        /// <para>语义:<c>position = Progress/SCALE ≥ AppearAt</c> ⇒ 该体征出现。域 <c>(0, 1]</c>(R1-37)。</para>
+        /// <para>⚠️ 值 = **草案**(归数值轮);作按 <c>sign_key</c> 统一:同一体征在不同病种下同阈,
+        /// 使「证候随病程演进」是病种**体征集**的函数,而不是逐病种手调的 48 个独立数。</para></summary>
+        public Fix AppearAt;
+
+        public SignEntry(string signKey, int channelMask, Fix appearAt)
         {
-            SignKey = signKey; ChannelMask = channelMask;
+            SignKey = signKey; ChannelMask = channelMask; AppearAt = appearAt;
         }
     }
 
@@ -422,6 +428,7 @@ namespace DaYiJingCheng.Sim
         /// (烘焙面)。<c>CompositionRoot.CreateFallbackRegistry</c> 不读 JSON、不调本门。</para>
         /// </summary>
         public const int R1_CHECK_36 = 36;
+        public const int R1_CHECK_37 = 37; // signs[].appear_at ∈ (0,1](F2 投影阈值;2026-10-30 TD-sim-04)
 
         /// <summary>
         /// 校验趋势窗口全局配置(<c>W</c> / <c>TREND_EPS</c>)—— R1-36。
@@ -772,6 +779,15 @@ namespace DaYiJingCheng.Sim
                         if (sign.ChannelMask == 0 || (sign.ChannelMask & ~SignChannels.All) != 0)
                             throw new RegistryValidationException(R1_CHECK_29,
                                 $"signs[{i}].channel_mask={sign.ChannelMask} ∉ 八通道闭集(非零且 ⊆ SignChannels.All)");
+                        // R1-37 ← F2 投影阈值(TD-sim-04)。
+                        //   `position ∈ [0,1]` ⇒ 阈值必须落在 (0,1]:
+                        //     · ≤ 0 ⇒ 该体征**出生即在场**(退化成「恒有」,通道掩码恒满);
+                        //     · > 1 ⇒ position 被 clamp 到 1,max(0, ·) 下**永远不出现**(静默死词条)。
+                        //   两端都是「看起来配了、实际没判别力」的形态,故硬拒收。
+                        if (sign.AppearAt.Raw <= 0 || sign.AppearAt.Raw > Fix.OneRaw)
+                            throw new RegistryValidationException(R1_CHECK_37,
+                                $"signs[{i}]「{sign.SignKey}」.appear_at = {sign.AppearAt.Raw} raw ∉ (0, {Fix.OneRaw}] " +
+                                "(F2 投影阈值:≤0 = 恒在场,>1 = 永不出现,两者都无判别力)");
                     }
                 }
             }

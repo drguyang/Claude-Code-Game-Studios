@@ -304,19 +304,36 @@ namespace DaYiJingCheng.Gameplay.Boot
                 doseClampBound: null,
                 treatableBy: _treatableBy);
 
-            // ── signs:tripwire —— 恒空 ⇒ mask = 0 / count = 0 ──
-            // F2 的 `Project(Progress, 病种)ⱼ` 需要**阈值**,而词表内容与阈值归 8
-            // (§Visual/Audio 二「9 只保证体征是离散词」)⇒ 9 侧当前不可能产出 signs。
-            // 若有人绕过该边界真产出了词条,静默丢通道位 = 通道掩码说谎 ⇒ 显式 fail-loud。
-            int[] signs = result.Signs ?? Array.Empty<int>();
-            if (signs.Length > 0)
+            // ── signs:F2 体征投影(🔁 2026-10-30 接线 · `TD-sim-04` / `D-9-R`)────────────
+            //   `Signⱼ` 出现 ⇔ `position ≥ appear_atⱼ`(F2:`Signⱼ = Project(Progress, 病种)ⱼ`)。
+            //   阈值住**注册表**的 `signs[].appear_at`(逐词条,域 (0,1],由 R1-37 守住两端退化),
+            //   故 9 侧不再「没有阈值可判」—— 旧 tripwire 的成立前提已消失。
+            //   通道掩码 = 出现词条的 `channel_mask` 按位或;计数 = 出现词条数(表现层选素材档用)。
+            //   ⚠️ 全整数域比较(`Fix` raw),**不读回** `VitalsDto` 的 float 字段。
+            int signChannelMask = 0, signCount = 0;
+            if (entry.Signs != null)
+            {
+                for (int i = 0; i < entry.Signs.Length; i++)
+                {
+                    SignEntry sign = entry.Signs[i];
+                    if (sign == null) continue;                 // 未声明词条(合法空集形态)
+                    if (position.Raw < sign.AppearAt.Raw) continue;
+                    signChannelMask |= sign.ChannelMask;
+                    signCount++;
+                }
+            }
+
+            // ⚠️ **保留 tripwire,但守的东西换了**:此前守「9 没有阈值,谁产出 signs 谁是越界」;
+            //    现在守「**第二条产 signs 的路径**」—— `result.Signs` 是求值器的自产词条,
+            //    与注册表投影是两条平行来源;若它某天真产出,静默二选一 = 通道掩码说谎 ⇒ fail-loud。
+            int[] evaluatorSigns = result.Signs ?? Array.Empty<int>();
+            if (evaluatorSigns.Length > 0)
                 throw new NotSupportedException(
-                    $"F2 投影未接线但求值器产出了 {signs.Length} 条 signs —— " +
-                    "词键 → 通道位映射归 8 的烘焙表(design/gdd/diagnosis-system.md §Visual/Audio 二)," +
-                    "9 侧没有阈值可判活跃词条;拒绝静默丢弃通道掩码(AC-21)");
+                    $"求值器自产了 {evaluatorSigns.Length} 条 signs,而注册表投影(entry.Signs + appear_at)" +
+                    "才是 F2 的现行唯一来源 —— 两条来源并存时不得静默择一;须先裁谁的语义为准(AC-21)");
 
             return new VitalsDto(position.ToFloat(), trend.ToFloat(),
-                                 signChannelMask: 0, signCount: 0);
+                                 signChannelMask: signChannelMask, signCount: signCount);
         }
 
         // ── apply 层:解码 + 归档 ─────────────────────────────────────────────

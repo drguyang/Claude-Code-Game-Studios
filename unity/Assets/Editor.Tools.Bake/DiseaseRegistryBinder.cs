@@ -58,7 +58,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         };
 
         /// <summary>`signs[]` 词条的键白名单(GDD R1.3 的 `signs[]` + `channel_mask`)。</summary>
-        private static readonly string[] SignEntryKeys = { "sign_key", "channel_mask" };
+        private static readonly string[] SignEntryKeys = { "sign_key", "channel_mask", "appear_at" };
 
         /// <summary>`relapse` 块的键白名单(GDD R1.3 三字段,GDD 校验 3「同生共死」)。</summary>
         private static readonly string[] RelapseKeys = { "a_rel", "interval", "tau_fall" };
@@ -342,7 +342,10 @@ namespace DaYiJingCheng.EditorTools.Bake
 
                 string signKey = ReadString(item, "sign_key", errors, w);
                 int channelMask = ReadInt(item, "channel_mask", errors, w);
-                signs[i] = new SignEntry(signKey, channelMask);
+                // 2026-10-30(F2 投影阈值):JSON 里写**字符串**(ADR-006 §一 —— 数字 token 会经
+                //  double/decimal 中转 = 浮点泄漏),由 ReadFix 走 FixParse;域校验在 R1-37。
+                Fix appearAt = ReadFix(item, "appear_at", errors, w);
+                signs[i] = new SignEntry(signKey, channelMask, appearAt);
             }
             return signs;
         }

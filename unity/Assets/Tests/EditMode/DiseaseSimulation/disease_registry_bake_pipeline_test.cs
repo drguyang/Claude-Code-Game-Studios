@@ -205,8 +205,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
       ""trauma_half_life"": 0,
       ""relapse"": { ""a_rel"": ""1/4"", ""interval"": 1200, ""tau_fall"": ""300"" },
       ""signs"": [
-        { ""sign_key"": ""sign_chill"", ""channel_mask"": 1 },
-        { ""sign_key"": ""sign_sweat"", ""channel_mask"": 9 }
+        { ""sign_key"": ""sign_chill"", ""channel_mask"": 1, ""appear_at"": ""1/4"" },
+        { ""sign_key"": ""sign_sweat"", ""channel_mask"": 9, ""appear_at"": ""1/2"" }
       ],
       ""natural_progress"": {
         ""incubation"": 0,
@@ -250,6 +250,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Assert.That(row.Signs[0].ChannelMask, Is.EqualTo(1));
             Assert.That(row.Signs[1].SignKey, Is.EqualTo("sign_sweat"));
             Assert.That(row.Signs[1].ChannelMask, Is.EqualTo(9), "9 = Face|Breath(两位或)");
+            // 2026-10-30(F2 投影阈值):appear_at 必须真的往返 —— 它决定体征何时出现,
+            // 丢了会静默退化成 0(= 恒在场,R1-37 在**写入期**拒 0,但解码期不会重跑校验)。
+            //   "1/4" ⇒ 16384 · "1/2" ⇒ 32768(字面量推导,不调 FixParse)。
+            Assert.That(row.Signs[0].AppearAt.Raw, Is.EqualTo(16384L), "\"1/4\" 的 appear_at raw 应为 16384");
+            Assert.That(row.Signs[1].AppearAt.Raw, Is.EqualTo(32768L), "\"1/2\" 的 appear_at raw 应为 32768");
             // ⚠️ 第二行刻意用**两位或**而不是 3:3 = Face|Voice 也在闭集内,但它与
             //    「单通道 1/2」在肉眼上太近,写错位不会立刻看出来。9 的两位相隔,
             //    任一位写错都会让本断言红。

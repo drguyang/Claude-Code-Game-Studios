@@ -13110,3 +13110,17 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   `TD-medcons-15` open 维持。计数 `open 57 · closed 79 · partial 2 · 未闭 P0 面 33`。
 - ⚠️ **机制玩家不可感知**:F2 未接线 ⇒ 判据恒不命中;六条 11 夹具走 `StubVitals` 注入路径。
 - **未提交**。原件 `production/qa/evidence/t2-b-full-chain-2026-10-30.md`。
+
+## Session Extract — `TD-sim-04` F2 体征投影接线(2026-10-30 第三批)
+
+- **用户指令**:「接线 F2 体征投影（TD-sim-04）」。裁定:阈值**每词条一个**(48 个)· 阴性锚点**参与**(阈值取低)。
+- **已落**:`SignEntry.AppearAt` + **R1-37**(域 (0,1])· 注册表 48 条 `appear_at`(Fix 字符串)·
+  binder/cooked 写读两侧(每条 +8 字节,含 null 占位)· `ComputeVitals` 按 `position ≥ appear_at` 投影 ·
+  `D-9-R` 就地订正(阈值归属 8 → 9)。
+- **端到端**:`f2_sign_projection_test`(4 条)—— 含 `test_realVitals_produceANonSentinelBand`
+  用**真** `DiseaseVitalsService` 跑出档 0(非哨兵)= 本债的关账判据。
+- **回归**:EditMode `6063/6026/0/37` @10:05 · PlayMode `238/234/0/2/2` @10:01。
+- **连带重烘**:registry 3910 B / `0x97AD4C59`;cost table 72 B / `0x4CEFF03D`;catalog 重建。
+- **债**:`TD-sim-04` **closed**。计数 `open 56 · closed 80 · partial 2 · 未闭 P0 面 32`。
+- ⚠️ 48 个阈值 + 曲线值全为**草案**;「药害在实玩可撞见」仍归数值轮。
+- **未提交**。原件 `production/qa/evidence/t2-c-f2-sign-projection-2026-10-30.md`。

@@ -411,6 +411,16 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 > `production/qa/evidence/t2-b-full-chain-2026-10-30.md`。
 > ⚠️ **仍不可被玩家感知** —— `SignChannelMask` 在生产恒 0(9 的 F2 未接线)⇒ 判据恒不命中,
 > 新立 **`TD-sim-04`**。**本条不因此补绿**:判据齐 ≠ 机制跑过。
+>
+> 🔁 **2026-10-30 当晚:F2 体征投影已接线(`TD-sim-04` closed)** ——
+> 9 的 `signs[].appear_at`(Fix 字符串,域 `(0,1]`,新校验 **R1-37**)承载阈值,
+> `ComputeVitals` 按 `position ≥ appear_at` 投影出 `SignChannelMask` / `SignCount`。
+> ⚠️ **阈值原判「归 8」经实测不成立**(8 的 `diagnosis_signs.json` 无阈值字段),已在
+> `disease-simulation.md` 的 `D-9-R` 行补注订正。端到端夹具
+> `f2_sign_projection_test::test_realVitals_produceANonSentinelBand` 用**真** `DiseaseVitalsService`
+> 跑出档 0(非哨兵)。Regression:EditMode `6063/6026/0/37` · PlayMode `238/234/0/2/2`
+> @ 2026-10-30 10:05/10:01 CST。原件 `production/qa/evidence/t2-c-f2-sign-projection-2026-10-30.md`。
+> ⚠️ **48 个阈值与各处曲线值全是草案** ⇒ 「药害在实际游玩中可被撞见」仍归数值轮。
 
 > 🔁 **2026-10-30 进展(T2 前置轮 A,原文不删)** —— T2 的三条前置**各有进展、无一全部结清**:
 > ① **`TD-sim-03` 已 `closed`** —— 用户裁定新增 `INJ_BLUNT`(自限型 / 非致死,id 15),

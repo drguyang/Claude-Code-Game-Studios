@@ -1559,6 +1559,11 @@ last_intervention = last of:
 | **D-9-P** | **`treatable_by` 门结构性缺位(批次 C 缺口 ②)** —— `DiseaseRegistryEntry.TreatableBy` 是派生字段,写入期不填,R1-19 对非 null 直接 `NotImplementedException` ⇒ 数据面恒 null ⇒ 现口径 **null 不拦**(拦则生产治疗恒 0,最小可证链不可证);真门值在 `disease_action_axis.json`(story-007,烘焙件已有)但**运行期装载面未接** | 9 装载轮 | ⏳ **open** —— 装载面接通后 `IsInTreatableBy` 改为按 `(treatment, disease)` 查轴(**成员 + 极性同行,承 D-9-K 单源裁定**);R1-19 的 `NotImplementedException` 同批消解 |
 | **D-9-Q** | **F2 `position ≤ 1` 上臂不可达(批次 C 缺口 ⑦)** —— R1-23(`SCALE ≥ A_peak`)+ 对因 Σ 与 Base 异号(四轮 K1)⇒ `Progress ≤ A_peak ≤ SCALE` 恒 `position < 1` ⇒ 投影 clamp **上臂零判别力**(下臂由 `max(0, ·)` 承担);测试注释已登记 | 9 | ⏳ **登记为已知测试盲区** —— clamp 保留(防御性);若日后 Σ 语义允许正向超 `A_peak`(过度治疗语义变化),上臂复活,须回补判别测试 |
 | **D-9-R** | **`Signⱼ = Project(Progress, disease)` 需 8 侧阈值(批次 C 缺口 ⑧)** —— 9 只出离散词键 + 通道位(R1.3 / R1-29);投影阈值归 8 的词表(§Visual/Audio 二),阈值数据未落 ⇒ signs 恒空;`GetVitals` 对意外非空 signs 置 `NotSupportedException` 兜底(tripwire,禁静默丢通道掩码) | 8(GDD)+ 9 接线轮 | ⏳ 待 8 的词表 / 阈值数据落盘后接 F2 投影;tripwire 移除归接线轮 |
+> 
+> 🔁 **2026-10-30 接线并订正本行的前提(原文不删)**:本行原写「投影阈值**归 8 的词表**」—— **实测该前提不成立**:8 的 `assets/data/diagnosis_signs.json` 字段 = `sign_id` / `display_词` / `channel` / `reveal_by` / `tier_named` / `polarity` / `neg_weight`,**没有任何出现阈值**;8 的 GDD §Visual/Audio 定的是**读数精度层义**(V-8.1 精度档 × 五通道),不是 `Project` 的阈值。⇒ 阈值改由 **9 的注册表**承载:`signs[].appear_at`(Fix 字符串,域 `(0,1]`,新校验 **R1-37**),投影式 = **`Signⱼ 出现 ⇔ position ≥ appear_atⱼ`**,`position = Progress/SCALE`(F2 原式),通道掩码 = 出现词条的 `channel_mask` 按位或。
+> **`GetVitals` 的 tripwire 保留但守的对象换了**:从「9 没有阈值,谁产 signs 谁越界」改为「求值器自产 `result.Signs` 与注册表投影并存时不得静默择一」。
+> ⚠️ `appear_at` 的 **48 个值全为草案**(按 `sign_key` 统一,同一体征跨病种同阈),归**用户数值轮**。
+> ⚠️ 本行只解决「9 能产出非零掩码」;**`AC-21`(通道位唯一定义)与 8 的读数门槛不受影响**。
 
 ## Tuning Knobs
 

@@ -149,10 +149,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                         //    可能在**未经校验**的调用路径上被驱动(测试直构)。
                         w.Write(-1);
                         w.Write(0);
+                        w.Write(0L);   // 2026-10-30 appear_at 占位(定长步进,读方无条件读 i64)
                         continue;
                     }
                     WriteString32(w, s.SignKey);
                     w.Write(s.ChannelMask);
+                    // 2026-10-30(F2 投影阈值,TD-sim-04):Fix raw 按 i64 落盘(与 curve 的 Fix 字段同法)
+                    w.Write(s.AppearAt.Raw);
                 }
             }
 

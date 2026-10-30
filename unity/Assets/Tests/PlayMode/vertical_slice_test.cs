@@ -176,9 +176,9 @@ namespace DaYiJingCheng.Tests.PlayMode
                 Scale = FixParse.Parse("1"),
                 Signs = new[]
                 {
-                    new SignEntry("synth_pallor", SignChannels.Face),
-                    new SignEntry("synth_tachypnea", SignChannels.Breath),
-                    new SignEntry("synth_weak_voice", SignChannels.Voice | SignChannels.Posture)
+                    new SignEntry("synth_pallor", SignChannels.Face, new Fix(Fix.OneRaw / 5)),
+                    new SignEntry("synth_tachypnea", SignChannels.Breath, new Fix(Fix.OneRaw / 5)),
+                    new SignEntry("synth_weak_voice", SignChannels.Voice | SignChannels.Posture, new Fix(Fix.OneRaw / 5))
                 }
             };
         }
