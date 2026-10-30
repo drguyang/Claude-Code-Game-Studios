@@ -13124,3 +13124,29 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **债**:`TD-sim-04` **closed**。计数 `open 56 · closed 80 · partial 2 · 未闭 P0 面 32`。
 - ⚠️ 48 个阈值 + 曲线值全为**草案**;「药害在实玩可撞见」仍归数值轮。
 - **未提交**。原件 `production/qa/evidence/t2-c-f2-sign-projection-2026-10-30.md`。
+
+## Session Extract — 数值轮:48 条体征阈值 + 曲线定稿(2026-10-30 第四批)
+
+- **用户指令**:「把 48 个阈值和曲线值定下来（数值轮）」。三项裁定(均按推荐):**按行相位派生** ·
+  两行草案曲线按现值定稿 · **加死词条门**。
+- **病灶(非数值偏好,是量纲错)**:`appear_at` 是绝对 position 阈值,而峰值 `A_peak/SCALE` 逐行 0.15~1.00
+  ⇒ 旧「同 sign_key 同阈」口径下有 **9 条体征永久不可达** —— `DIS_MALARIA.jaundice`(0.60 vs 0.45)·
+  `DIS_MEASLES.koplik`(0.50 vs 0.35)· **`DIS_NEURASTHENIA` 全 4 条**(0.20 vs 0.15 ⇒ 掩码恒 0,脉案对该病人失明)·
+  `INJ_DRUG_HARM.delirium`(0.60 vs 0.30)。
+- **已落**:48 条 `appear_at` 按 `相位分数 × 峰值` 重写(四档 **0.05 / 0.25 / 0.55 / 0.85**;
+  `koplik` 订正为早期,必早于 `rash`)→ **零死词条**,最紧余量 `INJ_DRUG_HARM.delirium` 0.255 vs 0.30。
+  `INJ_BLUNT` / `INJ_DRUG_HARM` 的 `_rowNote` 草案标注解除(**曲线数值一分未改**)。
+- **门**:`R1-37` 由 `appear_at ∈ (0,1]` 加强为 **[域 ∧ 可达性]** ——
+  `appear_at_raw × SCALE < A_peak_raw × ONE`(仅 `Curve != null` 时求值)。新增夹具 6 条。
+- ⚠️ **自查抓到量纲错**:初稿写 `appear_at × ONE < A_peak × SCALE`,在应拒的输入上**恒真** ⇒ 门假放行;已订正。
+- **证伪轮(2 变异)**:M1 停用可达性 ⇒ **2 红**(AbovePeak / ExactlyAtPeak)· M2 停用域 ⇒ **3 红**
+  (AboveOne / Zero / curveAbsent);SHA-256 `73f2d765…6fcd` 逐字节还原。
+  **M1 暴露并修掉一处夹具缺陷**:域判据组原用带曲线条目 ⇒ 1.50 也撞可达性门(同码 R1-37)⇒ 零判别力;
+  改 `Curve = null` 隔离。
+- **回归**:EditMode `6069/6032/0/37` @10:35:50 · PlayMode `238/234/0/2/2` @10:36:37(`2d769591`+工作树)。
+  等式 `6069−6063=6` = 新增夹具数。零回归。
+- **连带重烘**:registry 3910 B / `0x1D4C3B22` · cost table 72 B / `0x5B6DCF16` · catalog 37 条。
+- 门:`debtcount --check` ✅ · `kindgen --check` ✅(42 个载荷 struct / 171 字段)。
+- ⚠️ **残留**:相位四档是本轮取的值(非推导);`DIS_NEURASTHENIA` 四条体征全为 `Subjective` 族
+  ⇒ 掩码非 0 但仍只覆盖一个通道(设计事实,改需另裁);`INJ_DRUG_HARM` 仍待并入 R2 表(归 9 的 GDD 轮)。
+- **未提交**。原件 `production/qa/evidence/numeric-round-sign-thresholds-2026-10-30.md`。

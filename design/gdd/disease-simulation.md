@@ -1562,7 +1562,16 @@ last_intervention = last of:
 > 
 > 🔁 **2026-10-30 接线并订正本行的前提(原文不删)**:本行原写「投影阈值**归 8 的词表**」—— **实测该前提不成立**:8 的 `assets/data/diagnosis_signs.json` 字段 = `sign_id` / `display_词` / `channel` / `reveal_by` / `tier_named` / `polarity` / `neg_weight`,**没有任何出现阈值**;8 的 GDD §Visual/Audio 定的是**读数精度层义**(V-8.1 精度档 × 五通道),不是 `Project` 的阈值。⇒ 阈值改由 **9 的注册表**承载:`signs[].appear_at`(Fix 字符串,域 `(0,1]`,新校验 **R1-37**),投影式 = **`Signⱼ 出现 ⇔ position ≥ appear_atⱼ`**,`position = Progress/SCALE`(F2 原式),通道掩码 = 出现词条的 `channel_mask` 按位或。
 > **`GetVitals` 的 tripwire 保留但守的对象换了**:从「9 没有阈值,谁产 signs 谁越界」改为「求值器自产 `result.Signs` 与注册表投影并存时不得静默择一」。
-> ⚠️ `appear_at` 的 **48 个值全为草案**(按 `sign_key` 统一,同一体征跨病种同阈),归**用户数值轮**。
+> ⚠️ ~~`appear_at` 的 **48 个值全为草案**(按 `sign_key` 统一,同一体征跨病种同阈),归**用户数值轮**。~~
+> 🔁 **2026-10-30 数值轮定稿,上一句作废(原文保留)**。用户三项裁定:**按行相位派生** · 两行草案曲线按现值定稿 · 加死词条门。
+> **原口径「按 `sign_key` 统一」是结构性缺陷**:`position` 的上界逐行不同(`A_peak/SCALE` 从 0.15 到 1.00),绝对阈值令 **9 条体征永久不可达**
+> (`DIS_MALARIA` 的 `jaundice` 0.60 vs 峰值 0.45 · `DIS_MEASLES` 的 `koplik` 0.50 vs 0.35 ·
+> **`DIS_NEURASTHENIA` 全 4 条** 0.20 vs 0.15 ⇒ 该行掩码恒 0,8 的脉案对该病人完全失明 · `INJ_DRUG_HARM` 的 `delirium` 0.60 vs 0.30)。
+> **现口径**:`appear_at[row, sign] = 相位分数(sign) × 峰值 position(row)`,相位分数四档
+> **0.05 即刻 / 0.25 早期 / 0.55 中期 / 0.85 晚期特异**(语义 = 波形上接近峰值的程度,不是时间进度)。
+> 一处医学序订正:`sign_koplik` 是麻疹**出疹前**唯一特异所见 ⇒ 归早期,**必早于** `sign_rash`。
+> **R1-37 同步加强**为两段判据:`appear_at ∈ (0,1]` **且** `appear_at < A_peak/SCALE`(死词条 = 构建期拒收)。
+> 48 条现值最紧余量 = `INJ_DRUG_HARM` 的 `delirium`(`51/200 = 0.255` vs 峰值 0.30)。
 > ⚠️ 本行只解决「9 能产出非零掩码」;**`AC-21`(通道位唯一定义)与 8 的读数门槛不受影响**。
 
 ## Tuning Knobs

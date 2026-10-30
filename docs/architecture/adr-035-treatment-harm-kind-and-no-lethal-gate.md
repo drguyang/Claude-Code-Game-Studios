@@ -413,8 +413,11 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 > 新立 **`TD-sim-04`**。**本条不因此补绿**:判据齐 ≠ 机制跑过。
 >
 > 🔁 **2026-10-30 当晚:F2 体征投影已接线(`TD-sim-04` closed)** ——
-> 9 的 `signs[].appear_at`(Fix 字符串,域 `(0,1]`,新校验 **R1-37**)承载阈值,
+> 9 的 `signs[].appear_at`(Fix 字符串,**R1-37 两段判据**:域 `(0,1]` **且** `< A_peak/SCALE`)承载阈值,
 > `ComputeVitals` 按 `position ≥ appear_at` 投影出 `SignChannelMask` / `SignCount`。
+> 🔁 **2026-10-30 数值轮**:48 条阈值按**行相位派生**定稿(`appear_at = 相位分数 × 峰值`,四档 0.05/0.25/0.55/0.85),
+> 消灭了旧「全局统一阈值」口径下的 **9 条死词条**(其中 `DIS_NEURASTHENIA` 全 4 条 ⇒ 掩码恒 0);
+> 可达性判据即由此轮加入,**死词条从此构建期拒收**。
 > ⚠️ **阈值原判「归 8」经实测不成立**(8 的 `diagnosis_signs.json` 无阈值字段),已在
 > `disease-simulation.md` 的 `D-9-R` 行补注订正。端到端夹具
 > `f2_sign_projection_test::test_realVitals_produceANonSentinelBand` 用**真** `DiseaseVitalsService`

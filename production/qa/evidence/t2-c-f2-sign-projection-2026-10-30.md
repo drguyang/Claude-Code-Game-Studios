@@ -87,6 +87,17 @@ Addressables 内容重建(37 条)。
    该体征在生产上仍是零出现;
 2. 三档禁忌阶梯能否逐档命中,取决于病种体征**集**与阈值的组合,同样归数值轮。
 
+> ✅ **2026-10-30 同日数值轮结清上述两条(原文保留)** —— 用户三项裁定:按行相位派生 · 两行草案曲线
+> (`INJ_BLUNT` / `INJ_DRUG_HARM`)按现值定稿 · 加死词条门。
+> **实测第 1 条不是"可能"而是"已经"**:上一版按 `sign_key` 统一阈值的口径下,**9 条体征结构性不可达**
+> (`DIS_MALARIA` 的 `jaundice` · `DIS_MEASLES` 的 `koplik` · **`DIS_NEURASTHENIA` 全 4 条** ·
+> `INJ_DRUG_HARM` 的 `delirium`)。其中 `DIS_NEURASTHENIA` 是「豁免类(永不痊愈)」的招牌病人,
+> 掩码恒 0 ⇒ 8 的脉案对该病人**完全失明**。
+> ⇒ 本节 §二 表格里的「按 `sign_key` 统一(同一体征跨病种同阈)」**已被取代**:现为
+> `appear_at[row, sign] = 相位分数 × 峰值 position(row)`;R1-37 加强为两段判据(域 + 可达性)。
+> 48 条零死词条,最紧余量 `INJ_DRUG_HARM` 的 `delirium` = `51/200` vs 峰值 0.30。
+> 证据原件:`production/qa/evidence/numeric-round-sign-thresholds-2026-10-30.md`。
+
 ⇒ 任何下游引用「F2 已接线」时须带这半句。
 
 ---

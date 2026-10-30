@@ -77,9 +77,14 @@ namespace DaYiJingCheng.Sim
         public int ChannelMask;
 
         /// <summary>F2 投影阈值(2026-10-30 `<c>TD-sim-04</c>` · `D-9-R`)。
-        /// <para>语义:<c>position = Progress/SCALE ≥ AppearAt</c> ⇒ 该体征出现。域 <c>(0, 1]</c>(R1-37)。</para>
-        /// <para>⚠️ 值 = **草案**(归数值轮);作按 <c>sign_key</c> 统一:同一体征在不同病种下同阈,
-        /// 使「证候随病程演进」是病种**体征集**的函数,而不是逐病种手调的 48 个独立数。</para></summary>
+        /// <para>语义:<c>position = Progress/SCALE ≥ AppearAt</c> ⇒ 该体征出现。</para>
+        /// <para>域 <c>(0, 1]</c> <b>且</b> <c>AppearAt &lt; A_peak/SCALE</c>(R1-37 两段判据;后者 2026-10-30 数值轮加强)。</para>
+        /// <para>🔁 2026-10-30 数值轮定稿 —— 原口径为「按 <c>sign_key</c> 统一:同一体征在不同病种下同阈」,
+        /// 经实测为**结构性缺陷**:<c>position</c> 上界逐行不同(0.15~1.00),绝对阈值令 9 条体征永久不可达
+        /// (其中 <c>DIS_NEURASTHENIA</c> 全 4 条 ⇒ 该行掩码恒 0)。现口径 = **按行派生**
+        /// <c>appear_at[row, sign] = 相位分数(sign) × 峰值 position(row)</c>,
+        /// 相位分数四档 0.05 / 0.25 / 0.55 / 0.85(即刻 / 早期 / 中期 / 晚期特异)。
+        /// 详见 <c>assets/data/disease_registry.json</c> 的 <c>_appearAtNote</c>。</para></summary>
         public Fix AppearAt;
 
         public SignEntry(string signKey, int channelMask, Fix appearAt)
@@ -428,7 +433,7 @@ namespace DaYiJingCheng.Sim
         /// (烘焙面)。<c>CompositionRoot.CreateFallbackRegistry</c> 不读 JSON、不调本门。</para>
         /// </summary>
         public const int R1_CHECK_36 = 36;
-        public const int R1_CHECK_37 = 37; // signs[].appear_at ∈ (0,1](F2 投影阈值;2026-10-30 TD-sim-04)
+        public const int R1_CHECK_37 = 37; // signs[].appear_at ∈ (0,1] ∧ < A_peak/SCALE(域 + 可达性;2026-10-30 TD-sim-04 / 数值轮加门)
 
         /// <summary>
         /// 校验趋势窗口全局配置(<c>W</c> / <c>TREND_EPS</c>)—— R1-36。
@@ -779,15 +784,41 @@ namespace DaYiJingCheng.Sim
                         if (sign.ChannelMask == 0 || (sign.ChannelMask & ~SignChannels.All) != 0)
                             throw new RegistryValidationException(R1_CHECK_29,
                                 $"signs[{i}].channel_mask={sign.ChannelMask} ∉ 八通道闭集(非零且 ⊆ SignChannels.All)");
-                        // R1-37 ← F2 投影阈值(TD-sim-04)。
-                        //   `position ∈ [0,1]` ⇒ 阈值必须落在 (0,1]:
-                        //     · ≤ 0 ⇒ 该体征**出生即在场**(退化成「恒有」,通道掩码恒满);
-                        //     · > 1 ⇒ position 被 clamp 到 1,max(0, ·) 下**永远不出现**(静默死词条)。
-                        //   两端都是「看起来配了、实际没判别力」的形态,故硬拒收。
+                        // R1-37 ← F2 投影阈值(TD-sim-04)。**两段判据**:
+                        //
+                        //   ① 绝对域 `(0, 1]`:
+                        //      · ≤ 0 ⇒ 该体征**出生即在场**(退化成「恒有」,通道掩码恒满);
+                        //      · > 1 ⇒ position 被 clamp 到 1,max(0, ·) 下**永远不出现**(静默死词条)。
+                        //   ② 可达性 `appear_at < A_peak/SCALE`(2026-10-30 数值轮加强):
+                        //      position 的**上界**就是该行的峰值 —— 阈值 ≥ 峰值时波形永远够不着,
+                        //      即「配了词条、生产上零出现」= 与本项目已抓过五次的「配了但没判别力」同型。
+                        //
+                        //   ① 是 ② 的特例(SCALE ≥ A_peak 由 R1-23 保证 ⇒ 峰值 ≤ 1),但保留 ①
+                        //   是因为 Curve 缺席的行(Scale 默认 0)仍须守住「不得 ≤0 / 不得 >1」。
+                        //
+                        //   ⚠️ ② 只在 `Curve != null` 时求值 —— 峰值 = A_peak/SCALE,两者都由曲线块供给;
+                        //      既有条目的 Curve 可缺席(本循环**独立于** :600 的 curve 块),不得因此造红。
                         if (sign.AppearAt.Raw <= 0 || sign.AppearAt.Raw > Fix.OneRaw)
                             throw new RegistryValidationException(R1_CHECK_37,
                                 $"signs[{i}]「{sign.SignKey}」.appear_at = {sign.AppearAt.Raw} raw ∉ (0, {Fix.OneRaw}] " +
                                 "(F2 投影阈值:≤0 = 恒在场,>1 = 永不出现,两者都无判别力)");
+
+                        // ② 可达性:比较在整数域完成(ADR-006 §三 只约束「必须除」的地方)。
+                        //   峰值 position 的 raw 表示 P = A_peak_raw × ONE / SCALE_raw
+                        //   (`position` 是 Q16.16:值 = raw/ONE,故 raw = 值 × ONE)。
+                        //   于是 `appear_at_raw < P` ⇔ **`appear_at_raw × SCALE_raw < A_peak_raw × ONE`**
+                        //   (两边同乘正数 SCALE_raw,序不变;SCALE_raw > 0 由 R1-23 保证)。
+                        //   ⚠️ 不是 `appear_at × ONE < A_peak × SCALE` —— 那个式子的两边各差一个
+                        //   ONE²/SCALE² 因子,标定错误时**恒真**,门会假放行(起草期自查抓到)。
+                        //   128 位走 CompareProducts。
+                        if (entry.Curve != null && entry.Scale.Raw > 0 &&
+                            CompareProducts(sign.AppearAt.Raw, entry.Scale.Raw,
+                                            entry.Curve.APeak.Raw, Fix.OneRaw) >= 0)
+                            throw new RegistryValidationException(R1_CHECK_37,
+                                $"signs[{i}]「{sign.SignKey}」.appear_at = {sign.AppearAt.Raw} raw " +
+                                $"≥ 该行峰值 position(a_peak={entry.Curve.APeak.Raw}, scale={entry.Scale.Raw})" +
+                                " —— 死词条:波形永远够不着该阈值,生产上该体征零出现" +
+                                "(F2 投影:position 上界 = A_peak/SCALE;2026-10-30 数值轮加门)");
                     }
                 }
             }
