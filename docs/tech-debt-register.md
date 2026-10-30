@@ -429,7 +429,7 @@
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | open | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
-| `TD-itemdb-02` | `item-database` | open | **Y** | R1 |
+| `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
@@ -850,12 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 99, 'open': 37, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 13 （已闭但曾标 P0 面的 90 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
+条目 139 | 状态 {'closed': 100, 'open': 36, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 12 （已闭但曾标 P0 面的 91 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     clinic-machine: 4         telemetry-analytics: 4    enemy-ai: 1
-    item-database: 1          patient-ai: 1             processing: 1
-    skeuomorphic-ui: 1
+    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -6511,3 +6510,156 @@ python3 tools/debtcount/debtcount.py --print | grep "未闭 P0 面"
 python3 tools/debtcount/debtcount.py --check
 # ⇒ ✅ §五 输出块与索引块一致
 ```
+
+---
+
+## 2026-10-30 · `TD-epic-01-b` 勘察轮 —— 债册原建议的修法**有一半做不到**(未结案)
+
+> ⏸ **本条仍 `open`。本轮只做勘察,不做实现** —— 因为实测发现原「修法」中的一条
+> 在**类型层面不可实现**,须用户裁决替代方案。
+>
+> **原建议(债册 `:3089` 原文)**:「catch 里**按异常类型分流**,类型错配**不**转 skipped 而是抛」。
+>
+> **实测三问(全部实跑,探针已删)**:
+>
+> | 问 | 实测结果 | 结论 |
+> |---|---|---|
+> | ① 「未驻留」与「损坏」可分吗? | 未驻留 ⇒ `System.InvalidOperationException`;损坏 ⇒ `System.IO.InvalidDataException` | ✅ **可分**(ADR-031 §② 的设计确实成立) |
+> | ② 「类型错配」与「schema 损坏」可分吗? | **都抛 `InvalidDataException`** —— `PayloadCodec.cs:54` 的类型校验与 `:115` 的 schema 校验用的是**同一个 sealed 类型** | ❌ **不可分** |
+> | ③ 能否派生一个子类型来区分? | `InvalidDataException` 是 **`sealed`** —— 探针编译即报 `CS0509: cannot derive from sealed type` | ❌ **做不到** |
+>
+> **探针实测输出(逐字)**:
+> ```
+> PROBE2-TYPE=System.InvalidOperationException      # blob 未驻留
+> PROBE-TYPE=System.IO.InvalidDataException         # Kind 与载荷不符
+> PROBE-MSG=JudgmentRecorded: tag=0 越界(1..31)      # ← 撞的是 schema 校验,不是类型校验
+> ```
+> ⚠️ **第三行是最有信息量的一条**:用 `CaseClosed` 的字节冒充 `JudgmentRecorded` 时,
+> 抛的是 **schema 越界**,而 `PayloadCodec.cs:54` 那句「载荷类型 X 与请求的 Y 不匹配」
+> **在这条路径上根本执行不到** —— 因为 `DecodeBoxed(kind, bytes)` 先按 `kind` 解出了
+> 一个 `JudgmentRecordedPayload`(它不会因字节来源而变),随后 `boxed is T` 的失败
+> 只在「调用方请求的类型与 kind 的载荷类型不符」时发生,而那属于**调用方静态错误**,
+> 在真实事件流里撞不到。⇒ **`TD-epic-01-a` 描述的「类型错配」在运行期几乎不可观测**,
+> 它更接近「编译期该防但防不住」的**代码卫生**问题,而非数据质量问题的伪装。
+>
+> **⇒ 原建议的三分类(未驻留 / 损坏 / 类型错配)在运行期只有前两类真的可达。**
+> 「把第三类单独抛」这件事**没有宾语**。
+>
+> **可行的替代方案(须裁决,本 ADR 轮不做)**:
+> · **方案 A(推荐)** —— `skipped` 拆成**两个计数**:`skippedMissing`(`InvalidOperationException`)
+>   与 `skippedCorrupt`(其余)。**不改契约、不改异常类型、零涟漪**;报告文案由「跳过 N」
+>   改为「跳过 N(未驻留 a / 损坏 b)」。代价 = 改动 `JudgmentStreamReducer.Reduce` 的
+>   `out int skipped` 签名(或加一个重载),触及 3 处夹具断言。
+> · **方案 B** —— 新立 `PayloadTypeMismatchException` 并在 `PayloadCodec.cs:54` 抛出。
+>   代价 = 改 ADR-031 契约面的异常清单 + 该分支**运行期不可达** ⇒ **测不到**,属「加了门但没人走得过去」
+>   (本项目已抓过五次这类假绿)。
+> · **方案 C** —— 维持现状,只把本条降级为「已知限制」写进报告文案。**不推荐** —— 那正是
+>   本条债要治的「把缺陷伪装成数据质量问题」。
+>
+> **⚠️ 本轮**不**声称「已勘察 = 已修」** —— `TD-epic-01-b` 的索引行状态**维持 `open`**。
+> 复算(可当场重跑,探针件已删,以下为**复现步骤**而非常驻判据):
+> ```bash
+> # 造一条 Kind 与载荷不符的事件,调 IPayloadDecoder.Decode<T>,打印异常类型
+> # 实测:InvalidDataException,message 含 "tag=0 越界"(schema 校验先于类型校验)
+> # 造一条 blob 未驻留的引用 ⇒ InvalidOperationException
+> ```
+
+---
+
+## 2026-10-30 · `TD-itemdb-02` 结案(`Seq` 发号金标准 golden-v2 + Python 参考实现)
+
+> ✅ **2026-10-30 结案 —— `TD-itemdb-02`(金标准无发号场景)**
+>
+> **原判定**:既有四份金标准(item_database / medcons / telemetry / `golden_hash_v1_test.cs`)
+> **无一族场景是发号** —— `grep -rn -e '_currentSeq' -e 'seq_reset' tests/` ⇒ **零命中**,
+> Python 侧没有任何发号参考实现。⇒ `Seq` 发号器是**全案唯一没有跨平台判据的核心纯函数**,
+> 而 `Seq` 是跨流全序键 `(Tick, StreamPriority, Patient, Seq)` 的末位(ADR-008 §二)。
+>
+> **产出(两件,同批)**:
+> · `tests/golden/eventstream/golden_v2_reference.py` —— 独立参考实现(按
+>   `EventStream.cs:262-295` 的**四条分支散文转述**手写,**零共享 C# 代码**、不读 C# 结果)
+> · `tests/golden/eventstream/golden-v2.txt` —— 12 条场景的金标准(由上述脚本生成)
+> · `unity/Assets/Tests/EditMode/DiseaseSimulation/seq_issuance_golden_test.cs` —— 3 条夹具
+>   (逐场景对拍 / 场景集双向齐备 / 防自指只读)
+>
+> **场景集(12 条,覆盖四条分支各 ≥1 + 边界)**:S01 组复位(Tick 变)· S02 组复位(Patient 变)·
+> S03 同组递增 · **S04 同 tick 两条 `Patient=None`(`TD-processing-07` 的判别力场景)** ·
+> S05/S06/S07 恢复批播种(真实形态)· S08/S09 显式 Seq 门 · S10 哨兵 -1 vs 合法 0 ·
+> S11 纯 Append 复合 · S12 空流。
+>
+> **⚠️ 起草期三处自己的错(全部如实登记,均已修)**:
+> ① **③ 的执行序不可观测** —— 初稿在文件头断言「③ 与 ② 顺序不可交换」并让 S07「钉顺序」。
+>   复核发现:**③ 只可能在组的首条事件上抬号**(同组后续事件的计数器已 ≥ 组最大号 + 1,
+>   `gmax+1 > currentSeq` 恒假),而组首条必走 ① 复位、**② 根本不执行**
+>   ⇒ 「③ 在 ② 前还是后」在任何输入下产出**同一序列**。已删该断言,并明写「本金标准不主张钉住该顺序」。
+> ② **「只抬不压」今天无夹具** —— 初稿称 S06 钉该性质。复核:首条上计数器恒 0 ⇒
+>   `gmax+1 > 0` 恒真 ⇒ 「只抬」与「也压」产出相同;要真正判别需 `gmax < 0`,
+>   而组最大号由已入流事件派生、恒 `≥ 0` ⇒ **该形态零输入可达**。已在 S06 的 doc 里明写。
+> ③ **场景形状必须由公开 API 决定(最实质的一条)** —— 初稿的 S05/S06/S07/S11 都直接喂
+>   「空流 + 预置组最大号」。复核发现 `_restoredGroupMax` **只能**经 `Restore` 填充,
+>   而 `Restore` **自己会重放这些事件**(`EventStream.cs:171-175`)⇒ 「空流 + 已预置组最大号」
+>   这个状态**在公开 API 上不可达**。⇒ 全部改写为 `Restore` → 增量 `Append` 的真实形态;
+>   S11(纯 Append 场景)**刻意不含 ③**(纯 Append 会话的组最大号表恒空,`EventStream.cs:280` 恒假)。
+>   S05 的期望 `2,4` 与既有夹具 `Tests/EditMode/PersistenceService/eventstream_restore_test.cs:120`
+>   的 `Assert.AreEqual(4L, …)` **逐位相同** —— 这是两条独立路径得到同一结论的旁证。
+>
+> **⚠️ 夹具首轮两处红(实跑暴露,非设计错误,均已修)**:
+> · **去重把场景吞了**:首轮 S03 期望 `0,1,2` 实得 `0`。归因:`EventStream.Append` 对**未发号**
+>   事件的去重键会补载荷身份(`EventStream.cs:245-247`,O-4 修复)—— 场景事件全用 `default`
+>   载荷 ⇒ 键相同 ⇒ 同组第二条起被**静默去重拒收**。修法:每条事件分配唯一 `PayloadRef`。
+>   (去重语义本身归 `event_stream_test.cs` 的 AC-15 夹具,不在本条判据面内。)
+> · **防自指判据被自己的注释打红**:它扫源码找 `WriteAllText` 等写动作,而本文件的 doc 注释
+>   里**引述**了 `File.WriteAllText(goldenPath, …)` 作为「要防的那种写法」的例子。
+>   修法:先剔注释再扫(与 `Boot/telemetry_debug_view_test.cs` 的 `CodeOnly` 同一思路)。
+>   连带修掉首轮的另一处红:源码路径拼接错了(已改为 `TestDirectory` 上溯定位,与 `GoldenDir()` 同法)。
+>
+> **证伪(4 条变异,逐属性一条,靶点 = `EventStream.cs` 发号器)**:
+>
+> | # | 属性 | 变异 | 结果 |
+> |---|---|---|---|
+> | **M6** | 组复位含 Patient 维 | 去掉 `\|\| e.Patient != _lastSeqPatient` | **红** —— S02/S07/S11 不符 |
+> | **M7** | 恢复批播种 | 删掉整个 ③ 块 | **红** —— S05/S06/S07 不符 |
+> | **M8** | 显式 Seq 门(哨兵) | `e.Seq < 0` → `e.Seq <= 0`(合法 0 被当未发号) | **红** —— S10/S06 不符 |
+> | **M9** | 显式号占位 | 显式事件回写 `_currentSeq = e.Seq` | **红** —— S08(`1→8`)/S09(`1→101`)/S05/S06/S11 |
+>
+> **四条全红,且每条红的场景恰是该属性唯一能现形的那几条**(M6 只动 Patient 维 ⇒ 只红
+> 含 Patient 变的场景;M9 只动显式号 ⇒ 只红含显式号的场景)。⇒ 判据有判别力,不是「一起红」。
+>
+> 还原后 `sha256sum unity/Assets/Sim/EventStream.cs` =
+> `3ccaeecd5f324824e319279021e9a0d6a23493b317fa7281ce37367edc267532` 逐字节一致,
+> `grep -n "FALSIFY-"` 零命中。
+>
+> **⚠️ 本条结案范围(如实收窄)**:补的是**金标准与参考实现**这一层。
+> 跨平台矩阵本身(ADR-012 的三格)仍未落地 —— 那归 `TD-processing-07`(等外部),
+> **不在本条判据面内**(本条原判定逐字即「金标准存在,且 Python 参考实现与 C# 独立同值」)。
+> ⚠️ **同批未做**:CI 尚未跑 `golden_v2_reference.py`(既有 workflow 只跑 medcons 那份);
+> 该接入归 CI 轮,已在下文「残留」登记。
+
+**CI 接入(同批,`golden-reference-sync` job)**:新增一个**不依赖 Unity** 的 job ——
+重跑参考实现到 `$RUNNER_TEMP`,与入库金标准 `diff -u`,**不同即红**。
+复算(本地等价):
+```bash
+python3 tests/golden/eventstream/golden_v2_reference.py /tmp/gv2-check.txt
+diff -u tests/golden/eventstream/golden-v2.txt /tmp/gv2-check.txt   # ⇒ 无输出(逐字节一致)
+```
+⚠️ **本 job 的判据是「逐字节相同」,不是「跑完没报错」** —— 后者对「有人改了脚本没重生成」
+这种形态完全无判别力。⚠️ **本 job 尚未在真 CI 上跑过**(如实登记:`NOT-RUN`;
+它需要在下次 push 时才首次执行)。
+
+**回归三元组(全量)**:截至 `2026-10-30 17:27 CST` · 批次 **`TD-itemdb-02` 结案批** ·
+commit `50c06493`+工作树 ⇒ EditMode `6162 / 6125 / 0 / 37`,基线 `6159 / 6122 / 0 / 37`
+(`TD-epic-01-c` 终态,同日 16:51:58)⇒ **+3 / +3**,等式 `6162 − 6159 = 3`
+恰为本轮新增的 3 条夹具。
+复算:`grep -c "\[Test\]" unity/Assets/Tests/EditMode/DiseaseSimulation/seq_issuance_golden_test.cs` ⇒ **3**。
+
+**计数**:`未闭 P0 面 13 → 12` · `closed 99 → 100`。复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep "未闭 P0 面"
+# ⇒ 未闭 P0 面 = 12 （已闭但曾标 P0 面的 91 条不计）
+python3 tools/debtcount/debtcount.py --check
+# ⇒ ✅ §五 输出块与索引块一致
+```
+⚠️ **`item-database` 自此退出 M3 出口分布**(`TD-itemdb-01` 与 `-02` 均 `closed`,而 `live` 集只算未闭)。
+
+**回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 17:28:51 CST` ·
+commit `50c06493`+工作树 ⇒ 与基线(`TD-epic-01-c` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。

@@ -1,0 +1,34 @@
+# golden-v2 —— `Seq` 发号器确定性黄金夹具(`TD-itemdb-02` 的解除件)
+#
+# 产出:独立 Python 参考实现 golden_v2_reference.py(本目录;与 C# 实现零共享代码)
+#       按 `EventStream.cs:262-295` 的四条分支 + `disease-simulation.md:196-198` 手写。
+#       2026-10-30。
+#       复现 = python3 golden_v2_reference.py(确定性输出)。
+#       防自指:C# 测试只读本文件、永不回写;金标准非由 C# 首跑生成(AC-28)。
+# 版本化:本件为 **v2**(与 v1 同目录族但独立文件族)。刷新须升 v3、全体平台
+#       同时重签、禁单平台独签、旧版保留回归对比(ADR-012 裁决③)。
+#
+# 发号规则(四条分支,逐条对应 `EventStream.cs`):
+#   ① 组复位   Tick 或 Patient 变 ⇒ currentSeq = 0
+#   ② 同组递增 同 (Tick, Patient) ⇒ currentSeq++
+#   ③ 恢复批播种 restoredGroupMax[tick,patient] + 1 > currentSeq ⇒ 抬(**只抬不压**)
+#   ④ 显式 Seq 门 e.Seq < 0 ⇒ 取计数器;e.Seq >= 0 ⇒ 原样保留(**但计数器仍前进**)
+#   ⚠️ 执行序 ①/② → ③ → ④ **不可重排**(S07 钉顺序,S09 钉占位语义)
+#
+# 格式: <name> <seq0>,<seq1>,...(逗号分隔,按入流顺序;空流 = 空串)
+#
+# 场景边界覆盖:四条分支各 ≥1 · 同 tick 两条 Patient=None(S04,判别力场景)·
+#               播种只抬不压的反例(S06)· 播种在 ++ 之后(S07)· 显式号占位(S09)·
+#               哨兵 -1 vs 合法 0(S10)· 四条全走的复合(S11)· 空流(S12)。
+S01_group_reset_by_tick 0,1,0
+S02_group_reset_by_patient 0,1,0
+S03_same_group_increment 0,1,2
+S04_same_tick_two_crafts_patientNone 0,1
+S05_restore_then_append_sameGroup 2,4
+S06_restored_seed_notOverridden_byExplicitSeq 0,2,3
+S07_restore_twoGroups_thenAppend 1,4,2,5
+S08_explicit_seq_preserved 7,1
+S09_explicit_seq_still_advances_counter 100,1
+S10_sentinel_vs_legal_zero 0,0
+S11_mixed_append_branches 0,1,42,3,0,0,1
+S12_empty_stream 

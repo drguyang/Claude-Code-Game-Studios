@@ -13482,3 +13482,31 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   基线 `6156/6119/0/37` ⇒ **+3/+3**。
 - 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 16:52:55 CST ⇒ 逐位相同(零回归)。
 - 计数:`未闭 P0 面 14 → 13`;`TD-epic-01-c` **closed**。
+- **已提交 `50c06493`**。
+
+### TD-epic-01-b(吞异常策略)—— 2026-10-30 勘察轮,仍 open
+- **实测发现原建议「按异常类型分流」有一半做不到**:
+  · 未驻留 ⇒ `InvalidOperationException`;损坏 ⇒ `InvalidDataException` ⇒ **可分**;
+  · **类型错配 vs schema 损坏 ⇒ 同一个 `InvalidDataException`**(且它是 **sealed**,不能派生);
+  · 实测「Kind 与载荷不符」抛的是 **schema 越界**,`PayloadCodec.cs:54` 的类型校验
+    **在真实路径上不可达** ⇒ 债册描述的三分类在运行期只有前两类可达。
+- 已登记三个替代方案(A 拆两个计数 / B 新立异常但不可达 / C 维持现状),**须用户裁决**。
+- ⚠️ **索引行维持 `open`**,本轮不声称已修。
+
+### TD-itemdb-02(Seq 发号金标准)—— 2026-10-30
+- 新增 `tests/golden/eventstream/{golden_v2_reference.py, golden-v2.txt}`(12 条场景)
+  + `Tests/EditMode/DiseaseSimulation/seq_issuance_golden_test.cs`(3 条夹具)。
+- **起草期三处自己的错(如实登记)**:① 误称「③ 与 ② 顺序不可交换」(实测不可观测);
+  ② 误称 S06 钉「只抬不压」(该形态零输入可达);③ **场景形状须由公开 API 决定** ——
+  `_restoredGroupMax` 只能经 `Restore` 填充而 `Restore` 会重放事件 ⇒「空流 + 预置组最大号」**不可达**,
+  全部改写为 `Restore` → 增量 `Append`。
+- **夹具首轮两处红**:去重把场景吞了(未发号事件按 `PayloadRef` 身份去重 ⇒ 全 `default` 载荷被吞);
+  防自指判据被自己的注释打红(先剔注释再扫)。
+- **证伪 4/4 全红**:M6 组复位去 Patient 维 ⇒ S02/S07/S11;M7 删播种 ⇒ S05/S06/S07;
+  M8 `Seq<0`→`Seq<=0` ⇒ S10/S06;M9 显式号回写计数器 ⇒ S08(1→8)/S09(1→101)。
+  还原 SHA-256 `3ccaeecd…` 逐字节一致。
+- **CI 接入**:新增 `golden-reference-sync` job(纯 Python,不依赖 Unity),
+  判据 = 重跑参考实现与入库金标准 **逐字节相同**。⚠️ **尚未在真 CI 上跑过**(NOT-RUN)。
+- 回归(EditMode 全量):`6162/6125/0/37` @ 2026-10-30 17:27 CST(基线 `6159/6122/0/37` ⇒ **+3/+3**)。
+- 回归(PlayMode 全量):`238/234/0/2/2` @ 17:28:51 CST ⇒ 逐位相同(零回归)。
+- 计数:`未闭 P0 面 13 → 12`;`TD-itemdb-02` **closed**;`item-database` 退出 M3 分布。

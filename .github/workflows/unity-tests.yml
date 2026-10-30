@@ -12,6 +12,30 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  golden-reference-sync:
+    name: "金标准同步(Python 参考实现 ⇒ 入库金标准)"
+    # ⚠️ **本 job 不依赖 Unity** —— 纯 Python,故**不需要** UNITY_CLIENT_ID。
+    #    它钉的是 `TD-itemdb-02` 结案时登记的那条残留:CI 此前**只跑 medcons 那一份**
+    #    参考实现,`golden-v2` 从未在 CI 上被复现过 ⇒ 「金标准在盘上」但「没人验证它与
+    #    参考实现同步」。
+    #    判据 = 重跑参考实现到临时路径,与入库金标准**逐字节相同**(不是「跑完没报错」)。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验 golden-v2(Seq 发号)与参考实现同步
+        run: |
+          set -euo pipefail
+          D=tests/golden/eventstream
+          python3 "$D/golden_v2_reference.py" "$RUNNER_TEMP/golden-v2.txt"
+          if ! diff -u "$D/golden-v2.txt" "$RUNNER_TEMP/golden-v2.txt"; then
+            echo "::error::golden-v2.txt 与参考实现**不同步** —— 有人改了脚本没重生成,或改了金标准没改脚本。"
+            echo "修:python3 $D/golden_v2_reference.py 重生成并提交(⚠️ 若是**有意的规则变更**,"
+            echo "    须按 ADR-012 裁决③升 golden-v3 + 全体平台同时重签,**不得**就地改 v2)"
+            exit 1
+          fi
+          echo "✓ golden-v2 与参考实现逐字节一致"
+
   editmode-tests:
     name: "EditMode Tests (Linux-x64-Mono)"
     runs-on: ubuntu-latest
