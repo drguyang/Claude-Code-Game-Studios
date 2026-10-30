@@ -13332,3 +13332,60 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`c5603c6b` + 工作树)。等式 `6116−6115=1`。
 - **计数**:`open 46 · closed 90 · partial 2 · 未闭 P0 面 23 → 22`。
 - **未提交**。
+
+## Session Extract — 结案 `TD-medcons-07` / `TD-medcons-08`(2026-10-30 第十三/十四批)
+
+### TD-medcons-07 —— `FindFloatLiterals` 诊断完备性
+- 原判定:同形态多字面量的诊断完备性无测试;触发 = 门报错被抱怨不够定位时。
+- **实测:既有夹具对这一面零判别力** —— 它只断 `Assert.Greater(...Count, 0)`,
+  对「报 1 条」和「报 10 条」完全一样 ⇒ 退回 `rx.Match` 也不会红。触发条件等不来。
+- 补 1 条载体(该类 44 → 45):同形态三处 ⇒ 三条 / 跨形态五处 ⇒ 五条 /
+  `1.5E-4` 恰一条(**跨形态不重报**)。
+- 证伪:M1 退回只取首个匹配 ⇒ 1 红(首次变异因 `foreach` 缺花括号未编译,**作废重做**);
+  M2 按字符串去重 ⇒ 1 红。SHA-256 还原(`MedConsFloatGate.cs c58ec5bd…0328`)。
+- 如实登记:未碰 `StripStrings` 的 verbatim 剥词边界(N-7,登记不修)。
+- 回归:EditMode `6117/6080/0/37` @13:14:15 · PlayMode `238/234/0/2/2` @13:15:08。
+
+### TD-medcons-08 —— 共享 blob 池跨测例无 teardown
+- 原判定:共享 `static readonly` `SharedPool`/`Encoder`/`Decoder` 跨测试无 teardown,
+  偏离「never shared mutable state」;触发 = 任一测试依赖 blob id 时。
+- 实测:medcons 侧 **3 个 fixture** 逐字相同;**另有 2 处**在 CaseSystem
+  (`case_close_precondition_test.cs:44` / `case_open_and_judgment_test.cs:51`,属别 epic)。
+- 修法:三处改「每测例新建」(`[SetUp]` 重置);**字段仍 static**(静态 helper 需要)
+  ⇒ 换来的是「不跨测例累积」,**不是**「无限程状态」;因此三个 fixture **不可标 `[Parallelizable]`**,
+  该约束写成注释留在 `[SetUp]` 上方。
+- 补 3 条探针 `test_zz_blobPoolIsFreshAtEachTest`(断 `SharedPool.Count == 0`);
+  **`zz` 是判据的一部分** —— 它必须排在编码测例之后才成立,该风险写进夹具注释。
+- 证伪 M1:三处同时退回共享实例 ⇒ **恰 3 红**(三条探针),证明探针确实排在编码测例后。
+  SHA-256 还原(`967d4207…` / `50d5b502…` / `530c2859…`)。
+- 回归:EditMode `6120/6083/0/37` @13:22:39 · PlayMode `238/234/0/2/2` @13:23:30
+  (`599b2b57` + 工作树)。等式 `6120 − 6117 = 3`。
+- **计数**:`open 44 · closed 92 · partial 2 · 未闭 P0 面 22 → 20`。
+- **未提交**。
+
+## Session Extract — 结案 `TD-medcons-12` / `TD-medcons-17`(2026-10-30 第十五/十六批)
+
+### TD-medcons-12 —— 定义域一致性断言「防值不防改名」
+- 原判定(B-W3):`DomainRows` ↔ `DomainOutcomes` 的一致性断言只防值分歧,不防改名;
+  触发 = 任一侧枚举改名时。
+- 实测:`AssertDomainDeclarationsMatch` 两侧各收 `HashSet<int>` 再 `SetEquals` —— 判的是**序数集合**。
+  把 `Outcome.Residual` 改叫 `Remain`,序数不动 ⇒ 照绿,JSON 键与代码成员名分叉。
+- 修法:补「名字半」`AssertDomainNamesMatch`(Pascalize(Name) 须逐字等于枚举成员名)+
+  `Pascalize` / `DomainNameMatches` 两个 internal 判据面。
+- 补 3 条载体(214 → 217):映射规则 / 配错须判否 / **接线**。
+- **⚠️ 证伪抓到新缺口**:M1 破坏 Pascalize ⇒ 25 红(门在路径上);
+  **M2 首轮(接线夹具存在前)摘掉调用 ⇒ 216 全绿** —— 函数在、纯谓词夹具也绿,只是不在跑。
+  ⇒ 补源文本接线夹具(`GateChainSource.MethodBody`),M2 重做 ⇒ 1 红。
+- 回归:EditMode `6123/6086/0/37` @13:35:33 · PlayMode `238/234/0/2/2` @13:36:31。
+
+### TD-medcons-17 —— `BuildDueRows` 51 行超 ≤40
+- 原判定:51 行(198–248)超「≤ 40」;≤40 无门 ⇒ 无夹具。触发 = 代码规范闸落地时。
+- 修法(**控制流留原处,行为面零变化**):拆 `AssertEligibleCaseClosed`(两处形状断言)+
+  `CompareDueRows` / `DueRowOrder`(四分量定序)⇒ **51 → 29 行**。
+- 补 1 条载体(217 → 218):源文本读方法体断言行数 ≤40。
+  ⚠️ **单方法探针,不是全仓 ≤40 门** —— 该闸仍不存在,不得自称已机械化。
+- 证伪 M1:两处拆分内联回方法体 ⇒ 回到 42 行 ⇒ **恰 1 红**(长度探针),其余 217 全绿。
+  **副产物**:内联回去后行为面全绿 ⇒ 拆分**行为等价**(反向做一遍验证)。
+- 回归:EditMode `6124/6087/0/37` @13:42:35 · PlayMode `238/234/0/2/2` @13:43:30。
+- **计数**:`open 42 · closed 94 · partial 2 · 未闭 P0 面 20 → 18`。
+- **未提交**。

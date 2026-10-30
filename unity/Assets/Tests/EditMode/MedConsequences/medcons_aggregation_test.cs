@@ -49,9 +49,34 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // Aggregate 已改解码口径 ⇒ 被解码消费的 Kind(JudgmentRecorded / CareApplied /
         // EmergencyTreatmentApplied / DrugTreatmentApplied)须**真编码** ——
         // default(PayloadRef) 解码必抛。其余 Kind(哨兵 / 干扰 / 结案)仍零值。
-        private static readonly InMemoryBlobPool SharedPool = new InMemoryBlobPool();
-        private static readonly PayloadEncoder Encoder = new PayloadEncoder(SharedPool);
-        private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
+        // 🔁 2026-10-30(`TD-medcons-08`):原为 `static readonly` —— 同一个 blob 池跨**整个 fixture**
+        // 共用、从不清理,对照 `.claude/rules/test-standards.md`「never shared mutable state」属偏离。
+        // 改为「**每测例新建**」:池内容不再跨测例累积 ⇒ 断言不会因**执行顺序**而变。
+        // ⚠️ 字段仍是 static(静态 helper 要用它们),故本 fixture **不可**标 `[Parallelizable]`
+        // —— 并行跑会让两个测例抢同一份池。当前未标,这条约束写成注释留在原地。
+        private static InMemoryBlobPool SharedPool;
+        private static PayloadEncoder Encoder;
+        private static PayloadDecoder Decoder;
+
+        [SetUp]
+        public void ResetSharedBlobPool()
+        {
+            SharedPool = new InMemoryBlobPool();
+            Encoder = new PayloadEncoder(SharedPool);
+            Decoder = new PayloadDecoder(SharedPool);
+        }
+
+        /// <summary>
+        /// `TD-medcons-08` 载体 —— 本 fixture 的 blob 池**每个测例新建**,不跨测例累积。
+        /// <para>名字刻意以 `zz` 开头:本 fixture 内有大量编码测例,池若被跨测例共用,
+        /// 跑本条时 <c>Count</c> 必已 &gt; 0 ⇒ 红。「排最后」是这条探针的**前提**,不是命名风格。</para>
+        /// </summary>
+        [Test]
+        public void test_zz_blobPoolIsFreshAtEachTest()
+        {
+            Assert.AreEqual(0, SharedPool.Count,
+                "blob 池须每测例新建 —— Count > 0 说明前一测例的载荷还留在池里(跨测例可变状态)");
+        }
 
         /// <summary>header 层事件构造(**零载荷** —— 仅用于不被解码消费的 Kind)。</summary>
         private static SimEvent Ev(long tick, int patient, long seq, EventKind kind)

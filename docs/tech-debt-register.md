@@ -307,17 +307,17 @@
 | `TD-medcons-04` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-05` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-06` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-07` | `medical-consequences` | closed | **Y** | R1 |
+| `TD-medcons-08` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-09` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-10` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-12` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-12` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-14` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-15` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-17` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-17` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 90, 'open': 46, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 22 （已闭但曾标 P0 面的 81 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 22 条,分布在 8/31 个 epic
-    medical-consequences: 8   telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 94, 'open': 42, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 18 （已闭但曾标 P0 面的 85 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 18 条,分布在 8/31 个 epic
+    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1658,6 +1658,236 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > #   Unity -batchmode -runTests -testPlatform EditMode \
 > #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 44/44
 > ```
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-07`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:`FindFloatLiterals` 已取全部匹配,但**同形态多字面量**的诊断完备性无测试。
+> 触发条件 =「门报错信息被抱怨不够定位时」。
+>
+> **实测:既有夹具对这一面**没有判别力**,所以触发条件等不来 —— 它只会以「到时候再说」的形式
+> 永远挂着。** 现有那条 `test_gate_floatLiteralPatterns_catchLiterals_notDocReferences`
+> 对每种形态只断言 `Count > 0`,而 `Count > 0` 对「报 1 条」和「报 10 条」**完全一样**
+> ⇒ 若实现退回 `rx.Match`(只取首个),它**一条都不会红**。这正是本条要补的缺口。
+> 触发条件写的是「被抱怨时」,而**能被抱怨的前提是清单本身是对的** —— 先补清单正确性,
+> 抱怨才有意义。
+>
+> **补 1 条载体**(该类 **44 → 45**):`test_gate_findFloatLiterals_reportsEveryOccurrence_notJustFirst`。
+> 三条断言,分别钉一件事:
+> · 同形态三处 ⇒ **三条**(逐字 `1.5` × 3)—— 钉「取全部匹配」;
+> · 跨形态混合五处 ⇒ **五条**(`1.5` / `.5f` / `3e10` / `1.5` / `1_000f`)—— 钉三种形态各取全;
+> · `1.5E-4` ⇒ **恰一条** —— 钉**跨形态不重报**(形态 ③ 命中后形态 ① 必须前瞻失败,
+>   否则诊断清单会凭空虚高)。
+>
+> **为什么断言逐字原文而不是「非空」**:门的异常消息直接嵌这个串
+> (`出现浮点字面量「{hit}」`),串里多带一个前导字符,报文就成了 `「=1.5」`。
+> 夹具刻意让每个字面量前留一个空格,使 `Trim()` 后恰为原文 —— 这一条写进了夹具注释。
+>
+> **证伪两轮**:
+> · **M1**:把 `foreach (Match m in rx.Matches(...))` 退回**只取首个匹配**(即被修掉的
+>   原实现)⇒ **1 红**(那条新夹具)。
+>   ⚠️ **首次 M1 变异没编译**(直接替换两行语句撞上无花括号的单语句 `foreach` 体,
+>   CS1023)⇒ 该轮**作废重做**(补花括号后重跑)。作废轮不计入证据。
+> · **M2**:改为**按字符串去重**(`if (!hits.Contains(t))`)⇒ **1 红**(同形态三条只剩一条)。
+> · 两轮(含作废重做的那次)均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`MedConsFloatGate.cs c58ec5bd…0328`),未用 `git checkout`。
+>
+> **回归**:EditMode `6117 / 6080 / 0 / 37` @ 2026-10-30 **13:14:15 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **13:15:08 CST**(`599b2b57` + 工作树)。
+> 等式 `6117 − 6116 = 1` = 新增的 1 条载体;PlayMode **逐位一致**。
+>
+> **可复算命令**:
+> ```bash
+> # ① 载体在(改前零命中)
+> grep -c "reportsEveryOccurrence_notJustFirst" \
+>   unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs
+>
+> # ② 既有夹具确实只断 Count > 0(即对「只取首个」无判别力)
+> grep -n "Assert.Greater(MedConsFloatGate.FindFloatLiterals(code).Count, 0" \
+>   unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs
+> # 期望 1 行 —— 这就是「只断 >0」的那条;它分不出「报 1 条」和「报 10 条」
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 45/45
+> ```
+>
+> **未一并处理(如实登记)**:`StripStrings` 只认 `"` 起止、不识 `@"…"` / `$"…"` / `'…'`
+> (`MedConsFloatGate` N-7,**登记不修**)。若 53 源出现 verbatim 字符串,后续真实浮点字面量
+> 可能被剥掉(漏报)。本条只补「清单完整性」,不碰这个剥词边界。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-08`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:共享 `static readonly` `SharedPool` / `Encoder` / `Decoder` 跨测试**无 teardown**
+> —— 对照 `.claude/rules/test-standards.md`「never shared mutable state」属偏离
+> (当前无断言依赖 blob id,风险低)。触发条件 =「任一测试开始依赖 blob id 时」。
+>
+> **实测**:该形态在 medcons 侧共 **3 个 fixture**(`medcons_outcome_judge_test` /
+> `medcons_delayed_emit_test` / `medcons_aggregation_test`),三处**逐字相同**的三行声明;
+> 另有 **2 处**在 CaseSystem(`case_close_precondition_test.cs:44` / `case_open_and_judgment_test.cs:51`,
+> **属 CaseSystem epic,不在本条面内**,见文末「未一并处理」)。复算见下 ①。
+>
+> **修法**:三处一律改为「**每测例新建**」——
+> ```csharp
+> private static InMemoryBlobPool SharedPool;   // 去掉 readonly / 字段初始化器
+> private static PayloadEncoder Encoder;
+> private static PayloadDecoder Decoder;
+> [SetUp] public void ResetSharedBlobPool() { … 三者全部重建 … }
+> ```
+> **字段仍是 static**(大量 `static` 辅助方法要用它们,改成实例字段会级联改几十个调用点)
+> ⇒ 换来的是「不跨测例累积」,**不是**「无限程状态可共享」。⚠️ 因此这三个 fixture
+> **不可标 `[Parallelizable]`** —— 并行会让两个测例抢同一份池。该约束写成注释留在 `[SetUp]` 上方,
+> 不靠记性。
+>
+> **补 3 条探针**(三个 fixture 各一,计 **+3**):`test_zz_blobPoolIsFreshAtEachTest`,
+> 断言 `SharedPool.Count == 0`。
+> ⚠️ **名字里的 `zz` 是判据的一部分,不是命名风格**:本 fixture 内有大量编码测例,
+> 池若被跨测例共用,跑本条时 `Count` 必已 &gt; 0 ⇒ 红。它靠「排最后」才成立 ——
+> 若将来 NUnit 的执行次序变了,这条探针会退化成恒绿。**该风险已写进夹具注释。**
+>
+> **证伪一轮**(判别力来源 = 「池是否每测例新建」):
+> · **M1**:三处**同时**退回原来的共享实例(去掉 `[SetUp]`、恢复 `static readonly` + 字段初始化器)
+>   ⇒ **恰 3 红**,即那三条探针(每条在其所属 fixture 内)。归因干净。
+>   ⚠️ 该轮证明的正是「探针确实排在编码测例之后」—— 若它跑在第一个,共享池下也会是绿的。
+> · 变异以备份 + `cp` 回 + **SHA-256 逐字节比对**还原(三个文件
+>   `967d4207…ba27` / `50d5b502…e8fd` / `530c2859…5afb`),未用 `git checkout`。
+>
+> **回归**:EditMode `6120 / 6083 / 0 / 37` @ 2026-10-30 **13:22:39 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **13:23:30 CST**(`599b2b57` + 工作树)。
+> 等式 `6120 − 6117 = 3` = 新增的 3 条探针(`6117` 是上一条 `TD-medcons-07` 的回归值)。
+>
+> **可复算命令**:
+> ```bash
+> # ① 「共享实例 + 无 teardown」的形态还剩几处
+> grep -rn "static readonly InMemoryBlobPool" unity/Assets/Tests/
+> # 期望:只剩 CaseSystem 下 2 处(本条面外的姊妹件):
+> #   case_close_precondition_test.cs:44 · case_open_and_judgment_test.cs:51
+>
+> # ② medcons 侧三处已是「每测例新建」
+> grep -rc "private static InMemoryBlobPool SharedPool;" unity/Assets/Tests/EditMode/MedConsequences/*.cs | grep -v ":0"
+> # 期望:3 个文件各 1
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences   # 期望 214/214
+> ```
+>
+> **未一并处理(如实登记)**:`unity/Assets/Tests/EditMode/CaseSystem/` 下**两处**有逐字相同的形态
+> —— `case_close_precondition_test.cs:44` 与 `case_open_and_judgment_test.cs:51`。
+> 它们属 CaseSystem epic,不挂在 本条(medcons)名下;要还须另立案。
+> **不得**据本条把「跨测例可变 blob 池」记成已全库清零。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-12`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**(B-W3):`DelayTableBinder.DomainRows` 的 ordinal 与 Sim 侧 `DomainOutcomes` 的
+> 一致性断言**只防值分歧,不防改名**。触发条件 =「任一侧枚举改名时」。
+>
+> **实测坐实**:`DelayTable53Bake.AssertDomainDeclarationsMatch` 两侧各收一个 `HashSet<int>`
+> 再 `SetEquals` —— 判的是**序数集合**。把 `Outcome53.Outcome.Residual` 改叫 `Remain`,
+> 序数一位不动 ⇒ 该断言照样绿,而 JSON 里的 `"residual"` 键与代码里的成员名已经各说各话
+> ⇒ 数据词表与代码词表分叉,**正是该文件开头自己写的那条「第二真源」**。
+>
+> **修法**(补「名字半」,不动序数半):
+> · 新增 `AssertDomainNamesMatch()` —— 判据 = 白名单名 `Name` 的 **PascalCase 形**必须**逐字**
+>   等于枚举成员名(`trial_history` ⇔ `TrialHistory`),把「名字 ↔ 枚举成员」这对**成对登记**
+>   变成可判的;由 `AssertDomainDeclarationsMatch` 在序数比对之后调用。
+> · 两个 `internal` 判据面供夹具直驱:`Pascalize(string)` · `DomainNameMatches(string, Outcome53.Outcome)`。
+>
+> **补 3 条载体**(MedConsequences 命名空间 **214 → 217**):
+> ① `test_bw3_pascalize_mapsSnakeCaseToEnumMemberForm`(映射规则,含空串 / 前导下划线);
+> ② `test_bw3_domainNameMismatch_isDetected_notJustValueEquality`(真实三对全一致 +
+>    **配错须判否** —— 最小可判形,证明判据看的是**配对**而不是「两个值都在域里」);
+> ③ `test_bw3_nameAssertion_isActuallyWiredIntoDeclarationAssert`(**接线**,见下)。
+>
+> **⚠️ 本轮证伪抓到一个新缺口(如实登记)**:
+> · **M1**:破坏 `Pascalize`(下划线后不再大写)⇒ **25 红** —— 整族延迟表夹具,
+>   因为 `Materialize` 里的门当场抛。门在路径上,有判别力。
+> · **M2 首轮**(接线夹具**存在之前**):把 `AssertDomainNamesMatch();` 那一行**删掉**
+>   ⇒ **216 条全绿**。函数还在、纯谓词夹具也还绿,**只是它不再运行** ——
+>   这正是本项目反复抓的「用自述顶替门」形态,而我本来正要把它写进结案块。
+>   ⇒ 补载体 ③(源文本读 `AssertDomainDeclarationsMatch` 方法体,要求体内出现
+>   `AssertDomainNamesMatch`;剥注释与字符串用既有 `GateChainSource`),再重做 M2。
+> · **M2 重做**:同样摘掉调用 ⇒ **1 红**,恰为载体 ③。
+> · M1 / M2 两轮均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`DelayTable53Bake.cs c346263d…d39d`),未用 `git checkout`。
+>
+> **载体 ③ 的已知边界**:它是**源文本级**判据(`GateChainSource` 是剥注释 + 花括号配平的
+> 文本解析,非 Roslyn)⇒ 若把方法体改成表达式体 / 大幅重排,它可能误伤。
+> 该误伤方向是**偏安全**(变红而非静默变绿),且与 `gate_wiring_manifest_test` 同一形态。
+>
+> **回归**:EditMode `6123 / 6086 / 0 / 37` @ 2026-10-30 **13:35:33 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **13:36:31 CST**(`599b2b57` + 工作树)。
+> 等式 `6123 − 6120 = 3` = 本条新增的 3 条载体。
+>
+> **可复算命令**:
+> ```bash
+> # ① 名字判据真的被调用(删掉调用 ⇒ 下面第二条为空)
+> grep -n "AssertDomainNamesMatch" unity/Assets/Editor.Tools.Bake/DelayTable53Bake.cs
+> # 期望:2 行 —— `:147` 调用 + `:159` 声明(删掉 `:147` 那行 ⇒ 只剩声明)
+>
+> # ② 序数半仍然只有集合比对(本条没动它 —— 如实登记)
+> grep -n "SetEquals" unity/Assets/Editor.Tools.Bake/DelayTable53Bake.cs
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences   # 期望 217/217
+> ```
+>
+> **未一并处理(如实登记)**:本条的判据只覆盖 `DomainRows` 这条「名字 ↔ 枚举」配对。
+> 全仓还有别的「snake 名 ↔ 枚举成员」配对(如 `OutcomeTableBinder` 的 18 组合键),
+> 它们各自是否也有同样的改名盲区,**本轮未普查** —— 不得据本条说「全库枚举改名均有门」。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-17`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:`ConsequenceEmitter.BuildDueRows` **51 行**(185–235)超「≤ 40 行」标准;
+> ≤ 40 无门 ⇒ 无夹具。触发条件 =「54 / 代码规范闸落地时」。
+>
+> **实测**:方法体 198–248 = **51 行**,与判定一致。它与 `TD-persist-08` / `TD-clinic-14`
+> 同属「等代码规范闸」的一族,而 `TD-clinic-14` 已于 2026-10-29 **按拆方法结案** —— 本轮沿用同一处置。
+>
+> **修法**(拆两处,**控制流留在原处 ⇒ 行为面零变化**):
+> · `AssertEligibleCaseClosed(in SimEvent close, int index)` —— 两处形状断言
+>   (种类须 CaseClosed / 病人不得为 `PatientId.None`),报文与 `ParamName="eligible"` 逐字不变;
+> · `CompareDueRows` + `static readonly Comparison<DueRow> DueRowOrder` —— 四分量升序定序。
+> ⇒ 方法体 **51 → 29 行**。
+>
+> **补 1 条载体**(MedConsequences 命名空间 **217 → 218**):`test_buildDueRows_staysWithin40Lines`
+> —— 源文本读方法体(剥注释 / 字符串用既有 `GateChainSource`),断言行数 ≤ 40。
+> ⚠️ **这是单方法探针,不是全仓 ≤40 门**。`TD-medcons-17` / `TD-persist-08` / `TD-clinic-14`
+> 共同指向的那个「代码规范闸」**仍不存在**;本条只保证**这一条**不回潮,
+> **不得**据它宣称「≤ 40 已机械化」。
+>
+> **证伪一轮**:
+> · **M1**:把两处拆分**内联回方法体**(压缩版,精确复现原形态)⇒ `BuildDueRows` 回到 **42 行**
+>   ⇒ **恰 1 红**(那条长度探针),其余 **217 全绿**。
+>   ⚠️ 这一轮的**副产品是一条正面证据**:内联回去后行为面全绿 ⇒ 本轮拆分**行为等价**
+>   (不是「看起来等价」,是把改动反向做一遍,218 条里只有长度探针动)。
+> · 变异以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`ConsequenceEmitter.cs 6e260c00…e50`),未用 `git checkout`。
+>
+> **回归**:EditMode `6124 / 6087 / 0 / 37` @ 2026-10-30 **13:42:35 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **13:43:30 CST**(`599b2b57` + 工作树)。
+> 等式 `6124 − 6123 = 1` = 本条新增的 1 条探针。
+>
+> **可复算命令**:
+> ```bash
+> # ① 方法体现在多少行(拆前 51 / 拆后 29)
+> python3 -I -c "
+> s=open('unity/Assets/Sim/Consequences/ConsequenceEmitter.cs',encoding='utf-8').read()
+> i=s.index('private List<DueRow> BuildDueRows('); j=s.index('\n        }', i)
+> print(s[i:j].count('\n')+2)   # 签名行→末语句行 + 收尾花括号行"
+> # 期望:29(与「51 行」同一计数口径:含签名行与收尾 `}`)
+>
+> # ② 两处拆分确实在方法体之外
+> grep -n "private static void AssertEligibleCaseClosed\|private static int CompareDueRows" \
+>   unity/Assets/Sim/Consequences/ConsequenceEmitter.cs
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences   # 期望 218/218
+> ```
+>
+> **未一并处理(如实登记)**:同族 `TD-persist-08`(`SaveService` / `EventStream` 的超长方法)
+> 与「代码规范闸」本身**均未动**。本条只清 `BuildDueRows` 这一处。
 
 ---
 

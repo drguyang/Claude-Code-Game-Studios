@@ -51,9 +51,34 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // 夹具基建(与 medcons_aggregation_test / medcons_outcome_judge_test 同款)
         // ════════════════════════════════════════════════════════════════════
 
-        private static readonly InMemoryBlobPool SharedPool = new InMemoryBlobPool();
-        private static readonly PayloadEncoder Encoder = new PayloadEncoder(SharedPool);
-        private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
+        // 🔁 2026-10-30(`TD-medcons-08`):原为 `static readonly` —— 同一个 blob 池跨**整个 fixture**
+        // 共用、从不清理,对照 `.claude/rules/test-standards.md`「never shared mutable state」属偏离。
+        // 改为「**每测例新建**」:池内容不再跨测例累积 ⇒ 断言不会因**执行顺序**而变。
+        // ⚠️ 字段仍是 static(静态 helper 要用它们),故本 fixture **不可**标 `[Parallelizable]`
+        // —— 并行跑会让两个测例抢同一份池。当前未标,这条约束写成注释留在原地。
+        private static InMemoryBlobPool SharedPool;
+        private static PayloadEncoder Encoder;
+        private static PayloadDecoder Decoder;
+
+        [SetUp]
+        public void ResetSharedBlobPool()
+        {
+            SharedPool = new InMemoryBlobPool();
+            Encoder = new PayloadEncoder(SharedPool);
+            Decoder = new PayloadDecoder(SharedPool);
+        }
+
+        /// <summary>
+        /// `TD-medcons-08` 载体 —— 本 fixture 的 blob 池**每个测例新建**,不跨测例累积。
+        /// <para>名字刻意以 `zz` 开头:本 fixture 内有大量编码测例,池若被跨测例共用,
+        /// 跑本条时 <c>Count</c> 必已 &gt; 0 ⇒ 红。「排最后」是这条探针的**前提**,不是命名风格。</para>
+        /// </summary>
+        [Test]
+        public void test_zz_blobPoolIsFreshAtEachTest()
+        {
+            Assert.AreEqual(0, SharedPool.Count,
+                "blob 池须每测例新建 —— Count > 0 说明前一测例的载荷还留在池里(跨测例可变状态)");
+        }
 
         private static string RepoRoot()
             => MedConsRepoPaths.RepoRoot;
@@ -1388,6 +1413,96 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "Sim 侧定义域大小 = 表行数");
             Assert.AreEqual(DelayTable53.DomainOutcomes.Count, bound.Rows.Count,
                 "Binder 绑定行数 = Sim 侧定义域大小(两处声明等值 —— Materialize 的断言是硬门)");
+        }
+
+        /// <summary>
+        /// `TD-medcons-12` 载体(**第一半**)—— 白名单名 → 枚举成员名的 PascalCase 映射判据。
+        /// </summary>
+        [Test]
+        public void test_bw3_pascalize_mapsSnakeCaseToEnumMemberForm()
+        {
+            Assert.AreEqual("Residual", DelayTable53Bake.Pascalize("residual"));
+            Assert.AreEqual("TrialHistory", DelayTable53Bake.Pascalize("trial_history"));
+            Assert.AreEqual("AppliedUnmatched", DelayTable53Bake.Pascalize("applied_unmatched"));
+            Assert.AreEqual("", DelayTable53Bake.Pascalize(""), "空入参 ⇒ 空出参(不抛)");
+            Assert.AreEqual("A", DelayTable53Bake.Pascalize("_a__"),
+                "前导 / 重复下划线不得产生空段或多段");
+        }
+
+        /// <summary>
+        /// `TD-medcons-12` 载体(**第二半**)—— 名字 ↔ 枚举成员**不成对**时须可判为否。
+        /// <para>为什么需要这一半:上面 `test_r1_domainDeclarations_*` 判的是**序数集合**,
+        /// 它只防「成员数 / 值分叉」,**不防改名**。把 `Outcome53.Outcome.Residual` 改叫
+        /// `Remain`,序数一位不动 ⇒ 那条断言照样绿,而 JSON 的 `"residual"` 键已与代码成员名分叉。
+        /// 本条的「配错」夹具正是那个形态的最小可判形 —— 它证明判据看的是**配对**,
+        /// 不是「这两个值是否都在域里」。</para>
+        /// </summary>
+        [Test]
+        public void test_bw3_domainNameMismatch_isDetected_notJustValueEquality()
+        {
+            foreach (var row in DelayTableBinder.DomainRows)
+                Assert.IsTrue(DelayTable53Bake.DomainNameMatches(row.Name, row.Outcome),
+                    $"真实白名单「{row.Name}」↔ 枚举成员「{row.Outcome}」须一致" +
+                    "(不一致时构建期 AssertDomainNamesMatch 早抛,本条会先红)");
+
+            Assert.IsFalse(DelayTable53Bake.DomainNameMatches("residual", Outcome53.Outcome.Recurrence),
+                "「residual」配 Recurrence 须判否 —— 否则改名 / 错配会静默通过集合等值断言");
+            Assert.IsFalse(DelayTable53Bake.DomainNameMatches("trial_history", Outcome53.Outcome.Residual),
+                "「trial_history」配 Residual 须判否");
+        }
+
+        /// <summary>
+        /// `TD-medcons-12` 载体(**第三半 · 接线**)—— 名字判据必须真的被
+        /// `AssertDomainDeclarationsMatch` **调用**。
+        /// <para>⚠️ 为什么需要这一条(实测,不是推演):把 `AssertDomainNamesMatch();` 那一行
+        /// **删掉**后,整族 **216 条** MedConsequences 判据**全绿** —— 函数还在、纯谓词夹具也还绿,
+        /// 只是它不再运行。这正是本项目反复抓的「用自述顶替门」形态。</para>
+        /// <para>判据 = 源文本(剥注释与字符串后)取 `AssertDomainDeclarationsMatch` 的方法体,
+        /// 要求体中出现 `AssertDomainNamesMatch`。删调用 ⇒ 红;改签名 ⇒ 方法体定位失败 ⇒ 红。</para>
+        /// </summary>
+        [Test]
+        public void test_bw3_nameAssertion_isActuallyWiredIntoDeclarationAssert()
+        {
+            string path = Path.Combine(MedConsRepoPaths.ProjectRoot,
+                "Assets", "Editor.Tools.Bake", "DelayTable53Bake.cs");
+            Assert.That(File.Exists(path), Is.True, $"源文件缺失:{path}");
+
+            string cleaned = DaYiJingCheng.Tests.Unit.Sim.GateChainSource
+                .StripCommentsAndLiterals(File.ReadAllText(path));
+            string body = DaYiJingCheng.Tests.Unit.Sim.GateChainSource.MethodBody(cleaned,
+                "private static void AssertDomainDeclarationsMatch(");
+            Assert.That(body, Is.Not.Null,
+                "找不到 AssertDomainDeclarationsMatch 的方法体 —— 签名变了?本判据须同批订正");
+            StringAssert.Contains("AssertDomainNamesMatch", body,
+                "名字判据须被**调用** —— 函数存在不等于它在跑(删掉那行调用时,本夹具是唯一会红的东西)");
+        }
+
+        /// <summary>
+        /// `TD-medcons-17` 载体 —— `ConsequenceEmitter.BuildDueRows` 须 ≤ 40 行。
+        /// <para>原方法 **51 行**(超 `.claude/docs/coding-standards.md` 的「≤ 40 行」)。
+        /// 2026-10-30 拆出 `AssertEligibleCaseClosed`(两处形状断言)与 `CompareDueRows`(定序),
+        /// 控制流(域外跳过 / 窗上界 / 行内去重)留在原处 ⇒ **行为面零变化**,现 29 行。</para>
+        /// <para>⚠️ **这是单方法探针,不是全仓 ≤40 门** —— `TD-medcons-17` / `TD-persist-08` /
+        /// `TD-clinic-14` 都指向的那个「代码规范闸」**仍不存在**。本夹具只保证这一条不回潮,
+        /// 不得据它宣称「≤40 已机械化」。</para>
+        /// </summary>
+        [Test]
+        public void test_buildDueRows_staysWithin40Lines()
+        {
+            string path = Path.Combine(MedConsRepoPaths.ProjectRoot,
+                "Assets", "Sim", "Consequences", "ConsequenceEmitter.cs");
+            Assert.That(File.Exists(path), Is.True, $"源文件缺失:{path}");
+
+            string cleaned = DaYiJingCheng.Tests.Unit.Sim.GateChainSource
+                .StripCommentsAndLiterals(File.ReadAllText(path));
+            string body = DaYiJingCheng.Tests.Unit.Sim.GateChainSource.MethodBody(cleaned,
+                "private List<DueRow> BuildDueRows(");
+            Assert.That(body, Is.Not.Null,
+                "找不到 BuildDueRows 的方法体 —— 签名变了?本判据须同批订正");
+
+            int lines = body.Split('\n').Length;
+            Assert.LessOrEqual(lines, 40,
+                $"BuildDueRows 现 {lines} 行,超「≤ 40 行」标准 —— 拆方法,别放宽阈值");
         }
 
         // ── 修复轮专用 helper(全部具名;不复用/不遮蔽既有桩)────────────────

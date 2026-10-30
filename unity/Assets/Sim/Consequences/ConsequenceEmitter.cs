@@ -206,19 +206,7 @@ namespace DaYiJingCheng.Sim.Consequences
             {
                 SimEvent close = eligible[i].CaseClosed;
                 int outcome = eligible[i].Outcome;
-
-                if (close.Kind != EventKind.CaseClosed)
-                    throw new ArgumentException(
-                        $"eligible[{i}] 不是 CaseClosed(实得 {close.Kind})—— 合格行的触发事件" +
-                        "须为该病例的结案事件(F-53.2 自变量 = Tick(CaseClosed))", nameof(eligible));
-
-                // 世界级哨兵不合法:后果逐例属某病人,None 会产出「无病人」的世界级幻影后果,
-                // 且绕过 EventStream 的 AC-15 在场检查(EventStream.cs:77 显式跳过 None)。
-                if (close.Patient == PatientId.None)
-                    throw new ArgumentException(
-                        $"eligible[{i}] 的 CaseClosed 携 PatientId.None —— 后果逐例属某病人," +
-                        "须携真 patient_id(类头口径 + registry entities.yaml:2160 的 Patient = patient_id; " +
-                        "None 会产出无病人归因的世界级幻影后果,并绕过 AC-15 在场检查)", nameof(eligible));
+                AssertEligibleCaseClosed(close, i);
 
                 if (!_delayTable.TryDelayTicks(outcome, out long delayTicks))
                     continue;   // 域外 = 合法不发(NoEcho 无痕 / 结局轴由 9 即时结算 —— F-53.2 定义域收窄)
@@ -233,18 +221,47 @@ namespace DaYiJingCheng.Sim.Consequences
                 due.Add(new DueRow(emitTick, patient, outcome, close.Tick, patient, close.Seq));
             }
 
-            due.Sort((a, b) =>
-            {
-                int cmp = a.EmitTick.CompareTo(b.EmitTick);
-                if (cmp != 0) return cmp;
-                cmp = a.CloseTick.CompareTo(b.CloseTick);
-                if (cmp != 0) return cmp;
-                cmp = a.ClosePatientId.CompareTo(b.ClosePatientId);
-                if (cmp != 0) return cmp;
-                return a.CloseSeq.CompareTo(b.CloseSeq);
-            });
-
+            due.Sort(DueRowOrder);
             return due;
+        }
+
+        /// <summary>①-形状前置:合格行必须是「真病人的 CaseClosed」,否则 fail-loud。</summary>
+        /// <remarks>
+        /// <para>🔁 **2026-10-30(`TD-medcons-17`)**:从 <see cref="BuildDueRows"/> 拆出
+        /// —— 原方法 51 行,超「≤40 行」标准。拆的是**形状断言**(两处 throw),
+        /// 控制流(域外跳过 / 窗上界 / 行内去重)留在原处,故行为面零变化。</para>
+        /// <para><b>世界级哨兵不合法</b>:后果逐例属某病人,<c>None</c> 会产出「无病人」的世界级
+        /// 幻影后果,且绕过 <c>EventStream</c> 的 AC-15 在场检查(`EventStream.cs:77` 显式跳过 None)。</para>
+        /// </remarks>
+        /// <param name="close">合格行的触发事件(须为某病例的结案事件)。</param>
+        /// <param name="index">在 eligible 列表中的下标(只用于报文定位)。</param>
+        /// <exception cref="ArgumentException">种类不是 CaseClosed,或携带 <see cref="PatientId.None"/>。</exception>
+        private static void AssertEligibleCaseClosed(in SimEvent close, int index)
+        {
+            if (close.Kind != EventKind.CaseClosed)
+                throw new ArgumentException(
+                    $"eligible[{index}] 不是 CaseClosed(实得 {close.Kind})—— 合格行的触发事件" +
+                    "须为该病例的结案事件(F-53.2 自变量 = Tick(CaseClosed))", "eligible");
+
+            if (close.Patient == PatientId.None)
+                throw new ArgumentException(
+                    $"eligible[{index}] 的 CaseClosed 携 PatientId.None —— 后果逐例属某病人," +
+                    "须携真 patient_id(类头口径 + registry entities.yaml:2160 的 Patient = patient_id; " +
+                    "None 会产出无病人归因的世界级幻影后果,并绕过 AC-15 在场检查)", "eligible");
+        }
+
+        /// <summary>到期集升序定序(四分量整数全序)—— 从 <see cref="BuildDueRows"/> 拆出(`TD-medcons-17`)。</summary>
+        private static readonly Comparison<DueRow> DueRowOrder = CompareDueRows;
+
+        private static int CompareDueRows(DueRow a, DueRow b)
+        {
+            int cmp = a.EmitTick.CompareTo(b.EmitTick);
+            if (cmp != 0) return cmp;
+            cmp = a.CloseTick.CompareTo(b.CloseTick);
+            if (cmp != 0) return cmp;
+            cmp = a.ClosePatientId.CompareTo(b.ClosePatientId);
+            if (cmp != 0) return cmp;
+            return a.CloseSeq.CompareTo(b.CloseSeq);
         }
 
         /// <summary>② 幂等差额(读流):去掉该病人「升序前缀中已发行」的部分。</summary>

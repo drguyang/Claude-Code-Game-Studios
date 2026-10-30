@@ -143,7 +143,53 @@ namespace DaYiJingCheng.EditorTools.Bake
                     string.Join(",", Sorted(simDomain)) + "} —— 两侧是同一域的两处声明," +
                     "必须逐项等值(否则一侧增员而另一侧静默不变 = 第二真源)",
                 });
+
+            AssertDomainNamesMatch();
         }
+
+        /// <summary>跨侧**命名**等值断言(B-W3 的第二半 · `TD-medcons-12` 载体)。</summary>
+        /// <remarks>
+        /// <para>上面那条 `SetEquals` 判的是**序数集合**,只防「成员数 / 值分叉」,
+        /// **不防改名**:把 <c>Outcome53.Outcome.Residual</c> 改叫 <c>Remain</c>,序数一位不动
+        /// ⇒ 那条断言照样绿,而 JSON 里的 <c>"residual"</c> 键与代码里的成员名已经各说各话
+        /// —— 数据词表与代码词表分叉,恰是本文件反复防的「第二真源」形态。</para>
+        /// <para>判据 = 白名单名 <c>Name</c> 的 PascalCase 形必须**逐字**等于枚举成员名
+        /// (`trial_history` ⇔ `TrialHistory`),把「名字 ↔ 枚举成员」这对**成对登记**变成可判的。</para>
+        /// </remarks>
+        private static void AssertDomainNamesMatch()
+        {
+            foreach (var row in DelayTableBinder.DomainRows)
+                if (!DomainNameMatches(row.Name, row.Outcome))
+                    throw new BakeValidationException(new List<string>
+                    {
+                        $"定义域名字分叉(B-W3 第二半):白名单名「{row.Name}」按 PascalCase 应映射到枚举成员" +
+                        $"「{Pascalize(row.Name)}」,实际是「{row.Outcome}」—— 名字 ↔ 枚举成员须成对登记," +
+                        "改名时两侧同批改(否则 JSON 键与代码成员名各说各话)",
+                    });
+        }
+
+        /// <summary>`snake_case` → `PascalCase`(仅处理本仓的 `_` 分段形态;判据用,非通用工具)。</summary>
+        /// <param name="snake">如 <c>trial_history</c>。</param>
+        /// <returns>如 <c>TrialHistory</c>;空串入参返回空串。</returns>
+        internal static string Pascalize(string snake)
+        {
+            if (string.IsNullOrEmpty(snake)) return string.Empty;
+            var chars = new char[snake.Length];
+            int n = 0;
+            bool upper = true;
+            foreach (char c in snake)
+            {
+                if (c == '_') { upper = true; continue; }
+                chars[n++] = upper ? char.ToUpperInvariant(c) : c;
+                upper = false;
+            }
+            return new string(chars, 0, n);
+        }
+
+        /// <summary>「白名单名字 ↔ 枚举成员」是否一致(`TD-medcons-12` 判据;`internal` 供夹具直驱)。</summary>
+        internal static bool DomainNameMatches(string snakeName, Outcome53.Outcome outcome)
+            => string.Equals(outcome.ToString(), Pascalize(snakeName), StringComparison.Ordinal);
+
 
         /// <summary>集合升序展开(错误消息确定性 —— 不用 HashSet 迭代序)。</summary>
         private static int[] Sorted(HashSet<int> set)

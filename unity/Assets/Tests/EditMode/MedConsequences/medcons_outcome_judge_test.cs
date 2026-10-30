@@ -46,9 +46,34 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // 夹具基建(与 medcons_aggregation_test 同款:真装配袋 + 真载荷编码)
         // ════════════════════════════════════════════════════════════════════
 
-        private static readonly InMemoryBlobPool SharedPool = new InMemoryBlobPool();
-        private static readonly PayloadEncoder Encoder = new PayloadEncoder(SharedPool);
-        private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
+        // 🔁 2026-10-30(`TD-medcons-08`):原为 `static readonly` —— 同一个 blob 池跨**整个 fixture**
+        // 共用、从不清理,对照 `.claude/rules/test-standards.md`「never shared mutable state」属偏离。
+        // 改为「**每测例新建**」:池内容不再跨测例累积 ⇒ 断言不会因**执行顺序**而变。
+        // ⚠️ 字段仍是 static(静态 helper 要用它们),故本 fixture **不可**标 `[Parallelizable]`
+        // —— 并行跑会让两个测例抢同一份池。当前未标,这条约束写成注释留在原地。
+        private static InMemoryBlobPool SharedPool;
+        private static PayloadEncoder Encoder;
+        private static PayloadDecoder Decoder;
+
+        [SetUp]
+        public void ResetSharedBlobPool()
+        {
+            SharedPool = new InMemoryBlobPool();
+            Encoder = new PayloadEncoder(SharedPool);
+            Decoder = new PayloadDecoder(SharedPool);
+        }
+
+        /// <summary>
+        /// `TD-medcons-08` 载体 —— 本 fixture 的 blob 池**每个测例新建**,不跨测例累积。
+        /// <para>名字刻意以 `zz` 开头:本 fixture 内有大量编码测例,池若被跨测例共用,
+        /// 跑本条时 <c>Count</c> 必已 &gt; 0 ⇒ 红。「排最后」是这条探针的**前提**,不是命名风格。</para>
+        /// </summary>
+        [Test]
+        public void test_zz_blobPoolIsFreshAtEachTest()
+        {
+            Assert.AreEqual(0, SharedPool.Count,
+                "blob 池须每测例新建 —— Count > 0 说明前一测例的载荷还留在池里(跨测例可变状态)");
+        }
 
         /// <summary>判定表(烘焙机产物;测试直接驱动 Binder —— 反空转,菜单与测试同一台机器)。
         /// <para>⚠️ 测试不读 .cooked.bytes 磁盘件(Binder 直接绑定源 JSON)——
@@ -1395,6 +1420,40 @@ namespace DaYiJingCheng.Tests.MedConsequences
             foreach (string f in scanned)
                 Assert.AreEqual(0, MedConsFloatGate.FindFloatLiterals(File.ReadAllText(f)).Count,
                     $"现行源零浮点字面量:{Path.GetFileName(f)}");
+        }
+
+        /// <summary>
+        /// `TD-medcons-07` 载体 —— `FindFloatLiterals` 的**诊断完备性**:同形态多字面量须逐条报。
+        /// <para>本条补的是**清单**这一面,不是布尔结论:`errs.Count &gt; 0` 对「报 1 条」和
+        /// 「报 10 条」完全一样,所以上面那条 `Count &gt; 0` 的夹具对「只取首个匹配」的
+        /// 退化**毫无判别力**(原实现正是 `rx.Match`)。定位时看到一条、实际有十条 —— 这正是
+        /// 本条要钉的东西。</para>
+        /// <para>⚠️ 断言用**逐字原文**(`1.5` / `.5f` …)而不是「非空」,是因为门的异常消息
+        /// 直接嵌这个串(`出现浮点字面量「{hit}」`)—— 串里多带一个前导字符,
+        /// 报文就会变成 `「=1.5」` 这种读不通的形态。故夹具刻意让每个字面量前留一个空格,
+        /// 使 `Trim()` 后恰为原文。</para>
+        /// </summary>
+        [Test]
+        public void test_gate_findFloatLiterals_reportsEveryOccurrence_notJustFirst()
+        {
+            // ① 同形态三处 ⇒ 三条(原 `rx.Match` 只留一条)。
+            var repeated = MedConsFloatGate.FindFloatLiterals(
+                "var a = 1.5; var b = 1.5; var c = 1.5;");
+            CollectionAssert.AreEqual(new[] { "1.5", "1.5", "1.5" }, repeated,
+                "同形态三处须各报一条 —— 且逐字保留原文(门的报文直接嵌这个串)");
+
+            // ② 跨形态混合:五处不同形态,一条都不能丢。
+            var mixed = MedConsFloatGate.FindFloatLiterals(
+                "var a = 1.5; var b = .5f; var c = 3e10; var d = 1.5; var e = 1_000f;");
+            CollectionAssert.AreEquivalent(
+                new[] { "1.5", ".5f", "3e10", "1.5", "1_000f" }, mixed,
+                "五个字面量须全部出现在清单里(形态 ① / ② / ③ 各取全)");
+
+            // ③ 跨形态**不重报**:`1.5E-4` 只能被形态 ③ 命中 —— 形态 ① 的 `1.5`
+            //    后面紧跟 `E`(`\w`)⇒ 前瞻失败。若两条形态都命中,清单会凭空多一条。
+            var sci = MedConsFloatGate.FindFloatLiterals("var v = 1.5E-4;");
+            CollectionAssert.AreEqual(new[] { "1.5E-4" }, sci,
+                "科学计数形只报一次 —— 跨形态重复计数会让诊断清单虚高");
         }
     }
 }
