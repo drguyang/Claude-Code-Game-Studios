@@ -137,6 +137,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 { "INJ_HEMORRHAGE", "symptomatic_only" },
                 { "INJ_CLAW", "symptomatic_only" },
                 { "INJ_BITE", "symptomatic_only" },
+                // 🔁 2026-10-30 新增:自限型非致死伤情(用户裁定,ADR-035 T2 的合法行载体)。
+                //    处置轴与其余伤情同 = symptomatic_only(`treatable_by: []` ∧ `causes: []`)。
+                { "INJ_BLUNT", "symptomatic_only" },
                 { "DIS_MALARIA", "causal" },              // 轴:action 12 / causal(金鸡纳皮)
                 { "DIS_RHEUMATIC_FEVER", "symptomatic_only" },
                 { "DIS_HEART_FAILURE", "care" },          // GDD :294 —— 照护适用集三员之一
@@ -356,6 +359,13 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "sign_wound_claw", "sign_moan" } },
                 { "INJ_BITE", new[] {
                     "sign_wound_bite", "sign_moan" } },
+                // 🔁 2026-10-30 新增(INJ_BLUNT,自限型非致死)。**只有 `sign_moan`**
+                //    —— 刻意**不**复用五条 `sign_wound_*`:那五条是利器的**形态**词
+                //    (刺 / 割 / 失血 / 爪 / 咬),钝击不在其中;为它新造一个 `sign_wound_blunt`
+                //    须改 25 的伤情词表 + GDD 表,**不属本轮**。钝击的共性是「各类剧痛」
+                //    (GDD :473 `sign_moan`),单用它是诚实的下限,不是遗漏。
+                { "INJ_BLUNT", new[] {
+                    "sign_moan" } },
 
                 // ── 豁免类:主观族(R3.6 —— 客观族中性,主观族有词条)──
                 { "DIS_NEURASTHENIA", new[] {

@@ -353,7 +353,7 @@ namespace DaYiJingCheng.Sim.Codec
 
         // ── 7. DrugTreatmentApplied(Amendment I · 11 写)──────────────────
         // tag: 1 Tick · 2 TreatmentId · 3 ActorId · 4 Polarity · 5 DrugPotency(Fix)
-        //      6 HalfLife · 7 Seq
+        //      6 HalfLife · 7 Seq · 8 ContraindicationBand(2026-10-30 追加)
 
         public static byte[] Encode(in DrugTreatmentAppliedPayload p)
         {
@@ -365,6 +365,7 @@ namespace DaYiJingCheng.Sim.Codec
             w.WriteFieldFix(5, p.DrugPotency);
             w.WriteFieldInt64(6, p.HalfLife);
             w.WriteFieldInt64(7, p.Seq);
+            w.WriteFieldInt32(8, p.ContraindicationBand);
             return w.ToArray();
         }
 
@@ -374,6 +375,7 @@ namespace DaYiJingCheng.Sim.Codec
             uint seen = 0;
             long tick = 0, halfLife = 0, seq = 0;
             int treatmentId = 0, actorId = 0, polarity = 0;
+            int contraindicationBand = DrugTreatmentAppliedPayload.NoContraindication;
             Fix drugPotency = default;
             while (r.HasMore)
             {
@@ -386,12 +388,14 @@ namespace DaYiJingCheng.Sim.Codec
                     case 5: drugPotency = r.ReadFieldFix(); break;
                     case 6: halfLife = r.ReadInt64LittleEndian(); break;
                     case 7: seq = r.ReadInt64LittleEndian(); break;
+                    case 8: contraindicationBand = r.ReadInt32LittleEndian(); break;
                     default: throw new InvalidDataException($"DrugTreatmentApplied: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(EventKind.DrugTreatmentApplied), seen, (1u << 7) - 1);
+            RequireCompleteMask(nameof(EventKind.DrugTreatmentApplied), seen, (1u << 8) - 1);
             r.EnsureFullyConsumed();
-            return new DrugTreatmentAppliedPayload(tick, treatmentId, actorId, polarity, drugPotency, halfLife, seq);
+            return new DrugTreatmentAppliedPayload(tick, treatmentId, actorId, polarity, drugPotency, halfLife, seq,
+                contraindicationBand);
         }
 
         // ── 8. SkillGrown(ADR-024 补齐轮)─────────────────────────────────

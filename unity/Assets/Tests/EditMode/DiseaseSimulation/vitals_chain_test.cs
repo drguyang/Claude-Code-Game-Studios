@@ -85,7 +85,8 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         {
             var payload = new DrugTreatmentAppliedPayload(
                 tick: tick, treatmentId: TreatmentId, actorId: 1,
-                polarity: polarity, drugPotency: potency, halfLife: halfLife, seq: 0);
+                polarity: polarity, drugPotency: potency, halfLife: halfLife, seq: 0,
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
             c.Bag.EventSink.Append(new SimEvent(
                 tick, c.Patient, -1, EventKind.DrugTreatmentApplied,
                 c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));

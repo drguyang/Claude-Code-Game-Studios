@@ -394,6 +394,18 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 **T2 = 填禁忌行并让它真跑**(须 `TD-prescription-09` 结案 **+ `TD-sim-03` 结案**(注册表须先有 ≥1 件 `lethal=false` 伤情,否则无行可填 ⇒ 真空真,见 §Risks R5)+ 内容轮给行内容 / 档数)<br>
 **T3 = 启用过量档**(`harm_kind_enabled` 允许 `overdose`;再加 `TD-sim-02`)
 
+> 🔁 **2026-10-30 进展(T2 前置轮 A,原文不删)** —— T2 的三条前置**各有进展、无一全部结清**:
+> ① **`TD-sim-03` 已 `closed`** —— 用户裁定新增 `INJ_BLUNT`(自限型 / 非致死,id 15),
+> 注册表非致死伤情 **0 件 → 1 件**;② **`TD-prescription-09` `open` → `partial`** ——
+> `DrugTreatmentAppliedPayload` 追加**第八项** `ContraindicationBand`(`-1` = 未命中),
+> **承载**已落,**判定**仍未实现(故字段今日恒 `-1`);③ `TD-sim-02` 未动。
+> 同轮另落 53 代价表的**运行期读方**(`CostTable53CookedCodec` + provider 接线 + 12 条夹具),
+> 即「表装进来没人要」这条已消。Regression:EditMode `6043/6006/0/37` · PlayMode `238/234/0/2/2`
+> @ 2026-10-30 08:45/08:46 CST · `7ab13163`+工作树。原件
+> `production/qa/evidence/t2-a-cost-read-side-and-11-payload-carrier-2026-10-30.md`。
+> ⚠️ **T2 仍不可开工**:缺代价表的**真实行内容**(内容轮)+ 11 的**判定**。
+> ⚠️ **一处须用户裁**:若将来的禁忌判定由**病种**派生,会与 `AC-11-01` ② 相抵,须先改该 AC。
+
 | # | 工作 | 验收判据 |
 |---|---|---|
 | S1 | 普查 `compounds[]` | ✅ **2026-10-29 已跑** —— 结论 = **零输入可达(两层都空)**,形式 = **canary**(N-4′)。原件 `production/qa/evidence/s1-compounds-census-2026-10-29.md`;连带发现 **R5** |

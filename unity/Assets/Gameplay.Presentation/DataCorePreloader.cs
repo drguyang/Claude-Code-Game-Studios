@@ -209,6 +209,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.DiseaseActionAxisAddress,
             AddressablesDataProvider.OutcomeTableAddress,
             AddressablesDataProvider.DelayTableAddress,
+            AddressablesDataProvider.CostTableAddress,
             // 48 教学内容(S17-3 AC-5 接线,2026-10-21 补登)。
             // ⚠️ 首轮接线漏了本条 ⇒ `provider_wiring_gate_test` 门④ 与
             // `test_preloader_list_sources_matchPreloadedProducts` 双双转红。

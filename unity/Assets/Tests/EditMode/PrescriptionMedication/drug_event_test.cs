@@ -583,7 +583,8 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // ② 解码支 —— `PayloadCodec.Decode<DrugTreatmentAppliedPayload>` 还原逐位相同;
             // ③ 分派支 —— `PayloadEncoder` 的 kind→重载表里有该 case(经**行为**证:
             //    用真 encoder 编码,断言不抛 NotSupportedException / InvalidOperationException)。
-            var p = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L);
+            var p = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L,
+                DrugTreatmentAppliedPayload.NoContraindication);
 
             byte[] bytes = PayloadCodec.Encode(p);
             Assert.IsNotEmpty(bytes, "编码支须产出非空字节");
@@ -606,6 +607,32 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             Assert.Greater(sink.Stored.Count, 0, "编码须真入池");
         }
 
+        /// <summary>`contraindication_band`(2026-10-30 追加的第八项)—— tag 8 的往返与哨兵。</summary>
+        /// <remarks>
+        /// <para>⚠️ 必须用**非哨兵**值测往返:用 `-1` 往返,「tag 8 没写 / 没读」与「写了 -1 读了 -1」
+        /// 结果相同 ⇒ 夹具对分支**零判别力**(本项目已抓过的「靶点对但靶场里没有靶」形态)。
+        /// 故取 `3`,并断言解出来的是 `3` 而不是默认值。</para>
+        /// <para>⚠️ 第二段断言**哨兵语义**:七参重载 = 未命中(-1)。若把哨兵改成 0,「命中第 0 档」
+        /// 会被读成「没命中」—— 档 0 是合法档(代价表行 `band: 0`),故哨兵必须为负。</para>
+        /// </remarks>
+        [Test]
+        public void test_drugEvent_contraindicationBand_roundTripsThroughTag8()
+        {
+            var p = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L,
+                contraindicationBand: 3);
+
+            var back = PayloadCodec.Decode<DrugTreatmentAppliedPayload>(
+                EventKind.DrugTreatmentApplied, PayloadCodec.Encode(p));
+
+            Assert.AreEqual(3, back.ContraindicationBand,
+                "tag 8 须真被写入并读出(值为 3 —— 用 -1 往返分不出「没写」)");
+
+            Assert.Less(DrugTreatmentAppliedPayload.NoContraindication, 0,
+                "哨兵须为负数 —— 档 0 是合法档,0 当哨兵会把「命中第 0 档」读成「没命中」");
+            Assert.AreEqual(-1, DrugTreatmentAppliedPayload.NoContraindication,
+                "哨兵的字面值参与落盘语义,改变即须评估已写事件");
+        }
+
         [Test]
         public void test_ac1122_serializationWhitelist_containsBothNamedKinds()
         {
@@ -615,7 +642,8 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // ① DrugTreatmentApplied(11 写);② EmergencyTreatmentApplied(10 写 ——
             //   AC 同句「两者不互相构造」的另一半,**现有 `codecHasBothBranchesForThisKind`
             //   只覆盖了 ①** —— 那正是本半边的真缺口)。
-            var drug = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L);
+            var drug = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L,
+                DrugTreatmentAppliedPayload.NoContraindication);
             byte[] drugBytes = PayloadCodec.Encode(drug);
             var drugBack = PayloadCodec.Decode<DrugTreatmentAppliedPayload>(
                 EventKind.DrugTreatmentApplied, drugBytes);
@@ -690,7 +718,8 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // 缺任一项 ⇒ 解码期被拒(AC-11-03 的「缺任一项写入期被拒」——
             // 写入期在 11 侧由 struct ctor 强制七参,解码期由 mask 校验强制)。
             // 判据 = 手工构造**缺末项(Seq,tag 7)**的字节流 ⇒ 必抛 InvalidDataException。
-            var p = new DrugTreatmentAppliedPayload(1L, 1, 1, 0, new Fix(1L), 1L, 1L);
+            var p = new DrugTreatmentAppliedPayload(1L, 1, 1, 0, new Fix(1L), 1L, 1L,
+                DrugTreatmentAppliedPayload.NoContraindication);
             byte[] full = PayloadCodec.Encode(p);
 
             // 尾字段 = tag(1B) + int64(8B) = 9B ⇒ 砍掉尾部 9 字节即「缺 Seq」

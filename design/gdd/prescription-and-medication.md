@@ -182,6 +182,18 @@
 原「与 10 同形(七项齐备)」的表述是**两处都自称七项而集合不同**,由 10 的 AC-10-06b 交叉校验会判硬失败。
 **11 的载荷以本节表为唯一权威,共七项**:`(tick, 处置_id, 施予者, polarity, drug_potency, half_life, Seq)`。
 
+> 🔁 **2026-10-30 追加第八项 `contraindication_band`(原文不删)** —— `ADR-035 §①B` 把「禁忌的
+> **触发条件面**」判给 11,而原七项**没有任何一项**表达「本剂命中了某条禁忌」⇒ 53 无从结算
+> (`TD-prescription-09`)。现追加为**第八项**:`(…, Seq, contraindication_band)`,
+> **`-1` = 未命中**(档 0 是合法档,不能用 0 当哨兵)。
+> ⚠️ **只追加,不改前七项**;语义与「为什么传档序数而不是『哪条禁忌』」逐条见
+> `Sim.Contracts/Payloads/HistoryPayloads.cs` 的 `DrugTreatmentAppliedPayload` remarks。
+> ⚠️ **它是载体,不是已跑通的机制**:11 侧**尚无禁忌判定实现**(`contraindications[]` 在 21a 的
+> 真实数据里 **0 条**),今日该字段恒为 `-1`。判定归 11 的实现轮 / 内容轮。
+> ⚠️ **与 `AC-11-01` ② 的兼容性**:该条要求「体征逐位相同、病种不同 ⇒ 载荷逐字段相等」。
+> 今日取值恒为哨兵 ⇒ 成立;将来若由**病种**派生,须先改 `AC-11-01`(这是 11 的 GDD 修订轮,
+> 不能由载荷单方面定);若由**体征**派生,则该条自然继续成立。
+
 承 `disease-simulation.md:162` / `entities.yaml:2047` 的处置事件形状:
 
 ```
@@ -197,6 +209,7 @@
 | `drug_potency` | **F-11.1 的 `dose_potency`**(剂量修正后的值,**熟练度不参与** —— 见规则十一 / F-11.3 改判) | 21a + 本节 |
 | `half_life` | **F-11.2 的 `Axis_effective`**(= F5 的求值结果) | 21a F5 |
 | `Seq` | **宿主在 `Append` 时按 `(Tick, Patient)` 发号,每 tick 复位**(2026-09-18 订正 —— 原稿写「9 的 `dose_seq` 同源」,而 9 已改判为该口径,见 `disease-simulation.md:195-197`) | ADR-005 / ADR-009 全序键 |
+| `contraindication_band` | **本剂命中的禁忌档序数**;`-1` = 未命中。**今日恒 `-1`**(11 侧无禁忌判定实现)。⚠️ 归档序数而非「哪条禁忌」:53 的代价表键 = `(harm_kind, band)`,传条目下标会逼 53 自持一份「条目 → 档」映射 ⇒ 复制 11 的数据(违 `AC-11-02` 的反推) | ADR-035 §①B · `TD-prescription-09` |
 
 > **⚠️ 11 与 10 写的是同一种事件。** 9 **不区分**这一笔来自 10 还是 11 ——
 > 它只认「处置 id + 极性 + 偏移 + 半衰期」(承 `disease-simulation.md:638`:**「9 不认识药,
@@ -965,7 +978,7 @@ GateHit = ( 本次处置的 `dose` 为**该药 `dose_range` 的合法档** ∧ �
 | --- | --- | --- |
 | **AC-11-01** | **[A]** | ①**反射断言**:11 的**全部公开签名**(参数 + 返回类型)经递归扫描**不含** `DiagnosisResult` / 病种 id 类型;②**行为断言**:构造两个**体征序列逐位相同、病种不同**的病人,给**同一药同一档**,`THEN` 两条处置事件载荷**逐字段相等**(承 ADR-020 `AC-20-03` 的「判据 = 反射断言,不是 grep」;原 grep 判据会被注释 / 字符串绕过) |
 | **AC-11-02** | **[A]** | `GIVEN` 11 的作者态数据表,`WHEN` 检查字段,`THEN` **零** `drug_potency` / `half_life` / `axis_offset_by_quality` 的重定义(值的唯一出处 = 21a)(规则二) |
-| **AC-11-03** | **[A]** | `GIVEN` 一次给药,`WHEN` 检查处置事件,`THEN` **Kind = 具名 `SimEvent.Kind.DrugTreatmentApplied`**(不是内联元组 —— 9 的白名单对列表外 Kind **构建期拒收**),且载荷 `{tick, 处置_id, 施予者, polarity, drug_potency, half_life, Seq}` **七项齐备**(规则三 · ADR-009 Amendment I) |
+| **AC-11-03** | **[A]** | `GIVEN` 一次给药,`WHEN` 检查处置事件,`THEN` **Kind = 具名 `SimEvent.Kind.DrugTreatmentApplied`**(不是内联元组 —— 9 的白名单对列表外 Kind **构建期拒收**),且载荷 `{tick, 处置_id, 施予者, polarity, drug_potency, half_life, Seq}` **七项齐备**(规则三 · ADR-009 Amendment I)。🔁 **2026-10-30 追加第八项**:`contraindication_band`(`i32`,`-1` = 未命中;`ADR-035 §①B` / `TD-prescription-09` 的载体半边)。**前七项一字未动** ⇒ 本条的「七项齐备」判据面**不变**;第八项由 `drug_event_test` 的 codec 往返夹具钉住。⚠️ **载体 ≠ 机制**:今日恒 `-1`,11 的禁忌判定仍未实现 |
 | **AC-11-04** | **[A]** | `GIVEN` 库存不足,`WHEN` 请求给药,`THEN` **整体拒绝**,处置事件**零发出**(规则十) |
 | **AC-11-05** | **[A]** | `GIVEN` 给不在 `treatable_by(d)` 的药,`WHEN` 结算,`THEN` 事件**照发**、**9 记零贡献**、**11 侧零惩罚**;**成长照发**(⚠️ **2026-10-06 订正** —— 原稿写「并 `SkillGrown` 零发出」,与 F-11.5 **BL-3 改判后的现口径**相抵:门只读 11 自己持有的量(域内合法 ∧ 已解锁),**不读 `treatable_by`** ⇒「给错药」在 11 侧**不是可表达的输入**,结构上不可能成为门的判据)(规则五 · F-11.5) |
 | **AC-11-06** | **[A]** | ① `GIVEN` `contraindications[]` 命中,`WHEN` 检索,`THEN` **零**拦截 / **零**减效路径;② `GIVEN` **同一 `action` 在两处声明不同 `polarity`**,`WHEN` 构建期交叉断言,`THEN` **硬失败**(规则八 · 规则五 —— 原稿只测 ①,未测 11 的单极性自洽) |

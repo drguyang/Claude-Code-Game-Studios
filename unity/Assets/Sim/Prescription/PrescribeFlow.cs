@@ -338,7 +338,12 @@ namespace DaYiJingCheng.Sim.Prescription
                 polarity:    (int)req.Entry.Polarity,
                 drugPotency: doseResult.DosePotency,
                 halfLife:    halfLifeResult.AxisEffective.Raw,
-                seq:         0);          // 载荷 Seq = 占位;header Seq 由主机 Append 时发号(承 10 的同一现状)
+                seq:         0,           // 载荷 Seq = 占位;header Seq 由主机 Append 时发号(承 10 的同一现状)
+                // ⚠️ 2026-10-30(`TD-prescription-09` 的载体半边):字段有了,**判定还没有**。
+                //    11 的禁忌触发条件面(ADR-035 §①B)今日无实现 —— `contraindications[]` 在 21a 的
+                //    真实数据里 0 条,且规则八只禁「拦截 / 减效 / 弹警告」,未禁「记账」。
+                //    ⇒ **显式**传哨兵(不走七参重载):「没命中」是一个判定结论,不是漏填。
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
 
             SimEvent? treatmentEvent = null;
             if (req.IsHost)

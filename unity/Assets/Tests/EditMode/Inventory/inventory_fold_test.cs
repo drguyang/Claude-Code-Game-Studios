@@ -1050,7 +1050,8 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
         {
             var payload = new DrugTreatmentAppliedPayload(
                 tick, treatmentId: 1, actorId: 7, polarity: 0,
-                drugPotency: new Fix(0L), halfLife: 20L, seq: 0L);
+                drugPotency: new Fix(0L), halfLife: 20L, seq: 0L,
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
             return new SimEvent(tick, new PatientId(1), -1, EventKind.DrugTreatmentApplied,
                 _encoder.Encode(EventKind.DrugTreatmentApplied, payload));
         }

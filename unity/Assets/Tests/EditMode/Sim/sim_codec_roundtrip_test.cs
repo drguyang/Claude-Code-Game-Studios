@@ -97,7 +97,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Assert.That(dEmergencyTx.Cause, Is.EqualTo(2), "EmergencyTreatmentApplied.Cause");
             Assert.That(dEmergencyTx.Seq, Is.EqualTo(77L), "EmergencyTreatmentApplied.Seq");
 
-            var drugTx = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L);
+            var drugTx = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L,
+                DrugTreatmentAppliedPayload.NoContraindication);
             var dDrugTx = PayloadCodec.Decode<DrugTreatmentAppliedPayload>(
                 EventKind.DrugTreatmentApplied, PayloadCodec.Encode(drugTx));
             Assert.That(dDrugTx.Tick, Is.EqualTo(210L), "DrugTreatmentApplied.Tick");

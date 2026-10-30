@@ -95,6 +95,20 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static readonly string[] TenSideOnlyFields = { "Method", "Cause" };
 
         /// <summary>
+        /// 载荷成对校验里 **11 侧独有** 的字段名 —— 与 <see cref="TenSideOnlyFields"/> **对称**的
+        /// 记账面,两侧都须具名、都须经「该字段真的存在」的陈旧性检查。
+        /// </summary>
+        /// <remarks>
+        /// <para>🔁 <b>2026-10-30 新增(`TD-prescription-09` 的载体半边)</b> ——
+        /// `DrugTreatmentAppliedPayload` 追加 `ContraindicationBand`(本剂命中的禁忌档序数),
+        /// 它**只属于用药侧**:10 的急救处置无处方禁忌概念,故不加进 `EmergencyTreatmentAppliedPayload`。</para>
+        /// <para>⚠️ 不加这条豁免 ⇒ 字段数 11 侧 8 vs 10 侧 7 ⇒ 成对门直接转红(会**正确地**报出「不等」,
+        /// 但那是**形状差异**不是**漂移**)。豁免必须同时带陈旧性检查:若该名字在 11 侧消失,
+        /// 说明豁免集过期,须报错 —— 否则豁免会静默掩盖真漂移。</para>
+        /// </remarks>
+        public static readonly string[] ElevenSideOnlyFields = { "ContraindicationBand" };
+
+        /// <summary>
         /// **生产装配内**的合法载荷构造点(写者独占的白名单)。
         /// <para>⚠️ 白名单**必须**是具名的 (装配, 类型) 对,不是前缀/通配 —— 前缀白名单
         /// 等于把整族装配永久豁免(与 b6 的「豁免须具名有界」同纪律)。</para>
@@ -679,6 +693,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             var skip = new HashSet<string>(tenSideOnly ?? Array.Empty<string>(), StringComparer.Ordinal);
+            var elevenSkip = new HashSet<string>(ElevenSideOnlyFields, StringComparer.Ordinal);
 
             using (var asm = AssemblyDefinition.ReadAssembly(contractsDllPath, new ReaderParameters
             {
@@ -706,7 +721,8 @@ namespace DaYiJingCheng.EditorTools.Gates
                     return errs;
                 }
 
-                var a = InstanceFieldsInOrder(drug);
+                var a = InstanceFieldsInOrder(drug)
+                    .Where(f => !elevenSkip.Contains(f.Name)).ToList();
                 var b = InstanceFieldsInOrder(emergency).Where(f => !skip.Contains(f.Name)).ToList();
 
                 if (a.Count == 0 || b.Count == 0)
@@ -730,6 +746,14 @@ namespace DaYiJingCheng.EditorTools.Gates
                     else if (a[i].Type != b[i].Type)
                         errs.Add($"[AC-10-06b] 序数 {i} 字段「{a[i].Name}」类型漂移:" +
                                  $"11「{a[i].Type}」vs 10「{b[i].Type}」。");
+                }
+
+                // **11 侧独有字段须真的存在**(与下一条 10 侧检查对称 —— 豁免集过期同样是掩盖面)
+                foreach (var name in ElevenSideOnlyFields)
+                {
+                    if (InstanceFieldsInOrder(drug).All(f => f.Name != name))
+                        errs.Add($"[AC-10-06b] 11 侧豁免字段「{name}」在 {DrugPayloadTypeName} 里不存在 —— " +
+                                 "豁免集陈旧(掩盖面:同名字段若已改名,本应报漂移)。");
                 }
 
                 // 10 侧独有字段须**真的存在**(否则豁免集是死的,可能掩盖真漂移)
@@ -855,7 +879,8 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             // ④ AC-10-06b 载荷成对
             errs.AddRange(CheckPayloadPairing(contractsDll, TenSideOnlyFields, out int compared));
-            summary.Add($"[AC-10-06b] 逐位比较字段 {compared} 项(10 侧豁免 {string.Join("/", TenSideOnlyFields)})");
+            summary.Add($"[AC-10-06b] 逐位比较字段 {compared} 项(10 侧豁免 {string.Join("/", TenSideOnlyFields)};" +
+                        $"11 侧豁免 {string.Join("/", ElevenSideOnlyFields)})");
 
             // ⚠️ 扫描面塌缩守卫 —— 任一面为 0 即红(「没跑」不得伪装成「全过」)
             if (asmCount == 0) errs.Add("[PrescriptionWriterGates] 扫描装配数为 0 —— 门未真正执行。");

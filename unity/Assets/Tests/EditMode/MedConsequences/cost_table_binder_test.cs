@@ -9,6 +9,15 @@
 //    手搓会绕过 `DiseaseRegistryBinder` 的全部既有校验,夹具与生产路径分叉。
 //    ⚠️ 这**不是**借绿:反向夹具(真实注册表 ⇒ N-1 拒收)同时在场,两侧都在。
 //
+// 🔁 **2026-10-30 订正(原文不删)**:上段「今日真实注册表 5 件伤情**全部 `lethal = true`**」
+//    已**不再成立**。用户裁定新增 `INJ_BLUNT`(自限型 / 非致死,id 15)⇒ 真实注册表**已有**一件
+//    合法非致死伤情。连带两处:
+//      ① 「真实骨架必报 V-10」的夹具已反转为「**不得**报」,V-10 的正向覆盖改由注入全致死注册表承担
+//         (两条合起来才证明「告警有条件」);
+//      ② 下文 `RegistryWithOneNonLethalInjury` 的**存在理由**(真实表里造不出合法行)**已消失** ——
+//         保留它是因为它同时是 R1-22 形态的活文档,且多条既有夹具仍用它,删除属无收益改动。
+//    ⇒ `TD-sim-03` 的缺口由「注册表无材料」收窄为「**表里仍无真实行**」(数值轮 / 53 结算未落)。
+//
 // ⚠️ 每条拒收夹具都标了它钉的是哪一条判据;反例夹具(应通过)用来防判据过宽。
 
 using System;
@@ -101,19 +110,51 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         // ══════════════════════ 一、真实骨架(今日态)══════════════════════
 
-        /// <summary>真实两张表:绑定成功、零行、**且必须带上 V-10 告警**(点名 `TD-sim-03`)。</summary>
-        /// <remarks>钉的是 `ADR-035 §Validation V-10`:N-1 的绿灯须能一眼看出是「无输入」。</remarks>
+        /// <summary>真实两张表:绑定成功、零行,**且不再带 V-10 告警**(注册表现已有 `INJ_BLUNT`)。</summary>
+        /// <remarks>
+        /// <para>钉的是 `ADR-035 §Validation V-10` 的**条件性**:告警只在「注册表零 `lethal == false` 伤情」
+        /// 时出现,不是一条恒发的噪声。</para>
+        /// <para>🔁 <b>2026-10-30 改判</b>:原夹具断言「真实注册表 ⇒ **必须**告警并点名 `TD-sim-03`」,
+        /// 其前提 = 注册表 5 件伤情全 `lethal = true`。用户裁定新增 `INJ_BLUNT`(自限型 / 非致死)后
+        /// 该前提**已假** ⇒ 断言反转。⚠️ <b>反转不是弱化</b>:V-10 门的正向覆盖由
+        /// <see cref="test_v10_warning_fires_whenRegistryHasNoNonLethalInjury"/> 接手(注入全致死注册表),
+        /// 两条合起来才证明「告警有条件」;只留任意一条都会让另一半零覆盖。</para>
+        /// </remarks>
         [Test]
-        public void test_realSkeleton_binds_andWarnsNoNonLethalInjury()
+        public void test_realSkeleton_binds_andHasNoV10Warning()
         {
             CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), RealRegistry());
 
             Assert.That(r.Rows, Is.Empty, "S2 空表的 rows 应为空");
             Assert.That(r.SchemaVersion, Is.EqualTo(1u));
-            Assert.That(string.Join(" | ", r.Warnings), Does.Contain("TD-sim-03"),
-                "真实注册表零非致死伤情 ⇒ 必须告警并点名 TD-sim-03(V-10);实得:" +
+            Assert.That(string.Join(" | ", r.Warnings), Does.Not.Contain("TD-sim-03"),
+                "注册表现有非致死伤情 ⇒ 不得再报 V-10(该告警是条件性的);实得:" +
                 string.Join(" | ", r.Warnings));
-            Assert.That(string.Join(" | ", r.Warnings), Does.Contain("无输入"),
+        }
+
+        /// <summary>V-10 的正向覆盖:注入一张**全 `lethal == true`** 注册表 ⇒ 必须告警并点名 `TD-sim-03`。</summary>
+        /// <remarks>
+        /// <para>注入手法 = 把真实注册表里**唯一**一件非致死伤情 `INJ_BLUNT` 的 `lethal` 翻成 `true`
+        /// (它 `self_limit = true`,R1-22 对自限型无 `lethal` 约束 ⇒ 翻后仍合法)。</para>
+        /// <para>⚠️ 若将来注册表**没有**任何非致死伤情,本条注入会因「找不到 `lethal: false`」而
+        /// 断言失败 —— 那是如实报缺口(前提不成立),不是测试损坏:
+        /// 此时 <see cref="test_realSkeleton_binds_andHasNoV10Warning"/> 自己的前提也是假的,两条会一起红。</para>
+        /// </remarks>
+        [Test]
+        public void test_v10_warning_fires_whenRegistryHasNoNonLethalInjury()
+        {
+            string json = RealRegistry();
+            int atKey = json.IndexOf("\"key\": \"INJ_BLUNT\"", StringComparison.Ordinal);
+            Assert.That(atKey, Is.GreaterThan(0),
+                "夹具前提不成立:注册表里已无 INJ_BLUNT —— 全致死注册表须另找注入点");
+            json = ReplaceFirstAfter(json, atKey, "\"lethal\": false", "\"lethal\": true");
+
+            CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), json);
+
+            string joined = string.Join(" | ", r.Warnings);
+            Assert.That(joined, Does.Contain("TD-sim-03"),
+                "全致死注册表 ⇒ 必须告警并点名 TD-sim-03(V-10);实得:" + joined);
+            Assert.That(joined, Does.Contain("无输入"),
                 "告警须把绿灯说成「无输入」,否则会被读成「药害不致死已获证明」");
         }
 

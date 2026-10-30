@@ -2479,7 +2479,7 @@ constants:
     unit: kind
     stream: history
     author: "11 处方用药(Append 调用者 = 11;不用 SkillMul / Judge,恒 Applied 无消费点)"
-    payload_schema: "tick: i64; treatment_id: i32; actor_id: i32; polarity: 枚举; drug_potency: i64(Fix raw,来自 21a drug_profile); half_life: i64(来自 21a drug_profile); seq: i64。形状与 EmergencyTreatmentApplied 一致但不带 method / cause(药物类恒 Manual,携带即空字段);不与动作类共用 Kind 的理由 = 写者结算来源不同 + 一个 Kind 无法同时落两条流"
+    payload_schema: "tick: i64; treatment_id: i32; actor_id: i32; polarity: 枚举; drug_potency: i64(Fix raw,来自 21a drug_profile); half_life: i64(来自 21a drug_profile); seq: i64; contraindication_band: i32。形状与 EmergencyTreatmentApplied 一致但不带 method / cause(药物类恒 Manual,携带即空字段);不与动作类共用 Kind 的理由 = 写者结算来源不同 + 一个 Kind 无法同时落两条流。🔁 2026-10-30 追加 contraindication_band(ADR-035 §①B;TD-prescription-09 的载体半边):本剂命中的禁忌档序数,-1 = 未命中。只属 11 侧,不进 EmergencyTreatmentAppliedPayload(成对门的 ElevenSideOnlyFields)"
     constraint: "落**病史流**;载荷形状与 `EmergencyTreatmentApplied` 一致但**不带 `method` / `cause`**(药物类恒 `Manual`,携带即空字段)。**`Append` 调用者 = 11**;`drug_potency` / `half_life` 来自 **21a `drug_profile`**(非动作表)。**为什么不与动作类共用一个 Kind**:① 两条写者的结算来源不同(11 **不用** `SkillMul` / `Judge` —— 2026-09-18 11 首轮评审 R-2:`SkillMul` 经 10 的 A6 改判 = 稳度容差乘子,11 恒 `Applied` 无消费点),共用即必须区分来源;② 承 ADR-008 §一「路由是 `Kind` 的纯函数 —— 一个 Kind 无法同时落两条流」+ ADR-021「写者 = 所有者」。**10 与 11 仍写同一条病史流、除 `method`/`cause` 外形状一致 ⇒ 不破 C5 的实质「载荷与流语义唯一」**(⚠️ C5 原字面「结算函数唯一」已在 11 首轮被重新解释,见 `systems-index.md` §5 C5)"
     added: 2026-09-18
     revised: ""

@@ -174,22 +174,36 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         [Test]
-        public void test_dataFile_containsExactlyTheFiveWhitelistInjuryRows()
+        public void test_dataFile_whitelistIsSubsetOfInjuryRows_andNonWhitelistInjuriesAreNonLethal()
         {
             // ⚠️ 2026-10-22 改名 + 收窄:本断言原先要求「**全部行**恰等于白名单五项」。
             //    八病种落地后该口径失效 —— 文件里现在有 5 伤情 + 8 病种 = 13 行。
             //    改为只对 `kind: injury` 的行断言闭集,病种行由下一条断言管。
+            // 🔁 2026-10-30 再收窄(TD-sim-03 / ADR-035 T2):`INJ_BLUNT` 入库且**不在白名单**
+            //    ⇒ 「伤情行 == 白名单」不再是真命题。不变式拆成两条,合起来更强:
+            //    ① 白名单 ⊆ 伤情行(五项都必须在);
+            //    ② 伤情行 ∖ 白名单 的行**必须非致死** —— 这条才是「白名单 = 致死伤情闭集」
+            //       的真正内容;旧口径只是它在「伤情行恰等于白名单」下的一个特例。
             var rows = LoadRows(File.ReadAllText(DataPath));
             string[] keys = rows
                 .Where(r => r.DiseaseKey.StartsWith("INJ_", StringComparison.Ordinal))
                 .Select(r => r.DiseaseKey)
                 .OrderBy(k => k, StringComparer.Ordinal)
                 .ToArray();
-            string[] expected = Whitelist.OrderBy(k => k, StringComparer.Ordinal).ToArray();
 
-            Assert.That(keys, Is.EqualTo(expected),
-                "伤情行须恰等于白名单闭集(death-and-respawn.md:96)\n" +
-                $"实得:{string.Join(", ", keys)}\n应得:{string.Join(", ", expected)}");
+            foreach (string w in Whitelist)
+                Assert.That(keys, Does.Contain(w),
+                    $"白名单伤情「{w}」不在注册表内(death-and-respawn.md:96)\n" +
+                    $"实得:{string.Join(", ", keys)}");
+
+            string[] extra = keys.Where(k => !Whitelist.Contains(k)).ToArray();
+            foreach (string k in extra)
+            {
+                DiseaseRegistryEntry e = rows.First(r => r.DiseaseKey == k);
+                Assert.That(e.Lethality, Is.Zero,
+                    $"伤情「{k}」不在死亡白名单内却标了致死 —— 白名单就不再是致死伤情的闭集\n" +
+                    "要么把它加进 death-and-respawn.md:96,要么把 lethal 改成 false");
+            }
         }
 
         /// <summary>
@@ -231,21 +245,34 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_rowsPassTheRealValidator()
         {
             var rows = LoadRows(File.ReadAllText(DataPath));
-            Assert.That(rows.Count, Is.EqualTo(5), "读到的行数不是 5 —— 装载面本身有问题");
+            // 🔁 2026-10-30:5 → 6。上行 `INJ_BLUNT`(自限型 / 非致死,用户裁定,
+            //   `ADR-035` T2 的合法行载体)⇒ 伤情行 = 5 白名单 + 1 非致死。
+            //   ⚠️ 这条计数是**存在性锚**,不是性质判据 —— 性质分别由
+            //   `test_allRows_areAcuteHoldType`(白名单面)与
+            //   `test_dataFile_whitelistIsSubsetOfInjuryRows_andNonWhitelistInjuriesAreNonLethal`(非白名单面)承担。
+            Assert.That(rows.Count, Is.EqualTo(Whitelist.Length + 1),
+                $"读到的行数不是 {Whitelist.Length + 1}(5 白名单 + INJ_BLUNT)—— 装载面或数据面变了");
 
             Assert.DoesNotThrow(() => RegistrySchemaValidator.Validate(rows),
                 "真 `RegistrySchemaValidator.Validate` 拒收了数据行 —— 数值或字段有违例");
         }
 
         /// <summary>
-        /// 五项一律**急性保持型**(`self_limit=false ∧ plateau=false`)。
+        /// **白名单五项**一律急性保持型(`self_limit=false ∧ plateau=false`)。
         /// <para>这是白名单伤情能致死的**结构前提**:GDD `:581` 的死亡支要求
         /// `lethal ∧ self_limit=false`。自愈型的伤永远不会死人。</para>
+        /// <para>🔁 <b>2026-10-30 收窄为白名单行</b>:原实现遍历**全部伤情行**,当时二者等价
+        /// (五项伤情行恰 = 白名单)。`INJ_BLUNT` 加入后不等了 —— 它**故意**是自限型非致死
+        /// (R1-22 只允许这种形态的非致死伤情),遍历全部行会把「设计如此」判成「违例」。
+        /// ⇒ 判据收窄到它真正要守的东西:**白名单能致死**。非白名单行的对应性质
+        /// (必须 `Lethality == 0`)由 `test_dataFile_whitelistIsSubsetOfInjuryRows_andNonWhitelistInjuriesAreNonLethal` 守。</para>
         /// </summary>
         [Test]
         public void test_allRows_areAcuteHoldType()
         {
-            var rows = LoadRows(File.ReadAllText(DataPath));
+            var rows = LoadRows(File.ReadAllText(DataPath)).Where(r => Whitelist.Contains(r.DiseaseKey)).ToList();
+            Assert.That(rows.Count, Is.EqualTo(Whitelist.Length), "白名单行不全 —— 本判据的靶场缺行");
+
             foreach (var r in rows)
             {
                 Assert.That(r.Curve.SelfLimit, Is.False,
@@ -276,11 +303,15 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         /// `A_peak/SCALE ≥ DEATH_THRESHOLD` —— 校验 4b 的语义。
         /// <para>⚠️ 读的是**真** `StateMachine.DEATH_THRESHOLD` 常量,不是抄来的 9000。
         /// 该常量一旦裁定成别的值,本条会**自动**跟着变 —— 这才是判据,不是快照。</para>
+        /// <para>🔁 <b>2026-10-30 收窄为白名单行</b>,理由与 `test_allRows_areAcuteHoldType` 同:
+        /// `INJ_BLUNT` 是**故意**达不到死线的非致死伤情(`A_peak/SCALE = 13107 raw &lt; 38011 raw`),
+        /// 遍历全部行会把「非致死」判成「无限迁延」。判据要守的是**白名单能致死**。</para>
         /// </summary>
         [Test]
         public void test_allRows_canReachDeathThreshold()
         {
-            var rows = LoadRows(File.ReadAllText(DataPath));
+            var rows = LoadRows(File.ReadAllText(DataPath)).Where(r => Whitelist.Contains(r.DiseaseKey)).ToList();
+            Assert.That(rows.Count, Is.EqualTo(Whitelist.Length), "白名单行不全 —— 本判据的靶场缺行");
             var death = new Fix(StateMachine.DEATH_THRESHOLD);
 
             foreach (var r in rows)
@@ -386,7 +417,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         {
             string json = File.ReadAllText(DataPath);
             var rows = LoadRows(json);
-            Assert.That(rows.Count, Is.EqualTo(5));
+            // 🔁 2026-10-30:原为字面 5 / 4。改为**相对**计数 —— 本条要证的是「少一行能被抓」,
+            //   不是「现有几行」;写死数字会让每条新行都来撞一次(且撞的时候看不出它在测什么)。
+            Assert.That(rows.Count, Is.GreaterThan(1), "行数过少 ⇒ 下面的「少一行」判别力不足");
 
             // 从原文里挖掉 INJ_CLAW 整行,重读
             int at = json.IndexOf("\"key\": \"INJ_CLAW\"", StringComparison.Ordinal);
@@ -401,7 +434,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             string trimmed = json.Remove(start, end - start + 1);
 
             var rowsAfter = LoadRows(trimmed);
-            Assert.That(rowsAfter.Count, Is.EqualTo(4), "挖掉一行后应剩 4 行");
+            Assert.That(rowsAfter.Count, Is.EqualTo(rows.Count - 1), "挖掉一行后应恰好少一行");
             Assert.That(rowsAfter.Select(r => r.DiseaseKey), Does.Not.Contain("INJ_CLAW"));
         }
     }

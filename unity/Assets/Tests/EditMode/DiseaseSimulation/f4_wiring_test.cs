@@ -95,7 +95,8 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var payload = new DrugTreatmentAppliedPayload(
                 tick: tick, treatmentId: TreatmentId, actorId: 1,
                 polarity: ProgressionEvaluator.PolarityCausal,
-                drugPotency: potency, halfLife: halfLife, seq: 0);
+                drugPotency: potency, halfLife: halfLife, seq: 0,
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
             c.Bag.EventSink.Append(new SimEvent(
                 tick, c.Patient, -1, EventKind.DrugTreatmentApplied,
                 c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));
@@ -235,7 +236,8 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var payload = new DrugTreatmentAppliedPayload(
                 tick: 3000, treatmentId: TreatmentId, actorId: 1,
                 polarity: 0,                                   // Symptomatic
-                drugPotency: new Fix(-10 * Fix.OneRaw), halfLife: 100000, seq: 0);
+                drugPotency: new Fix(-10 * Fix.OneRaw), halfLife: 100000, seq: 0,
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
             c.Bag.EventSink.Append(new SimEvent(
                 3000, c.Patient, -1, EventKind.DrugTreatmentApplied,
                 c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));

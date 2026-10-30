@@ -13078,3 +13078,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   只改这一处;四处载体不受影响。
 - **纯文档改动**,零代码净改动 ⇒ 未跑测试;上一次全量 = S9 批 `6029/5992/0/37`。
 - 原件 `production/qa/evidence/t1-s8-ac5-readjudication-2026-10-30.md`。
+
+## Session Extract — ADR-035 T2 前置轮 A(2026-10-30)
+
+- **用户指令**「仍未动的(零运行期读方 / 零真实行 / 机制正面路径从未跑过真实材料)…现在实现」
+  + 两项裁定:「新增 INJ_BLUNT(自限型)」「改 11 载荷(TD-prescription-09)」。
+- **已落三件**:
+  ① **53 代价表运行期读方** —— `Gameplay.Presentation/CostTable53CookedCodec.cs`(新)+ provider 五处
+     + `DataCorePreloader` 一条 + 12 条夹具;
+  ② **注册表第一件非致死伤情** `INJ_BLUNT`(id 15,自限型,数值草案)+ 重烘两份 cooked + 重建 catalog;
+  ③ **11 载荷第八项** `ContraindicationBand`(`-1` = 未命中)全链:struct / codec tag 8 / entities.yaml /
+     11 的 GDD(`:183` 表 + `AC-11-03` 注)/ `PrescribeFlow` 显式写哨兵 / `ElevenSideOnlyFields` 门。
+- **回归**:EditMode `6043/6006/0/37` @ 08:45 · PlayMode `238/234/0/2/2` @ 08:46 · `Unit.Sim 393/393`。
+  等式 `6043 − 6029 = 14` = 12(新文件)+ 1(V-10 正向)+ 1(tag-8 往返)。
+- **债**:`TD-sim-03` **closed** · `TD-prescription-09` **open → partial** · `TD-medcons-15` open 维持。
+  `open 56 · closed 78 · partial 3 · 未闭 P0 面 33`。
+- ⚠️ **方法失误已记**:前两轮用 `DaYiJingCheng.Tests.DiseaseSimulation` 过滤,**漏了**
+  `DaYiJingCheng.Tests.Unit.Sim`(注册表夹具的真命名空间)⇒ 6 条红潜伏到全量才暴露。
+- ⚠️ **两处须用户定**: ① `INJ_BLUNT` 数值(草案);② 将来禁忌判定若由**病种**派生,与 `AC-11-01` ② 相抵。
+- **未提交**。原件 `production/qa/evidence/t2-a-cost-read-side-and-11-payload-carrier-2026-10-30.md`。

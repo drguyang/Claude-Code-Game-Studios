@@ -131,6 +131,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.DelayTableCookedAssetName`;同上为字面串。</para></summary>
         public const string DelayTableAddress = "53_delay_table.cooked.bytes";
 
+        /// <summary>53 用药代价表 address(ADR-035 T2 前置 · 2026-10-30 接线)。
+        /// <para>⚠️ 单一出处 = <see cref="CostTable53CookedCodec.CookedFileName"/>(解码器与 address
+        /// 共用同一常量;菜单写盘名在编辑期装配里,边界程序集不引用它)。</para></summary>
+        public const string CostTableAddress = CostTable53CookedCodec.CookedFileName;
+
         /// <summary>48 教学内容 address(S17-3 · AC-5「运行期只读 .cooked」的装载半边)。
         /// <para>⚠️ 单一出处 = <see cref="TutorialContentTable.CookedFileName"/>(解码器与 address
         /// 共用同一常量;菜单写盘名在编辑期装配里,边界程序集不引用它)。</para></summary>
@@ -224,6 +229,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DiseaseActionAxisDataSet? _diseaseActionAxis;
         private OutcomeTable53DataSet? _outcomeTable;
         private DelayTable53DataSet? _delayTable;
+        // 53 用药代价表(ADR-035 · 2026-10-30):struct 解码形 ⇒ 可空承载。
+        private CostTable53DataSet? _costTable;
         // 48 教学内容(S17-3 · AC-5):struct 只读表 ⇒ 可空承载。
         private TutorialContentTable? _tutorialContent;
         // 24 医馆三表(S17-2 前置):均 struct 解码形 ⇒ 可空承载。
@@ -346,6 +353,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureDelayTable();
                 return (TDataSet)(object)_delayTable.Value;
             }
+            // ── ADR-035(2026-10-30):53 用药代价表(cooked 装载面)──
+            if (typeof(TDataSet) == typeof(CostTable53DataSet))
+            {
+                EnsureCostTable();
+                return (TDataSet)(object)_costTable.Value;
+            }
             // ── S17-3(2026-10-21):48 教学内容(AC-5 运行期只读)──
             if (typeof(TDataSet) == typeof(TutorialContentTable))
             {
@@ -438,7 +451,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 交互种类契约表(2026-10-20:InteractionKindDataSet)" +
                 " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)" +
                 " + 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮:PrescriptionActionsDataSet / " +
-                "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)" +
+                "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet / CostTable53DataSet)" +
                 " + 48 教学内容(S17-3:TutorialContentTable)" +
                 " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)" +
                 " + 24 两张词表(2026-10-26 裁定 ①-C/②-C:ClinicRoomNameDataSet / ClinicContextNameDataSet)" +
@@ -497,6 +510,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureDiseaseActionAxis();
             EnsureOutcomeTable();
             EnsureDelayTable();
+            EnsureCostTable();
             EnsureTutorialContent();
             EnsureClinicContext();
             EnsureClinicAdj();
@@ -769,6 +783,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 53 延迟表 cooked 解码失败(address={DelayTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>53 用药代价表 —— **依赖 9 的注册表**:`CostTable53.CreateTable` 的外键 / N-1 / kind
+        /// 判据全建在注册表行上 ⇒ 先 `EnsureDiseaseRegistry()`(与本类既有装载次序一致)。</summary>
+        private void EnsureCostTable()
+        {
+            if (_costTable.HasValue) return;
+            EnsureDiseaseRegistry();
+            byte[] bytes = FetchBytes(CostTableAddress);
+            try
+            {
+                _costTable = CostTable53CookedCodec.Read(bytes, _diseaseRegistry.Value.Rows);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 53 用药代价表 cooked 解码失败(address={CostTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

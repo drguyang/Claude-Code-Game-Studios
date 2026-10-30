@@ -224,8 +224,30 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <summary>ADR-009 Amendment I(11 写)。形状与 EmergencyTreatmentApplied 一致但**不带
     /// method / cause**(药物类恒 Manual,携带即空字段)。不与动作类共用 Kind 的理由 =
     /// 写者结算来源不同 + 一个 Kind 无法同时落两条流。</summary>
+    /// <remarks>
+    /// <para>🔁 <b>2026-10-30 追加 <see cref="ContraindicationBand"/>(`TD-prescription-09` 的载体半边)</b>
+    /// —— 原 JSON / GDD 的「七项」是**历史形状**,本字段是**第八项**,追加在末尾(ordinal 纪律,
+    /// 承 ADR-024 / ADR-035 §①B)。原七项**一字未动**。</para>
+    /// <para><b>为什么是「档」而不是「哪条禁忌」</b>:53 的代价表键是 `(harm_kind, band)`
+    /// (`ADR-035 §Decision ②`),`band` = 11 算出的**触发条件档序数**(§①B「触发条件面归 11」)。
+    /// 若改传「命中的 `contraindications[]` 条目下标」,53 就必须自持一份「条目 → 档」的映射
+    /// ⇒ 等于复制 11 的数据,违 `AC-11-02` 的反推。⇒ 传档序数,53 只查表。</para>
+    /// <para><b>为什么默认值是 <see cref="NoContraindication"/>(= -1) 而不是 0</b>:档 0 是**合法档**
+    /// (代价表行 `band: 0` 就在用),用 0 当「未命中」会把「命中第 0 档」伪装成「没命中」。
+    /// 哨兵取负数,与 `SkillGrownPayload.LevelNotGrown = -1` 同型。</para>
+    /// <para>⚠️ <b>今日唯一可产生的值就是哨兵</b>:11 侧**尚无禁忌判定实现**(`contraindications[]`
+    /// 在 21a 的真实数据里 **0 条**,且 `AC-11-06` / 规则八 只禁「拦截 / 减效 / 弹警告」,
+    /// 未禁「记账」)。⇒ 本字段是**载体**,不是已跑通的机制;`TD-prescription-09` 只结「载荷有载体」半边。</para>
+    /// <para>⚠️ <b>与 `AC-11-01` ② 不冲突</b>:该条要求「体征逐位相同、病种不同 ⇒ 载荷逐字段相等」。
+    /// 本字段的值**今日恒为哨兵**(不依赖任何病人状态)⇒ 两条载荷仍逐字段相等。若将来由 11
+    /// 从**体征**派生(而非从病种),该条依然成立;若从**病种**派生,则必须先改 `AC-11-01` ——
+    /// 那是 11 的 GDD 修订轮,不是本载荷能单方面定的。</para>
+    /// </remarks>
     public readonly struct DrugTreatmentAppliedPayload
     {
+        /// <summary>「本剂未命中任何禁忌」的哨兵(负数 —— 档 0 是合法档)。</summary>
+        public const int NoContraindication = -1;
+
         public readonly long Tick;
         public readonly int TreatmentId;
         public readonly int ActorId;
@@ -234,12 +256,23 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly long HalfLife;       // 来自 21a drug_profile
         public readonly long Seq;
 
+        /// <summary>本剂命中的**禁忌档序数**(ADR-035 §①B);<see cref="NoContraindication"/> = 未命中。</summary>
+        public readonly int ContraindicationBand;
+
         public DrugTreatmentAppliedPayload(long tick, int treatmentId, int actorId, int polarity,
-            Fix drugPotency, long halfLife, long seq)
+            Fix drugPotency, long halfLife, long seq, int contraindicationBand)
         {
             Tick = tick; TreatmentId = treatmentId; ActorId = actorId; Polarity = polarity;
             DrugPotency = drugPotency; HalfLife = halfLife; Seq = seq;
+            ContraindicationBand = contraindicationBand;
         }
+
+        // ⚠️ **刻意只留这一个 ctor,不留「七参重载默认未命中」**。
+        //    ① 语义:「本剂没命中禁忌」是一个**判定结论**,不是缺省值 —— 八参强制每个构造点表态。
+        //    ② 机制:七参重载只能靠 `: this(...)` 实现,而那样会在 **Sim.Contracts** 里产生一个
+        //       `call .ctor` 站点 ⇒ `AC-11-22` 的构造点白名单门**直接转红**(实测,2026-10-30),
+        //       而放宽该门 = 门单方面放宽 AC 原文,本项目明令禁止。
+        //    ③ 若将来构造点数量成为负担,正确出路是加 `enum` 级的命名工厂,**不是**放宽门。
     }
 
     /// <summary>ADR-024 补齐轮(暴露 OQ-7a-9 折叠丢成长)。

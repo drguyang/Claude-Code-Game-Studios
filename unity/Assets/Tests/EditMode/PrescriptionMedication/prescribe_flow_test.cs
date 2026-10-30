@@ -959,6 +959,9 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             Assert.AreEqual(65536L, payload.DrugPotency.Raw, "= 1.0 Q16.16(F-11.1: potency × dose / DOSE_BASE)");
             Assert.AreEqual(114688L, payload.HalfLife);
             Assert.AreEqual(0L, payload.Seq, "载荷 Seq = 占位(header Seq 由主机 Append 发号;归 45 / 7a)");
+            // 2026-10-30 第八项:11 侧无禁忌判定实现 ⇒ 流程**显式**写哨兵(不是漏填)。
+            Assert.AreEqual(DrugTreatmentAppliedPayload.NoContraindication, payload.ContraindicationBand,
+                "TD-prescription-09 的载体半边:字段在,判定未实现 ⇒ 值恒为哨兵");
         }
 
         [Test]

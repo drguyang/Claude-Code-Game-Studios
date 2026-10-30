@@ -73,7 +73,8 @@ namespace DaYiJingCheng.Tests.MedConsequences
         private static SimEvent EvD(long tick, int patient, long seq, int treatmentId = 1)
         {
             var payload = new DrugTreatmentAppliedPayload(
-                tick, treatmentId, actorId: 1, polarity: -1, new Fix(0), halfLife: 100, seq: 0);
+                tick, treatmentId, actorId: 1, polarity: -1, new Fix(0), halfLife: 100, seq: 0,
+                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
             return new SimEvent(tick, new PatientId(patient), seq, EventKind.DrugTreatmentApplied,
                                 Encoder.Encode(EventKind.DrugTreatmentApplied, payload));
         }
