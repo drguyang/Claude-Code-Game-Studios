@@ -247,8 +247,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         {
             var decoder = new PayloadDecoder(pool);
             bool Decode(PayloadRef r, EventKind k,
-                        out JudgmentStreamReducer.DecodedJudgment d)
+                        out JudgmentStreamReducer.DecodedJudgment d,
+                        out DecodeFailureKind why)
             {
+                why = DecodeFailureKind.None;
                 try
                 {
                     if (k == EventKind.CaseClosed)
@@ -283,16 +285,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                         return true;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // 与 TelemetryReporter.DecodeJudgmentRecord 同口径:不可用 ⇒ 跳过
+                    // 与 TelemetryReporter.DecodeJudgmentRecord 同口径:不可用 ⇒ 跳过并分类。
+                    why = DecodeFailure.Classify(ex);
                 }
                 d = default;
                 return false;
             }
 
             IReadOnlyList<JudgmentRecord> recs =
-                JudgmentStreamReducer.Reduce(stream.Events, Decode, out _);
+                JudgmentStreamReducer.Reduce(stream.Events, Decode, out SkipBreakdown _);
             return recs.ToList();
         }
 

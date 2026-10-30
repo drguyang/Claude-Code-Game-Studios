@@ -32,9 +32,12 @@ namespace DaYiJingCheng.Telemetry
     {
         /// <summary>解码委托:从 PayloadRef 取载荷内容(由装配层注入)。
         /// <para>返回 false = 该 ref 无对应载荷(解码失败 / 未驻留),该条跳过,
-        /// 不抛。</para></summary>
+        /// 不抛。</para>
+        /// <para>⚠️ <b>`failure` 形参与 F1 侧同款(`TD-epic-01-b` A 方案,2026-10-30)</b>:
+        /// 返回 false 时须填失败类别,让还原器能分类计数。两个 reducer 的委托形状
+        /// **刻意保持一致** —— 装配层可以把同一个适配器喂给两者。</para></summary>
         public delegate bool DecodeJudgment(PayloadRef payloadRef, EventKind kind,
-            out DecodedJudgment decoded);
+            out DecodedJudgment decoded, out DecodeFailureKind failure);
 
         /// <summary>解码后的一条判断(病例 + 病种集 + 是否改写)。
         /// <para>⚠️ DiseaseIds 元素 = 病种 ordinal(CaseClosed 位掩码展开)或
@@ -70,12 +73,12 @@ namespace DaYiJingCheng.Telemetry
         /// 若 D == J)。</para></summary>
         /// <param name="caseStream">病例流事件(已按全序键排序)。</param>
         /// <param name="decode">解码委托(见 <see cref="DecodeJudgment"/>)。</param>
-        /// <param name="skipped">解码失败 / 载荷不可用而被跳过的条数(可观测,
-        /// 非静默吞)。</param>
+        /// <param name="skipped">解码失败 / 载荷不可用而被跳过的条数,**按类别分开**
+        /// (`TD-epic-01-b` A 方案;`.Total` 是总数)。</param>
         public static IReadOnlyList<MisdiagnosisMatrixMetrics.CaseRecord> Reduce(
-            IReadOnlyList<SimEvent> caseStream, DecodeJudgment decode, out int skipped)
+            IReadOnlyList<SimEvent> caseStream, DecodeJudgment decode, out SkipBreakdown skipped)
         {
-            skipped = 0;
+            skipped = default;
             if (caseStream == null || caseStream.Count == 0 || decode == null)
                 return new List<MisdiagnosisMatrixMetrics.CaseRecord>();
 
@@ -96,9 +99,9 @@ namespace DaYiJingCheng.Telemetry
             for (int i = 0; i < caseStream.Count; i++)
             {
                 SimEvent e = caseStream[i];
-                if (!decode(e.Payload, e.Kind, out DecodedJudgment d))
+                if (!decode(e.Payload, e.Kind, out DecodedJudgment d, out DecodeFailureKind why))
                 {
-                    skipped++;   // 可观测,不静默
+                    skipped = skipped.Plus(why);   // 可观测**且分类**,不静默
                     continue;
                 }
 

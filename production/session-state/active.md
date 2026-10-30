@@ -13544,3 +13544,19 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   本轮零新增测试是预期的 —— 改动是删死字段,唯一重写的夹具是**替换**不是新增)。
 - 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 17:48:02 CST ⇒ 逐位相同(零回归)。
 - 计数:`未闭 P0 面 12 → 11`;`TD-prescription-08` **closed**;`skeuomorphic-ui` 退出 M3 分布。
+- **已提交 `d5334918`**。
+
+### 四条债结案(用户 2026-10-30 裁定,全取 A 方案)—— 同日
+- **`TD-epic-01-b`**:`skipped` 拆 `Missing` / `Corrupt`(新文件 `Telemetry/DecodeFailure.cs`
+  + 两个 reducer 的 delegate 加 `out DecodeFailureKind` + `out SkipBreakdown`;
+  **公开签名仍 `out int`**(= `.Total`),零调用方改动)。证伪 M10 ⇒ 2 条红。
+  ⚠️ 只覆盖 F1/F2;F3/F4 未升级(它们失败只有一种,无分类需求,且不在原判定面内)。
+- **`TD-clinic-17`**:ADR-014 两处 `FloatParseHandling = None` → `Decimal`(权威实测:
+  该枚举**只有 Double/Decimal**)。**错的是 ADR 不是代码**,零代码改动。
+- **`TD-clinic-16`**:`test-standards.md` 首条收窄为「不得依赖**可变**外部状态」+
+  新增只读夹具具名声明义务。⚠️ 该义务**今日无机械门**(如实登记为待补门)。
+- **`TD-enemy-03`**:GDD F-27-4 增「`Path` 耗尽 ⇒ `acc := 0`」分支(用户裁定归零,追认现实现)
+  + 夹具从「钉实现」改「钉规格」并**新增**一条判别力更强的夹具(acc 从 12345 起步)。
+- 回归:EditMode `6166/6129/0/37` @ 18:34(基线 `6162/6125/0/37` ⇒ **+4/+4**:
+  telemetry 7→10、EnemyAI 16→17)· PlayMode `238/234/0/2/2` @ 18:35:30(逐位相同)。
+- 计数:`未闭 P0 面 11 → 7` · `epic 分布 5/31 → 4/31`(`enemy-ai` 退出)。

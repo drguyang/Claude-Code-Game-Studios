@@ -171,11 +171,24 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 **只做 tokenize,不做对象反序列化。**
 
 - **词法器默认值 pin(2026-09-21 · 承 `architecture-review-2026-09-20.md` RC-7)**:
-  构造 `JsonTextReader` 时**必须显式设 `DateParseHandling = None` 与 `FloatParseHandling = None`**
+  构造 `JsonTextReader` 时**必须显式设 `DateParseHandling = None` 与 `FloatParseHandling = Decimal`**
   —— Newtonsoft 在 `DateParseHandling` 非 None 时会把**看起来像日期的字符串 token**(如 `"3/4"`)
-  转成 `DateTime` ⇒ `Fix` 字段原文被改写;`FloatParseHandling` 决定数字 token 落 `long` / `double` /
-  `decimal`。两条改为**硬要求**(§Implementation Guidelines 补充),并配**负向夹具**:`"3/4"` 被当日期 /
+  转成 `DateTime` ⇒ `Fix` 字段原文被改写;`FloatParseHandling` 决定数字 token 落 `double` / `decimal`。
+  两条改为**硬要求**(§Implementation Guidelines 补充),并配**负向夹具**:`"3/4"` 被当日期 /
   数字 token 落在 float 路径的夹具断言**烘焙期硬失败**。
+  <br>⚠️ **2026-10-30 订正(`TD-clinic-17` 结案轮)**:原文此处与 §Implementation Guidelines 第 2 条
+  均写 `FloatParseHandling = None` —— **该字面在 Newtonsoft 里不存在,不可实现**。
+  权威实测(`com.unity.nuget.newtonsoft-json` 的 `Newtonsoft.Json.xml`):
+  `FloatParseHandling` 枚举**只有 `Double` 与 `Decimal` 两个成员**,无 `None`;
+  ```bash
+  grep -n "F:Newtonsoft.Json.FloatParseHandling" \
+    "unity/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.xml"
+  # ⇒ 恰两行:.Double / .Decimal
+  ```
+  ⇒ 改为 **`Decimal`**:它是「不走 `double`」的最接近取值(`Double` 只有 15–17 位有效数字,
+  `Decimal` 有 28–29 位)。**无运行期后果** —— `Fix` 承载字段按第 3 条**写字符串**,
+  **从不走 `JsonToken.Float`**;行为拒收由阶段 2 的结构化校验承担。
+  (`DateParseHandling = None` **确实存在**,原写不错,一字未动。)
 - **禁用 `JsonConvert.DeserializeObject<T>` / `JObject.Parse` 等对象反序列化 API** ——
   它们把 JSON 数字经 `double` / `decimal` 中转后填入对象,是一条约 `FixParse` 的**静默浮点泄漏通道**,
   与 ADR-006 §一 直接相冲。**该禁令由一条 grep / IL 守卫守住**(见 §Validation)。
@@ -369,7 +382,9 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 
 1. **烘焙工具**落 `tools/asset-pipeline/`(目录结构规约);以编辑器菜单命令 + `AssetPostprocessor` 触发;
 2. 词法器**只**用 `JsonTextReader`;对象反序列化 API 全禁;构造 `JsonTextReader` 时**必须显式设
-   `DateParseHandling = None` 与 `FloatParseHandling = None`(2026-09-21 承 RC-7)**;
+   `DateParseHandling = None` 与 `FloatParseHandling = Decimal`(2026-09-21 承 RC-7;
+   ⚠️ **2026-10-30 订正 `FloatParseHandling` 由 `None` → `Decimal`** —— 该枚举**无 `None` 成员**,
+   原字面不可实现,详见 §Decision 阶段 1 的订正注)`;
 3. **`Fix` 承载字段在 JSON 里写字符串**;`int` 计数字段写 JSON 数字;
 4. **一个逻辑数据集一个产物**(`item_database.cooked` / `random_events.cooked` / …);
 5. 边界程序集实现 `IDataProvider`,把已解析领域数据交给 sim(ADR-005 门 A:sim 不碰 Addressables);

@@ -109,5 +109,21 @@ namespace DaYiJingCheng.Telemetry
             }
             return sb.ToString();
         }
+
+        /// <summary>
+        /// 同上,并**追加一行跳过分类**(`TD-epic-01-b` A 方案,2026-10-30)。
+        /// <para>⚠️ <b>为什么单列一个重载而不是改原签名</b>:原 `Render` 被 F2 / F3 / F4 / F5 / F6 等多个报告共用,而只有
+        /// 「真解码载荷」的指标(F1 / F2 / F3)才有跳过可报。给它加一个形参会逼
+        /// 那些「只读事件头」的指标各传一个假 `default` —— 那是给一个不存在的信息
+        /// 造一个占位。</para>
+        /// <para><b>零跳过时不追加任何行</b>(见 <see cref="SkipBreakdown.Describe"/> 的理由)。</para>
+        /// </summary>
+        public static string Render(string title, IReadOnlyList<MetricLine> lines,
+                                    SkipBreakdown skipped)
+        {
+            string body = Render(title, lines);
+            if (skipped.Total == 0) return body;
+            return body + "  # 解码跳过:" + skipped.Describe() + "\n";
+        }
     }
 }

@@ -379,7 +379,7 @@
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
 | `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
-| `TD-epic-01-b` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-b` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
@@ -397,7 +397,7 @@
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
-| `TD-enemy-03` | `enemy-ai` | open | **Y** | R1 |
+| `TD-enemy-03` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
@@ -416,8 +416,8 @@
 | `TD-clinic-13` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-14` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-15` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-16` | `clinic-machine` | open | **Y** | R1 |
-| `TD-clinic-17` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-16` | `clinic-machine` | closed | **Y** | R1 |
+| `TD-clinic-17` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-18` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-19` | `clinic-machine` | open | **N** | R4 |
 | `TD-clinic-20` | `clinic-machine` | open | **Y** | R4 |
@@ -850,11 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 101, 'open': 35, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 92 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 5/31 个 epic
-    clinic-machine: 4         telemetry-analytics: 4    enemy-ai: 1
-    patient-ai: 1             processing: 1
+条目 139 | 状态 {'closed': 105, 'open': 31, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 7 （已闭但曾标 P0 面的 96 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 4/31 个 epic
+    telemetry-analytics: 3    clinic-machine: 2         patient-ai: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -6847,3 +6847,126 @@ python3 tools/debtcount/debtcount.py --check
 >   (与本项目 `TD-audio-01` 的「日期副本」同型风险)。
 >
 > ⚠️ **本轮**不**声称已修** —— 索引行状态**维持 `open`**。
+
+---
+
+## 2026-10-30 · 四条债结案(`TD-epic-01-b` / `TD-clinic-17` / `TD-clinic-16` / `TD-enemy-03`)
+
+> 用户 2026-10-30 **四条全取 A 方案**。以下逐条结清。
+
+### ✅ `TD-epic-01-b` —— `skipped` 拆成两个分类计数(A 方案)
+
+**原判定**:「『解码失败 → 计 skipped』的吞异常写法会把编码侧缺陷伪装成数据质量问题 ——
+`skipped` 只在报告里给个数,不区分『载荷未驻留 / 损坏 / 类型错配』」。
+
+**⚠️ 实测订正(前提比原判定细)**:原建议「catch 里按异常类型分流,**类型错配**不转 skipped
+而是抛」**有一半做不到**,三条实测证据(探针已删,结论保留在 `DecodeFailure.cs` 文件头):
+① **未驻留 vs 损坏可分** —— `InvalidOperationException` vs `InvalidDataException`;
+② **类型错配 vs schema 损坏不可分** —— 同一个 `InvalidDataException`,且它是 **`sealed`**
+   (实测 `CS0509: cannot derive from sealed type`)⇒ 派生区分也做不到;
+③ **「类型错配」运行期几乎不可观测** —— 实测「Kind 与载荷不符」抛的是
+   **schema 越界**(`tag=0 越界(1..31)`),而 `PayloadCodec.cs:54` 那句「类型不匹配」
+   **根本执行不到**(`DecodeBoxed` 先按 `kind` 解出载荷,`boxed is T` 的失败只在
+   **调用方静态错误**时发生)。
+⇒ **运行期只有两类可达**,按两类实现。
+
+**产出**:
+· 新文件 `unity/Assets/Telemetry/DecodeFailure.cs` —— `DecodeFailureKind`(None/Missing/Corrupt)
+  + `SkipBreakdown`(Missing / Corrupt / `Total` / `Describe()`) + `DecodeFailure.Classify`(唯一映射处)。
+· `JudgmentStreamReducer` / `JudgmentStreamF2Reducer` 的 delegate 加 `out DecodeFailureKind failure`;
+  `out int skipped` → `out SkipBreakdown skipped`。
+· `MetricsReport.Render` 新增带 `SkipBreakdown` 的重载(零跳过时不追加行)。
+· `TelemetryReporter` 的 F1 / F2 报告**正文**带分类(「跳过 N(未驻留 a / 损坏 b)」);
+  **公开签名仍是 `out int skipped`**(= `.Total`)⇒ 零调用方改动。
+
+**证伪 M10(靶点 = reducer 的 `skipped.Plus(why)`)**:改成 `Plus(DecodeFailureKind.Corrupt)`
+(忽略 `why`,全按一类)⇒ **2 条转红**:`test_reduce_decodeFailure_countedAndSkipped`
+(「查无此数据 ⇒ Missing」期望 1 实得 0)与 `test_reduce_skipBreakdown_separatesMissingFromCorrupt`
+(「一案未驻留 ⇒ Missing = 1」期望 1 实得 0)。还原后 SHA-256
+`bd34d7e545b860eb34742b46dfbaa726dc35839f115fa6a9e93c9a0537a3e935` 逐字节一致。
+
+**新增夹具(3 条)**:`test_reduce_skipBreakdown_separatesMissingFromCorrupt`(核心判据)·
+`test_skipBreakdown_describe_zeroIsNotRenderedAsTwoZeros` · `test_decodeFailure_classify_operationIsMissing_othersAreCorrupt`。
+
+**⚠️ 结案范围(如实收窄)**:只覆盖 **F1 / F2 两个 reducer**。F3(`DecodeActionRecord`)/
+F4(`DecodeGrowthRecord`)的解码委托**未升级** —— 它们的失败只有一种(`bad++`),没有分类需求,
+且本条原判定逐字点的是 F1 的 `DecodeJudgmentRecord` / F2 的 `DecodeMisdiagnosisRecord`。
+
+### ✅ `TD-clinic-17` —— 修订 ADR-014(`FloatParseHandling` 由 `None` → `Decimal`)
+
+**原判定**:「`JsonStage1Lexer.cs:5-8` 取 `FloatParseHandling = Decimal`,而 ADR-014 原文钉 `None`
+(该文件自陈 Newtonsoft 无 `None` 成员)。行为拒收已由阶段 2 结构化封住,但**字面偏离应登记**」。
+
+**✅ 权威实测(不再是「文件自陈」)**:
+```bash
+grep -n "F:Newtonsoft.Json.FloatParseHandling" \
+  "unity/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.xml"
+# ⇒ 恰两行:.Double / .Decimal —— **无 None**
+```
+另从 DLL 的 `#Strings` 堆复核:独立 `None` 串**全 DLL 仅 1 处**,邻域是
+`ReadAsDateTime` / `SwitchToLocalTime` / `ParserTimeZone` ⇒ 属 **`DateParseHandling`**。
+
+**⇒ 结论:错的是 ADR,不是代码。** `ADR-014` 两处(`§Decision 阶段 1` 与 `§Implementation
+Guidelines` 第 2 条)已就地订正为 **`Decimal`**,并附订正注 + 可跑复算命令。
+`JsonStage1Lexer.cs` 的文件头与内联注释同步改写(原写「ADVISORY 偏差」⇒ 现写「**已与 ADR 对齐**」)。
+
+**⚠️ 无运行期后果**:`Fix` 承载字段按 ADR-014 第 3 条**写字符串**,**从不走 `JsonToken.Float`**;
+行为拒收由阶段 2 的结构化校验承担。
+
+### ✅ `TD-clinic-16` —— 修订 `test-standards.md` 措辞(A 方案)
+
+**原判定**:「测试读文件系统(`assets/data/` + `tests/unit/clinic_machine/fixtures/`),与
+『Unit tests must not depend on external state (filesystem)』**字面相抵**」。
+
+**实测**:① CI workflow **已存在**且跑 EditMode/PlayMode ⇒ 原触发条件「CI runner 落地时」
+**今天已成立**;② 该族测试的**写盘全部落 `Path.GetTempPath()`**,其余 `File.ReadAllText`
+都是**只读**(读 `assets/data/*.json` 与 `tests/unit/clinic_machine/fixtures/`)⇒ **不会污染仓库**。
+
+**⇒ 规则与执行脱节,改规则**(用户裁定 A):`.claude/rules/test-standards.md` 首条由
+「must not depend on external state (filesystem, network, database)」改为
+「must not depend on **mutable** external state (writes to filesystem, network, database)」,
+并新增**只读外部夹具的具名声明义务**(须在文件头声明读哪些路径、为什么必须读真表而非内联)。
+⚠️ **该义务今日无机械门**(写盘那半有 `FsWriteBoundaryGate`,只读这半没有)—— 如实登记为待补门。
+
+### ✅ `TD-enemy-03` —— `acc` 归零语义入 GDD(用户裁定「归零,追认现实现」)
+
+**原判定**:「GDD 对『路径走完后 `acc` 怎么办』零字,而实现**替 GDD 做了一个决定**」。
+
+**⚠️ 结案前先厘清一处易混读**:GDD `:699` **已经写着**「`acc` 只在 `Moving` 为真的 tick 里前进;
+`Moving` 转假时 `acc` **保持,不归零**」。但那管的是 **`Moving` 转假**,**不是**「`Path` 耗尽」——
+后者是 `while` 循环**已进**、`acc ≥ FIX_ONE`、却**无下格可消费**的另一个情形。原判定点的是后者。
+
+**⇒ 用户裁定:取「归零」,把现实现追认为规格。** `design/gdd/enemy-ai.md` F-27-4 增一节:
+`Path` 耗尽 ⇒ `acc := 0` + `break`,并逐条给出三条理由(保持会破产 `[0, FIX_ONE)` 不变量 /
+归零代价为零 / 与 `Moving` 转假的「不归零」触发条件互斥)+ 调用方义务(路径耗尽后须置 `moving = false`)。
+
+**夹具从「钉实现」改为「钉规格」**:`test_advance_pathExhausted_staysAndClampsAcc` 的注释改引
+GDD 条款;并**新增** `test_advance_pathExhausted_accIsExactlyZero_notHeldNotClamped`
+—— 让 `acc` 从**非零小数**(12345)起步,使「归零(0)/ 保持(77881)/ 钳到 `FIX_ONE−1`(65535)」
+三种收口给出**三个不同值**,判别力最强(原夹具从 0 起步,判别力弱)。
+
+**回归三元组(全量)**:截至 `2026-10-30 18:34 CST` · 批次 **四条债结案批** ·
+commit `d5334918`+工作树 ⇒ EditMode `6166 / 6129 / 0 / 37`,基线 `6162 / 6125 / 0 / 37`
+(`TD-prescription-08` 终态,同日 17:46:45)⇒ **+4 / +4**,等式 `6166 − 6162 = 4`
+= 新增 3 条 telemetry(`skipBreakdown` 分类 / `Describe` 文案 / `Classify` 映射)
++ 1 条 EnemyAI(`accIsExactlyZero`)。
+复算:
+```bash
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Telemetry/judgment_stream_reducer_test.cs   # ⇒ 10(基线 7)
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/EnemyAI/logi_pose_test.cs                    # ⇒ 基线 +1
+```
+
+**计数**:`未闭 P0 面 11 → 7` · `closed 101 → 105` · `epic 分布 5/31 → 4/31`。
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|epic 分布"
+# ⇒ 未闭 P0 面 = 7 （已闭但曾标 P0 面的 96 条不计）
+# ⇒ 7 条,分布在 4/31 个 epic
+python3 tools/debtcount/debtcount.py --check
+# ⇒ ✅ §五 输出块与索引块一致
+```
+⚠️ **`skeuomorphic-ui` 早已退出**(上批);本批退出的是 **`enemy-ai`** 与 **`item-database`**
+(后者上一批已退)⇒ 现剩 `clinic-machine` / `telemetry-analytics` / `patient-ai` / `processing`。
+
+**回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 18:35:30 CST` ·
+commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。

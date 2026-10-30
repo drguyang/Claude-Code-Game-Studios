@@ -287,8 +287,11 @@ namespace DaYiJingCheng.Tests.EnemyAI
         [Test]
         public void test_advance_pathExhausted_staysAndClampsAcc()
         {
-            // 路径耗尽:cursor 停在终点,acc 收口归零(保持 [0,1) 不变式;
-            // 调用方此后应置 moving=false —— 文档已注)。
+            // **GDD 规格**:`enemy-ai.md` F-27-4 的「`Path` 耗尽 ⇒ `acc := 0`」分支
+            // (2026-10-30 `TD-enemy-03` 结案时由用户裁定追认为规格 —— 原文对该情形零字,
+            //  而实现替规格做了决定)。
+            // 路径耗尽:cursor 停在终点,`acc` **归零**(不是「保持」也不是「钳到 FIX_ONE−ε」);
+            // 调用方此后应置 `moving=false`(GDD 同节末的调用方义务)。
             var path = new List<WorldPos> { A, B };
             var acc = Fix.Zero;
             int cursor = 1; // 已在终点 B
@@ -297,7 +300,30 @@ namespace DaYiJingCheng.Tests.EnemyAI
             pose = EnemyLocomotion.Advance(pose, ref acc, path, ref cursor, true, Fix.One);
             Assert.AreEqual(B, pose.Cell, "路径耗尽 ⇒ 原地");
             Assert.AreEqual(1, cursor, "cursor 不越界");
-            Assert.AreEqual(0, acc.Raw, "acc 收口(不变式 0 ≤ acc < 1)");
+            Assert.AreEqual(0, acc.Raw, "acc 归零(GDD F-27-4 的 Path 耗尽分支)");
+        }
+
+        /// <summary>
+        /// **`Path` 耗尽时 `acc` 精确归零** —— 与「保持」/「钳到 `FIX_ONE − ε`」两者都不同。
+        /// <para>⚠️ <b>为什么单列这一条</b>(2026-10-30 `TD-enemy-03`):上一条的 `acc` 从 **0** 起,
+        /// 加上一个整格后恰为 `FIX_ONE` ⇒ 「归零」得 0、「保持」得 `FIX_ONE` —— **可区分但只差一格**;
+        /// 而「钳到 `FIX_ONE − ε`」在这种输入下也会落在 0 附近,判别力弱。
+        /// 本条让 `acc` 从**非零小数**起步,三种收口给出**三个不同值**,判别力最强:
+        /// 归零 ⇒ `0` · 保持 ⇒ `acc₀ + speed`(≥ `FIX_ONE`)· 钳到 `FIX_ONE − 1` ⇒ `65535`。</para>
+        /// </summary>
+        [Test]
+        public void test_advance_pathExhausted_accIsExactlyZero_notHeldNotClamped()
+        {
+            var path = new List<WorldPos> { A, B };
+            var acc = new Fix(12345);   // 非零小数余数
+            int cursor = 1;             // 已在终点 B
+            var pose = new LogiPose(B, 0);
+
+            pose = EnemyLocomotion.Advance(pose, ref acc, path, ref cursor, true, Fix.One);
+
+            Assert.AreEqual(B, pose.Cell, "路径耗尽 ⇒ 原地");
+            Assert.AreEqual(0, acc.Raw,
+                "`acc` 须**精确归零** —— 保持会得 " + (12345 + 65536) + ",钳到 FIX_ONE−1 会得 65535");
         }
 
         [Test]

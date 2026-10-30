@@ -2,10 +2,15 @@
 //          · Story 008(自研 DOM:token 种类按结构记录,Integer 与 String 永不混淆)
 //
 // ⚠️ DateParseHandling = None:日期串不得被读成 DateTime(作者态只有字符串语义)。
-// ⚠️ FloatParseHandling = Decimal:**ADVISORY 偏差** —— ADR-014 原文钉 FloatParseHandling = None,
-//    但 Newtonsoft 该枚举只有 { Decimal, Double } 两成员,无 None(装包后实测确认)。
-//    取 Decimal 逼近「不走浮点路径」的意图;float 路径的**行为拒收**由阶段2 承担
-//    (Fix 字段必须 String token、int 字段必须 Integer token —— 任何 Float token 结构性硬失败)。
+// ⚠️ FloatParseHandling = Decimal —— **✅ 2026-10-30 已与 ADR-014 对齐(`TD-clinic-17` 结案)**。
+//    此处原写「**ADVISORY 偏差** —— ADR-014 原文钉 None,但 Newtonsoft 只有 { Decimal, Double }」,
+//    即把「代码偏离 ADR」当成需要登记的偏差。**实测查明错的是 ADR,不是代码**:
+//    Newtonsoft 的 `FloatParseHandling` 枚举**确实只有 `Double` / `Decimal` 两成员**(权威出处 =
+//    该包的 `Newtonsoft.Json.xml`,`grep "F:Newtonsoft.Json.FloatParseHandling"` 恰两行),
+//    ADR-014 的 `None` **字面不可实现** ⇒ 已由该 ADR 就地订正为 `Decimal`(两处)。
+//    ⇒ 本文件与 ADR **现已一致**,不再有偏差可登记。
+//    float 路径的**行为拒收**仍由阶段 2 承担
+//    (`Fix` 字段必须 String token、int 字段必须 Integer token —— 任何 Float token 结构性硬失败)。
 // ⚠️ Integer vs Float 按 token 种类结构化区分,AC-26(int 编码 processing_state)不依赖数值转换。
 
 using System;
@@ -126,8 +131,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 using (var reader = new JsonTextReader(new StringReader(json)))
                 {
                     reader.DateParseHandling = DateParseHandling.None;
-                    // ADR-014 字面为 FloatParseHandling = None —— Newtonsoft 无此成员(ADVISORY,
-                    // 见文件头);Decimal = 最接近「不走 double」的取值,行为拒收在阶段2。
+                    // ✅ 2026-10-30 起与 ADR-014 一致(`TD-clinic-17` 结案):ADR 已订正为 Decimal。
+                    // Decimal = 「不走 double」的最接近取值(28-29 位有效数字 vs double 的 15-17);
+                    // float 路径的行为拒收在阶段 2(见文件头)。
                     reader.FloatParseHandling = FloatParseHandling.Decimal;
                     reader.CloseInput = false;
 

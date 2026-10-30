@@ -3,6 +3,7 @@
 //
 // ⚠️ 本件是 TD-epic-01 的还债件(2026-10-19 第四片)夹具:`JudgmentStreamReducer` 的判据。
 
+using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Telemetry;
@@ -42,18 +43,32 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 q.Enqueue(set);
             }
 
+            /// <remarks>
+            /// ⚠️ **两处 `false` 都填 `Missing`**(`TD-epic-01-b` A 方案,2026-10-30)——
+            /// 本替身是「按 caseId 查字典」,查不到 = **查无此数据**(与 `PayloadDecoder`
+            /// 抛 `InvalidOperationException` 同一语义),**不是**载荷损坏。
+            /// 填 `Corrupt` 会让「未驻留」与「损坏」的计数互换而夹具仍绿。
+            /// </remarks>
             public bool Invoke(PayloadRef payloadRef, EventKind kind,
-                               out JudgmentStreamReducer.DecodedJudgment decoded)
+                               out JudgmentStreamReducer.DecodedJudgment decoded,
+                               out DecodeFailureKind failure)
             {
+                failure = DecodeFailureKind.None;
                 int cid = (int)payloadRef.Length;
                 if (kind == EventKind.CaseClosed)
                 {
-                    if (!_truth.TryGetValue(cid, out List<int> t)) { decoded = default; return false; }
+                    if (!_truth.TryGetValue(cid, out List<int> t))
+                    {
+                        failure = DecodeFailureKind.Missing;   // 查无此数据
+                        decoded = default;
+                        return false;
+                    }
                     decoded = new JudgmentStreamReducer.DecodedJudgment(cid, t, false);
                     return true;
                 }
                 if (!_judgedSeq.TryGetValue(cid, out Queue<List<int>> q) || q.Count == 0)
                 {
+                    failure = DecodeFailureKind.Missing;       // 查无此数据
                     decoded = default;
                     return false;
                 }
@@ -79,10 +94,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             var records = JudgmentStreamReducer.Reduce(
                 new[] { Ev(EventKind.CaseClosed, 1), Ev(EventKind.JudgmentRecorded, 1) },
-                dec.Invoke, out int skipped);
+                dec.Invoke, out SkipBreakdown skips);
 
             Assert.That(records.Count, Is.EqualTo(1), "一案一记录");
-            Assert.That(skipped, Is.EqualTo(0));
+            Assert.That(skips.Total, Is.EqualTo(0));
             Assert.That(records[0].Judged.SetEquals(new HashSet<string> { "7" }), Is.True, "J(c) = {7}");
             Assert.That(records[0].Truth.SetEquals(new HashSet<string> { "7" }), Is.True, "D(c) = {7}");
         }
@@ -107,10 +122,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                     Ev(EventKind.JudgmentRecorded, 1),   // 第一条 ⇒ {7}
                     Ev(EventKind.JudgmentRevised, 1),    // 第二条 ⇒ {9}(全序在后,应胜出)
                 },
-                dec.Invoke, out int skipped);
+                dec.Invoke, out SkipBreakdown skips);
 
             Assert.That(records.Count, Is.EqualTo(1), "三条事件仍归一案一记录");
-            Assert.That(skipped, Is.EqualTo(0));
+            Assert.That(skips.Total, Is.EqualTo(0));
             Assert.That(records[0].Judged.Count, Is.EqualTo(1), "J(c) 单条");
             Assert.That(records[0].Judged.Contains("9"), Is.True,
                 "J(c) 须取**全序最后一条** = {9}(取首条会得 {7} ⇒ 红)");
@@ -125,9 +140,9 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var dec = new FakeDecode(truth, new Dictionary<int, List<int>>(), new HashSet<int>());
 
             var records = JudgmentStreamReducer.Reduce(
-                new[] { Ev(EventKind.CaseClosed, 1) }, dec.Invoke, out int skipped);
+                new[] { Ev(EventKind.CaseClosed, 1) }, dec.Invoke, out SkipBreakdown skips);
             Assert.That(records.Count, Is.EqualTo(0), "无判断 ⇒ 不可打分,不进分母");
-            Assert.That(skipped, Is.EqualTo(0));
+            Assert.That(skips.Total, Is.EqualTo(0));
         }
 
         /// <summary>有真值、判断为空集 ⇒ **仍进分母且 J = ∅**(判错,不是不可打分)。
@@ -163,10 +178,103 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                     Ev(EventKind.CaseClosed, 1), Ev(EventKind.JudgmentRecorded, 1),
                     Ev(EventKind.CaseClosed, 2),
                 },
-                dec.Invoke, out int skipped);
+                dec.Invoke, out SkipBreakdown skips);
 
-            Assert.That(skipped, Is.EqualTo(1), "解码失败须计数(可观测)");
+            Assert.That(skips.Total, Is.EqualTo(1), "解码失败须计数(可观测)");
             Assert.That(records.Count, Is.EqualTo(1), "失败的 case 不进结果");
+            // `TD-epic-01-b` A 方案:替身的两处 false 都是「查无」⇒ 须落 Missing,不是 Corrupt。
+            Assert.That(skips.Missing, Is.EqualTo(1), "查无此数据 ⇒ Missing(不是 Corrupt)");
+            Assert.That(skips.Corrupt, Is.EqualTo(0));
+        }
+
+        /// <summary>
+        /// **`TD-epic-01-b` 的核心判据**:跳过**按类别分开计** —— 「未驻留」与「损坏」不再是同一个数。
+        /// <para>⚠️ <b>为什么这条必须有</b>:本条债的原判定逐字是「`skipped` 只在报告里给个数,
+        /// **不区分**『载荷未驻留 / 损坏 / 类型错配』」。若只加字段不加这条判据,
+        /// 「分类」就只是**一个没被验证的字段** —— 与「自述顶替门」同型。</para>
+        /// <para><b>判别力</b>:让替身对两种失败各报一类,断言两个计数**各自**为 1。
+        /// 若还原器把 `why` 忽略(全按 `Plus(None)` 或全按一类),两个计数会失衡 ⇒ 红。</para>
+        /// </summary>
+        [Test]
+        public void test_reduce_skipBreakdown_separatesMissingFromCorrupt()
+        {
+            // 两案:一案「查无」(Missing)、一案「损坏」(Corrupt)。
+            var dec = new TwoFailureDecode(missingCaseId: 1, corruptCaseId: 2);
+
+            var records = JudgmentStreamReducer.Reduce(
+                new[]
+                {
+                    Ev(EventKind.CaseClosed, 1),        // ⇒ Missing
+                    Ev(EventKind.CaseClosed, 2),        // ⇒ Corrupt
+                    Ev(EventKind.CaseClosed, 3),        // ⇒ 正常解出(真值)
+                    Ev(EventKind.JudgmentRecorded, 3),  // ⇒ 正常解出(判断)
+                },
+                dec.Invoke, out SkipBreakdown skips);
+
+            Assert.That(skips.Missing, Is.EqualTo(1), "一案未驻留 ⇒ Missing = 1");
+            Assert.That(skips.Corrupt, Is.EqualTo(1), "一案损坏 ⇒ Corrupt = 1");
+            Assert.That(skips.Total, Is.EqualTo(2), "总数 = 两类之和");
+            // ⚠️ Scorable = 有真值 **且** 有判断(GDD F1 逐字)⇒ 第三案须两件都入流才进结果。
+            Assert.That(records.Count, Is.EqualTo(1), "只有第三案进结果");
+        }
+
+        /// <summary>`Describe()` 的文案 —— 零跳过时不渲染两个 0(理由见 `SkipBreakdown.Describe`)。</summary>
+        [Test]
+        public void test_skipBreakdown_describe_zeroIsNotRenderedAsTwoZeros()
+        {
+            Assert.That(default(SkipBreakdown).Describe(), Is.EqualTo("无跳过"),
+                "零跳过 ⇒ 「无跳过」,不是「跳过 0(未驻留 0 / 损坏 0)」");
+            Assert.That(new SkipBreakdown(2, 3).Describe(),
+                Is.EqualTo("跳过 5(未驻留 2 / 损坏 3)"), "非零 ⇒ 逐类点名");
+        }
+
+        /// <summary>`DecodeFailure.Classify` 的映射 —— 唯一映射处,必须钉住。</summary>
+        [Test]
+        public void test_decodeFailure_classify_operationIsMissing_othersAreCorrupt()
+        {
+            Assert.That(DecodeFailure.Classify(new InvalidOperationException("x")),
+                Is.EqualTo(DecodeFailureKind.Missing), "未驻留/越界 ⇒ Missing");
+            Assert.That(DecodeFailure.Classify(new System.IO.InvalidDataException("x")),
+                Is.EqualTo(DecodeFailureKind.Corrupt), "schema 损坏 ⇒ Corrupt");
+            Assert.That(DecodeFailure.Classify(new ArgumentNullException("x")),
+                Is.EqualTo(DecodeFailureKind.Corrupt), "其它异常兜底 ⇒ Corrupt(宁可多报可疑)");
+            Assert.That(DecodeFailure.Classify(null),
+                Is.EqualTo(DecodeFailureKind.Corrupt), "null 不该发生,但按可疑计");
+        }
+
+        /// <summary>「一案 Missing / 一案 Corrupt」的替身(`TD-epic-01-b` 分类判据专用)。</summary>
+        private sealed class TwoFailureDecode
+        {
+            private readonly int _missing;
+            private readonly int _corrupt;
+
+            public TwoFailureDecode(int missingCaseId, int corruptCaseId)
+            {
+                _missing = missingCaseId; _corrupt = corruptCaseId;
+            }
+
+            public bool Invoke(PayloadRef payloadRef, EventKind kind,
+                               out JudgmentStreamReducer.DecodedJudgment decoded,
+                               out DecodeFailureKind failure)
+            {
+                failure = DecodeFailureKind.None;
+                int cid = (int)payloadRef.Length;
+                if (cid == _missing)
+                {
+                    failure = DecodeFailureKind.Missing;
+                    decoded = default;
+                    return false;
+                }
+                if (cid == _corrupt)
+                {
+                    failure = DecodeFailureKind.Corrupt;
+                    decoded = default;
+                    return false;
+                }
+                decoded = new JudgmentStreamReducer.DecodedJudgment(
+                    cid, new List<int> { 7 }, false);
+                return true;
+            }
         }
 
         /// <summary>空流 ⇒ 空序列、0 跳过(不抛)。</summary>
@@ -176,9 +284,9 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var dec = new FakeDecode(new Dictionary<int, List<int>>(),
                                      new Dictionary<int, List<int>>(), new HashSet<int>());
             var records = JudgmentStreamReducer.Reduce(
-                new List<SimEvent>(), dec.Invoke, out int skipped);
+                new List<SimEvent>(), dec.Invoke, out SkipBreakdown skips);
             Assert.That(records.Count, Is.EqualTo(0));
-            Assert.That(skipped, Is.EqualTo(0));
+            Assert.That(skips.Total, Is.EqualTo(0));
         }
 
         /// <summary>**端到端**:还原器 + `JudgmentMetrics` 合起来算 F1a(51 的完整链路自此通)。</summary>
@@ -198,8 +306,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                     Ev(EventKind.CaseClosed, 1), Ev(EventKind.JudgmentRecorded, 1),
                     Ev(EventKind.CaseClosed, 2), Ev(EventKind.JudgmentRecorded, 2),
                 },
-                dec.Invoke, out int skipped);
-            Assert.That(skipped, Is.EqualTo(0));
+                dec.Invoke, out SkipBreakdown skips);
+            Assert.That(skips.Total, Is.EqualTo(0));
 
             JudgmentMetrics.Result r = JudgmentMetrics.Compute(records);
             Assert.That(r.F1aNum, Is.EqualTo(1), "一案判对");

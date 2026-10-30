@@ -27,9 +27,16 @@ namespace DaYiJingCheng.Telemetry
         /// <summary>解码委托:从 `PayloadRef` 取载荷内容。
         /// <para>⚠️ 由**装配层**注入(它引得到 `Sim.Codec` 的 `PayloadDecoder`);
         /// 51 自己不解码 —— 这是 `AC-51-A2` 引用集钉死的必然结果,不是偷懒。</para>
-        /// <para>返回 false = 该 ref 无对应载荷(.Skip 该条,不抛)。</para></summary>
+        /// <para>返回 false = 该 ref 无对应载荷(.Skip 该条,不抛)。</para>
+        /// <para>⚠️ <b>`failure` 形参(`TD-epic-01-b` A 方案,2026-10-30)</b>:返回 false 时
+        /// **须**填失败类别(`Missing` / `Corrupt`),让还原器能分类计数。
+        /// 返回 true 时填 <see cref="DecodeFailureKind.None"/>。
+        /// <b>为什么是委托填而不是还原器判</b>:异常只在委托内部可见(还原器只看得到
+        /// `bool`),若让还原器判就须把异常逃逸出来 —— 那会破坏「解码失败不中断整轮重算」
+        /// 这条既有行为。</para></summary>
         public delegate bool DecodeJudgment(PayloadRef payloadRef, EventKind kind,
-                                            out JudgmentStreamReducer.DecodedJudgment decoded);
+                                            out JudgmentStreamReducer.DecodedJudgment decoded,
+                                            out DecodeFailureKind failure);
 
         /// <summary>解码后的一条判断(还原器的中间形状)。
         /// <para>⚠️ **只用全文中的三件事**:case / 病种集 / 是否改写。
@@ -62,11 +69,12 @@ namespace DaYiJingCheng.Telemetry
         /// <param name="caseStream">病例流事件(**调用方须已按全序键排好序** —— 本类不重排,
         /// 排序权归重算器的单一出处,防两份排序真源)。</param>
         /// <param name="decode">解码委托(见 <see cref="DecodeJudgment"/>)。</param>
-        /// <param name="skipped">解码失败 / 载荷形状不符而被跳过的条数(可观测;非静默吞)。</param>
+        /// <param name="skipped">解码失败 / 载荷形状不符而被跳过的条数,**按类别分开**
+        /// (`TD-epic-01-b` A 方案;`.Total` 是总数)。</param>
         public static IReadOnlyList<JudgmentRecord> Reduce(
-            IReadOnlyList<SimEvent> caseStream, DecodeJudgment decode, out int skipped)
+            IReadOnlyList<SimEvent> caseStream, DecodeJudgment decode, out SkipBreakdown skipped)
         {
-            skipped = 0;
+            skipped = default;
             if (caseStream == null || caseStream.Count == 0 || decode == null)
                 return new List<JudgmentRecord>();
 
@@ -79,9 +87,9 @@ namespace DaYiJingCheng.Telemetry
             for (int i = 0; i < caseStream.Count; i++)
             {
                 SimEvent e = caseStream[i];
-                if (!decode(e.Payload, e.Kind, out DecodedJudgment d))
+                if (!decode(e.Payload, e.Kind, out DecodedJudgment d, out DecodeFailureKind why))
                 {
-                    skipped++;                        // 可观测,不静默
+                    skipped = skipped.Plus(why);       // 可观测**且分类**,不静默
                     continue;
                 }
 

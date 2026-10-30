@@ -98,12 +98,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>F1 指标的本地报告文本(整数对;分母 0 报「分母 0」)。
-        /// <para>**同流同值**(GDD R8 纯函数):不读墙钟 / 执行次数。</para></summary>
-        /// <param name="skipped">解码失败 / 载荷不可用被跳过的条数(可观测;非静默吞)。</param>
+        /// <para>**同流同值**(GDD R8 纯函数):不读墙钟 / 执行次数。</para>
+        /// <para>⚠️ <b>跳过**按类别**进正文</b>(`TD-epic-01-b` A 方案,2026-10-30):
+        /// 报告末行给出 `跳过 N(未驻留 a / 损坏 b)`,而 `skipped` 形参仍是**总数**
+        /// (向后兼容 —— 既有调用方与夹具全部照旧)。</para></summary>
+        /// <param name="skipped">解码失败 / 载荷不可用被跳过的**总**条数(= `Missing + Corrupt`)。</param>
         public string JudgmentReport(out int skipped)
         {
             RequireHost();
-            IReadOnlyList<JudgmentRecord> records = Reduce(out skipped);
+            IReadOnlyList<JudgmentRecord> records = Reduce(out SkipBreakdown skips);
+            skipped = skips.Total;
             JudgmentMetrics.Result r = JudgmentMetrics.Compute(records);
             return MetricsReport.Render("F1 判断层指标(本地会话)", new[]
             {
@@ -111,27 +115,29 @@ namespace DaYiJingCheng.Gameplay.Boot
                     r.DenominatorZero ? "无 Scorable 病例" : "J(c) == D(c) 的比例"),
                 new MetricLine("F1b 改写率", r.F1bNum, r.F1bDen,
                     r.DenominatorZero ? "无 Scorable 病例" : "存在改写史的比例"),
-            });
+            }, skips);
         }
 
         /// <summary>当前 Scorable 病例数(可观测面;0 ⇒ 分母 0 的意思)。
         /// <para>⚠️ 同样受 E-15 门:非主机侧读到的是截断流 ⇒ 这个「0」没有意义。</para></summary>
         public int ScorableCount
         {
-            get { RequireHost(); IReadOnlyList<JudgmentRecord> r = Reduce(out int _); return r.Count; }
+            get { RequireHost(); IReadOnlyList<JudgmentRecord> r = Reduce(out SkipBreakdown _); return r.Count; }
         }
 
         // ────────────────────────────────────────────────────────────────
 
         /// <summary>事件流 → <see cref="JudgmentRecord"/> 序列(解码委托的**生产实现**)。
         /// <para>⚠️ 与 EditMode 夹具的替身分工:那边注入假集,这边解**真载荷**。</para></summary>
-        private IReadOnlyList<JudgmentRecord> Reduce(out int skipped)
+        private IReadOnlyList<JudgmentRecord> Reduce(out SkipBreakdown skipped)
             => JudgmentStreamReducer.Reduce(_stream.Events, DecodeJudgmentRecord, out skipped);
 
         /// <summary>解码委托(ADR-031 抛形 ⇒ try-catch 转「跳过并计数」)。</summary>
         private bool DecodeJudgmentRecord(PayloadRef payloadRef, EventKind kind,
-                                    out JudgmentStreamReducer.DecodedJudgment decoded)
+                                    out JudgmentStreamReducer.DecodedJudgment decoded,
+                                    out DecodeFailureKind failure)
         {
+            failure = DecodeFailureKind.None;
             try
             {
                 switch (kind)
@@ -194,9 +200,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                         return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 解码失败(未驻留 / 载荷损坏)⇒ 跳过并计数,**不**当 0
+                // 解码失败 ⇒ 跳过并**分类**计数(`TD-epic-01-b` A 方案),**不**当 0。
+                // ⚠️ 分类只分两层(未驻留 / 其它),理由见 `DecodeFailure.cs` 文件头:
+                //    「类型错配」与「schema 损坏」共用 sealed 的 `InvalidDataException`,分不开。
+                failure = DecodeFailure.Classify(ex);
                 decoded = default;
                 return false;
             }
@@ -581,12 +590,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>judged = JudgmentRecorded/Revised 的 LexiconId 字符串集。</para>
         /// <para>两者同一字符串空间 ⇒ `diseaseEnum` = 注册表的 `DiseaseId`(字符串);
         /// 矩阵行/列上的每个值都是 <c>DiseaseId</c>,既注册表病种又参与比对。</para></summary>
-        /// <param name="skipped">解码失败 / 载荷不可用被跳过的条数(可观测)。</param>
+        /// <param name="skipped">解码失败 / 载荷不可用被跳过的**总**条数(可观测;
+        /// 分类明细进正文,`TD-epic-01-b` A 方案)。</param>
         public string MisdiagnosisReport(out int skipped)
         {
             RequireHost();
             IReadOnlyList<MisdiagnosisMatrixMetrics.CaseRecord> records =
-                JudgmentStreamF2Reducer.Reduce(_stream.Events, DecodeMisdiagnosisRecord, out skipped);
+                JudgmentStreamF2Reducer.Reduce(_stream.Events, DecodeMisdiagnosisRecord,
+                                               out SkipBreakdown skips);
+            skipped = skips.Total;
 
             var diseaseEnum = new HashSet<string>(
                 _registry.Select(e => e.DiseaseId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
@@ -604,13 +616,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             sb.AppendFormat("F2 N_open = {0}  # 无 CaseClosed(未结案)\n", nOpen);
             sb.AppendFormat("F2 N_unmappable = {0}  # judgment 未携带病种枚举\n", nUnmappable);
             sb.AppendFormat("F2 N_matched_comorbid = {0}  # 共病且 D == J ⇒ 判对,进 F1a 第三项\n", nMatchedComorbid);
+            // `TD-epic-01-b` A 方案:跳过**按类别**进正文(零跳过时不追加,见 SkipBreakdown.Describe)。
+            if (skips.Total > 0) sb.Append("# 解码跳过:").Append(skips.Describe()).Append('\n');
             return sb.ToString();
         }
 
         /// <summary>F2 的解码委托(ADR-031 抛形 ⇒ try-catch 转「跳过并计数」)。</summary>
         private bool DecodeMisdiagnosisRecord(PayloadRef payloadRef, EventKind kind,
-                            out JudgmentStreamF2Reducer.DecodedJudgment decoded)
+                            out JudgmentStreamF2Reducer.DecodedJudgment decoded,
+                            out DecodeFailureKind failure)
         {
+            failure = DecodeFailureKind.None;
             try
             {
                 switch (kind)
@@ -666,8 +682,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                         return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // 解码失败 ⇒ 跳过并**分类**计数(与 F1 侧同款,`TD-epic-01-b` A 方案)。
+                failure = DecodeFailure.Classify(ex);
                 decoded = default;
                 return false;
             }
