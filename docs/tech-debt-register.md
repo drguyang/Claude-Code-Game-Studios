@@ -302,8 +302,8 @@
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
 | `TD-medcons-01` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-02` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-03` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-02` | `medical-consequences` | closed | **Y** | R1 |
+| `TD-medcons-03` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-04` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-05` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 85, 'open': 51, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 27 （已闭但曾标 P0 面的 76 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 27 条,分布在 8/31 个 epic
-    medical-consequences: 13  telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 87, 'open': 49, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 25 （已闭但曾标 P0 面的 78 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 25 条,分布在 8/31 个 epic
+    medical-consequences: 11  telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1349,7 +1349,160 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > PY2
 > ```
 
+> ✅ **2026-10-30 结案 —— `TD-medcons-02`**(用户指令「解除下一个 P0 登记债」)
+>
+> **原判定**:「表值与 Python 参考实现同表」对 18 组合中的 **5 组合**只由测试内镜像
+> `FixtureOutcome` 兜底 —— story 表述对这 5 行过强。
+>
+> **实测:原判定的「5」不复现,且真实病灶比原判定**更宽**。**
+>
+> ① **数字对不上**:`TUPLES`(B01–B20)实际覆盖 **14** 个组合,裸奔的是 **4** 个 ——
+> `empty|applied_matched|not_recovered` · `empty|applied_unmatched|not_recovered` ·
+> `suspected|applied_matched|recovered` · `confirmed|applied_matched|not_recovered`。
+> 复算见下 ①。**「5」的出处无法复现**(写它的是 2026-10-16 的评审件 §五:2),
+> 按「数字须带可跑复算命令」纪律,以**实跑值 4** 为准。
+> ② **更宽的那一层**:`golden-v1.txt` 里**一行判定表都没有**(A/N/C/B 四组,kinds 全部不涉及
+> 表值)。⇒「表值与 Python 参考实现同表」这句对 **18 组合全部**无载体,不是 5 个、
+> 也不是 4 个 —— **每一个**表行当时都只由 `.cs` 里手写的 `FixtureOutcome()` 背书。
+> 而那份手写镜像正是「规则在 `.py` 写一次、在 `.cs` 再抄一次」的**两份真源**:
+> 抄错了两边一起错,测试照绿。原判定把它说成「5 行过强」,**低估了范围**。
+>
+> **修法**(用户裁定取**追加到 `golden-v1.txt`**,而非另建 `table18-v1.txt`):
+> ① `golden_v1_reference.py` 增产出 **T 组 18 行**(`T_{p}_{c}_{d}_outcome <outcome>`),
+>    值直接来自参考实现自己的 `TABLE_ROWS` —— 参考实现是唯一规则源;
+> ② C# 侧**删掉 `FixtureOutcome()`**,`test_table_eighteenRows_allMatchSymbolicFixture`
+>    → `test_table_eighteenRows_allMatchIndependentReference`,期望值**只从 golden 读**;
+> ③ 顺手掐掉**第三份抄写**:`MinimalTableJson()`(7 条 binder 夹具体的合成表)原先也内联了
+>    同一套规则,现改为读 golden T 组。⇒ 规则从 **三处**收敛到 **python 一处**。
+> ④ golden 侧也**数**行(恰 18),不只 `ContainsKey` —— 参考实现少产一行时只查不数不会有回显。
+>
+> **落点选择与 ADR-012 的调和**:`golden-v1.txt` 是签名件,ADR-012 §三 的「全体平台同时重签」
+> 针对的是**值变更**。本批是**纯增量** —— `diff` 实测既有 A/N/C/B 行**逐字节未动**
+> (新增 = 1 行头注释 + 空行 + 18 行 T 组),故不触发重签。
+>
+> **证伪四轮**(判别力的来源是「期望值只从 golden 读」,**不是**「表值对不对」):
+> · **M1**:只改 golden 的 `T_empty_applied_matched_not_recovered_outcome residual → no_echo`
+>   (**真表一字未动**)⇒ **1 红**,报文点名 `(Empty,AppliedMatched,NotRecovered)`。
+>   ⚠️ 结构性论证(非实测):**改前**该变异**一条都不会红** —— 旧断言唯一的 oracle 是
+>   `FixtureOutcome()`,它不读 golden 的任何行。这正是本条要消灭的形态。
+> · **M2**:删 golden 的 `T_confirmed_applied_matched_recovered_outcome` 行(**方法级** filter)
+>   ⇒ **1 红**,报文 = 「golden T 组须恰 18 行」。
+> · **M3**:改**真表** `empty|applied_unmatched|not_recovered` 的值(升序换另一枚举)
+>   ⇒ **1 红**,报文点名该行;其余 41 条绿。
+> · **M4**(M2 的类级形):同样删一行 ⇒ **8 红** = 目标 1 条 + **7 条 binder 夹具**
+>   (报文均为 `golden 缺判据行 «T_confirmed_applied_matched_recovered_outcome»`)——
+>   这 7 条是 `MinimalTableJson` 已真读 golden 的证据。
+> · 四轮均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原(**证伪前基线**,即 T 组已落盘之后:
+>   `golden-v1.txt f8125459…c746a` · `53_outcome_table.json 95b1dacc…d1c7`),**未用 `git checkout`**。
+>   还原后 `grep -c "^T_"` = **18**,`53_outcome_table.json` 回到 `HEAD` 版本(`git status` 零改动)。
+>
+> **回归**:EditMode `6110 / 6073 / 0 / 37` @ 2026-10-30 **12:14:43 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **12:15:38 CST**(`5f9896a3` + 工作树)。
+> 与上一轮**逐位一致**(本条替换而非增删测试:`SymbolicFixture` 1 条 → `IndependentReference` 1 条)。
+>
+> **可复算命令**:
+> ```bash
+> # ① 原判定的「5」:实为 4(裸奔组合;covered = TUPLES 覆盖到的不重复三元组数)
+> cd tests/golden/medcons && python3 -I -c "
+> import sys; sys.path.insert(0,'.'); import golden_v1_reference as g
+> cov={(t[3],t[4],t[5]) for t in g.TUPLES}; miss=sorted(set(g.TABLE_ROWS)-cov)
+> print('covered',len(cov),'/18  missing',len(miss)); [print(' ','|'.join(m)) for m in miss]"
+> # 期望:covered 14 /18  missing 4
+>
+> # ② golden T 组与真表逐行一致(18/18)
+> cd <repo root> && python3 -I -c "
+> import json
+> g={l.split(' ',1)[0]:l.split(' ',1)[1].strip()
+>    for l in open('tests/golden/medcons/golden-v1.txt',encoding='utf-8')
+>    if l.strip() and not l.startswith('#')}
+> t=json.load(open('assets/data/53_outcome_table.json',encoding='utf-8'))
+> bad=[r for r in t['rows'] if r['key']!='default'
+>      and g['T_'+r['key'].replace('|','_')+'_outcome']!=r['outcome']]
+> print('T rows',sum(k.startswith('T_') for k in g),'mismatch',len(bad))"
+> # 期望:T rows 18 mismatch 0
+>
+> # ③ golden 可复现(重跑参考实现应还原文件)
+> cd tests/golden/medcons && python3 -I golden_v1_reference.py && cd - && git diff --stat
+> # 期望:golden-v1.txt 与当前工作树一致(无额外改动)
+>
+> # ④ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 42/42
+> ```
 
+> ✅ **2026-10-30 结案 —— `TD-medcons-03`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:AC-53-03 后半句「`FixParse` 为唯一数值解析入口(旋钮表)」**无载体且未登记** ——
+> 可辩称「结构上虚空」(表内字段是枚举名 / `int`,无 `Fix` 字段)。
+> 触发条件 =「**任一向 53 表引入 `Fix` 字段时**(届时须补载体)」。
+>
+> **触发条件已满足(2026-10-30,ADR-035 T3)**:
+> `53_cost_table.json` 引入 `overdose_band_thresholds` —— 53 表里的**第一个** `Fix` 字段
+> (另两张表 `53_outcome_table` / `53_delay_table` 实测仍全整数,「虚空」的论证自此不成立)。
+> 复算见下 ①。
+>
+> **载体缺口不止一处**:解析在 `CostTableBinder.ReadOverdoseThresholds`
+> (`Editor.Tools.Bake` 侧),**不在** `MedConsFloatGate` 的扫描目录
+> `Assets/Sim/Consequences` 内 ⇒ 这个入口的「唯一性」原先**没有任何机械判据**。
+> 实测该类 27 条夹具里,覆盖档位线的只有 4 条(缺省 / 递增 / 档数 / 启用联动),
+> **三条 Fix 解析判据没有任何夹具**:`Kind != String`(须为字符串)/
+> `FixParse` 抛(不是合法 Fix)/ `Raw <= 0`(须 > 0)。
+>
+> **补的 4 条载体**(`cost_table_binder_test.cs`,类 fixture **27 → 31**):
+> | 判据 | 载体 | 判别力来源 |
+> |---|---|---|
+> | 正向:只能经 `FixParse` | `test_overdoseThreshold_fixLiteral_canOnlyComeFromFixParse` | 输入 `"3/2"` ⇒ raw **98304**;`double.Parse` / `decimal.Parse`(InvariantCulture)对 `"3/2"` **必抛** ⇒ **任何浮点中转路径都产不出 98304**。判别力在**输入形态**,不在断言强度 |
+> | 反向:JSON 数字 ⇒ 拒 | `test_overdoseThreshold_jsonNumber_isRejected_notSilentlyCoerced` | `[1]` ⇒ 报文须含「须为字符串」。**只断「抛」不够** —— 被悄悄当 1.0 接受也会「看起来能用」 |
+> | 反向:非 Fix 字面量 ⇒ 拒 | `test_overdoseThreshold_nonFixLiteral_isRejected` | `["abc"]` ⇒ 报文须含「不是合法 Fix」 |
+> | 反向:`≤ 0` ⇒ 拒 | `test_overdoseThreshold_nonPositive_isRejected` | `["0"]` ⇒ 报文须含「须 > 0」 |
+>
+> **期望值 98304 的离线复算 + 一处刻意的证据边界**:98304 = 1.5 × 65536(`Fix.OneRaw`),
+> 3 × 65536 / 2 = 98304 **整除、无舍入** ⇒ 该期望值**不锁定**舍入模式
+> (`ROUND_HALF_AWAY_FROM_ZERO` 与 ties-to-even 在此同值),**只锁**「经 `FixParse`」这一件事。
+> 要锁舍入模式须另找非整除形态 —— 不属本条,不得据此宣称舍入模式已被覆盖。
+>
+> **证伪四轮**(变异打在 `CostTableBinder.cs`;判别力的来源是「4 条载体」):
+> · **M1**:`FixParse.Parse(item.Str)` → `new Fix((long)(double.Parse(item.Str, Invariant) * 65536.0))`
+>   ⇒ **3 红**:`..._canOnlyComeFromFixParse` + `..._withThresholds_isAccepted` +
+>   `test_realTable_bindsThreeBandLadder_andHasNoV10Warning`(真实表也带 `"3/2"`)。
+> · **M2**:删掉 `item.Kind != JsonNodeKind.String` 整段守卫 ⇒ **1 红**(JSON 数字那条)。
+>   ⚠️ 变异后**仍然抛**(`item.Str` 为空 ⇒ `FixParse` 报「空字面量」)——
+>   若只断言「抛」,这条会**假绿**;红的是报文断言。这正是「只断异常类型会被下层同型异常冒充」。
+> · **M3**:`v.Raw <= 0` → `v.Raw < 0` ⇒ **1 红**(非正值那条)。
+> · **M4**:`catch (Exception ex) { errors.Add(...); continue; }` → `catch (Exception) { continue; }`
+>   (**静默跳过**坏字面量)⇒ **1 红**(非 Fix 字面量那条)。
+> · 四轮均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`CostTableBinder.cs 140d09ec…b5e0`),**未用 `git checkout`**。
+>
+> **回归**:EditMode `6114 / 6077 / 0 / 37` @ 2026-10-30 **12:28:36 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **12:29:29 CST**(`5f9896a3` + 工作树)。
+> 等式 `6114 − 6110 = 4` = 新增 4 条载体;PlayMode **逐位一致**。
+>
+> **可复算命令**:
+> ```bash
+> # ① 53 表里现在有几个 Fix 字段(触发条件已满足的判据)
+> python3 -I -c "
+> import json
+> for f in ['53_cost_table','53_delay_table','53_outcome_table']:
+>     d=json.load(open('assets/data/'+f+'.json',encoding='utf-8'))
+>     print(f, [k for k in d if 'threshold' in k or 'fix' in k.lower()])"
+> # 期望:仅 53_cost_table 命中 ['overdose_band_thresholds'],另两张 []
+>
+> # ② 三条 Fix 解析判据的夹具存在性(改前 0 命中)
+> grep -c "须为字符串\|不是合法 Fix\|须 > 0" \
+>   unity/Assets/Tests/EditMode/MedConsequences/cost_table_binder_test.cs
+> # 期望:4 = 3 条断言(453 / 465 / 477)+ 1 行注释回引(456)
+> # 改前对照:git show HEAD:…/cost_table_binder_test.cs | grep -c …  ⇒ 0
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.CostTableBinderTest   # 期望 31/31
+> ```
+>
+> **未一并处理(如实登记)**:AC-53-03 的另一半「**零浮点字面量**」由 `MedConsFloatGate` 承载,
+> 其扫描面 = `Assets/Sim/Consequences` —— **不含** `Editor.Tools.Bake`。
+> 即:「运行期 53 代码零浮点」有门,「**烘焙侧**零浮点」无门(本条的 M1 变异正是塞进烘焙侧的,
+> 它靠夹具而非门转红)。扩门属另一件事(改门 = 改扫描面,须另裁),**不挂在本条名下**。
 
 ---
 

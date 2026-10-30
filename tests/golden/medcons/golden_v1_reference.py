@@ -185,6 +185,7 @@ def main():
     lines.append("# 刷新 = 全体平台同时重签 + 旧版保留回归对比(禁单平台独签,ADR-012 §三)。")
     lines.append("#")
     lines.append("# 值域语义:哈希行 = u64 十六进制;U 行 = Q16.16 raw 十进制;判定行 = Outcome 枚举名。")
+    lines.append("# T 组(18 行)= 判定表逐行值,由 TABLE_ROWS 产出(`TD-medcons-02` 结案 · 2026-10-30)。")
     lines.append("")
 
     for name, seed, key in A_VECTORS:
@@ -200,6 +201,21 @@ def main():
     for name, seed, key, p, c, d, trial in TUPLES:
         outcome = judge(p, c, d, trial, key is not None, seed, key or 0)
         lines.append(f"{name}_outcome {outcome}")
+
+    lines.append("")
+
+    # ── T 组:判定表 18 行(`TD-medcons-02` 结案件 · 2026-10-30)────────────────────
+    # 为什么要有这一段:在此之前 golden 里**一行判定表都没有**,而 story-002 写的是
+    # 「表值与 Python 参考实现同表」—— 那句当时只能由 C# 测试里**手写的夹具镜像**
+    # `FixtureOutcome` 背书,即「规则在 .py 写一次、在 .cs 里再抄一次」的**两份真源**。
+    # 抄错了两边一起错,测试照绿。现在 18 行由本参考实现直接产出,C# 读 golden 断言真表,
+    # 手写镜像已删(`medcons_outcome_judge_test.cs`)。
+    # ⚠️ 本段是**纯增量**:A / N / C / B 各组行逐字节未动(ADR-012 §三 的「全平台重签」
+    #    针对值变更,此处既有值一位未改)。
+    for p in P_LANES:
+        for c in C_LANES:
+            for d in D_LANES:
+                lines.append(f"T_{p}_{c}_{d}_outcome {TABLE_ROWS[(p, c, d)]}")
 
     lines.append("")
 

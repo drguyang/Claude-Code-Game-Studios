@@ -13222,3 +13222,49 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`ae588656`+工作树)。等式 `6110−6100=10` = 新增 helper 夹具。
 - **计数**:`open 51 · closed 85 · partial 2 · 未闭 P0 面 27`(前 28)。
 - **未提交**。改动 11 件(7 改 + 4 新含 .meta)+ 债册。
+
+## Session Extract — 结案 `TD-medcons-02`(2026-10-30 第八批)
+
+- **用户指令**:「解除下一个 p0 登记债」。原判定:18 组合中 **5 组合**只由测试内镜像
+  `FixtureOutcome` 兜底,story 表述过强。
+- **⚠️ 实测:原判定的「5」不复现 —— 是 4。而且真实病灶比原判定更宽。**
+  `TUPLES`(B01–B20)覆盖 14 组合,裸奔 4 组合;而 `golden-v1.txt` **一行判定表都没有**
+  ⇒「表值与 Python 参考实现同表」对 **18 组合全部**无载体,不是 5 个。手写镜像是
+  「规则在 .py 写一次、在 .cs 再抄一次」的**两份真源**。
+- **修法**(用户裁定追加到 golden-v1.txt):
+  ① `golden_v1_reference.py` 增产出 **T 组 18 行**(来自 `TABLE_ROWS`);
+  ② C# 删 `FixtureOutcome()`,测试改名 `..._allMatchIndependentReference`,期望值只从 golden 读;
+  ③ 顺手掐掉**第三份抄写** —— `MinimalTableJson()` 也改为读 golden T 组;
+  ④ golden 侧**数**行(恰 18),不只 `ContainsKey`。
+- **落点与 ADR-012 调和**:`diff` 实测既有 A/N/C/B 行逐字节未动(纯增量 +20 行),不触发重签。
+- **证伪四轮**:M1 只改 golden(**真表一字未动**)⇒ 1 红点名该行(改前一条都不会红);
+  M2 删 golden 行(方法级)⇒ 1 红(计数断言);M3 改真表 ⇒ 1 红点名该行;
+  M4 删 golden 行(类级)⇒ 8 红 = 目标 1 + **7 条 binder 夹具**(证明 MinimalTableJson 真读 golden)。
+  四轮均备份 + cp 回 + SHA-256 逐字节(基线 `f8125459…c746a` / `95b1dacc…d1c7`),未用 git checkout。
+- **回归**:EditMode `6110/6073/0/37` @12:14:43 · PlayMode `238/234/0/2/2` @12:15:38
+  (`5f9896a3` + 工作树)。与上轮逐位一致(替换而非增删测试)。
+- **计数**:`open 50 · closed 86 · partial 2 · 未闭 P0 面 27 → 26`。
+- **未提交**。改动 3 件(golden-v1.txt / golden_v1_reference.py / medcons_outcome_judge_test.cs)+ 债册。
+
+## Session Extract — 结案 `TD-medcons-03`(2026-10-30 第九批)
+
+- **用户指令**:「解除下一个 p0 登记债」。原判定:AC-53-03 后半句「`FixParse` 为唯一数值解析
+  入口(旋钮表)」**无载体且未登记**,可辩称「结构上虚空」;触发 = 任一向 53 表引入 `Fix` 字段。
+- **触发条件已满足**:ADR-035 T3 给 `53_cost_table.json` 引入 `overdose_band_thresholds` ——
+  53 表里的**第一个** `Fix` 字段(另两张表实测仍全整数)。
+- **载体缺口不止一处**:解析在 `CostTableBinder.ReadOverdoseThresholds`(`Editor.Tools.Bake`),
+  **不在** `MedConsFloatGate` 扫描面 `Assets/Sim/Consequences` 内 ⇒ 该入口唯一性零机械判据;
+  三条 Fix 解析分支(须为字符串 / 不是合法 Fix / 须 > 0)**零夹具**(类共 27 条)。
+- **补 4 条载体**(binder 类 27 → 31):
+  ① 正向 `"3/2"` ⇒ raw **98304**(判别力在输入形态 —— `double`/`decimal` 对 `"3/2"` 必抛,
+     任何浮点中转产不出此值;98304 整除无舍入 ⇒ **不锁**舍入模式,如实登记);
+  ② JSON 数字 `[1]` ⇒ 「须为字符串」;③ `["abc"]` ⇒ 「不是合法 Fix」;④ `["0"]` ⇒ 「须 > 0」。
+- **证伪四轮**:M1 `FixParse` → double 中转 ⇒ **3 红**;M2 删字符串守卫 ⇒ **1 红**(报文断言抓住
+  —— 变异后仍抛,只断「抛」会假绿);M3 `<=0`→`<0` ⇒ **1 红**;M4 catch 静默跳过 ⇒ **1 红**。
+  四轮备份 + cp 回 + SHA-256 逐字节(`CostTableBinder.cs 140d09ec…b5e0`),未用 git checkout。
+- **回归**:EditMode `6114/6077/0/37` @12:28:36 · PlayMode `238/234/0/2/2` @12:29:29
+  (`5f9896a3` + 工作树)。等式 `6114−6110=4` = 新增 4 条载体。
+- **如实登记的残留**:`MedConsFloatGate` 扫描面 = `Assets/Sim/Consequences`,**不含**
+  `Editor.Tools.Bake` ⇒「烘焙侧零浮点」无门(M1 变异塞进烘焙侧,靠夹具而非门转红)。扩门须另裁。
+- **计数**:`open 49 · closed 87 · partial 2 · 未闭 P0 面 26 → 25`。
+- **未提交**。改动 1 件夹具 + 债册 + active.md(本轮之前 TD-medcons-02 的 5 件仍在工作树)。

@@ -187,40 +187,78 @@ namespace DaYiJingCheng.Tests.MedConsequences
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // 判定表:键域全覆盖 + 镜像符号规则(与 python 参考实现 TABLE_ROWS 同表)
+        // 判定表:18 行逐值 vs **独立参考实现**(golden T 组;测试内无镜像)
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>夹具符号映射(golden_v1_reference.py fixture_outcome 的 C# 镜像;
-        /// 行值归数值轮 —— 本表只证形状)。</summary>
-        private static Outcome53.Outcome FixtureOutcome(Outcome53.JudgmentLane p,
-            Outcome53.CareLane c, Outcome53.RecoveryLane d)
+        /// <summary>三轴枚举 → 键名段(与 python 参考实现 / JSON 表同词法)。</summary>
+        private static string PKeyOf(Outcome53.JudgmentLane p) => p switch
         {
-            if (d == Outcome53.RecoveryLane.Recovered && c != Outcome53.CareLane.AppliedMatched)
-                return Outcome53.Outcome.NoEcho;
-            if (c == Outcome53.CareLane.AppliedMatched)
-                return p == Outcome53.JudgmentLane.Confirmed
-                    ? Outcome53.Outcome.NoEcho : Outcome53.Outcome.Residual;
-            return p == Outcome53.JudgmentLane.Confirmed
-                ? Outcome53.Outcome.Recurrence : Outcome53.Outcome.Residual;
-        }
+            Outcome53.JudgmentLane.Empty => "empty",
+            Outcome53.JudgmentLane.Suspected => "suspected",
+            Outcome53.JudgmentLane.Confirmed => "confirmed",
+            _ => throw new ArgumentOutOfRangeException(nameof(p), p, "键域外 P 路"),
+        };
 
-        [Test]
-        public void test_table_eighteenRows_allMatchSymbolicFixture()
+        private static string CKeyOf(Outcome53.CareLane c) => c switch
         {
+            Outcome53.CareLane.None => "none",
+            Outcome53.CareLane.AppliedUnmatched => "applied_unmatched",
+            Outcome53.CareLane.AppliedMatched => "applied_matched",
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, "键域外 C 路"),
+        };
+
+        private static string DKeyOf(Outcome53.RecoveryLane d) => d switch
+        {
+            Outcome53.RecoveryLane.Recovered => "recovered",
+            Outcome53.RecoveryLane.NotRecovered => "not_recovered",
+            _ => throw new ArgumentOutOfRangeException(nameof(d), d, "键域外 D 路"),
+        };
+
+        /// <summary>golden 行名 `T_{p}_{c}_{d}_outcome`(python 参考实现 `TABLE_ROWS` 产出)。</summary>
+        private static string TableGoldenKey(Outcome53.JudgmentLane p, Outcome53.CareLane c,
+            Outcome53.RecoveryLane d) => $"T_{PKeyOf(p)}_{CKeyOf(c)}_{DKeyOf(d)}_outcome";
+
+        /// <summary>
+        /// 18 组合逐行 —— 期望值**只从 golden 读**,测试内**不再有规则镜像**。
+        /// <para>🔁 **2026-10-30(`TD-medcons-02` 结案)**:原实现拿本文件里手写的
+        /// `FixtureOutcome()`(python `fixture_outcome` 的 C# 抄写)当期望值 ——
+        /// 规则在 `.py` 写一次、在 `.cs` 再抄一次 ⇒ **两份真源**,抄错了两边一起错、测试照绿。
+        /// 更糟的是当时 golden **一行判定表都没有**,story-002 那句「表值与 Python 参考实现同表」
+        /// 对 18 组合**全部**无载体(其中 14 组合尚有 B01–B20 元组间接覆盖,而
+        /// `empty|applied_matched|not_recovered` / `empty|applied_unmatched|not_recovered` /
+        /// `suspected|applied_matched|recovered` / `confirmed|applied_matched|not_recovered`
+        /// 这 **4 组合连间接覆盖都没有** —— 原判定写的「5 组合」不复现,复算命令见债册)。
+        /// 现由 `golden_v1_reference.py` 的 `TABLE_ROWS` 直接产出 18 行,C# 侧只读不写。</para>
+        /// </summary>
+        [Test]
+        public void test_table_eighteenRows_allMatchIndependentReference()
+        {
+            var golden = LoadGolden();
             var table = LoadTable();
             Assert.AreEqual(18, table.RowCount, "判定表恰 18 行(3×3×2 用户裁定键域)");
             Assert.AreEqual(1, table.UBandCount, "U 档数默认 1(P0;档数常量留槽,数值轮扩)");
 
+            // golden 侧也须**数**一行 —— 只 `ContainsKey` 不计数时,参考实现少产一行不会有任何回显。
+            int goldenRowCount = 0;
+            foreach (string name in golden.Keys)
+                if (name.StartsWith("T_", StringComparison.Ordinal)) goldenRowCount++;
+            Assert.AreEqual(18, goldenRowCount, "golden T 组须恰 18 行(参考实现 TABLE_ROWS 全覆盖)");
+
+            int visited = 0;
             foreach (var p in Enum.GetValues(typeof(Outcome53.JudgmentLane)).Cast<Outcome53.JudgmentLane>())
                 foreach (var c in Enum.GetValues(typeof(Outcome53.CareLane)).Cast<Outcome53.CareLane>())
                     foreach (var d in Enum.GetValues(typeof(Outcome53.RecoveryLane)).Cast<Outcome53.RecoveryLane>())
                     {
-                        var inputs = new Outcome53.JudgeInputs(
-                            p, c, d, hasTrialHistory: false, uBand: 0, uRaw: 0);
-                        var expected = FixtureOutcome(p, c, d);
-                        Assert.AreEqual(expected, Outcome53.Judge.Evaluate(inputs, table),
-                            $"表行 ({p},{c},{d}) 须与夹具符号规则一致(与 python 参考实现同表)");
+                        string key = TableGoldenKey(p, c, d);
+                        Assert.IsTrue(golden.ContainsKey(key),
+                            $"golden 缺判据行 «{key}» —— 期望值无出处(不得回退到测试内镜像)");
+                        Assert.IsTrue(table.TryLookup(p, c, d, 0, out var outcome),
+                            $"表缺行 ({p},{c},{d})u0 —— 构建期本该拒收");
+                        Assert.AreEqual(golden[key], GoldenNameOf(outcome),
+                            $"表行 ({p},{c},{d}) 须等于独立参考实现产出");
+                        visited++;
                     }
+            Assert.AreEqual(18, visited, "遍历须恰好覆盖 18 组合");
         }
 
         [Test]
@@ -640,21 +678,21 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "错误消息须点名极性:" + string.Join("; ", ex.Errors));
         }
 
-        /// <summary>最小合法判定表 JSON(19 行:18 组合 + default;U 档列恒 0)。</summary>
+        /// <summary>最小合法判定表 JSON(19 行:18 组合 + default;U 档列恒 0)。
+        /// <para>🔁 2026-10-30(`TD-medcons-02` 结案):行值**从 golden T 组读**。
+        /// 原先此处是同一套符号规则的**第三份抄写**(另两份 = python 参考实现、
+        /// 本文件的 `FixtureOutcome`),三份各自可漂移。现规则只剩 python 一处。</para></summary>
         private static string MinimalTableJson()
         {
+            var golden = LoadGolden();
             var rows = new List<string>();
             foreach (var p in new[] { "empty", "suspected", "confirmed" })
                 foreach (var c in new[] { "none", "applied_unmatched", "applied_matched" })
                     foreach (var d in new[] { "recovered", "not_recovered" })
                     {
-                        // 与 FixtureOutcome 同规则(镜像 python)。
-                        string outcome;
-                        if (d == "recovered" && c != "applied_matched") outcome = "no_echo";
-                        else if (c == "applied_matched")
-                            outcome = p == "confirmed" ? "no_echo" : "residual";
-                        else outcome = p == "confirmed" ? "recurrence" : "residual";
-                        rows.Add($"{{\"key\": \"{p}|{c}|{d}\", \"u_band\": 0, \"outcome\": \"{outcome}\"}}");
+                        string key = $"T_{p}_{c}_{d}_outcome";
+                        Assert.IsTrue(golden.ContainsKey(key), $"golden 缺判据行 «{key}»");
+                        rows.Add($"{{\"key\": \"{p}|{c}|{d}\", \"u_band\": 0, \"outcome\": \"{golden[key]}\"}}");
                     }
             rows.Add("{\"key\": \"default\", \"u_band\": 0, \"outcome\": \"residual\"}");
             return "{\"schema_version\": 1, \"u_band_count\": 1, \"rows\": [" +

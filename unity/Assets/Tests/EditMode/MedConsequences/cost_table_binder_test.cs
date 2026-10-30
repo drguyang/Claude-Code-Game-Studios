@@ -398,6 +398,85 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "须保持升序(构建期已拒非递增)");
         }
 
+        // ══════════════ `TD-medcons-03` 载体:Fix 字段只能经 `FixParse` 进来 ══════════════
+        //
+        // 债务原文:「AC-53-03 后半句『`FixParse` 为唯一数值解析入口(旋钮表)』无载体且未登记
+        //   —— 可辩称结构上虚空(表内字段是枚举名 / int,无 Fix 字段)」,
+        //   触发条件 =「任一向 53 表引入 Fix 字段时(届时须补载体)」。
+        //
+        // **2026-10-30 触发条件已满足**:ADR-035 T3 给 `53_cost_table.json` 引入
+        //   `overdose_band_thresholds` —— 53 表里的**第一个** `Fix` 字段
+        //   (`53_outcome_table` / `53_delay_table` 仍全整数,「虚空」的论证自此不再成立)。
+        //   解析点在 `CostTableBinder.ReadOverdoseThresholds`(Editor.Tools.Bake 侧,
+        //   **不在** `MedConsFloatGate` 的扫描目录 `Assets/Sim/Consequences` 内)⇒ 该入口
+        //   的「唯一性」原先没有任何机械判据,以下 4 条补上。
+
+        /// <summary>
+        /// 正向:有理数写法 `"3/2"` ⇒ Q16.16 raw **98304**。
+        /// <para>判别力在**输入形态**上,不在断言强度上:`"3/2"` 对 `double.Parse` /
+        /// `decimal.Parse`(InvariantCulture)都是**非法数字**,必然抛 ⇒
+        /// **任何浮点中转路径都产不出 98304**。故本条一旦绿,就说明数值确实走了
+        /// `FixParse` 的有理数语义。</para>
+        /// <para>98304 = 1.5 × 65536(`Fix.OneRaw`),离线复算 3 × 65536 / 2 = 98304 **整除、无舍入**
+        /// ⇒ 该期望值**不锁定**舍入模式(`ROUND_HALF_AWAY_FROM_ZERO` 与 ties-to-even 在此同值),
+        /// 只锁「经 `FixParse`」这一件事。要锁舍入模式须另找非整除形态,不属本条。</para>
+        /// </summary>
+        [Test]
+        public void test_overdoseThreshold_fixLiteral_canOnlyComeFromFixParse()
+        {
+            CostTableBinder.BindResult r = CostTableBinder.Bind(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"1\", \"3/2\"],",
+                          rows: Row(kind: "overdose", band: 0)),
+                RegistryWithOneNonLethalInjury());
+
+            Assert.That(r.OverdoseBandThresholds[0].Raw, Is.EqualTo(65536L), "「1」⇒ raw 65536(= 1 × 2^16)");
+            Assert.That(r.OverdoseBandThresholds[1].Raw, Is.EqualTo(98304L),
+                "「3/2」⇒ raw 98304 —— 有理数写法只有 FixParse 接受(double / decimal 都会抛)");
+        }
+
+        /// <summary>
+        /// 反向 ①:Fix 字段写成 **JSON 数字** ⇒ 拒,且**不得静默转型**。
+        /// <para>这是「FixParse 为唯一入口」的**结构面**判据 —— ADR-014 §三:JSON 数字进解析器
+        /// 必然经 `double` / `decimal` 中转,那一步就绕开了 `FixParse`。
+        /// 只断言「抛」不够:`[1]` 被悄悄当 1.0 接受也会让实现「看起来能用」,
+        /// 故报文须点名字符串要求。</para>
+        /// </summary>
+        [Test]
+        public void test_overdoseThreshold_jsonNumber_isRejected_notSilentlyCoerced()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [1],",
+                          rows: Row(kind: "overdose", band: 0)),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "须为字符串");
+        }
+
+        /// <summary>反向 ②:字符串但不是合法 Fix 字面量(`"abc"`)⇒ 拒。</summary>
+        [Test]
+        public void test_overdoseThreshold_nonFixLiteral_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"abc\"],",
+                          rows: Row(kind: "overdose", band: 0)),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "不是合法 Fix");
+        }
+
+        /// <summary>反向 ③:合法但 `≤ 0` 的 Fix(`"0"`)⇒ 拒(负值 / 零档位线会让档 0 恒命中)。</summary>
+        [Test]
+        public void test_overdoseThreshold_nonPositive_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(enabled: "[\"contraindication\",\"overdose\"]",
+                          extraRoot: "\"overdose_band_thresholds\": [\"0\"],",
+                          rows: Row(kind: "overdose", band: 0)),
+                RegistryWithOneNonLethalInjury());
+            AssertMessageHas(ex, "须 > 0");
+        }
+
         /// <summary>档位线**非严格递增** ⇒ 拒(后者结构性不可达,与 R1-37 的死词条同型)。</summary>
         [Test]
         public void test_overdoseThresholds_notStrictlyIncreasing_isRejected()

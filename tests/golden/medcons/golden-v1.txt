@@ -6,6 +6,7 @@
 # 刷新 = 全体平台同时重签 + 旧版保留回归对比(禁单平台独签,ADR-012 §三)。
 #
 # 值域语义:哈希行 = u64 十六进制;U 行 = Q16.16 raw 十进制;判定行 = Outcome 枚举名。
+# T 组(18 行)= 判定表逐行值,由 TABLE_ROWS 产出(`TD-medcons-02` 结案 · 2026-10-30)。
 
 A01_casesalt_seed0_key0 06797743A9C8B075
 A01_uraw 1657
@@ -40,4 +41,23 @@ B17_outcome residual
 B18_outcome no_echo
 B19_outcome no_echo
 B20_outcome no_echo
+
+T_empty_none_recovered_outcome no_echo
+T_empty_none_not_recovered_outcome residual
+T_empty_applied_unmatched_recovered_outcome no_echo
+T_empty_applied_unmatched_not_recovered_outcome residual
+T_empty_applied_matched_recovered_outcome residual
+T_empty_applied_matched_not_recovered_outcome residual
+T_suspected_none_recovered_outcome no_echo
+T_suspected_none_not_recovered_outcome residual
+T_suspected_applied_unmatched_recovered_outcome no_echo
+T_suspected_applied_unmatched_not_recovered_outcome residual
+T_suspected_applied_matched_recovered_outcome residual
+T_suspected_applied_matched_not_recovered_outcome residual
+T_confirmed_none_recovered_outcome no_echo
+T_confirmed_none_not_recovered_outcome recurrence
+T_confirmed_applied_unmatched_recovered_outcome no_echo
+T_confirmed_applied_unmatched_not_recovered_outcome recurrence
+T_confirmed_applied_matched_recovered_outcome no_echo
+T_confirmed_applied_matched_not_recovered_outcome no_echo
 
