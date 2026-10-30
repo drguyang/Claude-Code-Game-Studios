@@ -304,7 +304,7 @@
 | `TD-medcons-01` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-02` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-03` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-04` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-04` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-05` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 87, 'open': 49, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 25 （已闭但曾标 P0 面的 78 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 25 条,分布在 8/31 个 epic
-    medical-consequences: 11  telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 88, 'open': 48, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 24 （已闭但曾标 P0 面的 79 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 24 条,分布在 8/31 个 epic
+    medical-consequences: 10  telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1503,6 +1503,58 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > 其扫描面 = `Assets/Sim/Consequences` —— **不含** `Editor.Tools.Bake`。
 > 即:「运行期 53 代码零浮点」有门,「**烘焙侧**零浮点」无门(本条的 M1 变异正是塞进烘焙侧的,
 > 它靠夹具而非门转红)。扩门属另一件事(改门 = 改扫描面,须另裁),**不挂在本条名下**。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-04`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:门的**构建期注册**层无夹具 —— `AssemblyGates.RunAll()` 已接入,
+> 但 `test_assemblyGates_runAll_zeroErrors_*` **检不出注册被删**(删了反而更空 = 仍绿)。
+>
+> **实测:该缺陷已于 2026-10-21 被 `TD-gate-01`(C-1)修掉 —— 本条登记于 2026-10-16,
+> 五天后被另一条债的修复覆盖,债册未回刷。** 与 `TD-sim-01` 同型(过期债)。
+> 现行夹具 = `unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs`(源文本解析器)
+> \+ `gate_wiring_manifest_test.cs`(**手写**三入口清单 × 双向差集 + 门类全量判决)。
+> `MedConsFloatGate` 在两张清单里都已登记
+> (`EntryWiringManifest["RunAll"]` 第 88 行 / `ClassConsumerManifest` 的 `Kind = Chain`,
+> `Consumer = "RunAll"`)。
+>
+> **实测两条独立变异**(不是读代码推断,是跑):
+>
+> | 变异(删 `RunAll` 里的一行接线) | `GateWiringManifestTest` | 本条点名的 `AssemblyGateRunAllTest` |
+> |---|---|---|
+> | `MedConsFloatGate.RunAll(".")` | **3 红**(实测) | **2/2 全绿**(实测 —— 原判定对这条测试的描述属实) |
+> | `FsWriteBoundaryGate.RunAll(".")` | **3 红**(实测) | 全绿(**结构性论证**,未单独实测:同一删除动作只会让 `errs` 更少,`Count == 0` 仍成立) |
+>
+> 3 红 = `test_entryWiring_matchesManifest_bidirectionally`(双向差集)·
+> `test_classManifest_chainKindEntriesAreActuallyWired`(声明 ≠ 事实)·
+> `test_extractor_actuallyExtractsKnownMembers`(提取器自检,报文直接点名「抽不到 `X.RunAll`」)。
+> ⇒ **原文对「哪条测试失明」的描述仍然准确**(`assembly_gate_runall_test.cs` 那两条确实只覆盖
+> 「多了红」这个方向),但「**注册层无夹具**」这个结论**已不成立**。
+>
+> **本轮改动**:**零生产代码改动**。只在该失明测试的文件头加一段注(记清它是单向判据、
+> 反向由谁承担、以及「别在这里补第二条门链真源」),防止同一情况被**第三次**登记成新债。
+> 原文不删,日期与实测结果就地留档。
+>
+> **证伪**:两次变异均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+> (`AssemblyGates.cs 78dbb369…f6c6`),还原后 `git status` 对该文件**零命中**,未用 `git checkout`。
+>
+> **回归**:EditMode `6114 / 6077 / 0 / 37` @ 2026-10-30 **12:41:27 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **12:42:21 CST**(`ae8b3019` + 工作树)。
+> 与上轮**逐位一致**(本条只加注释)。
+>
+> **可复算命令**:
+> ```bash
+> # ① 注册层夹具存在(改前的结论「无夹具」据此不成立)
+> ls unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs \
+>    unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs
+> # ② MedConsFloatGate 真在两张清单里
+> grep -n "MedConsFloatGate" unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs
+> # 期望:2 处(RunAll 入口清单 + ClassConsumerManifest)
+> # ③ 变异复跑:删掉 AssemblyGates.cs 里
+> #    `errs.AddRange(MedConsFloatGate.RunAll("."));` 这一行,再跑
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.Unit.Sim.GateWiringManifestTest   # 期望 3 红 / 12 绿
+> #     -testFilter DaYiJingCheng.Tests.Unit.Sim.AssemblyGateRunAllTest   # 期望 2 绿(失明,即原判定)
+> ```
 
 ---
 

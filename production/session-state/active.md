@@ -13268,3 +13268,23 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   `Editor.Tools.Bake` ⇒「烘焙侧零浮点」无门(M1 变异塞进烘焙侧,靠夹具而非门转红)。扩门须另裁。
 - **计数**:`open 49 · closed 87 · partial 2 · 未闭 P0 面 26 → 25`。
 - **未提交**。改动 1 件夹具 + 债册 + active.md(本轮之前 TD-medcons-02 的 5 件仍在工作树)。
+
+## Session Extract — 结案 `TD-medcons-04`(2026-10-30 第十批)
+
+- **用户指令**:「解除下一个 p0 登记债」。原判定:门的**构建期注册**层无夹具,
+  `test_assemblyGates_runAll_zeroErrors_*` 检不出注册被删(删了反而更空 = 仍绿)。
+- **结论:过期债** —— 该缺陷已于 **2026-10-21** 被 `TD-gate-01`(C-1)修掉,债册未回刷
+  (本条登记于 2026-10-16,五天后被另一条债的修复覆盖)。现行夹具 =
+  `Sim/gate_chain_source.cs`(源文本解析器)+ `Sim/gate_wiring_manifest_test.cs`
+  (**手写**三入口清单 × 双向差集 + 门类全量判决)。`MedConsFloatGate` 两张清单里都已登记。
+- **实测(三条变异,不是推断)**:
+  · 删 `RunAll` 里 `MedConsFloatGate.RunAll(…)` 接线 ⇒ `GateWiringManifestTest` **3 红**;
+    同变异下 `AssemblyGateRunAllTest` **2/2 全绿**(原判定对「这条测试失明」的描述属实)。
+  · 删 `FsWriteBoundaryGate.RunAll(…)` 接线 ⇒ 同样 **3 红**(泛化验证)。
+  · 三次均备份 + cp 回 + SHA-256 逐字节(`AssemblyGates.cs 78dbb369…f6c6`)。
+- **本轮改动**:零生产代码改动 + 一处文件头注释(记清该测试是单向判据、反向由谁承担、
+  **别在这里补第二条门链真源**)—— 防第三次重复登记。
+- **回归**:EditMode `6114/6077/0/37` @12:41:27 · PlayMode `238/234/0/2/2` @12:42:21
+  (`ae8b3019` + 工作树)。与上轮逐位一致(只加注释)。
+- **计数**:`open 48 · closed 88 · partial 2 · 未闭 P0 面 25 → 24`。
+- **未提交**。

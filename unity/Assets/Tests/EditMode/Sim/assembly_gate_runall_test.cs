@@ -9,6 +9,17 @@
 //
 // 权威:ADR-017 §二(b2 门 A 硬化)· ADR-025 §①/§④(b3)· ADR-029 §③(b6)·
 //      writer_existence_gate(b7,2026-10-10)· sprint-04.md:154 Go/No-Go ②。
+//
+// ⚠️ 本文件**只覆盖一个方向**(`TD-medcons-04` 结案注 · 2026-10-30,原文不删):
+//   `errs.Count == 0` 是**单调判据** —— 它只对「多了一条不该有的红」敏感,对
+//   「**某个门从 RunAll 里被删掉**」完全失明(少一个门 ⇒ errs 更少 ⇒ 更绿)。
+//   该方向由**另一个文件**承担:`gate_wiring_manifest_test.cs`(TD-gate-01 的 C-1,2026-10-21)。
+//   实测(2026-10-30,两条独立变异):分别删掉 `RunAll` 里的
+//   `MedConsFloatGate.RunAll(…)` / `FsWriteBoundaryGate.RunAll(…)` 接线 ⇒
+//   `GateWiringManifestTest` **各 3 条转红**
+//   (`entryWiring_matchesManifest_bidirectionally` / `classManifest_chainKindEntriesAreActuallyWired` /
+//    `extractor_actuallyExtractsKnownMembers`),而本文件两条**仍绿**。
+//   ⇒ **别在这里补「注册被删」的判据** —— 那会造出第二份门链真源。要加门:改源 + 同批改那份手写清单。
 
 using System.Linq;
 using DaYiJingCheng.EditorTools.Gates;
