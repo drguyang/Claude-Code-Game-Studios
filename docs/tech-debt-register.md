@@ -301,7 +301,7 @@
 <!-- TD-INDEX:BEGIN -->
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| `TD-medcons-01` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-01` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-02` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-03` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-04` | `medical-consequences` | open | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'open': 53, 'closed': 83, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 29 （已闭但曾标 P0 面的 74 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 29 条,分布在 8/31 个 epic
-    medical-consequences: 15  telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 84, 'open': 52, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 28 （已闭但曾标 P0 面的 75 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 28 条,分布在 8/31 个 epic
+    medical-consequences: 14  telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1234,6 +1234,58 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 **共同性质**:9 条均**不阻塞** story-002 转 Complete(重评已裁定),但**须留痕** ——
 其中 **TD-medcons-09 是唯一有明确外部触发点(CI runner 落地)的高优先项**,
 其余 8 条随「数值轮」或「下次动该文件」自然触发。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-01`**(用户指令「解除下一个 P0 登记债」)
+>
+> **原判定**:`golden-v1.txt` 的 `C01_degraded_uraw 32768` 是**孤儿行** —— 无测试读取,
+> 退化值由测试本地字面量钉(自证)。
+>
+> **实测坐实**:`grep -rn "C01_degraded_uraw" --include=*.cs` ⇒ **0 命中**(只有 `.txt` 自己那一行);
+> 而 `medcons_outcome_judge_test.cs` 的退化路径断言写的是字面量 `32768L`。
+> 两边各写一次、互不引用 ⇒ 参考实现与 C# 实现的退化常量**分叉了也发现不了**。
+>
+> **修法**:断言改为**从 golden 读**期望值(`LoadGolden()["C01_degraded_uraw"]`),
+> 并先断言该键存在(缺键 ⇒ 直接失败,不静默回退到字面量)。
+> 纯度那一条(两次调用相同)**仍不引用 golden** —— 它测的是「无隐藏可变状态」,
+> 拿 golden 当期望值会把两种判据混成一条。
+>
+> **同族全扫(顺手,非原债点名)**:逐行审计 `tests/golden/medcons/golden-v1.txt` 后
+> 发现**还有一条孤儿** —— `A05_uraw`(测试只断言了 A01–A04 的 uraw + A05 的 **case-salt** 行)。
+> 已补 `Assert.AreEqual(golden["A05_uraw"], URaw(0xABCDL, 3UL))`;
+> 参考实现的 `A_VECTORS` 里 `A05 = (seed 0xABCD, key 3)`,已核对。
+> ⚠️ 审计里 `B01..B20_outcome` 看似孤儿,实为 `golden[t.name + "_outcome"]` 动态消费
+> (`medcons_outcome_judge_test.cs:392`)—— **逐字面量 grep 判不出动态拼接**,不得据此判死。
+>
+> **改后状态**:medcons 的 golden **32 行全部进入判据链**。
+>
+> **证伪**(变异 = 改 golden 的值,因为判别力的来源正是「golden 进了判据链」):
+> `C01_degraded_uraw 32768 → 32769` 且 `A05_uraw 37124 → 37125` ⇒
+> **2 红**:`test_uDerive_degradedPath_isExplicitMidpoint_notSilentZero` ·
+> `test_ac5315_urawMatchesGolden`;golden **SHA-256 `698bbaab…2db4` 逐字节还原**。
+> ⚠️ 结构性论证(非实测):**改前**这两个变异**一条都不会红** —— 旧断言用的是本地字面量
+> `32768L`,且根本不读 `A05_uraw`。这正是本条要消灭的假绿形态。
+>
+> **回归**:EditMode `6100 / 6063 / 0 / 37` @ 2026-10-30 **11:36:55 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **11:37:59 CST**(`4f302408` + 工作树)。
+> 与上一轮**逐位一致**(本条只改断言、未增删测试)。
+>
+> **可复算命令**:
+> ```bash
+> # ① 定向 42 条(含两条读 golden 的断言)
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest
+> # ② medcons golden 零孤儿(排除 B 组的动态拼接)
+> python3 -I - <<'PY2'
+> import re
+> keys=[l.split()[0] for l in open('tests/golden/medcons/golden-v1.txt',encoding='utf-8')
+>       if l.strip() and not l.startswith('#')]
+> src=open('unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs',encoding='utf-8').read()
+> orph=[k for k in keys if k not in src and not re.match(r'B\d\d_outcome$',k)]
+> print('孤儿:',orph)      # 期望 []
+> PY2
+> ```
+
+
 
 ---
 

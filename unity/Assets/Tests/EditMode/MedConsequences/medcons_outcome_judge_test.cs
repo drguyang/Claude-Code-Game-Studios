@@ -294,6 +294,12 @@ namespace DaYiJingCheng.Tests.MedConsequences
             Assert.AreEqual(long.Parse(golden["A03_uraw"]), (long)OutcomeJudgeDerive.URaw(-5L, unchecked((ulong)(-1L))), "A03 uraw");
             Assert.AreEqual(long.Parse(golden["A04_uraw"]),
                 (long)OutcomeJudgeDerive.URaw(long.MaxValue, unchecked((ulong)long.MaxValue)), "A04 uraw(溢出边界)");
+
+            // 🔁 2026-10-30(`TD-medcons-01` 同族全扫):A05 的 uraw 此前也是孤儿 ——
+            //   golden 写了 `A05_uraw`,但没有任何测试读它(只断言了 A01–A04,以及 A05 的
+            //   **case-salt** 行)。参考实现的 `A_VECTORS` 里 A05 = (seed 0xABCD, key 3)。
+            Assert.AreEqual(long.Parse(golden["A05_uraw"]),
+                (long)OutcomeJudgeDerive.URaw(0xABCDL, 3UL), "A05 uraw");
         }
 
         [Test]
@@ -301,9 +307,23 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             // 退化路径(未认出模式,salted_key 缺失):显式中点 1/2(Q16.16 raw = 32768)。
             // 非 0、非静默 —— 卡面 U 退化口径的夹具钉死;数值轮只改常量不改形状。
-            Assert.AreEqual(32768L, (long)OutcomeJudgeDerive.URawDegraded(),
-                "退化 U = 显式中点 1/2(raw 32768)—— 非 0、非静默");
-            Assert.AreEqual(32768L, (long)OutcomeJudgeDerive.URawDegraded(),
+            //
+            // 🔁 **2026-10-30(`TD-medcons-01` 结案)**:期望值**改从 golden 读**,不再写字面量。
+            //   原写法在**两处各写一次** 32768(golden 文件 + 本测试),两者互不引用 ⇒
+            //   golden 的 `C01_degraded_uraw` 行**从未被任何测试消费**(孤儿行),而测试照绿 ——
+            //   这是「自证」形态:被测对象与期望值同源,分叉了也发现不了。
+            //   改后 golden 行进入判据链:参考实现与 C# 实现的退化常量一旦分叉,本条转红。
+            var golden = LoadGolden();
+            Assert.IsTrue(golden.ContainsKey("C01_degraded_uraw"),
+                "golden 缺 C01_degraded_uraw 行 ⇒ 本条的期望值无出处(不得回退到本地字面量)");
+            long expected = long.Parse(golden["C01_degraded_uraw"]);
+
+            Assert.AreEqual(expected, (long)OutcomeJudgeDerive.URawDegraded(),
+                $"退化 U 须等于 golden 的 C01_degraded_uraw({expected})—— 非 0、非静默");
+
+            // 纯度:连续两次调用相同。⚠️ 此条**不**引用 golden —— 它测的是「无隐藏可变状态」,
+            // 拿 golden 当期望值会把两种判据混成一条(纯度坏了而常量没变时,回显不出来)。
+            Assert.AreEqual((long)OutcomeJudgeDerive.URawDegraded(), (long)OutcomeJudgeDerive.URawDegraded(),
                 "退化路径恒定(零隐藏可变态)");
         }
 

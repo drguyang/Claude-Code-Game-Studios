@@ -13178,3 +13178,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - ⚠️ **残留**:未做实际游玩验证(判据链通 ≠ 玩家会撞到)· 槽分组归 P1a ·
   档位线 `1`/`3/2` 是本轮取的数(改它只动 JSON + 重烘)。
 - **未提交**。原件 `production/qa/evidence/impl-od-t3-2026-10-30.md`。
+
+## Session Extract — 结案 `TD-medcons-01`(2026-10-30 第六批)
+
+- **用户指令**:「解除下一个 p0 登记债」。挑 `TD-medcons-01`(自证形态,价值高于补测试类)。
+- **原判定**:`golden-v1.txt` 的 `C01_degraded_uraw 32768` 是孤儿行 —— 无测试读取,
+  退化值由测试本地字面量钉。实测 `grep C01_degraded_uraw --include=*.cs` ⇒ **0 命中**。
+- **修法**:断言改为从 `LoadGolden()` 读期望值 + 先断键存在(缺键直接失败,不回退字面量);
+  纯度那条仍不引用 golden(测的是「无隐藏可变状态」,混进去会掩盖纯度回归)。
+- **同族全扫**:逐行审计发现**第二条孤儿 `A05_uraw`**(测试只断言 A01–A04 + A05 的 case-salt 行),
+  已补 `URaw(0xABCDL, 3UL)`。⚠️ `B01..B20_outcome` 看似孤儿实为 `golden[t.name+"_outcome"]`
+  动态消费(`:392`)—— **逐字面量 grep 判不出动态拼接**。
+- **改后**:medcons golden **32 行全部进判据链**。
+- **证伪**:改 golden 两行值 ⇒ **2 红**(`test_uDerive_degradedPath_*` / `test_ac5315_urawMatchesGolden`);
+  SHA-256 `698bbaab…2db4` 逐字节还原。**结构性论证(非实测)**:改前这两个变异**一条都不会红**
+  (旧断言用本地字面量 32768L,且不读 A05) —— 正是本条要消灭的假绿。
+- **回归**:EditMode `6100/6063/0/37` @11:36:55 · PlayMode `238/234/0/2/2` @11:37:59
+  (`4f302408`+工作树)。与上轮**逐位一致**(只改断言、未增删测试)。
+- **计数**:`open 52 · closed 84 · partial 2 · 未闭 P0 面 28`(前 29)。
+- **未提交**。改动 2 件:`docs/tech-debt-register.md` + `medcons_outcome_judge_test.cs`。
