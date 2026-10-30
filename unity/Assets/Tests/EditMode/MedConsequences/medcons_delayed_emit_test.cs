@@ -1515,6 +1515,29 @@ namespace DaYiJingCheng.Tests.MedConsequences
             public void Append(in SimEvent e) => _events.Add(e);
         }
 
+        /// <summary>
+        /// 在第 <paramref name="failAt"/> 次 `Append` 上抛的 sink(前 n−1 次正常写入)。
+        /// <para>用途:造「部分写入后中止」—— 这是 `TD-medcons-18` ② / D-2 的唯一可构造形态。</para>
+        /// </summary>
+        private sealed class FlakySink : IEventSink
+        {
+            private readonly List<SimEvent> _events = new List<SimEvent>();
+            private readonly int _failAt;
+            private int _calls;
+
+            public FlakySink(int failAt) { _failAt = failAt; }
+            public int Count => _events.Count;
+            public IReadOnlyList<SimEvent> Written => _events;
+
+            public void Append(in SimEvent e)
+            {
+                _calls++;
+                if (_calls >= _failAt)
+                    throw new IOException($"夹具:第 {_calls} 次 Append 故意失败");
+                _events.Add(e);
+            }
+        }
+
         /// <summary>把 Append 转发给真 EventStream 的 sink(保留 BCD-码-3 语义)。</summary>
         private sealed class SinkOver : IEventSink
         {
@@ -1601,6 +1624,77 @@ namespace DaYiJingCheng.Tests.MedConsequences
             emitter.Emit(stream.Events, eligible, 120 + ResidualDelay(table), out int emitted);
 
             Assert.AreEqual(2, emitted, "不同结案各自发 —— 去重键须含结案身份(close tick / seq / patient)");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // `TD-medcons-18` ② / D-2 —— 「部分写入后中止」须在**类型面**可判别
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 写了两条、第三条抛 ⇒ 抛出的必须是 <see cref="ConsequencePartialEmitException"/>,
+        /// 且它**携带**已写条数与失败行 tick。
+        /// <para><b>为什么必须具名</b>:原约定「不得 catch 后重试」只写在注释里 ⇒ 调用方拿到的
+        /// 只是裸 `InvalidOperationException`,无法区分「一条都没写(重试安全)」与
+        /// 「写了 2 条(重试不安全)」⇒ 重试在类型面上**看起来安全**。</para>
+        /// </summary>
+        [Test]
+        public void test_d2_partialWrite_failureIsTyped_withEmittedCount()
+        {
+            DelayTable53.Table table = LoadDelayTable();
+            var sink = new FlakySink(failAt: 3);
+            var emitter = NewEmitterOnSink(sink, table);
+
+            long residual = ResidualDelay(table);
+            var eligible = new (SimEvent CaseClosed, int Outcome)[]
+            {
+                (Ev(100, 7, 0, EventKind.CaseClosed), (int)Outcome53.Outcome.Residual),
+                (Ev(120, 8, 0, EventKind.CaseClosed), (int)Outcome53.Outcome.Residual),
+                (Ev(140, 9, 0, EventKind.CaseClosed), (int)Outcome53.Outcome.Residual),
+            };
+
+            var ex = Assert.Throws<ConsequencePartialEmitException>(() =>
+                emitter.Emit(Array.Empty<SimEvent>(), eligible, 140 + residual));
+
+            Assert.AreEqual(2, ex.EmittedCount, "已写条数须如实携带(前两条已进流)");
+            Assert.AreEqual(2, sink.Count, "前两条须**真的**写进了 sink(不是「装作写了」)");
+            Assert.AreEqual(140 + residual, ex.FailedEmitTick, "失败行的 EmitTick 须携带");
+            Assert.That(ex.Message, Does.Contain("不得重试"), "报文须自陈唯一正确处置");
+            Assert.That(ex.InnerException, Is.Not.Null, "须保留内层异常(否则丢失真实成因)");
+        }
+
+        /// <summary>
+        /// **对照半**:第一条就抛 ⇒ 仍是裸 `InvalidOperationException`(**不是**具名类型)。
+        /// <para>没有这一半,「具名化」可能退化成「任何失败都具名」—— 那会**误伤**合法路径:
+        /// 一条都没写时重试**是**安全的(零副作用),把它标成「不得重试」是错的。</para>
+        /// </summary>
+        [Test]
+        public void test_d2_firstWriteFails_isNotTypedAsPartial_control()
+        {
+            DelayTable53.Table table = LoadDelayTable();
+            var sink = new FlakySink(failAt: 1);
+            var emitter = NewEmitterOnSink(sink, table);
+
+            var ex = Assert.Throws<IOException>(() => emitter.Emit(
+                Array.Empty<SimEvent>(),
+                new[] { (Ev(100, 7, 0, EventKind.CaseClosed), (int)Outcome53.Outcome.Residual) },
+                100 + ResidualDelay(table)));
+
+            Assert.That(ex, Is.Not.InstanceOf<ConsequencePartialEmitException>(),
+                "零写入时的失败**不得**被具名成部分写入 —— 那时重试是安全的");
+            Assert.AreEqual(0, sink.Count, "零写入");
+        }
+
+        /// <summary>
+        /// 类型面契约:本异常**继承** `InvalidOperationException` ⇒ 既有捕获行为**逐位不变**。
+        /// <para>这条钉的是「本债只增加可判别性,不改变任何既有 catch 语义」——
+        /// 若有人把它改成不继承,所有既有的 `catch (InvalidOperationException)` 会**静默漏捕**。</para>
+        /// </summary>
+        [Test]
+        public void test_d2_partialEmitException_stillIsInvalidOperationException()
+        {
+            Assert.IsTrue(typeof(InvalidOperationException)
+                    .IsAssignableFrom(typeof(ConsequencePartialEmitException)),
+                "须继承 InvalidOperationException —— 否则既有 catch 会静默漏捕");
         }
 
         // ════════════════════════════════════════════════════════════════════

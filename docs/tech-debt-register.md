@@ -318,7 +318,7 @@
 | `TD-medcons-15` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-18` | `medical-consequences` | partial | **Y** | R1 |
+| `TD-medcons-18` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
 | `TD-s13-02` | `medical-consequences` | closed | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 95, 'open': 40, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 17 （已闭但曾标 P0 面的 86 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 17 条,分布在 8/31 个 epic
-    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 3
+条目 139 | 状态 {'closed': 96, 'open': 40, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 16 （已闭但曾标 P0 面的 87 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 8/31 个 epic
+    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 2
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1938,11 +1938,24 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 >   ⇒ 照发两条(夹具首轮实测 `emitted = 2`)。现键 = `(patient, closeTick, closeSeq)`。
 >   载体 `test_sameCaseClosed_twoOutcomes_emitsExactlyOne_winnerIsEarliest` +
 >   `test_twoDifferentCaseCloses_sameOutcome_emitTwo_control`(对照半,防「恒合并」假绿)。
-> · **② D-2 仍 open**:「部分成功后抛异常不回填 `emittedCount` ⇒『不得 catch 重试』
->   在类型面不可表达」—— 本轮**未动** `ConsequenceEmitter.AppendDueRows` 的失败路径,
->   driver 侧只加了「遇抛即终止本 tick,不重试」的**注释级**约定。
->   ⇒ 该半边的解除动作不变:**须在类型面表达**(如把 `emittedCount` 改为返回值的一部分 /
->   引入 `EmitOutcome`  discriminated 结果),不得只靠注释。
+> · **② D-2 ✅ 2026-10-30 已结**(「部分成功后抛异常不回填 `emittedCount` ⇒『不得 catch 重试』
+>   在类型面不可表达」)。**处置**:新增 **`ConsequencePartialEmitException`**(继承
+>   `InvalidOperationException`,携带 `EmittedCount` / `FailedEmitTick` / 内层异常),
+>   由 `AppendDueRows` 在「**已写 ≥ 1 条之后**」的失败处抛出。
+>   ⇒ 调用方**在类型面**即可区分「零写入(重试安全)」与「写了 k 条(重试不安全)」。
+>   **边界刻意保留**:零写入时的失败(S-B2 预检 / 编码器抛)仍是裸 `InvalidOperationException`
+>   —— 那时重试**是**安全的,一并具名会误伤合法路径。
+>   **继承关系是契约**:既有 `catch (InvalidOperationException)` 行为逐位不变(改继承 = 静默漏捕)。
+>   载体 3 条:`test_d2_partialWrite_failureIsTyped_withEmittedCount` ·
+>   `test_d2_firstWriteFails_isNotTypedAsPartial_control`(对照半)·
+>   `test_d2_partialEmitException_stillIsInvalidOperationException`(继承面)。
+>   **证伪轮 3/3(基线 MedConsequences 245/245)**,每条恰 1 红、其余 244 绿:
+>   · **M1** 去掉 `when (written > 0)` 过滤 ⇒ `test_d2_firstWriteFails_isNotTypedAsPartial_control` 红
+>     (证明「零写入不得具名」那一面有判别力);
+>   · **M2** 把 `EmittedCount` 报 0 ⇒ `test_d2_partialWrite_failureIsTyped_withEmittedCount` 红
+>     (`Expected: 2 But was: 0`);
+>   · **M3** 改继承为 `Exception` ⇒ `test_d2_partialEmitException_stillIsInvalidOperationException` 红。
+>   变异与还原**同一脚本内完成**;还原后 SHA-256 逐字节一致(`24bd49b24c72…`)。
 >
 > 🔁 **2026-10-30 连带(51 侧哨兵)** —— 装配需要一个 `IEventAuthority` 生产实现(发射器的写权门),
 > 而全仓此前**零生产实装**(`SeenDiseaseProjector.cs:23-26` 早已登记)。本轮新增
@@ -5723,7 +5736,7 @@ EOF
 | 触发面 | 条 | 共同点 |
 |---|---|---|
 | **数值轮** | `TD-medcons-01` · `-02` · `-15` · `-19` | 都要等**数值冻结 / 代价表 / U 档扩档**;数值用户自己调 ⇒ 今天动它等于替用户拍数 |
-| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · ~~**`TD-s13-02`**~~ | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;~~`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源~~ ⇒ 🔁 **2026-10-30:`TD-s13-02` 已 closed**(ADR-035 S8,残留半边由 T1 的 S2/S3/S7/S9 补齐)。🔁 **2026-10-30 再订(ADR-036 装配轮)**:`-13` **closed**(解锁判据逐字成立,见「2026-10-30 · ADR-036 装配轮」小节);`-18` → **`partial`**(D-1 / D-3 已结,D-2「`emittedCount` 回填 /『不得重试』类型面」仍 open)⇒ **本组只剩 `-18` 的 D-2 半边** |
+| **装配轮(53 接线)** | `TD-medcons-13` · `-18` · ~~**`TD-s13-02`**~~ | 要等**真装配面**存在;`-18` 的 D-1 尤其须在装配层定契约;~~`TD-s13-02` 的残留半边 = 「表级半边无载体」,与 `-15` 同源~~ ⇒ 🔁 **2026-10-30:`TD-s13-02` 已 closed**(ADR-035 S8,残留半边由 T1 的 S2/S3/S7/S9 补齐)。🔁 **2026-10-30 再订(ADR-036 装配轮)**:`-13` **closed**(解锁判据逐字成立,见「2026-10-30 · ADR-036 装配轮」小节);`-18` → **`partial`**(D-1 / D-3 已结,D-2「`emittedCount` 回填 /『不得重试』类型面」仍 open)⇒ 🔁 **2026-10-30 当日再订**:`-18` 的 **D-2 已结**(`ConsequencePartialEmitException` + 证伪 3/3)⇒ **`-18` 转 `closed`,本组全部结清**;`-19` 仍 `open`(其前置已解除,判别力未重做) |
 | **ADR-012 CI** | `TD-medcons-09` | 等三格矩阵;且矩阵本身 `EXTERNAL`(E-2a) |
 | **事件触发** | `-03`–`-08` · `-10` · `-11` · `-12` · `-14` | 等「**下一次真的碰到那个文件 / 那个签名**」;提前修 = 改一处、动一片 |
 | **规范闸** | `-17`(≤40 行) | 与 `TD-persist-08` / `TD-clinic-14` **同批** |

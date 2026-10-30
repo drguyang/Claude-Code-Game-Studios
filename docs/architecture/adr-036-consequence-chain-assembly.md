@@ -411,6 +411,10 @@ medcons_disease_projection_test · medcons_aggregation_test · medcons_delayed_e
 
 ---
 
-**关联债**:`TD-medcons-13`(结算器无装配点)· `TD-medcons-18`(三条装配期缺陷,本件兑现 D-1/D-3;
-**D-2 未在本件裁定** —— 见 §Implementation Guidelines 的「遇抛即终止本 tick」,
-其**类型面表达**仍归实现轮)· `TD-medcons-19`(生产装配面未被约束)。
+**关联债**:`TD-medcons-13`(结算器无装配点)→ ✅ **closed** ·
+`TD-medcons-18`(三条装配期缺陷,本件兑现 D-1/D-3)→ ✅ **closed**;
+**D-2 的处置**(「不得 catch 重试」的类型面表达)= 新增 `ConsequencePartialEmitException`
+(继承 `InvalidOperationException`,携带 `EmittedCount` / `FailedEmitTick`),**边界刻意保留**:
+零写入时的失败仍是裸异常(那时重试安全)。该处置**由实现轮就地裁定**(本件未预写其形状),
+载体 3 条 + 证伪 3/3(M1 去 `written > 0` 过滤 / M2 `EmittedCount` 报 0 / M3 改继承)。
+· `TD-medcons-19`(生产装配面未被约束)→ 仍 `open`(其前置已解除,判别力未重做)。

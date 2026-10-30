@@ -86,6 +86,46 @@ namespace DaYiJingCheng.Sim.Consequences
     }
 
     /// <summary>
+    /// <b>部分写入后的中止</b>(`TD-medcons-18` ② / D-2)—— 本 tick 已写入 ≥ 1 条,
+    /// 随后在**下一条**上失败。
+    /// </summary>
+    /// <remarks>
+    /// <para><b>为什么必须有这个类型</b>:`Emit` 的既有 precondition 写着「**不得** catch 本异常后
+    /// 于更低 tick 重试」(Append 逐条即时提交,已写入的行留在流里)。那句约定**只活在注释里** ——
+    /// 调用方拿到的若只是一个裸 `InvalidOperationException`,它**无法区分**
+    /// 「一条都没写」与「写了 k 条后炸」,于是「重试」在类型面上**可表达且看起来安全**。
+    /// 本类型把那种情形**具名化**:带上已写条数与下一条的 `EmitTick`。</para>
+    /// <para><b>契约(调用方唯一正确处置)</b>:收到本异常 ⇒ **终止本 tick,不重试、不回滚**
+    /// (回滚归 7a / 45 事务面)。重试必撞 `EventStream` 的 BCD-码-3(流按 Tick 非降)。
+    /// ⚠️ 本类型**继承** `InvalidOperationException` —— 既有 `catch (InvalidOperationException)`
+    /// 的调用方行为**逐位不变**(这是刻意的:本债只增加**可判别性**,不改变任何既有捕获语义)。</para>
+    /// <para><b>边界</b>:本类型只覆盖「**已写 ≥ 1 条之后**」的失败。**一条都没写**时的失败
+    /// (S-B2 预检、编码器抛)仍是裸 `InvalidOperationException` —— 那时重试**是**安全的
+    /// (零副作用),把它们一并具名化会**误伤**那条合法路径。</para>
+    /// </remarks>
+    public sealed class ConsequencePartialEmitException : InvalidOperationException
+    {
+        /// <summary>本 tick **已经写入流**的条数(&gt; 0)。</summary>
+        public int EmittedCount { get; }
+
+        /// <summary>失败的那一条的到期 tick(尚未写入)。</summary>
+        public long FailedEmitTick { get; }
+
+        /// <summary>构造异常。</summary>
+        /// <param name="emittedCount">已写入条数(须 &gt; 0)。</param>
+        /// <param name="failedEmitTick">失败行的 `EmitTick`。</summary>
+        /// <param name="message">报文(通常由内层异常转写)。</param>
+        /// <param name="inner">触发失败的内层异常。</param>
+        public ConsequencePartialEmitException(
+            int emittedCount, long failedEmitTick, string message, Exception inner)
+            : base(message, inner)
+        {
+            EmittedCount = emittedCount;
+            FailedEmitTick = failedEmitTick;
+        }
+    }
+
+    /// <summary>
     /// 延迟后果发射器 —— 53 的 <c>ConsequenceResolved</c> 生产写入通道(世界流,主机侧)。
     /// </summary>
     /// <remarks>
@@ -158,6 +198,10 @@ namespace DaYiJingCheng.Sim.Consequences
         /// ⚠️ **调用方义务(precondition)**:调用方**不得 catch 本异常后于更低 tick 重试** ——
         /// Append 逐条即时提交,中途抛出 ⇒ 已写入的到期行留在流里(回滚归 7a/45 事务面,
         /// 不在本件;调用方吞异常再试 = 让后续 Emit 撞 BCD-码-3 的确定性路径)。</exception>
+        /// <exception cref="ConsequencePartialEmitException">**已写入 ≥ 1 条之后**在下一条上失败
+        /// (`TD-medcons-18` ② / D-2)。带上 <see cref="ConsequencePartialEmitException.EmittedCount"/>
+        /// —— 调用方**在类型面**就能区分「一条都没写(重试安全)」与「写了 k 条(重试不安全)」,
+        /// 不必靠读注释。⚠️ 它**继承** `InvalidOperationException` ⇒ 既有捕获行为逐位不变。</exception>
         public ConsequenceEmitResult Emit(
             IReadOnlyList<SimEvent> stream,
             IReadOnlyList<(SimEvent CaseClosed, int Outcome)> eligible,
@@ -348,12 +392,26 @@ namespace DaYiJingCheng.Sim.Consequences
             for (int i = 0; i < pending.Count; i++)
             {
                 DueRow row = pending[i];
-                var payload = new ConsequenceResolvedPayload(row.Outcome, row.PatientId);
-                var payloadRef = _encoder.Encode(EventKind.ConsequenceResolved, payload);
+                try
+                {
+                    var payload = new ConsequenceResolvedPayload(row.Outcome, row.PatientId);
+                    var payloadRef = _encoder.Encode(EventKind.ConsequenceResolved, payload);
 
-                _eventSink.Append(new SimEvent(
-                    row.EmitTick, new PatientId(row.PatientId), -1,
-                    EventKind.ConsequenceResolved, payloadRef));
+                    _eventSink.Append(new SimEvent(
+                        row.EmitTick, new PatientId(row.PatientId), -1,
+                        EventKind.ConsequenceResolved, payloadRef));
+                }
+                catch (Exception e) when (written > 0)
+                {
+                    // `TD-medcons-18` ② / D-2:把「已写 ≥ 1 条后失败」具名化 ——
+                    // 调用方据此**在类型面**知道「重试不安全」,而不是靠注释。
+                    throw new ConsequencePartialEmitException(
+                        written, row.EmitTick,
+                        $"ConsequenceResolved 部分写入后中止:本 tick 已写入 {written} 条," +
+                        $"在第 {written + 1}/{pending.Count} 条(EmitTick={row.EmitTick})上失败。" +
+                        "**不得重试、不得回滚后重来** —— 已写入的行留在流里,重试必撞 BCD-码-3" +
+                        "(流按 Tick 非降)。回滚归 7a / 45 事务面,不在本件。", e);
+                }
                 written++;
             }
             return written;

@@ -37,7 +37,12 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <c>DiseaseVitalsService.OnTickEdge</c> **之后** —— 否则读到的是上一 tick 的 F4 态,
     /// 静默偏差一个 tick 且无报错。装配点见 <c>CompositionRoot</c> 的 `OnTicks` 注册。</para>
     /// <para><b>遇抛即终止本 tick</b>:不 catch、不重试、不回滚 —— 与 <see cref="ConsequenceEmitter"/>
-    /// 的 precondition 同口径(Append 逐条即时提交,吞异常再试 = 撞 BCD-码-3)。</para>
+    /// 的 precondition 同口径(Append 逐条即时提交,吞异常再试 = 撞 BCD-码-3)。
+    /// 🔁 **2026-10-30(`TD-medcons-18` ② / D-2)**:这条约定此前**只在注释里**;
+    /// 现在发射器把「已写 ≥ 1 条后失败」具名为
+    /// <see cref="DaYiJingCheng.Sim.Consequences.ConsequencePartialEmitException"/> ⇒
+    /// **调用方在类型面**就知道「重试不安全」。本类**仍然不 catch** —— 加一个 catch 反而会把
+    /// 那条类型面信息又变回注释。</para>
     /// </remarks>
     public sealed class ConsequenceDriver
     {
