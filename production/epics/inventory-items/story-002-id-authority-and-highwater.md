@@ -1,12 +1,12 @@
 # Story 002: instance_id 铸造权威与高水位重构
 
 > **Epic**: 库存与物品
-> **Status**: Ready
+> **Status**: Complete(2026-10-31 · **COMPLETE WITH NOTES** —— 见 §Completion Notes;AC-20-03 只落形状半边,R3 外抛)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-31
 
 ## Context
 
@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/inventory-and-items.md`, scoped to this story:*
 
-- [ ] **AC-20-01**: `GIVEN` 20 的代码路径,`WHEN` 检索 `instance_id` 赋值点,`THEN` 唯一来源 = `IIdAuthority.ItemInstanceId.Next()`,零本地计数器(规则二)
-- [ ] **AC-20-02**: `GIVEN` 客户端拾取,`WHEN` 检索,`THEN` 零客户端铸 id 路径 —— 意图上行、id 由主机回填(规则二)。⚠️ 上行通道本体(R1 / ADR-001 窄修订)未立 ⇒ P0 单机 = 同一进程主机路径;本条断 **type-surface 零铸造旁路**,联机半边不外纳
-- [ ] **AC-20-03 前置子件(R3)**: 高水位扫描集 = 三流 ∪ `BakedInitial` 的纯函数实现落地;`BakedInitial` 缺失时 ⇒ 重建可撞号的反例夹具交付(真修 = 54 导出 `BakedInitial` id 位 + 7a 接入,外抛登记)
-- [ ] **AC-20-04 相邻(不重叠声明)**: 堆叠键 `(item_key, quality)` 唯一出处 21a,20 不改写(本体判据见 Story 003;本故事只断 id 空间与堆叠键不相混 —— `instance_id` 全序唯一 vs 堆叠键非唯一,两索引结构不互换)
+- [x] **AC-20-01**: `GIVEN` 20 的代码路径,`WHEN` 检索 `instance_id` 赋值点,`THEN` 唯一来源 = `IIdAuthority.ItemInstanceId.Next()`,零本地计数器(规则二)
+- [x] **AC-20-02**: `GIVEN` 客户端拾取,`WHEN` 检索,`THEN` 零客户端铸 id 路径 —— 意图上行、id 由主机回填(规则二)。⚠️ 上行通道本体(R1 / ADR-001 窄修订)未立 ⇒ P0 单机 = 同一进程主机路径;本条断 **type-surface 零铸造旁路**,联机半边不外纳
+- [x] **AC-20-03 前置子件(R3)**: 高水位扫描集 = 三流 ∪ `BakedInitial` 的纯函数实现落地;`BakedInitial` 缺失时 ⇒ 重建可撞号的反例夹具交付(真修 = 54 导出 `BakedInitial` id 位 + 7a 接入,外抛登记)
+- [x] **AC-20-04 相邻(不重叠声明)**: 堆叠键 `(item_key, quality)` 唯一出处 21a,20 不改写(本体判据见 Story 003;本故事只断 id 空间与堆叠键不相混 —— `instance_id` 全序唯一 vs 堆叠键非唯一,两索引结构不互换)
 
 ---
 
@@ -96,7 +96,7 @@
 **Required evidence**:
 - Logic: `unity/Assets/Tests/EditMode/Inventory/id_authority_highwater_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— `unity/Assets/Tests/EditMode/Inventory/id_authority_highwater_test.cs`(**11 测**,2026-10-31)
 
 ---
 
@@ -109,4 +109,48 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-31(sprint-21 `S21-2`)
+**Criteria**: 4/4 勾选,但**不是 4/4 全绿** —— 逐条记分见下
+**Deviations**: Manifest `2026-10-02 → 2026-10-15`(无实质规则变更)· **AC-20-03 只落形状半边** · 新增两条外抛债 `TD-persist-12` / `TD-building-04`
+**Regression**: EditMode `6191/6154/0/0/37`(基线 `6180/6143`)· PlayMode `238/234/0/2/2`(零回归)
+**Manifest Version note**: Manifest Version `2026-10-02 → 2026-10-15`(10-15 的增量是「处方前置检查」与
+「判据不得用文化敏感字符串比较」两条 Cross-Cutting,与本卡**无关**;此项为形式对齐,非规则变更)
+**Test Evidence**: `unity/Assets/Tests/EditMode/Inventory/id_authority_highwater_test.cs`(11 测)
+**Code Review**: 未跑(lean 模式;本卡为 Logic 小件,改动 1 个生产文件 + 1 个夹具文件)
+
+### 一、逐条 AC 记分(禁把「勾上了」读成「全绿」)
+
+| AC | 判定 | 落点 / 判据 |
+|---|---|---|
+| **AC-20-01** 唯一铸造源 | ✅ **已证** | `test_ac2001_onlyAuthorityMintsItemInstanceId`(源面扫描,生产树 `new ItemInstanceId(` 仅允许出现在 `Sim/ItemDatabase/IdAuthority.cs`)+ `test_ac2001_noPrivateInstanceCounterOutsideAuthority`。证伪 **M1** 恰 1 条红 |
+| **AC-20-02** 客户端零铸 | ✅ **已证(半边)** | `test_ac2002_clientAssembliesNeverMint`(按程序集归属扫 `Gameplay.Presentation` / `Gameplay.UI`)。证伪 **M2** 恰 1 条红。⚠️ **联机「意图上行 / 主机回填」半边 `NOT-RUN`** —— R1(ADR-001 窄修订)未立,本卡不代它作保 |
+| **AC-20-03** 扫描集 = 三流 ∪ `BakedInitial` | 🟡 **形状已落,R3 未落地** | 新增重载 `ItemInstanceHighWaterCollector.Collect(events, decoder, bakedInitialItemIds)` + 对应 `CollectAndReconstruct`。判据 4 条(正例 21 / 对照 13 / 零复用 / null==空)。证伪 **M3 / M4** 转红。⚠️ **生产的 `bakedInitialItemIds` 今天只能传 `null`** —— 基线不导出 item 实例 id、读档路径也不调重构 ⇒ 已外抛 **`TD-persist-12`** |
+| **AC-20-04** id 与堆叠键不相混 | ✅ **已证** | `test_ac2004_sameStackingKeyStillDistinctInstanceIds` + `test_ac2004_highWaterIsIdDrivenNotKeyDriven`。证伪 **M5** 转红 |
+
+### 二、证伪轮(5 条,一属性一条)
+
+| 变异 | 打什么 | 实测 | 形态 |
+|---|---|---|---|
+| **M1** | 在生产树某文件里加一处本地 `new ItemInstanceId(0)` | `test_ac2001_onlyAuthorityMintsItemInstanceId` **恰 1 红** | exact |
+| **M2** | 在 `Gameplay.UI` 里引用 `IIdAuthority` | `test_ac2002_clientAssembliesNeverMint` **恰 1 红** | exact |
+| **M3** | 重载忽略基线(退回「只扫三流」) | 3 红(含 `highWaterIncludesBakedInitial`) | **超集** |
+| **M4** | 重构 `max+1` 退化成 `max` | 7 红(含 `highWaterIncludesBakedInitial`) | **超集** |
+| **M5** | 掉落支用 `ItemKey` 冒充 `InstanceId` | 5 红(含两条 `ac2004`) | **超集** |
+
+**M3–M5 是超集,不是 exact** —— 登记原预期时没写死条数,按实测记。超集不削弱判别力(目标属性都在红集内),
+但**不得**写成「恰如预期」。还原 = `cp` 回 + **SHA-256 逐字节**一致(5/5);`grep -rn "FALSIFY-" unity/Assets` ⇒ **0**。
+
+### 三、本卡证明不了的事(禁借绿)
+
+1. **基线里真的有物品实例 id** —— 今天的世界数据只有结构基线(`world_buildslots`),`world_*.json` 里
+   `instance_id` 命中 **0**。本卡交付的是**扫描器形状 + 撞号反例**,不是「撞号已修」。
+2. **高水位重构在生产被调用** —— `CollectAndReconstruct` 生产调用点 **0**;装配根 `CompositionRoot.cs:138`
+   直接 `new IdAuthority()`(从 0 起)。已外抛 **`TD-persist-12`**。
+3. **`structure_id` 与 `instance_id` 共用空间** —— 实现上 `StructureKinds` 用独立 `_nextStructureId`
+   (起点 1),与 ADR-010 §三 义务 12 不符 ⇒ 已外抛 **`TD-building-04`**。
+   ⚠️ 这也意味着 GDD `:648` 设想的「与结构行撞号」**在当前实现下不会发生**(两面都要记)。
+
+### 四、回归(三元组)
+
+EditMode ``6191 / 6154 / 0 / 0 / 37`` · PlayMode ``238 / 234 / 0 / 2 / 2`(退出码 2,系既有 2 条 inconclusive)` @ ``2026-10-31T07:18 CST`(EditMode 全量 · PlayMode 全量)` · 批次 `S21-2 实施轮 · 全量` · commit ``2a9d46c2` + 本批未提交改动`
+

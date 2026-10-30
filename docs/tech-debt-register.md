@@ -395,6 +395,7 @@
 | `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-10` | `persistence-service` | open | **N** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
+| `TD-persist-12` | `persistence-service` | open | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-03` | `enemy-ai` | closed | **Y** | R1 |
@@ -439,6 +440,7 @@
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
+| `TD-building-04` | `modular-building` | open | **N** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
@@ -850,7 +852,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 111, 'open': 24, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+条目 141 | 状态 {'closed': 111, 'open': 26, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -7923,3 +7925,43 @@ done
 # ⇒ privacy_declaration_test.cs             3
 #   合计 7 = 6180 − 6173
 ```
+
+---
+
+## 2026-10-31 · S21-2 实施轮立债(2 条 · 「契约与实现不符 / 未接线」族)
+
+**出处**:`inventory-002`(sprint-21 `S21-2`)实施轮。落地 AC-20-03 的「扫描集 = 三流 ∪ `BakedInitial`」
+形状时,逐条核「基线 id 从哪来、结构 id 走不走同一发号器」,查出两处**缺件**。
+两条都**不影响本卡的判据**(本卡交付的是形状 + 撞号反例),但它们决定**什么时候撞号会真的发生**。
+
+### TD-persist-12 —— 物品 id 高水位重构**生产零调用**,且基线不导出 item 实例 id(R3 的 7a 半边)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 两件事叠在一起:① `ItemInstanceHighWaterCollector.CollectAndReconstruct` **生产调用点 = 0**;② `BakedInitial` 侧**没有 item 实例 id 可给** —— 世界数据里 `world_poi` / `world_resources` / `world_buildslots` 带的是 `poi_id` / `resource_id` / 槽位,不是 `instance_id`。⇒ 「扫描集 = 三流 ∪ `BakedInitial`」目前只有**三流那一半**有真实输入 |
+| **实测(可跑)** | ① `grep -rn "CollectAndReconstruct" unity/Assets --include=*.cs \| grep -v "/Tests/"` ⇒ **2 命中,均在定义文件内**(`ItemInstanceHighWaterCollector.cs:136/:176`),零调用方;② 装配根 `CompositionRoot.cs:138` 直接 `new IdAuthority()`(计数器从 0 起),读档路径**不调**任何重构;③ `grep -rn "instance_id" assets/data/world_*.json` ⇒ **0 命中** |
+| **后果** | 今天读档后物品计数器**从 0 重新发号**。只要同一份存档里已有 `DropSpawned` / `Craft` 发过的 id,后续铸造就**必然重号** ⇒ fold 里两件物品静默合并(ADR-010 §五登记的原风险)。⚠️ **但这在今天不可达**:`RequestLoad` 在生产树**零调用方**(sprint-20 §9.1.1 `S20-18` #3 已登记),读档路径本身未通电 |
+| **为什么 `P0 面 = N`** | 承 §一 **R3 裁量判据**的「可达性」轴:缺口真实,但**触发路径未接线** ⇒ 不阻塞 P0 出口。与 `TD-persist-10`(空区间)同一记法 |
+| **解除动作** | ① 54 关卡工具**导出基线的 item 实例 id 位**(若基线确实含预摆物品);② 7a 读档路径在 `Rebuild` 后调 `CollectAndReconstruct(streams, decoder, bakedInitialItemIds, authority)`;**两件同批**,单独做任一件都只解决一半 |
+| **触发条件** | **`RequestLoad` 首次被生产调用** / 首个真实存档 / 基线开始含预摆物品 —— 任一成立即升 `P0 面 = Y` |
+| **与 `TD-building-04` 的关系** | 两条是**不同空间**:本条管 item id,`-04` 管 structure id。二者**不得合并结案** |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-persist-12** | `persistence-service` | **open** | **N** | R1 |
+
+### TD-building-04 —— `structure_id` 未走 `IIdAuthority`:与 ADR-010 §三 义务 12 不符
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ADR-010 §三 义务 12 逐字:「`structure_id` 高水位(结构实例共用 `IIdAuthority` 空间,计数器 + 高水位可重构,ADR-010 §五 机制)」。**实现不符** —— `StructureInstanceRegistry` 用自己的 `_nextStructureId`(起点 **1**),`Restore` 只在重放时局部抬高(`:232-233`);全链**零 `IIdAuthority` 调用** |
+| **实测(可跑)** | `grep -rn "IIdAuthority" unity/Assets/Sim/World/StructureKinds.cs` ⇒ **仅注释**;`grep -n "_nextStructureId" unity/Assets/Sim/World/StructureKinds.cs` ⇒ `:68` 定义 / `:84` 发号 / `:191` 复位 / `:199` 预览 |
+| **后果(两面,方向相反)** | ① **今天更安全**:两个空间独立 ⇒ item 与 structure **永不撞号**,GDD `inventory-and-items.md:648` 设想的「与结构行撞号」在当前实现下**不会发生**;② **但违反 ADR**,而且 **ADR-033 的 id 平移(`K := N`)语义建立在「基线占 `1..N`、玩家从 `N+1` 起」之上** —— 若将来把 structure 并入 `IIdAuthority` 空间,平移规则要**重算**(基线号段可能不再从 1 起,`Placed.id ≤ N` 的充要性也会变) |
+| **为什么 `P0 面 = N`** | 不破任何**形状**判据:两空间独立是**更强的**安全性,不是漏洞。它破的是 **ADR 的机制承诺**(可重构性),属 §一 R3 的「治理面」 |
+| **解除动作** | **须裁**(ADR 级),不是实现动作。二选一:① 让 `StructureInstanceRegistry` 改用 `IIdAuthority`(ADR-010 义务 12 落地,同时重算 ADR-033 的平移量);② 修订 ADR-010 §三 义务 12,承认 structure 独立空间(须同时说明「GDD `:648` 的撞号设想不成立」) |
+| **触发条件** | 下一次动 `StructureKinds` 发号 / 基线号段 / ADR-033 的平移逻辑时 |
+| **不预设选哪条** | 本条只登记,不裁 —— 与 `TD-deps-01` 同口径 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-building-04** | `modular-building` | **open** | **N** | R1 |

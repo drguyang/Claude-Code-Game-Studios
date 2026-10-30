@@ -139,5 +139,46 @@ namespace DaYiJingCheng.Sim
             if (authority == null) throw new ArgumentNullException(nameof(authority));
             authority.ReconstructItemHighWater(Collect(events, decoder));
         }
+
+        /// <summary>
+        /// 收集 **三流并集 ∪ <paramref name="bakedInitialItemIds"/>**(AC-20-03 的扫描集形状)。
+        /// <para><b>为什么并集里要有 `BakedInitial`</b>:基线里预摆的物品实例**没有对应事件**
+        /// (它们在开档前就存在,不是由 `DropSpawned` / `Craft` 铸出来的)。只扫三流会漏掉这些 id
+        /// ⇒ 高水位偏低 ⇒ 读档后发重号 ⇒ 与基线预摆物**撞号**(`inventory-and-items.md:648`
+        /// 的 EC 行,首轮评审 BL-1③ 把原「不可达」判为假)。</para>
+        /// <para>⚠️ <b>`null` 的语义 = 「基线未提供」,等价于空集</b> ——
+        /// 这**正是 R3 未落地时的现状**,也是本重载要显式暴露的东西:
+        /// 传 `null` 的重建会**漏掉基线 id**,调用方必须知道自己在走哪条路。
+        /// 生产接入前须先核 R3(54 导出基线的实例 id 位 + 7a 接入),
+        /// **不得**在未核 R3 的情况下降级传 `null` 并当作正确。</para>
+        /// </summary>
+        /// <param name="events">三流并集。</param>
+        /// <param name="decoder">载荷解码器(不得为 null —— 见单参重载的理由)。</param>
+        /// <param name="bakedInitialItemIds">基线(`BakedInitial`)里的物品实例 id;
+        /// <c>null</c> = 基线未提供(等价空集,语义见上)。</param>
+        /// <returns>三流 id(流序)后接基线 id;可含重复与负哨兵,由
+        /// <see cref="IdAuthority.ReconstructItemHighWater"/> 统一按「负值忽略、只升不降」处理。</returns>
+        public static List<long> Collect(
+            IReadOnlyList<SimEvent> events, IPayloadDecoder decoder, IEnumerable<long> bakedInitialItemIds)
+        {
+            List<long> ids = Collect(events, decoder);
+            if (bakedInitialItemIds == null) return ids;
+            foreach (long id in bakedInitialItemIds) ids.Add(id);
+            return ids;
+        }
+
+        /// <summary>收集(三流 ∪ 基线)并直接重构 —— 读档路径的完整形态。</summary>
+        /// <param name="events">三流并集。</param>
+        /// <param name="decoder">载荷解码器。</param>
+        /// <param name="bakedInitialItemIds">基线物品实例 id(<c>null</c> = 未提供,语义见上)。</param>
+        /// <param name="authority">待重构的计数器。</param>
+        /// <exception cref="ArgumentNullException">任一形参为 null(<paramref name="bakedInitialItemIds"/> 除外)。</exception>
+        public static void CollectAndReconstruct(
+            IReadOnlyList<SimEvent> events, IPayloadDecoder decoder,
+            IEnumerable<long> bakedInitialItemIds, IdAuthority authority)
+        {
+            if (authority == null) throw new ArgumentNullException(nameof(authority));
+            authority.ReconstructItemHighWater(Collect(events, decoder, bakedInitialItemIds));
+        }
     }
 }

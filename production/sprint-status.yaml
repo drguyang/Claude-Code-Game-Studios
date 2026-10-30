@@ -40,13 +40,13 @@ stories:
     name: "inventory-002 id 铸造权威与高水位重构"
     file: "production/epics/inventory-items/story-002-id-authority-and-highwater.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: "S21-1"
-    completed: ""
-    note: "§6.5 的 sprint-21 四件中**唯一未完成**的一件(其余三件已 Complete)。AC-20-01…04 逐条判定;`BakedInitial` 缺失时「重建可撞号」的反例夹具是本卡的判别力核心 —— 真修(54 导出 `BakedInitial` id 位 + 7a 接入)外抛登记,本卡只交付可撞号的证明与高水位纯函数。"
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 收口(COMPLETE WITH NOTES)**。交付:`ItemInstanceHighWaterCollector` 新增「三流 ∪ BakedInitial」重载(2 个)+ 夹具 `Invoice/id_authority_highwater_test.cs`(11 测)。AC 记分:AC-20-01 ✅(源面扫描)· AC-20-02 ✅(程序集归属,联机半边 NOT-RUN)· **AC-20-03 🟡 只落形状半边**(生产今天只能传 null)· AC-20-04 ✅。证伪 5 条:M1/M2 exact,M3/M4/M5 超集(如实记,不写成「恰如预期」);SHA-256 还原 5/5,`FALSIFY-` 残留 0。回归三元组 `2026-10-31T07:18 CST` · S21-2 全量 · `2a9d46c2`+未提交:EditMode `6191/6154/0/0/37`(+11/+11 恰等)· PlayMode `238/234/0/2/2`(零回归)。**外抛两条债**:`TD-persist-12`(高水位重构生产零调用 + 基线无 item 实例 id)· `TD-building-04`(structure_id 未走 IIdAuthority,与 ADR-010 §三 义务 12 不符)。"
 
   - id: "S21-3"
     name: "processing 判别力债 ×6(TD-processing-01…06)"

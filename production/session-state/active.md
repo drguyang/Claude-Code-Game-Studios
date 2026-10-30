@@ -13737,3 +13737,26 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **未做**:`/story-readiness` 未实跑 —— 那是 `S21-2` 的开工步;本卡判的是它读取的输入。
 - 债册:`closed 110 → 111` · `open 25 → 24` · 未闭 P0 面仍 **0** · `--check` exit 0。
 - 账面滞后**同族第 8 例**(本次形态 = 完成度推进,非判据失效)。
+
+---
+
+## 2026-10-31 · `S21-2` 收口(inventory-002 · COMPLETE WITH NOTES)
+
+**开工门**:`/story-readiness` 判 **NEEDS WORK**,唯一缺口 = `Manifest Version 2026-10-02`
+落后于 `2026-10-15`;核过 10-15 增量(处方前置检查 / 文化敏感字符串比较)**与本卡无关** ⇒
+按 A 路对齐版本号后开工。
+
+- **交付**:`ItemInstanceHighWaterCollector` 新增「三流 ∪ `BakedInitial`」重载 ×2
+  (`Collect` / `CollectAndReconstruct`)+ `Tests/EditMode/Inventory/id_authority_highwater_test.cs`(11 测)。
+- **AC 记分(不是 4/4 全绿)**:AC-20-01 ✅ 源面扫描 · AC-20-02 ✅ 程序集归属(联机半边 **NOT-RUN**)·
+  **AC-20-03 🟡 只落形状半边** —— 生产今天只能传 `null`(基线不导出 item 实例 id、读档不调重构)·
+  AC-20-04 ✅。
+- **证伪 5 条**:M1(本地铸号)/M2(客户端引用发号器)**exact**;M3(忽略基线)/M4(max+1→max)/
+  M5(用堆叠键冒充实例 id)**超集**(如实记,不写「恰如预期」)。**SHA-256 还原 5/5**,`FALSIFY-` 残留 0。
+- **回归**(三元组 `2026-10-31T07:18 CST` · S21-2 全量 · `2a9d46c2`+未提交):
+  EditMode `6191/6154/0/0/37`(+11/+11 恰等)· PlayMode `238/234/0/2/2`(零回归)。
+- **外抛两条债**(均为「契约与实现不符 / 未接线」):
+  - `TD-persist-12` —— 高水位重构**生产零调用** + 基线无 item 实例 id;P0 面 N(`RequestLoad` 零调用方)。
+  - `TD-building-04` —— `structure_id` 用独立 `_nextStructureId`,与 ADR-010 §三 义务 12 不符;
+    顺带记明:因此 GDD `:648` 设想的「与结构行撞号」**今天不会发生**(两面都要记)。P0 面 N,须 ADR 级裁定。
+- 债册:`条目 139 → 141` · `closed 111` · `open 24 → 26` · 未闭 P0 面仍 **0** · `--check` exit 0。
