@@ -55,6 +55,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly ITreatableByLookup _treatableBy;
         private readonly long _worldSeed;
 
+        /// <summary>U 档数来源(生产恒 = <see cref="Outcome53.Table.UBandCount"/>;见构造注释)。</summary>
+        private readonly int _bandCountSource;
+
         /// <summary>构造驱动。</summary>
         /// <param name="stream">事件流(**读面**;`Events`)。</param>
         /// <param name="writeFace">发射器的**写面**(生产 = 同一个 <see cref="EventStream"/> 实例)。</param>
@@ -65,6 +68,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="registry">病种注册表(id → key;C 轴命中位与 U 的 bit 判据都要用)。</param>
         /// <param name="treatableBy">处置轴查表面(`treatable_by`;**null = 未接线** ⇒ 命中位恒 false)。</param>
         /// <param name="worldSeed">`WorldSeed`(U 派生的混盐输入)。</param>
+        /// <param name="bandCountSource">U 档数来源;**生产恒传 <c>null</c>**(= 取
+        /// <paramref name="outcomeTable"/>.UBandCount)。形参的唯一用途是让「分歧的第二真源」
+        /// 在**生产路径上**可构造 —— AC-6 的判据必须能打在生产码分支上,不能只打在测试侧 helper
+        /// 上(`TD-medcons-19` ①)。</param>
         /// <exception cref="ArgumentNullException">任一必需依赖为 null。</exception>
         /// <exception cref="ArgumentException"><paramref name="writeFace"/> 与 <paramref name="stream"/>
         /// **不是同一实例**(ADR-036 D5)。</exception>
@@ -77,7 +84,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             Outcome53.Table outcomeTable,
             IReadOnlyList<DiseaseRegistryEntry> registry,
             ITreatableByLookup treatableBy,
-            ulong worldSeed)
+            ulong worldSeed,
+            int? bandCountSource = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             if (writeFace == null) throw new ArgumentNullException(nameof(writeFace));
@@ -98,6 +106,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "读流与写流不是同一实例 —— 后果的幂等差额读的是写面之外的流," +
                     "会导致每 tick 重复发出(静默)。生产装配须把同一个 EventStream 同时作读面与写面" +
                     "(ADR-036 D5)。", nameof(writeFace));
+
+            // ── U 档数的**单一真源**(AC-6 / `TD-medcons-19` ①)────────────────
+            // 档数只能来自判定表本身。形参存在**唯一**理由:让「第二真源」在
+            // **生产路径上可构造** —— 否则 AC-6 的判据只能钉在测试侧 helper 上
+            // (`TD-medcons-19` 原判定),而「生产装配面未被约束」正是那条债的原文。
+            // 生产调用方**恒不传**(`CompositionRoot` 的构造点省略该形参)。
+            _bandCountSource = bandCountSource ?? outcomeTable.UBandCount;
 
             _diseaseKeyById = BuildKeyMap(registry);
             _treatableBy = treatableBy;          // null = 未接线:命中位恒 false(C 轴退化为 Unmatched)
@@ -177,7 +192,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             ulong uRaw = TryResolveSaltedKey(closed.DiseaseSet, g.PatternRecognized, out ulong saltedKey)
                 ? OutcomeJudgeDerive.URaw(_worldSeed, saltedKey)
                 : OutcomeJudgeDerive.URawDegraded();
-            int band = Outcome53.BandOf(uRaw, _outcomeTable.UBandCount);
+            int band = Outcome53.BandOf(uRaw, _bandCountSource);
 
             return new Outcome53.JudgeInputs(p, c, d, trial, band, uRaw);
         }

@@ -886,16 +886,28 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // AC-6 —— uBand 装配层单源(N-3 · 本 story 是 53 链第一个真实喂 uBand 的调用点)
         // 裁定:**零装载面改动** ⇒ helper 落在本文件的测试侧装配面(生产装配 helper
         //   属未授权路径 ⇒ 偏差已报)。
+        //
+        // 🔁 **2026-10-30(`TD-medcons-19` ①)**:上面那句「偏差已报」的后果就是本条债 ——
+        //   `BuildEligible` 的 `bandCountSource` **自己就是被判对象**,故旧夹具只约束夹具、
+        //   不约束生产。**生产装配面已由 ADR-036 S3/S4 落地** ⇒ 判据已搬到真驱动路径:
+        //   `medcons_driver_test.test_medcons19_bandCount_singleSourceOnProductionPath`
+        //   (走 `ConsequenceDriver.OnTickEdge`,第二真源经 driver 构造依赖注入)。
+        //   本节的 `BuildEligible` 与下述夹具**保留为历史** —— 它钉的是 Sim 侧 `TryLookup`
+        //   的域守护(③ 段)与「分歧不得别名到第三回响行」的**纯函数面**,那两半仍然有效;
+        //   但**不得**再把它当作「生产装配面已被约束」的证据。
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>
         /// 装配层 eligible 计算(F-53.1 → F-53.2 的接线面):U 档从 **cooked 表自带的
         /// <see cref="Outcome53.Table.UBandCount"/>** 派生,禁独立常量源。
         /// </summary>
-        /// <remarks>⚠️ <b>夹具 seed/key 选值有唯一理由(T-M1)</b>:<see cref="Ac6WorldSeed"/> /
-        /// <see cref="Ac6SaltedKey"/> 是**为使 uRaw 越出 span 而使 uBand = 1** 而选的
-        /// (python 逐位复算 <c>SplitMix64(42, "case-salt", 7) &gt;&gt; 48 = 58704</c>;
-        /// <c>BandOf(58704, 2) = 1</c>)。⚠️ 数值轮若改 <c>SplitMix64</c> 语义 / U 档位口径,
+        /// <remarks>⚠️ <b>夹具 seed/key 选值有唯一理由(T-M1)</b>:下文的字面量
+        /// <c>worldSeed = 42L</c> / <c>saltedKey = 7UL</c> 是**为使 uRaw 越出 span 而使 uBand = 1**
+        /// 而选的(python 逐位复算 <c>SplitMix64(42, "case-salt", 7) &gt;&gt; 48 = 58704</c>;
+        /// <c>BandOf(58704, 2) = 1</c>)。
+        /// 🔁 **2026-10-30(`TD-medcons-19`)**:原文写的是 <c>&lt;see cref="Ac6WorldSeed"/&gt;</c> /
+        /// <c>&lt;see cref="Ac6SaltedKey"/&gt;</c> —— 这两个常量**从未存在**(悬空 cref,不报错也不提示),
+        /// 读者无从知道该数从哪来。现改为直接点名字面量。⚠️ 数值轮若改 <c>SplitMix64</c> 语义 / U 档位口径,
         /// 本组合会**静默退化**为 band = 0 ⇒ ② 段失去「越界前提」(③ 段硬传 <c>uBand:1</c> 仍兜住
         /// 守护本身)。改语义者须同批复算并更新本注释。</remarks>
         /// <param name="bandCountSource">档位源(测试据此注入「分歧的第二真源」)。</param>
@@ -931,6 +943,11 @@ namespace DaYiJingCheng.Tests.MedConsequences
         /// <para>卡面 AC-6 Edge:`bandCount = 1`(现网值)下越界仍须被域检查接住;
         /// **不得硬编码 bandCount** —— 数值轮一扩档即踩同一失效模式。</para>
         /// <para>⚠️ 禁借绿:<c>band_count > 1</c> 的 U 判别力载体**留槽归数值轮**,本 story 不启动。</para>
+        /// <para>🔁 **2026-10-30(`TD-medcons-19` ①)**:本条的 ①② 两段调的是**测试侧 helper**
+        /// `BuildEligible`(它的 `bandCountSource` 形参就是被判对象)⇒ **对生产码分支零判别力**。
+        /// 生产面判据已搬到 `medcons_driver_test.test_medcons19_bandCount_singleSourceOnProductionPath`。
+        /// 本条**保留**的判别力只在 ③ 段(Sim 侧 `TryLookup` 的域守护)与「分歧不别名到第三回响行」
+        /// 的纯函数面 —— 判「装配面被约束」时**不得**引本条。</para>
         /// </summary>
         [Test]
         public void test_ac6_bandCountSingleSourceFromCookedTable_divergentSourceGoesRed()
@@ -1144,11 +1161,41 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "④ 对照:全量入参 ⇒ 两条后果都在流里 ⇒ ③ 的 1 条缺口确由裁剪造成");
 
             // ⑤ 前提的**可执行出处**:Emit 的 doc 必须声明该义务(删前置条件块 ⇒ 本断言红)。
+            // 🔁 **2026-10-30(`TD-medcons-19` ②)**:原文只做 `StringAssert.Contains` 于**整份源文件**
+            //   —— 那对「前置条件块还在不在」几乎没有判别力(同样的词出现在文件里任何地方都能过,
+            //   包括本夹具自己的注释)。现改为**定位 `Emit` 的 doc 注释块**再在其中断言:
+            //   把 precondition 段从 `Emit` 的文档里删掉 ⇒ 本断言红(见证伪 M4)。
             string src = File.ReadAllText(Path.Combine(RepoRoot(),
                 "unity/Assets/Sim/Consequences/ConsequenceEmitter.cs"));
-            StringAssert.Contains("S-B1", src, "⑤ 前置条件块须带 S-B1 标记");
-            StringAssert.Contains("不得", src, "⑤ 前置条件块须写明「不得」裁剪");
-            StringAssert.Contains("永久不发", src, "⑤ 须写明静默失效模式");
+            string emitDoc = ExtractDocAbove(src, "public ConsequenceEmitResult Emit(");
+            Assert.That(emitDoc, Is.Not.Null,
+                "找不到 Emit 的 doc 注释块 —— 签名变了?本判据须同批订正");
+            Assert.That(emitDoc, Does.Contain("S-B1"), "⑤ Emit 的 doc 须带 S-B1 标记");
+            Assert.That(emitDoc, Does.Contain("不得"), "⑤ Emit 的 doc 须写明「不得」裁剪");
+            Assert.That(emitDoc, Does.Contain("永久不发"), "⑤ Emit 的 doc 须写明静默失效模式");
+        }
+
+        /// <summary>
+        /// 取某方法签名**紧邻上方**的连续 `///` 文档注释块(找不到 ⇒ <c>null</c>)。
+        /// <para>为什么要这个方法(而不是全文件 `Contains`):`TD-medcons-19` ② 的原判定是
+        /// 「判据对生产码分支零判别力」—— 全文匹配属于同一族:同一个词出现在**任何**位置
+        /// (含夹具注释、其它方法)都能让断言通过。</para>
+        /// </summary>
+        private static string ExtractDocAbove(string source, string signature)
+        {
+            int sig = source.IndexOf(signature, StringComparison.Ordinal);
+            if (sig < 0) return null;
+
+            string[] lines = source.Substring(0, sig).Split('\n');
+            var doc = new List<string>();
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string t = lines[i].Trim();
+                if (t.StartsWith("///", StringComparison.Ordinal)) { doc.Insert(0, t); continue; }
+                if (t.Length == 0 && doc.Count == 0) continue;   // 签名上方空行(允许一层)
+                break;
+            }
+            return doc.Count == 0 ? null : string.Join("\n", doc);
         }
 
         /// <summary>

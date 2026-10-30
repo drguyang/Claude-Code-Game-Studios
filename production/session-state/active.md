@@ -13432,3 +13432,19 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   基线 `6148/6111/0/37` ⇒ **+3/+3**(= D-2 的三条夹具)。
 - 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 15:30:10 CST ⇒ 与基线**逐位相同**(零回归)。
 - **未提交**。
+
+### TD-medcons-19(两条弱判别力夹具)—— 2026-10-30
+- ① AC-6 判据搬到**真装配面**:`ConsequenceDriver` 加 `int? bandCountSource` 构造缝
+  (生产恒不传 ⇒ `table.UBandCount`),新增 `test_medcons19_bandCount_singleSourceOnProductionPath`。
+  旧夹具保留但标注「不得再当作生产面证据」。
+- ② SB1 的 doc 判据从**全文件 Contains** 收紧为「定位 `Emit` 的 doc 块再断言」(`ExtractDocAbove`)。
+- **三处自己造的错(全部如实登记)**:
+  · `SimEvent` 赋 null 两次(它是 readonly struct)—— 编译器拦下,未进测试;
+  · **M2 首轮假存活**:所选格 `(Empty,AppliedUnmatched,NotRecovered)` 行值 = default = `residual`
+    ⇒ 守护开/关同值 ⇒ 246 全绿。换 `(Confirmed,AppliedUnmatched,NotRecovered)` = `recurrence`,
+    并加**前提断言**把这类陷阱挡在门口;
+  · 首版把越界档的期望写成「0 条后果」(以为 default = NoEcho),实跑 `But was: 1` ⇒ 查表后反向。
+- 连带修掉一处**悬空 cref**(`Ac6WorldSeed` / `Ac6SaltedKey` 从未存在)。
+- 证伪 2/2 全红(M2 → AC-6 真装配夹具;M3 → SB1),还原 SHA-256 一致。
+- 回归:EditMode `6152/6115/0/37` @16:03:36(+1/+1)· `TD-medcons-19` **closed**。
+- 回归(PlayMode 全量):`238/234/0/2/2` @ 2026-10-30 16:05:08 CST ⇒ 与基线逐位相同(零回归)。

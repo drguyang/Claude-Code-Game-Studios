@@ -319,7 +319,7 @@
 | `TD-medcons-16` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-17` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-18` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-19` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
 | `TD-s13-02` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-s13-01` | `（跨 epic · 治理／code-review skill）` | partial | **N** | R3-裁 |
@@ -850,11 +850,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 96, 'open': 40, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 16 （已闭但曾标 P0 面的 87 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 8/31 个 epic
-    telemetry-analytics: 5    clinic-machine: 4         medical-consequences: 2
-    enemy-ai: 1               item-database: 1          patient-ai: 1
+条目 139 | 状态 {'closed': 97, 'open': 39, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 15 （已闭但曾标 P0 面的 88 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 8/31 个 epic
+    telemetry-analytics: 5    clinic-machine: 4         enemy-ai: 1
+    item-database: 1          medical-consequences: 1   patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
@@ -1966,10 +1966,51 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > 「真联机权威」,且**排除集须非空**(否则排除条件将来会静默失效)。
 > ⇒ **AC-51-E3 的「真联机」半边**仍是 P1b 缺口;`P0HostEventAuthority` 不改变那条结论。
 
-> 🔁 **2026-10-30 状态不变 —— `TD-medcons-19`(两条自包含夹具判别力弱)**:仍 `open`。
-> 触发条件原文是「数值轮(U 档扩档)启动时一并补真装配面判据」—— 本轮**生产装配面已存在**
-> (见上条),但其两条夹具的**判别力**未重做;`test_ac6_bandCountSingleSource*` 用的
-> `BuildEligible` 仍是测试侧 helper。⇒ 本轮的装配为它**解除了前置**,不构成结案。
+> ✅ **2026-10-30 结案 —— `TD-medcons-19`(两条自包含夹具判别力弱)**
+>
+> **原判定**(复核件 §三):① `test_sb1_truncatedEligible_*` 断言的是**前提违例的后果**,
+> 对生产码分支零判别力;② `test_ac6_bandCountSingleSource*` 的 `BuildEligible` 是**测试侧 helper**
+> ⇒ 判据只约束夹具,不约束生产装配面。
+>
+> **处置 ①(AC-6 → 真装配面)**:给 `ConsequenceDriver` 加**唯一用途是造第二真源**的构造形参
+> `int? bandCountSource`(生产恒不传 ⇒ `table.UBandCount`),新增
+> `test_medcons19_bandCount_singleSourceOnProductionPath` —— 走 `OnTickEdge`(生产路径),
+> 分歧源 ⇒ uBand 越界 ⇒ 域守护回落 ⇒ **零后果**;生产口径 ⇒ 一条后果。
+> 旧夹具**保留但已标注**「不得再当作生产面证据」(它剩的判别力只在 Sim 侧 `TryLookup` 的域守护)。
+>
+> **处置 ②(SB1 的 doc 判据收紧)**:原文对**整份源文件**做 `Contains("S-B1")` / `Contains("不得")`
+> / `Contains("永久不发")` —— 同样的词出现在文件**任何**位置(含夹具自己的注释)都能过 ⇒ 与
+> 「对生产码零判别力」同族。现改为**先定位 `Emit` 的 doc 块**(`ExtractDocAbove`),再在其中断言
+> ⇒ 把 precondition 段从 `Emit` 的文档里删掉,本断言才真的会红。
+>
+> ⚠️ **首版判据写反了(实跑抓到,如实登记)**:我按「default 行 = NoEcho」写期望 `0 条后果`,
+> 实跑 `But was: 1`。查表后确认 `default_outcome = residual`(回响轴)⇒ **守护生效时照发一条**;
+> 而守护失效时 `uBand=1` 会别名到 `empty|applied_matched|recovered` = `no_echo` ⇒ **0 条**。
+> 判据据此反过来写,并补一条「产出的 outcome 须逐字是 default 行」的强断言。
+> **这条本身也说明原债的判定是对的**:测试侧 helper 从没把「越界档的产出」与「default 行」对齐过。
+>
+> ⚠️ **证伪 M2 首轮「假存活」(如实登记,已修)**:把 `_bandCountSource` 恒置 `table.UBandCount`
+> 抹掉第二真源缝 ⇒ **246 全绿**。归因:我选的格 `(Empty, AppliedUnmatched, NotRecovered)`
+> 行值是 `residual`,而 `default` 行**也是** `residual` ⇒ 守护开/关产出**同值**
+> (`targetIsIsomorphic` 型假存活)。**修法**:换成 `(Confirmed, AppliedUnmatched, NotRecovered)`
+> = `recurrence`(≠ default),并**加一条前提断言** `AreNotEqual(default, 该格行值)`
+> —— 把这类陷阱挡在门口,而不是靠注释提醒。重跑后 M2 才转红。
+>
+> **证伪 2/2(基线 MedConsequences 246/246,每条恰 1 红、其余 245 绿)**:
+> · **M2** `_bandCountSource = outcomeTable.UBandCount`(抹掉第二真源缝)⇒
+>   `test_medcons19_bandCount_singleSourceOnProductionPath` 红(`Expected: 2 But was: 3`,
+>   报文点名「别名进了 recurrence 格」);
+> · **M3** 删 `Emit` doc 里含 `S-B1` / `不得` / `永久不发` 的行 ⇒
+>   `test_sb1_truncatedEligible_headRowDropped_silentlyWithholdsRest` 红。
+> 变异与还原同脚本内完成;两个文件的还原 SHA-256 均逐字节一致
+> (`4569d3c2…` / `24bd49b2…`)。
+>
+> **回归**:EditMode `6152/6115/0/37` @ 2026-10-30 16:03:36 CST(`bd177e72`+工作树;
+> 基线 `6151/6114/0/37` ⇒ **+1/+1** = 新增的真装配夹具)· PlayMode `238/234/0/2/2` @ 16:05:08 CST(逐位同基线)。
+>
+> **连带修掉一处悬空 cref**(同一轮实测发现):`BuildEligible` 的 remarks 引
+> `<see cref="Ac6WorldSeed"/>` / `<see cref="Ac6SaltedKey"/>` —— **这两个常量从未存在**,
+> 不报错也不提示 ⇒ 读者无从知道 `42L` / `7UL` 从哪来。已改为直接点名字面量。
 
 ---
 

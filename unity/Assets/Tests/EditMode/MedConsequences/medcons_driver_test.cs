@@ -107,6 +107,45 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 worldSeed: 0UL);
         }
 
+        /// <summary>装真判定表 + 可注入 `bandCountSource` 的驱动(AC-6 的真装配面载体)。</summary>
+        private static ConsequenceDriver NewDriverWithBandSource(EventStream stream, int? bandCountSource)
+        {
+            var emitter = new ConsequenceEmitter(stream, new AlwaysHost(), _encoder, DelayTable());
+            return new ConsequenceDriver(
+                stream, stream, emitter, _decoder, new NotRecoveredProjection(),
+                OutcomeTable(), new[] { new DiseaseRegistryEntry
+                    { DiseaseId = DiseaseId, DiseaseKey = "DIS_DRIVER_TEST" } },
+                treatableBy: null, worldSeed: 0UL, bandCountSource: bandCountSource);
+        }
+
+        /// <summary>本夹具的目标格 (Confirmed, AppliedUnmatched, NotRecovered) 的表行值。</summary>
+        private static Outcome53.Outcome ConfirmedUnmatchedNotRecoveredOutcome(Outcome53.Table table)
+        {
+            Assert.IsTrue(table.TryLookup(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedUnmatched,
+                Outcome53.RecoveryLane.NotRecovered, uBand: 0, out Outcome53.Outcome o),
+                "前提:该格须在表内(18 行全覆盖)");
+            return o;
+        }
+
+        /// <summary>处置 + **判断记录**(⇒ P = Confirmed)+ 结案。D 由投影桩给 NotRecovered。</summary>
+        private static void AppendCloseCareAndJudgment(EventStream stream)
+        {
+            ulong bits = 1UL << (DiseaseId - 1);
+            stream.Append(Ev(50, 0, EventKind.CareApplied,
+                _encoder.Encode<CareAppliedPayload>(EventKind.CareApplied,
+                    new CareAppliedPayload(tick: 50, actionId: 1, caregiver: 0, phase: 0))));
+            // ⚠️ `JudgmentRecorded` 带 freehand 段 ⇒ 只能走**具名重载**(ADR-006 G-3);
+            //    `IPayloadEncoder.Encode<T>` 对它抛 `NotSupportedException`(实测于本夹具首轮)。
+            stream.Append(new SimEvent(60, new PatientId(Patient), 1, EventKind.JudgmentRecorded,
+                _encoder.EncodeJudgmentRecorded(
+                    new JudgmentRecordedPayload(Patient, default, authorPlayerId: 1,
+                        lexiconId: 1, confidence: 2), string.Empty)));
+            stream.Append(Ev(CloseTick, 2, EventKind.CaseClosed,
+                _encoder.Encode<CaseClosedPayload>(EventKind.CaseClosed,
+                    new CaseClosedPayload(Patient, default, new DiseaseIdSet(bits), treated: true))));
+        }
+
         private static void AppendCloseAndCare(EventStream stream)
         {
             ulong bits = 1UL << (DiseaseId - 1);
@@ -361,6 +400,70 @@ namespace DaYiJingCheng.Tests.MedConsequences
             sw.Stop();
 
             return sw.Elapsed.TotalMilliseconds / Ticks;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // TD-medcons-19 ① —— AC-6 的**真装配面**判据(替代测试侧 helper)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// **生产驱动**的 `bandCount` 单源:注入分歧的第二真源 ⇒ U 档越界 ⇒ 判定**不得**
+        /// 静默别名到第三个回响行。
+        /// <para><b>为什么必须换成真装配面</b>(`TD-medcons-19` 原判定):旧载体
+        /// `test_ac6_bandCountSingleSource…` 调的是**测试侧 helper** `BuildEligible`,
+        /// 它自己的 `bandCountSource` 形参就是被判对象 ⇒ 判据只约束夹具,不约束生产。
+        /// 本条走 `ConsequenceDriver.OnTickEdge`(生产路径),`bandCountSource` 是
+        /// **driver 的构造依赖**(`null` = 生产口径 = `table.UBandCount`)。</para>
+        /// </summary>
+        [Test]
+        public void test_medcons19_bandCount_singleSourceOnProductionPath()
+        {
+            Outcome53.Table table = OutcomeTable();
+            Assert.AreEqual(1, table.UBandCount,
+                "前置:现网 cooked 表 bandCount = 1(数值轮扩档后本前置须同步订正)");
+
+            // ⚠️ **前提断言(防「真实值同构」的假存活)**:本夹具必须选一个**行值 ≠ default**
+            // 的 (P,C,D) 格 —— 否则「守护生效 ⇒ default」与「守护失效 ⇒ 该行」产出**同值**,
+            // 判据对生产分支零判别力。
+            // 实测(2026-10-30):首版选了 (Empty, AppliedUnmatched, NotRecovered),
+            // 该行 = `residual` 而 default 也是 `residual` ⇒ **变异 M2 全绿**才暴露。
+            // 现选 (Confirmed, AppliedUnmatched, NotRecovered) = **recurrence**(≠ default)。
+            Assert.AreNotEqual(Outcome53.Outcome.Residual, ConfirmedUnmatchedNotRecoveredOutcome(table),
+                "前提:所选格的行值须 ≠ default(residual)—— 否则本夹具零判别力");
+
+            // ① 生产口径(null ⇒ table.UBandCount):判定落在回响轴 ⇒ 后果照发。
+            EventStream okStream = NewStream();
+            AppendCloseCareAndJudgment(okStream);
+            NewDriverWithBandSource(okStream, bandCountSource: null).OnTickEdge(CloseTick + 5000);
+            Assert.AreEqual(1, ConsequenceCount(okStream), "生产口径 ⇒ 判定有效,后果发出");
+
+            // ② 分歧源(= 2 > 表 1)⇒ uBand 越界 ⇒ `TryLookup` 域守护接住并回落 **default 行**。
+            //    本夹具的 (P,C,D) = (Empty, AppliedUnmatched, NotRecovered) ⇒ pcd = 3;
+            //    `uBand = 1` 会让 key = 4 = (Empty, AppliedMatched, Recovered) = **no_echo**。
+            //    ⇒ 两个方向都可观察:
+            //      · 守护**生效** ⇒ 走 default 行(`residual`,回响轴)⇒ **恰 1 条后果**;
+            //      · 守护**失效** ⇒ 别名到 no_echo ⇒ **0 条后果**。
+            //    ⚠️ 首版把期望写成 0 条(以为 default 是 NoEcho)—— 实跑当场红(`But was: 1`),
+            //    查表后确认 `default_outcome = residual`。判据据此反过来写。
+            EventStream badStream = NewStream();
+            AppendCloseCareAndJudgment(badStream);
+            NewDriverWithBandSource(badStream, bandCountSource: 2).OnTickEdge(CloseTick + 5000);
+
+            Assert.AreEqual(1, ConsequenceCount(badStream),
+                "越界档须被域守护接住并回落 **default 行**(residual ⇒ 照发一条);" +
+                "零后果 = 守护失效、别名到 no_echo(AC-6 的静默失败模式)");
+
+            SimEvent badRow = default;
+            bool found = false;
+            for (int i = 0; i < badStream.Events.Count; i++)
+                if (badStream.Events[i].Kind == EventKind.ConsequenceResolved) { badRow = badStream.Events[i]; found = true; break; }
+            Assert.IsTrue(found, "前提到位:须有一条后果行");
+
+            var badPayload = _decoder.Decode<ConsequenceResolvedPayload>(
+                EventKind.ConsequenceResolved, badRow.Payload);
+            Assert.AreEqual((int)table.DefaultOutcome, badPayload.Outcome,
+                "产出的 outcome 须**逐字**是表自带的 default 行 —— 不是任何 (P,C,D) 行的别名;" +
+                $"若得到 {badPayload.Outcome}(= 目标格 recurrence),说明越界档别名进了相邻组合");
         }
 
         // ══════════════════════════════════════════════════════════════════
