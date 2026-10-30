@@ -30,8 +30,8 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B10**(BLOCKING):F4 新颖度三分守恒 —— `N_new + N_repeat + N_stale = Practice(skill, W)` 且三类不重复计数
-- [ ] **AC-51-B11**(BLOCKING):F4 不重算 XP —— 无 `XP_gain`/`BASE`/`K_difficulty`/`K_novelty` 的实现或常量
+- [x] **AC-51-B10**(BLOCKING):F4 新颖度三分守恒 —— `N_new + N_repeat + N_stale = Practice(skill, W)` 且三类不重复计数
+- [x] **AC-51-B11**(BLOCKING):F4 不重算 XP —— 无 `XP_gain`/`BASE`/`K_difficulty`/`K_novelty` 的实现或常量
 
 ---
 

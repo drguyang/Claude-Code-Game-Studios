@@ -30,9 +30,9 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B12**(BLOCKING):F5 半开窗不双计 —— 窗宽 `W`;三条同流事件分别恰在 `t_k`、`t_k + W − 1`、`t_k + W`;前两条计入、第三条不计入;第三条在 `Dens_s(t_k + S)` 中恰计入一次
-- [ ] **AC-51-B13**(BLOCKING):F5 三流分列 + 覆盖记账 —— 输出三条独立序列;每窗 `Dens_s(t_k) ≤` 该窗内该流事件数;输出 `WindowCoverage = (CoveredTicks, SpanTicks)`;`S > W` 时 `CoveredTicks < SpanTicks`;空流 ⇒ 全 0
-- [ ] **AC-51-B14**(BLOCKING):F5 参数退化硬失败 —— `W < 1`(如 0)⇒ 构建期/加载期硬失败(非运行期退化、非静默取默认值)
+- [x] **AC-51-B12**(BLOCKING):F5 半开窗不双计 —— 窗宽 `W`;三条同流事件分别恰在 `t_k`、`t_k + W − 1`、`t_k + W`;前两条计入、第三条不计入;第三条在 `Dens_s(t_k + S)` 中恰计入一次
+- [x] **AC-51-B13**(BLOCKING):F5 三流分列 + 覆盖记账 —— 输出三条独立序列;每窗 `Dens_s(t_k) ≤` 该窗内该流事件数;输出 `WindowCoverage = (CoveredTicks, SpanTicks)`;`S > W` 时 `CoveredTicks < SpanTicks`;空流 ⇒ 全 0
+- [x] **AC-51-B14**(BLOCKING):F5 参数退化硬失败 —— `W < 1`(如 0)⇒ 构建期/加载期硬失败(非运行期退化、非静默取默认值)
 
 ---
 

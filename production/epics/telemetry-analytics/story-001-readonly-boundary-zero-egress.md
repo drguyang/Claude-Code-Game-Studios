@@ -30,22 +30,22 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-19-01**(BLOCKING):判断层指标均可从既有事件流重算,零新埋点
-- [ ] **AC-19-02**(BLOCKING):构建 + 运行期无任何网络上报;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
-- [ ] **AC-19-03**(ADVISORY):输出只落本地;不存在「上报开/关」开关
-- [ ] **AC-19-04**(BLOCKING):51 不进 sim 程序集;无 `IEventSink.Append` 调用点
-- [ ] **AC-19-05**(ADVISORY):发布清单 Privacy/Analytics 项固定为「无出厂/无第三方/无内建崩溃上报」
-- [ ] **AC-19-06**(BLOCKING):P0 交付无玩家可见统计 UI、无上传、无实时图表
-- [ ] **AC-19-07**(BLOCKING):无任何写回 `assets/data/` 的代码路径
-- [ ] **AC-19-08**(ADVISORY):`TR-randomevents-024` `gap` → `covered`
-- [ ] **AC-51-A1**(BLOCKING):51 程序集无 `IEventSink` 或其派生的成员;唯一输入面 = `ITelemetrySource` 的三个 `Read*`
-- [ ] **AC-51-A2**(BLOCKING):51 asmdef 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51(无环)
-- [ ] **AC-51-A3**(ADVISORY):从构建中移除 51 后重跑同一回放,三流字节/哈希逐位不变
-- [ ] **AC-51-A4**(BLOCKING):无 `HttpClient`/`UnityWebRequest`/出站 `System.Net.*`;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
-- [ ] **AC-51-A5**(BLOCKING):无任何呈现层程序集引用 `JudgmentMetrics`;51 侧无 `.uxml`/`.uss`/Canvas/场景资产
-- [ ] **AC-51-A6**(ADVISORY):grep `IAudioCueSink`/`AudioCueDto`/`AudioMixer` 零命中
-- [ ] **AC-51-A7**(BLOCKING):无 analytics/crash-reporting/telemetry 包或插件
-- [ ] **AC-51-A8**(BLOCKING):无 `Update`/`FixedUpdate`/逐 `Tick` 回调订阅;重算仅由显式 `Compute()` 触发
+- [x] **AC-19-01**(BLOCKING):判断层指标均可从既有事件流重算,零新埋点
+- [x] **AC-19-02**(BLOCKING):构建 + 运行期无任何网络上报;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
+- [x] **AC-19-03**(ADVISORY):输出只落本地;不存在「上报开/关」开关
+- [x] **AC-19-04**(BLOCKING):51 不进 sim 程序集;无 `IEventSink.Append` 调用点
+- [x] **AC-19-05**(ADVISORY):发布清单 Privacy/Analytics 项固定为「无出厂/无第三方/无内建崩溃上报」
+- [x] **AC-19-06**(BLOCKING):P0 交付无玩家可见统计 UI、无上传、无实时图表
+- [x] **AC-19-07**(BLOCKING):无任何写回 `assets/data/` 的代码路径
+- [x] **AC-19-08**(ADVISORY):`TR-randomevents-024` `gap` → `covered`
+- [x] **AC-51-A1**(BLOCKING):51 程序集无 `IEventSink` 或其派生的成员;唯一输入面 = `ITelemetrySource` 的三个 `Read*`
+- [x] **AC-51-A2**(BLOCKING):51 asmdef 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51(无环)
+- [x] **AC-51-A3**(ADVISORY):从构建中移除 51 后重跑同一回放,三流字节/哈希逐位不变
+- [x] **AC-51-A4**(BLOCKING):无 `HttpClient`/`UnityWebRequest`/出站 `System.Net.*`;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
+- [x] **AC-51-A5**(BLOCKING):无任何呈现层程序集引用 `JudgmentMetrics`;51 侧无 `.uxml`/`.uss`/Canvas/场景资产
+- [x] **AC-51-A6**(ADVISORY):grep `IAudioCueSink`/`AudioCueDto`/`AudioMixer` 零命中
+- [x] **AC-51-A7**(BLOCKING):无 analytics/crash-reporting/telemetry 包或插件
+- [x] **AC-51-A8**(BLOCKING):无 `Update`/`FixedUpdate`/逐 `Tick` 回调订阅;重算仅由显式 `Compute()` 触发
 
 ---
 
@@ -131,10 +131,10 @@
 - `repoRoot` 的 5 层上跳缺乏编译期保护(可加断言验证路径正确)。
 - 5 处重复的装配扫描逻辑可提取为辅助方法。
 - 测试方法命名不完全符合 `test_[system]_[scenario]_[expected]` 模式。
-- AC-19-03/05/08, AC-51-A3/A6 等 ADVISORY AC 未单独覆盖(归后续 stories 或实现轮)。
+- ~~AC-19-03/05/08, AC-51-A3/A6 等 ADVISORY AC 未单独覆盖(归后续 stories 或实现轮)。~~ ✅ **2026-10-30 已全部结清**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):**AC-19-03** = `out_of_bounds_rejection_test::test_e5_noSwitch_noSwitchFields`;**AC-19-05** = 新建载体 `production/privacy-analytics-declaration.md` + `Telemetry/privacy_declaration_test.cs`(3 测);**AC-19-08** = registry 实测 `TR-randomevents-024 status: covered`;**AC-51-A3** = `Telemetry/telemetry_no_writeback_test.cs`(2 测,含 M20b 反证转红);**AC-51-A6** = `Telemetry/telemetry_no_audio_refs_test.cs`(2 测,含 M21c 反证转红)。
 - AC-51-E2 schema 字段未直接测试(实现后验证 JudgmentMetrics 无 proposed/recommendation 字段)。
 
-**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Telemetry/readonly_boundary_test.cs`(**11 测:7 passed + 4 skipped**);全量 EditMode **1180 passed + 1 inconclusive + 5 skipped + 0 failed**(`unity/Logs/s001-telemetry-full.xml`)
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Telemetry/readonly_boundary_test.cs`(**13 测**,本轮补 5 处空扫描守卫后仍全绿);**2026-10-30 补三件**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):`Telemetry/telemetry_no_writeback_test.cs`(**2 测** · AC-51-A3)· `Telemetry/telemetry_no_audio_refs_test.cs`(**2 测** · AC-51-A6)· `Telemetry/privacy_declaration_test.cs`(**3 测** · AC-19-05,载体 = `production/privacy-analytics-declaration.md`)。⚠️ 原记「11 测 / 全量 1180 passed」是 **2026-10 上旬**的数,已过期 —— 现行全量见债册 `TD-epic-01-e` 结案段的回归三元组(不在此重复盖时间戳)
 **Code Review**: Complete —— 双评审并行 + B1-B3/QA B1-B7 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-019(只读消费三流,零埋点;零第三方 SDK/零出厂;住边界层不进 sim;P0 最小切面;不代调数值;52↔51 边界 = 三流本身)· ADR-025(契约程序集清单)· ADR-017(门 A 硬化)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 4 项已分处登记(本 notes · story Known Risks · 账本)。

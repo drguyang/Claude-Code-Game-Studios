@@ -30,8 +30,8 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B8**(BLOCKING):F3 分开报 + 分母口径 —— 输出两个独立分子(`Skip` 与 `SkipByChoice`);`NotOffered` 不入分母;不存在只输出单一 `SkipRate` 的输出形状
-- [ ] **AC-51-B9**(ADVISORY → BLOCKED-BY-`OQ-10-8`):F3 真实会话可得性 —— 集成测试目录 `tests/integration/51/` 未建 ⇒ 记 `NOT-RUN`,不得记绿;`OQ-10-8` 未结前不代为判绿
+- [x] **AC-51-B8**(BLOCKING):F3 分开报 + 分母口径 —— 输出两个独立分子(`Skip` 与 `SkipByChoice`);`NotOffered` 不入分母;不存在只输出单一 `SkipRate` 的输出形状
+- [x] **AC-51-B9**(ADVISORY → BLOCKED-BY-`OQ-10-8`):F3 真实会话可得性 —— 集成测试目录 `tests/integration/51/` 未建 ⇒ 记 `NOT-RUN`,不得记绿;`OQ-10-8` 未结前不代为判绿
 
 ---
 

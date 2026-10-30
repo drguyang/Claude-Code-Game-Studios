@@ -30,10 +30,10 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B15**(BLOCKING):F6 可审计 —— 同时输出 `Tick_min`/`Tick_max`/`|E|`;`Tick_min + SessionSpan = Tick_max`;`SessionSpan ≥ 0`;单事件 ⇒ `span = 0`(合法);空流 ⇒ 0
-- [ ] **AC-51-B16**(BLOCKING):F7 上中位数取法定死(禁插值) —— 偶数项 Δ 序列 `⟨a₁<a₂<a₃<a₄⟩`(`m = 4` 个 Δ、5 个事件)⇒ `Δ_median = a₂`(1-indexed 第 `⌈m/2⌉` 项,`m` = Δ 项数 = `n−1`),不是 `(a₂+a₃)/2`;结果 ∈ 输入集;奇数项同法
-- [ ] **AC-51-B17**(BLOCKING):F7 退化 = 不可定义 ≠ 0 —— `n = 1`(零个 Δ)⇒ 全部五个字段报「不可定义」,不得报 0;`n = 2` ⇒ `Δ_MAD = 0` 合法;断言输出可区分「不可定义」与「真实的 0」
-- [ ] **AC-51-B18**(BLOCKING):F7 禁浮点统计量 —— 无方差/标准差/`Math.Sqrt`/浮点除法的离散度实现;节律字段类型全为 `Tick`/`int`
+- [x] **AC-51-B15**(BLOCKING):F6 可审计 —— 同时输出 `Tick_min`/`Tick_max`/`|E|`;`Tick_min + SessionSpan = Tick_max`;`SessionSpan ≥ 0`;单事件 ⇒ `span = 0`(合法);空流 ⇒ 0
+- [x] **AC-51-B16**(BLOCKING):F7 上中位数取法定死(禁插值) —— 偶数项 Δ 序列 `⟨a₁<a₂<a₃<a₄⟩`(`m = 4` 个 Δ、5 个事件)⇒ `Δ_median = a₂`(1-indexed 第 `⌈m/2⌉` 项,`m` = Δ 项数 = `n−1`),不是 `(a₂+a₃)/2`;结果 ∈ 输入集;奇数项同法
+- [x] **AC-51-B17**(BLOCKING):F7 退化 = 不可定义 ≠ 0 —— `n = 1`(零个 Δ)⇒ 全部五个字段报「不可定义」,不得报 0;`n = 2` ⇒ `Δ_MAD = 0` 合法;断言输出可区分「不可定义」与「真实的 0」
+- [x] **AC-51-B18**(BLOCKING):F7 禁浮点统计量 —— 无方差/标准差/`Math.Sqrt`/浮点除法的离散度实现;节律字段类型全为 `Tick`/`int`
 
 ---
 

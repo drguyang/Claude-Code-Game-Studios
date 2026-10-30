@@ -30,9 +30,9 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B5**(BLOCKING):F2 与 F1 同源 + 差额记账 —— `F1a 分子 = Σ_{t∈病种} M[t][t] + M[无病][未落笔] + N_matched_comorbid`;`N_matched_comorbid ⊆ N_comorbid`;「未落笔」列与「无病」行均非恒空
-- [ ] **AC-51-B6**(BLOCKING):F2 三桶显式计数 —— `|D| ≥ 2`(共病)· 无 `CaseClosed`(未结案)· `judgment` 未携带病种枚举(不可映射);三桶各等于该类例数;不出现在 `M` 任何格
-- [ ] **AC-51-B7**(BLOCKING):`N_unmappable > 0` 不得触发旁路采集 —— 51 侧不存在病名字符串→枚举的解析/映射代码路径
+- [x] **AC-51-B5**(BLOCKING):F2 与 F1 同源 + 差额记账 —— `F1a 分子 = Σ_{t∈病种} M[t][t] + M[无病][未落笔] + N_matched_comorbid`;`N_matched_comorbid ⊆ N_comorbid`;「未落笔」列与「无病」行均非恒空
+- [x] **AC-51-B6**(BLOCKING):F2 三桶显式计数 —— `|D| ≥ 2`(共病)· 无 `CaseClosed`(未结案)· `judgment` 未携带病种枚举(不可映射);三桶各等于该类例数;不出现在 `M` 任何格
+- [x] **AC-51-B7**(BLOCKING):`N_unmappable > 0` 不得触发旁路采集 —— 51 侧不存在病名字符串→枚举的解析/映射代码路径
 
 ---
 

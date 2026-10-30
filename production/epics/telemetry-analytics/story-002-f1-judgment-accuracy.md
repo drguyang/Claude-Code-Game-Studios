@@ -30,10 +30,10 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-B1**(BLOCKING):F1a 四例夹具 —— ① `D=X ∧ J=X` ② `D=∅ ∧ J=∅` ③ `D=X ∧ J=∅` ④ `D=X ∧ J=Y`;分母 = 4、分子 = 2(①②);`==` 为集合相等,`∅ == ∅` 判对
-- [ ] **AC-51-B2**(BLOCKING):F1a ⊥ F1b —— ① 判对且有改写 ② 判对且无改写 ③ 判错且有改写;`F1a = 2/3` 与 `F1b = 2/3` 正交;移除全部 `JudgmentRevised` 后 `F1a` 不变
-- [ ] **AC-51-B3**(BLOCKING):F1 取法 —— `J(c)` 取全序最后一条判断事件(逐条推进选 `case_id` → 写槽 → 覆盖);`JudgmentRevised.judgment` 存新值
-- [ ] **AC-51-B4**(BLOCKING):分母 0 —— `|Scorable| = 0` 或 `Opportunity = 0` ⇒ 输出 `(0,0)` + 显式「分母 0/未定义」标记;不抛除零、不报 `0/1`、不报标量 0、不报 NaN
+- [x] **AC-51-B1**(BLOCKING):F1a 四例夹具 —— ① `D=X ∧ J=X` ② `D=∅ ∧ J=∅` ③ `D=X ∧ J=∅` ④ `D=X ∧ J=Y`;分母 = 4、分子 = 2(①②);`==` 为集合相等,`∅ == ∅` 判对
+- [x] **AC-51-B2**(BLOCKING):F1a ⊥ F1b —— ① 判对且有改写 ② 判对且无改写 ③ 判错且有改写;`F1a = 2/3` 与 `F1b = 2/3` 正交;移除全部 `JudgmentRevised` 后 `F1a` 不变
+- [x] **AC-51-B3**(BLOCKING):F1 取法 —— `J(c)` 取全序最后一条判断事件(逐条推进选 `case_id` → 写槽 → 覆盖);`JudgmentRevised.judgment` 存新值
+- [x] **AC-51-B4**(BLOCKING):分母 0 —— `|Scorable| = 0` 或 `Opportunity = 0` ⇒ 输出 `(0,0)` + 显式「分母 0/未定义」标记;不抛除零、不报 `0/1`、不报标量 0、不报 NaN
 
 ---
 

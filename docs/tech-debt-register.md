@@ -382,7 +382,7 @@
 | `TD-epic-01-b` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | ~~**Y**~~ | R1 |
-| `TD-epic-01-e` | `telemetry-analytics` | partial | **Y** | R1 |
+| `TD-epic-01-e` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
@@ -850,10 +850,9 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 109, 'open': 25, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
-未闭 P0 面 = 1 （已闭但曾标 P0 面的 99 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 1 条,分布在 1/31 个 epic
-    telemetry-analytics: 1
+条目 139 | 状态 {'closed': 110, 'open': 25, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
 <!-- TD-COUNT:END -->
 
@@ -7699,4 +7698,179 @@ commit `a71b5d9d`+工作树 ⇒ `6173 / 6136 / 0 / 37`。
 ```bash
 grep -c "\[Test\]" unity/Assets/Tests/EditMode/PatientVisual/patient_visual_seams_test.cs   # ⇒ 7
 # 等式:6173 − 6166 = 7
+```
+
+---
+
+## 2026-10-30 · `TD-epic-01-e` 结案 —— 三条 NOT-RUN 逐条结清 + 34 条 AC 全部回填
+
+> 用户指令:「只剩 TD-epic-01-e…… 继续修复」。
+> 本条在复核轮(同日)已把 18 条 AC 逐条对到载体,残留 = **3 条 NOT-RUN**
+> (`AC-19-05` / `AC-51-A3` / `AC-51-A6`)。本轮**逐条把它们变成有载体的判据**,
+> 然后把 001–007 的 **34 条 AC** 全部勾选。
+
+### 一、三条 NOT-RUN 的结清(逐条)
+
+#### ① `AC-19-05` —— 发布清单 Privacy/Analytics 项
+
+**原 NOT-RUN 理由**:「纯文档项,全仓无发布清单文件」。
+
+**本轮做法**:建**载体** `production/privacy-analytics-declaration.md`(常驻承诺件,
+不是每次发版的 checklist)+ 夹具 `Telemetry/privacy_declaration_test.cs`(3 测)。
+
+⚠️ **为什么建「常驻声明」而不是「发版 checklist」**:ADR-019 §四 的隐私答案
+**因「无出厂」而结构性成立**,它是**承诺**,不是**流程**。checklist 每版重写,
+承诺不该重写。发版 checklist 只需**逐字照抄**声明里的「固定文本」段。
+
+⚠️ **判据形状**:验的是**文档的存在与措辞**(三项固定承诺逐字 + ADR-019 §四 硬边界),
+**不是**「运行时真的没有网络上报」(那由 `AC-19-02` / `AC-51-A4` 的反射夹具验)。
+两者互补,缺一不可 —— 声明只承诺,夹具才证明。
+
+🔴 **本轮抓到自己一处假绿**:首版判据用**全文** `Does.Contain`,
+M22b(删掉固定文本段的承诺词)后**判据照绿** —— 因为 §三 的**依据表格**里同串还在。
+⇒ 改为 `Section(text, "## 二、固定文本", "## 三、")` **锚定小节**,M22c 才转红。
+**这是本项目抓过的「借绿」形态在文档判据上的复现**。
+
+#### ② `AC-51-A3` —— 移除 51 后三流字节逐位不变
+
+**原 NOT-RUN 理由**:「需构建期变体(去掉一个程序集再跑同一回放)」。
+
+**本轮做法**:那个理由**成立,但结论错了** —— A3 的**真意**是「51 不参与三流写入」,
+而那件事**不需要构建变体就能测**:`EventStream.Events` 返回的是**同一个 `List` 引用**
+(`EventStream.cs:80` `=> _events`)⇒ 「跑完 51 整条报告链后,该 List 的长度与元素指纹逐位不变」
+**直接等价于**「移除 51 后三流字节不变」。
+
+夹具 `Telemetry/telemetry_no_writeback_test.cs`(2 测):
+- `test_ac51a3_reportChain_doesNotMutateEventStream` —— 跑 F1/F2/F3/F4/F5/F6-F7 全部报告面,
+  前后比对 `Count` + 逐元素 `(Kind, Tick, Patient, Seq, PayloadRef)` 指纹。
+- `test_ac51a3_noAppendCallSiteOnAnyEventSink` —— 51 的两个生产装配里零 `IEventSink` 形参。
+
+⚠️ **如实登记两者的差别**:
+- 构建变体测「**产物**里没有 51 也能跑」(更强,覆盖静态构造副作用),但**今天不可执行**(需三格矩阵);
+- 本判据测「**51 跑了也不改流**」= 前者的**必要条件**,**今天就能执行**。
+⇒ 本判据**不冒充** A3 的完整判据,只把 NOT-RUN 降级为「半边已验 + 另半如实登记」。
+
+🔴 **本轮抓到自己两处变异错误**:
+- **M20** 把探针方法写成**死代码**(从未被调用)⇒ 判据照绿。**变异没打到靶**;
+- **M20b** 改为在 `JudgmentReport` 方法体里**真的写一次流** ⇒ 转红 1/2。**这才证明判据有效**。
+⚠️ 两轮都留档 —— 「变异没打到靶」是证伪轮最常见的假存活形态之一。
+
+#### ③ `AC-51-A6` —— 51 侧零 `IAudioCueSink` / `AudioCueDto` / `AudioMixer`
+
+**原 NOT-RUN 理由**:「今日实测零命中(事实),但**无夹具** ⇒ 明日有人加一个就无声失效」。
+
+**本轮做法**:把那个「事实」升成「判据」。夹具 `Telemetry/telemetry_no_audio_refs_test.cs`(2 测):
+- `test_ac51a6_noAudioTypeReferences_inTelemetryTree` —— 扫 `unity/Assets/Telemetry/` 全部 `.cs`;
+- `test_ac51a6_noAudioTypeReferences_inTelemetryOwnerTypes` —— 扫 `Gameplay.Boot` 的两个 51 实装
+  (`TelemetryReporter` / `TelemetryDeveloperView`)。
+
+⚠️ **第二测是必须的**:那两个实装**不在** `Telemetry/` 目录下 —— 缺了它判据只扫纯函数层,
+而那正是复核轮在 `AC-51-B7` 抓到的「扫描面漏了主实装」同款缺口。
+
+⚠️ **判据形状**:扫**去注释后的源码文本**,不是反射 —— 要抓的是「有没有人**引用**这些类型」;
+且**必须去注释**(本测试自己的 doc 就写着这三个名字,不去会自指打红,承 `TD-itemdb-02` 教训)。
+
+🔴 **M21 第一轮变异写错命名空间**(`DaYiJingCheng.Telemetry.DaYiJingCheng.Sim...`)⇒ **编译失败**,
+不是「判据没反应」;M21c 改为文件末尾追加顶层命名空间 ⇒ 转红 1/2。两轮都留档。
+
+### 二、34 条 AC 全部回填
+
+`story-001…007` 的 **34 条 AC** 由 `[ ]` 改 `[x]`:
+
+| story | AC 数 |
+|---|---:|
+| 001 | 16 |
+| 002 | 4 |
+| 003 | 3 |
+| 004 | 2 |
+| 005 | 2 |
+| 006 | 3 |
+| 007 | 4 |
+| **合计** | **34** |
+
+**勾选依据**:复核轮(同日)已逐条把 AC 对到载体(有效 16 / 半边 1 / NOT-RUN 3),
+本轮把 3 条 NOT-RUN 补齐 ⇒ **34/34 全部有载体**。
+
+⚠️ **勾选 ≠ 全部判据已跑** —— 逐条的 NOT-RUN 残留如实登记在各自 story:
+`AC-51-B9`(F3 真实会话,`BLOCKED-BY-OQ-10-8`,以 `Assert.Ignore` 显式登记)、
+`AC-19-05` 的「运行时零上报」半边(由 A2/A4 覆盖)、`AC-51-A3` 的「构建变体」半边(需三格矩阵)。
+
+### 三、story-001 的两处过期文本已订正
+
+| 位置 | 原写 | 现 |
+|---|---|---|
+| `:134` | 「AC-19-03/05/08, AC-51-A3/A6 等 ADVISORY AC **未单独覆盖**」 | ~~原文留档~~ + 逐条列出新载体 |
+| Test Evidence 段 | 「`readonly_boundary_test.cs`(11 测)」 | 仍准确(该文件未变);但**新夹具在另两个文件**,已补 |
+
+### 四、证伪(四轮,还原逐字节一致)
+
+| 变异 | 打什么 | 结果 |
+|---|---|---|
+| **M20** 探针写成死代码(从未调用) | AC-51-A3 的「不改流」 | ❌ **没打到靶**(判据照绿)—— 变异本身错 |
+| **M20b** 在 `JudgmentReport` 里真的 Append | 同上 | ✅ **红 1/2** |
+| **M21** 变异写错命名空间 | AC-51-A6 | ❌ **编译失败**(不是判据没反应) |
+| **M21c** 文件末尾追加顶层命名空间引用 `AudioCueDto` | 同上 | ✅ **红 1/2** |
+| **M22b** 删固定文本段的承诺词 | AC-19-05 | ❌ **没打到靶**(§三 表格里同串借绿) |
+| **M22c** 同上(判据改为锚定小节后) | 同上 | ✅ **红 1/3** |
+
+⚠️ **四轮「没打到靶」全部留档,不删** —— 它们是证伪轮最常见的假存活形态:
+**变异改了但判据没反应,不等于判据无效**(M20/M21/M22b 三轮都是变异本身的问题)。
+**只有修好变异后仍不红,才是判据的缺陷。**
+
+### 五、Landed / Proven
+
+| 项 | Landed | Proven | Proven-by |
+|---|---|---|---|
+| AC-19-05 载体存在 | ✅ | ✅ | `test_ac1905_declarationExists_withThreeFixedPromises` + **M22c 转红** |
+| AC-19-05 硬边界声明 | ✅ | ✅ | `test_adr019s4_hardBoundary_isDeclared`(锚定 §四) |
+| AC-19-05 引据不悬空 | ✅ | ✅ | `test_declarationCitesOnlyExistingAcs` |
+| AC-51-A3 报告链不改流 | ✅ | ✅ | `test_ac51a3_reportChain_doesNotMutateEventStream` + **M20b 转红** |
+| AC-51-A3 无 `IEventSink` 形参 | ✅ | ✅ | `test_ac51a3_noAppendCallSiteOnAnyEventSink` |
+| AC-51-A6 51 树零音频引用 | ✅ | ✅ | `test_ac51a6_noAudioTypeReferences_inTelemetryTree` + **M21c 转红** |
+| AC-51-A6 主实装零音频引用 | ✅ | ✅ | `test_ac51a6_noAudioTypeReferences_inTelemetryOwnerTypes` |
+| **AC-51-A3 的「构建变体」半边** | — | ❌ **NOT-RUN** | 需 ADR-012 三格矩阵(凭据未配 + ARM64 目标不存在)⇒ 归 P2 |
+| **AC-19-05 的「运行时零上报」半边** | — | ✅ 间接 | 由 `AC-19-02` / `AC-51-A4` 三件反射夹具覆盖(非本文件) |
+
+### 六、状态变更
+
+`partial → closed`。`未闭 P0 面 1 → 0` ⇒ **M3 Exit 第二条合取成立**(31 个 epic 名下未闭 P0 面全 0)。
+
+⚠️ **但这个「0」须带三条限定,不得裸读**:
+1. 4 条债已按用户裁定**转 P2**(`~~Y~~` 删除线态,**不计入未闭面**)——
+   它们是 `TD-processing-07` / `TD-epic-01-d` / `TD-prescription-06`(已 closed)/ `TD-epic-01-a`(已 closed);
+2. **`partial` 仍计入未闭面** —— 本次 `TD-epic-01-e` 是 `partial → closed`,不是被排除;
+3. 未闭 **非** P0 面债仍有 25 条(`open 25` / `partial 3`)—— 它们不在 M3 Exit 判据面内。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|状态|epic"
+# ⇒ 未闭 P0 面 = 0
+grep -cE "^\s*-\s*\[ \]" production/epics/telemetry-analytics/story-00[1-7]*.md
+# ⇒ 0(全部已勾)
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Telemetry/telemetry_no_writeback_test.cs   # ⇒ 2
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Telemetry/telemetry_no_audio_refs_test.cs  # ⇒ 2
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Telemetry/privacy_declaration_test.cs     # ⇒ 3
+```
+
+### 七、回归三元组(全量)
+
+**EditMode**:截至 `2026-10-30 22:54:24 CST` · 批次 **`TD-epic-01-e` 三条 NOT-RUN 结清批** ·
+commit `3076c357`+工作树 ⇒ `6180 / 6143 / 0 / 37`。
+基线 = `TD-prescription-06` 兑换轮 `6173 / 6136 / 0 / 37`(@ `2026-10-30 22:14:40`)
+⇒ **+7 / +7**,等式 `6180 − 6173 = 7` = 三件新夹具的 `[Test]` 之和
+(`telemetry_no_writeback` 2 + `telemetry_no_audio_refs` 2 + `privacy_declaration` 3)。
+**零回归**。
+
+**PlayMode**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 22:55:53 CST` · commit `3076c357`+工作树
+⇒ 与基线**逐位相同**(零回归)。
+
+复算:
+```bash
+for f in telemetry_no_writeback_test telemetry_no_audio_refs_test privacy_declaration_test; do
+  printf "%-40s %s\n" "$f" "$(grep -c '\[Test\]' unity/Assets/Tests/EditMode/Telemetry/$f.cs)"
+done
+# ⇒ telemetry_no_writeback_test.cs          2
+# ⇒ telemetry_no_audio_refs_test.cs         2
+# ⇒ privacy_declaration_test.cs             3
+#   合计 7 = 6180 − 6173
 ```

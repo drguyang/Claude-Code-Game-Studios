@@ -13627,3 +13627,21 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **两条残留不随结案消失**:①实机品红验收 NOT-RUN(无修复后截图,`ScreenshotTool` 只能手动按)
   ②EditMode 无法验 shader null(须 URP player 构建)。归 P2 视觉验收批,不新立债。
 - `closed 108 → 109`;未闭 P0 面仍 **1**(`TD-epic-01-e`)。
+
+### TD-epic-01-e 结案(2026-10-30,用户指令「继续修复」)
+- **三条 NOT-RUN 逐条结清**:
+  - **AC-19-05** → 新建载体 `production/privacy-analytics-declaration.md`(常驻承诺件,
+    非发版 checklist)+ `Telemetry/privacy_declaration_test.cs`(3 测)。
+    🔴 首版判据用**全文** `Does.Contain` ⇒ M22b 后照绿(§三 依据表格同串借绿)⇒
+    改为 `Section()` **锚定小节**,M22c 才转红。
+  - **AC-51-A3** → `EventStream.Events` 返回**同一个 List 引用**(`:80`)⇒
+    「跑完报告链后 Count+指纹不变」**等价于**「移除 51 后字节不变」,不需构建变体。
+    `Telemetry/telemetry_no_writeback_test.cs`(2 测)。M20 变异写成死代码没打到靶,
+    **M20b(真的 Append)转红**。
+  - **AC-51-A6** → `Telemetry/telemetry_no_audio_refs_test.cs`(2 测,含 Boot 里的两个主实装)。
+    M21 命名空间写错致编译失败,**M21c 转红**。
+- **34 条 AC 全部勾选**(001–007),story-001 的 `:134` 过期残留与 Test Evidence 段已订正。
+- 计数:**`未闭 P0 面 1 → 0`** ⇒ **M3 Exit 第二条合取 ⇒ 真**。
+  ⚠️ 带三条限定:4 条已按用户裁定转 P2(删除线态不计入)· `partial` 仍计未闭面 ·
+  未闭非 P0 面债仍有 25 条。
+- 四轮「变异没打到靶」全部留档(M20 / M21 / M22b)—— 变异改了但判据没反应 ≠ 判据无效。
