@@ -18,6 +18,7 @@
 //    与 HostEmergencyProcessor 消费 IEventSink / IIdAuthority 同型。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.Contracts.SkillSystem;
 
@@ -48,9 +49,20 @@ namespace DaYiJingCheng.Sim.Prescription
         /// 具体门槛值 = 11 作者态数据(值归数值轮)。</para></summary>
         public readonly int UnlockLevel;
 
+        /// <summary>禁忌规则集(2026-10-30 · ADR-035 §①B;`null` / 空 = 本药无禁忌记载)。</summary>
+        /// <remarks>求值 = <see cref="ContraindicationEvaluator.Evaluate"/>(只读体征通道位,整数域)。</remarks>
+        public readonly IReadOnlyList<ContraindicationRule> ContraindicationRules;
+
         public PrescriptionEntry(int actionId, PrescriptionPolarity polarity, int unlockLevel)
+            : this(actionId, polarity, unlockLevel, null)
+        {
+        }
+
+        public PrescriptionEntry(int actionId, PrescriptionPolarity polarity, int unlockLevel,
+                                 IReadOnlyList<ContraindicationRule> contraindicationRules)
         {
             ActionId = actionId; Polarity = polarity; UnlockLevel = unlockLevel;
+            ContraindicationRules = contraindicationRules;
         }
     }
 
@@ -339,11 +351,11 @@ namespace DaYiJingCheng.Sim.Prescription
                 drugPotency: doseResult.DosePotency,
                 halfLife:    halfLifeResult.AxisEffective.Raw,
                 seq:         0,           // 载荷 Seq = 占位;header Seq 由主机 Append 时发号(承 10 的同一现状)
-                // ⚠️ 2026-10-30(`TD-prescription-09` 的载体半边):字段有了,**判定还没有**。
-                //    11 的禁忌触发条件面(ADR-035 §①B)今日无实现 —— `contraindications[]` 在 21a 的
-                //    真实数据里 0 条,且规则八只禁「拦截 / 减效 / 弹警告」,未禁「记账」。
-                //    ⇒ **显式**传哨兵(不走七参重载):「没命中」是一个判定结论,不是漏填。
-                contraindicationBand: DrugTreatmentAppliedPayload.NoContraindication);
+                // 2026-10-30(ADR-035 §①B):禁忌档由 11 **当场判定**并进载荷。
+                // ⚠️ 判据只读体征通道位,不读病种 —— `AC-11-01` ② 要求「体征逐位相同、病种不同
+                //    ⇒ 载荷逐字段相等」,读病种会直接撞它。
+                // ⚠️ 规则八:本判据**只记账**,不拦截处方 / 不减药效 / 不弹警告(后果由 53 结算)。
+                contraindicationBand: ResolveContraindicationBand(req, ports));
 
             SimEvent? treatmentEvent = null;
             if (req.IsHost)
@@ -375,6 +387,28 @@ namespace DaYiJingCheng.Sim.Prescription
         }
 
         private static PrescribeOutcome NotApplied() => new PrescribeOutcome(false, null, false, 0);
+
+        /// <summary>
+        /// 求本剂的**禁忌档**(ADR-035 §①B;2026-10-30)。
+        /// </summary>
+        /// <remarks>
+        /// <para>输入 = 本药的规则集(11 的作者态)+ 病人 `VitalsDto.SignChannelMask`(整数位域)。
+        /// **不读** `Position` / `Trend` 两个 float 字段(`disease-simulation.md:772` 禁 sim 读回),
+        /// **不读**病种(`AC-11-01` ②)。</para>
+        /// <para>无规则 / 无体征端口 ⇒ 未命中哨兵 —— 语义是「没有可判的事实」,不是「判了没命中」。
+        /// 两者在**流上不可区分**(都是 -1),这是刻意的:`AC-11-03` 的载荷不承载「为什么没命中」。</para>
+        /// <para>⚠️ 今天 `SignChannelMask` 恒为 0(9 的 F2 投影未接线)⇒ 生产上恒为未命中。
+        /// 该缺口归 9,不在此处兜底。</para>
+        /// </remarks>
+        private static int ResolveContraindicationBand(in PrescribeRequest req, PrescribePorts ports)
+        {
+            IReadOnlyList<ContraindicationRule> rules = req.Entry.ContraindicationRules;
+            if (rules == null || rules.Count == 0) return ContraindicationEvaluator.NoContraindication;
+            if (ports.Vitals == null) return ContraindicationEvaluator.NoContraindication;
+
+            VitalsDto vitals = ports.Vitals.GetVitals(req.PatientId);
+            return ContraindicationEvaluator.Evaluate(rules, vitals.SignChannelMask);
+        }
     }
 
     /// <summary>Prescribe 的兄弟 epic 接缝集合(一次性注入,避免五参构造)。</summary>
@@ -395,13 +429,21 @@ namespace DaYiJingCheng.Sim.Prescription
         /// <summary>剂量基准(11 的作者态常量,承 Story 001 的 <c>dose_const.DOSE_BASE</c>)。</summary>
         public int DoseBase { get; }
 
+        /// <summary>体征查询(2026-10-30 · ADR-035 §①B:禁忌判据只读 `SignChannelMask`)。
+        /// <para>⚠️ <b>`null` 合法且语义明确</b> = 「本上下文没有可判的体征」⇒ 判据恒返回未命中。
+        /// 这不是静默降级:没有体征就没有「病人出现了哪些证候」这个事实,
+        /// 判「命中」才是撒谎。承 `AC-11-01` ②(判据只依赖体征,不依赖病种)。</para></summary>
+        public IVitalsQuery Vitals { get; }
+
         public PrescribePorts(IPortionsConversion conversion, IPortionsStore store,
-                              IPresenceQuery presence, ISkillGrowthPort skills, int doseBase)
+                              IPresenceQuery presence, ISkillGrowthPort skills, int doseBase,
+                              IVitalsQuery vitals = null)
         {
             Conversion = conversion ?? throw new ArgumentNullException(nameof(conversion));
             Store = store ?? throw new ArgumentNullException(nameof(store));
             Presence = presence ?? throw new ArgumentNullException(nameof(presence));
             Skills = skills ?? throw new ArgumentNullException(nameof(skills));
+            Vitals = vitals;
             // ⚠️ 装配期 fail-fast(结构评审 m4)—— 否则误配 doseBase = 0 会被推迟到**步骤⑤**
             //    (`DeriveKDifficulty` 抛),而此时事件**已进流**,一个装配错误伪装成「缺参不回滚」。
             if (doseBase <= 0)

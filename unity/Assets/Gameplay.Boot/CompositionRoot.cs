@@ -28,6 +28,7 @@ using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.Contracts.SkillSystem;
+using DaYiJingCheng.Sim.Consequences;       // CostTable53 / ContraindicationSettler(2026-10-30 ADR-035)
 using DaYiJingCheng.Sim.Foraging;              // HarvestOrchestrator / DropEventWriterAdapter(S20-15)
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
@@ -1094,9 +1095,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             var drugCatalog = new MinimalDrugCatalog();                 // 21a 最小换算表
             var portionsStore = new MinimalPortionsStore();            // 20 最小库存面
             var skillGrowthPort = new AssemblySkillGrowthPort(stream, encoder, prescriptionLevel: 0);
+            // 2026-10-30(ADR-035 §①B):把体征查询接给 11 的禁忌判据。
+            // ⚠️ 必须经 `VitalsQueryOrNone` 包装 —— `DiseaseVitalsService.GetVitals` 对**无病程**的病人
+            //    抛 `PatientCourseNotFoundException`,而「在场」不等于「有病程」;
+            //    直接传原对象会让「给一个没病的在场者开药」变成异常。
             var prescribePorts = new PrescribePorts(drugCatalog, portionsStore,
                 presence, skillGrowthPort,
-                doseBase: prescriptionActions?.DoseBase ?? 65536);      // 产物优先;回退字面量(数值轮注记)
+                doseBase: prescriptionActions?.DoseBase ?? 65536,       // 产物优先;回退字面量(数值轮注记)
+                vitals: new VitalsQueryOrNone(vitals));
             var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
                 prescribePorts, isHost: true,
                 prescriptionRows: prescriptionActions?.Rows,            // null ⇒ 回退硬编码单条
@@ -1396,7 +1402,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (harvest == null)
                 throw new InvalidOperationException("Assemble: HarvestOrchestrator 装配产出 null");
 
-            return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
+            var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
@@ -1456,6 +1462,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 与 `world` **同 null 性**(无世界即无槽位/占用/写者),
                                                // 且只在 `world != null` 的支路里构造 —— 见上方。
                                                buildController);
+
+            // 🔁 2026-10-30(ADR-035 §⑤):53 的禁忌结算器 —— `TreatmentHarmOnset` 的唯一生产写者。
+            //    表源 = data-core 产物(`CostTable53DataSet`);无 provider ⇒ 空表 ⇒ 任何档都 miss
+            //    (与「机制未启用」逐位一致,不静默造代价)。
+            CostTable53.Table costTable = CostTable53.CreateTable(
+                null, Array.Empty<CostTable53.Row>(), maxSeverityBand: null);
+            if (dataProvider != null)
+                costTable = dataProvider.Load<CostTable53DataSet>().Table;
+
+            services.ContraindicationSettler = new ContraindicationSettler(
+                stream.Events, decoder, costTable, encoder, services.EventSink);
+            return services;
         }
 
         /// <summary>

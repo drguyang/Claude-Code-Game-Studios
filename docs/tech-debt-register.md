@@ -330,7 +330,7 @@
 | `TD-prescription-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-prescription-08` | `skeuomorphic-ui` | open | **Y** | R1 |
-| `TD-prescription-09` | `prescription-medication` | partial | **Y** | R1 |
+| `TD-prescription-09` | `prescription-medication` | closed | **Y** | R1 |
 | `TD-processing-01` | `processing` | open | **N** | R4 |
 | `TD-processing-02` | `processing` | open | **N** | R4 |
 | `TD-processing-03` | `processing` | open | **N** | R4 |
@@ -374,6 +374,7 @@
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
 | `TD-sim-02` | `disease-simulation` | open | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
+| `TD-sim-04` | `disease-simulation` | open | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
@@ -849,13 +850,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 138 | 状态 {'open': 56, 'closed': 78, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 102, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 33 （已闭但曾标 P0 面的 69 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 33 条,分布在 10/31 个 epic
+条目 139 | 状态 {'open': 57, 'closed': 79, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 33 （已闭但曾标 P0 面的 70 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 33 条,分布在 9/31 个 epic
     medical-consequences: 16  telemetry-analytics: 5    clinic-machine: 4
-    disease-simulation: 2     enemy-ai: 1               item-database: 1
-    patient-ai: 1             prescription-medication: 1processing: 1
-    skeuomorphic-ui: 1
+    disease-simulation: 3     enemy-ai: 1               item-database: 1
+    patient-ai: 1             processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -5375,6 +5375,7 @@ Accepted,**只钉形状、不实现**)。该件四项用户裁定中的**裁定 
 | **⚠️ 口径订正(本轮起草自查,ADR-035 已同批改)** | `ADR-035` C-5 原写「**载荷不带剂量**」并沿用至 `R1`。**这句说过头了**:11 的规则三表(`prescription-and-medication.md:197`)明写 `drug_potency` = `dose_potency`(「**剂量修正后的值**」)⇒ 剂量的**效应**已在载荷里,**缺的是原始档位**。ADR-035 §Context C-5 / §Risks R1 已就地改为精确口径。 |
 | **为什么「缺原始剂量」今天还不构成阻塞** | 11 的 P0 形态**不允许超量**:`dose_range.hi` = 戥子的**物理限位**(`:318-323` 的 2026-09-18 R-4 改判「**不得静默 clamp**」)。⇒ 11 的 P0 面**本身不产生「超了多少」这个值**。若将来要算超量比值,材料应在 **9 侧**(累积剂量 / 毒性状态),**不在本载荷** —— 与 `TD-sim-02` 同源,不是两条独立欠账。 |
 | **何时消解(两半分开判)** | ① **禁忌(P0 需)**:11 增「命中禁忌」的判定与承载(字段或独立事件),且**同批**给 53 一个「不可自建第二真源」的读法;② **剂量原值(仅当裁「超量 = 剂量比值」才需)**:先裁超量的**量纲**(累积 vs 单剂)再定载体。⚠️ **不建议按「顺手补一个 `dose` 字段」开做** —— 那会把 11 的 P0 形态改成允许超量,推翻 `:318-323` 的既定裁定。 |
+| **✅ 2026-10-30 结案(`partial` → `closed`)** | **两半均已落**:① **承载** —— `DrugTreatmentAppliedPayload` 第八项 `ContraindicationBand`(见下一行);② **判定** —— `Sim.Contracts/ContraindicationRule.cs` 的 `ContraindicationEvaluator`(纯函数,只读 `VitalsDto.SignChannelMask` 整数位域)+ `PrescribeFlow.ResolveContraindicationBand`(判据的唯一求值点)+ 数据源 `prescription_actions.json` 的 `contraindication.rules[]`(经 ADR-014 两阶段烘焙,产物 127 B / ConfigVersion `0x83059D54`)。**「53 不可自建第二真源」的读法**同批定死:53 只按 `(harm_kind, band)` 查自己的表,不持有任何「哪味药禁忌什么」的知识。夹具:`prescribe_flow_test` 六条(含「合取不得退化为任一」「取最高档」「规则八:命中不拦截不减效」)。<br>⚠️ **本条结案 ≠ 机制在生产可触发**:`SignChannelMask` 在生产恒为 0(9 的 F2 投影未接线)⇒ 判据恒不命中。该缺口**另立 `TD-sim-04`**,不挂在本条名下。 |
 | **🔁 2026-10-30 进展 —— `open` → `partial`(只结「承载」半边)** | **已落**:`DrugTreatmentAppliedPayload` 追加第八项 `ContraindicationBand`(`i32`,`-1` = 未命中,`NoContraindication` 常量)—— codec tag 8(`PayloadCodec.History.cs`)、`entities.yaml` `payload_schema`、11 的 GDD `:183` 载荷表 + `AC-11-03` 注、`PrescribeFlow` 显式写哨兵,全部同批。**给 53 的读法**同批定死:传的是**档序数**(53 代价表键 `(harm_kind, band)`),不传「哪条禁忌」—— 后者会逼 53 自持「条目 → 档」映射 = 复制 11 的数据(违 `AC-11-02` 反推)。<br>⚠️ **仍未落 = 「判定」半边**:11 侧**没有任何代码**算「这剂命中了哪档禁忌」,故今日该字段**恒为 `-1`**。缺材料而非缺结构:`contraindications[]` 在 21a 的真实数据里 **0 条**(`python3 -c "import json;d=json.load(open('assets/data/item_database_items.json'));print(sum(1 for it in (d['items'] if isinstance(d,dict) else d) if it.get('contraindications')))"` ⇒ 0),且规则八只禁「拦截 / 减效 / 弹警告」,**未禁「记账」**。<br>⚠️ **一处须用户裁的边界**:`AC-11-01` ② 要求「体征逐位相同、病种不同 ⇒ 载荷逐字段相等」。今日取值恒哨兵 ⇒ 成立;将来若由**病种**派生则与之相抵,须先改 `AC-11-01`(11 的 GDD 修订轮);若由**体征**派生则自然兼容。<br>⚠️ **实现期就地裁定(未经用户逐条确认)**:字段取「档序数」而非「禁忌条目下标」,理由见上;若用户要求改传条目身份,只需改字段语义 + 53 侧映射,**不动 codec tag 结构**。 |
 | **归属** | **11 处方用药(`prescription-medication`)**。⚠️ **不挂 `skeuomorphic-ui`** —— 既有 `TD-prescription-01…08` 是 **42 侧元件 / 阅读通道**族,本条是**载荷材料**族,不同族不并账。 |
 | **`P0 面 = Y` 的理由** | 归属 epic ∈ 31 个 P0 epic 且不自陈不阻塞:`ADR-035 §⑥` 把「过量支挂起」的解除条件定死为**本条 + `TD-sim-02` 均结案** ⇒ 它是 P0 已裁支路的**直接前置**。 |
@@ -5499,3 +5500,21 @@ $ python3 -I -c "import json;d=json.load(open('assets/data/disease_registry.json
 **⚠️ 本条关闭 ≠ 药害机制可用** —— 剩下的是**另一件事**:代价表 `rows` 仍是空数组(T2 内容面),
 以及 11 的禁忌判定仍未实现(`TD-prescription-09` 只到 `partial`)。本条只主张
 「注册表不再零非致死伤情」这一件事。
+
+---
+
+## 2026-10-30 · ADR-035 T2 收口的**新缺口**:体征通道位在生产恒为 0 ⇒ 禁忌判据恒不命中(1 条 · `TD-sim-04`)
+
+**出处**:本轮实现轮(`production/qa/evidence/t2-b-full-chain-2026-10-30.md`)。
+`TD-prescription-09` 结案时发现:判据的**输入端**在生产环境永远喂 0。
+
+### TD-sim-04 — 9 的 F2 体征投影未接线 ⇒ `VitalsDto.SignChannelMask` 恒 0 ⇒ 11 的禁忌判据恒不命中
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 11 的禁忌判据(ADR-035 §①B)读 `VitalsDto.SignChannelMask`,这是唯一合法的整数判据输入(读病种会撞 `AC-11-01` ②;读 `Position`/`Trend` 撞「sim 禁读回 float」)。但 9 的 `DiseaseVitalsService.ComputeVitals` 目前**恒返回 `signChannelMask: 0`**,其注释自陈「F2 的 `Project(Progress, 病种)ⱼ` 需要**阈值**,而词表内容与阈值归 8 ⇒ 9 侧当前不可能产出 signs」。⇒ 判据结构完整、数据完整、夹具全绿,但**生产上恒为「未命中」**。 |
+| **实测(逐条可跑)** | ① `grep -n "signChannelMask: 0" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ 命中,其上下文即「F2 投影未接线」注释。<br>② 同一处以 `throw new NotSupportedException(...)` 兜住「万一求值器产出了 signs」—— 即**连线都没接**。<br>③ 夹具 `prescribe_flow_test` 的六条禁忌用例全部靠 `StubVitals` 注入掩码 ⇒ 走的是**注入**路径,不是生产路径。 |
+| **失效形态(为什么是债而不是小事)** | 与 `ADR-035 §Risks R4`(「行装了但永不生效」)同型,但更隐蔽:表能查、判据能算、夹具全绿,**只有真机跑起来才发现从来没命中过**。任何下游引用「药害机制已可用」时须带上这句。 |
+| **何时消解** | 8 的体征词表 + 阈值落地 ⇒ 9 的 `ComputeVitals` 产出非零 `signChannelMask`,**且**有一条端到端夹具用**真实** `DiseaseVitalsService`(非 `StubVitals`)跑出非零档。**仅「接线改了」不算消解。** |
+| **归属** | **9(接线枢轴)**,真源在 **8**(词表 + 阈值)。11 / 53 两侧均不兜底 —— 自造体征 = 第二真源。 |
+| **`P0 面 = Y` 的理由** | `OQ-53-8` 已裁 P0 开药害代价侧 ⇒ 它是 P0 已裁支路**能否被玩家感知**的直接前置。 |

@@ -1,7 +1,7 @@
 {
-  "_note": "系统 9 的病种注册表**作者态**。走 ADR-014 两阶段烘焙 → disease_registry.cooked.bytes。⚠️ 本文件当前**只含 R2 战伤白名单五项**(kind: injury)—— 病种(DIS_*)一行未建,因为它们的曲线/严重度数值未经用户数值轮裁定,建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据(GDD 点名的「判据对合法输入类误判」)。这是 PRE-S18-A 的**部分**兑现,不是全部。 ⚠️ 2026-10-22 增补:八病种 DIS_* 已建(id 7–14)。八行的曲线数值由用户 2026-10-22 四项裁定生成(四阈值档 C / 时间阈 3min-30s / 病程十分钟级 / A_peak 按尾部形态分档),**不是占位值**。 🔁 **2026-10-30(TD-sim-03 兑现)**:增 **`INJ_BLUNT`**(id 15,自限型 / 非致死)—— 白名单五项之外的第一件伤情。它是 `ADR-035` T2「禁忌代价表须有 ≥1 件 `lethal=false` 伤情」的落点;因 #R1-22 禁急性保持型非致死,形态只能取自限型",
+  "_note": "系统 9 的病种注册表**作者态**。走 ADR-014 两阶段烘焙 → disease_registry.cooked.bytes。⚠️ 本文件当前**只含 R2 战伤白名单五项**(kind: injury)—— 病种(DIS_*)一行未建,因为它们的曲线/严重度数值未经用户数值轮裁定,建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据(GDD 点名的「判据对合法输入类误判」)。这是 PRE-S18-A 的**部分**兑现,不是全部。 ⚠️ 2026-10-22 增补:八病种 DIS_* 已建(id 7–14)。八行的曲线数值由用户 2026-10-22 四项裁定生成(四阈值档 C / 时间阈 3min-30s / 病程十分钟级 / A_peak 按尾部形态分档),**不是占位值**。 🔁 **2026-10-30(TD-sim-03 兑现)**:增 **`INJ_BLUNT`**(id 15,自限型 / 非致死)—— 白名单五项之外的第一件伤情。它是 `ADR-035` T2「禁忌代价表须有 ≥1 件 `lethal=false` 伤情」的落点;因 #R1-22 禁急性保持型非致死,形态只能取自限型。 🔁 **2026-10-30(同日第二件)**:增 **`INJ_DRUG_HARM`**(id 16,药毒,自限型 / 非致死)—— 53 代价表中/重两档的落点。用户裁定「新增一件药害专用非致死伤情」;⚠️ 它是 **R2 枚举表之外的第十二项**,须并入 `disease-simulation.md` 的 R2 表(11 → 12)才算词表收口,该文档改动归 9 的 GDD 轮",
   "_source": "design/gdd/disease-simulation.md §R2(:362-373 伤情枚举)· §R1.3(:312-330 曲线 schema)· F1(:788 战伤累积项)· :829-831(trauma_half_life)· OQ-25-7(combat-and-weapon-lines.md:1363,2026-10-07 已裁)· death-and-respawn.md:96(白名单闭集双条件) · R3.3(:428 八病种表)· Tuning §五(:1676-1679 四阈值)",
-  "_whitelistSource": "death-and-respawn.md:96 —— 战伤白名单 = lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}。本文件五项 = 该闭集,R2 其余六项(INJ_BLUNT / INJ_FRACTURE / INJ_DISLOCATION / INJ_BURN / INJ_COMA / TOX_ENVENOMATION)刻意不建 —— 它们不在白名单内,且 INJ_COMA 是状态投影、TOX_ 是 poison。 🔁 **2026-10-30**:本文件自此**不再等于**该白名单 —— `INJ_BLUNT` 在库但**不在白名单**(它非致死)。不变式收紧为:`白名单 ⊆ 伤情行`,且 `伤情行 ∖ 白名单` 的行必须 `lethal=false`(由 `disease_registry_data_test` 的两条断言分守)",
+  "_whitelistSource": "death-and-respawn.md:96 —— 战伤白名单 = lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}。本文件五项 = 该闭集,R2 其余六项(INJ_BLUNT / INJ_FRACTURE / INJ_DISLOCATION / INJ_BURN / INJ_COMA / TOX_ENVENOMATION)刻意不建 —— 它们不在白名单内,且 INJ_COMA 是状态投影、TOX_ 是 poison。 🔁 **2026-10-30**:本文件自此**不再等于**该白名单 —— `INJ_BLUNT` 在库但**不在白名单**(它非致死)。不变式收紧为:`白名单 ⊆ 伤情行`,且 `伤情行 ∖ 白名单` 的行必须 `lethal=false`(由 `disease_registry_data_test` 的两条断言分守)。 🔁 **2026-10-30 再记**:`INJ_DRUG_HARM`(id 16)同样在库、同样不在白名单、同样 `lethal=false` ⇒ 上面收紧后的不变式对它自动成立。⚠️ 但它是 **R2 枚举表之外**的新词(见 `_note`),不属于「R2 其余六项刻意不建」那一段所列的范围",
   "_curveShapeNote": "五项全为**急性保持型**(self_limit=false ∧ plateau=false)—— 这是白名单伤情能致死的**结构前提**:GDD :581 的死亡支要求 lethal ∧ self_limit=false。自愈型(self_limit=true)的伤永远不会死人,与「短兵可杀你、野兽可杀你」的设计意图冲突。校验 4 要求该型必须 lethal=true,本文件五项均 Lethality=2。",
   "_apexNote": "A_peak/Scale = 峰值 position(见 F2:position = clamp(Progress/Scale, 0, 1),单病种时 position_agg = 该值)。本文件统一取 Scale=100 让 A_peak 直接等于百分数,便于人读。五个比值由用户 2026-10-22 裁定:STAB/HEMORRHAGE=1.00 · CLAW=0.85 · BITE=0.75 · LACERATION=0.60。全部 >> DEATH_THRESHOLD(现网 9000 raw ≈ 0.1373)⇒ 均可致死。",
   "_thresholdNote": "四阈值 2026-10-22 用户裁定(档 C):RECOVER=7864 · CRITICAL=19661 · COMA=29491 · DEATH=38011 raw(0.12 / 0.30 / 0.45 / 0.58)。⚠️ 本轮裁定 DEATH=0.58 与上一轮五项伤情验算所用的现网 0.1373 不同 ⇒ GDD :1620-1621 要求同批复核,已在 GDD §二之一加注。",
@@ -529,6 +529,34 @@
         { "sign_key": "sign_moan", "channel_mask": 2 }
       ],
       "_rowNote": "⚠️ **草案值,待用户数值轮调**。钝击伤 = 拳 / 摔 / 刃背(combat-and-weapon-lines.md:344-345 的三处映射)。**形态必须是自限型**(self_limit=true ∧ lethal=false):R1-22 禁止急性保持型非致死,而 `INJ_BLUNT` 不在死亡白名单(death-and-respawn.md:96 五项)⇒ 它只能「见好」。⇒ 副作用:钝击从此**永不致死**且**自行消退** —— 这是本条与 R2 其余五项在语义上的分水岭。A_peak/Scale = 0.20(< CRITICAL 0.30),峰值 τ_peak = 120 tick(6 s),回落到 τ_fall = 600(30 s)。体征只给 `sign_moan`(钝击无破口 ⇒ 不见血,复用既有体征键,**不新增 8 的体征行**)。"
+    },
+    {
+      "id": 16,
+      "key": "INJ_DRUG_HARM",
+      "kind": "injury",
+      "zh": "药毒",
+      "severity": 3,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": false,
+      "scale": "100",
+      "trauma_half_life": 60,
+      "natural_progress": {
+        "incubation": 0,
+        "a_peak": "30",
+        "tau_rise": "40",
+        "tau_peak": 180,
+        "tau_fall": "900",
+        "plateau": false,
+        "self_limit": true,
+        "boundary_mode": "monotone"
+      },
+      "signs": [
+        { "sign_key": "sign_pallor", "channel_mask": 1 },
+        { "sign_key": "sign_delirium", "channel_mask": 2 },
+        { "sign_key": "sign_fatigue", "channel_mask": 64 }
+      ],
+      "_rowNote": "⚠️ **草案值,待用户数值轮调**。药毒 = 53 代价表的**中/重两档**落点(用户 2026-10-30 裁定「新增一件药害专用非致死伤情」;R2 闭集 11 → 12)。**为什么需要它**:R2 原 11 项里零「药害」词,而 `TOX_ENVENOMATION` 是 `kind: poison`(disease-simulation.md:374)⇒ 不能被 N-1 当伤情外键指向;只靠 `INJ_BLUNT` 会让「吃错药」与「被打了一棍」在数据层不可分。⚠️ **须并入 `disease-simulation.md` 的 R2 枚举表**(11 → 12)才算词表收口 —— 该文档改动归 9 的 GDD 轮,本轮只落数据行。**形态必须是自限型**(同 `INJ_BLUNT` 的理由:R1-22 禁急性保持型非致死,且它不在死亡白名单)⇒ 药毒**永不致死**且**自行消退**。A_peak/Scale = 0.30(= CRITICAL 档,低于 DEATH 0.58),峰值 τ_peak = 180 tick(9 s)比钝击更慢更久(中毒的起效慢于外伤),τ_fall = 900(45 s)。体征取 面色 / 语声 / 主观 三通道(均为既有体征键,**不新增 8 的体征行**)。"
     }
   ]
 }

@@ -203,8 +203,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ⏳ 2026-10-30 ADR-035 §Decision ④ 新登记 `TreatmentHarmOnset`:写者 = 53(禁忌结算方),
             //   但**写者尚未落地** —— 代价表 / 结算路径归 ADR-035 的 **T2**(前置 = `TD-prescription-09`
             //   结案 + `TD-sim-03`)。写者落地的那一批**必须同批撤本条**(判据① 强制;承既有先例)。
-            ("TreatmentHarmOnset",
-             "2026-10-30 ADR-035 §Decision ④ 新登记;写者 = 53,尚未落地 —— 归 T2(前置 TD-prescription-09 + TD-sim-03)"),
+            // ✅ **2026-10-30 同批撤表** —— 写者已落:`Sim/Consequences/ContraindicationSettler.cs`
+            //   (`_encoder.Encode(EventKind.TreatmentHarmOnset, …)` = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」⇒ 必须同批删,不得分两次提交
+            //   (先删后写 ⇒ 「写者缺失」红;先写后删 ⇒ 判据① 红)。
+            //   正向存在性断言的载体 = `Tests/EditMode/MedConsequences/contraindication_settler_test.cs`。
         };
 
         // ══════════════════════════════════════════════════════════════════

@@ -147,6 +147,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         private StubStore _store;
         private StubPresence _presence;
         private StubSkills _skills;
+        private StubVitals _vitals;
         private PrescribePorts _ports;
 
         [SetUp]
@@ -158,7 +159,20 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             _store = new StubStore();
             _presence = new StubPresence();
             _skills = new StubSkills();
-            _ports = new PrescribePorts(_conversion, _store, _presence, _skills, DoseBase);
+            _vitals = new StubVitals();
+            _ports = new PrescribePorts(_conversion, _store, _presence, _skills, DoseBase, _vitals);
+        }
+
+        /// <summary>体征桩 —— 恒定返回同一个通道位域(2026-10-30 · ADR-035 §①B 的判据输入)。</summary>
+        private sealed class StubVitals : IVitalsQuery
+        {
+            public int Mask;
+            public int Calls;
+            public VitalsDto GetVitals(PatientId p)
+            {
+                Calls++;
+                return new VitalsDto(0f, 0f, Mask, 0);
+            }
         }
 
         private static DrugProfile MakeProfile(DoseRange? range, long potencyRaw = 65536L, long halfLifeRaw = 131072L)
@@ -174,6 +188,19 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
 
         private static PrescriptionEntry Entry(int unlockLevel = 0)
             => new PrescriptionEntry(actionId: 1, polarity: PrescriptionPolarity.Symptomatic, unlockLevel: unlockLevel);
+
+        /// <summary>带禁忌规则的条目(2026-10-30 · ADR-035 §①B)。</summary>
+        private static PrescriptionEntry EntryWithRules(params ContraindicationRule[] rules)
+            => new PrescriptionEntry(actionId: 1, polarity: PrescriptionPolarity.Symptomatic,
+                                     unlockLevel: 0, contraindicationRules: rules);
+
+        /// <summary>三档嵌套阶梯(与 `prescription_actions.json` 的 salicylic_acid 同形)。</summary>
+        private static ContraindicationRule[] NestedLadder() => new[]
+        {
+            new ContraindicationRule(SignChannel.Complexion, 0),
+            new ContraindicationRule(SignChannel.Complexion | SignChannel.Voice, 1),
+            new ContraindicationRule(SignChannel.Complexion | SignChannel.Breathing | SignChannel.Subjective, 2),
+        };
 
         private static PrescribeRequest Request(DrugProfile profile, int dose = 2, int quality = 1, bool isHost = true)
             => new PrescribeRequest(Drug, Entry(), actorId: 7, patientId: new PatientId(3),
@@ -959,9 +986,105 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             Assert.AreEqual(65536L, payload.DrugPotency.Raw, "= 1.0 Q16.16(F-11.1: potency × dose / DOSE_BASE)");
             Assert.AreEqual(114688L, payload.HalfLife);
             Assert.AreEqual(0L, payload.Seq, "载荷 Seq = 占位(header Seq 由主机 Append 发号;归 45 / 7a)");
-            // 2026-10-30 第八项:11 侧无禁忌判定实现 ⇒ 流程**显式**写哨兵(不是漏填)。
+            // 2026-10-30 第八项:本条目的 `Entry()` 无禁忌规则 ⇒ 判据恒返回哨兵。
             Assert.AreEqual(DrugTreatmentAppliedPayload.NoContraindication, payload.ContraindicationBand,
-                "TD-prescription-09 的载体半边:字段在,判定未实现 ⇒ 值恒为哨兵");
+                "无规则的药 ⇒ 未命中哨兵(判据不凭空造命中)");
+        }
+
+        // ══════════════ AC-11-03 第八项 · 禁忌判定(2026-10-30 · ADR-035 §①B)══════════════
+
+        private static PrescribeRequest RequestWith(PrescriptionEntry entry, DrugProfile profile,
+                                                    int dose = 2, int quality = 1, bool isHost = true)
+            => new PrescribeRequest(Drug, entry, actorId: 7, patientId: new PatientId(3),
+                                    selectedDose: dose, profile: profile, selectedQuality: quality, isHost: isHost);
+
+        /// <summary>病人体征覆盖最重一档 ⇒ 档 2 进载荷。</summary>
+        [Test]
+        public void test_contraindication_allChannelsOfHeaviestRule_bandIsWritten()
+        {
+            _store.PeekQuality = 1;
+            _vitals.Mask = SignChannel.Complexion | SignChannel.Breathing | SignChannel.Subjective;
+
+            Run(RequestWith(EntryWithRules(NestedLadder()),
+                MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase), dose: 1));
+
+            var payload = (DrugTreatmentAppliedPayload)_encoder.Payloads[0];
+            Assert.AreEqual(2, payload.ContraindicationBand, "三条规则全命中 ⇒ 取最高档 2");
+        }
+
+        /// <summary>多规则命中 ⇒ **取最高档**(不是第一个命中)。</summary>
+        [Test]
+        public void test_contraindication_multipleHits_highestBandWins()
+        {
+            _store.PeekQuality = 1;
+            // 面色 + 语声:命中第 0 档(只要面色)与第 1 档 ⇒ 取 1
+            _vitals.Mask = SignChannel.Complexion | SignChannel.Voice;
+
+            Run(RequestWith(EntryWithRules(NestedLadder()),
+                MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase), dose: 1));
+
+            Assert.AreEqual(1, ((DrugTreatmentAppliedPayload)_encoder.Payloads[0]).ContraindicationBand);
+        }
+
+        /// <summary>合取语义:只出现部分通道 ⇒ 不命中(不得退化为「任一」)。</summary>
+        [Test]
+        public void test_contraindication_partialMask_isNotAHit()
+        {
+            _store.PeekQuality = 1;
+            _vitals.Mask = SignChannel.Voice;      // 只有语声,三条规则都要求面色
+
+            Run(RequestWith(EntryWithRules(NestedLadder()),
+                MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase), dose: 1));
+
+            Assert.AreEqual(DrugTreatmentAppliedPayload.NoContraindication,
+                ((DrugTreatmentAppliedPayload)_encoder.Payloads[0]).ContraindicationBand,
+                "合取规则:部分通道出现 ≠ 命中");
+        }
+
+        /// <summary>体征位域为 0 ⇒ 不命中(空掩码不得被当作「恒命中」)。</summary>
+        [Test]
+        public void test_contraindication_zeroMask_isNotAHit()
+        {
+            _store.PeekQuality = 1;
+            _vitals.Mask = 0;
+
+            Run(RequestWith(EntryWithRules(NestedLadder()),
+                MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase), dose: 1));
+
+            Assert.AreEqual(DrugTreatmentAppliedPayload.NoContraindication,
+                ((DrugTreatmentAppliedPayload)_encoder.Payloads[0]).ContraindicationBand);
+        }
+
+        /// <summary>无体征端口 ⇒ 不命中(「没有可判的事实」≠「判了没命中」,但在流上同形)。</summary>
+        [Test]
+        public void test_contraindication_withoutVitalsPort_isNotAHit()
+        {
+            _store.PeekQuality = 1;
+            var portsNoVitals = new PrescribePorts(_conversion, _store, _presence, _skills, DoseBase /* vitals 缺省 null */);
+            var req = RequestWith(EntryWithRules(NestedLadder()),
+                MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase), dose: 1);
+
+            PrescribeFlow.Prescribe(req, 100L, portsNoVitals, _sink, _encoder);
+
+            Assert.AreEqual(DrugTreatmentAppliedPayload.NoContraindication,
+                ((DrugTreatmentAppliedPayload)_encoder.Payloads[0]).ContraindicationBand);
+        }
+
+        /// <summary>规则八:命中禁忌**不影响**是否应用 —— 11 不拦截、不减效。</summary>
+        [Test]
+        public void test_contraindication_hit_doesNotBlockOrReduce()
+        {
+            _store.PeekQuality = 1;
+            _vitals.Mask = SignChannel.Complexion | SignChannel.Breathing | SignChannel.Subjective;
+            var profile = MakeProfile(new DoseRange(1, 5), potencyRaw: 65536L * DoseBase);
+
+            PrescribeOutcome outcome = Run(RequestWith(EntryWithRules(NestedLadder()), profile, dose: 1));
+
+            Assert.IsTrue(outcome.Applied, "禁忌命中不得拦截处方(规则八 / OQ-11-5)");
+            var payload = (DrugTreatmentAppliedPayload)_encoder.Payloads[0];
+            Assert.AreEqual(65536L, payload.DrugPotency.Raw,
+                "药效不得因禁忌命中而衰减(规则八「不减药效」)");
+            Assert.AreEqual(2, payload.ContraindicationBand, "但又必须**记账**(记在载荷第八项)");
         }
 
         [Test]

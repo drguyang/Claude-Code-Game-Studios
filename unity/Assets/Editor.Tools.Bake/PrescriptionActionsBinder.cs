@@ -27,9 +27,20 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>极性(causal / symptomatic)。</summary>
         public readonly string Polarity;
 
+        /// <summary>禁忌规则集(2026-10-30 追加;`null` / 空 = 本药无禁忌记载)。</summary>
+        /// <remarks>ADR-035 §①B 的「触发条件面」。语义见 <see cref="ContraindicationRule"/>。</remarks>
+        public readonly ContraindicationRule[] ContraindicationRules;
+
         public PrescriptionActionRow(string itemKey, int actionId, string polarity)
+            : this(itemKey, actionId, polarity, null)
+        {
+        }
+
+        public PrescriptionActionRow(string itemKey, int actionId, string polarity,
+                                     ContraindicationRule[] contraindicationRules)
         {
             ItemKey = itemKey; ActionId = actionId; Polarity = polarity;
+            ContraindicationRules = contraindicationRules;
         }
     }
 
@@ -39,9 +50,21 @@ namespace DaYiJingCheng.EditorTools.Bake
     {
         // ── 已知键白名单(ADR-014 §三:未知键 = 烘焙期硬失败,防拼写错误静默丢字段)──
 
-        private static readonly string[] ActionsRootKeys = { "schema_version", "_note", "dose_const", "actions" };
+        private static readonly string[] ActionsRootKeys =
+        {
+            "schema_version", "_note", "dose_const", "actions",
+            // 🔁 2026-10-30(ADR-035 §①B):禁忌档数 —— 行级 `contraindication.rules[].band` 的上界。
+            "contraindication_band_count",
+        };
         private static readonly string[] DoseConstKeys = { "DOSE_BASE", "MAX_DOSE_DETENTS" };
-        private static readonly string[] ActionRowKeys = { "item_key", "action_id", "polarity" };
+        private static readonly string[] ActionRowKeys =
+        {
+            "item_key", "action_id", "polarity",
+            // 🔁 2026-10-30:禁忌规则块 + 其作者注(注只作存档,不参与校验)。
+            "contraindication", "_contraindicationNote",
+        };
+        private static readonly string[] ContraindicationKeys = { "rules" };
+        private static readonly string[] ContraindicationRuleKeys = { "channel_mask", "band" };
         private static readonly string[] LexiconRootKeys = { "schema_version", "_note", "lexicon" };
         private static readonly string[] LexiconRowKeys = { "item_key", "功效词", "体征轴" };
 
@@ -156,6 +179,19 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (doseBase <= 0)
                 errors.Add($"DC-7 违反:DOSE_BASE = {doseBase},必须 > 0");
 
+            // ── 禁忌档数(2026-10-30)──
+            //    `contraindication.rules[].band` 的上界。未声明 ⇒ 0 ⇒ 带规则的表一律拒
+            //    (与「未知键 = 硬失败」同纪律:声明档数才能写规则,不留「无上界」的静默面)。
+            int contraindicationBandCount = 0;
+            if (actionsRoot.TryGet("contraindication_band_count", out JsonNode bandCountNode))
+            {
+                if (bandCountNode.Kind != JsonNodeKind.Integer || bandCountNode.Int < 0)
+                    errors.Add($"contraindication_band_count 须为 ≥ 0 的整数" +
+                               $"(实得 {bandCountNode.Kind}={bandCountNode.RawText})");
+                else
+                    contraindicationBandCount = (int)bandCountNode.Int;
+            }
+
             // ── actions 行集 ──
             var rows = new List<PrescriptionActionRow>();
             if (!actionsRoot.TryGet("actions", out JsonNode actionsArr))
@@ -168,7 +204,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             else
             {
-                BindActionRows(actionsArr, rows, errors);
+                BindActionRows(actionsArr, rows, contraindicationBandCount, errors);
             }
 
             // ── 本草词表行集 ──
@@ -327,7 +363,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         // ── 处方表行集 ────────────────────────────────────────────────────
 
         private static void BindActionRows(JsonNode arr, List<PrescriptionActionRow> rows,
-                                           List<string> errors)
+                                           int bandCount, List<string> errors)
         {
             for (int i = 0; i < arr.Items.Count; i++)
             {
@@ -358,8 +394,75 @@ namespace DaYiJingCheng.EditorTools.Bake
                 //    字段**缺失**时不再报「0 ∉ 闭集」—— 那是失真(缺失已由 ReadInt 记账)。
                 errors.AddRange(PrescriptionActionIdRegistry.ValidateActionId(actionId, null, actionIdPresent));
 
-                rows.Add(new PrescriptionActionRow(itemKey, actionId, polarity));
+                ContraindicationRule[] rules = BindContraindication(node, where, bandCount, errors);
+                rows.Add(new PrescriptionActionRow(itemKey, actionId, polarity, rules));
             }
+        }
+
+        // ── 禁忌规则块(2026-10-30 · ADR-035 §①B)────────────────────────────
+
+        /// <summary>
+        /// 读一行的 `contraindication.rules[]`;缺块 ⇒ <c>null</c> = 本药无禁忌记载(合法)。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>缺块与空 rules 不等价</b>:缺块 = 「本药没写禁忌」(合法);`rules: []` = 「写了禁忌块
+        /// 却一条规则都没有」= **作者意图不明**,按错处理(与 `rows` 非空而 `harm_kind_enabled` 空同型 ——
+        /// 空容器冒充「已配置」是本项目反复抓到的假绿形态)。</para>
+        /// <para>⚠️ <b>`channel_mask` 不得为 0</b>:空掩码会让 `(mask ∧ 0) == 0` 恒成立 ⇒ 恒命中,
+        /// 一条手滑的 0 会变成「人人在最重的档上」。R1-29 对 `signs[].channel_mask` 有同款禁令。</para>
+        /// <para>⚠️ <b>`band` 上界 = 根级 `contraindication_band_count`</b>:越界档在 53 的表里
+        /// 查不到 ⇒ 静默 miss(玩家「命中禁忌」却零后果)。故此处硬失败,不留静默面。</para>
+        /// </remarks>
+        private static ContraindicationRule[] BindContraindication(
+            JsonNode actionRow, string where, int bandCount, List<string> errors)
+        {
+            if (!actionRow.TryGet("contraindication", out JsonNode block)) return null;
+
+            if (block.Kind != JsonNodeKind.Object)
+            {
+                errors.Add($"{where}.contraindication 须为对象(实得 {block.Kind})");
+                return null;
+            }
+            RejectUnknownKeys(block, ContraindicationKeys, $"{where}.contraindication", errors);
+
+            if (!block.TryGet("rules", out JsonNode rulesNode) || rulesNode.Kind != JsonNodeKind.Array)
+            {
+                errors.Add($"{where}.contraindication.rules 须为数组(实得 " +
+                           $"{(block.TryGet("rules", out JsonNode n) ? n.Kind.ToString() : "缺键")})");
+                return null;
+            }
+            if (rulesNode.Items.Count == 0)
+            {
+                errors.Add($"{where}.contraindication.rules 为空数组 —— " +
+                           "写了禁忌块却零规则 = 作者意图不明(无禁忌记载时**应整块省略**)");
+                return null;
+            }
+
+            var rules = new ContraindicationRule[rulesNode.Items.Count];
+            for (int i = 0; i < rulesNode.Items.Count; i++)
+            {
+                JsonNode item = rulesNode.Items[i];
+                string at = $"{where}.contraindication.rules[{i}]";
+                if (item.Kind != JsonNodeKind.Object)
+                {
+                    errors.Add($"{at} 须为对象(实得 {item.Kind})");
+                    continue;
+                }
+                RejectUnknownKeys(item, ContraindicationRuleKeys, at, errors);
+
+                int mask = ReadInt(item, "channel_mask", errors, at);
+                int band = ReadInt(item, "band", errors, at);
+
+                if (mask <= 0 || (mask & ~ContraindicationEvaluator.AllChannels) != 0)
+                    errors.Add($"{at}.channel_mask = {mask} 越出八通道闭集且须非零" +
+                               $"(合法范围 1..{ContraindicationEvaluator.AllChannels})");
+                if (band < 0 || band >= bandCount)
+                    errors.Add($"{at}.band = {band} 越界 [0, {bandCount}) —— " +
+                               "档序数须 < contraindication_band_count(越界档在 53 的代价表里查不到 = 静默 miss)");
+
+                rules[i] = new ContraindicationRule(mask, band);
+            }
+            return rules;
         }
 
         // ── 本草词表行集 ──────────────────────────────────────────────────

@@ -13097,3 +13097,16 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   `DaYiJingCheng.Tests.Unit.Sim`(注册表夹具的真命名空间)⇒ 6 条红潜伏到全量才暴露。
 - ⚠️ **两处须用户定**: ① `INJ_BLUNT` 数值(草案);② 将来禁忌判定若由**病种**派生,与 `AC-11-01` ② 相抵。
 - **未提交**。原件 `production/qa/evidence/t2-a-cost-read-side-and-11-payload-carrier-2026-10-30.md`。
+
+## Session Extract — ADR-035 T2 全链(2026-10-30 第二批)
+
+- **用户裁定**:三档 2/3/4 · 新增 `INJ_DRUG_HARM` · 档 0→BLUNT/2、档 1·2→DRUG_HARM/3·4 ·
+  补 `bands`×`rows` 门 · 做全链(数据 + 53 结算 + 11 判定)· 判定口径 = `SignChannelMask`。
+- **已落**:代价表三行真值(72 B)+ `INJ_DRUG_HARM`(id 16)+ bands 门 + `ContraindicationSettler`
+  + CompositionRoot/BootRoot 装配 + `ContraindicationEvaluator` + 处方表 `contraindication.rules[]`
+  (127 B)+ `PrescribePorts.Vitals` + `VitalsQueryOrNone`。
+- **回归**:EditMode `6059/6022/0/37` · PlayMode `238/234/0/2/2`。
+- **债**:`TD-prescription-09` **closed** · **`TD-sim-04` 新立**(SignChannelMask 生产恒 0)·
+  `TD-medcons-15` open 维持。计数 `open 57 · closed 79 · partial 2 · 未闭 P0 面 33`。
+- ⚠️ **机制玩家不可感知**:F2 未接线 ⇒ 判据恒不命中;六条 11 夹具走 `StubVitals` 注入路径。
+- **未提交**。原件 `production/qa/evidence/t2-b-full-chain-2026-10-30.md`。

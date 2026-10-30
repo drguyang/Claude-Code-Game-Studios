@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DaYiJingCheng.EditorTools.Bake;
 using NUnit.Framework;
 using UnityEngine;
@@ -110,46 +111,102 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         // ══════════════════════ 一、真实骨架(今日态)══════════════════════
 
-        /// <summary>真实两张表:绑定成功、零行,**且不再带 V-10 告警**(注册表现已有 `INJ_BLUNT`)。</summary>
+        /// <summary>真实两张表:绑定出**三行真实代价**(三档阶梯),且不带 V-10 告警。</summary>
         /// <remarks>
         /// <para>钉的是 `ADR-035 §Validation V-10` 的**条件性**:告警只在「注册表零 `lethal == false` 伤情」
         /// 时出现,不是一条恒发的噪声。</para>
-        /// <para>🔁 <b>2026-10-30 改判</b>:原夹具断言「真实注册表 ⇒ **必须**告警并点名 `TD-sim-03`」,
-        /// 其前提 = 注册表 5 件伤情全 `lethal = true`。用户裁定新增 `INJ_BLUNT`(自限型 / 非致死)后
-        /// 该前提**已假** ⇒ 断言反转。⚠️ <b>反转不是弱化</b>:V-10 门的正向覆盖由
-        /// <see cref="test_v10_warning_fires_whenRegistryHasNoNonLethalInjury"/> 接手(注入全致死注册表),
-        /// 两条合起来才证明「告警有条件」;只留任意一条都会让另一半零覆盖。</para>
+        /// <para>🔁 <b>2026-10-30 两次改判</b>(原文不删):① 原夹具断言「真实注册表 ⇒ **必须**告警并点名
+        /// `TD-sim-03`」,前提 = 5 件伤情全 `lethal=true`;新增 `INJ_BLUNT` 后该前提已假 ⇒ 断言反转。
+        /// ⚠️ 反转不是弱化:V-10 的正向覆盖由
+        /// <see cref="test_v10_warning_fires_whenRegistryHasNoNonLethalInjury"/> 接手(注入全致死注册表)。
+        /// ② 同日再填真实行(用户裁定三档 2/3/4)⇒ 原断言「`Rows` 为空」**已假**,改为断言:
+        /// **三行、档 0..2 连续、每档查得到、且 injury_id 与外键在真实注册表里存在**。
+        /// ⚠️ 这三行是**数据**,不是「机制已跑」—— 结算与判定见各自轮次。</para>
         /// </remarks>
         [Test]
-        public void test_realSkeleton_binds_andHasNoV10Warning()
+        public void test_realTable_bindsThreeBandLadder_andHasNoV10Warning()
         {
             CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), RealRegistry());
 
-            Assert.That(r.Rows, Is.Empty, "S2 空表的 rows 应为空");
             Assert.That(r.SchemaVersion, Is.EqualTo(1u));
+            Assert.That(r.Rows, Has.Count.EqualTo(3), "真实表 = 三档阶梯(档 0..2)");
+            Assert.That(r.Rows.Select(x => x.Band), Is.EqualTo(new[] { 0, 1, 2 }), "档序数须自 0 起连续");
+            Assert.That(r.Rows.Select(x => x.InjuryId),
+                Is.EqualTo(new[] { "INJ_BLUNT", "INJ_DRUG_HARM", "INJ_DRUG_HARM" }),
+                "档映射:0=钝击(轻),1/2=药毒(中/重)");
+            Assert.That(r.Rows.Select(x => x.SeverityBand), Is.EqualTo(new[] { 2, 3, 4 }));
             Assert.That(string.Join(" | ", r.Warnings), Does.Not.Contain("TD-sim-03"),
                 "注册表现有非致死伤情 ⇒ 不得再报 V-10(该告警是条件性的);实得:" +
                 string.Join(" | ", r.Warnings));
         }
 
+        // ══════════════════════ 一之二、bands × rows 交叉校验(2026-10-30 新立)══════════════════════
+
+        /// <summary>`band ≥ bands[kind]` ⇒ 拒(否则该行永不生效 = 静默跳过)。</summary>
+        [Test]
+        public void test_bandAtOrAboveDeclaredCount_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(bands: "{ \"contraindication\": 2 }",
+                          rows: Row(injury: "INJ_BLUNT", band: 2)),
+                RealRegistry());
+
+            AssertMessageHas(ex, "bands.contraindication=2");
+        }
+
+        /// <summary>反例:**未声明档数**(`bands` 为 `null`)⇒ 不校上界(不得误伤)。</summary>
+        [Test]
+        public void test_bandsNull_doesNotConstrainBand()
+        {
+            CostTableBinder.BindResult r = CostTableBinder.Bind(
+                CostTable(bands: "{ \"contraindication\": null }",
+                          rows: Row(injury: "INJ_BLUNT", band: 9)),
+                RealRegistry());
+
+            Assert.That(r.Rows, Has.Count.EqualTo(1), "档数未定 ⇒ 档序数不设上界");
+            Assert.That(r.Rows[0].Band, Is.EqualTo(9));
+        }
+
+        /// <summary>反例:声明 3 档 ⇒ 档 2 仍合法(上界是**开区间**的右端之外才算越界)。</summary>
+        [Test]
+        public void test_bandAtDeclaredCountMinusOne_isLegal()
+        {
+            CostTableBinder.BindResult r = CostTableBinder.Bind(
+                CostTable(bands: "{ \"contraindication\": 3 }",
+                          rows: Row(injury: "INJ_BLUNT", band: 2)),
+                RealRegistry());
+
+            Assert.That(r.Rows, Has.Count.EqualTo(1), "band 2 < 3 应合法");
+        }
+
         /// <summary>V-10 的正向覆盖:注入一张**全 `lethal == true`** 注册表 ⇒ 必须告警并点名 `TD-sim-03`。</summary>
         /// <remarks>
-        /// <para>注入手法 = 把真实注册表里**唯一**一件非致死伤情 `INJ_BLUNT` 的 `lethal` 翻成 `true`
-        /// (它 `self_limit = true`,R1-22 对自限型无 `lethal` 约束 ⇒ 翻后仍合法)。</para>
-        /// <para>⚠️ 若将来注册表**没有**任何非致死伤情,本条注入会因「找不到 `lethal: false`」而
-        /// 断言失败 —— 那是如实报缺口(前提不成立),不是测试损坏:
-        /// 此时 <see cref="test_realSkeleton_binds_andHasNoV10Warning"/> 自己的前提也是假的,两条会一起红。</para>
+        /// <para>注入手法 = 把真实注册表里**每一件**非致死伤情的 `lethal` 都翻成 `true`
+        /// (它们都是自限型,R1-22 对自限型无 `lethal` 约束 ⇒ 翻后仍合法)。</para>
+        /// <para>🔁 <b>2026-10-30 订正(原文不删)</b>:原实现只翻 `INJ_BLUNT` 一件。真实表填入三行代价后,
+        /// 第 0 行指向 `INJ_BLUNT` ⇒ 翻完立刻被 **N-1** 拒(`BakeValidationException`),
+        /// 走不到 V-10 的告警分支(实跑红)。现改为:① **翻遍所有非致死伤情**;② 用**空行**的代价表 ——
+        /// 本夹具要证的是「注册表无合法落点 ⇒ 告警」,**有行**的形态由 N-1 负责,两者不该混在一条夹具里。</para>
+        /// <para>⚠️ 若将来注册表**没有**任何非致死伤情,本条注入会因「一件都找不到」而断言失败 ——
+        /// 那是如实报缺口(前提不成立),不是测试损坏。</para>
         /// </remarks>
         [Test]
         public void test_v10_warning_fires_whenRegistryHasNoNonLethalInjury()
         {
             string json = RealRegistry();
-            int atKey = json.IndexOf("\"key\": \"INJ_BLUNT\"", StringComparison.Ordinal);
-            Assert.That(atKey, Is.GreaterThan(0),
-                "夹具前提不成立:注册表里已无 INJ_BLUNT —— 全致死注册表须另找注入点");
-            json = ReplaceFirstAfter(json, atKey, "\"lethal\": false", "\"lethal\": true");
+            var nonLethalKeys = new List<string>();
+            foreach (string key in new[] { "INJ_BLUNT", "INJ_DRUG_HARM" })
+            {
+                int atKey = json.IndexOf("\"key\": \"" + key + "\"", StringComparison.Ordinal);
+                if (atKey < 0) continue;      // 该件已不在库 ⇒ 不是本夹具的注入点
+                nonLethalKeys.Add(key);
+                json = ReplaceFirstAfter(json, atKey, "\"lethal\": false", "\"lethal\": true");
+            }
+            Assert.That(nonLethalKeys, Is.Not.Empty,
+                "夹具前提不成立:注册表里一件非致死伤情都没有 —— 全致死注册表无注入点");
 
-            CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), json);
+            // 空行:本条测的是「注册表侧无合法落点」,不带行 —— 带行会先撞 N-1(见 remarks)。
+            CostTableBinder.BindResult r = CostTableBinder.Bind(CostTable(rows: ""), json);
 
             string joined = string.Join(" | ", r.Warnings);
             Assert.That(joined, Does.Contain("TD-sim-03"),

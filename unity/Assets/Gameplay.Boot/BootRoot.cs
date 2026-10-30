@@ -1312,6 +1312,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             if (_services == null || _services.VitalsService == null) return;
             _services.VitalsService.OnTickEdge(tick);
+
+            // 🔁 2026-10-30(ADR-035 §⑤):53 的禁忌结算紧随体征 Step —— 它只读**已进流**的
+            //    `DrugTreatmentApplied`,与体征链无数据依赖;放在同一 tick 边沿是为了让伤害事件
+            //    与用药事件落在**同一个 tick**(承 ADR-035 §④「伤害事件的时间 = 用药事件的时间」)。
+            _services.ContraindicationSettler?.Step(tick);
         }
 
         /// <summary>

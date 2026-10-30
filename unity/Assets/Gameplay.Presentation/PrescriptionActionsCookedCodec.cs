@@ -40,13 +40,43 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     throw new InvalidDataException(
                         "[cooked] prescription_actions 行数为 null 标记 —— 产物损坏,启动期硬失败(E-13)");
 
-                var rows = new List<PrescriptionActionCookedRow>(count);
+                var raw = new List<(string ItemKey, int ActionId, string Polarity)>(count);
                 for (int i = 0; i < count; i++)
                 {
                     string itemKey = CookedReadUtil.ReadString32(r, "prescription_actions.item_key");
                     int actionId = r.ReadInt32();
                     string polarity = CookedReadUtil.ReadString32(r, "prescription_actions.polarity");
-                    rows.Add(new PrescriptionActionCookedRow(itemKey, actionId, polarity));
+                    raw.Add((itemKey, actionId, polarity));
+                }
+
+                // ── 尾段:禁忌规则(2026-10-30 · ADR-035 §①B)──
+                // ⚠️ 旧产物(无尾段)会在此读到 EOF ⇒ `EndOfStreamException`(经 OpenChecked 的
+                //    载荷长度断言更早失败)⇒ **抛**,不静默给「零规则」。
+                int sectionCount = r.ReadInt32();
+                if (sectionCount < 0 || sectionCount > raw.Count)
+                    throw new InvalidDataException(
+                        $"[cooked] prescription_actions 规则段数 = {sectionCount} 越界(行数 {raw.Count})—— 产物损坏(E-13)");
+
+                var rulesByKey = new Dictionary<string, ContraindicationRule[]>(StringComparer.Ordinal);
+                for (int s = 0; s < sectionCount; s++)
+                {
+                    string itemKey = CookedReadUtil.ReadString32(r, "prescription_actions.rule.item_key");
+                    int ruleCount = r.ReadInt32();
+                    if (ruleCount <= 0)
+                        throw new InvalidDataException(
+                            $"[cooked] prescription_actions 规则段「{itemKey}」的 rule_count = {ruleCount} —— " +
+                            "空段不得落盘(无规则的行不该出现在尾段里;E-13)");
+                    var rules = new ContraindicationRule[ruleCount];
+                    for (int k = 0; k < ruleCount; k++)
+                        rules[k] = new ContraindicationRule(r.ReadInt32(), r.ReadInt32());
+                    rulesByKey[itemKey] = rules;
+                }
+
+                var rows = new List<PrescriptionActionCookedRow>(raw.Count);
+                for (int i = 0; i < raw.Count; i++)
+                {
+                    rulesByKey.TryGetValue(raw[i].ItemKey, out ContraindicationRule[] rules);
+                    rows.Add(new PrescriptionActionCookedRow(raw[i].ItemKey, raw[i].ActionId, raw[i].Polarity, rules));
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, "prescription_actions");
@@ -69,10 +99,21 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>极性(causal / symptomatic)。</summary>
         public readonly string Polarity;
 
+        /// <summary>禁忌规则集(2026-10-30 · ADR-035 §①B;`null` = 本药无禁忌记载)。</summary>
+        public readonly ContraindicationRule[] ContraindicationRules;
+
         /// <summary>构造一行。</summary>
         public PrescriptionActionCookedRow(string itemKey, int actionId, string polarity)
+            : this(itemKey, actionId, polarity, null)
+        {
+        }
+
+        /// <summary>构造一行(带禁忌规则)。</summary>
+        public PrescriptionActionCookedRow(string itemKey, int actionId, string polarity,
+                                           ContraindicationRule[] contraindicationRules)
         {
             ItemKey = itemKey; ActionId = actionId; Polarity = polarity;
+            ContraindicationRules = contraindicationRules;
         }
     }
 

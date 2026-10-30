@@ -509,6 +509,15 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             {
                 if (_byType.TryGetValue(typeof(TDataSet), out object boxed))
                     return (TDataSet)boxed;
+                // 🔁 2026-10-30(ADR-035 §⑤):装配现在**会**问代价表(53 的禁忌结算器要它)。
+                //    ⇒ 本类型不再是「接线错」。给**空表**(惰性形态:任何档都 miss)——
+                //    它不改变任何本测的判据面,也不会凭空产生 `TreatmentHarmOnset`。
+                if (typeof(TDataSet) == typeof(DaYiJingCheng.Gameplay.Presentation.CostTable53DataSet))
+                    return (TDataSet)(object)new DaYiJingCheng.Gameplay.Presentation.CostTable53DataSet(
+                        DaYiJingCheng.Sim.Consequences.CostTable53.CreateTable(
+                            null, System.Array.Empty<DaYiJingCheng.Sim.Consequences.CostTable53.Row>(), null),
+                        0u);
+
                 throw new InvalidOperationException(
                     $"MultiTableProvider 无 {typeof(TDataSet).Name} —— 本测不该问到它(真问 = 接线错)");
             }

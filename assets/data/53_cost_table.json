@@ -2,8 +2,12 @@
   "schema_version": 1,
   "harm_kind_enabled": ["contraindication"],
   "bands": {
-    "contraindication": null
+    "contraindication": 3
   },
-  "max_severity_band": null,
-  "rows": []
+  "max_severity_band": 4,
+  "rows": [
+    { "harm_kind": "contraindication", "band": 0, "injury_id": "INJ_BLUNT",     "severity_band": 2 },
+    { "harm_kind": "contraindication", "band": 1, "injury_id": "INJ_DRUG_HARM", "severity_band": 3 },
+    { "harm_kind": "contraindication", "band": 2, "injury_id": "INJ_DRUG_HARM", "severity_band": 4 }
+  ]
 }

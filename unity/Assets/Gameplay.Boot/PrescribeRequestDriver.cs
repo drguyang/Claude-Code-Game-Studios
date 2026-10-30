@@ -169,7 +169,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 用它逐项对拍产物行 —— 产物被烘成另一套即转红)。</para>
         /// <para>⚠️ <b>public 的理由 = 它是判据的宾语</b>:若只留 <c>internal</c> 而测试够不着,
         /// 「独立 oracle」就只是注释里的一句话(散文),不是可红的机器。</para>
-        /// <para>⚠️ 值归**数值轮**(此处仅为接线可测)。</para></summary>
+        /// <para>⚠️ 值归**数值轮**(此处仅为接线可测)。</para>
+        /// <para>⚠️ <b>2026-10-30:回退条目**不带**禁忌规则</b>(<c>contraindicationRules</c> 缺省 = <c>null</c>)。
+        /// 即:走回退路径时 11 永判「未命中」。理由 = 回退是**产物缺失**时的最小可用表,
+        /// 而禁忌规则只有作者态产物一处真源 —— 在这里再抄一份等于造第二真源。
+        /// ⚠️ 该差异**不影响**对拍夹具:oracle 只比 <c>action_id</c> / <c>polarity</c> / <c>unlockLevel</c>。</para></summary>
         public static IReadOnlyDictionary<ItemKey, PrescriptionEntry> FallbackEntries { get; } =
             new Dictionary<ItemKey, PrescriptionEntry>
             {
@@ -199,7 +203,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 built.Add(key, new PrescriptionEntry(
                     actionId: row.ActionId,
                     polarity: ParsePolarity(row.Polarity, row.ItemKey),
-                    unlockLevel: 0));
+                    unlockLevel: 0,
+                    // 2026-10-30(ADR-035 §①B):产物**携带**禁忌规则 ⇒ 直传,不派生、不硬编码。
+                    contraindicationRules: row.ContraindicationRules));
             }
             return built;
         }

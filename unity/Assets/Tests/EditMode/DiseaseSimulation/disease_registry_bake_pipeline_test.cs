@@ -140,6 +140,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 // 🔁 2026-10-30 新增:自限型非致死伤情(用户裁定,ADR-035 T2 的合法行载体)。
                 //    处置轴与其余伤情同 = symptomatic_only(`treatable_by: []` ∧ `causes: []`)。
                 { "INJ_BLUNT", "symptomatic_only" },
+                // 🔁 2026-10-30 新增:药毒(53 代价表中/重两档的落点)。处置轴同上 = symptomatic_only。
+                { "INJ_DRUG_HARM", "symptomatic_only" },
                 { "DIS_MALARIA", "causal" },              // 轴:action 12 / causal(金鸡纳皮)
                 { "DIS_RHEUMATIC_FEVER", "symptomatic_only" },
                 { "DIS_HEART_FAILURE", "care" },          // GDD :294 —— 照护适用集三员之一
@@ -366,6 +368,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 //    (GDD :473 `sign_moan`),单用它是诚实的下限,不是遗漏。
                 { "INJ_BLUNT", new[] {
                     "sign_moan" } },
+                // 🔁 2026-10-30 新增(INJ_DRUG_HARM,药毒)。三通道:面色 / 语声 / 主观 ——
+                //    都是既有体征键,不新增 8 的体征行。序 = 通道位序(1 → 2 → 64)。
+                { "INJ_DRUG_HARM", new[] {
+                    "sign_pallor", "sign_delirium", "sign_fatigue" } },
 
                 // ── 豁免类:主观族(R3.6 —— 客观族中性,主观族有词条)──
                 { "DIS_NEURASTHENIA", new[] {

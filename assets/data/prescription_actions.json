@@ -1,15 +1,24 @@
 {
   "schema_version": 1,
-  "_note": "Story 001 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。主键 item_key → action_id(处置 id 枚举序数)+ polarity(causal/symptomatic)。DC-1: item_key ⊂ ItemDef 闭集;DC-3: polarity ∈ {causal, symptomatic};DC-7: 0 < DOSE_BASE ≤ 65536 × hi。两阶段烘焙 → *.cooked → IDataProvider。",
+  "_note": "Story 001 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。主键 item_key → action_id(处置 id 枚举序数)+ polarity(causal/symptomatic)。DC-1: item_key ⊂ ItemDef 闭集;DC-3: polarity ∈ {causal, symptomatic};DC-7: 0 < DOSE_BASE ≤ 65536 × hi。两阶段烘焙 → *.cooked → IDataProvider。 🔁 2026-10-30(ADR-035 §①B「触发条件面归 11」):追加 `contraindication` 块 + 根级 `contraindication_band_count`。规则语义 = 「病人同时出现 channel_mask 全部通道 ⇒ 命中,档 = band」,多规则取最高档;档序数与 53 的 `53_cost_table.json` 的 `bands.contraindication` **同序同数**(⚠️ 两处各自声明,漂移由内容轮对齐)。判据**只记账**:11 不拦截、不减效、不弹警告(规则八),后果由 53 结算(OQ-11-5)。",
   "dose_const": {
     "DOSE_BASE": 65536,
     "MAX_DOSE_DETENTS": 7
   },
+  "contraindication_band_count": 3,
   "actions": [
     {
       "item_key": "salicylic_acid",
       "action_id": 10,
-      "polarity": "symptomatic"
+      "polarity": "symptomatic",
+      "contraindication": {
+        "rules": [
+          { "channel_mask": 1, "band": 0 },
+          { "channel_mask": 3, "band": 1 },
+          { "channel_mask": 73, "band": 2 }
+        ]
+      },
+      "_contraindicationNote": "⚠️ **草案规则,待数值轮复核**。掩码按 `SignChannel` 位:1=面色 · 2=语声 · 4=姿态 · 8=呼吸 · 16=触感 · 32=伤口 · 64=主观 · 128=病史。本药的阶梯是**嵌套**的(1 ⊂ 3 ⊂ 73)⇒ 取最高档等价于「越多的证候同时出现,档越高」:面色异常=轻(0);面色+语声=中(1);面色+呼吸+主观=重(2)。⚠️ 三条规则都要求 `面色`,因为本药(水杨酸类)的主禁忌是热象。改掩码或档数 = 同时复核 53 的 `bands.contraindication`。"
     }
   ]
 }

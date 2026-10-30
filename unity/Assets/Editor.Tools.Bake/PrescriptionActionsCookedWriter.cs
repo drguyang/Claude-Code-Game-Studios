@@ -10,6 +10,12 @@
 //    [8..15]  single_dose_max (i64 raw Q16.16;AC-11-09 烘焙期派生,零手填)
 //    [16..19] row_count (i32)
 //    [20..]   逐行:item_key (i32 len + UTF-8) + action_id (i32) + polarity (i32 len + UTF-8)
+//
+// 🔁 **2026-10-30 追加尾段(ADR-035 §①B 的禁忌规则)** —— 刻意**不动**上面逐行布局:
+//    [行集之后] rule_section_count (i32)
+//    逐段:item_key (i32 len + UTF-8) + rule_count (i32) + rule_count × { channel_mask (i32), band (i32) }
+//    ⚠️ 无规则的行**不出现**在段里(段数 ≤ 行数)。尾段式而非行内式的理由:
+//      行内追加会让**旧产物**解出错位数据(静默);尾段式在旧产物上会读越界 ⇒ **抛**(fail-loud)。
 
 using System.Collections.Generic;
 using System.IO;
@@ -38,6 +44,33 @@ namespace DaYiJingCheng.EditorTools.Bake
                 {
                     for (int i = 0; i < rows.Count; i++)
                         WriteRow(w, rows[i]);
+                }
+
+                // 尾段:禁忌规则(2026-10-30)。序 = 行序,只写有规则的行 ⇒ 确定性。
+                int sections = 0;
+                if (rows != null)
+                {
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        ContraindicationRule[] r = rows[i].ContraindicationRules;
+                        if (r != null && r.Length > 0) sections++;
+                    }
+                }
+                w.Write(sections);
+                if (rows != null)
+                {
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        ContraindicationRule[] r = rows[i].ContraindicationRules;
+                        if (r == null || r.Length == 0) continue;
+                        WriteString(w, rows[i].ItemKey);
+                        w.Write(r.Length);
+                        for (int k = 0; k < r.Length; k++)
+                        {
+                            w.Write(r[k].ChannelMask);
+                            w.Write(r[k].Band);
+                        }
+                    }
                 }
                 w.Flush();
                 return FinishHeader(payload.ToArray(), schemaVersion, configVersion);

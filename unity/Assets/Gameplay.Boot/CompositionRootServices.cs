@@ -36,6 +36,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>事件写入通道(= <see cref="Stream"/>,按抽象点类型暴露给写者)。</summary>
         public IEventSink EventSink => Stream;
 
+        /// <summary>53 的禁忌结算器(2026-10-30 · ADR-035 §①B/⑤)。
+        /// <para>由 `CompositionRoot.Assemble` 在构造完本对象后赋值(**不走 ctor** —— 参数表已过长,
+        /// 再加一项会与既有 20+ 形参的装配顺序耦合);`null` = 未装配(测试上下文 / 装配失败路径)。</para>
+        /// <para>⚠️ 语义:`null` ⇒ 禁忌代价**不结算**,与「表为空」行为一致(都是零事件)。</para></summary>
+        public DaYiJingCheng.Sim.Consequences.ContraindicationSettler ContraindicationSettler { get; internal set; }
+
         /// <summary>ID 发号权威(机制 A:计数器 + 高水位可重构,ADR-006 Amendment B)。</summary>
         public IIdAuthority IdAuthority { get; }
 

@@ -119,15 +119,22 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         // ══════════════════════ 一、烘焙链(今日态)══════════════════════
 
-        /// <summary>真实的 S2 空表能烘焙:行数 0(**空表合法**),头完整。</summary>
+        /// <summary>真实表能烘焙:三行真实代价,绑定集与编码产物**行数一致**,头完整。</summary>
+        /// <remarks>
+        /// 🔁 <b>2026-10-30 改判</b>:原夹具是 `test_realSkeleton_bakesEmptyTable`,断言真实表
+        /// **零行**(S2 骨架)。用户裁定填入三档真实行后该前提已假 ⇒ 改为断言**三行且往返一致**。
+        /// ⚠️ 「空表合法」这条形态**没有丢**:它由
+        /// `CostTable53CookedCodecTest.test_emptyTable_decodesToLazyEmpty_notAnError` 与
+        /// 下面本文件里的合成空表夹具继续守着 —— 真实表不再空,不等于「空表不再合法」。
+        /// </remarks>
         [Test]
-        public void test_realSkeleton_bakesEmptyTable()
+        public void test_realTable_bakesThreeRows()
         {
             CostTable53Bake.BakeOutput o = CostTable53Bake.BakeFromJson(RealCostTable(), RealRegistry());
 
             Assert.That(o.Cooked, Is.Not.Null);
-            Assert.That(o.Bound.Rows, Is.Empty, "S2 骨架 = 空 rows");
-            Assert.That(DecodeRows(o.Cooked), Is.Empty, "空表 ⇒ row_count = 0(不是抛)");
+            Assert.That(o.Bound.Rows, Has.Count.EqualTo(3), "真实表 = 三档阶梯");
+            Assert.That(DecodeRows(o.Cooked), Has.Count.EqualTo(3), "cooked 行数须与绑定集一致");
         }
 
         /// <summary>同源两次烘焙逐位一致(ADR-014 §二)。</summary>

@@ -245,13 +245,13 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_rowsPassTheRealValidator()
         {
             var rows = LoadRows(File.ReadAllText(DataPath));
-            // 🔁 2026-10-30:5 → 6。上行 `INJ_BLUNT`(自限型 / 非致死,用户裁定,
-            //   `ADR-035` T2 的合法行载体)⇒ 伤情行 = 5 白名单 + 1 非致死。
+            // 🔁 2026-10-30:5 → 7。两件非致死伤情(`INJ_BLUNT` / `INJ_DRUG_HARM`,均自限型,
+            //   用户裁定,`ADR-035` T2 的合法行载体)⇒ 伤情行 = 5 白名单 + 2 非致死。
             //   ⚠️ 这条计数是**存在性锚**,不是性质判据 —— 性质分别由
             //   `test_allRows_areAcuteHoldType`(白名单面)与
             //   `test_dataFile_whitelistIsSubsetOfInjuryRows_andNonWhitelistInjuriesAreNonLethal`(非白名单面)承担。
-            Assert.That(rows.Count, Is.EqualTo(Whitelist.Length + 1),
-                $"读到的行数不是 {Whitelist.Length + 1}(5 白名单 + INJ_BLUNT)—— 装载面或数据面变了");
+            Assert.That(rows.Count, Is.EqualTo(Whitelist.Length + 2),
+                $"读到的行数不是 {Whitelist.Length + 2}(5 白名单 + INJ_BLUNT + INJ_DRUG_HARM)—— 装载面或数据面变了");
 
             Assert.DoesNotThrow(() => RegistrySchemaValidator.Validate(rows),
                 "真 `RegistrySchemaValidator.Validate` 拒收了数据行 —— 数值或字段有违例");

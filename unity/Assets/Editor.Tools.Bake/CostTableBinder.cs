@@ -121,9 +121,9 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             RegistryView registry = LoadRegistry(registryJson, errors);
             int? maxSeverity = ReadMaxSeverityBand(root, errors);
-            ReadBands(root, enabled, warnings, errors);
+            Dictionary<string, int> bandCounts = ReadBands(root, enabled, warnings, errors);
 
-            var rows = ParseRows(rowsNode, enabled, maxSeverity, registry, errors);
+            var rows = ParseRows(rowsNode, enabled, maxSeverity, bandCounts, registry, errors);
 
             // R4:rows 非空而 harm_kind_enabled 空 ⇒ 表里装了行却没人查 = 静默跳过(与 W-4 同型)。
             // ⚠️ 判据取**源行数**(`rowsNode.Items.Count`)而不是**已绑定行数**:逐行校验一旦开火,
@@ -272,13 +272,22 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>校验 `bands` 块(kind → 档数 | null);未启用的 kind 只告警(ADR 未钉,不自裁为错)。</summary>
-        private static void ReadBands(JsonNode root, List<string> enabled, List<string> warnings, List<string> errors)
+        /// <returns>已声明的档数(kind → 档数);未声明 / 写 <c>null</c> 的 kind 不在表内。</returns>
+        /// <remarks>
+        /// 🔁 <b>2026-10-30 起本块**参与校验**</b>(原为纯装饰:声明 3 档而写出 `band: 7` 的行也能过)。
+        /// 行层用 <see cref="CheckBandInRange"/> 查 `band &lt; bands[kind]`。
+        /// ⚠️ **未声明 ≠ 0 档**:`null` / 缺键表示「档数未定(值归内容轮)」,此时**不校**上界 ——
+        /// 与 `max_severity_band` 的 `null` 语义同款。**不得**把它读成「0 档 ⇒ 任何行都拒」。
+        /// </remarks>
+        private static Dictionary<string, int> ReadBands(
+            JsonNode root, List<string> enabled, List<string> warnings, List<string> errors)
         {
-            if (!root.TryGet("bands", out JsonNode bands) || bands.Kind == JsonNodeKind.Null) return;
+            var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (!root.TryGet("bands", out JsonNode bands) || bands.Kind == JsonNodeKind.Null) return counts;
             if (bands.Kind != JsonNodeKind.Object)
             {
                 errors.Add($"{FileName}:bands 须为对象或 null(实得 {bands.Kind})");
-                return;
+                return counts;
             }
             foreach (string key in bands.Keys)
             {
@@ -293,27 +302,51 @@ namespace DaYiJingCheng.EditorTools.Bake
                     warnings.Add($"{FileName}:bands 声明了未启用的 kind「{key}」的档数 —— 该 kind 的行会被拒");
                 if (!bands.TryGet(key, out JsonNode v) || v.Kind == JsonNodeKind.Null) continue;
                 if (v.Kind != JsonNodeKind.Integer || v.Int < 0)
+                {
                     errors.Add($"{FileName}:bands.{key} 须为 ≥ 0 的整数或 null(实得 {v.Kind}={v.RawText})");
+                    continue;
+                }
+                counts[key] = (int)v.Int;
             }
+            return counts;
+        }
+
+        /// <summary>`band` 须落在声明的档数内(`0 ≤ band &lt; bands[kind]`);未声明档数 ⇒ 不校。</summary>
+        /// <remarks>
+        /// <para>⚠️ <b>这条门的存在理由</b>:没有它,`bands` 就是装饰字段 —— 作者声明「3 档」、
+        /// 却写出 `band: 7` 的行,构建期零反馈,而运行期 `TryLookup` 永远 miss ⇒
+        /// **行装了但永不生效**(与 `ADR-035 §Risks R4` 的「静默跳过」同型)。</para>
+        /// <para>⚠️ 与 <see cref="ReadMaxSeverityBand"/> 的区别:那条管 **severity_band** 的上界
+        /// (伤情程度档),本条管 **band** 的上界(禁忌档序数)。两者**不是同一把尺**,不共用。</para>
+        /// </remarks>
+        private static bool CheckBandInRange(
+            int band, string harmKind, Dictionary<string, int> bandCounts, int i, List<string> errors)
+        {
+            if (!bandCounts.TryGetValue(harmKind, out int declared)) return true;
+            if (band < declared) return true;
+            errors.Add($"{FileName}:rows[{i}] band={band} ≥ bands.{harmKind}={declared} —— " +
+                       "档序数须自 0 起连续且 < 声明档数(否则该行永不生效 = 静默跳过)");
+            return false;
         }
 
         // ═════════════════════ ③ 行层 ═════════════════════
 
         /// <summary>逐行解析 + 行级拒收;返回合法行(重复键的行不入表)。</summary>
         private static List<CostRow> ParseRows(
-            JsonNode rowsNode, List<string> enabled, int? maxSeverity, RegistryView registry, List<string> errors)
+            JsonNode rowsNode, List<string> enabled, int? maxSeverity, Dictionary<string, int> bandCounts,
+            RegistryView registry, List<string> errors)
         {
             var rows = new List<CostRow>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
             for (int i = 0; i < rowsNode.Items.Count; i++)
-                ParseRow(rowsNode.Items[i], i, enabled, maxSeverity, registry, rows, seen, errors);
+                ParseRow(rowsNode.Items[i], i, enabled, maxSeverity, bandCounts, registry, rows, seen, errors);
             return rows;
         }
 
         /// <summary>解析单行:字段读取与判据拆到 <see cref="TryReadRowFields"/>,本方法只管单射与入表。</summary>
         private static void ParseRow(
-            JsonNode row, int i, List<string> enabled, int? maxSeverity, RegistryView registry,
-            List<CostRow> rows, HashSet<string> seen, List<string> errors)
+            JsonNode row, int i, List<string> enabled, int? maxSeverity, Dictionary<string, int> bandCounts,
+            RegistryView registry, List<CostRow> rows, HashSet<string> seen, List<string> errors)
         {
             if (row.Kind != JsonNodeKind.Object)
             {
@@ -322,7 +355,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             RejectUnknownKeys(row, RowKeys, $"rows[{i}]", errors);
 
-            if (!TryReadRowFields(row, i, enabled, maxSeverity, registry, errors,
+            if (!TryReadRowFields(row, i, enabled, maxSeverity, bandCounts, registry, errors,
                                   out CostRow parsed, out string dedup))
                 return;
 
@@ -338,8 +371,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>取一行四字段并逐条过判据(kind 闭集 / 启用 / 类型 / 上界 / N-3 / N-1)。</summary>
         /// <returns>true = 该行合法;<paramref name="dedup"/> 为单射键。</returns>
         private static bool TryReadRowFields(
-            JsonNode row, int i, List<string> enabled, int? maxSeverity, RegistryView registry,
-            List<string> errors, out CostRow parsed, out string dedup)
+            JsonNode row, int i, List<string> enabled, int? maxSeverity, Dictionary<string, int> bandCounts,
+            RegistryView registry, List<string> errors, out CostRow parsed, out string dedup)
         {
             parsed = default;
             dedup = null;
@@ -361,6 +394,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             if (!TryReadInt(row, "band", i, errors, out int band)) return false;
+            if (!CheckBandInRange(band, harmKind, bandCounts, i, errors)) return false;
             if (!TryReadString(row, "injury_id", i, errors, out string injuryId)) return false;
             if (!TryReadInt(row, "severity_band", i, errors, out int severity)) return false;
 

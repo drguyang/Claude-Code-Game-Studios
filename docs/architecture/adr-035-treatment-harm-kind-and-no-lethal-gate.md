@@ -394,6 +394,24 @@ P1a 引入 `RegionOutcome` 时还要再动一次同一接缝。**这是最便宜
 **T2 = 填禁忌行并让它真跑**(须 `TD-prescription-09` 结案 **+ `TD-sim-03` 结案**(注册表须先有 ≥1 件 `lethal=false` 伤情,否则无行可填 ⇒ 真空真,见 §Risks R5)+ 内容轮给行内容 / 档数)<br>
 **T3 = 启用过量档**(`harm_kind_enabled` 允许 `overdose`;再加 `TD-sim-02`)
 
+> 🔁 **2026-10-30 T2 全链已落(用户裁定「数据 + 53 结算 + 11 的禁忌判定」)** ——
+> ① **代价表填入三行真实代价**(`bands.contraindication = 3` / `max_severity_band = 4`;
+> 档 0 → `INJ_BLUNT`/2,档 1·2 → `INJ_DRUG_HARM`/3·4),产物 72 B;
+> ② **`INJ_DRUG_HARM`**(药毒,id 16,自限型非致死)进注册表 —— ⚠️ 它是 **R2 枚举表之外**的第十二项,
+> 词表收口须并入 `disease-simulation.md` 的 R2 表(归 9 的 GDD 轮);
+> ③ **`bands` × `rows` 交叉校验**进绑定器(原 `bands` 是装饰字段);
+> ④ **53 结算器** `Sim/Consequences/ContraindicationSettler.cs`(游标式、幂等、真表真查)+
+> `CompositionRoot` 装配 + `BootRoot` 逐 tick 驱动;
+> ⑤ **11 判定** `Sim.Contracts/ContraindicationRule.cs` 的 `ContraindicationEvaluator`
+> (只读 `SignChannelMask` 整数位域,保 `AC-11-01` ②)+ 数据 `prescription_actions.json` 的
+> `contraindication.rules[]`(经 ADR-014 烘焙,产物 127 B)+ `PrescribePorts.Vitals` 端口 +
+> 装配层 `VitalsQueryOrNone`(无病程 ⇒ 零体征,不抛)。
+> **判据形态 = 合取**(`(mask ∧ ChannelMask) == ChannelMask`)、**多命中取最高档**。
+> Regression:EditMode `6059/6022/0/37` · PlayMode `238/234/0/2/2` @ 2026-10-30 · 原件
+> `production/qa/evidence/t2-b-full-chain-2026-10-30.md`。
+> ⚠️ **仍不可被玩家感知** —— `SignChannelMask` 在生产恒 0(9 的 F2 未接线)⇒ 判据恒不命中,
+> 新立 **`TD-sim-04`**。**本条不因此补绿**:判据齐 ≠ 机制跑过。
+
 > 🔁 **2026-10-30 进展(T2 前置轮 A,原文不删)** —— T2 的三条前置**各有进展、无一全部结清**:
 > ① **`TD-sim-03` 已 `closed`** —— 用户裁定新增 `INJ_BLUNT`(自限型 / 非致死,id 15),
 > 注册表非致死伤情 **0 件 → 1 件**;② **`TD-prescription-09` `open` → `partial`** ——
