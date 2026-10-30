@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
     public sealed class ContraindicationSettlerTest
     {
         private static string RepoRoot
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         private static IReadOnlyList<DiseaseRegistryEntry> Registry()
             => DiseaseRegistryBinder.Bind(
@@ -38,8 +38,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         /// <summary>盘上**真**代价表(经生产解码器 —— 与生产装配走同一条路径)。</summary>
         private static CostTable53.Table RealTable()
             => CostTable53CookedCodec.Read(
-                File.ReadAllBytes(Path.Combine(Application.dataPath, "DataCooked",
-                    DataBakeMenu.CostTableCookedAssetName)), Registry()).Table;
+                File.ReadAllBytes(MedConsRepoPaths.CookedFile(DataBakeMenu.CostTableCookedAssetName)), Registry()).Table;
 
         private static int InjuryIdOf(string key)
         {

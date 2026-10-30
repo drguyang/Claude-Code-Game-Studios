@@ -309,7 +309,7 @@
 | `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
-| `TD-medcons-09` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-09` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-10` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-12` | `medical-consequences` | open | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 84, 'open': 52, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 28 （已闭但曾标 P0 面的 75 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 28 条,分布在 8/31 个 epic
-    medical-consequences: 14  telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 85, 'open': 51, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 27 （已闭但曾标 P0 面的 76 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 27 条,分布在 8/31 个 epic
+    medical-consequences: 13  telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1234,6 +1234,70 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 **共同性质**:9 条均**不阻塞** story-002 转 Complete(重评已裁定),但**须留痕** ——
 其中 **TD-medcons-09 是唯一有明确外部触发点(CI runner 落地)的高优先项**,
 其余 8 条随「数值轮」或「下次动该文件」自然触发。
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-09`**(用户指令「TD-medcons-09继续」)
+>
+> **原判定**:EditMode 单元测试做**真实文件 I/O** + 依赖 `Application.dataPath`,违反
+> 「Unit tests do not call … file I/O」;`LoadTable` 走 `dataPath/../../` 解析仓根,
+> 在 **CI 检出布局变化时即红**(返工期已因此红过一次)。
+>
+> **实测**:`grep -rn "Application.dataPath" unity/Assets/Tests/EditMode/MedConsequences/` ⇒
+> **7 个文件 / 15 处**,其中 **11 处是同一行**
+> `Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."))` 各写一遍。
+>
+> ── **本条还掉的是哪一半(必须与下一半连读)** ─────────────────────────────
+>
+> ✅ **还掉:脆弱的固定相对路径。**
+> 新增 `Tests/EditMode/MedConsequences/MedConsRepoPaths.cs` 作**单点解析**:
+> ① 向上搜 **8 层**找锚点 `assets/data/disease_registry.json`(不假定层数);
+> ② 找不到时抛 `InvalidOperationException` 并**列出已试目录**(原写法在这里是
+> 深处某个 `FileNotFoundException`);③ `DataFile` / `CookedFile` / `ProjectRoot` 一并收口。
+> 7 个文件 15 处**全部**改为调用它,`grep Application.dataPath` 在本目录**零命中**
+> (只剩 `MedConsRepoPaths.cs` 自己的实现)。
+>
+> ❌ **没还掉:EditMode 夹具读仓内真文件这件事实。**
+> **这一半是刻意的,不是没做。** 被测对象就是「作者态 JSON → `Binder` → `cooked`」这条链;
+> 把源换成测试内联的数据,等于**把被测对象换成测试自己的数据** ——
+> 判据会从「真实素材绑定对不对」退化成「函数自洽」,与本项目反复抓的「自造断言顶替
+> 被测对象」同型。⇒ **具名例外**:本夹具族按**集成性 EditMode 夹具**对待。
+> ⚠️ 若要彻底消灭,正确做法是把这些用例**整体迁到 PlayMode / 独立集成树**,
+> 不是把真材料内联 —— 那是另一件事,不挂在本条名下。
+>
+> **夹具**:`medcons_repo_paths_test.cs` **10 条** —— 锚点真的存在(判据不是「上跳两层」)/
+> 跨调用稳定 / 工程根 = `dataPath` 父 / 工程根在仓根内 / `DataFile` 指向真源 /
+> `CookedFile` 在 `Assets/` 下 / **空起点抛且报文区分** / **搜过没找到抛且列出已试目录** /
+> **非法起点被跳过而非漏 `ArgumentException`** / 当前布局与「两层」的记录性对照。
+>
+> **证伪三轮**(第三轮之前先抓到一个**我自己写的真缺陷**):
+> · **M1 首轮**:把锚点常量改错 ⇒ 10 条**只红 1 条**,而那 1 条红的是**报文断言** ——
+>   `test_repoRoot_actuallyContainsTheAnchor` 照样绿。根因:`ResolveFrom` 的判据用的是
+>   **另一处硬编码字面量**,常量只出现在异常报文里 ⇒ **常量形同虚设,改它不影响解析**。
+>   这正是「两份真源」。**修**:判据改读 `RepoAnchorRelative`;注释里留这段教训。
+> · **M1 重跑**(修后):改锚点常量 ⇒ **6 红 / 4 绿** —— 红的是全部依赖 `RepoRoot` 的;
+>   绿的是 `CookedFile`(走 `Application.dataPath`,与仓根解耦)、`ProjectRoot`、两条负路径。
+>   归因干净。
+> · **M2**:停用「空起点」专用报文 ⇒ **2 红**(`emptyStarts` / `allStartsInvalid`)。
+> · **M3**:`ProjectRoot` 退化为 `RepoRoot` ⇒ **1 红**(`projectRoot_isTheParentOfDataPath`)。
+> · 三次均 SHA-256 逐字节还原(末次 `cee007e1…07ba`)。
+>
+> **回归**:EditMode `6110 / 6073 / 0 / 37` @ 2026-10-30 **11:54:11 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **11:55:07 CST**(`ae588656` + 工作树)。
+> 等式 `6110 − 6100 = 10` = 新增的 10 条 helper 夹具;**PlayMode 零变化**。
+>
+> **可复算命令**:
+> ```bash
+> # ① 7 个**既有**夹具不再直接拼 Application.dataPath
+> #    (排除实现 `MedConsRepoPaths.cs` 与其自身夹具 `medcons_repo_paths_test.cs` ——
+> #     后者测的正是「工程根 = dataPath 的父」,天然要读它)
+> grep -rn "Application.dataPath" unity/Assets/Tests/EditMode/MedConsequences/ \
+>   | grep -v "MedConsRepoPaths.cs" | grep -v "medcons_repo_paths_test.cs"
+> # 期望:只剩 medcons_outcome_judge_test.cs 的 3 行注释
+> #   ⚠️ 初版此处写「期望:仅注释行」并只排除实现文件 —— **实跑不符**(helper 自身夹具
+> #      命中了 4 行)。判据已就地订正:排除面必须含 `medcons_repo_paths_test.cs`。
+> # ② 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedConsRepoPathsTest   # 期望 10/10
+> ```
 
 > ✅ **2026-10-30 结案 —— `TD-medcons-01`**(用户指令「解除下一个 P0 登记债」)
 >

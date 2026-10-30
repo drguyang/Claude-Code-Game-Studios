@@ -24,10 +24,10 @@ namespace DaYiJingCheng.Tests.MedConsequences
     public sealed class CostTable53CookedCodecTest
     {
         private static string RepoRoot
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         private static byte[] ReadCommitted(string fileName)
-            => File.ReadAllBytes(Path.Combine(Application.dataPath, "DataCooked", fileName));
+            => File.ReadAllBytes(MedConsRepoPaths.CookedFile(fileName));
 
         /// <summary>9 的注册表行(与生产读方同一来源:注册表绑定器)。</summary>
         private static IReadOnlyList<DiseaseRegistryEntry> RegistryRows()

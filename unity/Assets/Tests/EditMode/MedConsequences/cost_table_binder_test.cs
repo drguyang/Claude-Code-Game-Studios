@@ -37,7 +37,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // ══════════════════════ 夹具基建 ══════════════════════
 
         private static string RepoRoot()
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         private static string RealCostTable() => File.ReadAllText(Path.Combine(RepoRoot(), "assets/data/53_cost_table.json"));
         private static string RealRegistry() => File.ReadAllText(Path.Combine(RepoRoot(), "assets/data/disease_registry.json"));

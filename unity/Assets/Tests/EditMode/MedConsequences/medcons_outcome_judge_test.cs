@@ -55,7 +55,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         /// 源与产物同步由烘焙测试守(见 BakeTable 四条校验段)。</para></summary>
         private static Outcome53.Table LoadTable()
         {
-            string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            string repoRoot = MedConsRepoPaths.RepoRoot;
             return OutcomeTable53.BakeTableFromRepo(repoRoot);
         }
 
@@ -238,7 +238,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         private static Dictionary<string, string> LoadGolden()
         {
-            string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            string repoRoot = MedConsRepoPaths.RepoRoot;
             string path = Path.Combine(repoRoot, "tests", "golden", "medcons", "golden-v1.txt");
             Assert.That(File.Exists(path), Is.True,
                 $"金标准缺失:{path}(由独立 Python 参考实现产出;测试只读不写 —— 防自指)");
@@ -586,7 +586,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             // ① 全覆盖(18 组合无空洞)② 值域 ∈ 闭集 ③ 零浮点 ④ 极性列不存在
             // —— 四条都在 Binder 内以聚合 throw 兑现;本条 = 正路径冒烟(合法源绑定成功)。
-            string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            string repoRoot = MedConsRepoPaths.RepoRoot;
             Assert.DoesNotThrow(() => OutcomeTable53.BakeFromRepo(repoRoot),
                 "合法源 JSON 须通过全部四条构建期校验");
         }
@@ -708,7 +708,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         /// <summary>仓根(与 <see cref="LoadTable"/> 同源)。</summary>
         private static string RepoRoot()
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         /// <summary>FNV-1a u32(测试内自足 —— 不用 UnityEngine.Hash128,承 ADR-010 纪律)。</summary>
         private static uint Fnv1a(byte[] bytes)
@@ -1288,9 +1288,10 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
             // 现行 53 三个源文件:零命中(反证本门的加强没有把现行代码判红)。
             // ⚠️ ConsequencesDirRelative 相对**工程根** `unity/`(门侧 RunAll(".") 同口径),
-            //   而 Application.dataPath 已是 `unity/Assets` ⇒ 须上跳一级。
-            string dir = Path.GetFullPath(Path.Combine(
-                Application.dataPath, "..", MedConsFloatGate.ConsequencesDirRelative));
+            //   **不是**相对仓根 ⇒ 用 `ProjectRoot`(= `Application.dataPath` 的父)而非 `RepoRoot`。
+            //   🔁 2026-10-30(`TD-medcons-09`):原为 `Path.GetFullPath(Path.Combine(Application.dataPath, "..", …))`,
+            //   路径解析已集中到 `MedConsRepoPaths` —— 本文件不再直接拼 `Application.dataPath`。
+            string dir = Path.Combine(MedConsRepoPaths.ProjectRoot, MedConsFloatGate.ConsequencesDirRelative);
             var scanned = Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories);
             Assert.Greater(scanned.Length, 0, "扫描面非空(Assets/Sim/Consequences)");
             foreach (string f in scanned)

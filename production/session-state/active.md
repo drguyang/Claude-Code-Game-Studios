@@ -13197,3 +13197,28 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`4f302408`+工作树)。与上轮**逐位一致**(只改断言、未增删测试)。
 - **计数**:`open 52 · closed 84 · partial 2 · 未闭 P0 面 28`(前 29)。
 - **未提交**。改动 2 件:`docs/tech-debt-register.md` + `medcons_outcome_judge_test.cs`。
+
+## Session Extract — 结案 `TD-medcons-09`(2026-10-30 第七批)
+
+- **用户指令**:「TD-medcons-09继续」。原判定:EditMode 单测做真实文件 I/O + 依赖
+  `Application.dataPath`;`dataPath/../../` 解析仓根,CI 检出布局变化即红。
+- **实测**:7 文件 / 15 处,其中 **11 处是同一行**各写一遍。
+- **✅ 还掉**:脆弱固定路径 → 新增 `MedConsRepoPaths.cs` 单点解析(向上搜 8 层找锚点
+  `assets/data/disease_registry.json`;找不到抛 `InvalidOperationException` 并**列出已试目录**)。
+  7 文件 15 处全改;`DataFile`/`CookedFile`/`ProjectRoot` 收口。
+- **❌ 没还掉(刻意的)**:EditMode 读仓内真材料 —— 被测对象就是「作者态 JSON → Binder → cooked」,
+  内联 fixture 会把被测对象换成测试数据(**判据退化**)。⇒ **具名例外**,按集成性 EditMode 夹具对待。
+  彻底消灭须**整体迁到 PlayMode**,不是内联。
+- **夹具**:`medcons_repo_paths_test.cs` 10 条(锚点真存在 / 稳定 / 工程根关系 / 两个派生路径 /
+  **空起点抛** / **搜过没找到抛且列已试目录** / 非法起点被跳过 / 当前布局对照)。
+- **⚠️ 证伪首轮抓到我自己写的真缺陷**:`RepoAnchorRelative` 常量只用在**异常报文**,
+  `ResolveFrom` 判据用**另一处硬编码字面量** ⇒ 改常量 10 条只红 1 条且是报文断言。**两份真源**。
+  已修(判据读常量)⇒ 重跑 M1 **6 红/4 绿**,归因干净。
+- **M2** 停用空起点专用报文 ⇒ 2 红;**M3** `ProjectRoot` 退化为 `RepoRoot` ⇒ 1 红。
+  三次 SHA-256 逐字节还原(末次 `cee007e1…07ba`)。
+- **⚠️ 我自己写的复算命令期望值也错过**:初版只排除实现文件,漏了 helper 自身夹具
+  (它天然要读 `Application.dataPath`)⇒ 实跑不符,已就地订正判据。
+- **回归**:EditMode `6110/6073/0/37` @11:54:11 · PlayMode `238/234/0/2/2` @11:55:07
+  (`ae588656`+工作树)。等式 `6110−6100=10` = 新增 helper 夹具。
+- **计数**:`open 51 · closed 85 · partial 2 · 未闭 P0 面 27`(前 28)。
+- **未提交**。改动 11 件(7 改 + 4 新含 .meta)+ 债册。

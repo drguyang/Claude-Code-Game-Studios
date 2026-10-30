@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // ══════════════════════ 夹具基建(与 cost_table_binder_test 同源)══════════════════════
 
         private static string RepoRoot()
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         private static string RealCostTable()
             => File.ReadAllText(Path.Combine(RepoRoot(), "assets/data/53_cost_table.json"));

@@ -56,7 +56,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
 
         private static string RepoRoot()
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         /// <summary>延迟表(烘焙机产物;测试直接驱动 Binder —— 反空转)。</summary>
         private static DelayTable53.Table LoadDelayTable()

@@ -33,7 +33,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
     public sealed class OverdoseSettlerTest
     {
         private static string RepoRoot
-            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            => MedConsRepoPaths.RepoRoot;
 
         private static IReadOnlyList<DiseaseRegistryEntry> Registry()
             => DiseaseRegistryBinder.Bind(
@@ -41,8 +41,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
         private static CostTable53DataSet RealData()
             => CostTable53CookedCodec.Read(
-                File.ReadAllBytes(Path.Combine(Application.dataPath, "DataCooked",
-                    DataBakeMenu.CostTableCookedAssetName)), Registry());
+                File.ReadAllBytes(MedConsRepoPaths.CookedFile(DataBakeMenu.CostTableCookedAssetName)), Registry());
 
         private static int InjuryIdOf(string key)
         {
