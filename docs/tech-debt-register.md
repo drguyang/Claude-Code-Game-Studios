@@ -1933,8 +1933,16 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > · 更深一层:`Judge.Evaluate` **零生产调用点** ⇒ 不是「算完没人接」,是「连算都不算」。
 > ⇒ **三条债开始指向 ADR-036 §Migration Plan 的 S1–S7**,其中 **S4(CompositionRoot 装配完成)
 > 之前不得结案** —— 「ADR 写了」不是解除动作,「生产装配面存在」才是。
-> ⚠️ 两处**未核**如实登记:① 9 的病程状态能否回答「该 tick 是否已痊愈」(ADR-036 §Risks R1,
-> **答不了则 D1 须退回重裁**);② 每 tick 全流排序的实测成本(§Risks R3)。
+> ⚠️ 两处**未核**如实登记(2026-10-30 已核其一半):① ~~9 的病程状态能否回答「该 tick 是否已痊愈」~~
+> ⇒ **✅ 已核(用户指令「核 R1」):能答,但今天答不出来** —— 痊愈判据在
+> (`F4OutcomeEvaluator.cs:288` 六条件合取)· 生产调用点在(`DiseaseVitalsService.cs:647`)·
+> 公开访问器在(`:217 GetOutcome`),唯被未裁的数值门挡着(`trend_window_ticks = 0`
+> ⇒ `IsConfigured = false` ⇒ 痊愈支不求值 ⇒ `InjuryState.Recovered` **生产上恒不可达**)。
+> ⇒ **D1 不退回**;但「D1 已接」≠「`Recovered` 6 格已可用」—— 那 6 格的可达性 = 数值轮裁
+> `W` / `TREND_EPS`(ADR-036 §Migration S1b)。**另查出一条次序陷阱**(ADR-036 §Risks R4):
+> `GetOutcome` 只给当前态 ⇒ `ConsequenceDriver` 必须排在 `BootRoot.cs:1314` 的
+> `VitalsService.OnTickEdge` **之后**,否则静默偏差一个 tick 且无报错。
+> ② 每 tick 全流排序的实测成本(**仍**未核,§Risks R3)。
 
 | **TD-s13-01 补记** | **S13-6 收窄后判据首次实测 = PASS**:A 草稿 11 行 / 3 项全结论;B 草稿 45 行 / 4 项全结论(撞 10 轮零报告,但草稿在盘上)。⚠️ **有效性仍待更多样本(n=1)**,且 B 侧「零报告」说明 agent 自我监控未修好 —— 修好的是「交付物不丢」 | 复核件 §一 | 下一次真实重评续记 |
 

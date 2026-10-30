@@ -2,7 +2,7 @@
 
 ## Status
 
-✅ **Accepted(2026-10-30)** —— **只裁方向,不实现。** §Validation V-1…V-10 **全部未跑(禁借绿)**。
+✅ **Accepted(2026-10-30)** —— **只裁方向,不实现。** §Validation V-1…V-12 **全部未跑(禁借绿)**。
 
 **三项用户裁定(2026-10-30,逐条照准)**:① **D 路真值 = 9 扩投影形状**;② **范围 = 全链一次接完**;
 ③ **产出物 = 先写 ADR 再实现**。
@@ -11,6 +11,12 @@
 
 **本件的由来**:`TD-medcons-13` / `-18` / `-19` 三条 P0 面债的触发条件都写着「装配轮」,
 而本轮实测发现它们的真实依赖**不在 53 内部** —— 见 §Context「Current State」。
+
+🔁 **2026-10-30 补记 · R1 已核(用户指令「核 R1」)**:原 §Risks R1 写「9 的病程状态能否回答
+『该 tick 是否已痊愈』**本轮未核**」。现已核:**能答,但今天答不出来** —— 判据在、调用点在、
+访问器在,唯被一个**未裁的数值门**挡着(`trend_window_ticks = 0`);另查出一条**次序陷阱**
+(`GetOutcome` 只返回当前态)。两条均见 §Risks R1 / R4 与 §Implementation Guidelines。
+**D1 不回炉。**
 
 ## Date
 
@@ -110,6 +116,16 @@ Engine Knowledge Risk **LOW**。
 9 的 `PatientOutcome`(ADR-032)是「**病程终态**」。二者在结案那一刻**不恒等**
 ⇒ **不得**拿 `PatientOutcomeChanged` 直接当 D(见 Alt 1)。
 
+⚠️ **可达性边界(R1 已核 · 2026-10-30)**:9 的痊愈判据**存在且已接线**
+(`F4OutcomeEvaluator` 六条件合取 → `DiseaseVitalsService.cs:647` → 公开访问器 `GetOutcome(p) :217`),
+但**今天不可达** —— 痊愈支受 `RecoveryWindowInput.IsConfigured`(`F4OutcomeEvaluator.cs:97`)门控,
+而 `disease_registry.json` 实测 `trend_window_ticks = 0` / `trend_eps = 0`(数值轮未裁)
+⇒ 两支都不求值 ⇒ **`InjuryState.Recovered` 生产上恒不可达**。
+
+⇒ **本裁与 Alt 2(恒 `NotRecovered`)在今天的效果完全相同**,唯一差别是:
+接了 D1,数值一填那 6 格**自动活**;Alt 2 是写死的,填了也不活。
+**不得**把「D1 已接」读成「Recovered 6 格已可用」。
+
 ### D2 · 全链一次装配(用户裁定)
 
 新增 `ConsequenceDriver`(住 `Gameplay.Boot`),`OnTickEdge(long tick)` 内依次:
@@ -173,6 +189,11 @@ CompositionRoot(装配)
 ## Implementation Guidelines
 
 - driver **不得**缓存跨 tick 的可变状态(承 AC-53-06「零跨 tick 态」)。
+- ⚠️ **次序(R4)**:`ConsequenceDriver.OnTickEdge` 在 `BootRoot` 的边沿序列里须排在
+  `_services.VitalsService.OnTickEdge(tick)`(`BootRoot.cs:1314`)**之后**。排之前 ⇒ 读上一 tick 的 F4 态,
+  **静默偏差一个 tick 且无报错**。此约束须有夹具(V-11),不得只写在注释里。
+- ⚠️ **`TryProject` 的 `tick` 只校验不回溯(R4)**:适配器拿到非当前 tick 须 fail-loud,
+  不得近似成「当前态」—— 那会把「问某个历史时刻」静默答成「此刻」。
 - `Aggregate` 每 tick **复制并全排序整条流** —— 见 §Performance Implications R3,实现轮须实测。
 - `ConsequenceEmitter` 的 **precondition 不变**:调用方**不得 catch `Emit` 抛出的异常后于更低 tick 重试**
   (Append 逐条即时提交,吞异常再试 = 撞 BCD-码-3)。
@@ -231,10 +252,38 @@ CompositionRoot(装配)
 
 ## Risks
 
-### R1 · 9 的病程状态**能否回答「该 tick 是否已痊愈」—— 本轮未核**
+### R1 · 9 的病程状态能回答「是否已痊愈」,**但今天被数值门挡住** —— ✅ 已核(2026-10-30)
 
-这是 D1 的**实现前置**:若 9 的病程状态只有「当前体征」而无「已痊愈」判据,
-则 D1 须退回重裁(不得由实现轮自行发明语义)。**未实测 = 不得借绿。**
+**结论:能答。D1 不回炉。** 三条实测:
+
+| # | 事实 | 出处 |
+|---|---|---|
+| ① | 9 **有**痊愈判据 —— F4 痊愈支 = 六条件合取(GDD `:1113-1120`) | `Sim/F4OutcomeEvaluator.cs:288`(返回 `InjuryState.Recovered`) |
+| ② | 有**生产调用点**(不是「只有测试」) | `Gameplay.Boot/DiseaseVitalsService.cs:647` → `F4OutcomeEvaluator.Evaluate(...)` |
+| ③ | 有**现成公开访问器**,S1 的适配器不用新造查询 | `DiseaseVitalsService.cs:217` `public InjuryState GetOutcome(PatientId p)` |
+
+**但今天答不出来**:痊愈支受 `RecoveryWindowInput.IsConfigured`
+(`WindowTicks > 0 && TrendEpsRaw >= 0`,`F4OutcomeEvaluator.cs:97`)门控,
+而实测 `assets/data/disease_registry.json` 的 `trend_window_ticks = 0`、`trend_eps = 0`
+(数值轮未裁)⇒ 痊愈支与迁延支**都不求值** ⇒ `InjuryState.Recovered` **生产上恒不可达**。
+
+> ⚠️ **这条必须在实现轮读三遍**:接完 D1 **不会**让那 6 格变活。
+> 「D1 已接」≠「`Recovered` 6 格已可用」;可达性 = 数值轮裁 `W` / `TREND_EPS`。
+
+### R4 · `GetOutcome` 只给**当前态**,不给任意 tick 的历史态(次序陷阱)
+
+`IDiseaseProjection.TryProject(patient, tick, …)` 的语义写着「取该病人在 `tick` 时刻的投影」,
+但现行访问器 `DiseaseVitalsService.GetOutcome(p)` 返回的是**最近一次 `OnTickEdge` 求值后的状态** ——
+它**没有** `tick` 形参,**不能回溯**。
+
+两条直接后果:
+- **次序约束**:`ConsequenceDriver` 在 `BootRoot` 的 tick 边沿序列里**必须排在
+  `VitalsService.OnTickEdge`(`BootRoot.cs:1314`)之后**;排在之前 ⇒ 读到的是**上一 tick** 的 F4 态
+  —— 静默偏差一个 tick,不会有任何报错。
+- **形参陷阱**:`TryProject` 的 `tick` 只能**校验**(≠ 当前 tick 时 fail-loud),不能回溯。
+  实现轮若要真回溯,须另立「F4 历史态」查询面 —— **不得**由适配器自行近似。
+
+**本条不是新裁,是对既有实现的如实登记**;它在 §Implementation Guidelines 与 V-11 各留一处。
 
 ### R2 · 空表惰性 = 「门在那儿,什么也没发生」
 
@@ -259,10 +308,11 @@ CompositionRoot(装配)
 
 | # | 步骤 | 归属 | 前置 |
 |---|---|---|---|
-| **S1** | 9 扩 `DiseaseProjectionSnapshot` + 生产实现 `IDiseaseProjection` | 9 / 边界层 | **R1 实测通过** |
+| **S1** | 9 扩 `DiseaseProjectionSnapshot` + 生产实现 `IDiseaseProjection`(取 `DiseaseVitalsService.GetOutcome`) | 9 / 边界层 | **R1 已核通过**(判据 / 调用点 / 访问器均在) |
+| **S1b** | 数值轮裁 `trend_window_ticks` / `trend_eps` —— **只影响 `Recovered` 6 格是否可达**,不阻塞 S1–S5 | 数值轮(用户) | — |
 | **S2** | `ConsequenceEmitter.BuildDueRows` 去重键剔除 outcome(D6 下层) | 53 | — |
 | **S3** | `ConsequenceDriver`(Aggregate → Judge → Emit)+ 构造期 D5 断言 + D6 上层 fail-loud | `Gameplay.Boot` | S1 / S2 |
-| **S4** | `CompositionRoot` 装配(表装载 / driver 构造 / `OnTicks` 注册 / 空表告警) | `Gameplay.Boot` | S3 |
+| **S4** | `CompositionRoot` 装配(表装载 / driver 构造 / `OnTicks` 注册 / 空表告警 / **边沿次序排在 `VitalsService` 之后——R4**) | `Gameplay.Boot` | S3 |
 | **S5** | 生产口径 `careKinds` 三支(D4)—— 并为三支各补一条夹具 | 53 | — |
 | **S6** | 债册归口:`TD-medcons-13` / `-18` / `-19` 改指本件 | 治理 | **S4 之后**才能结 |
 | **S7** | 性能实测(R3)并回填 V-7 | 实现轮 | S4 |
@@ -271,7 +321,7 @@ CompositionRoot(装配)
 
 ## Validation Criteria
 
-**V-1…V-10 全部未跑(禁借绿)。** 每条注明「判据 + 可复算载体」,实现轮逐条勾。
+**V-1…V-12 全部未跑(禁借绿)。** 每条注明「判据 + 可复算载体」,实现轮逐条勾。
 
 | # | 判据 | 载体 |
 |---|---|---|
@@ -285,6 +335,11 @@ CompositionRoot(装配)
 | V-8 | 无 provider ⇒ 全链不发**且**有显式告警 | 夹具:空 provider ⇒ `Emitted = 0` + 日志断言 |
 | V-9 | 非主机调用 ⇒ 零写入(既有 AC 不回归) | 既有 `test_required_clientAuthorityGate_nonHostWritesNothing` |
 | V-10 | 空判定表时**不得**静默产出后果 | 夹具:空表 + 有结案 ⇒ 不发 |
+| V-11 | **边沿次序**:`ConsequenceDriver` 排在 `VitalsService.OnTickEdge` 之后 | 源文本 / 装配序断言(同 `TD-medcons-12` 载体 ③ 的形态)—— 排错的后果是**静默偏差一 tick**,无报错 |
+| V-12 | `TryProject` 收到非当前 tick ⇒ **fail-loud**(不近似成当前态) | 夹具:传 t−1 ⇒ 抛 |
+
+**R1 已核,但「已核」≠「已证」**:`Recovered` 6 格的可达性依赖 S1b(数值轮),
+在那之前 **V-1 只能证「接口通」,不能证「6 格活」** —— 不得借绿。
 
 ## GDD Requirements Addressed
 

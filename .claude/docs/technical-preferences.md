@@ -977,10 +977,16 @@
   **驳回四案**:病史流 `PatientOutcomeChanged` 当 D 路(**语义不同 / 是事件非投影 / 生产零调用点** 三因)·
   恒 `NotRecovered` 占位(6 格永不可达 = **假绿面**,与 ADR-035 驳回「设计纪律」同理)·
   只接发出半边(`-19` / `-13` 解不了)· 53 直读 9 程序集(破 ADR-016 §一 + ADR-025 引用集)。
-  **三条风险**:R1 **9 的病程状态能否回答「该 tick 是否已痊愈」本轮未核** —— 答不了则 D1 退回重裁;
+  **三条风险**:R1 **已核(2026-10-30 用户指令「核 R1」)—— 9 能答,但今天答不出来**:
+  痊愈判据在(`F4OutcomeEvaluator.cs:288` 六条件合取)· 生产调用点在(`DiseaseVitalsService.cs:647`)·
+  公开访问器在(`:217 GetOutcome`),唯被未裁的数值门挡着(`trend_window_ticks = 0` ⇒ `IsConfigured = false`
+  ⇒ 痊愈支不求值 ⇒ `InjuryState.Recovered` 生产上恒不可达)⇒ **D1 不退回**;但「D1 已接」≠「`Recovered`
+  6 格已可用」(与 Alt 2 **今日效果相同**,差别只在数值一填即活)。另新增 **R4 次序陷阱**:`GetOutcome`
+  只返回**当前态**,`ConsequenceDriver` 须排在 `BootRoot.cs:1314 VitalsService.OnTickEdge` **之后**
+  (排之前 = 静默偏差一 tick,无报错);且 `TryProject` 的 `tick` 只校验、不回溯(非当前 tick ⇒ fail-loud);
   R2 空表惰性与「未启用」同形;R3 `Aggregate` 每 tick 全流排序被搬上热路径(**不优化它** ——
   优化会动 AC-53-04 的结构性保证;逼近 tick 预算须**另开 ADR**)。
-  **§Validation V-1…V-10 全部未跑(禁借绿)**。**三条债的解除动作 = S4(CompositionRoot 装配完成),
+  **§Validation V-1…V-12 全部未跑(禁借绿)**。**三条债的解除动作 = S4(CompositionRoot 装配完成),
   不是「ADR 写了」**。Engine Knowledge Risk **LOW**(纯装配与接口契约;`Sim` / `Sim.Contracts`
   引用集一字不改,门 A / b2 / ADR-025 §① 全部继续成立)。
 
