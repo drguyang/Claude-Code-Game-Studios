@@ -953,7 +953,38 @@
   **静默退化为恒绿**)。证据原件 = `production/qa/evidence/review-tdmedcons-15-2026-10-29.md`
   (三路专家意见合并件,含分歧与采纳理由)。Engine Knowledge Risk **LOW**(纯数据边界与构建期断言,零 post-cutoff API)。
 
-> **本日志状态**:全部 ADR(001–**035**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-036 ✅ Accepted 2026-10-30]**53 判定链的生产装配(D 路真值 · 判定 · 后果发出)** ——
+  `docs/architecture/adr-036-consequence-chain-assembly.md`。**由 `TD-medcons-13` / `-18` / `-19`
+  三条 P0 面债的「等装配轮」上溯提出** —— 三条债互相引用,却**没有任何东西叫「装配轮」**。
+  本轮机械勘察(六条可复跑命令见该件 §Context)查出真实依赖**不在 53 内部**:
+  ① `ConsequenceEmitter` 零生产装配点;② **`Judge.Evaluate` 零生产调用点**(不是「算完没人接」,
+  是「连算都不算」);③ **D 路无真值** —— `DiseaseProjectionSnapshot` 只有 `Tick`
+  (自述「形状归 9 修订轮」),`CaseClosedPayload` = `{PatientId, CaseId, DiseaseSet, Treated}` 无痊愈位
+  ⇒ 判定表 18 格里 `Recovered` 那 **6 格生产上永不可达**;④ `PatientOutcomeChangedWriter` 有类、
+  **零实例化**。**三项用户裁定**(2026-10-30,逐条照准):**D 路真值 = 9 扩投影形状** ·
+  **范围 = 全链一次接完** · **产出物 = 先写 ADR 再实现**。
+  **§Decision D3–D6 与 §Alternatives 由起草轮就地拟定,未经用户逐条确认**(同 ADR-034 口径,
+  实现轮前可改):**D1** 9 扩 `DiseaseProjectionSnapshot` 加痊愈位、实现住 9 边界层、
+  53 只经 `IDiseaseProjection` 取值(⚠️ 与 `PatientOutcome`「病程终态」**语义不恒等** —— 故复用它被驳)·
+  **D2** 新增 `ConsequenceDriver`(`Gameplay.Boot`),`OnTickEdge` 内 `Aggregate → Judge → Emit`,
+  注册进 `CompositionRootServices.OnTicks`(与 `EmergencyChannelDriver` 同构,非新机制)·
+  **D3** 表装载经 `IDataProvider`,缺 provider ⇒ 空表惰性(**不发,不是不判**,须显式告警)·
+  **D4** `careKinds` 三支 `{CareApplied, EmergencyTreatmentApplied, DrugTreatmentApplied}`
+  (⚠️ 测试侧今日只喂一支 ⇒ **生产 C 路覆盖是新增面,不得拿现有夹具当已证**)·
+  **D5** `Emit` 的读流与写流须同一引用 ⇒ **driver 构造期** `ReferenceEquals` fail-loud
+  (**不放进 Emitter** —— 它只拿 `IEventSink`,看不到 sink 的读面,在那里无法表达)·
+  **D6** 去重键**剔除 outcome**(纵深防御)+ driver 内同 `CaseClosed` 不同 outcome 即抛(上层 fail-loud)。
+  **驳回四案**:病史流 `PatientOutcomeChanged` 当 D 路(**语义不同 / 是事件非投影 / 生产零调用点** 三因)·
+  恒 `NotRecovered` 占位(6 格永不可达 = **假绿面**,与 ADR-035 驳回「设计纪律」同理)·
+  只接发出半边(`-19` / `-13` 解不了)· 53 直读 9 程序集(破 ADR-016 §一 + ADR-025 引用集)。
+  **三条风险**:R1 **9 的病程状态能否回答「该 tick 是否已痊愈」本轮未核** —— 答不了则 D1 退回重裁;
+  R2 空表惰性与「未启用」同形;R3 `Aggregate` 每 tick 全流排序被搬上热路径(**不优化它** ——
+  优化会动 AC-53-04 的结构性保证;逼近 tick 预算须**另开 ADR**)。
+  **§Validation V-1…V-10 全部未跑(禁借绿)**。**三条债的解除动作 = S4(CompositionRoot 装配完成),
+  不是「ADR 写了」**。Engine Knowledge Risk **LOW**(纯装配与接口契约;`Sim` / `Sim.Contracts`
+  引用集一字不改,门 A / b2 / ADR-025 §① 全部继续成立)。
+
+> **本日志状态**:全部 ADR(001–**036**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
@@ -967,11 +998,12 @@
 > Accepted;文件号按落盘时序)。
 > **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
 > Pre-Production 开工门的技术侧**无阻塞项**。
-> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
+> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 / 036 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
 > 结清 `PRE-S18-C`)· ADR-033(结构 id 撞号,结清 `TD-building-02` 的语义半边)·
 > ADR-034(存档 v2 载荷段,结清 `TD-persist-09` 的裁定半边)· ADR-028(audio 小裁批)·
 > ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)** ·
-> **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)**
+> **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)** ·
+> **ADR-036(53 判定链装配,为 `TD-medcons-13` / `-18` / `-19` 立可开工对象;三条债须待其 S4 才可结)**
 > 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists

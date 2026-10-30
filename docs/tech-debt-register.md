@@ -1924,6 +1924,18 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | **TD-medcons-17** | **`ConsequenceEmitter.BuildDueRows` 51 行**(185-235)超 ≤40 标准;≤40 无门 ⇒ 无夹具 | 复核件 §三 方法长度 | 54 / 代码规范闸落地时 |
 | **TD-medcons-18** | **三处 S3 新缺陷(静态可判,未构造反例)**:① D-1 `stream` 与 `_eventSink` 非同一条流时 S-B2 预检静默失效(构造器无一致性断言);② D-2 部分成功后抛异常不回填 `emittedCount`,「不得 catch 重试」在类型面不可表达;③ D-3 同一 CaseClosed 以**不同 outcome** 重喂不去重(去重键含 outcome)⇒ 可发两条后果,违 GDD `:323` | 复核件 §三 新缺陷 | 装配轮(53 接线)之前 —— D-1 尤其须在装配层定契约 |
 | **TD-medcons-19** | **两条自包含夹具判别力弱**:`test_sb1_truncatedEligible_*`(断言前提违例的后果,对生产码分支零判别力)· `test_ac6_bandCountSingleSource*`(`BuildEligible` 是测试侧 helper,生产装配面未被约束) | 复核件 §三 | 数值轮(U 档扩档)启动时一并补真装配面判据 |
+> 🔁 **2026-10-30 · 归口订正(用户裁定「裁 53 装配轮」)** —— `TD-medcons-13` / `-18` / `-19`
+> 三条的触发条件都写着「装配轮」,但**从没有一件东西叫「装配轮」**。本轮把它的真实依赖核了出来
+> (六条可复跑命令见 ADR-036 §Context「Current State」),并落 **ADR-036**
+> (`docs/architecture/adr-036-consequence-chain-assembly.md`):
+> · 真实依赖**不在 53 内部,在 9 的病程投影形状** —— `DiseaseProjectionSnapshot` 只有 `Tick`,
+>   `CaseClosedPayload` 无痊愈位 ⇒ 判定表 `Recovered` 那 **6 格生产上永不可达**;
+> · 更深一层:`Judge.Evaluate` **零生产调用点** ⇒ 不是「算完没人接」,是「连算都不算」。
+> ⇒ **三条债开始指向 ADR-036 §Migration Plan 的 S1–S7**,其中 **S4(CompositionRoot 装配完成)
+> 之前不得结案** —— 「ADR 写了」不是解除动作,「生产装配面存在」才是。
+> ⚠️ 两处**未核**如实登记:① 9 的病程状态能否回答「该 tick 是否已痊愈」(ADR-036 §Risks R1,
+> **答不了则 D1 须退回重裁**);② 每 tick 全流排序的实测成本(§Risks R3)。
+
 | **TD-s13-01 补记** | **S13-6 收窄后判据首次实测 = PASS**:A 草稿 11 行 / 3 项全结论;B 草稿 45 行 / 4 项全结论(撞 10 轮零报告,但草稿在盘上)。⚠️ **有效性仍待更多样本(n=1)**,且 B 侧「零报告」说明 agent 自我监控未修好 —— 修好的是「交付物不丢」 | 复核件 §一 | 下一次真实重评续记 |
 
 ---
