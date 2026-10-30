@@ -337,7 +337,7 @@
 | `TD-processing-04` | `processing` | open | **N** | R4 |
 | `TD-processing-05` | `processing` | open | **N** | R4 |
 | `TD-processing-06` | `processing` | open | **N** | R4 |
-| `TD-processing-07` | `processing` | open | **Y** | R1 |
+| `TD-processing-07` | `processing` | partial | **Y** | R1 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -378,7 +378,7 @@
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
-| `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-a` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-b` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
@@ -418,9 +418,9 @@
 | `TD-clinic-15` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-16` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-17` | `clinic-machine` | closed | **Y** | R1 |
-| `TD-clinic-18` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-18` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-19` | `clinic-machine` | open | **N** | R4 |
-| `TD-clinic-20` | `clinic-machine` | open | **Y** | R4 |
+| `TD-clinic-20` | `clinic-machine` | closed | **Y** | R4 |
 | `TD-clinic-21` | `clinic-machine` | open | **N** | R4 |
 | `TD-clinic-22` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-gate-01` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
@@ -850,11 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 105, 'open': 30, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 7 （已闭但曾标 P0 面的 96 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 4/31 个 epic
-    telemetry-analytics: 3    clinic-machine: 2         patient-ai: 1
-    processing: 1
+条目 139 | 状态 {'closed': 108, 'open': 26, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 4 （已闭但曾标 P0 面的 99 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 4 条,分布在 3/31 个 epic
+    telemetry-analytics: 2    patient-ai: 1             processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -7107,3 +7106,409 @@ done
 **计数**:`未闭 P0 面 7 → 7`(一位不动 —— `partial` 仍计入未闭面,承 §五 脚本 `r[2] != 'closed'` 口径)·
 `open 30 / partial 3`(本轮 `TD-epic-01-e` `open → partial`,一对对调)· `条目 139` 一位不动。
 ⚠️ **勿把「未闭面还是 7」读成「本轮没动」** —— 变的是**状态细分**,不是出口判据。
+
+---
+
+## 2026-10-30 · `TD-epic-01-a` 结案 —— 前提已被自己的勘察轮证伪,且①的实例已修
+
+> ✅ **2026-10-30 结案**。用户指令「排查」时上溯发现:本条**三项自陈前提里两项已被推翻**,
+> 第三项(「再出现第三个同族多 Kind 载荷时」)也**已满足且已按本条期望的方式处理**。
+> 本条**不是被修掉的,是被证伪掉的** —— 原文不删,留作闭环记录。
+
+### 一、原判定(债册 `:3092`,逐字)
+
+> 「`IPayloadDecoder` 的类型校验只覆盖「Kind → 单一载荷类型」,不覆盖「同类多载荷」的情形 ——
+> `JudgmentRecorded` / `JudgmentRevised` 是两个 Kind 各自的类型,但调用方极易写成一个 `case`
+> 覆盖两者统一解(**`TelemetryReporter` 正是如此,两处**)。接口层**无法**在编译期拦住这类错配;
+> 运行期抛出的异常又被 `catch → skipped` 的惯用写法吞掉」
+
+### 二、逐项复核(每项可当场重跑)
+
+**① 「`TelemetryReporter` 正是如此,两处」—— ❌ 已不成立(2026-10-19 第十六片就修了)**
+
+```bash
+grep -n "case EventKind.JudgmentRecorded:" unity/Assets/Gameplay.Boot/TelemetryReporter.cs
+# ⇒ 169: 与 658:(两处 switch,各一处)
+grep -c "if (kind == EventKind.JudgmentRevised)" unity/Assets/Gameplay.Boot/TelemetryReporter.cs
+# ⇒ 2
+```
+两处**都**已按 `kind` 分型:`JudgmentRevised` ⇒ `Decode<JudgmentRevisedPayload>`,
+否则 ⇒ `Decode<JudgmentRecordedPayload>`(`:178-190` / `:663-675`)。
+⇒ 「一个 `case` 覆盖两者统一解」这个**具体缺陷实例**已不存在。而**债的宾语正是这个实例**。
+
+**② 「运行期异常被 `catch → skipped` 吞掉」—— ❌ 该前提已被勘察轮证伪**
+
+勘察轮(债册 §「`TD-epic-01-b` 勘察轮」)实测三问,结论逐字:
+
+| 问 | 实测 | 结论 |
+|---|---|---|
+| 「未驻留」vs「损坏」可分吗 | `InvalidOperationException` vs `InvalidDataException` | ✅ 可分 |
+| 「类型错配」vs「schema 损坏」可分吗 | **都抛 `InvalidDataException`** | ❌ 不可分 |
+| 能否派生子类区分 | `InvalidDataException` 在 BCL 里 **`sealed`** | ❌ 做不到 |
+
+且**类型错配分支在生产路径不可达**:`Decode<T>` 的 `boxed is T` 失败只在
+「调用方请求的 `T` 与 `kind` 的载荷类型不符」时发生,而调用方 `T` 是**编译期字面量**、
+`kind` 是**运行时枚举** —— 要让两者错配,得先写出 `Decode<JudgmentRevisedPayload>(JudgmentRecorded, …)`
+这种**静态错误**;真实事件流里 `kind` 与载荷字节由同一处编码产出,撞不到。
+(第三行探针输出 `PROBE-MSG=JudgmentRecorded: tag=0 越界(1..31)` 证明:用别的 Kind 的字节冒充时,
+抛的是 **schema 越界**,`:54` 的类型校验行**执行不到**。)
+
+⇒ **本条要治的「类型错配被伪装成数据质量问题」在运行期没有宾语**。
+这不是「修好了」,是「**原判定的严重度标错了**」—— 它更接近「编译期该防但防不住」的代码卫生问题。
+
+**③ 触发条件「再出现第三个同族多 Kind 载荷时」—— ✅ 已满足,且已按期望方式处理**
+
+- 第三、第四个同族多载荷**已出现**:`EmergencyTreatmentApplied` / `DrugTreatmentApplied` 等
+  (`grep -n "_decoder.Decode<" TelemetryReporter.cs` ⇒ 9 处调用,`:400` 处传 `e.Kind` 而非字面量)。
+- 处理方式**正是本条期望的**:按 `kind` 分型(见 ①),**没有**用「一个 `case` 统一解」。
+- **`IPayloadDecoder` 未被窄修订**,也**无需**窄修订 —— 契约面 `T Decode<T>(EventKind, in PayloadRef)`
+  的形状在 9 处调用点上都被正确使用。
+
+### 三、为什么不改成「已修」而写「已证伪」
+
+两个动作不同:
+- **「修」** = 缺陷在代码里,改成对的行为。本条**没有可修的缺陷** —— 那个实例早在第十六片就没了。
+- **「证伪」** = 原判定赖以成立的事实前提不成立 ⇒ 债失去宾语。
+
+⚠️ **仍留下的真实限制(不随本条结案消失,但已另有归属)**:
+- 「类型错配不可在运行期分类」= **`TD-epic-01-b` 方案 A 的已知边界**
+  (已结案,`skipped` 只分 `Missing` / `Corrupt` 两类,**第三类刻意不设**)。
+- 「`InvalidDataException` 是 sealed ⇒ 无法派生细分」= 同上,已在该条结案段登记。
+⇒ 本条**不重复立债**,两处限制归 `TD-epic-01-b` 的结案记录。
+
+### 四、状态变更
+
+`open → closed`。`未闭 P0 面 7 → 6`。`telemetry-analytics` 名下未闭 P0 面 `3 → 2`
+(剩 `TD-epic-01-d` / `TD-epic-01-e`)。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|epic"
+# ⇒ 未闭 P0 面 = 6
+# ⇒ telemetry-analytics: 2
+```
+
+---
+
+## 2026-10-30 · `TD-processing-07` 状态精确化(`open` → `partial`,**未结案**)
+
+> 排查轮上溯发现:本条正文「修法方向 ③」写着「**仍未做** —— `golden-v1.txt` 是 21a 的 19 条,
+> **不含任何发号场景** ⇒ 新场景要么并入 `golden-v2`,要么另立 18 侧金标准」。**这句已过期**。
+> 本条**不结案** —— 但 `open` 改 `partial`,因为「③ 的产出物」已落、「③ 的验收」仍卡外部。
+
+### 一、③ 的产出物:已落(可当场核)
+
+| 要求 | 落点 | 实跑 |
+|---|---|---|
+| 金标准含发号场景 | `tests/golden/eventstream/golden-v2.txt` | `grep -n S04 tests/golden/eventstream/golden-v2.txt` ⇒ `S04_same_tick_two_crafts_patientNone 0,1` |
+| **判别力场景**(同 tick 两条 `Patient=None`) | 同上 | 该行序列 = `0,1`,**不全为 0** ⇒ 正是本条要求的「判别力正控」 |
+| 独立参考实现(零共享 C#) | `tests/golden/eventstream/golden_v2_reference.py` | `S04_*()` 的 doc 逐字点名 `TD-processing-07` |
+| C# 侧对拍 | `unity/Assets/Tests/EditMode/DiseaseSimulation/seq_issuance_golden_test.cs` | 3 条夹具(逐场景对拍 / 场景集双向齐备 / 防自指) |
+| CI 上真复现(非「盘上有文件」) | `.github/workflows/unity-tests.yml` `golden-reference-sync` | 纯 Python job,判据 = 重跑参考实现与入库金标准**逐字节 `diff -u`** |
+
+⇒ 本条修法 ③ 的**宾语**(「新场景要么并入 golden-v2,要么另立 18 侧金标准」)已由 `TD-itemdb-02` 兑现。
+**本条与 `TD-itemdb-02` 的关系不是重复立债,是「前提 / 结论」**:后者造基准,前者要的是
+「基准上跑出跨平台逐位相同**且不全为 0**」这个**结论**。
+
+### 二、③ 的验收:仍卡外部(这就是本条不能结案的原因)
+
+`TD-itemdb-02` 造的是**基准**,不是**三格对拍结论**。本条要的后者须:
+
+| 前置 | 现状 | 判据 |
+|---|---|---|
+| ADR-012 三格矩阵常驻跑 | ⚠️ **job 已建但从未跑** | `.github/workflows/unity-tests.yml:5` 自陈「需要 secrets: UNITY_CLIENT_ID, UNITY_CLIENT_SECRET」;`:58-59` 有 `if [ -z … ]; then echo "⚠️ 未配置 — 跳过"` ⇒ 凭据缺失时**静默跳过** |
+| Linux-x64-Mono 格 | ✅ 桌面已跑通(2026-09-24) | 证据 `ac-29-il2cpp-crosscheck-2026-09-24.md` |
+| Linux-x64-IL2CPP 格 | ✅ 桌面已跑通(2026-09-24,3/3) | 同上 |
+| Linux-ARM64-IL2CPP 格 | ❌ **目标不存在** | pinned 工具链 46 个 BuildTarget 无任何 arm 目标 |
+
+⚠️ **桌面跑通 ≠ CI 常驻跑通**。ADR-012 要的是**常驻矩阵**;今日只有**桌面一次性**证据 + **从未触发**的 CI job。
+⇒ 本条的出口判据(「三格 `Seq` 序列逐位相同且不全为 0」)**今天不可能产出**。
+
+### 三、为什么不直接结案
+
+「产出物已落」与「判据已过」是两件事(承 `.claude/skills/code-review` §Phase 8b 的 Landed / Proven 分列):
+
+- **Landed(已落)** = ✅ 金标准 + 参考实现 + C# 对拍 + CI 同步 job 都在盘上。
+- **Proven(已证)** = ❌ **未跑** —— 三格矩阵今天跑不起来(凭据缺失 + ARM64 目标不存在)。
+- ⇒ `Landed=✅ / Proven=✗` 是**合法的诚实状态**,本条据此转 `partial`,**不得标 `closed`**。
+
+### 四、状态变更
+
+`open → partial`。`未闭 P0 面` **一位不动**(`partial` 仍计入未闭面,承 §五 脚本 `r[2] != 'closed'` 口径)
+⇒ **6 → 6**。变的只有 `open 29 → 28` / `partial 3 → 4`。
+
+⚠️ **勿把「未闭面还是 6」读成「本轮没动」** —— 动的是状态细分。
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|状态"
+# ⇒ 未闭 P0 面 = 6
+# ⇒ {'closed': 106, 'open': 28, 'partial': 4, …}
+```
+
+---
+
+## 2026-10-30 · `TD-clinic-20` 勘察 —— 病因比原文写的更根本(本条**仍 open**,但性质已改判)
+
+> 排查轮上溯发现:本条原文把病因写成「**交付通道未收敛** —— `ClinicEnvironmentMemo` 直引 `Sim.Clinic`
+> 而非走 `IClinicEnvQuery`」,并给出修法「解除条件 = `ClinicEnvDto` 的 ① 房号映射裁定」。
+> **实测后改判:① 的映射不但仍缺,而且契约签名与真实数据模型不符 —— 那不是「还没裁」,是「裁了也做不到」。**
+
+### 一、原文三处已过期的表述(逐条实测)
+
+| 原文 | 实测(2026-10-30) | 判定 |
+|---|---|---|
+| 「`ClinicEnvironmentMemo` 直接缓存 `Sim.Clinic.ClinicEnvEvaluation`,**绕开**该契约通道」 | 该类**已**在 `:184` 提供 `GetDto()` 并缓存 `ClinicEnvDto`,由 `ClinicEnvProjection.ToDto` **单点**投影;类头注 `:33-37` 自陈「兑现 ADR-025 §① 契约通道,W-2 的真修」 | ❌ **已过期** |
+| 「修法 ② `ContextIds` ↔ `ContextId` string **已由 S20-2 两张词表解决**」 | 仍成立 —— `ClinicContextNameTable` 已落 | ✅ 成立 |
+| 「① `GetEnv(int roomId)` 的 int 房号 ↔ `ClinicRoomId(High,Low)` **仍缺**」 | 仍缺,**且原因比「未裁」严重** | ⚠️ **需改判,见 §二** |
+
+### 二、真正的病因:契约签名与数据模型**结构性不符**
+
+`ClinicEnvDto.cs:17` 的 4-c 注逐字:「`GetEnv(room)` 的 room 类型 registry 未点名(4-c):
+取 **int**(24 的房间是**整数格连通块导出的房号**,`ROOM_NONE = 0` 是合法输入)」。
+
+而**真实的房间标识**是 `ClinicRoomId`(`Sim/Clinic/ClinicRoomId.cs:30`):
+
+```csharp
+public readonly struct ClinicRoomId   // High: int, Low: int —— **64 位布局哈希**
+```
+
+且该文件 `:11-19` 的派生纪律逐字:「id 由**布局的规范排序格集**经确定性整数混合派生」——
+**不是「整数格连通块导出的房号」**。两者是**不同的量**:
+
+| | 契约注声称 | 实际 |
+|---|---|---|
+| 形状 | 单个 `int`(房号) | 两个 `int`(`High` / `Low`) |
+| 来源 | 整数格连通块导出 | 布局规范排序格集的确定性哈希 |
+| 哨兵 | `ROOM_NONE = 0` | `ClinicRoomId.None = (0,0)` |
+
+⇒ **`int` 装不下 `ClinicRoomId`**(64 位 → 32 位必然碰撞,而碰撞会让两间不同房间
+取到同一 env)。**这不是「映射规则还没裁」,是「契约签名本身错了」。**
+原文说的「① 的映射裁定」因此**不是一个可裁的问题** —— 裁出来的任何 `int` 映射都无损不了。
+
+### 三、更硬的一条:`IClinicEnvQuery` **零实装、零调用点**
+
+```bash
+grep -rn ": IClinicEnvQuery" unity/Assets/ --include=*.cs | grep -v Tests   # ⇒ 0
+grep -rn "\.GetEnv("         unity/Assets/ --include=*.cs | grep -v Tests   # ⇒ 0(仅契约文件自己的注释)
+```
+
+⇒ 该接口**从未被任何人实现过,也从未被任何人调用过**。它不是「还没收敛到」,
+是**一个从出生起就没有生产物的契约**。
+
+⚠️ **这与 ADR-025 §① 的自陈不一致**:ADR-025 把 `IClinicEnvQuery` 当作 24→42 的**唯一**交付形态,
+而 42 的真实读面 `ClinicEnvironmentMemo.GetDto()` 直接拿 `ClinicEnvDto`(**不经过该接口**)。
+
+### 四、为什么不修,而只改判
+
+修它要动 **ADR-025 的契约签名**(`GetEnv(int)` → `GetEnv(ClinicRoomId)`)——
+而 `ClinicRoomId` 住 **`Sim`**(不是 `Sim.Contracts`),`Sim.Contracts` 的引用集**恰 = BCL**
+(ADR-025 §① / b2 门)。⇒ **把 `ClinicRoomId` 搬进契约面,或让契约面反向依赖 `Sim`,
+两条都击穿已裁的程序集边。**
+
+这不是实现动作能解决的,须一次**架构裁决**,三条路各有代价:
+
+| 方案 | 动作 | 代价 |
+|---|---|---|
+| 甲 · 搬 `ClinicRoomId` 进 `Sim.Contracts` | 契约面持有房间标识 | 动 ADR-025 §① 的 `Sim.Contracts` 内容清单 + 全仓引用面 |
+| 乙 · 契约改 `GetEnv(High, Low)` 两个 int | 不搬类型,只改签名 | 契约签名丑但零程序集涟漪;**仍须裁** |
+| 丙 · 删掉 `IClinicEnvQuery`,承认 `GetDto()` 就是通道 | 收缩 ADR-025 §① | 与 ADR-025 原文冲突,须窄修订 |
+
+⚠️ **本勘察轮不选任何一条** —— 三条都须用户裁定,且都动已 Accepted 的 ADR。
+
+### 五、状态变更
+
+`open` **维持 `open`**(不转 `partial`:本轮**没有产出物**,只把病因说清了)。
+⚠️ **但本条的「解除动作」须重写** —— 原文「解除条件 = ① 的映射裁定」**不成立**,
+新口径 = **`IClinicEnvQuery` 签名的架构裁决**(上表三选一)。
+
+复算:
+```bash
+grep -rn ": IClinicEnvQuery" unity/Assets/ --include=*.cs | grep -v Tests | wc -l   # ⇒ 0
+grep -rn "\.GetEnv("         unity/Assets/ --include=*.cs | grep -v Tests | wc -l   # ⇒ 0
+grep -n "High\|Low" unity/Assets/Sim/Clinic/ClinicRoomId.cs | head -3               # ⇒ 两个 int
+grep -n "ClinicRoomId" unity/Assets/Sim.Contracts/*.cs                              # ⇒ 0(契约面不认识它)
+```
+
+---
+
+## 2026-10-30 · 排查轮总结 —— 7 条未闭 P0 面债逐条上溯
+
+用户指令「排查」的执行结果。**核心发现:7 条里有 2 条的前提已被自己的历史轮次推翻**
+(一条结案、一条转 `partial`),另 5 条前置确认仍在。
+
+| 债 | 原状态 | 排查后 | 依据 |
+|---|---|---|---|
+| `TD-epic-01-a` | open | **closed** | 三项自陈前提里两项已被证伪、第三项(「再出现第三个同族多 Kind」)已满足且已按期望处理;具体缺陷实例(`TelemetryReporter` 两处)2026-10-19 已修 |
+| `TD-processing-07` | open | **partial** | 修法 ③ 的产出物(`golden-v2` + Python 参考实现 + C# 对拍 + CI 同步 job)**已落**;③ 的**验收**(三格逐位)仍卡外部 |
+| `TD-epic-01-e` | open | **partial**(本轮早先) | 复核已做;AC 勾选仍待 3 条 NOT-RUN 结清 |
+| `TD-clinic-20` | open | **open**(病因改判) | 原文病因「通道未收敛」已过期(`GetDto()` 已兑现);真实病因 = 契约签名 `GetEnv(int)` 与 `ClinicRoomId`(64 位)**结构性不符**,且该接口零实装零调用点 |
+| `TD-clinic-18` | open | open | 前置未变:`IClinicReviveCell` 全树零命中;`clinic-machine.md` 无「床类家具 / 复活点」正文 |
+| `TD-prescription-06` | open | open | 前置未变:无病人真模型资产(`find -iname "*patient*.prefab"` 零命中) |
+| `TD-epic-01-d` | open | open | 两半前置均未变:① CI 凭据未配(`:58-59` 缺凭据即**静默跳过**);② `IEventAuthority` 唯一实装是 `P0HostEventAuthority`,实现 `IP0AuthorityPlaceholder` ⇒ 被哨兵正确排除 |
+
+**计数**:`未闭 P0 面 7 → 6`(`TD-epic-01-a` 结案)· `open 30 → 28` · `partial 3 → 4` · `closed 105 → 106`。
+⚠️ `TD-processing-07` 的 `open → partial` **不改变**未闭面(`partial` 仍计入)。
+
+**需要用户裁定的两条**(均动已 Accepted 的 ADR,本轮不擅自动):
+
+1. **`TD-clinic-20`** —— `IClinicEnvQuery.GetEnv(int roomId)` 装不下 `ClinicRoomId`(64 位)。
+   三选一:甲 搬 `ClinicRoomId` 进 `Sim.Contracts` / 乙 契约改 `GetEnv(High, Low)` /
+   丙 删掉该接口、承认 `GetDto()` 就是通道。⚠️ 甲乙都动 ADR-025 §① 的程序集边。
+2. **`TD-clinic-18`** —— 须 24 的下一轮写「床类家具格的确定性选定规则」正文;
+   但 **24 的 GDD 已 Approved**,补新节算不算「修订 Approved 件」须裁定。
+
+其余 4 条(`TD-clinic-18` 的另一面 / `TD-prescription-06` / `TD-epic-01-d` / `TD-processing-07` 的验收半)
+**均卡在项目外部前置**(美术资产 / 联机 P1b / CI 凭据 / ARM64 目标不存在),不是能自主推进的。
+
+---
+
+## 2026-10-30 · `TD-clinic-20` 结案(丙案:删掉 `IClinicEnvQuery`,承认 `GetDto()` 就是通道)
+
+> ✅ **用户裁定丙案**(2026-10-30)。本条的病因已在同日勘察段改判:
+> **不是「通道未收敛」,是「契约签名装不下真实数据模型」** —— 详见上方
+> §「`TD-clinic-20` 勘察」。丙案 = **承认现状**:`ClinicEnvironmentMemo.GetDto()` 就是
+> ADR-025 §① 的契约通道,删掉那个从未存在过的接口。
+
+### 一、改动(五件,逐件可核)
+
+| # | 落点 | 动作 |
+|---|---|---|
+| ① | `Sim.Contracts/ClinicEnvDto.cs` | **删 `IClinicEnvQuery`**(留档原文 + 两条删除理由);作废 `:17-18` 那句「room 是整数格连通块导出的房号」的 4-c 注(描述的是**不存在的量**) |
+| ② | `Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs` | 原第二半扫 `IClinicEnvQuery`(接口没了 ⇒ 编译失败);改为**「不得复活」守卫**:反射扫全装配,`t.Name == "IClinicEnvQuery"` 命中即红 |
+| ③ | 同上 · 文件头注 | 订正「ADR-025 §① —— ClinicEnvDto + IClinicEnvQuery 住 Sim.Contracts」→ 只剩 `ClinicEnvDto` + 删除注 |
+| ④ | `docs/architecture/adr-025-contract-assembly-manifest.md` | **§① 成员表**去掉 `IClinicEnvQuery`,加窄修订注(含 `grep` 复算命令与甲乙备选);**§⑤ `Gameplay.Presentation` 行**的「为何不用 `ClinicEnvDto`」段作废并结案 |
+| ⑤ | `design/gdd/clinic-machine.md` | 无需改 —— Dependencies 表 `24 → 42` 行原本就只写 `ClinicEnvDto`(未提接口),与本裁定一致 |
+
+⚠️ **① 的 `:17-18` 注作废值得单记**:那句注是 `IClinicEnvQuery` 存在的**理由**
+(「room 类型 registry 未点名(4-c),取 int」)。它描述的「整数格连通块导出的房号」**不是**
+`ClinicRoomId`(64 位布局哈希)。⇒ 该注不是「还没裁」,是**基于错误前提写下的**。
+丙案把注和接口一起删,是**同一条错误的两个面**。
+
+### 二、证伪(M17,转红,还原逐字节一致)
+
+**M17**:在 `ClinicEnvDto.cs` 里把被删的接口**复活**(原样加回 `public interface IClinicEnvQuery`)。
+
+```
+判据:test_clinicenvdto_dtoGuard_recursiveScan_clean
+变异前:Passed(9/9)
+变异后:Failed 1/9 —— 红的正是该条
+还原:SHA-256 1049b4f5…8c79e,备份与文件逐字节一致;FALSIFY-M17 串零残留
+```
+
+⇒ 「不得复活」守卫**有判别力**。且它只在**契约面**复活时红,不误伤其他测(8 条恒绿)。
+
+### 三、Landed / Proven
+
+| 项 | Landed | Proven | Proven-by |
+|---|---|---|---|
+| 接口已删 | ✅ | ✅ | `grep -rn ': IClinicEnvQuery' unity/Assets/ --include=*.cs` ⇒ **0**(注释除外) |
+| 契约注的作废 | ✅ | ✅ | 同上(4-c 注已划删并注明「描述的是不存在的量」) |
+| 「不得复活」守卫 | ✅ | ✅ | M17 反证:复活 ⇒ `test_clinicenvdto_dtoGuard_recursiveScan_clean` 红 |
+| ADR-025 §① 窄修订 | ✅ | ✅ | `grep -c "IClinicEnvQuery" docs/architecture/adr-025-*.md` ⇒ **2**(均为修订注 / 留档原文,无正文断言) |
+| ADR-025 §⑤ 注记结案 | ✅ | ✅ | 该格已写「本条注记至此结案」 |
+
+⚠️ **不做的事**:不恢复接口、不改 `ClinicRoomId` 的程序集归属、不动 `Sim.Contracts` 的引用集
+(三者都是甲 / 乙案的动作,须另裁)。
+
+### 四、状态变更
+
+`open → closed`。`未闭 P0 面 6 → 5`。`clinic-machine` 名下未闭 P0 面 `2 → 1`(剩 `TD-clinic-18`)。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|clinic"
+# ⇒ 未闭 P0 面 = 5
+# ⇒ clinic-machine: 1
+```
+
+---
+
+## 2026-10-30 · `TD-clinic-18` 结案(24 的 GDD 补规则六「床类家具格的确定性选定」)
+
+> ✅ **用户裁定「按 Approved 件的正常修订补节」**(2026-10-30)。
+> 本条的宾语是 `death-and-respawn.md:191-192` 逐字写下的 24 侧义务:
+> 「24 的 GDD(已 Approved)未定义『复活点』—— 其下一轮须补『**床类家具格的确定性选定规则**』
+> 并在 Dependencies **反向列 29**」。本节即兑现。
+
+### 一、产出(三处落点)
+
+| # | 落点 | 内容 |
+|---|---|---|
+| ① | `design/gdd/clinic-machine.md` **Detailed Design · 规则六** | 「床类家具格的确定性选定(复活点)」:①候选集(`bed` 标签)②选定规则(`min` 按 `(y,x,z)` 字典序)③无候选出口(`WorldPos?` 的 null)④24 不做什么(边界表)⑤为何归 24 |
+| ② | 同上 · **Dependencies** 表 + 两处反向依赖 | `24 → 29` 行(`revive_cell`);反向依赖登记补 29(`death-and-respawn.md:191-192`)⇒ **双向闭合** |
+| ③ | `design/gdd/death-and-respawn.md` | 原「⚠️ 24 侧义务(未定义)」改为「✅ 已兑现」+ 规则六要点摘要(原文留档) |
+
+### 二、规则六的关键设计判断(为什么不是「取第一个床格」)
+
+⚠️ **story-005 卡面 `:47` 逐字禁止**「取第一个床格」当裁决实现。规则六因此:
+
+- **候选集按目录 `bed` 标签归类**,不按模块 id 字面匹配(`bed_01` / `cot` / `bunk` 一视同仁,
+  加新床型不改规则);
+- **多格时取 `min(candidate_cells)` 按 `(y, x, z)` 字典序升序** —— 这是**坐标的纯函数**,
+  与建造顺序 / 遍历序 / 字典插入序**全无关**。「取第一个床格」依赖遍历序,而遍历序**不是**
+  确定性源(ADR-005 纯函数纪律)。
+- **并列不可能**:同一格只能有一个模块(规则一的布局前提)⇒ `min` 唯一,无 tie-break 分支。
+- **无候选 ⇒ 24 返回「无复活点」**,**兜底出生点仍归 29**(`death-and-respawn.md:210`)——
+  24 不越界填出生点(那会造第二真源)。
+- 返回值**须与「坐标 (0,0,0) 的合法床格」可区分**(`WorldPos?`),不得拿零值当哨兵
+  (与 `ClinicRoomId.None = (0,0)` 同族的坑)。
+
+### 三、为什么规则住 24 而不是 29
+
+复活点的宾语是「医馆内的床格」,而「哪些格是医馆房间」「哪些模块是床」这两个前提**只有 24 知道**
+(规则一 / 规则二 / 家具目录)。29 若自拍就得重实现房间析出 + 家具标签 = 给 24 的词表造**第二真源**。
+⚠️ 反向亦然:24 **不读** 29 的死亡 / 冷却状态 —— 单向无环(承规则五纪律)。
+
+### 四、Landed / Proven
+
+| 项 | Landed | Proven | Proven-by |
+|---|---|---|---|
+| 规则六正文 | ✅ | ⚠️ **无夹具** | 规则是**设计规格**,非代码;24 侧尚无 `revive_cell` 的实装,`story-005` 仍未开工 |
+| Dependencies 双向 | ✅ | ✅ | `grep -n "29 .death-and-respawn.md:191-192" design/gdd/clinic-machine.md` ⇒ 2 处(Detailed Design + Dependencies 节) |
+| 29 侧义务标记 | ✅ | ✅ | `death-and-respawn.md` 该段已由「⚠️ 未定义」改为「✅ 已兑现」 |
+
+⚠️ **Proven 的第二行如实登记为「无夹具」** —— 本条产出的是**规则正文**,不是代码。
+它的**验收**在 `death-respawn/story-005` 开工时(届时 `IClinicReviveCell` 的实装须按规则六求值)。
+⇒ 本债结的是「**规则已定义**」,**不是**「story-005 可开工」(后者还等 G-1 与 003/004)。
+
+### 五、状态变更
+
+`open → closed`。`未闭 P0 面 5 → 4`。`clinic-machine` **退出** M3 出口分布(其名下未闭 P0 面 = 0)。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|clinic|epic"
+# ⇒ 未闭 P0 面 = 4
+# ⇒ clinic-machine 不再出现
+```
+
+### 六、回归三元组(全量)—— `TD-clinic-20` + `TD-clinic-18` 结案批
+
+**EditMode**:截至 `2026-10-30 20:28:47 CST` · 批次 **`TD-clinic-20`+`-18` 结案批** ·
+commit `18d99bdf`+工作树 ⇒ `6166 / 6129 / 0 / 37`。
+基线 = `TD-epic-01-e` 复核批 `6166 / 6129 / 0 / 37`(@ `2026-10-30 19:12:16`)⇒ **逐位相同**(零回归)。
+
+> ⚠️ **零新增是预期的**:本批只**删**一个接口、**改**一条夹具的第二半(扫接口 → 扫「不得复活」)、
+> 加**一份 GDD 规则正文**(非代码)。`[Test]` 一个没加 ⇒ `total` 应一位不动。
+> 判别力证据在变异轮(M17),不在计数上。
+
+**PlayMode**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 20:30:00 CST` · commit `18d99bdf`+工作树
+⇒ 与基线**逐位相同**(零回归)。
+
+复算:
+```bash
+# 「不得复活」守卫确实在位(而非只在注释里)
+grep -c 'resurrected' unity/Assets/Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs
+# ⇒ 2(声明 + 断言各一)
+# 接口确实已删(生产树零实装零调用)
+grep -rn ": IClinicEnvQuery" unity/Assets/ --include=*.cs | grep -v "^.*://" | wc -l
+# ⇒ 0
+# GDD 规则六与 AC 落盘
+grep -c "规则六" design/gdd/clinic-machine.md      # ⇒ ≥2
+grep -c "AC-24-13\|AC-24-14" design/gdd/clinic-machine.md   # ⇒ 4(表行 2 + 守则映射 2)
+```
+
+**计数**:`未闭 P0 面 7 → 4`(本轮两条结案:`-20` / `-18`)· `closed 106 → 108` ·
+`clinic-machine` **退出** M3 出口分布(其名下未闭 P0 面 = 0)。
+⚠️ `TD-processing-07` 的 `open → partial` 与 `TD-epic-01-e` 的 `open → partial`
+**不改变**未闭面(`partial` 仍计入)。

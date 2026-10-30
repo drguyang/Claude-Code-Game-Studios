@@ -5,9 +5,12 @@
 //   GDD design/gdd/clinic-machine.md —— O-24-3(ClinicEnvDto)· 规则三/四/五(交付三向)·
 //     F-24-3(K_CONTEXT_MAX)· EC-24-03(唯一钳制点 = 21a F1,D-21-31)·
 //     AC-24-01 注(ENV_MOD_MIN=−1/2 / ENV_MOD_MAX=+1/2,2026-09-25 数值轮已裁)
-//   ADR-025 §① —— ClinicEnvDto + IClinicEnvQuery 住 Sim.Contracts(OQ-CP-4 甲);
+//   ADR-025 §① —— ClinicEnvDto 住 Sim.Contracts(OQ-CP-4 甲);
 //     `Sim` 期望引用集 = {BCL, Sim.Contracts}(b2 门的构建失败级执法体 =
 //     `Editor.Tools.Gates/AssemblyGates.cs` CheckGateA;本件 §门A测 是同一性质的 EditMode 断言)
+//   🔁 2026-10-30:`IClinicEnvQuery` **已从本件与契约面一并删除**(`TD-clinic-20` 丙案)——
+//     它零实装零调用点,且 `GetEnv(int)` 装不下 64 位 `ClinicRoomId`。真实通道 =
+//     `ClinicEnvironmentMemo.GetDto()`。本件保留一条「不得复活」的守卫。
 //   ADR-013 §三 F7 / AC-37-15 —— PresentationDtoGuard 递归反射扫描(守卫本体不复写,直接复用)
 //   21a 侧 clamp 契约 = `Sim/ItemDatabase/RecipeSettlementSolver.EnvModTotal`
 //     (D-21-31:两分量各自无域,求和与唯一钳制在该函数执行)
@@ -157,18 +160,31 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
         // ══════════════════ ② PresentationDtoGuard:干净 + 递归活性 ═══════════════════
 
-        /// <summary>AC「递归扫描 ClinicEnvDto:零 disease_id」—— DTO 与查询接口双双干净。
-        /// ⚠️ 本测断言**空集**,须与下方负例测配对读(负例测证明守卫活着)。</summary>
+        /// <summary>AC「递归扫描 ClinicEnvDto:零 disease_id」。
+        /// ⚠️ 本测断言**空集**,须与下方负例测配对读(负例测证明守卫活着)。
+        /// <para>🔁 **2026-10-30 改(`TD-clinic-20` 结案 · 用户裁定丙案)**:原第二半扫的是
+        /// `IClinicEnvQuery` —— 该接口已于本批**删除**(零实装零调用点,且 `GetEnv(int)` 装不下
+        /// 64 位 `ClinicRoomId`)。⇒ 第二半改为「**该接口不得复活**」的守卫:
+        /// 若有人把 `IClinicEnvQuery` 加回契约面,本测转红,强制他先裁程序集归属
+        /// (见债册 `TD-clinic-20` 结案段的甲乙两案)。</para></summary>
         [Test]
         public void test_clinicenvdto_dtoGuard_recursiveScan_clean()
         {
             // Arrange / Act
             IReadOnlyList<string> dtoErrs = PresentationDtoGuard.Scan(typeof(ClinicEnvDto));
-            IReadOnlyList<string> ifErrs = PresentationDtoGuard.Scan(typeof(IClinicEnvQuery));
 
-            // Assert
+            // Assert ①:DTO 本身零疾病语义
             Assert.That(dtoErrs, Is.Empty, "ClinicEnvDto 零疾病语义(AC-37-15 同一守卫)");
-            Assert.That(ifErrs, Is.Empty, "IClinicEnvQuery 面(GetEnv 返 DTO)同扫同净");
+
+            // Assert ②:被删的接口不得复活(复活 = 须先裁程序集归属,不得静默加回)
+            var resurrected = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                .Where(t => t.Name == "IClinicEnvQuery")
+                .ToList();
+            Assert.That(resurrected, Is.Empty,
+                "`IClinicEnvQuery` 被加回契约面了 —— 该接口 2026-10-30 因「零实装零调用点 + " +
+                "`GetEnv(int)` 装不下 64 位 `ClinicRoomId`」已删除(TD-clinic-20 丙案)。" +
+                "复活它须先裁 `ClinicRoomId` 的程序集归属(甲/乙案),不得静默加回。");
         }
 
         /// <summary>守卫活性负例:疾病语义藏在**集合元素类型的嵌套字段**里 —— 只有递归进
