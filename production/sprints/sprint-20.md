@@ -230,6 +230,12 @@
 > 本表 `S20-20` #4 于 **`2026-10-29` 转「✅ 已闭」**(`level-tool/story-001` 实现轮),
 > 而汇总行未随动。**按下方表重算** = **全闭 7 · 部分闭 1 · 推翻 1 · 仍开 16**
 > (全闭 `2+1+1+3=7` · 仍开 `2+4+8+2=16`)。错的是汇总行,不是表本身。
+>
+> 🔁 **2026-10-31 再订正(承 §十四 14.4 的同日订正块,原文不删)**:10-30 那次重算**仍用了 10-28 的判据面** ——
+> `level-tool` 两件于 **`2026-10-29`** 完成(#3 / #5 / `S20-17` #1 随之闭)。
+> **现值 = 全闭 10 · 部分闭 1 · 推翻 1 · 仍开 13**(全闭 `3+1+1+5=10` · 仍开 `1+4+8+0=13`)。
+> ⚠️ **教训**:同一张表连续两次「按表重算」都算错,因为**两次都在抄表、没跑判据**。
+> 表里的「仍开/已闭」是**当时**的判定,不是**当下**的事实。复算命令见 §十四 14.4 的订正块。
 
 **四类状态的含义(须分清,混读即失真)**:
 - **✅ 全闭** —— 该条缺口被后续卡片**完整**补上。
@@ -240,7 +246,7 @@
 
 | 卡 | # | 现状 | 判据(可跑) |
 |---|---|---|---|
-| **S20-17** | 1 | **仍开** —— `world_geometry` 零产出 | `ls unity/Assets/DataCooked/world_geometry*` ⇒ 无此文件 |
+| **S20-17** | 1 | **✅ 已闭(🔁 2026-10-31 订正)** —— 原记「仍开:`world_geometry` 零产出」,实为 `level-tool/story-002`(`2026-10-29`)已产出 | `ls assets/data/world_geometry.json` ⇒ 存在(1003 B · schema 2);原判据 `ls unity/Assets/DataCooked/world_geometry*` 指向的是**旧目录**(产物已改落 `assets/data/`) |
 | | 2 | **✅ 已闭** —— `StructureWriter.Place` 生产发起方 = 42 | `grep -rn "\.Place(" unity/Assets --include=*.cs \| grep -v "/Tests/" \| wc -l` ⇒ **1**(`BuildController.cs:146`) |
 | | 3 | **仍开** —— `ClinicCellSource` 仍是空集占位 | `ClinicCellSource.cs:51` 自陈「当前恒 false —— 空集占位」;`ConfiguredCount` 全仓**零生产调用方**(`grep -rn "ConfiguredCount" unity/Assets --include=*.cs \| grep -v "/Tests/"` ⇒ 仅定义 `:55` 一处) |
 | | 4 | **✅ 已闭** —— 裁定 A:`World` 归 `BootRoot`,卡内留痕 | 本节上方「实施裁定 A」 |
@@ -256,9 +262,9 @@
 | | 9 | **仍开** —— XR 绑重物理键重叠,归 P1a | P0 无 VR 建造 |
 | **S20-20** | 1 | **✅ 已闭** —— §十二 修复轮(Addressables 装载面) | 原文已划掉,原件 `fix-s20-20-slot-provider-surface-2026-10-28.md` |
 | | 2 | **✅ 已闭** —— 挂标 #2 修复轮(`BakedInitial` 运行期应用) | 原文已划掉,原件 `fix-s20-20-baked-initial-baseline-2026-10-28.md` |
-| | 3 | **仍开** —— C1–C6 七项未实现 | `LevelConsistencyCheck.cs:57-66` 仍是 **7** 条;复算:`sed -n '/UnimplementedChecks =/,/};/p' unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs \| grep -c '^            "'` ⇒ **7**。承接者 `level-tool/story-006` |
+| | 3 | **✅ 已闭(🔁 2026-10-31 订正)** —— 原记「仍开:C1–C6 七项未实现」,实为 `level-tool/story-006`(`Complete ✅ 2026-10-29`)已实现 | 复算:`sed -n '/UnimplementedChecks =/,/};/p' unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs \| grep -c '^            "'` ⇒ **0**(`Array.Empty<string>()`);原记的「7 条」是 `2026-10-28` 的读数 |
 | | 4 | **✅ 已闭(2026-10-29)** —— `level-tool/story-001` 实现轮:尺寸常量删除、两关卡并存、两条 batch 入口各自实跑产出一份 JSON | 原判据(`P0ClinicLevel` 的 `Width` / `Height` / `Depth` 三常量 + 单一 `LevelId`)已随常量删除而消失。复算:`grep -c 'public const int \(Width\|Height\|Depth\)' unity/Assets/Editor.Tools.Level/P0ClinicLevel.cs` ⇒ **0**;`grep -c 'LevelId = "' unity/Assets/Editor.Tools.Level/LevelCatalog.cs` ⇒ **2**。实跑产物 `unity/Logs/level-tool/world_buildslots_scaffold_second.json` 的 `world_size = [8, 2, 8]`(≠ P0 的 `[16, 1, 16]`)。原件 `production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`。<br>⚠️ 本行**只闭「工具只服务一个关卡」**;运行期能否装载第二关是 S2 的面,本行不代它作保 |
-| | 5 | **仍开** —— 世界几何仍是合成 | `MinimalWorldFactory.cs:43` 自陈「地形全 walkable + POI / 资源格全 `-1`」;复算:`ls assets/data/world_*.json \| wc -l` ⇒ **1**(ADR-022 §三 要 7 件) |
+| | 5 | **✅ 已闭(🔁 2026-10-31 订正)** —— 原记「仍开:世界几何仍是合成」,实为 `level-tool/story-002` 已产出地形 + POI + 资源,且**运行期已装载** | 复算:`ls assets/data/world_*.json \| wc -l` ⇒ **10**(原记 **1**);运行期:`MinimalWorldFactory.cs:147-172` 从 `IDataProvider` / `DataCookedDisk` 载入 POI 与资源网格。⚠️ 该文件头 `:35-37` 的「POI / 资源格仍全 `-1` —— 归 story S4」是**过期注释**,注释订正归 sprint-21 `S21-8` |
 
 ⚠️ **两处口径须同读**:
 ① **「已闭」= 该条的缺口被后续卡片补上**,不是「本卡当初记错了」。原记录在各自时点都成立。
@@ -1346,7 +1352,7 @@ S20-20 的 5 条挂标(Addressables 装载面 / `BakedInitial` / C1–C6 / 单�
 | `S20-17` World 场景装配轮 | 生产 `new World(` 恰 1 处 + `StructureWriter` 构造 + 装配根接线 | AC-1…AC-5「已落 + 已证」· 证伪 **5/5** | EditMode `5575/5540/0/35`(+8/+8)@ `2026-10-28 04:26 CST` · `a42d2df` + 本批未提交 | `impl-s20-17-world-assembly-2026-10-28.md` · `review-s20-17-2026-10-28.md` |
 | `S20-18` World 生命周期轮 | `Reset` / 世界流重建 / `Modify` 足迹修复 | AC-1…AC-10 全落全证 · 新夹具 **26** · 证伪 **18**(修复轮 +2 = 20) | EditMode `5601/5566/0/35`(+26/+26)@ `2026-10-27T22:59Z` · `c784d88`(最终树批) | `impl-s20-18-world-lifecycle-2026-10-28.md` · `review-s20-18-2026-10-28.md` |
 | `S20-19` 42 建造发起方接线 | 建造发起 **0 → 1**(判定器 + 发起方接线) | AC **10/10 Proven** · Branch 全覆盖 · 证伪 **18** | EditMode `5641/5606/0/0/35`(+40/+40)@ `2026-10-28T01:25Z` · `3ae5599` + 未提交工作树 | `impl-s20-19-build-initiator-2026-10-28.md` · `review-s20-19-2026-10-28.md` |
-| `S20-20` 最小关卡工具 + 槽位骨架 | 工具 → 烘焙 → 运行期装载三段 | 5 条挂标:**3 闭**(#1 由 §十二 · #2 由 `fix-s20-20-baked-initial` · #4 于 `2026-10-29`)· **2 仍开**(#3 / #5) | 见 §十二 / §十三 各轮(不并成单值) | `impl-s20-20-world-buildslots-2026-10-28.md` · `review-s20-20-2026-10-28.md` |
+| `S20-20` 最小关卡工具 + 槽位骨架 | 工具 → 烘焙 → 运行期装载三段 | 5 条挂标:**5 闭**(#1 §十二 · #2 `fix-s20-20-baked-initial` · #3 / #4 / #5 于 `2026-10-29`)🔁 | 见 §十二 / §十三 各轮(不并成单值) | `impl-s20-20-world-buildslots-2026-10-28.md` · `review-s20-20-2026-10-28.md` |
 
 > ⚠️ **上表的 ±未提交**:`S20-17` / `S20-19` 的回归跑在「commit + 本批未提交改动」的树上 ——
 > 这是原记录的口径,**不得**读成「干净树上的数」。`S20-18` 是最终树批(`c784d88`)。
@@ -1412,20 +1418,38 @@ ls -1 production/qa/evidence/ | grep -cE '^review-s20-(17|18|19|20)-2026-10-28\.
 §9.1.1 的**汇总行已过期,表本身是对的** —— 该表 `S20-20` #4 于 `2026-10-29` 转「✅ 已闭」,
 汇总行未随动。**按表重算**:
 
-**总数 25 · 全闭 7 · 部分闭 1 · 原裁定被推翻 1 · 仍开 16。**
-逐卡:全闭 `2+1+1+3=7` · 部分 `0+1+0+0=1` · 推翻 `1+0+0+0=1` · 仍开 `2+4+8+2=16`。
+**总数 25 · 全闭 10 · 部分闭 1 · 原裁定被推翻 1 · 仍开 13。**
+逐卡:全闭 `3+1+1+5=10` · 部分 `0+1+0+0=1` · 推翻 `1+0+0+0=1` · 仍开 `1+4+8+0=13`。
 
-「仍开 16 条」的构成:
+> 🔁 **2026-10-31 就地订正(原文不删,上方两行是订正后的值)**:本表原写「全闭 7 · 仍开 16」,
+> 依据是 §9.1.1 的 `2026-10-28` 判据面。**该依据当天就失效了** —— `level-tool` 的两件
+> (`story-006` / `story-002`)于 **`2026-10-29`** 完成,三条挂标随之闭合:
+>
+> | 挂标 | 订正 | 复算命令 |
+> |---|---|---|
+> | `S20-17` #1 `world_geometry` 零产出 | **✅ 已闭** | `ls assets/data/world_geometry.json` ⇒ 存在(1003 B,schema 2) |
+> | `S20-20` #3 C1–C6 七项未实现 | **✅ 已闭** | `sed -n '/UnimplementedChecks/,/;/p' unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs` ⇒ `Array.Empty<string>()` |
+> | `S20-20` #5 世界几何仍是合成 | **✅ 已闭** | `ls assets/data/world_*.json \| wc -l` ⇒ **10**;`world_poi.json` 3 条 · `world_resources.json` 4 条 · `world_terrain.json` 有 `terrain_table`;运行期装载见 `MinimalWorldFactory.cs:147-172` |
+>
+> ⚠️ **这条错误的性质**:§十四 14.1–14.5 自述「结论全部是读文件 + 跑命令得到的」——
+> 这三行**不是**,是**转抄 §9.1.1 而没重跑判据**。订正后该自述对这三行才成立。
+> 触发订正的场景 = `2026-10-31` 的 sprint-21 排卡复核(`/sprint-plan` Phase 1 的陈旧前提检查)。
+>
+> ⚠️ **`MinimalWorldFactory.cs:35-37` 的文件头注释仍写「POI / 资源格仍全 `-1` —— 归 story S4」** ——
+> 那是**过期注释**,与同文件 `:147-172` 的实际装载行为矛盾。本节按**行为**判,不按注释判;
+> 注释订正归 `S21-8`(sprint-21)。
+
+「仍开 13 条」的构成:
 
 | 卡 | 仍开 | 内容 |
 |---|---|---|
-| `S20-17` | 2 | #1 `world_geometry` 零产出 · #3 `ClinicCellSource` 仍空集占位 |
+| `S20-17` | 1 | #3 `ClinicCellSource` 仍空集占位 |
 | `S20-18` | 4 | #2 拆序六步 · #3 `RequestLoad` 零调用方 · #5 `Modify` 只覆盖足迹 · #6 在场视图不在读档重建面 |
 | `S20-19` | 8 | #1–#7(幽灵预览 / 建造模式进入 / 拒绝原因 UI / 客机上行 / 质量门 / 拆除返还落点 / 音效)+ #9 XR 绑重 |
-| `S20-20` | 2 | #3 C1–C6 七项未实现 · #5 世界几何仍是合成 |
+| `S20-20` | 0 | —— (原 #3 / #5 已于 `2026-10-29` 闭) |
 
 > ⚠️ **`S20-18` #5 / #6 的「仍开」是「设计如此,非缺口」**(§9.1.1 原文口径)——
-> 本节沿用,不改判;但它们仍**计入**「仍开 16」,因为该表的分类是**是否被后续卡片补上**,不是**是否为缺陷**。
+> 本节沿用,不改判;但它们仍**计入**「仍开 13」,因为该表的分类是**是否被后续卡片补上**,不是**是否为缺陷**。
 
 > ⚠️ **`S20-19` 的 #1–#7 判据是设计层面的断言,不是实测**(§9.1.1 已如实登记,本节不改)。
 > 转成实测判据须逐条给可跑命令;**本轮未做**。
@@ -1509,8 +1533,11 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
 3. **§十 四卡的运行期真机行为未验** —— `World.unity` 真 additive 加载后的行为、
    `afterRestore` 钩子内 `worldLoad?.Rebuild()` 的**实际调用**,无夹具钉住(S20-18 的 NOT-RUN 条原文如此)。
 4. **`S20-20` #4 的运行期半边未验** —— 该条只闭「工具只服务一个关卡」;**运行期能否装载第二关**未验。
-5. **`S20-20` #3 / #5 仍开** —— C1–C6 七项未实现(`LevelConsistencyCheck.UnimplementedChecks` 实为 **7** 条);
-   世界几何仍是合成(`assets/data/world_*.json` 仅 **1** 件,ADR-022 §三 要 **7** 件)。
+5. ~~**`S20-20` #3 / #5 仍开** —— C1–C6 七项未实现(`LevelConsistencyCheck.UnimplementedChecks` 实为 **7** 条);
+   世界几何仍是合成(`assets/data/world_*.json` 仅 **1** 件,ADR-022 §三 要 **7** 件)。~~
+   > 🔁 **2026-10-31 订正:两条均已闭**(原文不删,见 14.4 的订正块与复算命令)。
+   > `UnimplementedChecks` 现为 `Array.Empty<string>()`;`assets/data/world_*.json` 现 **10** 件。
+   > **本节原句错在「转抄 §9.1.1 而未重跑判据」**,不是判据本身失效。
 6. **`S20-19` #1–#7 未逐条实测**(见 14.4 的 ⚠️)。
 7. **`§十一` 证明不了的 ② 仍未加夹具** —— Addressables(`dataProvider != null`)分支有代码、**零夹具**。
 

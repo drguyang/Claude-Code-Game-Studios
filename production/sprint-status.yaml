@@ -14,10 +14,10 @@
 #    不随本文件覆盖丢失。
 #    sprint-20 归档 SHA-256(前 16 位)= `8fe70573db07170f`(2026-10-31 规划轮归档)。
 #
-# 本文件 = sprint-21 活件(清账冲刺:TD-deps-01 解环 + inventory-002 + 14 条可动债 + level-tool 两件)。
+# 本文件 = sprint-21 活件(清账冲刺:TD-deps-01 解环 + inventory-002 + 12 条可动债 + 挂标订正)。
 
 sprint: 21
-goal: "机制面清零之后的第一次清账 —— 解 TD-deps-01 三方依赖环 · 落地 §6.5 仅剩的 inventory-002 · 按同编译单元成批清 14 条可动债中的 13 条 · 用 level-tool 两件闭合 3 条挂标;不新开故事链,不碰外部阻塞项"
+goal: "机制面清零之后的第一次清账 —— 解 TD-deps-01 三方依赖环 · 落地 §6.5 仅剩的 inventory-002 · 按同编译单元成批清可动债 · 把 sprint-20 遗留的 3 条挂标按复算订正;不新开故事链,不碰外部阻塞项"
 start: "2026-10-31"
 end: ""                                # 不设结束日期,做完即收(承 sprint-12…20 同例)
 generated: "2026-10-31"
@@ -46,7 +46,7 @@ stories:
     complexity: M
     blocker: "S21-1"
     completed: ""
-    note: "§6.5 的 sprint-21 四件中**唯一未完成**的一件(其余三件已 Complete)。`BakedInitial` 缺失时「重建可撞号」的反例夹具是本卡的判别力核心 —— 真修(54 导出 `BakedInitial` id 位 + 7a 接入)外抛登记,本卡只交付可撞号的证明与高水位纯函数。"
+    note: "§6.5 的 sprint-21 四件中**唯一未完成**的一件(其余三件已 Complete)。AC-20-01…04 逐条判定;`BakedInitial` 缺失时「重建可撞号」的反例夹具是本卡的判别力核心 —— 真修(54 导出 `BakedInitial` id 位 + 7a 接入)外抛登记,本卡只交付可撞号的证明与高水位纯函数。"
 
   - id: "S21-3"
     name: "processing 判别力债 ×6(TD-processing-01…06)"
@@ -58,7 +58,7 @@ stories:
     complexity: M
     blocker: ""
     completed: ""
-    note: "六条同编译单元,同批落:**不得**合并成一次证伪轮 —— 每条一条反证,逐条独立提交(R3)。内容:AC-18-12 正例恒真 / AC-18-17② 降级判据无负控 / 同键 `Craft` 语义未定义 / `BusyActorCount` O(A×E) / `IgnitionAdmissionResult` 可独立构造 / AC-18-17 跨存档往返用例缺位。"
+    note: "六条同编译单元,但**逐条一条反证、逐条独立提交**(R3:合并成一次证伪轮会让六条一起红)。内容:AC-18-12 正例恒真 / AC-18-17② 降级判据无负控 / 同键 `Craft` 语义未定义 / `BusyActorCount` O(A×E) / `IgnitionAdmissionResult` 可独立构造 / AC-18-17 跨存档往返用例缺位。⚠️ 开卡前先跑每条债自己的复算命令(R1)。"
 
   - id: "S21-4"
     name: "clinic 自指判据 ×2(TD-clinic-19 / TD-clinic-21)"
@@ -82,7 +82,7 @@ stories:
     complexity: M
     blocker: ""
     completed: ""
-    note: "`TD-gate-04`:b2 门 + AC-24-07 对「声明而未使用」的 asmdef 引用是**盲的** ⇒ 造反例 asmdef 必须转红。`TD-smoke-01`:`critical-paths.md` 是 22 条清单,无法产生 PASS/FAIL ⇒ 落执行体骨架 + 出口;**未落执行体的条目须逐条具名**,不得以「清单已存在」充数。⚠️ smoke 半边按**本地可跑**设计,不挂 CI(避 `TD-ci-01` 同阻塞)。"
+    note: "`TD-gate-04`:b2 门 + AC-24-07 对「声明而未使用」的 asmdef 引用是**盲的** ⇒ 造反例 asmdef 必须转红。`TD-smoke-01`:`critical-paths.md` 是 22 条清单,无法产生 PASS/FAIL ⇒ 落执行体骨架 + 出口;**未落执行体的条目须逐条具名**。⚠️ smoke 半边按**本地可跑**设计,不挂 CI(避 `TD-ci-01` 同阻塞)。"
 
   - id: "S21-6"
     name: "TD-build-01 真构建冒 3 组假改动"
@@ -94,7 +94,7 @@ stories:
     complexity: S
     blocker: ""
     completed: ""
-    note: "三组逐组定性(正常派生 / 真改动 / 我的误读)并落 `coding-standards.md` §工作树卫生三分类表;派生组进 `.gitignore` **窄 glob**(须 `git check-ignore -v` 验命中 + 验 2–3 个邻近反例未被误伤)。⚠️ URP `GlobalSettings` 的 `m_RuntimeSettings` 已知是正常派生,不得再按「污染」报。"
+    note: "三组逐组定性(正常派生 / 真改动 / 我的误读)并落 `coding-standards.md` §工作树卫生三分类表;派生组进 `.gitignore` **窄 glob**(须 `git check-ignore -v` 验命中 + 验 2–3 个邻近反例未被误伤)。⚠️ URP `GlobalSettings` 的 `m_RuntimeSettings` 已知是正常派生。"
 
   - id: "S21-7"
     name: "persistence ×2:TD-persist-08(51 行方法)· TD-persist-10(迁移链接缝零夹具)"
@@ -106,33 +106,21 @@ stories:
     complexity: S
     blocker: ""
     completed: ""
-    note: "`-08`:198–248 = 51 行,拆到 ≤40 **且补 ≤40 界夹具**(拆了不钉 = Landed ✅ / Proven ✗,承 Phase 8b 的 J 项教训)。`-10`:[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2) 空区间导致接缝零集成夹具 ⇒ 须显式说明「空区间下夹具走哪条路径」,不得以「区间为空」代结案。"
+    note: "`-08`:198–248 = 51 行,拆到 ≤40 **且补 ≤40 界夹具**(拆了不钉 = Landed ✅ / Proven ✗)。`-10`:[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2) 空区间导致接缝零集成夹具 ⇒ 须显式说明「空区间下夹具走哪条路径」,不得以「区间为空」代结案。"
 
   - id: "S21-8"
-    name: "level-tool/story-006 C1–C6 七项一致性检查(闭 S20-20 #3)"
-    file: "production/epics/level-tool/story-006-c1-c2-c2prime-and-ci.md"
+    name: "挂标订正 + level-tool 两件复核(闭 S20-17 #1 / S20-20 #3 / #5)"
+    file: "production/sprints/sprint-20.md#九-收口判定"
     priority: must-have
     status: ready-for-dev
     owner: ""
     estimate_days: 0
-    complexity: M
+    complexity: S
     blocker: ""
     completed: ""
-    note: "七项从 `LevelConsistencyCheck.UnimplementedChecks`(#3 仍 7 条)**移出**且各配夹具。C2 可走性同源 / C4 多边形合法 / C5 边界单一源 / C6 切片完整 = **硬失败(`throw`)**;C1 两层漂移 / C3 导航格↔NavMesh = **告警**(承 ADR-022 ④)。⚠️ 移出 `UnimplementedChecks` 而不配夹具 = 把「未实现」改成「假装实现」,零判别力。"
+    note: "**本卡来自规划期复核的一次抓错**:首版把 level-tool 的 story-006/story-002 排成实现卡,实测两件已于 2026-10-29 完成(`UnimplementedChecks` = `Array.Empty<string>()`;`assets/data/world_*.json` = 10 件)。⇒ 改为一**订正卡**:① 三条挂标按复算订正为已闭(账面已在 sprint-20 §9.1.1 / §十四 改,本卡负责复跑并留证);② 修 `MinimalWorldFactory.cs:35-37` 的**过期注释**(说「POI/资源仍全 -1 —— 归 story S4」,而 `:147-172` 已在装载);③ 核 level-tool 两件在挂标之外是否还有未闭契约面。"
 
   - id: "S21-9"
-    name: "level-tool/story-002 世界几何真产出(闭 S20-20 #5 + S20-17 #1)"
-    file: "production/epics/level-tool/story-002-world-geometry-and-terrain.md"
-    priority: must-have
-    status: ready-for-dev
-    owner: ""
-    estimate_days: 0
-    complexity: L
-    blocker: ""
-    completed: ""
-    note: "**L 件,单独占批。**`assets/data/world_*.json` 现状 **1 件**,ADR-022 §三 要 **7 件**。⚠️ 两条不得混记:①「工具产出数据」≠「运行期装载可读」(后者是另一条挂标);② 若两轮未收敛,缩到「地形 + 生态区边界」两件产物并**显式登记**,不得静默缩。"
-
-  - id: "S21-10"
     name: "foraging 公式 vs 散文互斥 ×2(TD-foraging-01 CapTable · -02 GatherMul)"
     file: "docs/tech-debt-register.md#td-foraging-01"
     priority: should-have
@@ -144,7 +132,7 @@ stories:
     completed: ""
     note: "数值归用户。我先出两案 + 各自影响面(GDD 段落 / 夹具 / 已烘焙产物是否需重签),**不预设**。未裁则维持 `backlog`,不占 Must 额度。"
 
-  - id: "S21-11"
+  - id: "S21-10"
     name: "TD-medcons-20 药害为何停在「伤/后遗」而战斗可「打死改写昏迷」"
     file: "docs/tech-debt-register.md#td-medcons-20"
     priority: should-have
@@ -156,7 +144,7 @@ stories:
     completed: ""
     note: "ADR-035 已把治疗伤害定为「永不致死」(N-1/N-3/N-4 构建期断言),但**正面理由未写**。缺这一环,`INJ_COMA` 不排除的裁定(与两份专家意见相反)在文档上没有支撑。可写成 ADR-035 的窄修订。"
 
-  - id: "S21-12"
+  - id: "S21-11"
     name: "TD-s13-01 结转:code-review 增量落盘判据仍是前瞻性"
     file: "docs/tech-debt-register.md#td-s13-01"
     priority: should-have
@@ -168,7 +156,7 @@ stories:
     completed: ""
     note: "只能补机制。**有效性待下次真实重评实测,当下不可自证** —— 本节存在性可证伪(改它 ⇒ skill 行为变),有效性禁借绿。"
 
-  - id: "S21-13"
+  - id: "S21-12"
     name: "容量模型二改:预留拆散件/链条两种额度 + 「将掀几件 story」列"
     file: "production/CAPACITY-MODEL.md"
     priority: nice-to-have
@@ -180,7 +168,7 @@ stories:
     completed: ""
     note: "retro-20 行动项 1/2。纯文书,零产品码。缘由:sprint-20 预留 1 件、入账 14 件,而「将掀几债」预估因**口径不匹配**(估债数、掀 story)没起到刹车作用。"
 
-  - id: "S21-14"
+  - id: "S21-13"
     name: "假绿形态登记表(已知 8 形态集中到一处)"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
