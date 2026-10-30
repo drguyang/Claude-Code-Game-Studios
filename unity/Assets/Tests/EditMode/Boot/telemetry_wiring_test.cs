@@ -82,6 +82,19 @@ namespace DaYiJingCheng.Tests.Boot
             _stream.Append(new SimEvent(11, new PatientId(1), -1, EventKind.JudgmentRecorded, r));
         }
 
+        /// <summary>写入一条 `JudgmentRevised`(存新值,ADR-008 §三)—— 同上,真链路。
+        /// <para>⚠️ `TD-epic-01-c`:本文件此前**只造 `JudgmentRecorded`** ⇒ F1b 的分子
+        /// 在真链路上**零载体**,而第十六片抓的缺陷(两个 Kind 的载荷是两种类型、
+        /// 统一请求会静默计 skipped)**正只在改写路径上现形**。本辅助就是那条缺口的补件。</para>
+        /// <param name="tick">显式 tick —— 改写须**排在**原判之后(全序最后一个即新值)。</param></summary>
+        private void AppendJudgmentRevised(long caseSeq, int lexiconId, long tick)
+        {
+            var payload = new JudgmentRevisedPayload(patientId: 1, new CaseId(10, 1, caseSeq),
+                                                     authorPlayerId: 1, lexiconId, confidence: 2);
+            PayloadRef r = _encoder.EncodeJudgmentRevised(payload, "");
+            _stream.Append(new SimEvent(tick, new PatientId(1), -1, EventKind.JudgmentRevised, r));
+        }
+
         // ══════════════ 接线判据 ══════════════
 
         /// <summary>**真链路**:经真编码器入流 → 真解码器还原 → F1a = 1/1。
@@ -163,6 +176,62 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.That(_reporter.ScorableCount, Is.EqualTo(0));
             StringAssert.Contains("分母 0", report);
             StringAssert.Contains("无 Scorable 病例", report);
+        }
+
+        // ══════════════ `TD-epic-01-c`:改写路径(TD-epic-01-a 的现形面)══════════════
+
+        /// <summary>
+        /// **改写路径在真链路上可算** —— `JudgmentRecorded` → `JudgmentRevised`(存新值)⇒
+        /// F1b 分子 = 1,F1a 取**全序最后一条**(改写后的值)。
+        /// <para>⚠️ <b>本条是 `TD-epic-01-c` 的补件,且钉的正是 `TD-epic-01-a` 的现形面</b>:
+        /// 本文件此前**一条改写事件都不造** ⇒ 若有人把 `DecodeJudgmentRecord` 的
+        /// `case JudgmentRecorded: case JudgmentRevised:` 合并成「按 `JudgmentRecordedPayload`
+        /// 统一请求」,改写会**静默计进 skipped**,而 `skipped` 只被断言过 `Is.EqualTo(0)`
+        /// 的**好路径**夹具覆盖 ⇒ 该缺陷在端到端面**不可观测**(第十六片抓的就是它)。</para>
+        /// <para>判据三重:① `skipped == 0`(改写**不是**解码失败);② F1b 分子 = 1
+        /// (改写位真有承载);③ F1a = 1/1 **且判的是改写后的 lexicon 4**(不是原判 7)
+        /// —— ③ 才能区分「解出来了但没覆盖」与「真的按存新值语义」。</para>
+        /// </summary>
+        [Test]
+        public void test_wired_judgmentRevised_pathIsObservable()
+        {
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 3);            // 真值 {4}
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 7);               // 原判 {7} ⇒ 判错
+            AppendJudgmentRevised(caseSeq: 1L, lexiconId: 4, tick: 20);      // 改判 {4} ⇒ 判对
+
+            string report = _reporter.JudgmentReport(out int skipped);
+
+            Assert.That(skipped, Is.EqualTo(0),
+                "改写事件**不是**解码失败 —— 若这条 > 0,说明 `DecodeJudgmentRecord` 把" +
+                "两个 Kind 合并按 `JudgmentRecordedPayload` 统一请求了(TD-epic-01-a 的缺陷形态)");
+            Assert.That(_reporter.ScorableCount, Is.EqualTo(1), "一案可打分");
+            StringAssert.Contains("F1a 判断准确率 = 1 / 1", report);
+            StringAssert.Contains("F1b 改写率 = 1 / 1", report);
+        }
+
+        /// <summary>
+        /// **改写覆盖原判,而不是并存** —— 原判判错、改判判对 ⇒ F1a = 1/1。
+        /// <para>与上一条的差别在**输入**:这条把改判值放在**原判也错**的位置,
+        /// 使「取最后一条」与「取第一条」在 F1a 上**结果不同**(1/1 vs 0/1)⇒
+        /// 全序取最后一条这件事**有判别力**。上一条若单用「改判 = 原判」则两者同值,
+        /// 属**真实值同构**型假存活(本项目已两次踩过)。</para>
+        /// </summary>
+        [Test]
+        public void test_wired_revisionOverridesNotCoexists()
+        {
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 3);            // 真值 {4}
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 9);               // 原判 {9} ⇒ 错
+            AppendJudgmentRevised(caseSeq: 1L, lexiconId: 4, tick: 20);      // 改判 {4} ⇒ 对
+
+            string report = _reporter.JudgmentReport(out int skipped);
+            Assert.That(skipped, Is.EqualTo(0));
+
+            // 前提断言:两个取值在 F1a 上**必须**可区分,否则本条无判别力
+            Assert.That(report, Does.Contain("F1a 判断准确率 = 1 / 1"),
+                "取**最后一条**(改判 {4})⇒ 1/1。若这里红成 0/1,说明 reducer 取了原判 —— " +
+                "而『存新值』(ADR-008 §三 / AC-51-B3)正要求取后者");
+            Assert.That(report, Does.Not.Contain("F1a 判断准确率 = 2 / 1"),
+                "一案只产一条记录(原判与改判**不得**各自计入分母)");
         }
 
         /// <summary>**只读不变量**:`TelemetryReporter` 不得**以写面身份**持 `IEventSink`

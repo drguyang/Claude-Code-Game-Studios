@@ -380,7 +380,7 @@
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
 | `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-b` | `telemetry-analytics` | open | **Y** | R1 |
-| `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 98, 'open': 38, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 14 （已闭但曾标 P0 面的 89 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
-    telemetry-analytics: 5    clinic-machine: 4         enemy-ai: 1
+条目 139 | 状态 {'closed': 99, 'open': 37, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 13 （已闭但曾标 P0 面的 90 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
+    clinic-machine: 4         telemetry-analytics: 4    enemy-ai: 1
     item-database: 1          patient-ai: 1             processing: 1
     skeuomorphic-ui: 1
 ```
@@ -3092,7 +3092,7 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 |---|---|---|---|
 | TD-epic-01-a | **`IPayloadDecoder` 的类型校验只覆盖「Kind → 单一载荷类型」,不覆盖「同类多载荷」的情形** —— `JudgmentRecorded` / `JudgmentRevised` 是两个 Kind 各自的类型,但调用方极易写成一个 `case` 覆盖两者统一解(`TelemetryReporter` 正是如此,两处)。接口层**无法**在编译期拦住这类错配;运行期抛出的异常又被 `catch → skipped` 的惯用写法吞掉 | `Sim.Contracts/IPayloadDecoder.cs`(契约面)· 各调用方 | 再出现第三个「同族多 Kind」的载荷时;或 `IPayloadDecoder` 需做一次窄修订时 |
 | TD-epic-01-b | **「解码失败 → 计 skipped」的吞异常写法会把编码侧缺陷伪装成数据质量问题** —— `skipped` 只在报告里给个数,不区分「载荷未驻留 / 损坏 / **类型错配**」。第十六片的缺陷正是以 skipped=1 的形式存在,而端到端夹具从不造改写事件 ⇒ 全量 3912 条无一条红 | `Gameplay.Boot/TelemetryReporter.cs`(`DecodeJudgmentRecord` / `DecodeMisdiagnosisRecord` 的 `catch`) | 下一次动任一解码委托时(建议:catch 里按异常类型分流,类型错配**不**转 skipped 而是抛) |
-| TD-epic-01-c | **既有端到端夹具不造 `JudgmentRevised`** —— 该缺陷能潜伏的前提。F1 侧已由第十六片 C1 覆盖,F2 侧已补回归夹具;但 `Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs` 仍未覆盖改写路径 | `Tests/EditMode/Boot/telemetry_{wiring,debug_view}_test.cs` | 下一次动这两个文件时 |
+| TD-epic-01-c | **既有端到端夹具不造 `JudgmentRevised`** —— 该缺陷能潜伏的前提。F1 侧已由第十六片 C1 覆盖,F2 侧已补回归夹具;但 `Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs` 仍未覆盖改写路径 | `Tests/EditMode/Boot/telemetry_{wiring,debug_view}_test.cs` | ~~下一次动这两个文件时~~ ✅ **2026-10-30 结案** —— 见下方 §「2026-10-30 · `TD-epic-01-c` 结案」 |
 | TD-epic-01-d | **`In Review` 两条 story 的未验半边** · story-008:`AC-51-C3`(ADR-012 三格矩阵载体未建,NOT-RUN)· story-010:`AC-51-E3` 的真实联机非主机拒绝(NOT-RUN,`IEventAuthority` 全仓零生产实装,`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | `production/epics/telemetry-analytics/story-008-*.md` · `story-010-*.md` | ① 载体/实装落地时;② **epic 级复评批**时须重评这两条 story 能否转 `Complete`(不得原地自升) |
 | TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | epic 级复评批 |
 
@@ -6444,3 +6444,70 @@ $ python3 -I -c "import json;d=json.load(open('assets/data/disease_registry.json
 > 🔁 **2026-10-30 更新**:阈值侧已不再阻塞(48 条全可达);剩余变量是**病程能走多深**
 > (曲线 `a_peak/SCALE`)与**规则通道组合**,两者都已定值 ⇒ 该句的「归内容 / 数值轮」已兑现。
 
+---
+
+## 2026-10-30 · `TD-epic-01-c` 结案(两个端到端夹具补改写路径)
+
+> ✅ **2026-10-30 结案 —— `TD-epic-01-c`(两个端到端夹具不造 `JudgmentRevised`)**
+>
+> **原判定**:`Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs`
+> **一条改写事件都不造** ⇒ 第十六片抓的缺陷(两个 `Kind` 的载荷是两种类型、统一请求会
+> 静默计 skipped)**在这两个文件上不可观测** —— `skipped` 此前只被「好路径」夹具断言过
+> `Is.EqualTo(0)`,而缺陷只在改写路径上现形。
+>
+> ⚠️ **原债文本的措辞已含歧义,结案前先厘清**:原文写「F1 侧已由第十六片 C1 覆盖,
+> **F2 侧已补回归夹具**;但 `Boot/telemetry_{wiring,debug_view}_test.cs` 仍未覆盖改写路径」
+> —— 句末点名的**正是本债要补的两处**,而「F2 侧已补」指的是另一份文件
+> `EditMode/Telemetry/f2_wiring_test.cs:228`(`test_wired_judgmentRevised_decodedAsItsOwnPayload_noSkip`,
+> 自 2026-10-19 起就在)。**两者不冲突**:F2 的端到端面早有载体,**F1 的两个出口没有**。
+>
+> **解(纯夹具补齐,零生产码变化)**:
+> · `telemetry_wiring_test.cs` 加 `AppendJudgmentRevised(caseSeq, lexiconId, tick)` +
+>   **2 条夹具**:`test_wired_judgmentRevised_pathIsObservable`(跳过数 0 / F1a 1/1 / F1b 1/1)、
+>   `test_wired_revisionOverridesNotCoexists`(原判错 + 改判对 ⇒ F1a = 1/1,即**取最后一条**)。
+> · `telemetry_debug_view_test.cs` 加 `AppendJudgmentRevised(caseSeq, lexiconId)` +
+>   **1 条夹具**:`test_c_revisionVisible_inDeveloperView`(走 `RenderDeveloperPreview` 这条
+>   玩家/开发者真正可见的出口)。
+>
+> **判别力设计(避「真实值同构」)**:`test_wired_revisionOverridesNotCoexists` 刻意让
+> **原判与改判在 F1a 上结果不同**(原判 9 判错、改判 4 判对)⇒ 「取最后一条」与「取第一条」
+> 输出 1/1 vs 0/1,**可区分**。若两者同值(本项目已两次踩过这类假存活),该夹具会零判别力。
+>
+> **证伪(两轮,靶点 = `DecodeJudgmentRecord` 的 `JudgmentRevised` 分支)**:
+> 变异 = 把 `if (kind == EventKind.JudgmentRevised)` 双分支退回「两个 `Kind` 统一按
+> `JudgmentRecordedPayload` 请求」(即第十六片的缺陷形态)。
+>
+> | 轮 | 靶测 | 结果 |
+> |---|---|---|
+> | **M4** | `TelemetryWiringTest`(9 条) | **2 failed** —— 恰为两条新夹具,其余 7 条旧夹具全绿(变异未打偏) |
+> | **M5** | `TelemetryDeveloperViewTest`(14 条) | **1 failed** —— 恰为 `test_c_revisionVisible_inDeveloperView` |
+>
+> 两轮还原后 `sha256sum unity/Assets/Gameplay.Boot/TelemetryReporter.cs` =
+> `1cb2c0b3186a8c846c3aad4f4f90f463814183b6c6d641d581ab1ab61ff7b83a` 逐字节一致,
+> `grep -n "FALSIFY-"` 零命中。
+>
+> **⚠️ 起草期一处自己的错(如实登记)**:首版本节曾**另立 `TD-epic-01-g`**,
+> 声称「F2 侧改写路径仍零载体」。**该断言是错的** —— 立债前**没有 `grep` 就下了结论**
+> (`f2_wiring_test.cs` 自 2026-10-19 起就造 `JudgmentRevised` 并断言 `skipped == 0`)。
+> 该追加段**已整段撤回**,未进索引块,`debtcount` 计数不受影响。
+> **教训**:与「按结论凑表述」同族 —— **「我觉得那里没有」不等于「那里没有」**,
+> 立债和结案一样须先跑命令。
+
+**回归三元组(全量)**:截至 `2026-10-30 16:51:58 CST` · 批次 **`TD-epic-01-c` 结案批** ·
+commit `595ccac4`+工作树 ⇒ EditMode `6159 / 6122 / 0 / 37`,基线 `6156 / 6119 / 0 / 37`
+(`TD-medcons-11` 终态,同日 16:34:49)⇒ **+3 / +3**,等式 `6159 − 6156 = 3`
+恰为本轮新增的 3 条夹具。
+复算:`grep -c "\[Test\]" unity/Assets/Tests/EditMode/Boot/telemetry_wiring_test.cs` ⇒ **9**
+(基线 7)· `grep -c "\[Test\]" unity/Assets/Tests/EditMode/Boot/telemetry_debug_view_test.cs` ⇒ **14**
+(基线 13)。
+
+**回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 16:52:55 CST` ·
+commit `595ccac4`+工作树 ⇒ 与基线(`TD-medcons-11` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。
+
+**计数**:`未闭 P0 面 14 → 13` · `closed 98 → 99`。复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep "未闭 P0 面"
+# ⇒ 未闭 P0 面 = 13 （已闭但曾标 P0 面的 90 条不计）
+python3 tools/debtcount/debtcount.py --check
+# ⇒ ✅ §五 输出块与索引块一致
+```

@@ -78,6 +78,16 @@ namespace DaYiJingCheng.Tests.Boot
             _stream.Append(new SimEvent(_tailTick++, new PatientId(1), -1, EventKind.JudgmentRecorded, r));
         }
 
+        /// <summary>写入一条 `JudgmentRevised`(存新值)—— `TD-epic-01-c` 的补件。
+        /// <para>⚠️ 本文件此前与 `telemetry_wiring_test.cs` 同病:只造 `JudgmentRecorded`
+        /// ⇒ 调试视图这条**玩家/开发者可见**的出口上,改写史同样零载体。</para></summary>
+        private void AppendJudgmentRevised(long caseSeq, int lexiconId)
+        {
+            PayloadRef r = _encoder.EncodeJudgmentRevised(
+                new JudgmentRevisedPayload(1, new CaseId(10, 1, caseSeq), 1, lexiconId, 2), "");
+            _stream.Append(new SimEvent(_tailTick++, new PatientId(1), -1, EventKind.JudgmentRevised, r));
+        }
+
         private static string RepoRoot()
         {
             DirectoryInfo d = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
@@ -430,6 +440,34 @@ namespace DaYiJingCheng.Tests.Boot
             StringAssert.Contains("# F6/F7 未算:GAP_THRESHOLD — 未给", text);
             Assert.That(text, Does.Not.Contain("F5 History 密度序列"), "未给参数不得凭空算 F5");
             Assert.That(text, Does.Not.Contain("F6 SessionSpan"), "未给 GAP_THRESHOLD 时 F6/F7 整段不算");
+        }
+
+        // ══════════════ `TD-epic-01-c` · 改写路径进调试视图 ══════════════
+
+        /// <summary>
+        /// **改写史在开发者可见的出口上可算** —— 与 `telemetry_wiring_test.cs` 的
+        /// `test_wired_judgmentRevised_pathIsObservable` 同型,但走的是**调试视图**这条
+        /// 玩家/开发者真正看到的通道(`RenderDeveloperPreview`)。
+        /// <para>⚠️ <b>`TD-epic-01-c` 的另一半</b>:本文件此前**一条改写事件都不造**。
+        /// 判据:① F1b 分子 = 1(改写位有承载);② 正文**不含**「部分指标」告警
+        /// (改写若被误计 skipped 仍会算作「有 Scorable」⇒ 那条告警抓不到,故须单列 ③);
+        /// ③ F1a = 1/1 取的是改判后的值(不是原判)。</para>
+        /// </summary>
+        [Test]
+        public void test_c_revisionVisible_inDeveloperView()
+        {
+            AppendCaseClosed(1L, 1UL << 0);        // 真值 {1}
+            AppendJudgment(1L, 3);                 // 原判 {3} ⇒ 错
+            AppendJudgmentRevised(1L, 1);          // 改判 {1} ⇒ 对
+
+            string text = _reporter.RenderDeveloperPreview(default, new RecordingSink());
+
+            StringAssert.Contains("F1b 改写率 = 1 / 1", text,
+                "改写位须在调试视图上算得出来(此前本文件零改写事件 ⇒ 该面零载体)");
+            StringAssert.Contains("F1a 判断准确率 = 1 / 1", text,
+                "取**改判后**的值(存新值语义),不是原判 {3}");
+            Assert.That(text, Does.Not.Contain("F1b 改写率 = 0 / 1"),
+                "F1b = 0 说明改写事件没进 reducer —— 与上一条 F1a 同源缺陷");
         }
 
         // ══════════════ D8 · 空流 / 部分流显式标注 ══════════════
