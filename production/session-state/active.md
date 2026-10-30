@@ -13607,3 +13607,23 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 执行口径 = 既有先例(`TD-audio-100/101` 的 2026-10-29 裁定):**只改 `P0 面` 列
   (`Y` → `~~Y~~`),`状态` 列一字不动**(工作没做完,只是不挡 P0 出口)。
 - 计数:`未闭 P0 面 4 → 1`(仅剩 `TD-epic-01-e`)· `epic 分布 3/31 → 1/31`。
+
+### TD-prescription-06 结案(2026-10-30,用户指令「把灰盒做好,等真实资产兑换就行」)
+- **先纠正一条过期状态**:品红 bug **2026-10-20 就修了**(`3b97a850`),债册从未回写;
+  且「需真美术资产」是我读窄了 —— P0 sweep `:308` 已裁「单色人形 proxy 灰盒即可」。
+- **做成可兑换形态**:两接缝 + spawner 降级纯编排 + 装配根两行 `new`。
+  - `Sim.Contracts/IPatientVisualAnchorSource`(位置,只用 BCL `WorldPos`)
+  - `Gameplay.Presentation/Patients/IPatientVisualFactory`(视觉,签名含 `GameObject`)
+  - 占位实现 `RingPatientAnchorSource` / `CapsulePatientVisualFactory`(原代码原样迁入)
+  - **兑换成本:三处 → 两行 `new`**
+- **首次为品红建机械门**(此前全仓零夹具),但**探针实测出关键限制**:
+  EditMode 下 `Shader.Find("Standard")` **非 null**(内置 shader 恒在)⇒ 品红是**运行期**现象
+  (URP player 构建剥离 Standard 才 null)。⇒ M18/M18b 两轮都**只有源码结构条红**,
+  行为条照绿 —— 已如实登记在测试 doc 与债册,不假装门有效。
+- 证伪:M18/M18b 红 1/7(源码结构)· M19(Random 替确定性)红 1/7。还原逐字节一致。
+- 回归:EditMode `6173/6136/0/37` @ 22:14:40(**+7/+7**,等式 `6173−6166=7`)·
+  PlayMode `238/234/0/2/2` @ 22:15:50(逐位相同)。
+- ADR-025 §① 已登记 `IPatientVisualAnchorSource`(清单封闭性 = 本法)。
+- **两条残留不随结案消失**:①实机品红验收 NOT-RUN(无修复后截图,`ScreenshotTool` 只能手动按)
+  ②EditMode 无法验 shader null(须 URP player 构建)。归 P2 视觉验收批,不新立债。
+- `closed 108 → 109`;未闭 P0 面仍 **1**(`TD-epic-01-e`)。

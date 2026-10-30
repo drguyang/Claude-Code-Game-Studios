@@ -369,7 +369,7 @@
 | `TD-audio-109` | `audio-system` | closed | **Y** | R1 |
 | `TD-listen-01` | `audio-system` | closed | **Y** | R1 |
 | `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
-| `TD-prescription-06` | `patient-ai` | open | ~~**Y**~~ | R1 |
+| `TD-prescription-06` | `patient-ai` | closed | ~~**Y**~~ | R1 |
 | `TD-audio-025` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-01` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
@@ -850,7 +850,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 108, 'open': 26, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
+条目 139 | 状态 {'closed': 109, 'open': 25, 'partial': 4, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
 未闭 P0 面 = 1 （已闭但曾标 P0 面的 99 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 1 条,分布在 1/31 个 epic
     telemetry-analytics: 1
@@ -7561,4 +7561,142 @@ python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|epic|P0 �
 # ⇒ 未闭 P0 面 = 1
 # ⇒ P0 面 {'Y': 100, 'N': 35, '~~**Y**~~': 4}
 # ⇒ telemetry-analytics: 1
+```
+
+---
+
+## 2026-10-30 · `TD-prescription-06` 结案(灰盒做成可兑换形态 + 首次建品红回归门)
+
+> **用户指令**:「把灰盒做好,等真实资产兑换就行」。
+> 本条此前已由用户裁定转 P2(`P0 面` → `~~Y~~`),本轮**不恢复 P0 面**,只把它做成
+> 「真资产来了只换一行」的形态 —— 那是「等兑换」的实际含义。
+>
+> ⚠️ **顺带查明一个事实:本条的 bug 其实早在 2026-10-20 就修了**,债册从未回写。见 §一。
+
+### 一、先纠正一条过期状态(原文留档)
+
+债册 `:2177` 的触发条件写「13 病人 AI / 美术资产轮**交付真病人模型**时」——
+**这是我在 2026-10-30 排查轮读窄了**。两条纠正:
+
+| 项 | 债册原写 | 实际 |
+|---|---|---|
+| 需要什么资产 | 真病人模型 | **单色人形 proxy 灰盒即可**(`p0-sweep-2026-10-29.md:308`,用户已裁) |
+| 品红是否还在 | 未提 | **已修** —— `3b97a850`(2026-10-20 08:40),commit message 逐字「缺陷 B —— 品红占位」 |
+
+**时间线**:10-16 截图立债 → 10-19 最后一张截图(我读图确认品红仍在,右侧 15–20%)→
+**10-20 08:40 修复** → 债册从未回写。⇒ 本条的真实性质 = **状态过期**,不是「等资产」。
+
+### 二、本轮实际做的事(五件)
+
+| # | 落点 | 内容 |
+|---|---|---|
+| ① | `Sim.Contracts/IPatientVisualAnchorSource.cs`(**新建**) | 位置接缝。只用 BCL(`WorldPos` / `int`)⇒ 真位置实现(6 世界生态区 + 13 空间侧)可由 sim 侧提供 |
+| ② | `Gameplay.Presentation/Patients/IPatientVisualFactory.cs`(**新建**) | 视觉接缝。签名含 `GameObject` ⇒ 物理上只能住表现层(与 ① 分居是刻意的,承 ADR-029/031 模式) |
+| ③ | `Gameplay.Presentation/Patients/CapsulePatientVisualFactory.cs`(**新建**) | 占位 factory —— 现有胶囊 + 中性灰代码**原样迁入**;`Destroy` 加双路径(编辑器非播放态走 `DestroyImmediate`,承 `AudioSourcePool.cs:389-395`) |
+| ④ | `Gameplay.Presentation/Patients/RingPatientAnchorSource.cs`(**新建**) | 占位锚点 —— 现有环算法**原样迁入**,但**改成返回整数格**(承 ADR-015 §三:格 → 连续坐标换算归表现层) |
+| ⑤ | `Gameplay.Boot/PatientVisualSpawner.cs`(**重写**) | 降级为**纯编排**(读在场集 → 问锚点 → 让 factory 建 → 摆位置 → 记账);格 → 坐标换算留在本类 |
+| ⑥ | `Gameplay.Boot/CompositionRoot.cs` | 装配根:两行 `new` —— **兑换点就是这两行** |
+
+**兑换成本对比**:
+
+| | 重构前 | 重构后 |
+|---|---|---|
+| 换视觉模型 | 改 `PatientVisualSpawner.OnTickEdge` 本体 | 换 `new CapsulePatientVisualFactory()` 一行 |
+| 换位置来源 | 改 `SpawnMethodFor` + `InteractionInputDriver`(消费视觉位置)+ 夹具 | 换 `new RingPatientAnchorSource()` 一行 |
+| 合计 | **三处** | **一行 ×2** |
+
+### 三、首次为「品红」建机械门 —— 以及一条**必须如实说清的限制**
+
+`3b97a850` 修了品红,但**从未有夹具防它回来**:
+`grep -rn "CreatePlaceholderMaterial\|_BaseColor\|品红" unity/Assets/Tests/` 在 2026-10-30 之前**零命中**。
+
+本轮建 `Tests/EditMode/PatientVisual/patient_visual_seams_test.cs`(7 测)。但**探针实测**发现一件
+必须写清楚的事:
+
+```
+[PROBE-URP]     Universal Render Pipeline/Lit
+[PROBE-STD]     Standard          ← 编辑器里非 null!
+[PROBE-UNLIT]   Unlit/Color
+[PROBE-DIFFUSE] Legacy Shaders/Diffuse
+```
+
+⇒ **品红是运行期现象,EditMode 复现不了**:
+- 编辑器里内置 `Standard` **恒在** ⇒ `Shader.Find("Standard")` 非 null ⇒ 回退形态也"看起来对";
+- URP **player 构建**会剥离 `Standard`(`GraphicsSettings.asset` 的 `m_AlwaysIncludedShaders`
+  七项不含它)⇒ 那时才返回 null ⇒ 走错误着色器 ⇒ 品红。
+
+**M18 / M18b 实测印证**:把材质创建回退到 `3b97a850` 之前的形态,两轮都是
+**只有源码结构那条红**(`test_placeholderMaterial_urpLitFirst_andLoudFailOnBothMissing`),
+`test_placeholderVisual_materialIsNeutralGrey_notMagentaColor` 的 shader 断言**照样绿**。
+
+⇒ 因此本轮的品红门**分两层**,并**逐条标注判别力**:
+
+| 判据 | 形态 | 判别力 |
+|---|---|---|
+| `test_placeholderMaterial_urpLitFirst_andLoudFailOnBothMissing` | **源码结构**(去注释后扫:URP Lit 先于 Standard + 两者皆 null ⇒ throw) | ✅ **有效**(M18/M18b 转红) |
+| `test_placeholderVisual_materialIsNeutralGrey_notMagentaColor` | 行为(材质挂上了 + 基色 = 中性灰 + 非品红) | ⚠️ **shader 那一项在 EditMode 下判别力为零**(如实登记在测试 doc 里);基色三项有效 |
+
+⚠️ **不做的**:不假装 EditMode 能验品红。真正的验法 = **一次 URP player 构建 + 实机观察**,
+那需要真 GPU 与构建管线(归 P2 的视觉验收批)。
+
+### 四、证伪(两轮,还原逐字节一致)
+
+| 变异 | 打什么 | 结果 |
+|---|---|---|
+| **M18/M18b** 材质创建回退到 `Shader.Find("Standard")` 单行 + 无 null 检查 | 品红门 | 红 **1/7**(源码结构条)。⚠️ 行为条**不红** —— 正是 §三 记录的限制 |
+| **M19** 锚点角度改 `UnityEngine.Random.value` | 占位锚点确定性(ADR-016 §一) | 红 **1/7**(`test_ringAnchor_sameIdIsStable_acrossCalls`) |
+
+两轮还原后 `sha256sum` 与备份**逐字节一致**,`FALSIFY` 串零残留。
+
+### 五、Landed / Proven
+
+| 项 | Landed | Proven | Proven-by |
+|---|---|---|---|
+| 两个接缝存在且占位实现其之 | ✅ | ✅ | `test_seams_bothExist_andPlaceholdersImplementThem` |
+| 位置接缝返回整数格(非 `Vector3`) | ✅ | ✅ | `test_anchorSource_returnsIntegerCell_notVector3`(反射读签名) |
+| 占位锚点同 id 恒同格 | ✅ | ✅ | `test_ringAnchor_sameIdIsStable_acrossCalls` + **M19 转红** |
+| 占位锚点不挤一格 | ✅ | ✅ | `test_ringAnchor_smallIdSet_isNotAllOneCell` |
+| 占位材质基色 = 中性灰、非品红 | ✅ | ✅ | `test_placeholderVisual_materialIsNeutralGrey_notMagentaColor`(基色三项) |
+| **URP Lit 先于 Standard + 皆 null 即 throw** | ✅ | ✅ | `test_placeholderMaterial_urpLitFirst_andLoudFailOnBothMissing` + **M18 转红** |
+| `Destroy` 幂等 + null 容忍 | ✅ | ⚠️ **部分** | `test_factory_destroy_isIdempotentAndNullTolerant`;**如实登记**:Unity 的 `Destroy(null)` 本身 no-op ⇒ 该条不会因「漏 null 检查」转红,守的是「未来某实现显式抛」 |
+| **实机品红已消失** | — | ❌ **NOT-RUN** | 需 URP player 构建 + 实机观察(归 P2 视觉验收批)。**禁借绿** |
+
+### 六、状态变更
+
+`open` **维持 `open`**?—— **否**。本条的**债面**(「病人占位品红,需可识别人形」)在
+**代码层已完全兑现**:品红已修(10-20)、灰盒形态达标、且已做成可兑换结构。
+⇒ **转 `closed`**。
+
+⚠️ **但两条残留如实登记,不随结案消失**:
+1. **实机验收 NOT-RUN** —— 修复后**没有**新截图(`Logs/shots/` 最后一张 10-19,修复前一天);
+   `ScreenshotTool` 绑 `[MenuItem]` + F12,只能编辑器 Play 手动按,**batch 跑不了**。
+2. **EditMode 无法验 shader null** —— 见 §三,须 URP player 构建。
+
+⇒ 这两条**不新立债**(债面已结),归 **P2 的视觉验收批**;`P0 面` 维持 `~~Y~~`(用户已裁转 P2)。
+
+复算:
+```bash
+python3 tools/debtcount/debtcount.py --print | grep -E "未闭 P0 面|状态"
+# ⇒ 未闭 P0 面 = 1(仍只剩 TD-epic-01-e)
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/PatientVisual/patient_visual_seams_test.cs   # ⇒ 7
+grep -rn ": IPatientVisualFactory" unity/Assets/ --include=*.cs | grep -v "//" | wc -l      # ⇒ 1
+grep -rn ": IPatientVisualAnchorSource" unity/Assets/ --include=*.cs | grep -v "//" | wc -l # ⇒ 1
+```
+
+### 七、回归三元组(全量)
+
+**EditMode**:截至 `2026-10-30 22:14:40 CST` · 批次 **`TD-prescription-06` 兑换轮** ·
+commit `a71b5d9d`+工作树 ⇒ `6173 / 6136 / 0 / 37`。
+基线 = `TD-clinic-20`+`-18` 结案批 `6166 / 6129 / 0 / 37`(@ `2026-10-30 20:28:47`)
+⇒ **+7 / +7**,等式 `6173 − 6166 = 7` = 新增 `patient_visual_seams_test.cs` 的 7 条 `[Test]`。
+**零回归**(无任何既有测试转红)。
+
+**PlayMode**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 22:15:50 CST` · commit `a71b5d9d`+工作树
+⇒ 与基线**逐位相同**(零回归)。
+⚠️ PlayMode 的 `PatientVisualWiring` 仍绿 ⇒ 重构**没有**破坏既有接线夹具。
+
+复算:
+```bash
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/PatientVisual/patient_visual_seams_test.cs   # ⇒ 7
+# 等式:6173 − 6166 = 7
 ```

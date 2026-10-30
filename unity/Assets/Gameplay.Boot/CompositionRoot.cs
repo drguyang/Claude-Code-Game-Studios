@@ -23,6 +23,7 @@ using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Building;   // BuildController / BuildStockQuery / BuildOwnerSlot(S20-19)
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.Presentation.Patients;   // 病人视觉两接缝的占位实现(TD-prescription-06 兑换轮)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
@@ -425,7 +426,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 病因(playtest 2026-10-10 §6):病人在场但**零视觉实体** ⇒ 人工面看不到病人,
             //   核心循环入口不可感知,第二轮 playtest 无法覆盖「病人出现」。
             // 只读在场集 spawn 占位胶囊体;不写流、不持状态(ADR-013 §9 C3)。
-            var patientVisuals = new PatientVisualSpawner(presence);
+            //
+            // 🔁 **2026-10-30(`TD-prescription-06`「灰盒做好,等真实资产兑换」轮)**:两件各抽一个接缝。
+            //   ⇒ **兑换真资产 = 只换下面这两行 `new`**,spawner / 交互驱动 / 夹具全部一字不动。
+            //   · 视觉形态:占位 = `CapsulePatientVisualFactory`(胶囊 + 中性灰,零资产依赖)
+            //     ⇒ 真资产 = 换成一个 `PrefabPatientVisualFactory(prefab)`(13 / 美术轮交付时建)
+            //   · 位置来源:占位 = `RingPatientAnchorSource`(围绕玩家的环)
+            //     ⇒ 真位置 = 换成 6 世界生态区 + 13 空间侧的整数格实现
+            //   ⚠️ 位置接缝住 `Sim.Contracts`(只用 BCL `WorldPos`),故真位置实现可由 sim 侧提供;
+            //      视觉接缝住表现层(签名须出现 `GameObject`)。两处分居是刻意的(承 ADR-029/031 模式)。
+            var patientVisualFactory = new CapsulePatientVisualFactory();
+            var patientAnchors = new RingPatientAnchorSource();
+            var patientVisuals = new PatientVisualSpawner(presence, patientVisualFactory, patientAnchors);
 
             // ── tick 驱动(ADR-005 抽象点之一 · G2.2)──
             // tick 源全案唯一 ⇒ 由组合根创建并暴露,BootRoot 从服务袋取(不再自 new);
