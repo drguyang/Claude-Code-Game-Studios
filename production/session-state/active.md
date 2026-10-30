@@ -13671,3 +13671,26 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **14.7 未做**:四批无独立 smoke-check / QA 重签 · `World.unity` 运行期真机未验 ·
   `S20-20` #3/#5 仍开 · `S20-19` #1–#7 判据是设计断言非实测 · Addressables 分支有代码零夹具。
 - **工作树**:`production/sprints/sprint-20.md` 改动**未提交**(用户未指令提交)。
+
+---
+
+## 2026-10-31 · sprint-21 排卡(用户指令「sprint21 排卡」)
+
+**用户两项裁定**:重心 = **清账冲刺**(不新开故事链)· level-tool **story-006 + story-002 都进**。
+**QA 计划**:裁定「开工前补 `/qa-plan sprint`」⇒ 已写进 sprint-21.md 头部作**开工门**。
+
+- **复核(陈旧前提)**:230 件 story 中 **205 Complete / 25 未完成**;31 epic 中 **18 全 Complete**;
+  未闭债 **28**(P0 面全 0)。§6.5 的 sprint-21 四件**只剩 `inventory-002`**(其余三件已 Complete),
+  里程碑建议的 `clinic-001` 已于 10-29 兑现。
+- **关键发现**:`inventory-001 ↔ processing-003 ↔ inventory-002` 三方 `Depends on` **闭环**
+  (`TD-deps-01`)⇒ 拆 **S21-1** 作前置,否则 `inventory-002` 一开即被判 BLOCKED。
+- **关键发现 2**:audio 5 条**全部不可做** —— `-100`/`-101` 已转 P2(听测不在 P0 面)·
+  `-104`/`-107` BLOCKED-BY P1b · `-108` 须目标硬件。⇒ 28 条里**今天可动 14 条**。
+- **落盘**:`production/sprints/sprint-21.md`(新建)+ `production/sprint-status.yaml`(14 卡:
+  9 must / 3 should / 2 nice;S9·M4·L1)+ 归档 `sprint-status-sprint20-archive.yaml`
+  (SHA-256 前 16 位 `8fe70573db07170f`)。
+- **本 sprint 不排**:`TD-ci-01`(EXTERNAL)· `TD-net-01`(P1b)· `TD-prescription-05`(P1a)·
+  audio 五条 · `TD-processing-07` / `TD-epic-01-d`(P2)。
+- **三项待用户裁**:`S21-10`(foraging 公式 vs 散文)· `S21-11`(`TD-medcons-20` 正面理由)·
+  `S21-13`/`S21-14`(nice,可延后)。
+- **未 commit**(用户未指令)。

@@ -9,285 +9,190 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 #
-# ⚠️ sprint-14 … sprint-19 的完整 yaml 已分别归档为
-#    `production/sprint-status-sprint1{4,…,8,9}-archive.yaml`,不随本文件覆盖丢失。
-#    sprint-19 归档 SHA-256(前 16 位)= `5de6f5d3c6cc5154`(2026-10-25 规划轮归档)。
+# ⚠️ sprint-14 … sprint-20 的完整 yaml 已分别归档为
+#    `production/sprint-status-sprint1{4,…,9}-archive.yaml` 与 `sprint-status-sprint20-archive.yaml`,
+#    不随本文件覆盖丢失。
+#    sprint-20 归档 SHA-256(前 16 位)= `8fe70573db07170f`(2026-10-31 规划轮归档)。
 #
-# 本文件 = sprint-20 活件(clinic 链尾 + A-2 机制起步 + 判别力债清偿 + 采集链路解锁链)。
+# 本文件 = sprint-21 活件(清账冲刺:TD-deps-01 解环 + inventory-002 + 14 条可动债 + level-tool 两件)。
 
-sprint: 20
-goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foraging-001 · processing-001,AC 半边按挂标),同轮清偿判别力与测试卫生债族(五次假绿事故的病灶面);2026-10-26 追加「采集链路解锁链」8 件(见 §追加批)"
-start: "2026-10-25"
-end: "2026-10-27"                      # ✅ **2026-10-27 收口**(承 sprint-14…19 同例「不设结束日期,做完即收」)。
-                                       # 用户裁定「C-1 和 C-4 不转,本sprint完成」⇒ 4 件未完成 story
-                                       # (S20-8/13/14/15)**保持原状态不动**,不做承接承诺;
-                                       # 三件承重件(S20-10/11/12)不补评。⚠️「不转」= 风险接受,非缺陷修复。
-                                       #
-                                       # 🔁 **2026-10-27 用户改判(本行原文不删,就地加注)**:原裁定之后用户
-                                       # 改判为「**现在就实现这 4 件**」⇒ S20-8/13/14/15 **不再「保持原状态不动」**,
-                                       # 按串行链 S20-8 → S20-13 → S20-14 → S20-15 逐件实现并收口。
-                                       # 上文「保持原状态不动」是 **2026-10-27 收口时刻**的裁定快照,已失效;
-                                       # 现状以各 story 行的 `status:` / `completed:` 为准。
-generated: "2026-10-25"
-updated: "2026-10-28"
+sprint: 21
+goal: "机制面清零之后的第一次清账 —— 解 TD-deps-01 三方依赖环 · 落地 §6.5 仅剩的 inventory-002 · 按同编译单元成批清 14 条可动债中的 13 条 · 用 level-tool 两件闭合 3 条挂标;不新开故事链,不碰外部阻塞项"
+start: "2026-10-31"
+end: ""                                # 不设结束日期,做完即收(承 sprint-12…20 同例)
+generated: "2026-10-31"
+updated: "2026-10-31"
 
 stories:
-  - id: "S20-1"
-    name: "clinic-004 交付边界 ClinicEnvDto"
-    file: "production/epics/clinic-machine/story-004-delivery-boundary-clinicenvdto.md"
+  - id: "S21-1"
+    name: "解 TD-deps-01 三方依赖环(inventory-002 的开工前置)"
+    file: "docs/tech-debt-register.md#td-deps-01"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
-    estimate_days: 0          # 承 CAPACITY-MODEL:不估天,复杂度并列
-    complexity: M
+    estimate_days: 0
+    complexity: S
     blocker: ""
-    completed: "2026-10-25"
-    note: "Depends on Story 003 ✅;21a clamp 契约、1 的 K 消费接口未就绪时接口桩联测,BLOCKED-BY 不记绿"
-  - id: "S20-2a"
-    name: "TD-building-01 两半全补(真 World 端到端 + Cost 读方)"
-    file: "docs/tech-debt-register.md"          # 载体 = TD 工作项(债面内执行选项,非新 story)
+    completed: ""
+    note: "**为什么必须排第一**:`inventory-001` → `processing-003` → `inventory-002` → `inventory-001` 的 `Depends on` 是**闭环**,三件所需形状全在盘(`CraftPayload` / `ResourceHarvestedPayload` / `DropSpawnedPayload` / `IIdAuthority` 契约均已 Complete)。不解环,`S21-2` 一开就被 `story-readiness` / `dev-story` Phase 2 判 BLOCKED。修法不预设(收窄描述 / 改校验口径二选一),本轮裁定并落债册。"
+
+  - id: "S21-2"
+    name: "inventory-002 id 铸造权威与高水位重构"
+    file: "production/epics/inventory-items/story-002-id-authority-and-highwater.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S21-1"
+    completed: ""
+    note: "§6.5 的 sprint-21 四件中**唯一未完成**的一件(其余三件已 Complete)。`BakedInitial` 缺失时「重建可撞号」的反例夹具是本卡的判别力核心 —— 真修(54 导出 `BakedInitial` id 位 + 7a 接入)外抛登记,本卡只交付可撞号的证明与高水位纯函数。"
+
+  - id: "S21-3"
+    name: "processing 判别力债 ×6(TD-processing-01…06)"
+    file: "docs/tech-debt-register.md#td-processing-01"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
     completed: ""
-    completed: "2026-10-25"
-    note: "2026-10-25 用户裁定「两半全补」+「读路径存在即结案」:(a) 真 World 端到端(8 测)+ (b) Cost 从目录读(12 测);证伪四支全红;全量 5065/5030/0/35 增量 +20 == 新增测试数;TD-building-01 与 TD-itemdb-01 双 closed(三十五订,未闭 P0 面 62→60,epic 9/31→7/31);写侧归 42 不在面内"
-  - id: "S20-2"
-    name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
-    file: "production/epics/clinic-machine/story-005-purity-replay-memoize.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-26"
-    note: "2026-10-26 收口。5/5 AC COVERED(AC-24-04 / EC-24-05 / 无状态扫描 / 输入封闭 / 重放等价);Falsifiability Gate 11/11 转红零 NOT-RUN —— F7(contexts[] 多元素排序)原为 P0 结构性不可证伪,用户裁定「修复,不留债」后经 internal CollectContextIdsFromRows + Sim/AssemblyInfo.cs 的 IVT 解耦,证伪轮 Sort→Reverse ⇒ RED=1 恰为靶测;全量 5121/5086/0/35(基线 5120/5085 ⇒ +1 == 新增测试 1);两份评审原件零 BLOCKING;新登债 TD-clinic-20(24→42 通道未收敛,P0=Y)+ TD-clinic-21(P1a 生产面,P0=N)"
-  - id: "S20-3"
-    name: "foraging-001 品种闭包 + 数据装载校验"
-    file: "production/epics/foraging/story-001-variety-closure-and-data-load-validation.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-26"
-    note: "2026-10-26 收口。5/5 AC 全绿(AC-17-01b/08b/14/16/05c);AC-17-05c [L] 走查已执行并签核见 production/qa/evidence/foraging-05c-2026-10-26.md,语义判据 20/20 通过,§六 由 dr_guyang 以主创/医学顾问 + QA 复核双重身份 Approved(⚠️ 同一人兼任两角色,非第三方独立复核)。走查中抓到 15/20 词无用户审定出处(GDD 前提此前不成立)+ 2 处采后/离株语义,用户当场逐词审定 20 词、改 2 词(cinchona q5 / yarrow q1)并重烘 21a。21a item_key 行前置解除 + W-3 甲案补烘落盘(foraging_constants.cooked.bytes 352 B);评审原件 production/qa/evidence/review-foraging-001-2026-10-26.md(APPROVED WITH SUGGESTIONS,零 BLOCKING),W-1/W-2 用户裁定不修,M-1..M-4 全修。证伪轮第四轮首跑 W1/W2 red=0 属真假绿(真实 MAX_QUALITY=5 而 cap_table 最大仅 2 ⇒ 写死与真读逐位同构),已补跨表耦合夹具后 7/7 转红。全量 5174/5139/0/35(+53 = 52 夹具 + 1 TestCaseSource 展开,零回归);改词后重跑同值 5174/5139/0/35,漂移门 drift[item_database_items.cooked.bytes] Passed"
-  - id: "S20-4"
-    name: "processing-001 配方子集 + 可采纳谓词"
-    file: "production/epics/processing/story-001-recipe-subset-and-admissible-predicate.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-27"
-    note: "2026-10-27 收口。29 条夹具全绿(24 实现 + 5 评审修复轮)。证伪轮 8/8 恰如预期(原 6 + M7/M8 钉 AR1 两处 query 校验);SHA-256 逐字节还原通过,零 FALSIFY 残留。全量 5414/5379/0/35,前基线 5409/5374/0/35 ⇒ +5/+5 零回归,非通过集新增 0 消失 0。评审原件 review-s20-4-2026-10-27.md(原判 APPROVED WITH SUGGESTIONS 零 BLOCKING;5 项 Required 全修 + AR2 接口继承一并落地 ⇒ APPROVED)。⚠️ 记分诚实度:AC-18-10 = 2/3 真 + 炉半边 Spy 桩(真装配归 Story 004);AC-18-20 = 结构性证明(两条路径零生产调用点,真接线归 42 / Story 002);AC-18-05 扫描面已由 asmdef includePlatforms 派生覆盖全部进构建装配。AR3/AR4/T7 三项建议未采纳,理由见评审原件 §五,未入债册。本 story 抓到三条假绿:行为等价掩盖结构分叉 / 空洞正控(正控未调被测循环)/ fail-closed 自述对 default(struct) 不成立"
-  - id: "S20-5"
-    name: "接受侧判别力收紧轮(TD-clinic-02/08/09)"
-    file: "docs/tech-debt-register.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: "S~M"
-    blocker: ""
-    completed: "2026-10-25"
-    note: "已随 2026-10-25 清债轮提前执行:M0b 变异坐实(评审推断成立)+ 六处收紧 + M1 反证 7 红;债册三条翻转(三十一订)。原件 = production/qa/evidence/impl-tddc-2026-10-25.md"
-  - id: "S20-6"
-    name: "TD-prescription-07 材质分支分类器(ink/brass/implement)"
-    file: "docs/tech-debt-register.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    blocker: ""
-    completed: "2026-10-25"
-    note: "已随 2026-10-25 清债轮提前执行:SkeuoMaterialBranch 三枚举分类器落地 + 占位符改真断言 + test_ac025_6 改打真分类器 + M2/M2b 双反证各 2 红;词门零命中。原件 = production/qa/evidence/impl-tddc-2026-10-25.md"
-  - id: "S20-7"
-    name: "治理盘点轮(retro-19 行动项 4+5:W6–W10 / QA 2 条 / medcons 整块策略 / audio-026 裁定)"
-    file: "docs/tech-debt-register.md"
-    priority: nice-to-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    blocker: ""
-    completed: "2026-10-27"
-    note: "2026-10-27 收口。用户三裁(逐条定案 / 如实登记为已解除 / 16 本轮修 19 条按触发)。**W6–W10 五条各有具名去向**:W6 → 新债 `TD-persist-08`(Load 67 / Restore 43 物理行,但**纯代码行 39 / 36 均不超 40** ⇒ 口径未裁前不可判「超」)· W7(a) → 新债 `TD-enemy-03`(`acc = Fix.Zero` 于路径耗尽,F-27-4 无此定义;`enemy-ai.md:714` 引 F-27-7 不成立)· **W7(b) 已由 `TD-enemy-02` 结案覆盖**(2026-10-25 甲案删 StepAccumulator)· **W8 当场修**(头注「三类」→「四类」+ 补 ④ `eventKey < 0`;**返工一次**:首版只改头注,方法 doc 仍「三类」,是跑判据时才发现的)· **W9 / W10 显式豁免**(零生产调用点 / 存档路径非热路径,各带触发条件)。**C-2 已实质满足**:AC-7a-20 载体 0→4 · TD-persist-04 closed · CompositionRoot.cs:415 真实例;C-5 不可复验但已由 S20-4 的 SHA 入库判据取代。**TD-medcons-16 当场删夹具结案**(对行序回归零判别力:两次走同一 Dictionary 枚举);其余 19 条按各自触发条件挂,不设统一期限。**账务四十四订**:条目 125→127 · open 76→77 · closed 43→44 · N 23→24 · 未闭 P0 面 63→63(**两位相抵,非未动**)· epic 分布 9/31→10/31(enemy-ai 重回分布)。"
+    note: "六条同编译单元,同批落:**不得**合并成一次证伪轮 —— 每条一条反证,逐条独立提交(R3)。内容:AC-18-12 正例恒真 / AC-18-17② 降级判据无负控 / 同键 `Craft` 语义未定义 / `BusyActorCount` O(A×E) / `IgnitionAdmissionResult` 可独立构造 / AC-18-17 跨存档往返用例缺位。"
 
-  # ══════════════════════════════════════════════════════════════════════════
-  # 追加批 · 2026-10-26 —— 采集链路解锁链(用户裁定「甲:按链路顺序做到底」)
-  #
-  # 立此批缘由:`foraging-006`(采集侧 novelty 接线)的真实前置 = 20 的三个 Drop* 写者,
-  # 而写者熔在 `inventory-005` 的统一事务模板里,该件又有 5 个未开工前置
-  # ⇒ 「修 novelty 静默失效」实际是一条 8 件、约 51h 的依赖链。
-  # 计划原件 = `production/sprints/sprint-20-collection-chain-plan.md`。
-  #   🔁 2026-10-27 改名(用户「6 裁决」):原 `sprint-21-candidate-collection-chain-plan.md`。
-  #      依据:链的 8 件**全部在 sprint-20 内落地**,原名「sprint-21-candidate」的
-  #      「候选」与「归属」双失真。见该件头部改名说明。
-  #
-  # ⚠️ **S20-4 与 S20-8 是同一件**(processing-001)—— 不重复计入件数。
-  # ⚠️ S20-14(inventory-005)与 S20-15(foraging-006)是链的终点;前 6 件未做完时
-  #    它们**可开工但不可收口**(AC 会挂 BLOCKED-BY,禁凑绿)。
-  # ══════════════════════════════════════════════════════════════════════════
-  - id: "S20-8"
-    name: "processing-002 F1 调用契约 + 模组输入"
-    file: "production/epics/processing/story-002-f1-call-contract-and-mod-inputs.md"
+  - id: "S21-4"
+    name: "clinic 自指判据 ×2(TD-clinic-19 / TD-clinic-21)"
+    file: "docs/tech-debt-register.md#td-clinic-19"
     priority: must-have
-    status: done
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "`clinic_modifier_eval_test.cs` 的 CAP 断言**六处直引被测常量**(自指形态:变异两边一起动 ⇒ 零红逃逸)⇒ 改写为字面量神谕。`TD-clinic-21` 的「P1a 多情境排序属性已可证伪、生产面不可达」须给 `grep` 级判据并登记为设计态,不得记作缺口。"
+
+  - id: "S21-5"
+    name: "治理债 ×2:TD-gate-04(b2 门盲区)+ TD-smoke-01(冒烟无执行体)"
+    file: "docs/tech-debt-register.md#td-gate-04"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: "2026-10-27"
-    note: "链路批1。**✅ 已收口(2026-10-27)**:AC 记分 **5 全绿 / 1 半绿 / 1 NOT-RUN**(共 7 条)· 夹具 **51/51** 绿 · 证伪轮 **19/19 恰如预期**(第 7 轮,SHA-256 逐字节还原 + 零残留)· 全量回归 **5464/5429/0/35** vs 基线 **5413/5378/0/35** ⇒ **+51 == 新增 51,零回归**。⚠️ **半绿 / NOT-RUN 须与记分同读**:① AC-18-01② 的「**交给 20**」腿**无载体** —— 生产侧零调用点(归 Story 003 接线,届时须翻转 `test_ac1801_hasProductionCallSite`);② AC-18-01 Edge「失败路径 F1 零调用」半边 NOT-RUN(原 `failurePath` 是恒真断言,已重写为 `settleDoesNotRejudgeAdmission`);③ AC-18-10b **EXTERNAL · BLOCKED-BY-42**,机制侧供数不构成该条证据。⚠️ **无专属变异的两个属性已如实登记**:`defaultStruct_failsClosed`(两条守卫冗余,单行驱动不可变异)· `retryTwice` 后半(构造性真,对生产码零判别力)。⚠️ **AC-18-02/04 的「符号不出现」判据只有正控、无变异** —— 正控 ≠ 证伪轮。**评审**:两路并行独立,1 BLOCKING 双报 + 3 条 qa 独有 BLOCKING + 8 ADVISORY,已全结清或如实登记;原件 `production/qa/evidence/review-s20-8-2026-10-27.md` · spec `tools/falsify/specs/s20-8-f1-call-contract.json` · 全量 `unity/Logs/f1-s20-8-full.xml`。**教训(实测命中)**:spy 的 `EnvModTotal`/`SumOfModifiers` 原恰等于 `default(Fix)` ⇒ 补断言也零判别力;第 5 轮我在证伪轮跑到一半改了被变异文件 ⇒ 该轮作废 + `TaskStop` 留下残留须手工还原。"
-  - id: "S20-9"
-    name: "processing-004 单炉空闲判定(**只做空闲半**)"
-    file: "production/epics/processing/story-004-furnace-timing-and-no-process-state.md"
+    completed: ""
+    note: "`TD-gate-04`:b2 门 + AC-24-07 对「声明而未使用」的 asmdef 引用是**盲的** ⇒ 造反例 asmdef 必须转红。`TD-smoke-01`:`critical-paths.md` 是 22 条清单,无法产生 PASS/FAIL ⇒ 落执行体骨架 + 出口;**未落执行体的条目须逐条具名**,不得以「清单已存在」充数。⚠️ smoke 半边按**本地可跑**设计,不挂 CI(避 `TD-ci-01` 同阻塞)。"
+
+  - id: "S21-6"
+    name: "TD-build-01 真构建冒 3 组假改动"
+    file: "docs/tech-debt-register.md#td-build-01"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
-    complexity: M
-    blocker: "S20-4 + S20-8"
-    completed: "2026-10-26"
-    note: "链路批2 收口。**AC 记分 4/5**:AC-18-13 / 12 / 23 / 17 已勾,AC-18-15 **不勾**(EXTERNAL · BLOCKED-BY-ADR-012:三格矩阵不存在 + F7 spike 未跑,不写桩)。⚠️ **六条**边界须与 4/5 同读:① 20.Apply 不存在(归 S20-14)⇒ 交付的是准入谓词,点火接线只是夹具内 seam;② AC-18-12「库存逐位不变」正例恒真,判别力全部来自负控;③ AC-18-17 ② 是降级判据(7a 无段清单常量)**且唯一断言 `filesScanned>0` 不证 SaveComposer.cs 在扫描集内**;④ AC-18-13 的 IL 面只证 Mono 后端;⑤ AC-18-17 的「跨存档往返」用例缺位(换池重编码 ≠ 落盘读回,需 7a 真装配);⑥ AC-18-23 的 **Seq 定序零行为断言**(夹具 `TryIgnite` 硬编码 `seq:0`,全件仅 1 处读 `.Seq`)。⚠️ 卡面自述订正:Implementation Note 1 写的「同 foraging Story 004 前缀纪律,共用扫描基建」**两条都不成立** —— foraging story-004 Status 仍是 [ ] Not yet created,Sim/Foraging/ 四文件中零扫描器,InventoryFold.OrderByFullOrderKey 是 private。处置 = 未造该基建(第 5 次卡面自述顶替实作)。**评审(2026-10-26 补跑,CHANGES REQUIRED → 已全修)**:1 BLOCKING + 8 WARNING + 4 MINOR。**B1**(BLOCKING)`IgnitionAdmission` 的 `outputs==null` 短路 = fail-open,绕过 AC-18-12 唯一的时点拒绝门 ⇒ 改抛 `ArgumentNullException`;**W1** `FurnaceState` 前缀用**载荷** `StartTick` 而定序用 envelope `e.Tick` ⇒ 非法流下**往事时点回溯污染** ⇒ 改 `e.Tick > tick`;W5/W6 浮点扫描改标识符边界匹配 + 补 IL 浮点正控;W2 措辞订正(半开区间是实现选择,GDD 无明文);M1 改用 `EventOrder.KeyOf`;M3 卡面矛盾订正;M4 删孤儿 `Processing.meta`。**未修**:W3(正例恒真,需 20.Apply)· W4/W8(AC-18-17② 无负控且扫描面半空)· W7(AC-18-23 的 Seq 定序零断言)· M2(同键取先入者,属 ADR-008 面)—— 全部登记在原件 §三 L1–L8。**证伪轮**:14 条变异(新增 M13 钉 W1 / M14 钉 B1),**第 4 轮 14/14 恰如预期**,SHA-256 逐字节还原通过 + `FALSIFY-` 零残留 + 受保护路径指纹未变。**回归**:全量 **5385/5350/0/35** vs 基线 **5354/5319/0/35** ⇒ **+31 == 新增 31 条,零回归**。⚠️ `-batchmode … -runTests` **不得带 `-quit`**(会 24 秒空跑零 XML)。原件:`production/qa/evidence/review-s20-9-2026-10-26.md` · `tools/falsify/specs/s20-9-furnace-timing-no-process-state.json` · `unity/Logs/s20-9-review-full.xml`。"
-  - id: "S20-10"
-    name: "inventory-001 InventoryOf 世界流投影与清空重建等值"
-    file: "production/epics/inventory-items/story-001-inventoryof-fold-rebuild.md"
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "三组逐组定性(正常派生 / 真改动 / 我的误读)并落 `coding-standards.md` §工作树卫生三分类表;派生组进 `.gitignore` **窄 glob**(须 `git check-ignore -v` 验命中 + 验 2–3 个邻近反例未被误伤)。⚠️ URP `GlobalSettings` 的 `m_RuntimeSettings` 已知是正常派生,不得再按「污染」报。"
+
+  - id: "S21-7"
+    name: "persistence ×2:TD-persist-08(51 行方法)· TD-persist-10(迁移链接缝零夹具)"
+    file: "docs/tech-debt-register.md#td-persist-10"
     priority: must-have
-    status: done
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "`-08`:198–248 = 51 行,拆到 ≤40 **且补 ≤40 界夹具**(拆了不钉 = Landed ✅ / Proven ✗,承 Phase 8b 的 J 项教训)。`-10`:[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2) 空区间导致接缝零集成夹具 ⇒ 须显式说明「空区间下夹具走哪条路径」,不得以「区间为空」代结案。"
+
+  - id: "S21-8"
+    name: "level-tool/story-006 C1–C6 七项一致性检查(闭 S20-20 #3)"
+    file: "production/epics/level-tool/story-006-c1-c2-c2prime-and-ci.md"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: "2026-10-26"
-    note: "链路批3。前置 item-database-001/002 已 Complete ⇒ **不等 processing,可立即开工**。⚠️ 本件的 fold 口径错会向后传导到 003/004/005 ⇒ 收口时须把「对下游的契约承诺」写进 Completion Notes。**2026-10-26 实测**:前置核实揭出 R15/R16/R17/R18 四条载荷缺位(已登记 GDD §涟漪登记)⇒ AC-20-03 / AC-20-16 结构性不可勾。**✅ 已收口**:AC 2/4(AC-20-05 · AC-20-17)· 28/28 绿 · 官方证伪轮 14/14 恰如预期 · 对下游契约承诺 C-1…C-7 已写入 story §Completion Notes。"
-  - id: "S20-11"
-    name: "inventory-003 堆叠 / 容器 / 折重"
-    file: "production/epics/inventory-items/story-003-stacking-container-weight-fold.md"
+    completed: ""
+    note: "七项从 `LevelConsistencyCheck.UnimplementedChecks`(#3 仍 7 条)**移出**且各配夹具。C2 可走性同源 / C4 多边形合法 / C5 边界单一源 / C6 切片完整 = **硬失败(`throw`)**;C1 两层漂移 / C3 导航格↔NavMesh = **告警**(承 ADR-022 ④)。⚠️ 移出 `UnimplementedChecks` 而不配夹具 = 把「未实现」改成「假装实现」,零判别力。"
+
+  - id: "S21-9"
+    name: "level-tool/story-002 世界几何真产出(闭 S20-20 #5 + S20-17 #1)"
+    file: "production/epics/level-tool/story-002-world-geometry-and-terrain.md"
     priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-26"
-    note: "链路批3。**✅ 已收口**:5/6 记绿(AC-20-04 · AC-20-12 · AC-20-15 · 折重不变量 · P0 门③)· 33/33 绿 · 官方证伪轮 **14/14** 恰如预期 · 对下游契约承诺 D-1…D-7 已写入 story §Completion Notes。⚠️ **P0 门 ①②(容器 qty/quality 恒 1)挂 `BLOCKED-BY Story 010`** —— P0 无「这是容器吗」的判据载体,不记绿。⚠️ **AC-20-15 的构建期执行 = NOT-RUN**(已证测试侧直调绿;构建期须另跑探针轮,禁借绿)。⚠️ 卡面三处自述与实测不符已订正(其中一条 = 自述顶替实作,第五形态假绿)。"
-  - id: "S20-12"
-    name: "inventory-004 CanCarry / 载重裁决"
-    file: "production/epics/inventory-items/story-004-carryload-and-cap-adjudication.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-26"
-    note: "链路批3。**✅ 已收口**:6/6 记绿 · 54/54 绿 · 官方证伪轮 **五轮演进 10/13 → 13/13 → 15/16 → 16/17 → 17/17** 恰如预期 · 对下游契约承诺 E-1…E-6 已写入 story §Completion Notes。⚠️ **四条限制必须与「6/6」同读**:① AC-20-21 是**弱门**(领取次数无上界 ⇒ 对任何有限 cap 几乎恒绿,抓不到「cap 大到能带齐一切」,须等 OQ-20-9 的 `ESSENTIAL_KIT`)② **构建期执行 = NOT-RUN**(门在 `AssemblyGates.RunAll` 的调用只有源码级证据,未跑探针轮)③ `singleUnitWeightTable` 夹具判别面受限(由 M16 实测证明,只证「不误报红」)④ AC-20-08 的 IL 面只在 Mono 后端,IL2CPP 须走 ADR-012 三格矩阵。⚠️ **五轮里两次真假绿**(M5 夹具只断异常类型 / M16 漏了「提前返回」属性),均已修并复跑;其余「多红」是同一被变异函数被另一批夹具独立覆盖,已在 spec 逐条写明变红原因。⚠️ **回归增量 = +54 不是 +141**(基线 `f3-full.xml` 测于 14:36,不含 `089006b`/`ebe532e`/`40d9cfa`/`80eeab2` 四笔带入的 87 条)。⚠️ **1 项 ADVISORY**:`CarryRatioDto.CarryLoad` 用 `long`(GDD `:302` 写 `int` 未同步;GDD `:452-459` 已把 `CarryLoad` 升 int64)。"
-  - id: "S20-13"
-    name: "processing-003 Craft 落流 + 点火事务"
-    file: "production/epics/processing/story-003-craft-payload-ignite-append.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-27"
-    note: "链路批4。4 条 AC(3 条 ✅ / AC-18-19 仍 BLOCKED-BY-21a 不记绿)。证伪轮 PlayMode 9/9 + EditMode 11/11 恰如预期。评审原件 production/qa/evidence/review-s20-13-2026-10-27.md。"
-  - id: "S20-14"
-    name: "inventory-005 统一事务模板 + **Drop* 三支写者**"
-    file: "production/epics/inventory-items/story-005-atomicity-consumption-recovery-no-ack.md"
-    priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: L
     blocker: ""
-    completed: "2026-10-27"
-    note: "链路批5 · **本链的关键件**:Drop* 三支写者落地 ⇒ 解锁 foraging-003 的 AC-17-01。**4 条 AC ✅ / 2 条 BLOCKED**(AC-20-19:29 散落生产侧未落 + `DropEventWriter` 零生产调用点;AC-20-14:`StructurePlacedPayload` 无 cost 无 actor = R16 结构缺口)。证伪轮**首轮 8/11 → 修 1 条假绿(M11 夹具自身内含回退)→ 复跑 11/11 恰如预期**。全量回归 EditMode 5519/5484/0/35(`5519 − S20-13 的 5479 = 40` = 新增 32+8)· PlayMode 见评审原件。评审原件 `production/qa/evidence/review-s20-14-2026-10-27.md`。⚠️ 交付性质 = 形状完备 + 自足夹具,**不是**可运行链路(四类 DropSpawned 触发方全未接线)。"
-  - id: "S20-15"
-    name: "foraging-006 采集侧 novelty 接线 + 编排器装配 + AC-17-01 解除挂起"
-    file: "production/epics/foraging/story-006-novelty-wiring-and-orchestrator-assembly.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-27"
-    note: "链路批6 · 链的终点,**已完成**。**8/8 AC 全绿**(AC-17-14/14b/14c/14d/14e/14f/14g + AC-17-01 挂起已解除 —— 前置 S20-14 为 Complete)。novelty 求值移入编排器内部,`HarvestRequest.Novelty` 字段删除。R-3 双铸造点冲突按用户裁定取**甲案**:`DropEventWriter.RecordSpawnedWithId` 收已铸 id,`RecordSpawned` 退为薄包装(校验须先于铸号),适配器永不调自铸入口。证伪轮**首轮 7/9 → 修 1 条夹具假绿(AC-17-14e 用 `objectId: -1` 而 `Query` 自己也守卫该值 ⇒ `Count==0` 对定序零判别力)+ 修 2 条 spec 靶点(M5 打错靶 / M3 行替换退化成执行两次)→ 复跑 9/9 恰如预期**。全量回归 EditMode **5529/5494/0/35**(`5519 + 10 = 5529`,净增 11 新 − 2 删 + 1 新)· PlayMode **229/228/0/1**(与前次逐位相同 = 零回归)。评审原件 `production/qa/evidence/review-s20-15-2026-10-27.md`。⚠️ 交付性质 = 编排器 + 装配,**不是**交互 —— 生产触发点(按 E 采集)仍归系统 4。⚠️ 流程违规 1 处已登记(复跑窗口内 grep 了被变异的 NoveltyTracker.cs,未用于判定)。"
-  - id: "S20-16"
-    name: "foraging-003 三条世界流事件 + 主机铸造身份 + 恰一条 SkillGrown(补记)"
-    file: "production/epics/foraging/story-003-three-events-and-identity-mint.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-26"
-    note: "**计划外插入件,收口后补记**(2026-10-26 完成时本文件无对应行)。commit `8bfb861`。AC 2/4 记绿(AC-17-05 / 05b);AC-17-01 不勾(BLOCKED-BY 20 写者,由 S20-14 解锁)· R11 半边。夹具 21 条,全量 5217/5182/0/35(基线 f3-full 5213/5178 ⇒ +4 == 新增用例)。sim_contracts_audit 证伪 13 条全红。评审原件 REVIEW 判 CHANGES REQUIRED —— 两条 BLOCKING(B-1 原子性自述为假 / B-2 事件序与 story 相反)均已修并经 M10/M11/M12/M13 独立变异证伪。⚠️ 交付性质 = 形状完备 + 自足夹具,**不是**可运行的采集链路(零生产调用点 / novelty 无生产者,后者即 S20-15 要修的)。"
+    completed: ""
+    note: "**L 件,单独占批。**`assets/data/world_*.json` 现状 **1 件**,ADR-022 §三 要 **7 件**。⚠️ 两条不得混记:①「工具产出数据」≠「运行期装载可读」(后者是另一条挂标);② 若两轮未收敛,缩到「地形 + 生态区边界」两件产物并**显式登记**,不得静默缩。"
 
-  - id: "S20-17"
-    name: "World 场景装配轮(World / StructureWriter 生产构造点 + 装配根接线)"
-    file: "production/sprints/sprint-20.md"
-    priority: must-have
-    status: done
+  - id: "S21-10"
+    name: "foraging 公式 vs 散文互斥 ×2(TD-foraging-01 CapTable · -02 GatherMul)"
+    file: "docs/tech-debt-register.md#td-foraging-01"
+    priority: should-have
+    status: backlog
     owner: ""
     estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-28"
-    note: "**收口后追加件(2026-10-28 用户裁定「直接在 sprint-20 排一张装配轮的卡」)**;卡面 = `sprint-20.md` §十 S20-17(本 sprint 于 2026-10-27 收口,本件为重开追加,不推翻 §九 判定)。病因:`CompositionRoot.cs:787-796` 逐字记「`structures` 生产树零构造、`new World(` 同样零构造」并指名「BootRoot 的 World 场景装配轮」;`impl-s20-2a-building01-2026-10-25.md:176` 的 N5 条记「本件未做」—— 而 `TD-building-01` 已于 2026-10-25 closed 且 N5 未转债 ⇒ 缺口零载体。边界 = **最小合成世界**(`WorldGeometry(TerrainCell[16,1,16], new int[256], new int[256])` + `new BuildSlotCatalog()` 空目录),理由:`assets/data/` 零份 `world_*` JSON、`DataCooked/` 25 份产物零份世界数据、其唯一作者 ADR-022 已被裁「不立 epic、不排期」(`p0-remaining-roadmap:1088`)。AC 5 条:①`new World(` 生产 0→1 ②`new StructureWriter(` 生产 0→1 ③装配后 `ClinicRoomMatching != null` ④`World` 端到端经装配路径 Place→blocked / Remove→free ⑤`DropEventWriter` 缺注入即抛。证伪轮 5 变异(AC-1/2 的变异形态 = 删构造行)。**挂标不记绿 5 条**:世界烘焙数据仍零产出(`AC-23-08` 第三半边仍无载体)· `Place`/`Remove` 生产发起方归 42 `O-23-6`(→ 交付 = 写者已装配,**不是**玩家能拆房)· `ClinicCellSource` 接真源归 24 侧 · `World` 生命周期归属须卡内裁定否则 AC-3 不得绿 · `PlaceableChecker` 接不接须裁定留痕。**将掀几债预估 0–1 条**。"
+    complexity: S
+    blocker: "用户裁定(改公式 / 改散文)"
+    completed: ""
+    note: "数值归用户。我先出两案 + 各自影响面(GDD 段落 / 夹具 / 已烘焙产物是否需重签),**不预设**。未裁则维持 `backlog`,不占 Must 额度。"
 
-  - id: "S20-18"
-    name: "World 生命周期轮(World 重置 + 世界流重建 + Modify 足迹修复)"
-    file: "production/sprints/sprint-20.md"
-    priority: must-have
-    status: done
+  - id: "S21-11"
+    name: "TD-medcons-20 药害为何停在「伤/后遗」而战斗可「打死改写昏迷」"
+    file: "docs/tech-debt-register.md#td-medcons-20"
+    priority: should-have
+    status: backlog
     owner: ""
     estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-10-28"
-    note: "**S20-17 卡内「挂标不记绿」第 4 条的兑现件**(2026-10-28 用户裁定「做 World 生命周期那一项」+「全批照做」)。卡面 = `sprint-20.md` §十 S20-18。病因三层:① `World` **无重置入口**(`StructureInstanceRegistry.Clear()` 只清 `_instances`,不清 `World._slotOccupied`、不复位 `_nextStructureId`);② **无世界流重放器**(`StructureInstanceRegistry` 从不被 `StructurePlaced/Removed/Modified` 重建 ⇒ 清零后世界会变空);③ `StructureWriter.Modify` **漏写占用**(只 `_registry.Update` 且传旧足迹,零 `FreeCells/OccupyCells` ⇒ 旋转非方形模块后旧格仍不可走、新格仍可走,违 F-23-1)。AC 10 条。形态照 `PoiStateMachine.RebuildFromDecoded`:`Sim` 侧不自行解码,Boot 层 `WorldLoadService` 解码后喂入。**挂标不记绿 6 条**:重放器生产实效 = 零(`StructureWriter.Place` 生产调用点 grep 实测 0 ⇒ 生产流永不含 `StructurePlaced`)· ADR-023 §⑤ 场景拆序不在面内(`World.unity` 零加载点)· `RequestLoad` 仍零调用方 · `BuildSlotCatalog` 仍空 · `Modify` 修复只覆盖足迹随朝向变化 · 在场视图/视觉侧仍不在读档重建面。**将掀几债预估 0 条**。**收口(2026-10-28)**:原件 = `production/qa/evidence/impl-s20-18-world-lifecycle-2026-10-28.md`;新增夹具 26 测;证伪轮 **18 条变异零逃逸**(主轮 17 = 15 exact + 2 超集,订正预期后复验 exact;另补 M12 覆盖 AC-10 的另一分支);EditMode `5601/5566/0/35`(+26/+26)· PlayMode `238/234/0/2/2`(零回归);NOT-RUN 1 条 = `afterRestore` 钩子内 `worldLoad?.Rebuild()` 的调用本身无夹具钉住。"
+    complexity: S
+    blocker: "用户裁定"
+    completed: ""
+    note: "ADR-035 已把治疗伤害定为「永不致死」(N-1/N-3/N-4 构建期断言),但**正面理由未写**。缺这一环,`INJ_COMA` 不排除的裁定(与两份专家意见相反)在文档上没有支撑。可写成 ADR-035 的窄修订。"
 
-  - id: "S20-19"
-    name: "42 建造发起方接线(兑现 O-23-6)"
-    file: "production/sprints/sprint-20.md"
-    priority: must-have
-    status: done
+  - id: "S21-12"
+    name: "TD-s13-01 结转:code-review 增量落盘判据仍是前瞻性"
+    file: "docs/tech-debt-register.md#td-s13-01"
+    priority: should-have
+    status: backlog
     owner: ""
     estimate_days: 0
-    complexity: M
+    complexity: S
     blocker: ""
-    completed: "2026-10-28"
-    note: "**S20-18 卡内「挂标不记绿」第 1 条的兑现件**(2026-10-28 用户裁定「做 42 侧建造发起方接线」)。卡面 = `sprint-20.md` §十 S20-19。**三项用户裁定**:① 范围 = 规格 + 逻辑接线(幽灵预览只落接口与量化结果,不做可见渲染)② 模态归属 = 建造不占 `ModalId`(闭集维持 7 员)③ 材料成本 = 本轮接扣减(按 `inventory-and-items.md` 规则六原子单位)。病因五处:① 写侧发起方 = 0(`StructureWriter.Place` 生产调用点 grep 实测 0 ⇒ 生产流永不含 `StructurePlaced` ⇒ S20-18 重放器在生产上恒空跑)② `PlaceableChecker` / `DemolishChecker` 零生产构造点 ③ `.inputactions` 零建造动作(仅 Player / UI 两图)④ 42 的 GDD 零建造交互章节(`skeuomorphic-ui.md` 只有 `:1267` 一句「非纸面进度归世界器物状态,UI 不管」)⑤ 选料器全仓零实现(`ValidateConsumption` 只验已给定的 `ConsumeLine[]`,不负责选出)。**两处已就绪不必新写**:量化器已有唯一实现 `CellTransitionDetector.CellFromPosition`(FloorToInt 三轴,`PlayerController.cs:156` 在用,`IPlayerMotor.cs:58` 逐字要求走它)⇒ AC 是「同源/无第二处」;返还比 P0 = 1.0 = 65536 已定(`DemolishChecker.cs:84/:125`),不新增旋钮。**AC 10 条**(A-1 文档走查 + B-1…B-9 判据):A-1 文档走查(`O-23-6` 转 ✅)· B-1 量化器同源门 + 夹具 · B-2 非法放置零副作用 · B-3 合法放置端到端 · B-4 材料先验后写 · B-5 选料器 id 升序兜底 / 跨栈 N 条 / 不重复点名 · B-6 拆除 · B-7 模态恒 None · B-8 输入动作双绑重 · B-9 检查器生产构造 0→1。证伪轮预计 9 条。**挂标不记绿预估 7 条**:幽灵预览零渲染 · 建造模式进入方式若为键位直绑而非世界交互意图 · 不可放置原因 UI 呈现 42 只留接口 · 客机上行归 45 · `BuildPartQualityGate` 不参与放置判定 · 拆除返还物落点格归 20 · 建造音效未接 44。**✅ 2026-10-28 实施轮已落**(证据原件 `production/qa/evidence/impl-s20-19-build-initiator-2026-10-28.md`)。**交付面**:新建 6 件生产(`BuildMaterialPlanner` / `BuildController` / `BuildStockQuery` / `BuildOwnerSlot` / `BuildInputReader` / `BuildInputDriver`)+ 3 件夹具(38 测)+ 改 8 件(含 `.inputactions` 四动作十二绑重)。**AC 计分(分母 10)**:Proven ✅ 9 · 部分 1(B-6 的「拒⇒零副作用」半边) · Branch 未满 2 处(B-6 / B-9 反例)。**回归**(三元组 `2026-10-28T00:31Z` · S20-19 批 · `314bf6a` + 未提交工作树):EditMode `5639/5604/0/0/35`(基线 `5601/5566/0/35`,+38/+38)· PlayMode `238/234/0/2/2`(零回归)。**证伪轮**:第一轮 15 变异 = 7 exact + 5 超集 + 3 逃逸(退出码 1);三类失败**全部是规格缺陷**(打不可达分支 / 预期推错 / 打错靶),**零夹具假绿**;订正后 16 变异(含 M5b 负对照)= 15 exact 同轮 + M5 单跑 exact ⇒ **16/16 exact**,但**分两批跑,不合并记账**。**挂标不记绿 9 条一条未勾**,其中 #3 = `BuildSlotCatalog` 生产侧仍空 ⇒ 生产 `PlaceableCheck` 恒 `SlotNotFound` ⇒ **玩家今天仍建不了东西**;本批兑现的是「接线 0 → 1」,不是「可玩」。**未 commit**(无用户指令)· `/story-done` 与代码评审门未跑。**✅ 2026-10-28 收口轮(`/story-done`)**:**Falsifiability Gate 首判 BLOCKING**(两处未反证项),补 2 条夹具(`test_acB6_removeWithEntityOnCell_…` / `test_acB9_assembleWithStructuresButNoWorld_…`)+ 2 条变异(**M16** / **M17**)后 Gate 转 **PASS**。第三轮 18 变异 = **17 exact + 1 逃逸(M17)**,M17 单跑复验 **exact** ⇒ 全 18 条 exact 但**分三批,不合并记账**;M17 逃逸根因 = **靶点对但靶场空**(`buildController` 赋值在 `:847 ∧ :874` 两层守卫合取内,裸 `Assemble()` 两层同时为假 ⇒ 对任何单层守卫零判别力)。**AC 计分(分母 10)升为 Proven ✅ 10 · Branch 全覆盖**(B-6 2/2 · B-9 2/2)。**回归重跑三元组**:EditMode `5641/5606/0/0/35`(+40/+40,等式 `5641−5601=40` 恰等)· PlayMode `238/234/0/2/2`(零回归)@ `2026-10-28T01:25Z` · 收口轮 · `3ae5599` + 未提交工作树。**挂标不记绿 9 条仍一条未勾**(#3 `BuildSlotCatalog` 生产侧空 ⇒ 玩家今天仍建不了东西)。**本收口轮的改动未 commit**(无用户指令)。**✅ 2026-10-28 A-5 修复轮(用户指令「处理 A-5:修掉 SolePlayer 赋值」)**:代码评审原件 `review-s20-19-2026-10-28.md` 的**唯一 BLOCK = A-5**(`InventoryFoldContext.SolePlayer` 生产侧零赋值 ⇒ 建造扣料在玩家路径上从不发生)已结清 —— 修法 = **消掉两个 int 的分叉**(`BuildOwnerSlot` 构造点上移到 `InventoryLoadService` 之前,`BuildController` / `BuildStockQuery` / fold 同读一个 int)而非补赋值;**连带补齐** `Items` / `Recipes` / `Modules`(此前全为默认,只补 `SolePlayer` 仍扣不动)+ 新增 `DataCookedDisk.LoadRecipes()`。夹具 = `Tests/EditMode/Boot/inventory_fold_sole_player_wiring_test.cs`(装配级 2 条);证伪 `s20-19-a5-sole-player.json` **2/2 exact**;回归三元组 `2026-10-28T02:49Z` · A-5 修复轮全量 · `85f248e8`:EditMode `5678/5643/0/0/35`(基线 `5676/5641` ⇒ **+2/+2** 恰等)· PlayMode `238/234/0/2/2`(零回归)。评审判定 `CHANGES REQUIRED` → **`APPROVED WITH SUGGESTIONS`**(BLOCK 3 → 0)。原件 = `production/qa/evidence/fix-a5-sole-player-2026-10-28.md`;**证明不了的 3 点**(槽内 id = 玩家 id 靠 BootRoot 铸造序 / Addressables 半边零夹具 / 将来加读档立即 Rebuild 须绑定后补一次)已逐条登记在该件 §七。"
+    completed: ""
+    note: "只能补机制。**有效性待下次真实重评实测,当下不可自证** —— 本节存在性可证伪(改它 ⇒ skill 行为变),有效性禁借绿。"
 
-  - id: "S20-20"
-    name: "最小关卡工具 + 建造槽位骨架全链(兑现 S20-19 挂标 #3)"
-    file: "production/sprints/sprint-20.md"
-    priority: must-have
-    status: done
+  - id: "S21-13"
+    name: "容量模型二改:预留拆散件/链条两种额度 + 「将掀几件 story」列"
+    file: "production/CAPACITY-MODEL.md"
+    priority: nice-to-have
+    status: backlog
     owner: ""
     estimate_days: 0
-    complexity: M
+    complexity: S
     blocker: ""
-    completed: "2026-10-28"
-    note: "**S20-19 挂标第 3 条的兑现件**(2026-10-28 用户裁定「只做 #3 BuildSlotCatalog」+「先做最小关卡工具(合规)」)。卡面 = `sprint-20.md` §十 S20-20。病因:`BuildSlotCatalog` 生产侧 `RegisterSlot` **零调用点** ⇒ `PlaceableChecker.Check` 恒 `SlotNotFound` ⇒ 玩家建不了任何东西;最省事的「手写 `world_buildslots.json`」是**架构违规**(ADR-022 §二:逻辑层整数数据只能由关卡工具导出)⇒ 走「先做最小关卡工具」的合规路径。**产出**:新建 11 件(关卡工具 4 + 烘焙 3 + 读方 codec 1 + `DataCookedDisk.LoadBuildSlots` + 装配装载段 + 2 件夹具)+ 真产物 2 件(`assets/data/world_buildslots.json` 13 格 · `world_buildslots.cooked.bytes` 296 B / ConfigVersion `0x146822D2`)。**AC**:C-1…C-7 全绿(夹具 19 测 = `world_buildslots_bake_test` 12 + `level_tool_consistency_test` 7)。**证伪轮**:11 属性**分四批**(全链 M1/M2/M3/M5 + M4 单跑 + 关卡工具 L2–L6 + L1 单跑)全部反证转红,2 处超集**均为规格缺陷**(不是夹具假绿)。**代码评审**(用户指令触发,lean 分支不适用):原件 `production/qa/evidence/review-s20-19-2026-10-28.md`,判定 **`CHANGES REQUIRED`**;原 2 条 BLOCK(A-21 / Q-7)已修复并反证,余 **1 条 BLOCK = A-5 升级版**(「`SolePlayer` 生产侧零赋值 ⇒ **建造扣料在玩家路径上从不发生**」)待裁。**修复轮**:A-21 消镜像(`SlotTypeVocabulary` 派生自 `Sim.SlotType`,四份手写表归零)· A-22 codec 值域双侧收紧 · A-23 catch 判据抽 `public` 谓词 —— 三份 spec 证伪 **7/7 恰如预期**(6 exact + 1 设计内超集);A-18 `Landed ✅ / Proven ✗`(本机造不出跨区域性差异,理由见评审件 §5.5)。**回归**(三元组 `2026-10-28T02:30Z` · 修复轮后全量 · `3ae5599e` + 未提交工作树):EditMode `5676/5641/0/0/35`(基线 `5641/5606/0/0/35` ⇒ **+35/+35**,等式 `5676−5641=35` = 19 + 16 恰等)· PlayMode `238/234/0/2/2`(**零回归**)。**挂标不记绿 3 条**:① 生产 build 的 Addressables 装载面**未接**(走 `DataCookedDisk` 磁盘直读 ⇒ build 里目录不存在 ⇒ 空目录 + `LogError`)② `BakedInitial` 运行期**不应用**(`BuildSlot` 无该字段,仅 `LogWarning`)③ C1–C6 里 **7 项未实现**(返回 `CheckReport.Unimplemented`,是数据不是注释)。**装载面修复轮(2026-10-28 · 用户指令「处理 #2:补 Addressables 装载面」)**:挂标 #1 **已兑现**(原文加注不删)。`WorldBuildSlotsAddress` 常量 → `EnsureWorldBuildSlots()` → `Preload()` → `DataCoreAddresses`(22→**23**)四处闭合;`MinimalWorldFactory.Create(IDataProvider)` provider 优先(`null` 才磁盘兜底);`BootRoot:214` 传 `preloaded ? DataCorePreloader.Provider : null`;provider 失败 ⇒ 空目录 + `LogError` 并点名「装载源」(不静默回落磁盘)。组条目 24→**26**(菜单实跑,顺带登记既有欠账 `foraging_constants`)+ catalog 重建(26 条)。夹具 `world_slots_provider_wiring_test` **3 条**(含 **A-5 §七-2 的 provider 半边** = 三份表经 provider 送达时扣料仍恰少 `cost(m)`);接线门 12/12 绿。证伪 `s20-20-slot-provider-surface.json` **2/2 exact**(⚠️ 首版 M1 锚点打在条件行 ⇒ 编译失败,属**废轮**,已订正并如实登记)。回归三元组 `2026-10-28T03:09Z` · 本轮全量 · `56633bce` + 未提交工作树:EditMode `5681/5646/0/0/35`(基线 `5678/5643` ⇒ **+3/+3** = 新增 3 夹具)· PlayMode `238/234/0/2/2`(**零回归**)。连带订正:`world_assembly_wiring_test::test_ac201b` 的字面串判据 → 「调用且实参非无参」。原件 `fix-s20-20-slot-provider-surface-2026-10-28.md`;sprint 记账 `sprint-20.md` §十二。**余下挂标 #2–#5 不变**。**未 commit**(无用户指令)。"
+    completed: ""
+    note: "retro-20 行动项 1/2。纯文书,零产品码。缘由:sprint-20 预留 1 件、入账 14 件,而「将掀几债」预估因**口径不匹配**(估债数、掀 story)没起到刹车作用。"
 
-# 追加率预留:1 件(承 CAPACITY-MODEL §3.1;retro-19 行动项 2:规划期逐件附「将掀几债」预估,
-# 各 note 已含;入场即掀新债时先裁减 Should Have)
+  - id: "S21-14"
+    name: "假绿形态登记表(已知 8 形态集中到一处)"
+    file: "docs/tech-debt-register.md"
+    priority: nice-to-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "retro-20 Process Improvement 2。含已知五形态 + sprint-20 新抓三类(行为等价掩盖结构分叉 / 空洞正控 / `default(struct)` 绕过 fail-closed)。目标:下一次写夹具前能先查一遍。"
+
+# 追加率预留:1 件(散件额度)。⚠️ 承 retro-20:遇**成链追加**须先做容量再裁定,
+# 超预留 2 倍即强制二选一(缩链 / 开新 sprint),不得默认全入账。
 #
-# ⚠️ 2026-10-26 追加批已**超出**该预留(8 件入账),须在下次 sprint 规划轮重估容量。
-#    依据 = `sprint-20-collection-chain-plan.md` §五 风险表第 4 行。
-#    (2026-10-27 改名:原 `sprint-21-candidate-collection-chain-plan.md`)
+# 开工前置:QA 计划(production/qa/qa-plan-sprint-21-<date>.md)—— 用户 2026-10-31 裁定「开工前补」。
