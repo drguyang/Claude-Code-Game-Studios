@@ -43,7 +43,11 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
         /// <summary>AC-51-A1:51 程序集无 <c>IEventSink</c> 或其派生的成员。
         /// 扫描 Sim.Contracts 的 IEventSink 接口定义,验证 51 侧无引用。
-        /// ⚠️ 当前阶段 51 程序集未实现,本测试验证**契约面**:IEventSink 存在且 51 侧无引用路径。</summary>
+        /// <para>🔁 **2026-10-30 订正(`TD-epic-01-e` 复核轮)**:原注释写「当前阶段 51 程序集未实现,
+        /// 本测试验证契约面」,并把扫描面为空说成「验证扫描键落空 = 假绿防护」—— **两者均过期**:
+        /// `unity/Assets/Telemetry/` 今日有 30 个类型在该命名空间内,扫描面**非空**。</para>
+        /// <para>⚠️ 而且「扫描键落空」**从来不是**假绿防护 —— 扫描面空 ⇒ 循环零次 ⇒
+        /// `violations` 恒空 ⇒ 判据恒绿,那正是假绿本身。已补硬断言。</para></summary>
         [Test]
         public void test_readonlyBoundary_noEventSinkRefs()
         {
@@ -51,11 +55,15 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var iEventSink = typeof(IEventSink);
             Assert.That(iEventSink, Is.Not.Null, "IEventSink 契约必须存在(Sim.Contracts)");
 
-            // Act:扫描 51 命名空间下的类型(当前阶段 = 零类型,验证扫描键落空 = 假绿防护)
+            // Act:扫描 51 命名空间下的类型
             var telemetryTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
 
             // Assert:无 IEventSink 引用(实现前后都成立)
             // 扫描 51 类型的全部签名,收集 violations
@@ -178,6 +186,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
 
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
+
             // Act:扫描 —— 只扫「向三流写」的形态,不扫本地导出
             var violations = new List<string>();
             foreach (var t in telemetryTypes)
@@ -257,6 +269,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
 
             // Act:扫描公开方法签名
             var violations = new List<string>();
@@ -373,6 +389,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
 
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
+
             // Act:扫描公开方法名
             var violations = new List<string>();
             foreach (var t in telemetryTypes)
@@ -432,6 +452,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
 
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
+
             // Act:扫描公开方法签名中的文件写入类型
             var violations = new List<string>();
             foreach (var t in telemetryTypes)
@@ -465,6 +489,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            // ⚠️ 空扫描守卫(2026-10-30 补,`TD-epic-01-e` 复核轮):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
 
             // Act:检查 51 类型是否引用 UnityAnalytics 命名空间
             var violations = new List<string>();

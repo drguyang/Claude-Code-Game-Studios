@@ -100,7 +100,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
         /// <summary>AC-51-B11:F4 不重算 XP —— 51 的程序集无 <c>XP_gain</c>/<c>BASE</c>/<c>K_difficulty</c>/<c>K_novelty</c>
         /// 的实现或常量(那是 30 的定点域;重算 = 破 R7 + 造第二真源)。
-        /// ⚠️ 当前阶段 51 命名空间零类型(未实现),扫描为 vacuous pass;实现后应转为有效扫描断言。</summary>
+        /// <para>🔁 **2026-10-30 订正(`TD-epic-01-e` 复核轮)**:原注释写
+        /// 「当前阶段 51 命名空间零类型(未实现),扫描为 vacuous pass」——**该描述已过期**:
+        /// `unity/Assets/Telemetry/` 今日有 **30 个**类型在该命名空间内,扫描面非空。
+        /// 但**「非空」今天只是事实,不是判据保证的** —— 无任何断言拦住它变空。</para>
+        /// <para>⇒ 本轮补「扫描面非空」守卫。少了它,命名空间一旦被重命名 / 程序集未加载,
+        /// 循环空转 ⇒ `violations` 为空 ⇒ **判据恒绿**(本项目抓过多次的「空扫描」形态)。</para>
+        /// <para><b>证伪</b>:在 `DaYiJingCheng.Telemetry` 里加一个 `XpGain` 字段 ⇒ 本条红。</para></summary>
         [Test]
         public void test_f4_noXpGainComputation()
         {
@@ -109,6 +115,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            // ⚠️ 空扫描守卫(2026-10-30 补):扫描面**必须**非空,否则本条会空转通过
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
 
             // Act:扫描方法名与字段名中的 XP 关键词
             var violations = new List<string>();

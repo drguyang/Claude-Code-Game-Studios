@@ -114,11 +114,85 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         [Test]
         public void test_f2_unmappableNoBypass()
         {
-            // Arrange:扫描 51 命名空间下的类型
-            var telemetryTypes = AppDomain.CurrentDomain.GetAssemblies()
+            // 🔴 **2026-10-30 修(`TD-epic-01-e` 复核轮)**:本条判据此前有**两处**假绿,均已修。
+            //
+            // 缺口 ① **扫描面漏了 51 的主实装** ——
+            //   原判据只扫 `Namespace.StartsWith("DaYiJingCheng.Telemetry")`,
+            //   而 51 的**生产实装** `TelemetryReporter` 住在
+            //   **`DaYiJingCheng.Gameplay.Boot`**(`TelemetryReporter.cs:27`),
+            //   全部解码 / 分派 / 报告逻辑都在那里。
+            //   ⇒ 判据扫的是**纯函数层**,而**可能真有旁路采集的地方没被扫**。
+            //   实测确认:`grep -oE "...Parse...|...Map...|...Resolve...|...Convert...("
+            //   unity/Assets/Gameplay.Boot/TelemetryReporter.cs` ⇒ 今日零命中,
+            //   但那是**巧合**,不是判据保证的 —— 明天有人加一个 `ResolveDiseaseName`
+            //   到 reporter 里,本条**仍然绿**。
+            //
+            // 缺口 ② **无「扫描面非空」守卫** ——
+            //   原注释写「实现后 telemetryTypes 非空」,但**没有任何断言**保证它。
+            //   若命名空间被重命名 / 程序集未加载 ⇒ `telemetryTypes` 为空
+            //   ⇒ 循环空转 ⇒ `violations` 为空 ⇒ **判据恒绿**(本项目抓过多次的「空扫描」形态)。
+            //
+            // ✅ **证伪轮(2026-10-30,两条变异各转红,还原 SHA-256 逐字节一致)**:
+            //   · M11 —— 在 `TelemetryReporter`(主实装)里加
+            //     `private static string ResolveDiseaseName(int id)`:
+            //     **红**。这条打的是缺口 ① 的修法(具名类型必须被扫)。
+            //     变异前该判据对主实装**零判别力**(它根本不在扫描面内)。
+            //   · M12 —— 在 `DaYiJingCheng.Telemetry` 命名空间里加
+            //     `internal static class DiseaseNameMapper { … MapDiseaseName(…) }`:
+            //     **红**。这条打的是**原判据就有的**命名空间扫描那半 ——
+            //     此前从未被证伪过,今日补证。
+            //   · 两轮均 `total=3 failed=1`,且**红的就是本条**(另两条恒绿 ⇒
+            //     判别力精确落在本判据上,不是连带污染)。
+            //   ⚠️ 未反证项:**缺口 ② 的空扫描守卫本身**没有专打变异 ——
+            //     要打它须改命名空间字符串或摘掉 `telemetryOwnerTypes` 条目,
+            //     而这两者都在**夹具**里(改夹具 = 改判据,不是打判据)。
+            //     ⇒ 该守卫的**存在性**可读,其**判别力**如实登记为「无专打变异」。
+
+            // Arrange:扫描面 = 51 的**全部生产类型**,分两块:
+            //   ⓐ 纯函数层 = 命名空间 `DaYiJingCheng.Telemetry` 下的**全部类型**
+            //      (Metrics / Reducers / Report / StreamIntegrity …);
+            //   ⓑ **主实装** = `Gameplay.Boot` 里的 **51 专属类**,**逐个具名**。
+            //
+            //   ⚠️ **为什么 ⓑ 不能写成「整个 `Gameplay.Boot` 命名空间」**(2026-10-30 实测):
+            //      那样写会扫到 Boot 里**与 51 无关**的启动配置解析 —— 首轮实跑即红 11 条:
+            //      `BootRoot.ResolveTelemetryKnobs` / `ResolveDeviceSwitchKnobs` /
+            //      `CompositionRoot.ResolveGlobalConfigVersion` / `AudioAssemblySeams.TryResolveCue` …
+            //      它们全是「解析配置旋钮」,**不是**「解析病名」,与 AC-51-B7 无关。
+            //      ⇒ 判据面须精确到**51 的实装类**,而不是它恰好所在的命名空间。
+            //   ⚠️ 具名的代价:新增 51 实装类时**必须**加进 `telemetryOwnerTypes`,
+            //      否则那个类里的旁路采集抓不到。该代价由下方「必须命中」守卫部分缓解
+            //      (漏加 = 少一个必须命中的条目,但不会静默通过 —— 因为命中的那几个仍被检查)。
+            string[] productionNamespaces = { "DaYiJingCheng.Telemetry" };
+            string[] telemetryOwnerTypes =
+            {
+                "DaYiJingCheng.Gameplay.Boot.TelemetryReporter",      // 51 的主实装
+                "DaYiJingCheng.Gameplay.Boot.TelemetryDeveloperView", // 51 的调试视图
+            };
+
+            var allTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
-                .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            var telemetryTypes = allTypes
+                .Where(t => t.Namespace != null
+                            && productionNamespaces.Any(ns =>
+                                   t.Namespace == ns || t.Namespace.StartsWith(ns + ".")))
+                .ToList();
+
+            // ⚠️ **空扫描守卫(缺口 ② 的修法)**:扫描面**必须**非空。
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
+
+            // ⚠️ **主实装必须真的被扫到(缺口 ① 的修法 + 判别力守卫)**:
+            //    逐个具名类型都必须**在扫描面里**。缺一个 ⇒ 红(而不是「它不在就不查它」)。
+            foreach (string fqn in telemetryOwnerTypes)
+            {
+                Type t = allTypes.FirstOrDefault(x => x.FullName == fqn);
+                Assert.That(t, Is.Not.Null,
+                    $"找不到 51 的实装类 `{fqn}` —— 类被改名 / 移走 ⇒ 本判据的扫描面失真。" +
+                    "须同批更新 `telemetryOwnerTypes`(不得留着一条永不命中的路径)");
+                telemetryTypes.Add(t);
+            }
 
             // Act:检查是否存在病名解析/映射方法
             var violations = new List<string>();
@@ -131,10 +205,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 {
                     if (m.Name.Contains("Parse") || m.Name.Contains("Map") ||
                         m.Name.Contains("Resolve") || m.Name.Contains("Convert"))
-                        violations.Add($"{t.Name}.{m.Name} 是解析/映射方法");
+                        violations.Add($"{t.Namespace}.{t.Name}.{m.Name} 是解析/映射方法");
                 }
 
-            // Assert:零解析/映射方法(实现后 telemetryTypes 非空;唯一判据 = violations 为空)
+            // Assert:零解析/映射方法
             Assert.That(violations, Is.Empty,
                 "51 不得有病名解析/映射代码路径(AC-51-B7:N_unmappable > 0 不得触发旁路采集):\n" +
                 string.Join("\n", violations));

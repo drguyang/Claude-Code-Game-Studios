@@ -272,7 +272,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         // ══════════════ AC-51-B18:F7 禁浮点统计量 ══════════════
 
         /// <summary>AC-51-B18:F7 禁浮点统计量 —— 51 命名空间下无方差/标准差/Math.Sqrt/浮点除法。
-        /// 扫描 51 类型签名。</summary>
+        /// 扫描 51 类型签名。
+        /// <para>🔁 **2026-10-30 订正(`TD-epic-01-e` 复核轮)**:原守卫写
+        /// `if (telemetryTypes.Count == 0) Assert.Ignore(...)`,注释还写「当前阶段 51 命名空间零类型」
+        /// —— 两者**均已过期**:`unity/Assets/Telemetry/` 今日有 **30 个**类型在该命名空间内。</para>
+        /// <para>且 `Assert.Ignore` 即使生效,也只是**跳过**不是**红** —— 命名空间一旦被重命名,
+        /// 本条会以 skipped 静默留下,不构成守卫。⇒ 改为**硬断言**:扫描面为空即红。</para>
+        /// <para><b>证伪</b>:在 `DaYiJingCheng.Telemetry` 里加一个 `Stddev` 方法 ⇒ 本条红。</para></summary>
         [Test]
         public void test_f7_noFloatStatistics()
         {
@@ -281,6 +287,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            // ⚠️ 空扫描守卫(2026-10-30 补,原为 Assert.Ignore):扫描面**必须**非空
+            Assert.That(telemetryTypes, Is.Not.Empty,
+                "扫描面为空 —— 本判据会空转通过(假绿)。检查命名空间是否被重命名 / 程序集是否加载");
 
             // Act:扫描方法名与字段名中的浮点统计关键词
             var violations = new List<string>();
@@ -308,12 +318,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 }
             }
 
-            // Assert:零浮点统计量(当前阶段 51 命名空间零类型 ⇒ vacuous,实现后转为有效扫描)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("51 未实现,当前阶段无法扫描签名(实现后应验证 violations 为空)");
-                return;
-            }
+            // Assert:零浮点统计量(空扫描已在上方硬断言拦下,此处只剩 violations 判据)
             Assert.That(violations, Is.Empty,
                 "51 不得有方差/标准差/Math.Sqrt/浮点除法的离散度实现(AC-51-B18):\n" +
                 string.Join("\n", violations));

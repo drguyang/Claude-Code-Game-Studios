@@ -382,7 +382,7 @@
 | `TD-epic-01-b` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
-| `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-e` | `telemetry-analytics` | partial | **Y** | R1 |
 | `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
@@ -850,7 +850,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 105, 'open': 31, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+条目 139 | 状态 {'closed': 105, 'open': 30, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
 未闭 P0 面 = 7 （已闭但曾标 P0 面的 96 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 4/31 个 epic
     telemetry-analytics: 3    clinic-machine: 2         patient-ai: 1
@@ -3093,7 +3093,7 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 | TD-epic-01-b | **「解码失败 → 计 skipped」的吞异常写法会把编码侧缺陷伪装成数据质量问题** —— `skipped` 只在报告里给个数,不区分「载荷未驻留 / 损坏 / **类型错配**」。第十六片的缺陷正是以 skipped=1 的形式存在,而端到端夹具从不造改写事件 ⇒ 全量 3912 条无一条红 | `Gameplay.Boot/TelemetryReporter.cs`(`DecodeJudgmentRecord` / `DecodeMisdiagnosisRecord` 的 `catch`) | 下一次动任一解码委托时(建议:catch 里按异常类型分流,类型错配**不**转 skipped 而是抛) |
 | TD-epic-01-c | **既有端到端夹具不造 `JudgmentRevised`** —— 该缺陷能潜伏的前提。F1 侧已由第十六片 C1 覆盖,F2 侧已补回归夹具;但 `Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs` 仍未覆盖改写路径 | `Tests/EditMode/Boot/telemetry_{wiring,debug_view}_test.cs` | ~~下一次动这两个文件时~~ ✅ **2026-10-30 结案** —— 见下方 §「2026-10-30 · `TD-epic-01-c` 结案」 |
 | TD-epic-01-d | **`In Review` 两条 story 的未验半边** · story-008:`AC-51-C3`(ADR-012 三格矩阵载体未建,NOT-RUN)· story-010:`AC-51-E3` 的真实联机非主机拒绝(NOT-RUN,`IEventAuthority` 全仓零生产实装,`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | `production/epics/telemetry-analytics/story-008-*.md` · `story-010-*.md` | ① 载体/实装落地时;② **epic 级复评批**时须重评这两条 story 能否转 `Complete`(不得原地自升) |
-| TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | epic 级复评批 |
+| TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | ~~epic 级复评批~~ ✅ **2026-10-30 复核已做**(`partial`) —— 见下方 §「`TD-epic-01-e` 复核轮」;残留 = AC-19-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN,**AC 勾选状态仍不得动** |
 
 **共同性质**:a–c 是同一缺陷的三个面(契约面 / 吞异常面 / 夹具面),**均已由第十六片的两个回归夹具钉住行为**,
 但**根因未修**(契约与吞异常策略不变)⇒ 登记待办,不在本片扩面。
@@ -6970,3 +6970,140 @@ python3 tools/debtcount/debtcount.py --check
 
 **回归(PlayMode 全量)**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 18:35:30 CST` ·
 commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0/2/2`) **逐位相同**(零回归)。
+
+---
+
+## 2026-10-30 · `TD-epic-01-e` 复核轮 —— 7 条 story 逐 AC 复核,**抓到 8 条空扫描假绿**
+
+> 本条债的宾语是「余 7 条 story(001–007)仍未**逐 AC 复核**」。本轮做的是**逐 AC 复核本身**,
+> 不是补勾选。结论:**18 条 AC 里 16 条有真载体,2 条只有半边;另在复核过程中抓出
+> 8 条既存夹具的「空扫描」假绿形态(AC 面本身没判错,但判据今日会空转通过)。**
+> ⚠️ **8 条 = `readonly_boundary_test.cs` 6 条 + `f4` 1 条 + `f6/f7` 1 条**(逐条见下表)。
+
+### 一、逐 AC → 载体映射(001–007,共 18 条 AC)
+
+| AC | 级别 | 载体(实测存在) | 判定 |
+|---|---|---|---|
+| AC-19-01 | BLOCKING | `readonly_boundary_test.cs::test_ac1901_metricsRecomputableFromExistingStream_only`(真算,非形状) | ✅ 有效 |
+| AC-19-02 | BLOCKING | `::test_zeroEgress_noNetworkTypes` + `::test_ac1902_reportProducer_noNetworkInGameplayBoot` + `::test_zeroEgress_sinkNoUploadSendPost`(两面齐) | ✅ 有效 |
+| AC-19-03 | ADVISORY | `out_of_bounds_rejection_test.cs::test_e5_noSwitch_noSwitchFields`(开关面)+ 51 侧写盘面由 `::test_noWriteBack_noFileWriteApis` 覆盖 | ⚠️ **半边**(「无开关」有夹具;「输出只落本地」无**专打**夹具,靠 A4 网络面间接) |
+| AC-19-04 | BLOCKING | `::test_noAppendCallSite_noWriteMethods` + `::test_noStepSubscription_noUpdateCallbacks` | ✅ 有效 |
+| AC-19-05 | ADVISORY | **无载体** —— 全仓无发布清单文件(`ls production/release-checklist*` 零命中) | ⚠️ **NOT-RUN**(纯文档项,与代码无关) |
+| AC-19-06 | BLOCKING | `::test_noPlayerUi_noPresentationAssets`(+ `out_of_bounds::test_e1_noPlayerUi_*`) | ✅ 有效 |
+| AC-19-07 | BLOCKING | `::test_noWriteBack_noFileWriteApis`(+ `out_of_bounds::test_e2_noWriteBack_*` 三条) | ✅ 有效 |
+| AC-19-08 | ADVISORY | registry 实测 `status: covered`(`tr-registry.yaml:860`) | ✅ 兑现 |
+| AC-51-A1 | BLOCKING | `::test_readonlyBoundary_noEventSinkRefs` | ✅ 有效(**守卫本轮补**) |
+| AC-51-A2 | BLOCKING | `::test_readonlyBoundary_asmdefNoCycle`(真解析 asmdef JSON) | ✅ 有效 |
+| AC-51-A3 | ADVISORY | **无载体** —— 「移除 51 后三流字节逐位不变」需构建期变体,`grep -rn "A3\|withoutTelemetry" Telemetry/` 零命中 | ⚠️ **NOT-RUN**(与 `TD-epic-01-d` 同族:须 ADR-012 矩阵载体) |
+| AC-51-A4 | BLOCKING | 同 AC-19-02 三件 | ✅ 有效 |
+| AC-51-A5 | BLOCKING | `::test_noPresentationAssemblyRefs_judgmentMetrics` + `::test_noPlayerUi_noPresentationAssets` | ✅ 有效 |
+| AC-51-A6 | ADVISORY | **无夹具**,但**实测零命中**:`grep -rn "IAudioCueSink\|AudioCueDto\|AudioMixer" unity/Assets/Telemetry/ TelemetryReporter.cs TelemetryDeveloperView.cs` ⇒ 零 | ⚠️ **NOT-RUN**(零命中是事实,不是判据保证的;明日有人加一个就无声失效) |
+| AC-51-A7 | BLOCKING | `::test_noThirdParty_noAnalyticsPackages` | ✅ 有效(**守卫本轮补**) |
+| AC-51-A8 | BLOCKING | `::test_noStepSubscription_noUpdateCallbacks` | ✅ 有效(**守卫本轮补**) |
+| AC-51-B1…B4 | BLOCKING | `f1_judgment_accuracy_test.cs` 5 测 + `f2_wiring_test.cs` 8 测 | ✅ 有效 |
+| AC-51-B5…B7 | BLOCKING | `f2_misdiagnosis_matrix_test.cs` 3 测(**B7 本轮已修两处假绿**) | ✅ 有效(修后) |
+| AC-51-B8 | BLOCKING | `f3_skip_rate_test.cs` 4 测 | ✅ 有效 |
+| AC-51-B9 | ADVISORY→BLOCKED | `::test_f3_realSession_blockedByOQ108` 以 `Assert.Ignore` **显式登记 NOT-RUN** | ✅ 合规(禁借绿做到了) |
+| AC-51-B10/B11 | BLOCKING | `f4_skill_growth_test.cs` 6 测 | ✅ 有效(**B11 守卫本轮补**) |
+| AC-51-B12…B14 | BLOCKING | `f5_difficulty_curve_test.cs` 4 测 | ✅ 有效 |
+| AC-51-B15…B18 | BLOCKING | `f6_f7_session_rhythm_test.cs` 11 测 | ✅ 有效(**B18 守卫本轮补**) |
+
+**汇总**:有效 **16** · 半边 **1**(AC-19-03)· NOT-RUN **3**(AC-19-05 / A3 / A6)。
+
+### 二、复核中抓到的**假绿**(判据本身空转通过)
+
+**共同形态 = 本项目已抓过多次的「空扫描」**:反射遍历 `DaYiJingCheng.Telemetry` 命名空间下的类型,
+**遍历结果为空时循环零次 ⇒ `violations` 恒空 ⇒ 判据恒绿**,而**没有任何断言**拦住扫描面变空。
+
+⚠️ **成因**:这些夹具写于 51 **尚未实现**时(命名空间零类型),当时的注释把「扫描键落空」写成了
+**特性**(「实现后转有效扫描」)。51 实现后**注释没跟上**,守卫也一直没补 —— 于是判据从
+「vacuous pass(本该如此)」变成了「**真扫描面上空转**(不该如此)」。
+
+| # | 夹具 | 今日扫描面 | 缺陷 | 修法 |
+|---|---|---|---|---|
+| ① | `readonly_boundary_test.cs::test_readonlyBoundary_noEventSinkRefs` | **30 类型**(非空) | 注释写「当前阶段零类型」;且把「扫描键落空」说成「假绿防护」——**那是假绿本身** | 补 `Is.Not.Empty` 硬断言 + 订正注释 |
+| ② | 同文件另 **5** 条(`noAppendCallSite` / `zeroEgress_noNetworkTypes` / `noStepSubscription` / `noWriteBack` / `noThirdParty`) | 同上 | 全部无守卫 | 同批补 5 条 |
+| ③ | `f4_skill_growth_test.cs::test_f4_noXpGainComputation`(AC-51-B11) | 同上 | 无守卫 + 陈旧注释 | 补守卫 + 订正 |
+| ④ | `f6_f7_session_rhythm_test.cs::test_f7_noFloatStatistics`(AC-51-B18) | 同上 | **更重**:原守卫是 `if (Count == 0) Assert.Ignore(...)` —— **跳过不是红**,命名空间一改名本条会以 `skipped` 静默留下 | 改为硬断言 |
+
+⚠️ **②④ 的差别值得单记**:`Assert.Ignore` 看似是守卫,**它不是** —— 它把「判据失去判别力」这件事
+伪装成「本条不适用」。这正是 `AC-51-B9` 那种**正当**用法(真跑不了)与**不正当**用法(能跑但扫描面空了)
+的分界:**扫描面空是缺陷,不是不适用**。
+
+### 三、证伪轮(6 条变异,全部转红,还原 SHA-256 逐字节一致)
+
+| 变异 | 打的是什么 | 结果 |
+|---|---|---|
+| **M11** 在 `TelemetryReporter`(主实装)里加 `ResolveDiseaseName` | AC-51-B7 的**具名类型扫描面**(缺口①修法) | 红 1/3(`test_f2_unmappableNoBypass`) |
+| **M12** 在 `DaYiJingCheng.Telemetry` 里加 `DiseaseNameMapper.MapDiseaseName` | AC-51-B7 的**命名空间扫描面**(原判据就有的那半,从未被证伪过) | 红 1/3(同上) |
+| **M13** 同时塞 `XpGain` 字段 + `Stddev` 方法 | AC-51-B11 + B18 的**关键词判据** | 红 **3/147**(`f4_noXpGain` + `f7_noFloatStatistics` + 连带 `d5_noFloatOrDoubleMembers`) |
+| **M14** 把 f6/f7 夹具的扫描串改成不存在的命名空间 | **空扫描守卫本身**(B18) | 红 1/11 —— 且**改前是 `Skipped`、改后是 `Failed`**,证明守卫真把「跳过」升成了「红」 |
+| **M15** 同上,打 f4(B11) | 空扫描守卫(B11) | 红 1/6 |
+| **M16** 同上,打 readonly_boundary 的 **6** 处扫描串 | 空扫描守卫(A1/A4/A7/A8 + 19-02/19-04) | 红 **6/13**(6 处全红,一一对应) |
+
+**还原纪律**:M14–M16 的「改 → 跑 → 还原」在**同一条 bash 命令内**完成;M11–M13 各自独立窗口,
+窗口内不读被变异文件。六轮还原后全部 `sha256sum` 与备份**逐字节一致**,`FALSIFY` 串零残留。
+
+⚠️ **M14–M16 的性质须如实说明**:它们变的是**夹具里的扫描串**,不是生产码 ——
+打的是「守卫对**扫描面变空**这件事有没有反应」,不是「生产码新增关键词时判据有没有反应」
+(后者由 M11–M13 覆盖)。两者互补,**不得合并记账**。
+
+### 四、AC-19-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN 的处置
+
+三条**均不新立债**,理由逐条:
+
+- **AC-19-05**(发布清单 Privacy/Analytics 项):纯**文档**项,与代码无关。发布清单本身尚不存在
+  (`ls production/release-checklist*` 零命中)⇒ 该条**现在无处可挂**。归**发布流程轮**,不归本 epic。
+- **AC-51-A3**(移除 51 后三流字节逐位不变):需要**构建期变体**(去掉一个程序集再跑同一回放)。
+  这与 `TD-epic-01-d` 已登记的「ADR-012 三格矩阵载体未建」**是同一个缺口** ⇒ **并入 `TD-epic-01-d`**,
+  不重复立债。
+- **AC-51-A6**(51 侧零 `IAudioCueSink`/`AudioCueDto`/`AudioMixer`):今日**实测零命中**(事实),
+  但**无夹具**(明日有人加一个就无声失效)。⇒ **本轮不补夹具**,如实登记为已知缺口;
+  补它的时机 = 下一次动 51 与 44 接缝时。
+
+### 五、结论
+
+- **`TD-epic-01-e` 的宾语(「001–007 未逐 AC 复核」)已兑现** —— 18 条 AC 逐条对到载体,
+  有效 16 / 半边 1 / NOT-RUN 3。
+- **但本轮不得据此把 001–007 的 AC 全部勾选**:AC-19-05 / A3 / A6 三条 NOT-RUN 仍在,
+  按「禁借绿」**勾选状态维持不动**。本债**转 `partial`**(复核已做,AC 勾选仍待三条 NOT-RUN 结清)。
+- **8 条空扫描假绿已修且已反证**(6 条变异全红:M14 打 f6/f7、M15 打 f4、M16 打 readonly 的 6 处,
+  共 8 个守卫;M11/M12/M13 打的是关键词判据,不在本组)。
+
+### 六、回归三元组(全量)
+
+**EditMode**:截至 `2026-10-30 19:12:16 CST` · 批次 **`TD-epic-01-e` 复核批** ·
+commit `3eb80c05`+工作树 ⇒ `6166 / 6129 / 0 / 37`。
+基线 = 四条债结案批 `6166 / 6129 / 0 / 37`(@ `2026-10-30 18:34`)⇒ **逐位相同**(零回归)。
+
+> ⚠️ **零新增是预期的,不是漏测**:本轮唯一动的是**加断言**(`Assert.That(…, Is.Not.Empty)`)
+> 与**订正注释**,`[Test]` 一个没加 ⇒ `total` 应当一位不动。
+> 反证在**变异轮**做,不在计数上做 —— 6 条变异各自转红即为判别力证据。
+
+**PlayMode**:`238 / 234 / 0 / 2 / 2` @ `2026-10-30 19:13:25 CST` · commit `3eb80c05`+工作树
+⇒ 与基线(四条债结案批同值) **逐位相同**(零回归)。
+
+复算:
+```bash
+# EditMode 全量(判据 = XML 存在 + 计数,exit code 不可信)
+~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -projectPath unity \
+  -runTests -testPlatform EditMode -testResults /tmp/e.xml -logFile /tmp/e.log
+grep -oE 'total="[0-9]+" passed="[0-9]+" failed="[0-9]+"' /tmp/e.xml
+# ⇒ total="6166" passed="6129" failed="0"
+# 守卫计数(本轮补的 9 处)
+# ⚠️ 必须用**断言**模式,不能用 `grep -c "空扫描守卫"` —— 那个会把**注释里的提及**
+#    也算进去(f2 实测注释 1 处 + 断言 1 处 ⇒ 会误报 2)。判据须锚在断言行本身。
+for f in unity/Assets/Tests/EditMode/Telemetry/*.cs; do
+  n=$(grep -c 'Assert.That(telemetryTypes, Is.Not.Empty' "$f")
+  [ "$n" -gt 0 ] && echo "$(basename $f): $n"
+done
+# ⇒ f2_misdiagnosis_matrix_test.cs: 1
+# ⇒ f4_skill_growth_test.cs: 1
+# ⇒ f6_f7_session_rhythm_test.cs: 1
+# ⇒ readonly_boundary_test.cs: 6
+#   合计 9 处;其中 readonly 的 6 处 = 1 原有 + 5 本批新补
+```
+
+**计数**:`未闭 P0 面 7 → 7`(一位不动 —— `partial` 仍计入未闭面,承 §五 脚本 `r[2] != 'closed'` 口径)·
+`open 30 / partial 3`(本轮 `TD-epic-01-e` `open → partial`,一对对调)· `条目 139` 一位不动。
+⚠️ **勿把「未闭面还是 7」读成「本轮没动」** —— 变的是**状态细分**,不是出口判据。
