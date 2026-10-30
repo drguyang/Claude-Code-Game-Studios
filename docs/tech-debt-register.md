@@ -305,7 +305,7 @@
 | `TD-medcons-02` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-03` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-04` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-05` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-05` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
 | `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
@@ -850,10 +850,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 139 | 状态 {'closed': 88, 'open': 48, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
-未闭 P0 面 = 24 （已闭但曾标 P0 面的 79 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 24 条,分布在 8/31 个 epic
-    medical-consequences: 10  telemetry-analytics: 5    clinic-machine: 4
+条目 139 | 状态 {'closed': 89, 'open': 47, 'partial': 2, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 35, '~~**Y**~~': 1}
+未闭 P0 面 = 23 （已闭但曾标 P0 面的 80 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 23 条,分布在 8/31 个 epic
+    medical-consequences: 9   telemetry-analytics: 5    clinic-machine: 4
     enemy-ai: 1               item-database: 1          patient-ai: 1
     processing: 1             skeuomorphic-ui: 1
 ```
@@ -1554,6 +1554,62 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > #   Unity -batchmode -runTests -testPlatform EditMode \
 > #     -testFilter DaYiJingCheng.Tests.Unit.Sim.GateWiringManifestTest   # 期望 3 红 / 12 绿
 > #     -testFilter DaYiJingCheng.Tests.Unit.Sim.AssemblyGateRunAllTest   # 期望 2 绿(失明,即原判定)
+> ```
+
+> ✅ **2026-10-30 结案 —— `TD-medcons-05`**(用户指令「解除下一个 p0 登记债」)
+>
+> **原判定**:`Materialize` 键碰撞硬失败分支(`internal`)无直驱载体 ——
+> (修正后构面不可达,纯纵深防御)。触发条件 =「若该分支的构面变得可达(如枚举扩展)」。
+>
+> **实测:触发条件不必等枚举扩展 —— 它**今天就可达**,只是可达到的是「直驱」而不是「绑定」。**
+> 两件事拼起来使它可直驱:
+> ① `OutcomeTable53.Materialize` 是 `internal`,而 `Editor.Tools.Bake/AssemblyInfo.cs:7`
+>    已对本装配 `[assembly: InternalsVisibleTo("Sim.Contracts.Tests")]`;
+> ② `OutcomeTableBinder.BindResult` 是 **public readonly struct 且构造函数 public**
+>    (成员可访问性不得低于公开容器 `BakeOutput`,CS0051/52/50 所致)。
+> ⇒ 「构面不可达」只对**生产绑定路径**成立(`Bind` 的覆盖校验要求
+> `u_band ∈ [0, bandCount)`),对**测试**不成立。原判定据此把「无载体」合理化,是过强的。
+>
+> **补 1 条载体**(`medcons_outcome_judge_test.cs`,该类 **42 → 43**):
+> `test_materialize_keyCollision_hardFails_notSilentOverwrite`。
+> 键公式 = `((P*3+C)*2+D) × bandCount + uBand`(单一出处 `Outcome53.EncodeRowKey`),
+> 取 `bandCount = 1` 造一对同键行(**离线复算**):
+> · `(Empty,None,Recovered,band=1)` ⇒ 0×1+1 = **1**
+> · `(Empty,None,NotRecovered,band=0)` ⇒ 1×1+0 = **1**
+> 元组键不同 ⇒ 两行可同塞一个字典;物化时算出同一个 `int` ⇒ 守卫必须硬失败。
+>
+> **构面说明写进了夹具注释(必须连读)**:本夹具的输入**生产路径产不出**
+> (`u_band = 1` 配 `bandCount = 1` 越界,`Bind` 会先拒)。
+> ⇒ 它测的是**纵深防御分支本身** —— 「即使上游校验全被绕过,物化层也不静默覆写」,
+> **不得**被读成「生产路径会走到这里」。这也正是本条原本要的「直驱载体」的定义。
+>
+> **证伪两轮**:
+> · **M1**:删掉 `if (rows.ContainsKey(key)) throw …` 整段(退回 `rows[key] = kv.Value`
+>   静默覆写)⇒ **1 红**,报文即该条「键碰撞须硬失败 —— 旧实现会静默覆写」。
+> · **M2**:守卫保留、只把报文里的「键碰撞」改成「冲突」(仍然抛、类型不变)
+>   ⇒ **1 红**,红的是**报文断言**。⇒ 若只断言「会抛」,M2 会**假绿**。
+> · 两轮均以备份 + `cp` 回 + **SHA-256 逐字节比对**还原
+>   (`OutcomeTable53.cs 71cf0ca8…ebd5`),未用 `git checkout`。
+>
+> **回归**:EditMode `6115 / 6078 / 0 / 37` @ 2026-10-30 **12:52:59 CST** ·
+> PlayMode `238 / 234 / 0 / 2 / 2` @ **12:53:53 CST**(`2ab87d46` + 工作树)。
+> 等式 `6115 − 6114 = 1` = 新增的 1 条载体;PlayMode **逐位一致**。
+>
+> **可复算命令**:
+> ```bash
+> # ① 可直驱的两个前提(两条都要成立)
+> grep -n "InternalsVisibleTo" unity/Assets/Editor.Tools.Bake/AssemblyInfo.cs      # ⇒ Sim.Contracts.Tests
+> grep -n "internal static Outcome53.Table Materialize" unity/Assets/Editor.Tools.Bake/OutcomeTable53.cs
+> grep -n "public BindResult(" unity/Assets/Editor.Tools.Bake/OutcomeTableBinder.cs
+>
+> # ② 键碰撞配对离线复算(与夹具里的两行逐字对应)
+> python3 -I -c "
+> def k(p,c,d,band,n): return (((p*3+c)*2+d)*n)+band
+> print(k(0,0,0,1,1), k(0,0,1,0,1))"   # 期望 1 1
+>
+> # ③ 定向
+> #   Unity -batchmode -runTests -testPlatform EditMode \
+> #     -testFilter DaYiJingCheng.Tests.MedConsequences.MedconsOutcomeJudgeTest   # 期望 43/43
 > ```
 
 ---

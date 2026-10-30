@@ -629,6 +629,42 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "合法源 JSON 须通过全部四条构建期校验");
         }
 
+        /// <summary>
+        /// `TD-medcons-05` 载体 —— **物化层**键碰撞硬失败分支(`OutcomeTable53.Materialize`)。
+        /// <para>`Materialize` 是 `internal`(已对本装配 `InternalsVisibleTo`),且 `BindResult`
+        /// 是 public 可构型 ⇒ 这条分支**可被直驱**,不必靠「碰巧走到」。</para>
+        /// <para><b>构面说明(必须连读,否则会把本条误读成「生产路径可达」)</b>:生产路径
+        /// **不可能**产出下面的输入 —— `OutcomeTableBinder` 的覆盖校验要求每行
+        /// `u_band ∈ [0, bandCount)`,而本夹具故意给 `u_band = 1` 配 `bandCount = 1`
+        /// (越界,`Bind` 会先拒)。⇒ 本条测的是**纵深防御分支本身**:即使上游校验全被
+        /// 绕过,物化层也不静默覆写。</para>
+        /// <para>键公式 = `((P*3+C)*2+D) × bandCount + uBand`(单一出处
+        /// `Outcome53.EncodeRowKey`),离线复算:
+        /// `(Empty,None,Recovered,band=1)` ⇒ 0×1+1 = **1**;
+        /// `(Empty,None,NotRecovered,band=0)` ⇒ 1×1+0 = **1** —— 两行同键,而元组键不同,
+        /// 故可同时塞进同一个字典。</para>
+        /// </summary>
+        [Test]
+        public void test_materialize_keyCollision_hardFails_notSilentOverwrite()
+        {
+            var rows = new Dictionary<(Outcome53.JudgmentLane, Outcome53.CareLane,
+                                      Outcome53.RecoveryLane, int), Outcome53.Outcome>
+            {
+                [(Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                  Outcome53.RecoveryLane.Recovered, 1)] = Outcome53.Outcome.NoEcho,
+                [(Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                  Outcome53.RecoveryLane.NotRecovered, 0)] = Outcome53.Outcome.Residual,
+            };
+            var bound = new OutcomeTableBinder.BindResult(rows, uBandCount: 1,
+                defaultOutcome: Outcome53.Outcome.Residual, schemaVersion: 1u);
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => OutcomeTable53.Materialize(bound),
+                "键碰撞须硬失败 —— 旧实现 `rows[key] = kv.Value` 会静默覆写,行数仍对得上");
+            Assert.IsTrue(ex.Errors.Any(e => e.Contains("键碰撞")),
+                "错误消息须点名键碰撞:" + string.Join("; ", ex.Errors));
+        }
+
         [Test]
         public void test_bake_missingCombination_hardFails()
         {

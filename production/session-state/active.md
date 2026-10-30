@@ -13288,3 +13288,25 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   (`ae8b3019` + 工作树)。与上轮逐位一致(只加注释)。
 - **计数**:`open 48 · closed 88 · partial 2 · 未闭 P0 面 25 → 24`。
 - **未提交**。
+
+## Session Extract — 结案 `TD-medcons-05`(2026-10-30 第十一批)
+
+- **用户指令**:「解除下一个 p0 登记债」。原判定:`Materialize` 键碰撞硬失败分支(`internal`)
+  无直驱载体 —— (修正后**构面不可达**,纯纵深防御)。
+- **实测:触发条件不必等枚举扩展,它今天就可达** —— 可达到的是「**直驱**」而非「绑定」:
+  ① `OutcomeTable53.Materialize` 是 `internal`,而 `Editor.Tools.Bake/AssemblyInfo.cs:7`
+     已对本装配 `InternalsVisibleTo("Sim.Contracts.Tests")`;
+  ② `OutcomeTableBinder.BindResult` 是 **public readonly struct + public 构造**
+     (CS0051/52/50 所致)。⇒「构面不可达」只对**生产绑定路径**成立,对**测试**不成立。
+- **补 1 条载体**(该类 42 → 43):`test_materialize_keyCollision_hardFails_notSilentOverwrite`。
+  键 `((P*3+C)*2+D)×bandCount+uBand`;`bandCount=1` 下一对同键行(离线复算):
+  `(Empty,None,Recovered,band=1)` ⇒ 1;`(Empty,None,NotRecovered,band=0)` ⇒ 1。
+  夹具注释写明:输入**生产路径产不出**(u_band=1 配 bandCount=1 越界,`Bind` 先拒)
+  ⇒ 测的是**纵深防御分支本身**,不得读成「生产会走到」。
+- **证伪两轮**:M1 删守卫退回静默覆写 ⇒ 1 红;M2 守卫保留、只把报文「键碰撞」改「冲突」
+  (仍抛、类型不变)⇒ 1 红(**报文断言**抓住 —— 只断「会抛」会假绿)。SHA-256 逐字节还原
+  (`OutcomeTable53.cs 71cf0ca8…ebd5`)。
+- **回归**:EditMode `6115/6078/0/37` @12:52:59 · PlayMode `238/234/0/2/2` @12:53:53
+  (`2ab87d46` + 工作树)。等式 `6115−6114=1`。
+- **计数**:`open 47 · closed 89 · partial 2 · 未闭 P0 面 24 → 23`。
+- **未提交**。
