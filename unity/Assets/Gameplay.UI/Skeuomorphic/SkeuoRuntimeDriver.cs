@@ -70,6 +70,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         // 7b 存档位:载入意图出口 + 槽位清单(均由装配层注入 —— 42 不发明槽位数)
         private ISaveSlotCommandSink _saveSlotSink;
         private IReadOnlyList<uint> _saveSlots;
+        // 暂停壳:继续 / 进存档位(2026-10-31 Amendment C)——
+        // ⚠️ 两个动作都由装配层实现:42 **不**自己决定「继续」要把世界恢复成什么,
+        //    也不自己调 `OpenModal`(那是换屏,属装配层的时序决定)。
+        private IPauseCommandSink _pauseSink;
 
         private VisualElement _panel;
         private IPresentationRoot _screen;
@@ -100,9 +104,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 [ModalId.Tutorial] = "Tutorial",
                 [ModalId.ClinicPanel] = "ClinicPanel",
                 [ModalId.PaperCloseup48] = "PaperCloseup",
+                [ModalId.Pause] = "Pause",          // 🔁 2026-10-31 Amendment C 第八员
             };
 
-        /// <summary>屏幕名 → Screen 查表(七个具名载体;名字是**序列化契约**,
+        /// <summary>屏幕名 → Screen 查表(八个具名载体;名字是**序列化契约**,
         /// 场景 / Prefab 里写死的字符串,不可改成别的写法)。</summary>
         private static readonly Dictionary<string, Func<VisualElement, SkeuoElementLibrary, IPresentationRoot>>
             ScreenFactories = new Dictionary<string, Func<VisualElement, SkeuoElementLibrary, IPresentationRoot>>
@@ -114,6 +119,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 ["Settings"] = (root, lib) => new SettingsScreen(root, lib),
                 ["Tutorial"] = (root, lib) => new TutorialScreen(root, lib),
                 ["PaperCloseup"] = (root, lib) => new PaperCloseupScreen(root, lib),
+                ["Pause"] = (root, lib) => new PauseScreen(root, lib),
             };
 
         private void Awake()
@@ -152,6 +158,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 saveSlots.BindCommandSink(_saveSlotSink);
                 saveSlots.SetSlots(_saveSlots);
             }
+            if (_screen is PauseScreen pause) pause.BindCommandSink(_pauseSink);
 
             if (Source != null)
             {
@@ -303,6 +310,21 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public IPresentationRoot Screen => _screen;
 
         /// <summary>
+        /// 暂停壳的**意图**出口(2026-10-31 ADR-013 §十-C Amendment C)。
+        /// <para>实现方住装配层(<c>PauseCommandRouter</c>);42 不反向引用装配层
+        /// (ADR-025 §①)。未注入 ⇒ 行照常画、按了留空(不崩、不造动作)。</para>
+        /// </summary>
+        public IPauseCommandSink PauseSink
+        {
+            get => _pauseSink;
+            set
+            {
+                _pauseSink = value;
+                if (_screen is PauseScreen pause) pause.BindCommandSink(_pauseSink);
+            }
+        }
+
+        /// <summary>
         /// UI 根(UIDocument.rootVisualElement)—— 42 载体挂载面(BootRoot 挂候选列表)。
         /// <para><c>Awake</c> 后非 null(<see cref="EnsureDocument"/> 已建);
         /// <c>panel == null</c> = 逻辑树在、不渲染(缺 PanelSettings 是合法的测试形态)。</para>
@@ -428,6 +450,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 //    (游戏没有指针)。⚠️ 无 panel 时 `Focus()` 会报错 ⇒ 先判,
                 //    无 panel 是合法的测试形态(逻辑树在、不渲染)。
                 VisualElement first = saveSlots.FirstFocusable;
+                if (first != null && first.panel != null) first.Focus();
+            }
+            if (_screen is PauseScreen pauseScreen)
+            {
+                pauseScreen.BindCommandSink(_pauseSink);
+                VisualElement first = pauseScreen.FirstFocusable;
                 if (first != null && first.panel != null) first.Focus();
             }
             if (_source != null) RefreshFromSource();

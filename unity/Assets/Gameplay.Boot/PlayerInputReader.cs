@@ -42,14 +42,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 存档位开合键(临时入口:<c>Escape</c> / 手柄 <c>startButton</c>)。
-        /// <para>🔁 2026-10-31 模态开启器轮新增。**这是临时入口,不是 7b 的正式入口** ——
-        /// `save-slots-7b.md:189` 定的正式入口是「暂停壳 / 主菜单继续诊治」,暂停壳尚未成屏。
-        /// 取 Escape 是因为 <c>UI/Cancel</c> 就绑在它上面(它同时也是模态的退出键),
+        /// 暂停壳开合键(<c>Escape</c> / 手柄 <c>startButton</c>)。
+        /// <para>🔁 2026-10-31 模态开启器轮新增,原名 <c>SaveSlotsTogglePressed</c>(它是**临时入口**,
+        /// 直开存档位)。同日夜 **ADR-013 §十-C Amendment C** 立暂停壳为第八员后改为**暂停壳开合键** ——
+        /// 这才是 `save-slots-7b.md:189` 要的路径:Escape → 暂停壳 → 「存档位」行 → 7b。
+        /// 存档位不再是独立按键的落点,而是暂停壳里的一行。</para>
+        /// <para>取 Escape 是因为 <c>UI/Cancel</c> 就绑在它上面(它同时也是模态的退出键),
         /// 开合同键 = 不新增一套绑重,也不与 Interact/E、Emergency/F 冲突。</para>
         /// <para>⚠️ 与两条既有读取同款:直读设备(ADR-011 §一 过渡最小面),动作资产侧待独立 story。</para>
         /// </summary>
-        public static bool SaveSlotsTogglePressed()
+        public static bool PauseTogglePressed()
         {
             Keyboard kb = Keyboard.current;
             if (kb != null && kb.escapeKey.isPressed)

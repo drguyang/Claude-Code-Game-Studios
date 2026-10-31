@@ -667,13 +667,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver.SaveSlotSink = _saveSlotCommands;
             _uiDriver.SaveSlots = ManualSaveSlots;
 
-            // ── 6.3 模态开合入口(2026-10-31 模态开启器轮)──
+            // ── 6.3 模态开合入口(2026-10-31 模态开启器轮;同夜 Amendment C 改接暂停壳)──
             // 病因:42 只有序列化的 `_screenName`,**零运行期换屏入口** ⇒ 存档位屏开不出来 ⇒
             // 上段接好的载入链在运行期仍不可达。本驱动 = 那条链的**最后一段**。
-            // ⚠️ 取 Escape / 手柄 start 是**临时入口**(正式入口 = 暂停壳,7b 未成屏);
-            //    开合同键,不新增绑重、不与 Interact(E)/Emergency(F)冲突。
+            // 🔁 2026-10-31 晚:开合对象由**存档位**改为**暂停壳**(ADR-013 §十-C 立 Pause 为
+            //    第八员)—— 于是路径回到 7b 写的形状:Escape → 暂停壳 → 「存档位」行 → 存档位。
+            //    `DriverPauseCommandSink` 就是暂停壳那两行的去向(继续 = 合壳 / 存档位 = 换屏)。
+            _uiDriver.PauseSink = new DriverPauseCommandSink(_uiDriver);
             _modalInput = new ModalInputDriver(
-                PlayerInputReader.SaveSlotsTogglePressed,
+                PlayerInputReader.PauseTogglePressed,
                 new DriverModalOpener(_uiDriver));
 
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──

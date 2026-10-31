@@ -14301,3 +14301,58 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **回归** `6296/6259` → **`6300/6263/0/0/37`**(+4;skipped 37 不变)@ `2026-10-31 19:16–19:18 CST`。
 - ⚠️ **NOT-RUN**:`InteractionInputDriver` 里「门闭 ⇒ 不查体」这一行无夹具(E/F 是静态设备读面,
   headless 造不出按键)⇒ 已证的是门与适配器,接线行只能靠读代码守。
+
+## 2026-10-31 · ③ 剩余两项的阻塞(如实)
+
+- **实渲染**:项目自己两次实测过「batch 出不了图」(`Editor.Tools.Capture/ScreenshotTool.cs:10-20`:
+  `ScreenCapture` 无渲染宿主抛异常/PNG 零字节;UI Toolkit 纹理在 batch 下永不进图集)。
+  ⇒ 这条**不是我没做**,是 headless 结构上做不到;闭合路径 = 编辑器 Play + F12 截图 + 我读图判。
+- **正式入口(暂停壳)**:`ModalId` 是**闭集(7 员 + None)**,`Pause` **不在集内**;
+  ADR-013 §十 明文「闭集成员必须经本 ADR 裁定后方可追加」。⇒ 暂停壳要先裁**增员**,
+  属于我不可代裁的架构决定(Amendment B 的先例:增员是执行 §十 义务,不是随手加)。
+
+## 2026-10-31 · ADR-013 §十-C Amendment C —— 闭集第八员 `Pause`(用户裁定 A)
+
+**用户裁定**:`A，先裁增员` —— 先裁暂停壳入闭集,再做壳。**已兑现**。
+
+### 落盘(代码 6 件 + 文档 3 件 + 夹具 4 件)
+
+- `ModalId.Pause = 8`(闭集 7 员 → **8 员**)+ `SkeuoRuntimeDriver`:`ModalScreenNames[Pause]` /
+  `ScreenFactories["Pause"]` / `PauseSink` 注入面 / 开屏落焦首行
+- `Screens/PauseScreen.cs`(新):两行(继续 / 存档位),`.ruled` 行高 + `tabIndex` = 行序,
+  `NavigationSubmitEvent` + `ClickEvent` 双路径汇到 `Activate`;`IPauseCommandSink` = 意图出口
+- `Boot/DriverPauseCommandSink.cs`(新):继续 = `CloseModal` / 存档位 = `OpenModal(SaveSlots)`
+- **输入语义改接**:`PlayerInputReader.SaveSlotsTogglePressed` → **`PauseTogglePressed`**;
+  `ModalOpener` 成员 `IsSaveSlotsOpen`/`OpenSaveSlots` → **`IsPauseOpen`/`OpenPause`**
+  (`FakeOpener` 同步)。⇒ 路径回到 7b 写的形状:**Escape → 暂停壳 → 存档位行 → 存档位 → 载入**
+- 闭集门 8 值/7 员 → **9 值/8 员** + 新增 `test_modal_id_enum_member_count_matches_adr`(8 号连续性);
+  `modal_gate_test.ClosedSetMembers` 补 `Pause`(**其基数守卫先红,证明守卫有效**);
+  `AC-42-F1` 闭集 七 → **八**;三处「闭集 7 员」现行态注释改 8(历史裁定件按 C 组不改写)
+
+### 回归(带三元组)
+
+`6306 / 6269 / 0 / 0 / 37` @ `2026-10-31 11:28:11Z`(19:28 CST)· 全量 EditMode ·
+`48b2e900` + 工作树。基线 `6300/6263/0/0/37` ⇒ **+6**,等式 `6306 − 6300 = 6` = 新增判据数
+(暂停壳 5 + 闭集计数 1)。`error CS` 计数 **0**。
+
+### 证伪轮 5/5 转红,还原 SHA-256 逐字节一致
+
+| 变异 | 红 | 期望命中 |
+|---|---|---|
+| M1 暂停壳「存档位」行改调 `Resume` | 1 | 1/1 |
+| M2 闭集表删 `Pause` | 5 | 1/1(其余 4 条是「屏开不出来」的连带) |
+| M3 开合驱动 `if (false && IsPauseOpen)` | 1 | 1/1 |
+| M4 `ModalId` 偷加 `Probe = 9` | 3 | 3/3(含 `test_ac409_fourSideDoesNotCopyModalIdMemberList` —— **基数守卫真的会红**) |
+| M5 「继续」改成换屏 | 1 | 1/1 |
+
+⚠️ 首跑被自己的 `pgrep -f "Editor/Unity.*-runTests"` 守卫**误判中止**(匹配串命中包装进程本身,
+与台账 `b4p92tegd` 同型);实测无 Unity 进程 + 无锁文件后重跑。
+
+### ⚠️ 未做 / 不许借绿
+
+- **世界不冻结**:暂停壳只挡**交互意图**(规则七方向②),**不停 tick、不冻 sim**。
+  「暂停 = 世界真不动」要动 `ITickProvider`,本件不涉及 —— 已在 ADR §十-C 显式登记。
+- **实渲染仍 `NOT-RUN`**:headless 出不了图(既有两次实测),`AC-42-F1` ⑧ 亦**无 `pause-shell-42.md`
+  spec** ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**。
+- **粗糙边**:存档位屏上按 Escape 会**换屏回暂停壳**(`IsPauseOpen == false` 导致走 `OpenPause`),
+  而非直接闭合。归暂停壳 UX spec,不做静默裁定。

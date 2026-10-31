@@ -4,7 +4,7 @@
 //   design/gdd/modular-building.md 规则二(五条件)· 规则七(:124 `cost(m)`）· 规则九(拆除返还)
 //   design/gdd/inventory-and-items.md 规则六(建造扣料 = 一次 `StructurePlaced` 的 `cost(m)`）
 //   design/gdd/skeuomorphic-ui.md §建造交互(建造 = **世界内操作态**,不占模态）
-//   ADR-009 §七(意图 → 主机当下判定 → 效果进流)· ADR-013 §十(`ModalId` 闭集 7 员)
+//   ADR-009 §七(意图 → 主机当下判定 → 效果进流)· ADR-013 §十(`ModalId` 闭集 8 员)
 //   ADR-020 §四(玩家位移纯表现态;本层只读**已量化**整数格)
 //   `production/sprints/sprint-20.md` §十 S20-19 的 AC B-1…B-9
 //
@@ -468,7 +468,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC B-7 · 建造**不占模态**(`ModalId` 闭集 7 员里没有建造)
+        // AC B-7 · 建造**不占模态**(`ModalId` 闭集 8 员里没有建造)
+        // 🔁 2026-10-31:原写「7 员」;ADR-013 §十-C Amendment C 增 `Pause` 后为 8 员
+        //    (建造仍然不在其中 —— 本判据的语义未变,只是计数随闭集更新)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]

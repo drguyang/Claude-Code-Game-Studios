@@ -3,7 +3,13 @@
 // 权威来源:
 //   · ADR-013 §十(`ModalId` 闭集 + `IModalState`;42 是模态真源)
 //   · ADR-011 §一(输入 action-based;本条取「设备直读过渡最小面」,与 `PlayerInputReader` 同纪律)
-//   · design/ux/save-slots-7b.md:189(正式入口 = 暂停壳 / 主菜单,今日未成屏)
+//   · design/ux/save-slots-7b.md:189(正式入口 = 暂停壳 / 主菜单)
+//   · ADR-013 §十-C Amendment C(2026-10-31:Pause 入闭集,闭集第八员)
+//
+// 🔁 **2026-10-31 晚(Amendment C 之后)**:开合键的落点由 `SaveSlots` 改为 **`Pause`**。
+//   昨日那版是**临时入口**(直开存档位,因暂停壳不在闭集内开不出来);暂停壳成屏后,
+//   7b 的路径回到 GDD 写的形状:Escape → 暂停壳 → 「存档位」行 → 存档位 → 载入。
+//   接口成员随之改名(`IsSaveSlotsOpen` → `IsPauseOpen` 等),以免名字继续骗人。
 //   · design/gdd/interaction-system.md 规则七(模态期交互意图被丢弃 —— 由 4 的门读 42 的开合)
 //
 // ── 为什么单开一个驱动,而不并进 `InteractionInputDriver` ──────────────
@@ -12,7 +18,7 @@
 // 混在一起会让「查体驱动」多出一个与 sim 无关的职责,也会让它的边沿状态机
 // (interactHeld / emergencyHeld)多一个无关分支。
 //
-// ⚠️ **边沿化在此**:`PlayerInputReader.SaveSlotsTogglePressed()` 是纯读面(按住为 true),
+// ⚠️ **边沿化在此**:`PlayerInputReader.PauseTogglePressed()` 是纯读面(按住为 true),
 //    「上一帧按住」由本类持有 —— 与 `InteractionInputDriver` 同款(持键不重复触发)。
 
 using System;
@@ -27,7 +33,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private bool _held;
 
         /// <summary>输入读面 + 打开面(均为注入 —— 夹具可直驱,不必碰设备)。</summary>
-        /// <param name="togglePressed">开合键是否按住(生产 = `PlayerInputReader.SaveSlotsTogglePressed`)。</param>
+        /// <param name="togglePressed">开合键是否按住(生产 = `PlayerInputReader.PauseTogglePressed`)。</param>
         /// <param name="opener">42 侧的开关面(生产 = `SkeuoRuntimeDriver` 的适配)。</param>
         /// <exception cref="ArgumentNullException">任一为 null(静默空转 = 按键没反应且无记录)。</exception>
         public ModalInputDriver(Func<bool> togglePressed, ModalOpener opener)
@@ -50,14 +56,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             _held = pressed;
             if (!rising) return;
 
-            if (_opener.IsSaveSlotsOpen)
+            if (_opener.IsPauseOpen)
             {
                 _opener.Close();
                 CloseCount++;
             }
             else
             {
-                _opener.OpenSaveSlots();
+                _opener.OpenPause();
                 OpenCount++;
             }
         }
@@ -81,10 +87,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <inheritdoc/>
-        public bool IsSaveSlotsOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.SaveSlots;
+        public bool IsPauseOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.Pause;
 
         /// <inheritdoc/>
-        public void OpenSaveSlots() => _driver.OpenModal(UI.Skeuomorphic.ModalId.SaveSlots);
+        public void OpenPause() => _driver.OpenModal(UI.Skeuomorphic.ModalId.Pause);
 
         /// <inheritdoc/>
         public void Close() => _driver.CloseModal();
@@ -94,14 +100,16 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// 开合面(42 侧 `SkeuoRuntimeDriver` 的**窄接口**)。
     /// <para>⚠️ 刻意不把整个 `SkeuoRuntimeDriver` 交给驱动:后者是 `MonoBehaviour`,
     /// 夹具里造不出来;窄接口让「按下 ⇒ 开 / 再按 ⇒ 关」这条判据不依赖引擎对象。</para>
+    /// <para>⚠️ 开合对象是**暂停壳**(`ModalId.Pause`),不是存档位 —— 自 Amendment C 起
+    /// 存档位是暂停壳里的一行,没有自己的按键。</para>
     /// </summary>
     public interface ModalOpener
     {
-        /// <summary>当前是否开着存档位模态。</summary>
-        bool IsSaveSlotsOpen { get; }
+        /// <summary>当前是否开着**暂停壳**。</summary>
+        bool IsPauseOpen { get; }
 
-        /// <summary>打开存档位模态。</summary>
-        void OpenSaveSlots();
+        /// <summary>打开暂停壳。</summary>
+        void OpenPause();
 
         /// <summary>关闭当前模态。</summary>
         void Close();

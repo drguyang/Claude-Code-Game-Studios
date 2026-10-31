@@ -443,6 +443,54 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 **Engine Knowledge Risk**:LOW(纯枚举成员 + 归属澄清,不触及任何 post-cutoff API)。
 
 
+### 十-C、Amendment C(2026-10-31 · 用户裁定 A)—— 闭集第八员 `Pause`
+
+> **本节是 Amendment,不重开 §一–§九 / §十 的任何裁决。它只执行 §十 预置的同步义务。**
+
+**增员 `Pause`(第八员)** —— 病因:`design/ux/save-slots-7b.md:189` 把存档位界面的**正式入口**
+定为「暂停壳 / 主菜单『继续诊治』」,而**暂停壳此前不属闭集** ⇒ 存档位屏只能靠临时键
+(`Escape`)打开,不是玩家可发现的入口;同时 7a 的载入链(以及 AC-7a-14 / ADR-037 的记录面)
+在生产上因此长期不可达。
+
+**为什么暂停壳必须进闭集、不能做成非模态叠层**:它**挡路**(玩家在世界里的一切交互都应被拒收)
+且需要按下的那一刻冻结世界意图 —— 规则七的门(`ModalGate` 方向②)只认 `Modal ≠ None`,
+非模态叠层等于给同一种「挡住世界」的形态发明第二套判据,而那正是本案一直在防的做法。
+⇒ 取**增员**,不取绕开。
+
+**同步义务**(§十 约束 1 的兑现):
+① `Skeuomorphic/ModalId.cs` 增 `Pause = 8`;
+② `SkeuoRuntimeDriver.ScreenFactories` 增 `"Pause"`、`ModalScreenNames` 增 `ModalId.Pause → "Pause"`;
+③ 闭集门 `dto_boundary_and_modal_test.test_modal_id_enum_has_seven_members_plus_none`
+   自「8 值 / 7 员」改为「9 值 / 8 员」并点名 `Pause`(方法名保留原文,加 🔁 注说明);
+④ `design/gdd/skeuomorphic-ui.md` 的 `AC-42-F1` 闭集点名七 → 八;
+⑤ `technical-preferences.md` 的 ADR-013 日志条目追加本 Amendment。
+
+**落地实况**(2026-10-31 实现轮,**上列五项之外**实际还改了这些 —— 逐条登记,不并入 ①–⑤ 记账):
+- `SkeuoRuntimeDriver` 增 `PauseSink`(`IPauseCommandSink`,装配层注入)与开屏后落焦首行;
+- **输入语义改接** —— `PlayerInputReader.SaveSlotsTogglePressed` → **`PauseTogglePressed`**;
+  `ModalInputDriver` / `ModalOpener` 的成员由 `IsSaveSlotsOpen` / `OpenSaveSlots`
+  改名 `IsPauseOpen` / `OpenPause`(**旧名继续指存档位会骗人**);
+- 新增装配层 `DriverPauseCommandSink`(继续 = 闭合壳 / 存档位 = 换屏);
+- 4 侧 `modal_gate_test.ClosedSetMembers` 文本清单补 `Pause`(该清单有**基数守卫**,
+  不同步必红 —— 本轮实测正是它先红);
+- 三处「闭集 7 员」**现行态**注释(`BuildInputDriver` / `BuildInputReader` / `BuildController`)
+  改为 8 员;两处**历史裁定**记录(`docs/consistency-failures.md` / `design/ux/inventory-container-20.md`)。
+  ⇒ 按「A 组改 / C 组加注」处置,**不改写历史判决**。
+
+**⚠️ 本 Amendment 未做(不得借本节的「Accepted」当已验)**:
+- **世界冻结**:暂停壳只挡**交互意图**(规则七方向②),**不**停 tick / 不冻结 sim。
+  「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**;
+- **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图;且 `design/ux/pause-shell-42.md`
+  不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**);
+- **Escape 在存档位屏上的去向**:今日 `IsPauseOpen == false` ⇒ 按 Escape 会**换屏回暂停壳**
+  (而非直接闭合)。这是最小壳的**粗糙边**,不是裁定 —— 归暂停壳 UX spec。
+
+**边界**:本 Amendment **不**改写 §十-B 的任何判定(方笺仍归 `Casebook`),也**不**改变
+`Gameplay.Presentation` 侧 `IModalGateState` 的「只有一个布尔」形态 —— 4 仍看不到成员清单(AC-4-09)。
+
+**Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记,不触及任何 post-cutoff API)。
+
+
 ## Alternatives Considered
 
 ### Alternative 1: 全 UGUI 单栈

@@ -9,7 +9,7 @@
 //   design/gdd/skeuomorphic-ui.md §建造交互(本批新增节 —— 建造 = **世界内操作态**)
 //   ADR-009 §七(意图 → 主机当下判定 → 效果进流)
 //   ADR-011 §一(action-based;输入读取在 Boot 侧的 `BuildInputReader`/`BuildInputDriver`)
-//   ADR-013 §十(`ModalId` 闭集 7 员 —— **建造不占模态**,本类零 `IModalState` 依赖)
+//   ADR-013 §十(`ModalId` 闭集 8 员 —— **建造不占模态**,本类零 `IModalState` 依赖)
 //   ADR-020 §四(玩家位移纯表现态;本类只读**已量化**的整数格)
 //   ADR-025 §①(程序集引用集 —— 本类住 Presentation,不碰 `Sim` 内部写面)
 //

@@ -354,6 +354,12 @@
   残留:~~①–⑥ 六屏仍无 per-screen UX spec~~ **已于 2026-09-21 第二十九/三十批全部成文(①–⑥ Draft ·
   ⑦ Approved)**;`AC-42-F1` 走查整体仍 `NOT-RUN`(spec 成文 ≠ 走查执行;残余硬前置 = R8 / 45 联机夹具
   (~~`OQ-TUT-2`~~ / ~~`OQ-CP-2`~~ ✅ 均 2026-09-22 批裁结案),2026-09-22 `/ux-review` 轮回刷)。Engine Knowledge Risk **LOW**(本 Amendment 纯枚举与归属)。
+  **⚠️ 2026-10-31 Amendment C(用户裁定 A)—— 闭集第八员 `Pause`(暂停壳)**:病因 = 闭集 7 员里
+  **没有暂停壳**,而 `save-slots-7b.md:189` 把存档位界面的**正式入口**定为它 ⇒ 存档位只能靠临时键打开,
+  7a 的载入链(`BootRoot.RequestLoad` → AC-7a-14 比对面 / ADR-037 逐表归因)**生产上长期不可达**。
+  裁定:**取增员,不取绕开** —— 暂停壳挡路且须冻世界意图,规则七的门只认 `Modal ≠ None`,非模态叠层 = 给同一形态发明第二套判据。
+  同步落地:`ModalId.Pause = 8` · `ScreenFactories["Pause"]` · `ModalScreenNames` · `dto_boundary_and_modal_test` 8 值/7 员 → **9 值/8 员** · `AC-42-F1` 闭集 七 → **八** · `modal_gate_test.ClosedSetMembers` 补员(其**基数守卫**先红,证明守卫有效) · 输入语义 `SaveSlotsTogglePressed` → **`PauseTogglePressed`**(`ModalOpener` 成员随之改名) · 装配层 `DriverPauseCommandSink`。
+  ⚠️ **未做,不得借绿**:世界**不**冻结(只挡交互意图,不停 tick)· `AC-42-F1` ⑧ 记 **`NOT-RUN`**(无 `pause-shell-42.md` spec ⇒ 按该 AC 纪律阻塞签核)· 存档位屏上按 Escape 会**换屏回暂停壳**(最小壳的粗糙边,归 UX spec)。Engine Knowledge Risk **LOW**。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。

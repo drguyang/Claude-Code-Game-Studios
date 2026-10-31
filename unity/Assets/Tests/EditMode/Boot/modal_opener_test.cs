@@ -1,7 +1,9 @@
 // 模态开启器(2026-10-31)—— 42 侧运行期换屏的判据。
 //
 // 权威:ADR-013 §十(`ModalId` 闭集 + `IModalState`;42 是模态真源)·
-//       design/ux/save-slots-7b.md:189(正式入口 = 暂停壳,今日未成屏 ⇒ 本轮的临时入口)
+//       design/ux/save-slots-7b.md:189(正式入口 = 暂停壳)
+// 🔁 **2026-10-31 晚(ADR-013 §十-C Amendment C)**:暂停壳入闭集 ⇒ 第七节新增五条判据,
+//    开合对象由存档位改为暂停壳。条文见各节头注,原「临时入口」口径已作废。
 //
 // ── 本件钉的四件事 ─────────────────────────────────────────────
 // ① 开 → 真的有那个屏 + `CurrentModal` 如实;② 关 → 屏没了、`CurrentModal = None`;
@@ -264,21 +266,95 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.That(adapter.IsOpen, Is.False, "无 UI ⇒ 无模态(诚实降级,不是假装开着)");
         }
 
+        // ══════════════ ⑦ 暂停壳:存档位的正式入口(2026-10-31 Amendment C)══════════════
+
+        [Test]
+        public void test_openPause_createsPauseScreen_andBlocksPlay()
+        {
+            Assert.IsTrue(_driver.OpenModal(ModalId.Pause), "闭集第八员必须能开");
+
+            Assert.That(_driver.Screen, Is.TypeOf<PauseScreen>(), "打开的必须是暂停壳");
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause));
+            Assert.That(_driver.BlocksPlay, Is.True,
+                "暂停壳必须挡路 —— 它存在的意义就是冻住世界意图(规则七方向②)");
+        }
+
+        [Test]
+        public void test_pauseSaveSlotsRow_reachesSaveSlotsScreen_throughAssemblySink()
+        {
+            // 本件是**整条入口链的合取**:暂停壳的行 → 装配层 sink → 42 换屏。
+            // 缺任一环,7b 就又回到「无正式入口」。
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            Assert.That(pause.RowCount, Is.EqualTo(2), "最小壳 = 继续 / 存档位两行");
+
+            pause.Activate(1);   // 「存档位」
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots),
+                "暂停壳的「存档位」行必须真的换到 7b 的屏 —— 否则正式入口是假的");
+            Assert.That(_driver.Screen, Is.TypeOf<SaveSlotsScreen>());
+        }
+
+        [Test]
+        public void test_pauseResumeRow_closesTheShell()
+        {
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            pause.Activate(0);   // 「继续」
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None), "继续 = 合上暂停壳");
+            Assert.That(_driver.BlocksPlay, Is.False, "合上后世界意图立刻恢复");
+        }
+
+        [Test]
+        public void test_pauseScreen_withoutSink_doesNotThrow()
+        {
+            // 未注入 sink = 未接线的诚实形态:行照画、按了留空(不崩、不造动作)。
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            Assert.DoesNotThrow(() => pause.Activate(0));
+            Assert.DoesNotThrow(() => pause.Activate(1));
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "无出口时不得自己乱换屏");
+        }
+
+        [Test]
+        public void test_pauseRows_areFocusable_inRowOrder()
+        {
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            for (int i = 0; i < pause.RowCount; i++)
+            {
+                VisualElement row = pause.RowAt(i);
+                Assert.That(row.focusable, Is.True, $"第 {i} 行不可获焦 —— 手柄走不到");
+                Assert.That(row.tabIndex, Is.EqualTo(i), "焦点顺序 = 行序");
+            }
+
+            Assert.That(pause.FirstFocusable, Is.SameAs(pause.RowAt(0)), "开屏落焦 = 第一行(继续)");
+        }
+
         private sealed class FakeArmed : IArmedState
         {
             public bool IsArmed { get; set; }
         }
 
         /// <summary>开合面的夹具实现(不碰引擎对象)。</summary>
+        /// <remarks>🔁 2026-10-31(Amendment C):开合对象由存档位改为**暂停壳**,
+        /// 成员随之改名 —— 名字继续写 `SaveSlots` 会骗人。</remarks>
         private sealed class FakeOpener : ModalOpener
         {
             public int OpenCalls;
             public int CloseCalls;
-            public bool IsSaveSlotsOpen { get; private set; }
+            public bool IsPauseOpen { get; private set; }
 
-            public void OpenSaveSlots() { OpenCalls++; IsSaveSlotsOpen = true; }
+            public void OpenPause() { OpenCalls++; IsPauseOpen = true; }
 
-            public void Close() { CloseCalls++; IsSaveSlotsOpen = false; }
+            public void Close() { CloseCalls++; IsPauseOpen = false; }
         }
     }
 }
