@@ -323,6 +323,46 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
+        public void test_openModal_focusScope_disablesOutside_andRestoresOnClose()
+        {
+            // 🔁 2026-10-31 走查实测缺陷的回归钉:模态打开后,方向键把焦点**移出了模态**
+            //    (落到同一面板上的急救候选「跳过」行)⇒ ADR-013 §五 的「焦点单栈门」
+            //    在运行期不成立。UI Toolkit 没有内建焦点陷阱 ⇒ 由 driver 显式施加。
+            VisualElement panel = _driver.GetUiRoot();
+            var outsider = new VisualElement { name = "outside-focusable" };
+            outsider.focusable = true;
+            panel.Add(outsider);
+
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            Assert.That(outsider.focusable, Is.False,
+                "模态开 ⇒ 面板上**模态外**的可聚焦元素必须被摘 —— 否则方向键会逃出模态");
+            Assert.That(pause.RowAt(0).focusable, Is.True,
+                "模态自己的行必须仍可聚焦(否则锁过头,玩家一步也走不了)");
+
+            _driver.CloseModal();
+            Assert.That(outsider.focusable, Is.True,
+                "关屏 ⇒ 必须还原 —— 不得把原本可聚焦的元素永久废掉");
+        }
+
+        [Test]
+        public void test_openModal_focusScope_doesNotTouchNeverFocusableElements()
+        {
+            // ⚠️ 还原判据必须按**记录回放**,不能"统统设成 true" —— 那会凭空造出
+            //    本来不可聚焦的元素(它们会进入焦点序,玩家会停在空洞上)。
+            VisualElement panel = _driver.GetUiRoot();
+            var plain = new VisualElement { name = "never-focusable" };   // focusable 默认 false
+            panel.Add(plain);
+
+            _driver.OpenModal(ModalId.Pause);
+            _driver.CloseModal();
+
+            Assert.That(plain.focusable, Is.False,
+                "原本不可聚焦的元素,关屏后仍须不可聚焦(还原按记录,不按「应该能聚焦」)");
+        }
+
+        [Test]
         public void test_pauseRows_haveVisibleText()
         {
             // 🔁 2026-10-31 走查实测缺陷的回归钉:首版两行只有 `.ruled`,**零 Label**

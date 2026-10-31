@@ -88,6 +88,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 用 id 比对会把「玩家重开脉案」误判成「常驻屏不挡路」。</para>
         /// </summary>
         private bool _modalOpenedExplicitly;
+        /// <summary>模态打开期间被临时摘掉焦点能力的元素(关闭时逐个还原)。</summary>
+        /// <remarks>⚠️ 只记「原本 focusable 且被我们关掉」的那些 —— 还原时不得把
+        /// 本来就不 focusable 的元素变成可聚焦。</remarks>
+        private readonly List<VisualElement> _inertedByModal = new List<VisualElement>();
 
         /// <summary>
         /// `ModalId` 闭集 → 屏名（屏名是 <see cref="ScreenFactories"/> 的键，也是序列化契约）。
@@ -437,6 +441,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
             _currentModal = modal;
             _modalOpenedExplicitly = true;
+            // 🔁 2026-10-31 走查实测缺陷:模态打开后,方向键把焦点**移出了模态**
+            //    (落到了同一面板上的急救候选列表「跳过」行)⇒ ADR-013 §五 的「焦点单栈门」
+            //    在运行期不成立。UI Toolkit 没有内建焦点陷阱,故在此显式施加。
+            ApplyModalFocusScope();
 
             // 注入面重放(与 Awake 的补绑同款,幂等)
             if (_source != null) _screen.Bind(_source);
@@ -465,6 +473,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>关闭当前模态(无模态 ⇒ 空操作)。</summary>
         public void CloseModal()
         {
+            ReleaseModalFocusScope();
             if (_modalContainer != null)
             {
                 _modalContainer.RemoveFromHierarchy();
@@ -475,6 +484,44 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // ⚠️ 这里**不**复位 `_modalOpenedExplicitly`:证伪轮实测该行不可反证
             //    (`BlocksPlay` 先判 `_currentModal != None`,关屏后恒 false)⇒ 留着就是死代码。
             //    下次 `OpenModal` 会把它置 true,语义不需要「关屏即清零」。
+        }
+
+        /// <summary>
+        /// 模态期**焦点单栈门**的施加者(ADR-013 §五)。
+        /// <para>做法:把面板上除模态容器外的所有**原本可聚焦**的元素临时摘掉焦点能力,
+        /// 关闭时逐个还原。UI Toolkit 没有内建焦点陷阱,`tabIndex` 也不限制导航范围 ——
+        /// 不施加则方向键会走遍整棵树(走查实测:焦点逃到请求列表的「跳过」行)。</para>
+        /// <para>⚠️ 只摘 `focusable` 为真的元素并记录;还原按记录回放,不猜「应该能聚焦」。</para>
+        /// <para>⚠️ **本法的边界**:模态打开**之后**才在面板上新建的可聚焦元素不会被摘
+        /// (它不在这次快照里)。今日无此路径;若将来出现,须改为「每次导航前重算」。</para>
+        /// </summary>
+        private void ApplyModalFocusScope()
+        {
+            _inertedByModal.Clear();
+            if (_modalContainer == null || _panel == null) return;
+            foreach (VisualElement child in _panel.Children())
+                InertFocusableDescendants(child);
+        }
+
+        /// <summary>把子树里所有可聚焦元素摘掉焦点能力,并记下来以便还原。</summary>
+        private void InertFocusableDescendants(VisualElement root)
+        {
+            if (root == null || root == _modalContainer) return;
+            if (root.focusable)
+            {
+                _inertedByModal.Add(root);
+                root.focusable = false;
+            }
+            foreach (VisualElement child in root.Children())
+                InertFocusableDescendants(child);
+        }
+
+        /// <summary>还原 <see cref="ApplyModalFocusScope"/> 摘掉的那些元素。</summary>
+        private void ReleaseModalFocusScope()
+        {
+            for (int i = 0; i < _inertedByModal.Count; i++)
+                _inertedByModal[i].focusable = true;   // 逐个还原(记录里只有原本可聚焦的)
+            _inertedByModal.Clear();
         }
 
         /// <summary>
