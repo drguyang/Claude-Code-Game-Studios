@@ -139,6 +139,38 @@
 > 还原 SHA-256 4/4(gate)+ 4/4(smoke),`FALSIFY-` 残留 0;债册 `closed 116 → 118` · `open 21 → 19`
 > · `--check` exit 0。
 
+> ✅ **`S21-6` 已于 `2026-10-31` 收口(真构建复测 —— 三组一组都没露头,并订正一处机制描述)**
+
+> **做法**:不靠纸面推演,跑了**真构建**(`CostTableProbeBuildCli.Build` →
+> `Build Finished, Result: Success` · **26 s** · 输出落临时目录,不污染仓库)。
+> **构建后 `git status --short` 零输出。**
+>
+> | # | 本轮实测 | 结论 |
+> |---|---|---|
+> | ① URP `m_RuntimeSettings` | 0 处 `PerformStripping` 命中;文件被重写但内容与 `HEAD` 逐字节一致 | 未复现内容差异 |
+> | ② `PerformanceTestRun*.json` | 日志**有** `Creating new file`(1147 / 1167 行),构建结束**磁盘上不存在** | 被包自删 |
+> | ③ `AddressableAssetsData/link.xml` | 重新生成(2337 B),`git status --ignored` 显示 `!!` | 复现且**被窄 glob 正确忽略** ✅ |
+>
+> 🔴 **机制订正(本轮最重要的发现)**:债描述写 ② 是「`OnPreprocessBuild` 在**每次构建**时重写」——
+> 读包源码 `TestRunBuilder.cs:41-44` 实为 `OnPostprocessBuild → Cleanup()` 会**自删**。
+> ⇒ **残留条件是「构建没走到 postprocess」**(失败 / 中断);2026-10-21 观察到它,是因为那一轮跑的
+> 正是**刻意报 `Failure` 的探针轮**。⚠️ **失败路径本轮未实测** —— 该句是**源码依据,不是执行证据**。
+> ⇒ ② 的 `.gitignore` 仍有价值,但定位从「常态噪音」降为「**失败路径兜底**」。
+>
+> **两处与债描述不符(如实登记,不改原文)**:① 债写「**七条** `.gitignore` 规则」,实测 **5 条** ——
+> 5 条已覆盖全部产物(含 `.meta`),**覆盖面无缺口**,「七」的来源本轮未查到,不猜;
+> ② 债写「16 条 rid → `[]`」,`HEAD` 现值 **50 条 rid** —— 机制描述不受影响,**数字已过期,不得再引用**。
+> **四个反例**实测均未被误伤(`Resources/SomeRealAsset.asset` · `AddressableAssetsData/AssetGroups/Default.asset`
+> · `Settings.meta` · URP GlobalSettings 本体)。
+>
+> **本条「闭合」= 常驻登记移交**:三组表落 `.claude/docs/coding-standards.md` §工作树卫生
+> →「已实测的构建派生组」;**用户 2026-10-21「① 只登记、不动」的裁定不因关闭而改变**。
+>
+> **本卡零产品码改动** ⇒ 无编译单元的证伪轮可做(证据 = 真构建 + 四个反例);
+> 回归仍全量取了三元组:`2026-10-31T08:31–08:32 CST` · S21-6 全量 · `7ad5799b`+未提交:
+> EditMode `6206/6169/0/0/37`(与 S21-5 同值)· PlayMode `238/234/0/2/2`(零回归)。
+> 债册 `closed 118 → 119` · `open 19 → 18` · `--check` exit 0。
+
 ### Should Have(须先出裁定,或体量待定)
 | ID | 卡 | 复杂度 | 前置 | 说明 |
 |---|---|---|---|---|

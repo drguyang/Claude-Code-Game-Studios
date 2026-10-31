@@ -54,6 +54,40 @@
    `#if UNITY_EDITOR` 分叉 —— **别猜,打开看**。
 3. **文件里是否还混着作者态内容?** 若是,那它是「混合文件」,不能整文件忽略(见下)。
 
+### 已实测的构建派生组(2026-10-21 立案 · **2026-10-31 复测**)
+
+真构建后 `git status` 会冒哪些**非本批改动**?下表是**实测过的三组**,逐组按上面的三分类定性。
+
+| # | 路径 | 机制(源码依据) | 三分类 | 现行处置 |
+|---|---|---|---|---|
+| ① | `unity/Assets/Settings/UniversalRenderPipelineGlobalSettings.asset` | `RenderPipelineGraphicsSettingsContainer.OnBeforeSerialize()`:构建期 `Clear()` 后 `PerformStripping(m_SettingsList → m_RuntimeSettings)`,而 `m_RuntimeSettings` 是**播放器侧派生快照** | **② 正常派生** | ⚠️ **不进 `.gitignore`** —— 同一文件混着 34 条 `m_Settings`(**作者态**),整文件忽略会吞掉将来的真实编辑(用户 2026-10-21 裁定「只登记,不动」) |
+| ② | `unity/Assets/Resources/PerformanceTestRun{Info,Settings}.json`(+ `.meta`) | `TestRunBuilder.OnPreprocessBuild` 建文件,`OnPostprocessBuild → Cleanup()` **自删** | **② 正常派生** | 已进 `.gitignore` 窄 glob —— 但它是**失败路径的兜底**,不是常态 |
+| ③ | `unity/Assets/AddressableAssetsData/link.xml`(+ `.meta`) | Addressables 播放器构建期生成的链接器保留清单;从未入库、代码零引用 | **② 正常派生** | 已进 `.gitignore` 窄 glob |
+
+**🔁 2026-10-31 复测的三处订正(原文不删):**
+
+- **成功构建后 `git status` 是干净的。** 本轮真构建(`CostTableProbeBuildCli.Build`,
+  `Build Finished, Result: Success` · 26 s)后 `git status --short` **零输出** —— 三组一组都没露头。
+  `link.xml` 与它的 `.meta` 确实重新生成了(mtime 是构建时刻),且**被窄 glob 正确忽略**
+  (`git status --ignored` 显示为 `!!`)。
+- **② 不是「每次真构建都残留」** —— `TestRunBuilder.cs:41-44` 的 `OnPostprocessBuild → Cleanup()`
+  会自删,`Cleanup()` 内是 `DeleteFileAndMeta(...)`。⇒ **残留条件是「构建没走到 postprocess」**
+  (失败 / 中断)。2026-10-21 之所以观察到它,是因为那一轮跑的正是**刻意报 Failure 的探针轮**。
+  ⚠️ **失败路径本轮未实测** —— 上面这句是**源码依据**,不是执行证据。
+- **① 本轮未复现内容差异**:文件 mtime 变了(被构建重写),但内容与 `HEAD` 逐字节一致
+  ⇒ 现行入库内容已等于派生形态。
+
+**复算(命令自包含,别凭本表推断):**
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+git status --short                       # 期望空(成功构建后)
+git check-ignore -v unity/Assets/AddressableAssetsData/link.xml   # 期望命中 .gitignore
+# 反例(必须**不**被忽略):
+git check-ignore -q unity/Assets/AddressableAssetsData/AssetGroups/Default.asset || echo 未忽略
+git check-ignore -q unity/Assets/Resources/SomeRealAsset.asset     || echo 未忽略
+```
+
 ### `.gitignore` —— 窄 glob,不整目录
 
 **优先逐类文件窄 glob,而不是整目录忽略。** 整目录忽略的失败模式是**静默**:

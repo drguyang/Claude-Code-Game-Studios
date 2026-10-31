@@ -428,7 +428,7 @@
 | `TD-gate-02` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
-| `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
+| `TD-build-01` | `（跨 epic · 治理／构建期派生）` | closed | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
@@ -852,7 +852,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 141 | 状态 {'closed': 118, 'open': 19, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
+条目 141 | 状态 {'closed': 119, 'open': 18, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -4544,11 +4544,56 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-build-01** | `（跨 epic · 治理／构建期派生）` | **open** | **N** | R3-裁 |
+| **TD-build-01** | `（跨 epic · 治理／构建期派生）` | **closed** | **N** | R3-裁 |
 
 > **`P0 面 = N`** —— 与 `TD-gate-01/02/03` 同口径(承 §一 R3 的 2026-10-20 裁定:
 > **治理债 ≠ 产品/架构债**,不进 M3 出口)。**本条已加入上方 §★ 总索引** ⇒
 > 条目 **94 → 95**,`未闭 P0 面 = 72` **一位不动**。
+
+#### TD-build-01 关闭记录 —— 真构建复测(三组一组都没露头)+ 常驻登记移交 `coding-standards.md`
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-6`)。上方债描述**原文不删**。
+
+- **本条「闭合」的含义**:不是「三组消失了」,而是 —— ②③ 已有机械处置、① 的常驻登记已**移交到
+  人真正会读的地方**(`.claude/docs/coding-standards.md` §工作树卫生 →「已实测的构建派生组」),
+  债册不再需要跟踪它。**用户 2026-10-21 的裁定「① 不进 `.gitignore`、只登记不动」不因本条关闭而改变。**
+- **本轮真构建复测(不是纸面推演)**:
+  `CostTableProbeBuildCli.Build` → `Build Finished, Result: Success` · 26 s · 输出落临时目录(不污染仓库)。
+  构建后 **`git status --short` 零输出** —— 三组**一组都没露头**。
+- **逐组复测**:
+
+  | # | 本轮实测 | 结论 |
+  |---|---|---|
+  | ① URP `m_RuntimeSettings` | 0 处 `PerformStripping` 命中;文件 mtime 被构建重写,但**内容与 `HEAD` 逐字节一致** | **未复现内容差异** ⇒ 现行入库内容已等于派生形态 |
+  | ② `PerformanceTestRun*.json` | 构建日志**有** `[TestRunBuilder] Creating new file …`(1147 / 1167 行),但构建结束后**磁盘上不存在** | **被包自删** —— 见下「机制订正」 |
+  | ③ `AddressableAssetsData/link.xml` | **重新生成**(mtime = 构建时刻,2337 B),`git status --ignored` 显示 `!!` | **复现且被窄 glob 正确忽略** ✅ |
+
+- **🔴 机制订正(本轮最重要的发现)**:债描述写 ② 是「`TestRunBuilder.OnPreprocessBuild` 在**每次构建**时
+  重写这两个文件」。**半对** —— 读包源码 `TestRunBuilder.cs:41-44`:
+  `OnPostprocessBuild → Cleanup()`,而 `Cleanup()` 内 `DeleteFileAndMeta(...)` **自删**。
+  ⇒ **残留条件是「构建没走到 postprocess」(失败 / 中断)**。2026-10-21 观察到它,
+  是因为那一轮跑的正是**刻意报 `Failure` 的探针轮**(C3 轮)。
+  ⚠️ **失败路径本轮未实测**,上面这句是**源码依据,不是执行证据**。
+  ⇒ ② 的 `.gitignore` 窄 glob 仍然有价值,但它的定位从「常态噪音」降为「**失败路径兜底**」。
+- **复算(命令自包含)**:
+  ```bash
+  cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+  git status --short                                    # 成功构建后 ⇒ 空
+  git check-ignore -v unity/Assets/AddressableAssetsData/link.xml      # ⇒ 命中 .gitignore:105
+  git check-ignore -q unity/Assets/Resources/SomeRealAsset.asset || echo 未忽略   # 反例 1
+  git check-ignore -q unity/Assets/AddressableAssetsData/AssetGroups/Default.asset || echo 未忽略  # 反例 2
+  git check-ignore -q unity/Assets/Settings.meta || echo 未忽略          # 反例 3
+  ```
+  四个反例本轮实测**均未被误伤**。
+- **两处与债描述不符(如实登记,不改原文)**:
+  ① 债写「**七条**规则已加进 `.gitignore`」,现行实测**5 条**
+     (`grep -cE "^unity/Assets/Resources/PerformanceTestRun|^unity/Assets/Resources\.meta|^unity/Assets/AddressableAssetsData/link\.xml" .gitignore` → 5)。
+     5 条已覆盖全部三件传说产物(含 `.meta`),**覆盖面无缺口**;「七」的来源本轮未查到,不猜。
+  ② 债写「16 条 rid → `[]`」,而 `HEAD` 现值是 **50 条 rid**
+     (`git show HEAD:… | sed -n '/m_RuntimeSettings:/,/m_Settings:/p' | grep -c "rid:"` → 50)。
+     机制描述(派生快照 / 编辑器读 `m_SettingsList`)不受影响,但**具体数字已过期**,不得再当判据引用。
+- **触发条件不变(仍按原文三条)**:① 误把派生改动提交进历史;② 出现超出 `m_RuntimeSettings` 块的派生改动;
+  ③ URP/Core 包升级改变 `OnBeforeSerialize` 语义。**在此之前,判定 = 噪音,不阻塞任何事。**
 
 ---
 

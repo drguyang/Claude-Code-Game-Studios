@@ -13839,3 +13839,27 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   EditMode `6206/6169/0/0/37`(+9/+9 恰等)· PlayMode `238/234/0/2/2`(零回归)。
 - 还原 SHA-256 4/4(gate)+ 4/4(smoke);`FALSIFY-` 残留 0。
 - 债册:`closed 116 → 118` · `open 21 → 19` · 未闭 P0 面仍 **0** · `--check` exit 0。
+
+---
+
+## 2026-10-31 · `S21-6` 收口(TD-build-01 —— 真构建复测)
+
+**做法**:不靠纸面推演,跑真构建再看 `git status`。
+
+- **真构建**:`CostTableProbeBuildCli.Build` → `Build Finished, Result: Success` · **26 s**
+  (输出落 `/tmp/dyjc-costtable-probe/`,不污染仓库)。构建后 **`git status --short` 零输出**。
+- **逐组**:
+  - ① URP `m_RuntimeSettings` —— 未复现内容差异(mtime 变、内容与 `HEAD` 逐字节一致)
+  - ② `PerformanceTestRun*.json` —— 日志有 `Creating new file`,构建结束后**磁盘上不存在**
+  - ③ `link.xml` —— 重新生成(2337 B)且 **被窄 glob 正确忽略**(`!!`)
+- 🔴 **机制订正**:债写 ② 是「每次构建都重写」,**半对**。读包源码 `TestRunBuilder.cs:41-44`:
+  `OnPostprocessBuild → Cleanup()` **自删** ⇒ **残留条件是「构建没走到 postprocess」**(失败/中断)。
+  2026-10-21 观察到它,是因为那轮跑的是**刻意报 Failure 的探针轮**。
+  ⚠️ **失败路径本轮未实测** —— 该句是源码依据,不是执行证据。
+- **两处与债描述不符**:债写「七条 .gitignore 规则」实测 **5 条**(覆盖面无缺口);债写「16 条 rid」
+  现值 **50 条**(数字已过期,机制描述不受影响)。四个反例均未被误伤。
+- **本条闭合 = 常驻登记移交** `coding-standards.md` §工作树卫生「已实测的构建派生组」;
+  用户 2026-10-21「① 只登记不动」的裁定不变。
+- **回归**(三元组 `2026-10-31T08:31–08:32 CST` · S21-6 全量 · `7ad5799b`+未提交):
+  EditMode `6206/6169/0/0/37` · PlayMode `238/234/0/2/2`(均零回归)。
+- 债册:`closed 118 → 119` · `open 19 → 18` · 未闭 P0 面仍 **0** · `--check` exit 0。
