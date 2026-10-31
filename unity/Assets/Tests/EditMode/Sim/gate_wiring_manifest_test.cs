@@ -87,6 +87,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
+                    "ForagingFloatGate.RunAll",      // AC-17-10 17 求值路径零浮点 · 2026-10-31 接线上线
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
                     "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
@@ -198,6 +199,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "MedConsFloatGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
+            new ClassVerdict { ClassName = "ForagingFloatGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-17-10 落(2026-10-31);文本级门,IL 层 conv.r4 是已登记残余缺口" },
             new ClassVerdict { ClassName = "PlayerAssemblyGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
                 Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },

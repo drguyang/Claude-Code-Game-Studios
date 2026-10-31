@@ -14151,3 +14151,15 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   证伪 M2 exact 1 / M3 exact 1 / M1 3 红超集;SHA-256 还原一致。
   回归 EditMode `6247/6210`(+8/+8)· PlayMode `238/234`。
 - 顺带:新夹具命名空间对齐到 `DaYiJingCheng.Tests.EditMode.Foraging`。
+
+## 2026-10-31 · S22-2 补 AC-17-10(零浮点门)
+
+- 新门 `unity/Assets/Editor.Tools.Gates/ForagingFloatGate.cs`(递归扫 `Assets/Sim/Foraging/**`)
+  接进 `AssemblyGates.RunAll`;复用 `MedConsFloatGate` 的 `StripComments`(private→public,
+  不写第二份)与 `FindFloatLiterals`。
+- 夹具 `Tests/EditMode/Foraging/foraging_float_gate_test.cs`(8 测):判别力用**纯函数**
+  `ScanSource` 驱动(不往仓库写违规文件,免撞 `FsWriteBoundaryGate`)。
+- **探针轮 M4**:真放 `Assets/Sim/Foraging/__FloatProbe.cs` ⇒ `test_ac1710_realForagingTree_isFloatFree`
+  **exact 1 红**;删文件回绿。
+- 如实登记:门是**文本级**不是 Roslyn 语法树级;IL 层 `conv.r4` 是残余缺口(门头注写明升级触发条件)。
+- story-005 仍 **In Progress**(AC-17-09 / 09b 零实现)。

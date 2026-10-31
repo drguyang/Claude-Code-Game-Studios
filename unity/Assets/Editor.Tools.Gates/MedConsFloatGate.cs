@@ -188,7 +188,9 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>注释剥离(// 与 /* */;字符串字面量保留 —— 偏安全)。</summary>
-        private static string StripComments(string source)
+        /// <remarks>⚠️ 2026-10-31 由 <c>private</c> 升为 <c>public</c>:<see cref="ForagingFloatGate"/>
+        /// 复用**同一份**剥离实现,不复写第二份(复写 = 同一规则的第二个真源,F8 形态)。</remarks>
+        public static string StripComments(string source)
         {
             var sb = new StringBuilder(source.Length);
             bool inLine = false, inBlock = false, inString = false;

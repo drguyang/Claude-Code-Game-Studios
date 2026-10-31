@@ -1,7 +1,7 @@
 # Story 005: 采集动作原子性、失败收敛与呈现/浮点反射门
 
 > **Epic**: 采集
-> **Status**: In Progress(2026-10-31 · 闸门 / 三类失败收敛 / 原子性已落;AC-17-09 / 09b / 10 **未做** ⇒ 不得记 Complete)
+> **Status**: In Progress(2026-10-31 · 闸门 / 三类失败收敛 / 原子性已落;AC-17-09 / 09b **未做**(AC-17-10 已于同轮补上)⇒ 不得记 Complete)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
@@ -150,10 +150,10 @@
 | **AC-17-08** 打断零效果 | ✅(结构半边) | 打断 = 不调用 ⇒ 零效果是**结构性**的(事件只在裁决成功时发);判据 = 被拒之后下一次成功采集的 `gather_seq` 仍从 0 起 |
 | **AC-17-09** DTO 递归反射门 | ❌ **未做** | `GatherAffordanceDto` 等呈现 DTO **尚未存在**;没有对象可扫。写一个空扫描跑绿 = F1 假绿 |
 | **AC-17-09b** `AudioCueDto` 无品质维 | ❌ **未做** | 同上;且 44 的 cue 落地形态未定 |
-| **AC-17-10** Roslyn 零浮点扫描 | ❌ **未做** | 复用 item-database story-011 的扫描件的接线**尚未接** |
+| **AC-17-10** 零浮点静态门 | ✅ **2026-10-31 已落** | 新门 `Editor.Tools.Gates/ForagingFloatGate.cs`(扫 `Assets/Sim/Foraging/**`,递归)+ 接进 `AssemblyGates.RunAll`;**探针轮 M4**:真放一个含 `float` 的文件 ⇒ `test_ac1710_realForagingTree_isFloatFree` **exact 1 红**,删文件即回绿。⚠️ 门是**文本级**不是 Roslyn 语法树级,IL 层 `conv.r4` 是已登记的残余缺口(门头注) |
 | **[L] 三条**(07b / 12 / 13b) | ⏸ `EXTERNAL` | 载体归 42 / 44,未交付 ⇒ **不得勾选** |
 
-⇒ **本卡未完成**。上面三项 `❌` 不是「差一点」,是**零实现**。
+⇒ **本卡仍未完成**。剩下两项 `❌` 不是「差一点」,是**零实现**(呈现 DTO 尚不存在)。
 
 ### 证伪(E2)
 
@@ -174,3 +174,27 @@
 
 新写的两个夹具原用命名空间 `DaYiJingCheng.Tests.Foraging`,与同目录既有五个夹具的
 `DaYiJingCheng.Tests.EditMode.Foraging` 不一致(按命名空间过滤会漏跑)⇒ 已对齐。
+
+### AC-17-10 补轮(2026-10-31)
+
+**新门**:`Editor.Tools.Gates/ForagingFloatGate.cs` —— 递归扫 `Assets/Sim/Foraging/**`,
+判「浮点 token」+「浮点字面量」两件(管线复用 `MedConsFloatGate` 的 `StripComments` /
+`FindFloatLiterals`,后者由 `private` 升 `public`,**不写第二份剥离实现**)。
+接进 `AssemblyGates.RunAll`。
+
+**夹具**:`Tests/EditMode/Foraging/foraging_float_gate_test.cs`(8 测)。
+判别力用**纯函数** `ScanSource` 驱动 —— 不往仓库写违规文件(会撞 `FsWriteBoundaryGate`,
+且漏删一个就变常驻假红)。
+
+**探针轮 M4**:真放 `Assets/Sim/Foraging/__FloatProbe.cs`(含 `float`)⇒
+`test_ac1710_realForagingTree_isFloatFree` **exact 1 红**;删文件即回绿。
+
+> 🔴 **同轮抓到的一处我自己的遗漏(如实记)**:首次全量回归 **2 红** ——
+> `test_classManifest_coversEveryDeclaredClass` / `test_entryWiring_matchesManifest_bidirectionally`。
+> 新门类**没有同批登记** `ClassConsumerManifest`(Kind + Consumer)与 `EntryWiringManifest["RunAll"]`。
+> ⇒ ADR-025 的装配封闭性门当场拦住:**加门 ≠ 加文件**,还欠两处 manifest 登记。
+> 补登记后转绿。**这一幕本身是该门的有效性证据**(它抓到一个真实的新增遗漏)。
+
+**回归**(三元组 `2026-10-31T16:32–16:36 CST` · `AC-17-10` 批 · `b078ab0d`+未提交):
+- EditMode `6255/6218/0/0/37`(基线 `6247/6210` ⇒ **+8/+8**,恰等新增 8 测)
+- PlayMode `238/234/0/2/2`(`exit=2` 伴 `failed=0`,与基线同形)

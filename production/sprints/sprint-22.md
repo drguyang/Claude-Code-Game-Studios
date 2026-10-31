@@ -184,8 +184,11 @@ PY
 > **已落**:`HarvestOutcome.cs`(三支具名 + `HarvestGate`)+ `HarvestOrchestrator.Resolve(request, gate)`,
 > 闸门**排在铸号与 `NoveltyTracker.Query` 之前**;夹具 `harvest_action_atomicity_test.cs`(8 测)。
 > **AC**:AC-17-07 ✅ · AC-17-07c ✅ · AC-17-08 ✅(结构半边)。
-> **未做(零实现,不是「差一点」)**:AC-17-09 / 09b(DTO 递归反射门 —— 呈现 DTO 尚不存在)·
-> AC-17-10(Roslyn 零浮点扫描未接线);`[L]` 三条仍 `EXTERNAL`。
+> **AC-17-10 ✅ 同轮补上**:新门 `Editor.Tools.Gates/ForagingFloatGate.cs`(递归扫
+> `Assets/Sim/Foraging/**`)+ 接进 `AssemblyGates.RunAll`;夹具 `foraging_float_gate_test.cs`(8 测);
+> **探针轮 M4** = 真放一个含 `float` 的文件 ⇒ **exact 1 红**,删文件回绿。
+> **仍未做(零实现,不是「差一点」)**:AC-17-09 / 09b(DTO 递归反射门 —— 呈现 DTO 尚不存在);
+> `[L]` 三条仍 `EXTERNAL`。
 > **证伪 3 条**:M2(闸门移到 `Query` 之后)**exact 1 红** · M3(判定换序)**exact 1 红** ·
 > M1(满载分支失效)**3 红超集**(如实记)。还原 SHA-256 一致。
 > **回归** `2026-10-31T15:40:59 CST`:`EditMode 6247/6210`(+8/+8 恰等)· `PlayMode 238/234`。
