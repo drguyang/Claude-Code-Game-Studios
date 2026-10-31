@@ -300,6 +300,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca92175fcc4d7a740300f9d71c70cbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _bootWithMainMenu: 1
+  _saveBasePathOverride: 
 --- !u!1 &5100000001
 GameObject:
   m_ObjectHideFlags: 0

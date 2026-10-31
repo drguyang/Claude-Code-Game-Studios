@@ -74,6 +74,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         // ⚠️ 两个动作都由装配层实现:42 **不**自己决定「继续」要把世界恢复成什么,
         //    也不自己调 `OpenModal`(那是换屏,属装配层的时序决定)。
         private IPauseCommandSink _pauseSink;
+        // 主菜单(2026-11-01 · `main-menu-42.md`):**场景级屏,不是 ModalId 成员**。
+        // ⚠️ 意图出口同样由装配层实现(42 不判「有没有档」「继续到哪一份」)。
+        private IMainMenuCommandSink _mainMenuSink;
 
         private VisualElement _panel;
         private IPresentationRoot _screen;
@@ -92,6 +95,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <remarks>⚠️ 只记「原本 focusable 且被我们关掉」的那些 —— 还原时不得把
         /// 本来就不 focusable 的元素变成可聚焦。</remarks>
         private readonly List<VisualElement> _inertedByModal = new List<VisualElement>();
+
+        /// <summary>主菜单独占的容器(<c>null</c> = 主菜单没开)。</summary>
+        /// <remarks>⚠️ 与 <see cref="_modalContainer"/> **分开**:主菜单不是模态,开它不得动
+        /// `_currentModal`(否则规则七的门与 `BlocksPlay` 会读到一个「世界装载之前就摊开的模态」,
+        /// 而「挡住世界」的语义此时不成立 —— `main-menu-42.md §1`)。</remarks>
+        private VisualElement _mainMenuContainer;
+        /// <summary>当前摊开的场景级屏实例(<c>null</c> = 没开)。</summary>
+        private IPresentationRoot _currentSceneScreen;
+        /// <summary>主菜单打开期间被摘掉焦点能力的元素(关闭时逐个还原)。</summary>
+        /// <remarks>与 <see cref="_inertedByModal"/> 同机理、**不同记录**:两套开屏期不会重叠,
+        /// 但混用同一份列表会让「谁该还原」依赖开合次序 —— 那正是将来分叉的地方。</remarks>
+        private readonly List<VisualElement> _inertedByMainMenu = new List<VisualElement>();
 
         /// <summary>
         /// `ModalId` 闭集 → 屏名（屏名是 <see cref="ScreenFactories"/> 的键，也是序列化契约）。
@@ -124,6 +139,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 ["Tutorial"] = (root, lib) => new TutorialScreen(root, lib),
                 ["PaperCloseup"] = (root, lib) => new PaperCloseupScreen(root, lib),
                 ["Pause"] = (root, lib) => new PauseScreen(root, lib),
+                // 🔁 2026-11-01:主菜单 = **场景级屏**,不是 `ModalId` 成员(不进 `ModalScreenNames`)。
+                //    它出现在世界装载之前 ⇒ 不参与「挡住世界」那套读面(`main-menu-42.md §1`)。
+                ["MainMenu"] = (root, lib) => new MainMenuScreen(root, lib),
             };
 
         private void Awake()
@@ -354,6 +372,101 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         }
 
         /// <summary>
+        /// 主菜单的**意图**出口(2026-11-01 · `main-menu-42.md §7`)。
+        /// <para>实现方住装配层(42 不反向引用 Boot);未注入 ⇒ 行照常画、按了留空。
+        /// 「有没有档」「继续到哪一份」不在这里判 —— 本驱动只转发那一次确认。</para>
+        /// </summary>
+        public IMainMenuCommandSink MainMenuSink
+        {
+            get => _mainMenuSink;
+            set
+            {
+                _mainMenuSink = value;
+                if (_mainMenuContainer != null && CurrentScreen is MainMenuScreen menu)
+                    menu.BindCommandSink(value);
+            }
+        }
+
+        /// <summary>
+        /// 当前摊开的**场景级屏**(今日唯一成员 = 主菜单;<c>null</c> = 没开)。
+        /// <para>⚠️ 与 <see cref="Screen"/> 不同:后者是「常驻 / 模态屏」(脉案 / 暂停壳 /
+        /// 存档位…),本属性只指场景级屏 —— 两者可以同时存在(主菜单压在世界装载之前,
+        /// 常驻脉案屏仍在树里)。</para>
+        /// </summary>
+        public IPresentationRoot CurrentScreen => _currentSceneScreen;
+
+        /// <summary>
+        /// 打开**场景级屏**(非 `ModalId` 成员;今日唯一成员 = 主菜单)。
+        /// <para>开屏动作 = 建独占容器 + 落焦第一落点 + 施加焦点单栈门(把面板上其余的
+        /// 可聚焦元素临时摘掉,与模态同机理、不同记录)。</para>
+        /// <para>⚠️ **不动** <see cref="CurrentModal"/>:场景级屏不参与规则七的门
+        /// (它出现时世界尚未装载,「挡住世界」的语义不成立 —— `main-menu-42.md §1`)。
+        /// 也**不动** <see cref="_modalContainer"/>:常驻脉案屏在它自己那格里,主菜单关掉后原样还在。</para>
+        /// </summary>
+        /// <returns><c>true</c> = 屏已建并摊开;<c>false</c> = 无面板 / 屏名未登记(不崩)。</returns>
+        public bool ShowSceneLevelScreen(string screenName, bool hasContinueSave)
+        {
+            if (_panel == null)
+            {
+                Debug.LogError("[SkeuoRuntimeDriver] 无 UIDocument 面板 —— 场景级屏开不出来(非崩溃态)。");
+                return false;
+            }
+            if (!ScreenFactories.ContainsKey(screenName))
+            {
+                Debug.LogError($"[SkeuoRuntimeDriver] 场景级屏 '{screenName}' 未在 ScreenFactories 登记 —— " +
+                               "拒绝静默无操作(屏名三处不一致)。");
+                return false;
+            }
+
+            DismissSceneLevelScreen();
+
+            IPresentationRoot created = InstantiateScreen(screenName, out VisualElement container);
+            if (created is not MainMenuScreen menu)
+            {
+                // 屏建出来但不是主菜单形态 ⇒ 拆掉,不留半个旁路(闭集外的名字不得借用本入口)。
+                if (created != null) container.RemoveFromHierarchy();
+                Debug.LogError($"[SkeuoRuntimeDriver] 屏 '{screenName}' 不是场景级屏形态 —— 拒绝摊开。");
+                return false;
+            }
+
+            // 容器铺满面板(USS `.scene-host`):不铺满则 `flex-grow` 无空间可分配,
+            // 「纵向居中」退化为「挤在常驻屏下面的剩余空间里」(2026-11-01 实拍实证)。
+            container.AddToClassList("scene-host");
+
+            // 常驻屏**暂隐**:世界尚未装载时它不该被看到(实拍里它整屏透出来 ——
+            // 脉案的八个值区摊在菜单纸面周围,与 spec §5「纸面下是纯色底」相悖)。
+            // ⚠️ 用 `display: none` 而不是给它叠一层底色:后者要在 42 侧发明一个色值,
+            //    而色值归美术轮(spec §5 末「刻意留白」)。
+            if (_modalContainer != null) _modalContainer.style.display = DisplayStyle.None;
+
+            _currentSceneScreen = menu;
+            _mainMenuContainer = container;
+            menu.BindCommandSink(_mainMenuSink);
+            menu.SetHasContinueSave(hasContinueSave);
+
+            ApplySceneLevelFocusScope();
+            VisualElement first = menu.FirstFocusable;
+            if (first != null && first.panel != null) first.Focus();
+            return true;
+        }
+
+        /// <summary>收起场景级屏(没开 ⇒ 空操作)。撤焦点门,常驻屏原样留在自己的容器里。</summary>
+        public void DismissSceneLevelScreen()
+        {
+            ReleaseSceneLevelFocusScope();
+
+            // 常驻屏恢复可见(与开屏时的暂隐成对;无场景级屏时是空操作)
+            if (_modalContainer != null) _modalContainer.style.display = DisplayStyle.Flex;
+
+            if (_mainMenuContainer != null)
+            {
+                _mainMenuContainer.RemoveFromHierarchy();
+                _mainMenuContainer = null;
+            }
+            _currentSceneScreen = null;
+        }
+
+        /// <summary>
         /// UI 根(UIDocument.rootVisualElement)—— 42 载体挂载面(BootRoot 挂候选列表)。
         /// <para><c>Awake</c> 后非 null(<see cref="EnsureDocument"/> 已建);
         /// <c>panel == null</c> = 逻辑树在、不渲染(缺 PanelSettings 是合法的测试形态)。</para>
@@ -523,22 +636,52 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         private void ApplyModalFocusScope()
         {
             _inertedByModal.Clear();
-            if (_modalContainer == null || _panel == null) return;
+            ApplyFocusScope(_modalContainer, _inertedByModal);
+        }
+
+        /// <summary>
+        /// 场景级屏期**焦点单栈门**(2026-11-01 · `main-menu-42.md §7` P-01)。
+        /// <para>与模态同机理、**不同记录**:主菜单压在世界装载之前,常驻脉案屏仍在树里,
+        /// 不摘焦点则方向键会走到它上面去。</para>
+        /// </summary>
+        private void ApplySceneLevelFocusScope()
+        {
+            _inertedByMainMenu.Clear();
+            ApplyFocusScope(_mainMenuContainer, _inertedByMainMenu);
+        }
+
+        /// <summary>还原 <see cref="ApplySceneLevelFocusScope"/> 摘掉的那些元素。</summary>
+        private void ReleaseSceneLevelFocusScope()
+        {
+            for (int i = 0; i < _inertedByMainMenu.Count; i++)
+                _inertedByMainMenu[i].focusable = true;
+            _inertedByMainMenu.Clear();
+        }
+
+        /// <summary>
+        /// 焦点单栈门的**唯一实现**:把面板上除 <paramref name="keep"/> 外的所有原本可聚焦元素
+        /// 摘掉焦点能力,记进 <paramref name="record"/> 以便还原。
+        /// <para>⚠️ 模态与场景级屏各用一份 <c>record</c>(谁摘的谁还原),但**走同一个实现** ——
+        /// 两份实现将来必然漂移,而漂移是静默的(一处会还原、另一处忘了)。</para>
+        /// </summary>
+        private void ApplyFocusScope(VisualElement keep, List<VisualElement> record)
+        {
+            if (keep == null || _panel == null) return;
             foreach (VisualElement child in _panel.Children())
-                InertFocusableDescendants(child);
+                InertFocusableDescendants(child, keep, record);
         }
 
         /// <summary>把子树里所有可聚焦元素摘掉焦点能力,并记下来以便还原。</summary>
-        private void InertFocusableDescendants(VisualElement root)
+        private static void InertFocusableDescendants(VisualElement root, VisualElement keep, List<VisualElement> record)
         {
-            if (root == null || root == _modalContainer) return;
+            if (root == null || root == keep) return;
             if (root.focusable)
             {
-                _inertedByModal.Add(root);
+                record.Add(root);
                 root.focusable = false;
             }
             foreach (VisualElement child in root.Children())
-                InertFocusableDescendants(child);
+                InertFocusableDescendants(child, keep, record);
         }
 
         /// <summary>还原 <see cref="ApplyModalFocusScope"/> 摘掉的那些元素。</summary>

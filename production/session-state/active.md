@@ -14878,3 +14878,44 @@ OQ-MM-5 是否加「新开/设置/退出」(P0 单行)· OQ-MM-6 存档摘要(�
 
 - **主菜单实现**:`MainMenu.unity` 场景 + 场景路由 + `MainMenuScreen.cs` + `AC-MM-01…10` 全部未做。
 - 本轮**零生产代码改动** ⇒ 未跑测试;最近一次全量仍是 EditMode 6323/6286/0/0/37 · PlayMode 262/258/0/2/2 @ 02:13 CST。
+
+---
+
+## 2026-11-01 · 主菜单接线轮(用户指令「下一轮做,接主菜单」)
+
+`design/ux/main-menu-42.md` 的 **AC-MM-01…10 全部落地并勾选**;原件 =
+`production/qa/evidence/main-menu-42-impl-2026-11-01.md`。
+
+### 落盘(生产侧)
+
+- `BootRoot`:启动序 **2.95 主菜单闸门**(additive 载 `mainmenu` → 摊屏 → `await` 确认 →
+  additive 拆回);第 8 步「继续最近档」经 `LoadSequencer`;两个**夹具开关**
+  `BootWithMainMenu` / `SaveBasePathOverride`(生产值 1 / 空)。
+- `SkeuoRuntimeDriver`:**场景级屏**入口 `ShowSceneLevelScreen` / `DismissSceneLevelScreen`
+  (**非 `ModalId`**);焦点单栈门抽成一份共用实现(模态与场景级屏各一份记录、同一代码)。
+- `MainMenuScreen`(新)· `DriverMainMenuCommandSink`(新)· `.scene-host` / `.menu-host` / `.menu-column`。
+- `MainMenu.unity`(空场景 = ADR-023 §① 第二场景)+ Addressables 条目 `mainmenu`;`Boot.unity` 开旗。
+- `SaveService.TryGetMostRecentSave(out SaveSlot)`(退出保存优先,否则最大序号;**不按 mtime**)+
+  `LastSaveQueryError`(门 A 下 7a 无日志面,失败事实交装配层记)。
+
+### 判据
+
+- **PlayMode 7/7**、**EditMode 3/3**,均 `error CS` = 0。
+- **证伪 7 轮**:M1 停落焦 ⇒ 4 红 · M2 停读档 ⇒ 1 红 · **M3 双注册 ⇒ 存活(变异打错靶,照登)** ·
+  M3′ `Activate` 双发 ⇒ 2 红 · M4 世界装载改 `Single` ⇒ 1 红 · M5 42 偷扫目录 ⇒ 1 红 ·
+  M6 闸门去 `await` ⇒ 1 红。每轮 **SHA-256 逐字节还原**。
+- **全量回归**:EditMode `6326/6289/0/37`(基线 6323/6286/0/0/37 ⇒ +3)· PlayMode `269/265/0/2`(+2 Inconclusive 为既有探针件)
+  (基线 262/258/0/2/2 ⇒ +7)。
+- **实拍复核**(GUI 模式):`production/qa/evidence/skeuomorphic-ui/main-menu-2026-11-01.png`。
+  **首拍揪出两处缺陷并修掉**:① 纸面落在屏幕下方 2/3(`flex-grow` 在内容高盒子里无空间可分配);
+  ② 常驻脉案屏整屏透出。
+
+### 未做 / 残余(不借绿)
+
+- **§5「纸面下是纯色底」未兑现**:今日是天空盒 + 地面(空世界第一帧)。兑现要把相机换 `SolidColor`,
+  而**色值属 §5 末「归美术轮」的留白项** ⇒ 本轮不发明色值,记在 spec §16.3。
+- **OQ-MM-3**(菜单上按 Escape / start):**无动作**是安全的 —— 菜单期 `_modalInput` 尚未装配
+  (它在启动序 6.3 步,世界装载之后)。spec 未裁,今日行为与「安全默认」一致。
+- **仍未抽 `ISceneRouter`**:两个场景各自一行 `LoadSceneAsync`;抽接口要等第三个调用方。
+- 全量回归跑于「含 `SaveService.HasAnySave()`」的树;该方法**零调用**、随后按死代码删除,
+  删除后**重跑**本轮两条新增套件确认行为面为零(详见证据件 §7)。

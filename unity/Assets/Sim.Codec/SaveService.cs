@@ -205,6 +205,87 @@ namespace DaYiJingCheng.Sim.Codec
         public SaveSlotLedger Ledger => _ledger;
 
         /// <summary>
+        /// 存档目录里**最近一份可继续的存档**是哪个槽(无档 / 查询失败 ⇒ <c>false</c>)。
+        /// <para>用途:`design/ux/main-menu-42.md §10` 的 `hasContinueSave`(主菜单文案切换)与
+        /// §7 的「继续诊治 ⇒ 继续最近档」(2026-11-01 用户裁定 OQ-MM-1 / OQ-MM-2)。</para>
+        /// <para><b>「最近」的判据(本类唯一出处)</b>:① 存在退出保存 ⇒ 它就是最近
+        /// (退出钩子写的那一份,`SaveOnExit`,见 §六);
+        /// ② 否则取**序号最大**的 <c>save_{seq}.bin</c>(槽位只进不退,`slot_seq` 是唯一排序键,
+        /// 见 <c>SaveSlot</c> 头注)。⚠️ 刻意**不按文件 mtime** 排序 —— mtime 不是 sim 量,
+        /// 且拷贝 / 同步存档会把它改得与语义无关。</para>
+        /// <para>⚠️ **只读、不建目录、不抛**:目录不存在 ⇒ <c>false</c>;枚举期任何异常
+        /// (权限 / 路径失效)⇒ <b>同样取 <c>false</c></b>(spec §10「查询失败按无存档处理」
+        /// —— 保守方向是「开新局」,反过来选「继续」则可能把空档当档读)。失败会 <c>LogWarning</c>,
+        /// 不是静默吞掉。</para>
+        /// <para>⚠️ 文件名约定**只在本类**:装配层不得自己拼 `save_*.bin`
+        /// (否则出现第二份「什么算存档」)。</para>
+        /// </summary>
+        public bool TryGetMostRecentSave(out SaveSlot slot)
+        {
+            slot = default;
+            LastSaveQueryError = null;
+            try
+            {
+                if (!Directory.Exists(_basePath)) return false;
+
+                // ① 退出保存优先(它就是「上次退出那一刻」)
+                if (File.Exists(Path.Combine(_basePath, ExitSaveFileName)))
+                {
+                    slot = ExitSaveSlot;
+                    return true;
+                }
+
+                // ② 否则序号最大的玩家槽
+                uint best = 0;
+                bool found = false;
+                foreach (string file in Directory.EnumerateFiles(_basePath, "save_*.bin"))
+                {
+                    if (!TryParseSlotSeq(Path.GetFileNameWithoutExtension(file), out uint seq)) continue;
+                    if (!found || seq > best) { best = seq; found = true; }
+                }
+                if (!found) return false;
+                slot = new SaveSlot(best);
+                return true;
+            }
+            catch (Exception e)
+            {
+                // 查询面归本类(唯一出处);失败方向 = 「无存档」(spec §10),但不静默:
+                // ⚠️ 本程序集 `noEngineReferences: true`(门 A)⇒ **不能** `Debug.LogWarning`.
+                // 失败事实经 <see cref="LastSaveQueryError"/> 交给装配层记日志(它不是静默吞掉,
+                // 是把「记哪」放在能记的那一层)。
+                LastSaveQueryError = e;
+                slot = default;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 最近一次 <see cref="TryGetMostRecentSave"/> 的**查询失败**原因
+        /// (<c>null</c> = 未查询 / 查询成功)。
+        /// <para>用途:门 A(`noEngineReferences`)下本程序集无日志面 ⇒ 失败事实只能由装配层记
+        /// —— `BootRoot` 读本属性后 `Debug.LogWarning`。⚠️ 它与「查得无档」是**两件事**:
+        /// 前者 <c>非 null</c>,后者 <c>null</c> + 返回 <c>false</c>。</para>
+        /// </summary>
+        public Exception LastSaveQueryError { get; private set; }
+
+        /// <summary>
+        /// 从文件名主干解析槽号:`save_{digits}` ⇒ <paramref name="seq"/>;
+        /// 其余(含 `save_exit`)⇒ <c>false</c>。**命名约定只在本类**。
+        /// </summary>
+        private static bool TryParseSlotSeq(string fileNameWithoutExtension, out uint seq)
+        {
+            seq = 0;
+            const string prefix = "save_";
+            if (fileNameWithoutExtension == null || !fileNameWithoutExtension.StartsWith(prefix, StringComparison.Ordinal))
+                return false;
+            int start = prefix.Length;
+            if (fileNameWithoutExtension.Length <= start) return false;
+            for (int i = start; i < fileNameWithoutExtension.Length; i++)
+                if (fileNameWithoutExtension[i] < '0' || fileNameWithoutExtension[i] > '9') return false;
+            return uint.TryParse(fileNameWithoutExtension.Substring(start), out seq);
+        }
+
+        /// <summary>
         /// 上一次**成功**读档的存档头 `ConfigVersion`(`null` = 尚无成功读档 / 最近一次读档失败)。
         /// <para><b>用途</b>:`AC-7a-14` / ADR-010 §七 的「记录并供排查」—— 读档后须把存档头携带的
         /// 配置版本与**当前烘焙产物**的版本比对。比对本身**不在本类**:当前版本由 ADR-014 §五

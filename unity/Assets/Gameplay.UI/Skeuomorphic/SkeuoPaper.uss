@@ -75,6 +75,32 @@
     align-self: center;
 }
 
+/* 场景级屏的容器(2026-11-01 · `main-menu-42.md` §5)。
+   ⚠️ 2026-11-01 实拍驱动补:第一版没这条,**纸面落在屏幕下方 2/3 处**
+   (host 1680×96 at y=802,面板 1680×1215)—— 根因是容器高 = 内容高,
+   `.menu-host` 的 `flex-grow` 在内容高盒子里没有可分配空间。
+   ⇒ 容器绝对定位铺满面板(位置相对面板根,尺寸确定),居中才有意义。 */
+.scene-host {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* 主菜单屏(2026-11-01 · `main-menu-42.md` §5)—— 与 `.pause-column` 同一条列宽契约,
+   多一层「纵向也居中」:世界尚未装载,纸面下是纯色底,不需要贴边。 */
+.menu-host {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+}
+
+.menu-column {
+    width: var(--skeuo-shared-modal-width);
+    align-self: center;
+}
+
 /* ── 跳过入口 · M2 形态件③(story-023 · AC-023-1/2/3)──
  * 判据权威 = art-bible G2(反数值化)+ emergency-procedures 规则六 / 规则六之甲。
  * **owner = 42**(ADR-013 §三 · `O-10-1`:10 不拥有任何 UI 元素,10 向 42 提规格)——

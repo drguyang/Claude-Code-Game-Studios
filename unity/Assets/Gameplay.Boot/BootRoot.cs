@@ -11,6 +11,9 @@
 //   1. Addressables.InitializeAsync(autoReleaseHandle: false)(显式 init;await Task;
 //      失败 = LogError + rethrow,E-13 硬失败;成功后自己 Release init 句柄)
 //   2. CompositionRoot.Assemble()(生产装配,失败即异常向上传播)
+//   2.95 主菜单闸门(仅在 BootWithMainMenu 时):additive 载入 "mainmenu" → 摊 42 主菜单屏
+//      → await 玩家确认 → additive 拆回该场景。⚠️ 位置**必须在 3 之前**:世界尚未装载时
+//      没有 tick / 病人 / 「可被挡住的世界」⇒ 它不是 `ModalId` 成员(`main-menu-42.md §1`)。
 //   3. Addressables.LoadSceneAsync("world", Additive) —— 永不 Single。
 //      ⚠️ 本版(2.10.3)的 LoadSceneAsync **无 autoReleaseHandle 形参**,可用等价语义 =
 //      默认 SceneReleaseMode.ReleaseSceneWhenSceneUnloaded(卸载时自动释放 handle);
@@ -35,6 +38,7 @@ using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -97,6 +101,61 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
         private AsyncOperationHandle<SceneInstance> _worldLoadHandle;
+
+        /// <summary>主菜单场景的 Addressables 地址(与 <c>Default Local Group</c> 的条目同源)。</summary>
+        /// <remarks>⚠️ 与 <c>"world"</c> 同级纪律:地址串写死在调用点、条目登记在 group 资产,
+        /// 两侧不一致 = 运行期 <c>LoadSceneAsync</c> 硬失败(故有 EditMode 资产级门).</remarks>
+        public const string MainMenuSceneAddress = "mainmenu";
+
+        /// <summary>
+        /// 启动时是否先摊主菜单再进世界(2026-11-01 · `design/ux/main-menu-42.md`)。
+        /// <para><b>生产 = true</b>(Boot.unity 序列化为 1);**代码构造的测试夹具 = false**
+        /// (默认值),故既有 PlayMode 夹具的启动序一字不改。</para>
+        /// <para>⚠️ 这个开关**不是**「要不要主菜单」的功能旗 —— spec 不提供关掉它的产品形态;
+        /// 它是装配层给夹具留的启动序切面(与 <see cref="SaveBasePathOverride"/> 同格)。</para>
+        /// </summary>
+        [SerializeField] private bool _bootWithMainMenu;
+
+        /// <summary>存档目录覆盖(夹具用;空 ⇒ <c>persistentDataPath/saves</c>)。</summary>
+        /// <remarks>⚠️ 存在理由同 <see cref="BootWithMainMenu"/>:夹具须能把「有档 / 无档 / 查询失败」
+        /// 三态摆出来,而生产目录是**玩家数据**(夹具往里写 = 污染,且不可复现)。</remarks>
+        [SerializeField] private string _saveBasePathOverride;
+
+        /// <summary>主菜单的「继续诊治」信号(开屏后 <c>await</c> 它)。</summary>
+        private TaskCompletionSource<bool> _mainMenuContinue;
+
+        /// <summary>主菜单场景的加载句柄(关屏时按 ADR-023 口径 additive 拆回)。</summary>
+        private AsyncOperationHandle<SceneInstance> _mainMenuLoadHandle;
+
+        /// <summary>玩家在菜单上确认「继续」时要读的那一档(<c>null</c> = 开新局)。</summary>
+        private SaveSlot? _continueSlot;
+
+        /// <summary>启动时是否先摊主菜单(序列化旗的属性面 —— 夹具在 <c>Start</c> 之前赋值)。</summary>
+        public bool BootWithMainMenu
+        {
+            get => _bootWithMainMenu;
+            set => _bootWithMainMenu = value;
+        }
+
+        /// <summary>存档目录覆盖(夹具面;见 <see cref="_saveBasePathOverride"/> 注)。</summary>
+        public string SaveBasePathOverride
+        {
+            get => _saveBasePathOverride;
+            set => _saveBasePathOverride = value;
+        }
+
+        /// <summary>主菜单屏当前是否摊开(观测面;开屏后 <c>true</c>,玩家确认后 <c>false</c>)。</summary>
+        public bool IsMainMenuOpen { get; private set; }
+
+        /// <summary>
+        /// 本次启动**实际尝试继续**的那一档(<c>null</c> = 走了「开新局」分支)。
+        /// <para>⚠️ 它是**事实出口**,不是判定:只陈述「按下了继续且目标是谁」;
+        /// 读档成不成功看 <see cref="ContinueError"/>。</para>
+        /// </summary>
+        public SaveSlot? ContinuedFromSlot => _continueSlot;
+
+        /// <summary>启动期「继续诊治」读档抛出的异常(<c>null</c> = 没走该分支 / 成功)。</summary>
+        public System.Exception ContinueError { get; private set; }
 
         private bool _booted;
 
@@ -310,7 +369,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // EditMode 夹具不给 ⇒ 它们不构造 SaveService(否则各在用户数据目录造一份)。
                 // ⚠️ 今日 `Checkpoint` / `Load` 仍必然抛(叙事上下文驱动源未接通,
                 //    fail-closed,TD-persist-04)—— 目录就位 ≠ 功能可用。
-                saveBasePath: Path.Combine(Application.persistentDataPath, "saves"),
+                // ⚠️ 2026-11-01:目录可被夹具覆盖(主菜单的「有档 / 无档 / 查询失败」三态须可摆)。
+                saveBasePath: string.IsNullOrEmpty(_saveBasePathOverride)
+                    ? Path.Combine(Application.persistentDataPath, "saves")
+                    : _saveBasePathOverride,
                 // S20-17:世界交给装配根 —— 注册表从 `world.Structures` 取(不另传 structures,
                 // 否则「同给且不同实例」的 fail-closed 断言会抛),`StructureWriter` 由它构造。
                 world: world,
@@ -410,6 +472,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 Debug.LogWarning("[BootRoot][TD-epic-01] 设备态挂接失败 ⇒ cause 记降级(无模拟量):" + e);
             }
+
+            // ── 2.95. 主菜单闸门(2026-11-01 · `design/ux/main-menu-42.md`)─────────────
+            // 位置**在 World 装载之前**是 spec 的结构前提(§4:世界尚未装载 ⇒ 没有 tick /
+            // 没有病人 / 没有可被「挡住」的世界)。⚠️ 因此本段**不是** `ModalId` 的一条:
+            // `BlocksPlay` / 规则七的门 / tick 冻结面全部以「世界已在跑」为前提,把它们
+            // 套到本段等于冻结一个不存在的东西(`main-menu-42.md §1`)。
+            // ⚠️ 本段之后 `Update()` 仍早退(`_booted == false`)⇒ 菜单期零 tick / 零输入泵。
+            if (_bootWithMainMenu)
+                await PresentMainMenuAsync();
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -711,6 +782,165 @@ namespace DaYiJingCheng.Gameplay.Boot
             AssertSingleAudioListener();
 
             _booted = true;
+
+            // ── 8. 「继续诊治」读档(2026-11-01)→ 必须排在启动序**全部完成之后** ──
+            // 理由:读档要换流并触发派生态重建(`LoadSequencer` 的第 2–5 步),而派生态
+            // (在场视图 / 视觉侧 / 玩家 / 相机 / UI 根)在启动序里是**后置**建的 ——
+            // 把读档提到 2.95(菜单闸门处)就等于在半个世界之上回滚。
+            // ⚠️ 分支纪律:菜单上按下「继续」时才走;`_continueSlot == null`(无档)时
+            // 世界已按新局装载,本段**不发生任何动作**(新局不覆盖任何文件)。
+            if (_continueSlot.HasValue)
+                TryContinueFromSave(_continueSlot.Value);
+        }
+
+        /// <summary>
+        /// 摊主菜单屏并等玩家确认(`design/ux/main-menu-42.md`)。
+        /// <para>三步:① additive 装载 `MainMenu` 场景(ADR-023 §① 的第二个场景);
+        /// ② 向 7a 问「有没有可继续的档」(**7a 是所有者**,42 只消费那个布尔与那个槽);
+        /// ③ 开屏并 await 确认信号,确认后按 ADR-023 口径 additive 拆回场景。</para>
+        /// <para>⚠️ **开不出来 ⇒ 不等**:无面板 / 屏未登记时记 LogError 后直接进世界。
+        /// 让启动序挂在一个永不落焦的画面上,比「没有菜单」更糟(玩家连进都进不去)。</para>
+        /// </summary>
+        private async Task PresentMainMenuAsync()
+        {
+            // ① MainMenu 场景 additive 装载(E-13 同口径:Failed ⇒ 具名异常 + rethrow)
+            try
+            {
+                _mainMenuLoadHandle = Addressables.LoadSceneAsync(MainMenuSceneAddress, LoadSceneMode.Additive);
+                await _mainMenuLoadHandle.Task;
+                if (_mainMenuLoadHandle.Status == AsyncOperationStatus.Failed)
+                    throw new InvalidOperationException(
+                        "LoadSceneAsync(mainmenu) 返回 Failed" +
+                        (_mainMenuLoadHandle.OperationException != null
+                            ? ":" + _mainMenuLoadHandle.OperationException.Message
+                            : string.Empty));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[BootRoot][E-13] MainMenu 场景 additive 加载失败" +
+                               $"(address = {MainMenuSceneAddress}):{e}");
+                throw;
+            }
+
+            // ② 「有没有档」—— 问 7a(唯一所有者),42 不扫目录(spec §10 所有者纪律)
+            bool hasSave = false;
+            _continueSlot = null;
+            SaveService saves = _services.SaveService;
+            if (saves != null)
+            {
+                hasSave = saves.TryGetMostRecentSave(out SaveSlot recent);
+                if (hasSave) _continueSlot = recent;
+                // 门 A 下 7a 无日志面 ⇒ 失败事实在这里落下(不是静默吞掉)
+                if (saves.LastSaveQueryError != null)
+                    Debug.LogWarning("[BootRoot][主菜单] 存档目录查询失败,按「无存档」处理:" +
+                                     saves.LastSaveQueryError.Message);
+            }
+            else
+            {
+                // 未指定存档目录 = 7a 未装配(合法形态,见 Assemble 的 saveBasePath 注)
+                Debug.LogWarning("[BootRoot][主菜单] 无 7a 存档服务 ⇒ 按「无存档」处理(文案 = 开始诊治)");
+            }
+
+            // ③ 开屏 + 等确认
+            // ⚠️ **官方 UI 输入桥必须先于开屏**(B-6-1 的官方桥在第 6.7 步才建,那一步
+            //    在 World 装载之后 —— 菜单期若没有它,Enter / 空格 / 手柄南键只能落到引擎内置
+            //    `DefaultEventSystem` 上,而「焦点在、按了没反应」正是 B-6-1 的失效形态)。
+            //    `EnsureEventSystem` 幂等(按类型复用),6.7 再调一次拿到的是同一个实例。
+            _eventSystem = EnsureEventSystem();
+
+            _uiDriver = FindOrCreateSkeuoUi();
+            _uiDriver.MainMenuSink = new DriverMainMenuCommandSink(OnMainMenuContinue);
+
+            // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
+            //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
+            _mainMenuContinue = new TaskCompletionSource<bool>();
+
+            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave))
+            {
+                Debug.LogError("[BootRoot][主菜单] 主菜单屏开不出来(无面板 / 屏未登记)⇒ " +
+                               "不阻塞启动,直接进世界。");
+                await UnloadMainMenuSceneAsync();
+                return;
+            }
+
+            IsMainMenuOpen = true;
+
+            // ③-b **UI 输入桥的「初始选中」必须先就绪** —— 否则键盘 / 手柄的 Submit
+            //      **永不派发**(`InputSystemUIInputModule.ProcessNavigation` 的 move 与 submit
+            //      都 gate 于 `currentSelectedGameObject != null`,见 `BootstrapEventSystemSelection` 注)。
+            //      生产里这步在 `Update` 每帧幂等跑,但 `Update` 在 `_booted` 前**早退** ——
+            //      菜单期必须自己等它,否则「焦点在、按了没反应」。
+            await EnsureUiInputSelectionAsync();
+
+            await _mainMenuContinue.Task;
+            IsMainMenuOpen = false;
+
+            _uiDriver.DismissSceneLevelScreen();
+            await UnloadMainMenuSceneAsync();
+        }
+
+        /// <summary>主菜单「继续诊治 / 开始诊治」的确认回调(幂等:双击 / 两次输入只算一次)。</summary>
+        private void OnMainMenuContinue() => _mainMenuContinue?.TrySetResult(true);
+
+        /// <summary>
+        /// 菜单期等「UI 输入桥的初始选中」就绪(逐帧调 <see cref="BootstrapEventSystemSelection"/>,
+        /// 直到 `currentSelectedGameObject` 非空或超时)。
+        /// <para>⚠️ 不存在「另一种做法」:面板载体 GO 由 interop bridge 在面板 attach 后的某帧新建,
+        /// 启动序第 2.95 步时它通常还没有 ⇒ 不逐帧等就只能赌时序。</para>
+        /// <para>⚠️ **超时不抛**:UI 输入不可用是「这条路上按不动」,不是「游戏不能启动」——
+        /// 记一条警告,启动序继续(玩家仍可用鼠标点击那一行,指针路径不经此门)。</para>
+        /// </summary>
+        private async Task EnsureUiInputSelectionAsync(float timeoutSeconds = 3f)
+        {
+            if (_eventSystem == null || _uiDriver == null) return;
+
+            float deadline = UnityEngine.Time.realtimeSinceStartup + timeoutSeconds;
+            while (UnityEngine.Time.realtimeSinceStartup < deadline)
+            {
+                BootstrapEventSystemSelection();
+                if (_eventSystem.currentSelectedGameObject != null) return;
+                await Task.Yield();
+            }
+
+            Debug.LogWarning($"[BootRoot][主菜单] 面板载体 {timeoutSeconds}s 内未就绪 —— " +
+                             "键盘 / 手柄的提交可能不派发(鼠标点击不受影响)。");
+        }
+
+        /// <summary>按 ADR-023 口径拆回 MainMenu 场景(additive 拆,不用 Single)。</summary>
+        private async Task UnloadMainMenuSceneAsync()
+        {
+            if (!_mainMenuLoadHandle.IsValid()) return;
+            AsyncOperationHandle<SceneInstance> handle = _mainMenuLoadHandle;
+            _mainMenuLoadHandle = default;
+            await Addressables.UnloadSceneAsync(handle).Task;
+        }
+
+        /// <summary>
+        /// 「继续最近档」的执行体(启动序第 8 步)。
+        /// <para>经 <see cref="LoadSequencer"/> 而不是直调 <c>SaveService.Load</c>
+        /// —— 后者会漏掉锚点游标复位 / 兜底计数清零 / 派生态重建 / 配置版本比对
+        /// (与存档位屏的载入路径**同一个入口**,不另开第二条)。</para>
+        /// <para>⚠️ **失败方向**:读档抛 ⇒ 记 <see cref="ContinueError"/> + LogError,世界停在
+        /// **新局**态继续跑。这是**有意的**:启动期把玩家卡在菜单上(或闪退)比「从新局开始」更糟,
+        /// 且新局不写任何存档文件 ⇒ 不覆盖既有档。但**不是静默** —— 错误留在事实出口上。</para>
+        /// </summary>
+        private void TryContinueFromSave(SaveSlot slot)
+        {
+            try
+            {
+                if (_services.LoadSequencer == null)
+                {
+                    Debug.LogError($"[BootRoot][主菜单] 继续诊治:LoadSequencer 未装配 ⇒ slot={slot.SlotSeq} 未读。");
+                    return;
+                }
+                _services.LoadSequencer.Load(slot);
+            }
+            catch (Exception e)
+            {
+                ContinueError = e;
+                Debug.LogError($"[BootRoot][主菜单] 继续诊治读档失败(slot={slot.SlotSeq})—— " +
+                               $"世界保持新局态,不覆盖任何存档文件:{e}");
+            }
         }
 
         /// <summary>
