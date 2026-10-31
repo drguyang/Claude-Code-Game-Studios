@@ -1,0 +1,29 @@
+# Q6 · AC-PS-07 证伪 —— 本轮实跑输出(2026-10-31 22:4x CST)
+# 变异:`PauseScreen.cs` 的确认回调由 NavigationSubmitEvent(按下沿)改绑到 FocusEvent(聚焦沿)
+#   old: row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));
+#   new: row.RegisterCallback<FocusEvent>(_ => Activate(rowIndex));   // FALSIFY
+# 命令(变异后、还原前):
+#   ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -nographics -projectPath unity \
+#     -runTests -testPlatform PlayMode -testFilter PauseFocusNavigationTest \
+#     -testResults unity/Logs/pm-falsify-ps07.xml -logFile unity/Logs/pm-falsify-ps07.log
+total=10 passed=4 failed=6
+Failed test_acps04_startOpens_resumeCloses_thenStartReopens
+    AC-PS-04:按 start ⇒ 暂停壳出现(开合同键的第一半)
+  Expected: Pause   But was:  None
+Failed test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer
+    System.NullReferenceException : Object reference not set to an instance of an object
+Failed test_acps07_heldSubmitAcrossOpen_doesNotConfirm_gamepad
+    AC-PS-07 前提:start 开出了暂停壳
+  Expected: Pause   But was:  None
+Failed test_acps07_heldSubmitAcrossOpen_doesNotConfirm_keyboard
+    AC-PS-07 前提:Escape 开出了暂停壳(手里还按着 Enter)
+  Expected: Pause   But was:  None
+Failed test_acps09_fullLoop_gamepadOnly
+    ① start 开壳  Expected: Pause   But was:  None
+Failed test_acps09_fullLoop_keyboardOnly
+    ① Escape 开壳  Expected: Pause   But was:  None
+# 还原:SHA-256 b9869c47e55dfc83e966b60af692dd7b35cfa60acf29e288910cfa7962809392(与变异前逐字节一致)
+# 读法:两条 PS-07 用例都红在**前提断言**处 —— 因为「开壳」那一刻壳就已经被补触发合上了,
+#       这正是 AC-PS-07 描述的失败形态本身(不是夹具写错)。
+# 边界:引擎侧的「Submit 若不是沿触发会怎样」本夹具**测得到但构造不出生产变异**
+#       (InputSystemUIInputModule 是引擎件);故该方向由用例自带的正控(松手后新按必确认)兜。

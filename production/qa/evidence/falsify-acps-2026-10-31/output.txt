@@ -1,0 +1,26 @@
+Q1 还原SHA256=一致 | RED | total=8 passed=5 failed=3 | 命中 1/1 边沿化停用 ⇒ 手柄 start 不再是上升沿
+   RED test_acps04_startOpens_resumeCloses_thenStartReopens
+   RED test_acps09_fullLoop_gamepadOnly
+   RED test_acps09_fullLoop_keyboardOnly
+Q2 还原SHA256=一致 | RED | total=8 passed=5 failed=3 | 命中 1/1 「存档位」行改走 Resume ⇒ 不换屏
+   RED test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer
+   RED test_acps09_fullLoop_gamepadOnly
+   RED test_acps09_fullLoop_keyboardOnly
+Q3 还原SHA256=一致 | RED | total=8 passed=7 failed=1 | 命中 1/1 停用模态门方向② ⇒ 壳开着 E/F 仍放行
+   RED test_acps06_modalOpen_gateRejectsAndMovementIsFrozen
+Q4 还原SHA256=一致 | RED | total=8 passed=7 failed=1 | 命中 1/1 停用移动轴折零 ⇒ 暂停时还能走
+   RED test_acps06_modalOpen_gateRejectsAndMovementIsFrozen
+Q5 还原SHA256=一致 | RED | total=8 passed=5 failed=3 | 命中 2/2 只在「无模态」时才开 ⇒ 存档位屏上按 start 回不到暂停壳
+   RED test_acps04_startOpens_resumeCloses_thenStartReopens
+   RED test_acps09_fullLoop_gamepadOnly
+   RED test_acps09_fullLoop_keyboardOnly
+
+==== 汇总 ====
+Q1 | RED | 红 3 | 期望命中 1/1 | SHA256 一致 | 边沿化停用 ⇒ 手柄 start 不再是上升沿
+Q2 | RED | 红 3 | 期望命中 1/1 | SHA256 一致 | 「存档位」行改走 Resume ⇒ 不换屏
+Q3 | RED | 红 1 | 期望命中 1/1 | SHA256 一致 | 停用模态门方向② ⇒ 壳开着 E/F 仍放行
+Q4 | RED | 红 1 | 期望命中 1/1 | SHA256 一致 | 停用移动轴折零 ⇒ 暂停时还能走
+Q5 | RED | 红 3 | 期望命中 2/2 | SHA256 一致 | 只在「无模态」时才开 ⇒ 存档位屏上按 start 回不到暂停壳
+DONE
+
+[exited with code 0]

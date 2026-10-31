@@ -48,12 +48,11 @@
 | PS-04 继续 / 合壳 | ✅ | **机器判**(2026-10-31 追加)`test_acps04_startOpens_resumeCloses_thenStartReopens` |
 | PS-05 进存档位屏换屏 | ✅ | **机器判** `test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer` |
 | PS-06 模态期输入不生效 | ✅ | **机器判** `test_acps06_modalOpen_gateRejectsAndMovementIsFrozen`(生产 `ModalGate` + `ModalInputFreeze` 双向) |
-| PS-07 边沿被消费 | ✅(机制面,仅建造键) | `build_controller_test` 的挡路用例(**不是**人眼腿;**「按住 Enter 再开壳」那条具体判据今日无专测**) |
+| PS-07 边沿被消费 | ✅ | **机器判**(2026-10-31 追加)`test_acps07_heldSubmitAcrossOpen_doesNotConfirm_keyboard` / `…_gamepad`;建造键那面另有 `build_controller_test` |
 | PS-09 键鼠/手柄全可达 | ✅ | **机器判** `test_acps09_fullLoop_gamepadOnly` + `test_acps09_fullLoop_keyboardOnly` |
 
 ⚠️ **`AC-42-F1` ⑧ 整体仍不得记 ✅**:⑧ 员的签核要求**九条全过**;现仍缺
-**PS-01 的「两行可见」人眼半**(壳开得出已由机器判证,「两行在屏幕上看得见」仍需人眼/截图像素)
-与 **PS-07 的 Enter 具体形态**。
+**PS-01 的「两行可见」人眼半**(壳开得出已由机器判证,「两行在屏幕上看得见」仍需人眼/截图像素)。
 
 ---
 
@@ -72,6 +71,12 @@
 | **Q3** | 停用 `ModalGate` 方向②(模态开仍放行 E/F) | 1 条 | PS-06 |
 | **Q4** | 停用 `ModalInputFreeze.FilterMovement` 折零 | 1 条 | PS-06 |
 | **Q5** | `OpenPause` 改为只在「无模态」时才开 | 3 条 | PS-09 的「返回」步(PS-04 连带) |
+| **Q6** | 确认回调由 `NavigationSubmitEvent`(按下沿)改绑 `FocusEvent`(聚焦沿)= 开壳即激活 | 6 条 | **PS-07 两条腿**(+ PS-04 / 05 / 09 连带) |
+
+**PS-07 这一条的自证结构**(不止靠变异):用例自带**两足对照** —— 同一焦点、同一按键,
+「跨开壳一直按住 ⇒ 不得确认」对「松手后新按一次 ⇒ 必须确认」。少了后者,一个「提交链根本不通」
+的实现也会让前者绿(空洞正控 F4)。另有一条**靶场前提**断言:开壳后先断焦点确实落在「继续」上,
+否则「没触发」可能只是「靶场里没有靶」。
 
 **⚠️ 装置侧必须先改两条 InputSystem 设置**(写在 `Assemble()` / `TearDown()`,夹具外零影响):
 batch 进程**从不获得 Game View 焦点**,而编辑器默认
@@ -98,15 +103,17 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 sha256sum unity/Logs/shots/20261031_21{5921,5931,5936,}*_1x.png unity/Logs/shots/20261031_2200*_1x.png
 # 期望:6f453c44… ×2 · fdea7eba… ×1 · 32029f15… ×2
 
-# 四个机器判用例(PlayMode,过滤到本 fixture)
+# 十条机器判用例(PlayMode,过滤到本 fixture)
 grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/pause_focus_navigation_test.cs
-# 期望:8(02 · 03a · 03c · 04 · 05 · 06 · 09×2)
+# 期望:10(02 · 03a · 03c · 04 · 05 · 06 · 07×2 · 09×2)
 
-# 证伪轮:脚本与原始输出已随本件入库(可原样重跑,每轮约 90 s × 5)
-grep -E "^(Q[1-5] |[A-Z0-9]+ \| )" production/qa/evidence/falsify-acps-2026-10-31/output.log
+# 证伪轮:脚本与原始输出已随本件入库(可原样重跑;Q1–Q5 走 run.py,Q6 为手工变异)
+grep -E "^(Q[1-6] |[A-Z0-9]+ \| )" production/qa/evidence/falsify-acps-2026-10-31/output.txt
 # 期望:Q1 红3 · Q2 红3 · Q3 红1 · Q4 红1 · Q5 红3,且每行「还原SHA256=一致」
+grep -E "^(Failed|total=)" production/qa/evidence/falsify-acps-2026-10-31/q6-ps07-output.txt
+# 期望:total=10 passed=4 failed=6,含两条 test_acps07_…
 sha256sum production/qa/evidence/falsify-acps-2026-10-31/*
-# 期望:output.log = b2a6cc50… · run.py = 6d42d85f…
+# 期望:output.txt = b2a6cc50… · q6-ps07-output.txt = 6342a413… · run.py = 07def0dd…
 ```
 
 ---
@@ -115,16 +122,17 @@ sha256sum production/qa/evidence/falsify-acps-2026-10-31/*
 
 | 套件 | 结果 | 截至时刻(CST) | 批次 | commit |
 |---|---|---|---|---|
-| **PlayMode** | `251 / 247 / 0 / 2 / 2` | 2026-10-31 22:25:52 | 本轮(PS-06 + PS-09×2 三条新测) | `a9e70d97` + 工作树 |
-| **EditMode** | `6323 / 6286 / 0 / 0 / 37` | 2026-10-31 22:31:58 | 同上(**本轮零 EditMode 新增**) | `a9e70d97` + 工作树 |
+| **PlayMode** | `253 / 249 / 0 / 2 / 2` | 2026-10-31 22:42:15 | 本批(PS-06 + PS-07×2 + PS-09×2 五条新测) | `9ac39328` + 工作树 |
+| **EditMode** | `6323 / 6286 / 0 / 0 / 37` | 2026-10-31 22:31:58 | 同上(**本批零 EditMode 新增**) | `a9e70d97` + 工作树 |
+| (同日更早一轮 PlayMode,留作对照) | `251 / 247 / 0 / 2 / 2` | 2026-10-31 22:25:52 | PS-06 + PS-09×2 | `a9e70d97` + 工作树 |
 
-**等式留痕(PlayMode)**:`251 − 248 = 3` = 本轮新增 `[UnityTest]` 数
-(`test_acps06_…` · `test_acps09_…gamepadOnly` · `test_acps09_…keyboardOnly`);
-`248` = 同日 14:05Z 那轮(已含 PS-04/05)。
+**等式留痕(PlayMode)**:`253 − 251 = 2` = 本批新增的 PS-07 两条腿;
+`251 − 248 = 3` = 上一批的 PS-06 + PS-09×2;`248` = 同日 14:05Z 那轮(已含 PS-04/05)。
+两段相加 = 本轮相对 14:05Z 的 `+5`,与文件内 `[UnityTest]` 从 5 增到 10 一致。
 
 ⚠️ **EditMode 侧只登记现值,不声称与前一轮的差值** —— 本轮**只改 PlayMode 测试件、未动生产码**,
 所以「本侧不该有位移」是**推断**,不是本轮的观测;上一轮的 EditMode 数**不在本轮可复算范围内**
 (那轮的 XML 未随件入库)。要判 EditMode 是否被本轮影响,须在**同一 commit 上回退测试件**再跑一次 ——
 本轮没做,故不写。
 
-复算:`grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/pause_focus_navigation_test.cs` = **8**。
+复算:`grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/pause_focus_navigation_test.cs` = **10**。

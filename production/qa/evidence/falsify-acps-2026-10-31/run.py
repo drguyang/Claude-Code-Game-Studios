@@ -43,6 +43,14 @@ MUTATIONS = [
         expect=["test_acps09_fullLoop_gamepadOnly", "test_acps09_fullLoop_keyboardOnly"],
         why="只在「无模态」时才开 ⇒ 存档位屏上按 start 回不到暂停壳",
     ),
+    dict(
+        key="Q6", target="unity/Assets/Gameplay.UI/Skeuomorphic/Screens/PauseScreen.cs",
+        old="                row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));",
+        new="                row.RegisterCallback<FocusEvent>(_ => Activate(rowIndex));   // FALSIFY",
+        expect=["test_acps07_heldSubmitAcrossOpen_doesNotConfirm_keyboard",
+                "test_acps07_heldSubmitAcrossOpen_doesNotConfirm_gamepad"],
+        why="确认绑到**聚焦沿** ⇒ 开壳那一刻就补触发一次「继续」(AC-PS-07 的失败形态本身)",
+    ),
 ]
 
 

@@ -298,6 +298,104 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // AC-PS-07 · 跨开壳持续按住的确认键,不得补触发一次确认
+        //   spec §7「边沿必须消费」:`遮挡期只 return 不更新边沿位 ⇒ 关屏那一刻手里按着的键补触发一次`
+        //   是**已实测的失败形态**,不是理论风险。
+        //   ★ 本条的判别力来自**自带的两足对照**:同一按键、同一焦点元素 ——
+        //     ① 跨开壳一直按住 ⇒ 不得确认;② 松手后**新按一次** ⇒ 必须确认。
+        //     少了 ②,一个「提交根本不工作」的实现也会让 ① 绿(空洞正控)。
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_acps07_heldSubmitAcrossOpen_doesNotConfirm_keyboard()
+        {
+            yield return Assemble();
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            var toggle = new ModalInputDriver(
+                DaYiJingCheng.Gameplay.Boot.PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_driver));
+
+            // ① 世界侧就按住 Enter(「上一秒钟按住」)
+            yield return SetKeys(Key.Enter);
+            yield return null;
+            yield return null;
+
+            // ② **仍按着 Enter** 的前提下去按开合键(状态是全量的 ⇒ 两个键都得在同一个 state 里)
+            yield return SetKeys(Key.Enter, Key.Escape);
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+            yield return SetKeys(Key.Enter);                       // 松 Escape,**Enter 不放**
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-07 前提:Escape 开出了暂停壳(手里还按着 Enter)");
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(0)),
+                "AC-PS-07 靶场前提:焦点**确实**落在「继续」上 —— 否则下面「没触发」是空判(靶场里没有靶)");
+
+            // ③ 继续按住若干帧:不得补触发
+            for (int i = 0; i < 6; i++) yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-07:手里一直按着 Enter,暂停壳不得自己合上(那 = 补触发了一次「继续」)");
+
+            // ④ 松手也不得触发
+            yield return SetKeys();
+            yield return null;
+            yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-07:松开 Enter 不该触发确认(触发只认**按下沿**,不认松开)");
+
+            // ⑤ 正控:同样的焦点、同样的键,重新按一次**必须**确认
+            yield return PressKey(Key.Enter);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "AC-PS-07 正控:新的一次 Enter 按下必须确认「继续」并合壳 —— " +
+                "否则说明提交链根本没通,上面三条的绿是假的");
+        }
+
+        [UnityTest]
+        public IEnumerator test_acps07_heldSubmitAcrossOpen_doesNotConfirm_gamepad()
+        {
+            yield return Assemble();
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            var toggle = new ModalInputDriver(
+                DaYiJingCheng.Gameplay.Boot.PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_driver));
+
+            ushort south = (ushort)(1 << (int)GamepadButton.South);
+            ushort start = (ushort)(1 << (int)GamepadButton.Start);
+
+            yield return SetButtons(south);                        // ① 世界侧就按住南键
+            yield return null;
+            yield return null;
+
+            yield return SetButtons((ushort)(south | start));      // ② 按着南键去按 start
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+            yield return SetButtons(south);                        // 松 start,**南键不放**
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "AC-PS-07 前提:start 开出了暂停壳");
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(0)), "AC-PS-07 靶场前提:焦点在「继续」上");
+
+            for (int i = 0; i < 6; i++) yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-07:一直按着南键,暂停壳不得自己合上");
+
+            yield return SetButtons(0);
+            yield return null;
+            yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "AC-PS-07:松开南键不该触发确认");
+
+            yield return PressButton(GamepadButton.South);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "AC-PS-07 正控:新的一次南键按下必须确认「继续」");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // AC-PS-09 · 全手柄 / 全键盘都能走完「开壳 → 存档位 → 返回」
         // ══════════════════════════════════════════════════════════════════
 
@@ -509,6 +607,25 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 $"Keyboard.current={Describe(Keyboard.current)} · Gamepad.current={Describe(Gamepad.current)}");
             InputApi.QueueStateEvent(_kb, new KeyboardState());
             for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+        }
+
+        /// <summary>
+        /// 键盘**全量**状态置位(状态事件是绝对量,不是增量 ⇒ 要「按住 A 同时按 B」必须把 A 也写进去)。
+        /// 空参 = 全抬。
+        /// </summary>
+        private IEnumerator SetKeys(params Key[] keys)
+        {
+            var st = new KeyboardState();
+            for (int i = 0; i < keys.Length; i++) st.Press(keys[i]);
+            InputApi.QueueStateEvent(_kb, st);
+            yield return null;
+        }
+
+        /// <summary>手柄**全量**按键位置位(同上:`buttons` 是位域绝对值)。0 = 全抬。</summary>
+        private IEnumerator SetButtons(ushort buttons)
+        {
+            InputApi.QueueStateEvent(_pad, new GamepadState { buttons = buttons });
+            yield return null;
         }
 
         /// <summary>键盘按下一次(供 UI 模块的 Navigate / Submit 用)。</summary>
