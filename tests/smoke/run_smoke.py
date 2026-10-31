@@ -31,7 +31,12 @@
 用法:
   python3 tests/smoke/run_smoke.py                        # 只做结构校验 + 需结果件的条目标 NOT-RUN
   python3 tests/smoke/run_smoke.py --results <unity.xml>  # 用既有结果件判 test 条
-  python3 tests/smoke/run_smoke.py --emit-filter          # 打印 -testFilter 串
+  python3 tests/smoke/run_smoke.py --emit-filter          # 打印 -testFilter 串(复合判据会全部展开)
+
+`critical_paths.json` 的 `check` 字段(2026-10-31 起):
+  字符串      —— 单条判据
+  字符串数组  —— 复合判据;**全部**载体都 Passed 才算 PASS,任一 FAIL 即 FAIL,
+                 任一查无此测即 STRUCTURAL。口径 = `coding-standards.md`「一个 AC 允许多条载体」。
   python3 tests/smoke/run_smoke.py --require-full         # 3 => 1
 """
 
@@ -95,8 +100,13 @@ def structural_errors(md_ids, items):
         if st not in ("test", "manual", "none"):
             errs.append(f"#{iid} status 非法:{st!r}(只允许 test / manual / none)")
             continue
-        if st == "test" and not (it.get("check") or "").strip():
-            errs.append(f"#{iid} status=test 但没有 check(测试全名)")
+        if st == "test":
+            cs = checks_of(it)
+            if not cs:
+                errs.append(f"#{iid} status=test 但没有 check(测试全名;单条写字符串,复合写数组)")
+            # 2026-10-31:数组元素不得为空串 —— 空串会让 --emit-filter 产出 ";;" 而静默少跑
+            elif isinstance(it.get("check"), list) and len(cs) != len(it["check"]):
+                errs.append(f"#{iid} check 数组里有空元素")
         if st == "manual" and not (it.get("protocol") or "").strip():
             errs.append(f"#{iid} status=manual 但没有 protocol(谁 / 何时跑)")
         if st == "none" and not (it.get("reason") or "").strip():
@@ -104,6 +114,25 @@ def structural_errors(md_ids, items):
         if not (it.get("title") or "").strip():
             errs.append(f"#{iid} 缺 title")
     return errs
+
+
+def checks_of(item):
+    """取一条表项的载体测试全名列表。
+
+    ⚠️ 2026-10-31(`S21-10` 收口后补):`check` **可以是字符串,也可以是字符串数组**。
+    单条判据(如「校验和回退」)写字符串;复合判据(如「跨格发一条 **且** 连续移动不发」)
+    写数组 —— 与 `coding-standards.md` 的「**一个 AC 允许多条载体**」同口径。
+    只认字符串时,复合判据只能二选一:要么拆细判据迁就载体(改判据 = 假绿),
+    要么整条记无载体(把已存在的证据扔掉)。两种都不对。
+    """
+    raw = item.get("check")
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [raw.strip()] if raw.strip() else []
+    if isinstance(raw, list):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    return []      # 其它类型 ⇒ 空 ⇒ 上层报 STRUCTURAL,不静默
 
 
 def load_results(path):
@@ -143,7 +172,7 @@ def main():
     tests = [it for it in items if it["status"] == "test"]
 
     if args.emit_filter:
-        print(";".join(it["check"] for it in tests))
+        print(";".join(c for it in tests for c in checks_of(it)))
         return EXIT_PASS
 
     results = None
@@ -157,16 +186,22 @@ def main():
     for it in sorted(items, key=lambda x: x["id"]):
         iid, st = it["id"], it["status"]
         if st == "test":
+            cs = checks_of(it)
             if results is None:
                 verdict = "NOT-RUN(需 --results)"
-            elif it["check"] not in results:
-                verdict = "STRUCTURAL(结果件查无此测)"
-                missing_in_results.append(it["check"])
             else:
-                r = results[it["check"]]
-                verdict = "PASS" if r == "Passed" else f"FAIL({r})"
-                if r != "Passed":
-                    failures.append((iid, it["check"], r))
+                absent = [c for c in cs if c not in results]
+                if absent:
+                    verdict = "STRUCTURAL(结果件查无此测)"
+                    missing_in_results.extend(absent)
+                else:
+                    bad = [(c, results[c]) for c in cs if results[c] != "Passed"]
+                    if bad:
+                        verdict = f"FAIL({bad[0][1]})"
+                        failures.extend((iid, c, r) for c, r in bad)
+                    else:
+                        # 复合判据把「几条载体」打在判定列上,别让人以为一条=一条判据
+                        verdict = "PASS" if len(cs) == 1 else f"PASS({len(cs)} 载/全绿)"
         elif st == "manual":
             verdict = "MANUAL(已具名协议)"
         else:
@@ -180,7 +215,9 @@ def main():
     for iid, grp, st, verdict, title in rows:
         print(f"{iid:>3}  {grp:<2} {st:<7} {verdict:<32} {title}")
 
-    auto_pass = sum(1 for r in rows if r[3] == "PASS")
+    # ⚠️ 2026-10-31:复合判据的判定串是 "PASS(n 载/全绿)" —— 用 == "PASS" 会把它们**漏计**,
+    #    于是「合计」说 7 而明细里明明有 8 条 PASS。判定与计数必须同一判据:startswith。
+    auto_pass = sum(1 for r in rows if r[3].startswith("PASS"))
     auto_fail = sum(1 for r in rows if r[3].startswith("FAIL"))
     auto_notrun = sum(1 for r in rows if r[3].startswith("NOT-RUN"))
     manual = sum(1 for r in rows if r[3].startswith("MANUAL"))

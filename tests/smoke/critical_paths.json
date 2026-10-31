@@ -12,56 +12,162 @@
     "   标 none 的条目若日后被证明有载体,只改本表,不改 md。"
   ],
   "items": [
-    { "id": 1,  "group": "A", "title": "游戏启动到主菜单无崩溃(Addressables data-core 预载成功,无 E-13 异常)",
-      "status": "none", "reason": "启动序(Boot → Addressables 预载)需真启动;headless 无载体" },
-    { "id": 2,  "group": "A", "title": "新游戏可创建会话:存档头写入、WorldSeed 落头、IIdAuthority 计数器从 0 起",
-      "status": "none", "reason": "会话创建端到端需启动序;分量夹具分散在 7a / IdAuthority,不在本条判据面" },
-    { "id": 3,  "group": "A", "title": "主菜单对键鼠与手柄均有完整焦点路径(焦点单栈门 —— 无同键双触发)",
+    {
+      "id": 1,
+      "group": "A",
+      "title": "游戏启动到主菜单无崩溃(Addressables data-core 预载成功,无 E-13 异常)",
+      "status": "none",
+      "reason": "启动序(Boot → Addressables 预载)需真启动;headless 无载体"
+    },
+    {
+      "id": 2,
+      "group": "A",
+      "title": "新游戏可创建会话:存档头写入、WorldSeed 落头、IIdAuthority 计数器从 0 起",
+      "status": "none",
+      "reason": "存档头写入 + WorldSeed 落头**有载体**(`save_composer_wiring_test` 断言 `h.WorldSeed == 0xABCD`);但第三半「`IIdAuthority` 计数器**从 0 起**」**无单条载体** —— 现有 `GetNextPatientId` 夹具断的都是「重构后的高水位」(3 / 6 / 8),没有一条断「新会话首号 = 0」。挂两条只覆盖三分之二 = 假绿 ⇒ 整条仍记无载体"
+    },
+    {
+      "id": 3,
+      "group": "A",
+      "title": "主菜单对键鼠与手柄均有完整焦点路径(焦点单栈门 —— 无同键双触发)",
       "status": "test",
-      "check": "DaYiJingCheng.Tests.Unit.SkeuomorphicUI.focus_gate_and_bridge_test.test_no_two_gates_open_at_any_point" },
-    { "id": 4,  "group": "A", "title": "60 fps 平面模式下帧时间无长期 >16.6 ms",
+      "check": "DaYiJingCheng.Tests.Unit.SkeuomorphicUI.focus_gate_and_bridge_test.test_no_two_gates_open_at_any_point"
+    },
+    {
+      "id": 4,
+      "group": "A",
+      "title": "60 fps 平面模式下帧时间无长期 >16.6 ms",
       "status": "manual",
-      "protocol": "Profiler 目测 60 s 稳态;执行人 = 实现者本人;时点 = 每次碰渲染 / 布局后的自检。预算为临时值(technical-preferences §Performance Budgets)" },
-
-    { "id": 5,  "group": "B", "title": "Step 由 ITickProvider 以 20 Hz 推进,不由渲染帧驱动",
-      "status": "test", "check": "DaYiJingCheng.Tests.Boot.SimTickDriverTest.test_simTickDriver_accumulatesExactly" },
-    { "id": 6,  "group": "B", "title": "病人出现:同场被模拟病人数 ≤ 24(超界拒收,不是静默 LOD)",
-      "status": "test", "check": "DaYiJingCheng.Tests.DiseaseSimulation.PresenceRegistryTest.test_o2_o3_capFull_appendThrows_andIdRolledBack" },
-    { "id": 7,  "group": "B", "title": "采药:玩家跨格产生一条 ActorCellEntered;连续移动本身不产生事件",
-      "status": "none", "reason": "跨格检测的端到端观测需启动序(连续移动 vs 跨格的事件计数)" },
-    { "id": 8,  "group": "B", "title": "拾取:意图事件 + 当下判距 + 宽容半径 —— 离屏拾取被拒(非崩溃)",
-      "status": "none", "reason": "拾取三段式的玩家侧接线未落" },
-    { "id": 9,  "group": "B", "title": "诊断:脉案读 VitalsDto 有读数;disease_id 不出现于任何 UI 元素",
-      "status": "none", "reason": "需 42 接真 DTO 的运行时观测量;静态守卫(PresentationDtoGuard)有夹具,但本条是**运行期**判据" },
-    { "id": 10, "group": "B", "title": "急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency",
-      "status": "none", "reason": "急救的 Append 生产接线未落" },
-    { "id": 11, "group": "B", "title": "处方:守恒断言在日志中恒成立",
-      "status": "test", "check": "DaYiJingCheng.Tests.Unit.ItemDatabase.ConservationLawGatesTest.test_aggregateConservation_exactEquality_accepted" },
-    { "id": 12, "group": "B", "title": "病例结案:已处置判定来自处置事件,而非玩家复选框",
-      "status": "none", "reason": "该判据的观测面在 42 呈现层(复选框是否参与),非纯逻辑面" },
-    { "id": 13, "group": "B", "title": "建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架",
-      "status": "none", "reason": "帐篷放置属表现轮;整数格对齐的纯逻辑面有夹具但不在本条判据面" },
-    { "id": 14, "group": "B", "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
-      "status": "none", "reason": "抽取器的有界性未落端到端判据" },
-
-    { "id": 15, "group": "C", "title": "退出自动保存 → 重启读回:三流长度、ConfigVersion、max(patient_id) 高水位一致",
-      "status": "test", "check": "DaYiJingCheng.Tests.PersistenceService.SaveReplayRoundtripTest.test_replay_roundtrip_restoredRowsAndHighWater_matchPreSaveState" },
-    { "id": 16, "group": "C", "title": "checkpoint(默认 5 分钟)落盘且可回退到最近一次",
-      "status": "test", "check": "DaYiJingCheng.Tests.PersistenceService.CheckpointFallbackTest.test_checkpointFallback_firstFire_onExactIntervalTick" },
-    { "id": 17, "group": "C", "title": "篡改存档字节一位 → 校验和红 + 自动回退,不出现半损坏状态继续玩",
-      "status": "test", "check": "DaYiJingCheng.Tests.PersistenceService.SaveServiceTest.test_checksumFallback_readsBakWhenFinalCorrupted" },
-    { "id": 18, "group": "C", "title": "存档往返后,同一 seed 重放的逐位哈希相同(Fix 全程 raw long,无 float 泄漏)",
-      "status": "none", "reason": "跨构建逐位对照 = TD-ci-01(EXTERNAL,凭证在用户侧);单构建内重放等值另有夹具,不等于本条" },
-
-    { "id": 19, "group": "D", "title": "连续 5 分钟游玩内存无单调增长",
+      "protocol": "Profiler 目测 60 s 稳态;执行人 = 实现者本人;时点 = 每次碰渲染 / 布局后的自检。预算为临时值(technical-preferences §Performance Budgets)"
+    },
+    {
+      "id": 5,
+      "group": "B",
+      "title": "Step 由 ITickProvider 以 20 Hz 推进,不由渲染帧驱动",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.Boot.SimTickDriverTest.test_simTickDriver_accumulatesExactly"
+    },
+    {
+      "id": 6,
+      "group": "B",
+      "title": "病人出现:同场被模拟病人数 ≤ 24(超界拒收,不是静默 LOD)",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.DiseaseSimulation.PresenceRegistryTest.test_o2_o3_capFull_appendThrows_andIdRolledBack"
+    },
+    {
+      "id": 7,
+      "group": "B",
+      "title": "采药:玩家跨格产生一条 ActorCellEntered;连续移动本身不产生事件",
+      "status": "test",
+      "check": [
+        "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac113_diagonalCrossing_singleEvent",
+        "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac103_mergeOperator_singleEventPerTick"
+      ]
+    },
+    {
+      "id": 8,
+      "group": "B",
+      "title": "拾取:意图事件 + 当下判距 + 宽容半径 —— 离屏拾取被拒(非崩溃)",
+      "status": "none",
+      "reason": "拾取三段式的玩家侧接线未落"
+    },
+    {
+      "id": 9,
+      "group": "B",
+      "title": "诊断:脉案读 VitalsDto 有读数;disease_id 不出现于任何 UI 元素",
+      "status": "none",
+      "reason": "需 42 接真 DTO 的运行时观测量;静态守卫(PresentationDtoGuard)有夹具,但本条是**运行期**判据"
+    },
+    {
+      "id": 10,
+      "group": "B",
+      "title": "急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency",
+      "status": "none",
+      "reason": "急救的 Append 生产接线未落"
+    },
+    {
+      "id": 11,
+      "group": "B",
+      "title": "处方:守恒断言在日志中恒成立",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.Unit.ItemDatabase.ConservationLawGatesTest.test_aggregateConservation_exactEquality_accepted"
+    },
+    {
+      "id": 12,
+      "group": "B",
+      "title": "病例结案:已处置判定来自处置事件,而非玩家复选框",
+      "status": "none",
+      "reason": "该判据的观测面在 42 呈现层(复选框是否参与),非纯逻辑面"
+    },
+    {
+      "id": 13,
+      "group": "B",
+      "title": "建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架",
+      "status": "none",
+      "reason": "「模块对齐整数格」**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格注册/查询);但「帐篷(P0 唯一新建例外)可放置」与「不改世界流骨架」两半**全仓零夹具**(`grep -rn 帐篷\\|Tent unity/Assets/Tests` 零命中)⇒ 整条仍记无载体"
+    },
+    {
+      "id": 14,
+      "group": "B",
+      "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
+      "status": "none",
+      "reason": "抽取器的有界性未落端到端判据"
+    },
+    {
+      "id": 15,
+      "group": "C",
+      "title": "退出自动保存 → 重启读回:三流长度、ConfigVersion、max(patient_id) 高水位一致",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.PersistenceService.SaveReplayRoundtripTest.test_replay_roundtrip_restoredRowsAndHighWater_matchPreSaveState"
+    },
+    {
+      "id": 16,
+      "group": "C",
+      "title": "checkpoint(默认 5 分钟)落盘且可回退到最近一次",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.PersistenceService.CheckpointFallbackTest.test_checkpointFallback_firstFire_onExactIntervalTick"
+    },
+    {
+      "id": 17,
+      "group": "C",
+      "title": "篡改存档字节一位 → 校验和红 + 自动回退,不出现半损坏状态继续玩",
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.PersistenceService.SaveServiceTest.test_checksumFallback_readsBakWhenFinalCorrupted"
+    },
+    {
+      "id": 18,
+      "group": "C",
+      "title": "存档往返后,同一 seed 重放的逐位哈希相同(Fix 全程 raw long,无 float 泄漏)",
+      "status": "none",
+      "reason": "跨构建逐位对照 = TD-ci-01(EXTERNAL,凭证在用户侧);单构建内重放等值另有夹具,不等于本条"
+    },
+    {
+      "id": 19,
+      "group": "D",
+      "title": "连续 5 分钟游玩内存无单调增长",
       "status": "manual",
-      "protocol": "Memory Profiler 采样 5 min;执行人 = 实现者;时点 = 触及长生命期容器的改动之后" },
-    { "id": 20, "group": "D", "title": "L_input → 呈现 < 50 ms(仅测 L_input,不合并 L_eval)",
+      "protocol": "Memory Profiler 采样 5 min;执行人 = 实现者;时点 = 触及长生命期容器的改动之后"
+    },
+    {
+      "id": 20,
+      "group": "D",
+      "title": "L_input → 呈现 < 50 ms(仅测 L_input,不合并 L_eval)",
       "status": "manual",
-      "protocol": "目标硬件手动计时(AC-10-08);执行人 = 实现者;时点 = 输入路径或渲染管线变更后" },
-    { "id": 21, "group": "D", "title": "24 病人 × 20 Hz 求值不超 tick 预算(L_eval ≤ 50 ms)",
-      "status": "none", "reason": "压力测未落具名载体(需 24 病人满场构造 + 计时夹具)" },
-    { "id": 22, "group": "D", "title": "Linux-x64-Mono 与 Linux-x64-IL2CPP 两构建的黄金夹具哈希逐字节相同",
-      "status": "none", "reason": "ADR-012 常驻矩阵 = TD-ci-01(EXTERNAL,凭证在用户侧)" }
+      "protocol": "目标硬件手动计时(AC-10-08);执行人 = 实现者;时点 = 输入路径或渲染管线变更后"
+    },
+    {
+      "id": 21,
+      "group": "D",
+      "title": "24 病人 × 20 Hz 求值不超 tick 预算(L_eval ≤ 50 ms)",
+      "status": "none",
+      "reason": "压力测未落具名载体(需 24 病人满场构造 + 计时夹具)"
+    },
+    {
+      "id": 22,
+      "group": "D",
+      "title": "Linux-x64-Mono 与 Linux-x64-IL2CPP 两构建的黄金夹具哈希逐字节相同",
+      "status": "none",
+      "reason": "ADR-012 常驻矩阵 = TD-ci-01(EXTERNAL,凭证在用户侧)"
+    }
   ]
 }
