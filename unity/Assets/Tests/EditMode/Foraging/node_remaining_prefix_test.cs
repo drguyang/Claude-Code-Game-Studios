@@ -60,7 +60,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             Fix[] seasonMult = null, int baseCapacity = BaseCapacity, long regrowWindow = RegrowWindow)
             => new ForagingConstants(
                 FlatCapTable(), seasonMult ?? FlatSeasonMult(), SeasonsPerYear, regrowWindow,
-                baseCapacity, Fix.FromRational(1, 40), Fix.FromRational(1, 2),
+                baseCapacity, Fix.FromRational(1, 80), Fix.FromRational(1, 2),
                 Fix.FromRational(3, 1), MaxQuality);
 
         /// <summary>往世界里真写一条 `ResourceHarvested`(真编码 + 真 Append)。</summary>
@@ -99,19 +99,20 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         }
 
         [Test]
-        public void test_ac1717_yieldDecay_floorBoundary_isAt21Units()
+        public void test_ac1717_yieldDecay_floorBoundary_isAt41Units()
         {
-            // DECAY_RATE = 1/40(raw 1638)· DECAY_FLOOR = 1/2(raw 32768)
-            // 线性项 1 − n×1638/65536 在 n = 20 处 = 32776(仍高于下限),n = 21 处跌破 ⇒ 夹住。
-            // ⚠️ 与 GDD `:352` 的「累计 40 份触底」字样**不一致** —— 按表内数值算,触底在 **21**。
-            //    本条只钉「实现与表值一致」;GDD 措辞与数值的出入归**数值轮**(值归用户,本件不改)。
+            // 🔁 2026-10-31(`TD-foraging-03` 结案,取「甲:改表值」):DECAY_RATE 1/40 → **1/80**,
+            //    使「累计约 40 份触底」这条 **设计意图** 成立(原 1/40 实际 21 份就触底,快了一倍)。
+            //    raw:rate = round(65536/80) = 819 ⇒ 线性项 1 − n×819/65536。
+            //    n=40 ⇒ 32776(仍高于下限 32768,差 8 raw);n=41 ⇒ 跌破 ⇒ 夹住。
+            //    ⇒ **量化后触底在 41**(实数域是 40 的整数点恰好等于 1/2)。
             ForagingConstants c = Constants();
-            Assert.That(NodeRemaining.YieldDecay(c, 20).Raw, Is.EqualTo(32776L),
-                "n=20:1 − 20×1638/65536 = 32776/65536,尚未触底");
-            Assert.That(NodeRemaining.YieldDecay(c, 21).Raw, Is.EqualTo(32768L),
-                "n=21:线性项已低于 1/2 ⇒ 夹在下限上");
-            Assert.That(NodeRemaining.YieldDecay(c, 40).Raw, Is.EqualTo(32768L),
-                "n=40 仍在下限上(触底后恒等)");
+            Assert.That(NodeRemaining.YieldDecay(c, 40).Raw, Is.EqualTo(32776L),
+                "n=40:线性项 = 32776,尚未夹住(差 8 raw —— 量化残差)");
+            Assert.That(NodeRemaining.YieldDecay(c, 41).Raw, Is.EqualTo(32768L),
+                "n=41:线性项已低于 1/2 ⇒ 夹在下限上");
+            Assert.That(NodeRemaining.YieldDecay(c, 80).Raw, Is.EqualTo(32768L),
+                "触底后恒等");
         }
 
         // ══════════ EffCapacity 的运算次序 ══════════
@@ -121,15 +122,15 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         {
             // 值全部离线复算(不引用被测常量):
             //   5 × 1/2        = 2.5   ⇒ raw 163840
-            //   decay(20)      = 32776 ⇒ 2.5 × 32776/65536 = 81940
+            //   decay(20)      = 49156 ⇒ 2.5 × 49156/65536 = 122890(rate 1/80 下)
             // ⚠️ 本夹具**不区分**「先乘季节再乘衰减」与「先合并两个乘子」——
             //    在 Base=5(整数)且季节乘子为 1/2(精确二进制)时两条次序同值。
             //    GDD 字面次序已写进实现注释;要区分需一个非精确乘子,本轮不作此主张。
             ForagingConstants c = Constants(HalfSeasonMult());
             Assert.That(NodeRemaining.EffCapacity(c, 1, 0).Raw, Is.EqualTo(163840L),
                 "季节点:5 × 1/2 = 2.5(raw 163840)");
-            Assert.That(NodeRemaining.EffCapacity(c, 1, 20).Raw, Is.EqualTo(81940L),
-                "累计 20 份:decay(20) = 32776 ⇒ 2.5 × 32776/65536 = 81940");
+            Assert.That(NodeRemaining.EffCapacity(c, 1, 20).Raw, Is.EqualTo(122890L),
+                "累计 20 份:decay(20) = 49156 ⇒ 2.5 × 49156/65536 = 122890");
         }
 
         [Test]
@@ -148,15 +149,15 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         public void test_ac1706_fractionalRemaining_rejectsQtyOne_noHarvestThrough()
         {
             // 关键边界(GDD `:404`):remaining ∈ (0,1) 而 qty = 1 ⇒ 必须拒。
-            // 造法(离线复算):Base 5 × SEASON[1]=1/2 ⇒ 名义容量 2.5;采过 2 份 ⇒ decay(2)=62260
-            //   ⇒ EffCapacity = 2.5 × 62260/65536 = 155650(raw);减窗口 2.0 ⇒ remaining = 24578(≈0.375)。
+            // 造法(离线复算 · rate 1/80):Base 5 × SEASON[1]=1/2 ⇒ 名义容量 2.5;采过 2 份 ⇒ decay(2)=63898
+            //   ⇒ EffCapacity = 2.5 × 63898/65536 = 159745(raw);减窗口 2.0 ⇒ remaining = 28673(≈0.4375)。
             ForagingConstants c = Constants(HalfSeasonMult());
             Harvest(nodeId: 1, qty: 2, tick: 10);
 
             var scan = NodeRemaining.ScanNode(_bag.Stream.Events, _bag.Decoder, 1, tick: 10, RegrowWindow);
 
-            Assert.That(NodeRemaining.Remaining(c, 1, in scan).Raw, Is.EqualTo(24578L),
-                "前置:remaining 须落在 (0,1) 内(raw 24578 ≈ 0.375)—— 否则本条测的不是「采穿」边界");
+            Assert.That(NodeRemaining.Remaining(c, 1, in scan).Raw, Is.EqualTo(28673L),
+                "前置:remaining 须落在 (0,1) 内(raw 28673 ≈ 0.4375)—— 否则本条测的不是「采穿」边界");
             Assert.That(NodeRemaining.CanHarvest(c, 1, in scan, qty: 1), Is.False,
                 "remaining = 0.5 < qty = 1 ⇒ 必须拒。若放行,节点被采穿 —— GDD 边界探针表 :404 的原缺陷");
         }
@@ -165,20 +166,20 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         public void test_ac1706_exactEquality_isAllowed_andLeavesZero()
         {
             // 取等 = 刚好采完(合法)—— 这是**唯一能区分 `≥` 与 `>`** 的夹具:
-            //   Base 8、累计 21 份(已触 DECAY_FLOOR)⇒ EffCapacity = 8 × 1/2 = 4.0(raw 262144)
+            //   Base 8、累计 41 份(已触 DECAY_FLOOR)⇒ EffCapacity = 8 × 1/2 = 4.0(raw 262144)
             //   窗口占用 3 ⇒ remaining = 1.0(raw 65536)⇒ 恰等,须放行
             //   窗口占用 4 ⇒ remaining = 0.0 ⇒ 须拒
             // ⚠️ 用直接构造的 `PrefixScan`(而非真流):窗口/累计语义已由 ScanNode 的用例单独钉住,
             //    这里只钉**闸门算术**。若走真流,Σ_all 会同时被本次采集抬高,边界无法精确命中。
             ForagingConstants c = Constants(baseCapacity: 8);
 
-            var exact = new NodeRemaining.PrefixScan(gatherCount: 21, sumAllQty: 21, sumWindowQty: 3);
+            var exact = new NodeRemaining.PrefixScan(gatherCount: 41, sumAllQty: 41, sumWindowQty: 3);
             Assert.That(NodeRemaining.Remaining(c, 0, in exact).Raw, Is.EqualTo(65536L),
                 "前置:remaining 须恰为 1.0 —— 否则本条测不到取等");
             Assert.That(NodeRemaining.CanHarvest(c, 0, in exact, qty: 1), Is.True,
                 "remaining == qty ⇒ 放行。若实现在这里用 `>`,本断言转红");
 
-            var dry = new NodeRemaining.PrefixScan(gatherCount: 21, sumAllQty: 21, sumWindowQty: 4);
+            var dry = new NodeRemaining.PrefixScan(gatherCount: 41, sumAllQty: 41, sumWindowQty: 4);
             Assert.That(NodeRemaining.Remaining(c, 0, in dry).Raw, Is.EqualTo(0L), "再采完 ⇒ 余量归 0");
             Assert.That(NodeRemaining.CanHarvest(c, 0, in dry, qty: 1), Is.False, "枯节点 ⇒ 拒");
         }
@@ -257,8 +258,8 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             Assert.That(scan.SumAllQty, Is.EqualTo(40), "但全时段累计仍是 40");
 
             ForagingConstants c = Constants();
-            // 容量 5 × 衰减 1/2 = 2.5(raw 163840);余量 = 2.5 − 0 = 2.5
-            Assert.That(NodeRemaining.Remaining(c, 0, in scan).Raw, Is.EqualTo(163840L),
+            // 容量 5 × decay(40)=32776 ⇒ 163880(raw);余量 = 163880 − 0
+            Assert.That(NodeRemaining.Remaining(c, 0, in scan).Raw, Is.EqualTo(163880L),
                 "窗口恢复只回到「衰减后的容量」,不会回到 5 —— 这正是深水线的形状");
         }
 

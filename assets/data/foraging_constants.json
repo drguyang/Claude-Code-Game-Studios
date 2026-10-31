@@ -6,7 +6,7 @@
   "season_mult": ["1", "5/4", "3/4", "3/2", "3/4"],
   "regrow_window_ticks": 1200,
   "base_capacity": 5,
-  "decay_rate": "1/40",
+  "decay_rate": "1/80",
   "decay_floor": "1/2",
   "gather_mul_cap": "3"
 }

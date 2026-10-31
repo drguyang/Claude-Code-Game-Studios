@@ -437,7 +437,7 @@
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
 | `TD-foraging-01` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-02` | `foraging` | closed | **N** | R4 |
-| `TD-foraging-03` | `foraging` | open | **N** | R4 |
+| `TD-foraging-03` | `foraging` | closed | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | closed | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | closed | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
@@ -854,7 +854,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 143 | 状态 {'closed': 124, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 39, '~~**Y**~~': 4}
+条目 143 | 状态 {'closed': 125, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 39, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5737,9 +5737,32 @@ grep -h -m1 'Status\*\*' production/epics/inventory-items/story-00{1,2}-*.md \
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-foraging-03** | `foraging` | **open** | **N** | R4 |
+| **TD-foraging-03** | `foraging` | **closed** | **N** | R4 |
 
 > **`P0 面 = N`**(承 §一 **R4**):归属 `foraging` ∈ 31 个 P0 epic,但本条**正文自陈不阻塞 P0 出口**
+
+#### TD-foraging-03 关闭记录 —— 取「甲:改表值 1/80」(用户 2026-10-31 授权「你来确认回填」)
+
+> ✅ **`2026-10-31` 已闭**。上方债描述**原文不删** —— 它记的是立债时点的实测。
+
+**裁定依据**:GDD 同一行同时给出「`DECAY_RATE = 1/40`」与「累计 40 份触底 ⇒ 按 `qty_per_node = 2`
+即 20 次采集」—— 后者是**可感知的节奏意图**,前者是达成它的**手段**。按 `1/40` 算线性项在
+**21 份**就跌破下限 ⇒ 深水线比意图**快一倍**。取「意图为准、手段服从」⇒ 表值改 **1/80**。
+(与 `TD-foraging-02` 的「甲:改公式」同一原则;`-01` 取「乙:改散文」是因为那里**散文**才是错的一方。)
+
+**落点**:
+- `assets/data/foraging_constants.json`:`"decay_rate": "1/40"` → `"1/80"`。
+- **重烘**:`DataBakeMenu.BakeForagingConstants`(batch,exit 0)⇒
+  `foraging_constants.cooked.bytes` 352 B,`ConfigVersion = 0xAE321131`(旧 `0xD0…` 已失效)。
+- `design/gdd/foraging.md` 三处(`:358` / `:551` / `:735`)同步;并在 §Tuning Knobs 该行落 🔁 结案注。
+- 夹具 `node_remaining_prefix_test.cs` 的期望值**全部离线复算后重写**(`rate raw = 819`)。
+- **量化残差如实登记**:实数域在 n=40 恰好 = 1/2,但 `round(65536/80) = 819` ⇒
+  `yieldDecay(40) = 32776`(差 8 raw),**首次夹住在 41**。GDD 已改写为「约 40 份」。
+
+**修法另两案(被否,留档)**:
+- ②**改散文**承认「21 份触底」:零成本,但把节奏承诺砍半 —— 与「深水线要能被感知」的设计意图相悖。
+- ③**两者同改**:无额外收益,只增加两份要维护的口径。
+
 > 并给出实质理由 —— 出口判据问的是「形状与契约是否成立」,而 `AC-17-17` 的三条形状
 > 在两种读法下**都成立**。本条是**数值内容**层面的措辞/取值不一致,与 `TD-foraging-01` 同型
 > (同样记 `N`、同样归数值轮)。**不得**因 `P0 面 = N` 就读成「可以不管」——
