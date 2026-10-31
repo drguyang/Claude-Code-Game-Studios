@@ -41,6 +41,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             return pad != null && pad.buttonNorth.isPressed;
         }
 
+        /// <summary>
+        /// 存档位开合键(临时入口:<c>Escape</c> / 手柄 <c>startButton</c>)。
+        /// <para>🔁 2026-10-31 模态开启器轮新增。**这是临时入口,不是 7b 的正式入口** ——
+        /// `save-slots-7b.md:189` 定的正式入口是「暂停壳 / 主菜单继续诊治」,暂停壳尚未成屏。
+        /// 取 Escape 是因为 <c>UI/Cancel</c> 就绑在它上面(它同时也是模态的退出键),
+        /// 开合同键 = 不新增一套绑重,也不与 Interact/E、Emergency/F 冲突。</para>
+        /// <para>⚠️ 与两条既有读取同款:直读设备(ADR-011 §一 过渡最小面),动作资产侧待独立 story。</para>
+        /// </summary>
+        public static bool SaveSlotsTogglePressed()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.escapeKey.isPressed)
+                return true;
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.startButton.isPressed;
+        }
+
         /// <summary>Emergency 按下沿(<c>F</c> 或手柄 <c>buttonWest</c> ——
         /// X/□,绑重等价形状,承 inputactions Emergency)。</summary>
         public static bool EmergencyPressed()

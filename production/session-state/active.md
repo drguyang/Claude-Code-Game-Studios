@@ -14261,3 +14261,15 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   ⇒ `RequestLoad` 在**运行期**仍零调用方。缺口从「方法无调用方」上移为「模态开启/切换器缺失」(42 侧,ADR-013 §十)。
   GDD 🔁 注、`LoadSequencer` 与 `CompositionRoot` 的「零调用方」注释均已就地订正(原文不删)。
 - ⚠️ 未做且不得据以判走查:行内文字(存档时刻 / 空槽格线)· 读档即锁的折角双叠 · 槽位清单真值(7b 数值轮)。
+
+## 2026-10-31 · ③ 补模态开启器(42 运行期换屏)
+
+- **做了什么**:`SkeuoRuntimeDriver` 加 `OpenModal/CloseModal/CurrentModal/IsModalOpen` +
+  `ModalId → 屏名` 闭集表 + **每模态独占子容器**(换屏只摘自己的 —— 面板上还挂着 BootRoot 的 cue/字幕/候选列表);
+  `PlayerInputReader.SaveSlotsTogglePressed`(Escape / 手柄 start,标为**临时入口**);
+  `ModalInputDriver` + `ModalOpener` 窄接口 + `DriverModalOpener`;`BootRoot.Update` 驱动。
+- **判据** `modal_opener_test.cs` 7 条;证伪轮 **3 变异各转红**(关模态不摘容器 / 不记当前模态 / 去掉边沿化)。
+- **回归** `6286/6249` → **`6293/6256/0/0/37`**(+7 = 新夹具;skipped 37 不变)@ `2026-10-31 18:49–18:52 CST` · `e578bbe5`+工作树。
+- **可达性的诚实口径**:代码路径贯通(键 → 开屏 → 行 → Activate → 载入 → AC-7a-14 比对 / ADR-037 逐表归因);
+  但 **① 行有没有点击面积取决于 USS(编辑器赋值),未验;② 焦点桥 / 输入冻结 / 4 侧 `ModalGate` 均未接;
+  ③ Escape 是临时入口,正式入口 = 暂停壳(7b 未成屏)**。⇒ 不得据此判「玩家真的能读档」或 AC-42-F1 走查通过。

@@ -62,6 +62,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         private SkeuoRuntimeDriver _uiDriver;
         /// <summary>存档位载入路由(42 确认动作 → <c>LoadSequencer</c>;启动序内装配)。</summary>
         private SaveSlotCommandRouter _saveSlotCommands;
+        /// <summary>模态开合驱动(键沿 → 42 的 OpenModal / CloseModal;启动序内装配)。</summary>
+        private ModalInputDriver _modalInput;
 
         /// <summary>
         /// 存档位清单(7b 界面画哪几个槽)。
@@ -656,6 +658,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver.SaveSlotSink = _saveSlotCommands;
             _uiDriver.SaveSlots = ManualSaveSlots;
 
+            // ── 6.3 模态开合入口(2026-10-31 模态开启器轮)──
+            // 病因:42 只有序列化的 `_screenName`,**零运行期换屏入口** ⇒ 存档位屏开不出来 ⇒
+            // 上段接好的载入链在运行期仍不可达。本驱动 = 那条链的**最后一段**。
+            // ⚠️ 取 Escape / 手柄 start 是**临时入口**(正式入口 = 暂停壳,7b 未成屏);
+            //    开合同键,不新增绑重、不与 Interact(E)/Emergency(F)冲突。
+            _modalInput = new ModalInputDriver(
+                PlayerInputReader.SaveSlotsTogglePressed,
+                new DriverModalOpener(_uiDriver));
+
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
             // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选
             // 列表(止血/通气 + 跳过入口)挂到 UI 根。挂载 = 纯渲染资源(42 C3)。
@@ -1181,6 +1192,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private void Update()
         {
             if (!_booted || _tickDriver == null || _player == null) return;
+
+            // 模态开合(2026-10-31):键沿 → 42 的 OpenModal / CloseModal。放帧泵最前 ——
+            // 它是纯呈现层开关,不读 tick、不写 sim,先于一切 sim 侧驱动执行。
+            _modalInput?.OnFrame();
 
             // 先跑 tick 泵(Advance + 逐边沿),再按推进后的 CurrentTick 驱动病人出现 ——
             // 次序不可反:驱动读的是**本帧推进后**的 tick;若在 PumpFrame 之前调,

@@ -73,6 +73,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         private VisualElement _panel;
         private IPresentationRoot _screen;
+        // 🔁 2026-10-31 模态开启器:当前模态 + 它独占的容器。
+        // ⚠️ 换屏**不**清 `_panel`（面板上还挂着 BootRoot 的 cue / 字幕 / 候选列表）——
+        //    每个模态独占一个子容器，开关只动自己的容器。
+        private VisualElement _modalContainer;
+        private ModalId _currentModal = ModalId.None;
+
+        /// <summary>
+        /// `ModalId` 闭集 → 屏名（屏名是 <see cref="ScreenFactories"/> 的键，也是序列化契约）。
+        /// <para>⚠️ 本表是**闭集成员**与**屏**的唯一对应处：新增模态须同时改
+        /// `ModalId`（ADR-013 §十 才可增员）、`ScreenFactories` 与本表 —— 三处缺一即开不出来。</para>
+        /// </summary>
+        private static readonly Dictionary<ModalId, string> ModalScreenNames =
+            new Dictionary<ModalId, string>
+            {
+                [ModalId.Casebook] = "Casebook",
+                [ModalId.SaveSlots] = "SaveSlots",
+                [ModalId.InventoryContainer] = "Inventory",
+                [ModalId.SettingsShell] = "Settings",
+                [ModalId.Tutorial] = "Tutorial",
+                [ModalId.ClinicPanel] = "ClinicPanel",
+                [ModalId.PaperCloseup48] = "PaperCloseup",
+            };
 
         /// <summary>屏幕名 → Screen 查表(七个具名载体;名字是**序列化契约**,
         /// 场景 / Prefab 里写死的字符串,不可改成别的写法)。</summary>
@@ -102,12 +124,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             AttachStyleSheets();
 
             // ── T2.2:Screen 实例化(名字 → 工厂;未知名 fail-loud) ──
-            _screen = CreateScreen(_screenName, _panel);
+            // 🔁 2026-10-31:改走容器 + 记 `_currentModal`（此前只建屏、从不记「开的是哪一个」⇒
+            // 模态门拿不到真源,也没有任何运行期换屏入口）。
+            _screen = InstantiateScreen(_screenName, out _modalContainer);
             if (_screen == null)
             {
                 Debug.LogError($"[SkeuoRuntimeDriver] Screen '{_screenName}' not found.");
                 return;
             }
+            _currentModal = _screen is IModalState openState ? openState.Modal : ModalId.None;
 
             // ── T2.1:DTO 绑定(标记接口 IDtoSource 的 42 侧实现) ──
             // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
@@ -328,6 +353,85 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (_panel == null)
                 EnsureDocument();
             AttachStyleSheets();
+        }
+
+        /// <summary>
+        /// 当前摊开的模态(`None` = 没有)。
+        /// <para>⚠️ 这是 42 侧的**唯一真源**:4 的模态门只读它的布尔投影(AC-4-09 引用而非复制)。</para>
+        /// </summary>
+        public ModalId CurrentModal => _currentModal;
+
+        /// <summary>是否有模态摊开(模态门消费面;`Modal ≠ None` 的收敛形)。</summary>
+        public bool IsModalOpen => _currentModal != ModalId.None;
+
+        /// <summary>
+        /// 打开某个模态(运行期换屏的唯一入口)。
+        /// <para>已开着别的模态 ⇒ 先关再开(同一时刻至多一个 —— ADR-013「焦点单栈」的结构前提)。</para>
+        /// <para>打开后重放注入面(源 / 写通道 / 存档位),与 Awake 的补绑同款 —— 否则新屏拿到的是空绑定。</para>
+        /// </summary>
+        /// <returns><c>true</c> = 该模态确有对应的屏并已打开;闭集外的 id / 无面板 ⇒ <c>false</c>(不崩)。</returns>
+        public bool OpenModal(ModalId modal)
+        {
+            if (modal == ModalId.None) return false;
+            if (_panel == null)
+            {
+                Debug.LogError("[SkeuoRuntimeDriver] 无 UIDocument 面板 —— 模态开不出来(非崩溃态)。");
+                return false;
+            }
+            if (!ModalScreenNames.TryGetValue(modal, out string screenName))
+            {
+                Debug.LogError($"[SkeuoRuntimeDriver] 模态 {modal} 没有对应的屏 —— " +
+                               "闭集表 / ScreenFactories / ModalId 三处不一致(拒绝静默无操作)。");
+                return false;
+            }
+
+            CloseModal();
+
+            _screen = InstantiateScreen(screenName, out _modalContainer);
+            if (_screen == null)
+            {
+                Debug.LogError($"[SkeuoRuntimeDriver] Screen '{screenName}' not found.");
+                return false;
+            }
+            _currentModal = modal;
+
+            // 注入面重放(与 Awake 的补绑同款,幂等)
+            if (_source != null) _screen.Bind(_source);
+            if (_commandSink != null && _screen is CasebookScreen casebook)
+                casebook.BindCommandSink(_commandSink);
+            if (_screen is SaveSlotsScreen saveSlots)
+            {
+                saveSlots.BindCommandSink(_saveSlotSink);
+                saveSlots.SetSlots(_saveSlots);
+            }
+            if (_source != null) RefreshFromSource();
+            return true;
+        }
+
+        /// <summary>关闭当前模态(无模态 ⇒ 空操作)。</summary>
+        public void CloseModal()
+        {
+            if (_modalContainer != null)
+            {
+                _modalContainer.RemoveFromHierarchy();
+                _modalContainer = null;
+            }
+            _screen = null;
+            _currentModal = ModalId.None;
+        }
+
+        /// <summary>
+        /// 建屏并给它一个**独占子容器**(开关只动自己的容器 —— 面板上还挂着 cue / 字幕 / 候选列表,
+        /// 不能整面板清空)。屏名未知 ⇒ fail-loud(不 fallback 到别的屏)。
+        /// </summary>
+        private IPresentationRoot InstantiateScreen(string name, out VisualElement container)
+        {
+            container = new VisualElement { name = "modal-" + name };
+            _panel.Add(container);
+
+            IPresentationRoot created = CreateScreen(name, container);
+            if (created == null) container.RemoveFromHierarchy();
+            return created;
         }
 
         /// <summary>按名实例化 Screen(闭集;零反射)。</summary>

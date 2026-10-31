@@ -610,7 +610,14 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 > (判据 `save_slot_load_wiring_test.cs` 6 条)。**但整条链仍未在运行期被打开**:
 > `SkeuoRuntimeDriver` 只有序列化的 `_screenName`(默认 `Casebook`)、**无运行期换屏入口**,
 > 全仓 `ModalId.` 在装配层零消费 ⇒ **存档位屏本身开不出来** ⇒「读档时已经记录过」仍不成立。
-> 缺口落点已上移一级:**模态开启/切换器**(42 侧,ADR-013 §十)不在本轮面内。
+> 🔁 **同日第二轮已补开启器**:42 侧 `SkeuoRuntimeDriver.OpenModal/CloseModal/CurrentModal`
+> + `ModalInputDriver`(键沿 → 开/关)+ `BootRoot` 装配 ⇒ 存档位屏**开得出来了**,
+> 「按键 → 开屏 → 点/确认一行 → 载入 → 本执行体」在**代码路径**上贯通
+> (判据 `modal_opener_test.cs` 7 条)。
+> ⚠️ **仍未验证的两处**(不得据此判「玩家真的能读档」):
+> ① 行元素有没有**点击面积**取决于 USS(编辑器赋值),本轮未验;
+> ② 焦点桥 / 输入冻结 / 4 侧 `ModalGate` 接线今日**均未接**(`ModalGate` 生产零构造)。
+> ③ 开合键 `Escape` 是**临时入口**,正式入口 = 暂停壳(7b 未成屏)。
 >
 > 判据:`unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条)
 > + `unity/Assets/Tests/EditMode/Boot/save_v3_config_segment_test.cs`(11 条)。
