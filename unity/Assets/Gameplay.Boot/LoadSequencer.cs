@@ -42,6 +42,7 @@
 //   playtest「无法读档」不是缺陷登记,是本形态的诚实表现;存档位 UI 接线轮落地即激活。
 
 using System;
+using System.Collections.Generic;               // IReadOnlyList(ADR-037 逐份版本)
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Telemetry;                 // ConfigVersionCheck(AC-7a-14 记录面)
@@ -57,11 +58,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly AnchorCheckpointTrigger _anchorTrigger;
         private readonly CheckpointFallback _fallback;
         private readonly Action _afterRestore;
-        /// <summary>当前烘焙产物的 `ConfigVersion` 提供者(AC-7a-14);与 <see cref="_configVersionRecorder"/>
-        /// **同生同灭**(见构造器 all-or-nothing 校验)。</summary>
-        private readonly Func<uint> _currentConfigVersion;
-        /// <summary>`ConfigVersion` 比对结果的记录面(AC-7a-14·ADR-010 §七「记录并供排查」)。</summary>
-        private readonly Action<ConfigVersionCheck> _configVersionRecorder;
+        /// <summary>当前烘焙产物的配置版本快照(组合值 + 逐份版本;AC-7a-14 / ADR-037 §⑦);
+        /// 与 <see cref="_configVersionRecorder"/> **同生同灭**(见构造器 all-or-nothing 校验)。</summary>
+        private readonly Func<ConfigVersionSnapshot> _currentConfigVersion;
+        /// <summary>比对结果的记录面(AC-7a-14·ADR-010 §七「记录并供排查」)。</summary>
+        private readonly Action<ConfigVersionCheck, ConfigVersionDiff> _configVersionRecorder;
 
         /// <param name="saveService">读档本体(生产 = 组合根装配实例)。</param>
         /// <param name="anchorTrigger">锚点触发器(读档后 <see cref="AnchorCheckpointTrigger.ResetCursor"/>;
@@ -78,7 +79,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 就说明存档有问题,静默吞掉会让下游拿到旧投影 —— 那是更坏的失败)。</para></param>
         /// <exception cref="ArgumentNullException">saveService 或 anchorTrigger 为 null。</exception>
         /// <param name="currentConfigVersion">
-        /// 当前烘焙产物的 `ConfigVersion`(ADR-014 §五 内容哈希派生)**提供者**。
+        /// 当前烘焙产物的配置版本**快照**提供者(`ConfigVersionSnapshot` = 组合值 + 逐份版本,
+        /// 二者同源,ADR-037 §⑦)。
         /// <para>🔁 <b>2026-10-31 新增(AC-7a-14 执行体)</b>:读档成功后须把档头携带的
         /// `ConfigVersion` 与它比对并**记录**(ADR-010 §七「存档头记 `ConfigVersion`
         /// 以便排查回放不符」)。此前全仓没有任何路径做过这次比对 —— 档头的值读进
@@ -101,8 +103,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                              AnchorCheckpointTrigger anchorTrigger,
                              CheckpointFallback fallback = null,
                              Action afterRestore = null,
-                             Func<uint> currentConfigVersion = null,
-                             Action<ConfigVersionCheck> configVersionRecorder = null)
+                             Func<ConfigVersionSnapshot> currentConfigVersion = null,
+                             Action<ConfigVersionCheck, ConfigVersionDiff> configVersionRecorder = null)
         {
             _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
             _anchorTrigger = anchorTrigger ?? throw new ArgumentNullException(nameof(anchorTrigger));
@@ -168,7 +170,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "AC-7a-14:SaveService.Load 已返回,但 LastLoadedConfigVersion 为 null —— " +
                     "读档路径没有把档头 ConfigVersion 交出来(codec 契约破坏);拒绝以「无记录」冒充「版本一致」");
 
-            _configVersionRecorder(new ConfigVersionCheck(saveSide.Value, _currentConfigVersion()));
+            ConfigVersionSnapshot current = _currentConfigVersion();
+            var check = new ConfigVersionCheck(saveSide.Value, current.Combined);
+
+            // ADR-037 §④:逐表归因。**三种结论不可混读** ——
+            //   · 本档无逐份段(count=0,旧档)/ 本方无逐份数据 ⇒ Unknown(「无法归因」);
+            //   · 两侧都有 ⇒ Compare(可能是空集 = 逐份全等)。
+            // ⚠️ 不得把 Unknown 降级成「无差异」—— 那正是本件要消灭的假绿形态。
+            IReadOnlyList<ArtifactConfigVersion> savedArtifacts =
+                _saveService.LastLoadedArtifactConfigVersions;
+            ConfigVersionDiff diff =
+                savedArtifacts == null || savedArtifacts.Count == 0 || current.Artifacts == null
+                    ? ConfigVersionDiff.Unknown
+                    : ConfigVersionDiff.Compare(savedArtifacts, current.Artifacts);
+
+            _configVersionRecorder(check, diff);
         }
     }
 }

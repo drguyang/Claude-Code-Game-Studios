@@ -57,14 +57,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
+            byte[] cfg = ConfigVersionSegment.Encode(null); // 配置版本段 count = 0(v3 必备段)
             byte[] folded = new byte[] { 0, 0, 0, 0 };   // 折叠段 count = 0(v2 必备段)
             byte[] payloads = new byte[] { 0, 0, 0, 0 }; // 载荷段 count = 0(v2 必备段)
-            var combined = new byte[header.Length + body.Length + folded.Length + payloads.Length];
+            var combined = new byte[header.Length + cfg.Length + body.Length + folded.Length + payloads.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(body, 0, combined, header.Length, body.Length);
-            Array.Copy(folded, 0, combined, header.Length + body.Length, folded.Length);
+            Array.Copy(cfg, 0, combined, header.Length, cfg.Length);
+            Array.Copy(body, 0, combined, header.Length + cfg.Length, body.Length);
+            Array.Copy(folded, 0, combined, header.Length + cfg.Length + body.Length, folded.Length);
             Array.Copy(payloads, 0, combined,
-                header.Length + body.Length + folded.Length, payloads.Length);
+                header.Length + cfg.Length + body.Length + folded.Length, payloads.Length);
             // 🔁 **2026-10-25 AC-7a-07 口径变更**:`compose` 委托的契约已改为
             // **返回未签名**字节(用户裁定「Compose 返回未签名」)—— 校验和由 worker
             // 在后台补(`AddChecksum` 也在非主线程,AC-7a-07 两半之一)。

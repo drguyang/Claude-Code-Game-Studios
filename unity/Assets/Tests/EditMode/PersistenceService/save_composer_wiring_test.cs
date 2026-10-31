@@ -132,7 +132,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static void ParseBody(
             byte[] bytes, out IReadOnlyList<SimEvent> events, out IReadOnlyList<FoldRow> foldRows)
         {
-            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            var r = new CodecReader(bytes.AsSpan(BodyStart(bytes)));
             // 复合体:事件段用无读尽断言的读(其后还有折叠段与载荷段)。
             events = SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
 
@@ -154,10 +154,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
             r.EnsureFullyConsumed(); // 载荷段是末段 ⇒ 尾随字节 = 布局漂移或损坏
         }
 
+        /// <summary>正文起点 = 头部 + 配置版本段(ADR-037 §①;本文件是生产 `ParseBody` 的镜像)。</summary>
+        private static int BodyStart(byte[] bytes)
+        {
+            ConfigVersionSegment.Decode(bytes, SaveHeaderCodec.HeaderSize, out int cfgBytes);
+            return SaveHeaderCodec.HeaderSize + cfgBytes;
+        }
+
         /// <summary>只取载荷段的 BlobId(不验内容)—— 载荷段专项断言用(ADR-034 §②)。</summary>
         private static IReadOnlyList<int> ReadPayloadIds(byte[] bytes)
         {
-            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            var r = new CodecReader(bytes.AsSpan(BodyStart(bytes)));
             SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
             FoldRowCodec.ReadSegment(ref r);
 

@@ -245,11 +245,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            byte[] cfg = ConfigVersionSegment.Encode(null);   // ADR-037:配置版本段(必备)
             byte[] folded = new byte[] { 0, 0, 0, 0 }; // 折叠段 count = 0(v1 必备段)
-            var combined = new byte[header.Length + body.Length + folded.Length];
+            var combined = new byte[header.Length + cfg.Length + body.Length + folded.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(body, 0, combined, header.Length, body.Length);
-            Array.Copy(folded, 0, combined, header.Length + body.Length, folded.Length);
+            Array.Copy(cfg, 0, combined, header.Length, cfg.Length);
+            Array.Copy(body, 0, combined, header.Length + cfg.Length, body.Length);
+            Array.Copy(folded, 0, combined, header.Length + cfg.Length + body.Length, folded.Length);
             return combined;
         }
 

@@ -220,6 +220,16 @@ namespace DaYiJingCheng.Sim.Codec
         public uint? LastLoadedConfigVersion { get; private set; }
 
         /// <summary>
+        /// 上一次**成功**读档携带的**逐份**产物 `ConfigVersion`(ADR-037 §④)。
+        /// <para><b>空集合的语义 = 「本档不含逐份版本」**(v2 迁上来的旧档,或 v3 但写入时
+        /// 未提供逐份数据)⇒ 排查时只能说「无法归因」,**不得**报成「逐份全等」。
+        /// 该区分由 <c>ConfigVersionDiff.HasPerArtifactData</c> 承载,不由本属性表达。</para>
+        /// <para>⚠️ 与 <see cref="LastLoadedConfigVersion"/> 同款:入口先清空(置 <c>null</c>),
+        /// 读档完整成功后才回填。</para>
+        /// </summary>
+        public IReadOnlyList<ArtifactConfigVersion> LastLoadedArtifactConfigVersions { get; private set; }
+
+        /// <summary>
         /// 后台写盘 worker(AC-7a-07)。**只读暴露**,供夹具与装配收尾等待队列排空。
         /// <para>⚠️ 生产主线程**不得**在 Step 边界调 <see cref="SaveWriteQueue.WaitForIdle()"/>
         /// —— 那等于把异步化撤销。生产唯一的等待点是 <see cref="SaveOnExit"/>。</para>
@@ -705,6 +715,7 @@ namespace DaYiJingCheng.Sim.Codec
             // AC-7a-14:事实出口先清空 —— 本次读档无论是哪一步抛的,都不得沿用上一次的值
             // (「上一份档的 ConfigVersion」冒充「这一份的」= 排查时指向错误的版本对)。
             LastLoadedConfigVersion = null;
+            LastLoadedArtifactConfigVersions = null;
             RequireLoadable(slot);                          // ── Gating ──
             byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
             SaveHeader header = SaveHeaderCodec.Read(data);
@@ -806,8 +817,12 @@ namespace DaYiJingCheng.Sim.Codec
                     "未注入 foldedRowSink —— 拒绝读档(折叠行是被折叠病人病史的唯一残留," +
                     "静默丢弃 = 不可逆数据丢失;TD-persist-03 动作 ⑤)");
 
-            ParseBody(data, out IReadOnlyList<SimEvent> events,
+            ParseBody(data, out IReadOnlyList<ArtifactConfigVersion> artifactConfigs,
+                      out IReadOnlyList<SimEvent> events,
                       out byte[] foldedSegment, out IReadOnlyList<PayloadEntry> payloads);
+            // ADR-037 §④:逐份版本随读档一起交出 —— 「未知(count=0)」与「无差异」的区分
+            // 由消费者按 `HasPerArtifactData` 判,本类不做任何降级。
+            LastLoadedArtifactConfigVersions = artifactConfigs;
 
             InstallPayloads(payloads);   // ADR-034 §④:先装池,**再**解事件
 
@@ -838,6 +853,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// </remarks>
         private void ParseBody(
             byte[] data,
+            out IReadOnlyList<ArtifactConfigVersion> artifactConfigs,
             out IReadOnlyList<SimEvent> events,
             out byte[] foldedSegment,
             out IReadOnlyList<PayloadEntry> payloads)
@@ -846,6 +862,15 @@ namespace DaYiJingCheng.Sim.Codec
             if (data.Length < offset)
                 throw new InvalidDataException(
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");
+
+            // ── 配置版本段(ADR-037 §①:紧跟头部、位于事件段之前)──
+            // count = 0 是合法语义(「本档不含逐份版本」= v2 迁上来的旧档),由消费侧
+            // `ConfigVersionDiff.HasPerArtifactData` 区分「未知」与「无差异」。
+            artifactConfigs = ConfigVersionSegment.Decode(data, offset, out int configSegmentBytes);
+            offset += configSegmentBytes;
+            if (data.Length < offset)
+                throw new InvalidDataException(
+                    $"配置版本段之后无剩余字节(offset={offset}, 长度={data.Length})—— 已损坏");
 
             var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
             // 🔁 复合体读:事件段后还有折叠段与载荷段 ⇒ 用无读尽断言的 ReadWithinBody;

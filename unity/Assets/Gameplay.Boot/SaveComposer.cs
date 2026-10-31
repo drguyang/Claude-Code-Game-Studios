@@ -100,7 +100,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             long tick,
             IReadOnlyList<FoldRow> existingFoldedRows = null,
             SaveBufferPool bufferPool = null,
-            IBlobPool blobPool = null)
+            IBlobPool blobPool = null,
+            IReadOnlyList<ArtifactConfigVersion> artifactConfigs = null)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
@@ -121,21 +122,29 @@ namespace DaYiJingCheng.Gameplay.Boot
             List<SimEvent> finalEvents = SpliceBack(allEvents, currentHistory);
 
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
+            // 🔁 ADR-037 §① —— 配置版本段紧跟头部:**必须在事件段之前**。
+            //    插在这里而不是尾部,是 v2→v3 迁移能成立的前提(迁移链按「从末尾算」比对正文,
+            //    尾部追加必破该断言)。`null` ⇒ 写出 count=0(= 未知),不伪造。
+            byte[] configSegment = ConfigVersionSegment.Encode(artifactConfigs);
             byte[] events = SimEventListCodec.Encode(finalEvents, codec);
             byte[] foldedSegment = FoldRowCodec.EncodeSegment(rowsAccum);
             // 🔁 ADR-034 §② —— 载荷段必须在**折叠之后**的 finalEvents 上取引用:
             //    折叠抹除的病史行不得贡献 blob(否则已折叠病人的载荷永远写进存档,永不回收)。
             byte[] payloadSegment = EncodePayloadSegment(finalEvents, blobPool);
 
-            int total = header.Length + events.Length + foldedSegment.Length + payloadSegment.Length;
+            int total = header.Length + configSegment.Length + events.Length
+                        + foldedSegment.Length + payloadSegment.Length;
             var combined = bufferPool == null
                 ? new byte[total]
                 : bufferPool.Rent(total);
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(events, 0, combined, header.Length, events.Length);
-            Array.Copy(foldedSegment, 0, combined, header.Length + events.Length, foldedSegment.Length);
-            Array.Copy(payloadSegment, 0, combined,
-                header.Length + events.Length + foldedSegment.Length, payloadSegment.Length);
+            Array.Copy(configSegment, 0, combined, header.Length, configSegment.Length);
+            int at = header.Length + configSegment.Length;
+            Array.Copy(events, 0, combined, at, events.Length);
+            at += events.Length;
+            Array.Copy(foldedSegment, 0, combined, at, foldedSegment.Length);
+            at += foldedSegment.Length;
+            Array.Copy(payloadSegment, 0, combined, at, payloadSegment.Length);
 
             // 🔁 **2026-10-25 AC-7a-07:本方法**不再**加校验和(原文 `return SaveService.AddChecksum(combined)`)。
             //

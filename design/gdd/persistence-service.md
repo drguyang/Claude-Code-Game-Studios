@@ -600,14 +600,17 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 >   `dataProvider == null`(EditMode 部分装配)⇒ 两件都不给,不降级成 0。
 >
 > ⚠️ **本 AC 仍有两处 NOT-RUN,禁借绿**:
-> ① **逐表归属**:档头只有一个组合后的 u32,推不出「哪一张表变了」。本执行体只说
-> 「这份档是另一个配置版本写下的」+ 两个版本号。逐表差异须让存档携带逐份版本
-> (`SaveVersion` v3),是一次独立裁决,**未做**。
+> ① ~~**逐表归属**:档头只有一个组合后的 u32,推不出「哪一张表变了」.~~
+> 🔁 **2026-10-31 当日已补(ADR-037)**:存档升 **v3**,头部之后插入**配置版本段**
+> (逐份 artifact 的 `ConfigVersion`)。⇒ 排查从「两串十六进制不同」升级为
+> 「变动的表 = 这几张」。⚠️ 但**旧档(v2 迁上来的)仍是「无法归因」** —— v2 从未记录逐份版本,
+> 信息不存在,迁移只写 `count = 0`(= 未知),**不得**用当前产物补算(那会把每次读旧档报成「完全一致」)。
 > ② **生产可达性**:执行体挂在 `LoadSequencer.Load` 上,而生产触发点
 > `BootRoot.RequestLoad` **今日零调用方**(裁定② 通电待信)⇒ 已证的是
 > 「**读档路径一旦被调用即记录**」,**不是**「读档时已经记录过」。
 >
-> 判据见 `unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条,含负控)。
+> 判据:`unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条)
+> + `unity/Assets/Tests/EditMode/Boot/save_v3_config_segment_test.cs`(11 条)。
 
 ### AC-7a-15(规则十一 · 加载失败硬失败:回退 / 报损,不静默兜底)
 

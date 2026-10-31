@@ -139,11 +139,13 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         private LoadSequencer NewSequencer(List<ConfigVersionCheck> captured,
-                                           uint currentConfigVersion = CurrentConfigVersion)
+                                           uint currentConfigVersion = CurrentConfigVersion,
+                                           List<ConfigVersionDiff> diffs = null)
             => new LoadSequencer(
                 NewLoadSideService(), _trigger, _fallback,
-                currentConfigVersion: () => currentConfigVersion,
-                configVersionRecorder: c => captured.Add(c));
+                // ADR-037:快照形式(组合值 + 逐份)。本夹具不给逐份 ⇒ 差异只能是「未知」。
+                currentConfigVersion: () => new ConfigVersionSnapshot(currentConfigVersion, null),
+                configVersionRecorder: (c, d) => { captured.Add(c); diffs?.Add(d); });
 
         // ══════════════════════════════════════════════════════════════════
         // ① 正控:不匹配 ⇒ 恰好一次记录,两个版本号各自如实
@@ -264,12 +266,12 @@ namespace DaYiJingCheng.Tests.Boot
 
             Assert.Throws<ArgumentException>(() => new LoadSequencer(
                     loadSide, _trigger, _fallback,
-                    currentConfigVersion: () => CurrentConfigVersion),
+                    currentConfigVersion: () => new ConfigVersionSnapshot(CurrentConfigVersion, null)),
                 "只给提供者 ⇒ 比对了却没处记 ⇒ 必须构造期拒收");
 
             Assert.Throws<ArgumentException>(() => new LoadSequencer(
                     loadSide, _trigger, _fallback,
-                    configVersionRecorder: _ => { }),
+                    configVersionRecorder: (_, __) => { }),
                 "只给记录面 ⇒ 没有当前版本可比 ⇒ 必须构造期拒收");
         }
 
@@ -283,7 +285,8 @@ namespace DaYiJingCheng.Tests.Boot
             var lines = new List<string>();
             var record = new ConfigVersionDriftRecord(lines.Add);
 
-            record.Record(new ConfigVersionCheck(SavedConfigVersion, SavedConfigVersion));
+            record.Record(new ConfigVersionCheck(SavedConfigVersion, SavedConfigVersion),
+                          ConfigVersionDiff.Unknown);
 
             Assert.That(record.DriftCount, Is.EqualTo(0), "一致不得计漂移");
             Assert.That(lines, Is.Empty, "一致不得出日志(否则每次读档一行噪声)");
@@ -297,10 +300,13 @@ namespace DaYiJingCheng.Tests.Boot
             var lines = new List<string>();
             var record = new ConfigVersionDriftRecord(lines.Add);
 
-            record.Record(new ConfigVersionCheck(SavedConfigVersion, CurrentConfigVersion));
+            record.Record(new ConfigVersionCheck(SavedConfigVersion, CurrentConfigVersion),
+                          ConfigVersionDiff.Unknown);
 
             Assert.That(record.DriftCount, Is.EqualTo(1), "不匹配必须计一次");
             Assert.That(lines.Count, Is.EqualTo(1), "一次不匹配 ⇒ 恰好一行日志");
+            Assert.That(lines[0], Does.Contain("无法归因"),
+                "无逐份数据 ⇒ 日志必须明写「无法归因」,不得让读者以为已查清是哪张表");
 
             // 判据 = 两个版本号**各自**出现在日志里(十进制,与 Banner 的实现一致)。
             Assert.That(lines[0], Does.Contain(SavedConfigVersion.ToString()),

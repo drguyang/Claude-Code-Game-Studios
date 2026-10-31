@@ -139,7 +139,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 二次 Checkpoint 不丢折叠行(回写义务):
             svcLoad.Checkpoint(new SaveSlot(1));
             byte[] secondSave = File.ReadAllBytes(Path.Combine(_testDir, "save_1.bin"));
-            var r = new CodecReader(secondSave.AsSpan(SaveHeaderCodec.HeaderSize));
+            // ADR-037:正文起点 = 头部 + 配置版本段
+            ConfigVersionSegment.Decode(secondSave, SaveHeaderCodec.HeaderSize, out int cfgBytes);
+            var r = new CodecReader(secondSave.AsSpan(SaveHeaderCodec.HeaderSize + cfgBytes));
             SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
             // 🔁 2026-10-28 ADR-034 §③:改按 count 精确读(原 `DecodeSegment(r.ReadBytes(r.Remaining))`
             //    在 v2 下会把其后的载荷段一起吞进折叠段 ⇒ 报「未读尽」)。

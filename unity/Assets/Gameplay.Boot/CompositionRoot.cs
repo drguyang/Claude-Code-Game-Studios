@@ -595,6 +595,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //       装配期就抛会让它们因**不相干的**理由转红(= 我引入的假红)。
                 //       惰性不削弱判据:`compose` 是唯一读该值的路径,它一旦被调用就必抛。
                 uint? resolvedConfigVersion = null;
+                // 🔁 2026-10-31 ADR-037 §⑦:逐份版本与组合值**同源** —— 同一次
+                // `LoadAllCookedHeaders` 取数,组合值由 `Combine` 算、逐份段逐条写。
+                // 分两次装载 = 「头写的是一个值、段写的是另一批值」的失败模式。
+                IReadOnlyList<ArtifactConfigVersion> resolvedArtifacts = null;
                 // ── GDD `:123` 缓冲池 —— **组版与 worker 共用同一份**(见 SaveService 构造点注)──
                 // ⚠️ 声明在闭包**之外**:闭包每次组版都会跑,池必须在多次组版之间存活
                 //    (每份存档新建一个池 = 零复用)。
@@ -602,11 +606,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Func<SaveSlot, byte[]> compose = _ =>
                 {
                     if (!resolvedConfigVersion.HasValue)
-                        resolvedConfigVersion = ResolveGlobalConfigVersion(dataProvider);
+                    {
+                        ConfigVersionSnapshot snapshot = ResolveConfigVersionSnapshot(dataProvider);
+                        resolvedConfigVersion = snapshot.Combined;
+                        resolvedArtifacts = snapshot.Artifacts;
+                    }
                     return SaveComposer.Compose(
                         stream.Events, foldedPredicate, decoder, new SaveCodec(),
                         worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick,
                         existingFoldedRows: stream.FoldedRows,
+                        // 🔁 2026-10-31 ADR-037 §①:配置版本段(逐份)。null ⇒ 写 count=0(=未知)。
+                        artifactConfigs: resolvedArtifacts,
                         // 🔁 2026-10-25 AC-7a-07:`Compose` 现返回**不含校验和**的字节
                         //    (SHA256 移到 worker),`combined` 的合成缓冲从本池租。
                         bufferPool: saveBufferPool,
@@ -790,7 +800,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ **同一份池必须同时给 `compose` 与 `SaveService`** —— 组版在主线程
                     //    租、校验和与写盘在 worker 归还,共用一份才有复用意义。
                     //    两处传不同的池 = 各自都只租不还,退化成两个只涨不缩的空池。
-                    bufferPool: saveBufferPool);
+                    bufferPool: saveBufferPool,
+                    // 🔁 **2026-10-31 ADR-037 §⑤**:本仓**第一条真实迁移**(v2 → v3)。
+                    // 此前链恒空 —— 因为 `< 当前` 的档从不存在(ADR-034 把 v1 挡在链之前)。
+                    // v3 起 v2 档**下沉进链**,这一行让 `ApplyMigrationsIfNeeded` 第一次有可达输入
+                    // (同时消解 `TD-persist-10`「该接缝无集成夹具」)。
+                    migrations: new ISaveMigration[] { new SaveMigrationV2ToV3() });
 
                 // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25 三裁全取推荐):
                 // `Load` 成功后依序 ResetCursor(义务② 判据 —— AnchorCheckpointTrigger.cs:31
@@ -831,12 +846,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    不降级成 0 —— 假版本号会让「不匹配」恒假(同 E-13 不降级口径)。
                     // ⚠️ 记录面 = 引擎日志(`LogWarning`):不匹配时一行,内容 = 两个版本号
                     //    + 「为什么这一份回放可能不符」。**非致命**:不影响本次读档结果。
+                    // 🔁 2026-10-31 ADR-037 §⑦:改为取**快照**(组合值 + 逐份),两者同源;
+                    //    逐份那一半使「哪一张表变了」可判(此前只能报「两串十六进制不同」)。
                     currentConfigVersion: configVersionDrift == null
-                        ? (Func<uint>)null
-                        : () => ResolveGlobalConfigVersion(dataProvider),
+                        ? (Func<ConfigVersionSnapshot>)null
+                        : () => ResolveConfigVersionSnapshot(dataProvider),
                     configVersionRecorder: configVersionDrift == null
                         ? null
-                        : new Action<DaYiJingCheng.Telemetry.ConfigVersionCheck>(configVersionDrift.Record));
+                        : new Action<DaYiJingCheng.Telemetry.ConfigVersionCheck, ConfigVersionDiff>(
+                            configVersionDrift.Record));
             }
 
 
@@ -1738,6 +1756,39 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "只有后者持有全部 22 条产物地址(DataCorePreloader.DataCoreAddresses)。");
 
             return addressables.LoadGlobalConfigVersion();
+        }
+
+        /// <summary>
+        /// 派生**配置版本快照**(组合值 + 逐份版本,ADR-037 §⑦)。
+        /// <para><b>同源</b>:一次 <c>LoadAllCookedHeaders</c>,组合值由
+        /// <see cref="DataCoreConfigVersion.Combine"/> 算、逐份段逐条取
+        /// <see cref="DataCoreConfigVersion.ReadProductConfigVersion"/> ⇒ 两值不可能互相矛盾。</para>
+        /// <para>⚠️ 与 <see cref="ResolveGlobalConfigVersion"/> 同款 E-13 口径:dataProvider 缺 /
+        /// 类型不符 ⇒ 抛,**不降级成空集或 0**(空集会被读成「无差异」)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">dataProvider 为 null 或类型不符(E-13)。</exception>
+        private static ConfigVersionSnapshot ResolveConfigVersionSnapshot(IDataProvider dataProvider)
+        {
+            if (dataProvider == null)
+                throw new InvalidOperationException(
+                    "[E-13][data-core] 无法派生 ConfigVersion 快照:dataProvider 为 null。" +
+                    "空集会被读成「逐份全等」(ADR-037 §④),故拒绝。");
+
+            if (!(dataProvider is AddressablesDataProvider addressables))
+                throw new InvalidOperationException(
+                    "[E-13][data-core] 无法派生 ConfigVersion 快照:dataProvider 类型为 " +
+                    $"{dataProvider.GetType().Name},不是 AddressablesDataProvider。");
+
+            Dictionary<string, byte[]> headers = addressables.LoadAllCookedHeaders();
+            uint combined = DataCoreConfigVersion.Combine(headers);
+
+            var artifacts = new List<ArtifactConfigVersion>(headers.Count);
+            foreach (KeyValuePair<string, byte[]> kv in headers)
+                artifacts.Add(new ArtifactConfigVersion(
+                    kv.Key, DataCoreConfigVersion.ReadProductConfigVersion(kv.Value)));
+            artifacts.Sort((a, b) => StringComparer.Ordinal.Compare(a.Address, b.Address));
+
+            return new ConfigVersionSnapshot(combined, artifacts);
         }
 
         /// <summary>cue ordinal → 事件表的 `subtitle_text` 列(`AC-44-15` `[A]` 半的读侧)。

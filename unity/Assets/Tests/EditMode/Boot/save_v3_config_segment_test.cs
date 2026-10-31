@@ -1,0 +1,306 @@
+// ADR-037 —— 存档 v3 配置版本段(逐份 `ConfigVersion`)的判据。
+//
+// 权威:docs/architecture/adr-037-save-v3-config-version-segment.md
+//   §① 段位置(紧跟头部)· §② 规范形(严格升序)· §④ 未知 ≠ 无差异 · §⑤ v2→v3 迁移
+//
+// ── 本件钉的四件事 ─────────────────────────────────────────────
+// ① **规范形唯一**:同一集合只有一种字节表示;乱序 / 重复一律拒收(读侧验,不是靠写侧自觉)。
+// ② **差异集 = 被改的那一张表**(V-2):改一份产物头 ⇒ `Compare` 只报它。
+// ③ **「未知」不得冒充「无差异」**(V-4):v2 迁上来的档 `HasPerArtifactData = false`。
+// ④ **v2→v3 迁移逐位保留正文**(V-3):迁移产物与「同一份 v3 直接写出」的字节**完全相同**。
+//
+// 写盘边界:落 `Path.GetTempPath()`(FsWriteBoundaryGate 允许形态;零仓库锚点)。
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
+using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Tests.DiseaseSimulation;
+using NUnit.Framework;
+
+namespace DaYiJingCheng.Tests.Boot
+{
+    /// <summary>ADR-037:配置版本段的编解码 · 差异集 · v2→v3 迁移。</summary>
+    [TestFixture]
+    public sealed class SaveV3ConfigSegmentTest
+    {
+        private const uint Combined = 0xAABBCCDDU;
+
+        private string _testDir;
+        private InMemoryBlobPool _pool;
+        private PayloadEncoder _encoder;
+        private PayloadDecoder _decoder;
+        private EventStream _stream;
+        private FoldedPredicate _predicate;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _testDir = Path.Combine(Path.GetTempPath(), "dyjq_v3cfg_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_testDir);
+            _pool = new InMemoryBlobPool();
+            _encoder = new PayloadEncoder(_pool);
+            _decoder = new PayloadDecoder(_pool);
+            _stream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+            _predicate = new FoldedPredicate(
+                historyStream: () => SaveComposer.FilterByStream(_stream.Events, StreamId.History),
+                caseStream: () => SaveComposer.FilterByStream(_stream.Events, StreamId.Case),
+                diseaseLookup: _ => null,
+                decoder: _decoder);
+        }
+
+        [TearDown]
+        public void Teardown()
+        {
+            if (Directory.Exists(_testDir))
+            {
+                try { Directory.Delete(_testDir, true); } catch { }
+            }
+        }
+
+        // ══════════════ ① 段编解码(V-1)══════════════
+
+        [Test]
+        public void test_adr037_segment_roundTripIsCanonicalOrder()
+        {
+            var items = new[]
+            {
+                new ArtifactConfigVersion("z_data", 3u),
+                new ArtifactConfigVersion("a_data", 1u),
+                new ArtifactConfigVersion("m_data", 2u),
+            };
+
+            byte[] bytes = ConfigVersionSegment.Encode(items);
+            var decoded = ConfigVersionSegment.Decode(bytes, 0, out int consumed);
+
+            Assert.That(consumed, Is.EqualTo(bytes.Length), "解码必须恰好读尽整段");
+            Assert.That(decoded.Count, Is.EqualTo(3));
+            Assert.That(decoded[0].Address, Is.EqualTo("a_data"), "编码序 = address 的 Ordinal 升序");
+            Assert.That(decoded[2].Address, Is.EqualTo("z_data"));
+
+            // 规范形:同集合再编一次 ⇒ 逐字节相同(字节级对拍的前提)
+            var shuffled = new[]
+            {
+                new ArtifactConfigVersion("m_data", 2u),
+                new ArtifactConfigVersion("z_data", 3u),
+                new ArtifactConfigVersion("a_data", 1u),
+            };
+            CollectionAssert.AreEqual(bytes, ConfigVersionSegment.Encode(shuffled),
+                "输入序不同但集合相同 ⇒ 字节必须相同(否则同态存档跨机器对不上)");
+        }
+
+        [Test]
+        public void test_adr037_segment_emptyIsCountZero()
+        {
+            byte[] bytes = ConfigVersionSegment.Encode(null);
+            Assert.That(bytes.Length, Is.EqualTo(4), "空段 = 4 字节 count 前缀");
+            Assert.That(ConfigVersionSegment.Decode(bytes, 0, out int consumed).Count, Is.EqualTo(0));
+            Assert.That(consumed, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void test_adr037_segment_rejectsUnsortedBytes()
+        {
+            // 手工造「降序」段:B 在前、A 在后 —— 写侧绝不会产出,读侧必须拒收。
+            byte[] bytes = BuildRawSegment(("B_data", 2u), ("A_data", 1u));
+
+            var ex = Assert.Throws<InvalidDataException>(
+                () => ConfigVersionSegment.Decode(bytes, 0, out _),
+                "非升序的段必须拒收 —— 规范形不唯一 = 字节级对拍失去意义");
+            Assert.That(ex.Message, Does.Contain("严格升序"));
+        }
+
+        [Test]
+        public void test_adr037_segment_encodeRejectsDuplicateAddress()
+        {
+            var items = new[]
+            {
+                new ArtifactConfigVersion("a_data", 1u),
+                new ArtifactConfigVersion("a_data", 2u),
+            };
+            Assert.Throws<ArgumentException>(() => ConfigVersionSegment.Encode(items),
+                "同一张表两个版本号 ⇒ 归因会产生两个答案,必须在写侧就拒");
+        }
+
+        // ══════════════ ② 差异集(V-2)══════════════
+
+        [Test]
+        public void test_adr037_diff_reportsExactlyTheChangedTable()
+        {
+            var saved = new[]
+            {
+                new ArtifactConfigVersion("a_data", 1u),
+                new ArtifactConfigVersion("b_data", 2u),
+                new ArtifactConfigVersion("c_data", 3u),
+            };
+            var current = new[]
+            {
+                new ArtifactConfigVersion("a_data", 1u),
+                new ArtifactConfigVersion("b_data", 999u),   // ← 只有这一张被改
+                new ArtifactConfigVersion("c_data", 3u),
+            };
+
+            ConfigVersionDiff diff = ConfigVersionDiff.Compare(saved, current);
+
+            Assert.That(diff.HasPerArtifactData, Is.True);
+            Assert.That(diff.Changed.Count, Is.EqualTo(1), "恰好一张表变了");
+            Assert.That(diff.Changed[0], Is.EqualTo("b_data"), "且必须是那一张");
+        }
+
+        [Test]
+        public void test_adr037_diff_countsAddedAndRemoved()
+        {
+            var saved = new[] { new ArtifactConfigVersion("a_data", 1u) };
+            var current = new[] { new ArtifactConfigVersion("b_data", 1u) };
+
+            ConfigVersionDiff diff = ConfigVersionDiff.Compare(saved, current);
+
+            Assert.That(diff.Changed, Is.EquivalentTo(new[] { "a_data", "b_data" }),
+                "新增与移除都算差异 —— 只看 current 一侧会漏掉被删掉的那张表");
+        }
+
+        // ══════════════ ③ 未知 ≠ 无差异(V-4)══════════════
+
+        [Test]
+        public void test_adr037_diff_distinguishesUnknownFromEmpty()
+        {
+            ConfigVersionDiff unknown = ConfigVersionDiff.Unknown;
+            Assert.That(unknown.HasPerArtifactData, Is.False, "未知:没有逐份数据");
+            Assert.That(unknown.HasChanges, Is.False, "未知不得被读成「有变化」…");
+
+            var same = new[] { new ArtifactConfigVersion("a_data", 1u) };
+            ConfigVersionDiff noChange = ConfigVersionDiff.Compare(same, same);
+            Assert.That(noChange.HasPerArtifactData, Is.True, "…但也不得被读成「没变化」");
+            Assert.That(noChange.HasChanges, Is.False, "逐份全等才是真的无差异");
+
+            // 两者的 `HasChanges` 都是 false ⇒ 判「是否真的没问题」**必须**先看 HasPerArtifactData
+            Assert.That(unknown.HasPerArtifactData == noChange.HasPerArtifactData, Is.False,
+                "这两种状态在数据面上必须可分,否则调用方无从区分");
+        }
+
+        [Test]
+        public void test_adr037_diff_nullInputThrows()
+        {
+            Assert.Throws<ArgumentNullException>(() => ConfigVersionDiff.Compare(null, Array.Empty<ArtifactConfigVersion>()));
+            Assert.Throws<ArgumentNullException>(() => ConfigVersionDiff.Compare(Array.Empty<ArtifactConfigVersion>(), null));
+        }
+
+        // ══════════════ ④ 写读往返 + 迁移(V-3)══════════════
+
+        [Test]
+        public void test_adr037_composeWritesArtifacts_andLoadReturnsThem()
+        {
+            var artifacts = new[]
+            {
+                new ArtifactConfigVersion("b_data", 7u),
+                new ArtifactConfigVersion("a_data", 5u),
+            };
+            byte[] signed = SaveService.AddChecksum(ComposeUnsigned(artifacts));
+
+            SaveService loadSide = NewLoadSide();
+            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), signed);
+            loadSide.Load(new SaveSlot(1));
+
+            Assert.That(loadSide.LastLoadedArtifactConfigVersions, Is.Not.Null,
+                "读档必须交出逐份版本(否则「哪张表变了」永远不可判)");
+            Assert.That(loadSide.LastLoadedArtifactConfigVersions.Count, Is.EqualTo(2));
+            Assert.That(loadSide.LastLoadedArtifactConfigVersions[0].Address, Is.EqualTo("a_data"),
+                "解码后仍是升序(规范形)");
+            Assert.That(loadSide.LastLoadedArtifactConfigVersions[0].Version, Is.EqualTo(5u));
+            Assert.That(loadSide.LastLoadedConfigVersion, Is.EqualTo(Combined), "组合值仍写在头部");
+        }
+
+        [Test]
+        public void test_adr037_migrationV2ToV3_roundTripsToIdenticalV3Bytes()
+        {
+            byte[] v3 = ComposeUnsigned(null);      // 无逐份 ⇒ 段 count=0
+            byte[] v2 = StripSegmentToV2(v3);       // 去掉段、版本号改 2
+
+            byte[] migrated = SaveMigrationChain.Migrate(
+                v2, SaveHeader.CurrentSaveVersion, new ISaveMigration[] { new SaveMigrationV2ToV3() });
+
+            CollectionAssert.AreEqual(v3, migrated,
+                "v2→v3 必须产出与「同一份 v3 直接写出」**逐字节相同**的结果 —— " +
+                "正文一个字节都不许动,版本号与空段是唯一差异");
+        }
+
+        [Test]
+        public void test_adr037_loadV2File_migratesAndReportsUnknown()
+        {
+            byte[] v2 = StripSegmentToV2(ComposeUnsigned(null));
+
+            SaveService loadSide = NewLoadSide();
+            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(v2));
+
+            Assert.DoesNotThrow(() => loadSide.Load(new SaveSlot(1)),
+                "v2 档必须能读(迁移链第一条真实输入)");
+            Assert.That(loadSide.LastLoadedArtifactConfigVersions.Count, Is.EqualTo(0),
+                "v2 档没有逐份版本 ⇒ 段为空");
+            Assert.That(loadSide.LastLoadedConfigVersion, Is.EqualTo(Combined), "组合值照旧交回");
+        }
+
+        // ══════════════ 夹具工具 ══════════════
+
+        private byte[] ComposeUnsigned(IReadOnlyList<ArtifactConfigVersion> artifacts)
+            => SaveComposer.Compose(
+                _stream.Events, _predicate, _decoder, new SaveCodec(),
+                worldSeed: 1UL, configVersion: Combined, tick: 20L,
+                existingFoldedRows: _stream.FoldedRows, blobPool: _pool,
+                artifactConfigs: artifacts);
+
+        /// <summary>把 v3 的**不含校验和**字节还原成 v2:去掉段、版本号写 2。</summary>
+        private static byte[] StripSegmentToV2(byte[] v3)
+        {
+            ConfigVersionSegment.Decode(v3, SaveHeaderCodec.FixedSize, out int segmentBytes);
+            var v2 = new byte[v3.Length - segmentBytes];
+            Array.Copy(v3, 0, v2, 0, SaveHeaderCodec.FixedSize);
+            Array.Copy(v3, SaveHeaderCodec.FixedSize + segmentBytes, v2, SaveHeaderCodec.FixedSize,
+                       v3.Length - SaveHeaderCodec.FixedSize - segmentBytes);
+            v2[SaveHeaderCodec.SaveVersionOffsetFixed] = 2;      // u32 LE,高位恒 0
+            v2[SaveHeaderCodec.SaveVersionOffsetFixed + 1] = 0;
+            v2[SaveHeaderCodec.SaveVersionOffsetFixed + 2] = 0;
+            v2[SaveHeaderCodec.SaveVersionOffsetFixed + 3] = 0;
+            return v2;
+        }
+
+        private SaveService NewLoadSide()
+        {
+            IReadOnlyList<SimEvent> pending = null;
+            return new SaveService(
+                _testDir, new SaveCodec(),
+                folded: _predicate,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                replaySink: events => pending = events,
+                foldedRowSink: bytes => _stream.Restore(
+                    pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),
+                    FoldRowCodec.DecodeSegment(bytes)),
+                compose: _ => ComposeUnsigned(null),
+                // ADR-037 §⑤:链必须注册 v2→v3,否则 v2 档在链里断掉(生产装配同款)。
+                migrations: new ISaveMigration[] { new SaveMigrationV2ToV3() },
+                writeScheduler: action => action(), blobRestoreSink: _pool);
+        }
+
+        /// <summary>手工拼一段(用于造「写侧绝不会产出」的非法字节)。</summary>
+        private static byte[] BuildRawSegment(params (string addr, uint version)[] entries)
+        {
+            using (var ms = new MemoryStream())
+            using (var w = new BinaryWriter(ms))
+            {
+                w.Write(entries.Length);
+                foreach ((string addr, uint version) in entries)
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(addr);
+                    w.Write(bytes.Length);
+                    w.Write(bytes);
+                    w.Write(version);
+                }
+                w.Flush();
+                return ms.ToArray();
+            }
+        }
+    }
+}

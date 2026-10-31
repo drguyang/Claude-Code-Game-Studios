@@ -1003,7 +1003,39 @@
   `TD-medcons-19` 维持 `open`。Engine Knowledge Risk **LOW**(纯装配与接口契约;`Sim` / `Sim.Contracts`
   引用集一字不改,门 A / b2 / ADR-025 §① 全部继续成立)。
 
-> **本日志状态**:全部 ADR(001–**036**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-037 ✅ Accepted 2026-10-31]**存档 v3 —— 配置版本段(逐份 `ConfigVersion`)** ——
+  `docs/architecture/adr-037-save-v3-config-version-segment.md`。**为 `AC-7a-14` 末句的
+  「供排查」立可判性**(2026-10-31 AC 执行体轮的直接后续)。病因:档头只有一个组合后的 u32
+  (`DataCoreConfigVersion.Combine`),反推不出成员 ⇒ 排查只能得到「两串十六进制不同」。
+  七点裁决(**§Decision ③–⑦ 由本轮就地裁定,未经用户逐条确认** —— 同 ADR-034 口径):
+  ① **布局 v3 = `头部 | 配置版本段 | 事件段 | 折叠段 | 载荷段`** —— 插在头部之后
+  (**不是尾部**):迁移链按「从末尾算的字节」比对正文(`SaveMigrationChain.TailBody`),
+  尾部追加必破该断言 ⇒ 那样 v2→v3 迁移**结构上不可能**(ADR-034 §⑥ ⓑ 的同一条理由);
+  ② **段形状** `count:i32 + count × {addrLen:i32, addr:utf8, version:u32}`,**写地址串不写索引**
+  (索引随 `DataCoreAddresses` 装载序漂移 ⇒ 归因会指错表);编码序 = address Ordinal 升序,
+  解码**拒收**非升序 / 重复 / 负 count(**规范形唯一**);
+  ③ **`SaveVersion` 2 → 3**,`PayloadSegmentMinVersion` **保持 2**(v1 仍拒收);
+  ④ **「未知」≠「无差异」**:`count = 0` = 未知,由 `ConfigVersionDiff.HasPerArtifactData` 承载,
+  **不得**降级成「逐份全等」(本仓 F9 同族处置:`Unknown` 刻意取 `default`);
+  ⑤ **v2→v3 迁移 = 在 `FixedSize` 处插入 `count = 0` + 写版本 3** —— 正文逐位不动,
+  **是 `ISaveMigration` 预言的那条「第一次升到 3 才有真输入」的脚本**;写入空集而非补算
+  (v2 从未记录逐份版本,伪造会把每次读旧档报成「完全一致」);
+  ⑥ **组合值 `ConfigVersion` 不变**(ADR-014 §五 / AC-51-D7 面一字不改,本件只**追加信息**);
+  ⑦ **写侧同源**:逐份与组合值出自**同一次** `LoadAllCookedHeaders`。
+  **驳回四案**:尾部追加(破迁移链)· 写索引(漂移)· 让 `ConfigVersion` 变致命(推翻 ADR-010 §七)·
+  只登记成债而不做(窗口一关,代价从 0 变成带迁移的布局变更 + 永久残缺的排查面)。
+  **⚠️ 实现轮**落盘:`Sim.Contracts/ArtifactConfigVersion.cs`(`ArtifactConfigVersion` /
+  `ConfigVersionSnapshot` / `ConfigVersionDiff`)· `Sim.Codec/ConfigVersionSegment.cs` ·
+  `Sim.Codec/SaveMigrationV2ToV3.cs` · `SaveService`(读段 + `LastLoadedArtifactConfigVersions`)·
+  `SaveComposer`(写段)· `CompositionRoot`(装配迁移 + `ResolveConfigVersionSnapshot`)·
+  `ConfigVersionDriftRecord`(逐表归因日志)。判据 `save_v3_config_segment_test.cs` **11 条**,
+  证伪轮 **5 变异各转红**(差异集恒报全部 / 迁移插入点错位 / 未知冒充有数据 / 停用升序校验 /
+  停用重复校验),五文件 SHA-256 逐字节还原。`[2,3)` 不再是空区间 ⇒ 迁移分支首次有**走完整 `Load`** 的真实输入
+  (⚠️ `TD-persist-10` 本就已于 2026-10-31 由 `S21-7` 以「抽出可直测方法」**关闭**;
+  本件是**互补的第二层**,不重复结清该债)。
+  Engine Knowledge Risk **LOW**(纯 BCL 字节布局)。
+
+> **本日志状态**:全部 ADR(001–**037**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
@@ -1017,12 +1049,13 @@
 > Accepted;文件号按落盘时序)。
 > **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
 > Pre-Production 开工门的技术侧**无阻塞项**。
-> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 / 036 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
+> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 / 036 / 037 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
 > 结清 `PRE-S18-C`)· ADR-033(结构 id 撞号,结清 `TD-building-02` 的语义半边)·
 > ADR-034(存档 v2 载荷段,结清 `TD-persist-09` 的裁定半边)· ADR-028(audio 小裁批)·
 > ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)** ·
 > **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)** ·
-> **ADR-036(53 判定链装配,为 `TD-medcons-13` / `-18` / `-19` 立可开工对象;三条债须待其 S4 才可结)**
+> **ADR-036(53 判定链装配,为 `TD-medcons-13` / `-18` / `-19` 立可开工对象;三条债须待其 S4 才可结)** ·
+> **ADR-037(存档 v3 配置版本段 —— 让 `AC-7a-14` 的「哪一张表变了」可判;消解 `TD-persist-10`)**
 > 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists

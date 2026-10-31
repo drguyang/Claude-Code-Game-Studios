@@ -32,8 +32,13 @@ namespace DaYiJingCheng.Sim.Codec
         /// 使 blob 池可跨进程重建。v1 及更早的存档**没有**载荷字节(从未写出),
         /// 信息论上补不出来 ⇒ <b>不迁移,显式拒绝</b>(见 <see cref="PayloadSegmentMinVersion"/>)。</para>
         /// <para>⚠️ 改此值 = 改存档布局。禁「只改版本号不改布局」—— 那会让旧档被按新布局解析。</para>
+        /// <para>🔁 <b>v2 → 3(2026-10-31,ADR-037)</b>:v3 在**头部之后、事件段之前**插入
+        /// <b>配置版本段</b>(<c>count:i32 + count × {addrLen:i32, addr:utf8, version:u32}</c>),
+        /// 使「哪一张表变了」从不可推断变成可判。插在头部之后(而非尾部)是**可迁移性**要求的:
+        /// 迁移链按「从末尾算的字节」比对正文,尾部追加必破该断言(ADR-037 §①)。
+        /// v2 档由 `SaveMigrationV2ToV3` 插入 <c>count = 0</c>(= 未知,不得伪造)后升到 v3。</para>
         /// </summary>
-        public const uint CurrentSaveVersion = 2;
+        public const uint CurrentSaveVersion = 3;
 
         /// <summary>
         /// 首个**带载荷段**的存档版本(ADR-034 §Decision ⑥)。

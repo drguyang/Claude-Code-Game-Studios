@@ -114,7 +114,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_invokesChainAndUsesItsOutput()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new[] { mig });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3() });
 
             byte[] input = Save(version: 1);
             Assert.That(SaveHeaderCodec.Read(input).SaveVersion, Is.EqualTo(1u), "夹具坐实:输入确是 v1");
@@ -122,8 +122,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
             byte[] output = svc.ApplyMigrationsIfNeeded(input, SaveHeaderCodec.Read(input));
 
             Assert.That(mig.Calls, Is.EqualTo(1), "链必须被调用恰好一次");
-            Assert.That(SaveHeaderCodec.Read(output).SaveVersion, Is.EqualTo(2u),
-                "输出必须是迁移后的字节 —— 若仍读到 1,说明 migrated 被丢弃、用了原来的 data");
+            Assert.That(SaveHeaderCodec.Read(output).SaveVersion,
+                Is.EqualTo(SaveHeader.CurrentSaveVersion),
+                "输出必须是迁移后的字节 —— 若仍读到 1,说明 migrated 被丢弃、用了原来的 data" +
+                "(ADR-037 起目标版本 = 3,v1→v2→v3 两级都要走)");
             Assert.That(SaveService.ValidateChecksum(output), Is.True,
                 "迁完必须补回校验和(否则读档在 Verifying 步就红)");
             Assert.That(SaveHeaderCodec.Read(output).WorldSeed, Is.EqualTo(WorldSeed),
@@ -135,7 +137,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_sameVersion_passesThroughWithoutCallingChain()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new[] { mig });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3() });
 
             byte[] input = Save(version: SaveHeader.CurrentSaveVersion);
             byte[] output = svc.ApplyMigrationsIfNeeded(input, SaveHeaderCodec.Read(input));
@@ -152,7 +154,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_migratedOutput_loadsAndReplays_whileRawV1IsRejected()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new[] { mig });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3() });
 
             byte[] v1 = Save(version: 1);
             byte[] migrated = svc.ApplyMigrationsIfNeeded(v1, SaveHeaderCodec.Read(v1));
