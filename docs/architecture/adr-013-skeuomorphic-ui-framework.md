@@ -478,8 +478,10 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
   ⇒ 按「A 组改 / C 组加注」处置,**不改写历史判决**。
 
 **⚠️ 本 Amendment 未做(不得借本节的「Accepted」当已验)**:
-- **世界不冻结**:暂停壳只挡**输入意图**(规则七方向②),**不**停 tick / 不冻结 sim。
-  「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**。
+- ~~**世界不冻结**:暂停壳只挡**输入意图**(规则七方向②),**不**停 tick / 不冻结 sim。
+  「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**。~~
+  🔁 **已由 Amendment D 改判(2026-11-01)**:该句由「未做」转为**已裁并已实现** ——
+  见本节末 **Amendment D**。原文保留,不改写。
 - **输入冻结面已于同日补齐**(同批,`ModalInputFreeze`):规则七此前只覆盖 **E 查体 / F 急救**,
   **移动轴**一直是漏的(暂停壳摊开还能走)。现由 `ModalInputFreeze` 统一折零移动轴、
   并接进 `BuildInputDriver`(建造四动作)。
@@ -503,6 +505,46 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 `Gameplay.Presentation` 侧 `IModalGateState` 的「只有一个布尔」形态 —— 4 仍看不到成员清单(AC-4-09)。
 
 **Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记,不触及任何 post-cutoff API)。
+
+---
+
+## §十-C · Amendment D —— 挡路模态摊开时**真停世界**(2026-11-01 用户裁定)
+
+**背景**:Amendment C 把 `Pause` 立为闭集第八员时,逐字写了「**世界不冻结**」并注明
+「『暂停 = 世界真的不动』需要对 `ITickProvider` 的判决,本件**不涉及**」。
+本 Amendment 就是那次被挂起的判决 —— 用户 2026-11-01 两问两答:
+
+| 问 | 裁 |
+|---|---|
+| 冻到哪一层? | **只停 sim tick**(不碰 `Time.timeScale`,不碰表现层) |
+| 哪些模态开时冻? | **所有挡路模态**(与规则七同一个 `BlocksPlay` 读面) |
+
+**Decision**:
+① **触发面 = `ModalInputFreeze.IsBlocked`**(它读 42 的 `BlocksPlay`)——
+规则七的门与世界冻结**共用同一读面**,不另立第二个「什么算暂停」的判据;
+② **机制 = 跳过帧泵里的 `MovementFeed.PumpFrame`**(它推进 `ITickProvider` 并步体征)——
+下游一切 `CurrentTick > tickBefore` 的分支(病程 / 病人 / AI / 52 导演 / 存档定时器)随之自然跳过;
+③ **不引入 `Time.timeScale`**:表现层不停(本项目表现层本就不持游戏状态,ADR-013 §9 C3);
+④ **联机不得照此执行**:45 的暂停语义已裁「本地暂停 UI + 主机 tick 不停」
+(`accessibility-requirements.md:128`)。**P0 无联机 ⇒ 当前无冲突**,
+但 P1b 接 45 时**必须**在冻结闸上加会话判定 —— 记为**实现期义务**,不属本裁决。
+
+**Consequences**:
+- 暂停期间存档 / 读档定时器、病程、病人出现、随机事件**全部静止** ⇒ 「暂停就是暂停」;
+- 事件流在暂停窗内**零新事件**(tick 不前进 ⇒ 无 `Tick` 可写)⇒ 回放与确定性面**零变化**;
+- `ModalInputFreeze` 的原注释「tick 泵仍须每帧推进(世界不冻)」**失效**,已就地加注;
+- 本条**未**推翻 Amendment C 的输入抑制面(规则七方向②) —— 两者叠加:
+  **输入意图被丢 + 世界 tick 停**。
+
+**Validation(全部有载体,2026-11-01 实跑)**:
+- `modal_gate_wiring_test.test_productionAssembly_modalOpen_freezesWorldTick`
+  (PlayMode · 真启动序):正控(未开模态 tick 推进)→ 开暂停壳 60 帧 **tick 一位不动** → 关屏 **恢复推进**;
+- 变异 **MUT-W1**(`worldFrozen = false`)⇒ 该条红(**+20 tick**),其余三条绿;
+  还原 SHA-256 逐字节(`BootRoot.cs` `b22a1ec5…`);
+- 回归:EditMode **6323 / 6286 / 0 / 0 / 37**(与基线逐项一致,含源码扫描判据
+  `test_bootRoot_update_readsMoveAxisOnlyThroughResolveMoveAxis`)· PlayMode **262 / 258 / 0 / 2 / 2**。
+
+**Engine Knowledge Risk**:LOW(纯 C# 控制流,零引擎 API)。
 
 
 ## Alternatives Considered

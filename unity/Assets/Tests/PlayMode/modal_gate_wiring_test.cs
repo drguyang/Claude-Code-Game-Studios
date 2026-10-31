@@ -257,6 +257,56 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // D · 世界冻结(sim tick 停)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 挡路模态摊开 ⇒ `ITickProvider` **不再推进**(ADR-013 §十-C Amendment D,2026-11-01 用户裁定)。
+        /// <para>判据三段:① 模态未开时 tick **必须**会推进(正控 —— 不推进则下面的「不推进」是空洞负控);
+        /// ② 模态开着时 tick 一位不动;③ 关屏后**恢复**推进(冻结不是单向的)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_productionAssembly_modalOpen_freezesWorldTick()
+        {
+            yield return BootRealGame();
+            var tick = ReadField<SimTickDriver>("_tickDriver");
+            Assert.IsNotNull(tick, "BootRoot._tickDriver 应已装配");
+            var ui = ReadField<SkeuoRuntimeDriver>("_uiDriver");
+            Assert.IsNotNull(ui, "BootRoot._uiDriver 应已装配");
+
+            // ① 正控:没开模态时 tick 必须推进
+            long t0 = tick.CurrentTick;
+            for (int i = 0; i < 40; i++) yield return null;
+            long t1 = tick.CurrentTick;
+            Assert.That(t1, Is.GreaterThan(t0),
+                $"[正控] 模态未开时 tick 应推进({t0} → {t1})—— " +
+                "不推进 ⇒ 下面的「不推进」是空洞负控(与冻结无关)");
+
+            // ② 模态开:tick 不得推进
+            Assert.IsTrue(ui.OpenModal(ModalId.Pause), "生产驱动应能打开暂停壳");
+            yield return null;
+            Assert.IsTrue(ui.BlocksPlay, "暂停壳应处于挡路态");
+
+            long f0 = tick.CurrentTick;
+            for (int i = 0; i < 60; i++) yield return null;
+            long f1 = tick.CurrentTick;
+
+            Assert.That(f1, Is.EqualTo(f0),
+                $"挡路模态摊开时 tick **不得**推进(实际 {f0} → {f1},+{f1 - f0})—— " +
+                "生产面 = `BootRoot` 帧泵里的 `worldFrozen` 闸(ADR-013 §十-C Amendment D)");
+
+            // ③ 关屏后恢复
+            ui.CloseModal();
+            yield return null;
+            Assert.IsFalse(ui.BlocksPlay, "关屏后不应再挡路");
+
+            long r0 = tick.CurrentTick;
+            for (int i = 0; i < 40; i++) yield return null;
+            Assert.That(tick.CurrentTick, Is.GreaterThan(r0),
+                $"关屏后 tick 必须恢复推进(实际 {r0} → {tick.CurrentTick})—— 冻结不得是单向的");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 装配 / 注入
         // ══════════════════════════════════════════════════════════════════
 

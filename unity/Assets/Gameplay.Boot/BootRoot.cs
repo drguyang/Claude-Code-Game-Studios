@@ -1265,10 +1265,25 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    (规则七只覆盖了 E/F 两条动作边,移动轴一直漏着)。
             //    ⚠️ 只折零**轴**,不跳过 `PumpFrame`:tick 泵仍须每帧推进(世界不冻)。
             Vector2 moveAxis = ResolveMoveAxis(MovementInputReader.ReadMoveAxis(), _inputFreeze);
-            MovementFeed.PumpFrame(_player, _tickDriver,
-                                   moveAxis,
-                                   delta,
-                                   StepVitals);
+
+            // 🔁 2026-11-01 用户裁定(ADR-013 §十-C **Amendment D**):挡路模态摊开 ⇒ **真停世界**。
+            //    ↑ 上一条(2026-10-31)写「世界不冻」,那是**当时的裁定**;本日改判为冻结 sim tick,
+            //      原文保留(承「原文不删、就地加注」)。
+            //    口径(用户两问两答):**只停 sim tick**(不碰 `Time.timeScale` / 不碰表现层),
+            //      **触发面 = 所有挡路模态**(与规则七同一个 `BlocksPlay` 读面 —— 不造第二个判据)。
+            //    ⇒ 停的是 `PumpFrame`(它推进 `ITickProvider` 并步体征);下游一切
+            //      `CurrentTick > tickBefore` 的分支随之自然跳过(病程 / 病人 / AI / 52 / 存档定时器)。
+            //    ⚠️ **联机不得照此执行**:45 的暂停语义已裁「本地暂停 UI + 主机 tick 不停」
+            //      (`accessibility-requirements.md:128`)。P0 无联机,故当前无冲突;
+            //      P1b 接 45 时**必须**在此加会话判定,不得把本冻结带进网络会话。
+            bool worldFrozen = _inputFreeze != null && _inputFreeze.IsBlocked;
+            if (!worldFrozen)
+            {
+                MovementFeed.PumpFrame(_player, _tickDriver,
+                                       moveAxis,
+                                       delta,
+                                       StepVitals);
+            }
 
             // chunk 驻留驱动(ADR-023 ⑥ · 系统 6):读**最后一条已进流的 `ActorCellEntered`** 的格,
             // 纯函数重推激活集。⚠️ 刻意读 `LastCommittedCell` 而不是 `transform.position` ——

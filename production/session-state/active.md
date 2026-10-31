@@ -14793,3 +14793,50 @@ batch 进程**从不获得 Game View 焦点**,而编辑器默认
 ### 未做(不借绿)
 
 - 世界不冻结 / 正式入口两支(暂停壳 Draft、主菜单未接线)/ 脉案屏环对比度 —— 均未动。
+
+## 2026-11-01 · 世界冻结(ADR-013 §十-C **Amendment D**)
+
+**这是一次改判,不是补实现**:Amendment C 原文逐字写「世界不冻结 …… 本件不涉及」,
+用户 2026-11-01 两问两答后改判。原文保留、就地加注。
+
+### 裁决
+
+| 问 | 裁 |
+|---|---|
+| 冻到哪一层 | **只停 sim tick**(不碰 `Time.timeScale` / 不碰表现层) |
+| 哪些模态开时冻 | **所有挡路模态**(与规则七同一个 `BlocksPlay` 读面) |
+
+### 实现
+
+`BootRoot` 帧泵:`worldFrozen = _inputFreeze.IsBlocked` ⇒ **跳过 `MovementFeed.PumpFrame`**
+(它推进 `ITickProvider` 并步体征)。下游一切 `CurrentTick > tickBefore` 分支随之自然跳过
+(病程 / 病人 / AI / 52 / 存档定时器)。
+
+⚠️ **联机不得照此执行**:45 已裁「本地暂停 UI + 主机 tick 不停」(`accessibility-requirements.md:128`)。
+P0 无联机 ⇒ 无冲突;P1b 接 45 时**必须**在闸上加会话判定 —— 已写进 Amendment D 的 Consequences。
+
+### 判据
+
+- 新测 `modal_gate_wiring_test.test_productionAssembly_modalOpen_freezesWorldTick`:
+  正控(tick 推进)→ 开壳 60 帧 **tick 一位不动** → 关屏 **恢复推进**。
+- 变异 **MUT-W1**(`worldFrozen = false`)⇒ 只有该条红(**+20 tick**),其余三条绿;
+  还原 SHA-256 逐字节(`BootRoot.cs` `b22a1ec5…`)。
+
+### 回归(三元组)
+
+- EditMode **6323 / 6286 / 0 / 0 / 37** @ 2026-11-01 02:13 CST · 本批 · `ac425309`+工作树
+  (含源码扫描判据 `test_bootRoot_update_readsMoveAxisOnlyThroughResolveMoveAxis` —— 逐项与基线一致)
+- PlayMode **262 / 258 / 0 / 2 / 2** @ 2026-11-01 02:13:55 CST · 本批 · `ac425309`+工作树
+  (vs 261 / 257 @ 02:01:30;等式 `262 − 261 = 1`)
+
+### 文档加注
+
+`adr-013 §十-C`(Amendment C 那句划掉 + 新增 Amendment D 全节)· `pause-shell-42.md`
+(§8 两处 + OQ-PS-2 改判为已裁)· `save-slots-7b.md:75` · `save-slot-ui.md:243` ·
+`ModalInputFreeze.cs` 注释 —— 均为「原文不删、就地加注」。
+
+### 未做(不借绿)
+
+- **联机会话判定**(P1b 接 45 时)
+- 表现层未停(按裁定:**不动**表现层)
+- 正式入口两支(暂停壳仍 Draft / 主菜单未接线)仍缺

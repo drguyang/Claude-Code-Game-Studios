@@ -39,7 +39,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>
         /// 折零移动轴。
         /// <para>⚠️ 返回 <c>Vector2.zero</c> 而**不是**让调用方跳过 `PumpFrame` ——
-        /// tick 泵仍须每帧推进(世界不冻),只是玩家不动。</para>
+        /// ~~tick 泵仍须每帧推进(世界不冻),只是玩家不动。~~</para>
+        /// <para>🔁 **2026-11-01 改判**:挡路模态摊开时 `BootRoot` 的帧泵由 `worldFrozen` 闸
+        /// **跳过** `MovementFeed.PumpFrame` ⇒ 世界**真的停**(ADR-013 §十-C Amendment D)。
+        /// 本类的职责随之变为「挡路期间的输入侧」;停止 tick 不归本类(归帧泵那道闸)。</para>
         /// </summary>
         public Vector2 FilterMovement(Vector2 moveAxis) => IsBlocked ? Vector2.zero : moveAxis;
     }
