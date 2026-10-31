@@ -1,7 +1,7 @@
 # Story 005: 采集动作原子性、失败收敛与呈现/浮点反射门
 
 > **Epic**: 采集
-> **Status**: In Progress(2026-10-31 · 闸门 / 三类失败收敛 / 原子性已落;AC-17-09 / 09b **未做**(AC-17-10 已于同轮补上)⇒ 不得记 Complete)
+> **Status**: Complete(2026-10-31 · **COMPLETE WITH NOTES** —— 全部 [A] 级 AC 已落;三条 `[L]` 仍 `EXTERNAL` 未勾;AC-17-10 以 **IL 级** 实现,与 AC 措辞的「Roslyn」有差,已登记)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
@@ -148,12 +148,12 @@
 | **AC-17-07** 满载零消耗 | ✅ | 满载 ⇒ 具名 `FullInventory`;**零事件 · 零 `Spawn`/`Claim` · 零成长 · 零 `instance_id`**(用「下一次成功铸造拿到的值」观察 —— `IIdAuthority` 没有 peek 面) |
 | **AC-17-07c** 三类具名分支 | ✅ | 枚举反射:三支互不撞值、均非 `None`;`Reject(None)` 抛 |
 | **AC-17-08** 打断零效果 | ✅(结构半边) | 打断 = 不调用 ⇒ 零效果是**结构性**的(事件只在裁决成功时发);判据 = 被拒之后下一次成功采集的 `gather_seq` 仍从 0 起 |
-| **AC-17-09** DTO 递归反射门 | ❌ **未做** | `GatherAffordanceDto` 等呈现 DTO **尚未存在**;没有对象可扫。写一个空扫描跑绿 = F1 假绿 |
-| **AC-17-09b** `AudioCueDto` 无品质维 | ❌ **未做** | 同上;且 44 的 cue 落地形态未定 |
+| **AC-17-09** DTO 递归反射门 | ✅ **2026-10-31 已落** | 新增 `GatherAffordanceDto`(整数域四字段,零余量数字)+ `AntiFantasyDtoGate`(递归类型扫描);**已接进 RunAll 与 BuildGate 两条链**(按名从 `Sim.Contracts` 载入 DTO,类型缺失即报错) |
+| **AC-17-09b** `AudioCueDto` 无品质维 | ✅ **2026-10-31 已落** | 对既有 `AudioCueDto` 直接扫描 + 逐字段名断言(`AntiFantasyDtoGate.HasForbiddenToken`) |
 | **AC-17-10** 零浮点静态门 | ✅ **2026-10-31 已落** | 新门 `Editor.Tools.Gates/ForagingFloatGate.cs`(扫 `Assets/Sim/Foraging/**`,递归)+ 接进 `AssemblyGates.RunAll`;**探针轮 M4**:真放一个含 `float` 的文件 ⇒ `test_ac1710_realForagingTree_isFloatFree` **exact 1 红**,删文件即回绿。⚠️ 门是**文本级**不是 Roslyn 语法树级,IL 层 `conv.r4` 是已登记的残余缺口(门头注) |
 | **[L] 三条**(07b / 12 / 13b) | ⏸ `EXTERNAL` | 载体归 42 / 44,未交付 ⇒ **不得勾选** |
 
-⇒ **本卡仍未完成**。剩下两项 `❌` 不是「差一点」,是**零实现**(呈现 DTO 尚不存在)。
+⇒ **2026-10-31 收尾轮把 AC-17-09 / 09b 补上后,本卡全部 [A] 级 AC 已落**(见文末 §AC-17-09 补轮)。三条 `[L]` 仍 `EXTERNAL`(载体归 42/44,未交付)⇒ 按既有先例记 **COMPLETE WITH NOTES**,不勾 `[L]`。
 
 ### 证伪(E2)
 
@@ -197,4 +197,49 @@
 
 **回归**(三元组 `2026-10-31T16:32–16:36 CST` · `AC-17-10` 批 · `b078ab0d`+未提交):
 - EditMode `6255/6218/0/0/37`(基线 `6247/6210` ⇒ **+8/+8**,恰等新增 8 测)
+- PlayMode `238/234/0/2/2`(`exit=2` 伴 `failed=0`,与基线同形)
+
+### AC-17-09 / 09b 补轮 + AC-17-10 升级为 IL 级(2026-10-31 · 用户裁定「现在修复」)
+
+#### ① AC-17-10:文本级 → **源级 + IL 级**
+
+原实现只有源文本扫描,残余缺口 = IL 层 `conv.r4` / `conv.r8` 不经源码文本。
+现补 `ForagingFloatGate.CheckIl(dllPath)`(Mono.Cecil,与 `EcozoneIntegerGates` 同法):
+扫 `DaYiJingCheng.Sim.Foraging*` 的**字段 / 参数 / 局部变量 / 返回类型** + 四条浮点指令。
+接线由 `RunAll(".")` 改为 `RunAllWithIl(".")`,**两处门链(RunAll + BuildGate)都接**。
+
+> ⚠️ **与 AC 措辞的差异(如实登记)**:AC-17-10 写「**Roslyn** 字面量扫描」,实现是**文本级 + IL 级**。
+> 理由:IL 级**严格强于** Roslyn 源级(后者同样看不见 IL 里的 `conv.r4`,也不跨装配看内联)。
+> 但这是**加强而非逐字实现**,不写成「完全按 AC 实现」。若日后确需 Roslyn 语法树面,
+> 须另立卡(引入 `Microsoft.CodeAnalysis` 属新依赖,须过 ADR)。
+
+#### ② AC-17-09:新增呈现契约 + 反幻想守卫
+
+- `Sim.Contracts/ForagingPresentationDtos.cs` —— `GatherAffordanceDto`(四个字段全整数域:
+  `NodeId` / `Cell`(Int3)/ `IsHarvestable` / `NodeKindOrdinal`)。**刻意不含余量数字 / 原始品级 /
+  本可采到** —— 三条理由逐条写在文件头。
+- `Editor.Tools.Gates/AntiFantasyDtoGate.cs` —— 递归 type-surface 扫描(字段 / 属性 / 构造参数 /
+  嵌套 / 泛型实参),词表 `rawquality` / `potential` / `couldharvest` / `remaining` 等(归一化后子串判)。
+  `RunAll(contractsDllPath)` 按**类型全名**从编译产物载入 DTO 再扫,**类型缺失即报错**(不静默跳过)。
+
+#### ③ AC-17-09b
+
+对**既有** `AudioCueDto` 直接扫描 + 逐字段名断言 —— 它本来就没有品质维,现在有了机械判据。
+
+#### 证伪
+
+| 变异 | 结果 |
+|---|---|
+| **M4** 往 `Assets/Sim/Foraging/` 真放一个含 `float` 的文件 | **exact 1 红** = `test_ac1710_realForagingTree_isFloatFree`;删文件回绿 |
+| **M5** 抽掉 `rawquality` / `potential` 两个词条 | **2 红** = 负控 + 归一化各一条 |
+
+两轮均 `cp` 还原 + SHA-256 逐字节一致(`M5` = `00ab2fd2…48c7c6`)。
+
+> 🔴 **两轮 manifest 门各拦下 3 处(如实记)**:新门类漏登记 `ClassConsumerManifest` /
+> `EntryWiringManifest`;`AntiFantasyDtoGate` 原名 `…DtoGuard`,因门类须以 `Gate`/`Gates`
+> 结尾才被 `GateChainSource` 认作门类 ⇒ 改名。两次都是**我漏的**,不是门误报。
+
+#### 回归(三元组 `2026-10-31T16:5x–16:59 CST` · `AC-17-09` 批 · `46f98685`+未提交)
+
+- EditMode `6261/6224/0/0/37`(基线 `6255/6218` ⇒ **+6/+6**,恰等新增 6 测)
 - PlayMode `238/234/0/2/2`(`exit=2` 伴 `failed=0`,与基线同形)

@@ -87,7 +87,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
-                    "ForagingFloatGate.RunAll",      // AC-17-10 17 求值路径零浮点 · 2026-10-31 接线上线
+                    "ForagingFloatGate.RunAllWithIl", // AC-17-10 17 求值路径零浮点(源级+IL)· 2026-10-31
+                    "AntiFantasyDtoGate.RunAll",     // AC-17-09 呈现 DTO 反幻想 · 2026-10-31
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
                     "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
@@ -125,6 +126,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "EcozoneIntegerGates.RunAll",      // AC-6-22(BLOCKING)· 2026-10-21 接线上线
                     "EmergencyIntegerGates.RunAll",    // AC-10-02 / -03(BLOCKING)· 同上
                     "RuleNineGate.RunAll",             // AC ⑥ 规则九(BLOCKING)· 2026-10-22 接线上线
+                    "ForagingFloatGate.RunAllWithIl",  // AC-17-10(BLOCKING)· 2026-10-31
+                    "AntiFantasyDtoGate.RunAll",      // AC-17-09(BLOCKING)· 2026-10-31
                 },
             };
 
@@ -200,8 +203,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             new ClassVerdict { ClassName = "MedConsFloatGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
             new ClassVerdict { ClassName = "ForagingFloatGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll+BuildGate",
+                Note = "AC-17-10 落(2026-10-31);源级 + IL 级(Cecil)两级,RunAll 与构建链都接" },
+            new ClassVerdict { ClassName = "AntiFantasyDtoGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
-                Note = "AC-17-10 落(2026-10-31);文本级门,IL 层 conv.r4 是已登记残余缺口" },
+                Note = "AC-17-09 落(2026-10-31);按名从 Sim.Contracts 载入 DTO,门自身不引用它" },
             new ClassVerdict { ClassName = "PlayerAssemblyGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
                 Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },
@@ -339,6 +345,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // 2026-10-21:两行已删除(缺口补齐)。新增缺口须在此登记并附 AC 号。
+
             };
 
         /// <summary>

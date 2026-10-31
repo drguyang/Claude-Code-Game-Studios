@@ -14163,3 +14163,16 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   **exact 1 红**;删文件回绿。
 - 如实登记:门是**文本级**不是 Roslyn 语法树级;IL 层 `conv.r4` 是残余缺口(门头注写明升级触发条件)。
 - story-005 仍 **In Progress**(AC-17-09 / 09b 零实现)。
+
+## 2026-10-31 · S22-2 收口(COMPLETE WITH NOTES)
+
+- AC-17-10 由**文本级**升级为**源级 + IL 级**(`ForagingFloatGate.CheckIl`,Cecil);
+  两处门链(RunAll + BuildGate)都接。**与 AC 措辞「Roslyn」有差,已登记:IL 级严格强于 Roslyn 源级**。
+- AC-17-09 / 09b 补上:新增 `Sim.Contracts/ForagingPresentationDtos.cs`(`GatherAffordanceDto`,整数域四字段、
+  零余量数字)+ `AntiFantasyDtoGate`(递归类型扫描;按名从 `Sim.Contracts` 载入 DTO,缺失即报错)。
+- 证伪:M4(真放含 float 的文件)exact 1 红 · M5(抽词条)2 红;SHA-256 还原一致。
+- 🔴 两轮 manifest 门各拦下 3 处(都是我漏的):`ClassConsumerManifest` / `EntryWiringManifest` 未登记;
+  且门类须以 `Gate`/`Gates` 结尾才被 `GateChainSource` 认作门类 ⇒ `…DtoGuard` 改名 `…DtoGate`。
+- 回归 `2026-10-31T16:5x–16:59 CST` · `AC-17-09` 批 · `46f98685`+未提交:
+  EditMode `6261/6224/0/0/37`(+6/+6)· PlayMode `238/234/0/2/2`。
+- 三条 `[L]` 仍 EXTERNAL,不勾。

@@ -153,7 +153,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(MedConsFloatGate.RunAll("."));
             // 17 采集零浮点门(story-005 · AC-17-10,2026-10-31):扫 `Assets/Sim/Foraging/**/*.cs`。
             // 与上一条同族但**各自持有词表** —— 共用一份会让改 53 的判据静默改掉 17 的(见 ForagingFloatGate)。
-            errs.AddRange(ForagingFloatGate.RunAll("."));
+            errs.AddRange(ForagingFloatGate.RunAllWithIl("."));
+            // 2026-10-31(story-005 · AC-17-09):呈现 DTO 反幻想递归扫描(构建期强制点)。
+            errs.AddRange(AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));
             // 写盘边界门(S16-4 · retro-14 行动项 A4,2026-10-20):测试不得写仓库。
             // 扫 `Assets/Tests/**/*.cs` —— R1 字面量相对目标 + R2 「锚点 × 写盘」须具名声明。
             errs.AddRange(FsWriteBoundaryGate.RunAll("."));
@@ -1454,6 +1456,9 @@ namespace DaYiJingCheng.EditorTools.Gates
                 errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
                 // 2026-10-22(S18-1 AC ⑥):规则九门接入构建前 fail-fast(与上面两 IL 门同格)。
                 errs.AddRange(RuleNineGate.RunAll("."));           // AC ⑥ · 规则九(源码 + IL)
+                // 2026-10-31(story-005 · AC-17-10):17 求值路径零浮点,源级 + IL 级。
+                errs.AddRange(ForagingFloatGate.RunAllWithIl("."));
+                errs.AddRange(AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));   // AC-17-09
                 if (roots == 0)
                     errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
                 if (errs.Count == 0) return;

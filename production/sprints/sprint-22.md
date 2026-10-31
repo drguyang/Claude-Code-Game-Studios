@@ -180,18 +180,20 @@ PY
 > **三条如实登记**:① 夹具抓到我的口算错(`decay(Σ_all)` 含本次采集);② **GDD `:352` 写「累计 40 份触底」,
 > 按表值算触底在 21** —— 值归数值轮,未改数据;③ `EffCapacity` 的运算次序本夹具**不能区分**,已明写不主张。
 
-> 🟡 **`S22-2` 2026-10-31 部分落地 —— 状态 `in-progress`,不记 done**。
+> ✅ **`S22-2` 2026-10-31 收口(COMPLETE WITH NOTES)** —— 首轮落闸门,收尾轮补 AC-17-09 / 09b / 10。
 > **已落**:`HarvestOutcome.cs`(三支具名 + `HarvestGate`)+ `HarvestOrchestrator.Resolve(request, gate)`,
 > 闸门**排在铸号与 `NoveltyTracker.Query` 之前**;夹具 `harvest_action_atomicity_test.cs`(8 测)。
 > **AC**:AC-17-07 ✅ · AC-17-07c ✅ · AC-17-08 ✅(结构半边)。
 > **AC-17-10 ✅ 同轮补上**:新门 `Editor.Tools.Gates/ForagingFloatGate.cs`(递归扫
 > `Assets/Sim/Foraging/**`)+ 接进 `AssemblyGates.RunAll`;夹具 `foraging_float_gate_test.cs`(8 测);
 > **探针轮 M4** = 真放一个含 `float` 的文件 ⇒ **exact 1 红**,删文件回绿。
-> **仍未做(零实现,不是「差一点」)**:AC-17-09 / 09b(DTO 递归反射门 —— 呈现 DTO 尚不存在);
-> `[L]` 三条仍 `EXTERNAL`。
+> **AC-17-09 / 09b ✅ 收尾轮补上**:新增 `GatherAffordanceDto`(整数域四字段,零余量数字)+
+> `AntiFantasyDtoGate`(递归类型扫描,按名从 `Sim.Contracts` 载入 DTO),**接进 RunAll 与 BuildGate 两条链**;
+> AC-17-10 由**文本级升为源级 + IL 级**(Cecil)。证伪 M4 exact 1 红 · M5 2 红。
+> **`[L]` 三条仍 `EXTERNAL`(42 的 UX Flag ③ 未交付)⇒ 不勾、不记绿**。
 > **证伪 3 条**:M2(闸门移到 `Query` 之后)**exact 1 红** · M3(判定换序)**exact 1 红** ·
 > M1(满载分支失效)**3 红超集**(如实记)。还原 SHA-256 一致。
-> **回归** `2026-10-31T15:40:59 CST`:`EditMode 6247/6210`(+8/+8 恰等)· `PlayMode 238/234`。
+> **回归** `2026-10-31T16:5x–16:59 CST`:`EditMode 6261/6224`(+6/+6 恰等;含首轮 +8)· `PlayMode 238/234`。
 
 ### Should Have
 

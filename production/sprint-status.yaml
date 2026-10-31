@@ -46,13 +46,13 @@ stories:
     name: "foraging/005 动作原子性与失败收敛"
     file: "production/epics/foraging/story-005-action-atomicity-failure-convergence.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: "S22-1"
-    completed: ""
-    note: "三条 [L] 走查 AC 挂 EXTERNAL(42 的 UX Flag ③ 未交付),不记绿。"
+    completed: "2026-10-31"
+    note: "**COMPLETE WITH NOTES**。闸门 + 三类具名失败 + 原子性(S22-2 首轮);AC-17-10 零浮点门由**文本级升为源级 + IL 级**(Cecil);AC-17-09 / 09b 由新增 `GatherAffordanceDto` + `AntiFantasyDtoGate` 补上并接进两条门链。三条 [L] 走查 AC 仍 EXTERNAL(42 的 UX Flag ③ 未交付),**不记绿**。证伪 M2/M3 各 exact 1 红 · M1 3 红超集 · M4 exact 1 红 · M5 2 红。回归 EditMode 6261/6224(+6/+6)· PlayMode 238/234。"
 
   - id: "S22-3"
     name: "smoke #1 载体:启动序 E-13 硬失败链"
