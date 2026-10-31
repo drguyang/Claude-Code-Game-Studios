@@ -219,8 +219,43 @@ modal-Pause        (0,204,1680,153)
 ② `spriteMeshType` —— 否:改 FullRect 复跑无变化;
 ③ 规则里的 `border-*-width: 0` + `border-*-color` 组 —— 否:整组注释掉复跑,**仍是黄斑**。
 
-⇒ 剩下唯一未排除的差异 = **USS 如何解析并加载该 sprite**(与 `StyleBackground(Sprite)` 的差别)。
-下一步要动的是「环图的来源怎么给」,属焦点载体契约面 ⇒ **须裁定,本屏不私改**。
+⇒ 剩下唯一未排除的差异 = **USS 如何解析并加载该 sprite**。
+
+### ✅ 根因(2026-10-31 用户裁定「代码灌注环图」后实测定死)
+
+探针直接读运行期解析结果,一句话定死:
+
+```
+[RP] probeB resolved: sprite=False  tex=32x32  slices=2/2/2/2
+[RP] probeC 代码直灌;border=(2.00, 2.00, 2.00, 2.00)
+```
+
+⇒ **USS 的 `url("guid:…")` 把这张图解析成 `Texture2D`(`sprite == null`,还被缩到 32×32)**,
+sprite 自带的九宫格边框(`border = 2px`)**随之丢失** ⇒ UI Toolkit 只能拿「无边框贴图 + USS
+里的 slice 数字」硬切,画出来就是那块黄斑。代码 `StyleBackground(Sprite)` 路径拿到的是**带 border
+的 Sprite**,所以是对的。
+
+**处置(已落)**:`SkeuoRuntimeDriver` 增 `[SerializeField] Sprite _focusRingSprite`(带
+`FocusRingSprite` 观测面),`CreateFocusRing()` 用它**代码灌注**图;slice 与几何**仍以 USS 为单一出处**;
+未注入 ⇒ 回落 USS 旧行为(有缺陷但不崩)。场景 `Boot.unity` 的 `SkeuoUI` 已接上该引用。
+
+**修后实拍**:`rp-20261031_233205-*.png` —— 获焦行被一圈**干净的细矩形环**包住,
+两行文字均完整可读,黄斑消失。
+
+⚠️ **影响面**:环施加者是**全屏共用**的(`SkeuoRuntimeDriver.AttachFocusRingApplier`),
+所以这条修复**同时**修好脉案 / 出诊箱等所有屏的焦点环 —— 此前它们在 paper 边框的掩护下看起来"还行"。
+
+**机器判**(2026-10-31 追加,`pause_focus_navigation_test.cs`):
+`test_focusRing_imageIsInjectedFromSprite_notOnlyFromUss` —— 注入合成 sprite ⇒ 环上
+`style.backgroundImage.value.sprite` 必须是**那个对象**;**负控**:同一装置不注入 ⇒ 环上
+**不得**有 inline 图(回落 USS)。★ 负控是必需的:少了它,「永远不注入」也能让正例恒绿。
+
+**证伪 Q7**:把 `CreateFocusRing()` 里的注入改成 `if (false)` ⇒ **该条红**
+(`Expected: same as <Sprite> · But was: null`),还原 SHA-256 `d023acb8…` 逐字节一致。
+
+**回归**:EditMode `6323 / 6286 / 0 / 0 / 37` @ 2026-10-31 23:35:18 CST ·
+PlayMode `254 / 250 / 0 / 2 / 2` @ 23:38:40 CST(同 commit + 工作树;
+等式 `254 − 253 = 1` = 本轮新增的那条机器判)。
 
 判据见 `unity/Logs/shots/zoom-*.png` 与 `ab-*` 系列(Logs 不入库)。
 ⚠️ **这一项不归本轮关掉**:它落在**全局焦点载体契约**(`AC-42-G4` + `SkeuoFocusVisible.uss`

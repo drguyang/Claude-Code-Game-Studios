@@ -198,6 +198,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <remarks>⚠️ 监听挂**面板根**(冒泡收全树),每个目标自己的 FocusIn/FocusOut
         /// 不另挂 —— 目标是动态建的(病名册条目 / 戥子档运行期建),逐目标挂会漏。
         /// ring `pickingMode = Ignore`:环不参与拾取,点环不挡下面的行。</remarks>
+        /// <summary>
+        /// 焦点环贴图(黄铜 2px 环)。**必须走代码灌注**,不能只靠 USS。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ 2026-10-31 实测定因:USS 的 <c>url("guid:…")</c> 把这张图解析成 **Texture2D**
+        /// (<c>resolvedStyle.backgroundImage.sprite == null</c>,tex 32×32),sprite 的九宫格边框
+        /// 随之丢失 ⇒ 环被画成一整块黄色图形(把「继续」盖住)。
+        /// 同一张图、同一 slice、同一尺寸,**代码 <c>StyleBackground(Sprite)</c> 路径渲染出的是
+        /// 干净的 2px 框**(四格隔离探针实测)。</para>
+        /// <para>slice(2px)仍以 USS 为**单一出处** —— 本字段只覆盖图,不覆盖几何。</para>
+        /// <para>缺省(null)⇒ 回落到 USS 取图(旧行为,视觉上有缺陷但不崩)。</para>
+        /// </remarks>
+        [SerializeField] private Sprite _focusRingSprite;
+
+        /// <summary>焦点环贴图(观测 / 夹具注入面)。</summary>
+        public Sprite FocusRingSprite
+        {
+            get => _focusRingSprite;
+            set => _focusRingSprite = value;
+        }
+
         private void AttachFocusRingApplier()
         {
             _panel.RegisterCallback<FocusInEvent>(OnFocusIn);
@@ -205,12 +226,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         }
 
         /// <summary>环子元素构造(甲案 overlay):匿名、不拾取、四向负 offset 溢出环厚。</summary>
-        private static VisualElement CreateFocusRing()
+        /// <remarks>图由 <see cref="FocusRingSprite"/> **代码灌注**(见该字段 remarks);
+        /// 未注入 ⇒ 回落 USS 取图。slice 与几何一律仍由 USS 那条规则负责。</remarks>
+        private VisualElement CreateFocusRing()
         {
             var ring = new VisualElement();
             ring.AddToClassList(FocusVisibleStyle.ClassName);
             ring.pickingMode = PickingMode.Ignore;
             ring.focusable = false;
+            if (_focusRingSprite != null)
+                ring.style.backgroundImage = new StyleBackground(_focusRingSprite);
             return ring;
         }
 

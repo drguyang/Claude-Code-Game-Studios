@@ -298,6 +298,57 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // 焦点环取图路径(2026-10-31 · 环图缺陷的机器判)
+        //   病因:USS 的 `url("guid:…")` 把该图解析成 **Texture2D**(`sprite == null`),
+        //   sprite 自带的九宫格边框随之丢失 ⇒ 环被渲染成一整块黄色图形。
+        //   处置:环图由 `SkeuoRuntimeDriver.FocusRingSprite` **代码灌注**(slice/几何仍走 USS)。
+        //   ★ 本条自带负控:同一装置里**不注入**时,环上不得有 inline 图(回落 USS)。
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_focusRing_imageIsInjectedFromSprite_notOnlyFromUss()
+        {
+            yield return Assemble();
+
+            // 合成一张 4×4 带 1px 边框的 sprite —— PlayMode 里没有 AssetDatabase,
+            // 但本条判的是「注入是否真的进到环上」,不需要真资产(真资产由实拍腿覆盖)。
+            var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            var sprite = Sprite.Create(tex, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(1f, 1f, 1f, 1f));
+
+            _driver.FocusRingSprite = sprite;
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            VisualElement ring = FindFocusRing(pause.RowAt(0));
+            Assert.IsNotNull(ring, "[夹具前提] 获焦行必须挂上环子元素");
+            Assert.That(ring.style.backgroundImage.value.sprite, Is.SameAs(sprite),
+                "环图必须**代码灌注** —— USS 路径拿到的 sprite 是 null(它把图解析成 Texture2D),九宫格边框会丢");
+
+            // 负控:同一装置不注入 ⇒ 环上不该有 inline 图(回落 USS),证明上面那条不是恒真
+            _driver.FocusRingSprite = null;
+            pause.RowAt(1).Focus();
+            yield return null;
+            VisualElement ring2 = FindFocusRing(pause.RowAt(1));
+            Assert.IsNotNull(ring2, "[夹具前提] 第二行获焦后也应挂环");
+            Assert.That(ring2.style.backgroundImage.value.sprite, Is.Null,
+                "未注入 ⇒ 环不应有 inline 图(回落 USS 的旧路径)");
+
+            Object.Destroy(tex);
+        }
+
+        /// <summary>取某元素下挂 `.focus-visible` 的环子元素(没有 ⇒ null)。</summary>
+        private static VisualElement FindFocusRing(VisualElement target)
+        {
+            if (target == null) return null;
+            for (int i = 0; i < target.childCount; i++)
+                if (target[i].ClassListContains("focus-visible")) return target[i];
+            return null;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // AC-PS-07 · 跨开壳持续按住的确认键,不得补触发一次确认
         //   spec §7「边沿必须消费」:`遮挡期只 return 不更新边沿位 ⇒ 关屏那一刻手里按着的键补触发一次`
         //   是**已实测的失败形态**,不是理论风险。
