@@ -112,13 +112,13 @@ stories:
     name: "挂标订正 + level-tool 两件复核(闭 S20-17 #1 / S20-20 #3 / #5)"
     file: "production/sprints/sprint-20.md#九-收口判定"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
-    note: "**本卡来自规划期复核的一次抓错**:首版把 level-tool 的 story-006/story-002 排成实现卡,实测两件已于 2026-10-29 完成(`UnimplementedChecks` = `Array.Empty<string>()`;`assets/data/world_*.json` = 10 件)。⇒ 改为一**订正卡**:① 三条挂标按复算订正为已闭(账面已在 sprint-20 §9.1.1 / §十四 改,本卡负责复跑并留证);② 修 `MinimalWorldFactory.cs:35-37` 的**过期注释**(说「POI/资源仍全 -1 —— 归 story S4」,而 `:147-172` 已在装载);③ 核 level-tool 两件在挂标之外是否还有未闭契约面。"
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 收口(三条判据逐条重跑,不是抄表)**。① **三条挂标已闭且复算成立** —— `S20-17` #1 / `S20-20` #5:`assets/data/world_geometry.json` 存在(**1003 B** · schema **2**);`S20-20` #3:`UnimplementedChecks` 实为 `Array.Empty<string>()`(数 `^            \\\"` 行 ⇒ **0**);`S20-20` #5:`assets/data/world_*.json` ⇒ **10** 件。三条**与账面标记一致 ⇒ 标记无需改,本次只补执行证据**。② **过期注释已修**:`MinimalWorldFactory.cs:37-38` 原文「POI / 资源格仍全 `-1` —— 归 story S4」→ 改为「已由产物供给(`:147-172` 载入);`-1` 今天只剩『该格没有』这一合法语义」,并**点名两个可跑载体**(`poi_and_resource_load_test.cs` 的 `test_ac4_poiGrid_poiCellReturnsId_nonPoiCellReturnsMinusOne` / `test_ac4_poiStateMachine_idsFromArtifact_canEmitPoiStateChanged`)。同节另两条边界断言**复核后仍成立**(不顺手改):`WorldLatticeParams` 仍零生产构造(只在测试里 `new`)· 几何实测 `world_size = [16,1,16]`。③ **§9.1.1 已留复跑块**(命令 + 实得四条)。🔍 **level-tool 两件在挂标之外的未闭契约面 = 无**:story-002 的 Out of Scope 明确写「POI/资源归 S4」,而 S4 面已由 10 件产物 + 装载夹具兑现;两处 `Assert.Ignore` 是「宾语已不存在」的自陈述,**不是缺口**;`NavMeshReachabilitySampler` 的 spike ③(`maxDistance` 口径)仍是 **NOT-RUN** 且已在其证据件登记(需真实 NavMesh 资产),**不属本卡可闭面**。⚠️ **本轮一次误读已自查纠正**:先按 `world_*.cooked` 找产物得零命中,实为后缀 `.cooked.bytes`(10 件俱在 `unity/Assets/DataCooked/`)—— 未据此下任何结论。**本卡零行为改动**(纯注释 + 文档)⇒ 无编译单元证伪轮;回归三元组 `2026-10-31T09:04–09:06 CST` · S21-8 全量 · `17e981a6`+未提交:EditMode `6215/6178/0/0/37`(与 S21-7 同值,零回归)· PlayMode `238/234/0/2/2`(零回归)。债册不动(本卡不结债),`--check` exit 0。"
 
   - id: "S21-9"
     name: "foraging 公式 vs 散文互斥 ×2(TD-foraging-01 CapTable · -02 GatherMul)"

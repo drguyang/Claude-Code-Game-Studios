@@ -210,6 +210,41 @@
 > @ `2026-10-31T08:46–08:50 CST` · S21-7 全量 · `767165cb`+未提交。
 > 债册 `条目 141 → 142` · `closed 119 → 121` · `open 18 → 17` · `--check` exit 0。
 
+> ✅ **`S21-8` 已于 `2026-10-31` 收口(三条判据逐条重跑 —— 不是抄表)**
+>
+> **① 三条挂标复核成立**(与账面标记一致 ⇒ **标记无需改**,本次只补执行证据):
+>
+> | 挂标 | 命令 | 实得 |
+> |---|---|---|
+> | `S20-17` #1 / `S20-20` #5 | `ls -l assets/data/world_geometry.json` | **1003 B**,schema **2** |
+> | `S20-20` #3 | `sed -n '/UnimplementedChecks =/,/};/p' …/LevelConsistencyCheck.cs \| grep -c '^            "'` | **0**(实为 `Array.Empty<string>()`) |
+> | `S20-20` #5 | `ls assets/data/world_*.json \| wc -l` | **10** |
+>
+> **② 过期注释已修**:`MinimalWorldFactory.cs:37-38` 原文「POI / 资源格仍全 `-1` —— 归 story S4」
+> → 「已由产物供给(`:147-172` 载入);`-1` 今天只剩『该格没有』这一合法语义」,
+> 并**点名两个可跑载体**:`poi_and_resource_load_test.cs` 的
+> `test_ac4_poiGrid_poiCellReturnsId_nonPoiCellReturnsMinusOne` /
+> `test_ac4_poiStateMachine_idsFromArtifact_canEmitPoiStateChanged`。
+> 同节另两条边界断言**复核后仍成立**(不顺手改):`WorldLatticeParams` 仍零生产构造
+> (只在测试里 `new`)· 几何实测 `world_size = [16,1,16]`。
+>
+> **③ `§9.1.1` 已留复跑块**(命令 + 四条实得)。
+>
+> 🔍 **level-tool 两件在挂标之外的未闭契约面 = 无**:
+> story-002 的 Out of Scope 明写「POI / 资源点归 S4」,而 S4 面已由 **10 件产物 + 装载夹具**兑现;
+> 两处 `Assert.Ignore` 是「宾语已不存在」的自陈述,**不是缺口**;
+> `NavMeshReachabilitySampler` 的 spike ③(`maxDistance` 口径)仍是 **NOT-RUN**,
+> 已在其证据件登记(需真实 NavMesh 资产),**不属本卡可闭面**。
+>
+> ⚠️ **本轮一次误读,已自查纠正后才落笔**:先按 `world_*.cooked` 找产物得**零命中**,
+> 实为后缀 `.cooked.bytes`(**10 件俱在** `unity/Assets/DataCooked/`)——
+> **未据此下任何结论**,按 `coding-standards.md` §工作树卫生的「③ 我的误读」处置。
+>
+> **本卡零行为改动**(纯注释 + 文档)⇒ 无编译单元的证伪轮;
+> 回归 `2026-10-31T09:04–09:06 CST` · S21-8 全量 · `17e981a6`+未提交:
+> EditMode `6215/6178/0/0/37`(与 S21-7 同值)· PlayMode `238/234/0/2/2`(零回归)。
+> 债册不动(本卡不结债),`--check` exit 0。
+
 ### Should Have(须先出裁定,或体量待定)
 | ID | 卡 | 复杂度 | 前置 | 说明 |
 |---|---|---|---|---|

@@ -13893,3 +13893,22 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   EditMode `6215/6178/0/0/37`(+9/+9 恰等)· PlayMode `238/234/0/2/2`(零回归)。
 - 🔍 普查新揭:`ParseBody` 68 代码行 / `WriteExitSave` 61 代码行 ⇒ 新立 `TD-persist-13`(不入本卡)。
 - 债册:`条目 141 → 142` · `closed 119 → 121` · `open 18 → 17` · 未闭 P0 面仍 **0** · `--check` exit 0。
+
+---
+
+## 2026-10-31 · `S21-8` 收口(挂标订正 + level-tool 复核)
+
+- **三条判据逐条重跑(不是抄表)**:`world_geometry.json` **1003 B / schema 2** ·
+  `UnimplementedChecks` = `Array.Empty<string>()`(数 `^            "` 行 ⇒ **0**)·
+  `assets/data/world_*.json` = **10** 件 ⇒ **与账面标记一致,标记无需改**,只补执行证据。
+- **过期注释已修**:`MinimalWorldFactory.cs:37-38`「POI / 资源格仍全 `-1` —— 归 story S4」
+  → 「已由产物供给(`:147-172` 载入);`-1` 只剩『该格没有』」,并点名两个可跑载体
+  (`poi_and_resource_load_test.cs` 的 `test_ac4_poiGrid_…` / `test_ac4_poiStateMachine_…`)。
+- **同节另两条断言复核后仍成立**(不顺手改):`WorldLatticeParams` 零生产构造 · 几何 `[16,1,16]`。
+- **§9.1.1 已留复跑块**(命令 + 实得)。
+- **level-tool 未闭契约面 = 无**:story-002 Out of Scope 明写 POI/资源归 S4,而 S4 已兑现;
+  两处 `Assert.Ignore` 是「宾语已不存在」;spike ③(`maxDistance`)仍 NOT-RUN 且已登记(需真实资产)。
+- ⚠️ **一次误读已自查纠正**:先按 `world_*.cooked` 找产物零命中,实为 `.cooked.bytes`(10 件俱在),
+  **未据此下结论**。
+- **零行为改动**(纯注释 + 文档)⇒ 无证伪轮。回归三元组 `2026-10-31T09:04–09:06 CST` ·
+  S21-8 全量 · `17e981a6`+未提交:EditMode `6215/6178/0/0/37` · PlayMode `238/234/0/2/2`(零回归)。

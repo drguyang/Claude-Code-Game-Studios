@@ -34,8 +34,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // 边界(本卡不解除的,逐条如实)
 // ═══════════════════════════════════════════════════════════════════════════
-// · **POI / 资源格仍全 `-1`**(无) —— 归 story S4。`WorldGeometry` 要求这两个数组与
-//   几何等长,故本文件按「无」填满;S4 落地后由它自己的产物供给,不改本文件的结构。
+// · 🔁 **POI / 资源格:已由产物供给**(2026-10-31 `S21-8` 订正,原文不删)——
+//   原文写「仍全 `-1`(无) —— 归 story S4」,**已过期**:`level-tool/story-002`
+//   (2026-10-29)已产出两份数据集,本文件 `:147-172` 从 `IDataProvider` / `DataCookedDisk`
+//   载入并填格。`-1` 今天的语义只剩「**该格没有 POI / 资源**」这一合法结果,不再是「还没接」。
+//   ⚠️ 载入是**即时 + 硬失败**(缺任一份 ⇒ 抛),**不**静默降级成「全 -1」——
+//   后者会让 `PoiStateMachine` 的 `_poiIdSet` 零成员而**看起来完全正常**(GDD EC-6-10),是本仓记过的假绿形态。
+//   **载体**(可跑):`Tests/EditMode/LevelTool/poi_and_resource_load_test.cs` 的
+//   `test_ac4_poiGrid_poiCellReturnsId_nonPoiCellReturnsMinusOne`(两个方向:POI 格 == id、
+//   非 POI 格 == -1)与 `test_ac4_poiStateMachine_idsFromArtifact_canEmitPoiStateChanged`。
 // · **`WorldLatticeParams` 仍不构造** —— 它的 6 个数值里只有 `LatticeSizeMm` 与 K_speed 表
 //   来自产物,其余四个(`SPEED_MODE_MAX` / `K_CONTEXT_MAX` / `MAX_DT` / `SAFETY_MARGIN`)
 //   **全归用户数值轮**。本文件**不**给它们填默认值:那会让 F-6-1 的不等式以「猜的数」成立。

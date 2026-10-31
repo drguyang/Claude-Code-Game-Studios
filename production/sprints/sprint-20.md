@@ -266,6 +266,25 @@
 | | 4 | **✅ 已闭(2026-10-29)** —— `level-tool/story-001` 实现轮:尺寸常量删除、两关卡并存、两条 batch 入口各自实跑产出一份 JSON | 原判据(`P0ClinicLevel` 的 `Width` / `Height` / `Depth` 三常量 + 单一 `LevelId`)已随常量删除而消失。复算:`grep -c 'public const int \(Width\|Height\|Depth\)' unity/Assets/Editor.Tools.Level/P0ClinicLevel.cs` ⇒ **0**;`grep -c 'LevelId = "' unity/Assets/Editor.Tools.Level/LevelCatalog.cs` ⇒ **2**。实跑产物 `unity/Logs/level-tool/world_buildslots_scaffold_second.json` 的 `world_size = [8, 2, 8]`(≠ P0 的 `[16, 1, 16]`)。原件 `production/qa/evidence/impl-level-tool-story-001-2026-10-29.md`。<br>⚠️ 本行**只闭「工具只服务一个关卡」**;运行期能否装载第二关是 S2 的面,本行不代它作保 |
 | | 5 | **✅ 已闭(🔁 2026-10-31 订正)** —— 原记「仍开:世界几何仍是合成」,实为 `level-tool/story-002` 已产出地形 + POI + 资源,且**运行期已装载** | 复算:`ls assets/data/world_*.json \| wc -l` ⇒ **10**(原记 **1**);运行期:`MinimalWorldFactory.cs:147-172` 从 `IDataProvider` / `DataCookedDisk` 载入 POI 与资源网格。⚠️ 该文件头 `:35-37` 的「POI / 资源格仍全 `-1` —— 归 story S4」是**过期注释**,注释订正归 sprint-21 `S21-8` |
 
+> 🔁 **2026-10-31 `S21-8` 复跑(不是抄表)**:上表三行(`S20-17` #1 / `S20-20` #3 / #5)的 🔁 标记
+> 此前是**规划轮**按判据面写的;**本轮逐条重跑命令并贴出实得**:
+>
+> ```bash
+> cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+> ls -l assets/data/world_geometry.json | awk '{print $5" B"}'
+> #   ⇒ 1003 B(存在)
+> python3 -c "import json;print(json.load(open('assets/data/world_geometry.json',encoding='utf-8'))['schema_version'])"
+> #   ⇒ 2
+> sed -n '/UnimplementedChecks =/,/};/p' unity/Assets/Editor.Tools.Level/LevelConsistencyCheck.cs | grep -c '^            "'
+> #   ⇒ 0(该行实为 `Array.Empty<string>()`)
+> ls assets/data/world_*.json | wc -l
+> #   ⇒ 10(geometry / terrain / ecozones / poi / resources / buildslots / nav_0..3)
+> ```
+>
+> 三条判据 **2026-10-31 全部成立**,与上表标记一致 ⇒ **标记无需改**,本次只是补执行证据。
+> **另一处过期注释已就地修**:`MinimalWorldFactory.cs:37-39` 原文「POI / 资源格仍全 `-1` —— 归 story S4」
+> → 改为「已由产物供给,`:147-172` 载入;`-1` 今天只剩『该格没有』这一合法语义」。
+
 ⚠️ **两处口径须同读**:
 ① **「已闭」= 该条的缺口被后续卡片补上**,不是「本卡当初记错了」。原记录在各自时点都成立。
 ② **`S20-19` 的 #1–#7 未逐条复验** —— 上表对它们只写「仍开」,判据是「各自归属系统未实现」,
