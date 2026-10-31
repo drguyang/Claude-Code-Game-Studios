@@ -17,16 +17,111 @@
 #    sprint-21 归档 SHA-256(前 16 位)= `fc41b0a956311809`(2026-10-31 收口后归档;
 #    与归档源 `cmp` 逐字节相同)。
 #
-# 本文件 = **sprint-22 占位件** —— sprint-22 **尚未规划**。
-#    `stories` 缺失是**事实**,不是遗漏:`/sprint-plan new` 运行后本文件整体重写。
-#    ⚠️ 在此之前不得把「没有 stories」读成「sprint-22 没有任务」。
+# 本文件 = sprint-22 活件(采集链收尾 + smoke 载体补全)。
+#    ⚠️ 本 sprint 的 8 件里只有 2 件是 epic story(有独立 story 文件),其余 6 件是
+#    **TD / smoke 工作项** —— `file` 字段指向各自载体件,不是 `production/epics/` 下的 story。
+#    承 `roadmap §6.6 ①`:门的清偿载体 = TD 工作项,不重开已 `Complete` 的 epic。
 
 sprint: 22
-goal: ""                                # 未规划 —— 由 /sprint-plan new 填写
-start: ""                               # 未规划
-end: ""                                 # 不设结束日期,做完即收(承 sprint-12…21 同例)
-generated: "2026-10-31"                 # 占位件生成时刻(非 /sprint-plan 产物)
+goal: "采集链收尾 + 载体补全 —— 落 foraging-004/005;把 smoke 里本轮动得了的两条(#1 启动序 / #14 52 抽池)做成有判据的载体;顺带清两条搭车债;不新开实现层故事链"
+start: "2026-10-31"
+end: ""                                # 不设结束日期,做完即收(承 sprint-12…21 同例)
+generated: "2026-10-31"
 updated: "2026-10-31"
 
-# ⚠️ 占位件**刻意不含** `stories` 键 —— 与 /sprint-plan 生成的形状不同,
-#    使「已规划 / 未规划」在形状上一眼可分(而不是靠读注释才知道)。
+stories:
+  - id: "S22-1"
+    name: "foraging/004 节点余量前缀 F-17-3 + 采前闸"
+    file: "production/epics/foraging/story-004-node-remaining-prefix.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "AC-17-13 带 **BLOCKED-BY-OQ-17-2** ⇒ 只做形状差分,数值归用户数值轮。"
+
+  - id: "S22-2"
+    name: "foraging/005 动作原子性与失败收敛"
+    file: "production/epics/foraging/story-005-action-atomicity-failure-convergence.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S22-1"
+    completed: ""
+    note: "三条 [L] 走查 AC 挂 EXTERNAL(42 的 UX Flag ③ 未交付),不记绿。"
+
+  - id: "S22-3"
+    name: "smoke #1 载体:启动序 E-13 硬失败链"
+    file: "production/qa/smoke-carrier-backlog-2026-10-31.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "须真跑 Addressables.InitializeAsync + data-core 预载;E-13 分支须有反例。`critical_paths.json` 的 status/check 同批改 + 实跑 run_smoke.py 看到 PASS +1。"
+
+  - id: "S22-4"
+    name: "smoke #14 载体:52 急召生成链接线(抽池→掷骰→F1→EventArrived)"
+    file: "production/qa/smoke-carrier-backlog-2026-10-31.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "⚠️ 必须用合成 key 集 + 合成格集驱动,否则双空集 ⇒ 恒零写入 ⇒ 假绿(R1)。"
+
+  - id: "S22-5"
+    name: "TD-processing-06 跨存档往返夹具"
+    file: "docs/tech-debt-register.md#td-processing-06"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "若测试内无法真装配读路径 ⇒ 转勘察卡并如实登记 NOT-RUN,不得用同进程换池重编码冒充往返。"
+
+  - id: "S22-6"
+    name: "smoke #10 冲突裁定:G4.1 急救手动化 vs 一次动作落两条事件"
+    file: "production/qa/smoke-carrier-backlog-2026-10-31.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "只出两案,不实现;裁前不开工任何 #10 夹具(对象不存在 = F2 假绿)。"
+
+  - id: "S22-7"
+    name: "TD-persist-13 SaveService.ParseBody / WriteExitSave 拆到 ≤40 代码行"
+    file: "docs/tech-debt-register.md#td-persist-13"
+    priority: nice-to-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "只拆不钉 = 没证(TD-persist-08 的教训);≤40 界须有夹具。"
+
+  - id: "S22-8"
+    name: "smoke #13 勘察 + 两案:帐篷(P0 唯一新建例外)的承接者"
+    file: "production/qa/smoke-carrier-backlog-2026-10-31.md"
+    priority: nice-to-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "GDD game-concept.md:698 有裁定,代码零实现 ⇒ 出两案(补 story / 登记已知缺口),不实现。"

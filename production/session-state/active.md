@@ -14093,3 +14093,28 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **smoke**:自动 PASS **10 → 11** · 无名 **9 → 8** · exit 仍 3。
 - **回归**(三元组 `2026-10-31T12:40:50–12:43:42 CST` · `#2` 批 · `2f13f13c`+未提交):
   EditMode `6224/6187/0/0/37`(+2/+2 恰等新增 2 测)· PlayMode `238/234/0/2/2`。
+
+---
+
+## 2026-10-31 · sprint-22 规划轮(用户指令「把这8条记下来,对照sprint总体规矩进行规划sprint22」)
+
+**交付两件(均新建/重写)**:
+1. `production/qa/smoke-carrier-backlog-2026-10-31.md` —— 8 条无载体 smoke 路径的台账
+   (缺什么 / 解除条件 / 归属 / 建议落位)。归类:EXTERNAL 2 · 接线未落 3 · 功能未实现 1 ·
+   运行时观测 1 · 真启动 1。**台账 ≠ 判据**,`run_smoke.py` 仍 exit=3。
+2. `production/sprints/sprint-22.md`(新建)+ `production/sprint-status.yaml`(占位件 → 活件):
+   8 件 = Must 4(`foraging-004` · `foraging-005` · smoke `#1` 载体 · smoke `#14` 接线)
+   + Should 2(`TD-processing-06` · smoke `#10` 两案)+ Nice 2(`TD-persist-13` · smoke `#13` 勘察)。
+   复杂度 M×3 + S×5,零 L。
+
+**规划期实跑(三元组 `2026-10-31` · `sprint-22 规划` · `218bd758`+未提交)**:
+- story `230`(epic 31)· Complete `205` · 未闭 `25`(Ready 23 · In Progress 1 · Pending 1)。
+  相对 `da578832` 基线 **+2 Complete** —— 逐件对拍 = `clinic-machine/001`(In Review→Complete)·
+  `inventory-items/002`(Ready→Complete);新立 1 件 `skeuomorphic-ui/026`。
+- 债册 `142` 条目(`closed 124 · open 14 · partial 3 · done 1`)· **未闭 P0 面 0** · `--check` exit 0。
+- smoke 22 条:`test 11 · manual 3 · none 8`。
+
+**明写不做**:`#18`/`#22`(EXTERNAL)· `#8`/`#9`(他轮排期)· `TD-processing-03`/`-04`(须裁 / 零调用方)·
+`TD-persist-12`/`TD-building-04`(均须裁)。
+**开工前置**:`S22-1` 之前须跑 `/qa-plan sprint`,产物 `production/qa/qa-plan-sprint-22-<date>.md`。
+**未提交** —— 等用户指令。
