@@ -14130,3 +14130,11 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   并落 🔁 订正块。**数字与结论未变,错的是命令指向的文件。**
 - §八 五条复算命令全部实跑通过(8 件 M×3+S×5 · 104 测 · 余量 0 命中 · 22 条 test11/manual3/none8 · exit 3)。
 - **未提交**。
+
+## 2026-10-31 · S22-1(foraging/004 余量前缀 + 采前闸)收口
+
+- 交付 `unity/Assets/Sim/Foraging/NodeRemaining.cs` + `EditMode/Foraging/node_remaining_prefix_test.cs`(15 测)。
+- 证伪 M1/M2/M3 各 **exact 1 红**;SHA-256 还原一致;`FALSIFY-` 残留 0。
+- 回归 EditMode `6239/6202/0/0/37`(+15/+15 恰等)· PlayMode `238/234/0/2/2`。
+- 三条发现:① 夹具抓到我口算错(decay 含本次采集);② **GDD `:352`「累计 40 份触底」与表值不符(实为 21)**;
+  ③ EffCapacity 运算次序本夹具不能区分(已如实写明)。

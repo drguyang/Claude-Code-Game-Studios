@@ -167,6 +167,19 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-1` 已于 2026-10-31 收口(COMPLETE WITH NOTES)** —— 交付
+> `Sim/Foraging/NodeRemaining.cs`(`PrefixScan` **一次遍历三消费** = 条数 / `Σ_all` / `Σ_window`;
+> `YieldDecay` / `EffCapacity` / `Remaining` / `CanHarvest` 采前闸)+ 夹具
+> `EditMode/Foraging/node_remaining_prefix_test.cs`(15 测)。
+> **AC**:AC-17-17 ✅ · AC-17-14/15 前缀一致性 ✅ · **AC-17-06 🟡 只落谓词半**(「余量不足 ⇒ 零事件」
+> 那一跳属 `S22-2` 的动作路径,本件不自造调用方去断言 —— 那是 F1/F4)· **AC-17-13 🟡 仍 `BLOCKED-BY-OQ-17-2`**。
+> **证伪 3 条,各 exact 1 红**:M1 `>=`→`>` · M2 `<`→`<=` · M3 删前缀守卫;还原 SHA-256 逐字节一致,
+> `FALSIFY-` 残留 0。
+> **回归**(三元组 `2026-10-31T13:5x CST` · `S22-1` 批 · `6f6109bb`+未提交):
+> EditMode `6239/6202/0/0/37`(基线 `6224/6187` ⇒ **+15/+15 恰等新增**),PlayMode `238/234/0/2/2`。
+> **三条如实登记**:① 夹具抓到我的口算错(`decay(Σ_all)` 含本次采集);② **GDD `:352` 写「累计 40 份触底」,
+> 按表值算触底在 21** —— 值归数值轮,未改数据;③ `EffCapacity` 的运算次序本夹具**不能区分**,已明写不主张。
+
 ### Should Have
 
 | ID | 卡 | Owner | 复杂度 | 依赖 | 验收判据 |

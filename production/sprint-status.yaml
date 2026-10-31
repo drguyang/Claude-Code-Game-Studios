@@ -34,13 +34,13 @@ stories:
     name: "foraging/004 节点余量前缀 F-17-3 + 采前闸"
     file: "production/epics/foraging/story-004-node-remaining-prefix.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "AC-17-13 带 **BLOCKED-BY-OQ-17-2** ⇒ 只做形状差分,数值归用户数值轮。"
+    completed: "2026-10-31"
+    note: "**COMPLETE WITH NOTES**。交付 `Sim/Foraging/NodeRemaining.cs`（PrefixScan 一次遍历三消费 + YieldDecay / EffCapacity / Remaining / CanHarvest）+ 夹具 15 测。AC-17-06 只落**谓词半**（零事件那一跳归 S22-2）;AC-17-13 仍 BLOCKED-BY-OQ-17-2。证伪 M1/M2/M3 各 exact 1 红,SHA-256 还原一致。回归 EditMode 6239/6202(+15/+15) · PlayMode 238/234。"
 
   - id: "S22-2"
     name: "foraging/005 动作原子性与失败收敛"

@@ -1,12 +1,12 @@
 # Story 004: 节点余量前缀函数 F-17-3 + 采前闸
 
 > **Epic**: 采集
-> **Status**: Ready
+> **Status**: Complete(2026-10-31 · **COMPLETE WITH NOTES** —— 见 §Completion Notes;AC-17-06 只落谓词半,AC-17-13 仍 `BLOCKED-BY-OQ-17-2`)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-31
 
 ## Context
 
@@ -96,7 +96,8 @@
 **Required evidence**:
 - Logic: `unity/Assets/Tests/EditMode/Foraging/node_remaining_prefix_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] 已创建并通过 —— `unity/Assets/Tests/EditMode/Foraging/node_remaining_prefix_test.cs`(15 条 `[Test]`)
+定向实跑 `2026-10-31T13:4x CST`:`total=15 passed=15 failed=0`
 
 ---
 
@@ -109,4 +110,51 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-31 · **Verdict: COMPLETE WITH NOTES**
+
+### 交付物
+
+| 文件 | 内容 |
+|---|---|
+| `unity/Assets/Sim/Foraging/NodeRemaining.cs` | F-17-3 的**唯一求值落点**:`PrefixScan`(条数 + `Σ_all` + `Σ_window`,**一次遍历三消费**)· `YieldDecay` · `EffCapacity` · `Remaining` · `CanHarvest`(采前闸)。纯静态、只读流、零缓存(ADT-009 §四 派生态纪律) |
+| `unity/Assets/Tests/EditMode/Foraging/node_remaining_prefix_test.cs` | 15 条 `[Test]`,真编码 / 真解码 / 真 `Append`,零 Fake |
+
+### AC 逐条
+
+| AC | 判定 | 依据 |
+|---|---|---|
+| **AC-17-06** 采前闸 | 🟡 **只落谓词半** | `CanHarvest` 的 `≥` 语义与「`remaining ∈ (0,1)` 时拒」都已钉住;**但「余量不足 ⇒ 流里零事件」的那一跳未证** —— 它属 Story 005 的动作路径。本件不自造一个「先判后发」的调用方再断言零事件:那断的是测试自己写的谓词(F1/F4),不是生产行为 |
+| **AC-17-17** `YieldDecay` 三性质 | ✅ | `D(0)=65536` · 全遍历 0…200 单调不增 · 夹在下限 32768 |
+| **AC-17-13** 技能差分 | 🟡 **`BLOCKED-BY-OQ-17-2`,本件未覆盖** | `GATHER_MUL_CAP` 等值未裁 ⇒ 只允许形状夹具;形状半由 Story 002 的既有夹具承担。**不得**以合成表冒充真实平衡 |
+| **AC-17-14/15** 前缀一致性 | ✅ | 同前缀两次扫描逐位相同;条数/两 Σ 出自同一次遍历 |
+
+### 证伪轮(E2,三条各 exact 1 红)
+
+| 变异 | 改什么 | 结果 |
+|---|---|---|
+| **M1** | `CanHarvest` 的 `>=` → `>` | **1 红** = `test_ac1706_exactEquality_isAllowed_andLeavesZero` |
+| **M2** | 窗口判据 `<` → `<=` | **1 红** = `test_scanNode_windowBoundary_isStrictlyLessThan` |
+| **M3** | 删「`Tick(e) > tick` 不计入前缀」守卫 | **1 红** = `test_scanNode_excludesFutureEvents_prefixSemantics` |
+
+还原 = `cp` 回备份 + **SHA-256 逐字节**比对(`e6a86192…9489b3f9`,与备份一致);`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**。
+
+### 回归(三元组 `2026-10-31T13:4x–13:54 CST` · `S22-1` 批 · `6f6109bb`+未提交)
+
+- EditMode `6239/6202/0/0/37`(基线 `6224/6187` ⇒ **+15/+15,恰等新增 15 测**)
+- PlayMode `238/234/0/2/2`(`exit=2` 伴 `failed=0`,与基线同形,非新失败)
+
+### 三条如实登记的发现
+
+1. **`decay(Σ_all)` 会吞掉本次采集**:最初两条断言按「容量 5 − 窗口 4 = 1」写,实跑得 `32776` / `24578` ——
+   因为 `Σ_all` 含刚采的那一次。**是夹具抓出了我的口算错误**,期望值已全部离线复算后改写。
+2. **GDD 措辞与表值不一致**:`foraging.md:352` 写「累计 **40** 份触底」,而按表内
+   `DECAY_RATE = 1/40` + `DECAY_FLOOR = 1/2` 算,线性项在 **n = 20** 处 = 32776、**n = 21** 处跌破 ⇒
+   **触底在 21**,不是 40(40 只有在 `DECAY_RATE = 1/80` 时才成立)。本件只钉「实现与表值一致」;
+   **值归用户数值轮**,未改数据。
+3. **`EffCapacity` 的运算次序未被本夹具区分**:Base 为整数、季节乘子取 1/2 时,「先乘季节再乘衰减」
+   与「先合并乘子」同值。断言里已明写这一句,不主张「次序已被证明」。
+
+### Manifest Version
+
+story 头原写 `2026-10-02`,现行 `control-manifest.md` 为 `2026-10-15`。已核对 10-15 的增量
+(处方前置检查 / 文化敏感字符串比较)与本件**无关** ⇒ 按 `S21-2` 同例对齐到 `2026-10-15`。
