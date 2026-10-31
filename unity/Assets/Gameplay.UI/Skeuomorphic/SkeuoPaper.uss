@@ -64,6 +64,17 @@
     min-height: var(--skeuo-shared-row-height);
 }
 
+/* ── 模态窄列(2026-10-31 · 走查缺陷修复 · 首用 = 暂停壳)──
+ * 病因(编辑器 Play 实拍 + 运行时布局 dump,`production/qa/evidence/ac42f1-pause-shell-walkthrough.md`):
+ *   暂停壳的行原本铺满整个面板(1680 @参考分辨率),而焦点环是**贴在行内的 overlay,
+ *   尺寸 = 行尺寸** ⇒ 环被拉成一条横贯全屏的铜带,读不出「焦点环住这一行」。
+ * 处置:模态列给固定宽度 + 水平居中(父容器默认 column ⇒ cross 轴 = 水平 ⇒ align-self 居中)。
+ * ⚠️ 数走 var(AC-42-C2 / C4 门禁 `width:\s*\d+px`);宽度权威 = `--skeuo-shared-modal-width`。 */
+.pause-column {
+    width: var(--skeuo-shared-modal-width);
+    align-self: center;
+}
+
 /* ── 跳过入口 · M2 形态件③(story-023 · AC-023-1/2/3)──
  * 判据权威 = art-bible G2(反数值化)+ emergency-procedures 规则六 / 规则六之甲。
  * **owner = 42**(ADR-013 §三 · `O-10-1`:10 不拥有任何 UI 元素,10 向 42 提规格)——

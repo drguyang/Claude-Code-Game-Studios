@@ -73,7 +73,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         private void BuildUI()
         {
-            _host.Add(_library.Create(SkeuoElement.Paper));
+            // ── 纸面 = 行的**容器**(不是兄弟)—— 兑现 `pause-shell-42.md` §5 的 ASCII:
+            //    ┌──────┐ 纸面
+            //    │ 继续  │
+            //    └──────┘
+            //    ⚠️ 首版把纸面当**流内兄弟**加在行前面 ⇒ 空元素高度只有 padding+border(实测 40px),
+            //    两行则透明地压在世界暗面上(字与底同色系,几乎读不出)。2026-10-31 走查实拍缺陷。
+            // ── 列宽:行若铺满整个面板,贴在行内的焦点环就会被拉成横贯全屏的铜带
+            //    (运行时 dump:行 1680×57,环同尺寸)。窄列 + 居中由 USS `.pause-column` 锁。
+            var paper = _library.Create(SkeuoElement.Paper);
+            paper.name = "pause-paper";
+            _host.AddToClassList("pause-column");
+            _host.Add(paper);
             _root.Add(_host);
 
             for (int i = 0; i < _rows.Length; i++)
@@ -93,7 +104,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));
                 row.RegisterCallback<ClickEvent>(_ => Activate(rowIndex));
                 _rows[i] = row;
-                _host.Add(row);
+                paper.Add(row);
             }
         }
     }

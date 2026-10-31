@@ -136,3 +136,76 @@ sha256sum production/qa/evidence/falsify-acps-2026-10-31/*
 本轮没做,故不写。
 
 复算:`grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/pause_focus_navigation_test.cs` = **10**。
+
+---
+
+## 七、2026-10-31 补拍(AC-PS-01)+ 两处结构性缺陷
+
+### 怎么拍的
+
+batch 出不了图(项目已两次实测,见 `ScreenshotTool.cs` 头注)⇒ 走**编辑器 GUI + Play** 的
+临时取证脚本(跨 domain reload 用 `SessionState` 布防 + `[InitializeOnLoadMethod]` 重挂;
+首版栽在「进 Play 会触发域重载,`EditorApplication.update` 的普通静态委托被清掉」——
+症状是日志里只有「进入 Play」,之后一步不动)。**脚本用完即删,未入库。**
+
+### 实拍结果
+
+| 文件 | 内容 |
+|---|---|
+| `ps001-20261031_225300-A-shell-open-focus-resume.png` | 壳开,焦点在「继续」 |
+| `ps001-20261031_225300-A2-still.png` | 同状态再截;**与 A 逐字节相同**(sha `300b380d…`)⇒ 世界静止 |
+| `ps001-20261031_225300-Z-shell-closed.png` | 关壳(对照) |
+
+**PS-01 判定(人眼腿)**:两行文字**只随壳出现**,关壳即消失;1× 下能读出「继续」「存档位」。
+⇒ 记 `[x]`。
+
+### 同轮抓到的两处**结构性**缺陷(不是审美)
+
+运行时布局 dump(真面板 1680×1215,暂停壳开):
+
+```
+modal-Pause        (0,204,1680,153)
+  pause-list
+    (paper)        (0,204,1680,40)    ← 纸面只有 40 高
+    pause-resume   (0,244,1680,57)   bg=透明
+       label       (3,246,1674,48)
+       focus-visible (0,244,1680,54)
+    pause-save-slots (0,300,1680,57) bg=透明
+```
+
+| # | 缺陷 | 根因 | 状态 |
+|---|---|---|---|
+| ① | **两行没有纸底**,暗字压在世界暗面上 | `SkeuoElement.Paper` 被当成**流内兄弟**加在行前面 —— 空元素高度只有 padding+border(=40px),并不在行**后面**。**违反 `pause-shell-42.md` §5 的 ASCII(纸面应包住两行)** | ✅ **已修**:行改为纸面的子元素(`PauseScreen.BuildUI`) |
+| ② | **焦点指示满宽 + 形变** | 行铺满整个面板(**1680** 宽),而焦点环是贴在行内的 overlay、尺寸 = 行尺寸 ⇒ 环被拉成横贯全屏的带 | 🔶 **部分修**:新增 `.pause-column`(`--skeuo-shared-modal-width` 480 + 居中),行宽降到 **439**;但环图**仍不是干净的 2px 框** |
+
+修后实测(dump):`pause-list(pause-column) (601,204,479,153)` · `pause-paper (601,204,479,153)` ·
+`pause-resume (620,224,439,57)` —— 纸面包住了两行,列居中。
+
+### ② 的未解部分(如实登记,未修)
+
+修後实拍(`ps002-20261031_230235-D-shell-open.png`):纸面卡片正常,「继续」「存档位」清楚可读;
+但焦点行上的黄铜指示**不是环住行的 2px 框**,而是一块把行内区域盖住的黄色图形。
+
+已排除 / 已确认(**都是实跑,不是推断**):
+
+- 环元素**几何正确**:dump `(620,224,439,54)`,正好覆盖第一行。
+- 品红探针(临时把环子元素刷成纯色、去掉贴图)⇒ **整行变成品红块并盖住「继续」**
+  ⇒ 问题在**环图怎么画**,不在元素尺寸。
+- 环贴图本身没问题:64×64,2px 均匀铜框,`spriteBorder (2,2,2,2)`。
+- 把该图导入临时改成 `spriteMeshType: FullRect` 复跑 ⇒ **画面无变化**(已还原)。
+- **对照**:同一构建下**脉案屏**的获焦行,环是**干净的细金框**(`zoom-casebook-focusrow.png`)。
+
+⇒ 差异发生在「环图 + 某种行状态」的组合上,不在环图本身;结论**未定**,不写成已知。
+判据见 `unity/Logs/shots/zoom-*.png`(Logs 不入库)。
+⚠️ **这一项不归本轮关掉**:它落在**全局焦点载体契约**(`AC-42-G4` + `SkeuoFocusVisible.uss`
+的冻结件 `focus-v1`)面上,改它要动冻结资产与比对门 ⇒ 须先裁定,不得由本屏私改。
+
+### 复算命令
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+ls -la unity/Logs/shots/ps00{1,2}-*.png      # 实拍件(Logs/ 被 .gitignore 覆盖 ⇒ 仅为本地证据)
+grep -n "pause-column" -A 3 unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoPaper.uss
+grep -n "paper.Add(row)" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/PauseScreen.cs
+# 期望:USS 里有 .pause-column(宽度走 var)· PauseScreen 里行加进 paper 而非 _host
+```
