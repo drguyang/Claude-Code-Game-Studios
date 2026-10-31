@@ -124,25 +124,25 @@ stories:
     name: "foraging 公式 vs 散文互斥 ×2(TD-foraging-01 CapTable · -02 GatherMul)"
     file: "docs/tech-debt-register.md#td-foraging-01"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
-    blocker: "用户裁定(改公式 / 改散文)"
-    completed: ""
-    note: "数值归用户。我先出两案 + 各自影响面(GDD 段落 / 夹具 / 已烘焙产物是否需重签),**不预设**。未裁则维持 `backlog`,不占 Must 额度。"
+    blocker: ""
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 收口**。用户裁定 **`甲-02 + 乙-01`**(混搭 —— 三选一之外的第四条路,卡片与关闭记录均明写不宣称其为原有选项)。`TD-foraging-02` 取甲:`GatherMul` 求值域由整数除改为 `Fix.FromRational(level,30)` ⇒ 逐级连续,**数值一个没动**(分母 30 / 端点 3.0 / CAP 3)⇒ 无数据变更、无重烘、`ConfigVersion` 不变。`TD-foraging-01` 取乙:`CapTable` 承认实际只有 `{1,2}` 两档;起草期新查出一条债描述没写的事实 —— 原散文的四个切点既不配它自述的公式,且即便换成 `1+min(L,80)/20`,`SKILL_CAP=60` 下第 5 档仍到不了(**双错**)。连带余量已声明:`quality_character[]` 后 3 档(4 件 × 3 = 12 条)在采集路径上永不呈现,按「P1 预留」保留、不另立债。证伪 **2 条**(M1 双红 51/53 · M2 exact 1 红 52/53),还原 SHA-256 2/2。回归 EditMode `6215/6178/0/0/37` · PlayMode `238/234/0/2/2`。两条债均 `closed`。"
 
   - id: "S21-10"
     name: "TD-medcons-20 药害为何停在「伤/后遗」而战斗可「打死改写昏迷」"
     file: "docs/tech-debt-register.md#td-medcons-20"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
-    blocker: "用户裁定"
-    completed: ""
-    note: "ADR-035 已把治疗伤害定为「永不致死」(N-1/N-3/N-4 构建期断言),但**正面理由未写**。缺这一环,`INJ_COMA` 不排除的裁定(与两份专家意见相反)在文档上没有支撑。可写成 ADR-035 的窄修订。"
+    blocker: ""
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 收口**。用户裁定 **`甲`(结构判据)+ `N-5 用属性判据`**。正面理由 = **代价表不是伤害模型**:53 是离散查表(无 HP 轴 / 无连续量 / 无伤害属性副本),25 能到昏迷是因为它有一条连续伤害轨,`INJ_COMA` 是那条轨的终点 ⇒ 53 只能诱发病理、不能裁定状态终局。权威件 = `adr-035` §Decision **③之三**。落地:① 注册表 15 行加必填 `terminal_state`;② 9 侧 binder 读键 + **R1-23** + 侧信道 `TerminalRowKeys`(不进 entry / 不进 cooked);③ 53 侧 **N-5**;④ 两张 cooked 重烘。证伪 **4 条**(exact 2 / exact 1 / 3 红 / 4 红),还原 SHA-256 2/2。回归 EditMode `6221/6184/0/0/37`(+6/+6 恰等新增 6 测)· PlayMode `238/234/0/2/2`。⚠️ **两条局限同读**:N-5 今日**零输入可达**、属性为**作者自陈**;**间接路径仍开** ⇒ `ADR-035 O-1` 未消解。"
 
   - id: "S21-11"
     name: "TD-s13-01 结转:code-review 增量落盘判据仍是前瞻性"

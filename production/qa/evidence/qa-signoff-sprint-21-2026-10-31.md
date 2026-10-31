@@ -1,0 +1,112 @@
+# QA 签核报告 —— Sprint 21「P0 扫尾 · 债清 13 卡」
+
+**日期**:2026-10-31
+**签核人**:qa-lead(本会话代行;单人项目,全部角色由同一人签核)
+**Sprint 文件**:`production/sprints/sprint-21.md`
+**Smoke 报告**:`production/qa/smoke-2026-10-31.md`
+**QA 计划**:`production/qa/qa-plan-sprint-21-2026-10-31.md`
+
+---
+
+## 一、实测基线(本轮实跑,非转述)
+
+**基线溯源三元组**:截至时刻 `2026-10-31 10:29:42 – 10:32:41 CST` · 批次 `S21-10 全量(收口轮)` · commit `bfca5781`(运行时 `da15d9d2` + 未提交,两树逐字节相同 —— 提交即由该树生成)
+
+| 套件 | 退出码 | XML | 对照基线 | 结论 |
+|---|---|---|---|---|
+| 全量 EditMode | **0** | `total=6221 passed=6184 failed=0 inconclusive=0 skipped=37` | S21-9 `6215/6178/0/0/37` | **+6/+6 = 新增 6 测,恰等** |
+| 全量 PlayMode | 2 | `total=238 passed=234 failed=0 inconclusive=2 skipped=2` | S21-9 `238/234/0/2/2` | **逐位一致**;`exit=2` 伴 `failed=0`,非新失败 |
+| 静态面 | — | `error CS` = **0** | — | 无编译面污染 |
+| smoke 运行器 | **3** | `[INCOMPLETE]` 22 条:自动 PASS 0 · FAIL 0 · 未跑 7 · 具名人工 3 · **无载体 12** | 无(首份) | **如实记为 INCOMPLETE,不记 PASS** |
+| 债册 | **0** | `debtcount.py --check` | — | 一致 |
+
+---
+
+## 二、DoD 逐条判定
+
+| # | DoD 条目 | 判定 | 依据 |
+|---|---|---|---|
+| 1 | 开工前置 QA 计划已落 | ✅ | `qa-plan-sprint-21-2026-10-31.md`(2026-10-31 06:57) |
+| 2 | Must Have 8 件全部完成 | ✅ | S21-1…S21-8 全部收口;**S21-3 内 3 条债留开且逐条具名**(见 F2) |
+| 3 | 每件有证伪轮记录,`FALSIFY-` 零残留 | ✅ | 9 件有证伪轮记录(**逐卡条数见 `sprint-21.md` 各自的 ✅ 块,本件不另算总数**);4 件 N/A(纯文书 / 零产品码)。全仓 `grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0** |
+| 4 | 回归三元组两套件全量零失败 | ✅ | 见 §一 |
+| 5 | 债册 `--check` exit 0;`未闭 P0 面` = 0 | ✅ | 脚本实跑 exit 0;`未闭 P0 面 = 0` |
+| 6 | 挂标账面 16 → 13,每笔附复算 | ✅ | `S21-8` 三条逐条复跑;**复核结果为「标记无需改」**(规划期已订正)—— 账面 13,证据在 §S21-8 |
+| 7 | smoke-check `PASS WITH WARNINGS` | ✅ | `smoke-2026-10-31.md` §六,理由逐条 |
+| 8 | QA 签核 | ✅ | 本件 |
+| 9 | 收口判定与收口提交同日 | ✅ | 判定 `2026-10-31` / 提交 `2026-10-31` |
+
+---
+
+## 三、发现的问题(带严重度)
+
+### F1 · **S3(既存债,非本 sprint 引入)** — 12 条 smoke 关键路径无载体
+
+`run_smoke.py` 的 22 条里 12 条 `NO-CARRIER`(拾取 / 急救 / 病例结案 / 建造 / 疫情 / 诊断 /
+采药 / 存档重放逐位 / 性能 / 跨构建)。逐条理由由脚本打印并归属既有债。
+**本 sprint 未消解它们,也不得被本报告的 APPROVED 覆盖。**
+
+### F2 · **S3(既存债)** — `S21-3` 的 6 条里 3 条留开
+
+`TD-processing-03 / -04 / -06` 留开,各自具名理由(须 ADR-008 裁同键 `Craft` 语义 /
+`BusyActorCount` 零生产调用方 / 真装配往返需独立卡)。**留开 = 不记绿。**
+
+### F3 · **S3(机制债,维持 partial)** — `TD-s13-01`
+
+`S21-11` 只补强了「增量落盘」的**机制**;其**有效性**仍为前瞻性判据,须下次真实重评实测。
+**不得**读作「已解决」。
+
+### F4 · **S2(本 sprint 引入,已同批披露)** — `N-5` 今日零输入可达
+
+`S21-10` 新增的 `N-5`(代价表不得指向终局型伤情)在**生产数据上今天不拦任何东西**
+—— 注册表 15 行 `terminal_state` 全 `false`。且该属性**作者自陈**,标错 `false` 不会被拦。
+⇒ 读到绿灯只能记「**门就位、无输入**」,**不得**记作「药害不造成昏迷已被证明」。
+⚠️ 间接路径(药害伤情恶化 → 9 结算成昏迷)仍开,`ADR-035 O-1` 不因本 sprint 消解。
+
+### F5 · **S3(未实测,已声明)** — `S21-6` 的失败路径
+
+「构建失败时 `PerformanceTestRun{Info,Settings}.json` 残留」一句是**源码依据**
+(`TestRunBuilder.cs:41-44` 的 `OnPostprocessBuild → Cleanup()`),**本轮未实测**。
+卡片已如实标注,签核不追认其为观测。
+
+---
+
+## 四、覆盖汇总
+
+| 判定 | 卡数 |
+|---|---|
+| COVERED | 9 |
+| N/A(簿记 / 纯文书 / 零产品码) | 4(S21-1 / -8 / -12 / -13) |
+| **MISSING** | **0** |
+
+---
+
+## 五、Verdict: **APPROVED WITH CONDITIONS**
+
+**批准理由**:① 自动化两套件零失败且增量与新增测数**恰等**;② Must Have 8/8 收口,
+每件都带可复算的证伪记录与 SHA-256 还原;③ 债册 `--check` exit 0、`未闭 P0 面 = 0`。
+
+**条件(conditions,不满足即本签核失效)**:
+
+- **C1** —— 本签核**不覆盖 §三的 F1–F5**。下一轮读到这份 APPROVED 的人,
+  须同读 `smoke-2026-10-31.md` §五 与本节。
+- **C2** —— `F4`(N-5 零输入可达)**必须在下次有人登记终局型伤情时立即复核**;
+  届时若标 `terminal_state = false`,门不会红 —— **人须先查**。
+- **C3** —— `F2` / `F3` 的留开项在**首次被当作「已完成」引用**前必须回到各自债条复核(承 R1 复算纪律)。
+
+---
+
+## 六、可复算
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --check; echo "exit=$?"       # 期望 0
+python3 tests/smoke/run_smoke.py; echo "exit=$?"                   # 期望 3(INCOMPLETE)
+grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l            # 期望 0
+cd unity && python3 - <<'PY'
+import xml.etree.ElementTree as ET
+for tag,p in (('EditMode','Logs/s21-10-final-em.xml'),('PlayMode','Logs/s21-10-final-pm.xml')):
+    r=ET.parse(p).getroot()
+    print(tag,r.get('total'),r.get('passed'),r.get('failed'))
+PY
+```

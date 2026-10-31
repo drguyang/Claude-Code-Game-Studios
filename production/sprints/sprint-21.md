@@ -490,15 +490,46 @@ PY
 
 ## Definition of Done for this Sprint
 
-- [ ] **开工前置**:`production/qa/qa-plan-sprint-21-<date>.md` 已落
-- [ ] Must Have 8 件全部完成(或**具名挂标**且逐条给 `file:line` + 不可达理由)
-- [ ] 每件都有证伪轮记录(「回退 ⇒ 哪条转红」),`FALSIFY-` 零残留 + SHA-256 逐字节还原
-- [ ] 回归三元组(截至时刻 · 批次 · commit)两套件全量,零失败
-- [ ] 债册 `--check` exit 0;`未闭 P0 面` 仍为 **0**
-- [ ] **挂标账面 16 → 13**(`S21-8` 订正 3 条);**每一笔订正都附复算命令**,不得只改数字
-- [ ] smoke-check:本 sprint 无新 UI/手感面 ⇒ 允许 `PASS WITH WARNINGS`,但理由须逐条写明
-- [ ] QA 签核(APPROVED 或 APPROVED WITH CONDITIONS)
-- [ ] 收口判定与收口提交**同日**(承 retro-19 行动项 3 / retro-20 §What Went Well 4)
+- [x] **开工前置**:`production/qa/qa-plan-sprint-21-2026-10-31.md` 已落(2026-10-31 06:57)
+- [x] Must Have 8 件全部完成(S21-1…S21-8;`S21-3` 内 3 条债**留开且逐条具名** —— 留开 = 不记绿)
+- [x] 每件都有证伪轮记录:`FALSIFY-` 全仓 **0**(`grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l` ⇒ 0);
+      还原一律 **SHA-256 逐字节**;4 件 N/A(簿记 / 纯文书 / 零产品码)已逐卡注明
+- [x] 回归三元组 `2026-10-31T10:29:42–10:32:41 CST` · S21-10 全量 · `bfca5781`:
+      EditMode `6221/6184/0/0/37` · PlayMode `238/234/0/2/2`,零失败
+- [x] 债册 `--check` exit 0;`未闭 P0 面` = **0**
+- [x] **挂标账面 16 → 13**:`S21-8` 三条逐条复跑 —— 复核结论是「**标记无需改**」(规划期已订正),
+      本次补的是执行证据;每一笔订正均附复算命令
+- [x] smoke-check = **PASS WITH WARNINGS**(`production/qa/smoke-2026-10-31.md` §六,理由逐条)
+- [x] QA 签核 = **APPROVED WITH CONDITIONS**(`production/qa/evidence/qa-signoff-sprint-21-2026-10-31.md`)
+- [x] 收口判定与收口提交**同日**(2026-10-31)
+
+---
+
+### 收口判定(2026-10-31)
+
+**13/13 卡收口 · 判定 = PASS WITH WARNINGS(条件齐备)· 提交同日。**
+
+| 面 | 结果 |
+|---|---|
+| 卡 | Must 8/8 · Should 3/3 · Nice 2/2 |
+| 债 | `closed 121 → 124` · `open 17 → 14`(**净差 = 3**;`partial 3` 不变)。⚠️ **净差不等于「本 sprint 关了几条」** —— 见下方说明 |
+| 回归 | EditMode `6221/6184/0/0/37`(+6/+6)· PlayMode `238/234/0/2/2`(零回归) |
+| 测试增量 | **+6 条**,全部来自 `S21-10`(`cost_table_binder_test` 3 + `disease_registry_bake_pipeline_test` 3) |
+| smoke | `PASS WITH WARNINGS`(12 条关键路径无载体 —— 既存债,本 sprint 未消解) |
+| 签核 | `APPROVED WITH CONDITIONS`(C1–C3,见签核件 §五) |
+
+**⚠️ 本 sprint 留下来的非绿面(逐条具名,不得被收口判定覆盖)**
+
+1. `S21-3` 内 `TD-processing-03 / -04 / -06` **留开**;
+2. `TD-s13-01` 维持 **`partial`**(机制已补,有效性前瞻);
+3. `S21-10` 的 **N-5 今日零输入可达**,且属性为**作者自陈**;间接路径仍开 ⇒ `ADR-035 O-1` 未消解;
+4. `S21-6` 的**失败路径未实测**(源码依据,非观测);
+5. **12 条 smoke 关键路径无载体**。
+
+> ⚠️ **债册净闭数说明(可复算)**:`closed 121 → 124` 只是**净差 3**,**不是「本 sprint 关了几条」** ——
+> 本 sprint 一边关旧债、一边**新立**债(`S21-2` 的 `TD-persist-12` / `TD-persist-13` 等),
+> 两个方向相抵。⇒ **精确逐条以各卡 ✅ 块里的「债册 X → Y」为准**,本块不另给汇总数。
+> 复算:`python3 tools/debtcount/debtcount.py --print`(期望 `closed 124 · open 14 · partial 3`)。
 
 ---
 
