@@ -37,6 +37,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private readonly SkeuoElementLibrary _library;
         private readonly Label _label;
         private readonly VisualElement _row;
+        private readonly VisualElement _backdrop;
         private IMainMenuCommandSink _sink;
         private bool _hasContinueSave;
 
@@ -45,6 +46,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             _root = root;
             _library = library;
+
+            // ── 纯色背板(spec §5:世界未装载 ⇒ 纸面下是**纯色底**,不是游戏画面)──
+            // ⚠️ 走 **42 侧全屏背板**而不是相机 `clearFlags = SolidColor`:菜单期启动序第 5 步
+            //    的那个相机**还没建出来**(它在 World 装载之后),此时渲染的是场景里预摆的
+            //    占位相机 —— 改它要么改不到、要么在关屏后留下一台被改过清屏色的相机。
+            // ⚠️ 色值 = 调色板既有 token `--skeuo-implement-bg`(2026-11-01 用户裁定复用,
+            //    故**不新增任何字面色值**);背板因此对美术轮的调色板改动自动跟随。
+            // ⚠️ `pickingMode = Ignore`:背板不参与拾取,点它不挡下面的行。
+            var backdrop = new VisualElement { name = "main-menu-backdrop" };
+            backdrop.AddToClassList("menu-backdrop");
+            backdrop.pickingMode = PickingMode.Ignore;
+            _root.Add(backdrop);
+            _backdrop = backdrop;
 
             var host = new VisualElement { name = "main-menu-host" };
             host.AddToClassList("menu-host");
@@ -68,6 +82,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _row.RegisterCallback<ClickEvent>(_ => Activate());
             paper.Add(_row);
         }
+
+        /// <summary>纯色背板(观测面:判据读它的不透明度 / 覆盖范围 / 与纸面的绘制先后)。</summary>
+        public VisualElement Backdrop => _backdrop;
 
         /// <summary>唯一落点(开屏时装配层 / 驱动落焦于此)。</summary>
         public VisualElement FirstFocusable => _row;

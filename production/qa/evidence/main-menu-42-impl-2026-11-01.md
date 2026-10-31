@@ -156,3 +156,55 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
 **回归后的一次零影响清理**:`SaveService.HasAnySave()`(布尔投影)**零调用**(装配层用
 `TryGetMostRecentSave`),按「死代码 = 第二种判据」删除;删除后重跑本轮两条新增套件
 (PlayMode 7/7 · EditMode 3/3)确认行为面为零。全量数跑的是含该方法的树 —— **如实登记**。
+
+---
+
+## 8. 补轮(同日)· 纸面下纯色底(spec §5)
+
+**用户裁定**:复用调色板既有 token **`--skeuo-implement-bg`(`#6B4423`)**,不新增任何字面色值
+(三选项:木棕 `--skeuo-implement-bg` / 深棕 `--skeuo-scroll-rod` / 新增 `--skeuo-stage-bg`;
+用户取第一项)。
+
+**形态**:42 侧全屏背板 `.menu-backdrop`(绝对定位铺满 `.scene-host`,绘制在纸面之前,
+`pickingMode = Ignore`);**不动相机** —— 菜单期启动序第 5 步的相机尚未建出来,
+此时渲染的是场景预摆的占位相机(改它要么改不到,要么在关屏后留下一台被改过清屏色的相机)。
+
+**判据**:`main_menu_wiring_test.test_menuBackdrop_isOpaqueCoversPanel_andPaintsBehindPaper`
+—— 刻意**不断言色值字面量**(色值归美术轮,断言字面量会把一次调色变成一次测试红),
+只钉四条属性:不透明 / 铺满面板 / 绘制在纸面之前 / 不参与拾取。
+
+**⚠️ 同轮把夹具补成生产形状**:此前的 PlayMode 夹具**不挂样式表**(自建空壳 `_styleSheets` 为空)
+⇒ `.ruled` / `.menu-backdrop` 这类 USS 规则在夹具里**根本不生效**,「背板不透明」这类判据
+在夹具里只能假绿。现按 `#if UNITY_EDITOR` 挂九份真 USS(`casebook_reading_inline_test` 同款守卫;
+方法体也加守卫 —— 只守调用点会 CS0234)。
+
+**证伪**:
+
+| # | 变异 | 期望 | 实测 |
+|---|---|---|---|
+| **M7** | 背板不进树(`_root.Add(backdrop)` 删掉) | 背板判据红 | ✅ 恰 1 红:「背板必须**不透明**(实际 alpha=0)」 |
+| **M8** | USS 底色改 `rgba(107,68,35,0.5)` | 同上 | ✅ 恰 1 红:「实际 alpha=0.5」 |
+| **M9** | 背板 `Add` 挪到纸面**之后**(仍在树上、仍不透明) | 次序断言红 | ✅ 恰 1 红:「背板必须绘制在纸面**之前**」 |
+
+（另有 M9a「背板挂载点直接删除」= 与 M7 同形,跑出来同样是 alpha=0 —— **重复件,如实登记**,
+不另计。）
+
+**全量回归**(三元组:截至时刻 · 批次 · commit):
+
+| 套件 | 结果 | 本轮基线(`04f69ba8`) | 等式 |
+|---|---|---|---|
+| **EditMode** | `6326 / 6289 passed / 0 failed / 37 skipped` | `6326 / 6289 / 0 / 37` | **+0**(本轮未加 EditMode 件)✅ |
+| **PlayMode** | `270 / 266 passed / 0 failed / 2 skipped (+2 inconclusive)` | `269 / 265 / 0 / 2 (+2)` | `270 − 269 = 1` = 新增背板判据 ✅ |
+
+- 执行时刻 **2026-11-01 07:38 / 07:40 CST**(utp `start-time` 23:38:29Z / 23:40:40Z);批次 **主菜单补轮**;两条命令均先 `grep -c "error CS"` = 0。
+- 2 条 **Inconclusive** 仍是既有的 `U1Assump6GamepadFocusSpikeTest.*_notRun`(探针件,按设计不跑),非本轮引入。
+- ⚠️ **本文件不自引本笔提交的哈希**(哈希取决于本文件内容)⇒ 记为「工作树;基线 = `04f69ba8`」。
+
+**实拍对照**(GUI 模式,同一探针改输出名;脚本副本 `main-menu-backdrop-2026-11-01.cs.txt`):
+
+| 图 | 纸面下是什么 |
+|---|---|
+| `skeuomorphic-ui/main-menu-2026-11-01.png`(补轮前) | Boot 场景的**天空盒 + 地面**(空世界第一帧)—— 与 §5「不是游戏画面」的主句不冲突,但「纯色底」未兑现 |
+| `skeuomorphic-ui/main-menu-backdrop-2026-11-01.png`(补轮后) | **整屏纯木棕 `#6B4423`**;纸面居中、焦点环在行上、无按键提示 |
+
+读数一致:`paper 479×96 at(601,561) centerY=609`(面板 1680×1215 中心 607.5)· `labelCount=1` · `ringOnRow=True`。

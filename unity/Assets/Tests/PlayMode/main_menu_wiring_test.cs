@@ -169,6 +169,57 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // spec §5「纸面下是纯色底,不是游戏画面」(2026-11-01 补轮)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 背板判据:**在、不透明、铺满、绘制在纸面之前、不参与拾取**。
+        /// <para>⚠️ 本判据**刻意不断言具体色值** —— 色值归美术轮(spec §5 留白),
+        /// 断言字面量会把一次美术调色变成一次测试红。要保证的属性是「后面看不见游戏画面」,
+        /// 那由**不透明 + 铺满**表达,不由某个十六进制数表达。</para>
+        /// <para>变异面:删掉背板元素 ⇒ 本条红;把 USS 改成半透明 ⇒ 本条红;
+        /// 把背板 `Add` 到 host **之后** ⇒ 先后断言红。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_menuBackdrop_isOpaqueCoversPanel_andPaintsBehindPaper()
+        {
+            yield return BootUntilMenuAppears();
+
+            var menu = (MainMenuScreen)_driver.CurrentScreen;
+            Assert.IsNotNull(menu);
+            VisualElement backdrop = menu.Backdrop;
+            Assert.IsNotNull(backdrop, "spec §5:世界未装载时纸面下必须是**纯色底**(背板元素必须在)");
+
+            // ① 不透明 —— 半透明会让 Boot 场景的天空盒 / 地面透出来,「不是游戏画面」即不成立
+            Color bg = backdrop.resolvedStyle.backgroundColor;
+            Assert.AreEqual(1f, bg.a, 0.001f,
+                $"背板必须**不透明**(实际 alpha={bg.a})—— 半透明 ⇒ 天空盒透出 ⇒ spec §5 不成立");
+
+            // ② 铺满面板(绝对定位 inset 0 的落点)
+            VisualElement panel = _driver.GetUiRoot();
+            Assert.IsNotNull(panel, "[前置] 面板必须在");
+            Rect pb = panel.worldBound;
+            Rect bb = backdrop.worldBound;
+            Assert.GreaterOrEqual(bb.width, pb.width - 1f, $"背板宽度须铺满面板(背板 {bb.width:F0} / 面板 {pb.width:F0})");
+            Assert.GreaterOrEqual(bb.height, pb.height - 1f, $"背板高度须铺满面板(背板 {bb.height:F0} / 面板 {pb.height:F0})");
+
+            // ③ 绘制次序:纸面之后画 = 盖住纸面 ⇒ 必须排在 host **之前**
+            VisualElement root = menu.Root;
+            VisualElement host = root.Q<VisualElement>("main-menu-host");
+            Assert.IsNotNull(host, "[前置] 纸面容器必须在");
+            // ⚠️ 先钉「是 root 的儿子」:`IndexOf` 对非子元素返回 -1,而 `-1 < 任何下标`
+            //    恒成立 ⇒ 只写 `Less` 的话,背板被挂到别的父节点下也会**假绿**。
+            Assert.GreaterOrEqual(root.IndexOf(backdrop), 0,
+                "背板必须是场景级屏容器的**直接子元素**(挂到别处 ⇒ 下面的次序判据无从谈起)");
+            Assert.Less(root.IndexOf(backdrop), root.IndexOf(host),
+                "背板必须绘制在纸面**之前**(兄弟次序 = 绘制次序)—— 排在后面会把纸面盖住");
+
+            // ④ 不参与拾取(背板铺满全屏,若可拾取会吞掉行的点击)
+            Assert.AreEqual(PickingMode.Ignore, backdrop.pickingMode,
+                "背板必须 `pickingMode = Ignore`,否则它会吞掉那一行的点击(spec §7 指针路径)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // AC-MM-09-a 无存档分支
         // ══════════════════════════════════════════════════════════════════
 
@@ -346,6 +397,35 @@ namespace DaYiJingCheng.Tests.PlayMode
         // 装置
         // ══════════════════════════════════════════════════════════════════
 
+        /// <summary>九份拟物样式表(与 `SkeuoRuntimeDriver._styleSheets` 的生产清单同源)。</summary>
+        private static readonly string[] StyleSheetPaths =
+        {
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoThemeVariables.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoPaper.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoInk.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoScroll.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoBrass.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoSeal.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoMarks.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoImplement.uss",
+            "Assets/Gameplay.UI/Skeuomorphic/SkeuoFocusVisible.uss",
+        };
+
+        /// <summary>把生产样式表挂到面板根(编辑器腿;player 里由 `#if` 排除调用点)。</summary>
+        private static void AttachProductionStyleSheets(VisualElement panelRoot)
+        {
+            // ⚠️ 方法体也要 `#if`:只守调用点不够 —— `UnityEditor` 命名空间在 player 里
+            //    不存在,未守卫的方法体照样 CS0234(`casebook_reading_inline_test` 同一坑)。
+#if UNITY_EDITOR
+            foreach (string path in StyleSheetPaths)
+            {
+                var sheet = UnityEditor.AssetDatabase.LoadAssetAtPath<StyleSheet>(path);
+                if (sheet != null && !panelRoot.styleSheets.Contains(sheet))
+                    panelRoot.styleSheets.Add(sheet);
+            }
+#endif
+        }
+
         /// <summary>预摆 UI 壳 → 起 BootRoot(开主菜单断言)→ 等菜单摊开。</summary>
         private IEnumerator BootUntilMenuAppears()
         {
@@ -368,6 +448,16 @@ namespace DaYiJingCheng.Tests.PlayMode
                     Assert.Fail($"{PanelTimeoutSeconds}s 内面板未 attach —— 本门要的是**真面板**");
                 yield return null;
             }
+
+            // ⚠️ 2026-11-01:本夹具**挂真样式表**。此前不挂(自建空壳无 `_styleSheets`),
+            //    于是 `.ruled` / `.menu-backdrop` 这类 USS 规则在夹具里根本不生效 ——
+            //    「背板不透明」这类判据只能在真机上验。Boot.unity 的预摆壳是**带**九份
+            //    USS 的,故挂上才是生产形状。
+            //    `AssetDatabase` 在 player 里不存在 ⇒ 整段 `#if UNITY_EDITOR`
+            //    (与 `casebook_reading_inline_test` 同款守卫,否则 IL2CPP 构建失败)。
+#if UNITY_EDITOR
+            AttachProductionStyleSheets(_doc.rootVisualElement);
+#endif
 
             _root = new GameObject("BootRoot_MainMenuWiring");
             _boot = _root.AddComponent<BootRoot>();

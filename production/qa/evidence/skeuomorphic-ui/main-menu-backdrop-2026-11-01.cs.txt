@@ -1,0 +1,211 @@
+// 临时探针(2026-11-01 · 主菜单实拍)—— **用完即删,不入库**(副本留
+// `production/qa/evidence/skeuomorphic-ui/main-menu-2026-11-01.cs.txt`)。
+//
+// 目的:在**真游戏**(Boot 场景,`_bootWithMainMenu = 1`)里拍下主菜单屏,复核
+//   ① 纸面 / 一行的布局(水平 + **纵向**居中,spec §5)
+//   ② 开屏落焦的**可见**表现(焦点环)
+//   ③ 无「按 X 继续」一类提示浮层(spec §6)
+//
+// ⚠️ 必须 GUI 模式(batch 出不了图,见 ScreenshotTool 头注的两次实测)。
+// 不引用 Gameplay.UI / Gameplay.Boot 程序集 —— 用反射取类型,避免改 asmdef 触发装配门。
+
+#if UNITY_EDITOR
+using System;
+using System.IO;
+using System.Reflection;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace DaYiJingCheng.EditorTools.Capture
+{
+    internal static class TmpMainMenuShot
+    {
+        private const string Armed = "__mmShotArmed";
+        private const string PhaseKey = "__mmShotPhase";
+        private const string FrameKey = "__mmShotFrames";
+        private const string ShotDir = "Logs/shots";
+        private const string BootScene = "Assets/Scenes/Boot.unity";
+        private const string ShotFile = "main-menu-backdrop-2026-11-01.png";
+
+        private const string DriverType = "DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoRuntimeDriver";
+
+        private static Component _driver;
+        private static VisualElement _menuRoot;
+
+        [InitializeOnLoadMethod]
+        private static void Rehook()
+        {
+            if (SessionState.GetBool(Armed, false)) EditorApplication.update += Tick;
+        }
+
+        [MenuItem("大医精诚/Probe/主菜单实拍")]
+        public static void Run()
+        {
+            SessionState.SetBool(Armed, true);
+            SessionState.SetInt(PhaseKey, 0);
+            SessionState.SetInt(FrameKey, 0);
+            EditorApplication.update += Tick;
+            Debug.Log("[MMSHOT] armed");
+        }
+
+        private static void Tick()
+        {
+            int phase = SessionState.GetInt(PhaseKey, 0);
+
+            if (phase == 0)
+            {
+                var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (active.isDirty)
+                {
+                    Debug.LogError("[MMSHOT] 当前场景有未保存改动 ⇒ 中止(避免模态框挂死)");
+                    Quit(2);
+                    return;
+                }
+                if (active.path != BootScene)
+                {
+                    Debug.Log($"[MMSHOT] 打开 Boot 场景(当前 {active.path})");
+                    EditorSceneManager.OpenScene(BootScene, OpenSceneMode.Single);
+                }
+                SessionState.SetInt(PhaseKey, 1);
+                EditorApplication.EnterPlaymode();
+                return;
+            }
+
+            if (!EditorApplication.isPlaying)
+            {
+                if (phase >= 90) Quit(0);
+                return;
+            }
+
+            if (phase == 1)
+            {
+                if (_driver == null) _driver = FindDriver();
+                if (_driver == null) return;
+                Debug.Log("[MMSHOT] 驱动就绪");
+                SessionState.SetInt(PhaseKey, 2);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            int f = SessionState.GetInt(FrameKey, 0) + 1;
+            SessionState.SetInt(FrameKey, f);
+
+            if (phase == 2)
+            {
+                // 启动序走到 2.95 才摊菜单(Addressables init + 装配 + 场景装载)
+                _menuRoot = ReadMenuRoot();
+                if (_menuRoot == null)
+                {
+                    if (f > 1800) { Debug.LogError("[MMSHOT] 30s 内菜单未摊开"); Quit(4); }
+                    return;
+                }
+                SessionState.SetInt(PhaseKey, 3);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            if (phase == 3)
+            {
+                if (f < 20) return;
+                Dump();
+                Shot(ShotFile);
+                SessionState.SetInt(PhaseKey, 4);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            if (phase == 4)
+            {
+                if (!WaitForFile(Path.Combine(ShotDir, ShotFile), f)) return;
+                Debug.Log("[MMSHOT] 截图已落盘");
+                SessionState.SetInt(PhaseKey, 90);
+                EditorApplication.ExitPlaymode();
+            }
+        }
+
+        private static void Quit(int code)
+        {
+            SessionState.SetBool(Armed, false);
+            EditorApplication.update -= Tick;
+            Debug.Log($"[MMSHOT] DONE exit={code}");
+            EditorApplication.Exit(code);
+        }
+
+        private static Component FindDriver()
+        {
+            Type t = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType(DriverType, false);
+                if (t != null) break;
+            }
+            if (t == null) return null;
+            return UnityEngine.Object.FindFirstObjectByType(t) as Component;
+        }
+
+        /// <summary>场景级屏的容器(驱动 `CurrentScreen` 是 `IPresentationRoot`,其 `Root` 即容器)。</summary>
+        private static VisualElement ReadMenuRoot()
+        {
+            object screen = _driver.GetType().GetProperty("CurrentScreen")?.GetValue(_driver);
+            return screen?.GetType().GetProperty("Root")?.GetValue(screen) as VisualElement;
+        }
+
+        /// <summary>几何读数(不是图像判读):面板尺寸 / 纸面 / 行 / 焦点元素。</summary>
+        private static void Dump()
+        {
+            VisualElement panel = _driver.GetType().GetMethod("GetUiRoot")?.Invoke(_driver, null) as VisualElement;
+            var pb = panel?.worldBound ?? Rect.zero;
+            Debug.Log($"[MMSHOT] panel={pb.width:F0}x{pb.height:F0}");
+
+            var host = _menuRoot.Q<VisualElement>("main-menu-host");
+            var paper = _menuRoot.Q<VisualElement>("main-menu-paper");
+            var row = _menuRoot.Q<VisualElement>("main-menu-continue");
+            foreach (var (name, el) in new[] { ("host", host), ("paper", paper), ("row", row) })
+            {
+                if (el == null) { Debug.Log($"[MMSHOT] {name}=MISSING"); continue; }
+                var b = el.worldBound;
+                Debug.Log($"[MMSHOT] {name} {b.width:F0}x{b.height:F0} at({b.x:F0},{b.y:F0}) " +
+                          $"centerY={b.y + b.height / 2f:F0}");
+            }
+
+            VisualElement focused = panel?.panel?.focusController?.focusedElement as VisualElement;
+            Debug.Log($"[MMSHOT] focused={(focused == null ? "null" : focused.name)} " +
+                      $"isRow={(focused == row)} ringOnRow={HasRing(row)}");
+
+            int texts = 0;
+            _menuRoot.Query<Label>().ForEach(l => { texts++; Debug.Log($"[MMSHOT] label=\"{l.text}\""); });
+            Debug.Log($"[MMSHOT] labelCount={texts}");
+        }
+
+        private static bool HasRing(VisualElement row)
+        {
+            if (row == null) return false;
+            for (int i = 0; i < row.childCount; i++)
+                if (row[i].ClassListContains("focus-visible")) return true;
+            return false;
+        }
+
+        /// <summary>等到截图文件真的落盘(非零字节);最多等 300 帧。</summary>
+        private static bool WaitForFile(string path, int frames)
+        {
+            if (File.Exists(path) && new FileInfo(path).Length > 1000) return true;
+            if (frames > 300)
+            {
+                Debug.LogError($"[MMSHOT] 等文件超时:{path}");
+                return true;
+            }
+            return false;
+        }
+
+        private static void Shot(string file)
+        {
+            Directory.CreateDirectory(ShotDir);
+            string path = Path.Combine(ShotDir, file);
+            ScreenCapture.CaptureScreenshot(path);
+            Debug.Log($"[MMSHOT] shot -> {path}");
+        }
+    }
+}
+#endif

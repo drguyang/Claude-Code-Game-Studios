@@ -14920,3 +14920,37 @@ OQ-MM-5 是否加「新开/设置/退出」(P0 单行)· OQ-MM-6 存档摘要(�
 - **仍未抽 `ISceneRouter`**:两个场景各自一行 `LoadSceneAsync`;抽接口要等第三个调用方。
 - 全量回归跑于「含 `SaveService.HasAnySave()`」的树;该方法**零调用**、随后按死代码删除,
   删除后**重跑**本轮两条新增套件确认行为面为零(详见证据件 §7)。
+
+---
+
+## 2026-11-01 · 补轮:主菜单「纸面下纯色底」(spec §5)
+
+**用户裁定**:复用调色板既有 token `--skeuo-implement-bg`(`#6B4423`),**不新增字面色值**
+(三选项:木棕 / 深棕 `--skeuo-scroll-rod` / 新增 `--skeuo-stage-bg`;取第一项)。
+
+### 落盘
+
+- `MainMenuScreen`:全屏背板 `.menu-backdrop`(绝对定位铺满 `.scene-host`,绘制在纸面**之前**,
+  `pickingMode = Ignore`);**不动相机**(菜单期启动序第 5 步的相机还没建出来)。
+- `SkeuoPaper.uss`:`.menu-backdrop { background-color: var(--skeuo-implement-bg) }` —— **零字面色值**。
+- `main_menu_wiring_test`:**挂九份真 USS**(`#if UNITY_EDITOR` 守卫,方法体也守 —— 只守调用点会 CS0234)
+  —— 此前夹具不挂样式表,USS 规则在夹具里根本不生效,「背板不透明」只能假绿。
+- 新增判据 `test_menuBackdrop_isOpaqueCoversPanel_andPaintsBehindPaper`:
+  不断言色值字面量(色值归美术轮),只钉「不透明 / 铺满面板 / 绘制在纸面之前 / 不参与拾取」;
+  次序判据**先钉 `IndexOf >= 0`** —— 否则背板不在 root 下时 `-1 < 0` 会假绿。
+
+### 证伪
+
+M7 背板不进树 ⇒ alpha=0 红 · M8 改半透明 ⇒ alpha=0.5 红 · M9 背板画在纸面之后 ⇒ 次序断言红。
+(M9a 是 M7 的重复件,如实登记。)三轮 SHA-256 逐字节还原。
+
+### 实拍
+
+`skeuomorphic-ui/main-menu-backdrop-2026-11-01.png`:整屏纯木棕,纸面居中,焦点环在行上,无按键提示。
+补轮前的对照图 `main-menu-2026-11-01.png` 里纸面下是天空盒 + 地面。
+
+### 回归
+
+- **EditMode** `6326/6289/0/37`(本轮基线 `04f69ba8` 同值 ⇒ **+0**,本轮未加 EditMode 件)
+- **PlayMode** `270/266/0/2`(+2 既有 Inconclusive)(基线 269/265/0/2 ⇒ **+1** = 背板判据)
+- 执行时刻 07:38 / 07:40 CST;两条命令均先 `grep -c "error CS"` = 0。

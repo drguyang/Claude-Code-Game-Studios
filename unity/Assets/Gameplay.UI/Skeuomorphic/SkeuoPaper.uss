@@ -88,6 +88,19 @@
     bottom: 0;
 }
 
+/* 主菜单的**纯色背板**(2026-11-01 · `main-menu-42.md` §5「纸面下是纯色底,不是游戏画面」)。
+   ⚠️ 色值 = 调色板既有 token `--skeuo-implement-bg`(用户 2026-11-01 裁定复用)——
+   **本块不写字面色值**,美术轮改 token 时背板自动跟随。
+   ⚠️ 绝对定位铺满 `.scene-host` 容器;绘制在纸面**之前**(兄弟次序 = 绘制次序)。 */
+.menu-backdrop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--skeuo-implement-bg);
+}
+
 /* 主菜单屏(2026-11-01 · `main-menu-42.md` §5)—— 与 `.pause-column` 同一条列宽契约,
    多一层「纵向也居中」:世界尚未装载,纸面下是纯色底,不需要贴边。 */
 .menu-host {
