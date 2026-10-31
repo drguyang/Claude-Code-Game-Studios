@@ -24,7 +24,7 @@ using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.Foraging;
 using NUnit.Framework;
 
-namespace DaYiJingCheng.Tests.Foraging
+namespace DaYiJingCheng.Tests.EditMode.Foraging
 {
     /// <summary>F-17-3 余量前缀与采前闸。</summary>
     [TestFixture]

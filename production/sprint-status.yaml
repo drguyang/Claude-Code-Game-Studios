@@ -46,7 +46,7 @@ stories:
     name: "foraging/005 动作原子性与失败收敛"
     file: "production/epics/foraging/story-005-action-atomicity-failure-convergence.md"
     priority: must-have
-    status: backlog
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: M

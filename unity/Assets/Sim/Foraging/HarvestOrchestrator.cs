@@ -287,26 +287,42 @@ namespace DaYiJingCheng.Sim.Foraging
         }
 
         /// <summary>
-        /// 裁决一次成功采集。**五次提交次序:② → ③ → ④ → ⑤**(① 是纯发号,不写流)。
+        /// 裁决一次采集:先过闸门,再走成功路径。**失败 ⇒ 零事件、零消耗、零成长。**
         /// </summary>
         /// <param name="request">采集请求(全部整数域)。</param>
-        /// <returns>本次的 <c>instance_id</c> 与 <c>gather_seq</c>。</returns>
+        /// <param name="gate">闸门输入 —— 由调用方在裁决时求值(20 的 `CanCarry` / 17 的 `CanHarvest`)。
+        /// ⚠️ 生产裁决**不得**传 <see cref="HarvestGate.Allow"/>:那等于跳过采前闸。</param>
+        /// <returns>成功带 id 与 `gather_seq`;失败带**具名类别**(AC-17-07c 的三支)。</returns>
+        /// <remarks>
+        /// <para><b>闸门排在一切副作用之前</b>,包括新颖度求值 —— `NoveltyTracker.Query` 在
+        /// 首次 / 冷却期外会推进 `lastSeenTick`(有副作用)。若它排在闸门之前,一次**被拒**
+        /// 的采集会白白烧掉「首采」奖励,而流里没有任何事件能解释这件事。</para>
+        /// <para><b>失败路径结构上零事件</b>:三条产出事件与成长都在闸门之后,被拒时
+        /// 一行都不执行 —— 这不是靠「记得回滚」,是靠**顺序**。</para>
+        /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">请求字段非法
         /// (tick / actorId / nodeId / itemKey / skillId / objectId 为负,qty &lt; 1,outQuality &lt; 1,
         /// novelty 出 <c>[0, Normal]</c> 域,xpGain 为负)。</exception>
-        public HarvestResult Resolve(in HarvestRequest request)
+        public HarvestOutcome Resolve(in HarvestRequest request, in HarvestGate gate)
         {
             // ── 前置校验:全部在**任何写入之前**完成(原子性的结构保证)──
             Validate(request);
+
+            // ── ⑤′ 闸门(story-005):满载 → 余量不足,各自具名,零事件 ──
+            // ⚠️ 次序固定:满载判定在前 —— 它是 20 的容量预算,与节点状态无关;
+            //    余量判定在后。两支都拒时,玩家应先看到「箱子满了」(那是他能立刻处理的)。
+            if (!gate.HasCapacity)
+                return HarvestOutcome.Reject(HarvestFailureKind.FullInventory);
+            if (!gate.HasRemaining)
+                return HarvestOutcome.Reject(HarvestFailureKind.InsufficientRemaining);
 
             // ── ⑥ 新颖度求值(S20-15 · 求值移入编排器内部,ADR-026 / AC-17-14f)──
             // ⚠️ **位置是本卡最容易写错的一行**,两个方向都错:
             //   · 挪到 `Validate` **之前** ⇒ 非法请求也消耗「首次」奖励(AC-17-14e 红)。
             //     `Query` 在首次 / 冷却期外会推进 `lastSeenTick`,那是**副作用**,不是纯查询。
-            //   · 挪到 ①(铸号)之后 ⇒ 非法请求虽已被 `Validate` 拦住,但**将来**
-            //     `foraging/story-005` 落地后,满载 / 余量不足的失败会发生在 `Validate`
-            //     **之后** —— 那时 `Query` 若已在写入段内,一次失败的采集会白白烧掉首采奖励。
-            //     ⇒ **届时须把本行移到那些失败判定之后**,而不是移动到写入之后。
+            //   · 挪到 ①(铸号)之后 ⇒ 一次被拒的采集会白白烧掉「首采」奖励。
+            // ✅ **2026-10-31 story-005 已兑现该约束**:闸门(⑤′)排在本行**之前**,
+            //    被拒请求在 `Query` 之前就返回 —— 首采奖励不会被失败消耗。
             // ⚠️ 时刻取值:本行排在 ① 之前,故用 `request.Tick` 即为本动作 tick(无偏移)。
             // ⚠️ `checked` 承 `SeenDiseaseProjector.cs:101` 的既有口径 —— 超界 fail-loud,
             //    **不静默截断**(截断会让 32 位溢出后的 tick 看起来像一次正常的「冷却已过」)。
@@ -338,7 +354,7 @@ namespace DaYiJingCheng.Sim.Foraging
             _growth.Emit(request.Tick, request.ActorId, request.SkillId, request.ObjectId,
                          novelty, level: null, xpGain: request.XpGain);
 
-            return new HarvestResult(instanceId, gatherSeq);
+            return HarvestOutcome.Success(new HarvestResult(instanceId, gatherSeq));
         }
 
         private static void Validate(in HarvestRequest r)

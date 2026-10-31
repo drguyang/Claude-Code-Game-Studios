@@ -70,7 +70,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         [Test]
         public void test_ac1714_firstHarvestOfASpecies_yieldsFirst()
         {
-            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3), HarvestGate.Allow);
 
             Assert.That(_growth.Calls.Single().Novelty, Is.EqualTo(NoveltyClass.First),
                 "首次采某品种 ⇒ novelty_class = First(×3.0)");
@@ -86,8 +86,8 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         [Test]
         public void test_ac1714b_withinCooldown_yieldsStale_andDoesNotAdvanceLastSeen()
         {
-            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3));
-            _orchestrator.Resolve(Req(tick: 100 + 1000, actorId: 1, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3), HarvestGate.Allow);
+            _orchestrator.Resolve(Req(tick: 100 + 1000, actorId: 1, objectId: 3), HarvestGate.Allow);
 
             Assert.That(_growth.Calls[1].Novelty, Is.EqualTo(NoveltyClass.Stale),
                 "冷却期内再采同品种 ⇒ Stale(×0.2)");
@@ -113,8 +113,8 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         [Test]
         public void test_ac1714c_afterCooldown_yieldsNormal_andAdvancesLastSeen()
         {
-            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3));
-            _orchestrator.Resolve(Req(tick: 100 + Cooldown, actorId: 1, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3), HarvestGate.Allow);
+            _orchestrator.Resolve(Req(tick: 100 + Cooldown, actorId: 1, objectId: 3), HarvestGate.Allow);
 
             Assert.That(_growth.Calls[1].Novelty, Is.EqualTo(NoveltyClass.Normal),
                 "超出冷却期后再采同品种 ⇒ Normal(×1.0)");
@@ -140,8 +140,8 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         [Test]
         public void test_ac1714d_twoPlayersFirstHarvestSameSpecies_bothGetFirst()
         {
-            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3));
-            _orchestrator.Resolve(Req(tick: 100, actorId: 2, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3), HarvestGate.Allow);
+            _orchestrator.Resolve(Req(tick: 100, actorId: 2, objectId: 3), HarvestGate.Allow);
 
             Assert.That(_growth.Calls[0].Novelty, Is.EqualTo(NoveltyClass.First), "玩家 1 首采");
             Assert.That(_growth.Calls[1].Novelty, Is.EqualTo(NoveltyClass.First),
@@ -177,14 +177,14 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
                 itemKeyOrdinal: 0, qty: 0, outQuality: 2,
                 skillId: (int)SkillId.采集, objectId: 3, xpGain: Fix.One);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => _orchestrator.Resolve(bad));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _orchestrator.Resolve(bad, HarvestGate.Allow));
 
             Assert.That(_novelty.Count, Is.EqualTo(0),
                 "失败的采集**零副作用** —— 追踪器仍空。若这里非 0,说明 `Query` 排在 " +
                 "`Validate` **之前**:一次非法请求白白烧掉了该品种的「首次」奖励");
 
             // 随后一次合法采集仍须拿到 First(奖励没被烧掉的行为面)
-            _orchestrator.Resolve(Req(tick: 200, actorId: 1, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 200, actorId: 1, objectId: 3), HarvestGate.Allow);
             Assert.That(_growth.Calls.Single().Novelty, Is.EqualTo(NoveltyClass.First),
                 "失败之后的首采仍是 First —— 与上一条类型面断言互为行为面证据");
         }
@@ -227,8 +227,8 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
 
             // 行为面补充:载荷里的 novelty **不是**调用方传的 —— 两个不同 tick 的同一请求
             // 得到不同的 novelty,这只能由内部状态推出。调用方两次传的入参**完全相同**。
-            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3));
-            _orchestrator.Resolve(Req(tick: 200, actorId: 1, objectId: 3));
+            _orchestrator.Resolve(Req(tick: 100, actorId: 1, objectId: 3), HarvestGate.Allow);
+            _orchestrator.Resolve(Req(tick: 200, actorId: 1, objectId: 3), HarvestGate.Allow);
 
             Assert.That(_growth.Calls[0].Novelty, Is.EqualTo(NoveltyClass.First));
             Assert.That(_growth.Calls[1].Novelty, Is.EqualTo(NoveltyClass.Stale),
@@ -291,7 +291,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
 
             // 同源判据:**行为面**,不是比引用(引用比不了私有字段)。
             // 经由袋里的 Harvest 采一次,再问袋里的 Novelty ——若两者共用实例,状态可见。
-            _bag.Harvest.Resolve(Req(tick: 500, actorId: 9, objectId: 4));
+            _bag.Harvest.Resolve(Req(tick: 500, actorId: 9, objectId: 4), HarvestGate.Allow);
 
             Assert.That(_bag.Novelty.Peek(9, (int)SkillId.采集, 4, 500),
                 Is.Not.EqualTo(NoveltyClass.First),
@@ -307,7 +307,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             //    `harvest_orchestrator_test.test_ac1701_productionAdapter_writesAllThreeKinds_inOrder`
             //    (手工构造适配器)互补:本条走**装配袋**,那条走**手工接线**。
             int before = _bag.Stream.Events.Count;
-            _bag.Harvest.Resolve(Req(tick: 600, actorId: 9, nodeId: 1, objectId: 2));
+            _bag.Harvest.Resolve(Req(tick: 600, actorId: 9, nodeId: 1, objectId: 2), HarvestGate.Allow);
 
             var kinds = _bag.Stream.Events.Skip(before).Select(e => e.Kind).ToArray();
             Assert.That(kinds, Is.EqualTo(new[]

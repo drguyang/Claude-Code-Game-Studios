@@ -14138,3 +14138,16 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 回归 EditMode `6239/6202/0/0/37`(+15/+15 恰等)· PlayMode `238/234/0/2/2`。
 - 三条发现:① 夹具抓到我口算错(decay 含本次采集);② **GDD `:352`「累计 40 份触底」与表值不符(实为 21)**;
   ③ EffCapacity 运算次序本夹具不能区分(已如实写明)。
+
+## 2026-10-31 · 立 TD-foraging-03 + S22-2 部分落地
+
+- **新债 `TD-foraging-03`**(foraging · open · P0 面 N):GDD `:352` 写「累计 40 份触底」,
+  按表值 `DECAY_RATE = 1/40` + `DECAY_FLOOR = 1/2` 算实际在 **21**;值归数值轮,代码未改。
+  债册 `条目 143 · open 15` · `--check` exit 0。
+- **S22-2 部分落地(状态 in-progress,不记 done)**:
+  `HarvestOutcome.cs`(三支具名 + `HarvestGate`)+ `Resolve(request, gate)`,闸门排在铸号与
+  `NoveltyTracker.Query` **之前**;夹具 8 测。
+  AC-17-07 ✅ · 07c ✅ · 08 ✅;AC-17-09/09b/10 **零实现**;[L] 三条 EXTERNAL。
+  证伪 M2 exact 1 / M3 exact 1 / M1 3 红超集;SHA-256 还原一致。
+  回归 EditMode `6247/6210`(+8/+8)· PlayMode `238/234`。
+- 顺带:新夹具命名空间对齐到 `DaYiJingCheng.Tests.EditMode.Foraging`。

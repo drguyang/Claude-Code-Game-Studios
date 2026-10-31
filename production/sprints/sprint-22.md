@@ -180,6 +180,16 @@ PY
 > **三条如实登记**:① 夹具抓到我的口算错(`decay(Σ_all)` 含本次采集);② **GDD `:352` 写「累计 40 份触底」,
 > 按表值算触底在 21** —— 值归数值轮,未改数据;③ `EffCapacity` 的运算次序本夹具**不能区分**,已明写不主张。
 
+> 🟡 **`S22-2` 2026-10-31 部分落地 —— 状态 `in-progress`,不记 done**。
+> **已落**:`HarvestOutcome.cs`(三支具名 + `HarvestGate`)+ `HarvestOrchestrator.Resolve(request, gate)`,
+> 闸门**排在铸号与 `NoveltyTracker.Query` 之前**;夹具 `harvest_action_atomicity_test.cs`(8 测)。
+> **AC**:AC-17-07 ✅ · AC-17-07c ✅ · AC-17-08 ✅(结构半边)。
+> **未做(零实现,不是「差一点」)**:AC-17-09 / 09b(DTO 递归反射门 —— 呈现 DTO 尚不存在)·
+> AC-17-10(Roslyn 零浮点扫描未接线);`[L]` 三条仍 `EXTERNAL`。
+> **证伪 3 条**:M2(闸门移到 `Query` 之后)**exact 1 红** · M3(判定换序)**exact 1 红** ·
+> M1(满载分支失效)**3 红超集**(如实记)。还原 SHA-256 一致。
+> **回归** `2026-10-31T15:40:59 CST`:`EditMode 6247/6210`(+8/+8 恰等)· `PlayMode 238/234`。
+
 ### Should Have
 
 | ID | 卡 | Owner | 复杂度 | 依赖 | 验收判据 |

@@ -1,12 +1,12 @@
 # Story 005: 采集动作原子性、失败收敛与呈现/浮点反射门
 
 > **Epic**: 采集
-> **Status**: Ready
+> **Status**: In Progress(2026-10-31 · 闸门 / 三类失败收敛 / 原子性已落;AC-17-09 / 09b / 10 **未做** ⇒ 不得记 Complete)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-31
 
 ## Context
 
@@ -127,3 +127,50 @@
 ## Completion Notes
 
 *(placeholder — to be filled at story completion)*
+
+---
+
+## 进展记录(2026-10-31 · **未完，不记 Complete**)
+
+### 已落(可判)
+
+| 文件 | 内容 |
+|---|---|
+| `Sim/Foraging/HarvestOutcome.cs`(新) | `HarvestFailureKind` 三支具名 + `HarvestGate`(两个已求好的布尔,不重算任何一边)+ `HarvestOutcome` |
+| `Sim/Foraging/HarvestOrchestrator.cs`(改) | `Resolve(request, gate)` → 先过闸门;闸门**排在铸号与 `NoveltyTracker.Query` 之前** |
+| `Tests/EditMode/Foraging/harvest_action_atomicity_test.cs`(新) | 8 条 `[Test]` |
+| 既有两个采集夹具 | 26 处调用点补闸门参数、4 处补 `.Result`(机械替换,行为不变) |
+
+### AC 逐条
+
+| AC | 判定 | 依据 / 缺口 |
+|---|---|---|
+| **AC-17-07** 满载零消耗 | ✅ | 满载 ⇒ 具名 `FullInventory`;**零事件 · 零 `Spawn`/`Claim` · 零成长 · 零 `instance_id`**(用「下一次成功铸造拿到的值」观察 —— `IIdAuthority` 没有 peek 面) |
+| **AC-17-07c** 三类具名分支 | ✅ | 枚举反射:三支互不撞值、均非 `None`;`Reject(None)` 抛 |
+| **AC-17-08** 打断零效果 | ✅(结构半边) | 打断 = 不调用 ⇒ 零效果是**结构性**的(事件只在裁决成功时发);判据 = 被拒之后下一次成功采集的 `gather_seq` 仍从 0 起 |
+| **AC-17-09** DTO 递归反射门 | ❌ **未做** | `GatherAffordanceDto` 等呈现 DTO **尚未存在**;没有对象可扫。写一个空扫描跑绿 = F1 假绿 |
+| **AC-17-09b** `AudioCueDto` 无品质维 | ❌ **未做** | 同上;且 44 的 cue 落地形态未定 |
+| **AC-17-10** Roslyn 零浮点扫描 | ❌ **未做** | 复用 item-database story-011 的扫描件的接线**尚未接** |
+| **[L] 三条**(07b / 12 / 13b) | ⏸ `EXTERNAL` | 载体归 42 / 44,未交付 ⇒ **不得勾选** |
+
+⇒ **本卡未完成**。上面三项 `❌` 不是「差一点」,是**零实现**。
+
+### 证伪(E2)
+
+| 变异 | 结果 |
+|---|---|
+| **M2** 闸门移到 `NoveltyTracker.Query` **之后** | **exact 1 红** = `test_rejectedHarvest_doesNotConsumeNoveltyFirstSpot` |
+| **M3** 两条判定换序(余量优先) | **exact 1 红** = `test_ac1707_bothFalse_reportsFullInventory` |
+| **M1** 满载分支失效 | **3 红**(**超集**,如实记):`fullInventory` + `bothFalse` + `noveltyFirstSpot` 的前置也被打破 —— 三处同一根因 |
+
+还原 `cp` + **SHA-256 逐字节**(`5279969a…427d5`,与备份一致);`FALSIFY-` 残留 0。
+
+### 回归(三元组 `2026-10-31T15:40:59 CST` · `S22-2` 批 · `fa28fc17`+未提交)
+
+- EditMode `6247/6210/0/0/37`(基线 `6239/6202` ⇒ **+8/+8,恰等新增 8 测**)
+- PlayMode `238/234/0/2/2`
+
+### 一处顺带修正
+
+新写的两个夹具原用命名空间 `DaYiJingCheng.Tests.Foraging`,与同目录既有五个夹具的
+`DaYiJingCheng.Tests.EditMode.Foraging` 不一致(按命名空间过滤会漏跑)⇒ 已对齐。
