@@ -14118,3 +14118,15 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 `TD-persist-12`/`TD-building-04`(均须裁)。
 **开工前置**:`S22-1` 之前须跑 `/qa-plan sprint`,产物 `production/qa/qa-plan-sprint-22-<date>.md`。
 **未提交** —— 等用户指令。
+
+## 2026-10-31 · sprint-22 QA 计划(`/qa-plan sprint`)
+
+- 新建 `production/qa/qa-plan-sprint-22-2026-10-31.md`:8 卡 · 证据类 **E1–E4 + 新增 E5(载体落地)**。
+  关键事实:**`remaining` 在 `Sim/Foraging/` 命中 = 0** ⇒ `S22-1` 从零实现,F2 假绿高危;
+  既有采集夹具 `[Test]` 计数 = **104**(6 文件)。
+- 🔴 **同轮抓到我上一轮的文档缺陷并已修**:`smoke-2026-10-31.md` §二/§七 的结果件指向
+  `s21-10-final-em.xml`(6221/6184,**不含** #2/#21 两条新测)⇒ 带它跑 `run_smoke.py`
+  实为 **STRUCTURAL exit 2**。已改指 `s21-2-full-em.xml`(6224/6187,实测 exit 3),
+  并落 🔁 订正块。**数字与结论未变,错的是命令指向的文件。**
+- §八 五条复算命令全部实跑通过(8 件 M×3+S×5 · 104 测 · 余量 0 命中 · 22 条 test11/manual3/none8 · exit 3)。
+- **未提交**。
