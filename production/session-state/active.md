@@ -14693,3 +14693,39 @@ batch 进程**从不获得 Game View 焦点**,而编辑器默认
 - **正式入口**仍缺(暂停壳 Draft / 主菜单未接线);Escape 仍是临时入口。
 - 焦点落点已有机器判(`focus_on_open_test`),但同样**不经 BootRoot** —— 与本件同一类缺口,
   本轮未一并补。
+
+## 2026-11-01 · 开屏落焦 · 装配级夹具(`modal_focus_wiring_test.cs`)
+
+**缘由**:`focus_on_open_test` 证明的是「测试直建 driver 会落焦」,而生产是
+「UI 壳在场景里**预摆** → `BootRoot.FindOrCreateSkeuoUi` **按类型认领** → 注入命令面」。
+认领之后还落不落焦,此前无证据。
+
+### 形态与判据(2 条 UnityTest)
+
+预摆 `UIDocument + PanelSettings + SkeuoRuntimeDriver` → **再**起 `BootRoot` → 断言认领
+(`_uiDriver` 与预摆壳 `Is.SameAs`,否则测的是另一只壳)。
+
+| 用例 | 判据 |
+|---|---|
+| `pauseOpen_landsFocusOnFirstRow` | 开屏前无元素获焦(正控)→ `OpenModal(Pause)` → 引擎 `focusController.focusedElement` **就是** `RowAt(0)` |
+| `closeThenReopen_landsFocusAgain` | 开 → 关(焦点 `null`、不留悬空)→ **再开** → 焦点又落在**新屏**的第一行 |
+
+### 变异反证
+
+| 变异 | 结果 |
+|---|---|
+| MUT-F1 拆掉 `OpenModal` 里两处 `first.Focus()` | **两条全红**,报文均为 `focusedElement == null` |
+
+还原 = SHA-256 逐字节(`SkeuoRuntimeDriver.cs` `d023acb8…`),还原后 `git diff` 干净。
+
+### 判据
+
+- 全量 PlayMode **259 / 255 / 0 / 2 / 2** @ 2026-11-01 01:53:07 CST · 本批 · `7295bd68`+工作树
+- vs 上一轮 **257 / 253 / 0 / 2 / 2**(00:36:57 · `6d58f8ec`+工作树):`total +2` / `passed +2` / `failed 0 → 0`
+- 等式:`259 − 257 = 2` = 本批新增两条,`passed` 同步 `+2`
+
+### 仍未做(不借绿)
+
+- **按键开屏**(Escape → `ModalInputDriver` → opener)没在本件内驱动 —— 本件直接调 `OpenModal`;
+  该链路归 `pause_focus_navigation_test`(测试自建)与生产输入面,装配级仍未覆盖。
+- 世界不冻结 / 正式入口两支 / 视觉对比度 —— 同上轮,未动。
