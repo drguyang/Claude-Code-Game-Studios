@@ -60,6 +60,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         private PlayerController _player;
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
+        /// <summary>存档位载入路由(42 确认动作 → <c>LoadSequencer</c>;启动序内装配)。</summary>
+        private SaveSlotCommandRouter _saveSlotCommands;
+
+        /// <summary>
+        /// 存档位清单(7b 界面画哪几个槽)。
+        /// <para>⚠️ <b>数值出处 = 7b,不是本类</b>:7a/7b 的槽位集与「快速槽 0」的分工今日
+        /// 未在 GDD 定值(<c>save-slot-ui.md</c> 只定语义)。本轮的目的是把载入路径**接通**,
+        /// 故先落一个具名清单供界面画出;真值归 7b 的数值轮,届时只改这一处。</para>
+        /// <para>⚠️ 槽 0 不在此列:它是 <c>quicksave/quickload</c> 的快照位
+        /// (<c>SaveService.GetFinalPath</c> 与玩家手动槽 0 同文件),不归界面的手动槽。</para>
+        /// </summary>
+        private static readonly uint[] ManualSaveSlots = { 1u, 2u, 3u };
 
         /// <summary>病人 cue 的非色相可见对应物容器(`AC-13-F1` 的 42 侧达成面 · 缺口 D)。
         /// <para>⚠️ 在 <see cref="_services"/> 装配**之前**构造(它是 `Assemble` 的入参),
@@ -629,6 +641,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // CasebookCommandRouter(实现 ICasebookCommandSink)。缺注入 ⇒ Submit 留空(不崩)。
             if (_services.CasebookCommands != null)
                 _uiDriver.CommandSink = _services.CasebookCommands;
+
+            // ── 6.2 存档位载入接线(2026-10-31 · TD-persist-04 裁定②「通电待信」的收尾)──
+            // 病因:`RequestLoad` 今日零调用方 ⇒ AC-7a-14 的比对执行体与 ADR-037 的逐表归因
+            // **全部**停在「读档路径一旦被调用」这一层,从未有过生产可达性。
+            // 本段把 42 存档位屏的确认动作接到 `LoadSequencer`(经 `SaveSlotCommandRouter`,
+            // **不**直调 `SaveService.Load` —— 那会漏掉读档后的锚点复位 / 兜底复位 / 派生态重建)。
+            // ⚠️ 未接存档目录(`LoadSequencer` 为 null)⇒ 路由仍挂上,但 `TryLoad` 恒 false
+            //    (不崩、不造动作;与 42 侧「缺写通道 = 留空」同纪律)。
+            _saveSlotCommands = new SaveSlotCommandRouter(
+                _services.LoadSequencer,
+                (slot, ex) => UnityEngine.Debug.LogError(
+                    "[7b][载入] 槽位 " + slot + " 载入失败(界面已受理、判定归 7a):" + ex));
+            _uiDriver.SaveSlotSink = _saveSlotCommands;
+            _uiDriver.SaveSlots = ManualSaveSlots;
 
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
             // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选

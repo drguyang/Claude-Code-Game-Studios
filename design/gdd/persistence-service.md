@@ -605,9 +605,12 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 > (逐份 artifact 的 `ConfigVersion`)。⇒ 排查从「两串十六进制不同」升级为
 > 「变动的表 = 这几张」。⚠️ 但**旧档(v2 迁上来的)仍是「无法归因」** —— v2 从未记录逐份版本,
 > 信息不存在,迁移只写 `count = 0`(= 未知),**不得**用当前产物补算(那会把每次读旧档报成「完全一致」)。
-> ② **生产可达性**:执行体挂在 `LoadSequencer.Load` 上,而生产触发点
-> `BootRoot.RequestLoad` **今日零调用方**(裁定② 通电待信)⇒ 已证的是
-> 「**读档路径一旦被调用即记录**」,**不是**「读档时已经记录过」。
+> ② **生产可达性**:🔁 **2026-10-31 当天已修一半** —— 存档位屏的确认动作现经
+> `ISaveSlotCommandSink` → `SaveSlotCommandRouter` → `LoadSequencer` 直通本执行体
+> (判据 `save_slot_load_wiring_test.cs` 6 条)。**但整条链仍未在运行期被打开**:
+> `SkeuoRuntimeDriver` 只有序列化的 `_screenName`(默认 `Casebook`)、**无运行期换屏入口**,
+> 全仓 `ModalId.` 在装配层零消费 ⇒ **存档位屏本身开不出来** ⇒「读档时已经记录过」仍不成立。
+> 缺口落点已上移一级:**模态开启/切换器**(42 侧,ADR-013 §十)不在本轮面内。
 >
 > 判据:`unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条)
 > + `unity/Assets/Tests/EditMode/Boot/save_v3_config_segment_test.cs`(11 条)。

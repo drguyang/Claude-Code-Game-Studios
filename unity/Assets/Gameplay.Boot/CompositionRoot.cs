@@ -812,6 +812,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 头注原文)+ NotifyExternalCheckpoint(裁定③:读档点 = 「刚做过 checkpoint」)。
                 // ⚠️ 与三件存档侧组件**同源装配**(同一批实例;saveBasePath 为 null ⇒ 本件不存在)。
                 // ⚠️ 裁定② 通电待信:生产触发点 = BootRoot.RequestLoad,今日零调用方;
+                //   🔁 2026-10-31:唯一调用方 = `SaveSlotCommandRouter`(挂在存档位屏上),
+                //   而该屏无运行期开启入口 ⇒ 运行期仍不可达;缺口已上移到「模态开启/切换器」。
                 //    派生态未重建清单(在场视图 / PatientAppearedDriver 计数 / 视觉)见
                 //    LoadSequencer 类头注(裁定① 窄轮如实登记)。
                 // AC-7a-14 记录面:只在**能真派生当前版本**时装配(见上声明段)。

@@ -14248,3 +14248,16 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   逐条修完再跑才绿 —— 这 18 红没有一条是新缺陷,但也没有一条是「本来就该红」。
 - ⚠️ **订正我自己的一处措辞**:曾写「`TD-persist-10` 自动消解」—— **错**,该债 2026-10-31 已由 `S21-7`
   以「抽出 `ApplyMigrationsIfNeeded` 直测」关闭。本轮只是**互补的第二层**(端到端),ADR 与日志已就地订正。
+
+## 2026-10-31 · ③ 存档位载入接线(可达性上移一级,未真打通)
+
+- **做了什么**:42 确认动作 → `ISaveSlotCommandSink`(新,UI 侧契约)→ `SaveSlotCommandRouter`(新,Boot)→
+  `LoadSequencer.Load` → `SaveService.Load`。`SaveSlotsScreen` 从空壳变成「按清单建行 + 确认有去向」;
+  `SkeuoRuntimeDriver` 加 `SaveSlotSink` / `SaveSlots` 注入面;`BootRoot` 装配路由 + 具名槽位清单 `{1,2,3}`。
+- **判据** `save_slot_load_wiring_test.cs` 6 条绿;证伪轮 **3 变异各转红**(跳过读档 / 失败静默吞 / 行号不参与映射)。
+- **回归** `6280/6243` → **`6286/6249/0/0/37`**(+6 = 新夹具;skipped 37 不变)@ `2026-10-31 18:39–18:42 CST` · `fc7674f4`+工作树。
+- ⚠️ **不能宣称「可达性已打通」**:`SkeuoRuntimeDriver` 只有序列化 `_screenName`(默认 Casebook),
+  **无运行期换屏入口**;装配层零消费 `ModalId`(仅 `ModalGate` 的**读**侧)→ **存档位屏开不出来**
+  ⇒ `RequestLoad` 在**运行期**仍零调用方。缺口从「方法无调用方」上移为「模态开启/切换器缺失」(42 侧,ADR-013 §十)。
+  GDD 🔁 注、`LoadSequencer` 与 `CompositionRoot` 的「零调用方」注释均已就地订正(原文不删)。
+- ⚠️ 未做且不得据以判走查:行内文字(存档时刻 / 空槽格线)· 读档即锁的折角双叠 · 槽位清单真值(7b 数值轮)。

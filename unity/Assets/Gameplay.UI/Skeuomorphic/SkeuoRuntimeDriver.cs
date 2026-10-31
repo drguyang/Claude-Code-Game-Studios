@@ -67,6 +67,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         private ICasebookDtoSource _source;
         private ICasebookCommandSink _commandSink;
+        // 7b 存档位:载入意图出口 + 槽位清单(均由装配层注入 —— 42 不发明槽位数)
+        private ISaveSlotCommandSink _saveSlotSink;
+        private IReadOnlyList<uint> _saveSlots;
 
         private VisualElement _panel;
         private IPresentationRoot _screen;
@@ -110,6 +113,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
             if (_commandSink != null && _screen is CasebookScreen preBound)
                 preBound.BindCommandSink(_commandSink);
+
+            // 🔁 2026-10-31 载入接线轮:存档位屏同款补绑(幂等)。缺注入 ⇒ 行照画、按了留空。
+            if (_screen is SaveSlotsScreen saveSlots)
+            {
+                saveSlots.BindCommandSink(_saveSlotSink);
+                saveSlots.SetSlots(_saveSlots);
+            }
 
             if (Source != null)
             {
@@ -223,6 +233,37 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 _commandSink = value;
                 if (_screen is CasebookScreen casebook)
                     casebook.BindCommandSink(_commandSink);
+            }
+        }
+
+        /// <summary>
+        /// 存档位屏的**载入意图**出口(TD-persist-04 裁定② 的「通电待信」收尾)。
+        /// <para>实现方住装配层(<c>SaveSlotCommandRouter</c>);42 不反向引用装配层
+        /// (ADR-025 §①),故经此属性注入(与 <see cref="CommandSink"/> 同款)。
+        /// 未注入 ⇒ 行照常画、确认动作留空(不崩、不造动作)。</para>
+        /// </summary>
+        public ISaveSlotCommandSink SaveSlotSink
+        {
+            get => _saveSlotSink;
+            set
+            {
+                _saveSlotSink = value;
+                if (_screen is SaveSlotsScreen saveSlots) saveSlots.BindCommandSink(_saveSlotSink);
+            }
+        }
+
+        /// <summary>
+        /// 存档位清单(由装配层给 —— 42 不自己发明槽位数)。
+        /// <para>⚠️ 数值出处:7b 的槽位集归 7b GDD / 数值轮;装配层今日按
+        /// `BootRoot` 的具名常量给,本类只负责画。</para>
+        /// </summary>
+        public IReadOnlyList<uint> SaveSlots
+        {
+            get => _saveSlots;
+            set
+            {
+                _saveSlots = value;
+                if (_screen is SaveSlotsScreen saveSlots) saveSlots.SetSlots(_saveSlots);
             }
         }
 
