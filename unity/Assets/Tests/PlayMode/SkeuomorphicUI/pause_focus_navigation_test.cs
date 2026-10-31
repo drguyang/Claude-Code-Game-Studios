@@ -19,9 +19,19 @@
 //     ⚠️ 这只替代布局,不改被测逻辑;但它也意味着「真样式下的行高」不在本判据面内。
 //   · **不是手感**:移动是否跟手、焦点环好不好看,都不在面内(归人工腿)。
 //   · **不是渲染**:`-nographics` 下没有像素,焦点环「看不看得见」不在面内。
+//   · **装置侧改了两条 InputSystem 设置**(`Assemble()` 末尾,`TearDown` 还原):这两条都是
+//     **编辑器 Play 模式独有**的策略,真机构建里根本不存在 ⇒ 改它们是把夹具还原成真机语义,
+//     不是绕过被测行为。具体哪两条、为什么必需,见 `Assemble()` 里那段注释。
+//
+// ▍覆盖(machine-judged)
+//   AC-PS-02 落焦「继续」· AC-PS-03a/03c 两行间移动 + 不逃出模态 · AC-PS-04 开合同键
+//   (手柄 start 两半)· AC-PS-05 「存档位」→ 换屏且只留一个容器 · AC-PS-06 模态期
+//   E/F 被拒 + 移动轴折零(via 生产 `ModalGateStateAdapter` / `ModalInputFreeze`)
+//   · AC-PS-09 全手柄 + 全键盘各走完「开壳 → 存档位 → 返回」。
 
 using System.Collections;
 using System.Reflection;
+using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 using NUnit.Framework;
@@ -55,15 +65,33 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         private EventSystem _es;
         private PanelEventHandler _handler;
         private Gamepad _pad;
+        private Keyboard _kb;
+        private bool _padAdded;
+        private bool _settingsOverridden;
+        private InputSettings.EditorInputBehaviorInPlayMode _savedEditorInputBehavior;
+        private InputSettings.BackgroundBehavior _savedBackgroundBehavior;
+        private bool _kbAdded;
+        private bool _kbReenabled;
         private VisualElement _outsider;      // 模态外的可聚焦元素(模拟急救候选列表条目)
 
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            if (_pad != null && _pad.deviceId != InputDevice.InvalidDeviceId &&
-                InputApi.GetDevice<Gamepad>() != null)
+            // ⚠️ 只移除**我们自己加**的设备。无差别 `RemoveDevice` 会把编辑器自带的系统键盘/手柄
+            //   从 `InputSystem` 里摘掉 —— 那不光影响后续测试,还会让 `Keyboard.current` 在
+            //    重建后短暂悬空(本文件首跑即栽在这上面,见 `PumpToggleKey` 的 remarks)。
+            if (_padAdded && _pad != null && _pad.deviceId != InputDevice.InvalidDeviceId)
                 InputApi.RemoveDevice(_pad);
-            _pad = null;
+            if (_kbAdded && _kb != null && _kb.deviceId != InputDevice.InvalidDeviceId)
+                InputApi.RemoveDevice(_kb);
+            if (_kbReenabled && _kb != null) InputApi.DisableDevice(_kb);
+            if (_settingsOverridden && InputApi.settings != null)
+            {
+                InputApi.settings.editorInputBehaviorInPlayMode = _savedEditorInputBehavior;
+                InputApi.settings.backgroundBehavior = _savedBackgroundBehavior;
+                _settingsOverridden = false;
+            }
+            _pad = null; _kb = null; _padAdded = false; _kbAdded = false; _kbReenabled = false;
 
             _handler = null;
             if (_bootGo != null) Object.Destroy(_bootGo);
@@ -164,6 +192,183 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // AC-PS-04 · 开合同键(真键路径:手柄 start → ModalInputDriver → 42)
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_acps04_startOpens_resumeCloses_thenStartReopens()
+        {
+            yield return Assemble();
+            // 生产装配的开关链(不含 BootRoot.Update 那一行调用 —— 本装置不起 BootRoot):
+            // 真键读面 → 边沿驱动 → 42 的 OpenModal/CloseModal
+            var toggle = new ModalInputDriver(
+                DaYiJingCheng.Gameplay.Boot.PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_driver));
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+
+            // ⚠️ 必须**每帧轮询**:生产里 `BootRoot.Update` 每帧调一次 `OnFrame`,`OnFrame` 读的是
+            //    「此刻按住没有」。若像按键注射那样「按下→松手→再问」,问的时候早松了 ⇒ 读 false。
+            yield return PumpToggle(toggle, GamepadButton.Start);
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-04:按 start ⇒ 暂停壳出现(开合同键的第一半)");
+            var pause = _driver.Screen as PauseScreen;
+            Assert.IsNotNull(pause);
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            // 「继续」= 行 0,焦点应已在它上面(开屏落焦)· 用真 Submit 触发
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(0)), "[夹具前提] 焦点在「继续」");
+            yield return PressButton(GamepadButton.South);
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "AC-PS-04:「继续」被确认 ⇒ 回世界(壳合上)");
+
+            // 再按一次 = 再次打开(开合同键的**第二半** —— 边沿化必须能被重复触发)
+            yield return PumpToggle(toggle, GamepadButton.Start);
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "AC-PS-04:关掉之后再按 start ⇒ 壳必须能再开(否则玩家一关就再也打不开)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-PS-05 · 「存档位」行 ⇒ 换屏,且同一时刻只有一个模态容器
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer()
+        {
+            yield return Assemble();
+            _driver.SaveSlots = new uint[] { 1u, 2u, 3u };
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            yield return Press(new Vector2(0f, -1f));      // 焦点 → 「存档位」
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "[夹具前提] 焦点在「存档位」");
+
+            yield return PressButton(GamepadButton.South);
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots),
+                "AC-PS-05:确认「存档位」⇒ 换到存档位屏");
+            Assert.That(_driver.Screen, Is.TypeOf<SaveSlotsScreen>());
+
+            int containers = 0;
+            foreach (VisualElement child in _root.Children())
+                if (child.name != null && child.name.StartsWith("modal-")) containers++;
+
+            Assert.That(containers, Is.EqualTo(1),
+                "换屏后只允许剩一个模态容器 —— 两个 = 两个屏同时摊开,「焦点单栈」的结构前提破了");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-PS-06 · 模态期输入不生效(三个消费点共用同一读面)
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_acps06_modalOpen_gateRejectsAndMovementIsFrozen()
+        {
+            yield return Assemble();
+            _driver.OpenModal(ModalId.Pause);
+            yield return null;
+
+            // 42 的模态真源 → 4 侧的只读投影(生产用的是同一个 `ModalGateStateAdapter`)
+            var state = new DaYiJingCheng.Gameplay.Boot.ModalGateStateAdapter(() => _driver);
+            var gate = new DaYiJingCheng.Gameplay.Interaction.ModalGate(new NotArmed(), state);
+
+            Assert.That(gate.Accept(DaYiJingCheng.Gameplay.Interaction.InteractIntent.None), Is.False,
+                "AC-PS-06:壳开着 ⇒ E 查体 / F 急救的意图必须被丢掉(规则七方向②)");
+
+            var freeze = new DaYiJingCheng.Gameplay.Boot.ModalInputFreeze(() => state.IsOpen);
+            Assert.That(freeze.FilterMovement(new Vector2(0.8f, -0.6f)), Is.EqualTo(Vector2.zero),
+                "AC-PS-06:壳开着 ⇒ 移动轴折零(暂停时还能走 = 「暂停」名不副实)");
+            Assert.That(freeze.IsBlocked, Is.True,
+                "AC-PS-06:建造四动作消费的正是这个布尔(其分支判据在 build_controller_test)");
+
+            _driver.CloseModal();
+            yield return null;
+
+            Assert.That(gate.Accept(DaYiJingCheng.Gameplay.Interaction.InteractIntent.None), Is.True,
+                "AC-PS-06:合壳 ⇒ 立刻放行(否则玩家回不到世界)");
+            Assert.That(freeze.FilterMovement(new Vector2(0.8f, -0.6f)), Is.Not.EqualTo(Vector2.zero),
+                "AC-PS-06:合壳 ⇒ 移动轴恢复");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-PS-09 · 全手柄 / 全键盘都能走完「开壳 → 存档位 → 返回」
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_acps09_fullLoop_gamepadOnly()
+        {
+            yield return Assemble();
+            _driver.SaveSlots = new uint[] { 1u, 2u, 3u };
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            var toggle = new ModalInputDriver(
+                DaYiJingCheng.Gameplay.Boot.PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_driver));
+
+            yield return PumpToggle(toggle, GamepadButton.Start);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "① start 开壳");
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            yield return Press(new Vector2(0f, -1f));                  // 左摇杆下
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "② 摇杆移到「存档位」");
+
+            yield return PressButton(GamepadButton.South);             // 南键确认
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots), "③ 南键进存档位屏");
+
+            yield return PumpToggle(toggle, GamepadButton.Start);      // 再按 start = 回暂停壳
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "④ 再按 start ⇒ 回暂停壳(OQ-PS-1 的现口径)");
+
+            var pause2 = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause2);
+            yield return null;
+            yield return PressButton(GamepadButton.South);             // 「继续」
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "⑤ 确认「继续」⇒ 回世界。全程只用**手柄**,一次键鼠都没碰");
+        }
+
+        [UnityTest]
+        public IEnumerator test_acps09_fullLoop_keyboardOnly()
+        {
+            yield return Assemble();
+            _driver.SaveSlots = new uint[] { 1u, 2u, 3u };
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            var toggle = new ModalInputDriver(
+                DaYiJingCheng.Gameplay.Boot.PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_driver));
+
+            yield return PumpToggleKey(toggle, Key.Escape);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "① Escape 开壳");
+            var pause = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause);
+            yield return null;
+
+            yield return PressKey(Key.DownArrow);
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "② 方向键下移到「存档位」");
+
+            yield return PressKey(Key.Enter);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots), "③ Enter 进存档位屏");
+
+            yield return PumpToggleKey(toggle, Key.Escape);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "④ Escape ⇒ 回暂停壳");
+
+            var pause2 = (PauseScreen)_driver.Screen;
+            GiveRowsGeometry(pause2);
+            yield return null;
+            yield return PressKey(Key.Enter);
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "⑤ Enter 确认「继续」⇒ 回世界。全程只用**键盘**");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 装置
         // ══════════════════════════════════════════════════════════════════
 
@@ -209,10 +414,34 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.IsNotNull(_handler, "[夹具红] 载体上没有 PanelEventHandler —— 导航事件无处落地");
             _es.SetSelectedGameObject(carrier);
 
+            // 【实验】把两条「编辑器独有」的输入策略调成真机语义(teardown 还原):
+            //   ① editorInputBehaviorInPlayMode:编辑器默认只把**键盘/指针**喂给有焦点的 Game View;
+            //      batch 进程无焦点 ⇒ 键盘状态事件在普通帧里被丢。
+            //   ② backgroundBehavior:默认在失去焦点时**复位并停用**非后台设备。
+            if (!_settingsOverridden)
+            {
+                _savedEditorInputBehavior = InputApi.settings.editorInputBehaviorInPlayMode;
+                _savedBackgroundBehavior = InputApi.settings.backgroundBehavior;
+                _settingsOverridden = true;
+            }
+            InputApi.settings.editorInputBehaviorInPlayMode =
+                InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputApi.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+
             if (_pad == null)
             {
-                _pad = InputApi.GetDevice<Gamepad>() ?? InputApi.AddDevice<Gamepad>();
+                _pad = InputApi.GetDevice<Gamepad>();
+                if (_pad == null) { _pad = InputApi.AddDevice<Gamepad>(); _padAdded = true; }
             }
+            if (_kb == null)
+            {
+                _kb = InputApi.GetDevice<Keyboard>();
+                if (_kb == null) { _kb = InputApi.AddDevice<Keyboard>(); _kbAdded = true; }
+            }
+            // 兜底:上面已把 `backgroundBehavior` 调成 `IgnoreFocus`,正常不会再出现停用态;
+            // 但设备若在更早的用例里被停用过,这里显式启用一次(跑完仅还原**我们**启用的那台)。
+            if (!_pad.enabled) InputApi.EnableDevice(_pad);
+            if (!_kb.enabled) { InputApi.EnableDevice(_kb); _kbReenabled = true; }
             yield return null;
             yield return null;   // 让布局算出 worldBound(几何序依赖它)
         }
@@ -244,7 +473,78 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return null;
         }
 
+        /// <summary>按住 → 每帧轮询 → 松开 → 每帧轮询(仿真生产 `Update` 的边沿语义)。</summary>
+        private IEnumerator PumpToggle(ModalInputDriver toggle, GamepadButton button)
+        {
+            InputApi.QueueStateEvent(_pad, new GamepadState { buttons = (ushort)(1 << (int)button) });
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+            InputApi.QueueStateEvent(_pad, new GamepadState());
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+        }
+
+        /// <summary>同上,键盘版(与手柄同构 —— 前提是 `Assemble()` 已把输入策略调成真机语义)。</summary>
+        /// <remarks>
+        /// <para>⚠️ 本条能成立**全靠 `Assemble()` 里那两条设置改写**(`editorInputBehaviorInPlayMode`
+        /// + `backgroundBehavior`)。不改时:键盘状态事件在普通帧里被编辑器丢掉
+        /// (`escape/e/f/enter/downArrow/space` 六键全读回 false,`anyKey` 亦 false),
+        /// **手柄不受影响** —— 这就是 PS-02..06 手柄腿一直绿、而键盘腿首跑即红的原因。</para>
+        /// <para>置位走 <c>KeyboardState.Press(Key)</c> 实例方法,**不用** <c>new KeyboardState(Key)</c>
+        /// 构造器(同机实测该构造器键位不可靠,见 `movement_virtual_key_test.cs:152-158`)。</para>
+        /// </remarks>
+        private IEnumerator PumpToggleKey(ModalInputDriver toggle, Key key)
+        {
+            var down = new KeyboardState();
+            down.Press(key);
+            InputApi.QueueStateEvent(_kb, down);
+            bool readDuringHold = false;
+            for (int i = 0; i < 3; i++)
+            {
+                yield return null;
+                readDuringHold |= PlayerInputReader.PauseTogglePressed();
+                toggle.OnFrame();
+            }
+            Assert.That(readDuringHold, Is.True,
+                $"[夹具前提] 注入 {key} 后 `PauseTogglePressed()` 一次都没读回 true —— " +
+                $"这是**注入没生效**,不是开关逻辑坏了。_kb={Describe(_kb)} · " +
+                $"Keyboard.current={Describe(Keyboard.current)} · Gamepad.current={Describe(Gamepad.current)}");
+            InputApi.QueueStateEvent(_kb, new KeyboardState());
+            for (int i = 0; i < 3; i++) { yield return null; toggle.OnFrame(); }
+        }
+
+        /// <summary>键盘按下一次(供 UI 模块的 Navigate / Submit 用)。</summary>
+        private IEnumerator PressKey(Key key)
+        {
+            var down = new KeyboardState();
+            down.Press(key);
+            InputApi.QueueStateEvent(_kb, down);
+            yield return null;
+            yield return null;
+            InputApi.QueueStateEvent(_kb, new KeyboardState());
+            yield return null;
+            yield return null;
+        }
+
+        private IEnumerator PressButton(GamepadButton button)
+        {
+            InputApi.QueueStateEvent(_pad, new GamepadState { buttons = (ushort)(1 << (int)button) });
+            yield return null;
+            yield return null;
+
+            InputApi.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            yield return null;
+        }
+
+        private static string Describe(InputDevice d)
+            => d == null ? "null" : $"{d.name}#{d.deviceId}(enabled={d.enabled},added={d.added})";
+
         private VisualElement Focused()
             => _root?.panel?.focusController?.focusedElement as VisualElement;
+
+        /// <summary>恒未 Armed(急救通道未启动的形态)。</summary>
+        private sealed class NotArmed : DaYiJingCheng.Gameplay.Interaction.IArmedState
+        {
+            public bool IsArmed => false;
+        }
     }
 }

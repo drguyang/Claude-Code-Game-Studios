@@ -1,6 +1,7 @@
 # UX Spec: 暂停壳(Pause Shell · AC-42-F1 闭集第八员)
 
-> **Status**: **Draft**(2026-10-31 起草;**未经 `/ux-review`,AC 逐条 `[ ]` 禁借绿**)
+> **Status**: **Draft**(2026-10-31 起草;**未经 `/ux-review`**;AC 9 条中 **7 条机器判 + 2 条人眼腿已 `[x]`**,
+> 余 PS-01 人眼半 / PS-07 仍 `[ ]` —— 逐条证据与证伪见 §13,`[ ]` 者禁借绿)
 > **Author**: user + ux-designer
 > **Last Updated**: 2026-10-31
 > **Journey Phase(s)**: 全程(世界内任意时刻)
@@ -206,7 +207,10 @@
 
 ## 13. Acceptance Criteria
 
-> 全部 `[ ]`。**走查未执行,禁借绿**(`AC-42-F1` 的 `NOT-RUN` 纪律)。
+> 🔁 **2026-10-31 更新**:原文写「全部 `[ ]`」。现 **7 条机器判 + 2 条人眼腿已 `[x]`**,
+> **PS-01 的「两行可见」人眼半与 PS-07 仍 `[ ]`**,故 `AC-42-F1` ⑧ 整体**仍不得签核**。
+> 每条 `[x]` 下都写明**载体**(用例名 / 像素证据)与**证伪编号**;`[ ]` 的条目**不借绿**。
+> 机器判跑的是 **`-batchmode -nographics`**:焦点环「看不看得见」这类像素判据**永远**不在机器判面内。
 
 - [ ] **AC-PS-01** 世界内按 `Escape`(或手柄 `start`)⇒ 暂停壳出现,两行可见。
 - [x] **AC-PS-02** 开屏后**焦点落在「继续」行**(无需任何输入即可确认 ⇒ 直接按 `Enter` 会「继续」)。
@@ -228,18 +232,46 @@
       **✅ 2026-10-31 机器判**:`test_acps03_focusNeverEscapesToFocusableOutsideTheModal`
       —— 面板下方放可聚焦「外来元素」,连按 4 次下键焦点仍在两行内;关屏后外来元素能力还原。
       证伪 P1(停用 `ApplyModalFocusScope`)⇒ 红。
-- [ ] **AC-PS-04** 焦点在「继续」按确认 ⇒ 回世界;再按 `Escape` ⇒ 壳再次出现(开合同键)。
-- [ ] **AC-PS-05** 焦点在「存档位」按确认 ⇒ **换到存档位屏**;此时**只存在一个**模态容器。
-- [ ] **AC-PS-06** 暂停壳开着时:按 `E` 不查体、按 `F` 不启动急救、移动键不产生位移、建造键不入建造模式。
+- [x] **AC-PS-04** 焦点在「继续」按确认 ⇒ 回世界;再按 `Escape` ⇒ 壳再次出现(开合同键)。
+      **✅ 2026-10-31 机器判**:`test_acps04_startOpens_resumeCloses_thenStartReopens`
+      —— 真键路径(手柄 `start` → `ModalInputDriver` 边沿 → 42 的 `OpenModal`),两半各断一次。
+      ⚠️ **只证手柄腿**;键盘腿的开合在 `AC-PS-09` 的键盘用例里作为一条链的一部分被覆盖。
+      证伪:**Q1**(停用边沿化 `rising`)⇒ 红;**Q5**(`OpenPause` 改为只在无模态时才开)⇒ 红。
+- [x] **AC-PS-05** 焦点在「存档位」按确认 ⇒ **换到存档位屏**;此时**只存在一个**模态容器。
+      **✅ 2026-10-31 机器判**:`test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer`
+      —— 南键确认后 `CurrentModal == SaveSlots` · `Screen is SaveSlotsScreen` ·
+      面板上 `modal-` 前缀容器计数 **恰为 1**。证伪:**Q2**(「存档位」行改走 `Resume`)⇒ 红。
+- [x] **AC-PS-06** 暂停壳开着时:按 `E` 不查体、按 `F` 不启动急救、移动键不产生位移、建造键不入建造模式。
+      **✅ 2026-10-31 机器判**:`test_acps06_modalOpen_gateRejectsAndMovementIsFrozen`
+      —— 走**生产**的两个消费点:4 的 `ModalGate.Accept`(E/F,经 `ModalGateStateAdapter` 实时读 42)
+      与 1 的 `ModalInputFreeze.FilterMovement`(移动轴 / 建造四动作的挡路布尔);开壳 ⇒ 拒收 + 折零,
+      合壳 ⇒ 立刻放行(**双向都断**,不是只断「拦得住」)。
+      ⚠️ **边界**:本条断言的是**消费面的判据**,不是「手柄上真的按不出位移」(那条要世界 + 玩家实体,
+      在 `build_controller_test` 的挡路用例面内)。证伪:**Q3**(停用方向②)⇒ 红;**Q4**(停用折零)⇒ 红。
 - [ ] **AC-PS-07** 上一秒钟按住 `Enter` 再开壳:关壳那一刻**不得**补触发一次确认(边沿被消费)。
 - [x] **AC-PS-08** 目视:**无按键提示浮层**(`AC-42-F1` 的通用 Then 句对本屏同样适用)。
       **✅ 2026-10-31 人眼腿**:用户在同一轮编辑器 Play 走查中确认「画面上没有按 X 继续 / [E] 查看
       这类提示按什么键的浮层」;左上角三行 止血 / 通气 / 跳过 是**急救候选列表**(游戏内容),不计入。
-- [ ] **AC-PS-09** 100% 键盘操作可完成「开壳 → 存档位 → 返回」全程;100% 手柄同样可完成。
+- [x] **AC-PS-09** 100% 键盘操作可完成「开壳 → 存档位 → 返回」全程;100% 手柄同样可完成。
+      **✅ 2026-10-31 机器判(两条腿各一个用例)**:
+      `test_acps09_fullLoop_gamepadOnly`(start → 左摇杆下 → 南键 → start → 南键)与
+      `test_acps09_fullLoop_keyboardOnly`(`Escape` → `↓` → `Enter` → `Escape` → `Enter`)。
+      两条腿全程**不碰**另一套输入,逐步断 `CurrentModal` 与焦点落点。
+      证伪:**Q1 / Q2 / Q5** 各自令两条腿同时转红 —— 说明它们是**链**而非三个孤立动作的快照。
+      ⚠️ **装置侧的两条前提必须登记**(否则本条的绿是借来的):batch 进程无 Game View 焦点,
+      而编辑器默认 `editorInputBehaviorInPlayMode = PointersAndKeyboardsRespectGameViewFocus`
+      + `backgroundBehavior = ResetAndDisableNonBackgroundDevices` ⇒ **键盘状态事件在普通帧里被丢弃**
+      (实测六键全 false,`anyKey` 亦 false;手柄不受影响)。夹具在 `Assemble()` 里把这两条改成
+      真机语义(`AllDeviceInputAlwaysGoesToGameView` + `IgnoreFocus`)、`TearDown` 还原。
+      这两条策略**真机构建里根本不存在** ⇒ 改动是把夹具还原成真机语义,不是绕过被测行为。
 
-> ⚠️ **AC-PS-04…07、09 已由自动化判据覆盖机制面**(`modal_opener_test` / `modal_input_freeze_test` /
-> `build_controller_test` / `focus_on_open_test` / `interaction_input_chain_test`);
-> 但**本表的 `[ ]` 指人工走查**,两者**不互相顶替** —— 机制绿 ≠ 走查过。
+> ⚠️ **AC-PS-07 仍 `[ ]`**:「边沿被消费」由 `build_controller_test` 的挡路用例覆盖**建造键**那一面,
+> 但「按住 `Enter` 再开壳、关壳时不补触发」这条**具体**判据今日**无专测**。不借绿。
+>
+> ⚠️ **本表的 `[x]` 分两类,别混读**:`PS-02 / 03a / 03c / 04 / 05 / 06 / 09` = **机器判**;
+> `PS-03b / 08` = **人眼腿**(像素 / 目视)。**人工走查与机器判不互相顶替** ——
+> 机器判绿只说明机制面成立,`AC-42-F1` ⑧ 的整体签核仍要九条齐全(现缺 PS-01 的「两行可见」人眼半
+> 与 PS-07)。
 
 ---
 

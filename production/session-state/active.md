@@ -14539,3 +14539,55 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   P2 删开屏落焦 ⇒ 靶心 `test_acps02_…` 红 + 3 条连带;
   P3 第二行不可聚焦 ⇒ 上下移动判据红。
 - 首跑编译红一次:`Is.AnyOf` 该 NUnit 版本不存在 ⇒ 改 `Is.SameAs(a).Or.SameAs(b)`。
+
+---
+
+## 2026-10-31 · 暂停壳 AC-PS-04/05/06/09 转机器判(4 条 AC · 5 变异证伪 · 全绿)
+
+**用户指令**:「补 PS-04/05 的机器判」→ 续「0609 你也用模拟手柄测试吧」。
+
+### 本轮新增(全在 `pause_focus_navigation_test.cs` 一个文件)
+
+| 用例 | AC | 驱动 |
+|---|---|---|
+| `test_acps04_startOpens_resumeCloses_thenStartReopens` | PS-04 | 虚拟手柄 `start` → 生产 `ModalInputDriver` 边沿 → `OpenModal`(两半) |
+| `test_acps05_submitOnSaveSlotsRow_switchesScreen_leavingOneContainer` | PS-05 | 摇杆下 + 南键 → `SaveSlots`;`modal-` 容器计数 = 1 |
+| `test_acps06_modalOpen_gateRejectsAndMovementIsFrozen` | PS-06 | 生产 `ModalGate`(经 `ModalGateStateAdapter`)+ `ModalInputFreeze`;**开关双向都断** |
+| `test_acps09_fullLoop_gamepadOnly` / `…keyboardOnly` | PS-09 | 两条腿各走完「开壳 → 存档位 → 返回」,全程不碰另一套输入 |
+
+### 装置侧踩到的坑(本轮最重要的产出,已写进测试文件注释与证据件)
+
+batch 进程**从不获得 Game View 焦点**,而编辑器默认
+`editorInputBehaviorInPlayMode = PointersAndKeyboardsRespectGameViewFocus` +
+`backgroundBehavior = ResetAndDisableNonBackgroundDevices`
+⇒ **键盘状态事件在普通帧里被丢弃**(实测 `escape/e/f/enter/downArrow/space` 六键全 false,
+`anyKey` 亦 false),**手柄不受影响**。
+夹具在 `Assemble()` 把两条改成真机语义(`AllDeviceInputAlwaysGoesToGameView` + `IgnoreFocus`),
+`TearDown` 还原。**这两条策略真机构建里根本不存在** ⇒ 是「把夹具还原成真机语义」,不是绕过被测行为。
+⚠️ 试错记录(防重蹈):① 单独 `EnableDevice` 不够;② 只加显式 `InputSystem.Update()` 能让
+`escapeKey` 读到,但 **action 的 2DVector 复合**仍读 (0,0)(复合是**沿触发、缓存值**);
+③ 把 settings 改成 `AllDeviceInput…` 却**不改 `backgroundBehavior`** ⇒ 设备反被**停用**,连手柄一起红。
+
+### 判据
+
+- PlayMode `251 / 247 / 0 / 2 / 2` @ **2026-10-31 22:25:52 CST** · 批 = 本轮 · `a9e70d97`+工作树。
+  等式 `251 − 248 = 3` = 新增 `[UnityTest]` 数。
+- EditMode `6323 / 6286 / 0 / 0 / 37` @ **2026-10-31 22:31:58 CST** · 同上 ·(本轮零 EditMode 新增)。
+- **证伪 5 变异全红**,还原 SHA-256 逐字节一致(脚本 + 原始输出已入库:
+  `production/qa/evidence/falsify-acps-2026-10-31/`):
+  Q1 边沿化停用 ⇒ 红 3 · Q2 存档位行走 `Resume` ⇒ 红 3 · Q3 停用模态门方向② ⇒ 红 1 ·
+  Q4 停用移动轴折零 ⇒ 红 1 · Q5 `OpenPause` 只在无模态时开 ⇒ 红 3。
+
+### 文档
+
+- `design/ux/pause-shell-42.md` §13:PS-04/05/06/09 → `[x]`(逐条写载体 + 证伪编号);
+  头部 Status 与 §13 引言同步改写。**`AC-42-F1` ⑧ 整体仍不得签核** —— 仍缺 PS-01 的「两行可见」
+  人眼半与 PS-07 的 Enter 具体形态。
+- `production/qa/evidence/ac42f1-pause-shell-walkthrough.md`:AC 表刷新 + 新增 §三之二(四条机器判
+  与 5 变异表)、§六 回归数三元组。
+
+### 未做 / 边界(不得借绿)
+
+- **PS-01「两行可见」的人眼半**:机器判只证「壳开得出」,「两行在屏幕上看得见」仍未走查。
+- **PS-07「按住 Enter 再开壳、关壳不补触发」**:今日无专测(建造键那一面由 `build_controller_test` 覆盖)。
+- **OQ-PS-6 边界不动**:模态开之后新建的外部可聚焦元素不在快照内(今日无此路径)。
