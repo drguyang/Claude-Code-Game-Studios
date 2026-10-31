@@ -320,7 +320,7 @@
 | `TD-medcons-17` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-18` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-medcons-19` | `medical-consequences` | closed | **Y** | R1 |
-| `TD-medcons-20` | `medical-consequences` | open | **N** | R4 |
+| `TD-medcons-20` | `medical-consequences` | closed | **N** | R4 |
 | `TD-s13-02` | `medical-consequences` | closed | **Y** | R1 |
 | `TD-s13-01` | `（跨 epic · 治理／code-review skill）` | partial | **N** | R3-裁 |
 | `TD-s13-03` | `（跨 epic · 治理／sprint 冒烟）` | closed | **N** | R3-裁 |
@@ -853,7 +853,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 142 | 状态 {'closed': 123, 'open': 15, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
+条目 142 | 状态 {'closed': 124, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6870,6 +6870,53 @@ Accepted,**只钉形状、不实现**)。该件四项用户裁定中的**裁定 
 只因本条判 `N`)。
 
 复算:`python3 tools/debtcount/debtcount.py --print`。
+
+#### TD-medcons-20 关闭记录 —— 取「甲:结构判据 + N-5 属性判据」(用户裁定,`2026-10-31` · sprint-21 `S21-10`)
+
+> ✅ **`2026-10-31` 已闭**。上方债描述**原文不删** —— 它记的是 `2026-10-29` 的实测。
+
+**一、裁定(用户 `2026-10-31`,在两案并列呈报后)**
+
+取 **甲 = 结构判据**,且 **N-5 用属性判据**(不按名字)。理由一句话:
+**代价表不是伤害模型** —— 53 的代价表是离散查表(无 HP 轴 / 无连续量 / 无伤害属性副本),
+而 25 能到昏迷是因为它有一条**连续伤害轨**,`INJ_COMA` 是那条轨的终点。
+53 没有轨 ⇒ **只能诱发病理,不能裁定状态终局**。权威件 = `adr-035` §Decision **③之三**。
+
+**二、机械化(新增断言 N-5 + 9 侧属性)**
+
+| 层 | 落点 | 内容 |
+|---|---|---|
+| 数据 | `assets/data/disease_registry.json` | 15 行各加**必填** `terminal_state`(今日全 `false`) |
+| 9 绑定 | `DiseaseRegistryBinder` | 读键 + **R1-23**(`true` 仅允许 `kind == injury`)+ 侧信道 `BindResult.TerminalRowKeys` |
+| 9 侧信道 | 同上 | 值**不进** `DiseaseRegistryEntry` / 不进 cooked / 运行期不读(先例 = `treatable_by`) |
+| 53 断言 | `CostTableBinder` | **N-5**:`rows[].injury_id` 所指行 `terminal_state` 必须为 `false` |
+| 重烘 | `disease_registry` + `53_cost_table` | 两张 cooked 重烘(`ConfigVersion` 随源变化);载荷布局**未变**(字段不进 cooked) |
+
+**三、证伪轮(4 条变异,均在同一命令内 改→跑→还原)**
+
+| 变异 | 改法 | 结果 |
+|---|---|---|
+| **M1** | 53 侧 `IsTerminal` 恒 `false` | ✅ `CostTableBinderTest` **exact 2 红**(N-5 两条);反例 `test_n5_realRegistry_doesNotFire` **仍绿** |
+| **M2** | 9 侧 R1-23 的 kind 闸 `if (false)` | ✅ `DiseaseRegistryBakePipelineTest` **exact 1 红** |
+| **M3** | `terminal_state` 改成默认 `false`、不读键 | ✅ **3 红**(缺键 / R1-23 / 侧信道)—— 三条都依赖「真的读了这个键」 |
+| **M4** | 取消侧信道豁免(`terminal_state` 算作未绑定) | ✅ **4 红**(含 3 条既有 unbound 夹具)—— 证明豁免不是装饰 |
+
+还原判据 = **SHA-256 逐字节**:`CostTableBinder.cs` = `24d6eea9…d08a` ·
+`DiseaseRegistryBinder.cs` = `807164ee…85ed`;`FALSIFY-` 残留 **0**。
+
+**四、⚠️ 必须与结论同读的两条局限(不得淡化为脚注)**
+
+1. **N-5 今日零输入可达。** 真实注册表 15 行 `terminal_state` 全 `false`
+   ⇒ **今天生产数据上 N-5 不拦任何东西**。与 `N-4′` canary 同族:它挡的是
+   「**下一个**把 `INJ_COMA` 之类终局状态登记进来的人」。
+   ⇒ **读到绿灯只能记「门就位、无输入」,不得记「药害不造成昏迷已被证明」。**
+2. **属性是作者自陈的。** 新登记终局型伤情却标 `false` 者不会被拦 ——
+   N-5 保证的是「**必须显式回答这个问题**」(缺键即硬失败),**不保证答对**。
+
+**五、本债**不**覆盖的残留**
+
+- **间接路径照旧**:药害伤情恶化 → 9 结算成 `INJ_COMA`,不经代价表 ⇒ **`ADR-035 O-1` 不因本条消解**。
+- `systems-index.md:89` · `reviews/medical-consequences-review-log.md` 两处已加指针(历史件**加注不改写**)。
 
 ---
 

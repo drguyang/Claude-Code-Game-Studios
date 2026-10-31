@@ -139,6 +139,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
       ""kind"": ""disease"",
       ""severity"": 3,
       ""lethal"": false,
+      ""terminal_state"": false,
       ""scale"": ""100"",
       ""trauma_half_life"": 60,
       ""natural_progress"": {

@@ -66,6 +66,28 @@ namespace DaYiJingCheng.Tests.MedConsequences
             return json;
         }
 
+        /// <summary>
+        /// 把 <paramref name="key"/> 那一行的 <c>terminal_state</c> 由 <c>false</c> 翻成 <c>true</c> ——
+        /// 造出**唯一一件终局型伤情**,供 N-5 的反例夹具使用。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ 今日真实注册表 <b>15 行 <c>terminal_state</c> 全为 <c>false</c></b>
+        /// (没有任何终局型被登记)<b>⇒ N-5 是<b>零输入可达</b>的门</b>。本夹具是它唯一的正输入。
+        /// 这一点**必须如实登记**:生产数据上 N-5 今天不拦任何东西,它拦的是「**下一个**把
+        /// `INJ_COMA` 之类终局状态登记进来的人」。</para>
+        /// <para>⚠️ 与 N-1 的注入**互不替代**:本条只翻 <c>terminal_state</c>,
+        /// `INJ_BLUNT` 本就是 <c>lethal=false ∧ self_limit=true</c> ⇒ N-1 / R1-22 都不会先拦,
+        /// 于是拒收**只可能**来自 N-5。</para>
+        /// </remarks>
+        private static string RegistryWithTerminalInjury(string key = "INJ_BLUNT")
+        {
+            string json = RealRegistry();
+            int atKey = json.IndexOf("\"key\": \"" + key + "\"", StringComparison.Ordinal);
+            Assert.That(atKey, Is.GreaterThan(0), $"夹具前提不成立:真实注册表里没有 {key}");
+            json = ReplaceFirstAfter(json, atKey, "\"terminal_state\": false", "\"terminal_state\": true");
+            return json;
+        }
+
         /// <summary>把 <paramref name="after"/> 之后**第一次**出现的 <paramref name="needle"/> 换掉。</summary>
         private static string ReplaceFirstAfter(string json, int after, string needle, string replacement)
         {
@@ -321,6 +343,54 @@ namespace DaYiJingCheng.Tests.MedConsequences
                     CostTable(rows: Row(injury: sym)), RegistryWithOneNonLethalInjury());
                 AssertMessageHas(ex, "N-3");
             }
+        }
+
+        // ══════════════════════ 三之二、N-5(2026-10-31 · S21-10 · TD-medcons-20)══════════════════════
+
+        /// <summary>N-5:指向一件 **终局型**伤情(<c>terminal_state = true</c>)⇒ 拒,且报文点名 N-5。</summary>
+        /// <remarks>
+        /// <para>钉的是 `TD-medcons-20` 的**结构判据**:53 的代价表是离散查表、没有伤害轨 ⇒
+        /// 它只能诱发**可挂载的病理**,不能把病人送入**终局状态**(昏迷)。</para>
+        /// <para>⚠️ 落点选 `INJ_BLUNT` 而非 `INJ_COMA`:后者**不在注册表里**(连行都没有),
+        /// 而 N-5 的判据在**行属性**上 —— 用一件真实存在、可合法登记的行来翻标记,
+        /// 比往注册表里塞一行伪造的 `INJ_COMA` 更接近「下一个作者真会做的事」。</para>
+        /// </remarks>
+        [Test]
+        public void test_n5_terminalInjury_isRejected()
+        {
+            BakeValidationException ex = AssertRejected(
+                CostTable(rows: Row(injury: "INJ_BLUNT")), RegistryWithTerminalInjury());
+            AssertMessageHas(ex, "N-5");
+            AssertMessageHas(ex, "终局型");
+        }
+
+        /// <summary>N-5 的**独立性**:同一行在标记翻转前后分别「通过 / 被拒」,且拒收报文**不含 N-1**。</summary>
+        /// <remarks>防「把 N-5 实现成 N-1 的复述」——那样两条判据实际只有一条在拦。</remarks>
+        [Test]
+        public void test_n5_isIndependentOfN1()
+        {
+            // 翻转前:同一行合法(证明 INJ_BLUNT 自身不会触发任何既有判据)
+            CostTableBinder.BindResult ok = CostTableBinder.Bind(
+                CostTable(rows: Row(injury: "INJ_BLUNT")), RealRegistry());
+            Assert.That(ok.Rows, Has.Count.EqualTo(1), "翻转前须合法 —— 否则本条的对照不成立");
+
+            // 翻转后:拒,且报文只由 N-5 产生
+            BakeValidationException ex = AssertRejected(
+                CostTable(rows: Row(injury: "INJ_BLUNT")), RegistryWithTerminalInjury());
+            string joined = Joined(ex);
+            Assert.That(joined, Does.Not.Contain("N-1"),
+                "N-5 拒收报文里出现 N-1 ⇒ 两条判据混在一起了(INJ_BLUNT 的 lethal=false 本就过 N-1):" + joined);
+            Assert.That(joined, Does.Not.Contain("lethal = true"),
+                "同上 —— 报文提到 lethal 说明拒收实际来自 N-1 而非 N-5:" + joined);
+        }
+
+        /// <summary>反例:真实注册表(<b>15 行 terminal_state 全 false</b>)× 真实代价表 ⇒ 绑定通过。</summary>
+        /// <remarks>防「N-5 过宽」——把 `terminal_state` 缺省读成 true 会让整张表被误杀。</remarks>
+        [Test]
+        public void test_n5_realRegistry_doesNotFire()
+        {
+            CostTableBinder.BindResult r = CostTableBinder.Bind(RealCostTable(), RealRegistry());
+            Assert.That(r.Rows, Has.Count.EqualTo(5), "真实表 5 行须全部通过 N-5");
         }
 
         // ══════════════════════ 四、N-4′ canary ══════════════════════

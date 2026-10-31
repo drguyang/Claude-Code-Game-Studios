@@ -46,6 +46,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
       ""kind"": ""injury"",
       ""severity"": 4,
       ""lethal"": true,
+      ""terminal_state"": false,
       ""scale"": ""100"",
       ""trauma_half_life"": 60,
       ""natural_progress"": {
@@ -93,6 +94,58 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         /// <summary>最小合法源文本也必须能烘 —— 防「只对真文件碰巧能跑」。</summary>
+        // ══════════════════════════════════════════════════════════════════════
+        // ①之二 `terminal_state`(2026-10-31 · S21-10 · TD-medcons-20)
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// `terminal_state` 必填(D-21-6):缺键 ⇒ 硬失败,**不默认 false**。
+        /// </summary>
+        /// <remarks>
+        /// 钉的是「**不许默认**」这一条。默认 false 会让「新增一件终局型伤情却忘了标」
+        /// 静默通过 53 的 N-5 —— 那正是本字段要堵的形态(承 `TD-sim-03` 的「真空真」教训)。
+        /// </remarks>
+        [Test]
+        public void test_terminalState_missing_isRejected()
+        {
+            string json = MinimalJson().Replace("      \"terminal_state\": false,\n", "");
+            Assert.That(json, Does.Not.Contain("terminal_state"), "夹具前提:键已被摘掉");
+            var ex = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBinder.Bind(json));
+            Assert.That(string.Join(" | ", ex.Errors), Does.Contain("terminal_state"),
+                "缺键须报在 terminal_state 上;实得:" + string.Join(" | ", ex.Errors));
+        }
+
+        /// <summary>R1-23:`terminal_state = true` 只允许 `kind = injury`;病种行标它 ⇒ 拒。</summary>
+        [Test]
+        public void test_r123_terminalOnDiseaseRow_isRejected()
+        {
+            string json = MinimalJson()
+                .Replace("\"kind\": \"injury\"", "\"kind\": \"disease\"")
+                .Replace("\"terminal_state\": false", "\"terminal_state\": true");
+            var ex = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBinder.Bind(json));
+            Assert.That(string.Join(" | ", ex.Errors), Does.Contain("R1-23"),
+                "报文须点名 R1-23;实得:" + string.Join(" | ", ex.Errors));
+        }
+
+        /// <summary>正例:伤情行标 `terminal_state = true` ⇒ 绑定通过,且该键出现在**侧信道**集合里。</summary>
+        /// <remarks>
+        /// 钉两件事:① R1-23 不是「一律拒 terminal_state」;② 侧信道确实把值交给了消费方
+        /// (而不是像 `zh` / `causes` 那样被静默丢弃 —— 那会让 53 的 N-5 永远收到空集)。
+        /// </remarks>
+        [Test]
+        public void test_terminalState_onInjuryRow_surfacesInSideChannel()
+        {
+            string json = MinimalJson()
+                .Replace("\"terminal_state\": false", "\"terminal_state\": true");
+            DiseaseRegistryBinder.BindResult r = DiseaseRegistryBinder.Bind(json);
+            Assert.That(r.TerminalRowKeys, Is.EqualTo(new[] { "INJ_PROBE" }),
+                "终局型行键须出现在侧信道;实得:[" + string.Join(", ", r.TerminalRowKeys) + "]");
+            Assert.That(r.UnboundKeys, Does.Not.Contain("terminal_state"),
+                "terminal_state 被读进了侧信道 ⇒ **不得**同时出现在「未绑定(丢失)」表里");
+        }
+
         [Test]
         public void test_minimalValidSource_bakes()
         {
@@ -201,6 +254,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
       ""kind"": ""disease"",
       ""severity"": 5,
       ""lethal"": true,
+      ""terminal_state"": false,
       ""scale"": ""100"",
       ""trauma_half_life"": 0,
       ""relapse"": { ""a_rel"": ""1/4"", ""interval"": 1200, ""tau_fall"": ""300"" },

@@ -4,6 +4,7 @@
 //   ADR-035 §Decision ②(表形状:效果一律**外键**、全整数域、**零 Fix**;rows 非空而
 //     harm_kind_enabled 空 ⇒ 构建期拒收)
 //   ADR-035 §Decision ③(**N-1** injury_id 所指行 lethal == false;/**N-3** 不得是结局轴符号;
+//     **N-5** 不得指向终局型伤情(2026-10-31 新增 · S21-10 · TD-medcons-20);
 //     **N-4′** canary —— 见 §Risks R2)
 //   ADR-035 §Decision ⑥(P0 **只允许** contraindication;含 overdose ⇒ 构建期拒收)
 //   ADR-035 §Risks R4(空表窗口:rows 填了而 enabled 没开 ⇒ TryLookup 恒 false = 静默跳过)
@@ -536,6 +537,19 @@ namespace DaYiJingCheng.EditorTools.Bake
                            "「致死行在 P0 表 = 构建期拒收」正是 `AC-5` 的 Then 句");
                 return false;
             }
+            // ── N-5(2026-10-31 新增 · `S21-10` · `TD-medcons-20`)──
+            //   「终局型」= 病人被**送入**的状态(25 的生命归零结算产物,如 `INJ_COMA`),
+            //   不是可挂载的病理。53 的代价表是**离散查表**、没有伤害轨 ⇒ 它只能诱发病理,
+            //   不能裁定状态终局。判据打在**行属性** `terminal_state` 上,不认名字。
+            //   ⚠️ 位置在 N-1 之后:一个终局型伤情通常是 `lethal == false`(昏迷不是死亡),
+            //      故 N-1 拦不住它 —— 这正是本条存在的理由。
+            if (registry.IsTerminal(key))
+            {
+                errors.Add($"{FileName}:rows[{i}] injury_id「{key}」是**终局型伤情** —— " +
+                           "**N-5(药害不裁定状态终局)**:代价表只能指「可挂载的病理」,不能指" +
+                           "「病人被送入的状态」(如昏迷)。53 无伤害轨,终局归 9/25 结算");
+                return false;
+            }
             return true;
         }
 
@@ -549,11 +563,17 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             private readonly Dictionary<string, int> _kind;
             private readonly Dictionary<string, int> _lethality;
+            private readonly HashSet<string> _terminal;
 
-            private RegistryView(Dictionary<string, int> kind, Dictionary<string, int> lethality)
+            private RegistryView(Dictionary<string, int> kind, Dictionary<string, int> lethality,
+                                 HashSet<string> terminal)
             {
-                _kind = kind; _lethality = lethality;
+                _kind = kind; _lethality = lethality; _terminal = terminal;
             }
+
+            /// <summary>该键是否被 9 标为**终局型**(`terminal_state == true`)。N-5 的唯一输入。</summary>
+            public bool IsTerminal(string key)
+                => key != null && _terminal != null && _terminal.Contains(key);
 
             public bool TryGet(string key, out int kind, out int lethality)
             {
@@ -574,7 +594,8 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return false;
             }
 
-            public static RegistryView Build(List<DiseaseRegistryEntry> entries)
+            public static RegistryView Build(List<DiseaseRegistryEntry> entries,
+                                             List<string> terminalKeys = null)
             {
                 var kind = new Dictionary<string, int>(StringComparer.Ordinal);
                 var lethal = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -584,7 +605,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                     kind[e.DiseaseKey] = (int)e.Kind;
                     lethal[e.DiseaseKey] = e.Lethality;
                 }
-                return new RegistryView(kind, lethal);
+                var terminal = new HashSet<string>(StringComparer.Ordinal);
+                if (terminalKeys != null)
+                    foreach (string k in terminalKeys)
+                        if (!string.IsNullOrEmpty(k)) terminal.Add(k);
+                return new RegistryView(kind, lethal, terminal);
             }
         }
 
@@ -594,7 +619,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             try
             {
                 DiseaseRegistryBinder.BindResult reg = DiseaseRegistryBinder.Bind(registryJson);
-                return RegistryView.Build(reg.Rows);
+                // N-5 的输入走**侧信道**(`terminal_state` 不进 `DiseaseRegistryEntry`,见 9 侧注)。
+                return RegistryView.Build(reg.Rows, reg.TerminalRowKeys);
             }
             catch (BakeValidationException ex)
             {

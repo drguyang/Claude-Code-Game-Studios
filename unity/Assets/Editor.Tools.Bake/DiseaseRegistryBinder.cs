@@ -42,7 +42,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             // ── 本件绑定的键 ──
             "id", "key", "kind", "polarity", "severity", "contagion",
-            "lethal", "treatment_difficulty", "recovery_time", "relapse_chance",
+            "lethal", "terminal_state", "treatment_difficulty", "recovery_time", "relapse_chance",
             "comorbidity_factor", "seasonal_mod", "age_mod", "gender_mod",
             "occupation_mod", "region_mod", "climate_mod",
             "scale", "trauma_half_life", "natural_progress",
@@ -82,6 +82,19 @@ namespace DaYiJingCheng.EditorTools.Bake
             "signs", "relapse",
         };
 
+        /// <summary>
+        /// 白名单内、**读取但不进 <see cref="DiseaseRegistryEntry"/>** 的键 —— 走**侧信道**交给消费方。
+        /// <para>⚠️ 2026-10-31(`S21-10` · `TD-medcons-20` 结案)新增。</para>
+        /// <para><b>为什么不进 entry</b>:本字段的**唯一**消费方是 53 的构建期断言 N-5
+        /// (`CostTableBinder`),运行期 9 不需要它。而进 entry ⇒ 进 cooked ⇒ 改载荷布局 +
+        /// 升 `schema_version` + 改 codec 三件 —— 为一条**构建期**判据付**运行期**格式代价。
+        /// 先例:`treatable_by` 同样「JSON 有、条目不携带」(轴是单一真源)。</para>
+        /// <para><b>为什么不计入 <see cref="BindResult.UnboundKeys"/></b>:那张表记的是
+        /// 「**被丢弃**的键」。本键没被丢弃 —— 它被读进了
+        /// <see cref="BindResult.TerminalRowKeys"/>。把它算进「丢失」会让那张表说谎。</para>
+        /// </summary>
+        private static readonly string[] SideChannelRowKeys = { "terminal_state" };
+
         private static readonly string[] CurveKeys =
         {
             "incubation", "a_peak", "tau_rise", "tau_peak", "tau_fall",
@@ -119,10 +132,22 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// </summary>
             public readonly List<string> UnboundKeys;
 
+            /// <summary>
+            /// **`terminal_state == true` 的行键**(Ordinal 排序;2026-10-31 `S21-10` 新增)。
+            /// <para>「终局型」= 病人被**送入**的状态,不是可挂载的病理(例如 `INJ_COMA`
+            /// —— 25 的「生命归零」结算产物)。53 的构建期断言 **N-5** 据此拒绝
+            /// 「代价表把药害直接指向终局状态」。</para>
+            /// <para>⚠️ 本集合走**侧信道**:值不进 <see cref="DiseaseRegistryEntry"/>、
+            /// 不进 cooked、运行期不读(唯一消费方 = `CostTableBinder`)。</para>
+            /// </summary>
+            public readonly List<string> TerminalRowKeys;
+
             public BindResult(List<DiseaseRegistryEntry> rows, uint schemaVersion,
-                              List<string> unboundKeys, long trendWindowTicks, long trendEpsRaw)
+                              List<string> unboundKeys, List<string> terminalRowKeys,
+                              long trendWindowTicks, long trendEpsRaw)
             {
                 Rows = rows; SchemaVersion = schemaVersion; UnboundKeys = unboundKeys;
+                TerminalRowKeys = terminalRowKeys;
                 TrendWindowTicks = trendWindowTicks; TrendEpsRaw = trendEpsRaw;
             }
         }
@@ -186,6 +211,9 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             var rows = new List<DiseaseRegistryEntry>();
             var unbound = new SortedSet<string>(StringComparer.Ordinal);
+            // 2026-10-31(S21-10):侧信道集合 —— `terminal_state == true` 的行键(DiseaseRowKeys 有、
+            // BoundRowKeys 无 ⇒ 不值进 entry,由 BindResult.TerminalRowKeys 交给 53 的 N-5)。
+            var terminal = new SortedSet<string>(StringComparer.Ordinal);
             if (!root.TryGet("diseases", out JsonNode arr))
             {
                 errors.Add("disease_registry.json 缺 diseases 数组");
@@ -199,7 +227,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 for (int i = 0; i < arr.Items.Count; i++)
                 {
                     DiseaseRegistryEntry e = BindRow(
-                        arr.Items[i], $"diseases[{i}]", errors, unbound, causalTreatmentByDiseaseKey);
+                        arr.Items[i], $"diseases[{i}]", errors, unbound, terminal, causalTreatmentByDiseaseKey);
                     if (e != null) rows.Add(e);
                 }
             }
@@ -221,14 +249,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
-            return new BindResult(rows, schemaVersion, new List<string>(unbound),
+            return new BindResult(rows, schemaVersion, new List<string>(unbound), new List<string>(terminal),
                                   trendWindowTicks, trendEpsRaw);
         }
 
         // ── 单行 ────────────────────────────────────────────────────────────
 
         private static DiseaseRegistryEntry BindRow(JsonNode node, string where, List<string> errors,
-                                                    SortedSet<string> unbound,
+                                                    SortedSet<string> unbound, SortedSet<string> terminal,
                                                     IReadOnlyDictionary<string, bool> causalByKey)
         {
             if (node.Kind != JsonNodeKind.Object)
@@ -238,6 +266,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             RejectUnknownKeys(node, DiseaseRowKeys, where, errors);
             CollectUnboundKeys(node, unbound);
+
+            // ── `terminal_state`(2026-10-31 · `S21-10` · `TD-medcons-20`):终局型标记 ──
+            //   ⚠️ **必填**(D-21-6「字段必须在」)。**不默认 false** ——
+            //   默认会让「新增一件终局型伤情却忘了标」静默通过 53 的 N-5,
+            //   而那正是本字段要堵的形态(承 `TD-sim-03` 的「真空真」教训)。
+            //   值不进 entry(见 SideChannelRowKeys 的注),由 BindResult.TerminalRowKeys 侧信道交出。
+            bool terminalState = ReadBool(node, "terminal_state", errors, where);
 
             // ── `handle` 不得手填(GDD `:329`「派生而非手填」的机械表达)──
             //   作者若写了它,**硬失败**而不是静默丢弃:
@@ -300,6 +335,21 @@ namespace DaYiJingCheng.EditorTools.Bake
                 e.Curve = BindCurve(np, $"{where}.natural_progress", errors);
             else
                 errors.Add($"{where}.natural_progress 缺失(R1.2 铁律:必须存在且可序列化)");
+
+            // ── R1-23(2026-10-31 新增):终局型只能是伤情 ──
+            //   「终局状态」= 病人被**送入**的状态(如 `INJ_COMA` = 25 的生命归零结算产物),
+            //   它没有自己的病程起点,故不可能是一个「病种」或「中毒」。
+            //   ⚠️ 放在这里而不是 `RegistrySchemaValidator`:后者只看得见 `DiseaseRegistryEntry`,
+            //      而 `terminal_state` 刻意不进 entry(见 SideChannelRowKeys 的注)。
+            if (terminalState)
+            {
+                if (e.Kind != DiseaseKind.Injury)
+                    errors.Add(
+                        $"{where}.terminal_state = true 但 kind = {e.Kind} —— " +
+                        "R1-23:终局型只能是伤情(`injury`);病种 / 中毒都不是「被送入的状态」");
+                else
+                    terminal.Add(e.DiseaseKey);
+            }
 
             return e;
         }
@@ -552,6 +602,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                 bool bound = false;
                 for (int i = 0; i < BoundRowKeys.Length; i++)
                     if (string.Equals(BoundRowKeys[i], key, StringComparison.Ordinal)) { bound = true; break; }
+                // 2026-10-31:侧信道键**不算丢失** —— 它被读进了 BindResult.TerminalRowKeys。
+                if (!bound)
+                    for (int i = 0; i < SideChannelRowKeys.Length; i++)
+                        if (string.Equals(SideChannelRowKeys[i], key, StringComparison.Ordinal)) { bound = true; break; }
                 if (!bound) unbound.Add(key);
             }
         }
