@@ -26,6 +26,7 @@
 using System;
 using UnityEngine;
 using DaYiJingCheng.Sim;
+using DaYiJingCheng.Gameplay.Interaction;   // ModalGate(规则七方向②)
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -44,6 +45,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private bool _interactHeld;
         private bool _emergencyHeld;
 
+        /// <summary>模态门(规则七方向②;可 null = 未接线形态 —— 那时不做模态抑制)。</summary>
+        private readonly ModalGate _gate;
+
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
 
@@ -54,27 +58,47 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// EmergencyManualDriver / Presence / PatientVisualSpawner / CasebookSource / TickDriver)。</param>
         /// <param name="playerPosition">玩家位置读数(接线面 = PlayerController.transform 转读)。</param>
         /// <param name="actorId">玩家 actorId(急救施予者;机制 A id 空间)。</param>
+        /// <param name="gate">
+        /// 模态门(规则七:¬Armed ∧ ¬模态开)。<c>null</c> = 未接线 —— 则是**未接线形态**,不做抑制。
+        /// <para>🔁 2026-10-31:此前本驱动**完全不看模态** ⇒ 脉案/存档位开着时按 E 仍会查体,
+        /// 违反 F-4.2「模态期按下的交互 = 没发生」。</para>
+        /// </param>
         public InteractionInputDriver(CompositionRootServices services,
                                       Func<Vector3> playerPosition,
-                                      int actorId)
+                                      int actorId,
+                                      ModalGate gate = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
             _actorId = actorId;
+            _gate = gate;
         }
+
+        /// <summary>
+        /// 本帧的交互意图能不能落地(F-4.2)。
+        /// <para>⚠️ 传 <see cref="InteractIntent.None"/>:`ModalGate.Accept` 只读两个门
+        /// (`_armed` / `_modal`),**不看意图内容** —— 这里问的是「现在能不能交互」,
+        /// 不是「这个意图能不能过」。未接线(`_gate == null`)⇒ 放行(诚实降级)。</para>
+        /// </summary>
+        private bool IntentAllowed()
+            => _gate == null || _gate.Accept(InteractIntent.None);
 
         /// <summary>
         /// 每帧处理玩家交互输入(由 <c>BootRoot.Update</c> 转发)。
         /// </summary>
         public void OnFrame()
         {
+            // 模态/Armed 期:意图**丢弃**(F-4.2 —— 不排队、不缓存、不重放)。
+            // ⚠️ 边沿位照常更新:模态期间按住键、关掉模态后**不补触发**(否则等于缓存了意图)。
+            bool allowed = IntentAllowed();
+
             bool interact = PlayerInputReader.InteractPressed();
-            if (interact && !_interactHeld)
+            if (interact && !_interactHeld && allowed)
                 TryExamine();
             _interactHeld = interact;
 
             bool emergency = PlayerInputReader.EmergencyPressed();
-            if (emergency && !_emergencyHeld)
+            if (emergency && !_emergencyHeld && allowed)
                 BeginEmergency();
             else if (!emergency && _emergencyHeld)
                 EndEmergency();

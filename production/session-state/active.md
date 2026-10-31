@@ -14285,3 +14285,19 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - 判据 10 条(新增 3);全量 **`6293/6256` → `6296/6259/0/0/37`**(+3;skipped 37 不变)
   @ `2026-10-31 19:04–19:06 CST` · `2f549454`+工作树。
 - ⚠️ 仍未验/未接:实渲染(headless 只有样式表文本判据)· 输入冻结 · 4 侧 `ModalGate` · 正式入口(暂停壳)。
+
+## 2026-10-31 · 规则七方向②接线(ModalGate 生产构造)
+
+- **病因**:`ModalGate` 自 story-005 起只有夹具、**生产零构造**;两个门各缺一半 ——
+  方向① 已由 `EmergencyChannelDriver`(IArmedState)补上,方向② `IModalGateState` **全仓零实现**
+  ⇒ 规则七的两向抑制在运行期从未生效。
+- **落点**:`ModalGateStateAdapter`(提供者形态 —— 装配序里 4 侧驱动先于 42 驱动建成)+
+  `InteractionInputDriver` 接入门(E/F 沿先过门,门闭 ⇒ **丢弃**,边沿位照常更新)+ `BootRoot` 装配。
+- **撞上的真问题**:Awake 默认建 `Casebook`,而它是闭集模态 ⇒ 直接喂门会**常闭**、E 查体当场失效。
+  ⇒ 拆 `IsModalOpen`(有没有屏)/ `BlocksPlay`(有没有**挡路**的屏,只算经 `OpenModal` 显式打开的)。
+- **判据** 4 条(新增);证伪轮 M1(适配器误用 IsModalOpen)2 红 · M2b(常驻屏当成玩家打开)2 红。
+  ⚠️ **M2 红 0 暴露一处死代码**:`CloseModal` 里 `_modalOpenedExplicitly = false` 不可反证
+  (`_currentModal = None` 已短路)⇒ 已删并注明。
+- **回归** `6296/6259` → **`6300/6263/0/0/37`**(+4;skipped 37 不变)@ `2026-10-31 19:16–19:18 CST`。
+- ⚠️ **NOT-RUN**:`InteractionInputDriver` 里「门闭 ⇒ 不查体」这一行无夹具(E/F 是静态设备读面,
+  headless 造不出按键)⇒ 已证的是门与适配器,接线行只能靠读代码守。

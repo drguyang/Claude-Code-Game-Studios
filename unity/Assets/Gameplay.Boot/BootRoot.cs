@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;    // IReadOnlyList<string>(A-5 错误的返回形,TD-audio-032 ③ 拆分后进签名)
 using System.IO;                     // Path.Combine(7a 存档目录,S19-1)
 using System.Threading.Tasks;
+using DaYiJingCheng.Gameplay.Interaction;          // ModalGate(规则七两向抑制)
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
@@ -501,10 +502,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             _player.Teleport(new Vector3(0f, 1f, 0f));
 
             // ── 4.5. 玩家交互输入驱动(sprint-07 S2):E 查体 / F 急救,每帧由 Update 转发 ──
+            // 🔁 2026-10-31 规则七方向②接线:`ModalGate` 此前**生产零构造**(缺 42 侧那半个门)
+            //    ⇒ 模态/Armed 期的交互抑制在运行期从未生效。此处两门齐:
+            //    ① Armed = 10 的急救通道(`EmergencyChannelDriver` 即 `IArmedState`);
+            //    ② 模态开集 = 42 驱动经 `ModalGateStateAdapter`(提供者形态 —— UI 驱动在本段**之后**才建)。
+            //    ⚠️ 未接上时 `ModalGateStateAdapter.IsOpen` 返回 false ⇒ **放行**(诚实降级),
+            //      但那是「无 UI」的合法形态,不是「抑制生效」。
             var interaction = new InteractionInputDriver(
                 _services,
                 () => _player != null ? _player.transform.position : Vector3.zero,
-                actorId);
+                actorId,
+                new ModalGate(_services.EmergencyChannel,
+                              new ModalGateStateAdapter(() => _uiDriver)));
             _interactionDriver = interaction;
 
             // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──

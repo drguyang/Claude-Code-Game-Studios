@@ -78,6 +78,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         //    每个模态独占一个子容器，开关只动自己的容器。
         private VisualElement _modalContainer;
         private ModalId _currentModal = ModalId.None;
+        /// <summary>
+        /// 当前屏是否由 <see cref="OpenModal"/> **显式打开**(启动即建的常驻屏为 <c>false</c>)。
+        /// <para>⚠️ 不能用「id 是否等于常驻屏」来判:`Casebook` 既是启动默认屏、也能被玩家再打开,
+        /// 用 id 比对会把「玩家重开脉案」误判成「常驻屏不挡路」。</para>
+        /// </summary>
+        private bool _modalOpenedExplicitly;
 
         /// <summary>
         /// `ModalId` 闭集 → 屏名（屏名是 <see cref="ScreenFactories"/> 的键，也是序列化契约）。
@@ -133,6 +139,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 return;
             }
             _currentModal = _screen is IModalState openState ? openState.Modal : ModalId.None;
+            _modalOpenedExplicitly = false;   // 启动即建的屏 = 常驻屏,不算「玩家摊开的模态」
 
             // ── T2.1:DTO 绑定(标记接口 IDtoSource 的 42 侧实现) ──
             // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
@@ -361,8 +368,21 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public ModalId CurrentModal => _currentModal;
 
-        /// <summary>是否有模态摊开(模态门消费面;`Modal ≠ None` 的收敛形)。</summary>
+        /// <summary>是否有模态摊开(任一屏在,含常驻屏)。</summary>
         public bool IsModalOpen => _currentModal != ModalId.None;
+
+        /// <summary>
+        /// **是否有一个玩家摊开的模态在挡着世界**(规则七方向②的真正判据)。
+        /// <para>判据 = 当前屏 ≠ None **且** ≠ 常驻屏。两处刻意分开:</para>
+        /// <list type="bullet">
+        ///   <item><see cref="IsModalOpen"/> 答「有没有屏」—— 启动即真的,不能喂闸门;</item>
+        ///   <item>本属性答「有没有**挡路**的屏」—— 启动即建的常驻脉案屏不挡(E 查体在它开着时
+        ///         仍可用),经 <see cref="OpenModal"/> 打开的屏(存档位 / 库存 / 玩家重开的脉案)才挡。</item>
+        /// </list>
+        /// <para>⚠️ 若将来启动形态改成「无屏」(常驻世界视图),本属性与
+        /// <see cref="IsModalOpen"/> 仍然一致 —— 判据不依赖启动形态。</para>
+        /// </summary>
+        public bool BlocksPlay => _currentModal != ModalId.None && _modalOpenedExplicitly;
 
         /// <summary>
         /// 打开某个模态(运行期换屏的唯一入口)。
@@ -394,6 +414,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 return false;
             }
             _currentModal = modal;
+            _modalOpenedExplicitly = true;
 
             // 注入面重放(与 Awake 的补绑同款,幂等)
             if (_source != null) _screen.Bind(_source);
@@ -423,6 +444,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
             _screen = null;
             _currentModal = ModalId.None;
+            // ⚠️ 这里**不**复位 `_modalOpenedExplicitly`:证伪轮实测该行不可反证
+            //    (`BlocksPlay` 先判 `_currentModal != None`,关屏后恒 false)⇒ 留着就是死代码。
+            //    下次 `OpenModal` 会把它置 true,语义不需要「关屏即清零」。
         }
 
         /// <summary>

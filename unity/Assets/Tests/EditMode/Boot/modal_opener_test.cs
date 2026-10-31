@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Gameplay.Interaction;      // ModalGate / IArmedState / InteractIntent
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 using NUnit.Framework;
@@ -212,6 +213,60 @@ namespace DaYiJingCheng.Tests.Boot
             var screen = (SaveSlotsScreen)_driver.Screen;
             screen.SetSlots(new uint[] { 1u });
             Assert.That(screen.FirstFocusable, Is.Not.Null, "行在,焦点面就该存在");
+        }
+
+        // ══════════════ ⑥ 规则七方向②:模态门接线(2026-10-31)══════════════
+
+        [Test]
+        public void test_modalGateState_restingScreen_doesNotBlockPlay()
+        {
+            // 启动即建的 Casebook 是**常驻屏**,不是「玩家摊开的模态」—— 若把它算作模态开,
+            // 规则七的门会常闭,E 查体当场失效(本构建的默认形态)。
+            var adapter = new ModalGateStateAdapter(_driver);
+
+            Assert.That(_driver.IsModalOpen, Is.True, "前提:常驻屏在(IsModalOpen 答「有没有屏」)");
+            Assert.That(adapter.IsOpen, Is.False,
+                "常驻屏不得让闸门常闭 —— 否则启动即不能查体");
+        }
+
+        [Test]
+        public void test_modalGateState_openedModal_blocksPlay_andCloseRestores()
+        {
+            var adapter = new ModalGateStateAdapter(_driver);
+
+            _driver.OpenModal(ModalId.SaveSlots);
+            Assert.That(adapter.IsOpen, Is.True, "玩家摊开的模态必须挡路");
+
+            _driver.CloseModal();
+            Assert.That(adapter.IsOpen, Is.False, "关掉后立刻恢复");
+        }
+
+        [Test]
+        public void test_modalGate_rejectsInteraction_onlyWhileModalOpenOrArmed()
+        {
+            var armed = new FakeArmed();
+            var gate = new ModalGate(armed, new ModalGateStateAdapter(_driver));
+
+            Assert.That(gate.Accept(InteractIntent.None), Is.True, "常驻屏 + 未 Armed ⇒ 放行(E 查体可用)");
+
+            _driver.OpenModal(ModalId.SaveSlots);
+            Assert.That(gate.Accept(InteractIntent.None), Is.False, "模态开 ⇒ 丢弃(F-4.2)");
+
+            _driver.CloseModal();
+            armed.IsArmed = true;
+            Assert.That(gate.Accept(InteractIntent.None), Is.False, "Armed ⇒ 丢弃(方向①)");
+        }
+
+        [Test]
+        public void test_modalGateState_nullProvider_doesNotBlock()
+        {
+            var adapter = new ModalGateStateAdapter((SkeuoRuntimeDriver)null);
+            Assert.That(adapter.IsOpen, Is.False, "无 UI ⇒ 无模态(诚实降级,不是假装开着)");
+        }
+
+        private sealed class FakeArmed : IArmedState
+        {
+            public bool IsArmed { get; set; }
         }
 
         /// <summary>开合面的夹具实现(不碰引擎对象)。</summary>
