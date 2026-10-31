@@ -393,9 +393,16 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
         [Test]
         public void test_modalId_closedSetIsNonePlusSeven()
         {
+            // 🔁 2026-10-31(ADR-013 §十-C Amendment C):闭集 7 员 → **8 员**(增 `Pause`)。
+            //    本判据的原意是「**方笺不增员**」(方笺 = 脉案同一本书内的一页,§十-B)——
+            //    该原意**不变**;变的只是闭集基数随 Pause 增员。故另加一条点名断言把
+            //    「增的是 Pause、不是方笺相关成员」钉住,免得基数一改就失去判别力。
             var names = Enum.GetNames(typeof(ModalId));
-            Assert.AreEqual(8, names.Length, "ModalId = None + 7 员(方笺**不**增员,ADR-013 §十-B)。");
-            Assert.AreEqual(7, names.Count(n => n != "None"), "闭集实员须仍为 7。");
+            Assert.AreEqual(9, names.Length, "ModalId = None + 8 员(🔁 原 None + 7;Amendment C 增 Pause)。");
+            Assert.AreEqual(8, names.Count(n => n != "None"), "闭集实员须为 8(Pause 是唯一的第八员)。");
+            Assert.That(names, Does.Contain("Pause"), "第八员必须是 Pause(Amendment C 裁定的那一个)");
+            Assert.That(names, Does.Not.Contain("Prescription").And.Not.Contain("Formula"),
+                "增员**不是**方笺(§十-B:方笺 = 脉案同一本书内的一页,不增员)");
         }
 
         [Test]

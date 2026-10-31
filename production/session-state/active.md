@@ -14405,3 +14405,32 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   G1 `Update` 改回内联 ⇒ 接线判据红 · G2 `ResolveMoveAxis` 不折零 ⇒ 行为判据红 ·
   G3 挡路只 `return` 不消费边沿 ⇒ `consumesEdge` 红 · G4 整段删掉 ⇒ 红 3。
   **G1/G2 各只红一条** ⇒ 行为面与接线面是两个独立靶,不互相借绿。
+
+## 2026-10-31 · 焦点落点 + E 模态丢弃 转可观测(PlayMode)
+
+**病因**:两条此前只能靠读代码守的线 ——
+① `OpenModal` 的「开屏落焦第一行」在 EditMode 下 `rootVisualElement.panel == null` ⇒ 那行**被跳过**,
+   已证只有「该落焦的是谁」;② `InteractionInputDriver` 的「门闭 ⇒ 丢弃 E」两行同理。
+两条都在 PlayMode 用真面板 / 真键注入补成观测:
+- `focus_on_open_test`(新):真 `PanelSettings` + 查引擎 `focusController.focusedElement` ——
+  开暂停壳落焦第一行 · 换屏焦点随迁且不留在已移除的旧元素 · 开屏前无焦(正控)。
+- `interaction_input_chain_test` 增 2 条:模态开 ⇒ E 零查体零事件;正控(同构造、门换成关)⇒ 照常查体。
+
+**同时修掉 3 条**2f549454 之后一直躺着的 PlayMode 红**(本轮首跑才暴露):
+1. `test_modalId_closedSetIsNonePlusSeven` —— 闭集 7→8 未同步(`dentch_input_test`)。改 9 并补
+   「增的是 `Pause`、不是方笺成员」点名断言(否则基数一改就失去判别力)。
+2. `test_t2_1_boundSource_…` / `…multipleWordsInSameChannel…` —— **夹具双建屏**:PlayMode 下
+   `AddComponent` **已自动跑一次 Awake**,`BootDriver` 又反射调一次 ⇒ 面板两份 `modal-Casebook`。
+   实证打印:`panelChildren=[modal-Casebook, modal-Casebook] complexionCount=2`。
+   修 = 重建前先 `driver.CloseModal()` 摘掉自动那份。
+3. `test_t2_2_screenAttachedToDriverPanel` —— 模态容器后「屏根 == panel」不再成立;判据改为
+   「屏根的**父** == panel」(语义仍是「挂在面板上,不在虚空中建树」)。
+
+**判据**
+- PlayMode `243 / 239 / 0 / 2 / 2` @ `2026-10-31 13:09:21Z` · `8c099668`+工作树。
+  等式 `243 − 238 = 5` = 新增判据数(落焦 3 + 模态丢 E 2)。`error CS` = 0。
+- 证伪 **H1**(删暂停壳开屏落焦)⇒ 红 2 · **H2**(`bool allowed = true`)⇒ 红 1;还原 SHA-256 逐字节一致。
+
+⚠️ **流程账(如实记)**:`2f549454` 之后我**只跑 EditMode 没跑 PlayMode**,那 3 条红一直躺着;
+且我一直把 `238/234`(2026-10-28)当现行基线引用 —— **那是 3 天前的数**。
+本条的 243/239 才是现行基线(带三元组)。

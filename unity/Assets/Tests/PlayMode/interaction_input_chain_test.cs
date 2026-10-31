@@ -15,6 +15,7 @@
 using System.Collections;
 using System.Linq;
 using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Gameplay.Interaction;   // ModalGate / IArmedState / IModalGateState
 using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Sim;
@@ -37,6 +38,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         private PlayerController _player;
         private CompositionRootServices _bag;
         private InteractionInputDriver _driver;
+        private int _actorId;
 
         private object _manager;
         private System.Reflection.FieldInfo _maskField;
@@ -131,6 +133,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             var go = new GameObject("Player");
             _player = go.AddComponent<PlayerController>();
             int actorId = _bag.IdAuthority.NextPatientId().Value;
+            _actorId = actorId;
             _player.Initialize(SimAuthorityMode.Host, _bag.EventSink, _bag.TickDriver,
                                _bag.Encoder, actorId);
             _player.Teleport(new Vector3(0f, 1f, 0f));
@@ -256,6 +259,81 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.Greater(_bag.Stream.Count, streamCountBeforeF, "事件确有新增(前置自证)");
 
             yield return null;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 规则七方向② · 模态开 ⇒ 交互意图被丢弃(2026-10-31 补 · 生产执行行)
+        //
+        // 补的是一条**此前只能靠读代码守**的线:`InteractionInputDriver.OnFrame` 里
+        // 「门闭 ⇒ 丢弃 E」那两行。EditMode 造不出按键,只能在 PlayMode 用
+        // `QueueStateEvent` 真注入(与本文件其余用例同一形态)。
+        // ══════════════════════════════════════════════════════════════════
+
+        private static ModalGate Gate(bool modalOpen)
+            => new ModalGate(new FixedArmed(), new FixedModalState(modalOpen));
+
+        [UnityTest]
+        public IEnumerator test_modalOpen_discardsE_noExamine()
+        {
+            AssembleChain();
+            int pid = _bag.Presence.PresentPatientIds().First();
+            var gated = new InteractionInputDriver(_bag, () => _player.transform.position,
+                                                   _actorId, Gate(modalOpen: true));
+
+            Press(Key.E);
+            if (!PlayerInputReader.InteractPressed())
+                PressGamepadButton(GamepadButton.North);
+            Assert.IsTrue(PlayerInputReader.InteractPressed(),
+                "探针:注入生效 —— 若此条红,键位怪癖而非门的问题");
+
+            int before = _bag.Stream.Count;
+            gated.OnFrame();
+            ReleaseAll();
+
+            Assert.IsFalse(_bag.ExaminationLedger.HasExamined(pid),
+                "模态开 ⇒ E 必须被丢弃(否则「暂停时还能查体」)");
+            Assert.That(gated.LastExaminedPatient.Value, Is.EqualTo(PatientId.None.Value),
+                "丢弃时不得记下任何目标");
+            Assert.AreEqual(before, _bag.Stream.Count, "丢弃 ⇒ 零事件(含 SkillGrown)");
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator test_modalClosed_acceptsE_examines()
+        {
+            // **正控**:同一条构造路径、同一次按键注入,只把门换成「模态关」——
+            // 若这条也红,上一条的绿就是假的(驱动根本没工作)。
+            AssembleChain();
+            int pid = _bag.Presence.PresentPatientIds().First();
+            var gated = new InteractionInputDriver(_bag, () => _player.transform.position,
+                                                   _actorId, Gate(modalOpen: false));
+
+            Press(Key.E);
+            if (!PlayerInputReader.InteractPressed())
+                PressGamepadButton(GamepadButton.North);
+            Assert.IsTrue(PlayerInputReader.InteractPressed(), "探针:注入生效");
+
+            gated.OnFrame();
+            ReleaseAll();
+
+            Assert.IsTrue(_bag.ExaminationLedger.HasExamined(pid),
+                "门放行时 E 必须照常查体(正控 —— 让上一条有判别力)");
+            Assert.That(gated.LastExaminedPatient.Value, Is.EqualTo(pid));
+
+            yield return null;
+        }
+
+        private sealed class FixedArmed : IArmedState
+        {
+            public bool IsArmed => false;
+        }
+
+        private sealed class FixedModalState : IModalGateState
+        {
+            private readonly bool _open;
+            public FixedModalState(bool open) => _open = open;
+            public bool IsOpen => _open;
         }
 
         [UnityTest]

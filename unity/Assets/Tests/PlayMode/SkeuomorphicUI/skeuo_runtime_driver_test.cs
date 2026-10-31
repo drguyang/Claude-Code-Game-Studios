@@ -149,8 +149,11 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             var (driver, panel) = BootDriver("Casebook", null);
             var screen = driver.Screen as PresentationRoot;
             Assert.IsNotNull(screen, "CasebookScreen 继承 PresentationRoot");
-            Assert.AreSame(panel, screen.Root,
-                "Screen 必须挂在 driver 的 panel 上(不在虚空中建树 ——" +
+            // 🔁 2026-10-31:模态开启器起,屏住在**独占子容器**里(换屏只摘自己的容器 ——
+            //    面板上还挂着 cue / 字幕 / 候选列表,不能整面板清空)⇒ 判据由
+            //    「屏根 == panel」改为「屏根的父 == panel」,语义仍是**挂在面板上,不在虚空中建树**。
+            Assert.AreSame(panel, screen.Root.parent,
+                "Screen 的根必须是 panel 的**直接子容器**(不在虚空中建树 ——" +
                 "否则 driver 装了屏但玩家什么也看不到)。");
         }
 
@@ -401,6 +404,14 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             // 经反射注入私有序列化字段(与生产场景 / Prefab 的赋值路径等价)
             SetField(driver, "_screenName", screenName);
+
+            // ⚠️ 2026-10-31 修:PlayMode 下 `AddComponent` **已经自动跑过一次 Awake**
+            //    (建的是默认屏),此处再由反射调一次 ⇒ 面板上出现**两份**屏
+            //    (实测 `panelChildren=[modal-Casebook, modal-Casebook]`)。
+            //    两份的后果:`panel.Q("channel-complexion")` 命中**先建的那份空壳**,
+            //    而数据只绑到后建的那份 ⇒ 读数格断言恒 null(假红)。
+            //    ⇒ 重建前先把自动那份摘掉(公共 `CloseModal`,不碰私有字段)。
+            driver.CloseModal();
 
             // 先建 panel(uidocument 自建;panelSettings 空 = 仅逻辑树)
             var awake = typeof(SkeuoRuntimeDriver).GetMethod("Awake",

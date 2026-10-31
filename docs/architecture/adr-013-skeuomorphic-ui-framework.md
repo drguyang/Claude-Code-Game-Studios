@@ -490,7 +490,11 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
   扫的是**源码**(设备读面恰一次、且作为 `ResolveMoveAxis` 实参、`PumpFrame` 实参是折过零的局部),
   证明「接线在且唯一」—— **不**证明「Unity 每帧调 `Update`」(引擎契约,不是本仓代码)。
 - **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图;且 `design/ux/pause-shell-42.md`
-  不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**);
+  不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**)。
+  🔁 **但「开屏落焦」这一条已从 NOT-RUN 转为可观测**(同批):`focus_on_open_test`(PlayMode,
+  真 `PanelSettings`)直接查引擎 `focusController.focusedElement` —— 开暂停壳 ⇒ 焦点在第一行;
+  换屏 ⇒ 焦点迁到新屏第一行且**不留在已移除的旧元素**。证伪 H1(删那两行 `Focus()`)⇒ 2 红。
+  **「落焦机制」与「暂停壳视觉走查」是两件事,前者已证、后者仍 NOT-RUN**。
 - **Escape 在存档位屏上的去向**:今日 `IsPauseOpen == false` ⇒ 按 Escape 会**换屏回暂停壳**
   (而非直接闭合)。这是最小壳的**粗糙边**,不是裁定 —— 归暂停壳 UX spec。
 
