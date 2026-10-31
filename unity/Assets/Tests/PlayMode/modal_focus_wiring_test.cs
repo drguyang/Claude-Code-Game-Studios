@@ -30,6 +30,8 @@ using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.TestTools;
@@ -50,9 +52,27 @@ namespace DaYiJingCheng.Tests.PlayMode
         private SkeuoRuntimeDriver _driver;
         private BootRoot _boot;
 
+        private Keyboard _kb;
+        private bool _kbAdded;
+        private InputSettings.EditorInputBehaviorInPlayMode _savedBehavior;
+        private InputSettings.BackgroundBehavior _savedBg;
+        private bool _inputEnvSaved;
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            if (_inputEnvSaved)
+            {
+                InputSystem.settings.editorInputBehaviorInPlayMode = _savedBehavior;
+                InputSystem.settings.backgroundBehavior = _savedBg;
+                _inputEnvSaved = false;
+            }
+
+            if (_kbAdded && _kb != null && _kb.added)
+                InputSystem.RemoveDevice(_kb);
+            _kb = null;
+            _kbAdded = false;
+
             var player = GameObject.Find("Player");
             if (player != null) UnityEngine.Object.Destroy(player);
 
@@ -142,11 +162,56 @@ namespace DaYiJingCheng.Tests.PlayMode
         // ══════════════════════════════════════════════════════════════════
 
         /// <summary>
+        /// **按键 → 开屏 → 落焦 → 再按 → 关屏** 的整链(真设备注入,不是直调 `OpenModal`)。
+        /// <para>这一层此前只有 `pause_focus_navigation_test`(它自己 new `ModalInputDriver`),
+        /// 生产的 `BootRoot` 装配(读面 = `PlayerInputReader.PauseTogglePressed`,
+        /// 开合面 = `DriverModalOpener`)从未在真启动序上被驱动过。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_productionAssembly_escapeKey_opensPause_andLandsFocus()
+        {
+            yield return BootWithPreplacedUi();
+
+            var modalInput = ReadModalInput();
+            Assert.IsNotNull(modalInput, "BootRoot._modalInput 应已装配(6.3 段)");
+            Assert.AreEqual(0, ReadCount(modalInput, "OpenCount"), "[前置] 开局不该开过");
+            Assert.IsFalse(_driver.BlocksPlay, "[前置] 开局不该有挡路模态");
+            Assert.That(Focused(), Is.Null, "[前置] 开局不该有元素获焦");
+
+            // Act:真按 Escape(边沿由生产 `BootRoot.Update → _modalInput.OnFrame()` 逐帧比对)
+            yield return HoldKey(Key.Escape, 4);
+
+            int opens = ReadCount(modalInput, "OpenCount");
+            Assert.AreEqual(1, opens,
+                $"按一次 Escape 应**恰好**开一次(实际 {opens})—— 0 次 = 键没走到开合驱动, " +
+                ">1 次 = 边沿化坏了(按住会重复触发)");
+            Assert.IsTrue(_driver.BlocksPlay, "开屏后应处于挡路态");
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "开的必须是暂停壳");
+
+            var pause = _driver.Screen as PauseScreen;
+            Assert.IsNotNull(pause, "Screen 应为 PauseScreen");
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(0)),
+                "按键开屏后引擎焦点必须落在第一行 —— 「按键 → 开屏 → 落焦」是一条链,缺任一环都不成立");
+
+            // Act 2:再按一次 ⇒ 合壳、焦点清空
+            yield return HoldKey(Key.Escape, 4);
+            Assert.AreEqual(1, ReadCount(modalInput, "CloseCount"),
+                "第二次按 Escape 应关一次");
+            Assert.IsFalse(_driver.BlocksPlay, "关屏后不应再挡路");
+            Assert.That(Focused(), Is.Null, "关屏后不得留悬空焦点");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
         /// 预摆 UI 壳 —— **再**起 BootRoot。`Boot.unity` 的生产形状就是「壳在场景里,根来认领」,
         /// 而 `BootRoot.FindOrCreateSkeuoUi` 走 `FindFirstObjectByType` 的已有分支。
         /// </summary>
         private IEnumerator BootWithPreplacedUi()
         {
+            SetupKeyboard();
+            SetupInputPolicy();
+
             _uiGo = new GameObject("SkeuoUI");
             _panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
             _doc = _uiGo.AddComponent<UIDocument>();
@@ -183,6 +248,54 @@ namespace DaYiJingCheng.Tests.PlayMode
         /// <summary>引擎焦点真源(`Focusable` → `VisualElement`;非元素 ⇒ null)。</summary>
         private VisualElement Focused()
             => _doc.rootVisualElement.panel.focusController.focusedElement as VisualElement;
+
+        // ── 输入注入(与 `modal_gate_wiring_test` 同一套;不如此则键盘事件在普通帧被编辑器丢掉)──
+
+        private void SetupKeyboard()
+        {
+            if (Keyboard.current == null)
+            {
+                _kb = InputSystem.AddDevice<Keyboard>();
+                _kbAdded = true;
+            }
+            else
+            {
+                _kb = Keyboard.current;
+                if (!_kb.enabled) InputSystem.EnableDevice(_kb);
+            }
+        }
+
+        private void SetupInputPolicy()
+        {
+            if (!_inputEnvSaved)
+            {
+                _savedBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
+                _savedBg = InputSystem.settings.backgroundBehavior;
+                _inputEnvSaved = true;
+            }
+            InputSystem.settings.editorInputBehaviorInPlayMode =
+                InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+        }
+
+        /// <summary>按住 N 帧再松开 —— 边沿由生产 `Update` 逐帧比对。</summary>
+        private IEnumerator HoldKey(Key key, int frames)
+        {
+            var down = new KeyboardState();
+            down.Press(key);
+            InputSystem.QueueStateEvent(_kb, down);
+            for (int i = 0; i < frames; i++) yield return null;
+
+            InputSystem.QueueStateEvent(_kb, new KeyboardState());
+            for (int i = 0; i < 3; i++) yield return null;
+        }
+
+        private ModalInputDriver ReadModalInput()
+            => typeof(BootRoot).GetField("_modalInput", BindingFlags.NonPublic | BindingFlags.Instance)
+                   ?.GetValue(_boot) as ModalInputDriver;
+
+        private static int ReadCount(ModalInputDriver driver, string prop)
+            => (int)driver.GetType().GetProperty(prop).GetValue(driver);
 
         private bool ReadBooted()
         {

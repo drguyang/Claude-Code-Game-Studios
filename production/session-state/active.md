@@ -14729,3 +14729,36 @@ batch 进程**从不获得 Game View 焦点**,而编辑器默认
 - **按键开屏**(Escape → `ModalInputDriver` → opener)没在本件内驱动 —— 本件直接调 `OpenModal`;
   该链路归 `pause_focus_navigation_test`(测试自建)与生产输入面,装配级仍未覆盖。
 - 世界不冻结 / 正式入口两支 / 视觉对比度 —— 同上轮,未动。
+
+## 2026-11-01 · 补:按键开屏整链(`modal_focus_wiring_test` 第 3 条)
+
+**补的是上一轮说的「仍未覆盖」第 1 条**:此前只**直调** `OpenModal`,生产的按键链路
+(`Escape` → `PlayerInputReader.PauseTogglePressed` → `BootRoot.Update → _modalInput.OnFrame()`
+→ `DriverModalOpener` → 42 `OpenModal` → 落焦)从未在真启动序上被驱动过。
+
+### 判据(真设备注入)
+
+| 步骤 | 断言 |
+|---|---|
+| 前置 | `OpenCount == 0` · `BlocksPlay == false` · 焦点 `null` |
+| 按一次 Escape | `OpenCount == **1**`(**恰好一次** —— 0 = 链没通,>1 = 边沿化坏了)· `BlocksPlay == true` · `CurrentModal == Pause` · 焦点 = `RowAt(0)` |
+| 再按一次 | `CloseCount == 1` · `BlocksPlay == false` · 焦点 `null`(不留悬空) |
+
+### 变异反证
+
+| 变异 | 结果 |
+|---|---|
+| MUT-F2 拆掉 `BootRoot.Update` 里的 `_modalInput?.OnFrame()` | **只有这条路红**(`OpenCount` 实际 0),另两条(直调 `OpenModal`)保持绿 |
+
+还原 = SHA-256 逐字节(`BootRoot.cs` `12c03855…`),`git diff` 干净。
+
+### 判据
+
+- 全量 PlayMode **260 / 256 / 0 / 2 / 2** @ 2026-11-01 01:57:18 CST · 本批 · `8dc444a8`+工作树
+- vs 上一轮 **259 / 255 / 0 / 2 / 2**(01:53:07):`total +1` / `passed +1` / `failed 0 → 0`
+- 等式:`260 − 259 = 1` = 本批新增一条
+
+### 仍未做(不借绿)
+
+- **手柄 Start 开屏**未驱动(Escape 一条腿)。
+- 世界不冻结 / 正式入口两支(暂停壳 Draft、主菜单未接线)/ 脉案屏环对比度 —— 均未动。
