@@ -1670,8 +1670,14 @@ P0 焦点载体 spike 的结论(**通过 / 降级**)有书面记录。「载体�
 > (`Gameplay.UI/Skeuomorphic/Screens/PauseScreen.cs`:继续 / 存档位两行,行可获焦、行序 = `tabIndex`),
 > 但**它同样记 `NOT-RUN`** —— 新增的走查面**不因「代码在」而变绿**:
 > 手柄实际走查(聚焦 → 提交 → 换屏)与目视判据都还没跑过。
-> ⚠️ 本项**无** `design/ux/pause-shell-42.md`(最小壳无 spec)⇒ 按上条 `NOT-RUN` 纪律,
-> ⑧ 员**阻塞签核**,直到该 spec 成文**且**走查执行。
+~~> ⚠️ 本项**无** `design/ux/pause-shell-42.md`(最小壳无 spec)⇒ 按上条 `NOT-RUN` 纪律,
+> ⑧ 员**阻塞签核**,直到该 spec 成文**且**走查执行。~~
+> 🔁 **2026-11-01:阻塞解除** —— `design/ux/pause-shell-42.md` **已成文**
+> (2026-11-01 `/ux-review` 一次 NEEDS REVISION → 修三 blocking → 复核 **Approved**,12 条 AC 全 `[x]`);
+> 走查面同时有:**机器判**(`test_acps09_fullLoop_gamepadOnly`,手柄全程)+ **用户目视**
+> (2026-10-31 同一轮编辑器走查确认无按键提示浮层 = `AC-PS-08`)+ **修后复拍**
+> (`production/qa/evidence/skeuomorphic-ui/ring-recheck-2026-11-01-*.png`)。
+> ⚠️ 如实登记一处:修后复拍的**判定人是本轮读图判定(Claude)**,不是用户目视 —— 与首轮人眼腿的判定主体不同。
 
 > **⚠️ 主语集的现状(首轮评审第 3 项 —— 旧稿的主语是空集)** —— 旧稿写「**已有**
 > `design/ux/[screen].md` 的界面」,而 `design/ux/` **整个目录不存在** ⇒ **主语集为空** ⇒
