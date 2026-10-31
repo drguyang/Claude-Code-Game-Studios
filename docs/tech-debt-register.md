@@ -437,6 +437,7 @@
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
 | `TD-foraging-01` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-02` | `foraging` | closed | **N** | R4 |
+| `TD-foraging-03` | `foraging` | open | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | closed | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | closed | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
@@ -853,7 +854,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 142 | 状态 {'closed': 124, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
+条目 143 | 状态 {'closed': 124, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 39, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5715,6 +5716,34 @@ grep -h -m1 'Status\*\*' production/epics/inventory-items/story-00{1,2}-*.md \
   不引用生产常量(避 F3 自指判据)。
 - ⚠️ 「严格递增」是**分母 30 的产物**(1/30 ≈ 2184.5 raw ≫ 1 raw),**不是该公式在任何分母下的普遍性质**;
   数值轮若把分母调大到 `> 2^16`,可能出现平坦段,届时该夹具会红 —— 那是**正确的红**。
+
+---
+
+## 2026-10-31 · S22-1 实现轮立债:`YieldDecay` 的「触底点」散文与表值不符(1 条 · foraging)
+
+**出处**:`S22-1`(story-004 节点余量前缀)实现轮。写 `AC-17-17` 的边界夹具时按 GDD 散文口算,
+得到了一个**跑不通的期望值**,实测反推才发现散文与表值对不上。
+
+### TD-foraging-03 — GDD 写「累计 40 份触底」,按表内 `DECAY_RATE = 1/40` + `DECAY_FLOOR = 1/2` 算实际在 21
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `design/gdd/foraging.md:352` 的 Tuning Knobs 行自陈「**✅ 值已裁 2026-10-06**:`DECAY_RATE = 1/40` · `DECAY_FLOOR = 1/2`(**累计 40 份触底**)」。而 F-17-3 的公式是 `yieldDecay(n) = max(DECAY_FLOOR, MUL_ONE − Mul(n, DECAY_RATE))` ⇒ 线性项 `1 − n/40` 在 **n = 20** 处就已等于 `1/2`,**n = 21** 处跌破下限被夹住。**「40 份触底」只有在 `DECAY_RATE = 1/80` 时才成立** |
+| **实测(可跑)** | `assets/data/foraging_constants.json:9-10` 逐字为 `"decay_rate": "1/40"` / `"decay_floor": "1/2"`;按 Q16.16 复算:`rate raw = 1638`、`decay(20) = 32776`、`decay(21) = 32768`(夹住)。夹具 `node_remaining_prefix_test.cs` 的 `test_ac1717_yieldDecay_floorBoundary_isAt21Units` 把这三个数**钉成字面量** |
+| **性质** | ⚠️ **GDD 散文与表值不一致,非实现缺陷**。实现照表值走(`max(floor, 1 − n·rate)`),`AC-17-17` 的三条形状判据(单调不增 / `D(0)=1` / 有下限)**两种读法都过** ⇒ 机械门抓不到,只能靠人读 |
+| **影响面** | ① 「采 **40** 次才见底」是深水线的一句**玩家可感知**的节奏承诺(`concept-benchmark.md:82`);按现值实际是 **21 份** —— 快了近一倍;② 若后续按散文把 `DECAY_RATE` 改成 `1/80`,则**已烘产物与所有引用 `DECAY_*` 的夹具需重算**,`ConfigVersion` 随之改变(ADR-014 §五)⇒ 影响存档兼容比对(ADR-010 §七);③ 本债**不**改变任何代码路径 |
+| **修法方向(未裁,三选一)** | ① **改表值** `DECAY_RATE = 1/80`(兑现散文的「40 份触底」—— 这是**新数值**,须数值轮拍板);② **改散文**承认「21 份触底」;③ 二者同时改。**本债不预设选哪条** |
+| **触发条件** | 17 的数值轮;或任何要求「衰减节奏」可被玩家感知地调参的下游工作 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-foraging-03** | `foraging` | **open** | **N** | R4 |
+
+> **`P0 面 = N`**(承 §一 **R4**):归属 `foraging` ∈ 31 个 P0 epic,但本条**正文自陈不阻塞 P0 出口**
+> 并给出实质理由 —— 出口判据问的是「形状与契约是否成立」,而 `AC-17-17` 的三条形状
+> 在两种读法下**都成立**。本条是**数值内容**层面的措辞/取值不一致,与 `TD-foraging-01` 同型
+> (同样记 `N`、同样归数值轮)。**不得**因 `P0 面 = N` 就读成「可以不管」——
+> 它与 `-01` 一样,是**数值轮开工前必须结清**的内容债。
 
 ---
 
