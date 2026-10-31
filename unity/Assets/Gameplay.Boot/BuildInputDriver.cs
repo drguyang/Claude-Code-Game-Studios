@@ -123,9 +123,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⚠️ 边沿位必须更新:若只是 return,关屏那一刻手里还按着的键会补触发一次
             //    (「模态期间没反应,一关屏就放下一块」)—— 与 `InteractionInputDriver`
             //    同纪律(门闭 ⇒ 丢弃动作,边沿仍跟踪)。
-            // ⚠️ **NOT-RUN**:本分支今日无夹具(驱动构造要真 `BuildController`,本件不复制那套
-            //    装配)。已证的是同源的冻结谓词(`modal_input_freeze_test` 4 条)与「挡路分支
-            //    不触碰 controller」这一点靠读代码守。**不得**据此判「建造输入冻结已验」。
+            // ✅ 2026-10-31 判据已补:落 `build_controller_test` 的「模态冻结」四条
+            //    (正控进模式 / 挡路丢弃 / 边沿被消费不补触发 / 挡路期放置零落流且解除后恢复)
+            //    —— 那里已有真 `BuildController` 装配,不另造第二套。
             if (_blocked != null && _blocked())
             {
                 _toggleHeld = toggle;

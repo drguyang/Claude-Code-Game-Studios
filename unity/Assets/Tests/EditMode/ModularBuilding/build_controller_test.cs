@@ -504,6 +504,88 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // 模态冻结 · `BuildInputDriver` 的挡路分支(2026-10-31)
+        //
+        // 判据为什么落在这棵树:驱动构造要**真 `BuildController`**,而本文件 SetUp 里
+        // 已有那套真装配(生产编排 → 生产编码 → 生产占用表)。搬到别的文件就得复制
+        // 第二套「怎么造控制器」的知识 = 第二真源。
+        //
+        // 驱动面 = `OnFrameCore(bool ×4)`(2026-10-31 抽出的接缝):headless 下
+        // `BuildInputReader` 是静态设备读面,**造不出按键**,判据只能由布尔入参驱动。
+        // ══════════════════════════════════════════════════════════════════
+
+        private BuildInputDriver DriverWith(Func<bool> blocked)
+            => new BuildInputDriver(_controller, () => new WorldPos(0, 0, 0), null, blocked);
+
+        [Test]
+        public void test_buildDriver_notBlocked_toggleEntersBuildMode()
+        {
+            // **正控**:没有它,下面三条「挡路时没进入」在驱动坏掉时也会绿。
+            var driver = DriverWith(() => false);
+
+            driver.OnFrameCore(toggle: true, place: false, rotate: false, remove: false);
+
+            Assert.That(driver.IsBuildMode, Is.True, "无模态时 Enter 必须能进建造模式");
+        }
+
+        [Test]
+        public void test_buildDriver_blocked_toggleIsDropped()
+        {
+            var driver = DriverWith(() => true);
+
+            driver.OnFrameCore(toggle: true, place: false, rotate: false, remove: false);
+
+            Assert.That(driver.IsBuildMode, Is.False,
+                "模态挡路时不得进建造模式(暂停壳摊开按 Enter 不该开始盖房)");
+        }
+
+        [Test]
+        public void test_buildDriver_blocked_consumesEdge_noReplayAfterUnblock()
+        {
+            // ⚠️ 本条的靶是**边沿消费**:若挡路分支只是 `return` 而不更新 `_toggleHeld`,
+            //    关屏那一刻手里还按着的键会补触发一次(「模态里没反应,一关就进建造」)。
+            bool blocked = true;
+            var driver = DriverWith(() => blocked);
+
+            driver.OnFrameCore(true, false, false, false);
+            Assert.That(driver.IsBuildMode, Is.False, "前提:挡路期按下被丢弃");
+
+            blocked = false;
+            driver.OnFrameCore(true, false, false, false);   // 关屏,键**仍按着**(没有新的按下沿)
+
+            Assert.That(driver.IsBuildMode, Is.False,
+                "边沿必须在挡路期被消费 —— 否则解除挡路的瞬间会补触发");
+        }
+
+        [Test]
+        public void test_buildDriver_blocked_placeIsDropped_andWorksAfterUnblock()
+        {
+            bool blocked = false;
+            var driver = DriverWith(() => blocked);
+            driver.SelectedModuleId = Module;
+
+            driver.OnFrameCore(true, false, false, false);   // 进建造模式
+            Assert.That(driver.IsBuildMode, Is.True, "前提:建造模式已开着");
+
+            int eventsBefore = _stream.Count;
+            blocked = true;
+            driver.OnFrameCore(false, true, false, false);   // 挡路期按放置
+
+            Assert.That(_controller.StructureIdAt(new WorldPos(0, 0, 0)), Is.LessThan(0),
+                "模态挡路时不得落任何结构");
+            Assert.That(_stream.Count, Is.EqualTo(eventsBefore),
+                "世界流不得多出一条 —— 写者**真的没被调用**(不是「写了又回滚」)");
+
+            blocked = false;
+            driver.OnFrameCore(false, false, false, false);  // 松手
+            driver.OnFrameCore(false, true, false, false);   // 再按
+
+            Assert.That(driver.LastPlaceResult, Is.EqualTo(PlaceableResult.Success),
+                "解除挡路后放置必须恢复正常(否则上面的「没落」可能只是驱动坏了)");
+            Assert.That(_stream.Count, Is.GreaterThan(eventsBefore), "放置须真的落流");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // AC B-1 · 量化同源(建造链条不自己做 float → 格)
         // ══════════════════════════════════════════════════════════════════
 

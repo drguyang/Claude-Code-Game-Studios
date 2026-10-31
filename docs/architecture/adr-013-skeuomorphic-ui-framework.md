@@ -482,9 +482,13 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
   「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**。
 - **输入冻结面已于同日补齐**(同批,`ModalInputFreeze`):规则七此前只覆盖 **E 查体 / F 急救**,
   **移动轴**一直是漏的(暂停壳摊开还能走)。现由 `ModalInputFreeze` 统一折零移动轴、
-  并接进 `BuildInputDriver`(建造四动作)。⚠️ `BuildInputDriver` 的挡路分支**无夹具**
-  (构造驱动要真 `BuildController`),按 `NOT-RUN` 登记;已证的是同源的冻结谓词
-  (`modal_input_freeze_test` 4 条)。**两者不是同一件事,不得互相借绿**。
+  并接进 `BuildInputDriver`(建造四动作)。
+  **判据(2026-10-31 晚补齐)**:`modal_input_freeze_test` 6 条(谓词 4 + 接线 2)·
+  `build_controller_test` 增「模态冻结」4 条(正控进模式 / 挡路丢弃 / **边沿被消费不补触发** /
+  挡路期放置零落流且解除后恢复)。
+  ⚠️ **接线判据的天花板**:`test_bootRoot_update_readsMoveAxisOnlyThroughResolveMoveAxis`
+  扫的是**源码**(设备读面恰一次、且作为 `ResolveMoveAxis` 实参、`PumpFrame` 实参是折过零的局部),
+  证明「接线在且唯一」—— **不**证明「Unity 每帧调 `Update`」(引擎契约,不是本仓代码)。
 - **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图;且 `design/ux/pause-shell-42.md`
   不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**);
 - **Escape 在存档位屏上的去向**:今日 `IsPauseOpen == false` ⇒ 按 Escape 会**换屏回暂停壳**

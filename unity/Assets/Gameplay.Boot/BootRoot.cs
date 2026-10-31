@@ -1207,6 +1207,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 上行缝,联机(P1b · 45)才接,单机 Host 模式永不走它。</para>
         /// <para>急救动作不在此读(ADR-011 §二 独立直读通道);本文件只接普通移动。</para>
         /// </summary>
+        /// <summary>
+        /// 本帧移动轴 = 设备读面 → **模态冻结面**(全仓唯一折零点)。
+        /// <para>⚠️ 单抽出这个方法是为了让「接线在不在」可被机械判据盯住:
+        /// `Update` 里 `MovementInputReader.ReadMoveAxis()` 只许出现**一次**,且必须
+        /// 作为本方法的实参(`modal_input_freeze_test` 的接线判据扫源码守此点)。
+        /// 内联写回 `PumpFrame(...)` 的实参 = 那条判据转红。</para>
+        /// <para>⚠️ 这证明的是**源码里接线在且唯一**,不证明「Unity 每帧调 <c>Update</c>」——
+        /// 后者是引擎契约,不是本仓代码。</para>
+        /// </summary>
+        /// <param name="raw">设备读面给出的原始轴。</param>
+        /// <param name="freeze">模态冻结面;为 <c>null</c> ⇒ 原样透传(诚实降级)。</param>
+        public static Vector2 ResolveMoveAxis(Vector2 raw, ModalInputFreeze freeze)
+            => freeze != null ? freeze.FilterMovement(raw) : raw;
+
         private void Update()
         {
             if (!_booted || _tickDriver == null || _player == null) return;
@@ -1232,9 +1246,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-10-31:移动轴过模态冻结面 —— 此前暂停壳摊开时玩家照样走得动
             //    (规则七只覆盖了 E/F 两条动作边,移动轴一直漏着)。
             //    ⚠️ 只折零**轴**,不跳过 `PumpFrame`:tick 泵仍须每帧推进(世界不冻)。
-            Vector2 moveAxis = _inputFreeze != null
-                ? _inputFreeze.FilterMovement(MovementInputReader.ReadMoveAxis())
-                : MovementInputReader.ReadMoveAxis();
+            Vector2 moveAxis = ResolveMoveAxis(MovementInputReader.ReadMoveAxis(), _inputFreeze);
             MovementFeed.PumpFrame(_player, _tickDriver,
                                    moveAxis,
                                    delta,

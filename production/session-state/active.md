@@ -14382,3 +14382,26 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - `BootRoot.Update` 里那一行**接线**是否真被调用(headless 无帧泵);
 - `BuildInputDriver` 的**挡路分支**(构造驱动要真 `BuildController`,本轮不复制那套装配)
   —— 已在代码注释与 `ADR-013 §十-C` 的「未做」段双处登记。
+
+## 2026-10-31 · 两条 NOT-RUN 补齐(接线源判据 + 建造挡路分支)
+
+**① `BootRoot.Update` 的接线行** —— 抽 `BootRoot.ResolveMoveAxis(raw, freeze)` 作**唯一折零点**,
+`Update` 只剩 `ResolveMoveAxis(MovementInputReader.ReadMoveAxis(), _inputFreeze)`。
+判据两条(`modal_input_freeze_test`):
+- 行为:`ResolveMoveAxis` 挡路折零 / 不挡路透传 / `freeze == null` 透传;
+- **接线源码扫描**:`BootRoot.cs` 里设备读面**恰一次**、且必须作为 `ResolveMoveAxis` 的实参、
+  `PumpFrame` 实参是折过零的局部 `moveAxis`(不得直接喂设备读数)。
+⚠️ **天花板已写明**:这证明「源码里接线在且唯一」,**不**证明「Unity 每帧调 `Update`」
+(引擎契约,不是本仓代码)。
+
+**② `BuildInputDriver` 挡路分支** —— 判据落 `build_controller_test`(SetUp 里已有真
+`BuildController` 装配,不复制第二套「怎么造控制器」的知识)。四条:正控进模式 ·
+挡路丢弃 · **边沿被消费 ⇒ 关屏不补触发** · 挡路期放置零落流且解除后恢复。
+
+**判据**
+- 回归 `6316 / 6279 / 0 / 0 / 37` @ `2026-10-31 12:31:55Z`(全量 EditMode)· `93dfa322`+工作树。
+  基线 `6310` ⇒ **+6** = 接线 2 + 建造挡路 4。`error CS` = 0。
+- 证伪轮 **4/4 转红**,还原 SHA-256 逐字节一致:
+  G1 `Update` 改回内联 ⇒ 接线判据红 · G2 `ResolveMoveAxis` 不折零 ⇒ 行为判据红 ·
+  G3 挡路只 `return` 不消费边沿 ⇒ `consumesEdge` 红 · G4 整段删掉 ⇒ 红 3。
+  **G1/G2 各只红一条** ⇒ 行为面与接线面是两个独立靶,不互相借绿。
