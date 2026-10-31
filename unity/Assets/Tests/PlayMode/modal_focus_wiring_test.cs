@@ -54,6 +54,8 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         private Keyboard _kb;
         private bool _kbAdded;
+        private Gamepad _pad;
+        private bool _padAdded;
         private InputSettings.EditorInputBehaviorInPlayMode _savedBehavior;
         private InputSettings.BackgroundBehavior _savedBg;
         private bool _inputEnvSaved;
@@ -72,6 +74,11 @@ namespace DaYiJingCheng.Tests.PlayMode
                 InputSystem.RemoveDevice(_kb);
             _kb = null;
             _kbAdded = false;
+
+            if (_padAdded && _pad != null && _pad.added)
+                InputSystem.RemoveDevice(_pad);
+            _pad = null;
+            _padAdded = false;
 
             var player = GameObject.Find("Player");
             if (player != null) UnityEngine.Object.Destroy(player);
@@ -204,12 +211,51 @@ namespace DaYiJingCheng.Tests.PlayMode
         // ══════════════════════════════════════════════════════════════════
 
         /// <summary>
+        /// 同一条链的**手柄腿**:`Start` → 开合驱动 → 开屏 → 落焦。
+        /// <para>为什么单列:键盘腿依赖两条编辑器输入策略改写(不改则事件在普通帧被丢掉,
+        /// **且不报错**);手柄不受那两条影响 —— 两条腿分属不同的注入机制,一条绿不能替另一条。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_productionAssembly_gamepadStart_opensPause_andLandsFocus()
+        {
+            yield return BootWithPreplacedUi();
+
+            var modalInput = ReadModalInput();
+            Assert.IsNotNull(modalInput, "BootRoot._modalInput 应已装配(6.3 段)");
+            Assert.AreEqual(0, ReadCount(modalInput, "OpenCount"), "[前置] 开局不该开过");
+            Assert.IsFalse(_driver.BlocksPlay, "[前置] 开局不该有挡路模态");
+            Assert.That(Focused(), Is.Null, "[前置] 开局不该有元素获焦");
+
+            yield return HoldButton(GamepadButton.Start, 4);
+
+            int opens = ReadCount(modalInput, "OpenCount");
+            Assert.AreEqual(1, opens,
+                $"按一次 Start 应**恰好**开一次(实际 {opens})—— 0 次 = 手柄位没走到开合驱动 " +
+                $"(Gamepad.current={(Gamepad.current == null ? "null" : Gamepad.current.name)})");
+            Assert.IsTrue(_driver.BlocksPlay, "开屏后应处于挡路态");
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "开的必须是暂停壳");
+
+            var pause = _driver.Screen as PauseScreen;
+            Assert.IsNotNull(pause, "Screen 应为 PauseScreen");
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(0)),
+                "手柄开屏后引擎焦点必须落在第一行");
+
+            yield return HoldButton(GamepadButton.Start, 4);
+            Assert.AreEqual(1, ReadCount(modalInput, "CloseCount"), "第二次按 Start 应关一次");
+            Assert.IsFalse(_driver.BlocksPlay, "关屏后不应再挡路");
+            Assert.That(Focused(), Is.Null, "关屏后不得留悬空焦点");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
         /// 预摆 UI 壳 —— **再**起 BootRoot。`Boot.unity` 的生产形状就是「壳在场景里,根来认领」,
         /// 而 `BootRoot.FindOrCreateSkeuoUi` 走 `FindFirstObjectByType` 的已有分支。
         /// </summary>
         private IEnumerator BootWithPreplacedUi()
         {
             SetupKeyboard();
+            SetupGamepad();
             SetupInputPolicy();
 
             _uiGo = new GameObject("SkeuoUI");
@@ -263,6 +309,34 @@ namespace DaYiJingCheng.Tests.PlayMode
                 _kb = Keyboard.current;
                 if (!_kb.enabled) InputSystem.EnableDevice(_kb);
             }
+        }
+
+        private void SetupGamepad()
+        {
+            if (Gamepad.current == null)
+            {
+                _pad = InputSystem.AddDevice<Gamepad>();
+                _padAdded = true;
+            }
+            else
+            {
+                _pad = Gamepad.current;
+                if (!_pad.enabled) InputSystem.EnableDevice(_pad);
+            }
+        }
+
+        /// <summary>
+        /// 按住手柄键 N 帧再松开。
+        /// <para>⚠️ `GamepadButton` 是**位序号**枚举 ⇒ 置位要 `1 &lt;&lt; (int)button`,
+        /// 面板上不是按钮编号本身(2026-10-31 PS-02 轮实测)。</para>
+        /// </summary>
+        private IEnumerator HoldButton(GamepadButton button, int frames)
+        {
+            InputSystem.QueueStateEvent(_pad, new GamepadState { buttons = (ushort)(1 << (int)button) });
+            for (int i = 0; i < frames; i++) yield return null;
+
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            for (int i = 0; i < 3; i++) yield return null;
         }
 
         private void SetupInputPolicy()

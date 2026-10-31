@@ -14762,3 +14762,34 @@ batch 进程**从不获得 Game View 焦点**,而编辑器默认
 
 - **手柄 Start 开屏**未驱动(Escape 一条腿)。
 - 世界不冻结 / 正式入口两支(暂停壳 Draft、主菜单未接线)/ 脉案屏环对比度 —— 均未动。
+
+## 2026-11-01 · 补完:手柄腿(Start → 开屏 → 落焦)
+
+与键盘腿同一条链、**不同注入机制**:`GamepadButton.Start` 是位序号枚举 ⇒
+`buttons = 1 << (int)Start`;手柄**不受**那两条编辑器输入策略影响(键盘需要它们,
+否则事件在普通帧被丢掉且不报错)⇒ 两条腿**分属不同机制**,一条绿不能替另一条。
+
+### 判据
+
+与键盘腿逐条同形:前置(`OpenCount 0` / `BlocksPlay false` / 焦点 null)→ 按 Start ⇒
+`OpenCount` **恰好 1** · `BlocksPlay true` · `CurrentModal == Pause` · 焦点 = `RowAt(0)`;
+再按 ⇒ `CloseCount 1` · `BlocksPlay false` · 焦点 null。
+
+### 变异反证
+
+| 变异 | 结果 |
+|---|---|
+| MUT-G1 `PauseTogglePressed` 摘掉手柄分支(`return false`) | **只有手柄腿红**(`OpenCount` 实际 0,`Gamepad.current=Gamepad`),键盘腿与另两条绿 |
+
+还原 = SHA-256 逐字节(`PlayerInputReader.cs` `ab010c33…`),`git diff` 干净。
+
+### 判据(全量)
+
+- PlayMode **261 / 257 / 0 / 2 / 2** @ 2026-11-01 02:01:30 CST · 本批 · `0785a18b`+工作树
+  (XML `start-time` 18:01:30Z ⇒ 02:01:30 CST)
+- vs 上一轮 **260 / 256 / 0 / 2 / 2**(01:57:18):`total +1` / `passed +1` / `failed 0 → 0`
+- 等式:`261 − 260 = 1`
+
+### 未做(不借绿)
+
+- 世界不冻结 / 正式入口两支(暂停壳 Draft、主菜单未接线)/ 脉案屏环对比度 —— 均未动。
