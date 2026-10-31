@@ -13863,3 +13863,33 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - **回归**(三元组 `2026-10-31T08:31–08:32 CST` · S21-6 全量 · `7ad5799b`+未提交):
   EditMode `6206/6169/0/0/37` · PlayMode `238/234/0/2/2`(均零回归)。
 - 债册:`closed 118 → 119` · `open 19 → 18` · 未闭 P0 面仍 **0** · `--check` exit 0。
+
+---
+
+## 2026-10-31 · `S21-7` 收口(persistence ×2 —— 同一刀解除)
+
+**关键判断**:两条债唯一交汇 = `SaveService.Load`。把它的**迁移段抽成 `internal ApplyMigrationsIfNeeded`**,
+`-08`(方法过长)与 `-10`(接缝无夹具)同时解除。
+
+### `TD-persist-08`(closed)—— 先裁口径再拆
+- **口径 = 代码行**(非空、非 `//`),不按物理行(超出的几乎全是注释)。
+- 重测:**`Load` 99 物理 / 46 代码**(立案 67/39,涨了)⇒ 拆;
+  **`Restore` 56 物理 / 38 代码** ⇒ 按代码行**本来就不超** ⇒ 不拆,夹具钉住。
+- 拆分:`Load` → `RequireLoadable` / `RequireSupportedVersion` / `ApplyMigrationsIfNeeded` / `ReplayInto`,
+  切点逐字对应源码原有 `── xx ──` 分节,注释一条未删。
+- ≤40 界夹具 `method_line_budget_test.cs`(5 测,度量器纯函数 + 两条自控)。
+
+### `TD-persist-10`(closed)—— 不等区间变非空
+- `[2,2)` 要等 `CurrentSaveVersion` 升 3,不归本轮;卡面明文禁止「以区间为空代结案」。
+- 接缝抽成方法后**不再需要非空区间**;`save_migration_seam_test.cs`(4 测):
+  链恰调一次 / 输出=2(**丢弃返回值即红**)/ 校验和补回 / WorldSeed 未变 /
+  同版本零调用且原样返回 / 迁移产出真能读档 + **对照 v1 原件被门拒收** / 空链 fail-closed。
+- ⚠️ 没粉饰:`ApplyMigrationsIfNeeded` 是门之后那一步;完整 `Load` 路径的端到端迁移**仍无输入**。
+
+### 证伪与回归
+- 5 条:M1 `Load` 撑长 **exact** · M2 帮手撑长 **exact** · M3 丢弃迁移结果 **超集 2 红** ·
+  M4 去掉同版本直通 **exact** · M5 不补校验和 **超集 2 红**。还原 SHA-256 5/5,残留 0。
+- 三元组 `2026-10-31T08:46–08:50 CST` · S21-7 全量 · `767165cb`+未提交:
+  EditMode `6215/6178/0/0/37`(+9/+9 恰等)· PlayMode `238/234/0/2/2`(零回归)。
+- 🔍 普查新揭:`ParseBody` 68 代码行 / `WriteExitSave` 61 代码行 ⇒ 新立 `TD-persist-13`(不入本卡)。
+- 债册:`条目 141 → 142` · `closed 119 → 121` · `open 18 → 17` · 未闭 P0 面仍 **0** · `--check` exit 0。

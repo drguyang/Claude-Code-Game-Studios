@@ -684,7 +684,17 @@ namespace DaYiJingCheng.Sim.Codec
         /// </exception>
         public void Load(SaveSlot slot)
         {
-            // ── Gating:安全上下文门(与写同钩,规则十四) ──
+            RequireLoadable(slot);                          // ── Gating ──
+            byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
+            SaveHeader header = SaveHeaderCodec.Read(data);
+            RequireSupportedVersion(header);                // ── 前向不兼容 / v1 拒收 ──
+            data = ApplyMigrationsIfNeeded(data, header);   // ── 迁移链 ──
+            ReplayInto(data, slot);                         // ── Replaying ──
+        }
+
+        /// <summary>载入前置门:叙事上下文 + 槽位未锁(与写同钩,规则十四 / AC-7a-19 (d))。</summary>
+        private void RequireLoadable(SaveSlot slot)
+        {
             RequireNarrativeContext();
             if (!_narrativeContext.InNarrativeContext())
                 throw new InvalidOperationException(
@@ -694,68 +704,75 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidOperationException(
                     $"槽位 slot={slot.SlotSeq} 已锁(AC-7a-19 (d) 读档即锁)," +
                     "锁持续到下一次叙事事件 checkpoint");
+        }
 
-            // ── Verifying:校验和 + bak 回退(既有实现) ──
-            byte[] data = LoadBytes(slot);
-
-            // ── 头部解析 ──
-            SaveHeader header = SaveHeaderCodec.Read(data);
-
-            // ── 迁移链三分支 ──
+        /// <summary>版本门:前向不兼容 + v1 及更早拒收(**必须早于**迁移链分支)。</summary>
+        /// <remarks>
+        /// v1 及更早的布局**没有载荷段**:blob 字节从未写出,信息论上补不出来
+        /// ⇒ 不存在、也不可能写出 v1→v2 的迁移脚本(不是「还没写」)。
+        /// 若让 v1 下沉进迁移链,空链会抛「版本 1 没有对应迁移脚本」—— 读起来像漏写脚本,
+        /// 而真实原因是**信息从未存在**。两句话的处置一样(都拒绝),但归因相反。
+        /// <para>⚠️ **与 `SaveMigrationChain` 的第二条不变量同源**:它要求迁移步「末尾等长」
+        /// (`TailBody` 取末 N 字节比对)⇒ 连「往末尾补载荷字节」都被结构性地禁掉。</para>
+        /// </remarks>
+        private static void RequireSupportedVersion(in SaveHeader header)
+        {
             if (header.SaveVersion > SaveHeader.CurrentSaveVersion)
                 throw new InvalidDataException(
                     $"存档版本 {header.SaveVersion} > 当前 {SaveHeader.CurrentSaveVersion}" +
                     "—— 前向不兼容,拒绝载入");
-
-            // ── v1 拒收门(ADR-034 §⑥)—— **必须早于**迁移链分支 ──
-            //
-            // v1 及更早的布局**没有载荷段**:blob 字节从未写出,信息论上补不出来
-            // ⇒ 不存在、也不可能写出 v1→v2 的迁移脚本(不是「还没写」)。
-            // 若让 v1 下沉进迁移链,空链会抛「版本 1 没有对应迁移脚本」—— 读起来像漏写脚本,
-            // 而真实原因是**信息从未存在**。两句话的处置一样(都拒绝),但归因相反。
-            //
-            // ⚠️ **与 `SaveMigrationChain` 的第二条不变量同源**:它要求迁移步「末尾等长」
-            // (`TailBody` 取末 N 字节比对)⇒ 连「往末尾补载荷字节」都被结构性地禁掉。
             if (header.SaveVersion < SaveHeader.PayloadSegmentMinVersion)
                 throw new InvalidDataException(
                     $"存档版本 {header.SaveVersion} 早于 v{SaveHeader.PayloadSegmentMinVersion}" +
                     "(首个带载荷段的布局)—— v1 及更早**没有载荷字节**,载荷从未落盘," +
                     "信息不存在 ⇒ 无法迁移(ADR-034 §⑥)。这不是缺迁移脚本");
+        }
 
-            // SaveVersion == CurrentSaveVersion ⇒ 直通;
-            // SaveVersion < CurrentSaveVersion ⇒ 逐版本升(WorldSeed 逐位保留)。
-            //
-            // 🔁 **2026-10-25 AC-7a-14(`TD-persist-05` 动作 ③)**:本分支**原为刻意抛
-            // `NotSupportedException` 的 fail-closed 占位**(「不可利用 > 不可用」)。现换成
-            // 真正的迁移链调用 —— 两条不变量(`WorldSeed` / 事件段逐位不变)由
-            // `SaveMigrationChain` 在**每级**断言,不再依赖各脚本自觉。
-            //
-            // ⚠️ **链为空时的行为没变**:今日零真实历史版本(`CurrentSaveVersion = 1`,
-            // 全库零 v0 写入者)⇒ `migrations` 缺省为空集合 ⇒ 任何 `<` 的档都会走到
-            // 「断链」并抛 `InvalidOperationException`。这不是回归,是**同一处置换了个
-            // 更准确的类型**:原来说「升链尚未实现」,现在说「版本 k 没有对应脚本」。
-            //
-            // 🔁 **2026-10-28 ADR-034 §⑥ 就地加注(上段原文不删)**:`CurrentSaveVersion`
-            // 已由 1 升到 2,故上段的字面值**已陈旧**;而更实质的变化是:上段描述的
-            // 「任何 `<` 的档都走到断链」**今天不再成立** —— 所有 `< 2` 的档在更上方被
-            // v1 拒收门拦下(`PayloadSegmentMinVersion = 2`),根本到不了本分支。
-            // ⇒ **本分支今日无任何可达输入**(`[2, 2)` 是空区间)。这不是缺陷,是
-            // 「v2 是首个带载荷段的布局」的必然;等 `CurrentSaveVersion` 再升 3 时自动复活。
-            // ⚠️ 由此**失去一条接线夹具**:`save_slot_contract_test` 的
-            // 「注册脚本 ⇒ 链真的被调用」此前用「当前版本 − 1」造旧档,现被拒收门截住 ⇒
-            // 该条已就地改写为「v1 档**不得**下沉到链」的反向钉子(详见该文件 🔁 注)。
-            if (header.SaveVersion < SaveHeader.CurrentSaveVersion)
-            {
-                // 链工作在「不含校验和」形态(magic + 其余),迁完再补回校验和。
-                byte[] withoutChecksum = StripChecksum(data);
-                byte[] migrated = SaveMigrationChain.Migrate(
-                    withoutChecksum, SaveHeader.CurrentSaveVersion, _migrations);
-                data = AddChecksum(migrated);
-            }
+        /// <summary>
+        /// 迁移链接缝:版本低于当前 ⇒ 剥校验和 → 逐级迁 → 补校验和;持平 ⇒ **原样返回同一个数组**。
+        /// </summary>
+        /// <remarks>
+        /// <para>🔁 **2026-10-31 `TD-persist-08` 拆出(原文不删,注释随代码一并搬来)**:此前本段内联在
+        /// <see cref="Load"/> 里。拆出的直接动因是 `TD-persist-10` —— 那段接线
+        /// (「注册了脚本 ⇒ 链真的被调用、返回值真的被用」)在 `[2, 2)` 空区间下**没有任何可达输入**,
+        /// 只能靠读代码守。抽成方法后它**有了可直测的入口**。</para>
+        /// <para>SaveVersion == CurrentSaveVersion ⇒ 直通;
+        /// SaveVersion &lt; CurrentSaveVersion ⇒ 逐版本升(WorldSeed 逐位保留)。</para>
+        /// <para>🔁 **2026-10-25 AC-7a-14(`TD-persist-05` 动作 ③)**:本分支**原为刻意抛
+        /// `NotSupportedException` 的 fail-closed 占位**(「不可利用 &gt; 不可用」)。现换成
+        /// 真正的迁移链调用 —— 两条不变量(`WorldSeed` / 事件段逐位不变)由
+        /// `SaveMigrationChain` 在**每级**断言,不再依赖各脚本自觉。</para>
+        /// <para>⚠️ **链为空时的行为**:今日零真实历史版本(`CurrentSaveVersion = 2`,而 `&lt; 2` 的档
+        /// 已在 <see cref="RequireSupportedVersion"/> 被拒)⇒ 任何走到这里的档都会有对应脚本;
+        /// 缺脚本时 `SaveMigrationChain` 抛「版本 k 没有对应脚本」(fail-closed)。</para>
+        /// <para>🔁 **2026-10-28 ADR-034 §⑥**:`CurrentSaveVersion` 已由 1 升到 2,
+        /// 所有 `&lt; 2` 的档在更上方被 v1 拒收门拦下(`PayloadSegmentMinVersion = 2`),
+        /// ⇒ **本分支今日在 `Load` 路径上无任何可达输入**(`[2, 2)` 是空区间)。
+        /// 这不是缺陷,是「v2 是首个带载荷段的布局」的必然;等 `CurrentSaveVersion` 再升 3 时自动复活。
+        /// ⚠️ 由此**失去一条接线夹具**:`save_slot_contract_test` 的「注册脚本 ⇒ 链真的被调用」
+        /// 此前用「当前版本 − 1」造旧档,现被拒收门截住 ⇒ 该条已就地改写为「v1 档**不得**下沉到链」
+        /// 的反向钉子。**该接线缺口 = `TD-persist-10`,2026-10-31 由本条拆出方法后补齐直测夹具。**</para>
+        /// </remarks>
+        internal byte[] ApplyMigrationsIfNeeded(byte[] data, in SaveHeader header)
+        {
+            if (header.SaveVersion >= SaveHeader.CurrentSaveVersion) return data;
 
-            // ── Replaying:解出事件列表 + 折叠段,经注入委托交出 ──
-            // 🔁 TD-persist-03 修复轮:契约次序 = 先事件列表、后折叠段字节
-            //    (装配根的恢复闭包依赖此次序 —— Restore(events, rows) 要两者齐手)。
+            // 链工作在「不含校验和」形态(magic + 其余),迁完再补回校验和。
+            byte[] withoutChecksum = StripChecksum(data);
+            byte[] migrated = SaveMigrationChain.Migrate(
+                withoutChecksum, SaveHeader.CurrentSaveVersion, _migrations);
+            return AddChecksum(migrated);
+        }
+
+        /// <summary>解出事件 / 折叠段 / 载荷,先装池再交出,最后置锁。</summary>
+        /// <remarks>
+        /// <para>🔁 TD-persist-03 修复轮:契约次序 = 先事件列表、后折叠段字节
+        /// (装配根的恢复闭包依赖此次序 —— Restore(events, rows) 要两者齐手)。</para>
+        /// <para>⚠️ 装池顺序不可换:`replaySink` / `foldedRowSink` 的装配根实现会立刻开始解码载荷,
+        /// 而解码要读池。先解事件后装池 ⇒ 每一个带载荷的事件都会解出「未驻留」。</para>
+        /// </remarks>
+        private void ReplayInto(byte[] data, SaveSlot slot)
+        {
             if (_replaySink == null)
                 throw new InvalidOperationException(
                     "未注入 replaySink —— 拒绝静默跳过 Replaying" +
@@ -765,15 +782,10 @@ namespace DaYiJingCheng.Sim.Codec
                     "未注入 foldedRowSink —— 拒绝读档(折叠行是被折叠病人病史的唯一残留," +
                     "静默丢弃 = 不可逆数据丢失;TD-persist-03 动作 ⑤)");
 
-            IReadOnlyList<SimEvent> events;
-            byte[] foldedSegment;
-            IReadOnlyList<PayloadEntry> payloads;
-            ParseBody(data, out events, out foldedSegment, out payloads);
+            ParseBody(data, out IReadOnlyList<SimEvent> events,
+                      out byte[] foldedSegment, out IReadOnlyList<PayloadEntry> payloads);
 
-            // ── 装池(ADR-034 §④:先装池,**再**解事件)──
-            // 顺序不可换:`replaySink` / `foldedRowSink` 的装配根实现会立刻开始解码载荷,
-            // 而解码要读池。先解事件后装池 ⇒ 每一个带载荷的事件都会解出「未驻留」。
-            InstallPayloads(payloads);
+            InstallPayloads(payloads);   // ADR-034 §④:先装池,**再**解事件
 
             _replaySink(events);
             _foldedRowSink(foldedSegment);

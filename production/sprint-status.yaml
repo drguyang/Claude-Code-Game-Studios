@@ -97,16 +97,16 @@ stories:
     note: "**✅ 2026-10-31 收口(真构建复测 → 三组一组都没露头 + 机制订正一处)**。跑了**真构建**(`CostTableProbeBuildCli.Build`,`Build Finished, Result: Success` · 26 s · 输出落临时目录不污染仓库);构建后 **`git status --short` 零输出**。逐组:① URP `m_RuntimeSettings` 未复现内容差异(mtime 被重写但内容与 HEAD 逐字节一致)· ② `PerformanceTestRun*.json` 日志有创建(1147/1167 行)但构建结束**磁盘上不存在** · ③ `link.xml` **重新生成且被窄 glob 正确忽略**(`git status --ignored` → `!!`)。🔴 **机制订正**:债描述写 ② 是「每次构建都重写」,读包源码 `TestRunBuilder.cs:41-44` 实为 `OnPostprocessBuild → Cleanup()` **自删** ⇒ **残留条件是「构建没走到 postprocess」**(失败/中断);2026-10-21 观察到它是因为那一轮跑的是**刻意报 Failure 的探针轮**。⚠️ 失败路径**本轮未实测**,该句是源码依据不是执行证据。两处与债描述不符如实登记:债写「七条 `.gitignore` 规则」实测 **5 条**(5 条已覆盖全部产物含 `.meta`,覆盖面无缺口);债写「16 条 rid」HEAD 现值 **50 条**(机制描述不受影响,数字已过期不得再引用)。四个反例实测**均未被误伤**。**本条「闭合」= 常驻登记移交 `coding-standards.md` §工作树卫生「已实测的构建派生组」表**,用户 2026-10-21「① 只登记不动」的裁定**不因关闭而改变**。本卡**零产品码改动** ⇒ 无编译单元的证伪轮(证据 = 真构建 + 四个反例);回归三元组 `2026-10-31T08:31–08:32 CST` · S21-6 全量 · `7ad5799b`+未提交:EditMode `6206/6169/0/0/37`(与 S21-5 同值,零回归)· PlayMode `238/234/0/2/2`(零回归)。债册 `closed 118 → 119` · `open 19 → 18` · 未闭 P0 面仍 0 · `--check` exit 0。"
 
   - id: "S21-7"
-    name: "persistence ×2:TD-persist-08(51 行方法)· TD-persist-10(迁移链接缝零夹具)"
+    name: "persistence ×2:TD-persist-08(超长方法)· TD-persist-10(迁移链接缝零夹具)"
     file: "docs/tech-debt-register.md#td-persist-10"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
-    note: "`-08`:198–248 = 51 行,拆到 ≤40 **且补 ≤40 界夹具**(拆了不钉 = Landed ✅ / Proven ✗)。`-10`:[PayloadSegmentMinVersion, CurrentSaveVersion) = [2,2) 空区间导致接缝零集成夹具 ⇒ 须显式说明「空区间下夹具走哪条路径」,不得以「区间为空」代结案。"
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 两条全闭,且**同一刀**解除**。`TD-persist-08`:**先裁口径** —— 按**代码行**(非空非 `//`)计,不按物理行(理由 = 债描述自己的核心事实:超出的几乎全是注释)。**重测与立案时已不同**:`Load` 67→**99 物理 / 46 代码**(v2 载荷段+版本门后涨的,按代码行也超了)⇒ 必须拆;`Restore` 43→**56 物理 / 38 代码**(按代码行**仍不超**)⇒ **不拆**,改夹具钉住。「43 行」是物理行口径的假警报。拆分:`Load` → `RequireLoadable` / `RequireSupportedVersion` / `ApplyMigrationsIfNeeded`(`internal`) / `ReplayInto`,切点**逐字对应源码原有 `── xx ──` 分节**,原有注释一条未删。≤40 界夹具 `method_line_budget_test.cs`(5 测,度量器是纯函数 + 两条自控:44 行合成方法须量出 44、带注释短方法须量出 5)。`TD-persist-10`:**不等区间变非空**(那正是卡面禁止的「以区间为空代结案」),改为把接缝抽成可直测方法 —— 于是它**不再需要非空区间**;`save_migration_seam_test.cs`(4 测)钉:链恰调一次 / 输出版本=2(**丢弃返回值即红**)/ 校验和补回 / WorldSeed 未变 / 同版本零调用且原样返回 / 迁移产出**真能读档** + **对照:v1 原件被版本门拒收** / 空链 fail-closed。证伪 5 条:M1(Load 撑长)**exact** · M2(帮手撑长)**exact** · M3(丢弃迁移结果)**超集 2 红** · M4(去掉同版本直通)**exact** · M5(不补校验和)**超集 2 红**。⚠️ **未粉饰**:`[2,2)` 仍空,`ApplyMigrationsIfNeeded` 是**门之后**那一步(有意绕过门),另有一条夹具证门仍有效;完整 `Load` 路径的端到端迁移**仍无输入**,已登记为残留。🔍 **普查新揭**:同文件 `ParseBody` 68 代码行 / `WriteExitSave` 61 代码行(比债点名的还长)⇒ 新立 `TD-persist-13`(`P0 面 N`,**不入本卡** —— 拆分有真实语义风险,不该并进 S 卡)。回归三元组 `2026-10-31T08:46–08:50 CST` · S21-7 全量 · `767165cb`+未提交:EditMode `6215/6178/0/0/37`(+9/+9 恰等)· PlayMode `238/234/0/2/2`(零回归)。还原 SHA-256 5/5,`FALSIFY-` 残留 0。债册 `条目 141 → 142` · `closed 119 → 121` · `open 18 → 17` · 未闭 P0 面仍 0 · `--check` exit 0。"
 
   - id: "S21-8"
     name: "挂标订正 + level-tool 两件复核(闭 S20-17 #1 / S20-20 #3 / #5)"

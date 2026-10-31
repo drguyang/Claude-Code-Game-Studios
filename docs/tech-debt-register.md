@@ -391,9 +391,10 @@
 | `TD-persist-05` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-08` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-08` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-10` | `persistence-service` | open | **N** | R1 |
+| `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
+| `TD-persist-13` | `persistence-service` | open | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | open | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -852,7 +853,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 141 | 状态 {'closed': 119, 'open': 18, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
+条目 142 | 状态 {'closed': 121, 'open': 17, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6031,7 +6032,44 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-persist-08** | `persistence-service` | **open** | **N** | R4 |
+| **TD-persist-08** | `persistence-service` | **closed** | **N** | R4 |
+
+#### TD-persist-08 关闭记录 —— 裁口径(代码行)+ 拆 `Load` + 补 ≤40 界夹具
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-7`)。上方债描述**原文不删**。
+
+- **口径裁定(本条的前置,修法方向 ①)**:按**代码行**(非空、非 `//` 起始)计,不按物理行。
+  理由 = 债描述自身已写出的核心事实:两条方法超出的部分**几乎全是注释**。
+  按物理行判会把「写得清楚」罚一遍,逼出没有信息增益的拆分。
+  ⚠️ **块注释 `/* */` 的行计成代码**(不做块注释剥离)—— 方向**偏严**,可以接受。
+- **重测(2026-10-31,与立案时的数已不同)**:
+
+  | 方法 | 立案时(物理 / 代码) | 本轮实测(物理 / 代码) | 处置 |
+  |---|---|---|---|
+  | `SaveService.Load` | 67 / **39** | **99 / 46** | ⚠️ **按代码行也超了**(v2 载荷段 + 版本门加进来后涨的)⇒ **必须拆** |
+  | `EventStream.Restore` | 43 / **36** | 56 / **38** | 按代码行**仍不超** ⇒ **不拆**,改为**夹具钉住** ≤40 |
+
+  ⇒ 本条真正要拆的只有 `Load`;**`Restore` 的「43 行」是物理行口径的假警报**,不拆。
+- **拆分**:`Load` → `RequireLoadable`(Gating)/ `RequireSupportedVersion`(版本门)/
+  `ApplyMigrationsIfNeeded`(迁移接缝,`internal` 供直测)/ `ReplayInto`(解析 + 交池 + 置锁)。
+  切点**逐字对应源码里原有的 `── xx ──` 分节注释**,不是新发明的边界;
+  原有注释**随代码搬走,一条未删**(物理行数因此不降反升 —— 这正是本裁定用代码行口径的原因)。
+- **≤40 界夹具**:`Tests/EditMode/PersistenceService/method_line_budget_test.cs`(5 测)——
+  度量器是**纯函数**(可在内存源码上自测),两条**自控**:一段 44 行的合成方法必须量出 44(证它会报超)、
+  一段带注释与空行的短方法必须量出 5(证它不灌水);然后钉真树 6 个方法。
+- **证伪(一属性一条,还原 SHA-256 逐字节)**:
+
+  | # | 属性 | 变异 | 红 |
+  |---|---|---|---|
+  | **M1** | `Load` 的 ≤40 钉有判别力 | 往 `Load` 里插 45 行 dummy | `test_td08_saveServiceLoad_withinBudget` **exact 1** |
+  | **M2** | 帮手各自的 ≤40 钉有判别力 | 往 `ApplyMigrationsIfNeeded` 里插 45 行 dummy | `test_td08_extractedHelpers_withinBudget` **exact 1** |
+
+- **⚠️ 本件的范围(别读成「规范已落地」)**:同一个 `SaveService.cs` 里今日仍有超 40 的方法 ——
+  实测 `ParseBody` **68 代码行** / `WriteExitSave` **61 代码行**。它们**不在 `-08` 的登记面内**
+  (`-08` 只点名 `Load` 与 `Restore`)⇒ 已另立 **`TD-persist-13`**。
+  ⇒ `TD-persist-08` 的闭合**不**意味着「SaveService 已合规」。
+- **同族其余两条**仍未闭:`TD-medcons-17`(`BuildDueRows` 51 行)· `TD-clinic-14`(已于 2026-10-29 结案)。
+  本条拆出的夹具**不是**可复用的全仓闸 —— 它是本债面内的专有夹具,与音频侧先例同型。
 
 > ⚠️ **本条与 `TD-medcons-17`(`ConsequenceEmitter.BuildDueRows` 51 行)、`TD-clinic-14`
 > (`ParseClause` ~82 行)是同一族的第三、四例** —— 三条都卡在同一个前置:**≤40 行没有门**。
@@ -6319,11 +6357,78 @@ python3 tools/debtcount/debtcount.py --print
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-persist-10** | `persistence-service` | **open** | **N** | R1 |
+| **TD-persist-10** | `persistence-service` | **closed** | **N** | R1 |
+
+#### TD-persist-10 关闭记录 —— 把接缝抽成可直测的方法,而不是等区间变非空
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-7`)。上方债描述**原文不删**。
+
+- **关键判断**:本条的两条路只有一条是本轮能走的 ——
+  ① 等 `CurrentSaveVersion` 升到 3(`[2,3)` 非空)**不归本轮**,而且把「等下一个人」当结案理由
+     正是卡面明禁的「以区间为空代结案」;
+  ② **把接缝抽成方法** ⇒ 它**不再需要一个非空区间**才能测。
+  取 ②。动因与 `TD-persist-08` 的拆分**同一刀**:`Load` 的迁移段抽成
+  `internal byte[] SaveService.ApplyMigrationsIfNeeded(byte[] data, in SaveHeader header)`。
+  ⇒ **两条债由同一处改动同时解除**,不是两件独立工作。
+- **「区间为空」的现状没有被粉饰**:`ApplyMigrationsIfNeeded` 是**版本门之后**的那一步,
+  夹具**直接**喂 `version = 1` 的档,绕过的正是那道门 —— 这是**有意为之**,
+  且**另有一条夹具证明门仍然有效**(见下表 `v1Raw_isRejectedByLoad`)。
+  完整 `Load` 路径上的端到端迁移(版本门放行 → 链 → 读档)在 `[2,2)` 下**仍无输入**,
+  该时点见债描述「何时自动消解」——**本条不主张它已经发生**。
+- **夹具**:`Tests/EditMode/PersistenceService/save_migration_seam_test.cs`(4 测):
+
+  | 测 | 钉的性质 |
+  |---|---|
+  | `seam_invokesChainAndUsesItsOutput` | 链被调用**恰好一次** · 输出版本 = 2(**丢弃返回值 ⇒ 红**)· 校验和已补回 · `WorldSeed` 未变 |
+  | `seam_sameVersion_passesThroughWithoutCallingChain` | 同版本 ⇒ 链**零调用**且**原样返回同一数组**(证明分支是条件式的) |
+  | `migratedOutput_loadsAndReplays_whileRawV1IsRejected` | 迁移产出**真能读档**(两个 sink 各被调一次);**对照**:未迁移的 v1 原件被版本门拒收且报文点名「载荷」 |
+  | `seam_missingScript_failsClosed` | 空链撞旧档 ⇒ 抛(断链),**不得**返回原字节当成功 |
+
+- **证伪(一属性一条,还原 SHA-256 逐字节)**:
+
+  | # | 属性 | 变异 | 红 |
+  |---|---|---|---|
+  | **M3** | 「返回值真的被用」 | `return AddChecksum(migrated);` → `return data;` | **2 红**(`seam_invokesChainAndUsesItsOutput` + `migratedOutput_loadsAndReplays…`)—— 超集,目标在红集内 |
+  | **M4** | 「同版本不调链」 | `if (header.SaveVersion >= Current) return data;` → `if (false) …` | `seam_sameVersion_passesThroughWithoutCallingChain` **exact 1** |
+  | **M5** | 「迁完补校验和」 | `return AddChecksum(migrated);` → `return migrated;` | **2 红**(同上两条)—— 超集 |
+
+- **残留(不属本条,具名)**:
+  ① `CurrentSaveVersion` 升到 3 时,仍须补一条**走完整 `Load` 路径**的端到端迁移夹具
+     (本条测的是接缝,不是「门 → 链 → 读档」整条链)。
+  ② 「门放行后链被调用」这条现在测的是**方法级**;`Load` 里 `ApplyMigrationsIfNeeded` 那一行
+     若被删,由 `method_line_budget_test` **抓不到**(它只量行长)。
+     ⇒ 该接线由**全量回归**兜(删掉它会让走迁移的路径行为变化),**但没有专打变异**——
+     本轮**未做**,如实登记。
 
 > ⚠️ **本条与 `TD-persist-09` 相反方向**:`-09` 是**功能**缺口(已闭),本条是**测试覆盖**缺口
 > (新立)。两者的共同教训:**「换成一个更好的夹具」不等于「没有损失」** —— 反向钉更强,
 > 但它守的是**另一个性质**。
+
+---
+
+## 2026-10-31 · S21-7 拆分时新揭:`SaveService` 另有两处方法超 40 代码行(1 条)
+
+**出处**:`TD-persist-08` 收口轮。为立「≤40 界夹具」而对 `SaveService.cs` 做**全方法普查**
+(债描述只点名了 `Load`),发现**同文件内另有两个更长的**。
+
+### TD-persist-13 — `SaveService.ParseBody` / `WriteExitSave` 超 40 代码行
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ParseBody`(**68 代码行** / 86 物理行)· `WriteExitSave`(**61 代码行** / 163 物理行)。同一口径下 `Load` 拆分前是 46 —— 这两条**比债描述点名的那个还长**。两者均超 `code-review` Phase 4 的「方法 ≤ 40 行」 |
+| **实测(可跑)** | 复算脚本见 `TD-persist-08` 关闭记录;2026-10-31 实测值如上。`python3 -c` 逐个方法量代码行的方法与 `method_line_budget_test.cs` 的度量器同款 |
+| **为何 P0 面 = N**(R4) | 归属 `persistence-service` ∈ 31 个 P0 epic,但**不自陈阻塞 P0 出口**。理由与 `-08` 同族:仓内**没有泛用 40 行门**,口径本轮已裁为**代码行**,但这两条的**可观测后果**仅为读者负担 |
+| **性质区别(与 `-08` 不同,这是本轮降级处理的理由)** | `Load` 是**线性流程 + 有自然分节注释**,拆分零语义风险;`ParseBody` 是**按字节布局逐段推进**的密集代码(事件段 / 折叠段 / 载荷段 + 长度校验),`WriteExitSave` 是**原子写 + 重试 + 失败上报**的时序代码 —— 两者的拆分**有真实的语义风险**,不该并入一张 `S` 卡 |
+| **修法方向** | ① 按 `ParseBody` 内的 `── 段 ──` 注释切成「事件段 / 折叠段 / 载荷段」三个私有方法(游标用一个小的 `ref` 结构体传递);② `WriteExitSave` 切出「重试循环」与「失败上报」两段;③ **两处都必须有「回退即转红」的证伪轮**,不得只靠全量回归 |
+| **触发条件** | ① 任一处下一次实质改动时;② 或「≤40 行」规范闸真正落地时(**与 `TD-medcons-17` 同批**) |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-persist-13** | `persistence-service` | **open** | **N** | R4 |
+
+> ⚠️ **本条是 `TD-persist-08` 的「普查残项」,不是它的残留** —— `-08` 的登记面只含
+> `Load` / `Restore`,两条都已处置;本条是新发现的第三、四例。记在此处是因为**发现它的那一次
+> 就在这个上下文里**,不代表 `-08` 没做完。
 
 ---
 
