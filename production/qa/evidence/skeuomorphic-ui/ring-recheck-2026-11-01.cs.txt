@@ -1,0 +1,258 @@
+// 临时探针(2026-11-01 · 焦点环实拍复核)—— **用完即删,不入库**。
+//
+// 目的:在**真游戏**(Boot 场景)里打开暂停壳、把焦点落到某一行,截图复核焦点环。
+// 不引用 Gameplay.UI 程序集 —— 用反射取驱动,避免改 asmdef 触发装配门。
+//
+// ⚠️ 必须 GUI 模式(batch 出不了图,见 ScreenshotTool 头注)。
+
+#if UNITY_EDITOR
+using System;
+using System.IO;
+using System.Reflection;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace DaYiJingCheng.EditorTools.Capture
+{
+    internal static class TmpRingShot
+    {
+        private const string Armed = "__ringShotArmed";
+        private const string PhaseKey = "__ringShotPhase";
+        private const string FrameKey = "__ringShotFrames";
+        private const string ShotDir = "Logs/shots";
+        private const string BootScene = "Assets/Scenes/Boot.unity";
+
+        private const string DriverType = "DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoRuntimeDriver";
+        private const string ModalEnum = "DaYiJingCheng.Gameplay.UI.Skeuomorphic.ModalId";
+        private const string RingClass = "focus-visible";
+
+        private static Component _driver;
+        private static VisualElement _row0;
+        private static VisualElement _row1;
+
+        [InitializeOnLoadMethod]
+        private static void Rehook()
+        {
+            if (SessionState.GetBool(Armed, false)) EditorApplication.update += Tick;
+        }
+
+        [MenuItem("大医精诚/Probe/焦点环实拍")]
+        public static void Run()
+        {
+            SessionState.SetBool(Armed, true);
+            SessionState.SetInt(PhaseKey, 0);
+            SessionState.SetInt(FrameKey, 0);
+            EditorApplication.update += Tick;
+            Debug.Log("[RINGSHOT] armed");
+        }
+
+        private static void Tick()
+        {
+            int phase = SessionState.GetInt(PhaseKey, 0);
+
+            if (phase == 0)
+            {
+                var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (active.isDirty)
+                {
+                    Debug.LogError("[RINGSHOT] 当前场景有未保存改动 ⇒ 中止(避免模态框挂死)");
+                    Quit(2);
+                    return;
+                }
+                if (active.path != BootScene)
+                {
+                    Debug.Log($"[RINGSHOT] 打开 Boot 场景(当前 {active.path})");
+                    EditorSceneManager.OpenScene(BootScene, OpenSceneMode.Single);
+                }
+                SessionState.SetInt(PhaseKey, 1);
+                EditorApplication.EnterPlaymode();
+                return;
+            }
+
+            if (!EditorApplication.isPlaying)
+            {
+                if (phase >= 90) Quit(0);
+                return;
+            }
+
+            // 等驱动出现(启动链是异步的)
+            if (phase == 1)
+            {
+                if (_driver == null) _driver = FindDriver();
+                if (_driver == null) return;
+                Debug.Log("[RINGSHOT] 驱动就绪");
+                SessionState.SetInt(PhaseKey, 2);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            int f = SessionState.GetInt(FrameKey, 0) + 1;
+            SessionState.SetInt(FrameKey, f);
+
+            if (phase == 2)
+            {
+                // 驱动就绪后再等 60 帧(启动链还要建世界 / 挂面板)
+                if (f < 60) return;
+                if (!OpenPause()) { Quit(3); return; }
+                FocusRow(1);
+                SessionState.SetInt(PhaseKey, 3);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            if (phase == 3)
+            {
+                if (f < 6) return;
+                Dump("row1");
+                Shot("ring-20261101-row1.png");
+                SessionState.SetInt(PhaseKey, 31);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            // ⚠️ ScreenCapture 写盘延后 ⇒ **必须等文件真的落盘**,否则焦点一动,
+            //    两张会拍成同一帧(2026-11-01 首轮实测:两张逐像素相同,bbox=None)。
+            if (phase == 31)
+            {
+                if (WaitForFile("Logs/shots/ring-20261101-row1.png", f)) { FocusRow(0); SessionState.SetInt(PhaseKey, 32); SessionState.SetInt(FrameKey, 0); }
+                return;
+            }
+
+            if (phase == 32)
+            {
+                if (f < 10) return;
+                Dump("row0");
+                Shot("ring-20261101-row0.png");
+                SessionState.SetInt(PhaseKey, 33);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            if (phase == 33)
+            {
+                if (WaitForFile("Logs/shots/ring-20261101-row0.png", f))
+                {
+                    SessionState.SetInt(PhaseKey, 90);
+                    EditorApplication.ExitPlaymode();
+                }
+                return;
+            }
+        }
+
+        private static void Quit(int code)
+        {
+            SessionState.SetBool(Armed, false);
+            EditorApplication.update -= Tick;
+            Debug.Log($"[RINGSHOT] DONE exit={code}");
+            EditorApplication.Exit(code);
+        }
+
+        private static Component FindDriver()
+        {
+            Type t = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType(DriverType, false);
+                if (t != null) break;
+            }
+            if (t == null) return null;
+            return UnityEngine.Object.FindFirstObjectByType(t) as Component;
+        }
+
+        private static bool OpenPause()
+        {
+            Type driverType = _driver.GetType();
+            Type modalType = driverType.Assembly.GetType(ModalEnum);
+            if (modalType == null)
+            {
+                Debug.LogError("[RINGSHOT] 找不到 ModalId");
+                return false;
+            }
+            object pause = Enum.Parse(modalType, "Pause");
+            MethodInfo open = driverType.GetMethod("OpenModal", new[] { modalType });
+            if (open == null)
+            {
+                Debug.LogError("[RINGSHOT] 找不到 OpenModal");
+                return false;
+            }
+            bool ok = (bool)open.Invoke(_driver, new[] { pause });
+            Debug.Log($"[RINGSHOT] OpenModal(Pause) -> {ok}");
+
+            PropertyInfo screenProp = driverType.GetProperty("Screen");
+            object screen = screenProp?.GetValue(_driver);
+            if (screen == null)
+            {
+                Debug.LogError("[RINGSHOT] Screen 为 null");
+                return false;
+            }
+            Debug.Log($"[RINGSHOT] screen={screen.GetType().Name}");
+
+            MethodInfo rowAt = screen.GetType().GetMethod("RowAt", new[] { typeof(int) });
+            _row0 = rowAt?.Invoke(screen, new object[] { 0 }) as VisualElement;
+            _row1 = rowAt?.Invoke(screen, new object[] { 1 }) as VisualElement;
+            if (_row0 == null || _row1 == null)
+            {
+                Debug.LogError("[RINGSHOT] RowAt 返回 null");
+                return false;
+            }
+            return true;
+        }
+
+        private static void FocusRow(int index)
+        {
+            var row = index == 0 ? _row0 : _row1;
+            row.Focus();
+            Debug.Log($"[RINGSHOT] focus row{index} ok={row.focusController?.focusedElement == row}");
+        }
+
+        private static void Dump(string tag)
+        {
+            foreach (var (name, row) in new[] { ("row0", _row0), ("row1", _row1) })
+            {
+                var ring = FindRing(row);
+                var rb = row.worldBound;
+                if (ring == null)
+                {
+                    Debug.Log($"[RINGSHOT] {tag} {name} bound={rb.width:F0}x{rb.height:F0} ring=NONE");
+                    continue;
+                }
+                var spr = ring.style.backgroundImage.value.sprite;
+                var rr = ring.worldBound;
+                Debug.Log($"[RINGSHOT] {tag} {name} bound={rb.width:F0}x{rb.height:F0} " +
+                          $"ring={rr.width:F0}x{rr.height:F0} at({rr.x:F0},{rr.y:F0}) " +
+                          $"sprite={(spr == null ? "NULL(回落 USS)" : spr.name + " tex=" + (spr.texture == null ? "atlasNull" : spr.texture.width + "x" + spr.texture.height) + " border=" + spr.border.ToString())} " +
+                          $"focus={(row.focusController?.focusedElement == row)}");
+            }
+        }
+
+        private static VisualElement FindRing(VisualElement row)
+        {
+            for (int i = 0; i < row.childCount; i++)
+                if (row[i].ClassListContains(RingClass)) return row[i];
+            return null;
+        }
+
+        /// <summary>等到截图文件真的落盘(非零字节);最多等 300 帧。</summary>
+        private static bool WaitForFile(string path, int frames)
+        {
+            if (File.Exists(path) && new FileInfo(path).Length > 1000) return true;
+            if (frames > 300)
+            {
+                Debug.LogError($"[RINGSHOT] 等文件超时:{path}");
+                return true; // 继续走完流程,别挂死
+            }
+            return false;
+        }
+
+        private static void Shot(string file)
+        {
+            Directory.CreateDirectory(ShotDir);
+            string path = Path.Combine(ShotDir, file);
+            ScreenCapture.CaptureScreenshot(path);
+            Debug.Log($"[RINGSHOT] shot -> {path}");
+        }
+    }
+}
+#endif
