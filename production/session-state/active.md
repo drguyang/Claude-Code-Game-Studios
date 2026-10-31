@@ -14187,3 +14187,47 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
 - ⚠️ 量化残差:实数域 n=40 恰为 1/2,但 `rate raw = 819` ⇒ `decay(40)=32776`,
   **首次夹住在 41**。GDD 改写为「约 40 份」。
 - 回归 `2026-10-31T17:19 CST`:EditMode `6261/6224/0/0/37` · PlayMode `238/234/0/2/2`(零变化,无新测)。
+
+## 2026-10-31 · 更正:我上一条「改值 ⇒ 旧档不兼容」的判断是**错的**
+
+- 用户按这句来要求「修复」。核查后:**不存在这个问题**,无需改代码。
+- 证据:`ADR-010 §七`(`:292-298`)—— `SaveVersion`(格式)与 `ConfigVersion`(数据)**分离**;
+  `ConfigVersion` 不匹配是**非致命**:「已发生事件不受影响,**后续窗口**用新配置;存档头记
+  `ConfigVersion` 以便排查回放不符」。`DataCoreConfigVersion.cs:4` 同口径。
+  真正致命的是 `SaveVersion`:`SaveService.cs:720-726`(`> 当前` / `< PayloadSegmentMinVersion` 才抛)。
+- ⇒ **改衰减率不会让旧档打不开**;真实后果是「同一份存档在新旧数据下**派生量**会不同」
+  (余量 / 体征由流前缀 + 当前常数现算),这才是「回放不再逐位一致」的来源。
+- 教训:我把「数据集哈希变了」直接推成「存档不兼容」,**没查 §七 就下了行为结论**。
+
+## 2026-10-31 · AC-7a-14 末句补执行体(ConfigVersion 读档比对与记录)
+
+- **病因(实测)**:`grep -rn ConfigVersion unity/Assets --include=*.cs | grep -v Tests` 里
+  `SaveService.Load` 那一段**零 `ConfigVersion` 引用** —— 档头字段读进来就地丢弃,
+  「仅记录并供排查」全仓无执行体(不是「有但没跑」,是**不存在**)。
+- **落点(三件,零新裁决)**:
+  `Sim.Codec/SaveService.cs` → `LastLoadedConfigVersion`(`uint?`,入口清 null / Replay 后才回填);
+  `Gameplay.Boot/LoadSequencer.cs` → 读档第 5 步 `RecordConfigVersionOnLoad()`,
+  `currentConfigVersion` + `configVersionRecorder` **成对**给出(半对 ⇒ 构造期抛);
+  `Gameplay.Boot/ConfigVersionDriftRecord.cs`(新件)→ 不一致计一次 + 送一行标注;
+  `CompositionRoot` 装配:当前版本走**与写档侧同一个** `ResolveGlobalConfigVersion`。
+- **判据**:`unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs` 8 条,
+  首跑 **8/8 绿**;证伪轮 **6 变异各转红**,三文件 SHA-256 逐字节还原(基线与还原各校一次)。
+- ⚠️ **两处 NOT-RUN 如实登记**:① 逐表归属做不了(u32 组合值推不出「哪张表变了」,须 v3 布局);
+  ② 生产可达性 = 0(`BootRoot.RequestLoad` 零调用方)⇒ 已证的是「读档路径一旦被调用即记录」。
+- ⚠️ **全量 EditMode 回归本轮未跑完**(用户中止了后台任务)⇒ **不得**写回归三元组,
+  也不得引用上一轮 `6261/6224` 顶替。
+- 🔁 **2026-10-31 补跑(上条「未跑完」状态终结,原文不删)**:全量 EditMode
+  **`6269/6232/0/0/37`** @ `2026-10-31 17:53–17:55 CST`(XML mtime 17:55:09)·
+  `b80b3d2e`+工作树。基线(17:19 那轮)`6261/6224/0/0/37` ⇒ **等式成立**:
+  `6269 − 6261 = 8 = 6269−6232 与 6261−6224 之差` = 新夹具的 `[Test]` 计数(8),
+  skipped 37 零变化 ⇒ **零回归**。
+  复算:`grep -c "\[Test\]" unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs` ⇒ 8。
+  ⚠️ **PlayMode 本轮未跑**(基线 `238/234/0/2/2` 未重测)⇒ 不引用其数。
+- 🔁 **2026-10-31 PlayMode 补跑**:`238/234/0/2/2` @ `2026-10-31 17:56:18Z–17:56:22Z`
+  (XML mtime `17:56:22 CST`)· `b80b3d2e`+工作树 —— **与基线逐数相同,零回归**。
+  2 Skipped = 既有 `[Ignore]`(守恒律反例 / 已废弃焦点环);2 Inconclusive = `u1assump6` 两条「已迁出」标记。
+  ⚠️ **既有形态(非本轮引入,实测三点同形)**:Unity CLI 退出码 **2**(日志串
+  `Exiting with code 2 (Failed)`),而 XML `failed=0`、根 `result=Skipped:Ignored`。
+  `s22-td1703-pm`(09:18:59Z)· `s22-2-final6-pm`(08:59:13Z)与本轮**三者逐项一致**(含 ~4.2 s 时长)。
+  ⇒ 项目的 smoke 判决走 XML(`tests/smoke/run_smoke.py` 解析结果件),**不**读该退出码,故不污染门;
+  但任何按退出码判 PlayMode 的脚本都会读到恒红的 2 —— 如需登记成债,候选。

@@ -13,12 +13,20 @@
 //        (读档把世界回滚到存档时刻 ⇒ 读档点相当于「刚做过 checkpoint」;
 //        不清零则读档后不久会触发一次冗余全量落盘 —— 无害但多余)。
 //
-// 调用序(本类的全部语义,Load 内三步):
+// 调用序(本类的全部语义,Load 内五步;前四步之外第 5 步为 2026-10-31 追加):
 //   1. `SaveService.Load(slot)` —— 读档本体(Gating 门 / 校验和 + bak 回退 / 迁移 /
-//      重放进恢复闭包)。**抛 ⇒ 后两步不动**(原子序:读档失败不得动缝合侧状态)。
+//      重放进恢复闭包)。**抛 ⇒ 后四步不动**(原子序:读档失败不得动缝合侧状态)。
 //   2. `_anchorTrigger.ResetCursor()` —— 义务② 判据(见上)。
 //   3. `_fallback?.NotifyExternalCheckpoint()` —— 裁定③(fallback 可 null:与三件
 //      存档侧组件同源装配,saveBasePath 为 null ⇒ 全 null ⇒ 本类也不构造)。
+//   4. `_afterRestore?.Invoke()` —— 派生态重建(2026-10-27 新增;见构造器该形参 doc)。
+//   5. **配置版本比对与记录**(🔁 2026-10-31 新增 · `AC-7a-14` 执行体)——
+//      把档头 `ConfigVersion` 与当前烘焙产物版本比对,结果交注入的记录面。
+//      **非致命**(ADR-010 §七):不一致只记录,不改流、不重算、不抛。
+//      ⚠️ 此前**全仓零**执行体:档头的值在 `SaveService.Load` 里读进来就地丢弃 ⇒
+//      「仅记录并供排查」没有任何东西在做。⚠️ 生产可达性 = 本类本身的可达性
+//      (裁定② 通电待信,`BootRoot.RequestLoad` 今日零调用方)—— **不主张「读档时已记录」**,
+//      主张「读档路径一旦被调用即记录」。
 //
 // ⚠️ **派生态未重建清单(裁定① 窄轮的如实登记,禁借绿)** —— 读档 Restore 只重建
 //   三流与折叠行,以下派生态**不在本轮重建面**:
@@ -36,6 +44,7 @@
 using System;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Telemetry;                 // ConfigVersionCheck(AC-7a-14 记录面)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -48,6 +57,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly AnchorCheckpointTrigger _anchorTrigger;
         private readonly CheckpointFallback _fallback;
         private readonly Action _afterRestore;
+        /// <summary>当前烘焙产物的 `ConfigVersion` 提供者(AC-7a-14);与 <see cref="_configVersionRecorder"/>
+        /// **同生同灭**(见构造器 all-or-nothing 校验)。</summary>
+        private readonly Func<uint> _currentConfigVersion;
+        /// <summary>`ConfigVersion` 比对结果的记录面(AC-7a-14·ADR-010 §七「记录并供排查」)。</summary>
+        private readonly Action<ConfigVersionCheck> _configVersionRecorder;
 
         /// <param name="saveService">读档本体(生产 = 组合根装配实例)。</param>
         /// <param name="anchorTrigger">锚点触发器(读档后 <see cref="AnchorCheckpointTrigger.ResetCursor"/>;
@@ -63,15 +77,47 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 内 `Restore` 完毕,钩子读的是**新流**。若钩子抛 ⇒ 读档整体失败(投影重建不了
         /// 就说明存档有问题,静默吞掉会让下游拿到旧投影 —— 那是更坏的失败)。</para></param>
         /// <exception cref="ArgumentNullException">saveService 或 anchorTrigger 为 null。</exception>
+        /// <param name="currentConfigVersion">
+        /// 当前烘焙产物的 `ConfigVersion`(ADR-014 §五 内容哈希派生)**提供者**。
+        /// <para>🔁 <b>2026-10-31 新增(AC-7a-14 执行体)</b>:读档成功后须把档头携带的
+        /// `ConfigVersion` 与它比对并**记录**(ADR-010 §七「存档头记 `ConfigVersion`
+        /// 以便排查回放不符」)。此前全仓没有任何路径做过这次比对 —— 档头的值读进
+        /// `SaveService.Load` 就地丢弃,AC-7a-14 的末句因此是 `NOT-RUN`。</para>
+        /// <para>⚠️ `null` 与 <paramref name="configVersionRecorder"/> `null` **必须成对**:
+        /// 只给一个 ⇒ 构造即抛(见下)。两者皆 null = 本实例**不承担**记录义务
+        /// (今日仅测试的部分装配如此;生产装配恒给)。</para>
+        /// </param>
+        /// <param name="configVersionRecorder">比对结果的记录面(非 null 时,每次**成功**读档
+        /// 恰好调用一次)。不匹配**非致命** —— 本类不因 `Match == false` 而抛、不改流、不重算。
+        /// <para>⚠️ 记录器**自身**抛 ⇒ 读档整体失败(与 <paramref name="afterRestore"/> 同口径):
+        /// 吞掉它等于「说好要记录却什么都没记」,排查时会被读成「版本一致」。</para>
+        /// </param>
+        /// <exception cref="ArgumentNullException">saveService 或 anchorTrigger 为 null。</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="currentConfigVersion"/> 与 <paramref name="configVersionRecorder"/>
+        /// **只给了一个** —— 半对配置的两种形态都只会静默地什么也不做。
+        /// </exception>
         public LoadSequencer(SaveService saveService,
                              AnchorCheckpointTrigger anchorTrigger,
                              CheckpointFallback fallback = null,
-                             Action afterRestore = null)
+                             Action afterRestore = null,
+                             Func<uint> currentConfigVersion = null,
+                             Action<ConfigVersionCheck> configVersionRecorder = null)
         {
             _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
             _anchorTrigger = anchorTrigger ?? throw new ArgumentNullException(nameof(anchorTrigger));
             _fallback = fallback;
             _afterRestore = afterRestore;
+            // all-or-nothing:`currentConfigVersion` 缺 ⇒ 记不了;`recorder` 缺 ⇒ 记了没处去。
+            // 两种半对都**不会**报错地退化成「不记录」,而「不记录」与「版本一致」不可区分。
+            if ((currentConfigVersion == null) != (configVersionRecorder == null))
+                throw new ArgumentException(
+                    "AC-7a-14:currentConfigVersion 与 configVersionRecorder 必须成对给出" +
+                    $"(本次 currentConfigVersion = {(currentConfigVersion == null ? "null" : "非 null")}," +
+                    $" configVersionRecorder = {(configVersionRecorder == null ? "null" : "非 null")})。" +
+                    "半对配置会静默退化成「不记录」—— 那与「两版本一致」在外部观测上不可分");
+            _currentConfigVersion = currentConfigVersion;
+            _configVersionRecorder = configVersionRecorder;
         }
 
         /// <summary>本序列器消费的锚点触发器(同源钉观测面 —— 组合根测试断言它 == 服务袋实例)。</summary>
@@ -93,6 +139,36 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    有问题,静默吞掉会让下游拿到旧投影 —— 那是更坏的失败(同 `SaveService.Load`
             //    的 fail-loud 口径)。
             _afterRestore?.Invoke();
+            // 🔁 **2026-10-31 新增(AC-7a-14 执行体)** —— 第 5 步:配置版本比对与记录。
+            // ⚠️ **次序 = 最后**:前四步任一抛 ⇒ 读档整体失败 ⇒ **不得**留下一条「读过档」的记录
+            //    (记录一旦落下,排查者会以为这份档已经装进去了)。
+            RecordConfigVersionOnLoad();
+        }
+
+        /// <summary>
+        /// AC-7a-14 · ADR-010 §七:把档头 `ConfigVersion` 与当前产物版本比对,结果交记录面。
+        /// <para><b>非致命</b>:两版本不同**不**抛、**不**改流、**不**重算任何已发生事件
+        /// —— 已发生事件不受影响是 ADR-010 §七 的明文裁决,后续窗口用新配置由各系统自行装载。</para>
+        /// <para>⚠️ 未装配记录面(`_configVersionRecorder == null`)⇒ 直接返回 —— 这是
+        /// **部分装配**(测试 / 未接 51 的开发期形状)的显式形态,由构造器的成对校验钉住:
+        /// 生产装配要么带完整记录面,要么两件都不给。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// 已装配记录面,但 <see cref="SaveService.LastLoadedConfigVersion"/> 为 null ——
+        /// 说明「<c>SaveService.Load</c> 完整返回了却没有交出档头版本」,那是 codec 侧的契约破坏。
+        /// 静默跳过会让「记录了一次」与「根本没记录」不可区分,故 fail-loud。
+        /// </exception>
+        private void RecordConfigVersionOnLoad()
+        {
+            if (_configVersionRecorder == null) return;
+
+            uint? saveSide = _saveService.LastLoadedConfigVersion;
+            if (!saveSide.HasValue)
+                throw new InvalidOperationException(
+                    "AC-7a-14:SaveService.Load 已返回,但 LastLoadedConfigVersion 为 null —— " +
+                    "读档路径没有把档头 ConfigVersion 交出来(codec 契约破坏);拒绝以「无记录」冒充「版本一致」");
+
+            _configVersionRecorder(new ConfigVersionCheck(saveSide.Value, _currentConfigVersion()));
         }
     }
 }

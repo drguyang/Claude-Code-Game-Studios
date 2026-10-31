@@ -584,6 +584,31 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 `k → k+1 → … → N` 逐版本执行显式脚本;**`WorldSeed` 与已发生事件在迁移前后逐位不变**;
 `ConfigVersion` 不匹配 → 已发生事件不受影响、仅记录并供排查(BLOCKING)。
 
+> 🔁 **2026-10-31 末句(`ConfigVersion` 不匹配 → 仅记录并供排查)补执行体**。
+> 此前**全仓零执行体**:档头的 `ConfigVersion` 在 `SaveService.Load` 里读进来**就地丢弃**
+> (`SaveHeaderCodec.Read` 的返回值只喂版本门与迁移链),没有任何路径拿它与当前产物比对。
+> 现补三段,**均不含新裁决**(口径逐字取自 ADR-010 §七):
+> - **事实出口** = `Sim.Codec/SaveService.cs` 的 `LastLoadedConfigVersion`(`uint?`)——
+>   入口先清 `null`、`Replay` 完整走完后才回填 ⇒ 读档抛 ⇒ 不会把**失败**的档算成「读到过」。
+>   codec 只交事实:当前版本由 ADR-014 §五 的内容哈希派生,`Sim.Codec` 够不着。
+> - **比对与记录** = `Gameplay.Boot/LoadSequencer.cs` 的 `RecordConfigVersionOnLoad()`——
+>   读档五步的**第 5 步**(前四步任一抛 ⇒ 不留记录);两输入必成对
+>   (`currentConfigVersion` / `configVersionRecorder`,半对 ⇒ 构造期 `ArgumentException`)。
+>   记录面 = `Gameplay.Boot/ConfigVersionDriftRecord.cs`(不一致计一次 + 送一行标注;一致不计)。
+> - **生产装配** = `Gameplay.Boot/CompositionRoot.cs`:当前版本经**与写档侧同一个**
+>   `ResolveGlobalConfigVersion(dataProvider)` 取(两处不同源 ⇒ 「永远不匹配」);
+>   `dataProvider == null`(EditMode 部分装配)⇒ 两件都不给,不降级成 0。
+>
+> ⚠️ **本 AC 仍有两处 NOT-RUN,禁借绿**:
+> ① **逐表归属**:档头只有一个组合后的 u32,推不出「哪一张表变了」。本执行体只说
+> 「这份档是另一个配置版本写下的」+ 两个版本号。逐表差异须让存档携带逐份版本
+> (`SaveVersion` v3),是一次独立裁决,**未做**。
+> ② **生产可达性**:执行体挂在 `LoadSequencer.Load` 上,而生产触发点
+> `BootRoot.RequestLoad` **今日零调用方**(裁定② 通电待信)⇒ 已证的是
+> 「**读档路径一旦被调用即记录**」,**不是**「读档时已经记录过」。
+>
+> 判据见 `unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条,含负控)。
+
 ### AC-7a-15(规则十一 · 加载失败硬失败:回退 / 报损,不静默兜底)
 
 **GIVEN** (a) `final` 校验失败但 `bak` 通过,**WHEN** 加载,**THEN** 自动回退 `bak` 并提示

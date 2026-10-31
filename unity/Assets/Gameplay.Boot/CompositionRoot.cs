@@ -533,6 +533,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25):下文 if 内构造
             // (依赖三件存档侧组件,saveBasePath 为 null ⇒ 同 null)。
             LoadSequencer loadSequencer = null;
+            // AC-7a-14 · ADR-010 §七 的**记录面**(2026-10-31 新增 · 下文 if 内构造)。
+            // 生产 = 引擎日志;`dataProvider == null`(EditMode 部分装配)⇒ 恒 null ⇒
+            // 与 `currentConfigVersion` 成对缺席(见 LoadSequencer 构造器的成对校验)。
+            ConfigVersionDriftRecord configVersionDrift = null;
             // ── 世界读档重建服务(S20-18 · 2026-10-28)—— 下文 `if (world != null)` 内构造 ──
             // ⚠️ **声明在 `if (saveBasePath)` 之外**:它要被上面那个 `LoadSequencer` 的
             //    `afterRestore` 闭包**捕获**;而闭包建立时 `world` / `modulesCatalog` 尚未解析
@@ -795,6 +799,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 裁定② 通电待信:生产触发点 = BootRoot.RequestLoad,今日零调用方;
                 //    派生态未重建清单(在场视图 / PatientAppearedDriver 计数 / 视觉)见
                 //    LoadSequencer 类头注(裁定① 窄轮如实登记)。
+                // AC-7a-14 记录面:只在**能真派生当前版本**时装配(见上声明段)。
+                if (dataProvider != null)
+                    configVersionDrift = new ConfigVersionDriftRecord(
+                        line => UnityEngine.Debug.LogWarning(line));
                 loadSequencer = new LoadSequencer(saveService, anchorCheckpointTrigger, checkpointFallback,
                     // 🔁 <b>2026-10-27 新增</b>:读档完成后重建库存投影(派生态,ADR-009 §四)。
                     // 用户裁定原话:「在装配根加「读档后重建库存投影」」。
@@ -813,7 +821,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                     {
                         inventoryLoad.Rebuild();
                         worldLoad?.Rebuild();
-                    });
+                    },
+                    // 🔁 **2026-10-31 AC-7a-14 执行体**:读档后把档头 `ConfigVersion` 与
+                    // **当前烘焙产物**的版本比对并记录(ADR-010 §七「记录并供排查」)。
+                    // 此前全仓零执行体 —— 档头的值在 `SaveService.Load` 里读进来就地丢弃。
+                    // ⚠️ 当前版本经**同一个派生函数**(`ResolveGlobalConfigVersion`)取,
+                    //    与写档侧(`compose` 闭包)同源;两处不同源 ⇒ 「永远不匹配」。
+                    // ⚠️ `dataProvider == null`(EditMode 部分装配)⇒ **两件都不给**(成对校验),
+                    //    不降级成 0 —— 假版本号会让「不匹配」恒假(同 E-13 不降级口径)。
+                    // ⚠️ 记录面 = 引擎日志(`LogWarning`):不匹配时一行,内容 = 两个版本号
+                    //    + 「为什么这一份回放可能不符」。**非致命**:不影响本次读档结果。
+                    currentConfigVersion: configVersionDrift == null
+                        ? (Func<uint>)null
+                        : () => ResolveGlobalConfigVersion(dataProvider),
+                    configVersionRecorder: configVersionDrift == null
+                        ? null
+                        : new Action<DaYiJingCheng.Telemetry.ConfigVersionCheck>(configVersionDrift.Record));
             }
 
 

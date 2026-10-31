@@ -205,6 +205,21 @@ namespace DaYiJingCheng.Sim.Codec
         public SaveSlotLedger Ledger => _ledger;
 
         /// <summary>
+        /// 上一次**成功**读档的存档头 `ConfigVersion`(`null` = 尚无成功读档 / 最近一次读档失败)。
+        /// <para><b>用途</b>:`AC-7a-14` / ADR-010 §七 的「记录并供排查」—— 读档后须把存档头携带的
+        /// 配置版本与**当前烘焙产物**的版本比对。比对本身**不在本类**:当前版本由 ADR-014 §五
+        /// 的内容哈希派生,那是装配层(`AddressablesDataProvider.LoadGlobalConfigVersion`)的事,
+        /// `Sim.Codec` 够不着。⇒ 本类只交出**事实**(一个 u32),比对与标注归
+        /// <c>ConfigVersionCheck</c> / 本类的调用方。</para>
+        /// <para>⚠️ **语义 = 「成功读档的事实」**:<see cref="Load"/> 入口先清 `null`,
+        /// 只有在 `Replay` 阶段完整走完后才回填 —— 读档抛 ⇒ 本属性保持 `null`,
+        /// 不会把一份**失败**的档算成「读到过」。</para>
+        /// <para>⚠️ **不匹配非致命**(ADR-010 §七):本属性只陈述事实,`Load` 不因两版本
+        /// 不同而抛、不重算任何已发生事件、不换后续窗口用的配置(那是 9 / 21a / 52 各自的装载口径)。</para>
+        /// </summary>
+        public uint? LastLoadedConfigVersion { get; private set; }
+
+        /// <summary>
         /// 后台写盘 worker(AC-7a-07)。**只读暴露**,供夹具与装配收尾等待队列排空。
         /// <para>⚠️ 生产主线程**不得**在 Step 边界调 <see cref="SaveWriteQueue.WaitForIdle()"/>
         /// —— 那等于把异步化撤销。生产唯一的等待点是 <see cref="SaveOnExit"/>。</para>
@@ -674,6 +689,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// <para>🔁 <b>2026-10-28 ADR-034</b>:新增(一)v1 拒收门 —— `<c>PayloadSegmentMinVersion</c>`
         /// 以下的档**不得**下沉到迁移链(载荷字节从未落盘,迁移在信息论上不可能);
         /// (二)装池步 —— 载荷段解出的 blob 在交出事件列表**之前**装进注入的池。</para>
+        /// <para>🔁 <b>2026-10-31 AC-7a-14 执行体</b>:读档成功后把档头的 `ConfigVersion` 记进
+        /// <see cref="LastLoadedConfigVersion"/>(此前该字段读进来就丢,「记录并供排查」无执行体)。
+        /// 比对与标注**不在本类**(见该属性 doc);本方法**不因**两版本不同而改变任何行为。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// 未注入 <c>narrativeContext</c>(fail-closed);不在叙事上下文内;槽位已锁;
@@ -684,12 +702,18 @@ namespace DaYiJingCheng.Sim.Codec
         /// </exception>
         public void Load(SaveSlot slot)
         {
+            // AC-7a-14:事实出口先清空 —— 本次读档无论是哪一步抛的,都不得沿用上一次的值
+            // (「上一份档的 ConfigVersion」冒充「这一份的」= 排查时指向错误的版本对)。
+            LastLoadedConfigVersion = null;
             RequireLoadable(slot);                          // ── Gating ──
             byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
             SaveHeader header = SaveHeaderCodec.Read(data);
             RequireSupportedVersion(header);                // ── 前向不兼容 / v1 拒收 ──
             data = ApplyMigrationsIfNeeded(data, header);   // ── 迁移链 ──
             ReplayInto(data, slot);                         // ── Replaying ──
+            // AC-7a-14 · ADR-010 §七:回填「已成功读入的档头携带的配置版本」。
+            // 位置在 Replay 之后 = 只有完整成功的读档才产生事实(见属性 doc)。
+            LastLoadedConfigVersion = header.ConfigVersion;
         }
 
         /// <summary>载入前置门:叙事上下文 + 槽位未锁(与写同钩,规则十四 / AC-7a-19 (d))。</summary>
