@@ -14641,3 +14641,55 @@ batch 进程**从不获得 Game View 焦点**,而编辑器默认
 
 **PS-01 的人眼半仍未做**:机器判只证「壳开得出」,「两行在屏幕上看得见」是像素判据,
 需要编辑器 Play 截图或你目视一次。
+
+## 2026-11-01 · 模态端到端装配夹具(`modal_gate_wiring_test.cs`)
+
+**缘由**:规则七的三条抑制各自只有**零件级**证据(单元门 / 测试自建门),没有任何一条从
+`BootRoot` 的生产装配出发 ⇒ **装配断了不会红**。
+
+### 落了什么(3 条 UnityTest,真启动序)
+
+| 用例 | 负控(模态开) | 正控(关屏后) |
+|---|---|---|
+| `discardsInteract` | 按 E ⇒ `LastExaminedPatient` 仍 `None` | 按 E ⇒ 变非 None |
+| `zeroesMoveAxis` | 按 W ⇒ 位移 < 0.01(且**轴读面非零**作为前置) | 按 W ⇒ 位移 > 0.05(模态开前 + 关屏后各一次) |
+| `blocksBuild` | 按 B ⇒ `IsBuildMode` 仍 false | 按 B ⇒ true |
+
+⚠️ 建造只测 B(toggle):Enter 同时是 UI Submit,暂停壳开着会被焦点桥消费成「确认第一行」⇒ 会关屏污染判据。
+四个建造动作共用 `BuildInputDriver.OnFrameCore` 首段同一处 `_blocked` 短路。
+
+### 变异反证(每条只打死自己的靶子,其余两条保持绿)
+
+| 变异 | 结果 |
+|---|---|
+| M1 `InteractionInputDriver(…, null)` | `discardsInteract` 红(E 在模态期查到病人 1),另两条绿 |
+| M2 `ResolveMoveAxis` 直通 | `zeroesMoveAxis` 红(冻结窗位移 0.583),另两条绿 |
+| M3 `BuildInputDriver(blocked: null)` | `blocksBuild` 红(模态期进了建造模式),另两条绿 |
+
+还原判据 = SHA-256 逐字节(`BootRoot.cs` `12c03855…`),三次还原后 `git diff` 干净。
+
+### 本轮抓到的**夹具隔离缺陷**(不是产品缺陷,但会让判据假红)
+
+`BootRoot.FindOrCreateSkeuoUi` 用 `FindFirstObjectByType<SkeuoRuntimeDriver>()` **按类型复用**,
+而它建的 `SkeuoUI` 对象**不是 `_root` 的子物体** ⇒ 只 `Destroy(_root)` 会把上一用例的驱动
+(**连同仍开着的模态**)留给下一个用例。2026-11-01 实测:上一用例结束时暂停壳开着 ⇒
+下一用例开局 `BlocksPlay=true` ⇒ 移动判据被上一轮的冻结顶掉(M1 首跑即此假红)。
+修法:TearDown 里按类型清 `SkeuoRuntimeDriver`;`BootRealGame` 加前置断言 `BlocksPlay == false`。
+⚠️ 判据用 `BlocksPlay` 而不是 `CurrentModal == None` —— 默认屏 Casebook 开局即 `CurrentModal`,
+**那才是正常态**(首版前置断言写错,三条全红)。
+
+### 判据
+
+- 全量 PlayMode **257 / 253 / 0 / 2 / 2** @ 2026-11-01 00:36:57 CST · 本批 · `6d58f8ec`+工作树。
+- vs 上一次记录 **253 / 249 / 0 / 2 / 2**(22:42 · `9ac39328`+工作树,引用,不重盖时间戳):
+  `total +4` / `passed +4` / `failed 0 → 0`。
+- **+4 归因**:本批新增 3 条 + `af07fbb3` 的焦点环灌注测试 1 条(该提交在上述 22:42 跑测之后)。
+  ⚠️ 该 1 条只能归因到**提交**,不能归因到「跑过」—— 其间没有留下全量 XML。
+- EditMode 本轮**未跑**(只新增 PlayMode 测试件,生产码逐字节未变)。
+
+### 未做(不得借绿)
+
+- **世界不冻结**仍成立(只挡意图,`Step` 照跑)—— 本条不涉及,也不替它下结论。
+- **正式入口**仍缺(暂停壳 Draft / 主菜单未接线);Escape 仍是临时入口。
+- 焦点落点已有机器判(`focus_on_open_test`),但同样**不经 BootRoot** —— 与本件同一类缺口,
+  本轮未一并补。
