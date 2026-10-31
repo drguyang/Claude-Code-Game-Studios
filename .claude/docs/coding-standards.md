@@ -73,7 +73,17 @@
 - **② 不是「每次真构建都残留」** —— `TestRunBuilder.cs:41-44` 的 `OnPostprocessBuild → Cleanup()`
   会自删,`Cleanup()` 内是 `DeleteFileAndMeta(...)`。⇒ **残留条件是「构建没走到 postprocess」**
   (失败 / 中断)。2026-10-21 之所以观察到它,是因为那一轮跑的正是**刻意报 Failure 的探针轮**。
-  ⚠️ **失败路径本轮未实测** —— 上面这句是**源码依据**,不是执行证据。
+  ✅ **2026-10-31 失败路径已实测**(`S21-10` 收口后补,F5):探针轮 —— 往 `BuildGate.OnPreprocessBuild`
+  插一条无条件 `errs.Add` 并提前 `throw`,`CostTableProbeBuildCli.Build` 跑出
+  `Build Finished, Result: Failure`(栈帧 `AssemblyGates.cs:1437`),随后实测:
+  - `unity/Assets/Resources/PerformanceTestRunInfo.json`(**3136 B**)与
+    `PerformanceTestRunSettings.json`(**23 B**)**确实留在盘上** —— ①的源码推断成立;
+  - `.gitignore:93-94` 的窄 glob **命中**这两件;反例验证:`Resources/` 下放一个非匹配文件
+    **未被忽略** ⇒ 规则没有过宽(整目录未受影响)。
+  - ⚠️ **新发现(原表未记)**:失败构建**还会留下 ① 的派生改动** ——
+    `UniversalRenderPipelineGlobalSettings.asset` 的 `m_RuntimeSettings` 由 16 条 rid 变 `[]`,
+    与 2026-10-21 那次观察同形。⇒ **「成功构建后 `git status` 干净」不等于「构建后干净」**:
+    **失败路径同时留下 ②(资源 json)与 ①(URP 剥离)两类派生**,判读时按 ② 处理(UPR 文件仍不可整文件忽略,见上表 ①)。
 - **① 本轮未复现内容差异**:文件 mtime 变了(被构建重写),但内容与 `HEAD` 逐字节一致
   ⇒ 现行入库内容已等于派生形态。
 

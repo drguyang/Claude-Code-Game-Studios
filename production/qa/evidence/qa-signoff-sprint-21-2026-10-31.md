@@ -17,7 +17,8 @@
 | 全量 EditMode | **0** | `total=6221 passed=6184 failed=0 inconclusive=0 skipped=37` | S21-9 `6215/6178/0/0/37` | **+6/+6 = 新增 6 测,恰等** |
 | 全量 PlayMode | 2 | `total=238 passed=234 failed=0 inconclusive=2 skipped=2` | S21-9 `238/234/0/2/2` | **逐位一致**;`exit=2` 伴 `failed=0`,非新失败 |
 | 静态面 | — | `error CS` = **0** | — | 无编译面污染 |
-| smoke 运行器 | **3** | `[INCOMPLETE]` 22 条:自动 PASS 0 · FAIL 0 · 未跑 7 · 具名人工 3 · **无载体 12** | 无(首份) | **如实记为 INCOMPLETE,不记 PASS** |
+| smoke 运行器 | **3** | `[INCOMPLETE]` 22 条:自动 PASS **7** · FAIL 0 · 未跑 **0** · 具名人工 3 · **无载体 12** | 无(首份) | **如实记为 INCOMPLETE,不记 PASS** |
+| ↳ 订正 | — | 首版跑的是不带 `--results` 的模式,把 7 条有谓词的条目记成「未跑」;补跑后 7 条 **PASS**。**总数与 exit 不变(仍 3)**,但「未跑 7」是错的 | — | 见 `smoke-2026-10-31.md` §二 的 🔁 订正块 |
 | 债册 | **0** | `debtcount.py --check` | — | 一致 |
 
 ---
@@ -63,11 +64,22 @@
 ⇒ 读到绿灯只能记「**门就位、无输入**」,**不得**记作「药害不造成昏迷已被证明」。
 ⚠️ 间接路径(药害伤情恶化 → 9 结算成昏迷)仍开,`ADR-035 O-1` 不因本 sprint 消解。
 
-### F5 · **S3(未实测,已声明)** — `S21-6` 的失败路径
+### F5 · **S3 → ✅ 已闭(签核后补测)** — `S21-6` 的失败路径
 
-「构建失败时 `PerformanceTestRun{Info,Settings}.json` 残留」一句是**源码依据**
-(`TestRunBuilder.cs:41-44` 的 `OnPostprocessBuild → Cleanup()`),**本轮未实测**。
-卡片已如实标注,签核不追认其为观测。
+「构建失败时 `PerformanceTestRun{Info,Settings}.json` 残留」一句原为**源码依据**
+(`TestRunBuilder.cs:41-44` 的 `OnPostprocessBuild → Cleanup()`),**收口时未实测**。
+
+**2026-10-31 补测(探针轮,三件套齐)**:
+① 探针串 `[PROBE-F5]` 出现在构建日志;
+② 栈帧落在 `DaYiJingCheng.EditorTools.Gates.AssemblyGates/BuildGate:OnPreprocessBuild`
+(`AssemblyGates.cs:1437`);
+③ 构建**因它失败**:`Build Finished, Result: Failure`,CLI 报 `Result: Failed;错误数 = 3`,exit=1。
+④ **观测结果**:`unity/Assets/Resources/PerformanceTestRunInfo.json`(**3136 B**)+
+`PerformanceTestRunSettings.json`(**23 B**)确实留在盘上;`.gitignore:93-94` 命中,
+反例(同目录放非匹配文件)**未被忽略** ⇒ 规则未过宽。
+⑤ **顺带新发现**:失败构建**还会**留下 URP `m_RuntimeSettings` 的剥离派生改动
+(与 2026-10-21 同形)—— 已写进 `coding-standards.md` §工作树卫生。
+还原:`AssemblyGates.cs` SHA-256 `0f713002…5b68` 逐字节一致,`PROBE-F5` 残留 0;探针产物已清。
 
 ---
 
@@ -88,7 +100,7 @@
 
 **条件(conditions,不满足即本签核失效)**:
 
-- **C1** —— 本签核**不覆盖 §三的 F1–F5**。下一轮读到这份 APPROVED 的人,
+- **C1** —— 本签核**不覆盖 §三的 F1–F4**(F5 已于签核后补测关闭,见 §三 F5)。下一轮读到这份 APPROVED 的人,
   须同读 `smoke-2026-10-31.md` §五 与本节。
 - **C2** —— `F4`(N-5 零输入可达)**必须在下次有人登记终局型伤情时立即复核**;
   届时若标 `terminal_state = false`,门不会红 —— **人须先查**。
