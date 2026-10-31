@@ -1,0 +1,241 @@
+// 临时探针(2026-11-01 · 脉案屏焦点环实拍)—— **用完即删,不入库**。
+//
+// 与暂停壳那轮同一套:真游戏 Boot 场景 → 默认屏就是脉案(Casebook)→ 逐个聚焦拍照。
+// 反射取驱动,不改 asmdef。⚠️ GUI 模式(batch 出不了图)。
+//
+// 关键纪律:**每拍一张,等文件真落盘,再移动焦点** —— 否则两张会写成同一帧(且不报错)。
+
+#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace DaYiJingCheng.EditorTools.Capture
+{
+    internal static class TmpCasebookRingShot
+    {
+        private const string Armed = "__cbRingArmed";
+        private const string PhaseKey = "__cbRingPhase";
+        private const string FrameKey = "__cbRingFrames";
+        private const string ShotDir = "Logs/shots";
+        private const string BootScene = "Assets/Scenes/Boot.unity";
+        private const string DriverType = "DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoRuntimeDriver";
+        private const string RingClass = "focus-visible";
+
+        private static Component _driver;
+        private static readonly List<VisualElement> _focusables = new List<VisualElement>();
+        private static VisualElement _pending;
+
+        [InitializeOnLoadMethod]
+        private static void Rehook()
+        {
+            if (SessionState.GetBool(Armed, false)) EditorApplication.update += Tick;
+        }
+
+        [MenuItem("大医精诚/Probe/脉案屏焦点环实拍")]
+        public static void Run()
+        {
+            SessionState.SetBool(Armed, true);
+            SessionState.SetInt(PhaseKey, 0);
+            SessionState.SetInt(FrameKey, 0);
+            EditorApplication.update += Tick;
+            Debug.Log("[CBRING] armed");
+        }
+
+        private static void Tick()
+        {
+            int phase = SessionState.GetInt(PhaseKey, 0);
+
+            if (phase == 0)
+            {
+                var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (active.isDirty) { Debug.LogError("[CBRING] 场景脏 ⇒ 中止"); Quit(2); return; }
+                if (active.path != BootScene) EditorSceneManager.OpenScene(BootScene, OpenSceneMode.Single);
+                SessionState.SetInt(PhaseKey, 1);
+                EditorApplication.EnterPlaymode();
+                return;
+            }
+
+            if (!EditorApplication.isPlaying)
+            {
+                if (phase >= 90) Quit(0);
+                return;
+            }
+
+            if (phase == 1)
+            {
+                if (_driver == null) _driver = FindDriver();
+                if (_driver == null) return;
+                Debug.Log("[CBRING] 驱动就绪");
+                SessionState.SetInt(PhaseKey, 2);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            int f = SessionState.GetInt(FrameKey, 0) + 1;
+            SessionState.SetInt(FrameKey, f);
+
+            if (phase == 2)
+            {
+                if (f < 60) return;
+                if (!Collect()) { Quit(3); return; }
+                SessionState.SetInt(PhaseKey, 3);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            // 拍第 1 张
+            if (phase == 3)
+            {
+                if (f < 6) return;
+                Focus(_focusables[0], "A");
+                SessionState.SetInt(PhaseKey, 31);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+            if (phase == 31)
+            {
+                if (f < 6) return;
+                Dump("A");
+                _pending = ShotAndPending("casebook-ring-20261101-A.png");
+                SessionState.SetInt(PhaseKey, 32);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+            if (phase == 32)
+            {
+                if (!WaitForFile(_pending, f)) return;
+                SessionState.SetInt(PhaseKey, 4);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+
+            // 拍第 2 张(换一个不同类型的可获焦元素)
+            if (phase == 4)
+            {
+                if (f < 6) return;
+                int idx = _focusables.Count > 2 ? 2 : _focusables.Count - 1;
+                Focus(_focusables[idx], "B");
+                SessionState.SetInt(PhaseKey, 41);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+            if (phase == 41)
+            {
+                if (f < 6) return;
+                Dump("B");
+                _pending = ShotAndPending("casebook-ring-20261101-B.png");
+                SessionState.SetInt(PhaseKey, 42);
+                SessionState.SetInt(FrameKey, 0);
+                return;
+            }
+            if (phase == 42)
+            {
+                if (!WaitForFile(_pending, f)) return;
+                SessionState.SetInt(PhaseKey, 90);
+                EditorApplication.ExitPlaymode();
+            }
+        }
+
+        private static void Quit(int code)
+        {
+            SessionState.SetBool(Armed, false);
+            EditorApplication.update -= Tick;
+            Debug.Log($"[CBRING] DONE exit={code}");
+            EditorApplication.Exit(code);
+        }
+
+        private static Component FindDriver()
+        {
+            Type t = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType(DriverType, false);
+                if (t != null) break;
+            }
+            return t == null ? null : UnityEngine.Object.FindFirstObjectByType(t) as Component;
+        }
+
+        private static bool Collect()
+        {
+            var root = _driver.GetType().GetMethod("GetUiRoot")?.Invoke(_driver, null) as VisualElement;
+            if (root == null) { Debug.LogError("[CBRING] UI 根为 null"); return false; }
+
+            _focusables.Clear();
+            Walk(root);
+            Debug.Log($"[CBRING] 可获焦元素 {_focusables.Count} 个:");
+            for (int i = 0; i < _focusables.Count; i++)
+            {
+                var e = _focusables[i];
+                var b = e.worldBound;
+                Debug.Log($"[CBRING]   #{i} name='{(string.IsNullOrEmpty(e.name) ? "<anon>" : e.name)}' " +
+                          $"{b.width:F0}x{b.height:F0} @({b.x:F0},{b.y:F0})");
+            }
+            return _focusables.Count > 0;
+        }
+
+        private static void Walk(VisualElement e)
+        {
+            if (e.focusable && e.pickingMode != PickingMode.Ignore) _focusables.Add(e);
+            for (int i = 0; i < e.childCount; i++) Walk(e[i]);
+        }
+
+        private static void Focus(VisualElement el, string tag)
+        {
+            el.Focus();
+            Debug.Log($"[CBRING] {tag} focus name='{(string.IsNullOrEmpty(el.name) ? "<anon>" : el.name)}' " +
+                      $"ok={el.focusController?.focusedElement == el}");
+        }
+
+        private static void Dump(string tag)
+        {
+            foreach (var el in _focusables)
+            {
+                bool focused = el.focusController?.focusedElement == el;
+                var ring = FindRing(el);
+                if (!focused && ring == null) continue;
+                var b = el.worldBound;
+                var spr = ring?.style.backgroundImage.value.sprite;
+                Debug.Log($"[CBRING] {tag} name='{(string.IsNullOrEmpty(el.name) ? "<anon>" : el.name)}' " +
+                          $"focus={focused} bound={b.width:F0}x{b.height:F0} " +
+                          (ring == null
+                              ? "ring=NONE"
+                              : $"ring={ring.worldBound.width:F0}x{ring.worldBound.height:F0} " +
+                                $"sprite={(spr == null ? "NULL" : spr.name + " border=" + spr.border.ToString())}"));
+            }
+        }
+
+        private static VisualElement FindRing(VisualElement target)
+        {
+            for (int i = 0; i < target.childCount; i++)
+                if (target[i].ClassListContains(RingClass)) return target[i];
+            return null;
+        }
+
+        private static VisualElement ShotAndPending(string file)
+        {
+            Directory.CreateDirectory(ShotDir);
+            string path = Path.Combine(ShotDir, file);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            Debug.Log($"[CBRING] shot -> {path}");
+            return null; // 用 SessionState 存路径
+        }
+
+        private static bool WaitForFile(VisualElement _, int frames)
+        {
+            // 路径写死两处:用固定的 pending 文件名,靠 phase 判断
+            int phase = SessionState.GetInt(PhaseKey, 0);
+            string path = Path.Combine(ShotDir, phase == 32 ? "casebook-ring-20261101-A.png" : "casebook-ring-20261101-B.png");
+            if (File.Exists(path) && new FileInfo(path).Length > 1000) return true;
+            if (frames > 300) { Debug.LogError($"[CBRING] 等文件超时:{path}"); return true; }
+            return false;
+        }
+    }
+}
+#endif
