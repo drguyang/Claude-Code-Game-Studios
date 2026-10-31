@@ -14356,3 +14356,29 @@ AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
   spec** ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**。
 - **粗糙边**:存档位屏上按 Escape 会**换屏回暂停壳**(`IsPauseOpen == false` 导致走 `OpenPause`),
   而非直接闭合。归暂停壳 UX spec,不做静默裁定。
+
+## 2026-10-31 · 输入冻结收尾 —— 规则七漏掉的**移动轴**
+
+**病因**:规则七的两向抑制此前只覆盖 **E 查体 / F 急救**(`InteractionInputDriver`)与
+**建造四动作**(`BuildInputDriver` 头注 ① 自陈未接),**移动轴完全没接** ⇒ 暂停壳摊开时
+玩家照样走得动。「暂停」名不副实,而 `AC-42-F1` ⑧ 的走查里这就是一条直观缺陷。
+
+**落点**
+- `Boot/ModalInputFreeze.cs`(新):`IsBlocked` 实时读 + `FilterMovement` 折零;
+  **零缓存**(缓存 = 第二真源,帧内开合会读到上一帧答案)。
+- `BootRoot`:`ModalGateStateAdapter` 由**单实例**共用(门 / 冻结同源),移动轴过
+  `FilterMovement`(**只折零轴,不跳过 `PumpFrame`** —— tick 泵照常推进,世界不冻)。
+- `BuildInputDriver`:收 `Func<bool> blocked`;抽 `OnFrameCore(bool ×4)` 作夹具接缝;
+  挡路时**边沿位照常更新后丢弃动作**(否则关屏瞬间会补放一块)。
+- 头注 ① 的「不检查模态开集」**就地划除**(当时全仓没有聚合读面,现在有 —— 装配层适配器)。
+
+**判据**
+- 回归 `6310 / 6273 / 0 / 0 / 37` @ `2026-10-31 12:16:35Z`(全量 EditMode)· `910a0d71`+工作树。
+  基线 `6306` ⇒ **+4**,等式 `6310 − 6306 = 4` = `modal_input_freeze_test` 的判据数。`error CS` = 0。
+- 证伪轮 **3/3 转红**,还原 SHA-256 逐字节一致:`FilterMovement` 删折零 ⇒ 红 2 ·
+  `IsBlocked` 变一次性缓存 ⇒ `readsLive` 红 · 无提供者判成挡路 ⇒ `nullPredicate` 红。
+
+**⚠️ 未证(`NOT-RUN`,不许借冻结谓词的绿)**
+- `BootRoot.Update` 里那一行**接线**是否真被调用(headless 无帧泵);
+- `BuildInputDriver` 的**挡路分支**(构造驱动要真 `BuildController`,本轮不复制那套装配)
+  —— 已在代码注释与 `ADR-013 §十-C` 的「未做」段双处登记。

@@ -27,10 +27,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ⚠️ 已知边界(挂标,不是已解决)
 // ─────────────────────────────────────────────────────────────────────────────
-//   ① **不检查模态开集**:建造模式开着时若摊开脉案/出诊箱,`Enter` 会同时被
-//      UI `Submit` 与建造放置消费。全仓今日**没有**「是否有模态摊开」的聚合读面
-//      (`IModalState` 是逐屏实现,无聚合器)⇒ 本批不新造该聚合器(那会越权改 42 的
-//      焦点单栈门)。登记在 `sprint-20` §十 S20-19 的「挂标不记绿」。
+//   ① ~~**不检查模态开集**~~ → 🔁 **2026-10-31 已收口**:当时全仓没有「是否有模态摊开」的
+//      聚合读面(`IModalState` 是逐屏实现),现在有了 —— 装配层 `ModalGateStateAdapter`
+//      就是那个聚合面(规则七方向②接线轮立的)。本驱动改收一个 `Func<bool> blocked`
+//      (生产面 = `ModalInputFreeze.IsBlocked`,与**移动轴**同源),挡路期间四个动作
+//      一个都不发。⚠️ 仍然**不新造**聚合器 —— 复用 42 的既有真源,不越权。
 //   ② **XR 组无读面**:P0 无 VR 建造(见 `BuildInputReader` 头注)。
 
 using System;
@@ -55,6 +56,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly BuildController _controller;
         private readonly Func<WorldPos> _cell;
         private readonly Action _onCommitted;
+        private readonly Func<bool> _blocked;
 
         private bool _toggleHeld;
         private bool _placeHeld;
@@ -89,17 +91,50 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 可为 null(EditMode 夹具不需要)。</param>
         /// <exception cref="ArgumentNullException"><paramref name="controller"/> /
         /// <paramref name="cell"/> 为 null。</exception>
-        public BuildInputDriver(BuildController controller, Func<WorldPos> cell, Action onCommitted = null)
+        /// <param name="blocked">是否有挡路的模态摊开(生产面 = `ModalInputFreeze.IsBlocked`)。
+        /// 可为 <c>null</c> ⇒ 恒不冻结(夹具与「无 UI」形态)。</param>
+        public BuildInputDriver(BuildController controller, Func<WorldPos> cell, Action onCommitted = null,
+                                Func<bool> blocked = null)
         {
             _controller = controller ?? throw new ArgumentNullException(nameof(controller));
             _cell = cell ?? throw new ArgumentNullException(nameof(cell));
             _onCommitted = onCommitted;
+            _blocked = blocked;
         }
 
         /// <summary>每帧处理建造输入(由 <c>BootRoot.Update</c> 转发)。</summary>
         public void OnFrame()
+            => OnFrameCore(
+                BuildInputReader.TogglePressed(),
+                BuildInputReader.PlacePressed(),
+                BuildInputReader.RotatePressed(),
+                BuildInputReader.RemovePressed());
+
+        /// <summary>
+        /// 四个动作位的**唯一**处理入口(`OnFrame` 与夹具共用)。
+        /// <para>⚠️ 单开这个接缝的原因:headless 下 `BuildInputReader` 是静态设备读面,
+        /// **造不出按键** ⇒ 「模态挡路时动作被丢弃、且边沿被消费」这条判据在设备面上
+        /// 不可观测,只能由布尔入参驱动。与 `PauseScreen.Activate(int)` / `SaveSlotsScreen.Activate(int)`
+        /// 同款接缝纪律(判据必须能被夹具直接驱动)。</para>
+        /// </summary>
+        public void OnFrameCore(bool toggle, bool place, bool rotate, bool remove)
         {
-            bool toggle = BuildInputReader.TogglePressed();
+            // 🔁 2026-10-31:模态挡路 ⇒ 四个动作一个都不发,但**边沿位照常更新**。
+            //    ⚠️ 边沿位必须更新:若只是 return,关屏那一刻手里还按着的键会补触发一次
+            //    (「模态期间没反应,一关屏就放下一块」)—— 与 `InteractionInputDriver`
+            //    同纪律(门闭 ⇒ 丢弃动作,边沿仍跟踪)。
+            // ⚠️ **NOT-RUN**:本分支今日无夹具(驱动构造要真 `BuildController`,本件不复制那套
+            //    装配)。已证的是同源的冻结谓词(`modal_input_freeze_test` 4 条)与「挡路分支
+            //    不触碰 controller」这一点靠读代码守。**不得**据此判「建造输入冻结已验」。
+            if (_blocked != null && _blocked())
+            {
+                _toggleHeld = toggle;
+                _placeHeld = place;
+                _rotateHeld = rotate;
+                _removeHeld = remove;
+                return;
+            }
+
             if (toggle && !_toggleHeld)
             {
                 IsBuildMode = !IsBuildMode;
@@ -110,15 +145,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!IsBuildMode)
                 return;
 
-            bool place = BuildInputReader.PlacePressed();
             if (place && !_placeHeld) DoPlace();
             _placeHeld = place;
 
-            bool rotate = BuildInputReader.RotatePressed();
             if (rotate && !_rotateHeld) DoRotate();
             _rotateHeld = rotate;
 
-            bool remove = BuildInputReader.RemovePressed();
             if (remove && !_removeHeld) DoRemove();
             _removeHeld = remove;
         }

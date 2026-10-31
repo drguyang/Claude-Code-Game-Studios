@@ -478,8 +478,13 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
   ⇒ 按「A 组改 / C 组加注」处置,**不改写历史判决**。
 
 **⚠️ 本 Amendment 未做(不得借本节的「Accepted」当已验)**:
-- **世界冻结**:暂停壳只挡**交互意图**(规则七方向②),**不**停 tick / 不冻结 sim。
-  「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**;
+- **世界不冻结**:暂停壳只挡**输入意图**(规则七方向②),**不**停 tick / 不冻结 sim。
+  「暂停 = 世界真的不动」需要对 `ITickProvider` 的判决,本件**不涉及**。
+- **输入冻结面已于同日补齐**(同批,`ModalInputFreeze`):规则七此前只覆盖 **E 查体 / F 急救**,
+  **移动轴**一直是漏的(暂停壳摊开还能走)。现由 `ModalInputFreeze` 统一折零移动轴、
+  并接进 `BuildInputDriver`(建造四动作)。⚠️ `BuildInputDriver` 的挡路分支**无夹具**
+  (构造驱动要真 `BuildController`),按 `NOT-RUN` 登记;已证的是同源的冻结谓词
+  (`modal_input_freeze_test` 4 条)。**两者不是同一件事,不得互相借绿**。
 - **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图;且 `design/ux/pause-shell-42.md`
   不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**);
 - **Escape 在存档位屏上的去向**:今日 `IsPauseOpen == false` ⇒ 按 Escape 会**换屏回暂停壳**

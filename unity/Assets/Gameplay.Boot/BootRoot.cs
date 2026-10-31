@@ -87,6 +87,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 装配后挂 UI 根。**不挂**则「屏幕上有字幕」这条判据在运行期不存在。</para></summary>
         private DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView _subtitle;
         private InteractionInputDriver _interactionDriver;
+        private ModalInputFreeze _inputFreeze;      // 模态期输入冻结(移动轴 / 建造;2026-10-31)
         private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
         /// <summary>官方 UI 输入桥宿主(B-6-1)。<see cref="EnsureEventSystem"/> 建或复用;
@@ -482,7 +483,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _buildDriver = new BuildInputDriver(
                     build,
                     () => _player != null ? _player.Cell : default,
-                    onCommitted: () => _services.InventoryLoad?.Rebuild());
+                    onCommitted: () => _services.InventoryLoad?.Rebuild(),
+                    // 🔁 2026-10-31:建造四动作入模态冻结面(此前 `Enter` 会被 UI Submit 与
+                    //    建造放置**同时**消费)。lambda 晚绑定 —— `_inputFreeze` 在 4.5 段才建。
+                    blocked: () => _inputFreeze != null && _inputFreeze.IsBlocked);
                 _buildDriver.SelectedModuleId = defaultModule == int.MaxValue ? -1 : defaultModule;
             }
 
@@ -508,13 +512,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ② 模态开集 = 42 驱动经 `ModalGateStateAdapter`(提供者形态 —— UI 驱动在本段**之后**才建)。
             //    ⚠️ 未接上时 `ModalGateStateAdapter.IsOpen` 返回 false ⇒ **放行**(诚实降级),
             //      但那是「无 UI」的合法形态,不是「抑制生效」。
+            // 🔁 2026-10-31 收尾:同一个「模态开集」读面还要喂**输入冻结**(移动轴 + 建造)——
+            //    单实例共用,避免三处各自演化出「什么算挡路」的第二份判据。
+            var modalState = new ModalGateStateAdapter(() => _uiDriver);
             var interaction = new InteractionInputDriver(
                 _services,
                 () => _player != null ? _player.transform.position : Vector3.zero,
                 actorId,
-                new ModalGate(_services.EmergencyChannel,
-                              new ModalGateStateAdapter(() => _uiDriver)));
+                new ModalGate(_services.EmergencyChannel, modalState));
             _interactionDriver = interaction;
+            _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 
             // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──
             // Attach = 挂 onAfterUpdate + Emergency 动作解析 fail-loud(FindAction 落空 ⇒
@@ -1222,8 +1229,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 delta = Time.captureDeltaTime;
 
             long tickBefore = _tickDriver.CurrentTick;
+            // 🔁 2026-10-31:移动轴过模态冻结面 —— 此前暂停壳摊开时玩家照样走得动
+            //    (规则七只覆盖了 E/F 两条动作边,移动轴一直漏着)。
+            //    ⚠️ 只折零**轴**,不跳过 `PumpFrame`:tick 泵仍须每帧推进(世界不冻)。
+            Vector2 moveAxis = _inputFreeze != null
+                ? _inputFreeze.FilterMovement(MovementInputReader.ReadMoveAxis())
+                : MovementInputReader.ReadMoveAxis();
             MovementFeed.PumpFrame(_player, _tickDriver,
-                                   MovementInputReader.ReadMoveAxis(),
+                                   moveAxis,
                                    delta,
                                    StepVitals);
 
