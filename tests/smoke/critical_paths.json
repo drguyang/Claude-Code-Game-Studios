@@ -96,8 +96,11 @@
       "id": 12,
       "group": "B",
       "title": "病例结案:已处置判定来自处置事件,而非玩家复选框",
-      "status": "none",
-      "reason": "该判据的观测面在 42 呈现层(复选框是否参与),非纯逻辑面"
+      "status": "test",
+      "check": [
+        "DaYiJingCheng.Tests.CaseSystem.CaseClosePreconditionTest.test_ac3721_checkedButNoTreatmentInWindow_rejects",
+        "DaYiJingCheng.Tests.CaseSystem.CaseCloseWriterTest.test_caseClosed_treatmentOnOpenTick_inclusiveBoundary_closes"
+      ]
     },
     {
       "id": 13,
@@ -111,7 +114,7 @@
       "group": "B",
       "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
       "status": "none",
-      "reason": "抽取器的有界性未落端到端判据"
+      "reason": "CAP 的**执行点**有载体(`PresenceRegistry` 超界抛 + id 回滚,即本表 #6);但本条要的是「**52 抽池侧**不越界」—— 全树 `grep PatientAppear|DiseaseOnset` 在 `EditMode/RandomEvents/` **零命中**,即「52 的抽池 → 出现」这一段**生产路径没有夹具**(52 的 spawn 接线未落)。两条判据不同:#6 测『登记侧拒收』,本条测『抽取侧不产出越界量』"
     },
     {
       "id": 15,
@@ -159,8 +162,8 @@
       "id": 21,
       "group": "D",
       "title": "24 病人 × 20 Hz 求值不超 tick 预算(L_eval ≤ 50 ms)",
-      "status": "none",
-      "reason": "压力测未落具名载体(需 24 病人满场构造 + 计时夹具)"
+      "status": "test",
+      "check": "DaYiJingCheng.Tests.DiseaseSimulation.PatientCapTickBudgetTest.test_cap24_singleTickEvaluation_under50ms"
     },
     {
       "id": 22,
