@@ -403,6 +403,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             {
                 saveSlots.BindCommandSink(_saveSlotSink);
                 saveSlots.SetSlots(_saveSlots);
+                // 🔁 2026-10-31:开屏后把焦点落到第一行 —— 否则手柄玩家无处可走
+                //    (游戏没有指针)。⚠️ 无 panel 时 `Focus()` 会报错 ⇒ 先判,
+                //    无 panel 是合法的测试形态(逻辑树在、不渲染)。
+                VisualElement first = saveSlots.FirstFocusable;
+                if (first != null && first.panel != null) first.Focus();
             }
             if (_source != null) RefreshFromSource();
             return true;

@@ -57,7 +57,8 @@
  * 下限 44 = AB-3 焦点落点 ≥44×44 的高半 ⇒ 空行塌陷不可能。
  * 线宽走 var(C4 门禁 `border-*-width:\s*\d+px` 硬编码)。 */
 .ruled,
-.empty-row {
+.empty-row,
+.save-slot-item {
     border-bottom-width: var(--skeuo-shared-border-width);
     border-bottom-color: var(--skeuo-paper-rule);
     min-height: var(--skeuo-shared-row-height);

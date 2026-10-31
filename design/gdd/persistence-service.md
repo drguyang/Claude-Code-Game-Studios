@@ -614,9 +614,14 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 > + `ModalInputDriver`(键沿 → 开/关)+ `BootRoot` 装配 ⇒ 存档位屏**开得出来了**,
 > 「按键 → 开屏 → 点/确认一行 → 载入 → 本执行体」在**代码路径**上贯通
 > (判据 `modal_opener_test.cs` 7 条)。
-> ⚠️ **仍未验证的两处**(不得据此判「玩家真的能读档」):
-> ① 行元素有没有**点击面积**取决于 USS(编辑器赋值),本轮未验;
-> ② 焦点桥 / 输入冻结 / 4 侧 `ModalGate` 接线今日**均未接**(`ModalGate` 生产零构造)。
+> 🔁 **同日第三轮已收尾**:
+> ① 行**有高度了** —— `.save-slot-item` 并入 `.ruled, .empty-row` 的规则块(`min-height` 走
+>    `--skeuo-shared-row-height` = 44px,AB-3);此前有字行**零高度**,点不中也获不了焦。
+> ② 行 `focusable = true`、`tabIndex = 行序`(AC-7b-04 `slot_seq` 升序),开屏后焦点落第一行
+>    —— 焦点算法仍走官方 `FocusController`,不自实现。
+> ⚠️ **仍未验证 / 仍未接**(不得据此判 AC-42-F1② 走查通过):
+> ① 行的**实渲染**未验(USS 在编辑器里赋值,headless 下只有样式表文本判据);
+> ② 输入冻结 / 4 侧 `ModalGate` **仍未接**(生产零构造);
 > ③ 开合键 `Escape` 是**临时入口**,正式入口 = 暂停壳(7b 未成屏)。
 >
 > 判据:`unity/Assets/Tests/EditMode/Boot/config_version_drift_on_load_test.cs`(8 条)

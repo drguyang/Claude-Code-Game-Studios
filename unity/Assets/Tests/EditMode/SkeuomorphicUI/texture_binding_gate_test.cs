@@ -314,7 +314,12 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Act:两态必须**同一声明块**(拆块 = 各自下限漂移,等重失守);
             //      选择器顺序容错(评审 nit n3:`.empty-row, .ruled` 反序同样合法)
             var block = Regex.Match(body,
-                @"(\.ruled\s*,\s*\.empty-row|\.empty-row\s*,\s*\.ruled)\s*\{[^}]*\}");
+                @"(\.ruled\s*,\s*\.empty-row|\.empty-row\s*,\s*\.ruled)" +
+                @"(\s*,\s*[.\w-]+)*\s*\{[^}]*\}");
+            // 🔁 2026-10-31:`(\s*,\s*[.\w-]+)*` 允许**块内追加第三个类**(存档位有字行
+            //    `.save-slot-item` 需要同一高度/格线 —— 它若单独成块就是第二份声明,迟早漂移)。
+            //    本门的判据不变:两态仍须在**同一个**块里、仍走 var、仍锚 44px、
+            //    且两选择器全文仍各恰出现一次(下面那条 R2 的检查)。放宽的只是「块里有几个类」。
             Assert.IsTrue(block.Success,
                 "缺 `.ruled, .empty-row` 共同声明块 —— 脉案线格/空行格线不存在(AC-021-1)," +
                 "或两态被拆成两块(视觉等重的声明层失守,AC-021-2)。");

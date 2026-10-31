@@ -51,6 +51,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>当前画出的槽位行数(观测面;0 = 尚未收到槽位清单)。</summary>
         public int SlotRowCount => _rows.Count;
 
+        /// <summary>取某一行(观测面;越界 ⇒ <c>null</c>)。</summary>
+        public SaveSlotItem RowAt(int rowIndex)
+            => rowIndex >= 0 && rowIndex < _rows.Count ? _rows[rowIndex] : null;
+
         /// <summary>构建存档位界面 UI。</summary>
         private void BuildUI()
         {
@@ -87,11 +91,22 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 // `NavigationSubmitEvent`(ADR-011:不自实现焦点算法),指针给 `ClickEvent`。
                 row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));
                 row.RegisterCallback<ClickEvent>(_ => Activate(rowIndex));
+                // 焦点顺序 = 行序(AC-7b-04:`slot_seq` 升序,不可重排)。
+                // ⚠️ 不自己实现焦点算法 —— tabIndex + focusable 交给官方 `FocusController`
+                //    (ADR-013「不自实现焦点算法」);本屏只定**顺序**。
+                row.tabIndex = rowIndex;
                 _rows.Add(row);
                 _slots.Add(slotSeq);
                 host.Add(row);
             }
         }
+
+        /// <summary>
+        /// 打开时应落焦的第一行(<c>null</c> = 没有行)。
+        /// <para>由装配方(42 驱动)在开屏后请求聚焦 —— 游戏没有指针,「开了屏但焦点悬空」
+        /// 等于手柄玩家一步也走不了。</para>
+        /// </summary>
+        public VisualElement FirstFocusable => _rows.Count > 0 ? _rows[0] : null;
 
         /// <summary>
         /// 确认某一行(两条输入路径的唯一汇合点)。

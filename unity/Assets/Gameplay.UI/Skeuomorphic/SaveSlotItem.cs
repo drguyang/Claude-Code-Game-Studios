@@ -20,10 +20,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public bool IsEmpty { get; set; } = true;
 
         /// <summary>创建存档槽位项。</summary>
+        /// <remarks>
+        /// 🔁 2026-10-31:补 `focusable = true` —— 此前行**不可获焦**,
+        /// 于是 42 的焦点桥(官方 `FocusController`,ADR-011/ADR-013)根本走不到存档位,
+        /// 手柄玩家按不动任何一行。<c>tabIndex</c> 由 <c>SaveSlotsScreen</c> 按行序赋。
+        /// ⚠️ 尺寸不在这里给:`min-height` 归 USS(`.empty-row` / `.save-slot-item`
+        /// 同一声明块,AB-3 的 44 下限)—— 零高的元素即使可获焦也点不中。
+        /// </remarks>
         public SaveSlotItem(int slotIndex)
         {
             SlotIndex = slotIndex;
             AddToClassList(IsEmpty ? "empty-row" : "save-slot-item");
+            focusable = true;
         }
     }
 }

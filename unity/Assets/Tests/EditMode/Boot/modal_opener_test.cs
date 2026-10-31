@@ -157,6 +157,63 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.Throws<ArgumentNullException>(() => new ModalInputDriver(() => false, null));
         }
 
+        // ══════════════ ⑤ 焦点可达(游戏没有指针,焦点就是入口)══════════════
+
+        [Test]
+        public void test_saveSlotRows_areFocusable_inRowOrder()
+        {
+            _driver.OpenModal(ModalId.SaveSlots);
+            var screen = (SaveSlotsScreen)_driver.Screen;
+            screen.SetSlots(new uint[] { 1u, 2u, 3u });
+
+            for (int i = 0; i < screen.SlotRowCount; i++)
+            {
+                SaveSlotItem row = screen.RowAt(i);
+                Assert.That(row.focusable, Is.True,
+                    $"第 {i} 行不可获焦 —— 手柄玩家按不动它(焦点桥走不到)");
+                Assert.That(row.tabIndex, Is.EqualTo(i),
+                    "焦点顺序必须 = 行序(AC-7b-04:slot_seq 升序,不可重排)");
+            }
+
+            Assert.That(screen.FirstFocusable, Is.SameAs(screen.RowAt(0)),
+                "开屏后要落焦的那一行 = 第一行");
+        }
+
+        [Test]
+        public void test_saveSlotRows_haveRowHeightRule_inUss()
+        {
+            // ⚠️ 只读外部夹具的具名声明:读 `SkeuoPaper.uss`(拟物样式表)**必须**读真表而非内联 ——
+            //    本判据要证的就是「真样式表里有这条规则」,内联一份等于自证自。
+            //    只读、零写入(不违 test-standards 对可变外部状态的那一条)。
+            string uss = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(UnityEngine.Application.dataPath,
+                    "Gameplay.UI", "Skeuomorphic", "SkeuoPaper.uss"));
+
+            // ⚠️ 判据必须落在**选择器行**上,不能全文搜串 —— 注释里出现同名类
+            //    会顶替真规则(证伪轮实测:变异注释里带了类名 ⇒ 全文搜仍命中 ⇒ 假绿)。
+            var selector = new System.Text.RegularExpressions.Regex(
+                @"^\s*\.save-slot-item\s*[,{]", System.Text.RegularExpressions.RegexOptions.Multiline);
+            System.Text.RegularExpressions.Match m = selector.Match(uss);
+            Assert.That(m.Success, Is.True,
+                "样式表里没有 `.save-slot-item` 的**选择器行** —— 有字行零高度 ⇒ 点不中也获不了焦的落点");
+
+            int ruleAt = m.Index;
+            int blockEnd = uss.IndexOf('}', ruleAt);
+            string block = uss.Substring(ruleAt, blockEnd - ruleAt);
+            Assert.That(block, Does.Contain("min-height"),
+                "有字行必须与空行同 min-height(AB-3 的 44 下限)—— 否则行塌陷、点不中");
+        }
+
+        [Test]
+        public void test_openSaveSlots_withoutPanel_doesNotThrow()
+        {
+            // EditMode 下 rootVisualElement 无 panel(合法形态)⇒ 落焦要跳过而不是抛。
+            Assert.DoesNotThrow(() => _driver.OpenModal(ModalId.SaveSlots));
+            var screen = (SaveSlotsScreen)_driver.Screen;
+            screen.SetSlots(new uint[] { 1u });
+            Assert.That(screen.FirstFocusable, Is.Not.Null, "行在,焦点面就该存在");
+        }
+
         /// <summary>开合面的夹具实现(不碰引擎对象)。</summary>
         private sealed class FakeOpener : ModalOpener
         {
