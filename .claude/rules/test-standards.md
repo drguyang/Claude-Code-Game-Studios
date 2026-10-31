@@ -5,6 +5,10 @@ paths:
 
 # Test Standards
 
+> 🔁 **2026-10-31(`S21-13`)**:写夹具前先扫一遍 **`.claude/docs/coding-standards.md` §「假绿形态登记表」**
+> (F1–F9:自造断言顶替 AC / Fake 零命中 / 自指判据 / 空洞正控 / 跳过冒充 / 自述顶替门 / 借绿 /
+> 行为等价掩盖分叉 / `default(struct)` 绕过 fail-closed)。每条都带**可跑的检出手法**。
+
 - Test naming: `test_[system]_[scenario]_[expected_result]` pattern
 - Every test must have a clear arrange/act/assert structure
 - Unit tests must not depend on **mutable** external state (writes to filesystem, network, database)

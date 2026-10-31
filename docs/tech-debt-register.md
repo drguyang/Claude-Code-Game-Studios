@@ -3108,6 +3108,11 @@ S14-6 的两条音频产物从未入组;此前「189/189」之所以绿,是**构
 **判定:是系统性的,但集中度极高。** 31 个 epic · 158 篇 `Complete` story 中,命中 30 条 AC 层问题 +
 52 处跳过断言(第五形态,单形态面积最大)。**四个新 epic 命中**(telemetry-analytics · enemy-ai · combat-weapons ·
 skeuomorphic-ui / camera-viewpoint)—— 即病灶**不局限于已处理的三个 epic**。
+
+> 🔁 **2026-10-31(`S21-13`):假绿形态**已集中登记**到 `.claude/docs/coding-standards.md` §「假绿形态登记表」
+> (F1–F9,每条带可跑检出手法)。**写夹具 / 判「这条 AC 算不算已验证」之前先去那里扫一遍。**
+> ⚠️ **本节里的「第五形态」序号已作废** —— 该序号在 `retro-14` 与本册别处指的是**两件不同的事**;
+> 登记表按**名字**编号(F1–F9),任何地方引「第 N 形态」一律当「没有引用」处理。
 ⚠️ **反例同时成立**(证明并非全坏):item-database / input-system / persistence-service 的测试有真实生产消费方与
 可证伪断言(`save_service_test.cs:43-55` 翻转校验和字节后断言 `IsFalse`)⇒ **不得**推出「所有 Complete 都假绿」。
 

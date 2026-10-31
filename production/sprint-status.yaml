@@ -172,13 +172,13 @@ stories:
     name: "假绿形态登记表(已知 8 形态集中到一处)"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
-    note: "retro-20 Process Improvement 2。含已知五形态 + sprint-20 新抓三类(行为等价掩盖结构分叉 / 空洞正控 / `default(struct)` 绕过 fail-closed)。目标:下一次写夹具前能先查一遍。"
+    completed: "2026-10-31"
+    note: "**✅ 2026-10-31 收口(retro-20 Process Improvement 2;纯文书)**。落地件 = `.claude/docs/coding-standards.md` §「假绿形态登记表」,四列:形态名 / 症状 / **可机械跑的检出手法** / 已知实例与出处。**三处接线**(`tech-debt-register` 的 2026-10-18 普查节加指针 · `.claude/rules/test-standards.md` 顶部加指针 —— 那是写夹具时真正会读的文件)。🔴 **本卡最重要的发现是一条账目订正**:卡面与 `retro-20:213` 写「已知 **8** 形态」,按出处逐条核后实为 **9** 条 —— 差额来自 **F6「自述顶替门」与 F5「扫不到被测装配」在不同文档里各自被叫作「第五形态」**,计了一个没计另一个;而 `tech-debt-register:3122` 的「前四种」又没有逐条具名。⇒ 登记表**按名字编号 F1–F9 并宣布旧序号作废**(任何地方引「第 N 形态」一律当没有引用)。九条出处:自造断言(自造断言顶替 AC)· Fake 零命中(audio story-007/008/009)· 自指判据(`TD-clinic-19`)· 空洞正控/无负控(`TD-processing-01`/`-02`)· 跳过冒充(`retro-14:210` · `TD-epic-03`)· 自述顶替门(`S18-1` 规则九 AC ⑥)· 借绿(`sprint-16:266` · sprint-18 假分母 71)· 行为等价掩盖分叉 + `default(struct)` 绕过 fail-closed(均 `S20-4`)。**同族不合并**:`tools/falsify/README.md` 的「八种假存活」是**证伪轮自身**的失败模式,本表是**夹具/门看起来是绿**的形态,表内已写明互补关系。**出处核验 13 项全 ✅**(见下方验证记录)。🔍 **核验脚本自己踩了 F4**:首版 audio 三件那一条用了 `... || ls -d`,**`||` 使其恒真**(空正控)—— 自查改成精确 `find | wc -l == 3` 后复核通过;**这条如实记进卡片**,因为它正是登记表要防的东西。本卡不触碰 `unity/`;回归三元组 `2026-10-31T09:31–09:33 CST` · S21-13 全量 · `d1094002`+未提交:EditMode `6215/6178/0/0/37` · PlayMode `238/234/0/2/2`(均零回归)。"
 
 # 追加率预留:1 件(散件额度)。⚠️ 承 retro-20:遇**成链追加**须先做容量再裁定,
 # 超预留 2 倍即强制二选一(缩链 / 开新 sprint),不得默认全入账。
