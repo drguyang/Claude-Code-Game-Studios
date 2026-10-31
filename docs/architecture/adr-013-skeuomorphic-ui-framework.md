@@ -489,8 +489,9 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
   ⚠️ **接线判据的天花板**:`test_bootRoot_update_readsMoveAxisOnlyThroughResolveMoveAxis`
   扫的是**源码**(设备读面恰一次、且作为 `ResolveMoveAxis` 实参、`PumpFrame` 实参是折过零的局部),
   证明「接线在且唯一」—— **不**证明「Unity 每帧调 `Update`」(引擎契约,不是本仓代码)。
-- **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图;且 `design/ux/pause-shell-42.md`
-  不存在 ⇒ 按该 AC 的 `NOT-RUN` 纪律**阻塞签核**)。
+- **视觉走查**:`AC-42-F1` ⑧ 记 `NOT-RUN`(headless 出不了图)。spec 已于同日**起草**
+  (`design/ux/pause-shell-42.md`,Status = Draft,九条 AC 全 `[ ]`)⇒ 「判据不存在」这半边**只解除一半**:
+  Draft **未经 `/ux-review`、走查未执行**,按该 AC 的 `NOT-RUN` 纪律**仍阻塞签核**。
   🔁 **但「开屏落焦」这一条已从 NOT-RUN 转为可观测**(同批):`focus_on_open_test`(PlayMode,
   真 `PanelSettings`)直接查引擎 `focusController.focusedElement` —— 开暂停壳 ⇒ 焦点在第一行;
   换屏 ⇒ 焦点迁到新屏第一行且**不留在已移除的旧元素**。证伪 H1(删那两行 `Focus()`)⇒ 2 红。

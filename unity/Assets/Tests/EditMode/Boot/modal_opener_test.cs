@@ -323,6 +323,25 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
+        public void test_pauseRows_haveVisibleText()
+        {
+            // 🔁 2026-10-31 走查实测缺陷的回归钉:首版两行只有 `.ruled`,**零 Label**
+            //    ⇒ 行在、可点、可获焦,但玩家**什么都看不见**(三张走查截图里一次都没看见暂停壳)。
+            //    本判据只问「每行有没有可读文字」,不问排版/字体(那归美术轮)。
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            string[] expected = { "继续", "存档位" };
+            for (int i = 0; i < pause.RowCount; i++)
+            {
+                Label text = pause.RowAt(i).Q<Label>();
+                Assert.That(text, Is.Not.Null, $"第 {i} 行没有 Label —— 玩家看不见这一行");
+                Assert.That(text.text, Is.EqualTo(expected[i]),
+                    "行文案归 `pause-shell-42.md` §5,不得在别处改写");
+            }
+        }
+
+        [Test]
         public void test_pauseRows_areFocusable_inRowOrder()
         {
             _driver.OpenModal(ModalId.Pause);

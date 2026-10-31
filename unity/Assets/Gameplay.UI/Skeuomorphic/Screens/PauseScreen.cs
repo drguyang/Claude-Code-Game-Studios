@@ -83,6 +83,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 row.AddToClassList("ruled");
                 row.focusable = true;
                 row.tabIndex = i;
+                // ⚠️ **文字必须由本类写**(2026-10-31 走查实测的缺陷):首版两行只挂了 `.ruled`
+                //    的空元素,**没有任何 Label** ⇒ 行在、可点、可获焦,但玩家**什么都看不见**
+                //    (走查三张截图里一次都没看见暂停壳,只看见急救候选列表)。
+                //    文案权威 = `design/ux/pause-shell-42.md` §5(继续 / 存档位),不可在别处改写。
+                row.Add(new Label(i == 0 ? "继续" : "存档位"));
                 // 手柄经官方焦点桥给 NavigationSubmitEvent;指针给 ClickEvent
                 // (ADR-011:不自实现焦点算法)。
                 row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));

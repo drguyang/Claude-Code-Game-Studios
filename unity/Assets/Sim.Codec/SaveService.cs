@@ -332,17 +332,30 @@ namespace DaYiJingCheng.Sim.Codec
             string finalPath = GetFinalPath(slot);
             string bakPath = GetBakPath(slot);
 
-            if (File.Exists(finalPath))
+            bool finalExists = File.Exists(finalPath);
+            if (finalExists)
             {
                 byte[] data = File.ReadAllBytes(finalPath);
                 if (ValidateChecksum(data)) return data;
             }
 
             // 回退 bak
-            if (File.Exists(bakPath))
+            bool bakExists = File.Exists(bakPath);
+            if (bakExists)
             {
                 byte[] data = File.ReadAllBytes(bakPath);
                 if (ValidateChecksum(data)) return data;
+            }
+
+            // 🔁 2026-10-31(走查实测后按用户裁定「甲」拆分):**两个态必须分开**。
+            //    此前「两级文件都不存在」与「两级都坏」并成一类 ⇒ 玩家点一个从没存过的
+            //    空槽,控制台打红字「存档损坏且无法回退」——拒绝载入是对的,话是错的,
+            //    而且会让玩家以为自己丢了档。
+            //    判据 = **磁盘上有没有东西**:一个都没有 = 空槽(正常态);有但校验不过 = 损坏。
+            if (!finalExists && !bakExists)
+            {
+                // ⚠️ 同样**零 I/O** —— 不建空档、不删残档。空槽是正常态,不是要「修」的东西。
+                throw new SaveNotFoundException(slot);
             }
 
             // ── Corrupt 态:两级都坏(GDD :257 / AC-7a-15(b) / 规则十一) ──

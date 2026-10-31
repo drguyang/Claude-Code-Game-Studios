@@ -669,8 +669,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    (不崩、不造动作;与 42 侧「缺写通道 = 留空」同纪律)。
             _saveSlotCommands = new SaveSlotCommandRouter(
                 _services.LoadSequencer,
-                (slot, ex) => UnityEngine.Debug.LogError(
-                    "[7b][载入] 槽位 " + slot + " 载入失败(界面已受理、判定归 7a):" + ex));
+                (slot, ex) => LogLoadFailure(slot, ex));
             _uiDriver.SaveSlotSink = _saveSlotCommands;
             _uiDriver.SaveSlots = ManualSaveSlots;
 
@@ -1207,6 +1206,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 上行缝,联机(P1b · 45)才接,单机 Host 模式永不走它。</para>
         /// <para>急救动作不在此读(ADR-011 §二 独立直读通道);本文件只接普通移动。</para>
         /// </summary>
+        /// <summary>
+        /// 读档失败的记录面(2026-10-31 用户裁定「甲」):**空槽 ≠ 损坏**,两级日志分开。
+        /// <para>病因(走查实测):玩家点一个从没存过的空槽,控制台打红字「存档损坏且无法回退」
+        /// ——拒绝载入是对的,话是错的,而且会让玩家以为自己丢了档。</para>
+        /// <para>⚠️ 判据来源 = 7a 的**类型**(`SaveNotFoundException` vs `SaveCorruptException`),
+        /// 本层不猜、不解字符串(ADR-013 §9 C3 同源纪律:呈现层不猜)。</para>
+        /// </summary>
+        private static void LogLoadFailure(uint slot, System.Exception ex)
+        {
+            if (ex is DaYiJingCheng.Sim.Codec.SaveNotFoundException)
+            {
+                UnityEngine.Debug.Log(
+                    "[7b][载入] 槽位 " + slot + " 是空的(从未存过)—— 正常态,不是损坏:" + ex.Message);
+                return;
+            }
+            UnityEngine.Debug.LogError(
+                "[7b][载入] 槽位 " + slot + " 载入失败(界面已受理、判定归 7a):" + ex);
+        }
+
         /// <summary>
         /// 本帧移动轴 = 设备读面 → **模态冻结面**(全仓唯一折零点)。
         /// <para>⚠️ 单抽出这个方法是为了让「接线在不在」可被机械判据盯住:

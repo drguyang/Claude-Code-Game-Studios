@@ -158,9 +158,12 @@ namespace DaYiJingCheng.Tests.Boot
             _fallback.OnTicks(500);
 
             var sequencer = new LoadSequencer(loadSide, _trigger, _fallback);
-            Assert.Throws<SaveCorruptException>(
+            // 🔁 2026-10-31(用户裁定「甲」):两级文件**都不存在** = 空槽 ⇒ `SaveNotFoundException`;
+            //    `SaveCorruptException` 只保留给「有文件但校验不过」。原判据把两者并成一类,
+            //    正是走查里「点空槽报存档损坏」的根。
+            Assert.Throws<SaveNotFoundException>(
                 () => sequencer.Load(new SaveSlot(9)),
-                "不存在的槽位 ⇒ Load 抛(Verifying 两级皆缺 = Corrupt 态)");
+                "不存在的槽位 ⇒ Load 抛 SaveNotFoundException(空槽是正常态,不是 Corrupt)");
 
             Assert.AreEqual(500, _fallback.TicksSinceLastFire,
                 "原子序:Load 抛 ⇒ 兜底计数不清零");

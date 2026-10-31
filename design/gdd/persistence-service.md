@@ -633,6 +633,18 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 「已回退到最近检查点」,进迁移链继续;(b) `final` 与 `bak` 都坏,**THEN** 进入 `Corrupt` 态、
 抛指定异常,**槽目录文件数不变**(不静默新建空档、不 null 解引用)(BLOCKING)。
 
+> 🔁 **2026-10-31 补第三支(c):两个文件都不存在 = 空槽**(用户裁定「甲」)。
+> **GIVEN** `final` 与 `bak` **均不存在**(从没存过),**WHEN** 加载,**THEN** 抛
+> `SaveNotFoundException`(**不是** `SaveCorruptException`),且同样**零 I/O**;
+> 呈现侧应显示「此页空白」而不是报损坏。
+> **病因(走查实测)**:本 AC 原文只定义 (a)(b),`LoadBytes` 把「不存在」并进了 (b) ⇒
+> 玩家点一个从没存过的空槽,控制台打红字「存档损坏且无法回退」——**拒绝载入是对的,
+> 话是错的**,而且会让玩家以为自己的档坏了。判据 = **磁盘上有没有东西**:
+> 一个都没有 = 空槽(正常态);有但校验不过 = 损坏(异常态)。
+> 两个异常**互不继承**,`SaveNotFoundException` 同样不派生自 `IOException`(同因:
+> 会被可重试兜底静默吞掉)。判据 `save_service_test.cs` 四条(空槽类型 / 空槽零写盘 /
+> **final 缺但 bak 坏 ⇒ 仍是损坏** / 两类型互不冒充)。
+
 ### AC-7a-16(规则十二 · authority-agnostic:同步点与形状正交)
 
 **GIVEN** 同一份三流输入,**WHEN** 分别在「单机权威」与「模拟的主机权威」两种 authority 布局下

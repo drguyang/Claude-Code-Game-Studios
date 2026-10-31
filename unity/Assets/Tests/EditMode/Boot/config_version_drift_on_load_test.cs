@@ -229,8 +229,9 @@ namespace DaYiJingCheng.Tests.Boot
             var captured = new List<ConfigVersionCheck>();
             LoadSequencer sequencer = NewSequencer(captured);
 
-            Assert.Throws<SaveCorruptException>(() => sequencer.Load(new SaveSlot(2)),
-                "前提:槽 2 从未写过 ⇒ 读档在 LoadBytes 处失败");
+            // 🔁 2026-10-31:从未写过 ⇒ 现在是 `SaveNotFoundException`(空槽 ≠ 损坏)。
+            Assert.Throws<SaveNotFoundException>(() => sequencer.Load(new SaveSlot(2)),
+                "前提:槽 2 从未写过 ⇒ 读档在 LoadBytes 处以 SaveNotFoundException 失败");
 
             Assert.That(captured.Count, Is.EqualTo(0),
                 "读档失败却留下记录 ⇒ 排查者会以为这份档已经装进去了");

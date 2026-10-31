@@ -216,6 +216,70 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "(a) final 坏而 bak 好 ⇒ 自动回退,不得进入 Corrupt 态");
         }
 
+        // ══════════════════════════════════════════════════════════════════
+        // 「空槽」≠「损坏」(2026-10-31 用户裁定「甲」· 走查实测驱动)
+        //
+        // 病因:`LoadBytes` 原先把「两级文件都不存在」与「两级都坏」并成一类 ⇒ 玩家点一个
+        // 从没存过的空槽,控制台打红字「存档损坏且无法回退」。拒绝载入是对的,话是错的。
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_emptySlot_throwsSaveNotFound_notCorrupt()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec());
+            var slot = new SaveSlot(3);
+
+            var ex = Assert.Throws<SaveNotFoundException>(() => svc.LoadBytes(slot),
+                "两级文件都不存在 = 空槽(正常态)⇒ 必须是 SaveNotFoundException");
+            Assert.AreEqual(3U, ex.SlotSeq, "异常须点名是哪个槽空着");
+            Assert.IsFalse(ex is SaveCorruptException,
+                "空槽不是损坏的一种 —— 两者不得同型(呈现相反:空页 vs 报损坏)");
+        }
+
+        [Test]
+        public void test_emptySlot_createsNoFiles()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec());
+            Assert.Throws<SaveNotFoundException>(() => svc.LoadBytes(new SaveSlot(1)));
+
+            CollectionAssert.IsEmpty(Directory.GetFiles(_testDir),
+                "空槽是正常态,不是要「修」的东西 —— 不得静默新建空档(AC-7a-15(b) 同源纪律)");
+        }
+
+        [Test]
+        public void test_finalMissing_bakCorrupt_throwsCorrupt_notNotFound()
+        {
+            // ★ 判别力用例:这一条把「有没有文件」与「校验过不过」两件事分开。
+            //   若判据写成「任一文件缺失 ⇒ NotFound」,本用例会红 —— 但磁盘上**有**东西,
+            //   那东西是真坏的,必须报损坏。
+            var svc = new SaveService(_testDir, new SaveCodec());
+            var slot = new SaveSlot(1);
+            // 写两次才产生 bak(`WriteAtomic` 只在 final 已存在时才 final→bak 轮转)
+            svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
+            svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
+
+            string bakPath = Path.Combine(_testDir, "save_1.bak");
+            string finalPath = Path.Combine(_testDir, "save_1.bin");
+            Assert.IsTrue(File.Exists(bakPath), "夹具前提:两次写入后 bak 存在");
+
+            byte[] b = File.ReadAllBytes(bakPath); b[40] ^= 0xFF; File.WriteAllBytes(bakPath, b);
+            File.Delete(finalPath);                              // final 缺、bak 在但坏
+
+            Assert.Throws<SaveCorruptException>(() => svc.LoadBytes(slot),
+                "磁盘上有文件且校验不过 ⇒ 损坏(不是空槽);缺失≠损坏的判据是「有没有东西」");
+        }
+
+        [Test]
+        public void test_saveNotFound_isNotSubclassOfCorrupt_norIOException()
+        {
+            Assert.IsFalse(typeof(SaveNotFoundException).IsAssignableFrom(typeof(SaveCorruptException)),
+                "「损坏」不得冒充「没有」");
+            Assert.IsFalse(typeof(SaveCorruptException).IsAssignableFrom(typeof(SaveNotFoundException)),
+                "「没有」不得冒充「损坏」");
+            Assert.IsFalse(typeof(IOException).IsAssignableFrom(typeof(SaveNotFoundException)),
+                "不得派生自 IOException —— 否则会被可重试兜底静默吞掉(与 Corrupt 同因)");
+        }
+
         // AC-7a-15(b) 的可区分性:Corrupt 与「格式/版本」类失败**必须**能分开,
         // 且 Corrupt **不得**混进可被静默兜底的 IOException 家族
         [Test]
