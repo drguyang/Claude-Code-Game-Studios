@@ -195,12 +195,29 @@ World / MainMenu
 
 | 动作 | 输入(键鼠) | 输入(手柄) | 即时反馈 | 结果 |
 |------|-----------|-----------|---------|------|
-| 打开册 | 暂停壳入口 / 主菜单「继续诊治」(action 资产,3 绑重) | 同一 action 资产 | 开册 ≤200ms(§9) | 切 `ModalId.SaveSlots`;世界意图冻结、移动不冻 |
+| 打开册 | 暂停壳入口 / 主菜单「继续诊治」(action 资产,3 绑重) | 同一 action 资产 | 开册 ≤200ms(§9) | 切 `ModalId.SaveSlots`;世界意图冻结、移动不冻 ⚠️ **「移动不冻」已作废 —— 见下方注①** |
 | 关闭册 | 同一 toggle | 同一 toggle | 合册 | 回进入前状态栈;焦点回载体(P-02 · §7.1) |
 | 移焦(行/页缘) | 指针 hover = 快捷;方向键 | 左摇杆 / D-pad 经官方桥(P-01,禁自实现) | 焦点墨框 | 依 `slot_seq` 升序遍历 |
 | 载入 | 点行(South=Submit) | 行上 South=Submit | 笔迹「画押」动效(§9)→ 执行 | `ISaveService.Load(SaveSlot)`;随后拆册(§9) |
 | 存盘(落笔) | 空行 / 末行后 Submit(缝允许时) | 同一 Submit | 新行墨迹由淡入浓 | `Checkpoint(SaveSlot)`;**不跳页**,新行即第 1 焦点 |
 | 前页 / 后页 | 点页缘 / 滚轮 | L/R 肩 → 页缘行(焦点可落,无独占按钮) | 翻页 | 页内焦点重置为该页首行(**本 spec 的 ux-design 外推**,同 OQ-SB-2 的合法外推口径;⚠️ 原括注「或末,见 OQ-SB-1」系引据漂移 —— `OQ-SB-1` 问的是跨开合持久,与本行的**页内**落点不同题,已于 2026-09-22 单独结案;若「回翻是否落末行」日后果需独立裁决,另立条目) |
+
+> 🔁 **注①(2026-11-01 · 用户裁定「按现行为」)—— 上表「打开册」行的「**移动不冻**」不再成立**
+>
+> **现行口径:存档位屏开着时,移动轴同样冻结。**
+>
+> 落地:模态读面 `ModalGateStateAdapter.IsOpen` 读的是 `driver.BlocksPlay`
+> (`unity/Assets/Gameplay.Boot/ModalGateStateAdapter.cs:59`),而
+> `BlocksPlay = 当前模态 ≠ None` **且**「由 `OpenModal` **显式打开**」
+> (`SkeuoRuntimeDriver.cs:581`;`BlocksPlay` 定义见 `:549`)。存档位屏正是「显式打开」的那一类 ⇒ 它与暂停壳落进**同一个**
+> 输入冻结面 `ModalInputFreeze`(`BootRoot.cs:595`;消费点 `:1497` 移动轴 / `:560` 建造),
+> 世界 tick 也一并停(ADR-013 §十-C **Amendment D**,`ca452078`)。
+>
+> 判据(装配级,均带正控):`modal_gate_wiring_test.test_productionAssembly_modalOpen_zeroesMoveAxis`
+> / `…_freezesWorldTick`。
+>
+> ⚠️ **上表原文一字未删** —— 本注是它的现行口径;若将来要把移动冻结收窄成「只对暂停壳」,
+> 那是一次**裁定**(改 `BlocksPlay` 的读法或给存档位屏开第二档),不在本注的范围内。
 
 **手柄路径无「按钮形态」**:翻页走「焦点移到页缘行再 Submit」或肩键意图(两者都在 action 资产内,
 换绑不换语义 P-05);**South = Submit 归 7b**(规则七 `:180`),Interact 被模态冻结,零双触发。

@@ -25,8 +25,13 @@
 //   键盘注入走 `KeyboardState.Press` + 两条编辑器输入设置改写(与 `pause_focus_navigation_test`
 //   同一条实测结论:不改时键盘事件在普通帧被编辑器丢掉,且**不报错**)。
 //
-// ▍⚠️ 本夹具**不测**:焦点落点(`focus_on_open_test`)、UI 开合本身(`pause_focus_navigation_test`)、
-//   世界是否冻结(ADR-013 §十-C 明写「世界不冻,只挡意图」,本条不替它下结论)。
+//   D 世界 tick:模态开时 tick **不推进**(ADR-013 §十-C **Amendment D**,2026-11-01:冻结深度 =
+//               只停 sim tick;触发 = 所有挡路模态)。
+//        🔁 原文此处写「世界是否冻结不测 —— ADR-013 §十-C 明写『世界不冻』」:该口径已被
+//           **Amendment D** 推翻,本夹具第 4 条即其执行体。原文留档于此,不再成立。
+//
+// ▍⚠️ 本夹具**不测**:焦点落点(`focus_on_open_test` / `modal_focus_wiring_test`)、
+//   UI 开合本身(`pause_focus_navigation_test`)、联机时主机是否仍 tick(归 45,P1b)。
 
 using System;
 using System.Collections;
