@@ -82,6 +82,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "CheckManifestClosure",          // b3 装配封闭性
                     "CheckReferenceDuplicates",      // b3-refdup
                     "CheckGateA",                    // b2 门 A
+                    "CheckReferenceDeclarations",    // b2-decl 声明面(TD-gate-04)· 2026-10-31 接线上线
                     "CheckPayloadRefCallsites",      // b6 载荷手搓
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线

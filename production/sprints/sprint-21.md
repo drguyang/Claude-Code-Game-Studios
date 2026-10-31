@@ -105,8 +105,41 @@
 > @ `2026-10-31T07:50–07:52 CST` · S21-4 全量 · `cf5c3130`+未提交。
 > 还原 SHA-256 4/4,`FALSIFY-` 残留 0;债册 `closed 114 → 116` · `open 23 → 21` · `--check` exit 0。
 
-### Should Have(须先出裁定,或体量待定)
+> ✅ **`S21-5` 已于 `2026-10-31` 收口(两条治理债全闭)** ——
+> **`TD-gate-04`**(b2 门对「声明而未使用」的 asmdef 引用失明):
+> 取债描述修法方向 **①**(补读 asmdef 源 JSON 的 `references`),**未取 ②**(roslyn analyzer ——
+> ADR-024 §⑤ 已裁「不引 analyzer」)。新增门 `CheckReferenceDeclarations` 接进 `RunAll`
+> (手写接线清单同批加行)+ 纯函数 `DiffDeclaredVsUsed` / `ParseDeclaredRefs`。
+> ⚠️ **GUID 形必须解析**:实测 4 支装配(`Sim.Contracts.Tests` / `Gameplay.Tests` /
+> `SkeuomorphicUI.Tests` / `Casebook.Tests`)用 `GUID:<32 hex>` 记引用 —— 只认名字形的门
+> 在这 4 支上**全盲**,而失明症状是**全绿**(与本债同一种失效形态)。
+> ⚠️ **与债描述的一处收紧(如实登记)**:债写「声明 ∖ 使用 = 提示级」,本条把**门 A 三装配**
+> 升为**违例** —— ADR-025 §① 原文是「`Sim` 引用集**恰** = {BCL, Sim.Contracts}」,源级多一条声明即违反「恰」;
+> 其余装配维持提示级。**收紧,不是放宽。** AC-24-07 测同步补 **Assert 4**(声明面)。
+> **证伪**:M1(F1 形态——`Sim.asmdef` 加一条声明、源码一字不动)**超集 4 红**(Sim 组 3 + ClinicMachine 组 1,
+> 两个目标面全红)· M2(删接线)**exact 1 红** · M3(GUID 映射置 null)**exact 1 红**。
+> 🔴 **首版 M1 作废**:把 `// FALSIFY` 注释写进了 JSON ⇒ Unity `JSON parse error` + 编译失败
+> —— 那是**树坏了**,不是门红,不构成证据;重做为 M1b(合法 JSON + 未知键做残留标记)。
+> **本门落地当天抓到 3 条真实「声明未使用」**(`Editor.Tools.Spike`→`Sim`;
+> `SkeuomorphicUI.Tests`→`Sim` / `Sim.Codec`),提示级、**未清理**,已登记在债册。
+>
+> **`TD-smoke-01`**(`critical-paths.md` 是清单不是门):取修法方向 **③**(两者并用)。
+> 交付:`tests/smoke/critical_paths.json`(22 条**手写**机读表)+ `tests/smoke/run_smoke.py`
+> (双向一致性 + 逐条出口)+ `critical-paths.md` 的**过期状态表订正**(三条依赖早已解除而表未回填)
+> + `.claude/skills/smoke-check/SKILL.md` Phase 1 接线。
+> **退出码**:`0` 全 PASS · `1` 有失败 · `2` 清单↔表不一致(结构损坏)· `3` 无失败但仍有**无载体**条目
+> —— ⚠️ **3 不是 0**,「没有判据」与「通过了」是两件事。
+> **现状**:`test 7 · manual 3 · **none 12**`;12 条**逐条具名**并各带「为什么没有载体」,**不是整组 N/A**。
+> **证伪 6 条**:S1 删条目 / S2 幽灵条目 / S3 缺 `check` / S4 绑定不存在的测试 ⇒ 皆 **2**;
+> S5 把结果件里 `#5` 改成 `Failed` ⇒ **1**(证明不只在结构上红);S6 `--require-full` ⇒ **1**。
+> ⚠️ **本条闭的是「没有执行体」,不是「22 条都能跑了」**。
+>
+> **回归**:EditMode `6206/6169/0/0/37`(+9/+9 恰等)· PlayMode `238/234/0/2/2`(零回归)
+> @ `2026-10-31T08:14–08:15 CST` · S21-5 全量 · `ae916273`+未提交。
+> 还原 SHA-256 4/4(gate)+ 4/4(smoke),`FALSIFY-` 残留 0;债册 `closed 116 → 118` · `open 21 → 19`
+> · `--check` exit 0。
 
+### Should Have(须先出裁定,或体量待定)
 | ID | 卡 | 复杂度 | 前置 | 说明 |
 |---|---|---|---|---|
 | `S21-9` | **foraging 公式 vs 散文互斥 ×2**(`TD-foraging-01` `CapTable` · `-02` `GatherMul`) | **S** | ⚠️ **用户裁**(改公式 / 改散文) | 数值归用户 —— 我先出两案 + 各自影响面,**不预设**。裁完再实现 |

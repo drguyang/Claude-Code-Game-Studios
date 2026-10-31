@@ -18,6 +18,10 @@
 // ⚠️ 本件是 story-004 的证据件:只测**契约面**(DTO / 接口 / 守卫 / 白名单 / 交付配对),
 //    不复测 story-001/002/003 已交付的求值逻辑细节(表 schema / 析出 / 公式各归其卡)。
 //
+// 📖 只读外部夹具声明(test-standards 具名声明义务 · 2026-10-31 补):
+//    读 `Assets/Sim/Sim.asmdef`(**只读,零写盘**)—— AC-24-07 Assert 4 的声明面判据。
+//    **为什么必须读真表**:该断言的对象就是「真 asmdef 声明了什么」;内联一份假 JSON
+//    等于不测真表,而 AC-24-07 的整条意义就是「真装配的引用集合法」。
 // ⚠️ 21a clamp 契约**已就绪**(EnvModTotal 公开纯函数,2026-10-25 实测)⇒ 配对联测走
 //    **真件**,不需要 QA plan 预设的「接口桩 + Ignore(BLOCKED-BY)」形态 —— 真联测严格强于桩测。
 //
@@ -27,12 +31,14 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Clinic;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace DaYiJingCheng.Tests.ClinicMachine
 {
@@ -253,6 +259,21 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 Assert.That(bcl || r == "Sim.Contracts",
                     $"AC-24-07 白名单违例:Sim 直接引用「{r}」∉ {{BCL, Sim.Contracts}}");
             }
+
+            // Assert 4:**声明面**(TD-gate-04 · 2026-10-31 补)。
+            // Assert 1–3 全部读 `GetReferencedAssemblies()` = 编译产物元数据,而 C# 只为
+            // **实际使用**的程序集写 AssemblyRef ⇒ 它们对「asmdef 声明了、源码没用到」盲。
+            // 实测(S20-1 F1):只往 `Sim.asmdef` 加一条 `"Sim.Codec"` 声明,本测 **9/9 全绿**。
+            // ⇒ 补读源 JSON 的 `references`,这是同一 AC 的**另一半**载体。
+            string simAsmdef = Path.Combine(Application.dataPath, "Sim", "Sim.asmdef");
+            Assert.That(File.Exists(simAsmdef), Is.True, $"真 asmdef 未找到:{simAsmdef}");
+            var declared = AssemblyGates.ParseDeclaredRefs(
+                File.ReadAllText(simAsmdef), new Dictionary<string, string>(),
+                new HashSet<string> { "Sim", "Sim.Contracts", "Sim.Codec" }, out var unresolved);
+            Assert.That(unresolved, Is.Empty, "Sim.asmdef 有解析不了的引用 ⇒ 声明面对该条失明");
+            Assert.That(declared, Is.SubsetOf(new[] { "Sim.Contracts" }),
+                "AC-24-07 声明面违例:Sim.asmdef 声明了 {BCL, Sim.Contracts} 之外的工程内引用" +
+                "(编译产物面看不见这一条 —— TD-gate-04)");
         }
 
         // ══════════════════ ④ AC-24-01b:配对联测(24 出 / 21a 钳)══════════════════

@@ -427,7 +427,7 @@
 | `TD-gate-01` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-02` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
-| `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | open | **N** | R3-裁 |
+| `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
@@ -437,7 +437,7 @@
 | `TD-foraging-01` | `foraging` | open | **N** | R4 |
 | `TD-foraging-02` | `foraging` | open | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | closed | **N** | R3-裁 |
-| `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | open | **N** | R3-裁 |
+| `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | closed | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-building-04` | `modular-building` | open | **N** | R1 |
@@ -852,7 +852,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 141 | 状态 {'closed': 116, 'open': 21, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
+条目 141 | 状态 {'closed': 118, 'open': 19, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 37, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5185,10 +5185,55 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-gate-04** | `（跨 epic · 治理／Editor.Tools.Gates）` | **open** | **N** | R3-裁 |
+| **TD-gate-04** | `（跨 epic · 治理／Editor.Tools.Gates）` | **closed** | **N** | R3-裁 |
 
 > **`P0 面 = N`** —— 与 `TD-gate-01/02/03` 同口径(治理债,不进 M3 出口)。
 > **本条已加入 §★ 总索引** ⇒ 条目 `108 → 109`,`open +1`;**未闭 P0 面 62 一位不动**(本条 N)。
+
+#### TD-gate-04 关闭记录 —— b2 门补声明面(双向双判)+ GUID 形解析
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-5`)。上方债描述**原文不删**。取**修法方向 ①**
+> (b2 门补读 asmdef 源 JSON 的 `references`),未取 ②(roslyn analyzer —— ADR-024 §⑤ 已裁「不引 analyzer」,
+> ② 与本项目既有口径冲突)。
+
+- **新增门**:`AssemblyGates.CheckReferenceDeclarations`(接进 `RunAll`,与 `CheckGateA` 相邻;
+  手写接线清单 `gate_wiring_manifest_test.cs` 同批加行)。
+- **纯函数(可直测)**:`AssemblyGates.DiffDeclaredVsUsed`(双向差集)+
+  `AssemblyGates.ParseDeclaredRefs`(名字形 + **GUID 形**;解析不了的 GUID 进 `unresolved`,**不静默丢弃**)。
+- **⚠️ 与债描述的一处收紧(如实登记)**:债写「声明 ∖ 使用 = **提示级**,使用 ∖ 声明 = 违例」。
+  本条把**门 A 三装配**(`Sim` / `Sim.Contracts` / `Sim.Codec`)的「声明 ∖ 使用」升为**违例级** ——
+  理由:ADR-025 §① 原文是「`Sim` 引用集**恰** = {BCL, Sim.Contracts}」,**源级多一条声明即违反「恰」**,
+  不必等源码用到它。其余装配维持**提示级**(它们没有「恰 =」语义)。⇒ **收紧,不是放宽。**
+- **⚠️ GUID 形不是边角**:实测 4 支装配用 `GUID:<32 hex>` 记引用
+  (`Sim.Contracts.Tests` / `Gameplay.Tests` / `SkeuomorphicUI.Tests` / `Casebook.Tests`)。
+  只认名字形的门在这 4 支上**全盲**,而失明症状是全绿 —— 与本题同一种失效形态。M3 专打这一面。
+- **AC-24-07 同步补另一半**:`clinic_env_delivery_test.cs` 的
+  `test_ac2407_simAssembly_references_whitelist_enumeration` 增 **Assert 4**(读 `Sim.asmdef` 的 `references`)。
+  该件此前的 Assert 1–3 全部读元数据面,**对 F1 形态盲**(S20-1 实测 9/9 绿)。
+- **证伪(一属性一条,还原 SHA-256 逐字节)**:
+
+  | # | 属性 | 变异 | 红 | 口径 |
+  |---|---|---|---|---|
+  | **M1** | **F1 反例真被抓住**(声明面加一条,源码一字不动) | `Sim.asmdef` 的 `references` → `["Sim.Contracts","Sim.Codec"]` | **Sim 组 3 红**(`test_assemblyGates_runAll_zeroErrors_b3_b2_b6_b7` · `test_f1Counterexample_declaredButUnused_isCaught` · `test_realTree_noDeclaredOnly_noUsedOnly`)**+ ClinicMachine 组 1 红**(`test_ac2407_simAssembly_references_whitelist_enumeration`) | **超集**(4 红 ⊃ 两个目标面:门 + AC-24-07) |
+  | **M2** | 门**在链上** | 删 `RunAll` 里的 `CheckReferenceDeclarations(errs);` | `test_entryWiring_matchesManifest_bidirectionally` **恰 1 红** | exact |
+  | **M3** | **GUID 形不被漏** | `ParseDeclaredRefs(..., guidToName, ...)` → `(..., null, ...)` | `test_assemblyGates_runAll_zeroErrors_b3_b2_b6_b7` **恰 1 红**(4 支 GUID 装配全部报「解析不了」) | exact |
+
+  > 🔴 **首版 M1 作废,如实留档**:第一次注入把 `// FALSIFY-M1` 写进了 JSON ——
+  > **JSON 不许注释** ⇒ Unity 直接 `JSON parse error` + 编译失败(无 XML),
+  > 那不是「门转红」而是**树坏了**,不构成任何证据。作废重做(M1b:合法 JSON + 多余键
+  > `"falsifyMarker"` 做残留标记,Unity 忽略未知键)。上表记的是 **M1b** 的结果。
+
+- **本门落地当天就抓到 3 条真实的「声明未使用」**(提示级,未清理,登记于此):
+  `Editor.Tools.Spike` 声明 `Sim` 零使用 · `SkeuomorphicUI.Tests` 声明 `Sim` 与 `Sim.Codec` 零使用。
+  复算:`grep -c "b2-decl.*提示级" <EditMode 运行日志>`。⇒ 它们此前**完全不可见**。
+- **残留(不属本条,具名)**:
+  ① **b5(`RunAudioBoundary`)的引用集白名单未接同一声明面** —— 它也是「白名单 = 程序集引用集枚举比对」,
+     同受本债之限;本条只接了 b2 与 AC-24-07。
+  ② 全仓**仍有 19 个测试文件**读 `GetReferencedAssemblies()`
+     (`grep -rl "GetReferencedAssemblies" unity/Assets/Tests/ | wc -l` → 19)——
+     未逐条补声明面。它们大多判的是**别的装配**,不在本条裁决面。
+  ③ 「使用 ∖ 声明」面今天结构性为空,本门当前的**真实价值**是拦**自身解析漏**(GUID / 正则),
+     不是拦 Unity 的合法组合 —— 不得读成「引用集越界已被全面封堵」。
 
 ---
 
@@ -5509,9 +5554,53 @@ grep -h -m1 'Status\*\*' production/epics/inventory-items/story-00{1,2}-*.md \
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-smoke-01** | `（跨 epic · 治理／tests/smoke 可执行化）` | **open** | **N** | R3-裁 |
+| **TD-smoke-01** | `（跨 epic · 治理／tests/smoke 可执行化）` | **closed** | **N** | R3-裁 |
 
 > **`P0 面 = N`** —— 无归属 epic(治理面),承 §一 **R3 裁量判据**;不改变 `未闭 P0 面 60`。
+
+#### TD-smoke-01 关闭记录 —— 执行体骨架 + PASS/FAIL 出口 + 12 条无载体逐条具名
+
+> ✅ **`2026-10-31` 已闭**(sprint-21 `S21-5`)。上方债描述**原文不删**。取**修法方向 ③**
+> (两者并用:能自动的绑定夹具,不能自动的显式具名)。
+
+- **交付三件**:
+  | 件 | 落点 | 作用 |
+  |---|---|---|
+  | **机读表**(手写) | `tests/smoke/critical_paths.json` | 22 条 × 四字段(`status` / `check` / `protocol` / `reason`) |
+  | **执行体** | `tests/smoke/run_smoke.py` | 双向一致性校验 + 逐条出口 + 四档退出码 |
+  | **清单订正** | `tests/smoke/critical-paths.md` | 过期状态表三处订正(工程根 / asmdef / SimTickDriver **早已在盘**) |
+- **接线**:`.claude/skills/smoke-check/SKILL.md` Phase 1 第 4 步 ——
+  有 `run_smoke.py` 时**以它的退出码为 A–D 的判定**,不再由散文清单整组报 N/A。
+- **退出码(这就是「PASS/FAIL 出口」)**:
+
+  | 码 | 含义 | 为什么单列 |
+  |---|---|---|
+  | `0` | 22 条全部由可执行判据给出 PASS | 唯一可称绿的状态 |
+  | `1` | 有执行过且失败 | 真红 |
+  | `2` | 清单 ↔ 机读表不一致 / 表项缺字段 / 绑定的测试在结果件里查无 | **结构损坏**,不是「少跑一条」 |
+  | `3` | 无失败,但仍有具名**无载体**条目 | ⚠️ **3 不是 0** —— 「没有判据」≠「通过」 |
+
+- **现状实测(2026-10-31)**:`test` **7** · `manual` **3** · `none` **12**。
+  复算:`python3 tests/smoke/run_smoke.py; echo "exit=$?"` → 末行
+  `合计 22 条 | 自动 PASS 0 · 自动 FAIL 0 · 未跑(需结果件) 7 · 具名人工 3 · 无名 12`,`exit=3`;
+  带真结果件(`--results`)时 7 条全 PASS,仍 `exit=3`(因 12 条无载体)。
+- **证伪 6 条(纯数据,不动 Unity;每条都还原并 SHA-256 校验)**:
+
+  | # | 打的属性 | 变异 | 实得 |
+  |---|---|---|---|
+  | S1 | md ↔ 表 差集 | 删 json 的 `#15`(md 有、表无) | **2** ✅ |
+  | S2 | 同上反方向 | 加幽灵 `#23`(表有、md 无) | **2** ✅ |
+  | S3 | 字段完整性 | `#5` 去掉 `check` | **2** ✅ |
+  | S4 | 绑定测试查无 | `#16` 指向不存在的测试全名 + `--results` | **2** ✅(不得静默当「未跑」) |
+  | S5 | **失败传播** | 把 `#5` 的结果件结果改成 `Failed` | **1** ✅(证明不只在结构上红) |
+  | S6 | CI 硬门开关 | `--require-full`(基线数据) | **1** ✅ |
+
+- **⚠️「本条闭了」不等于「22 条都能跑了」**:闭的是**「没有执行体、无法产生 PASS/FAIL」**;
+  12 条**仍无载体**,现在它们**逐条具名 + 各带一条「为什么没有载体」**,
+  不再是一个整组的 N/A。让它们归零是后续实现轮的事(债描述 §影响面 ② 的 A1「游戏能不能起来」
+  仍**不是**本条的兑现面 —— 那条要真启动序)。
+- **与 `TD-ci-01` 的关系不变**:`#18` / `#22` 两条无载体的理由**就是** `TD-ci-01`(EXTERNAL),
+  两者不同型(凭证 vs 工期),勿混读。
 
 #### 一之补 · 同轮发现的账册缺陷(不在本条裁决面,如实登记)
 

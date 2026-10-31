@@ -126,7 +126,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(RuleNineGate.RunAll("."));           // AC ⑥ · 规则九
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
-                ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 " +
+                ? "[AssemblyGates] b2/b2-decl/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 " +
                   "+ 6 生态区整数门 + 10 急救整数门 + 9 常量登记门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
@@ -137,6 +137,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             CheckManifestClosure(errs);      // b3
             CheckReferenceDuplicates(errs);  // b3-refdup(复盘行动项 2 · sprint-13 S13-4)
             CheckGateA(errs);                // b2
+            CheckReferenceDeclarations(errs); // b2-decl(TD-gate-04 · 2026-10-31)
             CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
             // b7 写者存在性门(M2 阶段 2 · 批次 D,2026-10-10):registry 每支 author 声明
             // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
@@ -250,6 +251,152 @@ namespace DaYiJingCheng.EditorTools.Gates
                         errs.Add($"[b2] Sim 引用集出现 BCL∪{{Sim.Contracts}} 之外的「{r}」—— " +
                                  "期望引用集白名单违例(ADR-025 §①)。");
                 }
+            }
+        }
+
+        // ═══ b2-decl 声明面:asmdef 源 JSON 的 `references` ↔ 编译产物引用集 ═══
+        // TD-gate-04(2026-10-31 · sprint-21 S21-5 收口)。病因(S20-1 证伪轮 F1 实测):
+        //   只向 `Sim.asmdef` 注入 `"Sim.Codec"` 引用**声明**(源码零使用),重编译后
+        //   b2 门 `CheckGateA` 与 AC-24-07 白名单测 **9/9 全绿**。
+        // 根因:C# 只为**实际使用**的程序集在元数据写 `AssemblyRef` ⇒ 任何只读
+        //   `GetReferencedAssemblies()` 的判据对「声明而未使用」**结构性盲**。
+        //
+        // 本门补的是**声明面**:直读 asmdef 源 JSON,与编译产物面成**双向差集**:
+        //   声明 ∖ 使用 —— 门 A 三装配 ⇒ **违例**(ADR-025 §① 原文是「`Sim` 引用集**恰** =
+        //                  {BCL, Sim.Contracts}」:源级多一条声明即违反「恰」,不必等源码用到它);
+        //                  其余装配 ⇒ **提示级**(它们没有「恰 =」语义,合法形态存在)
+        //   使用 ∖ 声明 —— **一律违例**(fail-closed)。今天结构性不可能(Unity 不允许
+        //                  未声明地使用工程内装配)⇒ 它拦的是**本门自己的解析漏**:
+        //                  GUID 解析失败 / asmdef 改名漂移 / 正则失配。
+        //                  ⇒ 没有它,「解析全失败」会让本门静默全绿,正是它要消灭的失效形态。
+        //
+        // ⚠️ **GUID 形必须解析**:实测 4 支装配(`Sim.Contracts.Tests` / `Gameplay.Tests` /
+        //    `SkeuomorphicUI.Tests` / `Casebook.Tests`)用 `GUID:<32 hex>` 记引用 ——
+        //    只认名字形的门在这 4 支上**全盲**,而症状是全绿。
+        //    复算:`grep -c 'GUID:' unity/Assets/**/*.asmdef`(2026-10-31 实测 4 支命中)
+        //
+        // ⚠️ **扫描面仅限 `Assets/`**:与 b3 同口径(ADR-025 §④ 管的是本项目 asmdef)。
+
+        /// <summary>声明面判为**违例**级的装配集(ADR-025 §①「恰 =」的三支)。</summary>
+        public static readonly string[] DeclStrictAssemblies = { "Sim", "Sim.Contracts", "Sim.Codec" };
+
+        /// <summary><see cref="DeclStrictAssemblies"/> 的集合形(供 <see cref="DiffDeclaredVsUsed"/> 与测试共用)。</summary>
+        public static readonly HashSet<string> DeclStrictSet =
+            new HashSet<string>(DeclStrictAssemblies, StringComparer.Ordinal);
+
+        /// <summary>声明面 ↔ 使用面的双向差集(纯函数,零 I/O —— 测试直接喂合成输入)。</summary>
+        public sealed class RefDeclDiff
+        {
+            /// <summary>声明了但编译产物里没有(门 A ⇒ 违例;其余 ⇒ 提示级)。</summary>
+            public readonly List<string> DeclaredOnly = new List<string>();
+            /// <summary>编译产物里有但没声明(一律违例;今天只可能是解析漏)。</summary>
+            public readonly List<string> UsedOnly = new List<string>();
+        }
+
+        /// <summary>
+        /// 双向差集。**只比工程自有装配**(<paramref name="projectAssemblies"/>)——
+        /// 引擎 / 包程序的「声明未使用」不在本条裁决面。
+        /// </summary>
+        public static RefDeclDiff DiffDeclaredVsUsed(
+            IEnumerable<string> declared, IEnumerable<string> usedAssemblyRefs, ISet<string> projectAssemblies)
+        {
+            var decl = new HashSet<string>(declared ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+            var used = new HashSet<string>(
+                (usedAssemblyRefs ?? Enumerable.Empty<string>()).Where(projectAssemblies.Contains),
+                StringComparer.Ordinal);
+
+            var diff = new RefDeclDiff();
+            diff.DeclaredOnly.AddRange(decl.Except(used).OrderBy(x => x, StringComparer.Ordinal));
+            diff.UsedOnly.AddRange(used.Except(decl).OrderBy(x => x, StringComparer.Ordinal));
+            return diff;
+        }
+
+        /// <summary>
+        /// 解析 asmdef JSON 的 `references` 数组,交出**工程内**装配名。
+        /// <para>名字形原样返回;`GUID:<hex>` 形经 <paramref name="guidToName"/> 还原。
+        /// **还原不了的 GUID 原样放进 <paramref name="unresolved"/>**(不静默丢弃 ——
+        /// 丢弃 = 解析失败伪装成「没声明」,那正是本门要消灭的静默形态)。</para>
+        /// </summary>
+        public static List<string> ParseDeclaredRefs(
+            string asmdefJson, IReadOnlyDictionary<string, string> guidToName,
+            ISet<string> projectAssemblies, out List<string> unresolved)
+        {
+            unresolved = new List<string>();
+            var names = new List<string>();
+            if (asmdefJson == null) return names;
+
+            var block = Regex.Match(asmdefJson, "\"references\"\\s*:\\s*\\[(.*?)\\]", RegexOptions.Singleline);
+            if (!block.Success) return names;
+
+            foreach (Match m in Regex.Matches(block.Groups[1].Value, "\"([^\"]*)\""))
+            {
+                string raw = m.Groups[1].Value;
+                if (raw.StartsWith("GUID:", StringComparison.OrdinalIgnoreCase))
+                {
+                    string hex = raw.Substring(5).Trim();
+                    if (guidToName != null && guidToName.TryGetValue(hex, out string resolved))
+                        names.Add(resolved);
+                    else
+                        unresolved.Add(raw);
+                    continue;
+                }
+                // 名字形:只收工程自有的(包 / 引擎装配不在本条裁决面)。
+                if (projectAssemblies != null && projectAssemblies.Contains(raw)) names.Add(raw);
+            }
+            return names;
+        }
+
+        private static void CheckReferenceDeclarations(List<string> errs)
+        {
+            var pathByName = new Dictionary<string, string>(StringComparer.Ordinal);
+            var guidToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var f in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
+            {
+                var nm = Regex.Match(File.ReadAllText(f), "\"name\"\\s*:\\s*\"([^\"]+)\"");
+                if (!nm.Success) continue;
+                string name = nm.Groups[1].Value;
+                pathByName[name] = f;
+                var g = File.Exists(f + ".meta")
+                    ? Regex.Match(File.ReadAllText(f + ".meta"), "^guid:\\s*([0-9a-fA-F]{32})", RegexOptions.Multiline)
+                    : null;
+                if (g != null && g.Success) guidToName[g.Groups[1].Value] = name;
+            }
+
+            var strict = DeclStrictSet;
+            foreach (var asmName in Manifest.OrderBy(n => n, StringComparer.Ordinal))
+            {
+                var asm = AppDomain.CurrentDomain.GetAssemblies()
+                              .FirstOrDefault(a => a.GetName().Name == asmName);
+                // 编译失败时本断言不可用 —— 红在编译器,不重复报(与 CheckGateA 同口径)。
+                if (asm == null) continue;
+                if (!pathByName.TryGetValue(asmName, out string path))
+                    continue;   // asmdef 缺失已由 b3 报,不重复
+
+                var declared = ParseDeclaredRefs(File.ReadAllText(path), guidToName, Manifest, out var unresolved);
+                foreach (var u in unresolved)
+                    errs.Add($"[b2-decl] 装配「{asmName}」的 asmdef 引用「{u}」无法解析到装配名 —— " +
+                             "GUID 不在任何 *.asmdef.meta 里(改名 / 删件 / 手工编辑)⇒ 声明面对该条**失明**,拒绝放行。");
+
+                var used = asm.GetReferencedAssemblies().Select(r => r.Name);
+                var diff = DiffDeclaredVsUsed(declared, used, Manifest);
+
+                if (strict.Contains(asmName))
+                {
+                    foreach (var r in diff.DeclaredOnly)
+                        errs.Add($"[b2-decl] 门 A 装配「{asmName}」**声明**了工程内引用「{r}」但源码零使用 —— " +
+                                 "ADR-025 §① 是「引用集**恰** = {BCL, Sim.Contracts}」,源级多一条声明即违例" +
+                                 "(TD-gate-04:编译产物面看不见这一条,本门看声明面)。");
+                }
+                else
+                {
+                    foreach (var r in diff.DeclaredOnly)
+                        Debug.LogWarning($"[b2-decl] 装配「{asmName}」声明了工程内引用「{r}」但源码零使用 —— " +
+                                         "提示级(该装配无「恰 =」语义);确认它不是遗留声明。");
+                }
+
+                foreach (var r in diff.UsedOnly)
+                    errs.Add($"[b2-decl] 装配「{asmName}」**使用**了工程内引用「{r}」但 asmdef 未声明 —— " +
+                             "今天 Unity 不允许这种组合 ⇒ 本门解析面漏了(GUID 失配 / 正则失配)。拒绝放行。");
             }
         }
 

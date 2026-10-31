@@ -63,6 +63,28 @@ Before running anything, understand the environment:
    Phase 4. If neither exists, smoke tests will be drawn from the current QA
    plan (Phase 4 fallback).
 
+   **🔁 2026-10-31(TD-smoke-01 起):`tests/smoke/` 有执行体时以它为准,不用散文清单** ——
+   若 `tests/smoke/run_smoke.py` 存在,先跑:
+
+   ```bash
+   python3 tests/smoke/run_smoke.py [--results <unity-test-results.xml>]
+   ```
+
+   它的退出码**就是** A–D 的判定,不必再由本 skill 逐条问人:
+
+   | 退出码 | 含义 | 报告里怎么写 |
+   |---|---|---|
+   | 0 | 22 条全部由可执行判据给出 PASS | `A–D: PASS (runner exit 0)` |
+   | 1 | 有执行过且失败 | `A–D: **FAIL**` —— 按 FAIL 计入 verdict |
+   | 2 | 清单 ↔ 机读表不一致(结构损坏) | `A–D: **NOT-VERIFIED**(runner exit 2)` —— **不得**记 N/A 后给 PASS |
+   | 3 | 无失败但仍有具名**无载体**条目 | `A–D: **INCOMPLETE**` —— 逐条抄出 run_smoke.py 打印的「无载体条目」清单 |
+
+   ⚠️ **退出码 3 不等于通过。** 把 3 读成绿正是 `TD-smoke-01` 要消灭的形态
+   (整组 N/A 却报 PASS)。verdict 里若出现 `INCOMPLETE`,总判定**不得**为 PASS ——
+   最多 `PASS WITH WARNINGS`,且必须列出无载体条目。
+   ⚠️ 未给 `--results` 时 7 条 `test` 项会报 `NOT-RUN(需 --results)`,同样按未跑计。
+
+
 5. **QA plan check**: glob `production/qa/qa-plan-*.md` and take the most
    recently modified file. If found, note the path — it will be used in
    Phase 3 and Phase 4. If not found, note: "No QA plan found. Run
