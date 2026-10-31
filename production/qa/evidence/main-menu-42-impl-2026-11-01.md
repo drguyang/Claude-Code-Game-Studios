@@ -149,7 +149,7 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
 | **EditMode** | `6326 / 6289 passed / 0 failed / 37 skipped` | `6323 / 6286 / 0 / 0 / 37` | `6326 − 6323 = 3` = 新增 `main_menu_static_test` 的 3 条 ✅ |
 | **PlayMode** | `269 / 265 passed / 0 failed / 2 skipped (+2 inconclusive)` | `262 / 258 / 0 / 2 / 2` | `269 − 262 = 7` = 新增 `main_menu_wiring_test` 的 7 条 ✅ |
 
-- 执行时刻:**2026-11-01 07:2x / 07:4x CST**;批次:**主菜单实现轮**;commit:**工作树(未提交,提交前核对)**。
+- 执行时刻:**2026-11-01 07:2x / 07:4x CST**;批次:**主菜单实现轮**;commit:**`04f69ba8`**(本轮代码提交;本文件随其后一笔文档提交)。
 - 引擎 `6000.3.24f1` · Linux · `-nographics`;两条命令均先 `grep -c "error CS"` = 0。
 - 2 条 **Inconclusive** 是既有的 `U1Assump6GamepadFocusSpikeTest.*_notRun`(探针件,按设计不跑),非本轮引入。
 
