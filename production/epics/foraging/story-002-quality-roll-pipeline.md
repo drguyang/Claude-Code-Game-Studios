@@ -164,6 +164,14 @@ Implementation Notes 第 6 条已预见此情形)。⇒ 本件的绿覆盖「算
 | ADVISORY | **AC-17-02 跨平台半边未验** —— 基础设施缺口(ADR-012),非本 story 缺陷 |
 | ADVISORY | **真表侧不可判** —— 21a 四行无 `quality_distribution`,S20-3 已登,归 21a 形状落地轮 |
 | ADVISORY | **`GatherMul` 阶跃曲线** —— 已登 `TD-foraging-02`(open · P0 面 N),归数值轮 |
+
+> 🔁 **2026-10-31 订正(`S21-9`,用户裁定「甲-02」)**:上一行的 ADVISORY **已闭合** ——
+> `TD-foraging-02` 转 `closed`,`GatherMul` 求值域改为定点有理数(`Fix.FromRational`)⇒ **逐级连续**;
+> **数值一个没动**(分母 30 · 端点 3.0 · `GATHER_MUL_CAP = 3`)。
+> ⚠️ 本 story 已 `Complete`,**上文原文不删**(它记的是 `2026-10-26` 的实测),
+> 本行只作结案指针;本文件**未改**任何 AC 文本 —— AC-17-15 的四条形状判据在新形态下**全部仍成立**
+> (见 `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs`)。
+> 详见 `docs/tech-debt-register.md` 的 `TD-foraging-02 关闭记录`。
 | ADVISORY | **`_monoSideOnly` 用例证的是「纯函数性」,不是「跨进程一致性」** —— 100 次重跑在同进程内完成,共享同一份 JIT 产物与同一块内存布局。它排除「实现里有可变状态」,**不排除**「不同进程/不同平台因溢出 UB 给出不同结果」。后者正是 ADR-012 F7 spike 要测的东西,**本件没有触及** ⇒ 不得把这条绿读作「跨平台已有半保障」 |
 
 ### 收口判定(2026-10-26 · /story-done · lean 模式)

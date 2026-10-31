@@ -18,10 +18,12 @@
 //    这不是省事:story 的 Implementation Notes 第 6 条明写「数值未裁不阻塞,以合成夹具驱动」。
 //    ⚠️ 但**真表侧不可判**这一点须在 story 卡上如实登记,不得因为测试全绿就说「整条 AC 已验」。
 //
-// ⚠️ **`GatherMul` 是阶跃曲线不是连续曲线**。`1 + L/30` 在整数除法下只产出 {1,2,3}
-//    (L∈[0,29]→1 · [30,59]→2 · 60→3)。已登 `TD-foraging-02`,归数值轮。
-//    本文件的 AC-17-15 用例断的是「字面式落地的形状」,**不是**「曲线平滑」——
-//    把它说成后者就是给一个错误的设计背书。
+// 🔁 **2026-10-31(`S21-9` · `TD-foraging-02` 结案,用户裁定「甲-02」)**:
+//    `GatherMul` 已由**整数除法**改为**定点有理数**(`Fix.FromRational`)
+//    ⇒ **逐级连续**(L=0 → 1.0 · L=15 → 1.5 · L=60 → 3.0),不再是 {1,2,3} 三档阶跃。
+//    ⚠️ **数值一个没动**(分母 30 / 端点 3.0 / `GATHER_MUL_CAP = 3` 全是 2026-10-06 原裁值)。
+//    ⇒ 本文件 AC-17-15 的用例现断「**严格递增**」,**且**原先不可达的「.5 舍入路径」
+//      (`test_ac1715_harvestQty_halfValueRoundsAwayFromZero`)已经兑现 —— 那是旧注释里的许诺。
 //
 // ⚠️ 零随机种子(全部 seed 是写死的字面量)· 零时间依赖 · 零文件 I/O。
 
@@ -390,36 +392,61 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         }
 
         [Test]
-        public void test_ac1715_gatherMul_isStepwise_notContinuous()
+        public void test_ac1715_gatherMul_isStrictlyIncreasing_noFlatSegments()
         {
-            // ⚠️ **这条测的是「当前字面式的实际形状」,不是「设计正确」**。
-            // `1 + L/30` 整数除法 ⇒ 只有 {1, 2, 3} 三档:
-            //   L ∈ [0, 29] → 1 ; L ∈ [30, 59] → 2 ; L = 60 → 3
-            // 已登 TD-foraging-02。本测的作用 = 把这个形状钉死,将来数值轮改公式时
-            // **它一定会红**,从而强制那次改动被看见而不是静默发生。
+            // 🔁 2026-10-31(`S21-9` · `TD-foraging-02` 结案,用户裁定「甲-02」)。
+            // 旧实现 `1 + L/30` 走**整数除法** ⇒ 只 {1,2,3} 三档,
+            // L=1 与 L=29 完全同权(中间 58 档毫无差别)。
+            // 现走 `Fix.FromRational(level, 30)` ⇒ 逐级连续。
+            //
+            // 本测的判别力 = **任一级与上一级相等即红** —— 把实现改回整数除法必然全红。
             ForagingConstants c = LegalConstants();
 
-            Assert.That(GatherQualityRoll.GatherMul(0, c).Raw, Is.EqualTo(Fix.OneRaw), "L=0 → 1");
-            Assert.That(GatherQualityRoll.GatherMul(29, c).Raw, Is.EqualTo(Fix.OneRaw), "L=29 → 1");
-            Assert.That(GatherQualityRoll.GatherMul(30, c).Raw, Is.EqualTo(MulRawOf(2)), "L=30 → 2");
-            Assert.That(GatherQualityRoll.GatherMul(59, c).Raw, Is.EqualTo(MulRawOf(2)), "L=59 → 2");
-            Assert.That(GatherQualityRoll.GatherMul(60, c).Raw, Is.EqualTo(MulRawOf(3)), "L=60 → 3");
+            Assert.That(GatherQualityRoll.GatherMul(0, c).Raw, Is.EqualTo(Fix.OneRaw), "L=0 → 1.0");
+            Assert.That(GatherQualityRoll.GatherMul(15, c).Raw, Is.EqualTo(98304L),
+                "L=15 → 1.5(raw 98304 = 65536 + 32768)—— 定点有理数的中点,整数除下应为 1.0");
+
+            long prev = GatherQualityRoll.GatherMul(0, c).Raw;
+            for (int L = 1; L <= ForagingConstants.MaxSkillLevel; L++)
+            {
+                long cur = GatherQualityRoll.GatherMul(L, c).Raw;
+                Assert.That(cur, Is.GreaterThan(prev),
+                    $"GatherMul 须**严格**递增(平坦段 = 阶梯回归);L={L} 得 raw {cur},上一级 {prev}");
+                prev = cur;
+            }
+
+            // 旧阶梯的两个断点:现在两侧必须不相等
+            Assert.That(GatherQualityRoll.GatherMul(29, c).Raw,
+                Is.Not.EqualTo(GatherQualityRoll.GatherMul(30, c).Raw),
+                "L=29 与 L=30 在整数除法下相等(都是 2.0);改回整数除 ⇒ 本行红");
+
+            // 端点仍恰撞 CAP(数值未动)
+            Assert.That(GatherQualityRoll.GatherMul(ForagingConstants.MaxSkillLevel, c).Raw,
+                Is.EqualTo(c.GatherMulCap.Raw), "L=60 → 3.0 = GATHER_MUL_CAP");
         }
 
         [Test]
         public void test_ac1715_harvestQty_halfValueRoundsAwayFromZero()
         {
             // 唯一舍入点是 `Fix.Round()`(ROUND_HALF_AWAY_FROM_ZERO)。
-            // 找一个恰落 .5 的组合:qty_per_node 与 GatherMul 的乘积小数部分 = 1/2。
-            // 夹具:qty_per_node = 1,GatherMul = 1 ⇒ 乘积 1.0(不触舍入)。
-            //      要触 .5 需要 GatherMul 有小数 —— 但字面式只有整数档。
-            // ⇒ **字面式下 .5 不可达**。本测因此改为断「整数乘积不舍入」(结构事实),
-            //    并在注释里记明「.5 舍入路径当前不可达,T D-foraging-02 修公式后须补」。
+            //
+            // 🔁 2026-10-31(`S21-9`):旧注释写着「字面式下 .5 不可达;`TD-foraging-02` 修公式后须补」。
+            // 公式已修 ⇒ **该许诺在此兑现**:`GatherMul(15) = 1.5` 是确定性的 .5 源。
             ForagingConstants c = LegalConstants();
 
-            Assert.That(GatherQualityRoll.HarvestQty(2, 0, c), Is.EqualTo(2), "2 × 1 = 2");
-            Assert.That(GatherQualityRoll.HarvestQty(2, 30, c), Is.EqualTo(4), "2 × 2 = 4");
-            Assert.That(GatherQualityRoll.HarvestQty(3, 60, c), Is.EqualTo(9), "3 × 3 = 9");
+            // 整数乘积(数值未动,回归保持)
+            Assert.That(GatherQualityRoll.HarvestQty(2, 0, c), Is.EqualTo(2), "2 × 1.0 = 2");
+            Assert.That(GatherQualityRoll.HarvestQty(2, 30, c), Is.EqualTo(4), "2 × 2.0 = 4");
+            Assert.That(GatherQualityRoll.HarvestQty(3, 60, c), Is.EqualTo(9), "3 × 3.0 = 9");
+
+            // .5 路径:**4.5 → 5** 是唯一能区分两种舍入模式的点
+            // (ties-to-even 会得 4,ROUND_HALF_AWAY_FROM_ZERO 得 5)。
+            Assert.That(GatherQualityRoll.HarvestQty(3, 15, c), Is.EqualTo(5),
+                "3 × 1.5 = 4.5 ⇒ HALF_AWAY_FROM_ZERO 得 5(ties-to-even 会得 4)");
+
+            // 1.5 → 2:两种模式同解,仅作记录(不具判别力,如实标注)
+            Assert.That(GatherQualityRoll.HarvestQty(1, 15, c), Is.EqualTo(2),
+                "1 × 1.5 = 1.5 ⇒ 2(两种舍入模式同解,此断言不具判别力)");
         }
 
         [Test]
@@ -531,8 +558,6 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             return Avalanche(Fold(Fold(state, U(b)), U(c)));
         }
 
-        private static long MulRawOf(int integer)
-            => (long)integer << Fix.FractionalBits;
 
         /// <summary>与真表同形的 CapTable(长度 61 · 单调不减 · [0]≥1 · ≤ MAX_QUALITY)。</summary>
         private static int[] LegalCapTable()

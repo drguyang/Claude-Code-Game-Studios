@@ -435,8 +435,8 @@
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
-| `TD-foraging-01` | `foraging` | open | **N** | R4 |
-| `TD-foraging-02` | `foraging` | open | **N** | R4 |
+| `TD-foraging-01` | `foraging` | closed | **N** | R4 |
+| `TD-foraging-02` | `foraging` | closed | **N** | R4 |
 | `TD-deps-01` | `（跨 epic · inventory-items / processing）` | closed | **N** | R3-裁 |
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | closed | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
@@ -853,7 +853,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 142 | 状态 {'closed': 121, 'open': 17, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
+条目 142 | 状态 {'closed': 123, 'open': 15, 'partial': 3, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 38, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -5508,12 +5508,53 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-foraging-01** | `foraging` | **open** | **N** | R4 |
+| **TD-foraging-01** | `foraging` | **closed** | **N** | R4 |
 
 > **`P0 面 = N`** —— 承 §一 **R3 裁量判据**:本债是**数值内容**层面的矛盾,
 > 形状判据(AC-17-14 四条)在两种读法下都过,故**不阻塞 P0 出口**;
 > 但它会让「五档品级」的设计承诺在 P0 落空 —— 属**须在数值轮前解决**的内容债。
 > 记 `N` 而非 `Y` 的理由:出口判据问的是「形状与契约是否成立」,本条不破任何形状。
+
+#### TD-foraging-01 关闭记录 —— 取「乙:改散文」(用户裁定,`2026-10-31` · sprint-21 `S21-9`)
+
+> ✅ **`2026-10-31` 已闭**。上方债描述**原文不删** —— 它记的是 `2026-10-26` 的实测。
+
+**一、实测复核(跑过,不是转述)**
+
+```bash
+python3 -c "
+import json,collections
+t=json.load(open('assets/data/foraging_constants.json'))['cap_table']
+print('len=%d distinct=%s counts=%s'%(len(t),sorted(set(t)),dict(collections.Counter(t))))
+"
+# ⇒ len=61 distinct=[1, 2] counts={1: 20, 2: 41}
+```
+⇒ 与整数除 `1 + min(L,20)/20` 逐项相符。**债描述里「{1,2} 两档」的判断成立**。
+
+**二、裁定(用户 `2026-10-31`,在甲乙两案并列呈报后)**
+
+取 **乙 = 改散文**。⇒ **公式与数据一个字不动**,改的是 `design/gdd/foraging.md` 的
+`:541`(旋钮表 `CapTable[]` 行)· `:711`(`OQ-17-2` 结案行)· `:225`(规则四「技能回报方向」注)·
+§Tuning Knobs 表后新增的「两条已知余量」注块。
+
+**三、起草期查到一件债描述里没有的事实(写进 GDD,一并登记)**
+
+散文的四个切点 `20/40/60/80` **配的不是它自述的那条公式** —— 要产出那四个切点需 `1 + min(L,80)/20`;
+而**即便换成那条公式,`SKILL_CAP = 60` ⇒ 最高只到 4,第 5 档任何等级都到不了**。
+⇒ 「改散文」不是「承认现状就完事」,是把一句**双错**的散文改成单一口径。
+(推断、非实测:四个切点 × 每档 20 级隐含 `SKILL_CAP = 80`,与实际 60 不符 —— 这多半是笔误的源头。)
+
+**四、连带余量(已声明,不隐藏)**
+
+`CapTable ≤ 2` ⇒ 采集产出的品级上限 = 2 ⇒ 21a `quality_character[]`(长度 = `MAX_QUALITY` = 5)的
+**索引 2/3/4 三条永不呈现**;实测 4 件原料各填满 5 档 ⇒ **4 × 3 = 12 条**。
+处置 = 在 GDD 显式声明「**P1 预留,不删**」,不另立新债(它是**已裁定的设计结论**,不是欠账)。
+⚠️ 该断言**只覆盖采集路径**,其它产出口(阵法 / 掉落)未核实 —— GDD 注块里已写明。
+
+**五、本债不覆盖的残留**
+
+`MAX_QUALITY = 5` 的其余 147 处非测试引用**未逐一复核**;裁定只确认它作**上限**仍然合法
+(`CapTable[i] ≤ MAX_QUALITY` 校验照旧成立),不主张 147 处全部无碍。
 
 ---
 
@@ -5617,11 +5658,63 @@ grep -h -m1 'Status\*\*' production/epics/inventory-items/story-00{1,2}-*.md \
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-foraging-02** | `foraging` | **open** | **N** | R4 |
+| **TD-foraging-02** | `foraging` | **closed** | **N** | R4 |
 
 > **`P0 面 = N`** —— 承 §一 **R3 裁量判据**:形状判据(AC-17-15 四条)在阶跃曲线下全部通过,
 > 故不阻塞 P0 出口。但它让「采集技能成长」在数值上近乎不可感知,属**须在数值轮前解决**的内容债。
 > 记 `N` 而非 `Y` 的理由与 `TD-foraging-01` 相同:出口判据问的是「形状与契约是否成立」。
+
+#### TD-foraging-02 关闭记录 —— 取「甲:改公式」(用户裁定,`2026-10-31` · sprint-21 `S21-9`)
+
+> ✅ **`2026-10-31` 已闭**。上方债描述**原文不删** —— 它记的是 `2026-10-26` 的实测。
+
+**一、裁定(用户 `2026-10-31`)**
+
+取 **甲 = 改公式**,且取**只改求值域、不改任何数值**的最小形态:
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 求值 | `int mulInt = 1 + level / 30`(整数除) | `Fix.One + Fix.FromRational(level, 30)`(定点有理数) |
+| 取值 | `{1, 2, 3}` 三档阶跃(中间 58 档同权) | 逐级连续:L=0 → 1.0 · L=15 → **1.5** · L=60 → 3.0 |
+| 分母 / 端点 / `GATHER_MUL_CAP` | 30 / 3.0 / 3 | **30 / 3.0 / 3(一个没动)** |
+
+⚠️ **不是**改为「连续」就必须动数:分母 30 / 端点 3.0 / `GATHER_MUL_CAP = 3` 一个没改。
+**但实现的选形与债册原稿举例不同,且更准**:原稿举 `1 + Mul(Fix(L), Fix(1/30))`,
+那要先把 `1/30` 舍成 `2185 raw`,**再乘** —— 是**双重舍入**,L=15 得 `98311 raw`(≈1.5001)而非 `98304 raw`(恰 1.5)。
+本次用 `Fix.FromRational(level, 30)`:整数分子 / 整数分母,**一次除法 + 一次舍入**
+(`ROUND_HALF_AWAY_FROM_ZERO`),L=15 恰得 `1.5`(raw `98304`),L=60 恰得 `3.0`(raw `131072`)。
+(复算:上面两个 raw 值由 `rnd(15<<16,30)=32768` 与 `rnd((15<<16)*2185,65536)=32775` 直接得出。)
+
+**二、落点**
+
+- `unity/Assets/Sim/Foraging/GatherQualityRoll.cs:145-170` —— `GatherMul` 求值 + 两处 doc 改口径
+- `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs` —— 见下「三」
+
+**三、夹具的两个动作(一个改名重写,一个是兑现旧许诺)**
+
+| 夹具 | 动作 |
+|---|---|
+| `test_ac1715_gatherMul_isStepwise_notContinuous` | **改名重写** → `test_ac1715_gatherMul_isStrictlyIncreasing_noFlatSegments`。原夹具是**设计成会红**的「形状快照」,其注释原文即写「将来数值轮改公式时它一定会红」——**本轮它确实红了**,按要求重写。新断言 = 61 档**严格递增** + L=15 恰 1.5 + L=29 ≠ L=30 + 端点 = CAP |
+| `test_ac1715_harvestQty_halfValueRoundsAwayFromZero` | **兑现旧注释里的许诺** —— 原注释写着「字面式下 .5 不可达;`TD-foraging-02` 修公式后**须补**」。已补:`HarvestQty(3, 15) = 4.5 → 5`(**唯一能区分 ties-to-even(得 4)与 HALF_AWAY_FROM_ZERO(得 5)的点**) |
+
+**四、证伪轮(2 条变异,均在本命令内完成改→跑→还原)**
+
+| 变异 | 改法 | 结果 |
+|---|---|---|
+| **M1** | `GatherMul` 退回整数除(`1 + level/30`) | ✅ `isStrictlyIncreasing_noFlatSegments` + `halfValueRoundsAwayFromZero` **双红**(51/53) |
+| **M2** | `HarvestQty` 的 `product.Round()` 换成 `product.Raw >> 16`(截断) | ✅ **只有** `halfValueRoundsAwayFromZero` 红(52/53)—— 证明该夹具对**舍入模式**有独立判别力,M1 之外另有覆盖 |
+
+还原判据 = **SHA-256 逐字节**,两次还原后均为
+`64f8b948cae0fc9fb89ba73cb5d0e787f8ad6dd46b9f6300d3d6c5058fbc334e`;`FALSIFY-` 残留 **0**。
+
+**五、不做的事(如实登记)**
+
+- **无数据变更** ⇒ `assets/data/foraging_constants.json` 与 `foraging_constants.cooked.bytes` 零改动、
+  **无重烘**、`ConfigVersion` 不变 ⇒ **存档头比对不受影响**。
+- `test_ac1715_gatherMul_isStrictlyIncreasing_noFlatSegments` 里的 `L=15 → 98304` 用**字面量**,
+  不引用生产常量(避 F3 自指判据)。
+- ⚠️ 「严格递增」是**分母 30 的产物**(1/30 ≈ 2184.5 raw ≫ 1 raw),**不是该公式在任何分母下的普遍性质**;
+  数值轮若把分母调大到 `> 2^16`,可能出现平坦段,届时该夹具会红 —— 那是**正确的红**。
 
 ---
 

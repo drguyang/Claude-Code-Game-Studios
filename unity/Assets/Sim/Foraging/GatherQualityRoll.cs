@@ -48,12 +48,15 @@ namespace DaYiJingCheng.Sim.Foraging
         /// </remarks>
         public const string GatherSalt = "gather";
 
-        /// <summary>`GatherMul` 的分母(F-17-2 · §Tuning Knobs <c>:543</c>:`GatherMul(L) = 1 + L / 30`)。</summary>
+        /// <summary>`GatherMul` 的<b>速率分母</b>(F-17-2 · §Tuning Knobs <c>:543</c>:每 30 级 +1)。</summary>
         /// <remarks>
-        /// ⚠️ **整数除法**:`L / 30` 在 <c>L ∈ [0, 29]</c> 恒 0、<c>[30, 59]</c> 恒 1、<c>60</c> 为 2
-        /// ⇒ `GatherMul` 实际取值只有 <b>{1, 2, 3}</b> 三个阶跃值,<b>不是连续曲线</b>。
-        /// 这与散文暗示的「随等级平滑增长」不符 —— 已登 `TD-foraging-02`,归数值轮。
-        /// 本实现按 GDD <b>字面式</b>落地(与 `TD-foraging-01` 的 `CapTable` 同一处置口径)。
+        /// 🔁 **2026-10-31(`S21-9` · `TD-foraging-02` 结案,用户裁定「甲-02」)**:<b>语义已改</b>。
+        /// 原实现走<b>整数除法</b> `1 + L / 30`,只有 <b>{1, 2, 3}</b> 三个阶跃值(中间 58 档毫无差别);
+        /// 现走<b>定点有理数</b>(<see cref="Fix.FromRational"/>),本常量 = 该有理数的分母
+        /// ⇒ `GatherMul(L) = 1 + L/30` 在 <c>Fix</c> 域内<b>逐级连续</b>,L=0 → 1.0,L=15 → 1.5,L=60 → 3.0。
+        /// <para>⚠️ <b>数值一个没动</b>:分母 30 / 端点 Lv60 = 3.0 / `GATHER_MUL_CAP = 3` 全是 2026-10-06 原裁值。
+        /// 本改动<b>只改求值域</b>(整数除 → 定点),不改任何数。故<b>无数据变更、无重烘、`ConfigVersion` 不变</b>。</para>
+        /// <para>⚠️ 端点恰撞 CAP 的结构保持不变 ⇒ 封顶仍是<b>保险</b>而非修正。</para>
         /// </remarks>
         public const int GatherMulDenominator = 30;
 
@@ -132,9 +135,11 @@ namespace DaYiJingCheng.Sim.Foraging
         }
 
         /// <summary>
-        /// `GatherMul(L)`(F-17-2 · GDD <c>:543` 已裁式 `1 + L / 30`)。
-        /// <para>⚠️ <b>整数除法</b> ⇒ 只有 {1, 2, 3} 三个阶跃值,不是连续曲线。见
-        /// <see cref="GatherMulDenominator"/> 的 remarks 与 `TD-foraging-02`。</para>
+        /// `GatherMul(L)`(F-17-2 · GDD <c>:543`:`GatherMul(L) = 1 + L / 30`)。
+        /// <para>🔁 <b>2026-10-31(`S21-9` · `TD-foraging-02` 结案,用户裁定「甲-02」)</b>:
+        /// 求值域从<b>整数除法</b>改为 <see cref="Fix.FromRational"/> 的<b>定点有理数</b>
+        /// ⇒ 逐级连续(L=0 → 1.0 · L=15 → 1.5 · L=60 → 3.0),不再是 {1,2,3} 三档阶跃。
+        /// <b>数值一个没动</b> —— 分母 30 / 端点 3.0 / `GATHER_MUL_CAP = 3` 均为 2026-10-06 原裁值。</para>
         /// </summary>
         /// <param name="level">采集技能等级 ∈ <c>[0, SKILL_CAP]</c>。</param>
         /// <param name="constants">已装载的 17 调参表(提供 <c>GATHER_MUL_CAP</c>)。</param>
@@ -150,13 +155,14 @@ namespace DaYiJingCheng.Sim.Foraging
                 throw new ArgumentOutOfRangeException(nameof(level), level,
                     "采集技能等级须 ∈ [0, " + ForagingConstants.MaxSkillLevel + "](= SKILL_CAP)");
 
-            // GatherMul(L) = 1 + L / 30 —— 字面式,整数除法。
-            // ⚠️ 结果封顶到 GATHER_MUL_CAP:字面式在 L = SKILL_CAP(60) 给出 3,
-            //    而 CAP 已裁为 3 ⇒ 两者恰相遇。封顶是**保险**而非修正:若将来 CAP 被调低
-            //    (数值轮),字面式会越界 —— 此处拦下,不让越界值流出去。
-            int mulInt = 1 + level / GatherMulDenominator;
-
-            var mul = new Fix((long)mulInt << Fix.FractionalBits);
+            // GatherMul(L) = 1 + L / 30 —— 定点有理数,不是整数除。
+            // ⚠️ 用 Fix.FromRational(整数分子, 整数分母)而不是先造两个 Fix 再 `/` ——
+            //    两者数值等价(都是一次 Q16.16 除法 + 一次 ROUND_HALF_AWAY_FROM_ZERO,ADR-006),
+            //    但前者不必为「整数转 Fix」多写两处移位,意图也更直白:L/30 是有理数,不是定点数。
+            // ⚠️ 结果封顶到 GATHER_MUL_CAP:端点 L = SKILL_CAP(60) 给出 3,而 CAP 已裁为 3
+            //    ⇒ 两者恰相遇。封顶是**保险**而非修正:若将来 CAP 被调低(数值轮),
+            //    字面式会越界 —— 此处拦下,不让越界值流出去。
+            Fix mul = Fix.One + Fix.FromRational(level, GatherMulDenominator);
             return mul.Raw > constants.GatherMulCap.Raw ? constants.GatherMulCap : mul;
         }
 
