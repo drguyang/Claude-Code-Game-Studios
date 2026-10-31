@@ -1,0 +1,237 @@
+// 临时探针(2026-10-31 · TD-skeuo-01 归因轮)—— **用完即删,不入库**。
+//
+// 目的:把「九宫格黑块」的三个变量分离 —— ①挂不挂 `.paper` 类 ②背景色从哪来(var 未解析 vs 解析)
+// ③sprite 自带 border 与 USS slice 是否同源。全部元素同时铺在一屏,一次截图看全。
+//
+// 用法(编辑器 **GUI** 模式,非 batch —— batch 出不了图,见 ScreenshotTool 头注):
+//   ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -projectPath "$PWD" -executeMethod DaYiJingCheng.EditorTools.Capture.SliceProbe.Run -logFile Logs/slice-probe.log
+
+#if UNITY_EDITOR
+using System;
+using System.IO;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace DaYiJingCheng.EditorTools.Capture
+{
+    internal static class SliceProbe
+    {
+        private const string Armed = "__sliceProbeArmed";
+        private const string Phase = "__sliceProbePhase";
+        private const string Frames = "__sliceProbeFrames";
+        private const string ShotDir = "Logs/shots";
+
+        private const string PaperUss = "Assets/Gameplay.UI/Skeuomorphic/SkeuoPaper.uss";
+        private const string VarUss = "Assets/Gameplay.UI/Skeuomorphic/SkeuoThemeVariables.uss";
+        private const string PaperTex = "Assets/Gameplay.UI/Skeuomorphic/Textures/border_paper-final.png";
+        private const string PanelAsset = "Assets/Gameplay.UI/Skeuomorphic/PanelSettings.asset";
+
+        private static VisualElement _root;
+        private static VisualElement _paperBox;
+
+        [InitializeOnLoadMethod]
+        private static void Rehook()
+        {
+            if (SessionState.GetBool(Armed, false))
+                EditorApplication.update += Tick;
+        }
+
+        [MenuItem("大医精诚/Probe/九宫格退化归因")]
+        public static void Run()
+        {
+            SessionState.SetBool(Armed, true);
+            SessionState.SetInt(Phase, 0);
+            SessionState.SetInt(Frames, 0);
+            EditorApplication.update += Tick;
+            Debug.Log("[SLICE] armed");
+        }
+
+        private static void Tick()
+        {
+            int phase = SessionState.GetInt(Phase, 0);
+
+            if (phase == 0)
+            {
+                // 空白场景 ⇒ 不拉整个游戏启动链;探针只看 UI Toolkit 渲染
+                // ⚠️ 有未保存改动时 NewScene 会弹模态框 ⇒ GUI 运行会挂死。先检,有脏就中止。
+                var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (active.isDirty)
+                {
+                    Debug.LogError("[SLICE] 当前场景有未保存改动 ⇒ 中止(避免模态框挂死)。请先保存。");
+                    SessionState.SetBool(Armed, false);
+                    EditorApplication.update -= Tick;
+                    EditorApplication.Exit(2);
+                    return;
+                }
+                SessionState.SetInt(Phase, 1);
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                EditorApplication.EnterPlaymode();
+                return;
+            }
+
+            if (!EditorApplication.isPlaying)
+            {
+                if (phase >= 9)
+                {
+                    SessionState.SetBool(Armed, false);
+                    EditorApplication.update -= Tick;
+                    Debug.Log("[SLICE] done");
+                    EditorApplication.Exit(0);
+                }
+                return;
+            }
+
+            if (phase == 1)
+            {
+                if (EditorApplication.isPlayingOrWillChangePlaymode == false) return;
+                Build();
+                SessionState.SetInt(Phase, 2);
+                SessionState.SetInt(Frames, 0);
+                return;
+            }
+
+            int frames = SessionState.GetInt(Frames, 0) + 1;
+            SessionState.SetInt(Frames, frames);
+
+            // 每相：先等 8 帧积累一帧稳的渲染,再截图
+            if (frames == 8)
+            {
+                if (phase == 2)
+                {
+                    Dump("novars");
+                    Shot("slice-probe-novars.png");
+                }
+                else if (phase == 4)
+                {
+                    Dump("vars");
+                    Shot("slice-probe-vars.png");
+                }
+            }
+
+            if (frames == 20)
+            {
+                if (phase == 2)
+                {
+                    // 第二步:挂上主题变量 ⇒ 同一批元素,只差「var 能否解析」
+                    var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(VarUss);
+                    Debug.Log($"[SLICE] vars sheet={(sheet == null ? "NULL" : sheet.name)}");
+                    if (sheet != null && !_root.styleSheets.Contains(sheet)) _root.styleSheets.Add(sheet);
+                    SessionState.SetInt(Phase, 4);
+                    SessionState.SetInt(Frames, 0);
+                }
+                else if (phase == 4)
+                {
+                    SessionState.SetInt(Phase, 9);
+                    EditorApplication.ExitPlaymode();
+                }
+            }
+        }
+
+        private static void Build()
+        {
+            var go = new GameObject("probe-host");
+            var doc = go.AddComponent<UIDocument>();
+            doc.enabled = false;
+            doc.panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelAsset);
+            doc.enabled = true;
+            _root = doc.rootVisualElement;
+            // 深灰底 —— 「图没画出来」会露成灰,而不是靠猜「黑 = 黑图」
+            _root.style.backgroundColor = new Color(0.16f, 0.16f, 0.16f, 1f);
+
+            var paperSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(PaperUss);
+            Debug.Log($"[SLICE] paper sheet={(paperSheet == null ? "NULL" : paperSheet.name)} panel={(doc.panelSettings == null ? "NULL" : doc.panelSettings.name)}");
+            if (paperSheet != null) _root.styleSheets.Add(paperSheet);
+
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(PaperTex);
+            Sprite spr = null;
+            if (tex != null)
+            {
+                // 与生产同形:border = 64/64/64/64(纸纹理 meta 的 spriteBorder)
+                spr = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f),
+                    100f, 0, SpriteMeshType.FullRect, new Vector4(64, 64, 64, 64));
+            }
+            Debug.Log($"[SLICE] tex={(tex == null ? "NULL" : tex.width + "x" + tex.height)} sprite={(spr == null ? "NULL" : spr.border.ToString())}");
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.flexWrap = Wrap.Wrap;
+            _root.Add(row);
+
+            // A 生产形态:`.paper` 类(USS url → Texture2D + USS slice 64),110×110
+            Add(row, "A-uss110", 110, 110, paperClass: true, sprite: null, white: false);
+            // B 对照:同 A,但 200×200(高于 128,预期正常)
+            Add(row, "B-uss200", 200, 200, paperClass: true, sprite: null, white: false);
+            // C 代码直灌 sprite(无类 ⇒ 无 background-color),110×110
+            Add(row, "C-code110", 110, 110, paperClass: false, sprite: spr, white: false);
+            // D 类 + 代码直灌(USS slice 与 sprite border 同源),110×110
+            Add(row, "D-uss+code110", 110, 110, paperClass: true, sprite: spr, white: false);
+            // E 类 + 内联白底 ⇒ 区分「图没画」(露白)与「画成黑」(仍黑)
+            Add(row, "E-uss110-white", 110, 110, paperClass: true, sprite: null, white: true);
+            // F 远低于界:45×45
+            Add(row, "F-uss45", 45, 45, paperClass: true, sprite: null, white: false);
+            // G 无类 + 无图 + 只有白底(纯对照:确认底板是灰)
+            Add(row, "G-plain110", 110, 110, paperClass: false, sprite: null, white: true);
+
+            // ── 第二轮补的三格:代码路径上分离「尺寸」与「border 数值」──
+            Sprite Mk(int border)
+            {
+                if (tex == null) return null;
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f),
+                    100f, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            }
+            // H 代码 sprite + 200×200(高于 128)⇒ 若正常,则「尺寸」是主嫌
+            Add(row, "H-code200", 200, 200, paperClass: false, sprite: Mk(64), white: true);
+            // I 代码 sprite + border 0 + 110×110 ⇒ 若无 border 就正常,则「border 数值」是主嫌
+            Add(row, "I-code110-b0", 110, 110, paperClass: false, sprite: Mk(0), white: true);
+            // J 代码 sprite + border 16(16+16=32 < 110)+ 110×110
+            Add(row, "J-code110-b16", 110, 110, paperClass: false, sprite: Mk(16), white: true);
+            // K 代码 sprite + 480×110(只纵轴越界)+ border 64
+            Add(row, "K-code480x110", 480, 110, paperClass: false, sprite: Mk(64), white: true);
+            // L 代码 sprite + 110×480(只横轴越界)+ border 64
+            Add(row, "L-code110x480", 110, 480, paperClass: false, sprite: Mk(64), white: true);
+
+            _paperBox = row;
+        }
+
+        private static void Add(VisualElement parent, string name, float w, float h,
+                                bool paperClass, Sprite sprite, bool white)
+        {
+            var box = new VisualElement { name = name };
+            box.style.width = w;
+            box.style.height = h;
+            box.style.marginLeft = 8;
+            box.style.marginTop = 8;
+            if (paperClass) box.AddToClassList("paper");
+            if (sprite != null) box.style.backgroundImage = new StyleBackground(sprite);
+            if (white) box.style.backgroundColor = Color.white;
+            box.Add(new Label(name) { style = { fontSize = 9, color = Color.magenta } });
+            parent.Add(box);
+        }
+
+        private static void Dump(string tag)
+        {
+            if (_paperBox == null) return;
+            foreach (var el in _paperBox.Children())
+            {
+                var r = el.worldBound;
+                var bg = el.resolvedStyle.backgroundColor;
+                var img = el.resolvedStyle.backgroundImage;
+                Debug.Log($"[SLICE] {tag} {el.name} bound={r.width:F0}x{r.height:F0} " +
+                          $"bg=({bg.r:F2},{bg.g:F2},{bg.b:F2},{bg.a:F2}) " +
+                          $"img={(img.texture == null ? "texNULL" : img.texture.width + "x" + img.texture.height)} " +
+                          $"spr={(img.sprite == null ? "sprNULL" : "sprOK")}");
+            }
+        }
+
+        private static void Shot(string file)
+        {
+            Directory.CreateDirectory(ShotDir);
+            string path = Path.Combine(ShotDir, file);
+            ScreenCapture.CaptureScreenshot(path);
+            Debug.Log($"[SLICE] shot -> {path}");
+        }
+    }
+}
+#endif

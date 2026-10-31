@@ -217,6 +217,12 @@ modal-Pause        (0,204,1680,153)
 > 照常渲染(`production/qa/evidence/skeuomorphic-ui/dentch-form-2026-10-18.png`)。
 > ⇒ 这句话**在单轴上不成立**;「两轴越界」这一支至今**既未证实也未证伪**。
 > 本条探针的**有效结论只有 ① / ③ 的对比**(代码路径对、USS 路径错),② 只算附带观测。
+>
+> 🔁 **2026-10-31 归因轮已闭**(12 格同屏探针,两轮真渲染):黑块**只在代码灌注 sprite 路径上**,
+> 且需**两轴同时**小于 sprite border 之和(110×110 / border 64 = 黑;200×200 · 480×110 · 110×480 ·
+> border 0 · border 16 均正常);**USS `url(guid:)` 路径免疫**(它解析出的是 32×32 纹理 + `sprite=null`)。
+> ⇒ ② 那句话**对一半**(越界是真因)**错一半**(不适用于 USS,也不适用于单轴)。
+> 探针与截图:`production/qa/evidence/skeuomorphic-ui/nineslice-probe-2026-10-31*`;账在 `TD-skeuo-01`。
 
 ⇒ **同一资产、同样 slice、同样尺寸:代码路径对、USS 路径错** ⇒ 缺陷在 `SkeuoFocusVisible.uss`
 的**取图方式**,不在贴图、不在图集、不在行类型。
