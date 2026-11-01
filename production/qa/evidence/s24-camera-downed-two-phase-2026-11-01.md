@@ -776,3 +776,104 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 manifest 版本变旧(触发 `/story-done` 的 staleness 告警)。其相机段本就指向 ADR-020 §二 / §五,
 Amendment C 已在该处落。**若需在 manifest 增一条「生产调用方必须用双参 `SetMode`」的硬规则,
 须单独一批并接受版本 bump。**
+
+---
+
+## 12. control-manifest 硬规则 + 机械执行体(2026-11-02)
+
+### 12.1 用户指令
+
+「在 manifest 加一条「生产调用方必须用双参 SetMode」的硬规则」。
+
+### 12.2 规则本身(manifest 控制器与相机节)
+
+**禁**:生产码里 `rig.SetMode(mode)`(单参重载)或 `rig.SetMode(mode, -1)`(显式传 `-1`)。
+**须**:传真实系统号(10 / 29 / 39…)。
+
+**为什么不是风格问题**:甲案判据是 `best.RequesterId == CurrentRequesterId`。
+走单参 / 传 `-1` ⇒ `CurrentRequesterId` 记成 `-1` ⇒ 判据**恒假** ⇒
+「只能由请求方退出」**静默失效**(不崩、不红、夹具不说话),表现为**玩家复活后相机卡在倒下档**。
+
+### 12.3 规则必须有执行体,否则就是 F6「自述顶替门」
+
+新增 `unity/Assets/Editor.Tools.Gates/CameraSetModeRequesterGate.cs`,接进 `AssemblyGates.RunAll`
+(菜单 / reload / 构建前门三处共用)⇒ 违例 = **构建失败**。
+
+| 判据 | 内容 |
+|---|---|
+| **R1(arity)** | `.SetMode(` 顶层实参 < 2 ⇒ 红 |
+| **R2(值)** | 末位实参是字面量 `-1`(含 `requesterId: -1` 具名形)⇒ 红 |
+| **豁免** | 仅接收者 `_modeMachine`(`CameraRig.SetMode(mode)` 兼容重载的实现体,那里 `-1` 是对的) |
+
+⚠️ **R2 必须单列**:只查 arity 的话,`rig.SetMode(mode, -1)` 会静默通过 —— 它与单参重载**语义完全等价**。
+
+### 12.4 ⚠️ 我在真树上预演判据时抓到自己门里的一个 bug(如实登记)
+
+首版 `ReadReceiver` 的 Substring 长度写成 `end - start - 1`(**少一个字符**)⇒
+接收者恒缺尾字母 ⇒ `_modeMachine` 被读成 `_modeMachin` ⇒ **豁免失效** ⇒
+**门的合法样本被自己判红**(`CameraRig.cs:146` 会报 R2)。
+
+**发现的途径 = 在跑 Unity 之前用 Python 复刻同一判据扫了一遍真树**(期望 0 命中,实得 1)。
+⇒ 若直接跑全量回归,这会表现为「构建失败 + 一条看不懂的行号」,而**根因在我自己的门里**。
+修:`Substring(start + 1, end - start)`(闭区间)。修后真树 **4 处 `.SetMode(` / 0 违规**,
+三个接收者均正确解析为 `_modeMachine`。
+
+复算(自包含):
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+grep -rn "\.SetMode(" --include=*.cs Assets/ | grep -v "/Tests/"
+# 期望 5 行:1 处注释(CameraModeMachine) + 3 处 _modeMachine + 1 处 rig(双参,真人号)
+```
+
+### 12.5 门自身的判别力:7 条自检夹具
+
+`unity/Assets/Tests/EditMode/CameraViewpoint/camera_setmode_requester_gate_test.cs`:
+
+| # | 测 | 期望 |
+|---|---|---|
+| 1 | `test_productionTree_zeroRed` | 真树零红 |
+| 2 | `test_singleArgCall_isReported` | 单参 ⇒ **红** |
+| 3 | `test_explicitMinusOne_isReported` | `, -1` **与** `requesterId: -1` 两形 ⇒ **红** |
+| 4 | `test_twoArgRealRequester_isNotReported` | 双参真人号 ⇒ 不报 |
+| 5 | `test_multiLineCallWithRealRequester_isNotReported` | 跨行三元 + 具名实参(`BootRoot.cs:564` 的真形态)⇒ 不报 |
+| 6 | `test_modeMachineReceiver_isExempt` | `_modeMachine` 豁免生效 |
+| 7 | `test_commentAndStringMentions_areNotReported` | 注释 / 字符串提及不误报 |
+
+⚠️ **第 2/3/6 条是判别力的载体**(门从没红过 = 自述),第 4/5/7 条是**防门变噪音机** ——
+「凡出现就红」的门最后会被人加白名单加死。
+
+### 12.6 门的已知边界(不假装覆盖)
+
+- **不判「值是否正确」**:`rig.SetMode(mode, 7)` 里 `7` 是不是真系统号,本门判不了(需系统号表)。
+- **不判 `SetModeForTest`**:测试缝,且本门已排除 `/Tests/`。
+- **不判 `_modeMachine.SetMode(mode, -1)` 以外的机器层直调**:那是 `CameraRig` 独占面。
+
+### 12.6b 回归
+
+| 套件 | 结果 | 前次 | 等式 | 截至时刻 |
+|---|---|---|---|---|
+| EditMode | `6481 / 6444 / 0 / 37` | `6473 / 6436 / 0 / 37` | `6481 − 6473 = 8` ✅(门自检 **8** 条) | 2026-11-02 **00:12:02 CST** |
+| PlayMode | `275 / 271 / 0 / 2` | `275 / 271 / 0 / 2` | `0` ✅ | 2026-11-02 **00:12:46 CST** |
+
+⚠️ **本轮的绿同时还证明了另外两件事**:
+① 门在**真树**上**零误报**(若 `ReadReceiver` 的 off-by-one 未修,`CameraRig.cs:146` 会红,
+`AssemblyGates.RunAll` 连带红 ⇒ 至少 3 条测试红);
+② `GateWiringManifestTest` 的两张手写表(`EntryWiringManifest` / `ClassConsumerManifest`)
+**同批登记齐全** —— 缺一处就会红(该门 2026-10-31 就是这么抓过一次)。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').getroot();print('EM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print('PM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+```
+
+### 12.7 manifest 版本 bump 的代价(如实登记)
+
+`Manifest Version` 2026-10-15 → **2026-11-02**。⚠️ **未回刷**既有 story 的版本号:
+实测 `production/epics/` 下 **257 份** story 带该字段(值以 `2026-10-02` **195** 次 /
+`2026-10-15` **33** 次为主)⇒ **现有 story 全部变「旧」**,`/story-readiness` 会报 NEEDS WORK。
+**这是有意的** —— 该字段的作用就是让陈旧 story 被看见,由 `/dev-story` Phase 2 逐件判定
+[A]/[B]/[C]。回刷只表示「已对齐版本号」,不表示「已按新规则复核」。

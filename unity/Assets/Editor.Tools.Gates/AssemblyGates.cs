@@ -209,6 +209,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ⇒ `CarryLoadSolver.CanCarry` / `NodeRemaining.CanHarvest` 都不再被求值。
             // `Resolve` 的注释已写禁令 —— 注释不是执行体(F6),本门是它的执行体。
             errs.AddRange(HarvestGateAllowGate.RunAll("."));
+            // 2 相机「生产调用方必须用双参 `SetMode(mode, requesterId)`」门(2026-11-02):
+            // 甲案(ADR-020 Amendment C ②)的「同一请求方可降档」判据依赖 `requesterId`。
+            // 走单参重载 / 显式传 `-1` ⇒ 该判据**恒假** ⇒「只能由请求方退出」**静默失效**
+            // (不崩、不红),表现为「玩家复活后相机卡在倒下档」。
+            // `ICameraRig.SetMode` 的 XML 注释已写此禁令 —— **注释不是执行体**(F6),本门是它的执行体。
+            errs.AddRange(CameraSetModeRequesterGate.RunAll("."));
             return errs;
         }
 

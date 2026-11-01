@@ -15544,3 +15544,27 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 
 ⚠️ **未动 `control-manifest.md`** —— 改它须 bump `Manifest Version:`,会让所有 story 变旧
 (触发 `/story-done` staleness)。若需加「生产调用方必须用双参 `SetMode`」的硬规则,单独一批。
+
+## Session Extract — 2026-11-02 · manifest 硬规则「生产必须双参 SetMode」+ 执行体
+
+**用户指令**:「在 manifest 加一条「生产调用方必须用双参 SetMode」的硬规则」
+
+- **规则**(`control-manifest.md` 控制器与相机节):禁 `rig.SetMode(mode)` 与 `rig.SetMode(mode, -1)`;
+  须传真实系统号。**为什么不是风格问题**:甲案判据 `best.RequesterId == CurrentRequesterId`,
+  走单参 / 传 `-1` ⇒ 判据**恒假** ⇒「只能由请求方退出」**静默失效**(不崩不红),
+  表现 = **玩家复活后相机卡在倒下档**。
+- **执行体**:新增 `CameraSetModeRequesterGate`(R1 arity<2 · R2 末位实参字面量 `-1`,
+  含 `requesterId: -1` 具名形;唯一豁免接收者 `_modeMachine`),接进 `AssemblyGates.RunAll`
+  ⇒ 违例 = **构建失败**。⚠️ **R2 必须单列** —— 只查 arity 的话 `SetMode(mode, -1)` 会静默通过。
+- **门自检 8 条**(`camera_setmode_requester_gate_test.cs`):真树零红 · 单参红 · `-1` 两形红 ·
+  双参绿 · 跨行绿 · `_modeMachine` 豁免 · 注释/字符串不误报 · 零调用不报。
+- ⚠️ **我在真树预演时抓到自己门里的 off-by-one**:`ReadReceiver` 的 Substring 长度写成
+  `end - start - 1` ⇒ 接收者缺尾字母 ⇒ `_modeMachine` 读成 `_modeMachin` ⇒ 豁免失效 ⇒
+  **门的合法样本被自己判红**。发现途径 = **跑 Unity 之前用 Python 复刻判据扫真树**(期望 0、实得 1)。
+  修:`Substring(start + 1, end - start)`。修后真树 4 处 `.SetMode(` / 0 违规。
+- **manifest 版本** 2026-10-15 → **2026-11-02**,**未回刷** story:257 份带该字段
+  (195×`2026-10-02` / 33×`2026-10-15`)⇒ 全部变「旧」,`/story-readiness` 会报 NEEDS WORK。
+  **有意为之** —— 由 `/dev-story` Phase 2 逐件判定 [A]/[B]/[C]。
+- **回归**:EditMode `6481/6444/0/37`(+8)@00:12:02 · PlayMode `275/271/0/2`(持平)@00:12:46
+- 门的已知边界(不假装覆盖):**不判「值是否正确」**(`SetMode(mode, 7)` 里 7 是不是真号)·
+  **不判 `SetModeForTest`**(测试缝)

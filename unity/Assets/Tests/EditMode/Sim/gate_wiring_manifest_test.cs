@@ -98,6 +98,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "InventoryDtoFloatGate.RunAll",  // AC-20-15 20 输出 DTO 双层零浮点门 · 2026-10-26
                     "CarryCapExistenceGate.RunAll",  // AC-20-21 存在性门(自指谓词)· 2026-10-26 S20-12
                     "HarvestGateAllowGate.RunAll",   // S22-9 生产零 HarvestGate.Allow(F6 执行体)· 2026-11-01
+                    "CameraSetModeRequesterGate.RunAll", // 生产必须双参 SetMode(ADR-020 Amd C② / AC-20-16)· 2026-11-02
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -332,6 +333,14 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "⚠️ **构建期是否真的执行未跑探针轮** —— 同上口径,不记绿。" },
 
             // ── 菜单(独立入口)──
+            new ClassVerdict { ClassName = "CameraSetModeRequesterGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "2026-11-02 落:生产码必须用双参 `SetMode(mode, requesterId)` 的源级门 —— " +
+                       "`ICameraRig.SetMode` 的「生产调用方必须用带 requesterId 的重载」XML 注释的执行体(F6 形态)。" +
+                       "判据 R1(顶层实参 < 2)+ R2(末位实参是字面量 `-1`,含 `requesterId: -1` 具名形);" +
+                       "豁免仅接收者 `_modeMachine`(`CameraRig.SetMode(mode)` 兼容重载的实现体,那里 `-1` 是对的)。" +
+                       "⚠️ **不判「值是否正确」**(`rig.SetMode(mode, 7)` 里 7 是不是真系统号)—— 需系统号表,已登记边界。" +
+                       "⚠️ **构建期是否真的执行未跑探针轮** —— 同上口径,不记绿。" },
             new ClassVerdict { ClassName = "SkeuomorphicUiGates", Kind = WiringKind.Menu,
                 Consumer = "大医精诚/Validation/Run Skeuomorphic UI Gates" },
             new ClassVerdict { ClassName = "RoslynAnalyzerLabel", Kind = WiringKind.Menu,

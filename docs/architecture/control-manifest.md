@@ -1,8 +1,30 @@
 # Control Manifest
 
 > **Engine**: Unity 6.3 LTS
-> **Last Updated**: 2026-10-15
-> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-11-02
+> **Manifest Version**: 2026-11-02
+> ⚠️ **2026-11-02 增量升级(非重新生成)**:**唯一实质改动** =
+> 「控制器与相机(ADR-020)」节新增一条**硬规则**:*生产调用方必须用双参 `SetMode(mode, requesterId)`*
+> (ADR-020 **Amendment C ②** · AC-20-16),并配机械执行体 `CameraSetModeRequesterGate`。
+> **其余各节一字未改**;`/story-readiness` 比对版本时,2026-10-15 → 2026-11-02 的差异**仅此一条**,
+> 不构成其他规则的重新解读。
+> ⚠️ **传播范围(如实登记)**:版本号**未回刷**到既有 story —— 实测 `production/epics/` 下
+> **257 份** story 带 `Manifest Version` 字段,值以 `2026-10-02`(**195** 次)与
+> `2026-10-15`(**33** 次)为主,其余为更旧值。⇒ 现有 story 相对本 manifest **全部变「旧」**,
+> `/story-readiness` 会报 NEEDS WORK。
+> 这是**有意的**:该字段的作用就是让陈旧 story 被看见,由 `/dev-story` Phase 2 逐件判定
+> [A]/[B]/[C](承 2026-10-21 那三份的既有做法)。
+> **本批不批量回刷版本号** —— 回刷只表示「已对齐版本号」,不表示「已按新规则复核」(承 §2026-10-02 版本升格的传播范围)。
+>
+> 复算:
+>
+> ```bash
+> cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+> grep -rl "Manifest Version" production/epics/ | wc -l        # 期望 257
+> grep -rhoE "Manifest Version[*: ]+[0-9]{4}-[0-9]{2}-[0-9]{2}" production/epics/ \
+>   | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}" | sort | uniq -c | sort -rn | head -3
+> # 期望首两行:195 2026-10-02 / 33 2026-10-15
+> ```
 > ⚠️ **2026-10-15 增量升级(非重新生成)**:新增 **Cross-Cutting Constraints 之七(处方前置检查)**
 > 与 **之八(判据不得用文化敏感字符串比较)**,均出自 sprint-12 的 S12-3「建闸」批
 > (源:S11-7/S11-8 同族根因三次 + S12-2 实测 Mono emoji 前缀误判)。
@@ -358,6 +380,22 @@ rule, see the referenced ADR.
 - **VR 模式禁用任何镜头效果**(VR 舒适度优先于呈现;`VRComfort` 快照承载) — ADR-020 §六:341
 - **镜头效果不得用于「报」状态** —— 与 ADR-018 §六 无提示音铁律**同源**(同一铁律的视觉侧),只允许行为反馈 — ADR-020 §六:342
 - `AudioListener` 单挂点:平面 = 主相机,VR = 头显(AC-20-10)—— 结清 `adr-018:295` 留白
+
+> 🔴 **生产调用方必须用双参 `SetMode(mode, requesterId)`**(2026-11-02 新增;ADR-020 Amendment C ② · AC-20-16)
+>
+> **禁**:生产码里 `rig.SetMode(mode)`(单参重载)或 `rig.SetMode(mode, -1)`(显式传 `-1`)。
+> **须**:传入**真实系统号**(10 急救 / 29 死亡过渡 / 39 脉案…)。
+>
+> **为什么这不是风格问题**:甲案(2026-11-01 用户裁定)的「**同一请求方**可以把自己开的档降回去」
+> 判据是 `best.RequesterId == CurrentRequesterId`。走单参 / 传 `-1` ⇒ `CurrentRequesterId` 记成 `-1`
+> ⇒ 判据**恒假** ⇒「只能由请求方退出」**静默失效**。**不崩、不红、夹具也不说话**,
+> 表现是「玩家复活后相机卡在倒下档」。
+>
+> **执行体**:`CameraSetModeRequesterGate`(`unity/Assets/Editor.Tools.Gates/`),
+> 已接进 `AssemblyGates.RunAll`(菜单 / reload / 构建前门三处共用)⇒ 违例 = **构建失败**。
+> 判据 R1(实参 < 2)+ R2(末位实参是字面量 `-1`);豁免仅 `_modeMachine` 接收者
+> (`CameraRig.SetMode(mode)` 兼容重载的实现体,那里 `-1` 是对的)。
+> **注入点**:档位请求一律经构造注入的 `ICameraRig`,不要 `Find` 相机再调。
 
 ### Forbidden Approaches
 
