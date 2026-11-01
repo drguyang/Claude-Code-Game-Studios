@@ -360,14 +360,100 @@ PY
 
 ## 七、Definition of Done for this Sprint
 
-- [ ] QA 计划存在(`production/qa/qa-plan-sprint-22-<date>.md`),且**在 `S22-1` 开工之前**
-- [ ] Must Have 4 件全部完成,或**逐件具名**留存(留开 = 不记绿)
-- [ ] 每件有**证伪轮**记录(「回退即转红」),`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**
-- [ ] 回归两套件全量零失败,且数字带**三元组**(截至时刻 · 批次 · commit)
-- [ ] 债册 `python3 tools/debtcount/debtcount.py --check` ⇒ exit **0**;未闭 P0 面**不涨**
-- [ ] smoke:因 `S22-3` / `S22-4` 落地的条目,`run_smoke.py` **实跑**后自动 PASS 数**增加**;
-      未落地条目**维持 `none`**,不得改 json 充数
-- [ ] 台账 `smoke-carrier-backlog-2026-10-31.md` 的对应行**同批更新**(类型列 → 已解除 / 仍缺)
-- [ ] smoke-check 判定 **PASS 或 PASS WITH WARNINGS**(理由逐条写明)
-- [ ] QA 签核 **APPROVED** 或 **APPROVED WITH CONDITIONS**
-- [ ] 收口判定与收口提交**同日**
+- [x] QA 计划存在(`production/qa/qa-plan-sprint-22-2026-10-31.md`),且**在 `S22-1` 开工之前**(13:43 vs 13:55)
+- [x] Must Have 4 件全部完成,或**逐件具名**留存(留开 = 不记绿)—— 4/4 完成,Should 2/2 · Nice 2/2 亦全收
+- [x] 每件有**证伪轮**记录(「回退即转红」),`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**(实测 0;`S22-6` 纯裁定卡零产品码 ⇒ N/A 已注明)
+- [x] 回归两套件全量零失败,且数字带**三元组** —— `2026-11-01 10:06:00 CST` · `S22-8` · `1825dac7`+工作树
+- [x] 债册 `python3 tools/debtcount/debtcount.py --check` ⇒ exit **0**(实测 0);未闭 P0 面 **0 → 0**(不涨)
+- [x] smoke:`S22-3` / `S22-4` / `S22-6` / `S22-8` 落地的条目,`run_smoke.py` **实跑**后自动 PASS 数 **11 → 15**;
+      未落地 4 条**维持 `none`**(`[8, 9, 18, 22]`),**未改 json 充数**
+- [x] 台账 `smoke-carrier-backlog-2026-10-31.md` 的对应行**同批更新**(类型列 → 已解除 / 仍缺) —— ⚠️ **实际上是收口轮才补的**,见 §收口判定 §二.3
+- [x] smoke-check 判定 **PASS WITH WARNINGS**(`production/qa/smoke-2026-11-01.md`,无名 4 条逐条具名)
+- [x] QA 签核 **APPROVED WITH CONDITIONS**(`production/qa/evidence/qa-signoff-sprint-22-2026-11-01.md`,C1–C4)
+- [x] 收口判定与收口提交**同日**(2026-11-01)
+
+---
+
+### 收口判定(2026-11-01)
+
+**8/8 卡收口 · 判定 = ⚠️ NOT PASS(路线图 Exit 判据未达 —— 1 条)· 其余面全部达标 · 提交同日。**
+
+#### 一、DoD 逐条(§七)
+
+- [x] **QA 计划存在且早于 `S22-1` 开工** —— `production/qa/qa-plan-sprint-22-2026-10-31.md`,
+      提交 `6f6109bb` 10-31 **13:43**;`S22-1` 提交 `fa28fc17` **13:55** ⇒ 早 12 分钟。
+- [x] **Must 4 件全部完成**(`S22-1`…`S22-4`);Should 2(`S22-5`/`S22-6`)· Nice 2(`S22-7`/`S22-8`)亦全收。
+      8/8,零留开。
+- [x] **每件有证伪轮** —— 7 件有(3/3+/3/4/2/—/4/4 条变异,`S22-6` = **纯裁定卡零产品码 ⇒ N/A,已逐卡注明**);
+      `grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l` ⇒ **0**;还原一律 **SHA-256 逐字节**。
+- [x] **回归三元组** `2026-11-01 10:06:00 CST` · 批次 `S22-8` · `1825dac7`+工作树(= `04a29f0d`):
+      EditMode `6345/6308/0/37` · PlayMode `273/269/0/2/2`,零失败。
+- [x] **债册** `--check` exit **0**;`未闭 P0 面` = **0**(规划期亦 0 ⇒ **不涨**)。
+      条目 142 → **144**(新增 `TD-foraging-03` **立后即结** · `TD-skeuo-01` 仍 open,`P0 面 = N`),
+      `closed 124 → 127` · `open 14 → 13` · `partial 3` 不变。
+- [x] **smoke 自动 PASS 增加**:11 → **15**(`#1`/`#10`/`#13`/`#14`);未落地 4 条**维持 `none`**
+      (`[8, 9, 18, 22]`),**未改 json 充数**。
+- [x] **台账 `smoke-carrier-backlog-2026-10-31.md` 对应行更新** —— ⚠️ **收口轮才补**(见 §二 第 3 条)。
+- [x] smoke-check = **PASS WITH WARNINGS**(`production/qa/smoke-2026-11-01.md`,无名 4 条逐条具名)。
+- [x] QA 签核 = **APPROVED WITH CONDITIONS**(`production/qa/evidence/qa-signoff-sprint-22-2026-11-01.md`,C1–C4)。
+- [x] 收口判定与收口提交**同日**(2026-11-01)。
+
+#### 二、判定表
+
+| 面 | 结果 |
+|---|---|
+| 卡 | Must **4/4** · Should **2/2** · Nice **2/2** |
+| 回归 | EditMode `6345/6308/0/37` · PlayMode `273/269/0/2/2`(零失败;`+4` 恰等新增 4 条) |
+| 测试增量 | **+121 passed**(`6224/6187` 起 → `6345/6308`),**含本 sprint 窗口内全部工作**(8 卡 + 间插债清除轮),不是 8 卡单独贡献 |
+| 债 | `closed 124 → 127` · `open 14 → 13` · **未闭 P0 面 0 → 0** |
+| smoke | `PASS WITH WARNINGS`(自动 PASS 11 → 15;无名 8 → 4) |
+| 签核 | `APPROVED WITH CONDITIONS`(C1–C4) |
+| **路线图 Exit** | **⚠️ 未达** —— 见 §三 |
+
+#### 三、Exit 判据的实测结论(**本判定为 NOT PASS 的唯一原因**)
+
+路线图 `production/milestones/p0-remaining-roadmap-2026-10-20.md:921` 给 sprint-22 的 Exit:
+
+> 「**`CanCarry` 采前闸接通**」(`:263` 的语境:「`CanCarry` 是**采集动作**的采前闸」)
+
+**已达成的一半**(形状侧,证据齐):
+
+- 采前闸本体:`HarvestOrchestrator.Resolve(request, gate)` 的闸门**排在一切副作用之前**
+  (`HarvestOrchestrator.cs:314-317`,`!gate.HasCapacity` → `FullInventory`,`!gate.HasRemaining` → `InsufficientRemaining`,两支具名),夹具 `harvest_action_atomicity_test.cs` 8 条;
+- 装配:`new HarvestOrchestrator(` 全仓**恰 1 处**(`CompositionRoot.cs:975`),产出挂
+  `CompositionRootServices.Harvest`(`:161`)。
+
+**未达成的一半**(接通侧,零生产):
+
+```bash
+grep -rn "\.Resolve(" unity/Assets --include=*.cs | grep -v "/Tests/"     # 零命中
+grep -rn "\.Harvest\b"  unity/Assets --include=*.cs | grep -v "/Tests/"     # 零命中
+grep -rn "Harvest\|Gather" unity/Assets --include=*.inputactions           # 零命中(无采集 action)
+```
+
+⇒ **没有任何生产路径会让闸门被求值**。`HarvestOrchestrator` 是一个**装着服务、没有任何发起方**的孤岛;
+测试里仅有的两处 `Resolve` 调用还都传 `HarvestGate.Allow` —— 而生产代码自己的注释写着
+「**生产裁决不得传 `HarvestGate.Allow`,那等于跳过采前闸**」(`HarvestOrchestrator.cs:294`)。
+
+**这不是「吹毛求疵」,是项目自己定的口径**:「装配点有、发起方零」在 `TD-building-01` 与 smoke `#14`
+上是**同一个判据**,两次都被记成「未通」而不是「已通」。按同一把尺子,sprint-22 的 Exit 未达。
+
+**两条解除路径(须用户裁,本轮不擅自选)**:
+
+| 案 | 内容 | 代价 |
+|---|---|---|
+| **甲(补接线)** | 补一条生产发起路径:3 的采集 action → 4 的 F-4.1 选目标 → `Resolve(request, 真 gate)`(gate 由 `CarryLoadSolver.CanCarry` + `NodeRemaining.CanHarvest` 求值),并加一条「传 `Allow` 即红」的门 | 一张 `M` 卡(输入侧属 ADR-011 面,须实测 Input System) |
+| **乙(改口径)** | 用户裁定 Exit 的「接通」= **闸门本体 + 编排器装配**(现态),发起方登记为 **`TD-foraging-04`**(新债,`P0 面 = Y`) | 零代码,但 Exit 的语义**被收窄**,须逐字记录 |
+
+#### 四、本 sprint 留下来的非绿面(逐条具名,不得被收口判定覆盖)
+
+1. **Exit 判据未达**(§三) —— 采前闸的**发起方为零**,`services.Harvest` 无消费方;
+2. `S22-1` 的 **`AC-17-06` 只落谓词半** · **`AC-17-13` `BLOCKED-BY-OQ-17-2`**(数值未裁);
+3. **台账行在收口轮才补**(DoD 要求「同批」)—— `#1`/`#14`/`#13` 三行与 §三 统计本来停在规划态;
+4. `S22-2` 的 **`[L]` 三条仍 `EXTERNAL`**(42 的 UX Flag ③ 未交付);
+5. **smoke 无名 4 条**(`#8`/`#9`/`#18`/`#22`)—— 前两条是生产接线/呈现轮,后两条 `TD-ci-01` EXTERNAL;
+6. `TD-skeuo-01` 本 sprint 新立且**仍 open**;
+7. 帐篷的 **`cost = 5` / `build_item_key = 8` 是临时值**(归数值轮,已在 EPIC §未闭项具名)。
+
+> ⚠️ **本判定不把「8/8 卡收口」当 Exit** —— 恰是 §〇 第 2 条预先禁止的形状:
+> 6 件追加工作属「容量填充」,把它们记成 Exit 就是用计划外工作冒领计划内判据(F7 借绿同族)。

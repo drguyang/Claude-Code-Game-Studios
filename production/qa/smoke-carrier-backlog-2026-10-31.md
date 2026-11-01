@@ -36,12 +36,12 @@ PY
 
 | # | 判据(照引 `critical_paths.json`) | 缺什么 | 类型 | 解除条件(可判) | 归属 | 建议落位 |
 |---|---|---|---|---|---|---|
-| **1** | 游戏启动到主菜单无崩溃(Addressables `data-core` 预载成功,无 E-13 异常) | **载体没有,链路在** —— `BootRoot.cs:143-169` 已实现 `InitializeAsync` + E-13 硬失败抛;既有 `boot_scene_wiring_test` 只做**资产文本扫描**(Boot.unity 挂载 + Addressable 条目共现),**不执行预载** | **真启动** | 一条**真跑** `InitializeAsync` + `data-core` 预载的夹具(PlayMode 优先);E-13 分支**须有反例**(预载失败 ⇒ 抛,不降级) | `Boot` / ADR-014 §五 | **sprint-22**(`S22-3`) |
+| **1** | 游戏启动到主菜单无崩溃(Addressables `data-core` 预载成功,无 E-13 异常) | **载体没有,链路在** —— `BootRoot.cs:143-169` 已实现 `InitializeAsync` + E-13 硬失败抛;既有 `boot_scene_wiring_test` 只做**资产文本扫描**(Boot.unity 挂载 + Addressable 条目共现),**不执行预载** | **真启动** | 一条**真跑** `InitializeAsync` + `data-core` 预载的夹具(PlayMode 优先);E-13 分支**须有反例**(预载失败 ⇒ 抛,不降级) | `Boot` / ADR-014 §五 | **sprint-22**(`S22-3`)<br>🔁 **2026-11-01 已解除** → `test`:`PlayMode/boot_e13_preload_chain_test.cs` **2 条**(真 `InitializeAsync` + 真预载;E-13 反例 = 装载抛 ⇒ `false` + 无半预载 + `Provider` 抛)。原件 `s22-3-smoke1-e13-carrier-2026-11-01.md` |
 | **8** | 拾取:意图事件 + 当下判距 + 宽容半径 —— 离屏拾取被拒(非崩溃) | **三段式的玩家侧接线未落** —— 事件侧(世界流 `ActorCellEntered` 等)有夹具,「玩家发出拾取意图 → 主机当下判距」这一段**生产无调用方** | **接线未落** | 玩家侧意图路径有**生产调用点** + 一条「离屏 ⇒ 拒绝且零事件」的夹具(不是崩溃、不是静默成功) | ADR-009 §七 · 系统 1/世界 | sprint-23 起(先勘察) |
 | **9** | 诊断:脉案读 `VitalsDto` 有读数;`disease_id` 不出现于任何 UI 元素 | 静态守卫 `PresentationDtoGuard` **有夹具**(AC-37-15);缺的是**运行期**观测 —— 需 42 接真 `VitalsDto` 后在运行期读一次 | **运行时观测** | 42 有真 DTO 消费路径 + 一条运行期夹具(读到的读数为非空,且 `disease_id` 反射零命中) | ADR-013 · 系统 42/8 | 42 呈现轮 |
 | **10** | 急救(平面):一次完整动作落**两条**病史流事件;主机 `Judge` 出 `potency` | **接线被裁定退役** —— `EmergencyAttemptDriver` 文件头自述「驱动体 = 空操作」,源于 2026-10-11 用户裁定 **G4.1「急救手动化」** [本轮实测] | **裁定冲突** | **先裁**:G4.1「手动化」与本条判据(动作 ⇒ 两条事件)是否仍兼容。裁前**任何夹具都无对象** | 系统 10 · ADR-009 Amendment I | **sprint-22 出两案**(`S22-6`),不实现<br>🔁 **2026-11-01 两案已出**:`production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md`(同日用户裁定 **甲案**并落账:#10 `none → test`,挂两条真装配载体 ⇒ `自动 PASS 13 → 14` / `无名 6 → 5`,退出码仍 3) |
-| **13** | 建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架 | 前半**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);后半「帐篷」**功能未实现** —— 全仓 `grep -rni "tent\b\|帐篷"` 仅 `intent` 假阳性,`assets/data/` 无条目 [引用自 `critical_paths.json` @ 2026-10-31] | **功能未实现** | GDD `game-concept.md:698` 的裁定须落成**一个承接者**(story 或债项),代码 + 数据齐备后才有可判对象 | `modular-building`(23) | **sprint-22 勘察 + 两案**(`S22-8`) <br>🔁 **2026-11-01 两案已出**:`production/qa/evidence/s22-8-smoke13-tent-two-options-2026-11-01.md`(**待用户裁**) |
-| **14** | 疫情:52 抽池事件落在 `PATIENT_APPEARANCE_CAP` 界内,超界拒收 + 明确报错 | CAP 的**执行点**由 `#6` 覆盖(`PresenceRegistry` 超界抛 + id 回滚);缺的是 **52 抽池侧** —— `RandomEventsDirectorDriver` 文件头列明「急召生成链(抽池 → 掷骰 → F1 管线 → `EventArrived`)」为**具名槽,本件不接** [本轮实测] | **接线未落** | 急召生成链有生产调用点;夹具须用**合成输入**驱动(否则双空集 ⇒ 恒零 ⇒ 假绿,见 `RandomEventsDirectorDriver` 文件头「双重空集」注) | 系统 52 · ADR-007 / ADR-008 §六 | **sprint-22**(`S22-4`) |
+| **13** | 建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架 | 前半**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);后半「帐篷」**功能未实现** —— 全仓 `grep -rni "tent\b\|帐篷"` 仅 `intent` 假阳性,`assets/data/` 无条目 [引用自 `critical_paths.json` @ 2026-10-31] | **功能未实现** | GDD `game-concept.md:698` 的裁定须落成**一个承接者**(story 或债项),代码 + 数据齐备后才有可判对象 | `modular-building`(23) | **sprint-22 勘察 + 两案**(`S22-8`) <br>🔁 **2026-11-01 两案已出**:`production/qa/evidence/s22-8-smoke13-tent-two-options-2026-11-01.md`;同日用户裁 **甲案**并**已落地** → `test`(`SlotType.Tent = 7` + 两个数据件 + `tent_placement_test.cs` **3 条**),`PASS(3 载/全绿)`,原件 `s22-8-smoke13-tent-implementation-2026-11-01.md` |
+| **14** | 疫情:52 抽池事件落在 `PATIENT_APPEARANCE_CAP` 界内,超界拒收 + 明确报错 | CAP 的**执行点**由 `#6` 覆盖(`PresenceRegistry` 超界抛 + id 回滚);缺的是 **52 抽池侧** —— `RandomEventsDirectorDriver` 文件头列明「急召生成链(抽池 → 掷骰 → F1 管线 → `EventArrived`)」为**具名槽,本件不接** [本轮实测] | **接线未落** | 急召生成链有生产调用点;夹具须用**合成输入**驱动(否则双空集 ⇒ 恒零 ⇒ 假绿,见 `RandomEventsDirectorDriver` 文件头「双重空集」注) | 系统 52 · ADR-007 / ADR-008 §六 | **sprint-22**(`S22-4`)<br>🔁 **2026-11-01 已解除** → `test`:`RandomEventSpawnChain` 接线 + `EditMode/RandomEvents/random_event_spawn_chain_test.cs` **6 条**(全用**合成** key/格集;CAP 预检排在第一次 `Append` 之前)。原件 `s22-4-smoke14-spawn-chain-2026-11-01.md` |
 | **18** | 存档往返后,同一 seed 重放的逐位哈希相同(`Fix` 全程 raw `long`,无 float 泄漏) | **EXTERNAL** —— 判据是**跨构建**逐位对照,归 `TD-ci-01`(CI 凭证在用户侧) | **EXTERNAL** | CI runner 落地 + 三格矩阵可跑 | `TD-ci-01` | 等外部,不排 |
 | **22** | Linux-x64-Mono 与 Linux-x64-IL2CPP 两构建的黄金夹具哈希逐字节相同 | **EXTERNAL** —— ADR-012 常驻矩阵,同上 | **EXTERNAL** | 同上 | `TD-ci-01` / ADR-012 | 等外部,不排 |
 
@@ -62,13 +62,18 @@ PY
 | 类型 | 条数 | 条目 |
 |---|---|---|
 | **EXTERNAL**(等外部,排不动) | **2** | #18 · #22 |
-| **接线未落**(有生产代码,缺调用点) | **3** | #8 · #10(另含裁定冲突)· #14 |
-| **功能未实现**(连生产代码都没有) | **1** | #13 |
+| **接线未落**(有生产代码,缺调用点) | **1** | #8 |
 | **运行时观测**(静态件齐,缺运行期夹具) | **1** | #9 |
-| **真启动**(链路在,缺真跑夹具) | **1** | #1 |
 
-⇒ **8 条里,本轮(sprint-22)能动的 = 3 条**(#1 造载体 · #14 接线 · #10 出裁定);
-**其中 `#10` / `#13` 在裁定前不得开工** —— 开工即造「测一个不存在的对象」的 F2 形态假绿。
+⇒ **8 条里,sprint-22 已解除 4 条**(#1 · #10 · #13 · #14);
+**余 4 条 = `run_smoke.py` 当前报的「无名 4」**(#8 / #9 / #18 / #22),逐字对齐。
+
+> 🔁 **2026-11-01 订正(原文留档于上)**:本表原记
+> 「EXTERNAL 2 · 接线未落 3(#8/#10/#14)· 功能未实现 1(#13)· 运行时观测 1(#9)· 真启动 1(#1)」,
+> 并附一句「其中 `#10` / `#13` 在裁定前不得开工」。**这两处都已过期**:
+> `#1`(#1)→ `test`(`S22-3`)· `#10` → `test`(`S22-6` 裁甲案)·
+> `#13` → `test`(`S22-8` 裁甲案并落地)· `#14` → `test`(`S22-4`)。
+> 复算:`python3 tests/smoke/run_smoke.py --results <em.xml> <pm.xml>` ⇒ 自动 PASS **15** · 无名 **4**。
 
 ---
 

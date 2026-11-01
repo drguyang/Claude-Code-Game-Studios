@@ -15284,3 +15284,44 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `S22-6` 已于同日上午裁「甲案,落账本」并执行(`ec7893b2`);`S22-8` 裁「甲案,落地」并已实现。
   ⚠️ **本行原先写的「剩 `S22-6` 两案待用户裁」是写错了** —— 那次的裁定在同一会话内已发生并落地,
   我只是没回读;用户据此提出「裁 S22-6」时才发现。留此订正以免复现。
+
+---
+
+## 2026-11-01 · sprint-22 收口判定
+
+**判定 = ⚠️ NOT PASS(路线图 Exit 未达,1 条)· 8/8 卡收口 · 其余面全部达标 · 提交同日。**
+
+### Exit 判据的实测结论(唯一不 PASS 的原因)
+
+路线图 `p0-remaining-roadmap-2026-10-20.md:921` 的 Exit =「**`CanCarry` 采前闸接通**」。
+
+- **已达成**:闸门本体力(`HarvestOrchestrator.cs:314-317`)+ 夹具 8 条 +
+  `new HarvestOrchestrator(` 全仓恰 1 处(`CompositionRoot.cs:975`)。
+- **未达成**:
+  ```bash
+  grep -rn "\.Resolve(" unity/Assets --include=*.cs | grep -v "/Tests/"   # 零命中
+  grep -rn "\.Harvest\b"  unity/Assets --include=*.cs | grep -v "/Tests/"   # 零命中
+  ```
+  ⇒ **没有任何生产路径会让闸门被求值**;测试里仅有的调用点还都传 `HarvestGate.Allow`,
+  而生产注释自写「生产裁决不得传 Allow,那等于跳过采前闸」(`:294`)。
+- 这与 `TD-building-01` / smoke `#14` 是**同一把尺子**;那两次都记「未通」,此处同判。
+
+**两条解除路径(待用户裁,本轮不擅自选)**:甲 = 补发起路径(3 的 action → 4 选目标 → `Resolve(真 gate)`,
+含「传 Allow 即红」门,`M` 卡);乙 = 用户裁定「接通」口径 = 闸门 + 装配,发起方登记 `TD-foraging-04`。
+
+### 其余面
+
+| 面 | 值 |
+|---|---|
+| 卡 | Must 4/4 · Should 2/2 · Nice 2/2(8/8) |
+| 回归 | EditMode `6345/6308/0/37` · PlayMode `273/269/0/2/2` @ `10:06:00 CST` · `1825dac7`+工作树 |
+| 债 | `closed 124 → 127` · `open 14 → 13` · 未闭 P0 面 **0 → 0** · `--check` exit 0 |
+| smoke | `PASS WITH WARNINGS`(自动 PASS **11 → 15** · 无名 **8 → 4**) |
+| 签核 | `APPROVED WITH CONDITIONS`(C1–C4) |
+| 证伪 | 7 件有(3/3+/3/4/2/—/4/4);`S22-6` 纯裁定卡 N/A;`FALSIFY-` 残留 **0** |
+
+### 收口轮补的账(如实登记)
+
+- `smoke-carrier-backlog-2026-10-31.md` 的 `#1` / `#14` / `#13` 三行与 §三 统计本来是**规划态**
+  ⇒ DoD 要求「同批更新」,**实际到收口轮才补**(已列为本 sprint 非绿面第 3 条)。
+- 原件:`production/qa/smoke-2026-11-01.md` · `production/qa/evidence/qa-signoff-sprint-22-2026-11-01.md`
