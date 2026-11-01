@@ -8,6 +8,9 @@
 > **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-11-02
 
+> ✅ **2026-11-02 R-10.7 已裁定(用户「甲+乙,按建议走」)** ⇒ spec 定稿,**无待决分叉**。
+> 第 1–3 项(见 §用户批准记录)仍属立件轮就地拟定,实现轮可提替代裁定。
+
 > **本 story 的由来(一句话)**:规则八「动作开始发 `Treatment`、结束(**含跳过路径**)必发 `Explore`」
 > 被 `AC-10-11` 判 **BLOCKING**,而**生产码里 `Treatment` 的调用次数是 0** —— 计数器
 > `ModalPhaseResult.ExploreCount` 顶替了「真的发了」这句话。这是 **假绿形态 F1**
@@ -17,8 +20,9 @@
 > ⚠️ **立件时又查出第二层,比第一层更重(见 R-10.7)**:`AC-10-11` 的**跳过半根本不在相机链上** ——
 > 跳过入口直连 `EmergencyManualDriver.TryManual(method: 1)`,不经 `EmergencyChannelDriver`,
 > 且候选列表**只在 `Idle` 可见** ⇒ 生产可达的跳过永远发生在「相机本来就在 `Explore`」的时刻。
-> **这不是「验证得不够」,是「这个 AC 从来没有可失败的机会」。** 本卡按 R-10.7 给出三条路,
-> 建议**甲 + 乙**(把跳过拉回相机链 + 如实登记不可达性),并把 `AC-10-11` 拆成两半分开记分。
+> **这不是「验证得不够」,是「这个 AC 从来没有可失败的机会」。**
+> ✅ **2026-11-02 用户裁定:甲 + 乙** —— 跳过经 `EmergencyChannelDriver.SkipAction` 拉回相机链,
+> **同时**把不可达性如实登记(该 `Explore` 是防御性幂等请求),`AC-10-11` 拆两半分开记分。
 
 > ⚠️ **Requirements 引用勘误(本 story 立件时实测)**:`story-005` 卡面把本条要求记作
 > `TR-emergency-016(档位意图必发)`,而注册表里 **`TR-emergency-016` = 「`ResultMul[Missed]` = 0 还是非 0」**
@@ -104,6 +108,10 @@
 | `Arm(actionOrdinal, target)` **成功之后** | `Treatment` | 规则八「动作开始」 |
 | `EndAction(actorId)` —— **只要原本在 Armed** | `Explore` | 规则八「动作结束」 |
 | `AbortAction()` —— **只要原本在 Armed** | `Explore` | 规则六之甲 `:724` |
+| `SkipAction(target, actorId)`(**甲案** · 跳过入口) | `Explore` | 规则八「**含跳过路径**」· `:725` |
+
+> ⚠️ 第四行是**甲案**(2026-11-02 裁定)新增的入口:跳过原本直连 `TryManual`、**不在本链上**,
+> 其 `Explore` 在今日 P0 可达性下是**防御性幂等请求**(见 R-10.7 的乙案登记)。
 
 ⚠️ **「成功之后」不是措辞讲究**:`_channel.Arm()` 在非 `Idle` 态**抛** `InvalidOperationException`
 (story-007 既有行为)⇒ 必须在 `_channel.Arm(...)` **返回后**再发 `Treatment`,否则抛出的那一轮
@@ -164,7 +172,11 @@ L2 是 `AC-10-11` 目的从句「**相机不卡在近景**」的**唯一**可判
 **不证「相机认了」**(优先级可能被 `Casebook` 压掉,那属规则七合法行为,须在 L2 里显式避开:
 测试期间不请求 `Casebook`)。
 
-**R-10.7 ⚠️ 跳过路径根本不在相机链上 —— 立件轮查出的第二处结构性事实(须裁定)。**
+**R-10.7 ⚠️ 跳过路径根本不在相机链上 —— 立件轮查出的第二处结构性事实。**
+
+> **✅ 已裁定(2026-11-02 · 用户「甲+乙,按建议走」)** —— 甲:跳过拉回相机链;
+> 乙:不可达性如实登记 + `AC-10-11` 拆两半分开记分。丙否决。
+> 本节以下为立件时的勘察事实与三路分析,**原文保留**;采纳项以本裁定为准。
 
 实测(`CasebookCommandRouter.cs:211-223`):
 
@@ -183,20 +195,21 @@ EmergencyCandidateList 跳过入口 Submit
 即使按 R-10.5 删掉计数器、再在跳过路径上补一条 `Explore` 请求,
 那条请求也只是「在 `Explore` 上再请求一次 `Explore`」—— **换了个形态的假绿**。
 
-**三条路(本卡建议甲 + 乙的登记,丙否决):**
+**三条路(✅ 2026-11-02 用户裁定:取甲 + 乙;丙否决):**
 
-| 路 | 做法 | 代价 / 判据 |
-|---|---|---|
-| **甲(建议)** | 跳过入口改经 `EmergencyChannelDriver.SkipAction(target)`:`SkipAction` 先发 `Explore`,再委派 `TryManual(method: 1)`。**把跳过拉回相机链** | 改动小(改 `CasebookCommandRouter.SubmitEmergencySkip` 的接收者);⚠️ 必须**同时**做乙的登记,否则又成假绿 |
-| **乙(建议,与甲并行)** | **如实登记**「现行 P0 跳过为 `Idle`-only ⇒ 该 `Explore` 是**防御性幂等请求**,不是 `AC-10-11` 的可失败判据」,并把 `AC-10-11` 拆两半:「动作结束必发 `Explore`」(真,S10-02/03 判)+「跳过路径必发 `Explore`」(标 `BLOCKED-BY 设计裁定` / `NOT-RUN`,**禁借绿**) | 诚实;代价 = AC 长期开着一半 |
-| **丙(否决)** | 让跳过入口在 `Armed` 期也可达(改 `R-9.3` 的 Idle 门) | 违 story-009 的用户裁定;改交互语义,不属本卡面 |
+| 路 | 做法 | 代价 / 判据 | 裁定 |
+|---|---|---|---|
+| **甲** | 跳过入口改经 `EmergencyChannelDriver.SkipAction(target)`:`SkipAction` 先发 `Explore`,再委派 `TryManual(method: 1)`。**把跳过拉回相机链** | 改动小(改 `CasebookCommandRouter.SubmitEmergencySkip` 的接收者);⚠️ 必须**同时**做乙的登记,否则又成假绿 | **✅ 采纳** |
+| **乙** | **如实登记**「现行 P0 跳过为 `Idle`-only ⇒ 该 `Explore` 是**防御性幂等请求**,不是 `AC-10-11` 的可失败判据」,并把 `AC-10-11` 拆两半:「动作结束必发 `Explore`」(真,S10-02/03 判)+「跳过路径必发 `Explore`」(标 `BLOCKED-BY 设计裁定` / `NOT-RUN`,**禁借绿**) | 诚实;代价 = AC 长期开着一半 | **✅ 采纳(与甲并行)** |
+| **丙** | 让跳过入口在 `Armed` 期也可达(改 `R-9.3` 的 Idle 门) | 违 story-009 的用户裁定;改交互语义,不属本卡面 | **❌ 否决** |
 
 > ⚠️ **乙不是甲的替代品,是甲的必要配套。** 只做甲 = 补一条跑不到的请求然后宣称 AC 绿了 ——
 > 这是本项目抓过的**第六个**假绿形态的同构变体(把「不可达」写成「已覆盖」)。
 > **只做乙不做甲** = AC 诚实地开着,可接受。**甲+乙** = 请求在位 + 不可达性透明登记,推荐。
 
-> **本裁定由立件轮就地拟定,`用户批准记录` 第 4 项登记为待批。**
-> 若用户裁乙-only,则 `In Scope` 中跳过相关项整体移入 `Out of Scope`,S10-10 降为登记项。
+> **✅ 裁定已落(2026-11-02)**:甲 + 乙。乙-only 的备选分支**不再适用** ——
+> `In Scope` 的跳过项**保留**,S10-10 **是 BLOCKING 真判据**(不是登记项)。
+> 落点见 §Implementation Notes 第 7 项与 §用户批准记录 第 4 项。
 
 ---
 
@@ -210,6 +223,8 @@ EmergencyCandidateList 跳过入口 Submit
 - `Tests/EditMode/EmergencyProcedures/modal_phase_test.cs`:删 4 条 `ExploreCount` 断言
 - 新夹具:`Tests/EditMode/EmergencyProcedures/emergency_camera_mode_intent_test.cs`(L1)
 - 新夹具:`Tests/PlayMode/EmergencyProcedures/emergency_camera_mode_intent_wiring_test.cs`(L2)
+- **`design/gdd/emergency-procedures.md` 回写**(乙案载体):规则八 `:352-360` 与 `AC-10-11` `:1044`
+  各加一条带日期的不可达性注(逐字文本见 §Implementation Notes 第 7 项)
 
 ## Out of Scope
 
@@ -259,7 +274,7 @@ EmergencyCandidateList 跳过入口 Submit
       | 半 | 判据 | 本卡状态 |
       |---|---|---|
       | **「动作结束必发 `Explore`」** | S10-02(S10-03 为中止支) | **可判** —— 这是 AC 真正有内容的那一半 |
-      | **「跳过路径必发 `Explore`」** | S10-10 + S10-11 | ⚠️ **今日不可失败**(R-10.7:跳过为 `Idle`-only)⇒ 按**甲+乙**处理后为「请求在位 + 不可达性已登记」,**仍不得记作「已通过」** |
+      | **「跳过路径必发 `Explore`」** | S10-10 + S10-11 | ⚠️ **今日不可失败**(R-10.7:跳过为 `Idle`-only)⇒ 甲+乙落地后为「请求在位(甲)+ 不可达性已登记(乙)」,**仍不得记作「已通过」** |
       ⟶ 计数器断言退役见 R-10.5;原「一条 AC 一个载体」的写法**就此作废**(它正是假绿的载体形式)
 - [ ] **S10-01**(`[A]` · BLOCKING)动作开始 ⇒ 相机**恰收到一条** `(Treatment, requesterId: 10)`;
       `Arm` 因非 `Idle` 抛出的那一轮 ⇒ **零**档位请求(R-10.1 的「成功之后」)
@@ -286,10 +301,10 @@ EmergencyCandidateList 跳过入口 Submit
       三处**不各写一个字面 `10`**(防「改一处漏两处」)
 - [ ] **S10-09**(`[L]` · ADVISORY)真机走查 —— 长按 F 进近景、松开回探索视角,**无「卡在近景」**
       (需图形界面;`-batchmode -nographics` 结构性不可判 ⇒ 天然 `NOT-RUN`,**不得借绿**)
-- [ ] **S10-10**(`[A]` · BLOCKING · **依 R-10.7 用户裁定**)跳过入口 ⇒ 相机**恰收到一条**
+- [ ] **S10-10**(`[A]` · BLOCKING · 甲案 · **已裁定**)跳过入口 ⇒ 相机**恰收到一条**
       `(Explore, 10)`(甲案:经 `EmergencyChannelDriver.SkipAction`),且 `TryManual(method: 1)` 仍被调用
       **恰一次**(与 story-009 的 AC-9-05 不重复判结算,只判「没把跳过改坏」)
-- [ ] **S10-11**(`[I]` · BLOCKING · **依 R-10.7 用户裁定**)不可达性**已如实登记** ——
+- [ ] **S10-11**(`[I]` · BLOCKING · 乙案 · **已裁定**)不可达性**已如实登记** ——
       story 内与 GDD 回写处均写明「现行 P0 跳过为 `Idle`-only ⇒ 该 `Explore` 是防御性幂等请求,
       不构成 `AC-10-11` 的可失败判据」。判据 = 该句在两个文件里**逐字存在**(`grep -F` 命中),
       ⚠️ 本条**不是**形式主义:没有这句,本卡就是把一个计数器换成了一个 no-op
@@ -412,6 +427,7 @@ PY
    - `EndAction`:现有实现先 `_channel.EndAction()` 再 `_onIdleGate(true)`。
      须在 **`_channel.EndAction()` 之前**读一次 `bool wasArmed = _channel.State == Armed`
      (或等价地复用 `State` 而不是事后推断)—— 因为 `_channel.EndAction()` 会把态置回 Idle。
+   - `SkipAction`:本条**不判** `wasArmed` —— 跳过入口只在 `Idle` 可达(R-9.3),`Explore` 无条件发(幂等)。
    - `AbortAction`:现有实现已有 `bool wasArmed = _channel.State != Idle` ⇒ **直接复用**,
      但注意它当前**未用于门控** `_onIdleGate`,本卡顺带把同一守卫补上(见 S10-04)。
 
@@ -427,13 +443,30 @@ PY
    | M3 | 三处 `requesterId: 10` → `-1` | S10-01/02/03(L1 的 requesterId 断言)+ `CameraSetModeRequesterGate` |
    | M4 | 把 `Explore` 改成以 `agg != null` 为条件 | S10-02 的零样本例 |
    | M5 | 删掉 `BootRoot` 里的 `BindCameraRig(...)` 调用 | S10-06b(且**只有它** —— 这正是「静默失败」的判别力证明) |
-   | M6 | `SkipAction` 里删掉 `Explore` 请求(**甲案落地后**才有此变异) | S10-10 |
+   | M6 | `SkipAction` 里删掉 `Explore` 请求(甲案) | S10-10 |
 
    ⚠️ **M4 是本卡的核心判别力测试** —— 若它不红,说明夹具没有覆盖「零样本也必须回探索视角」,
    而这一条恰恰是最容易被实现成「有事件才回档」的地方。
    还原纪律:`cp` 回备份 + **SHA-256 逐字节**比对;禁 `git checkout` / `stash`。
 
-6. **登记给后续轮**:
+6. **甲案落地形状(✅ 2026-11-02 已裁)** —— 三处**必须同批**,少一处即不成立:
+
+   | # | 落点 | 内容 |
+   |---|---|---|
+   | 6a | `EmergencyChannelDriver.SkipAction(PatientId target, int actorId)` | **新**方法:先 `RequestCameraMode(CameraMode.Explore)`,再委派 `_manual.TryManual(target, method: 1, actorId, _currentTick())`,返回其 `Applied`。⚠️ **`Explore` 先于 `TryManual`** —— 反过来的话 `TryManual` 若抛/短路,相机就留在近景 |
+   | 6b | `CasebookCommandRouter.SubmitEmergencySkip` | 接收者从 `EmergencyManualDriver` 改为 `EmergencyChannelDriver`;既有两条守卫**原样保留**(`_emergencySkip == null` ⇒ fail-loud;`_boundPatient < 0` ⇒ 静默零事件零提示) |
+   | 6c | `BootRoot` 的 `BindEmergencySkip` 调用点 | 传入的宿主同步换成 driver(`BootRoot.cs:836` 的 `SetSkipCallback` 链**不动**) |
+
+   ⚠️ **`SkipAction` 里的 `Explore` 请求就是 S10-10 的判据对象**;
+   而它**不改变** `AC-10-11` 跳过半的记分状态(永远 `NOT-RUN`,见 §用户批准记录)。
+
+7. **乙案落地形状(✅ 2026-11-02 已裁)** —— 两处**逐字同款**的注,缺一处即 S10-11 不通过:
+   - 本 story 的 R-10.7 块内(已有,实现轮**不要删**)
+   - `design/gdd/emergency-procedures.md` 的**规则八**(`:352-360`)与 **`AC-10-11`**(`:1044`)各加一条
+     带日期的注:「**现行 P0 跳过为 `Idle`-only(`R-9.3` 的 Idle 门)⇒ 该路径上的 `Explore`
+     是防御性幂等请求,不构成本 AC 的可失败判据;AC 的真实判别力在『动作结束必发 `Explore`』一半。**」
+
+8. **登记给后续轮**:
    - **`MotorLease` 零生产接线**(`AC-10-13`)—— 本卡 Out of Scope 已登记,须另立 story;
      本卡在 `AbortAction` / `EndAction` 上建立的出口钩子可直接复用。
    - **「该发没发」覆盖矩阵门** —— 今日无门能判「某系统**该**发某档却没发」;
@@ -466,13 +499,35 @@ PY
 
 ## 用户批准记录
 
-**待批(2026-11-02 立件)** —— 本卡由用户指令「立 emergency-procedures 的档位意图 story」建立。
-以下三项由立件轮**就地拟定**,未经用户逐条确认(同 ADR-034 / ADR-036 口径,实现轮前可改):
+**立件(2026-11-02)** —— 本卡由用户指令「立 emergency-procedures 的档位意图 story」建立。
 
-1. **`ExploreCount` 退役**(R-10.5)—— 替代裁定已写在 R-10.5 的引用块内
-2. **`BindCameraRig(Func<ICameraRig>)` 后置绑定**而非 `Assemble` 增参 / 构造注入实例(R-10.2)
-3. **`MotorLease` / `AC-10-13` 不在本卡范围**,另立 story(§Out of Scope)
-4. ⚠️ **R-10.7 的裁定(最重要的一项)**:跳过路径今日**不在相机链上**(`Idle`-only ⇒ `AC-10-11`
-   的跳过半**不可失败**)。本卡建议**甲 + 乙**:甲 = 把跳过拉回相机链(`SkipAction`),
-   乙 = 如实登记该 `Explore` 是**防御性幂等请求**。**只做甲 = 换一种假绿**;
-   **只做乙 = AC 诚实开着,可接受**。若用户裁乙-only,`In Scope` 的跳过项整体移出、S10-10 降为登记项。
+**✅ 已批(2026-11-02 · 用户「甲+乙,按建议走」)** —— 第 4 项。
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | **`ExploreCount` 退役**(R-10.5) | ⏳ 立件轮就地拟定,**未逐条确认**(同 ADR-034 / ADR-036 口径,实现轮前可改;替代裁定见 R-10.5 引用块) |
+| 2 | **`BindCameraRig(Func<ICameraRig>)` 后置绑定**而非 `Assemble` 增参(R-10.2) | ⏳ 同上 |
+| 3 | **`MotorLease` / `AC-10-13` 不在本卡范围**,另立 story(§Out of Scope) | ⏳ 同上 |
+| 4 | ⚠️ **R-10.7 跳过路径的设计分叉** | **✅ 已批 2026-11-02:甲 + 乙** |
+
+### 第 4 项的裁定内容(逐条落点)
+
+**用户原话**:「甲+乙,按建议走」。
+
+- **甲(采纳)** —— 跳过入口改经 `EmergencyChannelDriver.SkipAction(target)`:
+  `SkipAction` 先发 `(Explore, requesterId: 10)`,再委派 `TryManual(target, method: 1)`。
+  改的是 `CasebookCommandRouter.SubmitEmergencySkip` 的**接收者**,不是它的判定语义。
+- **乙(采纳,与甲并行)** —— **必须**同时登记两件事,缺一则本卡仍算假绿:
+  1. **story 内**如实写明:现行 P0 跳过为 `Idle`-only ⇒ 该 `Explore` 是**防御性幂等请求**,
+     不构成 `AC-10-11` 的可失败判据;
+  2. **GDD 回写**:`emergency-procedures.md` 规则八 与 `AC-10-11` 处加**带日期**的注,
+     同款措辞。
+- **丙(否决)** —— 改 `R-9.3` 让跳过在 `Armed` 期可达:违 story-009 的用户裁定,不做。
+- **`AC-10-11` 拆两半分开记分**(本裁定的直接后果):
+  | 半 | 判据 | 可否记「已通过」 |
+  |---|---|---|
+  | 动作结束必发 `Explore` | S10-02 / S10-03 | **可以**(这是 AC 真正有内容的那一半) |
+  | 跳过路径必发 `Explore` | S10-10(请求在位)/ S10-11(不可达性已登记) | **不可以** —— 永远标「请求在位 + 不可达,`NOT-RUN`」 |
+
+> ⚠️ **这一条不是形式主义**:若实现轮把「跳过路径必发 `Explore`」记成 ✅,
+> 就是把一个计数器换成了一个 no-op,假绿形态不变。S10-11 的 `grep -F` 判据守的就是这个。
