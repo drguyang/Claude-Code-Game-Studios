@@ -21,10 +21,15 @@
 // ══════════════════════════════════════════════════════════════════════════
 // 本件**不是**全文件/全仓门(如实登记,别读成「规范已落地」)
 // ══════════════════════════════════════════════════════════════════════════
-// 同一个 `SaveService.cs` 里今日仍有**超出**的方法:`ParseBody` / `WriteExitSave`
-// (2026-10-31 实测:代码行 68 / 61)。它们**不在 `TD-persist-08` 的登记面内**
-// (`-08` 只点名 `Load` 与 `Restore`),已另立 `TD-persist-13` 跟踪。
-// ⇒ 本件只钉 `-08` 面内的六个方法,**不得**据此声称「SaveService 已合规」。
+// 🔁 **2026-11-01(S22-7 · `TD-persist-13` 结案)**:上面那段(「`ParseBody` / `WriteExitSave`
+// 仍超且不在本件面内」)已**过期**,原文保留作闭环记录。现况:
+//   · `ParseBody` 已按段拆成 5 个方法(**17 / 10 / 20 / 25 / 21** 代码行,实测),
+//     本件新增 `test_td13_parseBodyAndHelpers_withinBudget` 钉住;
+//   · `WriteExitSave` **实测只有 6 代码行**(一行表达体)。债记的「61」是**度量器假数** ——
+//     原 `MethodBody` 不做表达体识别,签名行没有 `{` 就一路吞到下一个带花括号的方法。
+//     ⇒ 本件**同时修了度量器**(见 `IndexOfExpressionBodyEnd`)并加了自测,
+//     新判据 `test_td13_writeExitSave_expressionBody_notSwallowed` 钉「不吞下一个方法」。
+// ⚠️ 仍**不是**全仓门:本件只钉 `SaveService` 面内的这些方法,**不得**据此声称「全仓合规」。
 //
 // 📖 只读外部夹具声明(test-standards 具名声明义务)
 // ─────────────────────────────────────────────────────────
@@ -59,8 +64,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
             int start = Array.FindIndex(lines, l => l.Contains(signature));
             if (start < 0) return null;
 
+            // 🔁 2026-11-01(S22-7 · `TD-persist-13`):**补表达体方法**。
+            //    原实现只做花括号配平 ⇒ 遇到 `private void X(...) => Expr(...);` 这种表达体方法时,
+            //    签名行没有 `{`,它会一路吞到**后一个**带花括号的方法 ⇒ 量出假大数。
+            //    `TD-persist-13` 记的「`WriteExitSave` = 61 代码行」就是这么来的(实测真值 6)。
+            //    ⇒ 先扫到 `{` 或 `;` 为止:先见 `=>` 即表达体,body 到该语句的 `;` 收尾。
             int depth = 0;
             bool seen = false;
+            int end = IndexOfExpressionBodyEnd(lines, start);
             for (int j = start; j < lines.Length; j++)
             {
                 foreach (char ch in lines[j])
@@ -68,10 +79,33 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     if (ch == '{') { depth++; seen = true; }
                     else if (ch == '}') depth--;
                 }
-                if (seen && depth == 0)
+                if (end >= 0 && j >= end)
+                    return lines.Skip(start).Take(j - start + 1).ToArray();
+                if (end < 0 && seen && depth == 0)
                     return lines.Skip(start).Take(j - start + 1).ToArray();
             }
             return null;   // 花括号未配平 ⇒ 度量失败(调用方须当红,不得当 0)
+        }
+
+        /// <summary>
+        /// 表达体方法(`… ) => Expr…;`)的收尾行号;不是表达体 ⇒ -1。
+        /// <para>从签名行往下扫:先遇到 `{` ⇒ 块体(返回 -1);先遇到 `=>` ⇒ 表达体,
+        /// 再找深度 0 的 `;` 收尾(跨行的 `Path.Combine(...)` 链也吃得住)。</para>
+        /// </summary>
+        private static int IndexOfExpressionBodyEnd(string[] lines, int start)
+        {
+            bool seenArrow = false;
+            for (int j = start; j < lines.Length; j++)
+            {
+                string l = lines[j];
+                for (int k = 0; k < l.Length; k++)
+                {
+                    if (l[k] == '{') return -1;                       // 先见块体 ⇒ 不是表达体
+                    if (l[k] == '=' && k + 1 < l.Length && l[k + 1] == '>') seenArrow = true;
+                    if (seenArrow && l[k] == ';') return j;
+                }
+            }
+            return -1;
         }
 
         /// <summary>代码行数 = 非空且不以 `//` 起始的行数。</summary>
@@ -154,6 +188,82 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.That(n, Is.GreaterThan(0), "量出 0 行 ⇒ 度量器抓错目标");
             Assert.That(n, Is.LessThanOrEqualTo(Budget),
                 $"EventStream.Restore = {n} 代码行,超 ≤{Budget}(TD-persist-08)");
+        }
+
+        // ══════════════════ TD-persist-13(S22-7)══════════════════
+
+        /// <summary>`ParseBody` 拆分后:本体与 4 个helper 全部 ≤ 40 代码行。</summary>
+        [Test]
+        public void test_td13_parseBodyAndHelpers_withinBudget()
+        {
+            var sigs = new Dictionary<string, string>
+            {
+                ["ParseBody"] = "private void ParseBody(",
+                ["ParseConfigVersionSegment"] = "private static IReadOnlyList<ArtifactConfigVersion> ParseConfigVersionSegment(",
+                ["ParseFoldSegment"] = "private static byte[] ParseFoldSegment(",
+                ["ParsePayloadSegment"] = "private static IReadOnlyList<PayloadEntry> ParsePayloadSegment(",
+                ["ReadPayloadEntry"] = "private static PayloadEntry ReadPayloadEntry(",
+            };
+
+            var over = new List<string>();
+            foreach (var kv in sigs)
+            {
+                int n = Measure("Sim.Codec/SaveService.cs", kv.Value);
+                Assert.That(n, Is.GreaterThan(0),
+                    $"{kv.Key} 量出 0 行 ⇒ 度量器抓错目标(方法被改名?),拒判");
+                if (n > Budget) over.Add($"{kv.Key}={n}");
+            }
+
+            Assert.That(over, Is.Empty,
+                "以下方法超 ≤" + Budget + " 代码行:" + string.Join(", ", over) +
+                " —— 拆分被内联回去了?(TD-persist-13)");
+        }
+
+        /// <summary>
+        /// `WriteExitSave` 是**一行表达体**:≤ 40 且**度量器不得越过它吞掉下一个方法**。
+        /// <para>后半句才是本测的核心 —— `TD-persist-13` 记的「61 代码行」就是这么来的:
+        /// 签名行没有 `{`,老度量器一路吞到 `RaiseIncompleteFlag` / `Load`。</para>
+        /// </summary>
+        [Test]
+        public void test_td13_writeExitSave_expressionBody_notSwallowedByMeasurer()
+        {
+            string full = Path.Combine(Application.dataPath, "Sim.Codec/SaveService.cs");
+            Assert.That(File.Exists(full), Is.True, $"源文件未找到:{full}");
+            string[] body = MethodBody(File.ReadAllText(full), "private void WriteExitSave(byte[] data)");
+            Assert.That(body, Is.Not.Null, "找不到 `WriteExitSave` 签名 —— 方法被改名/删除?");
+
+            string joined = string.Join("\n", body);
+            Assert.That(joined, Does.Not.Contain("RaiseIncompleteFlag"),
+                "度量器越过表达体方法、把**后一个方法**吞进来了 —— 那会量出假大数" +
+                "(TD-persist-13 的「61 代码行」正是此形态)");
+            Assert.That(joined, Does.Contain("WriteAtomic"),
+                "量到的体里没有 `WriteAtomic` ⇒ 抓错目标");
+
+            int n = CodeLines(body);
+            Assert.That(n, Is.LessThanOrEqualTo(10),
+                $"WriteExitSave = {n} 代码行(表达体委托,实测 6)—— 超过 10 说明有人往里塞了逻辑," +
+                "那属于 `WriteAtomic` 的职责(TD-persist-13)");
+        }
+
+        /// <summary>度量器自测:表达体方法只取到它自己那几行(字面量样本,不引用被测常量)。</summary>
+        [Test]
+        public void test_measurer_expressionBody_stopsAtSemicolon()
+        {
+            const string src =
+                "void Big()\n" +
+                "{\n    int a = 1;\n}\n" +
+                "void Thin(byte[] d)\n" +
+                "    => Do(Path.Combine(\"a\", \"b\"),\n" +
+                "          d);\n" +
+                "void Next()\n" +
+                "{\n    int b = 2;\n}\n";
+
+            string[] body = MethodBody(src, "void Thin(byte[] d)");
+            Assert.That(body, Is.Not.Null);
+            Assert.That(string.Join("\n", body), Does.Not.Contain("Next"),
+                "表达体未被识别 ⇒ 吞掉后一个方法(假大数的来源)");
+            Assert.That(CodeLines(body), Is.EqualTo(3),
+                "签名行 + `=>` 行 + `d);` 行 = 3 代码行");
         }
     }
 }

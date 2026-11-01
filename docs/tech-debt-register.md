@@ -394,7 +394,7 @@
 | `TD-persist-08` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
-| `TD-persist-13` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | open | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -855,7 +855,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 144 | 状态 {'closed': 126, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 40, '~~**Y**~~': 4}
+条目 144 | 状态 {'closed': 127, 'partial': 3, 'open': 13, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 40, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6650,6 +6650,34 @@ python3 tools/debtcount/debtcount.py --print
 > ⚠️ **本条是 `TD-persist-08` 的「普查残项」,不是它的残留** —— `-08` 的登记面只含
 > `Load` / `Restore`,两条都已处置;本条是新发现的第三、四例。记在此处是因为**发现它的那一次
 > 就在这个上下文里**,不代表 `-08` 没做完。
+
+
+#### TD-persist-13 关闭记录 —— `ParseBody` 按段拆分 + 度量器补「表达体」识别
+
+> ✅ **`2026-11-01` 已闭**(sprint-22 `S22-7`)。原文不删。
+
+- **开工实测两处,结论一半是假的**:
+  · `ParseBody` **74 代码行**(同一度量器;债记的 68 与口径差在签名/括号行的计法)⇒ **真的超**,已拆。
+  · `WriteExitSave` **实测 6 代码行** —— 债记的「61」是**度量器假数**:`MethodBody` 只做花括号配平,
+    而它是**一行表达体**(签名行没有 `{`)⇒ 老度量器一路吞到后一个有花括号的方法。
+    **这是本项目假绿登记表之外的一种读数错误形态:度量器抓错目标,量出的数比真值大 10 倍,却没人验过。**
+- **拆分**(`SaveService.cs`):`ParseBody` **17** + `ParseConfigVersionSegment` **10** +
+  `ParseFoldSegment` **20** + `ParsePayloadSegment` **25** + `ReadPayloadEntry` **21**(全部 ≤ 40)。
+  校验顺序 / 拒收报文 / 游标推进次序**逐字照搬**,未改一处语义。
+- **度量器**(`method_line_budget_test.cs`):新增 `IndexOfExpressionBodyEnd`,表达体方法在 `=> … ;` 收尾;
+  自带字面量自测(`test_measurer_expressionBody_stopsAtSemicolon`,3 代码行)。
+- **判据**:`test_td13_parseBodyAndHelpers_withinBudget`(5 个方法全 ≤40)·
+  `test_td13_writeExitSave_expressionBody_notSwallowedByMeasurer`(**不许吞下一个方法** + ≤10 行)·
+  `test_td13_trailingBytesAfterPayloadSegment_areRejected`(见下)。
+- **证伪 4 轮,4/4 红**:
+  · **M1′(本轮第二版)**:把 `ParseBody` 整套撤回到拆分前 ⇒ `…WithinBudget` 红。
+    ⚠️ **第一版 M1 是弱变异**(只内联 `ReadPayloadEntry`,量出 38 仍 ≤40)⇒ **绿不是假绿,是变异没跨过界**,
+    如实登记并重做。
+  · **M2**:停用表达体识别 ⇒ `writeExitSave` + 自测**2 红**。
+  · **M3**:删掉 `EnsureFullyConsumed()` ⇒ 首次跑 **271 条零红** —— 证明该守卫此前**无载体**。
+    补 `test_td13_trailingBytesAfterPayloadSegment_areRejected` 后重跑 ⇒ **恰 1 红**。
+- **回归**:`EditMode 6341/6304/0/0/37`(`6341 − 6337 = 4` = 新增 4 条判据)·
+  `PlayMode 273/269/0/2/2`(零变化)。三元组 `2026-11-01T09:44–09:47 CST` · `S22-7` 批 · `ec7893b2`+未提交。
 
 ---
 

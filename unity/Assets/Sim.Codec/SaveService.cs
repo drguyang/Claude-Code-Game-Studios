@@ -952,26 +952,49 @@ namespace DaYiJingCheng.Sim.Codec
             out byte[] foldedSegment,
             out IReadOnlyList<PayloadEntry> payloads)
         {
+            // 🔁 2026-11-01(S22-7 · `TD-persist-13`):原 74 代码行按 `── 段 ──` 注释切成
+            //    「配置版本段 / 折叠段 / 载荷段」三个私有方法,游标以 `ref CodecReader` 传递。
+            //    **分区不变量未变**:校验顺序、拒收报文、游标推进次序逐字保持原样。
             int offset = SaveHeaderCodec.HeaderSize;
             if (data.Length < offset)
                 throw new InvalidDataException(
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");
 
-            // ── 配置版本段(ADR-037 §①:紧跟头部、位于事件段之前)──
-            // count = 0 是合法语义(「本档不含逐份版本」= v2 迁上来的旧档),由消费侧
-            // `ConfigVersionDiff.HasPerArtifactData` 区分「未知」与「无差异」。
-            artifactConfigs = ConfigVersionSegment.Decode(data, offset, out int configSegmentBytes);
+            artifactConfigs = ParseConfigVersionSegment(data, ref offset);
+
+            var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
+            // 🔁 复合体读:事件段后还有折叠段与载荷段 ⇒ 用无读尽断言的 ReadWithinBody;
+            //    存档体的读尽由最末的载荷段闭合(见 ParsePayloadSegment 末尾的 EnsureFullyConsumed)。
+            events = SimEventListCodec.ReadWithinBody(ref r, _codec);
+
+            foldedSegment = ParseFoldSegment(data, offset, ref r);
+            payloads = ParsePayloadSegment(ref r);
+        }
+
+        /// <summary>
+        /// 解析配置版本段(ADR-037 §①:紧跟头部、位于事件段之前)。
+        /// <para>`count = 0` 是合法语义(「本档不含逐份版本」= v2 迁上来的旧档),由消费侧
+        /// <see cref="ConfigVersionDiff.HasPerArtifactData"/> 区分「未知」与「无差异」。</para>
+        /// </summary>
+        private static IReadOnlyList<ArtifactConfigVersion> ParseConfigVersionSegment(byte[] data, ref int offset)
+        {
+            IReadOnlyList<ArtifactConfigVersion> configs =
+                ConfigVersionSegment.Decode(data, offset, out int configSegmentBytes);
             offset += configSegmentBytes;
             if (data.Length < offset)
                 throw new InvalidDataException(
                     $"配置版本段之后无剩余字节(offset={offset}, 长度={data.Length})—— 已损坏");
+            return configs;
+        }
 
-            var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
-            // 🔁 复合体读:事件段后还有折叠段与载荷段 ⇒ 用无读尽断言的 ReadWithinBody;
-            //    存档体的读尽由最末的载荷段闭合(见本方法末尾的 EnsureFullyConsumed)。
-            events = SimEventListCodec.ReadWithinBody(ref r, _codec);
-
-            // ── 折叠段 ──
+        /// <summary>
+        /// 解析折叠段。段 = `count` 前缀 + 行字节,**整体交出**(行内容归装配根解,本类看不见 `FoldRow`)。
+        /// </summary>
+        /// <param name="data">整份存档字节(**段字节从原数组直接拷**,不经游标读)。</param>
+        /// <param name="segmentBase">事件段在 <paramref name="data"/> 中的起点(游标位置是相对的)。</param>
+        /// <param name="r">事件段之后的游标(本方法只推进,不交出)。</param>
+        private static byte[] ParseFoldSegment(byte[] data, int segmentBase, ref CodecReader r)
+        {
             if (r.Remaining < 4)
                 throw new InvalidDataException(
                     $"存档事件段后缺折叠段(v2 布局 = 头部 + 事件段 + 折叠段 + 载荷段)," +
@@ -987,12 +1010,19 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidDataException(
                     $"折叠段 count={foldCount} 需 {foldBytes} 字节,仅剩 {r.Remaining} —— 已损坏");
 
-            // 段 = count 前缀 + 行字节(整体交出;行内容归装配根解,本类看不见 FoldRow)。
-            foldedSegment = new byte[4 + (int)foldBytes];
-            Array.Copy(data, offset + foldStart, foldedSegment, 0, foldedSegment.Length);
+            var foldedSegment = new byte[4 + (int)foldBytes];
+            Array.Copy(data, segmentBase + foldStart, foldedSegment, 0, foldedSegment.Length);
             r.ReadBytes((int)foldBytes); // 只推进游标
+            return foldedSegment;
+        }
 
-            // ── 载荷段(ADR-034 §②)──
+        /// <summary>
+        /// 解析载荷段(ADR-034 §②)—— 末段,读尽断言在这里闭合。
+        /// <para>每条 = 定长头 `{blobId, length}` + 变长字节;`BlobId` 须**严格递增**
+        /// (写侧恒升序去重,乱序即布局漂移)。</para>
+        /// </summary>
+        private static IReadOnlyList<PayloadEntry> ParsePayloadSegment(ref CodecReader r)
+        {
             if (r.Remaining < 4)
                 throw new InvalidDataException(
                     $"存档折叠段后缺载荷段(v2 布局 = 头部 + 事件段 + 折叠段 + 载荷段)," +
@@ -1002,7 +1032,7 @@ namespace DaYiJingCheng.Sim.Codec
             int payloadCount = r.ReadInt32LittleEndian();
             if (payloadCount < 0)
                 throw new InvalidDataException($"载荷段 count={payloadCount} 为负 —— 已损坏");
-            // 每条至少 8 字节定长头 ⇒ 分配前先用剩余字节复验(防损坏 count 触发巨额分配)
+            // 每条至少定长头 ⇒ 分配前先用剩余字节复验(防损坏 count 触发巨额分配)
             if ((long)payloadCount * SaveLayout.PayloadEntryHeaderSize > r.Remaining)
                 throw new InvalidDataException(
                     $"载荷段 count={payloadCount} 至少需 " +
@@ -1013,33 +1043,42 @@ namespace DaYiJingCheng.Sim.Codec
             int prevBlobId = int.MinValue;
             for (int i = 0; i < payloadCount; i++)
             {
-                if (r.Remaining < SaveLayout.PayloadEntryHeaderSize)
-                    throw new InvalidDataException(
-                        $"载荷段第 {i} 条头不足 {SaveLayout.PayloadEntryHeaderSize} 字节" +
-                        $"(仅剩 {r.Remaining})—— 已损坏");
-
-                int blobId = r.ReadInt32LittleEndian();
-                int length = r.ReadInt32LittleEndian();
-
-                if (blobId < 0)
-                    throw new InvalidDataException($"载荷段第 {i} 条 BlobId={blobId} 为负 —— 已损坏");
-                if (i > 0 && blobId <= prevBlobId)
-                    throw new InvalidDataException(
-                        $"载荷段 BlobId 须严格递增,第 {i} 条 {blobId} ≤ 前一条 {prevBlobId}" +
-                        "—— 重复或乱序 = 布局漂移(写侧 ADR-034 §② 恒升序去重)");
-                if (length < 0)
-                    throw new InvalidDataException($"载荷段 BlobId={blobId} 长度 {length} 为负 —— 已损坏");
-                if (length > r.Remaining)
-                    throw new InvalidDataException(
-                        $"载荷段 BlobId={blobId} 声明 {length} 字节,仅剩 {r.Remaining} —— 已损坏");
-
-                entries[i] = new PayloadEntry(blobId, r.ReadBytes(length));
-                prevBlobId = blobId;
+                entries[i] = ReadPayloadEntry(ref r, i, prevBlobId);
+                prevBlobId = entries[i].BlobId;
             }
 
             // 载荷段是最后一段 ⇒ 尾随字节无处可去。
             r.EnsureFullyConsumed();
-            payloads = entries;
+            return entries;
+        }
+
+        /// <summary>读载荷段第 <paramref name="index"/> 条(含逐条的四条损坏校验)。</summary>
+        /// <param name="r">载荷段游标。</param>
+        /// <param name="index">条目序号(仅用于报错定位)。</param>
+        /// <param name="prevBlobId">前一条的 BlobId(首条传 <see cref="int.MinValue"/>)。</param>
+        private static PayloadEntry ReadPayloadEntry(ref CodecReader r, int index, int prevBlobId)
+        {
+            if (r.Remaining < SaveLayout.PayloadEntryHeaderSize)
+                throw new InvalidDataException(
+                    $"载荷段第 {index} 条头不足 {SaveLayout.PayloadEntryHeaderSize} 字节" +
+                    $"(仅剩 {r.Remaining})—— 已损坏");
+
+            int blobId = r.ReadInt32LittleEndian();
+            int length = r.ReadInt32LittleEndian();
+
+            if (blobId < 0)
+                throw new InvalidDataException($"载荷段第 {index} 条 BlobId={blobId} 为负 —— 已损坏");
+            if (index > 0 && blobId <= prevBlobId)
+                throw new InvalidDataException(
+                    $"载荷段 BlobId 须严格递增,第 {index} 条 {blobId} ≤ 前一条 {prevBlobId}" +
+                    "—— 重复或乱序 = 布局漂移(写侧 ADR-034 §② 恒升序去重)");
+            if (length < 0)
+                throw new InvalidDataException($"载荷段 BlobId={blobId} 长度 {length} 为负 —— 已损坏");
+            if (length > r.Remaining)
+                throw new InvalidDataException(
+                    $"载荷段 BlobId={blobId} 声明 {length} 字节,仅剩 {r.Remaining} —— 已损坏");
+
+            return new PayloadEntry(blobId, r.ReadBytes(length));
         }
 
         /// <summary>

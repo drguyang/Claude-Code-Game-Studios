@@ -15168,3 +15168,41 @@ M3 绕开掷骰 ⇒ 仅 D 红 · M4 驱动不调链 ⇒ E/F 红。
 - 剩余无载体 5 条:`#8` 拾取 · `#9` 诊断 · `#13` 建造 · `#18` 存档重放逐位 · `#22` 跨构建
   (后两条 = `TD-ci-01` EXTERNAL,凭证在用户侧)。
 - sprint-22:S22-1/2/3/4/5/6 已收;剩 `S22-7`(拆方法 ≤40 行 + 夹具)· `S22-8`(帐篷承接者勘察)。
+
+---
+
+## 2026-11-01 · `S22-7` 交付:`TD-persist-13` 结案(行数预算)
+
+**用户指令**:「做 S22-7」。
+
+### 开工实测推翻一半债
+
+- `ParseBody` **74 代码行** ⇒ 真超,已拆。
+- `WriteExitSave` **实测 6 行** —— 债记的「61」是**度量器假数**:`MethodBody` 只做花括号配平,
+  表达体方法签名行没有 `{`,一路吞到后一个方法。**同批修了尺子并加自测**。
+
+### 拆分(SaveService.cs)
+
+`ParseBody 17` + `ParseConfigVersionSegment 10` + `ParseFoldSegment 20` +
+`ParsePayloadSegment 25` + `ReadPayloadEntry 21`(全 ≤40;校验顺序/报文/游标次序逐字照搬)。
+
+### 判据 4 条
+
+5 方法 ≤40 · 表达体不吞下一个方法(≤10)· 度量器自测(3 行字面量)·
+**尾随字节必拒**(M3 发现的新缺口,见下)。
+
+### 证伪 4 轮
+
+- **M1 第一版绿了**:内联 `ReadPayloadEntry` 后量出 38,仍在 40 内 ⇒ 定性为**弱变异**(不是假绿),
+  重做为 M1′(撤回整套拆分)⇒ 预算判据红。
+- M2 停用表达体识别 ⇒ 2 红。
+- **M3 删 `EnsureFullyConsumed()` ⇒ 271 条零红** ⇒ 该守卫**此前零载体**;
+  补 `test_td13_trailingBytesAfterPayloadSegment_areRejected` 后 **M3′ 恰 1 红**。
+
+### 结果
+
+- 回归 EditMode `6341/6304/0/0/37`(`+4` 恰等)· PlayMode `273/269/0/2/2`(零变化)
+- 债册 `TD-persist-13` **closed**;`--check` exit 0(`closed 127 / open 13`)
+- 三元组 `2026-11-01 09:44–09:47 CST` · `S22-7` 批 · `ec7893b2`+工作树;`error CS` = 0
+- 原件:`production/qa/evidence/s22-7-td-persist-13-line-budget-2026-11-01.md`
+- sprint-22:S22-1…S22-7 已收;剩 `S22-8`(帐篷承接者勘察,只出案)

@@ -167,6 +167,22 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-7` 2026-11-01 收口(COMPLETE WITH NOTES)** —— `TD-persist-13` **closed**。
+> **开工实测推翻了一半的债**:`ParseBody` **74 代码行**(真超,已拆)· `WriteExitSave` **实测 6**
+> (债记的「61」是**度量器假数**:`MethodBody` 只做花括号配平,表达体方法签名行没有 `{`,
+> 一路吞到后一个方法)。**同批修了尺子**并给它加自测。
+> **拆分**:`ParseBody` **17** + `ParseConfigVersionSegment` **10** + `ParseFoldSegment` **20** +
+> `ParsePayloadSegment` **25** + `ReadPayloadEntry` **21**(全 ≤40;校验顺序/报文/游标次序逐字照搬)。
+> **判据 4 条**:5 方法 ≤40 · 表达体不吞下一个方法(≤10)· 度量器自测(3 行字面量)· 尾随字节必拒。
+> **证伪 4 轮**:M1 第一版**绿**(38 行仍 ≤40 —— 定性为**弱变异**而非假绿,已重做)·
+> **M1′**(撤回整套拆分)⇒ 预算判据红 · M2(停用表达体识别)⇒ 2 红 ·
+> **M3**(删 `EnsureFullyConsumed()`)⇒ **首次 271 条零红** ⇒ 该守卫**此前零载体**,
+> 补 `test_td13_trailingBytesAfterPayloadSegment_areRejected` 后 **M3′ 恰 1 红**。
+> **回归**(三元组 `2026-11-01T09:44–09:47 CST` · `S22-7` 批 · `ec7893b2`+未提交):
+> EditMode `6341/6304/0/0/37`(**+4 恰等**)· PlayMode `273/269/0/2/2`(零变化)。
+> 债册 `--check` exit 0(`closed 127 / open 13`)。
+> 原件 = `production/qa/evidence/s22-7-td-persist-13-line-budget-2026-11-01.md`。
+
 > ✅ **`S22-6` 2026-11-01 收口(COMPLETE —— 交付两案,待用户裁)** —— 卡面只要求出案不实现,**已照办**:
 > 本轮**未改** `critical_paths.json`、**未开**任何 `#10` 夹具。
 > **核心发现:`#10` 记的「生产路径未接线 ⇒ 无判据可挂」与实测不符。** G4.1(2026-10-11)退役的是

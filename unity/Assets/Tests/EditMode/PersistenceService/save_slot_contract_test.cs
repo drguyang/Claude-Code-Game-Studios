@@ -116,6 +116,38 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // TD-persist-13(S22-7)—— 拆分不得丢「末段读尽」这条守卫
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 载荷段之后的**尾随字节**必须按损坏拒收。
+        /// <para><b>为什么补这一条</b>(2026-11-01 实测):`ParseBody` 按段拆分时把
+        /// `EnsureFullyConsumed()` 留在 `ParsePayloadSegment` 尾部 —— 证伪轮 M3 把它删掉后,
+        /// **全 PersistenceService 面 271 条一条都没红** ⇒ 该守卫此前**零载体**。
+        /// 拆分本身对它是「逐字照搬」,但没有载体的照搬无法证明。</para>
+        /// <para>做法:合法档(未签名)+ 3 字节尾随 ⇒ 重签 ⇒ 写盘 ⇒ 读档必须抛「尾随 … 未被消费」。
+        /// 先重签是必要的:不重签会先在**校验和门**被拒,测不到本判据。</para>
+        /// </summary>
+        [Test]
+        public void test_td13_trailingBytesAfterPayloadSegment_areRejected()
+        {
+            byte[] clean = MinimalSaveBytes();
+            var withGarbage = new byte[clean.Length + 3];
+            Array.Copy(clean, withGarbage, clean.Length);
+            withGarbage[clean.Length] = 0xAA;
+            withGarbage[clean.Length + 1] = 0xBB;
+            withGarbage[clean.Length + 2] = 0xCC;
+
+            File.WriteAllBytes(Path.Combine(_testDir, "save_0.bin"), SaveService.AddChecksum(withGarbage));
+
+            var svc = ReadyService();
+            var ex = Assert.Throws<InvalidDataException>(() => svc.Load(new SaveSlot(0)),
+                "载荷段之后的多余字节必须拒收(否则布局漂移会被静默读成「末尾多几字节而已」)");
+            StringAssert.Contains("尾随", ex.Message,
+                "报文须点明「尾随字节」—— 否则排查时与「长度字段写错」不可分");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 判据 ②(a) —— 写时序递增槽位:允许
         // ══════════════════════════════════════════════════════════════════
 
