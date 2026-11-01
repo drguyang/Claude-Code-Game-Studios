@@ -180,6 +180,8 @@ PY
 > 编解码 / 路由 / 37 结案门 / 9 体征链 / ADR-001 上行,风险高且与本轮未找到的任何文字依据相反。
 > 两案均写明「动了什么 / 判据怎么判 / 与 Amendment I 的关系」。
 > 原件 = `production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md`。
+> ✅ **用户裁定「甲案,落账本」并已执行**(同日):`#10` `none → test` 挂两条载体 ⇒
+> smoke `自动 PASS 13 → 14` · `无名 6 → 5`,退出码仍 **3**;零产品代码、零 ADR 改动。
 
 > ✅ **`S22-4` 2026-11-01 收口(COMPLETE WITH NOTES)** —— smoke `#14` 载体落地,`自动 PASS 12 → 13`。
 > **交付**:`Sim/EventDraw.cs`(抽池命中纯函数 `SplitMix64(WorldSeed, win, tier, ordinal) % 候选数`)·

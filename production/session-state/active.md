@@ -15151,3 +15151,20 @@ M3 绕开掷骰 ⇒ 仅 D 红 · M4 驱动不调链 ⇒ E/F 红。
 - 原件:`production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md`(§5 四条复算命令均已实跑并核对)
 - 载体台账已加指针;`sprint-22.md` 已记 S22-6 收口(交付两案)
 - sprint-22:S22-1/2/3/4/5/6 已收;剩 `S22-7`(拆方法 ≤40 行)· `S22-8`(帐篷承接者勘察)
+
+---
+
+## 2026-11-01 · `S22-6` 结案:甲案落账(`#10` none → test)
+
+**用户指令**:「甲案,落账本」。
+
+- `tests/smoke/critical_paths.json` #10 `none → test`,挂两条真装配载体
+  (`AppliedPayloadSettlementTest.test_emergency_attribution_twoEventsCarryGivenPatientId` ·
+  `EmergencySkipEntryWiringTest.test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth`);
+  `critical-paths.md` 未改(其注释:标 none 的条目证明有载体时只改本表)。
+- **零产品代码、零 ADR 改动**。
+- 实跑:`#10 PASS(2 载/全绿)`;`自动 PASS 13 → 14` · `无名 6 → 5`;**退出码仍 3**。
+- 原 reason「急救的 Append 生产接线未落」已逐字引用并给出反证。
+- 剩余无载体 5 条:`#8` 拾取 · `#9` 诊断 · `#13` 建造 · `#18` 存档重放逐位 · `#22` 跨构建
+  (后两条 = `TD-ci-01` EXTERNAL,凭证在用户侧)。
+- sprint-22:S22-1/2/3/4/5/6 已收;剩 `S22-7`(拆方法 ≤40 行 + 夹具)· `S22-8`(帐篷承接者勘察)。

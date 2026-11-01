@@ -68,6 +68,8 @@ grep -n "drugPotency" unity/Assets/Sim/EmergencyProcedures/HostEmergencyProcesso
 
 ### 甲案(推荐)—— 判「无冲突」,`#10` 挂既有双载体
 
+> ✅ **2026-11-01 用户裁定「甲案,落账本」—— 已执行**(见 §6)。
+
 | 项 | 内容 |
 |---|---|
 | **动了什么** | 只动账本:`critical_paths.json` #10 `none → test`,挂上 §1.3 两条;`critical-paths.md` 不动(其注释明写「标 none 的条目若日后被证明有载体,**只改本表,不改 md**」)。**零产品代码、零 ADR 改动。** |
@@ -112,3 +114,28 @@ grep -n "_eventSink.Append" unity/Assets/Sim/EmergencyProcedures/HostEmergencyPr
 grep -n "BindEmergencySkip" unity/Assets/Gameplay.Boot/BootRoot.cs                  # :611
 grep -n "恰两条" unity/Assets/Tests/EditMode/EmergencyProcedures/*.cs                # 两条载体
 ```
+
+---
+
+## 6. 甲案落地记录(2026-11-01 · 用户裁定「甲案,落账本」)
+
+- **只动账本**:`tests/smoke/critical_paths.json` #10 `none → test`,挂两条载体;
+  `critical-paths.md` **未改**(其注释明写「标 none 的条目若日后被证明有载体,只改本表,不改 md」)。
+- **零产品代码、零 ADR 改动** —— 与 §2 甲案承诺一致。
+- **实跑**:
+
+```
+$ python3 tests/smoke/run_smoke.py --results unity/Logs/full-EditMode-saveslot.xml \
+                                            unity/Logs/full-PlayMode-saveslot.xml
+ 10  B  test    PASS(2 载/全绿)     急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency
+合计 22 条 | 自动 PASS 14 · 自动 FAIL 0 · 未跑(需结果件) 0 · 具名人工 3 · 无名 5
+exit=3
+```
+
+| 口径 | 落账前 | 落账后 |
+|---|---|---|
+| 自动 PASS | 13 | **14**(+1 = #10) |
+| 无名(无载体) | 6 | **5** |
+| 退出码 | 3 | **3**(5 条仍无载体 ⇒ 不是 PASS) |
+
+- **原 reason 措辞已订正**:原文 = 「急救的 Append 生产接线未落」,新 reason 逐字引用并给出反证。

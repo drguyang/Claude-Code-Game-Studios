@@ -86,8 +86,12 @@
       "id": 10,
       "group": "B",
       "title": "急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency",
-      "status": "none",
-      "reason": "急救的 Append 生产接线未落"
+      "status": "test",
+      "check": [
+        "DaYiJingCheng.Tests.EmergencyProcedures.AppliedPayloadSettlementTest.test_emergency_attribution_twoEventsCarryGivenPatientId",
+        "DaYiJingCheng.Tests.EmergencyProcedures.EmergencySkipEntryWiringTest.test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth"
+      ],
+      "reason": "2026-11-01 甲案落账(S22-6 裁定后执行)。原 reason「急救的 Append 生产接线未落」与实测不符:G4.1(2026-10-11)退役的是**自动触发**驱动(EmergencyAttemptDriver._triggeredPatients,现为空壳),而本条讲的是**手动动作**的事件形状。手动路径在且被接线(EmergencyChannelDriver / BootRoot.cs:611 跳过入口 → EmergencyManualDriver → HostEmergencyProcessor:206/:233 双写,:212 主机 Judge 出 potency),两条载体均真装配(emergency_skip_entry_wiring_test 走 CompositionRoot.Assemble())。原件 = production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md §2 甲案。"
     },
     {
       "id": 11,
