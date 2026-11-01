@@ -125,13 +125,25 @@
   **① 候选集(什么算「床类」)**
 
   ```
-  bed_modules = { m ∈ MODULE_CATALOG : m.has_tag("bed") }
+  bed_modules = { m ∈ MODULE_CATALOG : furn_type(m) == "bed" }
   candidate_cells = { c ∈ clinic_cells : module_at(c) ∈ bed_modules }
   ```
 
-  - 「床类」判据 = **家具目录的 `bed` 标签**(`O-24-1` 的家具目录扩展项之一),
-    **不是**模块 id 的字面匹配(`bed_01` / `cot` / `bunk` 一律按标签归类,加新床型不改本节)。
+  - 「床类」判据 = **家具类型 `furn_type == "bed"`**(`O-24-1` 的家具目录扩展项之一),
+    **不是**模块 id 的字面匹配(`bed_01` / `cot` / `bunk` 一律按类型归类,加新床型不改本节)。
   - `clinic_cells` = 规则一析出的**医馆房间格**;床落在房间外(如露天) ⇒ **不进候选集**。
+
+  > **🔁 2026-11-01 措辞订正(用户裁定「按现状,24 回写轮订正 GDD 措辞」)**:
+  > 原文写 `m.has_tag("bed")` —— 一个**标签**判据。实现轮实测(2026-11-01)发现
+  > **全仓无 tag 字段**,两张表的真实形状是:
+  > · `assets/data/build_modules.json`(10 行)= `module_id / module_type / **furn_type** /
+  >   build_item_key / occupancy_local / cost / refundable`,床 = `furn_type: "bed"`;
+  > · `assets/data/item_database_furniture.json`(7 行)= `**type** / tier / e_env`,
+  >   床 = `type: "bed"`。
+  > ⇒ 本节改按 **`furn_type`** 表述;实现侧(`Sim/Clinic/ClinicReviveCellRule.cs`)的判据
+  > 收敛为**唯一常量** `BedFurnType` —— 本节的意图「按类别归类,加新床型不改本节」
+  > 由单一常量兑现,不靠字面匹配模块 id(那正是本节禁止的)。
+  > ⚠️ 若将来数据管线真的引入 `tag` 字段,改实现侧 `IsBedType` 一处即可,本节随之回改。
 
   **② 选定规则(多格时取哪一个)**
 

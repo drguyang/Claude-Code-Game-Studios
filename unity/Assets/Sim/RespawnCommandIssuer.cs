@@ -50,13 +50,18 @@ namespace DaYiJingCheng.Sim
     public sealed class RespawnCommandIssuer
     {
         private readonly ITeleportCommandSink _teleport;
-        private readonly IClinicReviveCell _clinicCellOf;
+
+        // ⚠️ **非 readonly**:24 的查询面在装配序上晚于本类构造(见 AttachClinicCell 的
+        // 「为什么是后置注入」)。其余两个字段仍 readonly —— 只有这一支是后置的。
+        private IClinicReviveCell _clinicCellOf;
+
         private readonly WorldPos _spawnCell;
 
         /// <summary>构造复活发令面。</summary>
         /// <param name="teleport">1 侧传送契约的整数半(ADR-025 QQ-01 ①′)。</param>
         /// <param name="clinicCellOf">医馆床格端口(24 提供;**可 null = 未接线** ——
-        /// 现值,落点恒兜底出生点;24 实现轮装配真查询面)。</param>
+        /// 落点恒兜底出生点;装配层在 24 段构造完成后经 <see cref="AttachClinicCell"/>
+        /// 后置注入,见该方法的「为什么不是构造形参」)。</param>
         /// <param name="spawnCell">世界出生点(ADR-015 逻辑层固定格,装配层注入)。</param>
         /// <exception cref="ArgumentNullException"><paramref name="teleport"/> 为 null。</exception>
         public RespawnCommandIssuer(ITeleportCommandSink teleport,
@@ -66,6 +71,35 @@ namespace DaYiJingCheng.Sim
             _clinicCellOf = clinicCellOf;
             _spawnCell = spawnCell;
         }
+
+        /// <summary>
+        /// **后置注入**医馆床格端口(24 的运行期查询面;装配层在 24 段构造后调用一次)。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么是后置注入而不是构造形参</b>:装配序有硬约束 —— 本类在
+        /// `CompositionRoot` 的**死亡结算段**(`~:403`)构造,而 24 的三份烘焙数据要等到
+        /// **世界段**(`~:1186`,依赖 `structures != null` + 三次产物装载)才具备。
+        /// 把 24 段提到结算段之前 = 让 24 依赖尚未装载的产物 ⇒ 装配期抛;把结算段推后 =
+        /// 动 40 余处 `deathCandidates.Register` 的下游次序。两者都比「后置注入」代价大。</para>
+        /// <para>⚠️ <b>零状态机</b>:本类仍是「发令面」,只多持一个引用;不因注入而持有任何
+        /// 复活状态、不写流、不发事件(AC-29-09 的零 Append 不变)。</para>
+        /// <para>⚠️ <b>二次注入抛</b>(fail-loud,承 <c>TeleportCommandSink.BindPlayer</c> 同款
+        /// 纪律):两次注入意味着装配期有两个床格真源,那正是「两份真源」的形态。</para>
+        /// </remarks>
+        /// <param name="clinicCellOf">24 的生产查询面(不得为 null —— 未接线就该不调用本方法)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="clinicCellOf"/> 为 null。</exception>
+        /// <exception cref="InvalidOperationException">已注入过一次(二次注入)。</exception>
+        public void AttachClinicCell(IClinicReviveCell clinicCellOf)
+        {
+            if (clinicCellOf == null) throw new ArgumentNullException(nameof(clinicCellOf));
+            if (_clinicCellOf != null)
+                throw new InvalidOperationException(
+                    "RespawnCommandIssuer: 床格端口已注入过 —— 二次注入会让复活落点有两个真源");
+            _clinicCellOf = clinicCellOf;
+        }
+
+        /// <summary>床格端口是否已接线(诊断 / 装配期自检用;不参与判定)。</summary>
+        public bool HasClinicCell => _clinicCellOf != null;
 
         /// <summary>
         /// 发一条复活传送命令(整数格;零流事件 —— 过场位移零写流)。

@@ -397,8 +397,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 玩家由 BootRoot 后置生成 ⇒ sink 走 BindPlayer 迟绑定(未绑定即请求 ⇒ 抛);
             //    sink 实例在此构造、经局部变量直通消费者 revive 回调,并在服务袋段
             //    (`services` 声明于 :1589)赋给 `services.TeleportSink` 供 BootRoot 绑定。
-            // 床格端口(clinicCellOf)仍 = null(24 运行期查询面未接,BLOCKED-BY-24 维持)
-            // ⇒ 落点恒兜底世界出生点;24 实装轮在此注入真查询面。
+            // 床格端口(clinicCellOf)此处仍传 null —— **不是未接线**,而是装配序:
+            //   24 的三份烘焙数据要等到本方法的「世界段」(~:1186)才装载完,而结算段(此处)
+            //   在它之前。⇒ 真查询面在 24 段经 `respawnIssuer.AttachClinicCell(...)` **后置注入**
+            //   (2026-11-01 结清 `TD-clinic-18` 实现半)。未接世界(`structures == null`)时
+            //   24 段不执行 ⇒ 本类床格端口恒 null ⇒ 落点兜底出生点(与今日行为逐位一致)。
             var teleportSink = new DaYiJingCheng.Gameplay.Presentation.Player.TeleportCommandSink();
             var respawnIssuer = new RespawnCommandIssuer(teleportSink, null, WorldSpawnCell);
 
@@ -1174,6 +1177,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                     modulesCatalog,
                     clinicFurniture.Catalogue,
                     clinicRooms.Table);
+
+                // ── 24 → 29 复活床格查询(规则六 · 2026-11-01 · 结清 `TD-clinic-18` 实现半)──
+                // 三支依赖全来自本段已有的实例,零新增装配边(⚠️ 必须**复用同一实例**:
+                // 另建 `BuildModulesCatalog` / `ClinicFurnitureCatalogue` = 两份目录,
+                // `module_id → furn_type` 的桥可能分叉)。
+                // ⚠️ **只在 `structures != null` 时构造**:未接世界 ⇒ 无布局 ⇒ 查询恒「无床」,
+                //    与「不构造」语义等价;但构造出来会让 29 侧走真链再返回 false(多一次摊平)。
+                //    这里选「不构造」⇒ `RespawnCommandIssuer` 收 null ⇒ 落点恒兜底出生点,
+                //    与今日行为**逐位一致**(无回归)。
+                // ⚠️ **后置注入**:`respawnIssuer` 在结算段(`:403`)构造,而 24 段在本行才具备
+                //    三份产物 ⇒ 走 `AttachClinicCell`(构造形参在此刻拿不到真查询面)。
+                //    详见 `RespawnCommandIssuer.AttachClinicCell` 的「为什么是后置注入」。
+                // ⚠️ 二次注入会抛 ⇒ 本段必须**恰一次**(它在本 `if (structures != null)` 分支内,
+                //    与 24 链其余零件同生共死)。
+                respawnIssuer.AttachClinicCell(new ClinicReviveCellQuery(
+                    structures,
+                    modulesCatalog,
+                    clinicFurniture.Catalogue));
 
                 // ── 23 的结构写者(S20-17 新增)────────────────────────────────
                 // 六支依赖全部来自本装配已有的实例,零新增装配边:
