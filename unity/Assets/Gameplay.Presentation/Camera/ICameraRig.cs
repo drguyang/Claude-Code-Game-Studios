@@ -90,6 +90,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         void SetMode(CameraMode mode);
 
         /// <summary>
+        /// 档位**请求**入口(带请求方系统号)—— 2026-11-01 甲案新增。
+        /// <para>⚠️ <b>为什么必须带 requesterId</b>:甲案的「同一请求方可降档」判据
+        /// (`camera-and-viewpoint.md:256`「只能由请求方退出」)需要知道**当前档是谁开的**。
+        /// 用无参重载 ⇒ `CameraModeMachine` 只能记到 `0`,所有请求方看起来是同一个
+        /// ⇒ 39 的脉案会被 10 的收尾请求顶掉(正是 `O-12` 要防的)。</para>
+        /// <para>⚠️ 系统号取自 `systems-index.md` 的编号(10 = 急救 / 29 = 死亡过渡 / 39 = 脉案…)。
+        /// 它是**审计与裁决**字段,不是状态 —— 相机不因此持有任何游戏事实(ADR-020 §五)。</para>
+        /// <param name="mode">请求的目标档(意图制,相机决定是否接受)。</param>
+        /// <param name="requesterId">请求方系统号(负值 = 无请求方,仅测试 / 默认档用)。</param>
+        /// </summary>
+        void SetMode(CameraMode mode, int requesterId);
+
+        /// <summary>
         /// 每帧求值入口 —— **单一显式相位**(AC-2-27③;承 ADR-011 的固定相位,
         /// 禁 `Script Execution Order` 隐式排序)。跟随 / 越肩阻尼 / 档位结算都在此。
         /// </summary>

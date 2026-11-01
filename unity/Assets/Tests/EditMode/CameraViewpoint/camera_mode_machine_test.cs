@@ -98,16 +98,31 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             // 穷举 3×3 档对(含同档)
             var modes = new[] { CameraMode.Explore, CameraMode.Treatment, CameraMode.Casebook };
 
+            // ⚠️ **两个请求方必须不同**(2026-11-01 甲案落地后订正):
+            //    AC-2-18① 的原意是「**别的系统**的低优先级请求不能打断当前档」
+            //    (「39 的脉案不能被 10 的收尾请求顶掉」—— `O-12` 要防的互抢机位)。
+            //    首版用**同一个** `requesterId: 1` 是夹具简化,**恰好撞上甲案**:
+            //    甲案(用户 2026-11-01 裁定)允许「**同一请求方**可降档」
+            //    (`camera-and-viewpoint.md:256`「只能由请求方退出」)⇒ 同号时 `Treatment→Explore`
+            //    **应当**生效,与 AC-2-18① 并不矛盾(二者测的是不同情形)。
+            //    ⇒ 本测改用**不同**请求方,使它只测 AC-2-18① 的原意;
+            //      甲案的同号分支由 `camera_downed_phases_test` 的
+            //      `test_downed_sameRequester_canExitViaExplore` / `..._differentRequester_cannotDowngrade` 覆盖。
+            const int OwnerRequester = 39;   // 开档方
+            const int OtherRequester = 10;   // 想插队的一方
+
             foreach (var from in modes)
             {
                 foreach (var to in modes)
                 {
                     var m = new CameraModeMachine();
-                    m.SetMode(from, 1); m.Settle(Dt, Dur);
+                    m.SetMode(from, OwnerRequester); m.Settle(Dt, Dur);
                     for (int i = 0; i < 100; i++) m.Settle(Dt, Dur);   // 转场走完
 
                     int restartsBefore = m.TransitionRestarts;
-                    m.SetMode(to, 1); m.Settle(Dt, Dur);
+                    // ⚠️ 换档请求来自**另一个**请求方(见上方注)。
+                    m.SetMode(to, to == from ? OwnerRequester : OtherRequester);
+                    m.Settle(Dt, Dur);
 
                     int fromPrio = CameraModePriority.Of(from);
                     int toPrio = CameraModePriority.Of(to);
@@ -120,7 +135,8 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
                     else if (toPrio < fromPrio)
                     {
                         Assert.AreEqual(from, m.Mode,
-                            $"{from}→{to}:低优先级**不能打断**高优先级(AC-2-18①)");
+                            $"{from}→{to}:低优先级**不能打断**高优先级(AC-2-18①;" +
+                            "请求方不同 ⇒ 甲案的「同请求方降档」不适用)");
                         Assert.AreEqual(restartsBefore, m.TransitionRestarts, "不得重起转场");
                     }
                     else
@@ -253,7 +269,14 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             // ① 结构面:不得有任何**实例或静态标量计时字段**(放开可见性)
             //    ⚠️ 自动属性会生成 `<X>k__BackingField` 编译器字段 ⇒ 归一化后再判。
             var allowed = new[] { "TransitionT", "TransitionFrom", "TransitionTo",
-                                  "TransitionRestarts", "CasebookPitch" };
+                                  "TransitionRestarts", "CasebookPitch",
+                                  // ⚠️ **2026-11-01 甲案新增,不是放宽守卫**:
+                                  //   `CurrentRequesterId` 是**请求方系统号**(10 / 29 / 39 …),
+                                  //   不是「档位存续时长」。它参与的是**谁开的这个档**的裁决
+                                  //   (`camera-and-viewpoint.md:256`「只能由请求方退出」),
+                                  //   与「相机是否自行计时」无关 —— 本条的靶(`_idleTicks` 形态)
+                                  //   仍然会被抓到(它不在白名单,且语义上确实在计时)。
+                                  "CurrentRequesterId" };
             foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
                                           BindingFlags.Instance | BindingFlags.Static))
             {

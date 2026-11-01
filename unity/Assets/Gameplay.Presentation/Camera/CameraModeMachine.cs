@@ -74,6 +74,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// <summary>当前档(唯一写入点 = 本类内部)。</summary>
         public CameraMode Mode { get; private set; } = CameraMode.Explore;
 
+        /// <summary>
+        /// **当前档的请求方**(2026-11-01 甲案新增;`RequesterId` 从「仅审计用」升为**语义字段**)。
+        /// <para>用途 = 甲案的「同一请求方可降档」判据:只有**开的人**能**关**
+        /// (`camera-and-viewpoint.md:256`「只能由请求方退出」/ `:768` 的 `O-12`)。</para>
+        /// <para>⚠️ 初值 = `-1`(**无请求方**):`Explore` 是启动默认档,不是任何系统请求来的 ⇒
+        /// 此时低优先级降档判据**不成立**(没有「同一请求方」可比),行为与改动前一致。</para>
+        /// <para>⚠️ **升格影响面**:`RequesterId` 原来只进审计,现在参与裁决 ——
+        /// 所有**生产调用点**必须传**真实**系统号,否则「同一请求方」判据恒假(退化为旧行为,
+        /// 不崩但静默失效)。生产调用点见 `CameraRig.SetMode(mode, requesterId)`。</para>
+        /// </summary>
+        public int CurrentRequesterId { get; private set; } = -1;
+
+
         /// <summary>转场进度 t ∈ [0,1](转场计时,**允许** —— AC-2-20 订正)。</summary>
         public float TransitionT { get; private set; } = 1f;
 
@@ -125,7 +138,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
 
             if (Mode != CameraMode.FirstPerson && hasVrRequest)
             {
-                ApplyMode(CameraMode.FirstPerson);
+                // VR 早退:取**该 VR 请求的** requesterId(甲案后它参与裁决)。
+                int vrRequester = -1;
+                for (int i = 0; i < _pending.Count; i++)
+                    if (_pending[i].Mode == CameraMode.FirstPerson) { vrRequester = _pending[i].RequesterId; break; }
+                ApplyMode(CameraMode.FirstPerson, vrRequester);
                 changedThisFrame = true;
                 _pending.Clear();
             }
@@ -134,7 +151,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
                 // VR 在位:平面链冻结 ⇒ 只接受「退出 VR」(由 Explore 请求表达)
                 if (hasExploreRequest)
                 {
-                    ApplyMode(CameraMode.Explore);
+                    // VR 退出:Explore 请求的 requesterId 原样记下。
+                    int exRequester = -1;
+                    for (int i = 0; i < _pending.Count; i++)
+                        if (_pending[i].Mode == CameraMode.Explore) { exRequester = _pending[i].RequesterId; break; }
+                    ApplyMode(CameraMode.Explore, exRequester);
                     changedThisFrame = true;
                 }
                 _pending.Clear();
@@ -165,11 +186,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
                 if (has)
                 {
                     int curPrio = CameraModePriority.Of(Mode);
-                    bool canSwitch = bestPrio >= curPrio && best.Mode != Mode;
+
+                    // ── 甲案(2026-11-01 用户裁定):**同一请求方可降档** ─────────────
+                    // ⚠️ **病因**:原判据 `bestPrio >= curPrio` ⇒ 低优先级请求**永远被拒**
+                    //   ⇒ `Casebook`(3)/ `Treatment`(2)一旦进入,**任何** `Explore`(1)请求
+                    //   都打不进去 ⇒ 相机**卡死**在近景/脉案档。
+                    // ⚠️ **而 GDD 要求能退出**:`camera-and-viewpoint.md:256` 逐字写
+                    //   `Casebook` 的退出条件 =「请求方请求 `Explore`(**只能由请求方退出**)」;
+                    //   `:768` 的 `O-12` 同款。⇒ 「同一请求方」是 GDD 的**明文语义**,
+                    //   本判据即它的直接实现,**不是新发明**。
+                    // ⚠️ **为什么必须是「同一请求方」而不是「任意低优先级」**:
+                    //   若放开成「任意 Explore 可降档」,39 的脉案会被 10 的收尾请求顶掉
+                    //   (反之亦然)—— 那会让两个系统互抢机位,正是 `O-12` 要防的。
+                    //   限定同一请求方 ⇒ 只有「开的人」能「关」,与 GDD 逐字一致。
+                    bool sameRequesterDowngrade =
+                        best.Mode == CameraMode.Explore
+                        && best.RequesterId == CurrentRequesterId
+                        && Mode != CameraMode.Explore;
+
+                    bool canSwitch = (bestPrio >= curPrio || sameRequesterDowngrade)
+                                     && best.Mode != Mode;
                     if (canSwitch)
                     {
                         // from 取**打断那一刻**的当前插值值(AC-2-18③)
-                        ApplyMode(best.Mode);
+                        ApplyMode(best.Mode, best.RequesterId);
                         changedThisFrame = true;
                     }
                 }
@@ -192,12 +232,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// **`Mode` 的唯一写入点**(AC-2-17):起转场 + 置档 + 计次。
         /// 所有切档路径(VR 早退 / VR 退出 / 优先级裁决)都经此 —— 使类体内 `Mode =` 恰一处。
         /// </summary>
-        private void ApplyMode(CameraMode mode)
+        private void ApplyMode(CameraMode mode) => ApplyMode(mode, CurrentRequesterId);
+
+        /// <summary>起转场 + 置档 + 记请求方(2026-11-01 甲案:`RequesterId` 参与裁决)。</summary>
+        private void ApplyMode(CameraMode mode, int requesterId)
         {
             TransitionFrom = CurrentInterpolated();   // 打断那一刻的插值值(AC-2-18③)
             TransitionTo = 1f;
             TransitionT = 0f;
             Mode = mode;                              // ← Mode 的唯一写入点
+            CurrentRequesterId = requesterId;          // ← 甲案:记下「谁开的这个档」
             TransitionRestarts++;
         }
 

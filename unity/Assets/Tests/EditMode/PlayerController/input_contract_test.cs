@@ -277,6 +277,8 @@ namespace DaYiJingCheng.Tests.PlayerController
             // ADR-020 §Key Interfaces 四成员(2026-10-03 接口扩容)— 本夹具只用 YawBasis 面
             public CameraMode Mode => CameraMode.Explore;
             public void SetMode(CameraMode mode) { }
+            // 2026-11-01 甲案:接口新增带请求方的重载 —— 本夹具不参与档位裁决,空实现即可
+            public void SetMode(CameraMode mode, int requesterId) { }
             public void Tick(float deltaTime) { }
             public UnityEngine.Camera Camera => null;
         }
@@ -306,6 +308,8 @@ namespace DaYiJingCheng.Tests.PlayerController
             public float Pitch => 0f;
             public CameraMode Mode => CameraMode.Explore;
             public void SetMode(CameraMode mode) { }
+            // 2026-11-01 甲案:接口新增带请求方的重载 —— 本夹具不参与档位裁决,空实现即可
+            public void SetMode(CameraMode mode, int requesterId) { }
             public void Tick(float deltaTime) { }
             public UnityEngine.Camera Camera => null;
         }

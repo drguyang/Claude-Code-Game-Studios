@@ -558,7 +558,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                     var rig = _cameraRig;
                     if (rig == null) return;
                     if (rig.Mode == CameraMode.FirstPerson) return;   // VR 全禁
-                    rig.SetMode(downed ? CameraMode.Downed : CameraMode.Explore);
+                    // ⚠️ **必须传 requesterId**(2026-11-01 甲案):甲案的「同一请求方可降档」
+                    //    判据靠它认出「谁开的这个档」。29 = 死亡过渡(本呈现器的归属系统号)。
+                    //    不传 ⇒ `-1` ⇒ 退出语义静默失效(相机卡在倒下档)。
+                    rig.SetMode(downed ? CameraMode.Downed : CameraMode.Explore,
+                                requesterId: 29);
                 });
             _services.DeathPresenter = deathPresenter;   // 供测试与后续轮次定位(唯一实例)
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(

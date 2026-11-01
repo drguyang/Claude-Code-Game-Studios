@@ -306,41 +306,100 @@ namespace DaYiJingCheng.Tests.Camera
         }
 
         /// <summary>
-        /// ⚠️ **`Downed` 出不去** —— 如实钉住**当前实现的真实行为**,并登记为待裁矛盾。
+        /// **甲案**(2026-11-01 用户裁定):`Downed` 可被**同一请求方**的 `Explore` 退出。
         /// </summary>
         /// <remarks>
-        /// <para><b>为什么本测断言「出不去」而不是「能出去」</b>:实测
-        /// `CameraModeMachine.Settle` 的判据是 `bestPrio >= curPrio`
-        /// ⇒ **低优先级请求永远打不过当前档**。`Downed`(2)无法被 `Explore`(1)顶掉,
-        /// 与 `Casebook`(3)无法被 `Explore` 顶掉是**同一个机制**。</para>
-        /// <para><b>而 GDD 说应当能退出</b>:`camera-and-viewpoint.md:252-256` 的状态表逐字写
-        /// `Casebook` 的**退出条件 = 「请求方请求 `Explore`」**;`Treatment` 的退出条件同样是
-        /// 「10 请求 `Explore`」。⇒ **GDD 与实现直接矛盾**。</para>
-        /// <para><b>而 AC-2-18① 站在实现那边</b>:`test_ac218a_lowerPriorityCannotInterruptHigher`
-        /// 穷举 3×3 档对并**明确断言** `Casebook→Explore` 必须保持 `Casebook`
-        /// (「低优先级**不能打断**高优先级」)。⇒ 两条 AC 自相矛盾。</para>
-        /// <para>⚠️ <b>本测的作用 = 让这个矛盾**可判且不静默**</b>:它锁住「今天的行为」,
-        /// 使将来任何改动(无论往哪个方向修)**都会让本测转红**,从而强制重新审视
-        /// 这条矛盾。⚠️ <b>修复方向归用户裁定</b>(见证据件 §「待裁矛盾」)—— 不是实现能自裁的。</para>
+        /// <para><b>为什么这样才对</b>:`camera-and-viewpoint.md:256` 逐字写
+        /// 「退出条件 = 请求方请求 `Explore`(**只能由请求方退出**)」;`:768` 的 `O-12` 同款。
+        /// ⇒ 「同一请求方」是 GDD 的**明文语义**,甲案是它的直接实现。</para>
+        /// <para>⚠️ <b>本测的前身是 `..._currentBehaviorLocked`</b>(断言「出不去」),
+        /// 那是 2026-11-01 首版把**矛盾**锁成可判的临时形态。用户裁定甲案后,它翻成正面断言 ——
+        /// 这正是那条「锁住现状」测试**发挥作用的方式**:它逼着改判据的人同批改它。</para>
         /// </remarks>
         [Test]
-        public void test_downed_cannotExitViaExplore_currentBehaviorLocked()
+        public void test_downed_sameRequester_canExitViaExplore()
         {
+            const int Requester = 29;   // 29 = 死亡过渡(生产接线用的号)
+
             var machine = new CameraModeMachine();
-            machine.SetMode(CameraMode.Downed, requesterId: 0);
+            machine.SetMode(CameraMode.Downed, Requester);
             machine.Settle(dt: 1f, transitionDuration: 0.0001f);
             Assert.AreEqual(CameraMode.Downed, machine.Mode, "应先进入 Downed");
+            Assert.AreEqual(Requester, machine.CurrentRequesterId, "须记下请求方");
 
-            machine.SetMode(CameraMode.Explore, requesterId: 0);
+            // 同一请求方发 Explore ⇒ **可以**降档(甲案)。
+            machine.SetMode(CameraMode.Explore, Requester);
             machine.Settle(dt: 1f, transitionDuration: 0.0001f);
 
-            // ⚠️ **锁住今天的行为**:Explore(1) < Downed(2) ⇒ 请求被拒。
-            //    若将来裁定「Downed 须可被 Explore 退出」并改了 Settle 判据,本测会红 ——
-            //    **那是预期的**:改判据的人须同批改本测并登记裁定依据。
+            Assert.AreEqual(CameraMode.Explore, machine.Mode,
+                "同一请求方的 Explore 须能退出 Downed(GDD:256「只能由请求方退出」)");
+        }
+
+        /// <summary>
+        /// **甲案的边界**:`Downed` **不能**被**别的请求方**的 `Explore` 顶掉。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 这条是上一条的**负控**,也是甲案「为什么限定同一请求方」的理由:
+        /// 若放开成「任意 Explore 可降档」,39 的脉案会被 10 的收尾请求顶掉(反之亦然)
+        /// —— 那会让两个系统互抢机位,正是 `O-12` 要防的。
+        /// </remarks>
+        [Test]
+        public void test_downed_differentRequester_cannotDowngrade()
+        {
+            const int Owner = 29;      // 开的人
+            const int Other = 39;      // 别的人
+
+            var machine = new CameraModeMachine();
+            machine.SetMode(CameraMode.Downed, Owner);
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+            Assert.AreEqual(CameraMode.Downed, machine.Mode);
+
+            machine.SetMode(CameraMode.Explore, Other);   // 别人想关
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+
             Assert.AreEqual(CameraMode.Downed, machine.Mode,
-                "当前实现:Explore 优先级低于 Downed ⇒ 无法退出(与 Casebook 同一机制)。" +
-                "⚠️ 这与 GDD:252-256「Casebook 退出条件 = 请求方请求 Explore」矛盾," +
-                "与 AC-2-18①「低优先级不能打断高优先级」则一致 —— 两条 AC 自相矛盾,待用户裁定");
+                "**非**同一请求方的 Explore 不得降档 —— 否则两个系统会互抢机位(O-12)");
+        }
+
+        /// <summary>
+        /// 甲案对 **`Casebook`** 同样生效:39 开、39 关 ⇒ 能退出(这是矛盾的另一半)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 本条是甲案**真正的动机**:`Casebook` 卡死才是 GDD:256 最直接违反的那一处。
+        /// `Downed` 只是同一机制的第二个受害者。
+        /// </remarks>
+        [Test]
+        public void test_casebook_sameRequester_canExitViaExplore()
+        {
+            const int CasebookRequester = 39;
+
+            var machine = new CameraModeMachine();
+            machine.SetMode(CameraMode.Casebook, CasebookRequester);
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+            Assert.AreEqual(CameraMode.Casebook, machine.Mode);
+
+            machine.SetMode(CameraMode.Explore, CasebookRequester);   // 39 自己关
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+
+            Assert.AreEqual(CameraMode.Explore, machine.Mode,
+                "39 开的脉案须能被 39 自己关掉(GDD:256「只能由请求方退出」)");
+        }
+
+        /// <summary>
+        /// 甲案**不削弱** AC-2-18①:`Casebook` 仍不能被**别的**请求方打断。
+        /// </summary>
+        [Test]
+        public void test_casebook_differentRequester_stillCannotInterrupt()
+        {
+            var machine = new CameraModeMachine();
+            machine.SetMode(CameraMode.Casebook, 39);
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+
+            machine.SetMode(CameraMode.Treatment, 10);   // 10 想抢脉案的机位
+            machine.Settle(dt: 1f, transitionDuration: 0.0001f);
+
+            Assert.AreEqual(CameraMode.Casebook, machine.Mode,
+                "低优先级**仍不能**打断高优先级(AC-2-18① 不被甲案削弱)");
         }
 
         /// <summary>

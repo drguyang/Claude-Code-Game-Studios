@@ -297,7 +297,19 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             // ADR-020 §Key Interfaces 四成员
             Assert.IsNotNull(rig.GetProperty("Mode"), "ADR-020 明列的 Mode 须在接口上");
             Assert.IsNotNull(rig.GetProperty("Camera"), "ADR-020 明列的 Camera 须在接口上");
-            Assert.IsNotNull(rig.GetMethod("SetMode"), "ADR-020 明列的 SetMode 须在接口上");
+            // ⚠️ **必须按签名取**(2026-11-01 甲案后订正):`ICameraRig` 现**有两个** `SetMode`
+            //    重载(无参的兼容版 + 带 `requesterId` 的甲案版)⇒ `GetMethod("SetMode")`
+            //    抛 `AmbiguousMatchException`。按**参数类型**取,同时断言两个重载都在 ——
+            //    那才是「ADR-020 的 SetMode 完好 **且** 甲案的新入口已落」的完整判据。
+            var setMode1 = rig.GetMethod("SetMode",
+                new[] { typeof(DaYiJingCheng.Gameplay.Presentation.Camera.CameraMode) });
+            Assert.IsNotNull(setMode1,
+                "ADR-020 明列的 `SetMode(CameraMode)` 须在接口上(兼容重载,不得删)");
+            var setMode2 = rig.GetMethod("SetMode",
+                new[] { typeof(DaYiJingCheng.Gameplay.Presentation.Camera.CameraMode), typeof(int) });
+            Assert.IsNotNull(setMode2,
+                "甲案(2026-11-01)的 `SetMode(CameraMode, int)` 须在接口上" +
+                " —— 没有它,生产调用方无法传请求方号,「只能由请求方退出」会静默失效");
             Assert.IsNotNull(rig.GetMethod("Tick"), "ADR-020 明列的 Tick 须在接口上");
 
             // `OQ-2-6` 的 doc comment 须落在接口源码(偿付「零成本窗口」)

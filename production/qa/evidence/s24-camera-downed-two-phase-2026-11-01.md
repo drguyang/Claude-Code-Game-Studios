@@ -115,17 +115,67 @@ B 路 = 补档位 + 补相位机 + 补位姿效果 + 接线,数值全用**具名
   影响 39 / 10 两个系统,属跨域裁定。
 - **修复方向归用户**:见下节。
 
-### 4.4 三个可选修法(供裁定)
+### 4.4 三个可选修法 —— **用户裁定甲案**(2026-11-01)
 
 | # | 修法 | 代价 | 影响面 |
 |---|---|---|---|
-| **甲** | `Settle` 加「**同请求方**可降档」判据(`requesterId` 相同时允许降) | 小,改一处判据 | 只影响「同一请求方进出」,`Casebook` 仍不能被别的系统顶掉 |
-| **乙** | 加**显式退出信号**(`ClearMode(requesterId)` 而非靠低优先级请求) | 中,要扩接口 | 最干净,但要动 ADR-020 的接口面 |
-| **丙** | `Downed` 特判(优先级取 1) | 最小 | ❌ **不推荐**:会让死亡被 Explore 顶掉(§3.1 已否) |
+| **甲 ✅ 已采纳** | `Settle` 加「**同请求方**可降档」判据(`requesterId` 相同时允许降) | 小,改一处判据 | 只影响「同一请求方进出」,`Casebook` 仍不能被别的系统顶掉 |
+| 乙 | 加**显式退出信号**(`ClearMode(requesterId)` 而非靠低优先级请求) | 中,要扩接口 | 最干净,但要动 ADR-020 的接口面 |
+| 丙 | `Downed` 特判(优先级取 1) | 最小 | ❌ **不推荐**:会让死亡被 Explore 顶掉(§3.1 已否) |
 
-⚠️ 本批**不选**,等用户裁定。`Downed` 在生产上「出不去」的状态**如实登记**,不借绿。
+### 4.5 甲案的落地(用户裁定后,2026-11-01)
+
+**判据**(`CameraModeMachine.Settle`):
+
+```
+sameRequesterDowngrade = best.Mode == Explore
+                      && best.RequesterId == CurrentRequesterId
+                      && Mode != Explore
+canSwitch = (bestPrio >= curPrio || sameRequesterDowngrade) && best.Mode != Mode
+```
+
+**为什么必须是「同一请求方」而不是「任意低优先级」**:若放开成「任意 Explore 可降档」,
+39 的脉案会被 10 的收尾请求顶掉(反之亦然)—— 那正是 `O-12` 要防的互抢机位。
+
+**四处连带改动**:
+
+| # | 改动 | 为什么 |
+|---|---|---|
+| 1 | `CameraModeMachine` 新增 `CurrentRequesterId`(初值 `-1` = 无请求方) | 判据要认「谁开的这个档」;初值 `-1` 使启动默认档不被任何降档判据命中(行为与改动前一致) |
+| 2 | `ApplyMode(mode, requesterId)` 重载(旧单参版转调、保留) | `Mode` 写入点仍**恰一处**(AC-2-17 不破) |
+| 3 | `ICameraRig` 加 `SetMode(CameraMode, int)`;**保留**单参重载(记 `-1`) | 既有调用方不破;生产调用方须用带号重载 |
+| 4 | `BootRoot` 接线传 `requesterId: 29` | 29 = 死亡过渡(本呈现器归属系统号)。**不传 ⇒ 退出语义静默失效** |
+
+**`RequesterId` 语义升格**(如实登记):它原本注释为「仅审计用」,甲案后**参与裁决**。
+⇒ 所有生产调用点必须传**真实**系统号,否则「同一请求方」判据恒假
+(退化为旧行为:不崩,但「只能由请求方退出」静默失效)。
+
+**既有夹具的影响**:`test_ac218a_lowerPriorityCannotInterruptHigher` 用**同一个**
+`requesterId: 1` 穷举 3×3 ⇒ 其 `Casebook→Explore` 分支现在**会**降档(甲案使然)。
+该夹具须同批订正(见 §10)。
+
+### 4.6 甲案**不削弱** AC-2-18①
+
+`Casebook` 仍**不能**被**别的**请求方打断 —— 见新夹具
+`test_casebook_differentRequester_stillCannotInterrupt` 与
+`test_downed_differentRequester_cannotDowngrade`(两条都是**负控**)。
 
 ---
+
+## 4.7 甲案触发的**三处既有夹具订正**(全量回归抓到,定向跑看不见)
+
+| # | 夹具 | 红因 | 处置 |
+|---|---|---|---|
+| 1 | `camera_mode_machine_test.test_ac218a_lowerPriorityCannotInterruptHigher` | 首版用**同一个** `requesterId: 1` 穷举 3×3 ⇒ 甲案下 `Treatment→Explore` 变成「同请求方可降档」⇒ 与 AC-2-18① 的断言冲突 | **改用两个不同请求方**(`Owner=39` / `Other=10`)。AC-2-18① 的原意就是「**别的系统**的低优先级请求不能打断」(`O-12` 防互抢机位)—— 同号是夹具简化,恰好撞上甲案。**AC-2-18① 未被放宽** |
+| 2 | `camera_mode_machine_test.test_ac220_noModeDurationTimer` | 白名单式断言「任何标量字段不在 `allowed` 即红」⇒ `CurrentRequesterId`(int)命中 | 加入 `allowed` 并注明**它不是计时器**:它是请求方系统号(10/29/39…),参与「谁开的这个档」的裁决,与「相机是否自行计时」无关。**守卫的靶(`_idleTicks` 形态)仍会被抓** |
+| 3 | `camera_obligations_reconciliation_test.test_vrInterface_firstPersonEnumExists_planeChainIndependent` | `ICameraRig` 现有两个 `SetMode` 重载 ⇒ `GetMethod("SetMode")` 抛 `AmbiguousMatchException` | 改为**按签名取**:同时断言两个重载都在 —— 那才是「ADR-020 的 `SetMode` 完好 **且** 甲案的新入口已落」的完整判据 |
+
+⚠️ **三条都只有全量回归才暴露**(定向只跑 `DaYiJingCheng.Tests.Camera` 时,`CameraViewpoint` 与
+`PlayerController` 的夹具不在筛选面内)。又一次「定向跑 ≠ 全量跑」。
+
+⚠️ **另有一处编译期红**(在跑测试之前就挡住):`input_contract_test.cs` 的两个假 `ICameraRig`
+(`CountingCameraRig` / `TestCameraRig`)须补 `SetMode(CameraMode, int)` 空实现
+—— 接口加成员必然波及所有实现方,这是 `CS0535` 而非运行期红。
 
 ## 5. 测试(13 条,`camera_downed_phases_test.cs`)
 
@@ -215,17 +265,37 @@ eaf9bd4b59e8bfeccccfc37da1f51ab6f493bb4eb6823a50b2d5ba7ca1bca59e  CameraModeMach
 
 ---
 
+## 7.5 甲案证伪轮(3/3 各转红,哈希逐字节还原)
+
+同命令内「改 → 跑 → 还原」,靶 = `CameraModeMachine.Settle` 的同请求方判据。
+
+| 变异 | 内容 | 转红 |
+|---|---|---|
+| **M1** | 去掉「同请求方可降档」(退回旧行为 ⇒ 出不去) | `test_downed_sameRequester_canExitViaExplore` + `test_casebook_sameRequester_canExitViaExplore` |
+| **M2** | 放开成「**任意** Explore 可降档」(不限定请求方 ⇒ 会互抢) | `test_downed_differentRequester_cannotDowngrade` + `test_ac218a_lowerPriorityCannotInterruptHigher` |
+| **M3** | `CurrentRequesterId` 不记录(恒 `-1` ⇒ 判据恒假) | 同 M1 两条 |
+
+⚠️ **M1 与 M2 红在**不同**的测试上** —— 那正是甲案两个方向都被钉住的证据:
+「同请求方**能**退出」与「异请求方**不能**抢」各有一组判据,任一侧改坏都会红。
+
+还原哈希: `1ef3bb7ec8f1a923e95c5375dda14ec1f4bb3f1338d14ac809c74b82bf6bb1c6`(逐字节相同)
+
+⚠️ **首轮三个变异全 NO-XML** —— 原因是我把证伪轮与 PlayMode 全量回归**并行**跑了,
+Unity 工程被占用。**这是调度失误,不是变异失败**。等 PlayMode 结束后重跑才得到上述结果。
+(如实登记:NO-XML 不是绿,是**没跑成** —— 承既有口径。)
+
 ## 8. 回归(三元组)
 
 | 项 | 值 |
 |---|---|
-| **截至时刻** | 2026-11-01 **22:22:12 CST**(EditMode)/ **22:3x CST**(PlayMode) |
+| **截至时刻** | 2026-11-01 **22:47 CST**(EditMode,甲案后)/ **22:5x CST**(PlayMode) |
 | **批次** | S24 相机两段式(`CameraMode.Downed`) |
 | **commit** | 待提交(本批) |
 
 | 套件 | 结果 | 前次 | 等式 |
 |---|---|---|---|
-| EditMode | `total=6469 passed=6432 failed=0 skipped=37` | `6455 / 6418 / 0 / 37` | `6469 − 6455 = 14` ✅(新增 14 测) |
+| EditMode(甲案前) | `total=6469 passed=6432 failed=0 skipped=37` | `6455 / 6418 / 0 / 37` | `6469 − 6455 = 14` ✅(新增 14 测) |
+| **EditMode(甲案后)** | **`total=6472 passed=6435 failed=0 skipped=37`** | `6469 / 6432 / 0 / 37` | `6472 − 6469 = 3` ✅(甲案新增 3 测:1 正控 + 2 负控) |
 | PlayMode | `total=274 passed=270 failed=0 skipped=2` | `274 / 270 / 0 / 2` | 持平 ✅(本批未加 PlayMode 测试) |
 
 复算:

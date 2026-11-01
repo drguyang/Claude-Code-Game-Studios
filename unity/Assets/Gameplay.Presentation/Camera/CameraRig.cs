@@ -136,8 +136,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// <summary>当前档(ADR-020 §Key Interfaces)。</summary>
         public CameraMode Mode => _modeMachine.Mode;
 
-        /// <summary>档位**请求**入口(意图制,R-2-5;ADR-020 §Key Interfaces)。</summary>
-        public void SetMode(CameraMode mode) => _modeMachine.SetMode(mode, requesterId: 0);
+        /// <summary>
+        /// 档位**请求**入口(意图制,R-2-5;ADR-020 §Key Interfaces)。
+        /// <para>⚠️ 本重载**不带请求方** ⇒ 记 `requesterId = -1`(= 无请求方)。
+        /// 甲案的「同一请求方可降档」判据对它**不成立**(没有「谁开的」可比)。
+        /// ⇒ **生产调用方必须用带 requesterId 的重载**,否则退出语义静默失效
+        /// (不崩,但「只能由请求方退出」退化成「谁都退不了」)。</para>
+        /// </summary>
+        public void SetMode(CameraMode mode) => _modeMachine.SetMode(mode, requesterId: -1);
+
+        /// <inheritdoc />
+        public void SetMode(CameraMode mode, int requesterId) => _modeMachine.SetMode(mode, requesterId);
 
         /// <summary>
         /// 每帧求值入口(单一显式相位;AC-2-27③)。结算档位 + 同步档位姿态。
@@ -203,10 +212,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// 测试缝:强制设档(AC-2-06② 在 P0 无真 VR ⇒ 夹具注入)。
         /// ⚠️ 仅供测试;生产路径的档切换归 story 005 的档状态机。
         /// </summary>
-        public void SetModeForTest(CameraMode mode)
+        public void SetModeForTest(CameraMode mode, int requesterId = -1)
         {
-            // ⚠️ 经**唯一写入点**(意图制);测试缝只免去转场等待
-            _modeMachine.SetMode(mode, requesterId: 0);
+            // ⚠️ 经**唯一写入点**(意图制);测试缝只免去转场等待。
+            // ⚠️ `requesterId` 默认 `-1`(= 无请求方)—— 既有夹具(不传该参)行为不变;
+            //    要测「同一请求方可降档」的夹具须显式传号。
+            _modeMachine.SetMode(mode, requesterId);
             _modeMachine.Settle(dt: 1f, transitionDuration: 0.0001f);   // 立即结算到位
         }
 
