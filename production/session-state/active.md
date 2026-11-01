@@ -15617,3 +15617,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   载体升级为真相机请求断言;② 29 补 story 载体;③ 「该发没发」需另开覆盖矩阵门。
 
 证据:`production/qa/evidence/s24-camera-downed-two-phase-2026-11-01.md` §14
+
+## Session Extract — /dev-story 2026-11-02(story-010 已收口)
+
+- **Story**:`production/epics/emergency-procedures/story-010-camera-mode-intent-wiring.md` ——
+  **Complete ✅ 2026-11-02(COMPLETE WITH NOTES)** · 用户指令「排进 sprint-23」⇒ `S23-7`
+- **Files changed**:`Gameplay.Boot/{EmergencyChannelDriver,CasebookCommandRouter,BootRoot}.cs` ·
+  `Sim/EmergencyProcedures/ModalPhaseEvaluator.cs` · 夹具 4 件(2 新 2 改) · GDD 规则八/AC-10-11 回写
+- **Test written**:`Tests/EditMode/EmergencyProcedures/emergency_camera_mode_intent_test.cs`(15)·
+  `Tests/PlayMode/EmergencyProcedures/emergency_camera_mode_intent_wiring_test.cs`(2)
+- **Blockers**:无。未闭项:S10-09 真机走查 `NOT-RUN`;`MotorLease`/`AC-10-13` 未接线(须另立 story)
+- **🔴 本轮新发现**:`CameraRig.Tick` 此前**零生产调用** ⇒ 档位机从不结算(29 `Downed` / 10 `Treatment`
+  / 39 `Casebook` 全部「发了不生效」)。用户裁定「本卡顺带接」,已接线并跨 epic 登记
+- **Next**:`/code-review` 上述生产文件 → 若通过则无需 `/story-done`(已手工收口,判据见证据件);
+  另议 ① `MotorLease` story ② 「该发没发」覆盖矩阵门 ③ 29 侧真机走查(现在才有意义)
+- 证据原件:`production/qa/evidence/impl-story-010-camera-mode-intent-2026-11-02.md`
