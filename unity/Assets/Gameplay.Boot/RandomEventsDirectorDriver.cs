@@ -52,6 +52,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IPayloadDecoder _decoder;
         private readonly IClinicCellSource _clinicCells;
         private readonly IReadOnlyCollection<int> _houseCallEventKeys;
+        private readonly RandomEventSpawnChain _spawnChain;
 
         private HouseCallStartedWriter _writer;
         private long _lastDrivenTick = -1;
@@ -69,7 +70,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             IPayloadEncoder encoder,
             IPayloadDecoder decoder,
             IClinicCellSource clinicCells,
-            IReadOnlyCollection<int> houseCallEventKeys)
+            IReadOnlyCollection<int> houseCallEventKeys,
+            RandomEventSpawnChain spawnChain = null)
         {
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
@@ -77,6 +79,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _clinicCells = clinicCells ?? throw new ArgumentNullException(nameof(clinicCells));
             _houseCallEventKeys = houseCallEventKeys ?? throw new ArgumentNullException(nameof(houseCallEventKeys));
+            _spawnChain = spawnChain;   // 可 null = 未接线(测试的部分装配);生产恒非 null
         }
 
         /// <summary>玩家 actorId 是否已绑定(装配后、玩家生成前的间隙 = 未绑定)。</summary>
@@ -89,6 +92,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>已写入的 HouseCallStarted 条数(测试/观测接缝)。</summary>
         public int StartedCount { get; private set; }
+
+        /// <summary>急召生成链(S22-4;`null` = 未接线)。</summary>
+        public RandomEventSpawnChain SpawnChain => _spawnChain;
+
+        /// <summary>最近一次边沿的生成链结果(观测接缝;未接线恒 <c>null</c>)。</summary>
+        public SpawnChainOutcome? LastSpawnOutcome { get; private set; }
+
+        /// <summary>最近一次边沿的生成链报错(超界拒收等;**不杀帧**,见 <see cref="OnTickEdge"/>)。</summary>
+        public Exception LastSpawnError { get; private set; }
 
         /// <summary>最近一次边沿的写者结果码(测试/观测接缝;未绑定期为 None 值域外哨 -1)。</summary>
         public HouseCallStartResult LastResult { get; private set; } = (HouseCallStartResult)(-1);
@@ -117,17 +129,43 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// tick 边沿驱动 —— 调出诊启动写者的本 tick 判定(规则十二 12.1)。
         /// </summary>
         /// <param name="tick">本边沿自己的逻辑 tick(由帧泵回推)。</param>
-        /// <remarks>未绑定玩家 ⇒ no-op(fail-safe:装配未完成 = 不驱动,不是错误态);
+        /// <remarks>未绑定玩家 ⇒ **出诊启动半边** no-op(fail-safe:装配未完成 = 不驱动,不是错误态);
+        /// 急召生成链半边与此无关,照跑(S22-4);
         /// 同 tick 二次调用被写者的 AlreadyStartedThisTick 与本处 <c>_lastDrivenTick</c> 双面拒。</remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> 为负。</exception>
         public void OnTickEdge(long tick)
         {
             if (tick < 0)
                 throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
-            if (_writer == null) return;
+            // 🔁 2026-11-01(S22-4):**去重与生成链提到写者判定之前** —— 生成链不依赖玩家绑定,
+            //    原序(先判 `_writer == null`)会让「玩家未绑定期」整段不跑链,与注释所称的
+            //    「与出诊启动是两件事」不符。
             if (tick == _lastDrivenTick) return;   // 同 tick 边沿只驱动一次(帧泵语义上不会发生,防御)
             _lastDrivenTick = tick;
 
+            // ── 急召生成链(抽池 → 掷骰 → F1 → EventArrived → 病人出现)──────────────
+            // ⚠️ **排在出诊启动之前**且**不依赖玩家绑定**:生成链产的是「事件降临」,
+            //    与「玩家何时跨出医馆」是两件事(GDD :540-543)。
+            // ⚠️ **异常不杀帧**:超界拒收是**预期内的判定**(不是崩溃),tick 边沿上抛会杀掉
+            //    整个 `Update` 帧 ⇒ 接住、记 `LastSpawnError`、下一边沿重试。
+            //    与 `CheckpointFallback` 同纪律:「接住并记」,不是「吞掉不记」。
+            if (_spawnChain != null)
+            {
+                try
+                {
+                    LastSpawnOutcome = _spawnChain.TrySpawnAtTick(tick);
+                    LastSpawnError = null;
+                }
+                catch (Exception ex)
+                {
+                    LastSpawnError = ex;
+                    LastSpawnOutcome = null;
+                    UnityEngine.Debug.LogError(
+                        "[52][急召生成链] 本 tick 生成被拒(下一边沿重试,不杀帧):" + ex.Message);
+                }
+            }
+
+            if (_writer == null) return;   // 未绑玩家:出诊启动半边 fail-safe(生成链已跑)
             var result = _writer.TryStartAtTick(_events(), tick);
             if (result == HouseCallStartResult.Applied)
                 StartedCount++;

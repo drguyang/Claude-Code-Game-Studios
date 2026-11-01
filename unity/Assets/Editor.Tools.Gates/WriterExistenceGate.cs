@@ -125,8 +125,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             ("EnemyInjuryOnset", "25 敌人伤情 onset 写者未落 —— 归 25 实现轮(落世界流,不污染病史流)(2026-10-10)"),
 
             // ── 52 随机事件导演 / 27 敌人 AI ──
-            ("EventRolled", "52 掷骰写者未落 —— 归 52 实现轮(ADR-007 §一 掷骰权落地)(2026-10-10)"),
-            ("EventArrived", "52 事件降临写者未落 —— 归 52 实现轮(2026-10-10)"),
+            // ✅ 2026-11-01 撤 `EventRolled` / `EventArrived` 豁免(S22-4 · 52 急召生成链落地):
+            //   写者 = `Gameplay.Boot/RandomEventSpawnChain.cs`(链内两次 `Encode`,门判据扫得到)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表(承 `PlayerDied` / `ThreatDeferred` 先例)。
+            //   ⚠️ 与既有先例同格:**有写者 ≠ 池里有内容** —— 生产候选池今日为空(归 37 内容件),
+            //   链路每 tick 真跑但恒 `NoPool`、零写入。
             // ✅ 2026-10-25 撤 `ThreatDeferred` / `ThreatDeferralCleared` 豁免(S19-4 · TD-randomevents-01):
             //   写者已落 —— `Sim/DeferredThreatSlotWriter.cs`(52 延迟威胁槽位写入通道,
             //   `Encode(EventKind.ThreatDeferred…)` / `Encode(EventKind.ThreatDeferralCleared…)`

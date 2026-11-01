@@ -167,6 +167,27 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-4` 2026-11-01 收口(COMPLETE WITH NOTES)** —— smoke `#14` 载体落地,`自动 PASS 12 → 13`。
+> **交付**:`Sim/EventDraw.cs`(抽池命中纯函数 `SplitMix64(WorldSeed, win, tier, ordinal) % 候选数`)·
+> `Gameplay.Boot/SeedEventAuthority.cs`(52 掷骰的**生产实装**,取代抛形占位)·
+> `Gameplay.Boot/RandomEventSpawnChain.cs`(抽池 → F1 上下文门/档配额 → **CAP 预检** → 掷骰 →
+> `EventRolled` + `EventArrived` → 病人出现)· 驱动每 tick 调用(异常接住不杀帧,记 `LastSpawnError`)。
+> **唯一原子性主张**:CAP 预检排在**第一次 Append 之前** —— 排在之后会留下「掷过骰、事件没到」的孤儿行,
+> 读档重放时凭空多一次掷骰(证伪 M1 正面打中)。
+> **夹具 6 条,全用合成 key 集 `{7001,7002,7003}` + 合成格 `(9,0,4)`**(卡面硬约束:生产双真空下照生产数据
+> 写夹具 = 假绿);判据含「零写入 / 零掷骰 / 零创建」的副作用断言(超界拒收)。
+> **证伪 4 变异各 red**:M1 CAP 挪到 Append 后(超界两条红)· M2 空池短路只判 null(仅 C 红)·
+> M3 绕开掷骰(仅 D 红)· M4 驱动不调链(E/F 红)。两文件 SHA-256 逐字节还原。
+> **⚠️ 首跑全量 6 红 = 门抓住了我**:b7 要求「写者落地同批撤豁免」⇒ 已撤 `EventRolled`/`EventArrived`;
+> E3 哨兵扫到新的 `IEventAuthority` 实装 ⇒ `SeedEventAuthority` 实现 `IP0AuthorityPlaceholder`
+> (恒 host、零联机语义),哨兵允许集改为**显式双名封闭枚举**。
+> **回归**(三元组 `2026-11-01T09:10–09:13 CST` · `S22-4` 批 · `dd9a82d1`+未提交):
+> EditMode `6337/6300/0/0/37`(**+6/+6 恰等**)· PlayMode `273/269/0/2/2`(零变化)。
+> **smoke 实跑**:`自动 PASS 13 · 无名 6`(原 `12 / 7`);**退出码仍 3**。
+> **生产仍是「通电待信」(如实)**:候选池空(归 37 内容件)⇒ 恒 `NoPool` 零写入;
+> `spawnPatient` 缝**刻意抛**(急召 key → 37 病种映射不存在)。**未实现**:密度预算 / 权重 / 生成点解析。
+> 原件 = `production/qa/evidence/s22-4-smoke14-spawn-chain-2026-11-01.md`。
+
 > ✅ **`S22-3` 2026-11-01 收口(COMPLETE)** —— smoke `#1` 载体落地,`自动 PASS 11 → 12`。
 > **原 reason 被证伪**:「启动序需真启动;headless 无载体」—— 前半句对(EditMode 里预检必然判死,
 > `pipeline_gate_test.cs:1243` 已钉),**后半句不成立**:PlayMode 有真 catalog,初始化 + 预载真跑得起来。

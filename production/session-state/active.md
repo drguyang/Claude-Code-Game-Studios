@@ -15080,3 +15080,42 @@ M3 `catch` 吞成 true ⇒ ② IsFalse 红。每条变异只打一条断言。
 - 三元组 `2026-11-01 08:47–08:50 CST` · `S22-3` 批 · `f15c76a8`+工作树;两轮 `error CS` = 0
 - 原件:`production/qa/evidence/s22-3-smoke1-e13-carrier-2026-11-01.md`
 - sprint-22:S22-1/2/3/5 已收;S22-4/6/7/8 未动
+
+---
+
+## 2026-11-01 · `S22-4` 交付:smoke `#14` 载体(52 急召生成链)
+
+**用户指令**:「做 S22-4」。
+
+### 交付
+
+- `Sim/EventDraw.cs` —— 抽池命中纯函数 `SplitMix64(WorldSeed, win, tier, ordinal) % 候选数`
+- `Gameplay.Boot/SeedEventAuthority.cs` —— 52 掷骰**生产实装**(取代 `P0HostEventAuthority.Roll` 抛形占位)
+- `Gameplay.Boot/RandomEventSpawnChain.cs` —— 抽池 → F1(上下文门 / 档配额)→ **CAP 预检** →
+  掷骰 → `EventRolled` + `EventArrived` → 病人出现
+- 驱动每 tick 调用;异常**接住不杀帧**但留 `LastSpawnError`(接住 ≠ 吞掉)
+
+### 唯一原子性主张
+
+CAP 预检排在**第一次 Append 之前**。排在之后 ⇒ 流里留「掷过骰、事件没到」的孤儿行,
+读档重放凭空多一次掷骰(FALSIFY M1 正面打中)。
+
+### 证伪(4/4 红,两文件 SHA-256 逐字节还原)
+
+M1 CAP 挪到 Append 后 ⇒ 超界两条红 · M2 空池短路只判 null ⇒ 仅 C 红 ·
+M3 绕开掷骰 ⇒ 仅 D 红 · M4 驱动不调链 ⇒ E/F 红。
+
+### ⚠️ 首跑全量 6 红 = **门抓住了我**
+
+- **b7 写作门**:`EventRolled` / `EventArrived` 已有生产写者却仍挂豁免 ⇒ 同批**撤表**
+- **E3 哨兵**:扫到非占位的 `IEventAuthority` 实装 → `SeedEventAuthority` 实现
+  `IP0AuthorityPlaceholder`(恒 host、零联机语义,掷骰权 ≠ 联机权),允许集改为显式双名封闭枚举
+
+### 结果
+
+- 回归 EditMode `6337/6300/0/0/37`(+6/+6)· PlayMode `273/269/0/2/2`(零变化)
+- smoke:`自动 PASS 12 → 13` · `无名 7 → 6`;exit 仍 3
+- 三元组 `2026-11-01 09:10–09:13 CST` · `S22-4` 批 · `dd9a82d1`+工作树;`error CS` = 0
+- 原件:`production/qa/evidence/s22-4-smoke14-spawn-chain-2026-11-01.md`
+- 生产仍「通电待信」:候选池空(归 37)· `spawnPatient` 刻意抛 · 密度预算/权重/生成点解析未实现
+- sprint-22:S22-1/2/3/4/5 已收;S22-6/7/8 未动

@@ -566,9 +566,34 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    37 内容件定稿时回填,GDD 规则十二 12.2 原文)。
             // ⚠️ 双重空集 ⇒ HouseCallStarted 生产恒零写入(「通电待信」态,见驱动类头注)。
             var clinicCells = new ClinicCellSource();
+
+            // F1 窗口(tick 数)—— **接线旋钮**,非裁定值(52 的窗口数值归数值轮)。
+            const long RandomEventWindowTicks = 200L;
+
+            // ── 52 急召生成链(S22-4)──────────────────────────────────────────────
+            // 生产今日**仍是双真空**:52 的池内容归 37 内容件 ⇒ 候选集空 ⇒ 链每 tick 真跑、
+            // 恒 `NoPool`、零写入(与上面 12.1 的「通电待信」同一形态)。
+            // ⚠️ `spawnPatient` 缝**刻意抛**:「急召降临 → 病人」需要 52 事件 key → 37 病种的
+            //    映射表,今日不存在。返回假病种 = 让「有人开始生成病人了」静默通过(同
+            //    `P0HostEventAuthority.Roll` 原来的理由)。池回填时须同批加映射。
+            var randomEventSpawnChain = new RandomEventSpawnChain(
+                stream, encoder,
+                new SeedEventAuthority(_ => Array.Empty<int>(), worldSeed),
+                keysOfTier: _ => Array.Empty<int>(),
+                presence: presence,
+                spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
+                spawnPatient: _ => throw new NotSupportedException(
+                    "急召降临 → 病人创建需要 52 event_key → 37 病种的映射表(归 37 内容件)。" +
+                    "生产今日候选池为空 ⇒ 本缝不可达;回填池内容时须同批给出映射,不得返回假病种。"),
+                contextOf: w => new F1PipelineInput(w, RandomEventWindowTicks,
+                    isNight: false, isOnExpedition: false, isInClinic: false,
+                    inCombatCooldown: false, seasonIndex: 0),   // 上下文源(夜/出诊/医馆)归后续轮
+                tier: 1,                                        // 机会档(急召出诊属此档,GDD:400)
+                windowSize: RandomEventWindowTicks);
+
             var randomEventsDirector = new RandomEventsDirectorDriver(
                 () => stream.Events, stream, encoder, decoder, clinicCells,
-                Array.Empty<int>());
+                Array.Empty<int>(), randomEventSpawnChain);
             if (!string.IsNullOrEmpty(saveBasePath))
             {
                 // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。

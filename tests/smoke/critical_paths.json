@@ -117,8 +117,12 @@
       "id": 14,
       "group": "B",
       "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
-      "status": "none",
-      "reason": "CAP 的**执行点**由 #6 覆盖(`PresenceRegistry` 超界抛 + id 回滚);但「52 抽池侧」**生产路径未接线** —— `RandomEventsDirectorDriver` 当前只接「出诊启动」一节,其余留具名槽(见该文件头注「双重空集 ⇒ 通电待信」)⇒ 52 不产病人 ⇒ 无判据可挂。**不是缺夹具,是缺接线**"
+      "status": "test",
+      "check": [
+        "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_inCap_writesRollThenArrival_withSyntheticKey",
+        "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_overCap_rejectsWithExplicitError_andWritesNothing"
+      ],
+      "reason": "2026-11-01 立载体(S22-4)。原 reason「52 抽池侧生产路径未接线」已过期:`RandomEventSpawnChain`(抽池 → 掷骰 → F1 → EventArrived → 病人出现)已落地,并由 `RandomEventsDirectorDriver.OnTickEdge` 每 tick 调用;CAP 预检排在**任何 Append 之前**(超界 ⇒ 零写入 + 具名报错)。夹具**全部用合成 key 集/格集**驱动(卡面硬约束:生产双真空下照生产数据写夹具 = 假绿)。证伪 4 变异各 red。"
     },
     {
       "id": 15,

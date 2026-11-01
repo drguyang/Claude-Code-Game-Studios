@@ -421,8 +421,15 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(placeholders, Is.Not.Empty,
                 "未扫到任何 P0 占位权威 —— 占位被删/改名了?本测的排除条件必须同批订正" +
                 "(否则它会静默退化为『空集即绿』)。");
-            Assert.That(placeholders, Has.All.Contains("P0HostEventAuthority"),
-                "排除集里出现非 P0 占位的东西:" + string.Join(", ", placeholders));
+            // 🔁 2026-11-01(S22-4):允许集显式列出 —— 新增占位类型必须走这里**留名**,
+            //    否则「随便挂个标记就能免检」的口子就开了(本断言的原本用意即此)。
+            //    `SeedEventAuthority` 恒 `IsHost = true`、零联机语义,与 `P0HostEventAuthority` 同口径;
+            //    它多出来的只是**真掷骰**,而掷骰权 ≠ 联机权 ⇒ 不构成 E3 缺口就绪。
+            string[] allowedPlaceholders = { "P0HostEventAuthority", "SeedEventAuthority" };
+            Assert.That(placeholders, Has.All.Matches<string>(n =>
+                    allowedPlaceholders.Any(a => n.Contains(a))),
+                "排除集里出现非 P0 占位的东西:" + string.Join(", ", placeholders) +
+                "(允许集:" + string.Join(" / ", allowedPlaceholders) + ")");
 
             Assert.That(real, Is.Empty,
                 "AC-51-E3 的「真联机」半边仍登记为 P1b 缺口,但检测到**非占位**的 `IEventAuthority` " +
