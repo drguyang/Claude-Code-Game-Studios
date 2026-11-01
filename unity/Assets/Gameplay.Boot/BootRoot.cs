@@ -544,7 +544,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             deathPresenter.Bind(
                 () => _services != null ? _services.Stream.Events : null,
                 _services.Decoder,
-                () => actorId);
+                () => actorId,
+                // ── 相机两段式(spec §9「相机(Φ1→Φ2)」· 2026-11-01)────────────────
+                // 呈现器只发**意图**,不持相机(ADR-020 §五「相机只读不持状态」)。
+                // `_cameraRig` 是 BootRoot 私有字段(不在服务袋)⇒ 此处用闭包直引。
+                // ⚠️ **null 守卫**:`_cameraRig` 在启动序第 5 步建(早于本段),但拆卸段
+                //    可能已置 null ⇒ 闭包内判空,呈现层缺席不抛。
+                // ⚠️ **`FirstPerson` 在位时不请求**(spec §9「VR 变体全禁」+「平面两段式
+                //    不得平移到 VR」)—— 由 `CameraModeMachine` 的 VR 早退路径丢弃平面档请求,
+                //    此处**额外**显式跳过,使「VR 下不产生 Downed 意图」在意图层就可判。
+                downed =>
+                {
+                    var rig = _cameraRig;
+                    if (rig == null) return;
+                    if (rig.Mode == CameraMode.FirstPerson) return;   // VR 全禁
+                    rig.SetMode(downed ? CameraMode.Downed : CameraMode.Explore);
+                });
             _services.DeathPresenter = deathPresenter;   // 供测试与后续轮次定位(唯一实例)
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(
                 deathPresenterGo, gameObject.scene);

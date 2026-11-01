@@ -41,6 +41,20 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         Treatment,    // 处置态(10 急救)
         Casebook,     // 脉案(39)
         FirstPerson,  // VR(P1a)—— 头显驱动,不经本链;镜头效果全禁
+
+        /// <summary>
+        /// **倒下档**(2026-11-01 新增;29 死亡过渡 Φ1→Φ2 的相机两段式承载档)。
+        /// <para>权威来源:`design/ux/death-transition-29.md` §9「相机(Φ1→Φ2)」——
+        /// 「**两段式**:先失去支撑(**下沉 + 微倾**)→ 再躺定(**禁甩镜**)」;
+        /// 该行的规格出处是 `combat-and-weapon-lines.md:1665`(「两段式倒下:先失去支撑 →
+        /// 再躺下」),⚠️ 29 GDD `:491` 记作「承 25 `:1639`」是**引据错误**(见本枚举下方注)。</para>
+        /// <para>⚠️ <b>优先级低于 `Treatment`、高于 `Explore`</b>(见 `CameraModePriority`):
+        /// 倒下的玩家不该还能被「进入处置态」抢走机位(那会让濒死画面跳到急救视角),
+        /// 但它**必须**能被 `Casebook` 压过(规则七的模态优先不变)。</para>
+        /// <para>⚠️ <b>VR 全禁</b>(spec §9「VR 变体(P1a)| **全禁镜头效果**」+「平面两段式相机
+        /// 运动**不得平移到 VR**」)⇒ `FirstPerson` 在位时本档请求被丢弃(承 R-2-9 平面链冻结)。</para>
+        /// </summary>
+        Downed,
     }
 
     public interface ICameraRig

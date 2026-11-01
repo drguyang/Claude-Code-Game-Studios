@@ -40,6 +40,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// </summary>
         private readonly CameraModeMachine _modeMachine = new CameraModeMachine();
 
+        /// <summary>
+        /// 倒下两段式相位机(spec §9「先失去支撑 → 再躺定」;2026-11-01)。
+        /// <para>⚠️ **纯表现态**:不读 sim 事实,只吃 `Mode == Downed` 这个**表现档位**。
+        /// 谁请求 `Downed` 是 29 的呈现层职责(`DeathTransitionPresenter`),不是相机自己判死。</para>
+        /// </summary>
+        private CameraDownedDriver _downed = CameraDownedDriver.None;
+
+        /// <summary>当前倒下相位(诊断 / 夹具观测面;不参与判定)。</summary>
+        public CameraDownedPhase DownedPhase => _downed.Phase;
+
+        /// <summary>当前下沉进度 `∈ [0,1]`(夹具观测面)。</summary>
+        public float DownedSagFraction => _downed.SagFraction;
+
+        /// <summary>当前微倾进度 `∈ [0,1]`(夹具观测面)。</summary>
+        public float DownedTiltFraction => _downed.TiltFraction;
+
         // AC-2-08: YAW_BASIS_EPS 唯一定义点
         public const float YAW_BASIS_EPS = 1e-5f;
 
@@ -131,6 +147,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         {
             _modeMachine.Settle(deltaTime, TransitionDuration);
             SyncPoseFromMode(_modeMachine);
+            // 倒下两段式(spec §9):相位机吃**显式 dt**(不读 Time —— 与 DeathTransitionPhases 同纪律)。
+            _downed.Step(_modeMachine.Mode == CameraMode.Downed, deltaTime);
         }
 
         /// <summary>档位转场时长(组 5;数值留白,归用户数值轮)。</summary>
@@ -274,7 +292,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// </summary>
         public Vector3 GetCameraPosition(Vector3 target)
         {
-            float pitchRad = _pitch * Mathf.Deg2Rad;
+            // ── 倒下两段式 · 微倾(spec §9)──────────────────────────────────
+            // ⚠️ **不改 `_pitch` 本身**:它是玩家 Look 的累积值,写进去会污染输入
+            //   (醒来后玩家会发现俯角莫名变了)。⇒ 用**有效 pitch = 玩家 pitch + 微倾增量**,
+            //   只在算位姿的这一刻叠加。
+            // ⚠️ **只改 pitch,不改 yaw** —— spec §9 晕动评估明写「非视场旋转」。
+            // ⚠️ 叠加后须仍钳在 `[PITCH_MIN, PITCH_MAX]`(AC-2-09 的界是硬界,不得被效果突破)。
+            float effectivePitch = Mathf.Clamp(
+                _pitch + CameraDownedDriver.SagTiltDegrees * _downed.TiltFraction,
+                PITCH_MIN, PITCH_MAX);
+
+            float pitchRad = effectivePitch * Mathf.Deg2Rad;
             float cosPitch = Mathf.Cos(pitchRad);
             float sinPitch = Mathf.Sin(pitchRad);
 
@@ -284,7 +312,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
                 Mathf.Cos(_yaw) * cosPitch
             ) * _distance;
 
-            return target + offset;
+            // ── 倒下两段式 · 下沉(spec §9「先失去支撑(下沉 + 微倾)」)──────────────
+            // ⚠️ **只沿世界 -Y**,不参与绕点(否则就是「绕着人转」= 视场旋转,spec §9 明禁)。
+            // ⚠️ 用 `SagFraction`(0→1)乘幅度 ⇒ 相位机推进多少,位移就多少,**无速度突变**(禁甩镜)。
+            Vector3 sag = new Vector3(0f, -CameraDownedDriver.SagDepth * _downed.SagFraction, 0f);
+
+            return target + offset + sag;
         }
     }
 }

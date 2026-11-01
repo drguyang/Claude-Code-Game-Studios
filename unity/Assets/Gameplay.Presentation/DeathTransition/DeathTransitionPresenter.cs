@@ -37,13 +37,35 @@ namespace DaYiJingCheng.Gameplay.Presentation.DeathTransition
         private RawImage _wash;
 
         /// <summary>注入只读数据源(BootRoot 装配段调用;模拟态只读,零写路径)。</summary>
+        /// <param name="eventsOf">事件流只读投影源(可返回 null = 数据源已拆,停更)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031)。</param>
+        /// <param name="localActorIdOf">本地玩家 id 读数。</param>
+        /// <param name="requestDownedCamera">
+        /// **相机两段式请求缝**(spec §9「相机(Φ1→Φ2)」;2026-11-01)。
+        /// <para>参数 = 「本帧是否处于倒下态」;由装配层接到 `ICameraRig.SetMode`
+        /// (`true` ⇒ `CameraMode.Downed`,`false` ⇒ `CameraMode.Explore`)。</para>
+        /// <para>⚠️ <b>为什么是委托而不是直接持 `ICameraRig`</b>:① `CameraRig` 是
+        /// `BootRoot` 的私有字段、不在服务袋里(见 `CompositionRootServices`),呈现器
+        /// 拿不到它;② 呈现三件套纪律要求呈现层**不持有**别系统对象,只发意图 ——
+        /// 委托缝与 <see cref="Bind"/> 的其余三支同款(承 ADR-020 §五「相机只读不持状态」)。</para>
+        /// <para>⚠️ <b>null = 未接线</b>(纯 sim 装配 / 无相机路径)⇒ 呈现器**跳过请求**,
+        /// 不抛(与 `TeleportCommandSink.IsBound` 同纪律:呈现层缺席不该让 sim 侧抛)。</para>
+        /// </param>
         public void Bind(System.Func<System.Collections.Generic.IReadOnlyList<SimEvent>> eventsOf,
-            IPayloadDecoder decoder, System.Func<int> localActorIdOf)
+            IPayloadDecoder decoder, System.Func<int> localActorIdOf,
+            System.Action<bool> requestDownedCamera = null)
         {
             _eventsOf = eventsOf ?? throw new System.ArgumentNullException(nameof(eventsOf));
             _decoder = decoder ?? throw new System.ArgumentNullException(nameof(decoder));
             _localActorIdOf = localActorIdOf ?? throw new System.ArgumentNullException(nameof(localActorIdOf));
+            _requestDownedCamera = requestDownedCamera;   // 可 null(未接线)
         }
+
+        /// <summary>相机两段式请求缝(null = 未接线,见 <see cref="Bind"/> 的注)。</summary>
+        private System.Action<bool> _requestDownedCamera;
+
+        /// <summary>上一帧已发出的倒下态(避免每帧重复请求 —— 意图制只需**边沿**)。</summary>
+        private bool _downedRequested;
 
         private void Awake()
         {
@@ -65,6 +87,20 @@ namespace DaYiJingCheng.Gameplay.Presentation.DeathTransition
 
             _group.alpha = _driver.Alpha;
             _group.gameObject.SetActive(_driver.Phase != DeathTransitionVisualPhase.Inactive);
+
+            // ── 相机两段式请求(spec §9「相机(Φ1→Φ2)」;2026-11-01)──────────────
+            // 判据 = 视觉相位是否 ∈ {Falling, Lying}(Φ1/Φ2)—— 即「倒下」的全程。
+            // ⚠️ **Waking / Fading 不请求 Downed**:spec §6 Φ3 的机位是「床格视角睁眼」,
+            //    那是**另一条相机线**(归机位轮),不该继续挂在倒下档上。
+            // ⚠️ **边沿触发**:意图制(ADR-020 §Key Interfaces)只需在**状态变化**时登记,
+            //    每帧重复入队会让 `CameraModeMachine._pending` 无限增长。
+            bool shouldBeDowned = _driver.Phase == DeathTransitionVisualPhase.Falling
+                               || _driver.Phase == DeathTransitionVisualPhase.Lying;
+            if (shouldBeDowned != _downedRequested && _requestDownedCamera != null)
+            {
+                _downedRequested = shouldBeDowned;
+                _requestDownedCamera(shouldBeDowned);
+            }
         }
 
         /// <summary>码建全屏叠层(UGUI;零交互 —— raycastTarget = false,spec §7)。</summary>

@@ -30,6 +30,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         public static int Of(CameraMode m) => m switch
         {
             CameraMode.Casebook => 3,
+            // 🔁 **2026-11-01 新增 `Downed`**:优先级 = **2**(与 `Treatment` 同值)——
+            //   ⚠️ 这不是随手取的数,是三选一后按「同优先级 ⇒ 后者胜」的语义定的:
+            //     · 取 3(与 Casebook 同)⇒ 死亡会**压过**脉案模态,违规则七(模态优先不可翻);
+            //     · 取 1(与 Explore 同)⇒ 玩家死亡瞬间若有残留 Explore 请求可把它顶掉,
+            //       而「倒下的玩家不该还能被普通探索态抢机位」;
+            //     · 取 2 ⇒ 与 `Treatment` 同格。**为什么可以同格**:玩家一旦 `PlayerDied` 落流,
+            //       1 侧已抑制移动/交互(29 story-001 接线),10 的急救请求在那一刻**不再产生**
+            //       ⇒ 二者实际不会同时入队;真同帧入队时「后者胜」也给出确定结果,无活锁。
+            CameraMode.Downed => 2,
             CameraMode.Treatment => 2,
             CameraMode.Explore => 1,
             // ⚠️ FirstPerson **不经本格** —— R-2-9「VR 是另一条路径,不复用本链」。
