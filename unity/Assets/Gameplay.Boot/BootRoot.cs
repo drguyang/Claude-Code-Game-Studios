@@ -65,6 +65,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         private PlayerController _player;
         private CameraRig _cameraRig;
 
+        /// <summary>
+        /// 39 的档位请求载体(`casebook/story-006`)。**也作 PlayMode 的观测面** ——
+        /// 口径同 `_downedCameraRequester`:判据走行为(相机真的进 `Casebook`),本字段只用于定位。
+        /// </summary>
+        private DaYiJingCheng.Gameplay.Presentation.Casebook.CasebookCameraRequester
+            _casebookCameraRequester;
+
         /// <summary>29 的档位请求器(story-007;装配序 4.3b 构造)。
         /// <para>⚠️ 保留字段引用是**有意**的:它是「这段接线存在」的唯一观测面 ——
         /// PlayMode 夹具反射它,断言生产启动序真的把机位绑了上去(S29-06)。
@@ -817,6 +824,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             // CasebookCommandRouter(实现 ICasebookCommandSink)。缺注入 ⇒ Submit 留空(不崩)。
             if (_services.CasebookCommands != null)
                 _uiDriver.CommandSink = _services.CasebookCommands;
+
+            // ── 6.1b 39 的档位请求接线(casebook/story-006 · 2026-11-02)────────────
+            // 病因:`camera-and-viewpoint.md` 的 `R-2-5` 表写着「39 打开脉案 ⇒ 请求 Casebook」,
+            // 而生产侧此前**零个请求点**(`CameraMode.Casebook` 只出现在相机内部的优先级表与
+            // 冻结判据里)⇒ 「该发没发」而不被任何门抓到。
+            // ⚠️ 用 `Func` 懒求值 + 判空:`_cameraRig` 在拆卸段会被置 null,而模态开关
+            //    可能在下一帧才求值(承 2026-11-01 那 94 条 PlayMode 红的教训)。
+            _casebookCameraRequester = new DaYiJingCheng.Gameplay.Presentation.Casebook
+                .CasebookCameraRequester(() => _cameraRig);
+            _uiDriver.CasebookCameraRequest = _casebookCameraRequester.Request;
 
             // ── 6.2 存档位载入接线(2026-10-31 · TD-persist-04 裁定②「通电待信」的收尾)──
             // 病因:`RequestLoad` 今日零调用方 ⇒ AC-7a-14 的比对执行体与 ADR-037 的逐表归因

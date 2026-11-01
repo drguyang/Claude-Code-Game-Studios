@@ -15649,3 +15649,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   「该发没发」仍无系统性覆盖矩阵门。
 - 证据原件:`production/qa/evidence/impl-story-007-downed-camera-request-2026-11-02.md`
 - **Next**:`/code-review` 上述生产文件;`sprint-23 §八` 三条追加件至此全部 Done
+
+## Session Extract — casebook/story-006(2026-11-02 · 未排 sprint)
+
+- **用户裁定三条**:表真源 = 独立 `camera-mode-requests.yaml` · **先补 39 接线再上矩阵门** ·
+  判据 = 动态矩阵 + 静态防绕过
+- **拆卡**:`casebook/story-006` 原捆「相机意图 + 落笔 + checkpoint 锚点」⇒ 拆成
+  **006 = 相机意图**(本轮 `Complete ✅`)/ **007 = 落笔与锚点**(新立,未实现;`SaveAnchor` 全仓不存在)
+- **三处订正**:`RequestMode` 方法不存在 · 全文无 `requesterId` · 「39 是两档唯一请求方」已恒假
+- **Files**:`Gameplay.Presentation/Casebook/CasebookCameraRequester.cs`(新)·
+  `Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs`(缝 + `CloseModalCore` 拆分)·
+  `Gameplay.Boot/BootRoot.cs` · 夹具 2 件(EM 9 / PM 2)
+- **证伪 7 条全红**(N6 = 拆分 `CloseModalCore` 的判别力);SHA-256 7/7 还原
+- **回归** EditMode `6518/6481/0/0/37` · PlayMode `283/279/0/2/2`(基线 `6509/6472`·`281/277`)
+- **未闭**:`AC-39-09` `NOT-RUN` · **启动即脉案屏却用 Explore 档未裁**(两读法都绿)·
+  矩阵门仅立件未实现 · `SkeuoUI` 测试间泄漏未系统治理
+- 证据:`production/qa/evidence/impl-casebook-006-camera-mode-intent-2026-11-02.md`
+- **Next**:`/code-review` 三件生产文件;矩阵门 = `camera-viewpoint/story-007`(Ready,未开工)

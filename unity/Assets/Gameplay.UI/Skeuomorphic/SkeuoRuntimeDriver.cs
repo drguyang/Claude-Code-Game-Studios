@@ -91,6 +91,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 用 id 比对会把「玩家重开脉案」误判成「常驻屏不挡路」。</para>
         /// </summary>
         private bool _modalOpenedExplicitly;
+        /// <summary>
+        /// 39 的档位请求缝(2026-11-02 · `casebook/story-006`)。
+        /// <para>参数 = 「脉案是否摊开」;由装配层接到 `CasebookCameraRequester.Request`。
+        /// `null` = 未接线(纯逻辑装配 / 无相机路径)⇒ 跳过请求,不抛。</para>
+        /// <para>⚠️ **只发意图,不持相机** —— 与 `CommandSink` 等同款委托缝,承 ADR-020 §五。</para>
+        /// </summary>
+        private Action<bool> _casebookCameraRequest;
         /// <summary>模态打开期间被临时摘掉焦点能力的元素(关闭时逐个还原)。</summary>
         /// <remarks>⚠️ 只记「原本 focusable 且被我们关掉」的那些 —— 还原时不得把
         /// 本来就不 focusable 的元素变成可聚焦。</remarks>
@@ -532,6 +539,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public ModalId CurrentModal => _currentModal;
 
+        /// <summary>
+        /// 39 的档位请求缝(`casebook/story-006` · 2026-11-02)。
+        /// <para>参数 = 「脉案是否摊开」;装配层接到 `CasebookCameraRequester.Request`。
+        /// `null` = 未接线 ⇒ 跳过请求,不抛(纯逻辑装配 / 无相机路径)。</para>
+        /// <para>⚠️ 本类**只在模态边沿**调它(见 <see cref="NotifyCasebookCamera"/>),
+        /// 不在这里做任何相机判定 —— ADR-020 §五「相机只读不持状态」。</para>
+        /// </summary>
+        public Action<bool> CasebookCameraRequest
+        {
+            get => _casebookCameraRequest;
+            set => _casebookCameraRequest = value;
+        }
+
         /// <summary>是否有模态摊开(任一屏在,含常驻屏)。</summary>
         public bool IsModalOpen => _currentModal != ModalId.None;
 
@@ -569,7 +589,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 return false;
             }
 
-            CloseModal();
+            // ⚠️ 记下**终态前**的模态:末尾按 (before, after) 发一次边沿。
+            ModalId before = _currentModal;
+
+            CloseModalCore();
 
             _screen = InstantiateScreen(screenName, out _modalContainer);
             if (_screen == null)
@@ -605,11 +628,29 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 if (first != null && first.panel != null) first.Focus();
             }
             if (_source != null) RefreshFromSource();
+
+            // 39 的档位意图:按 (开屏前, 开屏后) 的**终态**发一条边沿。
+            // ⚠️ 必须在 `_currentModal = modal` **之后** —— 中途那次 CloseModalCore 不发音,
+            //    否则「脉案 → 库存」会多发一条 Explore(中间态),违反 AC-39-07 的「转换恰 1 次」。
+            NotifyCasebookCamera(before, _currentModal);
             return true;
         }
 
         /// <summary>关闭当前模态(无模态 ⇒ 空操作)。</summary>
         public void CloseModal()
+        {
+            ModalId before = _currentModal;
+            CloseModalCore();
+            NotifyCasebookCamera(before, _currentModal);
+        }
+
+        /// <summary>
+        /// 关屏的**实现体**(不发 39 的档位意图)。
+        /// <para>⚠️ 为什么与 <see cref="CloseModal"/> 分开:<see cref="OpenModal"/> 换屏时会先关旧屏,
+        /// 那一步若发意图,「脉案 → 库存」就会在中间态多发一条 `Explore`。
+        /// ⇒ 换屏路径只调本方法,由 <see cref="OpenModal"/> 末尾按终态发**一次**。</para>
+        /// </summary>
+        private void CloseModalCore()
         {
             ReleaseModalFocusScope();
             if (_modalContainer != null)
@@ -622,6 +663,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // ⚠️ 这里**不**复位 `_modalOpenedExplicitly`:证伪轮实测该行不可反证
             //    (`BlocksPlay` 先判 `_currentModal != None`,关屏后恒 false)⇒ 留着就是死代码。
             //    下次 `OpenModal` 会把它置 true,语义不需要「关屏即清零」。
+        }
+
+        /// <summary>
+        /// 39 的档位意图**边沿**(`casebook/story-006` · 2026-11-02)。
+        /// <para>判据 = 「换屏前是不是脉案」与「换屏后是不是脉案」**不等** ⇒ 发一条:
+        /// `true`(进脉案)⇒ 请求 `Casebook`;`false`(离开脉案)⇒ 请求 `Explore`。</para>
+        /// <para>⚠️ **同态不发**:重复打开同一个模态、或从非脉案换到另一个非脉案,
+        /// 都不产生请求 —— 意图制只需状态变化,每帧/每次换屏都入队会让
+        /// `CameraModeMachine._pending` 无谓增长。</para>
+        /// <para>⚠️ 未接线(`CasebookCameraRequest == null`)⇒ 静默跳过,不抛
+        /// (纯逻辑装配 / 无相机路径是合法形态)。</para>
+        /// </summary>
+        private void NotifyCasebookCamera(ModalId before, ModalId after)
+        {
+            if (_casebookCameraRequest == null) return;
+
+            bool wasCasebook = before == ModalId.Casebook;
+            bool nowCasebook = after == ModalId.Casebook;
+            if (wasCasebook == nowCasebook) return;
+
+            _casebookCameraRequest(nowCasebook);
         }
 
         /// <summary>

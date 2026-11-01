@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/casebook.md
 > **Architecture Module**: L5 Presentation(`Gameplay.UI`)+ 分册态持久化段(经 7a / ADR-010 义务 13)
 > **Status**: Ready
-> **Stories**: 6 stories created(2026-09-28 `/create-stories`)
+> **Stories**: **7 stories**(2026-09-28 `/create-stories` 建 6 件;2026-11-02 由 006 拆出 007 —— 相机意图 / 落笔锚点两件事无共享判据,捆在一起会让 006 永远无法 `Complete`)
 
 ## Overview
 
@@ -82,4 +82,5 @@ This epic is complete when:
 | 003 | 分册键与改写痕读时投影(F-39.2) | Logic | Ready | ADR-008 + ADR-006 |
 | 004 | 反幻想三条「绝不」的能力面守卫 | Logic | Ready | ADR-008 + ADR-013 |
 | 005 | 脉案页布局与无指针焦点导航 | UI | Ready | ADR-013 + ADR-011 |
-| 006 | 相机档位意图与落笔锚点钩子 | Integration | Ready | ADR-020 + ADR-010 + ADR-001 |
+| 006 | 相机档位意图(`Casebook` / `Explore`,requesterId 39) | Integration | **Complete ✅ 2026-11-02** | ADR-020 Amd C + ADR-013 |
+| 007 | 落笔写流与 7a checkpoint 锚点 | Integration | Ready(2026-11-02 由 006 拆出) | ADR-010 §六 + ADR-011 Amd B |
