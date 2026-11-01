@@ -15339,3 +15339,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   sprint-22 行 Exit 达成注 · §6.5.4 已交付 9→11 件 · §2.4.5 inventory-004 CARRY_CAP 行过期注
   (⚠️ 发现 `entities.yaml` CARRY_CAP `value: "待定"` 滞后于烘焙产物 60,归一致性对账轮)。
 - 回归终值:EditMode `6370/6333/0/37` @ 12:09:39 · PlayMode `273/269/0/2/2` @ 12:14:36 · `a956f0c1`。
+
+## 2026-11-01 · sprint-23 取件 + QA 计划(同日)
+
+- sprint-23 计划落盘(`6cae988a`):件集 001/002/003/005 四件(004 全链半随 S23-1)
+  + S23-6 smoke #8 载体;Nice = 0(L 独占);sprint-22 yaml 归档 a44d7da5bb3d663a。
+- QA 计划落盘(`production/qa/qa-plan-sprint-23-2026-11-01.md`):
+  全自动化面(Manual 0 / Playtest 0),载体 = `Tests/EditMode/DeathRespawn/`(新建目录),
+  预计测试 ~34 条(10+8+7+7+2);桩具名标注(F2 防线)· 负控独立(F4)· 合成输入(S22-4 纪律)。
+- 待用户裁:R-4-W-6 判断类豁免(S23-3 开工时)。
+- 下一动作:S23-1 开工(/dev-story production/epics/death-respawn/story-001-player-died-settlement.md)。
