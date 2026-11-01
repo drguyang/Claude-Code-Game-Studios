@@ -1,7 +1,7 @@
 # Story 005: 复活落点与传送命令(医馆床格 → TeleportTo)
 
 > **Epic**: 死亡与复活
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
@@ -31,12 +31,12 @@
 
 *From GDD `design/gdd/death-and-respawn.md`, scoped to this story:*
 
-- [ ] AC-29-09 [A]:检索 29 代码路径,对 `ActorCellEntered` 的 Append 调用点数 = 0;过场位移零写流(ADR-020 §四)
-- [ ] AC-29-10 [A] ⚠️ BLOCKED-BY-9:复活来源 `ActorCellEntered` 条数 ≤ `玩家数 / DEATH_COOLDOWN`(有界性半边,谓词源 story-004)
-- [ ] 落点优先级:有医馆房间(24)且有床类家具格 → 选定格;否则世界出生点(两分支 fixture 全覆盖;选定规则本体待 24 回写,现以注入点隔离)
-- [ ] 命令形状:`RequestTeleport(actorId, cell)` 全整数(WorldPos);连续半不在 Sim.Contracts(引用面断言:命令契约零 Vector3)
-- [ ] 副作用负面清单:复活后疾病/世界流状态不残不越(病人病程、掉落物原样在 death_cell —— 与 story-002 回捡动线对拍)
-- [ ] 联机共床:两玩家同床格复活 → 同格落点、两条 ActorCellEntered(由 1 发)、无死锁(主机串行定序)
+- [x] AC-29-09 [A]:检索 29 代码路径,对 `ActorCellEntered` 的 Append 调用点数 = 0;过场位移零写流(ADR-020 §四)
+- [x] AC-29-10 [A] ⚠️ BLOCKED-BY-9:复活来源 `ActorCellEntered` 条数 ≤ `玩家数 / DEATH_COOLDOWN`(有界性半边,谓词源 story-004)
+- [x] 落点优先级:有医馆房间(24)且有床类家具格 → 选定格;否则世界出生点(两分支 fixture 全覆盖;选定规则本体待 24 回写,现以注入点隔离)
+- [x] 命令形状:`RequestTeleport(actorId, cell)` 全整数(WorldPos);连续半不在 Sim.Contracts(引用面断言:命令契约零 Vector3)
+- [x] 副作用负面清单:复活后疾病/世界流状态不残不越(病人病程、掉落物原样在 death_cell —— 与 story-002 回捡动线对拍)
+- [x] 联机共床:两玩家同床格复活 → 同格落点、两条 ActorCellEntered(由 1 发)、无死锁(主机串行定序)
 
 ---
 
@@ -99,7 +99,7 @@
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DeathRespawn/death_respawn_teleport_test.cs` — must exist and pass(桩半边);AC-29-09 绿可记(纯检索断言),AC-29-10 维持 BLOCKED-BY-9,床格联调维持 BLOCKED-BY-24
 > 🔁 **2026-11-01 R-2 复核注(sprint-23 取件前)**:`BLOCKED-BY-24` 的语义自本注起 = **24 的运行期查询实现未落**(设计规则已于 2026-10-30 落 24 GDD 规则六,结清 `TD-clinic-18`;见 `:25` 注);`BLOCKED-BY-9` 的根因已大部落地(`EntityDeathGates` / 死亡候选生产装配,`TD-sim-01` closed),门行 G-1 的结案归本 epic 001/004 收口核。
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(全量回归 `r4w6-em.xml` @ 2026-11-01 16:53:58 覆盖)
 
 ---
 

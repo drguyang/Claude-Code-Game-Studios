@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/death-and-respawn.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Sim.Contracts(传送命令半)+ Gameplay.Presentation(过渡呈现,另批)
-> **Status**: Ready
+> **Status**: 5/6 Complete(2026-11-01;006 维持硬阻 = 死亡/复活过渡 `/ux-design` spec 不存在,须先做设计件)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -48,15 +48,15 @@ This epic is complete when:
 - AC-29-01…17 中非 BLOCKED 条目全部有通过证据;BLOCKED-BY-9 / **BLOCKED-BY-7a 折叠实现**(原 BLOCKED-BY-OQ-7a-9,2026-10-20 订正)条目维持显式标注,禁借绿
 - AC-29-11/12 的 [L] 人工走查在证据目录留档(承 GDD 原标注)
 - UX Flag:全屏过渡经 `/ux-design` spec 先于本 epic 的呈现故事关闭(29 的 epics 前置,GDD 明写)
-- `DEATH_COOLDOWN` / 判断技能豁免等未裁项保持「待裁」标注,数值归用户数值轮 🔁 **2026-10-21 订正(原文不删,就地加注)** —— **`DEATH_COOLDOWN` 已不在「未裁项」之列**:`OQ-29-5` 已于 2026-10-06 代拍裁定 = `2400` tick(120 s @20 Hz,值可调;`death-and-respawn.md:280` / `:535`)⇒ 本条现**只剩「判断技能豁免口径」一项**保持待裁(`R-4-W-6`,2026-09-20,`death-and-respawn.md:333` / `:520`)。数值轮的适用范围随之收窄为「`DEATH_COOLDOWN` 的**再调值**」,**不是「首次定值」**。
+- `DEATH_COOLDOWN` / 判断技能豁免等未裁项保持「待裁」标注,数值归用户数值轮 🔁 **2026-10-21 订正(原文不删,就地加注)** —— **`DEATH_COOLDOWN` 已不在「未裁项」之列**:`OQ-29-5` 已于 2026-10-06 代拍裁定 = `2400` tick(120 s @20 Hz,值可调;`death-and-respawn.md:280` / `:535`)⇒ 本条现**只剩「判断技能豁免口径」一项**保持待裁(`R-4-W-6`,2026-09-20,`death-and-respawn.md:333` / `:520`)。🔁 **2026-11-01 结案(原文不删)**:R-4-W-6 已由 **2026-09-29 用户裁定**解决(豁免撤销,全部技能统一掉级;S23-3 勘察漏检误标待裁,已如实登记)⇒ 本 epic **零未裁项**。数值轮的适用范围随之收窄为「`DEATH_COOLDOWN` 的**再调值**」,**不是「首次定值」**。
 
 ## Stories
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | PlayerDied 登记与死亡结算入口 | Integration | Ready | ADR-009/024/005 |
-| 002 | 掉落清单流派生与回捡 | Integration | Ready | ADR-009/010/020 |
-| 003 | 技能掉级 F-29-1(整数截断)与调 30 | Logic | Ready | ADR-026/006 |
-| 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9) | ADR-005/009 |
-| 005 | 复活落点与传送命令 | Integration | Ready | ADR-025/020/024(24 联动) |
+| 001 | PlayerDied 登记与死亡结算入口 | Integration | **Complete**(2026-11-01 · S23-1;AC-29-01 全链绿随 G-1 结案) | ADR-009/024/005 |
+| 002 | 掉落清单流派生与回捡 | Integration | **Complete**(2026-11-01 · S23-2) | ADR-009/010/020 |
+| 003 | 技能掉级 F-29-1(整数截断)与调 30 | Logic | **Complete**(2026-11-01 · S23-3;30 权威面订正同批) | ADR-026/006 |
+| 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9 → **该阻塞已随 G-1 结案于 2026-11-01 闭**) | ADR-005/009 |
+| 005 | 复活落点与传送命令 | Integration | **Complete**(2026-11-01 · S23-5,接口先行;1 侧接线与 AC-29-10 实发数归传送实装轮) | ADR-025/020/024(24 联动) |
 | 006 | 呈现白名单与零状态播报 | UI | Ready | ADR-013/018/020 |

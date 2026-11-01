@@ -1,7 +1,7 @@
 # Story 002: 掉落清单流派生与回捡
 
 > **Epic**: 死亡与复活
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -30,13 +30,13 @@
 
 *From GDD `design/gdd/death-and-respawn.md`, scoped to this story:*
 
-- [ ] AC-29-02(半边,⚠️ BLOCKED-BY-9):PlayerDied 时逐件写 DropSpawned,`spawn_anchor` = 该玩家世界流**最后一条 ActorCellEntered** 的格(非实时物理位置)
-- [ ] 空背包 ⇒ 零 DropSpawned,但 PlayerDied 照有(story-001 AC-29-03 配对)
-- [ ] 清单派生断言:掉落集 = `InventoryOf(player)@死亡tick` 的流派生,重放逐位重建(无独立「掉落清单」字段)
-- [ ] instance_id 来源断言:29 代码路径零 `IIdAuthority.Next()` 调用(铸造归 20);载荷 id 与 20 库存行一致
-- [ ] 回捡约束:玩家不在死亡格 ⇒ claim 拒绝;到格 ⇒ DropClaimed 入流、库存恢复(经 20)
-- [ ] 位置非快照:存档载荷不含掉落连续坐标;读档后位置 = 格锚点 + 确定性格内偏移(两次读档逐位同)
-- [ ] DropClaimed 幂等:同 instance_id 二次 claim 拒收
+- [x] AC-29-02(半边,⚠️ BLOCKED-BY-9):PlayerDied 时逐件写 DropSpawned,`spawn_anchor` = 该玩家世界流**最后一条 ActorCellEntered** 的格(非实时物理位置)
+- [x] 空背包 ⇒ 零 DropSpawned,但 PlayerDied 照有(story-001 AC-29-03 配对)
+- [x] 清单派生断言:掉落集 = `InventoryOf(player)@死亡tick` 的流派生,重放逐位重建(无独立「掉落清单」字段)
+- [x] instance_id 来源断言:29 代码路径零 `IIdAuthority.Next()` 调用(铸造归 20);载荷 id 与 20 库存行一致
+- [x] 回捡约束:玩家不在死亡格 ⇒ claim 拒绝;到格 ⇒ DropClaimed 入流、库存恢复(经 20)
+- [x] 位置非快照:存档载荷不含掉落连续坐标;读档后位置 = 格锚点 + 确定性格内偏移(两次读档逐位同)
+- [x] DropClaimed 幂等:同 instance_id 二次 claim 拒收
 
 ---
 
@@ -98,7 +98,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DeathRespawn/death_drop_stream_test.cs` — must exist and pass;AC-29-02/17 全链联调维持 BLOCKED-BY-9 标注直至 9 侧回写
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(全量回归 `r4w6-em.xml` @ 2026-11-01 16:53:58 覆盖)
 
 ---
 

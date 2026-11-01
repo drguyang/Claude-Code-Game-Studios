@@ -15405,3 +15405,11 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 裁定行为钉:test_judgmentSkills_exemptRevoked_downgradeAppliesToDiagnosis(定向 13/13;
   证伪 = 豁免守卫恒开 ⇒ 恰红 4);文档对齐四处(原文不删)
 - 回归:EditMode 6426/6389/0/37(+1)· PlayMode 273/269/0/2 @ 16:53:58 · commit ac1f6191
+
+## Session Extract — /story-done 2026-11-01(正式闭卡批)
+- Verdict: COMPLETE ×4(story-001/002/003/005;S23-6 为 sprint 级任务无卡)
+- Falsifiability Gate: PASS ×4(证伪 2+3+4+4 反证各转红,SHA-256 还原;R-4-W-6 反证另计)
+- Deviations: 005 两条 ADVISORY(manifest v2026-10-02 陈旧已通读现行规则;生产接线归 1 侧轮)
+- EPIC.md 同步:5/6 Complete(006 维持硬阻 = /ux-design 设计件缺);零未裁项
+- Code Review: Skipped ×4(lean;用户惯例,已如实登记各卡 Completion Notes)
+- Next recommended: sprint-24 取件(/sprint-plan new);006 须先 /ux-design
