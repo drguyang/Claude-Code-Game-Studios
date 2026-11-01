@@ -167,6 +167,19 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-8` 2026-11-01 收口(COMPLETE —— 交付两案,待用户裁)** —— 只勘察 + 出案,**未实现**:
+> 未改 `SlotType` / `build_modules.json` / `world_buildslots.json` / `critical_paths.json`。
+> **裁定是完整的,缺的是承接者**:`game-concept.md:697-698`(2026-09-20 改判「P0 允许帐篷这一次新建」)
+> 已落到 `modular-building.md:246-257` 规则六(实现形态逐字写死:预置 `tent` 槽 + `StructurePlaced`
+> 载荷不变);但 **23 的 `story-001…007` 无一张认领它**。
+> **实测成本已很低**:放置五条件(`story-002`)· 写权(`story-003`)· 叠加重建(`story-004`)全在,
+> 帐篷只是第 10 个输入 —— 代码 `grep -rniE "\btent\b"` = **0**,槽位 13 个无 tent,模块 9 个无帐篷,
+> `SlotType` 闭集六员无 `Tent`。
+> **两案**:甲(推荐)—— 补 `modular-building/story-008-tent`:`SlotType.Tent` + 模块条目 + 关卡工具产出
+> `tent` 预置槽 + 「放置 ⇒ 恰一条 `StructurePlaced`,骨架外零新事件」夹具,`#13` 转 `PASS(2 载/全绿)`;
+> 乙 —— 登记为已知缺口,但那是**正面推翻 2026-09-20 裁定**(它拿掉的正是「P0 也必须能新建」的宾语)。
+> 原件 = `production/qa/evidence/s22-8-smoke13-tent-two-options-2026-11-01.md`。
+
 > ✅ **`S22-7` 2026-11-01 收口(COMPLETE WITH NOTES)** —— `TD-persist-13` **closed**。
 > **开工实测推翻了一半的债**:`ParseBody` **74 代码行**(真超,已拆)· `WriteExitSave` **实测 6**
 > (债记的「61」是**度量器假数**:`MethodBody` 只做花括号配平,表达体方法签名行没有 `{`,
