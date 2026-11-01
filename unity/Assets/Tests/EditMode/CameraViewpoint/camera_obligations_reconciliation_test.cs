@@ -319,6 +319,39 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
                 "`OQ-2-6`(Camera 的 VR 立体语义)须在 ICameraRig 源码内注明(P1a 前置;story:116)");
         }
 
+        // ══════════════ ADR-020 Amendment C(P0 接口面)══════════════
+
+        /// <summary>
+        /// **AC-20-17**:位姿访问器 `GetCameraPosition` / `GetLookTarget` **都在具体类、都不在接口**,
+        /// 且**同进同出**(不得只搬其中一个)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **为什么这条必须是机械判据**:微倾的承载点是 `GetLookTarget`
+        /// (`CameraRig.cs`,2026-11-01)。若有人「为了接口好看」只把它搬进 `ICameraRig`、
+        /// 留下 `GetCameraPosition` 在具体类 ⇒ 新增消费者时极易只接线一半 ⇒
+        /// **微倾静默丢失**(不崩、不红,只有画面上看得出)。
+        /// 这正是 Amendment C ③ 要钉的失败形态。
+        /// <para>双向断言(缺一即假绿):**接口不含** + **具体类必须有** ——
+        /// 只断前者的话,「删掉实现」也能过。</para>
+        /// </remarks>
+        [Test]
+        public void test_ac2017_poseAccessors_offInterface_onConcrete_together()
+        {
+            var iface = typeof(DaYiJingCheng.Gameplay.Presentation.Camera.ICameraRig);
+            var concrete = typeof(DaYiJingCheng.Gameplay.Presentation.Camera.CameraRig);
+
+            foreach (var name in new[] { "GetCameraPosition", "GetLookTarget" })
+            {
+                Assert.IsNull(iface.GetMethod(name),
+                    $"`{name}` **不得**出现在 `ICameraRig` 上 —— 接口 = 消费者契约," +
+                    "位姿序列化是唯一驱动器(BootRoot)的内务(ADR-020 Amendment C ③ / AC-20-17)");
+
+                Assert.IsNotNull(concrete.GetMethod(name),
+                    $"`{name}` 须在 `CameraRig` 上 —— **同进同出**:只断「接口不含」的话," +
+                    "删掉实现也能过(那样断言恒绿而无判别力)");
+            }
+        }
+
         // ══════════════ AC-2-24 / AC-2-26:ADVISORY 独立 NOT-RUN 登记(B-5)══════════════
 
         [Test]

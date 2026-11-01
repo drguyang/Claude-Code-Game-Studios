@@ -677,3 +677,102 @@ Cross-Domain Changes」)。**登记在此,等用户裁定是否立 ADR-020 Amend
 
 ⚠️ **这不是新发现,是「同一形态上一层」**:GDD 表刚补完,ADR 里的枚举还停在四档 ——
 若只补 GDD 不补 ADR,「档位真源」会变成**三份**(ADR / GDD / `CameraModePriority.cs`)。
+
+---
+
+## 11. ADR-020 Amendment C(2026-11-01 · 用户裁定「立 ADR-020 Amendment C」)
+
+### 11.1 结清 §10.6 登记的那个缺口
+
+§10.6 实测 `grep -c "Downed"` 在 `adr-020` 与 `architecture.md` 里**均为 0**。
+本批立 **Amendment C**,把「实现跑在权威件前面」的三件事补回权威面。
+
+### 11.2 三项裁决
+
+| # | 裁决 | 落点 |
+|---|---|---|
+| ① | `CameraMode` 增第五成员 **`Downed`**;平面链四档;优先级 `Casebook > Downed == Treatment > Explore`;**VR 在位时请求被丢弃** | Status 段 · §二 补注(a) · §Key Interfaces 的 enum · §Architecture |
+| ② | **`SetMode(CameraMode, int requesterId)`** 双参重载;**`RequesterId` 语义升格**(`仅审计用` → **参与裁决**) | Status 段 · §二 补注(b) 的甲案判据 · §Key Interfaces |
+| ③ | **`GetLookTarget` 不进 `ICameraRig`—— 裁决,不是遗留** | Status 段 · §Key Interfaces 的注释 · **§Alternatives Alternative 6** |
+
+**新增 AC 三条**(§Validation):
+
+- **`AC-20-15`(BLOCKING)** —— `Downed` 四语义(四档 / VR 丢弃 / 两段式禁甩镜 / 非视场旋转)
+- **`AC-20-16`(BLOCKING)** —— `RequesterId` 裁决双向(同号可降档 + 异号不得抢 + `Mode` 写入点仍一处)
+- **`AC-20-17`(BLOCKING)** —— 位姿访问器**同进同出**(都在具体类、都不在接口)
+
+### 11.3 ③ 为什么是「不进接口」而不是「加进去」
+
+原本我把「`GetLookTarget` 未进 `ICameraRig`」登记为**缺口**。写 Amendment 时实测发现:
+**`GetCameraPosition` 同样不在接口上** —— 二者本来就是一对「位姿序列化」内务,
+由唯一驱动器 `BootRoot` 消费。
+
+⇒ 把视线目标单独搬进接口会造出「位置取自具体类、视线目标取自接口」的**不对称**,
+新增消费者时极易只接线一半 ⇒ **微倾静默丢失**(不崩、不红)。
+**所以正确的裁决是把它明确为「不进」,而不是加进去。** 缺口由此**结清**而非遗留。
+驳回过程写进 §Alternatives 的 **Alternative 6**。
+
+### 11.4 `AC-20-17` 的机械载体(否则就是 F6 自述顶替门)
+
+`unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs`
+新增 `test_ac2017_poseAccessors_offInterface_onConcrete_together`,
+**双向断言**(缺一即无判别力):
+
+- 接口 **不含** 这两个方法名;
+- 具体类 **必须** 有这两个方法名(**只断前者的话,「删掉实现」也能过**)。
+
+### 11.4b 回归
+
+| 套件 | 结果 | 前次 | 等式 | 截至时刻 |
+|---|---|---|---|---|
+| EditMode | `6473 / 6436 / 0 / 37` | `6472 / 6435 / 0 / 37` | `6473 − 6472 = 1` ✅(新增 `test_ac2017_…`) | 2026-11-01 **23:58:47 CST** |
+| PlayMode | `275 / 271 / 0 / 2` | `275 / 271 / 0 / 2` | `0` ✅(本批未加 PlayMode 测试) | 2026-11-01 **23:59:33 CST** |
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').getroot();print('EM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print('PM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+```
+
+### 11.4c 证伪轮:AC-20-17 有判别力
+
+| 轮 | 变异 | 结果 |
+|---|---|---|
+| **M7(首轮)** | 把 `GetLookTarget` 塞进 `ICameraRig`(**只改接口**) | ❌ **NO-XML —— 未跑,不借绿**(编译失败:`input_contract_test.cs` 的两个 Fake `ICameraRig` 报 **CS0535**,缺少该成员) |
+| **M7′(重跑)** | 同上 **+ 同批给两个 Fake 补空实现**(使变异**能编译**) | ✅ **恰 1 条转红**:`test_ac2017_poseAccessors_offInterface_onConcrete_together`(编译错误 0,`total=15 passed=8 failed=1`) |
+
+> ⚠️ **首轮 NO-XML 本身是一条信息**:把访问器加进接口是**多点改动** ——
+> 全仓每一个 `ICameraRig` 假实现都会被连带。这佐证了 Amendment C ③「接口 = 契约面」的分量,
+> 但**不构成**「断言有判别力」的证据,故重跑。
+
+失败报文(实测):
+
+```
+`GetLookTarget` **不得**出现在 `ICameraRig` 上 —— 接口 = 消费者契约,位姿序列化是唯一驱动器
+(BootRoot)的内务(ADR-020 Amendment C ③ / AC-20-17)
+  Expected: null
+  But was:  <UnityEngine.Vector3 GetLookTarget(UnityEngine.Vector3)>
+```
+
+还原:`ICameraRig.cs` `bd9bd0e6…` / `input_contract_test.cs` 逐字节一致;`MUTANT-M7` 残留 0。
+⚠️ **本条只反证了一半**:它证明「接口含该成员 ⇒ 红」;另一半
+(「删掉 `CameraRig` 上的实现 ⇒ 红」)未单独打变异 —— 因为那会连带 `BootRoot` 编译失败,
+与首轮同型。**该半边的判别力来自断言的另一半**(`Assert.IsNotNull(concrete.GetMethod(name))`),
+**但未反证,如实登记为「未反证的半边」**。
+
+### 11.5 同步面
+
+| 文件 | 改动 |
+|---|---|
+| `docs/architecture/adr-020-player-controller-and-camera.md` | Status 段 Amendment C · §二 补注(a)(b) · §Key Interfaces · §Alternatives Alternative 6 · `Last Verified` · `AC-20-15/16/17` |
+| `docs/architecture/architecture.md` | 接口清单同步(enum 加 `Downed` · 双参 `SetMode` · 位姿访问器注释 · 优先级不变量 ⑤) |
+| `.claude/docs/technical-preferences.md` | ADR-020 日志条目加 **Amendment C** 段 |
+| `design/gdd/camera-and-viewpoint.md` | 前一批(§10)已补;本批无需再动 |
+| `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs` | 新增 `AC-20-17` 载体 |
+
+⚠️ **未动 `control-manifest.md`**:它有 `Manifest Version:` 日期,改它会让所有 story 的
+manifest 版本变旧(触发 `/story-done` 的 staleness 告警)。其相机段本就指向 ADR-020 §二 / §五,
+Amendment C 已在该处落。**若需在 manifest 增一条「生产调用方必须用双参 `SetMode`」的硬规则,
+须单独一批并接受版本 bump。**

@@ -521,8 +521,23 @@
   **§七 结清 44 的 `AudioListener` 单挂点**(`adr-018:295` 留白):平面 = 主相机,VR = 头显(AC-20-10)。
   **零第三方第七处一致性**:Cinemachine = **不引入**(「官方包」不是豁免 —— DOTS 同为官方包,已于
   ADR-017 结构性排除)。
-  Engine Knowledge Risk **LOW**(§Engine Compatibility 自陈 **不引入任何 post-cutoff API** ——
-  Cinemachine 的知识盲区经「不使用它」消解,而 `CharacterController` 是长期稳定 API)。
+  **⚠️ 2026-11-01 Amendment C(用户裁定「立 ADR-020 Amendment C」;Status 维持 Accepted)** ——
+  **病因 = 实现跑在权威件前面**:`CameraMode.Downed`(`a5f766f6`)· 双参 `SetMode`(`52ef68a5`)·
+  `GetLookTarget`(`ff165dfd`)三件事先后进了代码,而 ADR 的枚举与接口仍停在四档 / 单参
+  ⇒ **`ICameraRig` 的权威定义比实现少三件事**。三项裁决:
+  ① **`CameraMode` 增第五成员 `Downed`**(权威来源 `death-transition-29.md` §9 的相机两段式;
+  平面链自此**四档**);优先级 **`Casebook(3) > Downed(2) == Treatment(2) > Explore(1)`**,
+  同格的理由 = 玩家 `PlayerDied` 落流后 1 侧已抑制移动 / 交互 ⇒ 10 的急救请求那一刻不再产生,
+  真同帧入队则按 EC-2-9「同优先级取最后到达者」给唯一解;**VR 在位时 `Downed` 请求被丢弃**(不排队不延后)。
+  ② **`SetMode(CameraMode, int requesterId)` 双参重载**;**`RequesterId` 语义升格**
+  —— 初版注释「仅审计用」,**甲案后参与裁决**(同请求方可把自己开的档降回去 / 异请求方不得抢);
+  单参重载保留为兼容(记 `-1`),但**生产调用方必须用双参**,否则「只能由请求方退出」**静默失效**。
+  ③ **`GetLookTarget` **不进** `ICameraRig` —— 这是裁决,不是遗留**:
+  接口 = **消费者契约**,位姿序列化 = **唯一驱动器(`BootRoot`)的内务**;
+  `GetCameraPosition` 同样不在接口上,二者**必须同进同出**(只搬一个 = 微倾静默丢失的复发面)。
+  新增 **`AC-20-15`(Downed 四语义)/ `AC-20-16`(RequesterId 裁决双向)/ `AC-20-17`(位姿访问器同进同出)**;
+  `architecture.md` 的接口清单已同步。
+  Engine Knowledge Risk **LOW**(纯接口契约与枚举,零 post-cutoff API)。
 
 - [ADR-021 ✅ Accepted 2026-09-15]**POI 状态所有权与世界流承载** ——
   `docs/architecture/adr-021-poi-state-ownership.md`。**结清三方复核(2026-09-15,

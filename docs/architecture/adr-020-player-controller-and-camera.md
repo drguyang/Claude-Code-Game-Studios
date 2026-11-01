@@ -51,13 +51,52 @@ Accepted
 >    (系统 1 GDD 的 F-1-8)—— **单向**:1 读 2 的基,2 读 1 的位置,无环。
 > **不改 §一 / §四 的核心**(连续位置永不写流 · 跨格是唯一投影 · 上界 = tick 频率)。
 
+> **Amendment C(2026-11-01,由 29 spec §9 的相机两段式 + 甲案落地提出;用户裁定「立 ADR-020 Amendment C」)。**
+> **病因不是措辞,是「实现跑在权威件前面」**:`CameraMode.Downed`(commit `a5f766f6`)、
+> 双参 `SetMode`(commit `52ef68a5`)、`GetLookTarget`(commit `ff165dfd`)三件事先后进了代码,
+> 而本 ADR 的 `CameraMode` 枚举与 `ICameraRig` 仍停在四档 / 单参。
+> ⇒ **`ICameraRig` 的权威定义比实现少三件事**;若只补 GDD 不补本 ADR,
+> 「档位真源」会变成**三份**(ADR / GDD / `CameraModePriority.cs`)。
+>
+> **三项裁决**:
+>
+> **① `CameraMode` 增第五成员 `Downed`。**
+> 权威来源 = `design/ux/death-transition-29.md` §9「相机(Φ1→Φ2)」:「**两段式**:先失去支撑
+> (下沉 + 微倾)→ 再躺定(**禁甩镜**)」;其语义出处 = `combat-and-weapon-lines.md:1665`。
+> 平面链自此为**四档**(`Explore` / `Treatment` / `Casebook` / `Downed`);
+> `FirstPerson`(VR)仍**不经本链**。
+> **优先级 = `Treatment` 同格**(`CameraModePriority.Downed == Treatment`)——
+> 取舍见 §二 的 Amendment C 补注。
+> **VR 全禁**:`FirstPerson` 在位时 `Downed` 请求被**丢弃**(不排队、不延后)。
+> **不改 §三**(视角双路径)的核心。
+>
+> **② `ICameraRig.SetMode(CameraMode, int requesterId)` 双参重载;`RequesterId` 语义升格。**
+> 单参重载**保留**为兼容(记 `-1` = 无请求方),但**生产调用方必须用双参**。
+> ⚠️ **语义升格(如实登记)**:`requesterId` 初版注释为「仅审计用」;甲案后它**参与裁决** ——
+> 「同一请求方可把自己开的档降回去」(甲案判据,见 §二 的 Amendment C 补注)。
+> ⇒ 任何生产调用点传 `-1` 或错的号,「只能由请求方退出」**静默失效**(不崩,但退不出去)。
+> **`Mode` 的写入点仍恰一处**(AC-2-17 / AC-20-05 不破)。
+>
+> **③ `GetLookTarget` 不进 `ICameraRig` —— 这是裁决,不是遗留。**
+> `GetCameraPosition` 与 `GetLookTarget` 都是**具体类**成员,理由:
+> **接口 = 消费者契约**(系统 1 的移动基 / 44 的挂点 / 其他系统的档位意图),
+> **位姿序列化是唯一驱动器(`BootRoot`)的内务**。二者**必须同进同出** ——
+> 只把视线目标搬进接口会造出「位置取自接口、视线目标取自具体类」的不对称,
+> 那正是「微倾静默丢失」的复发面。
+> ⚠️ 驳回的替代方案见 §Alternatives Considered 的 **Alternative 6**。
+>
+> **本 Amendment 不改**:§一(移动模型)· §四(玩家位移确定性边界)· §五(相机只读不持状态)·
+> §六(镜头效果归属)· 零第三方取向(`AC-20-02` 不动)。
+
 ## Date
 
 2026-09-15
 
 ## Last Verified
 
-2026-09-15
+2026-11-01(**Amendment C** —— `CameraMode.Downed` / 双参 `SetMode` / 位姿访问器不进接口;
+⚠️ **`AC-20-15` / `AC-20-16` 有夹具载体,`AC-20-17` 的载体见下** —— 本行只记「最近核对」,
+**不表示 §Validation 全勾**)· 2026-09-15(初版)
 
 ## Decision Makers
 
@@ -230,6 +269,44 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 > 「Camera Cinemachine → **不引入**(ADR-020:自建机位;运行期零第三方第七处一致性)」。
 > **这不是「暂缓」,是排除** —— 触发复评的条件应由用户显式提出(与 ADR-017 的复评门不同,
 > 本项**不预设复评门**)。
+
+> **Amendment C 补注(2026-11-01)—— 视角状态机的两件新事实**
+>
+> **(a) 有多少档、谁排第几。** 平面链 = **四档**,优先级:
+>
+> ```
+> Casebook(3, 模态, 最高)  >  Downed(2) = Treatment(2)  >  Explore(1, 最低)
+> ```
+>
+> **`Downed` 为什么与 `Treatment` 同格(2)而不是单独一档**,三选一:
+>
+> | 取值 | 后果 | 判 |
+> |---|---|---|
+> | 3(与 `Casebook` 同) | 死亡会**压过**脉案模态 | ❌ 违规则七(模态优先不可翻) |
+> | 1(与 `Explore` 同) | 玩家死亡瞬间若有残留 `Explore` 请求可顶掉它 | ❌ 倒下的玩家不该被普通探索态抢机位 |
+> | **2(与 `Treatment` 同)** | 与急救档同格;冲突时按 EC-2-9「同优先级取最后到达者」给唯一解 | ✅ **采纳** |
+>
+> 同格**不会打架**的结构理由:玩家一旦 `PlayerDied` 落流,系统 1 已抑制移动 / 交互
+> (`death-transition-29.md` §6)⇒ 10 的急救请求在那一刻**不再产生** ⇒ 二者实际不会同时入队。
+>
+> **(b) 「谁能把一个档关掉」—— 甲案。**
+> 原文只说「低优先级不能打断高优先级」,**从未说「谁能退出去」**。
+> 两条规格因此对撞:`camera-and-viewpoint.md` 的状态表明写 `Casebook` 的退出 =
+> 「请求方请求 `Explore`(**只能由请求方退出**)」,而纯优先级读法下**任何** `Explore` 都打不进去。
+> **用户 2026-11-01 裁定取甲案「同一请求方可降档」**:
+>
+> ```csharp
+> sameRequesterDowngrade = best.Mode == CameraMode.Explore
+>                       && best.RequesterId == CurrentRequesterId
+>                       && Mode != CameraMode.Explore;
+> canSwitch = (bestPrio >= curPrio || sameRequesterDowngrade) && best.Mode != Mode;
+> ```
+>
+> **为什么必须限定「同一请求方」而不是放开成「任意低优先级可降档」**:
+> 放开 ⇒ 39 的脉案会被 10 的收尾请求顶掉(反之亦然)—— 那正是 `O-12` 要防的**互抢机位**。
+> 限定同号 ⇒ **只有「开的人」能「关」**,与 GDD 状态表逐字一致。
+> ⇒ 这是本 ADR §五「相机**不持**游戏状态」下的**唯一合法做法**:
+> 相机不知道「脉案该不该关」,它只知道「**是谁**开的」。
 
 ### 三、视角 = 平面第三人称(越肩)+ VR 独立第一人称
 
@@ -408,12 +485,18 @@ public interface IPlayerMotor
 //   · ✗ 连续位置 / 速度 / 朝向 一律不进流
 
 // ── 系统 2:相机(表现层;只读,不持游戏状态 —— §五) ──────────────────
-public enum CameraMode { Explore, Treatment, Casebook, /* VR: FirstPerson(P1a) */ }
+public enum CameraMode
+{
+    Explore, Treatment, Casebook,
+    FirstPerson,   // VR(P1a)—— 头显驱动,不经本链;镜头效果全禁
+    Downed,        // ↓ 2026-11-01 Amendment C 新增:倒下两段式(29 spec §9)
+}
 
 public interface ICameraRig
 {
     CameraMode Mode { get; }
-    void SetMode(CameraMode mode);        // 状态机;转场参数留白(数值用户调)
+    void SetMode(CameraMode mode);                     // 兼容重载:记 requesterId = -1(无请求方)
+    void SetMode(CameraMode mode, int requesterId);    // ↓ Amendment C:请求方号**参与裁决**(甲案)
     void Tick(float deltaTime);           // 跟随 / 越肩阻尼
     Camera Camera { get; }                // ← 44 的 AudioListener 挂点(平面);VR 挂头显
 
@@ -423,8 +506,19 @@ public interface ICameraRig
     (Vector3 fwd, Vector3 right) YawBasis { get; }   // 水平化并正交归一;y 分量恒为 0
 }
 
+// ── 位姿访问器:**刻意不在 `ICameraRig` 上**(Amendment C ③)──────────────
+//   `CameraRig.GetCameraPosition(t)` / `CameraRig.GetLookTarget(t)` 是**具体类**成员。
+//   理由:接口 = **消费者契约**(系统 1 的移动基 / 44 的挂点 / 档位意图),
+//        位姿序列化是**唯一驱动器**(BootRoot)的内务 ⇒ 不属契约面。
+//   ⚠️ 二者**必须同进同出**:只把其中一个搬进接口会造出「位置可取自接口、
+//      视线目标必须取自具体类」的不对称,那正是「微倾静默丢失」的复发面。
+
 // ── 视角状态机(P0 形状;切换条件与转场时长留白) ─────────────────────
 //   Explore(越肩) ──▶ Treatment(近景) ──▶ Casebook(固定) ──▶ Explore
+//                                            ▼
+//                                   Downed(倒下,= Treatment 同格)
+//                                    29: PlayerDied 落流 ──▶ Downed
+//                                    29: Φ3 起手 ──────────▶ Explore(同请求方退出)
 ```
 
 ### Implementation Guidelines
@@ -485,6 +579,21 @@ public interface ICameraRig
   ③ 高频事件让 ADR-012 的黄金夹具与存档体积失控。
 - **Rejection Reason**:**ADR-016 §三 已反向否决同一件事**(`adr-016:333`,报告 Alternatives 同款),
   本 ADR 只是把玩家侧补成对称。
+
+### Alternative 6: 把 `GetLookTarget` 搬进 `ICameraRig`(Amendment C 驳回)
+
+- **Description**:倒下的「微倾」承载在 `CameraRig.GetLookTarget(target)` 上。有人会问:
+  既然接口是相机的**唯一契约**,这个访问器为什么不在接口上?把它加进去,任何 `ICameraRig`
+  消费者都能拿到「该看向哪」。
+- **Pros**:接口看起来更完整;消费方不必持具体类型。
+- **Cons**:① **不对称** —— `GetCameraPosition(target)` 同样不在接口上。只搬视线目标 ⇒
+  「位置必须取自具体类、视线目标可以取自接口」,两半分居两种类型 ⇒ 新增一个消费者时
+  **极易只接线了一半**(拿到位置、忘了视线目标)⇒ 微倾静默丢失,正是本 Amendment 要消灭的失败形态;
+  ② **契约面被无谓地撑大** —— 位姿序列化是**唯一驱动器**(`BootRoot`)的内务,不是任何系统的需求:
+  系统 1 要的是 `YawBasis`,44 要的是 `Camera`,各系统的档位意图要的是 `SetMode`。
+- **Rejection Reason**:接口 = **消费者契约**,位姿 = **驱动器内务**。二者边界已在
+  §Key Interfaces 的注释里钉死,并新增 **`AC-20-17`** 作判据(两个访问器**同进同出**)。
+  ⇒ **本条把 ADR-020 原先的「`GetLookTarget` 缺口」结清为「裁决:不进」,不是遗留项。**
 
 ## Consequences
 
@@ -589,6 +698,27 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 - [ ] **AC-20-14(BLOCKING · 2026-09-16 Amendment B 新增)**:`ICameraRig.YawBasis` **只读** ——
       系统 1 的调用点零写入相机状态 / 变换;基**水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。
       *验证:系统 1 的 `AC-1-31` / `AC-1-35` ④ 同判据。*
+- [ ] **AC-20-15(BLOCKING · 2026-11-01 Amendment C 新增)**:**`Downed` 档的四条语义** ——
+      ① 平面链**四档**,`CameraModePriority.Casebook > Downed == Treatment > Explore`;
+      ② **VR 全禁**:`FirstPerson` 在位时 `Downed` 请求**被丢弃**(不排队、不延后);
+      ③ **两段式形状**:先「失支撑」(下沉 + 视线下压)· 后「躺定」(**保持**,不再动);
+      **禁甩镜** = 位姿只做**单调插值**,全程无速度突变;
+      ④ **非视场旋转**:只改俯仰方向,**不动 yaw**。
+      *判据:`camera_downed_phases_test`(17 条)+ `camera_downed_visual_walkthrough`(1 条);
+      证伪 M1–M6 各自转红。**
+- [ ] **AC-20-16(BLOCKING · 2026-11-01 Amendment C 新增)**:**`RequesterId` 参与裁决** ——
+      ① **同请求方可降档**:开启方发 `Explore` 能把自己开的档降回去;
+      ② **异请求方不得打断**:别号发 `Explore` 一律不动(防 10 / 39 / 29 互抢机位,`O-12`);
+      ③ **`Mode` 的写入点仍恰一处**(不因双参重载而分裂)。
+      *判据:`test_downed_sameRequester_canExitViaExplore` / `..._differentRequester_cannotDowngrade` /
+      `test_casebook_sameRequester_canExitViaExplore` / `test_casebook_differentRequester_stillCannotInterrupt`;
+      证伪 M1 / M2 红在**不同**测试上(M1 去降档 ⇒ 两条正控红;M2 放开成任意降档 ⇒ 两条负控红 + `test_ac218a`)。*
+      ⚠️ **语义升格的后果须登记**:生产调用点传 `-1` 或错的号 ⇒「只能由请求方退出」**静默失效**。
+- [ ] **AC-20-17(BLOCKING · 2026-11-01 Amendment C 新增)**:**位姿访问器不进 `ICameraRig`** ——
+      `GetCameraPosition(target)` 与 `GetLookTarget(target)` **都在具体类、都不在接口**;
+      二者**同进同出**(不得只搬其中一个)。
+      判据 = 反射断言:`ICameraRig` 的成员集中**不含**这两个名字;
+      且 `CameraRig` 同时具备二者(防止「为了过判据而删掉实现」的假绿)。
 - [ ] **零第三方依赖**:`packages/manifest.json` 无新增相机 / 物理 / 输入第三方包
 
 ## GDD Requirements Addressed

@@ -15511,3 +15511,36 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (`Downed` / 双参 `SetMode` / `GetLookTarget`)。**改 ADR 须另开 Amendment,不在本批越权**;
   待用户裁定是否立 **ADR-020 Amendment C**。
   ⚠️ 若只补 GDD 不补 ADR,「档位真源」会变成三份(ADR / GDD / `CameraModePriority.cs`)。
+
+## Session Extract — 2026-11-01/02 · 立 ADR-020 Amendment C
+
+**用户指令**:「立 ADR-020 Amendment C」
+
+结清上一批登记的缺口(`grep -c "Downed"` 在 `adr-020` / `architecture.md` 均为 0)。
+
+**三项裁决**:
+① `CameraMode` 增第五成员 **`Downed`**;平面四档;优先级 `Casebook(3) > Downed(2) == Treatment(2) > Explore(1)`;
+   VR 在位时请求**被丢弃**(不排队不延后)
+② **`SetMode(CameraMode, int requesterId)`** 双参重载;**`RequesterId` 语义升格**(`仅审计用` → **参与裁决**,甲案)
+③ **`GetLookTarget` 不进 `ICameraRig` —— 裁决,不是遗留**
+
+⚠️ **③ 的推理改了我先前的判断**:我原把它登记为「缺口」。写 Amendment 时实测发现
+**`GetCameraPosition` 同样不在接口上** —— 二者本就是一对「位姿序列化」内务,由唯一驱动器
+`BootRoot` 消费。单独搬视线目标进接口 ⇒ 位置取自具体类 / 视线目标取自接口的**不对称** ⇒
+新消费者只接线一半 ⇒ **微倾静默丢失**。⇒ **正确裁决是明确「不进」**,缺口由此结清而非遗留。
+驳回过程写进 §Alternatives **Alternative 6**。
+
+**新增 AC**:`AC-20-15`(Downed 四语义)· `AC-20-16`(RequesterId 裁决双向)· `AC-20-17`(位姿访问器同进同出)。
+
+**同步面**:`adr-020`(Status / §二 补注 / §Key Interfaces / Alternatives 6 / Last Verified / 3 条 AC)·
+`architecture.md`(接口清单 + 优先级不变量 ⑤)· `technical-preferences.md`(ADR-020 日志条目)·
+`camera_obligations_reconciliation_test.cs`(新增 `test_ac2017_…`,**双向断言** —— 只断「接口不含」的话删掉实现也能过)。
+
+**回归**:EditMode `6473/6436/0/37`(+1 = 新夹具)@23:58:47 · PlayMode `275/271/0/2`(持平)@23:59:33
+
+⚠️ **首轮证伪 NO-XML**:只改接口 ⇒ 两个 Fake `ICameraRig` 报 **CS0535** ⇒ **未跑,不借绿**。
+重跑时同批补 Fake 空实现使变异**能编译**。首轮 NO-XML 本身是一条信息:
+把访问器加进接口是**多点改动**,全仓每个假实现都被连带 —— 佐证「接口 = 契约面」的分量。
+
+⚠️ **未动 `control-manifest.md`** —— 改它须 bump `Manifest Version:`,会让所有 story 变旧
+(触发 `/story-done` staleness)。若需加「生产调用方必须用双参 `SetMode`」的硬规则,单独一批。
