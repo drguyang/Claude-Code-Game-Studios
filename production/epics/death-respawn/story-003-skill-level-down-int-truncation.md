@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-01
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(规则四 掉级 · F-29-1 · F-29-4 流重建 · EC 表判断类豁免行)
@@ -64,6 +64,20 @@
    ⚠️ 实测该谓词**当前零命中**(`unity/Assets/` 全库),故 AC-29-16 维持未勾 ——
    **这是「实现待落」,不是「裁决待定」**;两者在排期上的含义不同(前者可排,后者不可排)。
 5. 掉级数不呈现(story-006 AC-29-07 管 DTO);叙事上是「手生」不是「遗忘」—— 无任何「损失 X 点」文案进本层。
+
+> 🔁 **2026-11-01 实施判定回写(S23-3 · 原注记不删)**:上列第 1 条的「消费面」在本轮
+> 兑付时发现**前提与权威式冲突** —— 30 的实际产物 `DeathPenalty.Apply`(skill-system
+> story-005,2026-09-27)走的是 Fix 路径,其单测钉值 {56,37,18} 与本卡 AC-29-05 要求的
+> F-29-1 表 {0,9,19,38,57} **差一**(death-and-respawn GDD F-29-1 已登记为「同源同错」
+> 挂账义务,并裁「30 修正前以 F-29-1 为权威」)。**取「修 30 的权威面、29 照旧消费」**,
+> 不取「29 侧自持一份 int 公式」(后者违 AC-29-14 / Manifest Forbidden「29 自持一份掉级
+> 公式」):`DeathPenalty.Apply` 本体改整数截断(签名去无用 `deathLoss` 形参,零生产调用点),
+> 30 侧三条单测值随权威式订正(story-005 卡同日注登记方向回转;skill-system.md §4.3 落注,
+> **公式行文本订正仍挂 30 下一轮**)。29 侧新增 `DeathSkillDownSettlement`(编排面:
+> 派生态重 fold 取等级 → 逐技能 Apply → 经 30 既有成长面 `IGrowthEmitter` 发携带新绝对
+> 等级的 SkillGrown);**判断类豁免 = R-4-W-6 口径待裁**,生产装配 `isExempt: null = 全掉`
+> (与 30 §4.3 现行为一致),两极端由双分支夹具登记,不实现选择 —— 裁定落地时只在
+> CompositionRoot 一处注入谓词。
 
 ---
 

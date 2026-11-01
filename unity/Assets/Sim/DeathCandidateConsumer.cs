@@ -54,6 +54,12 @@ namespace DaYiJingCheng.Sim
         /// (fail-loud,不吞成「死了但东西凭空消失」)。</para></summary>
         private readonly Action<int, WorldPos, long> _dropSettlement;
 
+        /// <summary>死亡掉级结算回调(S23-3 · 可 null = 未接线 —— 002 行为不变)。
+        /// <para>结算段第三位:`PlayerDied → 掉落 → 掉级 → 复活命令`(story-005:46);
+        /// 本类在**写者返回 Written 后**、散落回调之后以 (playerId, tick) 调它一次。
+        /// 掉级失败随异常上抛(fail-loud,不吞成「死了但等级原样」)。</para></summary>
+        private readonly Action<int, long> _skillDown;
+
         /// <summary>
         /// 构造 29 侧的候选注入点。
         /// </summary>
@@ -76,6 +82,9 @@ namespace DaYiJingCheng.Sim
         /// <param name="dropSettlement">死亡散落结算回调(S23-2;可 null = 未接线)。
         /// <para>只在写者返回 <see cref="PlayerDiedWriteResult.Written"/> 后调用 ——
         /// 谓词否决 / 冷却拒 ⇒ 零散落(冷却内再死连事件都不发,更不掉落)。</para></param>
+        /// <param name="skillDown">死亡掉级结算回调(S23-3;可 null = 未接线)。
+        /// <para>只在写者返回 <see cref="PlayerDiedWriteResult.Written"/> **且散落回调
+        /// 之后**调用(结算段第三位);散落抛异常则掉级不执行(同批结算,异常上抛)。</para></param>
         /// <exception cref="ArgumentNullException">任一必需依赖为 null。</exception>
         public DeathCandidateConsumer(
             PlayerDiedWriter writer,
@@ -83,7 +92,8 @@ namespace DaYiJingCheng.Sim
             Func<int, ActorClass> actorClassOf,
             Func<int, DiseaseRegistryEntry> entryOf,
             Func<int, WorldPos> deathCellOf,
-            Action<int, WorldPos, long> dropSettlement = null)
+            Action<int, WorldPos, long> dropSettlement = null,
+            Action<int, long> skillDown = null)
         {
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _deathAllowed = deathAllowed ?? throw new ArgumentNullException(nameof(deathAllowed));
@@ -91,6 +101,7 @@ namespace DaYiJingCheng.Sim
             _entryOf = entryOf ?? throw new ArgumentNullException(nameof(entryOf));
             _deathCellOf = deathCellOf ?? throw new ArgumentNullException(nameof(deathCellOf));
             _dropSettlement = dropSettlement;
+            _skillDown = skillDown;
         }
 
         /// <summary>
@@ -113,9 +124,13 @@ namespace DaYiJingCheng.Sim
             PlayerDiedWriteResult result = _writer.TryWrite(
                 tick, playerId, actorClass, entry, deathCell, _deathAllowed(playerId, tick));
 
-            // 结算段次位:只有真写了 PlayerDied 才散落(谓词否决 / 冷却拒 ⇒ 零事件 ⇒ 零散落)。
+            // 结算段次位:只有真写了 PlayerDied 才结算(谓词否决 / 冷却拒 ⇒ 零事件 ⇒ 零结算)。
+            //   段内序(story-005:46):掉落 → 掉级 → 复活命令(story-005 未落)。
             if (result == PlayerDiedWriteResult.Written)
+            {
                 _dropSettlement?.Invoke(playerId, deathCell, tick);
+                _skillDown?.Invoke(playerId, tick);
+            }
         }
 
         /// <summary>

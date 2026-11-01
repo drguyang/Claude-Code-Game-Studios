@@ -119,3 +119,13 @@
 **Deviations**: AC-2 expected values corrected from 57/38/19 to 56/37/18 to match actual Q16.16 floor-truncation arithmetic (Fix.FromRational(19/20) = raw 62259 = 0.94999695..., not exactly 0.95)
 **Test Evidence**: Logic: `unity/Assets/Tests/EditMode/SkillSystem/death_penalty_test.cs` — 7 tests, all passing
 **Code Review**: unity-specialist APPROVED + qa-tester reviewed (test expectations corrected)
+
+> 🔁 **2026-11-01 上述 Deviations 被权威式订正回转(S23-3 · 原文不删,如实登记)**:上段
+> 2026-09-27 的「期望值订正」方向与 death-and-respawn GDD **F-29-1**(2026-09-19 修订,
+> 明裁「在 30 修正前,以本 GDD 的 F-29-1 为掉级语义的权威式」)**相反** —— 它把期望值
+> 迁就了 Fix 路径 {56,37,18},而 F-29-1 的权威式 = `(Level × 19) / 20` int 截断
+> {57,38,19}(与本 GDD §4.3 自身表值一致)。S23-3(story-003 消费侧)兑付挂账义务的
+> **代码半边**:`DeathPenalty.Apply` 本体改为整数截断,本 story 的三条主例随之订正回
+> {57,38,19}(陷阱钉保留 Fix 中间值以绝「顺手定点化」回潮;签名去掉无用的 `deathLoss`
+> 形参 —— 零生产调用点,blast radius = 本文件单测)。**代码半边由此结清;30 §4.3 公式行
+> 的文本订正已于同日落注(skill-system.md §4.3 同日注),原判据 7/7 的完成态不追溯重评。**

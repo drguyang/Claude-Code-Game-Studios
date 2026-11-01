@@ -346,6 +346,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 与 SetAuthor / SetViewer / BindPlayer 同格),未绑定即结算 ⇒ 抛(fail-closed)。
             var dropEventWriter = new DropEventWriter(stream, encoder, idAuthority);
             var deathDropSettlement = new DeathDropSettlement(dropEventWriter);
+
+            // ── 死亡掉级结算(S23-3 · story-003 · 2026-11-01)──────────────────
+            // 掉级公式唯一出处 = 30 的 DeathPenalty.Apply(F-29-1 权威式,int 截断);
+            // 29 只编排时机:读等级(派生态,每次重 fold)→ 逐技能求值 → 经 30 的既有
+            // 成长面(IGrowthEmitter,17 采集同款适配器)发携带新绝对等级的 SkillGrown。
+            // ⚠️ **判断类豁免 = 口径待裁(R-4-W-6,2026-09-20 起)**:isExempt 传 null =
+            //   全掉(与 30 §4.3 无豁免的现行为一致);两极端行为已由双分支夹具登记,
+            //   裁定落地时在**这一处**注入谓词,不动结算面。
+            var deathSkillDown = new DeathSkillDownSettlement(
+                new SkillGrownEmitterAdapter(stream, encoder),
+                () => stream.Events, decoder, isExempt: null);
 //
             // ① 冷却门:从世界流重算 `last_death_tick`(**零计数器**,AC-29-15)。
             var deathCooldown = new DeathCooldownGate(() => stream.Events, decoder);
@@ -385,7 +396,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 deathCellOf: deathCellOf,
                 // 掉落结算(S23-2):PlayerDied 真写之后以同格同 tick 散落(结算段次位)。
                 // ⚠️ 转序适配:回调 =(playerId, cell, tick),Settle = writer 惯例的 (tick, id, cell)。
-                dropSettlement: (playerId, cell, tick) => deathDropSettlement.Settle(tick, playerId, cell));
+                dropSettlement: (playerId, cell, tick) => deathDropSettlement.Settle(tick, playerId, cell),
+                // 掉级结算(S23-3):散落之后、复活(story-005)之前(结算段第三位)。
+                // ⚠️ 转序适配:回调 =(playerId, tick),Settle = writer 惯例的 (tick, id)。
+                skillDown: (playerId, tick) => deathSkillDown.Settle(tick, playerId));
 
             // ⑤ 注册 —— 单消费者契约(`Register` 二次调用抛;此处只调一次)。
             deathCandidates.Register(deathConsumer);

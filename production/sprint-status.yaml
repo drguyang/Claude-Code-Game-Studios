@@ -54,7 +54,7 @@ stories:
     name: "death-respawn/003 技能掉级 F-29-1(int 截断)与调 30"
     file: "production/epics/death-respawn/story-003-skill-level-down-int-truncation.md"
     priority: must-have
-    status: ready-for-dev
+    status: in_progress
     owner: ""
     estimate_days: 0
     complexity: M
