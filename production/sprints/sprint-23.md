@@ -193,7 +193,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 | **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
 | **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证 + `TR-camera-007` 双向登记;S29-09 真机走查 `NOT-RUN`)。证伪轮抓出并修掉了 S29-06 的 F1 型假绿 |
 | **S23-10** | `casebook/006` 39 的档位意图接线(`Casebook` / `Explore`,requesterId 39)+ 拆出 007 落笔锚点 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(修的是「该发没发」的一个实例;`AC-39-09` `NOT-RUN`;启动即脉案屏却用 Explore 档未裁) |
-| **S23-11** | `camera-viewpoint/007` 档位请求覆盖矩阵门(表 → 代码 → 行为) | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(7/8 AC 全证;`S7-06` 的 Release 变体编译 `NOT-RUN`)。证伪 P1 抓出 `test_s7_05` 的空洞正控用户裁定:表 = 独立 `camera-mode-requests.yaml`;先补 39 接线(S23-10 已完成)再上门;判据 = 动态矩阵 + 静态防绕过 |
+| **S23-11** | `camera-viewpoint/007` 档位请求覆盖矩阵门(表 → 代码 → 行为) | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE**(8/8 AC 全证 —— `S7-06` 已由变体编译补证)。证伪 P1 抓出 `test_s7_05` 的空洞正控用户裁定:表 = 独立 `camera-mode-requests.yaml`;先补 39 接线(S23-10 已完成)再上门;判据 = 动态矩阵 + 静态防绕过 |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -252,7 +252,7 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
 **恒真**(7 条里唯一没红的)。补正控后 P1 = **7/7 全红**。
 ⚠️ **静态层单独存在会是第二扇假门** —— `EmergencyChannelDriver` 的 `mode` 是形参,
 静态只能证「有人声明要发」;真判据在动态矩阵那半。
-⚠️ **S7-06 的 Release 变体编译 `NOT-RUN`** —— 源面只证「有 `#if`」,证不了「发布构建里编不出来」。
+✅ **S7-06 已补证(2026-11-02 晚)**:非 Development player 产物里记录器类型与命名空间均为 **0**,而撤掉 `#if` 重建后为 **1** ⇒ 判别力成立;还原以「与 HEAD 逐字节一致」为准。
 
 ⚠️ **实现前先读卡面末尾的编排预警** —— 六行在一次 boot 里驱动齐,是本件最可能卡住的地方。
 

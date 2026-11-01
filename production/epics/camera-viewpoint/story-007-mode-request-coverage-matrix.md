@@ -1,9 +1,9 @@
 # Story 007: 档位请求覆盖矩阵门(表 → 代码 → 行为)
 
 > **Epic**: 摄像机与视角
-> **Status**: **Complete ✅ 2026-11-02(COMPLETE WITH NOTES)** —— 7/8 AC 全证;
-> ⚠️ **S7-06 只有源面判据**:记录器外包 `#if`,但**没有真跑 `Release` 变体编译**
-> ⇒「发布构建里真的编不出来」= **`NOT-RUN`**,不记绿。
+> **Status**: **Complete ✅ 2026-11-02** —— **8/8 AC 全证**。
+> **S7-06 已由变体编译补证(2026-11-02 晚)**:非 Development player 产物里该类型与命名空间
+> 均为 0,而撤掉 `#if` 重建后变为 1 ⇒ 判别力成立(详见 §Completion Notes 的变体编译段)。
 > **Layer**: Presentation
 > **Type**: Integration
 > **Estimate**: 4–6h
@@ -150,7 +150,7 @@
 - [x] **S7-03**(`[A]` · BLOCKING)**B2**:表 ⊆ 代码;删掉任一请求方的 `SetMode` 调用点 ⇒ 红
 - [x] **S7-04**(`[A]` · BLOCKING)**动态矩阵:表 ⊆ 记录** —— 删掉任一请求方的生产发送 ⇒ 该行红并点名 `CMR-xxx`
 - [x] **S7-05**(`[A]` · BLOCKING)**动态矩阵:记录 ⊆ 表** —— 加一条不在表里的 `SetMode` ⇒ 红
-- [ ] **S7-06**(🟡 **半证 —— 源面 ✅ / Release 变体编译 `NOT-RUN`**)(`[A]` · BLOCKING)记录器 **不进发布构建**:`Release` 符号下零引用(源面断言 + 变体编译)
+- [x] **S7-06**(`[A]` · BLOCKING)记录器 **不进发布构建**:`Release` 符号下零引用(源面断言 + 变体编译)
 - [x] **S7-07**(`[A]` · BLOCKING)记录器**不参与判定**:全仓无任何 `RequestRecorder` 的**读**点
       (除本夹具与门本身)—— 出现即红
 - [x] **S7-08**(`[I]` · BLOCKING)`TR-camera-008` 在两份登记文件各 ≥ 1 处
@@ -238,10 +238,40 @@
 复跑 P1 ⇒ **7/7 全红**。⇐ 这条比本轮任何一条断言都值钱:**没有正控的「无违规」断言,
 在什么都没发生时最绿。**
 
+### 变体编译补证(S7-06 · 2026-11-02 晚)
+
+**跑法**(项目已有的非 Development 构建入口,`BuildOptions.None` ⇒ `DEVELOPMENT_BUILD` 不定义):
+
+```bash
+cd unity && ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -quit -nographics \
+  -projectPath "$PWD" \
+  -executeMethod DaYiJingCheng.EditorTools.Bake.Cli.CostTableProbeBuildCli.Build \
+  -logFile Logs/s7-release-build.log
+# 期望:Build Finished, Result: Success.(实测 25.9 s)
+```
+
+**双向判据**(`strings` 查 #Strings 堆;类型名在 .NET 装配里以 UTF-8 存于该堆):
+
+| 检查 | 编辑器装配 `Library/ScriptAssemblies/Gameplay.Presentation.dll` | player `CostTableProbe_Data/Managed/Gameplay.Presentation.dll` |
+|---|---|---|
+| `CameraModeRequestRecorder` | **3**(正控:类型确实存在) | **0** |
+| `Presentation.Diagnostics` | **3** | **0** |
+| `CameraModeMachine`(反证) | 3 | **1** |
+| `CasebookCameraRequester`(反证) | — | **1** |
+
+反证两行证明扫的是**对的文件**(不是空 DLL / 错 DLL)。
+
+**判别力反证**:撤掉记录器的 `#if`/`#endif` 后**重建**同一 player ⇒
+`CameraModeRequestRecorder` = **1**。⇒ 之前的 0 是条件编译挡掉的,不是碰巧没编进来。
+还原以**与 `HEAD` 逐字节一致**为准(`git diff` 空 + `#if`/`#endif` 各 1 处)。
+
+⚠️ **本判据的边界**:`strings` 证明的是「类型名不在 #Strings 堆」,等价于「该类型未被编译进该装配」;
+它**不**证明「记录器在生产逻辑上不可达」—— 那由 `S7-07`(零读点)负责,两条合起来才是完整结论。
+
 ### 未闭(禁借绿)
 
-1. **S7-06 的 Release 变体编译 `NOT-RUN`** —— 源面只能证明「有 `#if`」,证不了
-   「`Release` 符号下真的编不出来」。须变体编译实测,本批未做。
+1. ~~**S7-06 的 Release 变体编译 `NOT-RUN`**~~ ✅ **2026-11-02 晚已闭**(原文保留)——
+   跑法与双向判据见下方 §变体编译补证。
 2. **静态层 B2 只证「有人声明」** —— `EmergencyChannelDriver` 的 mode 是形参,
    静态扫描抓不到实参;那一半完全靠动态矩阵。
 3. **矩阵只证存在性** —— 时机 / 次数 / 相机是否接受,均不在本件判据面内(Card §抓不到什么 已列)。

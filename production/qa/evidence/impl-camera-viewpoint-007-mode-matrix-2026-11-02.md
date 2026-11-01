@@ -41,7 +41,7 @@
 | S7-03 B2 表 ⊆ 代码 | ✅ | 同上 |
 | S7-04 表 ⊆ 记录(逐行) | ✅ | `test_cmr_001…006` 六条 |
 | S7-05 记录 ⊆ 表 | ✅ | `test_s7_05_recordedRequestsAreAllInTable` |
-| S7-06 记录器不进发布构建 | 🟡 **半证** | 源面 ✅(`s7_06_*`);**Release 变体编译 `NOT-RUN`** |
+| S7-06 记录器不进发布构建 | ✅ | 源面 `s7_06_*` + **变体编译实测**(见 §八) |
 | S7-07 记录器不参与判定 | ✅ | `s7_07_recorderIsWriteOnlyInProduction` |
 | S7-08 `TR-camera-008` 登记 | ✅ | 注册表 504 / 索引 347 |
 
@@ -114,13 +114,57 @@ for f in ['unity/Logs/s23-em5.xml','unity/Logs/s23-pm5.xml']:
 
 ## 七、证明不了的事(禁借绿)
 
-1. **`S7-06` 的 Release 变体编译 `NOT-RUN`** —— 源面只证「有 `#if`」。
-   「发布构建里真的编不出来」须真跑变体,本批未做。
+1. ~~**`S7-06` 的 Release 变体编译 `NOT-RUN`**~~ ✅ **已闭**(原文保留)—— 见 §八。
 2. **静态层 B2 只证「有人声明」** —— 见 §二。
 3. **矩阵只证存在性** —— 时机 / 次数 / 相机是否接受,均不在本件面内。
 4. **手写 YAML 解析器** —— 表格式大改(多行标量 / 嵌套)会静默漏行;
    `active != 6` 兜得住**漏行**,兜不住**错位**。
+6. **本轮的构建绿不等于新门跑了** —— `CostTableProbeBuildCli.Build` 成功,
+   而 `RunAll` 现在含 `RunModeRequestTable`。但按 `CLAUDE.md` §构建前门的口径,
+   **门链无错时零输出** ⇒ 这次构建**不能**证明该门被调用过。要证它执行,须跑探针轮
+   (插无条件失败项 ⇒ 要求 `Result: Failure`)。**本批未跑探针轮,故该门的「构建期执行」记 `NOT-RUN`**;
+   本轮的 S7-01/02/03 判据走的是**直接调用** `RunModeRequestTable(".")`,与构建期执行是两件事。
+
 5. **「该发没发」仍有残余面:一次 boot 里驱动不出来的行** —— 本件按卡面允许的做法
    拆成**逐行多次 boot**,每行点名自己的测试方法;没有做「一次 boot 覆盖全部六行」的
    汇总断言。⚠️ 这意味着**行与行之间的相互干扰**不在覆盖范围内(例如 10 的动作期间 29 恰好
    死亡这种组合),未验证。
+
+---
+
+## 八、S7-06 变体编译补证(2026-11-02 晚)
+
+**命令**(项目既有入口,`BuildOptions.None` ⇒ 非 Development):
+
+```bash
+cd unity && ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -quit -nographics \
+  -projectPath "$PWD" \
+  -executeMethod DaYiJingCheng.EditorTools.Bake.Cli.CostTableProbeBuildCli.Build \
+  -logFile Logs/s7-release-build.log
+# → Build Finished, Result: Success.(25.9 s)
+```
+
+**双向判据**:
+
+| 检查 | 编辑器装配 | player 装配 |
+|---|---|---|
+| `CameraModeRequestRecorder` | **3** | **0** |
+| `Presentation.Diagnostics` | **3** | **0** |
+| `CameraModeMachine`(反证) | 3 | **1** |
+| `CasebookCameraRequester`(反证) | — | **1** |
+
+**判别力反证**:撤 `#if`/`#endif` 重建同一 player ⇒ 记录器 = **1**。
+⇒ 之前的 0 由条件编译造成,不是碰巧。还原以「与 `HEAD` 逐字节一致」为准(`git diff` 空)。
+
+**边界**:`strings` 证「类型未被编译进装配」;「生产逻辑上不可达」由 `S7-07` 负责 —— 两条合起来才完整。
+
+**复算**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+ED=unity/Library/ScriptAssemblies/Gameplay.Presentation.dll
+REL=/tmp/dyjc-costtable-probe/CostTableProbe_Data/Managed/Gameplay.Presentation.dll
+strings "$ED"  | grep -c CameraModeRequestRecorder   # 期望 3(正控)
+strings "$REL" | grep -c CameraModeRequestRecorder   # 期望 0
+strings "$REL" | grep -c CameraModeMachine           # 期望 1(反证:扫的是对的文件)
+```
