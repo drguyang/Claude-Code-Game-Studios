@@ -45,6 +45,7 @@
 - [ ] AC-29-05 [A] ⚠️ BLOCKED-BY-9(触发链):`Level ∈ {1,10,20,40,60}` → `{0,9,19,38,57}`(F-29-1 表逐位;触发输入以 PlayerDied 桩先行,联调不记绿)
 - [ ] AC-29-14 [A]:掉级公式唯一出处 = 30 §4.3;29 零重复实现(检索断言);本 AC 不含豁免断言(豁免未裁)
 - [ ] AC-29-16 [A] ⚠️ **BLOCKED-BY-7a 折叠实现**(原「BLOCKED-BY-OQ-7a-9」已于 `ADR-026 §⑦` 2026-09-23 结案):同一 `PlayerDied` + `SkillGrown` 序列两次喂入,`Level(s)@t` 逐位一致,且 29 零「掉级 Kind」Append 点 —— **裁决已定(`SkillGrown` 豁免折叠),实现(`Folded(p)` 生产谓词)未落前禁记绿**
+  > 🔁 **2026-11-01 R-2 复核注(sprint-23 取件前)**:上句的「实现未落」**已过期** —— `FoldedPredicate` 已落(`Sim/FoldedPredicate.cs`,S18-2)+ 折叠接线(位置半 + 委托半 S19-1)+ 字节半(TD-persist-03 折叠段)+ 产出面变异反证(M7),**`TD-persist-01` 已于 2026-10-24 `closed`**(结案块见债册;G-2 门行残余 = 字节半亦已兑现)。⇒ **AC-29-16 自本注起转可判**(取件轮实现时按本 AC 验收,无需再等 7a 侧任何东西)。
 - [ ] 判断类豁免行以「口径待裁」注释钉死在调用点,双分支 fixture 只测「全掉」与「全不掉」两极端的行为差异登记,不实现选择
 - [ ] 同 tick 时序:掉级结算发生在 PlayerDied 发射之后、复活传送(story-005)之前的死亡结算段内
 
@@ -104,6 +105,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DeathRespawn/death_skill_down_test.cs` — must exist and pass(桩半边);AC-29-05/16 的完整绿分别 BLOCKED-BY-9 / **BLOCKED-BY-7a 折叠实现**(`OQ-7a-9` 已由 `ADR-026 §⑦` 结案,阻塞性质由「裁决待定」改为「实现待落」)
+> 🔁 **2026-11-01 R-2 复核注(sprint-23 取件前)**:上行「实现待落」对 AC-29-16 **已过期** —— 折叠实现全链已落且 `TD-persist-01` closed(见 AC-29-16 的同日注)。AC-29-05 的 `BLOCKED-BY-9` 维持:根因(9 侧判死谓词 + 死亡候选产出)**已大部落地**(`EntityDeathGates` / `DeathCandidateConsumer` 生产装配齐,`TD-sim-01` closed),门行 G-1 的结案归本 epic 的 001/004 收口核。
 **Status**: [ ] Not yet created
 
 ---

@@ -23,6 +23,7 @@
 - Required: 落点 = 整数格(床格选定 or 出生点);命令单向 29→1;过场位移零写流
 - Forbidden: 29 直接 Append `ActorCellEntered` 或任何位置事件;29 直改玩家连续坐标;复活附带清病/清世界副作用
 - Guardrail: ⚠️ **床类家具格的确定性选定规则 = 24 下一轮欠账**(GDD 明写「残留 = 24 侧选定规则」)—— 本 story 以「接口给格」桩先行,联调前 AC-29-09/10 完整绿维持 BLOCKED-BY-9 + BLOCKED-BY-24 标注;传送率上界与 story-004 合验
+  > 🔁 **2026-11-01 R-2 复核注(sprint-23 取件前)**:上句「24 下一轮欠账」的**设计半已清** —— 24 的 GDD **规则六**(床类家具格确定性选定:`bed` 标签候选集 + `(y,x,z)` 字典序取 min + 无候选出口)已于 **2026-10-30 落盘**,结清 `TD-clinic-18`(`clinic-machine.md:114-160`)。**残余 = 运行期查询面**(`IClinicReviveCell` 生产零命中)—— 按 `:47` 的「接口先行」口径可开工,联调前 `BLOCKED-BY-24` 维持(它现在挂的是**实现**,不是**规则**)。
 
 ---
 
@@ -45,6 +46,7 @@
 
 1. 复活编排位置 = 死亡结算段末步(story-001 管线):PlayerDied → 掉落 → 掉级 → (冷却允许下)复活命令;呈现过渡(story-006)不阻塞 sim 侧命令。
 2. 床格查询接口:`IClinicReviveCell.TryGet(actor) → WorldPos?`(24/房间数据侧提供;⚠️ 选定规则未落地 ⇒ 接口先行 + BLOCKED-BY-24 标注,禁把「取第一个床格」当裁决实现)。
+   > 🔁 **2026-11-01 R-2 复核注**:「选定规则未落地」**设计半已过期** —— 规则已落 24 GDD 规则六(2026-10-30,确定性 `(y,x,z)` min;卡面 `:25` 注)。本行的「禁取第一个床格」禁令**不变**(遍历序非确定性源 —— 规则六 ② 明写);挂标现在只挂**运行期实现**。
 3. 1 侧消费:`ITeleportCommandSink` 实现(1 的 epic)发 `ActorCellEntered`,29 只发命令 —— 集成测试用 1 的既有管线或其桩,桩面明确标注。
 4. 出生点 = ADR-015 逻辑层固定格(烘焙数据,非运行期发明)。
 5. 主机串行:多复活命令同 tick 时按 actor id 定序处理(确定性,禁到达序)。
@@ -88,6 +90,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DeathRespawn/death_respawn_teleport_test.cs` — must exist and pass(桩半边);AC-29-09 绿可记(纯检索断言),AC-29-10 维持 BLOCKED-BY-9,床格联调维持 BLOCKED-BY-24
+> 🔁 **2026-11-01 R-2 复核注(sprint-23 取件前)**:`BLOCKED-BY-24` 的语义自本注起 = **24 的运行期查询实现未落**(设计规则已于 2026-10-30 落 24 GDD 规则六,结清 `TD-clinic-18`;见 `:25` 注);`BLOCKED-BY-9` 的根因已大部落地(`EntityDeathGates` / 死亡候选生产装配,`TD-sim-01` closed),门行 G-1 的结案归本 epic 001/004 收口核。
 **Status**: [ ] Not yet created
 
 ---

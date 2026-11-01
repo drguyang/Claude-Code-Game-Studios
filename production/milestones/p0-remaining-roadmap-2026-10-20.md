@@ -324,6 +324,13 @@ tutorial-onboarding(48 教学)
 
 > ⚠️ `design/ux/` 现有十份:`casebook-39` `clinic-panel-24` `hud` `index` `interaction-patterns`
 > `inventory-container-20` `paper-closeup-48` `save-slots-7b` `settings-shell-42` `tutorial-48`。
+
+> 🔁 **2026-11-01 §6.3 四条复核注(sprint-23 取件前实跑;原文不删)**:
+> ① **004 已 `Complete`**(2026-10-24,谓词半边;`AC-29-08/10` 全链自挂 BLOCKED-BY-9 不记绿)⇒ sprint-23 实际开工面 = 001/002/003/005 四件 + 004 全链半(随 001 链闭);
+> ② **`BLOCKED-BY-9` 根因大部已还** —— 谓词层(`EntityDeathGates.cs:194` + `F4OutcomeEvaluator.cs:171`)+ 接线层(`519700c` 生产构造点,`CompositionRoot.cs:370/:379` 已 `Register`),`TD-sim-01` 已 `closed`;门表 G-1 行 `open` 的结案归本 epic 001/004 收口核;
+> ③ **003 的 7a 侧挂标全部过期**(`OQ-7a-9` 已由 ADR-026 结清;`TD-persist-01` 2026-10-24 closed,折叠实现全链落)⇒ `AC-29-16` 转可判(卡面同日注);
+> ④ **005 的 `BLOCKED-BY-24` 收窄** —— 24 GDD 规则六(床类格确定性选定)2026-10-30 落盘,结清 `TD-clinic-18`;残余 = 运行期查询面(`IClinicReviveCell` 生产零命中),按卡面「接口先行」可开工;
+> ⑤ R-4 上游契约符号全在:`Kind.PlayerDied`(registry + kindgen)· `IDeathCandidateSink` · `ITeleportCommandSink` · `FoldedPredicate` · `InventoryProjection` · `EntityDeathGates` · `ActorClass`(SelfLimited/LethalFor 形参)。29 侧骨架已在盘上(Consumer/Writer/CooldownGate/CellQuery + 生产装配)⇒ 001/004 = 补结算链余段,002/003/005 = 真实现面。
 > **无死亡 / 复活过渡 spec** ⇒ `story-006` 需**先做设计件**(`/ux-design`),不能直接实现。
 
 #### 2.4.4 `foraging`(5 件)— 外部面最宽(跨平台 AC)
@@ -925,7 +932,7 @@ M3 Exit（epic 面） =
 | **sprint-20** | clinic 链尾 + A-2 机制 | `clinic-004` · `clinic-005` · `foraging-001` · `processing-001` | **sprint-18(G-8)** | 本体交;AC 半边按挂标(**不得记 `Complete`**) |
 | **sprint-21** | **物品流转簇**(跨链耦合簇,**不得拆**) | `foraging-003` · `processing-003` · `inventory-001` · `inventory-002` | sprint-20 | 事件载荷形状 ↔ `IIdAuthority` 铸造权威**同批冻结** |
 | **sprint-22** | **容量簇** | `inventory-003` · `inventory-004` · `foraging-004` · `foraging-005` | sprint-21 | `CanCarry` 采前闸接通<br>🔁 **2026-11-01 收口:Exit 达成(PASS)** —— 件集 4 件全 `Complete`(foraging-004/005 = COMPLETE WITH NOTES:`[L]` 三条仍 EXTERNAL · AC-17-13 归数值轮);甲案(补接线)经两 commit(`cd935295` driver+机械门 / `a956f0c1` BootRoot 调用接线)接通生产发起链,证据链四层(类型面/源面/行为面/**真启动序**)见**复评原件** `production/qa/evidence/review-sprint-22-exit-recheck-2026-11-01.md`;原收口判定(NOT PASS,10:25)原文不删,存 `production/sprints/sprint-22.md` §收口判定 |
-| **sprint-23** | **death-respawn 全链**(**L 级,独占额度**) | `death-respawn-001` … `005` | **sprint-18(G-1)** | 全链 `BLOCKED-BY-9` 解除 |
+| **sprint-23** | **death-respawn 全链**(**L 级,独占额度**) | `death-respawn-001` … `005` | **sprint-18(G-1)** | 全链 `BLOCKED-BY-9` 解除<br>🔁 **2026-11-01 取件前复核(§6.3 四条实跑,详见 §2.4.3 复核注)**:件集实为 **001/002/003/005** 四件(004 已 `Complete`,全链半随 001 闭);G-1 根因已大部落地(`TD-sim-01` closed)⇒ 本 sprint 的 001/004 收口 = G-1 门行结案的清偿载体;005 的 24 侧只欠运行期接口(规则六已落)。四条复核的完整结论与证据见 `production/epics/death-respawn/story-00{3,5}` 卡面 2026-11-01 R-2 注 |
 | **sprint-24** | 炮制链尾 + 采集尾 | `processing-002` · `processing-004` · `processing-005` · `foraging-002` | sprint-21 | `processing-002` 的 42 走查半边仍挂 |
 | **sprint-25** | 教学链尾 | `tutorial-002` · `tutorial-003` · `tutorial-004` · `tutorial-005` | sprint-17 | `002/003` 挂 `BLOCKED-BY-45`(联机运行面) |
 | **sprint-26** | **呈现收尾簇**(**不得拆**) | `casebook-005` · `casebook-006` · `inventory-006` · `death-respawn-006` | sprint-19 · sprint-22 | 全部落在 42 元件库 + UI 走查面 |
