@@ -8,7 +8,7 @@
 > **Template**: UX Spec
 > **Platform Target**: PC(Steam)主 · 键鼠 + Gamepad(partial) · 无 Touch · VR 不做(P1a 重议;开放世界死亡本就不在 VR 面)
 > **Tier 承诺源**: `design/accessibility-requirements.md`(**Standard**,含 L-1 / L-2 —— 本页拉取其运动敏感与设置本地化相关行)
-> **关联件**: `design/gdd/death-and-respawn.md`(规则六 呈现 · Feel 表 `:489-503` · EC 表 `:374` 起) · `skeuomorphic-ui.md`(42 元件库 · **不进 ModalId 闭集** —— 本页为零焦点非模态叠层) · `interaction-patterns.md` P-06 / P-09 · `design/gdd/audio-system.md`(AC-44-09 无提示音铁律 · F-44.7 世界语境呼吸) · `design/art/art-bible.md` §1 材质归属判据(「倒下 = 水墨」) · `docs/architecture/adr-013` §9 C3 / §十 · `adr-018` §六 · `adr-020` §五/§六 · `adr-001` 第二 QoS(IsDowned) · `production/epics/death-respawn/story-006-presentation-whitelist.md`(本 spec = 其硬前置)
+> **关联件**: `design/gdd/death-and-respawn.md`(规则六 呈现 · Feel 表 `:489-503` · EC 表 `:374` 起) · `skeuomorphic-ui.md`(42 元件库 · **不进 ModalId 闭集** —— 本页为零焦点非模态叠层) · `interaction-patterns.md` P-06 / P-09 · `design/gdd/audio-system.md`(AC-44-09 无提示音铁律 · F-44.7 世界语境呼吸) · `design/art/art-bible.md` §1 材质归属判据(「倒下 = 水墨」) · `docs/architecture/adr-013` §9 C3 / §十 · `adr-018` §六 · `adr-020` §五/§六 · `adr-001` 第二 QoS(IsDowned) · `production/epics/death-respawn/story-006-presentation-whitelist.md`(本 spec = 其硬前置) · **`design/gdd/camera-and-viewpoint.md` 的 `O-12`**(⭑ 2026-11-01 补:本 spec 的 §9 相机两段式是 2 的**档位请求方**,档位 = `Downed`,退出走 `Explore`;该 GDD 的 `R-2-5` 档位表与 `O-12` 已同日补入 29 两行 —— **双向引用闭合**)
 
 ---
 

@@ -15473,3 +15473,41 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (`camera-and-viewpoint.md:170-178` 表 + `:202` 优先级式;**写 GDD 须用户批准**,本批未动)·
   醒来段机位(Φ3)· `death-and-respawn.md:491` 引据错误(归 29 回写轮)
 - **[L] AC-29-11/12 维持 NOT-RUN** —— 视觉模型的直读**不构成**人工签核
+
+## Session Extract — 2026-11-01 · 补 GDD 档位表(29 → `Downed`)
+
+**用户指令**:「补 GDD 档位表：加 29 → Downed」
+
+`camera-and-viewpoint.md` 共改 **8 处**(不是 1 处):
+① 文件头 Last Updated 加 2026-11-01 段(明写与 2026-09-21「11 不增行」是两件事)
+② Overview「三档」→ 四档 ③ 四段说明理由句「三档」→ 四档
+④ **`R-2-5` 表加 29 两行**(`Downed` / `Explore`);下方「本表不增行」注**收窄为「为 11 不增行」**
+⑤ 接受判据 `Casebook > Treatment > Explore` → **`Casebook > Downed = Treatment > Explore`**(附同格理由)
+⑥ States and Transitions 加 `Downed` 行 + `Explore` 行进入条件补 `Downed`
+⑦ 组 5 档位参数表加 **`Downed` 列 + `SAG_SECONDS`/`SAG_DEPTH`/`SAG_TILT_DEGREES` 三行**;
+   「`PITCH_CASEBOOK` 是唯一只有一档有值的参数」订正为**两类**
+⑧ Interactions / Dependencies / `O-12`×2 / `EC-2-9` / `R-2-9` / `ARM_LEN` 档位映射 / `AC-2-18`① / `OQ-2-3`
+
+⚠️ **三处必须明写的判断**:
+- **`OQ-2-3`「P0 = 三档」按档位计数读已作废** —— 其候选枚举是 23/43/17,29 当时尚未成文;
+  **不得用「它不是取景档」假装没改动**(它确实是第 4 个 `CameraMode`、第 4 行 `O-12`、第 4 列组 5)。
+  两种读法(取景参数组数 / 档位数)已写进原行。
+- **`AC-2-18`① 补「谁能退出」,不是放宽** —— 甲案双向判据进 AC。
+  ⚠️ 顺手补上了 `52ef68a5` 声称结清但 **diff 里没有任何 GDD 文件**的那半边。
+- **反向引用闭合** —— `death-transition-29.md` 关联件补 `camera-and-viewpoint.md` + `O-12`。
+
+⚠️ **数值不进 GDD** —— 组 5 表只登记「按档取值」这一结构事实;三常量的唯一实体仍在实现侧。
+⚠️ **GDD 状态未走 `/design-review`** —— 本批是按用户直接裁定的定向补登记,不是重新评审。
+
+### 同批追加(仍在 2026-11-01)
+
+- **`AC-2-18`① 穷举矩阵 3×3 → 4×4**,夹具 `camera_mode_machine_test.cs` 的 `modes` 同步扩列
+  (`Downed` 入列)。⚠️ **扩 AC 就必须扩夹具** —— 否则 GDD 写 4×4 而无载体 = F6 自述顶替门。
+- **顺手补上 `52ef68a5` 漏掉的那半边**:该 commit 的 message 声称「结清 GDD 与 AC-2-18①
+  的规格矛盾」,但**diff 里没有任何 GDD 文件**。本批把「同请求方可降档」的双向判据写进了 AC。
+- 🔴 **登记但本批不动**:`docs/architecture/adr-020-player-controller-and-camera.md` 与
+  `docs/architecture/architecture.md` 的 `grep -c "Downed"` **均为 0** —— 权威件仍写着
+  三档枚举 + 单参 `SetMode`。⇒ `ICameraRig` 的权威定义比实现少三件事
+  (`Downed` / 双参 `SetMode` / `GetLookTarget`)。**改 ADR 须另开 Amendment,不在本批越权**;
+  待用户裁定是否立 **ADR-020 Amendment C**。
+  ⚠️ 若只补 GDD 不补 ADR,「档位真源」会变成三份(ADR / GDD / `CameraModePriority.cs`)。

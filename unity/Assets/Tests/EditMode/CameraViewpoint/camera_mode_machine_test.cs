@@ -95,8 +95,18 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         [Test]
         public void test_ac218a_lowerPriorityCannotInterruptHigher()
         {
-            // 穷举 3×3 档对(含同档)
-            var modes = new[] { CameraMode.Explore, CameraMode.Treatment, CameraMode.Casebook };
+            // 穷举 **4×4** 档对(含同档)
+            // 🔁 **2026-11-01 扩列**:原为 3×3(`Explore` / `Treatment` / `Casebook`)。
+            //    `Downed` 于同日入 `R-2-5` 档位表(优先级 = `Treatment` 同格)⇒ AC-2-18①
+            //    的判据随之由「穷举 3×3」改为「穷举 **4×4**」。**本夹具随之扩列** ——
+            //    否则 GDD 写 4×4 而无载体,正是 `coding-standards` F6「自述顶替门」。
+            //    ⚠️ 新增的 7 个有序对里,真正有判别力的是这两条:
+            //      · `Explore → Downed`(高优先级须生效)
+            //      · `Downed → Explore`(异请求方的低优先级**不能**把它顶掉)
+            var modes = new[]
+            {
+                CameraMode.Explore, CameraMode.Treatment, CameraMode.Casebook, CameraMode.Downed,
+            };
 
             // ⚠️ **两个请求方必须不同**(2026-11-01 甲案落地后订正):
             //    AC-2-18① 的原意是「**别的系统**的低优先级请求不能打断当前档」

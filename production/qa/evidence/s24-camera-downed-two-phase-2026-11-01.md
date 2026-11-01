@@ -555,7 +555,125 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 | ~~**微倾方向反了**~~ | **✅ 已修 2026-11-01** | 根因 = 朝向被 `LookAt(target)` 锁死 + `offset.y = sin(pitch)×d`;见 §6.5 |
 | **`death-and-respawn.md:491` 引据错误** | 未修 | 「承 25 `:1639`」应为 `combat-and-weapon-lines.md:1665`;归 29 的回写轮 |
 | **`GetLookTarget` 未进 `ICameraRig`** | **如实登记** | 微倾的承载点 `CameraRig.GetLookTarget(target)` 只是**具体类**成员,接口上**没有**。今天唯一的消费者 `BootRoot` 持具体类型(`private CameraRig _cameraRig`),故能用;但任何 `ICameraRig` 消费者都会写 `cam.transform.LookAt(target)` ⇒ **微倾静默丢失**。<br>不加进接口的理由:ADR-020 §Key Interfaces 把接口钉成「四成员」,加第五个须动 ADR —— **不在本批越权**。归机位轮 / ADR-020 窄修订 |
-| 🔴 **2 的 GDD `R-2-5` 档位表未登记 `Downed`** | **未修,须用户裁定** | `camera-and-viewpoint.md` 的 R-2-5 档位表(`:170-178`)只有 **10 / 39** 两个请求方,优先级式(`:202`)只有 `Casebook > Treatment > Explore`。而代码已有第五档 `CameraMode.Downed`(优先级 2,与 `Treatment` 同格)+ 请求方 **29**(`DeathTransitionPresenter`)。<br>⚠️ 这正是本仓反复抓过的「**引用却无登记**」形态;不过本批只被授权「修微倾方向 + 回填三个数」,**写 GDD 档位表须先经用户批准**(collaborative protocol)。<br>建议补法:① R-2-5 表加一行 `29 死亡过渡 → Downed → 倒下两段式第一段 → PlayerDied 落流`;② 优先级式改为 `Casebook > Downed(= Treatment) > Explore`;③ §9 的「三档」措辞(`:29` / `:129`)订正为五档。<br>⚠️ **不得**只改代码不改表 —— 那会让「档位的唯一真源」变成 `CameraModePriority.cs`。 |
+| ~~**2 的 GDD `R-2-5` 档位表未登记 `Downed`**~~ | **✅ 已结(2026-11-01 用户裁定「补 GDD 档位表:加 29 → Downed」)** | 见 §10。补的不只是一行 —— 共 **8 处**,其中 **`OQ-2-3` 的「P0 = 三档」结论按档位计数读已作废**,已在原行内**如实追记**(不得用「它不是取景档」假装没改动) |
 | **醒来段的机位**(Φ3 床格视角) | 未做 | spec §6 Φ3 是**另一条相机线**,归机位轮;本批只做「倒下」 |
 | **图形走查**(下沉观感是否合 spec) | **已跑(视觉模型直读)** | §6.5.4 / §6.5.5;⚠️ **不是** `[L]` 人工签核 |
 | **`AC-29-11` / `AC-29-12`**(`[L]` 节奏 / 听测) | **NOT-RUN** | 承既有口径不变 —— 需用户桌面批人工走查 + 听测签核 |
+
+---
+
+## 10. GDD 补登记(2026-11-01 · 用户裁定「补 GDD 档位表:加 29 → Downed」)
+
+### 10.1 为什么必须补
+
+`camera-and-viewpoint.md` 的 `R-2-5` 档位表原**只有 10 / 39 两个请求方**,优先级式只有三档。
+而代码里 `CameraMode.Downed` 早已存在(优先级 2 = `Treatment`)、请求方 = **29**。
+⇒ 「档位的唯一真源」在事实上变成了 `CameraModePriority.cs`,而 GDD 表名存实亡 ——
+本仓反复抓过的「引用却无登记」形态。
+
+### 10.2 实际改了 **23 个 diff 块**(`camera-and-viewpoint.md` 22 + 29 spec 1),归 8 类 —— 不是 1 处
+
+| # | 位置 | 改动 |
+|---|---|---|
+| 1 | 文件头 `Last Updated` | 加 2026-11-01 段;**明写与 2026-09-21 的「11 不增行」是两件事** |
+| 2 | `## Overview` | 「探索 / 急救 / 脉案**三个**档位」→ 加「倒下」,**四档** |
+| 3 | 四段说明的理由句 | 「三档能共用一个状态机」→ **四档**,并补一句「`Downed` 是唯一不改臂长 / FOV / 肩侧的档」 |
+| 4 | **`R-2-5` 档位表** | **加 29 两行**(`Downed` / `Explore`);下方 2026-09-21 的「本表不增行」注**收窄为「为 11 不增行」** |
+| 5 | 接受判据(优先级 + 幂等) | `Casebook > Treatment > Explore` → `Casebook > **Downed = Treatment** > Explore`,并写明**为什么取同格** |
+| 6 | `## States and Transitions` | 加 **`Downed`** 行;`Explore` 行的进入条件补 `Downed` |
+| 7 | `## 组 5 档位参数表` | 加 **`Downed` 列** + **`SAG_SECONDS` / `SAG_DEPTH` / `SAG_TILT_DEGREES` 三行**;「`PITCH_CASEBOOK` 是唯一只有一档有值的参数」订正为**两类** |
+| 8 | `## Interactions` 表 / 出表的「为什么意图制」注 / `## Dependencies` 下游表 / `O-12`(两处)/ `EC-2-9` / `R-2-9` / `ARM_LEN` 档位映射表 / `AC-2-18` ① / `OQ-2-3` | 全部补 29 或 `Downed`(明细见 §10.3) |
+| 9 | `design/ux/death-transition-29.md` 关联件 | 补 `camera-and-viewpoint.md` + `O-12`(反向引用闭合) |
+
+> ⚠️ **「8 类 / 23 块」的差别**:第 4、8、9 类各自散在多个表格与注释里。
+> 写「8 处」会让复核者按 8 个 diff 块去找,**对不上** —— 故逐类列出。
+>
+> 复算:
+>
+> ```bash
+> cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+> git diff -U0 -- design/gdd/camera-and-viewpoint.md | grep -c '^@@'   # 期望 22
+> git diff -U0 -- design/ux/death-transition-29.md   | grep -c '^@@'   # 期望 1
+> ```
+
+### 10.3 三处**必须明写**的判断(不许含糊)
+
+**① `OQ-2-3` 的「P0 = 三档」结论按档位计数读已作废。**
+该行 2026-10-06 裁「P0 = 三档,不加第四档」,其**候选枚举**是 23 建造 / 43 地图 / 17 采药
+—— **`death-transition-29.md` 当时尚未成文**,29 从来不在候选里。
+⇒ 不是「读错了那一行」,是**判据碰到了一个当时不存在的候选**。
+⚠️ **不得用「`Downed` 不是取景档」来假装本行没被改动** —— 它**确实**是第四个 `CameraMode`
+成员、第四行 `O-12` 义务、第四列组 5 表。本行判据下的**唯一区别**是臂长 / 肩侧 / `FOV_v` /
+锚响应**四项全部沿用 `Explore`**,新增的只有姿态偏移 ⇒ **不新增取景参数组**。
+**按「取景参数组数」读本行仍成立;按「档位数」读已作废。两种读法都已写进原行。**
+
+**② `AC-2-18` ① 补的是「谁能退出」,不是放宽;并把穷举矩阵**从 3×3 扩到 4×4**。**
+
+⚠️ **扩 AC 就必须同时扩夹具** —— 否则 GDD 写「穷举 4×4」而无载体,正是
+`coding-standards` F6「自述顶替门」。已改:
+`camera_mode_machine_test.cs` 的 `test_ac218a_lowerPriorityCannotInterruptHigher`
+的 `modes` 数组加 `CameraMode.Downed`(3 → 4)。
+新增的 7 个有序对里,真正有判别力的是 `Explore → Downed`(高优先级须生效)与
+`Downed → Explore`(异请求方的低优先级**不能**把它顶掉)。
+原 AC 只写优先级、未写退出路径,与状态表「只能由请求方退出」**直接矛盾**
+(实测后果:玩家复活后出不了倒下档)。甲案(2026-11-01)的判据已补进 AC:
+**同请求方可降档 + 异请求方不得打断**,两条**独立**夹具各钉一半。
+⚠️ 这不是本批新发现 —— 是上一 commit `52ef68a5` 的 message 声称「结清 GDD 与 AC-2-18①
+的规格矛盾」,但**该 commit 的 diff 里没有任何 GDD 文件**。本批顺手把这半边补上。
+
+**③ 反向引用闭合。**
+`design-docs` 规则要求依赖双向 ⇒ `design/ux/death-transition-29.md` 的关联件已补
+`camera-and-viewpoint.md` + `O-12`(2026-11-01)。
+
+### 10.4 回归(本批)
+
+| 套件 | 结果 | 前次 | 截至时刻 |
+|---|---|---|---|
+| EditMode | `6472 / 6435 / 0 / 37` | `6472 / 6435 / 0 / 37` | 2026-11-01 **23:44:50 CST** |
+| PlayMode | `275 / 271 / 0 / 2` | `275 / 271 / 0 / 2` | 2026-11-01 **23:45:36 CST** |
+
+⚠️ **条数持平是预期的** —— 本批只改**文档**与**夹具循环内的枚举数组**(3 → 4),
+`[Test]` 条数不变:一个 `[Test]` 内的档对组合由 **9 组变 16 组**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').getroot();print('EM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print('PM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+```
+
+### 10.5 数值不在 GDD
+
+组 5 表登记的是「**这些量按档取值**」这一**结构事实**;三个 `SAG_*` 的**具体取值**
+的唯一实体仍是 2 的实现侧常量(§6 已记裁定值)。
+⇒ GDD 与代码**不各持一份数值**,避免「自述顶替裁定」。
+
+### 10.6 🔴 上一层的同类缺口:ADR-020 / architecture.md **也没有** `Downed`
+
+本批只补了 GDD。实测(`grep -c "Downed"`):
+
+| 文件 | 命中数 |
+|---|---|
+| `docs/architecture/adr-020-player-controller-and-camera.md` | **0** |
+| `docs/architecture/architecture.md` | **0** |
+
+两者仍写着:
+
+```
+public enum CameraMode { Explore, Treatment, Casebook, /* VR: FirstPerson(P1a) */ }
+```
+
+⇒ **`ICameraRig` 的权威定义比实现少两件事**:
+① `CameraMode.Downed`(`a5f766f6` 加入);
+② `SetMode(CameraMode mode, int requesterId)` 重载(`52ef68a5` 甲案加入,且 `RequesterId`
+**已从「审计字段」升格为参与裁决的判据**);
+③ 还有本批的 `GetLookTarget(...)`(见 §9)。
+
+⚠️ **本批不动 ADR** —— ADR 是**跨域**权威件,改它须另开 Amendment(承「No Unilateral
+Cross-Domain Changes」)。**登记在此,等用户裁定是否立 ADR-020 Amendment C**。
+建议 Amendment 覆盖三点:`CameraMode` 加 `Downed` · `SetMode` 双参重载 + `RequesterId`
+语义升格 · `GetLookTarget` 是否进 `ICameraRig`(与 §9 的 `GetLookTarget` 缺口同批解)。
+
+⚠️ **这不是新发现,是「同一形态上一层」**:GDD 表刚补完,ADR 里的枚举还停在四档 ——
+若只补 GDD 不补 ADR,「档位真源」会变成**三份**(ADR / GDD / `CameraModePriority.cs`)。
