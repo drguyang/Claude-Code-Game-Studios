@@ -202,7 +202,10 @@ namespace DaYiJingCheng.Tests.Boot
         private sealed class CapturingSink : ISaveSlotCommandSink
         {
             public readonly List<uint> Calls = new List<uint>();
+            /// <summary>落笔被请求的次数(2026-11-01 契约加 `TrySave()` 后补)。</summary>
+            public int SaveCalls;
             public bool TryLoad(uint slotSeq) { Calls.Add(slotSeq); return true; }
+            public bool TrySave() { SaveCalls++; return true; }
         }
     }
 }

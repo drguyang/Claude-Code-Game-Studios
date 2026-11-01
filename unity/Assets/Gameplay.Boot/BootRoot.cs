@@ -738,9 +738,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // **不**直调 `SaveService.Load` —— 那会漏掉读档后的锚点复位 / 兜底复位 / 派生态重建)。
             // ⚠️ 未接存档目录(`LoadSequencer` 为 null)⇒ 路由仍挂上,但 `TryLoad` 恒 false
             //    (不崩、不造动作;与 42 侧「缺写通道 = 留空」同纪律)。
+            // 🔁 2026-11-01 落笔轮:第三个形参 = 写半边(`TrySave` → `Checkpoint`)。
+            //    未接存档目录 ⇒ `SaveService` 为 null ⇒ `TrySave` 恒 false(与新行照画同纪律)。
             _saveSlotCommands = new SaveSlotCommandRouter(
                 _services.LoadSequencer,
-                (slot, ex) => LogLoadFailure(slot, ex));
+                (slot, ex) => LogLoadFailure(slot, ex),
+                _services.SaveService);
             _uiDriver.SaveSlotSink = _saveSlotCommands;
             _uiDriver.SaveSlots = ManualSaveSlots;
 
