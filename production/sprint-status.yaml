@@ -43,7 +43,7 @@ stories:
     name: "death-respawn/002 掉落清单流派生与回捡"
     file: "production/epics/death-respawn/story-002-drop-manifest-stream-reclaim.md"
     priority: must-have
-    status: ready-for-dev
+    status: in_progress
     owner: ""
     estimate_days: 0
     complexity: M

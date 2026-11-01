@@ -91,8 +91,10 @@ GDD 规则三(`death-and-respawn.md:136-144`)的伪码只写 `DropSpawned`;实�
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
 python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s232-final-em2.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
 python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s232-final-pm2.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
-# 铸造点门复算(期望零越界):
-grep -rn "new ItemInstanceId(" Assets/Sim --include=*.cs | grep -v "IdAuthority" | wc -l   # 期望 0
+# 铸造点复算(⚠️ 源码 grep 须读注释 —— 首跑命中 2 处**均为注释**
+#   [CraftEventWriter.cs:182 历史实现注记 / DropEventWriter.cs:254 本注记],零代码构造点):
+grep -rn "new ItemInstanceId(" Assets/Sim --include=*.cs | grep -v IdAuthority
+# 期望:恰上述 2 行注释,零代码行;**IL 面以三个铸造点门为准**(AC-17-05 / AC-20-01 / AC-21a-63,全绿)
 ```
 
 ## 6. 已知边界(不借绿)

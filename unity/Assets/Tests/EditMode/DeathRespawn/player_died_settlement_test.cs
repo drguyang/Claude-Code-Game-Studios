@@ -208,9 +208,10 @@ namespace DaYiJingCheng.Tests.DeathRespawn
                     typeof(Func<int, ActorClass>),          // 实体类别(判死谓词入参)
                     typeof(Func<int, DiseaseRegistryEntry>),// 病种条目(判死谓词入参)
                     typeof(Func<int, WorldPos>),            // death_cell(装配层从流取)
+                    typeof(Action<int, WorldPos, long>),    // 散落结算回调(S23-2;可 null = 未接线)
                 },
                 paramTypes,
-                "story-001:48 定形的构造依赖闭包;多出任何依赖 = 输入源集扩大(AC-29-13)");
+                "story-001:48 定形的构造依赖闭包(+S23-2 的结算回调位);多出任何依赖 = 输入源集扩大(AC-29-13)");
 
             Assert.That(paramTypes, Has.No.Member(typeof(IEventSink)),
                 "消费者不持 IEventSink —— Append 唯一入口在写者(单写入口纪律)");
