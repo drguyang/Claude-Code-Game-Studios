@@ -1009,11 +1009,13 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                 // 4 的半径 = 11 的 `interaction_kinds.r_interact`(**单一装载常量**,AC-4-17)。
                 // ⚠️ 这里不写字面量 —— 写一个数就是「第二处声明」(两处会静默脱钩)。
+                // 同一实例喂选择器与驱动(driver 用它做装载后裁剪;选择器自留引用)。
                 InteractionKindDataSet interactionKinds = dataProvider.Load<InteractionKindDataSet>();
+                var harvestRadius = new InteractionRadius(interactionKinds.RInteract);
 
                 var harvestSelector = new InteractionSelector(
                     UnwiredDiscoveryReporter.Instance,
-                    new InteractionRadius(interactionKinds.RInteract));
+                    harvestRadius);
 
                 var harvestCandidates = new CandidateSetLoader(new CandidateSources(
                     drops: null,                                   // ① 世界流掉落锚格(4 的 story-003 面)
@@ -1022,7 +1024,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     bakedInitial: null));                          // ④ 23 开档自带(同上)
 
                 harvestDriver = new HarvestInteractionDriver(
-                    harvestSelector, harvestCandidates, harvest,
+                    harvestSelector, harvestRadius, harvestCandidates, harvest,
                     harvestProvider.ForagingConstants,
                     new CarryCapacity(harvestProvider.CarryCap),
                     new HarvestSkillLevelProjection(() => stream.Events, decoder),

@@ -11,9 +11,13 @@
 // ── 本文件记分面(禁把「驱动存在」读成「玩家按得到」)────────────────────────
 //   ✅ 两个闸门**真的被求值**(满载 / 余量不足各一条,且拒时**零事件**)
 //   ✅ 未发起的三条合法路径(无输入 / 无目标 / 非采集点)
-//   ✅ 成功路径 → 三条产出事件 + 成长落流
+//   ✅ 半径裁剪:半径外候选 ⇒ 未发起(装配后 argmin 前,4 规则二指定位置)
+//   ✅ 成功路径 → 三条产出事件 + 成长落流(半径边界 d∞ = R 处触发)
 //   ✅ `default(CarryCapacity)` 的 F9 绕过被拒
-//   ⚠️ **不证**:BootRoot 的每 tick 调用点(尚未接线,见 sprint-22 收口判定)
+//   ✅ `HarvestInteractionBridge` 的 claim 语义(未装配放行 / 选中即消费含拒绝 / tick 转发)
+//   ⚠️ **不证**:① `InteractionInputDriver.OnFrame` 的 E 分支调用 claim —— 无设备
+//      EditMode 按不了键,该按下沿路径与既有 E/F 路径同覆盖状态(零夹具,靠 PlayMode /
+//      手动走查);② BootRoot 装配桥的那一行(纯转发)。
 
 using System;
 using System.Collections.Generic;
@@ -66,7 +70,9 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         {
             _world.Load = load;
 
-            var selector = new InteractionSelector(UnwiredDiscoveryReporter.Instance, new InteractionRadius(1));
+            // 半径**单源**:同一实例喂选择器与驱动(生产装配面同款 —— AC-4-17)。
+            var radius = new InteractionRadius(1);
+            var selector = new InteractionSelector(UnwiredDiscoveryReporter.Instance, radius);
 
             // 候选集:一个目标,种类由夹具指定(用来证「非采集点不进链」)。
             var loader = new CandidateSetLoader(new CandidateSources(
@@ -78,7 +84,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
                 bakedInitial: null));
 
             return new HarvestInteractionDriver(
-                selector, loader, _orchestrator, _constants, new CarryCapacity(carryCap),
+                selector, radius, loader, _orchestrator, _constants, new CarryCapacity(carryCap),
                 new FixedLevels(1), _world, _novelty, () => _bag.Stream.Events,
                 _bag.Decoder, worldSeed: 0, seasonIndex: 0, difficulty: Fix.One);
         }
@@ -112,6 +118,43 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
 
             Assert.That(a.Attempted, Is.False, "POI 不是采集点 —— 采集链不得染指");
             Assert.That(EventCount, Is.EqualTo(before), "零事件");
+        }
+
+        // ══════════════════ 半径裁剪(装载后 · argmin 前)══════════════════
+
+        /// <summary>半径外候选 ⇒ 裁剪出局。</summary>
+        /// <remarks><b>判别力</b>:把 `ClipToRadius` 改成恒透传 ⇒ 本测红
+        /// (E 键在任何位置都采到全世界最近药丛,采集消费每一次按键)。</remarks>
+        [Test]
+        public void test_outOfRadiusCandidate_isNotAttempted_andWritesNothing()
+        {
+            // 候选 d∞ = 5,半径 1 ⇒ 出局。
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100, nodeCellX: 5);
+            int before = EventCount;
+
+            HarvestAttempt a = d.TryHarvest(Intent(), PlayerId);
+
+            Assert.That(a.Attempted, Is.False,
+                "半径外候选 ⇒ 装载后 argmin 前出局(4 规则二指定位置)");
+            Assert.That(EventCount, Is.EqualTo(before), "零事件");
+        }
+
+        /// <summary>半径边界 d∞ == R 仍在半径内(≤)⇒ 走完整链**成功**。
+        /// 兼做成功路径判据:三条产出事件 + 成长落流。</summary>
+        [Test]
+        public void test_radiusEdge_successPath_writesEvents_andGrowth()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100, nodeCellX: 1);
+            _world.QtyPerNode = 2;   // 两闸全真:采量 ≤ BaseCapacity(5)且 cap 足够
+            int before = EventCount;
+
+            HarvestAttempt a = d.TryHarvest(Intent(), PlayerId);
+
+            Assert.That(a.Attempted, Is.True);
+            Assert.That(a.Outcome.Succeeded, Is.True,
+                "d∞ == R 是半径内(≤);两闸全真 ⇒ 成功");
+            Assert.That(EventCount, Is.GreaterThan(before),
+                "成功 ⇒ 产出事件落流(DropSpawned / ResourceHarvested / DropClaimed / SkillGrown)");
         }
 
         // ══════════════════ 两个闸门:真的被求值 ══════════════════
@@ -165,13 +208,14 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         [Test]
         public void test_defaultCarryCapacity_isRejectedAtConstruction()
         {
-            var selector = new InteractionSelector(UnwiredDiscoveryReporter.Instance, new InteractionRadius(1));
+            var radius = new InteractionRadius(1);
+            var selector = new InteractionSelector(UnwiredDiscoveryReporter.Instance, radius);
             var loader = new CandidateSetLoader(new CandidateSources(
                 null, new OneSpot(new WorldPos(0, 0, 0)), null, null));
 
             Assert.Throws(Is.InstanceOf<ArgumentOutOfRangeException>(), () =>
                 new HarvestInteractionDriver(
-                    selector, loader, _orchestrator, _constants, default(CarryCapacity),
+                    selector, radius, loader, _orchestrator, _constants, default(CarryCapacity),
                     new FixedLevels(1), _world, _novelty, () => _bag.Stream.Events,
                     _bag.Decoder, 0, 0, Fix.One));
         }
@@ -196,6 +240,60 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
                     Assert.That(p.ParameterType, Is.Not.EqualTo(typeof(HarvestGate)),
                         $"公开方法 {m.Name} 收了 HarvestGate 形参 —— 调用方就能传 Allow 跳过采前闸");
             }
+        }
+
+        // ══════════════════ 桥:claim 语义(S22-9 接线判据)══════════════════
+
+        [Test]
+        public void test_bridge_driverNotAssembled_claimIsFalse()
+        {
+            var bridge = new HarvestInteractionBridge(
+                () => null, () => new WorldPos(0, 0, 0), () => 0L, PlayerId);
+
+            Assert.That(bridge.ClaimInteract(), Is.False,
+                "采集未装配 ⇒ 诚实放行(不吞交互 —— null 语义与 ConsequenceDriver 同格)");
+        }
+
+        /// <summary>选中采集点 ⇒ 消费,**闸门拒绝也算消费**。</summary>
+        /// <remarks><b>判别力</b>:把 `ClaimInteract` 的返回改成恒 false ⇒ 本测红
+        /// (拒采的同一按键又会查体 = 一次按键两个动作)。</remarks>
+        [Test]
+        public void test_bridge_forageTarget_claimsPress_evenWhenGateRejects()
+        {
+            // 满载(cap 1,载重 1)⇒ 满载闸拒;但选择器确实选中了采集点。
+            HarvestInteractionDriver d = MakeDriver(carryCap: 1, load: 1);
+            var bridge = new HarvestInteractionBridge(
+                () => d, () => new WorldPos(0, 0, 0), () => 0L, PlayerId);
+            int before = EventCount;
+
+            Assert.That(bridge.ClaimInteract(), Is.True,
+                "选中采集点 ⇒ 按键归采集链(拒绝也算消费)");
+            Assert.That(EventCount, Is.EqualTo(before), "被拒 ⇒ 零事件");
+        }
+
+        [Test]
+        public void test_bridge_nonForageTarget_claimIsFalse()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100, kind: InteractableKind.PoiCell);
+            var bridge = new HarvestInteractionBridge(
+                () => d, () => new WorldPos(0, 0, 0), () => 0L, PlayerId);
+
+            Assert.That(bridge.ClaimInteract(), Is.False,
+                "目标不是采集点 ⇒ 不消费,查体照常");
+        }
+
+        [Test]
+        public void test_bridge_forwardsTickToStream()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100, nodeCellX: 1);   // d∞ = 1 = 半径 ⇒ 保留
+            _world.QtyPerNode = 2;
+            long tick = 42L;
+            var bridge = new HarvestInteractionBridge(
+                () => d, () => new WorldPos(0, 0, 0), () => tick, PlayerId);
+
+            Assert.That(bridge.ClaimInteract(), Is.True);
+            Assert.That(_bag.Stream.Events[_bag.Stream.Events.Count - 1].Tick, Is.EqualTo(tick),
+                "桥把 tick 填进 4 的意图 ⇒ 产出事件头携带同一 tick");
         }
 
         // ══════════════════ 夹具替身 ══════════════════

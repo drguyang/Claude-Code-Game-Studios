@@ -93,8 +93,9 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// 17 采集的生产驱动:每 tick 边沿把「玩家的一次主动交互」翻译成一次采集裁决。
     /// </summary>
     /// <remarks>
-    /// <para><b>次序固定</b>:输入门 → 目标选择 → 采集点判定 → 数据取路 → 两个闸门求值 →
-    /// <see cref="HarvestOrchestrator.Resolve"/>。任何一步不满足都**在编译意义上**不可能走到写入。</para>
+    /// <para><b>次序固定</b>:输入门 → 半径裁剪 → 目标选择 → 采集点判定 → 数据取路 →
+    /// 两个闸门求值 → <see cref="HarvestOrchestrator.Resolve"/>。任何一步不满足都**在编译意义上**
+    /// 不可能走到写入。</para>
     /// <para><b>两个闸门的求值点就在本类里</b>(<see cref="CarryLoadSolver.CanCarry"/> /
     /// <see cref="NodeRemaining.CanHarvest"/>)—— 这是 sprint-22 Exit 的可观测载体:
     /// 断掉任一侧,本类的夹具即红。</para>
@@ -102,6 +103,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class HarvestInteractionDriver
     {
         private readonly InteractionSelector _selector;
+        private readonly InteractionRadius _radius;
         private readonly CandidateSetLoader _loader;
         private readonly HarvestOrchestrator _orchestrator;
         private readonly ForagingConstants _constants;
@@ -120,6 +122,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>构造驱动。</summary>
         /// <param name="selector">4 的目标选择器(纯函数)。</param>
+        /// <param name="radius">交互半径的**单源持有者**(AC-4-17 —— 与选择器/6 共享同一实例;
+        /// 本类只**应用**它做装载后裁剪,不声明第二个数值)。</param>
         /// <param name="loader">4 的候选集装载器(四源合并)。</param>
         /// <param name="orchestrator">17 的裁决编排(写事件归它,本类不写)。</param>
         /// <param name="constants">17 调参表(采量 / 品级 / 余量三条公式的输入)。</param>
@@ -139,6 +143,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <exception cref="ArgumentNullException">任一必需依赖为 null。</exception>
         public HarvestInteractionDriver(
             InteractionSelector selector,
+            InteractionRadius radius,
             CandidateSetLoader loader,
             HarvestOrchestrator orchestrator,
             ForagingConstants constants,
@@ -153,6 +158,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             Fix difficulty)
         {
             _selector = selector ?? throw new ArgumentNullException(nameof(selector));
+            _radius = radius ?? throw new ArgumentNullException(nameof(radius));
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
             _constants = constants ?? throw new ArgumentNullException(nameof(constants));
@@ -186,11 +192,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
                     "actor_id 由 20 的 InventoryOf(player) 归因,不得为负");
 
-            // ── ① 选择器(规则七:无主动交互输入 ⇒ 不选择;走进 ≠ 交互)──
-            // ⚠️ `CandidateSetLoader.Load()` **不做半径裁剪**(裁剪归 4 的 story-004),
-            //    故邻域外目标也可能被选中。本类**不**在此另写一份裁剪判据 ——
-            //    半径真值归 `InteractionRadius`(AC-4-17 单源),重写 = 第二真源。
-            InteractTarget target = _selector.Select(in intent, _loader.Load());
+            // ── ① 半径裁剪 + 选择器(规则七:无主动交互输入 ⇒ 不选择;走进 ≠ 交互)──
+            // 裁剪发生在**装载之后、argmin 之前**(4 规则二的指定位置;story-004 裁剪半边的
+            // 生产落点)。半径**数值**来自单源 `InteractionRadius`(与选择器同一实例,AC-4-17)
+            // —— 本类只应用它,不声明第二个数。
+            // ⚠️ 不裁的后果:E 键在任何位置都会选中**全世界**最近的药丛(装载器返回全量候选)
+            //    ⇒ 采集消费掉每一次按键,查体永远轮不到。
+            InteractTarget target = _selector.Select(in intent, ClipToRadius(_loader.Load(), in intent));
             if (!target.HasTarget) return HarvestAttempt.None;
 
             // ── ② 只有采集点才进采集链;其它种类归各自系统 ──
@@ -244,6 +252,45 @@ namespace DaYiJingCheng.Gameplay.Boot
                 HarvestSkillId, itemKey, xpGain);
 
             return HarvestAttempt.Of(_orchestrator.Resolve(in request, in gate));
+        }
+
+        /// <summary>
+        /// R_INTERACT 邻域裁剪:`d∞(player_cell, cell) ≤ R` 之外者出局(4 规则二的指定位置)。
+        /// </summary>
+        /// <remarks>全在半径内 ⇒ 返回原列表(**零分配**;交互按键不是热路径,但成功路径
+        /// 每 tick 至多一次,仍不值得为常态分配)。首个出局者出现时才物化已筛副本。</remarks>
+        private IReadOnlyList<Candidate> ClipToRadius(IReadOnlyList<Candidate> candidates, in InteractIntent intent)
+        {
+            if (candidates == null || candidates.Count == 0) return candidates;
+
+            int r = _radius.Value;
+            List<Candidate> kept = null;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                Candidate c = candidates[i];
+                if (Chebyshev(in intent.PlayerCell, in c.Cell) <= r)
+                {
+                    kept?.Add(c);
+                }
+                else if (kept == null)
+                {
+                    kept = new List<Candidate>(i);
+                    for (int j = 0; j < i; j++) kept.Add(candidates[j]);
+                }
+            }
+            return kept ?? candidates;
+        }
+
+        /// <summary>两格 Chebyshev 距离 <c>d∞ := max(|Δx|,|Δy|,|Δz|)</c>(与 F-4.1 第一键同式)。
+        /// <para>⚠️ 先拓宽 int64 再取绝对值(int 域相减会在 <c>int.MinValue</c> 处回绕 —— 承
+        /// story 002;私有副本是既有先例,<c>NeighbourhoodReporter</c> 同款各持一份)。</para></summary>
+        private static long Chebyshev(in WorldPos a, in WorldPos b)
+        {
+            long dx = Math.Abs((long)a.X - b.X);
+            long dy = Math.Abs((long)a.Y - b.Y);
+            long dz = Math.Abs((long)a.Z - b.Z);
+            long m = dx > dy ? dx : dy;
+            return m > dz ? m : dz;
         }
     }
 }

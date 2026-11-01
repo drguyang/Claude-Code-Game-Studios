@@ -586,11 +586,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-10-31 收尾:同一个「模态开集」读面还要喂**输入冻结**(移动轴 + 建造)——
             //    单实例共用,避免三处各自演化出「什么算挡路」的第二份判据。
             var modalState = new ModalGateStateAdapter(() => _uiDriver);
+            // ── 4.5a. 采集意图桥(S22-9):E 按下沿先问采集,选中采集点则消费该次按键,
+            //    未选中 / 未装配 ⇒ 落回查体。claim 判定在 InteractionInputDriver 的
+            //    边沿判定**之内**(单一边沿所有者);PlayerCell 用经流确立格(ADR-020 §四)。
+            var harvestBridge = new HarvestInteractionBridge(
+                () => _services.HarvestDriver,
+                () => _player != null ? _player.LastCommittedCell : default,
+                () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
+                actorId);
             var interaction = new InteractionInputDriver(
                 _services,
                 () => _player != null ? _player.transform.position : Vector3.zero,
                 actorId,
-                new ModalGate(_services.EmergencyChannel, modalState));
+                new ModalGate(_services.EmergencyChannel, modalState),
+                harvestBridge.ClaimInteract);
             _interactionDriver = interaction;
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 

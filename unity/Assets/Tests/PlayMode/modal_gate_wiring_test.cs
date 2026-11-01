@@ -142,6 +142,14 @@ namespace DaYiJingCheng.Tests.PlayMode
             var interaction = ReadField<InteractionInputDriver>("_interactionDriver");
             Assert.IsNotNull(interaction, "BootRoot._interactionDriver 应已装配");
 
+            // S22-9(2026-11-01):E 按下沿先问采集 —— 出生格 (0,0,0) 距最近烘焙药丛
+            // (2,0,2) 的 d∞ = 2 ≤ r_interact(3) ⇒ 按键会被采集桥**合法消费**,本测的
+            // 正控(关屏后按 E 必须查体)会假红。本测的靶是**模态门**不是 E 路由
+            // ⇒ 挪到无药丛格 (0,0,50)(最近药丛 d∞ = 41 > 3;查体的最近病人判定无半径门,
+            //   挪走不影响查体可达性)。多等几帧让 `LastCommittedCell` 随 tick 提交。
+            ReadField<PlayerController>("_player").Teleport(new Vector3(0f, 1f, 50f));
+            for (int i = 0; i < 5; i++) yield return null;
+
             Assert.That(interaction.LastExaminedPatient.Value, Is.LessThan(0),
                 "[前置] 开局不该已查过体");
 

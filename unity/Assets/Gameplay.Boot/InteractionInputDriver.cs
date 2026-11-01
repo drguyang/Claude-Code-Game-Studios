@@ -48,6 +48,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>模态门(规则七方向②;可 null = 未接线形态 —— 那时不做模态抑制)。</summary>
         private readonly ModalGate _gate;
 
+        /// <summary>采集的 claim 钩子(S22-9 · 可 null = 采集未接线)。
+        /// <para>E 按下沿先问一次:返回 true ⇒ 该次按键已被采集链消费(**闸门拒绝也算消费**),
+        /// 查体不再触发;false ⇒ 落回查体。边沿位**仍由本类持有** —— 单一边沿所有者,
+        /// 桥不自持(否则两处边沿位会漂移)。</para></summary>
+        private readonly Func<bool> _interactClaimedByHarvest;
+
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
 
@@ -63,15 +69,23 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>🔁 2026-10-31:此前本驱动**完全不看模态** ⇒ 脉案/存档位开着时按 E 仍会查体,
         /// 违反 F-4.2「模态期按下的交互 = 没发生」。</para>
         /// </param>
+        /// <param name="interactClaimedByHarvest">
+        /// 采集 claim 钩子(S22-9;可 null = 采集未接线,行为与改前一致)。
+        /// <para>调用次序:模态门放行后、查体前 —— 选中采集点的按键归采集链
+        /// (4 的选择器决定「这一帧的交互对象是谁」;钩子在**本类边沿判定之内**被调,
+        /// 不另造第二处边沿位)。</para>
+        /// </param>
         public InteractionInputDriver(CompositionRootServices services,
                                       Func<Vector3> playerPosition,
                                       int actorId,
-                                      ModalGate gate = null)
+                                      ModalGate gate = null,
+                                      Func<bool> interactClaimedByHarvest = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
             _actorId = actorId;
             _gate = gate;
+            _interactClaimedByHarvest = interactClaimedByHarvest;
         }
 
         /// <summary>
@@ -94,7 +108,14 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             bool interact = PlayerInputReader.InteractPressed();
             if (interact && !_interactHeld && allowed)
-                TryExamine();
+            {
+                // S22-9:采集先行 —— 4 的选择器选中采集点 ⇒ 该次按键归采集链
+                // (闸门拒绝也算消费:拒采的同时又查体 = 一次按键两个动作);
+                // 未选中 / 采集未接线 ⇒ 落回查体。模态门已由 allowed 前置:
+                // 模态开 ⇒ 本分支不进 ⇒ 采集与查体同被抑制(F-4.2)。
+                if (!(_interactClaimedByHarvest?.Invoke() ?? false))
+                    TryExamine();
+            }
             _interactHeld = interact;
 
             bool emergency = PlayerInputReader.EmergencyPressed();

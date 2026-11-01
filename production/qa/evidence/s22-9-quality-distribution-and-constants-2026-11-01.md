@@ -351,3 +351,98 @@ grep -n "HarvestGate " Assets/Gameplay.Boot/HarvestInteractionDriver.cs | grep -
 # 门已接链(期望 1)
 grep -c "HarvestGateAllowGate.RunAll" Assets/Editor.Tools.Gates/AssemblyGates.cs
 ```
+
+---
+
+## 10. S22-9 第三批：BootRoot 调用点接线（2026-11-01）
+
+**§8.1 的「⚠️ 不证：BootRoot 每 tick 调用点」就此结清** —— 生产路径现在真的会调 `TryHarvest`。
+
+### 10.1 两个装配期决策（本轮就地裁定，口径如下）
+
+1. **E 键路由 = 单边沿单一归属**：E 按下沿先问采集（4 的选择器选中 ForageSpot ⇒ 该次按键
+   归采集链，**闸门拒绝也算消费** —— 否则拒采的同时又查体 = 一次按键两个动作）；
+   未选中 / 未装配 ⇒ 落回既有查体。边沿位仍由 `InteractionInputDriver` 独持（单一边沿所有者，
+   桥不自持）。模态门继承既有 `allowed` 前置 —— 模态开 ⇒ 采集与查体同被抑制（F-4.2），
+   桥不重复判（避免两份「什么算挡路」）。
+2. **半径裁剪落在 driver**：`CandidateSetLoader` 返回**全量**候选（装载器明确不裁，story-004
+   裁剪器未落生产面），不裁则 E 键在任何位置都采到**全世界**最近药丛 ⇒ 采集消费每一次按键、
+   查体永远轮不到。裁剪发生在**装载之后、argmin 之前**（4 规则二的指定位置）；
+   半径**数值**来自单源 `InteractionRadius`（与选择器同一实例，AC-4-17 —— CompositionRoot
+   hoist 后双喂）；距离式 d∞ 为私有副本（`NeighbourhoodReporter` 同款先例，各自带 int64 先拓宽注）。
+
+### 10.2 落盘件
+
+| 文件 | 内容 |
+|---|---|
+| `Gameplay.Boot/HarvestInteractionDriver.cs` | ctor 增 `InteractionRadius radius`（null 拒）；`ClipToRadius`（零分配形：全在内返原列表）+ 私有 `Chebyshev` |
+| `Gameplay.Boot/HarvestInteractionBridge.cs`（新） | claim 语义：driver null ⇒ false（诚实放行）；选中采集点 ⇒ true（含拒绝）；意图 = `(LastCommittedCell, true, CurrentTick)` —— **经流确立格**（ADR-020 §四），不是表现态格 |
+| `Gameplay.Boot/InteractionInputDriver.cs` | 可选 ctor 参 `Func<bool> interactClaimedByHarvest`；E 沿分支先 claim 再查体 |
+| `Gameplay.Boot/BootRoot.cs` | 装配桥（4.5a 段）并传 `harvestBridge.ClaimInteract`；桥三读数委托惰性取（driver 晚装配不炸） |
+| `Gameplay.Boot/CompositionRoot.cs` | `harvestRadius` hoist，同实例喂选择器与驱动 |
+
+### 10.3 测试与证伪
+
+新增 6 条（`HarvestInteractionDriverTest` 6 → **12**，`Logs/h-drv5.xml` 12/12 @ 2026-11-01）：
+
+- `test_outOfRadiusCandidate_isNotAttempted_andWritesNothing`（d∞=5 > R=1 ⇒ 出局零事件）
+- `test_radiusEdge_successPath_writesEvents_andGrowth`（d∞=1 == R ⇒ 保留，两闸全真 ⇒ 成功落流
+  —— 兼补上本文件此前缺失的**成功路径**判据，文件头记分面已同步订正）
+- 桥 ×4：未装配 ⇒ false / 选中即消费（拒绝也算）零事件 / 非采集点 ⇒ false / tick 转发
+  （产出事件头 `Tick == 42`）
+
+**证伪轮（同命令 改→跑→还原 + SHA-256）**：
+
+| 变异 | 靶点 | 实测 |
+|---|---|---|
+| **M-D** 裁剪透传 `if (true \|\| Chebyshev…)` | `HarvestInteractionDriver.cs` ClipToRadius | ✅ 只红 `test_outOfRadiusCandidate…`（半径边界/桥各测不受影响）；RESTORE-D-OK |
+| **M-E** 桥 claim 恒 false | `HarvestInteractionBridge.cs:69` | ✅ 红 `test_bridge_forageTarget…` + `test_bridge_forwardsTickToStream` 两条（未装配/非采集点两条按预期绿）；RESTORE-E-OK |
+
+日志：`unity/Logs/h-fals{D,E}.{xml,log}`。
+
+### 10.4 覆盖边界（如实登记）
+
+- **不证 ①**：`InteractionInputDriver.OnFrame` 的 E 分支调 claim —— 无设备 EditMode 按不了键；
+  该按下沿路径与既有 E/F 路径**同覆盖状态**（本就零夹具，靠 PlayMode / 手动走查）。
+  claim 语义本身由桥的直接夹具承担（claim 判定逻辑 100% 在桥内，OnFrame 只剩一行转发）。
+- **不证 ②**：BootRoot 装配桥的那一行（纯转发，无逻辑）。
+- **候选集仍是采集点单源**（CompositionRoot 的 drops/patients/bakedInitial = null）：
+  「病人与药丛同时在场」时选择器只见药丛，采集消费按键、查体不触发 —— **已知边界**，
+  归 4 的统一路由 story（patient 源进候选集后按 KindPriority 自然消解）。
+  现行查体路径（最近病人，无半径门）不受本批影响。
+
+### 10.5 首轮 PlayMode 一红 —— 新路由与旧夹具假设的碰撞（处置：修夹具）
+
+首轮全量 PlayMode（12:10:17）`failed=1`：`test_productionAssembly_modalOpen_discardsInteract`
+（`modal_gate_wiring_test`）—— 正控断言「关屏后按 E **必须**能查体」实得 `LastExaminedPatient = -1`。
+
+**根因**：这条正控在**新路由下不再恒真** —— 出生格 (0,0,0) 距最近烘焙药丛 (2,0,2) 的
+d∞ = 2 ≤ `r_interact`(3) ⇒ 按 E 被采集桥**合法消费**（选择器选中 ForageSpot）。红的是
+**夹具假设**（「E 恒查体」），不是新代码 —— 恰恰是本批接线的生产行为第一次真实发生
+（而且是在 PlayMode 真启动序里）。该测的靶是**模态门**，不是 E 路由。
+
+**处置**：夹具 boot 后把玩家挪到无药丛格 `(0,0,50)`（最近药丛 d∞ = 41 > 3），等 5 帧让
+`LastCommittedCell` 随 tick 提交；查体的最近病人判定无半径门 ⇒ 挪走不影响查体可达性。
+夹具内注记了距离复算。**模态丢弃半边（Act 1）不受影响**：`allowed=false` ⇒ claim 分支不进。
+
+> 顺带：这其实是一张**意外的真启动序集成证据** —— PlayMode 真装配里，E 沿 → 桥 → 选择器 →
+> 半径裁剪 → 采集消费的全链在生产数据（真烘焙药丛 + 真 `r_interact`）上跑通了一次。
+
+---
+
+## 11. 回归（第三批 · 三元组）
+
+| 轮 | 元素 | 值 |
+|---|---|---|
+| **截至时刻** | | 2026-11-01 **12:09:39 CST**（EditMode）/ **12:14:36 CST**（PlayMode） |
+| **批次** | | S22-9 第三批（BootRoot 接线 + 半径裁剪 + 采集桥 + 6 新测 + 模态夹具挪格） |
+| **commit** | | `cd935295` + 工作树（提交前） |
+
+| 套件 | 结果 | 前次（§9） | 等式 |
+|---|---|---|---|
+| EditMode | `total=6370 passed=6333 failed=0 skipped=37` | `6364 / 6327 / 0 / 37`（11:47:46） | `6370 − 6364 = 6` = 裁剪 2 + 桥 4 ✅ |
+| PlayMode | `total=273 passed=269 failed=0 skipped=2`（+2 Inconclusive 存量） | `273 / 269 / 0 / 2`（11:43:25） | `±0`（只修模态夹具,无新测）✅ |
+
+> 中间态如实登记：首轮全量 PlayMode（12:10:17）`failed=1`（模态正控与新 E 路由碰撞，
+> §10.5），修夹具后单类复跑 4/4（12:13:59）→ 全量重跑本表为**终值**。复跑命令：
+> `python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s229-final-pm3.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"`
