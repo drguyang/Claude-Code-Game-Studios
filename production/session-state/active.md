@@ -2189,9 +2189,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-22 ✅ 收口复评 PASS(2026-11-01 下午 · `2407d04b`)
-Feature: S22-9 采集链三批(数据通道 cd935295 前批 / driver+机械门 cd935295 / BootRoot 接线 a956f0c1)
-Task: 路线图里程碑状态已回写(sprint-22 Exit 达成 · §1.1 复跑 237/213/24)→ 下一 sprint 取件(/sprint-plan)
+Epic: sprint-23 🚧 取件完成(2026-11-01 · `6cae988a`)
+Feature: death-respawn 全链(L 级独占)· Must 4 卡(S23-1/2/3/5)+ S23-6 smoke 载体
+Task: S23-1 开工前跑 /qa-plan sprint → S23-1(001 + 004 全链半)→ S23-2/3/5 三路并行
 <!-- /STATUS -->
 
 ## S3 M2 Exit 复评(2026-10-14 · ✅ 落定 · 翻 2 勾)
