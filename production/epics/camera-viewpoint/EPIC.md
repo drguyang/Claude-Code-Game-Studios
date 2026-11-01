@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/camera-and-viewpoint.md
 > **Architecture Module**: 自建机位 `ICameraRig`(四段机器:跟随 + 绕点 + 出臂 + 收缩)+ 对系统 1 的硬交付 `YawBasis`
 > **Status**: **Complete ✅ 2026-10-03**(6/6 story 已收口 —— 001 于 10-03 收口(`ef38a0c`);002 于 10-03 收口(`3c29a89`);003–006 于 10-03 收口(`ea91373`))
-> **Stories**: 6 stories created (2026-09-28)
+> **Stories**: **7 stories**(2026-09-28 建 6 件;2026-11-02 追加 007 = 档位请求覆盖矩阵门 —— 前三件补的请求点各是**实例**,那件补的是**那一类**)
 
 ## Overview
 
@@ -50,6 +50,7 @@
 | 004 | 出臂与收缩(肩位常量几何 / 瞬时收缩·阻尼回弹 / 掩码与裁剪面) | Integration | Complete ✅ 2026-10-03(`ea91373`) | Core | ADR-020 + ADR-015 |
 | 005 | 档位状态机与性能义务(意图制 / 优先级 / Casebook 冻结 / PhysX==1 / Tick 相位) | Logic | Complete ✅ 2026-10-03(`ea91373`) | Feature | ADR-020 + ADR-011 |
 | 006 | 跨系统义务对账与舒适度签核面(EXTERNAL 登记 / O-11…O-16 / VR 接口 / playtest) | Visual/Feel | Complete ✅ 2026-10-03(`ea91373`) | Feature | ADR-020 + ADR-015 |
+| 007 | 档位请求覆盖矩阵门(表 → 代码 → 行为) | Integration | **Ready ⬜** —— 2026-11-02 立件,未开工 | Feature | ADR-020 Amd C + ADR-024 |
 
 Counts: 4 Logic · 1 Integration · 1 Visual/Feel = 6 total.
 27 个 AC 条目全覆盖:**BLOCKING 22**(`01/02/04/05/06` → 001;`07–10` → 002;`11/12/13` → 003;`14/15/16/25` → 004;`17/18/19/20/27` → 005;`22` → 006)全部落 story;**ADVISORY 3**(`03/24/26` → 006 的 playtest 签核面,不得混入 BLOCKING 计数);**EXTERNAL 2**(`21` = `PITCH_MAX` 取值归用户 · `23` = `O-13` 验收归相机 spike —— 006 登记挂账,不计入本 Epic 就绪度)。

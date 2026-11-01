@@ -131,3 +131,15 @@ stories:
     blocker: ""
     completed: "2026-11-02"
     note: "计划外追加。R-2-5 表 6 条行只有 4 条有请求点 ⇒ 39 两行「该发没发」,而 CameraSetModeRequesterGate 全绿(只判 arity / 字面 -1,不看表)。原 story-006 捆了相机+落笔+锚点三件 ⇒ 拆卡(SaveAnchor 全仓不存在)。订正三处(RequestMode 不存在 / 无 requesterId / 「两档唯一请求方」已恒假)。证伪 7 条全红;N6 抓出 CloseModalCore 拆分的判别力。未闭:AC-39-09 NOT-RUN;启动即脉案屏却用 Explore 档未裁(两读法都绿)。矩阵门 = camera-viewpoint/story-007(立件未开工)。"
+  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 收口后追加件的第五条(唯一**未开工**的一条)。
+  - id: "S23-11"
+    name: "camera-viewpoint/007 档位请求覆盖矩阵门(表 → 代码 → 行为)"
+    file: "production/epics/camera-viewpoint/story-007-mode-request-coverage-matrix.md"
+    priority: should-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "计划外追加。用户 2026-11-02 三项裁定:表真源 = 独立 camera-mode-requests.yaml;先补 39 接线再上门(已完成 S23-10);判据 = 动态矩阵 + 静态防绕过。静态层只防「绕过」不防「没发」(EmergencyChannelDriver 的 mode 是形参,静态抓不到)—— 必须写进卡面,否则门会被读成「档位全对」。依赖 casebook/006(S23-10)/ emergency/010(S23-7)/ death-respawn/007(S23-9)三件均已 Complete。"

@@ -193,6 +193,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 | **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
 | **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证 + `TR-camera-007` 双向登记;S29-09 真机走查 `NOT-RUN`)。证伪轮抓出并修掉了 S29-06 的 F1 型假绿 |
 | **S23-10** | `casebook/006` 39 的档位意图接线(`Casebook` / `Explore`,requesterId 39)+ 拆出 007 落笔锚点 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(修的是「该发没发」的一个实例;`AC-39-09` `NOT-RUN`;启动即脉案屏却用 Explore 档未裁) |
+| **S23-11** | `camera-viewpoint/007` 档位请求覆盖矩阵门(表 → 代码 → 行为) | Integration | **Ready ⬜** | 计划外追加 · **§八 唯一未开工件**。用户裁定:表 = 独立 `camera-mode-requests.yaml`;先补 39 接线(S23-10 已完成)再上门;判据 = 动态矩阵 + 静态防绕过 |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -234,6 +235,16 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
 已改为走真链(`PlayerDied` 落流 → 呈现器 `Update` → 请求缝 → 相机 `Mode`),复跑 M5 **恰 1 红**。
 ⚠️ **跨 epic**:本件为 `a5f766f6` 的相机闭包补上具名载体与 AC 载体(缺口 A),
 并在 `death-respawn/EPIC.md` 登记 6/7 → 7/7。
+
+**S23-11 说明(2026-11-02 · 未开工,故无收口读数)**:
+本件是 `S23-7 / S23-9 / S23-10` 三条的**上位** —— 那三条各自补了表中两行请求点,
+但「表 ↔ 代码 ↔ 行为」的系统性判据仍不存在。**修完三个实例 ≠ 修掉那一类。**
+⚠️ 用户 2026-11-02 三项裁定已写进卡面:① 表真源 = 独立 `camera-mode-requests.yaml`;
+② **先补 39 接线,再上门**(⇒ 本件排在 S23-10 之后);③ 判据 = 动态矩阵 + 静态防绕过。
+⚠️ **静态层单独存在会是第二扇假门** —— `EmergencyChannelDriver` 的调用是
+`rig.SetMode(mode, RequesterId)`,mode 是**形参**,字面量在调用方 ⇒ 静态扫描只能证明
+「有人**声明**要发」,证不了「它**会**发」。这条已写进卡面的「抓不到什么」节,不得被读成「档位全对」。
+⚠️ **实现前先读卡面末尾的编排预警** —— 六行在一次 boot 里驱动齐,是本件最可能卡住的地方。
 
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
