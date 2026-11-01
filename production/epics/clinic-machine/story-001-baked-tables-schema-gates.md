@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Config-Data
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-29
 
 > **🔁 2026-10-21 挂标已解除(S17-4)** —— `O-24-1` 已兑现,闭集来源落地于

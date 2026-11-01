@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 3h(实数 ≈ 2.5h,含两次哨兵转红后的逐条复核)
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-11-01
 
 ## Context

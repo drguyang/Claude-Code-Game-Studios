@@ -8,22 +8,42 @@
 > (ADR-020 **Amendment C ②** · AC-20-16),并配机械执行体 `CameraSetModeRequesterGate`。
 > **其余各节一字未改**;`/story-readiness` 比对版本时,2026-10-15 → 2026-11-02 的差异**仅此一条**,
 > 不构成其他规则的重新解读。
-> ⚠️ **传播范围(如实登记)**:版本号**未回刷**到既有 story —— 实测 `production/epics/` 下
-> **257 份** story 带 `Manifest Version` 字段,值以 `2026-10-02`(**195** 次)与
-> `2026-10-15`(**33** 次)为主,其余为更旧值。⇒ 现有 story 相对本 manifest **全部变「旧」**,
-> `/story-readiness` 会报 NEEDS WORK。
-> 这是**有意的**:该字段的作用就是让陈旧 story 被看见,由 `/dev-story` Phase 2 逐件判定
-> [A]/[B]/[C](承 2026-10-21 那三份的既有做法)。
-> **本批不批量回刷版本号** —— 回刷只表示「已对齐版本号」,不表示「已按新规则复核」(承 §2026-10-02 版本升格的传播范围)。
+> ⚠️ **传播范围 —— 已按用户裁定于 2026-11-02 批量回刷(如实登记)**
+>
+> **实测基线(回刷前)**:`production/epics/` 下带 `> **Manifest Version**: <DATE>` **字段**的
+> story = **237 份**(另有 **20 份**仅在正文里**提及**该字段 —— 如 `### Manifest Version` 小节、
+> `Manifest Version note` 行、`tr-registry` 登记说明 —— **那些不是字段,未动**)。
+> 字段值的分布:
+>
+> | 原值 | 份数 |
+> |---|---|
+> | `2026-10-02` | 194 |
+> | `2026-10-15` | 32 |
+> | `2026-10-08` | 3 |
+> | `2026-10-12` / `2026-10-09` / `2026-10-03` | 各 2 |
+> | `2026-10-21` / `2026-10-04` | 各 1 |
+>
+> **2026-11-02 回刷**:237 份全部机械改为 `2026-11-02`,**逐文件恰 1 行**(`237 files changed,
+> 237 insertions(+), 237 deletions(-)`);非字段的提及**一处未动**。
+>
+> 🔴 **回刷的语义,明写以免误读**:`2026-11-02` 自此**不再等于**「写卡时依据的 manifest」。
+> 它表示「**已对齐到本版**」,**不表示「已按本版规则逐条复核」**(承 §2026-10-02 版本升格的传播范围)。
+> ⇒ `/story-readiness` 的 stale 告警对存量 story **不再有判别力**;
+> **新规则的复核状态须另行追踪**(本版唯一实质改动 = 双参 `SetMode`,见上)。
+>
+> ⚠️ **代价被如实承认,不是被绕开**:`inventory-items/story-003` 的 §偏离登记 原写
+> 「**未改 story 头的版本号** —— 版本号记录的是「写卡时依据的 manifest」这一历史事实,改它等于伪造」。
+> 本轮**确实改了**,那句判断的代价**真实发生** —— 已在该件就地加 2026-11-02 追记,原文保留不改写。
+> 换取的是:新规则的陈旧告警不再被 237 条历史噪音淹没。
 >
 > 复算:
 >
 > ```bash
 > cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
-> grep -rl "Manifest Version" production/epics/ | wc -l        # 期望 257
-> grep -rhoE "Manifest Version[*: ]+[0-9]{4}-[0-9]{2}-[0-9]{2}" production/epics/ \
->   | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}" | sort | uniq -c | sort -rn | head -3
-> # 期望首两行:195 2026-10-02 / 33 2026-10-15
+> grep -rl '^> \*\*Manifest Version\*\*: [0-9]' production/epics/ | wc -l      # 期望 237
+> grep -rh '^> \*\*Manifest Version\*\*: [0-9]' production/epics/ \
+>   | grep -vc '2026-11-02'                                                    # 期望 0
+> git log -1 --stat -- production/epics/ | tail -1                             # 237 files changed, 237 insertions(+), 237 deletions(-)
 > ```
 > ⚠️ **2026-10-15 增量升级(非重新生成)**:新增 **Cross-Cutting Constraints 之七(处方前置检查)**
 > 与 **之八(判据不得用文化敏感字符串比较)**,均出自 sprint-12 的 S12-3「建闸」批

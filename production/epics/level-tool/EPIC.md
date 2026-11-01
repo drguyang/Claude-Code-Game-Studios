@@ -10,7 +10,7 @@
 > 见 `story-006` §Completion Notes 1。
 > (本 epic **2026-10-28 立**,同日推翻 2026-10-21 的「不立 epic、不排期」裁定)
 > **Stories**: 6 stories — see table below
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-29
 
 ---

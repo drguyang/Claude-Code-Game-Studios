@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-31
 
 ## Context
@@ -115,6 +115,8 @@
 **Regression**: EditMode `6191/6154/0/0/37`(基线 `6180/6143`)· PlayMode `238/234/0/2/2`(零回归)
 **Manifest Version note**: Manifest Version `2026-10-02 → 2026-10-15`(10-15 的增量是「处方前置检查」与
 「判据不得用文化敏感字符串比较」两条 Cross-Cutting,与本卡**无关**;此项为形式对齐,非规则变更)
+⚠️ **2026-11-02 再刷**:工程级批量对齐 `2026-10-15 → 2026-11-02`(manifest 唯一实质改动 = 「生产调用方必须用双参
+`SetMode`」,ADR-020 Amendment C ②),与本卡**无交集**;**未逐条复核**,属形式对齐。
 **Test Evidence**: `unity/Assets/Tests/EditMode/Inventory/id_authority_highwater_test.cs`(11 测)
 **Code Review**: 未跑(lean 模式;本卡为 Logic 小件,改动 1 个生产文件 + 1 个夹具文件)
 

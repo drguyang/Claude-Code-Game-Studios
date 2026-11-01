@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-15  <!-- 2026-10-25 重写轮:自 2026-10-02 刷至现行版(承 S20-1 用户裁定 [A] 先例;增量仅 Cross-Cutting 之七/之八两节) -->
+> **Manifest Version**: 2026-11-02  <!-- 2026-10-25 重写轮:自 2026-10-02 刷至现行版(承 S20-1 用户裁定 [A] 先例;增量仅 Cross-Cutting 之七/之八两节) -->
 > **Last Updated**: 2026-10-26
 ## Context
 

@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Visual / Feel
 > **Estimate**: 待估(素材本体依赖;spec 面已定)
-> **Manifest Version**: 2026-10-12
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-12
 
 ## Context

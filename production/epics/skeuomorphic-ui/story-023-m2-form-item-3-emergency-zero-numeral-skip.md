@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI / Visual-Feel
 > **Estimate**: 1.0 人日
-> **Manifest Version**: 2026-10-09
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-09
 
 ## Context

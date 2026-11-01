@@ -5,7 +5,7 @@
 > **Layer**: Tooling(工具侧)+ Core(运行期装载面)
 > **Type**: Integration
 > **Estimate**: L
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-29
 
 ## Context

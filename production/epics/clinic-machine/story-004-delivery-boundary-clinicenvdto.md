@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-15  <!-- 2026-10-25 /dev-story 用户裁定 [A]:自 2026-10-02 刷至现行版(增量仅 Cross-Cutting 之七/之八两节) -->
+> **Manifest Version**: 2026-11-02  <!-- 2026-10-25 /dev-story 用户裁定 [A]:自 2026-10-02 刷至现行版(增量仅 Cross-Cutting 之七/之八两节) -->
 > **Last Updated**: 2026-10-25
 ## Context
 

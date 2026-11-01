@@ -6,7 +6,7 @@
 > **Layer**: Foundation(不新增音频语义;兑现既有判据的载体)
 > **Type**: Integration
 > **Estimate**: 1 人日(三面载体,量小;10-c 除外 —— 挂 story 内待 spike)
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-20
 
 ## Context

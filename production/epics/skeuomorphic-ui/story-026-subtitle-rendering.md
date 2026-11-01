@@ -5,7 +5,7 @@
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 1-2 days
-> **Manifest Version**: 2026-10-21
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-29
 
 ## Context

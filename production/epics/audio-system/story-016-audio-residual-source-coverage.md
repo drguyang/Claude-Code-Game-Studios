@@ -5,7 +5,7 @@
 > **Layer**: Foundation(实现落素材产出 + 门检验)
 > **Type**: Integration
 > **Estimate**: 待估(依赖素材本体产出)
-> **Manifest Version**: 2026-10-04
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-17
 
 ## Context

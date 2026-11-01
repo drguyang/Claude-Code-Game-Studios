@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-07
 
 ## Context

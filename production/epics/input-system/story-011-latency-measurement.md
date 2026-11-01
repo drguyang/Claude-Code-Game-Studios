@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2h(+ 真实硬件前置)
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-09-27
 
 ## Context

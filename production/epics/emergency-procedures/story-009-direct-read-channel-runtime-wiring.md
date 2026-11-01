@@ -9,7 +9,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 3–5 人日(约 24–40h;实际 1 日内)
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-14
 
 > **⚠️ 2026-10-14 实现轮四项用户裁定(开工前裁定,全按建议)**:

@@ -5,7 +5,7 @@
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 4-5 hours
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-08(B5 格线半由 story-021 兑现回勾)
 
 ## Context

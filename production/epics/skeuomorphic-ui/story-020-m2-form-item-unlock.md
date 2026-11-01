@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI / 美术前置
 > **Estimate**: ① 待美术实测(零新图)· ② 1.0 人日(外部出图)· ③ 0.5 人日以内(工程机械)
-> **Manifest Version**: 2026-10-08
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-08
 
 ## Context

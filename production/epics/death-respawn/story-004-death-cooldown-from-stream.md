@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-24(实现轮:谓词 + 装配 + 18 条测试 + 7 轮证伪;**AC-29-08 / AC-29-10 全链仍 BLOCKED-BY-9,不记绿** —— 见 Completion Notes)
 ## Context
 

@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-16
 > **AC-5 状态(2026-10-17 核对订正)**:原记「8/9 passing + 1 PARTIAL」。
 > **可执行的那一半已补测并通过**:`medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_*`

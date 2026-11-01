@@ -5,7 +5,7 @@
 > **Layer**: Foundation(装配面;把 13 的行为输入从硬编码改成注入)
 > **Type**: Integration
 > **Estimate**: 0.5 人日
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-18
 > **Completed**: 2026-10-18
 

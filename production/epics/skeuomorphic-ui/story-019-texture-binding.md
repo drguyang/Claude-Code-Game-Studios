@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 待估(依赖五族切图冻结)
-> **Manifest Version**: 2026-10-03
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-08
 
 ### 📌 M2 形态件解锁三步(2026-10-08 登记 —— 本 story 是 M2 Exit Criteria「4 形态件」的前置咽喉)

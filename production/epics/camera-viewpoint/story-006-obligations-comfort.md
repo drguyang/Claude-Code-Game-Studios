@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Visual/Feel
 > **Estimate**: 6h(+ playtest 场次,不可自动化部分不占实现工时)
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-09-28
 
 ## Context

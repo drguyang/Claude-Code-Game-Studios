@@ -5,7 +5,7 @@
 > **Type**: Integration
 > **Estimate**: M
 > **Status**: Complete
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-24
 > **ADR**: ADR-009 §二(三问判据:候选不进流)· ADR-016 §二(id 空间共用)· ADR-005(主机唯一 Step)
 > **GDD**: design/gdd/disease-simulation.md(F4)· design/gdd/death-and-respawn.md(规则二 · `:90` / `:103`)

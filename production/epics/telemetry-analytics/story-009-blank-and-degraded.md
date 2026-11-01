@@ -5,7 +5,7 @@
 > **Layer**: Foundation(系统分类;实现落边界层)
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-24
 
 ## Context

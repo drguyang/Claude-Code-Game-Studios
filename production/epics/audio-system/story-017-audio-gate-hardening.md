@@ -5,7 +5,7 @@
 > **Layer**: Foundation(加固既有门/工具,**不新增功能**)
 > **Type**: Integration
 > **Estimate**: 待估(小 —— 三处均为既有方法内的局部改动)
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-17
 
 ## Context

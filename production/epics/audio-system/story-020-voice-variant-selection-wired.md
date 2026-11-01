@@ -5,7 +5,7 @@
 > **Layer**: Foundation(44 呈现层的选择语义;不改 sim、不进三流)
 > **Type**: Integration
 > **Estimate**: 1 人日
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-18
 
 ## Context

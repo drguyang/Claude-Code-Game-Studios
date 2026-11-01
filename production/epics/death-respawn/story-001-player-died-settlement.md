@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-15(🔁 2026-10-02 → 2026-10-15,dev-story 开工轮按推荐项 A 刷 —— 死亡层无新增 manifest 规则)
+> **Manifest Version**: 2026-11-02(🔁 2026-10-02 → 2026-10-15,dev-story 开工轮按推荐项 A 刷 —— 死亡层无新增 manifest 规则)
 > **Last Updated**: 2026-11-01
 ## Context
 

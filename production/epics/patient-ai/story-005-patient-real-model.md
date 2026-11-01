@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Visual / Feel
 > **Estimate**: 3.0 人日(承 `production/asset-batches/README.md` G-3 patient-ai 2 项合计)
-> **Manifest Version**: 2026-10-12
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-12
 
 ## Context

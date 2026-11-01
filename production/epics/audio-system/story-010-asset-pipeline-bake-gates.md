@@ -5,7 +5,7 @@
 > **Layer**: Foundation(系统分类;实现落编辑期工具链)
 > **Type**: Integration
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-17
 
 > **✅ 2026-10-17 悬项收口轮(TD-audio-01 补口第二轮)—— 三处落地,一处提交用户裁**

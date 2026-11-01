@@ -5,7 +5,7 @@
 > **Layer**: Foundation(装配面;不新增音频语义)
 > **Type**: Integration
 > **Estimate**: 1.5 人日
-> **Manifest Version**: 2026-10-15
+> **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-10-18
 
 ## Context

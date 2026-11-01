@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-15  <!-- 原 `2026-10-02` —— 2026-10-21 逐件判定：manifest 10-02→10-15 的增量「仅之七/之八两节」(`control-manifest.md:6-9`)，本件两条皆未命中，见头部 §Manifest 判定注。原文保留 -->
+> **Manifest Version**: 2026-11-02  <!-- 原 `2026-10-02` —— 2026-10-21 逐件判定：manifest 10-02→10-15 的增量「仅之七/之八两节」(`control-manifest.md:6-9`)，本件两条皆未命中，见头部 §Manifest 判定注。原文保留 -->
 > **Last Updated**: 2026-10-21
 >
 > 🔁 **2026-10-21 `Manifest Version` 逐件判定(sprint-17 §偏离登记 ② 要求,非预改)**:

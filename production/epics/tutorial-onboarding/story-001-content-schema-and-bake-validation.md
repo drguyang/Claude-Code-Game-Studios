@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-15  <!-- 原 `2026-10-02` —— 2026-10-21 /dev-story Phase 2 逐件判定取 [A]（升级并按现行规则实施）；原文保留 -->
+> **Manifest Version**: 2026-11-02  <!-- 原 `2026-10-02` —— 2026-10-21 /dev-story Phase 2 逐件判定取 [A]（升级并按现行规则实施）；原文保留 -->
 > **Last Updated**: 2026-10-21
 
 ## Context
