@@ -191,7 +191,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 |---|---|---|---|---|
 | **S23-7** | `emergency-procedures/010` 档位意图生产接线(`Treatment`/`Explore` 必发)+ 退役 `ExploreCount` 假绿载体 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(AC-10-11 跳过半按裁定永久 `NOT-RUN`;S10-09 真机走查 `NOT-RUN`) |
 | **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
-| **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Ready ⬜** | 计划外追加 · **本批唯一未开工件**(§八 的 S23-7 / S23-8 已收口)。依赖 S23-7 的 `CameraRig.Tick` 接线才可观测 |
+| **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证 + `TR-camera-007` 双向登记;S29-09 真机走查 `NOT-RUN`)。证伪轮抓出并修掉了 S29-06 的 F1 型假绿 |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -223,9 +223,22 @@ EditMode `6500 / 6463 / 0 / 0 / 37` · PlayMode `279 / 275 / 0 / 2 / 2`
 ⚠️ **本轮被机械门抓红一次**:`AC-1-23` 的 IL 扫描按**调用点所在程序集**判白名单,
 初版把写面放在 `Gameplay.Boot` ⇒ 红。处置 = 下放到 `Gameplay.Presentation`,**未扩白名单**。
 
-⚠️ **§八 里唯一还要动手的是 `S23-9`**(其余两条已 Done)。本 sprint 的 Done 口径对它是:
+**S23-9 收口读数(2026-11-02 · 与 S23-7 / S23-8 同批)**:
+EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
+(基线 = `S23-8` 的 `6500/6463` · `279/275`;等式 `6509 − 6500 = 9 = 9 新 − 0 删` · `281 − 279 = 2`)。
+证伪 **6 条变异各自转红**,SHA-256 逐字节还原 5/5(重跑后)。
+原件 = `production/qa/evidence/impl-story-007-downed-camera-request-2026-11-02.md`。
+🔴 **证伪轮 M5 首轮未转红** —— S29-06 初版直调 `requester.Request(true)` 绕开了 `BootRoot`
+传给呈现器的装配缝 ⇒ 把第 4 实参换成 `null` 仍然全绿(F1 型:自造断言顶替接线语义)。
+已改为走真链(`PlayerDied` 落流 → 呈现器 `Update` → 请求缝 → 相机 `Mode`),复跑 M5 **恰 1 红**。
+⚠️ **跨 epic**:本件为 `a5f766f6` 的相机闭包补上具名载体与 AC 载体(缺口 A),
+并在 `death-respawn/EPIC.md` 登记 6/7 → 7/7。
+
+⚠️ ~~**§八 里唯一还要动手的是 `S23-9`**(其余两条已 Done)。本 sprint 的 Done 口径对它是:
 `Ready` → `In Progress` → `Done`,**判据以 `death-respawn/story-007` 的卡面 AC 为准**
-(9 条,含 `TR-camera-007` 的登记面);收口读数届时另记一段,不改本节既有两条的读数。
+(9 条,含 `TR-camera-007` 的登记面);收口读数届时另记一段,不改本节既有两条的读数。~~
+🔁 **2026-11-02 收口**:`S23-9` 已 `Done ✅`(原文保留)。**判据确以卡面 9 条 AC 为准**,
+读数另记于下方「S23-9 收口读数」段,**未改动本节既有两条的读数**。
 
 **复算(收口时用)**:
 

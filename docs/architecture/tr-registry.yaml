@@ -1683,6 +1683,18 @@
     revised: "2026-09-16"
     note: "**2026-09-16 ADR-020 Amendment B 新立**(由系统 1 首轮 `/design-review` 的第一根因驱动)。`(Vector3 fwd, Vector3 right)` —— `f̂` = 相机前向的**水平投影归一化**,`r̂ := normalize(cross(worldUp, f̂))`;**只读**(系统 1 零写入相机状态 / 变换)· **水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。**单向** —— 1 读 2 的基(上游值),2 读 1 的 `Position`(下游值),两条边方向相反 ⇒ **不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-20-14 / 系统 1 的 `AC-1-31` / `AC-1-35` ③④。**2026-09-16 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,**F-2-2**(`f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)` —— **构造成立,不靠事后归一**)+ **§B 组四条判据** = **`AC-2-07`**(水平化:遍历 `pitch` 采样点,`y ≡ 0`)· **`AC-2-08`**(正交归一:遍历 `yaw` 全周,含回绕点)· **`AC-2-09`**① **装载期断言 `PITCH_MIN < PITCH_MAX < 90°`** ⇒ 系统 1 的 F-1-8 退化分支**正常操作下不可达** · **`AC-2-10`**(一帧内 yaw 更新点 ≤ 1 + 系统 1 写入数 = 0)。⚠️ **`AC-2-09` 同时是 `O-11` 的载体** —— `PITCH_MAX` 的实际取值须回填系统 1 的 `OQ-1-14` 并结案(该义务**未结**)。⚠️ **交付义务 `O-8` 由 2 侧兑现;`O-11` / `O-14` 仍是对 1 的未结义务**。F-2-2 末注:**即使 `PITCH_MAX` 被口径错配为 ≥ 90°,`YawBasis` 照常按式返回、不抛异常** —— 它不知道俯角上限,也不该知道"
 
+  # ⚠️ 2026-11-02 追加(story-007 R-7.4)—— GDD 的 29 两行早已存在(R-2-5,2026-11-01 补),
+  #    但 TR-camera-001…006 无一覆盖它 ⇒ 「要求存在、ID 不存在」。本行补齐。
+  - id: TR-camera-007
+    system: camera
+    gdd: design/gdd/camera-and-viewpoint.md
+    requirement: "29 是 `Downed` 档的请求方:倒下进 `Downed`、醒来 / 退出回 `Explore`;`requesterId` 恒 = 29;`FirstPerson`(VR)在位时不产生该意图"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-11-02"
+    note: "**2026-11-02 story-007(R-7.4)补登** —— 要求本体来自 `design/ux/death-transition-29.md` §9(`:188` 两段式 / `:127` Φ1 / `:129` Φ3 / `:133` VR 全禁)+ `camera-and-viewpoint.md` 的 `R-2-5` 29 两行(2026-11-01 补入),**但当时未登记 TR** ⇒ 无 ID ⇒ 没有 story 能引用它 ⇒ 无载体(2026-11-02 §14 按 epic 扫描查出的**缺口 A**)。实现 = `DownedCameraRequester`(`Gameplay.Presentation/DeathTransition/`),2026-11-02 从 `BootRoot` 的内联 lambda **等价提取**(R-7.2 四行对照);判据 = `AC-2-18①` / `AC-20-15` + story-007 的 S29-01…07。⚠️ **`CameraRig.Tick` 在 2026-11-02 之前零生产调用** ⇒ 本条的意图即使发出也无效果(已由 `emergency-procedures/story-010` 接上)。"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 病人 AI 与行为 (Patient AI and Behavior, #13) — design/gdd/patient-ai.md
   # 2026-09-15 回溯追加(ADR-016 Ordering Note 约定,与 21a / 52 同法)

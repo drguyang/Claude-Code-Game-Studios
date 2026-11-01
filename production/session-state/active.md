@@ -15632,3 +15632,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **Next**:`/code-review` 上述生产文件 → 若通过则无需 `/story-done`(已手工收口,判据见证据件);
   另议 ① `MotorLease` story ② 「该发没发」覆盖矩阵门 ③ 29 侧真机走查(现在才有意义)
 - 证据原件:`production/qa/evidence/impl-story-010-camera-mode-intent-2026-11-02.md`
+
+## Session Extract — /dev-story 2026-11-02(story-007 已收口 · S23-9)
+
+- **Story**:`production/epics/death-respawn/story-007-downed-camera-mode-request.md` ——
+  **Complete ✅ 2026-11-02(COMPLETE WITH NOTES)** · 用户「排进 sprint-23」⇒ `S23-9`
+- **Files changed**:`Gameplay.Presentation/DeathTransition/DownedCameraRequester.cs`(新)·
+  `Gameplay.Boot/BootRoot.cs` · 夹具 2 件(EM 9 测 / PM 2 测)· `tr-registry.yaml` +`traceability-index.md`
+- **Test written**:`Tests/EditMode/DeathRespawn/downed_camera_requester_test.cs`(9)·
+  `Tests/PlayMode/DeathRespawn/downed_camera_wiring_test.cs`(2)
+- **回归**:EditMode `6509/6472/0/0/37` · PlayMode `281/277/0/2/2`(基线 `6500/6463`·`279/275`;
+  等式 `+9` / `+2`,零删除)
+- **🔴 本轮关键**:证伪 M5 首轮**未转红** ⇒ S29-06 初版是 F1 型假绿(直调请求器,绕开装配缝)。
+  已改为走真链(`PlayerDied` 落流 → 呈现器 → 请求缝 → 真相机 `Mode`),复跑 M5 恰 1 红。
+- **未闭**:S29-09 真机走查 `NOT-RUN`;Φ3 床格视角归机位轮;VR 表现归 P1a;
+  「该发没发」仍无系统性覆盖矩阵门。
+- 证据原件:`production/qa/evidence/impl-story-007-downed-camera-request-2026-11-02.md`
+- **Next**:`/code-review` 上述生产文件;`sprint-23 §八` 三条追加件至此全部 Done

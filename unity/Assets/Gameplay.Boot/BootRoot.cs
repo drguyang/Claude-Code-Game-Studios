@@ -64,6 +64,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CompositionRootServices _services;
         private PlayerController _player;
         private CameraRig _cameraRig;
+
+        /// <summary>29 的档位请求器(story-007;装配序 4.3b 构造)。
+        /// <para>⚠️ 保留字段引用是**有意**的:它是「这段接线存在」的唯一观测面 ——
+        /// PlayMode 夹具反射它,断言生产启动序真的把机位绑了上去(S29-06)。
+        /// 不留引用 ⇒ 删掉绑定后没有任何东西可查。</para></summary>
+        private DaYiJingCheng.Gameplay.Presentation.DeathTransition.DownedCameraRequester
+            _downedCameraRequester;
         private SkeuoRuntimeDriver _uiDriver;
         /// <summary>存档位载入路由(42 确认动作 → <c>LoadSequencer</c>;启动序内装配)。</summary>
         private SaveSlotCommandRouter _saveSlotCommands;
@@ -550,29 +557,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 在 Presenter 的**下一帧 Update** 里才求值 ⇒ 直取 `_services.Stream` 会 NRE
             // (实测 94 条 PlayMode 红,堆栈 BootRoot:540 → Presenter.Update:58)。
             // ⇒ 取值处判空:服务袋已拆 ⇒ 事件源为 null ⇒ 呈现器按「无数据源」停更。
+            // ⚠️ 装配在这里而非 `CompositionRoot`:机位是 `BootRoot` 私有字段(不在服务袋)。
+            // ⚠️ 用 `Func` 懒求值 + 判空:`_cameraRig` 在拆卸段会被置 null,
+            //    而本闭包可能在下一帧才求值(2026-11-01 的 94 条 PlayMode 红即此形态)。
+            _downedCameraRequester = new DaYiJingCheng.Gameplay.Presentation.DeathTransition
+                .DownedCameraRequester(() => _cameraRig);
+
             deathPresenter.Bind(
                 () => _services != null ? _services.Stream.Events : null,
                 _services.Decoder,
                 () => actorId,
                 // ── 相机两段式(spec §9「相机(Φ1→Φ2)」· 2026-11-01)────────────────
                 // 呈现器只发**意图**,不持相机(ADR-020 §五「相机只读不持状态」)。
-                // `_cameraRig` 是 BootRoot 私有字段(不在服务袋)⇒ 此处用闭包直引。
-                // ⚠️ **null 守卫**:`_cameraRig` 在启动序第 5 步建(早于本段),但拆卸段
-                //    可能已置 null ⇒ 闭包内判空,呈现层缺席不抛。
-                // ⚠️ **`FirstPerson` 在位时不请求**(spec §9「VR 变体全禁」+「平面两段式
-                //    不得平移到 VR」)—— 由 `CameraModeMachine` 的 VR 早退路径丢弃平面档请求,
-                //    此处**额外**显式跳过,使「VR 下不产生 Downed 意图」在意图层就可判。
-                downed =>
-                {
-                    var rig = _cameraRig;
-                    if (rig == null) return;
-                    if (rig.Mode == CameraMode.FirstPerson) return;   // VR 全禁
-                    // ⚠️ **必须传 requesterId**(2026-11-01 甲案):甲案的「同一请求方可降档」
-                    //    判据靠它认出「谁开的这个档」。29 = 死亡过渡(本呈现器的归属系统号)。
-                    //    不传 ⇒ `-1` ⇒ 退出语义静默失效(相机卡在倒下档)。
-                    rig.SetMode(downed ? CameraMode.Downed : CameraMode.Explore,
-                                requesterId: 29);
-                });
+                // 🔁 **2026-11-02(story-007 R-7.1)**:原内联 lambda 提取为具名载体
+                //    `DownedCameraRequester` —— 逻辑**逐条等价**(R-7.2 的四行对照),
+                //    提取的理由是「没有任何东西能指向那段 lambda」:本 epic 内零 story 提它,
+                //    改坏接线**没有一条 AC 会红**(缺口 A)。
+                _downedCameraRequester.Request);
             _services.DeathPresenter = deathPresenter;   // 供测试与后续轮次定位(唯一实例)
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(
                 deathPresenterGo, gameObject.scene);

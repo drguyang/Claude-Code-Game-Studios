@@ -1,12 +1,14 @@
 # Story 007: 29 的档位请求生产载体 —— `Downed` / `Explore`(requesterId 29)与 `TR-camera-007` 补登记
 
 > **Epic**: 死亡与复活
-> **Status**: **Ready ⬜**(2026-11-02 立件 —— 规范已写定,**实现未开工**;§Acceptance Criteria 全部未勾,禁借绿)
+> **Status**: **Complete ✅ 2026-11-02(COMPLETE WITH NOTES)** —— 9 条 AC 全证;
+> ⚠️ 唯一未闭 = **S29-09 真机走查 `NOT-RUN`**(`-batchmode -nographics` 结构性不可判),
+> **不记绿**。证伪轮抓出并修掉了 S29-06 的 F1 型假绿(见 §证伪轮 M5)。
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 0.5–1 人日(约 4–8h)
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-02
+> **Last Updated**: 2026-11-02(实现已落,见 §Completion Notes)
 
 > **本 story 的由来(一句话)**:`DeathTransitionPresenter` → `BootRoot` 的**倒相机闭包**
 > 于 `a5f766f6`(2026-11-01)写进了 `BootRoot.cs:556-575`,而 **`death-respawn` 内没有任何 story
@@ -169,21 +171,21 @@ public sealed class DownedCameraRequester
 
 ## Acceptance Criteria
 
-- [ ] **S29-01**(`[A]` · BLOCKING)`Request(downed: true)` ⇒ 相机**恰收到一条** `(Downed, requesterId: 29)`
-- [ ] **S29-02**(`[A]` · BLOCKING)`Request(downed: false)` ⇒ **恰一条** `(Explore, 29)`
-- [ ] **S29-03**(`[A]` · BLOCKING)**VR 全禁** —— `rig.Mode == FirstPerson` 时两种入参**各 ⇒ 零请求**
+- [x] **S29-01**(`[A]` · BLOCKING)`Request(downed: true)` ⇒ 相机**恰收到一条** `(Downed, requesterId: 29)`
+- [x] **S29-02**(`[A]` · BLOCKING)`Request(downed: false)` ⇒ **恰一条** `(Explore, 29)`
+- [x] **S29-03**(`[A]` · BLOCKING)**VR 全禁** —— `rig.Mode == FirstPerson` 时两种入参**各 ⇒ 零请求**
       (spec §9「平面两段式不得平移到 VR」)
-- [ ] **S29-04**(`[A]` · BLOCKING)**机位缺席** —— 访问器返回 null ⇒ 零请求、不抛
+- [x] **S29-04**(`[A]` · BLOCKING)**机位缺席** —— 访问器返回 null ⇒ 零请求、不抛
       (拆卸段 / 启动序早期)
-- [ ] **S29-05**(`[A]` · BLOCKING)**系统号单一出处** —— `DownedCameraRequester.RequesterId == 29` 且
+- [x] **S29-05**(`[A]` · BLOCKING)**系统号单一出处** —— `DownedCameraRequester.RequesterId == 29` 且
       `CameraSetModeRequesterGate` 全树**零违例**(新调用点接收者不是豁免名 `_modeMachine`)
-- [ ] **S29-06**(`[A]` · BLOCKING)**生产启动序真的接上了** —— 走真 `BootRoot` 后,
+- [x] **S29-06**(`[A]` · BLOCKING)**生产启动序真的接上了** —— 走真 `BootRoot` 后,
       该请求器**存在且已绑定机位访问器**(可观测);删 `BootRoot` 的绑定 ⇒ 本条红
-- [ ] **S29-07**(`[A]` · BLOCKING)**边沿不重复** —— 连续多帧 `downed == true` ⇒ 只登记**一条**请求
+- [x] **S29-07**(`[A]` · BLOCKING)**边沿不重复** —— 连续多帧 `downed == true` ⇒ 只登记**一条**请求
       (呈现器的 `_downedRequested`;夹具走真启动序 + 真流,不重实现边沿)
-- [ ] **S29-08**(`[I]` · BLOCKING)**登记面已补** —— `tr-registry.yaml` 有 `TR-camera-007` 且
+- [x] **S29-08**(`[I]` · BLOCKING)**登记面已补** —— `tr-registry.yaml` 有 `TR-camera-007` 且
       `traceability-index.md` 有对应行(逐字判据:`grep -c "TR-camera-007"` 在两文件中各 ≥ 1)
-- [ ] **S29-09**(`[L]` · ADVISORY)真机走查:倒下时相机的**两段式节奏**与 `AC-29-11` 合判 ——
+- [ ] **S29-09**(🔴 **仍 `NOT-RUN` —— 真机走查未做,不得借绿**)(`[L]` · ADVISORY)真机走查:倒下时相机的**两段式节奏**与 `AC-29-11` 合判 ——
       `-batchmode -nographics` 结构性不可判 ⇒ **`NOT-RUN`**,不得借绿
 
 ---
@@ -218,6 +220,54 @@ public sealed class DownedCameraRequester
 **回归基线(立件时读数,非收口读数)**:
 EditMode `6500 / 6463 / 0 / 0 / 37` · PlayMode `279 / 275 / 0 / 2 / 2`
 `@ 2026-11-02 03:1x CST` · `S23-8` · `5ed75004`。收口须重跑。
+
+**收口读数(2026-11-02 · `S23-9` · `fe50da44` + 工作树)**:
+EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
+等式:`6509 − 6500 = 9 = 9 新 − 0 删` · `281 − 279 = 2 = 2 新 − 0 删`。
+PlayMode `exit=2` 伴 `failed=0`,系既有 2 条 `inconclusive`(与基线同形,非新失败)。
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 -c "
+import xml.etree.ElementTree as ET
+for f in ['unity/Logs/s29-em-full.xml','unity/Logs/s29-pm-full.xml']:
+    r=ET.parse(f).getroot(); print(f, r.attrib['total'], r.attrib['passed'], r.attrib['failed'], r.attrib['inconclusive'], r.attrib['skipped'])
+"
+```
+
+**AC → 载体映射**:
+
+| AC | 载体 |
+|---|---|
+| S29-01 / 02 / 03 / 04 | `EditMode/DeathRespawn/downed_camera_requester_test.cs`(间谍 `ICameraRig` 记请求序列) |
+| S29-05 | 同文件(`RequesterId == 29` + `CameraSetModeRequesterGate.RunAll(".")` 零违例) |
+| S29-06 | `PlayMode/DeathRespawn/downed_camera_wiring_test.cs`(**真启动序 + 真 `PlayerDied` 落流 → 呈现器 → 请求缝 → 真相机 `Mode == Downed`**) |
+| S29-07 | 同 PlayMode 文件(独立呈现器 + 合成事件,120 帧只登记 1 次 `true`) |
+| S29-08 | `EditMode/DeathRespawn/downed_camera_requester_test.cs`(两份登记文件各 ≥ 1 处命中) |
+| S29-09 | 🔴 **`NOT-RUN`** —— 无载体,真机走查未做 |
+
+**证伪轮(6 条 · 改→跑→还原同一命令内 · SHA-256 逐字节还原 5/5)**:
+
+| 变异 | 打什么 | 实测红 | 形态 |
+|---|---|---|---|
+| **M1** | `downed ? Downed : Explore` 两档对调 | **4 红**:S29-01、S29-02×2、S29-03_exploreInPlace | **超集** |
+| **M2** | 删 `FirstPerson` 早退 | **1 红**:S29-03 | exact |
+| **M3** | 删 `rig == null` 守卫 | **1 红**:S29-04(改为抛) | exact |
+| **M4** | `RequesterId` → `-1` | **5 红**:S29-01、S29-02×2、S29-03_exploreInPlace、S29-05 | **超集**,靶点命中 |
+| **M5** | `BootRoot` 传给呈现器的第 4 实参 → `null` | **1 红**:S29-06 | exact(见下) |
+| **M6** | 呈现器删 `_downedRequested` 边沿判据 | **1 红**:S29-07 | exact |
+
+**🔴 M5 首轮未转红 —— 这是本轮抓到的最有价值的一条。**
+初版 S29-06 的做法是「反射拿到 `_downedCameraRequester` → 直接 `Request(true)` → 断相机进 `Downed`」。
+把装配实参换成 `null`(**即根本没接线**)后它**仍然全绿**:请求器对象还在,直调当然有效。
+⇒ 它测的是「对象存在」,不是「接线存在」—— F1 型假绿(自造断言顶替被测语义)。
+**修法**:S29-06 改走真链 —— `PlayerDied` 落**真流** → 呈现器 `Update` →
+`BootRoot` 注入的请求缝 → 请求器 → 真相机 `Mode`;装配为 `null` ⇒ 缝为 null ⇒ 零请求 ⇒ 红。
+修完复跑 M5 **恰 1 红**。
+
+**M1 / M4 是超集不是 exact** —— 耦合已查清、如实登记:`S29-02_bothDirections` 与
+`S29-03_exploreInPlace` 都顺带断言了「方向/档位本身正确」,故档位对调与系统号错都会带上它们。
+它们对各自属性确有判别力,**但不得**记成「单属性判别」。
 
 ---
 
@@ -275,3 +325,53 @@ EditMode `6500 / 6463 / 0 / 0 / 37` · PlayMode `279 / 275 / 0 / 2 / 2`
 **立件(2026-11-02)** —— 由用户指令「立 29 的档位请求 story」建立。
 本卡**无待决分叉**:R-7.1 的提取是**等价重构**(R-7.2 逐条对照),R-7.4 的登记是补缺。
 若实现轮发现提取会**改变行为**,须停下另立卡,不得在本卡内改 29 的相位语义。
+
+**开工(2026-11-02)** —— 用户指令「开工」;同批已由用户指令「排进 sprint-23」记作 `S23-9`。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-02
+**Criteria**: 9/9 已断言 + 1 条 `NOT-RUN`(S29-09 真机走查)
+**Deviations**: 无(实现严格落在 In Scope 五项内;`DeathTransitionPresenter` 的相位逻辑**未被改动**,
+只被夹具驱动 —— 承 R-7.3)
+**Test Evidence**:
+- L1 `unity/Assets/Tests/EditMode/DeathRespawn/downed_camera_requester_test.cs`(9 条)
+- L2 `unity/Assets/Tests/PlayMode/DeathRespawn/downed_camera_wiring_test.cs`(2 条)
+- 原件 `production/qa/evidence/impl-story-007-downed-camera-request-2026-11-02.md`
+**Code Review**: `lean` 模式 —— 生产改动 3 件(`DownedCameraRequester.cs` 新、
+`BootRoot.cs` 两处、两份夹具),走查结论见证据件 §四
+
+### 交付物
+
+| 文件 | 变更 |
+|---|---|
+| `Gameplay.Presentation/DeathTransition/DownedCameraRequester.cs` | **新** —— `a5f766f6` 的内联闭包等价提取(R-7.2 四行对照逐条保留) |
+| `Gameplay.Boot/BootRoot.cs` | 构造具名请求器 + 作为 `Bind` 第 4 实参;新增 `_downedCameraRequester` 字段(观测面) |
+| `Tests/EditMode/DeathRespawn/downed_camera_requester_test.cs` | **新**,9 测 |
+| `Tests/PlayMode/DeathRespawn/downed_camera_wiring_test.cs` | **新**,2 测 |
+| `docs/architecture/tr-registry.yaml` | 追加 `TR-camera-007`(`status: covered`;总数 503) |
+| `docs/architecture/traceability-index.md` | 追加对应行;camera 行 6/6 → **7/7**;§8 13 → **14 条**;合计 502/345 → **503/346** |
+
+### 实现期发现与就地处置
+
+1. **首轮编译红(CS1026)**:初版把 `_downedCameraRequester = new ...` 写进了
+   `deathPresenter.Bind(...)` 的**参数表内** —— 参数表里不能有赋值语句。
+   处置 = 把构造提到 `Bind` 之前。**未改任何语义**。
+2. **🔴 S29-06 初版是 F1 型假绿**(详见 §Test Evidence 的 M5 段):
+   直调请求器绕开了 `BootRoot` 的装配缝 ⇒ M5 打不动它。已改为走真链,复跑 M5 恰 1 红。
+   **这是本轮唯一一次「先写错了判据、再由证伪轮抓住」** —— 若跳过证伪轮,这条 AC 会以绿留下却什么都没测。
+3. **PlayMode 清场纪律**:本件沿用 `death_transition_playmode_test.cs` 的清理次序
+   (先卸场景 → 拆 `BootRoot` 层级 → `yield` 让 Destroy 生效 → 再拆预摆),
+   否则同帧两个 `AudioListener` 并存会让 `AC-20-10` 的断言洪泛。
+
+### 未闭项(禁借绿)
+
+1. **S29-09 真机走查 `NOT-RUN`** —— 两段式节奏与 `AC-29-11` 合判需要真机,
+   `-batchmode -nographics` 结构性不可判。本卡**不记绿**。
+2. **Φ3 床格视角(第二段)仍空** —— 归机位轮(承 Out of Scope)。
+3. **VR 两段式的实际表现** —— P1a;本卡只保证「VR 在位时 29 不产生意图」。
+4. **「该发没发」的覆盖矩阵门今日仍无** —— `CameraSetModeRequesterGate` 只判 arity / 字面 `-1`,
+   判不出「某条该发的意图没发」。本卡与 `story-010` 都在各自夹具里用**正控**兜住自己的那一条,
+   但那不是系统性的覆盖门。

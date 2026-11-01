@@ -216,7 +216,7 @@
 | `skill-system.md` | 30 技能与熟练度 | 8 | **8** | 0 | 0 |
 | `game-concept.md` | 全案 | 8 | 5 | 0 | **1**(另 **◆2** —— 2026-09-21 `no-adr-by-design`) |
 | `design/gdd/player-controller-and-movement.md` | **1 玩家控制器与移动** | **7** | **6** | **1** | 0 |
-| `design/gdd/camera-and-viewpoint.md` | **2 摄像机与视角** | **6** | **6** | 0 | 0 |
+| `design/gdd/camera-and-viewpoint.md` | **2 摄像机与视角** | **7** | **7** | 0 | 0 |
 | `patient-ai.md` | 13 病人 AI 与行为 | 24 | **21** | **0** | **3** |
 | `design/gdd/world-and-ecozones.md` | **6 世界与生态区** | **10** | **10** | 0 | 0 |
 | `input-system.md` | 3 输入与设备 | **21** | **14** | **3** | **1**(另 **◆3** —— 2026-09-23 Epic-3 对症复核批 `017/019/021`) |
@@ -241,9 +241,19 @@
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **4** | **1** | **3** |
-| **合计** | | **502** | **345** | **72** | **68**(另 **◆17** = `no-adr-by-design`;2026-09-23 Blocking 清账批 2 条翻 ✅(`TR-disease-022`/`TR-disease-002`)+ 1 条转 ◆(`TR-diag-013`);同日 ADR-001 窄修订 1 条翻 ✅(`TR-audio-012`)+ ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆;2026-10-07 story-007 新增 `TR-disease-023` + `TR-prescription-019` gap→covered;2026-10-09 ADR-030 新增 `TR-disease-024` covered;**2026-10-26 S20-9 `TR-processing-015` partial→covered**(`OQ-18-8` 已于 2026-10-06 裁定,原「等 24」为白等))|
+| **合计** | | **503** | **346** | **72** | **68**(另 **◆17** = `no-adr-by-design`;2026-09-23 Blocking 清账批 2 条翻 ✅(`TR-disease-022`/`TR-disease-002`)+ 1 条转 ◆(`TR-diag-013`);同日 ADR-001 窄修订 1 条翻 ✅(`TR-audio-012`)+ ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆;2026-10-07 story-007 新增 `TR-disease-023` + `TR-prescription-019` gap→covered;2026-10-09 ADR-030 新增 `TR-disease-024` covered;**2026-10-26 S20-9 `TR-processing-015` partial→covered**(`OQ-18-8` 已于 2026-10-06 裁定,原「等 24」为白等))|
 
-> **2026-10-26 S20-9 收口轮(本次)**:`TR-processing-015` **⚠️ → ✅**。ID 不增不减(仍 **502**)。
+> **2026-11-02 story-007 补登(本次)**:新增 `TR-camera-007`(29 的档位请求)。**ID +1**
+> ⇒ §8 表头 13 → **14 条**;汇总 `camera-and-viewpoint.md` 行 6/6 → **7/7**;合计 502/345 → **503/346**。
+> ⚠️ 本表**在此之前就不自洽**(见下方「三处口径互不一致」),本次**只动这四处**,不代偿旧差。
+> 复算(结论以 registry `status:` 字段为准,不照抄本表算术):
+> ```bash
+> cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+> python3 -c "import yaml;d=yaml.safe_load(open('docs/architecture/tr-registry.yaml'));print(len([e for e in d if isinstance(e,dict) and 'id' in e]))"   # 期望 503
+> grep -c "TR-camera-007" docs/architecture/traceability-index.md   # 期望 1
+> ```
+>
+> **2026-10-26 S20-9 收口轮**:`TR-processing-015` **⚠️ → ✅**。ID 不增不减(仍 **502**)。
 > **这一格的可复算命令 + 其实跑输出**(结论以 registry `status:` 字段计数为准,不照抄本表算术):
 > ```bash
 > python3 -c "import yaml,collections;d=yaml.safe_load(open('docs/architecture/tr-registry.yaml',encoding='utf-8'));print(len(d),dict(collections.Counter(x.get('status') for x in d)))"
@@ -591,7 +601,7 @@
 | TR-concept-007 | 急救动作输入延迟 < 50 ms | ADR-011 | ✅ 直读通道 + **硬件实测**(**P0 = K&M / Gamepad**;VR 归 P1b,不入 P0 判据 —— 2026-09-15 `/consistency-check` 订正,原写「三端实测」);联机判定归表现层 |
 | TR-concept-008 | 拟物 UI 须同时支持键鼠与手柄焦点导航 | ADR-011 + ADR-013 | ✅ 接口归 ADR-011;呈现归 ADR-013(UI Toolkit 官方桥 + 焦点单栈门) |
 
-## 8. 玩家移动与摄像机 `design/gdd/systems-index.md`(#1 / #2)| 13 条
+## 8. 玩家移动与摄像机 `design/gdd/systems-index.md`(#1 / #2)| 14 条
 
 > ✅ **1 与 2 均已有独立 GDD**(`player-controller-and-movement.md` / `camera-and-viewpoint.md`,均 2026-09-16)——
 > 🔴 **本节的「回溯核对」义务已履行**:2 的 GDD 撰写时已回扫 `TR-camera-001…006` 并逐条落点;
@@ -615,6 +625,7 @@
 | TR-camera-004 | 镜头效果归属 + VR 禁用清单 | ADR-020 | ✅ §六;归属 = 8 语义 + 2 实现;**VR 全禁**;不得用于报状态 |
 | TR-camera-005 | 44 的 `AudioListener` 单挂点落定 | ADR-020 | ✅ §七;结清 `adr-018:295` 留白(平面主相机 / VR 头显);AC-20-10 |
 | TR-camera-006 | **`ICameraRig.YawBasis`** —— 水平化正交基,只读、单向(供系统 1 的 F-1-8) | ADR-020 | ⚠️ **Amendment B 新立**(系统 1 的移动方向依赖此接口);2 **不引用** 1 ⇒ 两条边方向相反不成环。判据 = AC-20-14 / `AC-1-31` / `AC-1-35` ③④。✅ **`partial → covered`(2026-09-16)** —— `camera-and-viewpoint.md` 落盘:F-2-2(`f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)`,**构造成立、不靠事后归一**)+ §B 组 `AC-2-07`(水平化)/ `AC-2-08`(正交归一)/ `AC-2-09`(`PITCH_MAX < 90°`)/ `AC-2-10`(帧内恒定);`O-8` 结清。⚠️ **残留 `O-11` / `O-14`** —— 不阻塞 covered |
+| TR-camera-007 | **29 的档位请求** —— 倒下进 `Downed`、醒来/退出回 `Explore`;`requesterId` 恒 = 29;`FirstPerson` 在位不产生意图 | ADR-020 | ⚠️ **2026-11-02 story-007(R-7.4)补登** —— 要求本体早于本行:`death-transition-29.md` §9 + `camera-and-viewpoint.md` 的 `R-2-5` 29 两行(2026-11-01 补入),**但当时未登记 TR** ⇒ 无 ID ⇒ 无载体(缺口 A)。实现 = `DownedCameraRequester`(从 `BootRoot` 内联 lambda 等价提取);判据 = `AC-2-18①` / `AC-20-15` + story-007 的 S29-01…07。✅ `covered`(2026-11-02) |
 
 ## 9. 病人 AI 与行为 `design/gdd/patient-ai.md`(#13)| 24 条
 
