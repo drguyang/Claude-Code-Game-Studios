@@ -82,6 +82,15 @@
       "occupancy_local": [[0, 0, 0]],
       "cost": 1,
       "refundable": false
+    },
+    {
+      "module_id": 10,
+      "module_type": "Tent",
+      "furn_type": null,
+      "build_item_key": 8,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 5,
+      "refundable": true
     }
   ]
 }

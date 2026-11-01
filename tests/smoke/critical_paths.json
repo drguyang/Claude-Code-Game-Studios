@@ -114,8 +114,13 @@
       "id": 13,
       "group": "B",
       "title": "建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架",
-      "status": "none",
-      "reason": "「模块对齐整数格」**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);但「帐篷(P0 唯一新建例外)可放置」**是功能未实现,不是缺夹具** —— 全仓 `grep -rni \"tent\\b|帐篷\" unity/Assets --include=*.cs` **零命中**(仅 intent 假阳性),`assets/data/*.json` 亦无帐篷条目。GDD 有裁定(`game-concept.md:698`),代码零实现 ⇒ 本条要等 23 的帐篷实现轮"
+      "status": "test",
+      "check": [
+        "DaYiJingCheng.Tests.ModularBuilding.PlaceableCheckerTest.test_rotation_90_swapsXY",
+        "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_shippedData_hasTentSlotAndModule",
+        "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_tentPlacement_writesExactlyOneStructurePlaced"
+      ],
+      "reason": "2026-11-01 立载体(S22-8 甲案)。原 reason 原文保留在下方,先订正它的一处措辞:原文「「模块对齐整数格」**有载体**」指的是 `BuildSlotCatalog` 用 `WorldPos` 这**一句话**,**没有指名任何一条测试** —— 而本条判据要的是可执行载体,故当时整条记 `none` 是对的。现补齐两半:① 整数格 / 整数旋转 = `PlaceableCheckerTest.test_rotation_90_swapsXY`(`ComputeOccupiedCells` 全整数,禁浮点);② 帐篷 = `SlotType.Tent = 7` + `build_modules.json` 第 10 条 + `world_buildslots.json` 骨架外 1 格,判据走**真烘焙产物**(3 条:出货数据恰 1 槽 1 模块 / 放置 ⇒ 恰一条 `StructurePlaced` / 非 Tent 槽 ⇒ `TypeMismatch` 且零 Append)。⚠️ 同批连带实况:枚举扩员触发**两条既有哨兵**转红(`slot_type_vocabulary_test` 的七对字面量、`world_buildslots_codec_validation_test` 的掩码上界 127→255),已按「契约演进」逐条复核订正,不是改期望值凑绿。原 reason:「「模块对齐整数格」**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);但「帐篷(P0 唯一新建例外)可放置」**是功能未实现,不是缺夹具** —— 全仓 `grep -rni \"tent\\b|帐篷\" unity/Assets --include=*.cs` **零命中**(仅 intent 假阳性),`assets/data/*.json` 亦无帐篷条目。GDD 有裁定(`game-concept.md:698`),代码零实现 ⇒ 本条要等 23 的帐篷实现轮"
     },
     {
       "id": 14,

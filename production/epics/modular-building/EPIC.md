@@ -67,10 +67,21 @@ This epic is complete when:
 | 005 | 朝向整数旋转 + StructureModified | Logic | In Review — `ModifiableCheckerTest` 5/5 | ADR-006/009 |
 | 006 | 拆除、返还舍入例外与 P0 范围门 | Logic | In Review — `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5 | ADR-006/015/022 |
 | 007 | 结构载荷接线 —— `Structure*` 改走 `IPayloadEncoder`(闭合 B4) | Logic | **Complete ✅ 2026-10-02**(12/12) | ADR-029 + ADR-015 |
+| 008 | 帐篷 —— P0 唯一新建例外(`SlotType.Tent` + 数据 + 可放置判据) | Logic | **Complete ✅ 2026-11-01**(`TentPlacementTest` 3/3;证伪 4 变异全红) | ADR-015/009/022/024 |
+
+> 🔁 **2026-11-01 第 8 张 story(用户裁定「甲案,落地」)** —— 本 epic 于 2026-10-03 已转
+> Complete(7/7),story-008 是**转 Complete 之后追加的内容卡**。追加理由不是「漏了」:
+> `game-concept.md:697-698`(2026-09-20 改判「P0 也必须能新建」)与 `modular-building.md:246-257`
+> 规则六**早就写死了形态**,而 `story-001` 实现注 #3 / `story-006` 实现注 #4 只**提过一句**
+> 「帐篷例外用骨架外预置 tent 槽承载」—— **没有任何 AC 认领,数据也从未落盘**。
+> 这正是本项目登记过的「**自述顶替门**」形态,故补 AC 化的第 8 张卡,而不是再记一句自述。
+> ⚠️ **不改 epic 的判据面**:story-008 无新 ADR、无新 Kind、无新写者,复用五条件与 `StructureWriter`。
 
 ## Epic Status
 
 **Complete ✅ 2026-10-03**(7/7 story 已实现;两轮评审判据缺陷全闭)。
+🔁 **2026-11-01 追加 story-008(帐篷)** —— 计数 **7/7 → 8/8**,见 §Stories 表下方注;
+本注**不改**上面的 2026-10-03 收口结论,也不重跑当时的证据(旧数字保留为历史快照)。
 
 **Test Evidence(2026-10-03 batchmode 实测)**:ModularBuilding **72/72**
 **= 72 Passed + 0 Failed + 0 Skipped + 0 Inconclusive**,
@@ -105,6 +116,9 @@ This epic is complete when:
 - ⏸️ **AC-23-09 跨平台签名半边**:按 ADR-012 现状处置 —— 本仓先钉 **Mono 往返等值**(已绿),
   **跨平台黄金夹具矩阵未建**,落地后补签,**禁单平台独签**。
 - ⏸️ **`TR-building-004` / `-009` / `-010` 三条 `⚠️ partial`**:归数值轮 / P1a,非本 epic 阻塞项。
+- ⏸️ **story-008 帐篷的 `cost = 5` / `build_item_key = 8`(木柱)是临时值**:归**数值轮**,
+  与 `R` / `BUILD_TIME` / 其余目录成本同批定稿。**不登记为 TD** —— 理由是本 epic 的既有口径
+  (story-001…007 的目录成本同样未定稿,未入债册),此处**具名**以免被当成已定值。
 - ⏸️ **story-004 `World.unity` 构建期扫描**(ADR-023 三场景制):场景文件尚不存在,重开条件 = 该场景创建时同批补。
   **✅ 2026-10-10 批次 F 回填**:`World.unity` 已于 2026-10-09 创建(阶段 1 装配轮)⇒ 重开条件**已触发**;
   零 gameplay 构建期扫描**尚未建**(同 `active.md` 阶段 1 登记「零 gameplay 构建期扫描(→S2)」)⇒ 仍开,归 S2 批。

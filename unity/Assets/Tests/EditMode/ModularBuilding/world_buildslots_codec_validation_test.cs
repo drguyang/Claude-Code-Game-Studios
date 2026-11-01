@@ -43,22 +43,35 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_worldBuildSlots_codec_allowedMaskNegative_isRejected()
             => AssertRejected(BuildCooked(allowedMask: -1, bakedInitial: 0), "allowed_mask");
 
-        /// <summary>`allowed_mask = 128`(超出现有最高位 `Shell = 1 &lt;&lt; 6 = 64`)⇒ 拒。</summary>
-        /// <remarks><b>判别力</b>:删掉上界比较(只留 `&lt;= 0`)⇒ 本条红。</remarks>
+        /// <summary>`allowed_mask = 256`(超出现有最高位 `Tent = 1 &lt;&lt; 7 = 128`)⇒ 拒。</summary>
+        /// <remarks><b>判别力</b>:删掉上界比较(只留 `&lt;= 0`)⇒ 本条红。
+        /// <para>🔁 2026-11-01(S22-8 甲案):原值是 `128`(当时 = 超 Shell 位)。`SlotType.Tent = 7`
+        /// 落地后 `128` 变成**合法位**,本条随即转红 —— 上移到 `256` 才仍是「越界位」。
+        /// 这次改的是**负载**,不是期望:越界语义没变。</para></remarks>
         [Test]
         public void test_worldBuildSlots_codec_allowedMaskBeyondEnumBits_isRejected()
-            => AssertRejected(BuildCooked(allowedMask: 128, bakedInitial: 0), "allowed_mask");
+            => AssertRejected(BuildCooked(allowedMask: 256, bakedInitial: 0), "allowed_mask");
 
-        /// <summary>上界本身(`127`,含 Shell 位)⇒ **放行**(证明上一条不是「值域恒拒」)。</summary>
+        /// <summary>上界本身(`255`,含 Tent 位 `128`)⇒ **放行**(证明上一条不是「值域恒拒」)。</summary>
         [Test]
         public void test_worldBuildSlots_codec_allowedMaskAtCeiling_isAccepted()
         {
             WorldBuildSlotsDataSet data =
-                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 127, bakedInitial: 0));
+                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 255, bakedInitial: 0));
 
             Assert.That(data.Rows.Count, Is.EqualTo(1));
-            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(127), "掩码须原样保留,不做裁剪");
+            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(255), "掩码须原样保留,不做裁剪");
             Assert.That(data.Rows[0].BakedInitial, Is.False);
+        }
+
+        /// <summary>单个合法位(`128` = Tent,P0 唯一新建例外)⇒ 放行(新位的正向半边)。</summary>
+        [Test]
+        public void test_worldBuildSlots_codec_tentBitMask_isAccepted()
+        {
+            WorldBuildSlotsDataSet data =
+                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 128, bakedInitial: 0));
+
+            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(128), "`1 << 7` = 128");
         }
 
         /// <summary>单个合法位(`64` = Shell)⇒ 放行(逐位的正向半边)。</summary>
@@ -73,15 +86,20 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         /// <summary>
-        /// 读方的掩码上界**由 `SlotType` 派生**,当前 = `127`(`1 &lt;&lt; 7) - 1`)。
+        /// 读方的掩码上界**由 `SlotType` 派生**,当前 = `255`(`1 &lt;&lt; 8) - 1`)。
         /// </summary>
-        /// <remarks>⚠️ 本条红**不一定是缺陷**:它更可能是「枚举长出了第 7 个类型」——
-        /// 那时须同时确认写方契约与头槽 schema 版本是否同步演进,而不是把期望值一改了事。</remarks>
+        /// <remarks>⚠️ 本条红**不一定是缺陷**:它更可能是「枚举长出了新类型」——
+        /// 那时须同时确认写方契约与头槽 schema 版本是否同步演进,而不是把期望值一改了事。
+        /// <para>🔁 <b>2026-11-01(S22-8 甲案)兑现的正是这条:枚举长出了第 7 个类型</b>
+        /// (`SlotType.Tent = 7`,P0 唯一新建例外)。复核结论:写方(`WorldBuildSlotsBinder`)
+        /// 与读方(`WorldBuildSlotsCookedCodec`)都**从枚举派生**上界/位,无写死常量;
+        /// 头槽 `schema_version` **不必**演进 —— 行布局一个字节没变,变的只是某个位的**语义**。
+        /// ⇒ 期望值随枚举上移是**契约的正确演进**,不是「改期望值凑绿」。</para></remarks>
         [Test]
         public void test_worldBuildSlots_codec_maxAllowedMask_isCurrentEnumCeiling()
         {
-            Assert.That(WorldBuildSlotsCookedCodec.MaxAllowedMask, Is.EqualTo(127),
-                "`SlotType` 当前最大枚举值 = 6 ⇒ 位域上界 = (1 << 7) - 1 = 127;" +
+            Assert.That(WorldBuildSlotsCookedCodec.MaxAllowedMask, Is.EqualTo(255),
+                "`SlotType` 当前最大枚举值 = 7(Tent)⇒ 位域上界 = (1 << 8) - 1 = 255;" +
                 "红在此处通常意味着枚举已扩展 —— 请复核写读两端的契约,不要只改期望值");
         }
 

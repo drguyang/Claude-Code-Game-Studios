@@ -15239,3 +15239,42 @@ M3 绕开掷骰 ⇒ 仅 D 红 · M4 驱动不调链 ⇒ E/F 红。
 - 原件:`production/qa/evidence/s22-8-smoke13-tent-two-options-2026-11-01.md`(§6 六条复算命令均已实跑)
 - 载体台账 #13 已加指针;sprint-22 已记 S22-8 收口(交付两案)
 - **sprint-22 八张卡全部收口**(S22-1…S22-8),其中 S22-6 / S22-8 是「交付两案待裁」
+
+---
+
+## 2026-11-01 · `S22-8` 第二轮:甲案落地(帐篷 = P0 唯一新建例外)
+
+**用户指令**:「甲案,落地」。上一轮只勘察 + 出两案;本轮按甲案实现。
+
+### 落地件
+
+| 件 | 改动 |
+|---|---|
+| `BuildSlotCatalog.cs` | `SlotType` 闭集 **6 → 7**:`Tent = 7` |
+| `build_modules.json` | +1 条:`module_id 10` / Tent / `[[0,0,0]]` / cost 5 / refundable / item 8 |
+| `world_buildslots.json` | +1 格:`(12,0,12)` 骨架外,`baked_initial = false` |
+| 重烘 | `build_modules.cooked` 563 → **611 B**(10 模块)· `world_buildslots.cooked` 348 → **372 B**(14 槽) |
+| 判据 | `EditMode/ModularBuilding/tent_placement_test.cs` **3 条**(读真 cooked 产物) |
+| 账 | `critical_paths.json` `#13` none → **test(3 载)**;`story-008-tent.md` 立卡;EPIC `7/7 → 8/8` |
+
+**零新 Kind / 零新写者 / 零新判定函数** —— 复用五条件 + `StructureWriter`。
+
+### 三条既有哨兵当场转红(**本轮最值得记的**)
+
+「扩员只改一个枚举」不成立:① 词表七对字面量;② 掩码上界 `127 → 255` 且 `128`
+由「越界位」变「合法位」;③ 目录行数 `9 → 10`。三条都按**契约复核后同步常量**。
+第一次全量回归正是被 ③ 咬住(`6345/6307/1`),修后复跑全绿。
+
+### 证伪(4 变异,改 → 跑 → 还原 同一命令内)
+
+M1 停用五条件① ⇒ 2 红 · M2 双发事件 ⇒ 11 红 · M3 上界写死 127 ⇒ 18 红 ·
+M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
+
+### 结果
+
+- 回归 EditMode `6345/6308/0/37`(**+4**,`6345−6341=4` 恰等新增)· PlayMode `273/269/0/2/2`(零变化)
+- smoke:**自动 PASS 15 · FAIL 0 · 具名人工 3 · 无名 4**,exit **3**(`#13` = PASS 3 载/全绿)
+- 三元组 `2026-11-01 10:06:00 CST` · `S22-8` 批 · `1825dac7`+工作树
+- 原件:`production/qa/evidence/s22-8-smoke13-tent-implementation-2026-11-01.md`
+- 临时值:`cost = 5` / `build_item_key = 8` —— **归数值轮**,已在 EPIC §未闭项具名,不入债册
+- **sprint-22 八张卡全部收口**(S22-1…S22-8);剩 `S22-6` 两案仍「待用户裁」(未裁即不动)

@@ -22,7 +22,14 @@ namespace DaYiJingCheng.Sim.World
         Cabinet = 3,  // 柜子类(药柜 / 存储)
         Plot    = 4,  // 种植圃类
         Decor   = 5,  // 装饰类(不影响数值)
-        Shell   = 6   // 外壳类(墙 / 地基 —— P0 不可拆除)
+        Shell   = 6,  // 外壳类(墙 / 地基 —— P0 不可拆除)
+        /// <summary>
+        /// 帐篷 —— **P0 唯一允许「新建」的形态**(`game-concept.md:697-698` 2026-09-20 改判;
+        /// `modular-building.md` 规则六)。序章的一次放置,落关卡工具在 `world_buildslots.json`
+        /// **骨架外**预置的槽;`StructurePlaced` 照常发,载荷形状不变。
+        /// <para>⚠️ **不是自由建造的起点** —— 除本类外 P0 仍不开放新建(自由建造归 P1a)。</para>
+        /// </summary>
+        Tent    = 7
     }
 
     /// <summary>单槽位定义(整数坐标 + 允许的模块类型 + 开档基线)。</summary>
