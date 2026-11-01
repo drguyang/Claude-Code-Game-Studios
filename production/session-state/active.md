@@ -15359,3 +15359,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode 6379/6342/0/37 · PlayMode 273/269/0/2 @ 13:07:10 · commit 29988749
 - Blockers: 无;AC-29-01 半边语义维持(全链绿归 G-1 门行收口核)
 - Next: /code-review unity/Assets/Tests/EditMode/DeathRespawn/player_died_settlement_test.cs → /story-done story-001
+
+## Session Extract — /dev-story 2026-11-01 · S23-2
+- Story: story-002-drop-manifest-stream-reclaim — 掉落清单流派生与回捡
+- 生产码:DeathDropSettlement(结算面,Despawn→Spawn 同 id,投影后置绑定)+
+  DeathDropReclaimPolicy(回检约束,整数格)+ 消费者回调 + DropEventWriter 裸 long 重载
+- 关键判定:GDD 规则三伪码的机械补全 = 先消耗再同 id 落地(fold 复用/双份约束);
+  29 零铸造 = 同 id 复用;struct 免包装(AC-17-05 IL 门拦下包装形态,门不松)
+- Test: death_drop_stream_test.cs 12 条;证伪 M-A/M-B/M-C 各自精确转红
+- 回归:EditMode 6391/6354/0/37 · PlayMode 273/269/0/2 @ 14:00:25 · commit e9dc6531
+- Next: /code-review → /story-done story-002;然后 S23-3(开工时裁 R-4-W-6)
