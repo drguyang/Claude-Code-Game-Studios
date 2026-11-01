@@ -978,6 +978,60 @@ namespace DaYiJingCheng.Gameplay.Boot
                 new SkillGrownEmitterAdapter(stream, encoder),
                 noveltyTracker);
 
+            // ── 17 采集的**生产驱动**(S22-9 · 2026-11-01)────────────────────────
+            //
+            // 病因(sprint-22 Exit 判据):`HarvestOrchestrator.Resolve` 改前**零生产调用点**
+            //   (`grep -rn "\.Resolve(" … | grep -v /Tests/` 零命中)⇒ 编排器有装配、有夹具、
+            //   **没有发起方** ⇒ 采前闸 `CanCarry` 在生产里从未被求值。
+            //
+            // ⚠️ **闸门由驱动自己算**(它不接受 `HarvestGate` 形参)—— 生产路径上**不存在**
+            //    第二个能传 `HarvestGate.Allow` 的地方。另有一道机械门钉「生产码不得出现
+            //    `HarvestGate.Allow`」(`Editor.Tools.Gates`)。
+            //
+            // ⚠️ **两处已知边界,如实登记**(它们**不**影响 `CanCarry` 求值):
+            //    ① `seasonIndex` 传 0 —— 5 的季相运行期源尚未接线(债册);
+            //    ② `difficulty` 传 1.0 —— 采集难度分档归数值轮。
+            //    两者都是**具名实参**,装配点一眼可见,不是从暗处读来的数。
+            HarvestInteractionDriver harvestDriver = null;
+            // ⚠️ **只在真 provider 下装配**(`AddressablesDataProvider` 才带 `ForagingConstants` /
+            //    `CarryCap` 两条运行期读路)。夹具用的 `IDataProvider` 假件没有它们 ⇒ 驱动的
+            //    装配面就是**生产装配面**,不会因为「夹具里也能建出来」而显得已接线。
+            //    `null` = 未装配,与 `ConsequenceDriver` 同款语义(`BootRoot` 须显式读并告警)。
+            if (dataProvider is DaYiJingCheng.Gameplay.Presentation.AddressablesDataProvider harvestProvider)
+            {
+                var harvestWorld = new HarvestWorldQuery(
+                    dataProvider.Load<WorldResourcesDataSet>().Resources,
+                    loadItemsSeed(),
+                    // 库存投影是**派生态**:每次重取,不持快照(持快照 = 载重停在装配那一刻)。
+                    () => inventoryLoad.Rebuild().Projection,
+                    // 玩家 id 即 20 的 owner(`DropClaimed.claimer` 就是它)。
+                    actorOfOwner: actorId => actorId);
+
+                // 4 的半径 = 11 的 `interaction_kinds.r_interact`(**单一装载常量**,AC-4-17)。
+                // ⚠️ 这里不写字面量 —— 写一个数就是「第二处声明」(两处会静默脱钩)。
+                InteractionKindDataSet interactionKinds = dataProvider.Load<InteractionKindDataSet>();
+
+                var harvestSelector = new InteractionSelector(
+                    UnwiredDiscoveryReporter.Instance,
+                    new InteractionRadius(interactionKinds.RInteract));
+
+                var harvestCandidates = new CandidateSetLoader(new CandidateSources(
+                    drops: null,                                   // ① 世界流掉落锚格(4 的 story-003 面)
+                    worldBaked: new ResourceForageSpotSource(dataProvider.Load<WorldResourcesDataSet>().Resources),
+                    patients: null,                                // ③ 13 在场视图(同上)
+                    bakedInitial: null));                          // ④ 23 开档自带(同上)
+
+                harvestDriver = new HarvestInteractionDriver(
+                    harvestSelector, harvestCandidates, harvest,
+                    harvestProvider.ForagingConstants,
+                    new CarryCapacity(harvestProvider.CarryCap),
+                    new HarvestSkillLevelProjection(() => stream.Events, decoder),
+                    harvestWorld, noveltyTracker, () => stream.Events, decoder,
+                    worldSeed: unchecked((long)worldSeed),
+                    seasonIndex: 0,                 // ⚠️ 见上:5 的季相源未接线
+                    difficulty: Fix.One);           // ⚠️ 见上:难度分档归数值轮
+            }
+
             // ── 病名册条目源(sprint-08 S1.1 件 C/D · 2026-10-12)──
             // 词表 = S1.0 已烘产物(`case_judgment_lexicon.cooked.bytes`),本批接入装载。
             // 装载策略同 S1.2(provider != null ⇒ Addressables 乙案;否则 DiagnosisCookedDisk
@@ -1566,6 +1620,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.OverdoseSettler = new OverdoseSettler(
                 stream.Events, decoder, new VitalsQueryOrNone(vitals), costTable, overdoseThresholds,
                 encoder, services.EventSink);
+
+            // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────
+            // ⚠️ 本属性是 `null` 时**必须**有显式日志(`BootRoot` 启动期读),否则与「机制未启用」同形。
+            services.HarvestDriver = harvestDriver;
 
             // ── 🔁 2026-10-30(ADR-036 D2/D3/S4):53 的**判定链**生产装配 ─────────────
             // 装配前三件全缺(ADR-036 §Context 六条实测):发射器零装配点 / `Judge.Evaluate`

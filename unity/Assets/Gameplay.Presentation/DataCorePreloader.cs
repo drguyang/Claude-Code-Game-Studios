@@ -252,6 +252,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.WorldPoiAddress,
             AddressablesDataProvider.WorldResourcesAddress,
             AddressablesDataProvider.InventoryConstantsAddress,   // S22-9:CARRY_CAP 的装载输入
+            AddressablesDataProvider.ForagingConstantsAddress,    // S22-9:17 采前闸三条公式的表
             // 13 调参常量表(`TD-audio-032` ① · 2026-10-29:`CueIntervals` / `BehaviorBands` 的生产载体)。
             // ⚠️ 本条是**第五次**同型补登记(BuildModules / DiseaseRegistry / WorldBuildSlots /
             //    WorldGeometry 之后),前四次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量

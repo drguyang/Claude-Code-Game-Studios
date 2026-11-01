@@ -194,6 +194,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 「cap 大到能带齐一切」须等 OQ-20-9 的具名 ESSENTIAL_KIT 才立得了真门
             // —— 已在门内与 GDD :705-712 双处登记,不得读成「取舍存在性已全面验证」。
             errs.AddRange(CarryCapExistenceGate.RunAll("."));
+            // 采集闸门跳过门(S22-9 · 2026-11-01):生产码零 `HarvestGate.Allow`。
+            // 缘由:`HarvestGate` 是裸 struct,传 `Allow` 在类型面**完全合法**而语义 = 跳过采前闸
+            // ⇒ `CarryLoadSolver.CanCarry` / `NodeRemaining.CanHarvest` 都不再被求值。
+            // `Resolve` 的注释已写禁令 —— 注释不是执行体(F6),本门是它的执行体。
+            errs.AddRange(HarvestGateAllowGate.RunAll("."));
             return errs;
         }
 

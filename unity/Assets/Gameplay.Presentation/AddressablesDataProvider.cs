@@ -205,6 +205,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>`CARRY_CAP` 的运行期唯一来源 —— 补之前该表**连产物都不存在**。</para></summary>
         public const string InventoryConstantsAddress = "inventory_constants.cooked.bytes";
 
+        /// <summary>17 采集调参表(`foraging_constants.cooked.bytes`)。
+        /// <para>⚠️ **S22-9(2026-11-01)才进预载** —— 产物与烘焙链早就存在,但**运行期零读方**,
+        /// 故一直没进 `data-core` 预载。采前闸要真跑(采量 / 品级 / 余量三条公式)就必须先有表。</para></summary>
+        public const string ForagingConstantsAddress = ForagingConstantsCookedCodec.ProductName
+            + ".cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -262,6 +268,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private WorldResourcesDataSet? _worldResources;
         // 20 库存调参表(S22-9 · 2026-11-01):单标量载荷 ⇒ 可空 int 承载。
         private int? _carryCap;
+        // 17 采集调参表(S22-9 · 2026-11-01):类实例 ⇒ null 表示未装载。
+        private DaYiJingCheng.Sim.Foraging.ForagingConstants _foragingConstants;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -534,6 +542,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldResources();
             EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
             EnsureInventoryConstants();   // S22-9(2026-11-01):CARRY_CAP 的装载输入
+            EnsureForagingConstants();    // S22-9(2026-11-01):17 采前闸三条公式的装载输入
         }
 
         private void EnsureItems()
@@ -1114,6 +1123,49 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 EnsureInventoryConstants();
                 return _carryCap.Value;
+            }
+        }
+
+        /// <summary>
+        /// 17 采集调参表的装载(S22-9 · 2026-11-01)。
+        /// <para><b>`maxQuality` 从 21a 取,不写进本产物</b>:它是 `MAX_QUALITY` 的真源,
+        /// 住在 `item_database_recipes` 的结算常量里。写进 17 的产物 = 第二真源。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">装载 / 解码 / 构造期拒收(启动期硬失败)。</exception>
+        private void EnsureForagingConstants()
+        {
+            if (_foragingConstants != null) return;
+
+            // ⚠️ 先确保 21a 已装载 —— `MAX_QUALITY` 只能从那份常量取。
+            //    (`Preload()` 里 `EnsureRecipes()` 本来就排在前面,这里显式再叫一次是为了
+            //     让**单独访问本属性**的调用方也不会拿到未装载的 `_recipes`。)
+            EnsureRecipes();
+            int maxQuality = _recipes.Value.Settlement.MaxQuality;
+
+            byte[] bytes = FetchBytes(ForagingConstantsAddress);
+            try
+            {
+                _foragingConstants = ForagingConstantsCookedCodec.Read(bytes, maxQuality);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 采集调参表 cooked 解码失败(address={ForagingConstantsAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>
+        /// 17 采集调参表(采量 / 品级 / 余量三条公式的唯一表输入)。
+        /// </summary>
+        /// <exception cref="InvalidOperationException">产物装载失败(启动期硬失败)。</exception>
+        public DaYiJingCheng.Sim.Foraging.ForagingConstants ForagingConstants
+        {
+            get
+            {
+                EnsureForagingConstants();
+                return _foragingConstants;
             }
         }
 

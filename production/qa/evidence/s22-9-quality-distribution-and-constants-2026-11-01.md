@@ -248,3 +248,106 @@ python3 -c "import json;d=json.load(open('assets/data/item_database_items.json')
 grep -c "ExpectedItemSchemaVersion = 3u" unity/Assets/Gameplay.Presentation/CookedCodec.cs   # 1
 grep -rn "new ForagingConstants(" unity/Assets --include=*.cs | grep -v /Tests/ | wc -l      # 仍 0（读方在 DataCookedDisk）
 ```
+
+---
+
+## 8. S22-9 第二批：④ 采集交互 driver + ⑤「生产零 `Allow`」机械门（2026-11-01）
+
+### 8.1 ④ `HarvestInteractionDriver`（3 的输入边 → 4 的选择器 → 真闸门 → `HarvestOrchestrator.Resolve`）
+
+**新增**：`Gameplay.Boot/HarvestInteractionDriver.cs` / `HarvestWorldQuery.cs` / `HarvestInteractionAssembly.cs`；
+**接线**：`CompositionRoot.cs`（真实 provider 才构造 —— 装配面 = 真 provider 面，fake 测试 provider 不装配）·
+`CompositionRootServices.HarvestDriver`（null = 未装配，承 `ConsequenceDriver` 同语义）。
+
+**要点**：
+- **闸门求值点在 driver 内部**（`CarryLoadSolver.CanCarry` / `NodeRemaining.CanHarvest`），
+  driver 公开面**不收** `HarvestGate` 形参 ⇒ 生产装配点上伪造全放行**在类型面上不可表达**
+  （`test_driverSurface_neverTakesHarvestGate` 反射钉住）；
+- `NoveltyTracker.Peek`（无副作用）取 XP 增益 ⇒ 编排器内的 `Query`（推进 `lastSeenTick`）是**唯一**推进点；
+- **F9**：`CarryCapacity` 是 readonly struct，`default` 绕过构造器 ⇒ ctor 显式拒 `Cap <= 0`；
+- `quality_distribution` 缺失/空 ⇒ **抛**（不静默退化为均匀分布）；
+- **P0 边界（登记）**：`seasonIndex: 0`（5 的季节源未接）· `difficulty: Fix.One`（数值轮）。
+
+**测试**：`Tests/EditMode/Foraging/harvest_interaction_driver_test.cs` 6 条
+（`Logs/h-drv3.xml`：`total=6 passed=6 failed=0` @ 2026-11-01）。
+夹具注记：`test_insufficientRemaining…` 的 `carryCap=100000` 是刻意的 —— 否则两闸同假、
+容量闸先评，红在**错误的闸**上（靶测被另一条判据挡住，证伪轮会因此失去判别力）。
+
+**⚠️ 不证**：BootRoot 的每 tick 调用点（**尚未接线**）—— driver 已装配进 services，
+但生产上没有任何东西调 `TryHarvest` ⇒ sprint-22 Exit「真闸门在生产被求值」**仍未达成**，
+收口判定维持 NOT PASS（本批只把「可达性」从零变成「差一个调用点」）。
+
+### 8.2 ⑤ `HarvestGateAllowGate`（注释禁令的执行体 —— 假绿形态 F6 的反面）
+
+- **判据**：扫 `Assets/**/*.cs`、排除 `/Tests/`，剥注释与字符串字面量后出现
+  `HarvestGate.Allow` 即报（含 `file:line` 与语义说明）。排除测试是判据的一部分：
+  夹具构造全放行测编排器分支是合法的，生产码需要它则一定是跳闸。
+- **注册**：`AssemblyGates.cs` 接在 `CarryCapExistenceGate` 之后。
+- **已知边界（登记，禁借绿）**：**不判 `new HarvestGate(true, true)`** —— 同样是造全放行，
+  但需语法树才能与合法构造区分；当前生产码零处该形态，将来出现须扩判据。
+- **自检**：`Tests/EditMode/Foraging/harvest_gate_allow_gate_test.cs` 4 条
+  （`Logs/h-gate.xml`：`total=4 passed=4 failed=0`）—— 真树清洁 / 合成文件必报 /
+  注释提及不误报（防本门被自己的文档弄红）/ `/Tests/` 豁免。
+
+### 8.3 证伪轮（S12-4 · 同命令内 改→跑→还原 + SHA-256 逐字节比对）
+
+| 变异 | 靶点 | 期望 | 实测 |
+|---|---|---|---|
+| **M-A** `= NodeRemaining.CanHarvest` → `= true \|\| NodeRemaining.CanHarvest` | `HarvestInteractionDriver.cs:226` | `test_insufficientRemaining…` 红 | ✅ 红（且 `fullInventory` **不受影响**） |
+| **M-B** `= CarryLoadSolver.CanCarry` → 同形短路 | `HarvestInteractionDriver.cs:228` | `test_fullInventory…` 红 | ✅ 红（且 `insufficientRemaining` **不受影响**） |
+| **M-C** 门体早退 `return errs;` | `HarvestGateAllowGate.cs:48` | `test_syntheticProductionFile_withAllow_isReported` 红 | ✅ 红 |
+
+**红集合恰好不相交** —— M-A 只红余量闸夹具、M-B 只红容量闸夹具：两条夹具各被**自己的**闸
+钉住，不存在「借对面闸变红」的假判别（靶测被另一条判据挡住的形态已排除）。
+还原：`RESTORE-A/B/C-OK`（同命令内 cp 回 + SHA-256 相等）；残留 `grep` 零命中。
+日志：`unity/Logs/h-fals{A,B,C}.{xml,log}`（gitignored 暂存区）。
+
+### 8.4 全量回归抓到的一处漏登记（门链清单机制的真值检验）
+
+首轮全量 EditMode（`Logs/s229-final-em.xml`，11:40:34 CST）`total=6364 failed=2`：
+
+- `test_classManifest_coversEveryDeclaredClass` —— `HarvestGateAllowGate` 有声明、无判决；
+- `test_entryWiring_matchesManifest_bidirectionally` —— 源文本调了 `HarvestGateAllowGate.RunAll`，
+  `EntryWiringManifest` 没声明（「新接线未声明」方向）。
+
+**修复**：`gate_wiring_manifest_test.cs` 两处手写清单同批补行（判决 Kind=Chain / Consumer=RunAll，
+note 登记「不判 `new HarvestGate(true,true)` 边界 + 构建期未跑探针轮」）。
+修复后单类 `GateWiringManifestTest` 复跑确认（`Logs/h-manifest2.xml`），再全量重跑。
+
+**值得记**：这是 `TD-gate-01/02` 那套「双向差集 + 手写清单」判据第一次在**真实新增接线**上
+抓到漏登记 —— 文件头注说的「① 源有、清单无 ⇒ 新接了一门但没声明」实测有效。
+我是**第六次**同型漏登记（前五次是数据通道的四处集合）；区别在于这次**不是靠我自查发现，
+是回归门抓的** —— 机制在起作用，不靠注释提醒。
+
+---
+
+## 9. 回归（第二批 · 三元组）
+
+| 轮 | 元素 | 值 |
+|---|---|---|
+| **截至时刻** | | 2026-11-01 **11:47:46 CST**（EditMode）/ **11:43:25 CST**（PlayMode） |
+| **批次** | | S22-9 第二批（④ driver + ⑤ 机械门 + 门链清单补登记 + 10 新测） |
+| **commit** | | `261d076a` + 工作树（提交前） |
+
+| 套件 | 结果 | 前次（§6） | 等式 |
+|---|---|---|---|
+| EditMode | `total=6364 passed=6327 failed=0 skipped=37` | `6354 / 6317 / 0 / 37`（11:12:28） | `6364 − 6354 = 10` = driver 6 + gate 4 ✅ |
+| PlayMode | `total=273 passed=269 failed=0 skipped=2`（+2 Inconclusive 存量） | `273 / 269 / 0 / 2`（S22 收口） | `±0`（本批未加 PlayMode 测）✅ |
+
+> 中间态如实登记：首轮全量 EditMode（11:40:34）`failed=2`（门链清单两红，见 §8.4），
+> 修复后重跑本表为**终值**。复跑命令：
+> `python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s229-final-em2.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"`
+
+### 复算命令
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+# EditMode 终值(期望 6364 6327 0 37)
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s229-final-em2.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+# PlayMode(期望 273 269 0 2)
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s229-final-pm.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+# driver 公开面零 HarvestGate 形参(期望 0)
+grep -n "HarvestGate " Assets/Gameplay.Boot/HarvestInteractionDriver.cs | grep -v "HarvestGateAllowGate" | wc -l
+# 门已接链(期望 1)
+grep -c "HarvestGateAllowGate.RunAll" Assets/Editor.Tools.Gates/AssemblyGates.cs
+```

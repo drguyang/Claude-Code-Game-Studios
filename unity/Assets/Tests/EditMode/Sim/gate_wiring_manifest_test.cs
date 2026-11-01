@@ -96,6 +96,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "SaveVocabularyGate.RunAll",     // AC-7a-09 忘词令符号门(规则七判据层)· 2026-10-25
                     "InventoryDtoFloatGate.RunAll",  // AC-20-15 20 输出 DTO 双层零浮点门 · 2026-10-26
                     "CarryCapExistenceGate.RunAll",  // AC-20-21 存在性门(自指谓词)· 2026-10-26 S20-12
+                    "HarvestGateAllowGate.RunAll",   // S22-9 生产零 HarvestGate.Allow(F6 执行体)· 2026-11-01
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -314,6 +315,14 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "⚠️ **本门是弱门,已如实登记**:领取次数无上界 ⇒ 对任何有限 cap 都几乎恒绿," +
                        "真正能抓的只有物品表结构性空洞(空表 / 全零重量);" +
                        "「cap 大到能带齐一切」须等 GDD 登记的 OQ-20-9(具名 ESSENTIAL_KIT)才立得了真门。" +
+                       "⚠️ **构建期是否真的执行未跑探针轮** —— 同上口径,不记绿。" },
+            new ClassVerdict { ClassName = "HarvestGateAllowGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "S22-9(2026-11-01 落):生产码零 `HarvestGate.Allow` 的源级门 —— " +
+                       "`HarvestOrchestrator.Resolve` 的「不得传 Allow」XML 注释的执行体(F6 形态)。" +
+                       "扫 `Assets/**/*.cs`(排除 `/Tests/`),剥注释/字符串后命中即报。" +
+                       "⚠️ **不判 `new HarvestGate(true, true)`** —— 需语法树,本轮不做,已登记边界;" +
+                       "driver 侧另有反射判据(`test_driverSurface_neverTakesHarvestGate`)钉类型面。" +
                        "⚠️ **构建期是否真的执行未跑探针轮** —— 同上口径,不记绿。" },
 
             // ── 菜单(独立入口)──

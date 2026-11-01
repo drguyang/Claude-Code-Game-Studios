@@ -49,7 +49,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 语义:`null` 或阈值空 ⇒ 过量代价**不结算**,与「表为空」一致(零事件)。</para></summary>
         public DaYiJingCheng.Sim.Consequences.OverdoseSettler OverdoseSettler { get; internal set; }
 
-        /// <summary>53 的**判定链驱动**(2026-10-30 · ADR-036 D2/D3/S4)。
+        /// <summary>17 采集的**生产驱动**(2026-11-01 · S22-9)。
+        /// <para>每个 tick 边沿把一次主动交互翻译成一次采集裁决:3 的输入沿 → 4 的选择器 →
+        /// **真闸门**(`CanCarry` + `CanHarvest`)→ `HarvestOrchestrator.Resolve`。</para>
+        /// <para>⚠️ **语义**:<c>null</c> = <b>未装配</b>(provider 不是
+        /// <c>AddressablesDataProvider</c> ⇒ 采调参表与 `CARRY_CAP` 两条运行期读路都不存在)。
+        /// 与 <see cref="ConsequenceDriver"/> 同款 —— 生产装配面 = 真 provider 面。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.HarvestInteractionDriver HarvestDriver { get; internal set; }
+
+        /// <summary>53 的**判定链驱动**(2026-10-30 · ADR-036 D2/D3/S4)。</summary>
+
         /// <para>每个 tick 边沿跑 `Aggregate → Judge → Emit`,把「已结案病例」变成后果事件。</para>
         /// <para>⚠️ **语义**:<c>null</c> = <b>未装配</b>(无 <see cref="IDataProvider"/> ⇒ 两张表都
         /// 拿不到)。ADR-036 D3 的惰性口径:**不发,不是不判** —— 与「表为空」行为一致(零事件),
