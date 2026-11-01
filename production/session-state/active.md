@@ -2189,9 +2189,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-09 🚧 In Progress(M2 收口冲刺 · 2026-10-14 开)
-Feature: S1 第七轮全链人工 playtest / S2 PAGES_MAX 实测冻结 / S3 M2 Exit 复评翻勾
-Task: S2 ✅ / S3 ✅(翻 2 勾 · :169 维持不勾)→ S1 用户真机连续走查(唯一未动)
+Epic: sprint-22 ✅ 收口复评 PASS(2026-11-01 下午 · `2407d04b`)
+Feature: S22-9 采集链三批(数据通道 cd935295 前批 / driver+机械门 cd935295 / BootRoot 接线 a956f0c1)
+Task: 路线图里程碑状态已回写(sprint-22 Exit 达成 · §1.1 复跑 237/213/24)→ 下一 sprint 取件(/sprint-plan)
 <!-- /STATUS -->
 
 ## S3 M2 Exit 复评(2026-10-14 · ✅ 落定 · 翻 2 勾)
@@ -15325,3 +15325,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `smoke-carrier-backlog-2026-10-31.md` 的 `#1` / `#14` / `#13` 三行与 §三 统计本来是**规划态**
   ⇒ DoD 要求「同批更新」,**实际到收口轮才补**(已列为本 sprint 非绿面第 3 条)。
 - 原件:`production/qa/smoke-2026-11-01.md` · `production/qa/evidence/qa-signoff-sprint-22-2026-11-01.md`
+
+## 2026-11-01 下午 · sprint-22 复评 + 路线图回写(S22-9 三批)
+
+- **S22-9 第二批**(`cd935295`):④ `HarvestInteractionDriver`(真闸门住 driver,公开面零 `HarvestGate` 形参)+
+  ⑤ `HarvestGateAllowGate` 接链。证伪 M-A/M-B/M-C 全红;首轮全量回归抓到门链手写清单漏登记(修复,机制真值检验)。
+- **S22-9 第三批**(`a956f0c1`):BootRoot 调用接线 —— E 沿 → `HarvestInteractionBridge` → 4 选择器 →
+  半径裁剪(单源 `InteractionRadius` 同实例)→ 真闸门 → `Resolve`。driver 测 6→12,证伪 M-D/M-E。
+  PlayMode 首轮一红 = 模态正控被采集合法消费(真启动序集成证据),夹具挪无药丛格。
+- **复评**(`2407d04b`):sprint-22 收口判定 NOT PASS → **PASS**;原件
+  `production/qa/evidence/review-sprint-22-exit-recheck-2026-11-01.md`;非绿面 2–7 照旧具名。
+- **路线图回写**:`p0-remaining-roadmap-2026-10-20.md` 四处 —— §1.1 复跑(237/213/24)·
+  sprint-22 行 Exit 达成注 · §6.5.4 已交付 9→11 件 · §2.4.5 inventory-004 CARRY_CAP 行过期注
+  (⚠️ 发现 `entities.yaml` CARRY_CAP `value: "待定"` 滞后于烘焙产物 60,归一致性对账轮)。
+- 回归终值:EditMode `6370/6333/0/37` @ 12:09:39 · PlayMode `273/269/0/2/2` @ 12:14:36 · `a956f0c1`。

@@ -128,6 +128,12 @@
 > EOF
 > ```
 
+> 🔁 **2026-11-01 复跑(sprint-22 收口复评批 · `2407d04b`)—— 上表为 2026-10-20 时点值,原文不删**:
+> 同脚本现值 = 总数 **237**(其间立了新卡)· Complete 族 **213** · `Ready` **21** · `In Review` **1** ·
+> 部分完成 **1** · Pending **1** ⇒ **剩余 24**。注:脚本按首个空格切状态,带括号注的
+> `Complete(…)` 被切出 4 个变体桶(1+1+3+1),手工并入 Complete 族(213 = 207+6);
+> 全 `Complete` epic **20 / 32**。
+
 ### 1.2 epic 级 —— ✅ **分母真源裁决**(18 / 31)
 
 | 来源 | 全 `Complete` epic 数 | 状态 |
@@ -337,7 +343,7 @@ tutorial-onboarding(48 教学)
 | 001 `InventoryOf` 折叠重建 | item-db 001/002(**Complete**)· `foraging/003` · `processing/003` | 🔴 **AC-20-03 BLOCKED-BY-R2/R3/R10/R11/OQ-20-5**(五件);AC-20-16 **BLOCKED-BY-OQ-20-5/R2** | ⚠️ 主体挂起 |
 | 002 id 权威与高水位 | 001 · item-db story-008 类先例(**Complete**)· ADR-025 | **R3 未落地**(高水位基线缺 `BakedInitial`)⇒ 预摆物撞号用例挂 `BLOCKED-BY-R3` | ⚠️ 半闭 |
 | 003 堆叠与容器折重 | 001 · 004 · item-db 002/004(**Complete**) | `COLUMNS` / `ROWS_PER_PAGE` 归 **42 未定** ⇒ **BLOCKED-BY-R9** | ⚠️ 半闭 |
-| 004 载重与容量裁决 | 001 · 003 · item-db 002(**Complete**) | 🔴 **`CARRY_CAP` 值未裁**(`entities.yaml:1780` `value: "待定"`;`OQ-20-2`)⇒ **AC-20-09 的硬不变量无值可验**,且**装载期须硬失败** | 🔴 **数值轮** |
+| 004 载重与容量裁决 | 001 · 003 · item-db 002(**Complete**) | 🔴 **`CARRY_CAP` 值未裁**(`entities.yaml:1780` `value: "待定"`;`OQ-20-2`)⇒ **AC-20-09 的硬不变量无值可验**,且**装载期须硬失败**<br>🔁 **2026-11-01 注(sprint-22 收口批)**:烘焙产物 `assets/data/inventory_constants.json` 已载 `carry_cap: 60` 且有 sentinel 夹具钉值(`test_carryCap_realArtifact_isSixty`),运行期读路已接(`S22-9` ②,`AddressablesDataProvider.CarryCap`)⇒ 本行的「无值可验」**已过期**;⚠️ `entities.yaml` 该行 `value` 仍写「待定」= **registry 滞后于数据**,订正归一致性对账轮;`OQ-20-2` 的债面状态以债册为准,本注不代闭 | 🔴 **数值轮** |
 | 005 原子性 / 消耗 / 恢复 / 无确认 | 001 · 003 · 004 · `processing/003,004` · `modular-building 002/005`(**Complete**) | `DropDespawned.qty`(R2)未定稿 ⇒ 子用例 `Ignore` | ⚠️ 半闭 |
 | 006 药箱 UI 走查 | 003 · 004 · 005 · 42 元件库(**Complete**) | **AC-20-20 BLOCKED-BY-R9**(页可见集 + 二维几何焦点稳定性);ADR-013 假设 6 / S5 spike(**桌面侧**) | 🔴 多层挂起 |
 
@@ -918,7 +924,7 @@ M3 Exit（epic 面） =
 | **sprint-19** | **AC 门** | **G-4** · **G-5** · **G-6** · **G-7** | sprint-16 ③ | 7a/7b · 1,2 · 27 · 52 名下 TD 的 P0 面归零 ⇒ **M3 第二条合取可判**<br>🔁 **2026-10-25(S19-5 记账订正,原文不删)**:Exit 面的 **G-4 非「一条债」** = **`TD-persist-02` + `TD-persist-01` 剩余两项**(字节半随 `TD-persist-03` 并入;sprint-19 卡面 S19-1 逐字)。**四门清偿实测(2026-10-25)**:G-4 → S19-1(`554e2cc`)· G-5 → S19-2(`bd4e6a4`)· G-6 → S19-3(`ff853fc`)· G-7 → S19-4(`f398cb2`)—— 债册四条已 `closed`。⚠️ **「名下 TD 的 P0 面归零」须读窄为「四门债面归零」**:epic 名下**另条债不在门面**(persistence-service 的 `TD-persist-04` · player-controller 的 `TD-player-03` · disease-simulation 的 `TD-sim-01` 等,各有触发条件与归属轮)—— M3 第二条合取的**全局**求值仍为**假**(**71** 条 / **11** epic,债册 §五 二十订 2026-10-25 实跑),不受四门清偿影响。`save-slot-ui/story-001` 的 `AC-7b-01/02/10` 挂标随 G-4 清偿解除。§3 行回写见同日门表加注;复算命令 = 债册 §五 脚本本体(自包含)。 |
 | **sprint-20** | clinic 链尾 + A-2 机制 | `clinic-004` · `clinic-005` · `foraging-001` · `processing-001` | **sprint-18(G-8)** | 本体交;AC 半边按挂标(**不得记 `Complete`**) |
 | **sprint-21** | **物品流转簇**(跨链耦合簇,**不得拆**) | `foraging-003` · `processing-003` · `inventory-001` · `inventory-002` | sprint-20 | 事件载荷形状 ↔ `IIdAuthority` 铸造权威**同批冻结** |
-| **sprint-22** | **容量簇** | `inventory-003` · `inventory-004` · `foraging-004` · `foraging-005` | sprint-21 | `CanCarry` 采前闸接通 |
+| **sprint-22** | **容量簇** | `inventory-003` · `inventory-004` · `foraging-004` · `foraging-005` | sprint-21 | `CanCarry` 采前闸接通<br>🔁 **2026-11-01 收口:Exit 达成(PASS)** —— 件集 4 件全 `Complete`(foraging-004/005 = COMPLETE WITH NOTES:`[L]` 三条仍 EXTERNAL · AC-17-13 归数值轮);甲案(补接线)经两 commit(`cd935295` driver+机械门 / `a956f0c1` BootRoot 调用接线)接通生产发起链,证据链四层(类型面/源面/行为面/**真启动序**)见**复评原件** `production/qa/evidence/review-sprint-22-exit-recheck-2026-11-01.md`;原收口判定(NOT PASS,10:25)原文不删,存 `production/sprints/sprint-22.md` §收口判定 |
 | **sprint-23** | **death-respawn 全链**(**L 级,独占额度**) | `death-respawn-001` … `005` | **sprint-18(G-1)** | 全链 `BLOCKED-BY-9` 解除 |
 | **sprint-24** | 炮制链尾 + 采集尾 | `processing-002` · `processing-004` · `processing-005` · `foraging-002` | sprint-21 | `processing-002` 的 42 走查半边仍挂 |
 | **sprint-25** | 教学链尾 | `tutorial-002` · `tutorial-003` · `tutorial-004` · `tutorial-005` | sprint-17 | `002/003` 挂 `BLOCKED-BY-45`(联机运行面) |
@@ -957,7 +963,7 @@ M3 Exit（epic 面） =
 
 | 类 | 内容 |
 |---|---|
-| **已交付** | 本表 sprint-21 / 22 / 24 / 27 四行的件集中,**9 件已 `Complete`**:`foraging-003` · `processing-003` · `inventory-001` · `inventory-003` · `inventory-004` · `processing-002` · `processing-004` · `foraging-002` · `inventory-005`。⇒ 取件时按 `p0-sweep-2026-10-29.md` §六 的**现件集**,不按本表原行(承 §七 SP-11) |
+| **已交付** | 本表 sprint-21 / 22 / 24 / 27 四行的件集中,**9 件已 `Complete`**:`foraging-003` · `processing-003` · `inventory-001` · `inventory-003` · `inventory-004` · `processing-002` · `processing-004` · `foraging-002` · `inventory-005`。⇒ 取件时按 `p0-sweep-2026-10-29.md` §六 的**现件集**,不按本表原行(承 §七 SP-11)<br>🔁 **2026-11-01 增补(sprint-22 收口)**:上列 9 件之外,sprint-22 件集的 `foraging-004` · `foraging-005` 亦已 `Complete`(2026-10-31,均 COMPLETE WITH NOTES)⇒ 四行件集现 **11 件已 `Complete`**;sprint-22 行的 Exit 状态见 §6.5 表内 🔁 注 |
 | **无家可归 ①** | `clinic-machine/story-001` 卡在 **`In Review`** —— 缺的不是实现,是**复核转 `Complete`**;本表**无复核行**<br>✅ **2026-10-29 用户裁定:补进 sprint-21 起手** ⇒ 件号 **`C-1`**(见下) |
 | **无家可归 ②** | `persistence-service/story-001` 于 **2026-10-25 QA 轮退回**(`In Progress`,7 条 AC 全未勾);本表 sprint-28 只排了 `save-slot-ui-001`,**无 7a 本体的位置** —— 而 7b 的 `AC-7b-01/02/10` 要求「两投影全部来自 7a」⇒ **7a 不收口,7b 那三条永远不可判**<br>✅ **2026-10-29 用户裁定:并入 sprint-28** ⇒ 件号 **`C-2`**(见下) |
 
