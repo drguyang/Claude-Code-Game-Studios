@@ -446,6 +446,7 @@
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | open | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
+| `TD-casebook-01` | `casebook` | open | **Y** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -856,9 +857,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 145 | 状态 {'closed': 127, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 41, '~~**Y**~~': 4}
-未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
+条目 146 | 状态 {'closed': 127, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 41, '~~**Y**~~': 4}
+未闭 P0 面 = 1 （已闭但曾标 P0 面的 100 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 1 条,分布在 1/31 个 epic
+    casebook: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -8700,4 +8702,48 @@ python3 tools/debtcount/debtcount.py --check    # 期望退出码 0
 python3 tools/debtcount/debtcount.py --print    # 期望:条目 145 | open 14 | N 41 | 未闭 P0 面 = 0
 grep -rln 'DestroyAllNamed("SkeuoUI")' unity/Assets/Tests --include=*.cs | wc -l   # 期望 2(治标面)
 grep -c 'SetParent.*SkeuoUI' unity/Assets/Gameplay.Boot/BootRoot.cs                # 期望 0(未修)
+```
+
+---
+
+## 2026-11-02 · 「修 B-1」轮新揭:就诊交互 → 立案 → 开册 这条链在生产上不存在
+
+**出处**:`production/sprint-23` 收尾清账的 B-1 处置轮(用户指令「修 B-1(启动档位未裁)」
+→ 裁定「连启动占位一起改掉」)。撤销启动占位后,缺口从「可看但不可开」变成「完全不可达」,
+遂做一次生产侧普查并登记。
+
+### TD-casebook-01 —— 脉案屏在生产上打不开:立案由每 tick 自动开案顶替,开册零调用点
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 「世界空间对病人裸 `Interact` → **立案** → **开册**」这条链的三段**各缺一段**,且**没有任何 story 认领**它:<br>① **输入段**:4 的 `Interact` 只路由给查体 —— `InteractionInputDriver.TryExamine`(`Assets/Gameplay.Boot/InteractionInputDriver.cs:116-118`),**不产生** `CaseOpened`、**不调** `OpenModal`。<br>② **立案段**:今日立案由 `CaseOpenedDriver.OnTickEdge` **每 tick 对「在场且未开案」的病人自动开案**(`Assets/Gameplay.Boot/CaseOpenedDriver.cs:47-65`),其 `:53` 注释自陈「⚠️ P0 接线载体:真实开案触发点 = 就诊交互(归 37/4/8 的交互装配轮)」。<br>③ **开册段**:`OpenModal(ModalId.Casebook)` 生产侧**零调用点**(下附实测)。<br>⇒ **条件②与规则二-A 方向相反**:规则二-A 是「玩家没去 ⇒ **不立案**」,现状是「病人在场 ⇒ **自动立案**」——它让「玩家一次都没走过去」也立了案。 |
+| **设计权威** | ① `design/ux/casebook-39.md:57`:「世界空间对病人裸 `Interact` = **就诊/立案**(单义,路由 37,`S-8.4` 表)→ **立案即开册**」<br>② `design/ux/casebook-39.md:224`:「开册(就诊) \| 世界空间裸 `Interact` 打到病人 \| 同一 action 资产 \| 档位转场 \| **37**(`CaseOpened`,立案时刻 = 该 tick)」<br>③ `design/gdd/case-system.md:176`:「**立案是一次玩家动作**,因此它进事件流」<br>④ `design/gdd/case-system.md:927`:「急召出诊事件降临但玩家没去 \| **不立案** —— 立案时刻 = 抵达 + 就诊交互(规则二-A)」 |
+| **实测(逐条可跑)** | ① 生产侧 `OpenModal` 调用点**只有两个**:<br>`grep -rn "\.OpenModal(" unity/Assets --include=*.cs \| grep -v /Tests/`<br>⇒ `ModalInputDriver.cs:93`(`ModalId.Pause`)· `DriverPauseCommandSink.cs:41`(`ModalId.SaveSlots`)。**`Casebook` 零命中**。<br>② `ModalId.Casebook` 的生产引用全是**只读面**:`SkeuoRuntimeDriver.cs:134`(名字表)· `:705-706`(边沿判定)· `CasebookScreen.Modal`。<br>③ story 侧**无人认领**:`grep -rln "OpenModal" production/epics/casebook/ production/epics/case-system/` ⇒ 仅 `casebook/story-006-camera-mode-intent.md`(且它只把 `OpenModal` 当**接缝**描述,不是入口交付)。<br>④ 输入段:`grep -n "TryExamine()" unity/Assets/Gameplay.Boot/InteractionInputDriver.cs` ⇒ `:117`。 |
+| **为什么是债而不是「已排期」** | 缺口的**唯一记载**是 `CaseOpenedDriver.cs:53` 的一句代码注释(「归 37/4/8 的交互装配轮」)——**没有 epic、没有 story、没有债**。这正是 F6「自述顶替门」的同族形态:一句注释顶替了一个从未存在的排期。**「某个交互装配轮」不是一个可开工对象。** |
+| **与 B-1 的关系(别混读)** | 缺口**先于** B-1 存在(开册模态从来打不开)。B-1 撤的是**启动占位**——此前脉案屏靠「常驻屏」形态可见,撤掉后**连可见都没了**。⇒ B-1 没有**制造**本债,但它把本债从「隐性」变成**玩家可见的缺失**。⚠️ **不得**把本债算到 B-1 头上当成新回归;也**不得**因为有本债就回填占位(占位与设计权威 ① 直接冲突)。 |
+| **修法方向(未裁,仅登记)** | 甲:**另立 story**(推荐落点 = `casebook` epic)—— 「就诊交互 → 立案 → 开册」一条链交付:`Interact` 命中病人 ⇒ 主机 `CaseOpened`(接 `CaseOpenWriter`,与 §七 三段式同构)+ 装配层调 `_uiDriver.OpenModal(ModalId.Casebook)`;同时把 `CaseOpenedDriver` 的**自动开案降级为单机 P0 占位**并标注取代关系。<br>乙:把开册挂到 `ExamineDriver.OnExamine`(查体即开册)—— **不取**:查体与立案是两件事(`case-system.md` 规则二的双路径里,查体不在其中),合并会造出「看一眼就立案」。<br>丙:维持自动立案,只补开册入口 —— **不取**:它让本表的「条件② ↔ 规则二-A 相反」继续成立,等于用 UI 掩盖语义错。 |
+| **何时消解** | 生产侧存在 `OpenModal(ModalId.Casebook)` 的**调用点**(非测试),**且**该调用点的触发源是玩家 `Interact`(不是 tick 边沿 / 不是自动),**且**有一条夹具证明「玩家没交互 ⇒ 零 `CaseOpened`」。三者缺一不算消解 —— 只补 UI 入口(丙)会让第二条判据继续假。 |
+| **归属** | **脉案(`casebook`)** —— 屏的渲染在 42(`skeuomorphic-ui`),但**入口与立案语义**归 39。 |
+| **`P0 面 = Y` 的理由** | **R1**:归属 `casebook` ∈ 31 个 P0 epic,且本条**不自陈**「不阻塞 P0 出口」——它**就是**阻塞:P0 的支柱屏玩家打不开,且立案语义与 37 规则二-A 相反(「没去也立案」)。⚠️ **本判据不因「会造成 Exit 转假」而降级**;后果见下。 |
+
+#### 账务
+
+`条目 145 → 146` · `open 14 → 15` · `closed 127` 不动 · `partial 3` 不动 ·
+`P0 面 Y 100 → 101` · `N 41` 不动 · **`未闭 P0 面 0 → 1`** ·
+**M3 Exit 第二条合取(31 epic × 未闭 P0 面 = 0)⇒ 由「真」转「假」**。
+
+⚠️ **如实记后果,不粉饰**:本条是 sprint-23 收口后唯一一条新开的 P0 面债,
+**它使 M3 Exit 的第二条合取当场转假**。最短消解路径 = 本表「修法方向 甲」立 story 并开工;
+在它落盘之前,**不得**把 M3 Exit 写成达成。
+
+#### 复算
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 146 | open 15 | Y 101 | 未闭 P0 面 = 1
+python3 tools/debtcount/debtcount.py --check    # 期望:退出码 0
+# 缺口本体(三条都应"零命中 / 只有两处"):
+grep -rn "\.OpenModal(" unity/Assets --include=*.cs | grep -v /Tests/   # 期望 Pause + SaveSlots 两个
+grep -rn "OpenModal(UI.Skeuomorphic.ModalId.Casebook)\|OpenModal(ModalId.Casebook)" unity/Assets --include=*.cs
+# 期望:零命中(缺口仍开)
 ```

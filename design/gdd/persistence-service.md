@@ -610,6 +610,10 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 > (判据 `save_slot_load_wiring_test.cs` 6 条)。**但整条链仍未在运行期被打开**:
 > `SkeuoRuntimeDriver` 只有序列化的 `_screenName`(默认 `Casebook`)、**无运行期换屏入口**,
 > 全仓 `ModalId.` 在装配层零消费 ⇒ **存档位屏本身开不出来** ⇒「读档时已经记录过」仍不成立。
+> 🔁 **2026-11-02 补注(只订正括号里的默认值,不改本节结论)**:`_screenName` 的启动默认
+> 已由 `Casebook` 改为**空**(无常驻屏;`Boot.unity:375` 同批置空,依据 `casebook-39.md:57`
+> 「立案即开册」)⇒ 上句括号内容为**当时**取值。本条结论(「曾有期开不出来」→ 已于下方 🔁 修好)
+> **不受影响**。⚠️ 同批判定:脉案屏自身的入**口**仍不存在,已立 `TD-casebook-01`。
 > 🔁 **同日第二轮已补开启器**:42 侧 `SkeuoRuntimeDriver.OpenModal/CloseModal/CurrentModal`
 > + `ModalInputDriver`(键沿 → 开/关)+ `BootRoot` 装配 ⇒ 存档位屏**开得出来了**,
 > 「按键 → 开屏 → 点/确认一行 → 载入 → 本执行体」在**代码路径**上贯通

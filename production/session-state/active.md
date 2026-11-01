@@ -15682,3 +15682,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **🔴 流程教训**:一次用 `-projectPath "$PWD"` 而 cwd 在**仓库根** ⇒ Unity 在无 `Assets/` 的空工程
   空转 42 分钟。仓库根**残留** `Library/`(308M)`Temp/` `Logs/`,均 gitignore,**待删**。
 - 证据:`production/qa/evidence/impl-camera-viewpoint-007-mode-matrix-2026-11-02.md`
+
+## Session Extract — sprint-23 收尾清账 B 组(2026-11-02 · B-4 / B-1)
+
+- **B-4**:`SkeuoUI` 不随 `BootRoot` 销毁 ⇒ 夹具间泄漏 → 登记 **`TD-skeuo-02`**(`P0 面 = N` / `R4`)。
+  治标 = 两件新夹具各自 `DestroyAllNamed`;治本三条方向未裁(见该条「修法方向」)。
+- **B-1(启动档位未裁)**:用户裁定「**连启动占位一起改掉**」。
+  依据 = `design/ux/casebook-39.md:57`「`Interact` = 就诊/立案 → **立案即开册**」
+  ⇒ 脉案屏是玩家动作的结果,不是启动常驻屏。
+  落地三处:**`Boot.unity:375` `_screenName` 置空(生产生效点)** · `SkeuoRuntimeDriver._screenName` 默认 `""` ·
+  两件 L2 夹具删预热、前置断言 `Casebook` → `None`;`modal_opener_test` / `main_menu_wiring_test` 各一处前置随之改。
+  **相机零新增代码**(启动 = `None` ⇒ 39 的边沿不发请求 ⇒ 维持 `Explore`)。
+- **回归**:EditMode `6523/6486/0/0/37` · PlayMode `290/286/0/2/2` —— **与 S23-11 逐位相同**(零新增用例)。
+- 🔴 **连带暴露,已立债 `TD-casebook-01`(P0 面 = Y / R1)**:
+  生产侧**零 `OpenModal(ModalId.Casebook)` 调用点**;立案由 `CaseOpenedDriver` 每 tick 自动开案,
+  与 `case-system.md:176`「立案是一次玩家动作」/ `:927`「玩家没去 ⇒ 不立案」**方向相反**。
+  ⇒ **`未闭 P0 面 0 → 1`,M3 Exit 第二条合取当场转假**(`casebook` 名下 1 条)。
+  ⚠️ 缺口**先于**本轮存在;B-1 只把它从隐性变成玩家可见的缺失。**不得**回填占位。
+- **未闭 B 组**:B-2(4/25 `LeaseSource` 侧零生产接线,`ModalGate.SetMotorSuppression` 零生产调用点)·
+  B-3(`LocomotionEvaluator` 的 `K_terrain`/`K_context` 乘子链仍只有注释)。
+- **Next**:B-2 或 B-3;或按 `TD-casebook-01`「修法方向 甲」立 story 开工(它能解除 M3 Exit 的第二条合取)。
