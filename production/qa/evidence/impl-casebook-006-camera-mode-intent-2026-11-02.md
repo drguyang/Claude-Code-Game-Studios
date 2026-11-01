@@ -2,7 +2,7 @@
 
 > **对象**:`production/epics/casebook/story-006-camera-mode-intent.md`
 > (**2026-11-02 由 `story-006-camera-mode-intent-and-writing-anchor.md` 拆分并订正**)
-> **批次**:**未排 sprint**(2026-11-02 用户指令「连 39 的实现一起做完」;归属待裁)
+> **批次**:`S23-10`(2026-11-02 用户指令「排进 sprint-23」;由「连 39 的实现一起做完」→「再排进 sprint-23」两步指令共同定位)
 > **截至时刻**:`2026-11-02 05:xx CST` · **commit**:`fc5fd0ba` + 本批未提交工作树
 > **裁定**:三条由用户 2026-11-02 逐项选定 ——
 > ① 档位表真源走独立 `camera-mode-requests.yaml`;② **先补 39 接线,再上矩阵门**;

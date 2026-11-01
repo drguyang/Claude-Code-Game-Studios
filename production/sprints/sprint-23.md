@@ -192,6 +192,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 | **S23-7** | `emergency-procedures/010` 档位意图生产接线(`Treatment`/`Explore` 必发)+ 退役 `ExploreCount` 假绿载体 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(AC-10-11 跳过半按裁定永久 `NOT-RUN`;S10-09 真机走查 `NOT-RUN`) |
 | **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
 | **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证 + `TR-camera-007` 双向登记;S29-09 真机走查 `NOT-RUN`)。证伪轮抓出并修掉了 S29-06 的 F1 型假绿 |
+| **S23-10** | `casebook/006` 39 的档位意图接线(`Casebook` / `Explore`,requesterId 39)+ 拆出 007 落笔锚点 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(修的是「该发没发」的一个实例;`AC-39-09` `NOT-RUN`;启动即脉案屏却用 Explore 档未裁) |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -233,6 +234,20 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
 已改为走真链(`PlayerDied` 落流 → 呈现器 `Update` → 请求缝 → 相机 `Mode`),复跑 M5 **恰 1 红**。
 ⚠️ **跨 epic**:本件为 `a5f766f6` 的相机闭包补上具名载体与 AC 载体(缺口 A),
 并在 `death-respawn/EPIC.md` 登记 6/7 → 7/7。
+
+**S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
+EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
+(基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。
+证伪 **7 条变异全部转红**,SHA-256 逐字节还原 7/7。
+原件 = `production/qa/evidence/impl-casebook-006-camera-mode-intent-2026-11-02.md`。
+🔴 **本轮方法论收获(`N6`)**:`CloseModal` 拆成 `CloseModalCore`(不发意图)+ 公开版(发)
+看着像无害写法整理,但撤掉后「已在脉案时再开一次脉案」会冒出 `[false, true]` 两条中间态意图
+⇒ **没有 N6,这次重构不可证伪**。
+⚠️ **拆卡**:原 `story-006` 捆「相机意图 + 落笔 + checkpoint 锚点」,后两件与相机无共享判据,
+且 `SaveAnchor` 全仓不存在 ⇒ 006 永远无法 `Complete`。拆为 006(相机,本批收口)/
+007(落笔锚点,新立未实现)。
+⚠️ **本件修的是一个实例,不是那一类** —— 系统性的「表 ↔ 代码 ↔ 行为」判据仍未落地:
+`camera-viewpoint/story-007`(档位请求覆盖矩阵门)已立件,`Ready ⬜` 未开工。
 
 ⚠️ ~~**§八 里唯一还要动手的是 `S23-9`**(其余两条已 Done)。本 sprint 的 Done 口径对它是:
 `Ready` → `In Progress` → `Done`,**判据以 `death-respawn/story-007` 的卡面 AC 为准**

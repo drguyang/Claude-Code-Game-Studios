@@ -119,3 +119,15 @@ stories:
     blocker: ""
     completed: "2026-11-02"
     note: "计划外追加。缺口 A:相机闭包 a5f766f6 已进 BootRoot 但 death-respawn 内零 story 提它。另查出 R-2-5 的 29 两行无 TR ⇒ 补登 TR-camera-007。依赖 S23-7 的 CameraRig.Tick 接线(L2 才可观测)。⚠️ 证伪轮 M5 首轮**未转红** ⇒ S29-06 初版是 F1 型假绿(直调请求器,绕开装配缝),已改为走真链(PlayerDied 落流→呈现器→请求缝→相机),复跑 M5 恰 1 红。S29-09 真机走查仍 NOT-RUN。"
+  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 收口后追加件的第四条(缺口「该发没发」的实例修复)。
+  - id: "S23-10"
+    name: "casebook/006 39 的档位意图接线(Casebook / Explore, requesterId 39)+ 拆出 007 落笔锚点"
+    file: "production/epics/casebook/story-006-camera-mode-intent.md"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: "2026-11-02"
+    note: "计划外追加。R-2-5 表 6 条行只有 4 条有请求点 ⇒ 39 两行「该发没发」,而 CameraSetModeRequesterGate 全绿(只判 arity / 字面 -1,不看表)。原 story-006 捆了相机+落笔+锚点三件 ⇒ 拆卡(SaveAnchor 全仓不存在)。订正三处(RequestMode 不存在 / 无 requesterId / 「两档唯一请求方」已恒假)。证伪 7 条全红;N6 抓出 CloseModalCore 拆分的判别力。未闭:AC-39-09 NOT-RUN;启动即脉案屏却用 Explore 档未裁(两读法都绿)。矩阵门 = camera-viewpoint/story-007(立件未开工)。"
