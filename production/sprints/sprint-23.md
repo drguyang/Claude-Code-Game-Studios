@@ -191,6 +191,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 |---|---|---|---|---|
 | **S23-7** | `emergency-procedures/010` 档位意图生产接线(`Treatment`/`Explore` 必发)+ 退役 `ExploreCount` 假绿载体 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(AC-10-11 跳过半按裁定永久 `NOT-RUN`;S10-09 真机走查 `NOT-RUN`) |
 | **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
+| **S23-9** | `death-respawn/007` 29 的档位请求生产载体(`Downed` / `Explore`,requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Ready ⬜** | 计划外追加 · **本批唯一未开工件**(§八 的 S23-7 / S23-8 已收口)。依赖 S23-7 的 `CameraRig.Tick` 接线才可观测 |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -222,10 +223,14 @@ EditMode `6500 / 6463 / 0 / 0 / 37` · PlayMode `279 / 275 / 0 / 2 / 2`
 ⚠️ **本轮被机械门抓红一次**:`AC-1-23` 的 IL 扫描按**调用点所在程序集**判白名单,
 初版把写面放在 `Gameplay.Boot` ⇒ 红。处置 = 下放到 `Gameplay.Presentation`,**未扩白名单**。
 
+⚠️ **§八 里唯一还要动手的是 `S23-9`**(其余两条已 Done)。本 sprint 的 Done 口径对它是:
+`Ready` → `In Progress` → `Done`,**判据以 `death-respawn/story-007` 的卡面 AC 为准**
+(9 条,含 `TR-camera-007` 的登记面);收口读数届时另记一段,不改本节既有两条的读数。
+
 **复算(收口时用)**:
 
 ```bash
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
-grep -n "S23-[78]" -A6 production/sprint-status.yaml   # 期望两条均 status: done / completed: 2026-11-02
+grep -n "S23-[789]" -A6 production/sprint-status.yaml  # 7/8 期望 done;9 期望 ready-for-dev(开工后 in-progress)
 grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 ```
