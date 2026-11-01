@@ -129,6 +129,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/death_transition_playmode_test.cs",
+                Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
+                         "写盘 = `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫)," +
+                         "目标 `unity/Logs/shots/*.png`(gitignored 指定暂存区,文件头已具名声明两张文件名)。" +
+                         "**不写仓库源、不写入库产物**",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/Audio/statereport_walkthrough_probe.cs",
                 Reason = "`Application.dataPath` 仅用于**读** DataCooked / Audio;写目标走 Path.GetTempPath()",
             },

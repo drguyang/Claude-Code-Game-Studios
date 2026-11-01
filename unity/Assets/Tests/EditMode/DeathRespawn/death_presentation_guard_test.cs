@@ -324,6 +324,109 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             Assert.That(d.Alpha, Is.LessThanOrEqualTo(1f), "满屏 alpha ≤ 1");
         }
 
+        // ══════════ 水墨纹理方向与缓动(spec §5.4 / §6 / §9 的机械判据)══════════
+        // ⚠️ **为什么必须有这两组**:2026-11-01 图形走查实测抓到**两处方向/形态错误**,
+        // 而当时**零夹具覆盖** —— 全靠肉眼看截图。按 coding-standards §「自述顶替门」,
+        // 注释里写「按 spec §5.4 做对了」不构成门;此处把 spec 的**逐字几何要求**
+        // 与 §9 的**非线性 easing** 各钉成可跑断言。
+
+        /// <summary>
+        /// spec §5.4 / §9:墨**自四边**向中央渗 —— 四边满墨、中央淡墨(留白 = 呼吸空间)。
+        /// </summary>
+        /// <remarks>
+        /// 判据用**噪声中性值** `n = 0.5`(扰动项 `(n-0.5)*Roughness` 恰为 0)⇒ 断言的是
+        /// 几何骨架本身,不被噪声偶然性干扰。
+        /// ⚠️ 反例即 2026-11-01 首版实装(中心墨团 + 边缘透明,方向做反),本测会当场转红。
+        /// </remarks>
+        [Test]
+        public void test_inkWash_edgesHeavy_centerLight_perSpec5_4()
+        {
+            const float n = 0.5f;   // 噪声中性 ⇒ 扰动为 0,只测几何
+
+            byte center = InkWashTexture.InkAlphaAt(0.5f, 0.5f, n);
+            byte midTop = InkWashTexture.InkAlphaAt(0.5f, 0f, n);
+            byte midBottom = InkWashTexture.InkAlphaAt(0.5f, 1f, n);
+            byte midLeft = InkWashTexture.InkAlphaAt(0f, 0.5f, n);
+            byte midRight = InkWashTexture.InkAlphaAt(1f, 0.5f, n);
+
+            // ① 四边满墨(贴边 ⇒ edgeDist=0 ⇒ ink 被带宽截断到 1)。
+            foreach (var (name, a) in new[]
+                     { ("上", midTop), ("下", midBottom), ("左", midLeft), ("右", midRight) })
+            {
+                Assert.AreEqual(255, a, $"{name}边中点应为满墨(255),实际 {a}");
+            }
+
+            // ② 中央**显著淡于**四边(方向判据:中央 < 四边)。
+            Assert.That(center, Is.LessThan(midTop), $"中央({center})必须淡于上边({midTop})");
+            Assert.That(center, Is.LessThan(midLeft), $"中央({center})必须淡于左边({midLeft})");
+
+            // ③ 中央**不得为 0**(留白 = 墨淡,不是墨无 —— 2026-11-01 第二轮实测纠正:
+            //    alpha=0 会让 Φ3「近满墨」下世界地面清晰可见,读作墨边框而非静默)。
+            Assert.That(center, Is.GreaterThan(0),
+                "中央 alpha 不得为 0 —— spec §6「画面近满墨」要求中央仍被压暗");
+        }
+
+        /// <summary>
+        /// spec §6 Φ2/Φ3「画面**近满墨**」:满屏 alpha=1 时,中央仍须压掉绝大部分世界亮度。
+        /// </summary>
+        /// <remarks>
+        /// 与上一条的分工:上条钉**方向**(中央 vs 四边的相对关系),本条钉**绝对强度**
+        /// —— 只断言「中央更淡」的话,中央取 1% 也能过,却仍是墨边框。
+        /// 阈值取 50%:spec 用「近满墨」而非「全黑」(留白要能读出呼吸空间,故不取 100%)。
+        /// </remarks>
+        [Test]
+        public void test_inkWash_centerStillDark_enoughForNearFullInk()
+        {
+            const float n = 0.5f;
+            byte center = InkWashTexture.InkAlphaAt(0.5f, 0.5f, n);
+            // 叠加在叠层之上后,世界亮度残留比例 = 1 - alpha/255。
+            float residual = 1f - center / 255f;
+            Assert.That(residual, Is.LessThan(0.5f),
+                $"满屏时中央世界亮度残留 {residual:P0} 过高(alpha={center})—— " +
+                "spec §6「近满墨」不成立,会读成墨边框");
+        }
+
+        /// <summary>
+        /// spec §9「水墨自四边向中央渐入(**非线性 easing**)」:渐入中段推进快于线性。
+        /// </summary>
+        /// <remarks>
+        /// 判据 = smoothstep 在 `t=0.25` 处低于线性值(起步平缓)、`t=0.75` 处高于线性值
+        /// (收尾平缓)—— 两侧同时成立才叫「两端缓、中段快」,单侧过不了。
+        /// ⚠️ 首版是 `Elapsed / FallSeconds` **线性**映射,本测会当场转红。
+        /// </remarks>
+        [Test]
+        public void test_phases_falling_isNonLinearEasing_perSpec9()
+        {
+            var d = DeathTransitionDriver.Inactive;
+            d.Step(1, 0.1f);   // 进 Φ1
+            Assert.AreEqual(DeathTransitionVisualPhase.Falling, d.Phase);
+
+            // 逐帧累计到渐入段的 1/4 与 3/4 处,与线性基准比对。
+            float elapsed = d.Elapsed;
+            float quarter = DeathTransitionDriver.FallSeconds * 0.25f;
+            float threeQuarter = DeathTransitionDriver.FallSeconds * 0.75f;
+
+            float alphaAtQuarter = -1f, alphaAtThreeQuarter = -1f;
+            for (int i = 0; i < 100 && d.Phase == DeathTransitionVisualPhase.Falling; i++)
+            {
+                d.Step(1, 0.01f);
+                elapsed += 0.01f;
+                if (alphaAtQuarter < 0f && elapsed >= quarter) alphaAtQuarter = d.Alpha;
+                if (elapsed >= threeQuarter && d.Phase == DeathTransitionVisualPhase.Falling)
+                    alphaAtThreeQuarter = d.Alpha;
+            }
+
+            Assert.GreaterOrEqual(alphaAtQuarter, 0f, "应采到 1/4 处的 alpha");
+            Assert.GreaterOrEqual(alphaAtThreeQuarter, 0f, "应采到 3/4 处的 alpha");
+
+            // 1/4 处:非线性(smoothstep) < 线性(0.25) —— 起步更平缓。
+            Assert.That(alphaAtQuarter, Is.LessThan(0.25f),
+                $"渐入 1/4 处 alpha={alphaAtQuarter:0.000} 应低于线性 0.25(起步平缓)");
+            // 3/4 处:非线性 > 线性(0.75) —— 中段已推进更多。
+            Assert.That(alphaAtThreeQuarter, Is.GreaterThan(0.75f),
+                $"渐入 3/4 处 alpha={alphaAtThreeQuarter:0.000} 应高于线性 0.75(中段快)");
+        }
+
         // ══════════════════ 1 侧传送实装(2026-11-01 接线兑付)══════════════════
 
         /// <summary>sink 守卫:未绑定请求抛(fail-loud,禁静默吞复活);二次绑定抛。</summary>

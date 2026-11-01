@@ -4,9 +4,12 @@
 // 读哪些仓库文件 / 写哪里(test-standards 具名声明义务)
 // ─────────────────────────────────────────────────────────────────────────────
 // 读:**零读盘**(真启动装配;Addressables world 场景由启动序拉)。
-// 写:**零写盘**(视觉截图不在 batch 产出 —— ScreenCapture 依赖 game view backbuffer,
-//    WaitForEndOfFrame 在 batch 无渲染帧时永不触发(挂死,2026-11-01 实测);
-//    [L] 视觉/听觉证据 = 用户桌面人工走查 + 签核,登记见 production/qa/evidence/)。
+// 写:**仅图形模式写 2 张截图** ⇒ `unity/Logs/shots/`(gitignored 指定暂存区 —— 具名声明:
+//    `s237_death_falling.png`(Φ1 倒下渐入)· `s237_revive_waking.png`(Φ3 醒来),
+//    承仓库「Visual/Feel → 截图 + 签核」体例)。
+//    ⚠️ **batch 结构性零写盘**:`ScreenCapture` 依赖 game view backbuffer,
+//    `WaitForEndOfFrame` 在无渲染帧的 batch 下**永不触发(协程挂死,2026-11-01 实测)**;
+//    故截图路径全程由 `Application.isBatchMode` 守卫 —— batch 跑 = 零写盘、零挂死风险。
 //
 // ── 本件记分面 ──────────────────────────────────────────────────────────────
 // ✅ AC-29-10(实发半):1 侧传送实装(TeleportCommandSink)→ PlayerController.Teleport
@@ -18,6 +21,7 @@
 // 形态承 camera_follow_wiring_test(BootRoot 反射观测 + Addressables world 卸载)。
 
 using System;
+using System.IO;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
@@ -123,6 +127,7 @@ namespace DaYiJingCheng.Tests.PlayMode
                 if (rig != null && rig.name == "CameraRig")
                     UnityEngine.Object.Destroy(rig.gameObject);
             }
+
             yield return null;   // 让销毁生效(否则本帧仍计入 active 数)
             yield return null;   // 两帧:Destroy 在帧末生效,再等一帧确保 active 集已刷新
 
@@ -196,16 +201,34 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.IsTrue(group.gameObject.activeInHierarchy, "叠层已激活(Φ1)");
             Assert.That(group.alpha, Is.GreaterThan(0f).And.LessThanOrEqualTo(1f), "渐入中");
 
-            // [L] 走查支撑:渐入中(Φ1;0.4 s 处)。⚠️ 截图**不在 batch 产出** ——
-            // ScreenCapture 依赖 game view backbuffer、WaitForEndOfFrame 在 batch 无渲染帧时
-            // **永不触发(协程挂死,2026-11-01 实测)** ⇒ 自动化只断言 alpha 数值形状;
-            // [L] 视觉走查/听测 = 用户桌面人工签核(证据登记见 qa evidence 件)。
+            // [L] 走查截图 ①:倒下渐入(Φ1)。
+            // ⚠️ **只在有渲染帧时产出** —— batch(-nographics / 无 backbuffer)下
+            // `WaitForEndOfFrame` 永不触发(协程挂死,2026-11-01 实测),
+            // 故用 `Application.isBatchMode` 守卫:batch 跳过截图、图形模式才截。
+            // 落 `Logs/shots/`(gitignored 暂存区,文件头已具名声明)。
+            // ⚠️ **截图时机 = 轮询 `group.alpha` 到 ≥ 0.7**,不是固定等 0.4 s:
+            //    Φ1 渐入 1.2 s,0.4 s 时 alpha ≈ 0.33 ⇒ 叠层淡到「看起来没截到」。
+            //    且固定 `WaitForSeconds` 走**真实时间**,而相位机吃 `Time.deltaTime`
+            //    —— 前序夹具留下的 `Time.captureDeltaTime` 会让两者脱钩(2026-11-01 实测)。
+            float shotDeadline = Time.realtimeSinceStartup + 5f;
+            while (group.alpha < 0.7f && Time.realtimeSinceStartup < shotDeadline)
+            {
+                yield return null;
+            }
+            Debug.Log($"[S237] 截图①时机: group.alpha={group.alpha:0.00}(期望 ≥ 0.7)");
+            CaptureShot("s237_death_falling.png");
+            yield return CaptureEndOfFrame();
 
             // Act ②:1 侧传送实装 —— RequestTeleport(整数命令半)→ 格心连续坐标。
             var bedCell = new WorldPos(2, 0, 2);
             _services.TeleportSink.RequestTeleport(playerId, bedCell);
             Debug.Log($"[S237] teleport 后位置 = {player.transform.position}(期望格心 (2.5, 0.5, 2.5))");
             yield return new WaitForSeconds(0.3f);   // 等 ≥ 若干 tick 边沿(50 ms/个)提交跨格
+
+            // [L] 走查截图 ②:醒来(Φ3;复活落地后相位)。
+            yield return new WaitForSeconds(0.5f);
+            CaptureShot("s237_revive_waking.png");
+            yield return CaptureEndOfFrame();
 
             // 诊断 dump:该 actor 的全部格事件(tick + 格),供失败归因。
             foreach (var e in _services.Stream.Events.Where(e => e.Kind == EventKind.ActorCellEntered))
@@ -267,6 +290,30 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             Debug.Log($"[DeathTransition] 全链 OK:pos {posBefore} → {player.transform.position};" +
                       $"格事件 {cellAfter.Count} 条;相位序列 Falling→Lying→Waking→Fading→Inactive 已走完");
+        }
+
+        // ── [L] 走查截图(图形模式才产出;batch 结构性无 backbuffer)────────────────
+
+        /// <summary>
+        /// 请求截图(<b>仅图形模式</b>)。batch / nographics 下 `ScreenCapture` 出零字节 PNG,
+        /// 且 `WaitForEndOfFrame` 永不触发 ⇒ 必须守卫,否则协程挂死(2026-11-01 实测挂 10 分钟)。
+        /// </summary>
+        private static void CaptureShot(string fileName)
+        {
+            if (Application.isBatchMode) return;   // batch 结构性无帧 ⇒ 不请求
+            string dir = Path.Combine(Application.dataPath, "..", "Logs", "shots");
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, fileName);
+            ScreenCapture.CaptureScreenshot(path, 2);
+            Debug.Log($"[S237] 已请求截图(2×)⇒ {path}(写盘延后 1–2 帧)");
+        }
+
+        /// <summary>等帧末 —— <b>仅图形模式</b>(batch 下该 yield 永不返回)。</summary>
+        private static IEnumerator CaptureEndOfFrame()
+        {
+            if (Application.isBatchMode) yield break;
+            yield return new WaitForEndOfFrame();
+            yield return null;   // 让 ScreenCapture 写盘
         }
 
         private bool ReadBooted()

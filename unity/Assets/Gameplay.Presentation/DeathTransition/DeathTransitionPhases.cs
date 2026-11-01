@@ -61,7 +61,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.DeathTransition
 
                 case DeathTransitionVisualPhase.Falling:
                     Elapsed += dt;
-                    Alpha = Mathf.Clamp01(Elapsed / FallSeconds);
+                    // ⚠️ **非线性 easing 是 spec 硬要求**:`death-transition-29.md` §9 逐字写
+                    // 「水墨自四边向中央渐入(**晕染感**,非线性 easing;禁瞬间黑屏)」。
+                    // smoothstep = 两端平缓、中段快 —— 摹墨渗(起步不硬、收尾不突兀);
+                    // 线性会让四边墨带以恒速推进,读作「矩形推入」而非晕染。
+                    Alpha = Mathf.Clamp01(EaseInk(Elapsed / FallSeconds));
                     if (Elapsed >= FallSeconds)
                     {
                         Phase = DeathTransitionVisualPhase.Lying;
@@ -101,6 +105,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.DeathTransition
                     }
                     return;
             }
+        }
+
+        /// <summary>
+        /// 渐入缓动(smoothstep):两端平缓、中段快 —— 摹「墨渗」而非几何推移。
+        /// <para>spec §9 要求「非线性 easing」(禁瞬间黑屏);本函数在 `t ∈ [0,1]` 上
+        /// 单调递增且值域 [0,1],端点 `0 → 0`、`1 → 1`(相位机端点的满屏赋值不变)。</para>
+        /// </summary>
+        private static float EaseInk(float t)
+        {
+            t = Mathf.Clamp01(t);
+            return t * t * (3f - 2f * t);
         }
 
         /// <summary>Φ1 渐入时长(秒;数值轮可调)。</summary>
