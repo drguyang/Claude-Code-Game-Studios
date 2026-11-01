@@ -157,6 +157,18 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
                     "夹具自检:锚串 `\"max_quality\": 5` 须在 21a 常量表里恰命中(否则本测打空靶)");
                 File.WriteAllText(constantsPath, tightened);
 
+                // 🔁 2026-11-01(S22-9):`quality_distribution` 的长度**必须等于** MAX_QUALITY
+                //   (17 的 `QualityDistributionShape`:D-21-7 双向耦合)。把 MAX_QUALITY 压到 1
+                //   而分布仍长 5 ⇒ 21a 自身就先绑不过,本测的靶(cap_table)根本走不到。
+                //   ⇒ 临时副本里把分布**同批缩到 1 档**,让「只改 MAX_QUALITY」这个场景仍然自洽。
+                string itemsPath = Path.Combine(dataDir, ItemDatabaseBaker.ItemsFileName);
+                string goodItems = File.ReadAllText(itemsPath);
+                string shrunk = goodItems.Replace(
+                    "\"quality_distribution\": [1, 1, 1, 1, 1]", "\"quality_distribution\": [1]");
+                Assert.That(shrunk, Is.Not.EqualTo(goodItems),
+                    "夹具自检:分布锚串须在 21a 物品表里命中(否则本测打空靶)");
+                File.WriteAllText(itemsPath, shrunk);
+
                 // 前置自检:17 的真实表**确实**含有超过 1 的 CapTable 值 ——
                 // 否则下面「真读 ⇒ 拒收」的推理不成立(夹具内部一致性)。
                 var probe = Assert.Throws<BakeValidationException>(

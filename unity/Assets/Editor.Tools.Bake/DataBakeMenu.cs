@@ -150,6 +150,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// **接线归 17 的装配轮**,不在本件。</para></summary>
         public const string ForagingConstantsCookedAssetName = "foraging_constants.cooked.bytes";
 
+        /// <summary>20 库存调参表的产物名(S22-9 · 2026-11-01)。</summary>
+        public const string InventoryConstantsCookedAssetName = InventoryConstantsBake.CookedFileName;
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -1230,6 +1233,43 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ **本产物今日无运行期消费方**(与 <see cref="BuildModulesCookedAssetName"/> 同态)——
         /// 17 的 `IDataProvider` 消费方在 story-002/004 实现。**补烘 ≠ 接线**。</para>
         /// </summary>
+        /// <summary>
+        /// 烘焙 20 库存调参表(S22-9 · 2026-11-01):
+        /// 仓库 <c>assets/data/inventory_constants.json</c> → <see cref="InventoryConstantsBinder"/>(阶段 2)
+        /// → deterministic 编码 → <see cref="InventoryConstantsCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ **本菜单是 <see cref="InventoryConstantsBinder"/> 的唯一生产调用点链路** ——
+        /// 补烘前该表的 binder 只有编辑期门在跑,运行期连产物都不存在
+        /// ⇒ `CarryLoadSolver.CanCarry` 的容量输入**零来源**。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 inventory_constants(20 库存调参表 · CARRY_CAP)")]
+        public static void BakeInventoryConstants()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                InventoryConstantsBake.BakeOutput result = InventoryConstantsBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, InventoryConstantsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{InventoryConstantsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"CARRY_CAP = {result.Bound.CarryCap}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw;
+            }
+        }
+
         [MenuItem("大医精诚/数据管线/烘焙 foraging_constants(17 采集调参表)")]
         public static void BakeForagingConstants()
         {

@@ -201,6 +201,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>单一出处 = <see cref="WorldResourcesDataSet.CookedFileName"/>。</remarks>
         public const string WorldResourcesAddress = WorldResourcesDataSet.CookedFileName;
 
+        /// <summary>20 库存调参表(`inventory_constants.cooked.bytes`;S22-9 新增)。
+        /// <para>`CARRY_CAP` 的运行期唯一来源 —— 补之前该表**连产物都不存在**。</para></summary>
+        public const string InventoryConstantsAddress = "inventory_constants.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -256,6 +260,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29):struct 解码形 ⇒ 可空承载。
         private WorldPoiDataSet? _worldPoi;
         private WorldResourcesDataSet? _worldResources;
+        // 20 库存调参表(S22-9 · 2026-11-01):单标量载荷 ⇒ 可空 int 承载。
+        private int? _carryCap;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -527,6 +533,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldPoi();
             EnsureWorldResources();
             EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
+            EnsureInventoryConstants();   // S22-9(2026-11-01):CARRY_CAP 的装载输入
         }
 
         private void EnsureItems()
@@ -1068,6 +1075,45 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     $"[E-13][data-core] 资源点 cooked 解码失败(address={WorldResourcesAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
+            }
+        }
+
+        /// <summary>
+        /// 20 库存调参表(`CARRY_CAP`)的装载(S22-9 · 2026-11-01)。
+        /// <para><b>为何要走这条链而不是只留 <see cref="DataCookedDisk.LoadCarryCap"/> </b>:
+        /// 后者是**盘上直读**路径(编辑期工具 / 夹具用),玩家构建里没有盘可读 ——
+        /// 生产装配只认 Addressables。两条路读**同一份**产物的**同一套**判据
+        /// (<see cref="InventoryConstantsCookedCodec"/>),不构成第二真源。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">装载 / 解码失败(启动期硬失败)。</exception>
+        private void EnsureInventoryConstants()
+        {
+            if (_carryCap.HasValue) return;
+            byte[] bytes = FetchBytes(InventoryConstantsAddress);
+            try
+            {
+                _carryCap = InventoryConstantsCookedCodec.ReadCarryCap(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 库存调参表 cooked 解码失败(address={InventoryConstantsAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>
+        /// `CARRY_CAP`(AC-20-13:装载期硬失败,禁 null 兜底)。
+        /// <para>采前闸的「满载」一侧由此取值 —— 见 `CarryLoadSolver.CanCarry` 的 `carryCapacity` 形参。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">产物装载失败(启动期硬失败)。</exception>
+        public int CarryCap
+        {
+            get
+            {
+                EnsureInventoryConstants();
+                return _carryCap.Value;
             }
         }
 

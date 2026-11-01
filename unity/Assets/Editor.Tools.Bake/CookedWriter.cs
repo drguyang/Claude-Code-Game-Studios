@@ -122,6 +122,19 @@ namespace DaYiJingCheng.EditorTools.Bake
                 WriteString(w, values[i]);
         }
 
+        /// <summary>写 int 数组(长度前缀;null ⇒ -1)。🔁 2026-11-01(S22-9)新增:
+        /// `gather_profile.quality_distribution` 是**权重 int 数组**(D-21-17 计数非 Fix)。</summary>
+        private static void WriteIntArray(BinaryWriter w, int[] values)
+        {
+            if (values == null)
+            {
+                w.Write(-1);
+                return;
+            }
+            w.Write(values.Length);
+            for (int i = 0; i < values.Length; i++) w.Write(values[i]);
+        }
+
         private static void WriteBool(BinaryWriter w, bool value) => w.Write((byte)(value ? 1 : 0));
 
         private static void WriteNullableFix(BinaryWriter w, Fix? value)
@@ -208,6 +221,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 WriteStringArray(w, gather.Parts);
                 w.Write(gather.QtyPerNode);
                 WriteStringArray(w, gather.QualityCharacter);
+                WriteIntArray(w, gather.QualityDistribution);   // schema 3
             }
             else
             {

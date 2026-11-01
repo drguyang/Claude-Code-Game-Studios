@@ -243,6 +243,10 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             new ArtifactBake(DataBakeMenu.ForagingConstantsCookedAssetName,
                 root => ForagingConstantsBaker.BakeFromRepo(root).Cooked),
 
+            // ── 20 库存调参表(1 份;2026-11-01 S22-9 补烘 —— CARRY_CAP 的运行期来源)──
+            new ArtifactBake(DataBakeMenu.InventoryConstantsCookedAssetName,
+                root => InventoryConstantsBake.BakeFromRepo(root).Cooked),
+
             // ── 建造槽位骨架(1 份;S20-20 落盘,2026-10-28)──
             //    ⚠️ **本门第五次抓到同类漏登记** —— S20-20 落了 `world_buildslots.cooked.bytes`
             //    却没登记,全量回归首跑即红两条(`noGhostArtifact` + `pinnedDeclared` 25→26)。
@@ -440,7 +444,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-29(关卡工具 story-004):29 → 31(+world_poi / world_resources,POI 定义 / 资源点)。
             // 🔁 2026-10-29(story-005):31 → 35(导航格 4 片;世界几何是**重烘**不是新增)。
             // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
-            const int pinnedDeclared = 37; // 2026-10-30 实测(37 份;+1 = 53_cost_table)
+            // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
+            const int pinnedDeclared = 38; // 2026-11-01 实测(38 份;+1 = inventory_constants)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

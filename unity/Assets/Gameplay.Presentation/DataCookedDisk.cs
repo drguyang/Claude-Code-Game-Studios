@@ -108,6 +108,26 @@ namespace DaYiJingCheng.Gameplay.Presentation
             => WorldNavChunkCookedCodec.Read(
                 ReadAll(WorldNavChunkDataSet.CookedFileNameFor(chunkIndex)), chunkIndex);
 
+        /// <summary>
+        /// 20 库存调参表(`inventory_constants.cooked.bytes`)的 `CARRY_CAP`。
+        /// <para>🔁 **2026-11-01(S22-9)新增** —— `CarryLoadSolver.CanCarry` 的容量输入
+        /// 此前在生产里**零来源**(该表只有构建期 Binder 与编辑期门)。</para>
+        /// </summary>
+        public static int LoadCarryCap()
+            => InventoryConstantsCookedCodec.ReadCarryCap(
+                ReadAll("inventory_constants.cooked.bytes"));
+
+        /// <summary>
+        /// 17 采集调参表(<c>foraging_constants.cooked.bytes</c>)。
+        /// <para>🔁 **2026-11-01(S22-9)新增**:产物一直有,但此前**没有运行期读方**
+        /// ⇒ 采前闸 / 采量 / 品级三处都拿不到表。</para>
+        /// <para>⚠️ <paramref name="maxQuality"/> = 21a 的 `MAX_QUALITY`
+        /// (`RecipeDataSet.Settlement.MaxQuality`),由调用方注入 —— 写进 17 的产物就是第二真源。</para>
+        /// </summary>
+        public static DaYiJingCheng.Sim.Foraging.ForagingConstants LoadForagingConstants(int maxQuality)
+            => ForagingConstantsCookedCodec.Read(
+                ReadAll("foraging_constants.cooked.bytes"), maxQuality);
+
         /// <summary>21a 家具目录(<c>item_database_furniture.cooked.bytes</c>)。</summary>
         public static ClinicFurnitureDataSet LoadClinicFurniture()
             => ClinicFurnitureCookedCodec.Read(ReadAll(AddressablesDataProvider.FurnitureCatalogueAddress));

@@ -16,6 +16,16 @@ namespace DaYiJingCheng.Sim.Contracts
         // 品级分布(quality_distribution)形状由 17 定 —— 见 design/gdd/item-database.md §Schema C。
         // 本块不持有该类型(21a → 17 的只读输入契约,TR-itemdb-017)。
 
+        /// <summary>品级分布权重(`weights[q-1]` = 品级 q 的权重;int 计数,**非 Fix** —— D-21-17)。
+        /// <para>🔁 **2026-11-01(S22-9)新增**:此前本块**不含**该字段 —— 而 17 的
+        /// `GatherQualityRoll.OutQuality` 必须吃一份分布才能掷出 `out_quality`,21a 的 binder
+        /// 又对 `quality_distribution` 的任何字段一律拒绝 ⇒ **数据通道全库不存在**
+        /// (`QualityDistributionShape.cs` 文件头已登记该缺口)。本字段就是那条通道的类型落点。</para>
+        /// <para>⚠️ 形状判据(长度 = `MAX_QUALITY` · 各权重 ≥ 0 · `Σw ≥ 1`)归 17 的
+        /// `QualityDistributionShape.Validate`,烘焙期与装载期同源调用,不另写第二份。</para>
+        /// </summary>
+        public int[] QualityDistribution { get; set; }
+
         /// <summary>单次采量基数(21a 给基数,17 给动作)。int &gt; 0;越界校验归 Story 006。</summary>
         public int QtyPerNode { get; set; }
 

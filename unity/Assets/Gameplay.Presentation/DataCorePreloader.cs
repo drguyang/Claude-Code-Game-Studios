@@ -189,9 +189,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 2026-10-22 B1 接真追加 9 病种注册表后共 **22** 条;
         /// 2026-10-28 S20-20 装载面追加建造槽位骨架后共 **23** 条;
         /// 2026-10-29 关卡工具 story-002 追加世界几何 / 地形表后共 **25** 条;
-        /// 2026-10-29 关卡工具 story-003 追加生态区多边形后共 **26** 条
-        /// —— 与 `Preload()` 的
-        /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
+        /// 2026-10-29 关卡工具 story-003 追加生态区多边形后共 **26** 条;
+        /// 2026-11-01 S22-9 追加 20 库存调参表后共 **33** 条。
+        /// ⚠️ **上列逐次累加的计数在 26 之后就脱节了** —— S22-9 之前实际已是 **32** 条。
+        /// ⇒ **口径以代码为准**,本注释不再逐次累加;长度由
+        /// `test_preloader_list_sources_matchPreloadedProducts` / `test_wiring_preload_invokesEveryEnsureMethod`
+        /// 与 `Preload()` 的 `Ensure*` 调用数**逐一相等**钉住。</summary>
         internal static readonly string[] DataCoreAddresses =
         {
             AddressablesDataProvider.ItemsAddress,
@@ -248,6 +251,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29:`PoiGrid` / `ResourceGrid` 的真值来源)。
             AddressablesDataProvider.WorldPoiAddress,
             AddressablesDataProvider.WorldResourcesAddress,
+            AddressablesDataProvider.InventoryConstantsAddress,   // S22-9:CARRY_CAP 的装载输入
             // 13 调参常量表(`TD-audio-032` ① · 2026-10-29:`CueIntervals` / `BehaviorBands` 的生产载体)。
             // ⚠️ 本条是**第五次**同型补登记(BuildModules / DiseaseRegistry / WorldBuildSlots /
             //    WorldGeometry 之后),前四次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量

@@ -536,14 +536,47 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             if (gather.TryGet("quality_distribution", out JsonNode qd))
             {
-                if (qd.Kind != JsonNodeKind.Object)
-                    pkg.Errors.Add($"{label}{suffix}:\"quality_distribution\" 须为对象(形状归 17)");
+                // 🔁 2026-11-01(S22-9):此前**任何**字段都拒(形状归 17、P0 不得携带)⇒ 数据通道
+                //   全库不存在。现 17 已定形状 = **int 权重数组**(`weights[q-1]` = 品级 q 的权重),
+                //   本处按该形状读入,并**直接调 17 的校验器**(`QualityDistributionShape.Validate`),
+                //   不另写第二份判据。
+                if (qd.Kind != JsonNodeKind.Array)
+                    pkg.Errors.Add($"{label}{suffix}:\"quality_distribution\" 须为整数数组" +
+                                   "(形状归 17:weights[q-1] = 品级 q 的权重)");
                 else
                 {
-                    // 形状由 17 定 —— P0 不得携带任何字段(GDD §Schema C「本节之外出现的字段一律视为未定义」)。
-                    foreach (string key in qd.Keys)
-                        pkg.Errors.Add($"{label}{suffix}.quality_distribution:未登记字段 \"{key}\" —— " +
-                                       "形状归系统 17 的 GDD,P0 不得携带(AC-21a-14 判据归 17)");
+                    var weights = new int[qd.Items.Count];
+                    bool shapeOk = true;
+                    for (int qi = 0; qi < qd.Items.Count; qi++)
+                    {
+                        if (qd.Items[qi].Kind != JsonNodeKind.Integer)
+                        {
+                            pkg.Errors.Add($"{label}{suffix}.quality_distribution[{qi}] 须为整数 token" +
+                                           "(D-21-17:权重是 int 计数,不是 Fix)");
+                            shapeOk = false;
+                            continue;
+                        }
+                        weights[qi] = (int)qd.Items[qi].Int;
+                    }
+
+                    // ⚠️ 常量表读不出来时(maxQuality = 0)**跳过**形状校验:
+                    //   真实错误已在 `BindConstants` 里报过,这里再报一条「长度 5 ≠ MAX_QUALITY 0」
+                    //   会把根因埋在下面(`foraging_bake_wiring_test` 的跨表判据即因此转红)。
+                    int maxQuality = pkg.Constants?.Constants.MaxQuality ?? 0;
+                    if (shapeOk && maxQuality >= 1)
+                    {
+                        try
+                        {
+                            DaYiJingCheng.Sim.Foraging.QualityDistributionShape.Validate(
+                                weights, maxQuality);
+                            profile.QualityDistribution = weights;
+                        }
+                        catch (Exception ex)
+                        {
+                            // 17 的校验器逐条具名 ⇒ 原样透出,不加工(单一真源)
+                            pkg.Errors.Add($"{label}{suffix}.quality_distribution:{ex.Message}");
+                        }
+                    }
                 }
             }
 

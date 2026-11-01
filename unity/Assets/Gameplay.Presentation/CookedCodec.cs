@@ -84,7 +84,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 「未自带版本的产物恰好沿用的默认值」。</para>
         /// <para>⚠️ 为什么**不**与 recipes 共用:recipes 的载荷布局本批**一字未改**,
         /// 把它的版本号一起抬 = 对「recipe schema 变了」说一句假话。版本号按产物各自演化。</para></summary>
-        public const uint ExpectedItemSchemaVersion = 2u;
+        public const uint ExpectedItemSchemaVersion = 3u;
 
         /// <summary><c>item_database_recipes.cooked.bytes</c>(含结算常量)的 schema_version 期望值。
         /// <para><b>1 → 2(2026-10-27)</b>:<see cref="Recipe.Ordinal"/> 作为每条配方的首字段写入载荷
@@ -185,6 +185,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     Parts = ReadStringArray(r),
                     QtyPerNode = r.ReadInt32(),
                     QualityCharacter = ReadStringArray(r),
+                    QualityDistribution = ReadIntArray(r),   // schema 3
                 };
             }
 
@@ -245,6 +246,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
             if (bytes.Length != len)
                 throw new InvalidDataException("[cooked] 字符串截断 —— 产物损坏,启动期硬失败(E-13)");
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        /// <summary>读 int 数组(长度前缀;-1 ⇒ null)。🔁 2026-11-01(S22-9)新增。</summary>
+        private static int[] ReadIntArray(BinaryReader r)
+        {
+            int count = r.ReadInt32();
+            if (count < 0) return null;
+            var values = new int[count];
+            for (int i = 0; i < count; i++) values[i] = r.ReadInt32();
+            return values;
         }
 
         private static string[] ReadStringArray(BinaryReader r)
