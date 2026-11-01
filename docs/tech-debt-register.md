@@ -445,6 +445,7 @@
 | `TD-building-04` | `modular-building` | open | **N** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | open | **N** | R4 |
+| `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -855,7 +856,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 144 | 状态 {'closed': 127, 'partial': 3, 'open': 13, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 40, '~~**Y**~~': 4}
+条目 145 | 状态 {'closed': 127, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 41, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -8659,4 +8660,44 @@ done
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 python3 tools/debtcount/debtcount.py --print   # 期望:条目 144 | open 15 | N 40 | 未闭 P0 面 = 0
 python3 tools/debtcount/debtcount.py --check   # 期望:退出码 0(块与索引一致)
+```
+
+---
+
+## 2026-11-02 · `S23-10` 实现轮新揭:`SkeuoUI` 根对象不随 `BootRoot` 销毁(测试间泄漏)
+
+**出处**:`production/qa/evidence/impl-casebook-006-camera-mode-intent-2026-11-02.md` §六「实现期发现与就地处置」第 3 条。
+登记时点在 `S23-11` 收口后的收尾清账里(用户指令「先修 B-4」)。
+
+### TD-skeuo-02 —— 42 的 `SkeuoUI` 根对象不是 `BootRoot` 的子级,PlayMode 夹具之间会互相继承其内部状态
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `BootRoot.FindOrCreateSkeuoUi` 用 `new GameObject("SkeuoUI")` 建 42 的 UI 载体,**且** `FindFirstObjectByType<SkeuoRuntimeDriver>()` **复用**已有实例;该对象**未** `SetParent` 到 `BootRoot`、**未** `MoveGameObjectToScene` ⇒ `BootRoot` 被销毁时它**存活**。⇒ 下一件 PlayMode 夹具 `AddComponent<BootRoot>()` 拿到的是**上一件留下的驱动实例**(`Awake` 不再跑)⇒ 其内部状态(`_currentModal` / `_screen` / 注入的 sink)**原样带入下一件**。 |
+| **实测(逐条可跑)** | ① 复用:`grep -n 'FindFirstObjectByType<SkeuoRuntimeDriver>' unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ `:1061`;创建:`grep -n 'new GameObject("SkeuoUI")' …` ⇒ `:1065`。<br>② **未归 BootRoot**:`grep -c 'SetParent.*SkeuoUI\\|MoveGameObjectToScene(.*uiObj' unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ **0**。<br>③ 测试侧只有 **2 件**显式拆它:`grep -rln 'DestroyAllNamed("SkeuoUI")' unity/Assets/Tests --include=*.cs` ⇒ `Tests/PlayMode/Casebook/casebook_camera_wiring_test.cs` · `Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs`(**都是本轮新写的**)。而提到 `"SkeuoUI"` 的共 **5 件**:再加 `save_slot_save_wiring_test.cs` / `main_menu_wiring_test.cs` / `modal_focus_wiring_test.cs`。 |
+| **失效链(具体到观测)** | 2026-11-02 实测一次:`S39-06` 的 `TearDown` 调 `driver.CloseModal()` 把模态关成 `None` **之后**才销毁 `BootRoot`;`SkeuoUI` 存活 ⇒ 下一件 `S39-07` 复用同一驱动 ⇒ 它的前置断言「启动态 = 常驻脉案屏(`Casebook`)」读到 **`None`** ⇒ **红**。<br>⇒ 该形态的判据**依赖测试执行顺序**,而 `FindObjectsSortMode.None` 的枚举序与 NUnit 的用例序都不保证稳定 ⇒ 表现为**偶发红**,不是稳定红。 |
+| **为什么是债而不是「顺手改」** | ① 修它要动 `BootRoot.FindOrCreateSkeuoUi` 的**生命周期归属**(是 `SetParent` 归 BootRoot,还是改由场景持有),这是**装配决定**,不是夹具内的清理;<br>② 今日 5 件测试里已有 3 件**依赖**它跨用例存活(或至少没拆),贸然改归属会动到它们;<br>③ 它属于「测试隔离」这一类,**不是**单个夹具的洁癖 —— 只在自己夹具里拆(本轮已做)治的是那两件,不是这一类。 |
+| **修法方向(未裁,仅登记)** | 甲:`FindOrCreateSkeuoUi` 把 `uiObj` 设为 `BootRoot` 子级(`SetParent(transform)`),与 `EventSystem` 同款 —— `BootRoot` 销毁即随之销毁,复用逻辑退化为「同一 `BootRoot` 内幂等」;<br>乙:保持全局单例,但**显式定义**「跨用例存活」并在每个夹具的 `BootRoot` 建立前调用一次 `Reset()`(清 `_currentModal` / `_screen` / 注入面);<br>丙:测试侧统一走一个 `BootFixture` 帮助类,把拆除次序固化成唯一出处(不碰生产)。<br>**三条都不改 42 的渲染面**,只动归属或复位。 |
+| **何时消解** | 上述任一方向落盘,**且**有一条夹具证明「前一件把模态关成 `None` 后,后一件仍读到启动态 `Casebook`」——即泄漏面被**结构性**堵住,而不是靠每一件自己 `DestroyAllNamed`。仅在本轮两件里补 `DestroyAllNamed("SkeuoUI")` **不算消解**(原文保留:那是治标)。 |
+| **归属** | **42 拟物 UI(`skeuomorphic-ui`)** —— 载体归 42;`BootRoot` 只是装配方。 |
+| **`P0 面 = N` 的理由(R4)** | 今日**零产品缺陷**:该泄漏只在 PlayMode 夹具之间传播,产物里 `SkeuoUI` 的生命周期与 `BootRoot` 同场景,玩家不可感知。它是**测试隔离 / 覆盖质量**类债 —— 与 `TD-ci-01`(治理面,`N`)同族。⚠️ **本行不自称定论**:若审阅者认为「会造成偶发红的测试隔离缺陷」一律计入 P0 面,则改判 `Y`,数字随之 `+1`(且会打破 `未闭 P0 面 = 0`)。 |
+
+#### 账务
+
+`条目 144 → 145` · `open 13 → 14` · `closed 127` 不动 · `partial 3` 不动 ·
+`P0 面 Y 100` 不动 · `N 40 → 41` · **`未闭 P0 面 0` 不动** ·
+**epic 分布 `31/31` 不动**(`skeuomorphic-ui` 本就在分布里,其未闭 P0 面仍为 0)。
+
+⚠️ **本条判 `N` 是「未闭 P0 面 = 0」得以保持的唯一原因** —— 改成 `Y` 会让 M3 Exit 第二条合取
+立刻转假。**这不是理由,是后果**;判据见上表 `P0 面 = N` 行。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py            # 刷新 TD-COUNT 块
+python3 tools/debtcount/debtcount.py --check    # 期望退出码 0
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 145 | open 14 | N 41 | 未闭 P0 面 = 0
+grep -rln 'DestroyAllNamed("SkeuoUI")' unity/Assets/Tests --include=*.cs | wc -l   # 期望 2(治标面)
+grep -c 'SetParent.*SkeuoUI' unity/Assets/Gameplay.Boot/BootRoot.cs                # 期望 0(未修)
 ```

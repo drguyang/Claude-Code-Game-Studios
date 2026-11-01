@@ -164,8 +164,9 @@
    落当前场景,且会 `FindFirstObjectByType` **复用**已有实例 ⇒ 上一件 PlayMode 夹具的驱动
    (含 `_currentModal`)会原样活到下一件。本轮实测:`S39-06` 的 TearDown 把模态关成 `None` 之后,
    `S39-07` 复用同一实例 ⇒ 前置断言变 `None`,红了一次。
-   ⇒ 夹具在 `Boot()` 与 `TearDown` 两处都显式拆 `SkeuoUI`。
-   **这是测试间的真实泄漏面**,其他 PlayMode 夹具若依赖「启动即脉案屏」也会撞上。
+   ⇒ 夹具在 `Boot()` 与 `TearDown` 两处都显式拆 `SkeuoUI`(治标)。
+   ✅ **已登记为债 `TD-skeuo-02`**(2026-11-02):治本要走 `BootRoot` 的归属或复位(三条方向见该条),
+   **仅在本夹具里拆不算消解**。
 
 ### 证伪轮(7 条 · SHA-256 逐字节还原 7/7)
 
