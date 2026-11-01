@@ -268,6 +268,29 @@ cd unity && ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -quit -nograp
 ⚠️ **本判据的边界**:`strings` 证明的是「类型名不在 #Strings 堆」,等价于「该类型未被编译进该装配」;
 它**不**证明「记录器在生产逻辑上不可达」—— 那由 `S7-07`(零读点)负责,两条合起来才是完整结论。
 
+### 探针轮:证明该门真的在构建链上(2026-11-02 晚)
+
+**病因**:门链无错时**零输出** ⇒ 一次成功的构建**不能**区分
+「门跑了且通过」与「门根本没被调用」(F6 的经典形态)。
+
+**做法**:在 `RunModeRequestTable` 顶部插一条**无条件** `errs.Add("[PROBE] RunModeRequestTable reached")`
+并提前 `return`,重跑同一构建命令。三件套判据:
+
+| # | 判据 | 实测 |
+|---|---|---|
+| 1 | 探针串出现在**构建日志**里 | ✅ 1 处(`Unity/Logs/s7-probe-build.log:1258`) |
+| 2 | 其栈帧是 `OnPreprocessBuild`(含行号) | ✅ `AssemblyGates/BuildGate:OnPreprocessBuild (BuildReport) (at AssemblyGates.cs:1491)` |
+| 3 | 构建**真的失败** | ✅ `Build Finished, Result: Failure`;`BuildFailedException: [AssemblyGates] 构建前门失败 1 条`;`错误数 = 3` |
+
+⚠️ **归因的精确措辞**:栈帧落在**共享链执行体** `BuildGate.OnPreprocessBuild`,**不是**叶子门
+`CameraSetModeRequesterGate` 本身 —— 这是本仓所有门的统一形态(它们都经 `BuildGate` 上报)。
+探针的**归属**由探针串文本自己携带(`RunModeRequestTable`),不由栈帧携带。
+**不得**把本条写成「栈帧在 `CameraSetModeRequesterGate` 上」。
+
+**还原**:`CameraSetModeRequesterGate.cs` 以 SHA-256 逐字节还原;
+构建留下的 URP 派生改动(`m_RuntimeSettings → []`)按 `coding-standards §工作树卫生` 的三分类
+判为 **② 正常派生**,已回 HEAD。
+
 ### 未闭(禁借绿)
 
 1. ~~**S7-06 的 Release 变体编译 `NOT-RUN`**~~ ✅ **2026-11-02 晚已闭**(原文保留)——

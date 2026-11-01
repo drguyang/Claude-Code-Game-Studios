@@ -119,11 +119,8 @@ for f in ['unity/Logs/s23-em5.xml','unity/Logs/s23-pm5.xml']:
 3. **矩阵只证存在性** —— 时机 / 次数 / 相机是否接受,均不在本件面内。
 4. **手写 YAML 解析器** —— 表格式大改(多行标量 / 嵌套)会静默漏行;
    `active != 6` 兜得住**漏行**,兜不住**错位**。
-6. **本轮的构建绿不等于新门跑了** —— `CostTableProbeBuildCli.Build` 成功,
-   而 `RunAll` 现在含 `RunModeRequestTable`。但按 `CLAUDE.md` §构建前门的口径,
-   **门链无错时零输出** ⇒ 这次构建**不能**证明该门被调用过。要证它执行,须跑探针轮
-   (插无条件失败项 ⇒ 要求 `Result: Failure`)。**本批未跑探针轮,故该门的「构建期执行」记 `NOT-RUN`**;
-   本轮的 S7-01/02/03 判据走的是**直接调用** `RunModeRequestTable(".")`,与构建期执行是两件事。
+6. ~~**本轮的构建绿不等于新门跑了**~~ ✅ **已闭**(2026-11-02 晚,探针轮)—— 见 §九。
+   原文保留:成功构建**不能**区分「门跑了且通过」与「门没被调用」;探针轮才是判据。
 
 5. **「该发没发」仍有残余面:一次 boot 里驱动不出来的行** —— 本件按卡面允许的做法
    拆成**逐行多次 boot**,每行点名自己的测试方法;没有做「一次 boot 覆盖全部六行」的
@@ -167,4 +164,34 @@ REL=/tmp/dyjc-costtable-probe/CostTableProbe_Data/Managed/Gameplay.Presentation.
 strings "$ED"  | grep -c CameraModeRequestRecorder   # 期望 3(正控)
 strings "$REL" | grep -c CameraModeRequestRecorder   # 期望 0
 strings "$REL" | grep -c CameraModeMachine           # 期望 1(反证:扫的是对的文件)
+```
+
+---
+
+## 九、探针轮:该门在构建链上的可执行性(2026-11-02 晚)
+
+**病因**:门链无错时零输出 ⇒ 构建绿证明不了门被调用(F6)。
+
+**做法**:`RunModeRequestTable` 顶部插无条件 `errs.Add("[PROBE] RunModeRequestTable reached")` + 提前 return,重跑同一构建。
+
+| # | 判据 | 实测 |
+|---|---|---|
+| 1 | 探针串在构建日志里 | ✅ `unity/Logs/s7-probe-build.log:1258` |
+| 2 | 栈帧 = `OnPreprocessBuild` | ✅ `AssemblyGates/BuildGate:OnPreprocessBuild (BuildReport) (at AssemblyGates.cs:1491)` |
+| 3 | 构建失败 | ✅ `Result: Failure` · `BuildFailedException` · 错误数 3 · `BUILD_EXIT=1` |
+
+⚠️ **归因措辞**:栈帧在**共享链执行体** `BuildGate.OnPreprocessBuild`,不是叶子门。
+归属由探针串文本携带。**不得**写成「栈帧在 `CameraSetModeRequesterGate` 上」。
+
+**还原**:`CameraSetModeRequesterGate.cs` SHA-256 逐字节还原(`[RESTORE-OK]`);
+构建派生的 `UniversalRenderPipelineGlobalSettings.asset`(`m_RuntimeSettings → []`)
+判为 **② 正常派生**,已回 HEAD。
+
+**复算**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -c "\[PROBE\] RunModeRequestTable reached" unity/Logs/s7-probe-build.log   # 期望 1
+grep -c "Build Finished, Result: Failure"          unity/Logs/s7-probe-build.log   # 期望 1
+grep -c "PROBE" unity/Assets/Editor.Tools.Gates/CameraSetModeRequesterGate.cs      # 期望 0(已还原)
 ```
