@@ -8,7 +8,10 @@
 // ⚠️ 载荷布局(全部 little-endian;固定字段顺序):
 //   world_resources.cooked
 //     i32 res_count
-//     res_count × { i32 resource_id; i32 x; i32 y; i32 z; i32 ecozone_id }   (每行 20 B)
+//     res_count × { i32 resource_id; i32 x; i32 y; i32 z; i32 item_key; i32 ecozone_id }  (每行 24 B)
+//
+// ⚠️ **schema 2(2026-11-01 · S22-9)**:行尾补 `item_key`(21a 物品表 ordinal)。
+//    它是 `foraging.md:148` 节点定义四元之一 —— 缺它则采前闸算不出 `qty` 与单件重量。
 //
 // ⚠️ **本件为什么住在 `Gameplay.Presentation`**:与 `WorldPoiCookedCodec` 同因。
 //
@@ -36,10 +39,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>生态区倾向(`-1` = 无倾向)。</summary>
         public readonly int EcozoneId;
 
+        /// <summary>**品种**(21a 物品表 ordinal;`foraging.md:148` 的 `item_key`)。schema 2 起。</summary>
+        /// <remarks>⚠️ 它是采前闸的输入源:`qty_per_node` 与单件重量都挂在品种上。
+        /// 无此字段时 `CanCarry` / `CanHarvest` 两侧**都没有输入**(S22-9 的病因)。</remarks>
+        public readonly int ItemKey;
+
         /// <summary>构造。</summary>
-        public WorldResourceRow(int resourceId, WorldPos cell, int ecozoneId)
+        public WorldResourceRow(int resourceId, WorldPos cell, int itemKey, int ecozoneId)
         {
-            ResourceId = resourceId; Cell = cell; EcozoneId = ecozoneId;
+            ResourceId = resourceId; Cell = cell; ItemKey = itemKey; EcozoneId = ecozoneId;
         }
     }
 
@@ -74,7 +82,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>本产物的作者态 schema_version 期望值(per-product 口径)。</summary>
         /// <remarks>⚠️ 与 `Editor.Tools.Level.LevelExporter.ResourcesSchemaVersion` **必须同值**。</remarks>
-        public const uint ExpectedSchemaVersion = 1u;
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>读资源点。</summary>
         /// <param name="bytes">cooked 字节(含 20 字节头)。</param>
@@ -107,12 +115,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     int x = r.ReadInt32();
                     int y = r.ReadInt32();
                     int z = r.ReadInt32();
+                    int itemKey = r.ReadInt32();      // schema 2
                     int ecozoneId = r.ReadInt32();
 
                     if (resourceId < 0)
                         throw new InvalidDataException(
                             $"[cooked] {ProductName} resources[{i}].resource_id = {resourceId} —— 须 ≥ 0" +
                             "(-1 是「本格无资源」哨兵)");
+                    if (itemKey < 0)
+                        throw new InvalidDataException(
+                            $"[cooked] {ProductName} resources[{i}].item_key = {itemKey} —— " +
+                            "须 ≥ 0(21a 物品表 ordinal;无品种的节点采不出东西)");
                     if (ecozoneId < -1)
                         throw new InvalidDataException(
                             $"[cooked] {ProductName} resources[{i}].ecozone_id = {ecozoneId} —— " +
@@ -123,7 +136,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                             "`ResourceGrid` 每格只有一个 int ⇒ 第二条会被静默丢弃。" +
                             "工具侧 `ResourceSource` 构造期即拒;此处是纵深防御(产物可被手改)");
 
-                    rows[i] = new WorldResourceRow(resourceId, new WorldPos(x, y, z), ecozoneId);
+                    rows[i] = new WorldResourceRow(resourceId, new WorldPos(x, y, z), itemKey, ecozoneId);
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);

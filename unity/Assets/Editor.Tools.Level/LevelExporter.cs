@@ -75,7 +75,10 @@ namespace DaYiJingCheng.EditorTools.Level
         public const uint PoiSchemaVersion = 1u;
 
         /// <summary>`world_resources.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
-        public const uint ResourcesSchemaVersion = 1u;
+        /// <summary>资源点导出的 schema 版本。
+        /// <para>🔁 **2026-11-01(schema 2 · S22-9)**:行补 `item_key`(品种,21a ordinal) ——
+        /// `foraging.md:148` 早把它列为节点定义四元之一,而导出一直缺它。</para></summary>
+        public const uint ResourcesSchemaVersion = 2u;
 
 
         // ⚠️ **此处曾有 `SlotTypeNames` / `DeriveSlotTypeNames()`**(名字表 + 名字→序数派生)。
@@ -427,6 +430,7 @@ namespace DaYiJingCheng.EditorTools.Level
             sb.Append("    {\"resource_id\": ").Append(Num(r.ResourceId))
               .Append(", \"cell\": [").Append(Num(r.Cell.X)).Append(", ")
               .Append(Num(r.Cell.Y)).Append(", ").Append(Num(r.Cell.Z)).Append(']')
+              .Append(", \"item_key\": ").Append(Num(r.ItemKey))
               .Append(", \"ecozone_id\": ").Append(Num(r.EcozoneId))
               .Append('}')
               .Append(isLast ? "\n" : ",\n");

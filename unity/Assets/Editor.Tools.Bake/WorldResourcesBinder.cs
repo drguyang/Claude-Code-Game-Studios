@@ -31,7 +31,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             { "schema_version", "level_id", "level_size", "resources" };
 
         /// <summary>行对象白名单。</summary>
-        internal static readonly string[] RowKeys = { "resource_id", "cell", "ecozone_id" };
+        internal static readonly string[] RowKeys = { "resource_id", "cell", "item_key", "ecozone_id" };
 
         /// <summary>绑定结果(已通过结构门 + 越界门 + 同格门)。</summary>
         public readonly struct BindResult
@@ -165,7 +165,23 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return null;
             }
 
-            return new ResourceSpec(resId, new WorldPos(cx, cy, cz), ecozoneId);
+            // item_key —— **必填**(`foraging.md:148` 的节点定义四元之一)。
+            // ⚠️ **不得给缺省值**:缺省成 0 会静默把「作者漏写」读成「柳树皮」,
+            //    而节点采什么直接决定 `qty` / 单件重量 ⇒ 采前闸两侧的输入。
+            //    这与 `build_modules.json` 的 `build_item_key` 同口径(必填,i32 ordinal)。
+            if (!row.TryGet("item_key", out JsonNode itemNode) || !TryReadI32(itemNode, out int itemKey))
+            {
+                errors.Add($"{FileName}:{where}.item_key 须为 i32 整数(21a 物品表 ordinal;必填 —— " +
+                           "缺省会让「作者漏写」静默读成某个品种)");
+                return null;
+            }
+            if (itemKey < 0)
+            {
+                errors.Add($"{FileName}:{where}.item_key = {itemKey} 须 ≥ 0(无品种的节点采不出东西)");
+                return null;
+            }
+
+            return new ResourceSpec(resId, new WorldPos(cx, cy, cz), itemKey, ecozoneId);
         }
 
         /// <summary>读一个 i32(越域 / 非整数 ⇒ false)。</summary>

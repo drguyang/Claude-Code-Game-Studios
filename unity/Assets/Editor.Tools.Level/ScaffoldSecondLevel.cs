@@ -127,8 +127,8 @@ namespace DaYiJingCheng.EditorTools.Level
         private static ResourceSource BuildResources()
             => new ResourceSource(new List<ResourceSpec>
             {
-                new ResourceSpec(3, new WorldPos(2, 0, 4), ecozoneId: 0),
-                new ResourceSpec(3, new WorldPos(2, 1, 5), ecozoneId: ResourceSpec.NoEcozone),
+                new ResourceSpec(3, new WorldPos(2, 0, 4), itemKey: 3, ecozoneId: 0),
+                new ResourceSpec(3, new WorldPos(2, 1, 5), itemKey: 3, ecozoneId: ResourceSpec.NoEcozone),
             });
 
         /// <summary>生态区声明(**单个占位区**;与 `P0ClinicLevel` 的两个区在**形状上不同**)。

@@ -7,7 +7,10 @@
 // ⚠️ 载荷布局(全部 little-endian;固定字段顺序):
 //   world_resources.cooked
 //     i32 res_count
-//     res_count × { i32 resource_id; i32 x; i32 y; i32 z; i32 ecozone_id }   (每行 20 B)
+//     res_count × { i32 resource_id; i32 x; i32 y; i32 z; i32 item_key; i32 ecozone_id }  (每行 24 B)
+//
+// ⚠️ **schema 2(2026-11-01 · S22-9)**:行尾补 `item_key`(21a 物品表 ordinal)。
+//    加在**末尾**而非中间 —— 行内字段序是产物的一部分(ADR-014 §二),
 //
 // ⚠️ **`level_size` 不进 cooked**(与 `world_poi` 同理:运行期用几何产物的尺寸)。
 //
@@ -43,6 +46,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                     w.Write(r.Cell.X);
                     w.Write(r.Cell.Y);
                     w.Write(r.Cell.Z);
+                    w.Write(r.ItemKey);     // schema 2
                     w.Write(r.EcozoneId);
                 }
                 w.Flush();

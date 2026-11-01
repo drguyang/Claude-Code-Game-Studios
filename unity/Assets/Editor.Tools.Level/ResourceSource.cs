@@ -35,13 +35,29 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>生态区倾向(`-1` = 无倾向;否则引用 <c>world_ecozones</c> 的 `ecozone_id`)。</summary>
         public readonly int EcozoneId;
 
+        /// <summary>
+        /// **品种**(21a 物品表 ordinal;`foraging.md:148` 的节点定义四元之一 `item_key`)。
+        /// <para>⚠️ 编码 = **裸 ordinal**,与 `build_modules.json` 的 `build_item_key` 同口径
+        /// (那里也存 ordinal,不存 `base_id` 字符串):运行期 `ResourceHarvested.item_key`
+        /// 本身就是 ordinal,存字符串会在每个消费者处多一次解析,且解析表 = 第二真源。</para>
+        /// <para>🔁 **2026-11-01(S22-9)新增** —— 此前本类型**没有**该字段,而
+        /// `foraging.md:148` 把它列为节点定义的必需项 ⇒ 采前闸算不出 `qty`
+        /// (`qty_per_node` 挂在品种上)与单件重量,`CanCarry` / `CanHarvest` 两侧都无输入。</para>
+        /// </summary>
+        public readonly int ItemKey;
+
         /// <summary>「无生态区倾向」的哨兵值(与 `Sim.World.EcozoneId.None` 同值)。</summary>
         public const int NoEcozone = -1;
 
         /// <summary>构造一个资源点。</summary>
-        public ResourceSpec(int resourceId, WorldPos cell, int ecozoneId = NoEcozone)
+        /// <param name="itemKey">品种(21a 物品表 ordinal,须 ≥ 0 —— 无品种的节点采不出东西)。</param>
+        public ResourceSpec(int resourceId, WorldPos cell, int itemKey,
+                            int ecozoneId = NoEcozone)
         {
-            ResourceId = resourceId; Cell = cell; EcozoneId = ecozoneId;
+            if (itemKey < 0)
+                throw new ArgumentOutOfRangeException(nameof(itemKey), itemKey,
+                    "item_key 是 21a 物品表 ordinal,须 ≥ 0(无品种的节点采不出东西)");
+            ResourceId = resourceId; Cell = cell; ItemKey = itemKey; EcozoneId = ecozoneId;
         }
     }
 

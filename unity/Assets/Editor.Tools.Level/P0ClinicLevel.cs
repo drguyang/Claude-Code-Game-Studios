@@ -85,6 +85,11 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>Shell 条带的 z(单行)。</summary>
         public const int ShellStripZ = 1;
 
+        /// <summary>帐篷槽的格(骨架外 · `modular-building.md` 规则六)。</summary>
+        public const int TentCellX = 12;
+        /// <summary>帐篷槽的 z。</summary>
+        public const int TentCellZ = 12;
+
         /// <summary>
         /// 产出 P0 医馆的声明式关卡源。
         /// <para>槽位集:① `x ∈ [6,8] × z ∈ [6,8]` 的 **9 格 Decor**(3×3,足以容纳一个 3×3 足迹);
@@ -109,6 +114,16 @@ namespace DaYiJingCheng.EditorTools.Level
                 slots.Add(new SlotSpec(
                     ShellStripXStart + i, 0, ShellStripZ, SlotType.Shell,
                     bakedInitial: true, moduleId: ShellModuleId));
+
+            // ── 帐篷槽(P0 唯一新建例外)──────────────────────────────────
+            // `game-concept.md:697-698`(2026-09-20 改判「P0 也必须能新建」)·
+            // `modular-building.md` 规则六(落关卡工具在骨架外预置 `tent` 槽)。
+            // ⚠️ **骨架外**:(12,0,12) 在医馆簇之外(内景 `[6,8]²`、外壳条带 `[1,4]×z=1`)⇒
+            //     `baked_initial = false`:它是「序章那一次新建」的落点,不是改造面。
+            // 🔁 2026-11-01(S22-8):此前该槽是**手写进 JSON** 的 —— 违反 ADR-022 §二
+            //     「关卡工具是唯一作者」;S22-9 补进本文件,导出即可复现。
+            slots.Add(new SlotSpec(TentCellX, 0, TentCellZ, SlotType.Tent,
+                                   bakedInitial: false, moduleId: SlotSpec.NoModule));
 
             // 尺寸的**唯一出处**(16×1×16,单层平面)。原为 `Width` / `Height` / `Depth` 三个
             // 公共常量,2026-10-29 删除(理由见上方 🔁 注)—— 不要再把它们加回来。
@@ -274,12 +289,18 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
 
+            // ⚠️ **品种(21a ordinal)是 2026-11-01(S22-9)补上的临时内容**:
+            //   `foraging.md:148` 早已把 `item_key` 列为节点定义四元之一,而本导出**一直缺它**
+            //   ⇒ 采前闸的 `qty`(`qty_per_node` 挂品种)与单件重量两侧都无输入。
+            //   现取 P0 品种闭集的前两味:resource 1 = 柳树皮(`willow_bark`,ordinal 0)·
+            //   resource 2 = 毛地黄(`foxglove`,ordinal 2)。**哪味药长在哪一格 = 关卡设计/数值轮**,
+            //   本轮只补「有这个字段且可解」,不主张物种分布是定稿。
             var rows = new List<ResourceSpec>
             {
-                new ResourceSpec(1, P(2, 2),  ecozoneId: 0),
-                new ResourceSpec(2, P(10, 2), ecozoneId: 1),
-                new ResourceSpec(2, P(12, 12), ecozoneId: 1),
-                new ResourceSpec(1, P(5, 9),  ecozoneId: 0),
+                new ResourceSpec(1, P(2, 2),  itemKey: 0, ecozoneId: 0),
+                new ResourceSpec(2, P(10, 2), itemKey: 2, ecozoneId: 1),
+                new ResourceSpec(2, P(12, 12), itemKey: 2, ecozoneId: 1),
+                new ResourceSpec(1, P(5, 9),  itemKey: 0, ecozoneId: 0),
             };
             return new ResourceSource(rows);
         }

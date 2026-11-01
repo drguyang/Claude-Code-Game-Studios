@@ -560,9 +560,9 @@ namespace DaYiJingCheng.Tests.LevelTool
         private static string ResourcesJson(string levelId, int w, int h, int d)
         {
             int x = w >= 3 ? 2 : 0, z = d >= 3 ? 2 : 0;
-            return "{\"schema_version\":1,\"level_id\":\"" + levelId + "\",\"level_size\":["
+            return "{\"schema_version\":2,\"level_id\":\"" + levelId + "\",\"level_size\":["
                  + w + "," + h + "," + d + "],\"resources\":[{\"resource_id\":1,\"cell\":["
-                 + x + ",0," + z + "],\"ecozone_id\":-1}]}";
+                 + x + ",0," + z + "],\"item_key\":0,\"ecozone_id\":-1}]}";
         }
 
         /// <summary>经内部构造缝造 provider(internal ⇒ 反射;先例 `world_slots_provider_wiring_test`)。</summary>

@@ -34,15 +34,21 @@ namespace DaYiJingCheng.Tests.LevelTool
     public class level_source_generalization_test
     {
         /// <summary>
-        /// AC-3 的金标准:**重构前** `assets/data/world_buildslots.json` 的 SHA-256
-        /// (`2026-10-29` 改动前实测;文件 1249 B · 无 BOM · 纯 LF)。
-        /// <para>⚠️ 该值**不是**被测类的常量 —— 它是**改动前产物**的指纹 ⇒ 重构若改了任何一个字节都会红。</para>
+        /// AC-3 的金标准:`assets/data/world_buildslots.json` 的 SHA-256
+        /// (`2026-11-01` 重签实测;文件 **1340 B** · 无 BOM · 纯 LF)。
+        /// <para>⚠️ 该值**不是**被测类的常量 —— 它是**产物**的指纹 ⇒ 导出器改了任何一个字节都会红。</para>
         /// <para>⚠️ 若将来 P0 种子**合法变更**(槽位表真的改了),本字面量须与
         /// `assets/data/world_buildslots.json` **同批重签**(承 ADR-012 金标准「版本化刷新」纪律,
         /// 禁止只改一边)。</para>
+        /// <para>🔁 <b>2026-11-01 第一次重签(S22-9 批)</b>:原值
+        /// `1c946bff…62074c6d` = 1249 B(13 槽:9 Decor + 4 Shell)。
+        /// 本次 P0 种子**合法变更** —— 帐篷槽 `(12,0,12)` 由 `P0ClinicLevel.BuildResources` 的同侪
+        /// `Define()` 正式产出(modular-building 规则六 / S22-8),而它此前是**手写进 JSON** 的
+        /// ⇒ 导出即可复现,文件 1249 → 1340 B。**这是内容变更,不是重构回归**:
+        /// 判据仍然是「分派路径 == 盘上产物」,只是产物本身换了。</para>
         /// </summary>
         private const string PreRefactorBuildSlotsSha256 =
-            "1c946bff60177ff294f4e3bcf4a235e67b4e5067ba07db105047d57762074c6d";
+            "3bcb664ff79c092270eb7467b36165234c355cf3a772e5c3cd7b618574c655cd";
 
         // ─────────────────────────── AC-1 ───────────────────────────
 
@@ -94,7 +100,7 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(src.Width, Is.EqualTo(16));
             Assert.That(src.Height, Is.EqualTo(1));
             Assert.That(src.Depth, Is.EqualTo(16));
-            Assert.That(src.Slots.Count, Is.EqualTo(13), "P0 种子 = 9 Decor + 4 Shell(既有事实)");
+            Assert.That(src.Slots.Count, Is.EqualTo(14), "P0 种子 = 9 Decor + 4 Shell + 1 Tent(帐篷槽 · S22-8/9)");
         }
 
         // ─────────────────────────── AC-2 ───────────────────────────

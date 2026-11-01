@@ -150,6 +150,15 @@ namespace DaYiJingCheng.Tests.LevelTool
                 Assert.That(int.Parse(m.Groups[1].Value), Is.GreaterThanOrEqualTo(0),
                     "resource_id 须 ≥ 0(-1 是「本格无资源」的哨兵)");
 
+            // 🔁 2026-11-01(S22-9 · schema 2):每行须带 `item_key`(品种 · 21a ordinal)。
+            // 判别力:删掉 LevelExporter 的 `item_key` 输出 ⇒ 条数 0 < 资源点数 ⇒ 红。
+            MatchCollection itemKeys = Regex.Matches(json, "\"item_key\": (-?[0-9]+)");
+            Assert.That(itemKeys.Count, Is.EqualTo(ids.Count),
+                $"每行资源点都须带 `item_key`(实际 {itemKeys.Count} 个 item_key / {ids.Count} 个 resource_id)");
+            foreach (Match m in itemKeys)
+                Assert.That(int.Parse(m.Groups[1].Value), Is.GreaterThanOrEqualTo(0),
+                    "item_key 是 21a 物品表 ordinal,须 ≥ 0");
+
             MatchCollection cells = Regex.Matches(json, "\"cell\": \\[(-?[0-9]+), (-?[0-9]+), (-?[0-9]+)\\]");
             foreach (Match m in cells)
             {
@@ -174,7 +183,7 @@ namespace DaYiJingCheng.Tests.LevelTool
                 poi: new PoiSource(new List<PoiSpec> { new PoiSpec(0, new WorldPos(2, 0, 2), 1, 0) }),
                 resources: new ResourceSource(new List<ResourceSpec>
                 {
-                    new ResourceSpec(1, new WorldPos(2, 0, 2)),   // 与上面的 POI 同格
+                    new ResourceSpec(1, new WorldPos(2, 0, 2), itemKey: 0),   // 与上面的 POI 同格
                 }));
 
             var ex = Assert.Throws<InvalidOperationException>(() => LevelExporter.ExportResources(src));
@@ -188,9 +197,34 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             var ex = Assert.Throws<ArgumentException>(() => new ResourceSource(new List<ResourceSpec>
             {
-                new ResourceSpec(-1, new WorldPos(1, 0, 1)),
+                new ResourceSpec(-1, new WorldPos(1, 0, 1), itemKey: 0),
             }));
             StringAssert.Contains("-1", ex.Message);
+        }
+
+        /// <summary>schema 2:资源点行**缺 `item_key`** ⇒ 烘焙期拒收。</summary>
+        /// <remarks><b>判别力</b>:把 `item_key` 读成「缺省 = 0」⇒ 本测红 —— 那会把
+        /// 「作者漏写」静默读成某个品种,而品种直接决定采前闸两侧(`qty` / 单件重量)。
+        /// <para>⚠️ 构造**不含 item_key** 的合法 JSON(其余字段齐),打的是新字段的必填性。</para></remarks>
+        [Test]
+        public void test_ac2_missingItemKey_isRejected()
+        {
+            const string json =
+                "{\"schema_version\":2,\"level_id\":\"t\",\"level_size\":[4,1,4]," +
+                "\"resources\":[{\"resource_id\":1,\"cell\":[1,0,1],\"ecozone_id\":-1}]}";
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => WorldResourcesBake.BakeFromSourceText(json));
+            StringAssert.Contains("item_key", string.Join(" | ", ex.Errors));
+        }
+
+        /// <summary>schema 2:导出产物的 `schema_version` 须 = 2(布局已变,不得沿用 1)。</summary>
+        /// <remarks><b>判别力</b>:把 `LevelExporter.ResourcesSchemaVersion` 改回 1 ⇒ 红。</remarks>
+        [Test]
+        public void test_ac2_exportSchemaVersion_isTwo()
+        {
+            string json = LevelExporter.ExportResources(LevelCatalog.Define(P0ClinicLevel.LevelId));
+            StringAssert.Contains("\"schema_version\": 2", json);
         }
 
         /// <summary>AC-2①:格越出关卡范围 ⇒ 导出硬失败(不钳位)。</summary>
@@ -202,7 +236,7 @@ namespace DaYiJingCheng.Tests.LevelTool
                 new List<SlotSpec> { new SlotSpec(1, 0, 1, SlotType.Decor, false) },
                 resources: new ResourceSource(new List<ResourceSpec>
                 {
-                    new ResourceSpec(1, new WorldPos(9, 0, 9)),
+                    new ResourceSpec(1, new WorldPos(9, 0, 9), itemKey: 0),
                 }));
 
             var ex = Assert.Throws<InvalidOperationException>(() => LevelExporter.ExportResources(src));
@@ -340,13 +374,14 @@ namespace DaYiJingCheng.Tests.LevelTool
 
             // 头部 20 B 原样保留;载荷换成「两行同格」。
             int header = 20;
-            byte[] payload = new byte[4 + 2 * 20];
+            // ⚠️ schema 2 起每行 **24 B**(行尾多一个 `item_key`)—— 2026-11-01(S22-9)。
+            byte[] payload = new byte[4 + 2 * 24];
             using (var ms = new MemoryStream(payload))
             using (var w = new BinaryWriter(ms))
             {
                 w.Write(2);                       // res_count = 2
-                w.Write(1); w.Write(3); w.Write(0); w.Write(3); w.Write(0);   // 行 1 @ (3,0,3)
-                w.Write(2); w.Write(3); w.Write(0); w.Write(3); w.Write(1);   // 行 2 @ (3,0,3) —— 同格
+                w.Write(1); w.Write(3); w.Write(0); w.Write(3); w.Write(0); w.Write(0);  // 行 1 @ (3,0,3)
+                w.Write(2); w.Write(3); w.Write(0); w.Write(3); w.Write(2); w.Write(1);  // 行 2 @ (3,0,3) —— 同格
             }
             var bad = new byte[header + payload.Length];
             Array.Copy(good, 0, bad, 0, header);
