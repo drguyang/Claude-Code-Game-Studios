@@ -50,8 +50,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         [SerializeField] private PanelSettings _panelAsset;
 
-        /// <summary>要实例化的 Screen 名(闭集见 <see cref="CreateScreen"/>)。</summary>
-        [SerializeField] private string _screenName = "Casebook";
+        /// <summary>
+        /// 启动时**常驻**的屏名(闭集见 <see cref="CreateScreen"/>);**空 = 无常驻屏**(2026-11-02 起的默认)。
+        /// <para>⚠️ 历史:默认值曾是 `"Casebook"` —— 那是 sprint-05 的**占位**,不是设计。
+        /// `design/ux/casebook-39.md` §入口逐字写:「世界空间对病人裸 `Interact` = 就诊/立案
+        /// → **立案即开册**」⇒ 脉案是**按需打开**的模态,不该在启动时就摊在屏上。
+        /// 占位形态的后果:开局「脉案屏摊着 + 相机在 `Explore`」—— 一个谁也说不清对错的组合
+        /// (`S23-11` 收尾时记为 B-1「未裁」,2026-11-02 按本节判定退役)。</para>
+        /// </summary>
+        [SerializeField] private string _screenName = "";
 
         /// <summary>拟物样式表(九份 Skeuo USS 的**挂载清单**)。
         /// <para>为何存在:Boot.unity 预摆只给 PanelSettings ⇒ panel 非 null,但
@@ -87,8 +94,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         private ModalId _currentModal = ModalId.None;
         /// <summary>
         /// 当前屏是否由 <see cref="OpenModal"/> **显式打开**(启动即建的常驻屏为 <c>false</c>)。
-        /// <para>⚠️ 不能用「id 是否等于常驻屏」来判:`Casebook` 既是启动默认屏、也能被玩家再打开,
-        /// 用 id 比对会把「玩家重开脉案」误判成「常驻屏不挡路」。</para>
+        /// <para>⚠️ 不能用「id 是否等于常驻屏」来判:`Casebook` 既可能被场景配成常驻屏,也能被玩家经
+        /// `OpenModal` 打开 —— 用 id 比对会把「玩家开的脉案」误判成「常驻屏不挡路」。
+        /// (🔁 2026-11-02 起**启动默认 = 无常驻屏**,故今日生产里 `Casebook` 只走后者;
+        /// 判据仍不依赖启动形态,配成常驻屏的场景照样正确。)</para>
         /// </summary>
         private bool _modalOpenedExplicitly;
         /// <summary>
@@ -167,14 +176,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // ── T2.2:Screen 实例化(名字 → 工厂;未知名 fail-loud) ──
             // 🔁 2026-10-31:改走容器 + 记 `_currentModal`（此前只建屏、从不记「开的是哪一个」⇒
             // 模态门拿不到真源,也没有任何运行期换屏入口）。
-            _screen = InstantiateScreen(_screenName, out _modalContainer);
-            if (_screen == null)
+            if (string.IsNullOrEmpty(_screenName))
             {
-                Debug.LogError($"[SkeuoRuntimeDriver] Screen '{_screenName}' not found.");
-                return;
+                // 🔁 2026-11-02:**无常驻屏** = 合法启动形态(默认)。见 `_screenName` 的头注。
+                // ⚠️ 这里**不能** `return` —— 早退会让样式表之后的焦点环施加者、注入面补绑
+                //    全部跳过,驱动变成一个「活着但没接线」的壳。
+                _screen = null;
+                _modalContainer = null;
+                _currentModal = ModalId.None;
+                _modalOpenedExplicitly = false;
             }
-            _currentModal = _screen is IModalState openState ? openState.Modal : ModalId.None;
-            _modalOpenedExplicitly = false;   // 启动即建的屏 = 常驻屏,不算「玩家摊开的模态」
+            else
+            {
+                _screen = InstantiateScreen(_screenName, out _modalContainer);
+                if (_screen == null)
+                {
+                    Debug.LogError($"[SkeuoRuntimeDriver] Screen '{_screenName}' not found.");
+                    return;
+                }
+                _currentModal = _screen is IModalState openState ? openState.Modal : ModalId.None;
+                _modalOpenedExplicitly = false;   // 启动即建的屏 = 常驻屏,不算「玩家摊开的模态」
+            }
 
             // ── T2.1:DTO 绑定(标记接口 IDtoSource 的 42 侧实现) ──
             // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
@@ -191,7 +213,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
             if (Source != null)
             {
-                _screen.Bind(Source);
+                if (_screen != null) _screen.Bind(Source);   // 无常驻屏 ⇒ 无屏可绑(刷新仍做:绷注入面)
                 RefreshFromSource();
             }
             else
@@ -201,7 +223,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                                  "脉案值区留空(未查 = 空行,未编造读数)。");
             }
 
-            Debug.Log($"[SkeuoRuntimeDriver] Screen '{_screenName}' instantiated and bound.");
+            Debug.Log(_screen != null
+                ? $"[SkeuoRuntimeDriver] Screen '{_screenName}' instantiated and bound."
+                : "[SkeuoRuntimeDriver] 无常驻屏(启动形态 = 无模态;脉案等按需经 OpenModal 打开)。");
 
             // ── B-6-2:焦点可见施加者(story-009 契约的运行期兑现)──
             // 病因(第六轮 playtest 追问 A「看不到焦点在哪」):焦点环样式与契约 story-009

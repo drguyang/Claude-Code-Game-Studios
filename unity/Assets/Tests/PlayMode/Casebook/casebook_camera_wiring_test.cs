@@ -6,18 +6,18 @@
 // 读:**零读盘**(启动序走生产路径;模态经生产 `SkeuoRuntimeDriver` 开合)。
 // 写:**零写盘**。
 //
-// ── ⚠️ 启动形态(2026-11-02 实测,写判据前必须先知道)────────────────────────
-// `SkeuoRuntimeDriver._screenName` 默认 = `"Casebook"`,`Awake` 里
-// `_currentModal = _screen.Modal` ⇒ **启动即 `Casebook`**(`_modalOpenedExplicitly = false` ——
-// 它是「常驻屏」,不是玩家摊开的模态)。
+// ── 🔁 启动形态(2026-11-02 改):**无常驻屏** ────────────────────────────────
+// 本条夹具初版写的是「启动即常驻脉案屏」—— 那是 `_screenName` 默认 `"Casebook"` 的**占位**,
+// 不是设计。`design/ux/casebook-39.md` §入口逐字写「世界空间对病人裸 `Interact` = 就诊/立案
+// → **立案即开册**」⇒ 脉案是**按需打开**的模态。
 //
-// ⇒ 于是 `OpenModal(Casebook)` 在启动后**是同态换屏**,按边沿判据**正确地不产生意图**。
-//   两条夹具因此都必须先 `CloseModal()` 走到 `None` 再开 —— 直接「boot → OpenModal」测的是
-//   一个不存在的迁移(初版夹具就是这么写错的,红了一次)。
+// 2026-11-02 该占位已退役(`_screenName` 默认改为空)。自此:
+//   · 启动 `CurrentModal == None`、相机 = `Explore`(两者一致,不再有「摊着的册子配世界机位」);
+//   · `OpenModal(Casebook)` 是**真迁移**,第一次就产生意图。
+// ⇒ 夹具不再需要「先 CloseModal 走到 None 再开」的热身段。
 //
-// ⚠️ 由此暴露一个**本卡不裁**的形态:**启动时脉案屏在屏上,而相机停在 `Explore`**。
-//    要不要在绑定期补一次初始同步(让启动即 `Casebook` 档),属产品裁定,
-//    本卡不发明 —— 已登记在卡面 §Implementation Notes 的开放问题里。
+// ⚠️ **仍未闭**:生产侧**没有任何代码打开脉案**(`OpenModal` 的生产调用点只有 Pause / SaveSlots)
+//    ⇒ 本夹具证的是「模态一旦打开,意图会发」;「谁来打开」是 37 + 3 的入口缺口,不在本卡。
 //
 // ── 两条测什么 ───────────────────────────────────────────────────────────────
 // · **S39-06**:生产启动序真的把请求器接上了 —— 真 `BootRoot` → 真 `CloseModal()` /
@@ -129,22 +129,15 @@ namespace DaYiJingCheng.Tests.PlayMode.Casebook
             var driver = ReadUiDriver();
             Assert.IsNotNull(driver, "启动序应建 SkeuoRuntimeDriver");
 
-            // 前置:启动态 = 常驻脉案屏(见头注)。这不是本卡的断言,是判据的**前提**——
-            // 它若不成立,下面的「先关再开」就不是一条真迁移,本夹具会退化成空转。
-            Assert.AreEqual(ModalId.Casebook, driver.CurrentModal,
-                "[前置] 启动态应为常驻脉案屏(`_screenName = \"Casebook\"`)。\n" +
-                "若启动屏改了,本夹具的开合序列须随之改写 —— 否则测的是一条不存在的迁移");
-
+            // 前置:启动**无常驻屏**(见头注),相机 = Explore —— 两者一致。
+            Assert.AreEqual(ModalId.None, driver.CurrentModal,
+                "[前置] 启动应无模态(常驻屏占位已于 2026-11-02 退役)");
             Assert.AreEqual(CameraMode.Explore, rig.Mode,
-                "[前置] 启动相机 = Explore(本卡**不裁**「启动即脉案屏该不该进 Casebook 档」)");
+                "[前置] 启动相机 = Explore —— 与「无模态」一致");
 
             int eventsBefore = EventCount();
 
-            // Act ①:合册 ⇒ None(此刻相机本就 Explore,这一步只为把状态推到「可开」)
-            driver.CloseModal();
-            Assert.AreEqual(ModalId.None, driver.CurrentModal, "合册后应无模态");
-
-            // Act ②:开册 —— **这是判别步**:没有接线时相机停在 Explore
+            // Act ①:开册 —— **这是判别步**:没有接线时相机停在 Explore
             Assert.IsTrue(driver.OpenModal(ModalId.Casebook),
                 "脉案屏应能打开(闭集成员 + ScreenFactories 登记;开不出来说明装配面变了)");
             yield return WaitForMode(rig, CameraMode.Casebook, 240);
@@ -155,7 +148,7 @@ namespace DaYiJingCheng.Tests.PlayMode.Casebook
                 "⚠️ 若红而 L1 绿,再查 `BootRoot.Update` 的 `_cameraRig.Tick(...)`:\n" +
                 "   **请求发了但档位机不结算**是同一类「看着接好了其实没生效」。");
 
-            // Act ③:合册 ⇒ 回 Explore(**第二个判别步**:没有接线时会卡在 Casebook)
+            // Act ②:合册 ⇒ 回 Explore(**第二个判别步**:没有接线时会卡在 Casebook)
             driver.CloseModal();
             yield return WaitForMode(rig, CameraMode.Explore, 240);
             Assert.AreEqual(CameraMode.Explore, rig.Mode,
@@ -175,43 +168,48 @@ namespace DaYiJingCheng.Tests.PlayMode.Casebook
 
             var driver = ReadUiDriver();
             Assert.IsNotNull(driver, "启动序应建 SkeuoRuntimeDriver");
-            Assert.AreEqual(ModalId.Casebook, driver.CurrentModal, "[前置] 启动态 = 常驻脉案屏");
+            Assert.AreEqual(ModalId.None, driver.CurrentModal, "[前置] 启动应无模态(常驻屏占位已退役)");
 
             // 把请求缝换成间谍 —— 被测对象是驱动的边沿判据,不是相机的接受逻辑。
             var calls = new List<bool>();
             driver.CasebookCameraRequest = calls.Add;
 
-            // ① 已经开着脉案,再「开」一次 ⇒ **同态**,零意图。
-            //    ⚠️ 这一步是 `CloseModalCore` 拆分的判别点:若换屏路径走的是会发意图的
-            //    `CloseModal()`,这里会冒出 [false, true] 两条(中间态 Explore + 重进 Casebook)。
-            Assert.IsTrue(driver.OpenModal(ModalId.Casebook), "同态换屏应仍成功");
-            Assert.AreEqual(0, calls.Count,
-                $"同态换屏**不得**产生意图(实测 [{string.Join(",", calls)}])");
-
-            // ② 合册 ⇒ 离开脉案 ⇒ 恰一条 false
-            driver.CloseModal();
-            Assert.AreEqual(1, calls.Count, $"合册应恰一条意图(实测 [{string.Join(",", calls)}])");
-            Assert.AreEqual(false, calls[0], "合册意图 = false(回 Explore)");
-
-            // ③ 已无模态,再「合」一次 ⇒ 同态,零意图
-            driver.CloseModal();
-            Assert.AreEqual(1, calls.Count, "无模态时合册应为空操作");
-
-            // ④ 开册 ⇒ 恰一条 true
+            // ① 先开一次(启动无模态 ⇒ 这是**真迁移**)
             Assert.IsTrue(driver.OpenModal(ModalId.Casebook), "开册应成功");
-            Assert.AreEqual(2, calls.Count, $"开册应恰一条意图(实测 [{string.Join(",", calls)}])");
-            Assert.AreEqual(true, calls[1], "开册意图 = true(进 Casebook)");
+            Assert.AreEqual(1, calls.Count, $"开册应恰一条意图(实测 [{string.Join(",", calls)}])");
+            Assert.AreEqual(true, calls[0], "开册意图 = true(进 Casebook)");
 
-            // ⑤ 从脉案直接换到别的模态 ⇒ 恰一条 false(离开脉案),且**不得**多出中间态意图
+            // ② 已经开着脉案,再「开」一次 ⇒ **同态**,零新增意图。
+            //    ⚠️ 这一步是 `CloseModalCore` 拆分的判别点:若换屏路径走的是会发意图的
+            //    `CloseModal()`,这里会再冒出 [false, true] 两条(中间态 Explore + 重进 Casebook)。
+            Assert.IsTrue(driver.OpenModal(ModalId.Casebook), "同态换屏应仍成功");
+            Assert.AreEqual(1, calls.Count,
+                $"同态换屏**不得**产生新意图(实测 [{string.Join(",", calls)}])");
+
+            // ③ 合册 ⇒ 离开脉案 ⇒ 恰一条 false
+            driver.CloseModal();
+            Assert.AreEqual(2, calls.Count, $"合册应恰一条意图(实测 [{string.Join(",", calls)}])");
+            Assert.AreEqual(false, calls[1], "合册意图 = false(回 Explore)");
+
+            // ④ 已无模态,再「合」一次 ⇒ 同态,零意图
+            driver.CloseModal();
+            Assert.AreEqual(2, calls.Count, "无模态时合册应为空操作");
+
+            // ⑤ 开册 ⇒ 恰一条 true
+            Assert.IsTrue(driver.OpenModal(ModalId.Casebook), "开册应成功");
+            Assert.AreEqual(3, calls.Count, $"开册应恰一条意图(实测 [{string.Join(",", calls)}])");
+            Assert.AreEqual(true, calls[2], "开册意图 = true(进 Casebook)");
+
+            // ⑥ 从脉案直接换到别的模态 ⇒ 恰一条 false(离开脉案),**不得**多出中间态意图
             Assert.IsTrue(driver.OpenModal(ModalId.InventoryContainer), "库存屏应能打开");
-            Assert.AreEqual(3, calls.Count,
+            Assert.AreEqual(4, calls.Count,
                 $"脉案 → 库存应恰一条意图(实测 [{string.Join(",", calls)}])——\n" +
                 "多出来的那条通常是「关旧屏」那一步发的:换屏路径不得经会发意图的 `CloseModal()`");
-            Assert.AreEqual(false, calls[2], "离开脉案意图 = false");
+            Assert.AreEqual(false, calls[3], "离开脉案意图 = false");
 
-            // ⑥ 关掉库存 ⇒ 本来就不在脉案 ⇒ 零意图
+            // ⑦ 关掉库存 ⇒ 本来就不在脉案 ⇒ 零意图
             driver.CloseModal();
-            Assert.AreEqual(3, calls.Count, "从非脉案模态关屏**不得**产生意图");
+            Assert.AreEqual(4, calls.Count, "从非脉案模态关屏**不得**产生意图");
 
             yield return null;
         }

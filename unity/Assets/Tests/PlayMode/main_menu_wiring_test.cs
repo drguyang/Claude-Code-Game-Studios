@@ -131,11 +131,15 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.AreSame(_driver, ReadDriver(), "BootRoot 必须认领预摆壳(否则测的是另一只壳)");
             Assert.IsFalse(_driver.BlocksPlay,
                 "主菜单**不得**是挡路模态 —— 世界尚未装载,`BlocksPlay` 只对「世界已在跑」有意义(spec §1)");
-            // ⚠️ 这里**不**断 `_currentModal == None`:常驻脉案屏在 `Awake` 就把该值设成
-            //    `Casebook`(既有设计,与本轮无关)。要证的是「主菜单**没有替换**常驻屏」——
-            //    它占自己的容器,关掉后脉案屏原样还在。
+            // 🔁 2026-11-02:常驻屏占位已退役(`_screenName` 默认空)⇒ 启动时 `Screen` 为 null。
+            // **要证的属性没变**:场景级屏与模态容器是**两个容器**,互不替换。
+            // ⇒ 先开一个模态,再断它没被菜单顶掉 —— 这样测的仍是那条缝,且不再依赖启动形态。
+            Assert.IsTrue(_driver.OpenModal(ModalId.Casebook), "前置:脉案模态应能打开");
             Assert.IsInstanceOf<CasebookScreen>(_driver.Screen,
-                "场景级屏不得替换常驻脉案屏(它俩是两个容器,不是同一格)");
+                "场景级屏不得替换模态容器里的屏(它俩是两个容器,不是同一格)");
+            Assert.IsInstanceOf<MainMenuScreen>(_driver.CurrentScreen,
+                "反过来也成立:开模态不得顶掉场景级屏");
+            _driver.CloseModal();
 
             // AC-MM-01:纸面 + 一行 + 文字**可读**(非空、可见)
             var paper = menu.Root.Q<VisualElement>("main-menu-paper");

@@ -372,7 +372,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _uiDocument: {fileID: 5100000003}
   _panelAsset: {fileID: 11400000, guid: d96a2bf6aafc22acb9f2ccd0a87069a1, type: 2}
-  _screenName: Casebook
+  _screenName: 
   _focusRingSprite: {fileID: 21300000, guid: 6d4c0acbd9a141348c34017e96d20ee2, type: 3}
   _styleSheets:
   - {fileID: 7433441132597879392, guid: ca39179f4f866f2759d6b5637f07dacf, type: 3}

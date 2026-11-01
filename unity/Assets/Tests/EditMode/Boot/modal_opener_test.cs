@@ -48,6 +48,15 @@ namespace DaYiJingCheng.Tests.Boot
             if (_go != null) UnityEngine.Object.DestroyImmediate(_go);
         }
 
+        /// <summary>写私有序列化字段(构造不同启动形态的驱动用)。</summary>
+        private static void SetPrivateField(object target, string field, object value)
+        {
+            var f = target.GetType().GetField(field,
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.That(f, Is.Not.Null, $"夹具前提:{field} 不存在(驱动形态变了?)");
+            f.SetValue(target, value);
+        }
+
         private static void Invoke(object target, string method)
         {
             MethodInfo m = target.GetType().GetMethod(method,
@@ -61,8 +70,12 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_openSaveSlots_createsScreenAndReportsCurrentModal()
         {
-            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Casebook),
-                "夹具前提:Awake 建的是 Casebook(序列化默认屏)");
+            // 🔁 2026-11-02:默认屏由 `"Casebook"` 改为**空**(无常驻屏)—— 依据
+            // `design/ux/casebook-39.md` §入口「立案即开册」:脉案是按需打开的模态,
+            // 不该在启动时摊着。本条前提随之由 Casebook 改为 None。
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "夹具前提:启动无常驻屏(`_screenName` 默认为空)");
+            Assert.That(_driver.Screen, Is.Null, "夹具前提:启动不建屏");
 
             bool opened = _driver.OpenModal(ModalId.SaveSlots);
 
@@ -81,7 +94,7 @@ namespace DaYiJingCheng.Tests.Boot
             UnityEngine.TestTools.LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("没有对应的屏"));
             Assert.IsFalse(_driver.OpenModal((ModalId)99),
                 "闭集外的 id 不得抛(它可能来自旧数据);但也不得静默当成开了");
-            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Casebook), "失败的开关不得改变当前模态");
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None), "失败的开关不得改变当前模态");
         }
 
         // ══════════════ ② 关 ══════════════
@@ -222,13 +235,33 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_modalGateState_restingScreen_doesNotBlockPlay()
         {
-            // 启动即建的 Casebook 是**常驻屏**,不是「玩家摊开的模态」—— 若把它算作模态开,
-            // 规则七的门会常闭,E 查体当场失效(本构建的默认形态)。
-            var adapter = new ModalGateStateAdapter(_driver);
+            // 常驻屏(启动即建的屏)是「有屏」但**不是**「玩家摊开的模态」—— 若把它算作
+            // 模态开,规则七的门会常闭,E 查体当场失效。
+            //
+            // 🔁 2026-11-02:默认启动形态已改为**无常驻屏**(`_screenName` 默认空,依据
+            // `casebook-39.md §入口`)。但「常驻屏」这条**代码路径仍在**(配置了非空屏名就走),
+            // 属性也必须继续被守 ⇒ 本条改为**显式构造**一个带常驻屏的驱动,
+            // 而不是依赖默认形态。删掉本条会留下一个无人守的分支。
+            var go = new GameObject("modal-opener-test-resting");
+            var driver = go.AddComponent<SkeuoRuntimeDriver>();
+            SetPrivateField(driver, "_screenName", "Casebook");
+            Invoke(driver, "Awake");
 
-            Assert.That(_driver.IsModalOpen, Is.True, "前提:常驻屏在(IsModalOpen 答「有没有屏」)");
-            Assert.That(adapter.IsOpen, Is.False,
-                "常驻屏不得让闸门常闭 —— 否则启动即不能查体");
+            try
+            {
+                var adapter = new ModalGateStateAdapter(driver);
+
+                Assert.That(driver.IsModalOpen, Is.True,
+                    "前提:常驻屏在(`IsModalOpen` 答「有没有屏」)");
+                Assert.That(driver.CurrentModal, Is.EqualTo(ModalId.Casebook),
+                    "前提:常驻屏真的是 Casebook");
+                Assert.That(adapter.IsOpen, Is.False,
+                    "常驻屏不得让闸门常闭 —— 否则启动即不能查体");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]

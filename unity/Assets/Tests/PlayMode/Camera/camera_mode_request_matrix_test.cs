@@ -146,8 +146,7 @@ namespace DaYiJingCheng.Tests.PlayMode.CameraMatrix
 
             var ui = ReadUiDriver();
             Assert.IsNotNull(ui, "启动序应建 SkeuoRuntimeDriver");
-            // 启动即常驻脉案屏 ⇒ 先关到 None,再开才是**真迁移**(见 story-006 头注)
-            ui.CloseModal();
+            // 🔁 2026-11-02:常驻屏占位退役 ⇒ 启动即 None,直接开就是**真迁移**(见 story-006 头注)
 
             CameraModeRequestRecorder.Clear();
             Assert.IsTrue(ui.OpenModal(ModalId.Casebook), "脉案屏应能打开");
@@ -163,7 +162,6 @@ namespace DaYiJingCheng.Tests.PlayMode.CameraMatrix
 
             var ui = ReadUiDriver();
             Assert.IsNotNull(ui, "启动序应建 SkeuoRuntimeDriver");
-            ui.CloseModal();
             Assert.IsTrue(ui.OpenModal(ModalId.Casebook), "脉案屏应能打开");
 
             CameraModeRequestRecorder.Clear();
@@ -237,7 +235,6 @@ namespace DaYiJingCheng.Tests.PlayMode.CameraMatrix
             CameraModeRequestRecorder.Clear();
 
             var ui = ReadUiDriver();
-            ui.CloseModal();
             ui.OpenModal(ModalId.Casebook);
             yield return null;
             ui.CloseModal();

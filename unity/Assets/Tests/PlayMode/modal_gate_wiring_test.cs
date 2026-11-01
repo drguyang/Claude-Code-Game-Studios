@@ -344,8 +344,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             for (int i = 0; i < 30; i++) yield return null;
 
             // [前置] 开局必须是**干净模态态** —— 复用上一用例遗留的 UI 壳会带进它的模态。
-            // ⚠️ 判据用 `BlocksPlay` 而不是 `CurrentModal == None`:默认屏(Casebook)本身
-            //    就是 `IModalState`,`CurrentModal` 开局即 Casebook 是**正常**的;
+            // 🔁 2026-11-02:默认屏已退役(`_screenName` 默认空)⇒ 开局 `CurrentModal == None`。
+            //    判据**仍**用 `BlocksPlay`:它才是「挡不挡世界」的真判据,不随启动形态漂移
+            //    (该判据当初就是为「常驻屏存在但不算玩家摊开」写的,形态改了仍成立)。
             //    只有经 `OpenModal` 显式打开的屏才 `BlocksPlay`(与 `ModalGateStateAdapter` 同源)。
             var ui = ReadField<SkeuoRuntimeDriver>("_uiDriver");
             Assert.IsNotNull(ui, "BootRoot._uiDriver 应已装配");

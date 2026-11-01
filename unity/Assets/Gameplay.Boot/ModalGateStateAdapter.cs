@@ -48,8 +48,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>
         /// 是否有**挡路的**模态摊开(实时读,零缓存)。
         /// <para>⚠️ 读 <see cref="SkeuoRuntimeDriver.BlocksPlay"/> 而非 <c>IsModalOpen</c>:
-        /// 后者含**启动即建的常驻屏**(本构建默认 `Casebook`)⇒ 直接喂闸门会让规则七的门常闭、
-        /// E 查体当场失效。<c>BlocksPlay</c> 只算经 <c>OpenModal</c> 显式打开的屏。</para>
+        /// 后者含**场景配的常驻屏**(若有)⇒ 直接喂闸门会让规则七的门常闭、E 查体当场失效。
+        /// <c>BlocksPlay</c> 只算经 <c>OpenModal</c> 显式打开的屏。
+        /// <para>🔁 2026-11-02:启动默认已改为**无常驻屏**(`_screenName` 为空),故今日两者同值;
+        /// 判据仍按 `BlocksPlay` 写 —— 不依赖启动形态,常驻屏被配回来也不出错。</para>
         /// </summary>
         public bool IsOpen
         {
