@@ -3,8 +3,8 @@
 > **Layer**: Core
 > **GDD**: design/gdd/death-and-respawn.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Sim.Contracts(传送命令半)+ Gameplay.Presentation(过渡呈现,另批)
-> **Status**: **6/6 Complete**(2026-11-01 —— UX 硬前置已由 `design/ux/death-transition-29.md` Approved 兑现;余项 = [L] 走查/听测待桌面批 + 42 侧视觉装配归表现资产批)
-> **Stories**: 6 stories — see table below
+> **Status**: **6/7 Complete**(2026-11-02 —— 新立 story-007 `Ready ⬜`;原 2026-11-01 口径 6/6 —— UX 硬前置已由 `design/ux/death-transition-29.md` Approved 兑现;余项 = [L] 走查/听测待桌面批 + 42 侧视觉装配归表现资产批)
+> **Stories**: 7 stories(001–006 Complete + **007 Ready ⬜**)—— see table below
 
 ## Overview
 
@@ -60,6 +60,7 @@ This epic is complete when:
 | 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9 → **该阻塞已随 G-1 结案于 2026-11-01 闭**) | ADR-005/009 |
 | 005 | 复活落点与传送命令 | Integration | **Complete**(2026-11-01 · S23-5 接口先行;**S23-7 生产接线已兑付** —— 1 侧 `TeleportCommandSink` 实装 + 装配,AC-29-10 实发数有真链(PM 实测落格事件);床格端口仍 BLOCKED-BY-24 = 实现待落) | ADR-025/020/024(24 联动) |
 | 006 | 呈现白名单与零状态播报 | UI | **Complete**(2026-11-01;[L] 两条 AC-29-11/12 待桌面批走查/听测;**S23-7 补 42 侧水墨视觉装配** —— 相位机 + 呈现器 + 程序化水墨纹理(正式素材归美术资产批)) | ADR-013/018/020 |
+| 007 | 29 的档位请求生产载体 —— `Downed` / `Explore`(requesterId 29)+ `TR-camera-007` 补登记 | Integration | **Ready ⬜** —— 2026-11-02 立件(§14 按 epic 扫描查出的**缺口 A**:相机闭包 `a5f766f6` 已进 `BootRoot`,但本 epic 内零 story 提它 ⇒ 改接线无 AC 会红;**另查出 GDD 的 29 两行无 TR**) | ADR-020 Amd C ①② / §五 |
 
 ---
 
