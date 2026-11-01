@@ -126,11 +126,52 @@
 
 ## 六、Definition of Done for this Sprint
 
-- [ ] QA 计划存在(`production/qa/qa-plan-sprint-23-<date>.md`)且**早于 `S23-1` 开工**
-- [ ] Must 4 件全部完成,或**逐件具名**留存(留开 = 不记绿)
-- [ ] 每件有**证伪轮**(「回退即转红」),`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**
-- [ ] 回归两套件全量零失败,数字带**三元组**,等式 `total − 前次 = 新增数` 成立
-- [ ] 债册 `--check` exit **0**;未闭 P0 面 **0 → 0**(不涨)
-- [ ] smoke:`#8` 若落地 ⇒ 自动 PASS **15 → 16**;未落地维持 `none` 且**不改 json 充数**
-- [ ] **G-1 门行结案核**(R4):债册门表 + 路线图 §2.4.3/§6.5 收口回写,Exit 判据逐条复算
-- [ ] 收口判定与收口提交**同日**
+- [x] QA 计划存在(`production/qa/qa-plan-sprint-23-<date>.md`)且**早于 `S23-1` 开工**
+- [x] Must 4 件全部完成,或**逐件具名**留存(留开 = 不记绿)
+- [x] 每件有**证伪轮**(「回退即转红」),`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**
+- [x] 回归两套件全量零失败,数字带**三元组**,等式 `total − 前次 = 新增数` 成立
+- [x] 债册 `--check` exit **0**;未闭 P0 面 **0 → 0**(不涨)
+- [x] smoke:`#8` 若落地 ⇒ 自动 PASS **15 → 16**;未落地维持 `none` 且**不改 json 充数**
+- [x] **G-1 门行结案核**(R4):债册门表 + 路线图 §2.4.3/§6.5 收口回写,Exit 判据逐条复算
+- [x] 收口判定与收口提交**同日**
+
+---
+
+## 七、收口判定(2026-11-01 · 同日收口)
+
+### DoD 逐条核销
+
+| # | 判据 | 结果 |
+|---|---|---|
+| ① | QA 计划早于开工 | ✅ `production/qa/qa-plan-sprint-23-2026-11-01.md`(`3c83c1b4`,先于 S23-1 `29988749`) |
+| ② | Must 4 件全部完成 | ✅ S23-1(9 测,`29988749`)· S23-2(12 测,`e9dc6531`)· S23-3(13 测,`88ba94cf`)· S23-5(11 测,`4b99fb9f`);Should Have S23-6(10 测,`b47ed1e0`)亦落 |
+| ③ | 证伪轮 + 零残留 | ✅ 五件 **16 变异**全数各自精确转红(2+3+4+4+3);`grep -rn "FALSIFY-" unity/Assets --include=*.cs` = **0**(2026-11-01 实跑) |
+| ④ | 回归零失败 + 三元组 + 等式 | ✅ EditMode **`6425 / 6388 / 0 / 37`** @ 15:22:23 CST · PlayMode **`273 / 269 / 0 / 2`** @ 15:23 CST,`b47ed1e0` 干净树;等式:`6425 − 6391`(S23-2 终值)`= 34` = S23-3(13)+ S23-5(11)+ S23-6(10)新增测试数 ✅ |
+| ⑤ | 债册 --check exit 0 · 未闭 P0 面 0→0 | ✅ `python3 tools/debtcount/debtcount.py --check` ⇒ exit **0**(「§五 输出块与索引块一致」);本 sprint **零新增债项**(实施判定均以卡面注 + 证据原件承载) |
+| ⑥ | smoke 自动 PASS 15 → 16 | ✅ `run_smoke.py --results s236-em.xml s236-pm.xml`:**自动 PASS 16 · FAIL 0 · 未跑(需结果件) 0** · 具名人工 3 · 无名 3(#9/#18/#22,EXTERNAL/运行期判据);`#8` = PASS(2 载/全绿);SMOKE-EXIT=3 = 尚有 6 条无可执行判据,如实登记 |
+| ⑦ | G-1 门行结案核 | ✅ 债册 §六 G-1 行 **`open → closed`**(四层复算 + `test_registeredPlayer_producesOnePlayerDiedEndToEnd` Passed = AC-29-01 全链绿);路线图 §2.4.3 同日回写 |
+| ⑧ | 收口判定与收口提交同日 | ✅ 本判定 2026-11-01,随收口提交落盘 |
+
+### 判定:**PASS**
+
+四件 Must + 一件 Should 全部落地且各有证伪轮;G-1 门行(本 sprint 的 R4 风险项)结案;
+smoke 自动判据 15 → 16 且零失败;债册校验 exit 0、零新增债。
+
+**如实登记的残留(不阻塞收口,逐件已具名)**:
+- **R-4-W-6 未裁**(判断类技能掉级豁免,2026-09-20 起):生产装配现值 = 全掉;两极端行为已由
+  S23-3 双分支夹具登记;裁定落地 = `CompositionRoot` 一处注入 `isExempt` 谓词,零结算面改动。
+- **S23-5 生产接线未落**:`ITeleportCommandSink` 零生产实装(1 侧未建)—— 发令面 + 端口 +
+  回调位已交付,接线义务归 1 侧传送实装轮;`ActorCellEntered` 实发数归其联调。
+- **30 §4.3 公式行文本订正**仍挂 30 下一轮(S23-3 兑付的是代码半边;GDD 已落注不改写)。
+- **sprint-22 存量 carryover 不变**:[L] 三件 EXTERNAL · `TD-skeuo-01` open · 人工 3 条(#19/#20/#4)。
+
+**复算命令(自包含)**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --check; echo "DEBT=$?"
+grep -rn "FALSIFY-" unity/Assets --include=*.cs | wc -l   # 期望 0
+python3 tests/smoke/run_smoke.py --results unity/Logs/s236-em.xml unity/Logs/s236-pm.xml | tail -3
+cd unity && python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s236-em.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 收口提交
+```

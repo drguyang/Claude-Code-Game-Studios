@@ -332,6 +332,18 @@ tutorial-onboarding(48 教学)
 > ④ **005 的 `BLOCKED-BY-24` 收窄** —— 24 GDD 规则六(床类格确定性选定)2026-10-30 落盘,结清 `TD-clinic-18`;残余 = 运行期查询面(`IClinicReviveCell` 生产零命中),按卡面「接口先行」可开工;
 > ⑤ R-4 上游契约符号全在:`Kind.PlayerDied`(registry + kindgen)· `IDeathCandidateSink` · `ITeleportCommandSink` · `FoldedPredicate` · `InventoryProjection` · `EntityDeathGates` · `ActorClass`(SelfLimited/LethalFor 形参)。29 侧骨架已在盘上(Consumer/Writer/CooldownGate/CellQuery + 生产装配)⇒ 001/004 = 补结算链余段,002/003/005 = 真实现面。
 > **无死亡 / 复活过渡 spec** ⇒ `story-006` 需**先做设计件**(`/ux-design`),不能直接实现。
+>
+> ✅ **2026-11-01(sprint-23 收口回写;原文不删)**:本节四件开工面**全部落地** ——
+> · **001**(S23-1,9 测,`29988749`)· **002**(S23-2,12 测,`e9dc6531`)· **003**(S23-3,13 测,`88ba94cf`,
+>   含 30 权威面订正:F-29-1 int 截断)· **005**(S23-5,11 测,`4b99fb9f`,接口先行 —— `ITeleportCommandSink`
+>   零生产实装如实登记,生产接线归 1 侧轮)· **smoke #8 载体**(S23-6,10 测,`b47ed1e0`)。
+> · **`BLOCKED-BY-9` 全链已闭**:G-1 门行 **`open → closed`**(债册 §六 同日结案块;行为面 =
+>   `test_registeredPlayer_producesOnePlayerDiedEndToEnd` Passed @ `unity/Logs/s236-em.xml` 15:22:23)。
+> · **残留挂标**:005 的 `ActorCellEntered` 实发归 1 侧传送实装轮(BLOCKED-BY-9/24 维持);
+>   R-4-W-6(判断类豁免)仍未裁 —— 生产装配现值 = 全掉,裁定落点已在 `CompositionRoot` 一处
+>   (isExempt 谓词),两极端行为已由双分支夹具登记;
+>   **006 维持 🔴 硬阻**(`/ux-design` 死亡过渡 spec 仍不存在,表不变)。
+> · 终值回归:EditMode `6425/6388/0/37` · PlayMode `273/269/0/2` @ 15:22:23 CST(`b47ed1e0` 干净树)。
 
 #### 2.4.4 `foraging`(5 件)— 外部面最宽(跨平台 AC)
 

@@ -15369,3 +15369,32 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - Test: death_drop_stream_test.cs 12 条;证伪 M-A/M-B/M-C 各自精确转红
 - 回归:EditMode 6391/6354/0/37 · PlayMode 273/269/0/2 @ 14:00:25 · commit e9dc6531
 - Next: /code-review → /story-done story-002;然后 S23-3(开工时裁 R-4-W-6)
+
+## Session Extract — /dev-story 2026-11-01 · S23-3
+- Story: story-003-skill-level-down-int-truncation — 技能掉级 F-29-1(int 截断)与调 30
+- 承重判定:30 的 DeathPenalty.Apply(Fix 路径)与 AC-29-05 的 F-29-1 表差一 = GDD 已登记
+  「同源同错」;取「修 30 权威面、29 照旧消费」(AC-29-05/14 同时成立),
+  不取 29 自持公式(违 AC-29-14);文本半边(skill-system.md §4.3 公式行)仍挂 30 下一轮
+- 生产码:DeathPenalty.Apply 改 int 截断(+LossNum/LossDen 对)· DeathSkillDownSettlement(新)
+  · 消费者 skillDown 回调(结算段第三位)· CompositionRoot 接线(isExempt: null = R-4-W-6 落点)
+- Test: death_skill_down_test.cs 12 条 + 同步守卫 1;证伪 M-A/M-B/M-C/M-D 各自精确转红
+- 首轮一红 = 依赖集闭包门拦下 ctor 扩位(门在起作用);入集修复
+- 回归:EditMode 6404/6367/0/37(+13/+13)· PlayMode 273/269/0/2 @ 14:53 · commit 88ba94cf
+- Next: S23-5(复活落点与传送,接口先行)→ S23-6(smoke #8)→ 收口(G-1 门行核)
+
+## Session Extract — /dev-story 2026-11-01 · S23-5 + S23-6 + sprint-23 收口
+- S23-5(story-005 复活落点与传送,4b99fb9f):RespawnCommandIssuer(落点两分支 +
+  IClinicReviveCell 端口)+ 消费者 revive 回调(结算段末步);
+  ⚠️ 生产装配不接线(ITeleportCommandSink 零生产实装,1 侧未建 —— 不伪造 sink);
+  11 测;证伪 4/4
+- S23-6(smoke #8 载体,b47ed1e0):DropClaimOrchestrator(拾取三段式,零铸造,
+  拒收零事件)+ InteractClaimRoute(E 路由:拾取优先 → 采集)+ 生产装配
+  (PickToleranceCells=1);smoke #8 none→test,run_smoke 实跑自动 PASS 15→16;10 测;证伪 3/3
+- 收口判定 **PASS**(sprint-23.md §七):EditMode 6425/6388/0/37 · PlayMode 273/269/0/2
+  @ 15:22:23 CST · 债册 --check exit 0 零新增债 · FALSIFY 残留 0(16 变异全转红)
+- **G-1 门行 open → closed**(债册 §六 + 路线图 §2.4.3 回写):四层复算 +
+  test_registeredPlayer_producesOnePlayerDiedEndToEnd Passed = AC-29-01 全链绿
+- 残留(逐件具名):R-4-W-6 未裁(生产=全掉,裁定落点 CompositionRoot isExempt)·
+  S23-5 生产接线归 1 侧轮 · 30 §4.3 公式行文本订正挂 30 下一轮 ·
+  yaml 已置 done,**story 卡 Status 行仍 Ready(正式 /story-done 未跑,用户此前各卡均未跑)**
+- Next: /story-done 五卡正式闭卡(可选);下一 sprint 取件(sprint-24)

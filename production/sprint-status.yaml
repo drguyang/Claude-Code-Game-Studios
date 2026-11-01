@@ -32,54 +32,54 @@ stories:
     name: "death-respawn/001 PlayerDied 登记与死亡结算入口(+004 全链半 AC-29-08/10)"
     file: "production/epics/death-respawn/story-001-player-died-settlement.md"
     priority: must-have
-    status: in_progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
+    completed: "2026-11-01"
     note: "R-3 实测 = 补结算链余段(9 侧谓词/生产件 + Register 已在),非从零;29 零判死公式;呈现半挂 006 不勾。"
   - id: "S23-2"
     name: "death-respawn/002 掉落清单流派生与回捡"
     file: "production/epics/death-respawn/story-002-drop-manifest-stream-reclaim.md"
     priority: must-have
-    status: in_progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
+    completed: "2026-11-01"
     note: "依赖 S23-1;death_cell 禁读实时物理(B4);29 零铸造 instance_id;7a/ADR-023 集成面 MEDIUM 须实测。"
   - id: "S23-3"
     name: "death-respawn/003 技能掉级 F-29-1(int 截断)与调 30"
     file: "production/epics/death-respawn/story-003-skill-level-down-int-truncation.md"
     priority: must-have
-    status: in_progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: "R-4-W-6(判断类豁免,开工时用户裁;裁前只做公式半)"
-    completed: ""
+    completed: "2026-11-01"
     note: "int 截断(禁 Fix.Div/floor_Fix(Mul));AC-29-16 已转可判(7a 阻塞清,2026-11-01 卡面注)。"
   - id: "S23-5"
     name: "death-respawn/005 复活落点与传送命令(医馆床格 → TeleportTo)"
     file: "production/epics/death-respawn/story-005-respawn-cell-teleport-command.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: "BLOCKED-BY-24(只挂运行期 IClinicReviveCell 实现;设计规则六已落,接口先行合法)"
-    completed: ""
+    completed: "2026-11-01"
     note: "AC-29-09:29 的 Append 计数 = 0(写者 = 1);ITeleportCommandSink 整数命令半(ADR-025 QQ-01);多复活按 actor id 定序。"
   - id: "S23-6"
     name: "smoke #8 载体:拾取三段式(意图 + 判距 + 宽容半径,离屏拾取被拒)"
     file: "tests/smoke/critical_paths.json"
     priority: should-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: S
     blocker: ""
-    completed: ""
+    completed: "2026-11-01"
     note: "依赖 S23-2(掉落物在盘上才可拾);ADR-009 §七 与 17 采集同构;负例(超距拒 + 零事件)必带;合成输入。"
