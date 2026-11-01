@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-01
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(规则五 复活:revive_cell = 医馆床类家具格 · 兜底世界出生点 · 29 调 1 的 TeleportTo · 不重置疾病/世界 · OQ-29-2 已裁)
@@ -50,6 +50,14 @@
 3. 1 侧消费:`ITeleportCommandSink` 实现(1 的 epic)发 `ActorCellEntered`,29 只发命令 —— 集成测试用 1 的既有管线或其桩,桩面明确标注。
 4. 出生点 = ADR-015 逻辑层固定格(烘焙数据,非运行期发明)。
 5. 主机串行:多复活命令同 tick 时按 actor id 定序处理(确定性,禁到达序)。
+
+> 🔁 **2026-11-01 实施判定回写(S23-5 · 原注记不删)**:实施期实测 `ITeleportCommandSink`
+> **零生产实装**(1 侧未建,全仓唯一命中 = 契约声明本体)。按卡面「接口先行 + 桩面明确标注」:
+> 本卡交付 = 29 侧发令面(`Sim/RespawnCommandIssuer`,落点两分支 + `IClinicReviveCell` 端口)
+> + 消费者第四回调位(结算段末步);**生产装配不接线**(伪造 1 侧 sink = F2 族假接线;
+> 真链绿维持 BLOCKED-BY-9/24)。**生产接线义务 = 1 侧传送实装轮的装配段**
+> (`revive: (id, tick) => issuer.Issue(id)` 一参)。测试 sink = 显式命名桩(RecordingTeleportStub,
+> 只记录零行为,桩面在夹具头标注)。证据原件 = `production/qa/evidence/s23-5-respawn-command-2026-11-01.md`。
 
 ---
 

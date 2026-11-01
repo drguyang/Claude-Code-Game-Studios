@@ -65,7 +65,7 @@ stories:
     name: "death-respawn/005 复活落点与传送命令(医馆床格 → TeleportTo)"
     file: "production/epics/death-respawn/story-005-respawn-cell-teleport-command.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: M

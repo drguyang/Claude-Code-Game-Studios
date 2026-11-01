@@ -210,10 +210,12 @@ namespace DaYiJingCheng.Tests.DeathRespawn
                     typeof(Func<int, WorldPos>),            // death_cell(装配层从流取)
                     typeof(Action<int, WorldPos, long>),    // 散落结算回调(S23-2;可 null = 未接线)
                     typeof(Action<int, long>),              // 掉级结算回调(S23-3;可 null = 未接线)
+                    typeof(Action<int, long>),              // 复活发令回调(S23-5;可 null = 未接线)
                 },
                 paramTypes,
-                "story-001:48 定形的构造依赖闭包(+S23-2 掉落回调位 +S23-3 掉级回调位 —— " +
-                "结算段 = PlayerDied → 掉落 → 掉级;多出任何依赖 = 输入源集扩大(AC-29-13)");
+                "story-001:48 定形的构造依赖闭包(+S23-2 掉落回调位 +S23-3 掉级回调位 " +
+                "+S23-5 复活回调位 —— 结算段 = PlayerDied → 掉落 → 掉级 → 复活;" +
+                "多出任何依赖 = 输入源集扩大(AC-29-13)");
 
             Assert.That(paramTypes, Has.No.Member(typeof(IEventSink)),
                 "消费者不持 IEventSink —— Append 唯一入口在写者(单写入口纪律)");
