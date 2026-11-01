@@ -190,6 +190,7 @@ git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 
 | # | 件 | 类型 | 状态 | 说明 |
 |---|---|---|---|---|
 | **S23-7** | `emergency-procedures/010` 档位意图生产接线(`Treatment`/`Explore` 必发)+ 退役 `ExploreCount` 假绿载体 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(AC-10-11 跳过半按裁定永久 `NOT-RUN`;S10-09 真机走查 `NOT-RUN`) |
+| **S23-8** | `emergency-procedures/011` 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面** | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(9 条 AC 全证;4 / 25 侧仍零接线、真机观感未走查) |
 
 **为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
 sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
@@ -211,10 +212,20 @@ EditMode `6492 / 6455 / 0 / 0 / 37` · PlayMode `277 / 273 / 0 / 2 / 2`
 ⚠️ **跨 epic**:本件接线了 `CameraRig.Tick`(此前零生产调用),**同时激活** 29 的 `Downed` 与
 39 将来的 `Casebook` —— 已在两 epic 的 `EPIC.md` 与相机证据件 §15 登记。
 
+**S23-8 收口读数(2026-11-02 · 与 S23-7 同批)**:
+EditMode `6500 / 6463 / 0 / 0 / 37` · PlayMode `279 / 275 / 0 / 2 / 2`
+(基线 = `S23-7` 的 `6492/6455` · `277/273`;等式 `6500 − 6492 = 8 = 12 新 − 4 删` · `279 − 277 = 2`)。
+证伪 **7 条变异各自转红**(M4 / M7 各恰 1 红,其余超集并已登记耦合),SHA-256 逐字节还原。
+原件 = `production/qa/evidence/impl-story-011-motor-suppression-2026-11-02.md`。
+⚠️ **跨 epic**:`PlayerController.Move` 自此读 `MotorLease.IsSuppressed`(此前零读点);
+已在 `player-controller/EPIC.md` 登记,并同时登记「`LocomotionEvaluator` 乘数链仍只是注释」的欠账。
+⚠️ **本轮被机械门抓红一次**:`AC-1-23` 的 IL 扫描按**调用点所在程序集**判白名单,
+初版把写面放在 `Gameplay.Boot` ⇒ 红。处置 = 下放到 `Gameplay.Presentation`,**未扩白名单**。
+
 **复算(收口时用)**:
 
 ```bash
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
-grep -n "S23-7" -A6 production/sprint-status.yaml     # 期望 status: done / completed: 2026-11-02
+grep -n "S23-[78]" -A6 production/sprint-status.yaml   # 期望两条均 status: done / completed: 2026-11-02
 grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 ```

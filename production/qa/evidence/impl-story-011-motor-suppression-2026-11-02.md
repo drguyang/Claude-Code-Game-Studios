@@ -123,9 +123,11 @@ for f in ['unity/Logs/s11-em-full.xml','unity/Logs/s11-pm-full.xml']:
 
 ## 六、sprint 归属
 
-本卡**未排入任何 sprint**。`sprint-23` 已收口(件集全 `done`,`S23-7` 是收口后追加件、
-已于本轮开工前收口);`sprint-24` 排的是 `processing-002/004/005 + foraging-002`。
-⇒ 本卡与 `S23-7` 同属「计划外补洞」,归属由用户定;`sprint-status.yaml` 未增条目。
+**`S23-8`**(2026-11-02 用户指令「排进 sprint-23」)。
+
+`S23-8` 与 `S23-7` 同属 **sprint-23 的收口后追加件** —— sprint-23 的件集(`S23-1/2/3/5/6`)已于
+2026-11-01 全部 `done` 且 §七 收口判定已出;**本节与这两件都不进 §七 的判据面**,
+读数各记在 `sprint-23.md` §八的专属段落里。sprint-24 排的是 `processing-002/004/005 + foraging-002`,与本卡无交集。
 
 ---
 

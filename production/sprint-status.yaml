@@ -95,3 +95,15 @@ stories:
     blocker: ""
     completed: "2026-11-02"
     note: "计划外追加(2026-11-02 用户指令)。缺口 B = 双参 SetMode 规则扫描查出;R-10.7 跳过路径设计分叉已裁甲+乙(同日)。AC-10-11 拆两半记分,跳过半永远 NOT-RUN。"
+  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 与 S23-7 同为**收口后追加件**,不进 §七 判据面。
+  - id: "S23-8"
+    name: "emergency-procedures/011 移动压制租约生产接线 —— 10 置位/清位 LeaseSource.Emergency + 1 的读面"
+    file: "production/epics/emergency-procedures/story-011-motor-suppression-lease-wiring.md"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: "2026-11-02"
+    note: "计划外追加。R-11.4 甲案(用户「甲,开工」)。AC-1-23 的门把初版判红(白名单按程序集判)⇒ 写面下放 Gameplay.Presentation,未扩白名单。未闭:4/25 侧零接线、真机观感未走查。"
