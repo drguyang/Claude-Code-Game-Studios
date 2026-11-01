@@ -446,7 +446,9 @@
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | open | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
-| `TD-casebook-01` | `casebook` | open | **Y** | R1 |
+| `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
+| `TD-interaction-01` | `interaction-system` | open | **N** | R4 |
+| `TD-diagnosis-01` | `diagnosis-system` | open | **N** | R4 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -857,10 +859,9 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 146 | 状态 {'closed': 127, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 41, '~~**Y**~~': 4}
-未闭 P0 面 = 1 （已闭但曾标 P0 面的 100 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 1 条,分布在 1/31 个 epic
-    casebook: 1
+条目 148 | 状态 {'closed': 128, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 43, '~~**Y**~~': 4}
+未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
 <!-- TD-COUNT:END -->
 
@@ -8747,3 +8748,52 @@ grep -rn "\.OpenModal(" unity/Assets --include=*.cs | grep -v /Tests/   # 期望
 grep -rn "OpenModal(UI.Skeuomorphic.ModalId.Casebook)\|OpenModal(ModalId.Casebook)" unity/Assets --include=*.cs
 # 期望:零命中(缺口仍开)
 ```
+
+---
+
+## 2026-11-02 · 「开册入口」轮:`TD-casebook-01` 关闭 + 两条新揭债务
+
+**出处**:用户指令「修 TD-casebook-01(开册入口)」。实现原件 =
+`production/qa/evidence/impl-casebook-entry-2026-11-02.md`。
+
+### TD-casebook-01 —— 关闭记录(债本体见下方 2026-11-02 条目,原文不删)
+
+**三条消解判据逐条兑现**:
+
+| # | 判据(原文) | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | 生产侧存在 `OpenModal(ModalId.Casebook)` 的**调用点**(非测试) | ✅ `BootRoot.cs` 4.5 段 `openCasebook:` 缝 | `grep -rn "OpenModal(UI.Skeuomorphic.ModalId.Casebook)" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 1 命中 |
+| ② | 该调用点的触发源是**玩家 `Interact`**(不是 tick 边沿 / 不是自动) | ✅ 唯一调用方 = `InteractionInputDriver.TryVisit`,其唯一调用方 = `OnFrame` 的 E 按下沿分支 | `grep -rn "TryVisit" unity/Assets/Gameplay.Boot --include=*.cs` ⇒ 定义 1 + 调用 1(`OnFrame`) |
+| ③ | 夹具证明「玩家没交互 ⇒ 零 `CaseOpened`」 | ✅ 两件独立夹具 | `case_opened_wiring_test.test_caseOpenedDriver_doesNotOpenCaseWithoutInteraction`(2s 真启动序)+ `casebook_entry_wiring_test.test_ce_01_noInteract_noCaseOpened`(带 tick 前进前置自证) |
+
+**同批退役的东西**:`CaseOpenedDriver.OnTickEdge(tick)`(每 tick 自动开案)—— 方法本身删除,
+`BootRoot` 的 tick 边沿调用点删除;驱动唯一入口改 `TryOpen(patient, tick)`。
+
+**⚠️ 关闭时另有两处**不是本债判据面内、但本债**不能掩盖**的残余,已各自立债(见下)。
+
+---
+
+### TD-interaction-01 —— 4 的确定性全序目标选择只落地了第一键(`d∞`),病人也未接成候选源
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `interaction-system.md` 规则三 / `F-4.1` 规定:**全案唯一目标选择器**,`target = argmin ⟨ d∞, KindPriority, StableId ⟩`,候选来自**全部种类**(含 `InteractableKind.Patient`)。实装侧分叉成两条互不知情的判据:<br>① **采集**:`HarvestInteractionDriver` 走真 `InteractionSelector`(三键齐),但候选集只有资源点;<br>② **就诊**:`InteractionInputDriver.NearestPresentPatient` **自算**「视觉位置平方距离最小」—— 浮点、表现态、无 `KindPriority` / `StableId` 键,且**读的是视觉位置**(`PatientVisualSpawner.TryGetVisualPosition`),违反 ADR-016 §三「禁读表现态位置」。<br>③ 两条之间靠 `InteractClaimRoute` 的**比距**(本轮新加,只比 `d∞`)仲裁。<br>⇒ 「谁是这一帧的目标」实际由**两处各自的选择器 + 一处外挂仲裁**决定,而设计说「4 是唯一的那一个」。 |
+| **本轮已做的部分** | `InteractClaimRoute` 由「半径内**存在**采集点就消费」改为「采集**比最近病人更近**才消费」(`PeekNearestForageDistance` 零副作用窥视 + `BootRoot.NearestPatientCellDistance` 整数格 d∞)。<br>**不做这一步的后果是实测出来的**:`r_interact = 3` 的现世界覆盖全部可站格 ⇒ 每一次 E 都被采集吞掉,就诊 / 开册整条链**运行期不可达**(出生格与病人格都 `harvest=True`)。 |
+| **仍缺的三件** | ① `KindPriority` 第二键(等距时本实现判**病人胜**,而全序应按数据表);② `StableId` 第三键;③ 病人**没有** `ICandidateSource` 实现(`CandidateSources.IPatientSource` 全仓零生产实装)⇒ 两条判据不可能合成一次 `Select`。 |
+| **为什么是债而不是现在做完** | 要把病人接成候选源,得先给 `PatientDto` 定 `Cell` + `StableId` 的来源(13 的 `IPresentPatients` 给格,`StableId` 用 `patient_id`)并把 `InteractionSelector` 的候选集从「只有资源点」扩到全种类 —— 那会动 17 / 4 / 13 三方的既有夹具与 `Select` 的调用契约,属**系统 4 的 epic**,不是开册入口这一件能顺手带走的。 |
+| **`P0 面 = N` 的理由(R4 · 自陈)** | 今日**零可达性缺陷**:比距已落地,病人脚下的 E 判给病人;`KindPriority` / `StableId` 只在**完全等距**时才改变结果,而当前世界没有「病人与采集点同格同距」的布局。⚠️ **什么会把它翻成 Y**:一旦出现「病人与资源点同格 / 等距」的关卡布局,或联机下两处判据因读表现态而分叉。 |
+| **何时消解** | 病人的 `ICandidateSource` 有生产实装,**且** `InteractClaimRoute` 的比距仲裁被删除(由一次 `Select` 直接决定种类),**且** 有一条夹具证明「同格病人 + 采集点 ⇒ 按 `KindPriority` 表定胜负」。 |
+| **归属** | **交互系统(`interaction-system`)** —— 选择器归 4;本轮的比距只是止血。 |
+
+---
+
+### TD-diagnosis-01 —— 查体由「世界空间 E」代做,而设计说它是**脉案模态内的行级动作**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `diagnosis-system.md` `S-8.4`(路线甲 = 模态分流)逐字:「**世界空间裸 `Interact` = 就诊(单义)**;**查体 = 脉案模态行级动作**;施治 = 方笺落笔;急救 = 10 直读通道」。`casebook-39.md` §7 交互表同款:「**查体**(五手段) \| 焦点行 + Submit \| … \| 行级动作**不经 4 的世界路由**」。<br>实装:世界 E 一次按下 = `ExamineDriver.OnExamine(patient, tick)` —— **整病人一次性查完**(`DiagnosisExamineEvaluator` 求一次,落一份分册快照)。脉案屏里**没有**行级查体入口(`ICasebookCommandSink` 只有 `SubmitDiseaseName` / `SubmitConfidence` / 戥子落点,无 `ExamineRow`)。 |
+| **本轮为何不一起改** | 改成设计形态需要:① 42 侧五行各自的可聚焦 Submit 事件 + 新 `ICasebookCommandSink` 成员;② 8 侧把求值输入从「整病人」改成「单通道」;③ 分册快照按通道分片。三件都在 8 / 42 的 epic 内,且会推翻 `ExaminationLedger` 的既有形状。开册入口这一轮把它们一起做,会把「一条链」变成「两条 epic 的合并重构」。 |
+| **本轮的实际影响** | 世界 E 现在做三件事(立案 → 查体 → 开册),玩家体验是「按 E → 册子摊开且已有读数」。**不比设计少功能,只是粒度粗**:五手段不可分别使用(心血管 / 呼吸 / 腹诊…的分别判定拿不到)。 |
+| **`P0 面 = N` 的理由(R4 · 自陈)** | 查体**可达且有效**,缺的是**模态内行级粒度**,不产生「玩家卡死 / 功能不可用」。⚠️ **什么会把它翻成 Y**:8 的 AC 里若有「分别查体影响判定」的判据(如 `AC-8-*` 的单通道断言)被纳入 P0 出口面 —— 那属于 8 的 epic 记账,不在本条自陈范围内。 |
+| **何时消解** | `ICasebookCommandSink` 出现行级查体成员,**且**世界 E 不再调 `ExamineDriver.OnExamine`,**且** 有夹具证明「世界里按 E 只立案 + 开册,零查体快照」。 |
+| **归属** | **诊断(`diagnosis-system`)** —— 动作词表归 8;42 只提供行。 |

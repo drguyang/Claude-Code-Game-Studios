@@ -15702,3 +15702,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **未闭 B 组**:B-2(4/25 `LeaseSource` 侧零生产接线,`ModalGate.SetMotorSuppression` 零生产调用点)·
   B-3(`LocomotionEvaluator` 的 `K_terrain`/`K_context` 乘子链仍只有注释)。
 - **Next**:B-2 或 B-3;或按 `TD-casebook-01`「修法方向 甲」立 story 开工(它能解除 M3 Exit 的第二条合取)。
+
+## Session Extract — 开册入口轮 / 结清 TD-casebook-01(2026-11-02 · S23-12)
+
+- **退役**:`CaseOpenedDriver.OnTickEdge`(每 tick 自动开案)整体删除;唯一入口 = `TryOpen(patient, tick)`
+- **新增**:`InteractionInputDriver.TryVisit` = ① 立案 ② 查体(P0 就近)③ 开册;
+  `ModalInputDriver` toggle **先判脉案** ⇒ Escape = 合册
+- **🔴 不修就会「形式通过、实机不通」的那条**:E 路由原为「半径内存在采集点就消费」,
+  而 `r_interact = 3` 覆盖全部可站格 ⇒ 每次 E 都被采集吞掉(出生格 / 病人格都 `harvest=True`)
+  ⇒ `InteractClaimRoute` 改**跨种类比距**(`PeekNearestForageDistance` 零副作用窥视)
+- **回归**:EditMode `6523/6486/0/0/37` · PlayMode `294/290/0/2/2`(基线 `6523/6486`·`290/286`;`+0`/`+4`)
+- **证伪 M1–M5 全红**,五文件 SHA-256 逐字节还原。⚠️ M3 首轮 NO-XML = **变异打错靶**(回填已删除的方法)
+- **新揭两条债**:`TD-interaction-01`(4 的全序选择只落地 `d∞`;病人未接候选源)· `TD-diagnosis-01`
+  (查体由世界 E 代做,`S-8.4` 要求模态行级)。均 `P0 面 = N`(R4 自陈)⇒ **`未闭 P0 面 1 → 0`**
+- **未闭**:`TD-interaction-01` / `TD-diagnosis-01` · 存档位 → 暂停壳的 Escape 换屏未新增夹具 ·
+  脉案版面可读性归 42 走查
+- 证据:`production/qa/evidence/impl-casebook-entry-2026-11-02.md`
