@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/death-and-respawn.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Sim.Contracts(传送命令半)+ Gameplay.Presentation(过渡呈现,另批)
-> **Status**: 5/6 Complete(2026-11-01;006 维持硬阻 = 死亡/复活过渡 `/ux-design` spec 不存在,须先做设计件)
+> **Status**: **6/6 Complete**(2026-11-01 —— UX 硬前置已由 `design/ux/death-transition-29.md` Approved 兑现;余项 = [L] 走查/听测待桌面批 + 42 侧视觉装配归表现资产批)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -59,4 +59,4 @@ This epic is complete when:
 | 003 | 技能掉级 F-29-1(整数截断)与调 30 | Logic | **Complete**(2026-11-01 · S23-3;30 权威面订正同批) | ADR-026/006 |
 | 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9 → **该阻塞已随 G-1 结案于 2026-11-01 闭**) | ADR-005/009 |
 | 005 | 复活落点与传送命令 | Integration | **Complete**(2026-11-01 · S23-5,接口先行;1 侧接线与 AC-29-10 实发数归传送实装轮) | ADR-025/020/024(24 联动) |
-| 006 | 呈现白名单与零状态播报 | UI | Ready | ADR-013/018/020 |
+| 006 | 呈现白名单与零状态播报 | UI | **Complete**(2026-11-01;[L] 两条 AC-29-11/12 待桌面批走查/听测) | ADR-013/018/020 |

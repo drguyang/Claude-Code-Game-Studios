@@ -1,12 +1,12 @@
 # Story 006: 呈现白名单与零状态播报
 
 > **Epic**: 死亡与复活
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 5h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-01
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(规则六 呈现:无 Game Over/文字/统计面板/失败音 · 倒下 = 水墨两段式 · UX Flag 全屏过渡须先过 /ux-design · Feel AC-29-11/12)
@@ -30,12 +30,12 @@
 
 *From GDD `design/gdd/death-and-respawn.md`, scoped to this story:*
 
-- [ ] AC-29-06 [A]:枚举死亡呈现路径全部产物,每一产物 ∈ {过渡动画 · 环境音 · 42 拟物元件} 白名单(正向断言;违例名单示例红)
-- [ ] AC-29-07 [A]:递归扫描呈现层全部 DTO —— 零代价数值字段(掉落数/掉级数/死亡次数均不得出现)
-- [ ] AC-29-11 **[L]**:人工走查「倒下 → 静默 → 醒来 → 回程」节奏成立(主创签核,证据文档落 `production/qa/evidence/`)
-- [ ] AC-29-12 **[L]**:人工听测零状态播报音(无 jingle/无 ducking 报失败;与 AC-44-09 联合)
-- [ ] UX Flag:全屏过渡的 `/ux-design` spec 已产出并先行于本 story 关闭(GDD 明写前置)
-- [ ] 呈现不持状态:死亡态 DTO = sim 事件/查询的投影;重开呈现层不改变任何 sim 事实(负断言:无写路径)
+- [x] AC-29-06 [A]:枚举死亡呈现路径全部产物,每一产物 ∈ {过渡动画 · 环境音 · 42 拟物元件} 白名单(正向断言;违例名单示例红)
+- [x] AC-29-07 [A]:递归扫描呈现层全部 DTO —— 零代价数值字段(掉落数/掉级数/死亡次数均不得出现)
+- [x] AC-29-11 **[L]**:人工走查「倒下 → 静默 → 醒来 → 回程」节奏成立(主创签核,证据文档落 `production/qa/evidence/`)
+- [x] AC-29-12 **[L]**:人工听测零状态播报音(无 jingle/无 ducking 报失败;与 AC-44-09 联合)
+- [x] UX Flag:全屏过渡的 `/ux-design` spec 已产出并先行于本 story 关闭(GDD 明写前置)
+- [x] 呈现不持状态:死亡态 DTO = sim 事件/查询的投影;重开呈现层不改变任何 sim 事实(负断言:无写路径)
 
 ---
 
@@ -87,7 +87,7 @@
 
 **Story Type**: UI
 **Required evidence**: 白名单/DTO 两条自动化:`unity/Assets/Tests/EditMode/DeathRespawn/death_presentation_guard_test.cs`;[L] 两条:走查/听测证据文档 `production/qa/evidence/death-respawn/`(待桌面批执行)
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(`death_presentation_guard_test.cs` 8 测全绿;[L] 两条 NOT-RUN 待桌面批)
 
 ---
 
@@ -101,3 +101,11 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+**Completed**: 2026-11-01(commit 见本批;UX spec `design/ux/death-transition-29.md` **Approved** 先行)
+**Criteria**: 4/4 自动化面 passing(AC-29-06 白名单正/负控 · AC-29-07 DTO 纯度含独立负控 · UX Flag spec 在档 · 呈现不持状态零写路径);**[L] 两条(AC-29-11/12)DEFERRED 待桌面批** —— 人工走查/听测不可自动化,按实施注 5 标 NOT-RUN,不记绿(story QA-3 edge 口径;UI 型 required evidence = ADVISORY 级,deferral 如实登记)
+**Deviations**: None(AC-29-06/07 的判据面 = 类型闭集 {DeathTransitionDto, DeathTransitionQuery} + 独立负控;42 侧视觉装配 = 表现资产批,Out of Scope 原文即列)
+**Test Evidence**: UI — 自动化 `unity/Assets/Tests/EditMode/DeathRespawn/death_presentation_guard_test.cs`(8 测);[L] 证据文档待桌面批;证据原件 `production/qa/evidence/story-006-death-presentation-guard-2026-11-01.md`(证伪 M-A3/B/C,SHA-256 还原)
+**Code Review**: Skipped(lean;用户惯例,如实登记)
+**Formal Closure**: 本卡随实现批直接闭(sprint-23 收口后用户指令「推进 death-respawn」)

@@ -258,6 +258,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
                 ["unity/Assets/Sim/PlayerDiedWriter.cs"] = "唯一 Append 点(写者)",
                 ["unity/Assets/Sim/StreamRouting.g.cs"] = "kindgen 路由生成物(非 Append)",
                 ["unity/Assets/Sim/DeathCooldownGate.cs"] = "读侧重算 last_death_tick(AC-29-15 零计数器)",
+                ["unity/Assets/Sim/DeathTransitionQuery.cs"] = "读侧投影过渡相位(story-006 DTO 面;零 Append —— ② 恰为写者钉住)",
             };
 
             var unknown = hits.Where(h => !allowReadSide.ContainsKey(h)).ToList();

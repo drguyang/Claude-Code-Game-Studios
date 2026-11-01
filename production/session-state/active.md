@@ -15413,3 +15413,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - EPIC.md 同步:5/6 Complete(006 维持硬阻 = /ux-design 设计件缺);零未裁项
 - Code Review: Skipped ×4(lean;用户惯例,已如实登记各卡 Completion Notes)
 - Next recommended: sprint-24 取件(/sprint-plan new);006 须先 /ux-design
+
+## Session Extract — 2026-11-01 · 推进 death-respawn(story-006 闭环,epic 6/6)
+- UX 前置:design/ux/death-transition-29.md 一次成文 + /ux-review APPROVED(0 BLOCKING;
+  ΦE 降级态 + null handling 评审轮补齐;全屏过渡不进 ModalId 闭集)
+- 生产码:DeathTransitionDto(全整数零代价数值,Sim.Contracts)+ DeathTransitionQuery
+  (倒序投影 None/Downed/Reviving,零写路径)
+- Test:death_presentation_guard_test.cs 8 测(白名单正/负控 · DTO 纯度含独立负控 ·
+  真链投影 · 零写路径扫描 · UX Flag 在档);证伪 M-A3/B/C 各自精确红
+- 首轮一红 = S23-1 允许集拦下新读侧(门在起作用);入集修复
+- 回归:EditMode 6434/6397/0/37(+8/+8)· PlayMode 273/269/0/2 @ 17:21:33 CST
+- story-006 Complete([L] 两条 DEFERRED 待桌面批);EPIC death-respawn **6/6 Complete**
+- Next: /team-qa sprint(retro)/ sprint-24 取件;42 侧视觉装配 = 表现资产批
