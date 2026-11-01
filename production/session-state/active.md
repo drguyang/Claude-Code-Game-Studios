@@ -15349,3 +15349,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   预计测试 ~34 条(10+8+7+7+2);桩具名标注(F2 防线)· 负控独立(F4)· 合成输入(S22-4 纪律)。
 - 待用户裁:R-4-W-6 判断类豁免(S23-3 开工时)。
 - 下一动作:S23-1 开工(/dev-story production/epics/death-respawn/story-001-player-died-settlement.md)。
+
+## Session Extract — /dev-story 2026-11-01 · S23-1
+- Story: production/epics/death-respawn/story-001-player-died-settlement.md — PlayerDied 登记与死亡结算入口
+- 勘察:生产码零缺口(五段管线全在),实施面 = AC 闭夹具
+- Files changed: Tests/EditMode/DeathRespawn/player_died_settlement_test.cs(新,9 测)· story 卡(manifest 版本刷 2026-10-15)· sprint-status.yaml(S23-1 in_progress)
+- Test written: player_died_settlement_test.cs(9 条,真冷却门链/路由/结构判据/源码负断言)
+- 证伪:M-A 门短路(恰红 3)· M-B 路由改流(恰红 1);SHA-256 还原
+- 回归:EditMode 6379/6342/0/37 · PlayMode 273/269/0/2 @ 13:07:10 · commit 29988749
+- Blockers: 无;AC-29-01 半边语义维持(全链绿归 G-1 门行收口核)
+- Next: /code-review unity/Assets/Tests/EditMode/DeathRespawn/player_died_settlement_test.cs → /story-done story-001
