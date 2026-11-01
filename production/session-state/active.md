@@ -15425,3 +15425,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode 6434/6397/0/37(+8/+8)· PlayMode 273/269/0/2 @ 17:21:33 CST
 - story-006 Complete([L] 两条 DEFERRED 待桌面批);EPIC death-respawn **6/6 Complete**
 - Next: /team-qa sprint(retro)/ sprint-24 取件;42 侧视觉装配 = 表现资产批
+
+## Session Extract — 2026-11-01 · S23-7(用户指令「[L] 走查/听测、42 水墨装配、1 传送实装。现在完成」)
+- **1 侧传送实装**:`TeleportCommandSink`(生产实装,整数格→格心→`Teleport`;零 Append;
+  `BindPlayer` 迟绑定 + `IsBound` 供纯 sim 装配跳过发令)+ 装配接线(CompositionRoot/Services/BootRoot)
+- **42 侧水墨视觉装配**:`DeathTransitionPhases`(Φ0–Φ4 相位机;Φ3 只由复活落地触发)+
+  `DeathTransitionPresenter`(UGUI 全屏叠层 + 程序化水墨纹理 + ΦE 纯黑兜底;零写路径)
+- **PlayMode 全链**:`death_transition_playmode_test` —— 本 epic 首件真启动端到端
+- 回归:EditMode `6440/6403/0/37` @19:17:48 · PlayMode `274/270/0/2` @19:18:32 · commit 07ca89f8
+- 证伪 4/4 恰红(定稿夹具重跑;首轮 M-B 假绿 F8 已修);SHA-256 四文件逐字节还原
+- ⚠️ **全量回归九轮才全绿** —— 前 8 轮全是测试隔离缺陷(定向单跑绿/全量串跑红):
+  revive 无玩家抛 · Presenter 闭包 NRE×94 · listener 洪泛(205 MB/180 万条) · 预摆泄漏 ·
+  CanvasGroup 未激活 · GameObject.Find 同名歧义 · 真实时间 vs 游戏时间 · 格事件同 tick
+- **[L] AC-29-11/12 维持 NOT-RUN** —— 需用户桌面批人工走查 + 听测签核
+- Next: 用户桌面批签核;远端变体(45)/相机两段式(机位轮)/环境音(44)/床格端口(24)各归其轮
