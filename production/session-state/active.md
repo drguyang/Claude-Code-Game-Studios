@@ -14954,3 +14954,48 @@ M7 背板不进树 ⇒ alpha=0 红 · M8 改半透明 ⇒ alpha=0.5 红 · M9 �
 - **EditMode** `6326/6289/0/37`(本轮基线 `04f69ba8` 同值 ⇒ **+0**,本轮未加 EditMode 件)
 - **PlayMode** `270/266/0/2`(+2 既有 Inconclusive)(基线 269/265/0/2 ⇒ **+1** = 背板判据)
 - 执行时刻 07:38 / 07:40 CST;两条命令均先 `grep -c "error CS"` = 0。
+
+---
+
+## 2026-11-01 · 存档位「落笔」接线轮(7b:202 的存盘半)
+
+**用户指令**:「sprint-22 剩余 6 卡 ③ 存档位 UI 接线」→ 用户裁定取「存档位屏的**存盘/落笔**半未接」。
+⚠️ **本轮不是 sprint-22 的卡**(sprint-22 六张 = `S22-3`…`S22-8`,无存档位项;`S22-1`/`S22-2` 已于
+2026-10-31 收口)。sprint-22 **未收口**。
+
+### 改了什么
+
+- `SaveSlotCommands.cs`:契约加 `TrySave()`(**不带槽号** —— 目标槽 = 台账 `NextWritableSeq`)
+- `SaveSlotCommandRouter.cs`:实现 `TrySave()`(`Checkpoint` + 异常接住交 `failureSink`)+
+  `IsSaveWired` / `LastSavedSlot`
+- `SaveSlotsScreen.cs`:新行 `save-slot-new`(Submit / Click 两路 → `ActivateWritable`),
+  `tabIndex = _rows.Count`,**不计入** `SlotRowCount` / `RowAt`,空册时 `FirstFocusable` 回落新行
+- `BootRoot.cs:743`(3 行):装配第三形参 `_services.SaveService`
+- 新件:`Tests/EditMode/Boot/save_slot_save_wiring_test.cs`(4 条)·
+  `Tests/PlayMode/save_slot_save_wiring_test.cs`(1 条,**真启动序 + 真 `NavigationSubmitEvent` 派发**)
+
+### 证伪(7/7 转红,7 轮 SHA-256 逐字节还原)
+
+M1 删 Submit 注册 ⇒ PlayMode 红 · M2 空册回落改 null ⇒ D 红 · M3 停 `null` 守卫 ⇒ A 红 ·
+M4 出口调两次 ⇒ B 红 · M5 新行混进槽位计数 ⇒ C 红(+D 的前置断言附带红,已登记)·
+M6 不调 `Checkpoint` ⇒ PlayMode 红 · M7 不记 `LastSavedSlot` ⇒ PlayMode 红。
+
+### 未做(不借绿)
+
+7b:202 四要素只兑现前两个(触发 + `Checkpoint`);**「不跳页 + 新行即第 1 焦点」与「墨迹淡入」未做**。
+根因实测:`SlotProjections` 生产消费方 = **0** · 槽位清单源 = 常量 `{1,2,3}`(`BootRoot.cs:81`)·
+台账初值 = `0` ⇒ **生产现状:列 1/2/3,落笔写 0 号,新写出的槽不在清单里**(本轮让它可观测,非本轮引入)。
+
+### 回归
+
+- **EditMode** `6330/6293/0/37`(`6330 − 6326 = 4` = 新件 `[Test]` 计数)
+- **PlayMode** `271/267/0/2 skip/2 inconclusive`(`271 − 270 = 1`;`exit=2` 来自既有 Inconclusive)
+- 三元组 `2026-11-01 08:15–08:17 CST` · 存档位落笔轮 · `a3b7784e`+工作树;两轮 `error CS` = 0。
+- 证据原件:`production/qa/evidence/save-slot-save-wiring-2026-11-01.md`
+
+### 顺手订正(另立一项,与上式无因果)
+
+`sprint-21` 收口件 `production/qa/smoke-2026-10-31.md` 三处陈旧数字 `12 条无载体` → **8**
+(§二末段 / §五第1条 / 最终判定表)。错因:收口后补跑三轮只刷了 §二 汇总表,没刷结论段。
+正数复算:`python3 tests/smoke/run_smoke.py --results unity/Logs/full-EditMode-saveslot.xml`
+⇒ `自动 PASS 11 · 无名 8`。**只改这个数字,收口判定与签核结论一字不动。**
