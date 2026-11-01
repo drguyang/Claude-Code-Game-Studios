@@ -457,3 +457,22 @@ grep -rn "Harvest\|Gather" unity/Assets --include=*.inputactions           # 零
 
 > ⚠️ **本判定不把「8/8 卡收口」当 Exit** —— 恰是 §〇 第 2 条预先禁止的形状:
 > 6 件追加工作属「容量填充」,把它们记成 Exit 就是用计划外工作冒领计划内判据(F7 借绿同族)。
+
+#### 收口判定复评(2026-11-01 下午 · 用户指令「复评 sprint-22 收口判定」)
+
+**判定:⚠️ NOT PASS → ✅ PASS**(上方原判定全文不删、效力不变 —— 它记录的是
+10:25 时点的实测;本节记录的是甲案执行后的复评)。
+
+- **唯一原因(§三 Exit 未达)已结清**:甲案(补接线)经两 commit 落地
+  (`cd935295` driver + 机械门 · `a956f0c1` BootRoot 调用接线),
+  原判定 §三 三条复算命令今日重跑:`.Resolve(` 生产命中恰 1(`HarvestInteractionDriver.cs:254`);
+  `.Harvest\b` 仍零命中属**命名伪象**(发起链 = `TryHarvest` / `HarvestDriver`,新命令见复评件 §3.2);
+  inputactions 无专用采集 action 属**设计内**(复用 E 交互键经 4 选择器按 Kind 路由,见复评件 §3.3)。
+- **证据链四层**(复评件 §3.2):类型面(公开面零 `HarvestGate` 形参,反射断言)· 源面
+  (`HarvestGateAllowGate` 接链 + 门链清单双向差集)· 行为面(两闸具名拒绝经真 Resolve,证伪轮 M-A/M-B)
+  · **真启动序**(PlayMode 模态夹具首轮一红 = 全链在真烘焙数据上跑通的意外集成证据,修夹具后 4/4)。
+- **回归三元组**:`2026-11-01 12:14:36 CST` · `S22-9 第三批` · `a956f0c1`:
+  EditMode `6370/6333/0/37`(`−6364 = 6`)· PlayMode `273/269/0/2/2`(`±0`)。债册 `--check` exit 0。
+- **非绿面 2–7 照旧成立**(复评件 §五 逐条),不因判字变绿被覆盖;非绿面 2 的
+  `AC-17-06` 解除动作(「随发起路径一并验」)已发生,AC 状态归 story 台账。
+- 复评原件:`production/qa/evidence/review-sprint-22-exit-recheck-2026-11-01.md`。
