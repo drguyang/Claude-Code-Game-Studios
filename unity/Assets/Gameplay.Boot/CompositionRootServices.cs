@@ -63,6 +63,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 掉落是玩家的「拿取」affordance)。</para></summary>
         public DaYiJingCheng.Sim.DropClaimOrchestrator DropClaimOrchestrator { get; internal set; }
 
+        /// <summary>1 侧传送命令实装(2026-11-01 · story-005 接线兑付)。
+        /// <para>⚠️ 玩家由 BootRoot 后置生成 ⇒ **BindPlayer 迟绑定**;未绑定即
+        /// RequestTeleport ⇒ 抛(fail-loud,禁静默吞复活)。</para></summary>
+        public DaYiJingCheng.Gameplay.Presentation.Player.TeleportCommandSink TeleportSink { get; internal set; }
+
+        /// <summary>
+        /// 死亡过渡呈现器(BootRoot 4.3b 装配的唯一实例;测试与后续轮次据此定位)。
+        /// <para>⚠️ **按名字 `GameObject.Find` 有歧义**(同名残留对象会让测试拿到错的实例,
+        /// 2026-11-01 全量串跑实测)—— 服务袋持引用 = 唯一真源。</para>
+        /// </summary>
+        public DaYiJingCheng.Gameplay.Presentation.DeathTransition.DeathTransitionPresenter
+            DeathPresenter { get; internal set; }
+
         /// <summary>53 的**判定链驱动**(2026-10-30 · ADR-036 D2/D3/S4)。</summary>
 
         /// <para>每个 tick 边沿跑 `Aggregate → Judge → Emit`,把「已结案病例」变成后果事件。</para>

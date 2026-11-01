@@ -390,6 +390,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                     ? cell
                     : WorldSpawnCell;
 
+            // ── 1 侧传送实装接线(2026-11-01 · story-005 生产接线义务兑付)─────────
+            // ITeleportCommandSink 的生产实装 = Gameplay.Presentation/Player/TeleportCommandSink
+            // (整数命令半 → 格心连续坐标 → PlayerController.Teleport;ActorCellEntered 由
+            // 控制器跨格提交链发 —— 写者 = 1,AC-29-09 的 29 零 Append 不变)。
+            // ⚠️ 玩家由 BootRoot 后置生成 ⇒ sink 走 BindPlayer 迟绑定(未绑定即请求 ⇒ 抛);
+            //    sink 实例在此构造、经局部变量直通消费者 revive 回调,并在服务袋段
+            //    (`services` 声明于 :1589)赋给 `services.TeleportSink` 供 BootRoot 绑定。
+            // 床格端口(clinicCellOf)仍 = null(24 运行期查询面未接,BLOCKED-BY-24 维持)
+            // ⇒ 落点恒兜底世界出生点;24 实装轮在此注入真查询面。
+            var teleportSink = new DaYiJingCheng.Gameplay.Presentation.Player.TeleportCommandSink();
+            var respawnIssuer = new RespawnCommandIssuer(teleportSink, null, WorldSpawnCell);
+
             var deathConsumer = new DeathCandidateConsumer(
                 playerDiedWriter,
                 // 冷却门求值:tick = 候选自带的那一个(判据的另一半,不另取时钟)。
@@ -402,7 +414,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 dropSettlement: (playerId, cell, tick) => deathDropSettlement.Settle(tick, playerId, cell),
                 // 掉级结算(S23-3):散落之后、复活(story-005)之前(结算段第三位)。
                 // ⚠️ 转序适配:回调 =(playerId, tick),Settle = writer 惯例的 (tick, id)。
-                skillDown: (playerId, tick) => deathSkillDown.Settle(tick, playerId));
+                skillDown: (playerId, tick) => deathSkillDown.Settle(tick, playerId),
+                // 复活发令(S23-7):结算段末步 → 1 侧传送实装(整数命令;落格事件由 1 发)。
+                // ⚠️ **未绑定即跳过发令**(2026-11-01 回归修复):纯 sim 装配(EditMode 夹具 /
+                // 无 BootRoot 的路径)没有玩家对象 ⇒ 复活传送无接收者 ⇒ sim 侧不因呈现层
+                // 缺席而抛(呈现三件套纪律);真发令却无接收者仍由 sink 自身 fail-loud。
+                revive: (playerId, tick) =>
+                {
+                    if (!teleportSink.IsBound) return;   // 无玩家对象 ⇒ 无处可传送
+                    respawnIssuer.Issue(playerId);
+                });
 
             // ⑤ 注册 —— 单消费者契约(`Register` 二次调用抛;此处只调一次)。
             deathCandidates.Register(deathConsumer);
@@ -1661,6 +1682,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────
             // ⚠️ 本属性是 `null` 时**必须**有显式日志(`BootRoot` 启动期读),否则与「机制未启用」同形。
             services.HarvestDriver = harvestDriver;
+
+            // 1 侧传送实装(story-005 接线兑付;构造见死亡消费段 —— `teleportSink` 局部直通):
+            services.TeleportSink = teleportSink;
 
             // ── 拾取三段式编排面(S23-6 · sprint-23 · 2026-11-01)────────────────
             // ADR-009 §七 拾取三段式(意图 + 当下判距 + 宽容半径)的生产装配:

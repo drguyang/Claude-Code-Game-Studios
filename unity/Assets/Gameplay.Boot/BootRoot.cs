@@ -525,6 +525,30 @@ namespace DaYiJingCheng.Gameplay.Boot
             // entities.yaml 的 next_player_id 是**存档头字段位**,不新增第三个 C# 计数器)。
             int actorId = _services.IdAuthority.NextPatientId().Value;
 
+            // ── 4.3a. 1 侧传送 sink 绑定(S23-7 · 2026-11-01)────────────────────
+            // 构造在 CompositionRoot 死亡消费段(服务袋 TeleportSink);玩家此刻才存在
+            // ⇒ 在此迟绑定。复活链(29 revive 回调 → issuer → 本 sink)自此全通。
+            _services.TeleportSink.BindPlayer(() => _player);
+
+            // ── 4.3b. 死亡过渡呈现器(42 侧 · story-006 视觉装配 · 2026-11-01)────
+            // 全屏水墨叠层(零交互,spec §5/§7);数据源 = 只读投影(零写路径);
+            // 程序化水墨纹理,正式素材归美术资产批(ΦE 纯黑兜底已备)。
+            // ⚠️ 远端变体与相机两段式未落 —— 分别挂 45 第二 QoS 轮与机位轮(如实登记)。
+            var deathPresenterGo = new GameObject("DeathTransitionPresenter");
+            var deathPresenter = deathPresenterGo.AddComponent<
+                DaYiJingCheng.Gameplay.Presentation.DeathTransition.DeathTransitionPresenter>();
+            // ⚠️ **空值保护(2026-11-01 回归修复)**:拆卸段会把 `_services` 置 null,而本闭包
+            // 在 Presenter 的**下一帧 Update** 里才求值 ⇒ 直取 `_services.Stream` 会 NRE
+            // (实测 94 条 PlayMode 红,堆栈 BootRoot:540 → Presenter.Update:58)。
+            // ⇒ 取值处判空:服务袋已拆 ⇒ 事件源为 null ⇒ 呈现器按「无数据源」停更。
+            deathPresenter.Bind(
+                () => _services != null ? _services.Stream.Events : null,
+                _services.Decoder,
+                () => actorId);
+            _services.DeathPresenter = deathPresenter;   // 供测试与后续轮次定位(唯一实例)
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(
+                deathPresenterGo, gameObject.scene);
+
             // ── 4.4. 玩家 actor 登记(2026-10-24 story-004 装配轮)──
             // id 在**装配之后**才铸造 ⇒ 登记必然是后置动作(与 SetViewer / SetAuthor 同格)。
             // 后果:登记前 `ClassOfDeathCandidate` 恒 Patient ⇒ 死亡候选的类别闸不放行;

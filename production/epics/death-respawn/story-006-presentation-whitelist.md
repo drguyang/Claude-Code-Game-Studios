@@ -109,3 +109,33 @@
 **Test Evidence**: UI — 自动化 `unity/Assets/Tests/EditMode/DeathRespawn/death_presentation_guard_test.cs`(8 测);[L] 证据文档待桌面批;证据原件 `production/qa/evidence/story-006-death-presentation-guard-2026-11-01.md`(证伪 M-A3/B/C,SHA-256 还原)
 **Code Review**: Skipped(lean;用户惯例,如实登记)
 **Formal Closure**: 本卡随实现批直接闭(sprint-23 收口后用户指令「推进 death-respawn」)
+
+---
+
+## 🔁 2026-11-01 视觉装配批补记(S23-7 · 原注记不删)
+
+> 用户指令「[L] 走查/听测(桌面批)、42 侧水墨视觉装配(表现资产批)、1 侧传送实装(其轮接线)。现在完成」。
+
+**42 侧视觉装配 = 已落**(上段「视觉装配 = 表现资产批,Out of Scope」**就该批落地**):
+- `Gameplay.Presentation/DeathTransition/DeathTransitionPhases.cs` —— 相位机
+  (Φ0 Inactive → Φ1 Falling → Φ2 Lying → Φ3 Waking → Φ4 Fading → Φ0;
+  **Φ3 只由 sim 复活落地触发**,不自行醒来;时长 Fall 1.2 / Lie 0.8 / Wake 1.5 / Fade 1.0 s)。
+- `Gameplay.Presentation/DeathTransition/DeathTransitionPresenter.cs` —— UGUI 全屏叠层
+  (零交互:`interactable=false` / `blocksRaycasts=false`)+ **程序化水墨纹理**
+  (径向渐变 + 确定性值噪声);**生成失败 ⇒ ΦE 纯黑兜底**(spec §6 节奏不变)。
+- 白名单闭集相应扩员(4 员):`{DeathTransitionDto, DeathTransitionQuery, DeathTransitionDriver, DeathTransitionPresenter}`。
+- **正式水墨素材仍归美术资产批**(art-bible §4.5 三步流程)—— 当前为程序化占位;
+  素材到位后替换 `InkWashTexture.Create()` 一处即可。
+
+**[L] 两条(AC-29-11/12)维持 DEFERRED / NOT-RUN** —— 本仓环境无 Unity 桌面、无音频设备;
+自动化只覆盖**数值形状**(alpha 序列 · 相位转移 · 落格实发),不覆盖「水墨观感 / 节奏是否得体 /
+环境音是否合适」。**截图在 batch 模式不产出**(`ScreenCapture` 依赖 game view backbuffer;
+配合 `WaitForEndOfFrame` 在无渲染帧的 batch 下**协程挂死**,实测单轮挂 10 分钟)⇒ 自动化件零截图。
+⇒ **需用户桌面批人工走查 + 签核**(签核请求见交付报告)。
+
+**新增 PlayMode 真启动全链**(本 epic 首个 PlayMode 件):
+`unity/Assets/Tests/PlayMode/death_transition_playmode_test.cs` —— 真启动 → 写 `PlayerDied`
+→ 相位机渐入 → 传送 → 断言 `ActorCellEntered` **实发**且落格 = 命令格 → 相位序列走完回零叠层。
+
+证据原件 = `production/qa/evidence/s23-7-visual-assembly-teleport-wiring-2026-11-01.md`
+(证伪轮 4/4 恰红,含一条 F8 假绿已修 + 一条 NRE 回归已修)。

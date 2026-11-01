@@ -59,6 +59,19 @@
 > (`revive: (id, tick) => issuer.Issue(id)` 一参)。测试 sink = 显式命名桩(RecordingTeleportStub,
 > 只记录零行为,桩面在夹具头标注)。证据原件 = `production/qa/evidence/s23-5-respawn-command-2026-11-01.md`。
 
+> ✅ **2026-11-01 生产接线已兑付(S23-7 · 原注记不删)**:上段「生产装配不接线」**已过期** ——
+> 1 侧传送实装落地 = `Gameplay.Presentation/Player/TeleportCommandSink`(生产实装,非桩):
+> 整数格 → 格心连续坐标 → `PlayerController.Teleport`;**零直接 Append**
+> (`ActorCellEntered` 由控制器跨格提交链发,写者 = 1,AC-29-09 不破);
+> `BindPlayer` 迟绑定(BootRoot 4.3a),未绑定/读数 null ⇒ 抛(fail-loud,禁静默吞复活)。
+> 装配链 = `CompositionRoot` 死亡段(`revive: (id, tick) => issuer.Issue(id)` → issuer → sink)
+> + `CompositionRootServices.TeleportSink` 服务袋位。
+> **AC-29-10 的「复活来源 `ActorCellEntered` 实发数」自此有真链** —— PlayMode 实测:
+> 传送后 tick=11 实发 `ActorCellEntered(2,0,2)`(= 命令格),玩家连续坐标 (2.50, 0.50, 2.50)(格心)。
+> 证据原件 = `production/qa/evidence/s23-7-visual-assembly-teleport-wiring-2026-11-01.md`。
+> ⚠️ **床格端口 `clinicCellOf` 仍 = null** ⇒ 落点恒兜底世界出生点(`BLOCKED-BY-24` 维持,
+> 挂标性质 = **实现待落**,非设计待裁)。
+
 ---
 
 ## Out of Scope

@@ -23,6 +23,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.EditorTools.Gates;
+using DaYiJingCheng.Gameplay.Presentation.DeathTransition;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
@@ -121,11 +122,18 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         public void test_whitelist_closedSet_positive_andViolationRed()
         {
             // 白名单(story-006 AC-29-06):死亡呈现产物 ∈ {过渡动画, 环境音, 42 拟物元件}。
-            // P0 的 sim 投影面类型闭集 = {DTO, Query}(42 水墨元件/动画资产 = 表现资产批,不属类型面)。
-            var whitelist = new HashSet<Type> { typeof(DeathTransitionDto), typeof(DeathTransitionQuery) };
+            // sim 投影面类型闭集 = {DTO, Query};42 视觉装配面 = {Phases(相位机), Presenter(呈现器)}
+            // (2026-11-01 视觉装配批扩员 —— 程序化水墨 + 相位机,零写路径)。
+            var whitelist = new HashSet<Type>
+            {
+                typeof(DeathTransitionDto), typeof(DeathTransitionQuery),
+                typeof(DeathTransitionDriver), typeof(DeathTransitionPresenter),
+            };
 
             Assert.IsTrue(whitelist.Contains(typeof(DeathTransitionDto)), "DTO ∈ 白名单");
             Assert.IsTrue(whitelist.Contains(typeof(DeathTransitionQuery)), "Query ∈ 白名单");
+            Assert.IsTrue(whitelist.Contains(typeof(DeathTransitionDriver)), "相位机 ∈ 白名单(过渡动画)");
+            Assert.IsTrue(whitelist.Contains(typeof(DeathTransitionPresenter)), "呈现器 ∈ 白名单(过渡动画)");
 
             // 违例名单示例:GameOver 面板 / 统计面板 —— 不在白名单,出现即红。
             Assert.IsFalse(whitelist.Contains(typeof(GameOverPanel)), "GameOver 面板 ∉ 白名单(违例示例)");
@@ -201,11 +209,139 @@ namespace DaYiJingCheng.Tests.DeathRespawn
                 "unity/Assets/Sim.Contracts/DeathTransitionDto.cs")));
             string query = StripComments(File.ReadAllText(RepoFile(
                 "unity/Assets/Sim/DeathTransitionQuery.cs")));
+            string phases = StripComments(File.ReadAllText(RepoFile(
+                "unity/Assets/Gameplay.Presentation/DeathTransition/DeathTransitionPhases.cs")));
+            string presenter = StripComments(File.ReadAllText(RepoFile(
+                "unity/Assets/Gameplay.Presentation/DeathTransition/DeathTransitionPresenter.cs")));
 
             Assert.That(dto.Contains(".Append(") || dto.Contains("IEventSink"), Is.False,
                 "DTO 零写路径");
             Assert.That(query.Contains(".Append(") || query.Contains("IEventSink"), Is.False,
                 "投影查询零写路径(重开呈现层不改 sim 事实)");
+            Assert.That(phases.Contains(".Append(") || phases.Contains("IEventSink"), Is.False,
+                "相位机零写路径(纯表现态)");
+            Assert.That(presenter.Contains(".Append(") || presenter.Contains("IEventSink"), Is.False,
+                "呈现器零写路径(只渲染;2026-11-01 视觉装配批同守)");
+        }
+
+        // ══════════════════ 相位机(42 视觉装配批 · spec §6)══════════════════
+
+        /// <summary>Φ1 渐入 → Φ2 躺定:Downed 基准下 alpha 升满并保持。</summary>
+        [Test]
+        public void test_phases_downed_fadesIn_thenLies()
+        {
+            var d = DeathTransitionDriver.Inactive;
+            d.Step(1, 0.3f);   // Downed 首帧:开始渐入
+            Assert.AreEqual(DeathTransitionVisualPhase.Falling, d.Phase);
+            Assert.That(d.Alpha, Is.GreaterThan(0f).And.LessThan(1f), "渐入中(非瞬间黑屏)");
+
+            for (int i = 0; i < 200; i++) d.Step(1, 0.05f);   // 10 s ≫ FallSeconds
+            Assert.AreEqual(DeathTransitionVisualPhase.Lying, d.Phase, "渐入满 ⇒ 躺定");
+            Assert.AreEqual(1f, d.Alpha, "墨色满屏");
+        }
+
+        /// <summary>Φ2 **不自行醒来**:sim 迟迟不复活 ⇒ 保持躺定(spec §6 相位触发语义)。</summary>
+        [Test]
+        public void test_phases_lying_holdsUntilRevive_noAutoWake()
+        {
+            var d = DeathTransitionDriver.Inactive;
+            d.Step(1, 0.1f);
+            for (int i = 0; i < 400; i++) d.Step(1, 0.05f);   // 20 s,一直 Downed
+            Assert.AreEqual(DeathTransitionVisualPhase.Lying, d.Phase,
+                "静默段计满也不自行醒来 —— Φ3 只由复活落地触发");
+            Assert.AreEqual(1f, d.Alpha);
+        }
+
+        /// <summary>Φ3 由 Reviving 触发 → Φ4 消散 → Φ0;总序列完整且单向。</summary>
+        [Test]
+        public void test_phases_reviving_wakeThenFadeToInactive()
+        {
+            var d = DeathTransitionDriver.Inactive;
+            d.Step(1, 0.05f);
+            for (int i = 0; i < 100; i++) d.Step(1, 0.05f);
+            Assert.AreEqual(DeathTransitionVisualPhase.Lying, d.Phase, "[前置] 已躺定");
+
+            d.Step(2, 0.05f);   // 复活落地
+            Assert.AreEqual(DeathTransitionVisualPhase.Waking, d.Phase, "Reviving ⇒ 醒来(Φ3)");
+
+            for (int i = 0; i < 20; i++) d.Step(2, 0.05f);   // 1.0 s < WakeSeconds
+            Assert.AreEqual(DeathTransitionVisualPhase.Waking, d.Phase, "醒来保持中");
+
+            for (int i = 0; i < 20; i++) d.Step(2, 0.05f);   // 累计 2.0 s ≥ WakeSeconds
+            Assert.AreEqual(DeathTransitionVisualPhase.Fading, d.Phase, "醒来保持计满 ⇒ 消散(Φ4)");
+            Assert.That(d.Alpha, Is.LessThan(1f), "消散中");
+
+            for (int i = 0; i < 100; i++) d.Step(2, 0.05f);
+            Assert.AreEqual(DeathTransitionVisualPhase.Inactive, d.Phase, "消散毕 ⇒ 零叠层(Φ0)");
+            Assert.AreEqual(0f, d.Alpha);
+        }
+
+        /// <summary>AC-UX-03:静默段设计时长 = 最短段(四段比较,钉住形状约束)。</summary>
+        [Test]
+        public void test_phases_lieSeconds_isShortestSegment()
+        {
+            float lie = DeathTransitionDriver.LieSeconds;
+            Assert.That(lie, Is.LessThan(DeathTransitionDriver.FallSeconds), "静默 < 渐入");
+            Assert.That(lie, Is.LessThan(DeathTransitionDriver.WakeSeconds), "静默 < 醒来");
+            Assert.That(lie, Is.LessThan(DeathTransitionDriver.FadeSeconds), "静默 < 消散");
+        }
+
+        /// <summary>Φ1 渐入非瞬间:alpha 在渐入段**单调递增且恒 ≤ 1**,不出现越冲。</summary>
+        /// <remarks>
+        /// ⚠️ **判据点钉在「渐入段」**(2026-11-01 证伪轮 M-B 实测):转 Lying 那一刻
+        /// `Alpha` 被**满屏赋值覆盖**(1f)⇒ 钳位那行不参与终值 ⇒ 停用 `Clamp01` 也测不出
+        /// (假绿,F8 形态:行为等价掩盖结构分叉)。
+        /// ⇒ 本测改为在**渐入段内**逐帧取值,要求 alpha 严格递增、恒 ≤ 1、
+        /// 且**渐入未计满前不提前转 Lying**;这三点合起来才把「渐入时长 = FallSeconds」
+        /// 与「不过冲」两条性质钉住。
+        /// </remarks>
+        [Test]
+        public void test_phases_alphaClamped_noOvershoot()
+        {
+            var d = DeathTransitionDriver.Inactive;
+            d.Step(1, 0.1f);   // 首帧:进 Φ1 渐入(Elapsed 重置后同帧消费 0.1 s)
+            Assert.AreEqual(DeathTransitionVisualPhase.Falling, d.Phase, "仍在渐入段");
+
+            float prev = d.Alpha;
+            Assert.That(prev, Is.GreaterThan(0f).And.LessThan(1f), "首帧渐入中(非瞬间黑屏)");
+
+            // 逐帧推进到渐入段末端前:alpha 必须**严格递增**且恒 ≤ 1(不得越冲)。
+            for (int i = 0; i < 10; i++)
+            {
+                d.Step(1, 0.1f);
+                Assert.That(d.Alpha, Is.LessThanOrEqualTo(1f),
+                    $"渐入段 alpha 不得越过 1(实际 {d.Alpha})—— 渐入钳位");
+                Assert.That(d.Alpha, Is.GreaterThan(prev),
+                    $"渐入段 alpha 必须严格递增(实际 {prev} → {d.Alpha})");
+                prev = d.Alpha;
+                if (d.Phase != DeathTransitionVisualPhase.Falling) break;
+            }
+
+            // 渐入计满 ⇒ 转 Lying 且满屏(alpha = 1,不越冲)。
+            for (int i = 0; i < 20 && d.Phase == DeathTransitionVisualPhase.Falling; i++)
+                d.Step(1, 0.1f);
+            Assert.AreEqual(DeathTransitionVisualPhase.Lying, d.Phase, "渐入计满 ⇒ 躺定");
+            Assert.That(d.Alpha, Is.LessThanOrEqualTo(1f), "满屏 alpha ≤ 1");
+        }
+
+        // ══════════════════ 1 侧传送实装(2026-11-01 接线兑付)══════════════════
+
+        /// <summary>sink 守卫:未绑定请求抛(fail-loud,禁静默吞复活);二次绑定抛。</summary>
+        [Test]
+        public void test_teleportSink_unboundRequest_throws_doubleBindThrows()
+        {
+            var sink = new DaYiJingCheng.Gameplay.Presentation.Player.TeleportCommandSink();
+            Assert.Throws<InvalidOperationException>(
+                () => sink.RequestTeleport(7, new WorldPos(0, 1, 0)), "未绑定即请求 ⇒ 抛");
+
+            sink.BindPlayer(() => null);   // 绑定读数为 null 的委托(玩家未生成的形态)
+            Assert.Throws<InvalidOperationException>(
+                () => sink.RequestTeleport(7, new WorldPos(0, 1, 0)), "绑定读数 null ⇒ 抛(fail-loud)");
+
+            var sink2 = new DaYiJingCheng.Gameplay.Presentation.Player.TeleportCommandSink();
+            sink2.BindPlayer(() => null);
+            Assert.Throws<InvalidOperationException>(() => sink2.BindPlayer(() => null),
+                "二次绑定 = 静默换真源,拒绝");
         }
 
         /// <summary>UX Flag(story-006 硬前置):全屏过渡 spec 已产出且 Approved。</summary>
