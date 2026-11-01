@@ -167,6 +167,23 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-3` 2026-11-01 收口(COMPLETE)** —— smoke `#1` 载体落地,`自动 PASS 11 → 12`。
+> **原 reason 被证伪**:「启动序需真启动;headless 无载体」—— 前半句对(EditMode 里预检必然判死,
+> `pipeline_gate_test.cs:1243` 已钉),**后半句不成立**:PlayMode 有真 catalog,初始化 + 预载真跑得起来。
+> **交付**:`PlayMode/boot_e13_preload_chain_test.cs`(2 条)——
+> ① 真跑 `InitializeAsync` + `TryPreload` + **反射读 `_items` 私有缓存**断「预载当场已解码」
+> (⚠️ 只断 `Load<ItemDataSet>()` **不够**:`EnsureItems()` 惰性,空实现的 `Preload()` 照样能补装);
+> ② 装载抛 ⇒ `false` + 无半预载态 + `Provider` **抛**(不返回 null);该 `catch` 分支 EditMode 侧零覆盖。
+> **证伪 3 变异各 red**(M1 空实现 Preload ⇒ ①;M2 Provider 返回 null ⇒ ②;M3 catch 吞成 true ⇒ ②),
+> 两文件 SHA-256 逐字节还原,`FALSIFY-` 残留 0。
+> **工具**:`run_smoke.py --results` 改 `nargs="+"` 支持多份合并(`#1` 在 PlayMode、其余 test 条在 EditMode);
+> 单份调用向后兼容(实跑输出与改动前逐字一致)。
+> **回归**(三元组 `2026-11-01T08:47–08:50 CST` · `S22-3` 批 · `f15c76a8`+未提交):
+> EditMode `6331/6294/0/0/37`(零新增)· PlayMode `273/269/0/2/2`(**+2/+2 恰等**)。
+> **smoke 实跑**:`自动 PASS 12 · 无名 7`(原 `11 / 8`);**退出码仍 3** —— 7 条无载体仍在,
+> 不得把 INCOMPLETE 读成 PASS。
+> 原件 = `production/qa/evidence/s22-3-smoke1-e13-carrier-2026-11-01.md`。
+
 > ✅ **`S22-1` 已于 2026-10-31 收口(COMPLETE WITH NOTES)** —— 交付
 > `Sim/Foraging/NodeRemaining.cs`(`PrefixScan` **一次遍历三消费** = 条数 / `Σ_all` / `Σ_window`;
 > `YieldDecay` / `EffCapacity` / `Remaining` / `CanHarvest` 采前闸)+ 夹具

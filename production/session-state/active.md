@@ -15044,3 +15044,39 @@ EditMode `6331/6294/0/0/37`(`6331 − 6330 = 1` = 新件)· PlayMode `271/267/0/
 - 签核件 F2:留开项 **3 → 2**(`-03` 待 ADR-008 裁 · `-04` 触发未到)
 - sprint-22:`S22-5` 收口(S22-1/2/5 已收,S22-3/4/6/7/8 未动)
 - 原件:`production/qa/evidence/s22-5-craft-roundtrip-2026-11-01.md`
+
+---
+
+## 2026-11-01 · `S22-3` 交付:smoke `#1` 载体(启动序 E-13 硬失败链)
+
+**用户指令**:「做 S22-3」。
+
+### 原 reason 被证伪
+
+`critical_paths.json` #1 原写「启动序需真启动;headless 无载体」——
+前半句对(EditMode 里预检必然判死,`pipeline_gate_test.cs:1243` 已钉),
+**后半句不成立**:PlayMode 有真 catalog,`InitializeAsync` + `data-core` 预载真跑得起来。
+
+### 交付
+
+`unity/Assets/Tests/PlayMode/boot_e13_preload_chain_test.cs`(2 条):
+① 真跑初始化 + `TryPreload` + **反射读 `_items` 私有缓存**(⚠️ 只断 `Load<ItemDataSet>()` 不够 ——
+`EnsureItems()` 惰性,空实现的 `Preload()` 照样能补装);
+② 装载抛 ⇒ false + 无半预载态 + `Provider` 抛(该 `catch` 分支 EditMode 侧零覆盖)。
+
+### 证伪(3/3 红,两文件 SHA-256 逐字节还原)
+
+M1 `Preload()` 空实现 ⇒ ① `_items` 为 null 红 · M2 `Provider` 返回 null ⇒ ② Throws 红 ·
+M3 `catch` 吞成 true ⇒ ② IsFalse 红。每条变异只打一条断言。
+
+### 工具
+
+`tests/smoke/run_smoke.py --results` 改 `nargs="+"`(多份合并);单份调用向后兼容,输出逐字一致。
+
+### 结果
+
+- smoke 实跑:`自动 PASS 11 → 12` · `无名 8 → 7`;**exit 仍 3**(7 条无载体仍在,不读成 PASS)
+- 回归 EditMode `6331/6294/0/0/37`(零新增)· PlayMode `273/269/0/2/2`(+2/+2)
+- 三元组 `2026-11-01 08:47–08:50 CST` · `S22-3` 批 · `f15c76a8`+工作树;两轮 `error CS` = 0
+- 原件:`production/qa/evidence/s22-3-smoke1-e13-carrier-2026-11-01.md`
+- sprint-22:S22-1/2/3/5 已收;S22-4/6/7/8 未动

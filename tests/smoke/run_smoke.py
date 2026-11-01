@@ -31,6 +31,10 @@
 用法:
   python3 tests/smoke/run_smoke.py                        # 只做结构校验 + 需结果件的条目标 NOT-RUN
   python3 tests/smoke/run_smoke.py --results <unity.xml>  # 用既有结果件判 test 条
+  python3 tests/smoke/run_smoke.py --results <em.xml> <pm.xml>
+                                                          # 多份结果件**合并**成一个判定面
+                                                          # (2026-11-01:`#1` 的载体是 PlayMode,
+                                                          #  其余 test 条多在 EditMode —— 单件装不下)
   python3 tests/smoke/run_smoke.py --emit-filter          # 打印 -testFilter 串(复合判据会全部展开)
 
 `critical_paths.json` 的 `check` 字段(2026-10-31 起):
@@ -151,7 +155,9 @@ def load_results(path):
 
 def main():
     ap = argparse.ArgumentParser(description="critical-paths 可执行入口(TD-smoke-01)")
-    ap.add_argument("--results", help="Unity -runTests 产出的 XML 结果件")
+    ap.add_argument("--results", nargs="+",
+                    help="Unity -runTests 产出的 XML 结果件;可给多份(合并成一个判定面,"
+                         "同名测试以**后给**者为准)")
     ap.add_argument("--emit-filter", action="store_true", help="只打印 -testFilter 串")
     ap.add_argument("--require-full", action="store_true", help="没有可执行判据时退 1 而不是 3")
     args = ap.parse_args()
@@ -177,10 +183,16 @@ def main():
 
     results = None
     if args.results:
-        results, rerr = load_results(args.results)
-        if rerr:
-            print(f"[STRUCTURAL] {rerr}")
-            return EXIT_STRUCTURAL
+        # ⚠️ 2026-11-01(S22-3):**多份结果件合并**。起因 = smoke `#1` 的载体是 PlayMode 件,
+        #    其余 test 条多在 EditMode —— 单份 --results 装不下两面,而「分两次跑,各自数 PASS」
+        #    会让「自动 PASS 数」失去意义(每一次都少一半)。
+        results = {}
+        for path in args.results:
+            one, rerr = load_results(path)
+            if rerr:
+                print(f"[STRUCTURAL] {rerr}")
+                return EXIT_STRUCTURAL
+            results.update(one)
 
     rows, failures, missing_in_results = [], [], []
     for it in sorted(items, key=lambda x: x["id"]):
