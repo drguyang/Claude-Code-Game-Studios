@@ -23,6 +23,7 @@
 - Required: 输入 = PlayerDied 时刻;调用 30 §4.3;输出经 30 的既有成长面(不绕 `SkillGrown` 语义)
 - Forbidden: 浮点字面量(AC-29-04 静态检查)/ `Fix.Div` / `floor_Fix(Mul)`;29 自持一份掉级公式;29 发「掉级信号」Kind 的 Append 点(F-29-4 防第二真源)
 - Guardrail: ⚠️ 判断类技能(诊断/辨证)豁免 = **口径待裁(R-4-W-6)** —— 30 §4.3 无此豁免,29 侧不得按「既有规则」实现;⚠️ AC-29-16 的折叠前置 **已裁**(`ADR-026 §⑦` 案 1),阻塞降级为**实现待落** —— 见 AC-29-16 行内注
+  > ✅ **2026-11-01 R-4-W-6 结案(原文不删)**:该口径**已于 2026-09-29 由用户裁定**(GDD 规则四撤销注):**判断类豁免撤销,全部技能统一掉级** —— 勘察漏检该注,误登记为「待裁」。生产装配 `isExempt: null` **恰为裁定值,零行为改动**;本行「口径待裁」作废;两分支夹具保留为机制登记面,裁定行为钉 = `test_judgmentSkills_exemptRevoked_downgradeAppliesToDiagnosis`。
 
 > **📌 2026-10-20 陈旧阻塞订正(S-1)**:本节原写「AC-29-16 **BLOCKED-BY-OQ-7a-9**(折叠豁免待三方裁)」
 > —— **该问题已于 2026-09-23 由 `ADR-026 §⑦` 结案**。原文逐字:
@@ -77,7 +78,9 @@
 > 派生态重 fold 取等级 → 逐技能 Apply → 经 30 既有成长面 `IGrowthEmitter` 发携带新绝对
 > 等级的 SkillGrown);**判断类豁免 = R-4-W-6 口径待裁**,生产装配 `isExempt: null = 全掉`
 > (与 30 §4.3 现行为一致),两极端由双分支夹具登记,不实现选择 —— 裁定落地时只在
-> CompositionRoot 一处注入谓词。
+> CompositionRoot 一处注入谓词。✅ **2026-11-01 补记**:R-4-W-6 即日结案(2026-09-29 裁定
+> 撤销豁免 → 全掉;勘察漏检 GDD 撤销注,误标待裁)—— 生产装配 `isExempt: null` 即裁定值,
+> **不注入谓词**;裁定行为钉已落(`test_judgmentSkills_exemptRevoked_downgradeAppliesToDiagnosis`)。
 
 ---
 

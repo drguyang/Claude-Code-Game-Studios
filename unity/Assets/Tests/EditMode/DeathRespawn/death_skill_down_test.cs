@@ -219,6 +219,22 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             Assert.AreEqual(before, CountOf(EventKind.SkillGrown));
         }
 
+        /// <summary>R-4-W-6 结案钉(2026-09-29 用户裁定:豁免撤销,**全部技能统一掉级**)
+        /// —— 判断类(诊断 = 0)经真链**同样掉级**;生产装配 `isExempt: null` 即裁定值。
+        /// <para>负控半边(`AllKept` 两极端登记)保留为机制登记面,不再代表现行为。</para></summary>
+        [Test]
+        public void test_judgmentSkills_exemptRevoked_downgradeAppliesToDiagnosis()
+        {
+            SeedLevel(0, 20, 1);   // SkillId.诊断(判断类)
+            SeedLevel(2, 40, 2);   // 非判断类对照
+
+            int emitted = _settlement.Settle(Tick, PlayerId);   // 生产形态:isExempt = null
+
+            Assert.AreEqual(2, emitted, "裁定后无豁免 ⇒ 判断类与实用技能同掉");
+            CollectionAssert.AreEqual(new[] { 19, 38 }, DowngradedLevels(),
+                "诊断 20 → 19 也掉(F-29-1 全体作用域;「手生」包括判断线)");
+        }
+
         // ══════════════════ 结算段时序 ══════════════════
 
         /// <summary>结算段序:掉落 → 掉级(都在 PlayerDied Written 之后)。</summary>
