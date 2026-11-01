@@ -167,6 +167,20 @@ PY
 | `S22-3` | **smoke `#1` 载体**:启动序 E-13 硬失败链 | unity-specialist | **S** | 无 | 一条**真跑** `Addressables.InitializeAsync` + `data-core` 预载的夹具;E-13 分支须有**反例**(预载失败 ⇒ 抛且**不降级**);`critical_paths.json` 的 `status`/`check` 同批改 + **实跑 `run_smoke.py` 看到自动 PASS 数 +1** |
 | `S22-4` | **smoke `#14` 载体**:52 急召生成链接线(抽池 → 掷骰 → F1 → `EventArrived`) | unity-specialist | **M** | 无硬前置(夹具须**合成输入**) | 生产调用点存在;**CAP 界内 / 超界拒收 + 明确报错**两侧都有夹具;⚠️ **必须用合成 key 集 + 合成格集驱动** —— 否则「双重空集 ⇒ 恒零写入」会让本条变成**假绿**(见 `RandomEventsDirectorDriver.cs` 文件头) |
 
+> ✅ **`S22-6` 2026-11-01 收口(COMPLETE —— 交付两案,待用户裁)** —— 卡面只要求出案不实现,**已照办**:
+> 本轮**未改** `critical_paths.json`、**未开**任何 `#10` 夹具。
+> **核心发现:`#10` 记的「生产路径未接线 ⇒ 无判据可挂」与实测不符。** G4.1(2026-10-11)退役的是
+> **自动触发**驱动(`EmergencyAttemptDriver._triggeredPatients`),而 `#10` 判据讲的是**手动动作**的
+> 事件形状 —— 手动路径今天在(`EmergencyChannelDriver` / `BootRoot.cs:611` 的跳过入口 →
+> `EmergencyManualDriver` → `HostEmergencyProcessor:206/:233` 双写,`:212` 主机 Judge 出 potency),
+> 且**已有两条真装配载体**(`applied_payload_settlement_test.cs:240` 恰两条 ·
+> `emergency_skip_entry_wiring_test.cs:61` `CompositionRoot.Assemble()` 真装配 + 恰两条)。
+> **两案**:甲案(推荐,零代码零裁定)—— 判「无冲突」,`#10` 挂既有双载体,只动账本;
+> 乙案 —— 把「手动化」读成「一次动作只该留一条」,那要**推翻 ADR-009 Amendment I** 并连带改
+> 编解码 / 路由 / 37 结案门 / 9 体征链 / ADR-001 上行,风险高且与本轮未找到的任何文字依据相反。
+> 两案均写明「动了什么 / 判据怎么判 / 与 Amendment I 的关系」。
+> 原件 = `production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md`。
+
 > ✅ **`S22-4` 2026-11-01 收口(COMPLETE WITH NOTES)** —— smoke `#14` 载体落地,`自动 PASS 12 → 13`。
 > **交付**:`Sim/EventDraw.cs`(抽池命中纯函数 `SplitMix64(WorldSeed, win, tier, ordinal) % 候选数`)·
 > `Gameplay.Boot/SeedEventAuthority.cs`(52 掷骰的**生产实装**,取代抛形占位)·

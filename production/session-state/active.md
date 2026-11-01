@@ -15119,3 +15119,35 @@ M3 绕开掷骰 ⇒ 仅 D 红 · M4 驱动不调链 ⇒ E/F 红。
 - 原件:`production/qa/evidence/s22-4-smoke14-spawn-chain-2026-11-01.md`
 - 生产仍「通电待信」:候选池空(归 37)· `spawnPatient` 刻意抛 · 密度预算/权重/生成点解析未实现
 - sprint-22:S22-1/2/3/4/5 已收;S22-6/7/8 未动
+
+---
+
+## 2026-11-01 · `S22-6` 交付:smoke `#10` 冲突裁定(两案,待裁)
+
+**用户指令**:「做 S22-6」。卡面只要求出两案,**不实现** ⇒ 本轮未改 `critical_paths.json`、未开任何 `#10` 夹具。
+
+### 核心发现:`#10` 记的理由与实测不符
+
+`critical_paths.json` #10 写「52…生产路径未接线 ⇒ 无判据可挂」—— 实测:
+
+- G4.1(2026-10-11)退役的是**自动触发**驱动(`EmergencyAttemptDriver._triggeredPatients`,现为空壳),
+  **不是**整条急救写路径;
+- 手动路径今天在且被接线:`EmergencyChannelDriver` / `BootRoot.cs:611` 跳过入口 →
+  `EmergencyManualDriver` → `HostEmergencyProcessor:206/:233`(双写 + `:212` 主机 Judge 出 potency);
+- **已有两条真装配载体**:`applied_payload_settlement_test.cs:240`(恰两条)·
+  `emergency_skip_entry_wiring_test.cs:61`(`CompositionRoot.Assemble()` 真装配 + 恰两条)。
+
+### 两案
+
+| 案 | 内容 | 与 ADR-009 Amendment I |
+|---|---|---|
+| **甲(推荐)** | 判「无冲突」;`#10` 挂既有双载体,**只动账本**,零代码零裁定 | **完全一致,一字不改** |
+| 乙 | 「手动化 ⇒ 一次动作只留一条」;改事件模型 | **正面冲突**,须推翻 Amendment I,连带编解码/路由/37 结案门/9 体征链/ADR-001 上行 |
+
+### 本轮不做
+
+不实施任一案;甲案落地只需一次账本订正,等裁。
+
+- 原件:`production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md`(§5 四条复算命令均已实跑并核对)
+- 载体台账已加指针;`sprint-22.md` 已记 S22-6 收口(交付两案)
+- sprint-22:S22-1/2/3/4/5/6 已收;剩 `S22-7`(拆方法 ≤40 行)· `S22-8`(帐篷承接者勘察)
