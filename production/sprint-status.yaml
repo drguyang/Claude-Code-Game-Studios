@@ -136,10 +136,10 @@ stories:
     name: "camera-viewpoint/007 档位请求覆盖矩阵门(表 → 代码 → 行为)"
     file: "production/epics/camera-viewpoint/story-007-mode-request-coverage-matrix.md"
     priority: should-have
-    status: ready-for-dev
+    status: in_progress
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
     completed: ""
-    note: "计划外追加。用户 2026-11-02 三项裁定:表真源 = 独立 camera-mode-requests.yaml;先补 39 接线再上门(已完成 S23-10);判据 = 动态矩阵 + 静态防绕过。静态层只防「绕过」不防「没发」(EmergencyChannelDriver 的 mode 是形参,静态抓不到)—— 必须写进卡面,否则门会被读成「档位全对」。依赖 casebook/006(S23-10)/ emergency/010(S23-7)/ death-respawn/007(S23-9)三件均已 Complete。"
+    note: "**2026-11-02 实现已落,全量回归未回** —— 定向:静态层 5/5 · 矩阵 7/7;证伪 P1–P6 全红(四文件 SHA-256 6/6 还原)。⚠️ 首轮全量吃两条回归,均已修:① AC-2-01a 判「相机命名空间禁可变静态字段」⇒ 记录器搬到 Presentation.Diagnostics(搬位置不是豁免);② 门链接线清单须同批声明。**在绿之前不得转 done。** 计划外追加。用户 2026-11-02 三项裁定:表真源 = 独立 camera-mode-requests.yaml;先补 39 接线再上门(已完成 S23-10);判据 = 动态矩阵 + 静态防绕过。静态层只防「绕过」不防「没发」(EmergencyChannelDriver 的 mode 是形参,静态抓不到)—— 必须写进卡面,否则门会被读成「档位全对」。依赖 casebook/006(S23-10)/ emergency/010(S23-7)/ death-respawn/007(S23-9)三件均已 Complete。"
