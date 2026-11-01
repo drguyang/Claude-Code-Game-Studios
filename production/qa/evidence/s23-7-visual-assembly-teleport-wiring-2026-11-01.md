@@ -139,10 +139,118 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s237-reg-pm.xml'
   backbuffer;配合 `WaitForEndOfFrame` 时,在无渲染帧的 batch 下**协程永不触发(挂死,单轮挂 10 分钟)**。
   ⇒ 自动化件**零截图**;若需截图取证,须在**桌面编辑器/构建**里人工截取(可落 `unity/Logs/shots/`,
   gitignored 暂存区)。
-- **正式水墨素材未落**:当前为程序化纹理(径向渐变 + 确定性值噪声)占位;美术资产批按
-  art-bible §4.5 出正式素材后替换 `InkWashTexture.Create()` 一处即可。
+  ⚠️ **2026-11-01 补充:图形模式(-batchmode 去掉)确实能产出** —— 见 §7。原文「须人工截取」
+  收窄为「batch 须人工;**图形模式可自动化**」。
+- ~~**正式水墨素材未落**:当前为程序化纹理(**径向渐变** + 确定性值噪声)占位~~ ——
+  ⚠️ **2026-11-01 订正**:径向渐变**方向做反了**(墨团在中央),已改为**四边渗透 + 中央淡墨**,
+  见 §7。正式素材仍归美术资产批,替换点不变。
 - **远端变体(局部水墨标识)未落** —— 归 45 的第二 QoS 装配轮(远端 `IsDowned` 通道)。
 - **相机两段式未落** —— 归 `ICameraRig` 机位轮。
 - **环境音渐入未落** —— 归 44 的音频装配轮。
 - **床格端口 `clinicCellOf` 仍 = null** ⇒ 复活落点恒兜底世界出生点;**24 的运行期查询面未接线**
   (设计规则已落 24 GDD 规则六 —— 挂标性质 = 实现待落,BLOCKED-BY-24 维持)。
+
+---
+
+## 7. 图形模式走查(2026-11-01 追加 · 用户指令「编辑器里走一遍死亡→复活,你是视觉模型」)
+
+### 7.1 为什么走图形模式
+
+§6 的旧结论「截图须人工截取」被本轮推翻一半:**去掉 `-batchmode` 与 `-nographics`、
+走真实 `DISPLAY=:0`,同一件 PlayMode 夹具即可自动产出截图**。判据 = 截图文件**非空且
+时间戳为本轮**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+ls -la --time-style=+%H:%M:%S unity/Logs/shots/s237*.png
+# 期望:两张,~380 KB / ~196 KB(非 0 字节;batch 下永远无此文件)
+```
+
+运行器:`/home/gu/.claude/jobs/6001633c/tmp/run_s237_graphical.sh`(每轮**先删旧图**,
+否则「有新图」无法区分是本次生成还是上次残留)。
+
+### 7.2 视觉走查抓到的三处缺陷(全部由**看图**发现,当时**零夹具覆盖**)
+
+| # | 缺陷 | 证据 | 判定依据 |
+|---|---|---|---|
+| ① | **墨的方向做反了**:中心墨团、边缘透明 | 首版 `s237_death_falling.png` | spec §5.4 线框逐字「墨色由**四边**向中央晕染,中央刻意留白」;§9「水墨自**四边**向中央渐入」 |
+| ② | **中央 alpha=0** ⇒ Φ3「近满墨」时世界绿地面**清晰可见**,读作墨边框 | `s237_revive_waking.png`(首版) | spec §6 Φ2/Φ3「画面**近满墨**」+「失去控制权的静默」;§5.2「晕染自然留出**呼吸空间**,**不置任何元件**」—— 留白指信息层不放元件,**不是墨消失** |
+| ③ | **渐入是线性映射** | 代码 `Elapsed / FallSeconds` | spec §9「**非线性 easing**;禁瞬间黑屏」 |
+
+⇒ 三条都是**spec 逐字要求 vs 实现**的偏差,而**当时三条零夹具** —— 典型 F6
+「自述顶替门」风险面:注释里写「按 spec 做对了」不构成门。
+
+### 7.3 修复
+
+| # | 修法 | 落点 |
+|---|---|---|
+| ① | 径向(到中心距离)→ **到最近边的矩形距离**(`min(min(u,1-u), min(v,1-v))`);四边满墨、向内递减 | `InkWashTexture.InkAlphaAt` |
+| ② | 中央**保底淡墨** `MinInk = 0.68`(`ink = MinInk + (1-MinInk)*ink`)⇒ 满屏时中央压掉约七成世界亮度 | 同上 |
+| ③ | `smoothstep`(两端缓、中段快)包住 `Elapsed / FallSeconds` | `DeathTransitionDriver.EaseInk` |
+
+同时把**噪声**从逐像素白噪声改为**三级平滑值噪声**(格子 8/24/72,双线性 + smoothstep):
+首版噪声被 1920×1080 拉伸 7.5× 后每个像素成 7×7 方块 ⇒ 粗颗粒斑驳(第一轮走查即发现)。
+
+### 7.4 新增三条夹具(让 7.2 的三条偏差**可判**)
+
+| 测试 | 钉的性质 | 判据 |
+|---|---|---|
+| `test_inkWash_edgesHeavy_centerLight_perSpec5_4` | 方向 | 噪声取中性 `n=0.5`(扰动项恰为 0)⇒ 四边中点 **255**,中央**严格小于**四边且 **> 0** |
+| `test_inkWash_centerStillDark_enoughForNearFullInk` | 绝对强度 | 满屏时中央**世界亮度残留 < 50%**(只断「中央更淡」的话,中央取 1% 也能过) |
+| `test_phases_falling_isNonLinearEasing_perSpec9` | 缓动形状 | `t=1/4` 处 **< 0.25**、`t=3/4` 处 **> 0.75**(两侧同时成立才叫「两端缓、中段快」) |
+
+### 7.5 证伪轮(3/3 各转红,非假绿)
+
+同命令内「改 → 跑 → 还原」,还原判据 = **SHA-256 逐字节**:
+
+| 变异 | 内容 | 转红 |
+|---|---|---|
+| **M1** | 方向做反(`InkBand - edgeDist` → `edgeDist`) | `test_inkWash_edgesHeavy_centerLight_perSpec5_4` |
+| **M2** | 去掉中央保底(`ink = MinInk + (1-MinInk)*ink` → `ink = ink`) | 上述 + `test_inkWash_centerStillDark_enoughForNearFullInk` |
+| **M3** | 渐入改回线性(去掉 `EaseInk`) | `test_phases_falling_isNonLinearEasing_perSpec9` |
+
+还原哈希(与变异前逐字节相同):
+
+```
+24e20903bdeb59901ea1a996ae4f6746c86f0aba522c9d631b2c40eb1296e362  DeathTransitionPresenter.cs
+8ac3c9e633c371ac6ba9db9859791cc638dc2f09a867488415a0dfed8fd09654  DeathTransitionPhases.cs
+```
+
+### 7.6 全量回归(三元组)
+
+| 项 | 值 |
+|---|---|
+| **截至时刻** | 2026-11-01 **20:12:53 CST** |
+| **批次** | S23-7 补修(图形走查三缺陷) |
+| **commit** | `166f7d76` + 工作树 |
+
+| 套件 | 结果 | 前次(§5) | 等式 |
+|---|---|---|---|
+| EditMode | `total=6443 passed=6406 failed=0 skipped=37` | `6440 / 6403 / 0 / 37` | `6443 − 6440 = 3` ✅(新增 3 测) |
+| PlayMode | `total=274 passed=270 failed=0 skipped=2` | `274 / 270 / 0 / 2` | 持平 ✅(无新增) |
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-full.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-full.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+```
+
+### 7.7 全量回归抓到的两处**我的改动引入**的门红(定向跑看不见)
+
+| 门 | 红行 | 处置 |
+|---|---|---|
+| `FsWriteBoundaryGate` R2 | `PlayMode/death_transition_playmode_test.cs` 含写盘 + 仓库锚点,无具名声明 | **补声明**(写目标 = `unity/Logs/shots/*.png`,gitignored 暂存区) |
+| `AC-21a-48` 调参旋钮零硬编码 | 我的形参名 **`weight`** 撞 GDD **核心旋钮** `weight` | **改名为 `octaveAmp`**。⚠️ **不开白名单** —— 该门明文禁止把核心旋钮放进白名单(「结构常量与旋钮的边界必须显式」) |
+
+⚠️ 这两条**定向跑(只跑 DeathRespawn 命名空间)永远看不见**,只有全量才暴露 ——
+与 §5 的「串跑 ≠ 单跑」是同一族教训。
+
+### 7.8 仍 NOT-RUN(不借绿)
+
+- **[L] AC-29-11(节奏走查)/ AC-29-12(听测)** —— 本轮**只做视觉**,且只覆盖「观感是否合 spec」;
+  **节奏手感**(渐入/静默/醒来/消散四段的**时长是否舒服**)与**环境音**仍是人工判断。
+  环境音本轮**结构上不可能**:44 的音频装配未落(§6 已登记)。
+  ⇒ 两条**维持 NOT-RUN**,不因本轮出图而记绿。
+- **远端变体 / 相机两段式 / 床格端口** —— 归属不变(§6)。

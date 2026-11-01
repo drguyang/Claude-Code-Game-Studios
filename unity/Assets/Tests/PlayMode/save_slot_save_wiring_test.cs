@@ -54,8 +54,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            var player = GameObject.Find("Player");
-            if (player != null) UnityEngine.Object.Destroy(player);
+            // ⚠️ **拆净含 inactive 的 Player**(2026-11-01):`GameObject.Find` 只查 active。
+            DestroyAllNamed("Player");
 
             // ⚠️ `yield` 不能出现在带 catch 的 try 里(CS1626)⇒ 先取值、后等待,
             //    两段分开(与 `modal_focus_wiring_test` 同一写法)。
@@ -202,5 +202,25 @@ namespace DaYiJingCheng.Tests.PlayMode
         private bool ReadBooted()
             => (bool)(typeof(BootRoot).GetField("_booted", BindingFlags.NonPublic | BindingFlags.Instance)
                           ?.GetValue(_boot) ?? false);
-    }
+    
+        /// <summary>
+        /// 销毁场景内所有同名的 GameObject(含 **inactive**)。
+        /// <para>⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,而被启动序
+        /// `SetActive(false)` 的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积
+        /// ⇒ 后续 `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
+        /// (`AC-20-10` 偶发红,2026-11-01 实测)。</para>
+        /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
+        /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
+        /// </summary>
+        private static void DestroyAllNamed(string name)
+        {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                GameObject go = all[i];
+                if (go != null && go.name == name && go.scene.IsValid())
+                    UnityEngine.Object.Destroy(go);
+            }
+        }
+}
 }

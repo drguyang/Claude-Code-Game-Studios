@@ -91,6 +91,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "AntiFantasyDtoGate.RunAll",     // AC-17-09 呈现 DTO 反幻想 · 2026-10-31
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
+                    "PlayModeTeardownFindGate.RunAll", // TearDown 禁 GameObject.Find 清场 · 2026-11-01
                     "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
                     "SaveAsyncBoundaryGate.RunAll",  // AC-7a-07 后台写盘路径零 Unity API IL 门 · 2026-10-25
                     "SaveVocabularyGate.RunAll",     // AC-7a-09 忘词令符号门(规则七判据层)· 2026-10-25
@@ -212,6 +213,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             new ClassVerdict { ClassName = "PlayerAssemblyGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
                 Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },
+            new ClassVerdict { ClassName = "PlayModeTeardownFindGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "2026-11-01 落;病因 = `AC-20-10` 全量串跑**偶发红**(run1 绿/run2 红) —— " +
+                       "TearDown 用 `GameObject.Find` 只查 active ⇒ 被启动序禁用的预摆留场 ⇒ " +
+                       "`BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener" },
             new ClassVerdict { ClassName = "PrescriptionWriterGates", Kind = WiringKind.Chain,
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "SaveAsyncBoundaryGate", Kind = WiringKind.Chain,

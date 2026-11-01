@@ -41,15 +41,18 @@ namespace DaYiJingCheng.Tests.PlayMode
                 _captureActive = false;
             }
 
-            // 预摆 Main Camera 被启动序 SetActive(false) ⇒ 恢复,防污染同套件其他测试
-            var preset = GameObject.Find("Main Camera");
-            if (preset != null) preset.SetActive(true);
-
-            var player = GameObject.Find("Player");
-            if (player != null) UnityEngine.Object.Destroy(player);
-
-            var cameraRig = GameObject.Find("CameraRig");
-            if (cameraRig != null) UnityEngine.Object.Destroy(cameraRig);
+            // ⚠️ **拆净同名预摆,不用 `GameObject.Find`**(2026-11-01 全量串跑**偶发红**根治):
+            //   `GameObject.Find` **只查 active 对象**,而本件的预摆已被启动序 `SetActive(false)`
+            //   ⇒ 旧写法(`Find` + `SetActive(true)`)会**故意把禁用的预摆重新激活并留在场上**。
+            //   后果:后续测试(`death_transition_playmode_test`)自造同名 `Main Camera` 时,
+            //   `BootRoot.FindInactiveInclusive` 按 `FindObjectsByType(..., SortMode.None)` 的
+            //   **枚举序**取第一个 —— 残留旧件抢先被返回 ⇒ BootRoot 摘掉**错的那一个**的 listener
+            //   ⇒ 本次预摆 listener 仍在 ⇒ `AC-20-10` 抛。枚举序不保证稳定 ⇒ **偶发**。
+            //   ⇒ 本件与 `audio_wiring_test` 同纪律:连 inactive 一起收、**全部销毁**
+            //   (不是「恢复激活」——预摆是夹具,用完即弃,没有留到下一条的理由)。
+            DestroyAllNamed("Main Camera");
+            DestroyAllNamed("Player");
+            DestroyAllNamed("CameraRig");
 
             AsyncOperationHandle<SceneInstance> handle = default;
             bool valid = false;
@@ -151,6 +154,24 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.That(distFromTarget, Is.GreaterThan(1.0f),
                 $"相机水平投影应随玩家移到 ({targetPos.x}, {targetPos.z}) 附近(距离变化 > 1.0),实际 = {distFromTarget} —— " +
                 "不足 = 相机未跟随(或玩家被坠落复位送回出生点,playtest bug #2 未修)");
+        }
+
+        /// <summary>
+        /// 销毁场景内所有同名的 GameObject(含 **inactive** —— 见 <see cref="TearDown"/> 的说明)。
+        /// <para>⚠️ 与 <c>audio_wiring_test</c> 同款实现:**不能用 `GameObject.Find`**
+        /// (它只查 active 对象,而被启动序 `SetActive(false)` 的预摆恰是 inactive)。
+        /// `Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()` 排除
+        /// 资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
+        /// </summary>
+        private static void DestroyAllNamed(string name)
+        {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                GameObject go = all[i];
+                if (go != null && go.name == name && go.scene.IsValid())
+                    UnityEngine.Object.Destroy(go);
+            }
         }
 
         private long ReadCurrentTick()

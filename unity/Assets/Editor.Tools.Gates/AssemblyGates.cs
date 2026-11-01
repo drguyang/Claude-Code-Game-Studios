@@ -164,6 +164,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 扫 `Assets/Tests/PlayMode/**/*.cs` —— 该装配 `includePlatforms: []` ⇒ 进 player,
             // 裸用 `UnityEditor` ⇒ CS0234 ⇒ 整个 player 出不来。
             errs.AddRange(PlayerAssemblyGate.RunAll("."));
+            // PlayMode TearDown 禁 `GameObject.Find` 清场门(2026-11-01):
+            // 病因 = `AC-20-10` 在**全量串跑**下**偶发红**(run1 绿 / run2 红)。四步根因链:
+            //   ① `camera_follow_wiring_test` 的 TearDown 用 `GameObject.Find("Main Camera")` +
+            //      `SetActive(true)`「恢复」预摆 —— 但 `Find` 只查 active,而预摆已被启动序
+            //      `SetActive(false)` ⇒ 返回 null ⇒ 那句恒不执行 ⇒ 预摆(带 listener)留场;
+            //   ② 后续测试自造同名 `Main Camera`;
+            //   ③ `BootRoot.FindInactiveInclusive` 取**第一个**同名相机摘 listener;
+            //   ④ `FindObjectsSortMode.None` 的枚举序**不保证稳定** ⇒ 有时摘错 ⇒ 偶发 2 个。
+            // ⇒ 本门钉形态:清场必须看得见 inactive 件。
+            errs.AddRange(PlayModeTeardownFindGate.RunAll("."));
             // 存档写盘可达面 IL 门(AC-7a-08 ③ · 2026-10-25):仅 `SaveService` 可达写盘 API。
             // AC-7a-08 的三方守里,前两方(接口签名反射 + 接口级正面枚举)只看 `ISaveService`
             // 自己的公开面,**看不见旁路**(别处直调 SaveBytes / 直接 File.* / 类内长出新写盘点)。

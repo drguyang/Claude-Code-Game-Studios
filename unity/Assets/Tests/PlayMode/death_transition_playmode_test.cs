@@ -128,6 +128,24 @@ namespace DaYiJingCheng.Tests.PlayMode
                     UnityEngine.Object.Destroy(rig.gameObject);
             }
 
+            // ⚠️ **拆掉一切残留的 `Main Camera`**(2026-11-01 全量串跑**偶发红**根治):
+            //   根因 = **多份同名预摆**。`camera_follow_wiring_test` / `audio_wiring_test` /
+            //   本件各自 `new GameObject("Main Camera")`,而前两者的 TearDown 用
+            //   `GameObject.Find("Main Camera")` —— **只查激活对象**,被启动序
+            //   `SetActive(false)` 的那个就**留在场上**。
+            //   随后 `BootRoot.FindInactiveInclusive("Main Camera")` 按
+            //   `FindObjectsByType(Camera, Include)` 的**枚举序**返回**第一个**匹配 ——
+            //   残留的旧件会抢在本次新建的前面被返回 ⇒ BootRoot 摘掉**错的那一个**的
+            //   listener ⇒ 本次预摆的 listener 仍在 ⇒ `active/all = 2` ⇒ `AC-20-10` 抛。
+            //   ⚠️ **为什么是偶发**:`FindObjectsSortMode.None` 的枚举序不保证稳定
+            //   ⇒ 有时先返回本次新建的(摘对了 ⇒ 绿),有时先返回残留的(摘错 ⇒ 红)。
+            //   ⇒ 本件清场必须**把同名件全拆干净**,不能只清 listener 组件。
+            foreach (var cam in UnityEngine.Object.FindObjectsByType<Camera>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (cam != null && cam.gameObject.name == "Main Camera")
+                    UnityEngine.Object.Destroy(cam.gameObject);
+            }
             yield return null;   // 让销毁生效(否则本帧仍计入 active 数)
             yield return null;   // 两帧:Destroy 在帧末生效,再等一帧确保 active 集已刷新
 

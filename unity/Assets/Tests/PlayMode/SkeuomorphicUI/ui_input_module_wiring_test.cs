@@ -84,17 +84,22 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            // 预摆 Main Camera 被启动序 SetActive(false) ⇒ **恢复 active,不销毁**
-            // (承 camera_follow_wiring_test:44-46 纪律 —— 全量 run 里同 run 后续的 BootRoot
-            //  测试依赖这台泄漏相机过 listener 门;销毁它 = 把红转移给下一个测试)。
-            // ⚠️ 必须用 _presetCam 直引:`GameObject.Find` 只找 active,而它已被启动序禁用
-            //    ⇒ Find 恒 null(首版即踩:`Destroy(preset)` 是死代码)。
-            if (_presetCam != null) _presetCam.SetActive(true);
+            // 🔁 **2026-11-01 改判:预摆由「恢复激活」改为「销毁」**(原文保留在下方,不删)。
+            // 原文口径:「恢复 active,不销毁(全量 run 里同 run 后续的 BootRoot 测试依赖这台
+            //   泄漏相机过 listener 门;销毁它 = 把红转移给下一个测试)」。
+            // ⚠️ **那个前提是错的**:后续测试并**不依赖**这台残留相机 —— 它们各自
+            //   `new GameObject("Main Camera")` 自造预摆。残留件的真实作用只有**一个**:
+            //   让 `BootRoot.FindInactiveInclusive("Main Camera")` 按
+            //   `FindObjectsByType(..., SortMode.None)` 的**不稳定枚举序**有时返回**残留的旧件**,
+            //   于是 BootRoot 摘掉**错的那一个**的 listener ⇒ 本次预摆 listener 仍在
+            //   ⇒ `AC-20-10` **偶发**抛(run1 绿 / run2 红,2026-11-01 实测)。
+            //   ⇒ **销毁**才是对的:场上只留本次自造的那一个,`FindInactiveInclusive` 无从选错。
+            // ⚠️ 仍用 `_presetCam` 直引:它已被启动序禁用 ⇒ `GameObject.Find` 恒 null。
+            if (_presetCam != null) UnityEngine.Object.Destroy(_presetCam);
 
-            var player = GameObject.Find("Player");
-            if (player != null) Object.Destroy(player);
-            var cameraRig = GameObject.Find("CameraRig");
-            if (cameraRig != null) Object.Destroy(cameraRig);
+            // ⚠️ **拆净含 inactive 的同名件**(2026-11-01):`GameObject.Find` 只查 active。
+            DestroyAllNamed("Player");
+            DestroyAllNamed("CameraRig");
 
             // world 场景经 Addressables 卸载(承 composition_root_smoke_test:52-76 同纪律)
             // ⚠️ yield 不可在 try/catch 体内(CS1626)⇒ 先取句柄(可抛,放 try),再在 try 外 yield。
@@ -410,5 +415,25 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public void SubmitFold() { }
             public void SubmitEmergencySkip() { }   // story-009 接口增员(本测不涉及跳过路径)
         }
-    }
+    
+        /// <summary>
+        /// 销毁场景内所有同名的 GameObject(含 **inactive**)。
+        /// <para>⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,而被启动序
+        /// `SetActive(false)` 的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积
+        /// ⇒ 后续 `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
+        /// (`AC-20-10` 偶发红,2026-11-01 实测)。</para>
+        /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
+        /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
+        /// </summary>
+        private static void DestroyAllNamed(string name)
+        {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                GameObject go = all[i];
+                if (go != null && go.name == name && go.scene.IsValid())
+                    UnityEngine.Object.Destroy(go);
+            }
+        }
+}
 }

@@ -46,8 +46,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            var player = GameObject.Find("Player");
-            if (player != null) UnityEngine.Object.Destroy(player);
+            // ⚠️ **拆净含 inactive 的 Player**(2026-11-01):`GameObject.Find` 只查 active。
+            DestroyAllNamed("Player");
 
             // world 场景句柄在 BootRoot 私有字段(启动序第 3 步);未走到第 3 步 ⇒ 句柄无效
             AsyncOperationHandle<SceneInstance> handle = default;
@@ -135,5 +135,25 @@ namespace DaYiJingCheng.Tests.PlayMode
                 BindingFlags.NonPublic | BindingFlags.Instance);
             return field?.GetValue(_boot) as CompositionRootServices;
         }
-    }
+    
+        /// <summary>
+        /// 销毁场景内所有同名的 GameObject(含 **inactive**)。
+        /// <para>⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,而被启动序
+        /// `SetActive(false)` 的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积
+        /// ⇒ 后续 `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
+        /// (`AC-20-10` 偶发红,2026-11-01 实测)。</para>
+        /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
+        /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
+        /// </summary>
+        private static void DestroyAllNamed(string name)
+        {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                GameObject go = all[i];
+                if (go != null && go.name == name && go.scene.IsValid())
+                    UnityEngine.Object.Destroy(go);
+            }
+        }
+}
 }
