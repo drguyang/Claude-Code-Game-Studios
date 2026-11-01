@@ -15587,3 +15587,33 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 🔴 **语义明写**:`2026-11-02` 自此**不再等于**「写卡时依据的 manifest」,只表示「已对齐到本版」,
   **不表示已逐条复核** ⇒ `/story-readiness` 的 stale 告警对存量 story **不再有判别力**;
   新规则的复核状态须另行追踪。**这是用告警的判别力换告警的可用性。**
+
+## Session Extract — 2026-11-02 · 按 epic 扫新规则影响面(32 epic / 237 story)
+
+**用户指令**:「按 epic 扫一遍新规则的影响面」
+
+**被扫规则** = 「生产调用方必须用双参 `SetMode`」(ADR-020 Amd C② / AC-20-16)。
+**判据** = 该 epic 的交付物会不会调用 `ICameraRig.SetMode`(请求方只有 10 / 39 / 29)。
+
+**结果:4 命中 / 5 结构性排除 / 23 零接触**
+
+| 类 | epic | 结论 |
+|---|---|---|
+| 🔴 已有调用点 | `death-respawn`(29) | `BootRoot.cs:564` 已合规(传 29)。⚠️ **epic 内零 story 承接该义务** |
+| 🔴 要求已声明未落 | `emergency-procedures`(10) | `TR-emergency-016` / `AC-10-11` 标 Complete,**但生产码零 `Treatment`/`Explore` 调用** |
+| ⏳ 未实现 | `casebook`(39) | `story-006` **Status: Ready**,实现时必须双参 |
+| ✅ 定义方 | `camera-viewpoint`(2) | 兼容重载(门内豁免) |
+| ✅ 结构排除 | 4 / 11 / 7b / 8 / 1 | 或明文不发,或 AC 断言零可达 |
+| ✅ 零接触 | 其余 23 | 关键词零命中 |
+
+**🔴 扫出两处既有缺口(不是规则问题)**:
+- **A. 29 的档位请求无 story 载体** —— 接线在 `a5f766f6` 加的,但 `death-respawn` 内零份 story
+  提 `SetMode` ⇒ 改这条接线时**没有任何 story 的 AC 会红**,只有新门会。
+- **B. 10 的「档位意图必发」在生产上是计数,不是发送** —— `ModalPhaseEvaluator.ExploreCount`
+  只被测试读(生产侧 2 处均为定义/赋值)⇒ AC-10-11 的目的从句「相机不卡近景」今日**不可达**。
+  **F1 形态**(自造断言顶替 AC 语义层)。今天无可见后果(因为 `Treatment` 本身也没接),
+  但只要有人接 `Treatment` 而不接 `Explore`,症状立刻成立,**且新门抓不到**(只判 arity / `-1`)。
+- **建议(未执行)**:① 10 立 story 真接 `Treatment`/`Explore`(requesterId: 10)且把 AC-10-11
+  载体升级为真相机请求断言;② 29 补 story 载体;③ 「该发没发」需另开覆盖矩阵门。
+
+证据:`production/qa/evidence/s24-camera-downed-two-phase-2026-11-01.md` §14

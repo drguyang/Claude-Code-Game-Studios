@@ -932,3 +932,92 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 
 ⚠️ **这是用「告警的判别力」换「告警的可用性」** —— 237 条历史噪音会让新规则的陈旧告警被淹没。
 代价已记在此处与 `control-manifest.md` 的传播段,两处口径一致。
+
+---
+
+## 14. 按 epic 扫新规则影响面(2026-11-02 · 用户指令)
+
+**被扫的规则**:「生产调用方必须用双参 `SetMode(mode, requesterId)`」(ADR-020 Amendment C ② / AC-20-16)。
+**被扫的面**:`production/epics/` 全部 **32 个 epic / 237 份 story**。
+
+### 14.1 判据
+
+一个 epic 只有在**它的交付物会调用 `ICameraRig.SetMode`** 时才受影响。按 `R-2-5` / `O-12`,
+档位请求方只有:10 急救 · 39 脉案 · 29 死亡过渡;外加 2 相机自身的兼容重载(**豁免**)。
+其余系统要么明文不发意图,要么结构上不可达。
+
+### 14.2 结果:4 命中 / 5 结构性排除 / 23 零接触
+
+| 分类 | epic | 系统 | 依据 | 结论 |
+|---|---|---|---|---|
+| 🔴 **命中·已有调用点** | `death-respawn` | 29 | `BootRoot.cs:564` `rig.SetMode(downed ? Downed : Explore, requesterId: 29)` | ✅ **已合规**(传真人号)。⚠️ 见 §14.3-A |
+| 🔴 **命中·要求已声明但未落** | `emergency-procedures` | 10 | `story-005` 的 `TR-emergency-016`(档位意图必发)/ `AC-10-11`(必发 `Explore`),story **Complete ✅ 2026-10-02** | 🔴 **生产码零调用点** —— 见 §14.3-B |
+| ⏳ **命中·未实现** | `casebook` | 39 | `story-006-camera-mode-intent-and-writing-anchor.md` **Status: Ready**,明写 `SetMode(Casebook)` / `SetMode(Explore)` | 实现时**必须双参**,否则新门直接红 |
+| ✅ **定义方** | `camera-viewpoint` | 2 | 兼容重载实现体(接收者 `_modeMachine`,门内**豁免**) | 不违规 |
+| ✅ 结构性排除 | `interaction-system` | 4 | `AC-4-11` 断言 4 **无** `ICameraRig` / `CameraMode` / `CameraTier` | 物理上发不出 |
+| ✅ 结构性排除 | `prescription-medication` | 11 | EPIC `:39`「11 不请求相机档位」(`ADR-013 §十-B` 已裁) | — |
+| ✅ 结构性排除 | `save-slot-ui` | 7b | EPIC `:23` / `:122`「不发档位意图」 | — |
+| ✅ 结构性排除 | `diagnosis-system` | 8 | 历史裁定「8 不再发档位意图」 | — |
+| ✅ 结构性排除 | `player-controller` | 1 | 只**读** `YawBasis`;`story-002` 有负控「对 `ICameraRig` 的任何 setter / 方法写路径 ⇒ 红」 | — |
+| ✅ 零接触 | 其余 **23** 个 epic | — | `grep -rl -E "SetMode\|ICameraRig\|CameraMode\|档位意图\|CameraModePriority"` **零命中** | 无关 |
+
+那 23 个:`audio-system` `case-system` `clinic-machine` `combat-weapons` `disease-simulation`
+`enemy-ai` `foraging` `input-system` `inventory-items` `item-database` `level-tool`
+`medical-consequences` `modular-building` `patient-ai` `persistence-service` `processing`
+`random-events` `skeuomorphic-ui` `skill-system` `telemetry-analytics` `time-weather`
+`tutorial-onboarding` `world-ecozones`。
+
+### 14.3 扫出来的两处真问题(不是规则问题,是既有缺口)
+
+#### A. 29 的档位请求**没有任何 story 承接**
+
+`BootRoot.cs:564` 的接线是 `a5f766f6`(2026-11-01)加的,但 `death-respawn` epic 内
+**零份 story 提及 `SetMode` / 档位意图** —— 该 epic 只在 `EPIC.md:18` / `story-006:16-17`
+引到 ADR-020,内容是「位移纯表现 / 跨格事件」,不是档位。
+⇒ **生产码里有一条义务没有 story 载体**。这本身不是违规(代码是对的),但它意味着:
+改这条接线时**没有任何 story 的 AC 会红**,只有 `CameraSetModeRequesterGate` 会。
+
+#### B. 10 的「档位意图必发」在生产上是**计数,不是发送**
+
+| 事实 | 证据 |
+|---|---|
+| `TR-emergency-016` / `AC-10-11` 明写「跳过路径执行完毕**必发 `Explore`**(相机不卡近景;`O-12`)」,且 `story-005` 标 **Complete ✅ 2026-10-02** | `story-005:14` / AC 列表 |
+| 生产码里**没有任何** `Treatment` / `Explore` 的 `SetMode` 调用 | 全仓排除测试与门自身后共 5 行:1 处真实对外请求(`BootRoot.cs:564`,**29**)+ 3 处 `_modeMachine` 内部调用(`CameraRig.cs:146/149/220`)+ 1 处注释(`CameraModeMachine.cs:85`)。**零 `Treatment` / 零 `Explore`** |
+| 10 侧只有一个**计数字段** | `ModalPhaseEvaluator.cs:26` `public readonly int ExploreCount;` |
+| 该字段**只被测试读取** | `grep -rn "ExploreCount"` ⇒ 测试 4 处(`modal_phase_test.cs`)+ 生产 2 处**均为定义/赋值**(`ModalPhaseEvaluator.cs:26` / `:42`)⇒ 生产侧**零消费者** |
+
+⇒ **「必发 `Explore`」这一条在生产上只到「算得出 `ExploreCount == 1`」,从未发到相机。**
+AC-10-11 的**目的从句**(「相机不卡近景」)在今天的生产码里**不可达**。
+这是 `coding-standards` §假绿形态 **F1(自造断言顶替 AC 语义层)** 的教科书形态:
+夹具断言的是「计数 = 1」,而语义是「相机收到过 `Explore` 请求」。
+
+⚠️ **今天没有可见后果** —— 因为急救动作的相机近景(`Treatment`)**本身也没接过**
+(同上,生产码零调用点)⇒ 「卡在近景」这个症状发生不了。但**只要有人接 `Treatment` 而不接 `Explore`**,
+症状立刻成立,且**新门抓不到**(它只判 arity / `-1`,不判「该发没发」)。
+
+### 14.4 建议(未执行,等裁定)
+
+1. **`emergency-procedures`**:立一件 story 把 10 的 `Treatment` / `Explore` 真正接到
+   `ICameraRig`(`requesterId: 10`),并把 `ExploreCount` 从「老死不相往来的计数器」
+   改成「发送结果的投影」或删除;`AC-10-11` 的载体须从「计数测试」升级为「真相机请求断言」。
+   ⚠️ 归 `emergency-procedures` 的实现轮,不在本批。
+2. **`death-respawn`**:补一份 story(或在本轮已完成的 story 里补 AC)承接
+   「29 发 `Downed` / `Explore`」这条 `O-12` 义务 —— 生产码已有,缺的是 **story 层载体**。
+3. **新门的边界已登记**(§12.6):它判 8 形态,**不判「该发没发」** —— 后者需要
+   「档位请求 × 请求方」的覆盖矩阵,是另一件门的活。
+
+### 14.5 复算
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+# ① 生产 `.SetMode(` 行(期望 5 行:1 真调用 + 3 _modeMachine + 1 注释;零 Treatment/Explore)
+grep -rn "\.SetMode(" --include=*.cs unity/Assets/ | grep -v "/Tests/" | grep -v "Editor.Tools.Gates"
+# ② 按 epic 扫相机档位提及(期望 10 个 epic)
+for d in production/epics/*/; do e=$(basename "$d");
+  n=$(grep -rl -E "SetMode|ICameraRig|CameraMode|档位意图|CameraModePriority" "$d" | wc -l)
+  [ "$n" -gt 0 ] && printf "%-24s %s\n" "$e" "$n"; done
+# ③ ExploreCount 的生产侧命中(期望 2 行,均为定义/赋值 ⇒ 零消费者)
+grep -rn "ExploreCount" --include=*.cs unity/Assets/ | grep -v "/Tests/"
+# ④ 全量字段数(对照 §13)
+grep -rl '^> \*\*Manifest Version\*\*: [0-9]' production/epics/ | wc -l   # 期望 237
+```
