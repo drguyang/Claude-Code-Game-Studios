@@ -32,7 +32,7 @@ stories:
     name: "death-respawn/001 PlayerDied 登记与死亡结算入口(+004 全链半 AC-29-08/10)"
     file: "production/epics/death-respawn/story-001-player-died-settlement.md"
     priority: must-have
-    status: ready-for-dev
+    status: in_progress
     owner: ""
     estimate_days: 0
     complexity: M

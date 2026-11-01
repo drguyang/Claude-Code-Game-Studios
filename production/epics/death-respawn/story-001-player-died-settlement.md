@@ -5,8 +5,8 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15(🔁 2026-10-02 → 2026-10-15,dev-story 开工轮按推荐项 A 刷 —— 死亡层无新增 manifest 规则)
+> **Last Updated**: 2026-11-01
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(规则二 触发 = 9 的 DeathCandidate · 规则三 PlayerDied 无条件发射 · 装配三分:结算 sim / 命令边界 / 呈现表现层)
