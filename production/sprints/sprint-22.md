@@ -195,6 +195,21 @@ PY
 > M1(满载分支失效)**3 红超集**(如实记)。还原 SHA-256 一致。
 > **回归** `2026-10-31T16:5x–16:59 CST`:`EditMode 6261/6224`(+6/+6 恰等;含首轮 +8)· `PlayMode 238/234`。
 
+> ✅ **`S22-5` 2026-11-01 收口(COMPLETE)** —— `TD-processing-06` **closed**。
+> **前提修正**:债写「`SaveReader` 全仓不存在 ⇒ 造样本 = 造不存在的路径」——
+> 那是**类名**层面的事实;能力住 `SaveService.Load`(`Sim.Codec/SaveService.cs:807`),
+> ADR-034 实现轮后载荷段已落地 ⇒ **能真装配,故不走卡面预置的「转勘察卡」分支**。
+> **交付**:`EditMode/PersistenceService/craft_save_roundtrip_test.cs`(1 测)——
+> 两 actor 三炉(世界流)→ `Checkpoint` → 新流 + 同目录 `Load` → 24 采样点 × 2 actor
+> 逐点断言 `TryCompleteTickOf` / `BusyActorCount` 与直算同值 + **字面量哨兵**(`100+50⇒150`)。
+> **证伪 2 条**:M1(组版丢世界流 `Craft`)⇒ 前置条数断言红 `3 vs 0`;
+> **M2(信封 tick 整体 +1,行数不变)⇒ B 面单独红、A 面仍绿**(证明等值断言不是附庸)。
+> 还原 `SaveComposer.cs` SHA-256 逐字节一致,`FALSIFY-` 残留 0。
+> **回归**(三元组 `2026-11-01T08:31–08:33 CST` · `S22-5` 批 · `32e15f3b`+未提交):
+> EditMode `6331/6294/0/0/37`(基线 `6330/6293` ⇒ **+1/+1 恰等**),PlayMode `271/267/0/2/2`。
+> **不覆盖**:跨构建逐位一致(= `TD-ci-01` EXTERNAL)。
+> 原件 = `production/qa/evidence/s22-5-craft-roundtrip-2026-11-01.md`。
+
 ### Should Have
 
 | ID | 卡 | Owner | 复杂度 | 依赖 | 验收判据 |

@@ -336,7 +336,7 @@
 | `TD-processing-03` | `processing` | open | **N** | R4 |
 | `TD-processing-04` | `processing` | open | **N** | R4 |
 | `TD-processing-05` | `processing` | closed | **N** | R4 |
-| `TD-processing-06` | `processing` | open | **N** | R4 |
+| `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
@@ -855,7 +855,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 144 | 状态 {'closed': 125, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 40, '~~**Y**~~': 4}
+条目 144 | 状态 {'closed': 126, 'partial': 3, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 40, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 100 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6076,7 +6076,27 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **TD-processing-03** | `processing` | **open** | **N** | R4 |
 | **TD-processing-04** | `processing` | **open** | **N** | R4 |
 | **TD-processing-05** | `processing` | **closed** | **N** | R4 |
-| **TD-processing-06** | `processing` | **open** | **N** | R4 |
+| **TD-processing-06** | `processing` | **closed** | **N** | R4 |
+
+#### TD-processing-06 关闭记录 —— 跨存档往返夹具(真落盘 → 真读回)
+
+> ✅ **`2026-11-01` 已闭**(sprint-22 `S22-5`)。原文不删。
+
+- **债的前提被实测推翻**:正文写「`SaveReader` 全仓不存在 ⇒ 造样本 = 造不存在的路径」——
+  那是**类名**层面的事实。**能力**住 `SaveService.Load`(`Sim.Codec/SaveService.cs:807`),
+  且 ADR-034 实现轮之后载荷段已落地 ⇒ 「compose → 写盘 → 读回 → 重放」**今天真装配得出来**
+  (同款装配法见 `save_replay_roundtrip_test.cs`)。
+- **本卡为什么没转「勘察卡」**:卡面给了转勘察的分支(「若测试内无法真装配读路径」)——
+  **能装配,故不走该分支**。
+- **交付**:`unity/Assets/Tests/EditMode/PersistenceService/craft_save_roundtrip_test.cs`(1 条)。
+  两条 actor 三炉(世界流)⇒ `Checkpoint` ⇒ 新流 + 同目录 `Load` ⇒ 24 个采样点 × 2 actor
+  逐点断言 `TryCompleteTickOf` 与直算同值、`BusyActorCount` 同值,外加**字面量哨兵**
+  (`100 + 50 ⇒ 150` / `200 + 40 ⇒ 240`;不写 `Start + Duration`,那是自指判据)。
+- **证伪 2 变异(均红,`SaveComposer.cs` SHA-256 逐字节还原)**:
+  · **M1**(组版丢掉世界流 `Craft`)⇒ 前置「读回条数 == 存前」红(`Expected: 3 But was: 0`);
+  · **M2**(信封 tick 整体 +1,行数不变)⇒ 「tick 100 · actor 1」可见性断言红 ——
+    **M2 是 B 面单独转红、A 面仍绿**,证明等值断言不是 A 面的附庸。
+- **边界**:跨构建逐位一致**不在本卡**(= `TD-ci-01` EXTERNAL / ADR-012 三格矩阵)。
 
 > **`P0 面 = N`(六条同判)** —— 承 §一 **R4**:归属 `processing` ∈ 31 个 P0 epic,
 > 但六条**各自正文自陈 P0 面 = N 并给出实质理由**(逐条见上表「为何 P0 面 = N」行)。
@@ -6093,6 +6113,11 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 > · **`-06`** 仍开,但**触发条件已成立** —— `SaveService.Load` 已落地(ADR-034 实现轮);
 >   真装配往返(`compose → 写盘 → 读回 → 重放 → CompleteTick 逐位相同`)需要一个独立卡,
 >   本卡**未做**,不在此处借绿。
+>
+> 🔁 **2026-11-01 更新(`S22-5` 落地)**:**`-06` 已闭**(关闭记录见该条正文末)。
+> 本轮开工时的判断是对的(触发条件已成立),**错的是「需要一个独立卡」的落点** ——
+> 卡早已存在,就是 sprint-22 的 `S22-5`。现值:**`-01` / `-02` / `-05` / `-06` 已闭,
+> 仍开 2 条(`-03` 待 ADR-008 裁 / `-04` 触发未到)**;`-07` 不在此列(仍 `partial`,P0 面 `Y`)。
 
 > 🔁 **2026-10-27 四十二订追加 `TD-processing-07`,且它的 P0 面 = `Y`(R1)** ——
 > 与上表六条**不同判**,理由见该条正文。**⚠️ 本表末的「六条同判」只对 `-01…-06` 成立,

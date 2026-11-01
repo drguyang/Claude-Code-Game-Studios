@@ -60,10 +60,20 @@
 > ```
 > ⚠️ **F1 的严重度与处置不变**(S3 既存债 · 不覆盖 APPROVED)。改的只有数与名目。
 
-### F2 · **S3(既存债)** — `S21-3` 的 6 条里 3 条留开
+### F2 · **S3(既存债)** — `S21-3` 的 6 条里 3 条留开(🔁 2026-11-01:`-06` 已闭,现为 **2 条**)
 
 `TD-processing-03 / -04 / -06` 留开,各自具名理由(须 ADR-008 裁同键 `Craft` 语义 /
 `BusyActorCount` 零生产调用方 / 真装配往返需独立卡)。**留开 = 不记绿。**
+
+> 🔁 **2026-11-01 更新 —— `TD-processing-06` 已闭(sprint-22 `S22-5`)**
+>
+> 该条原写「真装配往返需**独立卡**」—— 卡早就有,是 `S22-5`;本轮已交付
+> `EditMode/PersistenceService/craft_save_roundtrip_test.cs` 并证伪 2/2 红。
+> **原判断的错处**:把「`SaveReader` 类名不存在」读成「读路径不存在」——
+> 能力住 `SaveService.Load`,`save_replay_roundtrip_test.cs` 早已在用同一装配。
+> **现值:本 F2 面的留开项 3 → 2**(`-03` 待 ADR-008 裁 · `-04` 触发未到)。
+> 原件 = `production/qa/evidence/s22-5-craft-roundtrip-2026-11-01.md`;
+> 债册 `python3 tools/debtcount/debtcount.py --check` ⇒ exit 0,`closed 126 / open 14`。
 
 ### F3 · **S3(机制债,维持 partial)** — `TD-s13-01`
 
@@ -126,6 +136,8 @@ GDD `disease-simulation.md:843`(S5 裁定)明定「昏迷 ⇔ `position_agg ≥ 
 - **C2** —— `F4`(N-5 零输入可达)**必须在下次有人登记终局型伤情时立即复核**;
   届时若标 `terminal_state = false`,门不会红 —— **人须先查**。
 - **C3** —— `F2` / `F3` 的留开项在**首次被当作「已完成」引用**前必须回到各自债条复核(承 R1 复算纪律)。
+  🔁 **2026-11-01**:`F2` 的留开项由 3 降为 **2**(`-06` 已闭并复核)。**C3 本身不失效** ——
+  剩余 2 条仍须回归债条复核。
 
 ---
 

@@ -15008,3 +15008,39 @@ M6 不调 `Checkpoint` ⇒ PlayMode 红 · M7 不记 `LastSavedSlot` ⇒ PlayMod
 正数复算:`python3 tests/smoke/run_smoke.py --results unity/Logs/full-EditMode-saveslot.xml`
 ⇒ `自动 PASS 11 · 无名 8`;8 条 = `#1 / #8 / #9 / #10 / #13 / #14 / #18 / #22`。
 **只改数与名目,收口判定、签核结论、C1–C3、各卡判定一字不动。**
+
+---
+
+## 2026-11-01 · `S22-5` 交付:`TD-processing-06` 跨存档往返夹具(sprint-22 第 3 张卡)
+
+**用户指令**:「修理这些遗留(PASS WITH WARNINGS / 签核 APPROVED WITH CONDITIONS / C1–C3)」。
+本卡 = F2 面三条留开债之一,也是 sprint-22 的 `S22-5`。
+
+### 债的前提被推翻
+
+债写「`SaveReader` 全仓不存在 ⇒ 造样本 = 造不存在的路径」—— **类名**不存在 ≠ **能力**不存在:
+读路径住 `SaveService.Load`(`SaveService.cs:807`),ADR-034 后载荷段已落地,
+`save_replay_roundtrip_test.cs` 早就在用同一装配 ⇒ **不走卡面的「转勘察卡」分支**。
+
+### 交付
+
+`unity/Assets/Tests/EditMode/PersistenceService/craft_save_roundtrip_test.cs`(1 测):
+两 actor 三炉(世界流)→ `Checkpoint` → 新流 + 同目录 `Load` → 24 采样点 × 2 actor 逐点断言
+`TryCompleteTickOf` / `BusyActorCount` 与直算同值;字面量哨兵 `100+50⇒150` / `200+40⇒240`。
+
+### 证伪(2/2 红,`SaveComposer.cs` SHA-256 逐字节还原)
+
+M1 组版丢世界流 `Craft` ⇒ 前置条数断言红(`3 vs 0`);**M2 信封 tick 整体 +1(行数不变)
+⇒ B 面单独红、A 面仍绿** —— 等值断言不是存在性断言的附庸。
+
+### 回归
+
+EditMode `6331/6294/0/0/37`(`6331 − 6330 = 1` = 新件)· PlayMode `271/267/0/2/2`(零变化)。
+三元组 `2026-11-01 08:31–08:33 CST` · `S22-5` 批 · `32e15f3b`+工作树;两轮 `error CS` = 0。
+
+### 账面变化
+
+- 债册:`TD-processing-06` **open → closed**;`--check` exit 0;`closed 125 → 126` · `open 15 → 14`
+- 签核件 F2:留开项 **3 → 2**(`-03` 待 ADR-008 裁 · `-04` 触发未到)
+- sprint-22:`S22-5` 收口(S22-1/2/5 已收,S22-3/4/6/7/8 未动)
+- 原件:`production/qa/evidence/s22-5-craft-roundtrip-2026-11-01.md`
