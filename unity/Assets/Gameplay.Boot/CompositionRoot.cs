@@ -457,11 +457,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             var patientDriver = new PatientAppearedDriver(
                 spawner, presence, resolvedRegistry, registryIndex: registryIndex);
 
-            // ── 病例开账写者 + 驱动(sprint-05 T1.2):把 CaseOpenWriter 接进 tick 边沿序列 ──
+            // ── 病例开账写者 + 驱动(sprint-05 T1.2;🔁 2026-11-02 改为玩家动作驱动)──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
-            // 驱动 = 每 tick 边沿对在场且未开案的病人自动开案。
+            // 🔁 T1.2 的「每 tick 自动开案」已退役(与 `case-system.md:176` 相反,结清 `TD-casebook-01`)
+            //    ⇒ 本驱动的唯一入口 = `TryOpen(patient, tick)`,由玩家的世界 `Interact` 调用
+            //    (`BootRoot` 4.5 段的 `caseOpen` 缝)。在场 / 去重仍由 writer 前置判定。
             var caseOpenWriter = new CaseOpenWriter(stream, presence, encoder, stream.Events);
-            var caseDriver = new CaseOpenedDriver(caseOpenWriter, presence);
+            var caseDriver = new CaseOpenedDriver(caseOpenWriter);
 
             // ── 急救链处理器 + 驱动(sprint-05 T1.3 → sprint-06 G4.1 退役)──
             // G4.1(2026-10-11 用户裁定「急救手动化」):自动触发分支已从

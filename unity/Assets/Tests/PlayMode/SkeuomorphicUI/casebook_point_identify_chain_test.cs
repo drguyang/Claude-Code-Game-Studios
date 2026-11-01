@@ -64,7 +64,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             _bag.Presence.AddPresent(_patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);
             _bag.TickDriver.Advance(0.05d);                                  // → tick 1
-            _bag.CaseOpenedDriver.OnTickEdge(_bag.TickDriver.CurrentTick);    // 开案
+            _bag.CaseOpenedDriver.TryOpen(_patient, _bag.TickDriver.CurrentTick);    // 开案
 
             _bag.PrescriptionPage.SetAuthor(PlayerId);
             _bag.CasebookSource.SetViewer(PlayerId);

@@ -70,5 +70,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             var intent = new InteractIntent(_playerCell(), true, _tick());
             return driver.TryHarvest(in intent, _actorId).Attempted;
         }
+
+        /// <summary>
+        /// 只读窥视:最近采集点候选的 `d∞` 距离(<see cref="int.MaxValue"/> = 未装配 / 无候选)。
+        /// <para>供 <see cref="InteractClaimRoute"/> 做**跨种类比距** —— 采集只在比最近病人更近时
+        /// 才该消费按键。⚠️ 零副作用,不出发采集事件。</para>
+        /// </summary>
+        public int PeekNearestForageDistance()
+        {
+            HarvestInteractionDriver driver = _driver();
+            if (driver == null) return int.MaxValue;
+
+            var intent = new InteractIntent(_playerCell(), true, _tick());
+            return driver.PeekNearestForageDistance(in intent);
+        }
     }
 }

@@ -208,7 +208,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             _bag.VitalsService.OnTickEdge(0);
 
             _bag.TickDriver.Advance(0.05d);                                  // → tick 1
-            _bag.CaseOpenedDriver.OnTickEdge(_bag.TickDriver.CurrentTick);    // 开案(落笔前置)
+            _bag.CaseOpenedDriver.TryOpen(_patient, _bag.TickDriver.CurrentTick);    // 开案(落笔前置)
 
             // 玩家 id 走 IIdAuthority 机制 A(不新开第二计数器;ADR-006 Amendment B 第二十六批)
             _playerId = _bag.IdAuthority.NextPatientId().Value;

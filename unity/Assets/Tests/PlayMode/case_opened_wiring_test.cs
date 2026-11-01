@@ -1,8 +1,16 @@
 // sprint-05 T1.2 · 病例开账驱动接线验证(2026-10-10)
 //
-// 判据(可证伪):启动后病例流含 CaseOpened 事件;开账条件(在场病人)满足。
-// 原状(F-6 复评实测):CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
-// 本测验证接线闭合:BootRoot 启动序 → CaseOpenedDriver → TryOpen → CaseOpened 入流。
+// 🔁 **2026-11-02 判据翻转(开册入口轮 · 结清 `TD-casebook-01`)**:
+// 原判据 = 「启动后病例流**含** `CaseOpened`」—— 它守的是当时那条
+// `BootRoot → CaseOpenedDriver.OnTickEdge → 每 tick 自动开案` 的链。
+// **那条链本身与设计相反**(`case-system.md:176`「立案是一次玩家动作」/ `:927`
+// 「玩家没去 ⇒ 不立案」),已退役 ⇒ 原判据若保留,**它守的正是要删掉的行为**。
+//
+// 现判据 = 「**不按任何键**跑满 2s ⇒ 病例流**零** `CaseOpened`」。
+// 这正是债册 `TD-casebook-01` 的「何时消解」第三条(玩家没交互 ⇒ 零 CaseOpened)。
+// ⚠️ 正向那一半(按 E ⇒ 立案 + 开册)**不在本文件** —— 它需要虚拟键注入,
+// 归 `Tests/PlayMode/Casebook/casebook_entry_wiring_test.cs`(②③④)。
+// 两个文件合起来才是完整的入口判据:本件守**否定**,那件守**肯定**。
 //
 // 形态承 patient_appeared_wiring_test(BootRoot 反射观测 + Addressables world 卸载)。
 // ⚠️ captureDeltaTime 全局态,[UnityTearDown] 恢复 0,防污染同套件其他测试。
@@ -75,7 +83,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator test_caseOpenedDriver_opensCaseAtBoot()
+        public IEnumerator test_caseOpenedDriver_doesNotOpenCaseWithoutInteraction()
         {
             // Arrange:真启动序(与门④冒烟同源)
             _root = new GameObject("BootRoot_CaseOpenedWiring");
@@ -134,8 +142,12 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
             Debug.Log($"[CaseOpenedWiring] 病史流事件数 = {events.Count},含 CaseOpened = {hasCaseOpened}");
 
-            Assert.IsTrue(hasCaseOpened,
-                "病史流应含 CaseOpened 事件 —— 缺失 = 写者未运行期触发(接线未闭合)");
+            // 🔁 2026-11-02 翻转:原为 `Assert.IsTrue(hasCaseOpened, ...)`,那守的是**已退役**的
+            //   自动开案。现口径 = 全程零按键 ⇒ 零 CaseOpened(详见文件头注)。
+            Assert.IsFalse(hasCaseOpened,
+                "**未按任何键**跑满本窗口 ⇒ 病例流必须零 CaseOpened —— " +
+                "出现即 = 自动开案还活着(`case-system.md:176`「立案是一次玩家动作」、" +
+                "`:927`「玩家没去 ⇒ 不立案」)。正向链见 `Casebook/casebook_entry_wiring_test.cs`");
 
             // Assert 2:在场视图非空(开账前置条件 ①「病人存在」的运行期证据)
             var presenceProp = services.GetType().GetProperty("Presence");

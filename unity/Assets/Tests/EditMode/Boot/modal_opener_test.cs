@@ -444,9 +444,13 @@ namespace DaYiJingCheng.Tests.Boot
             public int CloseCalls;
             public bool IsPauseOpen { get; private set; }
 
+            /// <summary>🔁 2026-11-02 · 开册入口轮:脉案开合面(关册 toggle 用)。
+            /// 夹具默认 `false` ⇒ 既有用例的语义逐位不变(它们测的是暂停壳)。</summary>
+            public bool IsCasebookOpen { get; set; }
+
             public void OpenPause() { OpenCalls++; IsPauseOpen = true; }
 
-            public void Close() { CloseCalls++; IsPauseOpen = false; }
+            public void Close() { CloseCalls++; IsPauseOpen = false; IsCasebookOpen = false; }
         }
     }
 }

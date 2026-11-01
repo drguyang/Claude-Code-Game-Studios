@@ -670,7 +670,19 @@ namespace DaYiJingCheng.Gameplay.Boot
                     harvestBridge,
                     actorId,
                     _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
-                    _player != null ? _player.LastCommittedCell : default));
+                    _player != null ? _player.LastCommittedCell : default,
+                    // 🔁 2026-11-02 跨种类比距:无此入参时,半径内的采集点会吞掉**每一次** E
+                    //    (现世界 r_interact = 3 覆盖全部可站格)⇒ 就诊 / 开册永不可达。
+                    NearestPatientCellDistance()),
+                // ── E 键的就诊两半(2026-11-02 · 结清 `TD-casebook-01`)──
+                //   ① 立案:37 的 `CaseOpened` 唯一生产入口。判定(在场 / 去重)在 writer 内,
+                //      本缝只转交 —— 驱动侧不复制第二份判据。
+                //   ② 开册:42 的 `OpenModal(ModalId.Casebook)`。`_uiDriver` 在本段**之后**才建
+                //      ⇒ 必须懒求值(lambda 捕获字段),否则拿到 null 静默不开屏。
+                caseOpen: (patient, tick) =>
+                    _services.CaseOpenedDriver?.TryOpen(patient, tick),
+                openCasebook: () =>
+                    _uiDriver != null && _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Casebook));
             _interactionDriver = interaction;
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 
@@ -1056,6 +1068,34 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 缺失 = 测试里没造 fixture ⇒ 自建(此时无 PanelSettings ⇒ 逻辑树在、不渲染,
         /// 见 <see cref="AssertSingleAudioListener"/> 旁注的实测记录)。</para>
         /// </summary>
+        /// <summary>
+        /// 最近的在场病人的 `d∞` 距离(`int.MaxValue` = 无在场病人 / 无玩家 / 无格)。
+        /// <para>用途 = E 按下沿的**跨种类比距**(`InteractClaimRoute`):采集只在比最近病人
+        /// 更近时才消费按键。⚠️ 读的是**整数格**(`PresenceRegistry.TryGetCell` +
+        /// `LastCommittedCell`),不读表现态位置(ADR-016 §三)。
+        /// </para>
+        /// <para>⚠️ <b>F-4.1 的部分实现</b>:只算第一键(`d∞`);`KindPriority` / `StableId`
+        /// 未参与 ⇒ 等距时由本函数判「病人更近或等距 ⇒ 采集不抢」。补齐另立债。</para>
+        /// </summary>
+        private int NearestPatientCellDistance()
+        {
+            if (_services?.Presence == null || _player == null) return int.MaxValue;
+
+            WorldPos from = _player.LastCommittedCell;
+            int best = int.MaxValue;
+            foreach (int pid in _services.Presence.PresentPatientIds())
+            {
+                if (!_services.Presence.TryGetCell(new PatientId(pid), out WorldPos cell)) continue;
+                long dx = Math.Abs((long)from.X - cell.X);
+                long dy = Math.Abs((long)from.Y - cell.Y);
+                long dz = Math.Abs((long)from.Z - cell.Z);
+                long m = dx > dy ? dx : dy;
+                if (m < dz) m = dz;
+                if (m < best) best = m > int.MaxValue ? int.MaxValue : (int)m;
+            }
+            return best;
+        }
+
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
         {
             var existing = UnityEngine.Object.FindFirstObjectByType<SkeuoRuntimeDriver>();
@@ -1636,16 +1676,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientAppearedDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
 
-            // 病例开账驱动(sprint-05 T1.2):在同一 tick 边沿序列内,病人出现驱动**之后**调用
-            // 次序 = 病人先出现(DiseaseOnset 入流)→ 再开案(CaseOpened 入流)
-            if (_tickDriver.CurrentTick > tickBefore
-                && _services != null && _services.CaseOpenedDriver != null)
-            {
-                _services.CaseOpenedDriver.OnTickEdge(_tickDriver.CurrentTick);
-            }
+            // 🔁 2026-11-02 · 开册入口轮(结清 `TD-casebook-01`):**此处不再自动开案**。
+            //   原为 `CaseOpenedDriver.OnTickEdge(tick)` —— 每 tick 对在场病人自动立案,
+            //   与 `case-system.md:176`「立案是一次玩家动作」/ `:927`「玩家没去 ⇒ 不立案」相反。
+            //   现立案唯一触发 = 玩家对病人的 `Interact`(见 4.5 段的 `caseOpen` 缝)。
+            //   ⚠️ 删的只是**调用点**:驱动本身仍在(它现在的入口是 `TryOpen`,由就诊分支调)。
 
-            // 急救链接线驱动(sprint-05 T1.3):在同一 tick 边沿序列内,开案驱动**之后**调用
-            // 次序 = 病人先出现 → 再开案 → 最后触发急救(EmergencyAttempt + EmergencyTreatmentApplied 入流)
+            // 急救链接线驱动(sprint-05 T1.3):在同一 tick 边沿序列内,病人出现驱动**之后**调用
+            // 次序 = 病人先出现 → (立案归玩家动作,不在此处) → 最后触发急救(EmergencyAttempt + EmergencyTreatmentApplied 入流)
             if (_tickDriver.CurrentTick > tickBefore
                 && _services != null && _services.EmergencyAttemptDriver != null)
             {

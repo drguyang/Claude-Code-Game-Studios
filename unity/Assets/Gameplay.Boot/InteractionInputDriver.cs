@@ -1,7 +1,16 @@
-// sprint-07 S2 · 玩家交互输入驱动(E=查体 · F=急救 · 2026-10-11)
+// sprint-07 S2 · 玩家交互输入驱动(E=就诊 · F=急救 · 2026-10-11)
+// 🔁 2026-11-02 · 开册入口轮(结清 `TD-casebook-01`):E 键从「查体」提升为**就诊**
+//    —— 一次按下 = ① 立案(`CaseOpened` 入病例流)② 查体(就近,P0 代模态内行级动作)
+//    ③ 开册(`OpenModal(ModalId.Casebook)`)。此前 E **只**查体:病例由 tick 自动开、
+//    脉案屏谁都打不开(`case-system.md:176`「立案是一次玩家动作」被架空)。
+//    ⚠️ **残余偏差已登记**:`S-8.4` 路线甲说「查体 = 脉案模态行级动作」,而 P0 由世界 E 代做
+//    (模态内行级查体入口不存在)。本偏差**不**由本轮的立案/开册改动消除,见 `TD-casebook-02`。
 //
 // 权威来源:
 //   sprint-07 §2 S2.2(按 E 近病人 → 查体 → 值区有词 [8 真词表])
+//   diagnosis-system.md S-8.4(路线甲:世界空间裸 Interact = 就诊,单义)
+//   casebook-39.md §3 入口 / §7 交互表(开册(就诊) 路由 37,立案时刻 = 该 tick)
+//   case-system.md 规则二-A / :176(立案是一次玩家动作)
 //   story-009(2026-10-14 用户裁定「按住 = 一次动作」):F 按下沿 → 直读通道 Arm;
 //     松开沿 → EndAction 聚合上行(ADR-011 §二 直读通道独立于 42 UI 栈)
 //   ADR-011 §一(action-based 官方路线过渡最小面 —— 同 MovementInputReader 登记:
@@ -10,7 +19,8 @@
 //   ADR-013 §9 C3(呈现侧只渲染不持状态 —— 本驱动只翻拍按键,零 sim 真值)
 //
 // ⚠️ 本驱动 = 呈现侧装配件(住 Gameplay.Boot):把「玩家按键意图」翻译成通道预约 /
-//   查体调用(ExamineDriver.OnExamine / EmergencyChannelDriver.Arm / EndAction),零 sim 状态。
+//   就诊(立案 + 开册)/ 查体调用(ExamineDriver.OnExamine / EmergencyChannelDriver.Arm /
+//   EndAction),零 sim 状态。**立案判定不在本类** —— 本类只调 writer 缝,判定归 37。
 //   「按下沿」判据 = 上帧按住位比对(持键不重复触发 —— 查体是「一次交互一次动作」;
 //   急救 = 按住一次,事件在松开沿聚合上行)。
 //
@@ -54,6 +64,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 桥不自持(否则两处边沿位会漂移)。</para></summary>
         private readonly Func<bool> _interactClaimedByHarvest;
 
+        /// <summary>就诊 → 立案(2026-11-02 · `TD-casebook-01`;可 null = 未接线)。
+        /// <para>参数 = (被就诊的病人, 立案 tick)。实参由装配层接到
+        /// `CaseOpenedDriver.TryOpen` —— 本类**不做**立案判定(在场 / 去重归 37 的 writer)。</para></summary>
+        private readonly Action<PatientId, long> _caseOpen;
+
+        /// <summary>开册(2026-11-02 · `TD-casebook-01`;可 null = 未接线)。
+        /// <para>实参由装配层接到 42 的 `SkeuoRuntimeDriver.OpenModal(ModalId.Casebook)`。
+        /// ⚠️ 本类只发「开」这一个意图,不读相机 / 不持模态态(ADR-013 §9 C3)。</para></summary>
+        private readonly Func<bool> _openCasebook;
+
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
 
@@ -75,17 +95,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// (4 的选择器决定「这一帧的交互对象是谁」;钩子在**本类边沿判定之内**被调,
         /// 不另造第二处边沿位)。</para>
         /// </param>
+        /// <param name="caseOpen">就诊 → 立案(2026-11-02;`null` = 未接线 ⇒ 不立案,
+        /// 与「玩家没交互」同形)。</param>
+        /// <param name="openCasebook">开册(2026-11-02;`null` = 未接线 ⇒ 只立案不开屏)。</param>
         public InteractionInputDriver(CompositionRootServices services,
                                       Func<Vector3> playerPosition,
                                       int actorId,
                                       ModalGate gate = null,
-                                      Func<bool> interactClaimedByHarvest = null)
+                                      Func<bool> interactClaimedByHarvest = null,
+                                      Action<PatientId, long> caseOpen = null,
+                                      Func<bool> openCasebook = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
             _actorId = actorId;
             _gate = gate;
             _interactClaimedByHarvest = interactClaimedByHarvest;
+            _caseOpen = caseOpen;
+            _openCasebook = openCasebook;
         }
 
         /// <summary>
@@ -114,7 +141,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 未选中 / 采集未接线 ⇒ 落回查体。模态门已由 allowed 前置:
                 // 模态开 ⇒ 本分支不进 ⇒ 采集与查体同被抑制(F-4.2)。
                 if (!(_interactClaimedByHarvest?.Invoke() ?? false))
-                    TryExamine();
+                    TryVisit();
             }
             _interactHeld = interact;
 
@@ -151,21 +178,42 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services.EmergencyChannel.EndAction(_actorId);
         }
 
-        private void TryExamine()
+        /// <summary>
+        /// 世界空间一次就诊(2026-11-02 起 = 立案 + 开册;此前只有查体)。
+        /// <para>次序 = **① 立案 → ② 查体 → ③ 开册**,每一步不依赖后一步:</para>
+        /// <list type="number">
+        ///   <item><b>立案</b> —— `CaseOpened` 入病例流(`S-8.4` 单义:世界 Interact 只是就诊)。
+        ///        病人不在场 / 已有开案 ⇒ writer 返回具名零写入,不新开案(`AC-37-26`)。</item>
+        ///   <item><b>查体</b> —— P0 就近完成。⚠️ 设计上查体是**模态内行级动作**
+        ///        (`S-8.4` 路线甲),此处由世界按键代做,是**已登记的偏差**(见类头注)。</item>
+        ///   <item><b>开册</b> —— 42 的 `OpenModal(Casebook)`(`casebook-39.md` §7「开册(就诊)」)。</item>
+        /// </list>
+        /// <para>⚠️ 立案**先于**开册:屏一打开就在读数据源,顺序反了会开出一次空册。</para>
+        /// </summary>
+        private void TryVisit()
         {
-            if (_services.ExamineDriver == null) return;
             PatientId target = NearestPresentPatient();
             if (target.Value < 0) return;
 
-            _services.ExamineDriver.OnExamine(target, CurrentTick);
-            // sprint-08 S1.1 件 B:查体完成 ⇒ 记「见过病 D」(诊断成长落病史流)。
-            // ⚠️ 次序:OnExamine 先(病人须已建档 + 快照落册),投影器再读 Courses 取病种 D。
-            //   投影器 fail-loud(病人未建档 ⇒ PatientCourseNotFoundException)—— 但 OnExamine
-            //   已先 GetVitals(同款 fail-loud),故此处病人在场性已被前置判据兜住。
-            _services.SeenDisease?.OnExamined(target, CurrentTick, _actorId);
-            _services.CasebookSource?.ChangePatient(target);
-            _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
-            LastExaminedPatient = target;
+            // ① 就诊 / 立案(规则二-A:立案是一次玩家动作)
+            _caseOpen?.Invoke(target, CurrentTick);
+
+            // ② 查体(P0 就近完成;模态内行级动作未实现)
+            if (_services.ExamineDriver != null)
+            {
+                _services.ExamineDriver.OnExamine(target, CurrentTick);
+                // sprint-08 S1.1 件 B:查体完成 ⇒ 记「见过病 D」(诊断成长落病史流)。
+                // ⚠️ 次序:OnExamine 先(病人须已建档 + 快照落册),投影器再读 Courses 取病种 D。
+                //   投影器 fail-loud(病人未建档 ⇒ PatientCourseNotFoundException)—— 但 OnExamine
+                //   已先 GetVitals(同款 fail-loud),故此处病人在场性已被前置判据兜住。
+                _services.SeenDisease?.OnExamined(target, CurrentTick, _actorId);
+                _services.CasebookSource?.ChangePatient(target);
+                _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
+                LastExaminedPatient = target;
+            }
+
+            // ③ 开册(42 的唯一入口;返回 false = 无面板 / 未接线 —— 不抛,不静默改立案)
+            _openCasebook?.Invoke();
         }
 
         /// <summary>最近在场病人(视觉实体位置 × 玩家位置的平方距离最小;接线期定位源

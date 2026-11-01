@@ -42,7 +42,7 @@ namespace DaYiJingCheng.Tests.Boot
             _bag.Presence.AddPresent(_patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);
             _bag.TickDriver.Advance(0.05d);                   // → tick 1(开案于 1)
-            _bag.CaseOpenedDriver.OnTickEdge(_bag.TickDriver.CurrentTick);   // 开案(CaseOpened 入流)
+            _bag.CaseOpenedDriver.TryOpen(_patient, _bag.TickDriver.CurrentTick);   // 开案(CaseOpened 入流)
 
             _bag.PrescriptionPage.SetAuthor(PlayerId);        // 作者(命令路由复用同一 Writer)
             _bag.CasebookCommands.BindPatient(_patient);

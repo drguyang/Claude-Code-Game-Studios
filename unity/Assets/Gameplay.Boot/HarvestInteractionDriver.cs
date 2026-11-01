@@ -255,6 +255,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// **只读窥视**:本次交互意图下,最近**采集点**候选的 `d∞` 距离;<see cref="int.MaxValue"/> = 无候选。
+        /// <para>⚠️ **零副作用** —— 不掷骰、不写流、不推进任何游标;它与 <see cref="TryHarvest"/>
+        /// 走**同一** `<see cref="ClipToRadius"/> → <see cref="InteractionSelector.Select"/>` 前半段,
+        /// 故「窥视说 3」与「真跑会选到 3」同源,不是第二份判据。</para>
+        /// <para><b>为什么需要它</b>:E 按下沿的路由是**跨种类**的 —— 采集只有在
+        /// 「比最近的病人更近」时才该消费按键(`InteractClaimRoute`)。没有窥视就只能用
+        /// 「半径内有没有采集点」判,**而任何半径内存在采集点都会吞掉就诊**
+        /// (2026-11-02 实测:r_interact = 3 的现世界,出生格与病人格都判为 harvest ⇒ 脉案屏永不可达)。</para>
+        /// </summary>
+        /// <param name="intent">本 tick 的交互意图(只用 <c>PlayerCell</c> / <c>Tick</c> / <c>Pressed</c>)。</param>
+        public int PeekNearestForageDistance(in InteractIntent intent)
+        {
+            InteractTarget target = _selector.Select(in intent, ClipToRadius(_loader.Load(), in intent));
+            if (!target.HasTarget || target.Kind != InteractableKind.ForageSpot) return int.MaxValue;
+
+            long d = Chebyshev(in intent.PlayerCell, in target.Cell);
+            return d > int.MaxValue ? int.MaxValue : (int)d;
+        }
+
+        /// <summary>
         /// R_INTERACT 邻域裁剪:`d∞(player_cell, cell) ≤ R` 之外者出局(4 规则二的指定位置)。
         /// </summary>
         /// <remarks>全在半径内 ⇒ 返回原列表(**零分配**;交互按键不是热路径,但成功路径

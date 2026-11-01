@@ -171,7 +171,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         {
             SeedDrop(DropCell);
 
-            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell);
+            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell, int.MaxValue);
 
             Assert.IsTrue(consumed, "拾取链消费按键");
             Assert.AreEqual(1, CountOf(EventKind.DropClaimed), "恰一条(不重复路由)");
@@ -182,7 +182,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         [Test]
         public void test_route_claimReject_fallsThrough_toHarvest()
         {
-            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell);
+            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell, int.MaxValue);
 
             Assert.IsFalse(consumed, "拾取拒 + 采集未装配 ⇒ 按键落回查体(查体在驱动内)");
             Assert.AreEqual(0, CountOf(EventKind.DropClaimed), "落回过程零事件");
@@ -192,7 +192,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         [Test]
         public void test_route_bothUnwired_false()
         {
-            Assert.IsFalse(InteractClaimRoute.TryConsume(null, null, PlayerId, Tick, DropCell));
+            Assert.IsFalse(InteractClaimRoute.TryConsume(null, null, PlayerId, Tick, DropCell, int.MaxValue));
         }
 
         // ══════════════════ 结构判据 / 参数守卫 ══════════════════

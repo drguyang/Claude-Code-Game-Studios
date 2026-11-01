@@ -56,7 +56,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             _held = pressed;
             if (!rising) return;
 
-            if (_opener.IsPauseOpen)
+            // 🔁 2026-11-02 · 开册入口轮:脉案是全案**唯一**由世界动作打开的模态(39 的开册),
+            //   它的「关册」必须走同一个 toggle(`casebook-39.md` §7「关册 | toggle」)。
+            //   ⚠️ 分支次序有意义:脉案**先于**暂停壳判 —— 否则开册后按 toggle 会在脉案上面
+            //   叠出暂停壳(玩家看不到册、也回不去),而不是合册。
+            //   ⚠️ 存档位仍沿用「换屏回暂停壳」(ADR-013 §十-C 的已知粗糙边,归 UX spec)——
+            //   本分支只拦**脉案**,不改存档位语义。
+            if (_opener.IsCasebookOpen)
+            {
+                _opener.Close();
+                CloseCount++;
+            }
+            else if (_opener.IsPauseOpen)
             {
                 _opener.Close();
                 CloseCount++;
@@ -90,6 +101,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         public bool IsPauseOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.Pause;
 
         /// <inheritdoc/>
+        public bool IsCasebookOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.Casebook;
+
+        /// <inheritdoc/>
         public void OpenPause() => _driver.OpenModal(UI.Skeuomorphic.ModalId.Pause);
 
         /// <inheritdoc/>
@@ -107,6 +121,10 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         /// <summary>当前是否开着**暂停壳**。</summary>
         bool IsPauseOpen { get; }
+
+        /// <summary>当前是否开着**脉案**(2026-11-02 · 开册入口轮)。
+        /// <para>用途 = 关册 toggle:脉案开着时 toggle 是「合册」而不是「开暂停壳」。</para></summary>
+        bool IsCasebookOpen { get; }
 
         /// <summary>打开暂停壳。</summary>
         void OpenPause();
