@@ -57,6 +57,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 与 <see cref="ConsequenceDriver"/> 同款 —— 生产装配面 = 真 provider 面。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.HarvestInteractionDriver HarvestDriver { get; internal set; }
 
+        /// <summary>拾取三段式编排面(S23-6 · 2026-11-01):意图 → 判距 → 宽容半径 →
+        /// 第一可拾地面实例 claim。<para>⚠️ **生产装配必非 null**(构造点 = CompositionRoot
+        /// 掉落装配段);BootRoot 的 E 路由先问它、false 再落采集/查体(claim 优先 ——
+        /// 掉落是玩家的「拿取」affordance)。</para></summary>
+        public DaYiJingCheng.Sim.DropClaimOrchestrator DropClaimOrchestrator { get; internal set; }
+
         /// <summary>53 的**判定链驱动**(2026-10-30 · ADR-036 D2/D3/S4)。</summary>
 
         /// <para>每个 tick 边沿跑 `Aggregate → Judge → Emit`,把「已结案病例」变成后果事件。</para>

@@ -586,9 +586,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-10-31 收尾:同一个「模态开集」读面还要喂**输入冻结**(移动轴 + 建造)——
             //    单实例共用,避免三处各自演化出「什么算挡路」的第二份判据。
             var modalState = new ModalGateStateAdapter(() => _uiDriver);
-            // ── 4.5a. 采集意图桥(S22-9):E 按下沿先问采集,选中采集点则消费该次按键,
-            //    未选中 / 未装配 ⇒ 落回查体。claim 判定在 InteractionInputDriver 的
-            //    边沿判定**之内**(单一边沿所有者);PlayerCell 用经流确立格(ADR-020 §四)。
+            // ── 4.5a. 采集意图桥(S22-9)+ 拾取编排(S23-6):E 按下沿的路由序 =
+            //    **拾取 claim 优先 → 采集 → 查体**。拾取是玩家的「拿取」affordance
+            //    (地上的东西优先于环境资源点;S23-6 轮内就地裁定,已回写 sprint 卡);
+            //    拾取拒(无候选/出半径)⇒ 零事件落回采集链 —— 单一边沿所有者不变
+            //    (判定都在 InteractionInputDriver 的边沿之内,两支都不另持边沿位)。
+            //    PlayerCell 用经流确立格(ADR-020 §四;两支同源)。
             var harvestBridge = new HarvestInteractionBridge(
                 () => _services.HarvestDriver,
                 () => _player != null ? _player.LastCommittedCell : default,
@@ -599,7 +602,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () => _player != null ? _player.transform.position : Vector3.zero,
                 actorId,
                 new ModalGate(_services.EmergencyChannel, modalState),
-                harvestBridge.ClaimInteract);
+                // claim 钩子(S22-9 采集 + S23-6 拾取的合流路由):
+                //   拾取编排 claim 成功 ⇒ 按键被拾取链消费;拒 ⇒ 零事件落回采集桥。
+                //   判定本体 = InteractClaimRoute.TryConsume(独立类 —— 路由序有夹具,非注释接线)。
+                () => InteractClaimRoute.TryConsume(
+                    _services.DropClaimOrchestrator,
+                    harvestBridge,
+                    actorId,
+                    _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
+                    _player != null ? _player.LastCommittedCell : default));
             _interactionDriver = interaction;
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 

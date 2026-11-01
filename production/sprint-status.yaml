@@ -76,7 +76,7 @@ stories:
     name: "smoke #8 载体:拾取三段式(意图 + 判距 + 宽容半径,离屏拾取被拒)"
     file: "tests/smoke/critical_paths.json"
     priority: should-have
-    status: backlog
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: S

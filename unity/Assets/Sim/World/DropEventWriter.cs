@@ -207,6 +207,24 @@ namespace DaYiJingCheng.Sim.World
                 _encoder.Encode(EventKind.DropClaimed, payload)));
         }
 
+        /// <summary>裸 long 重载 —— 为「已铸 id 的归属转移」留的通道(S23-6 拾取编排;
+        /// 判据与 Append 与 struct 版逐字同构,免 Sim 侧 struct 包装 —— AC-17-05 IL 门:
+        /// Sim 内 ItemInstanceId 构造点唯一落发号权威)。</summary>
+        public void RecordClaimed(long tick, long instanceId, int claimer)
+        {
+            if (tick < 0)
+                throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
+            if (claimer < 0)
+                throw new ArgumentOutOfRangeException(nameof(claimer), claimer,
+                    "claimer 是 actor id(≥ 0);负值属畸形输入(世界级事件才用 None 哨兵)");
+
+            var payload = new DropClaimedPayload(instanceId, claimer, tick);
+
+            _eventSink.Append(new SimEvent(
+                tick, PatientId.None, -1, EventKind.DropClaimed,
+                _encoder.Encode(EventKind.DropClaimed, payload)));
+        }
+
         /// <summary>
         /// 记一条实例减量 / 消亡(规则九:一次用药跨 N 栈 ⇒ **N 条**同 tick)。
         /// </summary>

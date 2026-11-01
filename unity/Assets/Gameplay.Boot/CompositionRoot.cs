@@ -103,6 +103,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private static readonly WorldPos WorldSpawnCell = new WorldPos(0, 1, 0);
 
+        /// <summary>拾取宽容半径(整数格,Chebyshev;S23-6 装配期常量,实值归数值轮)。</summary>
+        private const int PickToleranceCells = 1;
+
         /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
@@ -1658,6 +1661,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────
             // ⚠️ 本属性是 `null` 时**必须**有显式日志(`BootRoot` 启动期读),否则与「机制未启用」同形。
             services.HarvestDriver = harvestDriver;
+
+            // ── 拾取三段式编排面(S23-6 · sprint-23 · 2026-11-01)────────────────
+            // ADR-009 §七 拾取三段式(意图 + 当下判距 + 宽容半径)的生产装配:
+            // 候选 = 投影地面行(NoOwner,id 升序),裁决 = DeathDropReclaimPolicy,
+            // 入流 = dropEventWriter(20 唯一写者;裸 long 重载,零铸造)。
+            // 投影取法与死亡散落/17 采集同源(`inventoryLoad.Rebuild().Projection`)。
+            // ⚠️ 宽容半径实值 = 装配期常量(数值轮可调;policy 文档同口径)。
+            services.DropClaimOrchestrator = new DropClaimOrchestrator(
+                () => stream.Events, decoder,
+                () => inventoryLoad.Rebuild().Projection,
+                dropEventWriter, PickToleranceCells);
 
             // ── 🔁 2026-10-30(ADR-036 D2/D3/S4):53 的**判定链**生产装配 ─────────────
             // 装配前三件全缺(ADR-036 §Context 六条实测):发射器零装配点 / `Judge.Evaluate`

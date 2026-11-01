@@ -1,193 +1,197 @@
 {
-  "_comment": [
-    "critical-paths.md 的机读镜像(TD-smoke-01 · sprint-21 S21-5 · 2026-10-31)。",
-    "run_smoke.py 双向校验:md 里的编号集合 <=> 本文件的 id 集合,任一方向缺项 => 退出码 2。",
-    "status 语义:",
-    "  test   —— 绑定一条 Unity 测试全名(check = fullname)。需 --results <xml> 才能判;",
-    "            未给时按 NOT-RUN(需结果件) 记,不算 PASS。",
-    "  manual —— 已具名的人工协议(谁 / 何时跑写在 protocol)。本条**不进自动判据面**。",
-    "  none   —— **无载体**:既无夹具也无具名协议。这是本条要暴露的空洞,逐条具名。",
-    "⚠️ 本表是**手写**的,不得由 run_smoke.py 生成 —— 那会让「表 ↔ 清单」双向校验退化成恒等式。",
-    "⚠️ reason / protocol 的措辞是 2026-10-31 落骨架时的判断,未逐条实测载体;",
-    "   标 none 的条目若日后被证明有载体,只改本表,不改 md。"
-  ],
-  "items": [
-    {
-      "id": 1,
-      "group": "A",
-      "title": "游戏启动到主菜单无崩溃(Addressables data-core 预载成功,无 E-13 异常)",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.PlayMode.boot_e13_preload_chain_test.test_addressablesInit_andDataCorePreload_succeed_withContent",
-      "reason": "2026-11-01 立载体(S22-3)。原 reason「启动序需真启动;headless 无载体」—— 前半句对:EditMode 里预检必然判死(pipeline_gate_test.cs:1243 已钉住);后半句**不成立**:PlayMode 有真 catalog,Addressables.InitializeAsync + data-core 预载真跑得起来。该测试真跑初始化 + TryPreload + 断言预载**当场**已解出物品表(反射读 _items 私有缓存,防「Preload() 空实现」)+ 行集非空。证伪 3 变异各 red。"
-    },
-    {
-      "id": 2,
-      "group": "A",
-      "title": "新游戏可创建会话:存档头写入、WorldSeed 落头、IIdAuthority 计数器从 0 起",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.PersistenceService.SaveComposerWiringTest.test_compose_noFoldedPatient_producesValidSave",
-        "DaYiJingCheng.Tests.Boot.NewSessionIdAuthorityTest.test_newSession_firstPatientId_isZero_thenIncrements"
-      ]
-    },
-    {
-      "id": 3,
-      "group": "A",
-      "title": "主菜单对键鼠与手柄均有完整焦点路径(焦点单栈门 —— 无同键双触发)",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.Unit.SkeuomorphicUI.focus_gate_and_bridge_test.test_no_two_gates_open_at_any_point"
-    },
-    {
-      "id": 4,
-      "group": "A",
-      "title": "60 fps 平面模式下帧时间无长期 >16.6 ms",
-      "status": "manual",
-      "protocol": "Profiler 目测 60 s 稳态;执行人 = 实现者本人;时点 = 每次碰渲染 / 布局后的自检。预算为临时值(technical-preferences §Performance Budgets)"
-    },
-    {
-      "id": 5,
-      "group": "B",
-      "title": "Step 由 ITickProvider 以 20 Hz 推进,不由渲染帧驱动",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.Boot.SimTickDriverTest.test_simTickDriver_accumulatesExactly"
-    },
-    {
-      "id": 6,
-      "group": "B",
-      "title": "病人出现:同场被模拟病人数 ≤ 24(超界拒收,不是静默 LOD)",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.DiseaseSimulation.PresenceRegistryTest.test_o2_o3_capFull_appendThrows_andIdRolledBack"
-    },
-    {
-      "id": 7,
-      "group": "B",
-      "title": "采药:玩家跨格产生一条 ActorCellEntered;连续移动本身不产生事件",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac113_diagonalCrossing_singleEvent",
-        "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac103_mergeOperator_singleEventPerTick"
-      ]
-    },
-    {
-      "id": 8,
-      "group": "B",
-      "title": "拾取:意图事件 + 当下判距 + 宽容半径 —— 离屏拾取被拒(非崩溃)",
-      "status": "none",
-      "reason": "拾取三段式的玩家侧接线未落"
-    },
-    {
-      "id": 9,
-      "group": "B",
-      "title": "诊断:脉案读 VitalsDto 有读数;disease_id 不出现于任何 UI 元素",
-      "status": "none",
-      "reason": "需 42 接真 DTO 的运行时观测量;静态守卫(PresentationDtoGuard)有夹具,但本条是**运行期**判据"
-    },
-    {
-      "id": 10,
-      "group": "B",
-      "title": "急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.EmergencyProcedures.AppliedPayloadSettlementTest.test_emergency_attribution_twoEventsCarryGivenPatientId",
-        "DaYiJingCheng.Tests.EmergencyProcedures.EmergencySkipEntryWiringTest.test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth"
-      ],
-      "reason": "2026-11-01 甲案落账(S22-6 裁定后执行)。原 reason「急救的 Append 生产接线未落」与实测不符:G4.1(2026-10-11)退役的是**自动触发**驱动(EmergencyAttemptDriver._triggeredPatients,现为空壳),而本条讲的是**手动动作**的事件形状。手动路径在且被接线(EmergencyChannelDriver / BootRoot.cs:611 跳过入口 → EmergencyManualDriver → HostEmergencyProcessor:206/:233 双写,:212 主机 Judge 出 potency),两条载体均真装配(emergency_skip_entry_wiring_test 走 CompositionRoot.Assemble())。原件 = production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md §2 甲案。"
-    },
-    {
-      "id": 11,
-      "group": "B",
-      "title": "处方:守恒断言在日志中恒成立",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.Unit.ItemDatabase.ConservationLawGatesTest.test_aggregateConservation_exactEquality_accepted"
-    },
-    {
-      "id": 12,
-      "group": "B",
-      "title": "病例结案:已处置判定来自处置事件,而非玩家复选框",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.CaseSystem.CaseClosePreconditionTest.test_ac3721_checkedButNoTreatmentInWindow_rejects",
-        "DaYiJingCheng.Tests.CaseSystem.CaseCloseWriterTest.test_caseClosed_treatmentOnOpenTick_inclusiveBoundary_closes"
-      ]
-    },
-    {
-      "id": 13,
-      "group": "B",
-      "title": "建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.ModularBuilding.PlaceableCheckerTest.test_rotation_90_swapsXY",
-        "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_shippedData_hasTentSlotAndModule",
-        "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_tentPlacement_writesExactlyOneStructurePlaced"
-      ],
-      "reason": "2026-11-01 立载体(S22-8 甲案)。原 reason 原文保留在下方,先订正它的一处措辞:原文「「模块对齐整数格」**有载体**」指的是 `BuildSlotCatalog` 用 `WorldPos` 这**一句话**,**没有指名任何一条测试** —— 而本条判据要的是可执行载体,故当时整条记 `none` 是对的。现补齐两半:① 整数格 / 整数旋转 = `PlaceableCheckerTest.test_rotation_90_swapsXY`(`ComputeOccupiedCells` 全整数,禁浮点);② 帐篷 = `SlotType.Tent = 7` + `build_modules.json` 第 10 条 + `world_buildslots.json` 骨架外 1 格,判据走**真烘焙产物**(3 条:出货数据恰 1 槽 1 模块 / 放置 ⇒ 恰一条 `StructurePlaced` / 非 Tent 槽 ⇒ `TypeMismatch` 且零 Append)。⚠️ 同批连带实况:枚举扩员触发**两条既有哨兵**转红(`slot_type_vocabulary_test` 的七对字面量、`world_buildslots_codec_validation_test` 的掩码上界 127→255),已按「契约演进」逐条复核订正,不是改期望值凑绿。原 reason:「「模块对齐整数格」**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);但「帐篷(P0 唯一新建例外)可放置」**是功能未实现,不是缺夹具** —— 全仓 `grep -rni \"tent\\b|帐篷\" unity/Assets --include=*.cs` **零命中**(仅 intent 假阳性),`assets/data/*.json` 亦无帐篷条目。GDD 有裁定(`game-concept.md:698`),代码零实现 ⇒ 本条要等 23 的帐篷实现轮"
-    },
-    {
-      "id": 14,
-      "group": "B",
-      "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
-      "status": "test",
-      "check": [
-        "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_inCap_writesRollThenArrival_withSyntheticKey",
-        "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_overCap_rejectsWithExplicitError_andWritesNothing"
-      ],
-      "reason": "2026-11-01 立载体(S22-4)。原 reason「52 抽池侧生产路径未接线」已过期:`RandomEventSpawnChain`(抽池 → 掷骰 → F1 → EventArrived → 病人出现)已落地,并由 `RandomEventsDirectorDriver.OnTickEdge` 每 tick 调用;CAP 预检排在**任何 Append 之前**(超界 ⇒ 零写入 + 具名报错)。夹具**全部用合成 key 集/格集**驱动(卡面硬约束:生产双真空下照生产数据写夹具 = 假绿)。证伪 4 变异各 red。"
-    },
-    {
-      "id": 15,
-      "group": "C",
-      "title": "退出自动保存 → 重启读回:三流长度、ConfigVersion、max(patient_id) 高水位一致",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.PersistenceService.SaveReplayRoundtripTest.test_replay_roundtrip_restoredRowsAndHighWater_matchPreSaveState"
-    },
-    {
-      "id": 16,
-      "group": "C",
-      "title": "checkpoint(默认 5 分钟)落盘且可回退到最近一次",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.PersistenceService.CheckpointFallbackTest.test_checkpointFallback_firstFire_onExactIntervalTick"
-    },
-    {
-      "id": 17,
-      "group": "C",
-      "title": "篡改存档字节一位 → 校验和红 + 自动回退,不出现半损坏状态继续玩",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.PersistenceService.SaveServiceTest.test_checksumFallback_readsBakWhenFinalCorrupted"
-    },
-    {
-      "id": 18,
-      "group": "C",
-      "title": "存档往返后,同一 seed 重放的逐位哈希相同(Fix 全程 raw long,无 float 泄漏)",
-      "status": "none",
-      "reason": "跨构建逐位对照 = TD-ci-01(EXTERNAL,凭证在用户侧);单构建内重放等值另有夹具,不等于本条"
-    },
-    {
-      "id": 19,
-      "group": "D",
-      "title": "连续 5 分钟游玩内存无单调增长",
-      "status": "manual",
-      "protocol": "Memory Profiler 采样 5 min;执行人 = 实现者;时点 = 触及长生命期容器的改动之后"
-    },
-    {
-      "id": 20,
-      "group": "D",
-      "title": "L_input → 呈现 < 50 ms(仅测 L_input,不合并 L_eval)",
-      "status": "manual",
-      "protocol": "目标硬件手动计时(AC-10-08);执行人 = 实现者;时点 = 输入路径或渲染管线变更后"
-    },
-    {
-      "id": 21,
-      "group": "D",
-      "title": "24 病人 × 20 Hz 求值不超 tick 预算(L_eval ≤ 50 ms)",
-      "status": "test",
-      "check": "DaYiJingCheng.Tests.DiseaseSimulation.PatientCapTickBudgetTest.test_cap24_singleTickEvaluation_under50ms"
-    },
-    {
-      "id": 22,
-      "group": "D",
-      "title": "Linux-x64-Mono 与 Linux-x64-IL2CPP 两构建的黄金夹具哈希逐字节相同",
-      "status": "none",
-      "reason": "ADR-012 常驻矩阵 = TD-ci-01(EXTERNAL,凭证在用户侧)"
-    }
-  ]
+ "_comment": [
+  "critical-paths.md 的机读镜像(TD-smoke-01 · sprint-21 S21-5 · 2026-10-31)。",
+  "run_smoke.py 双向校验:md 里的编号集合 <=> 本文件的 id 集合,任一方向缺项 => 退出码 2。",
+  "status 语义:",
+  "  test   —— 绑定一条 Unity 测试全名(check = fullname)。需 --results <xml> 才能判;",
+  "            未给时按 NOT-RUN(需结果件) 记,不算 PASS。",
+  "  manual —— 已具名的人工协议(谁 / 何时跑写在 protocol)。本条**不进自动判据面**。",
+  "  none   —— **无载体**:既无夹具也无具名协议。这是本条要暴露的空洞,逐条具名。",
+  "⚠️ 本表是**手写**的,不得由 run_smoke.py 生成 —— 那会让「表 ↔ 清单」双向校验退化成恒等式。",
+  "⚠️ reason / protocol 的措辞是 2026-10-31 落骨架时的判断,未逐条实测载体;",
+  "   标 none 的条目若日后被证明有载体,只改本表,不改 md。"
+ ],
+ "items": [
+  {
+   "id": 1,
+   "group": "A",
+   "title": "游戏启动到主菜单无崩溃(Addressables data-core 预载成功,无 E-13 异常)",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.PlayMode.boot_e13_preload_chain_test.test_addressablesInit_andDataCorePreload_succeed_withContent",
+   "reason": "2026-11-01 立载体(S22-3)。原 reason「启动序需真启动;headless 无载体」—— 前半句对:EditMode 里预检必然判死(pipeline_gate_test.cs:1243 已钉住);后半句**不成立**:PlayMode 有真 catalog,Addressables.InitializeAsync + data-core 预载真跑得起来。该测试真跑初始化 + TryPreload + 断言预载**当场**已解出物品表(反射读 _items 私有缓存,防「Preload() 空实现」)+ 行集非空。证伪 3 变异各 red。"
+  },
+  {
+   "id": 2,
+   "group": "A",
+   "title": "新游戏可创建会话:存档头写入、WorldSeed 落头、IIdAuthority 计数器从 0 起",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.PersistenceService.SaveComposerWiringTest.test_compose_noFoldedPatient_producesValidSave",
+    "DaYiJingCheng.Tests.Boot.NewSessionIdAuthorityTest.test_newSession_firstPatientId_isZero_thenIncrements"
+   ]
+  },
+  {
+   "id": 3,
+   "group": "A",
+   "title": "主菜单对键鼠与手柄均有完整焦点路径(焦点单栈门 —— 无同键双触发)",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.Unit.SkeuomorphicUI.focus_gate_and_bridge_test.test_no_two_gates_open_at_any_point"
+  },
+  {
+   "id": 4,
+   "group": "A",
+   "title": "60 fps 平面模式下帧时间无长期 >16.6 ms",
+   "status": "manual",
+   "protocol": "Profiler 目测 60 s 稳态;执行人 = 实现者本人;时点 = 每次碰渲染 / 布局后的自检。预算为临时值(technical-preferences §Performance Budgets)"
+  },
+  {
+   "id": 5,
+   "group": "B",
+   "title": "Step 由 ITickProvider 以 20 Hz 推进,不由渲染帧驱动",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.Boot.SimTickDriverTest.test_simTickDriver_accumulatesExactly"
+  },
+  {
+   "id": 6,
+   "group": "B",
+   "title": "病人出现:同场被模拟病人数 ≤ 24(超界拒收,不是静默 LOD)",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.DiseaseSimulation.PresenceRegistryTest.test_o2_o3_capFull_appendThrows_andIdRolledBack"
+  },
+  {
+   "id": 7,
+   "group": "B",
+   "title": "采药:玩家跨格产生一条 ActorCellEntered;连续移动本身不产生事件",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac113_diagonalCrossing_singleEvent",
+    "DaYiJingCheng.Tests.PlayerController.CellTransitionTest.test_ac103_mergeOperator_singleEventPerTick"
+   ]
+  },
+  {
+   "id": 8,
+   "group": "B",
+   "title": "拾取:意图事件 + 当下判距 + 宽容半径 —— 离屏拾取被拒(非崩溃)",
+   "status": "test",
+   "reason": "2026-11-01 立载体(S23-6)。原 reason「拾取三段式的玩家侧接线未落」已清:意图 = E 按下沿 claim 钩子(InteractionInputDriver 边沿之内);判距 = 经流确立格(ADR-020 §四);宽容半径 = 装配常量(PickToleranceCells);裁决 = DeathDropReclaimPolicy;入流 = DropEventWriter(裸 long 重载,零铸造)。正例(全链含库存恢复经 20 fold)+ 负例(离屏拒且零事件,非空洞负控)。路由序(拾取优先 → 采集)= InteractClaimRoute(独立类,有夹具,非注释接线)。",
+   "check": [
+    "DaYiJingCheng.Tests.DeathRespawn.DropClaimPickTest.test_smoke8_pickTriple_inRange_claimsGroundInstance",
+    "DaYiJingCheng.Tests.DeathRespawn.DropClaimPickTest.test_smoke8_offRange_rejected_zeroEvents"
+   ]
+  },
+  {
+   "id": 9,
+   "group": "B",
+   "title": "诊断:脉案读 VitalsDto 有读数;disease_id 不出现于任何 UI 元素",
+   "status": "none",
+   "reason": "需 42 接真 DTO 的运行时观测量;静态守卫(PresentationDtoGuard)有夹具,但本条是**运行期**判据"
+  },
+  {
+   "id": 10,
+   "group": "B",
+   "title": "急救(平面):一次完整动作落两条病史流事件;主机 Judge 出 potency",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.EmergencyProcedures.AppliedPayloadSettlementTest.test_emergency_attribution_twoEventsCarryGivenPatientId",
+    "DaYiJingCheng.Tests.EmergencyProcedures.EmergencySkipEntryWiringTest.test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth"
+   ],
+   "reason": "2026-11-01 甲案落账(S22-6 裁定后执行)。原 reason「急救的 Append 生产接线未落」与实测不符:G4.1(2026-10-11)退役的是**自动触发**驱动(EmergencyAttemptDriver._triggeredPatients,现为空壳),而本条讲的是**手动动作**的事件形状。手动路径在且被接线(EmergencyChannelDriver / BootRoot.cs:611 跳过入口 → EmergencyManualDriver → HostEmergencyProcessor:206/:233 双写,:212 主机 Judge 出 potency),两条载体均真装配(emergency_skip_entry_wiring_test 走 CompositionRoot.Assemble())。原件 = production/qa/evidence/s22-6-smoke10-conflict-2026-11-01.md §2 甲案。"
+  },
+  {
+   "id": 11,
+   "group": "B",
+   "title": "处方:守恒断言在日志中恒成立",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.Unit.ItemDatabase.ConservationLawGatesTest.test_aggregateConservation_exactEquality_accepted"
+  },
+  {
+   "id": 12,
+   "group": "B",
+   "title": "病例结案:已处置判定来自处置事件,而非玩家复选框",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.CaseSystem.CaseClosePreconditionTest.test_ac3721_checkedButNoTreatmentInWindow_rejects",
+    "DaYiJingCheng.Tests.CaseSystem.CaseCloseWriterTest.test_caseClosed_treatmentOnOpenTick_inclusiveBoundary_closes"
+   ]
+  },
+  {
+   "id": 13,
+   "group": "B",
+   "title": "建造:模块对齐整数格;帐篷(P0 唯一新建例外)可放置且不改世界流骨架",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.ModularBuilding.PlaceableCheckerTest.test_rotation_90_swapsXY",
+    "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_shippedData_hasTentSlotAndModule",
+    "DaYiJingCheng.Tests.ModularBuilding.TentPlacementTest.test_tentPlacement_writesExactlyOneStructurePlaced"
+   ],
+   "reason": "2026-11-01 立载体(S22-8 甲案)。原 reason 原文保留在下方,先订正它的一处措辞:原文「「模块对齐整数格」**有载体**」指的是 `BuildSlotCatalog` 用 `WorldPos` 这**一句话**,**没有指名任何一条测试** —— 而本条判据要的是可执行载体,故当时整条记 `none` 是对的。现补齐两半:① 整数格 / 整数旋转 = `PlaceableCheckerTest.test_rotation_90_swapsXY`(`ComputeOccupiedCells` 全整数,禁浮点);② 帐篷 = `SlotType.Tent = 7` + `build_modules.json` 第 10 条 + `world_buildslots.json` 骨架外 1 格,判据走**真烘焙产物**(3 条:出货数据恰 1 槽 1 模块 / 放置 ⇒ 恰一条 `StructurePlaced` / 非 Tent 槽 ⇒ `TypeMismatch` 且零 Append)。⚠️ 同批连带实况:枚举扩员触发**两条既有哨兵**转红(`slot_type_vocabulary_test` 的七对字面量、`world_buildslots_codec_validation_test` 的掩码上界 127→255),已按「契约演进」逐条复核订正,不是改期望值凑绿。原 reason:「「模块对齐整数格」**有载体**(`BuildSlotCatalog` 用 `WorldPos` 整数格);但「帐篷(P0 唯一新建例外)可放置」**是功能未实现,不是缺夹具** —— 全仓 `grep -rni \"tent\\b|帐篷\" unity/Assets --include=*.cs` **零命中**(仅 intent 假阳性),`assets/data/*.json` 亦无帐篷条目。GDD 有裁定(`game-concept.md:698`),代码零实现 ⇒ 本条要等 23 的帐篷实现轮"
+  },
+  {
+   "id": 14,
+   "group": "B",
+   "title": "疫情:52 抽池事件落在 PATIENT_APPEARANCE_CAP 界内,超界拒收 + 明确报错",
+   "status": "test",
+   "check": [
+    "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_inCap_writesRollThenArrival_withSyntheticKey",
+    "DaYiJingCheng.Tests.RandomEvents.RandomEventSpawnChainTest.test_overCap_rejectsWithExplicitError_andWritesNothing"
+   ],
+   "reason": "2026-11-01 立载体(S22-4)。原 reason「52 抽池侧生产路径未接线」已过期:`RandomEventSpawnChain`(抽池 → 掷骰 → F1 → EventArrived → 病人出现)已落地,并由 `RandomEventsDirectorDriver.OnTickEdge` 每 tick 调用;CAP 预检排在**任何 Append 之前**(超界 ⇒ 零写入 + 具名报错)。夹具**全部用合成 key 集/格集**驱动(卡面硬约束:生产双真空下照生产数据写夹具 = 假绿)。证伪 4 变异各 red。"
+  },
+  {
+   "id": 15,
+   "group": "C",
+   "title": "退出自动保存 → 重启读回:三流长度、ConfigVersion、max(patient_id) 高水位一致",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.PersistenceService.SaveReplayRoundtripTest.test_replay_roundtrip_restoredRowsAndHighWater_matchPreSaveState"
+  },
+  {
+   "id": 16,
+   "group": "C",
+   "title": "checkpoint(默认 5 分钟)落盘且可回退到最近一次",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.PersistenceService.CheckpointFallbackTest.test_checkpointFallback_firstFire_onExactIntervalTick"
+  },
+  {
+   "id": 17,
+   "group": "C",
+   "title": "篡改存档字节一位 → 校验和红 + 自动回退,不出现半损坏状态继续玩",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.PersistenceService.SaveServiceTest.test_checksumFallback_readsBakWhenFinalCorrupted"
+  },
+  {
+   "id": 18,
+   "group": "C",
+   "title": "存档往返后,同一 seed 重放的逐位哈希相同(Fix 全程 raw long,无 float 泄漏)",
+   "status": "none",
+   "reason": "跨构建逐位对照 = TD-ci-01(EXTERNAL,凭证在用户侧);单构建内重放等值另有夹具,不等于本条"
+  },
+  {
+   "id": 19,
+   "group": "D",
+   "title": "连续 5 分钟游玩内存无单调增长",
+   "status": "manual",
+   "protocol": "Memory Profiler 采样 5 min;执行人 = 实现者;时点 = 触及长生命期容器的改动之后"
+  },
+  {
+   "id": 20,
+   "group": "D",
+   "title": "L_input → 呈现 < 50 ms(仅测 L_input,不合并 L_eval)",
+   "status": "manual",
+   "protocol": "目标硬件手动计时(AC-10-08);执行人 = 实现者;时点 = 输入路径或渲染管线变更后"
+  },
+  {
+   "id": 21,
+   "group": "D",
+   "title": "24 病人 × 20 Hz 求值不超 tick 预算(L_eval ≤ 50 ms)",
+   "status": "test",
+   "check": "DaYiJingCheng.Tests.DiseaseSimulation.PatientCapTickBudgetTest.test_cap24_singleTickEvaluation_under50ms"
+  },
+  {
+   "id": 22,
+   "group": "D",
+   "title": "Linux-x64-Mono 与 Linux-x64-IL2CPP 两构建的黄金夹具哈希逐字节相同",
+   "status": "none",
+   "reason": "ADR-012 常驻矩阵 = TD-ci-01(EXTERNAL,凭证在用户侧)"
+  }
+ ]
 }
