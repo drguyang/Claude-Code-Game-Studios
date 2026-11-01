@@ -6,7 +6,7 @@
 //      零 SkillGrown(emitGrowth=false;非空转守卫 = 双事件确实入流);
 //   ② AC-9-05 强度判别:同 Patient 同表,method 0(满幅聚合)⇒ 65536;
 //      method 1 ⇒ 32768 —— 两档在流上可判别;
-//   ③ 路由 fail-loud:未接 EmergencyManualDriver ⇒ SubmitEmergencySkip 抛
+//   ③ 路由 fail-loud:未接 EmergencyChannelDriver ⇒ SubmitEmergencySkip 抛
 //      (装配遗漏同口径);未绑病人 ⇒ 静默零事件(合法玩家路径,与 SubmitDose 的
 //      fail-loud 刻意不同 —— 见路由头注);
 //   ④ 绑定 + 接线 + 不在场 ⇒ 零事件(presence 门,零提示纪律);
@@ -102,7 +102,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             // ⚠️ 与 SubmitDose 的「未绑 ⇒ fail-loud」刻意不同(见路由 SubmitEmergencySkip 头注)。
             var router = new CasebookCommandRouter(_bag.PrescriptionPage.Writer,
                 () => _bag.TickDriver.CurrentTick, _bag.PrescriptionPage);
-            router.BindEmergencySkip(_driver, actorId: 9001);
+            router.BindEmergencySkip(_bag.EmergencyChannel, actorId: 9001);   // story-010 甲案:宿主改为通道驱动
             int before = _bag.Stream.Count;
 
             Assert.DoesNotThrow(() => router.SubmitEmergencySkip(),
@@ -113,7 +113,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_router_notWired_skipFailsLoud()
         {
-            // 装配遗漏(未接 EmergencyManualDriver)⇒ fail-loud(与未接方笺页同口径)。
+            // 装配遗漏(未接 EmergencyChannelDriver ⇒ story-010 甲案后宿主是它)⇒ fail-loud。
             var router = new CasebookCommandRouter(_bag.PrescriptionPage.Writer,
                 () => _bag.TickDriver.CurrentTick, _bag.PrescriptionPage);
             router.BindPatient(_patient);   // 绑了病人但没接线
@@ -127,7 +127,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             var router = new CasebookCommandRouter(_bag.PrescriptionPage.Writer,
                 () => _bag.TickDriver.CurrentTick, _bag.PrescriptionPage);
-            router.BindEmergencySkip(_driver, actorId: 9001);
+            router.BindEmergencySkip(_bag.EmergencyChannel, actorId: 9001);   // story-010 甲案:宿主改为通道驱动
             router.BindPatient(_patient);
             int before = _bag.Stream.Count;
 
@@ -149,7 +149,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             // 不 AddPresent —— 未出现
             var router = new CasebookCommandRouter(_bag.PrescriptionPage.Writer,
                 () => _bag.TickDriver.CurrentTick, _bag.PrescriptionPage);
-            router.BindEmergencySkip(_driver, actorId: 9001);
+            router.BindEmergencySkip(_bag.EmergencyChannel, actorId: 9001);   // story-010 甲案:宿主改为通道驱动
             router.BindPatient(absent);
             int before = _bag.Stream.Count;
 
@@ -192,7 +192,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             var runtime = _bag.EmergencyCandidates;
             var router = new CasebookCommandRouter(_bag.PrescriptionPage.Writer,
                 () => _bag.TickDriver.CurrentTick, _bag.PrescriptionPage);
-            router.BindEmergencySkip(_driver, actorId: 9001);
+            router.BindEmergencySkip(_bag.EmergencyChannel, actorId: 9001);   // story-010 甲案:宿主改为通道驱动
             router.BindPatient(_patient);
             runtime.SetSkipCallback(router.SubmitEmergencySkip);
             int before = _bag.Stream.Count;

@@ -112,13 +112,6 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         }
 
         [Test]
-        public void test_ac1018_abort_emitsExplore()
-        {
-            var abort = ModalPhaseEvaluator.Abort(idleTicks: 100);
-            Assert.AreEqual(1, abort.ExploreCount, "中止应发 Explore");
-        }
-
-        [Test]
         public void test_ac1018_abort_thresholdBoundary()
         {
             // 阈值边界: idleTicks == ABORT_IDLE_TICKS ⇒ 中止
@@ -131,30 +124,19 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             Assert.IsTrue(belowThreshold.MotorSuppressed, "动作继续时 MotorSuppressed 应置位");
         }
 
-        // ══════════ AC-10-11: 跳过路径执行完毕必发 Explore ══════════
-
-        [Test]
-        public void test_ac1011_skip_emitsExplore()
-        {
-            var skip = ModalPhaseEvaluator.Skip(accessibilityOn: false);
-            Assert.AreEqual(1, skip.ExploreCount, "跳过路径执行完毕应发 Explore");
-        }
-
-        [Test]
-        public void test_ac1011_complete_noExplore()
-        {
-            // 负向: 完成路径不发 Explore
-            var complete = ModalPhaseEvaluator.Complete(accessibilityOn: false);
-            Assert.AreEqual(0, complete.ExploreCount, "完成路径不应发 Explore");
-        }
-
-        [Test]
-        public void test_ac1011_missed_noExplore()
-        {
-            // 负向: Missed 路径不发 Explore
-            var missed = ModalPhaseEvaluator.Missed();
-            Assert.AreEqual(0, missed.ExploreCount, "Missed 路径不应发 Explore");
-        }
+        // ══════════ AC-10-11: 档位意图 ══════════
+        //
+        // 🔁 **2026-11-02(story-010 R-10.5):本节的 4 条断言已删除** —— 它们断的是
+        //   `ModalPhaseEvaluator` **自己返回的整数**,而不是相机真的收到了请求:
+        //   工厂方法里写死该值、断言必然成立,**改坏生产行为也不会红**(假绿形态 F1)。
+        //
+        //   `AC-10-11` 的新载体(两层,缺一不算):
+        //     · L1 意图层 → `emergency_camera_mode_intent_test.cs`(间谍 ICameraRig 记录
+        //                   (mode, requesterId) 序列)
+        //     · L2 真机层 → PlayMode `emergency_camera_mode_intent_wiring_test.cs`
+        //                   (真 CameraRig,Tick 后断 rig.Mode)
+        //   ⚠️ 「跳过路径必发 Explore」一半今日**不可失败**(跳过入口只在 Idle 可达,
+        //      见 story-010 §R-10.7)⇒ 永远标 NOT-RUN,**不得**在本节补一条计数断言充当它。
 
         // ══════════ AC-10-13: MotorSuppressed 置位/清除配对 ══════════
 

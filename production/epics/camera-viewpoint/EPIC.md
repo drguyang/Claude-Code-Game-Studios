@@ -75,3 +75,23 @@ Counts: 4 Logic · 1 Integration · 1 Visual/Feel = 6 total.
 ## Next Step
 
 Story 002(`YawBasis`)优先开工 —— 它同时解锁玩家控制器 Epic Story 002/003;001 并行(纯边界判据);003–005 依四段机器顺序推进;006 的 playtest 面待可玩构建。
+
+---
+
+## 🔁 2026-11-02 跨 epic 登记:`CameraRig.Tick` 此前**零生产调用点**(由 `emergency-procedures/story-010` 查出并接线)
+
+**事实**:本 epic 交付的 `CameraRig.Tick(float)` 在 2026-11-02 之前**没有任何生产调用点**
+(`grep -rn "\.Tick(" unity/Assets --include=*.cs | grep -v /Tests/` ⇒ 只有 `AudioTierDriver.Tick`)。
+`CameraModeMachine.Settle` 仅在 `CameraRig.Tick` 与 `SetModeForTest`(启动序一次、瞬时结算)里被调
+⇒ **档位状态机在生产中从不结算,`Mode` 永远锁死 `Explore`**。
+
+**后果(逐个请求方)**:29 的 `Downed`、10 的 `Treatment`、39 将来的 `Casebook` —— 全部"发了但没生效"。
+这也解释了 `camera_downed_visual_walkthrough` 为什么必须**手工调 `_rig.Tick()`** 才看得到倒塌两段式。
+
+**处置**:用户 2026-11-02 裁定「`story-010` 顺带接 Tick」⇒ `BootRoot.Update` 增一行
+`_cameraRig.Tick(UnityEngine.Time.deltaTime)`(带日期注)。
+
+**⚠️ 本 epic 侧须承接的行为面**:自此 **`Casebook` / `Treatment` 的档位转场才真正生效**。
+本 epic 的 `AC-2-17` / `AC-2-18` / `AC-2-20` 此前只有 EditMode 覆盖 —— 现运行期真跑,
+**未做过真机走查**;若发现转场观感/时序问题,归本 epic 的机位轮,不得回挂 `story-010`
+(它只负责「让状态机开始结算」这一件事)。

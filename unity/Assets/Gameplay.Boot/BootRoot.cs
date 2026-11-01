@@ -669,9 +669,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services.PrescriptionPage?.SetAuthor(actorId);
 
             // ── 4.65. 急救跳过入口写路径接线(story-009 · R-9.4)──
-            // 候选列表「跳过」项 Submit → EmergencyManualDriver.TryManual(method 1)。
+            // 候选列表「跳过」项 Submit → EmergencyChannelDriver.SkipAction
+            //   → 先发 Explore 档位意图,再委派 EmergencyManualDriver.TryManual(method 1)。
+            // 🔁 **2026-11-02(story-010 R-10.7 甲案)**:宿主从 EmergencyManualDriver 改为
+            //    EmergencyChannelDriver —— 跳过必须回到相机链上,否则规则八的
+            //    「跳过路径结束必发 Explore」没有落点(立件时实测:此前零落点)。
             // actorId 由 BootRoot 生成玩家后注入(SetAuthor 同款后置形态 —— 装配期未知)。
-            _services.CasebookCommands?.BindEmergencySkip(_services.EmergencyManualDriver, actorId);
+            _services.CasebookCommands?.BindEmergencySkip(_services.EmergencyChannel, actorId);
 
             // ── 4.7. 病名册观看者(sprint-08 S1.1 件 E):SetViewer(玩家 actorId 已定)──
             // 病名册条目集按人分册(铁律⑤「每人一本」)—— 观看者 = 玩家。
@@ -732,6 +736,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             cameraObj.AddComponent<UnityEngine.Camera>();
             cameraObj.AddComponent<UnityEngine.AudioListener>();   // 运行时主相机 = 唯一听音点
             _cameraRig.SetModeForTest(CameraMode.Explore);
+
+            // ── 5.0b. 急救档位意图的相机绑定(story-010 R-10.2 · 2026-11-02)──────
+            // 10 的档位意图(Treatment / Explore)住所 = EmergencyChannelDriver,而它在本步**之前**
+            // 的 CompositionRoot.Assemble 里就构造好了 ⇒ 只能后置绑定(与 TeleportSink.BindPlayer /
+            // SetAuthor / BuildOwner 同一约定)。
+            // ⚠️ 用 `Func` 而非实例:`_cameraRig` 在拆卸段会被置 null,而闭包可能在下一帧才求值
+            //    (2026-11-01 的 94 条 PlayMode 红就是这个形态)⇒ 驱动侧判 null 即静默跳过。
+            // ⚠️ 漏掉本行 = 相机永远收不到 Treatment/Explore,且**不崩不报错** —— 由
+            //    PlayMode 夹具的 `HasCameraRig == true` 断言守着(story-010 S10-06b)。
+            _services.EmergencyChannel?.BindCameraRig(() => _cameraRig);
 
             // ── 5.1. 空间化听者锚点(S15-4 · TD-audio-028)────────────────────
             // 听者 = **主相机**(ADR-020 §七:`AudioListener` 的单挂点就是它)——
@@ -1708,6 +1722,19 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 相机跟随(sprint-05 T1.5):每帧把相机位置设到玩家位置 + 偏移
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
+            if (_cameraRig != null)
+            {
+                // 🔴 **2026-11-02(story-010 · 用户裁定「本卡顺带接 Tick」)**:
+                //   此前 `CameraRig.Tick` **零生产调用点** ⇒ `CameraModeMachine.Settle` 从不执行
+                //   ⇒ 档位**永远锁死在 `Explore`**:29 的 `Downed`、10 的 `Treatment`、将来的 39
+                //   `Casebook` 都只是入队,永不结算(实测见 `story-010` §Context 的勘察)。
+                //   ⚠️ **跨 epic 后果**:接上本行即**同时**激活 29 的两段式倒下相机与 39 的档位转场
+                //   —— 这是修复,不是新特性;但两处行为变化须在各自卡面/证据件登记,不得当作噪声。
+                //   ⚠️ 相位:单一显式入口(AC-2-27③),用**渲染帧 dt**(档位转场是表现态,
+                //   不是 tick 域;承 `CameraRig.Tick` 的 `<param>` 注)。
+                _cameraRig.Tick(UnityEngine.Time.deltaTime);
+            }
+
             if (_cameraRig != null && _player != null)
             {
                 var cam = _cameraRig.Camera;

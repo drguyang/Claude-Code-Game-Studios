@@ -362,6 +362,15 @@ SkipEquivalence = ON(49 的玩家侧开关)⇒ JudgeResult = Applied
 > **这是 10 最容易被漏的一条**(跳过路径的实现常被当成「什么都没发生」)。
 > 由 **AC-10-11** 守。
 
+> 🔁 **2026-11-02 登记(乙案 · `story-010` R-10.7 · 用户裁定「甲+乙」)** —— **现行 P0 的跳过
+> 入口只在 `Idle` 可达**(`story-009` 的用户裁定 `R-9.3`:候选列表仅 `Idle` 态可见),
+> 而跳过入口此前**直连** `EmergencyManualDriver.TryManual(method:1)`、不经
+> `EmergencyChannelDriver` ⇒ 该路径上发出的 `Explore` 是**防御性幂等请求**(相机本就在
+> `Explore`),**不构成本条规则的可失败判据**。甲案(把跳过拉回相机链、经
+> `EmergencyChannelDriver.SkipAction`)已由 `story-010` 落地;乙案(本节与 `AC-10-11`
+> 的登记)即本注。**规则八的真实判别力在「动作结束必发 `Explore`」一半**(由 `story-010`
+> 的 L1/L2 夹具守),**不得**把「跳过已发」记作本规则已验证。
+
 ### 规则九:移动抑制 —— 动作期间玩家不动
 
 **10 与 1 的接口**:**1 提供 `MotorSuppressed` 置位权**(承 `player-controller-and-movement.md:363`)。
@@ -1042,6 +1051,7 @@ Aggregate(reading[整个动作期]) → agg = {
 | **AC-10-10b** | **BLOCKING** | **[A]** | `GIVEN` 任意 `(reading, ctx)`,**WHEN** 比较三档 potency,`THEN` **`Skip(默认) > Missed`**(0.5 > 0.25)且 **`Manual-Applied > Skip(默认)`**(1.0 > 0.5)。⇒ **动手既不被支配、也不被用来惩罚无障碍玩家**(R-6 的偏序,数值已定故可断) |
 | **AC-10-10c** | **BLOCKING** | **[A]** | `GIVEN` 一次 `Missed`(手动且稳度 + 节奏双不过),`WHEN` 检索成长读数,`THEN` **发**成长(承 30「做过即成长」);**而一次 `Skip` 不发** —— 两者 `JudgeResult` 在开关 OFF 下**同为 `AppliedWeak`**,差异**只在 `method`** ⇒ **堵「故意抖手刷 `SkillMul`」**(R-4 / game-designer #3) |
 | **AC-10-11** | **BLOCKING** | **[I]** | `GIVEN` **跳过路径执行完毕**,`WHEN` 集成走查,`THEN` **必发 `Explore`** —— 相机不卡在近景(规则八 · `O-12`) |
+| 🔁 **AC-10-11 记分口径(2026-11-02 拆半 · `story-010` R-10.7 乙案)** | — | — | **本 AC 拆成两半,分开记分,禁合并借绿**:(a)「**动作结束**必发 `Explore`」—— 可判可绿,载体 = `story-010` L1(`emergency_camera_mode_intent_test`) + L2(`emergency_camera_mode_intent_wiring_test` 真机断 `rig.Mode`);(b)「**跳过路径**必发 `Explore`」—— 因 `R-9.3` 的 Idle 门,该路径今日**不可失败**,永远记 **请求在位 + 不可达(`NOT-RUN**)**,**不得记 ✅**。另:此前顶替本 AC 的计数载体(`ModalPhaseResult` 的 Explore 计数)已于同日退役 —— 它没有生产读者,断它等于断求值器自己写的字面量(假绿形态 F1) |
 | **AC-10-12** | **ADVISORY** | **[L]** | `GIVEN` 纯手柄 + 纯键盘单机,`WHEN` 走查全部动作(含跳过),`THEN` **零按键提示即完成**,且跳过入口在 **`Idle` 态**焦点可导航(规则六 · 六之甲 · `AC-3-F1a`) |
 | **AC-10-13** | **BLOCKING** | **[A]** | `GIVEN` 动作期间,`WHEN` 检索,`THEN` 1 的 `MotorSuppressed` **被置位**且结束时清除(含跳过 / 中止)(规则九 · 六之甲) |
 | **AC-10-14** | **BLOCKING** | **[A]** | `GIVEN` `Armed` 态,`WHEN` 检索意图路由,`THEN` `InteractIntent` 与 UI 焦点移动**被压制**,**但 3 侧零状态**(规则七) |

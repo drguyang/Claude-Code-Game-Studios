@@ -1,7 +1,8 @@
 # Story 010: 档位意图生产接线 —— `Treatment` / `Explore` 必发(含中止),并退役 `ExploreCount` 假绿载体
 
 > **Epic**: 10 急救动作
-> **Status**: **Ready ⬜**(2026-11-02 立件 —— 规范已写定,**实现未开工**;§Acceptance Criteria 全部未勾,禁借绿)
+> **Status**: **Complete ✅ 2026-11-02**(**COMPLETE WITH NOTES** —— 见 §Completion Notes;
+> `AC-10-11` 的「跳过路径」半按裁定永久 `NOT-RUN`,**不记绿**;`S10-09` 真机走查 `NOT-RUN`)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 1.5–2.5 人日(约 12–20h)
@@ -211,6 +212,25 @@ EmergencyCandidateList 跳过入口 Submit
 > `In Scope` 的跳过项**保留**,S10-10 **是 BLOCKING 真判据**(不是登记项)。
 > 落点见 §Implementation Notes 第 7 项与 §用户批准记录 第 4 项。
 
+**R-10.8 🔴 实现轮查出的第三处结构性事实:`CameraRig.Tick` 零生产调用(用户 2026-11-02 裁定「本卡顺带接」)。**
+
+写 L2 夹具时撞到:`CameraModeMachine.Settle` 只在 `CameraRig.Tick` 与 `SetModeForTest`
+两处被调,而 **`CameraRig.Tick` 在生产码里一个调用点都没有**:
+
+```bash
+grep -rn "\.Tick(" unity/Assets --include=*.cs | grep -v /Tests/
+# 之前:只有 AudioTierDriver.Tick(BootRoot:1708)
+```
+
+⇒ **档位状态机在生产中从不结算**,`Mode` 永远锁死 `Explore`;29 的 `Downed`、10 的 `Treatment`、
+39 将来的 `Casebook` 全部「发了不生效」。这也解释了 2026-11-01 那轮 PlayMode 走查
+**为什么必须手工调 `_rig.Tick()`** —— 当时没问「生产里谁调它」。
+
+**处置**:`BootRoot.Update` 增 `_cameraRig.Tick(UnityEngine.Time.deltaTime)` + 日期注;
+跨 epic 行为变化在 `camera-viewpoint/EPIC.md` 与 `death-respawn/EPIC.md` 各登记一节,
+`production/qa/evidence/s24-camera-downed-two-phase-2026-11-01.md` §15 补记。
+**守卫** = L2 的 `test_s10_06_*`(证伪 M7 恰 1 红,`S10-06b` 仍绿 —— 归因干净)。
+
 ---
 
 ## In Scope
@@ -267,44 +287,44 @@ EmergencyCandidateList 跳过入口 Submit
 
 ## Acceptance Criteria
 
-- [ ] **AC-10-11**(GDD · `BLOCKING` · `[I]`)`GIVEN` **跳过路径执行完毕**,`WHEN` 集成走查,
+- [x] **AC-10-11**(GDD · `BLOCKING` · `[I]`)`GIVEN` **跳过路径执行完毕**,`WHEN` 集成走查,
       `THEN` **必发 `Explore`** —— 相机不卡在近景
       ⟶ **按 R-10.7 拆两半,两半分开记分,禁合并借绿**:
 
       | 半 | 判据 | 本卡状态 |
       |---|---|---|
-      | **「动作结束必发 `Explore`」** | S10-02(S10-03 为中止支) | **可判** —— 这是 AC 真正有内容的那一半 |
-      | **「跳过路径必发 `Explore`」** | S10-10 + S10-11 | ⚠️ **今日不可失败**(R-10.7:跳过为 `Idle`-only)⇒ 甲+乙落地后为「请求在位(甲)+ 不可达性已登记(乙)」,**仍不得记作「已通过」** |
+      | **「动作结束必发 `Explore`」** | S10-02(S10-03 为中止支) | ✅ **已证** —— 这是 AC 真正有内容的那一半 |
+      | **「跳过路径必发 `Explore`」** | S10-10 + S10-11 | 🟡 **请求在位(甲)+ 不可达性已登记(乙)**,**永久 `NOT-RUN`** —— 依裁定**不得记 ✅** |
       ⟶ 计数器断言退役见 R-10.5;原「一条 AC 一个载体」的写法**就此作废**(它正是假绿的载体形式)
-- [ ] **S10-01**(`[A]` · BLOCKING)动作开始 ⇒ 相机**恰收到一条** `(Treatment, requesterId: 10)`;
+- [x] **S10-01**(`[A]` · BLOCKING)动作开始 ⇒ 相机**恰收到一条** `(Treatment, requesterId: 10)`;
       `Arm` 因非 `Idle` 抛出的那一轮 ⇒ **零**档位请求(R-10.1 的「成功之后」)
-- [ ] **S10-02**(`[A]` · BLOCKING)动作结束两出口 —— **正常完成** / **零样本签约(`agg == null`)**
+- [x] **S10-02**(`[A]` · BLOCKING)动作结束两出口 —— **正常完成** / **零样本签约(`agg == null`)**
       各 ⇒ **恰一条** `(Explore, 10)`;两条出口**分别独立**断言(缺一条即漏一种最典型的漏写法)。
       ⚠️ **跳过**不在本条 —— 它不走通道(R-10.7),另由 S10-10 判
-- [ ] **S10-03**(`[A]` · BLOCKING)中止两路 —— **玩家停手(`AbortAction`)** 与 **tick 看门狗
+- [x] **S10-03**(`[A]` · BLOCKING)中止两路 —— **玩家停手(`AbortAction`)** 与 **tick 看门狗
       (`OnTickEdge` → `AbortAction`)** 各 ⇒ **恰一条** `(Explore, 10)`,且**零处置事件**
       (与 `AC-9-09` 不相冲:后者判事件,本条判相机)
-- [ ] **S10-04**(`[A]` · BLOCKING)Idle 态误触 —— `EndAction` / `AbortAction` 在**未 `Arm`** 时
+- [x] **S10-04**(`[A]` · BLOCKING)Idle 态误触 —— `EndAction` / `AbortAction` 在**未 `Arm`** 时
       ⇒ **零**档位请求(不得凭空发 `Explore`;这是 `EndAction` / `AbortAction` 现有
       `_onIdleGate?.Invoke(true)` 无条件调用所隐含的同一类问题)
-- [ ] **S10-05**(`[A]` · BLOCKING)`ExploreCount` **已退役** —— `ModalPhaseResult` 无该字段;
+- [x] **S10-05**(`[A]` · BLOCKING)`ExploreCount` **已退役** —— `ModalPhaseResult` 无该字段;
       `grep -rn "ExploreCount" unity/Assets --include=*.cs` **零命中**
-- [ ] **S10-06**(`[A]` · BLOCKING)真机 `CameraRig` —— `Arm` + 充分 `Tick` ⇒ `rig.Mode == Treatment`;
+- [x] **S10-06**(`[A]` · BLOCKING)真机 `CameraRig` —— `Arm` + 充分 `Tick` ⇒ `rig.Mode == Treatment`;
       `EndAction` + 充分 `Tick` ⇒ `rig.Mode == Explore`(L2;测试期间不请求 `Casebook`;
       ⚠️ **不走跳过路径** —— 跳过不经通道,R-10.7)
-- [ ] **S10-06b**(`[A]` · BLOCKING)**后置绑定真的发生了** —— 走**生产启动序**后
+- [x] **S10-06b**(`[A]` · BLOCKING)**后置绑定真的发生了** —— 走**生产启动序**后
       `EmergencyChannelDriver.HasCameraRig == true`。
       ⚠️ 这条是 R-10.2 的守卫:**「没绑」不崩不报错**,只有这条断言会把它变成红的
-- [ ] **S10-07**(`[A]` · BLOCKING)机械门 —— `CameraSetModeRequesterGate` 全树 **零违例**,
+- [x] **S10-07**(`[A]` · BLOCKING)机械门 —— `CameraSetModeRequesterGate` 全树 **零违例**,
       且新调用点落在 `Gameplay.Boot/EmergencyChannelDriver.cs`(接收者**不是**豁免名 `_modeMachine`)
-- [ ] **S10-08**(`[A]` · ADVISORY)三处调用点的 `10` 来自**单一常量**(`EmergencyChannelDriver.RequesterId`),
+- [x] **S10-08**(`[A]` · ADVISORY)三处调用点的 `10` 来自**单一常量**(`EmergencyChannelDriver.RequesterId`),
       三处**不各写一个字面 `10`**(防「改一处漏两处」)
 - [ ] **S10-09**(`[L]` · ADVISORY)真机走查 —— 长按 F 进近景、松开回探索视角,**无「卡在近景」**
       (需图形界面;`-batchmode -nographics` 结构性不可判 ⇒ 天然 `NOT-RUN`,**不得借绿**)
-- [ ] **S10-10**(`[A]` · BLOCKING · 甲案 · **已裁定**)跳过入口 ⇒ 相机**恰收到一条**
+- [x] **S10-10**(`[A]` · BLOCKING · 甲案 · **已裁定**)跳过入口 ⇒ 相机**恰收到一条**
       `(Explore, 10)`(甲案:经 `EmergencyChannelDriver.SkipAction`),且 `TryManual(method: 1)` 仍被调用
       **恰一次**(与 story-009 的 AC-9-05 不重复判结算,只判「没把跳过改坏」)
-- [ ] **S10-11**(`[I]` · BLOCKING · 乙案 · **已裁定**)不可达性**已如实登记** ——
+- [x] **S10-11**(`[I]` · BLOCKING · 乙案 · **已裁定**)不可达性**已如实登记** ——
       story 内与 GDD 回写处均写明「现行 P0 跳过为 `Idle`-only ⇒ 该 `Explore` 是防御性幂等请求,
       不构成 `AC-10-11` 的可失败判据」。判据 = 该句在两个文件里**逐字存在**(`grep -F` 命中),
       ⚠️ 本条**不是**形式主义:没有这句,本卡就是把一个计数器换成了一个 no-op
@@ -442,7 +462,7 @@ PY
    | M2 | `AbortAction` 的 `Explore` 请求删掉 | S10-03 |
    | M3 | 三处 `requesterId: 10` → `-1` | S10-01/02/03(L1 的 requesterId 断言)+ `CameraSetModeRequesterGate` |
    | M4 | 把 `Explore` 改成以 `agg != null` 为条件 | S10-02 的零样本例 |
-   | M5 | 删掉 `BootRoot` 里的 `BindCameraRig(...)` 调用 | S10-06b(且**只有它** —— 这正是「静默失败」的判别力证明) |
+   | M5 | 删掉 `BootRoot` 里的 `BindCameraRig(...)` 调用 | S10-06b + S10-06(⚠️ **实测 2 红** —— 原写「只有 S10-06b」**不成立**:不绑定连请求都发不出去) |
    | M6 | `SkipAction` 里删掉 `Explore` 请求(甲案) | S10-10 |
 
    ⚠️ **M4 是本卡的核心判别力测试** —— 若它不红,说明夹具没有覆盖「零样本也必须回探索视角」,
@@ -531,3 +551,54 @@ PY
 
 > ⚠️ **这一条不是形式主义**:若实现轮把「跳过路径必发 `Explore`」记成 ✅,
 > 就是把一个计数器换成了一个 no-op,假绿形态不变。S10-11 的 `grep -F` 判据守的就是这个。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-02(sprint-23 `S23-7` · 收口后追加件)
+**Verdict**: **COMPLETE WITH NOTES** —— 13 条 AC 中 **11 条已证**,1 条按裁定永久 `NOT-RUN`(AC-10-11 跳过半),1 条 `NOT-RUN`(S10-09 真机走查)
+**Deviations**: 见 §四;零阻塞项
+**Test Evidence**: L1 `Tests/EditMode/EmergencyProcedures/emergency_camera_mode_intent_test.cs`(15 测)· L2 `Tests/PlayMode/EmergencyProcedures/emergency_camera_mode_intent_wiring_test.cs`(2 测)
+**Code Review**: 未跑(lean 模式;本轮改动集中,证伪轮 7 条覆盖)
+
+### 一、逐条 AC 记分
+
+| AC | 判定 | 载体 |
+|---|---|---|
+| **AC-10-11** · 动作结束半 | ✅ **已证** | L1 + L2 |
+| **AC-10-11** · 跳过路径半 | 🟡 **请求在位,不可失败 ⇒ 永久 `NOT-RUN`** | L1 的 `test_s10_10_*` 只证「请求在位」;不可达性已登记(GDD 规则八 + `AC-10-11` 注 + 本节) |
+| **S10-01 / 02 / 03 / 04** | ✅ | `test_s10_01_*` / `_02_*` / `_03_*` / `_04_*` |
+| **S10-05** | ✅ | 集合相等断言 + `grep` 零命中 |
+| **S10-06 / 06b** | ✅ | PlayMode 真机 |
+| **S10-07** | ✅ | 门在真树跑出空(且 M3 证明它会红) |
+| **S10-08** | ✅ | 单一常量 |
+| **S10-09** `[L]` | ⛔ **`NOT-RUN`** | batch 无图形界面 |
+| **S10-10 / 11** | ✅ | 甲案 `SkipAction` + 乙案两处登记 |
+
+### 二、证伪轮(7 条 · 全数各自转红 · SHA-256 逐字节还原)
+
+M1 2 红(exact)· M2 2 红(exact)· **M3 8 红(超集)**· M4 **1 红(exact,核心判别力)**·
+M5 **2 红** —— ⚠️ **卡面原写「只有 S10-06b」不成立,实测 S10-06 也红,已在 §Implementation Notes 订正**·
+M6 1 红(exact)· M7 **1 红(exact,S10-06b 仍绿)**。
+
+`grep -rn "FALSIFY-" unity/Assets --include=*.cs` ⇒ **0**。
+
+### 三、回归(三元组)
+
+`EditMode 6492 / 6455 / 0 / 0 / 37` · `PlayMode 277 / 273 / 0 / 2 / 2`
+`@ 2026-11-02 00:5x–01:0x CST` · 批次 `S23-7` · commit `00637dc9` + 工作树。
+等式:EditMode `6492 − 6481 = 11 = 15 新 − 4 删`;PlayMode `277 − 275 = 2`。
+
+### 四、如实登记的五件事
+
+1. **`AC-10-11` 的跳过半永久不可失败** —— 依 2026-11-02 裁定,它**永远**记「请求在位 + 不可达」,
+   不得因为 `test_s10_10_*` 是绿的就说这条 AC 通过。
+2. **`CameraRig.Tick` 接线是**本卡顺带修的既有缺陷**,不是本卡的需求(R-10.8)。它同时激活了
+   29 的 `Downed` 与 39 的 `Casebook` —— **两处都还没走过真机**,归各自 epic 的机位轮。
+3. **M5 的卡面预期写错了**(「只有 S10-06b」)。已就地订正为「2 红」,并用 M7 补上真正
+   「只有一条红」的归因链。不改正的话,下一轮读卡的人会以为判别力比实际强。
+4. **删了 4 条既有测试**(`modal_phase_test` 的计数断言)。它们不是回归,是**假绿载体**;
+   回归等式里的 `− 4` 是明写的,不是笔误。
+5. **`MotorLease` / `AC-10-13` 仍未接线** —— 本卡 Out of Scope 已登记,须另立 story。
+   本卡在 `EndAction` / `AbortAction` 上建立的出口钩子可直接复用。

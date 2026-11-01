@@ -1021,3 +1021,38 @@ grep -rn "ExploreCount" --include=*.cs unity/Assets/ | grep -v "/Tests/"
 # ④ 全量字段数(对照 §13)
 grep -rl '^> \*\*Manifest Version\*\*: [0-9]' production/epics/ | wc -l   # 期望 237
 ```
+
+---
+
+## §15 后续发现(2026-11-02 · `emergency-procedures/story-010` 实现轮)
+
+> ⚠️ **本节晚于 §1–§14,不改变其中任何判定**;它登记的是本轮**新查出**的一条事实,
+> 并说明它如何**追认**了 §6.5 / §8 里「必须由夹具手工调 `_rig.Tick()`」这件事。
+
+**事实**:`CameraRig.Tick(float)` 在 2026-11-02 之前**零生产调用点**。
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -rn "\.Tick(" unity/Assets --include=*.cs | grep -v /Tests/
+# 2026-11-02 之前:只有 AudioTierDriver.Tick(BootRoot:1708),相机一处都没有
+```
+
+而 `CameraModeMachine.Settle` 只在两处被调:`CameraRig.Tick` 与 `SetModeForTest`
+(启动序一次,`SetModeForTest` 内部以 `dt:1f` 瞬时结算到 `Explore`)。
+⇒ **档位状态机在生产中从不推进**:`Mode` 永锁 `Explore`,`_pending` 队列无限堆积。
+29 的 `Downed`、10 的 `Treatment`、39 将来的 `Casebook` —— 全部"请求发了,相机没动"。
+
+**对本证据件既有结论的影响**:
+- §6.5(微倾修正)**不受影响**:`GetLookTarget` / `GetCameraPosition` 是**纯函数**,与 Tick 无关,
+  实测的屏幕位移百分比仍然成立。
+- §8(回归)里「`CameraRig.Tick` 由夹具显式驱动」的写法**当时是对的**,但**没有追这一层** ——
+  即没有问「生产里谁调它」。这是本轮的一处**判据越权**:从「夹具能跑通」推到「功能可用」。
+  教训归 `coding-standards` §假绿形态:它是 **F6 的邻形态**(不是注释冒充门,而是
+  「夹具驱动 ≠ 生产驱动」),本册暂无对应编号,**建议在下一版登记表补一条**。
+
+**处置**:用户 2026-11-02 裁定「`story-010` 顺带接 Tick」⇒ `BootRoot.Update` 增
+`_cameraRig.Tick(UnityEngine.Time.deltaTime)`,并带日期注(跨 epic 后果写在注里)。
+
+**守卫**:`Tests/PlayMode/EmergencyProcedures/emergency_camera_mode_intent_wiring_test.cs`
+的 `test_s10_06_*` —— 证伪 M7(把该行换成注释)⇒ **恰 1 红**,`test_s10_06b` 仍绿
+(归因干净:绑定没丢,只是状态机不推进)。

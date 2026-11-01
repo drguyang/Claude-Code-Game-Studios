@@ -178,3 +178,43 @@ python3 tests/smoke/run_smoke.py --results unity/Logs/s236-em.xml unity/Logs/s23
 cd unity && python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/s236-em.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
 git log --oneline -6   # 29988749 / e9dc6531 / 88ba94cf / 4b99fb9f / b47ed1e0 + 收口提交
 ```
+
+---
+
+## 八、收口后追加件(2026-11-02 · 用户指令「排进 sprint-23」)
+
+> ⚠️ **本节晚于 §七 收口判定**。§七 的所有数字(件集 4 Must + 1 Should、回归
+> `6425/6388/0/37` 与 `273/269/0/2`、DoD 勾选)**均为 2026-11-01 的读数**,
+> **不含**本节追加件。不要把本节的完成情况读进 §七 的判据面。
+
+| # | 件 | 类型 | 状态 | 说明 |
+|---|---|---|---|---|
+| **S23-7** | `emergency-procedures/010` 档位意图生产接线(`Treatment`/`Explore` 必发)+ 退役 `ExploreCount` 假绿载体 | Integration | **Done ✅ 2026-11-02** | 计划外追加 · **COMPLETE WITH NOTES**(AC-10-11 跳过半按裁定永久 `NOT-RUN`;S10-09 真机走查 `NOT-RUN`) |
+
+**为什么加进本 sprint(而不是新开 sprint-24)**:用户 2026-11-02 指令。
+sprint-24 已排 `processing-002/004/005 + foraging-002`(路线图 §6.5),与本件无交集;
+本件是**补洞卡**(双参 `SetMode` 规则按 epic 扫描查出的**缺口 B**),体量 M,单件收口。
+
+**与 §二 的冲突如实登记**:§二 明写「L 级独占额度,**不塞任何计划外件**」。
+本节即对该条的**显式例外**,由用户直接指令产生 —— **不改 §二 原文**,以本节为准记录本件来源。
+
+**本件的两条硬约束**(详见卡面):
+1. `AC-10-11` **拆两半分开记分** —— 「动作结束必发 `Explore`」可判可绿;
+   「跳过路径必发 `Explore`」今日不可失败(R-10.7),永远标 `NOT-RUN`,**不得记 ✅**
+2. 甲+乙裁定已落(2026-11-02):跳过经 `EmergencyChannelDriver.SkipAction` 拉回相机链
+   + 不可达性在两处(卡面 / GDD 规则八 与 `AC-10-11`)如实登记
+
+**S23-7 收口读数(2026-11-02 · 只对本行有效,不进 §七)**:
+EditMode `6492 / 6455 / 0 / 0 / 37` · PlayMode `277 / 273 / 0 / 2 / 2`
+(基线 `6481/6444` · `275/271`;等式 `6492 − 6481 = 11 = 15 新 − 4 删` · `277 − 275 = 2`)。
+证伪 **7 条变异各自转红**,SHA-256 逐字节还原。原件 = `production/qa/evidence/impl-story-010-camera-mode-intent-2026-11-02.md`。
+⚠️ **跨 epic**:本件接线了 `CameraRig.Tick`(此前零生产调用),**同时激活** 29 的 `Downed` 与
+39 将来的 `Casebook` —— 已在两 epic 的 `EPIC.md` 与相机证据件 §15 登记。
+
+**复算(收口时用)**:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -n "S23-7" -A6 production/sprint-status.yaml     # 期望 status: done / completed: 2026-11-02
+grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
+```

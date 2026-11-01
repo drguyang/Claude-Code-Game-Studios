@@ -198,13 +198,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <inheritdoc/>
         /// <remarks>
         /// story-009(R-9.4):跳过目标 = 脉案当前绑定病人(与 <see cref="SubmitDose"/> 同构)。
-        /// 写路径 = <c>EmergencyManualDriver.TryManual(method: 1)</c>(story-009 用户裁定:
-        /// Skip 与 Manual 共用一条 Process 链,HostEmergencyProcessor 内 method 分支裁结果)。
+        /// 写路径 = <c>EmergencyChannelDriver.SkipAction</c>(story-010 R-10.7 甲案 · 2026-11-02 裁定):
+        /// 它先发 `Explore` 档位意图、再委派 <c>EmergencyManualDriver.TryManual(method: 1)</c>
+        /// (Skip 与 Manual 共用一条 Process 链,HostEmergencyProcessor 内 method 分支裁结果)。
+        /// <para>⚠️ 此前直连 `EmergencyManualDriver` ⇒ 规则八「跳过路径结束必发 `Explore`」
+        /// 在代码里**没有任何落点**(story-010 立件时实测)。</para>
         /// <para>⚠️ **未绑病人 ⇒ 静默返回**(零事件零提示)—— 与 <see cref="SubmitDose"/>
         /// 的 fail-loud **刻意不同**:病名栏 / 戥子有「先查体」的天然前置(42 侧已挡空栏),
         /// 而跳过入口在 Idle 态恒可达(规则六之甲),玩家未查体就点跳过是**合法玩家路径**
         /// 而非装配遗漏 ⇒ 不抛。零提示纪律(AC-11-12):失败由「体征未变」自然可见。</para>
-        /// <para>⚠️ 跳过写路径的宿主(<c>EmergencyManualDriver</c>)由 BootRoot 后置注入
+        /// <para>⚠️ 跳过写路径的宿主(<c>EmergencyChannelDriver</c>)由 BootRoot 后置注入
         /// (<c>BindEmergencySkip</c>,SetAuthor 同款形态 —— 装配期 actorId 未知);
         /// 未注入 ⇒ fail-loud(装配遗漏,与未接 PrescriptionPageHost 同口径)。</para>
         /// </remarks>
@@ -212,25 +215,28 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             if (_emergencySkip == null)
                 throw new InvalidOperationException(
-                    "急救跳过入口无接收宿主(CasebookCommandRouter 未接 EmergencyManualDriver)—— " +
+                    "急救跳过入口无接收宿主(CasebookCommandRouter 未接 EmergencyChannelDriver)—— " +
                     "跳过动作无落点 = 装配遗漏,不静默吞(与未接方笺页同口径)。");
 
             if (_boundPatient.Value < 0)
                 return;   // 未绑病人 = 合法玩家路径(未查体就点跳过)⇒ 零事件零提示
 
-            _emergencySkip.TryManual(_boundPatient, method: 1, _skipActorId, CurrentTick);
+            _emergencySkip.SkipAction(_boundPatient, _skipActorId);
             // 返回值刻意不外传:不在场 ⇒ 零事件零提示(同 SubmitDose 的 AC-11-12 纪律)。
         }
 
         /// <summary>注入急救跳过写路径(story-009;BootRoot 启动序 4.65,玩家 actorId 已定)。
-        /// 后置注入形态与 SetAuthor / SetViewer 同款(装配期玩家 id 未知)。</summary>
-        public void BindEmergencySkip(EmergencyManualDriver manual, int actorId)
+        /// 后置注入形态与 SetAuthor / SetViewer 同款(装配期玩家 id 未知)。
+        /// <para>🔁 **2026-11-02(story-010 R-10.7 甲案)**:宿主由 `EmergencyManualDriver` 改为
+        /// `EmergencyChannelDriver` —— 跳过必须先经它发 `Explore` 档位意图再委派 TryManual,
+        /// 否则规则八的「跳过路径结束必发 Explore」没有落点。</para></summary>
+        public void BindEmergencySkip(EmergencyChannelDriver driver, int actorId)
         {
-            _emergencySkip = manual ?? throw new ArgumentNullException(nameof(manual));
+            _emergencySkip = driver ?? throw new ArgumentNullException(nameof(driver));
             _skipActorId = actorId;
         }
 
-        private EmergencyManualDriver _emergencySkip;
+        private EmergencyChannelDriver _emergencySkip;
         private int _skipActorId;
 
         private long CurrentTick => _currentTick();

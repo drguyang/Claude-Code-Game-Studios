@@ -29,11 +29,15 @@
 //   - Idle 门(R-9.3):Arm ⇒ 候选列表隐藏(onIdleGate(false));End / Abort ⇒ 复现
 //     (onIdleGate(true))。回调由组合根注入指向 EmergencyCandidateRuntime.SetVisible
 //     —— 本类不引 Gameplay.UI(可见性是回调,不是依赖)。
+//   - 档位意图(story-010 · 2026-11-02):动作开始 ⇒ Treatment;结束(含零样本)/ 中止 / 跳过
+//     ⇒ Explore。`requesterId` 恒 = RequesterId(10),经后置绑定的 Func<ICameraRig> 发出。
+//     ⚠️ 只发**意图**,不读回 rig.Mode(ADR-020 §五)。
 
 using System;
 using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Input.Intents;
 using DaYiJingCheng.Gameplay.Interaction;   // IArmedState(ADR-013 Amendment A;命名空间住 Interaction)
+using DaYiJingCheng.Gameplay.Presentation.Camera;   // ICameraRig / CameraMode(story-010 档位意图)
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using EmergencyReading = DaYiJingCheng.Gameplay.Input.Intents.EmergencyReading;   // 与 Sim.Contracts 同名 —— Feed 缝只收 3 侧读数
@@ -47,10 +51,28 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public sealed class EmergencyChannelDriver : IArmedState
     {
+        /// <summary>
+        /// **10 的请求方系统号**(档位意图的 `requesterId`;story-010 R-10.3)。
+        /// <para>不是配置项,是**身份**:甲案「同一请求方可降档」的判据靠它认出「谁开的这个档」
+        /// (`camera-and-viewpoint.md:256`「只能由请求方退出」)。传错号 ⇒ 退出语义**静默失效**
+        /// (不崩、不报错,相机卡在近景)⇒ 因此三处调用点共用本常量,不各写字面量。</para>
+        /// <para>出处:`systems-index.md` 的系统编号 10 = 急救动作。</para>
+        /// </summary>
+        public const int RequesterId = 10;
+
         private readonly EmergencyDirectReadChannel _channel;
         private readonly EmergencyManualDriver _manual;
         private readonly Func<long> _currentTick;
         private readonly Action<bool> _onIdleGate;
+
+        /// <summary>
+        /// 相机机位的**懒访问器**(story-010 R-10.2;后置绑定,null = 不发档位意图)。
+        /// <para>为什么是 `Func` 而不是 `ICameraRig` 实例:本类在 `CompositionRoot.Assemble`
+        /// 内构造,而相机在 `BootRoot` 启动序第 5 步才建 ⇒ 装配期拿不到;且拆卸段会把
+        /// `BootRoot._cameraRig` 置 null,闭包可能在下一帧才求值 ⇒ 直取会 NRE
+        /// (2026-11-01 已有 94 条 PlayMode 红的先例)。</para>
+        /// </summary>
+        private Func<ICameraRig> _cameraRig;
 
         /// <summary>本次 Armed 的目标病人(Arm 时锁定;None = 未预约过)。</summary>
         private PatientId _target = PatientId.None;
@@ -95,6 +117,43 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>本次(或最近一次)Armed 的目标病人(观测面 / 测试缝)。</summary>
         public PatientId Target => _target;
 
+        /// <summary>
+        /// 相机机位**是否已绑定**(观测面 / story-010 S10-06b 的守卫)。
+        /// <para>⚠️ 「没绑」是一条**静默失败通道**:没人调 <see cref="BindCameraRig"/> 就永远不发
+        /// `Treatment`,不崩也不报错 —— 正是本类要消灭的那种失败。生产启动序跑完后本属性恒 `true`
+        /// 由 PlayMode 夹具断言(删掉 `BootRoot` 的绑定调用 ⇒ 那条断言红,其余不变)。</para>
+        /// </summary>
+        public bool HasCameraRig => _cameraRig != null;
+
+        /// <summary>
+        /// 后置绑定相机机位访问器(story-010 R-10.2)。
+        /// <para>与 <c>TeleportSink.BindPlayer</c> / <c>CasebookCommandRouter.SetAuthor</c> /
+        /// <c>BuildController.BindOwner</c> **同一约定**:装配期拿不到的东西一律后置绑定,
+        /// 不塞 `CompositionRoot.Assemble` 的参数表。</para>
+        /// </summary>
+        /// <param name="accessor">返回当前机位的访问器;null = 解绑(之后不发档位意图)。
+        /// 允许返回 null(拆卸后 / 逻辑层)⇒ 该次请求静默跳过,不抛。</param>
+        public void BindCameraRig(Func<ICameraRig> accessor)
+        {
+            _cameraRig = accessor;
+        }
+
+        /// <summary>
+        /// 发一条档位意图(规则八;`requesterId` 恒 = <see cref="RequesterId"/>)。
+        /// <para>⚠️ 这是**请求**不是**控制**:相机是否接受、如何转场由
+        /// `CameraModeMachine.Settle` 决定(ADR-020 §五 / EC-2-9),本类**不读回** `Mode`。</para>
+        /// <para>未绑定 / 访问器返回 null ⇒ 静默跳过(R-10.2)。</para>
+        /// </summary>
+        private void RequestCameraMode(CameraMode mode)
+        {
+            ICameraRig rig = _cameraRig?.Invoke();
+            if (rig == null)
+                return;
+            // ⚠️ 必须双参且传真实系统号 —— 单参 / -1 会让甲案「同一请求方可降档」静默失效
+            // (相机卡在近景),且机械门 CameraSetModeRequesterGate 判红。
+            rig.SetMode(mode, RequesterId);
+        }
+
         /// <summary>挂接通道 onAfterUpdate(透传;接线模式唯一,AC-9-01 fail-loud 由通道抛)。</summary>
         public void Attach() => _channel.Attach();
 
@@ -108,11 +167,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="target">本次动作的目标病人(Arm 时锁定)。</param>
         public void Arm(int actionOrdinal, PatientId target)
         {
+            // ⚠️ 顺序 = 「先 Arm 成功、后发 Treatment」(story-010 R-10.1):`_channel.Arm` 在非 Idle 态
+            //     会抛 `InvalidOperationException` ⇒ 抛出的那一轮**不得**留下一个没有动作的
+            //     `Treatment` 请求(那会让相机进近景而动作根本不存在)。
             _channel.Arm(actionOrdinal);
             _target = target;
             _armedTick = _currentTick();
             _lastActiveTick = _armedTick;
             _onIdleGate?.Invoke(false);
+            RequestCameraMode(CameraMode.Treatment);   // 规则八「动作开始」
         }
 
         /// <summary>逻辑层 / 测试驱动缝:透传通道 Feed(成功 = 采样活跃,推看门狗基准)。</summary>
@@ -140,8 +203,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 在场前置未过 —— 均**零事件**(零提示纪律)。</returns>
         public bool EndAction(int actorId)
         {
+            // ⚠️ `wasArmed` 必须在 `_channel.EndAction()` **之前**读 —— 它会把态置回 Idle。
+            bool wasArmed = _channel.State != DirectChannelState.Idle;
             AggregatedEmergency? agg = _channel.EndAction();
             _onIdleGate?.Invoke(true);
+            // ⚠️ story-010 R-10.1:**不得**以 `agg != null` 为条件 —— 零样本签约(`agg == null` ⇒
+            //     零事件)是**合法**的一次动作起止(按住又松开但没产生幅度沿)。动作结束了,
+            //     相机就必须退出近景。写成 `agg != null` 才是最常见的漏法(M4 变异专打这一点)。
+            if (wasArmed)
+                RequestCameraMode(CameraMode.Explore);   // 规则八「动作结束」
             if (agg == null)
                 return false;   // 零样本签约:一次按住周期零动作 ⇒ 零上行(F-10.5)
             return _manual.TryAggregated(agg.Value, actorId, _target, _currentTick()).Applied;
@@ -155,8 +225,36 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             bool wasArmed = _channel.State != DirectChannelState.Idle;
             _channel.AbortAction();
-            _onIdleGate?.Invoke(true);
+            // ⚠️ story-010 S10-04:`wasArmed` 此前**未用于门控** `_onIdleGate` —— Idle 态误触会
+            //     无条件复现候选列表(无害但无意义)。本批把同一守卫补上,并让档位意图共用它:
+            //     本就 Idle ⇒ 既不该动列表,也不该凭空发 `Explore`。
+            if (wasArmed)
+            {
+                _onIdleGate?.Invoke(true);
+                RequestCameraMode(CameraMode.Explore);   // 规则六之甲「中止亦发 Explore」
+            }
             return wasArmed;
+        }
+
+        /// <summary>
+        /// **跳过路径入口**(规则六;story-010 R-10.7 甲案 · 2026-11-02 用户裁定)。
+        /// <para>⚠️ **为什么跳过要经过本类**:此前 `CasebookCommandRouter.SubmitEmergencySkip`
+        /// 直连 `EmergencyManualDriver.TryManual(method: 1)`,**不经**本驱动 ⇒ 规则八
+        /// 「跳过路径结束必发 `Explore`」在代码里**没有任何落点**。</para>
+        /// <para>⚠️ **`Explore` 必须先于 `TryManual`**:反过来的话 `TryManual` 若抛 / 短路,
+        /// 相机就留在近景 —— 正好制造本卡要修的病。</para>
+        /// <para>⚠️ **诚实登记(乙案)**:现行 P0 的跳过入口只在 `Idle` 可达
+        /// (`R-9.3` 的 Idle 门)⇒ 此处 `Explore` 是**防御性幂等请求**(相机本就在 `Explore`),
+        /// **不构成 `AC-10-11` 的可失败判据**。见 `story-010` §R-10.7 与 GDD 规则八的注。</para>
+        /// </summary>
+        /// <param name="target">目标病人(由路由侧 `_boundPatient` 给出)。</param>
+        /// <param name="actorId">玩家 actor id(由路由侧后置注入)。</param>
+        /// <returns>与 <see cref="EmergencyManualDriver.TryManual"/> 同义:`true` = 双事件已入流;
+        /// `false` = 不在场 / 前置未过 ⇒ 零事件零提示(零提示纪律)。</returns>
+        public bool SkipAction(PatientId target, int actorId)
+        {
+            RequestCameraMode(CameraMode.Explore);   // 规则八「跳过路径结束亦发」
+            return _manual.TryManual(target, method: 1, actorId, _currentTick()).Applied;
         }
 
         /// <summary>

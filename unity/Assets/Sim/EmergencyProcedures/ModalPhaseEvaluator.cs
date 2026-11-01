@@ -23,13 +23,20 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public readonly int AttemptCount;     // EmergencyAttempt 数
         public readonly bool MotorSuppressed; // 当前 MotorSuppressed 状态
         public readonly bool MotorSuppressedSet; // 动作期间是否置位过
-        public readonly int ExploreCount;     // Explore 计数
+        // 🔁 2026-11-02(story-010 R-10.5):原「必发 Explore」的**计数载体**已退役。
+        //   它没有任何生产读者(定义 + 构造赋值 2 处,其余全在 Tests/)—— 唯一的功能是让
+        //   那句话**看起来被验证了**(假绿形态 F1:自造断言顶替 AC 语义层)。
+        //   现在该语义由 `EmergencyChannelDriver` 对 `ICameraRig` 的**真实请求**承载
+        //   (story-010 的 L1 意图层 + L2 真机层)。⚠️ **不得**以为「纯函数 + 无副作用」
+        //   就可以拿返回值当证据 —— 那正是它被删掉的原因。
+        //   ⚠️ 本注释**刻意不写字段名**:story-010 S10-05 的机械判据是
+        //   `grep -rn "<旧字段名>" unity/Assets --include=*.cs` 零命中(注释也算命中)。
         public readonly int HoldTicks;        // 聚合 hold_ticks
         public readonly int Edges;            // 聚合 edges
 
         public ModalPhaseResult(JudgeResult result, int method, long potency, bool emitGrowth,
             int eventCount, int attemptCount, bool motorSuppressed, bool motorSuppressedSet,
-            int exploreCount, int holdTicks, int edges)
+            int holdTicks, int edges)
         {
             Result = result;
             Method = method;
@@ -39,7 +46,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             AttemptCount = attemptCount;
             MotorSuppressed = motorSuppressed;
             MotorSuppressedSet = motorSuppressedSet;
-            ExploreCount = exploreCount;
             HoldTicks = holdTicks;
             Edges = edges;
         }
@@ -76,7 +82,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attemptCount: 1,
                 motorSuppressed: false, // 结束清除
                 motorSuppressedSet: true, // 动作期间置位
-                exploreCount: 1, // 跳过路径执行完毕必发 Explore
                 holdTicks: 0,
                 edges: 0);
         }
@@ -130,7 +135,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attemptCount: 1,
                 motorSuppressed: false,
                 motorSuppressedSet: true,
-                exploreCount: 0,
                 holdTicks: holdTicks,
                 edges: edges);
         }
@@ -150,7 +154,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attemptCount: 1,
                 motorSuppressed: false,
                 motorSuppressedSet: true,
-                exploreCount: 0,
                 holdTicks: 10,
                 edges: 1);
         }
@@ -175,7 +178,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                     attemptCount: 0,
                     motorSuppressed: true, // 动作期间 MotorSuppressed 置位
                     motorSuppressedSet: true,
-                    exploreCount: 0,
                     holdTicks: 0,
                     edges: 0);
             }
@@ -190,7 +192,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attemptCount: 0, // 零 EmergencyAttempt
                 motorSuppressed: false, // 清 MotorSuppressed
                 motorSuppressedSet: true, // 动作期间置位
-                exploreCount: 1, // 发 Explore
                 holdTicks: 0,
                 edges: 0);
         }

@@ -25,7 +25,7 @@ goal: "死亡与复活全链(玩家侧)收尾 —— 29 四件 + G-1 门行结�
 start: "2026-11-01"
 end: ""
 generated: "2026-11-01"
-updated: "2026-11-01"
+updated: "2026-11-02"
 
 stories:
   - id: "S23-1"
@@ -83,3 +83,15 @@ stories:
     blocker: ""
     completed: "2026-11-01"
     note: "依赖 S23-2(掉落物在盘上才可拾);ADR-009 §七 与 17 采集同构;负例(超距拒 + 零事件)必带;合成输入。"
+  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— **收口后追加件**,不属 §七 收口判定的扫描面。
+  - id: "S23-7"
+    name: "emergency-procedures/010 档位意图生产接线(Treatment/Explore 必发)+ 退役 ExploreCount 假绿载体"
+    file: "production/epics/emergency-procedures/story-010-camera-mode-intent-wiring.md"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: "2026-11-02"
+    note: "计划外追加(2026-11-02 用户指令)。缺口 B = 双参 SetMode 规则扫描查出;R-10.7 跳过路径设计分叉已裁甲+乙(同日)。AC-10-11 拆两半记分,跳过半永远 NOT-RUN。"

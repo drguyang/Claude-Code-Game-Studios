@@ -60,3 +60,22 @@ This epic is complete when:
 | 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9 → **该阻塞已随 G-1 结案于 2026-11-01 闭**) | ADR-005/009 |
 | 005 | 复活落点与传送命令 | Integration | **Complete**(2026-11-01 · S23-5 接口先行;**S23-7 生产接线已兑付** —— 1 侧 `TeleportCommandSink` 实装 + 装配,AC-29-10 实发数有真链(PM 实测落格事件);床格端口仍 BLOCKED-BY-24 = 实现待落) | ADR-025/020/024(24 联动) |
 | 006 | 呈现白名单与零状态播报 | UI | **Complete**(2026-11-01;[L] 两条 AC-29-11/12 待桌面批走查/听测;**S23-7 补 42 侧水墨视觉装配** —— 相位机 + 呈现器 + 程序化水墨纹理(正式素材归美术资产批)) | ADR-013/018/020 |
+
+---
+
+## 🔁 2026-11-02 跨 epic 登记:29 的两段式倒下相机**自此才真正生效**
+
+**事实**:`CameraRig.Tick` 此前**零生产调用点**(由 `emergency-procedures/story-010` 查出),
+⇒ `CameraModeMachine.Settle` 从未执行 ⇒ 29 发出的 `Downed` 请求**只是入队,永不结算** ——
+相机不会下沉、不会微倾,`CameraDownedDriver` 的相位机也从不推进。
+`sprint-24`(ADR-020 Amendment C 那轮)交付的 `Downed` 档位、`GetLookTarget` 微倾、双参 `SetMode`
+**都已实现且单测覆盖,但生产上是死路**。
+
+**处置**:用户 2026-11-02 裁定由 `story-010` 顺带接上 `BootRoot.Update` 里的
+`_cameraRig.Tick(...)`。
+
+**⚠️ 本 epic 侧须承接的行为面**:
+- `AC-29-11` / `AC-29-12`(`[L]`)的**真机走查**自此才有意义 —— 此前它们即使跑也测不到东西。
+  状态**维持 `NOT-RUN`**(本批未跑,batch 模式结构性不可判图形面)。
+- 若真机发现倒塌两段式的时长/幅度不合手感,归本 epic 或机位轮,数值在 `CameraDownedPhases`
+  (已由用户数值轮裁定:`SagSeconds 1.2` / `SagDepth 0.45` / `SagTiltDegrees 10`)。
