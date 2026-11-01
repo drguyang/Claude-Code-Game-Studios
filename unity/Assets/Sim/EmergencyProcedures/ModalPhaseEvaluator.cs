@@ -21,8 +21,11 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public readonly bool EmitGrowth;      // 是否发成长读数
         public readonly int EventCount;       // 流事件数
         public readonly int AttemptCount;     // EmergencyAttempt 数
-        public readonly bool MotorSuppressed; // 当前 MotorSuppressed 状态
-        public readonly bool MotorSuppressedSet; // 动作期间是否置位过
+        // 🔁 2026-11-02(story-011 R-11.5):原「动作期间 MotSuppress 置位过」的两个布尔载体已退役。
+        //   理由同 story-010 的计数载体:它们没有任何生产读者(仅 `Tests/` 读),而「10 置位/清位」
+        //   的真实语义现在由 **10 对 1 的 MotorLease 的实际 Acquire/Release** 承载
+        //   (`emergency_motor_lease_wiring_test` 断的是真租约位,不是本结构的返回值)。
+        //   ⚠️ **不得**再看本结构的返回值判断压制是否生效 —— 那正是 F1(自造断言顶替 AC 语义层)。
         // 🔁 2026-11-02(story-010 R-10.5):原「必发 Explore」的**计数载体**已退役。
         //   它没有任何生产读者(定义 + 构造赋值 2 处,其余全在 Tests/)—— 唯一的功能是让
         //   那句话**看起来被验证了**(假绿形态 F1:自造断言顶替 AC 语义层)。
@@ -35,8 +38,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public readonly int Edges;            // 聚合 edges
 
         public ModalPhaseResult(JudgeResult result, int method, long potency, bool emitGrowth,
-            int eventCount, int attemptCount, bool motorSuppressed, bool motorSuppressedSet,
-            int holdTicks, int edges)
+            int eventCount, int attemptCount, int holdTicks, int edges)
         {
             Result = result;
             Method = method;
@@ -44,8 +46,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             EmitGrowth = emitGrowth;
             EventCount = eventCount;
             AttemptCount = attemptCount;
-            MotorSuppressed = motorSuppressed;
-            MotorSuppressedSet = motorSuppressedSet;
             HoldTicks = holdTicks;
             Edges = edges;
         }
@@ -80,8 +80,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 emitGrowth: false, // 跳过不发熟练度成长
                 eventCount: 2, // EmergencyAttempt + EmergencyTreatmentApplied
                 attemptCount: 1,
-                motorSuppressed: false, // 结束清除
-                motorSuppressedSet: true, // 动作期间置位
                 holdTicks: 0,
                 edges: 0);
         }
@@ -133,8 +131,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 emitGrowth: true, // 手动成功发成长
                 eventCount: 2,
                 attemptCount: 1,
-                motorSuppressed: false,
-                motorSuppressedSet: true,
                 holdTicks: holdTicks,
                 edges: edges);
         }
@@ -152,8 +148,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 emitGrowth: true, // Missed 发成长读数（做过即成长）
                 eventCount: 2,
                 attemptCount: 1,
-                motorSuppressed: false,
-                motorSuppressedSet: true,
                 holdTicks: 10,
                 edges: 1);
         }
@@ -176,8 +170,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                     emitGrowth: false,
                     eventCount: 0, // 动作未结束，暂无事件
                     attemptCount: 0,
-                    motorSuppressed: true, // 动作期间 MotorSuppressed 置位
-                    motorSuppressedSet: true,
                     holdTicks: 0,
                     edges: 0);
             }
@@ -190,8 +182,6 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 emitGrowth: false,
                 eventCount: 0, // 零处置事件
                 attemptCount: 0, // 零 EmergencyAttempt
-                motorSuppressed: false, // 清 MotorSuppressed
-                motorSuppressedSet: true, // 动作期间置位
                 holdTicks: 0,
                 edges: 0);
         }

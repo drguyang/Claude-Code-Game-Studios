@@ -1,16 +1,18 @@
 # Story 011: 移动压制租约的生产接线 —— 10 置位 / 清位 `LeaseSource.Emergency`,并让 1 真的读它
 
 > **Epic**: 10 急救动作
-> **Status**: **Ready ⬜**(2026-11-02 立件 —— 规范已写定,**实现未开工**;§Acceptance Criteria 全部未勾,禁借绿)
+> **Status**: **Complete ✅ 2026-11-02**(**COMPLETE WITH NOTES** —— 见 §Completion Notes;9 条 AC 全证,
+> 但 §七 的三项证明不了的事仍开着)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 1.5–2 人日(约 12–16h)
 > **Manifest Version**: 2026-11-02
 > **Last Updated**: 2026-11-02
 
-> ⚠️ **本卡有两项「由立件轮就地拟定、未经用户逐条确认」的裁定**(R-11.2 绑定形态 / R-11.4 读面是否一并接),
-> 见 §用户批准记录。**在它们落定前不得开工** —— R-11.4 尤其:选错会让本卡交出一个
-> 「租约位全对、玩家照样走」的绿壳。
+> ✅ **2026-11-02 用户裁定 R-11.4 取甲案**(原话「甲,开工」)⇒ 1 的读面**一并接**:
+> `PlayerController.Move` 读 `MotorLease.IsSuppressed`。至此本卡无待决分叉。
+> ⚠️ 另一项(R-11.2 直绑 `MotorLease` 而非 `Func<>`)仍属立件轮拟定、实现轮沿用,
+> 见 §用户批准记录。
 
 ---
 
@@ -123,7 +125,7 @@ float vTarget = config.SpeedWalk * moveInput.magnitude;   // 无 K_suppressed
 
 | 路 | 做法 | 代价 / 判据 |
 |---|---|---|
-| **甲(立件轮建议)** | `PlayerController.Move` 开头加一行 `if (_motorLease.IsSuppressed) moveInput = Vector3.zero;`(或等价地在 `vTarget` 上乘 `K_suppressed = 0`)。**规则九从此可失败** | 3 行 + 1 条真机夹具;⚠️ 属**跨域改动**(1 的文件),须按「本卡顺带接」先例如实登记,不得静默 |
+| **甲** ✅ **2026-11-02 已裁(用户「甲,开工」)** | `PlayerController.Move` 开头加一行 `if (_motorLease.IsSuppressed) moveInput = Vector3.zero;`(或等价地在 `vTarget` 上乘 `K_suppressed = 0`)。**规则九从此可失败** | 3 行 + 1 条真机夹具;⚠️ 属**跨域改动**(1 的文件),须按「本卡顺带接」先例如实登记,不得静默 |
 | **乙** | 本卡只接 10 的写面,`AC-10-13` 只判**租约位**;1 的读面另立 `player-controller` epic 的 story,并把 `AC-10-13` 的**目的从句**标 `BLOCKED-BY` | 诚实;但玩家在 P0 就是个「压不住」的状态,而所有判据都是绿的 —— 又一个「绿着的空功能」 |
 | **丙** | 只写不读且**不登记** | **否决**:等于把「假绿」写进卡面 |
 
@@ -175,23 +177,23 @@ float vTarget = config.SpeedWalk * moveInput.magnitude;   // 无 K_suppressed
 
 ## Acceptance Criteria
 
-- [ ] **AC-10-13**(GDD · `BLOCKING` · `[A]`)动作期间 1 的 `MotorSuppressed` **被置位**,结束时清除
+- [x] **AC-10-13**(GDD · `BLOCKING` · `[A]`)动作期间 1 的 `MotorSuppressed` **被置位**,结束时清除
       (含跳过 / 中止)
       ⟶ **载体 = 真 `MotorLease` 实例的状态断言**(返回值断言退役,见 R-11.5)
-- [ ] **S11-01**(`[A]` · BLOCKING)`Arm` 成功后 ⇒ `lease.HasLease(LeaseSource.Emergency) == true`;
+- [x] **S11-01**(`[A]` · BLOCKING)`Arm` 成功后 ⇒ `lease.HasLease(LeaseSource.Emergency) == true`;
       `Arm` 抛出的那一轮 ⇒ **仍为 false**(与 R-10.1 同一条「成功之后」纪律)
-- [ ] **S11-02**(`[A]` · BLOCKING)三条结束出口 —— **正常完成 / 零样本签约 / 跳过** 各 ⇒ 清位;
+- [x] **S11-02**(`[A]` · BLOCKING)三条结束出口 —— **正常完成 / 零样本签约 / 跳过** 各 ⇒ 清位;
       ⚠️ 零样本例**必须**独立断言(清位不得以「有事件」为条件)
-- [ ] **S11-03**(`[A]` · BLOCKING)中止两路(停手 / tick 看门狗)⇒ 清位
-- [ ] **S11-04**(`[A]` · BLOCKING)**只碰自己那一位** —— 前置把 `Self`(4)与 `Combat`(25)的位置起来,
+- [x] **S11-03**(`[A]` · BLOCKING)中止两路(停手 / tick 看门狗)⇒ 清位
+- [x] **S11-04**(`[A]` · BLOCKING)**只碰自己那一位** —— 前置把 `Self`(4)与 `Combat`(25)的位置起来,
       10 的 Acquire/Release 全程**不得**改变这两位
-- [ ] **S11-05**(`[A]` · BLOCKING)**唯一实例** —— `MotorLease` 的生产构造点**恰一处**
+- [x] **S11-05**(`[A]` · BLOCKING)**唯一实例** —— `MotorLease` 的生产构造点**恰一处**
       (`PlayerController`),`grep` 判据见 §Test Evidence;两份位图 = 两个真源
-- [ ] **S11-06**(`[A]` · BLOCKING)**后置绑定真的发生了** —— 走生产启动序后
+- [x] **S11-06**(`[A]` · BLOCKING)**后置绑定真的发生了** —— 走生产启动序后
       `driver.HasMotorLease == true`(删 `BootRoot` 的绑定调用 ⇒ 本条红)
-- [ ] **S11-07**(`[A]` · BLOCKING · **依 R-11.4 甲案**)真机:`Arm` 后给 `Move` 喂满幅输入 ⇒
+- [x] **S11-07**(`[A]` · BLOCKING · **依 R-11.4 甲案**)真机:`Arm` 后给 `Move` 喂满幅输入 ⇒
       位移 ≈ 0;`EndAction` 后同输入 ⇒ 位移恢复。⚠️ 若裁乙,本条转 `BLOCKED-BY` 并登记
-- [ ] **S11-08**(`[A]` · ADVISORY)三条结束出口的清位来自**同一处**代码路径(不三写)
+- [x] **S11-08**(`[A]` · ADVISORY)三条结束出口的清位来自**同一处**代码路径(不三写)
 
 ---
 
@@ -258,9 +260,12 @@ EditMode `6492 / 6455 / 0 / 0 / 37` · PlayMode `277 / 273 / 0 / 2 / 2`
 3. **清位必须在 `wasArmed` 守卫内**,且与 story-010 的 `Explore` **共用同一次** `wasArmed` 读取 ——
    两处各读一次 `_channel.State` 会在两次读取之间出现状态交错(虽然今日不会,但那是靠时序而不是靠结构)。
 
-4. **R-11.4 若裁甲**:`Move` 的改动必须放在 `ValidateMoveInput` **之前还是之后**?
-   ⇒ **之前**:压制时玩家本来就不该产生输入效果,而 `ValidateMoveInput` 是 `AC-1-09` 的边界硬断言,
-   它校验的是**外部输入**的合法性,不该因为是压制路径就跳过校验。
+4. **R-11.4 甲案 · `Move` 的插入点**(🔁 2026-11-02 实现轮订正 —— 立件稿在此自相矛盾,见下):
+   `ValidateMoveInput` **之后**、`vTarget` 计算**之前**。
+   ⚠️ **立件稿原文写「之前」,但同一段给的理由是「它校验的是**外部输入**的合法性,不该因为是压制路径
+   就跳过校验」—— 理由要求校验**原输入**,所以插入点必须是**之后**。原文自相矛盾,已就地订正。**
+   若真按「之前」写:`moveInput` 先被清零 ⇒ `ValidateMoveInput` 校验的是零向量
+   ⇒ `AC-1-09` 的上界/NaN 硬断言在压制期**恒真通过**,等于被压制路径静默关掉。
    ⇒ 形态:`if (_motorLease.IsSuppressed) moveInput = Vector3.zero;` 然后照常走完
    (不 early-return —— 否则 `AC-1-01②` 的「`CharacterController.Move` 是唯一位移写入点」
    在压制期会变成「不写入」,落地判定与重力会停,玩家会悬在空中)。
@@ -313,9 +318,55 @@ EditMode `6492 / 6455 / 0 / 0 / 37` · PlayMode `277 / 273 / 0 / 2 / 2`
 
 | # | 事项 | 状态 |
 |---|---|---|
-| 1 | **绑直引用 `BindMotorLease(MotorLease)`** 而非 `Func<>`(R-11.2) | ⏳ 待批 |
-| 2 | ⚠️ **R-11.4:1 的读面是否一并接**(`Move` 加 `IsSuppressed` 短路) | ⏳ **待批(最重要的一项)** |
+| 1 | **绑直引用 `BindMotorLease(MotorLease)`** 而非 `Func<>`(R-11.2) | ⏳ 立件轮拟定,实现轮**已采用**;未经用户逐条确认 |
+| 2 | ⚠️ **R-11.4:1 的读面是否一并接** | ✅ **已批 2026-11-02(用户「甲,开工」)**:取甲案 —— `Move` 读 `IsSuppressed`,`AC-10-13` 无需拆半 |
 
-> **为什么第 2 项重要**:只做写面 ⇒ 租约位对了、`AC-10-13` 字面绿了,**但玩家照样走**。
-> `story-010` 刚因为同一条理由抓出 `CameraRig.Tick` 没接缝 —— 那次的处置是「本卡顺带接」。
-> 本卡建议同办(甲案),并同样在 1 的 epic 侧登记「`Move` 自此才真正读压制位」。
+> **甲案已落(2026-11-02)**:`PlayerController.Move` 在 `ValidateMoveInput` **之后**、
+> `vTarget` 计算**之前**读 `IsSuppressed` 并清零 `moveInput`(**不 early-return** —— 见 §Implementation Notes 第 4 项)。
+> ⚠️ 这使 `AC-10-13` 的两半(「位被置/清」与「玩家不动」)都**可失败**,
+> 因此本卡**不**采用 `AC-10-11` 那种拆半记分 —— 拆半只是因为那一半结构性不可失败(R-10.7)。
+> 1 的 epic(`player-controller`)侧已在 `EPIC.md` 登记「`Move` 自此才真正读压制位」。
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-02
+**Verdict**: **COMPLETE WITH NOTES** —— 9 条 AC **全部已证**;但 §七 列的三项「证明不了的事」仍开着(4 / 25 侧零接线、乘数链仍只是注释、真机观感未走查)
+**Deviations**: 见 §三;零阻塞项
+**Test Evidence**: L1 `Tests/EditMode/EmergencyProcedures/emergency_motor_lease_wiring_test.cs`(12 测)· L2 `Tests/PlayMode/EmergencyProcedures/emergency_motor_suppression_wiring_test.cs`(2 测)
+**Code Review**: 未跑(lean 模式;证伪轮 7 条覆盖)
+
+### 一、逐条 AC 记分
+
+全部 ✅,判据见证据件 §二。**AC-10-13 不拆半** —— 甲案使它的两半(「位被置/清」与「玩家不动」)都**可失败**,
+所以不需要照 `AC-10-11` 那样拆(那次拆半是因为跳过路径**结构性不可能失败**,R-10.7)。
+
+### 二、证伪轮(7 条 · 全数各自转红 · SHA-256 逐字节还原)
+
+M1 **4 红** · M2 **4 红** · M3 **2 红** · M4 **1 红(exact)** · M5 **7 红** · M6 **2 红** · M7 **1 红(exact)**。
+
+⚠️ **M1/M2/M3/M5/M6 是超集,不是 exact**。两处耦合已查清并登记:
+- `S11-08` 断「三出口调用数 ≥ 3」⇒ 任何删一条出口调用都会带上它;
+- `S11-01` 的**前置**依赖 `EndAction` 清位 ⇒ M1 顺带打红它。
+它们仍有判别力,但**不得**记成「单属性判别」。
+
+### 三、回归(三元组)
+
+`EditMode 6500 / 6463 / 0 / 0 / 37` · `PlayMode 279 / 275 / 0 / 2 / 2`
+`@ 2026-11-02 03:1x–03:4x CST` · commit `11e29dbe` + 工作树。
+等式:`6500 − 6492 = 8 = 12 新 − 4 删`;`279 − 277 = 2`。
+
+### 四、如实登记的四件事
+
+1. **`AC-1-23` 的机械门把我判红了,而它是对的。** 初版把 `MotorLease.Acquire/Release` 写在
+   `Gameplay.Boot`(装配层),门的白名单不含该程序集。**处置 = 把写面下放到 `Gameplay.Presentation`**
+   (`EmergencyMotorSuppression.cs`),**不是**把 `Gameplay.Boot` 加进白名单 —— 装配层什么都装得下,
+   开这个口子等于废掉「只有 4 / 10 / 25 能压」那句判据。门红给出了正确的架构落位。
+2. **立件稿在 R-11.4 的插入点上自相矛盾** —— 结论写「之前」,理由却要求校验**原输入**(⇒ 必须是「之后」)。
+   实现按理由走,卡面已就地订正,原文保留。
+3. **删了 4 条既有测试**(`modal_phase_test` 的 3 条 `ac1013` + 1 条 `ac1018`),并把
+   `ModalPhaseResult` 的两个压制布尔字段一并退役。回归等式里的 `− 4` 是明写的。
+   ⚠️ 这不是「测试不够」,是那四条断的是**求值器自己写的字面量**(F1)。
+4. **本卡未排 sprint** —— `sprint-23` 已收口(`S23-7` 是它的追加件),`sprint-24` 排的是炮制/采集链。
+   归属待定,`sprint-status.yaml` 未增条目。

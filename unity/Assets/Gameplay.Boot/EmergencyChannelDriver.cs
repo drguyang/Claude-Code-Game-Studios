@@ -38,6 +38,7 @@ using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Input.Intents;
 using DaYiJingCheng.Gameplay.Interaction;   // IArmedState(ADR-013 Amendment A;命名空间住 Interaction)
 using DaYiJingCheng.Gameplay.Presentation.Camera;   // ICameraRig / CameraMode(story-010 档位意图)
+using DaYiJingCheng.Gameplay.Presentation.Player;   // MotorLease / LeaseSource(story-011 移动压制)
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using EmergencyReading = DaYiJingCheng.Gameplay.Input.Intents.EmergencyReading;   // 与 Sim.Contracts 同名 —— Feed 缝只收 3 侧读数
@@ -73,6 +74,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// (2026-11-01 已有 94 条 PlayMode 红的先例)。</para>
         /// </summary>
         private Func<ICameraRig> _cameraRig;
+
+        /// <summary>
+        /// 1 的移动压制租约(story-011 R-11.2;**直绑引用**,不包装成 `Func`)。
+        /// <para>与 <see cref="BindCameraRig"/> 的形状**刻意不同**:机位会被重建 / 拆卸置 null ⇒ 必须懒求值;
+        /// 而租约是 `PlayerController` 的字段,生命周期与玩家一致,不会被换掉。</para>
+        /// <para>null = 未绑定 ⇒ 不置位/不清位(逻辑层 / EditMode),不抛。</para>
+        /// </summary>
+        private MotorLease _motorLease;
 
         /// <summary>本次 Armed 的目标病人(Arm 时锁定;None = 未预约过)。</summary>
         private PatientId _target = PatientId.None;
@@ -126,6 +135,46 @@ namespace DaYiJingCheng.Gameplay.Boot
         public bool HasCameraRig => _cameraRig != null;
 
         /// <summary>
+        /// 移动压制租约**是否已绑定**(story-011 S11-06 的守卫)。
+        /// <para>⚠️ 与 `HasCameraRig` 同义:漏绑不崩不报错,只是玩家压不住 —— 那正是本类失败的唯一形态,
+        /// 只能靠生产启动序断言守。</para>
+        /// </summary>
+        public bool HasMotorLease => _motorLease != null;
+
+        /// <summary>
+        /// 后置绑定 1 的移动压制租约(story-011 R-11.2)。
+        /// <para>⚠️ 必须是 <c>PlayerController.MotorLease</c> 那**一个**实例 —— 两份位图 = 两个真源。</para>
+        /// </summary>
+        /// <param name="lease">1 的租约;null = 解绑(之后不置位/不清位)。</param>
+        public void BindMotorLease(MotorLease lease)
+        {
+            _motorLease = lease;
+        }
+
+        /// <summary>
+        /// 置位 10 的压制(规则九「动作开始」;只碰 <c>LeaseSource.Emergency</c> 那一位)。
+        /// <para>⚠️ 只允许在**动作真的开始之后**调用 —— 否则会留下一个没有动作的压制位,
+        /// 而没有任何东西会去清它 ⇒ **玩家永远动不了**(S11-01 的负例专守这一点)。</para>
+        /// </summary>
+        private void AcquireMotorSuppression()
+        {
+            // ⚠️ 写面**不在本类** —— 必须经 `Gameplay.Presentation` 的写面(`AC-1-23` 的
+            //    机械门按**调用点所在程序集**判白名单,而本类住装配层 `Gameplay.Boot`)。
+            //    2026-11-02 实现轮实测:直接在这里调 `MotorLease.Acquire` 会被该门判红。
+            if (_motorLease == null) return;
+            EmergencyMotorSuppression.Set(_motorLease, acquire: true);
+        }
+
+        /// <summary>
+        /// 清 10 的压制(规则九「结束清位」/ 规则六之甲「中止亦清」)。幂等:未持有 ⇒ no-op(位语义无下溢)。
+        /// </summary>
+        private void ReleaseMotorSuppression()
+        {
+            if (_motorLease == null) return;
+            EmergencyMotorSuppression.Set(_motorLease, acquire: false);
+        }
+
+        /// <summary>
         /// 后置绑定相机机位访问器(story-010 R-10.2)。
         /// <para>与 <c>TeleportSink.BindPlayer</c> / <c>CasebookCommandRouter.SetAuthor</c> /
         /// <c>BuildController.BindOwner</c> **同一约定**:装配期拿不到的东西一律后置绑定,
@@ -176,6 +225,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _lastActiveTick = _armedTick;
             _onIdleGate?.Invoke(false);
             RequestCameraMode(CameraMode.Treatment);   // 规则八「动作开始」
+            AcquireMotorSuppression();                 // 规则九「动作开始置位」(必须在 Arm 成功之后)
         }
 
         /// <summary>逻辑层 / 测试驱动缝:透传通道 Feed(成功 = 采样活跃,推看门狗基准)。</summary>
@@ -212,6 +262,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             //     相机就必须退出近景。写成 `agg != null` 才是最常见的漏法(M4 变异专打这一点)。
             if (wasArmed)
                 RequestCameraMode(CameraMode.Explore);   // 规则八「动作结束」
+            if (wasArmed)
+                ReleaseMotorSuppression();              // 规则九「结束清位」(零样本同样是结束)
             if (agg == null)
                 return false;   // 零样本签约:一次按住周期零动作 ⇒ 零上行(F-10.5)
             return _manual.TryAggregated(agg.Value, actorId, _target, _currentTick()).Applied;
@@ -232,6 +284,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 _onIdleGate?.Invoke(true);
                 RequestCameraMode(CameraMode.Explore);   // 规则六之甲「中止亦发 Explore」
+                ReleaseMotorSuppression();               // 规则六之甲「清 MotorSuppressed」
             }
             return wasArmed;
         }
@@ -254,6 +307,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         public bool SkipAction(PatientId target, int actorId)
         {
             RequestCameraMode(CameraMode.Explore);   // 规则八「跳过路径结束亦发」
+            ReleaseMotorSuppression();               // 规则九「结束(含跳过)清位」—— 幂等,未持有即 no-op
             return _manual.TryManual(target, method: 1, actorId, _currentTick()).Applied;
         }
 

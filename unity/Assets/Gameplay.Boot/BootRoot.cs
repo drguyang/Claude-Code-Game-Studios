@@ -530,6 +530,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⇒ 在此迟绑定。复活链(29 revive 回调 → issuer → 本 sink)自此全通。
             _services.TeleportSink.BindPlayer(() => _player);
 
+            // ── 4.3a′. 移动压制租约绑定(story-011 R-11.2 · 2026-11-02)────────────
+            // 租约的真源在 1(`PlayerController.MotorLease`),而玩家是**本步**才建出来的,
+            // 驱动却在 `CompositionRoot.Assemble` 里早于玩家构造 ⇒ 只能后置绑定
+            // (与 TeleportSink.BindPlayer 同一格、同一理由)。
+            // ⚠️ 必须是**那一个**实例 —— 驱动侧再 new 一份就成了两个真源,4 / 25 / 10 会各压各的。
+            // ⚠️ 漏掉本行 = 10 永远置不上位,玩家在急救动作期间**照样走**,且不崩不报错 ——
+            //    由 PlayMode 夹具的 `HasMotorLease == true` 断言守着(S11-06)。
+            _services.EmergencyChannel?.BindMotorLease(_player.MotorLease);
+
             // ── 4.3b. 死亡过渡呈现器(42 侧 · story-006 视觉装配 · 2026-11-01)────
             // 全屏水墨叠层(零交互,spec §5/§7);数据源 = 只读投影(零写路径);
             // 程序化水墨纹理,正式素材归美术资产批(ΦE 纯黑兜底已备)。

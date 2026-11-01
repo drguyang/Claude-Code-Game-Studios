@@ -105,13 +105,6 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         }
 
         [Test]
-        public void test_ac1018_abort_clearsMotorSuppressed()
-        {
-            var abort = ModalPhaseEvaluator.Abort(idleTicks: 100);
-            Assert.IsFalse(abort.MotorSuppressed, "中止应清 MotorSuppressed");
-        }
-
-        [Test]
         public void test_ac1018_abort_thresholdBoundary()
         {
             // 阈值边界: idleTicks == ABORT_IDLE_TICKS ⇒ 中止
@@ -121,7 +114,6 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             // 阈值下: idleTicks < ABORT_IDLE_TICKS ⇒ 不中止（动作继续）
             var belowThreshold = ModalPhaseEvaluator.Abort(idleTicks: 49);
             Assert.AreEqual(0, belowThreshold.EventCount, "未达阈值动作继续（暂无事件）");
-            Assert.IsTrue(belowThreshold.MotorSuppressed, "动作继续时 MotorSuppressed 应置位");
         }
 
         // ══════════ AC-10-11: 档位意图 ══════════
@@ -138,29 +130,15 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         //   ⚠️ 「跳过路径必发 Explore」一半今日**不可失败**(跳过入口只在 Idle 可达,
         //      见 story-010 §R-10.7)⇒ 永远标 NOT-RUN,**不得**在本节补一条计数断言充当它。
 
-        // ══════════ AC-10-13: MotorSuppressed 置位/清除配对 ══════════
-
-        [Test]
-        public void test_ac1013_motorSuppressed_setAndClear()
-        {
-            var complete = ModalPhaseEvaluator.Complete(accessibilityOn: false);
-            Assert.IsTrue(complete.MotorSuppressedSet, "动作期间应置位 MotorSuppressed");
-            Assert.IsFalse(complete.MotorSuppressed, "结束时应清除 MotorSuppressed");
-        }
-
-        [Test]
-        public void test_ac1013_motorSuppressed_skip_cleared()
-        {
-            var skip = ModalPhaseEvaluator.Skip(accessibilityOn: false);
-            Assert.IsFalse(skip.MotorSuppressed, "跳过结束时应清除 MotorSuppressed");
-        }
-
-        [Test]
-        public void test_ac1013_motorSuppressed_abort_cleared()
-        {
-            var abort = ModalPhaseEvaluator.Abort(idleTicks: 100);
-            Assert.IsFalse(abort.MotorSuppressed, "中止结束时应清除 MotorSuppressed");
-        }
+        // ══════════ AC-10-13: 移动压制 ══════════
+        //
+        // 🔁 **2026-11-02(story-011 R-11.5):本节原有 3 条(+ `test_ac1018_abort_clearsMotorSuppressed`
+        //   共 4 条)断言已删除** —— 它们断的是 `ModalPhaseEvaluator` **自己返回的 bool**,
+        //   工厂里写死、改坏生产也不会红(与 story-010 删掉的计数断言同一形态,F1)。
+        //
+        //   新载体 = `emergency_motor_lease_wiring_test.cs`:断**真 `MotorLease` 实例的位**
+        //   (`LeaseSource.Emergency` 的 Acquire / Release),以及 L2 真机断「玩家走不动」。
+        //   ⚠️ 本结构已**不再有**任何压制相关的返回值字段 —— 别再加回来当证据。
 
         // ══════════ AC-10-14: Armed 态下 3 侧零状态 ══════════
 

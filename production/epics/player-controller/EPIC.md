@@ -147,3 +147,32 @@ Decel 跨帧不可达 · 方向瞬时反转 + TurnRate 死配置 · 接地常数
 - `O-4`(45 侧登记行,P1b)· `AC-1-22`(EXTERNAL,主语 29/45)· `AC-1-04`(VR,P1a)
 
 下一件(Sprint 04 Phase 2 关键路径):`interaction-system`(见 `production/sprints/sprint-04.md`)。
+
+---
+
+## 🔁 2026-11-02 跨 epic 登记:1 的 `MotorLease` 与读面**首次**接上生产(由 `emergency-procedures/story-011` 交付)
+
+**事实(2026-11-02 实测)**:本 epic 交付的 `MotorLease`(`Gameplay.Presentation/Player/MotorLease.cs`)
+在 story-011 之前**零生产实例化** —— `new MotorLease()` 只出现在 `Tests/`;
+`PlayerController` 内 `Suppress` **零命中**。⇒ `AC-1-23` 的三写者白名单与「压制只锁走位」
+这一整套语义,**运行期从未发生过**;`MotorSuppressed` 在 P0 一直是**不存在**的状态。
+
+**story-011 落了四件**:
+1. `PlayerController` 持**全案唯一**租约实例(`_motorLease` 字段 + 只读 `MotorLease` 属性);
+2. `PlayerController.Move` 读 `MotorLease.IsSuppressed` ⇒ 清零 `moveInput`
+   (**在 `ValidateMoveInput` 之后、`vTarget` 之前;不 early-return** —— 否则压制期
+   `CharacterController.Move` 不再被调用,落地判定与重力会停、玩家悬空);
+3. 新增 10 侧写面 `Gameplay.Presentation/Player/EmergencyMotorSuppression.cs`
+   —— **住 Presentation 是 `AC-1-23` 机械门的要求**(那把 IL 扫描按**调用点所在程序集**判白名单;
+   `Gameplay.Boot` 不在其中。2026-11-02 实现轮实测被该门判红,**处置是搬位置不是扩白名单**);
+4. `BootRoot` 把 1 的租约后置绑定进 10 的驱动。
+
+**⚠️ 本 epic 侧须承接的行为面**:
+- **`Move` 从此有一条新的输入短路**。`AC-1-09`(‖MoveInput‖ ≤ 1)的校验点**仍在清零之前** ——
+  外部输入的合法性照旧被验,不被压制路径绕过。若后续有人调整 `Move` 的语句次序,须跑
+  `emergency_motor_suppression_wiring_test`(它含**正控**:未压制时位移 > 0)。
+- **`LocomotionEvaluator` 的乘数链至今仍只是注释** —— `Move` 直接算
+  `SpeedWalk × |moveInput|`,没有 `K_terrain` / `K_context`,也没有走那个求值器。
+  story-011 只碰了 `K_suppressed` 这一项。**其余两项仍是欠账**,归本 epic 的移动手感轮。
+- **4(`LeaseSource.Self`)与 25(`Combat`)仍零生产接线** —— `ModalGate.SetMotorSuppression`
+  生产调用点仍是 0。归 4 交互轮 / 25 的 GDD 轮。

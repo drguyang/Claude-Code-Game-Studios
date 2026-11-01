@@ -164,9 +164,9 @@ This epic is complete when:
 | 008 | P2 施治动作真资产提前 —— 止血/通气的真接触音 + 手势/节律 VFX | Visual-Feel | **Ready ⬜** —— 2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)· sprint-07 §6 · 依赖素材本体产出;批次 = G-3 emergency 手势 VFX 子集 + batch-03 素材 | ADR-018/011 |
 | 009 | 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半) | Integration | **Complete ✅ 2026-10-14** | ADR-011/013/020 |
 | 010 | 档位意图生产接线 —— `Treatment`/`Explore` 必发(含中止)+ 退役 `ExploreCount` 假绿载体 + 跳过路径的设计分叉裁定 | Integration | **Complete ✅ 2026-11-02**(COMPLETE WITH NOTES —— AC-10-11 跳过半按裁定永久 NOT-RUN;S10-09 真机走查 NOT-RUN)。缺口来源 = 双参 `SetMode` 规则按 epic 扫描的**缺口 B**(`AC-10-11` 的载体是计数器;生产侧 `CameraMode.Treatment` 调用数 = **0**)。⚠️ 立件时另查出 **R-10.7**:跳过入口**不经** `EmergencyChannelDriver` 且只在 `Idle` 可达 ⇒ `AC-10-11` 的跳过半**从来没有可失败的机会**。**✅ 2026-11-02 用户裁定甲+乙**(跳过拉回相机链 + 不可达性如实登记;`AC-10-11` 拆两半分开记分) | ADR-020 Amd C ② / §五 |
-| 011 | 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面**(R-11.4 待批) | Integration | **Ready ⬜** —— 2026-11-02 立件,`story-010` 收口后登记的同型缺口(`MotorLease` 零生产实例化;`PlayerController` 零 `Suppress` 命中) | ADR-020 §一 / `OQ-4-13` / `AC-1-23` |
+| 011 | 移动压制租约生产接线 —— 10 置位/清位 `LeaseSource.Emergency` + **1 的读面**(R-11.4 待批) | Integration | **Complete ✅ 2026-11-02**(COMPLETE WITH NOTES —— 9 条 AC 全证;4/25 侧零接线与真机观感仍开)。立件时登记的同型缺口(`MotorLease` 零生产实例化;`PlayerController` 零 `Suppress` 命中) | ADR-020 §一 / `OQ-4-13` / `AC-1-23` |
 
-> 🔁 **2026-11-02 分母订正**:**本 epic 实有 11 条 story**(010 已收口;011 新立 `Ready ⬜`)⇒ **9/11 Complete**。未闭 = 008(资产提前)+ 011。
+> 🔁 **2026-11-02 分母订正**:**本 epic 实有 11 条 story** ⇒ **10/11 Complete**。未闭仅 = 008(资产提前,依赖外部美术 / 用户自产)。
 > 上方 header 的 `**Status**` 行仍写 `8/9` —— **差异**:分母 9→**11**(+010 / +011)、
 > 分子 8→**9**(010 收口),以本注为准;
 > header 原行**原文不删**(承「原文不删」纪律),但**不得**再被当作现行分母引用。

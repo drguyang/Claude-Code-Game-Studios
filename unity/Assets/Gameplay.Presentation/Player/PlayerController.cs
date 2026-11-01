@@ -49,6 +49,26 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         private Vector3 _velocity;
 
         /// <summary>
+        /// **移动压制租约 —— 全案唯一真源**(GDD 1 轴 4 `:271` / `OQ-4-13`:`MotorSuppressed` 是
+        /// **per-source 位图 + OR 聚合**,不是单个 bool;单 bool 下三个互不知晓的写者会**丢失更新**)。
+        /// <para>写者白名单恰 = `AC-1-23` 的三项(`LeaseSource.Self`=4 / `Emergency`=10 / `Combat`=25),
+        /// **每源只碰自己那一位**;1 **不过问原因**,只读聚合位。</para>
+        /// <para>🔁 **2026-11-02(story-011 R-11.1)**:此前本字段**不存在** —— `MotorLease` 全仓零生产
+        /// 实例化,规则九(`emergency-procedures.md:374`「动作期间玩家不动」)运行期可达性 = 0。
+        /// 租约归 1 是所有权的既定裁决,不是本卡的发明(GDD 1 `:375` / `ModalGate` 头注)。</para>
+        /// </summary>
+        private readonly MotorLease _motorLease = new MotorLease();
+
+        /// <summary>
+        /// 租约的**只读**暴露面(story-011 R-11.1)。
+        /// <para>⚠️ 暴露属性而非字段:外部拿到句柄后只能调 `Acquire` / `Release`(**只碰自己的位**),
+        /// 拿不到「整体重置」的入口 —— 那会让任一写者能清掉别人的压制。</para>
+        /// <para>⚠️ **唯一实例**:`new MotorLease()` 的生产构造点必须恰一处(本行)。
+        /// 两份位图 = 两个真源 ⇒ 4 / 25 与 10 各压各的,聚合位永远对不上。</para>
+        /// </summary>
+        public MotorLease MotorLease => _motorLease;
+
+        /// <summary>
         /// 默认移动配置的**热路径缓存**(2026-10-09 修 · M2 接线轮阶段 1 尾):
         /// <see cref="Move"/> 每帧调一次 <c>LocomotionConfig.LoadDefault()</c>,
         /// 而它每次 new 一个 ~44 B 的对象 ⇒ 每帧一次小堆分配(GC 抖动)。
@@ -252,6 +272,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
             // AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言
             ValidateMoveInput(moveInput);
+
+            // ── 移动压制(story-011 R-11.4 甲案 · 2026-11-02)──────────────────────
+            // 规则九(`emergency-procedures.md:374`)「动作期间玩家不动」的**唯一**读点。
+            // 此前本方法**不读**租约 ⇒ 就算 10 把位置上了,玩家照样走 —— 规则九只是个空壳。
+            //
+            // ⚠️ **插入点必须是 `ValidateMoveInput` 之后**:那个方法是 `AC-1-09` 的上界 / NaN 硬断言,
+            //    校验的是**外部输入**。先清零再校验 = 校验零向量 = 压制期把这道门静默关掉。
+            // ⚠️ **不得 early-return**:清零后仍要走完整个方法 —— 否则 `CharacterController.Move`
+            //    在压制期不再被调用(违 `AC-1-01②`「唯一位移写入点」),落地判定与重力会停,
+            //    玩家悬在空中。
+            // ⚠️ 压制**只锁水平位移 + Jump**;本方法面内不含攻击(1 不得扩语义,`AC-1-23` 负边界)。
+            if (_motorLease.IsSuppressed)
+                moveInput = Vector3.zero;
 
             // 消费 LocomotionEvaluator: 乘数链 + 加减速(静态缓存,避免每帧 ~44B 分配)
             var config = DefaultConfig;
