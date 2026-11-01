@@ -246,5 +246,53 @@ namespace DaYiJingCheng.Sim.World
                 tick, PatientId.None, -1, EventKind.DropDespawned,
                 _encoder.Encode(EventKind.DropDespawned, payload)));
         }
+
+        // ────────────────────────────────────────────────────────────────────
+        // 裸 long 重载(S23-2 · 2026-11-01)—— 「复用已铸 id」的调用方免 struct 包装。
+        //
+        // 为什么需要:29 的死亡散落(`DeathDropSettlement`)从库存投影拿到的 id 是**裸 long**
+        // (`InventoryRow.InstanceId`);把它包回 `new ItemInstanceId(...)` 会在 Sim.dll 里
+        // 新增一个构造点,被 IL 门(AC-17-05:`ItemInstanceId` 构造点唯一落发号权威)正确拒绝
+        // —— 那条门守的是「id 的出生只在权威」,包装已有 long 正是第二出生源的藏身形态。
+        // Sim 内部惯例 = 裸 long 传递(fold 同款);struct 只在权威出生、经 codec 边界存活。
+        // ⚠️ 本重载**不是第二条写路径** —— 判据与 Append 与 struct 版逐字同构,只是免包装。
+        // ────────────────────────────────────────────────────────────────────
+
+        /// <summary><see cref="RecordSpawnedWithId(long, ItemInstanceId, WorldPos, int, int)"/> 的
+        /// 裸 long 形(见上方注记;判据逐字同构)。</summary>
+        public void RecordSpawnedWithId(long tick, long instanceId,
+                                        WorldPos spawnAnchor, int itemKey, int qty)
+        {
+            ValidateSpawned(tick, itemKey, qty);
+            if (instanceId < 0)
+                throw new ArgumentOutOfRangeException(nameof(instanceId), instanceId,
+                    "instance_id 走 ADR-006 Amendment B 机制 A 计数器,不得为负");
+
+            var payload = new DropSpawnedPayload(instanceId, spawnAnchor, itemKey, qty);
+
+            _eventSink.Append(new SimEvent(
+                tick, PatientId.None, -1, EventKind.DropSpawned,
+                _encoder.Encode(EventKind.DropSpawned, payload)));
+        }
+
+        /// <summary><see cref="RecordDespawned(long, ItemInstanceId, int, int)"/> 的
+        /// 裸 long 形(见上方注记;判据逐字同构)。</summary>
+        public void RecordDespawned(long tick, long instanceId, int qty, int reason)
+        {
+            if (tick < 0)
+                throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
+            if (qty < 1)
+                throw new ArgumentOutOfRangeException(nameof(qty), qty,
+                    "扣减份数须 ≥ 1 —— 零份的「减量」是无意义事件(不写比写更好)");
+            if (reason < 0)
+                throw new ArgumentOutOfRangeException(nameof(reason), reason,
+                    "reason 是枚举序数(≥ 0);负值属畸形输入");
+
+            var payload = new DropDespawnedPayload(instanceId, qty, reason);
+
+            _eventSink.Append(new SimEvent(
+                tick, PatientId.None, -1, EventKind.DropDespawned,
+                _encoder.Encode(EventKind.DropDespawned, payload)));
+        }
     }
 }

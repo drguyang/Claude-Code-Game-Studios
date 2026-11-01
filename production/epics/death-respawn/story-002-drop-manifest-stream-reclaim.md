@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-01
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(规则三 掉落:DropSpawned/DropClaimed · death_cell = 最后 ActorCellEntered · 清单由流派生 · 位置从 7a 快照 · 回捡必须走到死亡格)
@@ -43,6 +43,15 @@
 ## Implementation Notes
 
 *Derived from ADR-009/010 Implementation Guidelines:*
+
+> 🔁 **2026-11-01 实施轮就地判定(S23-2;未经用户逐条确认,复评可改)**:上列 AC-29-02 的
+> 「逐件写 `DropSpawned`」在 fold 机械面上是**两事件**:先 `DropDespawned`(消耗持有,
+> `reason = DeathDrop` 占序 0 —— R-2 枚举未定稿)再 `DropSpawned`(**同 id** 落地,
+> `death-and-respawn.md:142` 原文 `instance_id = i.id`)。不先消耗 ⇒ fold 报
+> `DuplicateInstanceId`(未归零实例不得二次出生)且库存/地面**双份**。
+> 「29 零铸造」由同 id 复用结构性满足(载荷 id = 库存行 id 原样;`DropEventWriter.RecordSpawnedWithId`
+> 是 20 为已铸 id 留的通道)。写入通道 = 20 的唯一写者 `DropEventWriter`(29 不直接 Append);
+> 生产装配里 17 采集与其共用同一实例。
 
 1. 死亡时刻编排:读世界流反查最后 ActorCellEntered → 取 InventoryOf → 逐件 Append DropSpawned(顺序 = item 槽序的确定性枚举,禁字典序)。
 2. DropClaimed 由 4 的拾取意图触发、主机判距(当前格 == spawn_anchor ∧ 宽容半径),29 只提供「死亡掉落」这批 instance 的注册语义。

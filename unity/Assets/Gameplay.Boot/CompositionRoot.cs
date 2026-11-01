@@ -338,6 +338,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 管线序(story-004 实现注 2):`DeathCandidate → DeathAllowed 门 → PlayerDied`。
             // 三件在这里接成一条链,且**门在任何写流之前**(写者内再复核一次,双闸)。
             //
+            // ── 掉落写者 + 死亡散落结算(S23-2 · story-002 · 2026-11-01)─────────
+            // 20 的三支掉落写者 = 全案唯一发出方;死亡散落(29)与 17 采集共用同一实例
+            // (同一 sink ⇒ 同一批语义)。构造点**前移**:死亡消费链(下)的结算回调需要它,
+            // 而原构造点在 17 采集装配段(下方)—— 前移 = 同一实例,不是第二份。
+            // 结算面的投影来源**后置绑定**(`inventoryLoad` 在下方才构造;
+            // 与 SetAuthor / SetViewer / BindPlayer 同格),未绑定即结算 ⇒ 抛(fail-closed)。
+            var dropEventWriter = new DropEventWriter(stream, encoder, idAuthority);
+            var deathDropSettlement = new DeathDropSettlement(dropEventWriter);
+//
             // ① 冷却门:从世界流重算 `last_death_tick`(**零计数器**,AC-29-15)。
             var deathCooldown = new DeathCooldownGate(() => stream.Events, decoder);
 
@@ -373,7 +382,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 deathAllowed: deathCooldown.DeathAllowed,
                 actorClassOf: actorClassOf,
                 entryOf: entryOf,
-                deathCellOf: deathCellOf);
+                deathCellOf: deathCellOf,
+                // 掉落结算(S23-2):PlayerDied 真写之后以同格同 tick 散落(结算段次位)。
+                // ⚠️ 转序适配:回调 =(playerId, cell, tick),Settle = writer 惯例的 (tick, id, cell)。
+                dropSettlement: (playerId, cell, tick) => deathDropSettlement.Settle(tick, playerId, cell));
 
             // ⑤ 注册 —— 单消费者契约(`Register` 二次调用抛;此处只调一次)。
             deathCandidates.Register(deathConsumer);
@@ -506,6 +518,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                     loadRecipesSeed(),
                     modulesCatalog,
                     buildOwner.IsBound ? buildOwner.Owner : (int?)null));
+
+            // 死亡散落结算的投影来源(S23-2 后置绑定):每次结算重 fold,不持快照。
+            // ⚠️ 与 17 的 `HarvestWorldQuery` 同一个投影取法(`() => inventoryLoad.Rebuild().Projection`)
+            //    —— 两处各持一个委托是**同一来源的两个读法**,不是第二真源。
+            deathDropSettlement.BindProjectionSource(() => inventoryLoad.Rebuild().Projection);
 
             // ── 7a 存档服务(S19-1 判据 ④ 位置半 + 委托半)────────────────────
             // 形态 = 甲-a(三家专家合成裁定 2026-10-24):`SaveService` 只认「拿到一坨字节」,
@@ -970,7 +987,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ **`DropEventWriterAdapter` 而非直接传 `DropEventWriter`**:后者不实现
             //    `IDropWriter`(它的 `RecordSpawned` **自铸** id,而 17 侧已经铸好)。
             //    见 `DropEventWriterAdapter` 的类注 —— R-3 双铸造点冲突的落点。
-            var dropEventWriter = new DropEventWriter(stream, encoder, idAuthority);
+            //    🔁 2026-11-01(S23-2):`dropEventWriter` 的构造**已前移**到死亡消费侧装配段
+            //    (死亡散落结算回调需要它)—— 此处复用同一实例,不再二次构造。
             var resourceHarvestWriter = new ResourceHarvestWriter(stream, encoder, decoder, stream.Events);
             var harvest = new HarvestOrchestrator(
                 idAuthority, resourceHarvestWriter,

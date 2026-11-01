@@ -47,6 +47,13 @@ namespace DaYiJingCheng.Sim
         private readonly Func<int, DiseaseRegistryEntry> _entryOf;
         private readonly Func<int, WorldPos> _deathCellOf;
 
+        /// <summary>死亡散落结算回调(S23-2 · 可 null = 未接线 —— 001 行为不变)。
+        /// <para>结算段次位:`PlayerDied → 掉落 → 掉级 → 复活命令`(story-005:46);
+        /// 本类在**写者返回 Written 后**以 (playerId, deathCell, tick) 调它一次 ——
+        /// deathCell 用与载荷**同一个值**(算一次,不重查流)。掉落失败随异常上抛
+        /// (fail-loud,不吞成「死了但东西凭空消失」)。</para></summary>
+        private readonly Action<int, WorldPos, long> _dropSettlement;
+
         /// <summary>
         /// 构造 29 侧的候选注入点。
         /// </summary>
@@ -66,19 +73,24 @@ namespace DaYiJingCheng.Sim
         /// <param name="entryOf">该实体当前病种 / 伤情条目查询(判死谓词的第二入参来源)。</param>
         /// <param name="deathCellOf">死亡格查询(装配层从流中取最后一条
         /// `ActorCellEntered` 之 cell,承 ADR-020 §四)。</param>
-        /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
+        /// <param name="dropSettlement">死亡散落结算回调(S23-2;可 null = 未接线)。
+        /// <para>只在写者返回 <see cref="PlayerDiedWriteResult.Written"/> 后调用 ——
+        /// 谓词否决 / 冷却拒 ⇒ 零散落(冷却内再死连事件都不发,更不掉落)。</para></param>
+        /// <exception cref="ArgumentNullException">任一必需依赖为 null。</exception>
         public DeathCandidateConsumer(
             PlayerDiedWriter writer,
             Func<int, long, bool> deathAllowed,
             Func<int, ActorClass> actorClassOf,
             Func<int, DiseaseRegistryEntry> entryOf,
-            Func<int, WorldPos> deathCellOf)
+            Func<int, WorldPos> deathCellOf,
+            Action<int, WorldPos, long> dropSettlement = null)
         {
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _deathAllowed = deathAllowed ?? throw new ArgumentNullException(nameof(deathAllowed));
             _actorClassOf = actorClassOf ?? throw new ArgumentNullException(nameof(actorClassOf));
             _entryOf = entryOf ?? throw new ArgumentNullException(nameof(entryOf));
             _deathCellOf = deathCellOf ?? throw new ArgumentNullException(nameof(deathCellOf));
+            _dropSettlement = dropSettlement;
         }
 
         /// <summary>
@@ -96,9 +108,14 @@ namespace DaYiJingCheng.Sim
 
             // 冷却门求值 —— tick 取**候选自带的那一个**(判据的另一半),
             // 不另读时钟(见 ctor 的 deathAllowed 注释)。
-            _writer.TryWrite(
-                tick, playerId, actorClass, entry,
-                _deathCellOf(playerId), _deathAllowed(playerId, tick));
+            // deathCell 只查一次:载荷与散落结算用同一个值。
+            WorldPos deathCell = _deathCellOf(playerId);
+            PlayerDiedWriteResult result = _writer.TryWrite(
+                tick, playerId, actorClass, entry, deathCell, _deathAllowed(playerId, tick));
+
+            // 结算段次位:只有真写了 PlayerDied 才散落(谓词否决 / 冷却拒 ⇒ 零事件 ⇒ 零散落)。
+            if (result == PlayerDiedWriteResult.Written)
+                _dropSettlement?.Invoke(playerId, deathCell, tick);
         }
 
         /// <summary>
