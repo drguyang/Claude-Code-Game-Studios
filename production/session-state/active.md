@@ -15398,3 +15398,10 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   S23-5 生产接线归 1 侧轮 · 30 §4.3 公式行文本订正挂 30 下一轮 ·
   yaml 已置 done,**story 卡 Status 行仍 Ready(正式 /story-done 未跑,用户此前各卡均未跑)**
 - Next: /story-done 五卡正式闭卡(可选);下一 sprint 取件(sprint-24)
+
+## Session Extract — 2026-11-01 · R-4-W-6 结案(用户指令「裁定 R-4-W-6,按建议走」)
+- 结案认定:R-4-W-6 已由 2026-09-29 用户裁定解决(判断类豁免撤销,全部技能统一掉级)——
+  S23-3 勘察漏检 GDD 规则四撤销注,误标待裁;isExempt: null 恰为裁定值,零行为改动
+- 裁定行为钉:test_judgmentSkills_exemptRevoked_downgradeAppliesToDiagnosis(定向 13/13;
+  证伪 = 豁免守卫恒开 ⇒ 恰红 4);文档对齐四处(原文不删)
+- 回归:EditMode 6426/6389/0/37(+1)· PlayMode 273/269/0/2 @ 16:53:58 · commit ac1f6191
