@@ -46,7 +46,7 @@ B 路 = 补档位 + 补相位机 + 补位姿效果 + 接线,数值全用**具名
 | `Camera/ICameraRig.cs` | `CameraMode` 加 **`Downed`** 成员(含 spec 依据与 VR 全禁注) |
 | `Camera/CameraModeMachine.cs` | `CameraModePriority` 加 `Downed => 2` |
 | `Camera/CameraDownedPhases.cs` | **新增**:两段式相位机(`CameraDownedDriver` 纯结构) |
-| `Camera/CameraRig.cs` | `Tick` 推进相位机;`GetCameraPosition` 叠加下沉;有效 pitch 叠加微倾 |
+| `Camera/CameraRig.cs` | `Tick` 推进相位机;`GetCameraPosition` **只**叠加下沉;`GetLookTarget` 承载微倾(**§6.5 订正后**:初版曾把微倾折进有效 pitch) |
 | `DeathTransition/DeathTransitionPresenter.cs` | `Bind` 加 `requestDownedCamera` 委托缝;`Update` 边沿触发请求 |
 | `Gameplay.Boot/BootRoot.cs` | 4.3b 接线(闭包直引 `_cameraRig`,VR 显式跳过) |
 
@@ -64,11 +64,14 @@ B 路 = 补档位 + 补相位机 + 补位姿效果 + 接线,数值全用**具名
 ⇒ 10 的急救请求在那一刻**不再产生** ⇒ 二者实际不会同时入队;
 真同帧入队时「后者胜」也给出确定结果,无活锁。
 
-### 3.2 微倾只改**有效 pitch**,不改 `_pitch`
+### 3.2 微倾不污染玩家的 `_pitch`
 
 ⚠️ 若把 `SagTiltDegrees` 直接累加进 `_pitch`,玩家醒来后会发现俯角莫名变了且调不回去。
-⇒ `GetCameraPosition` 内用 `effectivePitch = clamp(_pitch + tilt, PITCH_MIN, PITCH_MAX)`,
-`_pitch` 本身不动。夹具 `test_tilt_doesNotMutatePlayerPitch` 钉这一条。
+夹具 `test_tilt_doesNotMutatePlayerPitch` 钉这一条。
+
+> 🔁 **2026-11-01 订正**:本节原写「用 `effectivePitch = clamp(_pitch + tilt, …)`」——
+> 那个实现**方向是反的**(pitch 增大会把相机抬高),已废。现微倾走
+> `CameraRig.GetLookTarget()`,**根本不碰 pitch**。详见 §6.5。
 
 ### 3.3 下沉只沿世界 **-Y**
 
@@ -177,7 +180,11 @@ canSwitch = (bestPrio >= curPrio || sameRequesterDowngrade) && best.Mode != Mode
 (`CountingCameraRig` / `TestCameraRig`)须补 `SetMode(CameraMode, int)` 空实现
 —— 接口加成员必然波及所有实现方,这是 `CS0535` 而非运行期红。
 
-## 5. 测试(13 条,`camera_downed_phases_test.cs`)
+## 5. 测试(**17 条**,`camera_downed_phases_test.cs`)
+
+> 🔁 **2026-11-01 订正**:本节原写「13 条」并列出 13 项 —— 那是**甲案之前**的账面。
+> 甲案 +3 条、微倾方向修正把第 7 条**改写**为第 8 条(1 换 1)、并新增 `test_sag_actuallyMovesCameraDown`。
+> 现为 **17 条**,逐条见下。
 
 | # | 测试 | 钉的性质 |
 |---|---|---|
@@ -186,32 +193,220 @@ canSwitch = (bestPrio >= curPrio || sameRequesterDowngrade) && best.Mode != Mode
 | 3 | `test_downed_monotonic_noJerk` | ② **禁甩镜**:逐帧单调 + 第二段恒 1 |
 | 4 | `test_downed_easingHitsEndpointsExactly` | 缓动端点精确(0 / 1) |
 | 5 | `test_downed_negativeDtTreatedAsZero` | 负 dt 按 0(不抛) |
-| 6 | `test_tilt_doesNotMutatePlayerPitch` | ③ 微倾**不污染玩家输入** |
-| 7 | `test_tilt_increasesDownwardPitch` | 微倾进度到位 |
-| 8 | `test_downed_priority_belowCasebook_aboveExplore` | 优先级三方关系 |
-| 9 | `test_downed_vrInPlace_requestDiscarded` | ④ **VR 全禁**(条件性丢弃) |
-| 10 | `test_downed_noVr_requestAccepted` | 上条的**负控**(无 VR ⇒ 生效) |
-| 11 | `test_downed_cannotExitViaExplore_currentBehaviorLocked` | **锁住矛盾现状**(见 §4) |
-| 12 | `test_downed_sameModeIdempotent` | 同档幂等(AC-2-18②) |
-| 13 | `test_placeholderKnobs_areNonZero_butNotRuledValues` | 占位数非零但不断言具体值 |
+| 6 | `test_tilt_doesNotMutatePlayerPitch` | ③ 微倾**不污染玩家输入**(M3 逃逸后补 `GetCameraPosition` 调用) |
+| 7 | `test_sag_actuallyMovesCameraDown` | 下沉**真的**作用到位置:`−Δy` **恰等于** `SagDepth`(M4 逃逸后补) |
+| 8 | `test_tilt_dropsLookTarget_doesNotRaiseCamera` | **微倾方向**:① 视线目标下移 ② 相机**不被抬高** ③ 常态零偏移<br>(**改写自** `test_tilt_increasesDownwardPitch` —— 那条是 F4 空洞正控,只断 `Is.Not.NaN`) |
+| 9 | `test_downed_priority_belowCasebook_aboveExplore` | 优先级三方关系 |
+| 10 | `test_downed_vrInPlace_requestDiscarded` | ④ **VR 全禁**(条件性丢弃) |
+| 11 | `test_downed_noVr_requestAccepted` | 上条的**负控**(无 VR ⇒ 生效) |
+| 12 | `test_downed_sameRequester_canExitViaExplore` | **甲案正控**:同请求方**能**降档 |
+| 13 | `test_downed_differentRequester_cannotDowngrade` | 甲案负控:异请求方**不能**抢 |
+| 14 | `test_casebook_sameRequester_canExitViaExplore` | 甲案在 `Casebook` 上的同一判据 |
+| 15 | `test_casebook_differentRequester_stillCannotInterrupt` | 上条负控 |
+| 16 | `test_downed_sameModeIdempotent` | 同档幂等(AC-2-18②) |
+| 17 | `test_placeholderKnobs_areNonZero_butNotRuledValues` | 数非零但**不断言具体值** |
 
-> ⚠️ 第 11 条**刻意断言「出不去」** —— 它不测「正确的行为」,而是把矛盾**锁成可判**:
-> 将来任何人改 `Settle` 判据(往任一方向修)都会让它红,从而强制重新审视。
+> ⚠️ **原第 11 条(`test_downed_cannotExitViaExplore_currentBehaviorLocked`)已随甲案删除** ——
+> 它当时**刻意断言「出不去」**以把矛盾锁成可判;矛盾裁定后,锁的价值由第 12–15 条**双向**接替
+> (「同请求方能退」与「异请求方不能抢」各有一组),判别力更强。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Camera/camera_downed_phases_test.cs   # 期望 17
+```
 
 ---
 
-## 6. 数值占位(归用户数值轮)
+## 6. 数值 —— 已由用户数值轮裁定(2026-11-01)
 
-spec §9 只给**形状**(下沉 + 微倾、两段、禁甩镜),**一个数都没有**。三常量全为占位:
+spec §9 只给**形状**(下沉 + 微倾、两段、禁甩镜),**一个数都没有**。三项已于
+2026-11-01 由用户数值轮裁定并回填:
 
-| 常量 | 占位值 | 含义 | 数值轮注意 |
-|---|---|---|---|
-| `SagSeconds` | 1.2 s | 第一段时长 | 建议与 29 spec Φ1 的水墨渐入(`FallSeconds = 1.2 s`)同量级 —— 二者**同步发生**(spec §6 Φ1),差异过大会「墨满了但相机还在掉」 |
-| `SagDepth` | 0.45 m | 下沉幅度 | 须与 `ARM` 距离联动,幅度过大时相机穿地 |
-| `SagTiltDegrees` | 6° | 微倾幅度(pitch 增量) | 须远小于 `PITCH_MAX`(60°),否则顶到硬界 |
+| 常量 | **裁定值** | 原占位 | 含义 | 依据 |
+|---|---|---|---|---|
+| `SagSeconds` | **1.2 s** | 1.2 s(不变) | 第一段时长 | 与 29 spec Φ1 的水墨渐入(`FallSeconds = 1.2 s`)**同步发生**(spec §6 Φ1),两条线一起收尾 ⇒ 无「墨满了但相机还在掉」的割裂 |
+| `SagDepth` | **0.45 m** | 0.45 m(不变) | 下沉幅度 | 相机 2.5 m → 2.05 m(降 18%)。**对屏幕位移几乎无影响**(见下),主要提供视点下坠的物理感;无穿地风险 |
+| `SagTiltDegrees` | **10°** | 6° → **10°** | 微倾幅度 | 观感的**主导项**。6° 实测只换来 6.65 pp 屏高位移(**偏轻**,像「身子一软」不像「失去支撑」);10° **实测 12.6 pp**(模型预测 12.72,**误差 0.8%**),≈ 1.9 倍,仍落在 spec §9「小幅度机位运动」内 |
 
-⚠️ **不得把占位值当成「已裁定数值」在下游引用**(本仓已五次抓过「自述顶替裁定」)。
-数值轮改这三处 + 同步 `death-transition-29.md` §14 的调参旋钮表。
+> ⚠️ **`SagDepth` 为什么不动**(2026-11-01 几何模型 + 图形走查实测,反直觉):
+> 0.45 → 1.30 m 时,屏幕位移只从 **−7.4 pp** 变到 **−6.4 pp**(甚至略减)。
+> 因为 `LookAt(target)` 会把「相机变低 ⇒ 目标在视野里相对升高」**自动补偿掉** ——
+> 下沉的视觉贡献几乎被视线补偿吃干净。**要让读数变强,唯一有效的杠杆是 `SagTiltDegrees`。**
+> 这使「下沉 + 微倾」两词在**屏幕读数**上的权重并不对称:前者是**体感**
+>(相机高度变了),后者才是**画面读数**。
+>
+> 模型标定:两个独立测量点(基线 42.4% / 落定 35.5%)反解出的地板远缘距离
+> 分别为 1.03 m / 0.94 m(自洽);现占位模型 −7.44 pp vs 实测 −6.65 pp,**误差 12%**
+> ⇒ **只用于比大小,不用于定绝对值**。
+
+复算(几何模型,自包含):
+
+```bash
+python3 - <<'PY'
+import numpy as np
+D=5.0; PITCH=np.radians(30.0); FOV=np.radians(60.0); t=np.tan(FOV/2)
+def frac(cam, look, P):
+    f=np.array(look)-np.array(cam); f/=np.linalg.norm(f)
+    r=np.cross(f,[0.,1.,0.]); r/=np.linalg.norm(r); u=np.cross(r,f)
+    v=np.array(P)-np.array(cam)
+    return 0.5-(v.dot(u)/(v.dot(f)*t))/2
+def cfg(sag=0.0,tilt=0.0):
+    return (np.array([0.,D*np.sin(PITCH)-sag, D*np.cos(PITCH)]),
+            np.array([0., -np.tan(np.radians(tilt))*D, 0.]))
+d=1.0   # 由两个实测点反解(1.03 / 0.94)取中
+c0,l0=cfg()
+for s,th in ((0.45,0),(0,6),(0.45,6),(0.45,10),(0.45,12),(1.30,6)):
+    c,l=cfg(s,th)
+    print(f"sag={s:4.2f} tilt={th:4.1f} => {100*(frac(c,l,(0,0,-d))-frac(c0,l0,(0,0,-d))):+7.2f} pp")
+PY
+```
+
+⚠️ **若 `SagDepth` / `SagSeconds` 将来再改**,数值的**唯一实体**是
+`CameraDownedPhases.cs` 的三个常量 + 本表;`design/ux/death-transition-29.md` **没有**
+调参旋钮表可同步(其 §14 是 *Open Questions*;**OQ-2「死亡过渡时长数值未定」指的是
+水墨 `FallSeconds` 那一族**,与本机位三常量不是同一组数 —— 勿混读)。
+
+---
+
+## 6.5 图形走查:微倾方向反了(已修 · 2026-11-01)
+
+### 6.5.1 症状
+
+机械夹具全绿(位移「发生了」),但**观感读不出来**。图形模式产图实测:
+
+| | 相机 Y 位移 |
+|---|---|
+| 下沉贡献 | −0.45 m |
+| 微倾贡献(**旧做法,走 `_pitch`**) | **+0.49 m** |
+| 净效果 | +0.04 m ⇒ 地平线只动 **2.6% 屏高** |
+
+### 6.5.2 根因是**结构性**的,不是符号写错
+
+- `BootRoot` 的 `cam.transform.LookAt(target)` **锁死了相机朝向** ⇒ `CameraRig`
+  无法独立控制朝向;
+- 第三人称绕点式里 `offset.y = sin(pitch) × distance` ⇒ **pitch 增大会把相机抬高**;
+- ⇒ 「微倾」实际在把相机**往上顶**,与下沉对着干,两者互相抵消。
+
+⚠️ 这解释了为什么 §7.2 的 M4 首版夹具**测不出**下沉 −0.45 m:它拿「pitch=0 基线」比
+「躺定 Downed」,而旧实现的微倾把 pitch 抬到 6° ⇒ `sin(6°)×5 ≈ +0.49 m`,
+几乎完全抹平。**当时修的是夹具(隔离两支),没意识到方向本身是错的** ——
+夹具隔离让断言变精确,却也**把「两支互相抵消」这个真问题掩掉了**。
+（教训同 `coding-standards` F8 的近亲:夹具改精确 ≠ 生产行为正确。）
+
+### 6.5.3 修法
+
+微倾改走 **`CameraRig.GetLookTarget(Vector3 target)`**(新增):
+
+```
+dropMeters = tan(SagTiltDegrees) × distance × TiltFraction
+return new Vector3(target.x, target.y - dropMeters, target.z)
+```
+
+`BootRoot` 改 `cam.transform.LookAt(_cameraRig.GetLookTarget(target))`;
+`GetCameraPosition` **只受下沉影响**(`effectivePitch` 折入已删)。
+
+- ✅ **单一路径**:喂 `LookAt` 的目标点是 `CameraRig` 可控的,不开第二份朝向真源
+  (ADR-020 §五:相机只持不写)。
+- ✅ **不绕人转**:偏移只沿世界 −Y,无水平分量 ⇒ 非视场旋转(spec §9 晕动评估)。
+
+### 6.5.4 修后实测(几何量取地板远缘)
+
+两条曲线:**修方向前**(`SagTiltDegrees = 6°`)与**数值裁定后**(`= 10°`)。
+
+| 时刻 | sag 进度 | 6° 地板远缘 y | 占屏高 | **10° 地板远缘 y** | **占屏高** |
+|---|---|---|---|---|---|
+| 常态 | 0 | 364 | 42.4% | 364 | 42.4% |
+| 下沉中 | 0.3 | 345 | 40.2% | **329** | **38.3%** |
+| 下沉中 | 0.6 | 329 | 38.3% | **299** | **34.8%** |
+| 下沉中 | 0.9 | 311 | 36.2% | **267** | **31.1%** |
+| 躺定 | 1.0 | 305 | 35.5% | **256** | **29.8%** |
+
+| | 总位移 | |
+|---|---|---|
+| **修方向前**(旧做法走 `_pitch`) | **2.6 pp** | 微倾把相机抬高、与下沉抵消 |
+| 修方向后 · 6°(原占位) | **6.65 pp** | 偏轻,像「身子一软」 |
+| **修方向后 · 10°(已裁定)** | **12.6 pp** | 约 4.8 倍于修前;模型预测 12.7 pp,误差 0.8% |
+
+> 📌 **模型在同一次改动内被验证了一次**:6° 时模型 −7.44 vs 实测 −6.65(误差 12%);
+> 10° 时模型 −12.72 vs 实测 **−12.6**(误差 **0.8%**)。⇒ §6 那张「`SagDepth` 几乎无效、
+> `SagTiltDegrees` 是主导项」的表**可按比例采信**。
+
+⚠️ **10° 的副作用(如实登记)**:`dropMeters = tan(10°) × 5 ≈ 0.88 m` —— 视线目标落在
+**玩家原点下方 0.88 m**。躺定时画面上部被后墙占去、玩家胶囊顶端出画。
+因这段过渡随即被水墨覆盖(中央保底墨 `MinInk = 0.68`),**实测不受影响**;
+但若将来把两段式复用到水墨不覆盖的场合,须重新评估取景。
+
+图非重复帧(10° 版 sha256 各异;两两平均像素差 0.92–11.82):
+
+```
+05ff6e9d3815 cdw_00_explore   06c53fc29e99 cdw_01_sag_030   e3d93520cf4e cdw_02_sag_060
+1374891b1d23 cdw_03_sag_090   b1963cc4a842 cdw_04_settled
+```
+
+> ✅ `cdw_00_explore.png` 的哈希在 **6° 与 10° 两轮里完全相同**(`05ff6e9d3815`)
+> —— 常态基线不受微倾影响,证明改动只作用于倒下态、**没污染常态取景**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity/Logs/shots
+python3 - <<'PY'
+from PIL import Image; import numpy as np, hashlib, itertools
+names=["cdw_00_explore","cdw_01_sag_030","cdw_02_sag_060","cdw_03_sag_090","cdw_04_settled"]
+a={n:np.asarray(Image.open(n+".png").convert("RGB")).astype(int) for n in names}
+for n in names:
+    im=np.asarray(Image.open(n+".png").convert("RGB")).astype(int)
+    R,G,B=im[:,:,0],im[:,:,1],im[:,:,2]
+    green=(G>R+6)&(G>B+2)&(G>60)
+    tops=[np.argmax(green[:,c]) for c in range(80,180) if green[:,c].any()]
+    print(f"{n}: 地板远缘 y={int(np.median(tops))} sha={hashlib.sha256(open(n+'.png','rb').read()).hexdigest()[:12]}")
+for x,y in itertools.combinations(names,2):
+    print(f"{x} vs {y}: {np.abs(a[x]-a[y]).mean():.2f}")
+PY
+```
+
+### 6.5.5 观感判读(**视觉模型直读**,非机械判据)
+
+| 版本 | 直读结论 |
+|---|---|
+| 修方向后 · **6°** | 能看出相机矮下去了(**方向对了**),但读作「身子一软」,**不像失去支撑** |
+| 修方向后 · **10°** | 地板占比明显增加(42.4% → 29.8%)、后墙带变厚、玩家胶囊整体上移并逼近画面上缘。<br>**「失去支撑」这一读法立住了**;仍在 spec §9「小幅度机位运动」内(总位移 12.6 pp ≈ 1/8 屏高) |
+
+⚠️ **这只是「视觉模型看到了什么」,不是 `[L]` 人工签核。**
+`AC-29-11` / `AC-29-12` 维持 `NOT-RUN` —— 观感是**人的**判断,须桌面批人工走查 + 听测。
+
+---
+
+## 6.6 本件自己的两处缺陷(如实登记)
+
+### 6.6.1 `FsWriteBoundaryGate` 具名声明漏登 —— 同形态**第五例**
+
+`camera_downed_visual_walkthrough.cs` 用 `Application.dataPath` 推项目根 + 写
+`unity/Logs/shots/`,按 `test-standards.md` 须在 `FsWriteBoundaryGate.Declarations` 具名声明。
+**起草时又没想起本门**,由真树断言 `test_realTestTree_zeroRed` 第五次点名
+(前四例见该文件 `:100-108` 的自陈「**肌肉记忆仍未形成**」)。
+
+⇒ 已补声明(理由段同时把「第五例」写进该文件,不再只写在证据里)。
+
+### 6.6.2 世界场景泄漏 —— `main_menu_wiring_test` 定序判据转红
+
+首轮全量 PlayMode:`275 / 270 / **1** / 2`,唯一红 =
+`main_menu_wiring_test.test_bootWithMenu_showsSingleRow_andLandsFocus`
+其定序判据「主菜单必须出现在**世界装载之前**」读到 **World 已装载**。
+
+**根因**:本件走过真启动序 ⇒ 以 **additive** 方式装载了 Addressables 的 World 场景;
+而 **additive 场景不会被 `Object.Destroy` 或测试框架自动卸载** ⇒ 留给了后续测试。
+NUnit 按全名序跑,`CameraDownedVisualWalkthrough` 排在 `main_menu_wiring_test` **之前**。
+**定向单跑绿、全量串跑红** —— 承 sprint-23 记的同一形态
+(「全量回归九轮才全绿,前 8 轮全是测试隔离缺陷」)。
+
+**修**:TearDown 里反射取 `BootRoot._worldLoadHandle` 并
+`Addressables.UnloadSceneAsync(handle)`,承既有 10 件 boot 夹具同款范式;
+同时补齐「Presenter 是独立 GameObject 须显式销毁」与「预摆最后拆」两条次序纪律。
+
+⚠️ **这不是新知识** —— 该范式在本仓已存在 10 处。**是我写新件时没照抄既有 boot 夹具的 TearDown。**
 
 ---
 
@@ -282,29 +477,72 @@ eaf9bd4b59e8bfeccccfc37da1f51ab6f493bb4eb6823a50b2d5ba7ca1bca59e  CameraModeMach
 
 ⚠️ **首轮三个变异全 NO-XML** —— 原因是我把证伪轮与 PlayMode 全量回归**并行**跑了,
 Unity 工程被占用。**这是调度失误,不是变异失败**。等 PlayMode 结束后重跑才得到上述结果。
+
+---
+
+## 7.6 接线判据证伪轮(2026-11-01 · 微倾方向修正后补)
+
+微倾改走 `GetLookTarget` 后,**`CameraRig` 内部的 EditMode 夹具已证明不了接线**:
+`BootRoot` 把位姿落到 `cam.transform` 那一刻改写回 `LookAt(target)`,`CameraRig` 的
+全部夹具**仍绿**。⇒ 那是「行为等价掩盖结构分叉」(F8)的教科书形态,须单独证伪。
+
+| 变异 | 内容 | 结果 |
+|---|---|---|
+| **M6** | `cam.transform.LookAt(_cameraRig.GetLookTarget(target))` → `LookAt(target)`(退回旧接线) | ✅ `test_downed_twoPhase_producesWalkthroughShots` **恰 1 条转红** |
+
+失败报文(实测):
+
+```
+躺定时相机朝向 y 分量(-0.428)须明显低于「微倾被丢弃」时的重建值(-0.428)。
+  Expected: less than -0.527896643f
+  But was:  -0.427896649f
+```
+
+**两个数字同值(-0.428)** —— 正是「微倾被静默丢弃」的签名。
+
+生产构建下的实测值(同一条日志行):
+
+```
+[CDW] 接线判据: ΔY=-0.539 m, forward.y 基线 -0.500 / 躺定 -0.561 / 去微倾重建 -0.428
+```
+
+- `基线 -0.500` = `−sin 30°`,即初始 pitch 30° 的朝向 ✅
+- `躺定 -0.561` vs `去微倾重建 -0.428` ⇒ **差 0.133**,阈值 0.10,**余量 1.33×**
+  (⚠️ 起草时写「约 1.7× 余量」是**估算**,实测只有 1.33× —— 已就地订正夹具报文)
+- `ΔY = -0.539 m` 大于 `SagDepth = 0.45` —— 多出的 0.089 m 是玩家自身在两个采样点之间的
+  沉降,**故 ΔY 判据的阈值取 0.5×`SagDepth`**(粗判「下沉落到变换上了」),
+  精确的 `SagDepth` 等式由 EditMode 的 `test_sag_actuallyMovesCameraDown` 钉住。
+
+还原:`33e0ff2f0620c224bf5fae89ae26248d3934e9c224d63a29ee65cba63282a82d`
+逐字节一致;`MUTANT-M6` 残留计数 = 0。
 (如实登记:NO-XML 不是绿,是**没跑成** —— 承既有口径。)
 
 ## 8. 回归(三元组)
 
 | 项 | 值 |
 |---|---|
-| **截至时刻** | 2026-11-01 **22:47 CST**(EditMode,甲案后)/ **22:5x CST**(PlayMode) |
-| **批次** | S24 相机两段式(`CameraMode.Downed`) |
+| **截至时刻** | 2026-11-01 **23:24:25 CST**(EditMode)/ **23:25:09 CST**(PlayMode) |
+| **批次** | S24 相机两段式(`CameraMode.Downed`)· 微倾方向修正 + 数值裁定 10° |
 | **commit** | 待提交(本批) |
 
 | 套件 | 结果 | 前次 | 等式 |
 |---|---|---|---|
-| EditMode(甲案前) | `total=6469 passed=6432 failed=0 skipped=37` | `6455 / 6418 / 0 / 37` | `6469 − 6455 = 14` ✅(新增 14 测) |
-| **EditMode(甲案后)** | **`total=6472 passed=6435 failed=0 skipped=37`** | `6469 / 6432 / 0 / 37` | `6472 − 6469 = 3` ✅(甲案新增 3 测:1 正控 + 2 负控) |
-| PlayMode | `total=274 passed=270 failed=0 skipped=2` | `274 / 270 / 0 / 2` | 持平 ✅(本批未加 PlayMode 测试) |
+| EditMode(甲案前) | `6469 / 6432 / 0 / 37` | `6455 / 6418 / 0 / 37` | `6469 − 6455 = 14` ✅(新增 14 测) |
+| EditMode(甲案后) | `6472 / 6435 / 0 / 37` | `6469 / 6432 / 0 / 37` | `6472 − 6469 = 3` ✅(甲案 1 正控 + 2 负控) |
+| **EditMode(微倾修正后)** | **`6472 / 6435 / 0 / 37`** | `6472 / 6435 / 0 / 37` | **`0`** ✅(无新增 —— `test_tilt_increasesDownwardPitch` **改写**为 `test_tilt_dropsLookTarget_doesNotRaiseCamera`,**1 换 1**) |
+| PlayMode(修正前) | `274 / 270 / 0 / 2` | — | — |
+| **PlayMode(修正后)** | **`275 / 271 / 0 / 2`** | `274 / 270 / 0 / 2` | `275 − 274 = 1` ✅(新增 `CameraDownedVisualWalkthrough` 1 条) |
 
 复算:
 
 ```bash
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity
-python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
-python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').getroot();print('EM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print('PM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
 ```
+
+⚠️ **中间有一轮红(已修,如实留档)**:首轮全量 PlayMode `275 / 270 / 1 / 2`,红项 =
+`main_menu_wiring_test`(世界场景泄漏,见 §6.6.2)。修后重跑才是上表的值。
 
 ---
 
@@ -312,9 +550,12 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| **`Downed` 出不去**(§4 的矛盾) | **如实登记,待用户裁定** | 玩家复活后相机停在倒下档 —— 与 `Casebook` 同一机制,修法三选一见 §4.4 |
+| ~~**`Downed` 出不去**(§4 的矛盾)~~ | **✅ 已结(甲案)** | 同请求方可降档,见 §4.4 / §7.5 |
+| ~~**数值**(`SagSeconds` / `SagDepth` / `SagTiltDegrees`)~~ | **✅ 已裁定 2026-11-01** | 1.2 s / 0.45 m / **10°**,见 §6 |
+| ~~**微倾方向反了**~~ | **✅ 已修 2026-11-01** | 根因 = 朝向被 `LookAt(target)` 锁死 + `offset.y = sin(pitch)×d`;见 §6.5 |
 | **`death-and-respawn.md:491` 引据错误** | 未修 | 「承 25 `:1639`」应为 `combat-and-weapon-lines.md:1665`;归 29 的回写轮 |
-| **数值**(`SagSeconds` / `SagDepth` / `SagTiltDegrees`) | **占位** | 归用户数值轮(§6) |
+| **`GetLookTarget` 未进 `ICameraRig`** | **如实登记** | 微倾的承载点 `CameraRig.GetLookTarget(target)` 只是**具体类**成员,接口上**没有**。今天唯一的消费者 `BootRoot` 持具体类型(`private CameraRig _cameraRig`),故能用;但任何 `ICameraRig` 消费者都会写 `cam.transform.LookAt(target)` ⇒ **微倾静默丢失**。<br>不加进接口的理由:ADR-020 §Key Interfaces 把接口钉成「四成员」,加第五个须动 ADR —— **不在本批越权**。归机位轮 / ADR-020 窄修订 |
+| 🔴 **2 的 GDD `R-2-5` 档位表未登记 `Downed`** | **未修,须用户裁定** | `camera-and-viewpoint.md` 的 R-2-5 档位表(`:170-178`)只有 **10 / 39** 两个请求方,优先级式(`:202`)只有 `Casebook > Treatment > Explore`。而代码已有第五档 `CameraMode.Downed`(优先级 2,与 `Treatment` 同格)+ 请求方 **29**(`DeathTransitionPresenter`)。<br>⚠️ 这正是本仓反复抓过的「**引用却无登记**」形态;不过本批只被授权「修微倾方向 + 回填三个数」,**写 GDD 档位表须先经用户批准**(collaborative protocol)。<br>建议补法:① R-2-5 表加一行 `29 死亡过渡 → Downed → 倒下两段式第一段 → PlayerDied 落流`;② 优先级式改为 `Casebook > Downed(= Treatment) > Explore`;③ §9 的「三档」措辞(`:29` / `:129`)订正为五档。<br>⚠️ **不得**只改代码不改表 —— 那会让「档位的唯一真源」变成 `CameraModePriority.cs`。 |
 | **醒来段的机位**(Φ3 床格视角) | 未做 | spec §6 Φ3 是**另一条相机线**,归机位轮;本批只做「倒下」 |
-| **图形走查**(下沉观感是否合 spec) | **NOT-RUN** | 机械判据只覆盖「位移发生」,不覆盖「看起来像失去支撑」 |
-| **AC-29-11 / AC-29-12**(`[L]` 节奏 / 听测) | **NOT-RUN** | 承既有口径不变 |
+| **图形走查**(下沉观感是否合 spec) | **已跑(视觉模型直读)** | §6.5.4 / §6.5.5;⚠️ **不是** `[L]` 人工签核 |
+| **`AC-29-11` / `AC-29-12`**(`[L]` 节奏 / 听测) | **NOT-RUN** | 承既有口径不变 —— 需用户桌面批人工走查 + 听测签核 |

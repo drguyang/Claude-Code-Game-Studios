@@ -1715,7 +1715,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 {
                     Vector3 target = _player.transform.position;
                     cam.transform.position = _cameraRig.GetCameraPosition(target);
-                    cam.transform.LookAt(target);
+                    // 🔁 **2026-11-01**:视线目标改走 `GetLookTarget`(倒下微倾的承载点)。
+                    //   常态下它**恒等于 `target`**(`TiltFraction == 0` ⇒ 零偏移)⇒ 行为不变;
+                    //   倒下时目标向下移 ⇒ 视线向下,**相机位置不动**。
+                    //    ⚠️ 为什么不能直接用 `LookAt(target)`:微倾若做进 pitch,相机位置会
+                    //    沿弧线**抬高**,与下沉反向抵消(图形走查实测,见 `GetLookTarget` 注)。
+                    cam.transform.LookAt(_cameraRig.GetLookTarget(target));
                 }
             }
         }

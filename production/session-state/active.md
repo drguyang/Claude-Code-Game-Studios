@@ -15439,3 +15439,37 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   CanvasGroup 未激活 · GameObject.Find 同名歧义 · 真实时间 vs 游戏时间 · 格事件同 tick
 - **[L] AC-29-11/12 维持 NOT-RUN** —— 需用户桌面批人工走查 + 听测签核
 - Next: 用户桌面批签核;远端变体(45)/相机两段式(机位轮)/环境音(44)/床格端口(24)各归其轮
+
+## Session Extract — 2026-11-01 · S24 相机两段式:微倾方向修正 + 数值裁定
+
+**用户指令**:「数值(SagSeconds/SagDepth/SagTiltDegrees)仍是占位,归你的数值轮。
+你给选项,我来选你回填。同时修 ②:微倾与下沉方向相反」
+
+- **② 微倾方向(根因是结构性的)**:`BootRoot` 的 `LookAt(target)` 锁死朝向 ⇒
+  `CameraRig` 只能经 `pitch` 表达倾角,而 `offset.y = sin(pitch) × distance` 使 pitch 增大
+  **抬高**相机 ⇒ 与下沉反向抵消(实测:−0.45 m 下沉被 +0.49 m 微倾抹平,地平线只动 2.6% 屏高)。
+- **修法**:微倾改走新增的 `CameraRig.GetLookTarget()`(视线目标下移
+  `tan(SagTiltDegrees) × distance × TiltFraction`);`GetCameraPosition` 只受下沉影响;
+  `BootRoot` 改 `LookAt(GetLookTarget(target))`。单一路径,不开第二份朝向真源。
+- **数值裁定(用户选)**:`SagSeconds` 1.2 s(不变)· `SagDepth` 0.45 m(不变)·
+  `SagTiltDegrees` 6° → **10°**。
+- **实测屏高位移**(地板远缘):修前 2.6 pp → 6° 时 6.65 pp → **10° 时 12.6 pp**
+  (42.4% → 29.8%)。几何模型预测 12.7 pp,**误差 0.8%**。
+- **反直觉发现**:`SagDepth` 0.45 → 1.30 m 屏高位移只从 −7.4 pp 变到 −6.4 pp
+  (`LookAt(target)` 自动补偿「相机变低 ⇒ 目标相对升高」)⇒ **观感主导项只有 `SagTiltDegrees`**。
+- **夹具**:`test_tilt_increasesDownwardPitch`(F4 空洞正控,只断 `Is.Not.NaN`)→ 改写为
+  `test_tilt_dropsLookTarget_doesNotRaiseCamera`(视线下移 / 相机不被抬高 / 常态零偏移);
+  `test_sag_actuallyMovesCameraDown` 简化为单 rig 精确比对 `== SagDepth`。
+- **新增接线判据**(`camera_downed_visual_walkthrough`):首条覆盖 `BootRoot` 位姿接线的
+  机械载体 —— 退回 `LookAt(target)` ⇒ 转红(**F8 形态**:`CameraRig` 内部夹具对此零判别力)。
+  证伪 **M6 恰 1 条红**,SHA-256 逐字节还原(`33e0ff2f…`)。
+- **回归**:EditMode `6472/6435/0/37` @23:24:25 · PlayMode `275/271/0/2` @23:25:09
+- ⚠️ **本件自己两处缺陷(如实登记,见证据 §6.6)**:
+  ① `FsWriteBoundaryGate` 具名声明漏登 —— **同形态第五例**;
+  ② 走过真启动序未卸载 additive World 场景 ⇒ `main_menu_wiring_test` 定序判据红
+     (定向单跑绿 / 全量串跑红);修 = TearDown 补 `Addressables.UnloadSceneAsync`。
+- ⚠️ **仍未做**:`GetLookTarget` 未进 `ICameraRig`(接口消费者会静默丢失微倾;动 ADR-020 四成员,
+  不本批越权)· 🔴 **2 的 GDD `R-2-5` 档位表未登记 `Downed` / 请求方 29**
+  (`camera-and-viewpoint.md:170-178` 表 + `:202` 优先级式;**写 GDD 须用户批准**,本批未动)·
+  醒来段机位(Φ3)· `death-and-respawn.md:491` 引据错误(归 29 回写轮)
+- **[L] AC-29-11/12 维持 NOT-RUN** —— 视觉模型的直读**不构成**人工签核

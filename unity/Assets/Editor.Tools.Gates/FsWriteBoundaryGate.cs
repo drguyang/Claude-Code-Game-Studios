@@ -137,6 +137,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/camera_downed_visual_walkthrough.cs",
+                Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
+                         "写盘 = `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫)," +
+                         "目标 `unity/Logs/shots/cdw_*.png`(gitignored 指定暂存区,文件头已具名声明五张文件名)。" +
+                         "**不写仓库源、不写入库产物**。" +
+                         "⚠️ 本条的由来 = 同一形态**第五例**(2026-11-01):又是写完才想起本门," +
+                         "真树断言 `test_realTestTree_zeroRed` 第五次点名",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/Audio/statereport_walkthrough_probe.cs",
                 Reason = "`Application.dataPath` 仅用于**读** DataCooked / Audio;写目标走 Path.GetTempPath()",
             },

@@ -187,71 +187,78 @@ namespace DaYiJingCheng.Tests.Camera
         [Test]
         public void test_sag_actuallyMovesCameraDown()
         {
-            // ⚠️ **判据必须隔离「下沉」这一支**(2026-11-01 首版红后订正):
-            //    微倾(pitch 增大)会让 `offset.y = sin(pitch) × distance` **变大** ⇒ 相机抬高;
-            //    下沉(`sag.y = -SagDepth`)把相机压低。两者方向相反,混在一起比「基线 vs 躺定」
-            //    会互相抵消(实测:微倾 +0.49 m 几乎抹平下沉 -0.45 m)。
-            //    ⇒ 正解 = **在同一 pitch 下比较「有下沉 / 无下沉」**:
-            //       ① 取躺定时的位姿(含下沉 + 微倾);
-            //       ② 用同一台 rig 退出 Downed(下沉归零、pitch 回到玩家值)后**再算一次**,
-            //          但把 `_pitch` 手动设成躺定时那个**有效 pitch**,使两次的微倾贡献相同;
-            //       ③ 差值 = 纯粹的下沉量。
-            //    ⚠️ 更简单且更稳的做法:**直接比较两台 rig** —— 一台 Downed、一台 Explore,
-            //    但都注入**同一个 `_pitch`**,且 Downed 那台推到躺定 ⇒ 差值就是下沉。
-            var downedRig = NewRig();
-            var baselineRig = NewRig();
+            // 🔁 **2026-11-01 简化**(微倾方向修正后):初版要用**两台 rig** 隔离微倾,
+            //    因为那时微倾通过 pitch 把相机**抬高**、与下沉抵消(实测 -0.45 m 被 +0.49 m 抹平)。
+            //    现微倾只动**视线目标**、不动相机位置 ⇒ 下沉是位置唯一的贡献者 ⇒
+            //    单台 rig 即可判,差值应**恰等于** `SagDepth`。
+            var rig = NewRig();
+            rig.ResetLookForTest(yaw: 0f, pitch: 0f);
             UnityEngine.Vector3 target = UnityEngine.Vector3.zero;
 
-            // 基线:不倒下,但 pitch 设成躺定后的**有效 pitch**(= 玩家值 + 微倾)。
-            // 玩家 pitch = 0 ⇒ 躺定时有效 pitch = SagTiltDegrees。
-            float settledEffectivePitch = Math.Min(
-                CameraDownedDriver.SagTiltDegrees, CameraRig.PITCH_MAX);
-            baselineRig.ResetLookForTest(yaw: 0f, pitch: settledEffectivePitch);
-            baselineRig.SetModeForTest(CameraMode.Explore);
-            for (int i = 0; i < 5; i++) baselineRig.Tick(0.1f);
-            float baselineY = baselineRig.GetCameraPosition(target).y;
+            rig.SetModeForTest(CameraMode.Explore);
+            for (int i = 0; i < 5; i++) rig.Tick(0.1f);
+            float baselineY = rig.GetCameraPosition(target).y;
 
-            // 倒下:推到躺定(下沉 + 微倾都到 1)。
-            downedRig.ResetLookForTest(yaw: 0f, pitch: 0f);
-            downedRig.SetModeForTest(CameraMode.Downed);
-            for (int i = 0; i < 30; i++) downedRig.Tick(0.1f);
-            float downedY = downedRig.GetCameraPosition(target).y;
+            rig.SetModeForTest(CameraMode.Downed);
+            for (int i = 0; i < 30; i++) rig.Tick(0.1f);
+            float downedY = rig.GetCameraPosition(target).y;
 
-            Assert.AreEqual(CameraDownedPhase.Settled, downedRig.DownedPhase, "应已到躺定");
-            Assert.AreEqual(1f, downedRig.DownedSagFraction, 1e-4f, "下沉进度应到 1");
-            Assert.AreEqual(1f, downedRig.DownedTiltFraction, 1e-4f, "微倾进度应到 1");
+            Assert.AreEqual(CameraDownedPhase.Settled, rig.DownedPhase, "应已到躺定");
+            Assert.AreEqual(1f, rig.DownedSagFraction, 1e-4f, "下沉进度应到 1");
 
-            // 两次的微倾贡献相同(有效 pitch 都是 SagTiltDegrees)⇒ 差值 = 纯粹下沉量。
             float sagDelta = baselineY - downedY;
             Assert.AreEqual(CameraDownedDriver.SagDepth, sagDelta, 1e-3f,
-                $"躺定相机 Y({downedY:0.000})与「同有效 pitch 的基线」({baselineY:0.000})" +
-                $"之差应恰为 SagDepth({CameraDownedDriver.SagDepth})" +
-                " —— 下沉须真的作用到位姿上(M4 逃逸点)");
+                $"躺定相机 Y({downedY:0.000})与常态({baselineY:0.000})之差应**恰为** " +
+                $"SagDepth({CameraDownedDriver.SagDepth}) —— 微倾不再参与位置,故差值必须精确" +
+                "(M4 逃逸点:下沉须真的作用到位姿上)");
         }
 
         /// <summary>微倾方向:俯角**变大**(视线更向下 = 人倒下了)。</summary>
         [Test]
-        public void test_tilt_increasesDownwardPitch()
+        public void test_tilt_dropsLookTarget_doesNotRaiseCamera()
         {
+            // 🔁 **2026-11-01 重写**(图形走查发现微倾方向做反后):
+            //    初版微倾做进「有效 pitch」⇒ `offset.y = sin(pitch)×distance` 让相机**抬高**,
+            //    与下沉**反向抵消**(实测地平线只上移 2.6% 屏高)。首版本测只断 `Is.Not.NaN`
+            //    —— **空洞正控**(F4),什么都没测。
+            //    现微倾走「视线目标下移」⇒ 本测钉三条:
+            //      ① 视线目标**向下移**(微倾生效);
+            //      ② 相机位置**不被微倾抬高**(方向正确);
+            //      ③ 常态(未倒下)时 `GetLookTarget` **恒等于** target(零偏移,不污染常态)。
             var rig = NewRig();
             rig.ResetLookForTest(yaw: 0f, pitch: 0f);
+            UnityEngine.Vector3 target = new UnityEngine.Vector3(0f, 1f, 0f);
+
+            // ③ 常态:视线目标 = target 本身(微倾未生效)。
+            rig.SetModeForTest(CameraMode.Explore);
+            UnityEngine.Vector3 lookBefore = rig.GetLookTarget(target);
+            Assert.AreEqual(target.y, lookBefore.y, 1e-5f,
+                "常态下 `GetLookTarget` 须**恒等于** target(否则会污染正常取景)");
+
+            // 推进到躺定。
             rig.SetModeForTest(CameraMode.Downed);
-
-            UnityEngine.Vector3 target = UnityEngine.Vector3.zero;
-            float yBefore = rig.GetCameraPosition(target).y;   // pitch=0 ⇒ 相机在目标高度
-
             for (int i = 0; i < 30; i++) rig.Tick(0.1f);
-            float yAfter = rig.GetCameraPosition(target).y;
+            Assert.AreEqual(1f, rig.DownedTiltFraction, 1e-4f, "微倾进度应到 1");
 
-            // pitch 变大 ⇒ sin(pitch) 变大 ⇒ offset.y 变大(相机抬得更高 = 看得更向下)。
-            // 同时下沉把相机整体往下压 ⇒ 两者叠加,净效果须仍可判:
-            // 本测只断言**微倾**这一支的方向,故拿 pitch=0 的基准与「只微倾不下沉」比较不可行
-            // ⇒ 改为直接断言**有效 pitch 使 offset.y 高于无微倾时**(用同一时刻两次取样)。
-            Assert.That(yAfter, Is.Not.NaN, "位姿须可算");
-            Assert.That(rig.DownedTiltFraction, Is.EqualTo(1f).Within(1e-4f), "微倾进度应到 1");
-            Assert.That(rig.DownedSagFraction, Is.EqualTo(1f).Within(1e-4f), "下沉进度应到 1");
-            // 方向断言放在下面独立的算例里(避免与下沉混淆)。
-            Assert.That(yBefore, Is.Not.NaN);
+            UnityEngine.Vector3 lookAfter = rig.GetLookTarget(target);
+
+            // ① 视线目标**向下移**(y 变小)。
+            Assert.That(lookAfter.y, Is.LessThan(lookBefore.y),
+                $"躺定时视线目标 y({lookAfter.y:0.000})须**低于**常态({lookBefore.y:0.000})" +
+                " —— 微倾 = 视线向下(spec §9「先失去支撑」)");
+
+            // ② 相机位置**不被微倾抬高**:躺定时相机 y 须低于「同 pitch 的常态」。
+            //    (下沉在压、微倾不再抬 ⇒ 净效果一定是往下。)
+            var baselineRig = NewRig();
+            baselineRig.ResetLookForTest(yaw: 0f, pitch: 0f);
+            baselineRig.SetModeForTest(CameraMode.Explore);
+            for (int i = 0; i < 5; i++) baselineRig.Tick(0.1f);
+            float baselineY = baselineRig.GetCameraPosition(target).y;
+            float downedY = rig.GetCameraPosition(target).y;
+
+            Assert.That(downedY, Is.LessThan(baselineY),
+                $"躺定时相机 y({downedY:0.000})须低于常态({baselineY:0.000})" +
+                " —— 微倾**不得**把相机抬高(那会与下沉反向抵消)");
         }
 
         // ══════════════════ ④ 档位:优先级 + VR 全禁 ══════════════════

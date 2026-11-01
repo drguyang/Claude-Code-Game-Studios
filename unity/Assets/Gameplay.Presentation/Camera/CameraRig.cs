@@ -303,17 +303,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// </summary>
         public Vector3 GetCameraPosition(Vector3 target)
         {
-            // ── 倒下两段式 · 微倾(spec §9)──────────────────────────────────
-            // ⚠️ **不改 `_pitch` 本身**:它是玩家 Look 的累积值,写进去会污染输入
-            //   (醒来后玩家会发现俯角莫名变了)。⇒ 用**有效 pitch = 玩家 pitch + 微倾增量**,
-            //   只在算位姿的这一刻叠加。
-            // ⚠️ **只改 pitch,不改 yaw** —— spec §9 晕动评估明写「非视场旋转」。
-            // ⚠️ 叠加后须仍钳在 `[PITCH_MIN, PITCH_MAX]`(AC-2-09 的界是硬界,不得被效果突破)。
-            float effectivePitch = Mathf.Clamp(
-                _pitch + CameraDownedDriver.SagTiltDegrees * _downed.TiltFraction,
-                PITCH_MIN, PITCH_MAX);
-
-            float pitchRad = effectivePitch * Mathf.Deg2Rad;
+            // 🔁 **2026-11-01 订正(图形走查发现)**:初版把微倾做成「有效 pitch += 微倾量」,
+            //   **方向错了** —— `offset.y = sin(pitch) × distance` ⇒ pitch 增大使相机沿弧线
+            //   **抬高**,与「失去支撑」的下沉**反向**,两者互相抵消(实测:下沉 -0.45 m 被
+            //   微倾 +0.49 m 抹平,地平线只上移 2.6% 屏高)。
+            //   ⚠️ 根因是结构性的:相机朝向由 `BootRoot` 的 `LookAt(target)` 锁死,
+            //   `CameraRig` **无法**独立控制朝向 ⇒ 微倾只能通过 pitch 改**位置**。
+            //   ⇒ 现改为**微倾走「视线目标下移」**(见 <see cref="GetLookTarget"/>),
+            //   位置只受**下沉**影响 —— 二者方向一致,不再抵消。
+            float pitchRad = _pitch * Mathf.Deg2Rad;
             float cosPitch = Mathf.Cos(pitchRad);
             float sinPitch = Mathf.Sin(pitchRad);
 
@@ -329,6 +327,34 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
             Vector3 sag = new Vector3(0f, -CameraDownedDriver.SagDepth * _downed.SagFraction, 0f);
 
             return target + offset + sag;
+        }
+
+        /// <summary>
+        /// 相机**应看向**的点(2026-11-01 新增;倒下微倾的承载点)。
+        /// <para>常态 = 目标本身(`target`);倒下时 = 目标**向下偏移** `SagTiltDegrees`
+        /// 对应的视线偏移 ⇒ 视线向下,**而相机位置不动**。</para>
+        /// <para>⚠️ <b>为什么微倾走这里而不是 pitch</b>:相机朝向由 `BootRoot` 的
+        /// `LookAt(...)` 决定,`CameraRig` 无法独立控制朝向 ⇒ 只有**喂给 `LookAt` 的目标**
+        /// 是它可控的。若把微倾做进 pitch,`offset.y = sin(pitch)×distance` 会让相机**抬高**
+        /// —— 与「失去支撑」的下沉反向,两者互相抵消(2026-11-01 图形走查实测:
+        /// 下沉 -0.45 m 被微倾 +0.49 m 抹平,地平线只上移 2.6% 屏高)。</para>
+        /// <para>⚠️ <b>只改 pitch 方向的等价物,不改 yaw</b>:偏移只沿世界 -Y,
+        /// 不含水平分量 ⇒ 无「绕着人转」= 非视场旋转(spec §9 晕动评估)。</para>
+        /// <para>⚠️ <b>为什么不直接改相机朝向四元数</b>:那会让 `CameraRig` 与 `BootRoot`
+        /// 各持一份朝向真源(两份真源),且既有 `LookAt` 链会覆盖它。喂目标点是
+        /// **单一路径**(ADR-020 §五:相机只读不持状态)。</para>
+        /// </summary>
+        /// <param name="target">跟随目标(通常是玩家位置)。</param>
+        /// <returns>`LookAt` 应使用的点。</returns>
+        public Vector3 GetLookTarget(Vector3 target)
+        {
+            // 微倾量换算成「视线目标下移多少米」:与相机到目标的距离成正比,
+            // 使倾角在**视觉上**等同于 `SagTiltDegrees`(距离越远,同样的角度要下移越多)。
+            // ⚠️ 用 `_distance`(绕点半径)而非实际距离 —— 实际距离随碰撞收缩会变,
+            //    用它会让微倾量抖动(禁甩镜)。
+            float dropMeters = Mathf.Tan(CameraDownedDriver.SagTiltDegrees * Mathf.Deg2Rad)
+                               * _distance * _downed.TiltFraction;
+            return new Vector3(target.x, target.y - dropMeters, target.z);
         }
     }
 }
