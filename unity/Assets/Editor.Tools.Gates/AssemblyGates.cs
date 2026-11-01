@@ -215,6 +215,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // (不崩、不红),表现为「玩家复活后相机卡在倒下档」。
             // `ICameraRig.SetMode` 的 XML 注释已写此禁令 —— **注释不是执行体**(F6),本门是它的执行体。
             errs.AddRange(CameraSetModeRequesterGate.RunAll("."));
+            // 2 相机「档位表 ↔ 代码」覆盖门(camera-viewpoint/story-007 · 2026-11-02):
+            // 上一条只判**语法**,从不看 `R-2-5` 那张表 ⇒ 2026-11-02 实测 6 条有效行里
+            // 有 2 条(39 的两行)**零生产调用点**而门全绿。本门补上「表 ⊆ 代码」。
+            // ⚠️ 它只证明「有人声明要发」,证不了「真的会发」—— 后者归 PlayMode 矩阵夹具。
+            errs.AddRange(CameraSetModeRequesterGate.RunModeRequestTable("."));
             return errs;
         }
 

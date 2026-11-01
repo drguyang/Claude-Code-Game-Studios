@@ -15666,3 +15666,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   矩阵门仅立件未实现 · `SkeuoUI` 测试间泄漏未系统治理
 - 证据:`production/qa/evidence/impl-casebook-006-camera-mode-intent-2026-11-02.md`
 - **Next**:`/code-review` 三件生产文件;矩阵门 = `camera-viewpoint/story-007`(Ready,未开工)
+
+## Session Extract — camera-viewpoint/story-007(2026-11-02 · S23-11 收口)
+
+- **判据分三层**:表(`camera-mode-requests.yaml`)· 静态 `RunModeRequestTable`(B1/B2/B3)·
+  动态矩阵(`camera_mode_request_matrix_test.cs`)。**静态只防「绕过」不防「没发」**。
+- **记录器** `Presentation/Diagnostics/CameraModeRequestRecorder.cs`:环形 64 / `#if` / 零判定。
+  ⚠️ 它**不能**住 `Presentation.Camera` —— `AC-2-01a` 禁该命名空间内的可变静态字段。
+- **回归**:EditMode `6523/6486/0/0/37` · PlayMode `290/286/0/2/2`
+  (基线 `6518/6481`·`283/279`;等式 +5 / +7,零删除)
+- **证伪 6 条全红**;**P1 首轮抓出 `test_s7_05` 的空洞正控**(记录器停写 ⇒ 违规集合恒空 ⇒ 恒绿),
+  补正控后 7/7 全红。四文件 SHA-256 6/6 还原。
+- **未闭**:`S7-06` Release 变体编译 `NOT-RUN`;B2 只证「有人声明」;矩阵只证存在性;
+  未做「一次 boot 覆盖六行」的汇总断言(行间干扰未验证)。
+- **🔴 流程教训**:一次用 `-projectPath "$PWD"` 而 cwd 在**仓库根** ⇒ Unity 在无 `Assets/` 的空工程
+  空转 42 分钟。仓库根**残留** `Library/`(308M)`Temp/` `Logs/`,均 gitignore,**待删**。
+- 证据:`production/qa/evidence/impl-camera-viewpoint-007-mode-matrix-2026-11-02.md`

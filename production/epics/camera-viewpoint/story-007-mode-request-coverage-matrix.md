@@ -1,7 +1,9 @@
 # Story 007: 档位请求覆盖矩阵门(表 → 代码 → 行为)
 
 > **Epic**: 摄像机与视角
-> **Status**: **Ready ⬜**(2026-11-02 立件 —— 规范已写定,**实现未开工**)
+> **Status**: **Complete ✅ 2026-11-02(COMPLETE WITH NOTES)** —— 7/8 AC 全证;
+> ⚠️ **S7-06 只有源面判据**:记录器外包 `#if`,但**没有真跑 `Release` 变体编译**
+> ⇒「发布构建里真的编不出来」= **`NOT-RUN`**,不记绿。
 > **Layer**: Presentation
 > **Type**: Integration
 > **Estimate**: 4–6h
@@ -143,15 +145,15 @@
 
 ## Acceptance Criteria
 
-- [ ] **S7-01**(`[A]` · BLOCKING)表文件存在且 **6 行 + 11 的具名除外行**;`R-2-5` 有「以注册表为准」注
-- [ ] **S7-02**(`[A]` · BLOCKING)**B1**:每个请求方有 `const int RequesterId`,与表内 `requester` 对上
-- [ ] **S7-03**(`[A]` · BLOCKING)**B2**:表 ⊆ 代码;删掉任一请求方的 `SetMode` 调用点 ⇒ 红
-- [ ] **S7-04**(`[A]` · BLOCKING)**动态矩阵:表 ⊆ 记录** —— 删掉任一请求方的生产发送 ⇒ 该行红并点名 `CMR-xxx`
-- [ ] **S7-05**(`[A]` · BLOCKING)**动态矩阵:记录 ⊆ 表** —— 加一条不在表里的 `SetMode` ⇒ 红
-- [ ] **S7-06**(`[A]` · BLOCKING)记录器 **不进发布构建**:`Release` 符号下零引用(源面断言 + 变体编译)
-- [ ] **S7-07**(`[A]` · BLOCKING)记录器**不参与判定**:全仓无任何 `RequestRecorder` 的**读**点
+- [x] **S7-01**(`[A]` · BLOCKING)表文件存在且 **6 行 + 11 的具名除外行**;`R-2-5` 有「以注册表为准」注
+- [x] **S7-02**(`[A]` · BLOCKING)**B1**:每个请求方有 `const int RequesterId`,与表内 `requester` 对上
+- [x] **S7-03**(`[A]` · BLOCKING)**B2**:表 ⊆ 代码;删掉任一请求方的 `SetMode` 调用点 ⇒ 红
+- [x] **S7-04**(`[A]` · BLOCKING)**动态矩阵:表 ⊆ 记录** —— 删掉任一请求方的生产发送 ⇒ 该行红并点名 `CMR-xxx`
+- [x] **S7-05**(`[A]` · BLOCKING)**动态矩阵:记录 ⊆ 表** —— 加一条不在表里的 `SetMode` ⇒ 红
+- [ ] **S7-06**(🟡 **半证 —— 源面 ✅ / Release 变体编译 `NOT-RUN`**)(`[A]` · BLOCKING)记录器 **不进发布构建**:`Release` 符号下零引用(源面断言 + 变体编译)
+- [x] **S7-07**(`[A]` · BLOCKING)记录器**不参与判定**:全仓无任何 `RequestRecorder` 的**读**点
       (除本夹具与门本身)—— 出现即红
-- [ ] **S7-08**(`[I]` · BLOCKING)`TR-camera-008` 在两份登记文件各 ≥ 1 处
+- [x] **S7-08**(`[I]` · BLOCKING)`TR-camera-008` 在两份登记文件各 ≥ 1 处
 
 ---
 
@@ -175,6 +177,76 @@
 - L1 `unity/Assets/Tests/EditMode/Camera/camera_mode_table_gate_test.cs`(S7-01 / 02 / 03 / 07)
 
 ---
+
+## Completion Notes
+
+**Completed**: 2026-11-02
+**Criteria**: 7/8 已证 + 1 半证(S7-06)
+**Deviations**: 无(实现严格落在卡面 In Scope 内)
+**Test Evidence**:
+- L1 `unity/Assets/Tests/EditMode/Camera/camera_mode_table_gate_test.cs`(5 条)
+- L2 `unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs`(7 条:6 行 + 记录 ⊆ 表)
+- 原件 `production/qa/evidence/impl-camera-viewpoint-007-mode-matrix-2026-11-02.md`
+**Code Review**: `lean` 模式 —— 生产改动 4 件,走查结论见证据件 §四
+
+### 交付物
+
+| 文件 | 变更 |
+|---|---|
+| `docs/architecture/camera-mode-requests.yaml` | **新** —— 6 条 active + 11 的具名除外行 |
+| `design/gdd/camera-and-viewpoint.md` | `R-2-5` 加「以注册表为准」注(承 ADR-024) |
+| `Editor.Tools.Gates/CameraSetModeRequesterGate.cs` | 追加 `RunModeRequestTable`(B1 系统号 / B2 mode 声明 / B3 evidence 弱链接) |
+| `Editor.Tools.Gates/AssemblyGates.cs` | `RunAll` 接上该门 |
+| `Gameplay.Presentation/Diagnostics/CameraModeRequestRecorder.cs` | **新** —— 环形 64 / `#if` / 零判定 |
+| `Gameplay.Presentation/Camera/CameraModeMachine.cs` | `SetMode` 入口加一行采集(同符号 `#if`) |
+| `Tests/EditMode/Camera/camera_mode_table_gate_test.cs` | **新**,5 条 |
+| `Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs` | **新**,7 条 |
+| `tr-registry.yaml` + `traceability-index.md` | 新增 `TR-camera-008`(504/347) |
+
+### 实现期三次红(如实登记,全部是我自己的问题)
+
+1. **🔴 命名空间遮蔽**:把矩阵夹具的命名空间写成 `...Tests.PlayMode.Camera`,
+   它会在同一装配里**遮蔽 `UnityEngine.Camera`** ⇒ 一次红 10 处**既有**夹具
+   (`camera_follow_wiring_test` / `audio_wiring_test` / `ui_input_module_wiring_test` …)。
+   ⇒ 改为 `...PlayMode.CameraMatrix`。**目录名 `Camera/` 无影响 —— 起作用的是命名空间。**
+
+2. **🔴 `AC-2-01a` 判红:相机命名空间禁可变静态字段**。记录器有两个
+   (环形游标 / 累计数)。**处置 = 搬位置到 `Presentation.Diagnostics`,不是豁免** ——
+   它不回流任何相机计算;「不参与」由 S7-07 的零读点判据守着,不靠注释。
+   ⚠️ 搬出命名空间后,所有引用点都要显式 `using`(我漏了两处,连吃两次编译红)。
+
+3. **门链接线清单**须同批声明 —— `EntryWiringManifest` 补 `RunModeRequestTable`。
+   这条门本身就是个好例子:**门自己也被门管**。
+
+4. **🔴 一次跑错工程根**:用 `-projectPath "$PWD"` 而 cwd 在仓库根 ⇒ Unity 在**没有
+   `Assets/` 的空工程**上反复初始化,42 分钟无产出(`CLAUDE.md` 早已写死这个坑)。
+   已 kill;`Library/` `Temp/` `Logs/` 三个派生目录均被 gitignore,不影响仓库。
+
+### 证伪轮(6 条 · 四文件 SHA-256 逐字节还原 6/6)
+
+| 变异 | 打什么 | 实测红 | 形态 |
+|---|---|---|---|
+| **P1** | 删 `SetMode` 里的 `Record(...)` 调用 | **7 红**(6 行 + `s7_05`) | exact(全域) |
+| **P2** | 从 yaml 删掉 CMR-003/004 两行 | 1 红:`s7_02_03`(行数 ≠ 6 + 表缺行) | exact |
+| **P3** | `CasebookCameraRequester.RequesterId` 39 → 40 | 1 红:`s7_02_03`(B1 系统号对不上) | exact |
+| **P4** | 生产里凭空多一条 `Record(Treatment, 99)` | 1 红:`s7_05`(记录 ⊆ 表) | exact |
+| **P5** | 生产码读记录器(`TotalRecorded`) | 1 红:`s7_07`(纪律①) | exact |
+| **P6** | 撤掉记录器的 `#if`(连同配对 `#endif`) | 1 红:`s7_06`(源面) | exact |
+
+**🔴 P1 首轮抓出了我自己的空洞正控**:记录器停写时,`test_s7_05`(记录 ⊆ 表)的违规集合
+恒为空 ⇒ 断言**恒真**,7 条里唯一没红的。已补正控(「本次必须真的采到东西」),
+复跑 P1 ⇒ **7/7 全红**。⇐ 这条比本轮任何一条断言都值钱:**没有正控的「无违规」断言,
+在什么都没发生时最绿。**
+
+### 未闭(禁借绿)
+
+1. **S7-06 的 Release 变体编译 `NOT-RUN`** —— 源面只能证明「有 `#if`」,证不了
+   「`Release` 符号下真的编不出来」。须变体编译实测,本批未做。
+2. **静态层 B2 只证「有人声明」** —— `EmergencyChannelDriver` 的 mode 是形参,
+   静态扫描抓不到实参;那一半完全靠动态矩阵。
+3. **矩阵只证存在性** —— 时机 / 次数 / 相机是否接受,均不在本件判据面内(Card §抓不到什么 已列)。
+4. **yaml 的解析是手写的行解析器** —— 表格式若大改(多行标量 / 嵌套),解析器会静默漏行。
+   `active != 6` 的断言能兜住**漏行**,兜不住**错位**。
 
 ## 注意事项(实现前先读)
 

@@ -193,6 +193,29 @@
 **R-2-5 · 档位由意图驱动,不由相机自己侦测。**
 其它系统**请求**切档,相机**决定**是否接受与如何转场。**意图制**,不是控制制:
 
+> **🔁 2026-11-02 —— 本表的机器可读真源已上移(camera-viewpoint/story-007)**
+>
+> **本 markdown 表自此降级为注记**;**不一致时以
+> `docs/architecture/camera-mode-requests.yaml` 为准**(承 `ADR-024` 口径:机械门不能从散文解析,
+> 否则门与所判对象共用同一份易漂移的文本)。
+>
+> **病因**:2026-11-02 实测 —— 本表有 6 条有效行,而生产侧只有 4 条有请求点
+> (39 的两行 `Casebook` / `Explore` **零调用点**),而 `CameraSetModeRequesterGate` **全绿**。
+> 该门只判语法(`.SetMode(` 是否双参、`requesterId` 是否字面 `-1`),**从不看这张表**
+> ⇒ 「该发没发」在门面前是**结构性不可见**的。
+>
+> 三个实例已分别由 `emergency-procedures/story-010`(10 两行)、`death-respawn/story-007`(29 两行)、
+> `casebook/story-006`(39 两行)补上;**判据本身**由 `camera-viewpoint/story-007` 补。
+> ⚠️ **修完三个实例 ≠ 修掉那一类** —— 两者不互相替代。
+>
+> 表的行数、优先级式、除外行(11)**均未改动**;本条只改「谁是真源」。
+>
+> 复算:
+> ```bash
+> grep -c "^  - id: CMR-" docs/architecture/camera-mode-requests.yaml   # 期望 7(6 active + 1 excluded)
+> grep -c "^| 10 急救动作模块\|^| \*\*39 脉案\*\*\|^| \*\*29 死亡过渡\*\*" design/gdd/camera-and-viewpoint.md
+> ```
+
 | 请求方 | 目标档 | 语义 | 触发时机 |
 |--------|--------|------|---------|
 | 10 急救动作模块 | `Treatment` | 急救近景 | 动作**开始** |

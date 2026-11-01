@@ -1,0 +1,87 @@
+# 相机档位请求表 —— 机器可读真源(camera-viewpoint/story-007 · 2026-11-02)
+#
+# ── 与 GDD 的关系(承 ADR-024 口径)────────────────────────────────────────────
+# 本表**升为**权威件;`design/gdd/camera-and-viewpoint.md` 的 `R-2-5` markdown 表
+# **降级为注记**(已加「不一致时以本表为准」的声明)。
+# 理由同 ADR-024:机械门不能从散文解析,否则门与所判对象共用同一份易漂移的文本。
+#
+# ── 为什么需要它 ─────────────────────────────────────────────────────────────
+# `CameraSetModeRequesterGate` 只判**语法**(`.SetMode(` 是否双参、`requesterId` 是否字面 `-1`),
+# **从不看这张表**。2026-11-02 实测:`R-2-5` 有 6 条有效行,生产侧只有 4 条有请求点
+# —— 39 的两行(`Casebook` / `Explore`)**零调用点**,而该门**全绿**。
+# 这就是「该发没发」:它是个**集合问题**,不是语法问题。
+#
+# ── 字段 ─────────────────────────────────────────────────────────────────────
+#   id            稳定标识(测试方法名与门报文都点名它;禁改名,改 = 换一条要求)
+#   requester     请求方系统号(须对上生产侧的 `const int RequesterId`)
+#   type          承载该请求的生产类型(须存在于 `unity/Assets/**`,测试除外)
+#   mode          目标档(`CameraMode` 枚举成员名)
+#   trigger       触发时机(人读;不进机械判据)
+#   evidence      载体夹具(相对仓库根;须存在,且**文件内须出现本行的 id**)
+#   status        active = 须被覆盖 / excluded = 具名除外(见末行)
+#
+# ⚠️ `evidence` 的 id 出现判据是**弱链接**,不是语义证明 —— 它只能防「给行随便挂一个文件」,
+#    防不了「文件里写了 id 但断的别的事」。真正的语义判别力来自各夹具自己的证伪轮。
+
+version: 1
+updated: "2026-11-02"
+
+rows:
+  - id: CMR-001
+    requester: 10
+    type: EmergencyChannelDriver
+    mode: Treatment
+    trigger: 急救动作开始(Arm 成功后)
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  - id: CMR-002
+    requester: 10
+    type: EmergencyChannelDriver
+    mode: Explore
+    trigger: 急救动作结束(含跳过路径)
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  - id: CMR-003
+    requester: 39
+    type: CasebookCameraRequester
+    mode: Casebook
+    trigger: 开册(模态边沿 —— 由 `SkeuoRuntimeDriver` 判定,非屏内部)
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  - id: CMR-004
+    requester: 39
+    type: CasebookCameraRequester
+    mode: Explore
+    trigger: 合册(模态边沿)
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  - id: CMR-005
+    requester: 29
+    type: DownedCameraRequester
+    mode: Downed
+    trigger: "`PlayerDied` 落流后的表现态投影(Φ1)"
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  - id: CMR-006
+    requester: 29
+    type: DownedCameraRequester
+    mode: Explore
+    trigger: 复活 / 醒来(Φ3 起手)
+    evidence: unity/Assets/Tests/PlayMode/Camera/camera_mode_request_matrix_test.cs
+    status: active
+
+  # ⚠️ **具名除外行**(承 `R-2-5` 的 2026-09-21 裁定 —— 11 处方用药**不发**档位意图)。
+  # 留下它是为了**防止后来人读到「表里没有 11」而误判为遗漏并自行补行** ——
+  # 那等于把已裁的裁定静默改回未裁。判据:任何给 11 补行的改动,须先另裁 `ADR-013 §十-B`。
+  - id: CMR-EX-011
+    requester: 11
+    type: ""
+    mode: ""
+    trigger: 方笺 = 39 脉案同一本书,复用 `Casebook` 档,**不发**档位意图
+    evidence: ""
+    status: excluded

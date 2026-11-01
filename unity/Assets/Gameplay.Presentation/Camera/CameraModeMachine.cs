@@ -105,6 +105,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// </summary>
         public void SetMode(CameraMode mode, int requesterId)
         {
+            // 采集面(camera-viewpoint/story-007):**只记不改** —— 记录器不参与任何判定。
+            // ⚠️ 与记录器同符号条件编译 ⇒ 发布构建下这一行与记录器一起消失(零残留)。
+            // ⚠️ 全仓应当**只有这一处** `Record(` 调用(由 S7-07 的源面判据守着)。
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DaYiJingCheng.Gameplay.Presentation.Diagnostics
+                .CameraModeRequestRecorder.Record(mode, requesterId);
+#endif
             _pending.Add(new CameraModeRequest(mode, requesterId));
         }
 

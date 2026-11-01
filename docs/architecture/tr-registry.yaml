@@ -1694,6 +1694,17 @@
     status: covered
     revised: "2026-11-02"
     note: "**2026-11-02 story-007(R-7.4)补登** —— 要求本体来自 `design/ux/death-transition-29.md` §9(`:188` 两段式 / `:127` Φ1 / `:129` Φ3 / `:133` VR 全禁)+ `camera-and-viewpoint.md` 的 `R-2-5` 29 两行(2026-11-01 补入),**但当时未登记 TR** ⇒ 无 ID ⇒ 没有 story 能引用它 ⇒ 无载体(2026-11-02 §14 按 epic 扫描查出的**缺口 A**)。实现 = `DownedCameraRequester`(`Gameplay.Presentation/DeathTransition/`),2026-11-02 从 `BootRoot` 的内联 lambda **等价提取**(R-7.2 四行对照);判据 = `AC-2-18①` / `AC-20-15` + story-007 的 S29-01…07。⚠️ **`CameraRig.Tick` 在 2026-11-02 之前零生产调用** ⇒ 本条的意图即使发出也无效果(已由 `emergency-procedures/story-010` 接上)。"
+  # ⚠️ 2026-11-02 追加(camera-viewpoint/story-007)—— 「该发没发」的系统性判据。
+  - id: TR-camera-008
+    system: camera
+    gdd: design/gdd/camera-and-viewpoint.md
+    requirement: "`R-2-5` 档位表的每一行都必须有生产请求载体,且该载体在真实启动序里真的被发过;表与代码、表与行为之间须有可执行判据(不是纸面的)"
+    domain: Presentation
+    adr: ADR-020
+    status: covered
+    revised: "2026-11-02"
+    note: "**2026-11-02 camera-viewpoint/story-007 立并实现** —— 病因:2026-11-02 实测表有 6 条有效行、生产侧只有 4 条有请求点(39 两行零调用点),而 `CameraSetModeRequesterGate` 全绿(只判 arity / 字面 -1,**从不看表**)⇒「该发没发」结构性不可见。裁决(用户 2026-11-02):① 表真源 = 独立 `docs/architecture/camera-mode-requests.yaml`,`R-2-5` 的 markdown 表降级为注记(承 ADR-024);② **先补 39 接线再上门**(由 casebook/story-006 完成);③ 判据 = **动态矩阵 + 静态防绕过**。三层:静态 `RunModeRequestTable`(B1 系统号常量 / B2 mode 声明 / B3 evidence 弱链接)、动态 `camera_mode_request_matrix_test.cs`(逐行驱动 + 记录 ⊆ 表)、记录器 `CameraModeRequestRecorder`(环形 64 / 不进 Release / 零判定)。⚠️ **静态层只防「绕过」不防「没发」** —— `EmergencyChannelDriver` 的 mode 是形参,静态抓不到实参。"
+
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 病人 AI 与行为 (Patient AI and Behavior, #13) — design/gdd/patient-ai.md

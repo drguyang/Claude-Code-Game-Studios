@@ -234,6 +234,208 @@ namespace DaYiJingCheng.EditorTools.Gates
             return line;
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // 档位请求**覆盖**判据(camera-viewpoint/story-007 · 2026-11-02)
+        // ───────────────────────────────────────────────────────────────────────
+        // ⚠️ **本段只防「绕过」,不防「没发」** —— 这是设计上的已知边界,不许读成更强。
+        //   `EmergencyChannelDriver` 的调用是 `rig.SetMode(mode, RequesterId)`,**mode 是形参**,
+        //   字面量在调用方 `RequestCameraMode(CameraMode.Treatment)` 处 ⇒ 静态扫描要么抓不到、
+        //   要么依赖脆弱的局部数据流(改个辅助方法就失配)。
+        //   ⇒ B2 只能证明「**有人声明要发它**」,证明不了「**它真的会被发**」。
+        //   真正的「该发没发」判据 = 动态矩阵夹具(camera_mode_request_matrix_test.cs)。
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>档位表真源(相对**仓库根**;门会从工程根向上找)。</summary>
+        public const string ModeTableRelative = "docs/architecture/camera-mode-requests.yaml";
+
+        /// <summary>表里一行的最小形状(`status: excluded` 的行只有 id/requester/trigger)。</summary>
+        public sealed class ModeTableRow
+        {
+            public string Id = "";
+            public int Requester = -1;
+            public string Type = "";
+            public string Mode = "";
+            public string Evidence = "";
+            public string Status = "";
+        }
+
+        /// <summary>
+        /// **B1 + B2**:表 ↔ 代码的覆盖判据。
+        /// <list type="bullet">
+        ///   <item>B1:每个 active 行的请求方类型必须存在,且声明 `const int RequesterId = &lt;系统号&gt;`;</item>
+        ///   <item>B2:该行的 `mode` 名必须出现在该类型的源码里(**声明级**判据,见段首边界说明);</item>
+        ///   <item>B3:`evidence` 文件必须存在,且**文件内出现该行的 id**(弱链接 —— 防「随便挂个文件」)。</item>
+        /// </list>
+        /// </summary>
+        /// <param name="projectRoot">工程根(`unity/`;`"."` = 当前目录)。</param>
+        public static List<string> RunModeRequestTable(string projectRoot)
+        {
+            var errs = new List<string>();
+
+            string repoRoot = FindRepoRoot(projectRoot);
+            if (repoRoot == null)
+            {
+                errs.Add($"[相机·档位表] 未能定位仓库根(向上找不到 {ModeTableRelative})—— 门无从执行");
+                return errs;
+            }
+
+            string tablePath = Path.Combine(repoRoot, ModeTableRelative.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(tablePath))
+            {
+                errs.Add($"[相机·档位表] 真源不存在:{ModeTableRelative} —— 表没了,覆盖判据就没有宾语");
+                return errs;
+            }
+
+            List<ModeTableRow> rows = ParseModeTable(File.ReadAllLines(tablePath), errs);
+            if (errs.Count > 0) return errs;
+
+            int active = 0;
+            foreach (ModeTableRow row in rows)
+            {
+                if (row.Status == "excluded") continue;
+                if (row.Status != "active")
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:`status` 必须是 active 或 excluded(实得 '{row.Status}')");
+                    continue;
+                }
+                active++;
+
+                // ── B1:请求方类型存在 + `const int RequesterId` 对得上 ──────────────
+                string carrier = FindProductionFile(projectRoot, row.Type + ".cs");
+                if (carrier == null)
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:请求方类型 `{row.Type}` 在 `Assets/**` 下找不到 " +
+                             "(测试除外)—— 表里有、代码里没有");
+                    continue;
+                }
+                string carrierName = Path.GetFileNameWithoutExtension(carrier);
+                string carrierText = File.ReadAllText(carrier);
+                string expected = $"const int RequesterId = {row.Requester};";
+
+                if (carrierName != row.Type)
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:命中文件 `{carrierName}.cs` 与表内 `type: {row.Type}` 不符 " +
+                             "(一对多或同名文件歧义)");
+                }
+                else if (!Regex.IsMatch(carrierText, @"const\s+int\s+RequesterId\s*=\s*" + row.Requester + @"\s*;"))
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:`{row.Type}` 未声明 `{expected}` —— " +
+                             "系统号不是常量 ⇒ 甲案「同一请求方可降档」无从判定,且表与代码对不上");
+                }
+
+                // ── B2:mode 名在该类型源码里出现(声明级)──────────────────────────
+                if (!Regex.IsMatch(carrierText, @"CameraMode\." + Regex.Escape(row.Mode) + @"\b"))
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:`{row.Type}` 的源码里找不到 `CameraMode.{row.Mode}` —— " +
+                             "表声明要发这个档,代码里连声明都没有。\n" +
+                             "⚠️ 反向不成立:找到了也不代表**真的会发**(见本段边界说明)");
+                }
+
+                // ── B3:evidence 存在且点名本行 id ─────────────────────────────────
+                if (string.IsNullOrEmpty(row.Evidence))
+                {
+                    errs.Add($"[相机·档位表] {row.Id}:缺 `evidence` —— 没有载体就没有判别力");
+                }
+                else
+                {
+                    string evPath = Path.Combine(repoRoot, row.Evidence.Replace('/', Path.DirectorySeparatorChar));
+                    if (!File.Exists(evPath))
+                    {
+                        errs.Add($"[相机·档位表] {row.Id}:`evidence` 指向的文件不存在:{row.Evidence}");
+                    }
+                    else if (!File.ReadAllText(evPath).Contains(row.Id))
+                    {
+                        errs.Add($"[相机·档位表] {row.Id}:`{row.Evidence}` 里**没有出现 `{row.Id}`** —— " +
+                                 "载体文件存在但没点名这一行(弱链接失效)");
+                    }
+                }
+            }
+
+            if (active != 6)
+            {
+                errs.Add($"[相机·档位表] active 行数 = {active},期望 **6** —— " +
+                         "改表行数须同步 `R-2-5`、本门的期望值与矩阵夹具(三处缺一即漂移)");
+            }
+
+            return errs;
+        }
+
+        /// <summary>极简行解析(只认 `- id:` 起行 + `key: value`;足够本表,不引入 YAML 依赖)。</summary>
+        private static List<ModeTableRow> ParseModeTable(string[] lines, List<string> errs)
+        {
+            var rows = new List<ModeTableRow>();
+            ModeTableRow current = null;
+
+            foreach (string raw in lines)
+            {
+                string line = raw.Trim();
+                if (line.Length == 0 || line.StartsWith("#") || line == "rows:") continue;
+
+                if (line.StartsWith("- id:"))
+                {
+                    current = new ModeTableRow { Id = TrimValue(line.Substring(5)) };
+                    rows.Add(current);
+                    continue;
+                }
+                if (current == null) continue;
+
+                int colon = line.IndexOf(':');
+                if (colon <= 0) continue;
+                string key = line.Substring(0, colon).Trim();
+                string value = TrimValue(line.Substring(colon + 1));
+
+                switch (key)
+                {
+                    case "requester":
+                        if (!int.TryParse(value, out int req))
+                            errs.Add($"[相机·档位表] {current.Id}:`requester` 不是整数('{value}')");
+                        else current.Requester = req;
+                        break;
+                    case "type": current.Type = value; break;
+                    case "mode": current.Mode = value; break;
+                    case "evidence": current.Evidence = value; break;
+                    case "status": current.Status = value; break;
+                }
+            }
+
+            if (rows.Count == 0)
+                errs.Add("[相机·档位表] 表里一行都没解析出来 —— 格式坏了,或解析器与表格式脱节");
+            return rows;
+        }
+
+        private static string TrimValue(string s)
+        {
+            s = s.Trim();
+            if (s.Length >= 2 && s[0] == '"' && s[s.Length - 1] == '"') s = s.Substring(1, s.Length - 2);
+            return s.Trim();
+        }
+
+        private static string FindRepoRoot(string projectRoot)
+        {
+            var dir = new DirectoryInfo(Path.GetFullPath(projectRoot));
+            for (int i = 0; i < 6 && dir != null; i++, dir = dir.Parent)
+            {
+                if (File.Exists(Path.Combine(dir.FullName,
+                        ModeTableRelative.Replace('/', Path.DirectorySeparatorChar))))
+                    return dir.FullName;
+            }
+            return null;
+        }
+
+        /// <summary>在 `Assets/**` 下按文件名找生产源码(测试除外)。</summary>
+        private static string FindProductionFile(string projectRoot, string fileName)
+        {
+            string root = Path.Combine(projectRoot, ScanRootRelative);
+            if (!Directory.Exists(root)) return null;
+
+            foreach (string file in Directory.GetFiles(root, fileName, SearchOption.AllDirectories))
+            {
+                if (file.Replace('\\', '/').Contains("/Tests/")) continue;
+                return file;
+            }
+            return null;
+        }
+
         /// <summary>
         /// 把注释与字符串字面量替换成空格(保留换行,行号仍可对)。
         /// 与 `HarvestGateAllowGate` / `ForagingFloatGate` 同族的轻量剥离。
