@@ -16159,6 +16159,7 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   S24-2 声明 Logic 但 AC-7a-01/02 是 Integration 形状(记次类型,不改主类型)
 - **点名的两条既有假绿**:`AC-7a-04` 的 `test_simEventCodec_roundTrip` 只断言「字节非空」;
   `AC-7a-03` 的「简化版」只测同平台两次一致 ⇒ **都不得替代原判据**
-- ⚠️ **前置阻塞**:`production/qa/evidence/` 目录**从未建立** ⇒ 四条 `[L]` 无处落证,
-  **登记不擅建**(项目级决定)
+- 🔁 **2026-11-03 订正**:原写「`production/qa/evidence/` 从未建立 ⇒ 登记不擅建」—— **实测早已存在**
+  (397 文件 / 12 子目录,含 processing 证据两件)。原句转述自 story-005 的自陈,而**我没验证就转述**。
+  ⇒ 阻塞不存在;落点 = `production/qa/evidence/processing-{08,09,22,24}-<date>.md`。story-005(两处)与 qa-plan(两处)已同步订正
 - **未提交**(等用户指令)

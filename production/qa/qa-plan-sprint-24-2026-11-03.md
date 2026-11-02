@@ -129,9 +129,14 @@
 
 ### `processing-005` — 四条 `[L]`（全部需人，不可自动化）
 
-> ⚠️ **前置阻塞**：story 自陈 `production/qa/evidence/` **目录从未建立**
-> （先例：item-database story-003）。**建目录属项目级决定**，本计划**登记不擅建**。
-> ⇒ 开工前须确认这四条的**归档落点**，否则走查做完无处落证。
+> 🔁 **2026-11-03 订正：原写的「前置阻塞」不存在。**
+> 原句转述 story-005 的自陈「`production/qa/evidence/` 目录从未建立」—— **实测该目录早已存在**：
+> **397 个文件 / 12 个子目录**，且已有 processing 证据两件
+> （`impl-o18r6-processing-screen-2026-11-02.md` · `impl-td-processing-04-busy-count-2026-11-02.md`）。
+> 原句的**出处也引错了**：item-database story-003 说的是 `production/qa/` **目录**（为 smoke 文件），
+> 不是 `production/qa/evidence/`；且那句本身也已过期。
+> ⇒ **落点 = `production/qa/evidence/processing-{08,09,22,24}-<date>.md`**（顶层，与既有 processing 证据同层）。
+> 原文保留，以记录这次**未验证就转述**的失误。
 
 #### AC-18-09 [L] · BLOCKING — 等待期声床听测
 
@@ -224,6 +229,6 @@ A story is DONE when ALL of the following are true：
 | 项 | 落点 |
 |---|---|
 | 本 sprint **此前无 QA 计划** | `production/sprints/sprint-24.md` §Phase 1.5 之后的警告块 —— **本文件即其解除载体** |
-| 证据目录 `production/qa/evidence/` 不存在 | **登记不擅建**，属项目级决定；开工前须裁定落点 |
+| ~~证据目录 `production/qa/evidence/` 不存在~~ | 🔁 **2026-11-03 订正：该目录早已存在**（397 文件 / 12 子目录）⇒ 该项**不成立**，落点已定 |
 | `AC-7a-03` 归 ADR-012 矩阵 | `TD-ci-01`（EXTERNAL） |
 | `AC-7a-01/02` 的真重放 | 原归 `TD-persist-03`；本 sprint 由 `S24-2` 承担 |

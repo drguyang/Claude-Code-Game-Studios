@@ -48,7 +48,10 @@
 3. cue 发射:`sfx_process_light`(点火)/`sfx_process_work`(等待期声床,无进度语义)/`sfx_process_complete`(起货)三 cue,经 `AudioCueDto` 边界给 44;发射条件 = tick 事件,禁墙钟(AC-18-21 判据);声床素材的「非播报性」归 44 白名单断言(AC-44-09)+ 本故事 [L] 听测。
 4. 等待期可读性接缝:器物状态语义(炉盖/音色等)具名形态 = OQ-18-9 未裁 ⇒ 本故事只交「状态变化时刻 + cue 时刻」两个整数时间点给 42,不定义渲染物。
 5. 溢出路径的 spy 测试:AC-18-12(点火时点)与本条(完成时点)共享 spy-sink 基建;断「成品永不消失」= 折后 `InventoryOf ∪ 地面 drop` 含全部产出实例。
-6. [L] 三条(08/09/22/24)证据目录 `production/qa/evidence/` 在走查轮生成;目录从未建立的历史事实(item-database story-003 先例)⇒ 登记不擅建,建目录属项目级决定。
+6. [L] 四条(08/09/22/24)的证据落 `production/qa/evidence/processing-{08,09,22,24}-<date>.md`。
+   🔁 **2026-11-03 订正(原文「目录从未建立 ⇒ 登记不擅建」作废)**:实测 `production/qa/evidence/` **早已存在** —— 397 个文件 / 12 个子目录,且已有 processing 证据(`impl-o18r6-processing-screen-2026-11-02.md` / `impl-td-processing-04-busy-count-2026-11-02.md`)。
+   原句的出处也引错了:item-database story-003 说的是 `production/qa/` **目录**(为 smoke 文件),不是 `production/qa/evidence/`;且那句本身也已过期(`production/qa/` 下有大量文件)。
+   ⇒ **前置阻塞不存在**,走查轮直接按上述路径落证即可。**原文不删。**
 
 ---
 
@@ -103,9 +106,10 @@
   - Then: **零**转化率/成功率/进度百分比;成色由**质地/药签措辞**可读;主创签核页归档。
   - Edge cases: 42 未交付 ⇒ 保持 EXTERNAL 标记未勾(机制侧供数无数字已由 Story 002 保证,**不代走查**)。
 
-> ⚠️ **证据落点前置阻塞**:四条的归档目录 `production/qa/evidence/` **从未建立**
-> (item-database story-003 先例)⇒ **登记不擅建**,建目录属**项目级决定**。
-> 开工前须确认落点,否则走查做完无处落证。
+> 🔁 **2026-11-03 订正**:原写「归档目录 `production/qa/evidence/` 从未建立 ⇒ 登记不擅建」——
+> **实测该目录早已存在**(397 文件 / 12 子目录,且已有 processing 证据两件)⇒ **阻塞不存在**。
+> 落点 = `production/qa/evidence/processing-{08,09,22,24}-<date>.md`(顶层,与既有 processing 证据同层)。
+> 原文保留以记录该误判。
 
 ---
 
