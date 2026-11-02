@@ -236,6 +236,56 @@ git update-ref refs/heads/<branch> "$NEW" "$(git rev-parse HEAD)"  # 第三参�
 (共享 token 借绿 / 变异打错靶 / 拿证伪轮 XML 当基线 …)—— 它防的是「证伪轮没抓住东西」,
 本表防的是「夹具/门本身看起来是绿的」。**两者互补,不合并。**
 
+# AC 编号 —— 两个空间不许同名(2026-11-02 立 · 用户裁定 ①)
+
+**为什么单列一节**:`AC-{n}-{m}` 这个写法**天然歧义** —— `n` 可以是**系统号**,也可以是 **ADR 号**。
+两个空间一旦撞号,`AC-20-15` 同时是「库存的 DTO 无 float」与「相机的 `Downed` 四语义」,
+**两侧都是 BLOCKING**,而读者看到「`AC-20-15` 已满足」**无从判断说的是哪条**。
+这类记录**可以两边都绿而含义相反**。
+
+## 现行约定(用户 2026-11-02 裁定 ①:零改名)
+
+| 来源 | 写法 | 例 |
+|---|---|---|
+| **系统 GDD** 的 AC | `AC-{系统号}-{序号}`(**不变**) | `AC-20-15` = 库存的「输出 DTO 无 float」 |
+| **ADR 自有**的 AC | 引用时写 **`ADR-0NN AC-NN`** | `ADR-020 AC-15` = 相机的 `Downed` 四语义 |
+| ADR 文件**内部**自陈 | 可继续用裸 `AC-20-NN`(同文件内无歧义) | `adr-020:701` 的校验清单 |
+
+⇒ **存量不重命名**(改名会打断既有引用,承 `ADR-013 §十-E` 先例);消歧**只靠写法**。
+
+## 机械门:`tools/acid/acid_check.py`
+
+**判据**:**同一个 `AC-ID` 不得被两个文件「定义」**。「定义」按两种固定句式识别 ——
+GDD 表行 `| **AC-20-01** | **[A]** |`、ADR 校验清单 `- [ ] **AC-20-01(BLOCKING)**:`;
+**`## GDD Requirements Addressed` 整节跳过**(那是引用别人的 AC,不是定义 —— 首版原型实测踩到过)。
+
+| # | 判据 | 红在哪 |
+|---|---|---|
+| C1 | **新撞号**:某 ID 被 ≥2 文件定义且不在基线 | 撞号当场可见 |
+| C2 | **基线不得扩大**:基线 ID 不得被第三个文件再定义 | 老问题不许变大 |
+| C3 | **基线不得陈旧**:基线 ID 必须**仍**是撞号 | 有人改名后基线会腐烂,迫使同步 |
+| C4 | **空集守卫**:扫描到 0 条定义行 ⇒ 红 | 路径写错时 C1 会在空集上恒绿(空洞正控) |
+
+```bash
+python3 tools/acid/acid_check.py --check           # 违规即退出码 1
+python3 tools/acid/acid_check.py --print           # 打印撞号全貌
+python3 tools/acid/acid_check.py --mutation-probe  # C1–C4 各自须红(CI 常驻)
+```
+
+**基线** = `tools/acid/acid-baseline.json`(今日冻结 **17** 条:`AC-20-01…17`,
+`inventory-and-items.md` ↔ `adr-020-player-controller-and-camera.md`)。
+⚠️ **门只保证「不再新增」,不声称这 17 条已解决** —— 它们被裁定 ① **永久接受**,
+消歧靠上面那张写法表。基线**只减不增**:将来真做改名时删掉对应条目即可,C3 会逼着基线跟上现状。
+
+**CI**:`.github/workflows/tests.yml` 的 `ac-id-collision` job(`--check` + `--mutation-probe` + 零写盘校验)。
+
+> **立规缘由**:`TD-docs-01`(2026-11-02 立)。ADR-020 的 `AC-20-01…17` 与系统 20 库存 GDD 的
+> `AC-20-01…25` **完全重合 17 个 ID**。时间顺序可核:库存侧 2026-10-26 就已在被引用
+> (`gate_wiring_manifest_test.cs:98`),而 **ADR-020 Amendment C(2026-11-01)铸新 ID 时没查重**
+> ⇒ 不是「历史遗留没办法」,是「新 ID 没人查重」。同一病理的第三例
+> (先例:`story-008-death-candidate-sink.md:63` 记 ADR-009 ↔ 系统 9;
+> 潜伏:`ADR-019` 的 `AC-19-01…08` ↔ 今日尚无 GDD 的系统 19)。
+
 # Design Document Standards
 
 - All design docs use Markdown

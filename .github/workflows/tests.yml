@@ -116,3 +116,37 @@ jobs:
       - name: Mutation probe (7 变异,全部须被捕获)
         run: python3 tools/kindgen/mutation_probe.py
 
+
+  # 2026-11-02 立:AC 编号撞号门(= TD-docs-01 的执行体)。
+  # 背景:AC-20-NN 同时属于两个编号空间 —— ADR-020 自有 AC-20-01…17,系统 20 库存
+  #   GDD 自有 AC-20-01…25 ⇒ 17 个 ID 每一位两个意思,两侧都是 BLOCKING。
+  #   根因不是「历史遗留」:ADR-020 Amendment C(2026-11-01)铸新 ID 时没查重,
+  #   而库存那批 2026-10-26 就已在被引用。
+  # 用户 2026-11-02 裁定 ①:零改名(ADR 自有 AC 写 ADR-0NN AC-NN),存量不动
+  #   ⇒ 本 job 不修存量,只保证**不再新增**。基线 17 条冻结在 tools/acid/acid-baseline.json。
+  # 两个 step 分工同 kindgen:--check 证「现在没违规」,--mutation-probe 证「判据抓得住」。
+  # 纯 Python + 零写盘 + 零 Unity 依赖。
+  ac-id-collision:
+    name: "AC id collision (TD-docs-01)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collision check (零新增撞号)
+        run: python3 tools/acid/acid_check.py --check
+
+      - name: Mutation probe (C1–C4 四条判据各自须红)
+        run: python3 tools/acid/acid_check.py --mutation-probe
+
+      - name: 校验本 job 确实没写盘
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::acid_check.py 声称纯读,却留下了工作树改动"
+            git diff --stat
+            exit 1
+          fi
+          echo "工作树零改动 —— 纯读成立"

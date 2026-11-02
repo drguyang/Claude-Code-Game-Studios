@@ -453,7 +453,7 @@
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
 | `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
-| `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | open | **N** | R3-裁 |
+| `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | closed | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -864,7 +864,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 153 | 状态 {'closed': 141, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 47, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 153 | 状态 {'closed': 142, 'partial': 3, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 47, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -10109,5 +10109,83 @@ M3 Exit 第二条合取转假。
 ```bash
 cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 python3 tools/debtcount/debtcount.py --print
-# 期望:条目 153 | open 8 | partial 3 | closed 141 | 未闭 P0 面 = 0
+# 期望:条目 153 | open 7 | partial 3 | closed 142 | 未闭 P0 面 = 0
+```
+
+---
+
+## 2026-11-02 · 「约定 + 机械门」轮:`TD-docs-01` **关闭**(用户裁定 ①)
+
+**出处**:用户指令「定 ①,补机械判据」。① = **零改名**:ADR 自有的 AC 一律写
+`ADR-0NN AC-NN`,系统 GDD 的维持 `AC-{sys}-{n}`;**存量不重命名**。
+
+### 关闭记录(债本体见上一条,原文不删)
+
+本债的两半是 **「增量会继续撞」** 与 **「存量引用面无法消歧」**。裁定 ① 把后者**永久接受**,
+于是本轮的交付面 = 前者。
+
+| # | 兑现 | 落点 |
+|---|---|---|
+| ① | **写法约定**(消歧手段) | `.claude/docs/coding-standards.md` 新节「AC 编号 —— 两个空间不许同名」 |
+| ② | **机械门 C1–C4** | `tools/acid/acid_check.py` + 基线 `tools/acid/acid-baseline.json` |
+| ③ | **CI 常驻** | `.github/workflows/tests.yml` 的 `ac-id-collision` job(`--check` + `--mutation-probe` + 零写盘校验) |
+
+### 机械门的判据(四条)
+
+| # | 判据 | 防的是什么 |
+|---|---|---|
+| **C1 新撞号** | 某 ID 被 ≥2 文件「定义」且不在基线 ⇒ 红 | 本次的病因本身:**铸新 ID 时没查重** |
+| **C2 基线不得扩大** | 基线 ID 不得被**第三个**文件再定义 | 老问题不许变大 |
+| **C3 基线不得陈旧** | 基线 ID 必须**仍**是撞号 | 将来真改名后,基线会腐烂成永久掩护 |
+| **C4 空集守卫** | 扫到 0 条定义行 ⇒ 红 | 路径写错时 C1 在空集上恒绿(F4 空洞正控) |
+
+「定义」按两种固定句式识别 —— GDD 表行 `| **AC-20-01** | **[A]** |`、ADR 校验清单
+`- [ ] **AC-20-01(BLOCKING)**:`;**`## GDD Requirements Addressed` 整节跳过**
+(那是引用别人的 AC)。⚠️ **这条跳过是实测逼出来的**:首版原型逐行扫,把 `adr-033:444`
+的回写表行 `| **AC-23-02** | ...` 误判成第二处定义,凭空造出第 18 个「撞号」。
+
+**基线**:`AC-20-01…17` 共 **17** 条冻结(定义方 = `inventory-and-items.md` ↔
+`adr-020-player-controller-and-camera.md`)。
+
+### 证伪轮(3 条真文件变异,**全红**;SHA-256 逐字节还原 3/3)
+
+「改 → 跑 → 还原」在同一命令内,不用 `git checkout`。
+
+| 变异 | 打的是什么 | 结果 |
+|---|---|---|
+| **R1** 给 `adr-020` 补一行 `- [ ] **AC-20-18(PROBE)**:` | 库存侧本就有 `AC-20-18` ⇒ **新撞号** | `exit=1`,命中 **C1**;还原 OK |
+| **R2** 删掉 `inventory-and-items.md` 的 `AC-20-01` 定义行 | 该 ID 不再撞号 ⇒ **基线陈旧** | `exit=1`,命中 **C3**;还原 OK |
+| **R3** 新建 `adr-999-probe.md` 也「定义」`AC-20-02` | 基线 ID 多出第三定义方 ⇒ **撞号扩大** | `exit=1`,命中 **C2**;探针文件已删 |
+
+`FINAL-OK`(全库还原后回到绿)· `SUMMARY failures=none`。
+
+**另有 `--mutation-probe`(内存内,零写盘)**:M1 新撞号 / M2 基线扩大 / M3 基线陈旧 /
+M4 空集守卫 —— 四条判据各自须红,`PROBE-OK`。该模式已挂进 CI,
+职责同 `kindgen-mutation-probe`:**`--check` 证「现在没违规」,`--mutation-probe` 证「判据抓得住」**。
+
+### ⚠️ 本债关闭**不等于**「17 个撞号已解决」(禁借绿)
+
+| 面 | 状态 |
+|---|---|
+| 新增撞号 | ✅ **被门挡住**(C1 当场红) |
+| 写法约定 | ✅ 已成文,新笔记得以消歧 |
+| **存量 17 个 ID** | ❌ **仍是双义** —— 用户裁定 ① **永久接受**,不做改名 |
+| **存量裸引用** | ❌ **仍是裸写**(`architecture.md:915` 的 `AC-20-15①` 等)—— 逐条判断语义要人,裁定 ① 不要求做 |
+| `ADR-019` ↔ 系统 19 的**潜伏**撞号 | ⚠️ 今日不触发(系统 19 无 GDD);系统 19 的 GDD 成文那天会被 **C1** 抓住 |
+
+⇒ **门只保证「不再新增」**;`--print` 随时可看还剩多少。
+
+### 账务
+
+`条目 153` 不动 · **`open 8 → 7`** · **`closed 141 → 142`** · `partial 3` 不动 ·
+`P0 面 N 47` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print        # 期望:条目 153 | open 7 | closed 142 | 未闭 P0 面 = 0
+python3 tools/acid/acid_check.py --check            # 期望:✅ 无新增撞号(附 17 条基线提示)
+python3 tools/acid/acid_check.py --mutation-probe   # 期望:PROBE-OK
+python3 -c "import json;print(len(json.load(open('tools/acid/acid-baseline.json',encoding='utf-8'))['known_collisions']))"   # 期望 17
 ```

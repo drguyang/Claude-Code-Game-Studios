@@ -1,0 +1,73 @@
+{
+  "_comment": "TD-docs-01 基线:已知撞号,冻结不新增。用户 2026-11-02 裁定 ① 零改名。",
+  "known_collisions": {
+    "AC-20-01": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-02": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-03": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-04": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-05": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-06": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-07": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-08": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-09": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-10": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-11": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-12": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-13": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-14": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-15": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-16": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ],
+    "AC-20-17": [
+      "design/gdd/inventory-and-items.md",
+      "docs/architecture/adr-020-player-controller-and-camera.md"
+    ]
+  }
+}

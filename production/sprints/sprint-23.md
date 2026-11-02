@@ -723,3 +723,22 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 - **读数**:本轮零 `.cs` 改动(`git status` 只有 `docs/tech-debt-register.md`)⇒ 编译面与 `5df3f714`
   逐字节相同,沿用其读数 EditMode `6624/6587/0/0/37` @ `21:19:43` · PlayMode `311/307/0/2/2` @ `21:20:28`
 - **账务**:`条目 152 → 153` · **`open 7 → 8`** · `P0 面 N 46 → 47` · `未闭 P0 面 = 0` 不变
+
+**S23-31(2026-11-02):`TD-docs-01` 关闭 —— 裁定 ① + 撞号门落地**:
+用户指令「定 ①,补机械判据」。
+
+- **裁定 ①(零改名)**:ADR 自有的 AC 引用时写 `ADR-0NN AC-NN`,系统 GDD 的维持 `AC-{sys}-{n}`,
+  存量不重命名 ⇒ 债的两半里,「存量无法消歧」被**永久接受**,本轮交付「增量会继续撞」那一半
+- **三件**:写法约定(`coding-standards.md` 新节)· 机械门 `tools/acid/acid_check.py` +
+  基线 `acid-baseline.json` · CI job `ac-id-collision`(`--check` + `--mutation-probe` + 零写盘校验)
+- **四条判据**:C1 新撞号 / C2 基线不得扩大 / C3 基线不得陈旧 / **C4 空集守卫**
+  (路径写错时 C1 会在空集上恒绿 —— F4 空洞正控)
+- ⚠️ **「定义」的识别是实测逼出来的**:首版原型逐行扫,把 `adr-033:444` 回写表的
+  `| **AC-23-02** |` 误判成第二处定义,凭空造出第 18 个撞号 ⇒ 改为
+  **`## GDD Requirements Addressed` 整节跳过**(该节按定义就是引用别人的 AC)
+- **证伪 3/3 真文件变异全红**(R1 新撞号 ⇒ C1 · R2 删定义 ⇒ C3 · R3 第三文件 ⇒ C2),
+  SHA-256 逐字节还原 3/3,`FINAL-OK`;另有内存内 `--mutation-probe` 四条各自红,`PROBE-OK`
+- ⚠️ **关闭 ≠ 解决**:17 个撞号仍在(裁定永久接受)· 存量裸引用仍裸写 · CI job 未在真实 CI 跑过
+  (今日 = 桌面可复算)· **门不判语义**,只认两种固定句式
+- **账务**:`条目 153` 不动 · **`open 8 → 7`** · **`closed 141 → 142`** · `未闭 P0 面 = 0`
+- 原件 = `production/qa/evidence/impl-td-docs-01-ac-id-gate-2026-11-02.md`
