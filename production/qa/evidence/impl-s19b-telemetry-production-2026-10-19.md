@@ -69,7 +69,7 @@ M2 空集判错 ⇒ `test_f1a_fourCases_numerator2` 红 · M3 改写计入准确
 
 **同时收窄一条过宽判据**:`readonly_boundary_test.cs::test_noAppendCallSite_noWriteMethods`
 原扫「方法名含 Write/Append/Emit」⇒ **过宽**(ADR-019 §五 明确允许本地导出,`WriteLocalReport` 被误杀)。
-AC-19-04 的宾语逐字是「**无 `IEventSink.Append` 调用点**」⇒ 收窄为:
+AC-ADR019-04 的宾语逐字是「**无 `IEventSink.Append` 调用点**」⇒ 收窄为:
 ① 不得有 `Append`/`Emit` 命名的方法;② 不得有 `IEventSink` 类型形参。
 
 **反证**(改生产码):M1 Source 加第四个方法 ⇒ `sourceIsReadOnly` 红 ·
@@ -778,7 +778,7 @@ python3 tools/falsify/unity_falsify.py \
 | **C** `blank_and_degraded` | 「谓词面仍无测试驱动」 | **比登记更糟**:`TickFoldEngine` **全仓唯一引用是一句注释**;D1–D9 全跑 `ComputeEmpty()` 等**手搓常量**;D7 两条是本地布尔 + 三元拼串(`contains` 恒真) | 假绿,须重写 |
 | **D** `AC-51-D4` | 「Release 半边 NOT-RUN」 | 编译期半边**已有源码级夹具**(`telemetry_debug_view_test.cs:105-142`),Release 半边是**刻意** NOT-RUN(GDD 允许「编译期剔除 **或** 运行期硬禁」,已取前者)。**真缺口是另一半** —— GDD「`GIVEN Development 构建,THEN 入口存在且输出指标`」**无任何夹具** | 补开发期半边 |
 | **A** `AC-51-E3` | 「依赖 `OQ-51-5` 未裁」 | **`OQ-51-5` 已于 2026-10-06 裁定**(`telemetry-analytics.md:706`),理由**已过期**。真阻塞 = `IEventAuthority` **全仓零生产实装**(`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | 可做主门,真联机半 NOT-RUN |
-| **E** `AC-19-01/02` | (未登为本片项) | `AC-19-02` 已有夹具但**只扫 `Telemetry` 程序集** —— 报告生产者住在 `Gameplay.Boot`,那边加网络调用**扫不到**;`AC-19-01` 只断言接口形状,不证「既有流真能重算」 | 补扫描面 + 补重算判据 |
+| **E** `AC-ADR019-01/02` | (未登为本片项) | `AC-ADR019-02` 已有夹具但**只扫 `Telemetry` 程序集** —— 报告生产者住在 `Gameplay.Boot`,那边加网络调用**扫不到**;`AC-ADR019-01` 只断言接口形状,不证「既有流真能重算」 | 补扫描面 + 补重算判据 |
 | **B9** | 「集成目录 `tests/integration/51/` 未建」 | 目录名是 `telemetry` **已存在**(`tests/integration/telemetry/README.md`,S15-7 前就建了);但 B9 要求的是**真实会话离线重算**,`OQ-10-8` 虽已裁但**真实会话数据不存在** | **仍 NOT-RUN**,不改 |
 
 ### 用户裁定
@@ -794,7 +794,7 @@ python3 tools/falsify/unity_falsify.py \
 | 3 | D:开发期半边无夹具 | `test_d4_developmentBuild_entryExists_andOutputsMetrics`(反射取类型 + 真调入口 + 断言输出真指标) | 条件改 `#if false` ⇒ 类型不存在 ⇒ 红 |
 | 4 | A:无主机门 | `TelemetryReporter.RequireHost()` + 可空 `IEventAuthority` 注入;7 个报告方法 + `ScorableCount` 全覆盖 | 反证 F1(停用门)⇒ `test_e3_nonHostAuthority_rejectsAllReports` 红 |
 | 5 | E:扫描面漏 `Gameplay.Boot` | `test_ac1902_reportProducer_noNetworkInGameplayBoot`(类型/字段/方法签名反射扫描) | 在 reporter 加 `HttpClient` 字段 ⇒ 红(未跑变异,见下) |
-| 6 | E:AC-19-01 只证接口形状 | `test_ac1901_metricsRecomputableFromExistingStream_only`(只用既有 Kind 造流 ⇒ 分母非 0 + 同流同值) | 反证 F5(重算抽空)⇒ 本条 + `test_d9_ampleSmpale_noBanner` 红 |
+| 6 | E:AC-ADR019-01 只证接口形状 | `test_ac1901_metricsRecomputableFromExistingStream_only`(只用既有 Kind 造流 ⇒ 分母非 0 + 同流同值) | 反证 F5(重算抽空)⇒ 本条 + `test_d9_ampleSmpale_noBanner` 红 |
 
 **`IEventAuthority` 的设计选择(须登记)**:注入 `null` ⇒ **不设门**(单机 / 离线)。
 **刻意不**自造一个恒 true 的占位实装来假装门存在 —— 那会把「门还没接」伪装成「门已实现」。
@@ -853,7 +853,7 @@ python3 tools/falsify/unity_falsify.py \
   其中 **D6** 与第十二片的「`FOLD_MEMORY_MODE` 刻意不进配置文件」同源:无两模式即无对拍对象。
 - **A · 真联机半边** —— `IEventAuthority` 零生产实装 ⇒ 只能证「注入非主机时拒」。
 - **D · Release player 半边** —— 须 Release 构建后反射扫描,本机仅 EditMode。
-- **E · `AC-19-02` 的运行期半边** —— 本片只补了**静态反射**扫描面;真运行期零出站须抓包 / 构建期符号扫描,未做。
+- **E · `AC-ADR019-02` 的运行期半边** —— 本片只补了**静态反射**扫描面;真运行期零出站须抓包 / 构建期符号扫描,未做。
 - **B9** —— 真实会话数据不存在,不改判。
 - 兜底常量与烘焙表并存 · GDD `*待定*` 回写 · 10 条 story 的 `Complete` —— 同前,未动。
 
@@ -867,7 +867,7 @@ python3 tools/falsify/unity_falsify.py \
 | 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);~~设备切换六旋钮仍为临时种子未进 data-core~~ **✅ 第十一片已落**(§三·十一 —— cooked 制品 + 装载路径 + 取值缝 + 8 条地址 + 对账断言;PlayMode catalog 半边 NOT-RUN);**该残余的下一半** = 兜底常量与烘焙表并存(删兜底须另裁)② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ ~~F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传~~ **✅ 第十二片已落**(§三·十二 —— 文件 + 烘焙 + 加载期门 + 可空注入;数值经用户批准,**仍是临时值待数值轮**,GDD 表内 `*待定*` 未回写) |
 | 3 | ~~3 条 Ignore 未清~~ **✅ 第十三片结清 2 / 3** | ① ~~`AC-51-E3` 依赖 `OQ-51-5` 未裁~~ —— **实测 `OQ-51-5` 2026-10-06 已裁**,`RequireHost` 生产门已落,主半边转绿;**真联机半**仍 NOT-RUN(`IEventAuthority` 零生产实装)② ~~`blank_and_degraded` 谓词面无测试驱动~~ —— **实测更糟**:`TickFoldEngine` 全仓唯一引用是一句注释,本文件重写为真主语,4 条无主语的改 NOT-RUN ③ **`AC-51-B9` 仍 NOT-RUN**(真实会话数据不存在;`OQ-10-8` 虽已裁但数据无从产生) |
 | 4 | **10 条 story 的 `Complete` 一条未动** | 账面与实现的背离仍在 |
-| 5 | **AC-19-01/02 的运行期 / 构建期半边**(第十三片新登记) | 本片补了 `Gameplay.Boot` 的**静态反射**扫描面与「既有流重算」判据;真**运行期零出站**(抓包 / 构建期符号扫描)未做 |
+| 5 | **AC-ADR019-01/02 的运行期 / 构建期半边**(第十三片新登记) | 本片补了 `Gameplay.Boot` 的**静态反射**扫描面与「既有流重算」判据;真**运行期零出站**(抓包 / 构建期符号扫描)未做 |
 
 **⇒ `TD-epic-01` 状态 = 偿还中(十三片),不是已修好。**
 

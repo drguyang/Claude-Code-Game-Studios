@@ -8,7 +8,7 @@
 
 ## 一、本文件为什么存在
 
-`AC-19-05`(`story-001-readonly-boundary-zero-egress`)逐字要求:
+`AC-ADR019-05`(`story-001-readonly-boundary-zero-egress`)逐字要求:
 
 > 发布清单 Privacy/Analytics 项固定为「**无出厂 / 无第三方 / 无内建崩溃上报**」
 
@@ -30,12 +30,12 @@ ADR-019 §四 已把**内容**全部定死(见 §二),但**没有一个可被引
 > 无账号系统 · 无邮箱收集 · 无设备指纹 · 无崩溃上报 · 无第三方分析 SDK。
 > 存档内的玩家名为**本地数据**,不出厂。
 > 遥测(系统 51)是**本地读数器** —— 它只从游戏内事件流重算指标并写入本地文件,
-> **不存在任何网络上报路径**(ADR-019 §二 · `AC-19-02`)。
+> **不存在任何网络上报路径**(ADR-019 §二 · `AC-ADR019-02`)。
 
 ### Analytics 项
 
 > **本游戏无内建分析。**
-> 无埋点 · 无 A/B 测试框架 · 无遥测端点 · 无实验开关(ADR-019 §一 · `AC-19-01` / `AC-19-03`)。
+> 无埋点 · 无 A/B 测试框架 · 无遥测端点 · 无实验开关(ADR-019 §一 · `AC-ADR019-01` / `AC-ADR019-03`)。
 > 若将来需要玩家侧统计,须**另开 ADR** —— 不得在本承诺下增补(见 §四)。
 
 ---
@@ -47,9 +47,9 @@ ADR-019 §四 已把**内容**全部定死(见 §二),但**没有一个可被引
 | 无账号 / 无邮箱 / 无设备指纹 | ADR-019 §四 | `grep -rn "HttpClient\|UnityWebRequest\|System.Net" unity/Assets/Telemetry/` ⇒ 0 |
 | 无崩溃上报 | ADR-019 §二 | 同上 + `AC-51-A7`(无 `UnityEngine.Analytics` 等包) |
 | 无第三方分析 SDK | ADR-019 §二 | `AC-51-A7` 夹具 |
-| 无埋点(指标全从既有事件流重算) | ADR-019 §一 | `AC-19-01` 夹具(`test_ac1901_metricsRecomputableFromExistingStream_only`) |
-| 无网络上报路径 | ADR-019 §二 | `AC-19-02` / `AC-51-A4` 三件夹具 |
-| 无遥测开关(因为没有可关的东西) | ADR-019 §四 | `AC-19-03`(`test_e5_noSwitch_noSwitchFields`) |
+| 无埋点(指标全从既有事件流重算) | ADR-019 §一 | `AC-ADR019-01` 夹具(`test_ac1901_metricsRecomputableFromExistingStream_only`) |
+| 无网络上报路径 | ADR-019 §二 | `AC-ADR019-02` / `AC-51-A4` 三件夹具 |
+| 无遥测开关(因为没有可关的东西) | ADR-019 §四 | `AC-ADR019-03`(`test_e5_noSwitch_noSwitchFields`) |
 | 主机不采集客户端遥测 | ADR-019 §四 | 51 读本地流副本;写入面为零(`AC-51-A3` 夹具) |
 
 ---
@@ -77,4 +77,4 @@ ADR-019 §四 逐字:
 
 | 日期 | 变更 | 依据 |
 |---|---|---|
-| 2026-10-30 | 建立(兑现 `AC-19-05` 的载体) | `TD-epic-01-e` 复核轮 · ADR-019 §四 |
+| 2026-10-30 | 建立(兑现 `AC-ADR019-05` 的载体) | `TD-epic-01-e` 复核轮 · ADR-019 §四 |

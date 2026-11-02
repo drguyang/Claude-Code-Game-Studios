@@ -404,7 +404,7 @@ interfaces:
     consumers:
       - "51 遥测与分析"        # 只读订阅三流
     adr: docs/architecture/adr-019-telemetry-and-privacy.md
-    signal_signature: "ITelemetrySource.ReadHistoryStream() / ReadCaseStream() / ReadWorldStream() —— 只读。51 输出 = ITelemetrySink.WriteLocalReport / ShowDebugView(**无 Upload / Send / Post** —— AC-19-02 接口级保证)。**结清 TR-randomevents-024:52 与 51 之间无新契约,边界 = 三流本身**"
+    signal_signature: "ITelemetrySource.ReadHistoryStream() / ReadCaseStream() / ReadWorldStream() —— 只读。51 输出 = ITelemetrySink.WriteLocalReport / ShowDebugView(**无 Upload / Send / Post** —— AC-ADR019-02 接口级保证)。**结清 TR-randomevents-024:52 与 51 之间无新契约,边界 = 三流本身**"
     referenced_by:
       - docs/architecture/adr-019-telemetry-and-privacy.md
       - docs/architecture/adr-005-deterministic-sim.md
@@ -1083,7 +1083,7 @@ forbidden_patterns:
 
   - pattern: telemetry_outbound_transmission
     status: active
-    description: "禁止任何出厂数据(ADR-019 §二)。构建产物与运行期不得有网络上报调用(HttpClient / UnityWebRequest / 第三方 SDK);ITelemetrySink 不得有 Upload / Send / Post。崩溃上报同样不引入(若日后需要,须先解决隐私面并另开 ADR)。**AC-19-02 BLOCKING**"
+    description: "禁止任何出厂数据(ADR-019 §二)。构建产物与运行期不得有网络上报调用(HttpClient / UnityWebRequest / 第三方 SDK);ITelemetrySink 不得有 Upload / Send / Post。崩溃上报同样不引入(若日后需要,须先解决隐私面并另开 ADR)。**AC-ADR019-02 BLOCKING**"
     why: "PC/Steam 单机 + P2P 本无任何出厂数据 ⇒ 隐私面结构性干净(无同意机制 / 无导出删除 / 无退出开关);引入出厂即使只是 opt-in 也让 ADR-019 §四 失效,必须另开 ADR 而非打补丁。且引擎参考对 Unity Analytics / UGS 零覆盖,本机亦无法联网核查第三方条款"
     adr: docs/architecture/adr-019-telemetry-and-privacy.md
     added: 2026-09-15
@@ -1097,7 +1097,7 @@ forbidden_patterns:
 
   - pattern: telemetry_writes_back_balance
     status: active
-    description: "禁止 51 写回 assets/data/*.json 或输出『建议把 X 改成 Y』式的自动调参(ADR-019 §六)。51 交付**数据 + 可操作的观察结论**,不交付调好的数值。**AC-19-07**"
+    description: "禁止 51 写回 assets/data/*.json 或输出『建议把 X 改成 Y』式的自动调参(ADR-019 §六)。51 交付**数据 + 可操作的观察结论**,不交付调好的数值。**AC-ADR019-07**"
     why: "数值由用户手调是一贯纪律(feedback-user-owns-balance-values);调参是设计判断(需对照医学语义与手感),不是统计量的函数。51 最多让旋钮的方向更可见,不能替它转"
     adr: docs/architecture/adr-019-telemetry-and-privacy.md
     added: 2026-09-15

@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
 **ADR Governing Implementation**: ADR-023(主): 渲染与场景加载策略;ADR-020: 玩家跨格事件写方口径
-**ADR Decision Summary**: ADR-023 ⑥ 运行期 chunk 激活权 = 系统 6,只读 `ActorCellEntered` 的格(不读表现态位置 ⇒ 激活是派生态不进流);⑦ 读档后连续位置 = 格锚点 + 确定性格内偏移(BCL 整数哈希)。ADR-020 §四:玩家位移纯表现态,在 sim 的唯一投影 = 跨格世界流事件,事件率上界 = tick 频率;AC-20-03 判据 = 反射断言载荷字段类型。
+**ADR Decision Summary**: ADR-023 ⑥ 运行期 chunk 激活权 = 系统 6,只读 `ActorCellEntered` 的格(不读表现态位置 ⇒ 激活是派生态不进流);⑦ 读档后连续位置 = 格锚点 + 确定性格内偏移(BCL 整数哈希)。ADR-020 §四:玩家位移纯表现态,在 sim 的唯一投影 = 跨格世界流事件,事件率上界 = tick 频率;`AC-ADR020-03` 判据 = 反射断言载荷字段类型。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: MEDIUM
 **Engine Notes**: chunk 的 Addressables 加载/释放与场景 additive 生命周期挂 ADR-023 S1–S4 spike(EXTERNAL,禁借绿);激活判定本体纯整数(LOW)。

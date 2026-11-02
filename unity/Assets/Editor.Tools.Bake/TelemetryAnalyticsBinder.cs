@@ -3,7 +3,7 @@
 // 权威来源:ADR-014 §三(阶段1 仅词法 / 阶段2 自研绑定 + 白名单 + schema_version 硬失败)·
 //   GDD `telemetry-analytics.md` §Tuning Knobs(六旋钮 · 「数值用户自己调」)·
 //   AC-51-B14(`W < 1` / `S < 1` ⇒ **构建期**硬失败)· AC-51-E5(无开关 —— 白名单外键即拒收)
-//   · AC-19-03(51 侧落点:加一个开关就是加一个出厂面)
+//   · AC-ADR019-03(51 侧落点:加一个开关就是加一个出厂面)
 // 形状承 InputDeviceSwitchBinder 先例(单入口自聚合自抛;无 Baker 层)。
 //
 // ⚠️ **AC-51-E5 在这里是结构性的而非另加一条检查**:白名单 = {schema_version, _note,

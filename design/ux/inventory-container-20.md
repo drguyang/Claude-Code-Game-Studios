@@ -193,7 +193,7 @@ World(自由态)
 | 开 / 关箱 / 翻页 / 聚焦 / 读注 | **无 SimEvent · 零流边沿** | ADR-013 §十 ②(项号订正 2026-09-22:③ 为单值约束,不落流为 ②——全族同型 off-by-one,承 save-slots-7b :20 注) |
 | 取 / 放 / 用药消耗 | `DropClaimed` / `DropDespawned(reason)` / `Craft.ActualConsumed` 等**既有 Kind**(OQ-20-1 已结:零新增)| **20 意图 → 主机 `Append`**(承 ADR-005/009);本屏代码路径**零 `Append`** |
 
-遥测零新埋点(AC-19-01:库存 = 流投影,本就可重算)。
+遥测零新埋点(AC-ADR019-01:库存 = 流投影,本就可重算)。
 
 ## 9. Transitions & Animations
 

@@ -1,5 +1,5 @@
 // 权威来源:production/epics/telemetry-analytics/story-001-readonly-boundary-zero-egress.md
-//   (AC-19-01…08 · AC-51-A1…A8)
+//   (AC-ADR019-01…08 · AC-51-A1…A8)
 //   · 51 只读不写:唯一输入面 = ITelemetrySource 的三个 Read*;不存在任何向三流 Append/Write/Emit 的成员
 //   · 零出厂:构建 + 运行期无任何网络上报;ITelemetrySink 无 Upload/Send/Post
 //   · 住边界层:不进 sim 程序集(门 A 不污染);sim 不引用 51(无环)
@@ -83,7 +83,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 "51 不得引用 IEventSink(AC-51-A1):\n" + string.Join("\n", violations));
         }
 
-        /// <summary>AC-19-01:指标可从既有事件流重算,零新埋点。
+        /// <summary>AC-ADR019-01:指标可从既有事件流重算,零新埋点。
         /// 当前阶段 51 未实现 —— 验证契约面:ITelemetrySource 存在且只有 Read* 方法。</summary>
         [Test]
         public void test_zeroNewInstrumentation_sourceIsReadOnly()
@@ -96,7 +96,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Act + Assert:契约当前未实现(实现后应验证方法集)
             if (sourceType == null)
             {
-                Assert.Ignore("AC-19-01:ITelemetrySource 未实现,实现后验证只有三个 Read* 方法");
+                Assert.Ignore("AC-ADR019-01:ITelemetrySource 未实现,实现后验证只有三个 Read* 方法");
                 return;
             }
 
@@ -104,14 +104,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var methods = sourceType.GetMethods();
             var readMethods = methods.Where(m => m.Name.StartsWith("Read")).ToArray();
             Assert.That(readMethods.Length, Is.EqualTo(3),
-                "ITelemetrySource 必须只有三个 Read* 方法(AC-19-01:零新埋点)");
+                "ITelemetrySource 必须只有三个 Read* 方法(AC-ADR019-01:零新埋点)");
             var writeMethods = methods.Where(m =>
                 m.Name.StartsWith("Write") || m.Name.StartsWith("Append") || m.Name.StartsWith("Emit")).ToArray();
             Assert.That(writeMethods, Is.Empty,
-                "ITelemetrySource 不得有 Write/Append/Emit 方法(AC-19-01:零新埋点)");
+                "ITelemetrySource 不得有 Write/Append/Emit 方法(AC-ADR019-01:零新埋点)");
         }
 
-        /// <summary>AC-19-01(强化 · TD-epic-01 第十三片):指标真能从**既有事件流**重算 —— 不是「接口形状对」。
+        /// <summary>AC-ADR019-01(强化 · TD-epic-01 第十三片):指标真能从**既有事件流**重算 —— 不是「接口形状对」。
         /// <para>原版只断言 `ITelemetrySource` 有三个 `Read*`。那证明的是**契约形状**,
         /// 证明不了「51 算指标所需的输入都已在流里」。</para>
         /// <para>本条的判据:向**只含既有 `Kind`** 的事件流追加若干条,`TelemetryReporter` 的
@@ -170,10 +170,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             public ItemInstanceId NextItemInstanceId() => new ItemInstanceId(_n++);
         }
 
-        /// <summary>AC-19-04:无 `IEventSink.Append` 调用点(无向**三流**写入的成员)。
+        /// <summary>AC-ADR019-04:无 `IEventSink.Append` 调用点(无向**三流**写入的成员)。
         /// <para>⚠️ **S19 修订判据范围(TD-epic-01 第二片)**:原判据扫「方法名含 Write/Append/Emit」⇒
         /// **过宽**。ADR-019 §五 明确允许**本地导出**(写本地文件),`ITelemetrySink.WriteLocalReport`
-        /// 正因此被误判为违例。AC-19-04 的宾语逐字是「**无 `IEventSink.Append` 调用点**」
+        /// 正因此被误判为违例。AC-ADR019-04 的宾语逐字是「**无 `IEventSink.Append` 调用点**」
         /// —— 禁的是**向三流写**,不是禁一切 Write。</para>
         /// <para>⇒ 收窄为两条:① **不得有任何 `IEventSink` 类型的形参 / 字段 / 返回**
         /// (与 `test_noEventSinkRefs` 同源但这里是方法签名级);② 不得有 `Append`/`Emit` 命名的方法。</para></summary>
@@ -197,9 +197,9 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                                               BindingFlags.Instance | BindingFlags.Static |
                                               BindingFlags.DeclaredOnly))
                 {
-                    // ① 向三流写的命名(Append / Emit)—— AC-19-04 的逐字宾语
+                    // ① 向三流写的命名(Append / Emit)—— AC-ADR019-04 的逐字宾语
                     if (m.Name.Contains("Append") || m.Name.Contains("Emit"))
-                        violations.Add($"{t.Name}.{m.Name} 是向三流写的方法(AC-19-04)");
+                        violations.Add($"{t.Name}.{m.Name} 是向三流写的方法(AC-ADR019-04)");
 
                     // ② IEventSink 形参(拿到写通道即可能写)
                     foreach (var p in m.GetParameters())
@@ -209,7 +209,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             // Assert:零「向三流写」形态
             Assert.That(violations, Is.Empty,
-                "51 不得有向三流写入的成员(AC-19-04:无 IEventSink.Append 调用点):\n" +
+                "51 不得有向三流写入的成员(AC-ADR019-04:无 IEventSink.Append 调用点):\n" +
                 string.Join("\n", violations));
         }
 
@@ -257,9 +257,9 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 "51 不得引用 Sim(实现);只读三流只需 Sim.Contracts 的 SimEvent 形状");
         }
 
-        // ══════════════ AC-19-02/AC-51-A4:零出厂(无网络类型)══════════════
+        // ══════════════ AC-ADR019-02/AC-51-A4:零出厂(无网络类型)══════════════
 
-        /// <summary>AC-19-02/AC-51-A4:51 程序集无 <c>HttpClient</c>/<c>UnityWebRequest</c>/出站 <c>System.Net.*</c>。
+        /// <summary>AC-ADR019-02/AC-51-A4:51 程序集无 <c>HttpClient</c>/<c>UnityWebRequest</c>/出站 <c>System.Net.*</c>。
         /// 扫描 51 命名空间下的类型签名。</summary>
         [Test]
         public void test_zeroEgress_noNetworkTypes()
@@ -293,11 +293,11 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             // Assert:零网络类型引用(实现前后都成立)
             Assert.That(violations, Is.Empty,
-                "51 不得引用 HttpClient/UnityWebRequest/System.Net.*(AC-19-02/AC-51-A4):\n" +
+                "51 不得引用 HttpClient/UnityWebRequest/System.Net.*(AC-ADR019-02/AC-51-A4):\n" +
                 string.Join("\n", violations));
         }
 
-        /// <summary>AC-19-02 的**另一半扫描面**(TD-epic-01 第十三片补):报告生产者住在
+        /// <summary>AC-ADR019-02 的**另一半扫描面**(TD-epic-01 第十三片补):报告生产者住在
         /// `Gameplay.Boot`(`TelemetryReporter` / `TelemetryDeveloperView`),**不在** `Telemetry` 程序集里。
         /// 在那边加一个 `HttpClient` 字段,上面那条 `test_zeroEgress_noNetworkTypes` 扫不到。</summary>
         /// <remarks>
@@ -338,7 +338,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             // Assert
             Assert.That(violations, Is.Empty,
-                "报告生产者不得持有网络类型(AC-19-02:零出厂):\n" + string.Join("\n", violations));
+                "报告生产者不得持有网络类型(AC-ADR019-02:零出厂):\n" + string.Join("\n", violations));
 
             static bool IsNetwork(Type ty)
             {
@@ -351,7 +351,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             }
         }
 
-        /// <summary>AC-19-02/AC-51-A4:ITelemetrySink 无 <c>Upload</c>/<c>Send</c>/<c>Post</c>。
+        /// <summary>AC-ADR019-02/AC-51-A4:ITelemetrySink 无 <c>Upload</c>/<c>Send</c>/<c>Post</c>。
         /// 验证 ITelemetrySink 契约(当前阶段 = 契约面验证)。</summary>
         [Test]
         public void test_zeroEgress_sinkNoUploadSendPost()
@@ -373,12 +373,12 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var uploadMethods = methods.Where(m =>
                 m.Name.Contains("Upload") || m.Name.Contains("Send") || m.Name.Contains("Post")).ToArray();
             Assert.That(uploadMethods, Is.Empty,
-                "ITelemetrySink 不得有 Upload/Send/Post 方法(AC-19-02/AC-51-A4:零出厂)");
+                "ITelemetrySink 不得有 Upload/Send/Post 方法(AC-ADR019-02/AC-51-A4:零出厂)");
         }
 
-        // ══════════════ AC-19-04/AC-51-A8:不订阅 Step══════════════
+        // ══════════════ AC-ADR019-04/AC-51-A8:不订阅 Step══════════════
 
-        /// <summary>AC-19-04/AC-51-A8:51 无 <c>Update</c>/<c>FixedUpdate</c>/逐 <c>Tick</c> 回调订阅。
+        /// <summary>AC-ADR019-04/AC-51-A8:51 无 <c>Update</c>/<c>FixedUpdate</c>/逐 <c>Tick</c> 回调订阅。
         /// 扫描 51 命名空间下的类型。</summary>
         [Test]
         public void test_noStepSubscription_noUpdateCallbacks()
@@ -405,13 +405,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             // Assert:零帧回调(实现前后都成立)
             Assert.That(violations, Is.Empty,
-                "51 不得有 Update/FixedUpdate/LateUpdate(AC-19-04/AC-51-A8:重算仅由显式 Compute() 触发):\n" +
+                "51 不得有 Update/FixedUpdate/LateUpdate(AC-ADR019-04/AC-51-A8:重算仅由显式 Compute() 触发):\n" +
                 string.Join("\n", violations));
         }
 
-        // ══════════════ AC-19-06/AC-51-A5:无玩家可见 UI══════════════
+        // ══════════════ AC-ADR019-06/AC-51-A5:无玩家可见 UI══════════════
 
-        /// <summary>AC-19-06/AC-51-A5:51 侧无 <c>.uxml</c>/<c>.uss</c>/Canvas/场景资产。
+        /// <summary>AC-ADR019-06/AC-51-A5:51 侧无 <c>.uxml</c>/<c>.uss</c>/Canvas/场景资产。
         /// 验证 51 目录下无呈现层资产。
         /// ⚠️ 当前阶段 51 资产目录尚未创建 —— 目录不存在 = 无呈现层资产(正确行为),跳过断言。</summary>
         [Test]
@@ -435,13 +435,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .ToList();
 
             Assert.That(presentationAssets, Is.Empty,
-                "51 侧不得有 .uxml/.uss/Canvas/场景资产(AC-19-06/AC-51-A5:无玩家可见 UI):\n" +
+                "51 侧不得有 .uxml/.uss/Canvas/场景资产(AC-ADR019-06/AC-51-A5:无玩家可见 UI):\n" +
                 string.Join("\n", presentationAssets));
         }
 
-        // ══════════════ AC-19-07/AC-51-E2:零写回 assets/data══════════════
+        // ══════════════ AC-ADR019-07/AC-51-E2:零写回 assets/data══════════════
 
-        /// <summary>AC-19-07/AC-51-E2:无写回 <c>assets/data/**</c> 的代码路径。
+        /// <summary>AC-ADR019-07/AC-51-E2:无写回 <c>assets/data/**</c> 的代码路径。
         /// 扫描 51 命名空间下的类型,验证无文件写入 API 引用。</summary>
         [Test]
         public void test_noWriteBack_noFileWriteApis()
@@ -471,7 +471,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             // Assert:零文件写入 API(实现前后都成立)
             Assert.That(violations, Is.Empty,
-                "51 不得引用文件写入 API(AC-19-07/AC-51-E2:零写回 assets/data):\n" +
+                "51 不得引用文件写入 API(AC-ADR019-07/AC-51-E2:零写回 assets/data):\n" +
                 string.Join("\n", violations));
         }
 

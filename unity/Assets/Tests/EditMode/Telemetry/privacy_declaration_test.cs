@@ -1,17 +1,17 @@
 // 权威来源:
 //   `production/epics/telemetry-analytics/story-001-readonly-boundary-zero-egress.md`
-//     —— AC-19-05(ADVISORY):「发布清单 Privacy/Analytics 项固定为『无出厂 / 无第三方 /
+//     —— AC-ADR019-05(ADVISORY):「发布清单 Privacy/Analytics 项固定为『无出厂 / 无第三方 /
 //        无内建崩溃上报』」
 //   ADR-019 §四(隐私面因「无出厂」而结构性满足;**硬边界** = 一旦引入出厂数据,
 //     本节即失效,须另开 ADR,不得打补丁)
 //
 // 🔁 **2026-10-30 新建(`TD-epic-01-e` 三条 NOT-RUN 结清轮)**:
-//   AC-19-05 此前登记为 **NOT-RUN**,理由是「纯文档项,全仓无发布清单文件」。
+//   AC-ADR019-05 此前登记为 **NOT-RUN**,理由是「纯文档项,全仓无发布清单文件」。
 //   ⇒ 本轮建 `production/privacy-analytics-declaration.md` 作为**载体**,
 //     并建本夹具保证:① 载体存在 ② 三项固定承诺逐字在 ③ 硬边界声明在。
 //
 //   ⚠️ **本判据的性质**(如实登记):它验的是**文档的存在与措辞**,
-//     **不是**「运行时真的没有网络上报」(那由 `AC-19-02` / `AC-51-A4` 的反射夹具验)。
+//     **不是**「运行时真的没有网络上报」(那由 `AC-ADR019-02` / `AC-51-A4` 的反射夹具验)。
 //     两者互补 —— 文档承诺 + 代码判据,缺一不可。
 
 using System;
@@ -25,7 +25,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     {
         private const string DeclRelPath = "production/privacy-analytics-declaration.md";
 
-        /// <summary>AC-19-05:声明文件存在,且三项固定承诺**逐字**在内。
+        /// <summary>AC-ADR019-05:声明文件存在,且三项固定承诺**逐字**在内。
         /// <para><b>为什么逐字**:这三项是给发版 checklist 照抄的**固定文本** ——
         /// 措辞一变,checklist 抄出来的就是另一份承诺。⇒ 判据锚在字面量上,
         /// 改措辞即红(强制改的人先想清楚)。</para>
@@ -36,7 +36,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             string path = RepoRoot() + "/" + DeclRelPath;
             Assert.That(File.Exists(path), Is.True,
                 $"隐私 / 分析声明文件不存在 —— {path}。" +
-                "AC-19-05 需要它作为发布清单 Privacy/Analytics 两项的固定文本载体。");
+                "AC-ADR019-05 需要它作为发布清单 Privacy/Analytics 两项的固定文本载体。");
 
             string text = File.ReadAllText(path);
 
@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         {
             string decl = File.ReadAllText(RepoRoot() + "/" + DeclRelPath);
 
-            string[] cited = { "AC-19-01", "AC-19-02", "AC-19-03", "AC-51-A4", "AC-51-A7" };
+            string[] cited = { "AC-ADR019-01", "AC-ADR019-02", "AC-ADR019-03", "AC-51-A4", "AC-51-A7" };
             string story1 = File.ReadAllText(
                 RepoRoot() + "/production/epics/telemetry-analytics/story-001-readonly-boundary-zero-egress.md");
 

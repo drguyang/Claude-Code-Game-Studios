@@ -248,7 +248,7 @@ World / MainMenu
 | 存盘 | **无 SimEvent** · `ISaveService.Checkpoint(SaveSlot)` | `slot_seq` | AC-7b-01:7b 代码路径**唯一**写 API 对;零自定义序列化 |
 | 焦点 / 翻页 / 拒绝反馈 | 零事件 | —— | 纯呈现;零落盘槽位镜像(AC-7b-05);零 `IEventSink.Append`(AC-7b-11) |
 
-**本屏对三流零写入。** 遥测零新埋点(AC-19-01:存/载行为本就可从 7a 存档序列重算)。
+**本屏对三流零写入。** 遥测零新埋点(AC-ADR019-01:存/载行为本就可从 7a 存档序列重算)。
 
 ## 9. Transitions & Animations
 

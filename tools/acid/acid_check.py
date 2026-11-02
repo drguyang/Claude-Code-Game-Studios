@@ -12,11 +12,12 @@
 是 **ADR-020 Amendment C(2026-11-01)铸新 ID 时没查重**(库存那批 2026-10-26
 就已在被引用)。
 
-用户 2026-11-02 裁定 **① 零改名**:ADR 自有的 AC 一律写 `ADR-0NN AC-NN`,
-系统 GDD 的维持 `AC-{sys}-{n}`;**存量不重命名**。本工具是该裁定的**执行体** ——
-它不要求任何人「记得查重」,而是让**新的**撞号当场红。
+用户 2026-11-02 **先裁 ①「零改名」,同日改判 ②「全 17 个改名」**:
+ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理,
+`AC-19-01…08` → `AC-ADR019-01…08`),系统 GDD 的维持 `AC-{sys}-{n}`。
+本工具是该裁定的**执行体** —— 它不要求任何人「记得查重」,而是让违规当场红。
 
-## 判据(四条)
+## 判据(八条)
 
 - **C1 新撞号**:某 ID 被 ≥2 个文件「定义」,且不在基线里 ⇒ 红
 - **C2 基线不得扩大**:基线里的 ID 不得被**第三个**文件再定义 ⇒ 红
@@ -24,6 +25,22 @@
   删了定义)⇒ 红,迫使基线随之刷新
 - **C4 空集守卫**:扫描到的定义行数为 0 ⇒ 红(路径写错会让 C1 在空集上恒绿,
   这是本仓抓过的「空洞正控」形态)
+- **C5 引用面混写**:同一文件里同时出现 `AC-ADR<n>-x` 与同名裸 `AC-<n>-x` ⇒ 红
+- **C6 白名单陈旧**:两张白名单里的文件已不再命中 ⇒ 红(白名单不许永久掩护)
+- **C7 ADR 用裸名铸 AC**:`adr-<n>-*.md` 里以定义句式写 `AC-<n>-<m>` ⇒ 红
+  (**撞号的生产线**;C1 要等系统 GDD 成文才发作,C7 在铸的当时就红)
+- **C8 裸名误引 ADR 自有 AC**:活文档里裸 `AC-<n>-<m>` 实为 ADR 自有 AC ⇒ 红
+  (C5 的盲区:文件里**一处新名都没有**时 C5 结构性沉默)
+
+⚠️ **C8 只认 1–2 位编号位** —— 库里还有**第三个编号空间**:story 号写法 `AC-0NN-M`
+(如 `story-019` 的 `AC-019-6`)。3 位归 story 空间,本门不碰;该空间的撞号面
+**单独登记,不假装已覆盖**。
+
+## 行级 `legacy` 标记(历史引用的合法出口)
+
+「原文不删」要求记录件保留改名前的写法,它们落进活文档就会被 C5 / C8 判成漏改。
+用**行内标记** `<!-- ac-id-gate: legacy … -->` 豁免:**范围 = 那一行** · **自清理**
+(行删了标记跟着没)· **可见**(每次 `--check` 都列进「提示」,不静默)。
 
 ## 「定义」怎么认(不靠语义,靠两种固定句式)
 
@@ -68,6 +85,51 @@ SKIP_SECTION_MARK = "GDD Requirements Addressed"
 # ⇒ **同一个文件里同时出现「`AC-ADR{n}-x`」与「裸 `AC-{n}-x`」= 两种语义混在一处**,
 # 这是改名漏改 / 新写误用的指纹。纯语义文件应当**只有一种**。
 RE_ADR_AC = re.compile(r"AC-ADR(\d+)-(\d+)")
+
+# ── C7 / C8:ADR 自有 AC 的「不得裸名」判据(2026-11-02 S23-35 追加)────────────
+# 病因:C5 判的是「**混写**」,不是「**正确**」。一个文件若一处新名都没有、只是把 ADR 自有的
+# AC 全写成裸名 ⇒ C5 **结构性沉默**(实测漏过 8 处)。ADD-019 的潜伏撞号更是连 C1 都抓不到
+# (系统 19 无 GDD ⇒ 只有一处定义)。
+# ⇒ 拆成两面:**C7 管定义侧**(ADR 不得再用裸名铸 AC)· **C8 管引用侧**(活文档里
+# 裸 `AC-{n}-{m}` 与 `ADR-{n}` 同句出现,且 m ∈ 该 ADR 的自有 AC 集 ⇒ 指错)。
+RE_ADR_FILE = re.compile(r"^adr-(\d+)-")
+RE_ADR_BARE_DEF_BOX = re.compile(r"^- \[ \] \*\*AC-(\d+)-(\d+)")
+RE_ADR_BARE_DEF_ROW = re.compile(r"^\|\s*\*\*AC-(\d+)-(\d+)\*\*\s*\|")
+RE_ADR_MENTION = re.compile(r"ADR-?0*(\d+)")
+RE_BARE_AC = re.compile(r"AC-(\d{1,2})-(0*\d+)(?!\d)")
+RE_ADR_OWN_DEF = re.compile(r"^- \[ \] \*\*AC-ADR(\d+)-(\d+)|^\|\s*\*\*AC-ADR(\d+)-(\d+)\*\*\s*\|")
+
+# C8 的扫描面 = **活文档**(不含记录件:债册 / sprint / session-state / evidence / retro)。
+# 记录件按「原文不删」纪律合法保留历史写法,把它们拉进来只会制造噪音。
+LIVE_DOC_ROOTS = (
+    "design/", "docs/architecture/", ".claude/docs/", "production/epics/",
+    "unity/Assets/", "tests/",
+)
+# 白名单:**确实需要**在活文档里并存「ADR 名 + 裸同名 AC」的文件(逐条给理由)。
+# C6 会检查它不得陈旧 —— 文件不再命中就必须删条。
+BARE_ADRREF_ALLOW = {}
+
+# ── 行级「历史引用」豁免标记(2026-11-02)────────────────────────────────────
+# 「原文不删」纪律要求记录件保留改名前的写法,但它们若落在活文档里,就会被 C5 / C8 判成漏改。
+# ⇒ 用**行级标记**而不是**文件级白名单**:
+#   ① 豁免范围 = 那一行,不会顺手掩护同文件里将来真漏改的地方;
+#   ② **自清理** —— 行删了标记跟着没,不存在「白名单腐烂」;
+#   ③ **可见** —— 每次 `--check` 都会把带标记的行列进「提示」,不是静默豁免。
+# ⚠️ 只给「记录历史」用。新写的引用**不许**靠它过关。
+LEGACY_MARK = "ac-id-gate: legacy"
+RE_LEGACY_MARK = re.compile(r"ac-id-gate:\s*legacy")
+
+
+def split_legacy(lines):
+    """返回 (有效行, [(行号, 原文)]) —— 带 legacy 标记的行被摘出并回报。"""
+    live, marked = [], []
+    for idx, line in enumerate(lines, 1):
+        if RE_LEGACY_MARK.search(line):
+            marked.append((idx, line.strip()))
+            live.append("")
+        else:
+            live.append(line)
+    return live, marked
 
 # 引用面扫描范围(比定义扫描宽:代码 / 数据 / 文档都算)
 BARE_SCAN_SUFFIXES = (".md", ".cs", ".yaml", ".yml", ".json", ".txt")
@@ -145,6 +207,8 @@ def scan_bare_mix(root):
                 text = open(path, encoding="utf-8", errors="replace").read()
             except OSError:
                 continue
+            text, _ = split_legacy(text.splitlines())
+            text = "\n".join(text)
             # ⚠️ 必须按**完整 ID** 比,不能只比系统号:一个文件里有 `AC-ADR020-05`
             # 和另一条无关的 `AC-20-18`(库存的)并不构成混写 —— 两者指的根本不是同一条。
             # 首版原型按系统号比,把 17 个大杂烩文件全判成混写(实测踩到)。
@@ -158,15 +222,135 @@ def scan_bare_mix(root):
     return mixed
 
 
+def scan_adr_bare_defs(root):
+    """C7:ADR 自有 AC 不得用裸名铸。返回 [(相对路径, 行号, AC ID)]。
+
+    判据 = 在 `adr-<n>-*.md` 里,以定义句式出现 `AC-<n>-<m>`(n = 本 ADR 号)。
+    ⇒ 这就是 ADR-019 那颗雷的**铸点**;C1 只能等到系统 GDD 成文才发作,C7 铸的当时就红。
+    """
+    hits = []
+    base_dir = os.path.join(root, "docs/architecture")
+    for name in sorted(os.listdir(base_dir)):
+        if not name.endswith(".md"):
+            continue
+        match = RE_ADR_FILE.match(name)
+        if not match:
+            continue
+        adrno = int(match.group(1))
+        rel = f"docs/architecture/{name}"
+        for idx, line in enumerate(
+                open(os.path.join(base_dir, name), encoding="utf-8", errors="replace"), 1):
+            box = RE_ADR_BARE_DEF_BOX.match(line) or RE_ADR_BARE_DEF_ROW.match(line)
+            if box and int(box.group(1)) == adrno:
+                hits.append((rel, idx, f"AC-{adrno}-{int(box.group(2)):02d}"))
+    return hits
+
+
+def scan_bare_adrrefs(root):
+    """C8:裸 `AC-<n>-<m>` 其实是 ADR 自有 AC 的两条路径。
+
+    **C8a(精确,不看上下文)**:该 ID **只**作为 ADR 自有 AC 存在 ——
+    即系统 n 的 GDD 里没有定义 `AC-<n>-<m>`(系统 19 今日零定义 ⇒ 8 条全中)。
+    裸串本身就无处可指 ⇒ 必是 ADR 引用。
+
+    **C8b(启发式,看上下文)**:系统 n 确实定义了 `AC-<n>-<m>`,但同一行里点了 `ADR-<n>`
+    ⇒ 该处极可能指 ADR。这一条**可能误报**,所以只作为提示面 (C8)。
+
+    ⚠️ **只认 1–2 位的编号位**:`AC-(\\d{1,2})-…`。库里存在**第三个编号空间**——
+    **story 号**写法 `AC-0NN-M`(如 `story-019` 的 `AC-019-6`)。若把 3 位也当系统/ADR 号,
+    `AC-019-6` 会被误读成 ADR-019 的 06(实测首版就是这样:10 个 audio 文件全是假阳性)。
+    ⇒ `AC-0NN-M` 归 story 空间,本判据不碰;**它的撞号面单独登记,不假装已覆盖**。
+
+    返回 {相对路径: [命中描述, ...]}。
+    """
+    owned = defaultdict(set)
+    system_defined = defaultdict(set)
+    for dirpath, _dirnames, filenames in os.walk(os.path.join(root, "design/gdd")):
+        for name in sorted(filenames):
+            if not name.endswith(".md"):
+                continue
+            for line in open(os.path.join(dirpath, name), encoding="utf-8", errors="replace"):
+                hit = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
+                if hit:
+                    t, seq = hit.group(1).split("-")[1:]
+                    system_defined[int(t)].add(int(seq))
+
+    base_dir = os.path.join(root, "docs/architecture")
+    for name in sorted(os.listdir(base_dir)):
+        match = RE_ADR_FILE.match(name)
+        if not name.endswith(".md") or not match:
+            continue
+        adrno = int(match.group(1))
+        text = open(os.path.join(base_dir, name), encoding="utf-8", errors="replace").read()
+        for m in RE_ADR_AC.finditer(text):
+            if int(m.group(1)) == adrno:
+                owned[adrno].add(int(m.group(2)))
+    if not owned:
+        return {}
+
+    found = defaultdict(list)
+    for root_dir in LIVE_DOC_ROOTS:
+        for dirpath, dirnames, filenames in os.walk(os.path.join(root, root_dir)):
+            dirnames[:] = [d for d in dirnames if d not in BARE_SKIP_DIRS]
+            for name in sorted(filenames):
+                if not name.endswith(BARE_SCAN_SUFFIXES):
+                    continue
+                path = os.path.join(dirpath, name)
+                rel = os.path.relpath(path, root).replace(os.sep, "/")
+                try:
+                    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+                except OSError:
+                    continue
+                lines, _marked = split_legacy(lines)
+                for idx, line in enumerate(lines, 1):
+                    nums = {int(g) for g in RE_ADR_MENTION.findall(line)}
+                    for target, seq in RE_BARE_AC.findall(line):
+                        t, sq = int(target), int(seq)
+                        if sq not in owned.get(t, ()):
+                            continue
+                        if sq not in system_defined.get(t, ()):
+                            # C8a:该裸 ID 在系统侧根本不存在 ⇒ 必是 ADR 引用
+                            found[rel].append(
+                                f"L{idx}: 裸 `AC-{t}-{sq:02d}` 在系统 {t} 侧无定义,"
+                                f"只作为 ADR-{t} 自有 AC 存在")
+                        elif t in nums:
+                            # C8b:系统侧也有同号,但同行点了 ADR-{t} ⇒ 极可能指 ADR
+                            found[rel].append(
+                                f"L{idx}: 裸 `AC-{t}-{sq:02d}` 与 `ADR-{t}` 同句"
+                                f"(该 ADR 自有此 AC)")
+    return dict(found)
+
+
+def scan_legacy_marks(root):
+    """列出所有带 legacy 标记的行 —— 豁免必须**可见**,不能静默。"""
+    out = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in BARE_SKIP_DIRS]
+        for name in sorted(filenames):
+            if not name.endswith(BARE_SCAN_SUFFIXES):
+                continue
+            path = os.path.join(dirpath, name)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            try:
+                lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+            except OSError:
+                continue
+            _live, marked = split_legacy(lines)
+            for idx, _text in marked:
+                out.append(f"{rel}:{idx}")
+    return sorted(out)
+
+
 def load_baseline():
     with open(BASELINE, encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def evaluate(definitions, baseline, bare_mixed=None):
+def evaluate(definitions, baseline, bare_mixed=None,
+             adr_bare_defs=None, bare_adrrefs=None):
     """返回 (violations, warnings)。violations 非空 ⇒ 退出码 1。
 
-    `bare_mixed` 为 None 时不判 C5 / C6(内存探针用)。
+    `bare_mixed` 为 None 时不判 C5 / C6;C7 / C8 同理(内存探针用)。
     """
     violations = []
     dups = collisions(definitions)
@@ -229,6 +413,31 @@ def evaluate(definitions, baseline, bare_mixed=None):
                     f"C6 白名单陈旧:`{rel}` 仍记在 `BARE_MIXED_ALLOW` 里,"
                     "但它已不再同时持有两种写法 ⇒ 从白名单删掉,别让它永久掩护一个已消失的混写。")
 
+    # C7 / C8:ADR 自有 AC 的裸名面(调用方给了才判)
+    if adr_bare_defs is not None:
+        for rel, idx, ac in adr_bare_defs:
+            violations.append(
+                f"C7 ADR 用裸名铸 AC:`{rel}:{idx}` 以定义句式出现 `{ac}` —— "
+                "这正是 ADR-019 / ADR-020 撞号的生产线。\n"
+                "    ADR 自有的 AC 一律写 `AC-ADR0NN-NN`;裸 `AC-<n>-<m>` 专归系统 n 的 GDD。\n"
+                "    ⇒ C1 只在系统 GDD 成文那天才发作,**本条在铸的当时就红**(防潜伏)。")
+    if bare_adrrefs is not None:
+        for rel in sorted(bare_adrrefs):
+            if rel in BARE_ADRREF_ALLOW:
+                continue
+            detail = ";".join(bare_adrrefs[rel][:3])
+            more = "" if len(bare_adrrefs[rel]) <= 3 else f" …共 {len(bare_adrrefs[rel])} 处"
+            violations.append(
+                f"C8 裸名误引 ADR 自有 AC:`{rel}` —— {detail}{more}。\n"
+                "    该 AC 属 ADR 自有 ⇒ 应写 `AC-ADR0NN-NN`;裸 `AC-<n>-<m>` 指系统 n 的 GDD。\n"
+                "    ⚠️ C5 看不见这一类:文件里若**一处新名都没有**,就不构成「混写」。\n"
+                "    确实是历史引用且必须留的,才加进 `BARE_ADRREF_ALLOW` 并写明理由。")
+        for rel in sorted(BARE_ADRREF_ALLOW):
+            if rel not in bare_adrrefs:
+                violations.append(
+                    f"C6 白名单陈旧:`{rel}` 仍记在 `BARE_ADRREF_ALLOW` 里,"
+                    "但它已不再命中 ⇒ 从白名单删掉,别让它永久掩护一个已消失的误引。")
+
     # 基线覆盖度提示(非违规):让「还剩多少撞号」始终可见
     warnings = []
     remaining = len(grandfathered)
@@ -251,12 +460,18 @@ def cmd_print(definitions, baseline):
     return 0
 
 
-def cmd_check(definitions, baseline, bare_mixed):
-    violations, warnings = evaluate(definitions, baseline, bare_mixed)
+def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs):
+    violations, warnings = evaluate(definitions, baseline, bare_mixed,
+                                    adr_bare_defs, bare_adrrefs)
     for note in warnings:
         print(f"提示:{note}")
+    marks = scan_legacy_marks(REPO_ROOT)
+    if marks:
+        print(f"提示:legacy 豁免 {len(marks)} 行(历史引用,原文不删)—— "
+              f"{', '.join(marks[:5])}{' …' if len(marks) > 5 else ''}")
     if not violations:
-        print(f"✅ AC 编号撞号门:无新增撞号;引用面 {len(bare_mixed)} 个混写文件全在白名单内")
+        print(f"✅ AC 编号撞号门:无新增撞号;引用面 {len(bare_mixed)} 个混写文件全在白名单内;"
+              f"ADR 自有 AC 裸名定义 0 条、裸名误引 {len(bare_adrrefs)} 文件全在白名单内")
         return 0
     for item in violations:
         print(f"❌ {item}")
@@ -336,6 +551,23 @@ def cmd_mutation_probe(definitions, baseline):
                {k: [20] for k in list(BARE_MIXED_ALLOW)[1:]},
                "C6")
 
+    # ── C7 / C8:ADR 自有 AC 的裸名面 ──────────────────────────────────────
+    def probe_adr(label, defs_hits, refs_hits, expect_prefix):
+        violations, _ = evaluate(FAKE_DEFS, FAKE_BASE,
+                                 {k: [20] for k in BARE_MIXED_ALLOW},
+                                 defs_hits, refs_hits)
+        hit = any(item.startswith(expect_prefix) for item in violations)
+        scenarios.append((label, expect_prefix, hit, violations))
+
+    # M7:ADR 用裸名铸 AC
+    probe_adr("M7 ADR 裸名铸 AC",
+              [("docs/architecture/adr-099-fake.md", 1, "AC-99-01")], {},
+              "C7")
+    # M8:活文档里裸名误引 ADR 自有 AC
+    probe_adr("M8 裸名误引 ADR 自有 AC", {},
+              {"design/gdd/some-new-file.md": ["L1: 裸 `AC-99-01` 与 `ADR-99` 同句"]},
+              "C8")
+
     failed = 0
     for label, expect, hit, violations in scenarios:
         status = "红(符合预期)" if hit else "**未红 —— 该判据无判别力**"
@@ -359,12 +591,14 @@ def main(argv):
     definitions = scan(REPO_ROOT)
     baseline = load_baseline()
     bare_mixed = scan_bare_mix(REPO_ROOT)
+    adr_bare_defs = scan_adr_bare_defs(REPO_ROOT)
+    bare_adrrefs = scan_bare_adrrefs(REPO_ROOT)
 
     if args.print:
         return cmd_print(definitions, baseline)
     if args.mutation_probe:
         return cmd_mutation_probe(definitions, baseline)
-    return cmd_check(definitions, baseline, bare_mixed)
+    return cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs)
 
 
 if __name__ == "__main__":

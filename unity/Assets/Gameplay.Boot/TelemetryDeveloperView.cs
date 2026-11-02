@@ -1,4 +1,4 @@
-// 权威来源:ADR-019 §五(调试视图 = 开发者可见的本地汇总;不交付玩家可见统计 UI · AC-19-06)·
+// 权威来源:ADR-019 §五(调试视图 = 开发者可见的本地汇总;不交付玩家可见统计 UI · AC-ADR019-06)·
 //   design/gdd/telemetry-analytics.md(`OQ-51-1` 2026-10-06 已裁:两处分立,51 侧 = **纯文本**)·
 //   production/epics/telemetry-analytics/story-009-blank-and-degraded.md(AC-51-D4 / D8 / D9)
 //

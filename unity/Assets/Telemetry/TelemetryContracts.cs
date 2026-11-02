@@ -4,7 +4,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚠️ 本文件是 TD-epic-01 的还债件(2026-10-19 第二片):`readonly_boundary_test.cs` 原先
-//    `Assert.Ignore("ITelemetrySource 未实现…")` —— 契约面无主语,AC-19-01 的语义层无承载。
+//    `Assert.Ignore("ITelemetrySource 未实现…")` —— 契约面无主语,AC-ADR019-01 的语义层无承载。
 //
 // ⚠️ **三个 Read* 一一对应 ADR-009 的三条逻辑流**(病史 / 病例 / 世界):
 //    51 只读订阅这三条,**不新增流、不写流**。返回 `IReadOnlyList<SimEvent>`(GDD AC-51-A1 逐字)。
@@ -35,7 +35,7 @@ namespace DaYiJingCheng.Telemetry
     }
 
     /// <summary>51 的**输出面** —— 本地落盘 / 开发者控制台(GDD R5 · ADR-019 §五)。
-    /// <para>⚠️ **刻意没有 `Upload` / `Send` / `Post`**(AC-19-02 / AC-51-A4 · GDD R4「51 零出厂」)
+    /// <para>⚠️ **刻意没有 `Upload` / `Send` / `Post`**(AC-ADR019-02 / AC-51-A4 · GDD R4「51 零出厂」)
     /// ⇒「无出厂数据」同样是**编译期不可表达**,不靠纪律守。</para>
     /// <para>⚠️ 方法名用 `Write`(本地文件)/`Log`(控制台)而非任何网络动词。</para></summary>
     public interface ITelemetrySink

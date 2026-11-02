@@ -52,7 +52,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         /// <c>DaYiJingCheng.Telemetry</c> 命名空间,而 51 的**报告生产者**
         /// (<c>TelemetryReporter</c> / <c>TelemetryDeveloperView</c>)住在 <c>Gameplay.Boot</c>
         /// ⇒ <c>E1 / E2 / E4 / E5</c> 四条判据对真正的出数路径**视而不见**。
-        /// 这是与 <c>AC-19-02</c>(第十三片)同一个坑 —— 当时只补了那一处,没回头补这四条。</para>
+        /// 这是与 <c>AC-ADR019-02</c>(第十三片)同一个坑 —— 当时只补了那一处,没回头补这四条。</para>
         /// <para>⚠️ 生产者按 **FullName 逐个点名**,不按整个 <c>Gameplay.Boot</c> 程序集取:
         /// 该程序集还住启动序 / 玩家搬运等非 51 类型,对它们套 51 的越界判据是**判据越权**。
         /// 生产者若改名 / 迁出,<see cref="RequireNonEmptyScan"/> 会先红 —— 不会静默失去扫描面。</para></summary>

@@ -387,7 +387,7 @@ rule, see the referenced ADR.
 **遥测(ADR-019)**
 - **回放即完整数据记录** ⇒ **51 是读数器,不是采集器**;「埋点」在本项目**是冗余** — ADR-019 §一:144
 - **51 住边界层 —— 不进 sim 程序集(不污染门 A),不写三流**(只读消费者,**不成为第四个 `IEventSink` 写入者**) — ADR-019 §三:183
-- **AC-19-01(BLOCKING)** 判断层指标均可从既有事件流**重算,零新埋点**;**AC-19-02(BLOCKING)** 构建 + 运行期**无任何网络上报**,接口层**无 `Upload` / `Send` / `Post`**;**AC-19-07** **无写回 `assets/data/` 的代码路径** — 源:`technical-preferences.md` ADR-019 条目(AC 号;**ADR 内行号本轮未取**)
+- **AC-ADR019-01(BLOCKING)** 判断层指标均可从既有事件流**重算,零新埋点**;**AC-ADR019-02(BLOCKING)** 构建 + 运行期**无任何网络上报**,接口层**无 `Upload` / `Send` / `Post`**;**AC-ADR019-07** **无写回 `assets/data/` 的代码路径** — 源:`technical-preferences.md` ADR-019 条目(AC 号;**ADR 内行号本轮未取**)
 - **51 不得成为「替用户调数值」的替身** —— 数值用户自己调 — ADR-019 §六:245
 
 **控制器与相机(ADR-020)**

@@ -71,7 +71,7 @@
         "test_d9_ampleSmpale_noBanner"
       ],
       "exactRed": true,
-      "_why": "AC-19-01 强化条:报告不再从既有事件流重算 ⇒ Scorable 恒 0 ⇒ 分母 0 断言红。⚠️ 2026-10-19 两轮实测订正:① 首版变异漏赋 `out skipped` ⇒ 编译失败(CS0177),根本没跑到断言;改成块体后 ② 多红一条 `test_d9_ampleSmpale_noBanner` —— 该夹具要求样本充足时不加标注,而 `ScorableCount` 同样出自 `Reduce` ⇒ 重算被抽空后它必然转红。两条同属该守卫的正当判别面。"
+      "_why": "AC-ADR019-01 强化条:报告不再从既有事件流重算 ⇒ Scorable 恒 0 ⇒ 分母 0 断言红。⚠️ 2026-10-19 两轮实测订正:① 首版变异漏赋 `out skipped` ⇒ 编译失败(CS0177),根本没跑到断言;改成块体后 ② 多红一条 `test_d9_ampleSmpale_noBanner` —— 该夹具要求样本充足时不加标注,而 `ScorableCount` 同样出自 `Reduce` ⇒ 重算被抽空后它必然转红。两条同属该守卫的正当判别面。"
     }
   ]
 }

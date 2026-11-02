@@ -408,7 +408,7 @@ SkipEquivalence = ON(49 的玩家侧开关)⇒ JudgeResult = Applied
 原稿的**实际形状 = A 路**(主机接受客户端上报的 `JudgeResult`),而 **`reading` 不进流** ⇒
 ① **主机无从核验** —— `drug_potency` 只依赖一个可上报的枚举 ⇒ **伪造 `Applied` = 任意满 potency 直进 9 的 F4 和式**;
 ② **B 路(主机重算)物理不可能** —— 流里没有判定输入;
-③ 「跳过不计熟练度成长」与 `ADR-019 AC-19-01`(全部指标可从流重算)**双双落空**,
+③ 「跳过不计熟练度成长」与 `ADR-019 AC-ADR019-01`(全部指标可从流重算)**双双落空**,
 因为**流上没有任何东西能区分跳过与手动满成功**(载荷完全同形)。
 
 **裁定(用户 2026-09-18 · 取 C 路 —— `ADR-009 §七` 拾取判定的同构)**:
@@ -440,7 +440,7 @@ SkipEquivalence = ON(49 的玩家侧开关)⇒ JudgeResult = Applied
 | **②** | **`Judge` 的输入 ∈ {流, 版本化烘焙数据, 二者的纯函数}** —— 由 ① 保证 | `ADR-016 §一 三源不变量` · `AC-10-05` 的重放逐位 |
 | **③** | **主机在 `Append` tick 上取 `ctx`**:`skill_ctx` = **施予者本人**在该 tick 的 `QueryLevel`;`patient_ctx` = 该 tick 的病程投影 | **C2**(客户端副本滞后 ≈ RTT/2 ⇒ `ctx(T−δ) ≠ ctx(T)` 静默分叉)· **C3** |
 | **④** | **`Seq` = 主机 `Append` 时发号**;客户端**不填** `Seq` | **C4**(两客户端对同一 `(Tick, Patient)` 各发相等 `Seq` ⇒ 全序键「无平局」失守) |
-| **⑤** | **`method ∈ {Manual, Skip}` + `cause` 随 ① 的同一条载荷进流** | R-6 的可判别性 · `ADR-019 AC-19-01`(跳过率可读)· 51 的 `OQ-51-9` |
+| **⑤** | **`method ∈ {Manual, Skip}` + `cause` 随 ① 的同一条载荷进流** | R-6 的可判别性 · `ADR-019 AC-ADR019-01`(跳过率可读)· 51 的 `OQ-51-9` |
 
 > **⚠️ 为什么不取 A 路(接受客户端上报 `JudgeResult`)**:它把**流的内容**交给
 > **客户端的诚实性**做保 —— 而 `reading` 不在流里,主机连「事后审计」都做不到。
@@ -471,7 +471,7 @@ SkipEquivalence = ON(49 的玩家侧开关)⇒ JudgeResult = Applied
 | --- | --- |
 | 动作实例须记 `resolution ∈ {Played, Skipped, NotOffered}` | `EmergencyAttempt.method`(`Played ⇔ Manual` · `Skipped ⇔ Skip`)+ **`NotOffered` = 无意图事件**(51 侧以「缺席」推定,10 不发事件) |
 | `Skipped` 须带 `cause ∈ {玩家选择, 降级}` | `EmergencyTreatmentApplied.cause`(**整数枚举,载荷归 10、枚举名进骨架** —— 承 ADR-021 纪律) |
-| 零新埋点(`ADR-019 AC-19-01`) | 51 **只读三流**,10 **不向 51 发任何专用事件** |
+| 零新埋点(`ADR-019 AC-ADR019-01`) | 51 **只读三流**,10 **不向 51 发任何专用事件** |
 
 > **⚠️ 「降级」的判据**:设备无模拟量通道(纯键鼠,`OQ-10-3` 的回退路径)⇒ `cause = 降级`;
 > 玩家在设备具备时主动选跳过 ⇒ `cause = 玩家选择`。**这一区分是无障碍核心读数** ——

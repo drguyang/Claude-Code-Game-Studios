@@ -205,7 +205,7 @@ World(医馆内)
 | 开 / 关 / 移焦 | **无 SimEvent · 零流边沿** | ADR-013 §十 ②(项号订正 2026-09-22:③ 为单值约束,不落流为 ②——全族同型 off-by-one,承 save-slots-7b :20 注) |
 | (摆放本身)| `StructurePlaced / Removed / Modified`(**既有世界流 Kind**,23 域)| 23 意图 → 主机 `Append`;**本屏代码路径零 `Append`** |
 
-遥测零新埋点(AC-19-01:面板所读 = 流投影的派生,本就可重算)。
+遥测零新埋点(AC-ADR019-01:面板所读 = 流投影的派生,本就可重算)。
 
 ## 9. Transitions & Animations
 

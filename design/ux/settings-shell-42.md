@@ -190,7 +190,7 @@ L-2 的「长按不承诺 toggle 替代」判据:此处**无长按交互被承�
 | 调整条目 | **无 SimEvent** · 直写属主 API(44 exposed params)| 值变更 = 端本地态:**不进三流、不跨端同步**(P-10 / `OQ-A2`);联机各端各调各的 |
 | 全部 | **零 `IEventSink.Append`**(本壳代码路径)| AC-42-G2 的写侧对偶断言 |
 
-遥测零埋点(AC-19-01)。
+遥测零埋点(AC-ADR019-01)。
 
 ## 9. Transitions & Animations
 

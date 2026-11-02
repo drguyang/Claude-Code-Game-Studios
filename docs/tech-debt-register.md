@@ -3155,7 +3155,7 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 | TD-epic-01-b | **「解码失败 → 计 skipped」的吞异常写法会把编码侧缺陷伪装成数据质量问题** —— `skipped` 只在报告里给个数,不区分「载荷未驻留 / 损坏 / **类型错配**」。第十六片的缺陷正是以 skipped=1 的形式存在,而端到端夹具从不造改写事件 ⇒ 全量 3912 条无一条红 | `Gameplay.Boot/TelemetryReporter.cs`(`DecodeJudgmentRecord` / `DecodeMisdiagnosisRecord` 的 `catch`) | 下一次动任一解码委托时(建议:catch 里按异常类型分流,类型错配**不**转 skipped 而是抛) |
 | TD-epic-01-c | **既有端到端夹具不造 `JudgmentRevised`** —— 该缺陷能潜伏的前提。F1 侧已由第十六片 C1 覆盖,F2 侧已补回归夹具;但 `Boot/telemetry_wiring_test.cs` / `Boot/telemetry_debug_view_test.cs` 仍未覆盖改写路径 | `Tests/EditMode/Boot/telemetry_{wiring,debug_view}_test.cs` | ~~下一次动这两个文件时~~ ✅ **2026-10-30 结案** —— 见下方 §「2026-10-30 · `TD-epic-01-c` 结案」 |
 | TD-epic-01-d | **`In Review` 两条 story 的未验半边** · story-008:`AC-51-C3`(ADR-012 三格矩阵载体未建,NOT-RUN)· story-010:`AC-51-E3` 的真实联机非主机拒绝(NOT-RUN,`IEventAuthority` 全仓零生产实装,`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | `production/epics/telemetry-analytics/story-008-*.md` · `story-010-*.md` | 🔁 **2026-10-30 用户裁定:转 P2** ⇒ `P0 面` `Y` → `~~Y~~`,**状态维持 `open`**(工作没做完,只是不挡 P0 出口)。理由:两半前置**均卡外部** —— ① `AC-51-C3` 需 ADR-012 常驻三格矩阵(CI 凭据未配即**静默跳过** + ARM64 目标不存在);② `AC-51-E3` 真联机半边需 **P1b 网络层**。~~原:① 载体/实装落地时;② **epic 级复评批**时须重评这两条 story 能否转 `Complete`(不得原地自升)~~ |
-| TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | ~~epic 级复评批~~ ✅ **2026-10-30 复核已做**(`partial`) —— 见下方 §「`TD-epic-01-e` 复核轮」;残留 = AC-19-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN,**AC 勾选状态仍不得动** |
+| TD-epic-01-e | **余 7 条 story 仍未逐 AC 复核** —— 第十六片只充分复核了 008 / 009 / 010;001–007 的 AC 勾选状态未动 | 同 epic 其余 7 份 story | ~~epic 级复评批~~ ✅ **2026-10-30 复核已做**(`partial`) —— 见下方 §「`TD-epic-01-e` 复核轮」;残留 = AC-ADR019-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN,**AC 勾选状态仍不得动** |
 
 **共同性质**:a–c 是同一缺陷的三个面(契约面 / 吞异常面 / 夹具面),**均已由第十六片的两个回归夹具钉住行为**,
 但**根因未修**(契约与吞异常策略不变)⇒ 登记待办,不在本片扩面。
@@ -7688,18 +7688,18 @@ commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0
 
 | AC | 级别 | 载体(实测存在) | 判定 |
 |---|---|---|---|
-| AC-19-01 | BLOCKING | `readonly_boundary_test.cs::test_ac1901_metricsRecomputableFromExistingStream_only`(真算,非形状) | ✅ 有效 |
-| AC-19-02 | BLOCKING | `::test_zeroEgress_noNetworkTypes` + `::test_ac1902_reportProducer_noNetworkInGameplayBoot` + `::test_zeroEgress_sinkNoUploadSendPost`(两面齐) | ✅ 有效 |
-| AC-19-03 | ADVISORY | `out_of_bounds_rejection_test.cs::test_e5_noSwitch_noSwitchFields`(开关面)+ 51 侧写盘面由 `::test_noWriteBack_noFileWriteApis` 覆盖 | ⚠️ **半边**(「无开关」有夹具;「输出只落本地」无**专打**夹具,靠 A4 网络面间接) |
-| AC-19-04 | BLOCKING | `::test_noAppendCallSite_noWriteMethods` + `::test_noStepSubscription_noUpdateCallbacks` | ✅ 有效 |
-| AC-19-05 | ADVISORY | **无载体** —— 全仓无发布清单文件(`ls production/release-checklist*` 零命中) | ⚠️ **NOT-RUN**(纯文档项,与代码无关) |
-| AC-19-06 | BLOCKING | `::test_noPlayerUi_noPresentationAssets`(+ `out_of_bounds::test_e1_noPlayerUi_*`) | ✅ 有效 |
-| AC-19-07 | BLOCKING | `::test_noWriteBack_noFileWriteApis`(+ `out_of_bounds::test_e2_noWriteBack_*` 三条) | ✅ 有效 |
-| AC-19-08 | ADVISORY | registry 实测 `status: covered`(`tr-registry.yaml:860`) | ✅ 兑现 |
+| AC-ADR019-01 | BLOCKING | `readonly_boundary_test.cs::test_ac1901_metricsRecomputableFromExistingStream_only`(真算,非形状) | ✅ 有效 |
+| AC-ADR019-02 | BLOCKING | `::test_zeroEgress_noNetworkTypes` + `::test_ac1902_reportProducer_noNetworkInGameplayBoot` + `::test_zeroEgress_sinkNoUploadSendPost`(两面齐) | ✅ 有效 |
+| AC-ADR019-03 | ADVISORY | `out_of_bounds_rejection_test.cs::test_e5_noSwitch_noSwitchFields`(开关面)+ 51 侧写盘面由 `::test_noWriteBack_noFileWriteApis` 覆盖 | ⚠️ **半边**(「无开关」有夹具;「输出只落本地」无**专打**夹具,靠 A4 网络面间接) |
+| AC-ADR019-04 | BLOCKING | `::test_noAppendCallSite_noWriteMethods` + `::test_noStepSubscription_noUpdateCallbacks` | ✅ 有效 |
+| AC-ADR019-05 | ADVISORY | **无载体** —— 全仓无发布清单文件(`ls production/release-checklist*` 零命中) | ⚠️ **NOT-RUN**(纯文档项,与代码无关) |
+| AC-ADR019-06 | BLOCKING | `::test_noPlayerUi_noPresentationAssets`(+ `out_of_bounds::test_e1_noPlayerUi_*`) | ✅ 有效 |
+| AC-ADR019-07 | BLOCKING | `::test_noWriteBack_noFileWriteApis`(+ `out_of_bounds::test_e2_noWriteBack_*` 三条) | ✅ 有效 |
+| AC-ADR019-08 | ADVISORY | registry 实测 `status: covered`(`tr-registry.yaml:860`) | ✅ 兑现 |
 | AC-51-A1 | BLOCKING | `::test_readonlyBoundary_noEventSinkRefs` | ✅ 有效(**守卫本轮补**) |
 | AC-51-A2 | BLOCKING | `::test_readonlyBoundary_asmdefNoCycle`(真解析 asmdef JSON) | ✅ 有效 |
 | AC-51-A3 | ADVISORY | **无载体** —— 「移除 51 后三流字节逐位不变」需构建期变体,`grep -rn "A3\|withoutTelemetry" Telemetry/` 零命中 | ⚠️ **NOT-RUN**(与 `TD-epic-01-d` 同族:须 ADR-012 矩阵载体) |
-| AC-51-A4 | BLOCKING | 同 AC-19-02 三件 | ✅ 有效 |
+| AC-51-A4 | BLOCKING | 同 AC-ADR019-02 三件 | ✅ 有效 |
 | AC-51-A5 | BLOCKING | `::test_noPresentationAssemblyRefs_judgmentMetrics` + `::test_noPlayerUi_noPresentationAssets` | ✅ 有效 |
 | AC-51-A6 | ADVISORY | **无夹具**,但**实测零命中**:`grep -rn "IAudioCueSink\|AudioCueDto\|AudioMixer" unity/Assets/Telemetry/ TelemetryReporter.cs TelemetryDeveloperView.cs` ⇒ 零 | ⚠️ **NOT-RUN**(零命中是事实,不是判据保证的;明日有人加一个就无声失效) |
 | AC-51-A7 | BLOCKING | `::test_noThirdParty_noAnalyticsPackages` | ✅ 有效(**守卫本轮补**) |
@@ -7712,7 +7712,7 @@ commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0
 | AC-51-B12…B14 | BLOCKING | `f5_difficulty_curve_test.cs` 4 测 | ✅ 有效 |
 | AC-51-B15…B18 | BLOCKING | `f6_f7_session_rhythm_test.cs` 11 测 | ✅ 有效(**B18 守卫本轮补**) |
 
-**汇总**:有效 **16** · 半边 **1**(AC-19-03)· NOT-RUN **3**(AC-19-05 / A3 / A6)。
+**汇总**:有效 **16** · 半边 **1**(AC-ADR019-03)· NOT-RUN **3**(AC-ADR019-05 / A3 / A6)。
 
 ### 二、复核中抓到的**假绿**(判据本身空转通过)
 
@@ -7752,11 +7752,11 @@ commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0
 打的是「守卫对**扫描面变空**这件事有没有反应」,不是「生产码新增关键词时判据有没有反应」
 (后者由 M11–M13 覆盖)。两者互补,**不得合并记账**。
 
-### 四、AC-19-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN 的处置
+### 四、AC-ADR019-05 / AC-51-A3 / AC-51-A6 三条 NOT-RUN 的处置
 
 三条**均不新立债**,理由逐条:
 
-- **AC-19-05**(发布清单 Privacy/Analytics 项):纯**文档**项,与代码无关。发布清单本身尚不存在
+- **AC-ADR019-05**(发布清单 Privacy/Analytics 项):纯**文档**项,与代码无关。发布清单本身尚不存在
   (`ls production/release-checklist*` 零命中)⇒ 该条**现在无处可挂**。归**发布流程轮**,不归本 epic。
 - **AC-51-A3**(移除 51 后三流字节逐位不变):需要**构建期变体**(去掉一个程序集再跑同一回放)。
   这与 `TD-epic-01-d` 已登记的「ADR-012 三格矩阵载体未建」**是同一个缺口** ⇒ **并入 `TD-epic-01-d`**,
@@ -7769,7 +7769,7 @@ commit `d5334918`+工作树 ⇒ 与基线(`TD-prescription-08` 终态 `238/234/0
 
 - **`TD-epic-01-e` 的宾语(「001–007 未逐 AC 复核」)已兑现** —— 18 条 AC 逐条对到载体,
   有效 16 / 半边 1 / NOT-RUN 3。
-- **但本轮不得据此把 001–007 的 AC 全部勾选**:AC-19-05 / A3 / A6 三条 NOT-RUN 仍在,
+- **但本轮不得据此把 001–007 的 AC 全部勾选**:AC-ADR019-05 / A3 / A6 三条 NOT-RUN 仍在,
   按「禁借绿」**勾选状态维持不动**。本债**转 `partial`**(复核已做,AC 勾选仍待三条 NOT-RUN 结清)。
 - **8 条空扫描假绿已修且已反证**(6 条变异全红:M14 打 f6/f7、M15 打 f4、M16 打 readonly 的 6 处,
   共 8 个守卫;M11/M12/M13 打的是关键词判据,不在本组)。
@@ -8412,12 +8412,12 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/PatientVisual/patient_visual_seam
 
 > 用户指令:「只剩 TD-epic-01-e…… 继续修复」。
 > 本条在复核轮(同日)已把 18 条 AC 逐条对到载体,残留 = **3 条 NOT-RUN**
-> (`AC-19-05` / `AC-51-A3` / `AC-51-A6`)。本轮**逐条把它们变成有载体的判据**,
+> (`AC-ADR019-05` / `AC-51-A3` / `AC-51-A6`)。本轮**逐条把它们变成有载体的判据**,
 > 然后把 001–007 的 **34 条 AC** 全部勾选。
 
 ### 一、三条 NOT-RUN 的结清(逐条)
 
-#### ① `AC-19-05` —— 发布清单 Privacy/Analytics 项
+#### ① `AC-ADR019-05` —— 发布清单 Privacy/Analytics 项
 
 **原 NOT-RUN 理由**:「纯文档项,全仓无发布清单文件」。
 
@@ -8429,7 +8429,7 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/PatientVisual/patient_visual_seam
 承诺不该重写。发版 checklist 只需**逐字照抄**声明里的「固定文本」段。
 
 ⚠️ **判据形状**:验的是**文档的存在与措辞**(三项固定承诺逐字 + ADR-019 §四 硬边界),
-**不是**「运行时真的没有网络上报」(那由 `AC-19-02` / `AC-51-A4` 的反射夹具验)。
+**不是**「运行时真的没有网络上报」(那由 `AC-ADR019-02` / `AC-51-A4` 的反射夹具验)。
 两者互补,缺一不可 —— 声明只承诺,夹具才证明。
 
 🔴 **本轮抓到自己一处假绿**:首版判据用**全文** `Does.Contain`,
@@ -8499,13 +8499,13 @@ M22b(删掉固定文本段的承诺词)后**判据照绿** —— 因为 §三 �
 
 ⚠️ **勾选 ≠ 全部判据已跑** —— 逐条的 NOT-RUN 残留如实登记在各自 story:
 `AC-51-B9`(F3 真实会话,`BLOCKED-BY-OQ-10-8`,以 `Assert.Ignore` 显式登记)、
-`AC-19-05` 的「运行时零上报」半边(由 A2/A4 覆盖)、`AC-51-A3` 的「构建变体」半边(需三格矩阵)。
+`AC-ADR019-05` 的「运行时零上报」半边(由 A2/A4 覆盖)、`AC-51-A3` 的「构建变体」半边(需三格矩阵)。
 
 ### 三、story-001 的两处过期文本已订正
 
 | 位置 | 原写 | 现 |
 |---|---|---|
-| `:134` | 「AC-19-03/05/08, AC-51-A3/A6 等 ADVISORY AC **未单独覆盖**」 | ~~原文留档~~ + 逐条列出新载体 |
+| `:134` | 「AC-ADR019-03/05/08, AC-51-A3/A6 等 ADVISORY AC **未单独覆盖**」 | ~~原文留档~~ + 逐条列出新载体 |
 | Test Evidence 段 | 「`readonly_boundary_test.cs`(11 测)」 | 仍准确(该文件未变);但**新夹具在另两个文件**,已补 |
 
 ### 四、证伪(四轮,还原逐字节一致)
@@ -8516,7 +8516,7 @@ M22b(删掉固定文本段的承诺词)后**判据照绿** —— 因为 §三 �
 | **M20b** 在 `JudgmentReport` 里真的 Append | 同上 | ✅ **红 1/2** |
 | **M21** 变异写错命名空间 | AC-51-A6 | ❌ **编译失败**(不是判据没反应) |
 | **M21c** 文件末尾追加顶层命名空间引用 `AudioCueDto` | 同上 | ✅ **红 1/2** |
-| **M22b** 删固定文本段的承诺词 | AC-19-05 | ❌ **没打到靶**(§三 表格里同串借绿) |
+| **M22b** 删固定文本段的承诺词 | AC-ADR019-05 | ❌ **没打到靶**(§三 表格里同串借绿) |
 | **M22c** 同上(判据改为锚定小节后) | 同上 | ✅ **红 1/3** |
 
 ⚠️ **四轮「没打到靶」全部留档,不删** —— 它们是证伪轮最常见的假存活形态:
@@ -8527,15 +8527,15 @@ M22b(删掉固定文本段的承诺词)后**判据照绿** —— 因为 §三 �
 
 | 项 | Landed | Proven | Proven-by |
 |---|---|---|---|
-| AC-19-05 载体存在 | ✅ | ✅ | `test_ac1905_declarationExists_withThreeFixedPromises` + **M22c 转红** |
-| AC-19-05 硬边界声明 | ✅ | ✅ | `test_adr019s4_hardBoundary_isDeclared`(锚定 §四) |
-| AC-19-05 引据不悬空 | ✅ | ✅ | `test_declarationCitesOnlyExistingAcs` |
+| AC-ADR019-05 载体存在 | ✅ | ✅ | `test_ac1905_declarationExists_withThreeFixedPromises` + **M22c 转红** |
+| AC-ADR019-05 硬边界声明 | ✅ | ✅ | `test_adr019s4_hardBoundary_isDeclared`(锚定 §四) |
+| AC-ADR019-05 引据不悬空 | ✅ | ✅ | `test_declarationCitesOnlyExistingAcs` |
 | AC-51-A3 报告链不改流 | ✅ | ✅ | `test_ac51a3_reportChain_doesNotMutateEventStream` + **M20b 转红** |
 | AC-51-A3 无 `IEventSink` 形参 | ✅ | ✅ | `test_ac51a3_noAppendCallSiteOnAnyEventSink` |
 | AC-51-A6 51 树零音频引用 | ✅ | ✅ | `test_ac51a6_noAudioTypeReferences_inTelemetryTree` + **M21c 转红** |
 | AC-51-A6 主实装零音频引用 | ✅ | ✅ | `test_ac51a6_noAudioTypeReferences_inTelemetryOwnerTypes` |
 | **AC-51-A3 的「构建变体」半边** | — | ❌ **NOT-RUN** | 需 ADR-012 三格矩阵(凭据未配 + ARM64 目标不存在)⇒ 归 P2 |
-| **AC-19-05 的「运行时零上报」半边** | — | ✅ 间接 | 由 `AC-19-02` / `AC-51-A4` 三件反射夹具覆盖(非本文件) |
+| **AC-ADR019-05 的「运行时零上报」半边** | — | ✅ 间接 | 由 `AC-ADR019-02` / `AC-51-A4` 三件反射夹具覆盖(非本文件) |
 
 ### 六、状态变更
 
@@ -10074,6 +10074,9 @@ grep -rlE "AC-20-(0[1-9]|1[0-7])" --include=*.md --include=*.cs --include=*.yaml
 而**系统 19 = 制作与器械,今日 `P1a / 未开始 / 无 GDD`**
 (`systems-index.md:55`)⇒ 该系统 GDD 成文那天,这 8 个 ID **会撞**。
 
+> 🔁 **2026-11-02 已拆除**:该 8 条已全量改名为 `AC-ADR019-01…08`(与 ADR-020 同款),
+> ⇒ **不再有会撞的 ID**。本段转为历史记录,**原文不删**。
+
 **项目已有先例注,但只注在一个故事里**:`production/epics/disease-simulation/story-008-death-candidate-sink.md:63`
 写「是**两套编号**,不可互读(`AC-9-01` 不是 `AC-9` 系统的 `AC-01` )」——
 `ADR-009` 与系统 9 同款。⇒ 这是**已知病理的第三例**,但从未收敛成一条规则。
@@ -10360,3 +10363,54 @@ python3 tools/acid/acid_check.py --mutation-probe   # 期望:M1…M6 全红 + PR
 python3 -c "import sys;sys.path.insert(0,'tools/acid');import acid_check as A;print(len(A.BARE_MIXED_ALLOW))"   # 期望 12
 git rev-list --count origin/main..HEAD              # 期望:27(未推送)
 ```
+
+---
+
+## 2026-11-02 · S23-35:ADR-019 裸名拆除 + C7/C8 —— **仍不立债**
+
+**指令**:用户点名两条遗留并「继续完成」——①`ADR-019` 潜伏撞号仍在;②「纯裸名引用 ADR 自有 AC」
+无机械判据(C5 结构性沉默,靠人工名单)。
+
+### ① 不是继续标雷,是把雷拆了
+
+系统 19 今日**零 GDD** ⇒ 全库 `AC-19-*` 只可能是 ADR-019 的 ⇒ **现在改名零风险**;
+等系统 19 的 GDD 成文再改,就要动别人的文件。
+
+| 面 | 量 |
+|---|---|
+| 迁名 | `AC-19-01…08` → `AC-ADR019-01…08` |
+| 替换 | **198 处 / 32 文件** |
+| 全库 ADR 自有 AC 裸名定义 | **8 → 0** |
+
+### ② 补 C7 / C8(判据从 6 条增到 8 条)
+
+| # | 判据 |
+|---|---|
+| **C7** | `adr-<n>-*.md` 里用定义句式写 `AC-<n>-<m>` ⇒ 红(**撞号的生产线**,不等系统 GDD) |
+| **C8a** | 裸 `AC-<n>-<m>` 在系统 n 的 GDD 里无定义、只作为 ADR-n 自有 AC 存在 ⇒ 红(精确) |
+| **C8b** | 系统 n 有同号,但同行点了 `ADR-<n>` ⇒ 红(启发式) |
+
+**行级 `legacy` 标记**替代文件级白名单:豁免范围 = 那一行 · 自清理 · 每次 `--check` 都列进「提示」
+(可见,不静默)。今日 10 行,全部是「原文不删」的历史引用。
+
+### 三个 bug,两个由判据自己揪出
+
+| # | bug | 暴露方式 |
+|---|---|---|
+| 1 | C8a 被 `if not nums: continue` 挡住(它不需要同行有 ADR 名) | R7 变异**未红**,而 C5 红了 ⇒ 变异没错 |
+| 2 | **第三条编号空间**:3 位 `AC-0NN-M` 是 **story 号**写法,不是 ADR 号 | C8a 放开后 10 个 audio 文件全红,`grep "AC-19-"` 却零命中 |
+| 3 | 改名脚本漏了 `AC-019-*` 这一族 | 与 #2 同轮看见 —— 但它们**属 story 空间,不该改** |
+
+### 发现的第三编号空间(**未处置**,不假装已覆盖)
+
+`AC-0NN-M`(3 位)= story 级 AC(如 `story-019` 的 `AC-019-6`)。与 ADR/系统的 2 位写法
+**靠约定区分,无机械判据**。今日不构成撞号(字符串不同),但若有人把系统 AC 写成 3 位,
+**C1 与 C8 双双看不见**。命中面:`AC-019-*` 22 文件 / `AC-020-*` 8 文件。
+⇒ 改它要动 30 个文件的 story 级编号,属**另一个裁定**,本轮不碰。
+
+### 证伪
+
+R6(C7)/ R7(C8)/ R8(legacy 标记失效 ⇒ C5)三变异**全红**,SHA-256 还原 3/3 `FINAL-OK`;
+`--mutation-probe` **M1–M8 八条各自红**,`PROBE-OK`。
+
+详见 `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §八。

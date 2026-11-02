@@ -10,7 +10,7 @@
 
 ## Context
 
-**GDD**: `design/gdd/telemetry-analytics.md`(§Detailed Design R1-R4 · §Edge Cases E-12/E-13/E-14/E-15 · AC-19-01…08 · AC-51-A1…A8)
+**GDD**: `design/gdd/telemetry-analytics.md`(§Detailed Design R1-R4 · §Edge Cases E-12/E-13/E-14/E-15 · AC-ADR019-01…08 · AC-51-A1…A8)
 **Requirement**: TR-telemetry-001(只读不写)· TR-telemetry-002(零出厂)· TR-telemetry-003(住边界层)· TR-telemetry-004(零新埋点)· TR-telemetry-006(整数指标)· TR-telemetry-007(P0 最小切面)· TR-telemetry-008(零写回)
 
 **ADR Governing Implementation**: ADR-019: 遥测与隐私(主:§一 回放即数据记录 · §二 零第三方 SDK/零出厂 · §三 住边界层 · §四 隐私面 · §五 P0 最小切面 · §六 不代调数值 · §七 52↔51 边界)
@@ -30,14 +30,14 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [x] **AC-19-01**(BLOCKING):判断层指标均可从既有事件流重算,零新埋点
-- [x] **AC-19-02**(BLOCKING):构建 + 运行期无任何网络上报;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
-- [x] **AC-19-03**(ADVISORY):输出只落本地;不存在「上报开/关」开关
-- [x] **AC-19-04**(BLOCKING):51 不进 sim 程序集;无 `IEventSink.Append` 调用点
-- [x] **AC-19-05**(ADVISORY):发布清单 Privacy/Analytics 项固定为「无出厂/无第三方/无内建崩溃上报」
-- [x] **AC-19-06**(BLOCKING):P0 交付无玩家可见统计 UI、无上传、无实时图表
-- [x] **AC-19-07**(BLOCKING):无任何写回 `assets/data/` 的代码路径
-- [x] **AC-19-08**(ADVISORY):`TR-randomevents-024` `gap` → `covered`
+- [x] **AC-ADR019-01**(BLOCKING):判断层指标均可从既有事件流重算,零新埋点
+- [x] **AC-ADR019-02**(BLOCKING):构建 + 运行期无任何网络上报;`ITelemetrySink` 无 `Upload`/`Send`/`Post`
+- [x] **AC-ADR019-03**(ADVISORY):输出只落本地;不存在「上报开/关」开关
+- [x] **AC-ADR019-04**(BLOCKING):51 不进 sim 程序集;无 `IEventSink.Append` 调用点
+- [x] **AC-ADR019-05**(ADVISORY):发布清单 Privacy/Analytics 项固定为「无出厂/无第三方/无内建崩溃上报」
+- [x] **AC-ADR019-06**(BLOCKING):P0 交付无玩家可见统计 UI、无上传、无实时图表
+- [x] **AC-ADR019-07**(BLOCKING):无任何写回 `assets/data/` 的代码路径
+- [x] **AC-ADR019-08**(ADVISORY):`TR-randomevents-024` `gap` → `covered`
 - [x] **AC-51-A1**(BLOCKING):51 程序集无 `IEventSink` 或其派生的成员;唯一输入面 = `ITelemetrySource` 的三个 `Read*`
 - [x] **AC-51-A2**(BLOCKING):51 asmdef 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51(无环)
 - [x] **AC-51-A3**(ADVISORY):从构建中移除 51 后重跑同一回放,三流字节/哈希逐位不变
@@ -78,11 +78,11 @@
 
 *Written at story creation(lean mode — QL-STORY-READY skipped;specs self-authored from AC text). The developer implements against these — do not invent new test cases during implementation.*
 
-- **AC-19-01**: 零新埋点。Given: 51 的程序集。When: 检查全部类型签名。Then: 不存在 `IEventSink.Append` 调用点;唯一输入面 = `ITelemetrySource` 的三个 `Read*`。
-- **AC-19-02**: 零出厂。Given: 51 的构建产物与接口。When: 静态扫描 + 运行期监控。Then: 无 `HttpClient`/`UnityWebRequest`/出站 `System.Net.*`;`ITelemetrySink` 无 `Upload`/`Send`/`Post`。
-- **AC-19-04**: 不进 sim。Given: 51 的 asmdef。When: 解析引用集。Then: 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51。
-- **AC-19-06**: 无玩家可见 UI。Given: 51 的实现与资产。When: 扫描入口与资产。Then: 不存在任何玩家可见统计界面的入口与资产。
-- **AC-19-07**: 零写回。Given: 51 的全部输出路径。When: 检查。Then: 无写回 `assets/data/**` 的代码路径。
+- **AC-ADR019-01**: 零新埋点。Given: 51 的程序集。When: 检查全部类型签名。Then: 不存在 `IEventSink.Append` 调用点;唯一输入面 = `ITelemetrySource` 的三个 `Read*`。
+- **AC-ADR019-02**: 零出厂。Given: 51 的构建产物与接口。When: 静态扫描 + 运行期监控。Then: 无 `HttpClient`/`UnityWebRequest`/出站 `System.Net.*`;`ITelemetrySink` 无 `Upload`/`Send`/`Post`。
+- **AC-ADR019-04**: 不进 sim。Given: 51 的 asmdef。When: 解析引用集。Then: 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51。
+- **AC-ADR019-06**: 无玩家可见 UI。Given: 51 的实现与资产。When: 扫描入口与资产。Then: 不存在任何玩家可见统计界面的入口与资产。
+- **AC-ADR019-07**: 零写回。Given: 51 的全部输出路径。When: 检查。Then: 无写回 `assets/data/**` 的代码路径。
 - **AC-51-A1**: 只读边界。Given: 51 的程序集。When: 检查全部类型签名。Then: 不存在类型为 `IEventSink` 或其派生的成员;唯一输入面 = `ITelemetrySource` 的三个 `Read*`。
 - **AC-51-A2**: 无环。Given: 51 的 asmdef。When: 解析引用集。Then: 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51。
 - **AC-51-A4**: 零网络。Given: 51 的构建产物与接口。When: 静态扫描 + 运行期监控。Then: 无 `HttpClient`/`UnityWebRequest`/出站 `System.Net.*`;`ITelemetrySink` 无 `Upload`/`Send`/`Post`。
@@ -109,7 +109,7 @@
 
 ## Completion Notes
 **Completed**: 2026-09-28
-**Criteria**: 4/4 passing(AC-19-01…08 · AC-51-A1…A8 的只读边界 + 零出厂 + 住边界层 + 零写回 + 零第三方 + 无呈现面 + 不订阅 Step;无 deferred,0 UNTESTED)
+**Criteria**: 4/4 passing(AC-ADR019-01…08 · AC-51-A1…A8 的只读边界 + 零出厂 + 住边界层 + 零写回 + 零第三方 + 无呈现面 + 不订阅 Step;无 deferred,0 UNTESTED)
 **Deviations**(均 ADVISORY):
 1. **测试用契约面验证 + Assert.Ignore**:生产代码(51 程序集)尚未实现,测试验证契约面形状(IEventSink 存在 / ITelemetrySource 未实现)+ 用 `Assert.Ignore` 明确标记待实现项(资产目录/asmdef/ITelemetrySource/ITelemetrySink)。实现后应替换为有意义的签名扫描断言。
 2. **B1 修复(断言矛盾)**:原 5 个测试断言 `telemetryTypes.Is.Empty`(实现后必失败)→ 改为断言 `violations.Is.Empty`(实现前后都成立)。
@@ -118,10 +118,10 @@
 **评审与修复**:双评审并行(代码质量面 3 BLOCKING + QA 覆盖面 7 BLOCKING)→ 全修:
 - **代码质量 B1**: 5 处 `Assert.That(telemetryTypes, Is.Empty, ...)` 恒真断言 → 删除,保留 `Assert.That(violations, Is.Empty, ...)`(实现前后都成立)。
 - **代码质量 B2**: `Assert.Pass` 恒真断言 → 改为 `Assert.Ignore`。
-- **代码质量 B3**: AC-19-01 无测试覆盖 → 补 `test_zeroNewInstrumentation_sourceIsReadOnly`(Assert.Ignore + 实现后验证方法集)。
+- **代码质量 B3**: AC-ADR019-01 无测试覆盖 → 补 `test_zeroNewInstrumentation_sourceIsReadOnly`(Assert.Ignore + 实现后验证方法集)。
 - **QA B1**: 断言矛盾(实现后必失败)→ 同代码质量 B1。
-- **QA B2**: AC-19-01 零覆盖 → 同代码质量 B3。
-- **QA B3**: AC-19-04 缺 `.Append` 调用点扫描 → 补 `test_noAppendCallSite_noWriteMethods`(扫描方法名含 Append/Write/Emit)。
+- **QA B2**: AC-ADR019-01 零覆盖 → 同代码质量 B3。
+- **QA B3**: AC-ADR019-04 缺 `.Append` 调用点扫描 → 补 `test_noAppendCallSite_noWriteMethods`(扫描方法名含 Append/Write/Emit)。
 - **QA B4**: ITelemetrySource 方法集未验证 → 补 `test_zeroNewInstrumentation_sourceIsReadOnly`(实现后验证只有三个 Read* 方法)。
 - **QA B5**: ITelemetrySink 无 Upload/Send/Post 未测 → 补 `test_zeroEgress_sinkNoUploadSendPost`(实现后验证无 Upload/Send/Post 方法)。
 - **QA B6**: 呈现层程序集引用 JudgmentMetrics 未扫描 → 补 `test_noPresentationAssemblyRefs_judgmentMetrics`(扫描 Gameplay.UI/Gameplay.Presentation 类型签名)。
@@ -131,10 +131,10 @@
 - `repoRoot` 的 5 层上跳缺乏编译期保护(可加断言验证路径正确)。
 - 5 处重复的装配扫描逻辑可提取为辅助方法。
 - 测试方法命名不完全符合 `test_[system]_[scenario]_[expected]` 模式。
-- ~~AC-19-03/05/08, AC-51-A3/A6 等 ADVISORY AC 未单独覆盖(归后续 stories 或实现轮)。~~ ✅ **2026-10-30 已全部结清**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):**AC-19-03** = `out_of_bounds_rejection_test::test_e5_noSwitch_noSwitchFields`;**AC-19-05** = 新建载体 `production/privacy-analytics-declaration.md` + `Telemetry/privacy_declaration_test.cs`(3 测);**AC-19-08** = registry 实测 `TR-randomevents-024 status: covered`;**AC-51-A3** = `Telemetry/telemetry_no_writeback_test.cs`(2 测,含 M20b 反证转红);**AC-51-A6** = `Telemetry/telemetry_no_audio_refs_test.cs`(2 测,含 M21c 反证转红)。
+- ~~AC-ADR019-03/05/08, AC-51-A3/A6 等 ADVISORY AC 未单独覆盖(归后续 stories 或实现轮)。~~ ✅ **2026-10-30 已全部结清**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):**AC-ADR019-03** = `out_of_bounds_rejection_test::test_e5_noSwitch_noSwitchFields`;**AC-ADR019-05** = 新建载体 `production/privacy-analytics-declaration.md` + `Telemetry/privacy_declaration_test.cs`(3 测);**AC-ADR019-08** = registry 实测 `TR-randomevents-024 status: covered`;**AC-51-A3** = `Telemetry/telemetry_no_writeback_test.cs`(2 测,含 M20b 反证转红);**AC-51-A6** = `Telemetry/telemetry_no_audio_refs_test.cs`(2 测,含 M21c 反证转红)。
 - AC-51-E2 schema 字段未直接测试(实现后验证 JudgmentMetrics 无 proposed/recommendation 字段)。
 
-**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Telemetry/readonly_boundary_test.cs`(**13 测**,本轮补 5 处空扫描守卫后仍全绿);**2026-10-30 补三件**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):`Telemetry/telemetry_no_writeback_test.cs`(**2 测** · AC-51-A3)· `Telemetry/telemetry_no_audio_refs_test.cs`(**2 测** · AC-51-A6)· `Telemetry/privacy_declaration_test.cs`(**3 测** · AC-19-05,载体 = `production/privacy-analytics-declaration.md`)。⚠️ 原记「11 测 / 全量 1180 passed」是 **2026-10 上旬**的数,已过期 —— 现行全量见债册 `TD-epic-01-e` 结案段的回归三元组(不在此重复盖时间戳)
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Telemetry/readonly_boundary_test.cs`(**13 测**,本轮补 5 处空扫描守卫后仍全绿);**2026-10-30 补三件**(`TD-epic-01-e` 三条 NOT-RUN 结清轮):`Telemetry/telemetry_no_writeback_test.cs`(**2 测** · AC-51-A3)· `Telemetry/telemetry_no_audio_refs_test.cs`(**2 测** · AC-51-A6)· `Telemetry/privacy_declaration_test.cs`(**3 测** · AC-ADR019-05,载体 = `production/privacy-analytics-declaration.md`)。⚠️ 原记「11 测 / 全量 1180 passed」是 **2026-10 上旬**的数,已过期 —— 现行全量见债册 `TD-epic-01-e` 结案段的回归三元组(不在此重复盖时间戳)
 **Code Review**: Complete —— 双评审并行 + B1-B3/QA B1-B7 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-019(只读消费三流,零埋点;零第三方 SDK/零出厂;住边界层不进 sim;P0 最小切面;不代调数值;52↔51 边界 = 三流本身)· ADR-025(契约程序集清单)· ADR-017(门 A 硬化)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 4 项已分处登记(本 notes · story Known Risks · 账本)。

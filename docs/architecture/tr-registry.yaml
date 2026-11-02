@@ -4643,7 +4643,7 @@
     domain: Networking
     adr: ADR-019
     status: covered
-    note: "D-R3 回填(2026-09-21)。AC-19-02 BLOCKING。"
+    note: "D-R3 回填(2026-09-21)。AC-ADR019-02 BLOCKING。"
   - id: TR-telemetry-003
     system: telemetry-analytics
     gdd: design/gdd/telemetry-analytics.md
@@ -4659,7 +4659,7 @@
     domain: Core
     adr: ADR-019
     status: covered
-    note: "D-R3 回填(2026-09-21)。AC-19-01 BLOCKING;§一 核心裁定。"
+    note: "D-R3 回填(2026-09-21)。AC-ADR019-01 BLOCKING;§一 核心裁定。"
   - id: TR-telemetry-005
     system: telemetry-analytics
     gdd: design/gdd/telemetry-analytics.md
@@ -4691,7 +4691,7 @@
     domain: Core
     adr: ADR-019
     status: covered
-    note: "D-R3 回填(2026-09-21)。AC-19-07;§六。"
+    note: "D-R3 回填(2026-09-21)。AC-ADR019-07;§六。"
   # ═════════════════════════════════════════════════════════════════════════
   # 医疗后果 (Medical Consequences, #53) — design/gdd/medical-consequences.md
   # ═════════════════════════════════════════════════════════════════════════

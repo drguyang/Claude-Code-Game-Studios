@@ -15,7 +15,7 @@ Verdict path: **首轮 `/design-review`(lean · 独立会话,评审者独立于�
 `production/review-mode.txt` 不存在 ⇒ 默认 `lean`(全部阶段,不委托 specialist agent)。
 判 **NEEDS REVISION**(1 BLOCKING + 3 Recommended,全**文档级规格漏洞**,零机制重裁、零新真源)。
 评审对全文**无架构异议** —— 架构姿态被确认:只读消费三流、零埋点、零出厂、P0 最小切面,
-与 ADR-019 及上位架构(ADR-005/008/009 全序键 · R8 纯函数 · AC-19-01 零新埋点)自洽。
+与 ADR-019 及上位架构(ADR-005/008/009 全序键 · R8 纯函数 · AC-ADR019-01 零新埋点)自洽。
 
 **1 BLOCKING + 3 Recommended 全部落盘**:
 - **R1(BLOCKING)** F1 恒等式**不可满足** —— F2 `Scorable_single` 谓词 `|D| = 1` 与「无病」行
@@ -47,13 +47,13 @@ Verdict path: **首轮 `/design-review`(lean · 独立会话,评审者独立于�
 GROWTH_WINDOW,各注其闭合时点 —— `OQ-51-4` 补「两条路径对应 `AC-51-D8` 两分支」注)。
 
 **附带核验(评审口径,均通过)**:`TR-randomevents-024` 状态 = **covered**
-(`adr:` = ADR-019,2026-09-15 翻转)⇒ `AC-19-08` 成立;`difficulty_curve_window_density`
+(`adr:` = ADR-019,2026-09-15 翻转)⇒ `AC-ADR019-08` 成立;`difficulty_curve_window_density`
 在 `entities.yaml:631` 已登记(51 侧引用 + 同源注补写);`game-concept.md:196/:615` 引用成立;
 `diagnosis-system.md:746` 槽位语义成立;`skill-system.md` **未登记**「成长事件携带 `Level`」义务
 (维持 `AC-51-D2` 的条件性)⇒ §Dependencies 上游表补 **30 行**。
 
 **未被动摇**:文件头 Status **In Review**(本轮阻断均为文档级规格漏洞,非设计错误;
 是否 Approved 由用户裁定)。**无 TR / 实体变更**(51 的指标全部落在既有 `Kind` 上 ⇒
-`AC-19-01` 零新埋点成立;TR-randomevents-024 早已 covered,51 无新增 TR)。
+`AC-ADR019-01` 零新埋点成立;TR-randomevents-024 早已 covered,51 无新增 TR)。
 
 Prior verdict resolved: **First review** —— 本条目为首轮。

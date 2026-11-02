@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         /// <summary>AC-51-A6:51 的生产树里**零引用** `IAudioCueSink` / `AudioCueDto` / `AudioMixer`。
         /// <para><b>为什么 51 不该碰音频</b>:51 是**读数器**(ADR-019 §一),音频是 44 的呈现面
         /// (ADR-018 §一)。两者无数据交集 —— 一旦 51 开始读音频 cue,「指标只从事件流重算」
-        /// 就多了一条流外输入(破 ADR-019 §一 / AC-19-01)。</para>
+        /// 就多了一条流外输入(破 ADR-019 §一 / AC-ADR019-01)。</para>
         /// <para><b>判别力</b>:在 `unity/Assets/Telemetry/` 任一文件里加
         /// `using DaYiJingCheng.Sim.Contracts;` 之外的一行 `AudioCueDto x;` ⇒ 本条红。</para>
         /// </summary>
