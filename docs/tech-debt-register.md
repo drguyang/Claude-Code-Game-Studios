@@ -449,7 +449,7 @@
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
-| `TD-interaction-03` | `interaction-system` | partial | **N** | R4 |
+| `TD-interaction-03` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
 | `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
@@ -863,7 +863,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 152 | 状态 {'closed': 140, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 152 | 状态 {'closed': 141, 'partial': 3, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -9918,4 +9918,91 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 7 | closed 140 | 未闭 P0 面 = 0
 grep -c "public void test_tdi04_" unity/Assets/Tests/EditMode/Interaction/interaction_press_router_test.cs   # 期望 4
 grep -n "BindMotorSuppression" unity/Assets/Gameplay.Boot/BootRoot.cs   # 期望 1 命中(后置绑定)
+```
+
+---
+
+## 2026-11-02 · 「记录追上代码」轮:`TD-interaction-03` **关闭**
+
+**出处**:用户指令「继续」。本轮**不是实现轮** —— 债的残余当天 **17:35 已由 `a39ea0b2`
+(炮制屏第九员)消解**,本轮做的是**取证 + 订正滞后记录 + 补两条未兑现的同步义务**。
+原件 = `production/qa/evidence/closure-td-interaction-03-stale-record-2026-11-02.md`。
+
+### 这轮是怎么起来的
+
+`open` 队列剩七条,**全部**卡外部(VR / P1b / 45 / CI 矩阵 / 目标硬件 / P2)—— 逐条核过「触发条件」,
+没有一条今天能动。于是回头核 `partial` 队列,发现 `TD-interaction-03` 的记录与代码**不一致**:
+
+| 记录怎么说(债册 `2026-11-02 · 「剩下三种」轮`,`12:03`) | 代码实际(`a39ea0b2`,`17:35`) |
+|---|---|
+| 「`Utensil` 生产装配**恒 null**」「选中即落空」 | `BootRoot.cs:740-758` 实参**非 null**:开 `ModalId.Processing` + 喂配方 / 准入 / 品级集 |
+
+⇒ **不是代码没做,是记录没跟上**。同批还发现 `InteractionPressRouter.cs` 的**四处**注释、
+`P0ClinicLevel.cs:103`、`BuildSlotCatalog.cs:46-47` 全都是同一个陈旧断言。
+
+⚠️ **形态登记**:这是 F6(自述顶替门)的**镜像** —— F6 是「自述顶替**执行体**」,
+这次是「自述顶替**现状**」。共同病灶:**没人回去核一遍**。
+
+### 消解条件逐条核(债的原文四条)
+
+| # | 条件 | 判定 | 证据 |
+|---|---|---|---|
+| ① | 四个候选源有生产实装 | ✅ | `grep -rn "new GroundDropSource(\|new WorldBakedLogicalSource(\|new BakedInitialSource(" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **3 命中**,全在 `CompositionRoot.cs`(`:1177` / `:1185` / `:1223`) |
+| ② | 10 种 kind 各有生产消费面 | ✅ | 见原件 §三 表(逐 kind 给 `file:line`) |
+| ③ | 每种的选择 / 分派有夹具 | ✅ | 同上(逐 kind 给测试名) |
+| ④ | `Utensil` 不再落空 | ✅ | `BootRoot.cs:746` `OpenModal(ModalId.Processing)` |
+
+### 同批补的两条未兑现同步义务(`ADR-013 §十-E` 的 ①–⑥)
+
+ADR 自己列了六条。逐条核,**④ 与 ⑤ 当时没落**:
+
+| # | 义务 | 改前 | 本轮 |
+|---|---|---|---|
+| ④ | `skeuomorphic-ui.md` 的 `AC-42-F1` 闭集八 → 九 | ❌ 全文件 **零** `Processing` 命中 | ✅ 已补(连同 `:399`「**本闭集当前恰七员**」这句**过时两轮**的断言一并订正) |
+| ⑤ | `technical-preferences.md` 的 ADR-013 日志追加本 Amendment | ❌ `grep "十-E\|Amendment D"` **零命中** | ✅ 已补 |
+
+①(枚举)/ ②(工厂)/ ③(闭集门)/ ⑥(测试清单)当时**已落**,本轮未动。
+
+### 同批订正的三处 GDD 口径(**不改任何 AC 判定**)
+
+| 处 | 原文 | 现口径 |
+|---|---|---|
+| `processing.md` `AC-18-10b` | **EXTERNAL · BLOCKED-BY-42** | **`NOT-RUN`**(前置已解除:42 认领 + 屏只建 `IsAdmissible == true` 的行 ⇒「不出现(非灰置)」**结构上**成立;**但**无 `processing-18.md` spec + 手柄走查从未执行 ⇒ 仍不得记绿) |
+| `processing.md` `:403` / `:664` | 「接缝全案未登记」/「选料复用 20 容器屏」 | `O-18-R6` 已回写;「复用 20 容器屏」**未采纳**(`ADR-013 §十-E` 裁定增员) |
+| `skeuomorphic-ui.md` `:1269` | 「42 屏清单**未认领**炮制交互」 | 已认领;`AC-42-F1` ⑨ 员 `NOT-RUN`(无 spec ⇒ 阻塞签核) |
+
+⚠️ **`EXTERNAL → NOT-RUN` 不是转绿** —— 两者都**没通过**,差别只在**谁在挡**:
+前者说「载体不存在」,后者说「载体在但判据没跑」。写成前者 = 低估进度;写成 ✅ = 借绿。
+
+### 本轮改了什么(除注释外零生产行为)
+
+| 文件 | 改动 |
+|---|---|
+| `Gameplay.Boot/InteractionPressRouter.cs` | 四处陈旧注释订正 + 类头新增「10 种全覆盖」表 |
+| `Editor.Tools.Level/P0ClinicLevel.cs` | `:103` 陈旧断言订正 |
+| `Sim/World/BuildSlotCatalog.cs` | `:46-47` 陈旧断言订正 |
+| `design/gdd/skeuomorphic-ui.md` | `AC-42-F1` 九员 + 三处「八屏 / 恰七员」订正 + `O-18-R6` 回写行 |
+| `design/gdd/processing.md` | `AC-18-10b` 级别改 `NOT-RUN` + `O-18-R6` 两处回写 |
+| `.claude/docs/technical-preferences.md` | ADR-013 日志追加 §十-E Amendment D |
+
+⚠️ **零生产行为改动** ⇒ 回归读数**必然**与基线逐位相同。若不同,说明有别的改动混进工作树。
+
+**读数**(三元组):EditMode **`6624 / 6587 / 0 / 0 / 37`** @ `2026-11-02 21:19:43` ·
+PlayMode **`311 / 307 / 0 / 2 / 2`** @ `21:20:28`;基线 = 上一批(`384f5d29`)的
+`6624 / 6587 / 0 / 0 / 37` · `311 / 307 / 0 / 2 / 2` ⇒ 两平台 **`+0`**,与「只改注释」一致。
+
+### 账务
+
+`条目 152` 不动 · `open 7` 不动 · **`partial 4 → 3`** · **`closed 140 → 141`** ·
+`P0 面 N 46` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 7 | partial 3 | closed 141 | 未闭 P0 面 = 0
+grep -c "Processing" design/gdd/skeuomorphic-ui.md        # 期望 > 0(改前 0)
+grep -c "十-E" .claude/docs/technical-preferences.md      # 期望 > 0(改前 0)
+grep -rn "P0 无生产消费面\|消费面仍是 \`null\`" unity/Assets --include=*.cs | grep -v /Tests/ | grep -v "原写\|已作废"
+# 期望零命中(不过滤会命中 2 处 —— 那是本轮订正注里**引述的原文**,「原文不删」纪律要求的)
 ```

@@ -43,8 +43,9 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>
         /// 灶台 / 器具(18 炮制的准入门,2026-11-02 · `TD-interaction-03` 收口)。
         /// <para>它是**交互目标**(4 的 `Utensil` kind),不是普通家具 —— 选中后路由给 18。
-        /// ⚠️ 18 的面板屏幕尚未被 42 屏清单认领(`O-18-R6` / `AC-18-10b` BLOCKED-BY-42)
-        /// ⇒ 本类今日**可被选出**,消费面仍是 `null`(诚实降级,见路由)。</para>
+        /// 🔁 2026-11-02(结案轮):原写「18 的面板屏幕尚未被 42 屏清单认领(`O-18-R6` /
+        /// `AC-18-10b` BLOCKED-BY-42)⇒ 消费面仍是 `null`」—— **已作废**:42 当天 17:35
+        /// 认领 `ModalId.Processing`(`a39ea0b2`),`BootRoot` 的 `enterProcessing` 实参非 null。</para>
         /// </summary>
         Utensil = 9,
 

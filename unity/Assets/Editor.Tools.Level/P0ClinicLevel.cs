@@ -99,8 +99,9 @@ namespace DaYiJingCheng.EditorTools.Level
         public const int DoorCellZ = ShellStripZ;
 
         /// <summary>器具(灶台)槽的模块 id(`build_modules.json` 的 12 = `Utensil`)。</summary>
-        /// <remarks>🔁 2026-11-02(`TD-interaction-03` 收口)。4 的 `Utensil` kind 的载体;
-        /// 消费面(18 的炮制面板)仍 `BLOCKED-BY-42`(`O-18-R6` / `AC-18-10b`)。</remarks>
+        /// <remarks>🔁 2026-11-02(`TD-interaction-03` 收口)。4 的 `Utensil` kind 的载体。
+        /// 🔁 2026-11-02(结案轮):原文「消费面(18 的炮制面板)仍 `BLOCKED-BY-42`」**已作废** ——
+        /// 42 当天 17:35 认领 `ModalId.Processing`(`a39ea0b2`),消费面接通。</remarks>
         public const int UtensilModuleId = 12;
         /// <summary>医馆面板槽的模块 id(`build_modules.json` 的 13 = `ClinicPanel`)。</summary>
         public const int ClinicPanelModuleId = 13;

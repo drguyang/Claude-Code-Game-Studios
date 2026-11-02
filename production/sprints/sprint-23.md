@@ -678,3 +678,27 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 - **读数**:EditMode `6624/6587/0/0/37` @ `20:53:51` · PlayMode `311/307/0/2/2` @ `20:54:36`
   (基线 `S23-27` 的 `6620/6583` · `311/307`;等式 EM **`+4`** = 新增夹具 · PM `+0`)
 - 原件 = `production/qa/evidence/impl-td-interaction-04-modal-motor-2026-11-02.md`
+
+**S23-29(2026-11-02):`TD-interaction-03` 结案 —— 「记录追上代码」轮**:
+用户指令「继续」。⚠️ **本轮不是实现轮**:债的残余当天 **17:35 已由 `a39ea0b2`(炮制屏第九员)消解**,
+本轮做的是**取证 + 订正滞后记录 + 补两条未兑现的同步义务**。
+
+- **为什么从这里起手**:`open` 队列剩七条**全部**卡外部(VR / P1b / 45 / CI 矩阵 / 目标硬件 / P2),
+  逐条核过触发条件没有一条今天能动;回头核 `partial` 队列,发现 `TD-interaction-03` 的记录
+  与代码**不一致** —— 债册与 `InteractionPressRouter.cs` **四处**注释、`P0ClinicLevel.cs:103`、
+  `BuildSlotCatalog.cs:46-47` 全都还写着「`Utensil` 消费面恒 null / P0 无生产消费面(BLOCKED-BY-42)」
+- ⚠️ **形态登记**:这是 **F6(自述顶替门)的镜像** —— F6 是「自述顶替**执行体**」,
+  这次是「自述顶替**现状**」。共同病灶:**没人回去核一遍**
+- **消解条件四条逐条核过**:四个候选源生产实装(3 命中,全在 `CompositionRoot.cs`)·
+  10 种 kind 各有生产消费面 · 每种分派有夹具 · `Utensil` 不再落空(`BootRoot.cs:746`)
+- **同批补 `ADR-013 §十-E` 的两条未兑现同步义务**:④ `skeuomorphic-ui.md` 的 `AC-42-F1` 闭集
+  八 → 九(此前**全文件零 `Processing` 命中**;连带订正 `:399`「本闭集当前**恰七员**」这句
+  **过时两轮**的断言)· ⑤ `technical-preferences.md` 的 ADR-013 日志追加本 Amendment
+- **三处 GDD 口径订正(不改任何 AC 判定)**:`AC-18-10b` 从 `EXTERNAL · BLOCKED-BY-42` →
+  **`NOT-RUN`**(前置解除但 spec 未成文 + 手柄走查从未执行 ⇒ **仍不得记绿**)·
+  `processing.md` 的 `O-18-R6` 两处回写 · 「选料复用 20 容器屏」标为**未采纳**
+- ⚠️ **`EXTERNAL → NOT-RUN` 不是转绿**:两者都**没通过**,差别只在**谁在挡**
+- **读数**(三元组):EditMode `6624/6587/0/0/37` @ `21:19:43` · PlayMode `311/307/0/2/2` @ `21:20:28`
+  (基线 `384f5d29` 的 `6624/6587` · `311/307`;等式 **`+0`** —— 本轮除注释外零生产行为改动)
+- **账务**:`open 7` 不动 · **`partial 4 → 3`** · **`closed 140 → 141`** · `未闭 P0 面 = 0` 不变
+- 原件 = `production/qa/evidence/closure-td-interaction-03-stale-record-2026-11-02.md`

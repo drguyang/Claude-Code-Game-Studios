@@ -360,6 +360,18 @@
   裁定:**取增员,不取绕开** —— 暂停壳挡路且须冻世界意图,规则七的门只认 `Modal ≠ None`,非模态叠层 = 给同一形态发明第二套判据。
   同步落地:`ModalId.Pause = 8` · `ScreenFactories["Pause"]` · `ModalScreenNames` · `dto_boundary_and_modal_test` 8 值/7 员 → **9 值/8 员** · `AC-42-F1` 闭集 七 → **八** · `modal_gate_test.ClosedSetMembers` 补员(其**基数守卫**先红,证明守卫有效) · 输入语义 `SaveSlotsTogglePressed` → **`PauseTogglePressed`**(`ModalOpener` 成员随之改名) · 装配层 `DriverPauseCommandSink`。
   ⚠️ **未做,不得借绿**:世界**不**冻结(只挡交互意图,不停 tick)· `AC-42-F1` ⑧ 记 **`NOT-RUN`**(无 `pause-shell-42.md` spec ⇒ 按该 AC 纪律阻塞签核)· 存档位屏上按 Escape 会**换屏回暂停壳**(最小壳的粗糙边,归 UX spec)。Engine Knowledge Risk **LOW**。
+  **⚠️ 2026-11-02 §十-E Amendment D(用户裁定「我倾向甲」)—— 闭集第九员 `Processing`(炮制屏)**:病因 =
+  `processing.md:664`(UI-18.3)与 `:732`(`AC-18-10b`)逐字要求「42 的屏闭集须补入炮制交互」(`O-18-R6`),
+  该缺口自 2026-09-19 起一直记 `EXTERNAL · BLOCKED-BY-42`;`TD-interaction-03` 的 `Utensil` 半边因此**零消费面**。
+  裁定:**取增员**(不复用 20 的容器屏)—— 两者的**数据面与焦点序**全不同(容器屏 = 「箱里有什么」;
+  炮制屏 = 「能做什么 + 点火」),混一屏会让 4 的焦点空间争抢,而拟物 UI 无指针(TR-concept-008)。
+  §十 的六条同步义务 ①–③ / ⑥ 随之落地;**④ `AC-42-F1` 闭集点名八 → 九** 与 **⑤ 本条目** 当时**未落**,
+  已于 2026-11-02 `TD-interaction-03` 结案轮补上(`skeuomorphic-ui.md` 的 `AC-42-F1` 现为九员)。
+  ⚠️ **⚠️ 编号碰撞已登记**:本文件同时存在「§十-C Amendment D」(停世界)与「§十-E Amendment D」(第九员),
+  以节号区分,不擅自改名。
+  ⚠️ **未做,不得借绿**:`design/ux/` **无 `processing-18.md`** ⇒ 该屏是**最小可操作壳**,
+  排版 / 文案 / 焦点序均未经 `/ux-review`;`AC-42-F1` 的 ⑨ 员记 **`NOT-RUN`** 且**阻塞签核**。
+  Engine Knowledge Risk **LOW**(纯枚举与屏载体,零 post-cutoff API)。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。

@@ -18,7 +18,7 @@
 //   Door / Switch → `StructureToggleDriver.Toggle`(23;两态 `Variant` → `StructureModified`)
 //   Container   → 打开 `ModalId.InventoryContainer`(20 / 42)
 //   ClinicPanel → 打开 `ModalId.ClinicPanel`(24 / 42)
-//   Utensil     → `_enterProcessing`(18;P0 恒 null —— BLOCKED-BY-42)
+//   Utensil     → `_enterProcessing`(18;打开 42 的 `ModalId.Processing` 炮制屏并喂数据)
 //   PoiCell     → **本类不分派**:4 的 `InteractionSelector` 在选中那一刻已向
 //                `IDiscoveryReporter` 发请求(6 的 `PoiStateMachine.TryDiscover`),
 //                故 `case PoiCell` 返回 true(按键确实被消费)
@@ -43,11 +43,30 @@
 // 🔁 2026-11-02(`TD-interaction-03` 收口轮):`Utensil` / `ClinicPanel` / `Switch` 三种
 //   **数据行与分类都齐了**(`SlotType.Utensil/ClinicPanel/Switch` + 模块 12/13/14 + 开档槽位)。
 //   `ClinicPanel` → 42 的 `ModalId.ClinicPanel`;`Switch` → 与门同一机制的状态切换;
-//   `Utensil` → **消费面仍 null**(18 的炮制面板 `BLOCKED-BY-42`),选中即落空。
+//   `Utensil` → 当轮**消费面仍 null**(18 的炮制面板 `BLOCKED-BY-42`),选中即落空。
 //
-// ── 仍然不是 F-4.1 的全部(如实登记)──────────────────────────────────────────
-// `Utensil` 的**消费面**缺一个设计前置:42 屏清单认领炮制交互(`O-18-R6` / `AC-18-10b`
-// EXTERNAL · BLOCKED-BY-42)。数据与选择面已通,路由面等 42。
+// 🔁 2026-11-02(`TD-interaction-03` **结案轮**):上面那句「`Utensil` 消费面仍 null」
+//   **当天 17:35 由 `a39ea0b2`(炮制屏第九员)推翻** —— 42 认领了 `ModalId.Processing`,
+//   `BootRoot` 传入的 `enterProcessing` 实参已非 null(开屏 + 喂配方 / 准入 / 品级集)。
+//   本注释此前**滞后了**(记录说没有,代码里已经有),现订正。
+//   ⇒ **`F-4.1` 的 10 种 `InteractableKind` 至此全部有生产消费面**(见类尾「10 种」表)。
+//
+// ── F-4.1 的 10 种:`InteractableKind` 全覆盖(2026-11-02 结案轮实测)─────────────
+//   Patient     → `_visit`(39)                      · 源:第三源(PatientSource)
+//   ForageSpot  → `HarvestInteractionDriver`(17)     · 源:第二源 `WorldBaked.ForageSpots`
+//   Drop        → `DropClaimOrchestrator`(20)         · 源:第一源 `GroundDropSource`
+//   BuildSlot   → `_aimBuild`(23 `BuildInputDriver.AimAt`) · 源:第二源 `WorldBaked.BuildSlots`
+//   Door        → `_toggleDoor`(23 `StructureToggleDriver`) · 源:第四源 `BakedInitial`
+//   Switch      → `_toggleSwitch`(同上,`expectedType` 钉住类型) · 源:第四源
+//   Container   → 42 `ModalId.InventoryContainer`(20 的数据面) · 源:`world_containers`
+//   ClinicPanel → 42 `ModalId.ClinicPanel`(24 的数据面) · 源:第四源
+//   Utensil     → 42 `ModalId.Processing`(18 的炮制屏)· 源:第四源
+//   PoiCell     → 不分派:`Select` 内已发发现请求(6 `PoiStateMachine`)· 源:第二源
+//
+// ⚠️ **仍然不是「端到端已验」**(如实登记,禁借绿):上表每一格都是
+//   「**生产装配点存在**(`BootRoot` / `CompositionRoot` 的实参非 null)」+「**分派有夹具**」,
+//   但**「真开档、真按键、真开到那一屏」没有自动化判据** —— 装配层的 `BootRoot` 整段
+//   与其它 `OnTickEdge` / 消费面同状态。要它需要 PlayMode 或手动走查。
 //
 // ⚠️ 本类**不持游戏状态**:只有 readonly 依赖 + 一个观测位(`LastRoutedKind`)。
 // ⚠️ 玩家格 = **经流确立的格**(调用方注入;ADR-020 §四),本类不读 `transform.position`。
@@ -110,8 +129,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Action<long> _openClinicPanel;
 
         /// <summary>器具的消费面(18;可 null = 未接线)。
-        /// <para>⚠️ P0 恒 `null` —— 炮制面板归 42 屏清单认领而它尚未认领
-        /// (`O-18-R6` / `AC-18-10b` BLOCKED-BY-42)。选中即返回 false(按键落空)。</para></summary>
+        /// <para>实参 = 打开 42 的 `ModalId.Processing` 炮制屏并喂数据。</para>
+        /// <para>🔁 2026-11-02 **结案轮**:此处原写「P0 恒 `null` —— 炮制面板归 42 屏清单认领
+        /// 而它尚未认领(`O-18-R6` / `AC-18-10b` BLOCKED-BY-42)」。42 **当天 17:35 已认领**
+        /// (`a39ea0b2` 炮制屏第九员)⇒ 该断言作废。保留 `null` 分支是**接线守卫**,
+        /// 不是「P0 常态」。</para></summary>
         private readonly Func<long, bool> _enterProcessing;
 
         /// <summary>最近一次路由选中的种类(<c>null</c> = 未选中);观测 / 夹具面。</summary>
@@ -239,7 +261,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     return true;
 
                 case InteractableKind.Utensil:
-                    // 器具:18 的炮制准入门。**P0 无生产消费面**(BLOCKED-BY-42)⇒ 落空。
+                    // 器具:18 的炮制准入门 ⇒ 打开 42 的 `ModalId.Processing` 屏并喂数据
+                    // (配方全表 / 准入查询 / 玩家 / 品级集),见 `BootRoot` 的实参。
+                    // 🔁 2026-11-02 结案轮:上一句原写「**P0 无生产消费面**(BLOCKED-BY-42)⇒ 落空」
+                    //    —— 那句当天 17:35 已被 `a39ea0b2` 推翻,注释滞后,现订正。
                     return _enterProcessing != null && _enterProcessing(target.StableId);
 
                 case InteractableKind.Drop:
