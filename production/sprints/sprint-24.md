@@ -72,6 +72,7 @@
 | **S24-2 重判可能再掀出欠账** —— 它本身就是「假绿退回」的样本 | 中 | 高 | 逐条 AC 给**载体**（测试名 / 证据件 / `file:line`），不按「文件已落盘」记绿 |
 | 当前工作树有 **S23-39 的 7 个文件未提交**（C10 收紧轮） | 确定 | 低 | **开工前先落定**，避免与 S24 改动混批 |
 | `origin/main` 落后 **32 笔**，CI job 从未在 GitHub Actions 上执行过 | 确定 | 中 | 与 `TD-ci-01`（`unity-tests.yml`，secret 门控）**无关**；本门在 `tests.yml` 不依赖 secret，推送即生效 |
+| 🔁 **上一行的「推送即生效」已被实测推翻（2026-11-03 收口后核查）** | 确定 | 中 | 见 §收口 —— GitHub API 实测：**该仓自 2026-10-10 起 `total_count = 0` 次工作流运行**，本 sprint 三笔推送（`c6130cde` / `88ad7ae7` / `661d4883`）的 `check-runs` 均为 **0**。两个 workflow 的 `state` 都是 `active`、YAML 可解析、`on.push.branches=[main]` 正确 ⇒ **不是「只在 push 时才跑」的问题，是根本没跑**。根因未定（`/actions/permissions` 需鉴权，本机 `gh` token 已失效） |
 
 ## Dependencies on External Factors
 
@@ -165,6 +166,25 @@ python3 tools/debtcount/debtcount.py --check; echo "DEBT=$?"
 | 债 | 描述 | P0 面 |
 |---|---|---|
 | **`TD-processing-08`** | 20 侧缺「完成时点的结算入口」⇒ `Craft` 的产出在**点火那刻**就入包（`InventoryFold.ApplyCraftOutputs`），完成 tick 与容量裁决无接线 ⇒ 起货溢出路径**不可达** | **N**（目标行为未接线，非错误行为） |
+
+### ⚠️ CI 核查（2026-11-03 推送后 · 如实登记）
+
+| 事实 | 证据 |
+|---|---|
+| 该仓最近一次工作流运行 = **2026-10-09** | `GET /repos/.../actions/runs?per_page=20` 逐条 `created_at` |
+| **2026-10-10 起运行数 = 0** | `GET /actions/runs?created=>=2026-10-10` ⇒ `total_count: 0` |
+| 本 sprint 三笔提交各 **0 次运行** | `GET /actions/runs?head_sha=<sha>` ⇒ `0` × 3 |
+| 本 sprint HEAD `c6130cde` 的 **`check-runs = 0`** | `GET /commits/c6130cde/check-runs` ⇒ `0` |
+| 两个 workflow `state = active` | `GET /actions/workflows` ⇒ `Lint and Guard Checks` / `Unity Tests` 均 `active` |
+| 触发配置正确、YAML 可解析 | `.github/workflows/{tests,unity-tests}.yml` 均 `on.push.branches=[main]`，PyYAML 解析 OK |
+
+⇒ **结论：CI 根本没有在跑**，不是「我的提交没触发」。**已立债 `TD-ci-03`（P0 面 `N`，用户裁定退 P2 实现）** ——
+它与 `TD-ci-01`（workflow 内部 6 条结构缺陷 + 凭证）**不同因**：本债是「连 run 都没创建」，
+`TD-ci-01` 是「跑起来了也全 skip」；修后者**不会**产生运行。两个 workflow 文件自 2026-10-09 后
+还被改过 6 次（含 `1fb81d00` AC 撞号门、`605961b1` 变异矩阵 job），**这些改动从未在 CI 上被执行过**。
+根因**未定**：`/actions/permissions` 需鉴权（`gh` token 已失效，`gh run list` 报 401），
+本机无法从 API 进一步定位（候选：账户级 Actions 被停 / 计费 / 组织策略）。
+⇒ **本 sprint 不得在任何地方声称「CI 绿」**；`tests.yml` 的 `ac-id-collision` job 至今**零次执行**。
 
 ### 如实登记的三处「没做完」
 

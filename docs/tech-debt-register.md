@@ -436,6 +436,7 @@
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | ~~**N**~~ | R3-裁 |
+| `TD-ci-03` | `（跨 epic · 治理／GitHub Actions 触发）` | open | ~~**N**~~ | R3-裁 |
 | `TD-foraging-01` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-02` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-03` | `foraging` | closed | **N** | R4 |
@@ -865,7 +866,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 154 | 状态 {'closed': 142, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 155 | 状态 {'closed': 142, 'partial': 3, 'open': 9, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -10598,3 +10599,87 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 3. 门只约束 `docs/architecture/adr-*.md`;GDD 里的粗体是**正常的**
 
 详见 `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十三。
+
+---
+
+## TD-ci-03 —— GitHub Actions 自 2026-10-10 起**零运行**（治理面 · 2026-11-03 立）
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-ci-03** | `（跨 epic · 治理／GitHub Actions 触发）` | **open** | ~~**N**~~ | R3-裁 |
+
+> **`P0 面 = N`** —— 无归属 epic(治理面),承 §一 **R3 裁量判据**;不改变 `未闭 P0 面`。
+>
+> 🔁 **2026-11-03 用户裁定:登记为债,退到 P2 实现** —— 原话「CI 登记债,退到 P2 实现」。
+> 本债**维持 `open`**,归 **P2 的 CI 轮**,与 `TD-ci-01` 同批处理(两者是**不同因**的两件,见 §三)。
+
+### 一、债的内容
+
+**本仓的 GitHub Actions 从 2026-10-10 起一次都没有运行过。** 不是「跑了但 skip」,
+是**根本没有 workflow run 被创建** —— 包括**不依赖任何 secret** 的
+`.github/workflows/tests.yml`(Lint and Guard Checks)。
+
+⚠️ **这与 `TD-ci-01` 的旧描述不同**:`TD-ci-01` 说「三个 job 全部走 skip 分支」(= 跑了、跳过了);
+实测 2026-10-10 之后**连 skip 的机会都没有**。⇒ 两者**不是同一条债**,见 §三。
+
+### 二、实测(逐条可跑 · 2026-11-03)
+
+| # | 事实 | 复算 |
+|---|---|---|
+| 1 | 仓库最近一次工作流运行 = **2026-10-09T02:06:25Z** | `GET /repos/drguyang/Claude-Code-Game-Studios/actions/runs?per_page=20` 逐条 `created_at` |
+| 2 | **2026-10-10 起运行数 = 0** | `GET …/actions/runs?created=>=2026-10-10` ⇒ `"total_count": 0` |
+| 3 | sprint-24 三笔推送各 **0 次运行** | `GET …/actions/runs?head_sha=c6130cde` / `88ad7ae7` / `661d4883` ⇒ 各 `0` |
+| 4 | HEAD `c6130cde` 的 **`check-runs = 0`** | `GET …/commits/c6130cde/check-runs` ⇒ `0`;`…/status` ⇒ `state: pending, total_count: 0` |
+| 5 | 两个 workflow 均 **`state = active`** | `GET …/actions/workflows` ⇒ `Lint and Guard Checks` / `Unity Tests` 皆 `active` |
+| 6 | 触发配置正确、YAML 可解析 | `.github/workflows/{tests,unity-tests}.yml` 均 `on.push.branches=[main]`;PyYAML 解析 OK |
+| 7 | 这两个文件自 2026-10-09 后**被改过 6 次** | `git log --since=2026-10-09 --oneline -- .github/workflows/`（含 `1fb81d00` AC 撞号门 · `605961b1` 变异矩阵 job） |
+
+⇒ 推论:第 7 行的 6 次 CI 改动 **从未在 CI 上被执行验证过**;
+`tests.yml` 的 `ac-id-collision` job(`--check` + `--mutation-probe`)至今**零次执行**。
+
+### 三、为什么不是 `TD-ci-01`(两者不同因)
+
+| | `TD-ci-01` | **`TD-ci-03`** |
+|---|---|---|
+| 病象 | workflow 内部有 **6 个结构缺陷** + 凭证缺口 ⇒ **配好 secret 也跑不起来** | **连 run 都没被创建** ⇒ 与 secret / 缺陷**无关** |
+| 影响面 | 只影响 `unity-tests.yml` 的三个 job | **两个 workflow 全部**(含纯 bash / 纯 Python 的 `tests.yml`) |
+| 可修性 | agent 侧可修 6 条结构缺陷,凭证须用户侧 | **根因未定**,见 §四 |
+| 关系 | 本债**掩盖**了 `TD-ci-01`:修好 `TD-ci-01` 的 6 条也**不会**产生运行 | — |
+
+⚠️ **不得合并登记**:合并会让「配了 secret 就好」与「配了也不跑」两件事混成一句,
+下一轮取件时必然低估。
+
+### 四、根因:**未定**(如实登记)
+
+已排除:workflow 被禁用(`state = active`)· YAML 非法(解析 OK)· 触发分支写错(`[main]` 正确)·
+提交未到远端(`origin/main` = `c6130cde`,已核)。
+
+**无法从本机 API 进一步定位**:`GET …/actions/permissions` **需鉴权**,而本机 `gh` 的 token
+已失效(`gh auth status` ⇒ `The token in keyring is invalid`,`gh api` 一律 `401`)。
+
+候选(未验证,不得当结论):① 账户级 Actions 被停用 / 账户被 flag;② 计费或 spending limit;
+③ 组织或安全策略拦截 webhook。
+
+**用户侧一条命令即可解锁定位**:`gh auth login -h github.com`,之后可查
+`/actions/permissions` 与 runner 日志。
+
+### 五、为什么归 P2 而不阻塞 P0
+
+- **P0 的判据面无一条依赖 CI 执行**:`ac-id-collision` / `debtcount` / `acid` 三处门在本机
+  `python3` 直跑即可(本 sprint 收口即如此,全 exit 0)。
+- CI 缺位影响的是**「变化发生后自动跑」**这一层,不是**「能否跑」**这一层。
+- ⇒ 与 `TD-ci-01` 同批进 **P2 的 CI 轮**;在那之前,**任何文档不得以「CI 已跑 / CI 绿」为据**。
+
+### 六、解除动作
+
+1. 定位根因(须先 `gh auth login`,或从浏览器 Actions 页看提示横幅);
+2. 至少让 `tests.yml`(零 secret 依赖)在 `push → main` 上真跑出一次 run,并贴出 run URL;
+3. 与 `TD-ci-01` 的 6 条结构缺陷**同批**修,否则修完 run 创建了、job 仍全 skip;
+4. 解除判据 = **一次真实 run 的 `head_sha` == 当次 push 的 sha**,且其 job 结论可读 ——
+   **不是**「workflow 文件改好了」。
+
+### 七、不改变任何判据
+
+- `ADR-012 §Validation` 的「CI 常驻矩阵」项仍**不得勾**(本债退 P2 ≠ 已兑现)。
+- `AC-7a-03`(跨平台字节对拍)仍 **`NOT-RUN · EXTERNAL`**。
+- sprint-24 收口节已同步登记「CI 核查」,并写明**不得声称 CI 绿**。
