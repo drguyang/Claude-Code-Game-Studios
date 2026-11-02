@@ -15,6 +15,10 @@
 //   ForageSpot  → `HarvestInteractionDriver.TryHarvestTarget`(17)
 //   Drop        → `DropClaimOrchestrator.TryClaimInstance`(20;结算被选中的 instance_id)
 //   BuildSlot   → `_aimBuild(cell)`(23;进建造模式并对准该格 —— 见 `BuildInputDriver.AimAt`)
+//   Door / Switch → `StructureToggleDriver.Toggle`(23;两态 `Variant` → `StructureModified`)
+//   Container   → 打开 `ModalId.InventoryContainer`(20 / 42)
+//   ClinicPanel → 打开 `ModalId.ClinicPanel`(24 / 42)
+//   Utensil     → `_enterProcessing`(18;P0 恒 null —— BLOCKED-BY-42)
 //   PoiCell     → **本类不分派**:4 的 `InteractionSelector` 在选中那一刻已向
 //                `IDiscoveryReporter` 发请求(6 的 `PoiStateMachine.TryDiscover`),
 //                故 `case PoiCell` 返回 true(按键确实被消费)
@@ -32,13 +36,18 @@
 //
 // 🔁 2026-11-02(`AC-4-22` 兑现轮):**第四源已生产装配** —— `BakedInitialSource` 把
 //   23 的结构基线(按模块 `SlotType` 分类)与开档容器实例接进候选集。
-//   `Door` 走 `DoorInteractionDriver.Toggle`(改 `Variant` → `StructureModified`),
+//   `Door` 走 `StructureToggleDriver.Toggle`(改 `Variant` → `StructureModified`;
+//   该类 2026-11-02 由 `DoorInteractionDriver` 泛化,门 / 开关共用),
 //   `Container` 打开 42 的 `ModalId.InventoryContainer`。
 //
+// 🔁 2026-11-02(`TD-interaction-03` 收口轮):`Utensil` / `ClinicPanel` / `Switch` 三种
+//   **数据行与分类都齐了**(`SlotType.Utensil/ClinicPanel/Switch` + 模块 12/13/14 + 开档槽位)。
+//   `ClinicPanel` → 42 的 `ModalId.ClinicPanel`;`Switch` → 与门同一机制的状态切换;
+//   `Utensil` → **消费面仍 null**(18 的炮制面板 `BLOCKED-BY-42`),选中即落空。
+//
 // ── 仍然不是 F-4.1 的全部(如实登记)──────────────────────────────────────────
-// `Utensil` / `ClinicPanel` / `Switch` 三种**没有数据行**(`build_modules` 无对应
-// `SlotType`)⇒ `BakedInitialSource` 的对应切片恒空。要它们可交互得先有 23 的数据模型
-// —— 登记在 `TD-interaction-03` 的残余里。
+// `Utensil` 的**消费面**缺一个设计前置:42 屏清单认领炮制交互(`O-18-R6` / `AC-18-10b`
+// EXTERNAL · BLOCKED-BY-42)。数据与选择面已通,路由面等 42。
 //
 // ⚠️ 本类**不持游戏状态**:只有 readonly 依赖 + 一个观测位(`LastRoutedKind`)。
 // ⚠️ 玩家格 = **经流确立的格**(调用方注入;ADR-020 §四),本类不读 `transform.position`。
@@ -73,14 +82,28 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Action<WorldPos> _aimBuild;
 
         /// <summary>门的开合消费面(23;2026-11-02 · `AC-4-22`;可 null = 未接线)。
-        /// <para>实参 = `DoorInteractionDriver.Toggle` —— 读 `Variant` 取反后走
-        /// `StructureWriter.Modify`(`StructureModified` 进世界流 ⇒ 可重放 / 可存档)。</para></summary>
+        /// <para>实参 = `StructureToggleDriver.Toggle`(2026-11-02 由 `DoorInteractionDriver`
+        /// 泛化,门 / 开关共用)—— 读 `Variant` 取反后走 `StructureWriter.Modify`
+        /// (`StructureModified` 进世界流 ⇒ 可重放 / 可存档)。</para></summary>
         private readonly Func<long, bool> _toggleDoor;
 
         /// <summary>容器的消费面(20 / 42;2026-11-02 · `AC-4-22`;可 null = 未接线)。
         /// <para>实参 = 打开 `ModalId.InventoryContainer`(柜的屏已存在;搜索 / 容量归 20 的后续轮,
         /// `OQ-4-4` / `OQ-20-11`)。</para></summary>
         private readonly Action<long> _openContainer;
+
+        /// <summary>开关的消费面(23;2026-11-02 · `TD-interaction-03` 收口;可 null = 未接线)。
+        /// <para>与门共用 `StructureToggleDriver`,只换被允许的模块类型。</para></summary>
+        private readonly Func<long, bool> _toggleSwitch;
+
+        /// <summary>医馆面板的消费面(24 / 42;可 null = 未接线)。
+        /// <para>实参 = 打开 `ModalId.ClinicPanel`。</para></summary>
+        private readonly Action<long> _openClinicPanel;
+
+        /// <summary>器具的消费面(18;可 null = 未接线)。
+        /// <para>⚠️ P0 恒 `null` —— 炮制面板归 42 屏清单认领而它尚未认领
+        /// (`O-18-R6` / `AC-18-10b` BLOCKED-BY-42)。选中即返回 false(按键落空)。</para></summary>
+        private readonly Func<long, bool> _enterProcessing;
 
         /// <summary>最近一次路由选中的种类(<c>null</c> = 未选中);观测 / 夹具面。</summary>
         public InteractableKind? LastRoutedKind { get; private set; }
@@ -110,7 +133,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             Action<PatientId> visit,
             Action<WorldPos> aimBuild = null,
             Func<long, bool> toggleDoor = null,
-            Action<long> openContainer = null)
+            Action<long> openContainer = null,
+            Func<long, bool> toggleSwitch = null,
+            Action<long> openClinicPanel = null,
+            Func<long, bool> enterProcessing = null)
         {
             _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
             _tick = tick ?? throw new ArgumentNullException(nameof(tick));
@@ -124,6 +150,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             _aimBuild = aimBuild;
             _toggleDoor = toggleDoor;
             _openContainer = openContainer;
+            _toggleSwitch = toggleSwitch;
+            _openClinicPanel = openClinicPanel;
+            _enterProcessing = enterProcessing;
         }
 
         /// <summary>
@@ -182,6 +211,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                     if (_openContainer == null) return false;
                     _openContainer(target.StableId);
                     return true;
+
+                case InteractableKind.Switch:
+                    // 开关:两态 `Variant` + `StructureModified`(今日无下游读者 —— 状态进流)。
+                    return _toggleSwitch != null && _toggleSwitch(target.StableId);
+
+                case InteractableKind.ClinicPanel:
+                    // 医馆面板:42 的 `ModalId.ClinicPanel`(24 的数据面)。
+                    if (_openClinicPanel == null) return false;
+                    _openClinicPanel(target.StableId);
+                    return true;
+
+                case InteractableKind.Utensil:
+                    // 器具:18 的炮制准入门。**P0 无生产消费面**(BLOCKED-BY-42)⇒ 落空。
+                    return _enterProcessing != null && _enterProcessing(target.StableId);
 
                 case InteractableKind.Drop:
                     // 结算**被选中的那一件**(StableId = instance_id;不再「第一可拾」)。

@@ -9041,3 +9041,55 @@ M8 重复 id 门停用(1 红)· M9 容器行不排序(1 红)。
 **读数**:EditMode `6581/6544/0/0/37` · PlayMode `297/293/0/2/2`
 (基线 `S23-16` 的 `6554/6517` · `297/293`;等式 `+27 = 25 新夹具 + 1 Door 位正向例 + 1 漂移门用例`,PM `+0`)。
 `@ 2026-11-02 11:45/11:47 CST` · 批次 `S23-17` · commit `43f1d2f3`。
+
+---
+
+## 2026-11-02 · 「剩下三种」轮:`Switch` / `Utensil` / `ClinicPanel` 接通(`TD-interaction-03` 仍 **partial**)
+
+**出处**:用户指令「修 TD-interaction-03 剩下三种」。
+实现原件 = `production/qa/evidence/impl-tdi03-remaining-kinds-2026-11-02.md`。
+
+### 兑现(三种,数据 + 分类 + 分派)
+
+| kind | 数据 | 消费面 | 状态 |
+|---|---|---|---|
+| `Switch` | ✅ `SlotType.Switch = 11` + 模块 14 + 槽位 `(2,0,4)` | ✅ `StructureToggleDriver(SlotType.Switch)` → `StructureWriter.Modify` ⇒ `StructureModified` 进世界流(**与门共用写路径,`expectedType` 钉住类型**) | **接通(选择 + 路由 + 状态进流)** |
+| `ClinicPanel` | ✅ `SlotType.ClinicPanel = 10` + 模块 13 + 槽位 `(5,0,9)` | ✅ 路由 → 开 `ModalId.ClinicPanel`(42 的既有屏) | **接通** |
+| `Utensil` | ✅ `SlotType.Utensil = 9` + 模块 12 + 槽位 `(10,0,5)` | ❌ **生产装配恒 `null`** | **仅选择 + 分类;消费面未接** |
+
+**`Utensil` 为何不接**:18 的炮制面板归 **42 屏清单认领**且尚未认领 ——
+`design/gdd/processing.md:664` / `:732`(`AC-18-10b` **EXTERNAL · BLOCKED-BY-42**)· `O-18-R6`;
+`CraftIgnitionTransaction.Process` 至今**零生产调用点**。⇒ 选中器具时按键**落空并返回 false**
+(如实降级),**不伪造第三套消费面**。接线点已留:`BootRoot` 的 `enterProcessing:` 实参(一处)。
+
+### 本轮就地裁定(未经 UX 复审)
+
+- **开关 = 两态结构,与门同一写路径,但不参与可通行性**(`World.IsEffectivelyWalkable` 只认
+  `SlotType.Door`)。P0 **无下游读者**(无电路 / 灯具)⇒ 语义 = 「可被选出、可路由、状态进流,无人消费」。
+  **不为它造读者**,也不假装有读者。
+- **`DoorInteractionDriver` → `StructureToggleDriver`**:泛化为「可切换的两态结构」,
+  构造参 `expectedType` 钉住允许的 `SlotType`(门驱动不能切开关,反之亦然 —— 有夹具)。
+
+### 仍未闭(债仍 `partial`)
+
+`TD-interaction-03` 的**消解条件**逐字为「每种至少有一个消费者接通」。`Utensil` 的消费面
+被 42 阻塞 ⇒ 条件**未满足** ⇒ 维持 **`partial`**,残余从「三种全无」收窄为
+**「一种消费面待 42 认领」**。`P0 面 = N` 不变(仍然不满足 R4 的翻 Y 条件)。
+
+### 受影响的既有 pin(逐条契约演进,非改期望凑绿)
+
+`SlotType` 闭集 8 → **11** · `allowed_mask` 上界 511 → **4095**(越界例 512 → **4096**)·
+`build_modules` 行数 11 → **14** · `world_buildslots` 槽位 15 → **18** ·
+`world_buildslots.json` 金标准 SHA 重签(1426 → **1697 B**,第三次)· `clinic_room_matching_e2e` 模块数 11 → **14**。
+
+### 证伪轮(6 条全红 · SHA-256 逐字节还原 6/6)
+
+N1 分类不按 `SlotType`(6 红,超集)· N2 `Utensils` 取错切片(1 红,exact)·
+N3 面板不分派(1 红,exact)· N4 开关不分派(1 红,exact)·
+N5 无消费面也报已消费(2 红,超集)· N6 切换器不校验 `expectedType`(2 红,超集)。
+
+**读数**:EditMode `6590/6553/0/0/37` · PlayMode `297/293/0/2/2`
+(基线 `S23-17` 的 `6581/6544` · `297/293`;等式 `+9 = 4 + 4 + 1`,按类从 XML 实数取证,PM `+0`)。
+`@ 2026-11-02 12:03:44 / 12:04:51 CST` · 批次 `S23-18` · **commit = 本批未提交工作树(基于 `6b089f6b`)**。
+⚠️ **`PM exit=2` 是本仓 PlayMode 的常态退出码**(四次历史运行皆 2,含上一批 `S23-17` 的
+`297/293/0/2/2`)⇒ 判据取 **XML 的 `failed` 计数**,**不取**退出码(它在 failed=2 的运行上同样是 2)。

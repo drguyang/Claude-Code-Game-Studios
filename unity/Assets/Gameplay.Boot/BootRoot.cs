@@ -660,13 +660,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 切换 = `StructureWriter.Modify` ⇒ `StructureModified` 进世界流(可重放 / 可存档),
             // 实例表随之更新 ⇒ `World.IsEffectivelyWalkable` 立刻反映新态。
             // 未接世界 / 未装配写者 ⇒ null ⇒ 路由对 Door 返回 false(按键落空,不静默改写别的结构)。
-            DoorInteractionDriver doorDriver =
+            // 门 / 开关共用同一机制(两态 `Variant` + `StructureModified`),只差下游效果:
+            // 门影响可通行性;开关今日无读者(状态进流,供将来的电路 / 灯具系统消费)。
+            Func<long> tickNow = () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L;
+            StructureToggleDriver doorToggle =
                 _services.World != null && _services.StructureWriter != null
-                    ? new DoorInteractionDriver(
+                    ? new StructureToggleDriver(
+                        DaYiJingCheng.Sim.World.SlotType.Door,
                         () => _services.World.Structures,
                         () => _services.World.BaselineModuleCatalog,
-                        () => _services.StructureWriter,
-                        () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L)
+                        () => _services.StructureWriter, tickNow)
+                    : null;
+            StructureToggleDriver switchToggle =
+                _services.World != null && _services.StructureWriter != null
+                    ? new StructureToggleDriver(
+                        DaYiJingCheng.Sim.World.SlotType.Switch,
+                        () => _services.World.Structures,
+                        () => _services.World.BaselineModuleCatalog,
+                        () => _services.StructureWriter, tickNow)
                     : null;
 
             InteractionPressRouter pressRouter = null;
@@ -688,14 +699,26 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    未建建造驱动(无世界 / 夹具)⇒ null,路由对 BuildSlot 返回 false(按键落空)。
                     _buildDriver != null ? new Action<WorldPos>(_buildDriver.AimAt) : null,
                     // 门:`StructureModified`(23 唯一写者面)。
-                    doorDriver != null ? new Func<long, bool>(doorDriver.Toggle) : null,
+                    doorToggle != null ? new Func<long, bool>(doorToggle.Toggle) : null,
                     // 容器(柜):42 的库存容器屏。柜的数据面归 20(搜索 / 容量 / 内容),
                     // 本轮**只接打开动作** —— 不假装 20 的搜箱已实现(`OQ-4-4` / `OQ-20-11`)。
                     instanceId =>
                     {
                         if (_uiDriver != null)
                             _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.InventoryContainer);
-                    });
+                    },
+                    // 开关:与门同一机制,只换被允许的模块类型。
+                    switchToggle != null ? new Func<long, bool>(switchToggle.Toggle) : null,
+                    // 医馆面板(24):42 的屏已存在。
+                    structureId =>
+                    {
+                        if (_uiDriver != null)
+                            _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.ClinicPanel);
+                    },
+                    // 器具(18):**刻意不接** —— 炮制面板归 42 屏清单认领,而它尚未认领
+                    // (`O-18-R6` / `AC-18-10b` EXTERNAL · BLOCKED-BY-42)。传 null ⇒ 选中
+                    // `Utensil` 按键落空(诚实降级),而不是假装进了某个模式。
+                    enterProcessing: null);
             }
             else
             {

@@ -21,7 +21,8 @@ using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.ModularBuilding
 {
-    /// <summary>`DoorInteractionDriver` + `World.IsEffectivelyWalkable` 的门格分支。</summary>
+    /// <summary>`StructureToggleDriver`(门档)+ `World.IsEffectivelyWalkable` 的门格分支。
+    /// <para>⚠️ 类于 2026-11-02 由 `DoorInteractionDriver` 泛化并改名 —— 本行原写旧名,同批订正。</para></summary>
     public sealed class door_interaction_test
     {
         private const int DoorModuleId = 11;
@@ -32,7 +33,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         private InMemoryBlobPool _pool;
         private World _world;
         private StructureWriter _writer;
-        private DoorInteractionDriver _driver;
+        private StructureToggleDriver _driver;
         private long _tick;
 
         [SetUp]
@@ -67,7 +68,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                                           modules, _world, TestDropWriter.Create(sink, _pool));
 
             _tick = 10;
-            _driver = new DoorInteractionDriver(
+            _driver = new StructureToggleDriver(
+                SlotType.Door,
                 () => _world.Structures,
                 () => _world.BaselineModuleCatalog,
                 () => _writer,
@@ -140,7 +142,27 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(0, _events.Count, "零事件(不得写出无关的 StructureModified)");
         }
 
-        // ══════════════ ⑤ 不存在的 id ══════════════
+        // ══════════════ ⑤ 类型守卫(门 / 开关共用驱动器后新增)══════════════
+
+        /// <summary>开关驱动器**不得**切一扇门 —— 反之亦然(`expectedType` 的判别力)。</summary>
+        /// <remarks>🔁 2026-11-02(`TD-interaction-03` 收口轮):`DoorInteractionDriver` 泛化为
+        /// `StructureToggleDriver(expectedType)` 后引入的性质;缺本条 ⇒ 两类结构可互相改写。</remarks>
+        [Test]
+        public void test_switchDriver_rejectsDoor()
+        {
+            var switchDriver = new StructureToggleDriver(
+                SlotType.Switch,
+                () => _world.Structures,
+                () => _world.BaselineModuleCatalog,
+                () => _writer,
+                () => _tick);
+
+            Assert.IsFalse(switchDriver.Toggle(1L), "开关驱动器不得改门的 variant");
+            Assert.AreEqual(0, _events.Count, "零事件");
+            Assert.IsFalse(_world.IsEffectivelyWalkable(DoorCell), "门仍关着(未被误改)");
+        }
+
+        // ══════════════ ⑥ 不存在的 id ══════════════
 
         [Test]
         public void test_toggle_unknownId_returnsFalse_noEvent()

@@ -50,9 +50,13 @@ namespace DaYiJingCheng.Tests.LevelTool
         /// `3bcb664f…c655cd` = 1340 B(14 槽)。本次 P0 种子**合法变更** —— 门槽 `(5,0,1)`
         /// (`SlotType.Door` + 模块 11)由 `P0ClinicLevel.Define()` 正式产出,文件 1340 → **1426 B**。
         /// 同前:内容变更,判据不变(分派路径 == 盘上产物)。</para>
+        /// <para>🔁 <b>2026-11-02 第三次重签(`TD-interaction-03` 收口轮)</b>:原值
+        /// `91e4e27e…af90eb` = 1426 B(15 槽)。本次再追加三个交互目标槽 ——
+        /// 器具 `(10,0,5)` / 医馆面板 `(5,0,9)` / 开关 `(2,0,4)`,文件 1426 → **1697 B**。
+        /// 同前:内容变更,判据不变。</para>
         /// </summary>
         private const string PreRefactorBuildSlotsSha256 =
-            "91e4e27e9a8182484db87602eb09432eaaf982b4e087810c351b0c8aedaf90eb";
+            "681d503dd13cc6f2bb3968cfc4ae910c36eda7e43c3aa61fd4b6884d57ffd1fd";
 
         // ─────────────────────────── AC-1 ───────────────────────────
 
@@ -104,7 +108,7 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(src.Width, Is.EqualTo(16));
             Assert.That(src.Height, Is.EqualTo(1));
             Assert.That(src.Depth, Is.EqualTo(16));
-            Assert.That(src.Slots.Count, Is.EqualTo(15), "P0 种子 = 9 Decor + 4 Shell + 1 Door(AC-4-22)+ 1 Tent(帐篷槽 · S22-8/9)");
+            Assert.That(src.Slots.Count, Is.EqualTo(18), "P0 种子 = 9 Decor + 4 Shell + 1 Door + 1 Utensil + 1 ClinicPanel + 1 Switch + 1 Tent");
         }
 
         // ─────────────────────────── AC-2 ───────────────────────────

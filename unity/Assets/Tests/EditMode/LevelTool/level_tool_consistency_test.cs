@@ -34,7 +34,7 @@ namespace DaYiJingCheng.Tests.LevelTool
 
             Assert.That(report.IsGreen, Is.True,
                 "真种子须全绿,实际违例:\n" + string.Join("\n", report.Violations));
-            Assert.That(src.Slots.Count, Is.EqualTo(15), "P0 种子 = 9 Decor + 4 Shell + 1 Door(AC-4-22)+ 1 Tent(帐篷槽 · S22-8/9)");
+            Assert.That(src.Slots.Count, Is.EqualTo(18), "P0 种子 = 9 Decor + 4 Shell + 1 Door + 1 Utensil + 1 ClinicPanel + 1 Switch + 1 Tent");
             // 🔁 **2026-10-29(关卡工具 story-003 AC-6)7 → 5**:C4 / C5 已实现并移出本表。
             // 🔁 **2026-10-29(关卡工具 story-005 AC-6)5 → 3**:C3 / C6 已实现并移出,
             //    剩 C1 / C2 / C2'(全归 S6)。

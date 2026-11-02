@@ -62,40 +62,75 @@ namespace DaYiJingCheng.Gameplay.Interaction
         }
 
         /// <inheritdoc/>
-        /// <remarks>P0 无器具数据(`build_modules.json` 无对应 SlotType)⇒ 恒空。**不是漏接**:
-        /// `Utensil` 的分类依据尚未在 23 的目录里存在。</remarks>
-        public IReadOnlyList<UtensilDto> Utensils => Array.Empty<UtensilDto>();
+        public IReadOnlyList<UtensilDto> Utensils
+        {
+            get
+            {
+                List<StructureInstance> found = CollectSlots(SlotType.Utensil);
+                var rows = new UtensilDto[found.Count];
+                for (int i = 0; i < found.Count; i++)
+                    rows[i] = new UtensilDto(found[i].Anchor, found[i].StructureId);
+                return rows;
+            }
+        }
 
         /// <inheritdoc/>
-        /// <remarks>P0 无医馆面板数据 ⇒ 恒空(同上)。</remarks>
-        public IReadOnlyList<ClinicPanelDto> ClinicPanels => Array.Empty<ClinicPanelDto>();
+        public IReadOnlyList<ClinicPanelDto> ClinicPanels
+        {
+            get
+            {
+                List<StructureInstance> found = CollectSlots(SlotType.ClinicPanel);
+                var rows = new ClinicPanelDto[found.Count];
+                for (int i = 0; i < found.Count; i++)
+                    rows[i] = new ClinicPanelDto(found[i].Anchor, found[i].StructureId);
+                return rows;
+            }
+        }
 
         /// <inheritdoc/>
         public IReadOnlyList<DoorDto> Doors
         {
             get
             {
-                IModuleCatalog modules = _modulesOf?.Invoke();
-                IEnumerable<StructureInstance> instances = _instancesOf?.Invoke();
-                if (modules == null || instances == null)
-                    return Array.Empty<DoorDto>();
-
-                int baseline = _baselineCountOf?.Invoke() ?? int.MaxValue;
-
-                List<DoorDto> rows = null;
-                foreach (StructureInstance inst in instances)
-                {
-                    if (inst.StructureId > baseline) continue;          // 玩家新建的,不属第四源
-                    if (!IsSlotType(modules, inst.ModuleId, SlotType.Door)) continue;
-                    (rows ??= new List<DoorDto>()).Add(new DoorDto(inst.Anchor, inst.StructureId));
-                }
-                return rows ?? (IReadOnlyList<DoorDto>)Array.Empty<DoorDto>();
+                List<StructureInstance> found = CollectSlots(SlotType.Door);
+                var rows = new DoorDto[found.Count];
+                for (int i = 0; i < found.Count; i++)
+                    rows[i] = new DoorDto(found[i].Anchor, found[i].StructureId);
+                return rows;
             }
         }
 
         /// <inheritdoc/>
-        /// <remarks>P0 无开关数据 ⇒ 恒空(同上)。</remarks>
-        public IReadOnlyList<SwitchDto> Switches => Array.Empty<SwitchDto>();
+        public IReadOnlyList<SwitchDto> Switches
+        {
+            get
+            {
+                List<StructureInstance> found = CollectSlots(SlotType.Switch);
+                var rows = new SwitchDto[found.Count];
+                for (int i = 0; i < found.Count; i++)
+                    rows[i] = new SwitchDto(found[i].Anchor, found[i].StructureId);
+                return rows;
+            }
+        }
+
+        /// <summary>收集基线号段内、模块 `SlotType` 匹配的全部实例(顺序不承载语义)。</summary>
+        private List<StructureInstance> CollectSlots(SlotType type)
+        {
+            IModuleCatalog modules = _modulesOf?.Invoke();
+            IEnumerable<StructureInstance> instances = _instancesOf?.Invoke();
+            if (modules == null || instances == null) return new List<StructureInstance>();
+
+            int baseline = _baselineCountOf?.Invoke() ?? int.MaxValue;
+
+            var rows = new List<StructureInstance>();
+            foreach (StructureInstance inst in instances)
+            {
+                if (inst.StructureId > baseline) continue;          // 玩家新建的,不属第四源
+                if (!IsSlotType(modules, inst.ModuleId, type)) continue;
+                rows.Add(inst);
+            }
+            return rows;
+        }
 
         /// <inheritdoc/>
         public IReadOnlyList<ContainerDto> Containers

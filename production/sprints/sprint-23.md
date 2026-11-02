@@ -398,6 +398,30 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
   R3(容器内容与搜箱时长)/ R4(`world_containers` 无 ADR)。
   原件 = `production/qa/evidence/impl-ac422-door-cabinet-2026-11-02.md`。
 
+**S23-18(2026-11-02):剩下三种接通 —— `Switch` / `Utensil` / `ClinicPanel`(`TD-interaction-03` 仍 partial)**:
+用户指令「修 TD-interaction-03 剩下三种」。
+
+- **数据**:`SlotType.Utensil = 9` / `ClinicPanel = 10` / `Switch = 11`(闭集 8 → **11**)·
+  模块 12 / 13 / 14(`furn_type = null` ⇒ 不进 24 的房间析出)· 槽位 `(10,0,5)` / `(5,0,9)` / `(2,0,4)`
+- **分类**:`BakedInitialSource` 的四切片收成一个 `CollectSlots(SlotType)`(依据 = 模块目录的 `SlotType`)
+- **分派**:`DoorInteractionDriver` → **`StructureToggleDriver`**(构造参 `expectedType` 钉住类型,
+  门 / 开关各一个实例)· 路由新增 `case Switch` / `case ClinicPanel` / `case Utensil`
+- **消费面**:`Switch` → `StructureWriter.Modify`(`StructureModified` 进世界流,**与门同路径**);
+  `ClinicPanel` → `ModalId.ClinicPanel`;**`Utensil` 恒 `null`** —— 18 的炮制面板
+  `AC-18-10b` **EXTERNAL · BLOCKED-BY-42**(`O-18-R6`),`CraftIgnitionTransaction.Process` 零生产调用点
+  ⇒ 选中器具**如实落空**,不伪造消费面
+- **受影响的 pin**:`SlotType` 8→11 · 掩码上界 511→**4095**(越界例 512→4096)·
+  `build_modules` 11→**14** · 槽位 15→**18** · 金标准 SHA 1426→**1697 B**(第三次重签)·
+  `clinic_room_matching_e2e` 模块数 11→14
+- **读数**:EditMode `6590/6553/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-17` 的 `6581/6544` · `297/293`;等式 `+9 = 4 + 4 + 1`,按类从 XML 实数取证,PM `+0`)。
+  证伪 **N1–N6 全红**,六文件 SHA-256 逐字节还原 6/6。
+- ⚠️ **`PM exit=2` 是本仓 PlayMode 的常态**(四次历史运行皆 2)⇒ 判据取 XML 的 `failed`,不取退出码。
+- ⚠️ **全量 EditMode 三元组取自订正前树**:跑完后订正了 `door_interaction_test.cs:24` 的**类注释旧名**
+  (纯注释)⇒ 补一次 `ModularBuilding` 过滤跑回证 `242/242/0/0/0`,并如实登记该偏离。
+- **仍未闭**:`Utensil` 的消费面(消解条件要求「每种至少一个消费者接通」)⇒ 债维持 **`partial`**,
+  残余收窄为「一种消费面待 42 认领」。原件 = `production/qa/evidence/impl-tdi03-remaining-kinds-2026-11-02.md`。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。

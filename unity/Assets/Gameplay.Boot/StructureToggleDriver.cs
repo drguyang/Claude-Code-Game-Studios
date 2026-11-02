@@ -1,4 +1,5 @@
-// 门的开 / 合消费面(4 → 23)· 2026-11-02 · `AC-4-22` 兑现轮。
+// **两态结构**的开 / 合消费面(4 → 23)· 2026-11-02 · `AC-4-22` 兑现轮
+// (`TD-interaction-03` 收口轮由「门专用」泛化为「门 / 开关共用」)。
 //
 // 权威来源:
 //   GDD `interaction-system.md` 规则一(4 只选目标,不结算 —— 门改几何归 23)
@@ -21,25 +22,36 @@ using DaYiJingCheng.Sim.World;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
-    /// <summary>玩家的「开门 / 关门」意图 → 23 的 `StructureModified`。</summary>
-    public sealed class DoorInteractionDriver
+    /// <summary>
+    /// 玩家的「开 / 合」意图 → 23 的 `StructureModified`。
+    /// <para>门(`SlotType.Door`)与开关(`SlotType.Switch`)共用本类:二者的状态模型相同
+    /// (两态 = `Variant` 0/1,写路径 = `StructureModified`),差别只在**下游效果** ——
+    /// 门影响可通行性(`World.IsEffectivelyWalkable` 读它),开关今日无读者。</para>
+    /// <para>⚠️ 分类守卫由构造参 `expectedType` 钉住:一个门驱动器**不得**改开关的 variant,
+    /// 反之亦然(否则 `StructureModified` 会静默改掉一个无关结构)。</para>
+    /// </summary>
+    public sealed class StructureToggleDriver
     {
+        private readonly SlotType _expectedType;
         private readonly Func<StructureInstanceRegistry> _structuresOf;
         private readonly Func<IModuleCatalog> _modulesOf;
         private readonly Func<StructureWriter> _writerOf;
         private readonly Func<long> _tick;
 
         /// <summary>构造。</summary>
+        /// <param name="expectedType">只允许切换的模块类型(`Door` / `Switch`)。</param>
         /// <param name="structuresOf">结构实例表来源(读当前 `Variant`;可 null = 未接世界)。</param>
         /// <param name="modulesOf">模块目录(判「这个模块是不是门」;可 null = 不可判)。</param>
         /// <param name="writerOf">23 的写者(可 null = 未装配 ⇒ `Toggle` 返回 false)。</param>
         /// <param name="tick">当前逻辑 tick 来源(事件时点)。</param>
-        public DoorInteractionDriver(
+        public StructureToggleDriver(
+            SlotType expectedType,
             Func<StructureInstanceRegistry> structuresOf,
             Func<IModuleCatalog> modulesOf,
             Func<StructureWriter> writerOf,
             Func<long> tick)
         {
+            _expectedType = expectedType;
             _structuresOf = structuresOf;
             _modulesOf = modulesOf;
             _writerOf = writerOf;
@@ -47,9 +59,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 切换一次门的开合。
+        /// 切换一次目标的开合。
         /// </summary>
-        /// <param name="structureId">被选中的门的 `structure_id`(4 的 `StableId`)。</param>
+        /// <param name="structureId">被选中的结构的 `structure_id`(4 的 `StableId`)。</param>
         /// <returns>true = 已切换并写出 `StructureModified`;false = 不存在 / 不是门 / 未接线。</returns>
         public bool Toggle(long structureId)
         {
@@ -60,12 +72,12 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             if (!structures.TryGet(structureId, out StructureInstance inst)) return false;
 
-            // ⚠️ **只接受门** —— 若 4 的候选分类错了(或载荷被伪造),不得把别的家具的
-            //    variant 改掉(那会让 `StructureModified` 静默改一个无关结构)。
+            // ⚠️ **只接受构造时点名的类型** —— 若 4 的候选分类错了(或载荷被伪造),不得把
+            //    别的家具的 variant 改掉(那会让 `StructureModified` 静默改一个无关结构)。
             ModuleDefinition? def = modules.GetModuleDefinition(inst.ModuleId);
-            if (!def.HasValue || def.Value.SlotType != SlotType.Door) return false;
+            if (!def.HasValue || def.Value.SlotType != _expectedType) return false;
 
-            if (inst.Variant != 0 && inst.Variant != 1) return false;   // 门的合法态只有两态
+            if (inst.Variant != 0 && inst.Variant != 1) return false;   // 两态结构的合法态只有两态
 
             int next = inst.Variant == 0 ? 1 : 0;
             return writer.Modify(structureId, newOrientation: null, newVariant: next, tick: _tick());

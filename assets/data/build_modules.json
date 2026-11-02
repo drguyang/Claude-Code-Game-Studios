@@ -100,6 +100,33 @@
       "occupancy_local": [[0, 0, 0]],
       "cost": 2,
       "refundable": false
+    },
+    {
+      "module_id": 12,
+      "module_type": "Utensil",
+      "furn_type": null,
+      "build_item_key": 8,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 3,
+      "refundable": false
+    },
+    {
+      "module_id": 13,
+      "module_type": "ClinicPanel",
+      "furn_type": null,
+      "build_item_key": 8,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 2,
+      "refundable": false
+    },
+    {
+      "module_id": 14,
+      "module_type": "Switch",
+      "furn_type": null,
+      "build_item_key": 8,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 1,
+      "refundable": false
     }
   ]
 }

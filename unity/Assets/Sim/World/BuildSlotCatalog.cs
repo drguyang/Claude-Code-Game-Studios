@@ -35,9 +35,32 @@ namespace DaYiJingCheng.Sim.World
         /// 门(2026-11-02 · `AC-4-22` 兑现轮)。
         /// <para>为什么单列一类而不是复用 `Shell`:门的**可通行性随开合变化**(开 = 可走,
         /// 关 = 阻挡),而 `Shell` 是「墙 / 地基,P0 永久阻挡」—— 混用会让「这是墙还是门」
-        /// 只能靠 module_id 魔法值分辨。门的状态住世界流(`DoorToggled`),不进本枚举。</para>
+        /// 只能靠 module_id 魔法值分辨。门的状态住世界流(2026-11-02 起 = `StructureModified`
+        /// 的 `NewVariant`,**不新开 Kind**),不进本枚举。</para>
         /// </summary>
-        Door    = 8
+        Door    = 8,
+
+        /// <summary>
+        /// 灶台 / 器具(18 炮制的准入门,2026-11-02 · `TD-interaction-03` 收口)。
+        /// <para>它是**交互目标**(4 的 `Utensil` kind),不是普通家具 —— 选中后路由给 18。
+        /// ⚠️ 18 的面板屏幕尚未被 42 屏清单认领(`O-18-R6` / `AC-18-10b` BLOCKED-BY-42)
+        /// ⇒ 本类今日**可被选出**,消费面仍是 `null`(诚实降级,见路由)。</para>
+        /// </summary>
+        Utensil = 9,
+
+        /// <summary>
+        /// 医馆面板(24,2026-11-02 · `TD-interaction-03` 收口)。
+        /// <para>选中 ⇒ 42 的 `ModalId.ClinicPanel`(屏已存在)。</para>
+        /// </summary>
+        ClinicPanel = 10,
+
+        /// <summary>
+        /// 开关(6 / 23,2026-11-02 · `TD-interaction-03` 收口)。
+        /// <para>与门同构的状态件(开 / 合 = `Variant` 0/1,写路径 = `StructureModified`),
+        /// 但**不参与可通行性**。P0 无电路 / 灯具消费者 ⇒ 本类今日「**可被选出并路由**,
+        /// 状态进流,尚无下游读者」(如实登记,不假装有读者)。</para>
+        /// </summary>
+        Switch = 11
     }
 
     /// <summary>单槽位定义(整数坐标 + 允许的模块类型 + 开档基线)。</summary>

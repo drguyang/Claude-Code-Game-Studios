@@ -4,7 +4,7 @@
 //   ADR-022 §二(唯一作者 = 关卡工具)· §三(导出契约含 `BakedInitial`)
 //   ADR-015 §三(整数格)· GDD modular-building.md 规则一(槽位骨架)
 //
-// ⚠️ **规模刻意最小**:只铺 15 格(9 格的 Decor 3×3 区 + 4 格的 Shell 条 + 1 门 + 1 帐篷槽),落在
+// ⚠️ **规模刻意最小**:只铺 18 格(9 Decor 区 + 4 Shell 条 + 门 / 器具 / 医馆面板 / 开关 + 1 帐篷槽),落在
 //    `MinimalWorldFactory` 的 16×1×16 合成世界内,**其余 243 格一律非槽位** ——
 //    「非槽位格」是既有夹具(`test_acB2_placeOnNonSlotCell_returnsSlotNotFoundWithZeroSlots` 类)
 //    仍然有意义的必要条件。铺满 = 让「不在区域内」这条判据失去观察面。
@@ -98,6 +98,28 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>门槽的 z(与 Shell 条带同一条墙线)。</summary>
         public const int DoorCellZ = ShellStripZ;
 
+        /// <summary>器具(灶台)槽的模块 id(`build_modules.json` 的 12 = `Utensil`)。</summary>
+        /// <remarks>🔁 2026-11-02(`TD-interaction-03` 收口)。4 的 `Utensil` kind 的载体;
+        /// 消费面(18 的炮制面板)仍 `BLOCKED-BY-42`(`O-18-R6` / `AC-18-10b`)。</remarks>
+        public const int UtensilModuleId = 12;
+        /// <summary>医馆面板槽的模块 id(`build_modules.json` 的 13 = `ClinicPanel`)。</summary>
+        public const int ClinicPanelModuleId = 13;
+        /// <summary>开关槽的模块 id(`build_modules.json` 的 14 = `Switch`)。</summary>
+        public const int SwitchModuleId = 14;
+
+        /// <summary>器具槽的格(内景东侧空地)。</summary>
+        public const int UtensilCellX = 10;
+        /// <summary>见 <see cref="UtensilCellX"/>。</summary>
+        public const int UtensilCellZ = 5;
+        /// <summary>医馆面板槽的格。</summary>
+        public const int ClinicPanelCellX = 5;
+        /// <summary>见 <see cref="ClinicPanelCellX"/>。</summary>
+        public const int ClinicPanelCellZ = 9;
+        /// <summary>开关槽的格(门内一侧)。</summary>
+        public const int SwitchCellX = 2;
+        /// <summary>见 <see cref="SwitchCellX"/>。</summary>
+        public const int SwitchCellZ = 4;
+
         /// <summary>帐篷槽的格(骨架外 · `modular-building.md` 规则六)。</summary>
         public const int TentCellX = 12;
         /// <summary>帐篷槽的 z。</summary>
@@ -136,6 +158,20 @@ namespace DaYiJingCheng.EditorTools.Level
             slots.Add(new SlotSpec(
                 DoorCellX, 0, DoorCellZ, SlotType.Door,
                 bakedInitial: true, moduleId: DoorModuleId));
+
+            // ── 交互目标三件(2026-11-02 · `TD-interaction-03` 收口)──────────
+            // 三件都是**开档既有**(`baked_initial = true`):4 的第四源按模块 `SlotType`
+            // 把它们分类成 `Utensil` / `ClinicPanel` / `Switch` 候选。
+            // ⚠️ `furn_type = null` ⇒ 它们**不参与** 24 的房间析出(那是家具语义)。
+            slots.Add(new SlotSpec(
+                UtensilCellX, 0, UtensilCellZ, SlotType.Utensil,
+                bakedInitial: true, moduleId: UtensilModuleId));
+            slots.Add(new SlotSpec(
+                ClinicPanelCellX, 0, ClinicPanelCellZ, SlotType.ClinicPanel,
+                bakedInitial: true, moduleId: ClinicPanelModuleId));
+            slots.Add(new SlotSpec(
+                SwitchCellX, 0, SwitchCellZ, SlotType.Switch,
+                bakedInitial: true, moduleId: SwitchModuleId));
 
             // ── 帐篷槽(P0 唯一新建例外)──────────────────────────────────
             // `game-concept.md:697-698`(2026-09-20 改判「P0 也必须能新建」)·

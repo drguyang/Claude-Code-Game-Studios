@@ -15797,3 +15797,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `$PWD` 不可信,必须写绝对 `unity/` 路径**
 - 证据:`production/qa/evidence/impl-ac422-door-cabinet-2026-11-02.md`
 
+
+## Session Extract — 剩下三种 / TD-interaction-03 收窄(2026-11-02 · S23-18)
+
+- **接通三种**:`Switch`(`SlotType.Switch = 11` + 模块 14 + 槽 `(2,0,4)`;路由 → 共用的
+  `StructureToggleDriver` → `StructureModified` 进世界流)· `ClinicPanel`(模块 13 + 槽 `(5,0,9)`;
+  路由 → `ModalId.ClinicPanel`)· `Utensil`(模块 12 + 槽 `(10,0,5)`;**仅选择 + 分类**)
+- **改名**:`DoorInteractionDriver` → `StructureToggleDriver`(构造参 `expectedType` 钉住可切换类型)
+- **分类收口**:`BakedInitialSource` 四切片收成 `CollectSlots(SlotType)`
+- **`Utensil` 消费面为何不接**:18 的炮制面板 `AC-18-10b` EXTERNAL · BLOCKED-BY-42(`O-18-R6`),
+  `CraftIgnitionTransaction.Process` 零生产调用点 ⇒ 生产装配 `enterProcessing: null`,
+  选中即**如实落空**(不伪造第三套消费面;接线点留在 `BootRoot` 一处)
+- **回归**:EditMode `6590/6553/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-17` 的 `6581/6544`·`297/293`;`+9 = 4+4+1` 按类从 XML 实证,PM `+0`)
+- **证伪 N1–N6 全红**,六文件 SHA-256 逐字节还原 6/6
+- ⚠️ **`PM exit=2` 是本仓常态**(四次历史运行皆 2)⇒ 判据取 XML `failed`,不取退出码
+- ⚠️ **偏离如实登记**:全量 EditMode 跑完后订正了 `door_interaction_test.cs:24` 的类注释旧名
+  (纯注释)⇒ 补 `ModularBuilding` 过滤跑 `242/242/0/0/0` 作订正后回证
+- **仍未闭**:`Utensil` 消费面 ⇒ 债维持 **`partial`**,残余收窄为「一种消费面待 42 认领」
+- 证据:`production/qa/evidence/impl-tdi03-remaining-kinds-2026-11-02.md`

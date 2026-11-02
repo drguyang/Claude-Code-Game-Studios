@@ -20,25 +20,34 @@ namespace DaYiJingCheng.Tests.Interaction
     {
         private const int DoorModule = 11;
         private const int DecorModule = 7;
+        private const int UtensilModule = 12;
+        private const int ClinicPanelModule = 13;
+        private const int SwitchModule = 14;
 
         private static IModuleCatalog Catalog() => new FakeCatalog(
             (DoorModule, SlotType.Door),
-            (DecorModule, SlotType.Decor));
+            (DecorModule, SlotType.Decor),
+            (UtensilModule, SlotType.Utensil),
+            (ClinicPanelModule, SlotType.ClinicPanel),
+            (SwitchModule, SlotType.Switch));
 
         private static StructureInstanceRegistry Registry()
         {
             var reg = new StructureInstanceRegistry();
             var nullCells = new[] { new WorldPos(0, 0, 0) };
 
-            // id 1..2 = 基线(开档自带);id 3 = 玩家新建(号段外)
+            // id 1..5 = 基线(开档自带);id 6 = 玩家新建(号段外)
             reg.Restore(1, new WorldPos(5, 0, 5), DoorModule, 0, 0, nullCells);
             reg.Restore(2, new WorldPos(6, 0, 6), DecorModule, 0, 0, nullCells);
-            reg.Restore(3, new WorldPos(7, 0, 7), DoorModule, 0, 0, nullCells);
+            reg.Restore(3, new WorldPos(10, 0, 5), UtensilModule, 0, 0, nullCells);
+            reg.Restore(4, new WorldPos(5, 0, 9), ClinicPanelModule, 0, 0, nullCells);
+            reg.Restore(5, new WorldPos(2, 0, 4), SwitchModule, 0, 0, nullCells);
+            reg.Restore(6, new WorldPos(7, 0, 7), DoorModule, 0, 0, nullCells);
             return reg;
         }
 
         private static BakedInitialSource Source(
-            StructureInstanceRegistry reg, int baseline = 2,
+            StructureInstanceRegistry reg, int baseline = 5,
             IReadOnlyList<ContainerDto> containers = null)
             => new BakedInitialSource(
                 instancesOf: () => reg.EnumerateInstances(),
@@ -54,7 +63,7 @@ namespace DaYiJingCheng.Tests.Interaction
             IReadOnlyList<DoorDto> doors = Source(Registry()).Doors;
 
             Assert.AreEqual(1, doors.Count, "只有基线号段内的门");
-            Assert.AreEqual(1L, doors[0].StructureId, "玩家新建的门(id 3)不属第四源");
+            Assert.AreEqual(1L, doors[0].StructureId, "玩家新建的门(id 6)不属第四源");
             Assert.AreEqual(new WorldPos(5, 0, 5), doors[0].Cell);
         }
 
@@ -84,6 +93,47 @@ namespace DaYiJingCheng.Tests.Interaction
             Assert.AreEqual(1, got.Count);
             Assert.AreEqual(1L, got[0].InstanceId, "容器走 instance_id(不是 structure_id)");
             Assert.AreEqual(new WorldPos(5, 0, 5), got[0].Cell);
+        }
+
+        // ══════════════ ④之二 三种新切片(2026-11-02 · TD-interaction-03 收口)══════════════
+
+        [Test]
+        public void test_utensils_baselineUtensil_isIncluded()
+        {
+            IReadOnlyList<UtensilDto> got = Source(Registry()).Utensils;
+
+            Assert.AreEqual(1, got.Count);
+            Assert.AreEqual(3L, got[0].StructureId);
+            Assert.AreEqual(new WorldPos(10, 0, 5), got[0].Cell);
+        }
+
+        [Test]
+        public void test_clinicPanels_baselinePanel_isIncluded()
+        {
+            IReadOnlyList<ClinicPanelDto> got = Source(Registry()).ClinicPanels;
+
+            Assert.AreEqual(1, got.Count);
+            Assert.AreEqual(4L, got[0].StructureId);
+            Assert.AreEqual(new WorldPos(5, 0, 9), got[0].Cell);
+        }
+
+        [Test]
+        public void test_switches_baselineSwitch_isIncluded()
+        {
+            IReadOnlyList<SwitchDto> got = Source(Registry()).Switches;
+
+            Assert.AreEqual(1, got.Count);
+            Assert.AreEqual(5L, got[0].StructureId);
+            Assert.AreEqual(new WorldPos(2, 0, 4), got[0].Cell);
+        }
+
+        [Test]
+        public void test_eachSlice_isDisjoint_noModuleLeaksAcrossKinds()
+        {
+            BakedInitialSource src = Source(Registry());
+            int total = src.Doors.Count + src.Utensils.Count + src.ClinicPanels.Count + src.Switches.Count;
+
+            Assert.AreEqual(4, total, "基线 5 件里 1 件是 Decor ⇒ 其余四类各恰 1 件(互不串类)");
         }
 
         // ══════════════ ⑤ 缺依赖 ══════════════
