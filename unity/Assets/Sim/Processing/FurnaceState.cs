@@ -138,6 +138,17 @@ namespace DaYiJingCheng.Sim.Processing
                 if (e.Tick > tick) continue;   // 前缀:尚未发生(存在时点 = envelope)
 
                 EventOrderKey at = EventOrder.KeyOf(e);
+                // 🔁 **2026-11-02(`TD-processing-03` 甲案)**:同键(`at == best`)时取**先遇到者**
+                // (`<= 0` ⇒ 后到者 continue)。**该分支在合法流上不可达**,理由两条且都是结构性:
+                //   ① `Seq` 发号器每 `(Tick, Patient)` 组复位并递增(`EventStream.cs:262-276`)
+                //      ⇒ 主机正常 Append 的两条同 `(Tick, Patient)` 事件**必然不同号**;
+                //   ② `EventStream` 按四元组 `(Kind, Patient, Tick, Seq)` 去重(`:242-244`)
+                //      ⇒ 同键重复 Append 被挡在入流之前。
+                // ⇒ 「同键两条 `Craft`」只可能来自**流损坏**(手搓 / 存档损坏),不是合法输入。
+                // 口径 = **防御性**(取先入者而非抛):ADR-008 §二 的「全序无平局」是**上游保证**,
+                // 消费方不重复校验它 —— 在此抛等于造一条**零输入可达的门**(本项目已登记该假绿形态)。
+                // ⚠️ 本行**不是**被任何 AC 钉住的行为;若将来要改「同键取后入者」,改 `<= 0` 即可,
+                // 唯一受影响的是 `furnace_busy_count_equivalence_test` 的 M3 靶。
                 if (found && at.CompareTo(best) <= 0) continue;
 
                 found = true;
@@ -170,7 +181,7 @@ namespace DaYiJingCheng.Sim.Processing
         {
             if (!TryGetLatest(events, decoder, actorId, tick, out FurnaceOccupancy occ))
                 return false;
-            return tick < occ.CompleteTick;
+            return IsBusyCore(in occ, tick);
         }
 
         /// <summary>该 actor 最后一炉的完成时点(F-18.3)—— Story 005 的调度消费本条谓词。
@@ -199,8 +210,17 @@ namespace DaYiJingCheng.Sim.Processing
         }
 
         /// <summary>此时点**正在烧**的玩家数(AC-18-23 的跨玩家并发判据面)。
-        /// <para>⚠️ 逐 actor 委托 <see cref="IsBusy"/>,**不**另写一份「忙」的判据 ——
-        /// 两份判据会在某次修订里分叉(本项目已抓过多次的「第二真源」形态)。</para>
+        /// <para><b>单遍扫描</b>(2026-11-02 · `TD-processing-04`):一次遍历同时算出
+        /// **每个 actor 的「最后一炉」**,再逐 actor 走**同一个**判据
+        /// <see cref="IsBusyCore"/> —— 旧实现是「扫一遍收 actor 集合 + 逐 actor 重扫全流」,
+        /// 解码次数 = `O(A×E)`,actor 越多越放大。</para>
+        /// <para>⚠️ <b>`IsBusy` 仍是唯一判据</b>(债册的硬要求):单遍扫描**不另写一份「忙」的判据**,
+        /// 它只**产出** `IsBusy` 所需的中间量(<see cref="FurnaceOccupancy"/>),最后仍调同一个核心谓词
+        /// —— 两份判据会在某次修订里分叉(本项目已抓过多次的「第二真源」形态)。</para>
+        /// <para>⚠️ <b>两处行为细节刻意与 <see cref="TryGetLatest"/> 逐条对齐</b>,否则本方法与
+        /// 「逐 actor 问 `IsBusy`」会在边界上分叉:
+        /// ① 时长域先验(`DurationTicks &lt; 1` ⇒ 抛)**不论是否落在前缀内**;
+        /// ② 前缀与定序都只用 **envelope `e.Tick`**,全序键取最大(W1 订正的口径)。</para>
         /// </summary>
         /// <param name="events">事件流(可为全流)。</param>
         /// <param name="decoder">载荷解码器。</param>
@@ -216,22 +236,55 @@ namespace DaYiJingCheng.Sim.Processing
                     "未注入 IPayloadDecoder —— 拒绝返回 0(那是「没人在烧」的静默失效)");
             if (events == null) return 0;
 
-            var actors = new HashSet<int>();
+            // 每个 actor 的「最后一炉」(截至 tick 的前缀)。键 = actorId。
+            var latest = new Dictionary<int, FurnaceOccupancy>();
+            // ⚠️ 另存一份**出现次序**:字典枚举序不保证稳定 ⇒ 虽不影响计数,
+            //    但会让「非法流先抛哪一条」不稳定 —— 那是可观测的行为。
+            var actors = new List<int>();
+
             for (int i = 0; i < events.Count; i++)
             {
                 SimEvent e = events[i];
                 if (e.Kind != EventKind.Craft) continue;
 
                 CraftPayload p = decoder.Decode<CraftPayload>(e.Kind, e.Payload);
-                actors.Add(p.ActorId);
+
+                // ① 时长域先验 —— **不论是否落在前缀内**(与 `TryGetLatest` 同位置同语义)。
+                if (p.DurationTicks < 1)
+                    throw new InvalidOperationException(
+                        $"[炮制] actor {p.ActorId} 的 Craft.duration_ticks = {p.DurationTicks} < 1 " +
+                        "—— 21a 数据表硬失败族(规则八:duration_ticks 归 21a,18 只消费)");
+
+                if (e.Tick > tick) continue;   // ② 前缀:尚未发生(存在时点 = envelope)
+
+                EventOrderKey at = EventOrder.KeyOf(e);
+                if (latest.TryGetValue(p.ActorId, out FurnaceOccupancy prev))
+                {
+                    if (at.CompareTo(prev.At) <= 0) continue;   // 不是更大 ⇒ 保留旧的
+                    latest[p.ActorId] = new FurnaceOccupancy(true, p.StartTick, p.DurationTicks, at);
+                }
+                else
+                {
+                    latest[p.ActorId] = new FurnaceOccupancy(true, p.StartTick, p.DurationTicks, at);
+                    actors.Add(p.ActorId);
+                }
             }
 
             int busy = 0;
-            foreach (int actor in actors)
+            for (int i = 0; i < actors.Count; i++)
             {
-                if (IsBusy(events, decoder, actor, tick)) busy++;
+                if (IsBusyCore(latest[actors[i]], tick)) busy++;
             }
             return busy;
         }
+
+        /// <summary>「忙」的**唯一谓词核** —— <see cref="IsBusy"/> 与
+        /// <see cref="BusyActorCount"/> 都走这里。
+        /// <para>⚠️ 抽出来的目的 = **防第二真源**(`TD-processing-04` 的硬要求):
+        /// 单遍扫描若自己写一份 `tick &lt; completeTick`,两处判据迟早分叉。
+        /// 抽成一处后,改「完成当拍忙不忙」的口径只需改这一个 `<`。</para>
+        /// </summary>
+        private static bool IsBusyCore(in FurnaceOccupancy occ, long tick)
+            => occ.Exists && tick < occ.CompleteTick;
     }
 }

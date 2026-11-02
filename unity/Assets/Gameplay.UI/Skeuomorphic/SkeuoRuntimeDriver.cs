@@ -284,9 +284,46 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             ring.pickingMode = PickingMode.Ignore;
             ring.focusable = false;
             if (_focusRingSprite != null)
+            {
+                // 🔁 **2026-11-02(`TD-skeuo-01` 丁案)—— 代码灌注 sprite 的 fail-loud 守卫**。
+                // 实测归因(`nineslice-probe-2026-10-31`):**代码灌注 sprite** 路径上,
+                // 当元素**两轴都**小于 sprite 的 border 之和时,渲染成**纯色黑块** ——
+                // 零报错、零夹具转红(元素尺寸不在任何断言面上)。
+                // ⚠️ USS 路径**结构性免疫**(`url("guid:…")` 解析成 Texture2D、sprite=null)。
+                // ⇒ 生产里**唯一**的代码灌注点就是这里(border = 2 ⇒ 和 = 4),离界一个数量级;
+                //   守卫把「将来有人调大 slice 或缩小环」的静默黑块变成**抛**。
+                // ⚠️ 静态门在这里不可靠(元素尺寸由布局决定,编译期读不到)⇒ 只能运行期判。
+                // `Sprite.border` = Vector4(left, bottom, right, top),单位 px(float)。
+                // ⇒ 横轴 = x+z,纵轴 = y+w;两轴**同时**越界才黑块,故取两轴最大值判。
+                var border = _focusRingSprite.border;
+                float borderSum = Mathf.Max(border.x + border.z, border.y + border.w);
+                if (borderSum > 0f && borderSum > FocusRingMinSide())
+                {
+                    throw new InvalidOperationException(
+                        $"[SkeuoRuntimeDriver] 焦点环 sprite 的 border 之和 = {borderSum}px " +
+                        $"超过环的最小边长 {FocusRingMinSide()}px —— 代码灌注 sprite 会渲染成" +
+                        "纯色黑块(实测归因,TD-skeuo-01)。须减小 slice 或加大环尺寸。");
+                }
                 ring.style.backgroundImage = new StyleBackground(_focusRingSprite);
+            }
             return ring;
         }
+
+        /// <summary>
+        /// 焦点环的**最小边长**(px)—— 代码灌注 sprite 的守卫下界(`TD-skeuo-01`)。
+        /// </summary>
+        /// <remarks>
+        /// <para>值 = **44**,出处 = AB-3「焦点落点 ≥ 44×44」,与 USS 变量
+        /// <c>--skeuo-shared-row-height: 44px</c>(`SkeuoThemeVariables.uss:149`)同源。
+        /// 环是 <c>position: absolute</c> + 四向 0 的 overlay ⇒ 它**恰等于目标边界**
+        /// ⇒ 目标的最小边即环的最小边。</para>
+        /// <para>⚠️ 这里**读不到** USS 自定义属性(UI Toolkit 运行期无公开 API),
+        /// 故以常量承载同一数值。两处若分叉,USS 侧改 `--skeuo-shared-row-height` 时
+        /// 本常量须同改 —— 但**只会让守卫更保守或更松**,不会造成黑块。</para>
+        /// </remarks>
+        private const int FocusRingMinSidePx = 44;
+
+        private static int FocusRingMinSide() => FocusRingMinSidePx;
 
         /// <summary>查找目标上已挂的环(失焦移除 / 防重入用)。</summary>
         private static VisualElement FindFocusRing(VisualElement target)

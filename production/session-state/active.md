@@ -15816,3 +15816,68 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (纯注释)⇒ 补 `ModularBuilding` 过滤跑 `242/242/0/0/0` 作订正后回证
 - **仍未闭**:`Utensil` 消费面 ⇒ 债维持 **`partial`**,残余收窄为「一种消费面待 42 认领」
 - 证据:`production/qa/evidence/impl-tdi03-remaining-kinds-2026-11-02.md`
+
+## Session Extract — UI 载体归位 / TD-skeuo-02 关闭(2026-11-02 · S23-19)
+
+- **取甲案**:`BootRoot.FindOrCreateSkeuoUi` 两条路径都 `SetParent(transform)`
+  (预摆件 `IsChildOf` 守卫 + 自建件直接归位),与 `EnsureEventSystem` 同款
+- **为何不重建预摆件**:它持 `UIDocument` + `PanelSettings`(渲染资源唯一来源),
+  重建只会得到 `panel == null` 的空壳
+- **新增判据**:`Tests/PlayMode/SkeuomorphicUI/skeuo_ui_lifetime_test.cs` 两条
+  (归位 + 销毁闭合/新实例干净态);② 带 F4 前置正控(先开 `Pause` 再销毁)
+- **证伪 N1–N3 全红**,SHA-256 逐字节还原 3/3(`2440830…`)
+- ⚠️ **过程事故(如实登记)**:证伪脚本 v1 的 `$2` 未绑定 bug ⇒ Unity 没跑 + 还原没做,
+  变异残留跨命令。已从 HEAD 逆向剥离重建 + 新写 v2(锚点预检 / 逐条 MUTATION 强校验 / 收尾哈希)
+- ⚠️ **首轮全量 PlayMode 我自己的夹具红**:「零驱动存活」是全局判据,前一夹具的
+  `[TearDown] Destroy` 延迟到帧末 ⇒ 断言当刻它还活着。修法 = `[UnitySetUp]` 先清场并让出一帧
+- **42 侧整类回证**:`83/83/0/0/0` @ 12:28:57(前序夹具在场时不再误红)
+- 证据:`production/qa/evidence/impl-td-skeuo-02-ui-lifetime-2026-11-02.md`
+
+## Session Extract — 读档高水位 / TD-persist-12 关闭(2026-11-02 · S23-20)
+
+- **病因**:物品 / 受伤实体两个高水位重构的**生产调用点 = 0** ⇒ 读档后计数器停在装配期值
+  ⇒ 存档里更大的 id 被复用 ⇒ fold 静默合并 / 病人 id 复用
+- **落地**:`CompositionRoot` 的 `Func<IEnumerable<long>> bakedInitialItemIds`(惰性)+
+  `afterRestore` 内**先**重构两高水位、**再**重建派生态;受伤实体扫**三流 ∪ 折叠行**
+- **订正原文**:「基线不导出 item 实例 id」半边已在 `AC-4-22` 落地,本轮补读档路径那半
+- **新增夹具**:`load_highwater_wiring_test.cs` 4 条(真装配根 + 生产 `afterRestore`)
+- **证伪 M1/M3/M4 全红**,SHA-256 逐字节还原 3/3
+- ⚠️ **M2 假存活(本轮主要发现)**:原「基线半边参与」断言**结构上不可判**
+  (`IdAuthority` 只升不降 + 装配期已抬到 `baselineMax+1`)⇒ 删断言 + 改判据 + 变异标作废
+- 证据:`production/qa/evidence/impl-td-persist-12-highwater-on-load-2026-11-02.md`
+
+## Session Extract — BusyActorCount 单遍扫描 / TD-processing-04 关闭(2026-11-02 · S23-21)
+
+- **病因**:旧实现逐 actor 重扫全流 ⇒ `O(A×E)` 解码
+- **修法**:单遍扫描 + 抽出 `IsBusyCore`(「忙」的唯一谓词核,两处都调它)
+- **新增夹具**:`furnace_busy_count_equivalence_test.cs` 4 条
+- **证伪 M1–M4 全红**(全 exact),SHA-256 逐字节还原 4/4
+- ⚠️ **M1 首轮假存活**(去掉 `Exists` 守卫在该调用点等价)⇒ 改靶为口径分叉
+- ⚠️ **不能宣称**:加速未测 · 债名写「分配」而实际优化的是解码/遍历遍数
+- 证据:`production/qa/evidence/impl-td-processing-04-busy-count-2026-11-02.md`
+
+## Session Extract — pipe 抽象 P0 预埋 / TD-net-01 关闭(2026-11-02 · S23-22)
+
+- **病因**:ADR-001 把 pipe 抽象落地级别定为 **P0**(五处逐字),而 `IReplayPipe` 全树零命中、
+  `ReorderBuffer` 生产零命中 ⇒ 八个抽象点落 7 个
+- **落地**:`Sim.Contracts/IReplayPipe.cs`(接口 + `ReorderBuffer`)+ `Sim/LocalReplayPipe.cs`(本地占位)
+- **两处设计判断**:接口住 `Sim.Contracts`(须被 `Sim` 看见)/ 实现住 `Sim`(要算全序键);
+  `TryEnqueue` 的键是形参(内部现算 = 第二真源)
+- **新增夹具**:`Tests/EditMode/Networking/replay_pipe_contract_test.cs` 8 条
+- **证伪 M1–M7 全红**(M7 打 2 条),SHA-256 逐字节还原 7/7 + `FINAL-OK`
+- ⚠️ **不能宣称**:不测网络 · 不测本地路径乱序(结构上不发生)· ADR-001 F3 主线程排队义务未验证
+- 证据:`production/qa/evidence/impl-td-net-01-replay-pipe-2026-11-02.md`
+
+## Session Extract — 三条「欠裁决」债 / 裁决简报 + 按建议执行(2026-11-02 · S23-23)
+
+- **前置**:剩余 10 条逐条核后,三条**不是做不动,是欠裁决**
+- **裁决简报**:`production/qa/evidence/adjudication-brief-3debts-2026-11-02.md`(选项 / 后果 / 建议)
+- **执行**:
+  - `TD-processing-03`(甲):同键分支注释(写明结构上不可达)+ 夹具 + **ADR-008 Validation 一项 `[ ]`→`[x]`**
+  - `TD-building-04`(乙):**ADR-010 Amendment A** —— `structure_id` 独立空间,显式登记未来触发条件
+  - `TD-skeuo-01`(丁+丙):焦点环 border 运行期 fail-loud 守卫 + 夹具 2 条
+- **证伪**:TDP03-M1 恰 1 红 · SK1 恰 1 红;两文件 SHA-256 逐字节还原
+- ⚠️ **不能宣称**:不可达是论证非观测 · 乙案只承认机制不存在 · 丁案不阻止新灌注点
+- **读数**:EditMode `6607/6570/0/0/37` @ `16:12:58` · PlayMode `301/297/0/2/2` @ `16:14:10`
+  (基线 `6606/6569` · `299/295`;等式 EM `+1` · PM `+2`)
+- 债册:`open 10 → 7` · `closed 135 → 138` · `未闭 P0 面 = 0` · `--check` 通过

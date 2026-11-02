@@ -511,7 +511,15 @@ struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; PlayerId 
 ## Validation Criteria
 
 - [ ] EditMode 探针:两条流的 Append 路由按 Kind 白名单分发
-- [ ] 单测:跨流全序 `(Tick, StreamPriority, Patient, Seq)` 无平局
+- [x] 单测:跨流全序 `(Tick, StreamPriority, Patient, Seq)` 无平局
+  —— **2026-11-02 复核(`TD-processing-03` 甲案):该项已被既有夹具覆盖**,
+  `Tests/EditMode/CaseSystem/case_identity_routing_test.cs::test_crossStreamOrder_deterministicNoTies`
+  构造 6 条病史/病例/世界交错事件,断言排序后**相邻两两严格 `<`**(即无平局)。
+  ⚠️ 勾选**不是**「本轮补了新夹具」,而是「该项一直有载体,此前无人回填」。
+  **另**:消费方(`FurnaceState.TryGetLatest`)在**同键**输入下的口径 = 取先入者(防御性),
+  该分支在合法流上**结构上不可达**(`Seq` 发号器每组递增 + `EventStream` 四元组去重)
+  ⇒ 不另造 fail-loud 门(避免零输入可达的门)。判据 = `furnace_busy_count_equivalence_test
+  ::test_tdp03_sameOrderKey_twoCrafts_pickFirstEncountered`。
 - [ ] 单测:同病种 3 例结案触发一次;第 4 例不重发
 - [ ] 单测:复诊第二例**不可**凭首诊处置通过「已处置」
 - [ ] 单测:终态折叠不删病例流(改写史回看完整)

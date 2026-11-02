@@ -261,6 +261,11 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
 
 - **B-4(`SkeuoUI` 测试间泄漏)** → 登记 `TD-skeuo-02`(`P0 面 = N` / `R4`)。**治标已做**(两件新夹具
   各自 `DestroyAllNamed`,治本方向见该条「修法方向」三条,未裁)。
+  🔁 **2026-11-02 · `S23-19` 治本落盘 → 该债 `closed`**:取**甲案**(`FindOrCreateSkeuoUi`
+  两条路径都 `SetParent(transform)`,与 `EnsureEventSystem` 同款)⇒ 复用退化为
+  「同一 `BootRoot` 内幂等」,销毁即随之销毁。新增 `skeuo_ui_lifetime_test` 两条判据
+  (归位 / 销毁闭合 + 新实例干净态)。证伪 N1–N3 全红、SHA-256 逐字节还原 3/3。
+  原件 = `production/qa/evidence/impl-td-skeuo-02-ui-lifetime-2026-11-02.md`。
 - **B-1(启动档位未裁)** → 用户裁定「连启动占位一起改掉」。
   **裁定依据是设计权威,不是口味**:`design/ux/casebook-39.md:57`「`Interact` = 就诊/立案 → **立案即开册**」
   ⇒ 脉案屏是**玩家动作的结果**,不是启动常驻屏。
@@ -449,3 +454,85 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 grep -n "S23-[789]" -A6 production/sprint-status.yaml  # 7/8 期望 done;9 期望 ready-for-dev(开工后 in-progress)
 grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 ```
+
+**S23-20(2026-11-02):读档后 id 高水位按新流重构 —— `TD-persist-12` closed**:
+用户指令「按你的建议继续修」。
+
+- **病因**:两个计数器(`ItemInstanceHighWaterCollector.CollectAndReconstruct` /
+  `IdAuthority.ReconstructPatientHighWater`)的**生产调用点 = 0** ⇒ 读档换流后计数器停在
+  装配那一刻 ⇒ 存档里更大的 id 被后续铸造复用 ⇒ fold 里两件物品静默合并 /
+  新病人复用已折叠病人 id
+- **落地**:`CompositionRoot` 新增 `Func<IEnumerable<long>> bakedInitialItemIds`(惰性,
+  容器段赋值 · `afterRestore` 读取)· `afterRestore` **先**重构两个高水位、**再**重建派生态 ·
+  受伤实体半边扫**三流 ∪ 折叠行**
+- **原文的一处订正**:「基线不导出 item 实例 id」半边**已在 `AC-4-22` 轮(`43f1d2f3`)落地**,
+  本轮补的是**读档路径**那一半
+- **新增夹具**:`Tests/EditMode/Boot/load_highwater_wiring_test.cs` 4 条(物品 / 每次重算 /
+  受伤实体 / 折叠行参与),全部走真装配根 + 生产 `afterRestore`
+- **证伪 M1/M3/M4 全红**(超集 / 超集 / exact),SHA-256 逐字节还原 3/3
+- ⚠️ **M2 假存活(本轮主要发现)**:原「基线半边参与」断言**结构上不可判**
+  (`IdAuthority` 只升不降 + 装配期已抬到 `baselineMax + 1` ⇒ 传不传 `null` 结果相同)
+  ⇒ 断言已删、判据改写、变异分支标作废。这是假绿形态「靶点对但靶场里没有靶」
+- 原件 = `production/qa/evidence/impl-td-persist-12-highwater-on-load-2026-11-02.md`
+
+**S23-21(2026-11-02):`BusyActorCount` 单遍扫描 —— `TD-processing-04` closed**:
+用户指令「按你的建议继续修」。
+
+- **病因**:旧实现 = 扫一遍收 actor 集合 + **逐 actor 重扫全流** ⇒ 每条 `Craft` 被解码 `A` 次
+  (`O(A×E)`)
+- **修法**:单遍扫描算出每 actor 的 `FurnaceOccupancy`,再逐 actor 走**同一个** `IsBusyCore`
+  —— 债册硬要求「`IsBusy` 仍是唯一判据」逐字兑现(抽出一处谓词核,`IsBusy` 与
+  `BusyActorCount` 都调它)
+- **两处行为对齐**:时长域先验**不论是否落在前缀内**;前缀与定序都只用 envelope `e.Tick`
+- **新增夹具**:`Tests/EditMode/Processing/furnace_busy_count_equivalence_test.cs` 4 条
+  (等价性主判据 / 前缀外坏时长 / 同 tick 定序 / 非 Craft 混入)
+- **证伪 M1–M4 全红**(四条各 1 红,全 exact),SHA-256 逐字节还原 4/4
+- ⚠️ **M1 首轮假存活**:「换成 `tick < CompleteTick` 去掉 `Exists` 守卫」在**该调用点完全等价**
+  (`latest` 只存 `Exists=true` 的实例)⇒ F8「行为等价掩盖结构分叉」;改靶为口径真分叉后转红
+- ⚠️ **两处不能宣称**:加速幅度**未测**(债册自陈「未用 Profiler」)· 债名写「分配」而实际优化的是
+  **解码次数与遍历遍数**(分配块数未必减少)
+- 原件 = `production/qa/evidence/impl-td-processing-04-busy-count-2026-11-02.md`
+
+**S23-22(2026-11-02):pipe 抽象 P0 预埋 —— `TD-net-01` closed**:
+用户指令「按你的建议继续修,一个个的不要停」。
+
+- **病因**:ADR-001 把 pipe 抽象落地级别定为 **P0**(`:10`/`:59`/`:131`/`:167`/`:448` 五处),
+  而 `IReplayPipe` **全树零命中**、`ReorderBuffer` **生产零命中** ⇒ 八个抽象点落 7 个,
+  **`IReplayPipe` 是唯一零落点**
+- **落地**:`Sim.Contracts/IReplayPipe.cs`(接口 + `sealed ReorderBuffer`)+
+  `Sim/LocalReplayPipe.cs`(P0 本地占位,零网络)
+- **两处设计判断(本轮就地裁定,未经用户逐条确认)**:
+  ① 接口住 `Sim.Contracts`、实现住 `Sim` —— 接口须被 `Sim` 看见(ADR-025 §① 引用集恰 =
+     `{BCL, Sim.Contracts}`),而实现要算全序键(`EventOrder.KeyOf` 住 `Sim`)⇒ 方向不可倒
+  ② `TryEnqueue` 的键是**形参**而非内部现算 —— 缓冲自己拼一份 = **第二真源**
+- **新增夹具**:`Tests/EditMode/Networking/replay_pipe_contract_test.cs` **8 条**
+  (抽象点存在 2 · 乱序吸收主判据 · 超界丢弃+告警 · `MaxLag=0` 构造期拒 · 本地能发 · null 抛 · 多订阅追加)
+- **读数**:EditMode `6606/6569/0/0/37` @ `15:42:49` · PlayMode `299/295/0/2/2` @ `15:43:58`
+  (基线 `S23-21` 的 `6598/6561` · `299/295`;等式 `+8 = 8 新夹具`,PM `+0`)
+- **证伪 M1–M7 全红**(M7 打 2 条,其余各 1 条;全 exact),SHA-256 逐字节还原 7/7 + `FINAL-OK`
+- ⚠️ **判据 ①/② 无专打变异**:结构性断言(命名空间 + 方法集合),变异等于搬文件或改签名
+- ⚠️ **三处不能宣称**:不测网络(只证契约形状可被实现)· 不测「本地路径出现乱序」
+  (结构上永远不乱序)· `Subscribe` 的主线程排队义务(ADR-001 F3)在本地是 no-op,未验证
+- ⚠️ **关闭不改变 `P0 面 = N`**:归属仍非 31 个 P0 epic 之一;P1b 的库选型 / swap 评审仍归 45 的 P1b 轮
+- 原件 = `production/qa/evidence/impl-td-net-01-replay-pipe-2026-11-02.md`
+
+**S23-23(2026-11-02):三条「欠裁决」债 —— 裁决简报 + 按建议执行**:
+用户指令「听你的建议」。先落裁决简报 `production/qa/evidence/adjudication-brief-3debts-2026-11-02.md`
+(每条的**选项 / 后果 / 建议**),再按建议案执行。
+
+- **`TD-processing-03`(甲)**:同键分支加注释(写明**结构上不可达**的两条源码依据 +
+  口径 = 取先入者)· 新增夹具 `test_tdp03_sameOrderKey_twoCrafts_pickFirstEncountered` ·
+  **ADR-008 §Validation 的「无平局」项 `[ ]` → `[x]`**(该项此前已有载体,只是无人回填 —— 勾选不是「本轮补了新夹具」)
+- **`TD-building-04`(乙)**:**ADR-010 Amendment A** —— `structure_id` 独立空间、不入 `IIdAuthority`;
+  义务 12 的机制半边划线撤回、折叠谓词半边不动;**显式登记未来触发条件**(联机跨机 id 一致性 ⇒ 须另开 ADR)。
+  依据四条:实现已如此且更安全 · ADR-033 平移量 `K := N` 的充要性证明建立在「基线占 1..N」之上 ·
+  ADR-033 已于 10-28 关闭 `TD-building-02`(9 变异全红)· GDD `:648` 的撞号设想在当前实现下不成立
+- **`TD-skeuo-01`(丁+丙)**:`SkeuoRuntimeDriver.CreateFocusRing` 加**运行期 fail-loud 守卫**
+  (border 之和 > 44 ⇒ 抛,报文点名黑块 + 债号 + 实见值)· 新增夹具 2 条(正常态不抛 / 越界抛)
+- **证伪**:TDP03-M1(`<= 0` → `< 0`)恰 1 红 · SK1(删整段守卫)恰 1 红;两文件 SHA-256 逐字节还原
+- ⚠️ **三处不能宣称**:① 不可达是**论证**非观测(依据是源码两条事实)② 乙案只**承认**机制不存在,
+  联机时本条**重新变 P0 面** ③ 丁案**不阻止新灌注点**,「加通用门」保留为下次触发条件
+- ⚠️ **本轮只勾了 ADR-008 的一行 Validation,未改其裁决正文** —— 与 `TD-building-04` 的正式
+  ADR 修订**性质不同**,已在债册逐条标注
+- **读数**:EditMode **`6607/6570/0/0/37`** @ `16:12:58 CST` · PlayMode **`301/297/0/2/2`** @ `16:14:10 CST`
+  (基线 `S23-22` 的 `6606/6569` · `299/295`;等式 EM `+1` = TDP03 夹具 · PM `+2` = 焦点环守卫夹具)

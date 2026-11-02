@@ -228,7 +228,7 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 | 9 | `ItemInstance` 序列化(含 `quality`;不存 `item_key` 引用,存快照) | item-database.md §Dependencies | 本 ADR §五(实现契约) |
 | 10 | 容器子实例闭包校验(装配期断言) | item-database.md AC-21a-63 邻接 | 本 ADR §五(实现契约) |
 | 11 | **POI 状态进世界流(`PoiStateChanged`)+ 重放时从流重建** | **ADR-021 §三 / §四** | 本 ADR §一 / §二(世界流序列化 / 不折叠已覆盖)|
-| 12 | **`structure_id` 高水位**(结构实例共用 `IIdAuthority` 空间,计数器 + 高水位可重构,ADR-010 §五 机制);**折叠谓词不适用于结构行** | **modular-building.md 规则四 / 规则七**(2026-09-17) | 本 ADR §五(机制,与义务 6 同一 `IIdAuthority`) |
+| 12 | ~~**`structure_id` 高水位**(结构实例共用 `IIdAuthority` 空间,计数器 + 高水位可重构,ADR-010 §五 机制)~~ **→ 🔁 2026-11-02 改判:`structure_id` 走独立空间,不入 `IIdAuthority`**(见下方 Amendment A);**折叠谓词不适用于结构行**(这半条不变) | ~~**modular-building.md 规则四 / 规则七**(2026-09-17)~~ **→ 见 Amendment A** | ~~本 ADR §五(机制,与义务 6 同一 `IIdAuthority`)~~ **→ `StructureInstanceRegistry` 自有计数器**(见 Amendment A) |
 | 13 | **分册态段序列化**(39 脉案):分册键 `player_id` · 两个 tick(快照 / 上次重查)· 分册的纯呈现量(页码 / 折叠状态);**痕与排序不在其中**(读时计算)。**分册态不进三流**(39 零 `IEventSink`)但**必须跨存档** | **casebook.md**(2026-09-19 · 39 首轮评审层籍裁定 C) | 本 ADR §一(新增「分册态段」槽) |
 | 14 | **技能成长持久化**:`SkillGrown` 落病史流 · `Level` 以 int 承载 · **不独立快照** · 从流重构;**折叠豁免扩一类 Kind(`SkillGrown` 不随病人折叠被抹除)** | **ADR-026 §⑥ / §⑦**(2026-09-23 · 兑现 Required #4 · 结清 `OQ-7a-9`) | 本 ADR §二(折叠谓词加 `SkillGrown` 豁免分支)|
 | 15 | **blob 池的写面实现**(`IBlobSink`):载荷字节的**存入** —— 与既有「池生命周期归流实现」口径一致(7a 存档侧 / 45 网络侧各自实现);**不可变性硬义务**:给定 `BlobId` 后其字节内容**不得再改**,违反 ⇒ 已发出的 `PayloadRef` 静默变义 ⇒ **回放分叉**。本接口无法在编译期强制 ⇒ 登记为实现期断言面 | **ADR-029 §②**(2026-10-02 · `IPayloadEncoder` 第七抽象点的兑现件之一) | **ADR-029 §②**(签名:`int Store(ReadOnlySpan<byte>)`;读面 `IBlobPool` 早已在库,写面由本义务补) |
@@ -242,6 +242,39 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 > **⭑ 2026-10-02:义务 15(blob 池写面)由 ADR-029 追加** —— `IBlobSink` 补上此前缺的**写入**契约
 > (读面 `IBlobPool` 早已在库)。乙案要求编码器能写入池,而池生命周期仍归流实现(7a / 45)——
 > 本义务**不改归属**,只补签名与不可变性硬义务。
+
+#### Amendment A(2026-11-02)—— 义务 12 改判:`structure_id` **独立空间**,不入 `IIdAuthority`
+
+> **Status**:维持 `Accepted`。本 Amendment 只改义务 12 的**机制半边**,折叠谓词半边不动。
+> **结清 `TD-building-04`**(该债的解除动作逐字要求「须裁(ADR 级),不是实现动作」——
+> 本 Amendment 即那个裁定)。
+
+**裁定**:`structure_id` **不并入 `IIdAuthority` 空间**;`StructureInstanceRegistry` 保留自有
+计数器(`_nextStructureId`,起点 1)。义务 12 的原文机制承诺(「共用 `IIdAuthority` 空间,
+计数器 + 高水位可重构」)**就此撤回**,其余半边(「折叠谓词不适用于结构行」)**不变**。
+
+**四条依据(逐条可复跑)**:
+
+| # | 依据 | 复算 |
+|---|---|---|
+| 1 | **实现已如此且更安全** —— 两空间独立 ⇒ item 与 structure **永不撞号** | `grep -c "IIdAuthority" unity/Assets/Sim/World/StructureKinds.cs` ⇒ 仅注释 |
+| 2 | **ADR-033 的平移量 `K := N` 建立在「基线占 `1..N`、玩家从 `N+1` 起」之上** —— 并入 `IIdAuthority` 会**推翻其充要性证明**(`Placed.id ≤ N` ⟺ 写于基线诞生之前) | `docs/architecture/adr-033-structure-id-collision-on-load.md` §Decision |
+| 3 | **ADR-033 已于 2026-10-28 实现并关闭 `TD-building-02`**(9 条变异全红)—— 为「今天更安全的状态」重开那条链,收益为负 | `production/qa/evidence/impl-adr033-structure-id-remap-2026-10-28.md` |
+| 4 | **GDD `inventory-and-items.md:648` 的「与结构行撞号」设想在当前实现下不会发生** —— 该设想本身需一并作废 | `sed -n '648p' design/gdd/inventory-and-items.md` |
+
+**⚠️ 本 Amendment 的诚实边界(不得读成「已解决」)**:
+
+- 它**不解决**「`structure_id` 不可重构」这个**机制**问题 —— 它只是**承认**该机制今天不存在。
+  `structure_id` 从事件流重放**可以**重建(`StructureRestorer` 已做),但**高水位**依赖
+  `_nextStructureId` 的本地状态 + `Restore` 的局部抬高,**不是** ADR-010 §五 的机制 A。
+- **显式的未来触发条件**:若联机需要**跨机结构 id 一致性**(ADR-001 三流复制把 `StructurePlaced`
+  发到客户端),本条**重新变成 P0 面债** —— 届时须另开 ADR,不得以本 Amendment 修订改判
+  (与 ADR-017 §三 的「触发后另开 ADR」同款纪律)。
+- **GDD `:648` 的撞号处理**:本 Amendment 只作废「设想」,**不删**该处的既有实现约束文字 ——
+  那是 `modular-building` 的 GDD 回写轮的事(本件不碰 GDD)。
+
+**涟漪**:`TD-building-04` → `closed`;`docs/tech-debt-register.md` 的该条加关闭记录;
+`StructureKinds.cs:68` 的字段 doc 加指向本 Amendment 的注。
 
 ### 四、损坏恢复(校验和 + 自动回退)
 

@@ -65,6 +65,17 @@ namespace DaYiJingCheng.Sim.World
     public sealed class StructureInstanceRegistry
     {
         private readonly Dictionary<long, StructureInstance> _instances = new Dictionary<long, StructureInstance>();
+
+        /// <summary>
+        /// 结构实例发号器(起点 **1**,基线件占 `1..N`)。
+        /// <para><b>⚠️ 刻意不走 `IIdAuthority`</b> —— 这是 **ADR-010 Amendment A(2026-11-02)**
+        /// 的裁定,不是遗漏:item 与 structure 两空间独立 ⇒ **永不撞号**;且 ADR-033 的平移量
+        /// `K := N` 的充要性证明(`Placed.id ≤ N` ⟺ 写于基线诞生之前)建立在「基线占 `1..N`、
+        /// 玩家从 `N+1` 起」之上,并入 `IIdAuthority` 会推翻它。
+        /// </para>
+        /// <para><b>未来触发条件</b>:若联机需跨机结构 id 一致性(ADR-001 三流复制),
+        /// 须**另开 ADR** 重裁,不得就地改本字段的归属。</para>
+        /// </summary>
         private long _nextStructureId = 1;
 
         /// <summary>

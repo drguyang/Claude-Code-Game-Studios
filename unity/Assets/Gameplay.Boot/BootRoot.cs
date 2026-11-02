@@ -1139,14 +1139,31 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>预摆 = Boot.unity 的 <c>SkeuoUI</c>(持 UIDocument + PanelSettings);
         /// 缺失 = 测试里没造 fixture ⇒ 自建(此时无 PanelSettings ⇒ 逻辑树在、不渲染,
         /// 见 <see cref="AssertSingleAudioListener"/> 旁注的实测记录)。</para>
+        /// <para><b>归属(2026-11-02 · `TD-skeuo-02`)</b>:预摆件与自建件**一律归
+        /// <c>BootRoot</c> 层级**(<c>SetParent(transform)</c>,与
+        /// <see cref="EnsureEventSystem"/> 同款)。不归位时的失效形态是**静默跨用例串场**:
+        /// 预摆壳在 Boot.unity 是与本对象**平级的根对象** ⇒ 本对象销毁后它存活 ⇒
+        /// 下一件 PlayMode 夹具经 <c>FindFirstObjectByType</c> **复用同一只驱动** ⇒
+        /// 其 <see cref="SkeuoRuntimeDriver.CurrentModal"/> / 屏 / 注入面原样带入。
+        /// 归位后复用退化为「**同一 `BootRoot` 内**幂等」,销毁即随之销毁。</para>
         /// </summary>
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
         {
             var existing = UnityEngine.Object.FindFirstObjectByType<SkeuoRuntimeDriver>();
             if (existing != null)
+            {
+                // 预摆件是场景根 ⇒ 首次取用时归位一次(幂等:已在本层级下则不动)。
+                // ⚠️ 只归位、**不重建** —— 预摆件持有 UIDocument + PanelSettings(渲染资源的
+                //    唯一来源),重建会得到一个 panel == null 的空壳(2026-10-10 实测)。
+                if (!existing.transform.IsChildOf(transform))
+                    existing.transform.SetParent(transform, worldPositionStays: false);
                 return existing;
+            }
 
             var uiObj = new GameObject("SkeuoUI");
+            // ⚠️ 必须归 BootRoot:`new GameObject` 落**当前活动场景**,且不归位则本对象销毁后
+            //    它存活 ⇒ 跨夹具按类型复用同一驱动(见上注的失效形态)。
+            uiObj.transform.SetParent(transform, worldPositionStays: false);
             UnityEngine.Debug.LogWarning(
                 "[BootRoot] Boot.unity 未预摆 SkeuoUI(UIDocument + PanelSettings)—— " +
                 "自建空壳 ⇒ UI 逻辑树在但不渲染(panel == null,2026-10-10 实测)。" +
@@ -1953,8 +1970,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services = null;
             _tickDriver = null;
             _uiDriver = null;
-            // EventSystem 随 BootRoot 一同销毁(reparent 到 transform ⇒ 无需显式 Destroy);
-            // 仅清引用。承 FindOrCreateSkeuoUi 同纪律。
+            // EventSystem 与 SkeuoUI 都随 BootRoot 一同销毁(reparent 到 transform ⇒ 无需
+            // 显式 Destroy);仅清引用。承 FindOrCreateSkeuoUi 同纪律(2026-11-02 `TD-skeuo-02`
+            // 把 SkeuoUI 也纳入该纪律 —— 此前它不归位,跨 PlayMode 用例存活)。
             _eventSystem = null;
         }
     }

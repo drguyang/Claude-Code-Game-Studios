@@ -333,8 +333,8 @@
 | `TD-prescription-09` | `prescription-medication` | closed | **Y** | R1 |
 | `TD-processing-01` | `processing` | closed | **N** | R4 |
 | `TD-processing-02` | `processing` | closed | **N** | R4 |
-| `TD-processing-03` | `processing` | open | **N** | R4 |
-| `TD-processing-04` | `processing` | open | **N** | R4 |
+| `TD-processing-03` | `processing` | closed | **N** | R4 |
+| `TD-processing-04` | `processing` | closed | **N** | R4 |
 | `TD-processing-05` | `processing` | closed | **N** | R4 |
 | `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
@@ -396,13 +396,13 @@
 | `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
 | `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
-| `TD-persist-12` | `persistence-service` | open | **N** | R1 |
+| `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-03` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
-| `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
+| `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
 | `TD-clinic-03` | `clinic-machine` | closed | **Y** | R1 |
@@ -442,10 +442,10 @@
 | `TD-smoke-01` | `（跨 epic · 治理／tests/smoke 可执行化）` | closed | **N** | R3-裁 |
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
-| `TD-building-04` | `modular-building` | open | **N** | R1 |
+| `TD-building-04` | `modular-building` | closed | **N** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
-| `TD-skeuo-01` | `skeuomorphic-ui` | open | **N** | R4 |
-| `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
+| `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
+| `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -861,7 +861,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 150 | 状态 {'closed': 131, 'partial': 4, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
+条目 150 | 状态 {'closed': 138, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -4098,6 +4098,9 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | 在 `Sim.Contracts` 落 `IReplayPipe`(`Publish` / `Subscribe`)+ 有界 `ReorderBuffer`(`TryEnqueue` / `Drain`,全序键吸收,**超界丢弃 + 告警**),**纯 C# 零依赖、P0 本地占位**(不 import NGO / Fusion);补「乱序注入 → 全序键吸收 → 无丢无重放」单测。**不改 ADR-001 的任何裁决**;不动 P1b 的库选型时点 |
 | **触发条件** | **P1b 的 swap 评审之前**(否则无抽象可换,评审对象不存在);或 **ADR-005 八个抽象点**的任何一次整批复核时;或任何消费方要经 pipe 上行/下行之前 |
 | **归属** | **系统 45**(网络层与同步)—— ⚠️ **该系统无 epic**;实际落点建议由 **`Sim.Contracts` 的持有方 + ADR-025 程序集清单轮**承接,不新开 epic(与「不加 #54」取向一致) |
+
+> ✅ **`2026-11-02` 已闭**(sprint-23 `S23-22`,用户指令「按你的建议继续修,一个个的不要停」)。
+> 原文不删。关闭记录见本册 §「2026-11-02 · 「pipe 预埋」轮」。
 
 > **同批查过但**不登记**的两条**(见原件 §7.2):<br>
 > · `ISceneRouter` / `IWorldSpawner`(ADR-023)—— `systems-index` **无场景系统**,契约无系统认领;
@@ -9022,7 +9025,7 @@ M4 放置忽略瞄准格(1 红)· M5 POI 不记消费(1 红)。
 | # | 内容 | 建议归属 |
 |---|---|---|
 | R1 | **玩家新建的门 / 柜不在候选集** —— 第四源按定义只覆盖「开档既有、无流事件」;玩家放置的门有 `StructurePlaced` | 4 的管线后续轮 / 需裁定「流侧门」是否属第五源 |
-| R2 | **读档路径的物品高水位未并基线容器 id** —— `ItemInstanceHighWaterCollector` 仍只扫三流;今日零真实存档 ⇒ 无可观测后果,首次发档前须补 | 7a · `ItemInstanceHighWaterCollector` 的 R3 半边 |
+| R2 | **读档路径的物品高水位未并基线容器 id** —— `ItemInstanceHighWaterCollector` 仍只扫三流;今日零真实存档 ⇒ 无可观测后果,首次发档前须补 | 7a · `ItemInstanceHighWaterCollector` 的 R3 半边<br>✅ **2026-11-02 已落(`S23-20` / `TD-persist-12` 轮)**:`CompositionRoot.cs:620` 声明 `Func<IEnumerable<long>> bakedInitialItemIds` · `:1212` 由容器段赋值 · `:960` 读档路径作为第三实参传给 `CollectAndReconstruct` ⇒ **基线半边真进扫描域**。⚠️ **但「基线半边参与」本身不可单独断言**(`IdAuthority` 只升不降 + 装配期已抬到 `baselineMax+1` ⇒ 传不传结果相同)⇒ 该断言在证伪轮被判**假存活**并删除,只留「每次读档重算」。见 `production/qa/evidence/impl-td-persist-12-highwater-on-load-2026-11-02.md` §6.1 |
 | R3 | **容器内容 / 搜箱时长** —— 20 无「这是容器吗」的判据载体,搜箱时长未登记 | 20 · `OQ-4-4` / `OQ-20-11` |
 | R4 | **`world_containers` 无 ADR** —— 加性第 8 类,依据是「契约 7 类一字未改 + 加性扩展」(与多关卡 `_{level_id}` 后缀同一先例) | 架构轮(长期保留宜并入 ADR-022 §三) |
 
@@ -9093,3 +9096,308 @@ N5 无消费面也报已消费(2 红,超集)· N6 切换器不校验 `expectedTy
 `@ 2026-11-02 12:03:44 / 12:04:51 CST` · 批次 `S23-18` · **commit = 本批未提交工作树(基于 `6b089f6b`)**。
 ⚠️ **`PM exit=2` 是本仓 PlayMode 的常态退出码**(四次历史运行皆 2,含上一批 `S23-17` 的
 `297/293/0/2/2`)⇒ 判据取 **XML 的 `failed` 计数**,**不取**退出码(它在 failed=2 的运行上同样是 2)。
+
+---
+
+## 2026-11-02 · 「UI 载体归位」轮:`TD-skeuo-02` **关闭**
+
+**出处**:用户指令「修 TD-skeuo-02」。实现原件 =
+`production/qa/evidence/impl-td-skeuo-02-ui-lifetime-2026-11-02.md`。
+
+### 关闭记录(债本体见上方 2026-11-02 条目,原文不删)
+
+**债的消解条件逐字**:「上述任一方向落盘,**且**有一条夹具证明『前一件把模态关成 `None` 后,
+后一件仍读到启动态』—— 即泄漏面被**结构性**堵住,而不是靠每一件自己 `DestroyAllNamed`。」
+
+| # | 判据 | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | 归属方向落盘(取**甲**案:`SetParent(transform)`) | ✅ `FindOrCreateSkeuoUi` **两条路径都归位**(预摆件 `IsChildOf` 守卫 + `SetParent`;自建件 `SetParent`) | `grep -c "SetParent(transform, worldPositionStays: false)" unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ **≥1**(与 `EnsureEventSystem` 同款) |
+| ② | 夹具证明泄漏面**结构性**堵住 | ✅ `skeuo_ui_lifetime_test` 两条 —— 归位 + 销毁闭合/新实例干净态 | `grep -c "[Test]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/skeuo_ui_lifetime_test.cs` ⇒ 2 |
+
+**为何是甲案**:预摆壳持有 `UIDocument` + `PanelSettings`(渲染资源的**唯一来源**),
+乙案的 `Reset()` 会改动 42 的对外形状(须另裁),丙案的 `BootFixture` 不碰生产 ——
+而甲案与 `EnsureEventSystem` 的既有纪律**同款**,零新增形状。
+
+### 与原文观测口径的**订正**(如实登记)
+
+原文举的失效观测是「前一件把模态关成 `None` 后,后一件读到启动态 `Casebook`」。
+**该观测今日已不可能复现** —— 2026-11-02 起启动形态改为**无常驻屏**
+(`SkeuoRuntimeDriver._screenName` 为空 ⇒ `CurrentModal = None`,`SkeuoRuntimeDriver.cs:184-189`)。
+⇒ 本轮夹具改用**反向同构**的脏态(`Pause` 带入下一件),判据性质不变:
+**非 `None` 的模态态不得跨 `BootRoot` 带入**。原文观测保留作历史(「原文不删」)。
+
+### 证伪轮(3 条全红 · SHA-256 逐字节还原 3/3)
+
+N1 预摆件不归位(2 红,超集)· N2 自建件不归位(1 红,exact)· N3 永不复用预摆件(2 红,超集)。
+⚠️ **N2 首轮 NO-XML = 变异写坏**(把 Python `#` 注释写进 C#,`error CS1024`),改 `//` 后得 1 红;
+**该轮读数作废,不引用**。
+
+### ⚠️ 本轮的过程事故(如实登记,不粉饰)
+
+证伪脚本 **v1 有两个 bug**:① `run_tests` 引用未传的 `$2`(`set -u` 下)⇒ Unity **根本没跑**;
+② 由 ① 连带 `restore` 未执行,且第二轮 `snapshot` 把**已污染文件**存成备份 ⇒ **变异残留在盘上跨命令**。
+处置:从 git HEAD 逐条**逆向剥离**三处变异(锚点唯一命中 + `MUTATION` 计数 0),重建文件,
+并新写 v2 脚本(锚点干跑预检 + 逐条 `MUTATION` 强校验 + 收尾哈希比对)。
+⚠️ 这与 `feedback_falsify_concurrent_edit_window` 同族:**脚本自身也要先证明它会红**。
+
+### 账务
+
+`条目 150` 不动 · `open 14 → 13` · `closed 131 → 132` · `P0 面 N 45 → 45`(本条本就是 `N`)·
+**`未闭 P0 面 = 0` 不动** · **epic 分布 `31/31` 不动**(`skeuomorphic-ui` 名下仍有
+`TD-skeuo-01` 未闭,但它是 `N`,不进 P0 面分母)。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py            # 刷新 TD-COUNT 块
+python3 tools/debtcount/debtcount.py --check    # 期望退出码 0
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 150 | open 13 | closed 132 | 未闭 P0 面 = 0
+```
+
+---
+
+## 2026-11-02 · 「读档高水位」轮:`TD-persist-12` **关闭**
+
+**出处**:用户指令「按你的建议继续修」。实现原件 =
+`production/qa/evidence/impl-td-persist-12-highwater-on-load-2026-11-02.md`。
+
+### 关闭记录(债本体见上方 2026-10-31 条目,原文不删)
+
+**债的解除动作逐字**:「① 54 关卡工具**导出基线的 item 实例 id 位**;② 7a 读档路径在
+`Rebuild` 后调 `CollectAndReconstruct(streams, decoder, bakedInitialItemIds, authority)`;
+**两件同批**。」
+
+| # | 判据 | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | 基线导出 item 实例 id 位 | ✅ **上一轮(`AC-4-22` · `43f1d2f3`)已落** —— `world_containers` 烘焙表带 `instance_id`,装配根容器段已抬升 | `grep -rn "ReconstructItemHighWater(containerData" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 1 命中 |
+| ② | 读档路径调 `CollectAndReconstruct` | ✅ `LoadSequencer.afterRestore` 内(本轮新增) | `grep -rn "CollectAndReconstruct" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **3 命中**(定义 2 + 调用 1) |
+| ②b | **同批补齐受伤实体半边** | ✅ `ReconstructPatientHighWater`(本轮新增;**原文只写了 item 半边**) | 同上口径 ⇒ 定义 1 + 调用 1 |
+
+**原文的一处订正(如实登记)**:原文把「基线不导出 item 实例 id」列为缺口 ——
+**该半边已在 `AC-4-22` 轮落地**,本轮补的是**读档路径**那一半
+(装配期抬升只对开档那一刻的流有效,读档换流后必须按新流重算)。
+
+### 本轮就地裁定(未经用户逐条确认)
+
+- **受伤实体高水位同批补齐** —— 原文只列 item 半边,但两条缺口**同因同形**
+  (都是「装配期抬升 ≠ 读档后重构」),且玩家 `actorId` 在启动序第 4 步已铸号
+  ⇒ 只补 item 半边会让病人 id 空间继续撞号。**拆成两条 = 两处各写一份判据**(F8 形态)。
+- **`bakedInitialItemIds` 用 `Func` 惰性取** —— 容器段(`if harvestProvider`)与
+  `LoadSequencer`(`if saveBasePath`)守卫条件不同,直接捕获实例会要求两边都装配。
+
+### 证伪轮(3 条有效 · SHA-256 逐字节还原 3/3)
+
+M1 删整段物品重构(2 红,超集)· M3 删受伤实体重构(2 红,超集)·
+M4 漏扫折叠行(1 红,exact)。
+⚠️ **M2(基线实参改 `null`)实测 0 红 = 假存活**,该断言**结构上不可判**
+(`IdAuthority` 只升不降 + 装配期已抬到 `baselineMax + 1`)⇒ 断言已删、判据改写、
+变异分支标作废(**保留以便复跑**)。详见证据件 §6.1。
+
+### 账务
+
+`条目 150` 不动 · `open 13 → 12` · `closed 132 → 133` · `P0 面 N 45 → 45`(本条本就是 `N`)·
+**`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 150 | open 12 | closed 133 | 未闭 P0 面 = 0
+grep -rn "CollectAndReconstruct" unity/Assets --include=*.cs | grep -v /Tests/   # 期望 3 命中(定义 2 + 调用 1)
+grep -rn "ReconstructPatientHighWater" unity/Assets --include=*.cs | grep -v /Tests/  # 期望 2 命中(定义 + 调用)
+```
+
+---
+
+## 2026-11-02 · 「单遍扫描」轮:`TD-processing-04` **关闭**
+
+**出处**:用户指令「按你的建议继续修」。实现原件 =
+`production/qa/evidence/impl-td-processing-04-busy-count-2026-11-02.md`。
+
+### 关闭记录(债本体见上方条目,原文不删)
+
+**债的修法方向逐字**:「若实测有压力:改为单遍扫描(一次遍历同时算「每个 actor 的最后一炉」),
+但**必须保持 `IsBusy` 为唯一判据** —— 可让单遍扫描**产出** `IsBusy` 所需的中间量,
+而不是另写一份判据」。
+
+| # | 判据 | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | 单遍扫描 | ✅ `BusyActorCount` 一次遍历算出每 actor 的 `FurnaceOccupancy` | `grep -c "foreach (int actor in actors)" unity/Assets/Sim/Processing/FurnaceState.cs` ⇒ **0**(旧的「逐 actor 重扫」已删) |
+| ② | **`IsBusy` 仍是唯一判据** | ✅ 抽出 `private static bool IsBusyCore(in FurnaceOccupancy, long)`;`IsBusy` 与 `BusyActorCount` **都调它** | `grep -c "IsBusyCore" unity/Assets/Sim/Processing/FurnaceState.cs` ⇒ **3**(定义 1 + 两处调用) |
+
+### ⚠️ 本轮如实登记的两处「不能宣称」
+
+1. **加速幅度未测** —— 债册原文自陈「分配量为推算,**未用 Profiler 实测**」。
+   本轮钉的是**等价性**(修法的正确性前提),不是「快了多少」。
+2. **债名与实际优化面不一致** —— 债名写「`O(A×E)` **分配**」,而实际优化的是
+   **解码次数**(`O(A×E) → O(E)`)与**遍历遍数**(`A+1 → 1`);分配块数**未必减少**
+   (引入一个 `Dictionary` + 一个 `List`,旧实现是一个 `HashSet`)。如实登记,不改债名
+   (原文不删)。
+
+### 证伪轮(4 条全红 · SHA-256 逐字节还原 4/4)
+
+M1 口径分叉 `<=` vs `<`(1 红,exact)· M2 时长校验挪到前缀后(1 红,exact)·
+M3 取最后遇到者(1 红,exact)· M4 不筛 Kind(1 红,exact)。
+⚠️ **M1 首轮假存活(4 条全绿)**:原变异「换成 `tick < CompleteTick` 去掉 `Exists` 守卫」
+在**该调用点完全等价**(`latest` 只存 `Exists=true` 的实例)⇒ F8「行为等价掩盖结构分叉」。
+改靶为「口径真分叉」后转红。**首轮读数作废,不引用**。
+
+### 账务
+
+`条目 150` 不动 · `open 12 → 11` · `closed 133 → 134` · `P0 面 N 45 → 45`(本条本就是 `N`)·
+**`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 150 | open 11 | closed 134 | 未闭 P0 面 = 0
+grep -c "IsBusyCore" unity/Assets/Sim/Processing/FurnaceState.cs   # 期望 3
+grep -c "foreach (int actor in actors)" unity/Assets/Sim/Processing/FurnaceState.cs  # 期望 0
+```
+
+---
+
+## 2026-11-02 · 「pipe 预埋」轮:`TD-net-01` **关闭**
+
+**出处**:用户指令「按你的建议继续修,一个个的不要停」。实现原件 =
+`production/qa/evidence/impl-td-net-01-replay-pipe-2026-11-02.md`。
+
+### 关闭记录(债本体见上方 2026-10-20 条目,原文不删)
+
+**债的解除动作逐字**:「在 `Sim.Contracts` 落 `IReplayPipe`(`Publish` / `Subscribe`)
++ 有界 `ReorderBuffer`(`TryEnqueue` / `Drain`,全序键吸收,**超界丢弃 + 告警**),
+**纯 C# 零依赖、P0 本地占位**(不 import NGO / Fusion);补「乱序注入 → 全序键吸收 →
+无丢无重放」单测。**不改 ADR-001 的任何裁决**;不动 P1b 的库选型时点」。
+
+| # | 判据 | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | `IReplayPipe` 落 `Sim.Contracts`,`Publish` / `Subscribe` 两方法 | ✅ `Sim.Contracts/IReplayPipe.cs` | `grep -n "interface IReplayPipe" unity/Assets/Sim.Contracts/IReplayPipe.cs` ⇒ 1 命中 |
+| ② | 有界 `ReorderBuffer`(`TryEnqueue` / `Drain`) | ✅ 同文件 `sealed class ReorderBuffer` | `grep -n "sealed class ReorderBuffer" unity/Assets/Sim.Contracts/IReplayPipe.cs` ⇒ 1 命中 |
+| ③ | **全序键吸收 / 超界丢弃 + 告警** | ✅ 有序插入 + `_dropped++` + `_warn?.Invoke` | `grep -c "超界丢弃" unity/Assets/Sim.Contracts/IReplayPipe.cs` ⇒ 1 |
+| ④ | **P0 本地占位**(不 import NGO / Fusion) | ✅ `Sim/LocalReplayPipe.cs` | `grep -rn "Unity.Netcode\|Fusion" unity/Assets/Sim/LocalReplayPipe.cs unity/Assets/Sim.Contracts/IReplayPipe.cs` ⇒ **零命中** |
+| ⑤ | 「乱序注入 → 全序键吸收 → 无丢无重放」单测 | ✅ `Tests/EditMode/Networking/replay_pipe_contract_test.cs` 8 条 | `grep -c "\[Test\]" unity/Assets/Tests/EditMode/Networking/replay_pipe_contract_test.cs` ⇒ **8** |
+| ⑥ | **不改 ADR-001 任何裁决 · 不动 P1b 库选型时点** | ✅ `docs/architecture/adr-001-*.md` 本轮**零改动** | `git status --short docs/architecture/` ⇒ **空** |
+
+### 本轮就地裁定的两处设计判断(未经用户逐条确认)
+
+1. **接口住 `Sim.Contracts`、实现住 `Sim`(分两件)** —— 接口必须被 `Sim` 看见
+   (ADR-025 §① 引用集恰 = `{BCL, Sim.Contracts}`,开新程序集边会破门 A / b2);
+   而实现要在 `Publish` 里算全序键,权威计算 `EventOrder.KeyOf` 住 `Sim`
+   ⇒ **两程序集方向不可倒**。与 ADR-029 / ADR-031 的「契约支 + 实现支」同形。
+2. **`TryEnqueue` 的键是形参,不由缓冲内部现算** —— 若缓冲自己拼一份 `EventOrderKey`,
+   就成了**第二真源**(两份「怎么算全序键」迟早在某次修订里分叉)。
+   ⚠️ 这是本件的**取舍**,不是 ADR-001 的裁决(ADR 未规定该形参)。
+
+### 刻意**不做**的事(范围边界)
+
+- **不含第二 QoS 通道** —— ADR-001 §一之二的 `IPositionalChannel` / `WorldPosLatest`
+  是表现态位置通道,与三流可靠 pipe 语义 / QoS / 消费者全不同;落点归 45 的 P1b 轮。
+- **不做语义判断**(不校验 Kind 白名单、不去重)—— 归 `StreamRouting` / `EventStream`。
+
+### 证伪轮(7 条全红 · SHA-256 逐字节还原 7/7)
+
+M1 删有序插入(1 红,exact)· M2 超界改抛(1 红,exact)· M3 删 `maxLag < 1` 守卫(1 红,exact)·
+M6 `Drain` 不 `Clear`(1 红,exact)· M4 删 `Subscribe` null 守卫(1 红,exact)·
+M5 追加 → 替换(1 红,exact)· M7 `Publish` 不派发(2 红,exact)。
+收尾 `FINAL-OK`(两文件 SHA-256 与基线逐字节相同)。
+
+⚠️ **判据 ① / ② 无专打变异** —— 它们是**结构性断言**(命名空间 + 方法集合),
+变异等于搬文件或改签名,那已不是证伪而是重写。如实登记。
+
+### ⚠️ 本轮如实登记的三处「不能宣称」
+
+1. **不测网络** —— `LocalReplayPipe` 零网络。本件证明的是「契约形状**可被实现**」,
+   **不是**「网络层能工作」。P1b 接库后须重测真实乱序面。
+2. **不测「乱序在本地路径上出现」** —— 本地 `Publish` 按调用序入队,**路径上永远不乱序**。
+   乱序面只在 `ReorderBuffer` 的直接夹具里造。⇒ 「本地路径无乱序」是**结构决定的**,
+   本件不为它背书。
+3. **`Subscribe` 的「排队到主线程」义务(ADR-001 F3)在本地是 no-op** —— 本来就在主线程。
+   该义务**未被本件验证**,归 P1b。
+
+### 账务
+
+`条目 150` 不动 · `open 11 → 10` · `closed 134 → 135` · `P0 面 N 45 → 45`(本条本就是 `N`)·
+**`未闭 P0 面 = 0` 不动**。
+
+⚠️ **本条判 `N`(归属优先)不变** —— 归属仍不是 31 个 P0 epic 之一。**关闭不改变判据面**:
+ADR-001 的 P0 预埋义务**已兑现**,但 P1b 的库选型 / swap 评审仍是**未开工事项**(归 45 的 P1b 轮,
+不在本册跟踪面内)。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 150 | open 10 | closed 135 | 未闭 P0 面 = 0
+python3 tools/debtcount/debtcount.py --check    # 期望:退出码 0
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Networking/replay_pipe_contract_test.cs   # 期望 8
+grep -rn "Unity.Netcode\|Fusion" unity/Assets/Sim/LocalReplayPipe.cs unity/Assets/Sim.Contracts/IReplayPipe.cs   # 期望零命中
+```
+
+---
+
+## 2026-11-02 · 「三条欠裁决」轮:`TD-processing-03` / `TD-building-04` / `TD-skeuo-01` **关闭**
+
+**出处**:用户指令「按你的建议继续修,一个个的不要停」→ 剩余 10 条逐条核后,
+三条**不是做不动,是欠一个裁决**。裁决简报 = `production/qa/evidence/adjudication-brief-3debts-2026-11-02.md`
+(含每条的**选项 / 后果 / 建议**);用户指令「听你的建议」⇒ 按建议案执行。
+
+⚠️ **本轮的「裁定」性质,如实标注**:
+- `TD-building-04` 的解除动作逐字要求「**须裁(ADR 级)**」⇒ 本轮落了 **ADR-010 Amendment A**,
+  **是正式裁决**(写入 ADR,不是债册里的口头决定)。
+- `TD-processing-03` / `TD-skeuo-01` 的解除动作**未**要求 ADR 级裁决(前者要求「先由 ADR-008 修订轮
+  裁定」,但核查后该 ADR 的 Validation 项**一直有载体**、只是无人回填 ⇒ 本轮按「回填 + 补消费方口径」
+  处置;**未改 ADR 裁决正文**,只勾了一项并加注)。后者要求「两者都会改动 42 元件库的对外形状,须裁」
+  ⇒ 本轮**刻意取了不改元件库形状的路径**(运行期守卫),故**不触发**该条裁决要求。
+
+### 逐条关闭记录
+
+| 债 | 建议案 | 实际落地 | 判据 | 证伪 |
+|---|---|---|---|---|
+| `TD-processing-03` | 甲 | ① `FurnaceState.TryGetLatest` 同键分支加 12 行注释(写明**结构上不可达** + 口径 = 取先入者 + 改法);② 新增夹具 `test_tdp03_sameOrderKey_twoCrafts_pickFirstEncountered`;③ **ADR-008 §Validation 的「无平局」项由 `[ ]` 转 `[x]`**(该项此前已有载体,只是无人回填) | `grep -c "test_tdp03_sameOrderKey" unity/Assets/Tests/EditMode/Processing/furnace_busy_count_equivalence_test.cs` ⇒ 1 | **M1**(`<= 0` → `< 0`)⇒ 恰 1 红,exact |
+| `TD-building-04` | 乙 | **ADR-010 Amendment A**:`structure_id` 独立空间,不入 `IIdAuthority`;义务 12 的机制半边划线撤回,折叠谓词半边不动;**显式登记未来触发条件**(联机跨机 id 一致性 ⇒ 须另开 ADR) | `grep -c "Amendment A(2026-11-02)" docs/architecture/adr-010-persistence-save-format.md` ⇒ 1 | 不适用(ADR 修订无代码行为变更) |
+| `TD-skeuo-01` | 丁 + 丙 | ① `SkeuoRuntimeDriver.CreateFocusRing` 加**运行期 fail-loud 守卫**(border 之和 > 44 ⇒ 抛,报文点名黑块 + 债号 + 实见值);② 新增夹具 `skeuo_focus_ring_border_guard_test` 2 条(正常态不抛 + 越界抛) | `grep -c "TD-skeuo-01" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs` ⇒ ≥1 | **SK1**(删整段守卫)⇒ 恰 1 红,exact |
+
+### ⚠️ 三处「不能宣称」(逐条如实登记)
+
+1. **`TD-processing-03` 的「不可达」是论证,不是观测** —— 依据是 `Seq` 发号器每组递增
+   (`EventStream.cs:262-276`)+ 四元组去重(`:242-244`)两条**源码事实**;本轮**没有**造一条
+   「合法流上同键出现」的尝试(那需要绕过 `EventStream`,而绕过它就不再是合法流)。
+   ⇒ 引用口径 = 「**结构性不可达**」,**不得**引作「实测从不出现」。
+2. **`TD-building-04` 的乙案不解决机制问题** —— 它只**承认**「`structure_id` 不可重构」该机制
+   今天不存在。若联机需要跨机 id 一致性,本条**重新变成 P0 面债**。ADR-010 Amendment A
+   已把这条写成**显式未来触发条件**,不写成「已解决」。
+3. **`TD-skeuo-01` 的丁案不阻止新灌注点** —— 它只护住生产**唯一**的代码灌注点(焦点环)。
+   将来有人给 `.paper` / `.scroll` / `.seal` 做代码灌注 sprite,**仍会静默黑块**。
+   ⇒ 债册把「加通用门」保留为**下一次触发条件**(与 ADR-035 N-4「不造零输入可达的门」同型处置)。
+   另:`FocusRingMinSidePx = 44` 与 USS `--skeuo-shared-row-height: 44px` 是**两处同值**,
+   UI Toolkit 运行期无公开 API 读 USS 自定义属性 ⇒ 只能以常量承载;两处分叉只会让守卫
+   更保守或更松,**不会**造成黑块。
+
+### 回归
+
+| 套 | 读数 | 文件 / 时刻 |
+|---|---|---|
+| **EditMode 全量** | **`6607 / 6570 / 0 / 0 / 37`** | `unity/Logs/td3-em-full.xml` @ `2026-11-02 16:12:58 CST` |
+| **PlayMode 全量** | **`301 / 297 / 0 / 2 / 2`** | `unity/Logs/td3-pm-full.xml` @ `2026-11-02 16:14:10 CST` |
+
+**等式**:EditMode `6607 − 6606 = 1` = 本轮新增的 `test_tdp03_sameOrderKey_twoCrafts_pickFirstEncountered`;
+PlayMode `301 − 299 = 2` = 本轮新增的 `skeuo_focus_ring_border_guard_test` 两条。
+⚠️ **`PM exit=2` 是本仓 PlayMode 常态退出码**(承 `S23-18`)⇒ 判据取 XML 的 `failed` 计数(`failed=0`)。
+
+### 账务
+
+`条目 150` 不动 · `open 10 → 7` · `closed 135 → 138` · `P0 面 N 45 → 45`(三条本就是 `N`)·
+**`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print    # 期望:条目 150 | open 7 | closed 138 | 未闭 P0 面 = 0
+python3 tools/debtcount/debtcount.py --check    # 期望:退出码 0
+grep -c "test_tdp03_sameOrderKey" unity/Assets/Tests/EditMode/Processing/furnace_busy_count_equivalence_test.cs  # 期望 1
+grep -c "Amendment A(2026-11-02)" docs/architecture/adr-010-persistence-save-format.md  # 期望 1
+grep -c "TD-skeuo-01" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs  # 期望 ≥1
+```

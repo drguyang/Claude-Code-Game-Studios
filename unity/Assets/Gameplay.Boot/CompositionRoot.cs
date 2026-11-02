@@ -605,6 +605,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 未接世界 ⇒ 恒 null ⇒ `afterRestore` 里 `worldLoad?.Rebuild()` 为空操作,
             //    既有 100+ 处 `Assemble()` 调用方零行为变化。
             WorldLoadService worldLoad = null;
+            // ── 基线物品实例 id(`TD-persist-12` 的 54 半边 · 2026-11-02)────────────
+            // 开档容器的 `instance_id` 是**基线物品实例**的唯一数据源(`world_containers.cooked`)。
+            // 它有两处读者,必须**同一份**值:
+            //   ① 装配期抬升(下文的容器段 —— 开档即抬,防开档后第一件掉落撞号);
+            //   ② **读档后**重构(见 `LoadSequencer.afterRestore` —— 读档换流后三流变了,
+            //      装配期那次抬升是**旧流**的结论,必须按新流重算)。
+            // ⚠️ 声明在 `if (saveBasePath)` 之外、且用 **`Func` 惰性取**:容器段在
+            //    `if (harvestProvider)` 内、`LoadSequencer` 构造在 `if (saveBasePath)` 内 ——
+            //    两处的守卫条件不同,直接捕获实例会要求「两边都装配」,而这是两个独立形态。
+            //    `null` = 该装配没装载容器表(EditMode 部分装配 / 无 provider)⇒ 调用方按
+            //    「基线未提供」处理(等价空集,**不是**「基线为空」—— 语义见
+            //    `ItemInstanceHighWaterCollector.Collect` 的 `null` 约定)。
+            Func<IEnumerable<long>> bakedInitialItemIds = null;
             // ── 瞬时源(规则十四「一个量」)—— 2026-10-25 用户裁定「生产接线今日不为零,现在修」──
             // 实装 = NoPendingMedicalActionQuery(读急救通道 Armed 态取反;W5 要求的
             // 「独立于流的内存态」就此兑现 —— 不是流内累积钩子,被证伪的形态不回归)。
@@ -921,6 +934,52 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ `worldLoad` 未接世界时为 null ⇒ 空操作(既有调用方零行为变化)。
                     afterRestore: () =>
                     {
+                        // 🔁 **2026-11-02(`TD-persist-12`)**:读档后**先**重构物品 id 高水位,
+                        // **再**重建派生态。病因:装配期那次抬升(容器段)只对**开档那一刻的流**
+                        // 有效 —— 读档把流换成了存档内容,而 `IdAuthority` 计数器停在旧值
+                        // ⇒ 存档里 id 更大时,读档后第一件掉落 / 第一次加工铸造会**撞号**
+                        // ⇒ fold 里两件物品静默合并(ADR-010 §五登记的原风险)。
+                        //
+                        // 扫描域 = 三流 ∪ 基线(AC-20-03 的形状):
+                        //   · 三流半边 = `stream.Events`(读档后已是新流);
+                        //   · 基线半边 = `bakedInitialItemIds`(`null` = 本装配未装载容器表)。
+                        //
+                        // ⚠️ **必须显式转型 + 失败即抛**(与容器段同一纪律):`IIdAuthority`
+                        //    接口上没有 `ReconstructItemHighWater`(它是 `IdAuthority` 的具体能力)
+                        //    ⇒ 转型失败时静默跳过 = 读档后掉号,且只在读档后才显形。
+                        // ⚠️ **不得传 `null` 冒充「基线为空」**:`Collect` 的 `null` 语义是
+                        //    「基线未提供」,而容器表**已装载却读出空集**是另一件事 —— 两者的
+                        //    后果相同(高水位偏低)但成因不同,故这里只做「有就给」。
+                        if (!(idAuthority is IdAuthority itemAuthority))
+                            throw new InvalidOperationException(
+                                "读档后重构物品高水位需要 `IdAuthority` —— 注入的 `IIdAuthority` 实为 " +
+                                $"{idAuthority?.GetType().FullName ?? "null"},无法保证读档后不掉号" +
+                                "(ADR-006 Amendment B / AC-7a-13)");
+                        ItemInstanceHighWaterCollector.CollectAndReconstruct(
+                            stream.Events, decoder,
+                            bakedInitialItemIds != null ? bakedInitialItemIds() : null,
+                            itemAuthority);
+
+                        // 🔁 **2026-11-02(`TD-persist-12` 同批的 patient 半边)**:受伤实体
+                        // id 高水位同样要按**新流**重算。此前生产零调用点
+                        // (`grep ReconstructPatientHighWater | grep -v /Tests/` 只命中定义),
+                        // 而玩家 actorId 在启动序第 4 步就铸过号 ⇒ 读档后新病人 / 新敌人
+                        // 会复用存档里已用的 id(同一空间,ADR-006 Amendment B 第二十六批)。
+                        //
+                        // ⚠️ **扫描域含折叠行**:被折叠病人的事件已从流里抹除,其 id 只活在
+                        //    折叠行(`FoldRow.PatientId`)—— 漏掉它们 ⇒ 新病人复用已折叠的 id
+                        //    (`EventStream.GetNextPatientId` 的头注正是为此)。
+                        // ⚠️ 与物品侧不同,**这里不扫基线**:基线(容器)是物品 id 空间,
+                        //    受伤实体 id 空间里没有开档既有实体(`DiseaseOnset` 是唯一的出现事件,
+                        //    ADR-030 ①)。
+                        List<int> patientIds = new List<int>(stream.Events.Count + stream.FoldedRows.Count);
+                        for (int i = 0; i < stream.Events.Count; i++)
+                            patientIds.Add(stream.Events[i].Patient.Value);
+                        for (int i = 0; i < stream.FoldedRows.Count; i++)
+                            patientIds.Add(stream.FoldedRows[i].PatientId);
+                        itemAuthority.ReconstructPatientHighWater(patientIds);
+
+                        // ── 派生态重建(次序见下方原注:库存在前、世界在后)──
                         inventoryLoad.Rebuild();
                         worldLoad?.Rebuild();
                     },
@@ -1144,6 +1203,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                         $"注入的 `IIdAuthority` 实为 {idAuthority?.GetType().FullName ?? "null"}," +
                         "无法保证开档后不掉号(ADR-006 Amendment B)");
                 concreteItemAuthority.ReconstructItemHighWater(containerData.InstanceIds());
+
+                // 🔁 2026-11-02(`TD-persist-12`):把**同一份**基线 id 交给读档路径。
+                // 装配期这次抬升只对**开档那一刻的流**有效;读档换流后 `IdAuthority` 仍是
+                // 那个实例、计数器停在旧值 ⇒ 若存档里的 id 更大,后续铸造会撞号。
+                // ⚠️ 不重取数据:闭包捕获 `containerData`,读档时仍从**同一张烘焙表**取值
+                //    (基线是版本化静态数据,不随存档变 —— ADR-022 §六)。
+                bakedInitialItemIds = containerData.InstanceIds;
 
                 var bakedContainers = new List<ContainerDto>(containerData.Containers.Count);
                 for (int i = 0; i < containerData.Containers.Count; i++)
