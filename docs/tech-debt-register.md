@@ -453,6 +453,7 @@
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
 | `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
+| `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | open | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -863,7 +864,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 152 | 状态 {'closed': 141, 'partial': 3, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 153 | 状态 {'closed': 141, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 47, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -10005,4 +10006,108 @@ grep -c "Processing" design/gdd/skeuomorphic-ui.md        # 期望 > 0(改前 0)
 grep -c "十-E" .claude/docs/technical-preferences.md      # 期望 > 0(改前 0)
 grep -rn "P0 无生产消费面\|消费面仍是 \`null\`" unity/Assets --include=*.cs | grep -v /Tests/ | grep -v "原写\|已作废"
 # 期望零命中(不过滤会命中 2 处 —— 那是本轮订正注里**引述的原文**,「原文不删」纪律要求的)
+```
+
+---
+
+## 2026-11-02 · 新立 `TD-docs-01` —— `AC-20-NN` 是两个编号空间共用的 ID
+
+**出处**:用户指令「继续」。`open` 队列七条全卡外部后,顺着 `TD-interaction-03` 轮的发现
+(`ADR-013 §十-E` 自列的六条同步义务有两条没落)做了一次**跨 ADR 的机械普查**,撞见这一条。
+**不是**任何既有债的重复登记。
+
+### 债描述
+
+`AC-20-NN` 这一串 ID **同时属于两个互不相干的编号空间**:
+
+| 编号空间 | 定义处 | 覆盖区间 | 例 |
+|---|---|---|---|
+| **ADR-020**(玩家控制器与相机) | `docs/architecture/adr-020-player-controller-and-camera.md` | `AC-20-01` … `AC-20-17` | `AC-20-01` = 移动 = `CharacterController` |
+| **系统 20**(库存与物品) | `design/gdd/inventory-and-items.md:898` 起 | `AC-20-01` … `AC-20-25` | `AC-20-01` = `instance_id` 唯一来源 = `IIdAuthority` |
+
+⇒ **重叠区间 = `AC-20-01` … `AC-20-17`,17 个 ID 每一位都有两个意思**,且**两侧都是 BLOCKING 级**。
+
+### 时间顺序(谁撞了谁,可核)
+
+| 时点 | 事件 |
+|---|---|
+| 2026-09-19 及更早 | 库存 GDD 的 `AC-20-01…25` 成文(系统 20 的 AC 空间) |
+| **2026-10-26** | `gate_wiring_manifest_test.cs:98` 已引用库存的 `AC-20-15`(「双层零浮点门」,S20-11 落) |
+| **2026-11-01** | `ADR-020 Amendment C` **新造** `AC-20-15` / `AC-20-16` / `AC-20-17`(Downed 四语义 / RequesterId 裁决 / 位姿访问器) |
+
+⇒ **后造者撞了先有者**。不是「历史遗留没办法」,是**新 ID 铸号时没查重**。
+
+### 实测(逐条可跑)
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+# ① 两个空间各自的 ID 集
+grep -oE "AC-20-[0-9]+" docs/architecture/adr-020-player-controller-and-camera.md | sort -u | wc -l   # 17
+grep -oE "AC-20-[0-9]+" design/gdd/inventory-and-items.md | sort -u | wc -l                            # 25
+# ② 同一串在两处的意思不同(各自取「定义行」,别取尾部偶然提及)
+grep -n "AC-20-01(BLOCKING)" docs/architecture/adr-020-player-controller-and-camera.md   # :671 移动 = CharacterController
+grep -n "^| \*\*AC-20-01\*\*" design/gdd/inventory-and-items.md                          # :898 instance_id 唯一来源
+# ③ 引用面:排除两份定义源后仍有 744 处命中、分布在 143 个文件
+grep -rnoE "AC-20-(0[1-9]|1[0-7])" --include=*.md --include=*.cs --include=*.yaml . \
+  | grep -v "inventory-and-items.md\|adr-020-player" | wc -l
+grep -rlE "AC-20-(0[1-9]|1[0-7])" --include=*.md --include=*.cs --include=*.yaml . \
+  | grep -v "inventory-and-items.md\|adr-020-player" | wc -l
+```
+
+⚠️ **744 这个数不等于「744 处歧义」** —— 其中绝大多数是**库存**语义(20 是 P0 核心系统,
+引用面天然大)。它给的是**引用面的量级**,不是歧义计数。真正的风险面是下面这四类抽样。
+
+### 实际危害(抽样,**同一个串,两个意思,都在用**)
+
+| 引用点 | 指的是 |
+|---|---|
+| `docs/architecture/traceability-index.md:1046` | **库存**的 `AC-20-15`(20 输出 DTO 无 float) |
+| `design/gdd/inventory-and-items.md:912` | **库存**的 `AC-20-15`(定义行) |
+| `docs/architecture/architecture.md:915` | **ADR-020** 的 `AC-20-15①`(相机优先级) |
+| `.claude/docs/technical-preferences.md:550` | **ADR-020** 的 `AC-20-15/16/17`(Amendment C 三项) |
+
+⇒ 读者看到「`AC-20-15` 已满足」**无法判断说的是哪一条**。这类记录**可以两边都绿而含义相反**。
+
+### 潜伏的同类(同一病理,尚未发作)
+
+`adr-019-telemetry-and-privacy.md` 用 `AC-19-01` … `AC-19-08`(按 **ADR 号**编号),
+而**系统 19 = 制作与器械,今日 `P1a / 未开始 / 无 GDD`**
+(`systems-index.md:55`)⇒ 该系统 GDD 成文那天,这 8 个 ID **会撞**。
+
+**项目已有先例注,但只注在一个故事里**:`production/epics/disease-simulation/story-008-death-candidate-sink.md:63`
+写「是**两套编号**,不可互读(`AC-9-01` 不是 `AC-9` 系统的 `AC-01` )」——
+`ADR-009` 与系统 9 同款。⇒ 这是**已知病理的第三例**,但从未收敛成一条规则。
+
+### 为什么 `P0 面 = N`(R3-裁,理由写明以便被推翻)
+
+`AC-20-15` 是两个 ID 不是一个 bug:**零运行时行为影响**,不阻塞任何 P0 出口。
+它是**可追溯性 hazard**(引错 ID ⇒ 验错东西),与 `TD-s13-01`(跨 epic 治理)同口径。
+⚠️ **若用户判「记录面错误也算 P0 出口门」,须改写为 `Y`** ⇒ `未闭 P0 面` 由 0 变 1,
+M3 Exit 第二条合取转假。
+
+### 修法方向(**本轮不擅自改名** —— 承 `ADR-013 §十-E` 的「编号碰撞如实登记,改名会打断既有引用」先例)
+
+| # | 方向 | 代价 | 备注 |
+|---|---|---|---|
+| ① | **只登记,约定写法**:ADR 自有的 AC 一律写 `ADR-0NN AC-NN`,系统 GDD 的维持 `AC-{sys}-{n}` | 零改名 | 新笔记得以消歧;存量 744 处**不动** |
+| ② | **ADR-020 的 15/16/17 改名**(如 `AC-20-A15` / `AC-ADR020-15`) | 需同时改 ADR / architecture.md / control-manifest / technical-preferences / story-007 两件 / 三个夹具 | 打断既有引用,须用户裁 |
+| ③ | **维持现状 + 每处引用加限定语** | 744 处逐条判断 | 不现实,且是「靠纪律守」不是「结构上不可能」 |
+
+**建议 ①**(零改名、只锁写法);② 留待用户裁。**本轮只做「登记」这一件**,不碰任何 ID。
+
+### 触发条件
+
+**用户裁定写法方向时**;或 ADR-020 / 库存 GDD / 系统 19 GDD 的**下一次修订轮**(各自可带本债一句话)。
+
+### 账务
+
+`条目 152 → 153`(+1)· **`open 7 → 8`**(+1)· `closed 141` 不动 · `partial 3` 不动 ·
+**`P0 面 N 46 → 47`**(+1)· `未闭 P0 面 = 0` 不变(本条标 `N`)。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print
+# 期望:条目 153 | open 8 | partial 3 | closed 141 | 未闭 P0 面 = 0
 ```
