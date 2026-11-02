@@ -1054,6 +1054,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ② `difficulty` 传 1.0 —— 采集难度分档归数值轮。
             //    两者都是**具名实参**,装配点一眼可见,不是从暗处读来的数。
             HarvestInteractionDriver harvestDriver = null;
+            // 🔁 2026-11-02(`TD-interaction-01`):E 按下沿的**全种类**候选集 + 选择器 + 半径。
+            //    与上面 harvest 自用的那三个**不是同一组语义**:采集只认资源点,这里含病人。
+            //    半径/选择器实例**共用**(单源半径 AC-4-17 —— 第二处声明会静默脱钩)。
+            DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader pressCandidates = null;
+            DaYiJingCheng.Gameplay.Interaction.InteractionSelector pressSelector = null;
+            DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null;
             // ⚠️ **只在真 provider 下装配**(`AddressablesDataProvider` 才带 `ForagingConstants` /
             //    `CarryCap` 两条运行期读路)。夹具用的 `IDataProvider` 假件没有它们 ⇒ 驱动的
             //    装配面就是**生产装配面**,不会因为「夹具里也能建出来」而显得已接线。
@@ -1078,11 +1084,26 @@ namespace DaYiJingCheng.Gameplay.Boot
                     UnwiredDiscoveryReporter.Instance,
                     harvestRadius);
 
+                var forageSource = new ResourceForageSpotSource(
+                    dataProvider.Load<WorldResourcesDataSet>().Resources);
+
+                // 采集自用:只看得见资源点(采集按定义只结算这一类)。
                 var harvestCandidates = new CandidateSetLoader(new CandidateSources(
                     drops: null,                                   // ① 世界流掉落锚格(4 的 story-003 面)
-                    worldBaked: new ResourceForageSpotSource(dataProvider.Load<WorldResourcesDataSet>().Resources),
-                    patients: null,                                // ③ 13 在场视图(同上)
+                    worldBaked: forageSource,
+                    patients: null,                                // ③ 13 在场视图(见下一段)
                     bakedInitial: null));                          // ④ 23 开档自带(同上)
+
+                // 🔁 E 按下沿:全种类候选集(**第三源已接入** = 13 的在场视图)。
+                // ⚠️ 与 `harvestCandidates` 刻意是两个实例:采集只认资源点;若它也看见病人,
+                //    「病人更近」会让 `TryHarvestTarget` 因种类不符返回 None 而静默放弃 —— 难查。
+                pressCandidates = new CandidateSetLoader(new CandidateSources(
+                    drops: null,
+                    worldBaked: forageSource,
+                    patients: new PresencePatientSource(presence),
+                    bakedInitial: null));
+                pressSelector = harvestSelector;   // 同一个选择器实例(F-4.1 的唯一一处)
+                pressRadius = harvestRadius;       // 同一个半径实例(AC-4-17 单源)
 
                 harvestDriver = new HarvestInteractionDriver(
                     harvestSelector, harvestRadius, harvestCandidates, harvest,
@@ -1676,7 +1697,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 🔁 2026-10-28 S20-19:42 的建造发起方。
                                                // 与 `world` **同 null 性**(无世界即无槽位/占用/写者),
                                                // 且只在 `world != null` 的支路里构造 —— 见上方。
-                                               buildController);
+                                               buildController,
+                                               // 🔁 2026-11-02(`TD-interaction-01`):E 路由三件
+                                               //    (无 data-core ⇒ 三者 null ⇒ BootRoot 不建路由)。
+                                               pressCandidates: pressCandidates,
+                                               pressSelector: pressSelector,
+                                               pressRadius: pressRadius);
 
             // 🔁 2026-10-30(ADR-035 §⑤):53 的禁忌结算器 —— `TreatmentHarmOnset` 的唯一生产写者。
             //    表源 = data-core 产物(`CostTable53DataSet`);无 provider ⇒ 空表 ⇒ 任何档都 miss

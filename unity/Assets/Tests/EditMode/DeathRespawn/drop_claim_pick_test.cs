@@ -163,37 +163,10 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             Assert.AreEqual(0, CountOf(EventKind.DropClaimed));
         }
 
-        // ══════════════════ E 沿路由(拾取优先 → 采集)══════════════════
-
-        /// <summary>拾取 claim 消费按键(返回 true;不重复处理 —— 全流恰一条 DropClaimed)。</summary>
-        [Test]
-        public void test_route_claimConsumes_press()
-        {
-            SeedDrop(DropCell);
-
-            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell, int.MaxValue);
-
-            Assert.IsTrue(consumed, "拾取链消费按键");
-            Assert.AreEqual(1, CountOf(EventKind.DropClaimed), "恰一条(不重复路由)");
-        }
-
-        /// <summary>拾取拒 ⇒ 落回采集桥(here:未装配 ⇒ false)—— 落通不炸、零事件;
-        /// 采集真消费的正例由 S22-9 采集夹具承载,本测钉**落回**这半边。</summary>
-        [Test]
-        public void test_route_claimReject_fallsThrough_toHarvest()
-        {
-            bool consumed = InteractClaimRoute.TryConsume(_claim, null, PlayerId, Tick, DropCell, int.MaxValue);
-
-            Assert.IsFalse(consumed, "拾取拒 + 采集未装配 ⇒ 按键落回查体(查体在驱动内)");
-            Assert.AreEqual(0, CountOf(EventKind.DropClaimed), "落回过程零事件");
-        }
-
-        /// <summary>双未装配(null, null)⇒ false(诚实降级,不炸)。</summary>
-        [Test]
-        public void test_route_bothUnwired_false()
-        {
-            Assert.IsFalse(InteractClaimRoute.TryConsume(null, null, PlayerId, Tick, DropCell, int.MaxValue));
-        }
+        // 🔁 2026-11-02(`TD-interaction-01`):原「E 沿路由」三条移到
+        //   `Casebook/interaction_press_router_test.cs` —— 路由本体已从
+        //   `InteractClaimRoute`(外挂比距)换成 `InteractionPressRouter`(一次 `Select` 定种类),
+        //   本文件只剩 20 的拾取编排本体(下面这些)。
 
         // ══════════════════ 结构判据 / 参数守卫 ══════════════════
 

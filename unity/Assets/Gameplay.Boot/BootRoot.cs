@@ -646,34 +646,42 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-10-31 收尾:同一个「模态开集」读面还要喂**输入冻结**(移动轴 + 建造)——
             //    单实例共用,避免三处各自演化出「什么算挡路」的第二份判据。
             var modalState = new ModalGateStateAdapter(() => _uiDriver);
-            // ── 4.5a. 采集意图桥(S22-9)+ 拾取编排(S23-6):E 按下沿的路由序 =
-            //    **拾取 claim 优先 → 采集 → 查体**。拾取是玩家的「拿取」affordance
-            //    (地上的东西优先于环境资源点;S23-6 轮内就地裁定,已回写 sprint 卡);
-            //    拾取拒(无候选/出半径)⇒ 零事件落回采集链 —— 单一边沿所有者不变
-            //    (判定都在 InteractionInputDriver 的边沿之内,两支都不另持边沿位)。
-            //    PlayerCell 用经流确立格(ADR-020 §四;两支同源)。
-            var harvestBridge = new HarvestInteractionBridge(
-                () => _services.HarvestDriver,
-                () => _player != null ? _player.LastCommittedCell : default,
-                () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
-                actorId);
+            // ── 4.5a. E 按下沿的**统一路由**(2026-11-02 · 结清 `TD-interaction-01`)──
+            //    旧形态是「拾取 claim → 采集桥 → 查体」三段外挂仲裁(`InteractClaimRoute`),
+            //    其中「打给谁」由两处各算一遍(采集自选资源点 / 驱动自选最近病人)。
+            //    现口径 = **一次 `InteractionSelector.Select` 定种类**(F-4.1 三键全序),
+            //    再按 `InteractableKind` 分派 → `InteractionPressRouter`。
+            //    PlayerCell 用经流确立格(ADR-020 §四),不再读 `transform.position`。
+            InteractionPressRouter pressRouter = null;
+            if (_services.PressCandidates != null && _services.PressSelector != null
+                && _services.PressRadius != null)
+            {
+                pressRouter = new InteractionPressRouter(
+                    () => _player != null ? _player.LastCommittedCell : default,
+                    () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
+                    actorId,
+                    _services.PressCandidates,
+                    _services.PressSelector,
+                    _services.PressRadius,
+                    _services.DropClaimOrchestrator,
+                    _services.HarvestDriver,
+                    // ⚠️ 懒求值:患者在**本段之后**才构造(它要拿 `_interactionDriver` 的 Visit)。
+                    patient => _interactionDriver?.Visit(patient));
+            }
+            else
+            {
+                // 无 data-core(测试装配 / 数据未就绪)⇒ 不建路由。驱动退回「未接线」形态,
+                // 与 `PressCandidates == null` 同源 —— 不是「静默降级成旧路由」。
+                Debug.LogWarning("[BootRoot] PressCandidates / PressSelector / PressRadius 缺一 —— " +
+                                 "E 键的 4 目标选择器未接线(交互路由不可用)。");
+            }
+
             var interaction = new InteractionInputDriver(
                 _services,
                 () => _player != null ? _player.transform.position : Vector3.zero,
                 actorId,
                 new ModalGate(_services.EmergencyChannel, modalState),
-                // claim 钩子(S22-9 采集 + S23-6 拾取的合流路由):
-                //   拾取编排 claim 成功 ⇒ 按键被拾取链消费;拒 ⇒ 零事件落回采集桥。
-                //   判定本体 = InteractClaimRoute.TryConsume(独立类 —— 路由序有夹具,非注释接线)。
-                () => InteractClaimRoute.TryConsume(
-                    _services.DropClaimOrchestrator,
-                    harvestBridge,
-                    actorId,
-                    _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
-                    _player != null ? _player.LastCommittedCell : default,
-                    // 🔁 2026-11-02 跨种类比距:无此入参时,半径内的采集点会吞掉**每一次** E
-                    //    (现世界 r_interact = 3 覆盖全部可站格)⇒ 就诊 / 开册永不可达。
-                    NearestPatientCellDistance()),
+                routeInteractPress: pressRouter != null ? (Func<bool>)pressRouter.OnPress : null,
                 // ── E 键的就诊两半(2026-11-02 · 结清 `TD-casebook-01`)──
                 //   ① 立案:37 的 `CaseOpened` 唯一生产入口。判定(在场 / 去重)在 writer 内,
                 //      本缝只转交 —— 驱动侧不复制第二份判据。
@@ -682,7 +690,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 caseOpen: (patient, tick) =>
                     _services.CaseOpenedDriver?.TryOpen(patient, tick),
                 openCasebook: () =>
-                    _uiDriver != null && _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Casebook));
+                    _uiDriver != null && _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Casebook),
+                // 🔁 2026-11-02:急救 Arm 目标改走整数格(4 规则二「玩家格取路 (a)」)。
+                playerCell: () => _player != null ? _player.LastCommittedCell : default);
             _interactionDriver = interaction;
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 
@@ -1068,34 +1078,6 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 缺失 = 测试里没造 fixture ⇒ 自建(此时无 PanelSettings ⇒ 逻辑树在、不渲染,
         /// 见 <see cref="AssertSingleAudioListener"/> 旁注的实测记录)。</para>
         /// </summary>
-        /// <summary>
-        /// 最近的在场病人的 `d∞` 距离(`int.MaxValue` = 无在场病人 / 无玩家 / 无格)。
-        /// <para>用途 = E 按下沿的**跨种类比距**(`InteractClaimRoute`):采集只在比最近病人
-        /// 更近时才消费按键。⚠️ 读的是**整数格**(`PresenceRegistry.TryGetCell` +
-        /// `LastCommittedCell`),不读表现态位置(ADR-016 §三)。
-        /// </para>
-        /// <para>⚠️ <b>F-4.1 的部分实现</b>:只算第一键(`d∞`);`KindPriority` / `StableId`
-        /// 未参与 ⇒ 等距时由本函数判「病人更近或等距 ⇒ 采集不抢」。补齐另立债。</para>
-        /// </summary>
-        private int NearestPatientCellDistance()
-        {
-            if (_services?.Presence == null || _player == null) return int.MaxValue;
-
-            WorldPos from = _player.LastCommittedCell;
-            int best = int.MaxValue;
-            foreach (int pid in _services.Presence.PresentPatientIds())
-            {
-                if (!_services.Presence.TryGetCell(new PatientId(pid), out WorldPos cell)) continue;
-                long dx = Math.Abs((long)from.X - cell.X);
-                long dy = Math.Abs((long)from.Y - cell.Y);
-                long dz = Math.Abs((long)from.Z - cell.Z);
-                long m = dx > dy ? dx : dy;
-                if (m < dz) m = dz;
-                if (m < best) best = m > int.MaxValue ? int.MaxValue : (int)m;
-            }
-            return best;
-        }
-
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
         {
             var existing = UnityEngine.Object.FindFirstObjectByType<SkeuoRuntimeDriver>();

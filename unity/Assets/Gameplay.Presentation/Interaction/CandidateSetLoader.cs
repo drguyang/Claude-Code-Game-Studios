@@ -102,5 +102,50 @@ namespace DaYiJingCheng.Gameplay.Interaction
 
             return candidates;
         }
+
+        /// <summary>
+        /// 装载 + **按 `R_INTERACT` 邻域裁剪**(GDD 规则二:裁剪在装载之后、argmin 之前)。
+        /// <para><b>为什么在这里而不是在调用方各自写一遍</b>:`d∞` 必须与
+        /// <see cref="InteractionSelector"/> 的第一键**同一式**(先拓宽 int64 再取绝对值 ——
+        /// story 002 承重纪律)。⚠️ 算式本身在本命名空间仍有私有副本
+        /// (`HarvestInteractionDriver.Chebyshev` —— 既有先例:跨程序集不便共享,且各处均已注)。
+        /// 本方法的作用是让**路由**不必再写第三份。</para>
+        /// <para>⚠️ 玩家格 = **经流确立的格**(ADR-020 §四);本方法不在乎它从哪来,但调用方不得传表现态连续位置。</para>
+        /// </summary>
+        /// <param name="playerCell">玩家经流确立格。</param>
+        /// <param name="radius">交互半径(单源 <see cref="InteractionRadius"/>.Value)。</param>
+        /// <returns>半径内的候选;全部在半径内时返回原列表(零分配)。</returns>
+        public IReadOnlyList<Candidate> LoadWithin(in WorldPos playerCell, int radius)
+        {
+            IReadOnlyList<Candidate> all = Load();
+            if (all == null || all.Count == 0) return all;
+
+            List<Candidate> kept = null;
+            for (int i = 0; i < all.Count; i++)
+            {
+                Candidate c = all[i];
+                if (Chebyshev(in playerCell, in c.Cell) <= radius)
+                {
+                    kept?.Add(c);
+                }
+                else if (kept == null)
+                {
+                    kept = new List<Candidate>(i);
+                    for (int j = 0; j < i; j++) kept.Add(all[j]);
+                }
+            }
+            return kept ?? all;
+        }
+
+        /// <summary>两格 Chebyshev 距离 <c>d∞ := max(|Δx|,|Δy|,|Δz|)</c>(F-4.1 第一键同式)。
+        /// <para>⚠️ 先拓宽 int64 再取绝对值(int 域相减会在 <c>int.MinValue</c> 处回绕)。</para></summary>
+        private static long Chebyshev(in WorldPos a, in WorldPos b)
+        {
+            long dx = System.Math.Abs((long)a.X - b.X);
+            long dy = System.Math.Abs((long)a.Y - b.Y);
+            long dz = System.Math.Abs((long)a.Z - b.Z);
+            long m = dx > dy ? dx : dy;
+            return m > dz ? m : dz;
+        }
     }
 }

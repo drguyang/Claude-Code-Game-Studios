@@ -1,0 +1,133 @@
+// 2026-11-02 · 开册入口后续轮 —— 结清 `TD-interaction-01`(4 的确定性全序目标选择落成唯一一处)
+//
+// ── 病因(债册 `TD-interaction-01` 原文)──────────────────────────────────────
+// `interaction-system.md` 规则三 / `F-4.1`:**全案唯一目标选择器**,
+// `target = argmin ⟨ d∞, KindPriority, StableId ⟩`,候选来自**全部种类**。
+// 实装却是两处互不知情的判据:
+//   ① 采集 —— `HarvestInteractionDriver` 走真 `InteractionSelector`,但候选集只有资源点;
+//   ② 就诊 —— `InteractionInputDriver.NearestPresentPatient` 自算「视觉位置平方距离最小」
+//      (**浮点 · 表现态** —— 违 ADR-016 §三),没有任何全序键;
+//   ③ 两者靠 `InteractClaimRoute` 的**外挂比距**仲裁(2026-11-02 加,只比 `d∞`)。
+//
+// ── 现口径(本类)────────────────────────────────────────────────────────────
+// **一次 `Select` 定种类**,然后按 `InteractTarget.Kind` 分派:
+//   Patient     → `_visit(patientId)`(39 的就诊:立案 → 查体 → 开册)
+//   ForageSpot  → `HarvestInteractionDriver.TryHarvestTarget`(17)
+//   Drop        → `DropClaimOrchestrator.TryClaim`(20)
+//   其它种类    → **不消费**(未接线种类,按键落空 —— 诚实降级,不静默转成别的动作)
+//
+// ── 仍然不是 F-4.1 的全部(如实登记)──────────────────────────────────────────
+// ① **`Drop` 仍走 20 自己的「第一可拾(instance_id 升序)」**,不是全序 argmin ——
+//    `DropClaimOrchestrator` 的既有口径(见其文件头),本轮**未改**,故 `IDropSource`
+//    也仍是 `null` ⇒ Drop **不在候选集里**,它只在「选择器什么都没选中」时兜底。
+//    ⚠️ 这不是「Drop 优先」,是「Drop 不在选择器面上」—— 待 20 的口径与 F-4.1 对齐后回收。
+// ② POI / Utensil / ClinicPanel / Door / Switch / BuildSlot 六种候选源仍未在生产装配
+//    (同「story-003」面);它们不出现在候选集里 ⇒ 按「不消费」落空。
+//
+// ⚠️ 本类**不持游戏状态**:只有 readonly 依赖 + 一个观测位(`LastRoutedKind`)。
+// ⚠️ 玩家格 = **经流确立的格**(调用方注入;ADR-020 §四),本类不读 `transform.position`。
+
+using System;
+using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Interaction;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Contracts;
+
+namespace DaYiJingCheng.Gameplay.Boot
+{
+    /// <summary>
+    /// E 按下沿的**统一路由**:一次 `InteractionSelector.Select` 决定「这一下打给谁」,
+    /// 再按 <see cref="InteractableKind"/> 分派到 39 / 17 / 20。
+    /// </summary>
+    public sealed class InteractionPressRouter
+    {
+        private readonly Func<WorldPos> _playerCell;
+        private readonly Func<long> _tick;
+        private readonly int _actorId;
+        private readonly CandidateSetLoader _candidates;
+        private readonly InteractionSelector _selector;
+        private readonly InteractionRadius _radius;
+        private readonly DropClaimOrchestrator _drops;
+        private readonly HarvestInteractionDriver _harvest;
+        private readonly Action<PatientId> _visit;
+
+        /// <summary>最近一次路由选中的种类(<c>null</c> = 未选中);观测 / 夹具面。</summary>
+        public InteractableKind? LastRoutedKind { get; private set; }
+
+        /// <summary>构造路由。</summary>
+        /// <param name="playerCell">玩家**经流确立格**来源(禁表现态位置)。</param>
+        /// <param name="tick">当前逻辑 tick 来源。</param>
+        /// <param name="actorId">玩家 id(17 / 20 的归因面)。</param>
+        /// <param name="candidates">候选集装载器(**含病人源**的那个 —— 与采集自用的不是同一个实例)。</param>
+        /// <param name="selector">4 的目标选择器(F-4.1 三键全序)。</param>
+        /// <param name="radius">交互半径单源持有者(裁剪用;与选择器同一实例)。</param>
+        /// <param name="drops">拾取编排(可 null = 未装配)。</param>
+        /// <param name="harvest">采集驱动(可 null = 未装配)。</param>
+        /// <param name="visit">就诊回调(39 的立案 + 查体 + 开册;可 null = 未接线)。</param>
+        /// <exception cref="ArgumentNullException">前三者或 candidates / selector / radius 为 null。</exception>
+        public InteractionPressRouter(
+            Func<WorldPos> playerCell,
+            Func<long> tick,
+            int actorId,
+            CandidateSetLoader candidates,
+            InteractionSelector selector,
+            InteractionRadius radius,
+            DropClaimOrchestrator drops,
+            HarvestInteractionDriver harvest,
+            Action<PatientId> visit)
+        {
+            _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
+            _tick = tick ?? throw new ArgumentNullException(nameof(tick));
+            _actorId = actorId;
+            _candidates = candidates ?? throw new ArgumentNullException(nameof(candidates));
+            _selector = selector ?? throw new ArgumentNullException(nameof(selector));
+            _radius = radius ?? throw new ArgumentNullException(nameof(radius));
+            _drops = drops;
+            _harvest = harvest;
+            _visit = visit;
+        }
+
+        /// <summary>
+        /// 处理一次 E 按下沿。
+        /// </summary>
+        /// <returns>true = 按键被消费(病人 / 采集点 / 掉落);
+        /// false = 未选中任何候选,或选中的种类尚未接线 —— 调用方不得再触发别的动作。</returns>
+        public bool OnPress()
+        {
+            WorldPos cell = _playerCell();
+            long tick = _tick();
+            var intent = new InteractIntent(cell, true, tick);
+
+            IReadOnlyList<Candidate> within = _candidates.LoadWithin(in cell, _radius.Value);
+            InteractTarget target = _selector.Select(in intent, within);
+
+            LastRoutedKind = target.HasTarget ? target.Kind : (InteractableKind?)null;
+
+            // Drop 不在候选集里(见文件头 ①)⇒ 只有「选择器一无所获」时才轮到拾取兜底。
+            // ⚠️ 这段兜底**不是**「Drop 优先」;它是 20 的既有口径的落点。选择器一旦
+            //    拿到了 Drop 源,本段应删除(债册 `TD-interaction-01` 的消解判据面外)。
+            if (!target.HasTarget)
+                return _drops != null && _drops.TryClaim(_actorId, tick, cell);
+
+            switch (target.Kind)
+            {
+                case InteractableKind.Patient:
+                    if (_visit == null) return false;
+                    _visit(new PatientId((int)target.StableId));
+                    return true;
+
+                case InteractableKind.ForageSpot:
+                    if (_harvest == null) return false;
+                    return _harvest.TryHarvestTarget(in target, in intent, _actorId).Attempted;
+
+                case InteractableKind.Drop:
+                    // 候选集里有 Drop 时(今日不可能,源为 null)仍交 20 处理。
+                    return _drops != null && _drops.TryClaim(_actorId, tick, cell);
+
+                default:
+                    // 未接线种类:不消费、不转译成别的动作(静默降级是假绿的温床)。
+                    return false;
+            }
+        }
+    }
+}

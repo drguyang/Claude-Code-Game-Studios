@@ -56,6 +56,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>AddressablesDataProvider</c> ⇒ 采调参表与 `CARRY_CAP` 两条运行期读路都不存在)。
         /// 与 <see cref="ConsequenceDriver"/> 同款 —— 生产装配面 = 真 provider 面。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.HarvestInteractionDriver HarvestDriver { get; internal set; }
+        /// <summary>E 按下沿的**统一候选集**(含病人源;2026-11-02 · `TD-interaction-01`)。
+        /// <para>⚠️ 与 `HarvestDriver` 自用的那个 `CandidateSetLoader` **不是同一个实例** ——
+        /// 那一个只有资源点(采集只认自己的种类),本一个才是 F-4.1 意义上的全种类候选集。</para></summary>
+        public DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader PressCandidates { get; internal set; }
+
+        /// <summary>E 按下沿的**目标选择器**(F-4.1 三键全序;与 `PressCandidates` / `PressRadius` 配套)。</summary>
+        public DaYiJingCheng.Gameplay.Interaction.InteractionSelector PressSelector { get; internal set; }
+
+        /// <summary>E 按下沿的**交互半径**(单源持有者;裁剪用,与 `PressSelector` 同一实例)。</summary>
+        public DaYiJingCheng.Gameplay.Interaction.InteractionRadius PressRadius { get; internal set; }
 
         /// <summary>拾取三段式编排面(S23-6 · 2026-11-01):意图 → 判距 → 宽容半径 →
         /// 第一可拾地面实例 claim。<para>⚠️ **生产装配必非 null**(构造点 = CompositionRoot
@@ -468,7 +478,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          World world = null,
                                          StructureWriter structureWriter = null,
                                          WorldLoadService worldLoad = null,
-                                         BuildController buildController = null)
+                                         BuildController buildController = null,
+                                         DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader pressCandidates = null,
+                                         DaYiJingCheng.Gameplay.Interaction.InteractionSelector pressSelector = null,
+                                         DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -516,6 +529,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             CheckpointFallback = checkpointFallback;
             NarrativeContext = narrativeContext;
             AnchorCheckpointTrigger = anchorCheckpointTrigger;
+            // 🔁 2026-11-02(`TD-interaction-01`):E 路由的三件。测试装配不传 ⇒ null,
+            //    BootRoot 据此不建 `InteractionPressRouter`(驱动退回「未接线」形态)。
+            PressCandidates = pressCandidates;
+            PressSelector = pressSelector;
+            PressRadius = pressRadius;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

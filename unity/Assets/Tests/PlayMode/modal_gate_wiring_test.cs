@@ -171,6 +171,19 @@ namespace DaYiJingCheng.Tests.PlayMode
             yield return null;
             Assert.IsFalse(ui.BlocksPlay, "关屏后不应再挡路");
 
+            // 🔁 2026-11-02(`TD-interaction-01`):E 现在经 4 的 `InteractionSelector` 按
+            //   `R_INTERACT` 选目标 —— **半径外的病人不再被选中**(旧的「最近病人」兜底无半径门)。
+            //   ⇒ 正控前先把玩家送到病人格,否则「关屏后按 E」合法地什么都不做,本测会假红。
+            var services = ReadField<CompositionRootServices>("_services");
+            Assert.IsNotNull(services, "BootRoot._services 应已装配");
+            int pid = 0;
+            foreach (int id in services.Presence.PresentPatientIds()) { pid = id; break; }
+            Assert.IsTrue(services.Presence.TryGetCell(
+                    new DaYiJingCheng.Sim.Contracts.PatientId(pid), out var patientCell),
+                "[前置] 在场病人应有整数格");
+            ReadField<PlayerController>("_player").Teleport(new Vector3(patientCell.X, 1f, patientCell.Z));
+            for (int i = 0; i < 5; i++) yield return null;
+
             yield return HoldKey(Key.E, HoldFrames);
 
             Assert.That(interaction.LastExaminedPatient.Value, Is.GreaterThanOrEqualTo(0),

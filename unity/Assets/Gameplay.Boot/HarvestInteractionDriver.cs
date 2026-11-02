@@ -199,6 +199,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 不裁的后果:E 键在任何位置都会选中**全世界**最近的药丛(装载器返回全量候选)
             //    ⇒ 采集消费掉每一次按键,查体永远轮不到。
             InteractTarget target = _selector.Select(in intent, ClipToRadius(_loader.Load(), in intent));
+            return TryHarvestTarget(in target, in intent, actorId);
+        }
+
+        /// <summary>
+        /// 采集结算(**已选定的目标**)—— 供 4 的统一路由把 `Select` 的结果直接交过来,
+        /// 本类不再自己选(否则「谁是被按中的那一个」会有两处判据,即 `TD-interaction-01`)。
+        /// <para>⚠️ 目标不是采集点 ⇒ <see cref="HarvestAttempt.None"/>(零事件、零副作用),
+        /// 由调用方把按键交给别的种类。</para>
+        /// </summary>
+        /// <param name="target">4 的目标选择器给出的胜者。</param>
+        /// <param name="intent">本 tick 的交互意图(取 tick / 玩家格)。</param>
+        /// <param name="actorId">玩家 id(20 的库存归因面)。</param>
+        public HarvestAttempt TryHarvestTarget(in InteractTarget target, in InteractIntent intent, int actorId)
+        {
+            if (actorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
+                    "actor_id 由 20 的 InventoryOf(player) 归因,不得为负");
+
             if (!target.HasTarget) return HarvestAttempt.None;
 
             // ── ② 只有采集点才进采集链;其它种类归各自系统 ──
@@ -252,26 +270,6 @@ namespace DaYiJingCheng.Gameplay.Boot
                 HarvestSkillId, itemKey, xpGain);
 
             return HarvestAttempt.Of(_orchestrator.Resolve(in request, in gate));
-        }
-
-        /// <summary>
-        /// **只读窥视**:本次交互意图下,最近**采集点**候选的 `d∞` 距离;<see cref="int.MaxValue"/> = 无候选。
-        /// <para>⚠️ **零副作用** —— 不掷骰、不写流、不推进任何游标;它与 <see cref="TryHarvest"/>
-        /// 走**同一** `<see cref="ClipToRadius"/> → <see cref="InteractionSelector.Select"/>` 前半段,
-        /// 故「窥视说 3」与「真跑会选到 3」同源,不是第二份判据。</para>
-        /// <para><b>为什么需要它</b>:E 按下沿的路由是**跨种类**的 —— 采集只有在
-        /// 「比最近的病人更近」时才该消费按键(`InteractClaimRoute`)。没有窥视就只能用
-        /// 「半径内有没有采集点」判,**而任何半径内存在采集点都会吞掉就诊**
-        /// (2026-11-02 实测:r_interact = 3 的现世界,出生格与病人格都判为 harvest ⇒ 脉案屏永不可达)。</para>
-        /// </summary>
-        /// <param name="intent">本 tick 的交互意图(只用 <c>PlayerCell</c> / <c>Tick</c> / <c>Pressed</c>)。</param>
-        public int PeekNearestForageDistance(in InteractIntent intent)
-        {
-            InteractTarget target = _selector.Select(in intent, ClipToRadius(_loader.Load(), in intent));
-            if (!target.HasTarget || target.Kind != InteractableKind.ForageSpot) return int.MaxValue;
-
-            long d = Chebyshev(in intent.PlayerCell, in target.Cell);
-            return d > int.MaxValue ? int.MaxValue : (int)d;
         }
 
         /// <summary>

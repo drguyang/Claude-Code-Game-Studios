@@ -24,9 +24,13 @@
 //   「按下沿」判据 = 上帧按住位比对(持键不重复触发 —— 查体是「一次交互一次动作」;
 //   急救 = 按住一次,事件在松开沿聚合上行)。
 //
-// ⚠️ **定位源(接线期) = 病人视觉实体位置**(PatientVisualSpawner.TryGetVisualPosition,
-//   占位环);真实位置归 6 世界生态区 + 13 空间侧。最近者 = 距玩家位置的平方距离最小者
-//   (纯呈现侧读数,不写世界流 —— ADR-020 §四 位移纯表现态)。
+// 🔁 2026-11-02(结清 `TD-interaction-01`):**E 打给谁不再由本类决定** ——
+//   `routeInteractPress` 接到 `InteractionPressRouter`,那里一次 `InteractionSelector.Select`
+//   按 F-4.1 三键定种类。本类只在**未接线**形态下退回「最近在场病人」(夹具用)。
+//
+// ⚠️ **定位源**:**生产 = 整数格**(`PresenceRegistry.TryGetCell` + 玩家经流确立格;
+//   4 规则二「玩家格取路 (a)」)。旧注写的「视觉实体位置 × 玩家 transform 平方距离」现在
+//   只剩**夹具回落**(未注入 `playerCell` 时),因为 `PatientVisualSpawner` 的占位环是表现态量。
 //
 // ⚠️ **S2.3(落笔→墨龄)/ S2.4(开方→处方)不在此文件**:那两个入口的「玩家操作」在 42 侧
 //   (方笺落笔 / 戥子选档确认),是 UI 事件 → 装配层的接线故事 —— 本驱动只接**设备级** E/F;
@@ -58,11 +62,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>模态门(规则七方向②;可 null = 未接线形态 —— 那时不做模态抑制)。</summary>
         private readonly ModalGate _gate;
 
-        /// <summary>采集的 claim 钩子(S22-9 · 可 null = 采集未接线)。
-        /// <para>E 按下沿先问一次:返回 true ⇒ 该次按键已被采集链消费(**闸门拒绝也算消费**),
-        /// 查体不再触发;false ⇒ 落回查体。边沿位**仍由本类持有** —— 单一边沿所有者,
-        /// 桥不自持(否则两处边沿位会漂移)。</para></summary>
-        private readonly Func<bool> _interactClaimedByHarvest;
+        /// <summary>E 按下沿的**统一路由**(2026-11-02 · 结清 `TD-interaction-01`;可 null = 未接线)。
+        /// <para>实参由装配层接到 <see cref="InteractionPressRouter.OnPress"/> —— 那里
+        /// **一次 `InteractionSelector.Select` 定种类**,再按种类分派到 39 / 17 / 20。
+        /// 🔁 本段的旧形态是「采集 claim 钩子」:`Func&lt;bool&gt;`,采集链先挑一遍、
+        /// 挑不到才落回本类的 `NearestPresentPatient` —— 那就是两处判据。
+        /// </para>
+        /// <para>⚠️ 边沿位**仍由本类持有**(单一边沿所有者);钩子只在边沿内被调。</para></summary>
+        private readonly Func<bool> _routeInteractPress;
 
         /// <summary>就诊 → 立案(2026-11-02 · `TD-casebook-01`;可 null = 未接线)。
         /// <para>参数 = (被就诊的病人, 立案 tick)。实参由装配层接到
@@ -73,6 +80,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>实参由装配层接到 42 的 `SkeuoRuntimeDriver.OpenModal(ModalId.Casebook)`。
         /// ⚠️ 本类只发「开」这一个意图,不读相机 / 不持模态态(ADR-013 §9 C3)。</para></summary>
         private readonly Func<bool> _openCasebook;
+
+        /// <summary>玩家**经流确立格**来源(2026-11-02 新增;可 null = 未注入 ⇒ 回落视觉位置)。
+        /// <para>用途 = 急救 Arm 的目标选择(全序第一键 `d∞` 的输入)与「未接线」兜底的最近者。
+        /// 🔁 旧形态只有 <see cref="_playerPosition"/> 一路(表现态连续位置)—— 与 4 规则二
+        /// 「玩家格取路 (a) = 经流确立的格」冲突;本轮把**生产**路径换成格,视觉位置只留作夹具回落。</para></summary>
+        private readonly Func<WorldPos> _playerCell;
 
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
@@ -89,11 +102,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>🔁 2026-10-31:此前本驱动**完全不看模态** ⇒ 脉案/存档位开着时按 E 仍会查体,
         /// 违反 F-4.2「模态期按下的交互 = 没发生」。</para>
         /// </param>
-        /// <param name="interactClaimedByHarvest">
-        /// 采集 claim 钩子(S22-9;可 null = 采集未接线,行为与改前一致)。
-        /// <para>调用次序:模态门放行后、查体前 —— 选中采集点的按键归采集链
-        /// (4 的选择器决定「这一帧的交互对象是谁」;钩子在**本类边沿判定之内**被调,
-        /// 不另造第二处边沿位)。</para>
+        /// <param name="routeInteractPress">
+        /// E 按下沿的统一路由(2026-11-02;可 null = 未接线)。
+        /// <para>调用次序:模态门放行后。**接线时本类不再自行决定「打给谁」** ——
+        /// 种类由 <see cref="InteractionPressRouter"/> 的一次 `Select` 定;本类只在
+        /// **未接线形态**(夹具)下退回「最近在场病人」,见 <see cref="OnFrame"/> 的注。</para>
         /// </param>
         /// <param name="caseOpen">就诊 → 立案(2026-11-02;`null` = 未接线 ⇒ 不立案,
         /// 与「玩家没交互」同形)。</param>
@@ -102,16 +115,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                                       Func<Vector3> playerPosition,
                                       int actorId,
                                       ModalGate gate = null,
-                                      Func<bool> interactClaimedByHarvest = null,
+                                      Func<bool> routeInteractPress = null,
                                       Action<PatientId, long> caseOpen = null,
-                                      Func<bool> openCasebook = null)
+                                      Func<bool> openCasebook = null,
+                                      Func<WorldPos> playerCell = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
             _actorId = actorId;
             _gate = gate;
-            _interactClaimedByHarvest = interactClaimedByHarvest;
+            _routeInteractPress = routeInteractPress;
             _caseOpen = caseOpen;
+            _playerCell = playerCell;
             _openCasebook = openCasebook;
         }
 
@@ -136,12 +151,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             bool interact = PlayerInputReader.InteractPressed();
             if (interact && !_interactHeld && allowed)
             {
-                // S22-9:采集先行 —— 4 的选择器选中采集点 ⇒ 该次按键归采集链
-                // (闸门拒绝也算消费:拒采的同时又查体 = 一次按键两个动作);
-                // 未选中 / 采集未接线 ⇒ 落回查体。模态门已由 allowed 前置:
-                // 模态开 ⇒ 本分支不进 ⇒ 采集与查体同被抑制(F-4.2)。
-                if (!(_interactClaimedByHarvest?.Invoke() ?? false))
-                    TryVisit();
+                // 🔁 2026-11-02(结清 `TD-interaction-01`):**一次路由**决定「这一下打给谁」。
+                //   接线时本类不再自己挑病人 —— 种类归 4 的 `InteractionSelector`(全序三键)。
+                // ⚠️ 未接线(`null`)⇒ 退回「最近在场病人」的就诊:那是**夹具形态**
+                //    (`interaction_input_chain_test` 等直接构造本类、不建路由),
+                //    不是生产路径 —— 生产由 `BootRoot` 恒接 `InteractionPressRouter`。
+                //    模态门已由 allowed 前置:模态开 ⇒ 本分支不进 ⇒ 各支同被抑制(F-4.2)。
+                if (_routeInteractPress != null)
+                    _routeInteractPress();
+                else
+                    Visit(NearestPresentPatient());
             }
             _interactHeld = interact;
 
@@ -189,10 +208,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         ///   <item><b>开册</b> —— 42 的 `OpenModal(Casebook)`(`casebook-39.md` §7「开册(就诊)」)。</item>
         /// </list>
         /// <para>⚠️ 立案**先于**开册:屏一打开就在读数据源,顺序反了会开出一次空册。</para>
+        /// <para>🔁 2026-11-02(结清 `TD-interaction-01`):本方法**公开**且**由调用方指名病人** ——
+        /// 「打给谁」归 <see cref="InteractionPressRouter"/> 的一次 `Select`,
+        /// 本类不再自己找最近者(那会是与 4 并列的第二处选择判据)。</para>
         /// </summary>
-        private void TryVisit()
+        /// <param name="target">被就诊的病人(由 4 的目标选择器给出)。</param>
+        public void Visit(PatientId target)
         {
-            PatientId target = NearestPresentPatient();
             if (target.Value < 0) return;
 
             // ① 就诊 / 立案(规则二-A:立案是一次玩家动作)
@@ -216,10 +238,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             _openCasebook?.Invoke();
         }
 
-        /// <summary>最近在场病人(视觉实体位置 × 玩家位置的平方距离最小;接线期定位源
-        /// = 视觉实体 —— 见文件头注)。</summary>
+        /// <summary>
+        /// 最近的在场病人 —— **急救 Arm 的目标**,以及「未接线」形态下 E 的就诊对象。
+        /// <para><b>生产分支(注入玩家格)= 整数格 argmin</b>:读
+        /// <c>PresenceRegistry.TryGetCell</c> + 玩家**经流确立格**(4 规则二「玩家格取路 (a)」·
+        /// ADR-016 §三)。同距时取 <c>patient_id</c> 小者(可重放,不依赖枚举序)。</para>
+        /// <para><b>夹具分支(未注入玩家格)= 视觉位置平方距离</b>:保留旧行为,供直接构造本类的
+        /// 夹具使用(<c>interaction_input_chain_test</c> 等)。⚠️ 该分支**不供生产** ——
+        /// 生产装配恒注入 `() =&gt; _player.LastCommittedCell`。</para>
+        /// </summary>
         private PatientId NearestPresentPatient()
         {
+            if (_playerCell != null) return NearestPresentPatientByCell();
+
             var spawner = _services.PatientVisualSpawner;
             if (spawner == null) return PatientId.None;
 
@@ -234,6 +265,34 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (sqr < bestSqr)
                 {
                     bestSqr = sqr;
+                    best = new PatientId(pid);
+                }
+            }
+            return best;
+        }
+
+        /// <summary>整数格最近者(F-4.1 第一键的口径:`d∞`;同距取 <c>patient_id</c> 小者)。</summary>
+        private PatientId NearestPresentPatientByCell()
+        {
+            if (_services.Presence == null) return PatientId.None;
+
+            WorldPos from = _playerCell();
+            PatientId best = PatientId.None;
+            long bestDistance = long.MaxValue;
+
+            foreach (int pid in _services.Presence.PresentPatientIds())
+            {
+                if (!_services.Presence.TryGetCell(new PatientId(pid), out WorldPos cell)) continue;
+
+                long dx = Math.Abs((long)from.X - cell.X);
+                long dy = Math.Abs((long)from.Y - cell.Y);
+                long dz = Math.Abs((long)from.Z - cell.Z);
+                long m = dx > dy ? dx : dy;
+                if (m < dz) m = dz;
+
+                if (m < bestDistance || (m == bestDistance && best.Value >= 0 && pid < best.Value))
+                {
+                    bestDistance = m;
                     best = new PatientId(pid);
                 }
             }
