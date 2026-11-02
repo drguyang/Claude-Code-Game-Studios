@@ -16122,3 +16122,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **未覆盖**:散文粗体不扫 · `control-manifest.md` 3 处未纳入 · 记法靠人遵守
 - 本轮**零 `.cs` 改动**
 - **未提交**(等用户指令)
+
+## Session Extract — S23-39 · C10 扩到行内粗体(2026-11-03)
+
+- 🐞 **先证伪自己的顾虑**:上轮说「放开会误伤大量引用」是**没数就下的结论** —— 实测只有 11 处,
+  真正要改 **10 处,全在 `adr-018`**,其余 ADR 为 0
+- **落地**:`adr-018` 再 10 处 → 反引号(累计 22 处);C10 放宽为 **ADR 行内任意位置粗体**
+- **证伪**:R13/R15 红 · **R14/R16 两条负控保持绿**(列表位 + 行内位各一对) · R6–R12 红
+  → `FINAL-OK`;M1–M10 `PROBE-OK`
+- **未覆盖**:跳过节里的粗体 · `control-manifest.md` 3 处 · GDD 粗体正常
+- 本轮**零 `.cs` 改动**
+- **未提交**(等用户指令)
+
+## Session Extract — /sprint-plan sprint-24(2026-11-03)
+
+- **Phase 1.5 揪出过期前提**:路线图 `:950` 的 sprint-24 行写 4 件,实跑卡面
+  `processing-002` / `processing-004` / `foraging-002` **三件均 Complete** ⇒ **实际只剩 `processing-005`**
+- **第二处过期源**:`processing/EPIC.md` 的 Stories 表把 001–004 全标 `Ready`,与卡面冲突 ⇒ 以卡面为准
+- **用户裁定**:2 件 —— `processing-005`(炮制尾)+ `persistence-service-001`
+  (2026-10-25 QA 假绿退回件,7 条 AC 全未勾,已挂 9 天)
+- **产出**:`production/sprints/sprint-24.md` · `production/sprint-status.yaml`(sprint 23 → 24)
+  · `sprint-status-sprint23-archive.yaml`(SHA-256 前 16 位 `89fdd962bed97b2f`)
+  · 路线图 sprint-24 行 🔁 回写
+- ⚠️ **本 sprint 无 QA 计划** —— 开工前须跑 `/qa-plan sprint`
+- ⚠️ 工作树另有 **S23-39 的 7 个文件未提交**,建议开工前先落定
+- **未提交**(等用户指令)

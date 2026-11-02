@@ -9,137 +9,43 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 #
-# ⚠️ sprint-14 … sprint-22 的完整 yaml 已分别归档为
+# ⚠️ sprint-14 … sprint-23 的完整 yaml 已分别归档为
 #    `production/sprint-status-sprint1{4,…,9}-archive.yaml` · `sprint20-archive` ·
-#    `sprint21-archive` · `sprint22-archive`,不随本文件覆盖丢失。
-#    sprint-21 归档 SHA-256(前 16 位)= `fc41b0a956311809`(2026-10-31 收口后归档)。
-#    sprint-22 归档 SHA-256(前 16 位)= `a44d7da5bb3d663a`(2026-11-01 规划轮归档)。
+#    `sprint21-archive` · `sprint22-archive` · `sprint23-archive`,不随本文件覆盖丢失。
+#    sprint-23 归档 SHA-256(前 16 位)= `89fdd962bed97b2f`(2026-11-03 规划轮归档)。
 #
-# 本文件 = sprint-23 活件(death-respawn 全链 · L 级独占额度)。
-#    件集 = 路线图 §6.5 sprint-23 行经 §2.4.3 四条复核(2026-11-01,`1adb1ad8`)修正后的
-#    **001/002/003/005 四件**(004 已 Complete,全链半随 S23-1)+ 1 张 smoke 载体 Should 卡。
-#    ⚠️ Nice = 0(承 CAPACITY-MODEL §3.2「L 件单独占批」,不容量填充)。
+# 本文件 = sprint-24 活件(炮制尾 + 7a 在制品 · 2 件 Must · Nice = 0)。
+#    ⚠️ 路线图 §6.5 的 sprint-24 行已过期 —— 4 件里 3 件先期完成,
+#    实况见 `production/sprints/sprint-24.md` §Phase 1.5 复核。
+#    ⚠️ 本 sprint **无 QA 计划** —— 开工前须跑 `/qa-plan sprint`。
 
-sprint: 23
-goal: "死亡与复活全链(玩家侧)收尾 —— 29 四件 + G-1 门行结案,Exit「全链 BLOCKED-BY-9 解除」"
-start: "2026-11-01"
-end: ""
-generated: "2026-11-01"
-updated: "2026-11-02"
+sprint: 24
+goal: "清掉 18 炮制链的最后一卡,并结清挂了 9 天的 7a 在制品(QA 假绿退回件)"
+start: "2026-11-03"
+end: "2026-11-09"
+generated: "2026-11-03"
+updated: "2026-11-03"
 
 stories:
-  - id: "S23-1"
-    name: "death-respawn/001 PlayerDied 登记与死亡结算入口(+004 全链半 AC-29-08/10)"
-    file: "production/epics/death-respawn/story-001-player-died-settlement.md"
+  - id: "S24-1"
+    name: "processing/005 完成调度、溢出落地与等待期音频护栏"
+    file: "production/epics/processing/story-005-completion-schedule-spill-and-audio.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: "2026-11-01"
-    note: "R-3 实测 = 补结算链余段(9 侧谓词/生产件 + Register 已在),非从零;29 零判死公式;呈现半挂 006 不勾。"
-  - id: "S23-2"
-    name: "death-respawn/002 掉落清单流派生与回捡"
-    file: "production/epics/death-respawn/story-002-drop-manifest-stream-reclaim.md"
+    completed: ""
+    note: "炮制链尾件。5 条 AC 全需人:AC-18-21 [I] 可判;AC-18-09/18-22 听测、AC-18-24 手柄走查、AC-18-08 逐屏零数字走查 ⇒ 四条 [L] 不勾即 NOT-RUN,不得借绿。预计 COMPLETE WITH NOTES。"
+  - id: "S24-2"
+    name: "persistence-service/001 存储抽象层(二进制 codec 接口 + 校验骨架)—— 7 条 AC 逐条重判"
+    file: "production/epics/persistence-service/story-001-storage-abstraction.md"
     priority: must-have
-    status: done
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: "2026-11-01"
-    note: "依赖 S23-1;death_cell 禁读实时物理(B4);29 零铸造 instance_id;7a/ADR-023 集成面 MEDIUM 须实测。"
-  - id: "S23-3"
-    name: "death-respawn/003 技能掉级 F-29-1(int 截断)与调 30"
-    file: "production/epics/death-respawn/story-003-skill-level-down-int-truncation.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: "R-4-W-6(判断类豁免,开工时用户裁;裁前只做公式半)"
-    completed: "2026-11-01"
-    note: "int 截断(禁 Fix.Div/floor_Fix(Mul));AC-29-16 已转可判(7a 阻塞清,2026-11-01 卡面注)。"
-  - id: "S23-5"
-    name: "death-respawn/005 复活落点与传送命令(医馆床格 → TeleportTo)"
-    file: "production/epics/death-respawn/story-005-respawn-cell-teleport-command.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: "BLOCKED-BY-24(只挂运行期 IClinicReviveCell 实现;设计规则六已落,接口先行合法)"
-    completed: "2026-11-01"
-    note: "AC-29-09:29 的 Append 计数 = 0(写者 = 1);ITeleportCommandSink 整数命令半(ADR-025 QQ-01);多复活按 actor id 定序。"
-  - id: "S23-6"
-    name: "smoke #8 载体:拾取三段式(意图 + 判距 + 宽容半径,离屏拾取被拒)"
-    file: "tests/smoke/critical_paths.json"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    blocker: ""
-    completed: "2026-11-01"
-    note: "依赖 S23-2(掉落物在盘上才可拾);ADR-009 §七 与 17 采集同构;负例(超距拒 + 零事件)必带;合成输入。"
-  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— **收口后追加件**,不属 §七 收口判定的扫描面。
-  - id: "S23-7"
-    name: "emergency-procedures/010 档位意图生产接线(Treatment/Explore 必发)+ 退役 ExploreCount 假绿载体"
-    file: "production/epics/emergency-procedures/story-010-camera-mode-intent-wiring.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-11-02"
-    note: "计划外追加(2026-11-02 用户指令)。缺口 B = 双参 SetMode 规则扫描查出;R-10.7 跳过路径设计分叉已裁甲+乙(同日)。AC-10-11 拆两半记分,跳过半永远 NOT-RUN。"
-  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 与 S23-7 同为**收口后追加件**,不进 §七 判据面。
-  - id: "S23-8"
-    name: "emergency-procedures/011 移动压制租约生产接线 —— 10 置位/清位 LeaseSource.Emergency + 1 的读面"
-    file: "production/epics/emergency-procedures/story-011-motor-suppression-lease-wiring.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-11-02"
-    note: "计划外追加。R-11.4 甲案(用户「甲,开工」)。AC-1-23 的门把初版判红(白名单按程序集判)⇒ 写面下放 Gameplay.Presentation,未扩白名单。未闭:4/25 侧零接线、真机观感未走查。"
-  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 收口后追加件的第三条(已于 2026-11-02 收口)。
-  - id: "S23-9"
-    name: "death-respawn/007 29 的档位请求生产载体(Downed / Explore, requesterId 29)+ TR-camera-007 补登记"
-    file: "production/epics/death-respawn/story-007-downed-camera-mode-request.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    blocker: ""
-    completed: "2026-11-02"
-    note: "计划外追加。缺口 A:相机闭包 a5f766f6 已进 BootRoot 但 death-respawn 内零 story 提它。另查出 R-2-5 的 29 两行无 TR ⇒ 补登 TR-camera-007。依赖 S23-7 的 CameraRig.Tick 接线(L2 才可观测)。⚠️ 证伪轮 M5 首轮**未转红** ⇒ S29-06 初版是 F1 型假绿(直调请求器,绕开装配缝),已改为走真链(PlayerDied 落流→呈现器→请求缝→相机),复跑 M5 恰 1 红。S29-09 真机走查仍 NOT-RUN。"
-  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 收口后追加件的第四条(缺口「该发没发」的实例修复)。
-  - id: "S23-10"
-    name: "casebook/006 39 的档位意图接线(Casebook / Explore, requesterId 39)+ 拆出 007 落笔锚点"
-    file: "production/epics/casebook/story-006-camera-mode-intent.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-11-02"
-    note: "计划外追加。R-2-5 表 6 条行只有 4 条有请求点 ⇒ 39 两行「该发没发」,而 CameraSetModeRequesterGate 全绿(只判 arity / 字面 -1,不看表)。原 story-006 捆了相机+落笔+锚点三件 ⇒ 拆卡(SaveAnchor 全仓不存在)。订正三处(RequestMode 不存在 / 无 requesterId / 「两档唯一请求方」已恒假)。证伪 7 条全红;N6 抓出 CloseModalCore 拆分的判别力。未闭:AC-39-09 NOT-RUN;启动即脉案屏却用 Explore 档未裁(两读法都绿)。矩阵门 = camera-viewpoint/story-007(立件未开工)。"
-  # ⚠️ 2026-11-02 用户指令「排进 sprint-23」—— 收口后追加件的第五条(唯一**未开工**的一条)。
-  - id: "S23-11"
-    name: "camera-viewpoint/007 档位请求覆盖矩阵门(表 → 代码 → 行为)"
-    file: "production/epics/camera-viewpoint/story-007-mode-request-coverage-matrix.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: M
-    blocker: ""
-    completed: "2026-11-02"
-    note: "**2026-11-02 已收口** —— EditMode 6523/6486/0/0/37 · PlayMode 290/286/0/2/2(基线 S23-10 的 6518/6481 · 283/279;等式 +5 / +7,零删除)。证伪 P1–P6 全红,四文件 SHA-256 6/6 还原。⚠️ P1 首轮抓出 test_s7_05 的空洞正控(记录器停写 ⇒ 违规集合恒空 ⇒ 恒绿),补正控后 P1 = 7/7 全红。S7-06 **已由变体编译补证**(非 Development player 里类型与命名空间均 0;撤 #if 重建后为 1 ⇒ 有判别力)。**2026-11-02 实现已落,全量回归未回** —— 定向:静态层 5/5 · 矩阵 7/7;证伪 P1–P6 全红(四文件 SHA-256 6/6 还原)。⚠️ 首轮全量吃两条回归,均已修:① AC-2-01a 判「相机命名空间禁可变静态字段」⇒ 记录器搬到 Presentation.Diagnostics(搬位置不是豁免);② 门链接线清单须同批声明。**在绿之前不得转 done。** 计划外追加。用户 2026-11-02 三项裁定:表真源 = 独立 camera-mode-requests.yaml;先补 39 接线再上门(已完成 S23-10);判据 = 动态矩阵 + 静态防绕过。静态层只防「绕过」不防「没发」(EmergencyChannelDriver 的 mode 是形参,静态抓不到)—— 必须写进卡面,否则门会被读成「档位全对」。依赖 casebook/006(S23-10)/ emergency/010(S23-7)/ death-respawn/007(S23-9)三件均已 Complete。"
+    completed: ""
+    note: "2026-10-25 QA 轮退回:原 Complete 但 7 条 AC 全未勾([x]=0 / [ ]=7),判为第五个假绿形态(文件已落盘顶替 AC 已判定)。已挂 9 天未动。Type: Logic ⇒ 自动化证据是 BLOCKING 门。AC-7a-03 黄金字节对拍依赖 ADR-012 三格矩阵(外部)。"
