@@ -74,8 +74,10 @@ namespace DaYiJingCheng.Tests.DeathRespawn
 
         // ══════════════════ smoke #8 正例 —— 三段式全链 ══════════════════
 
-        /// <summary>意图(E 沿 → TryClaim)+ 当下判距(经流确立格)+ 宽容半径内
-        /// ⇒ claim 第一可拾;载荷 id = 投影行**原样**(零铸造);库存恢复经 20 fold。</summary>
+        /// <summary>意图(E 沿 → TryClaimInstance)+ 当下判距(经流确立格)+ 宽容半径内
+        /// ⇒ claim **被指名**的那一件;载荷 id = 投影行**原样**(零铸造);库存恢复经 20 fold。
+        /// <para>🔁 2026-11-02(`TD-interaction-02`):「打给哪一件」已归 4 的目标选择器
+        /// (F-4.1 全序),本类只结算被指名的那一件 ⇒ 夹具随之改为传 instance_id。</para></summary>
         [Test]
         public void test_smoke8_pickTriple_inRange_claimsGroundInstance()
         {
@@ -85,7 +87,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             Assert.AreEqual(InventoryProjection.NoOwner, seeded.Owner, "[前置] 候选未归属(在地上)");
             int beforeClaimed = CountOf(EventKind.DropClaimed);
 
-            bool consumed = _claim.TryClaim(PlayerId, Tick, DropCell);
+            bool consumed = _claim.TryClaimInstance(PlayerId, Tick, DropCell, seededId);
 
             Assert.IsTrue(consumed, "半径内 ⇒ 按键被拾取链消费");
             Assert.AreEqual(beforeClaimed + 1, CountOf(EventKind.DropClaimed), "恰一条 DropClaimed");
@@ -109,7 +111,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             Assert.IsTrue(Projection().TryGet(seededId, out _), "[前置] 候选在场(负例非空洞)");
             int before = _bag.Stream.Events.Count;
 
-            bool consumed = _claim.TryClaim(PlayerId, Tick, new WorldPos(0, 0, 0));
+            bool consumed = _claim.TryClaimInstance(PlayerId, Tick, new WorldPos(0, 0, 0), seededId);
 
             Assert.IsFalse(consumed, "离屏 ⇒ 拒(非崩溃 —— 返回 false)");
             Assert.AreEqual(before, _bag.Stream.Events.Count, "拒收零事件(意图未落地不落流)");
@@ -125,12 +127,14 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             long atRadius = SeedDrop(new WorldPos(1, 0, 0));    // Chebyshev 距离 1 == 容差
             long beyond = SeedDrop(new WorldPos(2, 0, 0));      // 距离 2 > 容差
 
-            Assert.IsTrue(_claim.TryClaim(PlayerId, Tick, new WorldPos(0, 0, 0)),
+            Assert.IsTrue(_claim.TryClaimInstance(PlayerId, Tick, new WorldPos(0, 0, 0), atRadius),
                 "恰在半径上 = 允许(≤ 容差,含边界)");
             Assert.IsTrue(Projection().TryGet(atRadius, out InventoryRow first)
                 && first.Owner == PlayerId, "半径上实例已 claim");
 
-            bool second = _claim.TryClaim(PlayerId, Tick + 1, new WorldPos(0, 0, 0));
+            // 🔁 2026-11-02(`TD-interaction-02`):结算**被指名**的实例 ⇒ 本段不再依赖
+            //   「谁是第一个可拾」的扫描序 —— 半径外那一件被点名也照样拒。
+            bool second = _claim.TryClaimInstance(PlayerId, Tick + 1, new WorldPos(0, 0, 0), beyond);
             Assert.IsFalse(second, "半径外一格 = 拒");
             Assert.AreEqual(InventoryProjection.NoOwner, Projection().TryGet(beyond, out InventoryRow b)
                 ? b.Owner : -2, "半径外实例仍在地上");
@@ -141,24 +145,28 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         public void test_secondClaim_sameInstance_rejected_idempotent()
         {
             long id = SeedDrop(DropCell);
-            Assert.IsTrue(_claim.TryClaim(PlayerId, Tick, DropCell), "[前置] 首次可拾");
+            Assert.IsTrue(_claim.TryClaimInstance(PlayerId, Tick, DropCell, id), "[前置] 首次可拾");
             int before = _bag.Stream.Events.Count;
 
-            bool again = _claim.TryClaim(PlayerId, Tick + 1, DropCell);
+            bool again = _claim.TryClaimInstance(PlayerId, Tick + 1, DropCell, id);
 
             Assert.IsFalse(again, "已归属 ⇒ 二次 claim 拒(幂等)");
             Assert.AreEqual(before, _bag.Stream.Events.Count, "二次拒零事件");
         }
 
-        /// <summary>地面无候选 ⇒ false 零事件(空场负例,独立断言流零增量)。</summary>
+        /// <summary>流里查无该实例的出生锚 ⇒ false 零事件(独立于正例的负例)。
+        /// <para>🔁 2026-11-02(`TD-interaction-02`):旧名为 `test_noGroundCandidates_*` ——
+        /// 当时「地面无候选」既可能是空场、也可能是 id 不匹配;现结算按 id 指名,判据收窄为
+        /// 「这一件不存在」,语义更准(空场由 `TryClaimInstance` 的 `CanClaim` 同一个门覆盖)。</para></summary>
         [Test]
-        public void test_noGroundCandidates_false_zeroEvents()
+        public void test_unknownInstance_false_zeroEvents()
         {
             int before = _bag.Stream.Events.Count;
 
-            bool consumed = _claim.TryClaim(PlayerId, Tick, DropCell);
+            const long UnknownInstance = 424242L;   // 流里从未出现的 id
+            bool consumed = _claim.TryClaimInstance(PlayerId, Tick, DropCell, UnknownInstance);
 
-            Assert.IsFalse(consumed, "无候选 ⇒ false");
+            Assert.IsFalse(consumed, "查无出生锚 ⇒ false(不编造、不静默拾别件)");
             Assert.AreEqual(before, _bag.Stream.Events.Count, "零事件");
             Assert.AreEqual(0, CountOf(EventKind.DropClaimed));
         }
@@ -187,9 +195,11 @@ namespace DaYiJingCheng.Tests.DeathRespawn
         public void test_claimOrchestrator_invalidArgs_throw()
         {
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _claim.TryClaim(-1, Tick, DropCell));
+                () => _claim.TryClaimInstance(-1, Tick, DropCell, 1));
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _claim.TryClaim(PlayerId, -1, DropCell));
+                () => _claim.TryClaimInstance(PlayerId, -1, DropCell, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => _claim.TryClaimInstance(PlayerId, Tick, DropCell, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new DropClaimOrchestrator(() => _bag.Stream.Events, _bag.Decoder,
                     () => Projection(), _drops, tolerance: -1));

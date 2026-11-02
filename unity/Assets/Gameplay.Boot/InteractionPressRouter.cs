@@ -13,16 +13,18 @@
 // **一次 `Select` 定种类**,然后按 `InteractTarget.Kind` 分派:
 //   Patient     → `_visit(patientId)`(39 的就诊:立案 → 查体 → 开册)
 //   ForageSpot  → `HarvestInteractionDriver.TryHarvestTarget`(17)
-//   Drop        → `DropClaimOrchestrator.TryClaim`(20)
+//   Drop        → `DropClaimOrchestrator.TryClaimInstance`(20;结算被选中的 instance_id)
 //   其它种类    → **不消费**(未接线种类,按键落空 —— 诚实降级,不静默转成别的动作)
 //
+// 🔁 2026-11-02(`TD-interaction-02`):**Drop 已进候选集** —— 第一源(`GroundDropSource`,
+//   读「未归属地面实例 + 最近一次 `DropSpawned.spawn_anchor`」)已生产装配,
+//   路由里「选择器空 ⇒ 拾取兜底」那一段**已删除**,Drop 由 `Select` 直接选中,
+//   再交给 `DropClaimOrchestrator.TryClaimInstance(被指名的 instance_id)` 结算。
+//   ⇒ 20 不再自己挑「第一可拾」(那曾是 4 之外的第二处判据)。
+//
 // ── 仍然不是 F-4.1 的全部(如实登记)──────────────────────────────────────────
-// ① **`Drop` 仍走 20 自己的「第一可拾(instance_id 升序)」**,不是全序 argmin ——
-//    `DropClaimOrchestrator` 的既有口径(见其文件头),本轮**未改**,故 `IDropSource`
-//    也仍是 `null` ⇒ Drop **不在候选集里**,它只在「选择器什么都没选中」时兜底。
-//    ⚠️ 这不是「Drop 优先」,是「Drop 不在选择器面上」—— 待 20 的口径与 F-4.1 对齐后回收。
-// ② POI / Utensil / ClinicPanel / Door / Switch / BuildSlot 六种候选源仍未在生产装配
-//    (同「story-003」面);它们不出现在候选集里 ⇒ 按「不消费」落空。
+// POI / Utensil / ClinicPanel / Door / Switch / BuildSlot 六种候选源仍未在生产装配
+// (同「story-003」面);它们不出现在候选集里 ⇒ 按「不消费」落空(`TD-interaction-03`)。
 //
 // ⚠️ 本类**不持游戏状态**:只有 readonly 依赖 + 一个观测位(`LastRoutedKind`)。
 // ⚠️ 玩家格 = **经流确立的格**(调用方注入;ADR-020 §四),本类不读 `transform.position`。
@@ -98,16 +100,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             long tick = _tick();
             var intent = new InteractIntent(cell, true, tick);
 
-            IReadOnlyList<Candidate> within = _candidates.LoadWithin(in cell, _radius.Value);
+            // 掉落族在**装载期**就套上 20 R7 的回捡半径(与结算同一道门、同一个数)——
+            // 否则「在交互半径内但在回捡半径外」的掉落会赢得全序、结算时又被拒,
+            // 把这一下按键静默吞掉。见 `CandidateSetLoader.LoadWithin` 第三形参。
+            IReadOnlyList<Candidate> within =
+                _candidates.LoadWithin(in cell, _radius.Value, _drops?.Tolerance);
             InteractTarget target = _selector.Select(in intent, within);
 
             LastRoutedKind = target.HasTarget ? target.Kind : (InteractableKind?)null;
 
-            // Drop 不在候选集里(见文件头 ①)⇒ 只有「选择器一无所获」时才轮到拾取兜底。
-            // ⚠️ 这段兜底**不是**「Drop 优先」;它是 20 的既有口径的落点。选择器一旦
-            //    拿到了 Drop 源,本段应删除(债册 `TD-interaction-01` 的消解判据面外)。
+            // 🔁 2026-11-02(`TD-interaction-02`):**兜底段已删** —— Drop 现在就在候选集里,
+            //    「选择器一无所获」= 真的没东西可交互(不得再偷偷去摸一件掉落)。
             if (!target.HasTarget)
-                return _drops != null && _drops.TryClaim(_actorId, tick, cell);
+                return false;
 
             switch (target.Kind)
             {
@@ -121,8 +126,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                     return _harvest.TryHarvestTarget(in target, in intent, _actorId).Attempted;
 
                 case InteractableKind.Drop:
-                    // 候选集里有 Drop 时(今日不可能,源为 null)仍交 20 处理。
-                    return _drops != null && _drops.TryClaim(_actorId, tick, cell);
+                    // 结算**被选中的那一件**(StableId = instance_id;不再「第一可拾」)。
+                    return _drops != null
+                           && _drops.TryClaimInstance(_actorId, tick, cell, target.StableId);
 
                 default:
                     // 未接线种类:不消费、不转译成别的动作(静默降级是假绿的温床)。

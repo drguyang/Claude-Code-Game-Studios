@@ -7,11 +7,14 @@
 //    调用方传一次,本类不重查流、禁读表现态连续位置);
 // ③ **宽容半径**:注入的整数格 Chebyshev 半径(实值归装配期常量/数值轮)。
 //
-// ── 候选面与确定性 ───────────────────────────────────────────────────────────
-// 地面候选 = 库存投影的 `InstancesOf(NoOwner)`(**instance_id 升序**,投影钉的序)。
-// 选中规则 = **第一可拾**(升序扫到的第一个通过三段的候选)—— 刻意不用「就近」:
-// 就近须再取每候选锚点(第二次扫流)且需打破同距平局;P0 口径 = id 序最小者得,
-// 确定性由投影序直接保证。就近呈现归表现层/后续轮(需显式 tie-break,不破坏确定性)。
+// ── 选中归 4,本类只结算「被指名的那一个」(🔁 2026-11-02 · `TD-interaction-02`)──
+// 旧口径 = **第一可拾**(投影 `InstancesOf(NoOwner)` 的 id 升序扫到的第一个通过三段的候选)。
+// 它当时的理由是「就近须再取每候选锚点 + 需打破同距平局」—— 两条现都有解:
+// 锚点面已有唯一定义(`DeathDropReclaimPolicy.TryGetSpawnAnchor`),
+// 同距平局由 F-4.1 第三键(`StableId`)定 —— 且这两件都是**4 的既有职责**。
+// ⇒ 现口径:**「打给哪一件」归 4 的目标选择器**(`InteractionSelector`,全序 ⟨d∞, KindPriority, StableId⟩),
+//   本类只结算**被指名**的 instance_id(仍串联三段闸:`CanClaim`)。
+// ⚠️ 保留「第一可拾」= 在 4 之外再留一处判据 —— 正是 `TD-interaction-01/02` 要消灭的形态。
 //
 // ── 零铸造 / 拒收零事件 ─────────────────────────────────────────────────────
 // claim 的 instance_id = 投影行 id **原样**(裸 long 重载 —— AC-17-05 IL 门:
@@ -30,8 +33,10 @@ using DaYiJingCheng.Sim.World;
 namespace DaYiJingCheng.Sim
 {
     /// <summary>
-    /// 拾取编排:意图(E 按下沿)→ 判距(经流确立格)→ 宽容半径 → 第一可拾地面实例
+    /// 拾取结算:意图(E 按下沿)→ 判距(经流确立格)→ 宽容半径 → **被 4 指名的**地面实例
     /// 经 20 的写者 <see cref="DropEventWriter.RecordClaimed"/> 入流。
+    /// <para>⚠️ <b>本类不选择</b> —— 「打给哪一件」归 4 的 `InteractionSelector`(F-4.1 全序)。
+    /// 本类只回答「这一件能不能拾」,不能则零事件(调用方据此不消费按键)。</para>
     /// </summary>
     public sealed class DropClaimOrchestrator
     {
@@ -40,6 +45,12 @@ namespace DaYiJingCheng.Sim
         private readonly Func<InventoryProjection> _projectionOf;
         private readonly DropEventWriter _drops;
         private readonly int _tolerance;
+
+        /// <summary>宽容半径(整数格,Chebyshev)———— **只读暴露**,供 4 在装载候选集时
+        /// 用同一道门预裁(见 `CandidateSetLoader.LoadWithin` 的第三个形参)。
+        /// <para>⚠️ 暴露的是**同一个数**,不是第二处声明:候选集若放行超出本半径的掉落,
+        /// 它会赢得全序却又在结算时被拒 ⇒ 按键被静默吞掉(而旁边的采集点/病人明明更远)。</para></summary>
+        public int Tolerance => _tolerance;
 
         /// <summary>构造拾取编排面。</summary>
         /// <param name="eventsOf">事件流只读视图来源(派生态每次重取,不持快照)。</param>
@@ -67,44 +78,35 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 一次拾取意图:三段裁决通过则 claim 第一可拾地面实例(零铸造)。
+        /// 一次拾取结算:**结算被指名的实例**(选择归 4,见类注)。
         /// </summary>
         /// <param name="actorId">拾取者玩家 id(20 的归属面)。</param>
         /// <param name="tick">当前逻辑 tick(与 `DropClaimed` 事件头同 tick)。</param>
         /// <param name="actorCell">玩家**经流确立格**(ADR-020 §四;调用方算一次传入 ——
         /// 与 `DeathCellQuery` 生产 lambda 同源,禁表现态连续位置)。</param>
-        /// <returns>true = 有实例被 claim(恰一条 `DropClaimed`);
-        /// false = 拒(无候选 / 三段任一不过)且**零事件** —— 按键由调用方落回查体链。</returns>
-        /// <exception cref="ArgumentOutOfRangeException">actorId / tick 为负。</exception>
-        public bool TryClaim(int actorId, long tick, WorldPos actorCell)
+        /// <param name="instanceId">被 4 选中的掉落实例 id(21 的 `ItemInstanceId` 空间)。</param>
+        /// <returns>true = 该实例被 claim(恰一条 `DropClaimed`);
+        /// false = 拒(已归属 / 流里无出生锚 / 出宽容半径)且**零事件**。</returns>
+        /// <exception cref="ArgumentOutOfRangeException">actorId / tick / instanceId 为负。</exception>
+        public bool TryClaimInstance(int actorId, long tick, WorldPos actorCell, long instanceId)
         {
             if (actorId < 0)
                 throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
                     "玩家 id 走机制 A 计数器,不得为负");
             if (tick < 0)
                 throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
+            if (instanceId < 0)
+                throw new ArgumentOutOfRangeException(nameof(instanceId), instanceId,
+                    "实例 id 走 IIdAuthority 计数器,不得为负(畸形输入,不当「查无」处理)");
 
-            InventoryProjection projection = _projectionOf();
-            System.Collections.Generic.IReadOnlyList<long> ground =
-                projection.InstancesOf(InventoryProjection.NoOwner);
-            if (ground.Count == 0)
-                return false;   // 地面无候选 —— 零动作(负例的零事件面)
+            // 三段闸 + 归属面 + 锚点面全在 `CanClaim` 里(唯一定义,不在此处复制)。
+            if (!DeathDropReclaimPolicy.CanClaim(_eventsOf(), _decoder, _projectionOf(),
+                    instanceId, actorCell, _tolerance))
+                return false;
 
-            System.Collections.Generic.IReadOnlyList<SimEvent> events = _eventsOf();
-
-            // instance_id 升序扫(投影钉的序)—— 第一可拾 = 确定性选中(见文件头)。
-            for (int i = 0; i < ground.Count; i++)
-            {
-                long instanceId = ground[i];
-                if (!DeathDropReclaimPolicy.CanClaim(events, _decoder, projection,
-                        instanceId, actorCell, _tolerance))
-                    continue;   // 三段任一不过 ⇒ 零事件,看下一候选
-
-                // 裸 long 重载 —— 投影行 id 原样(AC-17-05:Sim 内零 struct 构造点)。
-                _drops.RecordClaimed(tick, instanceId, actorId);
-                return true;
-            }
-            return false;
+            // 裸 long 重载 —— 被选中行 id 原样(AC-17-05:Sim 内零 struct 构造点)。
+            _drops.RecordClaimed(tick, instanceId, actorId);
+            return true;
         }
     }
 }

@@ -114,8 +114,17 @@ namespace DaYiJingCheng.Gameplay.Interaction
         /// </summary>
         /// <param name="playerCell">玩家经流确立格。</param>
         /// <param name="radius">交互半径(单源 <see cref="InteractionRadius"/>.Value)。</param>
+        /// <param name="dropClaimRadius">
+        /// 掉落族的**第二道更紧的门**(`DropClaimOrchestrator.Tolerance`;`null` = 不额外收窄)。
+        /// <para>为什么需要:20 R7 的回捡约束是「走到锚点格(Chebyshev ≤ 宽容半径)」,而
+        /// `R_INTERACT` 通常更宽 ⇒ 若放行「在交互半径内、但在回捡半径外」的掉落,它会赢得
+        /// 全序、结算时又被 `CanClaim` 拒 ⇒ **按键被静默吞掉**(旁边更远的采集点/病人明明可用)。
+        /// 在**装载期**就用同一道门剔除 = 选择器只看见「真能拾的」。</para>
+        /// <para>⚠️ 传的是**同一个数**(调用方从拾取编排读),不是第二处声明。</para>
+        /// </param>
         /// <returns>半径内的候选;全部在半径内时返回原列表(零分配)。</returns>
-        public IReadOnlyList<Candidate> LoadWithin(in WorldPos playerCell, int radius)
+        public IReadOnlyList<Candidate> LoadWithin(in WorldPos playerCell, int radius,
+                                                  int? dropClaimRadius = null)
         {
             IReadOnlyList<Candidate> all = Load();
             if (all == null || all.Count == 0) return all;
@@ -124,7 +133,7 @@ namespace DaYiJingCheng.Gameplay.Interaction
             for (int i = 0; i < all.Count; i++)
             {
                 Candidate c = all[i];
-                if (Chebyshev(in playerCell, in c.Cell) <= radius)
+                if (Within(in playerCell, in c, radius, dropClaimRadius))
                 {
                     kept?.Add(c);
                 }
@@ -135,6 +144,19 @@ namespace DaYiJingCheng.Gameplay.Interaction
                 }
             }
             return kept ?? all;
+        }
+
+        /// <summary>单个候选是否过门:先过 <paramref name="radius"/>,掉落再过
+        /// <paramref name="dropClaimRadius"/>(同一式 `d∞`)。</summary>
+        private static bool Within(in WorldPos playerCell, in Candidate c, int radius,
+                                   int? dropClaimRadius)
+        {
+            long d = Chebyshev(in playerCell, in c.Cell);
+            if (d > radius) return false;
+            if (c.Kind == InteractableKind.Drop && dropClaimRadius.HasValue
+                && d > dropClaimRadius.Value)
+                return false;
+            return true;
         }
 
         /// <summary>两格 Chebyshev 距离 <c>d∞ := max(|Δx|,|Δy|,|Δz|)</c>(F-4.1 第一键同式)。

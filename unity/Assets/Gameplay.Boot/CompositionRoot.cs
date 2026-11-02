@@ -1094,11 +1094,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                     patients: null,                                // ③ 13 在场视图(见下一段)
                     bakedInitial: null));                          // ④ 23 开档自带(同上)
 
-                // 🔁 E 按下沿:全种类候选集(**第三源已接入** = 13 的在场视图)。
+                // 🔁 E 按下沿:全种类候选集(**第一源 + 第三源已接入**)。
                 // ⚠️ 与 `harvestCandidates` 刻意是两个实例:采集只认资源点;若它也看见病人,
                 //    「病人更近」会让 `TryHarvestTarget` 因种类不符返回 None 而静默放弃 —— 难查。
+                //
+                // 🔁 2026-11-02(`TD-interaction-02`):第一源 = `GroundDropSource`
+                //    (未归属地面实例 + 最近一次 `DropSpawned.spawn_anchor`)。
+                //    投影取法与拾取编排同源(`inventoryLoad.Rebuild().Projection`),
+                //    锚点真源 = `DeathDropReclaimPolicy.TryGetSpawnAnchor`(不另写一份)。
+                var groundDrops = new GroundDropSource(
+                    () => stream.Events, decoder,
+                    () => inventoryLoad.Rebuild().Projection);
+
                 pressCandidates = new CandidateSetLoader(new CandidateSources(
-                    drops: null,
+                    drops: groundDrops,
                     worldBaked: forageSource,
                     patients: new PresencePatientSource(presence),
                     bakedInitial: null));

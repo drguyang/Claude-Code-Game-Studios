@@ -55,11 +55,37 @@ namespace DaYiJingCheng.Sim
                 || row.Owner != InventoryProjection.NoOwner)
                 return false;
 
-            // ② 锚点面:该实例最近一次 `DropSpawned`(倒序取流序最后一条)。
-            //    有界性 = 每次调用至多扫一遍流(与 17 的 `NodeRemaining.ScanNode` 同口径;
-            //    4 的拾取管线接线后由其自身节流,本类不自持缓存)。
-            bool found = false;
-            WorldPos anchor = default;
+            // ② 锚点面:该实例最近一次 `DropSpawned`(见 `TryGetSpawnAnchor`)。
+            if (!TryGetSpawnAnchor(events, decoder, instanceId, out WorldPos anchor))
+                return false;   // 流里查无出生(fold 报 DanglingInstanceReference;此处零动作)
+
+            // ③ 回捡约束(20 R7):走到锚点格(整数 Chebyshev ≤ 宽容半径)。
+            return Chebyshev(in actorCell, in anchor) <= tolerance;
+        }
+
+        /// <summary>
+        /// 该实例**最近一次** <c>DropSpawned</c> 的锚格(派生态真源)。
+        /// <para>倒序扫 = 取流序最后一条;同 id 的「消耗 → 再落地」序列(死亡散落)
+        /// 天然取到最新锚。</para>
+        /// <para><b>为什么单独公开</b>:4 的第一源(`IDropSource`)要把「在地上哪格」
+        /// 投影成候选行 —— 那段逻辑若在表现层再写一份,就是**第二真源**(两处对
+        /// 「最近一次出生」的解释一旦分叉,选择器与判距会各算各的锚)。
+        /// 本方法是锚点面的**唯一定义**,`CanClaim` 与候选源共用。</para>
+        /// </summary>
+        /// <param name="events">事件流只读视图(可为三流并集;域外 Kind 自动跳过)。</param>
+        /// <param name="decoder">载荷解码器。</param>
+        /// <param name="instanceId">掉落实例 id。</param>
+        /// <param name="anchor">最近一次出生锚格(查无时 <c>default</c>)。</param>
+        /// <returns>true = 流里有该实例的出生事件;false = 查无(不得编造坐标)。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="events"/> 或 <paramref name="decoder"/> 为 null。</exception>
+        public static bool TryGetSpawnAnchor(IReadOnlyList<SimEvent> events, IPayloadDecoder decoder,
+            long instanceId, out WorldPos anchor)
+        {
+            if (events == null) throw new ArgumentNullException(nameof(events));
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+
+            // 有界性 = 每次调用至多扫一遍流(与 17 的 `NodeRemaining.ScanNode` 同口径;
+            // 4 的拾取管线接线后由其自身节流,本类不自持缓存)。
             for (int i = events.Count - 1; i >= 0; i--)
             {
                 SimEvent e = events[i];
@@ -67,14 +93,10 @@ namespace DaYiJingCheng.Sim
                 DropSpawnedPayload p = decoder.Decode<DropSpawnedPayload>(e.Kind, e.Payload);
                 if (p.InstanceId != instanceId) continue;
                 anchor = p.SpawnAnchor;
-                found = true;
-                break;
+                return true;
             }
-            if (!found)
-                return false;   // 流里查无出生(fold 报 DanglingInstanceReference;此处零动作)
-
-            // ③ 回捡约束(20 R7):走到锚点格(整数 Chebyshev ≤ 宽容半径)。
-            return Chebyshev(in actorCell, in anchor) <= tolerance;
+            anchor = default;
+            return false;
         }
 
         /// <summary>两格 Chebyshev 距离(先拓宽 int64 再取绝对值 —— 承 F-4.1 d∞ 陷阱;
