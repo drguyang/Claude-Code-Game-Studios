@@ -123,6 +123,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             AddChannel(channels, "channel-palpation", "触感");    // 5
             AddChannel(channels, "channel-inquiry", "问诊");      // 6(问诊栏,非体征通道)
 
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):六行 Submit = **查该通道**。
+            //    权威 = `S-8.4` 路线甲「查体 = 脉案模态行级动作」+ `casebook-39.md` §7
+            //    「查体(五手段) | 焦点行 + Submit | … | 行级动作不经 4 的世界路由」。
+            //    ⚠️ 通道键用 `SignChannel` 而非行索引(行序可变,索引作代理会写错通道)。
+            //    ⚠️ `AddChannel` 的签名是 `texture_binding_gate_test` 的结构锚点 ⇒
+            //       **一字不改**,绑定改为建行后按 name 回查。
+            //    ⚠️ **绑定必须放在 `_root.Add(_casebookFace)` 之后**(2026-11-02 实测):
+            //       行建在 `channels` 里、而 `channels` 此刻尚未挂进 `_root` ⇒
+            //       `_root.Q(rowName)` 返 **null** ⇒ `BindChannelExamine` 静默返回,
+            //       六行**一个回调都没挂上**(世界侧看不出差别,只有行级 Submit 全哑)。
+            //       由 `casebook_row_examine_test` 的六行派发断言抓出 ⇒ 见本方法末尾。
+
             // ── 右页:病名 + 置信度(「?」只落此处,AC-8-39)──
             // 置信度不落独立焦点控件(OQ-CB-5 K=6:病名焦点内循环 确定/疑似)
             var rightColumn = new VisualElement { name = "right-column" };
@@ -199,6 +211,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             // ── 方笺续页(本书的下一页;casebook-39 §5.2 —— 同模态内的一页,非新 ModalId)──
             BuildPrescriptionPage();
+
+            // 🔁 2026-11-02 · 六行行级查体的**实际绑定点**(必须在 `_root.Add(_casebookFace)` 之后:
+            //    此前 `channels` 还是游离子树,`_root.Q` 查不到行 —— 见上方 ⚠️)。
+            BindChannelExamine("channel-complexion", DiagnosisSignChannel.FaceColor);
+            BindChannelExamine("channel-voice", DiagnosisSignChannel.Voice);
+            BindChannelExamine("channel-posture", DiagnosisSignChannel.Posture);
+            BindChannelExamine("channel-breathing", DiagnosisSignChannel.Breathing);
+            BindChannelExamine("channel-palpation", DiagnosisSignChannel.Touch);
+            BindChannelExamine("channel-inquiry", DiagnosisSignChannel.History);
         }
 
         /// <summary>
@@ -280,6 +301,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>注入写通道(42 UI 事件 → 装配层写者;未注入 ⇒ Submit 留空)。</summary>
         public void BindCommandSink(ICasebookCommandSink sink) => _commandSink = sink;
+
+        /// <summary>给一行可聚焦通道绑「行级查体」的双输入路径(2026-11-02 · `TD-diagnosis-01`)。</summary>
+        /// <param name="rowName">行名(建行时的 name;本方法**按名回查**,不改 `AddChannel` 签名)。</param>
+        /// <param name="channel">该行对应的通道键(显式,非行索引)。</param>
+        private void BindChannelExamine(string rowName, DiagnosisSignChannel channel)
+        {
+            VisualElement row = _root.Q(rowName);
+            if (row == null) return;   // 行缺失 = 版面被改坏,由既有 name 序断言抓;此处不静默造行
+            BindSubmitAndClick(row, () => PointExamine(channel));
+        }
+
+        /// <summary>行级查体的转发点(未注入写通道 ⇒ 留空,与其余 Submit 同款)。</summary>
+        private void PointExamine(DiagnosisSignChannel channel) => _commandSink?.ExamineChannel(channel);
 
         /// <summary>
         /// 给可聚焦控件绑**双输入路径**(键盘 <c>NavigationSubmitEvent</c> + 鼠标 <c>ClickEvent</c>)。

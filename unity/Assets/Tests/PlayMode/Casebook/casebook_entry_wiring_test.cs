@@ -190,6 +190,16 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
                 "就诊后脉案必须**真的打开** —— 非 Casebook = 生产侧仍无 OpenModal(Casebook) 路径");
             Assert.Greater(StreamCount(), streamBefore,
                 "[前置自证] 确有新事件进流(否则上两条可能是空断言)");
+
+            // 判别步 3(`TD-diagnosis-01`):世界 E **不查体** —— 分册零快照。
+            // ⚠️ 必须配**同场正控**:若分册压根没接线,「零快照」在任何实现下都成立
+            //    = 空洞负控(F4)。故紧接着走一次行级查体,要求分册**能**记下来。
+            Assert.IsFalse(_services.ExaminationLedger.HasExamined(patientId),
+                "世界 E = 立案 + 开册,**不**查体(`S-8.4` 路线甲:查体归脉案模态行级动作)");
+            _services.CasebookCommands.ExamineChannel(
+                DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel.FaceColor);
+            Assert.IsTrue(_services.ExaminationLedger.HasExamined(patientId),
+                "[正控] 行级查体必须能写进分册 —— 否则上一条的「零」是空洞的");
         }
 
         // ══════════ ③ 再次交互 ⇒ 不新开案,但仍开册(回到那一例) ══════════

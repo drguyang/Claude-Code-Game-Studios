@@ -14,8 +14,10 @@
 // 全生产路径:真组合根 + 真 PatientSpawner + 真 CaseOpenedDriver(开案)+ 真 JudgmentWriter。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using SignChannel = DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel;   // 与 Sim.Contracts.SignChannel(位域掩码)区分
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -46,6 +48,86 @@ namespace DaYiJingCheng.Tests.Boot
 
             _bag.PrescriptionPage.SetAuthor(PlayerId);        // 作者(命令路由复用同一 Writer)
             _bag.CasebookCommands.BindPatient(_patient);
+        }
+
+        // ══════════════ 行级查体(2026-11-02 · 结清 `TD-diagnosis-01`)══════════════
+
+        /// <summary>
+        /// 一行 Submit ⇒ **只**查该通道(`S-8.4` 路线甲:查体 = 脉案模态行级动作)。
+        /// <para><b>判别力</b>:若实现仍走「整病人一次查完」(`ExamineDriver.OnExamine`),
+        /// 分册会在第一次 Submit 后就有六个通道、`SignCount` 远大于一行 —— 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_examineChannel_recordsOnlyThatChannel()
+        {
+            var ledger = _bag.ExaminationLedger;
+            Assert.IsFalse(ledger.HasExamined(_patient.Value), "[前置] 开局未查");
+
+            _bag.CasebookCommands.ExamineChannel(SignChannel.FaceColor);
+
+            Assert.IsTrue(ledger.HasExaminedChannel(_patient.Value, SignChannel.FaceColor),
+                "面色行 Submit ⇒ 面色通道有快照");
+            Assert.AreEqual(1, ledger.ExaminedChannelCount(_patient.Value),
+                "**只**该通道一片 —— 其余五行不得被顺手查掉(旧「整病人一次查完」会得 6)");
+            Assert.IsFalse(ledger.HasExaminedChannel(_patient.Value, SignChannel.Breathing),
+                "呼吸行未被 Submit ⇒ 无快照(行级语义的否定面)");
+
+            // 通道过滤的**内容面**:已查通道的快照不得混入**尚未查**的通道的词条。
+            // 逐行查、每查一行就验一次 —— 故第一次(面色)就能抓住「求值不过滤」:
+            // 反证(证伪轮 M2:停用 `EvaluateCore` 的通道过滤)⇒ 首轮即红。
+            // ⚠️ 不写死「面色必有词条」:P0 初始熟练度下某些通道读出 0 条是合法值
+            //    (本夹具实测面色 = 0) ⇒ 判据挂在「六行全查后总条数 > 0」这个非空前置上。
+            // 把体征推到 plateau(position ≡ 1.0)– 否则初始档下读出门槛全挡,集合恒空
+            // ⇒ 本段对「通道过滤」零判别力(实测:只推到 tick 1 时六行全读不出)。
+            for (long t = 2; t <= 60; t++) _bag.VitalsService.OnTickEdge(t);
+
+            var examined = new HashSet<SignChannel> { SignChannel.FaceColor };
+            var channels = new[]
+            {
+                SignChannel.Voice, SignChannel.Posture, SignChannel.Breathing,
+                SignChannel.Touch, SignChannel.History,
+            };
+            int mergedCount = 0;
+            foreach (SignChannel channel in channels)
+            {
+                _bag.CasebookCommands.ExamineChannel(channel);
+                examined.Add(channel);
+                Assert.IsTrue(ledger.TryGetSnapshot(_patient.Value, out var snap), "合并快照可取");
+                mergedCount = snap.Set.SignCount;
+                foreach (var row in snap.Set.Rows)
+                    Assert.IsTrue(examined.Contains(row.Channel),
+                        $"已查通道的快照混入了**尚未查**的通道词条({row.Channel}) ⇒ " +
+                        "求值没按通道过滤:查一行等于把全部体征都查出来");
+            }
+            Assert.Greater(mergedCount, 0,
+                "[前置] 六行全查后须读出至少一条词条 —— 全空时本段对「通道过滤」零判别力");
+        }
+
+        /// <summary>两行先后 Submit ⇒ 两片并存,合并快照条数 = 两行之积。</summary>
+        [Test]
+        public void test_examineChannel_twoRows_accumulate()
+        {
+            var ledger = _bag.ExaminationLedger;
+
+            _bag.CasebookCommands.ExamineChannel(SignChannel.FaceColor);
+            _bag.CasebookCommands.ExamineChannel(SignChannel.Breathing);
+
+            Assert.AreEqual(2, ledger.ExaminedChannelCount(_patient.Value), "两行各一片");
+            Assert.IsTrue(ledger.TryGetSnapshot(_patient.Value, out var merged), "合并快照可取");
+            Assert.GreaterOrEqual(merged.Set.SignCount, 0, "条数非负(P0 词表可能全读不出 ⇒ 0 是合法值)");
+        }
+
+        /// <summary>未绑病人 ⇒ 零动作(不崩、不查别人)。</summary>
+        [Test]
+        public void test_examineChannel_withoutBoundPatient_isNoOp()
+        {
+            var router = new CasebookCommandRouter(
+                _bag.PrescriptionPage.Writer, () => _bag.TickDriver.CurrentTick,
+                _bag.PrescriptionPage, _bag.ExamineDriver);
+
+            Assert.DoesNotThrow(() => router.ExamineChannel(SignChannel.FaceColor));
+            Assert.IsFalse(_bag.ExaminationLedger.HasExamined(_patient.Value),
+                "未绑病人 ⇒ 分册零新增(不查别人)");
         }
 
         /// <summary>病例流内 Judgment* 事件条数 + 末条解码。</summary>

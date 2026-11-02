@@ -19,8 +19,10 @@
 //   ADR-013 §9 C3(呈现侧只渲染不持状态 —— 本驱动只翻拍按键,零 sim 真值)
 //
 // ⚠️ 本驱动 = 呈现侧装配件(住 Gameplay.Boot):把「玩家按键意图」翻译成通道预约 /
-//   就诊(立案 + 开册)/ 查体调用(ExamineDriver.OnExamine / EmergencyChannelDriver.Arm /
-//   EndAction),零 sim 状态。**立案判定不在本类** —— 本类只调 writer 缝,判定归 37。
+//   就诊(立案 + 开册)/ 急救通道(EmergencyChannelDriver.Arm / EndAction),零 sim 状态。
+//   **立案判定不在本类** —— 本类只调 writer 缝,判定归 37。
+//   🔁 2026-11-02:**查体不在本类**(`TD-diagnosis-01`)—— 世界 E 只到「开册」,
+//   查体归脉案六行的 Submit(`ICasebookCommandSink.ExamineChannel`)。
 //   「按下沿」判据 = 上帧按住位比对(持键不重复触发 —— 查体是「一次交互一次动作」;
 //   急救 = 按住一次,事件在松开沿聚合上行)。
 //
@@ -199,12 +201,11 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>
         /// 世界空间一次就诊(2026-11-02 起 = 立案 + 开册;此前只有查体)。
-        /// <para>次序 = **① 立案 → ② 查体 → ③ 开册**,每一步不依赖后一步:</para>
+        /// <para>次序 = **① 立案 → ② 切病人 → ③ 开册**,每一步不依赖后一步:</para>
         /// <list type="number">
         ///   <item><b>立案</b> —— `CaseOpened` 入病例流(`S-8.4` 单义:世界 Interact 只是就诊)。
         ///        病人不在场 / 已有开案 ⇒ writer 返回具名零写入,不新开案(`AC-37-26`)。</item>
-        ///   <item><b>查体</b> —— P0 就近完成。⚠️ 设计上查体是**模态内行级动作**
-        ///        (`S-8.4` 路线甲),此处由世界按键代做,是**已登记的偏差**(见类头注)。</item>
+        ///   <item><b>切病人</b> —— 把脉案 / 方笺指向这个人(`CasebookSource.ChangePatient`)。</item>
         ///   <item><b>开册</b> —— 42 的 `OpenModal(Casebook)`(`casebook-39.md` §7「开册(就诊)」)。</item>
         /// </list>
         /// <para>⚠️ 立案**先于**开册:屏一打开就在读数据源,顺序反了会开出一次空册。</para>
@@ -220,19 +221,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ① 就诊 / 立案(规则二-A:立案是一次玩家动作)
             _caseOpen?.Invoke(target, CurrentTick);
 
-            // ② 查体(P0 就近完成;模态内行级动作未实现)
-            if (_services.ExamineDriver != null)
-            {
-                _services.ExamineDriver.OnExamine(target, CurrentTick);
-                // sprint-08 S1.1 件 B:查体完成 ⇒ 记「见过病 D」(诊断成长落病史流)。
-                // ⚠️ 次序:OnExamine 先(病人须已建档 + 快照落册),投影器再读 Courses 取病种 D。
-                //   投影器 fail-loud(病人未建档 ⇒ PatientCourseNotFoundException)—— 但 OnExamine
-                //   已先 GetVitals(同款 fail-loud),故此处病人在场性已被前置判据兜住。
-                _services.SeenDisease?.OnExamined(target, CurrentTick, _actorId);
-                _services.CasebookSource?.ChangePatient(target);
-                _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
-                LastExaminedPatient = target;
-            }
+            // ② 切脉案 / 方笺的当前病人(把册子指向这个人)
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):**世界按键不再查体**。
+            //    `S-8.4` 路线甲逐字:「世界空间裸 `Interact` = 就诊(单义);**查体 = 脉案模态
+            //    行级动作**」⇒ 查体入口只余 42 的六行 Submit(`ICasebookCommandSink.ExamineChannel`
+            //    → `CasebookCommandRouter` → `ExamineDriver.ExamineChannel`)。
+            //    ⚠️ `LastExaminedPatient` 因此**只在行级查体时才被写** —— 世界按键恒不写它,
+            //       这正好是「世界 E 只立案 + 开册」的观测判据。
+            _services.CasebookSource?.ChangePatient(target);
+            _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
 
             // ③ 开册(42 的唯一入口;返回 false = 无面板 / 未接线 —— 不抛,不静默改立案)
             _openCasebook?.Invoke();

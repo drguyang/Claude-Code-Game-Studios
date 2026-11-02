@@ -162,9 +162,14 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Act 1:模态开时按 E
             yield return HoldKey(Key.E, HoldFrames);
 
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):世界 E **不再查体**,它做的是「立案 + 开册」。
+            //   故判据换成**路由观测位** `LastRoutedKind`:模态期按键被丢弃 ⇒ 路由根本没跑 ⇒ 仍为 null。
+            var router = ReadField<InteractionPressRouter>("_pressRouter");
+            Assert.IsNotNull(router, "BootRoot 应接出 E 路由(组根无 data-core 时为 null)");
+
             // Assert 1:意图被丢弃
-            Assert.That(interaction.LastExaminedPatient.Value, Is.LessThan(0),
-                "模态开着时按 E **不得**启动查体(规则七 F-4.2:模态期按下的交互 = 没发生)");
+            Assert.IsNull(router.LastRoutedKind,
+                "模态开着时按 E **不得**发生任何路由(规则七 F-4.2:模态期按下的交互 = 没发生)");
 
             // Act 2(正控):关屏后再按 E
             ui.CloseModal();
@@ -186,8 +191,12 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             yield return HoldKey(Key.E, HoldFrames);
 
-            Assert.That(interaction.LastExaminedPatient.Value, Is.GreaterThanOrEqualTo(0),
-                "关屏后按 E **必须**能查体 —— 否则上一条是空洞负控(可能是靶子不在场 / 注入没生效)");
+            Assert.AreEqual(DaYiJingCheng.Gameplay.Interaction.InteractableKind.Patient,
+                router.LastRoutedKind,
+                "关屏后按 E **必须**真的路由到病人(立案 + 开册)—— 否则上一条是空洞负控" +
+                "(可能是靶子不在场 / 注入没生效)");
+            Assert.AreEqual(ModalId.Casebook, ui.CurrentModal,
+                "就诊后应开册(世界 E 的终点 = 开册;查体已移到脉案行级 Submit)");
         }
 
         // ══════════════════════════════════════════════════════════════════

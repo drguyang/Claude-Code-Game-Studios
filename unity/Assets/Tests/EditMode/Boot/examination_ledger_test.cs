@@ -25,7 +25,7 @@ namespace DaYiJingCheng.Tests.Boot
         {
             var ledger = new ExaminationLedger();
 
-            ledger.RecordExamined(patientId: 1, tick: 10, MakeSet(3));
+            ledger.RecordExamined(patientId: 1, tick: 10, SignChannel.FaceColor, MakeSet(3));
 
             Assert.IsTrue(ledger.HasExamined(1), "已查");
             Assert.IsTrue(ledger.TryGetSnapshot(1, out var snap), "可取回");
@@ -49,8 +49,8 @@ namespace DaYiJingCheng.Tests.Boot
         {
             var ledger = new ExaminationLedger();
 
-            ledger.RecordExamined(1, tick: 10, MakeSet(2));
-            ledger.RecordExamined(1, tick: 30, MakeSet(5));   // 复查覆盖旧读
+            ledger.RecordExamined(1, tick: 10, SignChannel.FaceColor, MakeSet(2));
+            ledger.RecordExamined(1, tick: 30, SignChannel.FaceColor, MakeSet(5));   // 同通道复查覆盖旧读
 
             Assert.IsTrue(ledger.TryGetSnapshot(1, out var snap));
             Assert.AreEqual(30, snap.ExaminedTick, "复查覆盖 → tick 更新");
@@ -63,20 +63,57 @@ namespace DaYiJingCheng.Tests.Boot
             // AC-8-25 冻结语义:Record 后「源」(这里 = 传入的 set)再变,快照不变。
             var ledger = new ExaminationLedger();
             ExaminedSet a = MakeSet(1);
-            ledger.RecordExamined(1, tick: 5, a);
+            ledger.RecordExamined(1, tick: 5, SignChannel.FaceColor, a);
 
             // 模拟「源变了」:新一次查体产出不同集并记录(ledger 只认「传入的值」)
-            ledger.RecordExamined(1, tick: 6, MakeSet(99));
+            ledger.RecordExamined(1, tick: 6, SignChannel.FaceColor, MakeSet(99));
             Assert.IsTrue(ledger.TryGetSnapshot(1, out var snap));
             Assert.AreEqual(99, snap.Set.SignCount, "快照 = Record 时刻的值,非同一对象引用");
             Assert.AreEqual(6, snap.ExaminedTick);
+        }
+
+        // ══════════════ 2026-11-02(`TD-diagnosis-01`):按通道分片 ══════════════
+
+        [Test]
+        public void test_perChannel_rowsAccumulate_notOverwrite()
+        {
+            var ledger = new ExaminationLedger();
+
+            ledger.RecordExamined(1, tick: 10, SignChannel.FaceColor, MakeSet(2));
+            ledger.RecordExamined(1, tick: 11, SignChannel.Breathing, MakeSet(3));
+
+            Assert.AreEqual(2, ledger.ExaminedChannelCount(1), "两行各查一次 ⇒ 两片");
+            Assert.IsTrue(ledger.HasExaminedChannel(1, SignChannel.FaceColor), "面色已查");
+            Assert.IsTrue(ledger.HasExaminedChannel(1, SignChannel.Breathing), "呼吸已查");
+            Assert.IsFalse(ledger.HasExaminedChannel(1, SignChannel.Touch), "触感未查");
+
+            Assert.IsTrue(ledger.TryGetSnapshot(1, out var snap));
+            Assert.AreEqual(5, snap.Set.SignCount,
+                "合并条数 = 2 + 3 —— 行级查体**不得**把上一行整张覆盖掉" +
+                "(旧实现每病人一张快照,第二行会把第一行抹掉)");
+            Assert.AreEqual(11, snap.ExaminedTick, "合并 tick = 最近一次");
+        }
+
+        [Test]
+        public void test_sameChannel_reExamine_overwritesThatSliceOnly()
+        {
+            var ledger = new ExaminationLedger();
+
+            ledger.RecordExamined(1, tick: 10, SignChannel.FaceColor, MakeSet(2));
+            ledger.RecordExamined(1, tick: 20, SignChannel.Touch, MakeSet(4));
+            ledger.RecordExamined(1, tick: 30, SignChannel.FaceColor, MakeSet(7));   // 面色复查
+
+            Assert.IsTrue(ledger.TryGetSnapshot(1, out var snap));
+            Assert.AreEqual(11, snap.Set.SignCount,
+                "面色复查把 2 换成 7(同通道覆盖,AC-8-46),触感的 4 保留 ⇒ 7 + 4 = 11");
+            Assert.AreEqual(2, ledger.ExaminedChannelCount(1), "仍是两片");
         }
 
         [Test]
         public void test_clear_resetsAll()
         {
             var ledger = new ExaminationLedger();
-            ledger.RecordExamined(1, tick: 5, MakeSet(1));
+            ledger.RecordExamined(1, tick: 5, SignChannel.FaceColor, MakeSet(1));
             ledger.Clear();
             Assert.AreEqual(0, ledger.RecordedCount, "清空 ⇒ 零记录");
             Assert.IsFalse(ledger.HasExamined(1));

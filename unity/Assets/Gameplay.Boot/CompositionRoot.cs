@@ -1406,8 +1406,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // (prescriptionPage.Writer)—— 作者同步(SetAuthor)只在一处,不新开第二写者。
             // ⚠️ sprint-08 S2(2026-10-12):第三参 = 方笺页宿主 —— 戥子落点(SubmitDose)
             //   的开方写路径。与 Writer 同源(宿主即 Writer 的持有者)⇒ 单写者、单作者真源。
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):第四参 = 行级查体的执行体 ——
+            //    脉案六行的 Submit 从此**真的**落到 8 的求值上(`S-8.4` 路线甲)。
             var casebookCommands = new CasebookCommandRouter(
-                prescriptionPage.Writer, () => tickDriver.CurrentTick, prescriptionPage);
+                prescriptionPage.Writer, () => tickDriver.CurrentTick, prescriptionPage,
+                examineDriver);
 
             // ── 音频链装配(story-018 · A-1/A-4)─────────────────────────────
             // 池 → 渲染目标 → sink(ADR-028 ①「池唯一所有者 = 44」;单池,不建第二个)。

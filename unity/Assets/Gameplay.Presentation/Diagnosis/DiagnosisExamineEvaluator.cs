@@ -76,6 +76,31 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
             IReadOnlyList<SignLexemeRow> rows,
             int skill,
             float signValue01)
+            => EvaluateCore(in table, rows, skill, signValue01, channel: null);
+
+        /// <summary>
+        /// 求值**一个通道**的查体(2026-11-02 · 结清 `TD-diagnosis-01`)。
+        /// <para><b>为什么要有这一版</b>:`S-8.4`(路线甲)逐字写「**查体 = 脉案模态行级动作**」,
+        /// 而旧的 <see cref="Evaluate(in DiagnosisReadFloorTable, IReadOnlyList{SignLexemeRow}, int, float)"/>
+        /// 一次算满六行 —— 那是「世界空间按一次 E 查完整个病人」的形状,不是设计形状。
+        /// 本重载让「五星**某一行** Submit」只产出**该行**的词条。</para>
+        /// <para>⚠️ 纯函数性质不变:同 (表, 行集, 档, 投影量, 通道) ⇒ 同输出。</para>
+        /// </summary>
+        /// <param name="channel">只要这一通道的词条(其余行不参与 argmin、不计入掩码/条数)。</param>
+        public static ExaminedSet Evaluate(
+            in DiagnosisReadFloorTable table,
+            IReadOnlyList<SignLexemeRow> rows,
+            int skill,
+            float signValue01,
+            SignChannel channel)
+            => EvaluateCore(in table, rows, skill, signValue01, channel);
+
+        private static ExaminedSet EvaluateCore(
+            in DiagnosisReadFloorTable table,
+            IReadOnlyList<SignLexemeRow> rows,
+            int skill,
+            float signValue01,
+            SignChannel? channel)
         {
             if (rows == null) throw new ArgumentNullException(nameof(rows));
 
@@ -86,6 +111,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
             for (int i = 0; i < rows.Count; i++)
             {
                 SignLexemeRow row = rows[i];
+
+                // 行级查体:只算本通道(通道外的行整行跳过 —— 连裁决都不做)
+                if (channel.HasValue && row.Channel != channel.Value) continue;
 
                 DiagnosisReadFloorEvaluator.Outcome o =
                     DiagnosisReadFloorEvaluator.Evaluate(in table, row, skill, signValue01);

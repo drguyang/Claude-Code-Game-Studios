@@ -105,6 +105,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 装配后挂 UI 根。**不挂**则「屏幕上有字幕」这条判据在运行期不存在。</para></summary>
         private DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView _subtitle;
         private InteractionInputDriver _interactionDriver;
+        /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
+        /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
+        private InteractionPressRouter _pressRouter;
         private ModalInputFreeze _inputFreeze;      // 模态期输入冻结(移动轴 / 建造;2026-10-31)
         private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
@@ -694,6 +697,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 🔁 2026-11-02:急救 Arm 目标改走整数格(4 规则二「玩家格取路 (a)」)。
                 playerCell: () => _player != null ? _player.LastCommittedCell : default);
             _interactionDriver = interaction;
+            _pressRouter = pressRouter;
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 
             // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──
@@ -715,6 +719,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    「跳过路径结束必发 Explore」没有落点(立件时实测:此前零落点)。
             // actorId 由 BootRoot 生成玩家后注入(SetAuthor 同款后置形态 —— 装配期未知)。
             _services.CasebookCommands?.BindEmergencySkip(_services.EmergencyChannel, actorId);
+
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):行级查体完成 ⇒ 「见过病 D」投影。
+            //    actorId 只有这里有(装配期未知),故接在这里而非组合根 ——
+            //    `CasebookCommandRouter` 只发 (病人, tick),玩家 id 由本处补齐。
+            if (_services.CasebookCommands != null && _services.SeenDisease != null)
+            {
+                _services.CasebookCommands.AfterExamined =
+                    (patient, tick) => _services.SeenDisease.OnExamined(patient, tick, actorId);
+            }
 
             // ── 4.7. 病名册观看者(sprint-08 S1.1 件 E):SetViewer(玩家 actorId 已定)──
             // 病名册条目集按人分册(铁律⑤「每人一本」)—— 观看者 = 玩家。

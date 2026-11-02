@@ -22,6 +22,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     using System.Collections.Generic;
     using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
     using DaYiJingCheng.Sim.Contracts;
+    // ⚠️ 同名两义:`Sim.Contracts.SignChannel` 是**位域掩码**(8 通道 flags),
+    //    `Presentation.Diagnosis.SignChannel` 是**行序**枚举(脉案六行的键)。
+    //    行级查体用的是后者 —— 显式别名,不靠 using 次序。
+    using SignChannel = DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel;
 
     /// <summary>
     /// 脉案页的只读数据源契约(T2.1 DTO 绑定面)。
@@ -111,6 +115,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     /// </remarks>
     public interface ICasebookCommandSink
     {
+        /// <summary>脉案**某一行**被 Submit ⇒ 查该通道(2026-11-02 · 结清 `TD-diagnosis-01`)。
+        /// <para>承 <c>diagnosis-system.md</c> `S-8.4`(路线甲 = 模态分流)逐字:
+        /// 「世界空间裸 <c>Interact</c> = 就诊(单义);**查体 = 脉案模态行级动作**」。
+        /// 以及 <c>casebook-39.md</c> §7 交互表「查体(五手段) | **焦点行 + Submit** | … |
+        /// 行级动作**不经 4 的世界路由**」。</para>
+        /// <para>⚠️ 通道键用 <see cref="SignChannel"/>,**不用「第几行」的索引** ——
+        /// 与 <see cref="SubmitDiseaseName"/> 的「显式 lexicon_id 非册内索引」同一条纪律:
+        /// 行序可变,索引作代理会写错通道。</para>
+        /// <para>实现方(装配层)= <c>ExamineDriver.ExamineChannel</c>;未绑定病人 ⇒ 零动作零提示。</para></summary>
+        void ExamineChannel(SignChannel channel);
+
         /// <summary>病名栏落笔 / 指认(病名册条目被 Submit)。</summary>
         /// <param name="lexiconId">被指认的词条 id(<b>显式 lexicon_id,非册内显示索引</b>
         /// —— TD 第五风险:显示序 ≠ lexicon_id 序时用索引作代理会写错词)。

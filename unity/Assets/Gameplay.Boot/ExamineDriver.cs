@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using ExamineSignChannel = DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel;   // 与 Sim.Contracts.SignChannel(位域掩码)区分
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -92,6 +93,32 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 不在场 —— 查体无从谈起,由调用方(Interact 装配)先判在场;此处 fail-loud 兜底。</exception>
         public void OnExamine(PatientId patientId, long tick)
         {
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):**整病人一次查完**的入口已不是生产路径 ——
+            //    世界按键不再调它(`InteractionInputDriver.Visit` 已删该调用),
+            //    生产走 <see cref="ExamineChannel"/>(脉案行级 Submit)。
+            //    本方法保留供「一次性全查」的夹具与回归对拍;**它会把六个通道一次写满**。
+            for (int c = 0; c < Channels.Length; c++)
+                ExamineChannel(patientId, Channels[c], tick);
+        }
+
+        /// <summary>脉案六行的通道序(与 UI 行序一致;行级查体的遍历源)。</summary>
+        private static readonly ExamineSignChannel[] Channels =
+        {
+            ExamineSignChannel.FaceColor, ExamineSignChannel.Voice, ExamineSignChannel.Posture,
+            ExamineSignChannel.Breathing, ExamineSignChannel.Touch, ExamineSignChannel.History,
+        };
+
+        /// <summary>
+        /// **一个通道**的查体(`S-8.4` 路线甲:查体 = 脉案模态行级动作)。
+        /// <para>读数 → 只求该通道 → 落分册**该通道**的快照。同通道复查覆盖旧读(AC-8-46)。</para>
+        /// </summary>
+        /// <param name="patientId">被查病人。</param>
+        /// <param name="channel">被查的那一行(脉案六行之一)。</param>
+        /// <param name="tick">完成 tick(本类零时钟,只透传)。</param>
+        /// <exception cref="InvalidOperationException">词表未注入(S1.2 装配遗漏 —— fail-loud)。</exception>
+        /// <exception cref="Sim.Contracts.PatientCourseNotFoundException">病人未建档 / 不在场。</exception>
+        public void ExamineChannel(PatientId patientId, ExamineSignChannel channel, long tick)
+        {
             if (!_hasLexicon)
                 throw new InvalidOperationException(
                     "ExamineDriver 词表未注入 —— 装配遗漏(S1.2:组合根须 SetLexicon)。" +
@@ -100,12 +127,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 读体征(唯一浮点出口的消费侧;不在场 ⇒ GetVitals fail-loud,不吞)
             VitalsDto dto = _vitals.GetVitals(patientId);
 
-            // 8 纯函数求值(本次查体看到什么)P0 简化:signValue01 = dto.Position(单病种)
+            // 8 纯函数求值(**只算该通道**)P0 简化:signValue01 = dto.Position(单病种)
             ExaminedSet set = DiagnosisExamineEvaluator.Evaluate(
-                in _floor, _rows, _queryLevel, dto.Position);
+                in _floor, _rows, _queryLevel, dto.Position, channel);
 
-            // 落分册快照(AC-8-25 冻结值;复查覆盖旧读 AC-8-46)
-            _ledger.RecordExamined(patientId.Value, tick, set);
+            // 落分册该通道的快照(AC-8-25 冻结值;同通道复查覆盖旧读 AC-8-46)
+            _ledger.RecordExamined(patientId.Value, tick, channel, set);
         }
     }
 }

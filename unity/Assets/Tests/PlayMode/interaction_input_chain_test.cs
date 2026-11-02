@@ -1,11 +1,13 @@
 // sprint-07 S2.2/S2.5 · 玩家输入链 PlayMode 验证(2026-10-11)
 //
 // 判据(可证伪):
-//   ① 注入虚拟 E(Interact)→ InteractionInputDriver.OnFrame ⇒ 查体:ledger 有快照 +
-//     LastExaminedPatient = 该病人(值区有词的前提 = 查体落地);
+//   ① 注入虚拟 E(Interact)→ InteractionInputDriver.OnFrame ⇒ **零查体**(S-8.4 路线甲:
+//     世界 Interact 只到就诊;查体归脉案行级 Submit,判据见 `casebook_command_router_test`);
 //   ② 注入虚拟 F(Emergency)→ OnFrame ⇒ 急救手动链:病史流出现
 //     `EmergencyAttempt` + `EmergencyTreatmentApplied` 双事件(S2.5 判据);
-//   ③ 持键不重复触发:恒按住 E 只查体一次(按下沿语义)。
+//   ③ 持键不重复触发:恒按住 E 只就诊一次(按下沿语义)。
+//   🔁 2026-11-02(`TD-diagnosis-01`):①②③ 的观测面由「分册快照 / LastExaminedPatient」
+//     改为 `caseOpen` 接缝的记录 —— 世界 E 已不查体,旧判据在任何实现下都成立(空洞)。
 //
 // ⚠️ 时序前置(BCD-码-3):急救事件须在病人出现(DiseaseOnset)之后 → 测前须
 //   `Advance` 推 tick 使当前 tick > 出现 tick(≤ 同 tick 入流会触发「乱序入流」红)。
@@ -13,6 +15,7 @@
 //   movement_virtual_key_test 的键盘位怪癖实证:同环境 W 位有效而部分键位不上)。
 
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.Interaction;   // ModalGate / IArmedState / IModalGateState
@@ -192,7 +195,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             => stream.Events.Any(e => e.Kind == kind);
 
         [UnityTest]
-        public IEnumerator test_virtualE_readsAnd_triggersExamine()
+        public IEnumerator test_virtualE_keyboardRead_and_doesNotExamineInWorld()
         {
             AssembleChain();
             int pid = _bag.Presence.PresentPatientIds().First();
@@ -207,18 +210,16 @@ namespace DaYiJingCheng.Tests.PlayMode
             _driver.OnFrame();
             ReleaseAll();
 
-            Assert.AreEqual(pid, _driver.LastExaminedPatient.Value,
-                "按 E 应查体中最近在场病人(判据①)");
-            Assert.IsTrue(_bag.ExaminationLedger.HasExamined(pid),
-                "按 E → 查体分册有该病人快照");
-            // ⚠️ 2026-10-12 改判(sprint-08 S1.1 件 B):原判据「查体 = 派生态,病史流零新事件」
-            //   **已作废** —— 查体现在**写一条** SkillGrown(诊断技能,objectId = 病种 D)入病史流,
-            //   这是病名册「已见集」的真源(ADR-026 ⑥「不独立快照,从流重构」)。
-            //   新判据 = 恰一条,且类型 = SkillGrown(不多不少 —— 变异敏感)。
-            Assert.AreEqual(streamCountBefore + 1, _bag.Stream.Count,
-                "查体 ⇒ 病史流恰 +1 条(SkillGrown;件 B 改判 —— 旧「零新事件」已作废)");
-            Assert.IsTrue(StreamHas(_bag.Stream, EventKind.SkillGrown),
-                "新增那条 = SkillGrown(诊断成长,病名册已见集真源;ADR-026 ⑥)");
+            // 🔁 2026-11-02(结清 `TD-diagnosis-01`):`S-8.4` 路线甲逐字 ——
+            //   「世界空间裸 `Interact` = 就诊(单义);**查体 = 脉案模态行级动作**」。
+            //   ⇒ 世界 E **不再查体**:分册零快照、`LastExaminedPatient` 恒 None、病史流零新增。
+            //   (查体的正面判据移到 `casebook_command_router_test` 的行级 Submit 链。)
+            Assert.AreEqual(PatientId.None.Value, _driver.LastExaminedPatient.Value,
+                "世界 E **不得**再触发查体(旧判据「按 E 查体中最近在场病人」已作废)");
+            Assert.IsFalse(_bag.ExaminationLedger.HasExamined(pid),
+                "分册不得有该病人的任何快照 —— 查体入口只剩脉案行级 Submit");
+            Assert.AreEqual(streamCountBefore, _bag.Stream.Count,
+                "世界 E 零写流(旧行为是 +1 条 SkillGrown;那正是要移除的「按键即查体」)");
 
             yield return null;
         }
@@ -273,12 +274,14 @@ namespace DaYiJingCheng.Tests.PlayMode
             => new ModalGate(new FixedArmed(), new FixedModalState(modalOpen));
 
         [UnityTest]
-        public IEnumerator test_modalOpen_discardsE_noExamine()
+        public IEnumerator test_modalOpen_discardsE_noVisit()
         {
             AssembleChain();
             int pid = _bag.Presence.PresentPatientIds().First();
+            var visits = new List<PatientId>();
             var gated = new InteractionInputDriver(_bag, () => _player.transform.position,
-                                                   _actorId, Gate(modalOpen: true));
+                                                   _actorId, Gate(modalOpen: true),
+                                                   caseOpen: (p, t) => visits.Add(p));
 
             Press(Key.E);
             if (!PlayerInputReader.InteractPressed())
@@ -290,24 +293,28 @@ namespace DaYiJingCheng.Tests.PlayMode
             gated.OnFrame();
             ReleaseAll();
 
-            Assert.IsFalse(_bag.ExaminationLedger.HasExamined(pid),
-                "模态开 ⇒ E 必须被丢弃(否则「暂停时还能查体」)");
+            // 🔁 2026-11-02(`TD-diagnosis-01`):世界 E 已不查体 ⇒ 旧判据(分册无快照 / 零 SkillGrown)
+            //   在任何实现下都成立 = 空洞负控。改为**直接观测就诊回调**是否被调用。
+            Assert.AreEqual(0, visits.Count,
+                "模态开 ⇒ E 必须被丢弃(否则「暂停时还能就诊」)");
             Assert.That(gated.LastExaminedPatient.Value, Is.EqualTo(PatientId.None.Value),
                 "丢弃时不得记下任何目标");
-            Assert.AreEqual(before, _bag.Stream.Count, "丢弃 ⇒ 零事件(含 SkillGrown)");
+            Assert.AreEqual(before, _bag.Stream.Count, "丢弃 ⇒ 零事件");
 
             yield return null;
         }
 
         [UnityTest]
-        public IEnumerator test_modalClosed_acceptsE_examines()
+        public IEnumerator test_modalClosed_acceptsE_visits()
         {
             // **正控**:同一条构造路径、同一次按键注入,只把门换成「模态关」——
             // 若这条也红,上一条的绿就是假的(驱动根本没工作)。
             AssembleChain();
             int pid = _bag.Presence.PresentPatientIds().First();
+            var visits = new List<PatientId>();
             var gated = new InteractionInputDriver(_bag, () => _player.transform.position,
-                                                   _actorId, Gate(modalOpen: false));
+                                                   _actorId, Gate(modalOpen: false),
+                                                   caseOpen: (p, t) => visits.Add(p));
 
             Press(Key.E);
             if (!PlayerInputReader.InteractPressed())
@@ -317,9 +324,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             gated.OnFrame();
             ReleaseAll();
 
-            Assert.IsTrue(_bag.ExaminationLedger.HasExamined(pid),
-                "门放行时 E 必须照常查体(正控 —— 让上一条有判别力)");
-            Assert.That(gated.LastExaminedPatient.Value, Is.EqualTo(pid));
+            Assert.AreEqual(1, visits.Count,
+                "门放行时 E 必须照常就诊(正控 —— 让上一条有判别力)");
+            Assert.AreEqual(pid, visits[0].Value, "就诊对象 = 最近的在场病人");
+            Assert.IsFalse(_bag.ExaminationLedger.HasExamined(pid),
+                "就诊**不等于**查体 —— 查体归脉案行级 Submit(`TD-diagnosis-01`)");
 
             yield return null;
         }
@@ -337,29 +346,33 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator test_heldE_noRepeat_examineOnce()
+        public IEnumerator test_heldE_noRepeat_visitOnce()
         {
             AssembleChain();
             int pid = _bag.Presence.PresentPatientIds().First();
 
             // 恒按住(不抬):连续 3 帧按下沿应只触发**第一帧**一次。
-            // 判据 = 快照 tick 不因重复覆盖而推高(每帧 Advance 推 tick)。
+            // 🔁 2026-11-02(`TD-diagnosis-01`):观测面从「分册快照 tick」换成
+            //   **就诊回调的调用次数**(世界 E 已不查体,旧的快照 tick 判据恒绿 = 空洞).
+            var visits = new List<long>();
+            var probed = new InteractionInputDriver(
+                _bag, () => _player.transform.position, _actorId,
+                caseOpen: (p, t) => { if (p.Value == pid) visits.Add(t); });
+
             Press(Key.E);
             if (!PlayerInputReader.InteractPressed())
                 PressGamepadButton(GamepadButton.North);
-            _driver.OnFrame();                       // 沿 1:查体(快照 tick = 当前)
-            long firstTick = _bag.ExaminationLedger.GetSnapshotTick(pid);
-            Assert.GreaterOrEqual(firstTick, 0L, "沿 1 应已查体(前置)");
+            probed.OnFrame();                        // 沿 1:就诊
+            Assert.AreEqual(1, visits.Count, "沿 1 应已就诊(前置)");
 
             _bag.TickDriver.Advance(0.05);           // → tick+1
-            _driver.OnFrame();                       // 沿 2:仍按住 ⇒ 不得重查
+            probed.OnFrame();                        // 沿 2:仍按住 ⇒ 不得重复
             _bag.TickDriver.Advance(0.05);           // → tick+2
-            _driver.OnFrame();                       // 沿 3:仍按住 ⇒ 不得重查
+            probed.OnFrame();                        // 沿 3:仍按住 ⇒ 不得重复
             ReleaseAll();
 
-            Assert.AreEqual(firstTick, _bag.ExaminationLedger.GetSnapshotTick(pid),
-                "恒按住 E 只查体一次(按下沿判据 —— 持键不重复触发;" +
-                "重复覆盖会把快照 tick 推高而判红)");
+            Assert.AreEqual(1, visits.Count,
+                "恒按住 E 只就诊一次(按下沿判据 —— 持键不重复触发)");
 
             yield return null;
         }

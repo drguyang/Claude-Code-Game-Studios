@@ -408,6 +408,8 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
         private sealed class FakeSink : ICasebookCommandSink
         {
+            // 2026-11-02(`TD-diagnosis-01`):行级查体接口增员;本测不涉及查体路径 ⇒ 留空。
+            public void ExamineChannel(DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel channel) { }
             public void SubmitDiseaseName(int lexiconId) { }
             public void SubmitConfidence() { }
             public void SubmitDose(int doseOrdinal) { }

@@ -39,6 +39,7 @@
 
 using System;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;   // JudgmentState(档位值域)
+using CasebookSignChannel = DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel;   // 与 Sim.Contracts.SignChannel(位域掩码)区分
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;          // ICasebookCommandSink
 using DaYiJingCheng.Sim.Contracts;
 
@@ -62,6 +63,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 不静默吞 —— 与「未绑病人」同口径)。</para></summary>
         private readonly PrescriptionPageHost _prescriptionPage;
 
+        /// <summary>行级查体的执行体(2026-11-02 · 结清 `TD-diagnosis-01`;可空 = 未接线)。</summary>
+        private readonly ExamineDriver _examine;
+
         private PatientId _boundPatient = PatientId.None;
         private int _currentLexiconId;
         private JudgmentState _pending = JudgmentState.Empty;
@@ -69,12 +73,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="judgment">落笔 / 改判写者(37 的 JudgmentRecorded / Revised 生产者)。</param>
         /// <param name="currentTick">当前逻辑 tick 读数(写事件的 SimEvent.Tick —— 墨龄基准)。</param>
         /// <param name="prescriptionPage">方笺页宿主(戥子落点 → 开方;可空,未接 ⇒ SubmitDose fail-loud)。</param>
+        /// <param name="examineDriver">行级查体的执行体(可空 = 未接线 ⇒ <see cref="ExamineChannel"/> 为 no-op)。</param>
         public CasebookCommandRouter(JudgmentWriter judgment, Func<long> currentTick,
-                                     PrescriptionPageHost prescriptionPage = null)
+                                     PrescriptionPageHost prescriptionPage = null,
+                                     ExamineDriver examineDriver = null)
         {
             _judgment = judgment ?? throw new ArgumentNullException(nameof(judgment));
             _currentTick = currentTick ?? throw new ArgumentNullException(nameof(currentTick));
             _prescriptionPage = prescriptionPage;
+            _examine = examineDriver;
         }
 
         /// <summary>当前绑定病人(脉案会话对象;由查体驱动设置,与 CasebookSource.ChangePatient 同步)。</summary>
@@ -185,6 +192,36 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 返回值刻意不外传:开方失败(无货 / 未开案)⇒ **零提示纪律**(AC-11-12),
             //   42 不显示任何拒绝文案;失败由「体征未变」自然可见。
         }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// <b>2026-11-02(结清 `TD-diagnosis-01`)</b>:这是「查体」在生产上的**唯一**入口 ——
+        /// `S-8.4` 路线甲「世界空间裸 Interact = 就诊(单义);查体 = 脉案模态行级动作」。
+        /// <para>目标 = 当前绑定病人(与 <see cref="SubmitDose"/> 同构);未绑定 / 未接线 ⇒
+        /// **零动作零提示**(不崩、不静默查别人)。</para>
+        /// <para>⚠️ 不写流:查体结果是**派生态**(对撞裁决乙案),落 <c>ExaminationLedger</c>。</para>
+        /// </remarks>
+        public void ExamineChannel(CasebookSignChannel channel)
+        {
+            if (_examine == null) return;
+            if (_boundPatient.Value < 0) return;
+
+            long tick = _currentTick();
+            _examine.ExamineChannel(_boundPatient, channel, tick);
+
+            // 查体完成 ⇒ 「见过病 D」投影(诊断成长落病史流;sprint-08 S1.1 件 B)。
+            // ⚠️ **按行结算,不按病人去重** —— 抑制重复奖励的是 `NoveltyTracker` 的冷却档
+            //    (首见 First / 冷却内 Stale / 冷却外 Normal),不是本层。本层自己再加一道
+            //    「同一病人只算一次」会成为第二份判据。
+            AfterExamined?.Invoke(_boundPatient, tick);
+        }
+
+        /// <summary>
+        /// 查体完成后的附加通知(2026-11-02;可空 = 未接线)。
+        /// <para>参数 = (被查病人, 完成 tick)。生产 = 「见过病 D」投影器
+        /// (`SeenDiseaseProjector.OnExamined`,需玩家 actorId ⇒ 由装配层补最后一位)。</para>
+        /// </summary>
+        public Action<PatientId, long> AfterExamined { get; set; }
 
         /// <inheritdoc/>
         /// <remarks>纯呈现:翻页态住 42 屏内,**零流事件**(`AC-39-10`)。
