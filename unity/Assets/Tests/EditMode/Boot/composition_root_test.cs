@@ -50,7 +50,7 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_compositionroot_bag_dispose_destroysPoolRoot()
         {
-            // Arrange:装配 = 无条件建池(完全构造,AC-018-4 单池不变量不变)。
+            // Arrange:装配 = 无条件建池(完全构造,SAC-018-4 单池不变量不变)。
             // 用基线差分而非绝对数:同夹具前序测试的 Assemble 残留不归本测管
             // (34 夹具逐件 TearDown 化 = 已登记残余,运行末归 EditModeGlobalTearDown 兜底)。
             int baseline = PoolRoots().Count;

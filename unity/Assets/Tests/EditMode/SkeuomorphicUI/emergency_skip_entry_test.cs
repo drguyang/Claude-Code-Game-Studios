@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 {
-    /// <summary>M2 形态件③(story-023 · AC-023-1/2/3)—— 急救零数字 + 可跳过。
+    /// <summary>M2 形态件③(story-023 · SAC-023-1/2/3)—— 急救零数字 + 可跳过。
     /// <para>判据权威 = art-bible <b>G2</b>(「反数值化」是否真的成立 —— 灰盒「色块+数字」
     /// 自证反数值化不需要做,恰恰绕开要证的东西)+ emergency-procedures 规则六 /
     /// 规则六之甲(跳过入口 = 候选动作列表上的一项,owner = 42,O-10-1)。</para>
@@ -49,7 +49,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     RegexOptions.Multiline)
                 .Cast<Match>().Select(m => m.Groups[1].Value));
 
-        // ── AC-023-1: 跳过入口元件形态(主题变量纪律 + O-10-1 规格头注)──
+        // ── SAC-023-1: 跳过入口元件形态(主题变量纪律 + O-10-1 规格头注)──
 
         [Test]
         public void test_ac023_1_skip_entry_element_declared_with_theme_discipline()
@@ -137,7 +137,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 "第二处 = 后置覆盖复活(焦点冲突/内联色可藏于此)。");
         }
 
-        // ── AC-023-2: 零数字角标门(art-bible G2 反数值化机械化)──
+        // ── SAC-023-2: 零数字角标门(art-bible G2 反数值化机械化)──
 
         [Test]
         public void test_ac023_2_emergency_presentation_zero_numeric_badge()
@@ -174,14 +174,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Assert ③ `.skip-entry` 块内双模式复查(单类聚焦 —— 全库扫描的类级落点)
             string body = StripComments(ReadUss("SkeuoPaper.uss"));
             var block = BlockOf(body, ".skip-entry");
-            Assert.IsTrue(block.Success, "前置失败:缺 `.skip-entry` 块(AC-023-1 范围)。");
+            Assert.IsTrue(block.Success, "前置失败:缺 `.skip-entry` 块(SAC-023-1 范围)。");
             Assert.IsFalse(Regex.IsMatch(block.Value, @"\d+\s*/\s*\d+"),
                 ".skip-entry 块内禁 X/N 数字角标形态。");
             Assert.IsFalse(Regex.IsMatch(block.Value, @"content\s*:"),
                 ".skip-entry 块内禁 content: 属性 —— 数字角标的唯一 USS 载体,零数字即零载体。");
         }
 
-        // ── AC-023-3: 焦点落点形态(可跳过的可达性形态半)──
+        // ── SAC-023-3: 焦点落点形态(可跳过的可达性形态半)──
 
         [Test]
         public void test_ac023_3_skip_entry_focus_landing_compatible()
@@ -189,7 +189,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Arrange
             string body = StripComments(ReadUss("SkeuoPaper.uss"));
             var block = BlockOf(body, ".skip-entry");
-            Assert.IsTrue(block.Success, "前置失败:缺 `.skip-entry` 块(AC-023-1 范围)。");
+            Assert.IsTrue(block.Success, "前置失败:缺 `.skip-entry` 块(SAC-023-1 范围)。");
             string decl = block.Value;
 
             // Assert ① 焦点落点尺寸承诺:min-height 锚 row-height(=44 = AB-3 ≥44×44 高半)

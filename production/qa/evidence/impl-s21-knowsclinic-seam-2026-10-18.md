@@ -1,7 +1,7 @@
 # story-021 · `knowsClinic` 注入缝 —— 实现证据原件
 
 > **对象**:`production/epics/audio-system/story-021-knowsclinic-injection-seam.md`
-> **AC**:`AC-021-1` … `AC-021-4`(前三条 [A],第四条账面)
+> **AC**:`SAC-021-1` … `SAC-021-4`(前三条 [A],第四条账面)
 > **日期**:2026-10-18
 > **来源判定**:`docs/tech-debt-register.md` **`TD-audio-033`** —— `PatientCueDriver` 逐字
 > `_behavior.Step(id, knowsClinic: false)`,装配层**发明了 13 的行为输入** ⇒ 全部病人永不进 `Seeking`。
@@ -13,13 +13,13 @@
 
 | # | 交付 | 文件 | 关法 |
 |---|---|---|---|
-| **AC-021-1** | 注入缝**必填**(null ⇒ 具名 ANE,不提供静默默认) | `Gameplay.Boot/PatientCueDriver.cs` | 构造参数 `Func<PatientId,bool> knowsClinic = null`,体内 `?? throw new ArgumentNullException(nameof(knowsClinic), …)`;**所选口径 = 显式 fail-loud**(story 边界裁定 1 的二选一) |
-| **AC-021-1** | 装配层从**真值源**喂,不写死常量 | `Gameplay.Boot/CompositionRoot.cs` | `knowsClinic: clinicDirectory.KnowsClinic` —— 真值链 = 6 的 `EcozoneRegistry` → `RegistryClinicKnowledgeSource` → 13 的 `ClinicKnowledge` → `ClinicKnowledgeDirectory` |
-| **AC-021-1** | 真值派发面(F-13.2 的三段) | `Gameplay.Boot/ClinicKnowledgeDirectory.cs`(新) | 取锚点格 → 首见求 `HomeRegion` 并缓存 → `ClinicKnownByRegion`;**不自造规则**(三项事实全来自注入源) |
-| **AC-021-1** | `IClinicKnowledgeSource` 的接线期实装 | `Gameplay.Presentation/PatientAI/ClinicKnowledge.cs` | 新增 `RegistryClinicKnowledgeSource`:`EcozoneOf` 直转 6 的注册表;POI / 建造两缝 **null ⇒ 该析取项恒假**(如实表达,非发明) |
-| **AC-021-2/3** | 判定宾语 = 真 `PatientBehaviorDirector` + 真 `BehaviorMap` | `PatientCueDriver.KnowsClinicOf(PatientId)`(新可观测面) | 只**转发**注入的委托,不参与决策 —— 使「装配层喂了什么」可判定,而不必等体征落进寻诊带 |
-| **AC-021-1** | 组合根支持注入真值链 | `CompositionRoot.Assemble(...)` | 新增可选形参 `ClinicKnowledge clinicKnowledge = null`;null ⇒ 自建**空**生态区表(= 装载面未接的今日形态) |
-| **AC-021-2/3** | 装配出的行为导演可观测 | `CompositionRootServices.BehaviorDirector` | 暴露 `PatientCueDriver` 消费的**同一个**实例(仅为可判定性;⚠️ **不**是行为态合并,`TD-audio-033` ② 仍 open) |
+| **SAC-021-1** | 注入缝**必填**(null ⇒ 具名 ANE,不提供静默默认) | `Gameplay.Boot/PatientCueDriver.cs` | 构造参数 `Func<PatientId,bool> knowsClinic = null`,体内 `?? throw new ArgumentNullException(nameof(knowsClinic), …)`;**所选口径 = 显式 fail-loud**(story 边界裁定 1 的二选一) |
+| **SAC-021-1** | 装配层从**真值源**喂,不写死常量 | `Gameplay.Boot/CompositionRoot.cs` | `knowsClinic: clinicDirectory.KnowsClinic` —— 真值链 = 6 的 `EcozoneRegistry` → `RegistryClinicKnowledgeSource` → 13 的 `ClinicKnowledge` → `ClinicKnowledgeDirectory` |
+| **SAC-021-1** | 真值派发面(F-13.2 的三段) | `Gameplay.Boot/ClinicKnowledgeDirectory.cs`(新) | 取锚点格 → 首见求 `HomeRegion` 并缓存 → `ClinicKnownByRegion`;**不自造规则**(三项事实全来自注入源) |
+| **SAC-021-1** | `IClinicKnowledgeSource` 的接线期实装 | `Gameplay.Presentation/PatientAI/ClinicKnowledge.cs` | 新增 `RegistryClinicKnowledgeSource`:`EcozoneOf` 直转 6 的注册表;POI / 建造两缝 **null ⇒ 该析取项恒假**(如实表达,非发明) |
+| **SAC-021-2/3** | 判定宾语 = 真 `PatientBehaviorDirector` + 真 `BehaviorMap` | `PatientCueDriver.KnowsClinicOf(PatientId)`(新可观测面) | 只**转发**注入的委托,不参与决策 —— 使「装配层喂了什么」可判定,而不必等体征落进寻诊带 |
+| **SAC-021-1** | 组合根支持注入真值链 | `CompositionRoot.Assemble(...)` | 新增可选形参 `ClinicKnowledge clinicKnowledge = null`;null ⇒ 自建**空**生态区表(= 装载面未接的今日形态) |
+| **SAC-021-2/3** | 装配出的行为导演可观测 | `CompositionRootServices.BehaviorDirector` | 暴露 `PatientCueDriver` 消费的**同一个**实例(仅为可判定性;⚠️ **不**是行为态合并,`TD-audio-033` ② 仍 open) |
 | 测试 | 新夹具 8 测 | `unity/Assets/Tests/EditMode/Audio/knowsclinic_seam_test.cs`(新) | 断言宾语 = 真组合根装配件 + 真 `ClinicKnowledge` + 真 `EcozoneRegistry` |
 
 ### 为什么 `knowsClinic` 选「必填 + 抛」而不是「默认 false」
@@ -43,15 +43,15 @@ F-13.2 有**两条**语义(「`HomeRegion` 只在初始化时求一次」与「`
 
 | AC | 载体(测试名) | 判据 |
 |---|---|---|
-| **AC-021-1** | `KnowsClinicSeamTest.test_ac021_1_driver_ctor_requiresKnowsClinic_neverSilentlyDefaults` | 缺缝 ⇒ 具名 `ArgumentNullException`,`ParamName == "knowsClinic"` |
+| **SAC-021-1** | `KnowsClinicSeamTest.test_ac021_1_driver_ctor_requiresKnowsClinic_neverSilentlyDefaults` | 缺缝 ⇒ 具名 `ArgumentNullException`,`ParamName == "knowsClinic"` |
 | | `test_ac021_1_compositionRoot_feedsSeamFromTruthSource_notHardcodedFalse` | 宾语 = **真 `CompositionRoot.Assemble`** 装配出的驱动:① 注入「区 0 有医馆 POI」⇒ `KnowsClinicOf` 必须 true;② 不注入(空表)⇒ 必须 false。写死 false ⇒ ① 红;写死 true ⇒ ② 红 |
 | | `test_ac021_1_productionTree_hasNoHardcodedKnowsClinicFalse` | 扫 `Gameplay.Boot` + `Gameplay.Presentation` 两棵**生产**树(剥行注释后),`knowsClinic: false` 字面量必须为零;并断言扫描件数 > 50(空集不得冒充绿) |
-| **AC-021-2** | `test_ac021_2_knowsClinicTrue_patientEntersSeeking` | 真 `PatientBehaviorDirector` + 真 `BehaviorMap`,体征 0.6 ∈ [SEEK_MIN, COLLAPSE_MIN),`knowsClinic = true` ⇒ `Seeking` |
-| **AC-021-3** | `test_ac021_3_knowsClinicFalse_patientDoesNotEnterSeeking` | 同体征同格,`knowsClinic = false` ⇒ `Idle`(防「一律 true」的假修) |
+| **SAC-021-2** | `test_ac021_2_knowsClinicTrue_patientEntersSeeking` | 真 `PatientBehaviorDirector` + 真 `BehaviorMap`,体征 0.6 ∈ [SEEK_MIN, COLLAPSE_MIN),`knowsClinic = true` ⇒ `Seeking` |
+| **SAC-021-3** | `test_ac021_3_knowsClinicFalse_patientDoesNotEnterSeeking` | 同体征同格,`knowsClinic = false` ⇒ `Idle`(防「一律 true」的假修) |
 | | `test_ac021_3_emptyRegistry_makesTruthSourceHonestlyFalse` | 空生态区注册表 ⇒ `KnowsClinic` 为假,且组合根装配仍成立 |
 | | `test_ac021_3_noAnchorCell_isFalse_notThrow` | 不在场(无锚点格)⇒ false 且**不抛**,不缓存 `HomeRegion` |
 | | `test_ac021_3_directory_cachesHomeRegionOncePerPatient` | 首见求一次 + 缓存命中 + `ResetForLoad` 后重求 = `EcozoneOf` 恰 2 次 |
-| **AC-021-4** | `docs/tech-debt-register.md` `TD-audio-033` 结案注 · 本文件 §五 | ① 结案(注入缝已落 + 证伪齐);② **明确留 open**(两份行为态分叉) |
+| **SAC-021-4** | `docs/tech-debt-register.md` `TD-audio-033` 结案注 · 本文件 §五 | ① 结案(注入缝已落 + 证伪齐);② **明确留 open**(两份行为态分叉) |
 
 ---
 
@@ -62,16 +62,16 @@ F-13.2 有**两条**语义(「`HomeRegion` 只在初始化时求一次」与「`
 
 | # | 停用的守卫 | 期望变红 | 实测 |
 |---|---|---|---|
-| **F1** | 组合根注入改回写死 `_ => false` | AC-021-1 主测(① 半边) | **红 ×1** ✅ |
-| **F2** | `BehaviorMap` 的 `Seeking` 分支短路(返回 `Idle`) | AC-021-2 + AC-021-1 主测 | **红 ×2** ✅ |
-| **F3** | 组合根注入改为写死 `_ => true` | AC-021-1 主测(② 半边) | **红 ×1** ✅ |
-| **F4** | 构造参数改回「可省略 + 静默默认 false」 | AC-021-1 契约测 | **红 ×1** ✅ |
-| **F5** | 只塞**文本违例**、不改行为(常量里写 `"knowsClinic: false"`) | AC-021-1 源码门 | **红 ×1** ✅ |
-| **F6** | `ClinicKnowledgeDirectory` 去掉 `HomeRegion` 缓存(每拍重求) | AC-021-3 缓存测 | **红 ×1** ✅ |
+| **F1** | 组合根注入改回写死 `_ => false` | SAC-021-1 主测(① 半边) | **红 ×1** ✅ |
+| **F2** | `BehaviorMap` 的 `Seeking` 分支短路(返回 `Idle`) | SAC-021-2 + SAC-021-1 主测 | **红 ×2** ✅ |
+| **F3** | 组合根注入改为写死 `_ => true` | SAC-021-1 主测(② 半边) | **红 ×1** ✅ |
+| **F4** | 构造参数改回「可省略 + 静默默认 false」 | SAC-021-1 契约测 | **红 ×1** ✅ |
+| **F5** | 只塞**文本违例**、不改行为(常量里写 `"knowsClinic: false"`) | SAC-021-1 源码门 | **红 ×1** ✅ |
+| **F6** | `ClinicKnowledgeDirectory` 去掉 `HomeRegion` 缓存(每拍重求) | SAC-021-3 缓存测 | **红 ×1** ✅ |
 
 **⚠️ 两处如实登记的失败尝试(不算证伪成功)**:
 
-1. **首轮 F1 / F3 双双不红**(`exit 0`)。根因 = 我最初那条 AC-021-1 主测**根本没有驱动
+1. **首轮 F1 / F3 双双不红**(`exit 0`)。根因 = 我最初那条 SAC-021-1 主测**根本没有驱动
    组合根装配出的驱动** —— 它自己另建了一个 `PatientCueDriver`,于是「组合根注入什么」对它
    没有观测差。这正是 story 自己点名的失败模式(「判据须是**生产件可测**的」)。
    **修法 = 加可观测面而不是加断言**:`PatientCueDriver.KnowsClinicOf` + `CompositionRootServices.BehaviorDirector`,

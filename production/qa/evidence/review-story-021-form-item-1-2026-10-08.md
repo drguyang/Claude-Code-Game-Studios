@@ -1,7 +1,7 @@
 # 评审原件 — story-021 M2 形态件①(脉案线格 · 空行等重 · 焦点明度轴)
 
 - **日期**: 2026-10-08
-- **对象**: story-021 三步交付(AC-021-1/2/3)—— USS 声明层 + CasebookScreen 挂载 + EditMode 三测试
+- **对象**: story-021 三步交付(SAC-021-1/2/3)—— USS 声明层 + CasebookScreen 挂载 + EditMode 三测试
 - **方式**: 双代理恰一轮(用户流程裁定:评审只做一轮)
 - **初判**: 代码面 **PASS**(0 BLOCKING / 3 RECOMMENDED / 4 nit)· 测试面 **BLOCKING: 1**
 - **本轮终判**: **修复全落 → 复跑绿**(复跑读数见文末 §复跑)

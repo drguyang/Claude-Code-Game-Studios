@@ -39,7 +39,7 @@ ADR-018 §一(44 只触发)
 
 ## Tasks
 
-- [x] **AC-021-1**[A]: `PatientCueDriver` 的 `knowsClinic` 改为**注入**(构造参数),
+- [x] **SAC-021-1**[A]: `PatientCueDriver` 的 `knowsClinic` 改为**注入**(构造参数),
   生产装配由 `CompositionRoot` 从真值源喂入;**生产树(`Tests/` 之外)不得再出现 `knowsClinic: false` 字面量**
   ⚠️ **2026-10-18 刷账(S15-7)口径收窄**:原文写「**全仓**」不成立 —— 测试树仍有一处
   `Tests/EditMode/PatientAI/behavior_map_test.cs:61`(`Map(0.60f, BehaviorState.Idle, knowsClinic: false)`),
@@ -47,12 +47,12 @@ ADR-018 §一(44 只触发)
   生产树、scan >300 件、先剥注释)的口径本就是**生产树**。判定不变,只是把范围说准。
   **证伪判据**:把注入改回 `false` ⇒ 本条红(判据 = 反射/源码谓词须是**生产件可测**的,
   不得只 grep 测试文件 —— 承假绿复核病根)。
-- [x] **AC-021-2**[A]: `knowsClinic = true` 时病人**可进 `Seeking`** —— 断言宾语 = 真
+- [x] **SAC-021-2**[A]: `knowsClinic = true` 时病人**可进 `Seeking`** —— 断言宾语 = 真
   `PatientBehaviorDirector` + 真 `BehaviorMap`,经 `PatientCueDriver` 的 seam 观测。
   **证伪判据**:把 `BehaviorMap` 的 `Seeking` 分支短路 ⇒ 本条红。
-- [x] **AC-021-3**[A]: `knowsClinic = false` 时**不进 `Seeking`**(反向对照 —— 防「一律 true」的假修)。
+- [x] **SAC-021-3**[A]: `knowsClinic = false` 时**不进 `Seeking`**(反向对照 —— 防「一律 true」的假修)。
   **证伪判据**:把注入恒为 `true` ⇒ 本条红。
-- [x] **AC-021-4**(账面): `TD-audio-033` 的 ① 脚结案、② 明确留 open(两份行为态分叉);
+- [x] **SAC-021-4**(账面): `TD-audio-033` 的 ① 脚结案、② 明确留 open(两份行为态分叉);
   债行刷新不得只改声明。
 
 ## Dependencies
@@ -75,14 +75,14 @@ ADR-018 §一(44 只触发)
 
 ## Definition of Done(本卡)
 
-- AC-021-1…3 全 [A] 绿 + 证伪转红记录齐;
+- SAC-021-1…3 全 [A] 绿 + 证伪转红记录齐;
 - `TD-audio-033` ① 结案 / ② 留 open 的注落账;
 - ⚠️ **44 epic 仍不得收口**。
 
 ## Completion Notes
 
 **Completed**: 2026-10-18
-**Criteria**: 4/4(AC-021-1…3 全 [A] 绿 + 证伪齐;AC-021-4 账面已落)
+**Criteria**: 4/4(SAC-021-1…3 全 [A] 绿 + 证伪齐;SAC-021-4 账面已落)
 **所选口径(边界裁定 1 的二选一)**: **显式 fail-loud** —— `knowsClinic` 必填,传 null ⇒ 具名
 `ArgumentNullException`。**不提供**「静默默认 false」:那正是本条债项的形态本身。
 **Test Evidence**: `unity/Assets/Tests/EditMode/Audio/knowsclinic_seam_test.cs`(8 测)
@@ -115,10 +115,10 @@ ADR-018 §一(44 只触发)
 
 | AC | 载体 | 状态 |
 |---|---|---|
-| AC-021-1 | `test_ac021_1_driver_ctor_requiresKnowsClinic_neverSilentlyDefaults` · `test_ac021_1_compositionRoot_feedsSeamFromTruthSource_notHardcodedFalse` · `test_ac021_1_productionTree_hasNoHardcodedKnowsClinicFalse` | COVERED(3/3 绿;反证 F1/F3/F4/F5/F7) |
-| AC-021-2 | `test_ac021_2_knowsClinicTrue_patientEntersSeeking` | COVERED(反证 F2) |
-| AC-021-3 | `test_ac021_3_knowsClinicFalse_patientDoesNotEnterSeeking` · `_emptyRegistry_…` · `_noAnchorCell_…` · `_directory_caches…` | COVERED(反证 F3/F6/F8) |
-| AC-021-4 | `docs/tech-debt-register.md` `TD-audio-033` ① 结案 / ② 留 open(并标注为**前瞻性**债项) | COVERED(账面) |
+| SAC-021-1 | `test_ac021_1_driver_ctor_requiresKnowsClinic_neverSilentlyDefaults` · `test_ac021_1_compositionRoot_feedsSeamFromTruthSource_notHardcodedFalse` · `test_ac021_1_productionTree_hasNoHardcodedKnowsClinicFalse` | COVERED(3/3 绿;反证 F1/F3/F4/F5/F7) |
+| SAC-021-2 | `test_ac021_2_knowsClinicTrue_patientEntersSeeking` | COVERED(反证 F2) |
+| SAC-021-3 | `test_ac021_3_knowsClinicFalse_patientDoesNotEnterSeeking` · `_emptyRegistry_…` · `_noAnchorCell_…` · `_directory_caches…` | COVERED(反证 F3/F6/F8) |
+| SAC-021-4 | `docs/tech-debt-register.md` `TD-audio-033` ① 结案 / ② 留 open(并标注为**前瞻性**债项) | COVERED(账面) |
 
 **Falsifiability Gate**:命中形态 = 定义域收窄(源码门 + 契约测)+ 一次性/幂等(缓存)。反证 F1–F8 全部转红;
 两处失败尝试(首轮 F1/F3 未驱动装配件、F5 首版与 F1 无观测差、F7 前两版锚点选错)**已如实登记**。→ **PASS**

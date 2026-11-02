@@ -1,4 +1,4 @@
-// story-025 戥子剂量读取形态元素 —— AC-025-1…6 夹具(EditMode · 2026-10-18)
+// story-025 戥子剂量读取形态元素 —— SAC-025-1…6 夹具(EditMode · 2026-10-18)
 //
 // 权威来源:
 //   · production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md
@@ -6,12 +6,12 @@
 //   · ADR-013 §十-B(戥子档位读数元件 = 黄铜侧)· AC-42-F3 材质分支
 //
 // 判据面(逐条可证伪):
-//   AC-025-1  SetDetents 逐档形态 + 落焦档**几何可分**(非颜色)+ 定义域 fail-loud
-//   AC-025-2  元件不持剂量状态 —— 无持久字段;同入参重复调用 ⇒ 同形态(幂等)
-//   AC-025-3  SkeuoBrass.uss 逐档形态类(值全走 --skeuo-brass-* 变量;零裸色/零裸尺寸/零数字文本)
-//   AC-025-4  RefreshDentchDoses 每行携带**该行自己的**档位形态(行序 = 档位序,提交链不变)
-//   AC-025-5  零数字铁律(行内无十进制数字 · 元件零 string 数字读数 API · USS 零 content 数字)
-//   AC-025-6  黄铜分支归属(新形态类全落 brass,墨侧不得误判)
+//   SAC-025-1  SetDetents 逐档形态 + 落焦档**几何可分**(非颜色)+ 定义域 fail-loud
+//   SAC-025-2  元件不持剂量状态 —— 无持久字段;同入参重复调用 ⇒ 同形态(幂等)
+//   SAC-025-3  SkeuoBrass.uss 逐档形态类(值全走 --skeuo-brass-* 变量;零裸色/零裸尺寸/零数字文本)
+//   SAC-025-4  RefreshDentchDoses 每行携带**该行自己的**档位形态(行序 = 档位序,提交链不变)
+//   SAC-025-5  零数字铁律(行内无十进制数字 · 元件零 string 数字读数 API · USS 零 content 数字)
+//   SAC-025-6  黄铜分支归属(新形态类全落 brass,墨侧不得误判)
 //
 // ⚠️ 测试纪律:arrange/act/assert · 无随机 · 无时间依赖 · 夹具自持
 //    (唯一文件读 = 生产 USS 文本 —— 与生产门 `SkeuomorphicUiGates` 同口径,非外部状态)。
@@ -34,7 +34,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
     using NUnit.Framework;
     using UnityEngine.UIElements;
 
-    /// <summary>戥子剂量读取形态元素夹具(story-025 · AC-025-1…6)。</summary>
+    /// <summary>戥子剂量读取形态元素夹具(story-025 · SAC-025-1…6)。</summary>
     [TestFixture]
     public class dentch_dose_form_test
     {
@@ -73,7 +73,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         private static string RuleBody(string ussText, string selector)
         {
             int at = ussText.IndexOf(selector + " {", StringComparison.Ordinal);
-            Assert.GreaterOrEqual(at, 0, $"USS 应含规则 `{selector}`(AC-025-3)。");
+            Assert.GreaterOrEqual(at, 0, $"USS 应含规则 `{selector}`(SAC-025-3)。");
 
             int open = ussText.IndexOf('{', at);
             int close = ussText.IndexOf('}', open);
@@ -194,7 +194,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
         }
 
-        // ══════════════ AC-025-1 逐档形态 + 几何可分 ══════════════
+        // ══════════════ SAC-025-1 逐档形态 + 几何可分 ══════════════
 
         [Test]
         public void test_ac025_1_setDetents_createsOneFormPerDetent()
@@ -202,7 +202,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             var element = Loaded(5, 3);
 
             Assert.AreEqual(5, element.DetentCount,
-                "五档 ⇒ 五个形态子件(AC-025-1 ①)");
+                "五档 ⇒ 五个形态子件(SAC-025-1 ①)");
             Assert.AreEqual(5, Band(element).childCount,
                 "形态子件须住在形态容器内");
         }
@@ -222,7 +222,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac025_1_focusedForm_geometricallyDistinctFromNormalForm()
         {
-            // AC-025-1 ②:落焦档与其余档**几何可分**(高度 / 边距 / 边框宽的整数差异,**非颜色**)。
+            // SAC-025-1 ②:落焦档与其余档**几何可分**(高度 / 边距 / 边框宽的整数差异,**非颜色**)。
             string uss = BrassUssWithoutComments();
             string normal = RuleBody(uss, "." + DetentClass);
             string focused = RuleBody(uss, "." + FocusedClass);
@@ -236,7 +236,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             });
 
             Assert.GreaterOrEqual(differing, 3,
-                "落焦档须在 ≥3 条几何轴上与常态档取值不同(AC-025-1 ② 的「几何可分」)");
+                "落焦档须在 ≥3 条几何轴上与常态档取值不同(SAC-025-1 ② 的「几何可分」)");
 
             foreach (string axis in geometricAxes)
             {
@@ -252,7 +252,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac025_1_focusedForm_carriesNoColorDeclaration()
         {
-            // AC-025-1 ② 的**反控**:可分性不得由颜色承载。
+            // SAC-025-1 ② 的**反控**:可分性不得由颜色承载。
             // 落焦块内零颜色声明 ⇒ 颜色承常态 ⇒ 「非颜色」在 USS 文本层可判真。
             string focused = RuleBody(BrassUssWithoutComments(), "." + FocusedClass);
 
@@ -271,12 +271,12 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             //    只断类型会被掩蔽(证伪轮 F1 首跑实测 GREEN-FAIL:撤掉档数守卫后本测仍绿,
             //    夹具对档数守卫零判别力)。断 ParamName ⇒ 两个守卫各自可观测。
             var atZero = Assert.Throws<ArgumentOutOfRangeException>(() => element.SetDetents(0, 1),
-                "档数 0 ⇒ fail-loud(AC-025-1 ③)");
+                "档数 0 ⇒ fail-loud(SAC-025-1 ③)");
             Assert.AreEqual("count", atZero.ParamName,
                 "须由**档数**守卫拒收 —— 否则是被档序守卫掩蔽(夹具假绿)");
 
             var atNegative = Assert.Throws<ArgumentOutOfRangeException>(() => element.SetDetents(-3, 1),
-                "负档数 ⇒ fail-loud(AC-025-1 ③)");
+                "负档数 ⇒ fail-loud(SAC-025-1 ③)");
             Assert.AreEqual("count", atNegative.ParamName,
                 "须由**档数**守卫拒收 —— 否则是被档序守卫掩蔽(夹具假绿)");
         }
@@ -287,9 +287,9 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             var element = new BrassScaleElement();
 
             Assert.Throws<ArgumentOutOfRangeException>(() => element.SetDetents(5, 0),
-                "档序 0 越界 ⇒ 抛(AC-025-1 ④)");
+                "档序 0 越界 ⇒ 抛(SAC-025-1 ④)");
             Assert.Throws<ArgumentOutOfRangeException>(() => element.SetDetents(5, 6),
-                "档序 count+1 越界 ⇒ 抛(AC-025-1 ④)");
+                "档序 count+1 越界 ⇒ 抛(SAC-025-1 ④)");
             Assert.AreEqual(0, element.DetentCount,
                 "抛后不得留下半成品形态(禁钳位 ⇒ 禁「钳到边界再画」)");
         }
@@ -297,7 +297,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac025_1_detentGeometry_comesFromBrassLayerVariables()
         {
-            // AC-025-1 ③:几何值全来自主题变量,零内联字面量。
+            // SAC-025-1 ③:几何值全来自主题变量,零内联字面量。
             string uss = BrassUssWithoutComments();
             string theme = File.ReadAllText(ThemeUssPath);
             string[] blocks =
@@ -325,7 +325,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     declared++;
 
                     Assert.IsTrue(value.StartsWith("var(--skeuo-brass-", StringComparison.Ordinal),
-                        $"`{prop}: {value}` 须走 --skeuo-brass-* 变量(零内联字面量,AC-025-1 ③)");
+                        $"`{prop}: {value}` 须走 --skeuo-brass-* 变量(零内联字面量,SAC-025-1 ③)");
 
                     string varName = value.Substring(4, value.IndexOf(')') - 4);
                     AssertDeclaredInLayer(theme, varName, BrassLayerMarker, ImplementLayerMarker);
@@ -336,7 +336,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 $"逐档形态的几何声明应有 ≥ 8 条(实得 {declared})—— 扫描面塌缩 ⇒ 本测假绿");
         }
 
-        // ══════════════ AC-025-2 无剂量状态 ══════════════
+        // ══════════════ SAC-025-2 无剂量状态 ══════════════
 
         [Test]
         public void test_ac025_2_setDetents_doesNotCacheFocusedOrdinal()
@@ -348,7 +348,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             element.SetDetents(5, 1);
 
             Assert.AreEqual(1, element.FocusedDetentOrdinal,
-                "第二次入参须**取代**第一次 —— 元件不得留存上一次的落焦档(AC-025-2)");
+                "第二次入参须**取代**第一次 —— 元件不得留存上一次的落焦档(SAC-025-2)");
             Assert.AreEqual(5, element.DetentCount, "档数不变 ⇒ 形态数不变");
         }
 
@@ -362,13 +362,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.AreEqual(first.FocusedDetentOrdinal, second.FocusedDetentOrdinal,
                 "同入参 ⇒ 同落焦档");
             Assert.AreEqual(ShapeSignature(first), ShapeSignature(second),
-                "同入参 ⇒ 逐档类名序列逐位相同(幂等,AC-025-2)");
+                "同入参 ⇒ 逐档类名序列逐位相同(幂等,SAC-025-2)");
         }
 
         [Test]
         public void test_ac025_2_element_exposesNoMutableDoseState()
         {
-            // 结构判据:元件上不得存在可写字段承载剂量 / 选中档(AC-025-2)。
+            // 结构判据:元件上不得存在可写字段承载剂量 / 选中档(SAC-025-2)。
             // 🔁 **2026-10-30(TD-prescription-08 结案轮)**:白名单**清空**。
             //    它此前唯一的条目是 `<TickCount>k__BackingField` —— 那个属性已被删除
             //    (生产侧零读的死状态),白名单随之失效。
@@ -399,7 +399,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             foreach (string name in writable)
             {
                 Assert.IsFalse(forbidden.Any(t => name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0),
-                    $"可写字段 `{name}` 疑似剂量状态 —— 元件不得持剂量(AC-025-2);" +
+                    $"可写字段 `{name}` 疑似剂量状态 —— 元件不得持剂量(SAC-025-2);" +
                     $"若为形态宿主请改用只读引用");
             }
         }
@@ -415,7 +415,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 .Select(c => c.ClassListContains(FocusedClass) ? "F" : "n"));
         }
 
-        // ══════════════ AC-025-3 USS 逐档形态类 ══════════════
+        // ══════════════ SAC-025-3 USS 逐档形态类 ══════════════
 
         [Test]
         public void test_ac025_3_uss_declaresDetentClassesInBrassLayer()
@@ -431,12 +431,12 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             string theme = File.ReadAllText(ThemeUssPath);
             var (brassStart, brassEnd) = LayerRange(theme, BrassLayerMarker, ImplementLayerMarker);
             Assert.IsTrue(theme.Contains(BrassLayerMarker),
-                "主题表黄铜层注释块应保留(新增变量须落在该层,AC-025-3)");
+                "主题表黄铜层注释块应保留(新增变量须落在该层,SAC-025-3)");
 
             string[] themeLines = theme.Split('\n');
             int detentBlock = Array.FindIndex(
                 themeLines, l => l.Contains(DetentBlockMarker, StringComparison.Ordinal));
-            Assert.GreaterOrEqual(detentBlock, 0, "逐档形态变量须带黄铜层注释(AC-025-3)");
+            Assert.GreaterOrEqual(detentBlock, 0, "逐档形态变量须带黄铜层注释(SAC-025-3)");
             Assert.IsTrue(detentBlock >= brassStart && detentBlock < brassEnd,
                 $"「{DetentBlockMarker}」子块须落在黄铜层区间(行 {brassStart + 1}..{brassEnd})内 —— " +
                 $"实得行 {detentBlock + 1}(评审 R-6)");
@@ -457,16 +457,16 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 string body = RuleBody(uss, "." + selector);
 
                 Assert.IsFalse(bareColor.IsMatch(body),
-                    $"`{selector}` 块内不得有裸色值(C4 / AC-025-3 ②)");
+                    $"`{selector}` 块内不得有裸色值(C4 / SAC-025-3 ②)");
                 Assert.IsFalse(bareSize.IsMatch(body),
-                    $"`{selector}` 块内不得有裸尺寸(C4 / AC-025-3 ②)");
+                    $"`{selector}` 块内不得有裸尺寸(C4 / SAC-025-3 ②)");
             }
         }
 
         [Test]
         public void test_ac025_3_detentBlocks_haveNoNumericText()
         {
-            // AC-025-3 ③ / AC-025-5 ③:`content:` 不得承载数字(零数字铁律在 USS 侧的延伸)。
+            // SAC-025-3 ③ / SAC-025-5 ③:`content:` 不得承载数字(零数字铁律在 USS 侧的延伸)。
             var numericContent = new Regex(@"content\s*:\s*""[^""]*\d");
             var fraction = new Regex(@"\d+\s*/\s*\d+");
 
@@ -476,13 +476,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 string body = RuleBody(uss, "." + selector);
 
                 Assert.IsFalse(numericContent.IsMatch(body),
-                    $"`{selector}` 块内不得有数字文本(AC-025-3 ③)");
+                    $"`{selector}` 块内不得有数字文本(SAC-025-3 ③)");
                 Assert.IsFalse(fraction.IsMatch(body),
-                    $"`{selector}` 块内不得有 `N/M` 形态的读数(AC-025-5 ③)");
+                    $"`{selector}` 块内不得有 `N/M` 形态的读数(SAC-025-5 ③)");
             }
         }
 
-        // ══════════════ AC-025-4 每行携带该行自己的形态 ══════════════
+        // ══════════════ SAC-025-4 每行携带该行自己的形态 ══════════════
 
         [Test]
         public void test_ac025_4_eachRowCarriesItsOwnOrdinalForm()
@@ -490,15 +490,15 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             var (_, root) = BuildOnDosePage(5);
             List<VisualElement> rows = CollectDoseRows(root);
 
-            Assert.AreEqual(5, rows.Count, "前置:五档行(AC-025-4 ①)");
+            Assert.AreEqual(5, rows.Count, "前置:五档行(SAC-025-4 ①)");
 
             for (int k = 0; k < rows.Count; k++)
             {
                 var form = rows[k].Q<BrassScaleElement>();
-                Assert.IsNotNull(form, $"第 {k + 1} 行应携带自己的档位形态(AC-025-4)");
+                Assert.IsNotNull(form, $"第 {k + 1} 行应携带自己的档位形态(SAC-025-4)");
                 Assert.AreEqual(5, form.DetentCount, "每行形态须覆盖全部档(档数 = 5)");
                 Assert.AreEqual(k + 1, form.FocusedDetentOrdinal,
-                    $"第 {k + 1} 行应显示「第 {k + 1} 档」形态 —— 行序 = 档位序(AC-025-4 ①)");
+                    $"第 {k + 1} 行应显示「第 {k + 1} 档」形态 —— 行序 = 档位序(SAC-025-4 ①)");
             }
         }
 
@@ -523,7 +523,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac025_4_rowSubmitStillForwardsExplicitOrdinal()
         {
-            // AC-025-4 ④:提交链零改动 —— 形态换掉标签后,Submit 仍转发**显式 ordinal**。
+            // SAC-025-4 ④:提交链零改动 —— 形态换掉标签后,Submit 仍转发**显式 ordinal**。
             var root = new VisualElement { name = "casebook-root" };
             var sink = new FakeSink();
             var screen = new CasebookScreen(root, new SkeuoElementLibrary());
@@ -537,13 +537,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             screen.SubmitDose((int)rows[3].userData);
 
             Assert.AreEqual(new[] { 4 }, sink.Doses,
-                "第四档行 ⇒ 转发显式 ordinal(4),非焦点路径索引(AC-025-4 ④)");
+                "第四档行 ⇒ 转发显式 ordinal(4),非焦点路径索引(SAC-025-4 ④)");
         }
 
         [Test]
         public void test_ac025_4_detentCountUnchanged_idempotentShortCircuitHolds()
         {
-            // AC-025-4 ③:幂等短路 `_builtDetentCount` 保留 —— 档数未变 ⇒ 行对象不被重建
+            // SAC-025-4 ③:幂等短路 `_builtDetentCount` 保留 —— 档数未变 ⇒ 行对象不被重建
             // (否则真机 20 Hz tick 循环每 tick 摘掉重建 ⇒ 落焦行丢焦)。
             var (screen, root) = BuildOnDosePage(5);
             VisualElement firstRow = CollectDoseRows(root)[0];
@@ -551,7 +551,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             screen.ApplyData(new FakeSource { Detents = 5 });   // 同档数重入
 
             Assert.AreSame(firstRow, CollectDoseRows(root)[0],
-                "同档数重入 ⇒ 行对象同一(短路生效,AC-025-4 ③)");
+                "同档数重入 ⇒ 行对象同一(短路生效,SAC-025-4 ③)");
         }
 
         [Test]
@@ -576,16 +576,16 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
         }
 
-        // ══════════════ AC-025-5 零数字铁律 ══════════════
+        // ══════════════ SAC-025-5 零数字铁律 ══════════════
 
         [Test]
         public void test_ac025_5_dosePageText_carriesNoDecimalDigit()
         {
             // ⚠️ 2026-10-18 评审 R-7:扫描面 = **方笺页子树**,不是整棵脉案树。
-            //    AC-025-5① 只要求「**行内** Label 文本不含十进制数字」;旧夹具扫
+            //    SAC-025-5① 只要求「**行内** Label 文本不含十进制数字」;旧夹具扫
             //    `root.Query<Label>()`(含 `display:none` 的其它页 —— `ApplyPageVisibility`
             //    只切 display,节点仍在树内)⇒ 未来给病症册加序号 / 翻页指示器加「第 2 页」
-            //    都会让本测**假红**,而它们并不违反 AC-025-5。
+            //    都会让本测**假红**,而它们并不违反 SAC-025-5。
             //    本处取「方笺页」而非「档位行」⇒ 仍略强于 AC 原文(行内 ⊂ 页内)。
             var (_, root) = BuildOnDosePage(5);
             var decimalDigit = new Regex(@"\d");
@@ -602,14 +602,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             foreach (Label label in page.Query<Label>().Build())
             {
                 Assert.IsFalse(decimalDigit.IsMatch(label.text ?? string.Empty),
-                    $"方笺页文本「{label.text}」含十进制数字 —— 档位读数须走形态(AC-025-5)");
+                    $"方笺页文本「{label.text}」含十进制数字 —— 档位读数须走形态(SAC-025-5)");
             }
         }
 
         [Test]
         public void test_ac025_5_element_exposesNoStringNumericReadout()
         {
-            // AC-025-5 ②:元件不暴露 string 数字读数 API。
+            // SAC-025-5 ②:元件不暴露 string 数字读数 API。
             // ⚠️ **必须 DeclaredOnly** —— `VisualElement` 自带 `name` / `tooltip` /
             // `viewDataKey` / `ToString()` 等 string 面;不限定声明层会把基类面算进来,
             // 断言恒红(首跑实测即此)。
@@ -623,28 +623,28 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 
             Assert.IsEmpty(stringMembers,
                 $"元件不得暴露 string 读数面(实得:{string.Join(", ", stringMembers)})—— " +
-                "档位读数一律走形态,零文本读数(AC-025-5)");
+                "档位读数一律走形态,零文本读数(SAC-025-5)");
         }
 
         [Test]
         public void test_ac025_5_wholeBrassUss_hasNoNumericContent()
         {
             // ⚠️ 2026-10-18 评审 R-10:原测名 `..._hasNoFractionReadout` 断的是全域 `N/M`,
-            //    而 AC-025-5③ 逐字要的是「USS 无 **`content:`** 数字」⇒ 断言面与 AC 文本错位。
+            //    而 SAC-025-5③ 逐字要的是「USS 无 **`content:`** 数字」⇒ 断言面与 AC 文本错位。
             //    现对齐 AC 文本为主判据;全域 `N/M` 面**保留为附加判据**(同属零数字铁律,
-            //    与 AC-023-2 的黄铜侧延伸面一致)。
+            //    与 SAC-023-2 的黄铜侧延伸面一致)。
             string uss = BrassUssWithoutComments();
 
             var numericContent = new Regex(@"content\s*:\s*""[^""]*\d");
             Assert.IsFalse(numericContent.IsMatch(uss),
-                "SkeuoBrass.uss 全域不得出现 `content:` 数字(AC-025-5③)");
+                "SkeuoBrass.uss 全域不得出现 `content:` 数字(SAC-025-5③)");
 
             var fraction = new Regex(@"\d+\s*/\s*\d+");
             Assert.IsFalse(fraction.IsMatch(uss),
-                "SkeuoBrass.uss 全域不得出现 `N/M` 形态读数(附加面 · AC-023-2 黄铜侧延伸)");
+                "SkeuoBrass.uss 全域不得出现 `N/M` 形态读数(附加面 · SAC-023-2 黄铜侧延伸)");
         }
 
-        // ══════════════ AC-025-6 黄铜分支归属 ══════════════
+        // ══════════════ SAC-025-6 黄铜分支归属 ══════════════
 
         [Test]
         public void test_ac025_6_formCarrier_staysInBrassBranch_notInk()
@@ -664,22 +664,22 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     "每个形态子件须带常态档类名");
                 Assert.That(SkeuoMaterialBranchClassifier.Of(detent),
                     Is.EqualTo(SkeuoMaterialBranch.Brass),
-                    "形态子件不得被误判为墨侧(AC-025-6)");
+                    "形态子件不得被误判为墨侧(SAC-025-6)");
             }
         }
 
         [Test]
         public void test_ac025_6_detentClasses_areNotInkSideVocabulary()
         {
-            // AC-025-6 负向:墨侧 USS 不得引逐档形态族类(否则黄铜/墨分支误判)。
+            // SAC-025-6 负向:墨侧 USS 不得引逐档形态族类(否则黄铜/墨分支误判)。
             string inkPath = Path.Combine(SkeuoDir, "SkeuoInk.uss");
             if (!File.Exists(inkPath)) Assert.Ignore("SkeuoInk.uss 不在位 —— 墨侧分支判据跳过");
 
             string ink = File.ReadAllText(inkPath);
             Assert.IsFalse(ink.Contains("." + DetentClass),
-                "墨侧 USS 不得引 `.brass-detent`(AC-025-6 分支误判)");
+                "墨侧 USS 不得引 `.brass-detent`(SAC-025-6 分支误判)");
             Assert.IsFalse(ink.Contains("." + FocusedClass),
-                "墨侧 USS 不得引 `.brass-detent--focused`(AC-025-6 分支误判)");
+                "墨侧 USS 不得引 `.brass-detent--focused`(SAC-025-6 分支误判)");
         }
     }
 }

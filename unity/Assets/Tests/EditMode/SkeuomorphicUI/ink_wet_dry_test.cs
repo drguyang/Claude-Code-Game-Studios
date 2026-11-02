@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 {
-    /// <summary>M2 形态件② · 墨乾湿两态(story-022 · AC-022-1/2/3)。
+    /// <summary>M2 形态件② · 墨乾湿两态(story-022 · SAC-022-1/2/3)。
     /// <para>判据权威 = art-bible §4.5 墨龄(湿墨边缘洇开 → 干墨收干色沉,
     /// **只走明度轴不色相漂移** —— 色盲安全)+ G4 手感本体。</para>
     /// <para>⚠️ 门式读仓(例外声明,照 texture_binding_gate / story-021 focus 测试先例):
@@ -23,7 +23,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         private static string SkeuoDir =>
             Path.Combine(RepoRoot, "Assets", "Gameplay.UI", "Skeuomorphic");
 
-        // 冻结件 freeze-v1 登记的两图 guid(与 .meta 同源;悬空 = AC-022-2 红)
+        // 冻结件 freeze-v1 登记的两图 guid(与 .meta 同源;悬空 = SAC-022-2 红)
         private const string InkWetGuid = "4ccb158dd9726284480349d2a168e05b";
         private const string InkDryGuid = "fbae6e469acaf9fb2b9966cd8a276877";
 
@@ -38,7 +38,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         /// 先做 ΔH 分解(色相真漂 vs 量化抖动)再判违例,勿直接放宽本阈值。</para></summary>
         private const double HueDriftMaxDegrees = 12.0;
 
-        // ── helpers(精简自 focus_visual_and_accessibility_test 同名基建;公式锚定见 AC-022-1 ①)──
+        // ── helpers(精简自 focus_visual_and_accessibility_test 同名基建;公式锚定见 SAC-022-1 ①)──
 
         private static double SrgbToLinear(double c) =>
             c <= 0.04045 ? c / 12.92 : System.Math.Pow((c + 0.055) / 1.055, 2.4);
@@ -109,7 +109,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
         }
 
-        // ── AC-022-1:两态主题色明度轴(art-bible §4.5 机械化)──
+        // ── SAC-022-1:两态主题色明度轴(art-bible §4.5 机械化)──
 
         [Test]
         public void test_ac022_1_ink_wet_dry_theme_colors_luminance_axis_only()
@@ -161,7 +161,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 $"干墨 L({ld:F4}) 应 < 湿墨 L({lw:F4}) —— 「色沉」方向失守(§4.5)。");
         }
 
-        // ── AC-022-2:两态类接冻结图(C8 一致 + 单槽语义)──
+        // ── SAC-022-2:两态类接冻结图(C8 一致 + 单槽语义)──
 
         [Test]
         public void test_ac022_2_ink_wet_dry_classes_bound_to_frozen_textures()
@@ -176,8 +176,8 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Act:两状态类选择器块
             var wetBlock = Regex.Match(body, @"\.ink-wet\s*\{[^}]*\}");
             var dryBlock = Regex.Match(body, @"\.ink-dry\s*\{[^}]*\}");
-            Assert.IsTrue(wetBlock.Success, "缺 `.ink-wet` 声明块(AC-022-1 形态对的湿态)。");
-            Assert.IsTrue(dryBlock.Success, "缺 `.ink-dry` 声明块(AC-022-1 形态对的干态)。");
+            Assert.IsTrue(wetBlock.Success, "缺 `.ink-wet` 声明块(SAC-022-1 形态对的湿态)。");
+            Assert.IsTrue(dryBlock.Success, "缺 `.ink-dry` 声明块(SAC-022-1 形态对的干态)。");
 
             // Assert ① 各绑冻结件 guid(评审修复:锚 `background-image: url(...)` 全形 ——
             //    只 Contains guid 时块内他处提到 guid 也过,且选择器改造的假红面见文件头登记)
@@ -262,7 +262,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 "状态类非注册变体(边界裁定 1,同 .focus-visible 时间状态语义)。");
         }
 
-        // ── AC-022-3:洇开语义(贴图级方向锁)──
+        // ── SAC-022-3:洇开语义(贴图级方向锁)──
 
         [Test]
         public void test_ac022_3_wet_ink_spread_covers_more_than_dry()
@@ -279,7 +279,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Assert:方向锁 ——「边缘洇开」⇒ 湿覆盖大;「边缘收干」⇒ 干覆盖小(§4.5)。
             //    **只锁方向不锚数值**(两图是形态差非色差;数值随资产轮变动,方向是语义)。
             //    评审修复:`Greater` 严格大(实测余量 0.969 vs 0.646)—— `GreaterOrEqual`
-            //    在两图退化同覆盖率时假绿,与方法名 covers_more 和 AC-022-1 严格 Less 口径不一。
+            //    在两图退化同覆盖率时假绿,与方法名 covers_more 和 SAC-022-1 严格 Less 口径不一。
             Assert.Greater(wetCover, dryCover,
                 $"湿墨覆盖率({wetCover:F3})应 > 干墨({dryCover:F3}) —— " +
                 "「边缘洇开 vs 收干」的形态方向失守(art-bible §4.5)。");

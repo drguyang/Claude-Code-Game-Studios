@@ -48,7 +48,7 @@
 
 ### 步① 线格(元件库 USS + 脉案行挂载)
 
-- [x] **AC-021-1** ✅ **2026-10-08**: 格线类 `.ruled` 落 `SkeuoPaper.uss` —— `border-bottom` 走
+- [x] **SAC-021-1** ✅ **2026-10-08**: 格线类 `.ruled` 落 `SkeuoPaper.uss` —— `border-bottom` 走
       `var(--skeuo-shared-border-width)` + `var(--skeuo-paper-rule)`(色 = **提案值**
       `rgba(43,36,22,0.35)`,同 `--skeuo-paper-shadow` 色系深一档,**归数值轮**);
       `CasebookScreen.AddChannel` 行挂 `ruled` ⇒ 脉案五行 + 问诊栏行底各有淡墨线 =
@@ -59,7 +59,7 @@
 
 ### 步② 空行形态半(AC-42-B5 转正)
 
-- [x] **AC-021-2** ✅ **2026-10-08**: `.empty-row` 与 `.ruled` **同格线同 `min-height`**
+- [x] **SAC-021-2** ✅ **2026-10-08**: `.empty-row` 与 `.ruled` **同格线同 `min-height`**
       (同一声明块 —— 拆块即等重失守,由断言锁)下限 = `var(--skeuo-shared-row-height)`
       = **44px**(= AB-3 焦点落点 ≥44×44 的高半,新变量同批入 theme);
       `EmptyRowElement` 零文本(既有 `test_ac42b5_emptyRowNoText` 保持);
@@ -69,7 +69,7 @@
 
 ### 步③ 焦点亮度轴贴图级判据(G3)
 
-- [x] **AC-021-3** ✅ **2026-10-08**: `test_ac021_3_focus_ring_luminance_delta_over_paper` 落
+- [x] **SAC-021-3** ✅ **2026-10-08**: `test_ac021_3_focus_ring_luminance_delta_over_paper` 落
       `focus_visual_and_accessibility_test.cs` —— 源 = 黄铜环不透明像素(496,L=0.2756)vs
       纸面(`border_paper` 不透明像素 **面积 ≥1% 桶** ∪ 两主题底色从 theme 文件**现抽**
       —— 改色判据跟随,防第二真源);sRGB→gamma 线性化后 **Rec.709**;

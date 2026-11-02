@@ -1,4 +1,4 @@
-// story-021 —— `knowsClinic` 注入缝的生产真值派发面(AC-021-1)。
+// story-021 —— `knowsClinic` 注入缝的生产真值派发面(SAC-021-1)。
 //
 // 权威来源:
 //   design/gdd/patient-ai.md F-13.2 —— `KnowsClinic(p) := ClinicKnownByRegion(HomeRegion(spawn_anchor(p)))`

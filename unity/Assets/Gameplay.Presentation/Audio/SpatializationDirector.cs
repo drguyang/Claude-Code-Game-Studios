@@ -40,7 +40,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         {
         }
 
-        /// <summary>用**既有池**建装配入口(story-018 · AC-018-4 单池不变量)。
+        /// <summary>用**既有池**建装配入口(story-018 · SAC-018-4 单池不变量)。
         /// <para>⚠️ 装配轮**必须**走本重载:池的唯一所有者是 44(ADR-028 ①),
         /// 而组合根已建了一个池给 <see cref="AudioSourceRenderTarget"/> 用 ——
         /// 再让本类自建第二个 ⇒ 运行期两个 `"AudioSourcePool"` 根,

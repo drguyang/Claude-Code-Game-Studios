@@ -1,7 +1,7 @@
 # story-020 · 语声变体选择接进运行期 —— 实现证据原件
 
 > **对象**:`production/epics/audio-system/story-020-voice-variant-selection-wired.md`
-> **AC**:`AC-020-1` … `AC-020-4`(4 条;前三 [A],第四条账面)
+> **AC**:`SAC-020-1` … `SAC-020-4`(4 条;前三 [A],第四条账面)
 > **日期**:2026-10-18
 > **来源判定**:`docs/tech-debt-register.md` **`TD-audio-030`** —— `AudioClipLibrary` 对多素材行
 > **恒取 `row.Assets[0]`**,`VoiceVariantLib`(分桶 / `SelectVariant` / 烘焙门)**生产零调用**。
@@ -15,10 +15,10 @@
 
 | # | 交付 | 文件 | 关法 |
 |---|---|---|---|
-| **AC-020-1** | 多素材行**逐条装**(此前恒装 `assets[0]`) | `Gameplay.Presentation/Audio/AudioClipLibrary.cs` | `Preload` 内层循环遍历 `row.Assets[]`;`_clips` 改存 `AudioClip[]`(位置 = 变体索引);行内**至少一条**装成才计该行,缺的素材留 `null` 位 |
-| **AC-020-1** | 选择入口 = 真生产选择器 | 同上 · `Resolve(int cue, int tableCueId, int tier, int identity)` | 行内素材 > 1 时:把该行投影成**单行** `VoiceVariantLib.VoiceVariantTable` → `SelectVariant`(CueId × Tier × 桶)得**槽起点** → `SelectSlot`(槽起点, N, 身份)得**槽内位置** → `assets[slot]` |
-| **AC-020-1** | 槽宽 / 槽内位置 / 身份哈希(纯函数) | `Gameplay.Presentation/Audio/VoiceVariantLib.cs` | 新增 `BucketBand(int total)` = `max(1, total/3)`、`IdentityScalar(int identity, int range)`(整数乘 + xorshift 混合 + 取模)、`SelectSlot(int start, int total, int identity)`;**无墙钟 / 无 `UnityEngine.Random` / 无静态可变态** |
-| **AC-020-2** | 身份进选择键(生产链路) | `AudioClipLibrary.ResolveCue(in AudioCueDto, int tier)` + `AudioSourceRenderTarget` + `CompositionRoot` | `ResolveCue` 取 `cueDto.Source` 作身份(环境音 `-1` ⇒ 取 cue 自身);`AudioSourceRenderTarget` 增 `Func<AudioCueDto, AudioClip>` 解析缝(与既有 `Func<int, AudioClip>` **并存不替换** —— 62 处既有 EditMode 调用零改动);组合根改传整条 cue |
+| **SAC-020-1** | 多素材行**逐条装**(此前恒装 `assets[0]`) | `Gameplay.Presentation/Audio/AudioClipLibrary.cs` | `Preload` 内层循环遍历 `row.Assets[]`;`_clips` 改存 `AudioClip[]`(位置 = 变体索引);行内**至少一条**装成才计该行,缺的素材留 `null` 位 |
+| **SAC-020-1** | 选择入口 = 真生产选择器 | 同上 · `Resolve(int cue, int tableCueId, int tier, int identity)` | 行内素材 > 1 时:把该行投影成**单行** `VoiceVariantLib.VoiceVariantTable` → `SelectVariant`(CueId × Tier × 桶)得**槽起点** → `SelectSlot`(槽起点, N, 身份)得**槽内位置** → `assets[slot]` |
+| **SAC-020-1** | 槽宽 / 槽内位置 / 身份哈希(纯函数) | `Gameplay.Presentation/Audio/VoiceVariantLib.cs` | 新增 `BucketBand(int total)` = `max(1, total/3)`、`IdentityScalar(int identity, int range)`(整数乘 + xorshift 混合 + 取模)、`SelectSlot(int start, int total, int identity)`;**无墙钟 / 无 `UnityEngine.Random` / 无静态可变态** |
+| **SAC-020-2** | 身份进选择键(生产链路) | `AudioClipLibrary.ResolveCue(in AudioCueDto, int tier)` + `AudioSourceRenderTarget` + `CompositionRoot` | `ResolveCue` 取 `cueDto.Source` 作身份(环境音 `-1` ⇒ 取 cue 自身);`AudioSourceRenderTarget` 增 `Func<AudioCueDto, AudioClip>` 解析缝(与既有 `Func<int, AudioClip>` **并存不替换** —— 62 处既有 EditMode 调用零改动);组合根改传整条 cue |
 | 测试 | 新夹具 9 测 | `unity/Assets/Tests/EditMode/Audio/voice_selection_wiring_test.cs`(新) | 断言宾语 = 真 `AudioClipLibrary` + 真 `VoiceVariantLib` + **真种子** `assets/data/audio_events.json`(经 `AudioEventTableBake` 真烘焙) |
 
 ### 为什么「变体索引 → 素材」的映射落在 `AudioClipLibrary`
@@ -30,7 +30,7 @@
 ### 为什么 `BucketBand` 的槽宽是「形状」不是「数值」
 
 `12 → 4/4/4`、`4 → 1/1/2` 只决定「一行素材如何铺进三桶」,**不触碰**分桶阈值
-(`BucketLow` / `BucketHigh`,归用户数值轮)与变体量。改它会让某些变体不可达 ⇒ 由 AC-020-3 钉住。
+(`BucketLow` / `BucketHigh`,归用户数值轮)与变体量。改它会让某些变体不可达 ⇒ 由 SAC-020-3 钉住。
 
 ---
 
@@ -38,16 +38,16 @@
 
 | AC | 载体(测试名) | 判据 |
 |---|---|---|
-| **AC-020-1** | `VoiceSelectionWiringTest.test_ac020_1_multiAssetCue_usesRealSelector_notAssetsZero` | 逐 (tier 0–2) × (身份 0–11) 断言 `Resolve` 结果 = **直接调用生产选择器**复算的素材名;并断言「选中 `assets[0]` 的次数 > 0」以外的形态**确实发生**(否则等于没换) |
+| **SAC-020-1** | `VoiceSelectionWiringTest.test_ac020_1_multiAssetCue_usesRealSelector_notAssetsZero` | 逐 (tier 0–2) × (身份 0–11) 断言 `Resolve` 结果 = **直接调用生产选择器**复算的素材名;并断言「选中 `assets[0]` 的次数 > 0」以外的形态**确实发生**(否则等于没换) |
 | | `test_ac020_1_selectorBinding_pinnedOnProductionClass` | ① 反射钉住 `Resolve(int,int,int,int)` 存在;② **扫生产程序集 IL**,断言至少一个方法对 `SelectVariant` / `SelectSlot` 有真 `call` —— 堵「测试单边绿、生产零调用」 |
 | | `test_ac020_1_singleAssetAndInvalidInputs_behaveUnchanged` | 单素材行任意身份恒该条;负 / 越界 ordinal ⇒ `null`;`SelectVariant` 对空表 ⇒ `-1`(不静默取 0) |
-| **AC-020-2** | `test_ac020_2_sameIdentity_isDeterministic` | 同 (cue, tier, identity) 两次调用同名 |
+| **SAC-020-2** | `test_ac020_2_sameIdentity_isDeterministic` | 同 (cue, tier, identity) 两次调用同名 |
 | | `test_ac020_2_distinctPatients_doNotAlwaysShareVariant` | 每个 tier 下 8 名患者**必须**出现 ≥ 2 个不同变体 |
 | | `test_ac020_2_distribution_coversSlot` | 8 名患者选出的变体全 ∈ 行内,且 ≥ 2 条 |
-| | `test_ac020_2_identityScalar_spreadsAcrossRange` | 64 个身份在 `[0,256)` 上 > 32 个不同值;`range=0 ⇒ 0` 不抛;**三桶全部可达**(否则 AC-020-3 结构性不可达) |
+| | `test_ac020_2_identityScalar_spreadsAcrossRange` | 64 个身份在 `[0,256)` 上 > 32 个不同值;`range=0 ⇒ 0` 不抛;**三桶全部可达**(否则 SAC-020-3 结构性不可达) |
 | | `test_ac020_2_cueSource_reachesSelector_notJustCueOrdinal` | 真池 + 真渲染目标 + 整条 cue 解析:两名患者(`Source=101/202`)的 `AudioSource.clip.name` = 按各自 `Source` 算出的变体 |
-| **AC-020-3** | `test_ac020_3_allTwelveVoVariants_reachable` | 真种子咳嗽行 = 12 条 `vo_patient_cough_damp_*`(**从表行取清单,不内联**);身份 × tier 全域枚举后 **12 条逐条可达** |
-| **AC-020-4** | `docs/tech-debt-register.md` `TD-audio-030` 结案注 · `docs/architecture/tr-registry.yaml` `TR-diag-022` note | 原判定 → 修复落点 → 验证命令三件齐;**明写**人耳半边未证 |
+| **SAC-020-3** | `test_ac020_3_allTwelveVoVariants_reachable` | 真种子咳嗽行 = 12 条 `vo_patient_cough_damp_*`(**从表行取清单,不内联**);身份 × tier 全域枚举后 **12 条逐条可达** |
+| **SAC-020-4** | `docs/tech-debt-register.md` `TD-audio-030` 结案注 · `docs/architecture/tr-registry.yaml` `TR-diag-022` note | 原判定 → 修复落点 → 验证命令三件齐;**明写**人耳半边未证 |
 
 ---
 
@@ -58,14 +58,14 @@
 
 | # | 停用的守卫 | 期望变红 | 实测 |
 |---|---|---|---|
-| **F1** | `Resolve` 内的槽内位置:`SelectSlot(...)` → 常量 `0`(即「恒第 0 条」) | AC-020-1 主测 · AC-020-2 两条分布 · AC-020-3 | **红 ×4** ✅ |
-| **F2** | `SelectVariant` 结果被丢弃(`0 * SelectVariant(...)` ⇒ 恒弱桶槽) | AC-020-1 主测 · AC-020-3 | **红 ×2** ✅ |
-| **F3** | `SelectSlot` 里身份不进哈希(`identity ^ (start*40503)` → `start*40503`) | AC-020-3 | **红 ×1** ✅ |
-| **F4** | `BucketBand` 槽宽 `total/3` → `total/6` | AC-020-3 | **红 ×1** ✅ |
-| **F5** | `Resolve` 多素材分支整段短路(`if (true) return first;`) | AC-020-1 主测 · 绑定测 · AC-020-2 两条 · AC-020-3 | **红 ×5** ✅ |
+| **F1** | `Resolve` 内的槽内位置:`SelectSlot(...)` → 常量 `0`(即「恒第 0 条」) | SAC-020-1 主测 · SAC-020-2 两条分布 · SAC-020-3 | **红 ×4** ✅ |
+| **F2** | `SelectVariant` 结果被丢弃(`0 * SelectVariant(...)` ⇒ 恒弱桶槽) | SAC-020-1 主测 · SAC-020-3 | **红 ×2** ✅ |
+| **F3** | `SelectSlot` 里身份不进哈希(`identity ^ (start*40503)` → `start*40503`) | SAC-020-3 | **红 ×1** ✅ |
+| **F4** | `BucketBand` 槽宽 `total/3` → `total/6` | SAC-020-3 | **红 ×1** ✅ |
+| **F5** | `Resolve` 多素材分支整段短路(`if (true) return first;`) | SAC-020-1 主测 · 绑定测 · SAC-020-2 两条 · SAC-020-3 | **红 ×5** ✅ |
 | **F6** | 注入缝装来的 clip 也塞进 `_handles`(即走 `Addressables.Release`) | 全部 7 条(TearDown 判 Unhandled log) | **红 ×7** ✅(证明释放缝是承重件) |
 | **F7** | `ResolveCue` 的身份来源删掉(`cueDto.Source >= 0 ? ... : ...` → `cueDto.Cue`) | 接线测 | **红 ×1** ✅ |
-| **F8** | `Resolve` 的槽内位置只在前 6 条里取(`Math.Min(6, loaded.Length)`) | AC-020-1 主测 · AC-020-3 | **红 ×2** ✅ |
+| **F8** | `Resolve` 的槽内位置只在前 6 条里取(`Math.Min(6, loaded.Length)`) | SAC-020-1 主测 · SAC-020-3 | **红 ×2** ✅ |
 
 **一处如实登记的失败尝试(不算证伪成功)**:首次的「F8-a」是把 `AudioSourceRenderTarget.ClipOf`
 里两条解析缝的**优先级对调**(`_clipOf` 先于 `_cueClipOf`)—— 结果 **exit 0 全绿**。
@@ -105,7 +105,7 @@
 | 3 | 事件表 `assets[]` **重排** = 静默换声音 | **未加门** | `variant index i ↔ assets[i]`,重排作者态行即改变「哪个声音」。当前缓解 = `ConfigVersion` 内容哈希(ADR-014 §五);**没有**专门的构建期门。登记为缺口,归 D6/D9 门族下一次扩充 |
 | 4 | `Tier` 在生产恒 0 | 已按设计 | `TierSource` 闭集只有 `Local`(契约层钉死,裁定 D-A)⇒ `Resolve` 的 `tier` 形参在 P0 恒 0;测试逐 tier 覆盖是**为将来**,不是当下行为 |
 | 5 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
-| 6 | epic 44 的「16 条未全验证」计数 | **未重算** | 承 story-020 §Tasks AC-020-4 的明示边界 |
+| 6 | epic 44 的「16 条未全验证」计数 | **未重算** | 承 story-020 §Tasks SAC-020-4 的明示边界 |
 
 ---
 

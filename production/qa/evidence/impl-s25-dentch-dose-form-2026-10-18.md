@@ -4,9 +4,9 @@
 > **对象**:`production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md`
 > **类型**:UI / Visual-Feel · **层级**:Feature(42 呈现层)
 > **权威**:ADR-013(42 **只渲染,永不持有游戏状态** · 两栈元件库)· `AC-42-F3`(材质分支)
-> · `AC-023-2`(零数字角标门)· `TD-prescription-01`(处置 = **须补**)
+> · `SAC-023-2`(零数字角标门)· `TD-prescription-01`(处置 = **须补**)
 > **判据权威**:`AC-11-12`(拟物载体可读半)· `AC-11-13`(相邻档无色条件下可区分)
-> **结论**:`AC-025-1…6` 全部落地并由夹具钉住;证伪轮 **15/15 RED-OK**;两棵树全量**新增测上零回归**。
+> **结论**:`SAC-025-1…6` 全部落地并由夹具钉住;证伪轮 **15/15 RED-OK**;两棵树全量**新增测上零回归**。
 > **⚠️ 本件不判定 `AC-11-12` / `AC-11-13` 转绿** —— 承 story §边界裁定 5,走查重跑归收口轮。
 
 ---
@@ -28,7 +28,7 @@
 | 常态 `.brass-detent` | `--skeuo-brass-detent-width` | `--skeuo-brass-detent-height` | — | `--skeuo-brass-detent-border-width` | `--skeuo-brass-scale-color` |
 | 落焦 `.brass-detent--focused` | `--skeuo-brass-detent-focused-width` | `--skeuo-brass-detent-focused-height` | `--skeuo-brass-detent-focused-lift` | `--skeuo-brass-detent-focused-border-width` | **不声明** ⇒ 承常态 |
 
-**落焦块内零颜色声明** ⇒ `AC-025-1` ②「非颜色」在 USS 文本层**可判真**(由 `test_ac025_1_focusedForm_carriesNoColorDeclaration` 钉住)。
+**落焦块内零颜色声明** ⇒ `SAC-025-1` ②「非颜色」在 USS 文本层**可判真**(由 `test_ac025_1_focusedForm_carriesNoColorDeclaration` 钉住)。
 
 ### ⚠️ 附带改动:`height` → `min-height`(须评审)
 
@@ -41,28 +41,28 @@
 
 | AC | 子条 | 测试 |
 |---|---|---|
-| **AC-025-1** | ① 按 count 生成 N 个形态子件 | `test_ac025_1_setDetents_createsOneFormPerDetent` |
+| **SAC-025-1** | ① 按 count 生成 N 个形态子件 | `test_ac025_1_setDetents_createsOneFormPerDetent` |
 | | (恰一档落焦 · 共存互斥) | `test_ac025_1_setDetents_exactlyOneDetentIsFocused` |
 | | ② 几何可分(非颜色) | `test_ac025_1_focusedForm_geometricallyDistinctFromNormalForm` |
 | | ② 反控:可分性不得由颜色承载 | `test_ac025_1_focusedForm_carriesNoColorDeclaration` |
 | | ③ `count ≤ 0` fail-loud | `test_ac025_1_setDetents_countNotPositive_throws` |
 | | ④ 越界 fail-loud(禁钳位) | `test_ac025_1_setDetents_focusedOrdinalOutOfRange_throwsNotClamps` |
 | | 几何值全走主题变量 | `test_ac025_1_detentGeometry_comesFromBrassLayerVariables` |
-| **AC-025-2** | 入参取代而非缓存 | `test_ac025_2_setDetents_doesNotCacheFocusedOrdinal` |
+| **SAC-025-2** | 入参取代而非缓存 | `test_ac025_2_setDetents_doesNotCacheFocusedOrdinal` |
 | | 同入参 ⇒ 同形态(幂等) | `test_ac025_2_setDetents_sameArgs_sameForm` |
 | | 结构判据:零可写剂量字段 | `test_ac025_2_element_exposesNoMutableDoseState` |
-| **AC-025-3** | ① 新类存在 + 黄铜层注释 | `test_ac025_3_uss_declaresDetentClassesInBrassLayer` |
+| **SAC-025-3** | ① 新类存在 + 黄铜层注释 | `test_ac025_3_uss_declaresDetentClassesInBrassLayer` |
 | | ② 零裸色值 / 零裸尺寸 | `test_ac025_3_detentBlocks_haveNoBareColorAndNoBareSize` |
 | | ③ 块内零数字文本 | `test_ac025_3_detentBlocks_haveNoNumericText` |
-| **AC-025-4** | ① 行序 = 档位序(第 k 行 ⇒ 第 k 档形态) | `test_ac025_4_eachRowCarriesItsOwnOrdinalForm` |
+| **SAC-025-4** | ① 行序 = 档位序(第 k 行 ⇒ 第 k 档形态) | `test_ac025_4_eachRowCarriesItsOwnOrdinalForm` |
 | | (形态子件不污染行集) | `test_ac025_4_rowsRemainTheOnlyIntUserDataCarriers` |
 | | ④ 提交链零改动(转发显式 ordinal) | `test_ac025_4_rowSubmitStillForwardsExplicitOrdinal` |
 | | ③ 幂等短路保留 | `test_ac025_4_detentCountUnchanged_idempotentShortCircuitHolds` |
 | | ③ 反向半边:档数变了必须真重建 | `test_ac025_4_detentCountChanged_rowsRebuiltWithNewForms` |
-| **AC-025-5** | ① 行内文本无十进制数字 | `test_ac025_5_dosePageText_carriesNoDecimalDigit` |
+| **SAC-025-5** | ① 行内文本无十进制数字 | `test_ac025_5_dosePageText_carriesNoDecimalDigit` |
 | | ② 元件零 string 读数 API | `test_ac025_5_element_exposesNoStringNumericReadout` |
 | | ③ 黄铜 USS 全域零 `N/M` | `test_ac025_5_wholeBrassUss_hasNoFractionReadout` |
-| **AC-025-6** | 形态载体归 brass 非 ink | `test_ac025_6_formCarrier_staysInBrassBranch_notInk` |
+| **SAC-025-6** | 形态载体归 brass 非 ink | `test_ac025_6_formCarrier_staysInBrassBranch_notInk` |
 | | 墨侧 USS 不得引形态族类 | `test_ac025_6_detentClasses_areNotInkSideVocabulary` |
 
 **过滤命令**:`unity test unity --mode EditMode --filter dentch_dose_form_test --output unity/Logs/s25-editmode-filtered.xml`
@@ -158,7 +158,7 @@ python3 -u /tmp/fz-s25.py            # 期望: RED-OK 15/15 · SHA-256 还原校
 unity test unity --mode EditMode --output unity/Logs/s25-full-editmode-2.xml
 unity test unity --mode PlayMode --output unity/Logs/s25-full-playmode-2.xml
 # ④ 42 侧三条机械门(本地预跑,零命中)
-#    AC-42-F3 词门 / C4 裸值门 / AC-023-2 零数字 USS 门
+#    AC-42-F3 词门 / C4 裸值门 / SAC-023-2 零数字 USS 门
 ```
 
 ### 边界裁定的落实(逐条)
@@ -174,7 +174,7 @@ unity test unity --mode PlayMode --output unity/Logs/s25-full-playmode-2.xml
 ### ⚠️ 一处需评审裁定的解释(未自行定论)
 
 story §Context 的 `Control Manifest Rules (this layer)` 写「绑定点**唯一** = `DentchDoseSelector.LoadInto(BrassScaleElement)`」。
-本件按 `AC-025-4`(逐字要求 `CasebookScreen.RefreshDentchDoses()` 每行携带该行自己的形态)在 `CasebookScreen` 内**新增了一个调用点**。
+本件按 `SAC-025-4`(逐字要求 `CasebookScreen.RefreshDentchDoses()` 每行携带该行自己的形态)在 `CasebookScreen` 内**新增了一个调用点**。
 **理由**:`DentchDoseSelector` 刻意零可变状态、不持有「当前档」,**无法**驱动逐行形态(它只知道总档数);逐行档序的真源是行自身的 `userData`。
 **读法**:该行描述的是**改动前**的既有状态(当时唯一绑定点);`LoadInto` 仍是**唯一的 selector→element 绑定点**(本件未新增第二条 selector 绑定)。`CasebookScreen` 走的是「行 → 形态」的另一条轴。
 **留待评审/用户裁定**是否需就地改注该行。
@@ -183,7 +183,7 @@ story §Context 的 `Control Manifest Rules (this layer)` 写「绑定点**唯�
 
 ## 八、判据结论
 
-- `AC-025-1…6` **全部落地**,23 测全绿,逐条有反证(15/15 RED-OK)。
+- `SAC-025-1…6` **全部落地**,23 测全绿,逐条有反证(15/15 RED-OK)。
 - 两棵树全量**新增测上零回归**(等式 `+23 = +23` / `+0 = +0`)。
 - 首轮回归抓到的 1 条本件引入红(`strip`/`rip` 撞词表)已修并复验。
 - 2 条 NOT-RUN 如实登记,未借绿。
@@ -202,8 +202,8 @@ story §Context 的 `Control Manifest Rules (this layer)` 写「绑定点**唯�
 
 | 上文位置 | 原写 | 现为 |
 |---|---|---|
-| §二 映射表 `AC-025-5` ③ 行 | `test_ac025_5_wholeBrassUss_hasNoFractionReadout` | **`test_ac025_5_wholeBrassUss_hasNoNumericContent`**(R-10:主断言对齐 AC 的 `content:` 数字面;`N/M` 面降为**附加面**) |
-| §二 映射表 `AC-025-6` 两行 | 断「黄铜分支」 | ⚠️ **仅类名级代理** —— AC 原文要求的**三枚举分类器全库不存在**(R-1)。`AC-025-6` **已撤勾**,缺口转 `TD-prescription-07` |
+| §二 映射表 `SAC-025-5` ③ 行 | `test_ac025_5_wholeBrassUss_hasNoFractionReadout` | **`test_ac025_5_wholeBrassUss_hasNoNumericContent`**(R-10:主断言对齐 AC 的 `content:` 数字面;`N/M` 面降为**附加面**) |
+| §二 映射表 `SAC-025-6` 两行 | 断「黄铜分支」 | ⚠️ **仅类名级代理** —— AC 原文要求的**三枚举分类器全库不存在**(R-1)。`SAC-025-6` **已撤勾**,缺口转 `TD-prescription-07` |
 | §三 证伪轮 | `RED-OK 15/15` · 脚本 `/tmp/fz-s25.py` · 3 个受保护文件 | **`RED-OK 17/17`** · 脚本 **`/tmp/fz-s25-r1.py`** · **4 个**受保护文件(新增 `SkeuoThemeVariables.uss`) |
 | §七 命令 ② | `python3 -u /tmp/fz-s25.py` | `python3 -u /tmp/fz-s25-r1.py`(期望 `RED-OK 17/17`) |
 
@@ -249,7 +249,7 @@ story §Context 的 `Control Manifest Rules (this layer)` 写「绑定点**唯�
      没有哪一行的铜块明显更大/更高/更宽;唯一差异是第 1 行叠了焦点高亮」;
   ② 本地逐像素扫描(PIL,numpy):行 2–5 铜条带(y 146/168/191/213)像素剖面**完全相同**;
      `#8C5A2B` 棕色掩码全行连续、无任何分段。
-- **通过的一半**:全画面零数字 / 零分数 / 零百分比(行内文本已随 `AC-025-4` 改造消失 ⇒
+- **通过的一半**:全画面零数字 / 零分数 / 零百分比(行内文本已随 `SAC-025-4` 改造消失 ⇒
   同时证明截图出自**本件后的新构建**)。
 - **根因(机械定位)**:`.brass-detent` 的底色 `--skeuo-brass-scale-color` `#8C5A2B` =
   描边 `--skeuo-brass-border` `#8C5A2B` = 所在板 `.brass-scale` 底色(**同 scale-color**)——
@@ -283,7 +283,7 @@ story §Context 的 `Control Manifest Rules (this layer)` 写「绑定点**唯�
   | 4 | 30–31 | 第 4 档 |
   | 5 | 34–35 | 第 5 档 |
 
-  步进 4px = 一个档块节距 ⇒ **「行序 = 档位序」(`AC-025-4`)首次在渲染层可见**。
+  步进 4px = 一个档块节距 ⇒ **「行序 = 档位序」(`SAC-025-4`)首次在渲染层可见**。
   旧图同扫描 = **零金色簇**(因果闭环:修复前后唯一变量是那行 USS)。
 - **Vision 交叉确认**(独立通道):5 行 / 「各行凸起位置不相同」/「没有数字、分数、百分比」/
   焦点高亮在第 1 行。

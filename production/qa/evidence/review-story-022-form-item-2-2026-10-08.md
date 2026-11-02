@@ -15,7 +15,7 @@
 | L1 | BLOCKING | story-022:95-97 | DoD 点名评审原件 `review-story-022-…-2026-10-08.md` 但文件不存在(流程性:原件本就待评审后落盘 —— **即本文件**) |
 | L2 | ADVISORY | story-022:52 | 「L(干) 实测 0.0093」与公式复算不符,真值 **0.0087** |
 | L3 | ADVISORY | test:117-120 | 公式锚定只白/黑,对齐 focus 测试先例缺 128 灰;`HueDegrees` 零锚(恒 0 ⇒ ΔH 恒过) |
-| L4 | ADVISORY | test:210 | `GreaterOrEqual` 允许相等:两图退化同覆盖率方向锁假绿,与 AC-022-1 严格 Less 口径不一 |
+| L4 | ADVISORY | test:210 | `GreaterOrEqual` 允许相等:两图退化同覆盖率方向锁假绿,与 SAC-022-1 严格 Less 口径不一 |
 
 **核过零问题维度**: USS/ADR-013/C2 · 越界检查(零施加点/未注册/零新贴图/洇开零代码) · 冻结记录/C8 双侧同步 · helper 公式独立复算(含 `%6` 左结合、负值回绕、环回) · 文档对账(233=230+3)。
 
@@ -44,14 +44,14 @@
 | L1 | 本原件落盘 | `production/qa/evidence/review-story-022-form-item-2-2026-10-08.md` |
 | L2+Q10 | `0.0093`→`0.0087`;边界裁定 4 收窄为「干态不锚 hex 提案 / 湿态锚 §4.1 权威」 | story-022:52 · :39-40 段 |
 | L3+Q6 | 公式锚定扩为 **白/黑/128灰 + 纯通道三锚(0.2126/0.7152/0.0722) + 色相两锚(红 0°/绿 120°)** | test `test_ac022_1` Assert ① |
-| L4+Q8 | `GreaterOrEqual` → **`Greater`**(严格大);story 步③「≥」→「>」×2 | test AC-022-3 · story:72-74 |
+| L4+Q8 | `GreaterOrEqual` → **`Greater`**(严格大);story 步③「≥」→「>」×2 | test SAC-022-3 · story:72-74 |
 | Q1 | `ExtractThemeColor` **先剥块/行注释 + `Assert.AreEqual(1, Matches.Count)` 钉唯一活声明** | test helper |
 | Q2 | `.meta` 存在 **+ 正则比对 `^guid: <常量>$`** | test Assert ④ |
 | Q3 | 围栏正则照 C8 同款(```freeze-v1\r?\n…\n```)+ 行匹配 `\s*\|\s*` 容忍行内空格(不比 C8 脆) | test Assert ⑤ |
 | Q4 | guid 断言收为 `background-image:\s*url\(\s*"guid:…"\s*\)` 全形 | test Assert ① |
 | Q5 | `color:` **恰 1 处 + 该处即对应 var**(后置覆盖即红) | test Assert ② |
 | Q7 | 12° 注释补「近灰 LSB ≈12°/LSB 灵敏度;假红先 ΔH 分解,勿直接放宽」 | test `HueDriftMaxDegrees` 文档注 |
-| Q9 | `Coverage` 开头 **fail-loud 全图 a==255**(RGBA 改判须先重裁口径) | test AC-022-3 |
+| Q9 | `Coverage` 开头 **fail-loud 全图 a==255**(RGBA 改判须先重裁口径) | test SAC-022-3 |
 | Q11 | 新增 Assert ⑥:`SkeuoComponentRegistry.cs` 源零 `"ink-wet"/"ink-dry"` 注册 | test Assert ⑥ |
 
 ## 三、验证命令(可证伪)

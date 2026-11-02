@@ -4,7 +4,7 @@
 //   ① T2.2 Screen 实例化 —— 七具名屏逐个可实例化;未知名 fail-loud(具名异常,
 //      不 fallback);实例化产物挂到 driver 的 panel 上(不在虚空中建树)
 //   ② T2.1 DTO 绑定 —— 合成 fixture(零真实 sim)注入后,脉案页**出现读数格**、
-//      词与极性来自 fixture、形态类按 story-024 AC-024-2 阳性 / 阴性分化
+//      词与极性来自 fixture、形态类按 story-024 SAC-024-2 阳性 / 阴性分化
 //   ③ 空行铁律 —— 零词条 ⇒ 读数格**零个**(未查 = 空行,`:329` 非 badge);
 //      42 零占位文字 / 零灰字 / 零「未查」标签(AC-8-23 / AC-8-43)
 //   ④ BuildUI 未变形 —— story-011 双真源:既有 `casebook_render_test` 六条 +
@@ -181,7 +181,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             var faceReading = face.Q<VisualElement>("reading-channel-complexion");
             Assert.IsNotNull(faceReading, "面色行应出现读数格(T2.1 判据本体)");
             Assert.IsTrue(faceReading.ClassListContains("channel-reading"),
-                "阳性词条走 `.channel-reading`(ink-fg 墨字,AC-024-2)");
+                "阳性词条走 `.channel-reading`(ink-fg 墨字,SAC-024-2)");
             Assert.AreEqual("面色词", faceReading.Q<Label>()?.text,
                 "读数文本来自绑定的 fixture 词条(42 零自定义映射)");
 
@@ -351,7 +351,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // 形状纪律(AC-024-2 两类全 var · 本测试只钉 42 侧挂类正确)
+        // 形状纪律(SAC-024-2 两类全 var · 本测试只钉 42 侧挂类正确)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
@@ -362,7 +362,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             body = Regex.Replace(body, @"//[^\r\n]*", "");
 
             Assert.IsTrue(Regex.IsMatch(body, @"\.channel-reading\s*\{"),
-                "`.channel-reading` 须在 USS 声明(story-024 AC-024-2 已落)");
+                "`.channel-reading` 须在 USS 声明(story-024 SAC-024-2 已落)");
             Assert.IsTrue(Regex.IsMatch(body, @"\.channel-reading-negative\s*\{"),
                 "`.channel-reading-negative` 须在 USS 声明");
         }

@@ -166,7 +166,7 @@ if (presetCamera != null) { /* 摘 listener */ presetCamera.SetActive(false); }
 
 - **本件不改任何 AC 的判定状态**,不新增 `[L]` 通过。
 - `TD-listen-01` 的 **L-1…L-5 一个都没动**;四份听测协议仍全部 NOT-RUN。
-- `AC-019-6`(10-c)已按用户裁定移出 story-019 ⇒ 转 `TD-listen-01`,**仍 NOT-RUN**。
+- `SAC-019-6`(10-c)已按用户裁定移出 story-019 ⇒ 转 `TD-listen-01`,**仍 NOT-RUN**。
 - 测试侧的 `GameObject.Find("Main Camera")` 死代码(`camera_follow_wiring_test` 拆卸)
   **未改** —— 生产侧已改为不依赖它,但该测试的「恢复预摆相机」意图**仍然无效**。
   归测试基建清理轮,本件不动(改它需要重跑全量 PlayMode 确认无连带)。

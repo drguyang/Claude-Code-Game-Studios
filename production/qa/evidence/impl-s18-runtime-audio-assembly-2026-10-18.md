@@ -1,7 +1,7 @@
 # story-018 音频运行期装配 —— 实现证据原件
 
 > **对象**:`production/epics/audio-system/story-018-runtime-audio-assembly.md`
-> **AC**:`AC-018-1` … `AC-018-7`(7 条)
+> **AC**:`SAC-018-1` … `SAC-018-7`(7 条)
 > **日期**:2026-10-18
 > **来源判定**:`docs/tech-debt-register.md` 2026-10-17 段 —— **`TD-audio-023`**(音频链零运行期装配
 > 6 处 A-1…A-6)· **`TD-audio-024`**(处方音效白名单验证);勘察件
@@ -60,13 +60,13 @@
 
 | AC | EditMode 载体(`runtime_assembly_test.cs`) | PlayMode 载体(`audio_wiring_test.cs`) |
 |---|---|---|
-| **AC-018-1** 真渲染目标 | `playOneShot_spawnsActiveSourceInPool` · `playOneShot_clipMiss_doesNotSpawn_andIsObservable` · `startLoop_stopLoop_poolLifecycleFollowsHandles` · `stopLoop_staleHandle_isNoOp`(4) | — |
-| **AC-018-2** 总线路由 | `spawnWithBus_assignsMixerGroupFromRegistry` · `spawnWithBus_withoutResolver_throws` · `unknownBus_isRejectedByResolver` · `busName_sourceIsEventTableColumn_notCodeCopy`(4) | `clipsPreloaded_noMissingCues` |
-| **AC-018-3** 组合根装配 | `assemble_withoutSeams_nullRenderTargetChain_butObservable` · `assemble_withSeams_rendersAndExposesDriver` · `assemble_secondCall_producesIndependentPool`(3) | `bootAssemblesRenderChain_andSinglePoolRoot` |
-| **AC-018-4** 单池不变量 | `assemble_createsExactlyOnePoolRoot` · `spatializationDirector_sharedPool_keepsSingleRoot`(2) | — |
-| **AC-018-5** 启动序 + 总线音量 | `mixerUnresolved_failsLoudWithReadableDiagnostics` · `noProvider_returnsNullSeam_notThrow` · `realMixer_assignsResolverAndAppliesFactoryDefaults`(3) | `mixerResolved_andMasterVolumeIsFactoryDefault` |
-| **AC-018-6** cue 源接线 | `emitBridge_hasProductionCaller_andFiresOnSchedule` · `emitInterval_isRespected_betweenFires` · `courseGate_excludesNotYetRegisteredPatient` · `nullCoughOrdinal_breathStillStarts_emitStaysZero` · `pruneAbsent_endsBreathLoopAndClearsBookkeeping` · `stopAll_endsEveryLoop` · `driver_ctor_rejectsBrokenIntervals` · `driver_rejectsNegativeTick`(8) | `patientCueDriver_runsOnRealTickPump` · `cueReachesRenderTarget_poolBecomesActive` |
-| **AC-018-7** 处方音效白名单 | `prescriptionCues_categoryInWhitelist_andNoStateAnnouncement` · `wholeTable_noForbiddenTriggerSource` · `prescriptionCues_areNotLoops`(3) | — |
+| **SAC-018-1** 真渲染目标 | `playOneShot_spawnsActiveSourceInPool` · `playOneShot_clipMiss_doesNotSpawn_andIsObservable` · `startLoop_stopLoop_poolLifecycleFollowsHandles` · `stopLoop_staleHandle_isNoOp`(4) | — |
+| **SAC-018-2** 总线路由 | `spawnWithBus_assignsMixerGroupFromRegistry` · `spawnWithBus_withoutResolver_throws` · `unknownBus_isRejectedByResolver` · `busName_sourceIsEventTableColumn_notCodeCopy`(4) | `clipsPreloaded_noMissingCues` |
+| **SAC-018-3** 组合根装配 | `assemble_withoutSeams_nullRenderTargetChain_butObservable` · `assemble_withSeams_rendersAndExposesDriver` · `assemble_secondCall_producesIndependentPool`(3) | `bootAssemblesRenderChain_andSinglePoolRoot` |
+| **SAC-018-4** 单池不变量 | `assemble_createsExactlyOnePoolRoot` · `spatializationDirector_sharedPool_keepsSingleRoot`(2) | — |
+| **SAC-018-5** 启动序 + 总线音量 | `mixerUnresolved_failsLoudWithReadableDiagnostics` · `noProvider_returnsNullSeam_notThrow` · `realMixer_assignsResolverAndAppliesFactoryDefaults`(3) | `mixerResolved_andMasterVolumeIsFactoryDefault` |
+| **SAC-018-6** cue 源接线 | `emitBridge_hasProductionCaller_andFiresOnSchedule` · `emitInterval_isRespected_betweenFires` · `courseGate_excludesNotYetRegisteredPatient` · `nullCoughOrdinal_breathStillStarts_emitStaysZero` · `pruneAbsent_endsBreathLoopAndClearsBookkeeping` · `stopAll_endsEveryLoop` · `driver_ctor_rejectsBrokenIntervals` · `driver_rejectsNegativeTick`(8) | `patientCueDriver_runsOnRealTickPump` · `cueReachesRenderTarget_poolBecomesActive` |
+| **SAC-018-7** 处方音效白名单 | `prescriptionCues_categoryInWhitelist_andNoStateAnnouncement` · `wholeTable_noForbiddenTriggerSource` · `prescriptionCues_areNotLoops`(3) | — |
 
 **实机半边实测取证(PlayMode 日志)**
 
@@ -230,7 +230,7 @@ renderTarget is AudioSourceRenderTarget,   // 不再重算 audio != null && audi
 - **EditMode 测试侧泄漏** —— `CompositionRootServices` **无 `IDisposable`**、既有 Boot 测试
   **无 TearDown**(`grep` 30 处 `Assemble()` 调用),每次装配遗留一个池根节点。
 
-**是否该改**:「无音频也建池」在 **AC-018-4 单池不变量**下是**可辩护的**(池是 `AudioSourcePool`
+**是否该改**:「无音频也建池」在 **SAC-018-4 单池不变量**下是**可辩护的**(池是 `AudioSourcePool`
 唯一所有者的承载物,ADR-028 ①,且 `AudioRenderAssembled` 才是「装了没装」的判据);
 但**泄漏**是实打实的。**是否改为惰性构造须用户裁**。已登记为 **`TD-audio-026`**。
 
@@ -262,7 +262,7 @@ renderTarget is AudioSourceRenderTarget,   // 不再重算 audio != null && audi
 | 判据 | 结果 |
 |---|---|
 | 缺口 A-1…A-7 逐条有生产落点 | ✅ §一 |
-| AC-018-1…7 各有自动化载体 | ✅ §二(32 测) |
+| SAC-018-1…7 各有自动化载体 | ✅ §二(32 测) |
 | **证伪轮 14/14 转红**(S12-4 BLOCKING 门) | ✅ `FALSIFY_EXIT=0` |
 | EditMode 回归等式成立 | ✅ `+27 = +27`,复跑零红 |
 | PlayMode 回归等式成立 | ✅ `+5 = +5`,零红 |
@@ -297,7 +297,7 @@ unity test unity --mode PlayMode  --output unity/Logs/s18-full-playmode.xml
 |---|---|---|
 | **至少一条 cue 实机可闻**(story-018 听测 AC) | **✅ `Voice_Cough_Damp` 可闻,走 `Voice` 总线**(记录四值齐) | 与 §二 自动化半边同向(自动化证「走到引擎对象」,本批证「耳朵听见」) |
 | **A-6 总线路由在人耳层面生效** | **✅ 拉/推 `Voice` 滑块,音量随之变化** | 这是 §二 明写「证不了」的那一层 —— 本批补上;若滑块无变化即落 §五 失败分支(未触发) |
-| **零状态播报音**(`AC-11-21` + `AC-44-09` 听测半边,联合) | **✅** | ⚠️ 覆盖面须钉:**当前事件表无给药 cue 条目**,实听对象 = `Page_Turn` / `Cabinet_Prop`;判据成立靠**全表构建期白名单门**(`AC-018-7`,覆盖面不依赖逐条实听)+ **11 侧零独立 `AudioCue`**。详听测件 §〇「实听覆盖面」。⚠️ **`AC-44-09` 的 ✅ 归属 = 「10-17 E5 走查 + 本批」合取,本行不主张独力结清** —— 详见本节下 **§九附**(该附节为本行的归属收窄说明,须与本行同读) |
+| **零状态播报音**(`AC-11-21` + `AC-44-09` 听测半边,联合) | **✅** | ⚠️ 覆盖面须钉:**当前事件表无给药 cue 条目**,实听对象 = `Page_Turn` / `Cabinet_Prop`;判据成立靠**全表构建期白名单门**(`SAC-018-7`,覆盖面不依赖逐条实听)+ **11 侧零独立 `AudioCue`**。详听测件 §〇「实听覆盖面」。⚠️ **`AC-44-09` 的 ✅ 归属 = 「10-17 E5 走查 + 本批」合取,本行不主张独力结清** —— 详见本节下 **§九附**(该附节为本行的归属收窄说明,须与本行同读) |
 | **呼吸层** | **⚠️ 可闻 ⇒ 听测件 §四 的预判被推翻** | 口径错因:拿 PlayMode **合成场景** `存活呼吸层=0`(合成病人只注册一次性 cue)外推真实会话。与 `TrendWired=false` 不矛盾,`TD-audio-025` 处置不变 |
 | 无爆音 / 意外噪声 | **未判**(用户未给单项结论) | 不在 story-018 听测 AC 判据文本内 ⇒ 登记未判,**不勾不借** |
 
@@ -306,7 +306,7 @@ unity test unity --mode PlayMode  --output unity/Logs/s18-full-playmode.xml
 | 结案 | 不结案(本批未动) |
 |---|---|
 | `TD-audio-023`(音频链零运行期装配)⇒ **✅ 结案**(代码侧 10-18 + 听测侧 10-18 双半齐) | `TD-audio-025`(`ComputeTrend` 占位)⇒ **仍 open** |
-| `TD-audio-024`(处方音效白名单验证)⇒ **✅ 结案**(`AC-018-7` 三断言 + 实听零播报) | `TD-audio-026`(EditMode 池泄漏)⇒ **仍待用户裁** · **`TD-audio-027`(AC② 门盲区,本件 §十 新立)⇒ 本批不结案** |
+| `TD-audio-024`(处方音效白名单验证)⇒ **✅ 结案**(`SAC-018-7` 三断言 + 实听零播报) | `TD-audio-026`(EditMode 池泄漏)⇒ **仍待用户裁** · **`TD-audio-027`(AC② 门盲区,本件 §十 新立)⇒ 本批不结案** |
 | `TD-prescription-04`(音频链未通 ⇒ `AC-11-21` 不可判)⇒ **✅ 结案** | `TD-audio-100…109`(44 epic 其余 9 组 `[A]` 顶 `[L]` + `AC-44-10` 未映射)⇒ **全部仍 open** |
 | `AC-11-21` ⇒ **⚫ → ✅** | **44 epic 不得收口**(DoD「36 条 AC 全部验证」残余面未清) |
 | story-018 ⇒ **`Complete`** · S14-10 ⇒ **`done`** | `TD-player-01`(间歇红根因)⇒ **仍归系统 1 实现轮** |
@@ -324,7 +324,7 @@ unity test unity --mode PlayMode  --output unity/Logs/s18-full-playmode.xml
 **「游戏内真实场景」这一形态的听测**(证的是**装配后**链路上的播报行为 ——
 E5 走查经 probe 逐条真播,当时**运行期装配还不存在**)。⇒ `AC-44-09` 的 ✅ =
 **E5(全表逐条 probe 真播,签核载体待对账)+ 本批(游戏内场景)** 两段证据的合取,
-本批**不主张独力结清**;`TD-audio-024` 的结案同理(其白名单验证 = `AC-018-7` 门 + 本批游戏内实听,
+本批**不主张独力结清**;`TD-audio-024` 的结案同理(其白名单验证 = `SAC-018-7` 门 + 本批游戏内实听,
 E5 走查在前)。
 另:工作树存在两份**逐字节相同**的 10-18 副本(`statereport-walkthrough-2026-10-18.md` + manifest,
 时间戳晚于 10-17 原件),内容与已声明签字的 10-17 版无差 ⇒ 本批未采用、未改动,处置归用户。
@@ -401,7 +401,7 @@ E5 走查在前)。
 
 ### ② 一条 BLOCKING(B-1,账面)及其修复
 
-**AC-018-6 的 Out-of-Scope 提示逐字要求「在 `## Test Evidence` 如实登记哪条链仍无上游驱动」,
+**SAC-018-6 的 Out-of-Scope 提示逐字要求「在 `## Test Evidence` 如实登记哪条链仍无上游驱动」,
 而实现轮从未落该登记。** 实测(三位 + 编排方独立对码,复核属实):
 
 | 点名的类 | 生产侧现状 |
@@ -421,7 +421,7 @@ E5 走查在前)。
   `AudioSourcePool.ApplyBus` 删 `outputAudioMixerGroup` 赋值 ⇒ `ac018_2_spawnWithBus_…`)。
   该例**本件 §三 `:93` 一直有**(当时实跑转红)⇒ 属**卡面誊写漏行**,非证据缺失;
   补行后表体 14 行与表头对齐。
-- **AC-018-2 ③ 订正注**:卡面 `:69` 写「旧签名保留并默认 `"SFX"`」,实作转调
+- **SAC-018-2 ③ 订正注**:卡面 `:69` 写「旧签名保留并默认 `"SFX"`」,实作转调
   `bus: null`(`AudioSourcePool.cs:99-100`;null = 不挂组落 Master 直通,`<remarks>` 有逐字声明)。
   向后兼容目的达成,属**卡面口径差**;该 null 默认行为**零测覆盖**,记 S4。
 

@@ -1559,7 +1559,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             var audioPool = new AudioSourcePool(busResolver: audio?.Buses);
 
             // ── 空间化链接线(S15-4 · TD-audio-028 · 用户裁定四项)──────────────
-            // 导演**共享**上面那个池(AC-018-4 单池不变量 / ADR-028 ① —— **禁**走自建池重载)。
+            // 导演**共享**上面那个池(SAC-018-4 单池不变量 / ADR-028 ① —— **禁**走自建池重载)。
             // ⚠️ 格边长 = `AudioAssemblySeams.LatticeSize`(**唯一入参**,归系统 6)。
             //    🔁 2026-10-29(`TD-audio-035` ① 换源):生产路径上缝里的值来自
             //    `MinimalWorldFactory.Create(…, out latticeSizeMm)` 的几何产物(`BootRoot` 赋值),
@@ -1623,7 +1623,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 audioTierDriver.BindMixer(PlayerBusVolumeInitializer.MixerResolver != null);
             }
 
-            // ── 病人 cue 驱动(story-018 · AC-018-6 / A-3 的调用方)──────────────
+            // ── 病人 cue 驱动(story-018 · SAC-018-6 / A-3 的调用方)──────────────
             // 13 的 `PatientCueSchedule.Decide` 与 `PatientCueEmit.Emit` 此前**双双零调用方**
             // (A-3)—— 本驱动即那个调用方:每 tick 边沿对每个在场病人跑一次调度,按结果
             // 起停呼吸层循环 / 发射一次性 cue。
@@ -1631,7 +1631,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    后者今日恰好是 0,是**巧合不是契约**)。
             // ⚠️ 缝未接(62 处既有 EditMode 调用)⇒ 两个 ordinal 均为 null ⇒ 驱动仍装配
             //    (调度逻辑可测),但不发任何声音 —— 与 AudioRenderAssembled 同一诚实口径。
-            // ── `knowsClinic` 注入缝的真值接线(story-021 · AC-021-1 · TD-audio-033 ①)──
+            // ── `knowsClinic` 注入缝的真值接线(story-021 · SAC-021-1 · TD-audio-033 ①)──
             // F-13.2:`KnowsClinic(p) := ClinicKnownByRegion(HomeRegion(spawn_anchor(p)))`。
             // 三件事实全部来自三源(ADR-016 §一):生态区 = 6 的烘焙定义;医馆 POI = 6 的定义侧;
             // 玩家建造 = 23 的世界流 `StructurePlaced`。**装配层不发明其中任何一项**。

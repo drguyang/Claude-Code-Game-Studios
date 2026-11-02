@@ -300,7 +300,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac021_2_ruled_and_empty_row_gridline_equal_weight_in_uss()
         {
-            // ══ M2 形态件①(story-021 · AC-021-1/2):线格 + 空行等重声明层 ═══
+            // ══ M2 形态件①(story-021 · SAC-021-1/2):线格 + 空行等重声明层 ═══
             // B2 转正:story-011 登记的「格线存在性零覆盖 = 借绿」在此补正向断言
             //          (casebook_rendering_test 侧 B2 Inconclusive 兜底改指针注)。
 
@@ -321,8 +321,8 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             //    本门的判据不变:两态仍须在**同一个**块里、仍走 var、仍锚 44px、
             //    且两选择器全文仍各恰出现一次(下面那条 R2 的检查)。放宽的只是「块里有几个类」。
             Assert.IsTrue(block.Success,
-                "缺 `.ruled, .empty-row` 共同声明块 —— 脉案线格/空行格线不存在(AC-021-1)," +
-                "或两态被拆成两块(视觉等重的声明层失守,AC-021-2)。");
+                "缺 `.ruled, .empty-row` 共同声明块 —— 脉案线格/空行格线不存在(SAC-021-1)," +
+                "或两态被拆成两块(视觉等重的声明层失守,SAC-021-2)。");
             string css = block.Value;
 
             // Assert:① 格线走 var(C4);② 色/宽变量真被引用;③ 等重下限;④ 禁硬编码线宽
@@ -333,7 +333,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsTrue(Regex.IsMatch(css, @"border-bottom-color:\s*var\(--skeuo-paper-rule\)"),
                 "线格色须走 var(--skeuo-paper-rule)(C2 门 + 数值轮可调 —— 提案值不得内联)。");
             Assert.IsTrue(Regex.IsMatch(css, @"min-height:\s*var\(--skeuo-shared-row-height\)"),
-                "空行/有字行须同 min-height 下限(= 44 焦点落点高,AC-021-2 视觉等重声明层)。");
+                "空行/有字行须同 min-height 下限(= 44 焦点落点高,SAC-021-2 视觉等重声明层)。");
             Assert.IsFalse(Regex.IsMatch(css, @"border-bottom-width:\s*\d+px"),
                 "线宽硬编码字面量 = C4 违例(须走主题变量)。");
             foreach (string cls in new[] { "ruled", "empty-row" })
@@ -349,7 +349,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             //    ⚠️ 44 是无障碍承诺值(非数值轮提案)⇒ 可锚;格线**色**是提案值 ⇒ 不锚(归数值轮)。
             string themeText = File.ReadAllText(Path.Combine(SkeuoDir, "SkeuoThemeVariables.uss"));
             Assert.IsTrue(Regex.IsMatch(themeText, @"--skeuo-shared-row-height:\s*44px\b"),
-                "--skeuo-shared-row-height 须 = 44px(AB-3 焦点落点 ≥44×44 的高半,AC-021-2 主张)。");
+                "--skeuo-shared-row-height 须 = 44px(AB-3 焦点落点 ≥44×44 的高半,SAC-021-2 主张)。");
 
             // ⑦ empty-row 挂载侧(评审 R3):与 test_ac021_1 对称 ——
             //    声明在而无人挂类 = 格线永不渲染;两载体(空行元素/存档空槽)都须真挂
@@ -364,14 +364,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 string cs = Regex.Replace(File.ReadAllText(csPath), @"/\*.*?\*/", "", RegexOptions.Singleline);
                 cs = Regex.Replace(cs, @"//[^\r\n]*", "");
                 Assert.IsTrue(Regex.IsMatch(cs, @"AddToClassList\([^)]*""empty-row"""),
-                    $"{rel} 须 AddToClassList 挂 \"empty-row\" —— 否则该载体格线/等重不渲染(AC-021-2)。");
+                    $"{rel} 须 AddToClassList 挂 \"empty-row\" —— 否则该载体格线/等重不渲染(SAC-021-2)。");
             }
         }
 
         [Test]
         public void test_ac021_1_casebook_rows_mount_ruled_class()
         {
-            // ══ M2 形态件①(story-021 · AC-021-1):脉案行真挂线格类 ═══
+            // ══ M2 形态件①(story-021 · SAC-021-1):脉案行真挂线格类 ═══
             // USS 声明存在但无人挂类 = 格线永不渲染(声明与施加脱节的假绿面)。
 
             // Arrange
@@ -393,7 +393,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsTrue(
                 Regex.IsMatch(method.Value, @"AddToClassList\(\s*""ruled""\s*\)"),
                 "CasebookScreen.AddChannel 须在行上 AddToClassList(\"ruled\") —— " +
-                "否则脉案线格不渲染(AC-021-1);挂在方法体外不算(评审修复 代码面#3)。");
+                "否则脉案线格不渲染(SAC-021-1);挂在方法体外不算(评审修复 代码面#3)。");
         }
 
         [Test]

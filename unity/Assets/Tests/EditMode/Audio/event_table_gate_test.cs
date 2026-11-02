@@ -1183,7 +1183,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         // ══════════════ 夹具 / 种子读取与手写 JSON 抽取 ══════════════
 
         /// <summary>读负向 / 正例夹具(tests/unit/audio_system/fixtures/;前置 File.Exists,缺失即红)。</summary>
-        // ══════════════ story-019 · AC-019-1(过渡无一次性 cue 门)/ AC-019-2(零新 trigger_source)══════════════
+        // ══════════════ story-019 · SAC-019-1(过渡无一次性 cue 门)/ SAC-019-2(零新 trigger_source)══════════════
         // 权威:production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md(面 10-a)
         //   GDD design/gdd/audio-system.md:408-411(Output Range:呼吸层**连续**变化,无突变音效)
         //   ADR-018 §六(无提示音铁律:终局**不被播报**,只**消失**)
@@ -1192,7 +1192,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         //   走总门时注入行会连带触发其他规则(规则 2 合法集、规则 7 必需集……),
         //   「错了几条」的断言就分不清红是谁的。
 
-        /// <summary>AC-019-1 证伪:注入一条假「转危叮」一次性 cue ⇒ 门红,且报文**点名该 cue**
+        /// <summary>SAC-019-1 证伪:注入一条假「转危叮」一次性 cue ⇒ 门红,且报文**点名该 cue**
         /// (story 逐字判据:注入一条假「转危叮」cue ⇒ 构建期红,且报文点名该 cue)。</summary>
         [Test]
         public void test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue()
@@ -1221,7 +1221,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(errors[0], Does.Contain("AC-44-10"), string.Join("\n", errors));
         }
 
-        /// <summary>AC-019-1 第二臂:非循环行以**阈值类时机**申报(名字干净)⇒ 同样红
+        /// <summary>SAC-019-1 第二臂:非循环行以**阈值类时机**申报(名字干净)⇒ 同样红
         /// (「申报非检测」—— 换个名绕不过门)。</summary>
         [Test]
         public void test_ac0191_oneShotWithThresholdTrigger_reportsRed()
@@ -1245,7 +1245,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             }
         }
 
-        /// <summary>AC-019-1 边界:过渡语义名落在**循环**行 ⇒ 放行(呼吸层新档位只许做成 loop ——
+        /// <summary>SAC-019-1 边界:过渡语义名落在**循环**行 ⇒ 放行(呼吸层新档位只许做成 loop ——
         /// 门拒的是「做成一次性」,不是「叫这个名字」)。</summary>
         [Test]
         public void test_ac0191_transitionNameOnLoopRow_accepted()
@@ -1273,7 +1273,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(errors, Is.Empty, string.Join("\n", errors));
         }
 
-        /// <summary>AC-019-1 守卫:rows 缺失 ⇒ NOT-RUN(不静默放行)。</summary>
+        /// <summary>SAC-019-1 守卫:rows 缺失 ⇒ NOT-RUN(不静默放行)。</summary>
         [Test]
         public void test_ac0191_rowsMissing_reportsNotRunGuard()
         {
@@ -1283,7 +1283,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(errors[0], Does.Contain("NOT-RUN"), string.Join("\n", errors));
         }
 
-        /// <summary>AC-019-1 真种子正向:真表在过渡门上零错误(判别力由上面三条负向 / 边界夹具证明)。</summary>
+        /// <summary>SAC-019-1 真种子正向:真表在过渡门上零错误(判别力由上面三条负向 / 边界夹具证明)。</summary>
         [Test]
         public void test_ac0191_realSeed_zeroTransitionErrors()
         {
@@ -1299,7 +1299,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "assets/data/audio_events.json 在 AC-44-10 门上必须全绿:\n" + string.Join("\n", errors));
         }
 
-        /// <summary>AC-019-2:呼吸行(呼吸基础层 / 附加层 / 世界语境呼吸)的 <c>trigger_source</c>
+        /// <summary>SAC-019-2:呼吸行(呼吸基础层 / 附加层 / 世界语境呼吸)的 <c>trigger_source</c>
         /// **全部**为既有值 <c>ContinuousPhysiology</c> —— 过渡无一次性 cue ⇒ 零新增触发源。
         /// <para>⚠️ 与上一条互补:上一条验「没有违规」,本条验「**为什么**没有」—— 呼吸行仍在
         /// 连续生理源上,而非被改挂到某个新源头。</para></summary>
@@ -1333,7 +1333,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             return false;
         }
 
-        /// <summary>AC-019-1 第三臂(缺 <c>loop</c> 字段):<c>loop</c> 缺省 = 一次性 ⇒ 一条「转危叮」行
+        /// <summary>SAC-019-1 第三臂(缺 <c>loop</c> 字段):<c>loop</c> 缺省 = 一次性 ⇒ 一条「转危叮」行
         /// **只改 cue 名**就足以被拒 —— 这是 story 逐字场景(注入一条假「转危叮」cue)的最小字面形态。</summary>
         [Test]
         public void test_ac0191_transitionNameWithLoopFieldAbsent_reportsRed()

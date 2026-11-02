@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md
-//   (AC-018-3 / AC-018-4 / AC-018-5 / AC-018-6 的**实机半边**)
+//   (SAC-018-3 / SAC-018-4 / SAC-018-5 / SAC-018-6 的**实机半边**)
 // ADR-018 §一(44 只触发 / 只渲染)· §三(七总线)· ADR-028 ①(池唯一所有者 = 44)
 // ADR-014 §五(首次 Step 前预载)· ADR-023 §①(Boot 常驻场景)
 //
@@ -19,7 +19,7 @@
 //    · **真实 `AudioClip.loadState` 的听诊预载半边** —— 承 story-010 裁定 ③ 的 NOT-RUN 哨兵,
 //      不在本件面内(见 story §Out of Scope)。
 //    · ⚠️ **生产路径「病人会咳/会呼吸」的上游阻塞(2026-10-18 已修,留作闭环记录)** ——
-//      诊断 AC-018-6 实机半边时发现:9 侧 `Trend` 是已登记的 tripwire 占位(恒 0),
+//      诊断 SAC-018-6 实机半边时发现:9 侧 `Trend` 是已登记的 tripwire 占位(恒 0),
 //      而 13 侧 `BehaviorMap.EvaluateTerminal` 的痊愈判据是 `position ≤ RecoverMax ∧ trend ≤ 0`
 //      ⇒ **任何新出现的病人(position≈0)在首拍即被锁存「痊愈」终局** ⇒ 呼吸层不起、cue 恒不发
 //      (实机取证:`tick=2..40 p=1 tier=Recover→Severe term=True emit=False breath=None`)。
@@ -154,7 +154,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-3 / AC-018-4 —— 启动后渲染面真装配 + 池根唯一
+        // SAC-018-3 / SAC-018-4 —— 启动后渲染面真装配 + 池根唯一
         // 判别力:删掉启动序 ②.6 的 `BuildAudioSeams` 调用(或 `audio:` 实参)⇒ 本测红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -172,7 +172,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.IsNotNull(services.AudioPool, "A-4:AudioSourcePool 生产构造点");
             Assert.IsNotNull(services.AudioPool.Root, "池根须已建(ADR-028 ② 零场景预摆 ⇒ 运行期建)");
 
-            // Assert ②:AC-018-4 单池不变量 —— 场景内名为 AudioSourcePool 的根恰一个
+            // Assert ②:SAC-018-4 单池不变量 —— 场景内名为 AudioSourcePool 的根恰一个
             // ⚠️ 走 `Resources.FindObjectsOfTypeAll`:池根带 `HideFlags.DontSave`,
             //    `Object.FindObjectsByType` 不返回 DontSave 对象(EditMode 半边已实测假红)。
             GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -187,7 +187,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-5 —— 混音器解析 + 玩家音量落到出厂默认
+        // SAC-018-5 —— 混音器解析 + 玩家音量落到出厂默认
         // 判别力:删掉 `PlayerBusVolumeInitializer.MixerResolver` 赋值 ⇒ 首条断言红。
         // ⚠️ 「删掉 `ApplyDefaults` 显式调用」的判别力**不在本条**(值断言在 PlayMode 同样
         //    分辨不出:出厂默认 = 0 dB = 资产初值)—— 它由 EditMode 半边的
@@ -225,7 +225,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-2 实机半边 —— clip 面真装载(0 缺)
+        // SAC-018-2 实机半边 —— clip 面真装载(0 缺)
         // 判别力:让 `AudioClipLibrary.Preload` 变成空实现 ⇒ LoadedCount=0 ⇒ 红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -254,7 +254,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-6 实机半边 —— 病人 cue 驱动在真实 tick 泵上跑
+        // SAC-018-6 实机半边 —— 病人 cue 驱动在真实 tick 泵上跑
         // 判别力:删掉 `Update()` 里的 `PatientCueDriver.OnTickEdge` 调用 ⇒ 本测红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -265,7 +265,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             CompositionRootServices services = Services();
             PatientCueDriver driver = services.PatientCueDriver;
-            Assert.IsNotNull(driver, "AC-018-6:病人 cue 驱动须在服务袋内");
+            Assert.IsNotNull(driver, "SAC-018-6:病人 cue 驱动须在服务袋内");
 
             // Act:跑 2 s —— 病人在启动序末出现,首拍呼吸层在该窗内必到
             for (int i = 0; i < SampleFrames; i++)
@@ -310,7 +310,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-6 实机半边 —— cue 真走到渲染面(池内有活动源)
+        // SAC-018-6 实机半边 —— cue 真走到渲染面(池内有活动源)
         // ⚠️ 「可闻」不可自动判(听感)⇒ 本测只判**渲染面被调用**,人耳判据落听测记录件。
         // ══════════════════════════════════════════════════════════════════
 

@@ -2,15 +2,15 @@
 //   · ADR-013 §十-B(戥子档位读数元件 = 黄铜侧)
 //   · AC-42-F3 材质分支断言须把本元件归入黄铜分支。
 //   · production/epics/skeuomorphic-ui/story-005-world-billboard.md
-//   · production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md(AC-025-1…6)
+//   · production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md(SAC-025-1…6)
 //
 // 设计说明:
 //   · 黄铜侧读数件 — 錾刻刻度合法(墨侧禁刻度条,黄铜侧允许)。
 //   · 哑光金属,禁发光/泛光;读数档位可辨性归 11 的 AC-11-13。
-//   · AC-025-1:本元件是**逐档形态的载体** —— 档位读数由「N 个形态子件 + 其中一档
-//     几何放大」表达,不经任何数字文本(AC-025-5 零数字铁律)。形态差异落在 USS
+//   · SAC-025-1:本元件是**逐档形态的载体** —— 档位读数由「N 个形态子件 + 其中一档
+//     几何放大」表达,不经任何数字文本(SAC-025-5 零数字铁律)。形态差异落在 USS
 //     (`.brass-detent` / `.brass-detent--focused`),本类只决定「有几个 / 哪个落焦」。
-//   · AC-025-2:**元件不持剂量状态** —— 无 `CurrentDose` / `SelectedOrdinal` 一类
+//   · SAC-025-2:**元件不持剂量状态** —— 无 `CurrentDose` / `SelectedOrdinal` 一类
 //     持久字段;形态完全由 `SetDetents` 的入参决定,同一入参重复调用 ⇒ 同一形态。
 
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass
@@ -21,10 +21,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass
     /// <summary>戥子档位读数元件(黄铜侧 · AC-42-F3 黄铜分支)。</summary>
     public sealed class BrassScaleElement : VisualElement
     {
-        /// <summary>常态档形态类名(AC-025-3)。</summary>
+        /// <summary>常态档形态类名(SAC-025-3)。</summary>
         public const string DetentClass = "brass-detent";
 
-        /// <summary>落焦档形态类名 —— 几何放大,颜色不变(AC-025-1 ②「非颜色」)。</summary>
+        /// <summary>落焦档形态类名 —— 几何放大,颜色不变(SAC-025-1 ②「非颜色」)。</summary>
         public const string FocusedDetentClass = "brass-detent--focused";
 
         /// <summary>档形态带的类名。</summary>
@@ -51,7 +51,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass
         //    **生产侧零读**:唯一写入点 `CasebookScreen.cs:529` 只写不读,而本元件内部
         //    一切档位判据走的都是 `DetentCount`(= `_detentBand.childCount`,由**已生成的形态**
         //    反查),**从不回看那个入参**。
-        //    ⇒ 它是纯死状态,且与 AC-025-2「元件不得持可变的剂量状态」**同向**
+        //    ⇒ 它是纯死状态,且与 SAC-025-2「元件不得持可变的剂量状态」**同向**
         //    (保留一个只写不读的 `int` 只会诱使后来者以为它承载语义)。
         //    ⚠️ **易混读**:`PrescribeRequestDriver.DoseDetentCount` 读的是
         //    **`DentchDoseSelector.TickCount`**(同名的**另一个**属性,不是本元件的)——
@@ -62,7 +62,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass
 
         /// <summary>落焦档的档序(1 起;0 = 无落焦档)。
         /// <para>**由已生成的形态反查**,不是缓存的入参 —— 缓存入参会把「上一次的落焦档」
-        /// 留成第二真源(AC-025-2 禁)。</para></summary>
+        /// 留成第二真源(SAC-025-2 禁)。</para></summary>
         public int FocusedDetentOrdinal
         {
             get

@@ -317,7 +317,7 @@
 > 3. **duck 用 dB→线性幅度**:`ApplyDuck(linearVolume, depthDb)` = `linearVolume * 10^(depthDb/20)`,验证 duck 后音量 > 0。
 > 4. **负例构造用 JSON Replace**:missing_red 用 Replace cue 名,wrongBus_red 用 Replace bus 值,构造真正违例数据。
 
-## Story 009(声源生命周期与贴耳交接 —— AC-009-1 自评兜底 / AC-009-2 贴耳交接 / AC-009-3 重复过期句柄 / AC-009-4 咳嗽不停呼吸)
+## Story 009(声源生命周期与贴耳交接 —— SAC-009-1 自评兜底 / SAC-009-2 贴耳交接 / SAC-009-3 重复过期句柄 / SAC-009-4 咳嗽不停呼吸)
 
 故事头登记的证据路径为
 `tests/unit/audio_system/loop_lifecycle_test.cs`,但该路径在仓库根、**Unity 不编译**
@@ -365,23 +365,23 @@
 
 | AC | 测试函数(`LoopLifecycleTest` 内) | 性质 |
 |---|---|---|
-| **AC-009-1 流停更后有界停** | `test_endLoopWatchdog_staleStream_stopsWithinBound` | BLOCKING |
-| **AC-009-1 流恢复不重复停**(含严格 `>` 边界) | `test_endLoopWatchdog_resumeNoDoubleStop` | BLOCKING |
-| **AC-009-1 有界常量 0 当轮必停** | `test_endLoopWatchdog_zeroBoundStopsImmediately` | BLOCKING |
-| **AC-009-1 从未收到快照不判停** | `test_endLoopWatchdog_noSnapshotEver_notTerminated` | BLOCKING |
-| **AC-009-1 正常收尾自评不介入** | `test_endLoopWatchdog_normalEndLoop_noSelfTermination` | BLOCKING |
-| **AC-009-1 时钟源 = sim tick** | `test_endLoopWatchdog_noWallClockRefs` | BLOCKING |
-| **AC-009-1 契约形状:本地句柄** | `test_endLoop_contractShape_localHandleOnly` | BLOCKING |
-| **AC-009-2 进入:世界层压出 + 句柄释放** | `test_handover_enterStethoscope_worldFadesOut` | BLOCKING |
-| **AC-009-2 窗中:交叉淡化在开区间** | `test_handover_midWindow_crossfadeStrictlyBetween` | BLOCKING |
-| **AC-009-2 退出镜像** | `test_handover_exitStethoscope_worldFadesIn` | BLOCKING |
-| **AC-009-2 幂等重入** | `test_handover_idempotentReentry` | BLOCKING |
-| **AC-009-2 听诊中世界 cue 不重启** | `test_handover_worldCueArrives_noRestart` | BLOCKING |
-| **AC-009-2 硬切拒绝**(0 与 <0) | `test_handover_hardCut_rejected` | BLOCKING |
-| **AC-009-2 null sink 守卫** | `test_handover_nullSink_throws` | BLOCKING |
-| **AC-009-3 同源重复以最后为准** | `test_duplicateBeginLoop_lastWins` | BLOCKING |
-| **AC-009-3 过期 EndLoop 忽略** | `test_expiredEndLoop_ignored` | BLOCKING |
-| **AC-009-4 咳嗽不停呼吸(联合断言)** | 注释引用 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls` | — |
+| **SAC-009-1 流停更后有界停** | `test_endLoopWatchdog_staleStream_stopsWithinBound` | BLOCKING |
+| **SAC-009-1 流恢复不重复停**(含严格 `>` 边界) | `test_endLoopWatchdog_resumeNoDoubleStop` | BLOCKING |
+| **SAC-009-1 有界常量 0 当轮必停** | `test_endLoopWatchdog_zeroBoundStopsImmediately` | BLOCKING |
+| **SAC-009-1 从未收到快照不判停** | `test_endLoopWatchdog_noSnapshotEver_notTerminated` | BLOCKING |
+| **SAC-009-1 正常收尾自评不介入** | `test_endLoopWatchdog_normalEndLoop_noSelfTermination` | BLOCKING |
+| **SAC-009-1 时钟源 = sim tick** | `test_endLoopWatchdog_noWallClockRefs` | BLOCKING |
+| **SAC-009-1 契约形状:本地句柄** | `test_endLoop_contractShape_localHandleOnly` | BLOCKING |
+| **SAC-009-2 进入:世界层压出 + 句柄释放** | `test_handover_enterStethoscope_worldFadesOut` | BLOCKING |
+| **SAC-009-2 窗中:交叉淡化在开区间** | `test_handover_midWindow_crossfadeStrictlyBetween` | BLOCKING |
+| **SAC-009-2 退出镜像** | `test_handover_exitStethoscope_worldFadesIn` | BLOCKING |
+| **SAC-009-2 幂等重入** | `test_handover_idempotentReentry` | BLOCKING |
+| **SAC-009-2 听诊中世界 cue 不重启** | `test_handover_worldCueArrives_noRestart` | BLOCKING |
+| **SAC-009-2 硬切拒绝**(0 与 <0) | `test_handover_hardCut_rejected` | BLOCKING |
+| **SAC-009-2 null sink 守卫** | `test_handover_nullSink_throws` | BLOCKING |
+| **SAC-009-3 同源重复以最后为准** | `test_duplicateBeginLoop_lastWins` | BLOCKING |
+| **SAC-009-3 过期 EndLoop 忽略** | `test_expiredEndLoop_ignored` | BLOCKING |
+| **SAC-009-4 咳嗽不停呼吸(联合断言)** | 注释引用 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls` | — |
 
 > **测试数**:`loop_lifecycle_test` = **16**(S14-3 由 12 扩至 16;自造 Fake 全数删除)。
 > **证伪轮 8 例全红**(停用生产码守卫 ⇒ 断言转红),详见
@@ -672,23 +672,23 @@
 
 | AC | 测试函数 | 性质 |
 |---|---|---|
-| **AC-019-1** | `EventTableGateTest.test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue` | [A] 证伪判据(点名该 cue) |
+| **SAC-019-1** | `EventTableGateTest.test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue` | [A] 证伪判据(点名该 cue) |
 | | `test_ac0191_oneShotWithThresholdTrigger_reportsRed` | [A] 第二臂(3 个禁止触发源逐值) |
 | | `test_ac0191_transitionNameOnLoopRow_accepted` | [A] 边界(循环行放行) |
 | | `test_ac0191_transitionNameWithLoopFieldAbsent_reportsRed` | [A] 缺 `loop` 字段 = 一次性(story 逐字场景) |
 | | `test_ac0191_rowsMissing_reportsNotRunGuard` | [A] NOT-RUN 守卫 |
 | | `test_ac0191_realSeed_zeroTransitionErrors` | [A] 真种子正向 |
-| **AC-019-2** | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` | [A] 呼吸三行零新增触发源 |
-| **AC-019-3** | `RuntimeAssemblyTest.test_ac019_3_transitionToPause_addsNoNewOneShotCue` | [A] 平稳→急促→停顿,过渡零新增一次性 cue |
+| **SAC-019-2** | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` | [A] 呼吸三行零新增触发源 |
+| **SAC-019-3** | `RuntimeAssemblyTest.test_ac019_3_transitionToPause_addsNoNewOneShotCue` | [A] 平稳→急促→停顿,过渡零新增一次性 cue |
 | | `test_ac019_3_oneShotIntensity_followsVitals_neverFixedVolume` | [A] 一次性 cue 强度 = 体征连续函数 |
-| **AC-019-4** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | [A] 停顿 loop 存活 / 停止 `EndLoop` 且零尾音 |
+| **SAC-019-4** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | [A] 停顿 loop 存活 / 停止 `EndLoop` 且零尾音 |
 | | `test_ac019_4_pauseLifespan_isBoundedByTailRamp` | [A] 尾音寿命有界 + 段间清零 |
 | | `test_ac019_4_stop_leavesNoTail_andEndsLoop` · `test_ac019_4_stopAll_clearsTailBookkeeping` | [A] 停止路径 |
-| **AC-019-5** | `test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform` | [A] 无拐点(倍率恒等) |
+| **SAC-019-5** | `test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform` | [A] 无拐点(倍率恒等) |
 | | `test_ac019_5_degenerateInputs_neverProduceBurst` | [A] 退化输入无爆音 |
 | | `test_ac019_5_breathRows_introduceNoNewClipName` | [A] 零新 clip(真种子) |
-| **AC-019-6** | `s19-breath-transition-listening-2026-10-18.md` | [L] **NOT-RUN** |
-| **AC-019-7** | `docs/tech-debt-register.md` `TD-audio-100` · `design/gdd/audio-system.md` `OQ-44-7` | 账面(部分落,待 10-c) |
+| **SAC-019-6** | `s19-breath-transition-listening-2026-10-18.md` | [L] **NOT-RUN** |
+| **SAC-019-7** | `docs/tech-debt-register.md` `TD-audio-100` · `design/gdd/audio-system.md` `OQ-44-7` | 账面(部分落,待 10-c) |
 
 > **测试数**:门 `event_table_gate_test` 本件 **+6**(34 → 69 全套件)·
 > 运行期 `runtime_assembly_test` **+9**(27 → 36)。
@@ -713,16 +713,16 @@
 
 | AC | 测试函数 | 性质 |
 |---|---|---|
-| **AC-020-1** | `VoiceSelectionWiringTest.test_ac020_1_multiAssetCue_usesRealSelector_notAssetsZero` | [A] 逐 (tier × 身份) 与生产选择器复算等值 |
+| **SAC-020-1** | `VoiceSelectionWiringTest.test_ac020_1_multiAssetCue_usesRealSelector_notAssetsZero` | [A] 逐 (tier × 身份) 与生产选择器复算等值 |
 | | `test_ac020_1_selectorBinding_pinnedOnProductionClass` | [A] 反射钉入口 + **生产程序集 IL** 扫 `SelectVariant`/`SelectSlot` 真调用 |
 | | `test_ac020_1_singleAssetAndInvalidInputs_behaveUnchanged` | [A] 单素材行不变 / 越界 ⇒ null / 空表 ⇒ -1 |
-| **AC-020-2** | `test_ac020_2_sameIdentity_isDeterministic` | [A] 确定性 |
+| **SAC-020-2** | `test_ac020_2_sameIdentity_isDeterministic` | [A] 确定性 |
 | | `test_ac020_2_distinctPatients_doNotAlwaysShareVariant` | [A] 分布(每 tier ≥ 2 条) |
 | | `test_ac020_2_distribution_coversSlot` | [A] 分布覆盖 |
 | | `test_ac020_2_identityScalar_spreadsAcrossRange` | [A] 哈希不塌缩 + 三桶可达 |
 | | `test_ac020_2_cueSource_reachesSelector_notJustCueOrdinal` | [A] 生产接线:`AudioCueDto.Source` 真进选择键(真池 + 真渲染目标) |
-| **AC-020-3** | `test_ac020_3_allTwelveVoVariants_reachable` | [A] 12 条逐条可达(清单取自真表行) |
-| **AC-020-4** | `docs/tech-debt-register.md` `TD-audio-030` · `docs/architecture/tr-registry.yaml` `TR-diag-022` note | 账面 |
+| **SAC-020-3** | `test_ac020_3_allTwelveVoVariants_reachable` | [A] 12 条逐条可达(清单取自真表行) |
+| **SAC-020-4** | `docs/tech-debt-register.md` `TD-audio-030` · `docs/architecture/tr-registry.yaml` `TR-diag-022` note | 账面 |
 
 > **测试数**:`voice_selection_wiring_test` **9**(新)。
 > 全量 EditMode `3757 / 3712 / 0 / 45`(基线 S19 `3748 / 3703 / 0 / 45` ⇒ **+9 = 新增 9 条**)。

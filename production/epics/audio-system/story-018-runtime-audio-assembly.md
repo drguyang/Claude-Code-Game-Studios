@@ -57,13 +57,13 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 
 ### 步① 真渲染目标(关 A-2 / A-6)
 
-- [x] **AC-018-1**: 新增 `AudioSourceRenderTarget : ICueRenderTarget`(`Gameplay.Presentation/Audio/`)——
+- [x] **SAC-018-1**: 新增 `AudioSourceRenderTarget : ICueRenderTarget`(`Gameplay.Presentation/Audio/`)——
       `PlayOneShot` → `pool.Spawn(...)` + 载入 clip + `Play`;**`StartLoop` / `StopLoop`** 走池的
       句柄语义(同源替换、陈旧句柄静默忽略,承 `CueRenderSink` 既有契约);
       **零新状态**(所有句柄簿记仍归 `CueRenderSink`)。
       *判别力*:让 `PlayOneShot` 变成空实现 ⇒ 「cue 触发后池内 ActiveCount 增」断言转红。
 
-- [x] **AC-018-2**: **总线路由**(A-6)—— `AudioSourcePool` 在**建源**时按事件表 `Bus` 列设置
+- [x] **SAC-018-2**: **总线路由**(A-6)—— `AudioSourcePool` 在**建源**时按事件表 `Bus` 列设置
       `source.outputAudioMixerGroup`。① bus 名 → `AudioMixerGroup` 的查找**只经**
       `MixerRegistry.BusNames`(不另抄字面量);② 未知 bus ⇒ fail-loud(不静默落 Master);
       ③ 池 API 增 `Spawn(..., string busName)` 或等价,旧签名保留并默认 `"SFX"`(向后兼容既有测试)。
@@ -75,7 +75,7 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 
 ### 步② 组合根装配(关 A-1 / A-4)
 
-- [x] **AC-018-3**: `CompositionRoot.Assemble` 构造并装配音频链:
+- [x] **SAC-018-3**: `CompositionRoot.Assemble` 构造并装配音频链:
       `AudioSourcePool` → `AudioSourceRenderTarget` → `CueRenderSink`,
       产物经 `CompositionRootServices` 只读属性暴露(如 `IAudioCueSink AudioSink`)。
       ① 装配失败(**任一步为 null / 抛**)⇒ 整袋失败(fail-loud,承「半装配袋不存在」口径);
@@ -85,14 +85,14 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
       **不得**与装配路径产生第二个池(单池不变量)。
       *判别力*:把音频装配段删掉 ⇒ 「`AudioSink` 非 null 且非空转」断言转红。
 
-- [x] **AC-018-4**: **单池不变量** —— 运行期任意时刻 `AudioSourcePool` 的**根节点只有一个**。
+- [x] **SAC-018-4**: **单池不变量** —— 运行期任意时刻 `AudioSourcePool` 的**根节点只有一个**。
       断言面:装配产物的池与 `SpatializationDirector`(若被构造)共用同一实例,或后者不被构造;
       **不得**出现两个 `"AudioSourcePool"` 根(承 ADR-028 ②「零场景预摆」的对称面)。
       *判别力*:让 `SpatializationDirector` 自建第二个池 ⇒ 断言转红。
 
 ### 步③ 启动序 + 总线音量(关 A-5 / A-7)
 
-- [x] **AC-018-5**: `DaYiJingCheng.mixer` 登记进 Addressables(择一:并入 `audio` 组或新立
+- [x] **SAC-018-5**: `DaYiJingCheng.mixer` 登记进 Addressables(择一:并入 `audio` 组或新立
       `mixer` 组;建议**并入 `audio` 组**,减少组数),并让 `PlayerBusVolumeInitializer.MixerResolver`
       在生产路径**被赋值**(从 `IDataProvider` 或 Addressables 直取)。
       **`BootRoot` 启动序新增一步**(建议 ②.6,紧随 ②.4 的 settings provider 之后):
@@ -103,7 +103,7 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 
 ### 步④ cue 源接线(关 A-3)
 
-- [x] **AC-018-6**: cue 源侧接上装配出的 `IAudioCueSink`:
+- [x] **SAC-018-6**: cue 源侧接上装配出的 `IAudioCueSink`:
       ① **咳嗽 / 语声** —— 病人 tick 路径调 `PatientCueEmit.Emit`(或 `CoughChannel.Dispatch`);
       ② **呼吸层** —— `BreathLayerDriver` / `CueEmitDeriver` 的 loop 起停接到 `BeginLoop` / `EndLoop`;
       ③ **接线点必须可被 EditMode 断言**(纯逻辑接缝,不依赖真实音频播放)。
@@ -112,7 +112,7 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
       哪条链**仍无上游驱动**(禁借绿 —— 不得把「接了一个没上游的调用」写成「病人会咳了」)。
       *判别力*:删掉 `Emit` 调用 ⇒ 「cue 触发计数」断言转红。
 
-- [x] **AC-018-7**: **处方音效白名单验证**(`TD-audio-024`)—— 处方相关 cue
+- [x] **SAC-018-7**: **处方音效白名单验证**(`TD-audio-024`)—— 处方相关 cue
       (方笺翻页 `Page_Turn` / 出诊箱 `Cabinet_Prop` / 戥子相关若有)在音频事件表的
       `WhitelistCategory` 中**不属于**「行为反馈白名单」之外的状态播报类;
       断言 = 这些 cue 的类别 ∈ 允许集,且**零** sting / jingle 类。
@@ -128,7 +128,7 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 
 ## Acceptance Criteria
 
-- [x] `AC-018-1` … `AC-018-7` 全勾,过滤测试绿 + 变异恰红
+- [x] `SAC-018-1` … `SAC-018-7` 全勾,过滤测试绿 + 变异恰红
 - [x] 全量 EditMode + **PlayMode** 留痕,与基线对账**零回归**
       —— ⚠️ 口径:**「两棵树在本轮全部新增测上零回归」**,非无限定的「零回归」。
       EditMode 首跑另有 1 条既有间歇红(隔离复跑 5/5 绿、全量复跑零红),根因见 `TD-player-01`。
@@ -164,9 +164,9 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 - **实机听测记录**:`production/qa/evidence/audio-wiring-listening-2026-10-18.md`(**✅ 2026-10-18 已执行并签核** —— 执行前的 NOT-RUN 原文保留在其 §一–§五,现状读 §〇/§六/§七)
 - **首轮评审原件**:`production/qa/evidence/review-story-018-2026-10-18.md`(2026-10-18 **补评** —— 本 story 转 Complete **之后**追补,评的是 commit `60580ad` 时点代码,**不追认**原结案判定;详见 Completion Notes「Code Review」行)
 
-### ⚠️ 哪条链仍无上游驱动(AC-018-6 的 Out-of-Scope 提示逐字要求的登记,2026-10-18 评审批补落 —— 原实现轮漏登 = 评审 BLOCKING B-1)
+### ⚠️ 哪条链仍无上游驱动(SAC-018-6 的 Out-of-Scope 提示逐字要求的登记,2026-10-18 评审批补落 —— 原实现轮漏登 = 评审 BLOCKING B-1)
 
-卡面 AC-018-6 ② 点名的 `BreathLayerDriver` / `CueEmitDeriver` **运行期仍零生产构造/调用方**:
+卡面 SAC-018-6 ② 点名的 `BreathLayerDriver` / `CueEmitDeriver` **运行期仍零生产构造/调用方**:
 
 - `new BreathLayerDriver(` 全仓唯一命中 = `Tests/EditMode/Audio/breath_layers_test.cs:897`(测试侧);
 - `CueEmitDeriver` 生产侧**仅注释引用**,零调用点;
@@ -234,8 +234,8 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 B lead-programmer / C qa-tester),原件 `production/qa/evidence/review-story-018-2026-10-18.md`。
 - **Verdict**:CHANGES REQUIRED → 修复后 **APPROVED WITH DEBTS(TD-audio-028…033)**。
 - **BLOCKING 1 项(B-1,账面)**:本区上方 Test Evidence 的「哪条链仍无上游驱动」登记**从未落**
-  (卡面 AC-018-6 逐字要求)⇒ **本批已补落**;证伪表补 F2 行(13→14 与表头对齐);
-  AC-018-2 ③「默认 `"SFX"`」订正注(实作 `bus: null`)。
+  (卡面 SAC-018-6 逐字要求)⇒ **本批已补落**;证伪表补 F2 行(13→14 与表头对齐);
+  SAC-018-2 ③「默认 `"SFX"`」订正注(实作 `bus: null`)。
 - **代码面**:七缺口 A-1…A-7 确认全闭、未发现假绿(可观测标志全部由被观测对象派生)、
   HC-1…HC-8 全 PASS;新缺陷 N-1…N-10 逐条对码复核属实 ⇒ **六条新债立案**,本批**零代码改动**
   (已 Complete 的 story 不因补评重开;N-6 两行加固是否顺手做待用户裁)。
@@ -273,7 +273,7 @@ B lead-programmer / C qa-tester),原件 `production/qa/evidence/review-story-018
   ⚠️ **不声称**已获独立第二人耳复核(承 10-17 三签同款声明)。
 - **连带结案两条外部 AC**(各自独立签,与本案不互借):
   ① **`AC-11-21`**(BLOCKING [L])由 **⚫ 不可判 → ✅ 通过** —— 听测半边 = 「处方/交互音效零状态播报」,
-  实机**未听到任何**给药 jingle / 生效提示 / sting / ducking;自动化半边 = 本 story `AC-018-7`
+  实机**未听到任何**给药 jingle / 生效提示 / sting / ducking;自动化半边 = 本 story `SAC-018-7`
   三条断言(实现轮已绿)。⇒ `TD-prescription-04` 结案。
   ② **`AC-44-09` 听测半边**(BLOCKING)同步转 ✅ —— 与 ① 是**同一条判据、同一次听测**
   (`design/gdd/prescription-and-medication.md:986` 逐字「与 `AC-44-09` 联合」),
@@ -286,7 +286,7 @@ B lead-programmer / C qa-tester),原件 `production/qa/evidence/review-story-018
   §七「与 E5 的关系」· `impl-s18-*` §九附。
   ⚠️ **实听覆盖面(禁读成「给药音效已听测」)**:当前事件表 **无任何给药/疗效 cue 条目**,
   实听对象 = `Page_Turn` / `Cabinet_Prop` 两条交互声 ⇒ 「给药 jingle」子面**当时无物可听**。
-  判据仍成立的两条支撑:`AC-018-7` 白名单门覆盖面 = **全表**且构建期硬拒(新增播报类 cue 当场拦)·
+  判据仍成立的两条支撑:`SAC-018-7` 白名单门覆盖面 = **全表**且构建期硬拒(新增播报类 cue 当场拦)·
   11 侧**零独立 `AudioCue`**(无绕过事件表的发声路径)。详 `audio-wiring-listening-2026-10-18.md`
   §〇「实听覆盖面」。
 - **实机推翻记录件 §四 的一处预判**(如实登记,不藏):听测件预判「呼吸层本次可能仍不可闻」,
@@ -310,7 +310,7 @@ B lead-programmer / C qa-tester),原件 `production/qa/evidence/review-story-018
 ## Completion Notes
 
 **Completed**: 2026-10-18
-**Criteria**: 7/7 `AC-018-1…7`(自动化)+ 实机听测半边 ✅(真人签核)⇒ **全数达成**;
+**Criteria**: 7/7 `SAC-018-1…7`(自动化)+ 实机听测半边 ✅(真人签核)⇒ **全数达成**;
 协议第 4 项「无爆音」登记**未判**(非判据文本项)。
 **Test Evidence**: Integration —— 真装配件 `unity/Assets/Tests/EditMode/Audio/runtime_assembly_test.cs`
 (27 测)+ `unity/Assets/Tests/PlayMode/audio_wiring_test.cs`(5 测);证据原件

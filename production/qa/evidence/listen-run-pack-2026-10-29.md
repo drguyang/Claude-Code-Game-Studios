@@ -181,9 +181,9 @@ firstReadable ≤ 60 tick
 | `test_tail_drivenByLoopGain_decaysFromSteadyGain_noOneShot` · `test_tail_doneBookkeeping_isNotByteQuantized` | 尾音簿记 |
 
 **根因**:移除 ⇒ 在场集收缩 ⇒ `PruneAbsent` 立刻清掉 `_tailDone` / `_tailStartTick` 等簿记
-⇒ 尾音协议**在观测窗口内消失**。`AC-019-6` 的语义恰恰是「终态之后**还要在场一段时间**」。
+⇒ 尾音协议**在观测窗口内消失**。`SAC-019-6` 的语义恰恰是「终态之后**还要在场一段时间**」。
 
-⇒ **「终态 ⇒ 离场」与「AC-019-6」不可同时成立**,与 L-3 是同一类冲突(两条已验收判据争夺同一段时间轴)。
+⇒ **「终态 ⇒ 离场」与「SAC-019-6」不可同时成立**,与 L-3 是同一类冲突(两条已验收判据争夺同一段时间轴)。
 
 ### 三条出路(请裁一条)
 

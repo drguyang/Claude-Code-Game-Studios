@@ -27,7 +27,7 @@
 |---|---|---|---|
 | ① 走近 | `:380` `StreamHas(ActorCellEntered)` + `:377` `OnPositionSample(2,1,0)` 跨格 + `:379` `OnTickEdge` | ADR-020 §四:玩家位移唯一 sim 投影 = 跨格世界流事件;头注 `:375` 显式记录「Teleport 不打 sample ⇒ 须显式喂样本」 | **真** |
 | ② 查体 | `:391` `ExaminationLedger.HasExamined` + `:393` `StreamHas(SkillGrown)` | 查体真链(constructor projector 次序照抄 `TryExamine`)+ 已见集真源(ADR-026 ⑥) | **真** |
-| ③ 对照 | `:399` `RevealedRows.Count > 0` + `:404` `reading.Count > 0` + `:406` `reading.Any(HasWordText)` | **sprint-07 B3/F1 头号缺口的闭合点**:值区非空 + 词条文字(非空行 / badge),AC-024-2 | **真(本链最重要的一条)** |
+| ③ 对照 | `:399` `RevealedRows.Count > 0` + `:404` `reading.Count > 0` + `:406` `reading.Any(HasWordText)` | **sprint-07 B3/F1 头号缺口的闭合点**:值区非空 + 词条文字(非空行 / badge),SAC-024-2 | **真(本链最重要的一条)** |
 | ④ 落笔 | `:414` 前置零判断 + `:424` 恰一条 + `:425` kind=Recorded + `:426` lexiconId = `SeenLexiconIds[0]` 反查值 + `:428` confidence=疑似 | 载荷字段逐值断言(显式 lexiconId 防「显示索引」第二真源)+ 三档首态 | **真** |
 | ⑤ 开方 | `:433` 前置零 DrugTreatmentApplied + `:436` `IsOnPrescriptionPage` + `:439` `doseRows.Count > 0` + `:440` `Submit(doseRows[0].userData - 1]` + `:442` 恰 +1 | 翻页→方笺页→选档确认→入流,含「恰一条」计数 | **真** |
 | ⑥ 施治 | `:448-452` F/gamepadWest 注入 + `EmergencyPressed` 探针 + `:456` EmergencyAttempt + `:458` EmergencyTreatmentApplied | ADR-009 Amendment I 双事件;探针独立自证键位注入生效(非静默跳过) | **真** |

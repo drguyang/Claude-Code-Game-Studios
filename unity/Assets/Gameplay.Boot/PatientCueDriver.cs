@@ -1,4 +1,4 @@
-// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(AC-018-6)
+// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(SAC-018-6)
 //   · A-3「`PatientCueEmit` / `CoughChannel` / `CueEmitDeriver` 零生产调用」
 // GDD design/gdd/patient-ai.md F-13.5(Emit / CueInterval 分段常函数 / 相位)· AC-13-D2/D3/D4
 // ADR-018 §一(44 只触发)· §四(医学准确性:咳嗽不停呼吸层)· ADR-016 §一(决策进 sim,
@@ -35,7 +35,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>病人 cue 的运行期驱动(A-3):tick 边沿 → 13 调度 → 44 发射。
     /// <para>⚠️ 本类是**装配层**(`Gameplay.Boot`),不是 13 也不是 44 —— 它把两者的接口接起来,
     /// 自己不产生任何 cue 语义。</para>
-    /// <para>⚠️ **停顿 vs 停止的音频分界**(story-019 · AC-019-4 / OQ-44-7):
+    /// <para>⚠️ **停顿 vs 停止的音频分界**(story-019 · SAC-019-4 / OQ-44-7):
     /// 13 只给三种呼吸动作(`Begin` / `None` / `End`),**`End` 本身不区分两态**
     /// (它只表达「终局锁存,呼吸层不该再响」;痊愈与死亡锁存位相同,13 刻意不报告是哪一种)。
     /// 故本驱动把分界补在**在场性**上:loop 仍活 + 病人**仍在场** ⇒「停顿」—— loop <b>存续</b>
@@ -164,7 +164,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _hasCourse = hasCourse;
             _knowsClinic = knowsClinic ?? throw new ArgumentNullException(nameof(knowsClinic),
                 "knowsClinic 注入缝必填(story-021)—— F-13.2 的真值源归 13 的 HomeRegion 语义," +
-                "装配层不得写死 false / true(AC-021-1)。生产见 CompositionRoot 的接线。");
+                "装配层不得写死 false / true(SAC-021-1)。生产见 CompositionRoot 的接线。");
 
             // 构造期硬校验(与 PatientBehaviorDirector 的破表即抛同口径)。
             List<string> errs = CueIntervals.Validate(_intervals);
@@ -219,13 +219,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 尾音衰减到位后本值归零,**loop 仍然存活**(病人还在,只是气流尾已经听不见)。
         /// ⇒ **尾音到位 ≠ 首拍:** 停顿态在首拍即入表,衰减走完后才归零(本值从 1 降到 0 需要
         /// <c>BreathTailRampMs</c> 那么久)。归零后**不再重开**(尾音只衰减一次)。
-        /// 听测面归 AC-019-6。</para></summary>
+        /// 听测面归 SAC-019-6。</para></summary>
         public int PausedBreathCount => _tailStartTick.Count;
 
         /// <summary>本驱动送达 sink 的**尾音增益更新次数**(观测面)。
         /// <para>⚠️ 只计**停顿态**的增益写入 —— 稳态(未锁存)行走的是既有的 `<see cref="AudioCueDto"/>`
         /// 定时发射路径,不经本计数。呼吸过渡期该值应随 tick 增长(连续),**不应**与一次性 cue
-        /// 计数同节奏(AC-019-3 的判别补充面)。</para></summary>
+        /// 计数同节奏(SAC-019-3 的判别补充面)。</para></summary>
         public int BreathGainUpdateCount { get; private set; }
 
         /// <summary>取某病人的尾音进度(秒;不在停顿态 ⇒ false)。
@@ -275,7 +275,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 🔁 **2026-10-29(`TD-listen-01` 的 L-1 · **甲案**,用户裁定)**:终态病人**等尾音收口后**才离场。
             //    此前 `IPresenceWriter.RemovePresent` 生产零调用方 ⇒ 病人永不退场。
-            //    ⚠️ **为什么不能一锁存就移除**(上一版实测 6 红):`AC-019-6` 的语义是
+            //    ⚠️ **为什么不能一锁存就移除**(上一版实测 6 红):`SAC-019-6` 的语义是
             //    「**终态持续期间**尾音只衰减一次、永不重启」—— 病人一走,`PruneAbsent` 立刻清
             //    `_tailDone` / `_tailStartTick` ⇒ 协议在观测窗口内消失。甲案把移除**推迟到尾音收口之后**,
             //    两条判据因此不再争夺同一段时间轴。
@@ -288,7 +288,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⛔ **2026-10-29:`TD-listen-01` 的 L-1 尝试被撤回** —— 曾在此按
             //    `behavior.Terminal.Latched` 调 `_presence.RemovePresent(...)`,实测**6 条既有 AC 转红**:
             //    `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` 等。
-            //    根因:`AC-019-6` 的尾音协议要求终态病人**继续留在在场集**(尾音正好在此区间内
+            //    根因:`SAC-019-6` 的尾音协议要求终态病人**继续留在在场集**(尾音正好在此区间内
             //    衰减一次且不得重启);一旦移除,`PruneAbsent` 立即清掉 `_tailDone` 等簿记 ⇒
             //    协议无从观测。**这是判据冲突,不是实现细节** —— 见
             //    `production/qa/evidence/listen-run-pack-2026-10-29.md` §六。
@@ -311,7 +311,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             VitalsDto v = _vitals.GetVitals(id);
 
             // L-1 甲案:终态 ∧ 尾音已收口(或从未起过呼吸)⇒ 排入本拍结束后的离场队列。
-            // ⚠️ 尾音**正在衰减**(`_tailStartTick` 有行)时不得移除 —— 那正是 AC-019-6 的观测窗。
+            // ⚠️ 尾音**正在衰减**(`_tailStartTick` 有行)时不得移除 —— 那正是 SAC-019-6 的观测窗。
             if (behavior.Terminal.Latched
                 && !_breathHandles.ContainsKey(patientId)
                 && !_tailStartTick.ContainsKey(patientId))
@@ -321,7 +321,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             CueDispatch dispatch = DecideFor(patientId, id, behavior, v, tick);
             ApplyBreath(patientId, id, dispatch.Breath, v.Position, cell, tick);
 
-            // ⑤ 停顿态:loop 存续期间,每拍推进一次增益衰减(AC-019-5)。
+            // ⑤ 停顿态:loop 存续期间,每拍推进一次增益衰减(SAC-019-5)。
             //    ⚠️ **零一次性 cue**(dispatch.EmitOneShot 在终局时恒 false,判决归 13),
             //    本步只写增益 —— 这是「无突变音效」在运行期的形态。
             if (_tailStartTick.TryGetValue(patientId, out long tailStart))
@@ -539,7 +539,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
         }
 
-        /// <summary>推进尾音衰减一步(AC-019-5):把本拍的增益写进 sink,并**不**发一次性 cue。</summary>
+        /// <summary>推进尾音衰减一步(SAC-019-5):把本拍的增益写进 sink,并**不**发一次性 cue。</summary>
         private void AdvanceBreathTail(int patientId, PatientId id, float position,
                                        in WorldPos cell, long tick, long tailStart)
         {

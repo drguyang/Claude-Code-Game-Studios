@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md
-//   · AC-018-3(组合根装配)· AC-018-5(A-5/A-7 混音器装载面)· AC-018-1(clip 解析缝)
+//   · SAC-018-3(组合根装配)· SAC-018-5(A-5/A-7 混音器装载面)· SAC-018-1(clip 解析缝)
 // ADR-014 §五(Addressables 单组 + 首次 Step 前预载;E-13 硬失败)· ADR-018 §三(七总线)
 // engine-reference `docs/engine-reference/unity/modules/audio.md`(AudioClip / AudioMixer 装载)
 //

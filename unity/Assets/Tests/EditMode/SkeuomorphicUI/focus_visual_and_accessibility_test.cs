@@ -357,14 +357,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 string.Join("\n", namingHookTypes.Select(t => t.Name)));
         }
 
-        // ══════════════ M2 形态件① · 焦点亮度轴(story-021 · AC-021-3)══════════════
+        // ══════════════ M2 形态件① · 焦点亮度轴(story-021 · SAC-021-3)══════════════
 
         /// <summary>明度轴阈值 = art-bible §4.6【本稿提案值】—— 归数值轮,可调;
-        /// 改它须同批改本断言与 story-021 AC-021-3 文本(防双真源)。</summary>
+        /// 改它须同批改本断言与 story-021 SAC-021-3 文本(防双真源)。</summary>
         private const double LuminanceDeltaThreshold = 0.12;
 
         /// <summary>面积桶宽(线性 luminance)—— 只保留频次 ≥1% 的桶,
-        /// 滤 antialias 稀有中间值(口径见 AC-021-3;逐像素 min 必被边缘像素击穿)。</summary>
+        /// 滤 antialias 稀有中间值(口径见 SAC-021-3;逐像素 min 必被边缘像素击穿)。</summary>
         private const double BucketWidth = 0.01;
 
         /// <summary>sRGB 分量 → 线性(gamma 解码;art-bible :349 线性工作流)。</summary>
@@ -422,7 +422,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             return luminances.Where(l => counts[(int)(l / BucketWidth)] >= floor).ToList();
         }
 
-        /// <summary>AC-021-3(art-bible G3):焦点环 vs 纸面 min luminance Δ ≥ 0.12(线性 Rec.709)。
+        /// <summary>SAC-021-3(art-bible G3):焦点环 vs 纸面 min luminance Δ ≥ 0.12(线性 Rec.709)。
         /// 判据跑**真贴图**上 —— 灰阶渲染下焦点环与纸面必须可分;截图级夹具归桌面走查。</summary>
         [Test]
         public void test_ac021_3_focus_ring_luminance_delta_over_paper()
@@ -470,7 +470,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             //    唯一主题色变异(改铜)依旧红 ⇒ 已跑变异**证明不了贴图分支活着** —— 此断言补上
             Assert.That(paperBuckets, Is.Not.Empty,
                 "纸面贴图高频桶为空 —— 贴图分支静默失效(全透明或桶过滤滤空)," +
-                "AC-021-3 降级为主题色对拍 = 假绿(BLOCKING B1)。");
+                "SAC-021-3 降级为主题色对拍 = 假绿(BLOCKING B1)。");
             // ③ 自比对(环单色 ⇒ 恒 0,只挡公式恒过退化;数值侧由 ① 锚定)
             Assert.That(selfDelta, Is.LessThan(LuminanceDeltaThreshold),
                 "自比对失败:环 vs 环 Δ = " + selfDelta.ToString("F4") +

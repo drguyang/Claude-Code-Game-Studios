@@ -1,5 +1,5 @@
 // ⚠️ **W-1 已修(2026-10-20)** —— 见 `production/qa/evidence/impl-b-audio-tier-wiring-2026-10-20.md` §尾音。
-// 权威来源:production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md(面 10-b · AC-019-4/5)
+// 权威来源:production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md(面 10-b · SAC-019-4/5)
 // GDD design/gdd/audio-system.md:408-411(Output Range:呼吸层**连续**变化,无突变音效 AC-44-10)·
 //   :571-573(急促 → 停顿连续变慢变浅;**停顿 = 极轻背景气流尾,停止 = 完全无声**)· :878(负面声明)
 // ADR-018 §六(无提示音铁律:终局**不被播报**,只**消失**)
@@ -25,7 +25,7 @@ using System;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Audio
 {
-    /// <summary>呼吸尾音的**指数增益衰减**(OQ-44-7 spike 结论 · AC-019-5 的载体)。
+    /// <summary>呼吸尾音的**指数增益衰减**(OQ-44-7 spike 结论 · SAC-019-5 的载体)。
     /// <para>与 <see cref="VolumeRamp"/> 的分工:`VolumeRamp` = 匀速交叉淡化(ramp ≥ 50 ms 判据);
     /// 本类 = 指数尾巴(无拐点判据)。<b>共同点</b>:都只产出「本帧该写进
     /// <c>AudioSource.volume</c> 的值」,**禁直 set 目标值**。</para>

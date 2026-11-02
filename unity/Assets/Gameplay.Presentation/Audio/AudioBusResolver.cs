@@ -1,4 +1,4 @@
-// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(AC-018-2)
+// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(SAC-018-2)
 //   · A-6「37 个 wav 的 .meta 零 m_audioMixerGroup ⇒ 全走 Master 直通」
 // engine-reference `docs/engine-reference/unity/modules/audio.md:96`
 //   —— 总线路由的**运行期**属性 = `AudioSource.outputAudioMixerGroup`;

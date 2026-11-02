@@ -91,7 +91,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac42f3_brassSide_scaleElement_classifiedAsBrass()
         {
-            // Arrange:黄铜刻度读数件 + 逐档形态(AC-025-1 的形态载体)
+            // Arrange:黄铜刻度读数件 + 逐档形态(SAC-025-1 的形态载体)
             var scale = new BrassScaleElement();
             scale.SetDetents(3, 2);
 
@@ -108,7 +108,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             foreach (VisualElement detent in band.Children())
                 Assert.That(SkeuoMaterialBranchClassifier.Of(detent),
                     Is.EqualTo(SkeuoMaterialBranch.Brass),
-                    "档形态子件须随宿主归黄铜分支(AC-025-6)");
+                    "档形态子件须随宿主归黄铜分支(SAC-025-6)");
         }
 
         [Test]

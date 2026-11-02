@@ -30,7 +30,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 42 **只渲染**;形态全走**主题变量**(C2,零内联色);元件归**黄铜侧**;
   **selector → element 绑定点唯一** = `DentchDoseSelector.LoadInto(BrassScaleElement)`
-  —— ⚠️ **2026-10-18 评审 R-8 就地订正**:原行写「绑定点**唯一**」而**未限定轴**,与 `AC-025-4`
+  —— ⚠️ **2026-10-18 评审 R-8 就地订正**:原行写「绑定点**唯一**」而**未限定轴**,与 `SAC-025-4`
   (逐字要求 `CasebookScreen.RefreshDentchDoses()` 每行携带**该行自己的**形态)**自相矛盾**。
   **「行 → 形态」是另一条轴**:档序真源 = 行自身的 `userData`;`DentchDoseSelector` 刻意零可变状态、
   不持有「当前档」,**无法**驱动逐行形态。矛盾调用点 `CasebookScreen.cs:529` 系 `c125742a`
@@ -69,7 +69,7 @@
 
 ### 步① 逐档形态载体(戥杆倾角 / 药包鼓胀)
 
-- [x] **AC-025-1**: `BrassScaleElement` 扩展为**逐档形态载体** —— 新增
+- [x] **SAC-025-1**: `BrassScaleElement` 扩展为**逐档形态载体** —— 新增
       `SetDetents(int count, int focusedOrdinal)`(或等价具名 API):
       ① 按 `count` 生成 N 个**形态子件**;② 第 `focusedOrdinal` 档与其余档**几何可分**
       (高度 / 边距 / 边框宽的**整数**差异,**非颜色**);③ `count ≤ 0` fail-loud;
@@ -77,14 +77,14 @@
       形态子件的几何值全部来自**主题变量**,零内联字面量。
       *判别力*:停用「focused 档与其余档的几何差异」⇒ 相邻档可分断言须转红。
 
-- [x] **AC-025-2**: 形态**不缓存剂量状态** —— `BrassScaleElement` 上**不存在**任何
+- [x] **SAC-025-2**: 形态**不缓存剂量状态** —— `BrassScaleElement` 上**不存在**任何
       `CurrentDose` / `SelectedOrdinal` 之类持久字段;形态完全由 `SetDetents` 的入参决定,
       同一入参重复调用 ⇒ 同一形态(幂等)。
       *判别力*:把 `focusedOrdinal` 存进字段并在下次调用时忽略新入参 ⇒ 幂等断言须转红。
 
 ### 步② USS 主题变量(黄铜侧)
 
-- [x] **AC-025-3**: `SkeuoBrass.uss` 追加逐档形态类(建议 `.brass-detent` 族 + `.brass-detent--focused`),
+- [x] **SAC-025-3**: `SkeuoBrass.uss` 追加逐档形态类(建议 `.brass-detent` 族 + `.brass-detent--focused`),
       全部值走 `SkeuoThemeVariables.uss` 的 `--skeuo-brass-*` 变量;新增变量须带 `brass` 层注释。
       断言:① 新类存在;② 类内**零裸色值 / 零裸尺寸**(全 `var(--…)`);③ 块内**零数字文本**
       (即 USS 注释与类名不含数字角标语义)。
@@ -92,19 +92,19 @@
 
 ### 步③ 行构建改造(每行携带自己的档位形态)
 
-- [x] **AC-025-4**: `CasebookScreen.RefreshDentchDoses()` 的每一行携带**该行自己的**档位形态
+- [x] **SAC-025-4**: `CasebookScreen.RefreshDentchDoses()` 的每一行携带**该行自己的**档位形态
       (第 k 行显示「第 k 档」的形态),而不是全部相同的 `"戥子档"` 文本 + 同形。
       ① 行序 = 档位序(`userData` 仍为 `rowOrdinal`,提交链**不变**);
       ② **零数字文本**(行内不得出现 `1` / `1/3` / `X N` 形态的计数);
       ③ 幂等短路(`_builtDetentCount`)行为保留;④ 焦点 / 提交链零改动。
       *判别力*:把所有行设成同一形态 ⇒ 「相邻行形态不同」断言转红。
 
-- [x] **AC-025-5**: **零数字铁律机械化断言**(两栈) —— 戥子相关代码与 USS 中**不存在**
+- [x] **SAC-025-5**: **零数字铁律机械化断言**(两栈) —— 戥子相关代码与 USS 中**不存在**
       数字角标 / `X/N` 计数的产生路径。断言面:① 行内 `Label` 文本不含十进制数字;
       ② `BrassScaleElement` 不暴露任何 `string` 数字读数 API;③ USS 无 `content:` 数字。
       *判别力*:加一个 `new Label($"{ordinal + 1}/{count}")` ⇒ 断言转红。
 
-- [ ] **AC-025-6**(**2026-10-18 评审 R-1 重锚 —— 原判据不可判,已撤勾**)——
+- [ ] **SAC-025-6**(**2026-10-18 评审 R-1 重锚 —— 原判据不可判,已撤勾**)——
       原措辞要求「材质分支断言(`ink` / `brass` / `implement` **三枚举**)判定为 `brass`」,
       而**该分类器全库不存在**(实测:`grep -rn "classify\|BranchOf\|ResolveBranch\|MaterialOf\|MaterialBranch" unity/Assets/` **零命中**;
       `SkeuoElement.cs:4-10` 是**四员** `{Paper, Scroll, Ink, Seal}`,**无 `brass` / 无 `implement`**;
@@ -127,7 +127,7 @@
 
 ## Acceptance Criteria
 
-- [ ] `AC-025-1` … `AC-025-6` **全勾**(**未达成 —— `AC-025-6` 已于 2026-10-18 评审 R-1 撤勾**;
+- [ ] `SAC-025-1` … `SAC-025-6` **全勾**(**未达成 —— `SAC-025-6` 已于 2026-10-18 评审 R-1 撤勾**;
       见 §Tasks 步③ 与 §评审轮记录):过滤测试绿 + 变异恰红(23/23 绿 · 证伪轮见 §评审轮记录「判据」表)
 - [x] 全量 EditMode / PlayMode 留痕,与基线对账**零回归**(等式判据 `本轮 − 前次 = 新增数`)
       —— **实现轮已跑**(EditMode `3732/3687/0/45` vs 基线 `3709/3664/0/45` ⇒ `+23 = +23`;
@@ -190,7 +190,7 @@
 | 4 | `Screens/CasebookScreen.cs` | `RefreshDentchDoses()` 每行改为携带**该行自己的**档位形态 |
 | 5 | `Tests/EditMode/SkeuomorphicUI/dentch_dose_form_test.cs` | **新建,23 测** |
 
-**形态 = 几何可分,颜色不变**:落焦块**零颜色声明** ⇒ 「非颜色」(AC-025-1 ②)在 USS 文本层可判真。
+**形态 = 几何可分,颜色不变**:落焦块**零颜色声明** ⇒ 「非颜色」(SAC-025-1 ②)在 USS 文本层可判真。
 **未用 `style.rotate`**(承 §Engine Notes 的优先口径)—— 戥杆倾角由离散几何组合表达,完全避开 post-cutoff API。
 
 ### ⚠️ 附带改动(须评审):`.brass-scale` 的 `height` → `min-height`
@@ -221,7 +221,7 @@
 
 ### ⚠️ 一处留待评审裁定的解释
 
-`Control Manifest Rules` 写「绑定点**唯一** = `DentchDoseSelector.LoadInto`」,而 `AC-025-4` 逐字要求
+`Control Manifest Rules` 写「绑定点**唯一** = `DentchDoseSelector.LoadInto`」,而 `SAC-025-4` 逐字要求
 `CasebookScreen` 每行携带自己的形态 ⇒ 本件在 `CasebookScreen` 内新增了调用点。
 理由:`DentchDoseSelector` 刻意零可变状态、不持有「当前档」,**无法**驱动逐行形态(它只知道总档数)。
 读法:该行描述的是**改动前**的既有状态;`LoadInto` 仍是**唯一的 selector→element 绑定点**(本件未新增第二条 selector 绑定)。
@@ -237,16 +237,16 @@
 
 | 级别 | 编号 | 摘要 | 处置 |
 |---|---|---|---|
-| **BLOCKING** | **R-1** | `AC-025-6` 的三枚举材质分支分类器**全库不存在**;夹具以自造类名断言顶替 AC 语义层 | **已落**:AC-025-6 重锚(撤勾)+ 落债 `TD-prescription-07` |
+| **BLOCKING** | **R-1** | `SAC-025-6` 的三枚举材质分支分类器**全库不存在**;夹具以自造类名断言顶替 AC 语义层 | **已落**:SAC-025-6 重锚(撤勾)+ 落债 `TD-prescription-07` |
 | WARNING | R-2 | `.brass-detent` 未声明 `flex-shrink` ⇒ 几何可分性随行宽漂移 | ✅ 已修(`flex-shrink: 0`) |
 | WARNING | R-3 | `.brass-scale` 因 `min-height` 改造而**两种观感并存**,不变量失效但注释未登记 | ✅ 已修(注释就地登记) |
 | WARNING | R-4 | `BrassScaleElement.TickCount` 生产侧零读 ⇒ write-only 死状态 | **落债 `TD-prescription-08`**(不在本轮修复范围) |
 | WARNING | R-5 | 白名单含字面量 `"TickCount"`,而背衬字段实名 `<TickCount>k__BackingField` ⇒ **死码** | ✅ 已修(改 `BackingFieldName()` + 非空守卫;F16 钉住) |
 | WARNING | R-6 | 层归属只用全文件 `Contains` 代理 ⇒ 变量搬到任何层都通过 | ✅ 已修(`LayerRange` + `AssertDeclaredInLayer`;F17 钉住) |
-| WARNING | R-7 | `root.Query<Label>()` 覆盖整棵脉案树,而 AC-025-5① 只要求「行内」 | ✅ 已修(收窄到 `prescription-page` 子树) |
-| MINOR | R-8 | `Control Manifest Rules` 的「绑定点唯一 = `LoadInto`」与 `AC-025-4` 自相矛盾(既有文档漂移,`git blame` = `c125742a` 2026-10-12) | ✅ **已就地改注**(用户 2026-10-18 裁定):限定为「**selector → element** 绑定点唯一」+ 声明「行 → 形态」另一条轴 |
+| WARNING | R-7 | `root.Query<Label>()` 覆盖整棵脉案树,而 SAC-025-5① 只要求「行内」 | ✅ 已修(收窄到 `prescription-page` 子树) |
+| MINOR | R-8 | `Control Manifest Rules` 的「绑定点唯一 = `LoadInto`」与 `SAC-025-4` 自相矛盾(既有文档漂移,`git blame` = `c125742a` 2026-10-12) | ✅ **已就地改注**(用户 2026-10-18 裁定):限定为「**selector → element** 绑定点唯一」+ 声明「行 → 形态」另一条轴 |
 | MINOR | R-9 | 构造器用 `hierarchy.Add`,全库惯用 `Add` | ✅ 已修 |
-| MINOR | R-10 | 负向门测 `N/M` 分式,而 AC-025-5③ 逐字是 `content:` 数字 | ✅ 已修(主断言对齐 AC;`N/M` 降为附加面) |
+| MINOR | R-10 | 负向门测 `N/M` 分式,而 SAC-025-5③ 逐字是 `content:` 数字 | ✅ 已修(主断言对齐 AC;`N/M` 降为附加面) |
 
 ### 评审轮的正面观察(修复中不得损毁)
 
@@ -283,7 +283,7 @@
 ### ⚠️ 本 story 仍未 `Complete`(**2026-10-18 截图轮口径;已由 §走查重跑记录解除**)
 
 - **R-1 只解决「不实声称」,不解决分类器本身的缺失**(转 `TD-prescription-07`)—— ⚠️ **该债仍在**,
-  但它**不阻塞本件**(重锚后 AC-025-6 只声称已实现的一半);
+  但它**不阻塞本件**(重锚后 SAC-025-6 只声称已实现的一半);
 - ~~截图 NOT-RUN~~ ✅ **已跑并判绿(见 §截图轮记录)** · ~~`S13-7` 走查重跑未执行~~ ✅
   **已跑并改判 ✅✅(见下方 §走查重跑记录)**;
 - **R-8 ✅ 已就地改注**(用户裁定,见 §Context `Control Manifest Rules`);
@@ -308,7 +308,7 @@
 
 `SkeuoBrass.uss` **1 行**:`.brass-detent` 的 `background-color:
 var(--skeuo-brass-scale-color)` → **`var(--skeuo-brass-bg)`**(`#B8863B`,art-bible §4.1,
-`:root` 可继承)。**零新增色 · 零新贴图**;落焦块**仍零颜色声明** ⇒ AC-025-1② 不破坏。
+`:root` 可继承)。**零新增色 · 零新贴图**;落焦块**仍零颜色声明** ⇒ SAC-025-1② 不破坏。
 
 ### 复图判绿(修复后)
 
@@ -322,7 +322,7 @@ var(--skeuo-brass-scale-color)` → **`var(--skeuo-brass-bg)`**(`#B8863B`,art-bi
 | 4 | 30–31 | 第 4 档 |
 | 5 | 34–35 | 第 5 档 |
 
-步进 4px = 一个档块节距 ⇒ **AC-025-4「行序 = 档位序」首次在渲染层可见**;
+步进 4px = 一个档块节距 ⇒ **SAC-025-4「行序 = 档位序」首次在渲染层可见**;
 旧图同扫描 = 零金色簇(唯一变量 = 那行 USS)。Vision 独立通道交叉确认:各行凸起位置不同 · 零数字 ·
 焦点高亮在第 1 行。⚠️ 观感限制如实登记:常态档在 Game view 缩放下仅约 2px,
 **每行实际只有落焦档金芯露出**(低密度读数)—— 够不够归 `S13-7` 走查人眼裁定;
@@ -354,8 +354,8 @@ var(--skeuo-brass-scale-color)` → **`var(--skeuo-brass-bg)`**(`#B8863B`,art-bi
 ## Completion Notes
 
 **Completed**: 2026-10-18
-**Criteria**: AC-025-1…5 ✅(23 测全绿 · 证伪轮 17/17 RED-OK · SHA-256 还原通过);
-**AC-025-6 维持不勾**(用户裁定重锚:① 类名级 brass 归属 ✅,② 三枚举分类器 → `TD-prescription-07`,
+**Criteria**: SAC-025-1…5 ✅(23 测全绿 · 证伪轮 17/17 RED-OK · SHA-256 还原通过);
+**SAC-025-6 维持不勾**(用户裁定重锚:① 类名级 brass 归属 ✅,② 三枚举分类器 → `TD-prescription-07`,
 归 42 epic 独立 story,**不阻塞本件结案**);全量 EditMode `3732/3686/1/45` / PlayMode `197/197/0/0`
 —— total 与基线逐位同值(唯一红 = `MovementFeedTest` 已知间歇红,`TD-player-01` 下游,单跑 5/5 绿)。
 **判据权威**: `AC-11-12` 载体半 **✅** / `AC-11-13` **✅**(由 2026-10-18 走查重跑真人判定,主创+医学从业双签,

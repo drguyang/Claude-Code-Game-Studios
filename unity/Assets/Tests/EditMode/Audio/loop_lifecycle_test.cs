@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-009-source-lifecycle-handover.md
-//   (AC-009-1 EndLoop 自评兜底 / AC-009-2 贴耳交接契约 / AC-009-3 重复过期句柄 / AC-009-4 咳嗽不停呼吸)
+//   (SAC-009-1 EndLoop 自评兜底 / SAC-009-2 贴耳交接契约 / SAC-009-3 重复过期句柄 / SAC-009-4 咳嗽不停呼吸)
 //   · EndLoop 兜底 = 呈现侧义务(ADR-001 §一之三 裁决二):从最新快照 Progress 自求值,
 //     零网络依赖;时钟源 = sim tick(禁墙钟);有界时间 ≤ LOOP_EVAL_MAX_TICKS
 //   · 贴耳交接 = 玩家自因;HANDOVER_MS 窗内交叉淡化;禁同刻双呼吸稳态超窗
@@ -53,9 +53,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         /// <summary>停滞阈值种子(同上:显式注入)。</summary>
         private const int MaxStagnantTicks = 100;
 
-        // ══════════════ AC-009-1 EndLoop 自评兜底(ADR-001 §一之三 裁决二)══════════════
+        // ══════════════ SAC-009-1 EndLoop 自评兜底(ADR-001 §一之三 裁决二)══════════════
 
-        /// <summary>AC-009-1:流停更 / 快照停「循环中」时,44 在**有界时间**内自行结束循环。
+        /// <summary>SAC-009-1:流停更 / 快照停「循环中」时,44 在**有界时间**内自行结束循环。
         /// <para>被测物 = 生产 `LoopSelfTerminationDriver`(执行)+ 生产 `EndLoopWatchdog`(判据)。</para>
         /// <para>⚠️ **断言必须落到 sink 侧**(`target.Stopped`)—— 只断驱动器内部计数器
         /// (`ActiveLoopCount` / `SelfTerminatedCount`)时,「停用实际 `_sink.EndLoop` 调用」
@@ -86,7 +86,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(target.Stopped[0], Is.EqualTo(h.Id), "停的是那个句柄");
         }
 
-        /// <summary>AC-009-1:流恢复更新后不得重复停(幂等)。
+        /// <summary>SAC-009-1:流恢复更新后不得重复停(幂等)。
         /// <para>⚠️ 生产口径 = **严格 `>`**:停滞 `== maxStagnantTicks` **不判停**;
         /// 恢复快照后停滞归零,不误杀。</para></summary>
         [Test]
@@ -122,7 +122,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "sink 侧亦不得重复收到 StopLoop");
         }
 
-        /// <summary>AC-009-1:有界常量取 0 ⇒ **当轮必停**(下界自证)。
+        /// <summary>SAC-009-1:有界常量取 0 ⇒ **当轮必停**(下界自证)。
         /// <para>⚠️ 生产口径 = 严格 `>`:阈值 0 时,停滞 1 tick > 0 ⇒ 停。</para></summary>
         [Test]
         public void test_endLoopWatchdog_zeroBoundStopsImmediately()
@@ -146,7 +146,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(target.Stopped[0], Is.EqualTo(h.Id));
         }
 
-        /// <summary>AC-009-1:从未收到快照 ⇒ 不判停(与「无 `Progress` 快照 ⇒ 不判」同口径)。
+        /// <summary>SAC-009-1:从未收到快照 ⇒ 不判停(与「无 `Progress` 快照 ⇒ 不判」同口径)。
         /// <para>补评前无此测 —— 新增,守「快照是自评的**必要**输入」。</para></summary>
         [Test]
         public void test_endLoopWatchdog_noSnapshotEver_notTerminated()
@@ -165,7 +165,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "从未收到快照 ⇒ 无从判停(快照是自评的必要输入)");
         }
 
-        /// <summary>AC-009-1:上游正常 `EndLoop` ⇒ 退出跟踪,自评不重复停。</summary>
+        /// <summary>SAC-009-1:上游正常 `EndLoop` ⇒ 退出跟踪,自评不重复停。</summary>
         [Test]
         public void test_endLoopWatchdog_normalEndLoop_noSelfTermination()
         {
@@ -185,7 +185,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "上游正常 EndLoop ⇒ 自评兜底不应介入(兜底只处理『收尾信号没来』)");
         }
 
-        /// <summary>AC-009-1:时钟源 = sim tick(禁墙钟)。
+        /// <summary>SAC-009-1:时钟源 = sim tick(禁墙钟)。
         /// 用 Cecil 扫描器验证 44 生产类型方法体 IL 不含 DateTime/Time 引用
         /// (与 Story 007 D7 时钟面同纪律,复用 AssemblyGates.CheckAudioClockTokens)。</summary>
         [Test]
@@ -205,7 +205,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 string.Join("\n", errs));
         }
 
-        /// <summary>AC-009-1 契约形状:EndLoop 存在,参数为本地句柄 AudioCueHandle(非网络类型)。
+        /// <summary>SAC-009-1 契约形状:EndLoop 存在,参数为本地句柄 AudioCueHandle(非网络类型)。
         /// ⚠️ 本测试只验证契约形状(EndLoop 不住网络序列化路径的**契约面**);
         ///     「AudioCueDto 不进任何网络通道」的裁决(ADR-001 §一之二)由 45 网络层实现期验证。</summary>
         [Test]
@@ -226,9 +226,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "EndLoop 参数 = AudioCueHandle(本地句柄,非网络类型)");
         }
 
-        // ══════════════ AC-009-2 贴耳交接契约 ══════════════
+        // ══════════════ SAC-009-2 贴耳交接契约 ══════════════
 
-        /// <summary>AC-009-2:进入听诊 ⇒ 世界层在交接窗内压出、听诊层同窗淡入。
+        /// <summary>SAC-009-2:进入听诊 ⇒ 世界层在交接窗内压出、听诊层同窗淡入。
         /// 两层并存 ≤ 交接窗,禁同刻双呼吸稳态。
         /// <para>被测物 = 生产 `HandoverMux`(补评前是自造 `FakeHandoverFsm`)。</para></summary>
         [Test]
@@ -253,7 +253,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "窗满后世界层音量归零(禁同刻双呼吸稳态)");
             Assert.That(mux.StethoscopeVolume, Is.EqualTo(1.0).Within(1e-9), "听诊层淡入");
             Assert.That(mux.WorldHandleReleased, Is.True,
-                "AC-009-2 逐字:世界层停止由 44 对自有句柄执行(ADR-028 ⑤)");
+                "SAC-009-2 逐字:世界层停止由 44 对自有句柄执行(ADR-028 ⑤)");
             // ⚠️ **观测 sink 侧** —— `WorldHandleReleased` 是 mux 的**自述**,
             //    停用实际 `_sink.EndLoop` 调用时它仍为 true(证伪例 ④ 只靠标志即转红,
             //    但标志与「真调 sink」是两件事)。sink 收到 StopLoop 才是副作用。
@@ -261,7 +261,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "世界层句柄必须**真的**被 44 停止(不是只翻了个标志)");
         }
 
-        /// <summary>AC-009-2:窗**中途**两层并存但**不同刻稳态** —— 交叉淡化在开区间内。</summary>
+        /// <summary>SAC-009-2:窗**中途**两层并存但**不同刻稳态** —— 交叉淡化在开区间内。</summary>
         [Test]
         public void test_handover_midWindow_crossfadeStrictlyBetween()
         {
@@ -281,7 +281,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "交叉淡化:两层音量之和恒为 1(等功率线性交叉)");
         }
 
-        /// <summary>AC-009-2:退出听诊 ⇒ 世界层淡入、听诊层压出(镜像)。</summary>
+        /// <summary>SAC-009-2:退出听诊 ⇒ 世界层淡入、听诊层压出(镜像)。</summary>
         [Test]
         public void test_handover_exitStethoscope_worldFadesIn()
         {
@@ -310,7 +310,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "听诊层句柄必须**真的**被 44 停止(不是只翻了个标志)");
         }
 
-        /// <summary>AC-009-2:窗内重复触发进入(幂等)。</summary>
+        /// <summary>SAC-009-2:窗内重复触发进入(幂等)。</summary>
         [Test]
         public void test_handover_idempotentReentry()
         {
@@ -329,7 +329,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly));
         }
 
-        /// <summary>AC-009-2:听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)。</summary>
+        /// <summary>SAC-009-2:听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)。</summary>
         [Test]
         public void test_handover_worldCueArrives_noRestart()
         {
@@ -350,7 +350,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(mux.WorldVolume, Is.EqualTo(0.0).Within(1e-9), "世界层仍压出");
         }
 
-        /// <summary>AC-009-2:禁硬切(handoverTicks ≤ 0 ⇒ 构造期拒绝)。</summary>
+        /// <summary>SAC-009-2:禁硬切(handoverTicks ≤ 0 ⇒ 构造期拒绝)。</summary>
         [Test]
         public void test_handover_hardCut_rejected()
         {
@@ -362,16 +362,16 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "负窗必须拒绝(旧 Fake 只测 ==0,本测补齐 <0 —— 见 story Known Risks)");
         }
 
-        /// <summary>AC-009-2:null sink ⇒ 构造期抛异常(注入缝守卫)。</summary>
+        /// <summary>SAC-009-2:null sink ⇒ 构造期抛异常(注入缝守卫)。</summary>
         [Test]
         public void test_handover_nullSink_throws()
         {
             Assert.Throws<ArgumentNullException>(() => new HandoverMux(null, HandoverTicks));
         }
 
-        // ══════════════ AC-009-3 重复/过期句柄 ══════════════
+        // ══════════════ SAC-009-3 重复/过期句柄 ══════════════
 
-        /// <summary>AC-009-3:同源重复 BeginLoop ⇒ 以最后一次为准释放旧句柄(防双呼吸层)。
+        /// <summary>SAC-009-3:同源重复 BeginLoop ⇒ 以最后一次为准释放旧句柄(防双呼吸层)。
         /// <para>被测物 = 生产 `CueRenderSink`(S14-2 交付;补评前是自造 `FakeHandleManager`)。</para></summary>
         [Test]
         public void test_duplicateBeginLoop_lastWins()
@@ -395,7 +395,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(sink.ActiveLoopCount, Is.EqualTo(0));
         }
 
-        /// <summary>AC-009-3:过期 EndLoop 忽略不产生播放错误。</summary>
+        /// <summary>SAC-009-3:过期 EndLoop 忽略不产生播放错误。</summary>
         [Test]
         public void test_expiredEndLoop_ignored()
         {
@@ -413,7 +413,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(target.Stopped, Has.Count.EqualTo(1), "过期句柄不产生额外 Stop");
         }
 
-        // ══════════════ AC-009-4 咳嗽不停呼吸(AC-44-08 联合断言)══════════════
+        // ══════════════ SAC-009-4 咳嗽不停呼吸(AC-44-08 联合断言)══════════════
 
         // ⚠️ 主判据归 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls`
         //    (同名同逻辑,已存在,且调**真生产类** `CoughChannel.Dispatch` —— 评审原件 §2.3 判 🟡)。

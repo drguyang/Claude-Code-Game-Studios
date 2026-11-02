@@ -1,7 +1,7 @@
 // 权威来源:production/epics/audio-system/story-020-voice-variant-selection-wired.md
-//   · AC-020-1 [A]:多素材行的取用路径经**真** `VoiceVariantLib.SelectVariant`(禁测试自造选择器)
-//   · AC-020-2 [A]:选择键 = (CueId × Tier × 桶 × 患者身份);身份确定性,不同患者不得恒同一条
-//   · AC-020-3 [A]:12 个 vo_ 变体全部可达(真种子事件表 + 真 VoiceVariantLib,禁内联清单)
+//   · SAC-020-1 [A]:多素材行的取用路径经**真** `VoiceVariantLib.SelectVariant`(禁测试自造选择器)
+//   · SAC-020-2 [A]:选择键 = (CueId × Tier × 桶 × 患者身份);身份确定性,不同患者不得恒同一条
+//   · SAC-020-3 [A]:12 个 vo_ 变体全部可达(真种子事件表 + 真 VoiceVariantLib,禁内联清单)
 // 缺口来源:`TD-audio-030`(AudioClipLibrary 恒取 Assets[0];VoiceVariantLib 生产零调用)
 // GDD:design/gdd/audio-system.md F-44.3(:353)· F-44.6(:409)· AC-44-02
 // ADR-018 §一(44 只渲染)· ADR-016 §一(三源不变量 —— 呈现侧同型:禁墙钟 / 禁 UnityEngine.Random)
@@ -50,7 +50,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             _fakes.Clear();
         }
 
-        // ═══════════ AC-020-1:多素材行走真选择器 ═══════════
+        // ═══════════ SAC-020-1:多素材行走真选择器 ═══════════
 
         /// <summary>判别力:把取用回退为恒第 0 条 ⇒ 红(全部 12 条断言里至少 1 条不等)。</summary>
         [Test]
@@ -90,7 +90,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 }
             }
             Assert.That(offZero, Is.GreaterThan(0),
-                "全部选中 assets[0] —— 恒第 0 条的行为没被真选择器替换(AC-020-1)");
+                "全部选中 assets[0] —— 恒第 0 条的行为没被真选择器替换(SAC-020-1)");
         }
 
         /// <summary>判别力:换掉选择器的**取值来源**(签名变化 / 传错 CueId)⇒ 红。</summary>
@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 BindingFlags.Public | BindingFlags.Instance, null,
                 new[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int) }, null);
             Assert.That(resolve, Is.Not.Null,
-                "AudioClipLibrary.Resolve(int,int,int,int,int) 不存在 —— 选择入口缺失(AC-020-1)");
+                "AudioClipLibrary.Resolve(int,int,int,int,int) 不存在 —— 选择入口缺失(SAC-020-1)");
 
             // Assert ②:生产 44 二进制（Gameplay.Presentation 里的 44 类型）对变体选择函数有真调用
             // (story-020 重裁 ③:选择入口改为 VoiceVariantLib.SelectVariantCube —— 见 §重裁)
@@ -119,7 +119,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 .Where(m => ContainsCall(m, "SelectVariantCube"))
                 .ToList();
             Assert.That(callers, Is.Not.Empty,
-                "生产代码对 VoiceVariantLib.SelectVariantCube 零调用——「测试单边绿」的假象(AC-020-1 判据宾语 = 生产类)");
+                "生产代码对 VoiceVariantLib.SelectVariantCube 零调用——「测试单边绿」的假象(SAC-020-1 判据宾语 = 生产类)");
         }
 
         /// <summary>单素材行不受影响;越界 / 未装载仍返回 null(选择面不吞错)。</summary>
@@ -148,7 +148,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "表里无行 ⇒ SelectVariant 必须返 -1(不静默取 0)");
         }
 
-        // ═══════════ AC-020-2:身份确定性 + 分布 ═══════════
+        // ═══════════ SAC-020-2:身份确定性 + 分布 ═══════════
 
         /// <summary>同输入两次调用 ⇒ 同变体(确定性,可重放)。</summary>
         [Test]
@@ -182,7 +182,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                     distinct.Add(_library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity, 0).name);
                 Assert.That(distinct.Count, Is.GreaterThan(1),
                     $"tier={tier}:8 名患者听到同一条咳嗽({string.Join(",", distinct)})—— " +
-                    "身份维度没进选择键(AC-020-2)");
+                    "身份维度没进选择键(SAC-020-2)");
             }
         }
 
@@ -229,14 +229,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 Assert.That(v, Is.InRange(0, range - 1));
             Assert.That(VoiceVariantLib.IdentityScalar(7, 0), Is.EqualTo(0), "空区间 ⇒ 0,不抛");
 
-            // 三桶全部可达(AC-020-3 的前置:桶输入必须覆盖弱/中/强)
+            // 三桶全部可达(SAC-020-3 的前置:桶输入必须覆盖弱/中/强)
             var buckets = new HashSet<VoiceBucket>();
             for (int identity = 0; identity < 64; identity++)
                 buckets.Add(VoiceVariantLib.ComputeBucket((byte)VoiceVariantLib.IdentityScalar(identity, 256)));
             Assert.That(buckets.Count, Is.EqualTo(3), "身份映射只落在部分桶 —— 三桶不可达");
         }
 
-        // ═══════════ AC-020-3:12 个 vo_ 变体全部可达 ═══════════
+        // ═══════════ SAC-020-3:12 个 vo_ 变体全部可达 ═══════════
 
         /// <summary>判别力:让选择器只覆盖前 6 条 ⇒ 红。</summary>
         [Test]

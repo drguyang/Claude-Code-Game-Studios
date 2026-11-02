@@ -93,7 +93,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         /// <summary>档位取词 + F-8.2 向尾回退:从 <paramref name="slot"/> 起取第一个非空词;
         /// 全空 ⇒ <c>null</c>(读不出)。空串按空处理(GDD 禁空串 —— 空串与阴性形态呈现层同构,
-        /// 此处防御性归入回退,真表零空串由 AC-024-3 断言)。</summary>
+        /// 此处防御性归入回退,真表零空串由 SAC-024-3 断言)。</summary>
         private static string WordAtOrFallback(string[] words, int slot)
         {
             if (words == null || words.Length == 0) return null;

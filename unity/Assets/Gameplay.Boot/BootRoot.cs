@@ -1484,7 +1484,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <paramref name="mixerLoader"/> 假件即可覆盖 fail-loud 分支,零 catalog 依赖)。</para>
         /// <para><b>为何 <paramref name="provider"/> 为 null 是「返回 null」而非抛</b>:
         /// 预载失败 = 本机未重建 catalog / 测试环境 ⇒ 组合根走 <c>NullRenderTarget</c> 链,
-        /// <c>AudioRenderAssembled = false</c> **可观测**(AC-018-3 ②「不静默」)。而
+        /// <c>AudioRenderAssembled = false</c> **可观测**(SAC-018-3 ②「不静默」)。而
         /// **混音器**解析失败不是环境问题、是 A-7 未补(组未登记)⇒ 那一处必须抛。</para></summary>
         /// <param name="provider">data-core provider(null ⇒ 缝不接,返回 null)。</param>
         /// <param name="mixerLoader">混音器装载缝(null ⇒ 走生产路径
@@ -1862,7 +1862,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null && _services.AudioPool != null)
                 OneShotReclaimPump.Pump(_services.AudioPool);
 
-            // 病人 cue 驱动(story-018 · AC-018-6):在场集 → 13 调度 → 44 发射。
+            // 病人 cue 驱动(story-018 · SAC-018-6):在场集 → 13 调度 → 44 发射。
             // 次序 = 视觉实体**之后**、玩家交互输入**之前**:两者都读本 tick 的在场集,
             // 但 cue 还要读体征 —— `StepVitals` 已在 `PumpFrame` 的边沿序列里跑完
             // (故新出现的病人在**本拍**已建档,`hasCourse` 门不会误跳)。
@@ -1997,7 +1997,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 池根是**非 Boot 场景**内容(ADR-028 ② 零场景预摆:池根由 `new GameObject` 建,
             //    不挂 BootRoot 层级)⇒ 不靠层级继承销毁,必须显式 Dispose。
             // ⚠️ **不调 `Spatialization?.Dispose()`** —— 导演与渲染目标**共享**同一个池
-            //    (AC-018-4 单池不变量),池的所有者是本装配袋;导演只借用。
+            //    (SAC-018-4 单池不变量),池的所有者是本装配袋;导演只借用。
             //    若两处都 Dispose,第二个是空操作(池幂等)但语义上会造成「谁拥有池」的二义。
             _services?.AudioPool?.Dispose();
             if (_audioSeams?.Clips is AudioClipLibrary clipLibrary) clipLibrary.Dispose();

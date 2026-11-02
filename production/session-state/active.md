@@ -5211,7 +5211,7 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 - **用户裁定 2 项**(AskUserQuestion):① **交付面收敛** —— 三类中两类已由 S14-2 交付
   (`EndLoopWatchdog` / `CueRenderSink`)⇒ 只落 `HandoverMux` + `LoopSelfTerminationDriver`,
   兜底谓词与句柄面**改指 S14-2 生产类、不重复造**(避同型两处维护,ADR-024 §六);
-  ② **AC 编号** = 补 story 局部 `AC-009-1…4` + 就地订正幽灵 ID `AC-44-D10`(不改 GDD)
+  ② **AC 编号** = 补 story 局部 `SAC-009-1…4` + 就地订正幽灵 ID `AC-44-D10`(不改 GDD)
 - **交付**:2 新生产类(`HandoverMux` 234 行 · `LoopSelfTerminationDriver` 144 行)
   + `AudioTuning.HandoverTicks = 10` + 白名单 += `HandoverPhase`
   + 测试 12 → **16**(`FakeLoopWatchdog` / `FakeHandoverFsm` / `FakeHandleManager` 全数删除)
@@ -6164,9 +6164,9 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
 
 ## Session Extract — 两件新 story 立卡 2026-10-17
 - **story-025(42 侧戥子形态元件)** — `production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md`,Status=Ready
-  · 6 条 AC(AC-025-1…6)· `TD-prescription-01` 执行件 · 边界裁定五条
+  · 6 条 AC(SAC-025-1…6)· `TD-prescription-01` 执行件 · 边界裁定五条
 - **story-018(44 侧音频运行期装配)** — `production/epics/audio-system/story-018-runtime-audio-assembly.md`,Status=Ready
-  · 7 条 AC(AC-018-1…7)· `TD-audio-023` + `TD-audio-024` 执行件
+  · 7 条 AC(SAC-018-1…7)· `TD-audio-023` + `TD-audio-024` 执行件
   · ⚠️ **新发现 A-7**:`DaYiJingCheng.mixer` 不在任何 Addressables 组 ⇒ `MixerResolver` 解析不到
   · ⚠️ **A-6 口径改判**:走运行期 `source.outputAudioMixerGroup`,不改 38 个 `.meta`
 - 同批回刷:skeuomorphic-ui/EPIC.md(Counts 24→25)· audio-system/EPIC.md(+018 行 + 覆盖面说明)·
@@ -6219,7 +6219,7 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
   `Brass/BrassScaleElement.cs`(+`SetDetents(count, focusedOrdinal)` / `DetentCount` / `FocusedDetentOrdinal`)·
   `Screens/CasebookScreen.cs`(`RefreshDentchDoses()` 每行由 `Label("戥子档")` 改为该行自己的形态)·
   `Tests/EditMode/SkeuomorphicUI/dentch_dose_form_test.cs`(**新建,23 测**)
-- **形态 = 几何可分,颜色不变** —— 落焦块**零颜色声明** ⇒ AC-025-1 ②「非颜色」在 USS 文本层可判真。
+- **形态 = 几何可分,颜色不变** —— 落焦块**零颜色声明** ⇒ SAC-025-1 ②「非颜色」在 USS 文本层可判真。
   **未用 `style.rotate`**(承 story §Engine Notes 优先口径)。
 - **过滤**:23/23 绿。
 - **证伪轮**:`RED-OK 15/15`(脚本 `/tmp/fz-s25.py`;改→跑→还原同命令内 + SHA-256 还原校验通过)。
@@ -6254,18 +6254,18 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
 
 1. 下一步 = **跑 `/code-review`**;`sprint-status.yaml` = **登记为 S14-11(计划外追加)**;
    `rip` 命名避让事实 = **入 `.claude/docs/coding-standards.md`**(已落,新立「Naming — 机械门避让表」节)。
-2. 评审产出 BLOCKING ⇒ **落原件**;**R-1 处置 = 重锚 AC-025-6 + 落债**;
+2. 评审产出 BLOCKING ⇒ **落原件**;**R-1 处置 = 重锚 SAC-025-6 + 落债**;
    **修复范围**(多选)= **R-2 flex-shrink · R-3 注释登记 · R-5 白名单死码 · 其余 MINOR 四项**(= R-6 / R-7 / R-9 / R-10)。
 
 ### 评审裁定:**CHANGES REQUIRED**(唯一 BLOCKING = R-1)
 
 - **原件**:`production/qa/evidence/review-story-025-2026-10-18.md`(三专家并行,Phase 8b 双列结账)。
-- **R-1(BLOCKING)**:`AC-025-6` 引用的「`ink`/`brass`/`implement` **三枚举**材质分支分类器」**全库不存在**
+- **R-1(BLOCKING)**:`SAC-025-6` 引用的「`ink`/`brass`/`implement` **三枚举**材质分支分类器」**全库不存在**
   (实测 `grep classify|BranchOf|MaterialOf` 零命中;`SkeuoElement.cs:4-10` 是**四员** `{Paper,Scroll,Ink,Seal}`;
   GDD 侧载体 `world_billboard_test.cs:87` 仍是占位符)⇒ 夹具以自造 `ClassListContains("brass")` **顶替 AC 语义层**
   ——「AC 语义层被测试自造断言顶替」的**第 4 次**实例。
-- **处置**:AC-025-6 **撤勾** + 重锚为两条(① 类名级已实现 ✅ / ② 分类器缺口 ⛔)+ 落债 **`TD-prescription-07`**。
-- **R-4**(`TickCount` write-only)→ **`TD-prescription-08`**;**R-8**(Manifest「绑定点唯一」措辞与 AC-025-4 矛盾,
+- **处置**:SAC-025-6 **撤勾** + 重锚为两条(① 类名级已实现 ✅ / ② 分类器缺口 ⛔)+ 落债 **`TD-prescription-07`**。
+- **R-4**(`TickCount` write-only)→ **`TD-prescription-08`**;**R-8**(Manifest「绑定点唯一」措辞与 SAC-025-4 矛盾,
   `git blame` = `c125742a` 2026-10-12 **既有债**)→ **本件未自行改注,待用户裁定**。
 
 ### 修复轮落地(7 项,用户选定范围)
@@ -6285,7 +6285,7 @@ R-7 收窄到 `prescription-page` 子树 · R-10 负向门主断言对齐 AC 的
 
 ### 落盘件(本轮)
 
-story-025(AC-025-6 重锚 · AC 勾选表 · Test Evidence 17 例 · 新 `## 评审轮记录`)·
+story-025(SAC-025-6 重锚 · AC 勾选表 · Test Evidence 17 例 · 新 `## 评审轮记录`)·
 `production/qa/evidence/review-story-025-2026-10-18.md`(**新建,原件**)·
 `docs/tech-debt-register.md`(新节 + `TD-prescription-07` / `08`)·
 `impl-s25-dentch-dose-form-2026-10-18.md`(§九 评审修复轮附录,订正过时引用)·
@@ -6318,7 +6318,7 @@ story-025(AC-025-6 重锚 · AC 勾选表 · Test Evidence 17 例 · 新 `## 评
    根因(机械定位):`.brass-detent` 底色 = 描边 = `.brass-scale` 板色,**三色全同 `#8C5A2B`**
    ⇒ 档块溶进铜条。23 测测不到此类(断 USS 文本 / resolved style,非可见性)。
 2. **修复(用户裁甲案,1 行)**:`SkeuoBrass.uss` `.brass-detent` 底色 → `var(--skeuo-brass-bg)`
-   (`#B8863B`,art-bible §4.1,`:root` 可继承);零新增色 · 落焦块仍零颜色声明(AC-025-1② 不破坏)。
+   (`#B8863B`,art-bible §4.1,`:root` 可继承);零新增色 · 落焦块仍零颜色声明(SAC-025-1② 不破坏)。
 3. **复图判绿** `unity/Logs/shots/20261018_092936_1x.png`:每行恰一个金档块且位置阶梯
    (x 18/22/26/30/34 = 行 k 第 k 档)· 旧图同扫描零金簇(唯一变量 = 那行 USS)· 全画面零数字。
    ⚠️ 观感限制如实登记:常态档仅约 2px,**每行实际只落焦档金芯露出**(低密度读数)——
@@ -6401,7 +6401,7 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   外推真实会话)—— `TD-audio-025` 处置**不变、仍 open**;
   ④ 协议第 4 项「无爆音」= **未判**,不勾不借。
 - **覆盖面钉住**:当前事件表**无给药/疗效 cue 条目** ⇒ 实听对象 = `Page_Turn` / `Cabinet_Prop`;
-  判据成立靠**全表构建期白名单门**(`AC-018-7`)+ **11 侧零独立 `AudioCue`**。
+  判据成立靠**全表构建期白名单门**(`SAC-018-7`)+ **11 侧零独立 `AudioCue`**。
 - **`AC-44-09` 归属收窄(本批自查)**:其 ✅ = **10-17 E5 走查(全 15 cue probe 真播)+ 本批
   (游戏内场景形态)合取**,本批**不独力结清**;顺带登记 story-016 `:83` 自述与走查件签字行
   (`[ ] 通过` + 自注「未勾选 = E5 未通过」)的**账面矛盾**,处置归 story-016 的 reconcile 轮。
@@ -6434,9 +6434,9 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **原件**:`production/qa/evidence/review-story-018-2026-10-18.md`(三草稿 16/39/19 行全非空 → 合并 → 删)。
 - **Verdict**:CHANGES REQUIRED → 修复后 **APPROVED WITH DEBTS(TD-audio-028…033)**。
 - **确认**:A-1…A-7 七缺口全闭 · **无假绿**(可观测标志全由被观测对象派生)· HC-1…HC-8 全 PASS。
-- **BLOCKING 1 项 B-1(账面)**:卡面 AC-018-6 逐字要求的「哪条链仍无上游驱动」登记**从未落**
+- **BLOCKING 1 项 B-1(账面)**:卡面 SAC-018-6 逐字要求的「哪条链仍无上游驱动」登记**从未落**
   ⇒ 本批补落 `## Test Evidence`(BreathLayerDriver/CueEmitDeriver 运行期零构造;语声变体族零载体)。
-- **同批两处账面修复**:证伪表补 F2 行(13→14 与表头 14/14 对齐)· AC-018-2③「默认 SFX」订正注(实作 `bus: null`)。
+- **同批两处账面修复**:证伪表补 F2 行(13→14 与表头 14/14 对齐)· SAC-018-2③「默认 SFX」订正注(实作 `bus: null`)。
 - **新缺陷 N-1…N-10** 逐条对码复核属实 ⇒ 六条新债立案(028 空间化链未接 / 029 one-shot 不归还 /
   030 变体混合未兑现 / 031 静态缝未回收+异常泄漏 / 032 常量+截断+行长+簿记 / 033 knowsClinic 硬编码)。
 - **本批零代码改动**(story 已 Complete,补评不重开 AC)。
@@ -6510,7 +6510,7 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   `assembly_boundary_test.cs` 白名单 +`BreathTailRamp.State`(首跑全量唯一红即此门,已增列)。
 - **证伪 F1–F9 全转红**;证伪轮抓出**两处假绿**并已修(FG-1 强度判据混尾音增益+前段恒值;FG-2 `coughCue:null` 使零一次性 cue 恒真)。
 - **全量 EditMode `3748/3703/0/45`**(`unity/Logs/s19-full-editmode.xml`)vs 基线 `3732/3687/0/45` ⇒ 差 **+16**,夹具逐名 **+15**,**差 1 挂【待核】**(基线无 XML 件)。
-- **⚠️ 未结**:`AC-019-6` 听测 NOT-RUN(`production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`);
+- **⚠️ 未结**:`SAC-019-6` 听测 NOT-RUN(`production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`);
   实现停在**分段重复尾音**(每 1.5 s 重开一段)—— 听测判据 3 专门判「是否一阵一阵」。
 - **原件**:`production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md`;TD-audio-100 / OQ-44-7 已刷「代码半边 / 未结案」。
 - **待用户**:① 实机听测签核;② 是否提交本批。
@@ -7041,7 +7041,7 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 
 **① 10-c 移出 story-019(用户裁定「同 S15-6 一并移出」)**
 - `story-019` → `Complete`(10-a 门 / 10-b 断言已落 + 证伪 F1–F9 + 修复轮 F1–F4);
-  **面 10-c(`AC-019-6`)移出**,判据原文保留在节首声明之后。
+  **面 10-c(`SAC-019-6`)移出**,判据原文保留在节首声明之后。
 - 移出理由 = **代码级不可达**:`IPresenceWriter.RemovePresent` 生产零调用(无病人离场路径 ⇒
   「停顿 vs 停止」缺「停止」极)· 占位 plateau 曲线把病程压到 1.55 s(「急促」档仅 0.4 s)。
 - 并入 `docs/tech-debt-register.md` **`TD-listen-01`**(新增「归属变更留痕」行);
@@ -7078,7 +7078,7 @@ failed / skipped 未变 ⇒ 零回归。
 ### 仍 open(不得读作已解决)
 
 - **`TD-listen-01` L-1…L-5 一个都没动**;四份听测协议**全部 NOT-RUN**、`[ ]` 一格未勾。
-- 6 条 AC 的听测半边**一条未验证**:`AC-019-6` / `AC-44-02` / `AC-44-03` / `AC-44-04` /
+- 6 条 AC 的听测半边**一条未验证**:`SAC-019-6` / `AC-44-02` / `AC-44-03` / `AC-44-04` /
   `AC-44-08` / `AC-44-17`。
 - sign-off 的 4 条条件:见 `qa-signoff-sprint-15-2026-10-20.md` §7。
 - 测试侧 `camera_follow_wiring_test` 的 `GameObject.Find("Main Camera")` 死代码**未改**
@@ -16074,8 +16074,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **行级 `legacy` 标记**替代文件白名单 —— 自清理 + 每次 `--check` 列进「提示」
 - 🐞 **三个 bug,两个判据自己揪出**:C8a 被 `nums` 守住(不需要它);**3 位 `AC-0NN-M` 是
   story 空间**⇒ 10 个 audio 文件假阳性;改名脚本漏了 `AC-019-*` 一族(与前者同轮看见)
-- ⚠️ **第三编号空间未处置**:`AC-019-*` 22 文件 / `AC-020-*` 8 文件,靠 2 位 vs 3 位约定区分
+- ⚠️ **第三编号空间未处置**(🔄 S23-36 已处置):632 处 / 95 文件 / 9 个 story 号
 - 证伪 R6/R7/R8 全红 `FINAL-OK`;M1–M8 全红 `PROBE-OK`
 - **回归(有 `.cs` 改动,已重跑)**:EditMode `6624/6587/0/0/37` @ 23:03:27 ·
   PlayMode `311/307/0/2/2` @ 23:05:21 —— **与基线同值,零回归**
 - **未提交**(等用户指令)
+
+## Session Extract — S23-36 · 第三编号空间收口(2026-11-02)
+
+- 用户选 **`SAC-0NN-M`(真解决)** ⇒ story 级 AC 换前缀
+- **`AC-0NN-M` → `SAC-0NN-M`:632 处 / 95 文件 / 9 个 story 号**,旧形残留 0
+- 全量实测比我上一轮报的大 4 倍:不止 `019`/`020`,还有 `009`/`018`/`021`–`025`
+- **新增 C9**(判据 8 → 9):3 位 `AC-0NN-M` 一律拒收;带 `(?<![A-Za-z])` 前视
+- 三个空间:ADR 侧 `AC-ADR0NN-NN` · 系统侧 `AC-<sys>-<n>` · story 侧 `SAC-0NN-M`
+- 证伪 R9 红 + M1–M9 全红 `PROBE-OK`
+- **未提交**(等用户指令)
+
+- 顺手复核发现 **C1 漏了「项目符号式定义」**:系统 **1 / 2 / 44 / 25** 的 GDD 用
+  `- **AC-1-01(BLOCKING)** ——` 定义,共 **72 条 bullet-only AC 不受 C1 保护**。C8a 一侧已补
+  (仅 `AC` 节内),**C1 一侧未动** —— 计入与否是裁定(会让 ADR-018 复述的 9 条 `AC-44-*`
+  变成「两处定义」)。**未处置,如实登记**
+- 2 位 story 写法残留 **1 处**(`story-014-...evidence.md:4`):既旧形又对不上现件
+  ⇒ 加 `legacy` 标记 + 复核注,**不代为编造新 ID**
+- **回归**:EditMode `6624/6587/0/0/37` @ 23:30:44 · PlayMode `311/307/0/2/2` @ 23:33:14 —— 零回归

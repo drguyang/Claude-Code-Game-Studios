@@ -1,6 +1,6 @@
 // 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md
-//   (AC-018-1 真渲染目标 · AC-018-2 总线路由 · AC-018-3 组合根装配 · AC-018-4 单池不变量
-//    · AC-018-5 混音器 / 玩家音量 · AC-018-6 cue 源接线 · AC-018-7 处方音效白名单)
+//   (SAC-018-1 真渲染目标 · SAC-018-2 总线路由 · SAC-018-3 组合根装配 · SAC-018-4 单池不变量
+//    · SAC-018-5 混音器 / 玩家音量 · SAC-018-6 cue 源接线 · SAC-018-7 处方音效白名单)
 // ADR-018 §一(44 只触发 / 只渲染)· §二(AudioCueDto 唯一入口)· §三(七总线)
 // ADR-028 ①(声源池唯一所有者 = 44)· ⑤(cue 驱动生命周期)· ADR-025 §①(装配清单)
 // ADR-024 §⑥(白名单 / 常量单一出处 —— 本夹具不另抄字面量)
@@ -22,7 +22,7 @@
 //    零文件系统**写**(只读仓库作者态数据 = 本夹具的题面,承 pipeline_gate_test 同口径)。
 //
 // ⚠️ **静态状态纪律**:`PlayerBusVolumeInitializer.MixerResolver` 是**全局静态缝** ——
-//    本夹具的 AC-018-5 会写它 ⇒ `[SetUp]` 快照 / `[TearDown]` 还原,否则跨夹具污染
+//    本夹具的 SAC-018-5 会写它 ⇒ `[SetUp]` 快照 / `[TearDown]` 还原,否则跨夹具污染
 //    (2026-10-17 PlayMode 9 红同款病灶:静态状态跨轮残留)。
 
 using System;
@@ -34,7 +34,7 @@ using NUnit.Framework;
 using UnityEditor;                              // AssetDatabase(真混音器资产 = 生产装载面的替身)
 using UnityEngine;
 using UnityEngine.Audio;
-using DaYiJingCheng.EditorTools.Bake;           // AudioEventTableBake(AC-018-7 走真烘焙链路)
+using DaYiJingCheng.EditorTools.Bake;           // AudioEventTableBake(SAC-018-7 走真烘焙链路)
 using DaYiJingCheng.EditorTools.Gates;          // AudioEventTableGates(白名单单一出处)
 using DaYiJingCheng.Gameplay.Boot;              // CompositionRoot / BootRoot.BuildAudioSeams
 using DaYiJingCheng.Gameplay.PatientAI;         // PatientCueDriver 的上游(13)
@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             _cleanup.Clear();
 
             // 池根是 `new GameObject` 产物(不进 `_cleanup` 的引用链)⇒ 按名兜底清理,
-            // 否则跨夹具残留同名根 ⇒ AC-018-4 的「根只有一个」断言假红。
+            // 否则跨夹具残留同名根 ⇒ SAC-018-4 的「根只有一个」断言假红。
             foreach (GameObject root in PoolRoots())
                 UnityEngine.Object.DestroyImmediate(root);
         }
@@ -151,7 +151,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             public void SetTier(TierSource source) { }
         }
 
-        /// <summary>烘焙产物的运行期表(AC-018-3/5 的装配输入 —— 走**真烘焙 + 真往返**)。</summary>
+        /// <summary>烘焙产物的运行期表(SAC-018-3/5 的装配输入 —— 走**真烘焙 + 真往返**)。</summary>
         private static AudioEventDataSet BakedTable()
             => AudioEventTableBake.Materialize(AudioEventTableBake.BakeFromRepo(RepoRoot()));
 
@@ -176,7 +176,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-1 —— 真渲染目标(关 A-2)
+        // SAC-018-1 —— 真渲染目标(关 A-2)
         // 判别力:让 `PlayOneShot` 变成空实现 ⇒ test_ac018_1_*_activeCount 转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -191,7 +191,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Act
             target.PlayOneShot(Cue(ordinal: 3, source: 7));
 
-            // Assert —— 「cue 触发后池内 ActiveCount 增」(story AC-018-1 的判别力断言)
+            // Assert —— 「cue 触发后池内 ActiveCount 增」(story SAC-018-1 的判别力断言)
             Assert.That(pool.ActiveCount, Is.EqualTo(1));
             Assert.That(target.ClipMissCount, Is.EqualTo(0));
             AudioSource source = pool.SourceForActor(7);
@@ -258,7 +258,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-2 —— 总线路由(A-6 · 运行期 `outputAudioMixerGroup`)
+        // SAC-018-2 —— 总线路由(A-6 · 运行期 `outputAudioMixerGroup`)
         // 判别力:删掉 `ApplyBus` 里的赋值 ⇒ bus 归属断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -328,7 +328,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-3 —— 组合根装配(关 A-1 / A-4)
+        // SAC-018-3 —— 组合根装配(关 A-1 / A-4)
         // 判别力:把音频装配段删掉 ⇒ `AudioSink` 非 null 且非空转断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -343,7 +343,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(bag.AudioPool, Is.Not.Null, "A-4:声源池必须有生产构造点");
             Assert.That(bag.AudioRenderAssembled, Is.False,
                 "无缝 ⇒ 走 NullRenderTarget;此标志即「装了没装」的可观测面(不静默)");
-            Assert.That(bag.PatientCueDriver, Is.Not.Null, "AC-018-6:病人 cue 驱动须在袋内");
+            Assert.That(bag.PatientCueDriver, Is.Not.Null, "SAC-018-6:病人 cue 驱动须在袋内");
         }
 
         [Test]
@@ -395,7 +395,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-4 —— 单池不变量
+        // SAC-018-4 —— 单池不变量
         // 判别力:让 `SpatializationDirector` 自建第二个池 ⇒ 断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -421,7 +421,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Arrange
             CompositionRootServices bag = CompositionRoot.Assemble();
 
-            // Act:走**共享池重载**(承 AC-018-4 的判据:共用同一实例,或后者不被构造)
+            // Act:走**共享池重载**(承 SAC-018-4 的判据:共用同一实例,或后者不被构造)
             var director = new SpatializationDirector(latticeSize: 1f, pool: bag.AudioPool);
 
             // Assert
@@ -431,7 +431,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-5 —— 混音器装载 + 玩家总线音量(关 A-5 / A-7)
+        // SAC-018-5 —— 混音器装载 + 玩家总线音量(关 A-5 / A-7)
         // 判别力:删掉 `MixerResolver` 赋值 ⇒ Master 音量 = 出厂默认断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -524,7 +524,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-6 —— cue 源接线(关 A-3)
+        // SAC-018-6 —— cue 源接线(关 A-3)
         // 判别力:删掉 `PatientCueEmit.Emit` 调用 ⇒ cue 触发计数断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -539,7 +539,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 sink, vitals, presence, new PatientBehaviorDirector(vitals, BehaviorBands.Default),
                 intervals: CueIntervals.Default,
                 coughCue: coughCue, breathCue: breathCue,
-                knowsClinic: KnowsClinicForTest,       // story-021:缝必填(AC-021-1)
+                knowsClinic: KnowsClinicForTest,       // story-021:缝必填(SAC-021-1)
                 hasCourse: hasCourse);
         }
 
@@ -694,7 +694,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-018-7 —— 处方音效白名单验证(TD-audio-024)
+        // SAC-018-7 —— 处方音效白名单验证(TD-audio-024)
         // 判别力:把某处方 cue 改成状态播报类 ⇒ 断言转红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -762,7 +762,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-019-3…5 —— story-019 面 10-b:无突变音效 + 停顿/停止可分 + 尾音衰减
+        // SAC-019-3…5 —— story-019 面 10-b:无突变音效 + 停顿/停止可分 + 尾音衰减
         // 判别力:每条注明「停用什么 ⇒ 哪条红」(证伪记录登记在 impl-s19-*.md)。
         // ⚠️ 走**真** PatientCueDriver + 真 PatientCueSchedule + 真 BreathTailRamp;
         //    注入的假件仅 `IVitalsQuery`(9 的取数面,可编程轨迹)与 `IAudioCueSink`(观测量壳)。
@@ -864,10 +864,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             for (int i = 0; i < oneShot.Count; i++)
                 Assert.That(expected, Does.Contain(oneShot[i]),
                     $"第 {i} 条一次性 cue 强度 = {oneShot[i]},不在任意拍体征派生值集合内 —— " +
-                    "出现与体征脱钩的固定音强(突变音效形态,AC-019-3 / AC-44-10)");
+                    "出现与体征脱钩的固定音强(突变音效形态,SAC-019-3 / AC-44-10)");
         }
 
-        /// <summary>AC-019-3 主判据:平稳 → 急促 → 停顿的轨迹上,**过渡本身零新增一次性 cue**
+        /// <summary>SAC-019-3 主判据:平稳 → 急促 → 停顿的轨迹上,**过渡本身零新增一次性 cue**
         /// (13 的既有咳嗽调度照旧;新增的只有呼吸 loop 的参数连续变化)。</summary>
         [Test]
         public void test_ac019_3_transitionToPause_addsNoNewOneShotCue()
@@ -919,7 +919,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             int oneShotsBeforeTerminal = driver.EmitCount;
             RunTicks(driver, vitals, 200, 230, _ => BehaviorBands.Default.DeathBandMin);
 
-            // AC-019-3 主判据:进入终局(过渡)之后**零新增**一次性 cue
+            // SAC-019-3 主判据:进入终局(过渡)之后**零新增**一次性 cue
             Assert.That(driver.EmitCount, Is.EqualTo(oneShotsBeforeTerminal),
                 "过渡(平稳 → 终局)之后又发了一次性 cue —— 阈值跨越被映射成离散音效(AC-44-10)");
 
@@ -1189,7 +1189,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(nan.Active, Is.False);
         }
 
-        /// <summary>AC-019-5「零新 clip」:过渡路径**不引入任何新素材名** ——
+        /// <summary>SAC-019-5「零新 clip」:过渡路径**不引入任何新素材名** ——
         /// 三行呼吸 cue(基础层 / 附加层 / 世界语境)的 <c>assets[]</c> 各恰 1 条,且全表别的行
         /// 不引用它们(过渡 = 既有 loop 的增益衰减,**没有**「停顿专用 wav」「死亡专用 wav」)。
         /// <para>素材文件本体存在性归 D6 素材门;本条只钉「没有新 clip」这一半边。</para></summary>

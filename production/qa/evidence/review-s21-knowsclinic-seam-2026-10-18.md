@@ -27,7 +27,7 @@
 | ID | 判定 | 落点 | 处置 |
 |---|---|---|---|
 | **W-1**(T3 / R1-AC3-empty) | `test_ac021_3_emptyRegistry_…` 的断言宾语是**夹具自造**的 `ClinicKnowledge`,组合根产出的 `services` 只断言了 `Not.Null` ⇒ 对「组合根空表形态」判别力弱 | `knowsclinic_seam_test.cs` | **✅ 已修**:宾语改为 `CompositionRoot.Assemble(...)` 产出的 `PatientCueDriver.KnowsClinicOf`,并补一拍 `OnTickEdge` 作行为面。验:**F8**(把 `KnowsClinicOf` 脱钩成常量 `false`)⇒ 该条红 |
-| **W-2**(R2-scope / R2-literal) | 源码门只扫 `Gameplay.Boot` + `Gameplay.Presentation` 两棵,而 AC-021-1 原文是「**全仓**」;实测其余七棵生产树今日虽零违例,但门的面不足 | 同上 | **✅ 已修**:`Tests/` 以外**全部** `unity/Assets/**/*.cs`;下限断言 `scanned > 300`(实测 376 件)。验:**F7**(往 `Sim/World/ModifiableChecker.cs` 塞一条真代码违例)⇒ 该条红,报文点名 `ModifiableChecker.cs` |
+| **W-2**(R2-scope / R2-literal) | 源码门只扫 `Gameplay.Boot` + `Gameplay.Presentation` 两棵,而 SAC-021-1 原文是「**全仓**」;实测其余七棵生产树今日虽零违例,但门的面不足 | 同上 | **✅ 已修**:`Tests/` 以外**全部** `unity/Assets/**/*.cs`;下限断言 `scanned > 300`(实测 376 件)。验:**F7**(往 `Sim/World/ModifiableChecker.cs` 塞一条真代码违例)⇒ 该条红,报文点名 `ModifiableChecker.cs` |
 | **W-3**(R2-commentstrip) | 原实现只剥 `//` 行注释:会误伤字符串里的 `//`(URL),且不剥 `/* */` 块注释 ⇒ 假红 / 假绿两头漏 | 同上 | **✅ 已修**:新增 `StripComments`(逐字符状态机,区分行注释 / 块注释 / 字符串 / 字符字面量)。⚠️ **无专门证伪**(见 §四 未证项) |
 | **W-4**(U5) | 组合根默认 `new ClinicKnowledge(new RegistryClinicKnowledgeSource(new EcozoneRegistry()))`(空表)与 `RegistryClinicKnowledgeSource` 类注「不得静默默认 `None`」**口径拉扯**:同一个「世界未装载」状态,构造器一个抛、组合根一个演 | `CompositionRoot.cs:358-362` | **登记**(设计层)。归**装载面接线轮** —— 届时默认路径改显式 fail-loud 或把 `ClinicKnowledge` 改为必填。当下行为等价于结案前,**不影响本卡** |
 | **W-5**(U10) | `IClinicKnowledgeSource` 未定义 `EcozoneId.None` 的语义:空表时 `EcozoneOf` 回 `None`,将来注入真实 POI 查询若把 `None` 当合法区号 ⇒ 静默误判 | `ClinicKnowledge.cs:41-47` | **登记**。当下两缝为 null ⇒ 短路恒假,不会触发;接线轮须在接口注释钉「`None` ⇒ 必假」 |
@@ -89,7 +89,7 @@ F-13.2 说「`HomeRegion` 只在初始化时求一次」。本实现把它落成
 | # | 变异 | 期望红 | 实测 |
 |---|---|---|---|
 | **F7** | 往 `Sim/World/ModifiableChecker.cs` 塞 `internal static class TextGateProbe { … \"knowsClinic: false\" }`(真代码,非注释) | 源码门 | **红 ×1** ✅(点名 `ModifiableChecker.cs`) |
-| **F8** | `KnowsClinicOf` 脱钩(`=> false`) | AC-021-1 主测 | **红 ×1** ✅ |
+| **F8** | `KnowsClinicOf` 脱钩(`=> false`) | SAC-021-1 主测 | **红 ×1** ✅ |
 
 **两处失败尝试(如实登记)**:
 - F7 第 1 版把违例插在 `namespace` 块内的裸位置 ⇒ **编译错误**(exit 6),不是判别力问题;

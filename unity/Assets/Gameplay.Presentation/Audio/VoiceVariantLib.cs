@@ -255,7 +255,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             }
         }
 
-        /// <summary>槽内**确定性位置**(story-020 · AC-020-2 的身份维)。
+        /// <summary>槽内**确定性位置**(story-020 · SAC-020-2 的身份维)。
         /// <para>输入 = (槽起点, 该行变体总数, 患者身份);输出 ∈ <c>[start, min(total, start + 槽宽))</c>。
         /// 位置由 <see cref="IdentityScalar"/> 的整数哈希落定 —— 身份与槽起点双混,同输入恒同输出。</para>
         /// <para><b>API 来源</b>:(a) 纯 BCL 整数运算;(b) 推断 —— EditMode 可用(无引擎依赖)。</para></summary>

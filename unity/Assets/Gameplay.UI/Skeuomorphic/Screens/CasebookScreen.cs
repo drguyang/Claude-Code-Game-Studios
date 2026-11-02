@@ -534,10 +534,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 档数由**已生成的档形态数**承载(<c>DetentCount</c>),**零降级数字读数**
         /// (承 ADR-013 §十-B 义务②)。⚠️ 2026-10-30 删除了此前那个只写不读的
         /// <c>TickCount</c> 入参(`TD-prescription-08`)。</para>
-        /// <para><c>AC-025-4</c>(2026-10-18):每行**携带该行自己的**档位形态 —— 第 k 行
+        /// <para><c>SAC-025-4</c>(2026-10-18):每行**携带该行自己的**档位形态 —— 第 k 行
         /// <c>SetDetents(档数, k)</c> ⇒ 第 k 档被几何放大。原先每行一个恒同的
         /// <c>Label("戥子档")</c> 不承载任何逐档信息(行与行完全同形),
-        /// 现改为「离散档 ↔ 离散形态」,零数字文本(<c>AC-025-5</c>)。</para>
+        /// 现改为「离散档 ↔ 离散形态」,零数字文本(<c>SAC-025-5</c>)。</para>
         /// </summary>
         private void RefreshDentchDoses()
         {
@@ -589,7 +589,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 row.focusable = true;
                 row.userData = rowOrdinal;       // 显式 ordinal(非显示索引 —— TD 第五风险)
 
-                // AC-025-4:该行自己的档位形态(第 k 行 ⇒ 第 k 档几何放大)。
+                // SAC-025-4:该行自己的档位形态(第 k 行 ⇒ 第 k 档几何放大)。
                 // ⚠️ 形态子件**不带 userData** —— 行收集器按 `userData is int` 认行
                 //    (`casebook_page_turn_test` / `e2e_full_loop_test` / `casebook_lexicon_book_test`),
                 //    给子件挂整数会把行集撑大。
@@ -653,7 +653,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         //
         // 规则:
         //   ① 读数格 = `channel-reading` 子元素,名 `reading-<rowName>`
-        //     (测试遍历锚点;值区形态对归 story-024 AC-024-2):
+        //     (测试遍历锚点;值区形态对归 story-024 SAC-024-2):
         //     阳性 = `.channel-reading`(ink-fg 墨字)·
         //     阴性 / 读不出 = `.channel-reading-negative`(ink-faded 降档)
         //   ② 多词条**并列保序**(:1183 不相斥)—— 一行内 N 个读数格按 Order 排
@@ -757,7 +757,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                         row.RemoveAt(i);
                 }
 
-                // 值区:每词条一格,阳性 / 阴性形态对(AC-024-2);零词条 = 不加(空行)
+                // 值区:每词条一格,阳性 / 阴性形态对(SAC-024-2);零词条 = 不加(空行)
                 foreach (ChannelReading reading in kv.Value)
                 {
                     var cell = new VisualElement { name = "reading-" + rowName };

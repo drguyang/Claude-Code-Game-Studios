@@ -1,12 +1,12 @@
 # story-019 · AC-44-10 无突变音效 / OQ-44-7 呼吸尾音 —— 实现证据原件
 
 > **对象**:`production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md`
-> **AC**:`AC-019-1` … `AC-019-7`(7 条)
+> **AC**:`SAC-019-1` … `SAC-019-7`(7 条)
 > **日期**:2026-10-18
 > **来源判定**:`docs/tech-debt-register.md` **`TD-audio-100`**(AC-44-10 完全未映射 —— 16 条未全验证
 > AC 中唯一「无 story 真空洞」)· `OQ-44-7`(「停顿 vs 停止」可听辨怎么做)。
 > **本件性质**:实现轮证据(**交付面 → AC 载体 → 证伪轮 → 回归对账 → 如实登记缺口**)。
-> **⚠️ 状态口径**:story-019 **本轮不转 `Complete`** —— `AC-019-6`(人工听测,**BLOCKING**,
+> **⚠️ 状态口径**:story-019 **本轮不转 `Complete`** —— `SAC-019-6`(人工听测,**BLOCKING**,
 > 用户裁定「10-c 挂 story 内」)不可自动判定,本件如实登记 **NOT-RUN**,**不借绿**。
 
 ---
@@ -34,23 +34,23 @@
 
 | AC | 载体(测试名) | 判据 |
 |---|---|---|
-| **AC-019-1** | `EventTableGateTest.test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue` | 注入 `Voice_转危叮_Death`(非循环)⇒ 恰 1 条错,报文**点名该 cue** + `AC-44-10` |
+| **SAC-019-1** | `EventTableGateTest.test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue` | 注入 `Voice_转危叮_Death`(非循环)⇒ 恰 1 条错,报文**点名该 cue** + `AC-44-10` |
 | | `test_ac0191_oneShotWithThresholdTrigger_reportsRed` | 逐值注入 3 个禁止触发源 ⇒ 每值恰 1 条,**点名行** |
 | | `test_ac0191_transitionNameOnLoopRow_accepted` | 过渡名落在**循环**行 ⇒ 放行(门拒「做成一次性」,不拒名字) |
 | | `test_ac0191_transitionNameWithLoopFieldAbsent_reportsRed` | 行**缺 `loop` 字段**(缺省 = 一次性),只改 cue 名 ⇒ **总门**恰 1 条红且点名(story 逐字场景) |
 | | `test_ac0191_rowsMissing_reportsNotRunGuard` | rows 缺失 ⇒ NOT-RUN,不静默放行 |
 | | `test_ac0191_realSeed_zeroTransitionErrors` | 真种子 `assets/data/audio_events.json` ⇒ 零错 |
-| **AC-019-2** | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` | 三行呼吸 cue(`BreathLayer_Base_Calm` / `_Adventitious_Fine` / `WorldBreath_Baseline`)全部 `loop = true` 且 `trigger_source` **全部** = 既有值 `ContinuousPhysiology`;并断言该值 ∈ 既有合法集(不是本条新增) |
-| **AC-019-3** | `RuntimeAssemblyTest.test_ac019_3_transitionToPause_addsNoNewOneShotCue` | 真驱动 + 真 13 调度:平稳 200 拍 → 急促 40 拍 → 终局 40 拍;**前置** = 平稳期确有既有一次性 cue(`EmitCount > 0`);终局后 `EmitCount` **零新增**;`BeginLoopCount == 1`(过渡不重起 loop) |
+| **SAC-019-2** | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` | 三行呼吸 cue(`BreathLayer_Base_Calm` / `_Adventitious_Fine` / `WorldBreath_Baseline`)全部 `loop = true` 且 `trigger_source` **全部** = 既有值 `ContinuousPhysiology`;并断言该值 ∈ 既有合法集(不是本条新增) |
+| **SAC-019-3** | `RuntimeAssemblyTest.test_ac019_3_transitionToPause_addsNoNewOneShotCue` | 真驱动 + 真 13 调度:平稳 200 拍 → 急促 40 拍 → 终局 40 拍;**前置** = 平稳期确有既有一次性 cue(`EmitCount > 0`);终局后 `EmitCount` **零新增**;`BeginLoopCount == 1`(过渡不重起 loop) |
 | | `test_ac019_3_oneShotIntensity_followsVitals_neverFixedVolume` | 只取**一次性** cue(`Looped == false`)的强度,逐条 ∈ 任意拍体征派生集合(`PatientCue.Intensity(p)`) |
-| **AC-019-4** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | 停顿:loop 存活、`EndLoop == 0`、尾音簿记在、增益在涨、过渡后零新增一次性 cue、停顿段末强度已离开满幅且在尾音底之上;**停止**(`PruneAbsent`):`EndLoop == 1`、簿记清空、**不再有任何增益写入** |
+| **SAC-019-4** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | 停顿:loop 存活、`EndLoop == 0`、尾音簿记在、增益在涨、过渡后零新增一次性 cue、停顿段末强度已离开满幅且在尾音底之上;**停止**(`PruneAbsent`):`EndLoop == 1`、簿记清空、**不再有任何增益写入** |
 | | `test_ac019_4_pauseLifespan_isBoundedByTailRamp` | 逐拍采样:到期前一拍推进 ≥ 0.9×时长;到期拍簿记清;loop 仍存续;停表后**下一拍重开新段**且 `elapsed = 0`(段间不累加);每拍增益写入 ≤ 1 |
 | | `test_ac019_4_stop_leavesNoTail_andEndsLoop` · `test_ac019_4_stopAll_clearsTailBookkeeping` | 停止路径零尾音 / 全清 |
-| **AC-019-5** | `test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform` | 单调不增 + 相邻步**倍率恒等**(无拐点)+ 终点 = `10^(floorDb/20)` |
+| **SAC-019-5** | `test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform` | 单调不增 + 相邻步**倍率恒等**(无拐点)+ 终点 = `10^(floorDb/20)` |
 | | `test_ac019_5_degenerateInputs_neverProduceBurst` | 0 / NaN / 零时长 ⇒ 不产生衰减(无爆音) |
 | | `test_ac019_5_breathRows_introduceNoNewClipName` | **零新 clip**:三行呼吸 cue 的 `assets[]` 各恰 1 条;呼吸素材名不被任何非呼吸行复用 |
-| **AC-019-6** | `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md` | **NOT-RUN —— BLOCKING**,协议已备,待用户实机执行并签核 |
-| **AC-019-7** | `docs/tech-debt-register.md` `TD-audio-100` 结案注 · `design/gdd/audio-system.md` `OQ-44-7` 状态刷 | **部分落**:代码半边/证伪记录已备;**结案注待 10-c 签核**(哨兵:10-c 未签 ⇒ TD-audio-100 不结案) |
+| **SAC-019-6** | `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md` | **NOT-RUN —— BLOCKING**,协议已备,待用户实机执行并签核 |
+| **SAC-019-7** | `docs/tech-debt-register.md` `TD-audio-100` 结案注 · `design/gdd/audio-system.md` `OQ-44-7` 状态刷 | **部分落**:代码半边/证伪记录已备;**结案注待 10-c 签核**(哨兵:10-c 未签 ⇒ TD-audio-100 不结案) |
 
 ---
 
@@ -80,7 +80,7 @@
 | 假绿 # | 现象 | 根因 | 修法 |
 |---|---|---|---|
 | **FG-1** | F5 首轮用常量 **128** 时**不红** | ① `TailSink.Intensities` 混入尾音增益(`Emit` 同时写增益),集合里常有 128 ⇒ 常量 128 被误认成合法值;② 前 200 拍体征恒 0.2,该段内「固定强度」与真值不可分 | ① 判据只取 `Looped == false` 的 DTO;② 体征全程缓升(`0.2 + tick×0.001`)。修后常量 200 ⇒ 红 |
-| **FG-2** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` 的「停顿期零一次性 cue」恒真 | 该测构造时 `coughCue: null` ⇒ 13 的**全部**一次性发射被装配门掐掉,断言测不到任何东西 | `coughCue: 0` + 平稳期跑足 200 拍 + 前置断言「平稳期确有既有一次性 cue」;该测同时承载 AC-019-3 主判据 |
+| **FG-2** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` 的「停顿期零一次性 cue」恒真 | 该测构造时 `coughCue: null` ⇒ 13 的**全部**一次性发射被装配门掐掉,断言测不到任何东西 | `coughCue: 0` + 平稳期跑足 200 拍 + 前置断言「平稳期确有既有一次性 cue」;该测同时承载 SAC-019-3 主判据 |
 
 > ⚠️ 另有一处**残留假绿(未修,如实登记)**:F5 的第二形态「常量 128」在**修后**仍可能与体征派生值集合撞值
 > (0.2 + tick×0.001 覆盖 51…65,128 不在其中,故修后常量 128 也会红 —— 本行随 FG-1 修复一并消除)。
@@ -154,7 +154,7 @@
 
 **「不再写增益」的依据**:封口增益恰为终点值(`BreathTailRamp.ValueAt(1.0, floor, RAMP, RAMP) = floor`),
 ⇒ 「此后不写」与「每拍重写同值」在 sink 侧等价;省掉的是每拍一条 DTO,不是听感。
-⚠️ **听感未证** —— 归 `AC-019-6`(仍 NOT-RUN)。
+⚠️ **听感未证** —— 归 `SAC-019-6`(仍 NOT-RUN)。
 
 ### 证伪轮(修复轮现行,以本节为准)
 

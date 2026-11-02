@@ -9,7 +9,7 @@
 > **用户裁定(2026-10-16,AskUserQuestion ×2)**:① **交付面收敛** —— 三类中两类已由 S14-2
 > 交付(`EndLoopWatchdog` / `CueRenderSink`)⇒ 本件只落 `HandoverMux` + `LoopSelfTerminationDriver`,
 > 兜底谓词与句柄面**改指 S14-2 的生产类、不重复造** · ② **AC 编号** = 补 story 局部
-> `AC-009-1…4` + 就地订正幽灵 ID `AC-44-D10`(不改 GDD)。
+> `SAC-009-1…4` + 就地订正幽灵 ID `AC-44-D10`(不改 GDD)。
 
 ---
 
@@ -21,7 +21,7 @@
 | 2 | 交接 5 测打自造 `FakeHandoverFsm`(FSM 不存在) | 🔴 | `Gameplay.Presentation/Audio/HandoverMux.cs`(生产 `HandoverPhase` 四相闭集) | 证伪例 ④④b⑤⑥⑦⑧ |
 | 3 | 句柄 2 测打自造 `FakeHandleManager` | 🔴 | 改指 **S14-2 已交付**的 `CueRenderSink`(不重复造 —— ADR-024 §六) | 证伪例 ③ |
 | 4 | `test_endLoopWatchdog_noWallClockRefs` 扫真门但被测类不存在 | 🟡 空转真扫 | 生产类落地 ⇒ 扫描面非空(同 S14-2 的 D1 收窄处置) | 该测自身即判据 |
-| 5 | 4 条 AC 无 `AC-44-xx` 编号(用中文描述名) | 独立瑕疵 | 补 **`AC-009-1…4`**(用户裁定;不用 `AC-44-D10` —— 见 §7) | `grep -c "AC-009-"` |
+| 5 | 4 条 AC 无 `AC-44-xx` 编号(用中文描述名) | 独立瑕疵 | 补 **`SAC-009-1…4`**(用户裁定;不用 `AC-44-D10` —— 见 §7) | `grep -c "AC-009-"` |
 
 ## §2 交付面
 
@@ -186,7 +186,7 @@ bus 路由 / 贴耳抬升归脚本动作(story-003)—— 两者刻意分离,因
 
 ## §7 NOT-RUN 如实登记(禁借绿)
 
-- **AC-009-2 的听测半边**(交接窗 500 ms 是否「听觉上不拖沓」)—— **NOT-RUN**:
+- **SAC-009-2 的听测半边**(交接窗 500 ms 是否「听觉上不拖沓」)—— **NOT-RUN**:
   听测需素材本体(story-015/016,`Ready`)+ 真人听审。
 - **IL2CPP 三格**(ADR-012 矩阵:Linux-ARM64-IL2CPP / Windows-x64-IL2CPP / Apple Silicon)——
   **NOT-RUN**。本机仅 Mono;CI 真 runner 环境未配(`UNITY_LICENSE`)。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。

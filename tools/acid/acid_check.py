@@ -17,7 +17,7 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 `AC-19-01…08` → `AC-ADR019-01…08`),系统 GDD 的维持 `AC-{sys}-{n}`。
 本工具是该裁定的**执行体** —— 它不要求任何人「记得查重」,而是让违规当场红。
 
-## 判据(八条)
+## 判据(九条)
 
 - **C1 新撞号**:某 ID 被 ≥2 个文件「定义」,且不在基线里 ⇒ 红
 - **C2 基线不得扩大**:基线里的 ID 不得被**第三个**文件再定义 ⇒ 红
@@ -31,10 +31,16 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
   (**撞号的生产线**;C1 要等系统 GDD 成文才发作,C7 在铸的当时就红)
 - **C8 裸名误引 ADR 自有 AC**:活文档里裸 `AC-<n>-<m>` 实为 ADR 自有 AC ⇒ 红
   (C5 的盲区:文件里**一处新名都没有**时 C5 结构性沉默)
+- **C9 story 级 AC 旧形**:出现 3 位编号的 `AC-0NN-M` ⇒ 红(一律写 `SAC-0NN-M`)
 
-⚠️ **C8 只认 1–2 位编号位** —— 库里还有**第三个编号空间**:story 号写法 `AC-0NN-M`
-(如 `story-019` 的 `AC-019-6`)。3 位归 story 空间,本门不碰;该空间的撞号面
-**单独登记,不假装已覆盖**。
+⚠️ **C8 只认 1–2 位编号位** —— 第三个编号空间(story 级 AC)已由 **C9** 单独接管:
+统一 `SAC-0NN-M`。三个空间自此从**字符串层面**可分:
+
+| 写法 | 归属 | 例 |
+|---|---|---|
+| `AC-ADR0NN-NN` | ADR 自有 AC | `AC-ADR019-06` |
+| `AC-<sys>-<n>` | 系统 GDD 的 AC | `AC-20-03`(库存) |
+| `SAC-0NN-M` | **story 级 AC** | `SAC-018-4` |
 
 ## 行级 `legacy` 标记(历史引用的合法出口)
 
@@ -97,6 +103,11 @@ RE_ADR_BARE_DEF_BOX = re.compile(r"^- \[ \] \*\*AC-(\d+)-(\d+)")
 RE_ADR_BARE_DEF_ROW = re.compile(r"^\|\s*\*\*AC-(\d+)-(\d+)\*\*\s*\|")
 RE_ADR_MENTION = re.compile(r"ADR-?0*(\d+)")
 RE_BARE_AC = re.compile(r"AC-(\d{1,2})-(0*\d+)(?!\d)")
+# C9:story 级 AC 的旧形。`(?<![A-Za-z])` 防 `SAC-018-4` 被当成 `AC-018-4` 再判一次。
+RE_STORY_AC_OLD = re.compile(r"(?<![A-Za-z])AC-(0\d\d)-(\d+)(?!\d)")
+# AC 节内的项目符号定义(仅用于 C8a 的「系统侧有无此 AC」判定,不进 C1 的定义集)
+RE_H2 = re.compile(r"^##\s+(.*)$")
+RE_AC_BULLET = re.compile(r"^- \*\*(AC-\d+-\d+)(?![\d-])")
 RE_ADR_OWN_DEF = re.compile(r"^- \[ \] \*\*AC-ADR(\d+)-(\d+)|^\|\s*\*\*AC-ADR(\d+)-(\d+)\*\*\s*\|")
 
 # C8 的扫描面 = **活文档**(不含记录件:债册 / sprint / session-state / evidence / retro)。
@@ -265,12 +276,24 @@ def scan_bare_adrrefs(root):
     """
     owned = defaultdict(set)
     system_defined = defaultdict(set)
+    # ⚠️ 定义句式**比 C1 宽**:C1 只认表行 + 复选框,但系统 1 / 2 / 44 的 GDD 用
+    # `- **AC-1-01(BLOCKING)** ——` 这种**项目符号**定义 ⇒ 只认前两种的话,
+    # `system_defined` 会偏小 ⇒ C8a **多报**。这里补第三种:**仅限 `## Acceptance Criteria`
+    # 节内**(其余位置的加粗 ID 多为引用,实测放开就会把 review log / ADR 复述算成定义)。
+    # ⚠️ 本节**只影响 C8a 的假阳性率**,不改 C1 的定义集 —— C1 要不要认 bullet 是另一个裁定。
     for dirpath, _dirnames, filenames in os.walk(os.path.join(root, "design/gdd")):
         for name in sorted(filenames):
             if not name.endswith(".md"):
                 continue
+            sect = ""
             for line in open(os.path.join(dirpath, name), encoding="utf-8", errors="replace"):
+                head = RE_H2.match(line)
+                if head:
+                    sect = head.group(1)
+                    continue
                 hit = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
+                if hit is None and "Acceptance Criteria" in sect:
+                    hit = RE_AC_BULLET.match(line)
                 if hit:
                     t, seq = hit.group(1).split("-")[1:]
                     system_defined[int(t)].add(int(seq))
@@ -321,6 +344,35 @@ def scan_bare_adrrefs(root):
     return dict(found)
 
 
+def scan_legacy_story_ac(root):
+    """C9:3 位编号的 `AC-0NN-M` 一律拒收 —— story 级 AC 必须写 `SAC-0NN-M`。
+
+    病因:story 级 AC 原用 `AC-0NN-M`(3 位零填充 story 号),与 2 位的 `AC-<n>-<m>` 肉眼同形,
+    而系统 9 / 18 / 19 / 20 / 21… 都存在。例:`AC-019-6`(story-019 第 6 条)与
+    `AC-19-06`(ADR-019 第 6 条)只差一个 `0` 的位置。
+    ⇒ 2026-11-02 用户裁定改为 **`SAC-` 前缀**,从字符串层面分开三个空间;旧形全部拒收。
+    """
+    hits = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in BARE_SKIP_DIRS]
+        for name in sorted(filenames):
+            if not name.endswith(BARE_SCAN_SUFFIXES):
+                continue
+            path = os.path.join(dirpath, name)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            if rel == "tools/acid/acid_check.py":      # 本工具自己的正则与报文
+                continue
+            try:
+                lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+            except OSError:
+                continue
+            lines, _marked = split_legacy(lines)
+            for idx, line in enumerate(lines, 1):
+                for m in RE_STORY_AC_OLD.finditer(line):
+                    hits.append((rel, idx, m.group(0)))
+    return hits
+
+
 def scan_legacy_marks(root):
     """列出所有带 legacy 标记的行 —— 豁免必须**可见**,不能静默。"""
     out = []
@@ -347,10 +399,10 @@ def load_baseline():
 
 
 def evaluate(definitions, baseline, bare_mixed=None,
-             adr_bare_defs=None, bare_adrrefs=None):
+             adr_bare_defs=None, bare_adrrefs=None, story_ac_old=None):
     """返回 (violations, warnings)。violations 非空 ⇒ 退出码 1。
 
-    `bare_mixed` 为 None 时不判 C5 / C6;C7 / C8 同理(内存探针用)。
+    `bare_mixed` 为 None 时不判 C5 / C6;C7 / C8 / C9 同理(内存探针用)。
     """
     violations = []
     dups = collisions(definitions)
@@ -438,6 +490,15 @@ def evaluate(definitions, baseline, bare_mixed=None,
                     f"C6 白名单陈旧:`{rel}` 仍记在 `BARE_ADRREF_ALLOW` 里,"
                     "但它已不再命中 ⇒ 从白名单删掉,别让它永久掩护一个已消失的误引。")
 
+    # C9:story 级 AC 的旧形
+    if story_ac_old is not None:
+        for rel, idx, ac in story_ac_old:
+            violations.append(
+                f"C9 story 级 AC 旧形:`{rel}:{idx}` 出现 `{ac}` —— "
+                "3 位编号的 AC 一律归 story 空间,须写 `SAC-0NN-M`。\n"
+                "    `AC-0NN-M` 与 2 位的 `AC-<n>-<m>` 肉眼同形(如 `AC-019-6` vs `AC-19-06`),\n"
+                "    而系统 9 / 18 / 19 / 20 / 21 都存在 ⇒ 三个空间必须从字符串层面分开。")
+
     # 基线覆盖度提示(非违规):让「还剩多少撞号」始终可见
     warnings = []
     remaining = len(grandfathered)
@@ -460,9 +521,9 @@ def cmd_print(definitions, baseline):
     return 0
 
 
-def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs):
+def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs, story_ac_old):
     violations, warnings = evaluate(definitions, baseline, bare_mixed,
-                                    adr_bare_defs, bare_adrrefs)
+                                    adr_bare_defs, bare_adrrefs, story_ac_old)
     for note in warnings:
         print(f"提示:{note}")
     marks = scan_legacy_marks(REPO_ROOT)
@@ -471,7 +532,8 @@ def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs):
               f"{', '.join(marks[:5])}{' …' if len(marks) > 5 else ''}")
     if not violations:
         print(f"✅ AC 编号撞号门:无新增撞号;引用面 {len(bare_mixed)} 个混写文件全在白名单内;"
-              f"ADR 自有 AC 裸名定义 0 条、裸名误引 {len(bare_adrrefs)} 文件全在白名单内")
+              f"ADR 自有 AC 裸名定义 0 条、裸名误引 {len(bare_adrrefs)} 文件全在白名单内;"
+              f"story 级 AC 旧形 0 处")
         return 0
     for item in violations:
         print(f"❌ {item}")
@@ -568,6 +630,13 @@ def cmd_mutation_probe(definitions, baseline):
               {"design/gdd/some-new-file.md": ["L1: 裸 `AC-99-01` 与 `ADR-99` 同句"]},
               "C8")
 
+    # M9:story 级 AC 写成旧形
+    violations, _ = evaluate(FAKE_DEFS, FAKE_BASE,
+                             {k: [20] for k in BARE_MIXED_ALLOW}, {}, {},
+                             [("design/gdd/some-new-file.md", 1, "AC-018-4")])
+    hit = any(item.startswith("C9") for item in violations)
+    scenarios.append(("M9 story 级 AC 旧形", "C9", hit, violations))
+
     failed = 0
     for label, expect, hit, violations in scenarios:
         status = "红(符合预期)" if hit else "**未红 —— 该判据无判别力**"
@@ -593,12 +662,14 @@ def main(argv):
     bare_mixed = scan_bare_mix(REPO_ROOT)
     adr_bare_defs = scan_adr_bare_defs(REPO_ROOT)
     bare_adrrefs = scan_bare_adrrefs(REPO_ROOT)
+    story_ac_old = scan_legacy_story_ac(REPO_ROOT)
 
     if args.print:
         return cmd_print(definitions, baseline)
     if args.mutation_probe:
         return cmd_mutation_probe(definitions, baseline)
-    return cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs)
+    return cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs,
+                     story_ac_old)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@
 | Q7 | ADVISORY | test:42-43 | `BlockOf` 首配 + 单文件:第二处 `.skip-entry {` 后置覆盖(如 border 复活)对三 AC 全盲 |
 | Q8 | ADVISORY | story:33-35 | AB-3「宽半」(列表项宽 ≥44)无落点 —— 023-3 只锁高半,10 轮不接则责任真空 |
 
-**核过零问题**: 剥注释正确性(独立复算:不剥必误红 `40/39/43/43`/`43/57`/`AC-023-1/2/3` 三处)· `.focus-visible` 多选择器失配 fail-loud · 命名/AAA/例外声明/确定性合规 · `.skip-entry` ∩ `.ruled` 级联(min-height 同值同 var 恒等;危险 border 面已锁)· 量纲诚实(gap 纯前瞻非冒充)。
+**核过零问题**: 剥注释正确性(独立复算:不剥必误红 `40/39/43/43`/`43/57`/`SAC-023-1/2/3` 三处)· `.focus-visible` 多选择器失配 fail-loud · 命名/AAA/例外声明/确定性合规 · `.skip-entry` ∩ `.ruled` 级联(min-height 同值同 var 恒等;危险 border 面已锁)· 量纲诚实(gap 纯前瞻非冒充)。
 
 ## 二、修复落点(全 13 项 · 同批)
 

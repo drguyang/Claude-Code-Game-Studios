@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-009-source-lifecycle-handover.md
-//   (AC-009-2 贴耳交接契约 —— AC 源:GDD §Edge Cases 交接条 / F-44.7)
+//   (SAC-009-2 贴耳交接契约 —— AC 源:GDD §Edge Cases 交接条 / F-44.7)
 // GDD:design/gdd/audio-system.md F-44.7 :456-462(2026-09-25 二轮 F7/G3 贴耳交接)
 //   · :459 「进入听诊 ⇒ 世界语境层在**交接窗**(旋钮 `HANDOVER_MS`)内压出、听诊层同窗淡入
 //     (两层并存 ≤ 交接窗,**禁同刻双呼吸稳态**);退出反向」
@@ -19,7 +19,7 @@
 // ⚠️ **不持游戏状态**(ADR-018 §一):持的是「哪一层正在响」的呈现层事实。
 // ⚠️ **两段式装配同型**:本类**只算**两个层的目标音量(`WorldVolume` / `StethoscopeVolume`),
 //    实际写入 transport 归装配层 —— 与 `CueEmitDeriver`(只算 `Cell=default`)同纪律。
-//    句柄的 Begin / End 则**由本类执行**(AC-009-2 逐字「世界层停止由 44 对自有句柄执行」)。
+//    句柄的 Begin / End 则**由本类执行**(SAC-009-2 逐字「世界层停止由 44 对自有句柄执行」)。
 
 using System;
 using DaYiJingCheng.Sim.Contracts;
@@ -39,7 +39,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         HandingToWorld,
     }
 
-    /// <summary>贴耳交接状态机(AC-009-2 的生产实现)。
+    /// <summary>贴耳交接状态机(SAC-009-2 的生产实现)。
     /// <para>职责:① 两态 + 两过渡窗的相位机;② 窗内**线性**交叉淡化(以 sim tick 计);
     /// ③ 窗满时对**自有句柄**执行 `EndLoop`(ADR-028 ⑤);④ 幂等重入 / 听诊优先。</para>
     /// <para>⚠️ **禁硬切**:`handoverTicks ≤ 0` ⇒ 构造期抛异常(ramp 下界同 50 ms 族;
@@ -110,14 +110,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>交接次数(**单调递增**;幂等重入不计 —— 「窗内重复触发只交接一次」的观测面)。</summary>
         public int HandoverCount { get; private set; }
 
-        /// <summary>世界层句柄是否已由 44 自行释放(AC-009-2 的断言面)。</summary>
+        /// <summary>世界层句柄是否已由 44 自行释放(SAC-009-2 的断言面)。</summary>
         public bool WorldHandleReleased { get; private set; }
 
         /// <summary>听诊层句柄是否已由 44 自行释放(退出反向的断言面)。</summary>
         public bool StethoscopeHandleReleased { get; private set; }
 
         /// <summary>世界层起循环(未贴耳时的常态入口)。
-        /// <para>⚠️ **听诊优先**:已贴耳 / 正在贴耳时新到的世界 cue **不重启**世界层(AC-009-2);
+        /// <para>⚠️ **听诊优先**:已贴耳 / 正在贴耳时新到的世界 cue **不重启**世界层(SAC-009-2);
         /// 但 cue 本身记下,供退出听诊时重建。</para></summary>
         /// <param name="worldCue">世界语境呼吸 cue。</param>
         /// <param name="currentTick">当前 sim tick(时钟源 = `ITickProvider`,禁墙钟)。</param>
@@ -126,7 +126,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             _worldCue = worldCue;
             _hasWorldCue = true;
 
-            // 听诊优先:听诊中世界 cue 新到 ⇒ 不重启世界层(AC-009-2)
+            // 听诊优先:听诊中世界 cue 新到 ⇒ 不重启世界层(SAC-009-2)
             if (Phase == HandoverPhase.StethoscopeOnly || Phase == HandoverPhase.HandingToStethoscope)
                 return;
 
@@ -152,13 +152,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>玩家贴耳(**带结果**;AC「听诊窗预载」的判据面)。
         /// <para>返回 false = 听诊族 cue 未全部载入 ⇒ **不进听诊**(相位不变、句柄不建、
         /// 计数不增)。调用方据此保持世界层 / 提示载入中。</para>
-        /// <para>幂等:已在贴耳 / 正在贴耳 ⇒ 返回 true 且不重复交接(AC-009-2 边条)。</para></summary>
+        /// <para>幂等:已在贴耳 / 正在贴耳 ⇒ 返回 true 且不重复交接(SAC-009-2 边条)。</para></summary>
         /// <param name="stethoscopeCue">听诊层 cue。</param>
         /// <param name="currentTick">当前 sim tick。</param>
         /// <returns>true = 已进入(或本就已进入);false = 预载未就绪,未进入。</returns>
         public bool TryEnterStethoscope(in AudioCueDto stethoscopeCue, long currentTick)
         {
-            // 幂等:已在贴耳 / 正在贴耳 ⇒ 不重复交接(AC-009-2 边条)
+            // 幂等:已在贴耳 / 正在贴耳 ⇒ 不重复交接(SAC-009-2 边条)
             if (Phase == HandoverPhase.HandingToStethoscope || Phase == HandoverPhase.StethoscopeOnly)
                 return true;
 
@@ -234,7 +234,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             WorldVolume = 0.0;
             StethoscopeVolume = 1.0;
 
-            // AC-009-2 逐字:「世界层停止由 44 对**自有句柄**执行」(ADR-028 ⑤)
+            // SAC-009-2 逐字:「世界层停止由 44 对**自有句柄**执行」(ADR-028 ⑤)
             if (_hasWorldHandle)
             {
                 _sink.EndLoop(_worldHandle);

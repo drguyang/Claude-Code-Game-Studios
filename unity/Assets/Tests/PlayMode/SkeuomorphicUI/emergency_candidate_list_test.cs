@@ -78,7 +78,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             var skip = list.Root.Q<VisualElement>(EmergencyCandidateList.SkipEntryName);
             Assert.IsNotNull(skip, "跳过入口应实例化");
             Assert.IsTrue(skip.ClassListContains("skip-entry"),
-                "跳过入口挂 `.skip-entry`(story-023 AC-023-1 纸签形态;O-10-1 owner = 42)");
+                "跳过入口挂 `.skip-entry`(story-023 SAC-023-1 纸签形态;O-10-1 owner = 42)");
 
             // 规则六之甲:跳过 = 列表上的一项 ⇒ 它在列表内,且是最后一项
             var children = list.Root.Children().ToList();
@@ -129,13 +129,13 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "宽半锚 `--skeuo-shared-row-height`(44px = AB-3 焦点落点承诺;承 story-021 变量)");
         }
 
-        // ── ⑤ 全库零数字角标(与 AC-023-2 门同口径,不进本测试重复其全集) ──
+        // ── ⑤ 全库零数字角标(与 SAC-023-2 门同口径,不进本测试重复其全集) ──
 
         [Test]
         public void test_t2_4_uss_zeroNumericBadgeInNewBlocks()
         {
             // 只锁本 story 新增两块(`.skip-entry` / `.candidate-entry`),
-            // 全库零数字门归 AC-023-2(story-023 测试),此处不重复其判据面。
+            // 全库零数字门归 SAC-023-2(story-023 测试),此处不重复其判据面。
             foreach (string className in new[] { ".skip-entry", ".candidate-entry" })
             {
                 Match block = Regex.Match(UssBody, Regex.Escape(className) + @"\s*\{[^}]*\}");

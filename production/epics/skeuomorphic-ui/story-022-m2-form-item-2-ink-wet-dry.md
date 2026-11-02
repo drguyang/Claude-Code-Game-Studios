@@ -47,7 +47,7 @@
 
 ### 步① 两态主题色 + 明度轴判据(art-bible §4.5 机械化)
 
-- [x] **AC-022-1** ✅ **2026-10-08**: theme ink 层 +`--skeuo-ink-fg-wet`(湿 = art-bible §4.1
+- [x] **SAC-022-1** ✅ **2026-10-08**: theme ink 层 +`--skeuo-ink-fg-wet`(湿 = art-bible §4.1
       权威浓墨 `#26241f`)+ `--skeuo-ink-fg-dry`(干 = 同色相降明度【提案】`#191714`);
       `test_ac022_1_ink_wet_dry_theme_colors_luminance_axis_only` 从 theme **现抽**(改色判据跟随,
       防第二真源):① ΔH ≤ 12°【提案·归数值轮】(「不色相漂移」;uint8 量化噪声结构界)——
@@ -57,7 +57,7 @@
 
 ### 步② 两态类接冻结图(C8 一致)
 
-- [x] **AC-022-2** ✅ **2026-10-08**: `SkeuoInk.uss` +`.ink-wet`(background-image =
+- [x] **SAC-022-2** ✅ **2026-10-08**: `SkeuoInk.uss` +`.ink-wet`(background-image =
       `ink_wet-final.png` guid `4ccb158d…`)+ `.ink-dry`(`ink_dry-final.png` guid `fbae6e46…`),
       各挂对应 `color: var(--skeuo-ink-fg-…)`;**无 `-unity-slice-*` 行**(冻结件 slice = 0,
       两图实测有内容边界但冻结裁定 0 —— 承 `nine-slice-freeze-2026-10-08.md:53/:54`);
@@ -69,7 +69,7 @@
 
 ### 步③ 洇开语义判据(贴图级方向锁)
 
-- [x] **AC-022-3** ✅ **2026-10-08**: `test_ac022_3_wet_ink_spread_covers_more_than_dry`
+- [x] **SAC-022-3** ✅ **2026-10-08**: `test_ac022_3_wet_ink_spread_covers_more_than_dry`
       读**真贴图**(ink_wet/ink_dry,`Texture2D.LoadImage` + DestroyImmediate,照 story-021 基建):
       湿图墨像素(L < 0.2【提案·归数值轮】)覆盖率 **>** 干图(严格大,评审收严 —— 实测余量 0.969 vs 0.646)—— 「边缘洇开」⇒ 覆盖大、
       「边缘收干」⇒ 覆盖小的方向锁(**只锁方向不锚数值** —— 两图是形态差非色差);

@@ -1,7 +1,7 @@
 // EditMode 全局兜底清理(清债轮 · TD-audio-026 · 2026-10-25)
 //
 // 背景:CompositionRoot.Assemble() 无条件建 AudioSourcePool(TD-audio-026 丙案
-// 「完全构造」,AC-018-4 单池不变量),池根 = DontSave GameObject —— 不清理则跨夹具残留。
+// 「完全构造」,SAC-018-4 单池不变量),池根 = DontSave GameObject —— 不清理则跨夹具残留。
 // 释放主路径 = 服务袋 `Dispose()`(测试持有袋引用时逐件调);本件是**运行末兜底**:
 // 整个 EditMode 跑完后把残留池根扫掉,不让泄漏漂进编辑器的下一次操作。
 // ⚠️ 运行中途的夹具间清理不归本件(NUnit 无夹具间钩子);ac018_4 的自隔离前置

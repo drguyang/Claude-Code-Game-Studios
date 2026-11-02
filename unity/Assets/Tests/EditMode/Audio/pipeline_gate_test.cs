@@ -949,7 +949,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(sink.BeginLoopCount, Is.EqualTo(1), "只应有世界层那一次 BeginLoop");
         }
 
-        /// <summary>听诊窗预载**接线**:就绪 ⇒ 放行,且相位 / 计数按 AC-009-2 推进。</summary>
+        /// <summary>听诊窗预载**接线**:就绪 ⇒ 放行,且相位 / 计数按 SAC-009-2 推进。</summary>
         [Test]
         public void test_preload_handoverMux_gateAllowsEntry()
         {

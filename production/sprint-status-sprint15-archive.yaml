@@ -33,9 +33,9 @@ stories:
     completed: "2026-10-20"
     # ✅ 2026-10-20 收口(用户裁定「同 S15-6 一并移出」):
     #   10-a(构建期门)/ 10-b(运行期断言)已落 + 证伪 F1–F9 转红 ⇒ 保留为证据;
-    #   10-c(AC-019-6 单用户听测)移出本卡、转 TD-listen-01,判据原文保留在该面节首声明之后。
+    #   10-c(SAC-019-6 单用户听测)移出本卡、转 TD-listen-01,判据原文保留在该面节首声明之后。
     #   ⚠️ 移出理由为**代码级不可达**(L-1 无病人离场路径 ⇒「停止」极不存在;L-3 病程 1.55 s)。
-    #   ⚠️ 本件 done **不表示** AC-019-6 通过 —— 它仍 NOT-RUN,只是不再是本卡的门。
+    #   ⚠️ 本件 done **不表示** SAC-019-6 通过 —— 它仍 NOT-RUN,只是不再是本卡的门。
     # 三面一卡。10-c(BLOCKING 用户实听)未跑 ⇒ 本件不得 Complete。
     # 判据:证伪轮逐条转红;尾音衰减序列单调无拐点;一次性 cue 计数从被观测链路派生。
 
@@ -105,7 +105,7 @@ stories:
     estimate_days: 0          # 复杂度 = M
     blocker: "⛔ **移出本 sprint(非 done、非 blocked —— 见 `removed_reason`)**。原 blocker(三份协议件 [x] 全 0 · 102 的 B-1..B-4 · 被试 ≥2)仍成立且**不足**:2026-10-20 实测另有四个**代码级**前置不满足 ⇒ 见 `removed_reason` 与 `TD-listen-01`"
     # ⛔ 2026-10-20 收口注:S15-6 = `removed`,**既非 done 也非 blocked**。同一裁定下 story-019 的
-    #   面 10-c(AC-019-6)亦移出本卡、并入本条,见 docs/tech-debt-register.md §TD-listen-01「归属变更留痕」。
+    #   面 10-c(SAC-019-6)亦移出本卡、并入本条,见 docs/tech-debt-register.md §TD-listen-01「归属变更留痕」。
     #   ⚠️ 「移出」= 未执行,不得读作通过;六个 AC 的听测半边一条都未验证。
     removed_reason: "2026-10-20 用户裁定移出,原因 = 听测的**测试对象在今日代码里不存在或不可达**,勾了即借绿。四项实测:L-1 `IPresenceWriter.RemovePresent` 生产零调用(全库仅 `PresenceRegistry.cs:78` 定义)⇒ 10-c 判据 4/5、『停顿 vs 停止』不可达;L-2 `queryLevel` = `CompositionRoot.cs:258` 局部 `int=1` 零回写 ⇒ `TierIndex(1)=0` 恒最低档 ⇒ AC-44-02 三档配对无对象;L-3 `fallback` 病种为 plateau 占位曲线(`CompositionRoot.cs:609-625`)⇒ 病程被压缩到 **1.55 s**(τ=23 跨 0.45=1.15s / τ=31 跨 0.90=1.55s),急促档仅 0.4 s;L-4 `SpawnIntervalTicks=400`(20s/人)+ 上限 3 ⇒ 同屏 3 人需 ~40 s 而每人 1.55 s 即死。另 L-5 双盲 n≥6 人 / 被试≥2 人。解除条件与『今日确实可听』的部分见 `docs/tech-debt-register.md` `TD-listen-01`。原卡面判据保留在 sprint-15.md 供解除后复用"
     completed: ""

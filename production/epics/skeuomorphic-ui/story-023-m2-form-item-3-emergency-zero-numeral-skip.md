@@ -49,7 +49,7 @@
 
 ### 步① 跳过入口元件形态(`O-10-1` 规格的 42 侧形态半)
 
-- [x] **AC-023-1** ✅ **2026-10-09**: `SkeuoPaper.uss` +`.skip-entry`(纸签形态:aged 纸底 +
+- [x] **SAC-023-1** ✅ **2026-10-09**: `SkeuoPaper.uss` +`.skip-entry`(纸签形态:aged 纸底 +
       ink 墨字 + 行高/缩进全走 var,**零新变量零新图**);头注锚 `O-10-1`(10 向 42 提规格)/
       规则六之甲(`Idle` 态可达归 10 轮)/ 零施加点;
       `test_ac023_1_skip_entry_element_declared_with_theme_discipline` 锁:类块存在 +
@@ -60,7 +60,7 @@
 
 ### 步② 零数字角标门(art-bible G2 反数值化机械化)
 
-- [x] **AC-023-2** ✅ **2026-10-09**: `test_ac023_2_emergency_presentation_zero_numeric_badge`
+- [x] **SAC-023-2** ✅ **2026-10-09**: `test_ac023_2_emergency_presentation_zero_numeric_badge`
       —— **剥注释后**扫全库 Skeuo `*.uss`:① 零 `content:` 含数字(数字角标的唯一 USS 载体;
       现状全库零 `content:` ⇒ 新增即红)② 零 `X/N` 形态(`\d+\s*/\s*\d+`;注释内
       「40/39/43/43」等实测记录剥除后基线零命中 —— 故**必须剥注释**,否则误红);
@@ -70,7 +70,7 @@
 
 ### 步③ 焦点落点形态(可跳过的可达性形态半)
 
-- [x] **AC-023-3** ✅ **2026-10-09**: `test_ac023_3_skip_entry_focus_landing_compatible` ——
+- [x] **SAC-023-3** ✅ **2026-10-09**: `test_ac023_3_skip_entry_focus_landing_compatible` ——
       ① `min-height` 锚 `var(--skeuo-shared-row-height)`(= 44 = AB-3 焦点落点 ≥44×44 高半,
       承 story-021 变量;跳过入口是**列表项焦点落点**,可达形态的尺寸承诺);
       ② 零 `background-image`(焦点单槽铁律 —— 环图整槽替换会顶掉纸纹);

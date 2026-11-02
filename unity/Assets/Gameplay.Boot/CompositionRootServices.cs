@@ -279,7 +279,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         public IAudioCueSink AudioSink { get; }
 
         /// <summary>44 的世界语境声源池(story-018 · A-4 的生产构造点)。
-        /// <para>⚠️ **单池不变量**(AC-018-4):全案只有这一个池;
+        /// <para>⚠️ **单池不变量**(SAC-018-4):全案只有这一个池;
         /// `SpatializationDirector` 若被构造**必须**走 `(latticeSize, pool)` 重载共享它。</para></summary>
         public AudioSourcePool AudioPool { get; }
 
@@ -296,7 +296,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         public TelemetryReporter Telemetry { get; }
 
         /// <summary>世界语境空间化的装配入口(S15-4 · TD-audio-028)。
-        /// <para>⚠️ 与 <see cref="AudioPool"/> **共享同一池**(AC-018-4 单池不变量)。
+        /// <para>⚠️ 与 <see cref="AudioPool"/> **共享同一池**(SAC-018-4 单池不变量)。
         /// null ⇔ 渲染面未装配(<see cref="AudioRenderAssembled"/> = false)。</para>
         /// <para>可观测面:位置是否真被写看 <c>(renderTarget as AudioSourceRenderTarget).SpatializedCount</c>;        /// 排名 / 寿命看本属性的 <c>ActiveCount</c> / <c>Order</c>。</para></summary>
         public SpatializationDirector Spatialization { get; }
@@ -307,7 +307,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>null ⇔ 渲染面未装配(null sink)。</para></summary>
         public AudioSourceRenderTarget RenderTarget { get; }
 
-        /// <summary>病人 cue 驱动(story-018 · AC-018-6 的**调用方**)—— tick 边沿 → 13 调度 → 44 发射。
+        /// <summary>病人 cue 驱动(story-018 · SAC-018-6 的**调用方**)—— tick 边沿 → 13 调度 → 44 发射。
         /// <para>⚠️ 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动(与 <see cref="PatientAppearedDriver"/>
         /// 等同一泵);本类只提供引用,**不自行推进 tick**。</para></summary>
         public PatientCueDriver PatientCueDriver { get; }
@@ -610,7 +610,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>
         /// 释放装配产物持有的引擎资产(清债轮 · TD-audio-026 丙案「完全构造」· 2026-10-25)。
-        /// <para>构造保持**无条件建池**(AC-018-4 单池不变量:池是 ADR-028 ① 唯一所有者的
+        /// <para>构造保持**无条件建池**(SAC-018-4 单池不变量:池是 ADR-028 ① 唯一所有者的
         /// 承载物,不因未配音频而偷懒)—— 本方法补的是**释放半边**:装配袋是池根的
         /// 托管入口,Dispose ⇒ 池销毁自身 root 与全部声源(幂等;编辑器 / 播放双态分流
         /// 见 <see cref="AudioSourcePool.Dispose"/> 的实现注)。</para>

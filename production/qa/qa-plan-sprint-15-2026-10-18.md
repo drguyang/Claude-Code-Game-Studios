@@ -47,14 +47,14 @@
 `unity/Assets/Tests/PlayMode/`(真 `PatientCueDriver` 装配件)
 
 **What to test**(逐条 AC):
-- `AC-019-1` —— 事件表**不存在**任何「阈值跨越 / 转危 / 停顿 / 停止宣告」语义的离散 cue
+- `SAC-019-1` —— 事件表**不存在**任何「阈值跨越 / 转危 / 停顿 / 停止宣告」语义的离散 cue
   (载体 = `trigger_source` 值域拒收状态阈值类)。
-- `AC-019-2` —— 呼吸过渡类 cue **零新增 `trigger_source`**;宾语 = 真 `assets/data/audio_events.json` + 真 `AudioEventTableGates`。
-- `AC-019-3` —— 平稳 → 急促 → 停顿轨迹上,**一次性 cue 发射计数 = 0**;
+- `SAC-019-2` —— 呼吸过渡类 cue **零新增 `trigger_source`**;宾语 = 真 `assets/data/audio_events.json` + 真 `AudioEventTableGates`。
+- `SAC-019-3` —— 平稳 → 急促 → 停顿轨迹上,**一次性 cue 发射计数 = 0**;
   ⚠️ 计数须**从被观测链路派生**(读 `PatientCueDriver.EmitCount` / sink 实收),不得由测试自己累加假计。
-- `AC-019-4` —— 停止(死亡)⇒ loop 干净终止、终止后池活动计数**不升**;
+- `SAC-019-4` —— 停止(死亡)⇒ loop 干净终止、终止后池活动计数**不升**;
   停顿 ⇒ loop 存续 + 增益进尾音衰减分支。**两态在断言层可分**。
-- `AC-019-5` —— `AudioTuning.breath_tail_ramp_ms` / `breath_tail_gain_floor_db` 驱动基础气流层增益指数衰减;
+- `SAC-019-5` —— `AudioTuning.breath_tail_ramp_ms` / `breath_tail_gain_floor_db` 驱动基础气流层增益指数衰减;
   **零新 clip**;**衰减序列单调无拐点**(机器判据);数值不冻结(归用户数值轮)。
 
 **Edge cases to cover**:
@@ -66,20 +66,20 @@
 **Estimated test count**: ~14(门 4 · 轨迹 4 · 两态可分 3 · 尾音 3)
 
 > **证伪判据(必填在 impl 原件)**:
-> ① 停用 `trigger_source` 的拒收集合 ⇒ `AC-019-1` 负向夹具红;
-> ② 把任一阈值跨越临时映射成一次性 cue ⇒ `AC-019-3` 红;
-> ③ 让尾音不走衰减(直接 `EndLoop`)⇒ `AC-019-4` 的「两态可分」红;
-> ④ 把衰减序列改成非单调 ⇒ `AC-019-5` 红。
+> ① 停用 `trigger_source` 的拒收集合 ⇒ `SAC-019-1` 负向夹具红;
+> ② 把任一阈值跨越临时映射成一次性 cue ⇒ `SAC-019-3` 红;
+> ③ 让尾音不走衰减(直接 `EndLoop`)⇒ `SAC-019-4` 的「两态可分」红;
+> ④ 把衰减序列改成非单调 ⇒ `SAC-019-5` 红。
 
 ### S15-2 · story-020 — Integration
 
 **Test file path**:`unity/Assets/Tests/EditMode/Audio/voice_variant_selection_test.cs`(新)
 
 **What to test**:
-- `AC-020-1` —— `AudioClipLibrary` 多素材行经 `VoiceVariantLib.SelectVariant` 取用(真生产类)。
-- `AC-020-2` —— 选择确定性:同 `(CueId, Tier, 患者身份)` 两次调用 ⇒ 同变体;
+- `SAC-020-1` —— `AudioClipLibrary` 多素材行经 `VoiceVariantLib.SelectVariant` 取用(真生产类)。
+- `SAC-020-2` —— 选择确定性:同 `(CueId, Tier, 患者身份)` 两次调用 ⇒ 同变体;
   不同患者同 Tier **不得恒同一条**(分布判据,**禁「随机」措辞**)。
-- `AC-020-3` —— 12 个 `vo_` 变体**逐个可达**(宾语 = 真种子事件表 + 真 `VoiceVariantLib`)。
+- `SAC-020-3` —— 12 个 `vo_` 变体**逐个可达**(宾语 = 真种子事件表 + 真 `VoiceVariantLib`)。
 
 **Edge cases to cover**:
 - 单素材行(1 条 `assets[]`)⇒ 选择器退化但**不抛**;
@@ -88,17 +88,17 @@
 
 **Estimated test count**: ~10
 
-> **证伪判据**:① 回退为恒取 `Assets[0]` ⇒ `AC-020-1` 红;② 从选择键删掉身份维度 ⇒ 分布断言红;
-> ③ 让选择器只覆盖前 6 条 ⇒ `AC-020-3` 红。
+> **证伪判据**:① 回退为恒取 `Assets[0]` ⇒ `SAC-020-1` 红;② 从选择键删掉身份维度 ⇒ 分布断言红;
+> ③ 让选择器只覆盖前 6 条 ⇒ `SAC-020-3` 红。
 
 ### S15-3 · story-021 — Integration
 
 **Test file path**:`unity/Assets/Tests/EditMode/Audio/` 或 `PlayMode/`(打 story-018 已通的缝)
 
 **What to test**:
-- `AC-021-1` —— `knowsClinic` 走注入;全仓无 `knowsClinic: false` 字面量。
-- `AC-021-2` —— `knowsClinic = true` ⇒ 病人**可进 `Seeking`**(真 `BehaviorMap`)。
-- `AC-021-3` —— `knowsClinic = false` ⇒ **不进 `Seeking`**(反向对照,防「一律 true」的假修)。
+- `SAC-021-1` —— `knowsClinic` 走注入;全仓无 `knowsClinic: false` 字面量。
+- `SAC-021-2` —— `knowsClinic = true` ⇒ 病人**可进 `Seeking`**(真 `BehaviorMap`)。
+- `SAC-021-3` —— `knowsClinic = false` ⇒ **不进 `Seeking`**(反向对照,防「一律 true」的假修)。
 
 **Edge cases to cover**:
 - 注入为 `null` 时**显式 fail-loud 或明确默认**(实现轮登记所选),不得静默 `false`;
@@ -106,8 +106,8 @@
 
 **Estimated test count**: ~6
 
-> **证伪判据**:① 改回 `false` ⇒ `AC-021-1`/`AC-021-2` 红;② `BehaviorMap` 的 `Seeking` 分支短路 ⇒ `AC-021-2` 红;
-> ③ 注入恒 `true` ⇒ `AC-021-3` 红。
+> **证伪判据**:① 改回 `false` ⇒ `SAC-021-1`/`SAC-021-2` 红;② `BehaviorMap` 的 `Seeking` 分支短路 ⇒ `SAC-021-2` 红;
+> ③ 注入恒 `true` ⇒ `SAC-021-3` 红。
 
 ### S15-4 · `TD-audio-028` — Integration
 
@@ -151,11 +151,11 @@
 > `docs/tech-debt-register.md` **`TD-listen-01`**(阻断项 L-1…L-6 + 解除条件 + 执行入口)。
 > ⇒ 本 sprint **不再有待用户实听的门**;下方清单**依然有效**,只是其**执行时点**从「本 sprint」
 > 改为「`TD-listen-01` 解除后」。
-> ⚠️ **移出不等于通过** —— 两项判据一格未勾、一条未验证;`AC-019-6` / `AC-44-02` / `AC-44-08`
+> ⚠️ **移出不等于通过** —— 两项判据一格未勾、一条未验证;`SAC-019-6` / `AC-44-02` / `AC-44-08`
 > 的听测半边**仍为 NOT-RUN**。
 > ⚠️ 本节其余内容(Smoke Test Scope 第 2–7 条、Playtest Requirements 表)**同受此注约束**。
 
-### S15-1 面 10-c · `AC-019-6` `[L]`(BLOCKING)
+### S15-1 面 10-c · `SAC-019-6` `[L]`(BLOCKING)
 **Verification method**:用户实机 Play · 编辑器内听测
 **Who must sign off**:用户本人(人耳)
 **Evidence to capture**:`production/qa/evidence/` 新增协议件(承 `audio-wiring-listening-2026-10-18.md` 形态)

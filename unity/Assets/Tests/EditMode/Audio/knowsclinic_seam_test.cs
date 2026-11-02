@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-021-knowsclinic-injection-seam.md
-//   (AC-021-1 注入缝 · AC-021-2 knowsClinic=true ⇒ 可进 Seeking · AC-021-3 false ⇒ 不进)
+//   (SAC-021-1 注入缝 · SAC-021-2 knowsClinic=true ⇒ 可进 Seeking · SAC-021-3 false ⇒ 不进)
 // design/gdd/patient-ai.md F-13.2 · ADR-016 §一(重建三源不变量)· ADR-018 §一(44 只触发)
 // TD-audio-033 ①(`knowsClinic: false` 硬编码入生产驱动)
 //
@@ -8,7 +8,7 @@
 //    + 真 `BehaviorMap`)· `ClinicKnowledgeDirectory` · `ClinicKnowledge` · `RegistryClinicKnowledgeSource`
 //    · 6 的 `EcozoneRegistry`。
 //    注入的假件只有**生产代码自己声明的缝**:`IVitalsQuery`(9 的取数面)· `IAudioCueSink` 计数壳。
-//    ⚠️ 本夹具**不写 `knowsClinic: false` 字面量**,也不以该字面量作判据 —— AC-021-1 的判据是
+//    ⚠️ 本夹具**不写 `knowsClinic: false` 字面量**,也不以该字面量作判据 —— SAC-021-1 的判据是
 //    `PatientCueDriver` 的**构造契约**(必填 + null 即抛),不是文本 grep(文本面归证伪轮登记)。
 //
 // ⚠️ 测试纪律:arrange/act/assert · 无随机 · 无时间依赖 · 零文件系统 I/O。
@@ -26,7 +26,7 @@ using DaYiJingCheng.Sim.World;
 
 namespace DaYiJingCheng.Tests.Unit.Audio
 {
-    /// <summary>story-021:`knowsClinic` 注入缝的判别力夹具(AC-021-1/2/3)。</summary>
+    /// <summary>story-021:`knowsClinic` 注入缝的判别力夹具(SAC-021-1/2/3)。</summary>
     [TestFixture]
     public sealed class KnowsClinicSeamTest
     {
@@ -58,7 +58,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             return director.For(new PatientId(7)).Current;
         }
 
-        /// <summary>直接造驱动(只为 AC-021-3 的注入值配对;装配面归 AC-021-1)。</summary>
+        /// <summary>直接造驱动(只为 SAC-021-3 的注入值配对;装配面归 SAC-021-1)。</summary>
         private static PatientCueDriver DriverWith(Func<PatientId, bool> knowsClinic,
                                                    IVitalsQuery vitals, PresenceRegistry presence,
                                                    out PatientBehaviorDirector director)
@@ -69,7 +69,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-021-1 —— knowsClinic 是构造契约(必填;装配层从真值源喂)
+        // SAC-021-1 —— knowsClinic 是构造契约(必填;装配层从真值源喂)
         // 判别力:把构造参数改回可省略 + 静默默认 ⇒ 第一条红;
         //         装配层改回写死常量 ⇒ 第二条红(判据 = 行为,不是文本)。
         // ══════════════════════════════════════════════════════════════════
@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 clinicKnowledge: KnowledgeWithClinicInRegion0());
             Assert.That(wired.PatientCueDriver.KnowsClinicOf(new PatientId(7)), Is.True,
                 "真值链(区 0 有医馆 POI ∧ 病人在区 0)⇒ 装配层喂给 13 的必须是真 —— " +
-                "否则装配层在发明行为输入(AC-021-1)");
+                "否则装配层在发明行为输入(SAC-021-1)");
 
             // ② 不注入 ⇒ 组合根自建空表 ⇒ 如实为假
             CompositionRootServices bare = CompositionRoot.Assemble(
@@ -129,7 +129,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-021-2 —— knowsClinic = true ⇒ 可进 Seeking(真 director + 真 BehaviorMap)
+        // SAC-021-2 —— knowsClinic = true ⇒ 可进 Seeking(真 director + 真 BehaviorMap)
         // 判别力:把 BehaviorMap 的 Seeking 分支短路 ⇒ 本条红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -151,7 +151,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-021-3 —— knowsClinic = false ⇒ 不进 Seeking(防「一律 true」的假修)
+        // SAC-021-3 —— knowsClinic = false ⇒ 不进 Seeking(防「一律 true」的假修)
         // 判别力:把注入恒为 true ⇒ 本条红。
         // ══════════════════════════════════════════════════════════════════
 
@@ -233,7 +233,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-021-1(文本半边)—— 生产树内不得再出现 `knowsClinic: false` 字面量
+        // SAC-021-1(文本半边)—— 生产树内不得再出现 `knowsClinic: false` 字面量
         // 判别力:把任一生产调用点改回该字面量 ⇒ 本条红。
         // ⚠️ 宾语 = **生产程序集源码**(Gameplay.Boot / Gameplay.Presentation),不含测试树 ——
         //    否则「测试文件没写」会被当成「生产没写」(承假绿复核病根)。
@@ -247,7 +247,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             var offenders = new List<string>();
             int scanned = 0;
-            // 扫**全部**生产树:`Tests/` 以外的一切 .cs(AC-021-1 原文是「全仓」;
+            // 扫**全部**生产树:`Tests/` 以外的一切 .cs(SAC-021-1 原文是「全仓」;
             // 旧版只扫 Boot + Presentation 两棵 —— 评审 W-2 实测其余七棵今日虽零违例,
             // 但门的面**必须是全部**,否则新违例写进 Sim / UI 侧无人拦)。
             foreach (string file in Directory.GetFiles(assetsRoot, "*.cs", SearchOption.AllDirectories))

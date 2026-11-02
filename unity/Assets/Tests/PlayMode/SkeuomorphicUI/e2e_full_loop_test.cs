@@ -433,7 +433,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.Greater(reading.Count, 0,
                 "对照环节:脉案通道行渲染出 .channel-reading 值区(对照的呈现锚)");
             Assert.IsTrue(reading.Any(HasWordText),
-                "对照环节:值区行有词条文字(不是空行/badge;AC-024-2)");
+                "对照环节:值区行有词条文字(不是空行/badge;SAC-024-2)");
 
             // ── ④ 落笔:病名栏 Submit ⇒ 摊开 ⇒ 指认 ⇒ JudgmentRecorded ──
             IReadOnlyList<int> pointable = _bag.CasebookSource.SeenLexiconIds;

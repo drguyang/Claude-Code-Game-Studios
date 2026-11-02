@@ -13,7 +13,7 @@
 
 | # | 级 | 位置 | 问题 |
 |---|---|---|---|
-| B1 | BLOCKING | `SignChannelBinder.cs:70-78`(根因)· 暴露于 `test:159-162` | AC-024-3「34 词条全落合法通道」实由 **switch** 保证,与 `Bind` 的非法枚举守卫**结构不等价** —— 真表行必落预建桶,守卫**不可达**;非法枚举 fail-loud 仅由夹具 `(SignChannel)99` 触发。AC 文字与断言机制不等价(023 Q1 同型) |
+| B1 | BLOCKING | `SignChannelBinder.cs:70-78`(根因)· 暴露于 `test:159-162` | SAC-024-3「34 词条全落合法通道」实由 **switch** 保证,与 `Bind` 的非法枚举守卫**结构不等价** —— 真表行必落预建桶,守卫**不可达**;非法枚举 fail-loud 仅由夹具 `(SignChannel)99` 触发。AC 文字与断言机制不等价(023 Q1 同型) |
 | A1 | ADVISORY | `SignChannelBinder.cs:96-99` · `test:366-370` | F-8.2 `:1003`「向下回退」与实现「向数组尾」等价依赖未写明约定(数组序 = slot 序,出处 `DiagnosisSignTable.cs:109-110`) |
 | A2 | ADVISORY | `test:240` / `:273-274` | badge 扫描与块唯一性正则字符类缺 `/`(命名面带斜杠变体漏网,风险低) |
 

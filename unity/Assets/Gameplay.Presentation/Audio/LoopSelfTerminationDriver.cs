@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-009-source-lifecycle-handover.md
-//   (AC-009-1 EndLoop 自评兜底 —— AC 源:GDD §Edge Cases「EndLoop 永不到达」条 + §States ②)
+//   (SAC-009-1 EndLoop 自评兜底 —— AC 源:GDD §Edge Cases「EndLoop 永不到达」条 + §States ②)
 // GDD:design/gdd/audio-system.md §States :206-222(播放句柄层 · EndLoop 可能永不到达)
 //   · :219-222 「**P0 = 自评兜底(架构义务,不得留空)** —— 从最新快照 `Progress` 自行求值
 //     是否该结束,零网络依赖;…**不构成对自评兜底的免除**」
@@ -25,7 +25,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Audio
 {
-    /// <summary>循环自评兜底的**执行驱动器**(AC-009-1 的生产实现)。
+    /// <summary>循环自评兜底的**执行驱动器**(SAC-009-1 的生产实现)。
     /// <para>职责:① 登记活跃循环句柄;② 接收上游推来的最新快照 `Progress`;
     /// ③ 每 tick 调 <see cref="EndLoopWatchdog.ShouldSelfTerminate"/> 判停,
     /// 命中则对**自有句柄**执行 `EndLoop`(ADR-028 ⑤)。</para>

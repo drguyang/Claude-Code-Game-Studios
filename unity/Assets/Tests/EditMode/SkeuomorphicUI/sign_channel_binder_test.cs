@@ -10,7 +10,7 @@ using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 {
-    /// <summary>M2 形态件④(story-024 · AC-024-1/2/3)—— 一条真实状态反馈通道:
+    /// <summary>M2 形态件④(story-024 · SAC-024-1/2/3)—— 一条真实状态反馈通道:
     /// 体征词条(8 的 <c>SignLexemeRow</c> 真源)→ 脉案五通道分发 + 通道值区形态 + 真表端到端。
     /// <para>判据权威 = diagnosis-system 规则五四态 · F-8.2 空档回退(:1003-1011) ·
     /// §Edge Cases(:1178-1186 并列不相斥 / 阴性形态) · :329(未查 = 空行,非 badge)+
@@ -65,7 +65,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             => new SignLexemeRow(id, words, channel,
                 Array.Empty<RevealMethod>(), 1, polarity, null);
 
-        // ── AC-024-1: 通道分发纯函数(四态语义机械化)──
+        // ── SAC-024-1: 通道分发纯函数(四态语义机械化)──
 
         [Test]
         public void test_ac024_1_binder_dispatch_covers_four_states()
@@ -195,7 +195,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 "null 输入须 fail-loud。");
         }
 
-        // ── AC-024-2: 通道值区形态对(阳性墨字 / 阴性降档 / 零未查徽章)──
+        // ── SAC-024-2: 通道值区形态对(阳性墨字 / 阴性降档 / 零未查徽章)──
 
         [Test]
         public void test_ac024_2_value_area_forms()
@@ -329,7 +329,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
         }
 
-        // ── AC-024-3: 真表端到端判据(版本化 fixture 驱动 · 通道闭环可证伪)──
+        // ── SAC-024-3: 真表端到端判据(版本化 fixture 驱动 · 通道闭环可证伪)──
 
         [Test]
         public void test_ac024_3_real_sign_table_roundtrip()

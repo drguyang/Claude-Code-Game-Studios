@@ -1,4 +1,4 @@
-// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(AC-018-3)
+// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(SAC-018-3)
 //   · A-1「`CueRenderSink` 零生产构造点」· A-4「`AudioSourcePool` 零生产构造点」
 // ADR-028 ①(声源池唯一所有者 = 44)· ②(零场景预摆)· ADR-018 §一(44 只渲染)
 // ADR-025 §①(Gameplay.Boot 可同时看见 Sim.Codec 与 Gameplay.Presentation)

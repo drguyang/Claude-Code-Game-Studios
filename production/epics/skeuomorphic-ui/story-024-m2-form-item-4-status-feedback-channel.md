@@ -52,7 +52,7 @@
 
 ### 步① 通道分发纯函数(F-8.2 + 四态语义机械化)
 
-- [x] **AC-024-1** ✅ **2026-10-09**: 新 `SignChannelBinder.cs`(`Gameplay.UI/Skeuomorphic`)——
+- [x] **SAC-024-1** ✅ **2026-10-09**: 新 `SignChannelBinder.cs`(`Gameplay.UI/Skeuomorphic`)——
       `Bind(IEnumerable<SignLexemeRow> revealed, int slot) → IReadOnlyDictionary<SignChannel, ChannelReading[]>`:
       ① 按 `Channel` 分流(五通道闭集);② 档位取词 = **从 slot 起向数组尾找第一个非 null**
       (F-8.2 `:1003` 字面:粗档无词 → 中档);③ 全 null ⇒ `Word = null`(**读不出 → 阴性形态**,
@@ -61,7 +61,7 @@
 
 ### 步② 通道值区形态对(阳性墨字 / 阴性降档)
 
-- [x] **AC-024-2** ✅ **2026-10-09**: `SkeuoPaper.uss` +`.channel-reading`(阳性:ink-fg 墨字)+
+- [x] **SAC-024-2** ✅ **2026-10-09**: `SkeuoPaper.uss` +`.channel-reading`(阳性:ink-fg 墨字)+
       `.channel-reading-negative`(阴性形态:ink-faded **墨色降档**,零标注零徽章——`:1185` 承载形态
       即把握不足);未查**不新增类**(复用 `.empty-row`,`:329` 反 badge);
       头注锚四态与归 8 边界。
@@ -71,7 +71,7 @@
 
 ### 步③ 真表端到端判据(34 行驱动 · 通道闭环可证伪)
 
-- [x] **AC-024-3** ✅ **2026-10-09**: `test_ac024_3_…real_sign_table_roundtrip` ——
+- [x] **SAC-024-3** ✅ **2026-10-09**: `test_ac024_3_…real_sign_table_roundtrip` ——
       读真表 `assets/data/diagnosis_signs.json`(34 行,版本化 fixture,门式读仓)→
       中文 `channel` → `SignChannel` 映射 → 构造 `SignLexemeRow` → `Bind`:
       ① 34 词条全落合法通道(五枚举闭集,零漏零溢);② 真表**零空串词**(GDD 禁空串,
@@ -105,6 +105,6 @@
 - [x] **双代理评审(恰一轮)→ 修复 → 复跑绿** ✅ **2026-10-09** ——
       评审原件 `production/qa/evidence/review-story-024-form-item-4-2026-10-09.md`
       (代码面 FIX-THEN-APPROVE 1B+2A · 测试面 APPROVE 2A ⇒ **去重 5 项同批修复全落**;
-      BLOCKING = AC-024-3「全落合法通道」由 switch 保证与 `Bind` 守卫结构不等价 ⇒ 增真表原文值集
+      BLOCKING = SAC-024-3「全落合法通道」由 switch 保证与 `Bind` 守卫结构不等价 ⇒ 增真表原文值集
       + Bind 产物键集双独立断言;补 MUT-7/8 恰红实证)⇒ 转 APPROVE
 - [ ] 用户指令后提交(用户流程明示「收口提交推送」)

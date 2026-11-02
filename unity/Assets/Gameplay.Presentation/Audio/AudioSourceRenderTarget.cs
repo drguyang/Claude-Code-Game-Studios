@@ -1,4 +1,4 @@
-// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(AC-018-1)
+// 权威来源:production/epics/audio-system/story-018-runtime-audio-assembly.md(SAC-018-1)
 //   · A-2「`ICueRenderTarget` 只有 `NullRenderTarget`」—— 本类即真实现。
 // ADR-028 ①(世界语境声源池**唯一所有者 = 44**)· ⑤(cue 驱动生命周期)
 // ADR-018 §一(44 只渲染,不持游戏状态)· §二(`AudioCueDto` 唯一入口)
@@ -43,7 +43,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         private readonly Func<AudioCueDto, AudioClip> _cueClipOf;
         private readonly Func<int, string> _busForCue;
 
-        // S15-4(TD-audio-028):空间化链。**同一池**共享(AC-018-4 单池不变量)——
+        // S15-4(TD-audio-028):空间化链。**同一池**共享(SAC-018-4 单池不变量)——
         // 位置换算 / 格内偏移 / 排名全归它;本类只在 spawn 之后把源交给它定位。
         // null ⇒ 退回**旧形态**(不写 transform.position)—— 只为既有 62 处无音频缝的
         // EditMode 调用保持行为;生产路径(组合根)恒非 null。
