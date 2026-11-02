@@ -449,7 +449,7 @@
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
-| `TD-interaction-03` | `interaction-system` | open | **N** | R4 |
+| `TD-interaction-03` | `interaction-system` | partial | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
@@ -861,7 +861,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 150 | 状态 {'closed': 131, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
+条目 150 | 状态 {'closed': 131, 'partial': 4, 'open': 14, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -8936,3 +8936,60 @@ F-4.1 规定「谁是目标」由 ⟨d∞, KindPriority, StableId⟩ 三键全�
 | **`P0 面 = N` 的理由(R4 · 自陈)** | 三条依据,逐条写明以免被当成随口降级:<br>① 三种已接线的种类覆盖 P0 核心循环(就诊 / 采集 / 拾取);<br>② `AC-4-22` 在 `interaction-system/story-003` 中已按**读方形状**（注入替身）签 ✅,该 story **明写**「不得借绿:对侧真身联调归各自 Epic」—— 即项目的既有裁定把「生产装配」归 6 / 23 的装配轮,不归 4;<br>③ 缺的是**载体的装配**而非载体的存在:六种的 DTO / 装载路径 / 校验都已在 `CandidateSetLoader` 与 `story-003` 落地。<br>⚠️ **什么会把它翻成 Y**:若 P0 出口面要求「实机开档门柜可交互」(即把 `AC-4-22` 按**实机**读、不再接受替身),或 23 的构建物交互进入 P0 验收。**届时 `未闭 P0 面 0 → 1`,M3 Exit 第二条合取转假。** |
 | **何时消解** | `CandidateSources.BakedInitial` 与 `WorldBaked.PoiCells` / `BuildSlots` 有生产实装,**且** 每种至少有一个消费者接通(**且** 各自的选择/分派有夹具)。 |
 | **归属** | **交互系统(`interaction-system`)** —— 选择器归 4;各源的投影归 6 / 23。 |
+
+---
+
+## 2026-11-02 · 「第二源补齐」轮:`TD-interaction-03` → **partial**(POI / 建造槽位接通)
+
+**出处**:用户指令「修 TD-interaction-03」,并在范围选择中裁定 **C**(连 `BuildSlot` 一起接)。
+实现原件 = `production/qa/evidence/impl-interaction-03-poi-and-buildslot-2026-11-02.md`。
+
+### 本轮兑现(两半)
+
+| kind | 数据 | 消费面 | 状态 |
+|---|---|---|---|
+| `PoiCell` | ✅ `world_poi` → `WorldBakedLogicalSource` | ✅ `PoiDiscoveryReporter` → 6 的 `PoiStateMachine.TryDiscover`(组合根**首次**构造该状态机) | **接通** |
+| `BuildSlot` | ✅ `world_buildslots` → 同上 | ✅ `InteractionPressRouter` → `BuildInputDriver.AimAt`(进建造模式 + 对准该格,**不放置**) | **接通** |
+| `ForageSpot` / `Patient` / `Drop` | ✅(既有) | ✅(既有) | 接通 |
+
+**复算**:
+```bash
+grep -rn "new PoiStateMachine(" unity/Assets --include=*.cs | grep -v Tests   # 期望 1 命中(组合根)
+grep -rn "new GroundDropSource(\|new WorldBakedLogicalSource(" unity/Assets --include=*.cs | grep -v Tests
+```
+
+### 仍未闭(如实留档 —— `partial` 而非 `closed`)
+
+| kind | 缺什么 | 归属 |
+|---|---|---|
+| `Door` / `Switch` / `ClinicPanel` / `Utensil` / `Container` | **数据行本身不存在**:`build_modules.json` 只有 Bed/Table/Cabinet/Decor/Shell/Tent;`world_buildslots.json` 只有 Decor/Shell/Tent ⇒ `CandidateSources.BakedInitial` 在生产装配里仍是 `null` | **23 的数据模型**(`BakedInitial` 的 kind 分类)+ 18 / 24 / 20 的消费面 |
+
+**复算**(空集即证据):
+```bash
+python3 -c "
+import json,collections
+d=json.load(open('assets/data/build_modules.json',encoding='utf-8'))
+print(collections.Counter(m['module_type'] for m in d['modules']))
+"
+# 期望: Bed/Table/Cabinet/Decor/Shell/Tent —— 无 Door/Switch/ClinicPanel/Utensil/Container
+```
+
+⚠️ **`AC-4-22` 因此仍未满足(实机语义)**:它逐字要求「开档自带的门与柜可被选出并路由」,
+而门 / 柜没有数据行。`interaction-system/story-003` 的 ✅ 是**读方形状(注入替身)**签的,
+该 story 自注「不得借绿:对侧真身联调归各自 Epic」⇒ **不得据它把本债读成已解**。
+
+### 证伪轮(5 条全红 · SHA-256 逐字节还原 5/5)
+
+M1 线性键轴次序错(1 红)· M2 发现上报永不发(2 红,超集)· M3 槽位分派丢格(1 红)·
+M4 放置忽略瞄准格(1 红)· M5 POI 不记消费(1 红)。
+⚠️ **M1 首轮假存活**:夹具两个槽位都在 `y = 0` ⇒ 轴次序错不可观测;第二格改 `y = 2` 后转红。
+
+**读数**:EditMode `6554/6517/0/0/37` · PlayMode `297/293/0/2/2`
+(基线 `S23-15` 的 `6540/6503` · `297/293`;等式 `+14 = 4 + 4 + 4 + 2`,PM `+0`)。
+
+### 本轮新增的**设计裁定**(未经 UX 轮复审)
+
+「E 打到建造槽位 = 进建造模式 + 幽灵锚到该格;不放置」—— 依据 = 4 的全序选中槽位时,
+玩家意图是「我要在这一格建」。后果:建造模式出现**两个入口**(23 的 toggle 键 + E)。
+若后续 UX 轮判定应合一或应禁,改点 = `InteractionPressRouter.case BuildSlot` 与
+`BuildInputDriver.AimAt`(各一处)。

@@ -15764,3 +15764,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **证伪 M1–M4 全红**,四文件 SHA-256 逐字节还原。⚠️ M3 首轮 NO-XML = 变异写坏(语法错误),非判据红
 - **残余**:六种 `InteractableKind` 无候选源 ⇒ `TD-interaction-03`(P0 面 = N)
 - 证据:`production/qa/evidence/impl-interaction-02-drop-source-2026-11-02.md`
+
+## Session Extract — 第二源补齐 / TD-interaction-03 → partial(2026-11-02 · S23-16)
+
+- **接通**:`PoiCell`(第二源 → 4 出境 → `PoiDiscoveryReporter` → 6 `TryDiscover`)·
+  `BuildSlot`(路由 → `BuildInputDriver.AimAt`,进建造模式 + 对准该格,不放置)
+- **新增**:`WorldBakedLogicalSource`(三切片)· `PoiDiscoveryReporter`(未绑定 ⇒ 抛)·
+  `services.PoiStateMachine`(组合根首次构造 6 的状态机)
+- ⚠️ **新裁语义**:E 打到建造槽位 = 进建造模式 + 对准该格 ⇒ 建造模式两个入口(未经 UX 复审)
+- **回归**:EditMode `6554/6517/0/0/37` · PlayMode `297/293/0/2/2`(基线 `6540/6503`·`297/293`;`+14`/`+0`)
+- **证伪 M1–M5 全红**,五文件 SHA-256 逐字节还原。⚠️ M1 首轮假存活(两槽位 y=0)⇒ 改 y=2 后转红
+- **仍未闭**:Door/Switch/ClinicPanel/Utensil/Container **无数据行** ⇒ `AC-4-22` 实机仍不满足
+  ⇒ 债维持 **partial**
+- 证据:`production/qa/evidence/impl-interaction-03-poi-and-buildslot-2026-11-02.md`

@@ -356,6 +356,24 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
 - **残余**:六种 `InteractableKind` 仍无候选源(`AC-4-22` 仍 `NOT-RUN`)⇒ 新立 **`TD-interaction-03`**。
   原件 = `production/qa/evidence/impl-interaction-02-drop-source-2026-11-02.md`。
 
+**S23-16(2026-11-02):第二源补齐 —— `TD-interaction-03` → partial**:
+用户指令「修 TD-interaction-03」,范围裁定 **C**(连 `BuildSlot` 一起接)。
+勘察发现阻塞比债册写的更靠上游:① 生产 reporter 是 no-op 桩、6 的 `PoiStateMachine` 从未构造;
+② `BuildSlot` 的既有入口是 23 的 `BuildInputDriver`;③ 另五种 kind **无数据行**。
+
+- **接通两条**:`PoiCell`(第二源 → 4 出境 → `PoiDiscoveryReporter` → 6 的 `TryDiscover`)
+  · `BuildSlot`(路由 → `BuildInputDriver.AimAt`:进建造模式 + 对准该格,**不放置**)
+- **新增**:`WorldBakedLogicalSource`(POI / 采集点 / 槽位三切片,线性键按 4-DC-4)
+  · `PoiDiscoveryReporter`(未绑定状态机 ⇒ **抛**)· `services.PoiStateMachine`
+- **读数**:EditMode `6554/6517/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-15` 的 `6540/6503` · `297/293`;等式 `+14 = 4+4+4+2`,PM `+0`)。
+  证伪 **M1–M5 全红**,五文件 SHA-256 逐字节还原 5/5。
+- ⚠️ **M1 首轮假存活**:夹具两槽位都在 `y = 0` ⇒ 线性键轴次序错不可观测;第二格改 `y = 2` 后转红。
+- ⚠️ **新裁一条语义(未经 UX 复审)**:E 打到槽位 = 进建造模式 + 对准该格 ⇒ 建造模式出现**两个入口**。
+- **仍未闭**:`Door` / `Switch` / `ClinicPanel` / `Utensil` / `Container` **无数据行**
+  (`build_modules` 只有家具)⇒ `AC-4-22` 实机语义仍不满足 ⇒ 债务转 **`partial`**,不宣称关闭。
+  原件 = `production/qa/evidence/impl-interaction-03-poi-and-buildslot-2026-11-02.md`。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。
