@@ -32,8 +32,8 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 - **C8 裸名误引 ADR 自有 AC**:活文档里裸 `AC-<n>-<m>` 实为 ADR 自有 AC ⇒ 红
   (C5 的盲区:文件里**一处新名都没有**时 C5 结构性沉默)
 - **C9 story 级 AC 旧形**:出现 3 位编号的 `AC-0NN-M` ⇒ 红(一律写 `SAC-0NN-M`)
-- **C10 ADR 用了系统 AC 的定义形**:ADR 里以**粗体**(`- [ ] **AC-x-y**` / `- **AC-x-y**`)
-  写 `AC-<sys>-<n>` ⇒ 红 —— **不看 GDD 有没有这个 ID**。
+- **C10 ADR 用了系统 AC 的定义形**:ADR 里以**粗体**写 `AC-<sys>-<n>` ⇒ 红 ——
+  **行内任意位置都算**(散文 / 表格 / 列表一视同仁),且**不看 GDD 有没有这个 ID**。
   ADR 只能**引用**系统 AC,引用形 = **反引号**(`` - [ ] `AC-x-y` ``)。
   自有 AC 写 `AC-ADR0NN-NN`(C7 管)
 
@@ -130,6 +130,8 @@ RE_STORY_AC_OLD = re.compile(r"(?<![A-Za-z])AC-(0\d\d)-(\d+)(?!\d)")
 # AC 节内的项目符号定义(仅用于 C8a 的「系统侧有无此 AC」判定,不进 C1 的定义集)
 RE_H2 = re.compile(r"^##\s+(.*)$")
 RE_AC_BULLET = re.compile(r"^- \*\*(AC-\d+-\d+)(?![\d-])")
+# ADR 里**任意位置**的粗体系统 AC(= 定义形)。`AC-ADR...` 不含纯数字编号,天然不匹配。
+RE_BOLD_SYS_AC = re.compile(r"\*\*(AC-\d+-\d+)(?![0-9])")
 RE_ADR_OWN_DEF = re.compile(r"^- \[ \] \*\*AC-ADR(\d+)-(\d+)|^\|\s*\*\*AC-ADR(\d+)-(\d+)\*\*\s*\|")
 
 # C8 的扫描面 = **活文档**(不含记录件:债册 / sprint / session-state / evidence / retro)。
@@ -283,10 +285,10 @@ def scan_adr_system_forms(root):
                 continue
             if skip:
                 continue
-            match = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
-            if match is None:
-                match = RE_AC_BULLET.match(line)
-            if match:
+            # 行内**任意位置**的粗体系统 AC 都算定义形 —— 散文、表格、列表一视同仁。
+            # 2026-11-03 由「只认行首句式」放宽:实测 ADR 里只有 10 处(adr-018),
+            # 且「放开会误伤大量引用」的担心被证伪 —— 其余 ADR 早已惯用反引号。
+            for match in RE_BOLD_SYS_AC.finditer(line):
                 out.append((rel, idx, match.group(1)))
     return out
 

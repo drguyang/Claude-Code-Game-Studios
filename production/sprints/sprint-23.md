@@ -866,3 +866,18 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 - **仍未覆盖**:散文里的粗体 AC 不扫 · `control-manifest.md` 3 处未纳入(非 ADR、非定义源)·
   记法靠人遵守
 - 原件 = `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十二
+
+**S23-39(2026-11-03):C10 扫描面扩到行内粗体**:
+
+- **指令**:「1 继续完成」—— 收掉 S23-38 登记的「散文里的粗体 AC 不扫」
+- 🐞 **先证伪我自己的顾虑**:上轮写「放开会误伤**大量**引用」,**没数就下了结论**。
+  实测 ADR 里粗体系统 AC 共 **11** 处(1 处在跳过的节里,**真正要改 10 处,全在 `adr-018`**;
+  其余 ADR **0** 处 —— 早就惯用反引号)⇒「大量」是假的
+- **落地**:`adr-018` 再 **10 处**(与上轮 12 处合计 22 处);**C10 扫描面**由「行首句式」
+  放宽为 **ADR 行内任意位置的粗体系统 AC**;`adr-033:444` 不动(在 `## GDD Requirements Addressed`)
+- **证伪:2 正控 + 2 负控** —— R13/R15 红,R14/R16 **保持绿**(列表位 / 行内位各一对);
+  R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
+  ⚠️ **两条负控缺一不可**
+- **仍未覆盖**:`## GDD Requirements Addressed` 里的粗体不扫(设计)· `control-manifest.md`
+  3 处未纳入(非 ADR、非定义源)· GDD 里的粗体是正常的
+- 原件 = `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十三
