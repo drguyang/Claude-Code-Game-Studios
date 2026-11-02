@@ -61,7 +61,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             => new ForagingConstants(
                 FlatCapTable(), seasonMult ?? FlatSeasonMult(), SeasonsPerYear, regrowWindow,
                 baseCapacity, Fix.FromRational(1, 80), Fix.FromRational(1, 2),
-                Fix.FromRational(3, 1), MaxQuality);
+                Fix.FromRational(3, 1), 20, MaxQuality);
 
         /// <summary>往世界里真写一条 `ResourceHarvested`(真编码 + 真 Append)。</summary>
         private void Harvest(int nodeId, int qty, long tick, int gatherSeq = 0)

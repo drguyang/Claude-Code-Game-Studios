@@ -70,6 +70,8 @@ namespace DaYiJingCheng.Sim.Foraging
         /// <param name="decayRate">`DECAY_RATE`(须 &gt; 0 —— 0 会让 `yieldDecay` 恒为 1,深水线消失)。</param>
         /// <param name="decayFloor">`DECAY_FLOOR`(须 ∈ (0, 1] —— 触底值;≤0 会让节点归零)。</param>
         /// <param name="gatherMulCap">`GATHER_MUL_CAP`(须 ≥ 1 —— &lt;1 会让高技能反而少采)。</param>
+        /// <param name="durationTicks">采集动作时长(tick;`OQ-17-3` 的落值点)。须 ∈
+        /// [<see cref="DurationTicksMin"/>, <see cref="DurationTicksMax"/>]。</param>
         /// <param name="maxQuality">21a 的 `MAX_QUALITY`(**由调用方传入**;`CapTable` 各值须 ≤ 它 ——
         /// D-21-7 双向耦合,禁在本文件写死 5)。</param>
         /// <exception cref="ArgumentException">任一条形状 / 值域判据不满足(AC-17-08b / 14 / 16)。</exception>
@@ -82,6 +84,7 @@ namespace DaYiJingCheng.Sim.Foraging
             Fix decayRate,
             Fix decayFloor,
             Fix gatherMulCap,
+            int durationTicks,
             int maxQuality)
         {
             // ── 拒收 ①:CapTable 四性质(AC-17-14)—— 长度 / 单调不减 / [0] ≥ 1 / 各值 ≤ MAX_QUALITY ──
@@ -160,11 +163,22 @@ namespace DaYiJingCheng.Sim.Foraging
                     $"GATHER_MUL_CAP raw = {gatherMulCap.Raw} < 1.0 —— F-17-2;" +
                     "上界 < 1 会让高技能反而采得更少(双重惩罚)");
 
+            // ── 拒收 ⑤:duration_ticks ∈ [1, 200](OQ-17-3 的落值点;4-DC-6 第二半的输入)──
+            if (durationTicks < DurationTicksMin)
+                throw new ArgumentException(
+                    $"duration_ticks = {durationTicks} < {DurationTicksMin} —— " +
+                    "0 时长 = 瞬时,与 `SuppressesMotor = true` 声明的持续窗口矛盾(OQ-17-3)");
+            if (durationTicks > DurationTicksMax)
+                throw new ArgumentException(
+                    $"duration_ticks = {durationTicks} > {DurationTicksMax}(= 10 s @20 Hz)—— " +
+                    "超出即玩家会以为卡死(硬上界)");
+
             RegrowWindowTicks = regrowWindowTicks;
             BaseCapacity = baseCapacity;
             DecayRate = decayRate;
             DecayFloor = decayFloor;
             GatherMulCap = gatherMulCap;
+            DurationTicks = durationTicks;
             SeasonsPerYear = seasonsPerYear;
             MaxQuality = maxQuality;
         }
@@ -194,6 +208,18 @@ namespace DaYiJingCheng.Sim.Foraging
 
         /// <summary>`GATHER_MUL_CAP`(F-17-2 乘子上界;构造期已验 ≥ 1)。</summary>
         public Fix GatherMulCap { get; }
+
+        /// <summary>`duration_ticks` 的下界(0 时长 = 瞬时,与 `SuppressesMotor = true` 矛盾)。</summary>
+        public const int DurationTicksMin = 1;
+
+        /// <summary>`duration_ticks` 的上界(= 10 s @20 Hz;超过即玩家会以为卡死)。</summary>
+        public const int DurationTicksMax = 200;
+
+        /// <summary>采集动作时长(tick;构造期已验 ∈ [1, 200])。
+        /// <para>⚠️ 本属性是 `OQ-17-3`「时长归 17 的动作数据表」的**唯一读面** ——
+        /// 17 的持续窗口用它决定何时结算,4 的 `4-DC-6` 第二半在烘焙期用它验证
+        /// 「归属方确实声明了时长」(而不是只填了个系统 id)。</para></summary>
+        public int DurationTicks { get; }
 
         /// <summary>21a 的 `MAX_QUALITY`(构造期用于 CapTable 上界校验;也供调用方 clamp)。</summary>
         public int MaxQuality { get; }

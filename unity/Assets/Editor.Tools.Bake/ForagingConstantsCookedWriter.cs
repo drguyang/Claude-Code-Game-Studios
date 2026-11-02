@@ -49,6 +49,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 w.Write(r.DecayRate.Raw);
                 w.Write(r.DecayFloor.Raw);
                 w.Write(r.GatherMulCap.Raw);
+                w.Write(r.DurationTicks);
 
                 w.Flush();
                 return FinishHeader(payload.ToArray(), schemaVersion, configVersion);

@@ -37,9 +37,9 @@
       "kind_priority": 3,
       "stable_id_source": "InstanceId",
       "routes_to": 20,
-      "suppresses_motor": true,
-      "duration_owner": "RoutedSystem",
-      "duration_owner_system_id": 20,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
       "intent_uplink": "None"
     },
     {

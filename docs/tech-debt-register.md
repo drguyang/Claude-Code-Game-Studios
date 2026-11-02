@@ -450,6 +450,8 @@
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | partial | **N** | R4 |
+| `TD-interaction-04` | `interaction-system` | open | **N** | R4 |
+| `TD-foraging-04` | `foraging` | open | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
@@ -861,7 +863,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 150 | 状态 {'closed': 138, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 152 | 状态 {'closed': 138, 'partial': 4, 'open': 9, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -9665,4 +9667,97 @@ python3 tools/debtcount/debtcount.py --print   # 期望:条目 150 | open 7 | cl
 git show HEAD:unity/Assets/Gameplay.UI/Skeuomorphic/Screens/InventoryContainerScreen.cs | grep -c "Label\|focusable\|Bind"   # 期望 0(改前是空壳)
 grep -rn "IsFullForAnyAddition" unity/Assets --include=*.cs | grep -v /Tests/   # 期望唯一定义 = CarryLoad.cs
 grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/inventory_container_content_test.cs   # 期望 5
+```
+
+---
+
+## 2026-11-02 · 「裁 `OQ-20-11`」轮:搜箱 = 瞬时(甲)· `4-DC-6b` 落门 · 新立两条
+
+**出处**:用户指令「裁 OQ-20-11」→ 两轮 `AskUserQuestion` 裁定
+**① 甲(搜箱 = 瞬时 + 数据改 `false`/`None`)** · **② 门同批:连 17 的时长一起定**。
+
+### 先订正一处我自己的误引(上一轮的)
+
+上一轮(`5c48bbaa`)的证据原件、债册与本轮 sprint 记录里,我把**「箱内 vs 身上不可分」**
+记成归 `OQ-20-11` —— **引错了**,那是从 `BootRoot` 一句旧注释里抄来的。
+
+| | 实况 |
+|---|---|
+| `OQ-20-11` 的真实内容 | **搜箱交互的形状**(是不是持续交互)+ **时长归谁**;登记于 2026-10-20 的 data-core 丙档普查 |
+| 「箱内 vs 身上」 | **至今没有 ID** —— 它是本仓 **20 的容器语义缺口**(投影没有「在哪个容器里」这一维) |
+
+⇒ 三处口径已订正,并在 `inventory-and-items.md` 的 `OQ-20-11` 行写明「原登记保留、不改写」。
+⚠️ **这条误引的形态值得记一笔**:我复述了一条**别人写的注释**里的编号,而没有回去读那一条本身。
+**编号的正确性不能靠转述传递。**
+
+### 裁定(甲)
+
+**搜箱 = 瞬时开关,不是持续交互。** 三条理由:
+
+1. 容器屏是**模态**(`ModalId.InventoryContainer`),开多久由**玩家**决定 ⇒ 定值 `duration_ticks` 对它**语义上不成立**(对比 17 采集:「站在某处做一会儿」的世界动作)。
+2. 「模态摊开时玩家仍能移动」是**全部 8 个模态共有**的问题 ⇒ 不该由 20 按 Kind 逐屏表态(8 屏各写一份 = 8 条 Release 路径,漏一条即永久定身)。
+3. ⇒ 种子行改 **`suppresses_motor: false` / `duration_owner: "None"` / `duration_owner_system_id: 0`**。
+
+### 落地
+
+| # | 件 | 落点 |
+|---|---|---|
+| 1 | 种子行改值 + **重烘** | `assets/data/interaction_kinds.json`(kind 4)· 产物 330 B / 10 行 / `ConfigVersion = 0x3629E170` |
+| 2 | **根因门 `4-DC-6b`** | `InteractionKindTableValidator.ValidateDurationDeclared` + 烘焙期调用点 `InteractionKindBaker.BakeFromRepo` |
+| 3 | **17 的时长落值** | `duration_ticks = 20`(1.0 s @20 Hz,`[1,200]`);`foraging_constants.json` + `ForagingConstants` + Binder/Schema/Writer/Codec 全链;重烘 `ConfigVersion = 0xABE70250` |
+| 4 | 夹具 | `data_contract_validation_test` +4(4-DC-6b)· `foraging_data_load_test` +2(域守卫) |
+| 5 | 文档 | `inventory-and-items.md` 规则十补注 + `OQ-20-11` 结案 · `interaction-system.md` 对照表 +:565/`AC-4-15`/`OQ-4-4` 回刷 + 结案块 · `foraging.md` 调参表填值 + `OQ-17-3` 订正 |
+
+### ⚠️ 我上一轮的一个**假前提**,已在落地前更正
+
+我说「17 已由 `OQ-17-3` 声明过 ⇒ 门可以安全落下」。**不成立**:`OQ-17-3` 只裁了**形状**,
+值明确「未定」(`foraging.md:737`)、调参表写「未定」(`:553`)、数据表里**根本没有该字段**。
+⇒ 先给 17 定值,门才落成 —— 顺序与本轮实际执行一致。
+
+### 门**真的会红**(探针轮,两次)
+
+| 探针 | 期望 | 实测 |
+|---|---|---|
+| `duration_ticks: 20` → `0` | 烘焙 `Failure`,日志含 `4-DC-6b` | ✅ `hit=True bakedGreen=False` |
+| 删除 `duration_ticks` 键 | 烘焙 `Failure`,日志含「读不到 duration_ticks」 | ✅ `hit=True bakedGreen=False` |
+
+两次均 **SHA-256 逐字节还原**,`FINAL-OK`。
+⚠️ **第二探针特意加的**:`ReadRequiredInt` 对缺键是**静默 false**(它假定 `RequiredKeys` 那一遍报过)
+⇒ 若不把它转成显式错误,「缺 `duration_ticks`」会让声明集为空 ⇒ 门静默失效 ——
+**正是 `OQ-20-11` 那个「看不见的绿」的同一种形态**。同批把校验器的「空声明集 ⇒ 直接 return」
+也删了(那是一门在空输入上恒绿的**空洞正控**,F4)。
+
+### 新立两条(均标 `P0 面 = N`,判断依据写在下面,不是默默压绿)
+
+**`TD-interaction-04` —— 模态摊开时玩家仍能移动(8 个模态共有)**
+
+实测:`LeaseSource.Self`(4)全仓**零生产 acquire** ——
+`grep -rn "LeaseSource.Self" unity/Assets --include=*.cs | grep -v /Tests/` ⇒ 仅定义处;
+`ModalGate` 只拒**交互意图**,不碰移动。⇒ 打开药箱 / 脉案 / 暂停 / 设置时玩家都能一边走一边翻。
+归 **4/1 统一裁**(在模态开合单点做,一次覆盖 8 屏;逐屏做 = 8 条 Release 路径)。
+
+**`TD-foraging-04` —— 17 的持续窗口行为未实现**
+
+`duration_ticks` 有了、门有了,但 `HarvestInteractionDriver` 仍是**按下即结算**:
+`grep -n "duration\|hold" unity/Assets/Gameplay.Boot/HarvestInteractionDriver.cs` ⇒ **零命中**。
+⚠️ **连带事实**:`OQ-17-3` 自己写过「若采集瞬时,`AC-17-08`(中途被打断 ⇒ 零效果)**恒真不可判**」
+⇒ 该 AC 今天处于**判据空转**状态。**不得读成「采集已是持续交互」** —— 它只有声明,没有行为。
+
+⚠️ **两条都标 `N` 的判断依据**(可供用户推翻):与 `TD-interaction-01/02/03` 同口径 ——
+交互系列的未闭项一律不计 P0 面。**若用户认为「模态期可移动」或「`AC-17-08` 判据空转」是
+P0 出货门,须把它们改写为 `Y`,届时 `未闭 P0 面` 由 0 变 2。**
+
+### 账务
+
+`条目 150 → 152`(+2)· `open 7 → 9`(+2)· `closed 138` 不动 · `partial 4` 不动 ·
+`P0 面 N 44 → 46`(+2)· **`未闭 P0 面 = 0` 不动**(两条均标 `N`,理由如上)。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 9 | closed 138 | partial 4 | 未闭 P0 面 = 0
+python3 -c "import json;d=json.load(open('assets/data/interaction_kinds.json',encoding='utf-8'));print([k for k in d['kinds'] if k['kind']==4])"   # 期望 suppresses_motor False / duration_owner None / 0
+python3 -c "import json;d=json.load(open('assets/data/foraging_constants.json',encoding='utf-8'));print(d['duration_ticks'])"   # 期望 20
+grep -c "IsFullForAnyAddition" unity/Assets/Sim/ItemDatabase/CarryLoad.cs
 ```

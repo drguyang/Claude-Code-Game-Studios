@@ -594,6 +594,6 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         private static ForagingConstants BuildConstants(int[] capTable)
             => new ForagingConstants(
                 capTable, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality);
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality);
     }
 }

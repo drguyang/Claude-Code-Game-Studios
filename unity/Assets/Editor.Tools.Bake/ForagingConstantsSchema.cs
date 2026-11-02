@@ -40,6 +40,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             "decay_rate",
             "decay_floor",
             "gather_mul_cap",
+            "duration_ticks",
         };
 
         /// <summary>除 <c>schema_version</c> / <c>_note</c> 外全部必填。</summary>
@@ -53,6 +54,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             "decay_rate",
             "decay_floor",
             "gather_mul_cap",
+            "duration_ticks",
         };
 
         /// <summary>`CapTable` 的规定长度 = `SKILL_CAP + 1`(GDD `:300`)。</summary>

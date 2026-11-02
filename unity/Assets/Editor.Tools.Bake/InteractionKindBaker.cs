@@ -65,6 +65,44 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             InteractionKindBinder.BindResult bound = InteractionKindBinder.Bind(kindsJson, dimsJson);
 
+            // ── 4-DC-6 第二半(2026-11-02 · OQ-20-11 的根因门)────────────────────────
+            // 归属方「声明了持有时长」的判据 = **它的数据表里真有一个 ≥ 1 的 duration_ticks**,
+            // 而不是「GDD 里有声明字样」(那是 F6 自述顶替门)。
+            // ⚠️ 映射表**显式写在这里**:表外系统 = 未声明 ⇒ 若将来有新的 SuppressesMotor 行,
+            //    必须同时在此登记其时长载体,否则构建期红 —— 这正是本门要的形状。
+            var declaredDurations = new Dictionary<int, int>();
+            string foragingPath = Path.Combine(dir, "foraging_constants.json");
+            if (File.Exists(foragingPath))
+            {
+                if (JsonStage1Lexer.TryParse(File.ReadAllText(foragingPath), out JsonNode fRoot, out string fErr))
+                {
+                    var fErrors = new List<string>();
+                    // ⚠️ **读不到 ≠ 跳过**:`ReadRequiredInt` 对缺键是**静默 false**(它假定
+                    //    RequiredKeys 那一遍已报过)。这里必须把它转成**显式错误** ——
+                    //    否则「缺 duration_ticks」会让声明集为空 ⇒ 本门静默失效,
+                    //    正是 OQ-20-11 那个「看不见的绿」的同一种形态。
+                    if (ForagingConstantsSchema.ReadRequiredInt(
+                            fRoot, "duration_ticks", ForagingConstantsSchema.FileName, fErrors,
+                            out int ticks) && fErrors.Count == 0)
+                        declaredDurations[17] = ticks;      // 17 采集 —— 唯一已声明的时长归属方
+                    else
+                        errors.Add($"4-DC-6b:foraging_constants.json 读不到 duration_ticks —— " +
+                                   "17 的持有时长未声明,SuppressesMotor=true 的行无从证明「有人 Release」");
+                }
+                else
+                {
+                    errors.Add($"foraging_constants.json 词法失败(4-DC-6b 无法求值):{fErr}");
+                }
+            }
+            else
+            {
+                errors.Add($"4-DC-6b:缺失 {foragingPath} ⇒ 已声明时长的归属方集合为空," +
+                           "SuppressesMotor=true 的行将无一能证明「有人 Release」");
+            }
+            if (errors.Count > 0) throw new BakeValidationException(errors);
+
+            InteractionKindTableValidator.ValidateDurationDeclared(bound.Rows, declaredDurations);
+
             // ConfigVersion = 源文本集内容哈希(排序按文件名,确定性;ADR-014 §五)。
             uint configVersion = ConfigVersionUtility.DeriveConfigVersion(new[]
             {

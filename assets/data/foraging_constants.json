@@ -8,5 +8,6 @@
   "base_capacity": 5,
   "decay_rate": "1/80",
   "decay_floor": "1/2",
-  "gather_mul_cap": "3"
+  "gather_mul_cap": "3",
+  "duration_ticks": 20
 }

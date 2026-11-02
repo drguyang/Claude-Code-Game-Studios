@@ -71,6 +71,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 var decayRate = new Fix(r.ReadInt64());
                 var decayFloor = new Fix(r.ReadInt64());
                 var gatherMulCap = new Fix(r.ReadInt64());
+                int durationTicks = r.ReadInt32();
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);
 
@@ -78,7 +79,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 // 本类**不重写** —— 重写一遍就是第二真源。
                 return new ForagingConstants(capTable, seasonMult, seasonsPerYear,
                                              regrowWindowTicks, baseCapacity,
-                                             decayRate, decayFloor, gatherMulCap, maxQuality);
+                                             decayRate, decayFloor, gatherMulCap,
+                                             durationTicks, maxQuality);
             }
         }
     }

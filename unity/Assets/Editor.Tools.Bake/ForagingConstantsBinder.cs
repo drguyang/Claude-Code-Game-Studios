@@ -36,6 +36,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>源文件名(单一出处)。</summary>
         public const string FileName = ForagingConstantsSchema.FileName;
 
+        /// <summary>`duration_ticks` 的下界(0 时长 = 瞬时,与 `SuppressesMotor = true` 矛盾)。</summary>
+        public const int DurationTicksMin = 1;
+
+        /// <summary>`duration_ticks` 的上界(= 10 s @20 Hz;超过即玩家会以为卡死)。</summary>
+        public const int DurationTicksMax = 200;
+
         /// <summary>绑定结果(全部为已校验的原始域值;`Fix` 已是 raw)。</summary>
         public readonly struct BindResult
         {
@@ -63,6 +69,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>`GATHER_MUL_CAP`(已断 ≥ 1)。</summary>
             public readonly Fix GatherMulCap;
 
+            /// <summary>采集动作时长(tick;`SuppressesMotor` 的行为量,已断 ∈ [1, 200])。
+            /// <para>⚠️ 这是 `OQ-17-3` 裁定的「时长归 17 的动作数据表」的**落值点**;
+            /// 4 的 `4-DC-6` 第二半在烘焙期读它来验证「归属方确实声明了时长」。</para></summary>
+            public readonly int DurationTicks;
+
             /// <summary>源 schema_version(写方头槽 offset 8 的唯一真值来源)。</summary>
             public readonly uint SchemaVersion;
 
@@ -70,11 +81,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             public BindResult(
                 int[] capTable, Fix[] seasonMult, int seasonsPerYear,
                 long regrowWindowTicks, int baseCapacity,
-                Fix decayRate, Fix decayFloor, Fix gatherMulCap, uint schemaVersion)
+                Fix decayRate, Fix decayFloor, Fix gatherMulCap, int durationTicks,
+                uint schemaVersion)
             {
                 CapTable = capTable; SeasonMult = seasonMult; SeasonsPerYear = seasonsPerYear;
                 RegrowWindowTicks = regrowWindowTicks; BaseCapacity = baseCapacity;
                 DecayRate = decayRate; DecayFloor = decayFloor; GatherMulCap = gatherMulCap;
+                DurationTicks = durationTicks;
                 SchemaVersion = schemaVersion;
             }
         }
@@ -231,11 +244,31 @@ namespace DaYiJingCheng.EditorTools.Bake
                         "上界 < 1 会让高技能反而采得更少(双重惩罚)");
             }
 
+            // ── ⑨ duration_ticks ∈ [1, 200](`OQ-17-3` 的落值点;4-DC-6 第二半的输入)──
+            //   下限 1:0 = 瞬时 ⇒ 与 `SuppressesMotor = true` 自相矛盾(声明有时长却零时长)。
+            //   上限 200(= 10 s @20 Hz):超过即「玩家会以为卡死」;这是**可判定**的界,
+            //   不是手感偏好 —— 手感值本身在区间内仍可调。
+            int durationTicks = 0;
+            if (ForagingConstantsSchema.ReadRequiredInt(
+                    root, "duration_ticks", FileName, errors, out int dt))
+            {
+                durationTicks = dt;
+                if (dt < DurationTicksMin)
+                    errors.Add(
+                        $"{FileName}:duration_ticks = {dt} < {DurationTicksMin} —— " +
+                        "0 时长 = 瞬时,而 `SuppressesMotor = true` 声明了一个持续窗口(OQ-17-3);" +
+                        "二者不可同时成立");
+                else if (dt > DurationTicksMax)
+                    errors.Add(
+                        $"{FileName}:duration_ticks = {dt} > {DurationTicksMax}(= 10 s @20 Hz)—— " +
+                        "超出即玩家会以为卡死;界是硬上界,手感值在界内可调");
+            }
+
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
             return new BindResult(
                 capTable, seasonMult, seasonsPerYear, regrowWindowTicks, baseCapacity,
-                decayRate, decayFloor, gatherMulCap, schemaVersion);
+                decayRate, decayFloor, gatherMulCap, durationTicks, schemaVersion);
         }
     }
 }

@@ -64,7 +64,8 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
                    "\"base_capacity\": 5," +
                    "\"decay_rate\": \"1/40\"," +
                    "\"decay_floor\": \"1/2\"," +
-                   "\"gather_mul_cap\": \"3\"" +
+                   "\"gather_mul_cap\": \"3\"," +
+                   "\"duration_ticks\": 20" +
                    "}";
         }
 
@@ -184,7 +185,8 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
                           "\"cap_table\": [" + string.Join(", ", caps) + "]," +
                           "\"season_mult\": [\"1\", \"1\", \"1\", \"1\", \"1\"]," +
                           "\"regrow_window_ticks\": 1200,\"base_capacity\": 5," +
-                          "\"decay_rate\": \"1/40\",\"decay_floor\": \"1/2\",\"gather_mul_cap\": \"3\"}";
+                          "\"decay_rate\": \"1/40\",\"decay_floor\": \"1/2\",\"gather_mul_cap\": \"3\"," +
+                          "\"duration_ticks\": 20}";
 
             AssertBinderRejects(json, "cap_table 长度 60",
                 "AC-17-14:长度 ≠ 61 ⇒ 装载期硬失败");
@@ -407,7 +409,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
 
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 caps, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("CapTable 长度 60"));
         }
 
@@ -416,7 +418,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
         {
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 0, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("RegrowWindow = 0"));
         }
 
@@ -427,7 +429,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             var sm = new[] { FixParse.Parse("1"), FixParse.Parse("1"), FixParse.Parse("1"), FixParse.Parse("1") };
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), sm, SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("SEASON_MULT 长度 4"));
         }
 
@@ -446,7 +448,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
         {
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 null, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("CapTable 为 null"));
         }
 
@@ -456,7 +458,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // MAX_QUALITY = 0 ⇒ CapTable 各值的上界非法
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 0));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, 0));
             Assert.That(ex.Message, Does.Contain("MAX_QUALITY = 0 < 1"));
         }
 
@@ -471,7 +473,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
 
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 caps, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("CapTable[0] = 0 < 1"));
         }
 
@@ -484,7 +486,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
 
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 caps, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain($"> MAX_QUALITY = {MaxQuality}"));
         }
 
@@ -497,7 +499,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
 
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 caps, LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("CapTable 非单调不减"));
         }
 
@@ -507,7 +509,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // 5 的 SEASONS_PER_YEAR 非法 ⇒ 17 装载即失败(而非两处各写一个 5)
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), 0, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("seasons_per_year = 0 < 1"));
         }
 
@@ -516,7 +518,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
         {
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), null, SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("SEASON_MULT 为 null"));
         }
 
@@ -529,7 +531,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
 
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), sm, SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("SEASON_MULT[2] raw = 0"));
         }
 
@@ -538,7 +540,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
         {
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 0,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("BaseCapacity = 0"));
         }
 
@@ -548,7 +550,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // DECAY_RATE = 0 ⇒ yieldDecay 恒为 1(深水线消失)
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                Fix.Zero, FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality));
+                Fix.Zero, FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("DECAY_RATE raw = 0"));
         }
 
@@ -558,7 +560,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // DECAY_FLOOR = 0 ⇒ 节点触底后归零(采枯竭)。**区间下界分支**。
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), Fix.Zero, FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), Fix.Zero, FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("DECAY_FLOOR raw = 0"));
         }
 
@@ -569,7 +571,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // ⚠️ 与上一条是两个独立分支 —— 「一属性一条变异」要求两分支各有一条反证。
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("3/2"), FixParse.Parse("3"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("3/2"), FixParse.Parse("3"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("DECAY_FLOOR raw ="));
         }
 
@@ -579,7 +581,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             // GATHER_MUL_CAP = 1/2 < 1 ⇒ 高技能反而采得更少(双重惩罚)
             var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("1/2"), MaxQuality));
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("1/2"), 20, MaxQuality));
             Assert.That(ex.Message, Does.Contain("GATHER_MUL_CAP raw ="));
         }
 
@@ -790,7 +792,7 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
         private static ForagingConstants LegalConstants()
             => new ForagingConstants(
                 LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
-                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), MaxQuality);
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 20, MaxQuality);
 
         // 本文件在 unity/Assets/Tests/EditMode/Foraging/ ⇒ 仓库根 = 上 5 层
         // (Foraging→EditMode→Tests→Assets→unity→仓根)。承 clinicmachine_tables_schema_test.cs:43 先例。
@@ -805,5 +807,27 @@ namespace DaYiJingCheng.Tests.Unit.Foraging
             Assert.That(File.Exists(path), Is.True, $"作者态源表缺失:{path}");
             return File.ReadAllText(path);
         }
+        // ══════════════════════════════════════════════════════════════
+        // duration_ticks 域守卫(OQ-17-3 的落值点;4-DC-6b 的输入)
+        // ══════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_simSide_durationTicksZero_rejected()
+        {
+            var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
+                LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 0, MaxQuality));
+            Assert.That(ex.Message, Does.Contain("duration_ticks = 0"));
+        }
+
+        [Test]
+        public void test_simSide_durationTicksOverMax_rejected()
+        {
+            var ex = Assert.Throws<ArgumentException>(() => new ForagingConstants(
+                LegalCapTable(), LegalSeasonMult(), SeasonsPerYear, 1200, 5,
+                FixParse.Parse("1/40"), FixParse.Parse("1/2"), FixParse.Parse("3"), 201, MaxQuality));
+            Assert.That(ex.Message, Does.Contain("duration_ticks = 201"));
+        }
+
     }
 }

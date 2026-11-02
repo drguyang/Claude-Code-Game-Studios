@@ -341,6 +341,57 @@ namespace DaYiJingCheng.Gameplay.Interaction
                         "(引用却无登记 —— 玩家永久定身的真因:不是没人,是**错人**)");
             }
         }
+
+        /// <summary>
+        /// <b>4-DC-6 第二半</b> —— <c>SuppressesMotor == true</c> 的行,其归属方**必须真的声明过持有时长**
+        /// (不是只填了个系统 id)。
+        /// </summary>
+        /// <param name="rows">已绑定的契约行集。</param>
+        /// <param name="declaredDurationTicksBySystem">归属方 system id → 其已声明的持有时长(tick)。
+        /// **由烘焙期从真实数据表派生**,不是手填的名单 —— 表外系统 = 「未声明」。</param>
+        /// <exception cref="ArgumentNullException">任一入参为 null。</exception>
+        /// <exception cref="ArgumentException">存在「声明了 suppresses_motor 却查不到时长」或
+        /// 「声明的时长 &lt; 1」的行(聚合后一次 throw,不静默跳过)。</exception>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么要这第二半(2026-11-02 · `OQ-20-11` 的根因门)</b>:上一半只查
+        /// 「<c>DurationOwner ≠ None</c> + 归属方 ∈ 已登记系统集」—— <b>两件都只看形状</b>。
+        /// 实测失效形态(<c>Container</c> 行):种子在 2026-10-04 就被填成
+        /// <c>suppresses_motor: true / system_id: 20</c>,而 <b>20 侧通篇零登记</b> ⇒
+        /// 门**绿着**,文档还写着「未登记即构建期红」。⇒ 一道**看不见的绿**比一道看得见的红更危险。</para>
+        /// <para>⚠️ <b>本方法刻意不并入 <see cref="ValidateDurationOwner"/></b>:后者是**形状**判据
+        /// (只看行集),本方法需要一个**来自别的表的输入**(时长声明)。合并会让前者也必须携带该输入,
+        /// 而它在 EditMode 夹具里没有数据表可读。</para>
+        /// <para>⚠️ <b>本方法不是「自述顶替门」</b>:它读的是归属方数据表里的**值**(经该表自己的
+        /// binder 校验过的那个字段),不是 GDD 里的声明字样 —— 后者是 F6 形态,本仓已抓过五次。</para>
+        /// </remarks>
+        public static void ValidateDurationDeclared(
+            IReadOnlyList<KindContractRow> rows,
+            IReadOnlyDictionary<int, int> declaredDurationTicksBySystem)
+        {
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (declaredDurationTicksBySystem == null)
+                throw new ArgumentNullException(nameof(declaredDurationTicksBySystem));
+            // ⚠️ **空声明集 = 全部违例**,不是「无可判 ⇒ 放行」。空集意味着「没有任何归属方
+            //    声明过时长」⇒ 每一行 SuppressesMotor=true 都是「无人 Release」。
+            //    (早期写法在这里 `return` ⇒ 一门在空输入上恒绿 —— 那正是 F4「空洞正控」。)
+
+            foreach (var row in rows)
+            {
+                if (!row.SuppressesMotor) continue;
+
+                if (!declaredDurationTicksBySystem.TryGetValue(row.DurationOwnerSystemId, out int ticks))
+                    throw new ArgumentException(
+                        $"4-DC-6b:kind {row.Kind} 声明 SuppressesMotor=true,归属方 system " +
+                        $"{row.DurationOwnerSystemId} 却**未声明持有时长** —— " +
+                        "填一个系统 id 不等于声明了时长(OQ-20-11 的原失效形态:门绿着而文档说它该红)");
+
+                if (ticks < 1)
+                    throw new ArgumentException(
+                        $"4-DC-6b:kind {row.Kind} 的归属方 system {row.DurationOwnerSystemId} " +
+                        $"声明 duration_ticks = {ticks} < 1 —— 0 时长 = 瞬时," +
+                        "与 SuppressesMotor=true 声明了一个持续窗口自相矛盾");
+            }
+        }
     }
 
     /// <summary>

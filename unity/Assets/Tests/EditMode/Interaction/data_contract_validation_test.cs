@@ -42,7 +42,9 @@ namespace DaYiJingCheng.Tests.Interaction
             Row(InteractableKind.ForageSpot,  6, StableIdSource.BakedResourceIndex, 17, true,  DurationOwnerKind.RoutedSystem, 17, IntentUplink.HostOnlyIntent),
             Row(InteractableKind.Patient,     0, StableIdSource.PatientId,          37, false, DurationOwnerKind.None,        0,  IntentUplink.HostOnlyIntent),
             Row(InteractableKind.PoiCell,     1, StableIdSource.PoiId,               6, false, DurationOwnerKind.None,        0,  IntentUplink.None),
-            Row(InteractableKind.Container,   3, StableIdSource.InstanceId,         20, true,  DurationOwnerKind.RoutedSystem, 20, IntentUplink.None),
+            // 🔁 2026-11-02(OQ-20-11 裁定 甲):容器 = **瞬时**,种子已改 `false/None/0`。
+            //    本夹具是**种子数据的镜像**,不得留在旧值上(否则夹具编码一个已作废的真源)。
+            Row(InteractableKind.Container,   3, StableIdSource.InstanceId,         20, false, DurationOwnerKind.None,        0,  IntentUplink.None),
             Row(InteractableKind.BuildSlot,   7, StableIdSource.SlotLinearKey,      23, false, DurationOwnerKind.None,        0,  IntentUplink.None,
                 World.W, World.H, World.D),   // 4-DC-4 ②:SlotLinearKey 行须 W/H/D 在场
             Row(InteractableKind.Utensil,     2, StableIdSource.StructureId,        18, false, DurationOwnerKind.None,        0,  IntentUplink.None),
@@ -275,6 +277,64 @@ namespace DaYiJingCheng.Tests.Interaction
                 "AC-4-15 4-DC-6:SuppressesMotor=true 而 DurationOwner=None ⇒ 构建期硬失败");
             Assert.IsTrue(ex.Message.Contains("4-DC-6") && ex.Message.Contains("ForageSpot"),
                 "4-DC-6 违例须点名 DC 号与 kind");
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  4-DC-6b —— 归属方须**真的声明过**持有时长(2026-11-02 · OQ-20-11 的根因门)
+        //
+        //  ⚠️ 与 4-DC-6 的分工:上一半只查**形状**(DurationOwner ≠ None + 归属方已登记),
+        //     两件都查不到「归属方到底有没有声明一个时长」。实测失效形态:`Container` 行
+        //     自 2026-10-04 起就是 `true / 20`,而 20 侧零登记 ⇒ 门**绿着**,文档还写着
+        //     「未登记即构建期红」。⇒ 下面这组夹具钉的就是「绿着的那一半」。
+        // ═══════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac415_dc6b_legalTablePassesWhenOwnerDeclaredDuration()
+        {
+            // 反空转门:声明集齐全 ⇒ 必须**真通过**(否则下面的红是「恒拒」的假红)。
+            Assert.DoesNotThrow(
+                () => InteractionKindTableValidator.ValidateDurationDeclared(
+                    LegalRows(), new Dictionary<int, int> { { 17, 20 } }),
+                "4-DC-6b:17 已声明 duration_ticks=20 ⇒ 合法表须通过");
+        }
+
+        [Test]
+        public void test_ac415_dc6b_ownerWithoutDeclaredDurationHardFails()
+        {
+            // 空声明集 = 每一行 SuppressesMotor=true 都「无人 Release」。
+            // ⚠️ 本测同时钉住「空集不得被当成『无可判 ⇒ 放行』」——
+            //    早期写法在空集上 `return`,那是一门在空输入上恒绿的**空洞正控**(F4)。
+            var ex = Assert.Throws<ArgumentException>(
+                () => InteractionKindTableValidator.ValidateDurationDeclared(
+                    LegalRows(), new Dictionary<int, int>()),
+                "4-DC-6b:归属方未声明时长 ⇒ 构建期硬失败(空声明集不得被读成『无可判』)");
+            Assert.IsTrue(ex.Message.Contains("4-DC-6b") && ex.Message.Contains("ForageSpot"),
+                "4-DC-6b 违例须点名 DC 号与 kind");
+        }
+
+        [Test]
+        public void test_ac415_dc6b_declaredZeroDurationHardFails()
+        {
+            // 声明了但值是 0 ⇒ 0 时长 = 瞬时,与「声明了一个持续窗口」自相矛盾。
+            var ex = Assert.Throws<ArgumentException>(
+                () => InteractionKindTableValidator.ValidateDurationDeclared(
+                    LegalRows(), new Dictionary<int, int> { { 17, 0 } }),
+                "4-DC-6b:声明的 duration_ticks = 0 ⇒ 构建期硬失败");
+            Assert.IsTrue(ex.Message.Contains("4-DC-6b"),
+                "4-DC-6b 零时长违例须点名 DC 号");
+        }
+
+        [Test]
+        public void test_ac415_dc6b_containerIsInstant_doesNotTrigger()
+        {
+            // 🔁 OQ-20-11 裁定 甲 的直接判据:容器行**不再**触发本门(它是瞬时开关)。
+            //    同时它是**回归钉**:若有人把种子改回 `true/20`,本测与 4-DC-6b 一起红。
+            var rows = LegalRows();
+            var container = rows.First(r => r.Kind == InteractableKind.Container);
+            Assert.IsFalse(container.SuppressesMotor,
+                "OQ-20-11 甲案:Container 须为瞬时(suppresses_motor=false)");
+            Assert.That(container.DurationOwner, Is.EqualTo(DurationOwnerKind.None),
+                "OQ-20-11 甲案:Container 的 duration_owner 须为 None");
         }
 
         [Test]
