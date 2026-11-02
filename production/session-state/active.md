@@ -15881,3 +15881,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **读数**:EditMode `6607/6570/0/0/37` @ `16:12:58` · PlayMode `301/297/0/2/2` @ `16:14:10`
   (基线 `6606/6569` · `299/295`;等式 EM `+1` · PM `+2`)
 - 债册:`open 10 → 7` · `closed 135 → 138` · `未闭 P0 面 = 0` · `--check` 通过
+
+## Session Extract — 炮制屏第九员 / O-18-R6 落地(2026-11-02 · S23-24)
+
+- **勘察改变问题性质**:卡的是三件,18 侧供给**已齐**;真缺口在类型面(`Gameplay.UI` 看不见 `Sim`)
+- **兑现四件**:`IProcessingAdmissionQuery`(Sim.Contracts)· `FurnaceBusyQuery`(Sim)·
+  `ProcessingAdmissionQuery`(Boot)· `ModalId.Processing=9` + `Processing18Screen`
+- **ADR-013 §十-E Amendment D**;⚠️ 文件内已有「§十-C Amendment D」⇒ 两个同名,以节号区分
+- **新增夹具** 5 条 · **证伪 P18-M1…M4 全红**,SHA-256 还原 4/4
+- ⚠️ **实际效果:结构对、内容面空** —— 20 的选中态接口不存在 ⇒ 料位接不上 ⇒ 屏恒零行
+- ⚠️ **`TD-interaction-03` 维持 `partial`**(玩家看到空白纸面不叫接通)
+- **读数**:EditMode `6607/6570/0/0/37` @ `17:13:44` · PlayMode `306/302/0/2/2` @ `17:17:00`(PM `+5`)
+- ⚠️ **PlayMode 首轮 failed=1**:漏改第三处闭集门(`dentch_input_test:401`)⇒ 该轮作废,已补齐
+- 证据:`production/qa/evidence/impl-o18r6-processing-screen-2026-11-02.md`

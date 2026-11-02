@@ -72,14 +72,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // 🔁 2026-10-31(ADR-013 §十-C Amendment C):闭集 7 员 → **8 员**(增 `Pause`)。
+        // 🔁 2026-11-02(ADR-013 §十-E Amendment D):闭集 8 员 → **9 员**(增 `Processing`)。
         //    **方法名保留**「seven_members」是刻意的:它是 ADR 侧历史的锚点,
-        //    改名会让「这条判据绑的是哪一版闭集」无从追溯。判据本体按 8 员,差异见下方
-        //    `Pause` 断言与 `test_modal_id_enum_member_count_matches_adr`。
+        //    改名会让「这条判据绑的是哪一版闭集」无从追溯。判据本体按 **9 员**。
         [Test]
         public void test_modal_id_enum_has_seven_members_plus_none()
         {
             var values = System.Enum.GetValues(typeof(ModalId));
-            Assert.AreEqual(9, values.Length); // None + 8 members(🔁 原 None + 7)
+            Assert.AreEqual(10, values.Length); // None + 9 members(🔁 原 None + 8,再原 None + 7)
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.None));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Casebook));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.SaveSlots));
@@ -89,6 +89,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.ClinicPanel));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.PaperCloseup48));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Pause));
+            Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Processing));
         }
 
         // 闭集编号的连续性:Amendment C 的新员必须**接在末尾**,不得插队重编号 ——
@@ -97,9 +98,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_modal_id_enum_member_count_matches_adr()
         {
-            Assert.AreEqual(9, System.Enum.GetValues(typeof(ModalId)).Length,
-                "ADR-013 §十 现行闭集 = None + 8 员;改动须先改 ADR,再改本判据");
+            Assert.AreEqual(10, System.Enum.GetValues(typeof(ModalId)).Length,
+                "ADR-013 §十 现行闭集 = None + 9 员;改动须先改 ADR,再改本判据");
             Assert.AreEqual(8, (int)ModalId.Pause, "新员必须接在末尾(不得插队重编号)");
+            Assert.AreEqual(9, (int)ModalId.Processing,
+                "🔁 2026-11-02 Amendment D:第九员接在末尾 = 9(插队会让序列化过的场景指向错的屏)");
         }
 
         [Test]

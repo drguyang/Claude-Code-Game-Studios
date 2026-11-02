@@ -397,10 +397,19 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
             //    本判据的原意是「**方笺不增员**」(方笺 = 脉案同一本书内的一页,§十-B)——
             //    该原意**不变**;变的只是闭集基数随 Pause 增员。故另加一条点名断言把
             //    「增的是 Pause、不是方笺相关成员」钉住,免得基数一改就失去判别力。
+            // 🔁 2026-11-02(ADR-013 §十-E Amendment D):闭集 8 员 → **9 员**(增 `Processing`)。
+            //    ⚠️ **本轮漏改过本处**(PlayMode 全量实测 `failed=1` 抓出)—— 记作事故:
+            //    闭集门共**三处**(`dto_boundary_and_modal_test` / `modal_gate_test` / 本处),
+            //    前两处已同步、本处漏了。教训:「闭集增员」的同步面**必须 grep 全部基数断言**,
+            //    不能只改记得住的那两处。
+            //    本判据的原意仍是「**方笺不增员**」—— 该原意不变,变的只是基数。
             var names = Enum.GetNames(typeof(ModalId));
-            Assert.AreEqual(9, names.Length, "ModalId = None + 8 员(🔁 原 None + 7;Amendment C 增 Pause)。");
-            Assert.AreEqual(8, names.Count(n => n != "None"), "闭集实员须为 8(Pause 是唯一的第八员)。");
+            Assert.AreEqual(10, names.Length,
+                "ModalId = None + 9 员(🔁 原 None + 8,再原 None + 7;Amendment D 增 Processing)。");
+            Assert.AreEqual(9, names.Count(n => n != "None"), "闭集实员须为 9。");
             Assert.That(names, Does.Contain("Pause"), "第八员必须是 Pause(Amendment C 裁定的那一个)");
+            Assert.That(names, Does.Contain("Processing"),
+                "第九员必须是 Processing(Amendment D 裁定的那一个,`O-18-R6` 的载体)");
             Assert.That(names, Does.Not.Contain("Prescription").And.Not.Contain("Formula"),
                 "增员**不是**方笺(§十-B:方笺 = 脉案同一本书内的一页,不增员)");
         }

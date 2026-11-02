@@ -434,7 +434,7 @@
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
-| `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
+| `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | ~~**N**~~ | R3-裁 |
 | `TD-foraging-01` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-02` | `foraging` | closed | **N** | R4 |
 | `TD-foraging-03` | `foraging` | closed | **N** | R4 |
@@ -861,7 +861,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 150 | 状态 {'closed': 138, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
+条目 150 | 状态 {'closed': 138, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -4985,9 +4985,15 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-ci-01** | `（跨 epic · 治理／CI 常驻矩阵）` | **open** | **N** | R3-裁 |
+| **TD-ci-01** | `（跨 epic · 治理／CI 常驻矩阵）` | **open** | ~~**N**~~ | R3-裁 |
 
 > **`P0 面 = N`** —— 无归属 epic(治理面),承 §一 **R3 裁量判据**;不改变 `未闭 P0 面 73`。
+>
+> 🔁 **2026-11-02 用户裁定:退到 P2** —— 「Unity CI workflow(服务账号授权)这个是没弄,退后到 P2 去」。
+> **裁定口径**:服务账号授权**确实未办** ⇒ 三个 job 从未执行是**事实**,不是排期问题。
+> 本债**维持 `open`**(工作没做完),但**不再计入 P0 面推进项**,归 **P2** 的 CI 轮。
+> ⚠️ **不改变任何判据**:`ADR-012 §Validation` 的「CI 常驻矩阵」项**仍不得勾**
+> (退 P2 ≠ 已兑现;「桌面两腿已跑通」补的是判据,不是常驻性)。
 
 ### 一、债的内容
 
@@ -9400,4 +9406,163 @@ python3 tools/debtcount/debtcount.py --check    # 期望:退出码 0
 grep -c "test_tdp03_sameOrderKey" unity/Assets/Tests/EditMode/Processing/furnace_busy_count_equivalence_test.cs  # 期望 1
 grep -c "Amendment A(2026-11-02)" docs/architecture/adr-010-persistence-save-format.md  # 期望 1
 grep -c "TD-skeuo-01" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs  # 期望 ≥1
+```
+
+---
+
+## 2026-11-02 · 用户裁定:`TD-ci-01` **退到 P2**
+
+**出处**:用户原话「Unity CI workflow(服务账号授权)。这个是没弄,退后到 P2 去」。
+
+### 裁定
+
+| 项 | 值 |
+|---|---|
+| 状态 | **`open` 维持**(工作没做完) |
+| `P0 面` | **`N` → `~~N~~`(退 P2)** |
+| 归属 | **P2 的 CI 轮** |
+
+### 先答用户的疑问:服务账号凭证到底有没有
+
+用户问「我不是有了吗」。**本机可核的两条事实,结论是「确实没弄」**:
+
+| # | 事实 | 复算 |
+|---|---|---|
+| 1 | **本机没有任何 Unity 服务账号凭证落盘** —— `~/.config/unity/` 下无 client-id / secret 文件;本机装的是 `unity` CLI `1.0.0-beta.8`,从未 `unity auth login` 过 | `ls ~/.config/unity/ 2>/dev/null`;`unity --version` |
+| 2 | **仓库的 secret 是否配了,本机核不到** —— `gh` 的 token 已失效(`gh auth status` ⇒ `The token in keyring is invalid`),读 GitHub API 一律 `401 Bad credentials` | `gh api repos/drguyang/Claude-Code-Game-Studios/actions/secrets` ⇒ 401 |
+
+⚠️ **第 2 条要如实说清**:「仓库没配 secret」这个**结论我核不了** —— 它来自债册 2026-10-21 的
+记载(「仓库**未配置** `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`」),本轮**没有**独立复核。
+**用户的裁定(「这个是没弄」)是权威来源**,我不拿旧记载去反驳它。
+
+### 但更要紧的:即便 secret 配好了,CI 仍然跑不起来(6 个硬缺陷仍在盘上)
+
+这一节**必须留着**,否则下一轮会以为「配个 secret 就好了」。全部 `file:line` 可复算,
+文件 = `.github/workflows/unity-tests.yml`:
+
+| # | 缺陷 | 落点 | 后果 |
+|---|---|---|---|
+| ① | `if: env.UNITY_CLIENT_ID != ''` **恒假** —— `UNITY_CLIENT_ID` 只在 `Unity CI Login` **那一个 step 的 `env:`** 里,而 `if` 出现在**后续 step**。GitHub Actions 的 `env:` 是 **step 级作用域,不跨 step 继承** | `:55-56` / `:92-93` / `:147-148`(env)vs `:65` / `:102` / `:160` / `:167` / `:176`(if) | **即使配好 secret,五个干活 step 仍全部 skip** |
+| ② | `ubuntu-latest` 上**没有 `unity` CLI**,且 EditMode / PlayMode 两 job **无安装步**、无 `container:`(只有 `il2cpp-determinism` 有 `container:` `:140`) | `:43` / `:80` | 现状走 `exit 0` ⇒ **绿但零执行**;配上 secret 后 Login 真跑 ⇒ `command not found` ⇒ **job 红** |
+| ③ | `executeMethod` 类名带 namespace,而目标类**无 `namespace`** | `:139` | 一执行即「找不到方法」 |
+| ④ | **登录两套体系混用**:EditMode/PlayMode 走 `--client-id/--client-secret`(服务账号),IL2CPP 走 `-username/-password`(旧式账号密码) | `:131-132` | 两套凭证不通,IL2CPP job 登录必失败 |
+| ⑤ | **对拍步三处互不匹配** —— 期望产物名不存在 / `--check` 参数不存在 / 金标准路径指错 + 未注入 `AC29_OUT` | `:157` / `:163` | 该步**结构上不可能通过** |
+| ⑥ | `if-no-files-found: warn` | `:174` | 产物没产出时只 warn 不失败 —— 与「禁假绿」直接冲突 |
+
+⇒ **退 P2 不改变这六条的存续**。本债 `open` 的真正含义是「**可修、未修**」,不是「等凭证」。
+
+### ⚠️ 不改变任何判据
+
+- `ADR-012 §Validation` 的「CI 常驻矩阵」项 **仍不得勾**(退 P2 ≠ 已兑现;
+  「桌面两腿已跑通」补的是**判据**,不是**常驻性**)。
+- `AC-18-15` / `AC-17-02` / `clinic-machine/005` 的跨平台对拍半边**仍 `EXTERNAL · BLOCKED-BY-ADR-012`**,
+  且三者的覆盖度**并不相同**(① 部分 / ② 零 / ③ 无载体)—— 详见 §三之补,不得压成一句。
+
+### 账务
+
+`条目 150` 不动 · `open 7` 不动 · `closed 138` 不动 · `P0 面 N 45 → 44` · `~~**N**~~ +1` ·
+**`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 150 | open 7 | P0 面 {'Y':101,'N':44,'~~**Y**~~':4,'~~**N**~~':1} | 未闭 P0 面 = 0
+python3 tools/debtcount/debtcount.py --check   # 期望:退出码 0
+grep -n "if: env.UNITY_CLIENT_ID" .github/workflows/unity-tests.yml   # 期望 5 命中(五处 if 仍恒假)
+```
+
+---
+
+## 2026-11-02 · 「炮制屏」轮:`O-18-R6` 落地 · `Utensil` 消费面接通(但 `TD-interaction-03` 仍 **partial**)
+
+**出处**:用户指令「两步一起」→「我倾向甲,但你需要实际操作进去看看效果是不是合理」。
+实现原件 = `production/qa/evidence/impl-o18r6-processing-screen-2026-11-02.md`。
+
+### 开工前的勘察改变了问题性质
+
+债册写「`Utensil` 卡在 42 屏清单认领」。逐条核实后卡的是**三件**,且**第一件在 18 侧已做完**:
+
+| # | 结论 | 复算 |
+|---|---|---|
+| 1 | **18 侧供给已齐**(`AdmissiblePredicate` / `ProcessingCandidateSet` / `CraftIgnitionTransaction` / `CraftEventWriter`) | `grep -rn "class AdmissiblePredicate\|class ProcessingCandidateSet" unity/Assets/Sim/Processing/` |
+| 2 | **真缺口在类型面** —— `Gameplay.UI` 看不见 `Sim`(`Gameplay.UI.asmdef` 引 `{Sim.Contracts, Gameplay.Presentation}`)⇒「18 提供只读准入谓词」此前**在类型面不存在** | `cat unity/Assets/Gameplay.UI/Gameplay.UI.asmdef` |
+| 3 | **42 屏闭集无 Processing** | `grep -rn "ProcessingScreen\|CraftPanel" unity/Assets --include=*.cs` ⇒ 零命中 |
+| 4 | **GDD UI-18.3 自相矛盾** —— 写「复用 20 出诊箱容器」,而 20 的 spec wireframe 只有 `[⧉叠角=炮制中]` 状态标记,无配方区 | `sed -n '120,145p' design/ux/inventory-container-20.md` |
+
+### 兑现(甲案,四件)
+
+| # | 件 | 落点 |
+|---|---|---|
+| 1 | **`O-18-R6` 接口半边** | `Sim.Contracts/IProcessingAdmissionQuery.cs`(只读准入查询) |
+| 2 | **`ISingleFurnaceQuery` 首个生产实现** | `Sim/Processing/FurnaceBusyQuery.cs` |
+| 3 | **准入实现** | `Gameplay.Boot/ProcessingAdmissionQuery.cs`(转接 `ProcessingCandidateSet`) |
+| 4 | **42 第九员 + 屏** | `ModalId.Processing = 9` + `Screens/Processing18Screen.cs` |
+
+ADR:**ADR-013 §十-E Amendment D**(闭集 8 员 → 9 员)。
+⚠️ **编号碰撞如实登记**:该文件已有「§十-C · Amendment D」(2026-11-01 停世界),本节取
+**`十-E`**,⇒ 文件内有两个「Amendment D」称谓,以节号区分。**不擅自改名**(会打断既有引用)。
+
+### ⚠️ 实际效果:结构对,但**内容面是空的**
+
+`-nographics` 下出不了图(项目已两次实测)⇒ 只能靠结构化判据描述。屏的实际形态:
+
+| 情形 | 屏上是什么 |
+|---|---|
+| 技能 / 品质都够、料位齐 | 一行:`RecipeId`(如 `herb_soup`),可获焦、可确认 |
+| 技能不够 / 品质不够 | **那一行根本不存在** —— 不是灰的、不是禁用的 |
+| **全部不可发起(含今日的空集料位)** | **零行**,`FirstFocusable == null` |
+
+**三处粗糙边(必须与「已接通」同读)**:
+1. **屏上现在是空的** —— 品级集传 `Array.Empty<int>()`。实测 **20 的选中态接口不存在**
+   (`grep -rn "ConsumedQualities\|SelectedQualities"` ⇒ 生产零命中;`InventoryContainerScreen`
+   只读不选)⇒ 料位接不上。**玩家点 `Utensil` 会看到空白纸面。**
+2. **文案是键名** —— 21a 的 `Recipe` **无 `DisplayName`** ⇒ 显示 `herb_soup` 不是「麻黄汤」。
+3. **无起货呈现** —— 本屏不画进度(承 `skeuomorphic-ui.md:1259` 已裁)。
+
+### 仍未闭:`TD-interaction-03` 维持 **`partial`**
+
+债的消解条件逐字 =「每种至少有一个消费者接通」。本轮 `Utensil` 有了**消费者**(屏 + 意图出口),
+但**上游供料缺位** ⇒ 屏恒空。⇒ 两种读法:
+
+- 读「**有消费面**」⇒ 可 `closed`
+- 读「**端到端可用**」⇒ **`partial`**
+
+**本轮取 `partial`,不借绿** —— 玩家点 `Utensil` 看到空白纸面,**那不叫接通**。
+残余从「一种消费面待 42 认领」收窄为「**一种消费面已建,但料位供给待 20/4**」。
+
+### 证伪轮(4 条全红 · SHA-256 逐字节还原 4/4)
+
+P18-M1 不过滤(2 红)· P18-M2 **灰置而非不建行**(2 红)· P18-M3 删 null 守卫(1 红)·
+P18-M4 发行序而非 `Ordinal`(1 红)。
+⚠️ **P18-M2 是特意加的**:它打「灰置 vs 不建行」这个 **AC-18-10b 的字面区别** ——
+只做 M1 的话,灰置这条失败模式**不会被抓住**,而灰置恰恰是 GDD 逐字禁止的形态。
+
+### 受影响的既有 pin(逐条契约演进,非改期望凑绿)
+
+`ModalId` 闭集 8 → **9 员**(`dto_boundary_and_modal_test` 9 值 → **10 值**;`modal_gate_test`
+的 `ClosedSetMembers` 补员)· `AC-42-F1` 闭集走查 8 屏 → **9 屏**(第九员记 `NOT-RUN`)。
+
+### ⚠️ 本轮如实登记的两处事故(改坏过,已修)
+
+1. **`FurnaceBusyQuery` 首版放 `Gameplay.Boot`** ⇒ `test_ac1817b_saveComposerReferencesNoProcessingTypes`
+   判红(该门扫 `Gameplay.Boot` 全目录要求零 18 类型引用)。**移回 `Sim` 是正确落点,
+   不是为了让门变绿而改门** —— 那条门至今未动。
+2. **配方源首版写成值属性并在装配期求值** ⇒ **24 条红**(`RealRegistry*` / `WTrendEps*` /
+   `ReaderWiring*`)。那些夹具在 `Assemble` 之后才注入 provider ⇒ 装配期提前读数据集
+   **改变了装配时序**。改为 `Func<RecipeDataSet>` 惰性。**教训:注释说惰性,代码就必须真惰性。**
+
+### 账务
+
+`条目 150` 不动 · `open 7` 不动 · `closed 138` 不动 · `partial 4` 不动(本条本就 `partial`)·
+`P0 面 N 45` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 150 | open 7 | closed 138 | partial 4 | 未闭 P0 面 = 0
+grep -c "\[Test\]\|\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/processing18_screen_test.cs  # 期望 5
+grep -n "Processing = 9" unity/Assets/Gameplay.UI/Skeuomorphic/ModalId.cs   # 期望 1 命中
+grep -rn "ConsumedQualities\|SelectedQualities" unity/Assets --include=*.cs | grep -v /Tests/   # 期望零命中(料位接口不存在)
 ```

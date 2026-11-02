@@ -536,3 +536,32 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
   ADR 修订**性质不同**,已在债册逐条标注
 - **读数**:EditMode **`6607/6570/0/0/37`** @ `16:12:58 CST` · PlayMode **`301/297/0/2/2`** @ `16:14:10 CST`
   (基线 `S23-22` 的 `6606/6569` · `299/295`;等式 EM `+1` = TDP03 夹具 · PM `+2` = 焦点环守卫夹具)
+
+**S23-24(2026-11-02):炮制屏第九员 —— `O-18-R6` 落地 · `Utensil` 消费面接通(`TD-interaction-03` 仍 partial)**:
+用户指令「两步一起」→「我倾向甲,但你需要实际操作进去看看效果是不是合理」。
+
+- **勘察改变问题性质**:债册写「卡在 42 认领」,实测卡三件 —— ① **18 侧供给已齐**
+  (`AdmissiblePredicate` / `ProcessingCandidateSet` / `CraftIgnitionTransaction` / `CraftEventWriter`)
+  ② **真缺口在类型面**(`Gameplay.UI` 看不见 `Sim`)③ 42 屏闭集无 Processing
+  ④ GDD UI-18.3 自相矛盾(写「复用 20 容器屏」,而 20 的 spec 只有 `[⧉叠角=炮制中]` 状态标记)
+- **兑现四件**:`Sim.Contracts/IProcessingAdmissionQuery.cs`(O-18-R6 接口半边)·
+  `Sim/Processing/FurnaceBusyQuery.cs`(`ISingleFurnaceQuery` 首个生产实现)·
+  `Gameplay.Boot/ProcessingAdmissionQuery.cs` · `ModalId.Processing = 9` + `Processing18Screen.cs`
+- **ADR-013 §十-E Amendment D**(闭集 8 → 9 员)。⚠️ **编号碰撞如实登记**:该文件已有
+  「§十-C · Amendment D」,本节取 `十-E` ⇒ 文件内两个「Amendment D」,以节号区分,**不擅自改名**
+- **新增夹具** 5 条:`AC-18-10b` 主判据(不可发起⇒不建行且非灰置)· 可发起⇒建行 ·
+  全不可发起⇒零行无焦点 · 选中⇒发 `Ordinal` · 准入 null⇒抛
+- **证伪 P18-M1…M4 全红**,SHA-256 逐字节还原 4/4 + `FINAL-OK`。
+  ⚠️ **P18-M2 特意加**:打「灰置 vs 不建行」这个 **AC-18-10b 的字面区别** ——
+  只做 M1 的话灰置这条失败模式**抓不住**,而灰置恰是 GDD 逐字禁止的
+- ⚠️ **实际效果:结构对,内容面空** —— 品级集传空集 ⇒ 屏恒零行;实测 **20 的选中态接口
+  不存在**(`InventoryContainerScreen` 只读不选)⇒ 料位接不上。**玩家点 `Utensil` 看到空白纸面**
+- ⚠️ **`TD-interaction-03` 维持 `partial`**(不借绿):「有消费面」可 closed,但「端到端可用」
+  不成立 ⇒ 取后者。残余从「一种消费面待 42 认领」收窄为「**已建,料位供给待 20/4**」
+- ⚠️ **两处事故已修**:① `FurnaceBusyQuery` 首版放 `Gameplay.Boot` ⇒ 被 18 类型零引用门判红,
+  **移回 `Sim`**(正确落点,不是改门)② 配方源首版装配期求值 ⇒ **24 条红**(时序被改),改惰性 `Func`
+- 原件 = `production/qa/evidence/impl-o18r6-processing-screen-2026-11-02.md`
+- **读数**:EditMode **`6607/6570/0/0/37`** @ `17:13:44 CST` · PlayMode **`306/302/0/2/2`** @ `17:17:00 CST`
+  (基线 `S23-23` 的 `6607/6570` · `301/297`;等式 EM `+0`(只改断言口径)· PM **`+5`** = 新增夹具)
+- ⚠️ **PlayMode 首轮 `failed=1`**(漏改第三处闭集门 `dentch_input_test:401`)⇒ 该轮读数**作废**。
+  已补齐并全库 grep 确认无第四处。**教训:闭集增员的同步面必须 grep 全部基数断言**

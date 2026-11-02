@@ -679,3 +679,63 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 - **R-6 拟物 UI 框架**(architecture-review 2026-09-15)—— 本 ADR 是其落点;E-16 由本 ADR 早决
 - **`/ux-design`**(预门控)—— `design/ux/interaction-patterns.md`、`design/accessibility-requirements.md`;四钩子接入口
 - `docs/registry/architecture.yaml` —— 本 ADR 新增 ui_stack_boundary 契约 + API 裁决 + 禁令
+
+### 十-E、Amendment D(2026-11-02 · 用户裁定「我倾向甲」)—— 闭集第九员 `Processing`
+
+> **本节是 Amendment,不重开 §一–§九 / §十 / §十-C / §十-D 的任何裁决。
+> 它只执行 §十 预置的同步义务。**
+> ⚠️ **编号说明**:本文件已有「§十-C · Amendment D」(2026-11-01,挡路模态真停世界)。
+> 本节的编号取 **`十-E`**(跳过 `十-D`,因 `十-D` 已被前者占用)⇒ **文件内有两个
+> 「Amendment D」称谓**,以节号区分:`十-C` 的 D = 停世界,`十-E` 的 D = 第九员。
+> 这是编号碰撞,**如实登记,不擅自改名**(改名会打断既有引用)。
+
+**增员 `Processing`(第九员)** —— 病因:`design/gdd/processing.md:664`(UI-18.3)与
+`:732`(AC-18-10b)逐字要求「42 的屏闭集须补入炮制交互」(`O-18-R6`),而该缺口自
+2026-09-19 起一直记 `EXTERNAL · BLOCKED-BY-42`;`TD-interaction-03` 的 `Utensil` 半边
+因此**零消费面**(选中即落空)。
+
+**为什么必须进闭集、不能复用 20 的容器屏**(`O-18-R6` 曾提「选料复用 20 出诊箱容器」):
+- 20 的容器屏语义 = 「**箱里有什么**」(搜箱 / 容量 / 内容),`design/ux/inventory-container-20.md`
+  的 wireframe 里只有 `[⧉叠角=炮制中]` 这个**状态标记**,**没有任何配方区**;
+- 炮制屏语义 = 「**能做什么 + 点火**」(候选集 + 发起),两者的**数据面**与**焦点序**全不同;
+- 把两者混一屏会让「选中一件料」与「选中一个配方」在同一个焦点空间里争抢 ——
+  拟物 UI 无指针,手柄焦点序是**唯一**导航路径(TR-concept-008),混屏即两套语义共用一条序。
+⇒ 取**增员**,不取复用。
+
+**同步义务**(§十 约束 1 的兑现):
+① `Skeuomorphic/ModalId.cs` 增 `Processing = 9`;
+② `SkeuoRuntimeDriver.ScreenFactories` 增 `"Processing"`、`ModalScreenNames` 增
+   `ModalId.Processing → "Processing"`;
+③ 闭集门 `dto_boundary_and_modal_test.test_modal_id_enum_has_seven_members_plus_none`
+   自「9 值 / 8 员」改为「10 值 / 9 员」并点名 `Processing`(方法名保留原文,加 🔁 注);
+④ `design/gdd/skeuomorphic-ui.md` 的 `AC-42-F1` 闭集点名八 → 九;
+⑤ `technical-preferences.md` 的 ADR-013 日志条目追加本 Amendment;
+⑥ 4 侧 `modal_gate_test.ClosedSetMembers` 文本清单补 `Processing`(该清单有**基数守卫**)。
+
+**落地实况**(2026-11-02 实现轮,上列六项之外实际还改了这些 —— 逐条登记,不并入 ①–⑥ 记账):
+- **新契约** `Sim.Contracts/IProcessingAdmissionQuery.cs`(`O-18-R6` 的**接口半边**)——
+  这是**真正的缺口**:`Gameplay.UI` 的引用集 = `{Sim.Contracts, Gameplay.Presentation}`,
+  **看不见 `Sim`**,而 `AdmissiblePredicate` / `ProcessingCandidateSet` 都住 `Sim`
+  ⇒ 「18 提供只读准入谓词」在类型面上**此前根本不存在**。
+- **新实现两件**(住 `Gameplay.Boot`,它同时引 `Sim` + `Sim.Contracts` + `Gameplay.UI`):
+  `ProcessingAdmissionQuery`(转接 `ProcessingCandidateSet.IsCandidate`,零判据)·
+  `FurnaceBusyQuery`(`ISingleFurnaceQuery` 的**首个生产实现**,转接 `FurnaceState.IsBusy`)。
+- **新屏** `Screens/Processing18Screen.cs` —— 最小可操作屏:候选行 + 选中 + 点火。
+  **只建 `IsAdmissible == true` 的行**(不可发起的不建,不是建了再灰置)⇒
+  `AC-18-10b` 的「不出现(非灰置)」在**结构上**成立。
+
+**⚠️ 本 Amendment 未做(不得借「Accepted」当已验)**:
+- **无 UX spec** —— `design/ux/` 无 `processing-18.md`。排版 / 文案 / 焦点序**均未经 `/ux-review`**。
+  本轮的屏是**最小可操作壳**,不是「炮制面板做完了」。
+- **`AC-42-F1` 闭集走查仍 `NOT-RUN`** —— 无 spec ⇒ 按该 AC 的纪律**阻塞签核**。
+  第九员的视觉走查与 `AC-18-10b` 的人类腿**均未执行**。
+- **文案粗糙边** —— 21a 的 `Recipe` **无 `DisplayName` 字段** ⇒ 屏上显示的是
+  `RecipeId`(如 `herb_soup`),不是「麻黄汤」。归 21a 的显示名轮 / 42 的文案轮。
+- **无起货(完成态)呈现** —— 规则八说完成是纯派生,起货由 20 从 `Craft` 派生。
+  本屏**不画进度**(承 `skeuomorphic-ui.md:1259` 已裁「凡不发生在纸上的进程,进度归世界器物状态」)。
+- **无料位显示**(「这一剂要哪几味」)—— 那要 20 的选中态,归 4 的交互轮。
+
+**边界**:本 Amendment **不**改写 §十-B / §十-C / §十-D 的任何判定;
+`Gameplay.Presentation` 侧 `IModalGateState` 仍是「只有一个布尔」形态(4 仍看不到成员清单,AC-4-09)。
+
+**Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记 + 纯 C# 契约,不触及任何 post-cutoff API)。

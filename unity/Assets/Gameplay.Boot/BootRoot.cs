@@ -715,10 +715,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                         if (_uiDriver != null)
                             _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.ClinicPanel);
                     },
-                    // 器具(18):**刻意不接** —— 炮制面板归 42 屏清单认领,而它尚未认领
-                    // (`O-18-R6` / `AC-18-10b` EXTERNAL · BLOCKED-BY-42)。传 null ⇒ 选中
-                    // `Utensil` 按键落空(诚实降级),而不是假装进了某个模式。
-                    enterProcessing: null);
+                    // 器具(18):🔁 **2026-11-02 接通**(ADR-013 §十-E Amendment D 第九员 `Processing`)。
+                    // 打开炮制屏并喂数据:配方全表 + 准入查询 + 玩家 + 品级集。
+                    // ⚠️ 过滤归屏(它只问 `IsAdmissible`,不自己合取 —— AC-18-20 零第二实现)。
+                    // ⚠️ 品级集今日传**空集** ⇒ 全部配方不可发起 ⇒ 屏上零行。
+                    //    这是**诚实的降级**:料位选中态归 20 / 4 的交互轮,本轮未接。
+                    //    屏不空转、不假装有料 —— 空集是合法输入(`AdmissiblePredicate` 的
+                    //    `NoConsumedInstances`),不是 null(fail-closed 会抛)。
+                    _ =>
+                    {
+                        if (_uiDriver == null) return false;
+                        var recipeSource = _services.RecipeSource;
+                        var admission = _services.ProcessingAdmission;
+                        if (recipeSource == null || admission == null) return false;
+                        if (!_uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Processing)) return false;
+                        var screen = _uiDriver.Screen as UI.Skeuomorphic.Screens.Processing18Screen;
+                        if (screen == null) return false;
+                        // 惰性求值:只在屏真打开时读数据集(装配期零读取 —— 见 CompositionRoot 注)
+                        screen.Bind(recipeSource().Recipes, admission, actorId,
+                                    System.Array.Empty<int>());
+                        return true;
+                    });
             }
             else
             {

@@ -1862,6 +1862,34 @@ namespace DaYiJingCheng.Gameplay.Boot
                 stream.Events, decoder, new VitalsQueryOrNone(vitals), costTable, overdoseThresholds,
                 encoder, services.EventSink);
 
+            // ── 18 炮制屏的数据面(ADR-013 §十-E Amendment D · 2026-11-02)──────────
+            // 配方表:与 `inventoryLoad` 用的是**同一个** `loadRecipesSeed()` 闭包(同源,不新增加载路径)。
+            // ⚠️ 惰性:这里只**登记**取法,不立即读 —— 与 `bakedInitialItemIds` 同款纪律
+            //    (数据未就绪时不该在装配期硬失败)。
+            // 准入查询:`ProcessingAdmissionQuery` 转接 `ProcessingCandidateSet`(零判据)。
+            //   技能等级 = `HarvestSkillLevelProjection`(30 的流折叠实现,17 采集轮已落);
+            //   单炉 = `FurnaceBusyQuery`(本轮新落,`ISingleFurnaceQuery` 的首个生产实现);
+            //   品级集 = 今日**空集**(料位选中态归 20 / 4 的交互轮,本轮未接)。
+            //   空集 ⇒ 屏上零行 —— 这是**诚实降级**(不是假屏),且是 `AdmissiblePredicate`
+            //   的合法输入(`NoConsumedInstances`),不是 null(fail-closed 会抛)。
+            // ⚠️ **必须惰性** —— 早期版本在此直接 `loadRecipesSeed()`,实测 24 条红
+            //    (`RealRegistry*` / `WTrendEps*` / `ReaderWiring*`):装配期提前读数据集
+            //    改变了既有的装配时序(那些夹具在 `Assemble` 之后才注入 provider / 替换表)。
+            //    ⇒ 改为**包一层 `Func`**,只在炮制屏真打开时才求值 —— 与 `bakedInitialItemIds`
+            //    同款纪律(注释说惰性,代码就必须真惰性)。
+            services.RecipeSource = dataProvider != null
+                ? new Func<RecipeDataSet>(loadRecipesSeed)
+                : null;
+            if (dataProvider != null)
+            {
+                var craftSkillLevels = new HarvestSkillLevelProjection(
+                    () => stream.Events, decoder);
+                var furnaceBusy = new DaYiJingCheng.Sim.Processing.FurnaceBusyQuery(
+                    () => stream.Events, decoder, () => tickDriver != null ? tickDriver.CurrentTick : 0L);
+                services.ProcessingAdmission = new ProcessingAdmissionQuery(
+                    craftSkillLevels, furnaceBusy, _ => System.Array.Empty<int>());
+            }
+
             // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────
             // ⚠️ 本属性是 `null` 时**必须**有显式日志(`BootRoot` 启动期读),否则与「机制未启用」同形。
             services.HarvestDriver = harvestDriver;

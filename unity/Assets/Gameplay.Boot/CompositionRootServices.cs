@@ -113,6 +113,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>载荷编码器(第七抽象点 ADR-029;编码 + 入池一体)。</summary>
         public IPayloadEncoder Encoder { get; }
 
+        /// <summary>21a 配方表(炮制屏的候选源;ADR-013 §十-E 第九员 `Processing` 的数据面)。
+        /// <para>⚠️ 装载面归 ADR-014(经 <c>IDataProvider</c>);本属性只是**同一个** <c>RecipeDataSet</code>
+        /// 的只读暴露 —— 不新增加载路径、不缓存第二份。</para>
+        /// <para>⚠️ **惰性 `Func`**:装配期不读,只在炮制屏真打开时求值。
+        /// 早期版本写成 `RecipeDataSet?` 值属性并在装配期直接赋值,实测 24 条红
+        /// (`RealRegistry*` / `WTrendEps*` / `ReaderWiring*`)—— 提前读数据集改变了装配时序。
+        /// ⇒ 与 `bakedInitialItemIds` 同款纪律:**注释说惰性,代码就必须真惰性**。</para>
+        /// <para>⚠️ 无数据(<c>dataProvider == null</c>)时本属性为 <c>null</c> ⇒ 炮制屏 `Bind`
+        /// 不会被调,`Utensil` 按键落空(诚实降级,不是假屏)。</para></summary>
+        public Func<RecipeDataSet> RecipeSource { get; internal set; }
+
+        /// <summary>炮制准入查询(<code>O-18-R6</code> 的接口半边;42 屏的数据源)。</summary>
+        public IProcessingAdmissionQuery ProcessingAdmission { get; internal set; }
+
         /// <summary>载荷解码器(第八抽象点 ADR-031;读侧对称件 —— 池寻址 + 抛形解码)。
         /// <para>与 <see cref="Encoder"/> 共用同一 <see cref="BlobPool"/>(同池读写,无第二真源)。</para></summary>
         public IPayloadDecoder Decoder { get; }

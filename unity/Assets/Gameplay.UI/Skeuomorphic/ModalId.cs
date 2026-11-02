@@ -1,10 +1,12 @@
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 {
-    /// <summary>模态界面标识闭集(8 员 + None)。</summary>
+    /// <summary>模态界面标识闭集(9 员 + None)。</summary>
     /// <remarks>
     /// <para>闭集成员必须经本 ADR(ADR-013 §十 Amendment A / B / C)裁定后方可追加。</para>
     /// <para>🔁 2026-10-31:**Amendment C** 增第八员 <see cref="Pause"/>(暂停壳 —— 存档位的正式入口)。
     /// 原「7 员」的口径就此作废,凡引用处按 8 员读。</para>
+    /// <para>🔁 2026-11-02:**Amendment D(ADR-013 §十-E)** 增第九员 <see cref="Processing"/>
+    /// (炮制屏 —— `O-18-R6` / `AC-18-10b` 的落地载体)。原「8 员」口径作废,按 **9 员**读。</para>
     /// <para>成员集与 <see cref="IModalState"/> 的 <see cref="IModalState.Modal"/> getter 返回值一一对应。</para>
     /// <para>消费方(如系统 4 交互意图)须引用本枚举,不得在自身代码内维护一份「哪些界面算模态」的清单。</para>
     /// </remarks>
@@ -41,6 +43,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <para>⚠️ 它必须在闭集内:暂停壳挡住世界、要冻结世界意图 —— 规则七的门只认
         /// `Modal ≠ None`,非模态叠层等于给同一种形态发明第二套判据。</para>
         /// </summary>
-        Pause = 8
+        Pause = 8,
+
+        /// <summary>
+        /// 炮制屏(系统 18 的数据面;2026-11-02 **Amendment D 增员**,闭集第九员)。
+        /// <para>载体 = `design/gdd/processing.md` 的 `O-18-R6`(18 → 42 的只读准入接缝)+
+        /// `AC-18-10b`(「不可发起的配方**不出现(非灰置)**」)。</para>
+        /// <para>⚠️ 它与 <see cref="InventoryContainer"/> **不同屏**:后者语义 = 「箱里有什么」
+        /// (搜箱 / 容量 / 内容),本屏语义 = 「能做什么 + 点火」(候选集 + 发起)。
+        /// 拟物 UI 无指针 ⇒ 手柄焦点序是唯一导航路径,混屏即两套语义共用一条序。</para>
+        /// </summary>
+        Processing = 9
     }
 }
