@@ -17,7 +17,7 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 `AC-19-01…08` → `AC-ADR019-01…08`),系统 GDD 的维持 `AC-{sys}-{n}`。
 本工具是该裁定的**执行体** —— 它不要求任何人「记得查重」,而是让违规当场红。
 
-## 判据(九条)
+## 判据(十条)
 
 - **C1 新撞号**:某 ID 被 ≥2 个文件「定义」,且不在基线里 ⇒ 红
 - **C2 基线不得扩大**:基线里的 ID 不得被**第三个**文件再定义 ⇒ 红
@@ -32,6 +32,8 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 - **C8 裸名误引 ADR 自有 AC**:活文档里裸 `AC-<n>-<m>` 实为 ADR 自有 AC ⇒ 红
   (C5 的盲区:文件里**一处新名都没有**时 C5 结构性沉默)
 - **C9 story 级 AC 旧形**:出现 3 位编号的 `AC-0NN-M` ⇒ 红(一律写 `SAC-0NN-M`)
+- **C10 ADR 铸了不存在的系统 AC**:ADR 里以定义句式写 `AC-<sys>-<n>`,但**没有任何 GDD
+  定义它** ⇒ 红(ADR 可以**引用**系统 AC,不能铸;自有 AC 写 `AC-ADR0NN-NN`)
 
 ⚠️ **C8 只认 1–2 位编号位** —— 第三个编号空间(story 级 AC)已由 **C9** 单独接管:
 统一 `SAC-0NN-M`。三个空间自此从**字符串层面**可分:
@@ -52,6 +54,17 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 
 - GDD 表行:`| **AC-20-01** | **[A]** | ...`
 - ADR 校验清单:`- [ ] **AC-20-01(BLOCKING)**:...`
+
+**定义源按编号空间分工**(S23-37):
+
+| ID 形状 | 谁能定义 | 句式 |
+|---|---|---|
+| `AC-<sys>-<n>` | `design/gdd/`(顶层,不含 `reviews/`) | 表行 · 复选框 · **`## Acceptance Criteria` 节内项目符号** |
+| `AC-ADR<adr>-<n>` | `docs/architecture/adr-<adr>-*.md`(且 adr = 本 ADR 号) | 表行 · 复选框 |
+
+**ADR 里出现 `AC-<sys>-<n>` 一律算引用,不算定义** —— `## Validation Criteria` 列的是
+「本 ADR 验证哪些 AC」。实测:全库 **0 个 ID 只由 ADR 定义**(两边都有的 9 个全是
+ADR-018 复述 44 GDD 的 `AC-44-*`)。铸号由 **C7 / C10** 兜。
 
 ⚠️ **`## GDD Requirements Addressed` 整节跳过** —— 该节的表是**引用**别的系统的 AC,
 不是定义。ADR-033 就有一条 `| **AC-23-02** | ...`,按逐行扫会被误判成第二处定义
@@ -102,6 +115,9 @@ RE_ADR_FILE = re.compile(r"^adr-(\d+)-")
 RE_ADR_BARE_DEF_BOX = re.compile(r"^- \[ \] \*\*AC-(\d+)-(\d+)")
 RE_ADR_BARE_DEF_ROW = re.compile(r"^\|\s*\*\*AC-(\d+)-(\d+)\*\*\s*\|")
 RE_ADR_MENTION = re.compile(r"ADR-?0*(\d+)")
+# ADR 自有 AC(`AC-ADR0NN-NN`)的定义句式 —— `RE_GDD_ROW` / `RE_ADR_BOX` 只吃纯数字 ID
+RE_ADR_OWN_ROW = re.compile(r"^\|\s*\*\*(AC-ADR\d+-\d+)\*\*\s*\|")
+RE_ADR_OWN_BOX = re.compile(r"^- \[ \] \*\*(AC-ADR\d+-\d+)")
 RE_BARE_AC = re.compile(r"AC-(\d{1,2})-(0*\d+)(?!\d)")
 # C9:story 级 AC 的旧形。`(?<![A-Za-z])` 防 `SAC-018-4` 被当成 `AC-018-4` 再判一次。
 RE_STORY_AC_OLD = re.compile(r"(?<![A-Za-z])AC-(0\d\d)-(\d+)(?!\d)")
@@ -175,29 +191,96 @@ BARE_MIXED_ALLOW = {
 
 
 def scan(root):
-    """返回 {ac_id: [相对路径, ...]}(路径已排序,便于逐字节比对)。"""
+    """返回 {ac_id: [相对路径, ...]}(路径已排序,便于逐字节比对)。
+
+    **定义源按编号空间分工**(2026-11-02 裁定后的口径,S23-37):
+
+    | ID 形状 | 谁能定义 | 定义句式 |
+    |---|---|---|
+    | `AC-<sys>-<n>` | **`design/gdd/`**(顶层 GDD,不含 `reviews/`) | 表行 · 复选框 · **`## Acceptance Criteria` 节内的项目符号** |
+    | `AC-ADR<adr>-<n>` | **`docs/architecture/adr-<adr>-*.md`**,且 adr 必须 = 本 ADR 号 | 表行 · 复选框 |
+
+    **ADR 里出现 `AC-<sys>-<n>` 一律算引用**,不算定义 —— `## Validation Criteria` 列的是
+    「本 ADR 验证哪些 AC」。实测依据:全库 **0 个 ID 只由 ADR 定义**(9 个两边都有的
+    全是 ADR-018 复述 44 GDD 的 `AC-44-*`)。铸号一侧由 **C7**(用本 ADR 的号)与
+    **C10**(该 ID 在 GDD 里根本不存在)兜住。
+    """
     found = defaultdict(set)
-    for base in SCAN_ROOTS:
-        base_dir = os.path.join(root, base)
-        for dirpath, _dirnames, filenames in os.walk(base_dir):
-            for name in sorted(filenames):
-                if not name.endswith(".md"):
+
+    # ── 系统 AC:只认 design/gdd 顶层(不含 reviews/)──────────────────
+    gdd_root = os.path.join(root, "design/gdd")
+    for dirpath, dirnames, filenames in os.walk(gdd_root):
+        dirnames[:] = [d for d in dirnames if d != "reviews"]
+        for name in sorted(filenames):
+            if not name.endswith(".md"):
+                continue
+            path = os.path.join(dirpath, name)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            section = ""
+            skip = False
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    heading = RE_HEADING.match(line)
+                    if heading:
+                        section = heading.group(1)
+                        skip = SKIP_SECTION_MARK in section
+                        continue
+                    if skip:
+                        continue
+                    match = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
+                    if match is None and "Acceptance Criteria" in section:
+                        match = RE_AC_BULLET.match(line)
+                    if match:
+                        found[match.group(1)].add(rel)
+
+    # ── ADR 自有 AC:只认 docs/architecture/adr-<own>-*.md ─────────────
+    adr_root = os.path.join(root, "docs/architecture")
+    for name in sorted(os.listdir(adr_root)):
+        own = RE_ADR_FILE.match(name)
+        if not name.endswith(".md") or not own:
+            continue
+        rel = f"docs/architecture/{name}"
+        skip = False
+        with open(os.path.join(adr_root, name), encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                heading = RE_HEADING.match(line)
+                if heading:
+                    skip = SKIP_SECTION_MARK in heading.group(1)
                     continue
-                path = os.path.join(dirpath, name)
-                rel = os.path.relpath(path, root).replace(os.sep, "/")
-                skip = False
-                with open(path, encoding="utf-8", errors="replace") as handle:
-                    for line in handle:
-                        heading = RE_HEADING.match(line)
-                        if heading:
-                            skip = SKIP_SECTION_MARK in heading.group(1)
-                            continue
-                        if skip:
-                            continue
-                        match = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
-                        if match:
-                            found[match.group(1)].add(rel)
+                if skip:
+                    continue
+                for match in (RE_ADR_OWN_ROW.match(line), RE_ADR_OWN_BOX.match(line)):
+                    if match and match.group(1).startswith(f"AC-ADR{int(own.group(1)):03d}-"):
+                        found[match.group(1)].add(rel)
+
     return {key: sorted(value) for key, value in found.items()}
+
+
+def scan_adr_system_forms(root):
+    """C10 的输入:ADR 里以**定义句式**出现的系统 AC(`AC-<sys>-<n>`)。
+
+    它们不算定义(见 `scan` 的说明),但**必须真的存在于某个 GDD** —— 否则就是
+    「ADR 铸了一个别处不存在的系统 AC」,与 ADR-020 / ADR-019 同型的生产线。
+    """
+    out = []
+    adr_root = os.path.join(root, "docs/architecture")
+    for name in sorted(os.listdir(adr_root)):
+        if not name.endswith(".md") or not RE_ADR_FILE.match(name):
+            continue
+        rel = f"docs/architecture/{name}"
+        skip = False
+        for idx, line in enumerate(
+                open(os.path.join(adr_root, name), encoding="utf-8", errors="replace"), 1):
+            heading = RE_HEADING.match(line)
+            if heading:
+                skip = SKIP_SECTION_MARK in heading.group(1)
+                continue
+            if skip:
+                continue
+            match = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
+            if match:
+                out.append((rel, idx, match.group(1)))
+    return out
 
 
 def collisions(definitions):
@@ -254,6 +337,12 @@ def scan_adr_bare_defs(root):
             box = RE_ADR_BARE_DEF_BOX.match(line) or RE_ADR_BARE_DEF_ROW.match(line)
             if box and int(box.group(1)) == adrno:
                 hits.append((rel, idx, f"AC-{adrno}-{int(box.group(2)):02d}"))
+                continue
+            own = RE_ADR_OWN_ROW.match(line) or RE_ADR_OWN_BOX.match(line)
+            if own:
+                k = int(re.match(r"AC-ADR(\d+)-", own.group(1)).group(1))
+                if k != adrno:
+                    hits.append((rel, idx, own.group(1)))
     return hits
 
 
@@ -399,7 +488,8 @@ def load_baseline():
 
 
 def evaluate(definitions, baseline, bare_mixed=None,
-             adr_bare_defs=None, bare_adrrefs=None, story_ac_old=None):
+             adr_bare_defs=None, bare_adrrefs=None, story_ac_old=None,
+             adr_sys_forms=None):
     """返回 (violations, warnings)。violations 非空 ⇒ 退出码 1。
 
     `bare_mixed` 为 None 时不判 C5 / C6;C7 / C8 / C9 同理(内存探针用)。
@@ -499,6 +589,17 @@ def evaluate(definitions, baseline, bare_mixed=None,
                 "    `AC-0NN-M` 与 2 位的 `AC-<n>-<m>` 肉眼同形(如 `AC-019-6` vs `AC-19-06`),\n"
                 "    而系统 9 / 18 / 19 / 20 / 21 都存在 ⇒ 三个空间必须从字符串层面分开。")
 
+    # C10:ADR 里以定义句式出现、但在 GDD 里根本不存在的系统 AC
+    if adr_sys_forms is not None:
+        for rel, idx, ac in adr_sys_forms:
+            if ac in definitions:
+                continue
+            violations.append(
+                f"C10 ADR 铸了不存在的系统 AC:`{rel}:{idx}` 出现 `{ac}`,"
+                "但没有任何 GDD 定义它。\n"
+                "    ADR 可以**引用**系统 AC,但不能铸 —— 系统 AC 的户主是 `design/gdd/`。\n"
+                "    ADR 自有的 AC 请写 `AC-ADR0NN-NN`(C7 管)。")
+
     # 基线覆盖度提示(非违规):让「还剩多少撞号」始终可见
     warnings = []
     remaining = len(grandfathered)
@@ -521,9 +622,11 @@ def cmd_print(definitions, baseline):
     return 0
 
 
-def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs, story_ac_old):
+def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs,
+              story_ac_old, adr_sys_forms):
     violations, warnings = evaluate(definitions, baseline, bare_mixed,
-                                    adr_bare_defs, bare_adrrefs, story_ac_old)
+                                    adr_bare_defs, bare_adrrefs, story_ac_old,
+                                    adr_sys_forms)
     for note in warnings:
         print(f"提示:{note}")
     marks = scan_legacy_marks(REPO_ROOT)
@@ -533,7 +636,7 @@ def cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs, st
     if not violations:
         print(f"✅ AC 编号撞号门:无新增撞号;引用面 {len(bare_mixed)} 个混写文件全在白名单内;"
               f"ADR 自有 AC 裸名定义 0 条、裸名误引 {len(bare_adrrefs)} 文件全在白名单内;"
-              f"story 级 AC 旧形 0 处")
+              f"story 级 AC 旧形 0 处;ADR 铸号 0 处")
         return 0
     for item in violations:
         print(f"❌ {item}")
@@ -637,6 +740,14 @@ def cmd_mutation_probe(definitions, baseline):
     hit = any(item.startswith("C9") for item in violations)
     scenarios.append(("M9 story 级 AC 旧形", "C9", hit, violations))
 
+    # M10:ADR 铸了一个 GDD 里不存在的系统 AC
+    violations, _ = evaluate(FAKE_DEFS, FAKE_BASE,
+                             {k: [20] for k in BARE_MIXED_ALLOW}, {}, {}, {},
+                             [("docs/architecture/adr-099-fake.md", 1, "AC-44-99")])
+    hit = any(item.startswith("C10") for item in violations)
+    scenarios.append(("M10 ADR 铸不存在的系统 AC", "C10", hit, violations))
+
+
     failed = 0
     for label, expect, hit, violations in scenarios:
         status = "红(符合预期)" if hit else "**未红 —— 该判据无判别力**"
@@ -663,13 +774,14 @@ def main(argv):
     adr_bare_defs = scan_adr_bare_defs(REPO_ROOT)
     bare_adrrefs = scan_bare_adrrefs(REPO_ROOT)
     story_ac_old = scan_legacy_story_ac(REPO_ROOT)
+    adr_sys_forms = scan_adr_system_forms(REPO_ROOT)
 
     if args.print:
         return cmd_print(definitions, baseline)
     if args.mutation_probe:
         return cmd_mutation_probe(definitions, baseline)
     return cmd_check(definitions, baseline, bare_mixed, adr_bare_defs, bare_adrrefs,
-                     story_ac_old)
+                     story_ac_old, adr_sys_forms)
 
 
 if __name__ == "__main__":

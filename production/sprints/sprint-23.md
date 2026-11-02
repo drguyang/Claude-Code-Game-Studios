@@ -832,3 +832,20 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 今日 C8a 一侧已补(仅 `## Acceptance Criteria` 节内),**C1 一侧未动** ——
 要不要把 bullet 计入「定义」是**裁定**:它会让 ADR-018 复述的 9 条 `AC-44-*` 变成「两处定义」,
 而那 9 条到底是「同一 AC 被复述」还是「第二定义」须先裁。**不擅自改 C1。**
+
+**S23-37(2026-11-02):C1 定义集补齐 —— 项目符号式定义 · 判据 9 → 10**:
+
+- **病因**:系统 **1 / 2 / 44 / 25** 的 GDD 用 `- **AC-1-01(BLOCKING)** ——` 定义 AC,
+  C1 只认「表行」与「复选框」⇒ **72 条 bullet-only AC 不受保护**
+- **裁定**:**定义按编号空间分工** —— `AC-<sys>-<n>` 只由 `design/gdd/`(顶层,不含 `reviews/`)
+  定义;`AC-ADR<adr>-<n>` 只由 `adr-<adr>-*.md` 定义且 adr 必须 = 本 ADR 号
+  ⇒ **ADR 里的 `AC-<sys>-<n>` 一律算引用**(`## Validation Criteria` 是「验证哪些 AC」,不是铸号)
+- **依据(实测)**:**只由 ADR 定义的 ID = 0 个**;两边都有的 9 个全是 ADR-018 复述 44 GDD 的
+  `AC-44-*` ⇒ 移出 ADR **不丢任何覆盖**
+- **铸号由 C7 / C10 兜**:C7 扩展(ADR 借用**别人的** `AC-ADR` 前缀 ⇒ 红);
+  **C10(新)**:ADR 定义句式写 `AC-<sys>-<n>` 但 GDD 无此定义 ⇒ 红
+- **量**:定义 ID **429 → 526**(+72 bullet ·+25 ADR 自有 AC 首次被纳入);判据 **9 → 10**;撞号仍 **0**
+- **证伪**:R10(C1 bullet)/ R11(C10)/ R12(C7 借前缀)全红,SHA-256 还原 3/3;
+  `--mutation-probe` **M1–M10 十条各自红** `PROBE-OK`
+- ⚠️ **仍未覆盖**:节名硬编码「Acceptance Criteria」;「ADR 铸别人号且该号 GDD 也有」不可判(语义面)
+- 原件 = `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十一
