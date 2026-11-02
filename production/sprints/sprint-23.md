@@ -565,3 +565,45 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
   (基线 `S23-23` 的 `6607/6570` · `301/297`;等式 EM `+0`(只改断言口径)· PM **`+5`** = 新增夹具)
 - ⚠️ **PlayMode 首轮 `failed=1`**(漏改第三处闭集门 `dentch_input_test:401`)⇒ 该轮读数**作废**。
   已补齐并全库 grep 确认无第四处。**教训:闭集增员的同步面必须 grep 全部基数断言**
+
+**S23-25(2026-11-02):20 容器屏内容面 —— 料位供给(范围裁定 乙)**:
+用户指令「接着做要让 Utensil 真的可用,还差料位供给」→ 勘察后范围裁定 **乙**(先做 20 屏内容面)。
+
+- **勘察**:料位供给的前置是「**20 的屏是空壳**」——
+  `git show HEAD:unity/Assets/Gameplay.UI/Skeuomorphic/Screens/InventoryContainerScreen.cs | wc -l`
+  ⇒ **48** 行(`grep -c "Label\|focusable\|Bind"` ⇒ **0**),`BuildUI` 只 `Add(Paper)` 两次,
+  零内容 / 零交互 / 零 DTO 源。`inventory-items/story-006` 的 AC 全 `[L]` 且全 `[ ]`
+- **GDD 已裁**:「点名哪一栈在二维摆放上如何选中」= **R14**,归 42(方向 = BL-23 ④),**无需再裁**
+- **四件落地**:`Sim.Contracts/InventoryContainerDto.cs`(只读数据面)· `InventoryContainerScreen` 重写
+  (物品格 + 翻页 + 选中 + 四档)· `Gameplay.Boot/ContainerSelectionStore.cs`(选中态唯一宿主)·
+  两屏接线(20 屏写 / 18 炮制屏读)
+- **`ContainerSelectionStore` 住装配层的理由**:20 屏持 ⇒ 关屏即丢;18 屏持 ⇒ 破 ADR-013 §9 C3。
+  且它**不是游戏状态**(不进流 / 不存档 / 不参与重放 —— 玩家意图的暂存,承 BL-23 ④)
+- **新增夹具** 5 条(落位序 / 翻页+铜扣卸形 / 选中+取消 / 四档 / 空箱)
+- 🔁 **载重对与满档谓词本轮接真值**(首版传 `(0,0)`,理由是「没有读面」—— **那个理由是错的**):
+  `CarryLoadSolver.Sum` 早就在生产里跑(`HarvestWorldQuery` / `InventoryTransaction`)
+  ⇒ 真缺口只是 ① 按任意 owner 的读面 ② 容量真值进服务袋。
+  补:`InventoryLoadService.LoadOf` / `MinItemWeight` · `CompositionRootServices.CarryCap` ·
+  `CompositionRoot` 捕获 `harvestProvider.CarryCap` · DTO 增 `IsFull`
+- ⚠️ **自查出的结构分叉(F8)**:首版 `BandOf` 自己求 `load > cap − W_MIN`,而**同一判据早有一份**
+  (`CarryLoad.cs:356` 的 `CarryLoadSolver.IsFullForAnyAddition`,且其注释逐字写着「禁简化成
+  `load == cap`」)。两式逐字相同 ⇒ 夹具全绿、行为一致 ⇒ 正是 F8 形态。
+  ⇒ 谓词只在 20 侧求值一次,42 只消费 `IsFull`;夹具 ④ 改为「委派判别 + 与真谓词逐点联动扫描」
+- ⚠️ **夹具抓到一个真实实现缺陷**:`cap=3` 时 `load=2` 应 NearFull,实现返回 Half ——
+  根因 `nearFullAt = cap/4` **整除** ⇒ `3/4=0` ⇒ 小箱永远到不了 NearFull。改为上取整 `(cap+3)/4`
+- ⚠️ **另一处是我的断言错**:`cap=10, W_MIN=1` 时 `load=cap−1=9` **不是** Full(`9 > 9` 假);
+  GDD `AC-20-18` 逐字「若 W_MIN > 1,在 cap−1 处也已一律放不进」⇒ 取决于 W_MIN,不是恒真
+- ⚠️ **证伪轮 M3 首轮假存活**:「`selected` 类只加不删」全绿逃逸 —— 测试 ③ 当时只看选中集与出口,
+  **无任何断言看类**。类是可断言的结构面(`-nographics` 下可读)⇒ 补 5 条类断言
+- ⚠️ **注释踩禁词**:写了「排序」二字 ⇒ `AC-42-F3` 词门红(该门扫 `Skeuomorphic/**/*.cs` **全文含注释**)
+  ⇒ 改「次序 / 定序」;**连说明该禁词的那句也绕开了**
+- ⚠️ **残余(禁借绿)**:「箱内 vs 身上」不可分(投影无「在哪个容器」这一维)·
+  器物文案是序号非名称(21a 无显示名)· 四档在**生产装配 + 真存档**下是否会变 = **`NOT-RUN`**
+- **证伪**:M1 页号 / M2 自行重算满档 / M3 `selected` 类只加不删 / M4 铜扣永不卸形 /
+  M5 切点整除 —— **5/5 全红**,SHA-256 逐字节还原 5/5,`FINAL-OK`
+  ⚠️ **两轮才全红**:首轮 M2、M3 双双假存活(详见原件 §5.2)
+- **读数**:EditMode `6607/6570/0/0/37` @ `18:54:20` · PlayMode `311/307/0/2/2` @ `18:55:02`
+  (基线 `S23-24` 的 `6607/6570` · `306/302`;等式 EM `+0` · PM **`+5`** = 新夹具文件的 `[UnityTest]` 数)
+  ⚠️ 18:49/18:50 那一轮读数**作废** —— 跑完后还订正了 `BootRoot` 两处注释,树已不同,按纪律重跑
+- **`TD-interaction-03` 维持 `partial`**(料位链路已通,但「箱内 vs 身上」与显示名两条残余在)
+- 原件 = `production/qa/evidence/impl-inventory20-container-content-2026-11-02.md`

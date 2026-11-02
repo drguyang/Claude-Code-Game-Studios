@@ -127,6 +127,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>炮制准入查询(<code>O-18-R6</code> 的接口半边;42 屏的数据源)。</summary>
         public IProcessingAdmissionQuery ProcessingAdmission { get; internal set; }
 
+        /// <summary>料位选中态(20 容器屏写入 / 18 炮制屏读取;装配层是唯一合法宿主 ——
+        /// 两屏各自持有都会出问题,见 `ContainerSelectionStore` 类注)。</summary>
+        public ContainerSelectionStore ContainerSelection { get; internal set; }
+
+        /// <summary>`CARRY_CAP`(20 的唯一容量真值,AC-20-24)—— **只由** `AddressablesDataProvider`
+        /// 提供(`AC-20-13`:禁 null 兜底 / 默认容量)。
+        /// <para>⚠️ <b>`null` = 未装配</b>(夹具的 `IDataProvider` 假件不带该读路)⇒ 20 容器屏的
+        /// 载重档**不计算**(传 `(0,0)` 并显式标注),不拿一个默认值冒充容量。</para>
+        /// <para>⚠️ <b>不新增加载路径</b>:取自与 `HarvestInteractionDriver` **同一次**的
+        /// `harvestProvider.CarryCap`,不另读产物、不缓存第二份。</para></summary>
+        public int? CarryCap { get; internal set; }
+
         /// <summary>载荷解码器(第八抽象点 ADR-031;读侧对称件 —— 池寻址 + 抛形解码)。
         /// <para>与 <see cref="Encoder"/> 共用同一 <see cref="BlobPool"/>(同池读写,无第二真源)。</para></summary>
         public IPayloadDecoder Decoder { get; }

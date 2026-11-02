@@ -139,6 +139,45 @@ namespace DaYiJingCheng.Gameplay.Boot
             return Current;
         }
 
+        /// <summary>按玩家求**当前载重**(20 的 F-20.1;`AC-20-18` 读数对的左半)。</summary>
+        /// <param name="projection">要读的投影(须与本次重建同源 —— 本方法不自取 `Current`)。</param>
+        /// <param name="owner">按玩家求和(<c>InventoryProjection.NoOwner</c> = 在地上)。</param>
+        /// <returns>该玩家的总载重(≥ 0;整数最小单位个数,int64 承 GDD `:449` 改判)。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="projection"/> 为 null。</exception>
+        /// <exception cref="ItemWeightUndefinedException">某实例的 weight 查不到 / 非法。</exception>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么投影由调用方传入、本方法不自带 `Rebuild()`</b>:调用方通常刚重建过
+        /// (容器的 DTO 构造与它同一次读档),内部再重建 = 同一帧把全流算两遍;而改读缓存
+        /// <see cref="Current"/> 又会让「读档换流后忘了重建」静默读旧值。⇒ 时序显式。</para>
+        /// <para>⚠️ <b>与 <see cref="InventoryLoadResult.UnclaimedLoad"/> 的分工</b>:那个只算
+        /// `NoOwner`(地上)一侧;本方法按**任意** owner 求 —— <b>玩家身上那份此前没有读面</b>
+        /// (这正是 20 容器屏载重档一度只能传 `(0,0)` 的原因)。</para>
+        /// </remarks>
+        public long LoadOf(InventoryProjection projection, int owner)
+        {
+            if (projection == null) throw new ArgumentNullException(nameof(projection));
+            EnsureIndex();
+            return CarryLoadSolver.Sum(projection, WeightOfOrdinal, owner);
+        }
+
+        /// <summary>`W_MIN` = 物品表**全表**最小单件重量(AC-20-18 的烘焙期常量;本服务是它的读面)。</summary>
+        /// <returns>最小单件重量(≥ 1)。</returns>
+        /// <exception cref="InvalidOperationException">表为空,或含 weight &lt; 1(静态数据缺陷)。</exception>
+        /// <remarks>
+        /// <para>⚠️ <b>不含任何数值</b>:真实值来自烘焙产物,本方法只做 `min`
+        /// (与 <see cref="CarryLoadSolver.MinWeight"/> 同纪律 —— 写死一个数就是把「W_MIN 是多少」
+        /// 变成代码里的第二真源)。</para>
+        /// <para>⚠️ <b>不缓存</b>:物品表运行期不可变,但缓存会引入「表换了还记着旧值」的静默面;
+        /// 求 min 是 O(表大小),而本方法只在开屏路径上被调。</para>
+        /// </remarks>
+        public int MinItemWeight()
+        {
+            EnsureIndex();
+            var weights = new List<int>(_byOrdinal.Count);
+            foreach (KeyValuePair<int, ItemDef> kv in _byOrdinal) weights.Add(kv.Value.Weight);
+            return CarryLoadSolver.MinWeight(weights);
+        }
+
         /// <summary>P0 范围门 ③ 的执法体 —— `build_part` 实例 `quality` 恒 1
         /// (<see cref="BuildPartQualityGate"/>)。</summary>
         /// <param name="instances">待校验实体集。</param>

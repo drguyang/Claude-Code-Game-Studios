@@ -15894,3 +15894,25 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **读数**:EditMode `6607/6570/0/0/37` @ `17:13:44` · PlayMode `306/302/0/2/2` @ `17:17:00`(PM `+5`)
 - ⚠️ **PlayMode 首轮 failed=1**:漏改第三处闭集门(`dentch_input_test:401`)⇒ 该轮作废,已补齐
 - 证据:`production/qa/evidence/impl-o18r6-processing-screen-2026-11-02.md`
+
+## Session Extract — 20 容器屏内容面 / 料位供给(2026-11-02 · S23-25)
+
+- **勘察**:料位供给的前置 = 「20 屏是空壳」(`git show HEAD:…InventoryContainerScreen.cs | wc -l` ⇒ **48**,
+  `grep -c "Label\|focusable\|Bind"` ⇒ **0**);GDD 的选中归属已裁(`inventory-and-items.md` 的 `R14`,归 42)
+- **兑现**:`Sim.Contracts/InventoryContainerDto.cs`(新)· `InventoryContainerScreen` 重写
+  (物品格 ≤12/屏 + 翻页铜扣 + 选中 + 载重四档)· `Gameplay.Boot/ContainerSelectionStore.cs`(新,选中态唯一宿主)
+  · 两屏接线(20 写 / 18 炮制屏读品级集)· `InventoryLoadService.LoadOf` / `MinItemWeight` 新读面
+  · `CompositionRootServices.CarryCap` + `CompositionRoot` 捕获 `harvestProvider.CarryCap`
+- ⚠️ **自查出的结构分叉(F8)**:首版 `BandOf` 自己求 `load > cap − W_MIN`,而同一判据早有唯一实现点
+  (`Sim/ItemDatabase/CarryLoad.cs:356` 的 `CarryLoadSolver.IsFullForAnyAddition`)⇒ 谓词改为只在 20 侧求值,
+  DTO 增 `IsFull`,42 只消费。夹具 ④ 改为「委派判别 + 与真谓词逐点联动扫描」
+- ⚠️ **证伪轮两处假存活**:首轮 `M2`(硬编码 `wMin = 1` ⇒ 两式等价)· `M3`(夹具不看 `selected` 类)
+  ⇒ 分别**改实现**与**补 5 条类断言**;最终 **5/5 全红**,SHA-256 还原 5/5,`FINAL-OK`
+- ⚠️ **首版对残余的判断是错的**:「没有载重读面」不成立 —— `CarryLoadSolver.Sum` 早就在生产里跑
+  (`HarvestWorldQuery.cs:112` / `InventoryTransaction.cs:220`);真缺口只是「按任意 owner 的读面」+「cap 进服务袋」
+- **读数**:EditMode `6607/6570/0/0/37` @ `18:54:20` · PlayMode `311/307/0/2/2` @ `18:55:02`
+  (基线 `6607/6570` · `306/302`;等式 EM `+0` · PM **`+5`**)
+  ⚠️ 18:49/18:50 一轮读数**作废**(跑完后仍订正过 `BootRoot` 注释,树已不同)
+- **`TD-interaction-03` 维持 `partial`** —— 料位链路已通,残余 = 「箱内 vs 身上」不可分(`OQ-20-11`)·
+  器物文案是序号非名称 · 四档在真 provider + 真存档下是否变化 = **`NOT-RUN`**
+- **未提交**(等用户指令)

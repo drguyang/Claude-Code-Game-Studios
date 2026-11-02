@@ -1113,6 +1113,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ② `difficulty` 传 1.0 —— 采集难度分档归数值轮。
             //    两者都是**具名实参**,装配点一眼可见,不是从暗处读来的数。
             HarvestInteractionDriver harvestDriver = null;
+            // `CARRY_CAP` 的运行期读路(AC-20-13 / AC-20-24)。**只**在真 provider 下取值 ——
+            // 夹具的 `IDataProvider` 假件不带该读路 ⇒ `null` = 未装配(20 容器屏的载重档不计算),
+            // 而不是拿一个默认容量冒充(AC-20-13 明令禁 null 兜底)。
+            int? carryCap = null;
             // 🔁 2026-11-02(`TD-interaction-01`):E 按下沿的**全种类**候选集 + 选择器 + 半径。
             //    与上面 harvest 自用的那三个**不是同一组语义**:采集只认资源点,这里含病人。
             //    半径/选择器实例**共用**(单源半径 AC-4-17 —— 第二处声明会静默脱钩)。
@@ -1245,6 +1249,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     worldSeed: unchecked((long)worldSeed),
                     seasonIndex: 0,                 // ⚠️ 见上:5 的季相源未接线
                     difficulty: Fix.One);           // ⚠️ 见上:难度分档归数值轮
+
+                // 20 容器屏的容量真值(AC-20-24 唯一来源)。与上面喂给采集闸的**同一次**读取 ——
+                // 不另读产物、不缓存第二份。
+                carryCap = harvestProvider.CarryCap;
             }
 
             // ── 病名册条目源(sprint-08 S1.1 件 C/D · 2026-10-12)──
@@ -1886,13 +1894,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                     () => stream.Events, decoder);
                 var furnaceBusy = new DaYiJingCheng.Sim.Processing.FurnaceBusyQuery(
                     () => stream.Events, decoder, () => tickDriver != null ? tickDriver.CurrentTick : 0L);
+
+                // 🔁 **2026-11-02(料位供给)**:品级集不再传空集 —— 它来自 20 屏的选中态
+                // (`ContainerSelectionStore`,装配层持有;20 屏写、18 炮制屏读)。
+                // ⚠️ 投影走 `inventoryLoad.Rebuild().Projection`(与死亡散落 / 17 采集 / 拾取
+                //    同源),每次取品级时重取 —— 持快照会让「药被消耗后」仍按旧品级判准入。
+                var selectionStore = new ContainerSelectionStore(
+                    () => inventoryLoad.Rebuild().Projection);
+                services.ContainerSelection = selectionStore;
+
                 services.ProcessingAdmission = new ProcessingAdmissionQuery(
-                    craftSkillLevels, furnaceBusy, _ => System.Array.Empty<int>());
+                    craftSkillLevels, furnaceBusy, selectionStore.ConsumedQualitiesOf);
             }
 
             // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────
             // ⚠️ 本属性是 `null` 时**必须**有显式日志(`BootRoot` 启动期读),否则与「机制未启用」同形。
             services.HarvestDriver = harvestDriver;
+            // 20 的容量真值(AC-20-24)。`null` = 未装配(夹具假 provider)⇒ 容器屏不计算载重档。
+            services.CarryCap = carryCap;
 
             // 1 侧传送实装(story-005 接线兑付;构造见死亡消费段 —— `teleportSink` 局部直通):
             services.TeleportSink = teleportSink;

@@ -9566,3 +9566,103 @@ grep -c "\[Test\]\|\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/pro
 grep -n "Processing = 9" unity/Assets/Gameplay.UI/Skeuomorphic/ModalId.cs   # 期望 1 命中
 grep -rn "ConsumedQualities\|SelectedQualities" unity/Assets --include=*.cs | grep -v /Tests/   # 期望零命中(料位接口不存在)
 ```
+
+---
+
+## 2026-11-02 · 「料位供给」轮:20 容器屏内容面(`TD-interaction-03` 的**最后一块**料源)
+
+**出处**:用户指令「提交。然后接着做要让 Utensil 真的可用,还差料位供给(20 的选中态)」,
+范围裁定经 `AskUserQuestion` 取 **乙(先做 20 屏的内容面)**。
+实现原件 = `production/qa/evidence/impl-inventory20-container-content-2026-11-02.md`。
+
+### 开工前的勘察:料位供给的前置是「20 屏是空壳」
+
+| # | 事实 | 复算 |
+|---|---|---|
+| 1 | 20 屏此前**零内容 / 零交互 / 零 DTO 源** | `git show HEAD:unity/Assets/Gameplay.UI/Skeuomorphic/Screens/InventoryContainerScreen.cs \| wc -l` ⇒ **48**;`… \| grep -c "Label\|focusable\|Bind"` ⇒ **0** |
+| 2 | 「点名哪一栈在二维摆放上如何选中」**GDD 已裁** | `design/gdd/inventory-and-items.md` 的 `R14` 行(归 42;方向 = BL-23 ④) |
+| 3 | 投影的实例契约**恰是按 `instance_id` 升序** ⇒ 正合 §5.2 落位序 | `unity/Assets/Sim/ItemDatabase/InventoryFold.cs:341-343` |
+
+### 兑现
+
+`Sim.Contracts/InventoryContainerDto.cs`(只读数据面)· `InventoryContainerScreen` 重写
+(物品格 ≤12/屏 + 翻页铜扣 + 选中 + 载重四档)· `Gameplay.Boot/ContainerSelectionStore.cs`
+(选中态唯一宿主 = 装配层)· 两屏接线(20 写 / 18 炮制屏读品级集)。
+
+### ⚠️ 三处**自查出的自身缺陷**(不是别人遗留的)
+
+**C. 满档谓词被我写了两份(F8「行为等价掩盖结构分叉」)**
+
+首版 `BandOf` 自己求 `load > cap − W_MIN`,而**同一判据早有唯一实现点**:
+
+```bash
+grep -rn "IsFullForAnyAddition" unity/Assets --include=*.cs | grep -v /Tests/
+# ⇒ 唯一定义:Assets/Sim/ItemDatabase/CarryLoad.cs:356(CarryLoadSolver)
+```
+
+两式**逐字相同** ⇒ 夹具全绿、行为一致 ⇒ 正是 F8 定义的形态(任一侧改口径即静默分叉,
+而断言因行为一致抓不住)。**修法**:谓词只在 20 侧求值一次,经
+`InventoryContainerDto.IsFull` 交给 42;`BandOf` 签名改为 `(load, cap, isFull)`,**满档不再由本屏计算**。
+夹具 ④ 改成「委派判别(`isFull=false` + `load==cap` ⇒ 不得 Full)+ 与真谓词逐点联动扫描
+(cap ∈ {10,3,60,7} × wMin ∈ {3,1,1,2} × 全 load 域)」。
+
+**D. 证伪轮 M3 首轮假存活 —— 夹具漏了 `selected` 类**
+
+「`ApplySelectedClass` 只加不删」的变异**全绿逃逸**:测试 ③ 当时只断言选中集与出口,
+**没有任何断言看格上的类**。而类是玩家唯一能看见「这一栈被点了」的东西。
+⇒ 补 5 条类断言。⚠️ 类属**结构面**(`-nographics` 下可读),补它不越过「不测视觉」的边界。
+
+**E. 首版对残余的判断本身错了**
+
+首版写「载重对只能传 `(0,0)`,因为 `InventoryLoadService` 没有暴露载重读面」。
+**该理由不成立** —— `CarryLoadSolver.Sum` 早在生产里跑:
+
+```bash
+grep -rn "CarryLoadSolver\." unity/Assets --include=*.cs | grep -v /Tests/ | grep -v CarryLoad.cs
+# ⇒ HarvestWorldQuery.cs:112(Sum)· HarvestInteractionDriver.cs:254(CanCarry)
+#    InventoryTransaction.cs:220(CanCarry)· IgnitionAdmission.cs:163(CanCarry)
+```
+
+真缺口是两件更小的事:① 没有**按任意 owner** 的读面(只有 `InventoryLoadResult.UnclaimedLoad`,
+是 `NoOwner` 一侧);② 容量真值没进服务袋。**两件本轮均补齐**(`LoadOf` / `MinItemWeight` /
+`CompositionRootServices.CarryCap` / `CompositionRoot` 捕获 `harvestProvider.CarryCap`)。
+⇒ 残余**消失**,不是被绕过。
+
+### 仍未闭:`TD-interaction-03` 维持 **`partial`**
+
+料位链路(20 选中 → 装配层 store → 18 品级集)**已通**,但端到端可用性还差两条**具名残余**:
+
+| # | 残余 | 归属 |
+|---|---|---|
+| 1 | **「箱内」与「身上」不可分** —— 投影没有「在哪个容器里」这一维 ⇒ `InstancesOf(actorId)` 返回玩家名下**全部**实例 | 20 容器语义轮(`OQ-20-11`) |
+| 2 | **器物文案是序号不是名称**(`器物#N·品M`) | 21a 显示名轮 |
+
+⚠️ **另有一条 `NOT-RUN`,禁借绿**:载重四档在**生产装配 + 真存档**下是否真的会变,
+本件**没有证据**(`-nographics` 无此链路;夹具只测纯函数与假 DTO)。
+
+### 证伪与回归
+
+**证伪轮 5 条变异全红**(SHA-256 逐字节还原 5/5 · `FINAL-OK`):页号 / **自行重算满档** /
+`selected` 类只加不删 / 铜扣永不卸形 / 切点整除。
+⚠️ **两轮才全红** —— 首轮 `M2`(硬编码 `wMin = 1` 使两式等价)与 `M3`(夹具不看类)
+**双双假存活**;两处的修法**都是改本体或补断言**,没有一处是改期望凑绿。
+
+**回归**(2026-11-02 · `S23-25` · `a39ea0b2` + 工作树):
+EditMode `6607/6570/0/0/37` @ `18:54:20` · PlayMode `311/307/0/2/2` @ `18:55:02`。
+基线 = `S23-24` 的 `6607/6570` · `306/302` ⇒ 等式 EM `+0` · PM **`+5`**(新夹具文件的
+`[UnityTest]` 计数)。⚠️ 18:49/18:50 一轮读数**作废**(跑完后仍订正过注释,树已不同)。
+
+### 账务
+
+`条目 150` 不动 · `open 7` 不动 · `closed 138` 不动 · `partial 4` 不动(本条本就 `partial`)·
+`P0 面 N 45` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 150 | open 7 | closed 138 | partial 4 | 未闭 P0 面 = 0
+git show HEAD:unity/Assets/Gameplay.UI/Skeuomorphic/Screens/InventoryContainerScreen.cs | grep -c "Label\|focusable\|Bind"   # 期望 0(改前是空壳)
+grep -rn "IsFullForAnyAddition" unity/Assets --include=*.cs | grep -v /Tests/   # 期望唯一定义 = CarryLoad.cs
+grep -c "\[UnityTest\]" unity/Assets/Tests/PlayMode/SkeuomorphicUI/inventory_container_content_test.cs   # 期望 5
+```

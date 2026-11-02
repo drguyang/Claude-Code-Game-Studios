@@ -700,12 +700,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                     _buildDriver != null ? new Action<WorldPos>(_buildDriver.AimAt) : null,
                     // 门:`StructureModified`(23 唯一写者面)。
                     doorToggle != null ? new Func<long, bool>(doorToggle.Toggle) : null,
-                    // 容器(柜):42 的库存容器屏。柜的数据面归 20(搜索 / 容量 / 内容),
-                    // 本轮**只接打开动作** —— 不假装 20 的搜箱已实现(`OQ-4-4` / `OQ-20-11`)。
+                    // 容器(柜):42 的库存容器屏。🔁 **2026-11-02 接通内容面**(`S23-25`)——
+                    // 此前只打开空壳。现喂 `InventoryContainerDto`(器物格 + 载重对),
+                    // 并把屏上的选中态转交装配层的 `ContainerSelectionStore`(料位供给)。
+                    // ⚠️ 器物来源 = `InventoryProjection.InstancesOf(owner)`,**已按 instance_id 升序**
+                    //    (`InstancesOf` 的契约)⇒ 42 侧不再排序(两处排序 = 第二真源)。
+                    // ⚠️ 载重对与满档谓词**不在这里算**:两者都在 `BuildContainerDto` 内调 20 的
+                    //    `CarryLoadSolver` 本体(`LoadOf` / `MinItemWeight` / `IsFullForAnyAddition`),
+                    //    42 只拿结果。**在这里拼一个「行数 × 重量」就是第二容量真值。**
                     instanceId =>
                     {
-                        if (_uiDriver != null)
-                            _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.InventoryContainer);
+                        if (_uiDriver == null) return;
+                        if (!_uiDriver.OpenModal(UI.Skeuomorphic.ModalId.InventoryContainer)) return;
+                        var screen = _uiDriver.Screen
+                            as UI.Skeuomorphic.Screens.InventoryContainerScreen;
+                        if (screen == null) return;
+                        var store = _services.ContainerSelection;
+                        if (store != null)
+                        {
+                            screen.BindSelectionSink(new ContainerSelectionBridge(store));
+                        }
+                        screen.Bind(BuildContainerDto(instanceId, actorId));
                     },
                     // 开关:与门同一机制,只换被允许的模块类型。
                     switchToggle != null ? new Func<long, bool>(switchToggle.Toggle) : null,
@@ -718,10 +733,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 器具(18):🔁 **2026-11-02 接通**(ADR-013 §十-E Amendment D 第九员 `Processing`)。
                     // 打开炮制屏并喂数据:配方全表 + 准入查询 + 玩家 + 品级集。
                     // ⚠️ 过滤归屏(它只问 `IsAdmissible`,不自己合取 —— AC-18-20 零第二实现)。
-                    // ⚠️ 品级集今日传**空集** ⇒ 全部配方不可发起 ⇒ 屏上零行。
-                    //    这是**诚实的降级**:料位选中态归 20 / 4 的交互轮,本轮未接。
-                    //    屏不空转、不假装有料 —— 空集是合法输入(`AdmissiblePredicate` 的
-                    //    `NoConsumedInstances`),不是 null(fail-closed 会抛)。
+                    // ⚠️ 品级集 = 20 屏的选中态(经装配层的 `ContainerSelectionStore`);
+                    //    **未选任何料 ⇒ 空集 ⇒ 屏上零行**。空集是合法输入
+                    //    (`AdmissiblePredicate` 的 `NoConsumedInstances`),不是 null(fail-closed 会抛)。
+                    //    ⇒ 零行是「玩家还没点料」的诚实形态,不是「屏坏了」。
                     _ =>
                     {
                         if (_uiDriver == null) return false;
@@ -732,8 +747,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                         var screen = _uiDriver.Screen as UI.Skeuomorphic.Screens.Processing18Screen;
                         if (screen == null) return false;
                         // 惰性求值:只在屏真打开时读数据集(装配期零读取 —— 见 CompositionRoot 注)
-                        screen.Bind(recipeSource().Recipes, admission, actorId,
-                                    System.Array.Empty<int>());
+                        // 🔁 **2026-11-02(料位供给)**:品级集不再传空集 —— 它来自 20 屏的选中态
+                        // (`ContainerSelectionStore`)。空选中集 ⇒ 空品级集 ⇒ 零行(合法输入)。
+                        var store = _services.ContainerSelection;
+                        var qualities = store != null
+                            ? store.ConsumedQualitiesOf(actorId)
+                            : (System.Collections.Generic.IReadOnlyList<int>)System.Array.Empty<int>();
+                        screen.Bind(recipeSource().Recipes, admission, actorId, qualities);
                         return true;
                     });
             }
@@ -1992,5 +2012,83 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 把 SkeuoUI 也纳入该纪律 —— 此前它不归位,跨 PlayMode 用例存活)。
             _eventSystem = null;
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 容器屏的数据面(20 · 2026-11-02)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 把某容器实例投影成 42 的只读 DTO。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>器物来源</b> = `InventoryProjection.InstancesOf(owner)` —— 该方法的契约是
+        /// **按 `instance_id` 升序**(`InventoryFold.cs:341-343`),正合 §5.2 的落位序
+        /// ⇒ **42 侧不再排序**(两处排序 = 第二真源)。</para>
+        /// <para>🔁 <b>载重对与满档谓词(2026-11-02 接真值)</b> —— 首版传 `(0,0)`,理由写的是
+        /// 「`InventoryLoadService` 没有暴露载重读面」。**该理由是错的**:`CarryLoadSolver`
+        /// 与其 `Sum` 早就在生产里跑(`HarvestWorldQuery` / `InventoryTransaction`),缺的是
+        /// ①**按任意 owner** 的读面(此前只有 `InventoryLoadResult.UnclaimedLoad`,`NoOwner` 一侧)
+        /// 与 ②容量真值进服务袋。两件本轮均已补(`LoadOf` / `MinItemWeight` / `Services.CarryCap`)。</para>
+        /// <para>⚠️ <b>谓词只在 20 侧求值</b>(BL-27):本方法调 `CarryLoadSolver.IsFullForAnyAddition`
+        /// **本体**,把**结果**放进 DTO;42 不做第二次求值(F8 的典型形态 —— 两份式子今天同值,
+        /// 任一侧改口径即静默分叉,而夹具因行为一致抓不住)。</para>
+        /// <para>⚠️ <b>容量真值缺席时整组不计算</b>(`CarryCap == null` ⇒ 夹具假 provider /
+        /// 未装配)⇒ 传 `(0, 0, false)`,四档恒 `Empty`。`AC-20-13` 明令禁 null 兜底与默认容量
+        /// ⇒ **不拿一个默认 cap 冒充**。这是诚实降级(与空箱视觉一致),不是假四档。</para>
+        /// <para>⚠️ <b>owner 的取法</b>:容器 = 物品实例,其内容物的 `Owner` 是**玩家**而非容器 id。
+        /// 今日投影里 `Owner` 是玩家号空间 ⇒ 传 `actorId`。⚠️ **「箱内」与「身上」今日不可分**
+        /// (投影没有「在哪个容器里」这一维)—— 登记为残余,归 20 的容器语义轮(`OQ-20-11`)。</para>
+        /// </remarks>
+        private DaYiJingCheng.Sim.Contracts.InventoryContainerDto BuildContainerDto(
+            long containerInstanceId, int actorId)
+        {
+            var inventoryLoad = _services != null ? _services.InventoryLoad : null;
+            if (inventoryLoad == null)
+                return new DaYiJingCheng.Sim.Contracts.InventoryContainerDto(
+                    containerInstanceId,
+                    System.Array.Empty<DaYiJingCheng.Sim.Contracts.ContainerItemDto>(), 0L, 0, false);
+
+            var projection = inventoryLoad.Rebuild().Projection;
+            var ids = projection.InstancesOf(actorId);
+            var items = new DaYiJingCheng.Sim.Contracts.ContainerItemDto[ids.Count];
+            for (int i = 0; i < ids.Count; i++)
+            {
+                projection.TryGet(ids[i], out DaYiJingCheng.Sim.InventoryRow row);
+                items[i] = new DaYiJingCheng.Sim.Contracts.ContainerItemDto(
+                    row.InstanceId, row.ItemOrdinal, row.Quality, row.Qty);
+            }
+
+            // ── 载重对 + 满档谓词(AC-20-18 / AC-20-24 / BL-27)──────────────────────
+            // 谓词**在 20 侧求值** —— 调 `CarryLoadSolver` **本体**,不复制判据。
+            // 42 只拿结果(`IsFull`)+ 读数对,余下三档由它分(BL-27:「20 出谓词、42 出分档」)。
+            //
+            // ⚠️ **容量真值缺席时整组不计算**(`CarryCap == null` ⇒ 夹具假 provider):
+            //    `AC-20-13` 明令禁 null 兜底 / 默认容量 ⇒ 传 `(0, 0, false)`,四档恒 `Empty`。
+            //    这是**诚实降级**(与空箱视觉一致),不是「假装装得下」。
+            int cap = _services.CarryCap ?? 0;
+            long load = 0L;
+            bool isFull = false;
+            if (cap > 0)
+            {
+                load = inventoryLoad.LoadOf(projection, actorId);
+                isFull = DaYiJingCheng.Sim.CarryLoadSolver.IsFullForAnyAddition(
+                    load, new DaYiJingCheng.Sim.CarryCapacity(cap), inventoryLoad.MinItemWeight());
+            }
+
+            return new DaYiJingCheng.Sim.Contracts.InventoryContainerDto(
+                containerInstanceId, items, load, cap, isFull);
+        }
+    }
+
+    /// <summary>容器屏选中态 → 装配层 store 的转接(42 不持状态,只报意图)。</summary>
+    internal sealed class ContainerSelectionBridge
+        : DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens.IContainerSelectionSink
+    {
+        private readonly ContainerSelectionStore _store;
+
+        public ContainerSelectionBridge(ContainerSelectionStore store) => _store = store;
+
+        public void OnSelectionChanged(System.Collections.Generic.IReadOnlyList<long> selectedInstanceIds)
+            => _store.Replace(selectedInstanceIds);
     }
 }
