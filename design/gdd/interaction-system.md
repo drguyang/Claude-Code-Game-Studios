@@ -1086,8 +1086,11 @@ Accept(intent) ⟺ ¬Armed(10) ∧ ¬ModalOpen(42)
 > **仍未闭(如实登记,不并入本条)**:
 > - ⚠️ **「模态摊开时玩家仍能移动」** —— 实测 `LeaseSource.Self`(4)全仓**零生产 acquire**,
 >   `ModalGate` 只拒**交互意图**不碰移动 ⇒ 8 个模态全部如此。已立 **`TD-interaction-04`**(归 4/1)。
-> - ⚠️ **17 的持续窗口行为未实现** —— 值有了、门有了,但 `HarvestInteractionDriver` 仍是**按下即结算**。
->   已立 **`TD-foraging-04`**。**不得读成「采集已是持续交互」**:今天它只有声明,没有行为。
+> - ~~⚠️ **17 的持续窗口行为未实现**~~ ✅ **2026-11-02 已落地(`TD-foraging-04` 结案)** ——
+>   `HarvestInteractionDriver` 现为**起表 → 每 tick 推进 → 满 `duration_ticks` 结算**,三条打断源
+>   均零效果,证伪轮 6/6 全红。**但仍不得读成「移动压制已实现」**:`SuppressesMotor` 至今
+>   **零运行期消费者**,窗口期内玩家仍可走动(走动会打断采集,这正是规则六的语义)——
+>   压制面归 **`TD-interaction-04`**。
 
 
 ---

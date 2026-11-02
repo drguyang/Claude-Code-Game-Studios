@@ -451,7 +451,7 @@
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | partial | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | open | **N** | R4 |
-| `TD-foraging-04` | `foraging` | open | **N** | R4 |
+| `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
@@ -863,7 +863,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 152 | 状态 {'closed': 138, 'partial': 4, 'open': 9, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 152 | 状态 {'closed': 139, 'partial': 4, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -9760,4 +9760,76 @@ python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 9 | cl
 python3 -c "import json;d=json.load(open('assets/data/interaction_kinds.json',encoding='utf-8'));print([k for k in d['kinds'] if k['kind']==4])"   # 期望 suppresses_motor False / duration_owner None / 0
 python3 -c "import json;d=json.load(open('assets/data/foraging_constants.json',encoding='utf-8'));print(d['duration_ticks'])"   # 期望 20
 grep -c "IsFullForAnyAddition" unity/Assets/Sim/ItemDatabase/CarryLoad.cs
+```
+
+---
+
+## 2026-11-02 · 「持续窗口」轮:`TD-foraging-04` **关闭**
+
+**出处**:用户指令「修 TD-foraging-04」。
+实现原件 = `production/qa/evidence/impl-td-foraging-04-sustained-window-2026-11-02.md`。
+
+### 病因
+
+`OQ-17-3` 早已裁「采集 = 持续交互」,`duration_ticks = 20` 也已落值,但**行为面从未实现** ——
+`HarvestInteractionDriver` 是**按下即结算**:
+
+```bash
+grep -n "duration\|hold\|Duration" unity/Assets/Gameplay.Boot/HarvestInteractionDriver.cs   # 改前:零命中
+```
+
+⚠️ 连带后果(这才是本债的实质):`OQ-17-3` 自己写过「若采集瞬时,`AC-17-08`
+(中途被打断 ⇒ 零效果)**恒真不可判**」⇒ 该 BLOCKING 级 AC 一直处于**判据空转**。
+
+### 兑现
+
+`HarvestInteractionDriver` 拆成四段:**起表**(`TryHarvestTarget`)→ **每 tick 推进**(`Advance`)
+→ **打断**(三条)→ **结算**(`Resolve`)。装配面:`InteractionPressRouter.OnTick()` +
+`BootRoot` 的 tick 边沿。
+
+**五处设计判断**都在代码注释里:
+① 事件时间戳 = **完成** tick(不是按下 tick);
+② 「超半径」打断**不可达**(恒被「任何格变化都算移动」先行命中)⇒ **删除**,不留假装成判据的死分支;
+③ 重复按键**不重置**起点(否则连按让窗口无限后推 = 永远采不完);
+④ 闸门在**结算时重算**,不用起表时的读数;
+⑤ 路由的「按键消费」语义改为**选中即消费**(`Attempted` 恒 false,拿它当返回值会吞掉按键)。
+
+### 证伪轮(6 条变异,**全红**;SHA-256 逐字节还原 6/6)
+
+| 变异 | 红在 |
+|---|---|
+| M1 未满时长也结算 | `hold_notSettledBeforeDuration` |
+| M2 去掉「移动」打断 | `movement_interrupts_zeroEffect` |
+| M3 去掉「受伤」打断 | `injury_interrupts_zeroEffect` |
+| M4 重复按键重置起点 | `repeatPress_doesNotResetStart` |
+| M5 结算前不清窗口 | `fullDuration_settlesExactlyOnce` |
+| M6 目标不存在时不取消 | `targetSwitch_cancelsPrevious` |
+
+每条**恰好命中一条**夹具 ⇒ 七条判据各打各的靶。`FINAL-OK` · `SUMMARY failures=none`。
+
+### ⚠️ 本债关闭**不等于**「采集已完全按持续交互实现」
+
+| 面 | 状态 |
+|---|---|
+| 窗口(时长 / 打断 / 结算) | ✅ 本轮落地 |
+| **移动压制**(`SuppressesMotor = true` 的行为) | ❌ **仍未实现** —— 窗口期内玩家仍可走动 |
+| `AC-17-08` 的「受伤」支能否被真实触发 | ❌ **不能** —— `InjuryOnset` 全仓**零生产写者**(P0 无伤害源) |
+| 端到端(按 E 一秒后真采到) | ❌ `NOT-RUN`(需 PlayMode / 手动走查;`AC-17-12` 是 `[L]`) |
+| `Advance` 的 tick 调用点 | ❌ 无自动化判据(删掉它全量仍绿,而玩家永远采不到) |
+
+⇒ **移动压制归 `TD-interaction-04`**(8 个模态共有,同批裁);其余三条登记为**已知边界**,
+不另立 ID(它们是「等上游」而不是「欠工」)。
+
+### 账务
+
+`条目 152` 不动 · `open 9 → 8` · **`closed 138 → 139`** · `partial 4` 不动 ·
+`P0 面 N 46` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 8 | closed 139 | 未闭 P0 面 = 0
+grep -c "public void test_ac1708_" unity/Assets/Tests/EditMode/Foraging/harvest_interaction_driver_test.cs   # 期望 7
+grep -n "SuppressesMotor" unity/Assets/Gameplay.Boot/HarvestInteractionDriver.cs   # 期望零命中(压制面未实现)
 ```

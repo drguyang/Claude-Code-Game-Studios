@@ -189,7 +189,14 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                 case InteractableKind.ForageSpot:
                     if (_harvest == null) return false;
-                    return _harvest.TryHarvestTarget(in target, in intent, _actorId).Attempted;
+                    // 🔁 2026-11-02(`TD-foraging-04`):采集改为**持续交互** ⇒ 本 tick 只**起表**,
+                    //    不结算,故 `HarvestAttempt.Attempted` **恒为 false**。
+                    //    ⚠️ 因此**不能**拿 `Attempted` 当返回值:那样路由会判「按键没被消费」,
+                    //    调用方就会把同一个 E 再派给别的动作(查体 / 拾取)—— 正是
+                    //    `harvest_interaction_driver_test` 的 `attemptedEvenWhenGateRejects`
+                    //    警告的那个失败模式。选中采集点 ⇒ **按键归采集链**,起表即消费。
+                    _harvest.TryHarvestTarget(in target, in intent, _actorId);
+                    return true;
 
                 case InteractableKind.BuildSlot:
                     // 23 的入口:E 进来 = 「我要在这一格建」⇒ 进模式 + 对准该格(不放置)。
@@ -235,6 +242,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 未接线种类:不消费、不转译成别的动作(静默降级是假绿的温床)。
                     return false;
             }
+        }
+
+        /// <summary>
+        /// **每 tick 调一次** —— 推进在途的持续交互窗口。
+        /// </summary>
+        /// <remarks>
+        /// <para>🔁 <b>2026-11-02(`TD-foraging-04`)</b>:采集是**持续交互**(`OQ-17-3`),
+        /// 但它是**按 tick 推进**的,而 <see cref="OnPress"/> 只在按键**沿**上跑 ——
+        /// 没有这个每-tick 入口,窗口永远停在起表那一 tick(「按下去什么都不发生」)。
+        /// 装配点 = `BootRoot` 的 tick 边沿(与其它 `OnTickEdge` 同位置)。</para>
+        /// <para>⚠️ 本类**不持窗口状态** —— 窗口归 17 的驱动;本方法只是把它接到 tick 上。</para>
+        /// </remarks>
+        public void OnTick()
+        {
+            if (_harvest == null) return;
+            // 只在窗口真的存在时付一次取格 / 取 tick 的代价(常态零开销)。
+            if (!_harvest.IsHolding) return;
+            _harvest.Advance(_tick(), _playerCell(), _actorId);
         }
     }
 }

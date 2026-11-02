@@ -96,6 +96,27 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
 
         private int EventCount => _bag.Stream.Events.Count;
 
+        // ── 持续窗口的两步走(`TD-foraging-04`)──────────────────────────────────────
+        // 采集**不再是按下即结算**(`OQ-17-3` 裁为持续交互,`TD-foraging-04` 补行为):
+        // ① 按键沿 ⇒ 起表;② 每 tick 推进;**满 `duration_ticks` 才结算**。
+        // 本夹具里凡断言「结算」的地方都经下面两个助手走完两步 ——
+        // 直接调 `TryHarvest` 拿到的一定是 `None`(那不是回归,是新的正确语义)。
+
+        /// <summary>起表 + 推进到满时长(半径裁剪 → 选择的整条链)。</summary>
+        private HarvestAttempt HarvestNow(HarvestInteractionDriver d, InteractIntent intent, int actorId)
+        {
+            d.TryHarvest(in intent, actorId);
+            return d.Advance(intent.Tick + _constants.DurationTicks, intent.PlayerCell, actorId);
+        }
+
+        /// <summary>起表 + 推进到满时长(已选定目标的路由落点)。</summary>
+        private HarvestAttempt HarvestTargetNow(
+            HarvestInteractionDriver d, InteractTarget target, InteractIntent intent, int actorId)
+        {
+            d.TryHarvestTarget(in target, in intent, actorId);
+            return d.Advance(intent.Tick + _constants.DurationTicks, intent.PlayerCell, actorId);
+        }
+
         // ══════════════════ 未发起的三条合法路径 ══════════════════
 
         [Test]
@@ -150,7 +171,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             _world.QtyPerNode = 2;   // 两闸全真:采量 ≤ BaseCapacity(5)且 cap 足够
             int before = EventCount;
 
-            HarvestAttempt a = d.TryHarvest(Intent(), PlayerId);
+            HarvestAttempt a = HarvestNow(d, Intent(), PlayerId);
 
             Assert.That(a.Attempted, Is.True);
             Assert.That(a.Outcome.Succeeded, Is.True,
@@ -171,7 +192,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             HarvestInteractionDriver d = MakeDriver(carryCap: 1, load: 1);
             int before = EventCount;
 
-            HarvestAttempt a = d.TryHarvest(Intent(), PlayerId);
+            HarvestAttempt a = HarvestNow(d, Intent(), PlayerId);
 
             Assert.That(a.Attempted, Is.True, "有采集目标 ⇒ 确实发起了裁决");
             Assert.That(a.Outcome.Succeeded, Is.False);
@@ -195,7 +216,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             _world.QtyPerNode = 100;
             int before = EventCount;
 
-            HarvestAttempt a = d.TryHarvest(Intent(), PlayerId);
+            HarvestAttempt a = HarvestNow(d, Intent(), PlayerId);
 
             Assert.That(a.Attempted, Is.True);
             Assert.That(a.Outcome.Succeeded, Is.False);
@@ -260,7 +281,7 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             HarvestInteractionDriver d = MakeDriver(carryCap: 1, load: 1);   // 满载 ⇒ 闸拒
             int before = EventCount;
 
-            HarvestAttempt a = d.TryHarvestTarget(ForageTarget(), Intent(tick: 0), PlayerId);
+            HarvestAttempt a = HarvestTargetNow(d, ForageTarget(), Intent(tick: 0), PlayerId);
 
             Assert.That(a.Attempted, Is.True, "选中采集点 ⇒ 按键归采集链(拒绝也算消费)");
             Assert.That(EventCount, Is.EqualTo(before), "被拒 ⇒ 零事件");
@@ -286,16 +307,175 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
             _world.QtyPerNode = 2;
             long tick = 42L;
 
-            HarvestAttempt a = d.TryHarvestTarget(ForageTarget(), Intent(tick: tick), PlayerId);
+            HarvestAttempt a = HarvestTargetNow(d, ForageTarget(), Intent(tick: tick), PlayerId);
 
             Assert.That(a.Attempted, Is.True, "[前置] 闸门放行且选中采集点");
-            Assert.That(_bag.Stream.Events[_bag.Stream.Events.Count - 1].Tick, Is.EqualTo(tick),
-                "意图里的 tick 必须原样进事件头(路由不另造时钟)");
+            // 🔁 `TD-foraging-04`:事件时间戳 = **完成**那一 tick(= 起表 tick + 时长),
+            //    不是按下那一 tick —— 采集动作在窗口满时才发生。
+            Assert.That(_bag.Stream.Events[_bag.Stream.Events.Count - 1].Tick,
+                Is.EqualTo(tick + _constants.DurationTicks),
+                "事件头的时间戳 = 完成 tick(起表 tick + duration_ticks);路由不另造时钟");
         }
 
         /// <summary>夹具世界里的那个采集点(`OneSpot` 的 `BakedResourceIndex = 0`,格 = 原点)。</summary>
         private static InteractTarget ForageTarget()
             => InteractTarget.Of(InteractableKind.ForageSpot, 0L, new WorldPos(0, 0, 0));
+
+        // ══════════════════ 持续窗口(TD-foraging-04 · AC-17-08)══════════════════
+        //
+        // `OQ-17-3` 裁采集是**持续交互**,但行为面此前从未实现(按下即结算)⇒
+        // `AC-17-08`(中途被打断 ⇒ 零效果)**恒真不可判**(判据空转)。
+        // 下面六条钉的就是那个窗口:推进 / 完成只结算一次 / 两条打断源 / 重复按键不重置 /
+        // 换目标作废旧窗口。
+        //
+        // ⚠️ 「零效果」在这些测试里判的是**三件**:`Attempted == false`、事件数不变、
+        //    `IsHolding == false` —— 只判其中一件会让「取消了但又写了事件」溜过去。
+
+        /// <summary>未满时长 ⇒ 不结算、零事件、窗口仍在途。</summary>
+        [Test]
+        public void test_ac1708_hold_notSettledBeforeDuration()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+            int before = EventCount;
+
+            d.TryHarvest(Intent(tick: 0), PlayerId);
+            HarvestAttempt a = d.Advance(_constants.DurationTicks - 1, new WorldPos(0, 0, 0), PlayerId);
+
+            Assert.That(a.Attempted, Is.False, "未满 duration_ticks ⇒ 不结算");
+            Assert.That(EventCount, Is.EqualTo(before), "推进中 ⇒ 零事件");
+            Assert.That(d.IsHolding, Is.True, "窗口仍在途");
+        }
+
+        /// <summary>满时长 ⇒ 恰好结算**一次**;之后窗口清空,再推进不再产出。</summary>
+        [Test]
+        public void test_ac1708_fullDuration_settlesExactlyOnce()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+            int before = EventCount;
+
+            d.TryHarvest(Intent(tick: 0), PlayerId);
+            HarvestAttempt a = d.Advance(_constants.DurationTicks, new WorldPos(0, 0, 0), PlayerId);
+
+            Assert.That(a.Attempted, Is.True, "满时长 ⇒ 结算");
+            Assert.That(a.Outcome.Succeeded, Is.True, "闸门全真 ⇒ 成功");
+            Assert.That(EventCount, Is.GreaterThan(before), "成功 ⇒ 产出事件落流");
+            Assert.That(d.IsHolding, Is.False, "结算后窗口清空");
+
+            int afterFirst = EventCount;
+            HarvestAttempt again = d.Advance(_constants.DurationTicks * 2, new WorldPos(0, 0, 0), PlayerId);
+            Assert.That(again.Attempted, Is.False, "**同一窗口不得重复结算**");
+            Assert.That(EventCount, Is.EqualTo(afterFirst), "重复推进 ⇒ 零事件");
+        }
+
+        /// <summary>`AC-17-08` 打断源①:移动 ⇒ 零效果。
+        /// <para>⚠️ 规则六的「目标失效·走出半径」是**本条的子集**(任何格变化都算移动)
+        /// ⇒ 不另设一条;换目标那一支由下一条 `test_ac1708_targetSwitch_cancelsPrevious` 钉。</para></summary>
+        [Test]
+        public void test_ac1708_movement_interrupts_zeroEffect()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+            int before = EventCount;
+
+            d.TryHarvest(Intent(tick: 0), PlayerId);
+            // 走到相邻格(仍在半径内 —— 打断判据是「动了」,不是「走远了」)
+            HarvestAttempt a = d.Advance(_constants.DurationTicks, new WorldPos(1, 0, 0), PlayerId);
+
+            Assert.That(a.Attempted, Is.False, "移动 ⇒ 打断,不结算");
+            Assert.That(EventCount, Is.EqualTo(before), "打断 ⇒ **零事件**(AC-17-08)");
+            Assert.That(d.IsHolding, Is.False, "窗口已取消");
+
+            // 此后即便回到原点并到达满时长,也不得再结算(窗口已经没了)
+            HarvestAttempt later = d.Advance(_constants.DurationTicks * 2, new WorldPos(0, 0, 0), PlayerId);
+            Assert.That(later.Attempted, Is.False, "取消后的窗口不得复活");
+            Assert.That(EventCount, Is.EqualTo(before), "零事件");
+        }
+
+        /// <summary>`AC-17-08` 打断源②:受伤 ⇒ 零效果。</summary>
+        [Test]
+        public void test_ac1708_injury_interrupts_zeroEffect()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+
+            d.TryHarvest(Intent(tick: 0), PlayerId);
+            int before = EventCount;
+
+            // 窗口内落一条「本人受伤」。⚠️ 本驱动只读事件头(`Tick` / `Kind` / `Patient`),
+            // **不解载荷** ⇒ `default(PayloadRef)` 足够(与 `ScanNode` 需要合法载荷不同)。
+            SimEvent inj = new SimEvent(
+                tick: 5L, new PatientId(PlayerId), seq: -1,
+                EventKind.InjuryOnset, default(PayloadRef));
+            _bag.EventSink.Append(in inj);
+            int beforeAdvance = EventCount;
+
+            HarvestAttempt a = d.Advance(_constants.DurationTicks, new WorldPos(0, 0, 0), PlayerId);
+
+            Assert.That(a.Attempted, Is.False, "受伤 ⇒ 打断,不结算");
+            Assert.That(EventCount, Is.EqualTo(beforeAdvance),
+                "打断 ⇒ **不新增**任何事件(那一条 InjuryOnset 是本测自己写的)");
+            Assert.That(d.IsHolding, Is.False, "窗口已取消");
+            Assert.That(beforeAdvance, Is.EqualTo(before + 1), "[前置] 受伤事件确实进了流");
+        }
+
+        /// <summary>行为人的窗口不受**别人**的受伤影响(只断本人)。</summary>
+        [Test]
+        public void test_ac1708_otherActorsInjury_doesNotInterrupt()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+
+            d.TryHarvest(Intent(tick: 0), PlayerId);
+            SimEvent otherInj = new SimEvent(
+                tick: 5L, new PatientId(PlayerId + 1), seq: -1,
+                EventKind.InjuryOnset, default(PayloadRef));
+            _bag.EventSink.Append(in otherInj);
+
+            HarvestAttempt a = d.Advance(_constants.DurationTicks, new WorldPos(0, 0, 0), PlayerId);
+            Assert.That(a.Attempted, Is.True, "别人的伤情不打断我");
+        }
+
+        /// <summary>同一目标重复按键(**不重置**起点)—— 否则连按会让窗口无限后推。</summary>
+        [Test]
+        public void test_ac1708_repeatPress_doesNotResetStart()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+
+            var intent0 = Intent(tick: 0);
+            d.TryHarvest(in intent0, PlayerId);
+            // 第 10 tick 又按了一次(输入层持续按住时每 tick 都会发沿)
+            var intent10 = Intent(tick: 10);
+            d.TryHarvest(in intent10, PlayerId);
+
+            HarvestAttempt a = d.Advance(_constants.DurationTicks, new WorldPos(0, 0, 0), PlayerId);
+            Assert.That(a.Attempted, Is.True,
+                "起点仍是 tick 0 ⇒ 在 tick 20 满时长结算(若被重置,要等到 tick 30)");
+        }
+
+        /// <summary>换目标 ⇒ 旧窗口作废(零效果),新目标重新计时。</summary>
+        [Test]
+        public void test_ac1708_targetSwitch_cancelsPrevious()
+        {
+            HarvestInteractionDriver d = MakeDriver(carryCap: 100);
+            _world.QtyPerNode = 2;
+            int before = EventCount;
+
+            var gone = InteractTarget.Of(InteractableKind.ForageSpot, -1L, new WorldPos(0, 0, 0));
+            d.TryHarvestTarget(ForageTarget(), Intent(tick: 0), PlayerId);
+            Assert.That(d.IsHolding, Is.True, "[前置] 首个目标已起表");
+
+            // 索引越界 ⇒ `TryGetResourceNode` 判假 = **目标失效** ⇒ 取消旧窗口、也不起新表。
+            // ⚠️ 本夹具的 `StubWorld` 对任意 `index ≥ 0` 都回同一个 nodeId 0,故「换到另一个
+            //    真实节点」这一支造不出来 —— 它能造的是「目标不存在」这一支,即本条。
+            HarvestAttempt a = d.TryHarvestTarget(in gone, Intent(tick: 5), PlayerId);
+
+            Assert.That(a.Attempted, Is.False, "换目标那一 tick 不结算");
+            Assert.That(d.IsHolding, Is.False, "旧窗口已取消");
+            Assert.That(EventCount, Is.EqualTo(before), "零事件");
+        }
 
         // ══════════════════ 夹具替身 ══════════════════
 

@@ -1829,6 +1829,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.AnchorCheckpointTrigger?.Drain(_services.Stream.Events);
             }
 
+            // 持续交互窗口的推进(`TD-foraging-04` · 2026-11-02):
+            // 17 采集是**持续交互**(`OQ-17-3`),窗口按 **tick** 推进;而 `OnPress` 只在
+            // 按键**沿**上跑 ⇒ 没有这一段,窗口永远停在起表那一 tick(按下去什么都不发生)。
+            // ⚠️ 只在窗口真的存在时付代价(`OnTick` 内部先问 `IsHolding`),常态零开销。
+            // ⚠️ 与其它 `OnTickEdge` 同位置:本段**不写事件**(结算发生在窗口满时),故不参与入流次序。
+            if (_tickDriver.CurrentTick > tickBefore && _pressRouter != null)
+            {
+                _pressRouter.OnTick();
+            }
+
             // 病人视觉实体(sprint-05 T2.0):急救驱动**之后**调用 —— 视觉跟着在场集走,
             // 与写者次序解耦(视觉是派生态,不参与事件入流次序)
             if (_tickDriver.CurrentTick > tickBefore

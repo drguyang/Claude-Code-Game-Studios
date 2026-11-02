@@ -633,3 +633,22 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
 - 原件 = `production/qa/evidence/adjudication-oq2011-searchbox-2026-11-02.md`
 - **读数**:EditMode `6613/6576/0/0/37` @ `20:13:49` · PlayMode `311/307/0/2/2` @ `20:14:37`
   (基线 `S23-25` 的 `6607/6570` · `311/307`;等式 EM **`+6`** = 新增夹具 4+2 · PM `+0`)
+
+**S23-27(2026-11-02):`TD-foraging-04` 结案 —— 采集的持续窗口落地**:
+用户指令「修 TD-foraging-04」。
+
+- **病因**:`OQ-17-3` 裁了「持续交互」、`duration_ticks = 20` 也落了值,但**行为面从未实现**
+  (`HarvestInteractionDriver` 按下即结算)⇒ `AC-17-08`(中途被打断 ⇒ 零效果)**判据空转**
+- **兑现**:起表(`TryHarvestTarget`)→ 每 tick 推进(`Advance`)→ 打断(三条)→ 结算(`Resolve`);
+  装配面 = `InteractionPressRouter.OnTick()` + `BootRoot` tick 边沿
+- **五处设计判断**:事件时间戳 = **完成** tick · 「超半径」打断**不可达**(恒被「移动」先行命中)⇒ 删 ·
+  重复按键**不重置**起点(否则连播让窗口无限后推)· 闸门**结算时重算** · 路由改「**选中即消费**」
+  (`Attempted` 恒 false,拿它当返回值会吞掉按键 ⇒ 调用方会把同一个 E 再派给查体)
+- **新增夹具 7 条**(未满不结算 / 只结算一次 / 移动打断 / 受伤打断 / 别人的伤不断我 / 重复按不重置 / 换目标取消)
+- **证伪 6/6 全红**,每条恰好命中一条夹具;SHA-256 逐字节还原 6/6,`FINAL-OK`
+- **读数**:EditMode `6620/6583/0/0/37` @ `20:32:10` · PlayMode `311/307/0/2/2` @ `20:32:56`
+  (基线 `6613/6576` · `311/307`;等式 EM **`+7`** = 新增夹具 · PM `+0`)
+- ⚠️ **本债关闭 ≠「采集已完全按持续交互实现」**:移动压制(`SuppressesMotor`)仍零消费者
+  (归 `TD-interaction-04`)· 「受伤」支**结构上不可达**(`InjuryOnset` 零生产写者)·
+  端到端 `NOT-RUN` · `Advance` 的 tick 调用点**无自动化判据**
+- 原件 = `production/qa/evidence/impl-td-foraging-04-sustained-window-2026-11-02.md`

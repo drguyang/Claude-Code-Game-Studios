@@ -117,6 +117,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly long _seasonIndex;
         private readonly Fix _difficulty;
 
+        // ── 持续窗口(本类**唯一**的可变状态)──────────────────────────────────────
+        // ⚠️ 它**不进流、不存档、不参与确定性重放**:窗口是**玩家动作的暂存**
+        //    (同 `ContainerSelectionStore` 的定性格),关游戏即丢失是正确行为。
+        // ⚠️ 但它**必须可重建到同样的结论**:窗口内不写任何东西 ⇒ 主机重放时
+        //    同一串按键沿会得到同一结果(边沿时刻来自 `InteractIntent.Tick`,不是墙钟)。
+        private bool _holding;
+        private int _holdActor;
+        private int _holdNodeId;
+        private int _holdItemKey;
+        private long _holdStartTick;
+        private WorldPos _holdCell;          // 节点格(半径判据)
+        private WorldPos _holdPlayerCell;    // 起表时玩家格(「移动」判据)
+
         /// <summary>采集技能 id(规则五:对象 = 品种,技能 = 采集)。</summary>
         public const int HarvestSkillId = (int)SkillId.采集;
 
@@ -203,29 +216,170 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 采集结算(**已选定的目标**)—— 供 4 的统一路由把 `Select` 的结果直接交过来,
+        /// 采集**起表**(已选定的目标)—— 供 4 的统一路由把 `Select` 的结果直接交过来,
         /// 本类不再自己选(否则「谁是被按中的那一个」会有两处判据,即 `TD-interaction-01`)。
-        /// <para>⚠️ 目标不是采集点 ⇒ <see cref="HarvestAttempt.None"/>(零事件、零副作用),
-        /// 由调用方把按键交给别的种类。</para>
         /// </summary>
         /// <param name="target">4 的目标选择器给出的胜者。</param>
         /// <param name="intent">本 tick 的交互意图(取 tick / 玩家格)。</param>
         /// <param name="actorId">玩家 id(20 的库存归因面)。</param>
+        /// <returns>**恒** <see cref="HarvestAttempt.None"/> —— 起表这一 tick **不结算**,
+        /// 结算发生在满时长后的 <see cref="Advance"/>。</returns>
+        /// <remarks>
+        /// <para>🔁 <b>2026-11-02(`TD-foraging-04`):本方法不再当场结算,只起表。</b>
+        /// `OQ-17-3` 裁定采集是**持续交互**(`SuppressesMotor = true`,时长归 17),而行为面此前
+        /// **从未实现** —— 按下即结算 ⇒ `AC-17-08`(中途被打断 ⇒ 零效果)**恒真不可判**。
+        /// 本类补的就是那个持续窗口:起表(本方法)→ 每 tick 推进(<see cref="Advance"/>)→
+        /// 满 `duration_ticks` 才结算。</para>
+        /// <para>⚠️ <b>目标不是采集点 ⇒ 取消在途窗口</b>(玩家按到了别的东西 = 目标失效,
+        /// 零副作用),再把按键交回调用方。</para>
+        /// <para>⚠️ <b>同一目标重复按键不重置起点</b>:持续按住时输入层每 tick 都会发沿,
+        /// 若每次重置,窗口会被无限后推 ⇒ **永远采不完**(一个静默的死循环形态)。</para>
+        /// </remarks>
         public HarvestAttempt TryHarvestTarget(in InteractTarget target, in InteractIntent intent, int actorId)
         {
             if (actorId < 0)
                 throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
                     "actor_id 由 20 的 InventoryOf(player) 归因,不得为负");
 
-            if (!target.HasTarget) return HarvestAttempt.None;
-
             // ── ② 只有采集点才进采集链;其它种类归各自系统 ──
-            if (target.Kind != InteractableKind.ForageSpot) return HarvestAttempt.None;
+            //     ⚠️ 按到了别的东西 = 在途窗口的「目标失效」⇒ 取消(规则六:零效果)。
+            if (!target.HasTarget || target.Kind != InteractableKind.ForageSpot)
+            {
+                CancelHold();
+                return HarvestAttempt.None;
+            }
 
             // ── ③ 数据取路(品种 → 采量 / 品级分布 / 单件重量)──
+            //     ⚠️ 索引越界 ⇒ 该候选**不存在**,同样按「目标失效」处理。
             if (!_world.TryGetResourceNode(target.StableId, out int nodeId, out WorldPos cell, out int itemKey))
+            {
+                CancelHold();
+                return HarvestAttempt.None;
+            }
+
+            // 同一玩家、同一节点 ⇒ 重复按键,**不重置起点**(见 remarks)
+            if (_holding && _holdActor == actorId && _holdNodeId == nodeId)
                 return HarvestAttempt.None;
 
+            // 换目标 / 首次起表 ⇒ 旧的作废、新的重新计时
+            Arm(actorId, nodeId, itemKey, cell, intent.Tick, intent.PlayerCell);
+            return HarvestAttempt.None;
+        }
+
+        /// <summary>在途窗口是否存在(观测面;`false` = 没人在采)。</summary>
+        public bool IsHolding => _holding;
+
+        /// <summary>在途窗口已推进的 tick 数(观测面;未在采 ⇒ 0)。</summary>
+        /// <param name="tick">当前 tick。</param>
+        public long HoldElapsedTicks(long tick) => _holding ? tick - _holdStartTick : 0L;
+
+        /// <summary>
+        /// 推进在途窗口 —— **每 tick 调一次**(由 4 的统一路由每 tick 转调)。
+        /// </summary>
+        /// <param name="tick">当前逻辑 tick。</param>
+        /// <param name="playerCell">玩家**经流确立的格**(ADR-020 §四;不是表现态位置)。</param>
+        /// <param name="actorId">玩家 id。</param>
+        /// <returns>满时长且通过全部闸门 ⇒ 一次结算;否则 <see cref="HarvestAttempt.None"/>。</returns>
+        /// <remarks>
+        /// <para><b>打断三条(规则六逐字「受伤 / 移动 / 目标失效 ⇒ 零效果」)</b>
+        /// —— 每条都只 <see cref="CancelHold"/>,**绝不**调 `Resolve`:</para>
+        /// <list type="number">
+        /// <item><b>移动</b>:玩家格与起表时不同。</item>
+        /// <item><b>目标失效</b>:换目标 / 按到别的东西 / 索引越界 ⇒ 由
+        /// <see cref="TryHarvestTarget"/> 的取消分支承担(不在此重复)。</item>
+        /// <item><b>受伤</b>:窗口内出现以本人为目标的伤情事件。</item>
+        /// </list>
+        /// <para>⚠️ <b>「零效果」是结构性的,不是靠一个标志位</b>:取消路径**没有**通向
+        /// `Resolve` 的分支 ⇒ 不发事件、不耗余量、不发成长(`AC-17-08`)。</para>
+        /// <para>⚠️ <b>结算时重算全部闸门,不用起表时的读数</b> —— 1 秒之内载重 / 余量都可能变
+        /// (别的玩家采了同一丛、玩家丢了东西);用旧读数 = 过期快照。</para>
+        /// </remarks>
+        public HarvestAttempt Advance(long tick, in WorldPos playerCell, int actorId)
+        {
+            if (!_holding) return HarvestAttempt.None;
+            if (_holdActor != actorId) return HarvestAttempt.None;   // 别人的窗口本类不动
+
+            // ① 移动 ⇒ 打断
+            if (playerCell.X != _holdPlayerCell.X ||
+                playerCell.Y != _holdPlayerCell.Y ||
+                playerCell.Z != _holdPlayerCell.Z)
+            {
+                CancelHold();
+                return HarvestAttempt.None;
+            }
+
+            // ② 受伤 ⇒ 打断
+            //
+            // ⚠️ **规则六的第二个打断源「目标失效」由 ① 覆盖,不另写一段**:
+            //    目标失效的两条真实形态是「玩家走了」与「按到了别的东西」——
+            //    前者 = ①(任何格变化都算移动),后者 = `TryHarvestTarget` 的换目标分支。
+            //    ⚠️ 早期草稿这里还有一条「超出交互半径」的检查,它**恒被 ① 先行命中**
+            //    ⇒ 是一段**不可达的守卫**(看着像判据,实则零判别力)。已删。
+            if (TookOnsetInjurySince(_holdStartTick, tick, actorId))
+            {
+                CancelHold();
+                return HarvestAttempt.None;
+            }
+
+            // 未满时长 ⇒ 继续推进
+            if (tick - _holdStartTick < _constants.DurationTicks) return HarvestAttempt.None;
+
+            // 满时长 ⇒ **先清窗口再结算**(成功或失败都不再推进;否则同一窗口会重复结算)
+            int nodeId = _holdNodeId;
+            int itemKey = _holdItemKey;
+            WorldPos cell = _holdCell;
+            CancelHold();
+            return Resolve(nodeId, cell, itemKey, tick, actorId);
+        }
+
+        /// <summary>清空在途窗口(零副作用 —— **不**结算、**不**发事件)。</summary>
+        public void CancelHold() => _holding = false;
+
+        private void Arm(int actorId, int nodeId, int itemKey, in WorldPos cell,
+                         long startTick, in WorldPos playerCell)
+        {
+            _holding = true;
+            _holdActor = actorId;
+            _holdNodeId = nodeId;
+            _holdItemKey = itemKey;
+            _holdCell = cell;
+            _holdStartTick = startTick;
+            _holdPlayerCell = playerCell;
+        }
+
+        /// <summary>
+        /// 窗口 `(fromExclusive, toInclusive]` 内是否有以 <paramref name="actorId"/> **为伤者**的伤情事件。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>只读事件头,不解载荷</b>:`SimEvent.Patient` 就是「受伤实体身份」
+        /// (`SimEvent` 的字段注释;ADR-016 §二 把敌人并入同一 id 空间)⇒ 一次整型比较即可,
+        /// 不必为每条事件解 blob。</para>
+        /// <para>⚠️ <b>不假设流按 tick 有序</b>(三流合并按 `(Tick, StreamPriority, Patient, Seq)`
+        /// 全序,但底层列表的物理序不是契约)⇒ 全扫一遍,用 tick 做过滤。</para>
+        /// <para>⚠️ <b>`InjuryOnset` 与 `EnemyInjuryOnset` 都算</b>:前者是病史流的实体伤情,
+        /// 后者是敌人侧 —— 玩家被敌人打出的应是前者,但两者都指向「这个实体受伤了」,
+        /// 漏判一条就等于漏掉一次打断。</para>
+        /// </remarks>
+        private bool TookOnsetInjurySince(long fromExclusive, long toInclusive, int actorId)
+        {
+            IReadOnlyList<SimEvent> events = _events();
+            if (events == null || events.Count == 0) return false;
+
+            for (int i = 0; i < events.Count; i++)
+            {
+                SimEvent e = events[i];
+                if (e.Tick <= fromExclusive || e.Tick > toInclusive) continue;
+                if (e.Kind != EventKind.InjuryOnset && e.Kind != EventKind.EnemyInjuryOnset) continue;
+                if (e.Patient.Value == actorId) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 采集结算(窗口已满 / 全部闸门在此**重算**)。写事件归 `HarvestOrchestrator`,本类不写。
+        /// </summary>
+        private HarvestAttempt Resolve(int nodeId, in WorldPos cell, int itemKey, long tick, int actorId)
+        {
             int level = _skillLevels.QueryLevel(actorId, HarvestSkillId);
             int qtyPerNode = _world.QtyPerNodeOf(itemKey);
             IReadOnlyList<int> distribution = _world.QualityDistributionOf(itemKey);
@@ -236,8 +390,6 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException(
                     $"[采集] item_key={itemKey} 无 quality_distribution —— 21a 的 gather_profile 缺数据; " +
                     "静默均布会让 out_quality 出现第二真源(S22-9 ③ 通道的意义即在此)");
-
-            long tick = intent.Tick;
 
             // ── ④ 节点前缀(余量闸的输入)──
             NodeRemaining.PrefixScan scan = NodeRemaining.ScanNode(
@@ -271,6 +423,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return HarvestAttempt.Of(_orchestrator.Resolve(in request, in gate));
         }
+
 
         /// <summary>
         /// R_INTERACT 邻域裁剪:`d∞(player_cell, cell) ≤ R` 之外者出局(4 规则二的指定位置)。
