@@ -338,7 +338,7 @@
 | `TD-processing-05` | `processing` | closed | **N** | R4 |
 | `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
-| `TD-processing-08` | `processing` | open | **N** | R4 |
+| `TD-processing-08` | `processing` | closed | **N** | R4 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -866,7 +866,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 155 | 状态 {'closed': 142, 'partial': 3, 'open': 9, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 155 | 状态 {'closed': 143, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6097,7 +6097,7 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **TD-processing-04** | `processing` | **open** | **N** | R4 |
 | **TD-processing-05** | `processing` | **closed** | **N** | R4 |
 | **TD-processing-06** | `processing` | **closed** | **N** | R4 |
-| **TD-processing-08** | `processing` | **open** | **N** | R4 |
+| **TD-processing-08** | `processing` | **closed** | **N** | R4 |
 
 ### TD-processing-08 — 20 侧缺「完成时点的结算入口」⇒ 起货溢出的下落半边无宾语
 
@@ -6109,6 +6109,25 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **为何 P0 面 = N** | 没有「错误行为」被引入 —— 是**目标行为尚未接线**。今日 `18` 的完成调度只发 cue(且 cue 行还没进表 ⇒ 连声音都没有),玩家可见面**零变化**;折叠的现有形态是 20 自己的一贯口径 |
 | **修法方向** | 20 侧新增「完成时点的产出结算入口」:`ApplyCraftOutputs` 从**折叠 `Craft` 时**改到**完成 tick 时**(或保留折叠形状但把「入包 vs 落地」的裁决挪到完成 tick),并给出 `DropSpawned` 的唯一发出点;18 的 `FurnaceCompletion` 已备好入参(`ActorId` / `OutputInstanceIds` / `ToolCell` / `CompleteTick`) |
 | **触发条件** | 20 的下一次折叠/结算修订轮;或玩家真正能感知「产出在点火时就到手」的那一轮(测试/试玩) |
+
+#### TD-processing-08 关闭记录 —— `asOfTick` 切点 + 完成时点结算器(2026-11-03)
+
+> ✅ **`2026-11-03` 已闭**。原文不删。用户裁定取 **甲**（`Fold` 加切点 + 结算器）。
+
+- **修法（两半一起）**：
+  ① **可见性** —— `InventoryFoldContext` 增**必填** `AsOfTick`;`ApplyCraftOutputs` 在
+     `AsOfTick < CompleteTick` 时**直接 return（先于查表）**;`None` 常量取 `long.MaxValue`。
+  ② **落地** —— 新增 `Sim/ItemDatabase/CraftCompletionSettler.cs`：完成 tick 判容量，
+     装不下 ⇒ 本批**整批** `RecordSpawnedWithId`（id 原样引用点火已铸，无第二铸造点）。
+  装配 = `CompositionRoot` → `CompositionRootServices.CraftCompletionSettler` → `BootRoot` tick 边沿。
+- **两处实现期自查**：`_capacity` 漏赋值被 4 条红照出（`default(CarryCapacity)` 绕过构造器守卫
+  = F9 形态 ⇒ ctor 内再验一次 `Cap`）；落地行缺品级来源 ⇒ 预扫描 `Craft.OutputQuality[]`
+  **不看待切点**登记品级。
+- **夹具 8 条**：`craft_completion_settler_test.cs`。**证伪 6/6 命中**，SHA-256 逐字节还原。
+- **回归**：EditMode `6638/6601/0/37` · PlayMode `324/320/0/2+2`（`6638 − 6630 = 8` = 新增数）。
+- 原件：`production/qa/evidence/impl-td-processing-08-craft-completion-settlement-2026-11-03.md`。
+- ⚠️ **本债只结「下落的宾语」这一半**：起货音仍不响（事件表无 `sfx_process_complete` 行），
+  AC-18-21 的四条 `[L]` 仍 `NOT-RUN`。
 
 #### TD-processing-06 关闭记录 —— 跨存档往返夹具(真落盘 → 真读回)
 

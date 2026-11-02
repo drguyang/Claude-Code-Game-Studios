@@ -113,6 +113,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 由 <c>Assemble</c> 在构造完本对象后赋值(与 <see cref="ConsequenceDriver"/> 同款)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.ProcessingCompletionDriver ProcessingCompletion { get; internal set; }
 
+        /// <summary>20 的**完成时点结算入口**(`TD-processing-08` · R-18-D[甲]② 起货溢出)。
+        /// <para>每个 tick 边沿:对本 tick 到点的每炉,按当时 `CarryLoad` 判容量;装不下 ⇒
+        /// 本批成品整批 `DropSpawned`(锚点 = `tool_cell`,id 原样引用点火已铸)。</para>
+        /// <para>⚠️ **语义**:<c>null</c> = 未装配(无容量真值 / provider 为 null)。
+        /// 「容量未定值」不得以默认容量兜底(AC-20-13)⇒ 此处宁可 null。</para>
+        /// <para>⚠️ 由 <c>Assemble</c> 在构造完本对象后赋值(与 <see cref="ConsequenceDriver"/> 同款)。</para></summary>
+        public DaYiJingCheng.Sim.CraftCompletionSettler CraftCompletionSettler { get; internal set; }
+
         /// <summary>ID 发号权威(机制 A:计数器 + 高水位可重构,ADR-006 Amendment B)。</summary>
         public IIdAuthority IdAuthority { get; }
 

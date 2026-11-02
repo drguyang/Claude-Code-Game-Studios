@@ -106,6 +106,24 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         public int? SolePlayer { get; }
 
+        /// <summary>
+        /// 投影切点 —— <c>Craft</c> 的产出**只在** <c>AsOfTick ≥ CompleteTick</c> 时材化。
+        ///
+        /// <para><b>为什么需要它</b>:<c>processing.md:308</c> 规则八 —— 「完成是纯派生 =
+        /// 时间到达 + 出参已定」,而 <c>Craft</c> 在**点火**那一刻就落流。若 fold 不看待切点,
+        /// 产出会在点火即进入 <c>InventoryOf</c> ⇒ ① 玩家可在等待期内使用未出炉的成品;
+        /// ② <c>CarryLoad</c> 提前计入产出,使「起货瞬间容量不足」(R-18-D)在投影里**不可见**。</para>
+        ///
+        /// <para><b>为什么是**必填**而非可选</b>:可选 + 默认值会让「忘了传切点」退化成
+        /// 「折叠未来事件」的静默口径(<c>StructureWriter</c> N-r1 的同款失败模式)。
+        /// 确实要折叠全流(纯 <c>Drop*</c> 夹具 / 全部事件都已发生的重放)时,显式写
+        /// <see cref="None"/> 或 <c>long.MaxValue</c> —— 那是一句可 grep 的声明。</para>
+        ///
+        /// <para>⚠️ <c>AsOfTick</c> 只影响 <c>Craft</c> 的**产出侧**;扣料侧仍按 <c>Craft</c>
+        /// 在流中的位置处理(规则八:发起即落流 ⇒ 原料在点火那一刻就没了)。</para>
+        /// </summary>
+        public long AsOfTick { get; }
+
         /// <summary>构造查表源。</summary>
         /// <param name="items">物品种子表(必须已解码;空表 ⇒ 所有 <c>build_part</c> 判定为负)。</param>
         /// <param name="recipes">配方表(空表 ⇒ 所有 <c>Craft</c> 产出报
@@ -114,13 +132,16 @@ namespace DaYiJingCheng.Sim
         /// <param name="modules">模块目录(null ⇒ **允许**,但每次 <c>StructurePlaced</c> / <c>StructureRemoved</c>
         /// 都会报显式缺口 —— 23 侧未接线时如实可见,不静默跳过扣料)。</param>
         /// <param name="solePlayer">唯一玩家 id(P0 单机);多玩家 / 未知传 <c>null</c>。</param>
+        /// <param name="asOfTick">投影切点 —— **必填**(见 <see cref="AsOfTick"/>;
+        /// 折叠全部已发生事件时传 <c>long.MaxValue</c>,即 <see cref="None"/> 的口径)。</param>
         public InventoryFoldContext(ItemDataSet items, RecipeDataSet recipes,
-            IModuleCatalog modules, int? solePlayer)
+            IModuleCatalog modules, int? solePlayer, long asOfTick)
         {
             Items = items;
             Recipes = recipes;
             Modules = modules;
             SolePlayer = solePlayer;
+            AsOfTick = asOfTick;
         }
 
         /// <summary>
@@ -136,8 +157,11 @@ namespace DaYiJingCheng.Sim
         /// 在 42 个调用点上是一次性噪音;而省略形参会让「忘了传」与「确实没有」不可区分。
         /// 具名常量让后者成为一次**可 grep 的声明**。</para>
         /// </summary>
+        /// <para>⚠️ <b>2026-11-03(`TD-processing-08`)</b>:新增切点形参后本常量取
+        /// <c>long.MaxValue</c>(「全部已发生的事件都已发生」)—— 纯 <c>Drop*</c> 流无
+        /// <c>Craft</c>,切点对它们无影响;有 <c>Craft</c> 的调用方**必须**显式给真 tick。</para>
         public static readonly InventoryFoldContext None =
-            new InventoryFoldContext(default, default, null, null);
+            new InventoryFoldContext(default, default, null, null, long.MaxValue);
     }
 
     /// <summary>投影里的一行 —— 一个物品实例的当前可见态(规则三的堆叠键已在此展开)。</summary>
@@ -484,6 +508,39 @@ namespace DaYiJingCheng.Sim
             var harvested = new Dictionary<long, SimEvent>();
             CollectHarvested(ordered, decoder, quality, harvested, gaps);
 
+            // ── 预处理②:已落地实例集(`TD-processing-08` · 2026-11-03)。
+            //    R-18-D 溢出路径:完成 tick 由 20 发一条 `DropSpawned`,其 instance_id
+            //    **原样引用**点火时已铸的 `Craft.OutputInstanceIds[]`(无第二铸造点)。
+            //    而 `Craft` 事件在流里位于**点火 tick**(早于那条 DropSpawned)⇒ 逐事件处理时
+            //    「Craft 先建持有行、DropSpawned 后撞 DuplicateInstanceId」是必然顺序。
+            //    ⇒ 必须先扫一遍:被 `DropSpawned` 点名的 id **不**由 Craft 建持有行,
+            //      它由 DropSpawned 分支按「在地上」建行(owner = NoOwner)。
+            var droppedIds = new HashSet<long>();
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].Kind != EventKind.DropSpawned) continue;
+                DropSpawnedPayload dp = decoder.Decode<DropSpawnedPayload>(
+                    ordered[i].Kind, ordered[i].Payload);
+                droppedIds.Add(dp.InstanceId);
+            }
+
+            // ── 预处理③:炮制产出的**品级**先登记,不看待切点(`TD-processing-08`)。
+            //    病因(实测):溢出落地时成品由 `DropSpawned` 建行,而 `DropSpawned` **不携带品级**
+            //    (`DropSpawnedPayload` 只有 id / 锚点 / item_key / qty)⇒ 品级来源必须另有出处。
+            //    它的唯一出处就是**点火那条 `Craft` 的 `OutputQuality[]`**(R-18-A ③)。
+            //    ⚠️ 必须在切点门**之前**登记:落地那条 `DropSpawned` 出现在完成 tick,
+            //       而 `Craft` 在点火 tick —— 若只在 `ApplyCraftOutputs` 里写,切点未到就被跳过,
+            //       落地行会带着「无品级来源」缺口(`InstanceWithoutQualitySource`)。
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].Kind != EventKind.Craft) continue;
+                CraftPayload cp = decoder.Decode<CraftPayload>(ordered[i].Kind, ordered[i].Payload);
+                if (cp.OutputInstanceIds == null || cp.OutputQuality == null) continue;
+                int n = Math.Min(cp.OutputInstanceIds.Length, cp.OutputQuality.Length);
+                for (int k = 0; k < n; k++)
+                    quality[cp.OutputInstanceIds[k]] = cp.OutputQuality[k];
+            }
+
             var rows = new Dictionary<long, InventoryRow>(ordered.Count / 4 + 1);
 
             // 品级「已解析」的实例集 —— 与 `quality` 分开是因为建材桶的 1 是**口径常量**
@@ -573,7 +630,7 @@ namespace DaYiJingCheng.Sim
                         CraftPayload p = decoder.Decode<CraftPayload>(e.Kind, e.Payload);
                         ApplyCraftConsumption(p, e.Kind, at, rows, gaps);
                         ApplyCraftOutputs(p, e.Kind, at, rows, gaps, quality, qualityResolved,
-                            recipesByOrdinal, lookup);
+                            recipesByOrdinal, lookup, context.AsOfTick, droppedIds);
                         break;
                     }
 
@@ -841,11 +898,22 @@ namespace DaYiJingCheng.Sim
         /// ③ 配方里的 <see cref="ItemKey"/> 在物品表里折不出 ordinal ⇒ 同样报
         /// ①(「查不到 = 表不完整」,与 ① 同一个失败面)。</para>
         /// </summary>
+        /// <param name="asOfTick">投影切点 —— 产出只在 <c>asOfTick ≥ CompleteTick</c> 时材化
+        /// (规则八「完成 = 时间到达 + 出参已定」;`TD-processing-08`)。</param>
+        /// <param name="droppedIds">已被 <c>DropSpawned</c> 点名的实例 id 集(R-18-D 溢出落地)。
+        /// 命中 ⇒ <b>本方法不建持有行</b>,由 DropSpawned 分支按「在地上」建行 —— 否则会撞
+        /// `DuplicateInstanceId` 缺口,且成品会同时出现在背包与地面。</param>
         private static void ApplyCraftOutputs(CraftPayload p, EventKind kind, EventOrderKey at,
             Dictionary<long, InventoryRow> rows, List<InventoryFoldGap> gaps,
             Dictionary<long, int> quality, HashSet<long> qualityResolved,
-            Dictionary<int, Recipe> recipesByOrdinal, ItemLookup lookup)
+            Dictionary<int, Recipe> recipesByOrdinal, ItemLookup lookup,
+            long asOfTick, HashSet<long> droppedIds)
         {
+            // ── 切点门(先于一切:未完成 ⇒ 产出**尚未存在**,连表都不该查,
+            //    否则「配方表缺项」会在产出还不可见时就报缺口)。
+            long completeTick = checked(p.StartTick + p.DurationTicks);
+            if (asOfTick < completeTick) return;
+
             int nQty = p.OutputQty != null ? p.OutputQty.Length : 0;
             int nQuality = p.OutputQuality != null ? p.OutputQuality.Length : 0;
             int nIds = p.OutputInstanceIds != null ? p.OutputInstanceIds.Length : 0;
@@ -887,6 +955,10 @@ namespace DaYiJingCheng.Sim
             for (int k = 0; k < nQty; k++)
             {
                 long outId = p.OutputInstanceIds[k];
+
+                // R-18-D 溢出落地:该 id 已由 DropSpawned 在地面出生 ⇒ 不建持有行。
+                if (droppedIds.Contains(outId)) continue;
+
                 int qty = p.OutputQty[k];
                 int q = p.OutputQuality[k];
                 ItemKey key = recipe.Outputs[k].Key;

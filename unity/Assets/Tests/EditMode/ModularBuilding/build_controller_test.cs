@@ -328,7 +328,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 把**同一批**事件(库存 + 世界流)喂回 fold —— 这是读档 / 投影重建的真实路径
             var all = new List<SimEvent>(_inventoryEvents);
             all.AddRange(_stream);
-            var ctx = new InventoryFoldContext(default, default, _catalog, Owner);
+            var ctx = new InventoryFoldContext(default, default, _catalog, Owner, long.MaxValue);
             InventoryFoldResult folded = InventoryFold.Fold(all, _decoder, ctx);
 
             // Assert ①:fold 能归因(无缺口)—— 证明「材料充足性」这一手判据在 fold 侧同样成立

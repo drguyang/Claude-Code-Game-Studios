@@ -1887,6 +1887,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.ProcessingCompletion.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 起货溢出的**结算**(`TD-processing-08` · R-18-D[甲]② · 2026-11-03):
+            // 「本 tick 到点的炉」→ 容量裁决 → 装不下则整批 `DropSpawned`(20 侧唯一写者)。
+            // ⚠️ **次序**:必须在上面的 cue 发射**之后**同一 tick —— 两者都读同一份到点集,
+            //    但本块会**写流**(DropSpawned),写入后本 tick 的后续读者(42 / 44)才看得到落地;
+            //    摆在 cue 之前不会错,摆之后便于「先说一声、再落地」的可读性。
+            // ⚠️ 本块**不重写「哪些炉到点」** —— 判据只有 `FurnaceCompletionSchedule` 一处。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null
+                && _services.CraftCompletionSettler != null)
+            {
+                _services.CraftCompletionSettler.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 玩家交互输入(sprint-07 S2):E 查体 / F 急救 —— **视觉实体更新之后**(读的是
             // 本 tick 的在场集+视觉位置;换热须已本 tick Step),拟物 UI 刷新之前
             // (查体后本帧即见值区有词)。

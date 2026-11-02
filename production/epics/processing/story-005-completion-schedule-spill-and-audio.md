@@ -36,7 +36,9 @@
       > (等号判据,证伪 M1/M3 命中)；cue 发射 = `ProcessingCompletionDriver`(恰 1 条 / 不合并 /
       > 未解析不发,证伪 M4/M5 命中)；禁墙钟 = 源码面扫描(证伪 M6 命中)。
       > ⚠️ **「起货音真的响」不成立** —— 事件表无该 cue 行(见 Completion Notes ①);
-      > ⚠️ **溢出落地半边 NOT-RUN** —— 20 侧无完成时点结算入口(新债 `TD-processing-08`)。
+      > 🔁 **溢出落地半边已于同日补齐**(`TD-processing-08` 甲案):`AsOfTick` 切点 +
+      > `CraftCompletionSettler` ⇒ 完成 tick 容量不足时整批 `DropSpawned`(id 无第二铸造)。
+      > **本 AC 的机器判据现已覆盖两侧**;四条 `[L]` 仍 `NOT-RUN`。
 - [ ] **AC-18-09** [L]: 全部炮制音频听测收窄为 AC-44-09 白名单**看不见**者:等待期声床无节奏化加密(= 用耳朵数 tick)、无「还剩 N 秒」式边界音形。证据归档 `production/qa/evidence/processing-09-<date>.md`(镜像 AC-5-10:混入缺陷样本,分不出即过)
 - [ ] **AC-18-22** [L]: 去标注盲测:含多次完整炮制的录音,受试者仅凭听觉可指出起货时刻(±1 tick);失败判据 = 报出「倒数感」或把起货声判为播报。与 44 联合验收
 - [ ] **AC-18-24** [L, ADVISORY]: 仅手柄(无指针)走查选料→点火→起货全流程,每步有焦点导航路径可达。18 侧义务 = 谓词与调度设备中立(已由 AC-18-20 机器化);本条端到端佐证,主验收在 42/43(TR-concept-008)
@@ -187,6 +189,14 @@
 与完成 tick 无关 ⇒ 产出在**点火那刻**已「入包」,溢出路径不可达。
 ⇒ 本件的溢出交付只到 18 侧:原样携带点火已铸的 `OutputInstanceIds` + `ToolCell`,
 并断「调度不可能自铸 id」(结构面)。**落地半边记 NOT-RUN,不得借绿。**
+
+> 🔁 **2026-11-03 同日结清(`TD-processing-08` 实现轮,用户裁定取甲案)**:
+> `InventoryFoldContext` 增必填 `AsOfTick`(`Craft` 产出只在 `AsOfTick ≥ CompleteTick` 时材化),
+> 新增 20 侧 `CraftCompletionSettler`(完成 tick 判容量,装不下 ⇒ 本批**整批** `DropSpawned`,
+> id 原样引用点火已铸 —— 无第二铸造点)。**本条残余已消**,`AC-18-21` 的溢出半边有了机器载体:
+> `unity/Assets/Tests/EditMode/Inventory/craft_completion_settler_test.cs`(8 测,证伪 6/6 命中)。
+> 原件 = `production/qa/evidence/impl-td-processing-08-craft-completion-settlement-2026-11-03.md`。
+> ⚠️ **本件仍维持 `COMPLETE WITH NOTES`** —— 四条 `[L]` 仍 `NOT-RUN`,与溢出落地无关。
 
 > 用 spy 顶替 fold 写绿夹具 = F1 型假绿(断言的是测试自己写的谓词)⇒ **刻意不写**。
 

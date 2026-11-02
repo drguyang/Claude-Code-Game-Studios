@@ -556,11 +556,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // fold 前取的**快照**(承 `InventoryFoldContext` 的纯函数性要求):
                 // 每次 Rebuild 重新读一次槽 —— 绑定前后结果不同是**设计**(fail-closed → 可扣料),
                 // 同一时刻同一份流 fold 两次仍是同一结果(槽在两次之间没动)。
+                // 🔁 2026-11-03(`TD-processing-08`):加**投影切点** = 当前 tick。
+                //    `Craft` 的产出只在 `AsOfTick ≥ CompleteTick` 时进入 `InventoryOf`
+                //    (规则八「完成 = 时间到达」);没这一位,产出会在**点火**即入包。
+                //    ⚠️ `tickDriver` 在本段之前构造(见 `:500`),此处读的是**当下** tick ——
+                //       `Rebuild()` 本就按需重算,故每次取到的是最新切点,无需缓存失效机制。
                 () => new InventoryFoldContext(
                     loadItemsSeed(),
                     loadRecipesSeed(),
                     modulesCatalog,
-                    buildOwner.IsBound ? buildOwner.Owner : (int?)null));
+                    buildOwner.IsBound ? buildOwner.Owner : (int?)null,
+                    tickDriver.CurrentTick));
 
             // 死亡散落结算的投影来源(S23-2 后置绑定):每次结算重 fold,不持快照。
             // ⚠️ 与 17 的 `HarvestWorldQuery` 同一个投影取法(`() => inventoryLoad.Rebuild().Projection`)
@@ -1255,6 +1261,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 carryCap = harvestProvider.CarryCap;
             }
 
+
             // ── 病名册条目源(sprint-08 S1.1 件 C/D · 2026-10-12)──
             // 词表 = S1.0 已烘产物(`case_judgment_lexicon.cooked.bytes`),本批接入装载。
             // 装载策略同 S1.2(provider != null ⇒ Addressables 乙案;否则 DiagnosisCookedDisk
@@ -1866,6 +1873,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             //       这是**登记的事实**,不是「音频已实现」;素材 + 表行 + 44 白名单断言另归 44。
             //    ⚠️ 驱动**没有**接 20 的落地结算 —— 那条链的入口今日不存在(见 story-005 的
             //       「溢出路径」残余登记),接一个不存在的结算点会让「起货声」凭空响。
+            // ── `TD-processing-08`(2026-11-03):20 的**完成时点结算入口** —— R-18-D[甲]② 起货溢出。
+            //    18 只报「本 tick 哪些炉到点」(`FurnaceCompletionSchedule`,单测已钉);
+            //    本件做 20 的那一半:**按当时 CarryLoad 判容量**,装不下 ⇒ 本批成品
+            //    **整批** `DropSpawned`(锚点 = `Craft.ToolCell`,id 原样引用点火已铸 —— 无第二铸造点)。
+            //    ⚠️ 无容量真值(`provider == null` ⇒ `carryCap` 为 null)⇒ **不构造** ——
+            //       「容量未定值」不得以默认容量兜底(AC-20-13 · `CarryCapacity` 的构造期硬失败)。
+            //    ⚠️ 投影取法 = `inventoryLoad.Rebuild().Projection`,与死亡散落 / 17 采集 / 拾取
+            //       同一处取法(§上面的 ⚠️ 已写明:一个来源、多个读法,不是第二真源)。
+            if (carryCap.HasValue)
+            {
+                services.CraftCompletionSettler = new DaYiJingCheng.Sim.CraftCompletionSettler(
+                    stream.Events, decoder, dropEventWriter,
+                    () => inventoryLoad.Rebuild().Projection,
+                    new CarryCapacity(carryCap),
+                    loadItemsSeed(), loadRecipesSeed());
+            }
+
             services.ProcessingCompletion = new ProcessingCompletionDriver(
                 stream.Events, decoder, audioSink,
                 audio != null && audio.TryResolveCue(ProcessingCompletionDriver.CompleteCueName,

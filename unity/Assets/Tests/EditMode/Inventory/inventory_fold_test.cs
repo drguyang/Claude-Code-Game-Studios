@@ -177,10 +177,13 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
 
         /// <summary>真表上下文(P0 单机:唯一玩家 = <paramref name="solePlayer"/>)。
         /// 模块 3 = cost 2 × wooden_post。</summary>
-        private static InventoryFoldContext Ctx(int? solePlayer = null)
+        /// <param name="asOfTick">投影切点(`TD-processing-08`)。**默认折叠全部** ——
+        /// 本文件绝大多数用例问的是「重建机制对不对」,不是「到没到完成 tick」;
+        /// 与完成时点有关的用例**显式**传小 tick(见 `test_td08_*`)。</param>
+        private static InventoryFoldContext Ctx(int? solePlayer = null, long asOfTick = long.MaxValue)
             => new InventoryFoldContext(MakeItems(), MakeRecipes(),
                 new FoldModuleCatalog(moduleId: 3, cost: 2, buildItemKey: OrdWoodenPost),
-                solePlayer);
+                solePlayer, asOfTick);
 
         /// <summary>三份表全空 —— 纯 <c>Drop*</c> 夹具用它,是一条**可 grep 的声明**。</summary>
         private static readonly InventoryFoldContext EmptyCtx = InventoryFoldContext.None;
@@ -440,7 +443,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
 
             // 空配方表 —— 模拟「配方表未装载 / 版本不一致」
             var noRecipes = new InventoryFoldContext(MakeItems(), default,
-                new FoldModuleCatalog(3, 2, OrdWoodenPost), null);
+                new FoldModuleCatalog(3, 2, OrdWoodenPost), null, long.MaxValue);
             InventoryFoldResult r = InventoryFold.Fold(events, _decoder, noRecipes);
 
             InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable);
