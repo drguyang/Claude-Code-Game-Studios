@@ -15733,3 +15733,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **残余**:`TD-interaction-02` —— Drop 仍走 20 的「第一可拾」;另六种候选源仍 null
 - **未闭**:`TD-interaction-02` · `TD-diagnosis-01` · 急救 Arm 的整数格最近者无专测
 - 证据:`production/qa/evidence/impl-interaction-01-unified-selector-2026-11-02.md`
+
+## Session Extract — 查体归位 / 结清 TD-diagnosis-01(2026-11-02 · S23-14)
+
+- **现口径**:脉案六行 `channel-*` 的 Submit ⇒ `ICasebookCommandSink.ExamineChannel(channel)` →
+  `CasebookCommandRouter` → `ExamineDriver.ExamineChannel`;世界 E **只**做「立案 → 切病人 → 开册」
+- **新增**:`ExamineDriver.ExamineChannel` · `DiagnosisExamineEvaluator` 通道过滤重载 ·
+  `ExaminationLedger` 按通道分片 · `CasebookCommandRouter.ExamineChannel` + `AfterExamined` ·
+  `casebook_row_examine_test`(PM 3 条)
+- **真缺陷(本轮主要收获)**:六行绑定写在 `_root.Add(_casebookFace)` 之前 ⇒ `_root.Q` 返 null ⇒
+  `if (row == null) return;` 静默返回 ⇒ **六行一个回调都没挂上**,而既有夹具全绿。
+  新增测试首跑 2 红抓出;绑定点移到 `_root.Add(...)` 之后
+- **回归**:EditMode `6531/6494/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `6526/6489`·`294/290`;等式 `+5 = +3 路由 +2 分册` · PM `+3`)
+- **证伪 M1–M4 全红**,四文件 SHA-256 逐字节还原。⚠️ M2 首轮假存活(空集夹具)⇒ 推体征到 plateau 后转红
+- **残余**:`ExamineDriver.OnExamine` 无生产调用点但保留(新代码调它不会转红 —— 已知盲区);
+  六通道各自读数条数 / 方向键到第六行的焦点可达性未测
+- **未闭**:`TD-interaction-02` 唯一活着的那条(P0 面 = N)
+- 证据:`production/qa/evidence/impl-diagnosis-01-row-level-examine-2026-11-02.md`

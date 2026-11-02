@@ -449,7 +449,7 @@
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | open | **N** | R4 |
-| `TD-diagnosis-01` | `diagnosis-system` | open | **N** | R4 |
+| `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -860,7 +860,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 149 | 状态 {'closed': 129, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4}
+条目 149 | 状态 {'closed': 130, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -8837,3 +8837,43 @@ grep -rn "OpenModal(UI.Skeuomorphic.ModalId.Casebook)\|OpenModal(ModalId.Caseboo
 | **`P0 面 = N` 的理由(R4 · 自陈)** | 两种已接线的种类覆盖了 P0 的核心循环(就诊 / 采集),掉落有**可用**的替代路径(选择器空时兜底)。⚠️ **什么会把它翻成 Y**:若 P0 出口面包含「脚边掉落必须优先于环境目标」的判据,或 6 / 23 的交互点进 P0 验收。 |
 | **何时消解** | `IDropSource` 有生产实装**且** `InteractionPressRouter` 里那段「选择器空 ⇒ 拾取兜底」被删除(由 `Select` 直接选 Drop);另六种按各自 epic 的装配轮接入。判据 = 一条夹具证明「同格病人 + 掉落 ⇒ 按 `KindPriority` 定胜负」。 |
 | **归属** | **交互系统(`interaction-system`)** —— 选择器归 4;各源的投影归 6 / 17 / 20 / 23。 |
+
+---
+
+## 2026-11-02 · 「查体归位」轮:`TD-diagnosis-01` 关闭
+
+**出处**:用户指令「修 TD-diagnosis-01」。实现原件 =
+`production/qa/evidence/impl-diagnosis-01-row-level-examine-2026-11-02.md`。
+
+### TD-diagnosis-01 —— 关闭记录(债本体见上方 2026-11-02 条目,原文不删)
+
+**三条消解判据逐条兑现**:
+
+| # | 判据(原文) | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | `ICasebookCommandSink` 出现行级查体成员 | ✅ `void ExamineChannel(SignChannel)`(`CasebookBinding.cs`) | `grep -n "ExamineChannel" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBinding.cs` ⇒ 1 命中 |
+| ② | 世界 E **不再**调 `ExamineDriver.OnExamine` | ✅ `InteractionInputDriver.Visit` 只做立案 / 切病人 / 开册 | `grep -n "OnExamine" unity/Assets/Gameplay.Boot/InteractionInputDriver.cs` ⇒ 零命中 |
+| ③ | 夹具证明「世界 E 只立案 + 开册,零查体快照」 | ✅ `casebook_entry_wiring_test.test_ce_02`(真启动序,含同场正控)+ `interaction_input_chain_test.test_modalClosed_acceptsE_visits` | `grep -n "HasExamined" unity/Assets/Tests/PlayMode/Casebook/casebook_entry_wiring_test.cs` ⇒ 2 命中 |
+
+**同批落的东西**:`ExamineDriver.ExamineChannel`(单通道求值 + 单通道落册)·
+`DiagnosisExamineEvaluator` 的通道过滤重载 · `ExaminationLedger` 按通道分片 ·
+`CasebookCommandRouter.ExamineChannel` + `AfterExamined` · 六行 `BindChannelExamine`。
+
+**⚠️ 🔴 实现期抓出的真缺陷(本轮主要收获)**:六行绑定**放在了 `_root.Add(_casebookFace)` 之前**
+⇒ `_root.Q(rowName)` 返 `null` ⇒ `if (row == null) return;` 静默返回 ⇒ **六行一个回调都没挂上**。
+生产上「脉案行级查体」完全哑火,而既有全部夹具仍绿(没有任何一条从屏幕侧断言过这条路径)。
+由新增的 `casebook_row_examine_test` 首跑 **2 红** 抓出。修法 = 把绑定点移到 `_root.Add(...)` 之后。
+
+**证伪轮 4 条全红**:M1 六行全绑 `FaceColor`(1 红)· M2 停用求值通道过滤(1 红)·
+M3 世界 E 复又查体(3 红)· M4 分册忽略通道(2 红);四文件 SHA-256 逐字节还原 4/4。
+⚠️ **M2 首轮假存活**(12/12 绿):夹具只推到 tick 1,`position` 低 ⇒ 六通道全读出 0 条 ⇒
+通道过滤有无都同结果。⇒ 修夹具(推到 plateau + 逐行验「已查集合 ⊇ 词条通道集合」),同一变异转红。
+这是 **F4(空洞正控)** 的输入构造变体。
+
+**读数**:EditMode `6531/6494/0/0/37` · PlayMode `297/293/0/2/2`
+(基线 `S23-13` 的 `6526/6489` · `294/290`;等式 `+5 = +3 路由 +2 分册` · PM `+3` 新件)。
+
+**残余(不借绿)**:① 六通道各自的**读数条数**不在本件面内(归 8 的数值 / 词表轮);
+② 方向键到第六行的**焦点可达性**未测(属 `casebook_page_turn_test` 焦点族);
+③ `ExamineDriver.OnExamine` 保留为公开 API 但**已无生产调用点** —— 判据盯在
+`InteractionInputDriver`,不是全仓调用点,**新代码若调它不会转红**(已知盲区,是否加「全仓零命中」门待裁)。

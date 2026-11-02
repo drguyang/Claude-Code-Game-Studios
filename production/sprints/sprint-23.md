@@ -316,6 +316,27 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
   ⇒ **改夹具不改生产**:那正是行为该变的地方。
 - **残余**:`Drop` 仍走 20 的「第一可拾」,另六种候选源仍 `null` ⇒ 新立 **`TD-interaction-02`**。
 
+**S23-14(2026-11-02):查体归位 —— 结清 `TD-diagnosis-01`**:
+用户指令「修 TD-diagnosis-01」。病因 = `S-8.4` 路线甲要求「世界 `Interact` = 就诊(单义);
+**查体 = 脉案模态行级动作**」,实装却是世界 E 整病人一次查完(`ExamineDriver.OnExamine`),
+脉案屏**零**行级查体入口。
+
+- **现口径**:六行 `channel-*` 的 Submit ⇒ `ICasebookCommandSink.ExamineChannel(channel)` →
+  `CasebookCommandRouter` → `ExamineDriver.ExamineChannel`(单通道求值 + 单通道落册)。
+  世界 E **只**做「立案 → 切病人 → 开册」。
+- **配套**:`ExaminationLedger` 改**按通道分片**(六片合并读);求值器增通道过滤重载。
+- **读数**:EditMode `6531/6494/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-13` 的 `6526/6489` · `294/290`;等式 `+5 = +3 路由 +2 分册` · PM `+3` 新件)。
+  证伪 **M1–M4 全红**,四文件 SHA-256 逐字节还原 4/4。
+  原件 = `production/qa/evidence/impl-diagnosis-01-row-level-examine-2026-11-02.md`。
+- 🔴 **抓到一条真缺陷(本轮主要收获)**:六行绑定原先写在 `_root.Add(_casebookFace)` **之前**
+  ⇒ `_root.Q(rowName)` 返 `null` ⇒ `if (row == null) return;` 静默返回 ⇒ **六行一个回调都没挂上**。
+  生产上「脉案行级查体」完全哑火,而既有全部夹具仍绿。由新增的 `casebook_row_examine_test`
+  首跑 2 红抓出;修法 = 绑定点移到 `_root.Add(...)` 之后。
+- ⚠️ **一条假存活**:证伪 M2 首轮 12/12 绿 —— 夹具只推到 tick 1,体征读出门槛全挡,
+  六通道全读出 0 条 ⇒ 通道过滤有无同结果。修夹具(推到 plateau + 逐行验集合含于已查通道)
+  后同一变异转红。**F4 的输入构造变体**。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。
