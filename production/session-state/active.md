@@ -15751,3 +15751,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   六通道各自读数条数 / 方向键到第六行的焦点可达性未测
 - **未闭**:`TD-interaction-02` 唯一活着的那条(P0 面 = N)
 - 证据:`production/qa/evidence/impl-diagnosis-01-row-level-examine-2026-11-02.md`
+
+## Session Extract — 掉落进候选集 / 结清 TD-interaction-02(2026-11-02 · S23-15)
+
+- **现口径**:`GroundDropSource`(未归属地面实例 + 最近一次 `spawn_anchor`)进 `pressCandidates`;
+  `Select` 直接选 Drop ⇒ `DropClaimOrchestrator.TryClaimInstance(被指名的 id)`
+- **删除**:「选择器空 ⇒ 拾取兜底」段 · 20 的「第一可拾」入口 `TryClaim`(改义为 `TryClaimInstance`)
+- **新增**:`DeathDropReclaimPolicy.TryGetSpawnAnchor`(锚点单一真源)· `Tolerance` 只读暴露 ·
+  `LoadWithin(…, dropClaimRadius)` 装载期回捡门 · `interaction_press_drop_test`(6)+ `ground_drop_source_test`(3)
+- ⚠️ **覆盖 S23-6 的「刻意不用就近」**:两条例由均已被事实推翻(锚点已有唯一定义;第三键即 tie-break)
+- **回归**:EditMode `6540/6503/0/0/37` · PlayMode `297/293/0/2/2`(基线 `6531/6494`·`297/293`;`+9`/`+0`)
+- **证伪 M1–M4 全红**,四文件 SHA-256 逐字节还原。⚠️ M3 首轮 NO-XML = 变异写坏(语法错误),非判据红
+- **残余**:六种 `InteractableKind` 无候选源 ⇒ `TD-interaction-03`(P0 面 = N)
+- 证据:`production/qa/evidence/impl-interaction-02-drop-source-2026-11-02.md`

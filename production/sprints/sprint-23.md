@@ -337,6 +337,25 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
   六通道全读出 0 条 ⇒ 通道过滤有无同结果。修夹具(推到 plateau + 逐行验集合含于已查通道)
   后同一变异转红。**F4 的输入构造变体**。
 
+**S23-15(2026-11-02):掉落进候选集 —— 结清 `TD-interaction-02`**:
+用户指令「修 TD-interaction-02」。病因 = 第一源 `IDropSource` 为 `null` ⇒ 掉落不在候选集里,
+拾取靠路由的「选择器空 ⇒ 兜底」+ 20 自己的「第一可拾(id 升序)」—— 4 之外的第二处判据。
+
+- **现口径**:`GroundDropSource`(未归属地面实例 × 最近一次 `DropSpawned.spawn_anchor`)
+  进 `pressCandidates`;`Select` 直接选中 Drop ⇒ `TryClaimInstance(被指名的 instance_id)`。
+  兜底段与「第一可拾」入口(`TryClaim`)**整体删除**。
+- **锚点单一真源**:`DeathDropReclaimPolicy.TryGetSpawnAnchor`(候选源与 `CanClaim` 共用)。
+- **装载期回捡门**:`LoadWithin(…, dropClaimRadius)` 用 `_drops.Tolerance` 预裁 ——
+  防「回捡半径外的掉落赢得全序、结算又被拒 ⇒ 按键被静默吞掉」。
+- **读数**:EditMode `6540/6503/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-14` 的 `6531/6494` · `297/293`;等式 `+9 = 3 第一源 + 6 路由`,PM `+0`)。
+  证伪 **M1–M4 全红**,四文件 SHA-256 逐字节还原 4/4;M4 为超集(另两条红是 id=0−1 撞参数守卫)。
+- ⚠️ **覆盖一条已裁定项**:S23-6 的「刻意不用就近」已改判 —— 两条原由(锚点第二次扫流 /
+  同距平局难破)均被本批事实推翻(锚点已有唯一定义;F-4.1 第三键即 tie-break)。
+- ⚠️ **M3 首轮 NO-XML** = 变异写坏(语法错误),不是判据红;改成「比较式恒假」后转红。
+- **残余**:六种 `InteractableKind` 仍无候选源(`AC-4-22` 仍 `NOT-RUN`)⇒ 新立 **`TD-interaction-03`**。
+  原件 = `production/qa/evidence/impl-interaction-02-drop-source-2026-11-02.md`。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。

@@ -448,7 +448,8 @@
 | `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
-| `TD-interaction-02` | `interaction-system` | open | **N** | R4 |
+| `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
+| `TD-interaction-03` | `interaction-system` | open | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
@@ -860,7 +861,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 149 | 状态 {'closed': 130, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4}
+条目 150 | 状态 {'closed': 131, 'partial': 3, 'open': 15, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 45, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -8877,3 +8878,61 @@ M3 世界 E 复又查体(3 红)· M4 分册忽略通道(2 红);四文件 SHA-256
 ② 方向键到第六行的**焦点可达性**未测(属 `casebook_page_turn_test` 焦点族);
 ③ `ExamineDriver.OnExamine` 保留为公开 API 但**已无生产调用点** —— 判据盯在
 `InteractionInputDriver`,不是全仓调用点,**新代码若调它不会转红**(已知盲区,是否加「全仓零命中」门待裁)。
+
+---
+
+## 2026-11-02 · 「掉落进候选集」轮:`TD-interaction-02` 关闭 + `TD-interaction-03` 立册
+
+**出处**:用户指令「修 TD-interaction-02」。实现原件 =
+`production/qa/evidence/impl-interaction-02-drop-source-2026-11-02.md`。
+
+### TD-interaction-02 —— 关闭记录(债本体见上方 2026-11-02 条目,原文不删)
+
+**消解判据逐条兑现**:
+
+| # | 判据(原文) | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | `IDropSource` 有**生产实装** | ✅ `GroundDropSource`(未归属地面实例 + `DeathDropReclaimPolicy.TryGetSpawnAnchor` 的最近一次锚) | `grep -rn "new GroundDropSource(" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ `CompositionRoot.cs` 1 命中 |
+| ② | 路由里「选择器空 ⇒ 拾取兜底」**被删除**(由 `Select` 直接选 Drop) | ✅ 兜底段删除;`DropClaimOrchestrator` 的「第一可拾」入口 `TryClaim` **整体不存在**(改名 + 改义为 `TryClaimInstance`) | `grep -rn "TryClaim(" unity/Assets --include=*.cs` ⇒ **零命中** |
+| ③ | 夹具证明「同格病人 + 掉落 ⇒ 按 `KindPriority` 定胜负」 | ✅ `interaction_press_drop_test.test_sameCell_patientBeatsDrop_byKindPriority`(Patient=0 < Drop=9) | 见下方证伪 M1–M4 |
+
+**同批落的东西**:`GroundDropSource`(第一源)· `DeathDropReclaimPolicy.TryGetSpawnAnchor`(锚点唯一真源,
+`CanClaim` 与候选源共用)· `DropClaimOrchestrator.TryClaimInstance`(结算被指名的那一件;`Tolerance` 只读暴露)·
+`CandidateSetLoader.LoadWithin(…, dropClaimRadius)`(装载期套 20 R7 的回捡半径)·
+`CompositionRoot` 把 `drops` 接进 `pressCandidates`。
+
+**⚠️ 覆盖一条已裁定项(如实登记)**:S23-6 曾在 `DropClaimOrchestrator` 头注写「**刻意不用就近**」,
+理由两条 ——「要再取每候选锚点(第二次扫流)」/「需打破同距平局」。本轮改判的依据是**上位规则**:
+F-4.1 规定「谁是目标」由 ⟨d∞, KindPriority, StableId⟩ 三键全序定(且第三键正是同距平局解),
+锚点面也已有唯一定义 ⇒ 两条理由均已不成立;若保留「第一可拾」,它就是 4 之外的**第二处判据**,
+正是 `TD-interaction-01/02` 要消灭的形态。原头注已就地改写(原文留档于 git 历史)。
+
+**证伪轮 4 条**:
+
+| 变异 | 打什么 | 实测红 | 形态 |
+|---|---|---|---|
+| **M1** | 候选源不看归属(用 `AllInstanceIds`) | 1 红:`test_claimedInstance_disappearsImmediately_noCache` | exact |
+| **M2** | 锚点改取「第一次出生」(正序扫) | 1 红:`test_reSpawnedSameInstance_anchorIsLatest` | exact |
+| **M3** | 装载期停用回捡半径门 | 1 红:`test_dropBeyondClaimTolerance_excludedFromCandidates_notSwallowingPress` | exact |
+| **M4** | 结算 `StableId − 1` | 3 红:含 `test_twoDrops_claimsTheSelectedOne_notTheLowestId` | **超集**(另两条因 id=0−1 撞上参数守卫而红,属变异副作用,不是同一属性) |
+
+**读数**(见 §五 复算命令):EditMode `6540/6503/0/0/37` · PlayMode `297/293/0/2/2`
+(基线 `S23-14` 的 `6531/6494` · `297/293`;等式 `+9 = 3(第一源)+ 6(路由)` · PM `+0`)。
+
+**残余(不借绿)**:① 「兜底段已删」的**直接**观测不存在(见 `test_noCandidates_false_noDropFallback` 的注释)——
+最强证据是结构性的:「第一可拾」入口整体不存在;② 20 R7 的宽容半径实值(`PickToleranceCells = 1`)
+仍是装配常量,数值轮可调;③ 候选源每次 `Rows` 对每件地面掉落各扫一遍流(与 policy 同口径),
+掉落数量大时的节流归 4 的管线后续轮。
+
+---
+
+### TD-interaction-03 —— 其余六种 `InteractableKind` 仍无候选源
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `TD-interaction-02` 关的是「掉落进选择器」。F-4.1 的候选集本应覆盖 **10 种** `InteractableKind`,今日生产装配只有**三种**(病人 / 采集点 / 掉落)。仍缺六种:<br>`PoiCell`(6 的烘焙 POI 定义格)· `Utensil` / `ClinicPanel` / `Door` / `Switch`(23 的 `BakedInitial`)· `BuildSlot`(6 的烘焙建造槽位)。`CandidateSources.WorldBaked` 只接了 `ForageSpots`,`BakedInitial` 整体为 `null` ⇒ 这六种**根本不在候选集里**,选中即不可能。 |
+| **为什么不与 02 同批做** | 每种都要两件东西:① 把烘焙逻辑层投影成 `ICandidateSource` 的实装(`IWorldBakedSource` 的另外两个切片 + `IBakedInitialSource` 的四切片);② 各自的**消费者**(选中了要有人做事 —— 否则就是「引用却无登记」形态)。消费者分属 6 / 23 的装配轮,不在 4 的 epic 内。 |
+| **今日的实际影响** | 开档自带的门 / 柜 / 工作台 / 面板 / 开关**在实机不可交互且不报错**(静默失效 —— `AC-4-22` 是它唯一的证伪夹具);POI 与建造槽位同理。 |
+| **`P0 面 = N` 的理由(R4 · 自陈)** | 三条依据,逐条写明以免被当成随口降级:<br>① 三种已接线的种类覆盖 P0 核心循环(就诊 / 采集 / 拾取);<br>② `AC-4-22` 在 `interaction-system/story-003` 中已按**读方形状**（注入替身）签 ✅,该 story **明写**「不得借绿:对侧真身联调归各自 Epic」—— 即项目的既有裁定把「生产装配」归 6 / 23 的装配轮,不归 4;<br>③ 缺的是**载体的装配**而非载体的存在:六种的 DTO / 装载路径 / 校验都已在 `CandidateSetLoader` 与 `story-003` 落地。<br>⚠️ **什么会把它翻成 Y**:若 P0 出口面要求「实机开档门柜可交互」(即把 `AC-4-22` 按**实机**读、不再接受替身),或 23 的构建物交互进入 P0 验收。**届时 `未闭 P0 面 0 → 1`,M3 Exit 第二条合取转假。** |
+| **何时消解** | `CandidateSources.BakedInitial` 与 `WorldBaked.PoiCells` / `BuildSlots` 有生产实装,**且** 每种至少有一个消费者接通(**且** 各自的选择/分派有夹具)。 |
+| **归属** | **交互系统(`interaction-system`)** —— 选择器归 4;各源的投影归 6 / 23。 |
