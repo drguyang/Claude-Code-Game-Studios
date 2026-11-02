@@ -15777,3 +15777,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **仍未闭**:Door/Switch/ClinicPanel/Utensil/Container **无数据行** ⇒ `AC-4-22` 实机仍不满足
   ⇒ 债维持 **partial**
 - 证据:`production/qa/evidence/impl-interaction-03-poi-and-buildslot-2026-11-02.md`
+
+## Session Extract — 门柜可交互 / AC-4-22(2026-11-02 · S23-17)
+
+- **两项用户裁定**:门影响可通行性、状态进世界流 · 柜 = 容器物品实例(`instance_id`)
+- **门**:`SlotType.Door = 8` · 模块 11 + 门槽 `(5,0,1)` · `World.IsEffectivelyWalkable`
+  **门格先于占用表分流** · `DoorInteractionDriver.Toggle` → `StructureWriter.Modify`
+  ⇒ `StructureModified` 进世界流(不新开 Kind)· 路由 `case Door`
+- **柜**:新烘焙产品 `world_containers`(关卡工具加性第 8 类)· `ContainerDto` ·
+  第四源生产实装 `BakedInitialSource` · `ReconstructItemHighWater` 抬升 ·
+  路由 `case Container` → `ModalId.InventoryContainer`
+- **写夹具前抓到的真缺陷**:门格在占用表恒 true ⇒ 若先判占用则门永不可走;已改门格先分流
+- **回归**:EditMode `6581/6544/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-16` 的 `6554/6517`·`297/293`;`+27 = 25+1+1` · PM `+0`)
+- **证伪 M1–M9 全红**,九处 SHA-256 逐字节还原 9/9
+- **仍未闭**:`Switch`/`Utensil`/`ClinicPanel` 无数据无消费面 ⇒ `TD-interaction-03` 仍 **partial**
+- ⚠️ **跑测事故(已处理)**:一次全量回归误用 `-projectPath "$PWD"`(cwd = 仓库根)⇒ 在仓库根
+  造出 `Library/Logs/Temp`(308 MB)。已 kill、用绝对路径重跑、并删除三目录。**教训:后台命令的
+  `$PWD` 不可信,必须写绝对 `unity/` 路径**
+- 证据:`production/qa/evidence/impl-ac422-door-cabinet-2026-11-02.md`
+

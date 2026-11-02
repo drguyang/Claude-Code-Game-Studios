@@ -94,6 +94,13 @@ namespace DaYiJingCheng.EditorTools.Level
 
         /// <summary>导航格(**按 chunk 切片** —— 后缀参数是 chunk,不是 level)。**S5(story-005)起已实现**。</summary>
         NavChunk = 6,
+
+        /// <summary>
+        /// 开档自带的**容器物品实例**(2026-11-02 · `AC-4-22` 兑现轮)。
+        /// <para>⚠️ 追加在末尾、**不得插入中间值**(序数是取值的一部分)。</para>
+        /// <para>它是 ADR-022 §三 7 类之外的**加性第 8 类** —— 契约点名的 7 类一字未改。</para>
+        /// </summary>
+        Containers = 7,
     }
 
     /// <summary>数据集类别的命名与序列化的**单一出处**。</summary>
@@ -109,6 +116,7 @@ namespace DaYiJingCheng.EditorTools.Level
             WorldDataSetKind.Resources,
             WorldDataSetKind.Terrain,
             WorldDataSetKind.NavChunk,
+            WorldDataSetKind.Containers,
         };
 
         /// <summary>
@@ -136,6 +144,7 @@ namespace DaYiJingCheng.EditorTools.Level
                 case WorldDataSetKind.Resources:  return "world_resources";
                 case WorldDataSetKind.Terrain:    return "world_terrain";
                 case WorldDataSetKind.NavChunk:   return "world_nav";
+                case WorldDataSetKind.Containers: return "world_containers";
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(kind), (int)kind,
@@ -238,6 +247,7 @@ namespace DaYiJingCheng.EditorTools.Level
                 { WorldDataSetKind.Poi,        LevelExporter.ExportPoiProducts },
                 { WorldDataSetKind.Resources,  LevelExporter.ExportResourcesProducts },
                 { WorldDataSetKind.NavChunk,   LevelExporter.ExportNavChunkProducts },
+                { WorldDataSetKind.Containers, LevelExporter.ExportContainersProducts },
             };
     }
 }

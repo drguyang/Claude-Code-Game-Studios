@@ -46,9 +46,13 @@ namespace DaYiJingCheng.Tests.LevelTool
         /// `Define()` 正式产出(modular-building 规则六 / S22-8),而它此前是**手写进 JSON** 的
         /// ⇒ 导出即可复现,文件 1249 → 1340 B。**这是内容变更,不是重构回归**:
         /// 判据仍然是「分派路径 == 盘上产物」,只是产物本身换了。</para>
+        /// <para>🔁 <b>2026-11-02 第二次重签(`AC-4-22` 兑现轮)</b>:原值
+        /// `3bcb664f…c655cd` = 1340 B(14 槽)。本次 P0 种子**合法变更** —— 门槽 `(5,0,1)`
+        /// (`SlotType.Door` + 模块 11)由 `P0ClinicLevel.Define()` 正式产出,文件 1340 → **1426 B**。
+        /// 同前:内容变更,判据不变(分派路径 == 盘上产物)。</para>
         /// </summary>
         private const string PreRefactorBuildSlotsSha256 =
-            "3bcb664ff79c092270eb7467b36165234c355cf3a772e5c3cd7b618574c655cd";
+            "91e4e27e9a8182484db87602eb09432eaaf982b4e087810c351b0c8aedaf90eb";
 
         // ─────────────────────────── AC-1 ───────────────────────────
 
@@ -100,7 +104,7 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(src.Width, Is.EqualTo(16));
             Assert.That(src.Height, Is.EqualTo(1));
             Assert.That(src.Depth, Is.EqualTo(16));
-            Assert.That(src.Slots.Count, Is.EqualTo(14), "P0 种子 = 9 Decor + 4 Shell + 1 Tent(帐篷槽 · S22-8/9)");
+            Assert.That(src.Slots.Count, Is.EqualTo(15), "P0 种子 = 9 Decor + 4 Shell + 1 Door(AC-4-22)+ 1 Tent(帐篷槽 · S22-8/9)");
         }
 
         // ─────────────────────────── AC-2 ───────────────────────────
@@ -186,15 +190,21 @@ namespace DaYiJingCheng.Tests.LevelTool
                         Is.EqualTo(LevelExporter.ExportBuildSlots(src)));
         }
 
-        /// <summary>AC-3:`WorldDataSetKind` 闭集 = 7 类,且「已实现 ∪ 未实现」恰等于闭集、两者不交。</summary>
+        /// <summary>AC-3:`WorldDataSetKind` 闭集 = **8** 类(ADR-022 的 7 类 + 加性容器类),
+        /// 且「已实现 ∪ 未实现」恰等于闭集、两者不交。</summary>
+        /// <remarks>🔁 <b>2026-11-02(`AC-4-22` 兑现轮)</b>:7 → 8。新增的 `Containers` 是
+        /// **加性第 8 类**(`world_containers.json`),ADR-022 §三 契约点名的 7 类**一字未改**
+        /// —— 它与多关卡的 `_{level_id}` 后缀扩展同属「加性扩展,不是契约变更」。
+        /// ⚠️ 计数从字面量 7 → 8 是**契约演进**,不是「改期望值凑绿」:新类带自己的序列化器,
+        /// 且下面的逐类断言点名它已实现。</remarks>
         [Test]
         public void test_ac3_kindClosedSet_partitionsIntoImplementedAndUnimplemented()
         {
-            Assert.That(WorldDataSets.All.Count, Is.EqualTo(7),
-                "ADR-022 §三 要求 7 类数据集");
+            Assert.That(WorldDataSets.All.Count, Is.EqualTo(8),
+                "ADR-022 §三 的 7 类 + 加性 `Containers`(2026-11-02 · AC-4-22)= 8 类");
 
             var distinct = new HashSet<WorldDataSetKind>(WorldDataSets.All);
-            Assert.That(distinct.Count, Is.EqualTo(7), "闭集内不得有重复成员");
+            Assert.That(distinct.Count, Is.EqualTo(8), "闭集内不得有重复成员");
 
             foreach (WorldDataSetKind kind in WorldDataSets.All)
             {
@@ -225,6 +235,9 @@ namespace DaYiJingCheng.Tests.LevelTool
             //    未实现表 **清空**。这是最后一格 —— 此后本断言的方向变成「少了谁」而不是「还剩谁」。
             Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.NavChunk), Is.True,
                 "NavChunk 自 story-005 起已实现");
+            // 🔁 **2026-11-02(`AC-4-22`)**:Containers 是加性第 8 类,自带序列化器。
+            Assert.That(WorldDataSets.IsImplemented(WorldDataSetKind.Containers), Is.True,
+                "Containers 自 `AC-4-22` 轮起已实现");
             Assert.That(WorldDataSets.UnimplementedByStory.Count, Is.EqualTo(0),
                 "未实现表须清空 —— ADR-022 §三 的 7 类已全部有序列化器;" +
                 "非零说明有条目没随实现同步移除(两个清单必须互补)");

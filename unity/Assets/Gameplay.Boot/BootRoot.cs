@@ -655,6 +655,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    现口径 = **一次 `InteractionSelector.Select` 定种类**(F-4.1 三键全序),
             //    再按 `InteractableKind` 分派 → `InteractionPressRouter`。
             //    PlayerCell 用经流确立格(ADR-020 §四),不再读 `transform.position`。
+            // ── 4.5a-0. 门的开 / 合消费面(23 · 2026-11-02 · `AC-4-22`)──────────────
+            // 门的状态**只有一处**:`StructureInstance.Variant`(0 = 关,1 = 开)。
+            // 切换 = `StructureWriter.Modify` ⇒ `StructureModified` 进世界流(可重放 / 可存档),
+            // 实例表随之更新 ⇒ `World.IsEffectivelyWalkable` 立刻反映新态。
+            // 未接世界 / 未装配写者 ⇒ null ⇒ 路由对 Door 返回 false(按键落空,不静默改写别的结构)。
+            DoorInteractionDriver doorDriver =
+                _services.World != null && _services.StructureWriter != null
+                    ? new DoorInteractionDriver(
+                        () => _services.World.Structures,
+                        () => _services.World.BaselineModuleCatalog,
+                        () => _services.StructureWriter,
+                        () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L)
+                    : null;
+
             InteractionPressRouter pressRouter = null;
             if (_services.PressCandidates != null && _services.PressSelector != null
                 && _services.PressRadius != null)
@@ -672,7 +686,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                     patient => _interactionDriver?.Visit(patient),
                     // 🔁 2026-11-02(`TD-interaction-03`):E 打到建造槽位 ⇒ 23 进建造模式并对准该格。
                     //    未建建造驱动(无世界 / 夹具)⇒ null,路由对 BuildSlot 返回 false(按键落空)。
-                    _buildDriver != null ? new Action<WorldPos>(_buildDriver.AimAt) : null);
+                    _buildDriver != null ? new Action<WorldPos>(_buildDriver.AimAt) : null,
+                    // 门:`StructureModified`(23 唯一写者面)。
+                    doorDriver != null ? new Func<long, bool>(doorDriver.Toggle) : null,
+                    // 容器(柜):42 的库存容器屏。柜的数据面归 20(搜索 / 容量 / 内容),
+                    // 本轮**只接打开动作** —— 不假装 20 的搜箱已实现(`OQ-4-4` / `OQ-20-11`)。
+                    instanceId =>
+                    {
+                        if (_uiDriver != null)
+                            _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.InventoryContainer);
+                    });
             }
             else
             {

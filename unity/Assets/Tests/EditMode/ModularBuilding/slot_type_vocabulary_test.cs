@@ -10,7 +10,7 @@
 //   自指判据的失败模式是**变异时两边一起动**(改被测枚举 ⇒ 期望值跟着改 ⇒ 零红逃逸)。
 //   字面量的期望值不随被测侧移动 ⇒ 「序数被改成下标 / 被减一 / 名字被漏掉」都会当场转红。
 //   ⚠️ **本件证明不了的那一件事(如实登记,禁借绿)**:在**今天的**枚举
-//   (`None=0 … Tent=7`,连续)下,「下标 + 1」与「枚举值」数值相等,
+//   (`None=0 … Door=8`,连续)下,「下标 + 1」与「枚举值」数值相等,
 //   因此**没有任何夹具**能区分这两种实现。本件钉住的是「**当前**的映射就是这七对字面量」
 //   —— 枚举一旦重排 / 插值,立刻转红,把「要不要改契约」变成人的决定而不是静默错位。
 //   ✅ **2026-11-01(S22-8)实测兑现**:新增 `SlotType.Tent = 7` 后,本件当场转红
@@ -42,9 +42,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 🔁 2026-11-01(S22-8 甲案):闭集扩员,`Tent = 7`(P0 唯一新建例外)。
             // **本行是被本夹具的红逼出来的**,不是顺手补的 —— 扩员前这里只有六对,跑测试即红。
             ("Tent", 7),
+            // 🔁 2026-11-02(`AC-4-22` 兑现轮):闭集扩员,`Door = 8`。
+            // 同样**先红后补** —— 扩员前跑本件即红(序列不等),不是顺手加的。
+            ("Door", 8),
         };
 
-        /// <summary>词表 = 这七对,既不缺也不多;每个名字的序数 = 字面量。</summary>
+        /// <summary>词表 = 这八对,既不缺也不多;每个名字的序数 = 字面量。</summary>
         /// <remarks><b>判别力</b>:① `OrdinalByName.Add(name, v - 1)`(整体减一,模拟「下标从 0 起」
         /// 这类真实漂移)⇒ 每条序数断言红;② 漏 `continue` 掉某个枚举值 ⇒ `Names` 序列不等 ⇒ 红;
         /// ③ 加一条多余名字 ⇒ 序列不等 ⇒ 红。</remarks>
@@ -53,7 +56,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             Assert.That(SlotTypeVocabulary.Names,
                 Is.EqualTo(LiteralPairs.Select(p => p.Name).ToArray()),
-                "闭集须恰为这七个名字(顺序 = 枚举值升序):\n" +
+                "闭集须恰为这八个名字(顺序 = 枚举值升序):\n" +
                 string.Join(", ", SlotTypeVocabulary.Names));
 
             foreach ((string name, int ordinal) in LiteralPairs)
@@ -65,7 +68,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             }
 
             Assert.That(SlotTypeVocabulary.ClosedSetText(), Is.EqualTo(
-                    "Bed, Table, Cabinet, Plot, Decor, Shell, Tent"),
+                    "Bed, Table, Cabinet, Plot, Decor, Shell, Tent, Door"),
                 "报文用的闭集文案须与词表同源(否则作者看到的合法值列表与实际校验不一致)");
         }
 

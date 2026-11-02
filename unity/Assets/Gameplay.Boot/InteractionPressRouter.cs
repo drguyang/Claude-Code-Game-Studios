@@ -30,11 +30,15 @@
 //   POI 的消费面由生产 `PoiDiscoveryReporter` → 6 的 `PoiStateMachine` 接通,
 //   建造槽位由 `BuildInputDriver.AimAt` 接通。
 //
+// 🔁 2026-11-02(`AC-4-22` 兑现轮):**第四源已生产装配** —— `BakedInitialSource` 把
+//   23 的结构基线(按模块 `SlotType` 分类)与开档容器实例接进候选集。
+//   `Door` 走 `DoorInteractionDriver.Toggle`(改 `Variant` → `StructureModified`),
+//   `Container` 打开 42 的 `ModalId.InventoryContainer`。
+//
 // ── 仍然不是 F-4.1 的全部(如实登记)──────────────────────────────────────────
-// `Utensil` / `ClinicPanel` / `Door` / `Switch` / `Container` 五种**没有数据行**
-// ( `build_modules` 只有 Bed/Table/Cabinet/Decor/Shell/Tent;`world_buildslots` 只有
-// Decor/Shell/Tent )⇒ `BakedInitial` 源在生产装配里仍为 `null`,它们不进候选集。
-// 要它们可交互得先有 23 的数据模型 —— 登记在 `TD-interaction-03` 的残余里。
+// `Utensil` / `ClinicPanel` / `Switch` 三种**没有数据行**(`build_modules` 无对应
+// `SlotType`)⇒ `BakedInitialSource` 的对应切片恒空。要它们可交互得先有 23 的数据模型
+// —— 登记在 `TD-interaction-03` 的残余里。
 //
 // ⚠️ 本类**不持游戏状态**:只有 readonly 依赖 + 一个观测位(`LastRoutedKind`)。
 // ⚠️ 玩家格 = **经流确立的格**(调用方注入;ADR-020 §四),本类不读 `transform.position`。
@@ -68,6 +72,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// ⚠️ 本类**不放置**:E 只瞄准,放置键仍归 23。</para></summary>
         private readonly Action<WorldPos> _aimBuild;
 
+        /// <summary>门的开合消费面(23;2026-11-02 · `AC-4-22`;可 null = 未接线)。
+        /// <para>实参 = `DoorInteractionDriver.Toggle` —— 读 `Variant` 取反后走
+        /// `StructureWriter.Modify`(`StructureModified` 进世界流 ⇒ 可重放 / 可存档)。</para></summary>
+        private readonly Func<long, bool> _toggleDoor;
+
+        /// <summary>容器的消费面(20 / 42;2026-11-02 · `AC-4-22`;可 null = 未接线)。
+        /// <para>实参 = 打开 `ModalId.InventoryContainer`(柜的屏已存在;搜索 / 容量归 20 的后续轮,
+        /// `OQ-4-4` / `OQ-20-11`)。</para></summary>
+        private readonly Action<long> _openContainer;
+
         /// <summary>最近一次路由选中的种类(<c>null</c> = 未选中);观测 / 夹具面。</summary>
         public InteractableKind? LastRoutedKind { get; private set; }
 
@@ -94,7 +108,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             DropClaimOrchestrator drops,
             HarvestInteractionDriver harvest,
             Action<PatientId> visit,
-            Action<WorldPos> aimBuild = null)
+            Action<WorldPos> aimBuild = null,
+            Func<long, bool> toggleDoor = null,
+            Action<long> openContainer = null)
         {
             _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
             _tick = tick ?? throw new ArgumentNullException(nameof(tick));
@@ -106,6 +122,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             _harvest = harvest;
             _visit = visit;
             _aimBuild = aimBuild;
+            _toggleDoor = toggleDoor;
+            _openContainer = openContainer;
         }
 
         /// <summary>
@@ -152,6 +170,17 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                 case InteractableKind.PoiCell:
                     // 4 的出境已在 `Select` 内发生(发现请求 → 6);本类无事可做但要记「已消费」。
+                    return true;
+
+                case InteractableKind.Door:
+                    // 门的开 / 合:23 改 `Variant`(0 = 关,1 = 开)⇒ `StructureModified` 进世界流。
+                    // ⚠️ 可通行性由 `World.IsEffectivelyWalkable` 现算,不在这里同步第二份状态。
+                    return _toggleDoor != null && _toggleDoor(target.StableId);
+
+                case InteractableKind.Container:
+                    // 容器(柜):打开 42 的库存容器屏(20 的数据面)。StableId = instance_id。
+                    if (_openContainer == null) return false;
+                    _openContainer(target.StableId);
                     return true;
 
                 case InteractableKind.Drop:

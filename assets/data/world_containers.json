@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "level_id": "p0_clinic",
+  "world_size": [16, 1, 16],
+  "containers": [
+    {"instance_id": 1, "cell": [5, 0, 5]}
+  ]
+}

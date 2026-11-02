@@ -45,6 +45,15 @@ namespace DaYiJingCheng.Sim.World
         public BuildSlotCatalog SlotCatalog => _slotCatalog;
 
         /// <summary>
+        /// 应用基线所用的**模块目录**(未应用基线 ⇒ <c>null</c>)。
+        /// <para>2026-11-02(`AC-4-22`)新增:4 的第四源要按模块 `SlotType` 把开档结构分类
+        /// (门/器具/面板/开关),而分类依据必须是**应用基线时的同一份目录** ——
+        /// 另建第二个 `BuildModulesCatalog` 会让「基线里的 module_id」与「分类用的目录」
+        /// 在两边可能不同源(本仓 C1 的同型教训)。</para>
+        /// </summary>
+        public IModuleCatalog BaselineModuleCatalog => _moduleCatalogForBaseline;
+
+        /// <summary>
         /// 已应用的 `BakedInitial` 实例数(<see cref="ApplyBakedInitial"/> 之后才有意义;
         /// 未应用恒 <c>0</c>)。
         /// <para>⚠️ 存在的理由 = **可观测性**:「数据声明了初始占用」与「运行期真的应用了」
@@ -319,7 +328,8 @@ namespace DaYiJingCheng.Sim.World
         // ── EffectiveWalkable 合成(F-23-1) ──
 
         /// <summary>
-        /// EffectiveWalkable(cell) := Nav[cell].walkable ∧ ¬slot_occupied(cell)
+        /// EffectiveWalkable(cell) := Nav[cell].walkable ∧ ¬slot_occupied(cell),
+        /// **门格例外**:门格 := Nav[cell].walkable ∧ ¬门关(2026-11-02 · `AC-4-22`)。
         /// 27 / 13 只读此方法,不读 Nav 原件。
         /// </summary>
         public bool IsEffectivelyWalkable(WorldPos cell)
@@ -337,7 +347,45 @@ namespace DaYiJingCheng.Sim.World
                 ? _nav.IsWalkable(cell)
                 : _geometry.GetTerrain(cell).Walkable;
 
-            return navWalkable && !_slotOccupied[idx];
+            if (!navWalkable) return false;
+
+            // ── 门的开合(2026-11-02 · `AC-4-22` 兑现轮)──────────────────────────
+            // 门的**开/关**住结构实例的 `Variant`(0 = 关,1 = 开),写路径 =
+            // `StructureWriter.Modify` → `StructureModified`(世界流;重放 / 存档 / ADR-033
+            // 的 id 平移都已覆盖这条 Kind,故**不新开 Kind**)。
+            // 判「这格是不是门」只读模块目录的 `SlotType` —— 不靠 module_id 魔法值。
+            //
+            // ⚠️ **门必须在 `slot_occupied` 判定之前分流**:门格在占用表里恒为 true
+            //    (开档基线 `ApplyBakedInitial` 与玩家放置都会占格),若先判占用,门格
+            //    **永远不可走** ⇒ 开 / 关在可通行性上完全无差异(本轮的整个意义消失)。
+            //    故口径 = **门格的可走性由开合决定,不参与「占用 = 挡住」那一支**。
+            // ⚠️ 未注入目录(夹具世界 / 未应用基线)⇒ 不判门(行为与旧版一致)。
+            if (IsDoorCell(cell, out bool closed)) return !closed;
+
+            return !_slotOccupied[idx];
+        }
+
+        /// <summary>
+        /// 该格上是否有一扇门;若是,交出其开合态(<c>true</c> = 关)。
+        /// <para>⚠️ 只读结构实例表 + 模块目录的 `SlotType`,**不写任何状态**。</para>
+        /// <para>⚠️ 按**锚点格**查(`GetInstanceAt` 只比对 `Anchor`)—— P0 的门是单格模块
+        /// (`occupancy_local = [[0,0,0]]`),故锚点 = 唯一占用格。多格门须改这里(先逐个
+        /// `EnumerateInstances` 找覆盖该格的实例),并同步补一条夹具。</para>
+        /// </summary>
+        private bool IsDoorCell(WorldPos cell, out bool closed)
+        {
+            closed = false;
+            if (_moduleCatalogForBaseline == null) return false;
+
+            long structureId = _structures.GetInstanceAt(cell);
+            if (structureId < 0) return false;
+            if (!_structures.TryGet(structureId, out StructureInstance inst)) return false;
+
+            ModuleDefinition? def = _moduleCatalogForBaseline.GetModuleDefinition(inst.ModuleId);
+            if (!def.HasValue || def.Value.SlotType != SlotType.Door) return false;
+
+            closed = inst.Variant == 0;   // 0 = 关(基线态;开 = 1)
+            return true;
         }
 
         /// <summary>获取格的 EffectiveWalkable(用于 27/13 查询接口)。</summary>

@@ -8993,3 +8993,51 @@ M4 放置忽略瞄准格(1 红)· M5 POI 不记消费(1 红)。
 玩家意图是「我要在这一格建」。后果:建造模式出现**两个入口**(23 的 toggle 键 + E)。
 若后续 UX 轮判定应合一或应禁,改点 = `InteractionPressRouter.case BuildSlot` 与
 `BuildInputDriver.AimAt`(各一处)。
+
+---
+
+## 2026-11-02 · 「门柜可交互」轮:`AC-4-22` 实机语义接通(`TD-interaction-03` 仍 **partial**)
+
+**出处**:用户指令「修 AC-4-22(门柜可交互)」,两项边界裁定:
+**门影响可通行性、状态进世界流**(可重放 / 可存档)· **柜 = 容器物品实例**(`instance_id`,忠于 GDD 规则二)。
+实现原件 = `production/qa/evidence/impl-ac422-door-cabinet-2026-11-02.md`。
+
+### 兑现(两条)
+
+| kind | 数据 | 消费面 | 状态 |
+|---|---|---|---|
+| `Door` | ✅ `SlotType.Door = 8` + 模块 11 + 门槽 `(5,0,1)`(关卡工具导出 + 重烘) | ✅ `DoorInteractionDriver` → `StructureWriter.Modify` ⇒ `StructureModified` 进世界流;`World.IsEffectivelyWalkable` 门格先于占用表分流 | **接通** |
+| `Container` | ✅ `world_containers`(ADR-022 §三 之外的**加性第 8 类**关卡数据集 → cooked → data-core) | ✅ `BakedInitialSource` → 候选集 → 打开 `ModalId.InventoryContainer` | **接通** |
+
+**为什么柜是物品实例而不是结构**:GDD 规则二逐字定 `Container` 的 `StableId = instance_id`
+(「容器本身是一件掉落」),而结构的 id 空间是 `structure_id` ⇒ 两种模型不可混用(用户裁定 B)。
+
+### 仍未闭
+
+`Switch` / `Utensil` / `ClinicPanel` —— **无 `SlotType`、无数据行、无消费面**
+(18 的灶台准入 / 24 的医馆面板装配轮)⇒ `BakedInitialSource` 的对应切片恒空,`TD-interaction-03` 维持 **`partial`**。
+
+### 本轮新登记残余(不借绿)
+
+| # | 内容 | 建议归属 |
+|---|---|---|
+| R1 | **玩家新建的门 / 柜不在候选集** —— 第四源按定义只覆盖「开档既有、无流事件」;玩家放置的门有 `StructurePlaced` | 4 的管线后续轮 / 需裁定「流侧门」是否属第五源 |
+| R2 | **读档路径的物品高水位未并基线容器 id** —— `ItemInstanceHighWaterCollector` 仍只扫三流;今日零真实存档 ⇒ 无可观测后果,首次发档前须补 | 7a · `ItemInstanceHighWaterCollector` 的 R3 半边 |
+| R3 | **容器内容 / 搜箱时长** —— 20 无「这是容器吗」的判据载体,搜箱时长未登记 | 20 · `OQ-4-4` / `OQ-20-11` |
+| R4 | **`world_containers` 无 ADR** —— 加性第 8 类,依据是「契约 7 类一字未改 + 加性扩展」(与多关卡 `_{level_id}` 后缀同一先例) | 架构轮(长期保留宜并入 ADR-022 §三) |
+
+### 受影响的既有 pin(逐条契约演进,非改期望凑绿)
+
+`SlotType` 闭集 7 → 8 · `allowed_mask` 上界 255 → 511 · 关卡数据集闭集 7 → 8 ·
+`world_buildslots.json` 金标准 SHA 重签(1340 → **1426 B**,新增门槽)·
+`build_modules` 行数 10 → 11 · 产物漂移门 `pinnedDeclared` 38 → **39**。
+
+### 证伪轮(9 条全红 · SHA-256 逐字节还原 9/9)
+
+M1 门格不判门(1 红)· M2 开合读反(3 红)· M3 永远写关(2 红)· M4 去掉门分类守卫(1 红)·
+M5 不裁基线号段(1 红)· M6 门分类改 Decor(2 红)· M7 容器不进候选集(2 红)·
+M8 重复 id 门停用(1 红)· M9 容器行不排序(1 红)。
+
+**读数**:EditMode `6581/6544/0/0/37` · PlayMode `297/293/0/2/2`
+(基线 `S23-16` 的 `6554/6517` · `297/293`;等式 `+27 = 25 新夹具 + 1 Door 位正向例 + 1 漂移门用例`,PM `+0`)。
+`@ 2026-11-02 11:45/11:47 CST` · 批次 `S23-17` · commit `a27b71b9` + 工作树。

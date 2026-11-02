@@ -75,6 +75,14 @@ namespace DaYiJingCheng.Gameplay.Interaction
 
         /// <summary>开档自带的开关。</summary>
         IReadOnlyList<SwitchDto> Switches { get; }
+
+        /// <summary>
+        /// 开档自带的**容器物品实例**(柜)。
+        /// <para>⚠️ 与上面四项**不同源**:它们是 23 的结构(`structure_id`),
+        /// 容器是关卡烘焙的**物品实例**(`instance_id`,2026-11-02 用户裁定 B)。
+        /// 但同在「第四源」名下 —— 因为四源计数按**数据来源**(开档基线)而非 id 空间。</para>
+        /// </summary>
+        IReadOnlyList<ContainerDto> Containers { get; }
     }
 
     /// <summary>

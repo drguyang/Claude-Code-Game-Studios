@@ -80,6 +80,11 @@ namespace DaYiJingCheng.EditorTools.Level
         /// `foraging.md:148` 早把它列为节点定义四元之一,而导出一直缺它。</para></summary>
         public const uint ResourcesSchemaVersion = 2u;
 
+        /// <summary>`world_containers.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
+        /// <remarks>🔁 <b>2026-11-02(`AC-4-22` 兑现轮)</b>:ADR-022 §三 的 7 类之外的**加性第 8 类**。
+        /// 形状 = `{schema_version, level_id, world_size, containers:[{instance_id, cell}]}`。</remarks>
+        public const uint ContainersSchemaVersion = 1u;
+
 
         // ⚠️ **此处曾有 `SlotTypeNames` / `DeriveSlotTypeNames()`**(名字表 + 名字→序数派生)。
         //    2026-10-28 代码评审 **A-21** 后删除,两半各有归处 ——
@@ -498,6 +503,73 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
+        /// 序列化 `world_containers.json`(2026-11-02 · `AC-4-22` 兑现轮)。
+        /// <para>形状 = `schema_version` + `level_id` + `world_size` +
+        /// `containers: [{instance_id, cell: [x, y, z]}]`。</para>
+        /// <para>⚠️ 格须**在世界内且可通行** —— 容器是走过去交互的东西(与槽位同口径);
+        /// 越界 / 不可通行的容器运行期永远选不中,与「没有这件容器」不可分。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">关卡未声明容器 / 任一格越界或不可通行。</exception>
+        public static string ExportContainers(LevelSource src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            LevelConsistencyCheck.CheckOrThrow(src, CharacterControllerParamProbe.ProbeCurrent());
+
+            if (src.Containers == null)
+                throw new InvalidOperationException(
+                    $"[关卡工具] {src.LevelId} 未声明容器 ⇒ 拒绝导出 world_containers。" +
+                    "不合成空表(理由同 world_poi / world_resources:空表与「未声明」不可分)");
+
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"schema_version\": ").Append(Num((int)ContainersSchemaVersion)).Append(",\n");
+            sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            sb.Append("  \"world_size\": [").Append(Num(src.Width)).Append(", ")
+              .Append(Num(src.Height)).Append(", ").Append(Num(src.Depth)).Append("],\n");
+
+            // 全序 = instance_id 升序(与读侧 codec 的「规范形唯一」同口径)。
+            var rows = new List<ContainerSpec>(src.Containers.Containers);
+            rows.Sort((a, b) => a.InstanceId.CompareTo(b.InstanceId));
+
+            sb.Append("  \"containers\": [\n");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                ContainerSpec c = rows[i];
+                ThrowIfContainerCellInvalid(src, c, i);
+
+                sb.Append("    {\"instance_id\": ").Append(c.InstanceId)
+                  .Append(", \"cell\": [").Append(Num(c.Cell.X)).Append(", ")
+                  .Append(Num(c.Cell.Y)).Append(", ").Append(Num(c.Cell.Z)).Append("]}")
+                  .Append(i + 1 >= rows.Count ? "\n" : ",\n");
+            }
+
+            sb.Append("  ]\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>容器格越界 / 不可通行 ⇒ 硬失败(单一出处,导出与夹具共用)。</summary>
+        private static void ThrowIfContainerCellInvalid(LevelSource src, ContainerSpec c, int i)
+        {
+            if (c.Cell.X < 0 || c.Cell.X >= src.Width ||
+                c.Cell.Y < 0 || c.Cell.Y >= src.Height ||
+                c.Cell.Z < 0 || c.Cell.Z >= src.Depth)
+                throw new InvalidOperationException(
+                    $"[关卡工具] containers[{i}] 格 ({c.Cell.X},{c.Cell.Y},{c.Cell.Z}) 越出 " +
+                    $"world_size {src.Width}×{src.Height}×{src.Depth} —— 越界容器运行期永远选不中");
+
+            if (src.Walkable != null)
+            {
+                int idx = src.CellIndex(c.Cell.X, c.Cell.Y, c.Cell.Z);
+                if (src.Walkable[idx] == 0)
+                    throw new InvalidOperationException(
+                        $"[关卡工具] containers[{i}] 格 ({c.Cell.X},{c.Cell.Y},{c.Cell.Z}) 不可通行 —— " +
+                        "容器是玩家走过去交互的东西;不可通行的格上它永远选不中(与槽位同口径)");
+            }
+        }
+
+        /// <summary>
         /// 按**数据集类别**序列化(AC-3 的分派面)。
         /// <para>本方法**不含任何 kind 分支** —— 分派表在 `WorldDataSets.Serializers`;
         /// 新增一类只在那里加一行,本类主体一字不动。</para>
@@ -530,6 +602,9 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>分派表适配:`Resources` 的单份产物。</summary>
         public static IReadOnlyList<DataSetProduct> ExportResourcesProducts(LevelSource src)
             => Single(WorldDataSetKind.Resources, src, ExportResources(src));
+        /// <summary>分派表适配:`Containers` 的单份产物(2026-11-02 · `AC-4-22`)。</summary>
+        public static IReadOnlyList<DataSetProduct> ExportContainersProducts(LevelSource src)
+            => Single(WorldDataSetKind.Containers, src, ExportContainers(src));
 
         private static IReadOnlyList<DataSetProduct> Single(WorldDataSetKind kind, LevelSource src, string json)
             => new[] { new DataSetProduct(WorldDataSets.FileNameFor(kind, src.LevelId), json) };

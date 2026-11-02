@@ -180,6 +180,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 生产构建里 `Assets/DataCooked` 不随包出货 ⇒ 槽位目录恒空。本常量 = 那条读侧的生产装载面。</para></remarks>
         public const string WorldBuildSlotsAddress = WorldBuildSlotsDataSet.CookedFileName;
 
+        /// <summary>开档容器实例 address(2026-11-02 · `AC-4-22`;= DataCooked 文件名)。</summary>
+        public const string WorldContainersAddress = WorldContainersDataSet.CookedFileName;
+
         /// <summary>世界几何 address(关卡工具 story-002 · 2026-10-29)。</summary>
         /// <remarks>单一出处 = <see cref="WorldGeometryDataSet.CookedFileName"/>
         /// (写方 `WorldGeometryBake.CookedFileName` / 读方 DataSet 同值)。</remarks>
@@ -258,6 +261,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DiseaseRegistryDataSet? _diseaseRegistry;
         // 建造槽位骨架(S20-20 装载面 · 2026-10-28):struct 解码形 ⇒ 可空承载。
         private WorldBuildSlotsDataSet? _worldBuildSlots;
+        private WorldContainersDataSet? _worldContainers;
         // 世界几何 / 地形表(关卡工具 story-002 · 2026-10-29):struct 解码形 ⇒ 可空承载。
         private WorldGeometryDataSet? _worldGeometry;
         private WorldTerrainDataSet? _worldTerrain;
@@ -430,6 +434,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWorldBuildSlots();
                 return (TDataSet)(object)_worldBuildSlots.Value;
             }
+            if (typeof(TDataSet) == typeof(WorldContainersDataSet))
+            {
+                EnsureWorldContainers();
+                return (TDataSet)(object)_worldContainers.Value;
+            }
             // ── 关卡工具 story-002(2026-10-29):世界几何 / 地形表 ──
             if (typeof(TDataSet) == typeof(WorldGeometryDataSet))
             {
@@ -540,6 +549,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldEcozones();
             EnsureWorldPoi();
             EnsureWorldResources();
+            EnsureWorldContainers();      // 2026-11-02 · AC-4-22(开档容器实例)
             EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
             EnsureInventoryConstants();   // S22-9(2026-11-01):CARRY_CAP 的装载输入
             EnsureForagingConstants();    // S22-9(2026-11-01):17 采前闸三条公式的装载输入
@@ -995,6 +1005,23 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 建造槽位骨架 cooked 解码失败(address={WorldBuildSlotsAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureWorldContainers()
+        {
+            if (_worldContainers.HasValue) return;
+            byte[] bytes = FetchBytes(WorldContainersAddress);
+            try
+            {
+                _worldContainers = WorldContainersCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 开档容器实例 cooked 解码失败(address={WorldContainersAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

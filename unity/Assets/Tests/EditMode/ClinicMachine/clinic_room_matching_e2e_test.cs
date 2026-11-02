@@ -109,7 +109,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             // 🔁 2026-11-01(S22-8):9 → 10 —— `build_modules.json` 追加 module_id 10(Tent)。
             // 本条**就该红**(它自己写着「行数漂移 ⇒ 同步本测常量」);同步时已确认
             // 新行的 `furn_type = null` 不影响本测其余的 `GetFurnType` 断言。
-            Assert.That(_catalogue.Count, Is.EqualTo(10), "build_modules 行数漂移 ⇒ 同步本测常量");
+            // 🔁 2026-11-02(`AC-4-22`):10 → 11 —— `build_modules.json` 追加 module_id 11(Door)。
+            // 本条**就该红**(它自己写着「行数漂移 ⇒ 同步本测常量」);同步时已确认
+            // 新行的 `module_type = Door` / `furn_type = null` 不影响本测其余的 `GetFurnType` 断言。
+            Assert.That(_catalogue.Count, Is.EqualTo(11), "build_modules 行数漂移 ⇒ 同步本测常量");
             Assert.That(_catalogue.GetFurnType(ModuleBed), Is.EqualTo("bed"));
             Assert.That(_catalogue.GetFurnType(ModuleSurgeryTable), Is.EqualTo("surgery_table"));
             Assert.That(_catalogue.GetFurnType(ModuleSterileCabinet), Is.EqualTo("sterile_cabinet"));

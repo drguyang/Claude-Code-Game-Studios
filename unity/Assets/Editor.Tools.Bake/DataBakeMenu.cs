@@ -119,6 +119,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// 手写该 JSON 违反 ADR-022 §二。</para></summary>
         public const string WorldBuildSlotsCookedAssetName = WorldBuildSlotsBake.CookedFileName;
 
+        /// <summary>开档容器实例产物名(2026-11-02 · `AC-4-22`)。</summary>
+        public const string WorldContainersCookedAssetName = WorldContainersBake.CookedFileName;
+
         /// <summary>产物文件名(世界几何 = `world_geometry.json`;关卡工具 story-002 · 2026-10-29)。
         /// <para>⚠️ 作者态 JSON 的**唯一作者 = 关卡工具**,手写违反 ADR-022 §二。
         /// 运行期消费方 = `MinimalWorldFactory.Create()`(**无降级路径**:产物缺失即启动期硬失败)。</para></summary>
@@ -890,6 +893,52 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{WorldBuildSlotsCookedAssetName} = {result.Cooked.Length} B," +
                     $"槽位 {result.Bound.Rows.Count} 格," +
+                    $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙开档容器实例(<c>world_containers.json</c> —— 2026-11-02 · `AC-4-22`):
+        /// 仓库 <c>assets/data/world_containers.json</c>(**由关卡工具导出,不得手写**)
+        /// → <see cref="WorldContainersBinder"/>(五条域门:**聚合 throw**)
+        /// → deterministic 编码 → <see cref="WorldContainersCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 运行期消费方 = <c>CompositionRoot</c>(4 的 `Container` 候选行 +
+        /// `IdAuthority` 高水位抬升)。烘完**必须**再跑「确保 data-core Addressables 组」
+        /// 与「构建 Addressables 内容」两个菜单,否则 `Preload()` 查不到该 address(E-13)。</para>
+        /// </summary>
+        public static WorldContainersBake.BakeOutput BakeWorldContainersCore(string repoRoot)
+        {
+            if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
+            return WorldContainersBake.BakeFromRepo(repoRoot);
+        }
+
+        /// <summary>烘焙开档容器实例并落盘(菜单入口)。</summary>
+        [MenuItem("大医精诚/数据管线/烘焙 world_containers(开档容器 · AC-4-22)")]
+        public static void BakeWorldContainers()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                WorldContainersBake.BakeOutput result = BakeWorldContainersCore(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WorldContainersCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WorldContainersCookedAssetName} = {result.Cooked.Length} B," +
+                    $"容器 {result.Bound.Rows.Count} 件," +
                     $"声明范围 {result.Bound.Width}×{result.Bound.Height}×{result.Bound.Depth}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");

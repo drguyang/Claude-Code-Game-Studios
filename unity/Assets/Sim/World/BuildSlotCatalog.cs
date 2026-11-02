@@ -29,7 +29,15 @@ namespace DaYiJingCheng.Sim.World
         /// **骨架外**预置的槽;`StructurePlaced` 照常发,载荷形状不变。
         /// <para>⚠️ **不是自由建造的起点** —— 除本类外 P0 仍不开放新建(自由建造归 P1a)。</para>
         /// </summary>
-        Tent    = 7
+        Tent    = 7,
+
+        /// <summary>
+        /// 门(2026-11-02 · `AC-4-22` 兑现轮)。
+        /// <para>为什么单列一类而不是复用 `Shell`:门的**可通行性随开合变化**(开 = 可走,
+        /// 关 = 阻挡),而 `Shell` 是「墙 / 地基,P0 永久阻挡」—— 混用会让「这是墙还是门」
+        /// 只能靠 module_id 魔法值分辨。门的状态住世界流(`DoorToggled`),不进本枚举。</para>
+        /// </summary>
+        Door    = 8
     }
 
     /// <summary>单槽位定义(整数坐标 + 允许的模块类型 + 开档基线)。</summary>

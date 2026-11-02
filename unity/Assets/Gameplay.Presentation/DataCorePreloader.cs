@@ -251,6 +251,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // POI 定义 / 资源点(关卡工具 story-004 · 2026-10-29:`PoiGrid` / `ResourceGrid` 的真值来源)。
             AddressablesDataProvider.WorldPoiAddress,
             AddressablesDataProvider.WorldResourcesAddress,
+            // 开档容器实例(2026-11-02 · `AC-4-22`)。⚠️ 与 `EnsureWorldContainers()`
+            // 和 `WorldContainersAddress` 三处集合相等 —— 漏一处即被 provider 接线门抓红。
+            AddressablesDataProvider.WorldContainersAddress,
             AddressablesDataProvider.InventoryConstantsAddress,   // S22-9:CARRY_CAP 的装载输入
             AddressablesDataProvider.ForagingConstantsAddress,    // S22-9:17 采前闸三条公式的表
             // 13 调参常量表(`TD-audio-032` ① · 2026-10-29:`CueIntervals` / `BehaviorBands` 的生产载体)。

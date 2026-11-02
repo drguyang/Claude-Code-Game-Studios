@@ -39,6 +39,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1870226cafa2da4839b5986debabd5e8
+    m_Address: world_containers.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 19b4f2737a30c11d789d0115befc2ba5
     m_Address: clinicmachine_context_names.cooked.bytes
     m_ReadOnly: 0

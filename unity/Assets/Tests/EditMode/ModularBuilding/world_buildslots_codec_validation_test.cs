@@ -43,25 +43,39 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_worldBuildSlots_codec_allowedMaskNegative_isRejected()
             => AssertRejected(BuildCooked(allowedMask: -1, bakedInitial: 0), "allowed_mask");
 
-        /// <summary>`allowed_mask = 256`(超出现有最高位 `Tent = 1 &lt;&lt; 7 = 128`)⇒ 拒。</summary>
+        /// <summary>`allowed_mask = 512`(超出现有最高位 `Door = 1 &lt;&lt; 8 = 256`)⇒ 拒。</summary>
         /// <remarks><b>判别力</b>:删掉上界比较(只留 `&lt;= 0`)⇒ 本条红。
         /// <para>🔁 2026-11-01(S22-8 甲案):原值是 `128`(当时 = 超 Shell 位)。`SlotType.Tent = 7`
         /// 落地后 `128` 变成**合法位**,本条随即转红 —— 上移到 `256` 才仍是「越界位」。
-        /// 这次改的是**负载**,不是期望:越界语义没变。</para></remarks>
+        /// 这次改的是**负载**,不是期望:越界语义没变。</para>
+        /// <para>🔁 2026-11-02(`AC-4-22` 兑现轮):同形第三次 —— `SlotType.Door = 8` 落地后
+        /// `256` 变成**合法位**(门槽的掩码),上移到 `512`。**同一条纪律:改负载不改语义。**</para></remarks>
         [Test]
         public void test_worldBuildSlots_codec_allowedMaskBeyondEnumBits_isRejected()
-            => AssertRejected(BuildCooked(allowedMask: 256, bakedInitial: 0), "allowed_mask");
+            => AssertRejected(BuildCooked(allowedMask: 512, bakedInitial: 0), "allowed_mask");
 
-        /// <summary>上界本身(`255`,含 Tent 位 `128`)⇒ **放行**(证明上一条不是「值域恒拒」)。</summary>
+        /// <summary>上界本身(`511`,含 Tent 位 `128` + Door 位 `256`)⇒ **放行**(证明上一条不是「值域恒拒」)。</summary>
         [Test]
         public void test_worldBuildSlots_codec_allowedMaskAtCeiling_isAccepted()
         {
             WorldBuildSlotsDataSet data =
-                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 255, bakedInitial: 0));
+                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 511, bakedInitial: 0));
 
             Assert.That(data.Rows.Count, Is.EqualTo(1));
-            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(255), "掩码须原样保留,不做裁剪");
+            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(511), "掩码须原样保留,不做裁剪");
             Assert.That(data.Rows[0].BakedInitial, Is.False);
+        }
+
+        /// <summary>单个合法位(`256` = Door)⇒ 放行(新位的正向半边)。</summary>
+        /// <remarks>🔁 2026-11-02(`AC-4-22`):与 <c>tentBitMask</c> 同形 —— 证明新位**可用**,
+        /// 而不只是「上界抬高了」。</remarks>
+        [Test]
+        public void test_worldBuildSlots_codec_doorBitMask_isAccepted()
+        {
+            WorldBuildSlotsDataSet data =
+                WorldBuildSlotsCookedCodec.Read(BuildCooked(allowedMask: 256, bakedInitial: 1));
+
+            Assert.That(data.Rows[0].AllowedMask, Is.EqualTo(256), "`1 << 8` = 256");
         }
 
         /// <summary>单个合法位(`128` = Tent,P0 唯一新建例外)⇒ 放行(新位的正向半边)。</summary>
@@ -86,7 +100,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         }
 
         /// <summary>
-        /// 读方的掩码上界**由 `SlotType` 派生**,当前 = `255`(`1 &lt;&lt; 8) - 1`)。
+        /// 读方的掩码上界**由 `SlotType` 派生**,当前 = `511`(`(1 &lt;&lt; 9) - 1`)。
         /// </summary>
         /// <remarks>⚠️ 本条红**不一定是缺陷**:它更可能是「枚举长出了新类型」——
         /// 那时须同时确认写方契约与头槽 schema 版本是否同步演进,而不是把期望值一改了事。
@@ -94,12 +108,14 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         /// (`SlotType.Tent = 7`,P0 唯一新建例外)。复核结论:写方(`WorldBuildSlotsBinder`)
         /// 与读方(`WorldBuildSlotsCookedCodec`)都**从枚举派生**上界/位,无写死常量;
         /// 头槽 `schema_version` **不必**演进 —— 行布局一个字节没变,变的只是某个位的**语义**。
-        /// ⇒ 期望值随枚举上移是**契约的正确演进**,不是「改期望值凑绿」。</para></remarks>
+        /// ⇒ 期望值随枚举上移是**契约的正确演进**,不是「改期望值凑绿」。</para>
+        /// <para>🔁 <b>2026-11-02(`AC-4-22` 兑现轮):第 8 个类型</b>(`SlotType.Door = 8`)落地,
+        /// 上界 `255 → 511`。复核同前:写读两端仍从枚举派生,行布局未变 ⇒ 契约正确演进。</para></remarks>
         [Test]
         public void test_worldBuildSlots_codec_maxAllowedMask_isCurrentEnumCeiling()
         {
-            Assert.That(WorldBuildSlotsCookedCodec.MaxAllowedMask, Is.EqualTo(255),
-                "`SlotType` 当前最大枚举值 = 7(Tent)⇒ 位域上界 = (1 << 8) - 1 = 255;" +
+            Assert.That(WorldBuildSlotsCookedCodec.MaxAllowedMask, Is.EqualTo(511),
+                "`SlotType` 当前最大枚举值 = 8(Door)⇒ 位域上界 = (1 << 9) - 1 = 511;" +
                 "红在此处通常意味着枚举已扩展 —— 请复核写读两端的契约,不要只改期望值");
         }
 

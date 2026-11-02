@@ -374,6 +374,30 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
   (`build_modules` 只有家具)⇒ `AC-4-22` 实机语义仍不满足 ⇒ 债务转 **`partial`**,不宣称关闭。
   原件 = `production/qa/evidence/impl-interaction-03-poi-and-buildslot-2026-11-02.md`。
 
+**S23-17(2026-11-02):门柜可交互 —— `AC-4-22` 实机语义接通(`TD-interaction-03` 仍 partial)**:
+用户指令「修 AC-4-22(门柜可交互)」;两项边界裁定 = **门影响可通行性、状态进世界流** ·
+**柜 = 容器物品实例**(`instance_id`,忠于 GDD 规则二)。
+
+- **门(结构件 + 状态进流)**:`SlotType.Door = 8` · 模块 11 + 关卡工具门槽 `(5,0,1)` ·
+  `World.IsEffectivelyWalkable` **门格先于占用表分流**(关 = 挡 / 开 = 通)·
+  `DoorInteractionDriver.Toggle` → `StructureWriter.Modify` ⇒ `StructureModified` 进世界流
+  (**不新开 Kind**;重放 / 存档 / ADR-033 平移全复用)· 路由 `case Door`
+- **柜(容器物品实例)**:新烘焙产品 `world_containers`(关卡工具**加性第 8 类** → Binder 五门 →
+  cooked → data-core)· `ContainerDto(instance_id)` · 第四源生产实装 `BakedInitialSource` ·
+  装配根 `ReconstructItemHighWater` 抬升(防开档后掉号)· 路由 `case Container` → `ModalId.InventoryContainer`
+- **受影响的 pin(逐条契约演进)**:`SlotType` 闭集 7→8 · 掩码上界 255→511 ·
+  关卡数据集闭集 7→8 · `world_buildslots` 金标准 SHA 重签(1340→1426 B)·
+  `build_modules` 行数 10→11 · 产物漂移门 `pinnedDeclared` 38→39
+- **读数**:EditMode `6581/6544/0/0/37` · PlayMode `297/293/0/2/2`
+  (基线 `S23-16` 的 `6554/6517` · `297/293`;等式 `+27 = 25 新夹具 + 1 Door 位正向例 + 1 漂移门用例`,PM `+0`)。
+  证伪 **M1–M9 全红**,九处 SHA-256 逐字节还原 9/9。
+- ⚠️ **写夹具前抓到真缺陷(首版实现)**:门格在占用表里恒为 true(基线 / 放置都占格)⇒
+  若先判占用,门格**永远不可走**、开与关在可通行性上零差异。已改为**门格先分流**。
+- ⚠️ **仍未闭**:`Switch` / `Utensil` / `ClinicPanel` 无 `SlotType`、无数据、无消费面 ⇒ 债维持 **`partial`**。
+  新登记残余 R1(玩家新建的门不在第四源)/ R2(读档高水位未并基线容器 id)/
+  R3(容器内容与搜箱时长)/ R4(`world_containers` 无 ADR)。
+  原件 = `production/qa/evidence/impl-ac422-door-cabinet-2026-11-02.md`。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。

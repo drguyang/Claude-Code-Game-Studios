@@ -7,6 +7,7 @@
     {"cell": [2, 0, 1], "slot_type": "Shell", "baked_initial": true, "module_id": 8},
     {"cell": [3, 0, 1], "slot_type": "Shell", "baked_initial": true, "module_id": 8},
     {"cell": [4, 0, 1], "slot_type": "Shell", "baked_initial": true, "module_id": 8},
+    {"cell": [5, 0, 1], "slot_type": "Door", "baked_initial": true, "module_id": 11},
     {"cell": [6, 0, 6], "slot_type": "Decor", "baked_initial": true, "module_id": 7},
     {"cell": [6, 0, 7], "slot_type": "Decor", "baked_initial": false, "module_id": null},
     {"cell": [6, 0, 8], "slot_type": "Decor", "baked_initial": false, "module_id": null},

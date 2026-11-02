@@ -157,6 +157,15 @@ namespace DaYiJingCheng.EditorTools.Level
         /// </summary>
         public readonly IReadOnlyList<ModuleFootprintSpec> ModuleFootprints;
 
+        /// <summary>
+        /// 开档自带的**容器物品实例**集(ADR-022 §三 · 加性第 8 类 `world_containers.json`)。
+        /// <para>🔁 <b>2026-11-02(`AC-4-22` 兑现轮)新增</b>。`null` = 本关卡未声明
+        /// —— 此时容器导出**硬失败**(不合成空表:空表与「未声明」在产物上不可分)。</para>
+        /// <para>⚠️ 与 <see cref="Slots"/> 的 `BakedInitial` 是**两个 id 空间**:
+        /// 结构走 `structure_id`,容器走 `instance_id`(GDD 规则二)。</para>
+        /// </summary>
+        public readonly ContainerSource Containers;
+
         /// <summary>世界总格数(`Width × Height × Depth`;越界即抛,见构造)。</summary>
         public readonly int TotalCells;
 
@@ -175,7 +184,8 @@ namespace DaYiJingCheng.EditorTools.Level
             IReadOnlyList<int> walkable = null, TerrainSource terrain = null, int latticeSizeMm = 0,
             EcozoneSource ecozones = null, PoiSource poi = null, ResourceSource resources = null,
             int chunkSizeX = 0, int chunkSizeY = 0, int chunkSizeZ = 0,
-            VisualLayerSource visualLayer = null, IReadOnlyList<ModuleFootprintSpec> moduleFootprints = null)
+            VisualLayerSource visualLayer = null, IReadOnlyList<ModuleFootprintSpec> moduleFootprints = null,
+            ContainerSource containers = null)
         {
             if (string.IsNullOrEmpty(levelId))
                 throw new ArgumentException("level_id 不得为空", nameof(levelId));
@@ -199,6 +209,7 @@ namespace DaYiJingCheng.EditorTools.Level
 
             VisualLayer = ValidateVisualLayer(visualLayer, TotalCells);
             ModuleFootprints = moduleFootprints;
+            Containers = containers;
 
             // ⚠️ 这三行**不能**挪进 `ValidateChunkSizes` —— `ChunkSize*` 是 `readonly`,
             //    只能在构造器里赋值(CS0191)。校验与落值因此拆成两步。

@@ -98,6 +98,10 @@ namespace DaYiJingCheng.Gameplay.Interaction
                 foreach (var s in _sources.BakedInitial.Switches)
                     candidates.Add(new Candidate(s.Cell, InteractableKind.Switch, s.StructureId,
                                                  StableIdSource.StructureId));
+                // 开档容器(柜)—— ⚠️ `instance_id` 空间,不是 `structure_id`(2026-11-02 · AC-4-22)
+                foreach (var c in _sources.BakedInitial.Containers)
+                    candidates.Add(new Candidate(c.Cell, InteractableKind.Container, c.InstanceId,
+                                                 StableIdSource.InstanceId));
             }
 
             return candidates;

@@ -89,6 +89,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static WorldResourcesDataSet LoadWorldResources()
             => WorldResourcesCookedCodec.Read(ReadAll(WorldResourcesDataSet.CookedFileName));
 
+        /// <summary>从磁盘读开档容器实例(`world_containers.cooked.bytes`;2026-11-02 · `AC-4-22`;同上)。</summary>
+        public static WorldContainersDataSet LoadWorldContainers()
+            => WorldContainersCookedCodec.Read(ReadAll(WorldContainersDataSet.CookedFileName));
+
         /// <summary>从磁盘读 13 调参常量表(`TD-audio-032` ① · 2026-10-29;同上)。
         /// <para>⚠️ 与 `DiagnosisCookedDisk.LoadAiPatient` **同源同码**(两者都是
         /// 「EditMode 无 Addressables 时的真产物直读」);分别挂在两个 disk 类是因为

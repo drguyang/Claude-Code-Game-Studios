@@ -4,7 +4,7 @@
 //   ADR-022 §二(唯一作者 = 关卡工具)· §三(导出契约含 `BakedInitial`)
 //   ADR-015 §三(整数格)· GDD modular-building.md 规则一(槽位骨架)
 //
-// ⚠️ **规模刻意最小**:只铺 13 格(9 格的 Decor 3×3 区 + 4 格的 Shell 条),落在
+// ⚠️ **规模刻意最小**:只铺 15 格(9 格的 Decor 3×3 区 + 4 格的 Shell 条 + 1 门 + 1 帐篷槽),落在
 //    `MinimalWorldFactory` 的 16×1×16 合成世界内,**其余 243 格一律非槽位** ——
 //    「非槽位格」是既有夹具(`test_acB2_placeOnNonSlotCell_returnsSlotNotFoundWithZeroSlots` 类)
 //    仍然有意义的必要条件。铺满 = 让「不在区域内」这条判据失去观察面。
@@ -85,6 +85,19 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>Shell 条带的 z(单行)。</summary>
         public const int ShellStripZ = 1;
 
+        /// <summary>
+        /// 门槽的模块 id(`build_modules.json` 的 11 = `Door`)。
+        /// <para>🔁 <b>2026-11-02(`AC-4-22` 兑现轮)新增</b>。门不是装饰件:它**影响可通行性**
+        /// (`World.IsEffectivelyWalkable` 读 `SlotType.Door` ∧ `Variant`),开 / 合状态住
+        /// `StructureModified` 的世界流 ⇒ 可重放、可存档。</para>
+        /// </summary>
+        public const int DoorModuleId = 11;
+
+        /// <summary>门槽所在的 x(Shell 条带右端再往右一格 —— 门在墙线末端,不与外壳格重叠)。</summary>
+        public const int DoorCellX = 5;
+        /// <summary>门槽的 z(与 Shell 条带同一条墙线)。</summary>
+        public const int DoorCellZ = ShellStripZ;
+
         /// <summary>帐篷槽的格(骨架外 · `modular-building.md` 规则六)。</summary>
         public const int TentCellX = 12;
         /// <summary>帐篷槽的 z。</summary>
@@ -115,6 +128,15 @@ namespace DaYiJingCheng.EditorTools.Level
                     ShellStripXStart + i, 0, ShellStripZ, SlotType.Shell,
                     bakedInitial: true, moduleId: ShellModuleId));
 
+            // ── 门槽(AC-4-22 · 2026-11-02)──────────────────────────────────
+            // 开档自带的门 —— 与 Shell 同一条墙线、紧邻条带右端。
+            // ⚠️ `baked_initial = true`:门是开档既有件(无 `StructurePlaced`),它的
+            //    `structure_id` 由基线发号(23 规则三)。`variant = 0`(关)是基线初值,
+            //    玩家按 E 切换时走 `StructureModified`(进世界流)。
+            slots.Add(new SlotSpec(
+                DoorCellX, 0, DoorCellZ, SlotType.Door,
+                bakedInitial: true, moduleId: DoorModuleId));
+
             // ── 帐篷槽(P0 唯一新建例外)──────────────────────────────────
             // `game-concept.md:697-698`(2026-09-20 改判「P0 也必须能新建」)·
             // `modular-building.md` 规则六(落关卡工具在骨架外预置 `tent` 槽)。
@@ -141,7 +163,8 @@ namespace DaYiJingCheng.EditorTools.Level
                 resources: BuildResources(),
                 chunkSizeX: ChunkSizeX,
                 chunkSizeY: ChunkSizeY,
-                chunkSizeZ: ChunkSizeZ);
+                chunkSizeZ: ChunkSizeZ,
+                containers: BuildContainers());
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -169,6 +192,35 @@ namespace DaYiJingCheng.EditorTools.Level
         public const int ChunkSizeY = 1;
         /// <summary>见 <see cref="ChunkSizeX"/>。</summary>
         public const int ChunkSizeZ = 8;
+
+        /// <summary>
+        /// 开档自带的**容器**(柜)所在的格 —— 医馆内景中心附近、**不是建造槽位格**。
+        /// <para>🔁 <b>2026-11-02(`AC-4-22` 兑现轮 · 用户裁定 B)新增</b>。柜 = 容器**物品实例**
+        /// (GDD 规则二:`Container` 的 `StableId = instance_id`),不是 23 的结构 ——
+        /// 故它**不占** `baked_initial` 槽位,也不参与建造占用表。</para>
+        /// <para>⚠️ 格子须**可通行**(与 `LevelConsistencyCheck` 对槽位的要求同口径):
+        /// 容器是玩家走过去交互的东西,不是墙。</para>
+        /// </summary>
+        public const int CabinetCellX = 5;
+        /// <summary>见 <see cref="CabinetCellX"/>。</summary>
+        public const int CabinetCellZ = 5;
+
+        /// <summary>
+        /// 开档容器的**物品实例 id**。
+        /// <para>⚠️ 与掉落共用 `IIdAuthority` 空间 ⇒ 装配根须用
+        /// `ReconstructItemHighWater` 把它抬进高水位,否则开档后第一件掉落会发到同号
+        /// (ADR-006 Amendment B)。本值是关卡工具的**声明**,不是运行期发号。</para>
+        /// </summary>
+        public const long CabinetInstanceId = 1L;
+
+        /// <summary>构造开档容器实例集(ADR-022 §三 `world_containers.json`)。</summary>
+        /// <remarks>P0 只此一件(柜)。容器里装什么归 20 的契约,本表刻意不含 contents
+        /// (见 `ContainerSource` 文件头)。</remarks>
+        public static ContainerSource BuildContainers()
+            => new ContainerSource(new[]
+            {
+                new ContainerSpec(CabinetInstanceId, new WorldPos(CabinetCellX, 0, CabinetCellZ)),
+            });
 
         /// <summary>格边长 `LATTICE_SIZE`(整数毫米;GDD F-6-1 / ADR-015 §三)。</summary>
         /// <remarks>⚠️ **占位值,归用户数值轮**。取 1000 mm = 1 米/格:本轮它只需 `> 0`

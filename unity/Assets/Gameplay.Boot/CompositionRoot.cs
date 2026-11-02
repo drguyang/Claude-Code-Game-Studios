@@ -1125,11 +1125,42 @@ namespace DaYiJingCheng.Gameplay.Boot
                     slotData.Rows,
                     slotData.Width, slotData.Height);
 
+                // ── 第四源的生产实装(`AC-4-22` · 2026-11-02)──────────────────────
+                // 截止本轮到之前 `bakedInitial: null` ⇒ 开档自带的门 / 柜**不在候选集里**
+                // (静默失效;`AC-4-22` 是它唯一的证伪夹具)。
+                //   ① 结构基线:门的分类依据 = 模块目录的 `SlotType.Door`;`world` / `modulesCatalog`
+                //      在本段之后才就绪 ⇒ 经 `Func` late-bind。
+                //   ② 开档容器:关卡烘焙表(`world_containers.cooked`)。它是**物品实例** id 空间
+                //      (用户裁定 B:柜 = 容器物品实例),故用 `ContainerDto`(instance_id)而非 `DoorDto`。
+                WorldContainersDataSet containerData = dataProvider.Load<WorldContainersDataSet>();
+
+                // ⚠️ **高水位必须抬** —— 容器 id 与掉落共用 `IIdAuthority` 空间;不抬 ⇒
+                //    开档后第一件掉落会发到同号(ADR-006 Amendment B「计数器 + 高水位可重构」)。
+                //    `IIdAuthority` 上没有该方法(它是 `IdAuthority` 的具体能力)⇒ 显式转型 + 失败即抛,
+                //    不静默跳过(跳过 = 掉号,且只在读档后才显形)。
+                if (!(idAuthority is IdAuthority concreteItemAuthority))
+                    throw new InvalidOperationException(
+                        "装配根:开档容器实例需要 `IdAuthority` 抬升物品高水位 —— " +
+                        $"注入的 `IIdAuthority` 实为 {idAuthority?.GetType().FullName ?? "null"}," +
+                        "无法保证开档后不掉号(ADR-006 Amendment B)");
+                concreteItemAuthority.ReconstructItemHighWater(containerData.InstanceIds());
+
+                var bakedContainers = new List<ContainerDto>(containerData.Containers.Count);
+                for (int i = 0; i < containerData.Containers.Count; i++)
+                    bakedContainers.Add(new ContainerDto(
+                        containerData.Containers[i].Cell, containerData.Containers[i].InstanceId));
+
+                var bakedInitialSource = new BakedInitialSource(
+                    instancesOf: () => world != null ? world.Structures.EnumerateInstances() : null,
+                    modulesOf: () => modulesCatalog,
+                    baselineCountOf: () => world != null ? world.BakedInitialStructureCount : 0,
+                    containersOf: () => bakedContainers);
+
                 pressCandidates = new CandidateSetLoader(new CandidateSources(
                     drops: groundDrops,
                     worldBaked: worldBakedSource,
                     patients: new PresencePatientSource(presence),
-                    bakedInitial: null));
+                    bakedInitial: bakedInitialSource));
                 // 6 的 POI 状态机(唯一写者 = 6;ADR-021 §②)。定义侧 id 集从烘焙产物装载
                 // (`LoadPoiIds`;空集合会让每个 poi_id 都回 `NotRegistered` 而**看起来正常**)。
                 poiMachine = new DaYiJingCheng.Sim.World.PoiStateMachine(

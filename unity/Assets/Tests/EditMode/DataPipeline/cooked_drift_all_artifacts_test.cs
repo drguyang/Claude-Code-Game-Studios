@@ -297,6 +297,15 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    落盘后首跑全量必红两条(`noGhostArtifact` 点名 + `declared ≠ pinned`)。
             new ArtifactBake(PatientAiDataSet.CookedFileName,
                 root => PatientAiBaker.BakeFromRepo(root).Cooked),
+
+            // ── 开档容器实例(1 份;2026-11-02 · `AC-4-22` 兑现轮)──
+            //    ⚠️ 本门**第九次**遇到「新增产物」这一步 —— 前八次的教训逐字适用:
+            //    落盘后首跑全量必红两条(`noGhostArtifact` 点名 + `declared ≠ pinned`)。
+            //    ⚠️ 委托走**裸烘焙** `WorldContainersBake.BakeFromRepo`(同上口径):
+            //    菜单层只多做落盘与组注册,不改编码 ⇒ 两条路径字节相同。
+            //    ⚠️ 这条同时把 ADR-022 §②「无第二作者」钉在 `world_containers.json` 上。
+            new ArtifactBake(WorldContainersBake.CookedFileName,
+                root => WorldContainersBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -445,7 +454,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 🔁 2026-10-29(story-005):31 → 35(导航格 4 片;世界几何是**重烘**不是新增)。
             // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
             // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
-            const int pinnedDeclared = 38; // 2026-11-01 实测(38 份;+1 = inventory_constants)
+            // 🔁 2026-11-02(AC-4-22):38 → 39(+world_containers,开档容器实例)。
+            const int pinnedDeclared = 39; // 2026-11-02 实测(39 份;+1 = world_containers)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

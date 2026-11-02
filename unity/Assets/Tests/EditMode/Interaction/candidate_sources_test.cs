@@ -393,15 +393,18 @@ namespace DaYiJingCheng.Tests.Interaction
             public IReadOnlyList<ClinicPanelDto> ClinicPanels { get; }
             public IReadOnlyList<DoorDto> Doors { get; }
             public IReadOnlyList<SwitchDto> Switches { get; }
+            public IReadOnlyList<ContainerDto> Containers { get; }
             public FakeBakedInitial(IReadOnlyList<UtensilDto> utensils = null,
                                     IReadOnlyList<ClinicPanelDto> clinicPanels = null,
                                     IReadOnlyList<DoorDto> doors = null,
-                                    IReadOnlyList<SwitchDto> switches = null)
+                                    IReadOnlyList<SwitchDto> switches = null,
+                                    IReadOnlyList<ContainerDto> containers = null)
             {
                 Utensils = utensils ?? new List<UtensilDto>();
                 ClinicPanels = clinicPanels ?? new List<ClinicPanelDto>();
                 Doors = doors ?? new List<DoorDto>();
                 Switches = switches ?? new List<SwitchDto>();
+                Containers = containers ?? new List<ContainerDto>();
             }
         }
 

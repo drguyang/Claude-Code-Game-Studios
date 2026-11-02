@@ -178,6 +178,27 @@ namespace DaYiJingCheng.Gameplay.Interaction
         }
     }
 
+    /// <summary>
+    /// 容器输入形状(第四源:**开档容器物品实例**;`instance_id` 定稳定序)。
+    /// <para>⚠️ 它与上面四件的 id 空间**不同**:门 / 开关 / 器具 / 面板走 `structure_id`,
+    /// 容器走 `instance_id`(GDD 规则二逐字:「容器本身是一件掉落」)。</para>
+    /// <para>2026-11-02 · `AC-4-22`(用户裁定 B:柜 = 容器物品实例)。</para>
+    /// </summary>
+    public readonly struct ContainerDto
+    {
+        /// <summary>容器整数格。</summary>
+        public readonly WorldPos Cell;
+
+        /// <summary>物品实例 id(`instance_id`,与掉落共用 `IIdAuthority` 空间)。</summary>
+        public readonly long InstanceId;
+
+        public ContainerDto(WorldPos cell, long instanceId)
+        {
+            Cell = cell;
+            InstanceId = instanceId;
+        }
+    }
+
     /// <summary>开关输入形状(第四源:23 <c>BakedInitial</c>)。</summary>
     public readonly struct SwitchDto
     {
