@@ -9,13 +9,13 @@
 
 ## Overview
 
-玩家控制器与移动(系统 1)是全案「位移 = 纯表现态」裁决的执行者:移动由 `CharacterController`(kinematic,不参与 PhysX 求解)驱动,连续位置 / 速度 / 朝向**永不进三流**,其在 sim 中的唯一投影 = **跨格世界流事件 `ActorCellEntered`**(载荷只有整数格)。本 Epic 覆盖:① 移动程序集的边界纪律(引用集恰 = 边界程序集 + BCL、载荷类型递归纯净、1 不持有游戏状态);② 手感链(二维 `MoveInput` 经相机 yaw 基投影为世界方向 → 目标速度合成 → 加减速 → 转向 → 跳跃 → 地貌/情境乘数);③ 跨格检测与归并算子(事件率上界 = tick 频率,与帧率无关);④ 联机权责(Append 权 = 主机唯一,客户端经第二 QoS 上行其格)与 `MotorSuppressed` per-source lease 调用面。P0 只有一个移动档位(Walk,冲刺整档推 P1a,R7);接地模型的三命题不相容已裁「先 spike 再定」(`OQ-1-12`,P0 开工前须裁决)。**全部数值留白归用户**(AC-20-11),本 Epic 只交付形状与判据。
+玩家控制器与移动(系统 1)是全案「位移 = 纯表现态」裁决的执行者:移动由 `CharacterController`(kinematic,不参与 PhysX 求解)驱动,连续位置 / 速度 / 朝向**永不进三流**,其在 sim 中的唯一投影 = **跨格世界流事件 `ActorCellEntered`**(载荷只有整数格)。本 Epic 覆盖:① 移动程序集的边界纪律(引用集恰 = 边界程序集 + BCL、载荷类型递归纯净、1 不持有游戏状态);② 手感链(二维 `MoveInput` 经相机 yaw 基投影为世界方向 → 目标速度合成 → 加减速 → 转向 → 跳跃 → 地貌/情境乘数);③ 跨格检测与归并算子(事件率上界 = tick 频率,与帧率无关);④ 联机权责(Append 权 = 主机唯一,客户端经第二 QoS 上行其格)与 `MotorSuppressed` per-source lease 调用面。P0 只有一个移动档位(Walk,冲刺整档推 P1a,R7);接地模型的三命题不相容已裁「先 spike 再定」(`OQ-1-12`,P0 开工前须裁决)。**全部数值留白归用户**(AC-ADR020-11),本 Epic 只交付形状与判据。
 
 ## Governing ADRs
 
 | ADR | Decision Summary | Engine Risk |
 |-----|-----------------|-------------|
-| ADR-020: 玩家控制器与相机 | 移动 = `CharacterController`(kinematic,AC-20-01);玩家位移 = 纯表现态,唯一投影 = 跨格世界流事件(AC-20-03 BLOCKING,判据 = 反射断言非 grep);Amendment B:**Append 权 = 主机唯一**,`ActorCellEntered` 走第二 QoS 不在可靠通道;全部手感数值留白(AC-20-11) | LOW |
+| ADR-020: 玩家控制器与相机 | 移动 = `CharacterController`(kinematic,AC-ADR020-01);玩家位移 = 纯表现态,唯一投影 = 跨格世界流事件(AC-ADR020-03 BLOCKING,判据 = 反射断言非 grep);Amendment B:**Append 权 = 主机唯一**,`ActorCellEntered` 走第二 QoS 不在可靠通道;全部手感数值留白(AC-ADR020-11) | LOW |
 | ADR-005: 确定性模拟 | `ITickProvider` / `IEventSink` 抽象点;事件率与 tick 挂钩不挂帧;载荷整数域 | HIGH(逐位性须实测,裁决不依赖) |
 | ADR-006: 定点边界契约 | 载荷禁 float;`PatientId.None` 不污染高水位(Amendment B) | MEDIUM |
 | ADR-009: 世界流边界 | `ActorCellEntered` 属世界流;有界性论证依赖「事件率上界 = tick 频率」 | MEDIUM |

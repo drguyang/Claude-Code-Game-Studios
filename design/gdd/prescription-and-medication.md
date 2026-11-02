@@ -30,7 +30,7 @@
 > **上游**: 21a 物品与配方数据库(✅ `item-database.md` —— `drug_profile` 全字段 + **F5 品级→时间轴** · ⚠️ **`dose_range` 可空(D-21-6)= 11 须处理「无剂量域的药」** · **D-21-24 剂量地板的先例源** · **D-21-29 ✅ 已裁 2026-10-06:`portions_per_dose` 字段已在 21a §Schema B 落盘,11 只做求值方**)· 9 疾病与伤情模拟(✅ `disease-simulation.md` —— **处置载荷契约 + `treatable_by` 谓词 + `single_dose_max`**)· 30 技能与熟练度(✅ `skill-system.md` —— **P0 只读 `QueryLevel`;`SkillGrown` 落流的登记义务在 30 侧,尚未兑现** · 🔶 本轮建议回改 `skill-system.md:60` 的出口口径)· 20 库存与物品(🟡 `inventory-and-items.md` —— 药剂扣减 · **`dose` ≠ `份数`;✅ 2026-10-06 换算已裁 = 21a 字段 `portions_per_dose` + 11 求值**(20 只扣减,不换算))· 8 诊断(✅ —— **无数据流,刻意**)· 3 输入与设备(✅ —— `Interact` 动作 · 🔶 **戥子的模拟量读数契约本轮新立,须与 3 对拍**)· 2 摄像机与视角(✅ —— 见规则十二,**2026-09-21 裁定:不增行,复用 `Casebook` 档**)
 > **下游**: 9(写 **`SimEvent.Kind.DrugTreatmentApplied`** 落病史流 · 见规则三)· 53 医疗后果与责任(✅ —— `D-8-11` 试药史记账的**载体**)· 12 药物槽(P1a)· 16 中药选项(P1a)· 37 病例系统(✅ —— 处方记录)· 42 拟物 UI(✅ —— 方笺 / 药匣 · ✅ **两处已随 2026-09-21 第二十八批「42 修订轮」裁毕**:方笺归属 = 复用 `ModalId.Casebook`(不成新模态,闭集第七员是 `PaperCloseup48` 而非方笺)· 戥子档位读数元件 = **黄铜侧**)· 51 遥测(🟡 —— 读 `SkillGrown` 重算,**依赖 30 的残留登记兑现,非 ✅**)
 > **横向**: 10 急救动作(🟡 —— ⚠️ **本轮改判:不共用判定 / 熟练度结算函数**,共享面收窄为「载荷形状 + 流语义 + `ResultMul` 取值口径」,**C5 须重新解释**,见规则十一)· 4 交互系统(🟡 **In Review** —— 施治入口 **+ `K_difficulty` 代入**)· 3 输入与设备(✅ —— `Interact` 动作 + **戥子档位量化契约,规则十三新立**)· 2 摄像机与视角(✅ —— 见规则十二,**2026-09-21 已同批裁毕:档位表不增行**)· 7a 持久化(✅ —— 事件序列化 + **具名 Kind 的 `Kind` 枚举扩展**)
-> **架构约束**: `adr-005-deterministic-sim.md`(处置事件是唯一写回通道 · 主机唯一 Step · `Seq` 发号)· `adr-006-fixed-point-boundary-contract.md`(**Q16.16 整数域** · `FixParse` · 单一舍入 `ROUND_HALF_AWAY_FROM_ZERO`)· `adr-009-world-state-event-boundary.md`(**§三「系统 GDD 追加 Kind」通道 · Amendment I = `DrugTreatmentApplied` 的登记出处**)· `adr-012-cross-platform-determinism-ci-gate.md`(**F7:int64 直乘在 IL2CPP 下为 UB ⇒ 中间积宽度是硬约束 · ⚠️ **BL-7:`drug_potency` 的声明域未被任何文档强制,故「是否须 128 位」在域声明落盘前不可判定**)· `adr-013-skeuomorphic-ui-framework.md`(焦点官方桥 · `disease_id` 不进呈现层)· `adr-014-data-pipeline-and-json-parser.md`(处方表 = 作者态 → 烘焙)· `adr-017-dots-decision.md`(**§二 引用集白名单 = AC-11-10 判据形态的来源**)· `adr-020-player-controller-and-camera.md`(`AC-20-03`「判据 = 反射断言,不是 grep」的先例)
+> **架构约束**: `adr-005-deterministic-sim.md`(处置事件是唯一写回通道 · 主机唯一 Step · `Seq` 发号)· `adr-006-fixed-point-boundary-contract.md`(**Q16.16 整数域** · `FixParse` · 单一舍入 `ROUND_HALF_AWAY_FROM_ZERO`)· `adr-009-world-state-event-boundary.md`(**§三「系统 GDD 追加 Kind」通道 · Amendment I = `DrugTreatmentApplied` 的登记出处**)· `adr-012-cross-platform-determinism-ci-gate.md`(**F7:int64 直乘在 IL2CPP 下为 UB ⇒ 中间积宽度是硬约束 · ⚠️ **BL-7:`drug_potency` 的声明域未被任何文档强制,故「是否须 128 位」在域声明落盘前不可判定**)· `adr-013-skeuomorphic-ui-framework.md`(焦点官方桥 · `disease_id` 不进呈现层)· `adr-014-data-pipeline-and-json-parser.md`(处方表 = 作者态 → 烘焙)· `adr-017-dots-decision.md`(**§二 引用集白名单 = AC-11-10 判据形态的来源**)· `adr-020-player-controller-and-camera.md`(`AC-ADR020-03`「判据 = 反射断言,不是 grep」的先例)
 > **上游文档**: `disease-simulation.md`(`:117-192` 规则三 + 处置载荷 · `:288` `treatable_by[]` · `:638` 9 ← 11 · `:778-790` F1 式体与离牌门 · `:873-884` 取舍 2/3/4 · `:1524-1525` `MAX_ACTIVE_DOSE` / `single_dose_max`)· `item-database.md`(`:306-340` §Schema B · `:658-712` **F5** · `:226-232` 量纲 · `:779-783` 导入期硬失败 · **D-21-11 / D-21-22 / D-21-23 / D-21-24 / D-21-25**)· `diagnosis-system.md`(`:807-809` / `:1229` —— **8↔11 无数据流**)· `skill-system.md`(`:60` 处方用药 · `:92` P0 七项)
 
 ---
@@ -136,7 +136,7 @@
 | 20 的库存(有没有货) | **39 脉案里的病名** |
 
 > **⚠️ 判据(AC-11-01 · 2026-09-18 首轮评审拆分)**:原「代码路径检索 `diagnosis`/`disease_id`/`tier_named` = 0」
-> 是**字符串检索判据**,与仓库既有纪律相抵(ADR-020 AC-20-03:「判据 = 反射断言载荷字段类型,**不是 grep**」;
+> 是**字符串检索判据**,与仓库既有纪律相抵(ADR-020 AC-ADR020-03:「判据 = 反射断言载荷字段类型,**不是 grep**」;
 > 本 GDD 的 AC-11-14 自己用的就是递归反射扫描)。**现拆为两条可证伪判据**:
 > ① **反射断言**:11 的 sim 程序集 public API 签名的参数 / 返回类型闭集**不含** 8 的 `DiagnosisResult` 类、
 > 不含病种 id 类型(与 AC-11-14 同机制);
@@ -936,7 +936,7 @@ GateHit = ( 本次处置的 `dose` 为**该药 `dose_range` 的合法档** ∧ �
 | `adr-013` | §五 · §9 C3 | 焦点官方桥 / `disease_id` 不进呈现层 · 42 **只渲染不持状态** |
 | `adr-017` | §二 | 引用集白名单机制(**AC-11-10 的判据形态**由此借用) |
 | `adr-012` | F7 | `int64` 直乘在 IL2CPP 下为 UB ⇒ **F-11.1 的 128 位中间积是硬约束** |
-| `adr-020` | `AC-20-03` | **「判据 = 反射断言,不是 grep」的先例** —— AC-11-01 改写的依据 |
+| `adr-020` | `AC-ADR020-03` | **「判据 = 反射断言,不是 grep」的先例** —— AC-11-01 改写的依据 |
 
 ### 🔴 对外重开条件(2026-09-19 二轮新立 —— 三条 BLOCKING 的落点不在本文档)
 

@@ -10189,3 +10189,73 @@ python3 tools/acid/acid_check.py --check            # 期望:✅ 无新增撞号
 python3 tools/acid/acid_check.py --mutation-probe   # 期望:PROBE-OK
 python3 -c "import json;print(len(json.load(open('tools/acid/acid-baseline.json',encoding='utf-8'))['known_collisions']))"   # 期望 17
 ```
+
+---
+
+## 2026-11-02 · 同日**改判**:`TD-docs-01` 从「零改名 + 永久接受」改为「全 17 个改名」
+
+**出处**:用户指令「选 2 来进行修复」。⚠️ **本节的裁定取代上一条的裁定 ①**
+(上条原文不删,留作沿革)。
+
+### 用户裁定的沿革(两轮,同日)
+
+| 轮 | 裁定 | 覆盖范围 |
+|---|---|---|
+| 第一轮 | **① 零改名**:ADR 自有 AC 引用时写 `ADR-0NN AC-NN`,存量不动 | 17 个撞号**永久接受** |
+| **第二轮(现行)** | **全 17 个改名**:`AC-20-01…17` → `AC-ADR020-01…17` | 17 个撞号**从 ID 层面消除** |
+
+⚠️ **我给第二轮的选项写的是「给 15/16/17 改名」,范围不足** —— 撞号是 17 个,
+只改三个会留下 14 个。该缺陷在提问时已当面指出并按「全 17 个」重新确认。
+
+### 改名的判据 = **语义**,不是编号
+
+同一个裸串在两个语义面都在用,必须逐处判:
+
+| 例子 | ADR-020 语义(改) | 库存语义(不改) |
+|---|---|---|
+| `AC-20-10` | `BootRoot.cs:835` AudioListener 单挂点 | `InventoryContainerScreen.cs:12` 禁负重条 / 百分比 / 数字 |
+| `AC-20-03` | `architecture.md:893` 连续位置不写流 | `CompositionRoot.cs:943` 三流 ∪ 基线扫描域 |
+| `AC-20-15` | `architecture.md:915` 相机优先级 | `traceability-index.md:1046` DTO 无 float |
+
+⇒ **凡按文件整片替换都会改错**。分类方式:**纯相机/玩家文件整片改;混杂文件逐行判**
+(行号在人工逐条判定后写死进改名脚本)。
+
+### 落地量
+
+| 项 | 数 |
+|---|---|
+| 改名处数 | **245** |
+| 涉及文件 | **67** |
+| 整片改的纯语义文件 | 46 件(`adr-020` / `camera-and-viewpoint` / `player-controller-and-movement` / `camera-viewpoint` 与 `player-controller` 两个 epic 全部 / 相机与玩家程序集 / 相机夹具 / `tr-registry` 外的架构件 …) |
+| 逐行改的混杂文件 | 10 件(`tr-registry.yaml` 12 处 · `traceability-index.md` 8 处 · `BootRoot.cs` 5 处 · `interaction-system.md` 2 处 …) |
+| **故意不改** | 库存侧全部;以及**记录本债自身的历史件**(债册本条 / `sprint-23` / `active.md` / `interaction-system.md:671-674` —— 后者是 4 的 GDD 早先对**同一个撞号**的登记,原文不删) |
+
+### 门的同步变化
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| `acid-baseline.json` | 17 条冻结 | **空**(零容忍) |
+| `--check` 输出 | ✅ + 「仍存 17 个已知撞号」提示 | ✅ 无提示 |
+| `--mutation-probe` | 用真基线 ID 当靶 | **改为完全合成**(空基线上原实现会 `IndexError` 自崩 —— 改名轮实测抓到) |
+
+⚠️ **`--mutation-probe` 的自崩是本轮抓到的真缺陷**:探针依赖「基线非空」这个**偶然事实**,
+基线一空就崩。改为合成最小定义集后与仓库现状解耦 —— 它测的是**判据逻辑**,
+真实接线由 `--check` + 真文件变异(R1–R3)覆盖。
+
+### 复算
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/acid/acid_check.py --check          # 期望:✅ 无新增撞号(无提示行)
+python3 tools/acid/acid_check.py --mutation-probe # 期望:PROBE-OK
+grep -rhoE "AC-ADR020-[0-9]+" unity/Assets --include=*.cs | wc -l        # 期望 43
+grep -rhoE "AC-ADR020-[0-9]+" docs/architecture | wc -l                  # 期望 63
+grep -cE "AC-20-(0[1-9]|1[0-7])" design/gdd/camera-and-viewpoint.md docs/architecture/adr-020-player-controller-and-camera.md   # 期望 0 0
+grep -c "^| \*\*AC-20-" design/gdd/inventory-and-items.md                # 期望 25(库存定义完好)
+```
+
+⚠️ **「245 处」是改名脚本**应用时**自报的数**(它统计「被替换的 ID 个数」);
+全库 `grep AC-ADR020-` 会更多(**248**),差额来自记录本债自身的件(债册 / `sprint-23` /
+`active.md` 里的叙述)+ `coding-standards.md` 的示例行。**两个数不是同一个量纲**,
+不要互相校验。
+```

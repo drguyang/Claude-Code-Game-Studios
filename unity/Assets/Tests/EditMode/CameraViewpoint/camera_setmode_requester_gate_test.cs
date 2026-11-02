@@ -35,7 +35,7 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             var errs = CameraSetModeRequesterGate.RunAll(".");
             Assert.That(errs, Is.Empty,
                 "生产码出现单参 `SetMode` 或 `requesterId: -1` —— 甲案的「同一请求方可降档」" +
-                "判据会恒假并**静默失效**(ADR-020 Amendment C ② / AC-20-16)。\n" +
+                "判据会恒假并**静默失效**(ADR-020 Amendment C ② / AC-ADR020-16)。\n" +
                 string.Join("\n", errs));
         }
 

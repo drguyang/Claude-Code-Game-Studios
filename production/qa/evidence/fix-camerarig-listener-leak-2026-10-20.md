@@ -85,7 +85,7 @@ reparent 不改世界坐标语义;`CameraRig` 自身不读 `transform.parent`(�
 
 ```
 test_bootSequence_installsSingleEventSystemWithWiredActions
-  AC-20-10:active 1 个 / 挂载总数 2 个
+  AC-ADR020-10:active 1 个 / 挂载总数 2 个
 ```
 
 `active = 1` **对了**(听音点唯一),但**挂载总数 2** —— 多出一个 inactive listener。

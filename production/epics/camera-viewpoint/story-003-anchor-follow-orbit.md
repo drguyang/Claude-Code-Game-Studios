@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 🔴 本故事承载 2026-09-16 评审的**积分器改判**:显式(前向)欧拉在二阶系统上**条件稳定**(`ω·dt` 近 1 环振、超 2 发散),而原稿把「钳到 `MAX_DT`」当稳定性手段——**恰恰掩盖了问题**(钳位防单帧尖峰,防不了 `ANCHOR_RESPONSE` 被调大)。改**半隐式 + 子步**后,稳定性内化(买到的性质:`ω` **无上界约束**),`MAX_DT` 回归它在系统 1 的本来身份:**位移预算**常量。
 
-**ADR Governing Implementation**: ADR-020(§一 数值留白 AC-20-11 —— 本故事只交付形状与判据)· ADR-011(`Look` 动作经动作映射供给;绕点段相位与 story 002 的次序契约同源)· ADR-005(相机的 `dt` 是**表现态帧时长,非 tick** —— F-2-1 变量表原文"本系统无 tick 概念";`Time.timeScale` 语义归该 ADR,EC-2-5 走 `unscaledDeltaTime`)
+**ADR Governing Implementation**: ADR-020(§一 数值留白 AC-ADR020-11 —— 本故事只交付形状与判据)· ADR-011(`Look` 动作经动作映射供给;绕点段相位与 story 002 的次序契约同源)· ADR-005(相机的 `dt` 是**表现态帧时长,非 tick** —— F-2-1 变量表原文"本系统无 tick 概念";`Time.timeScale` 语义归该 ADR,EC-2-5 走 `unscaledDeltaTime`)
 **ADR Decision Summary**: F-2-1 公式:`h := dt/n`,`n := ceil(dt / (0.5/ω))`(子步确保 `ω·h ≤ 0.5`),每子步 ① `v_anchor += ((P_player − anchor)·ω² − v_anchor·2ω)·h`(**先更新速度**)② `anchor += v_anchor·h`(**再用新速度**)。`n`/`h` 是**派生量不是旋钮**(组 5c:把 `n` 当旋钮 = 允许 `ω·h > 0.5` 破坏稳定性前提)。`MAX_DT` **归系统 1**(组 6):两条链面对同一次掉帧必须同一钳位值,否则「玩家瞬移过锚」或「锚瞬移过玩家」二选一发生 —— **2 自行定义第二个 `MAX_DT` 即构成静默失配**(登记为 2→1 反向依赖)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
@@ -75,7 +75,7 @@
 - Story 005:`AC-2-27③` 的 `Tick` 单一调用点(本故事的积分循环挂在该调用点之下);档位转场对 `ANCHOR_RESPONSE` 的插值(F-2-5 归 story 005 的 `AC-2-18`)
 - Story 006:`AC-2-21`(`PITCH_MAX` 取值回填 = EXTERNAL)
 - 系统 1:`MAX_DT` 的定义本体与 `SPEED_MAX × MAX_DT ≤ LATTICE_SIZE` 的位移预算(1 的 `AC-1-16`/`AC-1-21`)—— 本故事只**读同一常量**并守"不自定义第二个"
-- 数值取值(全部)—— 归用户(AC-20-11 / 数值冻结纪律)
+- 数值取值(全部)—— 归用户(AC-ADR020-11 / 数值冻结纪律)
 
 ---
 

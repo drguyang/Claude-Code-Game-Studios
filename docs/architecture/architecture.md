@@ -890,7 +890,7 @@ public interface IPlayerMotor
     bool    ConsumeCellChanged();                 // 跨格边沿;True 时由**主机**发 ActorCellEntered
 }
 // 不变量(调用方必须遵守):
-//   ① 连续位置 / 速度 / 朝向 **不得**出现在任何 IEventSink.Append 调用点(AC-20-03 BLOCKING)
+//   ① 连续位置 / 速度 / 朝向 **不得**出现在任何 IEventSink.Append 调用点(AC-ADR020-03 BLOCKING)
 //   ② 事件率上界 = tick 频率(每 tick 至多一条),**与帧率 / 移动速度无关**(AC-1-03)
 //   ③ 客户端 `Append` 调用点数 = **0**;其格经第二 QoS 上行(ADR-020 Amendment B)
 // 判据形式:**反射断言载荷字段类型集合 ⊆ {int32, int64, 整数枚举}** —— 不是 grep
@@ -907,12 +907,12 @@ public interface ICameraRig
     (Vector3 fwd, Vector3 right) YawBasis { get; } // **只读** —— 1 的唯一消费方
 }
 // 位姿访问器 `GetCameraPosition(t)` / `GetLookTarget(t)` **刻意不在接口上**(Amendment C ③):
-//   接口 = 消费者契约;位姿序列化 = 唯一驱动器(BootRoot)的内务。二者**同进同出**(AC-20-17)。
+//   接口 = 消费者契约;位姿序列化 = 唯一驱动器(BootRoot)的内务。二者**同进同出**(AC-ADR020-17)。
 // 不变量: ① 相机**零写入**(系统 1 对相机状态 / 变换的写入数 = 0,AC-2-10②)
 //         ② 相机程序集**不引用 sim 实现程序集**(AC-2-04 BLOCKING)
 //         ③ `YawBasis` 手性须逐分量等于 normalize(cross(worldUp, f̂))(防**静默镜像**,AC-2-07②)
 //         ④ **禁 Normalize()** —— sin²+cos²=1 构造即单位,多一次归一化只引入浮点误差(R-2-7)
-//         ⑤ `CameraModePriority`: Casebook(3) > Downed(2) == Treatment(2) > Explore(1)(AC-20-15①)
+//         ⑤ `CameraModePriority`: Casebook(3) > Downed(2) == Treatment(2) > Explore(1)(AC-ADR020-15①)
 
 // ══ 在场视图(ADR-016 §六;37 读 13,13 不引用 37)══
 public interface IPresentPatients

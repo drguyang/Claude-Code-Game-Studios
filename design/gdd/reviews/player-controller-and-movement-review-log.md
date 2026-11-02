@@ -59,7 +59,7 @@ unity-specialist B9)—— 全场最强信号:**全篇没有任何公式把 `Mov
 
 1. **「事件频率 = 格穿越率」→「事件率上界 = tick 频率」** —— 归并算符的存在使上界与帧率 / 位移距离**解耦**。
    波及:本 GDD(Overview / R5 / EC-2 / EC-4)· **ADR-009 Amendment G** · **ADR-016 §三** ·
-   **ADR-020 §四 / `AC-20-04`** · `architecture.yaml` ×2 · `entities.yaml` · `technical-preferences.md` ×2 ·
+   **ADR-020 §四 / `AC-ADR020-04`** · `architecture.yaml` ×2 · `entities.yaml` · `technical-preferences.md` ×2 ·
    `traceability-index.md`。
 2. **判据口径订正:「grep 无 `Vector3` → `Append`」→「反射断言载荷字段类型」** ——
    原判据是**假阳性机器**:F-1-6 的跨格检测**必然读 `Vector3`**(渲染层位置),而它**不写流**。
@@ -87,7 +87,7 @@ unity-specialist B9)—— 全场最强信号:**全篇没有任何公式把 `Mov
 | **ADR-006 Amendment F** | **算术域 vs 边界域切分** —— §一/§三/§四(定点算术)**不适用**于本系统;§二(边界)**适用** |
 | **ADR-009 Amendment G** | `ActorCellEntered` 登记为第 **10** 个 `Kind`;`tick` 语义收窄为「**观察到**跨格的那一 tick」;**频率口径订正**为上界 = tick 频率 |
 | **ADR-015 §一之补** | **可走性契约** —— `slopeLimit` / `stepOffset` 的语义 + 归属 + **同源纪律**(两侧不一致 = 装载失败);§Validation 增「可走性同源 BLOCKING」(**结清 `O-9`**) |
-| **ADR-020 §四 + `AC-20-03/04`** | 频率口径订正;新增 **`AC-20-13`**(跨格 `Append` 权 = 主机唯一)与 **`AC-20-14`**(`YawBasis` 只读 + 水平化正交归一) |
+| **ADR-020 §四 + `AC-ADR020-03/04`** | 频率口径订正;新增 **`AC-ADR020-13`**(跨格 `Append` 权 = 主机唯一)与 **`AC-ADR020-14`**(`YawBasis` 只读 + 水平化正交归一) |
 | **ADR-016 §三** | 频率口径订正 ×3 处 |
 | `architecture.yaml` | `player_presentation_motion` 写权补「主机唯一 Append」;`camera_readonly_view` 接口补 `YawBasis`;`player_cell_crossing_event` 生产者 / 消费者 / 签名 / `referenced_by` 全量刷新;`player_movement_model` 可走性措辞订正(**`OQ-1-2` 出处订正**) |
 | `entities.yaml` | `SimEvent.Kind.ActorCellEntered` constraint 补主机唯一 Append + 非可靠通道 + `tick` 语义 |
@@ -151,7 +151,7 @@ Summary:首轮修订的**质量很高、本文件内自洽** —— 三条不变
 
 | # | 发现 | 处置 | 落点 |
 |---|------|------|------|
-| R1 | 客户端本地 `last_committed_cell` 与主机权威态**无同步纪律** —— 预测回滚可能让主机 Append 一条权威从未到过的格 | 新增**提交态归主机**三分句:客户端只上行 `pending_cell`;主机 `last_committed_cell` 只由自己的 Append 推进(相同值丢弃);`AC-1-30` 补反向用例③ | GDD §States 归并块末 · `AC-1-30` ③ · `AC-20-13` |
+| R1 | 客户端本地 `last_committed_cell` 与主机权威态**无同步纪律** —— 预测回滚可能让主机 Append 一条权威从未到过的格 | 新增**提交态归主机**三分句:客户端只上行 `pending_cell`;主机 `last_committed_cell` 只由自己的 Append 推进(相同值丢弃);`AC-1-30` 补反向用例③ | GDD §States 归并块末 · `AC-1-30` ③ · `AC-ADR020-13` |
 | R2 | `adr-016:429` 的 Validation 项仍写「事件数 **=** 格穿越数」(首轮已订正正文 :194,漏了这里) | 就地改为「上界 = tick 频率」+ 订正理由 | `adr-016` §Validation |
 | R3 | F-1-7 值表层列了 `K_terrain_turn?`(带问号),而 F-1-4 的 `TURN_RATE` **只吃什么乘数都没说** —— 地貌是否影响转向未定 | 从值表层删去该可选键(F-1-4 只吃 `K_context_turn`;地貌若日后要影响转向,须与 F-1-1a 同级重核) | GDD F-1-7 值表层 · 交叉见 `OQ-1-13` |
 | R4 | `patient-ai.md:459` 仍写「1 …… ❌ 无 GDD」,而 1 的 GDD 已于同日落盘 | 就地更新为 ✅ + 注明事件率上界口径(不是"= 格穿越率") | `patient-ai.md` §Dependencies 上游表 |

@@ -98,7 +98,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "InventoryDtoFloatGate.RunAll",  // AC-20-15 20 输出 DTO 双层零浮点门 · 2026-10-26
                     "CarryCapExistenceGate.RunAll",  // AC-20-21 存在性门(自指谓词)· 2026-10-26 S20-12
                     "HarvestGateAllowGate.RunAll",   // S22-9 生产零 HarvestGate.Allow(F6 执行体)· 2026-11-01
-                    "CameraSetModeRequesterGate.RunAll", // 生产必须双参 SetMode(ADR-020 Amd C② / AC-20-16)· 2026-11-02
+                    "CameraSetModeRequesterGate.RunAll", // 生产必须双参 SetMode(ADR-020 Amd C② / AC-ADR020-16)· 2026-11-02
                     "CameraSetModeRequesterGate.RunModeRequestTable", // 档位表 ↔ 代码覆盖(表 ⊆ 代码)· camera-viewpoint/story-007 · 2026-11-02
                 },
 
@@ -217,7 +217,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },
             new ClassVerdict { ClassName = "PlayModeTeardownFindGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
-                Note = "2026-11-01 落;病因 = `AC-20-10` 全量串跑**偶发红**(run1 绿/run2 红) —— " +
+                Note = "2026-11-01 落;病因 = `AC-ADR020-10` 全量串跑**偶发红**(run1 绿/run2 红) —— " +
                        "TearDown 用 `GameObject.Find` 只查 active ⇒ 被启动序禁用的预摆留场 ⇒ " +
                        "`BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener" },
             new ClassVerdict { ClassName = "PrescriptionWriterGates", Kind = WiringKind.Chain,

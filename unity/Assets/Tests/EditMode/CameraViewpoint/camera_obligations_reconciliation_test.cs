@@ -322,7 +322,7 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         // ══════════════ ADR-020 Amendment C(P0 接口面)══════════════
 
         /// <summary>
-        /// **AC-20-17**:位姿访问器 `GetCameraPosition` / `GetLookTarget` **都在具体类、都不在接口**,
+        /// **AC-ADR020-17**:位姿访问器 `GetCameraPosition` / `GetLookTarget` **都在具体类、都不在接口**,
         /// 且**同进同出**(不得只搬其中一个)。
         /// </summary>
         /// <remarks>
@@ -344,7 +344,7 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             {
                 Assert.IsNull(iface.GetMethod(name),
                     $"`{name}` **不得**出现在 `ICameraRig` 上 —— 接口 = 消费者契约," +
-                    "位姿序列化是唯一驱动器(BootRoot)的内务(ADR-020 Amendment C ③ / AC-20-17)");
+                    "位姿序列化是唯一驱动器(BootRoot)的内务(ADR-020 Amendment C ③ / AC-ADR020-17)");
 
                 Assert.IsNotNull(concrete.GetMethod(name),
                     $"`{name}` 须在 `CameraRig` 上 —— **同进同出**:只断「接口不含」的话," +

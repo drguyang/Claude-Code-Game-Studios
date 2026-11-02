@@ -649,7 +649,7 @@ F1 入参             = clamp( EnvMod_total, ENV_MOD_MIN, ENV_MOD_MAX )   // 唯
 > **阻塞级**(承 1 号 GDD 先例):**BLOCKING** = 不签则 5 不得进 epics · **ADVISORY** = 重要但不 gate ·
 > **EXTERNAL** = 判据成立与否取决于 5 之外的件(未成稿 / 未实现),**5 侧不得记绿**(承「借来的绿」禁令)。
 > 首轮评审 B-8 的总订正原则:**判据必须落在「谁能在哪台机器上跑出 pass/fail」**,
-> 可执行手段仿 AC-20-03(反射断言,非 grep)、`PresentationDtoGuard`(递归扫描)、ADR-017 §二(引用集白名单)。
+> 可执行手段仿 AC-ADR020-03(反射断言,非 grep)、`PresentationDtoGuard`(递归扫描)、ADR-017 §二(引用集白名单)。
 
 ### A 组 · 边界与归属(全 BLOCKING)
 
@@ -677,7 +677,7 @@ F1 入参             = clamp( EnvMod_total, ENV_MOD_MIN, ENV_MOD_MAX )   // 唯
 
 | ID | Type | 级别 | 判据 |
 | --- | --- | --- | --- |
-| **AC-5-16** | **[A]** | BLOCKING | `GIVEN` 5 的公开接口面,`WHEN` **反射枚举 5 程序集的全部 public 类型成员**,`THEN`:**类型断言**(仿 AC-20-03,非命名 grep)—— 不存在任何**乘法签名的季节修正接口**(形如 `Fix SeasonMod(...)` / 返回 `Fix` 且参数含 `season` 的方法),季节方向的出口**有且仅有** `int SeasonIndex(long tick)`;`SEASON_MULT` 类型名在 5 的程序集中**零出现**(§F-5.2 割据 · `OQ-5-1`) |
+| **AC-5-16** | **[A]** | BLOCKING | `GIVEN` 5 的公开接口面,`WHEN` **反射枚举 5 程序集的全部 public 类型成员**,`THEN`:**类型断言**(仿 AC-ADR020-03,非命名 grep)—— 不存在任何**乘法签名的季节修正接口**(形如 `Fix SeasonMod(...)` / 返回 `Fix` 且参数含 `season` 的方法),季节方向的出口**有且仅有** `int SeasonIndex(long tick)`;`SEASON_MULT` 类型名在 5 的程序集中**零出现**(§F-5.2 割据 · `OQ-5-1`) |
 | **AC-5-12** | **[A]** | BLOCKING | `GIVEN` 玩家 cell 位于无生态区格(含未驻留 chunk ⇒ `EcozoneOf` 返回 `ROOM_NONE`),`WHEN` 求 `Weather` / `EnvMod_raw`,`THEN` 取**全局默认**(**非最近区** —— 「取最近」可测反例:在两个生态区的中点格,输出 = 默认表值而非任一侧查表值)(规则二 · `world-and-ecozones.md:742`) |
 | **AC-5-14** | **[I]** | BLOCKING | `GIVEN` 5 与 24 同时产 `EnvMod` 分量,`WHEN` 集成走查一次炮制,`THEN`:**① 合并后由 21a F1 单次钳制**;**② 两分量各自的负值均保留**(规则六);**③ 附加断言(✅ R-5-B):21a F1 的 `EnvMod_total` 中两分量的 `cell` 参数为同一格**(医馆房间格)—— 走查以「玩家站在医馆外一格启动灶台(若可能)」构造反例,断言两分量仍同取房间格而非一格内一格外的混搭;不一致 ⇒ 集成测试红 |
 | **AC-5-19** | **[A]** | BLOCKING | `GIVEN` 构造 `g(·)` 输出越界的夹具(`EnvMod_raw = −0.9×MUL_ONE`,24 分量 = +0.4×MUL_ONE,`ENV_MOD_MIN = −0.5`),`WHEN` 走完整链路到 21a F1 入参,`THEN`:5 的导出**原样 −0.9**(零钳制);F1 入参 = `clamp(−0.5, −0.5)` = **−0.5**,**不是** 5 侧截断后的 −0.1(✅ B-3 修订 · 规则六算例的机器版)。**⚠️ 2026-09-19 口径收窄(承 18 首轮评审 R-18-C)**:本条**断言 21a 行为的后半**(「F1 入参 = clamp(…)」)在 D-21-31 落盘前无被测物 —— 当时 21a F1 正文**并无钳制操作**。现钳制式已具名进 `item-database.md` F1 正文(`EnvMod_total = clamp(climate + clinic, MIN, MAX)`)⇒ **本条改为:5 侧只断「自家导出零钳制」;钳制断言的执行与验收归 21a(F1 正文 + 其构建期门)**。跨系统 AC 指认他系统行为 = 记账反模式,本条是仓库首例自查修正 |

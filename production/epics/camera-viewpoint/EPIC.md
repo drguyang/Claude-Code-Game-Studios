@@ -8,13 +8,13 @@
 
 ## Overview
 
-摄像机与视角(系统 2)是呈现层三件套(2 / 42 / 44)中「只读、永不持有游戏状态」纪律的相机侧执行者:平面模式 = 第三人称越肩(自建机位,**零 Cinemachine**),VR = 独立第一人称(P1a,平面链冻结)。本 Epic 覆盖:① 呈现纪律与边界(状态不进门、`manifest.json` 零第三方、引用集白名单、零 `SimEvent`、镜头效果归属与 `AudioListener` 唯一);② **对系统 1 的唯一硬交付 `YawBasis`**(水平化 / 正交归一 / 手性 / `PITCH_MAX < 90°` / 帧内次序契约 —— 「系统 1 全程可编译、可测试通过,但游戏不可玩」的补位);③ 机器行为四段(二阶临界阻尼锚跟随半隐式+子步、`dt` 位移预算钳位、绕点解耦、出臂几何、收缩瞬时/回弹阻尼的非对称);④ 档位状态机(意图制 `SetMode`、优先级 `Casebook > Treatment > Explore`、每帧一结算、不过冲转场、不自行超时);⑤ 性能义务(每帧 PhysX 查询 == 1、`Casebook` 档 == 0、`Tick` 单一显式相位);⑥ 跨系统登记义务对账与舒适度签核面。**全部数值留白归用户**(AC-20-11),通用口径 = **「装载期断言 + 留白数值」:取值一旦存在即被守住;缺键 ⇒ 拒绝启动或 `INCONCLUSIVE`,不得记绿**。
+摄像机与视角(系统 2)是呈现层三件套(2 / 42 / 44)中「只读、永不持有游戏状态」纪律的相机侧执行者:平面模式 = 第三人称越肩(自建机位,**零 Cinemachine**),VR = 独立第一人称(P1a,平面链冻结)。本 Epic 覆盖:① 呈现纪律与边界(状态不进门、`manifest.json` 零第三方、引用集白名单、零 `SimEvent`、镜头效果归属与 `AudioListener` 唯一);② **对系统 1 的唯一硬交付 `YawBasis`**(水平化 / 正交归一 / 手性 / `PITCH_MAX < 90°` / 帧内次序契约 —— 「系统 1 全程可编译、可测试通过,但游戏不可玩」的补位);③ 机器行为四段(二阶临界阻尼锚跟随半隐式+子步、`dt` 位移预算钳位、绕点解耦、出臂几何、收缩瞬时/回弹阻尼的非对称);④ 档位状态机(意图制 `SetMode`、优先级 `Casebook > Treatment > Explore`、每帧一结算、不过冲转场、不自行超时);⑤ 性能义务(每帧 PhysX 查询 == 1、`Casebook` 档 == 0、`Tick` 单一显式相位);⑥ 跨系统登记义务对账与舒适度签核面。**全部数值留白归用户**(AC-ADR020-11),通用口径 = **「装载期断言 + 留白数值」:取值一旦存在即被守住;缺键 ⇒ 拒绝启动或 `INCONCLUSIVE`,不得记绿**。
 
 ## Governing ADRs
 
 | ADR | Decision Summary | Engine Risk |
 |-----|-----------------|-------------|
-| ADR-020: 玩家控制器与相机 | 相机 = **自建机位**(`ICameraRig`,不引入 Cinemachine,AC-20-02);§五 相机只读不持状态(AC-20-05);§六 镜头效果归属 = 8 语义 + 2 实现、VR 全禁、不得报状态;§七 `AudioListener` 单挂点;Amendment B `YawBasis` 硬交付(AC-20-14);全部数值留白(AC-20-11) | LOW |
+| ADR-020: 玩家控制器与相机 | 相机 = **自建机位**(`ICameraRig`,不引入 Cinemachine,AC-ADR020-02);§五 相机只读不持状态(AC-ADR020-05);§六 镜头效果归属 = 8 语义 + 2 实现、VR 全禁、不得报状态;§七 `AudioListener` 单挂点;Amendment B `YawBasis` 硬交付(AC-ADR020-14);全部数值留白(AC-ADR020-11) | LOW |
 | ADR-011: 输入架构 | `Look` 动作映射;`InputSystem.onAfterUpdate` 固定相位 = `AC-2-10①` / `AC-2-27③` 求值次序的机制来源 | HIGH(6.3 行为须实测;接口层纯 C#) |
 | ADR-013: 拟物 UI 框架 | 呈现层三件套同构纪律(§9 C3);`ModalId` 闭集(39 发 `Casebook` 的呈现侧);`IModalState` 只读 | HIGH(部分须 spike;本 Epic 只消费只读面) |
 | ADR-023: 渲染与场景加载 | 相机与 `AudioListener` 归 **Boot 常驻场景**;`World.unity` 零 gameplay GameObject(AC-2-06④ 的全场景计数判据以 Boot 拓扑为参照) | HIGH(Addressables/RenderGraph post-cutoff;判据本体不依赖) |

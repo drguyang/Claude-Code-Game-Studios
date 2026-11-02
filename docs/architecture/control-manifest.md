@@ -5,7 +5,7 @@
 > **Manifest Version**: 2026-11-02
 > ⚠️ **2026-11-02 增量升级(非重新生成)**:**唯一实质改动** =
 > 「控制器与相机(ADR-020)」节新增一条**硬规则**:*生产调用方必须用双参 `SetMode(mode, requesterId)`*
-> (ADR-020 **Amendment C ②** · AC-20-16),并配机械执行体 `CameraSetModeRequesterGate`。
+> (ADR-020 **Amendment C ②** · AC-ADR020-16),并配机械执行体 `CameraSetModeRequesterGate`。
 > **其余各节一字未改**;`/story-readiness` 比对版本时,2026-10-15 → 2026-11-02 的差异**仅此一条**,
 > 不构成其他规则的重新解读。
 > ⚠️ **传播范围 —— 已按用户裁定于 2026-11-02 批量回刷(如实登记)**
@@ -391,17 +391,17 @@ rule, see the referenced ADR.
 - **51 不得成为「替用户调数值」的替身** —— 数值用户自己调 — ADR-019 §六:245
 
 **控制器与相机(ADR-020)**
-- 移动 = **`CharacterController`(kinematic,不参与 PhysX 求解)** — ADR-020 §一:185(AC-20-01)
+- 移动 = **`CharacterController`(kinematic,不参与 PhysX 求解)** — ADR-020 §一:185(AC-ADR020-01)
 - 相机 = **自建机位**(`ICameraRig`),**不引入 Cinemachine`;否决理由:VR 侧用不上,引入它给 VR 带来一条**必须绕开的旁路** — ADR-020 §二:202, 224
 - 视角双路径:平面 = 第三人称越肩;VR = 独立第一人称(不承担开放世界移动),实现推 P1a
-- **玩家位移 = 纯表现态**:**连续位置 / 速度 / 朝向永不写流**,在 sim 中的唯一投影 = **跨格世界流事件** — ADR-020 §四:275(AC-20-03 BLOCKING)
+- **玩家位移 = 纯表现态**:**连续位置 / 速度 / 朝向永不写流**,在 sim 中的唯一投影 = **跨格世界流事件** — ADR-020 §四:275(AC-ADR020-03 BLOCKING)
 - **`Append` 权 = 主机唯一**(客户端经第二 QoS 上行其格;`ActorCellEntered` **不在可靠通道**) — ADR-020 §四:299 · Amendment B:313(**不改 §四 核心**)
 - **相机是表现层 —— 只读,永不持有游戏状态**(与 42 / 44 三件套同构) — ADR-020 §五:322
 - **VR 模式禁用任何镜头效果**(VR 舒适度优先于呈现;`VRComfort` 快照承载) — ADR-020 §六:341
 - **镜头效果不得用于「报」状态** —— 与 ADR-018 §六 无提示音铁律**同源**(同一铁律的视觉侧),只允许行为反馈 — ADR-020 §六:342
-- `AudioListener` 单挂点:平面 = 主相机,VR = 头显(AC-20-10)—— 结清 `adr-018:295` 留白
+- `AudioListener` 单挂点:平面 = 主相机,VR = 头显(AC-ADR020-10)—— 结清 `adr-018:295` 留白
 
-> 🔴 **生产调用方必须用双参 `SetMode(mode, requesterId)`**(2026-11-02 新增;ADR-020 Amendment C ② · AC-20-16)
+> 🔴 **生产调用方必须用双参 `SetMode(mode, requesterId)`**(2026-11-02 新增;ADR-020 Amendment C ② · AC-ADR020-16)
 >
 > **禁**:生产码里 `rig.SetMode(mode)`(单参重载)或 `rig.SetMode(mode, -1)`(显式传 `-1`)。
 > **须**:传入**真实系统号**(10 急救 / 29 死亡过渡 / 39 脉案…)。

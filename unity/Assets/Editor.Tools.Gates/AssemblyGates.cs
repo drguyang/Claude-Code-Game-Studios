@@ -165,7 +165,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 裸用 `UnityEditor` ⇒ CS0234 ⇒ 整个 player 出不来。
             errs.AddRange(PlayerAssemblyGate.RunAll("."));
             // PlayMode TearDown 禁 `GameObject.Find` 清场门(2026-11-01):
-            // 病因 = `AC-20-10` 在**全量串跑**下**偶发红**(run1 绿 / run2 红)。四步根因链:
+            // 病因 = `AC-ADR020-10` 在**全量串跑**下**偶发红**(run1 绿 / run2 红)。四步根因链:
             //   ① `camera_follow_wiring_test` 的 TearDown 用 `GameObject.Find("Main Camera")` +
             //      `SetActive(true)`「恢复」预摆 —— 但 `Find` 只查 active,而预摆已被启动序
             //      `SetActive(false)` ⇒ 返回 null ⇒ 那句恒不执行 ⇒ 预摆(带 listener)留场;

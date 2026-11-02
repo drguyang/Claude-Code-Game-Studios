@@ -15,14 +15,14 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 🔴 **B 组是 2 唯一"缺了会不可玩"的交付面**(GDD 节首原话):系统 1 的 `F-1-8` 靠它把二维 `MoveInput` 投影成世界方向 —— 「系统 1 GDD 全程可编译、可测试通过,但游戏不可玩」。本故事同时是**玩家控制器 Epic Story 002 的跨 Epic 硬前置**(1 的 `O-8` 对侧;1 的 `AC-1-31` 回指本故事的 `YAW_BASIS_EPS` 常量符号)。
 
-**ADR Governing Implementation**: ADR-020(Amendment B:`YawBasis = (Vector3 fwd, Vector3 right)` 水平化正交基,只读;判据 = AC-20-14;方向单向 —— 1 读 2 的基,2 读 1 的 `Position`,两条边方向相反**不构成类型环**)· ADR-011(`InputSystem.onAfterUpdate` 固定相位 = `AC-2-10①`/`AC-2-27③` 的机制来源,EC-2-14 评审重写后钉死)· ADR-014(俯仰参数表值走烘焙管线;`YAW_BASIS_EPS` 等容差常量 = 2 自有,**不是手感旋钮**,组 5b)
+**ADR Governing Implementation**: ADR-020(Amendment B:`YawBasis = (Vector3 fwd, Vector3 right)` 水平化正交基,只读;判据 = AC-ADR020-14;方向单向 —— 1 读 2 的基,2 读 1 的 `Position`,两条边方向相反**不构成类型环**)· ADR-011(`InputSystem.onAfterUpdate` 固定相位 = `AC-2-10①`/`AC-2-27③` 的机制来源,EC-2-14 评审重写后钉死)· ADR-014(俯仰参数表值走烘焙管线;`YAW_BASIS_EPS` 等容差常量 = 2 自有,**不是手感旋钮**,组 5b)
 **ADR Decision Summary**: F-2-2 的构造式 `f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)` —— **构造成立,不靠事后归一**(y 分量写死 0;单位性由 sin/cos 恒等式给出,残差仅浮点误差 ≤ `YAW_BASIS_EPS`)。2026-09-16 评审把 `AC-2-10` 从「每帧 yaw 更新点数 ≤ 1」(**Unity 里无机制保证的不可执行承诺**)订正为**次序不变量**:先 `Look` 采样与 `yaw` 更新(相机 `Tick` 绕点段),后任何 `YawBasis` 消费方读取 —— 「一帧内恒定是**靠次序保证的**,不是靠自律」。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW(数学本体)/ MEDIUM(相位落点)
 **Engine Notes**: `Mathf.Sin/Cos` 的 float 行为长期稳定;单位性残差量级 ~1e-7,`YAW_BASIS_EPS` 取值由用户定(组 5b,「改它们只影响判据的灵敏度」)。⚠️ 相位落点二选一(`InputSystem.onAfterUpdate` 后固定点 vs `ICameraRig.UpdateYaw()` 显式驱动)**须在实现期定死并落代码注释**(EC-2-14 原文);**禁止依赖 `Script Execution Order` 面板**的隐式排序(场景资产,跨 prefab 不传递 ⇒ 静默失效)。手性错误(镜像)是**静默失败**——不崩溃、不报错、只是左右颠反 ⇒ 必须有显式断言。
 
 **Control Manifest Rules (this layer)**:
-- Required: **`ICameraRig.YawBasis` 只读**;系统 1 的调用点对相机状态/变换**零写入**(AC-20-14;manifest Presentation · 控制器与相机,ADR-020 §五)
+- Required: **`ICameraRig.YawBasis` 只读**;系统 1 的调用点对相机状态/变换**零写入**(AC-ADR020-14;manifest Presentation · 控制器与相机,ADR-020 §五)
 - Required: 一切时间推进走显式相位(ADR-011 `onAfterUpdate` 先例);**禁止** `Script Execution Order` 隐式排序 — EC-2-14 落点
 - Forbidden: 相机读 1 的 `Look` 之外的输入面(本接口只导出**离散基向量**,不透传相机 `transform` / 矩阵 —— 1 拿连续变换 = 第二真源风险)
 - Guardrail: `AC-2-09` 的装载期半边在数值留白时按「取值一旦存在即被守住 + 缺键 ⇒ 拒绝启动或 INCONCLUSIVE」通用口径执行(GDD B 节省首),**不在空值上跑断言**
@@ -49,7 +49,7 @@
 - [ ] **AC-2-10(BLOCKING)** —— **`YawBasis` 的帧内次序契约**(对侧承诺):
   ① **次序不变量** —— 一帧内**任何 `YawBasis` 消费方的读取时刻 ≥ 本帧 `yaw` 更新时刻**(判据 = 注入一个记录时序的探针消费方,断言读取值 == 本帧更新后的值);
   ② **系统 1 的调用点对相机状态/变换的写入数 = 0**(只读断言 —— 程序集层:**相机程序集不得暴露任何 `public` 写入面给 1**,或 1 的引用集不含相机的写 API)。
-  *(承 `AC-20-14`;F-2-2 与 EC-2-14;系统 1 `AC-1-35②` 的对侧 ⇒ `O-14`。)*
+  *(承 `AC-ADR020-14`;F-2-2 与 EC-2-14;系统 1 `AC-1-35②` 的对侧 ⇒ `O-14`。)*
   🔴 **2026-09-16 评审订正**:原文 ①「每帧 yaw 更新点数 ≤ 1」是**不可执行的承诺** ⇒ 改为次序不变量,落点钉在 ADR-011 的固定相位(`InputSystem.onAfterUpdate`)或显式 `UpdateYaw()`,**禁止** `Script Execution Order` 面板隐式排序。
 
 ---
@@ -142,7 +142,7 @@
 
 ## Dependencies
 
-- Depends on: Story 001(相机程序集边界与只读纪律的对像)/ 无 ADR 阻塞(AC-20-14 已 Accepted)
+- Depends on: Story 001(相机程序集边界与只读纪律的对像)/ 无 ADR 阻塞(AC-ADR020-14 已 Accepted)
 - Unlocks: **玩家控制器 Epic Story 002(跨 Epic 硬前置 —— 1 的 `O-8`,`AC-1-31` 回指本故事的 EPS 符号)** / Story 003(yaw 更新数学接入本基) / Story 005(`AC-2-27③` 是 ① 的机制来源,反向对账)
 
 ---

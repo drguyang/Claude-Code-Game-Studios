@@ -1033,7 +1033,7 @@ Aggregate(reading[整个动作期]) → agg = {
 
 | ID | 门级 | 类型 | 判据 |
 | --- | --- | --- | --- |
-| **AC-10-01** | **BLOCKING** | **[A]** | `GIVEN` 3 交付的 `EmergencyReading`,`WHEN` **反射断言每个字段的声明类型**,`THEN` **零 `float` / `double`**(含 `magnitude` / `edge_ticks[]`)(规则一 · ADR-011)。**⚠️ 判据由「整数语义」改为「声明类型」**(原稿的「整数语义」不可测 —— 是 3 侧义务,10 只能静态断言)。⚠️ 承 `ADR-020 AC-20-03` 的同款口径:判据 = **反射,不是 grep** |
+| **AC-10-01** | **BLOCKING** | **[A]** | `GIVEN` 3 交付的 `EmergencyReading`,`WHEN` **反射断言每个字段的声明类型**,`THEN` **零 `float` / `double`**(含 `magnitude` / `edge_ticks[]`)(规则一 · ADR-011)。**⚠️ 判据由「整数语义」改为「声明类型」**(原稿的「整数语义」不可测 —— 是 3 侧义务,10 只能静态断言)。⚠️ 承 `ADR-020 AC-ADR020-03` 的同款口径:判据 = **反射,不是 grep** |
 | **AC-10-02** | **BLOCKING** | **[A]** | `GIVEN` 3 与 10 的程序集,`WHEN` asmdef 白名单 + IL 扫描,`THEN` 3 侧**零** `Judge` / `JudgeResult` / `SimEvent` 引用(规则三) |
 | **AC-10-03** | **BLOCKING** | **[A]** | `GIVEN` 10 的判定路径,`WHEN` 静态检查,`THEN` **零浮点字面量**(门 A / ADR-006) |
 | **AC-10-04a** | **BLOCKING** | **[A]** | `GIVEN` F-10.4 / F-10.2 / F-10.3b 的**10 自身**的定点缩放,`WHEN` EditMode 对拍一个**故意落在 .5 的中间积**(如 `(32768×16385)`),`THEN` 结果 = **8193**(half-away)

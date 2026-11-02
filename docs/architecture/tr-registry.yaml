@@ -1565,7 +1565,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-16"
-    note: "ADR-020 §四 —— 是 ADR-016 §三(感知输入 = 粗粒度整数格)在**玩家侧(发出侧)**的对称落实。ADR-016 定义**读方**(13/27 读格),ADR-020 定义**写方**(玩家跨格发事件)。AC-20-03 BLOCKING。**2026-09-16 口径订正**:原写『频率 = 格穿越率』**不可证伪且与 F-1-1b 相抵** —— F-1-1b 只给**上界**(每 tick 至多一条,跨格检测每帧跑、tick 内后续跨格覆盖待发值);帧率 < tick 频率时同 tick 两次跨格被归并,等值不成立。**正确口径 = 事件率上界 = tick 频率**(与帧率无关、与位移距离无关)⇒ ADR-009 §六 有界性论证仍成立。判据改分两层(`AC-1-03`):①单元 —— 同 tick 喂 N ∈ {1,8,64} 样本断言 `Append == 1` 且载荷格 == 第 N 样本的格;②集成 —— `Append 总数 ≤ tick 数` ∧ **逐 tick** 核对「`Append` 的格 == 该 tick 边沿的 `pending_cell`」(**2026-09-16 二次订正**:原 ② 的 `≤ 相异格数` 合取项与 EC-3「回访再发」矛盾 ⇒ 已删,正确不变量是序列性质而非集合大小)。**载荷纯净判据亦订正**(`AC-1-02`):原『grep 无 `Vector3`→`Append` 路径』是**假阳性机器**(F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,合法路径必然读 `Vector3`),改**反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举}"
+    note: "ADR-020 §四 —— 是 ADR-016 §三(感知输入 = 粗粒度整数格)在**玩家侧(发出侧)**的对称落实。ADR-016 定义**读方**(13/27 读格),ADR-020 定义**写方**(玩家跨格发事件)。AC-ADR020-03 BLOCKING。**2026-09-16 口径订正**:原写『频率 = 格穿越率』**不可证伪且与 F-1-1b 相抵** —— F-1-1b 只给**上界**(每 tick 至多一条,跨格检测每帧跑、tick 内后续跨格覆盖待发值);帧率 < tick 频率时同 tick 两次跨格被归并,等值不成立。**正确口径 = 事件率上界 = tick 频率**(与帧率无关、与位移距离无关)⇒ ADR-009 §六 有界性论证仍成立。判据改分两层(`AC-1-03`):①单元 —— 同 tick 喂 N ∈ {1,8,64} 样本断言 `Append == 1` 且载荷格 == 第 N 样本的格;②集成 —— `Append 总数 ≤ tick 数` ∧ **逐 tick** 核对「`Append` 的格 == 该 tick 边沿的 `pending_cell`」(**2026-09-16 二次订正**:原 ② 的 `≤ 相异格数` 合取项与 EC-3「回访再发」矛盾 ⇒ 已删,正确不变量是序列性质而非集合大小)。**载荷纯净判据亦订正**(`AC-1-02`):原『grep 无 `Vector3`→`Append` 路径』是**假阳性机器**(F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,合法路径必然读 `Vector3`),改**反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举}"
 
   - id: TR-player-003
     system: player-movement
@@ -1585,7 +1585,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-16"
-    note: "ADR-020 §一 AC-20-11:**全部数值留白**(用户手调);ADR 只给形状。与 `feedback-user-owns-balance-values` 一致。**2026-09-16 GDD 落盘时定形**:Tuning Knobs 分六组 —— 组1 速度与手感 · 组2 跳跃 · 组3 转向 · 组4 地貌/情境乘数(**表内容归 6 / 24,不归 1**)· 组5 引擎/世界常量(**不归 1**,但 1 被锁住)· 组6 **明确不存在**的旋钮(防越界)。**新增跨系统调参纪律**:`K_TERRAIN_MAX`/`K_CONTEXT_MAX` 是 F-1-1a 速限的**派生**输入(各自表的上界),⇒ **6/24 调高一个乘数即可红掉 `AC-1-06`** —— 这是全系统唯一『动了它会红构建』的一组"
+    note: "ADR-020 §一 AC-ADR020-11:**全部数值留白**(用户手调);ADR 只给形状。与 `feedback-user-owns-balance-values` 一致。**2026-09-16 GDD 落盘时定形**:Tuning Knobs 分六组 —— 组1 速度与手感 · 组2 跳跃 · 组3 转向 · 组4 地貌/情境乘数(**表内容归 6 / 24,不归 1**)· 组5 引擎/世界常量(**不归 1**,但 1 被锁住)· 组6 **明确不存在**的旋钮(防越界)。**新增跨系统调参纪律**:`K_TERRAIN_MAX`/`K_CONTEXT_MAX` 是 F-1-1a 速限的**派生**输入(各自表的上界),⇒ **6/24 调高一个乘数即可红掉 `AC-1-06`** —— 这是全系统唯一『动了它会红构建』的一组"
 
   - id: TR-player-005
     system: player-movement
@@ -1595,7 +1595,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-16"
-    note: "**2026-09-16 系统 1 首轮 `/design-review` 第一根因**(三方独立命中 · 最高优先级)。初稿 F-1-2 写 `v_target` 却**从未定义 `MoveInput` 从哪组基投影到世界** —— GDD 全程可编译、单测可全绿,而**游戏不可玩**(移动方向无定义)。用户裁定 2026-09-16:**相机相对**(2 供 yaw basis)。ADR-020 §Key Interfaces 已就地补 `ICameraRig.YawBasis`(`(Vector3 fwd, Vector3 right)` 水平化正交基)+ **Amendment B**;系统 1 新立 **F-1-8**(`v̂_world := normalize(mx × f̂ + my × r̂)`,退化情形 → 世界 `+Z`)+ `AC-1-31`(单位性 + `y==0`)/ `AC-1-35`(单向无环 · 只读)。**方向单向**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)—— 两条边方向相反,**不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-20-14。**2026-09-16 同日 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,上游交付面 = **F-2-2**(构造即正交归一)+ **`AC-2-07`…`AC-2-10`**;系统 1 侧 F-1-8 至此**有基可读**。⚠️ **残留未结的是 `O-11`**(`PITCH_MAX` 取值回填 `OQ-1-14`)与 **`O-14`**(帧内恒定对侧承诺)—— 二者**不阻塞本条的 covered**,但构成系统 1 的 `OQ-1-14` 结案路径"
+    note: "**2026-09-16 系统 1 首轮 `/design-review` 第一根因**(三方独立命中 · 最高优先级)。初稿 F-1-2 写 `v_target` 却**从未定义 `MoveInput` 从哪组基投影到世界** —— GDD 全程可编译、单测可全绿,而**游戏不可玩**(移动方向无定义)。用户裁定 2026-09-16:**相机相对**(2 供 yaw basis)。ADR-020 §Key Interfaces 已就地补 `ICameraRig.YawBasis`(`(Vector3 fwd, Vector3 right)` 水平化正交基)+ **Amendment B**;系统 1 新立 **F-1-8**(`v̂_world := normalize(mx × f̂ + my × r̂)`,退化情形 → 世界 `+Z`)+ `AC-1-31`(单位性 + `y==0`)/ `AC-1-35`(单向无环 · 只读)。**方向单向**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)—— 两条边方向相反,**不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-ADR020-14。**2026-09-16 同日 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,上游交付面 = **F-2-2**(构造即正交归一)+ **`AC-2-07`…`AC-2-10`**;系统 1 侧 F-1-8 至此**有基可读**。⚠️ **残留未结的是 `O-11`**(`PITCH_MAX` 取值回填 `OQ-1-14`)与 **`O-14`**(帧内恒定对侧承诺)—— 二者**不阻塞本条的 covered**,但构成系统 1 的 `OQ-1-14` 结案路径"
 
   - id: TR-player-006
     system: player-movement
@@ -1605,7 +1605,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-16"
-    note: "**2026-09-16 系统 1 首轮 `/design-review` 第三根因**。ADR-020 §四 原文只说「玩家控制器负责跨格检测与事件发出」,却**从未指定联机时由哪台机器 `Append`** —— 与 ADR-005「**主机唯一执行 `Step` / `CatchUp`**」(⇒ 主机是唯一 Appender)冲突,且与该 ADR「跨格检测每台机器都在跑」不自洽。ADR-020 同日 **Amendment B** 四处裁决(用户照准):① **Append 权 = 主机唯一**(本机玩家在主机 ⇒ 直连;在客户端 ⇒ 客户端 **Append 调用点数为 0**,其格经 **ADR-001 第二 QoS** unreliable latest-value 上行,由主机权威控制器统一 Append);② **`ActorCellEntered` 移出可靠通道**(最新值语义 vs reliable-ordered;可靠通道被「急救 < 50 ms」`TR-concept-007` 占用);③ 远端队友同路径 ⇒ 主机 Append 后经世界流回播,**13 / 27 在所有机器读到同一条序列**(ADR-016 §一「第四来源」禁则不被破);④ 本地预测与主机权威的迟滞差 = 表现态正常代价,**不写流**。系统 1 落点 = **R5 / EC-16**(「谁 Append 什么」全表)/ `AC-1-30`(客户端 Append 调用点数为 0);判据 = AC-20-13。**`OQ-1-9` 就此结案**,实现落点在 45(登记义务 `O-4`)"
+    note: "**2026-09-16 系统 1 首轮 `/design-review` 第三根因**。ADR-020 §四 原文只说「玩家控制器负责跨格检测与事件发出」,却**从未指定联机时由哪台机器 `Append`** —— 与 ADR-005「**主机唯一执行 `Step` / `CatchUp`**」(⇒ 主机是唯一 Appender)冲突,且与该 ADR「跨格检测每台机器都在跑」不自洽。ADR-020 同日 **Amendment B** 四处裁决(用户照准):① **Append 权 = 主机唯一**(本机玩家在主机 ⇒ 直连;在客户端 ⇒ 客户端 **Append 调用点数为 0**,其格经 **ADR-001 第二 QoS** unreliable latest-value 上行,由主机权威控制器统一 Append);② **`ActorCellEntered` 移出可靠通道**(最新值语义 vs reliable-ordered;可靠通道被「急救 < 50 ms」`TR-concept-007` 占用);③ 远端队友同路径 ⇒ 主机 Append 后经世界流回播,**13 / 27 在所有机器读到同一条序列**(ADR-016 §一「第四来源」禁则不被破);④ 本地预测与主机权威的迟滞差 = 表现态正常代价,**不写流**。系统 1 落点 = **R5 / EC-16**(「谁 Append 什么」全表)/ `AC-1-30`(客户端 Append 调用点数为 0);判据 = AC-ADR020-13。**`OQ-1-9` 就此结案**,实现落点在 45(登记义务 `O-4`)"
 
   - id: TR-player-007
     system: player-movement
@@ -1641,7 +1641,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §三。承 `technical-preferences.md:34`(「VR 不承担开放世界移动(晕动症),只做站定式急救操作」)。**两条相机路径独立,不互相迁就** —— 消解「全程第三人称 vs 头显第一人称」的表面矛盾。实现推 P1a(与 ADR-013 / ADR-018 §七 同批);AC-20-06/07。**2026-09-16**:系统 2 GDD 落盘核对无误 —— GDD **R-2-9**(VR 不经平面链)+ **EC-2-11**(平面链状态冻结 · `AudioListener` 迁头显);**`OQ-2-5`** 登记 P1a 的机位细节(与系统 1 的 `OQ-1-3` 同批裁)"
+    note: "ADR-020 §三。承 `technical-preferences.md:34`(「VR 不承担开放世界移动(晕动症),只做站定式急救操作」)。**两条相机路径独立,不互相迁就** —— 消解「全程第三人称 vs 头显第一人称」的表面矛盾。实现推 P1a(与 ADR-013 / ADR-018 §七 同批);AC-ADR020-06/07。**2026-09-16**:系统 2 GDD 落盘核对无误 —— GDD **R-2-9**(VR 不经平面链)+ **EC-2-11**(平面链状态冻结 · `AudioListener` 迁头显);**`OQ-2-5`** 登记 P1a 的机位细节(与系统 1 的 `OQ-1-3` 同批裁)"
 
   - id: TR-camera-003
     system: camera
@@ -1651,7 +1651,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §五。承 C3(`systems-index.md:531` 42 只渲染)· ADR-013 · ADR-018 §一 的同构体例。AC-20-05。**2026-09-16**:系统 2 GDD 落盘 —— 本条是 **R-2-8** + **`AC-2-01`**(不进流 / 不进存档 / 崩溃重启不改变事实)+ **`AC-2-04`**(引用集白名单 + `IEventSink.Append` 调用点数 = 0)+ **`AC-2-05`**(零 `SimEvent`);⚠️ **`AC-2-04`② 比系统 1 的同类判据更强** —— 1 至少写一条跨格事件,2 写零条"
+    note: "ADR-020 §五。承 C3(`systems-index.md:531` 42 只渲染)· ADR-013 · ADR-018 §一 的同构体例。AC-ADR020-05。**2026-09-16**:系统 2 GDD 落盘 —— 本条是 **R-2-8** + **`AC-2-01`**(不进流 / 不进存档 / 崩溃重启不改变事实)+ **`AC-2-04`**(引用集白名单 + `IEventSink.Append` 调用点数 = 0)+ **`AC-2-05`**(零 `SimEvent`);⚠️ **`AC-2-04`② 比系统 1 的同类判据更强** —— 1 至少写一条跨格事件,2 写零条"
 
   - id: TR-camera-004
     system: camera
@@ -1661,7 +1661,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §六。归属 = **8 语义 + 2 实现**(承 `diagnosis-system.md:1641`「主角视野边缘 = 2 摄像机 + shader」的既有分工);**VR 全禁镜头效果**(承 `:1519`,舒适度优先);**不得用于报状态**(与 ADR-018 §六 无提示音铁律**同源** —— 是同一铁律的视觉侧)。AC-20-08/09。**2026-09-16**:系统 2 GDD 落盘 —— 四子项落 **`AC-2-06`**①…④(含 ④ `AudioListener` 唯一);**GDD 只划归属与禁令,不定义任何具体效果的视觉表现**(那在 8 的数据表里);EC-2-13 明写「效果与收缩互不感知 —— 8 是语义拥有者,2 是实现拥有者;让 2 判断何时该播效果 = 让 2 持有 8 的知识」"
+    note: "ADR-020 §六。归属 = **8 语义 + 2 实现**(承 `diagnosis-system.md:1641`「主角视野边缘 = 2 摄像机 + shader」的既有分工);**VR 全禁镜头效果**(承 `:1519`,舒适度优先);**不得用于报状态**(与 ADR-018 §六 无提示音铁律**同源** —— 是同一铁律的视觉侧)。AC-ADR020-08/09。**2026-09-16**:系统 2 GDD 落盘 —— 四子项落 **`AC-2-06`**①…④(含 ④ `AudioListener` 唯一);**GDD 只划归属与禁令,不定义任何具体效果的视觉表现**(那在 8 的数据表里);EC-2-13 明写「效果与收缩互不感知 —— 8 是语义拥有者,2 是实现拥有者;让 2 判断何时该播效果 = 让 2 持有 8 的知识」"
 
   - id: TR-camera-005
     system: camera
@@ -1671,7 +1671,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-20-10。**2026-09-16**:系统 2 GDD 落盘 —— `ICameraRig.Camera` 即挂点(GDD §Dependencies 下游表);VR 侧在 **EC-2-11** 迁至头显。**双向性已核**:44 侧 `audio-system.md:140/313/574` 已登记挂点来源 ⇒ 无缺口"
+    note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-ADR020-10。**2026-09-16**:系统 2 GDD 落盘 —— `ICameraRig.Camera` 即挂点(GDD §Dependencies 下游表);VR 侧在 **EC-2-11** 迁至头显。**双向性已核**:44 侧 `audio-system.md:140/313/574` 已登记挂点来源 ⇒ 无缺口"
 
   - id: TR-camera-006
     system: camera
@@ -1681,7 +1681,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-09-16"
-    note: "**2026-09-16 ADR-020 Amendment B 新立**(由系统 1 首轮 `/design-review` 的第一根因驱动)。`(Vector3 fwd, Vector3 right)` —— `f̂` = 相机前向的**水平投影归一化**,`r̂ := normalize(cross(worldUp, f̂))`;**只读**(系统 1 零写入相机状态 / 变换)· **水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。**单向** —— 1 读 2 的基(上游值),2 读 1 的 `Position`(下游值),两条边方向相反 ⇒ **不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-20-14 / 系统 1 的 `AC-1-31` / `AC-1-35` ③④。**2026-09-16 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,**F-2-2**(`f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)` —— **构造成立,不靠事后归一**)+ **§B 组四条判据** = **`AC-2-07`**(水平化:遍历 `pitch` 采样点,`y ≡ 0`)· **`AC-2-08`**(正交归一:遍历 `yaw` 全周,含回绕点)· **`AC-2-09`**① **装载期断言 `PITCH_MIN < PITCH_MAX < 90°`** ⇒ 系统 1 的 F-1-8 退化分支**正常操作下不可达** · **`AC-2-10`**(一帧内 yaw 更新点 ≤ 1 + 系统 1 写入数 = 0)。⚠️ **`AC-2-09` 同时是 `O-11` 的载体** —— `PITCH_MAX` 的实际取值须回填系统 1 的 `OQ-1-14` 并结案(该义务**未结**)。⚠️ **交付义务 `O-8` 由 2 侧兑现;`O-11` / `O-14` 仍是对 1 的未结义务**。F-2-2 末注:**即使 `PITCH_MAX` 被口径错配为 ≥ 90°,`YawBasis` 照常按式返回、不抛异常** —— 它不知道俯角上限,也不该知道"
+    note: "**2026-09-16 ADR-020 Amendment B 新立**(由系统 1 首轮 `/design-review` 的第一根因驱动)。`(Vector3 fwd, Vector3 right)` —— `f̂` = 相机前向的**水平投影归一化**,`r̂ := normalize(cross(worldUp, f̂))`;**只读**(系统 1 零写入相机状态 / 变换)· **水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。**单向** —— 1 读 2 的基(上游值),2 读 1 的 `Position`(下游值),两条边方向相反 ⇒ **不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-ADR020-14 / 系统 1 的 `AC-1-31` / `AC-1-35` ③④。**2026-09-16 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,**F-2-2**(`f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)` —— **构造成立,不靠事后归一**)+ **§B 组四条判据** = **`AC-2-07`**(水平化:遍历 `pitch` 采样点,`y ≡ 0`)· **`AC-2-08`**(正交归一:遍历 `yaw` 全周,含回绕点)· **`AC-2-09`**① **装载期断言 `PITCH_MIN < PITCH_MAX < 90°`** ⇒ 系统 1 的 F-1-8 退化分支**正常操作下不可达** · **`AC-2-10`**(一帧内 yaw 更新点 ≤ 1 + 系统 1 写入数 = 0)。⚠️ **`AC-2-09` 同时是 `O-11` 的载体** —— `PITCH_MAX` 的实际取值须回填系统 1 的 `OQ-1-14` 并结案(该义务**未结**)。⚠️ **交付义务 `O-8` 由 2 侧兑现;`O-11` / `O-14` 仍是对 1 的未结义务**。F-2-2 末注:**即使 `PITCH_MAX` 被口径错配为 ≥ 90°,`YawBasis` 照常按式返回、不抛异常** —— 它不知道俯角上限,也不该知道"
 
   # ⚠️ 2026-11-02 追加(story-007 R-7.4)—— GDD 的 29 两行早已存在(R-2-5,2026-11-01 补),
   #    但 TR-camera-001…006 无一覆盖它 ⇒ 「要求存在、ID 不存在」。本行补齐。
@@ -1693,7 +1693,7 @@
     adr: ADR-020
     status: covered
     revised: "2026-11-02"
-    note: "**2026-11-02 story-007(R-7.4)补登** —— 要求本体来自 `design/ux/death-transition-29.md` §9(`:188` 两段式 / `:127` Φ1 / `:129` Φ3 / `:133` VR 全禁)+ `camera-and-viewpoint.md` 的 `R-2-5` 29 两行(2026-11-01 补入),**但当时未登记 TR** ⇒ 无 ID ⇒ 没有 story 能引用它 ⇒ 无载体(2026-11-02 §14 按 epic 扫描查出的**缺口 A**)。实现 = `DownedCameraRequester`(`Gameplay.Presentation/DeathTransition/`),2026-11-02 从 `BootRoot` 的内联 lambda **等价提取**(R-7.2 四行对照);判据 = `AC-2-18①` / `AC-20-15` + story-007 的 S29-01…07。⚠️ **`CameraRig.Tick` 在 2026-11-02 之前零生产调用** ⇒ 本条的意图即使发出也无效果(已由 `emergency-procedures/story-010` 接上)。"
+    note: "**2026-11-02 story-007(R-7.4)补登** —— 要求本体来自 `design/ux/death-transition-29.md` §9(`:188` 两段式 / `:127` Φ1 / `:129` Φ3 / `:133` VR 全禁)+ `camera-and-viewpoint.md` 的 `R-2-5` 29 两行(2026-11-01 补入),**但当时未登记 TR** ⇒ 无 ID ⇒ 没有 story 能引用它 ⇒ 无载体(2026-11-02 §14 按 epic 扫描查出的**缺口 A**)。实现 = `DownedCameraRequester`(`Gameplay.Presentation/DeathTransition/`),2026-11-02 从 `BootRoot` 的内联 lambda **等价提取**(R-7.2 四行对照);判据 = `AC-2-18①` / `AC-ADR020-15` + story-007 的 S29-01…07。⚠️ **`CameraRig.Tick` 在 2026-11-02 之前零生产调用** ⇒ 本条的意图即使发出也无效果(已由 `emergency-procedures/story-010` 接上)。"
   # ⚠️ 2026-11-02 追加(camera-viewpoint/story-007)—— 「该发没发」的系统性判据。
   - id: TR-camera-008
     system: camera
@@ -2857,7 +2857,7 @@
     domain: Core
     adr: ADR-016 + ADR-020
     status: covered
-    note: "规则二 · AC-4-03。承 ADR-020 §四 的 AC-20-03 同款纪律。若读表现态位置,则联机时非主机与主机的目标选择可不同(第二 QoS 到达时序不定)。"
+    note: "规则二 · AC-4-03。承 ADR-020 §四 的 AC-ADR020-03 同款纪律。若读表现态位置,则联机时非主机与主机的目标选择可不同(第二 QoS 到达时序不定)。"
 
   - id: TR-interaction-004
     system: interaction-system
@@ -3487,7 +3487,7 @@
     domain: Core
     adr: null
     status: partial
-    note: "**AC-11-22(BLOCKING,2026-09-19 二轮 BL-4 新立)** —— 反射 / 引用集断言(**非 grep**,承 `AC-20-03` 口径)。⚠️ **本条补的是一处从未被断言的缺口**:首轮只断「算法独占」(`AC-11-10`,⇒ `TR-prescription-013`),**从未断言「写者独占」**。作者侧「未注册 Kind 构建期失败」的**全局防线**仍缺(10 的 systems-index 行记「五个人独立踩同一块石头」),归下一次 `/architecture-review`,不在本条内解决 ⇒ partial(单点断言在,全局防线缺)。⚠️ **2026-10-15 两处更新(均不改 status,理由见 ②)**:① **AC-11-22 已由 TD 裁「收窄」并落盘**(`requirement` 字段已就地订正)—— 载体 = **IL / metadata 扫描**(反射做不到),范围 = **写入路径**构造点,解码豁免具名 `DaYiJingCheng.Sim.Codec.PayloadCodec`(门内 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报警,**非静默**);裁定记录 = `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`。② **本条的 partial 归因「全局防线仍缺」疑已陈旧,但本轮不据以改判** —— ADR-024 ⑤ 的 kindgen 通道**已实测存在**(`tools/kindgen/kindgen.py` + 生成物 `unity/Assets/Sim/StreamRouting.g.cs`),其是否已**接线**到「未注册 Kind ⇒ 构建期拒绝」**本轮未核** ⇒ 诚实登记为**待核**(既不借绿、也不借红)。"
+    note: "**AC-11-22(BLOCKING,2026-09-19 二轮 BL-4 新立)** —— 反射 / 引用集断言(**非 grep**,承 `AC-ADR020-03` 口径)。⚠️ **本条补的是一处从未被断言的缺口**:首轮只断「算法独占」(`AC-11-10`,⇒ `TR-prescription-013`),**从未断言「写者独占」**。作者侧「未注册 Kind 构建期失败」的**全局防线**仍缺(10 的 systems-index 行记「五个人独立踩同一块石头」),归下一次 `/architecture-review`,不在本条内解决 ⇒ partial(单点断言在,全局防线缺)。⚠️ **2026-10-15 两处更新(均不改 status,理由见 ②)**:① **AC-11-22 已由 TD 裁「收窄」并落盘**(`requirement` 字段已就地订正)—— 载体 = **IL / metadata 扫描**(反射做不到),范围 = **写入路径**构造点,解码豁免具名 `DaYiJingCheng.Sim.Codec.PayloadCodec`(门内 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报警,**非静默**);裁定记录 = `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`。② **本条的 partial 归因「全局防线仍缺」疑已陈旧,但本轮不据以改判** —— ADR-024 ⑤ 的 kindgen 通道**已实测存在**(`tools/kindgen/kindgen.py` + 生成物 `unity/Assets/Sim/StreamRouting.g.cs`),其是否已**接线**到「未注册 Kind ⇒ 构建期拒绝」**本轮未核** ⇒ 诚实登记为**待核**(既不借绿、也不借红)。"
 
   - id: TR-prescription-019
     system: prescription-and-medication

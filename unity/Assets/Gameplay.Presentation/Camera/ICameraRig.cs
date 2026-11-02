@@ -109,7 +109,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         void Tick(float deltaTime);
 
         /// <summary>
-        /// 平面模式的主相机(44 的 `AudioListener` 挂点 —— ADR-020 §七 / AC-20-10)。
+        /// 平面模式的主相机(44 的 `AudioListener` 挂点 —— ADR-020 §七 / AC-ADR020-10)。
         /// <para>🔴 **`OQ-2-6`(VR 立体语义,P1a 前置)**:本属性暴露**单个** `Camera`;
         /// VR 立体的双眼需要一对(或一个 XR 渲染路径)。本属性在 `FirstPerson` 档
         /// **代表哪只眼 / 还是那个「主」相机** —— **P0 未定**,归 P1a 开工前裁定。

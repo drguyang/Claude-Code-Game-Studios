@@ -181,38 +181,55 @@ def cmd_check(definitions, baseline):
 
 
 def cmd_mutation_probe(definitions, baseline):
-    """内存内变异,证明四条判据各自真的会红(不写盘)。"""
+    """内存内变异,证明四条判据各自真的会红(**完全合成,不依赖仓库现状**)。
+
+    ⚠️ **为什么不拿真实定义集做底**:2026-11-02 改名轮后基线**已是空集**,
+    早期版本用 `sorted(base["known_collisions"])[0]` 取一个真基线 ID 当靶,
+    在空基线上直接 `IndexError` —— 探针自己先崩了。⇒ 改为合成一套最小定义集,
+    与仓库现状解耦:M1–M4 测的是**判据逻辑**,真实接线由 `--check` + 证伪轮的
+    R1–R3(真文件变异)覆盖。
+    """
+    FAKE_BASE = {
+        "known_collisions": {
+            "AC-99-01": ["design/gdd/fake-a.md", "docs/architecture/adr-099-fake.md"],
+        }
+    }
+    FAKE_DEFS = {
+        "AC-99-01": ["design/gdd/fake-a.md", "docs/architecture/adr-099-fake.md"],
+    }
+
     scenarios = []
 
     def probe(label, mutate, expect_prefix):
-        mutated_defs, mutated_base = mutate(definitions, baseline)
+        mutated_defs, mutated_base = mutate()
         violations, _ = evaluate(mutated_defs, mutated_base)
         hit = any(item.startswith(expect_prefix) for item in violations)
         scenarios.append((label, expect_prefix, hit, violations))
 
-    # M1:凭空造一个新撞号(不该被基线吸收)
-    def m1(defs, base):
-        clone = {ac: list(files) for ac, files in defs.items()}
-        clone["AC-99-99"] = ["design/gdd/fake-a.md", "docs/architecture/adr-099-fake.md"]
-        return clone, base
+    def copy_defs(defs):
+        return {ac: list(files) for ac, files in defs.items()}
 
-    # M2:让某个基线 ID 的定义方多一个文件(撞号面扩大)
-    def m2(defs, base):
-        clone = {ac: list(files) for ac, files in defs.items()}
-        first = sorted(base["known_collisions"])[0]
-        clone[first] = clone[first] + ["design/gdd/some-third-file.md"]
-        return clone, base
+    # M1:凭空造一个新撞号(不在基线里)
+    def m1():
+        defs = copy_defs(FAKE_DEFS)
+        defs["AC-99-02"] = ["design/gdd/fake-b.md", "docs/architecture/adr-099-fake.md"]
+        return defs, FAKE_BASE
 
-    # M3:删掉一个基线 ID 的定义(撞号已消除 ⇒ 基线陈旧)
-    def m3(defs, base):
-        clone = {ac: list(files) for ac, files in defs.items()}
-        first = sorted(base["known_collisions"])[0]
-        clone[first] = clone[first][:1]
-        return clone, base
+    # M2:让基线 ID 的定义方多一个文件(撞号面扩大)
+    def m2():
+        defs = copy_defs(FAKE_DEFS)
+        defs["AC-99-01"] = defs["AC-99-01"] + ["design/gdd/some-third-file.md"]
+        return defs, FAKE_BASE
+
+    # M3:基线 ID 只剩一个定义方(撞号已消除 ⇒ 基线陈旧)
+    def m3():
+        defs = copy_defs(FAKE_DEFS)
+        defs["AC-99-01"] = defs["AC-99-01"][:1]
+        return defs, FAKE_BASE
 
     # M4:空集守卫
-    def m4(defs, base):
-        return {}, base
+    def m4():
+        return {}, FAKE_BASE
 
     probe("M1 新撞号", m1, "C1")
     probe("M2 基线扩大", m2, "C2")

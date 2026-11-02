@@ -80,7 +80,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
 
             // ⚠️ 次序 = 先拆 BootRoot 层级,再动预摆(承 `death_transition_playmode_test` 的
-            //    「两个 active AudioListener 并存窗口会让 AC-20-10 每帧洪泛」教训)。
+            //    「两个 active AudioListener 并存窗口会让 AC-ADR020-10 每帧洪泛」教训)。
             //    ⚠️ Presenter 是**独立 GameObject**,不在 `_root` 层级下 ⇒ 须显式销毁
             //    (否则留到后续测试,抢别人的相机档位)。
             var services = ReadServices();

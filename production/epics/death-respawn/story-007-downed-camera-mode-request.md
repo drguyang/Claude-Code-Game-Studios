@@ -31,7 +31,7 @@
 - 同件 `:133`「**VR 变体**(P1a)| **全禁镜头效果**;平面两段式相机运动**不得平移到 VR**」
 - `design/gdd/camera-and-viewpoint.md` `R-2-5` 档位表(2026-11-01 补入 29 两行:29 → `Downed` / 29 → `Explore`)
 - **`AC-2-18①`**:档位表的 4×4 穷举 + 同请求方双向判据
-- **`AC-20-15`**(ADR-020 Amendment C 新增):`Downed` 档的**四条语义**
+- **`AC-ADR020-15`**(ADR-020 Amendment C 新增):`Downed` 档的**四条语义**
 
 **Requirement**: **`TR-camera-007`(本卡新登,当前尚不存在)**
 > 「29 是 `Downed` 档的请求方:倒下进 `Downed`、醒来 / 退出回 `Explore`;`requesterId` 恒 = 29;
@@ -364,7 +364,7 @@ for f in ['unity/Logs/s29-em-full.xml','unity/Logs/s29-pm-full.xml']:
    **这是本轮唯一一次「先写错了判据、再由证伪轮抓住」** —— 若跳过证伪轮,这条 AC 会以绿留下却什么都没测。
 3. **PlayMode 清场纪律**:本件沿用 `death_transition_playmode_test.cs` 的清理次序
    (先卸场景 → 拆 `BootRoot` 层级 → `yield` 让 Destroy 生效 → 再拆预摆),
-   否则同帧两个 `AudioListener` 并存会让 `AC-20-10` 的断言洪泛。
+   否则同帧两个 `AudioListener` 并存会让 `AC-ADR020-10` 的断言洪泛。
 
 ### 未闭项(禁借绿)
 

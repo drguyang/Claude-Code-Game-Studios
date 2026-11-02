@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 🔴 本故事是 Epic 的**收尾对账件**:它不写机器,它验收「机器之外的账是否齐」—— `AC-2-22` 的六子义务(**BLOCKING,缺一即失败**,判据 = 对方 GDD §Dependencies 反向引用)、两条 EXTERNAL 挂账(`AC-2-21`/`AC-2-23`,不计入就绪度但必须显式登记)、三条 ADVISORY 手感门(`03/24/26`,P0 **舒适度的全部签核面**——`AC-2-03` 补注原话:平面舒适度没有任何 BLOCKING 门,这是有意的,但须 spike 报告**显式签核**,否则「不晕」变成无人负责的口号)。
 
-**ADR Governing Implementation**: ADR-020(§三 视角双路径:VR 独立第一人称实现推 P1a;§Migration 第 5 条相机 spike = `AC-2-23`/`O-13` 的**唯一验收证据**;`AC-20-12` 相机 spike + `ux-designer` 签核 —— GDD 点名该 ADR↔GDD 覆盖缺口:**`AC-20-06/07/11/12` 在本 GDD 无对应 AC**,`AC-20-12` 正是本故事的签核载体)· ADR-013(`ModalId` 闭集 = 39 发 `Casebook` 的呈现侧;42 的 `FOV_v` 引用已履行)· ADR-015(§一 烘焙逻辑层几何 = `O-13` 落点侧;接收方按评审订正 = **「关卡内容工作 + ADR-015 §一」**,原文「26 关卡/24 医馆即机器」为不存在的接收方 —— 以 `systems-index.md` 权威表为准)· ADR-011(手柄绑重:`Navigate`/`Look` 互斥的对侧已登记于 `input-system.md` 规则三,2026-09-20 回刷)
+**ADR Governing Implementation**: ADR-020(§三 视角双路径:VR 独立第一人称实现推 P1a;§Migration 第 5 条相机 spike = `AC-2-23`/`O-13` 的**唯一验收证据**;`AC-ADR020-12` 相机 spike + `ux-designer` 签核 —— GDD 点名该 ADR↔GDD 覆盖缺口:**`AC-ADR020-06/07/11/12` 在本 GDD 无对应 AC**,`AC-ADR020-12` 正是本故事的签核载体)· ADR-013(`ModalId` 闭集 = 39 发 `Casebook` 的呈现侧;42 的 `FOV_v` 引用已履行)· ADR-015(§一 烘焙逻辑层几何 = `O-13` 落点侧;接收方按评审订正 = **「关卡内容工作 + ADR-015 §一」**,原文「26 关卡/24 医馆即机器」为不存在的接收方 —— 以 `systems-index.md` 权威表为准)· ADR-011(手柄绑重:`Navigate`/`Look` 互斥的对侧已登记于 `input-system.md` 规则三,2026-09-20 回刷)
 **ADR Decision Summary**: EXTERNAL 的定义(GDD 收尾口径)= **「义务已定义、裁决点在别处」** —— 与系统 1 的 `AC-1-22(EXTERNAL)` 同型。`AC-2-21` 与 `AC-2-09` 的配对关系是裁决的关键一刀:「填了就必须对」(BLOCKING,story 002/003 已签形状)与「还没填 ⇒ 1 的 `OQ-1-14` 仍悬着」(EXTERNAL,本故事登记)是两条不同问题,**不可互相替代**;EXTERNAL 改判(2026-09-16 由 BLOCKING)**不使义务消失,只把它移出就绪度计数**。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW(对账与枚举面)/ 签核面不涉引擎 API(playtest/spike 为人工+报告)
@@ -63,7 +63,7 @@
 - **`AC-2-22` 交付 = 一张对账表(机器可检)+ 六个反向引用的实测**:逐子项 grep 对方 GDD 的 §Dependencies 节(`emergency-procedures.md` / `casebook.md` / 关卡内容工作登记 / `player-controller-and-movement.md` O-14 行 / `skeuomorphic-ui.md` F6+§三 / `input-system.md` 规则三),断言**反向引用文本存在且指向本 GDD**。④ 的注意点(AC 原文):**次序契约**已非「一帧内恒定」—— 对账时若 1 侧仍引用旧措辞,登记为**陈旧引用**须回刷(回刷义务在 1 侧,本表只记差异)。
 - **对账表的自动化形态** = EditMode 文档扫描测试(读仓库内 `design/gdd/*.md`,非游戏代码)—— 载体纪律同 1 Epic:文档在仓,扫描可跑;CI 门归 ADR-012 轮。⚠️ 该测试的失效模式是**假绿**(grep 到系统名≠反向引用成立)⇒ 判据精确为:对方 §Dependencies 节内**行级**含「camera-and-viewpoint」或「系统 2」+ 义务编号(O-12…O-16)至少其一;只 grep 文件名全文命中不算。
 - **EXTERNAL 两条的登记面**:`AC-2-21` = 在系统 1 Epic 的挂账与 `OQ-1-14` 行状态间建立**互指**(本故事登记,不代裁数值、不代回填);`AC-2-23` = 相机 spike 的**验收依赖声明**(spike 输出 = 唯一证据;其夹具输入来自 story 004 的 GT 几何 + story 005 的查询计数器)。**两条均不得记入本 Epic 就绪度**(GDD 原文),evidence 目录留占位不建空文件。
-- **ADVISORY 三条的签核载体**:spike 报告(ADR-020 §Migration 第 5 条 + `AC-20-12` 的 ux-designer 签核 —— GDD 点名 **`AC-20-06/07/11/12` 在本 GDD 无对应 AC** 的覆盖缺口,本故事把该缺口**登记**而非填补:填它须 ADR 轮,不在 story 权限内)。`AC-2-26` 的两条延迟测量**方法**可预定义(`Look` 阶跃 → 画面到位帧差;`SetMode` → 到位帧差,用 story 005 计数器/转场 `t` 做时间戳),**预算数值永久归用户**;转场中输入是否被吞 = playtest 观察项 + 现行为登记(R-2-5 未禁 ⇒ 默认不吞,spike 记录实测形态)。
+- **ADVISORY 三条的签核载体**:spike 报告(ADR-020 §Migration 第 5 条 + `AC-ADR020-12` 的 ux-designer 签核 —— GDD 点名 **`AC-ADR020-06/07/11/12` 在本 GDD 无对应 AC** 的覆盖缺口,本故事把该缺口**登记**而非填补:填它须 ADR 轮,不在 story 权限内)。`AC-2-26` 的两条延迟测量**方法**可预定义(`Look` 阶跃 → 画面到位帧差;`SetMode` → 到位帧差,用 story 005 计数器/转场 `t` 做时间戳),**预算数值永久归用户**;转场中输入是否被吞 = playtest 观察项 + 现行为登记(R-2-5 未禁 ⇒ 默认不吞,spike 记录实测形态)。
 - **VR 接口的最小交付**:枚举成员 + 「平面链整体可冻结」的结构断言(P0 夹具:强制 `FirstPerson` ⇒ 跟随/绕点/出臂/收缩四段零推进、查询计数 0 —— 与 story 005 `AC-2-27②` 的计数器共用夹具;`Casebook` 与 `FirstPerson` 都表现为 0 但语义不同,注释写明差异);**不实现**任何 XR 运行时(OpenXR 在 P0 零引用)。`OQ-2-5/2-6` 登记为 P1a 前置(与 1 的 `OQ-1-3` 同批裁 —— 两条 OQ 是同一问题的两侧)。
 - **OQ 登记面的当前态(拆解注 2026-09-28)**:`OQ-2-3` 的 23 侧**已裁**(P0 建造共享 Explore,不加第四档)⇒ 本故事只登记剩余(43/采药,随 43 GDD 开写);`OQ-2-1`/`2-7`/`2-8` 同批触发 = **首次 playtest(相机 spike)**;`OQ-2-2` 触发 = 美术方向定稿且 P0 开工前(投影若改 ⇒ story 004 出臂几何与 42 的 F6 算法重核 —— 登记联动面);`OQ-2-4` 触发 = 脉案界面可用后的首次 playtest。**若 playtest 判定基建幻想不成立,问题不在相机侧**(EC-2-3 是几何问题不是代码问题)—— 该归因链写进 spike 报告模板,防"回头改收缩逻辑"的误修。
 - **R-2-9 冻结链的验收半边**:「两条路径独立;共享状态会让摘头显回平面时跳变」⇒ P0 的结构断言 = 平面链状态(anchor/yaw/d/档位/t)在 `FirstPerson` 夹具下**无写入**(复用 story 001 的字段扫描 + 005 的计数器,零新夹具)。
@@ -104,7 +104,7 @@
   - Negative fixture: 就绪度表把任一 EXTERNAL 计入绿 ⇒ 审计红(禁借绿)。
 
 - **AC-2-03 / 24 / 26(ADVISORY)**: playtest 签核面(不可自动化;交付 = 报告模板与测量方法)。
-  - Given: 可玩构建(stories 001–005 完成)+ 报告模板含三签名位(不晕 / 取景可预期 / 两条延迟在预算内)+ `AC-20-12` 的 ux-designer 签核位。
+  - Given: 可玩构建(stories 001–005 完成)+ 报告模板含三签名位(不晕 / 取景可预期 / 两条延迟在预算内)+ `AC-ADR020-12` 的 ux-designer 签核位。
   - When: 长时 playtest;延迟测量:`Look` 阶跃 → 画面到位帧差、`SetMode` → 到位帧差(story 005 计数器/转场 `t` 提供时间戳);转场中输入吞否观察。
   - Then: 报告存在且三 ADVISORY 各有显式 verdict(签核 or 违例记录);**预算数值留白 ⇒ verdict 记「实测值已录,预算待用户」**。
   - Edge cases: VR 段(P1a 前)仅平面长时;`timeScale=0` 暂停场景不在测项(已裁照常,story 003)。
@@ -125,7 +125,7 @@
 **Required evidence**:
 - 文档扫描:`tests/unit/camera/obligation_ledger_test.cs` — `AC-2-22` 六子项行级反向引用断言(EditMode,读仓内 GDD;载体纪律同前:CI 归 ADR-012 轮)
 - 结构预留:`tests/unit/camera/vr_interface_freeze_test.cs` — FirstPerson 夹具四段零推进 + 计数 0 + 无写入
-- Manual: `production/qa/evidence/camera-viewpoint/spike-report-<date>.md` — 三 ADVISORY verdict + `AC-20-12` ux-designer 签核位 + `OQ-2-1/2-7/2-8` 的 spike 输入(报告不存在 ⇒ ADVISORY 三项记 NOT-RUN,**不得记绿**)
+- Manual: `production/qa/evidence/camera-viewpoint/spike-report-<date>.md` — 三 ADVISORY verdict + `AC-ADR020-12` ux-designer 签核位 + `OQ-2-1/2-7/2-8` 的 spike 输入(报告不存在 ⇒ ADVISORY 三项记 NOT-RUN,**不得记绿**)
 
 **Status**: [x] Done — `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs`(经本 story 评审修复轮)
 ⚠️ 就绪度口径:**两条 EXTERNAL 不计入本 Epic 就绪度**(GDD 原文);三条 ADVISORY 的可执行前提 = 可玩构建 + playtest 排期,当前一律 NOT-RUN;`AC-2-22` 的 ①–⑥ 判据面现已可签(2026-09-19/20/22 对侧登记已实测齐 + 2026-09-21 订正归因),载体外无阻塞。
@@ -135,7 +135,7 @@
 ## Dependencies
 
 - Depends on: Stories 001–005(对账对象与夹具复用源:001 扫描面 / 002 EPS 与契约措辞 / 004 GT 几何 / 005 计数器与转场 `t`)/ TR-camera-002 无 ADR 阻塞(ADR-020 §三 Accepted)
-- Unlocks: 本 Epic 的 Epic Status 翻 Green 的**最后一公里**(对账表齐 + spike 排期落定);相机 spike(`AC-20-12`/`AC-2-23` 载体)的输入完备;`OQ-2-1/2-7/2-8` 的裁决(经 spike 报告)
+- Unlocks: 本 Epic 的 Epic Status 翻 Green 的**最后一公里**(对账表齐 + spike 排期落定);相机 spike(`AC-ADR020-12`/`AC-2-23` 载体)的输入完备;`OQ-2-1/2-7/2-8` 的裁决(经 spike 报告)
 
 ---
 

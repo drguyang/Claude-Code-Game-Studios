@@ -17,7 +17,7 @@
 **ADR Decision Summary**: 呈现三件套同构纪律 —— 只渲染/只触发,**永不持有游戏状态**(承 ADR-013 §9 C3 的 42、ADR-018 §一的 44、ADR-020 §五的相机);白名单正向断言:死亡呈现产物 ∈ {过渡动画, 环境音, 42 拟物元件},`GameOver`/`Retry`/统计面板**不在白名单 = 出现即红**(AC-29-06);DTO 递归扫描零代价数值字段(AC-29-07);零状态播报音 = ADR-018 §六 无提示音铁律(与 AC-44-09 联合);**全屏过渡须先过 `/ux-design` spec**(GDD UX Flag = 本 story 硬前置)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: MEDIUM
-**Engine Notes**: UI Toolkit(平面拟物元件)+ 过渡动画走自建机位(ADR-020 禁 Cinemachine);AudioListener 单挂点 = 主相机(AC-20-10);UI Toolkit 6.3 运行时行为部分须实测(承 ADR-013 的 HIGH 域,本 story 仅用已验证元件)。
+**Engine Notes**: UI Toolkit(平面拟物元件)+ 过渡动画走自建机位(ADR-020 禁 Cinemachine);AudioListener 单挂点 = 主相机(AC-ADR020-10);UI Toolkit 6.3 运行时行为部分须实测(承 ADR-013 的 HIGH 域,本 story 仅用已验证元件)。
 
 **Control Manifest Rules (this layer)**:
 - Required: 呈现只读 DTO(状态镜像);两段式 = 倒下(水墨)/醒来;IsDowned 经 ADR-001 第二 QoS(远端)

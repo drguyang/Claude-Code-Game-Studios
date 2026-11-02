@@ -1,7 +1,7 @@
 // 权威来源:GDD 规则十三(戥子输入契约四条)· 规则十二(方笺 = 39 同一本书,已裁)
 //          · UI-11.1/UI-11.2 · AC-11-12/13/18/21 · TR-prescription-008/011/014/017
 //          · ADR-011(量化在 3 / 呈现层;11 只见整数)· ADR-013 §五/§十-B
-//          · ADR-020 §四 AC-20-03 先例(判据 = **反射断言,不是 grep**)
+//          · ADR-020 §四 AC-ADR020-03 先例(判据 = **反射断言,不是 grep**)
 //          · ADR-018(无提示音铁律,AC-11-21 联合)
 //          · Story: production/epics/prescription-medication/story-005-*.md
 //
@@ -270,7 +270,7 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
         [Test]
         public void test_prescribeRequest_hasNoFloatingPointInPublicSurface()
         {
-            // 承 AC-20-03 先例:判据 = **反射断言,不是 grep**。
+            // 承 AC-ADR020-03 先例:判据 = **反射断言,不是 grep**。
             Type req = typeof(PrescribeRequest);
             foreach (var f in req.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 AssertNoFloatingPoint(f.FieldType, $"{req.Name}.{f.Name}");
@@ -439,7 +439,7 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
         public void test_prescriptionSurface_hasNoCameraIntent()
         {
             // TR-prescription-014:11 零相机档位意图;39 是 Casebook 档唯一请求方。
-            // 判据 = 反射(承 AC-20-03),扫 11 与戥子两处公开面。
+            // 判据 = 反射(承 AC-ADR020-03),扫 11 与戥子两处公开面。
             foreach (var t in new[] { typeof(PrescribeRequest), typeof(PrescribeStrokeIntent), typeof(DentchDoseSelector) })
             {
                 foreach (var m in t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))

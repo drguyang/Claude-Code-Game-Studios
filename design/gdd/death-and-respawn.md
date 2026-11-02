@@ -194,7 +194,7 @@ Level_new(s) = ( Level(s) × 19 ) / 20          // C# 整数截断除法,∀ s �
 | --- | --- | --- |
 | **复活点**(哪一格) | **医馆床类家具格**(2026-09-19 用户裁定 OQ-29-2)—— 见下 | Valheim 式「床」的医学化 |
 | **落点写入** | **世界流 `ActorCellEntered`,写者 = 1**(**非 29**) | ADR-020 Amendment B:该 Kind 写者 = 1 主机唯一 |
-| **位移过程本身** | **纯表现态**(过场 / 淡入),**永不写流** | ADR-020 §四(AC-20-03) |
+| **位移过程本身** | **纯表现态**(过场 / 淡入),**永不写流** | ADR-020 §四(AC-ADR020-03) |
 | **传送频次上界** | **本规则兑现** —— 见下 | 结清 1 的 `O-3` / `OQ-1-8` |
 
 > **⚠️ 写者修正(2026-09-19 · 承首轮阻断 B6)**:原稿写「29 写一条 `ActorCellEntered`」**与
@@ -528,7 +528,7 @@ Level(s)@t = Level₀(s) + Σ_{e: SkillGrown(s)} Δlevel(e)    再逐次乘 19/2
 | `inventory-and-items.md` | `:394-406` · `:623` · AC-20-19 | 回捡约束(R7 兑现)· `InventoryOf` 投影 |
 | `clinic-machine.md` | 规则一 · 房间谓词 | 床类家具格(复活点载体) |
 | `skeuomorphic-ui.md` | `:1133` · `:1195` | 纸地图墨点(P1a 载体)· 无小地图 |
-| `adr-020` | §四 · Amendment B · AC-20-03 | 玩家位移 = 纯表现态 · `ActorCellEntered` 写者 = 1 |
+| `adr-020` | §四 · Amendment B · AC-ADR020-03 | 玩家位移 = 纯表现态 · `ActorCellEntered` 写者 = 1 |
 | `adr-009` | §三 · §五 · §六 · Amendment L | `PlayerDied` 骨架 · 掉落身份进流 · 有界性 |
 | `tr-registry.yaml` | `TR-randomevents-027`(`:871`) | 52 ↔ 29 交互(`gap` → `covered`) |
 | `systems-index.md` | §2 #53 注(水龙头模型) | 无订阅者的后果事件 |

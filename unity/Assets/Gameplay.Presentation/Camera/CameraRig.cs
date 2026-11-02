@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
 
         // ── AC-2-06:档位与镜头效果归属(ADR-020 §六)────────────────
         // ⚠️ 效果**语义**归 8(数据表,经 ADR-014 烘焙);此处只持**渲染实现**的开关。
-        //    `FirstPerson`(VR)⇒ 效果**全禁**(AC-20-08)。
+        //    `FirstPerson`(VR)⇒ 效果**全禁**(AC-ADR020-08)。
         /// <summary>
         /// 档位状态机(story 005)—— **档位的唯一写入点**。
         /// 🔴 **2026-10-03 修复(评审 B2)**:初版 `CameraRig` **自持 `_mode` 字段**

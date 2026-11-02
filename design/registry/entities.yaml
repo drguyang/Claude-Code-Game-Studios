@@ -801,7 +801,7 @@ formulas:
     referenced_by:
       - design/gdd/camera-and-viewpoint.md   # 2:F-2-2 + AC-2-07…10(R-2-7)+ ADR-020 §Key Interfaces
       - design/gdd/player-controller-and-movement.md   # 1:F-1-8(唯一消费方)+ AC-1-31 + AC-1-35 ③④
-      - docs/architecture/adr-020-player-controller-and-camera.md  # §Key Interfaces(ICameraRig.YawBasis)+ AC-20-14
+      - docs/architecture/adr-020-player-controller-and-camera.md  # §Key Interfaces(ICameraRig.YawBasis)+ AC-ADR020-14
       - docs/architecture/tr-registry.yaml   # TR-camera-006 + TR-player-005
     variables:
       - yaw       # 绕点段(②)的累积偏航角 —— 无界,2π 周期;**由 Look.x 驱动**
@@ -2796,7 +2796,7 @@ constants:
       （因为 `FOV_v` 逐档不同 ⇒ 「屏幕恒定」在换档处会跳变）。**✅ 2026-09-22 已激活并履行**
       （`OQ-42-1` 已裁 = 甲「恒定屏幕尺寸」⇒ 义务激活；42 已在 §Formulas F6 / §Dependencies §三
       声明只引用 2 的 `FOV_v`）⇒ **本义务已闭合**。
-      ⚠️ **2 侧纪律**：相机**只读不持状态**（`AC-20-05` / ADR-013 §9 C3）—— `FOV_v` 是
+      ⚠️ **2 侧纪律**：相机**只读不持状态**（`AC-ADR020-05` / ADR-013 §9 C3）—— `FOV_v` 是
       **参数**不是**状态**；42 读它做缩放属于「读参数」，不构成状态共享。
       ⚠️ **未决分叉 `OQ-2-2`**：若投影方式由透视改为斜投影 / 正交（为水墨画意），
       本常量的**语义要重核**（「垂直视场角」在非透视投影下不是同一件事），

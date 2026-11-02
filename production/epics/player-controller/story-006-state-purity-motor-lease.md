@@ -16,7 +16,7 @@
 🔴 本故事兑现系统 1 首轮 `/design-review` **根因 6 的前向登记**(`AC-1-29` 卡死清单)与 **2026-09-20 的 per-source lease 裁定**(`OQ-4-13`):原「单 bool」被证明与「4 / 10 / 25 互不知晓」(`combat-and-weapon-lines.md:507`)结构性互斥 —— 三个互不知晓的写者共享一个布尔 ⇒ **丢失更新**(4 的 Release 顺手清掉 10 仍持有的压制)。这是**既有 GDD 的内部矛盾**,裁定后形状 = **每源一位 + OR 聚合**。
 
 **ADR Governing Implementation**: ADR-020(§一 移动模型 + §五 呈现层只读不持状态的对称纪律)· ADR-013(§9 C3「UI 只渲染,永不持有游戏状态」—— `AC-1-23` 的 UI 不得直接调用由此而来;`IModalState`/`ModalId` 闭集 = 4 侧抑制的合法路径,与 1 的位图无交集)· ADR-014(ordinal 纪律 —— `LeaseSource` append-only **禁重排**)· ADR-018(无提示音铁律同源的"不得用呈现面推状态"—— 44 不得读 `MotorSuppressed` 推"是否在动作中",`O-5` 反向登记仍悬空)
-**ADR Decision Summary**: ADR-020 未直接管 1 的状态纯净(该 ADR 只管相机 AC-20-05 的引用面),`AC-1-27`/`AC-1-28` 是 GDD 侧的补位。lease 裁定的执行面全在 1:`Acquire(LeaseSource)` / `Release(LeaseSource)`,`LeaseSource` 闭集恰 = `{Self, Emergency, Combat}`(4 / 10 / 25),**29 死亡不占本位图**(沿用其「`MotorSuppressed` 或专用 `SetEnabled`」的既有待细化项,不随本次裁定扩张)。
+**ADR Decision Summary**: ADR-020 未直接管 1 的状态纯净(该 ADR 只管相机 AC-ADR020-05 的引用面),`AC-1-27`/`AC-1-28` 是 GDD 侧的补位。lease 裁定的执行面全在 1:`Acquire(LeaseSource)` / `Release(LeaseSource)`,`LeaseSource` 闭集恰 = `{Self, Emergency, Combat}`(4 / 10 / 25),**29 死亡不占本位图**(沿用其「`MotorSuppressed` 或专用 `SetEnabled`」的既有待细化项,不随本次裁定扩张)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
 **Engine Notes**: 全部判据 = 反射 / AST / 程序集引用集 + 位图单元语义,不触任何 post-cutoff API。`AC-1-29` 的软锁/卡死是 playtest 签核面(Visual/Feel ⇒ ADVISORY,不红构建);其中「地形移除后玩家会下落」依赖 `OQ-1-12` spike 对 `isGrounded` 陈旧性的裁定 —— 签核**可以**先做,但判据文案若被 spike 改判须随轴 2 表同步。

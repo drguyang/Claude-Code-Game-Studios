@@ -47,7 +47,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             //   后果:后续测试(`death_transition_playmode_test`)自造同名 `Main Camera` 时,
             //   `BootRoot.FindInactiveInclusive` 按 `FindObjectsByType(..., SortMode.None)` 的
             //   **枚举序**取第一个 —— 残留旧件抢先被返回 ⇒ BootRoot 摘掉**错的那一个**的 listener
-            //   ⇒ 本次预摆 listener 仍在 ⇒ `AC-20-10` 抛。枚举序不保证稳定 ⇒ **偶发**。
+            //   ⇒ 本次预摆 listener 仍在 ⇒ `AC-ADR020-10` 抛。枚举序不保证稳定 ⇒ **偶发**。
             //   ⇒ 本件与 `audio_wiring_test` 同纪律:连 inactive 一起收、**全部销毁**
             //   (不是「恢复激活」——预摆是夹具,用完即弃,没有留到下一条的理由)。
             DestroyAllNamed("Main Camera");

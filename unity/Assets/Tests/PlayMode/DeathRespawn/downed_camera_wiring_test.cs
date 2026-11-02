@@ -196,7 +196,7 @@ namespace DaYiJingCheng.Tests.PlayMode.DeathRespawn
         private IEnumerator Boot()
         {
             // 清场:前序测试可能留下 Camera / AudioListener / CameraRig ⇒ 启动序读到 ≥2 个
-            // 会 fail-loud(`AC-20-10` fail-loud;全量串跑红、定向单跑不暴露)。
+            // 会 fail-loud(`AC-ADR020-10` fail-loud;全量串跑红、定向单跑不暴露)。
             foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
             {
                 if (stale != null) UnityEngine.Object.Destroy(stale.gameObject);

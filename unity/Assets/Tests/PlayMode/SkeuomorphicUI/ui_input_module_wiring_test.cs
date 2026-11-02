@@ -92,7 +92,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             //   让 `BootRoot.FindInactiveInclusive("Main Camera")` 按
             //   `FindObjectsByType(..., SortMode.None)` 的**不稳定枚举序**有时返回**残留的旧件**,
             //   于是 BootRoot 摘掉**错的那一个**的 listener ⇒ 本次预摆 listener 仍在
-            //   ⇒ `AC-20-10` **偶发**抛(run1 绿 / run2 红,2026-11-01 实测)。
+            //   ⇒ `AC-ADR020-10` **偶发**抛(run1 绿 / run2 红,2026-11-01 实测)。
             //   ⇒ **销毁**才是对的:场上只留本次自造的那一个,`FindInactiveInclusive` 无从选错。
             // ⚠️ 仍用 `_presetCam` 直引:它已被启动序禁用 ⇒ `GameObject.Find` 恒 null。
             if (_presetCam != null) UnityEngine.Object.Destroy(_presetCam);
@@ -423,7 +423,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         /// <para>⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,而被启动序
         /// `SetActive(false)` 的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积
         /// ⇒ 后续 `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
-        /// (`AC-20-10` 偶发红,2026-11-01 实测)。</para>
+        /// (`AC-ADR020-10` 偶发红,2026-11-01 实测)。</para>
         /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
         /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
         /// </summary>

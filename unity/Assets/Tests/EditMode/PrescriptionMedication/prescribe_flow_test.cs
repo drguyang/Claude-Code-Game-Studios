@@ -1,6 +1,6 @@
 // 权威来源:GDD 规则十(五步流程)· F-11.4(恒 Applied)· F-11.5(成长门 GateHit)
 //          · §Edge Cases(库存不足 / 对象离场 / dose_range 空 / 混堆 / K_difficulty 缺失 / 同 tick 两剂)
-//          · ADR-005 / ADR-009 §七 / ADR-020 §四 AC-20-03 / ADR-026 / ADR-029 §③
+//          · ADR-005 / ADR-009 §七 / ADR-020 §四 AC-ADR020-03 / ADR-026 / ADR-029 §③
 //          · OQ-11-13(已裁 2026-10-06)· OQ-11-10 / D-21-29(已裁 2026-10-06)
 //
 // 测试 PrescribeFlow.Prescribe / EvaluateGateHit / DeriveKDifficulty。
@@ -353,7 +353,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         [Test]
         public void test_prescribe_mixedStack_portSeamExposesNoSequence()
         {
-            // 判据 = **反射断言**(非 grep,承 ADR-020 §四 AC-20-03 先例):
+            // 判据 = **反射断言**(非 grep,承 ADR-020 §四 AC-ADR020-03 先例):
             // 11 与 20 的接缝**结构上不可能**表达「列表顺序」—— 端口的方法签名里
             // 零数组 / 零 IEnumerable / 零 IList。
             // ⚠️ 结构评审 m6:本断言证的只是「**11 侧接口面不传 / 不取序列**」;

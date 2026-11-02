@@ -43,7 +43,7 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
         private const float BootTimeoutSeconds = 20f;
         /// <summary>预摆相机名 —— 与 `casebook_camera_wiring_test` 同款:**场景里的 `Main Camera`**
         /// (不是 `CameraRig`;`CameraRig` 是 `BootRoot` 运行期建的那台)。
-        /// ⚠️ 命名错了会造出**第二台带 `AudioListener` 的相机** ⇒ 撞 `AC-20-10` 单挂点断言,
+        /// ⚠️ 命名错了会造出**第二台带 `AudioListener` 的相机** ⇒ 撞 `AC-ADR020-10` 单挂点断言,
         /// 连带污染同套件后续夹具(2026-11-02 实测:6 红,含无关的 `CompositionRootSmokeTest`)。</summary>
         private const string PresetCameraName = "Main Camera";
         /// <summary>`BootRoot` 运行期建的主相机机位名。</summary>
@@ -130,7 +130,7 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
             yield return null;
 
             // ⚠️ 预摆相机 / 运行期机位**必须拆**:它们带着 `AudioListener`,
-            //    留一个就撞下一件的 `AC-20-10` 单挂点断言(实测会带红无关夹具)。
+            //    留一个就撞下一件的 `AC-ADR020-10` 单挂点断言(实测会带红无关夹具)。
             DestroyAllNamed("SkeuoUI");
             DestroyAllNamed(PresetCameraName);
             DestroyAllNamed(RuntimeRigName);

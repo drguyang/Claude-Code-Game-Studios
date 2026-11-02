@@ -23,7 +23,7 @@
 🔴 本故事兑现系统 1 首轮 `/design-review` **第一根因**(「移动基向量从未定义」——「缺了它能编译、能运行、能测试通过、但游戏玩不了」,列为 P0 最高优先级)与**第三根因的一半**(`Look` 归属:1 不消费,朝向自动面向移动方向,F-1-4)。
 
 **ADR Governing Implementation**: ADR-020(§一 `MoveInput` 输入面 + Amendment B `ICameraRig.YawBasis`)· ADR-011(action-based 动作映射;`Sprint`/`Jump` 已补进 3 的 GDD)· ADR-013(§四 只读单向:1 读 2 的基,零写入面)
-**ADR Decision Summary**: ADR-020 §一(Amendment B):`ICameraRig.YawBasis` = `(Vector3 fwd, Vector3 right)` **水平化正交基**,只读;判据 = AC-20-14。方向**单向**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)—— 两条边方向相反,**不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。ADR-011:1 消费 `Move`/`Jump`(P0 两动作;`Sprint` 绑定存在但 P0 无消费者 = `O-7` 挂账)。
+**ADR Decision Summary**: ADR-020 §一(Amendment B):`ICameraRig.YawBasis` = `(Vector3 fwd, Vector3 right)` **水平化正交基**,只读;判据 = AC-ADR020-14。方向**单向**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)—— 两条边方向相反,**不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。ADR-011:1 消费 `Move`/`Jump`(P0 两动作;`Sprint` 绑定存在但 P0 无消费者 = `O-7` 挂账)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
 **Engine Notes**: 本故事的数学全在 float 表现层(F-1-8 在 sim 边界之外,不触 ADR-006 的整数域纪律 —— 它产出的是**表现层速度向量**)。`Mathf` 长期稳定 API。⚠️ 退化分支(相机近乎垂直 → `+Z`):`AC-2-09②` 使该分支**正常操作下不可达**,但作为防御性代码保留(不抛异常、照常返回),`OQ-1-14` 挂 `PITCH_MAX` 取值回填。

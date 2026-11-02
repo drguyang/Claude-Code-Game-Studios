@@ -11,7 +11,7 @@
 | 输入延迟 | 只测 `L_input`(预表现路径),**不**测端到端 | ADR-011 Amendment B / `AC-10-08` |
 | 建造 | 整数格邻接判定,**非物理、非 NavMesh**;槽位与地形共用同一格 | ADR-015 §五 |
 | 拾取 | 意图事件 + 当下判距 + 宽容半径 | ADR-009 §七 |
-| 玩家跨格 | 连续位置/速度/朝向**永不**写流;事件率上界 = tick 频率 | ADR-020 §四(`AC-20-03` BLOCKING,判据 = 反射断言载荷字段类型,**不是 grep**) |
+| 玩家跨格 | 连续位置/速度/朝向**永不**写流;事件率上界 = tick 频率 | ADR-020 §四(`AC-ADR020-03` BLOCKING,判据 = 反射断言载荷字段类型,**不是 grep**) |
 | 存档往返 | 三流全序键 `(Tick, StreamPriority, Patient, Seq)`;禁 `float` | ADR-008 · ADR-010 |
 | 表现层 DTO | `PresentationDtoGuard` **递归**反射扫描 —— `disease_id` 不进呈现层 | ADR-013 §9 C3 / `AC-37-15` |
 | 音频触发白名单 | 禁 sting / jingle / ducking / 素材切换**报**状态 | ADR-018(`AC-44-09` BLOCKING) |

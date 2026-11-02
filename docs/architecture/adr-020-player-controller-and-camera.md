@@ -19,7 +19,7 @@ Accepted
 > §Architecture 图画出「跨格检测 ──▶ 世界流 `ActorCellEntered`」,
 > `architecture.yaml` 的 `player_cell_crossing_event` 契约更明写「跨格瞬间经 `IEventSink.Append` 发一条世界流事件」。
 > 按判据 ② 的字面执行,等于**禁止玩家控制器做它被本 ADR 指定要做的事**。
-> **根因**:判据 ② 的措辞与 **AC-20-05(系统 2 相机)** 逐字同构 —— 系从相机条目**复制而来**,
+> **根因**:判据 ② 的措辞与 **AC-ADR020-05(系统 2 相机)** 逐字同构 —— 系从相机条目**复制而来**,
 > 未按「1 发事件 / 2 不发事件」的差异改写。
 > **订正**:判据 ② 改为「**连续位置**不出现在任何 `IEventSink.Append` 调用点;
 > **跨格事件必须**出现在 `IEventSink.Append` 调用点。控制器**只**引用**边界程序集**(见下),
@@ -75,7 +75,7 @@ Accepted
 > ⚠️ **语义升格(如实登记)**:`requesterId` 初版注释为「仅审计用」;甲案后它**参与裁决** ——
 > 「同一请求方可把自己开的档降回去」(甲案判据,见 §二 的 Amendment C 补注)。
 > ⇒ 任何生产调用点传 `-1` 或错的号,「只能由请求方退出」**静默失效**(不崩,但退不出去)。
-> **`Mode` 的写入点仍恰一处**(AC-2-17 / AC-20-05 不破)。
+> **`Mode` 的写入点仍恰一处**(AC-2-17 / AC-ADR020-05 不破)。
 >
 > **③ `GetLookTarget` 不进 `ICameraRig` —— 这是裁决,不是遗留。**
 > `GetCameraPosition` 与 `GetLookTarget` 都是**具体类**成员,理由:
@@ -86,7 +86,7 @@ Accepted
 > ⚠️ 驳回的替代方案见 §Alternatives Considered 的 **Alternative 6**。
 >
 > **本 Amendment 不改**:§一(移动模型)· §四(玩家位移确定性边界)· §五(相机只读不持状态)·
-> §六(镜头效果归属)· 零第三方取向(`AC-20-02` 不动)。
+> §六(镜头效果归属)· 零第三方取向(`AC-ADR020-02` 不动)。
 
 ## Date
 
@@ -95,7 +95,7 @@ Accepted
 ## Last Verified
 
 2026-11-01(**Amendment C** —— `CameraMode.Downed` / 双参 `SetMode` / 位姿访问器不进接口;
-⚠️ **`AC-20-15` / `AC-20-16` 有夹具载体,`AC-20-17` 的载体见下** —— 本行只记「最近核对」,
+⚠️ **`AC-ADR020-15` / `AC-ADR020-16` 有夹具载体,`AC-ADR020-17` 的载体见下** —— 本行只记「最近核对」,
 **不表示 §Validation 全勾**)· 2026-09-15(初版)
 
 ## Decision Makers
@@ -407,7 +407,7 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 - 相机**不写三流**、**不引用 sim 内部类型**(同 ADR-019 §三 对 51 的约束);
 - 相机的状态(当前视角档 / 阻尼值 / 偏移)**是表现态**,崩溃 / 重启不影响任何游戏事实。
 
-**AC-20-05**:相机程序集**不出现于任何 `IEventSink.Append` 调用点**,且**不引用 sim 程序集**。
+**AC-ADR020-05**:相机程序集**不出现于任何 `IEventSink.Append` 调用点**,且**不引用 sim 程序集**。
 
 ### 六、镜头效果与诊断的边界(结清 8 的既有引用)
 
@@ -525,7 +525,7 @@ public interface ICameraRig
 
 1. **不要给玩家位移加 `Rigidbody`。** 见 §一;若日后需要「被击退 / 推箱」,单独处理该交互,
    不把整条移动路径改成物理驱动。
-2. **不要引入 Cinemachine。** `packages/manifest.json` 出现 `com.unity.cinemachine` 即 AC-20-02 失败。
+2. **不要引入 Cinemachine。** `packages/manifest.json` 出现 `com.unity.cinemachine` 即 AC-ADR020-02 失败。
 3. **相机不进 sim、不写三流。** 它是表现层件(§五)。
 4. **连续位置永不写流。** 只有**跨格**才发事件;这是 §四 的核心,也是 ADR-009 有界性的前提。
 5. **VR 不用平面机位。** 头显第一人称是物理事实,不由第三人称相机驱动(§三)。
@@ -592,7 +592,7 @@ public interface ICameraRig
   ② **契约面被无谓地撑大** —— 位姿序列化是**唯一驱动器**(`BootRoot`)的内务,不是任何系统的需求:
   系统 1 要的是 `YawBasis`,44 要的是 `Camera`,各系统的档位意图要的是 `SetMode`。
 - **Rejection Reason**:接口 = **消费者契约**,位姿 = **驱动器内务**。二者边界已在
-  §Key Interfaces 的注释里钉死,并新增 **`AC-20-17`** 作判据(两个访问器**同进同出**)。
+  §Key Interfaces 的注释里钉死,并新增 **`AC-ADR020-17`** 作判据(两个访问器**同进同出**)。
   ⇒ **本条把 ADR-020 原先的「`GetLookTarget` 缺口」结清为「裁决:不进」,不是遗留项。**
 
 ## Consequences
@@ -628,11 +628,11 @@ public interface ICameraRig
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
-| 实现期有人「顺手」加 Cinemachine | 中 | 中(破一致性 + post-cutoff 面) | AC-20-02 包依赖断言;§二 显式登记为**排除**而非暂缓 |
-| 玩家连续位移被写进事件流 | 中 | 高(破坏 ADR-009 有界性 + 016 感知定义) | AC-20-03(跨格单一路径 grep 断言)+ §四 成文 |
+| 实现期有人「顺手」加 Cinemachine | 中 | 中(破一致性 + post-cutoff 面) | AC-ADR020-02 包依赖断言;§二 显式登记为**排除**而非暂缓 |
+| 玩家连续位移被写进事件流 | 中 | 高(破坏 ADR-009 有界性 + 016 感知定义) | AC-ADR020-03(跨格单一路径 grep 断言)+ §四 成文 |
 | 自建相机手感 / 舒适度不达标 | 中 | 中 | `ux-designer` 评审 + 实测;数值留白供调参;**第 1 个月即可做相机 spike**(与 §8 的 42 焦点导航 spike 同批) |
 | VR 与平面相机共用一条路径,互相迁就 | 低 | 中 | §三 明写**两条独立路径**;VR 推 P1a,接口分层 |
-| 相机持有游戏状态(违反 C3 体例) | 低 | 中 | AC-20-05(不引用 sim / 不写流) |
+| 相机持有游戏状态(违反 C3 体例) | 低 | 中 | AC-ADR020-05(不引用 sim / 不写流) |
 | 镜头效果被用作状态播报 | 低 | 中 | §六 与 ADR-018 §六 无提示音铁律同源;VR 全禁 |
 
 ## Performance Implications
@@ -655,9 +655,9 @@ public interface ICameraRig
    *验证:该栏含 Cinemachine = 不引入。*
 2. **1 / 2 的 GDD(或直接实现)** —— 以本 ADR 为权威件;数值旋钮按 GDD 体例留白。
    *验证:GDD 的每个机制可追溯到本 ADR 的某个 §。*
-3. **包依赖断言** —— AC-20-02 进 CI(manifest 无 cinemachine)。
+3. **包依赖断言** —— AC-ADR020-02 进 CI(manifest 无 cinemachine)。
    *验证:故意加包时断言失败。*
-4. **跨格单一路径断言** —— AC-20-03(grep:连续位置不出现在 `Append` 调用点)。
+4. **跨格单一路径断言** —— AC-ADR020-03(grep:连续位置不出现在 `Append` 调用点)。
    *验证:断言生效。*
 5. **相机 spike** —— 与 §8 的 42 焦点导航 spike 同批(第 1 个月);越肩遮挡 / 舒适度实测。
    *验证:spike 报告 + `ux-designer` 签署。*
@@ -668,37 +668,37 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 
 ## Validation Criteria
 
-- [ ] **AC-20-01(BLOCKING)**:移动 = `CharacterController`;玩家控制器**不参与 PhysX 求解**
+- [ ] **AC-ADR020-01(BLOCKING)**:移动 = `CharacterController`;玩家控制器**不参与 PhysX 求解**
       (`packages/manifest.json` 无相机 / 物理第三方包;玩家路径无 Rigidbody 驱动)
-- [ ] **AC-20-02(BLOCKING)**:`packages/manifest.json` **无** `com.unity.cinemachine`
+- [ ] **AC-ADR020-02(BLOCKING)**:`packages/manifest.json` **无** `com.unity.cinemachine`
       (自建机位;零第三方取向第七处一致性)
-- [ ] **AC-20-03(BLOCKING)**:**连续位置 / 速度 / 朝向永不写流**;玩家在 sim 中的唯一投影 =
+- [ ] **AC-ADR020-03(BLOCKING)**:**连续位置 / 速度 / 朝向永不写流**;玩家在 sim 中的唯一投影 =
       **跨格事件**。**判据 = 反射断言**(`ActorCellEntered` 的字段类型集合 ⊆ `{int32, int64, 整数枚举}`),
       **不是 grep** —— ⚠️ **2026-09-16 订正**:原稿写「grep:连续位置不出现在任何 `IEventSink.Append` 调用点」
       是**假阳性机器** —— 跨格检测**必须**读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`(F-1-6),
       该 grep 会**误杀正确实现**;真正的判据只能是**载荷的字段类型**。(系统 1 的 `AC-1-02` 同此订正)
-- [ ] **AC-20-04**:跨格事件率**上界 = tick 频率**(与帧率 / 移动速度无关);世界流有界性论证仍成立。
+- [ ] **AC-ADR020-04**:跨格事件率**上界 = tick 频率**(与帧率 / 移动速度无关);世界流有界性论证仍成立。
       ⚠️ **2026-09-16 订正**:原写「频率 = 格穿越率」是**等值**断言,**不可证伪**
       (F-1-1b 只给上界;帧率 < tick 频率时同 tick 两次跨格被归并)⇒ 改**上界**口径,
       判据分两层见系统 1 的 `AC-1-03`
-- [ ] **AC-20-05**:相机**不引用 sim 程序集**、**不写三流**、**不持有游戏状态**(承 C3 体例)
-- [ ] **AC-20-06**:平面 = **第三人称越肩**;VR = **第一人称头显**;两条路径**独立**,不互相迁就
-- [ ] **AC-20-07**:VR 相机 = **世界空间第一人称**,**不接收第三人称机位**;
+- [ ] **AC-ADR020-05**:相机**不引用 sim 程序集**、**不写三流**、**不持有游戏状态**(承 C3 体例)
+- [ ] **AC-ADR020-06**:平面 = **第三人称越肩**;VR = **第一人称头显**;两条路径**独立**,不互相迁就
+- [ ] **AC-ADR020-07**:VR 相机 = **世界空间第一人称**,**不接收第三人称机位**;
       且 VR **不承担开放世界移动**(`technical-preferences.md:34`)
-- [ ] **AC-20-08**:VR 模式**禁用**任何镜头效果(`diagnosis-system.md:1519`);`VRComfort` 快照承载(P1a)
-- [ ] **AC-20-09**:镜头效果**不得用于状态播报**(与 ADR-018 §六 无提示音铁律同源);归属 = 8 语义 + 2 实现
-- [ ] **AC-20-10**:44 的 `AudioListener` 挂点落定 —— 平面**主相机** / VR **头显**(结清 `adr-018:295` 留白)
-- [ ] **AC-20-11**:全部数值旋钮(移速 / 阻尼 / 越肩偏移 / 转场时长)**留白**,不在 ADR 内定值
-- [ ] **AC-20-12**:相机 spike 已跑(越肩遮挡 / 舒适度),并与 §8 的 42 焦点导航 spike 同批
-- [ ] **AC-20-13(BLOCKING · 2026-09-16 Amendment B 新增)**:跨格事件的 **`Append` 权 = 主机唯一** ——
+- [ ] **AC-ADR020-08**:VR 模式**禁用**任何镜头效果(`diagnosis-system.md:1519`);`VRComfort` 快照承载(P1a)
+- [ ] **AC-ADR020-09**:镜头效果**不得用于状态播报**(与 ADR-018 §六 无提示音铁律同源);归属 = 8 语义 + 2 实现
+- [ ] **AC-ADR020-10**:44 的 `AudioListener` 挂点落定 —— 平面**主相机** / VR **头显**(结清 `adr-018:295` 留白)
+- [ ] **AC-ADR020-11**:全部数值旋钮(移速 / 阻尼 / 越肩偏移 / 转场时长)**留白**,不在 ADR 内定值
+- [ ] **AC-ADR020-12**:相机 spike 已跑(越肩遮挡 / 舒适度),并与 §8 的 42 焦点导航 spike 同批
+- [ ] **AC-ADR020-13(BLOCKING · 2026-09-16 Amendment B 新增)**:跨格事件的 **`Append` 权 = 主机唯一** ——
       客户端模式下 `IEventSink.Append` 调用点数为 0(`ActorCellEntered` 经**第二 QoS** 上行其格);
       **提交态归主机** —— 客户端只上行 `pending_cell`(不上行 `last_committed_cell`),
       主机的 `last_committed_cell` 只由主机自己的 `Append` 推进(与权威格相同的上行值须**丢弃**)。
       *验证:系统 1 的 `AC-1-30`(①②③)同判据。*
-- [ ] **AC-20-14(BLOCKING · 2026-09-16 Amendment B 新增)**:`ICameraRig.YawBasis` **只读** ——
+- [ ] **AC-ADR020-14(BLOCKING · 2026-09-16 Amendment B 新增)**:`ICameraRig.YawBasis` **只读** ——
       系统 1 的调用点零写入相机状态 / 变换;基**水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。
       *验证:系统 1 的 `AC-1-31` / `AC-1-35` ④ 同判据。*
-- [ ] **AC-20-15(BLOCKING · 2026-11-01 Amendment C 新增)**:**`Downed` 档的四条语义** ——
+- [ ] **AC-ADR020-15(BLOCKING · 2026-11-01 Amendment C 新增)**:**`Downed` 档的四条语义** ——
       ① 平面链**四档**,`CameraModePriority.Casebook > Downed == Treatment > Explore`;
       ② **VR 全禁**:`FirstPerson` 在位时 `Downed` 请求**被丢弃**(不排队、不延后);
       ③ **两段式形状**:先「失支撑」(下沉 + 视线下压)· 后「躺定」(**保持**,不再动);
@@ -706,7 +706,7 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
       ④ **非视场旋转**:只改俯仰方向,**不动 yaw**。
       *判据:`camera_downed_phases_test`(17 条)+ `camera_downed_visual_walkthrough`(1 条);
       证伪 M1–M6 各自转红。**
-- [ ] **AC-20-16(BLOCKING · 2026-11-01 Amendment C 新增)**:**`RequesterId` 参与裁决** ——
+- [ ] **AC-ADR020-16(BLOCKING · 2026-11-01 Amendment C 新增)**:**`RequesterId` 参与裁决** ——
       ① **同请求方可降档**:开启方发 `Explore` 能把自己开的档降回去;
       ② **异请求方不得打断**:别号发 `Explore` 一律不动(防 10 / 39 / 29 互抢机位,`O-12`);
       ③ **`Mode` 的写入点仍恰一处**(不因双参重载而分裂)。
@@ -714,7 +714,7 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
       `test_casebook_sameRequester_canExitViaExplore` / `test_casebook_differentRequester_stillCannotInterrupt`;
       证伪 M1 / M2 红在**不同**测试上(M1 去降档 ⇒ 两条正控红;M2 放开成任意降档 ⇒ 两条负控红 + `test_ac218a`)。*
       ⚠️ **语义升格的后果须登记**:生产调用点传 `-1` 或错的号 ⇒「只能由请求方退出」**静默失效**。
-- [ ] **AC-20-17(BLOCKING · 2026-11-01 Amendment C 新增)**:**位姿访问器不进 `ICameraRig`** ——
+- [ ] **AC-ADR020-17(BLOCKING · 2026-11-01 Amendment C 新增)**:**位姿访问器不进 `ICameraRig`** ——
       `GetCameraPosition(target)` 与 `GetLookTarget(target)` **都在具体类、都不在接口**;
       二者**同进同出**(不得只搬其中一个)。
       判据 = 反射断言:`ICameraRig` 的成员集中**不含**这两个名字;
@@ -730,10 +730,10 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 | `design/gdd/systems-index.md` | 1 / 2 / 4 设计次序 | `:473` 第 11 步(Core · M) | §二 的成本评估使 M 档成立;开工不再欠权威件 |
 | `design/gdd/game-concept.md` | 全局 | `:32/757`「全程第三人称(越肩)」 | §三 限定平面模式并保留;VR 侧以「头显物理事实」区分,不违反该裁决 |
 | `design/gdd/game-concept.md` | 全局 | `:100` 急救动作「(第三人称;VR 可选)」 | §三 状态机含 `Treatment`;VR 推 P1a |
-| `design/gdd/diagnosis-system.md` | 8 诊断 | `:1641`「主角视野边缘 = 2 摄像机 + shader」 | §六 落定归属(8 语义 + 2 实现);`AC-20-09` |
-| `design/gdd/diagnosis-system.md` | 8 诊断 | `:1519`「VR 下任何镜头效果(9 已禁)」 | §六 VR 全禁镜头效果;`AC-20-08` |
-| `docs/architecture/adr-016-ai-architecture.md` | 13 / 27 感知 | `:181-190` §三 粗粒度整数格(玩家跨格写世界流) | §四 补**写方**定义,与读方对称成文;`AC-20-03` |
-| `docs/architecture/adr-018-audio-architecture.md` | 44 音频 | `:295` 单 `AudioListener` 挂点留白 | §七 / `AC-20-10` 落定:平面主相机 / VR 头显 |
+| `design/gdd/diagnosis-system.md` | 8 诊断 | `:1641`「主角视野边缘 = 2 摄像机 + shader」 | §六 落定归属(8 语义 + 2 实现);`AC-ADR020-09` |
+| `design/gdd/diagnosis-system.md` | 8 诊断 | `:1519`「VR 下任何镜头效果(9 已禁)」 | §六 VR 全禁镜头效果;`AC-ADR020-08` |
+| `docs/architecture/adr-016-ai-architecture.md` | 13 / 27 感知 | `:181-190` §三 粗粒度整数格(玩家跨格写世界流) | §四 补**写方**定义,与读方对称成文;`AC-ADR020-03` |
+| `docs/architecture/adr-018-audio-architecture.md` | 44 音频 | `:295` 单 `AudioListener` 挂点留白 | §七 / `AC-ADR020-10` 落定:平面主相机 / VR 头显 |
 
 > **Foundational decision** —— 本 ADR 无独立 GDD 需求(1 / 2 均无 GDD;它是 R-13 的落点)。
 > ⚠️ 2026-09-21 历史注:「1 / 2 均无 GDD」为 2026-09-15 时状态(见 Current State 注);

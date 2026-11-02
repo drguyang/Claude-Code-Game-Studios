@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 🔴 本故事承载全案**唯一一组「动了别人的表会红自己的构建」**的判据(`AC-1-06a/b/c` —— F-1-1a 的所有权反转:不等式约束的对象是 `LATTICE_SIZE`(归 6),`K_TERRAIN_MAX`/`K_CONTEXT_MAX` 必须**从表派生**而非手抄)。
 
-**ADR Governing Implementation**: ADR-020(§一 全部数值留白,AC-20-11 —— ADR 只给形状)· ADR-015(§一 可走性/地貌 = 烘焙整数层;§一之补 `slopeLimit` 与逻辑层同源)· ADR-014(值表 = 表现域烘焙数据经 `IDataProvider`;纯 `int` 常量若 GDD 声明为固定常量则合法)· ADR-005(tick 语义 —— 但本链是表现层积分,`dt = Time.deltaTime` 受 `timeScale` 影响是**要求**,EC-13)
+**ADR Governing Implementation**: ADR-020(§一 全部数值留白,AC-ADR020-11 —— ADR 只给形状)· ADR-015(§一 可走性/地貌 = 烘焙整数层;§一之补 `slopeLimit` 与逻辑层同源)· ADR-014(值表 = 表现域烘焙数据经 `IDataProvider`;纯 `int` 常量若 GDD 声明为固定常量则合法)· ADR-005(tick 语义 —— 但本链是表现层积分,`dt = Time.deltaTime` 受 `timeScale` 影响是**要求**,EC-13)
 **ADR Decision Summary**: F-1-1a:`SPEED_MAX := SPEED_MODE_MAX × ‖MoveInput‖_max × K_TERRAIN_MAX × K_CONTEXT_MAX`,`INVARIANT: SPEED_MAX × MAX_DT ≤ LATTICE_SIZE` —— **两处订正**:① 用 `MAX_DT` 不用 `TICK_PERIOD`(跨格检测每帧跑,帧率 < tick 频率是常态);② 所有者反转 —— 约束对象是 `LATTICE_SIZE`(归 6),故 CI 断言落在装载期差分神谕而非 1 的源码。F-1-1c:**y 轴显式豁免**(竖直隧穿是真实的,与 EC-4 传送同构;事件数仍受 F-1-1b 管,归 story 004)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: HIGH(局部)
@@ -92,7 +92,7 @@
 - Story 001:`CharacterController` 组件装配与 `AC-1-01` 三条判据 —— 本故事是其参数值契约(`AC-1-33`)
 - `AC-1-12`(R3/R8 禁止项零引用)= Story 006(安全边界组)
 - `AC-1-04`(VR 零事件)= Story 005 登记(ADVISORY,P1a)
-- 数值取值(`SPEED_WALK`/`ACCEL`/`DECEL`/`TURN_RATE`/跳跃七常量/`MAX_DT`)—— **归用户**(AC-20-11);lint 阈值(`AC-1-25` 的"可辨"阈值)同归用户数值轮
+- 数值取值(`SPEED_WALK`/`ACCEL`/`DECEL`/`TURN_RATE`/跳跃七常量/`MAX_DT`)—— **归用户**(AC-ADR020-11);lint 阈值(`AC-1-25` 的"可辨"阈值)同归用户数值轮
 - 地貌/情境表内容(归 6/24);`OQ-1-11` 冲刺代价设计(P1a)
 
 ---

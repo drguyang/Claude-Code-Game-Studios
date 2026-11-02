@@ -41,7 +41,7 @@
 //   (若将来出现,应另立判据)。
 // · **字符串 / 注释已剥离**:解释「为什么禁止单参」的注释不会把本门弄红。
 //
-// 权威:ADR-020 Amendment C ② · AC-20-16 · `control-manifest.md` 控制器与相机节
+// 权威:ADR-020 Amendment C ② · AC-ADR020-16 · `control-manifest.md` 控制器与相机节
 //       · `design/gdd/camera-and-viewpoint.md` 的 `R-2-5` / `O-12`
 
 using System.Collections.Generic;
@@ -131,7 +131,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 {
                     errs.Add(
                         $"[相机·SetMode] {displayPath}:{line} 单个实参 —— " +
-                        "生产调用方**必须**用 `SetMode(mode, requesterId)`(ADR-020 Amendment C ② / AC-20-16)。" +
+                        "生产调用方**必须**用 `SetMode(mode, requesterId)`(ADR-020 Amendment C ② / AC-ADR020-16)。" +
                         "单参重载把 `requesterId` 记成 `-1`,甲案的「同一请求方可降档」判据对它**恒假** ⇒ " +
                         "「只能由请求方退出」**静默失效**(不崩、不红,表现为相机卡在某个档出不来)。" +
                         "请传入真实系统号(10 急救 / 29 死亡过渡 / 39 脉案…)。");
@@ -144,7 +144,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                         errs.Add(
                             $"[相机·SetMode] {displayPath}:{line} `requesterId` 传了字面量 `-1` —— " +
                             "与走单参重载**语义等价**(同样让甲案判据恒假)。" +
-                            "生产调用方必须传真实系统号(ADR-020 Amendment C ② / AC-20-16)。" +
+                            "生产调用方必须传真实系统号(ADR-020 Amendment C ② / AC-ADR020-16)。" +
                             "⚠️ 唯一合法处 = `CameraRig.SetMode(mode)` 兼容重载的实现体,它调的是 " +
                             $"`{ExemptReceiver}`(本门已豁免接收者 `{ExemptReceiver}`)。");
                     }

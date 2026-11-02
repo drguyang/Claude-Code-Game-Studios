@@ -421,7 +421,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // 除**两个合法 F5 实现体**外,任何文件出现 `AxisOffsetByQuality` 即违例:
             //   ① Sim/Prescription/HalfLifeCalculator.cs   —— 11 侧的 F-11.2 求值点
             //   ② Sim/ItemDatabase/QualityTimelineSolver.cs —— 21a 侧的 F5 求解器
-            // ⚠️ 判据是**反射式源码扫描**(承 AC-20-03 先例:判据 = 断言不是 grep 习惯,
+            // ⚠️ 判据是**反射式源码扫描**(承 AC-ADR020-03 先例:判据 = 断言不是 grep 习惯,
             //    但此处无程序集反射入口 —— 两程序集无独立 asmdef,故退为源码面扫描并**加正控**)。
             string simDir = Path.Combine(RepoRoot, "unity", "Assets", "Sim");
             Assert.IsTrue(Directory.Exists(simDir), $"Sim/ 目录不存在: {simDir}");

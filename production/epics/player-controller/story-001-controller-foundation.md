@@ -16,7 +16,7 @@
 ⚠️ 本故事同时立 **AC-1-28**(程序集引用集白名单)与 **AC-1-10②**(几何约束 `LATTICE_SIZE ≥ radius×2`)两条 BLOCKING,它们是后续五个 story 的地基判据。
 
 **ADR Governing Implementation**: ADR-020(主:§一 移动模型 + §四 位移确定性边界)· ADR-025(契约程序集清单 = `AC-1-28` 的可执行对像)· ADR-015(§三 单一整数格 + `LATTICE_SIZE` 单一装载常量)· ADR-017(§二 门 A 白名单先例,本故事同法硬化 1 的引用集)
-**ADR Decision Summary**: ADR-020 §一:**移动 = `CharacterController`(kinematic,不参与 PhysX 求解)**;AC-20-01 判据三条并列 —— ① 无 `Rigidbody`/`AddForce`;② `CharacterController.Move` 是**唯一位移写入点**;③ `Physics.Raycast`/`CheckCapsule`/`Overlap*` 引用数为 0(可走性只由 collide-and-slide 给出,R3)。ADR-025 §①:`Sim.Contracts` 引用集**恰 = BCL**;`Sim` 引用集**恰 = {BCL, `Sim.Contracts`}** —— 1 的移动程序集(本仓 asmdef 名待 001 定,登记见 Completion Notes)按同法白名单硬化。ADR-015 §三:`LATTICE_SIZE` 是**单一装载常量,两侧同源,禁二次定义**。
+**ADR Decision Summary**: ADR-020 §一:**移动 = `CharacterController`(kinematic,不参与 PhysX 求解)**;AC-ADR020-01 判据三条并列 —— ① 无 `Rigidbody`/`AddForce`;② `CharacterController.Move` 是**唯一位移写入点**;③ `Physics.Raycast`/`CheckCapsule`/`Overlap*` 引用数为 0(可走性只由 collide-and-slide 给出,R3)。ADR-025 §①:`Sim.Contracts` 引用集**恰 = BCL**;`Sim` 引用集**恰 = {BCL, `Sim.Contracts`}** —— 1 的移动程序集(本仓 asmdef 名待 001 定,登记见 Completion Notes)按同法白名单硬化。ADR-015 §三:`LATTICE_SIZE` 是**单一装载常量,两侧同源,禁二次定义**。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW(ADR-020 本体)
 **Engine Notes**: `CharacterController` 是长期稳定 API(不依赖 post-cutoff)。`AC-1-01`③ 的例外注(R12/F-1-9):`isGrounded`/`slopeLimit` 是引擎**内部**碰撞结果,**不是** `Physics.*` API 调用,不受③约束 —— 若 spike(`OQ-1-12`)裁定需要显式地面探测,③须**按裁决重写**,不得静默放行。`AC-1-10③`(`Vector3Int` 不出现在跨系统接口签名)判据 = AST/反射,`Vector3Int` 只允许作 F-1-6 的**投影中间量**(局部)。
@@ -60,7 +60,7 @@
 *Derived from ADR-020 §一/§四 · ADR-025 §① · ADR-015 §三 · GDD F-1-9/R3/R4/R6:*
 
 - **程序集落点先定**:1 的移动 asmdef(建议名 `Gameplay.Player`;若 ADR-025 六装配清单另有登记名,以清单为准,在 Completion Notes 记偏差)。引用集 = `Sim.Contracts` + BCL + `UnityEngine`(表现层组件),**不含** sim 实现程序集。AC-1-28 的判据 = asmdef `references` 白名单断言 + 传递闭包(承 story-006 input-system 的 `ReferenceClosure` 先例 —— 间接引用也算违规)。
-- **`CharacterController` 组件 + 玩家 prefab 落地**:prefab 只挂 `CharacterController`,**零** `Rigidbody`;F-1-9 的参数契约表(本故事只钉**存在性与归属**,`AC-1-33` 的装载期比较值归 story 003):`minMoveDistance`(P0 = 0)/ `slopeLimit`(归 ADR-015 §一 + 1)/ `stepOffset`(归关卡几何/ADR-015,**不归 1**)/ `skinWidth`/`radius`/`height`/`center`/`enableOverlapRecovery` 一并登记归属。**值留白**(AC-20-11)。
+- **`CharacterController` 组件 + 玩家 prefab 落地**:prefab 只挂 `CharacterController`,**零** `Rigidbody`;F-1-9 的参数契约表(本故事只钉**存在性与归属**,`AC-1-33` 的装载期比较值归 story 003):`minMoveDistance`(P0 = 0)/ `slopeLimit`(归 ADR-015 §一 + 1)/ `stepOffset`(归关卡几何/ADR-015,**不归 1**)/ `skinWidth`/`radius`/`height`/`center`/`enableOverlapRecovery` 一并登记归属。**值留白**(AC-ADR020-11)。
 - **`LATTICE_SIZE` 单一源**:定义落**边界程序集**(`Sim.Contracts` 或 1 读取的烘焙常量),1 **不自定义**第二份(ADR-015 §三)。AC-1-10① 的装载期断言 = 读烘焙逻辑层的格常量与 1 运行期读的格常量逐位比较。
 - **AC-1-01③ 的 `Physics.*` 零引用判据 = Roslyn 分析器**(编译期,非事后 grep —— 承 input-system story-001 的 Legacy 分析器先例:符号被裁剪/内联后构建产物 grep 可能假阴性)。分析器拒 `Physics.Raycast`/`CheckCapsule`/`Overlap*`/`AddForce`/`AddTorque` 族;`CharacterController.Move` 为**唯一允许的位移写入点**(其余 `transform.position` 直接写也须拒,除传送/重生注入的显式「被放置」路径 —— 该路径见 story 004 的 EC-4)。
 - **载体注记**:`tests/` 与 `.github/workflows/` 由 ADR-012 轮建;本故事交付判据本体(分析器 + EditMode 断言 + 装载期校验),不自建 CI。AC「已定义」≠「已验证」,见 EPIC.md Key Cross-References。
@@ -87,7 +87,7 @@
   - Given: 玩家 prefab 与 World 场景已装配。
   - When: EditMode 遍历 prefab / 场景 GameObject 的组件集合(反射 / `GetComponents`)。
   - Then: 玩家根节点**无** `Rigidbody`,**有** `CharacterController`;组件集合断言对「prefab 里挂了 Rigidbody」失败(反例夹具:临时挂 `Rigidbody` ⇒ 红)。
-  - Edge cases: 子节点(相机锚点、胶囊视觉)也不得挂驱动位移的 `Rigidbody`;`isKinematic = true` 的 `Rigidbody` **仍算违规**(AC-20-01 是「无 Rigidbody 驱动」,不区分 kinematic)。
+  - Edge cases: 子节点(相机锚点、胶囊视觉)也不得挂驱动位移的 `Rigidbody`;`isKinematic = true` 的 `Rigidbody` **仍算违规**(AC-ADR020-01 是「无 Rigidbody 驱动」,不区分 kinematic)。
   - Negative fixture: prefab 挂 `Rigidbody`(kinematic 与非 kinematic 各一)。
 
 - **AC-1-01②③**: `AddForce`/`AddTorque`/`velocity` 写 + `Physics.Raycast`/`CheckCapsule`/`Overlap*` 零引用(Roslyn 分析器)。

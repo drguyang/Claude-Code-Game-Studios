@@ -7,7 +7,7 @@
 //                    K_difficulty 缺失 ⇒ 不发成长 + 断言硬失败 / 同 tick 两剂各得不同 Seq)
 //   ADR-005(主机唯一 Step / Append;客户端上行意图)
 //   ADR-009 §七(意图 → 权威结算的一般形状;⚠️ 11 与 10 的区别 = **无判定步**,意图即效果)
-//   ADR-020 §四 AC-20-03 先例(判据 = 反射断言非 grep)
+//   ADR-020 §四 AC-ADR020-03 先例(判据 = 反射断言非 grep)
 //   ADR-026(SkillGrown 落病史流;省料**不**放大药效)
 //   ADR-029 §③(载荷编码唯一路径 = IPayloadEncoder;Sim/ 目录内禁 `new PayloadRef(`)
 //   OQ-11-13(已裁 2026-10-06):K_difficulty 由 11 自表派生,**不读 severity**

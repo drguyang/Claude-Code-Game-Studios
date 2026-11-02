@@ -832,7 +832,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             // 跟随 = 每帧把相机位置设到玩家位置 + 偏移
             //
-            // ⚠️ **不自加 AudioListener**(ADR-020 §七 / AC-20-10 单挂点铁律):
+            // ⚠️ **不自加 AudioListener**(ADR-020 §七 / AC-ADR020-10 单挂点铁律):
             //   T1.5 初版在此 `AddComponent<AudioListener>()`,而 Boot.unity 预摆的
             //   `Main Camera`(Transform + Camera + AudioListener + URP data)**已有一个**
             //   ⇒ 场景内恒 2 个 listener,Unity 每帧刷一条警告。
@@ -1013,7 +1013,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // `DefaultEventSystem`,但 ADR-013 明文要官方桥 ⇒ 本步把它立起来。
             _eventSystem = EnsureEventSystem();
 
-            // fail-loud(AudioListener 单挂点 · AC-20-10):>1 即抛。
+            // fail-loud(AudioListener 单挂点 · AC-ADR020-10):>1 即抛。
             // 把「运行期每帧刷 3 万条日志 →  Editor 卡死」的失效模式提前成具名异常。
             AssertSingleAudioListener();
 
@@ -1325,7 +1325,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
 
         /// <summary>
-        /// AudioListener 单挂点断言(ADR-020 §七 / AC-20-10)—— **fail-loud**。
+        /// AudioListener 单挂点断言(ADR-020 §七 / AC-ADR020-10)—— **fail-loud**。
         /// <para><b>为何必须是断言而不是依赖 Unity 的警告</b>:Unity 对多 listener
         /// 只发一条**每帧重复**的警告(不抛、不阻断)。2026-10-10 实测:该警告刷满
         /// Editor.log 31868 条,Console 管道超载后 Editor 进程以 <c>write EPIPE</c>
@@ -1647,7 +1647,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (active.Length != 1 || all.Length != 1)
             {
                 throw new InvalidOperationException(
-                    $"AC-20-10 AudioListener 单挂点:active {active.Length} 个 / 挂载总数 {all.Length} 个(应各为 1)。" +
+                    $"AC-ADR020-10 AudioListener 单挂点:active {active.Length} 个 / 挂载总数 {all.Length} 个(应各为 1)。" +
                     "0 个 active = 无听音点 ⇒ 整个场景静音(2026-10-20 实测 10845 条警告);" +
                     "≥2 个 = 每帧警告洪泛 → Console 管道超载 → Editor 进程 EPIPE 终止(2026-10-10 实测 31868 条)。" +
                     "正确形态:运行时 CameraRig 主相机持唯一 listener;预摆 Main Camera 禁用前已摘除其 listener。");
@@ -2019,7 +2019,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _booted = false;
             _player = null;
             // CameraRig 的销毁**不在这里**:它已 SetParent(transform)(启动序第 5 步),
-            // 随本对象的层级销毁一并走 —— 它身上挂着**唯一** AudioListener(AC-20-10),
+            // 随本对象的层级销毁一并走 —— 它身上挂着**唯一** AudioListener(AC-ADR020-10),
             // 显式再 Destroy 会与层级销毁重复、且若顺序在前会让本帧出现「零听音点」窗口。
             _cameraRig = null;
             _services = null;

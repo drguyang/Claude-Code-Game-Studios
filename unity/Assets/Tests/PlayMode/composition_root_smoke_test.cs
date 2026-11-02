@@ -141,7 +141,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         /// <para>⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,而被启动序
         /// `SetActive(false)` 的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积
         /// ⇒ 后续 `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
-        /// (`AC-20-10` 偶发红,2026-11-01 实测)。</para>
+        /// (`AC-ADR020-10` 偶发红,2026-11-01 实测)。</para>
         /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
         /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
         /// </summary>

@@ -30,7 +30,7 @@
 ## Context
 
 **GDD**: `design/gdd/camera-and-viewpoint.md` `R-2-5`(6 条有效行 + 11 的具名除外行)
-· `AC-2-18①`(档位表穷举 + 同请求方双向判据)· `AC-20-15` / `AC-20-16`(ADR-020 Amendment C)
+· `AC-2-18①`(档位表穷举 + 同请求方双向判据)· `AC-ADR020-15` / `AC-ADR020-16`(ADR-020 Amendment C)
 
 **ADR Governing Implementation**:
 - **ADR-020 Amendment C ①②**(主):`RequesterId` 参与裁决;生产调用方必须双参且传真实系统号

@@ -375,7 +375,7 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         [Test]
         public void test_ac206b_firstPersonMode_disablesPostProcessing()
         {
-            // VR 侧禁用任何镜头效果(AC-20-08)。
+            // VR 侧禁用任何镜头效果(AC-ADR020-08)。
             // P0 无真 VR ⇒ 走**夹具注入**:强制 Mode = FirstPerson,断言后处理清单为空。
             var go = new GameObject("rigFP");
             var rig = go.AddComponent<CameraRig>();

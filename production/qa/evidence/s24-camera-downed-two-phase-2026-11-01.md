@@ -697,9 +697,9 @@ Cross-Domain Changes」)。**登记在此,等用户裁定是否立 ADR-020 Amend
 
 **新增 AC 三条**(§Validation):
 
-- **`AC-20-15`(BLOCKING)** —— `Downed` 四语义(四档 / VR 丢弃 / 两段式禁甩镜 / 非视场旋转)
-- **`AC-20-16`(BLOCKING)** —— `RequesterId` 裁决双向(同号可降档 + 异号不得抢 + `Mode` 写入点仍一处)
-- **`AC-20-17`(BLOCKING)** —— 位姿访问器**同进同出**(都在具体类、都不在接口)
+- **`AC-ADR020-15`(BLOCKING)** —— `Downed` 四语义(四档 / VR 丢弃 / 两段式禁甩镜 / 非视场旋转)
+- **`AC-ADR020-16`(BLOCKING)** —— `RequesterId` 裁决双向(同号可降档 + 异号不得抢 + `Mode` 写入点仍一处)
+- **`AC-ADR020-17`(BLOCKING)** —— 位姿访问器**同进同出**(都在具体类、都不在接口)
 
 ### 11.3 ③ 为什么是「不进接口」而不是「加进去」
 
@@ -712,7 +712,7 @@ Cross-Domain Changes」)。**登记在此,等用户裁定是否立 ADR-020 Amend
 **所以正确的裁决是把它明确为「不进」,而不是加进去。** 缺口由此**结清**而非遗留。
 驳回过程写进 §Alternatives 的 **Alternative 6**。
 
-### 11.4 `AC-20-17` 的机械载体(否则就是 F6 自述顶替门)
+### 11.4 `AC-ADR020-17` 的机械载体(否则就是 F6 自述顶替门)
 
 `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs`
 新增 `test_ac2017_poseAccessors_offInterface_onConcrete_together`,
@@ -736,7 +736,7 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/em-cam.xml').get
 python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').getroot();print('PM',r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"
 ```
 
-### 11.4c 证伪轮:AC-20-17 有判别力
+### 11.4c 证伪轮:AC-ADR020-17 有判别力
 
 | 轮 | 变异 | 结果 |
 |---|---|---|
@@ -751,7 +751,7 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 
 ```
 `GetLookTarget` **不得**出现在 `ICameraRig` 上 —— 接口 = 消费者契约,位姿序列化是唯一驱动器
-(BootRoot)的内务(ADR-020 Amendment C ③ / AC-20-17)
+(BootRoot)的内务(ADR-020 Amendment C ③ / AC-ADR020-17)
   Expected: null
   But was:  <UnityEngine.Vector3 GetLookTarget(UnityEngine.Vector3)>
 ```
@@ -766,11 +766,11 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 
 | 文件 | 改动 |
 |---|---|
-| `docs/architecture/adr-020-player-controller-and-camera.md` | Status 段 Amendment C · §二 补注(a)(b) · §Key Interfaces · §Alternatives Alternative 6 · `Last Verified` · `AC-20-15/16/17` |
+| `docs/architecture/adr-020-player-controller-and-camera.md` | Status 段 Amendment C · §二 补注(a)(b) · §Key Interfaces · §Alternatives Alternative 6 · `Last Verified` · `AC-ADR020-15/16/17` |
 | `docs/architecture/architecture.md` | 接口清单同步(enum 加 `Downed` · 双参 `SetMode` · 位姿访问器注释 · 优先级不变量 ⑤) |
 | `.claude/docs/technical-preferences.md` | ADR-020 日志条目加 **Amendment C** 段 |
 | `design/gdd/camera-and-viewpoint.md` | 前一批(§10)已补;本批无需再动 |
-| `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs` | 新增 `AC-20-17` 载体 |
+| `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs` | 新增 `AC-ADR020-17` 载体 |
 
 ⚠️ **未动 `control-manifest.md`**:它有 `Manifest Version:` 日期,改它会让所有 story 的
 manifest 版本变旧(触发 `/story-done` 的 staleness 告警)。其相机段本就指向 ADR-020 §二 / §五,
@@ -937,7 +937,7 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/pm-cam.xml').get
 
 ## 14. 按 epic 扫新规则影响面(2026-11-02 · 用户指令)
 
-**被扫的规则**:「生产调用方必须用双参 `SetMode(mode, requesterId)`」(ADR-020 Amendment C ② / AC-20-16)。
+**被扫的规则**:「生产调用方必须用双参 `SetMode(mode, requesterId)`」(ADR-020 Amendment C ② / AC-ADR020-16)。
 **被扫的面**:`production/epics/` 全部 **32 个 epic / 237 份 story**。
 
 ### 14.1 判据

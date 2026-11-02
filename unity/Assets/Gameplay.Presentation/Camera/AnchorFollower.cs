@@ -2,7 +2,7 @@
 //
 // 权威来源:
 //   GDD camera-and-viewpoint.md F-2-1(公式)· 组 1(旋钮)/ 组 5b(EPS 归属)/ 组 5c(n/h 是派生量)/ 组 6(MAX_DT)
-//   ADR-020 §一(数值留白 AC-20-11)· §四(相机只读 1 的 Position)
+//   ADR-020 §一(数值留白 AC-ADR020-11)· §四(相机只读 1 的 Position)
 //   ADR-015 §三(MAX_DT 与 LATTICE_SIZE 同源,单一装载常量,禁二次定义)
 //
 // 积分器改判(2026-09-16 评审):

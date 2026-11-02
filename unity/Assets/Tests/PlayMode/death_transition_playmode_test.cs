@@ -50,7 +50,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         {
             // ⚠️ **清理次序 = 先拆 BootRoot 层级,再恢复预摆**(2026-11-01 实测修复):
             // 反过来(先 `preset.SetActive(true)` 后拆 CameraRig)会开一个**两个 active
-            // AudioListener 并存**的窗口 —— `AC-20-10` 的单挂点断言在该窗口里**每帧洪泛**
+            // AudioListener 并存**的窗口 —— `AC-ADR020-10` 的单挂点断言在该窗口里**每帧洪泛**
             // (全量 PlayMode 实测日志膨胀到 205 MB / 180 万条,Editor 近乎停摆)。
             // CameraRig 已 `SetParent(BootRoot)`(启动序第 5 步)⇒ 随 `_root` 层级销毁,
             // **不**显式 Destroy(否则与层级销毁重复)。
@@ -114,7 +114,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         {
             // Arrange:预摆 Main Camera(启动序断言「恰 1 AudioListener」的 fixture)。
             // ⚠️ **清场先行**(2026-11-01 全量串跑实测):前序测试可能留下 Camera / AudioListener
-            // ⇒ 本件启动序读到 ≥2 个 ⇒ `AC-20-10` fail-loud(全量串跑红,定向单跑不暴露)。
+            // ⇒ 本件启动序读到 ≥2 个 ⇒ `AC-ADR020-10` fail-loud(全量串跑红,定向单跑不暴露)。
             // ⚠️ `FindObjectsOfType<T>(true)` = **含未激活对象**:前序测试的 CameraRig 可能已被
             // `SetActive(false)`(启动序第 5 步),默认重载搜不到 ⇒ 仍会计入 listener 总数。
             foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
@@ -136,7 +136,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             //   随后 `BootRoot.FindInactiveInclusive("Main Camera")` 按
             //   `FindObjectsByType(Camera, Include)` 的**枚举序**返回**第一个**匹配 ——
             //   残留的旧件会抢在本次新建的前面被返回 ⇒ BootRoot 摘掉**错的那一个**的
-            //   listener ⇒ 本次预摆的 listener 仍在 ⇒ `active/all = 2` ⇒ `AC-20-10` 抛。
+            //   listener ⇒ 本次预摆的 listener 仍在 ⇒ `active/all = 2` ⇒ `AC-ADR020-10` 抛。
             //   ⚠️ **为什么是偶发**:`FindObjectsSortMode.None` 的枚举序不保证稳定
             //   ⇒ 有时先返回本次新建的(摘对了 ⇒ 绿),有时先返回残留的(摘错 ⇒ 红)。
             //   ⇒ 本件清场必须**把同名件全拆干净**,不能只清 listener 组件。

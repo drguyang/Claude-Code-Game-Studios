@@ -4,7 +4,7 @@
 // 为什么立这条门(一次**偶发红**换来的)
 // ─────────────────────────────────────────────────────────────────────────────
 //   `death_transition_playmode_test` 在**全量串跑**下**偶发**红:
-//     `AC-20-10 AudioListener 单挂点:active 2 个 / 挂载总数 2 个`
+//     `AC-ADR020-10 AudioListener 单挂点:active 2 个 / 挂载总数 2 个`
 //   连续两轮实测:run1 绿 / run2 红 ⇒ **不是确定性缺陷,是枚举序相关的时序缺陷**。
 //
 //   根因链(四步,每步都实测):
@@ -94,7 +94,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 errs.Add($"[pm-teardown-find] {rel}:{lineNo} TearDown 内用 `GameObject.Find(` —— " +
                          "它**只查 active 对象**,而被启动序 `SetActive(false)` 的预摆恰是 inactive ⇒ " +
                          "清场静默失效 ⇒ 同名件跨测累积 ⇒ 后续 `BootRoot.FindInactiveInclusive` 按" +
-                         "不稳定枚举序摘错 listener(`AC-20-10` 偶发红)。" +
+                         "不稳定枚举序摘错 listener(`AC-ADR020-10` 偶发红)。" +
                          "改用 `Resources.FindObjectsOfTypeAll<GameObject>()`(含 inactive,排除资产)" +
                          "或 `FindObjectsByType(..., FindObjectsInactive.Include)`");
             }

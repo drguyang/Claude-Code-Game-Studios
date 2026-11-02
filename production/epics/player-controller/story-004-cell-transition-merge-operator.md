@@ -51,7 +51,7 @@
 - [x] **AC-1-32(BLOCKING · 复核新增 —— 根因 2「归并算符三版不等价」)** —— **tick 内折返不发事件**(§States 的 `else → pending_cell := null` 支):`GIVEN` 同一 tick 内位置样本序列 `A → B → A`(`A = last_committed_cell`),`WHEN` 该 tick 边沿到达,`THEN` `Append == 0` ∧ `last_committed_cell == A`(否定初稿三版伪码共有的「残留 `pending = B` ⇒ 发一条 B」缺陷)。**反向用例(必须同时存在,否则与 EC-3 混淆)**:`GIVEN` 跨**两个** tick 边沿的 `A → B → A`(`A→B` 已在第一个边沿提交),`THEN` `Append == 2`(两条事件 —— 两次跨格都真实发生过)。⇒ **两个用例互为判据**:只测其一会被"一律不发"或"一律发"两种错实现通过。
 - [x] **AC-1-17(BLOCKING)** —— **EC-9 接地不靠帧计数**:源码路径中**零**"连续 N 帧接地"式计数器;`Grounded` 进入条件含 `垂直速度 ≤ 0`。**AST / 代码审查判据**(计数器的形态不限,故 grep 不够)。⚠️ **`Grounded` 进入条件的具体形式被 `OQ-1-12` 挂起**(R12)—— 若 spike 改判,本条随轴 2 表同步重写。
 - [x] **AC-1-24(BLOCKING)** —— **`PatientId.None` 不污染高水位**:`ActorCellEntered` 的 `Patient` 字段 == `PatientId.None`,且 `max(patient_id)` 的重构扫描**显式排除**该事件(ADR-006 Amendment B / ADR-009 Amendment E)。**判据**:喂一条含 `ActorCellEntered` 的流,断言重构出的 `next` **不因它变化**。
-- [x] **AC-1-04(ADVISORY · 复核降级 —— **NOT-RUN**)** —— **VR 零事件**:VR 模式下头显 / 手柄位移**不产生** `ActorCellEntered`。⚠️ **P0 主语不存在**(VR 推 P1a,AC-20-06/07)⇒ ADVISORY;**发版前(VR 落地时)回升为 BLOCKING。**
+- [x] **AC-1-04(ADVISORY · 复核降级 —— **NOT-RUN**)** —— **VR 零事件**:VR 模式下头显 / 手柄位移**不产生** `ActorCellEntered`。⚠️ **P0 主语不存在**(VR 推 P1a,AC-ADR020-06/07)⇒ ADVISORY;**发版前(VR 落地时)回升为 BLOCKING。**
 
 ---
 

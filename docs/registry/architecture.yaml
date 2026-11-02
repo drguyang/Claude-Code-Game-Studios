@@ -133,7 +133,7 @@ state_ownership:
     owner_system: "1 玩家控制器与移动(索引分层 = Core;程序集归属 = 表现层 —— 两轴不同,systems-index.md:34 与 ADR-020 §一)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     interface: "IPlayerMotor: Tick(dt, in MoveInput) / WorldPos Cell(整数格) / Vector3 Position(连续位置,表现态)/ bool ConsumeCellChanged()。**连续位置永不写流** —— 跨格瞬间发一条世界流事件(ActorCellEntered),该事件是玩家位移在 sim 中的唯一投影"
-    write_access: "1 自持(表现层 CharacterController,不参与 PhysX 求解)。**§四 = ADR-016 §三 的对称侧**:ADR-016 定义读方(13 / 27 读粗粒度整数格),ADR-020 定义写方(玩家跨格发事件)。**事件率上界 = tick 频率**(每 tick 至多 Append 一条,与帧率 / 移动速度无关)⇒ 不破坏 ADR-009 世界流有界性论证。⚠️ **2026-09-16 口径订正**(系统 1 的 GDD 落盘):原写「事件频率 = 格穿越率」是**等值**断言,不可证伪且与归并算子相抵 ⇒ 改**上界**口径(见 `player-controller-and-movement.md` F-1-1b / AC-1-03)。**AC-20-03 / AC-1-02 BLOCKING**:**判据 = 反射断言** `ActorCellEntered` 的字段类型集合 ⊆ {int32, int64, 整数枚举} —— **不是 grep**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`,grep 会误杀正确实现)。**`Append` 权 = 主机唯一**(**2026-09-16 Amendment B**,与 ADR-005「主机唯一执行 Step / CatchUp」对齐):本地玩家在主机 ⇒ 主机本地控制器直接 `Append`;本地玩家在客户端 ⇒ 客户端 **`Append` 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value)上行,由主机权威控制器统一 `Append`;远端队友同路径 ⇒ 主机 Append 后经世界流回播(13 / 27 在所有机器读到同一条序列)。**`ActorCellEntered` 不在可靠通道**(最新值语义 vs reliable-ordered;且可靠通道被「急救 < 50 ms」`TR-concept-007` 占用)。判据见 AC-20-13 / `AC-1-30`"
+    write_access: "1 自持(表现层 CharacterController,不参与 PhysX 求解)。**§四 = ADR-016 §三 的对称侧**:ADR-016 定义读方(13 / 27 读粗粒度整数格),ADR-020 定义写方(玩家跨格发事件)。**事件率上界 = tick 频率**(每 tick 至多 Append 一条,与帧率 / 移动速度无关)⇒ 不破坏 ADR-009 世界流有界性论证。⚠️ **2026-09-16 口径订正**(系统 1 的 GDD 落盘):原写「事件频率 = 格穿越率」是**等值**断言,不可证伪且与归并算子相抵 ⇒ 改**上界**口径(见 `player-controller-and-movement.md` F-1-1b / AC-1-03)。**AC-ADR020-03 / AC-1-02 BLOCKING**:**判据 = 反射断言** `ActorCellEntered` 的字段类型集合 ⊆ {int32, int64, 整数枚举} —— **不是 grep**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`,grep 会误杀正确实现)。**`Append` 权 = 主机唯一**(**2026-09-16 Amendment B**,与 ADR-005「主机唯一执行 Step / CatchUp」对齐):本地玩家在主机 ⇒ 主机本地控制器直接 `Append`;本地玩家在客户端 ⇒ 客户端 **`Append` 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value)上行,由主机权威控制器统一 `Append`;远端队友同路径 ⇒ 主机 Append 后经世界流回播(13 / 27 在所有机器读到同一条序列)。**`ActorCellEntered` 不在可靠通道**(最新值语义 vs reliable-ordered;且可靠通道被「急救 < 50 ms」`TR-concept-007` 占用)。判据见 AC-ADR020-13 / `AC-1-30`"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-016-ai-architecture.md   # §三 感知输入 = 粗粒度整数格(读方)
@@ -148,7 +148,7 @@ state_ownership:
     owner_system: "2 摄像机与视角(表现层)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     interface: "ICameraRig: CameraMode Mode / SetMode(mode) / Tick(dt) / Camera Camera / **(Vector3 fwd, Vector3 right) YawBasis { get; }**。CameraMode ∈ { Explore, Treatment, Casebook, FirstPerson(VR,P1a)}。**只读,永不持有游戏状态**"
-    write_access: "2 自持(表现层)。**自建机位,不引入 Cinemachine**(零第三方第七处一致性);不写三流、不引用 sim **实现**程序集(边界程序集白名单,ADR-005 Amendment F;门 A 是单向约束)。承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例。**§七 结清 44 的 AudioListener 单挂点**:平面 = 主相机,VR = 头显(AC-20-10)。防抖 / 缓动吃表现态 dt,不入 sim。**`YawBasis` = 2026-09-16 Amendment B 新立**(系统 1 的 F-1-8 把二维 `MoveInput` 投影成世界方向的**水平化正交基**):**只读** —— 系统 1 零写入相机状态 / 变换;**单向** —— 1 读 2 的基,2 读 1 的 `Position`,两条边方向相反**不成环**(判据 AC-20-14 / `AC-1-31` / `AC-1-35` ③④)。系统 2 尚未有 GDD ⇒ 交付义务登记为 `O-8`"
+    write_access: "2 自持(表现层)。**自建机位,不引入 Cinemachine**(零第三方第七处一致性);不写三流、不引用 sim **实现**程序集(边界程序集白名单,ADR-005 Amendment F;门 A 是单向约束)。承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例。**§七 结清 44 的 AudioListener 单挂点**:平面 = 主相机,VR = 头显(AC-ADR020-10)。防抖 / 缓动吃表现态 dt,不入 sim。**`YawBasis` = 2026-09-16 Amendment B 新立**(系统 1 的 F-1-8 把二维 `MoveInput` 投影成世界方向的**水平化正交基**):**只读** —— 系统 1 零写入相机状态 / 变换;**单向** —— 1 读 2 的基,2 读 1 的 `Position`,两条边方向相反**不成环**(判据 AC-ADR020-14 / `AC-1-31` / `AC-1-35` ③④)。系统 2 尚未有 GDD ⇒ 交付义务登记为 `O-8`"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-018-audio-architecture.md   # :295 AudioListener 挂点(本条目结清)
@@ -422,7 +422,7 @@ interfaces:
       - "52 随机事件导演"       # 位置相关触发
       - "45 网络层"            # 传输世界流 + 承载客户端 → 主机的格上行(第二 QoS)
     adr: docs/architecture/adr-020-player-controller-and-camera.md
-    signal_signature: "跨格瞬间经 IEventSink.Append 发一条世界流事件(ActorCellEntered,Kind ∈ 世界流;Patient = PatientId.None);载荷 = { actor_id, cell(WorldPos), tick }，三字段均整数。**连续位置 / 速度 / 朝向永不进载荷**。**事件率上界 = tick 频率**(每 tick 至多一条;**不是**「= 格穿越率」—— 2026-09-16 订正,F-1-1b 的归并算子只给上界),与帧率 / 移动速度无关(AC-20-04 / AC-1-03)。`tick` 字段语义 = **观察到**跨格的那一 tick(与发生时最多差一 tick,ADR-009 Amendment G)。**`Append` 权 = 主机唯一**(2026-09-16 Amendment B):本地玩家在主机 ⇒ 主机本地控制器直接 Append;本地玩家在客户端 ⇒ **客户端 Append 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value,与连续位置共用通道,**不占可靠通道**)上行,由主机权威控制器统一 Append;远端队友同路径 ⇒ 主机 Append 后经世界流回播全员。**本事件不在可靠通道**(最新值语义 vs reliable-ordered;可靠通道归「急救 < 50 ms」)。这是 ADR-016 §三『感知输入 = 粗粒度整数格』在玩家侧的对称定义 —— §三 定读方,本契约定写方。判据 = AC-20-13 / AC-1-30"
+    signal_signature: "跨格瞬间经 IEventSink.Append 发一条世界流事件(ActorCellEntered,Kind ∈ 世界流;Patient = PatientId.None);载荷 = { actor_id, cell(WorldPos), tick }，三字段均整数。**连续位置 / 速度 / 朝向永不进载荷**。**事件率上界 = tick 频率**(每 tick 至多一条;**不是**「= 格穿越率」—— 2026-09-16 订正,F-1-1b 的归并算子只给上界),与帧率 / 移动速度无关(AC-ADR020-04 / AC-1-03)。`tick` 字段语义 = **观察到**跨格的那一 tick(与发生时最多差一 tick,ADR-009 Amendment G)。**`Append` 权 = 主机唯一**(2026-09-16 Amendment B):本地玩家在主机 ⇒ 主机本地控制器直接 Append;本地玩家在客户端 ⇒ **客户端 Append 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value,与连续位置共用通道,**不占可靠通道**)上行,由主机权威控制器统一 Append;远端队友同路径 ⇒ 主机 Append 后经世界流回播全员。**本事件不在可靠通道**(最新值语义 vs reliable-ordered;可靠通道归「急救 < 50 ms」)。这是 ADR-016 §三『感知输入 = 粗粒度整数格』在玩家侧的对称定义 —— §三 定读方,本契约定写方。判据 = AC-ADR020-13 / AC-1-30"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-016-ai-architecture.md   # §三 读方 + ai_reads_presentation_position
@@ -1104,7 +1104,7 @@ forbidden_patterns:
 
   - pattern: player_continuous_position_into_stream
     status: active
-    description: "禁止把玩家的连续位置 / 速度 / 朝向写进三流(ADR-020 §四)。玩家位移是**表现态**;跨格瞬间发一条世界流事件(ActorCellEntered)是它在 sim 中的唯一投影。**AC-20-03 / AC-1-02 BLOCKING**:判据 = **反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举} —— ⚠️ **2026-09-16 订正**原写「grep 断言无『Vector3 / Transform 位置 → IEventSink.Append』路径」是**假阳性机器**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`),会误杀正确实现"
+    description: "禁止把玩家的连续位置 / 速度 / 朝向写进三流(ADR-020 §四)。玩家位移是**表现态**;跨格瞬间发一条世界流事件(ActorCellEntered)是它在 sim 中的唯一投影。**AC-ADR020-03 / AC-1-02 BLOCKING**:判据 = **反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举} —— ⚠️ **2026-09-16 订正**原写「grep 断言无『Vector3 / Transform 位置 → IEventSink.Append』路径」是**假阳性机器**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`),会误杀正确实现"
     why: "写连续位置 = 帧率相关事件率(与 ADR-009 世界流有界性论证直接冲突),且表现态位置是第二 QoS 通道(时序不确定)—— 落进真源即污染可重建性。这是 ADR-016 §三 的对称侧:AI 读粗粒度格(禁读表现态),玩家就只写粗粒度格(禁写表现态)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
@@ -1118,14 +1118,14 @@ forbidden_patterns:
 
   - pattern: cinemachine_in_runtime
     status: active
-    description: "禁止在运行期引入 Cinemachine(com.unity.cinemachine)(ADR-020 §二)。相机 = 自建机位(ICameraRig);**AC-20-02** 断言 manifest.json 无该条目"
+    description: "禁止在运行期引入 Cinemachine(com.unity.cinemachine)(ADR-020 §二)。相机 = 自建机位(ICameraRig);**AC-ADR020-02** 断言 manifest.json 无该条目"
     why: "零第三方取向已连续七处(ADR-014 解析器 / 015 几何工具 / 016 行为树 · 寻路 · 017 DOTS / 018 音频中间件 / 019 遥测 SDK / 020 相机);且 Cinemachine 3.0 是 post-cutoff 大重写(仓库 plugins/cinemachine.md:21 自陈『3.0 是 2.x 的大重写,许多 API 名已变』),知识风险由『不使用它』消解而非押注 API 名。『官方包』不是豁免 —— DOTS 同为官方包亦已被 ADR-017 结构性排除"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
 
   - pattern: camera_holding_game_state
     status: active
-    description: "禁止相机持有游戏状态 / 写三流 / 引用 sim **实现**程序集(ADR-020 §五,AC-20-05;可引边界程序集白名单 —— ADR-005 Amendment F)。相机 = 只读渲染者;防抖 / 缓动吃表现态 dt,不入 sim。**VR 全禁镜头效果**(ADR-020 §六);禁用镜头效果**报**状态(与 audio_cue_state_broadcast 同源,是同一铁律的视觉侧)"
+    description: "禁止相机持有游戏状态 / 写三流 / 引用 sim **实现**程序集(ADR-020 §五,AC-ADR020-05;可引边界程序集白名单 —— ADR-005 Amendment F)。相机 = 只读渲染者;防抖 / 缓动吃表现态 dt,不入 sim。**VR 全禁镜头效果**(ADR-020 §六);禁用镜头效果**报**状态(与 audio_cue_state_broadcast 同源,是同一铁律的视觉侧)"
     why: "承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例 —— 呈现层三件套(UI / 音频 / 相机)同一纪律,避免第二套边界哲学;相机读 sim 真值或写流即制造第二真相"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
