@@ -1057,6 +1057,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-11-02(`TD-interaction-01`):E 按下沿的**全种类**候选集 + 选择器 + 半径。
             //    与上面 harvest 自用的那三个**不是同一组语义**:采集只认资源点,这里含病人。
             //    半径/选择器实例**共用**(单源半径 AC-4-17 —— 第二处声明会静默脱钩)。
+            // 6 的 POI 状态机(本批首次生产装配;`TD-interaction-03`)。
+            // ⚠️ late-bound:选择器在候选集段就要拿到 reporter,而状态机依赖同段稍后才齐的件。
+            DaYiJingCheng.Sim.World.PoiStateMachine poiMachine = null;
+
             DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader pressCandidates = null;
             DaYiJingCheng.Gameplay.Interaction.InteractionSelector pressSelector = null;
             DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null;
@@ -1080,8 +1084,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 InteractionKindDataSet interactionKinds = dataProvider.Load<InteractionKindDataSet>();
                 var harvestRadius = new InteractionRadius(interactionKinds.RInteract);
 
+                // 🔁 2026-11-02(`TD-interaction-03`):发现上报由**空实现**换成生产实装
+                //    (4 → 6 的唯一出境通道)。状态机在下面几行后构造,故经 `Func` late-bind;
+                //    未装配时 `Request` **抛**(不静默丢 —— 那正是本债的成因)。
+                var discoveryReporter = new PoiDiscoveryReporter(() => poiMachine);
+
                 var harvestSelector = new InteractionSelector(
-                    UnwiredDiscoveryReporter.Instance,
+                    discoveryReporter,
                     harvestRadius);
 
                 var forageSource = new ResourceForageSpotSource(
@@ -1094,7 +1103,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     patients: null,                                // ③ 13 在场视图(见下一段)
                     bakedInitial: null));                          // ④ 23 开档自带(同上)
 
-                // 🔁 E 按下沿:全种类候选集(**第一源 + 第三源已接入**)。
+                // 🔁 E 按下沿:全种类候选集(**第一源 + 第二源 + 第三源已接入**)。
                 // ⚠️ 与 `harvestCandidates` 刻意是两个实例:采集只认资源点;若它也看见病人,
                 //    「病人更近」会让 `TryHarvestTarget` 因种类不符返回 None 而静默放弃 —— 难查。
                 //
@@ -1106,11 +1115,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                     () => stream.Events, decoder,
                     () => inventoryLoad.Rebuild().Projection);
 
+                // 🔁 2026-11-02(`TD-interaction-03`):第二源补齐三切片(POI / 采集点 / 建造槽位)。
+                //    ⚠️ `harvestCandidates` 仍用 `forageSource`(采集只结算资源点)—— 两个实例不合并。
+                //    ⚠️ 槽位线性键的 W/H 取**产物头声明范围**(与 `4-DC-4` 的 W/H/D 登记同口径)。
+                WorldBuildSlotsDataSet slotData = dataProvider.Load<WorldBuildSlotsDataSet>();
+                var worldBakedSource = new WorldBakedLogicalSource(
+                    dataProvider.Load<WorldPoiDataSet>().Pois,
+                    dataProvider.Load<WorldResourcesDataSet>().Resources,
+                    slotData.Rows,
+                    slotData.Width, slotData.Height);
+
                 pressCandidates = new CandidateSetLoader(new CandidateSources(
                     drops: groundDrops,
-                    worldBaked: forageSource,
+                    worldBaked: worldBakedSource,
                     patients: new PresencePatientSource(presence),
                     bakedInitial: null));
+                // 6 的 POI 状态机(唯一写者 = 6;ADR-021 §②)。定义侧 id 集从烘焙产物装载
+                // (`LoadPoiIds`;空集合会让每个 poi_id 都回 `NotRegistered` 而**看起来正常**)。
+                poiMachine = new DaYiJingCheng.Sim.World.PoiStateMachine(
+                    stream, new P0HostEventAuthority(),
+                    LoadPoiIds(dataProvider), encoder);
+
                 pressSelector = harvestSelector;   // 同一个选择器实例(F-4.1 的唯一一处)
                 pressRadius = harvestRadius;       // 同一个半径实例(AC-4-17 单源)
 
@@ -1753,6 +1778,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 入流 = dropEventWriter(20 唯一写者;裸 long 重载,零铸造)。
             // 投影取法与死亡散落/17 采集同源(`inventoryLoad.Rebuild().Projection`)。
             // ⚠️ 宽容半径实值 = 装配期常量(数值轮可调;policy 文档同口径)。
+            services.PoiStateMachine = poiMachine;
+
             services.DropClaimOrchestrator = new DropClaimOrchestrator(
                 () => stream.Events, decoder,
                 () => inventoryLoad.Rebuild().Projection,

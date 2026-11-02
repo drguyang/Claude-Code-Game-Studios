@@ -58,6 +58,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Action _onCommitted;
         private readonly Func<bool> _blocked;
 
+        /// <summary>外部指定的**建造锚点格**(2026-11-02 · `TD-interaction-03`)。
+        /// <para>`null` = 用玩家当前格(`_cell()`)。非 null = E 打到的那个建造槽位。</para>
+        /// <para>⚠️ 是**表现态操作态**,不进三流、不存档(与本类其余字段同款)。</para></summary>
+        private WorldPos? _aimCell;
+
         private bool _toggleHeld;
         private bool _placeHeld;
         private bool _rotateHeld;
@@ -102,7 +107,25 @@ namespace DaYiJingCheng.Gameplay.Boot
             _blocked = blocked;
         }
 
-        /// <summary>每帧处理建造输入(由 <c>BootRoot.Update</c> 转发)。</summary>
+        /// <summary>
+        /// E 打到建造槽位 ⇒ **进入建造模式并把幽灵锚到该格**(2026-11-02 · `TD-interaction-03`)。
+        /// <para>语义裁定(本轮就地定,**未经数值 / UX 轮复审**):4 的全序选中 `BuildSlot` 时,
+        /// 玩家的意图是「我要在这一格建东西」,而不是「我把建造模式开一下」。故这里同时做两件:
+        /// 进模式 + 对准该格 —— 之后按 23 自己的放置键即在该槽位建造(不用先把角色走到格上)。</para>
+        /// <para>⚠️ **不放置**:E 不落任何结构(误触即建一块家具的代价太大);放置键仍是 23 的。</para>
+        /// <para>⚠️ **已在该模式时** = 改瞄准格(不退出、不抖动)。</para>
+        /// </summary>
+        /// <param name="cell">被选中的建造槽位格(4 的 `InteractTarget.Cell`)。</param>
+        /// <remarks>返回 void:本驱动不决定「按键是否被消费」—— 那归 4 的路由(它调完即记消费)。</remarks>
+        public void AimAt(WorldPos cell)
+        {
+            IsBuildMode = true;
+            _aimCell = cell;
+            // 进模式那一刻手里若还按着放置键,不得立刻落一块(与「模态挡路丢弃」同一纪律)。
+            ResetEdges();
+        }
+
+        /// <summary>本帧处理建造输入(由 <c>BootRoot.Update</c> 转发)。</summary>
         public void OnFrame()
             => OnFrameCore(
                 BuildInputReader.TogglePressed(),
@@ -138,7 +161,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (toggle && !_toggleHeld)
             {
                 IsBuildMode = !IsBuildMode;
-                if (!IsBuildMode) ResetEdges();   // 退出即清边沿:再进入时不会立刻触发
+                if (!IsBuildMode)
+                {
+                    ResetEdges();   // 退出即清边沿:再进入时不会立刻触发
+                    _aimCell = null; // 瞄准格随之失效(下次进入回到「玩家当前格」)
+                }
             }
             _toggleHeld = toggle;
 
@@ -158,7 +185,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>放置一次(供夹具直调;与按键路径**同一入口**)。</summary>
         public PlaceableResult DoPlace()
         {
-            WorldPos cell = _cell();
+            // 锚点 = 外部瞄准格(若 E 指过槽位),否则玩家当前格。
+            WorldPos cell = _aimCell ?? _cell();
             LastPlaceResult = _controller.TryPlace(SelectedModuleId, cell, Orientation, 0);
             if (LastPlaceResult == PlaceableResult.Success)
                 NotifyCommitted();

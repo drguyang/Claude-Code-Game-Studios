@@ -56,6 +56,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>AddressablesDataProvider</c> ⇒ 采调参表与 `CARRY_CAP` 两条运行期读路都不存在)。
         /// 与 <see cref="ConsequenceDriver"/> 同款 —— 生产装配面 = 真 provider 面。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.HarvestInteractionDriver HarvestDriver { get; internal set; }
+        /// <summary>6 的 POI 状态机(2026-11-02 · `TD-interaction-03` 首次生产装配)。
+        /// <para>⚠️ <c>null</c> = 未装配(provider 不是 <c>AddressablesDataProvider</c> ⇒
+        /// POI 定义侧无从装载)。生产面非空时,4 的发现请求经
+        /// <see cref="PoiDiscoveryReporter"/> 落到它的 `TryDiscover`。</para>
+        /// <para>⚠️ 与 `HarvestDriver` 同款:<c>null</c> 须在 `BootRoot` 启动期**显式告警**,
+        /// 否则与「本图无 POI」同形。</para></summary>
+        public DaYiJingCheng.Sim.World.PoiStateMachine PoiStateMachine { get; internal set; }
+
         /// <summary>E 按下沿的**统一候选集**(含病人源;2026-11-02 · `TD-interaction-01`)。
         /// <para>⚠️ 与 `HarvestDriver` 自用的那个 `CandidateSetLoader` **不是同一个实例** ——
         /// 那一个只有资源点(采集只认自己的种类),本一个才是 F-4.1 意义上的全种类候选集。</para></summary>

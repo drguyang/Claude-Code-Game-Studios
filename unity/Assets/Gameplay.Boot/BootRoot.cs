@@ -669,7 +669,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     _services.DropClaimOrchestrator,
                     _services.HarvestDriver,
                     // ⚠️ 懒求值:患者在**本段之后**才构造(它要拿 `_interactionDriver` 的 Visit)。
-                    patient => _interactionDriver?.Visit(patient));
+                    patient => _interactionDriver?.Visit(patient),
+                    // 🔁 2026-11-02(`TD-interaction-03`):E 打到建造槽位 ⇒ 23 进建造模式并对准该格。
+                    //    未建建造驱动(无世界 / 夹具)⇒ null,路由对 BuildSlot 返回 false(按键落空)。
+                    _buildDriver != null ? new Action<WorldPos>(_buildDriver.AimAt) : null);
             }
             else
             {

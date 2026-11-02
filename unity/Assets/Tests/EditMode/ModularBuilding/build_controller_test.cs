@@ -517,6 +517,45 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         private BuildInputDriver DriverWith(Func<bool> blocked)
             => new BuildInputDriver(_controller, () => new WorldPos(0, 0, 0), null, blocked);
 
+        // ══════════════════════════════════════════════════════════════════
+        // E 打到建造槽位(`AimAt`;2026-11-02 · `TD-interaction-03`)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>E 指向槽位 ⇒ 放置落在**该格**,不是玩家格。</summary>
+        [Test]
+        public void test_aimAt_placeUsesAimedCell_notPlayerCell()
+        {
+            var driver = new BuildInputDriver(_controller, () => new WorldPos(0, 0, 0));
+            driver.SelectedModuleId = Module;
+            var slot = new WorldPos(1, 0, 1);   // 朝向 0 的占位 (1,0,1)+(2,0,1) 都在 3×3 槽位区内
+
+            driver.AimAt(slot);
+
+            Assert.IsTrue(driver.IsBuildMode, "E 打到槽位 ⇒ 进建造模式");
+            Assert.AreEqual(PlaceableResult.Success, driver.DoPlace());
+            Assert.GreaterOrEqual(_controller.StructureIdAt(slot), 0,
+                "落点 = 被瞄准的槽位格");
+            Assert.AreEqual(-1L, _controller.StructureIdAt(new WorldPos(0, 0, 0)),
+                "玩家脚下**不得**留下结构(锚点没退回玩家格)");
+        }
+
+        /// <summary>退出建造模式 ⇒ 瞄准格失效(下次进入回到玩家格)。</summary>
+        [Test]
+        public void test_aimAt_toggleOff_clearsAim()
+        {
+            var driver = new BuildInputDriver(_controller, () => new WorldPos(0, 0, 0));
+            driver.SelectedModuleId = Module;
+
+            driver.AimAt(new WorldPos(1, 0, 1));
+            driver.OnFrameCore(toggle: true, place: false, rotate: false, remove: false);   // 退出
+            driver.OnFrameCore(toggle: false, place: false, rotate: false, remove: false);  // 清边沿
+            driver.OnFrameCore(toggle: true, place: false, rotate: false, remove: false);   // 再进入
+
+            Assert.AreEqual(PlaceableResult.Success, driver.DoPlace());
+            Assert.GreaterOrEqual(_controller.StructureIdAt(new WorldPos(0, 0, 0)), 0,
+                "瞄准格未随退出清除 ⇒ 会在**上一次**的槽位落第二块(错格建造)");
+        }
+
         [Test]
         public void test_buildDriver_notBlocked_toggleEntersBuildMode()
         {
