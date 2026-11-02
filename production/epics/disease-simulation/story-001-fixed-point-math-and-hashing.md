@@ -35,7 +35,7 @@
 - [ ] **AC-4 / F0 中间乘宽度**[L]:任意两 Q16.16 值相乘,中间积经 hi/lo 两 `ulong` 四路拆分;随机对拍(定种子)≥10⁴ 组:hi/lo 结果 ≡ 参考实现(BCL `BigInteger` **仅测试侧**参考,不入 sim 程序集)
 - [ ] **AC-5b Exp**[L]:手写定点 `Exp` 在声明输入域内逐位确定;与既有 skill-system 的 `FixPow/FixSqrt` 同族纪律(禁 libm);精度/误差预算以参数化断言,常数**待用户数值轮**,测试用合成 fixture 注入
 - [ ] **AC-4 / TR-disease-004 SplitMix64**[L]:唯一哈希实现;黄金向量 = spec 标准测试序列 + 本工程自签向量(golden-vN 刷新纪律,全体平台同时重签)
-- [ ] **TR-disease-014 类型断言**[A]:构建期断言 —— `Sim`/`Sim.Contracts` 程序集引用集恰 = {BCL, Sim.Contracts}(门 A 白名单,承 ADR-017 §二);源文本/IL 双层扫描零 `Math.Exp`/`Math.Pow`/`System.Int128`/`BigInteger`(判据 = 反射+IL 断言,不是裸 grep;承 ADR-020 AC-20-03 先例)
+- [ ] **TR-disease-014 类型断言**[A]:构建期断言 —— `Sim`/`Sim.Contracts` 程序集引用集恰 = {BCL, Sim.Contracts}(门 A 白名单,承 ADR-017 §二);源文本/IL 双层扫描零 `Math.Exp`/`Math.Pow`/`System.Int128`/`BigInteger`(判据 = 反射+IL 断言,不是裸 grep;承 `AC-ADR020-03` 先例)
 - [ ] **AC-1 库级半边**[I]:上述四件的**单元级黄金夹具哈希**入库(Fix 四则 / 负值右移 / 定点 Exp / SplitMix64,承 ADR-012 双级夹具的「单元级」层);**跨平台三格实跑 NOT-RUN**,依赖 ADR-012 矩阵,禁借绿
 
 ---

@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 读数类型住跨程序集边界且字段声明类型全整数;3→10 交付契约 = 类型 + 量纲(Q16.16 计数,`0 ≤ MAG_MAX ≤ 65536`)
 - Forbidden: 10 侧出现 `float`/`double` 字面量或字段;3 侧引用 `Judge`/`JudgeResult`/`SimEvent`;`raw_axis` 进流或进 sim
-- Guardrail: 判据 = **反射断言声明类型,不是 grep**(AC-10-01 明文,承 ADR-020 AC-20-03 先例)
+- Guardrail: 判据 = **反射断言声明类型,不是 grep**(AC-10-01 明文,承 `AC-ADR020-03` 先例)
 
 ---
 

@@ -14,7 +14,7 @@
 **Requirement**: TR-prescription-002(11 不发明结算 —— 流程只读 21a 表)· TR-prescription-008(剂量整数档、不读严重度替玩家调剂量)· TR-prescription-011(indications/contraindications 只呈现不拦不扣)· TR-prescription-012(与 20 的原子性:先验再扣、无货不发事件)· TR-prescription-013(共享面收窄:零第二份 SkillMul/ResultMul/JudgeResult)· TR-prescription-017(熟练度 P0 出口 = 省料+解锁;省料唯一出处 = 21a EFF;30 只拥「等级→EFF」映射,BL-6 前置)
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
-**ADR Governing Implementation**: ADR-005(主机唯一 Step/Append;客户端上行意图)· ADR-009 §七(意图→权威结算的一般形状;11 与 10 的区别 = 无判定步,意图即效果)· ADR-026(`SkillGrown` 落病史流、折叠豁免;**省料不放大药效**)· ADR-006(全序键;`Seq` 主机发号)· ADR-020 `AC-20-03` 先例(判据=反射断言非 grep —— 用于「11 不读病种级布尔」)
+**ADR Governing Implementation**: ADR-005(主机唯一 Step/Append;客户端上行意图)· ADR-009 §七(意图→权威结算的一般形状;11 与 10 的区别 = 无判定步,意图即效果)· ADR-026(`SkillGrown` 落病史流、折叠豁免;**省料不放大药效**)· ADR-006(全序键;`Seq` 主机发号)· ADR-020 `AC-ADR020-03` 先例(判据=反射断言非 grep —— 用于「11 不读病种级布尔」)
 **ADR Decision Summary**: 五步 = ① 域检查(剂量合法 ∧ 换算份数有货 ∧ 对象在场)失败⇒**不进入** ② 算 F-11.1/F-11.2 + 查 `D-21-29` 换算表得 `portions` ③ 交 20 `Apply(消耗 portions)`,多份混堆 `quality` = **确定性最低档纯函数**(禁读列表序) ④ **无条件**发 `DrugTreatmentApplied` ⑤ `EmitGrowth` **须先过 `GateHit`**(= 剂量域内合法 ∧ 该药 ∈ 已解锁子集 —— **只读 11 自己持有的量,不读病人病种级布尔**,BL-3 改判后的现口径)。`K_difficulty` 无主(`OQ-11-13`)⇒ 缺入参不发成长+断言硬失败(不静默跳过)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: MEDIUM(流程编排纯 C#;与 20/30/45 的接缝面依赖兄弟 epic)

@@ -127,7 +127,13 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s2332-pm.x
    已做的兜底:纯相机文件改完后**裸 ID 归零**(§三 的 0 / 0 两行),库存定义行数不变(25)。
 3. **`ADR-019` 的潜伏撞号没动。** `AC-19-01…08` 仍是 ADR 号编号,系统 19 今日无 GDD;
    该系统 GDD 成文那天会被 **C1** 抓住。
-4. **CI job 仍未在真实 CI 上跑过** —— 今日有效性 = 桌面可复算。
+4. ~~**CI job 仍未在真实 CI 上跑过** —— 今日有效性 = 桌面可复算。~~
+   🔁 **2026-11-02 订正(原句措辞误导)**:真实原因是 **`origin/main` 落后本地 27 笔、从未推送**
+   (`git rev-list --count origin/main..HEAD` ⇒ 27;`origin/main` 停在 `ae4f80b6`)——
+   即「**还没推**」,不是「CI 配置坏了」。
+   ⚠️ 这条与 **`TD-ci-01` 无关**:那个债管的是 `.github/workflows/unity-tests.yml`
+   (被 `UNITY_CLIENT_ID/SECRET` 门控、真跑不起来);本门的 job 在 `tests.yml`,
+   **不依赖任何 secret**。⇒ 推送后它会照常跑,现在不需要任何工作。
 5. **改名不改变任何运行时行为** —— 全部是注释 / 文档 / 错误信息文本。
    ⚠️ `BootRoot.cs:1650` 的 fail-loud 报文**是字符串字面量**,内容变了。
    **没有任何夹具断言这段文本** —— 复核命令:
@@ -136,3 +142,58 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s2332-pm.x
    不含报文全文;`grep -rn "AC-20-10" unity/Assets/Tests --include=*.cs` 唯一命中是
    `inventory_container_content_test.cs:17` 的**库存语义**注释(满溢感),与本条无关。
    ⇒ 报文改写不影响任何判据。
+
+---
+
+## 七、收口复核:漏改 8 处(2026-11-02 二轮 · 用户问「还有遗留问题吗」)
+
+**触发** —— 用户追问三条残留是否有遗留。逐条复算后,**第 2 条(分类是人工判定)真的有遗留,
+且已经实际漏掉 8 处** —— 不是「风险」,是**已发生的漏改**。
+
+### 漏在哪
+
+| 文件 | 处数 | 为何漏 | 语义判定 |
+|---|---|---|---|
+| `.claude/docs/technical-preferences.md` | **7**(519 / 520 / 524 / 533 / 550×1 行 3 个) | 该文件**不在**改名脚本的 `PURE` / `PURE_DIR_PREFIX` / `LINES` 任一名单内 —— `grep technical-preferences <script>` 零命中 | ADR-020 日志条目:`AC-20-01`(CharacterController)/ `-02`(Cinemachine)/ `-03`(位移边界)/ `-10`(AudioListener)/ `-15`,`-16`,`-17`(Amendment C) |
+| `production/epics/prescription-medication/story-005-…md` | 2(39 / 87) | 「`ADR-020 AC-20-03` **前缀式**」写法 —— 带前缀,人读无歧义,脚本的裸 ID 正则也命中,但语义判定时被当成「已明引」放过 | 「承 ADR-020 `AC-20-03` 先例 = 反射断言」→ ADR-020 语义 |
+| `production/epics/prescription-medication/story-004-…md` | 1(17) | 同上 | 同上 |
+| `production/epics/disease-simulation/story-001-…md` | 1(38) | 同上 | 同上 |
+| `production/epics/emergency-procedures/story-001-…md` | 1(27) | 同上 | 同上 |
+| `design/gdd/prescription-and-medication.md` | 2(979 / 1040) | 同上 | 同上 |
+| `design/gdd/interaction-system.md` | 1(674) | **不是漏改,是「旧约定是活指令」** —— 该行写着「本 GDD 其他处引 ADR-020 判据时,**一律写全**「ADR-020 `AC-20-03`」」,即裁定 ② 之前的写法规则;改名后它对 ADR-020 已不成立 | 已就地订正 + 🔁 注(原文不删) |
+
+### 为什么门没抓到(对 C5/C6 的真实边界)
+
+- **C5 是「混写」判据,不是「正确」判据。** `technical-preferences.md` 里**一处 `AC-ADR020` 都没有**
+  ⇒ 它不构成「混写」⇒ C5 结构性沉默。
+- ⇒ **C5 的天花板:纯裸名引用 ADR 自有 AC 的文件,门永远看不见。**
+  这类只能靠**引用面普查**(本轮 §三 做的是「纯相机文件裸 ID 归零」,但那份名单本身是人工列的,
+  `technical-preferences.md` 就没被列进去)。
+- 反过来,**C5 在修完 story-005 第 39 行后立刻转红**(第 87 行仍是裸名)——
+  这条**正向证明了 C5 在「文件里两种写法并存」时确实有效**,只是管不到「全裸」的文件。
+
+### 修法与复算
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/acid/acid_check.py --check          # 期望:✅(修前因 story-005 转红时 exit=1)
+grep -n "AC-20-[0-9]" .claude/docs/technical-preferences.md   # 期望:零输出
+```
+
+| 指标 | 修前 | 修后 |
+|---|---|---|
+| `.claude/docs/technical-preferences.md` 裸 `AC-20-NN` | 7 | **0** |
+| 5 个 story/GDD 的 ADR-020 语义裸引用 | 7 | **0** |
+| `acid_check.py --check` | — | `exit=0` |
+
+### 仍然留下的(如实登记)
+
+1. **`interaction-system.md:672` / `adr-019:173` / `coding-standards.md:261,301`** 仍含
+   「ADR-020 … `AC-20-0N`」字样 —— 全是**记录改名历史**的原文引用(「原文不删」纪律),
+   不是活引用。⇒ 不要把这几处当成漏改。
+2. **`death-and-respawn.md:577` 的 `AC-20-19`** 是**库存**语义(回捡约束),
+   与 ADR-020 同段出现 ⇒ 前缀式正则的假阳性。**未改,也不该改。**
+3. **这类漏改今日仍无机械判据。** 未新增 C7 的理由:实测若按「同行出现 ADR-020 名 + 裸 AC-20-NN」
+   硬判,命中 **41 行**,其中绝大多数是记录件;按前缀式(40 字符窗)判,命中 **24 行**,
+   剔除记录件后仍需 ~5 条白名单 —— 会复制 C5/C6 的「白名单腐烂」问题,收益不抵。
+   ⇒ **留作人工面**,登记在此,不假装已机械化。

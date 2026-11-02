@@ -516,12 +516,12 @@
 - [ADR-020 ✅ Accepted 2026-09-15]**玩家控制器与相机(CharacterController · 自建机位)** ——
   `docs/architecture/adr-020-player-controller-and-camera.md`。**架构复核 R-13 落点 = 末项**;
   落盘后 **R-1…R-15 全部结清**。三条用户裁定(均照准):
-  ① **移动 = `CharacterController`**(kinematic,不参与 PhysX 求解;AC-20-01);
-  ② **相机 = 自建机位**(不引入 Cinemachine,消解 post-cutoff 知识风险;AC-20-02);
+  ① **移动 = `CharacterController`**(kinematic,不参与 PhysX 求解;AC-ADR020-01);
+  ② **相机 = 自建机位**(不引入 Cinemachine,消解 post-cutoff 知识风险;AC-ADR020-02);
   ③ **视角双路径** —— 平面 = 第三人称越肩(承 `game-concept.md:32`「全程第三人称」),VR = 独立第一人称
   (头显物理事实;VR 不承担开放世界移动,承 `technical-preferences.md:34`),实现推 P1a。
   **§四 玩家位移确定性边界(核心)**:玩家位移 = **纯表现态**;在 sim 中的唯一投影 =
-  **跨格世界流事件**(连续位置 / 速度 / 朝向永不写流;**AC-20-03 BLOCKING**,判据 = **反射断言**
+  **跨格世界流事件**(连续位置 / 速度 / 朝向永不写流;**AC-ADR020-03 BLOCKING**,判据 = **反射断言**
   载荷字段类型,**不是 grep** —— F-1-6 跨格检测必然读 `Vector3`)。
   **这不是新裁决,是 ADR-016 §三 在玩家侧的对称落实** —— ADR-016 §三 定**读方**(13 / 27 读粗粒度整数格,
   `adr-016:181-190`),本 ADR §四 定**写方**(玩家跨格发事件);**事件率上界 = tick 频率**,**与帧率无关**
@@ -530,7 +530,7 @@
   **§五 相机只读不持状态**(承 ADR-013 §9 C3 的 42 / ADR-018 §一 的 44,呈现层三件套同构)。
   **§六 镜头效果归属 = 8 语义 + 2 实现**(承 `diagnosis-system.md:1641`),**VR 全禁镜头效果**
   (承 `:1519` 舒适度);**不得用于报状态** —— 与 ADR-018 §六 无提示音铁律**同源**(同一铁律的视觉侧)。
-  **§七 结清 44 的 `AudioListener` 单挂点**(`adr-018:295` 留白):平面 = 主相机,VR = 头显(AC-20-10)。
+  **§七 结清 44 的 `AudioListener` 单挂点**(`adr-018:295` 留白):平面 = 主相机,VR = 头显(AC-ADR020-10)。
   **零第三方第七处一致性**:Cinemachine = **不引入**(「官方包」不是豁免 —— DOTS 同为官方包,已于
   ADR-017 结构性排除)。
   **⚠️ 2026-11-01 Amendment C(用户裁定「立 ADR-020 Amendment C」;Status 维持 Accepted)** ——
@@ -547,7 +547,7 @@
   ③ **`GetLookTarget` **不进** `ICameraRig` —— 这是裁决,不是遗留**:
   接口 = **消费者契约**,位姿序列化 = **唯一驱动器(`BootRoot`)的内务**;
   `GetCameraPosition` 同样不在接口上,二者**必须同进同出**(只搬一个 = 微倾静默丢失的复发面)。
-  新增 **`AC-20-15`(Downed 四语义)/ `AC-20-16`(RequesterId 裁决双向)/ `AC-20-17`(位姿访问器同进同出)**;
+  新增 **`AC-ADR020-15`(Downed 四语义)/ `AC-ADR020-16`(RequesterId 裁决双向)/ `AC-ADR020-17`(位姿访问器同进同出)**;
   `architecture.md` 的接口清单已同步。
   Engine Knowledge Risk **LOW**(纯接口契约与枚举,零 post-cutoff API)。
 

@@ -63,6 +63,43 @@ RE_HEADING = re.compile(r"^##\s+(.*)$")
 # 该节整节跳过:它是**引用**别的系统 AC 的表,不是定义
 SKIP_SECTION_MARK = "GDD Requirements Addressed"
 
+# ── C5 / C6:引用面判据(2026-11-02 改名轮后追加)────────────────────────────────
+# 改名把 ADR-020 的 AC 变成 `AC-ADR020-NN`,系统 20 的仍是裸 `AC-20-NN`。
+# ⇒ **同一个文件里同时出现「`AC-ADR{n}-x`」与「裸 `AC-{n}-x`」= 两种语义混在一处**,
+# 这是改名漏改 / 新写误用的指纹。纯语义文件应当**只有一种**。
+RE_ADR_AC = re.compile(r"AC-ADR(\d+)-(\d+)")
+
+# 引用面扫描范围(比定义扫描宽:代码 / 数据 / 文档都算)
+BARE_SCAN_SUFFIXES = (".md", ".cs", ".yaml", ".yml", ".json", ".txt")
+BARE_SKIP_DIRS = {".git", "Library", "Logs", "Temp", "obj", "node_modules", "session-logs"}
+
+# 白名单:**确实需要同时持有两种写法**的文件(逐条给理由)。
+# ⚠️ 加条目之前先问:这处裸名是不是**没改干净**?
+BARE_MIXED_ALLOW = {
+    ".claude/docs/coding-standards.md":
+        "**规则文件本身**:写法表的左右两栏就是「新名 / 裸名」对照,必须都出现",
+    "docs/tech-debt-register.md":
+        "记录 TD-docs-01 自身:裸名描述改名前状态,新名描述改名后 —— 两种都要留",
+    "docs/architecture/tr-registry.yaml":
+        "混杂:系统 1/2 的 TR 引 ADR-020(新名),系统 20 的 TR 引库存(同号裸名)",
+    "docs/architecture/traceability-index.md":
+        "同上 —— 一张索引里同时有相机行与库存行,且号有重合",
+    "design/gdd/death-and-respawn.md":
+        "29 引 ADR-020 位移边界(新名)+ 引 20 的 InventoryOf 重建(裸名)—— 同号不同物",
+    "design/gdd/foraging.md":
+        "17 引库存 fold 判据(裸名)+ 引 ADR-020 反射断言先例(新名)—— 同号不同物",
+    "design/gdd/interaction-system.md":
+        "4 的 GDD 早先对**同一个撞号**的登记(原文不删)+ 引 ADR-020 判据(新名)",
+    "design/gdd/prescription-and-medication.md":
+        "11 同款:库存 fold(裸名)+ ADR-020 反射断言先例(新名)",
+    "production/sprints/sprint-23.md": "本债的实施记录:改名前后两种写法都要写",
+    "production/session-state/active.md": "会话状态:同上",
+    "production/qa/evidence/impl-td-docs-01-ac-id-gate-2026-11-02.md":
+        "第一轮原件:冻结时是 17 条撞号(裸名),结案后补记了新名",
+    "production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md":
+        "改名轮原件:逐条语义判定,两侧写法都要引用",
+}
+
 
 def scan(root):
     """返回 {ac_id: [相对路径, ...]}(路径已排序,便于逐字节比对)。"""
@@ -94,13 +131,43 @@ def collisions(definitions):
     return {ac: files for ac, files in definitions.items() if len(files) > 1}
 
 
+def scan_bare_mix(root):
+    """返回 {相对路径: [撞号的系统号, ...]} —— 同一文件里同时有 ADR 新名与同名裸名。"""
+    mixed = {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in BARE_SKIP_DIRS]
+        for name in sorted(filenames):
+            if not name.endswith(BARE_SCAN_SUFFIXES):
+                continue
+            path = os.path.join(dirpath, name)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            try:
+                text = open(path, encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+            # ⚠️ 必须按**完整 ID** 比,不能只比系统号:一个文件里有 `AC-ADR020-05`
+            # 和另一条无关的 `AC-20-18`(库存的)并不构成混写 —— 两者指的根本不是同一条。
+            # 首版原型按系统号比,把 17 个大杂烩文件全判成混写(实测踩到)。
+            news = {(int(m.group(1)), int(m.group(2))) for m in RE_ADR_AC.finditer(text)}
+            if not news:
+                continue
+            both = [f"AC-{num}-{idx:02d}" for num, idx in sorted(news)
+                    if re.search(rf"AC-{num}-0*{idx}(?![0-9])", text)]
+            if both:
+                mixed[rel] = both
+    return mixed
+
+
 def load_baseline():
     with open(BASELINE, encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def evaluate(definitions, baseline):
-    """返回 (violations, warnings)。violations 非空 ⇒ 退出码 1。"""
+def evaluate(definitions, baseline, bare_mixed=None):
+    """返回 (violations, warnings)。violations 非空 ⇒ 退出码 1。
+
+    `bare_mixed` 为 None 时不判 C5 / C6(内存探针用)。
+    """
     violations = []
     dups = collisions(definitions)
     grandfathered = baseline["known_collisions"]
@@ -145,6 +212,23 @@ def evaluate(definitions, baseline):
                 f"C3 基线定义方不符:{ac} 记为 {sorted(recorded)},实测 {sorted(actual)}。"
                 "若是有意的改名 / 挪动,同步更新基线;否则先查清。")
 
+    # C5 / C6:引用面(只有调用方给了 bare_mixed 才判)
+    if bare_mixed is not None:
+        for rel in sorted(bare_mixed):
+            if rel not in BARE_MIXED_ALLOW:
+                nums = ", ".join(str(x) for x in bare_mixed[rel])
+                violations.append(
+                    f"C5 引用面混写:`{rel}` 同时出现 `AC-ADR<号>-…` 与同名裸 `AC-<号>-…`"
+                    f"(系统号 {nums})。\n"
+                    "    两种语义混在同一文件 = 改名漏改或新写误用的指纹。\n"
+                    "    **先查清每一处是哪个语义**:ADR 自有改 `AC-ADR0NN-NN`,\n"
+                    "    库存维持裸名。确实是两种都要留的,才加进 `BARE_MIXED_ALLOW` 并写明理由。")
+        for rel in sorted(BARE_MIXED_ALLOW):
+            if rel not in bare_mixed:
+                violations.append(
+                    f"C6 白名单陈旧:`{rel}` 仍记在 `BARE_MIXED_ALLOW` 里,"
+                    "但它已不再同时持有两种写法 ⇒ 从白名单删掉,别让它永久掩护一个已消失的混写。")
+
     # 基线覆盖度提示(非违规):让「还剩多少撞号」始终可见
     warnings = []
     remaining = len(grandfathered)
@@ -167,12 +251,12 @@ def cmd_print(definitions, baseline):
     return 0
 
 
-def cmd_check(definitions, baseline):
-    violations, warnings = evaluate(definitions, baseline)
+def cmd_check(definitions, baseline, bare_mixed):
+    violations, warnings = evaluate(definitions, baseline, bare_mixed)
     for note in warnings:
         print(f"提示:{note}")
     if not violations:
-        print("✅ AC 编号撞号门:无新增撞号")
+        print(f"✅ AC 编号撞号门:无新增撞号;引用面 {len(bare_mixed)} 个混写文件全在白名单内")
         return 0
     for item in violations:
         print(f"❌ {item}")
@@ -236,6 +320,22 @@ def cmd_mutation_probe(definitions, baseline):
     probe("M3 基线陈旧", m3, "C3")
     probe("M4 空集守卫", m4, "C4")
 
+    # ── C5 / C6:引用面 ───────────────────────────────────────────────────
+    def probe_bare(label, mixed, expect_prefix):
+        violations, _ = evaluate(FAKE_DEFS, FAKE_BASE, mixed)
+        hit = any(item.startswith(expect_prefix) for item in violations)
+        scenarios.append((label, expect_prefix, hit, violations))
+
+    # M5:白名单外的文件同时持有两种写法 ⇒ 混写
+    probe_bare("M5 引用面混写",
+               {**{k: [20] for k in BARE_MIXED_ALLOW}, "design/gdd/some-new-file.md": [20]},
+               "C5")
+
+    # M6:白名单里的文件不再混写 ⇒ 白名单陈旧
+    probe_bare("M6 白名单陈旧",
+               {k: [20] for k in list(BARE_MIXED_ALLOW)[1:]},
+               "C6")
+
     failed = 0
     for label, expect, hit, violations in scenarios:
         status = "红(符合预期)" if hit else "**未红 —— 该判据无判别力**"
@@ -258,12 +358,13 @@ def main(argv):
 
     definitions = scan(REPO_ROOT)
     baseline = load_baseline()
+    bare_mixed = scan_bare_mix(REPO_ROOT)
 
     if args.print:
         return cmd_print(definitions, baseline)
     if args.mutation_probe:
         return cmd_mutation_probe(definitions, baseline)
-    return cmd_check(definitions, baseline)
+    return cmd_check(definitions, baseline, bare_mixed)
 
 
 if __name__ == "__main__":
