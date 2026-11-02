@@ -1,12 +1,12 @@
 # Story 005: 完成调度、起货溢出与等待期音频护栏
 
 > **Epic**: 炮制
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -31,7 +31,12 @@
 
 *From GDD `design/gdd/processing.md`, scoped to this story:*
 
-- [ ] **AC-18-21** [I]: 在场观察者,时间到达 `CompleteTick` ⇒ 1 tick 误差内器物状态变化可判起货 + `sfx_process_complete` 发射 —— 只断 18 侧输出(调度落点 + cue 发射,OQ-18-9 具名渲染形态不影响本条);禁以墙钟/帧对齐为发射条件
+- [x] **AC-18-21** [I]: 在场观察者,时间到达 `CompleteTick` ⇒ 1 tick 误差内器物状态变化可判起货 + `sfx_process_complete` 发射 —— 只断 18 侧输出(调度落点 + cue 发射,OQ-18-9 具名渲染形态不影响本条);禁以墙钟/帧对齐为发射条件
+      > **2026-11-03 判定 = PASS(18 侧两输出)**：调度落点 = `FurnaceCompletionSchedule.CollectAt`
+      > (等号判据,证伪 M1/M3 命中)；cue 发射 = `ProcessingCompletionDriver`(恰 1 条 / 不合并 /
+      > 未解析不发,证伪 M4/M5 命中)；禁墙钟 = 源码面扫描(证伪 M6 命中)。
+      > ⚠️ **「起货音真的响」不成立** —— 事件表无该 cue 行(见 Completion Notes ①);
+      > ⚠️ **溢出落地半边 NOT-RUN** —— 20 侧无完成时点结算入口(新债 `TD-processing-08`)。
 - [ ] **AC-18-09** [L]: 全部炮制音频听测收窄为 AC-44-09 白名单**看不见**者:等待期声床无节奏化加密(= 用耳朵数 tick)、无「还剩 N 秒」式边界音形。证据归档 `production/qa/evidence/processing-09-<date>.md`(镜像 AC-5-10:混入缺陷样本,分不出即过)
 - [ ] **AC-18-22** [L]: 去标注盲测:含多次完整炮制的录音,受试者仅凭听觉可指出起货时刻(±1 tick);失败判据 = 报出「倒数感」或把起货声判为播报。与 44 联合验收
 - [ ] **AC-18-24** [L, ADVISORY]: 仅手柄(无指针)走查选料→点火→起货全流程,每步有焦点导航路径可达。18 侧义务 = 谓词与调度设备中立(已由 AC-18-20 机器化);本条端到端佐证,主验收在 42/43(TR-concept-008)
@@ -120,7 +125,21 @@
 - Integration: `unity/Assets/Tests/PlayMode/process_completion_and_spill_test.cs` — must exist and pass
 - [L]: `production/qa/evidence/processing-{08,09,22,24}-<date>.md`(走查/听测轮,与 44/42 联合)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Integration 件已建并绿（13 测，2026-11-03）；[ ] 四条 `[L]` **未跑**（见下方残余）
+
+**反证记录（Falsifiability Gate · 6 变异全部命中）**：
+
+| 命中形态 | 主要断言 | 反证：停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 阈值边界（等号 vs 区间） | `CollectAt` 的 `CompleteTick == tick` | M1 改 `!=` → `>` ⇒ `completionHitsExactlyOnEqualityTick` 等 **3 条红** |
+| 一次性 / 幂等 | 每 actor 至多一条 | M2 改成后者覆盖 ⇒ `sameActorTwoFurnaces_keepsEarliestByOrdering` 红 |
+| 定义域收窄（前缀口径） | 前缀只认 envelope tick | M3 改读载荷 `StartTick` ⇒ `prefixUsesEnvelopeTick_notPayloadStartTick` 红 |
+| 一次性 / 幂等 | tick 严格递增守卫 | M4 改 `<` ⇒ `repeatedTickEdge_throwsInsteadOfDoubleEmitting` 红 |
+| 共存 / 互斥 | cue 未解析 ⇒ 绝不发 | M5 去掉 `CueResolved` 短路 ⇒ `unresolvedCue_noEmission` 红 |
+| （禁项扫描） | 发射路径零墙钟符号 | M6 注入 `DateTime.UtcNow` ⇒ `emissionPath_hasNoWallClockSymbols` 红 |
+
+还原判据 = **SHA-256 逐字节**（`85112b98…` / `07cc2299…`，改前 = 还原后）。
+原件：`production/qa/evidence/impl-processing-005-completion-schedule-2026-11-03.md`。
 
 ---
 
@@ -133,4 +152,56 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-11-03
+**Criteria**: **1/5 passing** —— `AC-18-21` [I] PASS(18 侧);`AC-18-09` / `18-22` / `18-24` / `18-08` **NOT-RUN**(四条 `[L]`,人听 / 人走)
+**Verdict**: **COMPLETE WITH NOTES**(四条 `[L]` 如实标 NOT-RUN,**未借机器绿**)
+
+### 交付
+
+| 件 | 落点 |
+|---|---|
+| 完成调度(纯函数) | `unity/Assets/Sim/Processing/FurnaceCompletionSchedule.cs`(`FurnaceCompletion` + `CollectAt`) |
+| 发射侧驱动 | `unity/Assets/Gameplay.Boot/ProcessingCompletionDriver.cs` |
+| 装配 | `CompositionRoot.cs`(构造)· `CompositionRootServices.cs`(可空属性)· `BootRoot.cs`(tick 边沿) |
+| 夹具 | `unity/Assets/Tests/PlayMode/process_completion_and_spill_test.cs`(13 测) |
+| 既有扫描面加宽 | `furnace_timing_no_process_state_test.cs` 的 `FurnaceSourceFiles` / `ProcessingTypeNames` |
+
+### 三条判据口径(逐条有反证)
+
+1. **等号,不是区间** —— `CompleteTick == tick`。
+2. **前缀与定序只用 envelope tick**(承 `FurnaceState` 的 2026-10-26 W1 订正)。
+3. **每 actor 至多一条**(全序键最小者胜;合法流不可达,防御口径)。
+
+### ⚠️ 两处必须如实登记的残余
+
+**① 生产上不会出声。** `assets/data/audio_events.json` 的 19 行 cue 里**没有**
+`sfx_process_complete`(`grep -c "sfx_process" assets/data/audio_events.json` ⇒ `0`)
+⇒ 装配期 `TryResolveCue` 失败 ⇒ 驱动拿 `NoOrdinal` ⇒ `OnTickEdge` 首行返回,**不扫描、不发**。
+本件交付的是**发射时机这一侧**(判据 / 条数 / 无墙钟),**不是音效**。加表行那一轮无需改代码即生效。
+**`sfx_process_light`(起炉)/ `sfx_process_work`(声床)本件未接** —— 无 AC 钉它们,
+且声床的 `BeginLoop`/`EndLoop` 生命周期要跟素材一起做,登记到 AC-18-09/22 那一轮。
+
+**② 溢出落地的下游没有入口(新债 `TD-processing-08`)。** `AC-18-21` 的溢出半边要求
+「完成 tick 容量不足 ⇒ 本格 `DropSpawned`」;实测 **20 侧不存在「完成时点的结算入口」** ——
+`InventoryFold.ApplyCraftOutputs`(`:851-889`)在**折叠 `Craft` 时**就把产出建进炮制者名下,
+与完成 tick 无关 ⇒ 产出在**点火那刻**已「入包」,溢出路径不可达。
+⇒ 本件的溢出交付只到 18 侧:原样携带点火已铸的 `OutputInstanceIds` + `ToolCell`,
+并断「调度不可能自铸 id」(结构面)。**落地半边记 NOT-RUN,不得借绿。**
+
+> 用 spy 顶替 fold 写绿夹具 = F1 型假绿(断言的是测试自己写的谓词)⇒ **刻意不写**。
+
+### 四条 `[L]` 的状态
+
+| AC | 状态 | 阻塞 |
+|---|---|---|
+| `AC-18-09` 等待期声床听测 | NOT-RUN | 表里无 cue 行 ⇒ 无素材可听;且需人听 |
+| `AC-18-22` 去标注盲测 | NOT-RUN | 同上 + 需 playtest 受试者(项目 advisory,由用户定) |
+| `AC-18-24` 仅手柄全流程 | NOT-RUN | 依赖 42 面板与焦点导航落地 |
+| `AC-18-08` 逐屏零数字走查 | NOT-RUN | 依赖 42 面板落地 |
+
+### 与 QA 计划的一处措辞冲突(已按代码事实处理)
+
+qa-plan 写「`duration_ticks` 边界 `= 0`(当拍即完成)」,而 `duration_ticks ≥ 1` 是 21a 的硬约束
+(`FurnaceState` 同款先验抛 `InvalidOperationException`)⇒ 0 是**坏数据**,不是「立即完成」。
+夹具 `test_ac1821_durationZero_throwsInsteadOfCompletingImmediately` 断的是 **fail-closed**;
+若将来 21a 允许 0,应先改 21a 与本条判据。

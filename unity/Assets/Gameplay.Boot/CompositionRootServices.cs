@@ -104,6 +104,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 同款 —— 参数表已过长,再加一项会与 20+ 形参的装配顺序耦合)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.ConsequenceDriver ConsequenceDriver { get; internal set; }
 
+        /// <summary>18 炮制**完成调度的发射侧**驱动(S24-1 · processing story-005 · AC-18-21)。
+        /// <para>每个 tick 边沿问 <c>FurnaceCompletionSchedule</c>「本 tick 哪些炉到点」,
+        /// 对每炉发一条 `sfx_process_complete`(ADR-018 §一:18 是发射方,44 只触发)。</para>
+        /// <para>⚠️ **语义**:<c>null</c> = 未装配。⚠️ **今日生产上不出声**:事件表无
+        /// `sfx_process_complete` 行 ⇒ 装配期解析不出 ordinal ⇒ 驱动内部 no-op
+        /// (见 <see cref="ProcessingCompletionDriver.CueResolved"/>)。加表行即生效。</para>
+        /// <para>⚠️ 由 <c>Assemble</c> 在构造完本对象后赋值(与 <see cref="ConsequenceDriver"/> 同款)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.ProcessingCompletionDriver ProcessingCompletion { get; internal set; }
+
         /// <summary>ID 发号权威(机制 A:计数器 + 高水位可重构,ADR-006 Amendment B)。</summary>
         public IIdAuthority IdAuthority { get; }
 

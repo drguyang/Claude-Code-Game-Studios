@@ -1859,6 +1859,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 overdoseThresholds = dataSet.OverdoseBandThresholds;
             }
 
+            // 🔁 2026-11-03(S24-1 · processing story-005):18 的**完成调度发射侧**。
+            //    判据住在 `Sim`(`FurnaceCompletionSchedule`,纯函数);本段只接 cue 边界。
+            //    ⚠️ **今日生产上不出声**:`assets/data/audio_events.json` 无 `sfx_process_complete`
+            //       行 ⇒ `TryResolveCue` 失败 ⇒ 传 `NoOrdinal` ⇒ 驱动内部不扫描也不发。
+            //       这是**登记的事实**,不是「音频已实现」;素材 + 表行 + 44 白名单断言另归 44。
+            //    ⚠️ 驱动**没有**接 20 的落地结算 —— 那条链的入口今日不存在(见 story-005 的
+            //       「溢出路径」残余登记),接一个不存在的结算点会让「起货声」凭空响。
+            services.ProcessingCompletion = new ProcessingCompletionDriver(
+                stream.Events, decoder, audioSink,
+                audio != null && audio.TryResolveCue(ProcessingCompletionDriver.CompleteCueName,
+                                                     out int processCompleteOrdinal)
+                    ? processCompleteOrdinal
+                    : AudioEventDataSet.NoOrdinal);
+
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);
 

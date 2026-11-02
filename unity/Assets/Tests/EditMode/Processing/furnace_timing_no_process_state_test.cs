@@ -118,6 +118,8 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
         {
             "Assets/Sim/Processing/FurnaceState.cs",
             "Assets/Sim/Processing/IgnitionAdmission.cs",
+            // S24-1(story-005):完成调度与 `CompleteTick` 同一算式 ⇒ 同一扫描面。
+            "Assets/Sim/Processing/FurnaceCompletionSchedule.cs",
         };
 
         /// <summary>AC-18-13 的符号黑名单(GDD 明文三类 + 两个同族墙钟/环境时钟)。</summary>
@@ -1065,6 +1067,10 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             "DaYiJingCheng.Sim.Processing.IgnitionAdmission",
             "DaYiJingCheng.Sim.Processing.IgnitionAdmissionResult",
             "DaYiJingCheng.Sim.Processing.OutputLoadLine",
+            // S24-1(story-005):完成时点调度 —— 与 `FurnaceState.CompleteTick` 同族,
+            // 同一 IL 面(零浮点 / 零墙钟符号)不因其落在新文件里而免检。
+            "DaYiJingCheng.Sim.Processing.FurnaceCompletionSchedule",
+            "DaYiJingCheng.Sim.Processing.FurnaceCompletion",
         };
 
         /// <summary>对 dll 内命中 <paramref name="targets"/> 的方法体逐指令回调;返回扫过的方法数。</summary>

@@ -1875,6 +1875,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientCueDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 炮制完成调度的发射侧(S24-1 · processing story-005 · AC-18-21):
+            // 「本 tick 哪些炉到点」→ `sfx_process_complete`。
+            // ⚠️ 判据在 `Sim.FurnaceCompletionSchedule`(纯函数,tick 等号);本块只驱动。
+            // ⚠️ 驱动内部在 cue 未解析时 no-op(今日事件表无该行)⇒ 本块每 tick 零成本跳过。
+            // ⚠️ 次序 = 病人 cue **之后**:两者互不依赖,摆在同一边沿段内便于「tick 边沿驱动」
+            //    的口径集中(禁墙钟 —— GDD Visual/Audio 护栏 1)。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null
+                && _services.ProcessingCompletion != null)
+            {
+                _services.ProcessingCompletion.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 玩家交互输入(sprint-07 S2):E 查体 / F 急救 —— **视觉实体更新之后**(读的是
             // 本 tick 的在场集+视觉位置;换热须已本 tick Step),拟物 UI 刷新之前
             // (查体后本帧即见值区有词)。
