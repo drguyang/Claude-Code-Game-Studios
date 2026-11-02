@@ -31,21 +31,21 @@ stories:
     name: "processing/005 完成调度、溢出落地与等待期音频护栏"
     file: "production/epics/processing/story-005-completion-schedule-spill-and-audio.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "炮制链尾件。5 条 AC 全需人:AC-18-21 [I] 可判;AC-18-09/18-22 听测、AC-18-24 手柄走查、AC-18-08 逐屏零数字走查 ⇒ 四条 [L] 不勾即 NOT-RUN,不得借绿。预计 COMPLETE WITH NOTES。"
+    completed: "2026-11-03"
+    note: "COMPLETE WITH NOTES(2026-11-03)。AC-18-21 [I] PASS(18 侧:调度落点 + cue 发射 + 无墙钟,证伪 6/6 命中);四条 [L] 未跑(听测 2 / 手柄走查 / 逐屏走查)。两处残余已登记:① 事件表无 sfx_process_complete 行 ⇒ 生产不出声;② 20 侧无完成时点结算入口 ⇒ 溢出落地半边 NOT-RUN,新债 TD-processing-08。"
   - id: "S24-2"
     name: "persistence-service/001 存储抽象层(二进制 codec 接口 + 校验骨架)—— 7 条 AC 逐条重判"
     file: "production/epics/persistence-service/story-001-storage-abstraction.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "2026-10-25 QA 轮退回:原 Complete 但 7 条 AC 全未勾([x]=0 / [ ]=7),判为第五个假绿形态(文件已落盘顶替 AC 已判定)。已挂 9 天未动。Type: Logic ⇒ 自动化证据是 BLOCKING 门。AC-7a-03 黄金字节对拍依赖 ADR-012 三格矩阵(外部)。"
+    completed: "2026-11-03"
+    note: "COMPLETE WITH NOTES(2026-11-03 重判轮)。7 条 AC:PASS 5(01/04/05/06 + 18 加宽)· NOT-RUN 2(02 前件不存在:布局无快照段 · 03 EXTERNAL:ADR-012 矩阵)。假绿夹具(AC-7a-04 只断 bytes.Length>0)已整条重写;顺带修出真缺陷 —— SaveHeaderCodec.HasValidMagic 用主机端序 BitConverter(违 ADR-010 §一)。证伪 3/3 命中。"

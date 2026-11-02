@@ -16163,3 +16163,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (397 文件 / 12 子目录,含 processing 证据两件)。原句转述自 story-005 的自陈,而**我没验证就转述**。
   ⇒ 阻塞不存在;落点 = `production/qa/evidence/processing-{08,09,22,24}-<date>.md`。story-005(两处)与 qa-plan(两处)已同步订正
 - **未提交**(等用户指令)
+
+## Session Extract — sprint-24 实施轮(2026-11-03)
+
+- **S24-1 `processing-005`** → **COMPLETE WITH NOTES**
+  - 新增 `unity/Assets/Sim/Processing/FurnaceCompletionSchedule.cs`(纯函数完成调度,
+    等号判据 / envelope 前缀 / 每 actor 至多一条)
+  - 新增 `unity/Assets/Gameplay.Boot/ProcessingCompletionDriver.cs`(18 → 44 的 cue 发射侧)
+  - 装配:`CompositionRoot.cs` 构造 → `CompositionRootServices.ProcessingCompletion` → `BootRoot` tick 边沿
+  - 夹具 `unity/Assets/Tests/PlayMode/process_completion_and_spill_test.cs`(13 测)
+  - ⚠️ 生产**不出声**(事件表无 `sfx_process_complete` 行)· 溢出落地半边 **NOT-RUN**(新债 `TD-processing-08`)
+- **S24-2 `persistence-service-001`** → **COMPLETE WITH NOTES**(PASS 5 / NOT-RUN 2)
+  - AC-7a-04 假绿夹具整条重写(真往返 / 端点 / 三次对拍 / `Fix` raw / IL 扫描)
+  - **修出真缺陷**:`SaveHeaderCodec.HasValidMagic` 用主机端序 `BitConverter`(违 ADR-010 §一)
+  - AC-7a-01 新夹具(掉落清单 / 高水位 / 折叠行 == 直接重放);AC-7a-02 前件不存在;AC-7a-03 EXTERNAL
+  - AC-7a-18 扫描面加宽到「全部源码」
+- **回归**:EditMode `6630/6593/0/37` · PlayMode `324/320/0/2(+2 inconclusive)`
+  @ 2026-11-03 01:08–01:09 CST · `c9284b23` + 工作树
+- **门**:debtcount exit 0 · acid exit 0
+- **未提交**(等用户指令)

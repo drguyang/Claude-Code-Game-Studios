@@ -338,6 +338,7 @@
 | `TD-processing-05` | `processing` | closed | **N** | R4 |
 | `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
+| `TD-processing-08` | `processing` | open | **N** | R4 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -864,7 +865,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 153 | 状态 {'closed': 142, 'partial': 3, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 47, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 154 | 状态 {'closed': 142, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -6095,6 +6096,18 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 | **TD-processing-04** | `processing` | **open** | **N** | R4 |
 | **TD-processing-05** | `processing` | **closed** | **N** | R4 |
 | **TD-processing-06** | `processing` | **closed** | **N** | R4 |
+| **TD-processing-08** | `processing` | **open** | **N** | R4 |
+
+### TD-processing-08 — 20 侧缺「完成时点的结算入口」⇒ 起货溢出的下落半边无宾语
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | GDD `processing.md` R-18-D[甲]② 要求:完成 tick 当拍容量不足 ⇒ **本格 `DropSpawned`**(成品 id 原样引用点火已铸的 `output_instance_ids[]`,整批落地、不延迟、无半成品)。**18 只负责触发,发出者是 20**。实测 20 侧**没有**这个入口 |
+| **实测**(2026-11-03 · S24-1) | `InventoryFold.ApplyCraftOutputs`(`InventoryFold.cs:851-889`)在**折叠 `Craft` 事件时**逐 outputs 行建实例行、`owner = Craft.ActorId` —— 与完成 tick **无关** ⇒ 产出在**点火那刻**就已「入包」。全仓 `Tests/` 外无「完成时点把产出落进背包 / 落到地面」的写者:两条 `DropSpawned` 的生产发出点(`DropEventWriter` / `HarvestOrchestrator`)都不由 18 的完成调度驱动 |
+| **后果** | ① 玩家在等待期内**已拥有**成品(可提前使用 / 被容量判定看见);② 溢出路径(容量不足 ⇒ 落地)在实现上**不可达** —— 因为没有「入包失败」这个时刻;③ `AC-18-21` 只能交付**18 侧**半边(`FurnaceCompletion` 原样携带已铸 id + `ToolCell`),落地半边记 NOT-RUN |
+| **为何 P0 面 = N** | 没有「错误行为」被引入 —— 是**目标行为尚未接线**。今日 `18` 的完成调度只发 cue(且 cue 行还没进表 ⇒ 连声音都没有),玩家可见面**零变化**;折叠的现有形态是 20 自己的一贯口径 |
+| **修法方向** | 20 侧新增「完成时点的产出结算入口」:`ApplyCraftOutputs` 从**折叠 `Craft` 时**改到**完成 tick 时**(或保留折叠形状但把「入包 vs 落地」的裁决挪到完成 tick),并给出 `DropSpawned` 的唯一发出点;18 的 `FurnaceCompletion` 已备好入参(`ActorId` / `OutputInstanceIds` / `ToolCell` / `CompleteTick`) |
+| **触发条件** | 20 的下一次折叠/结算修订轮;或玩家真正能感知「产出在点火时就到手」的那一轮(测试/试玩) |
 
 #### TD-processing-06 关闭记录 —— 跨存档往返夹具(真落盘 → 真读回)
 

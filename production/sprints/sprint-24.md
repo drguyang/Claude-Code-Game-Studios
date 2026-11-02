@@ -1,6 +1,7 @@
 # Sprint 24 — 2026-11-03 to 2026-11-09
 
-> **Status**: Planned（2026-11-03 · 用户指令「开 sprint24」）
+> **Status**: **Closed**（2026-11-03 · 2 件 Must 全交付，均 COMPLETE WITH NOTES —— 见文末「收口」节）
+> （原文：`> **Status**: Planned（2026-11-03 · 用户指令「开 sprint24」）`，保留备查）
 > **件集裁定**:用户 2026-11-03 选「2 件:炮制尾 + 7a 在制品」—— **不提前拉后续 sprint 的活**
 > **前置**:`sprint-23` 已收口（2026-11-01 · PASS，见 `sprint-23.md` §七；收口后追加件见 §八）
 
@@ -110,3 +111,64 @@ grep -m1 '^> \*\*Status\*\*' production/epics/persistence-service/story-001-*.md
 # ③ 门
 python3 tools/debtcount/debtcount.py --check; echo "DEBT=$?"
 ```
+
+---
+
+## 收口（2026-11-03）
+
+> **Status**: **Closed** —— 2 件 Must 全交付，均为 **COMPLETE WITH NOTES**（无 BLOCKING 缺口）。
+
+### 逐件判定
+
+| ID | Story | Verdict | 判据 |
+|---|---|---|---|
+| S24-1 | `processing-005` | **COMPLETE WITH NOTES** | `AC-18-21` [I] PASS（18 侧三输出）；四条 `[L]` **NOT-RUN**（人听 / 人走） |
+| S24-2 | `persistence-service-001` | **COMPLETE WITH NOTES** | 7 条 AC：PASS **5**（含 `AC-7a-18` 加宽）· NOT-RUN **2**（前件不存在 / EXTERNAL） |
+
+### 证伪轮（两件，9 变异全部命中）
+
+| 件 | 变异 | 命中 |
+|---|---|---|
+| S24-1 | M1–M6（等号判据 / 每 actor 去重 / 前缀口径 / tick 单调 / cue 未解析 / 墙钟符号） | **6/6** |
+| S24-2 | P1–P3（事件头丢 `Seq` / 回退 `BitConverter` / 非 0 `SnapshotOffset`） | **3/3** |
+
+还原判据 = **SHA-256 逐字节**（改前 = 还原后），原件落 `production/qa/evidence/`：
+`impl-processing-005-completion-schedule-2026-11-03.md` ·
+`review-persistence-001-ac-rejudge-2026-11-03.md`。
+
+### 回归三元组
+
+| 项 | 读数 |
+|---|---|
+| EditMode | **`6630 / 6593 / 0 / 37`**（total / passed / **failed** / skipped） |
+| PlayMode | **`324 / 320 / 0 / 2 skipped + 2 inconclusive`**（两条 inconclusive = 既有的 `U1Assump6` 尖刺 `*_notRun`，非失败） |
+| 截至时刻 | `2026-11-03 01:08–01:09 CST` |
+| 批次 | sprint-24 收口轮 |
+| commit | `c9284b23` + 工作树 |
+
+> ⚠️ **本轮未另跑「改动前」的全量基线** ⇒ **不写 `+N = +N` 等式**（那会变成借绿）。
+> 能证的只有「**0 失败**」这一条；新增测试数可复算：
+> `grep -c "\[Test\]" unity/Assets/Tests/PlayMode/process_completion_and_spill_test.cs`（13）·
+> `grep -c "public void test_ac7a0" unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs`（6）·
+> `grep -c "public void test_ac7a01_" unity/Assets/Tests/EditMode/PersistenceService/save_replay_roundtrip_test.cs`（1）。
+
+### 门
+
+| 门 | 结果 |
+|---|---|
+| `python3 tools/debtcount/debtcount.py --check` | **exit 0**（条目 154 · 未闭 P0 面 0） |
+| `python3 tools/acid/acid_check.py --check` | **exit 0** |
+| `/smoke-check sprint` | **未跑** —— 需真启动序走查（主菜单 → 炮制全链 → 存档往返）；本轮只做测试树回归，**不声称 smoke 已过** |
+
+### 本 sprint 掀出的新债
+
+| 债 | 描述 | P0 面 |
+|---|---|---|
+| **`TD-processing-08`** | 20 侧缺「完成时点的结算入口」⇒ `Craft` 的产出在**点火那刻**就入包（`InventoryFold.ApplyCraftOutputs`），完成 tick 与容量裁决无接线 ⇒ 起货溢出路径**不可达** | **N**（目标行为未接线，非错误行为） |
+
+### 如实登记的三处「没做完」
+
+1. **S24-1 的起货音**：事件表 19 行 cue 里没有 `sfx_process_complete` ⇒ 驱动装配期解析失败 ⇒
+   `OnTickEdge` 首行返回，**生产上不出声**。交付的是**发射时机**，不是音效。
+2. **S24-1 的溢出落地**：见 `TD-processing-08`。
+3. **S24-2 的两条 NOT-RUN**：`AC-7a-02` 前件不存在（无快照段）· `AC-7a-03` EXTERNAL（ADR-012 矩阵）。
