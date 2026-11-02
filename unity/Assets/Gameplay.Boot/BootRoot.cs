@@ -784,6 +784,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 playerCell: () => _player != null ? _player.LastCommittedCell : default);
             _interactionDriver = interaction;
             _pressRouter = pressRouter;
+
+            // ── 4 的定身写面后置绑定(`TD-interaction-04` · 2026-11-02)──────────────
+            // 两个真源都晚于本类建成:租约归 1(玩家在本步之前才建),模态态归 42(UI 驱动更晚)。
+            // ⚠️ 模态那一侧读 **`BlocksPlay`** 而非 `IsModalOpen`(后者含常驻屏 ⇒ 闸门常闭)。
+            // ⚠️ 未绑定 ⇒ `OnTick` 不写租约(**不压制**,而不是压住不放)。
+            _pressRouter?.BindMotorSuppression(
+                _player.MotorLease,
+                () => _uiDriver != null && _uiDriver.BlocksPlay);
             _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
 
             // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──

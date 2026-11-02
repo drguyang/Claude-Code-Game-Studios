@@ -126,12 +126,18 @@ namespace DaYiJingCheng.Gameplay.Interaction
         /// 移动压制租约的**写侧调用面**(规则八 / AC-4-19)。
         /// <para>4 的调用面 = <c>Acquire(LeaseSource.Self)</c> / <c>Release(LeaseSource.Self)</c>
         /// —— <b>无</b> <c>SetSuppressed(bool)</c>(单 bool + 三个互不知晓的写者 = 丢失更新,
-        /// 承 `OQ-4-13`)。</para>
+        /// 承 `OQ-4-13`;注意本方法的两个形参是 **`(lease, acquire)`**,不是「全局压制开关」——
+        /// 它只碰 4 那一位)。</para>
         /// <para>⚠️ 本门**不持有租约** —— 租约(位图 + OR 聚合)归 1(玩家控制器);
         /// 本方法只是 4 侧调用入口,把 <see cref="LeaseSource.Self"/> 转发给 1 的 <c>MotorLease</c>。</para>
+        /// <para>🔁 <b>2026-11-02(`TD-interaction-04`):本方法有了第一个生产调用方</b> ——
+        /// `InteractionPressRouter.OnTick` 每 tick 把 <c>模态开 ‖ 采集窗口在途</c> 的**布尔**交进来。
+        /// ⚠️ 调用方住 `Gameplay.Boot`,而 `AC-1-23` 的机械门按**调用点所在程序集**判白名单
+        /// (Boot 不在白名单内)⇒ 它**只能**经本方法(住 `Gameplay.Presentation`),
+        /// 不能自己调 <c>MotorLease.Acquire</c>。**门红是因为位置错了,不是因为门太严。**</para>
         /// </summary>
-        /// <param name="lease">1 的 per-source 租约位图(真源在 1)。</param>
-        /// <param name="acquire">true = 置 4 的位;false = 清 4 的位(只碰自己那一位)。</param>
+        /// <param name="lease">1 的 per-source 租约位图(真源在 1;必须与玩家用的是**同一个实例**)。</param>
+        /// <param name="acquire">true = 置 4 的位;false = 清 4 的位(只碰自己那一位,幂等)。</param>
         public static void SetMotorSuppression(
             DaYiJingCheng.Gameplay.Presentation.Player.MotorLease lease, bool acquire)
         {

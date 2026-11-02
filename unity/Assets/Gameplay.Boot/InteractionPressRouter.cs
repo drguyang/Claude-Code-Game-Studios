@@ -66,6 +66,15 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public sealed class InteractionPressRouter
     {
+        // ── 4 的定身写面(`TD-interaction-04` · 2026-11-02)────────────────────────
+        // ⚠️ **本类不持有租约** —— 租约归 1(`PlayerController.MotorLease`),本类只在
+        //    `OnTick` 里把「4 判定要定身」这个**布尔**交给 Presentation 的写面。
+        // ⚠️ 写面**必须住 `Gameplay.Presentation`**(`AC-1-23` 的机械门按调用点所在程序集判白名单,
+        //    而本类住 `Gameplay.Boot`)⇒ 走 `ModalGate.SetMotorSuppression`,与 10 的
+        //    `EmergencyMotorSuppression` 完全同款。**直接在这里调 `MotorLease.Acquire` 会判红。**
+        private DaYiJingCheng.Gameplay.Presentation.Player.MotorLease _motorLease;
+        private Func<bool> _modalOpen;
+
         private readonly Func<WorldPos> _playerCell;
         private readonly Func<long> _tick;
         private readonly int _actorId;
@@ -256,10 +265,55 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </remarks>
         public void OnTick()
         {
-            if (_harvest == null) return;
-            // 只在窗口真的存在时付一次取格 / 取 tick 的代价(常态零开销)。
-            if (!_harvest.IsHolding) return;
-            _harvest.Advance(_tick(), _playerCell(), _actorId);
+            // ── ① 推进在途的持续交互窗口(可能在本 tick 结算 / 取消)──
+            if (_harvest != null && _harvest.IsHolding)
+                _harvest.Advance(_tick(), _playerCell(), _actorId);
+
+            // ── ② 4 的定身位(模态开 ‖ 采集窗口在途)──────────────────────────
+            // ⚠️ **每 tick 幂等重算,不记「上次置了什么」** —— 这正是本方案选「重算」而非
+            //    「开时置、关时清」的理由:后者要为 8 个模态的**每一条**退出路径各写一次清位,
+            //    漏一条 = 玩家**永久定身**(4 的 GDD 正是这样警告的)。重算把「漏释放」变成
+            //    结构上不可能 —— 位只会跟着当 tick 的真值走。
+            // ⚠️ **顺序**:先推进(①)再算(②)。结算会让窗口消失,应当**同 tick** 就清位。
+            if (_motorLease != null)
+                ModalGate.SetMotorSuppression(
+                    _motorLease,
+                    ShouldSuppressMotor(
+                        modalOpen: _modalOpen != null && _modalOpen(),
+                        harvestHolding: _harvest != null && _harvest.IsHolding));
+        }
+
+        /// <summary>
+        /// 4 的定身判据 —— <c>模态开 ‖ 采集窗口在途</c>。
+        /// </summary>
+        /// <param name="modalOpen">42 的模态是否摊开(<c>SkeuoRuntimeDriver.BlocksPlay</c>;不是 <c>IsModalOpen</c>)。</param>
+        /// <param name="harvestHolding">17 采集的持续窗口是否在途。</param>
+        /// <returns>是否要压住玩家移动。</returns>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么两个合成一个位</b>:<c>LeaseSource.Self</c> 是**4 的位**,
+        /// 语义 = 「4 判定该定身」。两件事都是 4 的判定 ⇒ 一个写者、一个位、一条判据,
+        /// 不会互相踩(`OQ-4-13` 修的是**跨源**丢失更新,同源两件事合成一个布尔不属其面)。</para>
+        /// <para>⚠️ 抽成静态纯函数是为了可判:两个输入的四种组合都能直接断言,
+        /// 不必为了测「合成」而造一个真的模态 + 真的采集驱动。</para>
+        /// </remarks>
+        public static bool ShouldSuppressMotor(bool modalOpen, bool harvestHolding)
+            => modalOpen || harvestHolding;
+
+        /// <summary>
+        /// 后置绑定 4 的定身写面所需的两个真源。
+        /// </summary>
+        /// <param name="lease">1 的租约(**必须是 <c>PlayerController.MotorLease</c> 那一个实例**)。</param>
+        /// <param name="modalOpen">42 的模态开集只读取法(用 <c>BlocksPlay</c>)。</param>
+        /// <remarks>
+        /// ⚠️ **后置绑定**是约定而非选择:装配序里玩家(1)与 UI 驱动(42)都晚于本类建成
+        /// (`CasebookCommandRouter.SetAuthor` / `BuildController.BindOwner` / `TeleportSink.BindPlayer`
+        /// 同一约定)。未绑定时 `OnTick` 不写租约(诚实降级:不压制,而不是压住不放)。
+        /// </remarks>
+        public void BindMotorSuppression(
+            DaYiJingCheng.Gameplay.Presentation.Player.MotorLease lease, Func<bool> modalOpen)
+        {
+            _motorLease = lease;
+            _modalOpen = modalOpen;
         }
     }
 }

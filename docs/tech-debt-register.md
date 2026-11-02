@@ -450,7 +450,7 @@
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | partial | **N** | R4 |
-| `TD-interaction-04` | `interaction-system` | open | **N** | R4 |
+| `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
 | `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
@@ -863,7 +863,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 152 | 状态 {'closed': 139, 'partial': 4, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
+条目 152 | 状态 {'closed': 140, 'partial': 4, 'open': 7, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 46, '~~**Y**~~': 4, '~~**N**~~': 1}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -9832,4 +9832,90 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 8 | closed 139 | 未闭 P0 面 = 0
 grep -c "public void test_ac1708_" unity/Assets/Tests/EditMode/Foraging/harvest_interaction_driver_test.cs   # 期望 7
 grep -n "SuppressesMotor" unity/Assets/Gameplay.Boot/HarvestInteractionDriver.cs   # 期望零命中(压制面未实现)
+```
+
+---
+
+## 2026-11-02 · 「定身位」轮:`TD-interaction-04` **关闭**
+
+**出处**:用户指令「继续」(承 `TD-foraging-04` 收口),两轮 `AskUserQuestion` 裁定
+**① 甲(4 出主意、Presentation 出手)** · **② 合并(模态 ‖ 采集窗口,同一个位)**。
+原件 = `production/qa/evidence/impl-td-interaction-04-modal-motor-2026-11-02.md`。
+
+### 开工前的实测(四条硬事实)
+
+| # | 事实 | 复算 |
+|---|---|---|
+| 1 | **`Gameplay.Boot` 不在租约白名单里** | `motor_lease_test.cs` 的 `AllowedCallerAssemblies` = `{Gameplay.Presentation, Gameplay.Input, Sim, Sim.Contracts, Sim.Codec}`;10 的实现轮实测过「在 Boot 里直接调 `Acquire` 判红」(`EmergencyChannelDriver.cs:161-164`) |
+| 2 | **4 的写面早就存在、零调用方** | `ModalGate.SetMotorSuppression(MotorLease, bool)`,住 `Gameplay.Presentation`;全仓只有测试在调 |
+| 3 | 移动**真读租约** | `PlayerController.cs:286` `if (_motorLease.IsSuppressed) moveInput = Vector3.zero;` |
+| 4 | **GDD 早就在声称这件事** | `interaction-system.md` 规则八:`Utensil`/`ClinicPanel` 走模态 ⇒ `SuppressesMotor = false`,「由 42 的模态门承担抑制」;**该断言此前没有落点** |
+
+⇒ 事实 4 + 事实 1/2 合起来 = 文档说有人管,代码里没人管 —— 与 `OQ-20-11` 那个「看不见的绿」同族。
+
+### 兑现
+
+| 件 | 落点 |
+|---|---|
+| 判据 | `InteractionPressRouter.ShouldSuppressMotor(modalOpen, harvestHolding) => modalOpen \|\| harvestHolding` |
+| 驱动 | `InteractionPressRouter.OnTick()` 每 tick 重算(先推进采集窗口,再算位) |
+| 写面 | `ModalGate.SetMotorSuppression`(住 `Gameplay.Presentation`,拿到**第一个生产调用方**) |
+| 绑定 | `BootRoot` 在 `_pressRouter = pressRouter` 之后后置绑定(`_player.MotorLease` + `() => _uiDriver != null && _uiDriver.BlocksPlay`) |
+
+**四处设计判断**:
+
+① **合成一个位**(`LeaseSource.Self` 是**4 的位**,语法 = 「4 判定该定身」;模态开与采集窗口在途
+**都是 4 的判定**)—— `OQ-4-13` 修的是**跨源**丢失更新,同源两件事合成一个布尔不属其面;
+② **写面不能放 Boot** —— `AC-1-23` 的机械门按**调用点所在程序集**判白名单,`Gameplay.Boot` 不在其中
+⇒ Boot 只算**布尔**,写面留 `Gameplay.Presentation`,**白名单一个字符未改**(与 `EmergencyMotorSuppression` 同处置);
+③ **每 tick 幂等重算,而不是「开时置、关时清」** —— 后者要为 8 个模态的**每一条**退出路径各写一次清位,
+漏一条 = 玩家**永久定身**;重算把「漏释放」变成**结构上不可能**;
+④ **顺序「先推进窗口、再算位」** —— 结算会让窗口在**本 tick** 消失,同 tick 就该清位。
+
+**未选乙(扩 `LeaseSource` 给 42)**:`MotorLease._bitmap` 是 `int`,`Acquire` 走 `_bitmap |= 1 << (int)source`;
+按 **C# 语言规格**,`int` 的 `<<` 把位移数按 `& 0x1F` 截断 ⇒ `1 << 42` 与 `1 << 10`(`Emergency`)落同一格。
+⚠️ **本条未实测**(`dotnet run` 被权限策略挡住),属**按语言规格陈述**;若将来真要选乙,第一步是写夹具确认它。
+
+### 判据(新增 4 条,并入 `interaction_press_router_test`)
+
+| # | 判据 | 测试 |
+|---|---|---|
+| ① | 合成判据的**真值表**(四种组合逐一断言) | `test_tdi04_shouldSuppressMotor_truthTable` |
+| ② | `OnTick` 把模态开合**如实**反映到 4 的位上(置 / 清双向) | `test_tdi04_onTick_bindsModalStateToSelfLease` |
+| ③ | 未绑定 ⇒ **不写租约**(诚实降级:不压制,而不是压住不放) | `test_tdi04_onTick_unboundWritesNothing` |
+| ④ | 只碰 4 那一位 —— **不得顺手清掉 10 的压制** | `test_tdi04_onTick_doesNotTouchOtherSources` |
+
+### 证伪轮(4 条变异,**全红**;SHA-256 逐字节还原 4/4)
+
+| 变异 | 红在 |
+|---|---|
+| M1 `=> modalOpen;`(丢采集窗口) | `shouldSuppressMotor_truthTable` |
+| M2 `=> harvestHolding;`(丢模态) | `shouldSuppressMotor_truthTable` · `onTick_bindsModalStateToSelfLease` |
+| M3 只置不清(漏释放) | `onTick_bindsModalStateToSelfLease` |
+| M4 `modalOpen: true`(恒压制) | `onTick_bindsModalStateToSelfLease` · `onTick_doesNotTouchOtherSources` |
+
+`FINAL-OK` · `SUMMARY failures=none`。靶场基线 = `2df360300d7e`(`InteractionPressRouter.cs` 的 SHA-256 前 12 位)。
+
+### ⚠️ 本债关闭**不等于**「模态期定身已可观测」
+
+| 面 | 状态 |
+|---|---|
+| 判据 + 写入(4 的位) | ✅ 本轮落地 |
+| **「玩家真的停住了」端到端** | ❌ **无判据** —— `PlayerController:286` 是既有代码,本轮未改、未新增夹具;需 PlayMode / 手动走查 |
+| `OnTick` 的调用点 | ❌ 无自动化判据(删掉 `BootRoot` 那行,EditMode 全绿而租约永不置位) |
+| 乙方案的移位风险 | ❌ 未实测(见上) |
+| 「tick 在跑」这个前提 | ⚠️ 若 tick 停在某模态打开的时刻,位会**留在置位**;今日 `Pause` 只挡交互意图、不停 tick(ADR-013 §十-C),故不发生 —— 但这是**前提**,不是本件证明过的性质 |
+
+### 账务
+
+`条目 152` 不动 · **`open 8 → 7`** · **`closed 139 → 140`** · `partial 4` 不动 ·
+`P0 面 N 46` 不动 · **`未闭 P0 面 = 0` 不动**。
+
+复算:
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --print   # 期望:条目 152 | open 7 | closed 140 | 未闭 P0 面 = 0
+grep -c "public void test_tdi04_" unity/Assets/Tests/EditMode/Interaction/interaction_press_router_test.cs   # 期望 4
+grep -n "BindMotorSuppression" unity/Assets/Gameplay.Boot/BootRoot.cs   # 期望 1 命中(后置绑定)
 ```

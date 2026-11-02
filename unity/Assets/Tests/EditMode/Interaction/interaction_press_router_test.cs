@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.Interaction;
 using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Gameplay.Presentation.Player;   // MotorLease / LeaseSource(TD-interaction-04)
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
@@ -176,6 +177,81 @@ namespace DaYiJingCheng.Tests.Interaction
 
         /// <param name="patientCell"><c>null</c> = 该源无行。</param>
         /// <param name="forageCell"><c>null</c> = 该源无行。</param>
+        // ══════════════ 三、4 的定身写面(`TD-interaction-04` · 2026-11-02)══════════════
+        //
+        // 病因:`AC-1-23` 的白名单把 `Gameplay.Boot` 挡在外面(门按**调用点所在程序集**判),
+        // 而 4 的写面 `ModalGate.SetMotorSuppression` 自 story-005 起**零生产调用方** ⇒
+        // 「模态打开 ⇒ 不能走」在 GDD 规则八里被声称、在代码里**不存在**。
+        // 现口径:Boot 每 tick 算一个**布尔**,交给 Presentation 的写面 ⇒ 白名单不动。
+        //
+        // ⚠️ 本组钉的是**合成判据 + 写面接线**两件。第三件(采集窗口在途 ⇒ 置位)
+        //    的输入 `harvest.IsHolding` 由 `TD-foraging-04` 的夹具自己钉;
+        //    这里钉「它被合进同一个布尔」的那一半(真值表第 4 行)。
+
+        /// <summary>合成判据的真值表 —— 四种组合逐一断言(不靠「两个 true 就够」)。</summary>
+        [Test]
+        public void test_tdi04_shouldSuppressMotor_truthTable()
+        {
+            Assert.IsFalse(InteractionPressRouter.ShouldSuppressMotor(false, false),
+                "模态关 + 无采集窗口 ⇒ 不压制");
+            Assert.IsTrue(InteractionPressRouter.ShouldSuppressMotor(true, false),
+                "模态开 ⇒ 压制");
+            Assert.IsTrue(InteractionPressRouter.ShouldSuppressMotor(false, true),
+                "采集窗口在途 ⇒ 压制");
+            Assert.IsTrue(InteractionPressRouter.ShouldSuppressMotor(true, true),
+                "两者皆真 ⇒ 压制");
+        }
+
+        /// <summary>`OnTick` 把模态开合**如实**反映到 4 的位上(置 / 清双向)。</summary>
+        [Test]
+        public void test_tdi04_onTick_bindsModalStateToSelfLease()
+        {
+            var lease = new MotorLease();
+            bool modalOpen = false;
+            InteractionPressRouter router = Build(null, 0L, null, 0L, _ => { });
+            router.BindMotorSuppression(lease, () => modalOpen);
+
+            router.OnTick();
+            Assert.IsFalse(lease.HasLease(LeaseSource.Self), "[前置] 模态关 ⇒ 4 的位置空");
+
+            modalOpen = true;
+            router.OnTick();
+            Assert.IsTrue(lease.HasLease(LeaseSource.Self), "模态开 ⇒ 4 的位被置");
+
+            modalOpen = false;
+            router.OnTick();
+            Assert.IsFalse(lease.HasLease(LeaseSource.Self),
+                "模态关 ⇒ 4 的位**被清**(每 tick 重算 ⇒ 不存在「漏释放」)");
+        }
+
+        /// <summary>未绑定 ⇒ **不写租约**(诚实降级:不压制,而不是压住不放)。</summary>
+        [Test]
+        public void test_tdi04_onTick_unboundWritesNothing()
+        {
+            var lease = new MotorLease();
+            InteractionPressRouter router = Build(null, 0L, null, 0L, _ => { });
+
+            router.OnTick();   // 未 BindMotorSuppression
+
+            Assert.IsFalse(lease.IsSuppressed, "未绑定 ⇒ 租约纹丝不动(不得凭空置位)");
+        }
+
+        /// <summary>只碰 4 那一位 —— 不得顺手清掉 10 的压制(`OQ-4-13` 纪律①)。</summary>
+        [Test]
+        public void test_tdi04_onTick_doesNotTouchOtherSources()
+        {
+            var lease = new MotorLease();
+            lease.Acquire(LeaseSource.Emergency);      // 10 持有
+            InteractionPressRouter router = Build(null, 0L, null, 0L, _ => { });
+            router.BindMotorSuppression(lease, () => false);
+
+            router.OnTick();                            // 4 判「不压制」
+
+            Assert.IsTrue(lease.HasLease(LeaseSource.Emergency),
+                "10 的位不得被 4 的同步顺手清掉(单 bool + 多写者 = 丢失更新,OQ-4-13)");
+            Assert.IsFalse(lease.HasLease(LeaseSource.Self), "4 自己那一位置空");
+        }
+
         private static InteractionPressRouter Build(
             WorldPos? patientCell, long patientId,
             WorldPos? forageCell, long forageIndex,

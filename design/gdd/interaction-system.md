@@ -547,7 +547,7 @@ Accept_4(intent) ⟺ ¬Armed(10)
 | **搜检采集点**(持续) | `ForageSpot` | **是**(⚠️ 见 `OQ-4-4`) |
 | **搜箱**(持续) | `Container` | **是**(⚠️ 见 `OQ-4-4`) |
 | **查体的耗时**(`D-8-3`) | `Patient` | ⚠️ 归 **10 / 4** —— **详见 `OQ-4-5`** |
-| **器具 / 医馆面板**(`Utensil` / `ClinicPanel`) | — | ⚠️ **三审补登:此表未覆盖这两个 kind** —— 二者走**模态**(20 的库存容器 / 24 的面板,分别经 `ModalId.InventoryContainer` / `ModalId.ClinicPanel` 拒收世界意图)⇒ **不需要** `SuppressesMotor`。**值 = `false`,由 42 的模态门承担抑制** |
+| **器具 / 医馆面板**(`Utensil` / `ClinicPanel`) | — | ⚠️ **三审补登:此表未覆盖这两个 kind** —— 二者走**模态**(20 的库存容器 / 24 的面板,分别经 `ModalId.InventoryContainer` / `ModalId.ClinicPanel` 拒收世界意图)⇒ **不需要** `SuppressesMotor`。**值 = `false`**;抑制由 **4 的定身位**承担(读 42 的模态开集)—— 🔁 **2026-11-02 订正**:原文写「由 42 的模态门承担抑制」,而实测**该机制不存在**(`ModalGate` 只拒**交互意图**,不碰移动;`LeaseSource.Self` 零生产 acquire)⇒ 该句曾是一句没有落点的断言。现口径见下方 `TD-interaction-04` 结块 |
 
 > **🔴 三审订正(本轮推荐 1 —— 本表的**清单完整性**)**:
 > 本表是**场景导向**的,只覆盖 **7 / 10 个 kind**;**`ForageSpot` / `Container` / `Patient` / `Utensil` / `ClinicPanel` 的 `SuppressesMotor` 权威值住在 `assets/data/interaction_kinds.json`**(`4-DC-1` 的字段),**不在本表**。
@@ -584,6 +584,31 @@ Accept_4(intent) ⟺ ¬Armed(10)
 > 前者在「玩家主动交互」时**随时**发生(含与其他 kind 同格、被优先级挤下时),**绝不产生抑制请求**;
 > 后者只在**被拥有方判为持续交互**的那一次 `argmin` 胜出时,由 4 发一次**边沿请求**。
 > ⇒ **`PoiCell` 的 T1 自报照旧工作,哪怕 `SuppressesMotor = false`。**
+
+> ### ✅ 2026-11-02 · 4 的定身位落地(`TD-interaction-04` 结案)
+>
+> **病因**:规则八的 `Utensil` / `ClinicPanel` 行逐字声称「抑制由 42 的模态门承担」,
+> 而实测该机制**不存在**:
+> - `ModalGate` 只做**交互意图**的布尔合取(`Accept`),**不碰移动**;
+> - `ModalGate.SetMotorSuppression`(4 的写面)自 story-005 起**零生产调用方**;
+> - `LeaseSource.Self`(4)**零生产 acquire**;
+> - ⇒ **打开药箱 / 脉案 / 暂停时玩家仍能一边走一边翻**(8 个模态全部如此)。
+>
+> **裁定(甲 + 合并)**:4 出主意、Presentation 出手。
+> - **判据**:`shouldSuppress = 模态开 ‖ 采集窗口在途`(`InteractionPressRouter.ShouldSuppressMotor`)。
+>   两件事都是 **4 的判定** ⇒ 同一个位、同一个写者,不会互相踩(`OQ-4-13` 修的是**跨源**丢失更新)。
+> - **写面**:`ModalGate.SetMotorSuppression`(住 `Gameplay.Presentation`)—— `AC-1-23` 的机械门
+>   按**调用点所在程序集**判白名单,`Gameplay.Boot` **不在**白名单内 ⇒ 驱动算布尔、写面在 Presentation。
+>   **白名单一个字符未改。**
+> - **每 tick 幂等重算**,不记「上次置了什么」⇒ 「漏一条释放路径 = 永久定身」在结构上不可能。
+> - ⚠️ **未选乙**(扩 `LeaseSource` 给 42):`_bitmap` 是 `int`,而 C# 的 `int <<` 会把位移数按
+>   `& 0x1F` 截断 ⇒ `1 << 42` 与 `1 << 10`(`Emergency`)**落到同一格**;走乙须先改 `ulong`
+>   并动 `AC-1-23` 白名单与 `leaseSourceOrdinalIsSystemNumber` 夹具。收益不值这个面。
+>   ⚠️ **该截断结论按 C# 语言规格陈述,未在本题实测** —— 若将来真要选乙,第一步是写夹具确认它。
+>
+> ⚠️ **本块关闭的是「判据 + 写入」两件**,不包含端到端:玩家真的停住要经
+> `PlayerController` 读租约那一段(既有代码,本轮未改),**无夹具**;`OnTick` 的 tick 调用点
+> 同样**无自动化判据**。原件 = `production/qa/evidence/impl-td-interaction-04-modal-motor-2026-11-02.md`。
 
 > **🔴 首轮评审揭出这条规则与「4 无状态」正面冲突,且原稿把冲突登记成了别的问题(unity-B3 / game#2)。**
 >

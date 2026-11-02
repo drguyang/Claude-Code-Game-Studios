@@ -652,3 +652,29 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
   (归 `TD-interaction-04`)· 「受伤」支**结构上不可达**(`InjuryOnset` 零生产写者)·
   端到端 `NOT-RUN` · `Advance` 的 tick 调用点**无自动化判据**
 - 原件 = `production/qa/evidence/impl-td-foraging-04-sustained-window-2026-11-02.md`
+
+**S23-28(2026-11-02):`TD-interaction-04` 结案 —— 4 的定身位落地**:
+用户指令「继续」→ 两轮 `AskUserQuestion` 裁定 **① 甲(4 出主意、Presentation 出手)** ·
+**② 合并(模态 ‖ 采集窗口,同一个位)**。
+
+- **病因**:`LeaseSource.Self`(4)**全仓零生产 acquire**;`ModalGate` 只拒**交互意图**、不碰移动
+  ⇒ 打开药箱 / 脉案 / 暂停 / 设置时玩家都能一边走一边翻。而 GDD 规则八**早在声称**「由 42 的模态门承担抑制」
+  —— 一句没有落点的断言(与 `OQ-20-11` 的「看不见的绿」同族)
+- **甲**:判据住 4(`ShouldSuppressMotor`),写面住 `Gameplay.Presentation`(`ModalGate.SetMotorSuppression`)。
+  ⚠️ **不是偏好,是硬约束**:`AC-1-23` 的 `motor_lease_test` 按**调用点所在程序集**判白名单,
+  `Gameplay.Boot` 不在其中 ⇒ Boot 只算布尔、不出手。**白名单一个字符未改**
+- **合并**:模态开与采集窗口在途**都是 4 的判定** ⇒ 一个写者、一个 `LeaseSource.Self` 位、一条判据
+  (`OQ-4-13` 修的是**跨源**丢失更新,同源合成不属其面)
+- **四处设计判断**:每 tick **幂等重算**(不是「开时置、关时清」—— 后者要为 8 屏的每条退出路径写清位,
+  漏一条 = **永久定身**)· 顺序**先推进采集窗口再算位**(结算让窗口本 tick 消失,同 tick 就该清位)·
+  未绑定 ⇒ **不写租约**(诚实降级)· 只碰 4 那一位(不得顺手清掉 10 的压制)
+- **未选乙(扩 `LeaseSource` 给 42)**:`int` 位图 + `1 << (int)source` 按 C# 规格会 `& 0x1F` 截断
+  ⇒ `1 << 42` 与 `1 << 10` 同格。⚠️ **本条未实测**(`dotnet run` 被权限挡住),**按语言规格陈述**;
+  选乙的第一步就是写夹具确认
+- **新增夹具 4 条**(真值表 / 置清双向 / 未绑定不写 / 不碰他源)· **证伪 4/4 全红**,SHA-256 还原 4/4,`FINAL-OK`
+- ⚠️ **本债关闭 ≠「模态期定身已可观测」**:`PlayerController:286` 读租约那段是既有代码,本轮未改、
+  未新增夹具 ⇒ **「真停住了」端到端 `NOT-RUN`** · `OnTick` 的 tick 调用点**无自动化判据**
+  (删掉 `BootRoot` 那行全量仍绿)· 「tick 在跑」是**前提**不是已证性质
+- **读数**:EditMode `6624/6587/0/0/37` @ `20:53:51` · PlayMode `311/307/0/2/2` @ `20:54:36`
+  (基线 `S23-27` 的 `6620/6583` · `311/307`;等式 EM **`+4`** = 新增夹具 · PM `+0`)
+- 原件 = `production/qa/evidence/impl-td-interaction-04-modal-motor-2026-11-02.md`
