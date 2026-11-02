@@ -849,3 +849,20 @@ grep -rn "ExploreCount" unity/Assets --include=*.cs | wc -l   # 期望 0
   `--mutation-probe` **M1–M10 十条各自红** `PROBE-OK`
 - ⚠️ **仍未覆盖**:节名硬编码「Acceptance Criteria」;「ADR 铸别人号且该号 GDD 也有」不可判(语义面)
 - 原件 = `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十一
+
+**S23-38(2026-11-02):C10 收紧 —— ADR 不得用系统 AC 的定义形**:
+
+- **指令**:「2 继续完成」—— 收掉 S23-37 登记的「ADR 铸别人号且 GDD 也有 ⇒ 不可判」
+- **思路**:语义不可判,**就把产生歧义的写法禁掉**
+- **裁定:记法即判据** —— `**AC-<sys>-<n>**` = **定义形**(只许出现在 `design/gdd/`);
+  `` `AC-<sys>-<n>` `` = **引用形**(ADR 引用 GDD 的 AC 一律用它)
+  ⇒ **C10 由「查 GDD 有没有这个 ID」收紧为「ADR 里出现定义形就红」**:有没有都不是关键,
+  关键是**读者分不出这是复述还是第二定义**(ADR-020 当年正是后者)
+- **落地**:`adr-018` **12 处**改记法(§七 1 · §八 2 · §Validation Criteria 9),
+  **判据文本一字未动**,正文加 🔁 注
+- **证伪(含负控)**:R13 正控(粗体列表项 ⇒ C10 红)· R14 **负控**(反引号 ⇒ **保持绿**)·
+  R11/R12 同批红;SHA-256 还原 4/4 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
+  ⚠️ **没有 R14 就不算数** —— 只有正控时,「把所有引用一起判死」的实现也全红
+- **仍未覆盖**:散文里的粗体 AC 不扫 · `control-manifest.md` 3 处未纳入(非 ADR、非定义源)·
+  记法靠人遵守
+- 原件 = `production/qa/evidence/impl-td-docs-01-ac-rename-2026-11-02.md` §十二

@@ -32,8 +32,10 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 - **C8 裸名误引 ADR 自有 AC**:活文档里裸 `AC-<n>-<m>` 实为 ADR 自有 AC ⇒ 红
   (C5 的盲区:文件里**一处新名都没有**时 C5 结构性沉默)
 - **C9 story 级 AC 旧形**:出现 3 位编号的 `AC-0NN-M` ⇒ 红(一律写 `SAC-0NN-M`)
-- **C10 ADR 铸了不存在的系统 AC**:ADR 里以定义句式写 `AC-<sys>-<n>`,但**没有任何 GDD
-  定义它** ⇒ 红(ADR 可以**引用**系统 AC,不能铸;自有 AC 写 `AC-ADR0NN-NN`)
+- **C10 ADR 用了系统 AC 的定义形**:ADR 里以**粗体**(`- [ ] **AC-x-y**` / `- **AC-x-y**`)
+  写 `AC-<sys>-<n>` ⇒ 红 —— **不看 GDD 有没有这个 ID**。
+  ADR 只能**引用**系统 AC,引用形 = **反引号**(`` - [ ] `AC-x-y` ``)。
+  自有 AC 写 `AC-ADR0NN-NN`(C7 管)
 
 ⚠️ **C8 只认 1–2 位编号位** —— 第三个编号空间(story 级 AC)已由 **C9** 单独接管:
 统一 `SAC-0NN-M`。三个空间自此从**字符串层面**可分:
@@ -64,7 +66,11 @@ ADR 自有的 AC 一律写 **`AC-ADR0NN-NN`**(ADR-019 已于 S23-35 同款处理
 
 **ADR 里出现 `AC-<sys>-<n>` 一律算引用,不算定义** —— `## Validation Criteria` 列的是
 「本 ADR 验证哪些 AC」。实测:全库 **0 个 ID 只由 ADR 定义**(两边都有的 9 个全是
-ADR-018 复述 44 GDD 的 `AC-44-*`)。铸号由 **C7 / C10** 兜。
+ADR-018 复述 44 GDD 的 `AC-44-*`)。
+
+**记法区分(2026-11-02 立)**:同一个 ID,**粗体 = 定义形,反引号 = 引用形**。
+ADR 里用粗体写系统 AC 一律由 **C10** 判红 —— 因为读者分不出那是「复述」还是
+「第二定义」,而同号异义正是 ADR-020 当年的形态。
 
 ⚠️ **`## GDD Requirements Addressed` 整节跳过** —— 该节的表是**引用**别的系统的 AC,
 不是定义。ADR-033 就有一条 `| **AC-23-02** | ...`,按逐行扫会被误判成第二处定义
@@ -278,6 +284,8 @@ def scan_adr_system_forms(root):
             if skip:
                 continue
             match = RE_GDD_ROW.match(line) or RE_ADR_BOX.match(line)
+            if match is None:
+                match = RE_AC_BULLET.match(line)
             if match:
                 out.append((rel, idx, match.group(1)))
     return out
@@ -589,15 +597,15 @@ def evaluate(definitions, baseline, bare_mixed=None,
                 "    `AC-0NN-M` 与 2 位的 `AC-<n>-<m>` 肉眼同形(如 `AC-019-6` vs `AC-19-06`),\n"
                 "    而系统 9 / 18 / 19 / 20 / 21 都存在 ⇒ 三个空间必须从字符串层面分开。")
 
-    # C10:ADR 里以定义句式出现、但在 GDD 里根本不存在的系统 AC
+    # C10:ADR 里出现**定义形**的系统 AC —— 一律红(不看 GDD 有没有)
     if adr_sys_forms is not None:
         for rel, idx, ac in adr_sys_forms:
-            if ac in definitions:
-                continue
             violations.append(
-                f"C10 ADR 铸了不存在的系统 AC:`{rel}:{idx}` 出现 `{ac}`,"
-                "但没有任何 GDD 定义它。\n"
-                "    ADR 可以**引用**系统 AC,但不能铸 —— 系统 AC 的户主是 `design/gdd/`。\n"
+                f"C10 ADR 用了系统 AC 的定义形:`{rel}:{idx}` 出现 `{ac}`。\n"
+                "    系统 AC 的户主是 `design/gdd/` —— ADR **只能引用,不能铸**。\n"
+                "    引用形 = **反引号**(`AC-0-NN`),定义形 = **粗体**(`**AC-0-NN**`)。\n"
+                "    本条不查「GDD 里有没有这个 ID」:即便有,ADR 用定义形也会让人读不出\n"
+                "    「这是复述」还是「这是第二定义」—— 同号异义正是 ADR-020 当年的形态。\n"
                 "    ADR 自有的 AC 请写 `AC-ADR0NN-NN`(C7 管)。")
 
     # 基线覆盖度提示(非违规):让「还剩多少撞号」始终可见
