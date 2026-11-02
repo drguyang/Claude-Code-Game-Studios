@@ -2,7 +2,7 @@
 
 > **对象**:`design/gdd/interaction-system.md` `AC-4-22`
 > **批次**:`S23-17`(sprint-23 追加;用户指令「修 AC-4-22(门柜可交互)」)
-> **截至时刻**:`2026-11-02 11:47 CST`(三元组见 §六)· **commit**:本批未提交工作树(基于 `a27b71b9`)
+> **截至时刻**:`2026-11-02 11:47 CST`(三元组见 §六)· **commit**:`43f1d2f3`
 > **结论**:门与柜**均接通到真实消费面**;`AC-4-22` 的「可被选出并路由」在 **EditMode 的真装配**
 > (真 `World` + 真 `StructureWriter` + 真驱动器)上可证。**未跑**实机按 E 的走查(见 §七.1)。
 
@@ -136,7 +136,7 @@
 | PlayMode | `297 / 293 / 0 / 2 / 2` | `297 / 293 / 0 / 2 / 2` | `+0`(本批无 PlayMode 改动) ✅ |
 
 `@ 2026-11-02 11:45:43 CST`(EditMode)· `11:47:06 CST`(PlayMode)· 批次 **`S23-17`** ·
-commit `a27b71b9` + 本批工作树。PlayMode `inconclusive=2` / `skipped=2` 与基线同形。
+commit `43f1d2f3`。PlayMode `inconclusive=2` / `skipped=2` 与基线同形。
 
 **复算**:
 
