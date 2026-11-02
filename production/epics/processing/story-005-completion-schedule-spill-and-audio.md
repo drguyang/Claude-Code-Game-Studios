@@ -66,33 +66,46 @@
 
 ## QA Test Cases
 
-*Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
+*Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).
+🔁 **2026-11-03 由 `/qa-plan sprint` 回填**:与 `production/qa/qa-plan-sprint-24-2026-11-03.md` 对齐,
+补 AC-18-21 的「恰 1 条 / 不合并 / `duration_ticks` 边界」与溢出路径的「部分容纳 ⇒ 整批落地」。*
 
-- **AC-18-21**: 调度落点 + cue 发射。
-  - Given: 夹具炉一,`duration_ticks = 20`;tick 驱动逐拍推进;cue spy。
-  - When: 到达 `CompleteTick`。
-  - Then: 当拍(误差 0,谓词等号)状态变化时间点输出 + `sfx_process_complete` 恰 1 条;无墙钟符号参与发射条件(扫描复用 AC-18-13 件)。
-  - Edge cases: 完成 tick 与存档恢复交叉(重放后同 tick 同结果);两玩家同 tick 完成 ⇒ 各 1 cue 不合并。
-- **溢出路径**: 完成时点容量不足。
-  - Given: 20 剩余容量 < 产出总体重。
-  - When: 完成调度。
-  - Then: 成品以 `DropSpawned` 落 `tool_cell` 格,id = 点火已铸 id;fold 后实例恒在(不静默吞、不延迟);无「半成品」中间态。
-  - Edge cases: 部分容纳 ⇒ 整批落地(与拾取整件拒绝同纪律,20 规则六);落地后玩家可拾(承 inventory 拾取链)。
-- **AC-18-09 / 22** [L]: 声床听测 + 盲测。
-  - Given: 44 素材接入后的录音样本(含故意混入的加密声床缺陷样例,镜像 AC-5-10 形式)。
-  - When: 人工听测 / 受试者仅凭听觉报起货时刻。
-  - Then: 无倒数感/播报判读;起货时刻可指出(±1 tick);证据 + 与 44 联合签核。
-  - Edge cases: 走查未跑 ⇒ 未勾,禁借 AC-18-21 机器绿。
-- **AC-18-24** [L, ADVISORY]: 仅手柄全流程。
+- **AC-18-21** [I] — 完成时点调度 + cue 发射。
+  - Given: 夹具炉一,`Recipe.duration_ticks = 20`、`start_tick = 100`;tick 由 `ITickProvider` 逐拍推进;`AudioCueDto` spy。
+  - When: `tick` 推进到 `CompleteTick = start_tick + duration_ticks = 120`(F-18.3)。
+  - Then: ① **当拍**(误差 0 —— 判定是等号 `tick == CompleteTickOf`,不是区间)输出器物状态变化时间点;
+    ② `sfx_process_complete` **恰 1 条**(重复发射 ⇒ 红);
+    ③ **发射条件无墙钟符号** —— 复用 AC-18-13 的符号扫描件,断言 `Time.*` / 帧计数不参与发射判定。
+  - Edge cases: 存档恢复后重放到同一 `start_tick` ⇒ 同 tick 同结果(重放幂等)·
+    两玩家同 tick 完成 ⇒ 各发 **1 条** cue,**不得合并**· `duration_ticks` 边界 `= 0`(当拍即完成)与 `= 1`。
+- **溢出路径(R-18-D[甲]②)** — 完成时点容量不足。
+  - Given: 点火已铸 `output_instance_ids[]`;20 剩余容量 < 产出总体重。
+  - When: 完成 tick 触发 20 的结算入口。
+  - Then: ① 成品以 `DropSpawned{instance_id = 点火已铸 id, spawn_anchor = tool_cell}` 落地 —— **无第二铸造点**;
+    ② fold 后 `InventoryOf ∪ 地面 drop` **含全部产出实例**(不静默吞、不延迟);
+    ③ **无「半成品」中间态**。
+  - Edge cases: **部分容纳 ⇒ 整批落地**(与 20 规则六「整件拒绝」同纪律,不做拆分入包)·
+    落地后玩家可拾(承 inventory 拾取链)。
+  - ⚠️ **禁借绿**:夹具必须走**真 20 结算 + 真 fold**,不得用 spy 顶替 fold(F1 型假绿)。
+- **AC-18-09 / 22** [L] — 声床听测 + 去标注盲测。
+  - Given: 44 素材接入后的录音样本(**含故意混入的加密声床缺陷样例**,镜像 AC-5-10)。
+  - When: 人工听测 / 受试者**仅凭听觉**报起货时刻。
+  - Then: 无倒数感/播报判读;起货时刻可指出(**±1 tick = 50 ms**);证据 + 与 44 联合签核。
+  - Edge cases: 走查未跑 ⇒ **未勾**,**禁借 AC-18-21 的机器绿**。
+- **AC-18-24** [L, ADVISORY] — 仅手柄全流程。
   - Given: 手柄独占输入构建(42 焦点导航落地后)。
   - When: 选料→点火→起货走查。
-  - Then: 每步可达、无指针依赖;ADVISORY 级(主验收在 42/43)。
-  - Edge cases: 药箱模态与炉交互的焦点单栈门(ADR-013)交接点。
-- **AC-18-08** [L]: 零数字走查。
+  - Then: 每步**焦点导航可达**、**无指针依赖**;ADVISORY 级(主验收在 42/43)。
+  - Edge cases: 药箱模态与炉交互的**焦点单栈门**(ADR-013)交接点无死锁。
+- **AC-18-08** [L] — 逐屏零数字走查。
   - Given: 42 面板落地后的完整炮制操作序列。
   - When: 逐屏记录。
-  - Then: 零转化率/成功率/百分比;成色由质地/药签措辞可读;主创签核页归档。
-  - Edge cases: 42 未交付 ⇒ 保持 EXTERNAL 标记未勾(机制侧供数无数字已由 Story 002 保证,不代走查)。
+  - Then: **零**转化率/成功率/进度百分比;成色由**质地/药签措辞**可读;主创签核页归档。
+  - Edge cases: 42 未交付 ⇒ 保持 EXTERNAL 标记未勾(机制侧供数无数字已由 Story 002 保证,**不代走查**)。
+
+> ⚠️ **证据落点前置阻塞**:四条的归档目录 `production/qa/evidence/` **从未建立**
+> (item-database story-003 先例)⇒ **登记不擅建**,建目录属**项目级决定**。
+> 开工前须确认落点,否则走查做完无处落证。
 
 ---
 

@@ -16147,3 +16147,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **本 sprint 无 QA 计划** —— 开工前须跑 `/qa-plan sprint`
 - ⚠️ 工作树另有 **S23-39 的 7 个文件未提交**,建议开工前先落定
 - **未提交**(等用户指令)
+
+<!-- QA-PLAN: 2026-11-03 | System: sprint-24 | Plan written: production/qa/qa-plan-sprint-24-2026-11-03.md -->
+
+## Session Extract — /qa-plan sprint(2026-11-03 · sprint-24)
+
+- **产出**:`production/qa/qa-plan-sprint-24-2026-11-03.md`(2 件 / 2 系统)
+- **回填**:`processing-005` 的 `## QA Test Cases` 对齐(补恰 1 条 / 不合并 / `duration_ticks` 边界 /
+  部分容纳 ⇒ 整批落地);`persistence-001` **新建** `## QA Test Cases` 节(原本没有)
+- **两处类型偏差已登记**:S24-1 声明 Integration 但 5 条 AC 里 4 条是 `[L]`;
+  S24-2 声明 Logic 但 AC-7a-01/02 是 Integration 形状(记次类型,不改主类型)
+- **点名的两条既有假绿**:`AC-7a-04` 的 `test_simEventCodec_roundTrip` 只断言「字节非空」;
+  `AC-7a-03` 的「简化版」只测同平台两次一致 ⇒ **都不得替代原判据**
+- ⚠️ **前置阻塞**:`production/qa/evidence/` 目录**从未建立** ⇒ 四条 `[L]` 无处落证,
+  **登记不擅建**(项目级决定)
+- **未提交**(等用户指令)

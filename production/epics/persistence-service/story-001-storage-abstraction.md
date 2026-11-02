@@ -123,6 +123,42 @@
 **0 条新增失败**。剩余 9 条(07/08/09/13/14/15/16/17/20)另按 `TD-persist-04` 解除动作 ③ 处置,
 见 `EPIC.md` §AC 载体总表。
 
+## QA Test Cases
+
+*2026-11-03 由 `/qa-plan sprint` 回填 —— 与 `production/qa/qa-plan-sprint-24-2026-11-03.md` 对齐。
+本节的判据面**只覆盖未 PASS 的 4 条**;已 PASS 的 `AC-7a-05/06/18` 见上方 §Acceptance Criteria 的判定注。*
+
+- **AC-7a-04** ❌ **当前是假绿,必须整条重写** —— 全二进制 codec。
+  - **现状**:`test_simEventCodec_roundTrip` 只断言 `bytes.Length > 0`,**未解码回比任何字段** ⇒ 零判别力。
+  - Given: 一条含 `Fix` 字段 + `long` 字段的三流事件。
+  - When: 写盘再读回;同一状态三次序列化。
+  - Then: ① **真往返** —— **逐字段相等**(不是「字节非空」);② 三次字节流**逐位一致**(哈希相等);
+    ③ **IL 扫描**:承约束的 sim 侧程序集零 `BinaryFormatter` / `JsonUtility` / `PlayerPrefs`;
+    ④ `Fix.long` 必须走 `BinaryPrimitives` 显式小端,**禁 `BitConverter`**(该维度**单独 IL 扫描**
+    —— 主机端序依赖夹具结构上抓不到)。
+  - Edge cases: 空 `PayloadRef`(长度 0)· `Fix` 负值 · `long.MinValue` / `long.MaxValue`。
+- **AC-7a-01** — 快照 = 优化非真相。
+  - Given: 一份存档的快照段**损坏 / 缺失 / 跨版本不可读**(三种变体各一例)。
+  - When: 加载该存档。
+  - Then: 三逻辑流**完整重放**;断言**具体量** —— 指定病人 `outcome` / **掉落清单** / **id 高水位**
+    **== 直接重放世界流所得**;表现态位置回「上次快照的位置」、加载变慢,**不失败、不提示存档损坏**。
+  - Edge cases: 快照段 0 字节 / 空段(与缺失同路径)。
+- **AC-7a-02** — 世界流是唯一裁判。
+  - Given: 快照内容与三逻辑流**不一致**(快照是旧派生态)。
+  - When: 加载。
+  - Then: 同三项量以**世界流重放**为准;快照只贡献加载加速与表现态位置。
+- **AC-7a-03** — 黄金字节对拍(**EXTERNAL,本 sprint 不做**)。
+  - 同一具名夹具在 **编辑器 Mono** 与 **IL2CPP 玩家**上各序列化一次 ⇒ 逐位一致。
+  - **执行点 = ADR-012 三格矩阵**(`TD-ci-01` EXTERNAL)。
+  - ⚠️ `save_service_test.cs:159` 的「简化版」只测**同平台两次一致**,**不得替代**本条。
+
+**Estimated test count**:+3 条(其中 AC-7a-04 是**整条重写**,不是新增)。
+
+**次类型**:本件声明 `Logic`,但 `AC-7a-01/02` 要的是三逻辑流完整重放对拍(Integration 形状)
+—— 记**次类型 = Integration**,**不改主类型**(声明优先)。
+
+---
+
 ## Completion Notes
 
 **Completed**: 2026-09-30
