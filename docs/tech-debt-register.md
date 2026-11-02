@@ -447,7 +447,8 @@
 | `TD-skeuo-01` | `skeuomorphic-ui` | open | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | open | **N** | R4 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
-| `TD-interaction-01` | `interaction-system` | open | **N** | R4 |
+| `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
+| `TD-interaction-02` | `interaction-system` | open | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | open | **N** | R4 |
 <!-- TD-INDEX:END -->
 
@@ -859,7 +860,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 148 | 状态 {'closed': 128, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 43, '~~**Y**~~': 4}
+条目 149 | 状态 {'closed': 129, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 44, '~~**Y**~~': 4}
 未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
 ```
@@ -8797,3 +8798,42 @@ grep -rn "OpenModal(UI.Skeuomorphic.ModalId.Casebook)\|OpenModal(ModalId.Caseboo
 | **`P0 面 = N` 的理由(R4 · 自陈)** | 查体**可达且有效**,缺的是**模态内行级粒度**,不产生「玩家卡死 / 功能不可用」。⚠️ **什么会把它翻成 Y**:8 的 AC 里若有「分别查体影响判定」的判据(如 `AC-8-*` 的单通道断言)被纳入 P0 出口面 —— 那属于 8 的 epic 记账,不在本条自陈范围内。 |
 | **何时消解** | `ICasebookCommandSink` 出现行级查体成员,**且**世界 E 不再调 `ExamineDriver.OnExamine`,**且** 有夹具证明「世界里按 E 只立案 + 开册,零查体快照」。 |
 | **归属** | **诊断(`diagnosis-system`)** —— 动作词表归 8;42 只提供行。 |
+
+---
+
+## 2026-11-02 · 「统一目标选择」轮:`TD-interaction-01` 关闭 + `TD-interaction-02` 立册
+
+**出处**:用户指令「修 TD-interaction-01」。实现原件 =
+`production/qa/evidence/impl-interaction-01-unified-selector-2026-11-02.md`。
+
+### TD-interaction-01 —— 关闭记录(债本体见上方 2026-11-02 条目,原文不删)
+
+**三条消解判据逐条兑现**:
+
+| # | 判据(原文) | 兑现 | 可跑复算 |
+|---|---|---|---|
+| ① | 病人的 `ICandidateSource` 有**生产实装** | ✅ `PresencePatientSource`(读 `PresenceRegistry`,`Rows` 每次现算) | `grep -rn "new PresencePatientSource(" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ `CompositionRoot.cs` 1 命中 |
+| ② | `InteractClaimRoute` 的比距仲裁**被删除**,由**一次 `Select`** 直接决定种类 | ✅ 该类与 `HarvestInteractionBridge` **整体删除**;`InteractionPressRouter.OnPress` 一次 `Select` → 按 `Kind` 分派 | `ls unity/Assets/Gameplay.Boot/InteractClaimRoute.cs` ⇒ 不存在 |
+| ③ | 夹具证明「同格病人 + 采集点 ⇒ 按 `KindPriority` 表定胜负」 | ✅ `interaction_press_router_test.test_ir_01_*` | 见下方证伪 N1 |
+
+**同批落的东西**:`InteractionPressRouter`(唯一路由)· `CandidateSetLoader.LoadWithin`(裁剪与第一键同式)·
+`HarvestInteractionDriver.TryHarvestTarget`(结算**已选定**目标,不再自己选)·
+`InteractionInputDriver.Visit(PatientId)`(公开,病人由调用方指名)·
+`RouteInteractPress` 缝取代采集 claim 钩子 · 急救 Arm 目标改走整数格。
+
+**N1 的判别力(为什么 `test_ir_01` 不是空洞正控)**:夹具刻意让第三键与胜负**相反**
+(病人 `StableId = 99` > 资源点 `= 1`)。把 `KindPriorityOf` 改成恒 `0` ⇒ 第二键失效、
+改由第三键判 ⇒ **恰 1 红**。两边 id 巧合时「病人赢」也会绿 —— 那是本仓点名的空洞正控形态。
+
+---
+
+### TD-interaction-02 —— `Drop` 与另六种候选源仍未进选择器
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `TD-interaction-01` 关的是「**已接线**的两种(病人 / 采集点)由一次 `Select` 定胜负」。F-4.1 的候选集本应覆盖 **10 种** `InteractableKind`,今日生产装配只有两种:<br>① **`Drop`**:`IDropSource` 仍为 `null`,拾取走 `DropClaimOrchestrator` 自己的「**第一可拾(instance_id 升序)**」—— 不是 `d∞` 也不是全序 argmin,连「最近的掉落」都不保证。路由里它只在「选择器**一无所获**」时兜底 ⇒ **病人 / 资源点更近时,脚下的掉落不会被捡**。<br>② **`PoiCell` / `Utensil` / `ClinicPanel` / `Door` / `Switch` / `BuildSlot`** 六种源全为 `null` ⇒ 它们**根本不在候选集里**,选中即不可能。 |
+| **为什么不与 01 同批做** | ① `Drop` 要对齐得先改 20 的口径(它的「第一可拾」是 S23-6 的**显式裁定**,见其文件头「刻意不用就近」—— 改它 = 改一个已裁定项);② 另六种各需一个把烘焙逻辑层投影成 `ICandidateSource` 的实装(6 / 23 的装配面),且每种还要有各自的**消费者**(否则选中了也没人做事 —— 那正是「引用却无登记」形态)。 |
+| **今日的实际影响** | 掉落:脚边有东西、同时旁边有病人或药丛时,按键给后者,掉落要等那两者都出半径才捡得到。另六种:选不中(等价于「未接线」)。**没有静默误动作** —— 路由对未接线种类返回 `false`,不转译成别的动作。 |
+| **`P0 面 = N` 的理由(R4 · 自陈)** | 两种已接线的种类覆盖了 P0 的核心循环(就诊 / 采集),掉落有**可用**的替代路径(选择器空时兜底)。⚠️ **什么会把它翻成 Y**:若 P0 出口面包含「脚边掉落必须优先于环境目标」的判据,或 6 / 23 的交互点进 P0 验收。 |
+| **何时消解** | `IDropSource` 有生产实装**且** `InteractionPressRouter` 里那段「选择器空 ⇒ 拾取兜底」被删除(由 `Select` 直接选 Drop);另六种按各自 epic 的装配轮接入。判据 = 一条夹具证明「同格病人 + 掉落 ⇒ 按 `KindPriority` 定胜负」。 |
+| **归属** | **交互系统(`interaction-system`)** —— 选择器归 4;各源的投影归 6 / 17 / 20 / 23。 |

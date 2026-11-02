@@ -296,6 +296,26 @@ EditMode `6509 / 6472 / 0 / 0 / 37` · PlayMode `281 / 277 / 0 / 2 / 2`
   病人未接成候选源)· `TD-diagnosis-01`(查体由世界 E 代做,`S-8.4` 要求为模态行级)。
   ⇒ `未闭 P0 面 1 → 0`,**M3 Exit 第二条合取由假回真**。
 
+**S23-13(2026-11-02):统一目标选择 —— 结清 `TD-interaction-01`**:
+用户指令「修 TD-interaction-01」。病因 = 「谁是这一帧的目标」由**三处**各算一遍
+(采集自选资源点 / 驱动自选**视觉位置**最近的病人 / `InteractClaimRoute` 外挂比距)。
+
+- **现口径**:`InteractionPressRouter` —— **一次 `InteractionSelector.Select` 定种类**
+  (F-4.1 三键全序),再按 `InteractableKind` 分派(Patient → 39 · ForageSpot → 17 · Drop → 20)。
+  病人正式接入候选集(**`PresencePatientSource`**,`IPatientSource` 的首个生产实装)。
+- **删除**:`InteractClaimRoute` + `HarvestInteractionBridge`(外挂仲裁,已是死代码);
+  上一轮加的 `PeekNearestForageDistance` 一并删(被路由取代)。
+- **顺带纠正**:E / 急救 Arm 的目标选择改读**整数格**(4 规则二「玩家格取路 (a)」),
+  不再读 `transform.position` 与视觉位置。
+- **读数**:EditMode `6526/6489/0/0/37` · PlayMode `294/290/0/2/2`
+  (基线 `S23-12` 的 `6523/6486` · `294/290`;等式 `+3 = +7 新 − 3 删 − 1`,PM `+0`)。
+  证伪 **N1–N5 全红**,五文件 SHA-256 逐字节还原 5/5。
+  原件 = `production/qa/evidence/impl-interaction-01-unified-selector-2026-11-02.md`。
+- 🔴 **一条假红的教训**:`modal_gate_wiring_test` 的正控把玩家挪到 `(0,0,50)` 只为躲开采集点,
+  其注释写「查体的最近病人判定**无半径门**」—— 路由接管后 E **有**半径门,半径外不着体 ⇒ 正控假红。
+  ⇒ **改夹具不改生产**:那正是行为该变的地方。
+- **残余**:`Drop` 仍走 20 的「第一可拾」,另六种候选源仍 `null` ⇒ 新立 **`TD-interaction-02`**。
+
 **S23-10 收口读数(2026-11-02 · 与 S23-9 同批)**:
 EditMode `6518 / 6481 / 0 / 0 / 37` · PlayMode `283 / 279 / 0 / 2 / 2`
 (基线 = `S23-9` 的 `6509/6472` · `281/277`;等式 `6518 − 6509 = 9 = 9 新 − 0 删` · `283 − 281 = 2`)。

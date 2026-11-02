@@ -15718,3 +15718,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **未闭**:`TD-interaction-01` / `TD-diagnosis-01` · 存档位 → 暂停壳的 Escape 换屏未新增夹具 ·
   脉案版面可读性归 42 走查
 - 证据:`production/qa/evidence/impl-casebook-entry-2026-11-02.md`
+
+## Session Extract — 统一目标选择 / 结清 TD-interaction-01(2026-11-02 · S23-13)
+
+- **现口径**:`InteractionPressRouter` —— 一次 `InteractionSelector.Select` 定种类(F-4.1 三键),
+  再按 `InteractableKind` 分派(Patient → 39 · ForageSpot → 17 · Drop → 20 · 未接线 → 不消费)
+- **新增**:`PresencePatientSource`(`IPatientSource` 首个生产实装)· `CandidateSetLoader.LoadWithin` ·
+  `TryHarvestTarget`(结算已选定目标)· `InteractionInputDriver.Visit(PatientId)`
+- **删除**:`InteractClaimRoute` · `HarvestInteractionBridge` · `PeekNearestForageDistance`
+- **顺带**:E / 急救 Arm 目标改读**整数格**(4 规则二),不再读 `transform.position` / 视觉位置
+- **回归**:EditMode `6526/6489/0/0/37` · PlayMode `294/290/0/2/2`
+  (基线 `6523/6486`·`294/290`;等式 `+3 = +7 新 − 3 删 − 1`,PM `+0`)
+- **证伪 N1–N5 全红**,五文件 SHA-256 逐字节还原。N1 的判别力靠「让第三键与胜负相反」设计
+- **残余**:`TD-interaction-02` —— Drop 仍走 20 的「第一可拾」;另六种候选源仍 null
+- **未闭**:`TD-interaction-02` · `TD-diagnosis-01` · 急救 Arm 的整数格最近者无专测
+- 证据:`production/qa/evidence/impl-interaction-01-unified-selector-2026-11-02.md`
