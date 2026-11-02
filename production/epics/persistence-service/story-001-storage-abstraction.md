@@ -1,8 +1,8 @@
 # Story 001: 存储抽象层（二进制 codec 接口 + 校验骨架）
 
 > **Epic**: 7a 持久化服务
-> **Status**: In Progress
-> **Last Updated**: 2026-10-25
+> **Status**: Complete(2026-11-03 · **COMPLETE WITH NOTES** —— 7 条 AC 逐条重判,PASS 5 / NOT-RUN 2;见 §Completion Notes 的 2026-11-03 段)
+> **Last Updated**: 2026-11-03
 > 🔁 **2026-10-25 QA 轮退回(用户裁定 · 承签核 C-1,原文 `Status: Complete` 不删)**:
 > 该件此前标 `Complete` 但 **7 条 AC 全未勾选**(`[x]`=0 / `[ ]`=7),而 `Type: Logic`
 > ⇒ 自动化证据是 BLOCKING 门。qa-lead 判此为**第五个假绿形态**:用「文件已落盘」顶替「AC 已判定」。
@@ -35,22 +35,46 @@
 
 *From GDD `design/gdd/persistence-service.md`, scoped to this story:*
 
-- [ ] **AC-7a-01**: 快照损坏/缺失/跨版本不可读 ⇒ 三逻辑流完整重放，指定病人 outcome / 掉落清单 / id 高水位 == 直接重放世界流所得（BLOCKING）
+- [x] **AC-7a-01**: 快照损坏/缺失/跨版本不可读 ⇒ 三逻辑流完整重放，指定病人 outcome / 掉落清单 / id 高水位 == 直接重放世界流所得（BLOCKING）
       > **2026-10-25 判定 = NOT-RUN**。仅有的关联测试 `save_service_test.cs:96`
       > `test_checksumFallback_readsBakWhenFinalCorrupted` 断言的是**「回退到 bak 后长度 = 68」**
       > (校验和回退路径),**未触及「三逻辑流完整重放」**,更未比对 outcome / 掉落清单 / id 高水位。
       > 真重放零实现 ⇒ 本条不可满足(QA plan §未及核查项 1 的 `R-2`)。
+      > 🔁 **2026-11-03(S24-2)重判 = PASS(前件已限定)**。新夹具
+      > `save_replay_roundtrip_test.cs::test_ac7a01_noSnapshotSegment_andRestoredFactsEqualDirectReplay`:
+      > 存档 → 新流 Load → **掉落清单(`InventoryFold.CanonicalForm`)/ id 高水位 / 折叠行**
+      > 三项逐位等于「直接重放存档前世界流」所得。
+      > ⚠️ **「快照损坏」这个前件今日不存在**(布局里没有快照段,`SnapshotOffset` 恒 0 哨兵)——
+      > 故该测的 **①** 断言正是「`SnapshotOffset == 0`」,它把「前件变了」变成一条**会转红**的判据
+      > (证伪 P3 实测:改成 1 ⇒ 该测红)。**不得**把本条读成「快照恢复能力已验证」。
 - [ ] **AC-7a-02**: 快照内容与三逻辑流不一致 ⇒ 各游戏事实以世界流/事件流为准（BLOCKING）
       > **2026-10-25 判定 = NOT-RUN**。`save_service_test.cs:4` 只有**文件头注释**提及该 AC 编号,
       > **零测试方法**。`grep -c "AC-7a-02" unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs` ⇒ 1(仅注释行)。
+      > 🔁 **2026-11-03(S24-2)重判 = NOT-RUN(前件不存在,非「没人做」)**。
+      > 本 AC 的宾语是「**与三流不一致的快照**」;而 `SaveComposer.cs:38/:56` 明写
+      > 「快照段 / 分册态段留待后续,`SnapshotOffset` 恒写 0 哨兵」⇒ **没有快照可与之不一致**。
+      > 照措辞造夹具 = 造一条**零输入可达的门**(本项目已登记的假绿形态)。
+      > 前件由 AC-7a-01 的 ① 断言机械看守:快照段一旦引入,那条会先红并提示补本条的真夹具。
 - [ ] **AC-7a-03**: 同一具名存档夹具，编辑器(Mono)与 IL2CPP 玩家上各序列化一次 ⇒ 字节流逐位一致（BLOCKING · 执行点 = ADR-012）
       > **2026-10-25 判定 = NOT-RUN**。`save_service_test.cs:159` 自陈「**简化版** —— 同一数据两次序列化应逐位一致」
       > ⇒ 测的是**同平台两次**一致,**不是 Mono vs IL2CPP 跨平台**。跨平台矩阵本机不可跑(`TD-ci-01` EXTERNAL)。
-- [ ] **AC-7a-04**: 一条三流事件写盘再读回 ⇒ 字段值逐位往返不变；三次序列化同一状态 ⇒ 三次字节流逐位一致；IL 扫描零 BinaryFormatter/JsonUtility/PlayerPrefs（BLOCKING）
+      > 🔁 **2026-11-03 维持 NOT-RUN(EXTERNAL)** —— 本机无 IL2CPP 播放器腿,不假装跑过。
+- [x] **AC-7a-04**: 一条三流事件写盘再读回 ⇒ 字段值逐位往返不变；三次序列化同一状态 ⇒ 三次字节流逐位一致；IL 扫描零 BinaryFormatter/JsonUtility/PlayerPrefs（BLOCKING）
       > **2026-10-25 判定 = NOT-RUN(假绿)**。`save_service_test.cs:127` `test_simEventCodec_roundTrip`
       > 的断言**只有** `Assert.IsTrue(bytes.Length > 0, "编码后应有字节")` —— **未解码回比任何字段**,
       > 更未做三次序列化对拍、未做 IL 扫描。**该测对 AC-7a-04 的三项子判据零判别力。**
       > ⚠️ 这是本轮抓出的**第六个假绿形态**:测试名与 AC 编号都对,断言却只验「非空」。
+      > 🔁 **2026-11-03(S24-2)重判 = PASS**。原测**整条重写**,并按三项子判据补足 4 条:
+      > `test_ac7a04_simEventHeader_roundTrip_fieldByField`(逐字段回比,含 `PayloadRef` 三字段)·
+      > `test_ac7a04_simEventHeader_roundTrip_extremesAndNegatives`(`long` 两端点 / 负值)·
+      > `test_ac7a04_threeSerializations_areByteIdentical`(三次逐字节一致)·
+      > `test_ac7a04_payloadFix_roundTrip_preservesRawBits`(`Fix` raw 往返,含 `long.MinValue`)·
+      > `test_ac7a04_assemblyScan_noForbiddenSerializersOrHostEndianApis`(Cecil 扫 `Sim.Codec` 的
+      > `BinaryFormatter` / `JsonUtility` / `PlayerPrefs` / **`BitConverter`**)。
+      > ⚠️ **该扫描当场抓出一个真缺陷**:`SaveHeaderCodec.HasValidMagic` 用了
+      > `(uint)BitConverter.ToInt32`(主机端序,违 ADR-010 §一)—— 小端机上行为恰好相同,
+      > 既有四条存档夹具全绿也照不出来。已改 `BinaryPrimitives.ReadUInt32LittleEndian`。
+      > 证伪 P1 / P2 各命中(见 `production/qa/evidence/review-persistence-001-ac-rejudge-2026-11-03.md`)。
 - [x] **AC-7a-05**: 翻转存档中任一非校验和字节 ⇒ 校验和验证失败（BLOCKING）
       > **2026-10-25 判定 = PASS**。`save_service_test.cs:41` `test_checksumValidation_detectsCorruption`:
       > 合法数据通过校验 ⇒ 翻转 `withChecksum[40]` ⇒ 校验失败。**双向断言齐**,判据成立。
@@ -64,11 +88,22 @@
       > ⚠️ **与 AC 原文的差异如实登记**:AC 说「grep 7a 侧**全部源码**」,测试只扫**一个程序集内名字含 `Save` 的类型**
       > (漏掉静态字段、属性、局部变量、以及 `Sim` / `Sim.Contracts` 侧)。判 PASS 是因为**零 float 的实现事实成立**
       > (`grep -rn "float\|double" unity/Assets/Sim.Codec/ --include=*.cs` 仅注释命中),但**夹具的扫描面窄于 AC 措辞**。
+      > 🔁 **2026-11-03(S24-2)加宽 = PASS(措辞差已消)**。新夹具
+      > `test_ac7a18_sourceSurface_ofSaveCodec_hasNoFloatTypes`:扫 `unity/Assets/Sim.Codec/**.cs`
+      > **全部源文件**(剥注释后按标识符边界匹配 `float` / `double` / `decimal`),
+      > 覆盖静态字段 / 属性 / 局部变量 / 方法返回值 —— 即 AC 原文的「全部源码」口径。
+      > 原反射夹具**保留**(它扫的是**类型面**,两者互补,不是替代)。
 
 **判据小结(2026-10-25 QA 轮)**:PASS **3** / NOT-RUN **4**(其中 AC-7a-04 = 假绿)。
 ⇒ 该件**不得**维持 `Complete`。剩余 4 条的清偿载体:
 `AC-7a-01` / `AC-7a-02` 归 `TD-persist-03` 的真重放 · `AC-7a-03` 归 `TD-ci-01` 跨平台矩阵 ·
 `AC-7a-04` 须补真往返夹具 + IL 扫描。
+
+**判据小结(2026-11-03 · S24-2 重判轮)**:PASS **4**(`01` / `04` / `05` / `06`)· **PASS(加宽)** **1**(`18`)
+· NOT-RUN **2**(`02` 前件不存在 · `03` EXTERNAL)。
+⇒ **零假绿**:每条 PASS 都有「改坏生产就转红」的判据(证伪轮 P1/P2/P3 全命中);
+每条 NOT-RUN 都写明**今天为什么判不了**(不是没做,是没有宾语 / 没有平台)。
+原件:`production/qa/evidence/review-persistence-001-ac-rejudge-2026-11-03.md`。
 
 ---
 
@@ -183,3 +218,49 @@
 - B-3: `SaveService` 移除 stub 方法，只保留低层原语
 
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
+
+---
+
+## Completion Notes —— 2026-11-03 重判轮(S24-2)
+
+**Completed**: 2026-11-03
+**Verdict**: **COMPLETE WITH NOTES**(7 条 AC:5 PASS + 2 NOT-RUN)
+
+### 逐条
+
+| AC | 新判定 | 载体 |
+|---|---|---|
+| `AC-7a-01` | **PASS**(前件已限定) | `save_replay_roundtrip_test.cs::test_ac7a01_noSnapshotSegment_andRestoredFactsEqualDirectReplay` |
+| `AC-7a-02` | **NOT-RUN** | 前件不存在:布局无快照段(`SnapshotOffset` 恒 0 哨兵)⇒ 没有「与流不一致的快照」 |
+| `AC-7a-03` | **NOT-RUN** | EXTERNAL:ADR-012 三格矩阵 / `TD-ci-01`;本机无 IL2CPP 播放器腿 |
+| `AC-7a-04` | **PASS** | 4 条新夹具(真往返 / 端点 / 三次对拍 / `Fix` raw / IL 扫描) |
+| `AC-7a-05` | PASS(不变) | `test_checksumValidation_detectsCorruption` |
+| `AC-7a-06` | PASS(不变) | `test_atomicWrite_createsFinalFile` + `test_doubleBackup_bakCreatedOnSecondWrite` |
+| `AC-7a-18` | **PASS(加宽)** | 原反射夹具 + `test_ac7a18_sourceSurface_ofSaveCodec_hasNoFloatTypes` |
+
+### 本轮的两处实质修复
+
+1. **`SaveHeaderCodec.HasValidMagic` 用了主机端序** —— `(uint)BitConverter.ToInt32(...)` 违 ADR-010 §一
+   (显式小端、禁 `BitConverter`)。小端机上行为恰好相同 ⇒ 既有四条存档夹具全绿也照不出来
+   (「行为等价掩盖结构分叉」同族)。已改 `BinaryPrimitives.ReadUInt32LittleEndian`。
+2. **AC-7a-04 的原夹具是第六个假绿形态** —— 断言只有 `bytes.Length > 0`,未解码、未比任何字段。
+   整条重写。
+
+### 证伪轮(3 变异,全命中,SHA-256 逐字节还原)
+
+| 变异 | 期望红 | 实测 |
+|---|---|---|
+| P1 `SimEventCodec.Encode` 的 `Seq` 写 0 | `test_ac7a04_simEventHeader_roundTrip_fieldByField` | ✅ 命中(该轮 3 红) |
+| P2 `HasValidMagic` 退回 `BitConverter` | `test_ac7a04_assemblyScan_noForbiddenSerializersOrHostEndianApis` | ✅ 命中 |
+| P3 `SaveComposer` 写非 0 `SnapshotOffset` | `test_ac7a01_noSnapshotSegment_andRestoredFactsEqualDirectReplay` | ✅ 命中 |
+
+还原判据(改前 = 还原后):`ee624d3f…` / `3173b5bf…` / `a4d93572…`。
+
+### 残余(NOT-RUN 两条,不得借绿)
+
+- `AC-7a-02`:**前件不存在**。快照段一旦引入(而 `AC-7a-01` 的 ① 断言会先红提醒),
+  须补「快照与三流不一致」的真夹具。
+- `AC-7a-03`:**EXTERNAL**。跨平台字节对拍 = ADR-012 矩阵,本机不可跑。
+
+**Test Evidence**:`production/qa/evidence/review-persistence-001-ac-rejudge-2026-11-03.md`
+**Code Review**:本轮为 AC 重判 + 两处缺陷修复;`/code-review` 未另跑(lean 模式)

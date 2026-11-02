@@ -319,18 +319,144 @@ namespace DaYiJingCheng.Tests.PersistenceService
             return combined;
         }
 
-        // AC-7a-04: 一条三流事件写盘再读回 ⇒ 字段值逐位往返不变
+        // ══════════════════════════════════════════════════════════════════
+        // AC-7a-04 —— 真往返(2026-11-03 · S24-2 重写)
+        //
+        // 🔁 **原 `test_simEventCodec_roundTrip` 的断言只有 `bytes.Length > 0`**
+        //    —— 未解码、未比任何字段 ⇒ 对 AC 的三项子判据**零判别力**(第六个假绿形态)。
+        //    本段把它重写成「解码回比 + 三次对拍 + 逐字节还原」三项齐备。
+        // ══════════════════════════════════════════════════════════════════
+
+        // AC-7a-04(a):写盘再读回 ⇒ **逐字段**等于原值
         [Test]
-        public void test_simEventCodec_roundTrip()
+        public void test_ac7a04_simEventHeader_roundTrip_fieldByField()
         {
-            var codec = new SaveCodec();
-            var w = new CodecWriter();
+            var original = new SimEvent(
+                tick: 42L, patient: new PatientId(7), seq: 99L,
+                kind: EventKind.ActorCellEntered,
+                payload: new PayloadRef(blobId: 3, offset: 16, length: 24));
 
-            var e = new SimEvent(42, new PatientId(7), 99, EventKind.ActorCellEntered, default);
-            codec.WriteEvent(in e, ref w);
+            byte[] bytes = SimEventCodec.Encode(in original);
+            SimEvent back = SimEventCodec.Decode(bytes);
 
-            byte[] bytes = w.ToArray();
-            Assert.IsTrue(bytes.Length > 0, "编码后应有字节");
+            Assert.AreEqual(original.Tick, back.Tick, "Tick 往返必须逐位相等");
+            Assert.AreEqual(original.Patient.Value, back.Patient.Value, "Patient 往返必须逐位相等");
+            Assert.AreEqual(original.Seq, back.Seq, "Seq 往返必须逐位相等");
+            Assert.AreEqual(original.Kind, back.Kind, "Kind 往返必须逐位相等");
+            Assert.AreEqual(original.Payload.BlobId, back.Payload.BlobId, "PayloadRef.BlobId 往返");
+            Assert.AreEqual(original.Payload.Offset, back.Payload.Offset, "PayloadRef.Offset 往返");
+            Assert.AreEqual(original.Payload.Length, back.Payload.Length, "PayloadRef.Length 往返");
+        }
+
+        // AC-7a-04(a 边界):负值 / `long` 两端点不得在往返里被截断或取反
+        [Test]
+        public void test_ac7a04_simEventHeader_roundTrip_extremesAndNegatives()
+        {
+            foreach (long tick in new[] { long.MinValue, long.MaxValue, -1L })
+            {
+                var e = new SimEvent(tick, new PatientId(-1), -7L, EventKind.Craft, default);
+                SimEvent back = SimEventCodec.Decode(SimEventCodec.Encode(in e));
+                Assert.AreEqual(tick, back.Tick, $"Tick={tick} 往返必须逐位相等");
+                Assert.AreEqual(-7L, back.Seq, "负 Seq 往返必须逐位相等");
+                Assert.AreEqual(-1, back.Patient.Value, "PatientId.None(-1) 往返必须逐位相等");
+            }
+        }
+
+        // AC-7a-04(b):同一状态三次序列化 ⇒ 三次字节流逐位一致
+        [Test]
+        public void test_ac7a04_threeSerializations_areByteIdentical()
+        {
+            var e = new SimEvent(1234L, new PatientId(11), 5L, EventKind.PatientOutcomeChanged,
+                                 new PayloadRef(9, 32, 12));
+
+            byte[] a = SimEventCodec.Encode(in e);
+            byte[] b = SimEventCodec.Encode(in e);
+            byte[] c = SimEventCodec.Encode(in e);
+
+            CollectionAssert.AreEqual(a, b, "第二次序列化与第一次逐位一致");
+            CollectionAssert.AreEqual(a, c, "第三次序列化与第一次逐位一致");
+        }
+
+        // AC-7a-04(c):载荷里的 `Fix` 走 raw i64 往返 —— 负值不得被「取绝对值」或舍入
+        [Test]
+        public void test_ac7a04_payloadFix_roundTrip_preservesRawBits()
+        {
+            var pool = new InMemoryBlobPool();
+            var encoder = new PayloadEncoder(pool);
+            var decoder = new PayloadDecoder(pool);
+
+            foreach (long raw in new[] { 0L, 65536L, -65536L, long.MinValue, long.MaxValue })
+            {
+                var src = new InjuryOnsetPayload(
+                    tick: 7L, actorId: 1, targetId: 2, injuryId: 3, magnitude: new Fix(raw), doseSeq: 0);
+                PayloadRef r = encoder.Encode(EventKind.InjuryOnset, src);
+                InjuryOnsetPayload back = decoder.Decode<InjuryOnsetPayload>(EventKind.InjuryOnset, r);
+
+                Assert.AreEqual(raw, back.Magnitude.Raw,
+                    $"Fix raw={raw} 往返必须逐位相等(负值右移 / 取绝对值 / 舍入都会在此转红)");
+            }
+        }
+
+        // AC-7a-04(d):IL 扫描 —— 7a 的编译产物里零 `BinaryFormatter` / `JsonUtility` / `PlayerPrefs`
+        //                     / `BitConverter`(ADR-010 §一:显式小端,禁主机端序)
+        [Test]
+        public void test_ac7a04_assemblyScan_noForbiddenSerializersOrHostEndianApis()
+        {
+            string dll = DaYiJingCheng.EditorTools.Gates.AssemblyGates.ScriptAssemblyPath("Sim.Codec");
+            Assert.IsTrue(File.Exists(dll), $"Sim.Codec 装配不存在:{dll}");
+
+            string[] forbidden =
+            {
+                "System.Runtime.Serialization.Formatters.Binary.BinaryFormatter",
+                "UnityEngine.JsonUtility",
+                "UnityEngine.PlayerPrefs",
+                "System.BitConverter",
+            };
+
+            var hits = new System.Collections.Generic.List<string>();
+            int scanned = 0;
+            using (var mod = Mono.Cecil.ModuleDefinition.ReadModule(dll))
+            {
+                foreach (var type in mod.GetTypes())
+                {
+                    foreach (var m in type.Methods)
+                    {
+                        if (!m.HasBody) continue;
+                        scanned++;
+                        foreach (var ins in m.Body.Instructions)
+                        {
+                            string owner = InsOperandTypeFullName(ins.Operand);
+                            if (owner == null) continue;
+                            foreach (string bad in forbidden)
+                            {
+                                if (owner == bad)
+                                    hits.Add($"{type.FullName}.{m.Name}: `{owner}` @ IL_{ins.Offset:X4}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            Assert.Greater(scanned, 0, "IL 扫描扫到零个方法体 —— 拒以空集冒充绿");
+            Assert.IsEmpty(hits,
+                "7a 编译产物出现禁用的序列化 / 主机端序 API(ADR-010 §一):\n  "
+                + string.Join("\n  ", hits));
+        }
+
+        /// <summary>取一条 IL 指令**引用到的类型**全名(方法 / 字段 / 类型操作数);取不到返回 null。</summary>
+        private static string InsOperandTypeFullName(object operand)
+        {
+            switch (operand)
+            {
+                case Mono.Cecil.MethodReference mr:
+                    return mr.DeclaringType?.FullName;
+                case Mono.Cecil.FieldReference fr:
+                    return fr.DeclaringType?.FullName;
+                case Mono.Cecil.TypeReference tr:
+                    return tr.FullName;
+                default:
+                    return null;
+            }
         }
 
         // AC-7a-18: 零 float/double 类型用于存档或事件流
@@ -366,6 +492,93 @@ namespace DaYiJingCheng.Tests.PersistenceService
             {
                 Assert.AreEqual(first[i], second[i], $"字节 {i} 应一致");
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-7a-18(加宽)· 2026-11-03(S24-2)
+        //
+        // 🔁 原夹具只反射扫**一个程序集内名字含 `Save` 的类型**的实例字段
+        //    ⇒ 漏静态字段 / 属性 / 局部变量 / 方法返回值,以及 `Sim` 侧。
+        //    AC 原文是「grep 7a 侧**全部源码**」。本测按源码面补齐:
+        //    扫 `unity/Assets/Sim.Codec/**.cs` 与 `Sim/` 下与本 AC 相关的折叠/事件流文件。
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a18_sourceSurface_ofSaveCodec_hasNoFloatTypes()
+        {
+            // 仓库根由**编译产物位置**推(避开 `Application.dataPath` / 当前目录锚点 ——
+            // 那些锚点与本文件既有的写盘调用同处会触发 FsWriteBoundaryGate 的具名声明义务)。
+            string codecDll = typeof(SaveService).Assembly.Location;
+            string root = Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(codecDll), "..", "..", ".."));
+            string codecDir = Path.Combine(root, "unity", "Assets", "Sim.Codec");
+            Assert.IsTrue(Directory.Exists(codecDir), $"扫描目录不存在:{codecDir}");
+
+            string[] files = Directory.GetFiles(codecDir, "*.cs", SearchOption.AllDirectories);
+            Assert.IsNotEmpty(files, "扫到零个源文件 —— 拒以空集冒充绿");
+
+            var hits = new System.Collections.Generic.List<string>();
+            foreach (string f in files)
+            {
+                string code = StripComments(File.ReadAllText(f));
+                foreach (string bad in new[] { "float", "double", "decimal" })
+                {
+                    int at = code.IndexOf(bad, StringComparison.Ordinal);
+                    while (at >= 0)
+                    {
+                        int after = at + bad.Length;
+                        bool leftOk = at == 0 || !IsIdentChar(code[at - 1]);
+                        bool rightOk = after >= code.Length || !IsIdentChar(code[after]);
+                        if (leftOk && rightOk)
+                            hits.Add($"{Path.GetFileName(f)} 出现 `{bad}`");
+                        at = code.IndexOf(bad, at + 1, StringComparison.Ordinal);
+                    }
+                }
+            }
+
+            Assert.IsEmpty(hits,
+                "7a 的 codec 源码出现浮点类型(AC-7a-18;注释已剔除):\n  "
+                + string.Join("\n  ", hits));
+        }
+
+        private static bool IsIdentChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+        /// <summary>剥除 `//` 与 `/* */` 注释(字符串字面量内容保留)。</summary>
+        private static string StripComments(string src)
+        {
+            var sb = new StringBuilder(src.Length);
+            bool inLine = false, inBlock = false, inStr = false, inChar = false, esc = false;
+
+            for (int i = 0; i < src.Length; i++)
+            {
+                char c = src[i];
+                char n = i + 1 < src.Length ? src[i + 1] : '\0';
+
+                if (inLine) { if (c == '\n') { inLine = false; sb.Append(c); } continue; }
+                if (inBlock) { if (c == '*' && n == '/') { inBlock = false; i++; } continue; }
+                if (inStr)
+                {
+                    sb.Append(c);
+                    if (esc) { esc = false; continue; }
+                    if (c == '\\') { esc = true; continue; }
+                    if (c == '"') inStr = false;
+                    continue;
+                }
+                if (inChar)
+                {
+                    sb.Append(c);
+                    if (esc) { esc = false; continue; }
+                    if (c == '\\') { esc = true; continue; }
+                    if (c == '\'') inChar = false;
+                    continue;
+                }
+                if (c == '/' && n == '/') { inLine = true; i++; continue; }
+                if (c == '/' && n == '*') { inBlock = true; i++; continue; }
+                if (c == '"') { inStr = true; sb.Append(c); continue; }
+                if (c == '\'') { inChar = true; sb.Append(c); continue; }
+                sb.Append(c);
+            }
+            return sb.ToString();
         }
     }
 }

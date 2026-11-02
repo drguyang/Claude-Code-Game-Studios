@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
@@ -150,5 +151,100 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "读档后的下一次 Checkpoint:折叠行经 existingFoldedRows 回写,不静默消失");
             Assert.AreEqual(PatientA, carried[0].PatientId);
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-7a-01 / AC-7a-02 —— 2026-11-03(S24-2)补的**判决性**载体
+        //
+        // ⚠️ **两条 AC 的前件今日不成立,必须如实分开记**:
+        //   存档布局里**没有快照段**(`SaveComposer.cs:38/:56`:`SnapshotOffset` 恒写 0 哨兵,
+        //   「快照段 / 分册态段留待后续」)⇒ 「快照损坏」与「快照与流不一致」都**没有宾语**。
+        //   直接照 AC 措辞写夹具 = 造一条零输入可达的门(本项目已登记的假绿形态)。
+        //
+        // ⇒ 本测断的是**前件本身**(`SnapshotOffset == 0`,机械可判)+ AC 真正保护的
+        //   **实质性质**:读档后的游戏事实**只**来自三逻辑流,且与「直接重放同一流」所得相等。
+        //   快照段一旦引入,本测会先在 `SnapshotOffset == 0` 上转红,提醒补真快照夹具。
+        // ══════════════════════════════════════════════════════════════════
+
+        private SimEvent Drop(long tick, long instanceId, int itemKey, int qty)
+            => new SimEvent(tick, PatientId.None, 0L, EventKind.DropSpawned,
+                _encoder.Encode(EventKind.DropSpawned,
+                    new DropSpawnedPayload(instanceId, new WorldPos(1, 0, 2), itemKey, qty)));
+
+        [Test]
+        public void test_ac7a01_noSnapshotSegment_andRestoredFactsEqualDirectReplay()
+        {
+            // ══ Arrange:世界流两条掉落 + 一条可折病史(已完成)→ Checkpoint ══
+            var stream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+            stream.Append(Onset(10L, PatientA, DiseaseSelfLimit));
+            stream.Append(Drop(11L, instanceId: 5001L, itemKey: 2, qty: 3));
+            stream.Append(Drop(12L, instanceId: 5002L, itemKey: 4, qty: 1));
+            stream.Append(Outcome(20L, PatientA, DiseaseSelfLimit, PatientOutcome.Died));
+
+            var svc = new SaveService(
+                _testDir, new SaveCodec(),
+                folded: PredicateOf(stream),
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                replaySink: _ => { },
+                foldedRowSink: _ => { },
+                compose: _ => SaveComposer.Compose(
+                    stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
+                    worldSeed: 1UL, configVersion: 0U, tick: 20L,
+                    existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                writeScheduler: action => action(), blobRestoreSink: _pool);
+            svc.Checkpoint(new SaveSlot(0));
+
+            // ══ Assert ①:布局里**没有**快照段(AC-7a-01/02 的前件)══
+            byte[] saved = File.ReadAllBytes(Path.Combine(_testDir, "save_0.bin"));
+            SaveHeader header = SaveHeaderCodec.Read(saved);
+            Assert.AreEqual(0UL, header.SnapshotOffset,
+                "存档头写了非 0 的 SnapshotOffset ⇒ 快照段已引入 —— " +
+                "AC-7a-01/02 必须补「快照损坏 / 与流不一致」的真夹具,不得继续沿用本测");
+
+            // ══ Act:进程重启 ⇒ 新流 + 同目录 Load ══
+            var fresh = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
+            IReadOnlyList<SimEvent> pending = null;
+            var svcLoad = new SaveService(
+                _testDir, new SaveCodec(),
+                folded: PredicateOf(fresh),
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
+                replaySink: events => pending = events,
+                foldedRowSink: bytes => fresh.Restore(
+                    pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),
+                    FoldRowCodec.DecodeSegment(bytes)),
+                compose: _ => SaveComposer.Compose(
+                    fresh.Events, PredicateOf(fresh), _decoder, new SaveCodec(),
+                    worldSeed: 1UL, configVersion: 0U, tick: 20L,
+                    existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
+                writeScheduler: action => action(), blobRestoreSink: _pool);
+            svcLoad.Load(new SaveSlot(0));
+
+            // ══ Assert ②:掉落清单 == 直接重放世界流所得 ══
+            string dropFromRestored = InventoryFold
+                .Fold(fresh.Events, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
+            string dropFromDirect = InventoryFold
+                .Fold(snapshotOfOriginal(stream), _decoder, InventoryFoldContext.None)
+                .Projection.CanonicalForm();
+
+            Assert.AreEqual(dropFromDirect, dropFromRestored,
+                "读档后的掉落清单须逐位等于「直接重放存档前世界流」所得(AC-7a-01 的掉落半边)");
+            Assert.AreEqual(2, fresh.Events.Count(e => e.Kind == EventKind.DropSpawned),
+                "两条掉落必须都在 —— 少一条即「静默吞」");
+
+            // ══ Assert ③:id 高水位 == 直接重放所得 ══
+            Assert.AreEqual(PatientA + 1, fresh.GetNextPatientId().Value,
+                "高水位须从三流并集(含折叠行)重构(AC-7a-01 的高水位半边)");
+
+            // ══ Assert ④:折叠行 == 直接重放所得(终态事实)══
+            Assert.AreEqual(1, fresh.FoldedRows.Count);
+            Assert.AreEqual(PatientA, fresh.FoldedRows[0].PatientId);
+        }
+
+        /// <summary>把原流的**事件快照**取出来(直接重放用的对照面)。
+        /// <para>⚠️ 复制一份是必须的:`fresh` 在 `Load` 之后是新流,而对照面必须仍是
+        /// 「存档前那条流」的内容 —— 直接引用 `stream.Events` 会让后续 `Checkpoint`
+        /// 改动悄悄改变对照面(夹具自指)。</para>
+        /// </summary>
+        private static IReadOnlyList<SimEvent> snapshotOfOriginal(EventStream stream)
+            => new List<SimEvent>(stream.Events);
     }
 }

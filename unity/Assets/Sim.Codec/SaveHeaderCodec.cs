@@ -18,6 +18,7 @@
 //   须等正文排完才可算)⇒ 调用序 = WriteBody → AddChecksum → (落盘) → Read。
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 
 namespace DaYiJingCheng.Sim.Codec
@@ -112,8 +113,16 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>只读 magic,不做其余解析(装配层快速判「这个文件是不是我们的存档」)。</summary>
+        /// <remarks>
+        /// 🔁 <b>2026-11-03(S24-2 · AC-7a-04)就地订正</b>:原实现用
+        /// <c>(uint)BitConverter.ToInt32(data, 0)</c> —— 那是 <b>主机端序</b>解析,
+        /// 违 ADR-010 §一「显式小端、禁 `BitConverter`」。小端机上行为恰好相同,
+        /// 故四条既有夹具全绿也照不出它 —— 属「行为等价掩盖结构分叉」的同族形态。
+        /// 改为 <see cref="BinaryPrimitives.ReadUInt32LittleEndian(System.ReadOnlySpan{byte})>
+        /// 后,大端机上「magic 恒不匹配 ⇒ 每份存档都被判成不是我们的」这条静默失效消失。
+        /// </remarks>
         public static bool HasValidMagic(byte[] data)
             => data != null && data.Length >= 4
-               && unchecked((uint)BitConverter.ToInt32(data, 0)) == SaveHeader.Magic;
+               && BinaryPrimitives.ReadUInt32LittleEndian(data) == SaveHeader.Magic;
     }
 }
