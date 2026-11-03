@@ -646,36 +646,59 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 双重空集 ⇒ HouseCallStarted 生产恒零写入(「通电待信」态,见驱动类头注)。
             var clinicCells = new ClinicCellSource();
 
-            // ── 52 急召生成链(S22-4 · 🔁 2026-11-03 ADR-039 运行期消费)──────────────
-            // 生产今日**仍是双真空**:池条目件不存在 ⇒ 候选集空 ⇒ 链每个子区间真跑、恒 `NoPool`、零写入
-            // (与上面 12.1 的「通电待信」同一形态)。
+            // ── 52 急召生成链(S22-4 · 🔁 2026-11-03 ADR-039 运行期消费 · 同日池条目件落地)──────
             // ⚠️ **义务方别混读**(2026-11-03 订正,承 GDD `random-events.md:160` 的裁定):
             //    池**条目**(key / 档 / 触发方式 / 权重 / 锚点)归 **52**;37 只提供条目所引用的
             //    **医疗内容**。原注释写「52 的池内容归 37 内容件」把两件事混成一句 ——
             //    那会让「52 自己还没出数据件」与「52 在等 37」不可分。见 `TD-randomevents-03`。
-            // ⚠️ `spawnPatient` 缝**刻意抛**:「急召降临 → 病人」需要 52 事件 key → 37 病种的
-            //    映射表,今日不存在。返回假病种 = 让「有人开始生成病人了」静默通过(同
-            //    `P0HostEventAuthority.Roll` 原来的理由)。池回填时须同批加映射。
+            // 🔁 **2026-11-03 池条目件落地**(`assets/data/52_event_pool.json` → `52_event_pool.cooked.bytes`):
+            //    ⇒ 候选集**不再为空**,链的三个零写入分支(NoPool / NoQuota / ZeroWeight)自此
+            //    **可区分**;权重走 F1 步骤②(`EventWeighting.CandidatesOfTier`),不再是均匀抽取。
+            // ⚠️ **仍未接的一条**(如实登记,禁借绿):`spawnPatient` 缝**刻意抛** ——
+            //    「急召降临 → 病人」需要 52 的 `handler = medical` 条目 → 37 病种的映射表,
+            //    该表归 37 内容件、今日不存在。返回假病种 = 让「有人开始生成病人了」静默通过。
+            //    ⇒ **医疗条目命中时链路会在最后一步抛**;遭遇条目(`handler = encounter`)不受影响。
             // ⚠️ ADR-039 D5:取不到 52 配置(`dataProvider == null`,未预载 / 夹具)⇒
             //    **不构造生成链**(director 收 null = 未接线),不回落默认值。
             RandomEventSpawnChain randomEventSpawnChain = null;
             if (dataProvider != null)
             {
                 RandomEventsDataSet randomEvents = dataProvider.Load<RandomEventsDataSet>();
+                EventPoolDataSet eventPool = dataProvider.Load<EventPoolDataSet>();
+
+                // 夜间判据的唯一出处 = `Sim.World.TimeBase.IsNight`(AC-5-05 有门守着)。
+                // ⚠️ 参数未就绪(`ResolveTimeParams` 返回 null)⇒ **恒判白天**,不拿默认值冒充。
+                Sim.TimeParams poolTime = BootRoot.ResolveTimeParams(dataProvider);
+
+                // 档 → 加权候选集。`HistoryMult ≡ 1`(P0 无 `HIST_W` 表,规则九;见 `EventWeighting`)。
+                // ⚠️ 签名是 `(档, roll tick)` —— 昼夜**必须按掷骰那一刻**算:
+                //    一天之内昼夜会翻转(GDD AC-52-45 的 `TODMult` 就是昼夜的函数),
+                //    光有窗口起点 `Win` 定不了权重。roll tick 已可从 `EventRolled` 的
+                //    `SimEvent.Tick` 重建(RollRequest 四参形)⇒ 仍是纯函数,不引入墙钟。
+                Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = (tier, tick) =>
+                    EventWeighting.CandidatesOfTier(
+                        eventPool, tier,
+                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(tick, poolTime));
+
                 randomEventSpawnChain = new RandomEventSpawnChain(
                     stream, encoder,
-                    new SeedEventAuthority(_ => Array.Empty<int>(), worldSeed),
-                    keysOfTier: _ => Array.Empty<int>(),
+                    new SeedEventAuthority(candidatesOfTier, worldSeed),
+                    candidatesOfTier: candidatesOfTier,
                     presence: presence,
                     spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
                     spawnPatient: _ => throw new NotSupportedException(
-                        "急召降临 → 病人创建需要 52 event_key → 37 病种的映射表(归 37 内容件)。" +
-                        "生产今日候选池为空 ⇒ 本缝不可达;回填池内容时须同批给出映射,不得返回假病种。"),
+                        "急召降临 → 病人创建需要 52 `handler = medical` 条目 → 37 病种的映射表(归 37 内容件)。" +
+                        "该表今日不存在;返回假病种会让『有人开始生成病人了』静默通过,故刻意抛。"),
                     // ⚠️ 本闭包只提供**上下文旗标**;`WindowSize` 由链按数据集覆盖(ADR-039 D6),
                     //    这里传 0 是为了让「谁提供它」在源码里唯一。
+                    // ⚠️ `isNight` 按**窗口起点**判(本闭包只拿得到窗口起点),权重按 **roll tick** 判
+                    //    —— 在「窗口内跨过昼夜分界」的那一个子区间两者会不同。如实登记:
+                    //    F1 的上下文门今天**不读 `isNight`**(判据只有 `IsOnExpedition & !IsInClinic`),
+                    //    故该差异今日零可观测影响;接上下文门时须同批把 tick 传进本闭包。
                     contextOf: w => new F1PipelineInput(w, windowSize: 0,
-                        isNight: false, isOnExpedition: false, isInClinic: false,
-                        inCombatCooldown: false, seasonIndex: 0),   // 上下文源(夜/出诊/医馆)归后续轮
+                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(w, poolTime),
+                        isOnExpedition: false, isInClinic: false,
+                        inCombatCooldown: false, seasonIndex: 0),   // 上下文源(出诊/医馆)归后续轮
                     events: () => stream.Events,                    // 当日计数与掷骰序号的来源(ADR-039 D2)
                     tier: 1,                                        // 机会档(急召出诊属此档,GDD:400)
                     config: randomEvents);

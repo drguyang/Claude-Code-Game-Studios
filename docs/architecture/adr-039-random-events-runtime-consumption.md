@@ -204,3 +204,83 @@ V-2 / V-3 两道门**只有夹具可达**。本表绿 = 「门的执行体存在
 | `AC-52-26` / `AC-52-29`(超预算丢弃、不排队) | D3 的「掷骰前返回」是它们的可执行形 |
 | `AC-52-48`(无队列) | 同 D3;本轮不引入任何队列 |
 | `DC-3`(`ticks_per_day` 与 5 同值) | D6 使用烘焙期已断言的 `RandomEventsDataSet.TicksPerDay` |
+---
+
+## 🔁 2026-11-03 后续轮 —— 池条目表落地 + F1 步骤② 加权抽取
+
+> 本轮由用户裁定「给数值,我一次做到底」驱动。**§D8–D13 由实现轮就地拟定**,未经逐条确认
+> (同 ADR-034 / 037 / 038 口径)。
+
+### D8 — 池条目是 **52 的数据件**,不是 37 的
+
+承 GDD `random-events.md:160` 的裁定:「**52 拥有「池条目与调度」,37 拥有「医疗内容」**」。
+⇒ 新增 `assets/data/52_event_pool.json` → `52_event_pool.cooked.bytes`(独立产物,
+与 `52_random_events` 的四个调度标量**分开烘** —— 条目随内容增删,标量很少动)。
+⚠️ 原注释与 ADR 文本写「52 的池内容归 37」是**错的**,已在代码 / ADR / 债册三处订正。
+
+### D9 — `handler` 是 52 ↔ 内容系统的唯一接缝
+
+条目带 `handler ∈ {encounter, medical}`:`encounter` = 27 敌人 AI,`medical` = 37 病例系统。
+52 **不决定来了是谁**,只回答「该问谁要内容」。
+⚠️ **仍未接的一条**:`medical` 条目 → 37 病种的映射表不存在 ⇒ `spawnPatient` 缝**刻意抛**
+(返回假病种会让「有人开始生成病人了」静默通过)。`encounter` 条目不受影响。
+
+### D10 — 均匀抽取 → **加权 CDF walk**(本轮的实质缺陷修复)
+
+`EventDraw.Pick` 原实现是 `h % keys.Count` —— **完全无视 `W_base`**。
+GDD `:672` 逐字警告过这种形态:「一个无视权重的实现**能通过 AC-52-06 却完全无视权重**」。
+现按 GDD `:678-688` 实现:`S = SplitMix64(seed); C = ΣW_i; r = S mod C;` 按 **key 升序**游走。
+`ΣW = 0` ⇒ **返回 false 而不是抛**(GDD Edge Cases `:1065`:该档跳过本轮、不报错)。
+
+### D11 — 权重构成独立成件(`Sim/EventWeighting.cs`)
+
+`W_i = W_base_i × TODMult_i × HistoryMult_i` 做成纯函数,输入 = (池表, 档, 是否夜间, 历史)。
+理由:GDD `:694` 要求「`W_i` 的构成输入同样必须能从流重构」—— 散在装配层就无法单测。
+**P0 边界**:`TODMult` 只有「夜间 · 威胁档」一项(AC-52-45);`HistoryMult ≡ 1`(无 `HIST_W` 表);
+`KeyGate` 恒放行(无输入源)。三处都在源码里具名。
+
+### D12 — `RollRequest` 增 `Tick`(四参形)
+
+`TODMult` 是**昼夜**的函数,而昼夜在**一天之内会翻转** ⇒ 光有 `Win`(日起点)定不了权重。
+掷骰发生在某个具体 tick,该值**已可从流重建**(`EventRolled` 的 `SimEvent.Tick`)
+⇒ 不引入第四个不可重构输入。三参形保留为兼容(**仅供不关心昼夜的夹具**)。
+
+### D13 — 三处装配连带义务
+
+① `CompositionRoot` 装配期即时 `Load<EventPoolDataSet>()` + `ResolveTimeParams()`
+⇒ 五个 partial `MultiTableProvider` 夹具各补两行(池表 + 5 时间参数);
+② `cooked_drift_all_artifacts_test` 的 `BakedArtifacts` +1、`pinnedDeclared` 42 → **43**;
+③ Addressables catalog 须重建(`EnsureDataCoreGroup` + `BuildAddressablesContent`)。
+
+### 用户裁定的数值(2026-11-03)
+
+| 项 | 值 | 出处 |
+|---|---|---|
+| `W_base`(P0 九条) | **全部 100** | 用户裁定;GDD「最小单位个数」的干净基准 |
+| `TODMult`(夜 · 威胁档) | **3/2** | 用户裁定 |
+| `TOD_MULT_MAX` | **2/1** | 用户裁定;构建期拒收超上界 |
+| `Mod_Eco` / `Mod_Rep` | **未裁**(仍空集,见 `TD-randomevents-04`) | 用户:「讲清楚点再单独裁一轮」 |
+
+### 本轮 Validation
+
+| # | 判据 | 载体 | 状态 |
+|---|---|---|---|
+| V-8 | 该档 `ΣW = 0` ⇒ `ZeroWeight`,不掷骰不写入 | `random_events_consumption_test.test_zeroWeight_skipsWithoutRollingOrWriting` | **PASS** |
+| V-9 | 白天 `W_i = W_base`;夜间威胁档 `×3/2`;其余档不受影响 | `event_weighting_test`(13 条) | **PASS** |
+| V-10 | 舍入 = `ROUND_HALF_AWAY_FROM_ZERO`(3×3/2=4.5 ⇒ **5**,非 4) | `event_weighting_test.test_oddWeight_roundsHalfAwayFromZero` | **PASS** |
+| V-11 | 脚本条目**不进抽池** | `event_weighting_test.test_scriptEntries_areExcludedFromPool` | **PASS** |
+| V-12 | 权重**真的改变命中分布**(3:1 ⇒ 48/64;翻转 ⇒ 18/64) | `event_weighting_test.test_distribution_changesWithWeight` | **PASS** |
+| V-13 | 池表可烘焙 / 可解码 / 字节数自洽(292 B = 20 + 20 + 9×28) | `cooked_drift_all_artifacts_test`(43 份逐字节) | **PASS** |
+
+⚠️ **V-12 的期望值(48/64、18/64、36/64)全部来自离线复算**,不是「看起来应该是一半」——
+首版我写成 32/32 与 16/48,**离线复算当场证伪**(`h % 2` 在 0..63 上并不均匀)。
+按纪律改断言而非改实现(承 `feedback_verify_assertions_offline_first`)。
+
+### 仍未做(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| `medical` 条目 → 37 病种映射 | **不存在** ⇒ `spawnPatient` 刻意抛(见 D9) |
+| `Mod_Eco` / `Mod_Rep` | 未裁 ⇒ 预算恒 = `BASE`(`TD-randomevents-04` 维持 open) |
+| `HistoryMult` / `KeyGate` | P0 无输入源 ⇒ 恒 1 / 恒放行(源码具名) |
+| 端到端「事件真的降临」 | `encounter` 条目可走完链路;**医疗条目会在最后一步抛** |

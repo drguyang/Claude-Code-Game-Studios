@@ -17,9 +17,24 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>本窗口本档第 n 次(区分同窗重复掷骰)。</summary>
         public readonly int Ordinal;
 
+        /// <summary>
+        /// 掷骰发生的 tick。
+        /// <para>⚠️ **2026-11-03 新增**(ADR-039 后续轮):`W_i = W_base × TODMult × HistoryMult`
+        /// 里的 `TODMult` 是**昼夜**的函数,而昼夜在**一天之内会翻转** ⇒ 光有 `Win`(日起点)
+        /// 不足以定权重。掷骰发生在某个具体 tick,该值**已可从流重建**
+        /// (`EventRolled` 事件的 `SimEvent.Tick` 就是它)⇒ 不引入第四个不可重构输入。</para>
+        public readonly long Tick;
+
+        public RollRequest(long win, int tier, int ordinal, long tick)
+        {
+            Win = win; Tier = tier; Ordinal = ordinal; Tick = tick;
+        }
+
+        /// <summary>兼容形(旧三参)。`Tick` 取 `Win` —— **仅供不关心昼夜的夹具**;
+        /// 生产必须用四参形,否则 `TODMult` 会按日起点的昼夜算。</summary>
         public RollRequest(long win, int tier, int ordinal)
         {
-            Win = win; Tier = tier; Ordinal = ordinal;
+            Win = win; Tier = tier; Ordinal = ordinal; Tick = win;
         }
     }
 

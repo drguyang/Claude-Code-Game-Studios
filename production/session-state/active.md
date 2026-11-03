@@ -16283,3 +16283,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **回归(第②轮)**:EditMode `6756/6719/0/0/37` @ 13:05:10 · PlayMode `324/320/0/2/2` @ 13:14:04 ·
   CS 警告 0 · 三元组 = `a1409c1c` + 工作树;等式 `6756 − 6754 = 2` = 新增 V-7 夹具数
 - **未提交**(等用户指令)
+
+## Session Extract — ADR-039 后续轮:池条目表 + 加权抽取(2026-11-03)
+
+- **触发**:用户「继续这些:生产端到端恒 NoPool」→ 勘察后提问 → 裁定「**给数值,我一次做到底**」
+- **数值裁定**:`W_base` 全 **100** · `TODMult`(夜·威胁) **3/2** · `TOD_MULT_MAX` **2/1** ·
+  `Mod_Eco`/`Mod_Rep` **未裁**(用户:「讲清楚点再单独裁一轮」,已向用户解释其为 F2 的两个加性修正项)
+- **勘察出的实质缺陷**:`EventDraw.Pick` = `h % keys.Count` **均匀抽取**,`W_base` 完全没被用
+  (GDD `:672` 逐字警告过)⇒ 即使填池分布仍错。本轮同批改为**加权 CDF walk**
+- **新件 8**:`52_event_pool.json`(9 条)· `EventPoolDataSet` · `EventWeighting` ·
+  `EventPool{Binder,Baker,CookedWriter}` · `EventPoolCookedCodec` · `event_weighting_test`(13 条)
+- **改件**:`EventDraw`(加权)· `SeedEventAuthority`(WeightedKey)· `RandomEventSpawnChain`(+`ZeroWeight`)·
+  `RollRequest`(+`Tick` 四参)· `CompositionRoot`(从池表算候选 + isNight 接真源)· 三个 Presentation 装载面 ·
+  `DataBakeMenu`(+`BakeEventPool`)· 五夹具 +2 行 · 漂移门 42→43
+- **实跑修正**:①15 红(装配多问 TimeParams + catalog 42/43 + 漂移钉定值)→ 修;
+  ②1 红(AC-21a-48 按 `\bweight\b` 命中形参名)→ 改形参为 `w`(**不改门**);③0
+- **离线复算抓到我自己两条错断言**(32/32、16/48 → 实为 36/28、18/46)⇒ 改断言不改实现
+- **回归**:EditMode `6771/6734/0/0/37` @ 15:05:25 · PlayMode `324/320/0/2/2` @ 15:08:14 ·
+  警告 **0**(全量重编译)· 三元组 = `4f2d9280` + 工作树;等式 `6771 − 6756 = 15`
+- **仍未做**:`medical` 条目→37 病种映射(刻意抛)· `Mod_*` 未裁 · 端到端真池夹具
+- **未提交**(等用户指令)

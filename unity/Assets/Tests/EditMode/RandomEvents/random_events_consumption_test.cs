@@ -156,7 +156,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
         {
             // 当日已有 1 条 EventRolled ⇒ 本次 ordinal 必须是 1(不是内存计数器的 0)。
             SeedEvents(dayStart: 0L, rolled: 1, arrived: 0);
-            var counter = new CountingAuthority(new SeedEventAuthority(_ => SyntheticKeys, WorldSeed));
+            var counter = new CountingAuthority(new SeedEventAuthority((_, __) => Weighted(SyntheticKeys), WorldSeed));
             RandomEventSpawnChain chain = NewChain(authority: counter);
 
             chain.TrySpawnAtTick(tick: RollInterval * 2);   // tick 40,日窗口起点 0
@@ -182,6 +182,23 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 "F1 的 WindowSize = 数据集 window_size(条数),**不是** roll_interval(tick 数)");
             Assert.That(chain.LastF1Input.Value.Window, Is.EqualTo(0L),
                 "F1 的窗口 = 预算窗口起点(一天),不是 tick 子窗口");
+        }
+
+        // ══════════════ V-8 该档 ΣW = 0 ⇒ 跳过本轮,不掷骰不报错 ══════════════
+
+        [Test]
+        public void test_zeroWeight_skipsWithoutRollingOrWriting()
+        {
+            var counter = new CountingAuthority(new SeedEventAuthority((_, __) => Weighted(SyntheticKeys), WorldSeed));
+            RandomEventSpawnChain chain = NewChain(authority: counter,
+                candidatesOfTier: (_, __) => ZeroWeighted(SyntheticKeys));
+
+            SpawnChainOutcome outcome = chain.TrySpawnAtTick(tick: RollInterval * 2);
+
+            Assert.That(outcome, Is.EqualTo(SpawnChainOutcome.ZeroWeight),
+                "ΣW = 0 ⇒ 本档跳过本轮(GDD Edge Cases `:1065`:不掷骰、不报错)");
+            Assert.That(counter.Calls, Is.EqualTo(0), "**不掷骰**(否则会留下孤儿 EventRolled)");
+            Assert.That(_sink.Events.Count, Is.EqualTo(0), "零写入");
         }
 
         // ══════════════ 构造期 fail-closed ══════════════
@@ -226,12 +243,13 @@ namespace DaYiJingCheng.Tests.RandomEvents
         private RandomEventSpawnChain NewChain(
             long rollInterval = RollInterval, long ticksPerDay = TicksPerDay,
             int windowSize = WindowSize, int baseEvents = BaseEvents, int budgetMax = BudgetMax,
-            IEventAuthority authority = null)
+            IEventAuthority authority = null,
+            Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = null)
         {
             return new RandomEventSpawnChain(
                 _sink, _encoder,
-                authority ?? new SeedEventAuthority(_ => SyntheticKeys, WorldSeed),
-                keysOfTier: _ => SyntheticKeys,
+                authority ?? new SeedEventAuthority((_, __) => Weighted(SyntheticKeys), WorldSeed),
+                candidatesOfTier: candidatesOfTier ?? ((_, __) => Weighted(SyntheticKeys)),
                 presence: new FakePresence(),
                 spawnAnchorOf: _ => SyntheticCell,
                 spawnPatient: _ => new PatientId(1),
@@ -248,6 +266,22 @@ namespace DaYiJingCheng.Tests.RandomEvents
                     Base = baseEvents,
                     BudgetMax = budgetMax,
                 });
+        }
+
+        /// <summary>等权候选(权重 1)⇒ 本件全部夹具只测**门**,不测权重分布(那归 `event_weighting_test`)。</summary>
+        private static IReadOnlyList<WeightedKey> Weighted(IReadOnlyList<int> keys)
+        {
+            var list = new List<WeightedKey>(keys.Count);
+            for (int i = 0; i < keys.Count; i++) list.Add(new WeightedKey(keys[i], 1));
+            return list;
+        }
+
+        /// <summary>权重全 0 的候选(测 ΣW = 0 的退化路径)。</summary>
+        private static IReadOnlyList<WeightedKey> ZeroWeighted(IReadOnlyList<int> keys)
+        {
+            var list = new List<WeightedKey>(keys.Count);
+            for (int i = 0; i < keys.Count; i++) list.Add(new WeightedKey(keys[i], 0));
+            return list;
         }
 
         /// <summary>往流里塞前件事件(同一天窗口内,按 `RollInterval` 间隔铺开)。</summary>

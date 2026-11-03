@@ -93,6 +93,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 40ae8bfff4dad91b192c42b22380274d
+    m_Address: 52_event_pool.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4780fed90a0a5d50c8df45b1eda4dbe1
     m_Address: input_device_switch.cooked.bytes
     m_ReadOnly: 0

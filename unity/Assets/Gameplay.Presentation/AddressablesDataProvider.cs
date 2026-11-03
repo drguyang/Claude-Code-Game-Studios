@@ -223,6 +223,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 装配期即时读取 ⇒ 缺表当场抛(不回落默认值,D5)。</para></summary>
         public const string RandomEventsAddress = "52_random_events.cooked.bytes";
 
+        /// <summary>52 池条目表(`52_event_pool.cooked.bytes`;2026-11-03 ADR-039 后续轮新增)。
+        /// <para>消费方 = `CompositionRoot` 的急召生成链(候选集 + F1 步骤② 权重);
+        /// 装配期即时读取 ⇒ 缺表当场抛(不回落默认值)。</para></summary>
+        public const string EventPoolAddress = "52_event_pool.cooked.bytes";
+
         /// <summary>5 天气参数(`5_weather.cooked.bytes`;ADR-038 Amendment A 新增)。
         /// <para>块长 / 强度上界的唯一运行期来源;启动期进 `WeatherParams.Validate()`(AC-5-11)。</para></summary>
         public const string WeatherParamsAddress = "5_weather.cooked.bytes";
@@ -291,6 +296,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private TimeParamsDataSet? _timeParams;
         // 52 随机事件配置(ADR-038 §D4 · 2026-11-03):struct 解码形 ⇒ 可空承载。
         private RandomEventsDataSet? _randomEvents;
+
+        private EventPoolDataSet? _eventPool;
         // 5 天气参数(ADR-038 Amendment A · 2026-11-03):struct 解码形 ⇒ 可空承载。
         private WeatherParamsDataSet? _weatherParams;
 
@@ -500,6 +507,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWeatherParams();
                 return (TDataSet)(object)_weatherParams.Value;
             }
+            // ── ADR-039 后续轮(2026-11-03):52 池条目表(候选集 + F1 步骤② 权重的来源)──
+            if (typeof(TDataSet) == typeof(EventPoolDataSet))
+            {
+                EnsureEventPool();
+                return (TDataSet)(object)_eventPool.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -594,6 +607,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureTimeParams();           // ADR-038 §D1(2026-11-03):时间三参数的装载输入
             EnsureRandomEvents();         // ADR-038 §D4(2026-11-03):52 配置(今日零消费方)
             EnsureWeatherParams();        // ADR-038 Amendment A(2026-11-03):天气块长 / 强度上界
+            EnsureEventPool();            // ADR-039 后续轮(2026-11-03):52 池条目表
         }
 
         /// <summary>52 随机事件配置装载(ADR-038 §D4 · 2026-11-03)。
@@ -631,6 +645,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 5 天气参数 cooked 解码失败(address={WeatherParamsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>52 池条目表装载(ADR-039 后续轮 · 2026-11-03)。
+        /// <para>⚠️ **本表是装配期即时取** —— `CompositionRoot` 用它构造候选集与权重;
+        /// 缺表 ⇒ 启动期硬失败(不回落「空池」,那会让「表没烘」与「池真的空」不可分)。</para></summary>
+        private void EnsureEventPool()
+        {
+            if (_eventPool.HasValue) return;
+            byte[] bytes = FetchBytes(EventPoolAddress);
+            try
+            {
+                _eventPool = EventPoolCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 52 池条目表 cooked 解码失败(address={EventPoolAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

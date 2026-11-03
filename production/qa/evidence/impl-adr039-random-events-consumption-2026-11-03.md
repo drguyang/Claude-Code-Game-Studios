@@ -161,3 +161,87 @@ PY
 grep -c "warning CS" Logs/playmode-52.log            # 期望 0(全量重编译)
 find Assets -name "*.cs" | wc -l                     # 1346 = 本轮 touch 的面
 ```
+---
+
+## 九、2026-11-03 后续轮 —— 池条目表 + 加权抽取
+
+### 9.1 触发与裁定
+
+用户「继续这些:生产端到端恒 NoPool」→ 勘察后提出问题 → 用户裁定 **「给数值,我一次做到底」**:
+
+| 项 | 值 |
+|---|---|
+| `W_base`(P0 九条) | **全部 100** |
+| `TODMult`(夜 · 威胁档) | **3/2** |
+| `TOD_MULT_MAX` | **2/1** |
+| `Mod_Eco` / `Mod_Rep` | 未裁(用户要求「讲清楚点再单独裁一轮」) |
+
+### 9.2 勘察出的实质缺陷(不是「补个数据件」)
+
+`EventDraw.Pick` 原实现 = `h % keys.Count` —— **均匀抽取,`W_base` 完全没被用**。
+GDD `:672` 逐字警告过:「一个无视权重的实现**能通过 AC-52-06 却完全无视权重**」。
+⇒ 即使把池填上,抽到的分布仍是错的。本轮同批修掉。
+
+### 9.3 落盘清单(8 新件 + 6 改件)
+
+**新件**
+- `assets/data/52_event_pool.json`(9 条:P0 威胁 5 / 机会 3 / 反应 1)
+- `unity/Assets/Sim.Contracts/EventPoolDataSet.cs`(`PoolHandler` / `EventPoolEntryData` / `EventPoolDataSet`)
+- `unity/Assets/Sim/EventWeighting.cs`(F1 步骤② 的权重构成,纯函数)
+- `unity/Assets/Editor.Tools.Bake/EventPool{Binder,Baker,CookedWriter}.cs`
+- `unity/Assets/Gameplay.Presentation/EventPoolCookedCodec.cs`
+- `unity/Assets/Tests/EditMode/RandomEvents/event_weighting_test.cs`(13 条)
+
+**改件**
+- `Sim/EventDraw.cs` —— 均匀 → **加权 CDF walk**(`TryPick`;`Pick` 降为等权兼容形)
+- `Gameplay.Boot/SeedEventAuthority.cs` —— 候选集从 `IReadOnlyList<int>` → `IReadOnlyList<WeightedKey>`
+- `Gameplay.Boot/RandomEventSpawnChain.cs` —— 候选集签名 + **新增 `ZeroWeight` outcome**
+- `Sim.Contracts/RollRequest.cs` —— 增 `Tick` 四参形(昼夜项要按**掷骰那一刻**算)
+- `Gameplay.Boot/CompositionRoot.cs` —— 从池表算候选 + `isNight` 接真来源
+- `Gameplay.Presentation/{AddressablesDataProvider,DataCorePreloader,DataCookedDisk}.cs`
+- `Editor.Tools.Bake/DataBakeMenu.cs` —— 新菜单 `BakeEventPool`
+- 五个 partial `MultiTableProvider` 夹具(各 +2 行:池表 + 5 时间参数)
+- `cooked_drift_all_artifacts_test.cs` —— `BakedArtifacts` +1、`pinnedDeclared` 42 → **43**
+
+### 9.4 Validation
+
+| # | 判据 | 载体 | 状态 |
+|---|---|---|---|
+| V-8 | `ΣW = 0` ⇒ `ZeroWeight`,不掷骰不写入 | `test_zeroWeight_skipsWithoutRollingOrWriting` | **PASS** |
+| V-9 | 白天 `W_i = W_base`;夜威胁 `×3/2`;其余档不变 | `event_weighting_test`(13 条) | **PASS** |
+| V-10 | 舍入 `ROUND_HALF_AWAY_FROM_ZERO`(4.5 ⇒ 5) | `test_oddWeight_roundsHalfAwayFromZero` | **PASS** |
+| V-11 | 脚本条目不进抽池 | `test_scriptEntries_areExcludedFromPool` | **PASS** |
+| V-12 | 权重**真的改变命中分布** | `test_distribution_changesWithWeight` | **PASS** |
+| V-13 | 池表烘焙/解码/字节自洽(292 B) | `cooked_drift_all_artifacts_test`(43 份) | **PASS** |
+
+⚠️ **V-12 的期望值来自离线复算**(48/64 · 18/64 · 36/64),不是「看起来应该是一半」。
+首版我写成 32/32 与 16/48 —— **离线复算当场证伪**(`h % 2` 在 0..63 上并不均匀)。
+按纪律**改断言不改实现**。
+
+### 9.5 实跑修正(首轮 15 红 → 1 红 → 0)
+
+| 轮 | 红数 | 归因 | 修法 |
+|---|---|---|---|
+| ① | **15** | `ResolveTimeParams` 让装配多问 `TimeParamsDataSet`(5 个夹具)+ catalog 42 vs 43 + 漂移门钉定值 | 五夹具补 `.Add(LoadTimeParams())`(并新增 `DataCookedDisk.LoadTimeParams`);`EnsureDataCoreGroup` + `BuildAddressablesContent` 重建 catalog(43);`BakedArtifacts` +1、`pinnedDeclared` 43 |
+| ② | **1** | AC-21a-48 调参旋钮字面量门按 `\bweight\b` 命中 `WeightedKey(int key, long weight)` | 形参改名 `w`(GDD 自己的记号是 `W_i`)—— **不改门** |
+| ③ | **0** | — | — |
+
+### 9.6 回归三元组(第③轮 · 最终树)
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| EditMode | **6771 / 6734 / 0 / 0 / 37** | 2026-11-03 15:05:25 CST | sprint-24 · 池条目表轮 | `4f2d9280` + 工作树 |
+| PlayMode | **324 / 320 / 0 / 2 / 2** | 2026-11-03 15:08:14 CST | 同上 | 同上 |
+| 编译警告 | **0**(`touch` 全部 `.cs` 全量重编译) | 同上 | 同上 | 同上 |
+
+**等式**:`6771 − 6756 = 15` = 本轮新增夹具数(`event_weighting_test` **13** + `ZeroWeight` **1** + 池表装配正控 **1**)。
+`passed` 同步 **+15**(6719 → 6734)。
+
+### 9.7 仍未做(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| `medical` 条目 → 37 病种映射 | **不存在** ⇒ `spawnPatient` 刻意抛;`encounter` 条目不受影响 |
+| `Mod_Eco` / `Mod_Rep` | 未裁 ⇒ 预算恒 = `BASE`(`TD-randomevents-04` 维持 open) |
+| 端到端「真池驱动下三道门全可达」夹具 | **仍缺**(现有夹具用合成候选集;`TD-randomevents-03` 维持 open) |
+| `HistoryMult` / `KeyGate` | P0 无输入源 ⇒ 恒 1 / 恒放行 |

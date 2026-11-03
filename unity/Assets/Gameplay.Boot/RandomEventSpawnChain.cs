@@ -60,6 +60,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>当日降临数已达 `clamp(BASE,∅,BUDGET_MAX)` ⇒ 零写入(ADR-039 D1 / F2)。</summary>
         OverBudget = 6,
+
+        /// <summary>该档 `ΣW = 0`(全部条目权重归零)⇒ 跳过本轮、**不掷骰、不报错**
+        /// (GDD Edge Cases `:1065`;`KeyGate` 全封或全档 `TODMult = 0` 都会触发)。</summary>
+        ZeroWeight = 7,
     }
 
     /// <summary>52 急召生成链:抽池 → 掷骰 → F1 → `EventArrived` → 病人出现。</summary>
@@ -68,7 +72,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IEventSink _sink;
         private readonly IPayloadEncoder _encoder;
         private readonly IEventAuthority _authority;
-        private readonly Func<int, IReadOnlyList<int>> _keysOfTier;
+        private readonly Func<int, long, IReadOnlyList<WeightedKey>> _candidatesOfTier;
         private readonly IPresenceQuery _presence;
         private readonly Func<long, WorldPos> _spawnAnchorOf;
         private readonly Func<long, PatientId> _spawnPatient;
@@ -85,7 +89,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="sink">事件写入通道。</param>
         /// <param name="encoder">载荷编码器(ADR-029)。</param>
         /// <param name="authority">掷骰权威(生产 = <see cref="SeedEventAuthority"/>)。</param>
-        /// <param name="keysOfTier">档 → 候选 key 集(抽池的「按 key 过滤」面)。</param>
+        /// <param name="candidatesOfTier">(档, roll tick) → **加权**候选集(抽池的「按 key 过滤 + F1 步骤② 权重」面)。
+        /// <para>⚠️ 权重由装配方按 `EventWeighting.CandidatesOfTier` 算好再交进来 ——
+        /// 本链**不自己算权重**:它需要昼夜与历史,而那两个是别处的状态(与 `contextOf` 同一条纪律)。</para></param>
         /// <param name="presence">在场读面 —— CAP 预检用,**必须与 `EventStream` 同一实例**。</param>
         /// <param name="spawnAnchorOf">生成点解析(tick → 整数格);6 的出生锚,测试传合成格。</param>
         /// <param name="spawnPatient">病人出现(tick → 新病人 id);生产 = `PatientSpawner.SpawnNext`。</param>
@@ -101,7 +107,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             IEventSink sink,
             IPayloadEncoder encoder,
             IEventAuthority authority,
-            Func<int, IReadOnlyList<int>> keysOfTier,
+            Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier,
             IPresenceQuery presence,
             Func<long, WorldPos> spawnAnchorOf,
             Func<long, PatientId> spawnPatient,
@@ -114,7 +120,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
             _authority = authority ?? throw new ArgumentNullException(nameof(authority));
-            _keysOfTier = keysOfTier ?? throw new ArgumentNullException(nameof(keysOfTier));
+            _candidatesOfTier = candidatesOfTier ?? throw new ArgumentNullException(nameof(candidatesOfTier));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
             _spawnAnchorOf = spawnAnchorOf ?? throw new ArgumentNullException(nameof(spawnAnchorOf));
             _spawnPatient = spawnPatient ?? throw new ArgumentNullException(nameof(spawnPatient));
@@ -177,9 +183,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             int budgetPerDay = EventBudget.ComputeDailyBudget(_baseEvents, null, _budgetMax);
             if (spawnsToday >= budgetPerDay) return SpawnChainOutcome.OverBudget;
 
-            // ④ 抽池:空池 ⇒ 零写入(fail-safe,生产今日即此支)
-            IReadOnlyList<int> keys = _keysOfTier(_tier);
-            if (keys == null || keys.Count == 0) return SpawnChainOutcome.NoPool;
+            // ④ 抽池:空池 ⇒ 零写入(fail-safe)
+            IReadOnlyList<WeightedKey> candidates = _candidatesOfTier(_tier, tick);
+            if (candidates == null || candidates.Count == 0) return SpawnChainOutcome.NoPool;
 
             // ⑤ F1:上下文门 + 档配额(排在掷骰之前 —— 配额为 0 就不该掷)
             //    窗口 = **预算窗口起点**(一天),不是 tick 子窗口(ADR-039 D2)。
@@ -200,7 +206,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     $"AC-15: 在场病人数已达上限 {EventStream.PATIENT_APPEARANCE_CAP}，拒收新病人");
 
             // ⑦ 掷骰(序号 = 当日第 n 次,**从流计数**;四项全部落流,可重建)
-            EventRollResult roll = _authority.Roll(new RollRequest(dayStart, _tier, rollsToday));
+            //    ⚠️ `ΣW = 0`(该档全部条目权重归零)⇒ 本档**跳过本轮、不掷骰、不报错**
+            //    (GDD Edge Cases `:1065`)。判定排在掷骰之前 —— 与预算门同一理由(孤儿行)。
+            long totalWeight = 0L;
+            for (int i = 0; i < candidates.Count; i++) totalWeight += candidates[i].Weight;
+            if (totalWeight <= 0L) return SpawnChainOutcome.ZeroWeight;
+
+            //    `Tick` = 本次掷骰的 tick —— 权重的昼夜项按它算(四参形),且它已可从
+            //    落流的 `EventRolled`(`SimEvent.Tick`)重建 ⇒ 不引入不可重构输入。
+            EventRollResult roll = _authority.Roll(new RollRequest(dayStart, _tier, rollsToday, tick));
 
             // ⑧ 落两条事件 —— 顺序固定(先骰后降临;AD-52-822「一次降临恰一条 EventArrived」)
             _sink.Append(new SimEvent(tick, PatientId.None, -1, EventKind.EventRolled,

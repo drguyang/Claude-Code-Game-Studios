@@ -1,19 +1,17 @@
-// 52 掷骰的**生产实装** —— 取代 `P0HostEventAuthority.Roll` 的抛形占位(2026-11-01 · S22-4)
+// 权威来源:ADR-007 §三(掷骰输入可从事件流重构)· ADR-005(SplitMix64)· GDD F1 步骤②(加权抽取)
 //
-// 权威来源:
-//   ADR-007 §三 —— 掷骰的**每个输入必须可从事件流重构**;落流时 `EventRolled` 记
-//     `(win, tier, ordinal, chosenKey)` 四项
-//   ADR-005 —— 全案唯一整数哈希源 = `SplitMix64`(禁 `UnityEngine.Random`)
-//   GDD random-events.md F1 第 1 步「时机轴 → 抽池(内容轴,按 key 过滤)」
+// 🔁 **2026-11-03(ADR-039 后续轮):候选集从「等权 key 列表」改为「加权候选列表」。**
+//    病因:原实现调 `EventDraw.Pick`(均匀抽取),`W_base` **完全没被消费** ——
+//    而 GDD `:672` 逐字警告「一个无视权重的实现能通过 AC-52-06」。
+//    现改为 `EventDraw.TryPick`(CDF walk),权重由**调用方**按 F1 步骤② 算好
+//    (`W_i = W_base × TODMult × HistoryMult`,已取整)再交进来。
 //
-// ▍与 `P0HostEventAuthority` 的关系
-//   那个类**不删** —— 它自陈「P0 无掷骰需求,不得返回假值」,在本件落地前它是对的。
-//   本件把「无掷骰实现」变成「有掷骰实现」,两者的分界 = **候选池是否为空**:
-//   生产今日池为空(52 的池内容归 37 内容件)⇒ `Roll` 会**抛**(空池不得掷),
-//   `RandomEventSpawnChain` 在调用前先判空并返回 `NoPool` —— **不抛到玩家面前**。
-//   ⇒ 「通电待信」的形态不变,变的是:链路本身**已经存在并可被合成输入驱动**(本卡的判据面)。
+// ⚠️ **本类不计算权重** —— 它只掷骰。权重是「档内候选」的属性,由装配层按
+//    「池表 + 当前昼夜 + 玩家历史」算出。这样切的好处:`Roll` 仍然是
+//    `(WorldSeed, win, tier, ordinal) + 候选集` 的纯函数,而候选集的构成可单独测。
 //
-// ⚠️ 本件**不做**:权重(等权候选集)· 历史标记乘子 · 密度预算 —— 归属见 `EventDraw` 头注。
+// ⚠️ `ΣW = 0` ⇒ **返回 `ZeroWeight` 结果而不是抛**(GDD Edge Cases `:1065`:
+//    「该档跳过本轮配额,不掷骰;不报错」)。调用方见 `ChosenKey == 0` 即知本档跳过。
 
 using System;
 using System.Collections.Generic;
@@ -22,21 +20,19 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
-    /// <summary>以世界种子驱动的确定性掷骰(P0 主机唯一权威)。
-    /// <para>⚠️ 本类实现 <see cref="IP0AuthorityPlaceholder"/>:**它恒 <c>IsHost = true</c>,
-    /// 没有任何联机 / 非主机语义** —— 与 `P0HostEventAuthority` 同一口径(该标记就是为
-    /// 51 的 E3 哨兵设的:恒 host 的 P0 权威被扫到不得被读成「真联机就绪」)。
-    /// 区别只在 `Roll`:那个类是抛形占位,**本类是真掷骰**,但**掷骰权 ≠ 联机权**。</para></summary>
+    /// <summary>P0 掷骰实现 —— 确定性加权抽取(输入全可从 `EventRolled` 载荷重建)。</summary>
     public sealed class SeedEventAuthority : IEventAuthority, IP0AuthorityPlaceholder
     {
-        private readonly Func<int, IReadOnlyList<int>> _keysOfTier;
+        private readonly Func<int, long, IReadOnlyList<WeightedKey>> _candidatesOfTier;
         private readonly ulong _worldSeed;
 
-        /// <param name="keysOfTier">档 → 候选 key 集(有序)。生产今日返回空集(fail-safe)。</param>
+        /// <param name="candidatesOfTier">(档, roll tick) → **加权**候选集(已按 key 升序;权重已取整)。
+        /// <para>⚠️ 第二个参数是 **roll tick**,不是窗口起点 —— `TODMult` 是昼夜的函数,
+        /// 而昼夜在一天之内会翻转(AC-52-45)。</para></param>
         /// <param name="worldSeed">世界种子(存档头,ADR-007 §二)。</param>
-        public SeedEventAuthority(Func<int, IReadOnlyList<int>> keysOfTier, ulong worldSeed)
+        public SeedEventAuthority(Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier, ulong worldSeed)
         {
-            _keysOfTier = keysOfTier ?? throw new ArgumentNullException(nameof(keysOfTier));
+            _candidatesOfTier = candidatesOfTier ?? throw new ArgumentNullException(nameof(candidatesOfTier));
             _worldSeed = worldSeed;
         }
 
@@ -47,18 +43,21 @@ namespace DaYiJingCheng.Gameplay.Boot
         public bool IsHost => true;
 
         /// <summary>
-        /// 掷骰 —— `SplitMix64(WorldSeed, win, tier, ordinal) % 候选数`。
-        /// <para>⚠️ 空档候选集 ⇒ **抛**(不返回假 key)。调用方须先判空。</para>
+        /// 掷骰 —— `SplitMix64(WorldSeed, win, tier, ordinal)` 上的**加权** CDF walk。
+        /// <para>⚠️ 空档候选集 ⇒ **抛**(不返回假 key)。调用方须先判空。
+        /// ⚠️ `ΣW = 0` ⇒ 返回 `ChosenKey = 0`(**不抛** —— 该档跳过本轮,不报错)。</para>
         /// </summary>
         public EventRollResult Roll(in RollRequest r)
         {
-            IReadOnlyList<int> keys = _keysOfTier(r.Tier);
-            if (keys == null || keys.Count == 0)
+            IReadOnlyList<WeightedKey> candidates = _candidatesOfTier(r.Tier, r.Tick);
+            if (candidates == null || candidates.Count == 0)
                 throw new InvalidOperationException(
                     $"档 {r.Tier} 的候选集为空 —— 空池不得掷骰(会造出不存在的 event_key)。" +
-                    "生产今日如此(52 的池内容归 37 内容件),调用方须先判空走 NoPool。");
+                    "调用方须先判空走 NoPool。");
 
-            int key = EventDraw.Pick(keys, _worldSeed, r.Win, r.Tier, r.Ordinal);
+            if (!EventDraw.TryPick(candidates, _worldSeed, r.Win, r.Tier, r.Ordinal, out int key))
+                return new EventRollResult(r.Win, r.Tier, r.Ordinal, 0);   // ΣW = 0 ⇒ 本档跳过
+
             return new EventRollResult(r.Win, r.Tier, r.Ordinal, key);
         }
     }

@@ -187,5 +187,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>52 随机事件四值(<c>52_random_events.cooked.bytes</c>;ADR-038 §D4 / ADR-039)。</summary>
         public static RandomEventsDataSet LoadRandomEvents()
             => RandomEventsCookedCodec.Read(ReadAll(AddressablesDataProvider.RandomEventsAddress));
+
+        /// <summary>52 池条目表(<c>52_event_pool.cooked.bytes</c>;ADR-039 后续轮)。</summary>
+        public static EventPoolDataSet LoadEventPool()
+            => EventPoolCookedCodec.Read(ReadAll(AddressablesDataProvider.EventPoolAddress));
+
+        /// <summary>5 时间参数(<c>5_time.cooked.bytes</c>;ADR-038 §D1)。
+        /// <para>⚠️ 消费方 = **生产装配**(`CompositionRoot` 用它判昼夜 —— 池权重的 `TODMult` 项),
+        /// 不只是测试。`provider == null` 时装配走本兜底读**同一份**烘焙产物 + **同一个** codec。</para></summary>
+        public static TimeParamsDataSet LoadTimeParams()
+            => TimeParamsCookedCodec.Read(ReadAll(AddressablesDataProvider.TimeParamsAddress));
     }
 }

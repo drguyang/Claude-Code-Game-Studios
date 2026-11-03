@@ -164,6 +164,12 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                     // ADR-039(2026-11-03):52 随机事件配置现在是**装配期即时**取表 ——
                     //    生成链要用它构造,缺表装配当场抛;本门不测其语义,只为装配面完备。
                     .Add(DataCookedDisk.LoadRandomEvents())
+                    // ADR-039 后续轮(2026-11-03):52 **池条目表**也是装配期即时取表(候选集 + 权重),
+                    //    缺表装配当场抛;本门不测其语义,只为装配面完备。
+                    .Add(DataCookedDisk.LoadEventPool())
+                    // ADR-039 后续轮(2026-11-03):装配还要读 **5 时间参数**(池权重的昼夜项要用它),
+                    //    缺表装配当场抛;本门不测其语义,只为装配面完备。
+                    .Add(DataCookedDisk.LoadTimeParams())
                     .Add(DataCookedDisk.LoadAiPatient()));
 
         /// <summary>把真表行集按 id 取出来(前提断言用 —— 缺行要**当场说清**而不是下游空转)。</summary>

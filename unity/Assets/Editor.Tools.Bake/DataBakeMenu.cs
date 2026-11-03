@@ -166,6 +166,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>5 天气参数的产物名(ADR-038 Amendment A · 2026-11-03)。</summary>
         public const string WeatherParamsCookedAssetName = WeatherParamsBaker.CookedFileName;
 
+        /// <summary>52 池条目表的产物名(2026-11-03 · ADR-039 后续轮)。</summary>
+        public const string EventPoolCookedAssetName = EventPoolBaker.CookedFileName;
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -1462,6 +1465,42 @@ namespace DaYiJingCheng.EditorTools.Bake
                 foreach (string e in ex.Errors)
                     Debug.LogError("[大医精诚] 烘焙失败:" + e);
                 throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 52 池条目表:仓库 <c>assets/data/52_event_pool.json</c> → 校验(聚合 throw)→
+        /// 产物写入 <c>Assets/DataCooked/</c>。
+        /// <para>⚠️ 本产物与 <see cref="BakeRandomEvents"/> 的四个标量**分开**:池条目会随内容
+        /// 反复增删,而四个调度标量很少动 —— 分开烘焙让两者的 <c>ConfigVersion</c> 各自独立
+        /// (ADR-014 §五:改数值自动改版本号)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/烘焙/52 池条目表", priority = 205)]
+        public static void BakeEventPool()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                EventPoolBaker.BakeOutput result = EventPoolBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, EventPoolCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{EventPoolCookedAssetName} = {result.Cooked.Length} B," +
+                    $"条目 {result.Bound.Entries.Count} 条," +
+                    $"夜间威胁乘子 = {result.Bound.NightThreatMultNum}/{result.Bound.NightThreatMultDen}," +
+                    $"上界 = {result.Bound.TodMultMaxNum}/{result.Bound.TodMultMaxDen}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string error in ex.Errors) Debug.LogError($"[大医精诚] {error}");
             }
         }
 

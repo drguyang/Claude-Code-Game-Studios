@@ -132,7 +132,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
             int spawnCalls = 0;
 
             RandomEventSpawnChain chain = NewChain(sink, presence, () => spawnCalls++,
-                keysOfTier: _ => Array.Empty<int>());
+                candidatesOfTier: (_, __) => Array.Empty<WeightedKey>());
 
             SpawnChainOutcome outcome = SpawnChainOutcome.Spawned;   // 非 NoPool 的初值:若没被赋值,下面的断言语义仍成立
             Assert.DoesNotThrow(() => { outcome = chain.TrySpawnAtTick(tick: 40L); },
@@ -227,17 +227,25 @@ namespace DaYiJingCheng.Tests.RandomEvents
         // ══════════════════════════════════════════════════════════════════
 
         private SeedEventAuthority NewAuthority()
-            => new SeedEventAuthority(_ => SyntheticKeys, WorldSeed);
+            => new SeedEventAuthority((_, __) => Weighted(SyntheticKeys), WorldSeed);
+
+        /// <summary>等权候选(权重 1)—— 本件测链路与门,不测权重分布(那归 `event_weighting_test`)。</summary>
+        private static IReadOnlyList<WeightedKey> Weighted(IReadOnlyList<int> keys)
+        {
+            var list = new List<WeightedKey>(keys.Count);
+            for (int i = 0; i < keys.Count; i++) list.Add(new WeightedKey(keys[i], 1));
+            return list;
+        }
 
         private RandomEventSpawnChain NewChain(
             CapturingSink sink, IPresenceQuery presence, Action onSpawn,
             IEventAuthority authority = null,
-            Func<int, IReadOnlyList<int>> keysOfTier = null,
+            Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = null,
             int windowSize = WindowSize)
         {
             return new RandomEventSpawnChain(
                 sink, _encoder, authority ?? NewAuthority(),
-                keysOfTier ?? (_ => SyntheticKeys),
+                candidatesOfTier ?? new Func<int, long, IReadOnlyList<WeightedKey>>((_, __) => Weighted(SyntheticKeys)),
                 presence,
                 spawnAnchorOf: _ => SyntheticCell,
                 spawnPatient: _ => { onSpawn(); return new PatientId(1); },
