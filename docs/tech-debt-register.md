@@ -397,6 +397,7 @@
 | `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
 | `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-14` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-15` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -558,7 +559,21 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
-> > 🔁 **五十一订(`TD-persist-14` 结案 · 2026-11-03 · 实现面 + 债面)** ——
+> > 🔁 **五十二订(`TD-persist-15` 立债 · 2026-11-03 · 债面)** ——
+> 用户指令「两件都做」(EPIC 回刷 + 查尺寸突变)。变化:`条目 165 → 166`(+1)·
+> `open 17 → 18`(+1)· `Y 111 → 112`(+1)· **`未闭 P0 面 9 → 10`**(+1)· `epic 分布 2/31 → 3/31`(+1)。
+> 单一变化源 = 新立 **`TD-persist-15`**。
+> 🔴 **立债路径如实登记(本轮第一判断错了)**:
+> 原任务是查「`save_0` 3868B vs `save_1…8` 1868B」的尺寸差。
+> **结论 = 那不是 bug**:两个不同会话(`save_0` tick=4658 / mtime 08:22;`save_1…8` tick=531 / mtime 09:23-09:24),
+> 世界状态不同 ⇒ 尺寸不同**正常**。
+> **顺带查出的才是真问题**:`CompositionRoot.cs:944` 的 `initialNextWritableSeq: 1` 硬编码
+> ⇒ 每次启动内存高水位从 1 起 ⇒ `EnsureWritable(1)` 判 `1 < 1` = false ⇒ **放行** ⇒
+> **覆盖磁盘上已有的 `save_1`**。⇒ GDD `:216-218` 的「槽位只进不退…由 7a 拒绝」
+> **只在本会话内成立,跨会话失效**。
+> ⚠️ 该值的引入注释(`:943`)只登记了「槽号出列表」(呈现面),**没登记跨会话覆盖**(数据面)。
+
+> 🔁 **五十一订(`TD-persist-14` 结案 · 2026-11-03 · 实现面 + 债面)** ——
 > 用户指令「现在做」。变化:`open 18 → 17`(−1)· `closed 143 → 144`(+1)·
 > **`未闭 P0 面 10 → 9`**(−1)· `epic 分布 3/31 → **2/31**`(−1,`persistence-service` 清零)·
 > 条目数 **165 不动**(结案不加条目)。
@@ -1014,10 +1029,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 165 | 状态 {'closed': 144, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 111, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 102 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4
+条目 166 | 状态 {'closed': 144, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 112, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 102 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4311,6 +4326,19 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 与 `-05` 的关系** | `-05` 的门是 `IsOnExpedition && !IsInClinic`,`InCombatCooldown` 是**独立的第一道判据**(`EventF1Pipeline.cs:146` 先判它)。⇒ 本债不解,门即使前两项为真仍可能被冷却挡掉;但它**不是**当前的主阻塞(`-05` / `-06` 才是)。 |
 | **触发条件** | ① 25/27 交付战斗结算信号时(同批);② 或用户数值轮裁定 `COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 时;③ 或任何以「规则六之二完整落地」形态引用之前(**禁借绿**)。 |
 | **归属** | **52 随机事件导演**(装配闭包)· 战斗信号 = **25/27** · 数值 = **用户裁定** |
+
+### TD-persist-15 — 高水位初值硬编码 `1` ⇒ **每次启动都会覆盖已有槽位**(7a 的「只进不退」护栏失效)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | GDD 规则十四(`persistence-service.md:216-218`)逐字:「**槽位只进不退**:`Checkpoint(slot)` 只能写**按时间序递增**的槽位;覆盖已有槽位 = 覆盖该槽位所辖叙事事件之后的全部历史 ⇒ **违反『只进不退』,由 7a 拒绝**(写入层的护栏)」。<br>护栏本体**是对的**:`SaveSlotLedger.EnsureWritable`(`:98-101`)判 `slot.SlotSeq < _nextWritableSeq` ⇒ 抛 `InvalidDataException`。<br>**但高水位初值是硬编码** —— `CompositionRoot.cs:944` 传 `initialNextWritableSeq: 1` ⇒ **每次启动内存里都从 1 起**,而磁盘上可能已有 `save_1…save_N`。<br>⇒ 玩家下次启动按「存档」⇒ `NextWritableSeq = 1` ⇒ `EnsureWritable(1)` 判 `1 < 1` = **false** ⇒ **放行** ⇒ **覆盖 `save_1`**。<br>⇒ **护栏在「同一会话内」有效,在「跨会话」失效** —— 而「只进不退」的语义正是**跨会话**的。 |
+| **实测(逐条可跑)** | ① 硬编码:`sed -n '944p' unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ `initialNextWritableSeq: 1,`。<br>② 护栏判据:`sed -n '98,101p' unity/Assets/Sim.Codec/SaveSlotLedger.cs` ⇒ `if (slot.SlotSeq < _nextWritableSeq) throw …`。<br>③ 高水位只在本会话推进:`SaveSlotLedger.OnCheckpointCommitted`(`:114-118`)是**唯一**推进点,无任何「从磁盘恢复」的路径(`grep -rn "initialNextWritableSeq" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 只有 `CompositionRoot.cs:944` 一处赋值 + 构造器默认值)。<br>④ **真实存档目录实测**(`~/.config/unity3d/DefaultCompany/unity/saves/`):`save_1.bin … save_8.bin` **8 个槽**全部存在且 `sha256` **完全相同**(`1afb5262…`)⇒ 这些是**同一会话内**连续 8 次手动存(内容相同因为世界没变,属正常);但 `save_0.bin` 是**另一个会话**(tick=4658 vs 531,mtime 08:22 vs 09:23)。⇒ 跨会话的槽位共存于同一目录,**而内存只记得本会话的**。<br>⑤ 该值何时引入:`git log -S "initialNextWritableSeq: 1" --oneline -- unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ `509b9e3d`(2026-11-03 09:22)。其引入理由**写在注释里**(`:940-943`):「缺省 0 ⇒ 第一次写进槽 0,而存档位屏只列 1..3 ⇒ 玩家看到『存了却没变化』」。 |
+| **⚠️ 注释自己登记了残余,但没立债** | `CompositionRoot.cs:943-944` 逐字:「⚠️ **残余**:本屏的槽位列表仍是**固定三行**,第 4 次之后写的槽号出列表 —— 那属 7b『槽位列表须由台账派生』的呈现面,不在本次修复范围。」<br>⇒ 该注释**只登记了「槽号出列表」**(呈现面),**没登记「跨会话覆盖」**(数据面)。后者是**数据丢失**,前者只是看不见。⇒ 本条补登记数据面。 |
+| **与 ADR-010 §六 的关系(须判清,否则会写错修法)** | `SaveSlotLedger.cs:51-57` 逐字:「**从存档恢复时不得用存档体里的值** —— 锁与高水位都是会话内存(ADR-010 §六)」。<br>⇒ **ADR 已裁「高水位是会话内存」**,所以「从存档头读高水位」是**被禁止**的修法。<br>但 ADR 裁的是**「不从存档体读」**,不是「**不扫磁盘**」。⇒ 合法修法 = 启动期扫**目录里的 `save_{N}.bin` 文件名**取最大 N(`SaveService.TryGetMostRecentSave` 已有同类扫描逻辑,`SaveService.cs:257-285`),**不读存档体内容**。<br>⚠️ 本条**只登记缺口与方向,不代裁修法** —— 须先裁定:「扫目录」是否也算「用存档里的值」(字面不读内容,只读文件名)。 |
+| **解除动作** | ① 用户裁定「扫目录取最大 seq」是否合 ADR-010 §六 的「不得从存档体恢复」口径;② 装配层把 `initialNextWritableSeq` 改为「启动期扫目录的最大 seq + 1」,或由 `SaveService` 暴露一个 `HighestSlotOnDisk` 只读量供装配层取;③ 夹具:**跨会话**场景 —— 目录里已有 `save_1…save_3`,新会话 `NextWritableSeq` 须为 **4**;`EnsureWritable(1)` 须**抛**(而不是覆盖);④ 证伪:把初值改回硬编码 `1` ⇒ ③ 转红。 |
+| **触发条件** | ① 7a 的下一次修订轮;② 或任何以「只进不退已成立」形态引用 `AC-7a-19 (b)` 之前(**禁借绿** —— 今日它只在本会话内成立);③ 或 7b 的「槽位列表由台账派生」轮(同批)。 |
+| **归属** | **7a 持久化服务**(高水位初值)· 修法口径 = **用户裁定** · 呈现面(槽位列表)归 **7b** |
+| **⚠️ 为什么这条比「尺寸突变」更值得记** | 本轮原本在查「`save_0` 3868B vs `save_1…8` 1868B」的尺寸差,**结论是那不是 bug**(两个不同会话、不同世界状态,尺寸不同正常)。**顺带查出的这条才是真问题**:它不是「尺寸不对」,是「**玩家的存档会被下一次启动静默覆盖**」。⇒ 如实登记:本轮的**第一判断错了**,真问题在第二层。 |
 
 ### TD-skeuo-03 — 模态开合面只认 2 个身份 ⇒ 闭集 9 员里 **7 员无关闭路径**(42)
 

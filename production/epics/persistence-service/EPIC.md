@@ -3,9 +3,27 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/persistence-service.md
 > **Architecture Module**: L3 契约程序集(`Sim.Codec`: `ISaveCodec` / `ISaveService` / `SaveHeader`)
-> **Status**: ~~**Complete ✅ 2026-10-02**(2/2 stories)~~ **In Progress**(2026-10-25 撤回)
+> **Status**: ~~**Complete ✅ 2026-10-02**(2/2 stories)~~ ~~**In Progress**(2026-10-25 撤回)~~ **Complete ✅ 2026-11-03**(口径 = **AC 条数**,见下 🔁)
 > **Stories**: 2 stories
 >
+> 🔁 **2026-11-03 状态回正(用户指令「两件都做」· 本轮实测)**
+>
+> **撤回理由已全部失效**,逐条核过:
+>
+> | 撤回时的理由 | 今日实测 | 复算 |
+> |---|---|---|
+> | `story-001` 被 QA 退回 `In Progress`(7 条 AC 全未勾) | **已 `Complete`**(2026-11-03 · COMPLETE WITH NOTES —— 7 条逐条重判,PASS 5 / NOT-RUN 2) | `grep -m1 "> \*\*Status" production/epics/persistence-service/story-001-storage-abstraction.md` |
+> | `story-002` 覆盖 0 条 GDD AC | 不变,且**这是对的** —— 它兑现的是 ADR-029 的 `IPayloadEncoder`,与本 GDD 的 AC 面正交 | 同上(本表不因此扣分) |
+> | **13 条 BLOCKING AC 从未被任何 story 认领** | **全部有载体**:12 条 `IMPLEMENTED_TESTED` + `20` 剩**一个输入源缺口** | 见下方 §AC 载体总表 的 🔁 段 |
+>
+> ⚠️ **本行 `Complete` 的口径必须写清**:它是**「每条 AC 都有判定」**,不是「每条 AC 都 PASS」——
+> 与 2026-10-02 那次「按 story 计数」的错误口径**不同因**。
+> **2 条 AC 记 NOT-RUN,且都有具名理由**(不借绿):
+> · `AC-7a-02` —— 宾语是「与三流不一致的**快照**」,而 `SaveComposer.cs:38/:56` 明写「快照段留待后续,
+>   `SnapshotOffset` 恒写 0 哨兵」⇒ **前件不存在**。照措辞造夹具 = 造一条**零输入可达的门**。
+> · `AC-7a-20` 的**一个输入源** —— 见下方 §AC 载体总表 的 `20` 行 🔁。
+> ⇒ **两条都不是「没人做」,是「宾语尚未存在」或「上游内容未交付」**。
+
 > 🔁 **2026-10-25 状态撤回(原文不删 · 承 QA 签核 C-1 / `TD-persist-04`)**
 >
 > 原 `Complete ✅ 2026-10-02` 的判据是「**2/2 stories 标 Complete**」——
@@ -54,6 +72,16 @@
 | ↳ 🔁 **2026-10-25 生产接线兑现(行状态仍 PARTIAL —— 事件触发半边未动)** | **瞬时源 + 定时兜底生产装配 = IMPLEMENTED_TESTED** | `Gameplay.Boot/NoPendingMedicalActionQuery.cs`(瞬时源实装:`IArmedState.IsArmed` 取反 —— W5 要求的「独立于流的内存态」;Bind 晚绑定 + 未绑 fail-closed + 只许一次)+ `CheckpointFallback.OnTicks(long)`(整批推进,防帧率稀释)+ `CompositionRoot` 装配(兜底闭包 = `Checkpoint(台账 NextWritableSeq)`;三处共用同一查询实例 —— 「一个量」义务兑现)+ `BootRoot` tick 边沿 `OnTicks(Δtick)` 驱动 | `checkpoint_fallback_test` **10 条**(+3)+ `no_pending_medical_action_query_test` **5 条** + `composition_root_test`(+1,含「一个量」反射同实例钉) | 证伪轮 **MF8/MF9 + NG1–4 + WG1–2 八轮全红、零假绿**(三文件 SHA-256 逐字节还原);⚠️ 上行「生产接线今日为零 = 有意终态(裁定丙)」**就此过期**(原文不删);⚠️ **SaveOnExit 自此真写 `save_exit.bin`**;**`AC-7a-20` 仍 PARTIAL**:事件触发半边(8/37/52 锚点接线)归 `TD-persist-04` 动作 ①;原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md` |
 
 | ↳ 🔁 **2026-10-25 动作① 实现轮:事件触发半边接线兑现(行状态仍 PARTIAL —— 52 写入者未落)** | **事件触发半边 = IMPLEMENTED_TESTED** | `Sim.Codec/AnchorCheckpointTrigger.cs`(集中观察游标扫描 + 门预问 + `Func<bool>` 失败不清兜底)+ `CheckpointFallback.NotifyExternalCheckpoint()` + `CompositionRoot` 构造(闭包 LogError 落 Boot 侧;瞬时源同实例)+ `BootRoot` tick 边沿 `Drain` | `anchor_checkpoint_trigger_test` **11 条** + `checkpoint_fallback_test` +1 + `composition_root_test` 断言扩展 | 证伪轮 **9 变异全红、零假绿**(AT4/AT5 打错靶两次如实登记 —— 钳制冗余已删);kindgen 36→37 重跑 A1–A5 全过;⚠️ **剩余面**:`HouseCallStarted` 零写入者(52 GDD 轮)· BootRoot `Drain` 单行 NOT-RUN · Load 落地须调 `ResetCursor()`;原件 = `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md` |
+| ↳ 🔁 **2026-11-03 复核:上面那句「`HouseCallStarted` 零写入者」已过期,但整条**仍不能翻 IMPLEMENTED_TESTED**** | **仍 PARTIAL,且剩余面已换** | **写者已落且已接线** —— `Sim/HouseCallStartedWriter.cs`(`TryStartAtTick`:`99`)· `Gameplay.Boot/RandomEventsDirectorDriver.cs:124` 构造写者 / `:169` 逐 tick 调用 · `BootRoot.cs:2060` 驱动 · 写者存在性门的豁免**已撤**(`grep -n '"HouseCallStarted"' unity/Assets/Editor.Tools.Gates/WriterExistenceGate.cs` ⇒ 零命中)。<br>🔴 **但输入集是空集**:`CompositionRoot.cs:707-709` 构造 `RandomEventsDirectorDriver` 时第 6 个实参传 **`Array.Empty<int>()`**(在 `:709`)⇒ `ActiveHouseCallQuery.Evaluate`(`Sim/ActiveHouseCallQuery.cs:89-96`)的 `ContainsKey` 恒 false ⇒ `foundSummons` 恒 false ⇒ `Active = false` ⇒ 写者**恒返回 `NoActiveTarget`、永不写入**。<br>⇒ 三件(写者 / 驱动 / 输入集)齐两件,**缺的是 37 的内容件**(`TD-randomevents-06`:出诊类 `event_key` 集 = 37 内容件定稿时回填,GDD `:562` 逐字)。 | `grep -n "Array.Empty<int>()" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ **`:709`**(在 `RandomEventsDirectorDriver(` 的实参表内) | ⚠️ **本行如实登记**:从「写者未落」变成「**输入集为空**」—— 阻塞方从 **7a/52** 移到 **37 内容件**,但**整条 AC 的判定不变(PARTIAL)**。禁借「写者落地了」记绿。 |
+
+> 🔁 **2026-11-03 复核后现值(原文不删)** —— 上列各段「现值」均以本轮实测为准:
+> `IMPLEMENTED_TESTED` **12**(`07`/`08`/`09`/`10`/`11`/`12`/`13`/`14`/`15`/`16`/`17`/`19`)·
+> `PARTIAL` **1**(`20`,剩余面 = **37 的出诊类 `event_key` 集为空**,见其行 🔁)·
+> `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md` ⇒ **7**;
+> `17` 行就地改判 ⇒ 5 + 7 = 12;`20` 仍 PARTIAL ⇒ 12 + 1 = **13 条** ✓(与 2026-10-25 的 13 条同分母)。
+> ⚠️ **`AC-7a-02` 记 NOT-RUN 但不在本表** —— 它属 `story-001` 的 7 条(前件 = 快照段不存在),
+> 与本表的「13 条零载体」是**两个不同的分母**,勿混读。
 
 **分布**:`IMPLEMENTED_TESTED` **4** · `PARTIAL` **8** · `NOT_IMPLEMENTED` **1**。
 
