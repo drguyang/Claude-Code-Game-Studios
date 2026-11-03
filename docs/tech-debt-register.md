@@ -459,7 +459,7 @@
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
-| `TD-skeuo-03` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-05` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
@@ -563,6 +563,14 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **六十订(`TD-skeuo-03` 结案 · 2026-11-04 · 实现面 + 债面)** ——
+> 用户裁定「甲:关闭 + 焦点回进入前载体」。变化:`open 17 → 16`(−1)· `closed 149 → 150`(+1)·
+> **`未闭 P0 面 9 → 8`**(−1)· **epic 分布 `skeuomorphic-ui 4 → 3`**,epic 数仍 `2/31`·
+> 条目数 **170 不动**(结案不加条目)。
+> 单一变化源:`TD-skeuo-03` 索引行 `open → closed`。
+> 🔴 **本轮有一处真回归被 PlayMode 全量抓出**(首版通用栈撞 `AC-39-07`)—— 详见条目内的结案块。
+> ⚠️ **不覆盖 `TD-skeuo-04`**:闭集 3 员生产上开不出来,它们的 toggle 只在契约层被覆盖。
+
 > > 🔁 **五十九订(`TD-persist-19` 结案 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「TD-persist-19 两步做掉」。变化:`open 18 → 17`(−1)· `closed 148 → 149`(+1)·
 > **`未闭 P0 面 10 → 9`**(−1)· **`epic 分布 3/31 → 2/31`**(−1,`persistence-service` 再次清零)·
@@ -1109,10 +1117,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 170 | 状态 {'closed': 149, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 107 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4
+条目 170 | 状态 {'closed': 150, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 108 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 3
 ```
 <!-- TD-COUNT:END -->
 
@@ -4607,6 +4615,37 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 42 的下一轮 UX/实现轮开工时;② 或任何以「模态关闭路径完整」形态引用之前(**禁借绿**);③ 或 `Cancel` 动作首次被接线的轮次(同批)。 |
 | **归属** | **42 拟物 UI 框架**(`ModalOpener` 契约 + `SkeuoRuntimeDriver` 的事件挂点)· `Cancel` 读面 = **3 输入** · 语义裁定 = **用户** |
 | **⚠️ 与 `TD-skeuo-04` 的关系** | 两笔**不同因、不同解**,不合并:本债 = 「有开屏点但关不掉」(7 员);04 = 「连开屏点都没有」(3 员)。交集为空 ⇒ 修 03 不会让 04 变绿,反之亦然。 |
+
+> ✅ **2026-11-04 已闭**(sprint-24 · 用户裁定「甲:关闭 + 焦点回进入前载体」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-skeuo-03-modal-toggle-closure-2026-11-04.md`。
+> 架构件 = `ADR-013 §十-F Amendment E`。
+>
+> **落点**:`ModalOpener` 的两个逐员布尔 → **`CurrentModal : ModalId`**(契约形状本身承载判据 ——
+> 逐员布尔的形状必然要求调用方也逐员分支,这正是「改一处、漏七处」的结构性来源);
+> `OnFrame` 收成一句「有模态 ⇒ 关,无模态 ⇒ 开暂停壳」;`SkeuoRuntimeDriver` 增
+> `_modalStack` / `_entryCarrier`(P-02 焦点回位);`OpenModal` 拆出 `OpenModalCore`(不碰栈)。
+>
+> 🔴 **一处真回归由 PlayMode 全量抓出(首版被推翻)** —— 首版是**通用栈**,`AC-39-07` 的
+> `test_s39_07_edge_noDuplicateNoSpuriousExplore` 当场红(实测 `Expected: 4 But was: 5`):
+> `Casebook → Inventory` 压栈 ⇒ 关库存时**回到脉案** ⇒ 多一条 camera 意图,而该 AC(Approved)
+> 要求「从非脉案模态关屏**零意图**」(`casebook-39.md:253`「档位回归 Explore」,**离开脉案是单向的**)。
+> ⇒ 压栈判据收窄为 `IsShellModal`(壳类 Pause / SettingsShell 会开出下一层;文档类入口在世界)。
+> **7b 要的「关册回暂停壳」与 39 要的「零意图」两面同时成立。**
+>
+> **判据 7 条**(EditMode 6 + PlayMode 1)。两条设计要点:
+> ① **枚举驱动**(`Enum.GetValues`)不是逐员列举 ⇒ 闭集增员时零改动、新员自动进判据;
+> ② **「关闭」与「换屏」必须可分** —— 须断 `OpenCalls == 0`,只断「屏没了」会被换屏骗过(首版正是如此)。
+>
+> **证伪(按最终代码整轮重打)**:M1(判据退回逐员两分支)⇒ **2 红** · M2(去掉压栈)⇒ **1 红**;
+> 红集互不覆盖;两文件 SHA-256 逐字节还原(`271ca195…` / `cfb573fe…`)。
+>
+> **回归**:EditMode `6811/6774/0/0/37` @ 2026-11-03 22:28:18Z → 22:30:09Z ·
+> PlayMode `325/321/0/2/2` @ 22:26:23Z · 编译警告 **0**。
+> 等式 `6811 − 6805 = 6` · `325 − 324 = 1`。
+>
+> ⚠️ **本条关闭不覆盖 `TD-skeuo-04`**:闭集 3 员(`SettingsShell` / `Tutorial` / `PaperCloseup48`)
+> 生产上**开不出来** ⇒ 它们的 toggle 只在契约层被枚举判据覆盖,**未经真装配**。
+> ⚠️ 焦点回位只在**关闭最外层模态**时生效;`Cancel` 读面**仍未接**(丙案未采纳)。
 
 ### TD-skeuo-04 — 闭集 **3 员零生产开屏点**,而它们的 story 标 `Complete`(42 ↔ 48 / 49)
 

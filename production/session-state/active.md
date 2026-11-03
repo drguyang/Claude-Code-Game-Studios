@@ -16435,3 +16435,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   等式 `6805 − 6797 = 8` = 新增夹具数。
   债册:条目 170 | closed 149 | open 17 | 未闭 P0 面 9 | epic 2/31。
   原件 = `production/qa/evidence/impl-td-persist-19-manual-slot-bak-scope-2026-11-04.md`。**已提交未推送**。
+- **追加(TD-skeuo-03 · 模态关闭面收敛 · 2026-11-04)**:用户裁定「甲:关闭 + 焦点回进入前载体」。
+  `ModalOpener` 的两个逐员布尔 → `CurrentModal : ModalId`(契约形状承载判据);
+  `OnFrame` 收成「有模态 ⇒ 关,无模态 ⇒ 开暂停壳」;`SkeuoRuntimeDriver` 增 `_modalStack` /
+  `_entryCarrier`(P-02 焦点回位),`OpenModal` 拆出 `OpenModalCore`。
+  **闭集 9 员全部可被同一 toggle 关掉**(此前只有 2 员)。
+  🔴 **一处真回归由 PlayMode 全量抓出**:首版是**通用栈** ⇒ `Casebook → Inventory → 关闭` 回到脉案
+  并多发一条 camera 意图,撞 `AC-39-07`「从非脉案模态关屏零意图」(实测 4 vs 5)。
+  收窄为 `IsShellModal`(壳类压栈、文档类不压)后两面同时成立。
+  夹具:EditMode 新增 6 条(枚举驱动,闭集增员零改动)+ PlayMode 新增 1 条(P-02,读引擎真源)。
+  证伪(按最终代码整轮重打):M1 **2 红** · M2 **1 红**,红集互不覆盖,SHA-256 逐字节还原。
+  回归:EditMode `6811/6774/0/0/37` @ 22:28:18Z · PlayMode `325/321/0/2/2` @ 22:26:23Z · 警告 0。
+  债册:条目 170 | closed 150 | open 16 | 未闭 P0 面 8 | epic 2/31。
+  未做:`TD-skeuo-04` 的 3 员生产上开不出来 ⇒ 只在契约层覆盖;`Cancel` 读面仍未接。
+  原件 = `production/qa/evidence/impl-td-skeuo-03-modal-toggle-closure-2026-11-04.md`。**待提交**。
