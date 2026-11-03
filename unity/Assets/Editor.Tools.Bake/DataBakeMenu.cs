@@ -163,6 +163,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>52 随机事件配置的产物名(ADR-038 §D4 · 2026-11-03)。</summary>
         public const string RandomEventsCookedAssetName = RandomEventsBaker.CookedFileName;
 
+        /// <summary>5 天气参数的产物名(ADR-038 Amendment A · 2026-11-03)。</summary>
+        public const string WeatherParamsCookedAssetName = WeatherParamsBaker.CookedFileName;
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -1378,6 +1381,42 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"TICKS_PER_DAY = {result.Bound.TicksPerDay}," +
                     $"NIGHT_START = {result.Bound.NightStart}," +
                     $"NIGHT_SPAN = {result.Bound.NightSpan}," +
+                    $"TICKS_PER_SEASON = {result.Bound.TicksPerSeason}," +
+                    $"SEASONS_PER_YEAR = {result.Bound.SeasonsPerYear}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 5 天气参数(ADR-038 Amendment A)。
+        /// <para>两值 2026-11-03 用户裁定:`WEATHER_BLOCK_TICKS = 6000` · `INTENSITY_MAX = 100`。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 5_weather(天气参数 · ADR-038 Amendment A)")]
+        public static void BakeWeatherParams()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                WeatherParamsBaker.BakeOutput result = WeatherParamsBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, WeatherParamsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{WeatherParamsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"WEATHER_BLOCK_TICKS = {result.Bound.WeatherBlockTicks}," +
+                    $"INTENSITY_MAX = {result.Bound.IntensityMax}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

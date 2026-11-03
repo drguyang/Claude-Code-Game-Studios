@@ -69,7 +69,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                                         _ => null, _decoder),
                     _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 10L,
-                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(),
                 blobRestoreSink: _pool,
                 initialNextWritableSeq: seed);

@@ -90,17 +90,31 @@ namespace DaYiJingCheng.Tests.TimeWeather
         // ══════════════════ 负控(烘焙期必须拒收)══════════════════
 
         [Test]
-        public void test_undecidedKey_isRejected_withItsOwnMessage()
+        public void test_seasonValues_areAdjudicated()
         {
-            // ADR-038 §D1:`ticks_per_season` 等三值**未裁定**、刻意不进 schema。
-            // 塞进来必须**专名报错**(提示「还没裁」),不得笼统算作「未知键」。
+            // 2026-11-03 用户裁定:季长 = 7 日 = 252000 · 一年 5 季(与 17 的 SEASON_MULT 表长相等)。
+            TimeParamsBinder.BindResult bound = TimeParamsBinder.Bind(
+                File.ReadAllText(Path.Combine(RepoRoot, "assets", "data", "5_time.json")));
+
+            Assert.That(bound.TicksPerSeason, Is.EqualTo(252000L),
+                "TICKS_PER_SEASON = 252000(= 7 × 36000)是 2026-11-03 用户裁定");
+            Assert.That(bound.SeasonsPerYear, Is.EqualTo(5L));
+            Assert.That(bound.SchemaVersion, Is.EqualTo(2u), "季参数进 schema ⇒ schema_version = 2");
+        }
+
+        [Test]
+        public void test_weatherKeyInTimeFile_isRejected_pointingAtWeatherArtifact()
+        {
+            // 天气两值归 `5_weather.json`。塞进 `5_time.json` 必须**专名报错**,
+            // 不得笼统算作「未知键」—— 否则下一个人会去查拼写而不是文件归属。
             const string json =
-                "{\"schema_version\":1,\"ticks_per_day\":36000,\"night_start\":27000," +
-                "\"night_span\":9000,\"ticks_per_season\":1080000}";
+                "{\"schema_version\":2,\"ticks_per_day\":36000,\"night_start\":27000," +
+                "\"night_span\":9000,\"ticks_per_season\":252000,\"seasons_per_year\":5," +
+                "\"weather_block_ticks\":6000}";
 
             var ex = Assert.Throws<BakeValidationException>(() => TimeParamsBinder.Bind(json));
-            Assert.That(string.Join("\n", ex.Errors), Does.Contain("尚未裁定"),
-                "报错须点明「值尚未裁定」;实际:\n" + string.Join("\n", ex.Errors));
+            Assert.That(string.Join("\n", ex.Errors), Does.Contain("5_weather.json"),
+                "报错须点名归属文件;实际:\n" + string.Join("\n", ex.Errors));
         }
 
         [Test]
@@ -108,7 +122,8 @@ namespace DaYiJingCheng.Tests.TimeWeather
         {
             // AC-5-11 的「NIGHT_SPAN ≥ TICKS_PER_DAY ⇒ 硬失败」在**烘焙期**的同构判据
             const string json =
-                "{\"schema_version\":1,\"ticks_per_day\":1000,\"night_start\":0,\"night_span\":1000}";
+                "{\"schema_version\":2,\"ticks_per_day\":1000,\"night_start\":0,\"night_span\":1000," +
+                "\"ticks_per_season\":7000,\"seasons_per_year\":5}";
 
             var ex = Assert.Throws<BakeValidationException>(() => TimeParamsBinder.Bind(json));
             Assert.That(string.Join("\n", ex.Errors), Does.Contain("NIGHT_SPAN"));

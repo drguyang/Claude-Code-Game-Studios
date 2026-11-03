@@ -385,6 +385,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 失败 / 未预载 ⇒ null(时间未就绪,存档册不画日与昼夜 —— 不拿默认值冒充)。
             _timeParams = ResolveTimeParams(preloaded ? DataCorePreloader.Provider : null);
 
+            // ADR-038 §R2:52 的 `ROLL_INTERVAL` 与 5 的日长必须相容 —— 启动期校验一次。
+            // 这同时是 **52 数据集今日唯一的生产消费点**(其余三值待「52 运行期消费」ADR,
+            // 见 ADR-038 §D7);取不到 52(未预载 / 夹具)⇒ 不判 —— 「不知道」≠「不合规」。
+            RequireCrossDatasetWindow(_timeParams, preloaded ? DataCorePreloader.Provider : null);
+
             _services = CompositionRoot.Assemble(
                 registry: null,
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
@@ -1412,17 +1417,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!loaded.HasValue)
                 throw new InvalidOperationException(
                     "读档已返回,但档头没有可用的时间参数 —— " +
-                    "ADR-038 §D3 要求 v4 档必带 TICKS_PER_DAY / NIGHT_START / NIGHT_SPAN;" +
+                    "ADR-038 §D3 / Amendment A 要求 v5 档必带时间三值 + 季二值 + 天气二值;" +
                     "沿用旧参数会让重放出的日边界与玩家经历的不同(fail-loud)");
 
-            Sim.TimeParams hydrated = HydrateTimeParams(loaded.Value, _timeParams);
-
-            // ── R2(ADR-038 §Risk R2):档内日长必须仍被 52 的 roll_interval 整除 ──
-            // 今日不可达(唯一写档者与读档者用同一份数据),但日长一旦跨构建漂移,
-            // 「窗口边界」会落在日边界内 ⇒ 预算重置点不唯一。取不到 52(测试假件 / 未预载)⇒ 跳过。
-            long rollInterval = ResolveRollInterval(DataCorePreloader.Provider);
-            if (rollInterval > 0)
-                RequireDivisibleWindow(hydrated.TICKS_PER_DAY, rollInterval);
+            // R2(ADR-038 §Risk R2)已并入纯决策函数 —— 判据与 hydrate 一起可直测,
+            // 不再有「实例方法里多一行、夹具够不着」的死角。
+            Sim.TimeParams hydrated = HydrateTimeParams(
+                loaded.Value, ResolveRollInterval(DataCorePreloader.Provider));
 
             _timeParams = hydrated;
         }
@@ -1432,10 +1433,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>抽出为静态纯函数是为了让判据可直测 —— 私有方法只能靠反射评,而反射会把
         /// 「方法叫什么」写进夹具(改名即红,与被测行为无关)。</para>
         /// </summary>
+        /// <param name="loaded">档头七值(时间三 + 季二 + 天气二;ADR-038 Amendment A)。</param>
+        /// <param name="rollInterval">
+        /// 52 的 `ROLL_INTERVAL`(ADR-038 §R2)。<c>&lt;= 0</c> = 「不知道」(未预载 / 夹具)⇒ 跳过整除门;
+        /// 调用方必须显式传 <c>0</c> 表示「不判」,**不得**用某个默认值冒充「合规」。
+        /// </param>
         /// <exception cref="InvalidOperationException">档内三值不可用(fail-loud)。</exception>
         /// <exception cref="ArgumentException">三值关系不成立(与 `TimeParams.Validate` 同源)。</exception>
+        /// <exception cref="InvalidDataException">档内日长不被 <paramref name="rollInterval"/> 整除(R2)。</exception>
         public static Sim.TimeParams HydrateTimeParams(
-            Sim.Codec.SaveTimeParams loaded, Sim.TimeParams current)
+            Sim.Codec.SaveTimeParams loaded, long rollInterval = 0L)
         {
             if (!loaded.IsSpecified)
                 throw new InvalidOperationException(
@@ -1446,12 +1453,32 @@ namespace DaYiJingCheng.Gameplay.Boot
                 TICKS_PER_DAY = loaded.TicksPerDay,
                 NIGHT_START = loaded.NightStart,
                 NIGHT_SPAN = loaded.NightSpan,
-                // 两个未裁定的季参数仍不由装载源提供(见 `TimeParams` 头注)。
-                TICKS_PER_SEASON = current?.TICKS_PER_SEASON ?? 0L,
-                SEASONS_PER_YEAR = current?.SEASONS_PER_YEAR ?? 0L,
+                // 🔁 Amendment A:季参数**也取自档内**(v5 起),不再沿用当前构建值。
+                TICKS_PER_SEASON = loaded.TicksPerSeason,
+                SEASONS_PER_YEAR = loaded.SeasonsPerYear,
             };
             hydrated.Validate();
+            hydrated.ValidateSeason();
+
+            // R2:档内日长必须仍被 52 的 roll_interval 整除 —— 否则日边界与预算窗口错位。
+            if (rollInterval > 0L)
+                RequireDivisibleWindow(hydrated.TICKS_PER_DAY, rollInterval);
+
             return hydrated;
+        }
+
+        /// <summary>
+        /// 启动期交叉校验(ADR-038 §R2):当前装载的 5 日长必须被 52 的 `ROLL_INTERVAL` 整除。
+        /// <para><c>time == null</c>(未预载 / 夹具)或取不到 52 ⇒ **不判** —— 「不知道」不等于「不合规」,
+        /// 但也不得被读成「已校验通过」。</para>
+        /// </summary>
+        /// <exception cref="InvalidDataException">不整除 ⇒ 启动期硬失败。</exception>
+        public static void RequireCrossDatasetWindow(Sim.TimeParams time, IDataProvider provider)
+        {
+            if (time == null) return;
+            long rollInterval = ResolveRollInterval(provider);
+            if (rollInterval <= 0L) return;
+            RequireDivisibleWindow(time.TICKS_PER_DAY, rollInterval);
         }
 
         /// <summary>读 52 的 `ROLL_INTERVAL`(provider 为 null ⇒ 0 = 「不知道」,调用方跳过检查)。</summary>
@@ -1493,6 +1520,30 @@ namespace DaYiJingCheng.Gameplay.Boot
                 TICKS_PER_DAY = data.TicksPerDay,
                 NIGHT_START = data.NightStart,
                 NIGHT_SPAN = data.NightSpan,
+                // 🔁 Amendment A(2026-11-03):季参数已裁定并进 schema(schema 2)。
+                TICKS_PER_SEASON = data.TicksPerSeason,
+                SEASONS_PER_YEAR = data.SeasonsPerYear,
+            };
+            p.Validate();
+            p.ValidateSeason();     // AC-5-11 的另两条:季长 > 0 · 一年 ≥ 2 季
+            return p;
+        }
+
+        /// <summary>
+        /// 装载并校验 5 的天气参数(<c>5_weather.cooked.bytes</c>;ADR-038 Amendment A)。
+        /// <para>非法配置 ⇒ 抛(启动期硬失败),与 <see cref="ResolveTimeParams"/> 同口径。
+        /// <c>provider == null</c> ⇒ null(未预载 / 夹具,不构成「配置非法」)。</para>
+        /// </summary>
+        /// <exception cref="ArgumentException">块长 / 强度上界关系不成立(AC-5-11)。</exception>
+        public static Sim.WeatherParams ResolveWeatherParams(IDataProvider provider)
+        {
+            if (provider == null) return null;
+
+            WeatherParamsDataSet data = provider.Load<WeatherParamsDataSet>();
+            var p = new Sim.WeatherParams
+            {
+                WEATHER_BLOCK_TICKS = data.WeatherBlockTicks,
+                INTENSITY_MAX = data.IntensityMax,
             };
             p.Validate();
             return p;

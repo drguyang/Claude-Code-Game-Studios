@@ -43,8 +43,12 @@ namespace DaYiJingCheng.Sim.Codec
         /// 追加在头部末尾(**不是**正文末尾)同样是为了可迁移性:迁移链按尾部锚定比对正文,
         /// 尾部追加必破该断言(与 ADR-037 §① 同一条理由)。
         /// v3 档由 `SaveMigrationV3ToV4` 在旧头部末插入 <c>36000 / 27000 / 9000</c> 后升到 v4。</para>
+        /// <para>🔁 <b>v4 → 5(2026-11-03,ADR-038 Amendment A)</b>:v5 在头部末尾**再追加**四个 i64 ——
+        /// <c>TicksPerSeason</c> / <c>SeasonsPerYear</c> / <c>WeatherBlockTicks</c> / <c>IntensityMax</c>
+        /// (共 32 B)。理由与 D3 同一条:这四个量都是**模拟 / 掷骰的输入**,不随档走会静默改变重放。
+        /// v4 档由 `SaveMigrationV4ToV5` 在 v4 头部末插入用户裁定的四值后升到 v5。</para>
         /// </summary>
-        public const uint CurrentSaveVersion = 4;
+        public const uint CurrentSaveVersion = 5;
 
         /// <summary>
         /// 首个**带载荷段**的存档版本(ADR-034 §Decision ⑥)。
@@ -73,6 +77,18 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>夜长(ADR-038 §D3 · v4 起)。</summary>
         public long NightSpan;
 
+        /// <summary>一季的 tick 数(ADR-038 Amendment A · v5 起)。</summary>
+        public long TicksPerSeason;
+
+        /// <summary>一年几季(ADR-038 Amendment A · v5 起)。</summary>
+        public long SeasonsPerYear;
+
+        /// <summary>天气相干块长(ADR-038 Amendment A · v5 起)。</summary>
+        public long WeatherBlockTicks;
+
+        /// <summary>天气强度上界(ADR-038 Amendment A · v5 起)。</summary>
+        public long IntensityMax;
+
         public SaveHeader(ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset)
         {
             MagicValue = Magic;
@@ -88,6 +104,10 @@ namespace DaYiJingCheng.Sim.Codec
             TicksPerDay = 0L;
             NightStart = 0L;
             NightSpan = 0L;
+            TicksPerSeason = 0L;
+            SeasonsPerYear = 0L;
+            WeatherBlockTicks = 0L;
+            IntensityMax = 0L;
         }
     }
 }

@@ -27,16 +27,17 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] RootKeys =
         {
             "schema_version", "ticks_per_day", "night_start", "night_span",
+            "ticks_per_season", "seasons_per_year",
         };
 
         /// <summary>
-        /// 已知但**值未裁定**、因而**刻意不进 schema** 的键。
-        /// <para>它们若出现在 JSON 里,报**专用**错误而不是笼统的「未知键」——
-        /// 让下一个人立刻知道「不是拼错,是还没裁」。</para>
+        /// 曾经在「未裁定键」名单里、现已拆到别的产物的键。
+        /// <para>写在这里是为了给**专用**报文:把它塞回 `5_time.json` 时,
+        /// 报「天气参数归 `5_weather.json`」而不是笼统的「未知键」。</para>
         /// </summary>
-        private static readonly string[] UndecidedKeys =
+        private static readonly string[] MovedKeys =
         {
-            "ticks_per_season", "seasons_per_year", "weather_block_ticks",
+            "weather_block_ticks", "intensity_max",
         };
 
         /// <summary>绑定结果。</summary>
@@ -51,14 +52,23 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>夜长(已过值域校验)。</summary>
             public readonly long NightSpan;
 
+            /// <summary>一季的 tick 数(2026-11-03 用户裁定 = 252000,即 7 日/季)。</summary>
+            public readonly long TicksPerSeason;
+
+            /// <summary>一年几季(2026-11-03 用户裁定 = 5;17 的 `SEASON_MULT` 表长与之相等)。</summary>
+            public readonly long SeasonsPerYear;
+
             /// <summary>源 <c>schema_version</c>(随产物头落盘)。</summary>
             public readonly uint SchemaVersion;
 
-            public BindResult(long ticksPerDay, long nightStart, long nightSpan, uint schemaVersion)
+            public BindResult(long ticksPerDay, long nightStart, long nightSpan,
+                              long ticksPerSeason, long seasonsPerYear, uint schemaVersion)
             {
                 TicksPerDay = ticksPerDay;
                 NightStart = nightStart;
                 NightSpan = nightSpan;
+                TicksPerSeason = ticksPerSeason;
+                SeasonsPerYear = seasonsPerYear;
                 SchemaVersion = schemaVersion;
             }
         }
@@ -87,12 +97,15 @@ namespace DaYiJingCheng.EditorTools.Bake
             bool okTpd = ReadLong(root, "ticks_per_day", errors, out long ticksPerDay);
             bool okStart = ReadLong(root, "night_start", errors, out long nightStart);
             bool okSpan = ReadLong(root, "night_span", errors, out long nightSpan);
+            bool okSeason = ReadLong(root, "ticks_per_season", errors, out long ticksPerSeason);
+            bool okSeasons = ReadLong(root, "seasons_per_year", errors, out long seasonsPerYear);
 
-            // ⚠️ 三个都解析成功才跑关系校验 —— 否则缺失的键以 0 参与,叠出
+            // ⚠️ 五个都解析成功才跑关系校验 —— 否则缺失的键以 0 参与,叠出
             //    「缺失 + 值域违反」两条错误,违「一处缺陷一条错」的排他口径。
-            if (okTpd && okStart && okSpan)
+            if (okTpd && okStart && okSpan && okSeason && okSeasons)
             {
-                // 复用运行期的同一组规则(单一判据出处):`TimeParams.Validate()`。
+                // 复用运行期的同一组规则(单一判据出处):`TimeParams.Validate()` +
+                // `ValidateSeason()`(ADR-038 Amendment A:季参数已裁定 ⇒ 同批进装载期校验)。
                 try
                 {
                     new TimeParams
@@ -100,7 +113,14 @@ namespace DaYiJingCheng.EditorTools.Bake
                         TICKS_PER_DAY = ticksPerDay,
                         NIGHT_START = nightStart,
                         NIGHT_SPAN = nightSpan,
+                        TICKS_PER_SEASON = ticksPerSeason,
+                        SEASONS_PER_YEAR = seasonsPerYear,
                     }.Validate();
+                    new TimeParams
+                    {
+                        TICKS_PER_SEASON = ticksPerSeason,
+                        SEASONS_PER_YEAR = seasonsPerYear,
+                    }.ValidateSeason();
                 }
                 catch (ArgumentException ex)
                 {
@@ -111,7 +131,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
-            return new BindResult(ticksPerDay, nightStart, nightSpan, schemaVersion);
+            return new BindResult(ticksPerDay, nightStart, nightSpan,
+                                  ticksPerSeason, seasonsPerYear, schemaVersion);
         }
 
         // ── 读件(严格:类型不符即记错,绝不隐式转换)───────────────────────────
@@ -162,14 +183,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                     if (string.Equals(RootKeys[i], key, StringComparison.Ordinal)) { allowed = true; break; }
                 if (allowed) continue;
 
-                bool undecided = false;
-                for (int i = 0; i < UndecidedKeys.Length; i++)
-                    if (string.Equals(UndecidedKeys[i], key, StringComparison.Ordinal)) { undecided = true; break; }
+                bool moved = false;
+                for (int i = 0; i < MovedKeys.Length; i++)
+                    if (string.Equals(MovedKeys[i], key, StringComparison.Ordinal)) { moved = true; break; }
 
-                if (undecided)
-                    errors.Add($"5_time.json 的「{key}」**值尚未裁定** ⇒ 刻意不进 schema。" +
-                               "占位值与已裁定值在同形文件里不可分辨(ADR-038 §D1);" +
-                               "先裁值,再连同 schema_version 一起升,不得先塞占位值");
+                if (moved)
+                    errors.Add($"5_time.json 的「{key}」归天气产物 `5_weather.json` —— " +
+                               "天气参数与时间参数分文件(README 同款单表单文件),放错文件 ⇒ 硬失败");
                 else
                     errors.Add($"5_time.json 未知键「{key}」[ADR-014·unknown-key]" +
                                "(拼写错误会静默丢字段 ⇒ 构建期硬失败)");

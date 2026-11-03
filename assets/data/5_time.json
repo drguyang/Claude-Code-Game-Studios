@@ -1,6 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "ticks_per_day": 36000,
   "night_start": 27000,
-  "night_span": 9000
+  "night_span": 9000,
+  "ticks_per_season": 252000,
+  "seasons_per_year": 5
 }

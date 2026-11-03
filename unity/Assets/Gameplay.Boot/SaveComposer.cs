@@ -130,7 +130,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(
                 worldSeed, configVersion, tick, 0UL,
-                timeParams.TicksPerDay, timeParams.NightStart, timeParams.NightSpan);
+                timeParams.TicksPerDay, timeParams.NightStart, timeParams.NightSpan,
+                // 🔁 ADR-038 Amendment A(2026-11-03):v5 追加季 / 天气四值。
+                timeParams.TicksPerSeason, timeParams.SeasonsPerYear,
+                timeParams.WeatherBlockTicks, timeParams.IntensityMax);
             // 🔁 ADR-037 §① —— 配置版本段紧跟头部:**必须在事件段之前**。
             //    插在这里而不是尾部,是 v2→v3 迁移能成立的前提(迁移链按「从末尾算」比对正文,
             //    尾部追加必破该断言)。`null` ⇒ 写出 count=0(= 未知),不伪造。

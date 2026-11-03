@@ -46,15 +46,30 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>v4 起的完整头部长度(含校验和槽)= <see cref="FixedSizeV4"/> + 32。</summary>
         public const int HeaderSizeV4 = FixedSizeV4 + 32;
 
+        /// <summary>v5 追加的季/天气四值(i64 × 4 = 32 B;ADR-038 Amendment A)。</summary>
+        public const int SeasonWeatherBytes = 32;
+
+        /// <summary>v5 起的头部定长(不含校验和)= <see cref="FixedSizeV4"/> + 32 = 92。</summary>
+        public const int FixedSizeV5 = FixedSizeV4 + SeasonWeatherBytes;
+
+        /// <summary>v5 起的完整头部长度(含校验和槽)= <see cref="FixedSizeV5"/> + 32 = 124。</summary>
+        public const int HeaderSizeV5 = FixedSizeV5 + 32;
+
         /// <summary>按存档版本取头部定长(不含校验和槽)—— 正文起点 = 它(v4 起 60,更早 36)。</summary>
         /// <remarks>
         /// ⚠️ **正文解析必须走本方法**,不得硬编码 <see cref="FixedSize"/> ——
         /// 混用会把新增的时间参数当成正文首字段(实测症状:配置版本段读出 `count = 36000`)。
         /// </remarks>
-        public static int FixedSizeFor(uint saveVersion) => saveVersion >= 4 ? FixedSizeV4 : FixedSize;
+        public static int FixedSizeFor(uint saveVersion)
+            => saveVersion >= 5 ? FixedSizeV5
+             : saveVersion >= 4 ? FixedSizeV4
+             : FixedSize;
 
         /// <summary>按存档版本取完整头部长度(含校验和槽)。</summary>
-        public static int HeaderSizeFor(uint saveVersion) => saveVersion >= 4 ? HeaderSizeV4 : HeaderSize;
+        public static int HeaderSizeFor(uint saveVersion)
+            => saveVersion >= 5 ? HeaderSizeV5
+             : saveVersion >= 4 ? HeaderSizeV4
+             : HeaderSize;
 
         /// <summary>从**完整存档**(magic + 校验和 + …)读版本号 —— 只读一字段,不做其余解析。</summary>
         /// <param name="data">完整存档字节。</param>
@@ -102,9 +117,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public static byte[] WriteWithoutChecksum(
             ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset,
-            long ticksPerDay, long nightStart, long nightSpan)
+            long ticksPerDay, long nightStart, long nightSpan,
+            long ticksPerSeason, long seasonsPerYear,
+            long weatherBlockTicks, long intensityMax)
         {
-            var w = new CodecWriter(FixedSizeV4);
+            var w = new CodecWriter(FixedSizeV5);
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.Magic));
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.CurrentSaveVersion));
             w.WriteUInt64LittleEndian(worldSeed);
@@ -115,6 +132,11 @@ namespace DaYiJingCheng.Sim.Codec
             w.WriteInt64LittleEndian(ticksPerDay);
             w.WriteInt64LittleEndian(nightStart);
             w.WriteInt64LittleEndian(nightSpan);
+            // v5(ADR-038 Amendment A):季 / 天气四值随档走。
+            w.WriteInt64LittleEndian(ticksPerSeason);
+            w.WriteInt64LittleEndian(seasonsPerYear);
+            w.WriteInt64LittleEndian(weatherBlockTicks);
+            w.WriteInt64LittleEndian(intensityMax);
             return w.ToArray();
         }
 
@@ -152,6 +174,8 @@ namespace DaYiJingCheng.Sim.Codec
             // ⚠️ 必须按版本判:调用方在**迁移之前**就会调本方法(`SaveService.Load`),
             //    而 v3 档的头部没有这 24 B —— 无条件读会把正文前 24 B 当成时间参数。
             long ticksPerDay = 0L, nightStart = 0L, nightSpan = 0L;
+            long ticksPerSeason = 0L, seasonsPerYear = 0L;
+            long weatherBlockTicks = 0L, intensityMax = 0L;
             if (saveVersion >= 4)
             {
                 if (data.Length < HeaderSize + TimeParamsBytes)
@@ -162,6 +186,17 @@ namespace DaYiJingCheng.Sim.Codec
                 nightStart = r.ReadInt64LittleEndian();
                 nightSpan = r.ReadInt64LittleEndian();
             }
+            if (saveVersion >= 5)
+            {
+                if (data.Length < HeaderSize + TimeParamsBytes + SeasonWeatherBytes)
+                    throw new InvalidDataException(
+                        $"存档声明 v{saveVersion}(含季/天气参数),但长度 {data.Length} 字节 < " +
+                        $"头部 {HeaderSize + TimeParamsBytes + SeasonWeatherBytes} 字节");
+                ticksPerSeason = r.ReadInt64LittleEndian();
+                seasonsPerYear = r.ReadInt64LittleEndian();
+                weatherBlockTicks = r.ReadInt64LittleEndian();
+                intensityMax = r.ReadInt64LittleEndian();
+            }
 
             // ⚠️ 校验和槽不进 SaveHeader 的构造器(它不接受),逐字段回填
             return new SaveHeader(worldSeed, configVersion, tick, snapshotOffset)
@@ -170,6 +205,10 @@ namespace DaYiJingCheng.Sim.Codec
                 TicksPerDay = ticksPerDay,
                 NightStart = nightStart,
                 NightSpan = nightSpan,
+                TicksPerSeason = ticksPerSeason,
+                SeasonsPerYear = seasonsPerYear,
+                WeatherBlockTicks = weatherBlockTicks,
+                IntensityMax = intensityMax,
             };
         }
 

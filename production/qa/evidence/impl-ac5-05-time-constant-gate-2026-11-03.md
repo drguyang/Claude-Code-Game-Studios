@@ -113,7 +113,7 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/Sim/time_constant_gate_test.cs   
 | 换名同值(`{"day_length": 36000}`) | **结构性盲区** | 门按**名字**判。按值判会把一切恰好等于 36000 的 JSON 判红,噪音不可接受 ⇒ 不采用,登记 |
 | 大小写变体(`ticksPerDay` 在 `.cs` 里) | **刻意不管** | 现存唯一一例是夹具值 `event_budget_defer_test.cs:99`(`1200`);判红它会迫使夹具去读生产常量(= 自指判据,`F3`) |
 | 注释/字符串里的声明 | **已不误报** | 由 `StripCommentsAndLiterals` 处理,⑦–⑩ 钉住 |
-| **构建期探针轮**(证明门在建构建时真的被调用) | **NOT-RUN** | 接线在源码里:`AssemblyGates.cs:229` 内一行 `errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."))`,由 `gate_wiring_manifest_test.cs` 的 `EntryWiringManifest` / `ClassConsumerManifest` 双向钉住。但按 `CLAUDE.md` §构建前门,**构建绿 ≠ 门跑了** —— 未做「插无条件失败项 ⇒ 要求 `Build Failure`」的探针轮 ⇒ **不声称已证构建时生效** |
+| **构建期探针轮**(证明门在建构建时真的被调用) | ~~**NOT-RUN**~~ → ✅ **2026-11-03 已跑(见 §九)** | 接线在源码里:`AssemblyGates.cs:229` 内一行 `errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."))`,由 `gate_wiring_manifest_test.cs` 的 `EntryWiringManifest` / `ClassConsumerManifest` 双向钉住。~~但按 `CLAUDE.md` §构建前门,**构建绿 ≠ 门跑了** —— 未做探针轮 ⇒ 不声称已证构建时生效~~ ⇒ **§九 已补探针轮:干净构建 `Success`;插无条件失败项后 `Result: Failure`,探针串在日志、栈帧指向 `BuildGate.OnPreprocessBuild`,utp 在 `Preprocess Player` 即止** |
 
 ---
 
@@ -131,3 +131,45 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/Sim/time_constant_gate_test.cs   
 ① §七最后一行的**构建期探针轮**仍是 `NOT-RUN`;
 ② 门的**换名同值盲区**仍在(按名字判,不看值)。52 今天是**唯一**的跨表引用方,
 若将来出现第三份数据集复制日长,只要它用了 `TICKS_PER_DAY` 之外的键名,门照不到 —— 仍登记为盲区。
+
+---
+
+## 九、构建期探针轮(2026-11-03 · 结清 §七 最后一行)
+
+**判据来源**:`CLAUDE.md` §构建前门(BuildGate)——「绿 = 没报错,**不等于**门跑了」。
+**载体**:`Editor.Tools.Bake/Cli/CostTableProbeBuildCli.Build`(全仓唯一 `BuildPipeline.BuildPlayer` 入口)。
+
+| 轮 | 变异 | 结果 | 证据 |
+|---|---|---|---|
+| 干净轮 | 无 | `Build Finished, Result: Success` · CLI `Result: Succeeded` | `unity/Logs/probe-ac505-clean.log` |
+| 探针轮 | `TimeConstantSingleDefinitionGate.RunAll` 首行插**无条件**失败项(`[PROBE][AC-5-05] …`) | `Build Failed` · `Result: Failure` · 退出码 **1** | `unity/Logs/probe-ac505-probe.log:1013` |
+
+**归因三件套(逐项,缺一不算证明)**:
+
+1. **探针串在构建日志里** —— `probe-ac505-probe.log:1013`
+   `[PROBE][AC-5-05] 构建前门探针:本串出现 = 门在构建时被执行。`
+   该串**只存在于** `TimeConstantSingleDefinitionGate.RunAll` 的变异版里
+   ⇒ 它出现本身就证明该方法被执行(不是「可能被调用」的推断)。
+2. **`Debug.LogError` 的栈帧** —— 同一日志 `:1020`
+   `DaYiJingCheng.EditorTools.Gates.AssemblyGates/BuildGate:OnPreprocessBuild (…) (at Assets/Editor.Tools.Gates/AssemblyGates.cs:1501)`
+   ⚠️ 按 `CLAUDE.md` 的提醒:栈帧给的是 **`Debug.LogError` 所在行**(1501),不是接线行;
+   接线(`errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."))`)在 `:229` ——
+   **本条是论证,不是直接观测**。直接观测是第 1 条(探针串唯一来源即该门)。
+3. **构建因它失败** —— `BuildFailedException: [AssemblyGates] 构建前门失败 1 条(…)`
+   (`AssemblyGates.cs:1502`)· `Build Finished, Result: Failure.` · utp 行:
+   `##utp:{…,"steps":[{"description":"Preprocess Player","duration":3143}],"duration":3143}`
+   ⇒ 步骤在 **Preprocess Player 即止**,未进入后续构建阶段。
+   报错总数 = **2**(探针行 1 条 + `BuildFailedException` 1 条)。
+
+**还原判据 = SHA-256 逐字节**:
+```
+探测前 2b612e08d47ed2e2c4cf06ae5225393e14a710e5c52d76cda541f49195b29d5c
+探测后 2b612e08d47ed2e2c4cf06ae5225393e14a710e5c52d76cda541f49195b29d5c
+```
+**构建派生改动(② 正常派生,已还原)**:成功轮与探针轮都让
+`unity/Assets/Settings/UniversalRenderPipelineGlobalSettings.asset` 的 `m_RuntimeSettings`
+从 16 条 rid 变 `[]`(`OnBeforeSerialize` 在 `isBuildingPlayer` 时 `Clear()` + `PerformStripping`)。
+按 `.claude/docs/coding-standards.md` §工作树卫生:该文件是**混合文件**,不能整文件忽略 ⇒
+本轮构建结束后 `git checkout --` 还原回 `HEAD`,工作树归零。
+⚠️ 这与 2026-10-31 的「成功构建后 `git status` 干净」**不一致** —— 本轮成功轮确实留下了改动。
+如实登记:**「成功构建后干净」不是稳定事实**,判读时按派生组 ① 处理。

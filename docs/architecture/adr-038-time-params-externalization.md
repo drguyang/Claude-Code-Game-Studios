@@ -168,6 +168,12 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 不是「跑起来的配置」。**不得**把它写成「52 已数据驱动」。
 52 的运行期消费归 52 的实现轮;本 ADR 只保证「一旦有人读,读到的必须是 5 的同值」。
 
+**🔁 2026-11-03 收口轮的部分推进(原文不删)**:`ROLL_INTERVAL` 已有**一个真实的生产消费点**
+—— `BootRoot.RequireCrossDatasetWindow` 在启动期读它,与 5 的日长做整除校验(R2);
+这条校验也在读档 hydrate 时重跑。**其余三值**(`WINDOW_SIZE` / `BASE` / `BUDGET_MAX`)
+仍零消费 —— 它们要等 52 的预算 / 抽池主循环(`EventBudget.ComputeDailyBudget` 同样零生产调用点),
+归「52 运行期消费」ADR,不在本件面内。
+
 ### D8 —(就地裁定)AC-5-05 门的补洞
 
 2026-11-03 立门时,`DefinitionPattern` 要求「类型 + 名字 + `=`」,因此**看不见**
@@ -176,6 +182,45 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 (夹具须含一条「无初始化声明 ⇒ 红」)。
 
 ---
+
+### D9 — Amendment A(2026-11-03 用户裁定):季 / 天气四值同期外置,并存档 v5
+
+**裁定**:AC-5-11 的三条季 / 天气参数要做到**与时间三值同层** —— 外置 + 装载期校验
++ **进存档**。理由是 D3 的同一条:这四个量都是**模拟 / 掷骰的输入**(季长 → 17 的采集;
+天气块长 → 5 的天气掷骰),不随档走 ⇒ 旧档重放出的世界与玩家经历的不同,
+而 `ConfigVersion` 不匹配按 ADR-010 §七 **非致命**。
+
+**值**(用户同日裁定):
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `TICKS_PER_SEASON` | **252000** | = 7 × 36000(7 日/季;约 3.5 小时实时) |
+| `SEASONS_PER_YEAR` | **5** | 与 17 的 `SEASON_MULT[]` 表长相等(`AC-17-16` 要求);含长夏 |
+| `WEATHER_BLOCK_TICKS` | **6000** | = 5 分钟实时,且整除 36000 |
+| `INTENSITY_MAX` | **100** | 强度上界 |
+
+**形状**:
+- `5_time.json` **schema_version 2**:追加 `ticks_per_season` / `seasons_per_year`;
+  烘焙产物载荷 24 → **40 B**。
+- 新产物 `5_weather.json` → `5_weather.cooked.bytes`(载荷 16 B,两值)。
+  天气是 5 的**另一张表** ⇒ 单表单文件,不塞进 `5_time.json`。
+- 存档 **v5**:头部在 v4 的 24 B 之后**再追加 32 B**(四值 i64);
+  `FixedSizeV5 = 92` / `HeaderSizeV5 = 124`;新增 `SaveMigrationV4ToV5`(插 32 B + 写版本 5)。
+- `BootRoot.ResolveWeatherParams` 与 `ResolveTimeParams` 同口径(非法 ⇒ 启动期硬失败)。
+- `RequireTimeParams` 扩到七值;`SaveTimeParams` 扩到七值;
+  `IsSpecified` **只判非零**、不判关系 —— 关系归 `Validate()` / `ValidateSeason()` /
+  `WeatherParams.Validate()`。两层分开的理由:否则「值非法」会伪装成「没给值」,
+  归因指向错误的修复方向(实现时实测踩到)。
+
+**同时结清的两件**:
+- **R2 的端到端可达性**:整除判据并入 `HydrateTimeParams(loaded, rollInterval)`,
+  并新增启动期 `RequireCrossDatasetWindow`(读 52 的 `ROLL_INTERVAL`)——
+  52 数据集自此有**一个真实的生产消费点**(其余三值仍待「52 运行期消费」ADR,见 D7)。
+- `AC-5-11` 五条的装载路径层:①–④ 经 `ResolveTimeParams`、⑤ 经 `ResolveWeatherParams`,
+  每条都有「直接注入」与「经装载路径」两条夹具。
+
+**未做(不得借绿)**:天气两值在**运行期仍无消费方**(`WeatherRoll` 无生产调用点)——
+存档记录它们是为「一旦接线即可重放」,不表示天气已跑起来。
 
 ## Consequences
 
@@ -212,7 +257,7 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 | **R1** | **读档 hydrate 覆盖面不全** —— 若某处仍在用数据集的值而非存档值,则会漂移 | hydrate 后**单一入口**:`TimeParams` 由 `BootRoot` 建一次并注入所有消费者;夹具断言「读档后 `TimeParams` 三值 == 存档头三值」 |
 | **R2** | **`roll_interval` 与存档日长不整除**(D4 的边界) | 读档后重跑整除断言 ⇒ 拒收。**今日不可达**(只存在过 36000),但判据必须在 |
 | **R3** | **迁移写 36000 是事实,但未来升 v5 时会被误读成「当时可能有别的值」** | ADR 正文与本条明确记录:480 从未出货 |
-| **R4** | `AC-5-11` 三条参数的「装载路径」层仍 **NOT-RUN** | D1 已明写;不得用「夹具能注入」冒充 |
+| **R4** | ~~`AC-5-11` 三条参数的「装载路径」层仍 NOT-RUN~~ → ✅ **2026-11-03 Amendment A 结清**:季/天气四值已进 schema 与装载路径,五条全部可经 `ResolveTimeParams` / `ResolveWeatherParams` 触发 | 每条都有「直接注入」+「经装载路径」两条夹具 |
 | **R5** | **`Sim/TimeBase.cs` 删除后,`FDiv` 异常类型变化**可能让某条既有夹具变红 | D6 要求同批改夹具并在提交里点名 |
 | **R6** | 52 数据集**零生产消费**(D7),易被后续读者当成「52 已接数据」 | D7 已明写;数据集文件头同款声明 |
 
@@ -236,7 +281,7 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 
 | # | 判据 | 载体 |
 |---|---|---|
-| V-1 | `5_time` 烘焙产物解码后三值 == JSON 三值 | `time_params_bake_test` |
+| V-1 | `5_time` 烘焙产物解码后三值 == JSON 三值(Amendment A 后追加季二值) | `time_params_bake_test` |
 | V-2 | `52_random_events` 的 `$ref` 解析后 == `5_time` 的同值 | `random_events_binder_test` |
 | V-3 | 52 的 JSON 把 `ticks_per_day` 写成数字 ⇒ **烘焙失败** | 同上(负控) |
 | V-4 | AC-5-11 五条逐参数硬失败 | `time_params_validate_test`(5 条独立 `[Test]`) |
@@ -246,6 +291,11 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 | V-8 | 非法头部三值 ⇒ 拒收 | 同上 |
 | V-9 | `saveTPD % roll_interval != 0` ⇒ 拒收(R2) | 同上 |
 | V-10 | AC-5-05 门:补「无初始化声明 ⇒ 红」的变异 | `time_constant_gate_test` 扩条 |
+| **V-11**(Amd A) | 存档 v5 写出七值、读回七值 | `save_v5_runtime_params_test.test_v5_roundTripsAllSevenValues` |
+| **V-12**(Amd A) | v4→v5 迁移写入裁定四值;v3→v5 三级链成立 | 同上(两条) |
+| **V-13**(Amd A) | 档头任一季/天气值非法 ⇒ 拒收 | 同上(三条:季长 0 / 年 1 季 / 块长 0) |
+| **V-14**(Amd A) | AC-5-11 五条**均经装载路径**触发 | `time_params_validate_test`(5 条 load-path 用例 + 正控) |
+| **V-15**(Amd A) | 启动期交叉校验(5 日长 vs 52 的 roll_interval)可注入非法值 | `save_v5_runtime_params_test.test_crossDatasetWindow_*` |
 
 ---
 
@@ -261,6 +311,7 @@ Addressables 侧只新增两个 address 条目(既有机制,`DataCorePreloader` 
 | AC | 本 ADR 的关系 |
 |---|---|
 | `AC-5-05` | 提供**数据侧的判据形状**(D2 / D8)。**本 ADR 不结该 AC** —— 实现轮的 V-2 / V-3 / V-10 全绿后才可勾 |
-| `AC-5-11` | 提供**装载路径**;五条中 2 条可完整闭合,3 条只到「夹具注入」层(D1 / R4) |
+| `AC-5-11` | 提供**装载路径**。🔁 **Amendment A(2026-11-03)**:五条**全部**经装载路径触发
+(①–④ `ResolveTimeParams`、⑤ `ResolveWeatherParams`)⇒ R4 的「三条只到夹具注入层」**已结清** |
 | `AC-52-*` 的数值 | 定 `6 / 2 / 6 / 6000`(用户 2026-11-03);形态侧归 52 的实现轮 |
 | `AC-7a-14` | 存档 v4 的迁移走既有链,两条不变量不变 |

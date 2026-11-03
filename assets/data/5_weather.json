@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "weather_block_ticks": 6000,
+  "intensity_max": 100
+}

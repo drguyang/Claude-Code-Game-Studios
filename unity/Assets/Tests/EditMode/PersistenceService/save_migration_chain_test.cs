@@ -45,7 +45,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static byte[] Save(uint version, ulong worldSeed, byte[] body = null)
         {
             byte[] v4Header = SaveHeaderCodec.WriteWithoutChecksum(
-                worldSeed, 7U, 100L, 0UL, 36000L, 27000L, 9000L);
+                worldSeed, 7U, 100L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
             // ADR-038 §D3:按**目标版本**取头部长度 —— v4 起 60 B,更早 36 B
             // (v<4 的头就是 v4 头的前 36 字节,布局完全一致)。
             int headerLen = SaveHeaderCodec.FixedSizeFor(version);

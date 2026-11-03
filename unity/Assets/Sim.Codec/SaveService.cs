@@ -889,7 +889,9 @@ namespace DaYiJingCheng.Sim.Codec
             LastLoadedConfigVersion = header.ConfigVersion;
             // ADR-038 §D3:同理 —— 只有完整成功的读档才交出时间参数。
             LastLoadedTimeParams = new SaveTimeParams(
-                header.TicksPerDay, header.NightStart, header.NightSpan);
+                header.TicksPerDay, header.NightStart, header.NightSpan,
+                header.TicksPerSeason, header.SeasonsPerYear,
+                header.WeatherBlockTicks, header.IntensityMax);
         }
 
         /// <summary>载入前置门:叙事上下文 + 槽位未锁(与写同钩,规则十四 / AC-7a-19 (d))。</summary>
@@ -947,6 +949,27 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidDataException(
                     $"存档 v{header.SaveVersion} 的 NIGHT_SPAN = {header.NightSpan} 不在 " +
                     $"(0, {header.TicksPerDay}) 内 —— 拒收(ADR-038 §D3)");
+
+            if (header.SaveVersion < 5) return;   // v4 档没有这四个字段;迁移后重读时才成立
+
+            if (header.TicksPerSeason <= 0)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 TICKS_PER_SEASON = {header.TicksPerSeason} —— 须 > 0" +
+                    "(ADR-038 Amendment A:季长为 0 会让季节轴失去定义)");
+
+            if (header.SeasonsPerYear < 2)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 SEASONS_PER_YEAR = {header.SeasonsPerYear} —— 须 ≥ 2" +
+                    "(=1 轴退化,与「恒夜」同判据)");
+
+            if (header.WeatherBlockTicks <= 0)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 WEATHER_BLOCK_TICKS = {header.WeatherBlockTicks} —— 须 > 0" +
+                    "(块长为 0 = 除零)");
+
+            if (header.IntensityMax <= 0)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 INTENSITY_MAX = {header.IntensityMax} —— 须 > 0");
         }
 
         /// <summary>

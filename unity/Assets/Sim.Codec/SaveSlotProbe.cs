@@ -144,10 +144,10 @@ namespace DaYiJingCheng.Sim.Codec
                     if (fs.Length < SaveHeaderCodec.HeaderSize)
                         return new SaveSlotSummary(SaveSlotState.Corrupt, 0L, 0U);
 
-                    // ADR-038 §D3:v4 的头部多 24 B。按**文件实际长度**取(不超过 v4 头),
-                    // 这样 v3 档(68+B)照样能读 —— 短读不构成损坏,v4 档读不满才由
-                    // `SaveHeaderCodec.Read` 的「声明 v4 但长度不足」判 Corrupt。
-                    int want = (int)System.Math.Min(fs.Length, SaveHeaderCodec.HeaderSizeV4);
+                    // ADR-038 §D3 / Amendment A:v4 头 +24 B、v5 头 +32 B。按**文件实际长度**取
+                    // (不超过 v5 头),这样 v3 / v4 档照样能读 —— 短读不构成损坏;
+                    // 声明 v5 而读不满才由 `SaveHeaderCodec.Read` 的「长度不足」判 Corrupt。
+                    int want = (int)System.Math.Min(fs.Length, SaveHeaderCodec.HeaderSizeV5);
                     buf = new byte[want];
 
                     while (read < buf.Length)
@@ -170,8 +170,10 @@ namespace DaYiJingCheng.Sim.Codec
             try
             {
                 SaveHeader header = SaveHeaderCodec.Read(buf);
-                SaveTimeParams time = header.SaveVersion >= 4
-                    ? new SaveTimeParams(header.TicksPerDay, header.NightStart, header.NightSpan)
+                SaveTimeParams time = header.SaveVersion >= 5
+                    ? new SaveTimeParams(header.TicksPerDay, header.NightStart, header.NightSpan,
+                                         header.TicksPerSeason, header.SeasonsPerYear,
+                                         header.WeatherBlockTicks, header.IntensityMax)
                     : default(SaveTimeParams);
                 return new SaveSlotSummary(SaveSlotState.Occupied, header.Tick,
                                            header.SaveVersion, time);

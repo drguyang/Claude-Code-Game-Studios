@@ -719,17 +719,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ 这里**不回落**任何常数 —— 拿不到就抛(缺失 = 配置面坏了,
                     //    写一份时间参数为 0 的档会让它在读回时无法重放)。
                     Sim.TimeParams saveTime = BootRoot.ResolveTimeParams(dataProvider);
-                    if (saveTime == null)
+                    Sim.WeatherParams saveWeather = BootRoot.ResolveWeatherParams(dataProvider);
+                    if (saveTime == null || saveWeather == null)
                         throw new InvalidOperationException(
-                            "[E-13][persist] 写档缺少时间参数(5_time 未装载)—— " +
-                            "存档 v4 必须记录 TICKS_PER_DAY / NIGHT_START / NIGHT_SPAN(ADR-038 §D3);" +
+                            "[E-13][persist] 写档缺少时间 / 天气参数(5_time 或 5_weather 未装载)—— " +
+                            "存档 v5 必须记录时间三值 + 季二值 + 天气二值(ADR-038 §D3 / Amendment A);" +
                             "回落默认值会让「配置读错」与「一切正常」在存档里不可分");
 
                     return SaveComposer.Compose(
                         stream.Events, foldedPredicate, decoder, new SaveCodec(),
                         worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick,
                         timeParams: new SaveTimeParams(
-                            saveTime.TICKS_PER_DAY, saveTime.NIGHT_START, saveTime.NIGHT_SPAN),
+                            saveTime.TICKS_PER_DAY, saveTime.NIGHT_START, saveTime.NIGHT_SPAN,
+                            saveTime.TICKS_PER_SEASON, saveTime.SEASONS_PER_YEAR,
+                            saveWeather.WEATHER_BLOCK_TICKS, saveWeather.INTENSITY_MAX),
                         existingFoldedRows: stream.FoldedRows,
                         // 🔁 2026-10-31 ADR-037 §①:配置版本段(逐份)。null ⇒ 写 count=0(=未知)。
                         artifactConfigs: resolvedArtifacts,
@@ -947,6 +950,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                         new SaveMigrationV2ToV3(),
                         // ADR-038 §D3(2026-11-03):v3 → v4 在旧头部末尾插入时间三参数。
                         new SaveMigrationV3ToV4(),
+                        // ADR-038 Amendment A(2026-11-03):v4 → v5 追加季 / 天气四值。
+                        new SaveMigrationV4ToV5(),
                     });
 
                 // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25 三裁全取推荐):

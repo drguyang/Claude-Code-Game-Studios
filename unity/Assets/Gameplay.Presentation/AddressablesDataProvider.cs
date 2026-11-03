@@ -222,6 +222,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 今日本产物**零生产消费方**(见 `RandomEventsDataSet` 头注 / ADR-038 §D7)。</para></summary>
         public const string RandomEventsAddress = "52_random_events.cooked.bytes";
 
+        /// <summary>5 天气参数(`5_weather.cooked.bytes`;ADR-038 Amendment A 新增)。
+        /// <para>块长 / 强度上界的唯一运行期来源;启动期进 `WeatherParams.Validate()`(AC-5-11)。</para></summary>
+        public const string WeatherParamsAddress = "5_weather.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -286,6 +290,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private TimeParamsDataSet? _timeParams;
         // 52 随机事件配置(ADR-038 §D4 · 2026-11-03):struct 解码形 ⇒ 可空承载。
         private RandomEventsDataSet? _randomEvents;
+        // 5 天气参数(ADR-038 Amendment A · 2026-11-03):struct 解码形 ⇒ 可空承载。
+        private WeatherParamsDataSet? _weatherParams;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -488,6 +494,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureRandomEvents();
                 return (TDataSet)(object)_randomEvents.Value;
             }
+            if (typeof(TDataSet) == typeof(WeatherParamsDataSet))
+            {
+                EnsureWeatherParams();
+                return (TDataSet)(object)_weatherParams.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -509,7 +520,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 生态区多边形(关卡工具 story-003 2026-10-29:WorldEcozonesDataSet)" +
                 " + POI 定义 / 资源点(关卡工具 story-004 2026-10-29:WorldPoiDataSet / WorldResourcesDataSet)" +
                 " + 5 时间参数(ADR-038 §D1 2026-11-03:TimeParamsDataSet)" +
-                " + 52 随机事件配置(ADR-038 §D4 2026-11-03:RandomEventsDataSet)");
+                " + 52 随机事件配置(ADR-038 §D4 2026-11-03:RandomEventsDataSet)" +
+                " + 5 天气参数(ADR-038 Amendment A 2026-11-03:WeatherParamsDataSet)");
         }
 
         /// <summary>
@@ -580,6 +592,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureForagingConstants();    // S22-9(2026-11-01):17 采前闸三条公式的装载输入
             EnsureTimeParams();           // ADR-038 §D1(2026-11-03):时间三参数的装载输入
             EnsureRandomEvents();         // ADR-038 §D4(2026-11-03):52 配置(今日零消费方)
+            EnsureWeatherParams();        // ADR-038 Amendment A(2026-11-03):天气块长 / 强度上界
         }
 
         /// <summary>52 随机事件配置装载(ADR-038 §D4 · 2026-11-03)。
@@ -598,6 +611,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 52 随机事件配置 cooked 解码失败(address={RandomEventsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>5 天气参数装载(ADR-038 Amendment A · 2026-11-03)。
+        /// <para>与 <see cref="EnsureTimeParams"/> 同款:E-13 硬失败,绝不降级;值域校验归
+        /// `Sim.WeatherParams.Validate()`(AC-5-11),由装载方调用。</para></summary>
+        private void EnsureWeatherParams()
+        {
+            if (_weatherParams.HasValue) return;
+            byte[] bytes = FetchBytes(WeatherParamsAddress);
+            try
+            {
+                _weatherParams = WeatherParamsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 5 天气参数 cooked 解码失败(address={WeatherParamsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

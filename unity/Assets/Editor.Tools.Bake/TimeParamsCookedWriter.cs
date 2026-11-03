@@ -6,10 +6,12 @@
 //    改一处必须改两处(与 DiagnosisReadFloor* 同纪律)。
 //
 // ⚠️ 载荷布局(全部 little-endian):
-//    ticks_per_day : i64
-//    night_start   : i64
-//    night_span    : i64
-// 固定 24 B,零变长字段 ⇒ 读方可用固定头断言。
+//    ticks_per_day    : i64
+//    night_start      : i64
+//    night_span       : i64
+//    ticks_per_season : i64   (schema 2 起;2026-11-03 裁定)
+//    seasons_per_year : i64   (同上)
+// 固定 40 B,零变长字段 ⇒ 读方可用固定头断言。
 
 using System.IO;
 using System.Text;
@@ -20,8 +22,8 @@ namespace DaYiJingCheng.EditorTools.Bake
     /// <summary>`5_time` 的 deterministic cooked 写入器。</summary>
     internal static class TimeParamsCookedWriter
     {
-        /// <summary>载荷固定字节数(3 × i64)。读方据此做长度断言。</summary>
-        public const int PayloadBytes = 24;
+        /// <summary>载荷固定字节数(5 × i64)。读方据此做长度断言。</summary>
+        public const int PayloadBytes = 40;
 
         /// <summary>编码(含 20 字节头)。</summary>
         public static byte[] Write(in TimeParamsBinder.BindResult bound, uint configVersion)
@@ -32,6 +34,8 @@ namespace DaYiJingCheng.EditorTools.Bake
                 w.Write(bound.TicksPerDay);
                 w.Write(bound.NightStart);
                 w.Write(bound.NightSpan);
+                w.Write(bound.TicksPerSeason);
+                w.Write(bound.SeasonsPerYear);
                 w.Flush();
                 return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);
             }

@@ -269,7 +269,7 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] unsigned = SaveComposer.Compose(
                 events, folded, decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 9U, tick: tick,
-                timeParams: new SaveTimeParams(36000L, 27000L, 9000L), blobPool: pool);
+                timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), blobPool: pool);
             File.WriteAllBytes(Path.Combine(_testDir, $"save_{slotSeq}.bin"),
                                SaveService.AddChecksum(unsigned));
         }

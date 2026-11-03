@@ -322,6 +322,11 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    字节变 ⇒ 本门红。
             new ArtifactBake(RandomEventsBaker.CookedFileName,
                 root => RandomEventsBaker.BakeFromRepo(root).Cooked),
+
+            // ── 5 天气参数(1 份;ADR-038 Amendment A · 2026-11-03)──
+            //    ⚠️ 本门**第十二次**遇到「新增产物」这一步。
+            new ArtifactBake(WeatherParamsBaker.CookedFileName,
+                root => WeatherParamsBaker.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -471,7 +476,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
             // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
             // 🔁 2026-11-02(AC-4-22):38 → 39(+world_containers,开档容器实例)。
-            const int pinnedDeclared = 41; // 2026-11-03 实测(41 份;+1 = 52_random_events · ADR-038 §D4)
+            const int pinnedDeclared = 42; // 2026-11-03 实测(42 份;+1 = 5_weather · ADR-038 Amendment A)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

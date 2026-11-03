@@ -4,20 +4,20 @@
 //   design/gdd/time-and-weather.md:671(AC-5-11 全文)
 //   ADR-038 §D1(五条里哪三条由装载路径触发、哪两条只到「夹具注入」层 · R4)
 //
-// ⚠️ **判据归属(必须如实区分,不得混记成「五条全绿」)**:
-//   ① `TICKS_PER_DAY = 0`          —— 装载路径可达(`TimeParams.Validate`,数据文件可写坏)
-//   ② `NIGHT_SPAN ≥ TICKS_PER_DAY` —— 同上
-//   ③ `SEASONS_PER_YEAR < 2`       —— **只到夹具注入层**(两个季参数值未裁定、不在 schema 里)
-//   ④ `TICKS_PER_SEASON = 0`       —— 同上
-//   ⑤ `WEATHER_BLOCK_TICKS = 0`    —— `WeatherParams.Validate` 已有(C-5 路径),装载路径同上
-//   AC-5-11 的 GIVEN 原文就是「**注入**各非法配置」⇒ ①–⑤ 的夹具注入面均成立;
-//   但「由装载路径触发」这一层,③④⑤ 今日 **NOT-RUN**(ADR-038 §D1 / R4)。
+// 🔁 **2026-11-03(ADR-038 Amendment A)**:五条**全部**由装载路径触发 ——
+//   ① `TICKS_PER_DAY = 0` ② `NIGHT_SPAN ≥ TICKS_PER_DAY` ③ `SEASONS_PER_YEAR < 2`
+//   ④ `TICKS_PER_SEASON = 0` ⑤ `WEATHER_BLOCK_TICKS = 0`
+//   ①②③④ 走 `BootRoot.ResolveTimeParams(provider)`;⑤ 走 `BootRoot.ResolveWeatherParams(provider)`。
+//   ⇒ 每一条都同时有两条夹具:**直接注入** 与 **经装载路径**(假 provider 喂坏值)。
+//   ⚠️ 「值未裁定」这一层已消失(2026-11-03 用户裁定 252000 / 5 / 6000 / 100)。
 //
 // ⚠️ 每条**独立**一个 `[Test]`(AC 明令「不得合并」),且都带**正控**(合法值不抛)——
 //    否则「一律抛」也能骗过全部负控(F4 空洞正控)。
 
 using System;
+using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.TimeWeather
@@ -109,6 +109,113 @@ namespace DaYiJingCheng.Tests.TimeWeather
             p.WEATHER_BLOCK_TICKS = 0L;
             var ex = Assert.Throws<ArgumentException>(() => p.Validate());
             Assert.That(ex.Message, Does.Contain("WEATHER_BLOCK_TICKS"));
+        }
+
+        // ══════════════ 装载路径(Amendment A:五条全部可达)══════════════
+
+        [Test]
+        public void test_loadPath_positiveControl()
+        {
+            Assert.DoesNotThrow(() => BootRoot.ResolveTimeParams(
+                new FakeProvider(ValidTimeData())));
+            Assert.DoesNotThrow(() => BootRoot.ResolveWeatherParams(
+                new FakeProvider(weather: new WeatherParamsDataSet
+                {
+                    WeatherBlockTicks = 6000L,
+                    IntensityMax = 100L,
+                })));
+        }
+
+        [Test]
+        public void test_loadPath_ticksPerDayZero_throws()
+        {
+            TimeParamsDataSet d = ValidTimeData();
+            d.TicksPerDay = 0L;
+            var ex = Assert.Throws<ArgumentException>(
+                () => BootRoot.ResolveTimeParams(new FakeProvider(d)));
+            Assert.That(ex.Message, Does.Contain("TICKS_PER_DAY"));
+        }
+
+        [Test]
+        public void test_loadPath_nightSpanNotLessThanDay_throws()
+        {
+            TimeParamsDataSet d = ValidTimeData();
+            d.NightSpan = d.TicksPerDay;
+            var ex = Assert.Throws<ArgumentException>(
+                () => BootRoot.ResolveTimeParams(new FakeProvider(d)));
+            Assert.That(ex.Message, Does.Contain("NIGHT_SPAN"));
+        }
+
+        [Test]
+        public void test_loadPath_seasonsPerYearLessThanTwo_throws()
+        {
+            TimeParamsDataSet d = ValidTimeData();
+            d.SeasonsPerYear = 1L;
+            var ex = Assert.Throws<ArgumentException>(
+                () => BootRoot.ResolveTimeParams(new FakeProvider(d)));
+            Assert.That(ex.Message, Does.Contain("SEASONS_PER_YEAR"));
+        }
+
+        [Test]
+        public void test_loadPath_ticksPerSeasonZero_throws()
+        {
+            TimeParamsDataSet d = ValidTimeData();
+            d.TicksPerSeason = 0L;
+            var ex = Assert.Throws<ArgumentException>(
+                () => BootRoot.ResolveTimeParams(new FakeProvider(d)));
+            Assert.That(ex.Message, Does.Contain("TICKS_PER_SEASON"));
+        }
+
+        [Test]
+        public void test_loadPath_weatherBlockTicksZero_throws()
+        {
+            var ex = Assert.Throws<ArgumentException>(
+                () => BootRoot.ResolveWeatherParams(new FakeProvider(
+                    weather: new WeatherParamsDataSet
+                    {
+                        WeatherBlockTicks = 0L,
+                        IntensityMax = 100L,
+                    })));
+            Assert.That(ex.Message, Does.Contain("WEATHER_BLOCK_TICKS"));
+        }
+
+        [Test]
+        public void test_loadPath_nullProvider_returnsNull_notAValidatedConfig()
+        {
+            // 「未预载」不是「配置合法」—— 返回 null,由调用方决定是否启动。
+            Assert.That(BootRoot.ResolveTimeParams(null), Is.Null);
+            Assert.That(BootRoot.ResolveWeatherParams(null), Is.Null);
+        }
+
+        // ══════════════ 夹具 ══════════════
+
+        private static TimeParamsDataSet ValidTimeData() => new TimeParamsDataSet
+        {
+            TicksPerDay = 36000L,
+            NightStart = 27000L,
+            NightSpan = 9000L,
+            TicksPerSeason = 252000L,
+            SeasonsPerYear = 5L,
+        };
+
+        /// <summary>只提供 5 的两份数据集的假 provider。</summary>
+        private sealed class FakeProvider : IDataProvider
+        {
+            private readonly TimeParamsDataSet? _time;
+            private readonly WeatherParamsDataSet? _weather;
+
+            public FakeProvider(TimeParamsDataSet time) => _time = time;
+
+            public FakeProvider(WeatherParamsDataSet weather) => _weather = weather;
+
+            public TDataSet Load<TDataSet>() where TDataSet : struct
+            {
+                if (typeof(TDataSet) == typeof(TimeParamsDataSet) && _time.HasValue)
+                    return (TDataSet)(object)_time.Value;
+                if (typeof(TDataSet) == typeof(WeatherParamsDataSet) && _weather.HasValue)
+                    return (TDataSet)(object)_weather.Value;
+                throw new NotSupportedException($"夹具未提供 {typeof(TDataSet).Name}");
+            }
         }
     }
 }

@@ -1105,6 +1105,17 @@
   掷骰输入,同属重放前提)· v3 档静默回落当前构建值(正是要消灭的静默漂移)。
   **§Validation V-1…V-10 全部未跑(禁借绿)** —— Accepted 表示方向已裁,不表示任何判据已通过。
   Engine Knowledge Risk **LOW**(纯数据边界 / BCL 字节布局 / 程序集归属,零 post-cutoff API)。
+  **⚠️ 2026-11-03 Amendment A(用户裁定「同时进存档 v5」)—— 季 / 天气四值同期外置**:
+  值 = `TICKS_PER_SEASON = 252000`(= 7 日/季)· `SEASONS_PER_YEAR = 5`(与 17 的 `SEASON_MULT[]`
+  表长相等,`AC-17-16`)· `WEATHER_BLOCK_TICKS = 6000` · `INTENSITY_MAX = 100`。
+  形状:`5_time.json` schema **2**(载荷 24 → **40 B**);新产物 `5_weather.cooked.bytes`
+  (载荷 16 B);存档 **v5**(头部再追加 32 B,`FixedSizeV5 = 92` / `HeaderSizeV5 = 124`,
+  新增 `SaveMigrationV4ToV5`);`RequireTimeParams` 扩到七值;`SaveTimeParams` 扩到七值,
+  `IsSpecified` **只判非零**(关系归 `Validate` / `ValidateSeason` / `WeatherParams.Validate`)。
+  **同时结清**:R2 的端到端可达性(hydrate 收 `rollInterval` + 启动期 `RequireCrossDatasetWindow`);
+  AC-5-11 五条的**装载路径层**(①–④ 经 `ResolveTimeParams`、⑤ 经 `ResolveWeatherParams`)。
+  **仍未做**:天气两值运行期零消费方(`WeatherRoll` 无生产调用点)· 52 的
+  `WINDOW_SIZE` / `BASE` / `BUDGET_MAX` 仍零消费(待「52 运行期消费」ADR)。
 
 > **本日志状态**:全部 ADR(001–**038**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;

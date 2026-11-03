@@ -117,11 +117,17 @@ cc94d13f…dd78af9  unity/Assets/Gameplay.Boot/BootRoot.cs
 
 | 套件 | 结果 | 截至时刻 | 批次 | commit |
 |---|---|---|---|---|
-| EditMode | `6724 / 6687 / 0 / 0 / 37`(total/passed/failed/inconclusive/skipped) | 2026-11-03 11:52 CST | sprint-24 · ADR-038 实现轮(证伪轮还原**之后**的终跑) | `50f17a7d` + 工作树 |
-| PlayMode | `324 / 320 / 0 / 2 / 2` | 2026-11-03 11:45 CST | 同上(全量重编译轮) | 同上 |
-| 编译警告 | **0** | 2026-11-03 11:45 CST | `touch` **1339** 个 `.cs` 后的全量重编译日志 | 同上 |
+| EditMode | `6742 / 6705 / 0 / 0 / 37`(total/passed/failed/inconclusive/skipped) | 2026-11-03 12:19 CST | sprint-24 · ADR-038 **Amendment A** 轮(证伪轮还原**之后**的终跑) | `59a1d54d` + 工作树 |
+| PlayMode | `324 / 320 / 0 / 2 / 2` | 2026-11-03 12:23 CST | 同上(全量重编译轮) | `59a1d54d` + 工作树 |
+| 编译警告 | **0** | 2026-11-03 12:23 CST | `touch` **1345** 个 `.cs` 后的全量重编译日志 | 同上 |
 
-**等式(可核)**:`6724 − 6702 = 22 = 12(random_events_binder_test)+ 10(save_v4_time_params_test)`。
+**等式(可核,本段 Amendment A 轮)**:`6742 − 6730 = 12`
+= `+3`(`save_v4_time_params_test` 16 → `save_v5_runtime_params_test` 19)
++ `+8`(`time_params_validate_test` 7 → 15,新增装载路径用例)
++ `+1`(`time_params_bake_test` 7 → 8)。
+`6730` = 本轮改存档 v5 **之前**的全量跑(同一工作树,`unity/Logs/editmode-r2.xml`)。
+
+**上一段(§五)的等式**:`6724 − 6702 = 22 = 12(random_events_binder_test)+ 10(save_v4_time_params_test)`。
 `6702` = 本批次**加这两个文件之前**的全量跑(同一工作树,`unity/Logs/editmode-v4.xml`)。
 ⚠️ **不声称**与批量 2 的 `6689` 之间的差额等式 —— 那一段还包含本轮对既有夹具的改动
 (门数据侧 / drift 两个产物 / `save_v3` 与 seam 夹具的 v4 适配),我没有逐条重算,不编算式。
@@ -166,3 +172,73 @@ grep -n "FixedSizeV4 = \|HeaderSizeV4 = " unity/Assets/Sim.Codec/SaveHeaderCodec
 # ⑤ 无变异残留
 grep -rn "MUTATION M" unity/Assets --include=*.cs | wc -l                       # 期望 0
 ```
+
+---
+
+## 七、后续轮(2026-11-03):探针轮 · R2 可达性 · Amendment A(存档 v5)
+
+用户在同一日追加四项要求:「52 零生产消费 · R2 端到端不可达 · AC-5-11 三条季/天气参数
+的装载期层 NOT-RUN · 构建期探针轮仍 NOT-RUN」,并对季/天气取值裁定
+**「同时进存档 v5」** + `252000 / 5 / 6000 / 100`。
+
+### 7.1 构建期探针轮(结清)
+
+见 `impl-ac5-05-time-constant-gate-2026-11-03.md` §九:干净构建 `Success`;探针轮
+`Result: Failure`,日志含探针串(:1013)、`Debug.LogError` 栈帧在
+`AssemblyGates.cs:1501`、`BuildFailedException` 在 `:1502`、utp steps 只有
+`Preprocess Player`(3143 ms)。SHA-256 还原一致。
+
+### 7.2 R2 端到端可达性(结清到决策层)
+
+- `HydrateTimeParams(loaded, rollInterval)` —— 整除判据并入 hydrate,**不再**是实例方法里
+  一行够不着的代码。
+- 新增 `BootRoot.RequireCrossDatasetWindow(time, provider)` —— 启动期读 52 的 `ROLL_INTERVAL`,
+  与 5 的日长做整除校验。这同时是 **52 数据集今日唯一的真实生产消费点**。
+- 夹具:hydrate 层 3 条 + provider 注入 3 条 +「存档 → Load → hydrate」端到端 1 条。
+- **仍未覆盖**:`BootRoot.Start` 里那一行启动期调用本身(需整机启动序;登记)。
+
+### 7.3 Amendment A:季 / 天气四值外置 + 存档 v5
+
+**用户裁定**:`TICKS_PER_SEASON = 252000`(7 日/季)· `SEASONS_PER_YEAR = 5`
+(与 17 的 `SEASON_MULT[]` 表长相等,`AC-17-16`)· `WEATHER_BLOCK_TICKS = 6000` ·
+`INTENSITY_MAX = 100`;范围 = **同时进存档 v5**。
+
+**落盘**:
+- `assets/data/5_time.json` —— schema **2**,追加季二值;产物 40 B 载荷(总 60 B)。
+- `assets/data/5_weather.json`(新)—— 天气二值;产物 16 B 载荷(总 36 B)。
+- 四件套:`WeatherParamsBinder / Baker / CookedWriter` + `WeatherParamsCookedCodec`
+  + `Sim.Contracts/WeatherParamsDataSet`。
+- provider:`WeatherParamsAddress` · `EnsureWeatherParams` · `Preload` · `DataCoreAddresses`
+  (41 → **42**)· Addressables 组 42 条 · catalog 重建 42 条。
+- 存档 **v5**:`CurrentSaveVersion = 5`;头部 +32 B;`FixedSizeV5 = 92` / `HeaderSizeV5 = 124`;
+  `SaveMigrationV4ToV5`;`RequireTimeParams` 扩到七值;`SaveTimeParams` 扩到七值
+  (`IsSpecified` 只判非零);`SaveSlotProbe` 读 `min(len, 124)`。
+- `BootRoot.ResolveWeatherParams` / `ResolveTimeParams`(含 `ValidateSeason`);
+  `CompositionRoot` 写档取七值 + 注册 `V4ToV5`。
+
+**夹具**:
+- `save_v5_runtime_params_test`(19 条:往返 / v4→v5 / v3→v5 / hydrate ×3 / 拒收 ×4 /
+  整除 ×7)。
+- `time_params_validate_test` 增 6 条**装载路径**用例 + 正控 + null provider。
+- `time_params_bake_test` 增季二值与「天气键归 `5_weather.json`」负控。
+
+**证伪轮(本段新增,均 SHA-256 还原)**:
+
+| # | 变异 | 靶 | 结果 |
+|---|---|---|---|
+| M6 | `HydrateTimeParams` 内整除判据置 `false` | hydrate 两条 | **红 ×2** |
+| M7 | `RequireCrossDatasetWindow` 不判 | provider 注入一条 | **红** |
+| M8 | `SaveMigrationV4ToV5.LegacySeasonsPerYear` 5 → 4 | v4→v5 迁移 | **红** |
+| M9 | `RequireTimeParams` 的季长守卫删除 | 档头季长 0 | **红** |
+| M10 | `SaveSlotProbe` 读长退回 `HeaderSizeV4` | 探针 3 条 | **红 ×3** |
+
+⚠️ **M2(首轮)打错靶**已作废并重打为 M2b —— 见 §四;本段 M6–M10 均先确认靶点可达。
+
+### 7.4 仍未做(逐项,不借绿)
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| 天气二值的**运行期消费** | 零 | `WeatherRoll` 仍无生产调用点;存档记录它们是为「接线即可重放」 |
+| 52 的 `WINDOW_SIZE / BASE / BUDGET_MAX` | 零消费 | 待「52 运行期消费」ADR(ADR-038 §D7) |
+| `BootRoot.Start` 启动期交叉校验那一行 | 无夹具 | 需整机启动序;其判据本体已直测 |
+| `SaveService.ApplyMigrationsIfNeeded` 旧注释 | 未改 | 仍写「CurrentSaveVersion = 2」;历史沿革注释,登记为文档债 |

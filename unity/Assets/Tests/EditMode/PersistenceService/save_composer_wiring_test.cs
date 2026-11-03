@@ -51,7 +51,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             IBlobPool blobPool = null)
             => SaveService.AddChecksum(SaveComposer.Compose(
                 allEvents, folded, decoder, codec, worldSeed, configVersion, tick,
-                timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows, blobPool: blobPool));
+                timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows, blobPool: blobPool));
     }
 
     public class SaveComposerWiringTest

@@ -16226,3 +16226,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **登记未做**:52 零生产消费 · R2 端到端不可达 · AC-5-11 三条季/天气参数装载期 NOT-RUN ·
   构建期探针轮仍 NOT-RUN · `ApplyMigrationsIfNeeded` 的旧注释已过期未改
 - **未提交**(等用户指令)
+
+## Session Extract — ADR-038 Amendment A(2026-11-03 · 同日后续轮)
+
+- **触发**:用户「继续 52 零生产消费 · R2 端到端不可达 · AC-5-11 三条季/天气装载期 NOT-RUN ·
+  构建期探针轮 NOT-RUN」;随后裁定季/天气**同时进存档 v5**,值 `252000 / 5 / 6000 / 100`
+- **① 探针轮(结清)**:干净构建 `Success`;插探针 ⇒ `Result: Failure`,串命中、栈帧在
+  `AssemblyGates.cs:1501`、utp 停在 `Preprocess Player`;SHA-256 还原
+- **② R2**:整除判据并入 `HydrateTimeParams(loaded, rollInterval)`;新增启动期
+  `RequireCrossDatasetWindow`(52 的 `ROLL_INTERVAL` 由此成为真实生产消费点);M6/M7 各转红
+- **③ Amendment A(存档 v5)**:`5_time.json` schema 2(+季二值,载荷 24→40 B)·
+  新 `5_weather.json`(16 B 载荷)· 存档 v5(+32 B,`FixedSizeV5=92`/`HeaderSizeV5=124`,
+  `SaveMigrationV4ToV5`)· `SaveTimeParams` 七值 · `RequireTimeParams` 七值 ·
+  `SaveSlotProbe` 读 124 · AC-5-11 五条全部有装载路径夹具
+- **④ 52 消费**:`ROLL_INTERVAL` 已消费;`WINDOW_SIZE/BASE/BUDGET_MAX` 仍零消费(待 52 运行期 ADR)
+- **证伪轮**:M6/M7/M8/M9/M10 全部打中预期靶,SHA-256 逐字节还原
+- **回归**:EditMode `6742/6705/0/0/37` @ 12:19 · PlayMode `324/320/0/2/2` @ 12:23 ·
+  警告 **0**(touch 1345 个 .cs 全量重编译)· `59a1d54d` + 工作树
+- **证据**:`impl-adr038-time-params-2026-11-03.md` §七(含 §5.1 三元组与等式)
+- **未提交**(等用户指令)

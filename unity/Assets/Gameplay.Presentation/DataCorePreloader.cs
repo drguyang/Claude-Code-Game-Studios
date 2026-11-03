@@ -242,6 +242,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.TimeParamsAddress,
             // 52 随机事件配置(ADR-038 §D4 · 2026-11-03):今日零消费方,装载面先立。
             AddressablesDataProvider.RandomEventsAddress,
+            // 5 天气参数(ADR-038 Amendment A · 2026-11-03):块长 / 强度上界。
+            AddressablesDataProvider.WeatherParamsAddress,
             // 建造槽位骨架(S20-20 装载面,2026-10-28:合成世界槽位目录的生产来源)。
             // ⚠️ 本条是**第三次**同型补登记,前两次(BuildModules / DiseaseRegistry)的教训逐字适用。
             AddressablesDataProvider.WorldBuildSlotsAddress,

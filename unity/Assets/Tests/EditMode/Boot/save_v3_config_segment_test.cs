@@ -249,8 +249,9 @@ namespace DaYiJingCheng.Tests.Boot
 
         /// <summary>
         /// 组一份 **v3 布局**的不含校验和字节。
-        /// <para>⚠️ ADR-038 §D3 之后 `Compose` 出的是 **v4**(头部多 24 B 时间参数)。
-        /// 本夹具是 ADR-037 的 v3 专用件 ⇒ 组完之后**去掉**那 24 B 并把版本号写回 3,
+        /// <para>⚠️ ADR-038 §D3 + Amendment A 之后 `Compose` 出的是 **v5**
+        /// (头部多 24 B 时间三值 + 32 B 季/天气四值,共 56 B)。
+        /// 本夹具是 ADR-037 的 v3 专用件 ⇒ 组完之后**去掉**这 56 B 并把版本号写回 3,
         /// 否则 `StripSegmentToV2` 与「v3 字节逐位相等」这类断言全部错位。</para>
         /// </summary>
         private byte[] ComposeUnsigned(IReadOnlyList<ArtifactConfigVersion> artifacts)
@@ -258,12 +259,12 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] v4 = SaveComposer.Compose(
                 _stream.Events, _predicate, _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: Combined, tick: 20L,
-                timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool,
+                timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool,
                 artifactConfigs: artifacts);
 
             int head = SaveHeaderCodec.FixedSize;          // 36 = v3 头
-            int tailStart = SaveHeaderCodec.FixedSizeV4;   // 60 = v4 头之后
-            var v3 = new byte[v4.Length - SaveHeaderCodec.TimeParamsBytes];
+            int tailStart = SaveHeaderCodec.FixedSizeV5;   // 92 = v5 头之后(24 + 32 都去掉)
+            var v3 = new byte[v4.Length - (SaveHeaderCodec.TimeParamsBytes + SaveHeaderCodec.SeasonWeatherBytes)];
             System.Array.Copy(v4, 0, v3, 0, head);
             System.Array.Copy(v4, tailStart, v3, head, v4.Length - tailStart);
             v3[SaveHeaderCodec.SaveVersionOffsetFixed] = 3;
@@ -306,6 +307,7 @@ namespace DaYiJingCheng.Tests.Boot
                 {
                     new SaveMigrationV2ToV3(),
                     new SaveMigrationV3ToV4(),
+                    new SaveMigrationV4ToV5(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

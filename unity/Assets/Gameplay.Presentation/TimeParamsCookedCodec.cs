@@ -20,13 +20,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
     public static class TimeParamsCookedCodec
     {
         /// <summary>读方认领的 <c>schema_version</c>(源恰为此值;升级 schema 须同步改本常量与绑定层)。</summary>
-        public const uint ExpectedSchemaVersion = 1u;
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>产物文件名(错误报文用;与 `TimeParamsBaker.CookedFileName` 同值)。</summary>
         private const string ProductName = "5_time";
 
-        /// <summary>载荷固定字节数(3 × i64)—— 与写方 `TimeParamsCookedWriter.PayloadBytes` 同值。</summary>
-        public const int PayloadBytes = 24;
+        /// <summary>载荷固定字节数(5 × i64)—— 与写方 `TimeParamsCookedWriter.PayloadBytes` 同值。</summary>
+        public const int PayloadBytes = 40;
 
         /// <summary>解码。</summary>
         /// <exception cref="InvalidDataException">头部损坏 / schemaVersion 不匹配 / 载荷长度不符 ——
@@ -52,6 +52,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     TicksPerDay = r.ReadInt64(),
                     NightStart = r.ReadInt64(),
                     NightSpan = r.ReadInt64(),
+                    TicksPerSeason = r.ReadInt64(),
+                    SeasonsPerYear = r.ReadInt64(),
                     ConfigVersion = configVersion,
                     SchemaVersion = schemaVersion,
                 };

@@ -15,11 +15,11 @@ namespace DaYiJingCheng.Sim.Contracts
 {
     /// <summary>5 时间天气的系统参数集(烘焙产物 <c>5_time.cooked.bytes</c> 的解码形)。</summary>
     /// <remarks>
-    /// ⚠️ 「三值均在」是**今日**的形状:<c>ticks_per_season</c> / <c>seasons_per_year</c> /
-    /// <c>weather_block_ticks</c> 三值**尚未裁定**,故**刻意不在 schema 里**
-    /// (ADR-038 §D1:占位值与已裁定值在数据文件里同形,一旦混入就再也分不清
-    /// 「这个数裁过没有」—— <c>480</c> 那次事故正是这个形态)。
-    /// 它们落地时**追加字段 + 升 schema_version**,不新建产物。
+    /// 🔁 **2026-11-03 用户裁定 + ADR-038 Amendment A**:季参数两值已裁定
+    /// (`ticks_per_season = 252000` · `seasons_per_year = 5`)⇒ 追加进 schema(schema_version 2)。
+    /// 天气两值拆到独立产物 `5_weather.cooked.bytes`(`WeatherParamsDataSet`),
+    /// 因为天气与环境参数是 5 的另一张表(单表单文件)。
+    /// <para>⚠️ 占位值与已裁定值在数据文件里同形 —— 值未裁前不得先塞占位值(ADR-038 §D1)。</para>
     /// </remarks>
     public struct TimeParamsDataSet
     {
@@ -31,6 +31,12 @@ namespace DaYiJingCheng.Sim.Contracts
 
         /// <summary>夜长(定义域 `(0, TicksPerDay)`)。</summary>
         public long NightSpan;
+
+        /// <summary>一季的 tick 数(定义域 `&gt; 0`;2026-11-03 裁定 = 252000 = 7 日)。</summary>
+        public long TicksPerSeason;
+
+        /// <summary>一年几季(定义域 `≥ 2`;2026-11-03 裁定 = 5,与 17 的 `SEASON_MULT` 表长相等)。</summary>
+        public long SeasonsPerYear;
 
         /// <summary>烘焙时从源 JSON 文本派生的内容版本号(u32,ADR-014 §五)。</summary>
         public uint ConfigVersion;
