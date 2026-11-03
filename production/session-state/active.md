@@ -16418,3 +16418,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `open` · P0 面 **Y**。债册:条目 170 | closed 148 | open 18 | 未闭 P0 面 10 | epic 3/31。
   未做(NOT-RUN,禁借绿):§5.1 缩放 150%→4 行 · §7.1 开册首焦点=高水位行所在页。
   原件 = `production/qa/evidence/impl-7b-paging-2026-11-04.md`。**已提交未推送**。
+- **追加(TD-persist-19 两步 · 2026-11-04)**:用户「TD-persist-19 两步做掉」。
+  ① **读侧对齐** —— 判据收成 `SaveSlotLedger.FallsBackToBak(seq)`(唯一定义处),
+  三处调用点同源:`LoadBytes` / `SaveSlotProbe.Probe` / `TryGetMostRecentSave`。
+  手动槽两条落点:final 坏 ⇒ `SaveCorruptException`;final 缺失(哪怕有残留 bak)⇒ `SaveNotFoundException`。
+  既有夹具**迁移 5 处**(用手动槽 4 造 bak 的一律改到退出保存 —— 那才是生产里唯一被重写的槽),
+  新增 `manual_slot_bak_scope_test.cs` 7 条 + 探针拆条净增 1。
+  ② **盘面** —— `save_3/4/5.bak` 搬进 `saves/_orphans-2026-11-04/`(可逆);
+  `save_exit.bin.bak` **留原地**(它是真实的上一好档,回退要用)。
+  证伪:M1(恒 true)**5 红** · M2(恒 false)**2 红** · 干净对照 7/7 绿 —— 红集互不覆盖。
+  ⚠️ **M1 逼出我自己两处假判别力**:①「只剩残留 bak ⇒ 无存档」在 M1 下照样绿
+  (候选按 `save_*.bin` 枚举,`.bak` 进不了表);② 补写的判别力用例**又绿一次** ——
+  用 `Corrupt()` 造场,而**探针只读头部不验校验和**,校验和坏在它眼里仍是 Occupied。
+  第三版改 `BreakHeader()`(压成 4 字节)才转红。两处都写进夹具注释。
+  回归:EditMode `6805/6768/0/0/37` @ 16:37:18Z · PlayMode `324/320/0/2/2` @ 16:39:43Z · 警告 0。
+  等式 `6805 − 6797 = 8` = 新增夹具数。
+  债册:条目 170 | closed 149 | open 17 | 未闭 P0 面 9 | epic 2/31。
+  原件 = `production/qa/evidence/impl-td-persist-19-manual-slot-bak-scope-2026-11-04.md`。**已提交未推送**。

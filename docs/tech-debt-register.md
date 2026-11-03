@@ -401,7 +401,7 @@
 | `TD-persist-16` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-17` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-19` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -563,6 +563,14 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十九订(`TD-persist-19` 结案 · 2026-11-04 · 实现面 + 债面)** ——
+> 用户指令「TD-persist-19 两步做掉」。变化:`open 18 → 17`(−1)· `closed 148 → 149`(+1)·
+> **`未闭 P0 面 10 → 9`**(−1)· **`epic 分布 3/31 → 2/31`**(−1,`persistence-service` 再次清零)·
+> 条目数 **170 不动**(结案不加条目)。
+> 单一变化源:`TD-persist-19` 索引行 `open → closed`。
+> ⚠️ **同日两订(五十八开、五十九关)不是反复**:五十八记的是「发现即登记」,
+> 本订记的是「用户批准后两步做完」—— 两次的**变化源不同**,故各记一次。
+
 > > 🔁 **五十八订(`TD-persist-19` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
 > 7b 转册轮勘察盘面时发现:`TD-persist-16` 收窄的是**写侧**(玩家槽不再产生 `bak`),
 > **读侧 `LoadBytes` 没跟着收窄**,仍对任何槽无条件回退 `save_{n}.bak`。
@@ -1101,10 +1109,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 170 | 状态 {'closed': 148, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 10 （已闭但曾标 P0 面的 106 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
+条目 170 | 状态 {'closed': 149, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 107 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4
 ```
 <!-- TD-COUNT:END -->
 
@@ -4628,6 +4636,39 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 7a 的下一次修订轮;② 或任何以「`AC-7a-15` 已兑现」形态引用之前(**禁借绿**);③ 或再出现一次「读到旧档」的实测。 |
 | **归属** | **7a 持久化服务**(`LoadBytes` 分派)· 语义裁定 = **用户** |
 | **⚠️ 与 `TD-persist-16` 的关系** | 16 只管**写侧**(不再产生 `bak`),已闭;本条是**读侧**。修 16 不会让本条变绿 —— 反过来,盘上已有的 `bak` 让本条**今天就可触发**。 |
+
+> ✅ **2026-11-04 已闭**(sprint-24 · 用户裁定「TD-persist-19 两步做掉」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-persist-19-manual-slot-bak-scope-2026-11-04.md`。
+>
+> **落点**:`SaveSlotLedger.FallsBackToBak(seq)`(**唯一定义处**)· `SaveService.LoadBytes`
+> (`bakPath` 按槽型给 `null`)· `SaveSlotProbe.Probe` · `SaveService.TryGetMostRecentSave`
+> —— 三处调用点同源。手动槽两条落点:`final` 坏 ⇒ `SaveCorruptException`;
+> `final` 缺失 ⇒ `SaveNotFoundException`。
+>
+> **既有夹具迁移 5 处**:凡用手动槽 4 造 `bak` 的(那是生产不可达状态,靠 `SaveBytes` 绕过
+> 只进不退才造得出),一律改到**退出保存**上 —— 它才是生产里唯一会被重写的槽。
+> 其中 `test_finalMissing_bakCorrupt_throwsCorrupt_notFound` 守的是「缺失 ≠ 损坏」,
+> 只有 bak 还算数时才有意义 ⇒ 同样迁移,判据不变。
+>
+> **新增夹具 7 条**(`manual_slot_bak_scope_test.cs`)+ 探针拆条净增 1 条。
+>
+> **证伪**:M1(`FallsBackToBak` 恒 `true`)⇒ **5 红** · M2(恒 `false`)⇒ **2 红** ·
+> 干净对照 **7/7 绿**;两轮红集不同且互不覆盖(非全红借绿)。还原 SHA-256 逐字节
+> (`1051fee7…a935c`)。
+>
+> 🔴 **M1 逼出我自己的两处假判别力(如实登记)**:首次 M1 下那条「只剩残留 bak ⇒ 无存档」
+> **照样绿** —— 手动槽候选按 `save_*.bin` 枚举,`.bak` 进不了候选表,它压根没测到
+> `Consider` 的槽型分派;补写的判别力用例**又绿了一次** —— 因为用 `Corrupt()`(翻正文末字节)
+> 造场,而**探针只读头部不验校验和**,校验和坏的文件在它眼里仍是 `Occupied`
+> ⇒ 回退支根本没走到。第三版改 `BreakHeader()`(压成 4 字节)才转红。
+> 两处都写进了夹具注释,防止后来者复制同一个「看起来在测、其实没测」的形态。
+>
+> **盘面第二步**:`save_3/4/5.bak` **搬**进 `saves/_orphans-2026-11-04/`(可逆);
+> `save_exit.bin.bak` **留在原地** —— 它属于退出保存,是真实的上一好档。
+>
+> **回归**:EditMode `6805/6768/0/0/37` @ 2026-11-03 16:37:18Z → 16:39:09Z ·
+> PlayMode `324/320/0/2/2` @ 16:39:43Z · 编译警告 **0**。等式 `6805 − 6797 = 8` = 新增夹具数。
+> ⚠️ 本条关闭**不**等于 `AC-7a-15` 整体签核(该 AC 仍按其既有状态记)。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 
