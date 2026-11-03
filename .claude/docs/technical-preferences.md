@@ -359,7 +359,19 @@
   7a 的载入链(`BootRoot.RequestLoad` → AC-7a-14 比对面 / ADR-037 逐表归因)**生产上长期不可达**。
   裁定:**取增员,不取绕开** —— 暂停壳挡路且须冻世界意图,规则七的门只认 `Modal ≠ None`,非模态叠层 = 给同一形态发明第二套判据。
   同步落地:`ModalId.Pause = 8` · `ScreenFactories["Pause"]` · `ModalScreenNames` · `dto_boundary_and_modal_test` 8 值/7 员 → **9 值/8 员** · `AC-42-F1` 闭集 七 → **八** · `modal_gate_test.ClosedSetMembers` 补员(其**基数守卫**先红,证明守卫有效) · 输入语义 `SaveSlotsTogglePressed` → **`PauseTogglePressed`**(`ModalOpener` 成员随之改名) · 装配层 `DriverPauseCommandSink`。
-  ⚠️ **未做,不得借绿**:世界**不**冻结(只挡交互意图,不停 tick)· `AC-42-F1` ⑧ 记 **`NOT-RUN`**(无 `pause-shell-42.md` spec ⇒ 按该 AC 纪律阻塞签核)· 存档位屏上按 Escape 会**换屏回暂停壳**(最小壳的粗糙边,归 UX spec)。Engine Knowledge Risk **LOW**。
+  ⚠️ **未做,不得借绿**:~~世界**不**冻结(只挡交互意图,不停 tick)~~ · ~~`AC-42-F1` ⑧ 记 **`NOT-RUN`**(无 `pause-shell-42.md` spec ⇒ 按该 AC 纪律阻塞签核)~~ · 存档位屏上按 Escape 会**换屏回暂停壳**(最小壳的粗糙边,归 UX spec)。Engine Knowledge Risk **LOW**。
+  🔁 **2026-11-03 两处订正(原文划线保留)** —— 上句的三个「未做」里,**两个已不成立**:
+  ① **世界冻结已实现**:`ADR-013 §十-C Amendment D`(2026-11-01 用户裁定)把「挡路模态摊开 ⇒ 真停 sim tick」落地;
+  判据 = `modal_gate_wiring_test.test_productionAssembly_modalOpen_freezesWorldTick`,
+  实跑 **`Passed`**(`unity/Logs/playmode-clinic.xml`,2026-11-03 08:01:16Z · PlayMode `324/320/0/2/2`)。
+  ② **`AC-42-F1` ⑧ 的「无 spec」前置已解除**:`design/ux/pause-shell-42.md` 已成文并 **Approved**
+  (2026-11-01 `/ux-review`),12 条 AC 全 `[x]`。⚠️ 但**整体 `AC-42-F1` 仍 `NOT-RUN`** ——
+  该 AC 的阻塞已转移到 **⑨ 炮制屏无 `processing-18.md`**(见下条 Amendment D),不是本员。
+  ③ **第三项(存档位 Escape)仍成立**,且本轮查实它**比原文写的更宽**:`ModalOpener` 契约只有
+  `IsPauseOpen` / `IsCasebookOpen` 两个身份位 ⇒ 闭集 9 员里 **7 员的 toggle 语义无法表达**
+  (存档位 / 库存容器 / 设置壳 / 教学 / 医馆面板 / 纸近景 / 炮制屏)。
+  `NavigationCancelEvent` 全仓(含 `Tests/`)**零监听**,`Cancel` 动作在 `PlayerInputReader` **零读面**
+  (GDD `input-system.md:147` 写「消费者 = 42」)。⇒ 已立 **`TD-skeuo-03`**(见债册)。
   **⚠️ 2026-11-02 §十-E Amendment D(用户裁定「我倾向甲」)—— 闭集第九员 `Processing`(炮制屏)**:病因 =
   `processing.md:664`(UI-18.3)与 `:732`(`AC-18-10b`)逐字要求「42 的屏闭集须补入炮制交互」(`O-18-R6`),
   该缺口自 2026-09-19 起一直记 `EXTERNAL · BLOCKED-BY-42`;`TD-interaction-03` 的 `Utensil` 半边因此**零消费面**。

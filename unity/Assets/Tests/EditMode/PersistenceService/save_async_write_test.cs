@@ -477,9 +477,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_saveOnExit_joinTimeout_raisesFlagInsteadOfThrowing()
+        public void test_saveOnExit_joinTimeout_doesNotRaiseFlag()
         {
-            // 限时 join 超时 ⇒ 置「会话未完整」标志位 + **不抛**(不卡退)。
+            // 🔁 **2026-11-03(`TD-persist-14`)语义反转 —— 本条此前断言的是错误行为。**
+            //
+            // **旧断言**(原文留档):「join 超时 ⇒ **须置**「会话未完整」标志位」。
+            // **为什么是错的**:`WaitForIdle` 超时只说明「worker 还没跑完」,**不说明它失败**。
+            // worker 可能在 join 放弃之后正常写完 ⇒ 那次会话**正常退出、档也写成了**,
+            // 下次启动却报「上次未完整保存」。用户裁定:「这种 bug 情况不该出现」。
+            //
+            // **新语义**:join 超时但**未观测到失败** ⇒ **不置位**(结局未知 ≠ 结局失败);
+            // 但**仍记日志** ——「超预算」是真实的性能事实,只是不是数据完整性事实。
             var gate = new ManualResetEventSlim(false);
             Exception reportedWrite = null;
             bool sinkCalled = false;
@@ -502,20 +510,71 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.DoesNotThrow(() => svc.SaveOnExit(),
                 "join 超时 ⇒ 不得抛(退出路径上抛 = 卡退)");
 
-            Assert.IsTrue(SaveIncompleteFlag.IsRaised(_testDir),
-                "join 超时 ⇒ 须置「会话未完整」标志位(下次启动提示)");
-            // ⚠️ **判据是「观察者被调用」,不是「收到的异常非空」**(2026-10-25 自查修正)。
-            //    join 超时 ≠ 写盘失败 —— worker 可能只是**慢**,`LastFailure` 此时**就是 null**。
-            //    首版断言 `IsNotNull(reportedWrite)` 把「慢」误判成「失败」,
-            //    而生产代码的语义是「两条线索都交给装配层,不假设非空」(见 SaveService 注释)。
-            //    ⇒ 本测改为观测「sink 被调用过」—— 用哨兵初值区分「没调用」与「调用了但传 null」。
+            // ⚠️ **这是本条的核心判据,也是 14 的全部意义**:慢 ≠ 失败 ⇒ 不得置位。
+            Assert.IsFalse(SaveIncompleteFlag.IsRaised(_testDir),
+                "join 超时 ≠ 写盘失败 ⇒ **不得**置「会话未完整」标志位 —— " +
+                "置位 = 下次启动报「上次未完整保存」,而那次会话正常退出、档也会写成");
             Assert.IsTrue(sinkCalled,
-                "须把失败线索交给观察者(记日志)—— GDD「不阻塞退出 **+ 记日志**」的后半句");
+                "须把「超预算」线索交给观察者(记日志)—— GDD「不阻塞退出 **+ 记日志**」的后半句");
             Assert.IsNull(reportedWrite,
                 "join 超时 ≠ 写盘失败 ⇒ 交出的写盘异常**应为 null**(不得伪造成写失败)");
 
+            // ⚠️ 放行 worker 之后**它应当成功写完** —— 这证明「那次会话的档是好的」,
+            //    正是「不置位」这个判定的现实依据(否则本测只是把一条绿换成另一条绿)。
             gate.Set();
             svc.WriteQueue.WaitForIdle(10000);
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, SaveService.ExitSaveFileName)),
+                "放行后 worker 须真的写成 —— 这是「不该置位」的事实依据");
+            byte[] onDisk = File.ReadAllBytes(Path.Combine(_testDir, SaveService.ExitSaveFileName));
+            Assert.IsTrue(SaveService.ValidateChecksum(onDisk),
+                "且写成的档须校验通过 —— 「慢」不等于「坏」");
+        }
+
+        [Test]
+        public void test_saveOnExit_staleCheckpointFailure_stillClearsFlag()
+        {
+            // 🔁 **2026-11-03(`TD-persist-14`):本条钉住「判据不得读队列级粘性状态」。**
+            //
+            // `SaveWriteQueue.LastFailure` 是**跨工作项粘性**的 —— 一份 checkpoint 失败后,
+            // 它一直留到**下一次成功的工作项**才被清。若退出保存的判据读它,
+            // 就会把**别人的旧失败**记成**这次退出保存**的失败 ⇒ **成功分支被跳过**。
+            //
+            // ⚠️ **为什么判据必须是「清位」而不是「不置位」**:两条错误路径的**可观测结局**不同 ——
+            //    置位与否都是「不置位」(第二分支 `writeFailure != null` 也不成立),
+            //    真正能分开它们的是「**成功分支会不会跑**」,而成功分支唯一的副作用 = **清位**。
+            //    只断「不置位」的夹具在两种实现下都绿 ⇒ **零判别力**(F8 行为等价掩盖结构分叉)。
+            //
+            // 构造:① 先让退出保存**真失败** ⇒ 标志位置位(建立可被清的前态);
+            //       ② 修好它,再让一份 checkpoint 失败 ⇒ 队列上留下粘性 `LastFailure`;
+            //       ③ 再让退出保存**成功**;④ 断言**标志位被清掉**。
+            var svc = Service(Inline);
+
+            // ① 造真失败 ⇒ 置位。
+            string exitPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
+            Directory.CreateDirectory(exitPath);          // final 被目录占 ⇒ 末步 Move 撞目录
+            svc.SaveOnExit();
+            Assert.IsTrue(SaveIncompleteFlag.IsRaised(_testDir),
+                "[前置] 第一次退出保存失败 ⇒ 标志位须已置位(否则后半「清位」无宾语)");
+            Directory.Delete(exitPath, recursive: false); // 修好 ⇒ 下一次退出保存能成功
+
+            // ② 让 checkpoint(槽 1)失败 —— 它会把粘性 `LastFailure` 留在队列上。
+            Directory.CreateDirectory(Path.Combine(_testDir, "save_1.bin"));
+            Assert.That(() => svc.Checkpoint(new SaveSlot(1u)), Throws.Nothing,
+                "[前置] checkpoint 的写失败经 worker 吞掉,不上抛");
+            Assert.IsNotNull(svc.WriteQueue.LastFailure,
+                "[前置] 队列级 LastFailure 此时**必须**非 null —— 否则本测构造失败,后半无判别力");
+
+            // ③ 退出保存走**另一个**文件名 ⇒ 必然成功。
+            Assert.DoesNotThrow(() => svc.SaveOnExit());
+
+            // ④ 核心断言:成功 ⇒ **必须清位**,哪怕队列上还留着更早 checkpoint 的失败。
+            Assert.IsFalse(SaveIncompleteFlag.IsRaised(_testDir),
+                "退出保存**成功** ⇒ 须清位;即使队列上还留着更早 checkpoint 的失败 —— " +
+                "读队列级粘性状态 = 把别人的失败记成这次的失败,成功分支被静默跳过");
+            Assert.IsTrue(File.Exists(exitPath),
+                "[正控] 退出保存确实写成了 —— 否则「清位」可能只是因为它根本没跑");
+            byte[] onDisk = File.ReadAllBytes(exitPath);
+            Assert.IsTrue(SaveService.ValidateChecksum(onDisk), "[正控] 且档须校验通过");
         }
 
         [Test]

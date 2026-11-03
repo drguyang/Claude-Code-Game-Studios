@@ -688,29 +688,56 @@ namespace DaYiJingCheng.Sim.Codec
             // ⚠️ 复用 worker 而非另起线程:退出时若有一份 checkpoint 正在写,退出保存
             //    **必须排在它后面**(one-writer 单飞)—— 否则两条 rename 会把 bak 覆盖成
             //    半途产物(GDD `:236`)。
+            // 🔁 **2026-11-03(`TD-persist-14`):本次退出保存的结局单独记,不读队列级 `LastFailure`。**
+            //
+            // **病因(实测)**:成败判据原写 `drained && _writeQueue.LastFailure == null`,
+            // 而 `drained = WaitForIdle(...)` 把**两种完全不同的情形合并成同一个 `false`**:
+            //   (a) 写盘真的失败 —— `TryRunWithRetry` 用尽次数仍抛;
+            //   (b) 写盘只是慢 —— worker **仍在正常跑**,只是超了 `SAVE_EXIT_RETRY_TIMEOUT`。
+            // 情形 (b) 也落进失败分支 ⇒ 置「会话未完整」⇒ 下次启动报「上次未完整保存」,
+            // **而那次会话正常退出、档最终也写成了**。用户裁定:「这种 bug 情况不该出现」。
+            //
+            // ⚠️ **为什么不用队列级的 `LastFailure` 兜底**:它是**粘性**的(跨工作项保留),
+            //    若本次退出保存还没跑、而**更早的一份 checkpoint 失败过**,读到的会是那份旧异常
+            //    ⇒ 置位归因错(把 checkpoint 的失败记成退出保存的失败)。
+            //    ⇒ 判据必须锚在**本次工作项自己**的结局上。
+            //
+            // ⚠️ 跨线程读写:worker 线程写、主线程读。`drained == true` 时有 `WaitForIdle` 的
+            //    锁边沿提供可见性;`drained == false` 时**没有** —— 故显式用锁,不靠时序碰运气。
+            Exception exitFailure = null;
+            bool exitCompleted = false;
+            var outcomeGate = new object();
+
             _writeQueue.Enqueue(() =>
             {
-                byte[] signed = AddChecksum(bytes, _bufferPool);
-                try { WriteExitSave(signed); }
-                finally { _bufferPool.Return(signed); }
-                // 退出保存**不推高水位**(ADR-010 §六:退出钩子不占玩家槽)
-                _bufferPool.Return(bytes);
+                try
+                {
+                    byte[] signed = AddChecksum(bytes, _bufferPool);
+                    try { WriteExitSave(signed); }
+                    finally { _bufferPool.Return(signed); }
+                    // 退出保存**不推高水位**(ADR-010 §六:退出钩子不占玩家槽)
+                    _bufferPool.Return(bytes);
+                    lock (outcomeGate) { exitCompleted = true; exitFailure = null; }
+                }
+                catch (Exception e)
+                {
+                    // ⚠️ 记录后**仍要 throw** —— 队列的 `TryRunWithRetry` 靠异常做退避重试;
+                    //    吞掉异常会让「第一次失败、第二次成功」被记成一次干净成功。
+                    lock (outcomeGate) { exitFailure = e; }
+                    throw;
+                }
             });
 
-            // ⚠️ **成败判据 = 「排空」且「无失败」(2026-10-25 回归抓出的真缺陷)**。
-            //
-            // 首版只判 `WaitForIdle(...)` —— 那在**同步**写下恰好等价于「写成功」,
-            // 因为失败会以异常穿过调用栈。异步化后这个信号**丢了**:
-            // worker 的 `TryRunWithRetry` 把异常**吞进 `_lastFailure`**、`Drain` 照常
-            // `_outstanding--` ⇒ `WaitForIdle` 返回 **true** ⇒ 走成功分支 ⇒ **清位**。
-            // 后果:写盘失败时标志位**不置**,下次启动不提示 —— AC-7a-17 的兜底静默失效。
-            // 回归实证:6 条 `SaveExitRetryAndFlagTest` 同时转红(见证据件 §六)。
-            //
-            // ⇒ 两个条件缺一不可:「队列空了」是**时序**事实,「没失败」是**结果**事实。
-            bool drained = _writeQueue.WaitForIdle(_exitSaveRetryMillis);
-            bool written = drained && _writeQueue.LastFailure == null;
+            // 「队列空了」是**时序**事实;「本次工作项成功」是**结果**事实。两者各自独立。
+            // ⚠️ `WaitForIdle` 的**返回值不再参与成败判定** —— 超时只说明「还没跑完」,
+            //    不说明「失败」。结局一律取本次工作项自己记下的 `exitCompleted` / `exitFailure`。
+            _writeQueue.WaitForIdle(_exitSaveRetryMillis);
 
-            if (written)
+            Exception writeFailure;
+            bool completed;
+            lock (outcomeGate) { completed = exitCompleted; writeFailure = exitFailure; }
+
+            if (completed && writeFailure == null)
             {
                 // ✅ 世界状态已安全落盘 ⇒ 清「会话未完整」标志位。
                 // ⚠️ **清位失败不影响退出**(退出路径的硬要求是「不卡退」)。
@@ -725,27 +752,32 @@ namespace DaYiJingCheng.Sim.Codec
                 return;
             }
 
-            // ── 失败:置「会话未完整」标志位,然后**继续退出**(不阻塞)──
-            // AC-7a-17 原文:「仍失败 ⇒ **不阻塞退出 + 记日志**;下次启动检测到标志位 ⇒ 提示」。
-            //
-            // ⚠️ 本类**不抛** —— 调用方(退出钩子)若收到异常就会卡住退出流程。
-            //    「不静默丢,不卡退」两条里,后者是硬约束:**日志 + 置位**就是这里的「不静默」。
-            //    日志经注入委托交给装配层(本类无日志设施,且 Sim.Codec 是纯 BCL 装配)。
-            //
-            // ⚠️ `lastFailure` 现在可能为 null(join 超时 ≠ 写盘失败,可能只是慢)。
-            //    两条线索都要交给装配层,不能假设它非空。
-            Exception lastFailure = _writeQueue.LastFailure;
-            try { RaiseIncompleteFlag(); }
-            catch (Exception e)
+            if (writeFailure != null)
             {
-                // 置位本身失败(目录只读 / 磁盘满)—— 仍不得阻塞退出。
-                // ⚠️ **失败也要让装配层知道**:置位失败 + 写盘失败 = 两条线索都没了,
-                //    这是最坏情形,不能静默吞掉整条链。
-                ReportExitSaveFailure(lastFailure, e);
+                // ── (a) 写盘**真的失败**:置「会话未完整」标志位,然后**继续退出**(不阻塞)──
+                // AC-7a-17 原文:「仍失败 ⇒ **不阻塞退出 + 记日志**;下次启动检测到标志位 ⇒ 提示」。
+                //
+                // ⚠️ 本类**不抛** —— 调用方(退出钩子)若收到异常就会卡住退出流程。
+                //    「不静默丢,不卡退」两条里,后者是硬约束:**日志 + 置位**就是这里的「不静默」。
+                try { RaiseIncompleteFlag(); }
+                catch (Exception e)
+                {
+                    // 置位本身失败(目录只读 / 磁盘满)—— 仍不得阻塞退出。
+                    // ⚠️ **失败也要让装配层知道**:置位失败 + 写盘失败 = 两条线索都没了。
+                    ReportExitSaveFailure(writeFailure, e);
+                    return;
+                }
+
+                ReportExitSaveFailure(writeFailure, flagFailure: null);
                 return;
             }
 
-            ReportExitSaveFailure(lastFailure, flagFailure: null);
+            // ── (b) join 超时但**未观测到失败**:worker 可能仍在写,结局未知 ──
+            // ⚠️ **不置位** —— 这是本债的核心裁定。把「慢」记成「数据不完整」,
+            //    玩家会被告知「上次没存好」,而档其实是好的。
+            // ⚠️ 但**仍要记日志**(GDD「记日志」那半句):「超预算」是真实的性能事实,
+            //    只是它**不是**数据完整性事实。两条线索不合并。
+            ReportExitSaveFailure(writeFailure: null, flagFailure: null);
         }
 
         /// <summary>

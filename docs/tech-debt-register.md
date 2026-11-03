@@ -396,6 +396,7 @@
 | `TD-persist-09` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
 | `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
+| `TD-persist-14` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -453,6 +454,10 @@
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
+| `TD-skeuo-03` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-05` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -553,6 +558,63 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十一订(`TD-persist-14` 结案 · 2026-11-03 · 实现面 + 债面)** ——
+> 用户指令「现在做」。变化:`open 18 → 17`(−1)· `closed 143 → 144`(+1)·
+> **`未闭 P0 面 10 → 9`**(−1)· `epic 分布 3/31 → **2/31**`(−1,`persistence-service` 清零)·
+> 条目数 **165 不动**(结案不加条目)。
+> 单一变化源:`TD-persist-14` 索引行 `open → closed`。
+> ⚠️ **本条 `closed` 只覆盖「误置」半边** —— 崩溃 / 强杀检测仍不存在(14 残留 ②),
+> 提示 UI 仍不存在(归 `TD-skeuo-05`,其硬前置**现已解除**)。
+> **原件** = `production/qa/evidence/impl-td-persist-14-flag-false-positive-2026-11-03.md`。
+
+> 🔁 **五十订(`TD-skeuo-03` / `-04` / `-05` / `-06` + `TD-persist-14` 立债 · 2026-11-03 · 债面)** ——
+> 用户指令「先查 AC 两处」→「查完继续解决完成」;中途用户裁定两项(存档位 Escape = 甲「回暂停壳」·
+> 「上次会话未完整保存**属于 bug,应该修复,不该作为常态提醒**」)+ 一项 defer(炮制屏点火等 20 的料位)。
+> 勘察把「两处小缺口」扩成**五笔结构性债**。
+> 变化:`条目 160 → 165`(+5)· `open 13 → 18`(+5)· `Y 106 → 111`(+5)·
+> **`未闭 P0 面 5 → 10`**(+5)· `epic 分布 1/31 → **3/31**`(**+2 个 epic** = `skeuomorphic-ui` + `persistence-service`)。
+> 单一变化源 = 新立五笔债,**五笔不同因、不同解,不合并**:
+> · **`TD-skeuo-03`** —— 模态开合面只认 **2 个身份** ⇒ 闭集 9 员里 **7 员关不掉**。
+>   **两条独立机制**须分开记:机制 A = `BootRoot.Update:1977` 每帧读 `PauseTogglePressed`,
+>   该读面**不看当前是哪个模态** ⇒ 非 Pause / 非 Casebook 屏摊开时按 Escape 走 `OpenPause()`
+>   = **换屏**;机制 B = 20 / 24 的 spec 点名的关闭动作(`OpenInventory` / `Interact`)
+>   **零生产读面**(前者全仓零命中;后者被 `ModalGate` 在模态期拒收)。
+> · **`TD-skeuo-04`** —— `SettingsShell` / `Tutorial` / `PaperCloseup48` 三员**零生产开屏点**
+>   (全仓含 `Tests/` 零命中),而 story 014/015/016 全标 `Complete`。病因 = 三件的 Test Evidence
+>   载体全是「直接 `new XxxScreen` 后断言屏内行为」,**不经 `OpenModal`** ⇒ 屏画得对 ≠ 玩家看得见。
+> · **`TD-skeuo-05`** —— `AC-7a-17` 的「下次启动提示」半句**在义务方(42/7b)没有 AC**。
+>   42 的 43 条 AC、7b 的 13 条 AC **逐条扫过零命中**(7b 的两处「提示」指「零按键提示浮层」/
+>   「零错误提示音」,**语义相反**)。⚠️ 此前它只活在 `TD-persist-06` 的**已结案**残留里 ⇒
+>   按 §五 算法**不进未闭 P0 面** ⇒ 这条 BLOCKING AC 的缺口长期不在 M3 Exit 分母上。
+>   本订把它升格为独立债,`TD-persist-06` 的残留原文不删、加指针(两处同一事实、不同记账位)。
+> · **`TD-skeuo-06`** —— 炮制屏的「点火」是**静默空操作**:`Processing18Screen.Activate` 调
+>   `_sink?.Ignite(...)`,而 `IProcessingCommandSink` **生产零实现** ⇒ `_sink` 恒 `null` ⇒ 按下配方行
+>   **屏无变化 / 无报错 / 零 `Craft` 落流**。`BootRoot` 开屏时只 `screen.Bind(...)`、
+>   **从不 `BindCommandSink`**;`SkeuoRuntimeDriver.OpenModal` 对炮制屏**无绑定分支**;
+>   `CraftIgnitionTransaction.Process` **零生产调用**。
+>   ⚠️ **为何 2026-11-02 那轮没记**:那轮「三处粗糙边」记的是**内容面**(空料位 / 键名文案 / 无起货),
+>   本条是**交互面**,正交。且它是 **F2 形态在 sink 层**的实例 —— 屏类在(所以 F2 的类名判据不触发),
+>   但**接口实现者**零命中。本订如实记「F2 的既有检出命令逃逸了本条」,但**不改规范**。
+>   **用户裁定(2026-11-03)= 乙「等 20 的料位实例集落地再做」** ⇒ 本债**维持 open**,不提前实现。
+> · **`TD-persist-14`** —— 🔴 **「会话未完整」标志位会被误置**(用户两次裁定把性质一路降级,最终落到真因):
+>   `SaveOnExit` 的判据是 `drained && LastFailure == null`(`SaveService.cs:710-711`),而
+>   `drained = WaitForIdle(...)` **把「写盘真的失败」与「写盘只是慢(join 超时)」合并成同一个 `false`**
+>   ⇒ 情形 (b) 也走失败分支 ⇒ `RaiseIncompleteFlag()` ⇒ **下次启动报「上次会话未完整」,而那次会话正常退出、档也写成了**。
+>   代码自己承认了这个区分(`:735` 逐字「join 超时 ≠ 写盘失败,可能只是慢」),但**置位动作没据此分支**。
+>   ⇒ 这正是用户裁定②「这种 bug 情况不该出现,为什么还要考虑这种情况的提示语」的技术根因 ——
+>   **做提示 = 给假阳性做 UI**。
+>   ⚠️ **本条立债时我自己先判错两次,均如实登记**:① 首版把 `flag.bak` 存在读成「曾置位过」(实际 `WriteAtomic`
+>   对**每次**写都做 final→bak,清位也留 `.bak`);② 首版把性质写成「崩溃检测零执行体」—— 那是**另一半**缺口
+>   (崩溃时退出钩子不跑 ⇒ 真「没走完」的会话检测不到),但**误报**才是用户裁定的靶心。两条都在条目正文里。
+>   ⇒ `TD-skeuo-05`(提示承载方无 AC)**就地加注硬前置:必须等本条落地**,否则做出来的提示是给假阳性做的 UI。
+> 🔴 **同批订正 `.claude/docs/technical-preferences.md:362` 的 ADR-013 日志条目**(原文划线保留):
+> 该行三个「未做」里两个已不成立 —— ① 世界冻结已由 `ADR-013 §十-C Amendment D` 实现,
+> 判据 `test_productionAssembly_modalOpen_freezesWorldTick` 实跑 **`Passed`**;
+> ② `AC-42-F1` ⑧ 的「无 `pause-shell-42.md`」前置已解除(该 spec 已 Approved、12 条 AC 全 `[x]`),
+> 阻塞已**转移到 ⑨ 炮制屏**。③ 第三项(存档位 Escape)**仍成立且比原文写的更宽** ⇒ 已升格为 03。
+> ⚠️ **三笔债的「解除动作」都含「改已裁的 UX spec」「增 `INTERACTABLE_KINDS`」或「补 GDD 的 AC」**
+> ⇒ 那部分**不得由实现轮代裁**,须用户裁定。本订只登记事实,不动任何 spec。
+
 > 🔁 **四十九订(`TD-randomevents-06` / `-07` 立债 + 三处过期内容订正 · 2026-11-03 · 债面)** ——
 > 用户裁定「分别立债 + 就地订正」。变化:`条目 158 → 160`(+2)· `open 11 → 13`(+2)·
 > `Y 104 → 106`(+2)· **`未闭 P0 面 3 → 5`**(+2)· `epic 分布 1/31`(**不变**)。
@@ -952,10 +1014,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 160 | 状态 {'closed': 143, 'partial': 3, 'open': 13, '**done**(2026-10-21)': 1} | P0 面 {'Y': 106, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 5 （已闭但曾标 P0 面的 101 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 5 条,分布在 1/31 个 epic
-    random-events: 5
+条目 165 | 状态 {'closed': 144, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 111, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 102 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4
 ```
 <!-- TD-COUNT:END -->
 
@@ -3961,7 +4023,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **测试** | `PersistenceService/save_exit_retry_and_flag_test.cs` **23 条** · 全量回归 `4940 / 4905 / 0 / 35`(三元组:`2026-10-25 05:17 UTC` · `td06-6` · `2c65e26`);基线 `4917 / 4882 / 0 / 35` ⇒ **+23 / +23,零回归**。 |
 | **证伪轮** | **15 轮,23 条测试全部至少转红一次,零假绿**(`MC1…MC15`)。⚠️ 首轮 12 轮后仍有 **3 条从未转红**(`succeedsOnFirstTry_noSleep` / `flag_absentFile_isNotRaised` / `missingNarrativeContext_throwsInsteadOfRetrying`)⇒ **补跑 MC13/MC14/MC15**,未借前 12 轮的绿。还原判据 = 4 文件 SHA-256 逐字节,零 `FALSIFY` 残留。 |
 | **测试抓到的真缺陷** | `ExitSaveRetrier` 首版成功分支**未清 `lastFailure`** ⇒ 「失败两次、第三次成功」会带着第 2 次异常返回 `true`,调用方据 `lastFailure != null` 判成败即把**成功**读成**失败**。**修在生产代码**,非改判据。反证 = MC1。 |
-| **残留(不在本债面内,如实登记)** | ① `Application.wantsToQuit` 的**注册/卸挂**无自动化(EditMode 跑不了 Unity 生命周期)⇒ PlayMode / 人工面。② `Debug.LogError` 的**日志文本**出现无自动化(委托被调用有夹具)。③ **`BootRoot._sessionWasIncomplete` 今日零消费者** —— GDD `:586` 逐字「提示承载归 42 / 7b」⇒ 7a 义务到此为止,但**读位已接线、消费未接线**;若日后有人据 `IsSessionIncomplete` 已接线就宣称「提示功能已实现」,那是假绿。④ `AC-7a-07`(异步写盘 + SHA256 非主线程)**未动**,仍 open(见 `TD-persist-05` 的 `07` 半边)。 |
+| **残留(不在本债面内,如实登记)** | ① `Application.wantsToQuit` 的**注册/卸挂**无自动化(EditMode 跑不了 Unity 生命周期)⇒ PlayMode / 人工面。② `Debug.LogError` 的**日志文本**出现无自动化(委托被调用有夹具)。③ **`BootRoot._sessionWasIncomplete` 今日零消费者** —— GDD `:586` 逐字「提示承载归 42 / 7b」⇒ 7a 义务到此为止,但**读位已接线、消费未接线**;若日后有人据 `IsSessionIncomplete` 已接线就宣称「提示功能已实现」,那是假绿。<br>🔁 **2026-11-03:该残留已升格为独立债 `TD-skeuo-05`** —— 原因 = **本条 `closed`,残留按 §五 算法不进未闭 P0 面**,导致这条 BLOCKING AC 的缺口**长期不出现在 M3 Exit 分母上**。原文不删;两处记**同一事实、不同记账位**,不是第二真源。④ `AC-7a-07`(异步写盘 + SHA256 非主线程)**未动**,仍 open(见 `TD-persist-05` 的 `07` 半边)。 |
 | **原件** | `production/qa/evidence/impl-td-persist-06-2026-10-25.md` |
 
 ---
@@ -4249,6 +4311,103 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 与 `-05` 的关系** | `-05` 的门是 `IsOnExpedition && !IsInClinic`,`InCombatCooldown` 是**独立的第一道判据**(`EventF1Pipeline.cs:146` 先判它)。⇒ 本债不解,门即使前两项为真仍可能被冷却挡掉;但它**不是**当前的主阻塞(`-05` / `-06` 才是)。 |
 | **触发条件** | ① 25/27 交付战斗结算信号时(同批);② 或用户数值轮裁定 `COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 时;③ 或任何以「规则六之二完整落地」形态引用之前(**禁借绿**)。 |
 | **归属** | **52 随机事件导演**(装配闭包)· 战斗信号 = **25/27** · 数值 = **用户裁定** |
+
+### TD-skeuo-03 — 模态开合面只认 2 个身份 ⇒ 闭集 9 员里 **7 员无关闭路径**(42)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ModalOpener`(全案唯一的模态开合契约,`Gameplay.Boot/ModalInputDriver.cs:118-134`)只有**四个成员**:`IsPauseOpen` / `IsCasebookOpen` / `OpenPause()` / `Close()`。`ModalInputDriver.OnFrame`(`:65-78`)据此三分支:脉案开 ⇒ 关;暂停壳开 ⇒ 关;**其余一律 ⇒ `OpenPause()`**。⇒ 闭集 9 员中,**只有 `Casebook` / `Pause` 两员能被 toggle 正确闭合**;`SaveSlots` / `InventoryContainer` / `SettingsShell` / `Tutorial` / `ClinicPanel` / `PaperCloseup48` / `Processing` 七员按同一 toggle 时走第三支 = **换屏回暂停壳**(而不是关闭)。 |
+| **实测(逐条可跑)** | ① `grep -nE "bool Is[A-Za-z]+ \{ get; \}\|void Open\|void Close" unity/Assets/Gameplay.Boot/ModalInputDriver.cs` ⇒ 恰 4 条(`IsPauseOpen` `:123` / `IsCasebookOpen` `:127` / `OpenPause` `:130` / `Close` `:133`)。<br>② `grep -n "_opener\." unity/Assets/Gameplay.Boot/ModalInputDriver.cs` ⇒ `:65 IsCasebookOpen` / `:70 IsPauseOpen` / `:77 OpenPause`(三支,**无第四支**)。<br>③ 各屏的生产关闭路径计数:<br>&nbsp;&nbsp;`grep -cE "RegisterCallback<NavigationCancelEvent>\|Close\(\)\|RequestClose" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/{InventoryContainerScreen,ClinicPanelScreen,SaveSlotsScreen,PauseScreen}.cs` ⇒ **0 / 0 / 0 / 0**;<br>&nbsp;&nbsp;`Processing18Screen.cs` ⇒ **2**,但见 ④。<br>④ `grep -rn "IProcessingCommandSink" unity/Assets --include=*.cs \| grep -v /Tests/ \| grep -v "interface\|private IProcessing\|BindCommandSink"` ⇒ **零命中** ⇒ `Processing18Screen.RequestClose()`(`:128`)调的是**永远为 null 的 `_sink`**。<br>⑤ `grep -rn "NavigationCancelEvent" unity/Assets --include=*.cs`(**含 `Tests/`**)⇒ **零命中**。<br>⑥ `grep -rn "CancelPressed\|cancelAction" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 唯一命中是 `BootRoot.cs:1310` 的**完整性断言**(`module.cancel?.action == null`),**不是消费者**。 |
+| **⚠️ 两个独立机制,别混读** | 上面 ⑤⑥ 说的是**两条互不相干的缺口**,合起来才是「关不掉」:<br>**机制 A(Escape 被全局读)** —— `BootRoot.Update:1977` 每帧调 `_modalInput.OnFrame()`,它读 `PlayerInputReader.PauseTogglePressed`(Escape / start)。**这个读面不看当前是哪个模态** ⇒ 任何非 `Pause` / 非 `Casebook` 的屏摊开时按 Escape,`IsPauseOpen == false` ⇒ 走第三支 `OpenPause()` ⇒ **换屏**。<br>**机制 B(spec 点名的关闭动作零读面)** —— 20 的 spec 点名的开合动作是 **`OpenInventory`**(`inventory-container-20.md:177`「开 / 关箱 \| `OpenInventory` \| 同一 action 资产」),24 点名的是 **`Interact`**(`clinic-panel-24.md:188`「开 / 关面板 \| 世界内对案头账本载体 Interact」)。而 `grep -rn "OpenInventory" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **零命中**;`Interact` 虽被 `InteractionInputDriver` 读,但**过 `ModalGate`** —— 模态开着时 `Accept` 恒假 ⇒ **被拒收**,关不掉。<br>⇒ 20 / 24 两屏今日的实际情况:按 spec 写的键**关不掉**(机制 B),按 Escape 则**换屏**而非关闭(机制 A)。两条都得解,且解法不同(机制 B 是接线,机制 A 是契约形状)。 |
+| **与既有裁定的冲突(逐条点名)** | · `inventory-container-20.md:56`(Approved)逐字「**出口**:同一 action toggle 关闭;焦点回**进入前载体**(P-02)」⇒ 该 action(`OpenInventory`)**零生产读面**,且按 Escape 会换屏 ⇒ 出口两条腿都断。<br>· `clinic-panel-24.md:81`(Approved)「开关 toggle ──▶ World(焦点回载体 P-02)」⇒ `Interact` 被 `ModalGate` 拒收 ⇒ 关不掉。<br>· `casebook-39.md:225`(Approved)「关册 \| toggle」⇒ 该员**已正确**(`IsCasebookOpen` 分支)。<br>· `save-slots-7b.md:198`「关闭册 \| 同一 toggle \| 回进入前状态栈」⇒ 今日回的是暂停壳,而暂停壳是 7b 的**上一级**(该条勉强自洽,但 `ADR-013 §十-C:501-502` 自陈为「粗糙边、归 UX spec」)。<br>· `input-system.md:147` `Cancel` 行逐字「消费者 = **42**」,语义「焦点返回」⇒ 42 侧**零实现**(机制 B 的第三条候选路径,今日同样断)。 |
+| **为什么这不是「补个分支」** | 加一个 `IsInventoryOpen` 分支 = 在 `ModalOpener` 上**逐员复制闭集** —— 那正是 `AC-4-09`「引用而非复制」要防的形态(虽然 AC-4-09 管的是 4 侧,但 42 侧同样有「闭集增员时到处改」的失败模式,`ADR-013 §十「一处声明」` 的立规理由即此)。**正确形状** = 把「当前模态身份」收敛成一个**可比较的量**(如 `CurrentModal` 只读属性),让 toggle 面写成「有模态 ⇒ 关,无模态 ⇒ 开暂停」—— 一次改动覆盖全部 9 员,且闭集增员时**零改动**。<br>⚠️ 但这**不是**本债的实现建议 —— 它是**方向**;具体形状须由 42 的下一轮裁定(涉及 `IModalState` 是否扩面、`ModalOpener` 是否退役)。 |
+| **解除动作** | ① 用户裁定「其余模态的 toggle 语义」—— 候选:(甲)一律「关闭并回进入前载体」·(乙)一律「关闭并回世界」·(丙)只给暂停壳/脉案 toggle,其余屏靠 `Cancel` 动作(须同时接 `Cancel` 读面);② 按裁定改 `ModalOpener` 形状(**不是**逐员加分支);③ 若取 `Cancel` 路径:接 `PlayerInputReader` 的 Cancel 读面 + 在 `SkeuoRuntimeDriver` 上挂 `NavigationCancelEvent` 的唯一监听点;④ 夹具:**九员各一条**「开 ⇒ toggle/Cancel ⇒ 关且 `CurrentModal == None`」,另加一条「换屏不得冒充关闭」(断言 `CurrentModal` 不是 Pause)。<br>⚠️ ④ 的「九员各一条」是**下限**:`SettingsShell` / `Tutorial` / `PaperCloseup48` 今日**零开屏点**(见 `TD-skeuo-04`),那三员的夹具须先由 04 解除才可写。 |
+| **触发条件** | ① 42 的下一轮 UX/实现轮开工时;② 或任何以「模态关闭路径完整」形态引用之前(**禁借绿**);③ 或 `Cancel` 动作首次被接线的轮次(同批)。 |
+| **归属** | **42 拟物 UI 框架**(`ModalOpener` 契约 + `SkeuoRuntimeDriver` 的事件挂点)· `Cancel` 读面 = **3 输入** · 语义裁定 = **用户** |
+| **⚠️ 与 `TD-skeuo-04` 的关系** | 两笔**不同因、不同解**,不合并:本债 = 「有开屏点但关不掉」(7 员);04 = 「连开屏点都没有」(3 员)。交集为空 ⇒ 修 03 不会让 04 变绿,反之亦然。 |
+
+### TD-skeuo-04 — 闭集 **3 员零生产开屏点**,而它们的 story 标 `Complete`(42 ↔ 48 / 49)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ModalId.SettingsShell` / `ModalId.Tutorial` / `ModalId.PaperCloseup48` 三员**屏载体存在**(`SettingsScreen` / `TutorialScreen` / `PaperCloseupScreen` 均在 `ScreenFactories` + `ModalScreenNames` 登记),但**全仓无任何生产代码调用 `OpenModal` 打开它们**。⇒ 玩家在生产构建里**永远看不到这三屏**。而 story 014 / 015 / 016 全标 `Complete ✅`(`skeuomorphic-ui/EPIC.md` 状态表)。 |
+| **实测(逐条可跑)** | ① `grep -rn "OpenModal(UI.Skeuomorphic.ModalId.SettingsShell\|OpenModal(UI.Skeuomorphic.ModalId.Tutorial\|OpenModal(UI.Skeuomorphic.ModalId.PaperCloseup48" unity/Assets --include=*.cs` ⇒ **零命中**(含 `Tests/`,故不是「只有测试能开」,是**谁都不能开**)。<br>② 对照:同一命令换 `Pause` ⇒ **2** · `Casebook` ⇒ **4** · `SaveSlots` ⇒ **2** · `InventoryContainer` ⇒ **1** · `ClinicPanel` ⇒ **1** · `Processing` ⇒ **1**。<br>③ 三屏的类型仍在 `SkeuoRuntimeDriver.cs:140-143` 的 `ModalScreenNames` 与 `:154-156` 的 `ScreenFactories` 里 ⇒ **登记齐 ≠ 可达**。<br>④ story 状态:`grep -m1 "> \*\*Status" production/epics/skeuomorphic-ui/story-0{14,15,16}-*.md` ⇒ 三件全 `**Status**: Complete`。 |
+| **与 spec 的冲突(逐条点名)** | · `settings-shell-42.md:54`(Approved)逐字「**两个入口**:① 主菜单『调治』项;② 游戏内暂停壳内项」⇒ **两个入口今日都不存在**:<br>&nbsp;&nbsp;— 主菜单侧:`MainMenuScreen` 只有**一行**(`_label` 单 Label,`main-menu-42.md:100` 的 ASCII 亦只有一行「继续诊治」),无「调治」行;<br>&nbsp;&nbsp;— 暂停壳侧:`OQ-PS-3` 已裁「**只放继续和存档位**」(`pause-shell-42.md:355`),`PauseScreen` 实为**两行**(`PauseScreen.cs:101` 文案表 `{"继续","存档位"}`)⇒ 壳里没有第三行。<br>· `paper-closeup-48.md:76`「**无二级入口**:仅『走近纸道具 + toggle』唯一路径」⇒ 该路径的**投递方**不存在:`grep -rn "PaperCloseup48" unity/Assets --include=*.cs` 除屏自身与两处目录登记外**零命中**,4 的 `InteractionPressRouter` 的 `INTERACTABLE_KINDS` 十项(`interaction-system.md:152-153`)里**没有「纸道具」这一 kind**。<br>· `tutorial-48.md:85`「出口:同一 toggle 关闭」⇒ 入口侧无对应物(story-004 仍 `Ready`,卡面自陈 `Status: [ ] Not yet created`)。 |
+| **⚠️ 为什么 story 会标 `Complete`** | 三件的 Test Evidence 载体全是 **EditMode 单屏夹具**(`settings_shell_test.cs` 10 测 / `tutorial_test.cs` / `paper_closeup_test.cs` 9 测),它们直接 `new XxxScreen(...)` 后断言屏内行为 —— **不经 `OpenModal`** ⇒ 「屏画得对」与「玩家能看见」是两件事,前者绿、后者零。<br>这正是本仓已登记的**假绿形态 F2 的近亲**:不是「测试跑 Fake、生产类零命中」,而是「**测试直造屏、生产开屏点零命中**」。⇒ 该形态**值得补进 `.claude/docs/coding-standards.md` 的假绿登记表**;但那是治理面动作,不在本债的解除面内(如实登记,不顺手改规范)。 |
+| **解除动作** | 三员各自的**上游入口**须分别交付,不能合并成一个动作:<br>① `SettingsShell` —— 需 42 改 `MainMenuScreen`(加「调治」行)或改 `PauseScreen`(加第三行)—— **两者都是改已裁的 UX spec**(`main-menu-42.md` / `pause-shell-42.md` 的 `OQ-PS-3`),须用户裁定,不得实现侧自裁。<br>② `PaperCloseup48` —— 需 4 的 `INTERACTABLE_KINDS` 增「纸道具」kind + 关卡侧摆点 + `InteractionPressRouter` 增路由(三方登记,`interaction-system.md:149-155` 的闭集是**权威枚举**,增项须先改它)。<br>③ `Tutorial` —— 需 48 的 story-004(三媒调度 + 纸模态)从 `Ready` 落地。<br>④ 每员补一条**装配级**夹具:经 `OpenModal` 打开 ⇒ 屏出现 ⇒ 可关(与 `TD-skeuo-03` 的 ④ 同批)。<br>⚠️ ①② 的改 spec 部分**不得由实现轮代裁** —— 本债只登记「入口不存在」这个事实。 |
+| **触发条件** | ① 42 的下一轮 UX 轮(碰 `main-menu-42.md` / `pause-shell-42.md` 任一件时);② 4 的 `INTERACTABLE_KINDS` 下一次增项时;③ 48 story-004 开工时;④ 或任何以「闭集 9 员全部可达」形态引用之前(**禁借绿**)。 |
+| **归属** | **42**(屏载体与 `MainMenu`/`Pause` 的行)· **4**(纸道具 kind)· **48**(story-004)· **语义裁定 = 用户** |
+| **⚠️ 不得借绿的相邻事实** | `AC-42-F1` 的整体走查状态仍是 `NOT-RUN`,其**具名阻塞**今日是 ⑨ 炮制屏无 `processing-18.md`;但**即使 ⑨ 解除,④⑤⑦ 三员仍走查不了** —— 因为它们在生产上打不开。⇒ 「⑨ 有 spec 了 ⇒ 整体可签核」是**错的**读法,本债是第二道门。 |
+
+### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
+
+> **⚠️ 2026-11-03 立债。用户两次裁定把本债的性质一路降级,最终落到真因上**:
+> ①「上次会话未完整保存**属于出现 bug,应该修复,不该作为常态提醒**」
+> ②「**这种 bug 情况不该出现,为什么还要考虑这种情况的提示语**」
+> ⇒ 用户两次都在说同一件事:**不要去设计提示语,去修那个让提示出现的原因**。
+> 本轮照此查到底,查出的不是「缺检测」,而是**误报**。**本债不是 `TD-skeuo-05` 的替代** ——
+> 05 是「提示的承载方无 AC」,本条是「提示会在不该出现的时候出现」。**不合并。**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `SaveOnExit` 的成败判据(`SaveService.cs:710-711`)是 `drained && LastFailure == null`。而 `drained = _writeQueue.WaitForIdle(_exitSaveRetryMillis)` **把两种完全不同的情形合并成同一个 `false`**:<br>**(a) 写盘真的失败** —— `TryRunWithRetry` 用尽 5 次仍抛(`SaveWriteQueue.cs:276-288`);<br>**(b) 写盘只是慢** —— worker **仍在正常跑**,只是超过了 `SAVE_EXIT_RETRY_TIMEOUT`(默认 1 s)的 join 预算。<br>情形 (b) 落进**失败分支** ⇒ `RaiseIncompleteFlag()`(`:738`)⇒ 下次启动读到「已置位」⇒ 报「上次会话未完整保存」。<br>⇒ **而那次会话是正常退出的、档最终也写成了**(worker 在 join 放弃之后继续跑完)。**这就是用户说的「不该出现的提示」。** |
+| **实测(逐条可跑)** | ① 判据:`sed -n '710,711p' unity/Assets/Sim.Codec/SaveService.cs` ⇒ `bool drained = _writeQueue.WaitForIdle(_exitSaveRetryMillis);` / `bool written = drained && _writeQueue.LastFailure == null;`。<br>② 两种情形合并:`WaitForIdle`(`SaveWriteQueue.cs:202-214`)只在 `_outstanding == 0 && !_draining` 时返回 true,**超时即 false** —— 它**不区分**「还没跑完」与「跑完了但失败」。失败信息另在 `LastFailure` 里,**但 `written` 的 `&&` 让 `drained == false` 时根本不看它**。<br>③ 置位唯一调用点:`grep -n "RaiseIncompleteFlag()" unity/Assets/Sim.Codec/SaveService.cs` ⇒ **恰 1 处** `:738`,就在这个「合取失败」分支内。<br>④ 代码自己承认了这个缺口:`sed -n '735p' unity/Assets/Sim.Codec/SaveService.cs` 逐字「⚠️ `lastFailure` 现在可能为 null(**join 超时 ≠ 写盘失败,可能只是慢**)。两条线索都要交给装配层,不能假设它非空」—— 注释**看见了**这个区分,但**置位动作没有据此分支**。<br>⑤ 崩溃场景同样是漏的:`RaiseIncompleteFlag` 的唯一调用点在 `SaveOnExit`,而崩溃 / 强杀时退出钩子**不触发** ⇒ 真正「没走完」的会话**检测不到**(GDD `:125-126` 承诺的兜底零执行体)。全仓无「会话开始」标记:`grep -rniE "session.?start\|SessionMarker\|InProgressFlag" unity/Assets/Sim.Codec unity/Assets/Gameplay.Boot --include=*.cs` ⇒ **零命中**。<br>⑥ 真实存档目录(`~/.config/unity3d/DefaultCompany/unity/saves/`):`session_incomplete.flag` = **0 B**、`flag.bak` = **0 B**;置位写 `{0x01}`(1 B)、清位写 0 B(`SaveIncompleteFlag.cs:89/:92`)⇒ **该目录下从未置位过**(两次 0 B ⇒ 上一次内容也是 0 B)。<br>⚠️ **本条立债时我自己先判错一次,如实登记**:首版把「`flag.bak` 存在」读成「曾置位过」(理由:有 `.bak` ⇒ 经历过 raise→clear)。**该推断是错的** —— `WriteAtomic` 对**每一次**写都做 final→bak,**清位本身也是写** ⇒ 清位也留 `.bak`。判「是否置过位」**只能看内容长度**。 |
+| **⚠️ 这条为什么**不能**用「加个提示」了事** | 用户的两次裁定都在说:提示的存在本身是 bug 的遮羞布。今日标志位**能**被置位的唯一路径是 (a)/(b) 两条,而 (b) 是**假阳性**。⇒ 把提示做出来 = **给一个误报做 UI**,玩家会被告知「上次没存好」,而实际上档好好的。<br>⇒ 正解不是「提示怎么写」,是**让标志位只在真失败时置位**。 |
+| **解除动作(本轮按用户「只落文档」裁定,不动代码)** | ① **判据拆分**:`drained`(时序)与 `LastFailure`(结果)各自独立成两条线索 —— 仅 `LastFailure != null` 才置位;`drained == false && LastFailure == null` ⇒ **慢但未失败** ⇒ **不置位**,只记日志(那是「超预算」的性能事实,不是数据完整性问题)。<br>② **崩溃兜底另立**:真正的「会话没走完」检测需要「会话开始置位 + 成功保存清位」的会话级标记,**输入源与今日完全不同** ⇒ 若要做,须先裁定(复用同一文件 / 另开一个;清位时机如何不吞掉「checkpoint 后崩溃」)。<br>③ 夹具:`drained == false && LastFailure == null` ⇒ **不置位**(今日写不出来 —— 没有慢写的注入点,须给 `SaveWriteQueue` 加可控的延迟注入);`LastFailure != null` ⇒ 置位(已有)。<br>④ 证伪:把判据改回 `drained && …` ⇒ ③ 的「不置位」条转红。 |
+| **触发条件** | ① 7a 的下一次修订轮;② 或 `TD-skeuo-05` 要落提示之前(**必须先解本条**,否则做出来的提示是给误报做的 UI);③ 或任何以「`AC-7a-17` 完整兑现」形态引用之前(**禁借绿**)。 |
+| **归属** | **7a 持久化服务**(标志位判据)· 形态裁定 = **用户** |
+| **⚠️ 与 `TD-skeuo-05` 的次序关系** | **本条在前,05 在后。** 05 的解除动作里「用户裁定提示形态」这一步若先于本条执行,会做出一个**为误报服务**的提示。⇒ 05 已就地加注硬前置。 |
+
+> ✅ **2026-11-03 已闭(误置半边)**(sprint-24 收口批 · 用户指令「现在做」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-persist-14-flag-false-positive-2026-11-03.md`。
+>
+> **修法**:判据从「`drained && LastFailure == null`」改为「**本次工作项自己**是否抛」——
+> `exitCompleted` / `exitFailure` 由 worker 内 `lock` 记下,主线程读;`WaitForIdle` 的返回值**不参与成败判定**。
+> 三条设计判断:① 不用队列级 `LastFailure`(它**跨工作项粘性**,会把更早 checkpoint 的失败记成这次的);
+> ② worker 内 `catch` 记录后**仍 throw**(队列靠异常做退避重试);
+> ③ 跨线程用**显式锁**(`drained == false` 时 `WaitForIdle` 的锁边沿不提供可见性)。
+>
+> **夹具**:改写 1 条(`test_saveOnExit_joinTimeout_raisesFlagInsteadOfThrowing` →
+> `…_doesNotRaiseFlag`,**语义反转** —— 旧断言本身断的是错误行为)+ 新增 1 条
+> (`test_saveOnExit_staleCheckpointFailure_stillClearsFlag`)+ 删除自己写重复的 1 条
+> (已由 `save_exit_retry_and_flag_test.cs:334` 覆盖)。
+>
+> **回归**:EditMode `6773/6736/0/0/37` @ 2026-11-03 11:57:15Z → 11:59:07Z ·
+> PlayMode `324/320/0/2/2` @ 同日 · `1384dba3` + 工作树。基线 `6772/6735` ⇒ 等式 `6773 − 6772 = 1`。
+> **证伪**:4 次尝试仅 **M1c** 有效命中(1 红 exact);**M1 / M1b / M2 三次零红**,
+> 前两次是**我的变异打错靶**,第三次(M2)是**判据本身证明的等价变异**
+> (`TryRunWithRetry` 成功时 `_lastFailure = null` ⇒ `completed && LastFailure != null` **不可达**)。
+> 还原 = `SHA-256` 逐字节(`d5e9336a…`),零 `MUT-` 残留。
+>
+> **⚠️ 三条残留(不借绿)**:
+> ① **`staleCheckpointFailure_stillClearsFlag` 今日无专属有效变异** —— M2 被证明等价 ⇒
+>    「读队列级粘性状态」这条防线**没有直接反证**,只由「(b) 分支若被删 ⇒ M1c 会红」间接覆盖。
+> ② **崩溃 / 强杀仍检测不到** —— 本条**只修误报**(用户裁定的靶心)。真「会话没走完」的检测
+>    需「会话开始置位 + 成功保存清位」的会话级标记,**输入源与今日完全不同** ⇒ 须先裁定(见上「解除动作 ②」)。
+> ③ 「上次会话未完整保存」的**提示 UI 仍不存在** ⇒ 归 `TD-skeuo-05`(其硬前置 = 本条,**现已解除**)。
+
+### TD-skeuo-05 — `AC-7a-17` 的「下次启动提示」半句:义务已判给 42/7b,但**两者都没有 AC**(42 ↔ 7b ↔ 7a)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `AC-7a-17`(BLOCKING)的 `THEN` 有两半:① 退出保存失败 ⇒ 限时重试后**不阻塞退出 + 记日志**;② 下次启动检测到标志位 ⇒ **非阻塞提示「上次会话未完整保存」**,且逐字括注「**提示承载归 42 / 7b,7a 只断言标志位置位**」。① 已兑现(`TD-persist-06`,2026-10-25)。② 的**义务方**(42 / 7b)从未收下这条 —— 两份 GDD 的 AC 区**逐条扫过,零命中**。⇒ 该 BLOCKING AC **在半个句子上无宾语**。 |
+| **实测(逐条可跑)** | ① 义务出处:`grep -n "提示承载归 42" design/gdd/persistence-service.md` ⇒ `:663`(AC-7a-17 正文内)。<br>② 42 侧无 AC:`grep -oE "AC-42-[A-Z][0-9]+" design/gdd/skeuomorphic-ui.md \| sort -u \| wc -l` ⇒ **43**;`grep -n "AC-42-" design/gdd/skeuomorphic-ui.md \| grep -c "未完整\|会话未"` ⇒ **0**。<br>③ 7b 侧无 AC:`grep -nE "\*\*AC-7b-" design/gdd/save-slot-ui.md \| grep "未完整"` ⇒ **0**(仅 `AC-7b-06` / `-09` 含「提示」二字,但指的是「**零按键提示浮层**」与「**零错误提示音**」—— **语义相反**,不是本条的载体)。<br>④ 生产侧:读位已接、消费未接 —— `grep -n "_sessionWasIncomplete" unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ **三行**:`:224`(字段声明)/ `:443`(**注释**)/ `:454`(赋值);**零消费**。<br>⑤ 呈现侧零读面:`grep -rn "IsSessionIncomplete\|sessionWasIncomplete" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **六行,全在 `BootRoot.cs`(上述三行)+ `SaveService.cs`(`:369` 文档注 / `:377` 定义)** —— **`Gameplay.UI` 零命中**,`SkeuoRuntimeDriver` / 任一 `*Screen` 零命中。<br>⑥ 主菜单 spec 也无:`grep -c "会话未完整\|未完整" design/ux/main-menu-42.md` ⇒ **0**(该 spec 的唯一「提示」是 `AC-MM-05`「无按键提示浮层」,**语义相反**)。 |
+| **⚠️ 为什么这条此前「登记了却不进分母」** | 它**只在** `TD-persist-06` 的「残留(不在本债面内,如实登记)」③ 里出现(债册 `:3964`),而 `TD-persist-06` 是 **`closed`**。⇒ 按 §五 脚本的算法(`r[2] != 'closed'`),**已结案条目里的残留不进未闭 P0 面** ⇒ 这条 BLOCKING AC 的缺口**长期不出现在 M3 Exit 的分母上**。<br>这是**记账口径**的真缺口,不是「忘了登记」:原登记处措辞是精确的(`:3964` ③ 逐字「读位已接线、消费未接线;若日后有人据 `IsSessionIncomplete` 已接线就宣称『提示功能已实现』,那是假绿」),只是**位置**让它不算数。<br>⇒ 本条的立债**不删原文**;原 `:3964` ③ 保留,并在下方加一行指针指到本条(两处**同一事实、不同记账位**,不是第二真源)。 |
+| **⚠️ 与「无提示音铁律」的关系(必须判清,否则会写错形态)** | 本条要的是**视觉 / 文本提示**,而 ADR-018 §六 / 7b 规则六禁的是**音频播报**与「**存档结果**」的即时反馈。两者**不同面**:<br>· 7b 规则六禁的是「**存档已写入**」这类**成功**播报(`save-slot-ui.md:160-171`);<br>· 本条要的是「**上次**会话未完整」—— 它**不是本次存档的结果**,是**上一次异常**的一次性告知。<br>⇒ 两者不冲突。**但形态仍须裁**:若取「toast / 弹窗」,会撞 `AC-7b-07`(零弹窗 / 零 toast)与拟物纪律;若取「纸面墨痕 / 页边注」,则合族。**本债只登记缺口,不代裁形态。** |
+| **解除动作** | ① **先在 42 或 7b 的 GDD 里补一条 AC**(现无载体 ⇒ 无判据可写);② 用户裁定**形态**(候选:甲 = 主菜单纸面一行墨字(「上次未能安存」)· 乙 = 暂停壳第三行(⚠️ 撞 `OQ-PS-3`「只放继续和存档位」)· 丙 = 存档册页边注(承 7b 规则六的「世界内反馈」口径));③ 装配层把 `BootRoot._sessionWasIncomplete` 接到 42 的呈现面(**只读布尔,42 不持状态** —— 承 ADR-013 §9 C3);④ 夹具:标志位真 ⇒ 提示出现;标志位假 ⇒ 不出现(正反各一条,且须走**真启动序**,不是直接 new 屏)。<br>⚠️ ② 的丙案须先解 `TD-skeuo-03`(存档册今日关不掉,提示挂在册上会更难退)。 |
+| **触发条件** | ① 42 / 7b 的 GDD 下一次修订轮(**须补 AC**);② 或用户裁定提示形态时;③ 或任何以「`AC-7a-17` 完整兑现」形态引用之前(**禁借绿** —— `TD-persist-06` 的 `closed` **不覆盖本半句**)。<br>🔴 **2026-11-03 硬前置(用户两次裁定后补)**:本债的「提示形态裁定」**必须等 `TD-persist-14` 落地之后**。理由(比首版更精确)= 今日 `RaiseIncompleteFlag` 的**唯一**触发路径是 `SaveOnExit` 的失败分支,而该分支把「写盘真的失败」与「**写盘只是慢**(join 超时)」合并成同一个结论 ⇒ 在 14 之前做出提示 = **给一个假阳性做 UI**。用户裁定②逐字:「这种 bug 情况不该出现,为什么还要考虑这种情况的提示语」。⇒ 本债**暂缓**,14 是它的前置。<br>✅ **2026-11-03 前置已解除**:`TD-persist-14` **同日 `closed`**(误置半边已修,原件见其结案块)。⇒ 本债的「形态裁定」**现在可以开工**。<br>⚠️ **但注意**:14 的结案**只覆盖误报**。真「会话没走完」(崩溃 / 强杀)仍检测不到 —— 若玩家实际遇到的是那种情形,提示仍不会出现。⇒ 落提示前须先明确**它到底在为哪个事实服务**,见 14 的残留 ②。 |
+| **归属** | **42 拟物 UI**(提示的呈现载体)· **7b 存档位 UI**(备选载体)· 形态 = **用户裁定** · 7a 侧义务**已尽**(只断言标志位置位) |
+
+### TD-skeuo-06 — 炮制屏的「点火」是**静默空操作**(`IProcessingCommandSink` 生产零实现)(18 ↔ 42)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `Processing18Screen.Activate(rowIndex)`(`:120-125`)在选中配方后调 `_sink?.Ignite(_selectedOrdinal)`(`:124`);`RequestClose()`(`:128`)调 `_sink?.Close()`。而 `IProcessingCommandSink` 的**生产实现数为零** ⇒ `_sink` 恒 `null` ⇒ 两次调用都是 `?.` **静默跳过**。<br>⇒ 玩家在炮制屏上**按下配方行**:屏上无任何变化、无报错、无日志、**零 `Craft` 事件落流**。`RequestClose` 同样空转(这是 `TD-skeuo-03` 的炮制屏实例,但**成因不同**:03 是 toggle 面只认 2 个身份,本条是**整个 sink 面不存在**)。<br>⚠️ `ADR-013 §十-E:723` 自陈该屏为「最小可操作屏:候选行 + **选中 + 点火**」——「点火」这一项**没有执行体**。 |
+| **实测(逐条可跑)** | ① `grep -rn "IProcessingCommandSink" unity/Assets --include=*.cs \| grep -v /Tests/ \| grep -v "interface \|private IProcessingCommandSink \|public void BindCommandSink"` ⇒ **零命中**(只剩声明 / 字段 / 绑定方法三处)。<br>② `grep -rn ": IProcessingCommandSink" unity/Assets --include=*.cs` ⇒ **恰 1 行**,`processing18_screen_test.cs:269` 的 **`SpySink`(测试替身)**。⚠️ 精确写 `: IProcessingCommandSink` 而非 `SpySink` —— 仓内另有两个同名 `SpySink`,实现的分别是 **`IEventSink`**(`drug_event_test.cs:71` / `prescribe_flow_test.cs:54`),与本条无关;按名扫会误读。<br>③ `grep -rn "BindCommandSink" unity/Assets/Gameplay.Boot --include=*.cs` ⇒ **零命中** ⇒ `BootRoot` 开炮制屏时(`:761-771`)**只调 `screen.Bind(...)`,从不调 `BindCommandSink`**。<br>④ `SkeuoRuntimeDriver.OpenModal` 里对 `Processing18Screen` **无分支**(`grep -n "Processing18Screen" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs` ⇒ 唯一命中 `:161` 的 **`ScreenFactories` 构造行**,不是 sink 绑定)⇒ 换屏路径也不补绑。<br>⑤ `grep -rn "CraftIgnitionTransaction.Process" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **零生产调用** ⇒ 18 的五步事务**从未在生产中被调用过一次**。 |
+| **⚠️ 与 2026-11-02 那轮账的关系(为何此前没记)** | 该轮「账务」段(`:9800` 附近)只记 `P0 面` / `未闭 P0 面` 两项不动,「三处粗糙边」记的是**内容面**(空料位 / 键名文案 / 无起货呈现)。**「点火零执行体」不在那三条里** —— 它是**交互面**,与内容面正交。<br>⇒ 这是本仓已登记的第 **F2** 形态(F2 = 「测试跑 Fake,生产类零命中」)在 **sink 层**的实例:屏类在(所以 F2 的「生产类零命中」判据不触发),但**它依赖的接口实现**零命中 ⇒ 用类名扫查不出,须扫**接口实现者**。<br>⚠️ 如实登记:本仓假绿表(F2)的检出命令写的是「`grep -rn "<生产类名>" … \| grep -v /Tests/` ⇒ 零命中」—— **本条逃逸了该判据**,因为生产类(屏)在。⇒ 建议把 F2 的判据扩成「**接口实现者**同样扫一遍」;但那是治理面动作,**不在本条解除面内**(不顺手改规范)。 |
+| **解除动作** | ① **落一个 `IProcessingCommandSink` 的生产实现**(住 `Gameplay.Boot` —— 它同时看得见 `Sim` + `Gameplay.UI`;同 `ProcessingAdmissionQuery` 的既有落点):`Ignite(ordinal)` 组 `CraftIgnitionRequest`(需料位实例集 / 品级集 / 当前载重 / 单件重量解析)并调 `CraftIgnitionTransaction.Process`;`Close()` 调 `_uiDriver.CloseModal()`。<br>② **装配**:`BootRoot` 开炮制屏时 `screen.BindCommandSink(...)`(`:761-771` 段)。<br>③ **前置未解(如实点名)**:`CraftIgnitionRequest` 需 `InputInstanceIds` / `InputQualities` / `CurrentCarryLoad` / `UnitWeightOfOutputLine` 四件 —— 而料位实例集今日**不存在**(2026-11-02 轮记「20 的选中态接口不存在」;本轮实测已部分变化:有 `ContainerSelectionStore.ConsumedQualitiesOf`,但**只有品级,没有实例 id**)。⇒ **① 在料位实例集落地前做不完**。<br>④ 夹具:真 sink ⇒ 屏上确认 ⇒ `Craft` 事件**恰一条**落流;`Ignite` 被拒(准入 / 单炉 / 容量)⇒ **零事件** + 屏不报成功(正反各一条)。<br>⑤ 证伪:`_sink?.Ignite` 改成 `_sink.Ignite`(去 `?.`)⇒ 若 sink 仍 null 则**抛**(证明今日确为空转);补实现后该变异应**转绿**。 |
+| **触发条件** | ① 18 的「屏上点火端到端」轮开工时;② 或 20 的料位**实例集**接口落地时(同批);③ 或任何以「炮制屏可用」形态引用之前(**禁借绿** —— `ADR-013 §十-E` 的「点火」是**未实现**)。 |
+| **归属** | **42 拟物 UI**(屏的意图出口)· **18 炮制**(点火事务的调用方)· **20 库存**(料位实例集)· **装配 = `Gameplay.Boot`** |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 
