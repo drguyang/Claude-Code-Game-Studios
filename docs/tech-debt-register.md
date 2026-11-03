@@ -463,6 +463,7 @@
 | `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-05` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-07` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -563,6 +564,15 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **六十一订(`TD-skeuo-07` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
+> 视觉走查(图形模式实机截图)发现:存档册在真画面上是**一列带横线的文本**,没有纸页。
+> 变化:`open 16 → 17`(+1)· `closed 150 不动`· **`未闭 P0 面 8 → 9`**(+1)·
+> **`skeuomorphic-ui 3 → 4`**(+1,epic 数仍 `2/31`)· 条目数 **170 → 171**(+1)。
+> 单一变化源:新增 `TD-skeuo-07` 索引行(`open` / P0 面 **Y**)。
+> ⚠️ **P0 面判 Y 的理由**(可被用户推翻):7b 是 P0 屏,而玩家**读不清自己的档** ——
+> 行字落在无底色的深色背景上、页码与页缘无形态。这不是「美化未做」,是**可用性不成立**。
+> ⚠️ **本轮不动代码**:修它要先裁「载体形态」(接回 UXML / 补一整套 USS),属设计面。
+
 > > 🔁 **六十订(`TD-skeuo-03` 结案 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户裁定「甲:关闭 + 焦点回进入前载体」。变化:`open 17 → 16`(−1)· `closed 149 → 150`(+1)·
 > **`未闭 P0 面 9 → 8`**(−1)· **epic 分布 `skeuomorphic-ui 4 → 3`**,epic 数仍 `2/31`·
@@ -1117,10 +1127,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 170 | 状态 {'closed': 150, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 108 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 3
+条目 171 | 状态 {'closed': 150, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 108 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4
 ```
 <!-- TD-COUNT:END -->
 
@@ -4778,6 +4788,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① **落一个 `IProcessingCommandSink` 的生产实现**(住 `Gameplay.Boot` —— 它同时看得见 `Sim` + `Gameplay.UI`;同 `ProcessingAdmissionQuery` 的既有落点):`Ignite(ordinal)` 组 `CraftIgnitionRequest`(需料位实例集 / 品级集 / 当前载重 / 单件重量解析)并调 `CraftIgnitionTransaction.Process`;`Close()` 调 `_uiDriver.CloseModal()`。<br>② **装配**:`BootRoot` 开炮制屏时 `screen.BindCommandSink(...)`(`:761-771` 段)。<br>③ **前置未解(如实点名)**:`CraftIgnitionRequest` 需 `InputInstanceIds` / `InputQualities` / `CurrentCarryLoad` / `UnitWeightOfOutputLine` 四件 —— 而料位实例集今日**不存在**(2026-11-02 轮记「20 的选中态接口不存在」;本轮实测已部分变化:有 `ContainerSelectionStore.ConsumedQualitiesOf`,但**只有品级,没有实例 id**)。⇒ **① 在料位实例集落地前做不完**。<br>④ 夹具:真 sink ⇒ 屏上确认 ⇒ `Craft` 事件**恰一条**落流;`Ignite` 被拒(准入 / 单炉 / 容量)⇒ **零事件** + 屏不报成功(正反各一条)。<br>⑤ 证伪:`_sink?.Ignite` 改成 `_sink.Ignite`(去 `?.`)⇒ 若 sink 仍 null 则**抛**(证明今日确为空转);补实现后该变异应**转绿**。 |
 | **触发条件** | ① 18 的「屏上点火端到端」轮开工时;② 或 20 的料位**实例集**接口落地时(同批);③ 或任何以「炮制屏可用」形态引用之前(**禁借绿** —— `ADR-013 §十-E` 的「点火」是**未实现**)。 |
 | **归属** | **42 拟物 UI**(屏的意图出口)· **18 炮制**(点火事务的调用方)· **20 库存**(料位实例集)· **装配 = `Gameplay.Boot`** |
+
+### TD-skeuo-07 — 存档册**没有纸页**:屏自建的三个 class 零 USS 载体,UXML 零引用(7b · 42)
+
+> **⚠️ 2026-11-04 立债(看图看出来的,夹具结构上不可能发现)**。
+> 触发 = 用户质问「你是视觉模型,你之前有编写脚本去打开编辑器直接看修改后的内容」。
+> 原件 = `production/qa/evidence/walkthrough-7b-modal-toggle-2026-11-04.md`(含五帧)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 存档册在**真画面**上是一列**带横线的文本** —— 没有纸页、没有页缘、页码 `1 / 2` 贴在左上角极小、焦点环被拉成横贯全宽的黄色带。行字落在深色世界背景上没有底色衬托,**可读性不成立**。成因不是分页改坏的(此前也是这个形态),而是 7b 的**视觉层从来没有载体**。 |
+| **实测(逐条可跑)** | ① `grep -rn "SaveSlots7b" unity/Assets --include=*.cs` ⇒ **零命中** —— 屏不走自己的 UXML(`SaveSlotsScreen.BuildUI` 代码建树,全仓所有屏皆如此)。<br>② `grep -rn "save-slot-page\|save-slot-edge" --include=*.uss unity/Assets` ⇒ **零命中**(屏在 `:83` / `:88` 挂了 `save-slot-page` / `save-slot-edge` 两个 class,**没有任何规则**)。<br>③ `grep -rn "save-slot-item" --include=*.uss unity/Assets` ⇒ 恰 1 处(`SkeuoPaper.uss:61`:`border-bottom` + `min-height`)—— 图上那一列横线就是它。<br>④ `SaveSlots7b.uxml:6` 写的 `class="scroll"` 同样**无规则**。<br>⑤ 对照:暂停壳的 `.pause-column`(`SkeuoPaper.uss:73`)有列宽契约 ⇒ 它是**成形**的纸卡(同一次走查里截到的 `01_pause` 可作正控)。 |
+| **⚠️ 为什么夹具发现不了** | 既有 7b 夹具判的都是**结构**(行数 / 行序 / 动作去向 / 页容量 / 页码文本),没有一条判**形态**。而 `AC-42-F1` 的走查状态本就是 `NOT-RUN`,`AC-7b` 的视觉条目也没有载体。⇒ 这是「**判据齐全 ≠ 画面成立**」的实例,与假绿表里 F1/F6 同族但**不同因**:不是断言造假,是**判据面本身不含形态**。 |
+| **解除动作** | ① **先裁定载体形态**(二选一,不得实现侧自裁):(甲)把 `SaveSlotsScreen` 接回 `SaveSlots7b.uxml`(改这一屏的建树范式,其余屏不动)或(乙)按 7b spec §5 补一整套 `paper / page / edge / page-mark` 的 USS 与九宫格素材;② 按裁定落地,并补齐 `scroll` 这一未定义 class;③ 夹具:至少一条**像素级或几何级**判据(如「纸页的 worldBound 覆盖行区」),否则本条会以同一个形态复发。 |
+| **触发条件** | ① 42 的下一轮视觉 / USS 轮;② 7b 的 UX 文案与数字形态轮;③ 或任何以「存档册可用」形态引用之前(**禁借绿**)。 |
+| **归属** | **42 拟物 UI**(屏与 USS 元件库)· **7b 存档位 UI**(spec 的形态要求)· 载体形态 = **用户裁定** |
+| **⚠️ 与 `TD-skeuo-04` 的关系** | 不同因、不同解:04 是「闭集 3 员**打不开**」(入口面),本条是「打得开但**不成形**」(呈现面)。修 04 不会让本条变绿。 |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 

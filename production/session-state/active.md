@@ -16449,3 +16449,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   债册:条目 170 | closed 150 | open 16 | 未闭 P0 面 8 | epic 2/31。
   未做:`TD-skeuo-04` 的 3 员生产上开不出来 ⇒ 只在契约层覆盖;`Cancel` 读面仍未接。
   原件 = `production/qa/evidence/impl-td-skeuo-03-modal-toggle-closure-2026-11-04.md`。**待提交**。
+- **追加(视觉走查 · 用户质问「你是视觉模型,你去看过吗」 · 2026-11-04)**:补了图形模式走查
+  (`DISPLAY=:0`,去 `-batchmode`/`-nographics`),新增
+  `Tests/PlayMode/SkeuomorphicUI/modal_toggle_visual_walkthrough.cs`(五帧)。
+  **帧间哈希**:`00_world == 04_world_restored` · `01_pause == 03_backtopause`(逐字节)
+  ⇒ 栈语义在画面上成立(关册回暂停壳、关到底回世界,都是**像素级**复原)。
+  ⚠️ **两个装置坑,先后骗过我两次**:① 裸 `CreateInstance<PanelSettings>()` 无 theme/样式
+  ⇒ 五帧全黑且哈希相同;② 场景**没有相机** ⇒ backbuffer 不清 ⇒ 逐帧累积重影,
+  差点把「暂停卡 + 存档册横线」误报成模态泄漏(已用既有绿夹具
+  `test_switchingModal_leavesExactlyOneModalContainer` 排除)。
+  🔴 **看图发现一个产品问题**(结构夹具不可能发现):存档册**没有纸页** ——
+  `SaveSlots7b.uxml` 零 C# 引用(屏是代码建树),`save-slot-page` / `save-slot-edge`
+  **全仓零 USS 规则**,只有 `.save-slot-item` 的行下横线 ⇒ 真画面是一列带横线的文本,
+  行字落在无底色的深色背景上读不出。
+  ⇒ 新立 **`TD-skeuo-07`**(`open` · P0 面 **Y**,可被推翻);修法须先裁载体形态
+  (接回 UXML / 补一整套 USS),本轮不动代码。
+  PlayMode(batch,含新走查件):`326/322/0/2/2` @ 22:45:51Z · 警告 0。
+  债册:条目 171 | closed 150 | open 17 | 未闭 P0 面 9 | epic 2/31。
+  原件 = `production/qa/evidence/walkthrough-7b-modal-toggle-2026-11-04.md`(含五帧)。
