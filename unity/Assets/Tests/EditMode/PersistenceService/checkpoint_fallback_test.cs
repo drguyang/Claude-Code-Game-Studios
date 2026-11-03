@@ -5,7 +5,8 @@
 //     「若叙事事件长期缺席……由 CHECKPOINT_INTERVAL 定时兜底触发 ——
 //      事件触发 = 调度策略,非第四存档入口」
 //   GDD `persistence-service.md:137` —— 不变量「崩溃损失 ≤ 一个间隔」恒成立
-//   GDD `persistence-service.md:635` —— OQ-7a-5(✅ 2026-10-06):默认 5 min = 18000 tick
+//   GDD `persistence-service.md:635` —— OQ-7a-5(✅ 2026-10-06):默认 5 min = **6000** tick
+//     (🔁 2026-11-03 `TD-persist-18`:原写 18000 —— 300 s ÷ 0.05 s = 6000,18000 是 15 min)
 //   裁定(2026-10-25 用户,TD-persist-04 ① 契约轮):
 //     具名接口 `INarrativeContextQuery` 住 Sim.Contracts;到期不安全 ⇒ **顺延**
 //     (下一 tick 重查,不重置 interval —— 跳过窗口会放宽到 2× 间隔)
@@ -116,9 +117,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_checkpointFallback_beforeInterval_doesNotFire()
         {
             _timer = MakeTimer(CheckpointFallback.DefaultIntervalTicks);
-            for (int i = 0; i < 17999; i++)
+            for (int i = 0; i < 5999; i++)
                 _timer.OnTick();
-            Assert.AreEqual(0, _fires, "GDD 默认间隔(18000)内不得触发");
+            Assert.AreEqual(0, _fires, "GDD 默认间隔(6000 tick = 5 min)内不得触发");
         }
 
         /// <summary>
@@ -139,12 +140,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "interval < 1 ⇒ 构造期拒(0 = 每 tick 兜底,「定时」语义不成立)");
         }
 
-        /// <summary>GDD 默认间隔 = 18000 tick(OQ-7a-5 已裁值,本类只是承载;改动须另走裁定)。</summary>
+        /// <summary>
+        /// GDD 默认间隔 = **6000** tick(OQ-7a-5 已裁值「5 min」,本类只是承载;改动须另走裁定)。
+        /// <para>🔁 2026-11-03(`TD-persist-18`):本断言原写 `18000`,并附注
+        /// 「5 min = 300 s ÷ 0.05 = 18000 tick」—— **算式与字面量自相矛盾**。
+        /// 判据一直「绿」,因为断言钉的就是那个错的字面量;而它保护的
+        /// 「崩溃损失 ≤ 一个间隔」实际被放大了 3 倍(15 min)。用户裁定「甲」改 6000。</para>
+        /// </summary>
         [Test]
         public void test_checkpointFallback_defaultInterval_isGddValue()
         {
-            Assert.AreEqual(18000, CheckpointFallback.DefaultIntervalTicks,
-                "CHECKPOINT_INTERVAL 默认 = 5 min = 300 s ÷ TICK_SECONDS(0.05)= 18000 tick;" +
+            Assert.AreEqual(6000, CheckpointFallback.DefaultIntervalTicks,
+                "CHECKPOINT_INTERVAL 默认 = 5 min = 300 s ÷ TICK_SECONDS(0.05)= **6000** tick;" +
                 "改它 = GDD :136/:414/:635 三处同时失效,须另走裁定轮");
         }
 

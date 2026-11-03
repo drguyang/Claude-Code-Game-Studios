@@ -6,8 +6,11 @@
 //      事件触发 = 调度策略,非第四存档入口」
 //   design/gdd/persistence-service.md:137 —— 不变量:「崩溃损失 ≤ 一个间隔」**恒成立**;
 //   design/gdd/persistence-service.md:635 —— OQ-7a-5(✅ 2026-10-06 已裁):
-//     CHECKPOINT_INTERVAL = 5 min(`18000` tick @ 50 ms;安全区间 1–30 min,可调),
+//     CHECKPOINT_INTERVAL = 5 min(`6000` tick @ 50 ms;安全区间 1–30 min,可调),
 //     防御性下限 = 出诊周期级。
+//     🔁 **2026-11-03(`TD-persist-18` · 用户裁定「甲」)**:原文写 `18000` tick,
+//        而 300 s ÷ 0.05 s = **6000** —— `18000` 是 15 min(3× 裁决值)。
+//        按「意图 = 5 分钟」改常数,不动裁决本身。
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // 裁定记录(2026-10-25 用户两裁定,原文见 docs/tech-debt-register.md):
@@ -44,10 +47,16 @@ namespace DaYiJingCheng.Sim.Codec
     public sealed class CheckpointFallback
     {
         /// <summary>
-        /// GDD 默认间隔:`CHECKPOINT_INTERVAL` = 5 min = 300 s = <c>18000</c> tick(@ 50 ms,
+        /// GDD 默认间隔:`CHECKPOINT_INTERVAL` = 5 min = 300 s = <c>6000</c> tick(@ 50 ms,
         /// `TICK_SECONDS = 0.05`,OQ-25-8 裁定)—— OQ-7a-5 已裁值(2026-10-06),非本类新裁。
+        /// <para>🔁 <b>2026-11-03(`TD-persist-18` · 用户裁定「甲」)</b>:本常量曾是
+        /// <c>18000</c>,而注释同时写着「5 min = 300 s」—— **左右不等**
+        /// (300 ÷ 0.05 = 6000;<c>18000</c> × 0.05 s = 900 s = **15 min**,3× 裁决值)。
+        /// 用户裁定「意图 = 5 分钟」⇒ 改常数为 <c>6000</c>,裁定值不动。
+        /// ⇒ 崩溃损失窗口随之由 15 min 收回 **5 min**(「崩溃损失 ≤ 一个间隔」这条不变量
+        /// 此前实际被放大了 3 倍,而**没有任何测试/门发现** —— 因为夹具断言的是那个错的字面量)。</para>
         /// </summary>
-        public const int DefaultIntervalTicks = 18000;
+        public const int DefaultIntervalTicks = 6000;
 
         private readonly Action _checkpoint;
         private readonly INarrativeContextQuery _context;
@@ -68,7 +77,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// (装配根维持 `narrativeContext = null` ⇒ `Checkpoint` 本身必抛,兜底无从谈起);
         /// 一个拿着 null 源还在计数的兜底 = 「到期必抛」的定时炸弹,不如不让造。</para>
         /// </param>
-        /// <param name="intervalTicks">间隔(tick)。GDD 默认 18000;测试注入小值。须 ≥ 1。</param>
+        /// <param name="intervalTicks">间隔(tick)。GDD 默认 6000(= 5 min @ 50 ms);测试注入小值。须 ≥ 1。</param>
         /// <exception cref="ArgumentNullException">任一驱动源为 null。</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="intervalTicks"/> &lt; 1。</exception>
         public CheckpointFallback(Action checkpoint,

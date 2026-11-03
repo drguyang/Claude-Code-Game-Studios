@@ -399,6 +399,8 @@
 | `TD-persist-14` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-15` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-16` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-17` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -560,6 +562,29 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十六订(`TD-persist-18` 立债并当轮结案 · 2026-11-03 · 实现面 + 债面)** ——
+> 用户裁定「甲:改成 6000」。变化:`条目 168 → 169`(+1)· `closed 146 → 147`(+1)·
+> `open 18` **不动**(立 + 闭,净 0)· `Y 114 → 115`(+1)·
+> **`未闭 P0 面 10` 不动** · `epic 分布 3/31` 不动。
+> 单一变化源 = 新立并当轮关闭 `TD-persist-18`。
+> 🔴 **性质**:`CHECKPOINT_INTERVAL` 的 tick 换算**错 3 倍**(`18000` = 15 min,裁决值 5 min),
+> 且错误沿「GDD 裁决原文 → 代码注释 → 夹具字面断言」**三层同源复制** ⇒ 三层互相背书,**恒绿**。
+> 这是假绿形态 **F3** 的变体:断言照抄了错值,「值与算式不一致」无人能看见。
+> ⚠️ **行为后果两条**:① 崩溃损失窗口 15 min → **5 min**;② 兜底写盘变密 3 倍 ⇒
+> 放大 `TD-persist-17`(兜底与手动共池)的体感。
+
+> > 🔁 **五十五订(`TD-persist-17` 立债 · 2026-11-03 · 债面)** ——
+> 用户指令「开一条,记自动 checkpoint 吃手动槽号」+ 提问「自动槽默认是第一个?」。
+> 变化:`条目 167 → 168`(+1)· `open 17 → 18`(+1)· `Y 113 → 114`(+1)·
+> **`未闭 P0 面 9 → 10`**(+1)· **`epic 分布 2/31 → 3/31`**(+1,`persistence-service` 重回)。
+> 单一变化源 = 新立 **`TD-persist-17`**。
+> 🔴 **提问的答案是「方向对、机制要修正」**:自动 checkpoint **不是**占一个固定的「第一个槽」,
+> 而是与手动存档**共用同一个 `NextWritableSeq` 计数器**,从第一个开始**依次吃** 1、2、3、4……
+> ⇒ 走过 3 之后玩家手动存就落到屏外。
+> 🔴 **更要紧的一点**:这**不是新发现的不合理** —— `OQ-7a-8`(✅ 已裁 2026-10-06)逐字要求
+> **三池分流**,并**预言了本现象**(「共池 keep-N 会踩它:自动存档挤掉手动档」)。
+> ⇒ 本条登记的是**已裁项零兑现**,不是请用户重新裁。实现里**零池概念**(实测)。
+
 > > 🔁 **五十四订(`TD-persist-16` 结案 · 2026-11-03 · 裁定面)** ——
 > 用户裁定「甲:接受」。变化:`open 18 → 17`(−1)· `closed 145 → 146`(+1)·
 > **`未闭 P0 面 10 → 9`**(−1)· **`epic 分布 3/31 → 2/31`**(−1,`persistence-service` 清零)·
@@ -1050,10 +1075,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 167 | 状态 {'closed': 146, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 113, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 104 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4
+条目 169 | 状态 {'closed': 147, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 115, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 105 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -3777,6 +3802,8 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 本轮不代裁。两条纯函数(`HasNarrativeAnchorEvent` / `LastEventIsAnchor`)保留零调用点待 10 复用
 > (承评审件 §七「W5 的两条纯函数保留理由」)。
 > **② `CHECKPOINT_INTERVAL` 本批裁结构 + 初值** —— **初值 = 5 min(`18000` tick @ 50 ms)不变**:
+> 🔁 **2026-11-03(`TD-persist-18`)**:括号里的 `18000` 是**换算错误**(= 15 min),已改 `6000`;
+>   「5 min」这个**裁决值**未变。原文不删。
 > `OQ-7a-5` 已于 2026-10-06 裁定该值(GDD `:136` / `:414` / `:635`),本批为**确认非复裁**;
 > 本批真正裁的是**结构**:**兜底触发判据 = interval 到期 且 瞬时源回答 true**;
 > **到期但不安全 ⇒ 顺延**(下一 tick 重查,**不重置 interval**)—— 从 GDD `:137`
@@ -3790,7 +3817,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ① **接口落地 ✅** = `Sim.Contracts/INarrativeContextQuery.cs`(具名接口 +
 >   `FuncNarrativeContextQuery` 适配器);`SaveService` / `SaveSlotLedger` /
 >   `CompositionRoot` 缝已从 `Func<bool>` 换到该接口(`null` fail-closed 维持)。
-> ② **兜底半边 ✅** = `Sim.Codec/CheckpointFallback.cs`(顺延语义 + 18000 默认),
+> ② **兜底半边 ✅** = `Sim.Codec/CheckpointFallback.cs`(顺延语义 + ~~18000~~ **6000** 默认),
 >   证伪 7 变异全红,原件 `impl-td-persist-05-act4-2026-10-25.md`。
 > ③ **8 / 37 / 52 三条锚点接线仍 open**(各 epic 的实现义务,7a 不代做)+
 >   **出诊启动 Kind 登记仍 open**(归 52,承解除动作 ②)。
@@ -3990,6 +4017,8 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 >   (`ps[3]` → `typeof(INarrativeContextQuery)`,位置不变)。
 > - **夹具**:`PersistenceService/checkpoint_fallback_test.cs` **7 条**(恰触发 / 顺延 /
 >   从实触 tick 重计 / 永不安全 100 tick / 到期前不发 / 构造拒收 / 默认间隔 = 18000 字面断言)。
+>   🔁 **2026-11-03(`TD-persist-18`)**:该「字面断言」钉的是**错的字面量**(见 F3);
+>   已改 6000,判据同时改成带算式的报文。**这一段记录的是当时的实况,不删。**
 > - **证伪轮 7 变异全红、零假绿**(MF1 删顺延 红 3 · MF2 顺延误作重置 红 2 · MF3 off-by-one 红 2 ·
 >   MF4 删清零 红 2 · MF5 删 null 拒收 红 1 · MF6 删 interval 拒收 红 1 · MF7 默认间隔漂移 红 2);
 >   `CheckpointFallback.cs` SHA-256 逐字节还原(`f0fd264107374d35…`,7 次一致)。
@@ -4442,6 +4471,47 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 本债收窄的是它的**适用面**,不是把它降级。
 > ② **「玩家槽损坏 ⇒ 回退到上一份手动存」今日不存在** —— 那是**另一个槽**,不是 `bak`;
 > 要那样做须先裁新机制。**不得**把本裁决读成「回退能力已具备」。
+
+### TD-persist-17 — 三个写入触发共用同一个 `NextWritableSeq` ⇒ **自动 checkpoint 吃掉手动槽号**(`OQ-7a-8` 三池分流 **已裁未兑现**)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 7a 有三类写入触发(定时兜底 / 叙事事件锚点 / 7b 手动),三者**共用同一个递增计数器** `SaveSlotLedger.NextWritableSeq` ⇒ 自动存档与手动存档**同号段排队**:自动 checkpoint 依次写 1、2、3、4……,手动存档被推到它们后面;而 7b 的槽位屏是**固定三行 `{1,2,3}`**(`BootRoot.cs:101` `ManualSaveSlots`)⇒ **自动存档走过 3 之后,玩家的手动存档就再也看不见了**。 |
+| **实测(逐条可跑)** | ① 三个触发点,全都传 `NextWritableSeq`:<br>&nbsp;&nbsp;`grep -rn "saveService.Checkpoint(new SaveSlot" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒<br>&nbsp;&nbsp;`CompositionRoot.cs:876`(定时兜底)· `:898`(事件锚点)· `SaveSlotCommandRouter.cs:116`(手动,**同一条** `_saveService.Checkpoint(new SaveSlot(slotSeq))`,而 `slotSeq = Ledger.NextWritableSeq`)。<br>② **代码里零「池」概念**:`grep -rniE "KeepLast\|KEEP_LAST\|SlotPool\|PoolKind\|手动池\|事件池\|兜底池" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 仅 `Sim/EventPool.cs`(随机事件池,无关)⇒ **一个都没有**。<br>③ 槽位屏固定三行:`grep -n "ManualSaveSlots =" unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ `:101` = `{ 1u, 2u, 3u }`。 |
+| **⚠️ 这不是「新发现的不合理」—— 2026-10-06 就已裁,且逐字预言了本现象** | `design/gdd/persistence-service.md:734`(`OQ-7a-8`,✅ 已裁)逐字:「**判据来自本件自己的铁律**:`:205` 明定『覆盖已有槽位 = 违反只进不退,由 7a 拒绝』⇒ **共池 keep-N 会踩它(自动存档挤掉手动档 = 改写了玩家曾到达的入口)**。故**分池**:① **手动池**(7b 玩家发起)—— **永不自动裁剪**;② **事件池**(规则六叙事事件触发)—— **保留全部**,它是『回不到判断之前』这条承诺的承重墙;③ **定时兜底池** —— **`KEEP_LAST = 4`**,最旧投影裁掉(⚠️ 裁的是**入口列表投影**,**不动存档实体**)。」<br>⇒ 裁决要求的是**三个池**,实现给的是**一个计数器**。**本条不是请用户重新裁,是登记「已裁项零兑现」。** |
+| **后果(按严重度)** | ① **手动存档被挤到屏外**:自动存档走过 3 之后,玩家「存了」但屏上没有新行 —— 与 `TD-persist-15` 修的「存了没变化」**同一种体感**,但成因不同(那条是初值,这条是共池)。<br>② **事件池的承诺落空**:ADR/GDD 把「事件池保留全部」当作「回不到判断之前」这条承诺的**承重墙**;共池下它只是号段里的一段,没有任何机制保证它不被兜底写淹没。<br>③ **`KEEP_LAST = 4` 无处安放**:裁剪的对象是「池的入口列表投影」,没有池就没有它。 |
+| **解除动作(形状已裁,不需重裁)** | ① 给 `SaveSlot`(或其投影)引入**池身份**(`Manual` / `Anchor` / `Fallback`),或等价的「三号段」方案 —— ⚠️ **两案须先判一条**:`OQ-7a-8` 说的是「分池」,但**未规定池在 `slot_seq` 上如何编码**(交错号段?固定号段?独立计数器?)—— 那是**实现形状**,由 7a 实现轮定,不必再问用户。<br>② 自动侧两个池**不得**占用 `ManualSaveSlots` 的号段;手动侧继续只进不退。<br>③ 兜底池的 `KEEP_LAST = 4` 只裁**入口列表投影**,不动存档实体(`OQ-7a-8` 原文如此)。<br>④ 夹具:一局内跑 N 次兜底 + M 次手动 ⇒ 手动槽号**逐位不变**;兜底入口列表长度 ≤ 4 且实体数不受影响。<br>⚠️ **实现前须先看 `TD-persist-15` 的落地形态** —— 高水位现在从**磁盘最大槽号**起算,分池后若池各有独立号段,扫描规则要跟着改。 |
+| **触发条件** | ① 7a 下一次修订轮开工时;② 或 7b「槽位列表由台账派生」轮(同批 —— 两件事都动槽位清单);③ 或任何以「`OQ-7a-8` 已兑现」形态引用之前(**禁借绿** —— 今日它是**零兑现**) |
+| **归属** | **7a 持久化服务**(池与号段)· 呈现面(册页分组)归 **7b** · 语义已裁(**不重裁**) |
+
+### TD-persist-18 — `CHECKPOINT_INTERVAL` 的 tick 换算**错 3 倍**:`18000` tick = **15 min**,而裁决值是 **5 min**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | GDD `OQ-7a-5`(✅ 2026-10-06 已裁)定的默认间隔是 **5 min**;`CheckpointFallback.DefaultIntervalTicks` 却是 **`18000`**,按 `TICK_SECONDS = 0.05`(20 Hz,OQ-25-8)折 = **900 s = 15 min**。⇒ Edge Cases 那条「**崩溃损失 ≤ 一个间隔**」的不变量**实际被放大 3 倍**。 |
+| **实测(逐条可跑)** | ① 常数:`grep -n "DefaultIntervalTicks = " unity/Assets/Sim.Codec/CheckpointFallback.cs` ⇒ 改前 `18000`。<br>② **注释自己就矛盾**:改前 `:47` 逐字「`CHECKPOINT_INTERVAL` = 5 min = 300 s = `18000` tick(@ 50 ms)」—— 300 s ÷ 0.05 s = **6000**,不是 18000。<br>③ 旁证:`WEATHER_BLOCK_TICKS = 6000` 标的就是 5 min(ADR-038 Amendment A)⇒ 同一套 tick 口径下 **6000 = 5 min**,反证 18000 = 15 min。<br>④ 夹具断言:`checkpoint_fallback_test.cs` 逐字「`CHECKPOINT_INTERVAL` 默认 = 5 min = 300 s ÷ TICK_SECONDS(0.05)= 18000 tick」—— **算式与字面量对不上**,而断言写的是 `AreEqual(18000, …)`。 |
+| **⚠️ 为什么这个错误能活这么久(值得单独记)** | 判据**钉的是字面量 `18000`**,而不是裁决语义「5 分钟」。⇒ 常数与断言**两边一起**是那个错值 ⇒ **恒绿**。<br>这正是 `.claude/docs/coding-standards.md` §假绿形态表 **F3(自指判据)** 的变体:不是断言引用了被测常量,而是**断言照抄了错值**,于是「值与算式不一致」这件事**没有任何判据能看见**。<br>⚠️ 顺带:`OQ-7a-5` 的**裁决原文本身**也带着同一个换算错(「定值 = 5 min 不变,即 `18000` tick @50 ms」)⇒ 错误沿「GDD → 代码 → 夹具」三层同源复制。 |
+| **修法(用户裁定「甲:意图是 5 分钟」)** | 常数 `18000 → 6000`;三处注释订正;**裁决值 5 min 不动**。夹具断言改 `6000`,并把**算式**写进报文(300 ÷ 0.05 = 6000),使下一次换算错时**算式先露馅**。 |
+| **触发条件** | 已触发并修复(2026-11-03)。本条保留为**关闭记录** |
+| **归属** | **7a 持久化服务**(`CHECKPOINT_INTERVAL` 承载)· 裁定 = **用户**(甲) |
+
+> ✅ **2026-11-03 已闭**(sprint-24 · 用户裁定「甲」)。原文不删。**本轮有代码行为改动**。
+>
+> **落点**:`CheckpointFallback.cs`(常数 + 三处注释)· `checkpoint_fallback_test.cs`(两条断言 +
+> 头注 + 循环上界 `17999 → 5999`)· GDD `OQ-7a-5` 行(裁定值不动,换算订正)。
+>
+> **行为后果**:兜底 checkpoint 间隔 **15 min → 5 min**;「崩溃损失 ≤ 一个间隔」的不变量的
+> 实际界随之收回 3 倍。⚠️ **这会让兜底写盘变密 3 倍** —— 同时放大 `TD-persist-17`(兜底与手动共池)
+> 的体感:同样时长里自动存档多吃 3 倍槽号。
+>
+> **证伪**:常量改回 `18000` ⇒ **恰 1 红**,即 `test_checkpointFallback_defaultInterval_isGddValue`;
+> 同 fixture 的 `beforeInterval_doesNotFire` 用的是 `MakeTimer(DefaultIntervalTicks)` + 循环 5999,
+> 常数变大时**按设计不该红** ⇒ 不是全红借绿。还原 `SHA-256` 逐字节(`0f665d25…`),零 `MUT-` 残留。
+>
+> **回归**:EditMode `6779/6742/0/0/37` @ 2026-11-03 15:11:44Z → 15:13:38Z(与 `04e3e934` 轮逐位同,
+> **零新增夹具**)· PlayMode `324/320/0/2/2` @ 15:15:06Z(同基线)· 编译警告 **0**。
+>
+> **原件** = `production/qa/evidence/impl-td-persist-18-checkpoint-interval-2026-11-03.md`。
 
 ### TD-skeuo-03 — 模态开合面只认 2 个身份 ⇒ 闭集 9 员里 **7 员无关闭路径**(42)
 

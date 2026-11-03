@@ -16385,3 +16385,10 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (ADR-010 §四/§Consequences/§Validation 三处 + GDD 规则十一 / `AC-7a-15` / States 两行 +
   `SaveService.SaveBytes` 的 remarks)。`AC-7a-15` **仍 BLOCKING**,收窄的是适用面。
   EditMode `6779/6742/0/0/37` @ 14:26:27Z · 警告 0 · 未闭 P0 面 9 · epic 2/31。
+- **追加(同日·TD-persist-17/18)**:用户问「自动槽默认第一个?」⇒ 答案是「方向对、机制要修正」
+  (三触发**共用** NextWritableSeq,从 1 起依次吃);且 `OQ-7a-8`(2026-10-06 已裁)**三池分流**
+  被逐字预言却零兑现 ⇒ 新立 `TD-persist-17`(open,已裁未兑现,不重裁)。
+  同轮查出 `CHECKPOINT_INTERVAL` 换算错 3 倍(18000 tick = 15 min,裁决值 5 min)⇒ 用户裁甲
+  改 `6000`,新立并当轮关闭 `TD-persist-18`。
+  EditMode `6779/6742/0/0/37` @ 15:11:44Z · PlayMode `324/320/0/2/2` @ 15:15:06Z · 警告 0。
+  债册:条目 169 | closed 147 | open 18 | 未闭 P0 面 10 | epic 3/31。
