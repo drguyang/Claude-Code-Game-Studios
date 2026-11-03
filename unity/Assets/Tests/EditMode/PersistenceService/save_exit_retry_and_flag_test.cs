@@ -324,10 +324,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.IsTrue(File.Exists(Path.Combine(_testDir, SaveService.ExitSaveFileName)),
                 "退出保存须落 save_exit.bin");
-            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_0.bin")),
+            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_3.bin")),
                 "退出保存不得写玩家槽 0");
-            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_" + uint.MaxValue + ".bin")),
-                "退出保存不得把 uint.MaxValue 当玩家槽名写出去");
+            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_1.bin")),
+                "退出保存不得写 `save_1.bin` —— 它落 `save_exit.bin`(槽 1 是保留槽)");
         }
 
         [Test]

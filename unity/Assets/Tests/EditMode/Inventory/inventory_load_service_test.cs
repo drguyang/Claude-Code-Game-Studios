@@ -325,14 +325,14 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             {
                 Spawn(51, WillowOrdinal, qty: 4, tick: 1);
                 Harvest(51, nodeId: 1, qty: 4, outQuality: 1, tick: 2);
-                WriteSlot(dir, 1);
+                WriteSlot(dir, 3);
 
                 var svc = NewService();
                 var sequencer = new LoadSequencer(
                     NewLoadSideService(dir), NewTrigger(), fallback: null,
                     afterRestore: () => svc.Rebuild());
 
-                sequencer.Load(new SaveSlot(1U));
+                sequencer.Load(new SaveSlot(3U));
 
                 Assert.That(svc.Current, Is.Not.Null,
                     "`LoadSequencer.Load` 走完 ⇒ `afterRestore` 已执行(接线前该钩子不存在)");
@@ -357,14 +357,14 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 // 存档里带一个违例 build_part ⇒ 读档时的重建会抛。
                 Spawn(61, PlankOrdinal, qty: 1, tick: 1);
                 Harvest(61, nodeId: 5, qty: 1, outQuality: 3, tick: 2);
-                WriteSlot(dir, 1);
+                WriteSlot(dir, 3);
 
                 var svc = NewService();
                 var sequencer = new LoadSequencer(
                     NewLoadSideService(dir), NewTrigger(), fallback: null,
                     afterRestore: () => svc.Rebuild());
 
-                Assert.Throws<InvalidOperationException>(() => sequencer.Load(new SaveSlot(1U)),
+                Assert.Throws<InvalidOperationException>(() => sequencer.Load(new SaveSlot(3U)),
                     "重建抛 ⇒ 读档整体失败(不 catch —— 静默吞掉会让下游拿到旧投影," +
                     "那是更坏的失败;见 LoadSequencer 第 4 步的注)");
             }
@@ -384,10 +384,10 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             {
                 Spawn(71, WillowOrdinal, qty: 1, tick: 1);
                 Harvest(71, nodeId: 1, qty: 1, outQuality: 1, tick: 2);
-                WriteSlot(dir, 1);
+                WriteSlot(dir, 3);
 
                 var sequencer = new LoadSequencer(NewLoadSideService(dir), NewTrigger());
-                Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(1U)),
+                Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(3U)),
                     "afterRestore 缺省 null ⇒ 读档行为与接线前逐位一致");
             }
             finally

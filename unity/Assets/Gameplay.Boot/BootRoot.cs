@@ -92,13 +92,16 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>
         /// 存档位清单(7b 界面画哪几个槽)。
-        /// <para>⚠️ <b>数值出处 = 7b,不是本类</b>:7a/7b 的槽位集与「快速槽 0」的分工今日
-        /// 未在 GDD 定值(<c>save-slot-ui.md</c> 只定语义)。本轮的目的是把载入路径**接通**,
+        /// <para>⚠️ <b>数值出处 = 7b,不是本类</b>:本轮的目的是把载入路径**接通**,
         /// 故先落一个具名清单供界面画出;真值归 7b 的数值轮,届时只改这一处。</para>
-        /// <para>⚠️ 槽 0 不在此列:它是 <c>quicksave/quickload</c> 的快照位
-        /// (<c>SaveService.GetFinalPath</c> 与玩家手动槽 0 同文件),不归界面的手动槽。</para>
+        /// <para>🔁 <b>2026-11-03(`TD-persist-17` · 用户裁定)—— 本清单**不再是「手动槽清单」**</b>:
+        /// 槽号语义已改为 **1 = 退出保存 · 2 = 自动存档 · 3+ = 手动存档**,故本清单 = **册上显示的三行**,
+        /// 依次是「退出那一刻 / 最近一次自动存档 / 第一个手动槽」。</para>
+        /// <para>⚠️ 槽 0 **不是合法槽号**(`SaveSlotLedger.EnsureWritable` 直接拒);本清单不含它。</para>
+        /// <para>⚠️ 已知呈现缺口(不借绿):手动槽从 3 起且只进不退 ⇒ 第 2 次手动存档起落在 4、5…
+        /// 而本清单固定三行 ⇒ 那些槽**存得进去、看不见**。归 7b「槽位列表须由台账派生」。</para>
         /// </summary>
-        private static readonly uint[] ManualSaveSlots = { 1u, 2u, 3u };
+        private static readonly uint[] DisplayedSaveSlots = { 1u, 2u, 3u };
 
         /// <summary>病人 cue 的非色相可见对应物容器(`AC-13-F1` 的 42 侧达成面 · 缺口 D)。
         /// <para>⚠️ 在 <see cref="_services"/> 装配**之前**构造(它是 `Assemble` 的入参),
@@ -1012,7 +1015,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () => _services.SaveService != null
                       && _services.SaveService.WriteQueue != null
                       && _services.SaveService.WriteQueue.Outstanding > 0;
-            _uiDriver.SaveSlots = ManualSaveSlots;
+            _uiDriver.SaveSlots = DisplayedSaveSlots;
 
             // ── 6.3 模态开合入口(2026-10-31 模态开启器轮;同夜 Amendment C 改接暂停壳)──
             // 病因:42 只有序列化的 `_screenName`,**零运行期换屏入口** ⇒ 存档位屏开不出来 ⇒
@@ -1832,7 +1835,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 把 <see cref="ManualSaveSlots"/> 与本会话的磁盘状态合成 42 能画的槽位视图。
+        /// 把 <see cref="DisplayedSaveSlots"/> 与本会话的磁盘状态合成 42 能画的槽位视图。
         /// <para>2026-11-03(甲方案第一层):屏上「有档 / 空槽」的差异**只有这一个来源**。
         /// 每次开册、每次写盘落定后各调一次 —— 常量清单不会自己更新。</para>
         /// <para>⚠️ 状态映射的纪律:<see cref="Sim.Codec.SaveSlotState.Occupied"/> ⇒ 有档;
@@ -1843,11 +1846,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private UI.Skeuomorphic.SaveSlotView[] BuildSaveSlotViews()
         {
-            var views = new UI.Skeuomorphic.SaveSlotView[ManualSaveSlots.Length];
-            SaveService saves = _services?.SaveService;
-            for (int i = 0; i < ManualSaveSlots.Length; i++)
+            SaveService saves0 = _services?.SaveService;
+
+            // 🔁 2026-11-03(`TD-persist-17` · 用户裁定):槽号语义 = 1 退出 · 2 自动 · 3+ 手动。
+            //    清单**由台账派生**,不再是固定三行 —— 手动槽只进不退,第二次手动存档落在 4,
+            //    固定清单会让它「存得进去、看不见」。
+            //    范围 = [1, 2] + [3 .. max(next-1, 3)](至少留一格空槽给「下一笔」)。
+            uint next = saves0?.Ledger?.NextWritableSeq ?? SaveService.MinManualSlotSeq;
+            uint lastManual = next > SaveService.MinManualSlotSeq
+                ? next - 1u
+                : SaveService.MinManualSlotSeq;
+
+            var display = new System.Collections.Generic.List<uint>
             {
-                uint seq = ManualSaveSlots[i];
+                SaveService.ExitSaveSlot.SlotSeq,
+                SaveService.AutoSaveSlot.SlotSeq,
+            };
+            for (uint s = SaveService.MinManualSlotSeq; s <= lastManual; s++) display.Add(s);
+
+            var views = new UI.Skeuomorphic.SaveSlotView[display.Count];
+            SaveService saves = saves0;
+            for (int i = 0; i < display.Count; i++)
+            {
+                uint seq = display[i];
                 if (saves == null)
                 {
                     // 未接存档目录 = 7a 未装配(合法形态)· 42 画「未绑定」

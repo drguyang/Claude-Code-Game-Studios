@@ -109,7 +109,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     action();
                 }));
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
             Assert.IsTrue(svc.WriteQueue.WaitForIdle(), "队列须排空");
 
             Assert.AreNotEqual(0, writeThread, "写盘线程须被观测到(否则本断言无判别力)");
@@ -139,7 +139,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     action();
                 });
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             Assert.AreEqual(mainThread, writeThread,
                 "同步内联调度器下,写盘须在调用线程(对照组:证明上一条的 ≠ 有判别力)");
@@ -169,15 +169,15 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     action();
                 }));
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             // Checkpoint 已返回,而 worker 还卡在闸门上 ⇒ 文件必不在
-            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_0.bin")),
+            Assert.IsFalse(File.Exists(Path.Combine(_testDir, "save_3.bin")),
                 "Checkpoint 返回时**不得**已落盘 —— 否则写盘仍在调用线程上(AC-7a-07)");
 
             gate.Set();
             Assert.IsTrue(svc.WriteQueue.WaitForIdle(10000), "放闸后队列须排空");
-            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_0.bin")),
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_3.bin")),
                 "worker 跑完后 final 须在场");
         }
 
@@ -187,9 +187,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // SHA256 搬到 worker 之后,产出的存档仍须是**含有效校验和**的完整档 ——
             // 否则「异步」会把存档写坏(这是异步化最容易引入的回归)。
             var svc = Service(scheduler: Inline);
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
-            byte[] onDisk = File.ReadAllBytes(Path.Combine(_testDir, "save_0.bin"));
+            byte[] onDisk = File.ReadAllBytes(Path.Combine(_testDir, "save_3.bin"));
             Assert.IsTrue(SaveService.ValidateChecksum(onDisk),
                 "worker 补的校验和须有效 —— 异步化不得把存档写坏");
             Assert.AreEqual(SaveHeaderCodec.HeaderSize + 0, onDisk.Length,
@@ -218,7 +218,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 },
                 writeScheduler: action => Task.Run(action));
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
             svc.WriteQueue.WaitForIdle(10000);
 
             Assert.AreEqual(mainThread, composeThread,
@@ -304,16 +304,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     action();
                 }));
 
-            Assert.AreEqual(0U, svc.Ledger.NextWritableSeq, "前提:高水位从 0 起");
-            svc.Checkpoint(new SaveSlot(0));
+            Assert.AreEqual(3U, svc.Ledger.NextWritableSeq, "前提:高水位从第一个手动槽(3)起");
+            svc.Checkpoint(new SaveSlot(3));
 
-            Assert.AreEqual(0U, svc.Ledger.NextWritableSeq,
+            Assert.AreEqual(3U, svc.Ledger.NextWritableSeq,
                 "Checkpoint 返回时高水位**未动**(受理 ≠ 已落盘)");
 
             gate.Set();
             svc.WriteQueue.WaitForIdle(10000);
 
-            Assert.AreEqual(1U, svc.Ledger.NextWritableSeq,
+            Assert.AreEqual(4U, svc.Ledger.NextWritableSeq,
                 "写成功后高水位推进到 slot+1");
         }
 
@@ -325,7 +325,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             string basePath = Path.Combine(_testDir, "failing");
             Directory.CreateDirectory(basePath);
             // 在 final 路径上建**同名目录** ⇒ File.Move 必抛
-            Directory.CreateDirectory(Path.Combine(basePath, "save_0.bin"));
+            Directory.CreateDirectory(Path.Combine(basePath, "save_3.bin"));
 
             var svc = new SaveService(
                 basePath,
@@ -336,10 +336,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => MinimalUnsigned(),
                 writeScheduler: action => action());
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             Assert.IsNotNull(svc.WriteQueue.LastFailure, "写盘须失败并被 worker 记录");
-            Assert.AreEqual(0U, svc.Ledger.NextWritableSeq,
+            Assert.AreEqual(3U, svc.Ledger.NextWritableSeq,
                 "写失败 ⇒ 高水位不动(槽位不得被一次失败的写永久吃掉)");
         }
 
@@ -558,8 +558,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Directory.Delete(exitPath, recursive: false); // 修好 ⇒ 下一次退出保存能成功
 
             // ② 让 checkpoint(槽 1)失败 —— 它会把粘性 `LastFailure` 留在队列上。
-            Directory.CreateDirectory(Path.Combine(_testDir, "save_1.bin"));
-            Assert.That(() => svc.Checkpoint(new SaveSlot(1u)), Throws.Nothing,
+            Directory.CreateDirectory(Path.Combine(_testDir, "save_4.bin"));
+            Assert.That(() => svc.Checkpoint(new SaveSlot(4u)), Throws.Nothing,
                 "[前置] checkpoint 的写失败经 worker 吞掉,不上抛");
             Assert.IsNotNull(svc.WriteQueue.LastFailure,
                 "[前置] 队列级 LastFailure 此时**必须**非 null —— 否则本测构造失败,后半无判别力");
@@ -594,10 +594,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 exitSaveRetryMillis: 10000,
                 writeScheduler: action => Task.Run(action));
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
             svc.SaveOnExit();          // 内部会 join,须等 checkpoint 也写完
 
-            checkpointWritten = File.Exists(Path.Combine(_testDir, "save_0.bin"));
+            checkpointWritten = File.Exists(Path.Combine(_testDir, "save_3.bin"));
             Assert.IsTrue(checkpointWritten,
                 "退出保存返回时,先前入队的 checkpoint 也须已完成(单飞队列 FIFO)");
             Assert.IsTrue(File.Exists(Path.Combine(_testDir, SaveService.ExitSaveFileName)),
@@ -621,7 +621,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 writeScheduler: null);
 
             var ex = Assert.Throws<InvalidOperationException>(
-                () => svc.Checkpoint(new SaveSlot(0)),
+                () => svc.Checkpoint(new SaveSlot(3)),
                 "未注入 writeScheduler ⇒ 须抛(fail-closed)—— 禁静默同步降级");
             StringAssert.Contains("writeScheduler", ex.Message, "报文须点名缺的那个驱动源");
             Assert.AreEqual(0, Directory.GetFiles(_testDir).Length,
@@ -714,7 +714,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 writeScheduler: action => action(),
                 bufferPool: pool);
 
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             Assert.AreSame(pool, svc.BufferPool, "公开面须暴露装配注入的那一份");
             Assert.Greater(pool.RetainedBytes, 0,

@@ -257,10 +257,14 @@ namespace DaYiJingCheng.Sim.Codec
         /// 存档目录里**最近一份可继续的存档**是哪个槽(无档 / 查询失败 ⇒ <c>false</c>)。
         /// <para>用途:`design/ux/main-menu-42.md §10` 的 `hasContinueSave`(主菜单文案切换)与
         /// §7 的「继续诊治 ⇒ 继续最近档」(2026-11-01 用户裁定 OQ-MM-1 / OQ-MM-2)。</para>
-        /// <para><b>「最近」的判据(本类唯一出处)</b>:① 存在退出保存 ⇒ 它就是最近
-        /// (退出钩子写的那一份,`SaveOnExit`,见 §六);
-        /// ② 否则取**序号最大**的 <c>save_{seq}.bin</c>(槽位只进不退,`slot_seq` 是唯一排序键,
-        /// 见 <c>SaveSlot</c> 头注)。⚠️ 刻意**不按文件 mtime** 排序 —— mtime 不是 sim 量,
+        /// <para><b>「最近」的判据(本类唯一出处,2026-11-03 `TD-persist-17` 起)</b>:
+        /// 在**退出保存(槽 1)/ 自动存档(槽 2)/ 全部手动槽(≥ 3)**三者中取**档内 tick 最大**的那一份。
+        /// 读不出 / 损坏的候选**不参与**(它们没有可比的时间)。</para>
+        /// <para>🔁 原文写「① 退出保存优先 ② 否则取序号最大」—— **该口径已作废**:
+        /// 自动存档挪到固定槽 2 之后,「序号最大」会永远选中某个手动槽,
+        /// 于是崩溃后「继续诊治」读到的是**更旧**的一份(崩溃损失远超一个间隔)。
+        /// 用户 2026-11-03 裁定改为「最新 tick」。</para>
+        /// <para>⚠️ 仍刻意**不按文件 mtime** 排序 —— mtime 不是 sim 量,
         /// 且拷贝 / 同步存档会把它改得与语义无关。</para>
         /// <para>⚠️ **只读、不建目录、不抛**:目录不存在 ⇒ <c>false</c>;枚举期任何异常
         /// (权限 / 路径失效)⇒ <b>同样取 <c>false</c></b>(spec §10「查询失败按无存档处理」
@@ -277,24 +281,53 @@ namespace DaYiJingCheng.Sim.Codec
             {
                 if (!Directory.Exists(_basePath)) return false;
 
-                // ① 退出保存优先(它就是「上次退出那一刻」)
-                if (File.Exists(ExitFinalPath))
-                {
-                    slot = ExitSaveSlot;
-                    return true;
-                }
-
-                // ② 否则序号最大的玩家槽
-                uint best = 0;
                 bool found = false;
+                long bestTick = 0L;
+                SaveSlot best = default;
+
+                // 候选 ①/②:两个保留槽(固定身份,各自独立文件名)
+                Consider(ExitSaveSlot);
+                Consider(AutoSaveSlot);
+
+                // 候选 ③:全部手动槽(≥ 3;1/2 已由上面处理,0 非法)
                 foreach (string file in Directory.EnumerateFiles(_basePath, "save_*.bin"))
                 {
                     if (!TryParseSlotSeq(Path.GetFileNameWithoutExtension(file), out uint seq)) continue;
-                    if (!found || seq > best) { best = seq; found = true; }
+                    if (seq < MinManualSlotSeq) continue;
+                    Consider(new SaveSlot(seq));
                 }
+
                 if (!found) return false;
-                slot = new SaveSlot(best);
+                slot = best;
                 return true;
+
+                void Consider(SaveSlot candidate)
+                {
+                    string finalPath = GetFinalPath(candidate);
+                    string bakPath = GetBakPath(candidate);
+                    bool present = File.Exists(finalPath) || File.Exists(bakPath);
+                    if (!present) return;   // 真的没有东西 —— 不参与
+
+                    // final 优先、bak 兜底 —— 与 `LoadBytes` 的次序一致。
+                    SaveSlotSummary summary = SaveSlotProbe.ProbeFile(finalPath);
+                    if (summary.State != SaveSlotState.Occupied)
+                        summary = SaveSlotProbe.ProbeFile(bakPath);
+
+                    // ⚠️ **「有档」= 文件存在,不是「能读出 tick」**:
+                    //    损坏的档也**要**被报出来 —— 菜单说「开始诊治」会让玩家以为档没了,
+                    //    然后安心开新局把它覆盖掉。GDD 规则十一「加载失败硬失败」的口径是
+                    //    **报损**,不是**装没有**。
+                    //    排序上损坏者取 `long.MinValue` ⇒ 有任何可读的档时它一定排在后面。
+                    long tick = summary.State == SaveSlotState.Occupied ? summary.Tick : long.MinValue;
+
+                    // 严格大于 ⇒ 并列时先考虑者胜(退出 > 自动 > 手动的枚举序)
+                    if (!found || tick > bestTick)
+                    {
+                        best = candidate;
+                        bestTick = tick;
+                        found = true;
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -345,6 +378,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// </returns>
         private uint ResolveInitialNextWritableSeq(uint floor)
         {
+            // 手动槽的 floor 本身不得低于 3(1/2 是保留槽 —— 装配层传错也不许落到那上面)。
+            if (floor < MinManualSlotSeq) floor = MinManualSlotSeq;
+
             if (!TryGetHighestPlayerSlotOnDisk(out uint max))
             {
                 // ⚠️ 「枚举失败」与「目录里一张都没有」是**两件事**,处置方向相反:
@@ -375,6 +411,11 @@ namespace DaYiJingCheng.Sim.Codec
                 foreach (string file in Directory.EnumerateFiles(_basePath, "save_*.bin"))
                 {
                     if (!TryParseSlotSeq(Path.GetFileNameWithoutExtension(file), out uint seq)) continue;
+                    // 🔁 2026-11-03(`TD-persist-17`):只认**手动槽**(≥ 3)。
+                    //    槽 1 = 退出保存 / 槽 2 = 自动存档,二者是固定槽、不进递增段
+                    //    (`save_1.bin` / `save_4.bin` 这类**旧命名**的历史文件就此成为孤儿,
+                    //    不再影响高水位 —— 它们也不会被当作手动槽覆盖)。
+                    if (seq < MinManualSlotSeq) continue;
                     if (!found || seq > max) { max = seq; found = true; }
                 }
                 return found;
@@ -542,8 +583,11 @@ namespace DaYiJingCheng.Sim.Codec
             // 🔁 2026-11-03(用户实测:「继续诊治」每次 Play 都报 SaveNotFoundException,
             //    slot=4294967295):退出保存的哨兵此前**只有写侧**认得,读侧照玩家槽拼路径
             //    ⇒ 去开 `save_4294967295.bin` ⇒ 恒空槽。现在读写共用同一出处。
-            string finalPath = IsExitSaveSlot(slot) ? ExitFinalPath : GetFinalPath(slot);
-            string bakPath = IsExitSaveSlot(slot) ? ExitBakPath : GetBakPath(slot);
+            // 🔁 2026-11-03(`TD-persist-17`):`GetFinalPath` / `GetBakPath` 现已**内部分派**
+            //    保留槽(1 = 退出 / 2 = 自动)⇒ 读侧不再需要自带 if。
+            //    此前「哨兵只有写侧认得」曾让「继续诊治」恒 `SaveNotFoundException`。
+            string finalPath = GetFinalPath(slot);
+            string bakPath = GetBakPath(slot);
 
             bool finalExists = File.Exists(finalPath);
             if (finalExists)
@@ -897,34 +941,64 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public const string ExitSaveFileName = "save_exit.bin";
 
-        /// <summary>
-        /// 传给组版委托的槽位标识。`SlotSeq` 取 `uint.MaxValue` —— 它与任何玩家槽
-        /// (`0 .. n`)不相交,且**不会被** <see cref="GetFinalPath"/> 用作文件名
-        /// (退出保存走 <see cref="WriteExitSave"/> 的独立路径)。
-        /// <para>🔁 <b>2026-11-03 订正(原文不删)</b>:上句「**不会被** `GetFinalPath` 用作文件名」
-        /// 描述的只是**写侧**。读侧 <see cref="Load"/> → <see cref="LoadBytes"/> **确实**走
-        /// `<see cref="GetFinalPath"/>`,于是 `TryGetMostRecentSave` 返回本哨兵后,
-        /// 读档去开 `save_4294967295.bin` ⇒ 恒 `SaveNotFoundException`
-        /// ⇒「继续诊治」**永远**失败(用户实测:每次 Play 都红一条)。
-        /// 现读侧与写侧**共用**同三处路径(<see cref="ExitFinalPath"/> 等)。</para>
-        /// </summary>
-        public static readonly SaveSlot ExitSaveSlot = new SaveSlot(uint.MaxValue);
+        /// <summary>自动存档的文件名(独立于 `save_{slot_seq}.bin` 命名空间)。</summary>
+        public const string AutoSaveFileName = "save_auto.bin";
 
-        /// <summary>该槽位是否是退出保存的哨兵(`uint.MaxValue`)。</summary>
+        /// <summary>
+        /// 手动存档的**第一个**槽号。**槽 1 = 退出保存 · 槽 2 = 自动存档 · 槽 3+ = 手动**。
+        /// <para>🔁 <b>2026-11-03(`TD-persist-17` · 用户裁定)</b>:此前退出保存用
+        /// `uint.MaxValue` 哨兵、自动存档与手动存档**共用**同一个递增计数器 ⇒ 自动存档会
+        /// 一路吃掉手动槽号。现改为**固定槽**:1 / 2 被反复重写(豁免「只进不退」),
+        /// 手动槽从 3 起、仍然只进不退。</para>
+        /// </summary>
+        public const uint MinManualSlotSeq = SaveSlotLedger.MinManualSlotSeq;
+
+        /// <summary>槽 1 = 退出保存。</summary>
+        public static readonly SaveSlot ExitSaveSlot = new SaveSlot(SaveSlotLedger.ExitSlotSeq);
+
+        /// <summary>
+        /// 槽 2 = **自动存档**(定时兜底 + 叙事事件锚点共用,**原地覆盖**)。
+        /// <para>⚠️ 它**不是**玩家的回滚点 —— 每次自动 checkpoint 都把上一份顶掉,
+        /// 所以它永远只代表「最近一次自动存档」。这正是反 save-scum 的方向。</para>
+        /// </summary>
+        public static readonly SaveSlot AutoSaveSlot = new SaveSlot(SaveSlotLedger.AutoSlotSeq);
+
+        /// <summary>该槽位是否是退出保存。</summary>
         public static bool IsExitSaveSlot(SaveSlot slot) => slot.SlotSeq == ExitSaveSlot.SlotSeq;
 
-        /// <summary>退出保存的**最终**文件(读 / 写共用同一出处)。</summary>
-        private string ExitFinalPath => Path.Combine(_basePath, ExitSaveFileName);
+        /// <summary>该槽位是否是自动存档。</summary>
+        public static bool IsAutoSaveSlot(SaveSlot slot) => slot.SlotSeq == AutoSaveSlot.SlotSeq;
 
-        /// <summary>退出保存的临时文件。</summary>
-        private string ExitTmpPath => Path.Combine(_basePath, ExitSaveFileName + ".tmp");
+        /// <summary>
+        /// 保留槽(1 / 2):固定身份、**被反复重写** ⇒ 豁免「只进不退」且**不推进**高水位。
+        /// <para>⚠️ 槽 0 **不是**保留槽 —— 它根本不是合法槽号(见
+        /// <see cref="SaveSlotLedger.EnsureWritable"/> 的拒收)。</para>
+        /// </summary>
+        public static bool IsReservedSlot(SaveSlot slot) => SaveSlotLedger.IsReservedSlotSeq(slot.SlotSeq);
+
+        /// <summary>最终文件名(含 `.bin`)。**命名约定只在本类**。</summary>
+        private static string FinalNameOf(SaveSlot slot)
+            => IsExitSaveSlot(slot) ? ExitSaveFileName
+             : IsAutoSaveSlot(slot) ? AutoSaveFileName
+             : $"save_{slot.SlotSeq}.bin";
+
+        /// <summary>
+        /// 带后缀的旁路文件名(`.tmp` / `.bak`)。
+        /// <para>⚠️ 两种形状**必须**并存:保留槽是 `save_exit.bin.bak`(后缀加在 `.bin` 之后),
+        /// 手动槽是 `save_3.bak`(`.bin` 被替换)。写错一处 = 读侧找不到自己的备份。</para>
+        /// </summary>
+        private static string SuffixNameOf(SaveSlot slot, string suffix)
+            => IsReservedSlot(slot) ? FinalNameOf(slot) + suffix : $"save_{slot.SlotSeq}{suffix}";
+
+        /// <summary>退出保存的最终文件。</summary>
+        private string ExitFinalPath => Path.Combine(_basePath, FinalNameOf(ExitSaveSlot));
 
         /// <summary>
         /// 退出保存的备份。
         /// <para>⚠️ 是 `save_exit.bin.bak`,**不是** `save_exit.bak` —— 与玩家槽的
         /// `save_{n}.bak` 形状不同。读侧若自己拼一遍就会拼错,故两处共用本属性。</para>
         /// </summary>
-        private string ExitBakPath => Path.Combine(_basePath, ExitSaveFileName + ".bak");
+        private string ExitBakPath => Path.Combine(_basePath, SuffixNameOf(ExitSaveSlot, ".bak"));
 
         /// <summary>
         /// 退出保存 —— 与 <see cref="SaveBytes"/> **共用同一原子写原语**
@@ -932,7 +1006,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// <para>文件名**独立**于玩家槽命名空间 —— 不与任何 `save_{slot_seq}.bin` 相撞。</para>
         /// </summary>
         private void WriteExitSave(byte[] data)
-            => WriteAtomic(ExitFinalPath, ExitTmpPath, ExitBakPath, data);
+            => WriteAtomic(ExitFinalPath,
+                           Path.Combine(_basePath, SuffixNameOf(ExitSaveSlot, ".tmp")),
+                           ExitBakPath, data);
 
         // ══════════════════════════════════════════════════════════════════
         // 「会话未完整」标志位的写面(AC-7a-17 · 规则十三)
@@ -1398,8 +1474,8 @@ namespace DaYiJingCheng.Sim.Codec
                     "夹具传 action => action()(同步内联,可控)。");
         }
 
-        private string GetFinalPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.bin");
-        private string GetTmpPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.tmp");
-        private string GetBakPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.bak");
+        private string GetFinalPath(SaveSlot slot) => Path.Combine(_basePath, FinalNameOf(slot));
+        private string GetTmpPath(SaveSlot slot) => Path.Combine(_basePath, SuffixNameOf(slot, ".tmp"));
+        private string GetBakPath(SaveSlot slot) => Path.Combine(_basePath, SuffixNameOf(slot, ".bak"));
     }
 }

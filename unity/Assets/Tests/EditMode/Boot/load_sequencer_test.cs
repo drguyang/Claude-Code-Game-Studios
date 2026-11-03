@@ -113,7 +113,7 @@ namespace DaYiJingCheng.Tests.Boot
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svc.Checkpoint(new SaveSlot(1));
+            svc.Checkpoint(new SaveSlot(4));
         }
 
         /// <summary>①+② 正路径:Load 成功 ⇒ 游标归零(再 Drain 重触发)+ 兜底清零 + 流已恢复。</summary>
@@ -133,7 +133,7 @@ namespace DaYiJingCheng.Tests.Boot
             // 清流(模拟读档前的世界差异 —— Restore 换内容,不是 Append 变长):
             // 读档后恢复闭包把流内容替换回存档时刻。
             var sequencer = new LoadSequencer(loadSide, _trigger, _fallback);
-            sequencer.Load(new SaveSlot(1));
+            sequencer.Load(new SaveSlot(4));
 
             Assert.AreEqual(1, _stream.Count, "恢复闭包:重放把存档时刻的事件带回流内");
             Assert.AreEqual(0, _fallback.TicksSinceLastFire,
@@ -183,7 +183,7 @@ namespace DaYiJingCheng.Tests.Boot
 
             _trigger.Drain(_stream.Events);
             var sequencer = new LoadSequencer(loadSide, _trigger);   // fallback 缺省 null
-            Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(1)));
+            Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(4)));
 
             _trigger.Drain(_stream.Events);
             Assert.AreEqual(2, _anchorFired, "null fallback ⇒ 只跳过清零步,游标缝合照常");

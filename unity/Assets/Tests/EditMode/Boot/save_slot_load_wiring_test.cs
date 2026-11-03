@@ -113,10 +113,10 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_saveSlotSink_reachesLoad_andRestoresStream()
         {
-            WriteSlot(1, 42L);
+            WriteSlot(3, 42L);
             var router = new SaveSlotCommandRouter(NewSequencer());
 
-            bool ok = router.TryLoad(1);
+            bool ok = router.TryLoad(3);
 
             Assert.That(ok, Is.True, "已接线 + 槽位存在 ⇒ 必须返回 true(界面据此给反馈)");
             Assert.That(_stream.Count, Is.EqualTo(1),
@@ -127,17 +127,17 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_saveSlotSink_rowIndexMapsToSlotSeq_notOffsetByOne()
         {
-            WriteSlot(1, 11L);
-            WriteSlot(3, 33L);
+            WriteSlot(3, 11L);
+            WriteSlot(4, 33L);
 
             var sink = new CapturingSink();
             SaveSlotsScreen screen = NewScreen(sink);
-            screen.SetSlots(new uint[] { 1u, 3u });
+            screen.SetSlots(new uint[] { 3u, 4u });
 
-            screen.Activate(1);          // 第二行 = 槽 3
+            screen.Activate(1);          // 第二行 = 槽 4
 
             Assert.That(sink.Calls.Count, Is.EqualTo(1));
-            Assert.That(sink.Calls[0], Is.EqualTo(3u),
+            Assert.That(sink.Calls[0], Is.EqualTo(4u),
                 "行号 → 槽位序号必须逐行对应;错位 = 按 3 号读 1 号,最坏的静默错读");
         }
 

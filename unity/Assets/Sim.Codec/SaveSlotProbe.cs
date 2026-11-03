@@ -107,12 +107,20 @@ namespace DaYiJingCheng.Sim.Codec
             if (string.IsNullOrEmpty(basePath))
                 return new SaveSlotSummary(SaveSlotState.Unknown, 0L, 0U);
 
-            // ⚠️ 路径命名**必须**与 SaveService.GetFinalPath / GetBakPath 逐字一致。
+            // ⚠️ 路径命名**必须**与 SaveService 的 FinalNameOf / SuffixNameOf 逐字一致。
             //    两处各写一份是本项目反复抓到的「双实现必然漂移」形态;
-            //    此处刻意照抄同一格式串,并由夹具 `test_probe_pathMatchesSaveService`
+            //    此处刻意照抄同一套规则,并由夹具 `test_probe_pathMatchesSaveService`
             //    以**真的存一份再探测**来钉它(不是比字符串)。
-            string finalPath = Path.Combine(basePath, $"save_{slotSeq}.bin");
-            string bakPath = Path.Combine(basePath, $"save_{slotSeq}.bak");
+            // 🔁 2026-11-03(`TD-persist-17`):槽号现在**有三种形状** ——
+            //    1 = 退出保存(`save_exit.bin`)· 2 = 自动存档(`save_auto.bin`)· 3+ = 手动(`save_{n}.bin`)。
+            //    文件名常量**引用** `SaveService` 的公开常量,不复制字面量。
+            bool reserved = SaveSlotLedger.IsReservedSlotSeq(slotSeq);
+            string stem = slotSeq == SaveSlotLedger.ExitSlotSeq ? SaveService.ExitSaveFileName
+                        : slotSeq == SaveSlotLedger.AutoSlotSeq ? SaveService.AutoSaveFileName
+                        : $"save_{slotSeq}.bin";
+            string finalPath = Path.Combine(basePath, stem);
+            // 保留槽的旁路文件是 `xxx.bin.bak`,手动槽是 `save_{n}.bak` —— 两种形状必须分开。
+            string bakPath = Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak");
 
             try
             {
@@ -127,6 +135,30 @@ namespace DaYiJingCheng.Sim.Codec
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
                 // 「我不知道」不是「没有」。折成 Unknown,呈现侧画零字。
+                return new SaveSlotSummary(SaveSlotState.Unknown, 0L, 0U);
+            }
+        }
+
+        /// <summary>
+        /// 探一个**具体文件**(不按槽号拼路径)。
+        /// <para>用途:`SaveService.TryGetMostRecentSave` 要在「退出 / 自动 / 手动」三类候选里
+        /// 比 tick,而前两者的文件名不在 `save_{N}.bin` 命名空间里 —— 路径由 7a 自己给,
+        /// 命名约定仍只在 7a 内部。</para>
+        /// <para>语义与 <see cref="Probe"/> 同:文件不存在 ⇒ <c>Empty</c>;读不出 ⇒ <c>Unknown</c>;
+        /// 在但解不出 ⇒ <c>Corrupt</c>。**不抛**。</para>
+        /// </summary>
+        public static SaveSlotSummary ProbeFile(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return new SaveSlotSummary(SaveSlotState.Unknown, 0L, 0U);
+            try
+            {
+                return File.Exists(path)
+                    ? ReadOne(path)
+                    : new SaveSlotSummary(SaveSlotState.Empty, 0L, 0U);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
                 return new SaveSlotSummary(SaveSlotState.Unknown, 0L, 0U);
             }
         }

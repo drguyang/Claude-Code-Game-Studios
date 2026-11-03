@@ -103,7 +103,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             // ══ Act:「进程重启」⇒ 新流 + 同目录 Load,恢复闭包 = Restore ══
             var fresh = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
@@ -122,7 +122,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svcLoad.Load(new SaveSlot(0));
+            svcLoad.Load(new SaveSlot(3));
 
             // ══ Assert:恢复态 == 直接重放所得(AC-7a-01 形状的三点)══
             Assert.AreEqual(0, fresh.Count,
@@ -138,8 +138,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "恢复后高水位须从折叠行重构(== 直接重放世界流所得)");
 
             // 二次 Checkpoint 不丢折叠行(回写义务):
-            svcLoad.Checkpoint(new SaveSlot(1));
-            byte[] secondSave = File.ReadAllBytes(Path.Combine(_testDir, "save_1.bin"));
+            svcLoad.Checkpoint(new SaveSlot(4));
+            byte[] secondSave = File.ReadAllBytes(Path.Combine(_testDir, "save_4.bin"));
             // ADR-037:正文起点 = 头部 + 配置版本段
             // ⚠️ ADR-038 §D3:v4 起头部多 24 B ⇒ 头部长度**按版本取**,不得硬编码 68。
             int headerSize = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(secondSave));
@@ -193,10 +193,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svc.Checkpoint(new SaveSlot(0));
+            svc.Checkpoint(new SaveSlot(3));
 
             // ══ Assert ①:布局里**没有**快照段(AC-7a-01/02 的前件)══
-            byte[] saved = File.ReadAllBytes(Path.Combine(_testDir, "save_0.bin"));
+            byte[] saved = File.ReadAllBytes(Path.Combine(_testDir, "save_3.bin"));
             SaveHeader header = SaveHeaderCodec.Read(saved);
             Assert.AreEqual(0UL, header.SnapshotOffset,
                 "存档头写了非 0 的 SnapshotOffset ⇒ 快照段已引入 —— " +
@@ -219,7 +219,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L),
                     existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svcLoad.Load(new SaveSlot(0));
+            svcLoad.Load(new SaveSlot(3));
 
             // ══ Assert ②:掉落清单 == 直接重放世界流所得 ══
             string dropFromRestored = InventoryFold

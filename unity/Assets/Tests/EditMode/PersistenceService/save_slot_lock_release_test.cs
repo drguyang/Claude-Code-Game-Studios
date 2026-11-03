@@ -84,44 +84,45 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_smoke_initialNextWritableSeq_isReachableThroughCtor()
         {
-            SaveService svc = MakeService(NewStream(), seed: 1);
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(1u),
-                "装配层传 1 ⇒ 第一次写入落在槽 1(屏上的第一个槽);初值通道此前**不存在**");
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(SaveService.MinManualSlotSeq),
+                "装配层传 3(手动槽第一个号)⇒ 第一次手动写入落在槽 3;初值通道此前**不存在**");
         }
 
         [Test]
-        public void test_smoke_defaultInitialNextWritableSeq_staysZero()
+        public void test_smoke_defaultInitialNextWritableSeq_clampsToFirstManualSlot()
         {
             SaveService svc = new SaveService(_testDir, new SaveCodec(),
                 narrativeContext: FuncNarrativeContextQuery.AlwaysIn);
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(0u),
-                "缺省仍为 0 —— 既有夹具与 AC-7a-19 的 0 起语义**不因本次修复而变**");
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(3u),
+                "缺省 0 被**夹到 3** —— 0 不是合法槽号,1/2 是保留槽(退出保存 / 自动存档)");
         }
 
         [Test]
         public void test_smoke_firstCheckpointLandsOnVisibleSlot()
         {
             EventStream stream = NewStream();
-            SaveService svc = MakeService(stream, seed: 1);
+            SaveService svc = MakeService(stream, seed: SaveService.MinManualSlotSeq);
 
             svc.Checkpoint(new SaveSlot(svc.Ledger.NextWritableSeq));
 
-            Assert.That(File.Exists(Path.Combine(_testDir, "save_1.bin")), Is.True,
-                "第一次存档必须落在 `save_1.bin` —— 落在 `save_0.bin` 就是玩家看到「什么都没发生」的那个缺陷");
+            Assert.That(File.Exists(Path.Combine(_testDir, "save_3.bin")), Is.True,
+                "第一次手动存档必须落在 `save_3.bin`(手动槽的第一个号)");
         }
 
         // ══════════════════════════════════════════════════════════════════
         // ①-b 跨会话:磁盘上已有槽位 ⇒ 高水位必须越过它们(TD-persist-15)
         // ══════════════════════════════════════════════════════════════════
         //
-        // 病因:`initialNextWritableSeq` 曾是**唯一**来源(生产传 1)⇒ 每个新会话内存里都从 1 起
-        //   ⇒ `EnsureWritable(1)` 判 `1 < 1` = false ⇒ 放行 ⇒ **顶掉上一会话的 `save_1.bin`**。
+        // 病因:`initialNextWritableSeq` 曾是**唯一**来源 ⇒ 每个新会话内存里都从 floor 起
+        //   ⇒ `EnsureWritable(floor)` 判 `floor < floor` = false ⇒ 放行 ⇒ 顶掉磁盘上同号那份。
         //   用户机器上已实测发生:`save_1.bak` 是旧会话的 3868B / `save_1.bin` 是新会话的 1868B。
         // 修法:`SaveService` 构造期扫**文件名**取 `max + 1`,与该 floor 取大。
         //
         // ⚠️ 扫的是**文件名**,不是存档体内容 ⇒ 不触碰 ADR-010 §六「不进存档体」。
         // ⚠️ 三件事**分开断**(合起来才叫「没覆盖」):高水位真被抬高 / 旧槽拒写且字节不变 /
         //    新写落在下一空槽。只断第一条时,「放行了但恰好没写坏」也能绿。
+        // 🔁 2026-11-03(`TD-persist-17`):手动槽从 **3** 起(1 = 退出保存 · 2 = 自动存档)。
 
         private static void WriteSentinel(string dir, uint seq, string content)
             => File.WriteAllText(Path.Combine(dir, $"save_{seq}.bin"), content);
@@ -129,77 +130,84 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_crossSession_existingSlots_raiseHighWaterPastThem()
         {
-            WriteSentinel(_testDir, 1, "SESSION-1-A");
-            WriteSentinel(_testDir, 2, "SESSION-1-B");
-            WriteSentinel(_testDir, 3, "SESSION-1-C");
+            WriteSentinel(_testDir, 3, "SESSION-1-A");
+            WriteSentinel(_testDir, 4, "SESSION-1-B");
+            WriteSentinel(_testDir, 5, "SESSION-1-C");
 
-            SaveService svc = MakeService(NewStream(), seed: 1);
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
 
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(4u),
-                "磁盘上有 save_1..save_3 ⇒ 本会话下一可写槽必须是 4;从 1 起就是跨会话覆盖");
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(6u),
+                "磁盘上有 save_3..save_5 ⇒ 本会话下一可写槽必须是 6;从 3 起就是跨会话覆盖");
         }
 
         [Test]
         public void test_crossSession_existingSlot_isRefusedAndBytesUnchanged()
         {
-            WriteSentinel(_testDir, 1, "SESSION-1-A");
-            SaveService svc = MakeService(NewStream(), seed: 1);
+            WriteSentinel(_testDir, 3, "SESSION-1-A");
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
 
             Assert.Throws<InvalidDataException>(
-                () => svc.Checkpoint(new SaveSlot(1)),
+                () => svc.Checkpoint(new SaveSlot(3)),
                 "覆盖既有槽位必须由 7a 拒绝(GDD 规则十四),而不是被 EnsureWritable 放行");
 
-            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_1.bin")), Is.EqualTo("SESSION-1-A"),
+            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_3.bin")), Is.EqualTo("SESSION-1-A"),
                 "拒写之后旧档字节必须逐字不变 —— 只断「抛了没」不足以证明没写坏");
         }
 
         [Test]
         public void test_crossSession_nextSaveLandsOnFirstFreeSlot()
         {
-            WriteSentinel(_testDir, 1, "SESSION-1-A");
-            WriteSentinel(_testDir, 2, "SESSION-1-B");
+            WriteSentinel(_testDir, 3, "SESSION-1-A");
+            WriteSentinel(_testDir, 4, "SESSION-1-B");
 
-            SaveService svc = MakeService(NewStream(), seed: 1);
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
             svc.Checkpoint(new SaveSlot(svc.Ledger.NextWritableSeq));
 
-            Assert.That(File.Exists(Path.Combine(_testDir, "save_3.bin")), Is.True,
-                "新会话的第一次写入必须落在 save_3(下一空槽)");
-            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_1.bin")), Is.EqualTo("SESSION-1-A"),
-                "旧槽 save_1 不得被这次写入碰到");
+            Assert.That(File.Exists(Path.Combine(_testDir, "save_5.bin")), Is.True,
+                "新会话的第一次写入必须落在 save_5(下一空槽)");
+            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_3.bin")), Is.EqualTo("SESSION-1-A"),
+                "旧槽 save_3 不得被这次写入碰到");
         }
 
         [Test]
         public void test_crossSession_emptyDirectory_floorAppliesUnchanged()
         {
-            SaveService svc = MakeService(NewStream(), seed: 1);
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(1u),
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(3u),
                 "目录里一张槽都没有 ⇒ 退回 floor(空目录没有可覆盖的东西)");
         }
 
         [Test]
         public void test_crossSession_nonSlotFiles_doNotRaiseHighWater()
         {
-            // 退出保存 + 原子写的中间/备份文件 + 无关文件:一个都不算玩家槽。
+            // 两个保留槽 + 原子写的中间/备份文件 + 无关文件:一个都不算**手动**槽。
             File.WriteAllText(Path.Combine(_testDir, "save_exit.bin"), "EXIT");
+            File.WriteAllText(Path.Combine(_testDir, "save_auto.bin"), "AUTO");
             File.WriteAllText(Path.Combine(_testDir, "save_9.bak"), "BAK");
             File.WriteAllText(Path.Combine(_testDir, "save_9.tmp"), "TMP");
             File.WriteAllText(Path.Combine(_testDir, "save_notes.txt"), "TXT");
 
-            SaveService svc = MakeService(NewStream(), seed: 1);
+            SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
 
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(1u),
-                "`save_exit.bin` / `.bak` / `.tmp` / 非 .bin 一律不算槽 —— 否则退出保存会把高水位推飞");
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(3u),
+                "`save_exit.bin` / `save_auto.bin` / `.bak` / `.tmp` / 非 .bin 一律不算手动槽");
         }
 
         [Test]
-        public void test_crossSession_slotZeroOnDisk_raisesFromDefaultFloor()
+        public void test_crossSession_legacyLowNumberedFiles_areIgnored()
         {
-            File.WriteAllText(Path.Combine(_testDir, "save_0.bin"), "SESSION-0");
+            // 🔁 2026-11-03(`TD-persist-17`):槽号语义改过 —— `save_0.bin` 现在是**非法槽号**,
+            //    `save_1.bin` / `save_2.bin` 是与保留槽撞号的**旧命名孤儿**。
+            //    三者都**不得**参与高水位(否则手动槽会被推到它们后面)。
+            File.WriteAllText(Path.Combine(_testDir, "save_0.bin"), "LEGACY-0");
+            File.WriteAllText(Path.Combine(_testDir, "save_1.bin"), "LEGACY-1");
+            File.WriteAllText(Path.Combine(_testDir, "save_2.bin"), "LEGACY-2");
+
             SaveService svc = new SaveService(_testDir, new SaveCodec(),
                 narrativeContext: FuncNarrativeContextQuery.AlwaysIn);
 
-            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(1u),
-                "缺省 floor = 0,但磁盘上已有 save_0 ⇒ 下一可写 = 1(0 号同样受只进不退保护)");
+            Assert.That(svc.Ledger.NextWritableSeq, Is.EqualTo(3u),
+                "低号孤儿文件不抬高水位:1/2 是保留槽的号,0 非法 —— 都不能把第一个手动槽推走");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -218,16 +226,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
             SaveService svc = MakeService(stream, seed: 1);
             SaveOneSlot(svc);
 
-            svc.Load(new SaveSlot(1));                       // 首次读档成功
-            Assert.That(svc.Ledger.IsLocked(new SaveSlot(1)), Is.True, "读档成功即置锁(AC-7a-19 (d))");
+            svc.Load(new SaveSlot(3));                       // 首次读档成功
+            Assert.That(svc.Ledger.IsLocked(new SaveSlot(3)), Is.True, "读档成功即置锁(AC-7a-19 (d))");
 
-            Assert.Throws<InvalidOperationException>(() => svc.Load(new SaveSlot(1)),
+            Assert.Throws<InvalidOperationException>(() => svc.Load(new SaveSlot(3)),
                 "同一会话内再读 = 已锁(这正是用户 smoke 看到的报错)");
 
             svc.OnNarrativeAnchor();                          // 「下一次叙事事件 checkpoint」
 
-            Assert.That(svc.Ledger.IsLocked(new SaveSlot(1)), Is.False, "叙事锚点到达 ⇒ 锁解除");
-            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(1)),
+            Assert.That(svc.Ledger.IsLocked(new SaveSlot(3)), Is.False, "叙事锚点到达 ⇒ 锁解除");
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)),
                 "解锁后同一槽位必须**重新可读** —— 这是本条修复的全部意义");
         }
 

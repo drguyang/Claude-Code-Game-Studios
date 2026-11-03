@@ -873,7 +873,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     {
                         try
                         {
-                            saveService.Checkpoint(new SaveSlot(saveService.Ledger.NextWritableSeq));
+                            // 🔁 2026-11-03(`TD-persist-17`):自动存档写**固定槽 2**
+                            //    (`save_auto.bin`,原地覆盖),不再占用 `NextWritableSeq` ——
+                            //    后者自此只由**手动存档**推进,从槽 3 起。
+                            saveService.Checkpoint(SaveService.AutoSaveSlot);
                         }
                         catch (Exception e)
                         {
@@ -895,7 +898,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                     {
                         try
                         {
-                            saveService.Checkpoint(new SaveSlot(saveService.Ledger.NextWritableSeq));
+                            // 事件锚点与定时兜底**共用**固定槽 2(用户 2026-11-03 裁定:
+                            // 两类自动存档都进同一个固定槽,`OQ-7a-8` 的「事件池保留全部」作废)。
+                            saveService.Checkpoint(SaveService.AutoSaveSlot);
                             return true;
                         }
                         catch (Exception e)
@@ -946,7 +951,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    `SaveService` 构造器扫目录求得(命名约定归它,装配层不拼 `save_*`)。
                     //    病因:把本值当终值 ⇒ 每个新会话内存里都从 1 起 ⇒ 覆盖上一会话的
                     //    `save_1.bin`(用户机器上已实测发生)。
-                    initialNextWritableSeq: 1,
+                    // 🔁 2026-11-03 `TD-persist-17`:**1 → 3** —— 槽 1 = 退出保存、槽 2 = 自动存档,
+                    //    二者是固定保留槽;手动存档从槽 3 起。(`SaveService` 另会把低于 3 的
+                    //    floor 夹到 3,故这里传错也不会落到保留槽上。)
+                    initialNextWritableSeq: SaveService.MinManualSlotSeq,
                     // AC-7a-17 · TD-persist-06:退出保存失败的「记日志」落点。
                     // ⚠️ `SaveService` **不抛**写盘失败(退出路径上抛 = 卡退),故
                     //    GDD「不阻塞退出 **+ 记日志**」里的后半句只能经这条委托兑现。

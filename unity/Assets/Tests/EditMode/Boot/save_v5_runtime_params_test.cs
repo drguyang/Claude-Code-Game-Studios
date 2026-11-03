@@ -74,13 +74,13 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_v5_roundTripsAllSevenValues()
         {
             byte[] signed = SaveService.AddChecksum(ComposeUnsigned(ArchiveTime));
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), signed);
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), signed);
 
             Assert.That(SaveHeaderCodec.Read(signed).SaveVersion, Is.EqualTo(5u),
                 "写出的档必须声明 v5 —— 否则下面的往返测的是旧布局");
 
             SaveService load = NewLoadSide();
-            load.Load(new SaveSlot(1));
+            load.Load(new SaveSlot(4));
 
             Assert.That(load.LastLoadedTimeParams.HasValue, Is.True,
                 "读档必须交出运行期参数(否则 hydrate 无输入)");
@@ -100,10 +100,10 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_v4ToV5_migrationWritesAdjudicatedSeasonAndWeather()
         {
             byte[] v4 = DowngradeToV4(ComposeUnsigned(ArchiveTime));
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(v4));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(v4));
 
             SaveService load = NewLoadSide();
-            Assert.DoesNotThrow(() => load.Load(new SaveSlot(1)), "v4 档必须能读");
+            Assert.DoesNotThrow(() => load.Load(new SaveSlot(4)), "v4 档必须能读");
 
             SaveTimeParams got = load.LastLoadedTimeParams.Value;
             Assert.That(got.TicksPerDay, Is.EqualTo(18000L), "档内三值原样保留");
@@ -119,10 +119,10 @@ namespace DaYiJingCheng.Tests.Boot
         {
             // v3 → v4(补时间三值)→ v5(补季/天气四值),正文与 WorldSeed 由链逐级断言。
             byte[] v3 = DowngradeToV3(ComposeUnsigned(ArchiveTime));
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(v3));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(v3));
 
             SaveService load = NewLoadSide();
-            Assert.DoesNotThrow(() => load.Load(new SaveSlot(1)), "v3 档必须能一路迁到 v5");
+            Assert.DoesNotThrow(() => load.Load(new SaveSlot(4)), "v3 档必须能一路迁到 v5");
 
             SaveTimeParams got = load.LastLoadedTimeParams.Value;
             Assert.That(got.TicksPerDay, Is.EqualTo(36000L), "v3 档的时间三值来自 V3ToV4 的事实常量");
@@ -184,9 +184,9 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_load_rejectsZeroTicksPerDay()
         {
             byte[] bad = ComposeWithPatched(ticksPerDay: 0L);
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(bad));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(bad));
 
-            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(1)));
+            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(4)));
             StringAssert.Contains("TICKS_PER_DAY", ex.Message,
                 "报文须点名是哪个字段 —— 只报「存档损坏」会让排查去查校验和");
         }
@@ -195,9 +195,9 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_load_rejectsZeroSeasonLength()
         {
             byte[] bad = ComposeWithPatched(ticksPerSeason: 0L);
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(bad));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(bad));
 
-            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(1)));
+            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(4)));
             StringAssert.Contains("TICKS_PER_SEASON", ex.Message);
         }
 
@@ -205,9 +205,9 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_load_rejectsSingleSeasonYear()
         {
             byte[] bad = ComposeWithPatched(seasonsPerYear: 1L);
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(bad));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(bad));
 
-            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(1)));
+            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(4)));
             StringAssert.Contains("SEASONS_PER_YEAR", ex.Message);
         }
 
@@ -215,9 +215,9 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_load_rejectsZeroWeatherBlock()
         {
             byte[] bad = ComposeWithPatched(weatherBlockTicks: 0L);
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(bad));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(bad));
 
-            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(1)));
+            var ex = Assert.Throws<InvalidDataException>(() => NewLoadSide().Load(new SaveSlot(4)));
             StringAssert.Contains("WEATHER_BLOCK_TICKS", ex.Message);
         }
 
@@ -244,10 +244,10 @@ namespace DaYiJingCheng.Tests.Boot
             // 端到端(决策层):存档 → SaveService.Load → 档内七值 → hydrate(52 的 roll)。
             // ⚠️ 仍未覆盖的是 `BootRoot.Start` 里那一行启动期调用本身(见证据 §未做)。
             byte[] signed = SaveService.AddChecksum(ComposeUnsigned(ArchiveTime));
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), signed);
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), signed);
 
             SaveService load = NewLoadSide();
-            load.Load(new SaveSlot(1));
+            load.Load(new SaveSlot(4));
 
             Assert.Throws<InvalidDataException>(() =>
                 BootRoot.HydrateTimeParams(load.LastLoadedTimeParams.Value, rollInterval: 7000L));

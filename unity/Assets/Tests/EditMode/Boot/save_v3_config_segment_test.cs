@@ -202,8 +202,8 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] signed = SaveService.AddChecksum(ComposeUnsigned(artifacts));
 
             SaveService loadSide = NewLoadSide();
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), signed);
-            loadSide.Load(new SaveSlot(1));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), signed);
+            loadSide.Load(new SaveSlot(4));
 
             Assert.That(loadSide.LastLoadedArtifactConfigVersions, Is.Not.Null,
                 "读档必须交出逐份版本(否则「哪张表变了」永远不可判)");
@@ -236,9 +236,9 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] v2 = StripSegmentToV2(ComposeUnsigned(null));
 
             SaveService loadSide = NewLoadSide();
-            File.WriteAllBytes(Path.Combine(_testDir, "save_1.bin"), SaveService.AddChecksum(v2));
+            File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), SaveService.AddChecksum(v2));
 
-            Assert.DoesNotThrow(() => loadSide.Load(new SaveSlot(1)),
+            Assert.DoesNotThrow(() => loadSide.Load(new SaveSlot(4)),
                 "v2 档必须能读(迁移链第一条真实输入)");
             Assert.That(loadSide.LastLoadedArtifactConfigVersions.Count, Is.EqualTo(0),
                 "v2 档没有逐份版本 ⇒ 段为空");

@@ -87,11 +87,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
             original.Append(Craft(ActorB, BStart, BDuration, seq: 1L));
             original.Append(Craft(ActorA, ASecondStart, ASecondDuration, seq: 2L));
 
-            SaveTo(original, slotSeq: 0);
+            SaveTo(original, slotSeq: 3);
 
             // ══ Act:「进程重启」⇒ 新流 + 同目录 Load(读路径 = SaveService.Load)══
             EventStream reloaded = NewStream();
-            LoadInto(reloaded, slotSeq: 0);
+            LoadInto(reloaded, slotSeq: 3);
 
             // ══ Assert A(前置):世界事件真的回来了 ══
             Assert.AreEqual(original.Events.Count, reloaded.Events.Count,

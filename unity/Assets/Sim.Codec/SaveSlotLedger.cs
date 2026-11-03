@@ -31,6 +31,26 @@ namespace DaYiJingCheng.Sim.Codec
     /// </summary>
     public sealed class SaveSlotLedger
     {
+        /// <summary>槽 1 = 退出保存(**保留槽**:固定身份,被反复重写)。</summary>
+        public const uint ExitSlotSeq = 1;
+
+        /// <summary>槽 2 = 自动存档(**保留槽**:定时兜底 + 事件锚点共用,原地覆盖)。</summary>
+        public const uint AutoSlotSeq = 2;
+
+        /// <summary>
+        /// 手动存档的第一个槽号。**槽 3 起**,且仍然**只进不退**。
+        /// <para>🔁 2026-11-03(`TD-persist-17` · 用户裁定「自动存档只占固定槽」):
+        /// 此前自动存档与手动存档共用同一递增计数器 ⇒ 自动存档一路吃掉手动槽号。
+        /// 现 1 / 2 是保留槽,3+ 才是玩家槽。</para>
+        /// </summary>
+        public const uint MinManualSlotSeq = 3;
+
+        /// <summary>
+        /// 该槽号是否**不是**玩家槽 —— 1 / 2 = 保留槽(可反复重写);
+        /// 其余(&lt; 3,即 0)是**非法槽号**。
+        /// </summary>
+        public static bool IsReservedSlotSeq(uint seq) => seq == ExitSlotSeq || seq == AutoSlotSeq;
+
         private readonly INarrativeContextQuery _narrativeContext;
         private readonly HashSet<uint> _locked = new HashSet<uint>();
         private uint _nextWritableSeq;
@@ -101,7 +121,17 @@ namespace DaYiJingCheng.Sim.Codec
         {
             if (_narrativeContext == null) throw NoContextSource();
 
-            if (slot.SlotSeq < _nextWritableSeq)
+            // 门 ⓪:槽号合法性 —— 0 不是任何槽(1 = 退出 / 2 = 自动 / 3+ = 手动)。
+            //    ⚠️ 这一条**不是**「只进不退」,是「根本没有这个槽」。
+            if (slot.SlotSeq == 0)
+                throw new InvalidDataException(
+                    "槽号 0 不是合法槽位:1 = 退出保存 · 2 = 自动存档 · 3+ = 手动存档" +
+                    "(TD-persist-17 · 用户裁定 2026-11-03)");
+
+            // 门 ①:只进不退 —— **只约束玩家槽**(≥ 3)。
+            //    保留槽 1 / 2 是**固定身份、原地覆盖**:自动存档每来一次就顶掉上一份,
+            //    这正是它该有的语义(它不是玩家的回滚点)。
+            if (slot.SlotSeq >= MinManualSlotSeq && slot.SlotSeq < _nextWritableSeq)
                 throw new InvalidDataException(
                     $"槽位只进不退:slot_seq={slot.SlotSeq} < next_writable_seq={_nextWritableSeq}" +
                     "(AC-7a-19 (b) —— 覆盖既有槽位由 7a 拒绝,不是 7b 提示)");
@@ -119,6 +149,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public void OnCheckpointCommitted(SaveSlot slot)
         {
+            // 保留槽(1 / 2)不推进高水位 —— 它们不进递增段。
+            // ⚠️ 若不挡:写一次自动存档(槽 2)会把 `_nextWritableSeq` 推到 3,
+            //    而 3 正是**第一个**手动槽 ⇒ 玩家的第一次手动存档会被莫名拒掉。
+            if (slot.SlotSeq < MinManualSlotSeq) return;
+
             uint next = slot.SlotSeq + 1;
             if (next > _nextWritableSeq) _nextWritableSeq = next;
         }

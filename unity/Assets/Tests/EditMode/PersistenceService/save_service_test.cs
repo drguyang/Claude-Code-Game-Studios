@@ -60,14 +60,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_atomicWrite_createsFinalFile()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
             byte[] data = Encoding.UTF8.GetBytes("test data");
 
             svc.SaveBytes(slot, data);
 
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
-            string tmpPath = Path.Combine(_testDir, "save_1.tmp");
-            string bakPath = Path.Combine(_testDir, "save_1.bak");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string tmpPath = Path.Combine(_testDir, "save_4.tmp");
+            string bakPath = Path.Combine(_testDir, "save_4.bak");
 
             Assert.IsTrue(File.Exists(finalPath), "final 文件应存在");
             Assert.IsFalse(File.Exists(tmpPath), "tmp 文件应被 rename 掉");
@@ -79,13 +79,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_doubleBackup_bakCreatedOnSecondWrite()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
 
             svc.SaveBytes(slot, Encoding.UTF8.GetBytes("first"));
             svc.SaveBytes(slot, Encoding.UTF8.GetBytes("second"));
 
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
-            string bakPath = Path.Combine(_testDir, "save_1.bak");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string bakPath = Path.Combine(_testDir, "save_4.bak");
 
             Assert.IsTrue(File.Exists(finalPath), "final 应存在");
             Assert.IsTrue(File.Exists(bakPath), "bak 应存在");
@@ -98,7 +98,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_checksumFallback_readsBakWhenFinalCorrupted()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
 
             // 构造合法的存档头(36 字节)
             byte[] raw1 = new byte[36];
@@ -114,7 +114,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2));
 
             // 损坏 final
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
             byte[] corrupted = File.ReadAllBytes(finalPath);
             corrupted[40] ^= 0xFF;
             File.WriteAllBytes(finalPath, corrupted);
@@ -144,8 +144,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw1)); // 首写:仅 final
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2)); // 二写:r1 → bak,final = r2
 
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
-            string bakPath = Path.Combine(_testDir, "save_1.bak");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string bakPath = Path.Combine(_testDir, "save_4.bak");
 
             byte[] f = File.ReadAllBytes(finalPath); f[40] ^= 0xFF; File.WriteAllBytes(finalPath, f);
             byte[] b = File.ReadAllBytes(bakPath);  b[40] ^= 0xFF; File.WriteAllBytes(bakPath, b);
@@ -157,7 +157,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_corruptState_bothFinalAndBakBad_throwsSaveCorrupt()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
             ArrangeBothFilesCorrupted(svc, slot);
 
             var ex = Assert.Throws<SaveCorruptException>(
@@ -165,7 +165,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "final 与 bak 都坏 ⇒ 必须进入 Corrupt 态并抛 SaveCorruptException" +
                 "(裸 InvalidDataException 与前向不兼容/magic 不符同型不可分,不满足「指定异常」)");
 
-            Assert.AreEqual(1U, ex.SlotSeq, "异常须点名进入 Corrupt 态的槽位");
+            Assert.AreEqual(4U, ex.SlotSeq, "异常须点名进入 Corrupt 态的槽位");
             StringAssert.Contains("Corrupt", ex.Message, "报文须点名 Corrupt 态");
         }
 
@@ -174,7 +174,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_corruptState_leavesSlotDirectoryUntouched()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
             var (finalPath, bakPath) = ArrangeBothFilesCorrupted(svc, slot);
 
             string[] filesBefore = Directory.GetFiles(_testDir);
@@ -197,7 +197,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_fallbackState_finalBadBakGood_doesNotEnterCorrupt()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
 
             byte[] raw1 = new byte[36];
             byte[] raw2 = new byte[36];
@@ -208,7 +208,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw1));
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2));
 
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
             byte[] f = File.ReadAllBytes(finalPath); f[40] ^= 0xFF; File.WriteAllBytes(finalPath, f);
 
             // 回退成功 ⇒ 既不得抛 Corrupt,也不得抛任何异常
@@ -250,7 +250,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_emptySlot_createsNoFiles()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            Assert.Throws<SaveNotFoundException>(() => svc.LoadBytes(new SaveSlot(1)));
+            Assert.Throws<SaveNotFoundException>(() => svc.LoadBytes(new SaveSlot(4)));
 
             CollectionAssert.IsEmpty(Directory.GetFiles(_testDir),
                 "空槽是正常态,不是要「修」的东西 —— 不得静默新建空档(AC-7a-15(b) 同源纪律)");
@@ -263,13 +263,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //   若判据写成「任一文件缺失 ⇒ NotFound」,本用例会红 —— 但磁盘上**有**东西,
             //   那东西是真坏的,必须报损坏。
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
             // 写两次才产生 bak(`WriteAtomic` 只在 final 已存在时才 final→bak 轮转)
             svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
             svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
 
-            string bakPath = Path.Combine(_testDir, "save_1.bak");
-            string finalPath = Path.Combine(_testDir, "save_1.bin");
+            string bakPath = Path.Combine(_testDir, "save_4.bak");
+            string finalPath = Path.Combine(_testDir, "save_4.bin");
             Assert.IsTrue(File.Exists(bakPath), "夹具前提:两次写入后 bak 存在");
 
             byte[] b = File.ReadAllBytes(bakPath); b[40] ^= 0xFF; File.WriteAllBytes(bakPath, b);

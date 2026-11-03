@@ -81,10 +81,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_probe_pathMatchesSaveService_realWriteThenProbe()
         {
             SaveService svc = MakeService(NewStream(), tick: 4242L);
-            svc.Checkpoint(new SaveSlot(1));
+            svc.Checkpoint(new SaveSlot(4));
 
             // 探针走的目录来源 = SaveService.BasePath(不是测试自己拼的路径)
-            SaveSlotSummary s = SaveSlotProbe.Probe(svc.BasePath, 1);
+            SaveSlotSummary s = SaveSlotProbe.Probe(svc.BasePath, 4);
 
             Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
                 "真写一份之后,探同一个目录同一个槽必须判 Occupied —— " +
@@ -101,7 +101,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_probe_neverWrittenSlot_isEmpty()
         {
-            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 2);
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 5);
             Assert.That(s.State, Is.EqualTo(SaveSlotState.Empty),
                 "目录里没有这个槽的任何文件 ⇒ Empty(呈现侧画格线零字)");
         }
@@ -109,9 +109,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_probe_corruptFile_isNotReportedAsEmpty()
         {
-            File.WriteAllBytes(Path.Combine(_dir, "save_2.bin"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(_dir, "save_5.bin"), new byte[] { 1, 2, 3 });
 
-            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 2);
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 5);
 
             Assert.That(s.State, Is.EqualTo(SaveSlotState.Corrupt),
                 "文件在但解不出 ⇒ Corrupt。**不得**报 Empty:" +
@@ -149,10 +149,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             // 造一份真档,再手工搬成 .bak(模拟「final 丢了、上一好档还在」)
             SaveService svc = MakeService(NewStream(), tick: 77L);
-            svc.Checkpoint(new SaveSlot(1));
-            File.Move(Path.Combine(_dir, "save_1.bin"), Path.Combine(_dir, "save_1.bak"));
+            svc.Checkpoint(new SaveSlot(4));
+            File.Move(Path.Combine(_dir, "save_4.bin"), Path.Combine(_dir, "save_4.bak"));
 
-            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 1);
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
 
             Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
                 "LoadBytes 会回退读 .bak ⇒ 探针必须同向,否则「屏上说没档、按下去却读出来了」");
@@ -163,21 +163,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_probe_finalPreferredOverBak()
         {
             // 🔁 2026-11-03(`TD-persist-15`):**原写法靠的是那条 bug** ——
-            //    它构造第二个 `SaveService` 再写槽 1,靠「高水位被重置」才写得进去。
+            //    它构造第二个 `SaveService` 再写同一个槽,靠「高水位被重置」才写得进去。
             //    修好之后,跨会话写既有槽位被 7a 拒(那正是要的),原写法当场抛。
             //    ⇒ 判据不变(**final 可读时以 final 为准**),**造场方式**改为不依赖覆盖:
-            //    写两份**合法**存档(槽 1 = tick 5 / 槽 2 = tick 9),再把槽 2 的字节
-            //    搬成槽 1 的 final —— 双档形态(finish 新、bak 旧)由此造出,零违规写入。
+            //    写两份**合法**存档(槽 4 = tick 5 / 槽 N = tick 9),再把槽 N 的字节
+            //    搬成槽 4 的 final —— 双档形态(final 新、bak 旧)由此造出,零违规写入。
             SaveService old = MakeService(NewStream(), tick: 5L);
-            old.Checkpoint(new SaveSlot(1));                       // save_1.bin(tick 5)
-            File.Copy(Path.Combine(_dir, "save_1.bin"), Path.Combine(_dir, "save_1.bak"));
+            old.Checkpoint(new SaveSlot(4));                       // save_4.bin(tick 5)
+            File.Copy(Path.Combine(_dir, "save_4.bin"), Path.Combine(_dir, "save_4.bak"));
 
             SaveService newer = MakeService(NewStream(), tick: 9L);
             newer.Checkpoint(new SaveSlot(newer.Ledger.NextWritableSeq));   // save_N.bin(tick 9),N 由扫描决定
             uint n = newer.Ledger.NextWritableSeq - 1;
-            File.Copy(Path.Combine(_dir, $"save_{n}.bin"), Path.Combine(_dir, "save_1.bin"), overwrite: true);
+            File.Copy(Path.Combine(_dir, $"save_{n}.bin"), Path.Combine(_dir, "save_4.bin"), overwrite: true);
 
-            Assert.That(SaveSlotProbe.Probe(_dir, 1).Tick, Is.EqualTo(9L),
+            Assert.That(SaveSlotProbe.Probe(_dir, 4).Tick, Is.EqualTo(9L),
                 "final 可读时以 final 为准(与 LoadBytes 的次序一致)");
         }
     }

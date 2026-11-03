@@ -165,7 +165,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             byte[] v1 = Save(version: 1);
             byte[] migrated = svc.ApplyMigrationsIfNeeded(v1, SaveHeaderCodec.Read(v1));
 
-            var slot = new SaveSlot(1);
+            var slot = new SaveSlot(4);
             svc.SaveBytes(slot, migrated);
 
             int replayCount = 0;
@@ -181,7 +181,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.That(foldedCount, Is.EqualTo(1), "foldedRowSink 必须被调用一次");
 
             // 对照:同一份数据若不迁移(仍是 v1),Load 必须在版本门被拒 —— 证明门确实在被测路径上。
-            var rawSlot = new SaveSlot(2);
+            var rawSlot = new SaveSlot(5);
             svc.SaveBytes(rawSlot, v1);
             var reader2 = new SaveService(
                 _testDir, new SaveCodec(),

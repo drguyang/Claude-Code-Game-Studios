@@ -114,7 +114,7 @@ namespace DaYiJingCheng.Tests.Boot
                     worldSeed: 1UL, configVersion: headerConfigVersion, tick: 20L,
                     timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
-            svc.Checkpoint(new SaveSlot(1));
+            svc.Checkpoint(new SaveSlot(4));
         }
 
         /// <summary>读侧:独立实例(写过的槽即锁 ⇒ 读侧不可与写侧共用台账)。</summary>
@@ -159,7 +159,7 @@ namespace DaYiJingCheng.Tests.Boot
             WriteSlotOne(SavedConfigVersion);
 
             var captured = new List<ConfigVersionCheck>();
-            NewSequencer(captured).Load(new SaveSlot(1));
+            NewSequencer(captured).Load(new SaveSlot(4));
 
             Assert.That(captured.Count, Is.EqualTo(1),
                 "成功读档必须**恰好**记录一次 —— 0 次 = AC 末句无执行体;多次 = 记录面被重复驱动");
@@ -185,7 +185,7 @@ namespace DaYiJingCheng.Tests.Boot
 
             var captured = new List<ConfigVersionCheck>();
             Assert.DoesNotThrow(
-                () => NewSequencer(captured).Load(new SaveSlot(1)),
+                () => NewSequencer(captured).Load(new SaveSlot(4)),
                 "不匹配**非致命**(ADR-010 §七)—— 读档不得因版本不同而抛");
 
             Assert.That(captured.Count, Is.EqualTo(1), "前提:本次确实走了「不匹配」分支");
@@ -213,7 +213,7 @@ namespace DaYiJingCheng.Tests.Boot
             WriteSlotOne(SavedConfigVersion);
 
             var captured = new List<ConfigVersionCheck>();
-            NewSequencer(captured, currentConfigVersion: SavedConfigVersion).Load(new SaveSlot(1));
+            NewSequencer(captured, currentConfigVersion: SavedConfigVersion).Load(new SaveSlot(4));
 
             Assert.That(captured.Count, Is.EqualTo(1), "一致也必须记录一次(「一致」本身是要留痕的事实)");
             Assert.That(captured[0].Match, Is.True, "两值相同 ⇒ Match 必须为 true");
@@ -231,7 +231,7 @@ namespace DaYiJingCheng.Tests.Boot
             LoadSequencer sequencer = NewSequencer(captured);
 
             // 🔁 2026-10-31:从未写过 ⇒ 现在是 `SaveNotFoundException`(空槽 ≠ 损坏)。
-            Assert.Throws<SaveNotFoundException>(() => sequencer.Load(new SaveSlot(2)),
+            Assert.Throws<SaveNotFoundException>(() => sequencer.Load(new SaveSlot(5)),
                 "前提:槽 2 从未写过 ⇒ 读档在 LoadBytes 处以 SaveNotFoundException 失败");
 
             Assert.That(captured.Count, Is.EqualTo(0),
@@ -251,7 +251,7 @@ namespace DaYiJingCheng.Tests.Boot
             SaveService loadSide = NewLoadSideService();
             var sequencer = new LoadSequencer(loadSide, _trigger, _fallback);   // 成对缺席
 
-            Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(1)),
+            Assert.DoesNotThrow(() => sequencer.Load(new SaveSlot(4)),
                 "未装配记录面 ⇒ 不比对、不抛(记录是可选义务,不是读档前置)");
             Assert.That(loadSide.LastLoadedConfigVersion, Is.EqualTo(SavedConfigVersion),
                 "无论是否装配记录面,成功读档都必须交出档头版本 —— 否则记录面永远无从比对");

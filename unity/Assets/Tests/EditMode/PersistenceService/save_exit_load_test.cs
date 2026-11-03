@@ -98,8 +98,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             SaveService svc = MakeService(NewStream());
             svc.SaveOnExit();
 
-            Assert.That(File.Exists(Path.Combine(_dir, "save_" + uint.MaxValue + ".bin")), Is.False,
-                "哨兵号**不得**被当成文件名写出去(它只是组版委托的标识)");
+            Assert.That(File.Exists(Path.Combine(_dir, "save_1.bin")), Is.False,
+                "槽 1 是退出保存 —— 它落 `save_exit.bin`,**不得**再写出一份 `save_1.bin`" +
+                "(那会和手动槽命名空间撞车)");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -113,7 +114,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveOnExit();
 
             Assert.That(svc.TryGetMostRecentSave(out SaveSlot recent), Is.True);
-            Assert.That(recent.SlotSeq, Is.EqualTo(uint.MaxValue),
+            Assert.That(recent.SlotSeq, Is.EqualTo(SaveService.ExitSaveSlot.SlotSeq),
                 "只有退出保存时,「最近档」= 退出保存(它就是上次退出那一刻)");
 
             // 这一行是**用户可见契约**的唯一判据:说得出槽号,就必须读得动。
@@ -126,11 +127,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             EventStream stream = NewStream();
             SaveService svc = MakeService(stream);
-            svc.Checkpoint(new SaveSlot(1));      // 玩家槽 1
+            svc.Checkpoint(new SaveSlot(4));      // 玩家槽 1
             svc.SaveOnExit();                      // 退出保存
 
             Assert.That(svc.TryGetMostRecentSave(out SaveSlot recent), Is.True);
-            Assert.That(recent.SlotSeq, Is.EqualTo(uint.MaxValue),
+            Assert.That(recent.SlotSeq, Is.EqualTo(SaveService.ExitSaveSlot.SlotSeq),
                 "退出保存优先于玩家槽(「上次退出那一刻」更近)");
 
             Assert.DoesNotThrow(() => svc.Load(recent));
@@ -141,11 +142,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             EventStream stream = NewStream();
             SaveService svc = MakeService(stream);
-            svc.Checkpoint(new SaveSlot(2));      // 只写玩家槽 2
+            svc.Checkpoint(new SaveSlot(5));      // 只写槽 5
 
             Assert.That(svc.TryGetMostRecentSave(out SaveSlot recent), Is.True);
-            Assert.That(recent.SlotSeq, Is.EqualTo(2u),
-                "没有退出保存 ⇒ 序号最大的玩家槽");
+            Assert.That(recent.SlotSeq, Is.EqualTo(5u),
+                "既没有退出保存也没有自动存档 ⇒ 唯一那份手动槽就是最近");
 
             Assert.DoesNotThrow(() => svc.Load(recent),
                 "同一条契约:返回的槽必须可读");

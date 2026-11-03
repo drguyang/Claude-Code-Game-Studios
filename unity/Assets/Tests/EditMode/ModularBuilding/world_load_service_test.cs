@@ -454,9 +454,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                         worldSeed: 1UL, configVersion: 0U, tick: 2L,
                         timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: saveStream.FoldedRows, blobPool: _pool),
                     writeScheduler: action => action(), blobRestoreSink: _pool);
-                svc.Checkpoint(new SaveSlot(0));
+                svc.Checkpoint(new SaveSlot(3));
 
-                string savePath = Path.Combine(dir, "save_0.bin");
+                string savePath = Path.Combine(dir, "save_3.bin");
                 Assert.That(File.Exists(savePath), Is.True, "Checkpoint 须真的落出一个文件");
                 long sizeOnDisk = new FileInfo(savePath).Length;
                 Assert.That(sizeOnDisk, Is.GreaterThan(SaveHeaderCodec.HeaderSize),
@@ -480,7 +480,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                         worldSeed: 1UL, configVersion: 0U, tick: 2L,
                         timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
                     writeScheduler: action => action(), blobRestoreSink: _pool);
-                svcLoad.Load(new SaveSlot(0));
+                svcLoad.Load(new SaveSlot(3));
 
                 Assert.AreEqual(2, fresh.Count, "读回的事件条数须 == 落盘的条数");
 
@@ -580,7 +580,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                         FoldRowCodec.DecodeSegment(bytes)),
                     writeScheduler: action => action(),
                     blobRestoreSink: restoredPool);
-                svcRestore.Load(new SaveSlot(0));
+                svcRestore.Load(new SaveSlot(3));
 
                 Assert.AreEqual(2, restoredPool.Count,
                     "载荷段须真的装回 2 条 blob(两条建造事件各一条)");
@@ -634,7 +634,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                         worldSeed: 1UL, configVersion: 0U, tick: 1L,
                         timeParams: new SaveTimeParams(36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L), existingFoldedRows: saveStream.FoldedRows, blobPool: _pool),
                     writeScheduler: action => action());
-                svcWrite.Checkpoint(new SaveSlot(0));
+                svcWrite.Checkpoint(new SaveSlot(3));
 
                 // 读侧**刻意不注入** blobRestoreSink
                 var svcLoad = new SaveService(
@@ -646,7 +646,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     writeScheduler: action => action());
 
                 var ex = Assert.Throws<InvalidOperationException>(
-                    () => svcLoad.Load(new SaveSlot(0)),
+                    () => svcLoad.Load(new SaveSlot(3)),
                     "存档带载荷而未注入装载面 ⇒ 必须抛,不得静默跳过");
                 StringAssert.Contains("blobRestoreSink", ex.Message,
                     "报文须点名缺的是哪一个形参 —— 否则读者会误读成「存档损坏」");

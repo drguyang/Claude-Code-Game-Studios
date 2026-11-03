@@ -102,14 +102,14 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_persist12_itemHighWater_reconstructedFromLoadedStream()
         {
             const long SaveInstanceId = 10000L;
-            WriteSlot(1u, enc => new[] { DropOf(enc, SaveInstanceId, tick: 7L) }, tick: 7L);
+            WriteSlot(3u, enc => new[] { DropOf(enc, SaveInstanceId, tick: 7L) }, tick: 7L);
 
             long before = _authority.NextItemInstanceId().Value;
             Assert.That(before, Is.LessThanOrEqualTo(SaveInstanceId),
                 $"前置:装配期计数器({before})须小于存档 id({SaveInstanceId})—— " +
                 "否则「越过」可能是装配期就已达成的,本测对重构零判别力");
 
-            _bag.LoadSequencer.Load(new SaveSlot(1));
+            _bag.LoadSequencer.Load(new SaveSlot(3));
 
             long after = _authority.NextItemInstanceId().Value;
             Assert.That(after, Is.GreaterThan(SaveInstanceId),
@@ -131,8 +131,8 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_persist12_itemHighWater_recomputedOnEachLoad()
         {
-            WriteSlot(1u, enc => new[] { OnsetOf(enc, patientId: 3, tick: 7L) }, tick: 7L);
-            _bag.LoadSequencer.Load(new SaveSlot(1));
+            WriteSlot(3u, enc => new[] { OnsetOf(enc, patientId: 3, tick: 7L) }, tick: 7L);
+            _bag.LoadSequencer.Load(new SaveSlot(3));
 
             // 第二份:流里有**远大于**第一份的 instance_id ⇒ 高水位必须再抬一次。
             // ⚠️ **必须换一个新装配**(新池):同一装配的池里已有第一份档的 blob(BlobId 0),
@@ -146,8 +146,8 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.That(authority2.NextItemInstanceId().Value, Is.LessThanOrEqualTo(SecondInstanceId),
                 "前置:新装配的计数器须小于第二份档的 id");
 
-            WriteSlot(2u, enc => new[] { DropOf(enc, SecondInstanceId, tick: 9L) }, tick: 9L);
-            bag2.LoadSequencer.Load(new SaveSlot(2));
+            WriteSlot(4u, enc => new[] { DropOf(enc, SecondInstanceId, tick: 9L) }, tick: 9L);
+            bag2.LoadSequencer.Load(new SaveSlot(4));
 
             long afterSecondLoad = authority2.NextItemInstanceId().Value;
             Assert.That(afterSecondLoad, Is.GreaterThan(SecondInstanceId),
@@ -168,13 +168,13 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_persist12_patientHighWater_reconstructedFromLoadedStream()
         {
             const int SavePatientId = 500;
-            WriteSlot(1u, enc => new[] { OnsetOf(enc, SavePatientId, tick: 7L) }, tick: 7L);
+            WriteSlot(3u, enc => new[] { OnsetOf(enc, SavePatientId, tick: 7L) }, tick: 7L);
 
             int before = _authority.NextPatientId().Value;
             Assert.That(before, Is.LessThanOrEqualTo(SavePatientId),
                 $"前置:装配期病人计数器({before})须小于存档 patient_id({SavePatientId})");
 
-            _bag.LoadSequencer.Load(new SaveSlot(1));
+            _bag.LoadSequencer.Load(new SaveSlot(3));
 
             int after = _authority.NextPatientId().Value;
             Assert.That(after, Is.GreaterThan(SavePatientId),
@@ -204,7 +204,7 @@ namespace DaYiJingCheng.Tests.Boot
             //    只给 onset 会被折掉**事件**却不产**折叠行** ⇒ 折叠行里没有那个 id,
             //    判据退化成 ③(首轮实测即此:「病人 500 的事件须已被折叠抹除」为真,
             //    但 `FoldedRows.Count` 为 0)。⇒ 补一条终态(`Died = 2`)。
-            WriteSlot(1u,
+            WriteSlot(3u,
                 enc => new[]
                 {
                     OnsetOf(enc, FoldedPatientId, tick: 7L),
@@ -220,7 +220,7 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.That(before, Is.LessThanOrEqualTo(FoldedPatientId),
                 $"前置:装配期病人计数器({before})须小于被折叠的 id({FoldedPatientId})");
 
-            _bag.LoadSequencer.Load(new SaveSlot(1));
+            _bag.LoadSequencer.Load(new SaveSlot(3));
 
             // 前置:折叠确实发生了 —— 流里不再有 500 号(否则本测与 ③ 同形,零新增判别力)。
             bool stillInStream = false;
