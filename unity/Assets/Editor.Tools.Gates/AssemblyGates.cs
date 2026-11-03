@@ -220,6 +220,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 有 2 条(39 的两行)**零生产调用点**而门全绿。本门补上「表 ⊆ 代码」。
             // ⚠️ 它只证明「有人声明要发」,证不了「真的会发」—— 后者归 PlayMode 矩阵夹具。
             errs.AddRange(CameraSetModeRequesterGate.RunModeRequestTable("."));
+            // AC-5-05 —— `TICKS_PER_DAY` 全仓只有一个定义点(2026-11-03 立)。
+            // 缘由(实测,不是预防性洁癖):本轮一度同时存在 `Sim/Time/WorldTime`(36000)
+            // 与 `Sim/World/TimeBase`(480)两份日长、两套昼夜公式,**而两边各自的夹具都绿**
+            // —— 没有任何东西会红。本门就是「不再允许第二次」的执行体。
+            // ⚠️ 已知盲区(门内头注已登记):**换名同值**(`const int DayTicks = 36000`)抓不到
+            // —— 按名字匹配的判据结构上无法覆盖;要抓得比对值,那会把一切 36000 常量误判成红。
+            errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."));
             return errs;
         }
 

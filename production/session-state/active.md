@@ -16182,3 +16182,24 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   @ 2026-11-03 01:08–01:09 CST · `c9284b23` + 工作树
 - **门**:debtcount exit 0 · acid exit 0
 - **未提交**(等用户指令)
+
+## Session Extract — AC-5-05 立门轮(2026-11-03)
+
+- **触发**:用户「补 AC-5-05 的门」
+- **撞上的事故**:本轮新造的 `Sim/Time/WorldTimeConstants.cs`(36000)与**早就在**的
+  `Sim/World/TimeBase.cs`(480)**并存** —— 两个定义点 / 两套昼夜公式,**两边都有绿灯夹具**。
+  肇事者是我(建之前没搜既有实现)。
+- **处置**:收编到 `TimeBase.cs`(`36000/27000/9000`)· 删除 `Sim/Time/` 整目录 ·
+  夹具 `SimTime/world_time_test.cs` → `TimeWeather/f51_day_night_test.cs`(改名 + 重定向)
+- **新门**:`Editor.Tools.Gates/TimeConstantSingleDefinitionGate.cs`
+  - 代码侧:① 恰好一条 ② 必须在 `TimeBase.cs` ③ 文件内也只能一条
+  - 数据侧:`assets/data/**/*.json` 零「日长」标识(AC-5-05 的 `THEN` 第二半)
+  - **首跑返工**:门在自己的头注释与夹具字符串实参上恒红 ⇒ 加 `StripCommentsAndLiterals`
+- **夹具**:`Tests/EditMode/Sim/time_constant_gate_test.cs`(15 条,含 7–10 剥离面 / 11–14 数据侧)
+- **证伪轮**:6 条变异全部转红 · SHA-256 逐字节还原 · **M5 首枪打错靶已作废并重打**
+- **回归**:EditMode `6685/6648/0/0/37` · PlayMode `324/320/0/2/2` · 警告 **0**(全量重编译)
+  @ 2026-11-03 10:35 CST · `1df0646b` + 工作树
+- **证据**:`production/qa/evidence/impl-ac5-05-time-constant-gate-2026-11-03.md`
+  (并订正 `impl-f51-day-night-2026-11-03.md` §七)
+- **仍未做**:AC-5-05 的「引用解析后同值」半边(52 无数据集)· 数据侧今日**空真**
+- **未提交**(等用户指令)

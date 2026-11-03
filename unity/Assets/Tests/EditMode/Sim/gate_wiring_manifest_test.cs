@@ -100,10 +100,13 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "HarvestGateAllowGate.RunAll",   // S22-9 生产零 HarvestGate.Allow(F6 执行体)· 2026-11-01
                     "CameraSetModeRequesterGate.RunAll", // 生产必须双参 SetMode(ADR-020 Amd C② / AC-ADR020-16)· 2026-11-02
                     "CameraSetModeRequesterGate.RunModeRequestTable", // 档位表 ↔ 代码覆盖(表 ⊆ 代码)· camera-viewpoint/story-007 · 2026-11-02
+                    "TimeConstantSingleDefinitionGate.RunAll", // AC-5-05 日长单一定义点 · 2026-11-03
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
-                // ⚠️ 本入口调 RunAll(= 含上表 7 条),此处只列**自己额外接的**。
+                // ⚠️ 本入口调 RunAll(= 含上表**各条**),此处只列**自己额外接的**。
+                //   (原写「上表 7 条」—— 该计数早已陈旧;按 `coding-standards.md`
+                //    「数字须带可跑复算命令」,散文里钉死的计数一律改为不变量描述。)
                 ["RunMenu"] = new[]
                 {
                     "RunAll",                        // 合流入口(上方 7 条经此生效)
@@ -206,6 +209,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "MedConsFloatGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
+            new ClassVerdict { ClassName = "TimeConstantSingleDefinitionGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-5-05 落(2026-11-03);病因 = 全仓曾同时存在两份日长(480 / 36000)与两套昼夜公式," +
+                       "而两边夹具各自全绿 —— 没有任何东西会红" },
             new ClassVerdict { ClassName = "ForagingFloatGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll+BuildGate",
                 Note = "AC-17-10 落(2026-10-31);源级 + IL 级(Cecil)两级,RunAll 与构建链都接" },

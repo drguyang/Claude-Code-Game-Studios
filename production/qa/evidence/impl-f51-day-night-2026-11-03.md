@@ -84,3 +84,54 @@ grep -rn "WorldTime\." unity/Assets --include=*.cs | grep -v "/Sim/Time/"
 # ④ 夹具数
 grep -c "\[Test\]" unity/Assets/Tests/EditMode/SimTime/world_time_test.cs
 ```
+
+---
+
+## 七、⚠️ 订正(2026-11-03 同日 · AC-5-05 立门轮)**—— 本文档 §一/§五/§六 的旧路径已失效**
+
+**原文不删,以下为订正后的实况。**
+
+### 7.1 事故:我造了第二份日长(AC-5-05 要防的事,肇事者是我)
+
+本轮的 `Sim/Time/WorldTimeConstants.cs`(`TicksPerDay = 36000`)**是第二份实现** ——
+`unity/Assets/Sim/World/TimeBase.cs` **早就存在**,自带 `TICKS_PER_DAY = 480L`、
+`NIGHT_START = 360L`、`NIGHT_SPAN = 240L` 与**一整套昼夜公式**。
+我建 `WorldTime` 之前**没有搜过既有实现**。
+
+后果:两个定义点、两套昼夜公式、两个互相矛盾的日长(480 vs 36000),
+而**两边各自都有绿灯夹具** ⇒ 没有任何东西会红。这正是 GDD `:184` / AC-5-05 点名的形态。
+
+**原 `:480` 的注释「GDD 裁定 480」为假** —— GDD 从未裁定 480;值是占位,且注释把占位写成了裁定。
+
+### 7.2 处置:收编到 `TimeBase`,删除 `Sim/Time/`
+
+| 项 | 订正后 |
+|---|---|
+| 常量与公式 | **`unity/Assets/Sim/World/TimeBase.cs`**(`TICKS_PER_DAY=36000` / `NIGHT_START=27000` / `NIGHT_SPAN=9000` / `FMod` / `IsNight` / `IsNightAt` / `DayNumberOf` / `ComputeState`) |
+| 删除 | `unity/Assets/Sim/Time/WorldTimeConstants.cs`(及其 `.meta`、`Sim/Time.meta`)—— **整目录已移除** |
+| 装配 | `unity/Assets/Gameplay.Boot/BootRoot.cs` 改调 `Sim.World.TimeBase.IsNight` / `DayNumberOf` |
+| 夹具 | `Tests/EditMode/SimTime/world_time_test.cs` → **`Tests/EditMode/TimeWeather/f51_day_night_test.cs`**;`Tests/EditMode/TimeWeather/time_base_test.cs` 的旧占位断言随之更新 |
+| **AC-5-05 的门** | **已立**:`unity/Assets/Editor.Tools.Gates/TimeConstantSingleDefinitionGate.cs`,接进 `AssemblyGates.RunAll`;证据原件见 `impl-ac5-05-time-constant-gate-2026-11-03.md` |
+
+### 7.3 §五 最后一行(`AC-5-05` **无机械门**)已作废
+
+原文写「**结构性成立**,但**无机械门** —— 若哪天有人在别处再写一份 `const`,没有门会红」。
+**该状态已于同日终结**:门已存在,且经 **6 条变异**证伪(逐条转红、SHA-256 逐字节还原)。
+
+### 7.4 §六 复算命令的路径订正
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+# ① 常量值(路径已改:TimeBase 而非 Sim/Time/WorldTimeConstants)
+grep -n "TICKS_PER_DAY = \|NIGHT_START = \|NIGHT_SPAN = " unity/Assets/Sim/World/TimeBase.cs
+# ② 唯一消费方(路径已改)
+grep -rn "TimeBase\.\(IsNight\|DayNumberOf\)" unity/Assets --include=*.cs | grep -v "/Sim/World/"
+# ③ 夹具数(文件已改名)
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/TimeWeather/f51_day_night_test.cs
+# ④ 定义点应恰为 1 条
+grep -rnE "\b(const|static[[:space:]]+readonly)[[:space:]]+(int|long|uint|ulong)[[:space:]]+(TICKS_PER_DAY)\b" \
+  unity/Assets --include=*.cs
+```
+
+⚠️ 本节**不重述** §四 的回归三元组 —— 那组数是**收编前**的读数,已被后续批次覆盖;
+最新读数以 `impl-ac5-05-time-constant-gate-2026-11-03.md` §回归 为准。

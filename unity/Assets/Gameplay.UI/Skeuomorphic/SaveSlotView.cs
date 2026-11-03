@@ -36,7 +36,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>
         /// 世界内第几日(<b>1 起</b>;<c>0</c> = 未定 / 无档)。
         /// <para>🔁 2026-11-03(甲方案第二层):由装配层从 <see cref="Tick"/> 算出 ——
-        /// **42 不做除法**,除数与「+1」只有一个出处(系统 5 的 `WorldTime`,住 `Sim` 装配)。
+        /// **42 不做除法**,除数与「+1」只有一个出处(系统 5 的 `Sim.World.TimeBase`,住 `Sim` 装配)。
         /// 42 只认这个已算好的值,因而不需要引用 `Sim`(它只引用 `Sim.Contracts`)。</para>
         /// <para>⚠️ 这是「册内时刻」的**降级形态**:spec §5.4 要的是「世界内日期 + 时段」,
         /// 而日→月/年 的历法映射归系统 5,今日 5 尚无代码 ⇒ 先只给「第 N 日」。</para>

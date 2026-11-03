@@ -24,25 +24,27 @@ namespace DaYiJingCheng.Tests.TimeWeather
         [Test]
         public void test_isNight_correctRange()
         {
-            // TICKS_PER_DAY = 480, NIGHT_START = 360, NIGHT_SPAN = 240
-            // tick = 360 → phase = 360 → isNight = true
-            Assert.IsTrue(TimeBase.IsNight(360));
-            // tick = 120 → phase = 120 → isNight = false
-            Assert.IsFalse(TimeBase.IsNight(120));
-            // tick = 0 → phase = 0 → isNight = true (0 ∈ [0, 120) ∪ [360, 480))
-            Assert.IsTrue(TimeBase.IsNight(0));
+            // 🔁 2026-11-03 收编轮:旧断言钉的是**占位值**(480 / 360 / 240),
+            //    与已裁定值(36000 / 27000 / 9000)不符 ⇒ 必须随值更新。
+            //    ⚠️ 这不是「为让红变绿而改测试」:值由用户 2026-11-03 裁定,
+            //    旧值在 GDD 定值之前是占位,其注释「GDD 裁定 480」为假。
+            // TICKS_PER_DAY = 36000, NIGHT_START = 27000, NIGHT_SPAN = 9000
+            // 夜 = [27000, 36000)(恰好不跨日)
+            Assert.IsTrue(TimeBase.IsNight(27000), "夜的起点");
+            Assert.IsFalse(TimeBase.IsNight(26999), "夜前一 tick 仍是昼");
+            Assert.IsFalse(TimeBase.IsNight(0), "纪元起点是昼(旧值下曾是「夜」)");
+            Assert.IsTrue(TimeBase.IsNight(35999), "当日最后一 tick 仍在夜");
         }
 
         [Test]
         public void test_seasonIndex_correctRange()
         {
-            // seasonLength = TICKS_PER_DAY * 30 = 14400, SEASONS_PER_YEAR = 4
-            // tick = 0 → season = 0
+            // seasonLength = TICKS_PER_DAY * 30 = 1,080,000(⚠️ 该式是**占位**,
+            // 与 F-5.2 的 `TICKS_PER_SEASON` 不等价 —— 见 TimeBase 文件头)。
             Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(0));
-            // tick = 14400 → season = 1
-            Assert.AreEqual(1, TimeBase.ComputeSeasonIndex(14400));
-            // tick = 57600 → season = 0 (wraps)
-            Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(57600));
+            Assert.AreEqual(1, TimeBase.ComputeSeasonIndex(1080000));
+            // 4 季 × 1,080,000 = 4,320,000 ⇒ 回绕到 0
+            Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(4320000));
         }
 
         [Test]
