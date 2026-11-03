@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEditor;
+using UnityEditor.Build;   // NamedBuildTarget(2026-11-03:`BuildTargetGroup` 重载在 Unity 6 已废弃)
 using UnityEngine;
 
 namespace DaYiJingCheng.EditorTools.Bake.Cli
@@ -95,7 +96,8 @@ namespace DaYiJingCheng.EditorTools.Bake.Cli
 
             // ── ④ 脚本后端可用性 ──
             sb.AppendLine("── ④ 脚本后端 ──");
-            sb.AppendLine("  Standalone 当前后端 = " + PlayerSettings.GetScriptingBackend(BuildTargetGroup.Standalone));
+            sb.AppendLine("  Standalone 当前后端 = " + PlayerSettings.GetScriptingBackend(
+                NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Standalone)));
             sb.AppendLine("  IL2CPP 是否已装(Standalone) = " +
                 (BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneLinux64)
                     ? "见 ② 判决" : "N/A"));

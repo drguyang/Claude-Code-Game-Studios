@@ -264,8 +264,13 @@ namespace DaYiJingCheng.EditorTools.Level
             }
 
             Emit(log, "A2.getHeightIndex_overlast", clampNote);
-            Emit(log, "A2.heightmapWidth", td.heightmapWidth.ToString());
-            Emit(log, "A2.heightmapHeight", td.heightmapHeight.ToString());
+            // ⚠️ 2026-11-03:`heightmapWidth` / `heightmapHeight` 在 Unity 6 已废弃(CS0618),
+            //    二者是 `heightmapResolution` 的**只读别名**(同值)—— 实测证据
+            //    `spike-terrain-api-6.3-2026-10-29.md:56` 记的 `A2.heightmapWidth=33`
+            //    与 `A2.heightmapHeight=33` 正是同一个分辨率。
+            //    ⇒ 换成 `heightmapResolution`,**日志键名保持不变**(既有证据件的对照口径不破坏)。
+            Emit(log, "A2.heightmapWidth", td.heightmapResolution.ToString());
+            Emit(log, "A2.heightmapHeight", td.heightmapResolution.ToString());
         }
 
         /// <summary>A2 的 `GetSteepness` 坐标系判据。</summary>
