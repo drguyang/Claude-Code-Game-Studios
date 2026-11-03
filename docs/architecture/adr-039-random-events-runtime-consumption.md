@@ -259,7 +259,7 @@ GDD `:672` 逐字警告过这种形态:「一个无视权重的实现**能通过
 | `W_base`(P0 九条) | **全部 100** | 用户裁定;GDD「最小单位个数」的干净基准 |
 | `TODMult`(夜 · 威胁档) | **3/2** | 用户裁定 |
 | `TOD_MULT_MAX` | **2/1** | 用户裁定;构建期拒收超上界 |
-| `Mod_Eco` / `Mod_Rep` | **未裁**(仍空集,见 `TD-randomevents-04`) | 用户:「讲清楚点再单独裁一轮」 |
+| `Mod_Eco` / `Mod_Rep` | **整体推 P1a**(2026-11-03 用户裁定;见 `TD-randomevents-04` 的裁定块) | 值仍空集;`Mod_Rep` 无值来源(#31 属 P1a),`Mod_Eco` 在 P0 无可观测面 |
 
 ### 本轮 Validation
 
@@ -281,6 +281,6 @@ GDD `:672` 逐字警告过这种形态:「一个无视权重的实现**能通过
 | 项 | 状态 |
 |---|---|
 | `medical` 条目 → 37 病种映射 | **不存在** ⇒ `spawnPatient` 刻意抛(见 D9) |
-| `Mod_Eco` / `Mod_Rep` | 未裁 ⇒ 预算恒 = `BASE`(`TD-randomevents-04` 维持 open) |
+| `Mod_Eco` / `Mod_Rep` | **整体推 P1a**(2026-11-03 用户裁定)⇒ 预算恒 = `BASE`;`TD-randomevents-04` 维持 open,解除条件后移为「P1a 关卡 + 四生态区 + 出诊上下文接通」 |
 | `HistoryMult` / `KeyGate` | P0 无输入源 ⇒ 恒 1 / 恒放行(源码具名) |
 | 端到端「事件真的降临」 | `encounter` 条目可走完链路;**医疗条目会在最后一步抛** |

@@ -16303,3 +16303,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   警告 **0**(全量重编译)· 三元组 = `4f2d9280` + 工作树;等式 `6771 − 6756 = 15`
 - **仍未做**:`medical` 条目→37 病种映射(刻意抛)· `Mod_*` 未裁 · 端到端真池夹具
 - **未提交**(等用户指令)
+
+## Session Extract — Mod_Eco / Mod_Rep 裁定轮(2026-11-03)
+
+- **触发**:用户「裁 Mod_Eco / Mod_Rep」→ 我先解释两者语义 → 用户初答「加租界城镇到 P0 + 提前接 Mod_Rep」
+- **勘察后如实回报两条硬约束**,用户改裁为 **「整体推到 p1a,登记债」+「Mod_Rep 仍等 P1a」**
+- **为什么不能加城镇(实测)**:P0 世界 16×16,`walkable` 14×14 医馆内部;现有 2 生态区
+  (`clinic_ward` x1-8 / `herb_courtyard` x8-14)**正好铺满**;GDD `world-and-ecozones.md:69`
+  自陈「P0 = 一间医馆 + 一个小场景」;ADR-022 世界几何唯一作者 = 关卡工具,C5 边界单一源**硬失败**
+  ⇒ 加城镇须同批改 5 份烘焙输入 + 重跑工具 = **P1a 关卡规模**
+- **勘察顺带查出更根本的一层(新立债 `TD-randomevents-05`)**:`CompositionRoot.cs:701` 把
+  `isOnExpedition` / `isInClinic` **硬编码为 false** ⇒ `EvaluateContextGate` 恒假 ⇒ 链恒 `NoContext`
+  ⇒ **端到端失败形态已变**:池表落地前恒 `NoPool`,落地后恒 `NoContext`(都零写入,归因不同)
+  - `isInClinic` 真源 = `ClinicCellSource` **空集占位**(`Configure` 零生产调用方)
+  - `isOnExpedition` 真源 = 活跃出诊目标,而其写者因双重空集恒零写入 ⇒ **自我死锁**
+- **债册**:`未闭 P0 面 2 → 3`(`TD-randomevents-05` 入表;四十六订);`epic 分布 1/31` 不变
+- **文档**:ADR-039 D4/§仍未做 + 证据 §9.7 + `technical-preferences.md` 日志同步为「三条债,归因不同,勿合并」
+- **未提交**(等用户指令)

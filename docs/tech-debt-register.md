@@ -405,6 +405,7 @@
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-05` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
@@ -550,6 +551,19 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十六订(`TD-randomevents-05` 立债 · F1 上下文门三项输入生产恒假 · 2026-11-03 · 债面)** ——
+> 变化(算法见 `TD-COUNT` 块,本节不手抄):`条目 +1` · `open +1` · `Y +1` ·
+> **`未闭 P0 面 2 → 3`** · `epic 分布 1/31`(**不变** —— `random-events` 已在分布内)。
+> 单一变化源:`TD-randomevents-05`(`CompositionRoot.cs:701` 的 `isOnExpedition: false, isInClinic: false`)。
+> 🔴 **本债是「勘察 `Mod_Eco` 时顺带查出来的」,不是新出现的问题** —— 它自 S22-4 起就存在,
+> 只是此前的归因被记成了「恒 `NoPool`」。**池表落地后失败形态变了**:端到端从 `NoPool` 变成 `NoContext`,
+> 两者都零写入,但归因完全不同。⇒ 任何「52 端到端可跑」的自述在两种形态下都是假的。
+> ⚠️ **本债优先级最高**:它不解,`-03` / `-04` 全解也仍是零写入。
+> 🔁 **同轮另落一项裁定**:`Mod_Eco` / `Mod_Rep` **整体推 P1a**(用户 2026-11-03 裁定)——
+> 理由逐条见 `TD-randomevents-04` 的「2026-11-03 用户裁定」块(不是「以后再说」:
+> `Mod_Rep` 无值来源、`Mod_Eco` 在 P0 无可观测面、加城镇是 P1a 的关卡规模)。
+> 该裁定**不改变任何计数**(`-04` 本就 open)。
+
 > 🔁 **四十五订(`TD-randomevents-03` / `-04` 立债 · 52 运行期消费的两个未闭面 · 2026-11-03 · 债面)** ——
 > 变化(算法见下方 `TD-COUNT` 块,本节不手抄结果):`条目 +2` · `open +2` · `Y +2` ·
 > **`未闭 P0 面 0 → 2`** · **`epic 分布 0/31 → 1/31`**。
@@ -882,10 +896,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 157 | 状态 {'closed': 143, 'partial': 3, 'open': 10, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 2 （已闭但曾标 P0 面的 101 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 2 条,分布在 1/31 个 epic
-    random-events: 2
+条目 158 | 状态 {'closed': 143, 'partial': 3, 'open': 11, '**done**(2026-10-21)': 1} | P0 面 {'Y': 104, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 3 （已闭但曾标 P0 面的 101 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 3 条,分布在 1/31 个 epic
+    random-events: 3
 ```
 <!-- TD-COUNT:END -->
 
@@ -4127,9 +4141,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 |---|---|
 | **债描述** | ADR-039 §D4 让预算走 `ComputeDailyBudget(_baseEvents, null, _budgetMax)`(`RandomEventSpawnChain.cs:177`)—— **`mods` 恒为空**。GDD F2 的 `EventBudgetPerDay = clamp(BASE + ΣMod, 0, BUDGET_MAX)` 里,两项修饰子的**数值均为 `*待裁*`**(`random-events.md:985-986` 与 `:1136`),且 `Mod_Eco` 的输入源(玩家所在生态区)**归系统 6**,`Mod_Rep` 明标 **P1a**。 |
 | **实测(逐条可跑)** | ① `grep -rn "ComputeDailyBudget(" unity/Assets --include=*.cs \| grep -v Tests` ⇒ 唯一生产调用点 `RandomEventSpawnChain.cs:177`,实参 `null`。<br>② `grep -n "Mod_Eco\|Mod_Rep" design/gdd/random-events.md` ⇒ `:985` / `:986` / `:1136`,三处都写 `*待裁*` / `*待定*`。<br>③ `grep -rn "Mod_Eco" unity/Assets --include=*.cs` ⇒ **0**(代码里连名字都没有)。 |
-| **解除动作** | ① 用户裁定 `Mod_Eco` / `Mod_Rep` 的**数值与取值函数**(数值轮,不在实现轮);② `RandomEventSpawnChain` 增加一个**显式**的 mods 供给缝(形参或注入),**不得**在实现里塞默认非零值;③ `Mod_Eco` 的生态区来源接 6 的只读查询(与 `ActorCellEntered` 同源,禁读表现态位置,承 ADR-016 §三);④ 夹具:mods 非空 ⇒ 当日预算确实改变(纯函数面已有 `ComputeDailyBudget` 的边界件,缺的是**接线面**)。 |
-| **触发条件** | ① 用户开始数值轮并裁定两项修饰子;② 或系统 6 交付生态区运行期查询、需要定义「生态区 → 事件密度」时;③ 或任何以「F2 公式已完整落地」形态引用 ADR-039 §D4 之前(**禁借绿**)。 |
+| **解除动作** | ① 用户裁定 `Mod_Eco` / `Mod_Rep` 的**数值与取值函数**(数值轮,不在实现轮);② `RandomEventSpawnChain` 增加一个**显式**的 mods 供给缝(形参或注入),**不得**在实现里塞默认非零值;③ `Mod_Eco` 的生态区来源接 6 的只读查询(`EcozoneOf(玩家格)` —— 查询**已存在**于 `Sim/World/EcozoneRegistry.cs:286`,生产实例经 `LoadEcozoneRegistry` 装配;缺的只是「玩家所在区」这一条读方);④ 夹具:mods 非空 ⇒ 当日预算确实改变。 |
+| **触发条件** | ① 用户开始数值轮并裁定两项修饰子;② 或系统 6 交付 P1a 四生态区、需要定义「生态区 → 事件密度」时;③ 或任何以「F2 公式已完整落地」形态引用 ADR-039 §D4 之前(**禁借绿**)。 |
+| **🔁 2026-11-03 用户裁定:整体推 P1a** | 两项**都不在 P0 落地**,理由逐条实测(不是「以后再说」):<br>① **`Mod_Rep` 无值来源** —— GDD 规则五明标 P1a,而 #31 声誉系统 P0 不存在 ⇒ 任何接线只能是恒 0 的缝(与不接等价,却多一层易被误读为「已实现」的代码)。<br>② **`Mod_Eco` 在 P0 无可观测面** —— P0 世界是 **16×16**(`world_geometry.json`),`walkable` 为 14×14 医馆内部,现有 2 个生态区(`clinic_ward` x1-8 / `herb_courtyard` x8-14)**正好铺满**;GDD `world-and-ecozones.md:69` 自陈「P0 = 一间医馆 + 一个小场景」,四生态区是 **P1a**。<br>③ **更根本的一层**:事件链在 P0 **恒不求值** —— `isOnExpedition` 生产恒 `false`(活跃出诊目标要 37 的 `event_key` 集,今日为空)、`isInClinic` 恒 `false`(`ClinicCellSource` 是**空集占位**,23/24 地块集未接)⇒ `EvaluateContextGate` 恒假 ⇒ 恒 `NoContext`。**即使加了城镇也一样**。<br>④ **加城镇不是加一条 JSON** —— ADR-022 规定世界几何**唯一作者 = 关卡工具**,C5「边界单一源」是**硬失败** ⇒ 须同批改 `world_geometry` / `world_buildslots` / `world_ecozones` / `world_nav` / `world_poi` 五份输入并重跑工具 = **P1a 的关卡规模**。<br>⇒ **本债的解除条件整体后移**:不再是「用户数值轮」,而是「P1a 关卡 + 四生态区 + 出诊上下文接通」三者齐备。 |
 | **归属** | **52 随机事件导演**(预算接线)· 生态区数据 = **6** · 数值 = **用户裁定** |
+
+### TD-randomevents-05 — F1 上下文门的三项输入**生产恒假** ⇒ 事件链恒 `NoContext`(52)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `EventF1Pipeline.EvaluateContextGate` 的判据是 `IsOnExpedition && !IsInClinic`(`EventF1Pipeline.cs:151`),而 `CompositionRoot` 的生产闭包把两项**都硬编码为 `false`**(`CompositionRoot.cs:701`)。⇒ 门恒假 ⇒ 链在 F1 阶段**恒返回 `NoContext`**,永远走不到掷骰与写入。**这不是 `Mod_*` 的连带问题,是更根本的一层**:即使池表已落(2026-11-03)、权重已实现,端到端仍然零写入。 |
+| **实测(逐条可跑)** | ① `grep -n "isOnExpedition: false, isInClinic: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② `isInClinic` 的真源 = `IClinicCellSource`,而生产实例 `ClinicCellSource` 是**空集占位**(`Configure` 零生产调用方,类头注自陈)⇒ `IsClinicCell` 恒 false。<br>③ `isOnExpedition` 的真源 = 规则六之二的定义「(玩家有活跃的出诊目标) 且 (玩家不在医馆地块内)」,而「活跃出诊目标」(`ActiveHouseCallQuery`)要求流里已有 `HouseCallStarted`,其生产写者 `HouseCallStartedWriter` 因**双重空集**(出诊类 `event_key` 集 + 医馆地块集均为空)恒零写入 ⇒ **自我死锁**。<br>④ `inCombatCooldown` 同为硬编码 `false`(P0 无战斗冷却源)。 |
+| **⚠️ 失败形态已变(如实登记)** | 2026-11-03 池表落地前,端到端是 **恒 `NoPool`**;落地后变成 **恒 `NoContext`** —— 两者都是零写入,但**归因不同**。任何「52 端到端可跑」的自述在两者任一形态下都是假的。 |
+| **解除动作** | ① `isInClinic` 接 23/24 的真实地块集(`ClinicCellSource.Configure` 的生产调用方);② `isOnExpedition` 按规则六之二的定义求值(需要 `ActiveHouseCallQuery` 能真求值 ⇒ 依赖 ①);③ `inCombatCooldown` 接战斗冷却源(25/27 侧);④ 夹具:三项各一正一反,且**至少一条真装配件**证明 `EvaluateContextGate` 在生产装配下能为真。 |
+| **⚠️ 与 `TD-randomevents-03` / `-04` 的关系** | 三条**不同因、不同解除动作**,不得合并:③ 是「池条目件与 medical 映射」,④ 是「预算的两项修饰子」,本条是「上下文门的三项输入」。本条**优先级最高** —— 它不解,另外两条即使全解也仍是零写入。 |
+| **触发条件** | ① 23/24 交付医馆地块集时(同批);② 或任何以「52 已端到端可跑」形态引用 ADR-039 之前(**禁借绿**);③ 或 P1a 关卡轮开工时。 |
+| **归属** | **52 随机事件导演**(装配侧上下文闭包)· 医馆地块 = **23/24** · 战斗冷却 = **25/27** |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 

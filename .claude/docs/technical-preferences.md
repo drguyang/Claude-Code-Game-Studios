@@ -1151,8 +1151,16 @@
   漂移门 42 → **43**、catalog 重建)。
   **V-8…V-13 全部 PASS**(载体见证据 §9.4)。⚠️ **V-12 的期望值来自离线复算**(48/64 · 18/64 · 36/64),
   首版写 32/32 与 16/48 被离线复算当场证伪 —— 按纪律改断言不改实现。
-  **仍未做**:`medical` 条目 → 37 病种映射不存在(`spawnPatient` 刻意抛)· `Mod_Eco`/`Mod_Rep` 未裁
-  (`TD-randomevents-04` open)· 端到端真池夹具仍缺(`TD-randomevents-03` open)。
+  **仍未做(三条债,归因不同,勿合并)**:
+  · **`TD-randomevents-05`(优先级最高,本轮勘察 `Mod_Eco` 时查出)** —— `CompositionRoot.cs:701`
+    把 `isOnExpedition` / `isInClinic` **硬编码为 `false`** ⇒ `EvaluateContextGate` 恒假 ⇒
+    链恒 `NoContext`。**⚠️ 失败形态已变**:池表落地前端到端是恒 `NoPool`,落地后是恒 `NoContext`,
+    两者都零写入但归因不同。本债不解,另外两条全解也仍是零写入。
+  · `TD-randomevents-03` —— `medical` 条目 → 37 病种映射不存在(`spawnPatient` 刻意抛);端到端真池夹具仍缺。
+  · `TD-randomevents-04` —— **`Mod_Eco` / `Mod_Rep` 整体推 P1a**(用户 2026-11-03 裁定):
+    `Mod_Rep` 无值来源(#31 属 P1a);`Mod_Eco` 在 P0 无可观测面(P0 世界 16×16 已被医馆 +
+    2 个医馆内区铺满,四生态区是 P1a),且加城镇是关卡重做(ADR-022 唯一作者 + C5 硬失败)。
+    ⇒ 解除条件后移为「P1a 关卡 + 四生态区 + 出诊上下文接通」。
 
 > **本日志状态**:全部 ADR(001–**039**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;

@@ -88,7 +88,7 @@ ADR-038 落地 52 数据集后,四个值里只有 `ROLL_INTERVAL` 有一个读�
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 生产端到端可达 | **不可达 · 已立债** | 池**条目**数据件不存在 ⇒ 链恒 `NoPool`,预算与抽数门只有夹具可达。**`TD-randomevents-03`**(2026-11-03 立;义务方 = 52,37 只提供医疗内容 —— 同批订正了「归 37」的错误写法) |
+| 生产端到端可达 | **不可达 · 三条债** | **⚠️ 失败形态已变(2026-11-03)**:池表落地前端到端恒 **`NoPool`**;落地后变成恒 **`NoContext`** —— 因为 `CompositionRoot.cs:701` 把 `isOnExpedition` / `isInClinic` **硬编码为 `false`**,`EvaluateContextGate` 恒假。两者都零写入但**归因完全不同**。<br>· **`TD-randomevents-05`**(上下文门三项输入, **优先级最高**)· **`TD-randomevents-03`**(池条目件已落,但 medical→37 病种映射与端到端真池夹具仍缺)· **`TD-randomevents-04`**(`Mod_Eco`/`Mod_Rep` 整体推 P1a) |
 | V-7 的装配夹具 | ✅ **已补齐(成对)** | 反侧 + 正侧见 §四;证伪 M15 / M16 各红一枪 |
 | `mods`(F2 的 `Mod_Eco` / `Mod_Rep`) | 空集 · **已立债** | 两值在 GDD 仍是 `*待裁*`;`TD-randomevents-04`(解除动作 = 数值轮裁定 + 生态区接线,实现轮不得自填) |
 | 预算 / 抽数门的**次序**偏离 F1 字面 | 已登记 | ADR-039 §D3 / §R1:掷骰前判定,避免孤儿 `EventRolled` |
@@ -242,6 +242,7 @@ GDD `:672` 逐字警告过:「一个无视权重的实现**能通过 AC-52-06 �
 | 项 | 状态 |
 |---|---|
 | `medical` 条目 → 37 病种映射 | **不存在** ⇒ `spawnPatient` 刻意抛;`encounter` 条目不受影响 |
-| `Mod_Eco` / `Mod_Rep` | 未裁 ⇒ 预算恒 = `BASE`(`TD-randomevents-04` 维持 open) |
+| `Mod_Eco` / `Mod_Rep` | **整体推 P1a**(2026-11-03 用户裁定)⇒ 预算恒 = `BASE`;`TD-randomevents-04` 维持 open |
+| **F1 上下文门的三项输入** | **生产恒假**(`isOnExpedition` / `isInClinic` / `inCombatCooldown`)⇒ 链恒 `NoContext`,**零写入**。`TD-randomevents-05`(本轮勘察 `Mod_Eco` 时查出,优先级最高) |
 | 端到端「真池驱动下三道门全可达」夹具 | **仍缺**(现有夹具用合成候选集;`TD-randomevents-03` 维持 open) |
 | `HistoryMult` / `KeyGate` | P0 无输入源 ⇒ 恒 1 / 恒放行 |
