@@ -23,6 +23,17 @@
 //   ⚠️ 仍未做:落笔成功后的「新行即第 1 焦点」与行内墨色由淡入浓 —— 前者要槽位清单
 //   **在落笔后重取**(清单源今日是 `BootRoot.ManualSaveSlots` 常量,归 7b 数值轮),
 //   后者要行内元数据源。两者**都不在本轮面内**,不借绿。
+//
+// 🔁 **2026-11-04 转册轮**:补上 `§5.1` 的「每页 6 行,超出转册续页」——
+//   ① `PageSize = 6`,行只画**当前页那一段窗口**;② 鱼尾页码(`save-slot-page`);
+//   ③ 两条页缘热区(`save-slot-prev` / `save-slot-next`),指针点 + 手柄 Submit 都能翻,
+//   不可翻时**不占位**也退出焦点遍历;④ 翻页后焦点重置为该页首行(`§7.1`);
+//   ⑤ 「留档」新行只出现在**末页**。
+//   ⚠️ **仍未做的两条(不得借绿)**:
+//     · `§5.1` 的「文本缩放 150% ⇒ 页容量降为 4 行」**未做** —— 页容量今日是常数;
+//     · `§7.1` 的「开册首焦点 = 当前高水位行**所在页**的首行」**未做** ——
+//       开册时一律停在首页(装配方仍只取 `FirstFocusable`)。
+//   ⚠️ 页码的数字形态在 spec 里是**本地化素材档**,今日是「a / b」纯文本替身。
 
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 {
@@ -37,14 +48,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
     /// </summary>
     public sealed class SaveSlotsScreen : PresentationRoot, IModalState
     {
+        /// <summary>
+        /// 每页容量(`save-slots-7b.md` §5.1 的 OQ-SB-2:每页 6 行,超出转册续页)。
+        /// <para>⚠️ 规格同时要求「文本缩放 150% ⇒ 页容量降为 4 行」—— **未做**:
+        /// 页容量今日是常数,不随缩放降档(见文末的如实登记)。</para>
+        /// </summary>
+        public const int PageSize = 6;
+
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
         private readonly VisualElement _slotHost;
         private readonly List<SaveSlotItem> _rows = new List<SaveSlotItem>();
         private readonly List<uint> _slots = new List<uint>();
+        /// <summary>**全部**槽位视图(跨页保留;当前页只是它的一段窗口)。</summary>
+        private readonly List<SaveSlotView> _views = new List<SaveSlotView>();
+        private readonly Label _pageMark;
+        private readonly VisualElement _prevEdge;
+        private readonly VisualElement _nextEdge;
         private ISaveSlotCommandSink _sink;
         /// <summary>「新行」(落笔入口;<c>null</c> = 尚未收到槽位清单)。</summary>
         private SaveSlotItem _writableRow;
+        private int _pageIndex;
 
         /// <summary>创建存档位界面。</summary>
         public SaveSlotsScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
@@ -52,13 +76,55 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _root = root;
             _library = library;
             _slotHost = new VisualElement { name = "slot-list" };
+
+            // 鱼尾上的页码(`§5.1` 封面区的「当前页码」)—— 零字的物理载体。
+            // ⚠️ 数字形态在 spec 里是**本地化素材档**;今日是「a / b」的纯文本替身。
+            _pageMark = new Label { name = "save-slot-page" };
+            _pageMark.AddToClassList("save-slot-page");
+
+            // 页缘热区(`§5.2`):指针点页缘、手柄把焦点移到页缘行再 Submit。
+            // ⚠️ **不是按钮元件** —— 7b §5.2 明写「零按钮元件」,页缘是纸面本体。
+            _prevEdge = new VisualElement { name = "save-slot-prev" };
+            _prevEdge.AddToClassList("save-slot-edge");
+            _nextEdge = new VisualElement { name = "save-slot-next" };
+            _nextEdge.AddToClassList("save-slot-edge");
+
+            // 两条输入路径汇到同一出口(与槽位行同纪律:不自实现焦点算法)
+            _prevEdge.RegisterCallback<NavigationSubmitEvent>(_ => PreviousPage());
+            _prevEdge.RegisterCallback<ClickEvent>(_ => PreviousPage());
+            _nextEdge.RegisterCallback<NavigationSubmitEvent>(_ => NextPage());
+            _nextEdge.RegisterCallback<ClickEvent>(_ => NextPage());
+            _prevEdge.focusable = true;
+            _nextEdge.focusable = true;
+
             BuildUI();
         }
 
         /// <inheritdoc/>
         public ModalId Modal => ModalId.SaveSlots;
 
-        /// <summary>当前画出的槽位行数(观测面;0 = 尚未收到槽位清单)。</summary>
+        /// <summary>当前页序号(0 起)。</summary>
+        public int CurrentPage => _pageIndex;
+
+        /// <summary>总页数(空册也算一页)。</summary>
+        public int PageCount => _views.Count == 0 ? 1 : (_views.Count + PageSize - 1) / PageSize;
+
+        /// <summary>还有上一页。</summary>
+        public bool HasPreviousPage => _pageIndex > 0;
+
+        /// <summary>还有下一页。</summary>
+        public bool HasNextPage => _pageIndex + 1 < PageCount;
+
+        /// <summary>鱼尾页码元件(观测面)。</summary>
+        public Label PageMark => _pageMark;
+
+        /// <summary>前一页的页缘热区(观测面)。</summary>
+        public VisualElement PreviousEdge => _prevEdge;
+
+        /// <summary>后一页的页缘热区(观测面)。</summary>
+        public VisualElement NextEdge => _nextEdge;
+
+        /// <summary>当前页的槽位行数(观测面;0 = 尚未收到槽位清单,或本页为空)。</summary>
         public int SlotRowCount => _rows.Count;
 
         /// <summary>「新行」—— 落笔入口(观测面;<c>null</c> = 尚未收到槽位清单)。</summary>
@@ -74,6 +140,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private void BuildUI()
         {
             _slotHost.Add(_library.Create(SkeuoElement.Paper));
+            // 常驻元件(不随翻页重建):页码 + 两条页缘。
+            _slotHost.Add(_pageMark);
+            _slotHost.Add(_prevEdge);
+            _slotHost.Add(_nextEdge);
             _root.Add(_slotHost);
         }
 
@@ -106,20 +176,31 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <param name="views">槽位视图清单。null / 空 ⇒ 清空全部行。</param>
         public void SetSlotViews(IReadOnlyList<SaveSlotView> views)
         {
+            _views.Clear();
+            if (views != null) _views.AddRange(views);
+            _pageIndex = 0;
+            RenderPage();
+        }
+
+        /// <summary>
+        /// 画**当前页**:只建本页那一段窗口的行;「留档」新行只出现在**末页**。
+        /// <para>⚠️ 行随页重建 ⇒ <see cref="SlotRowCount"/> / <see cref="RowAt"/> 都是**页内**面。</para>
+        /// </summary>
+        private void RenderPage()
+        {
             for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
             _rows.Clear();
             _slots.Clear();
             if (_writableRow != null) { _writableRow.RemoveFromHierarchy(); _writableRow = null; }
 
-            if (views == null) return;
-
-            var host = _slotHost;
-            for (int i = 0; i < views.Count; i++)
+            int start = _pageIndex * PageSize;
+            int end = System.Math.Min(start + PageSize, _views.Count);
+            for (int i = start; i < end; i++)
             {
-                SaveSlotView view = views[i];
+                SaveSlotView view = _views[i];
                 var row = new SaveSlotItem((int)view.SlotSeq);
                 row.Apply(view);
-                int rowIndex = _rows.Count;
+                int rowIndex = _rows.Count;   // **页内**行号
                 // 两条输入路径都落到同一个 `Activate` —— 手柄经官方焦点桥给
                 // `NavigationSubmitEvent`(ADR-011:不自实现焦点算法),指针给 `ClickEvent`。
                 row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));
@@ -130,10 +211,62 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 row.tabIndex = rowIndex;
                 _rows.Add(row);
                 _slots.Add(view.SlotSeq);
-                host.Add(row);
+                _slotHost.Add(row);
             }
 
-            BuildWritableRow(host);
+            // 「留档」新行 = 末行之后(§5.2);跨页时它只属于**末页**。
+            if (!HasNextPage) BuildWritableRow(_slotHost);
+
+            UpdateChrome();
+        }
+
+        /// <summary>更新页码与两条页缘的可见性 / 焦点序。</summary>
+        private void UpdateChrome()
+        {
+            _pageMark.text = (_pageIndex + 1) + " / " + PageCount;
+
+            // 「还有下一页」由**纸边厚度**传达(§5.2),不由图标传达 ——
+            // 不可翻时页缘**不占位**:① `display = None` 退出布局(不占纸面);
+            // ② `focusable = false` 退出焦点遍历。
+            // ⚠️ 两条**分开写**是有原因的:`display` 在文档里只说「是否参与布局」,
+            //    没有任何一处说它会让元素退出焦点遍历 —— 靠它推断是**未验证的断言**。
+            //    `focusable` 才是「能否接收焦点」的权威开关。
+            _prevEdge.style.display = HasPreviousPage ? DisplayStyle.Flex : DisplayStyle.None;
+            _nextEdge.style.display = HasNextPage ? DisplayStyle.Flex : DisplayStyle.None;
+            _prevEdge.focusable = HasPreviousPage;
+            _nextEdge.focusable = HasNextPage;
+
+            int tab = _rows.Count + (_writableRow != null ? 1 : 0);
+            _prevEdge.tabIndex = tab++;
+            _nextEdge.tabIndex = tab;
+        }
+
+        /// <summary>翻到下一页(不可翻 ⇒ <c>false</c>,不抛)。</summary>
+        public bool NextPage()
+        {
+            if (!HasNextPage) return false;
+            _pageIndex++;
+            RenderPage();
+            FocusFirstRowOfPage();
+            return true;
+        }
+
+        /// <summary>翻到上一页(不可翻 ⇒ <c>false</c>,不抛)。</summary>
+        public bool PreviousPage()
+        {
+            if (!HasPreviousPage) return false;
+            _pageIndex--;
+            RenderPage();
+            FocusFirstRowOfPage();
+            return true;
+        }
+
+        /// <summary>翻页后把焦点重置为该页首行(§7.1「页内焦点重置为该页首行」)。</summary>
+        private void FocusFirstRowOfPage()
+        {
+            VisualElement target = _rows.Count > 0 ? (VisualElement)_rows[0] : (VisualElement)_writableRow;
+            // 未接入面板时 `Focus()` 是空操作(屏单元夹具即此形态),故无需判空面板。
+            target?.Focus();
         }
 
         /// <summary>
