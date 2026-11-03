@@ -1,4 +1,4 @@
-// `WorldTime` 的夹具(2026-11-03 · 甲方案第二层)。
+// `WorldTime` 的夹具(2026-11-03 · 甲方案第二层 · 同日按用户裁定从 Sim.Contracts 移入 Sim.Time)。
 //
 // 权威来源:
 //   design/gdd/time-and-weather.md §规则四 / §Tuning Knobs(`:516` = 36000,2026-11-03 用户裁定)
@@ -13,10 +13,10 @@
 // ⚠️ 本文件**不**断系统 5 的任何其它常量(`TICKS_PER_SEASON` / `NIGHT_*` …)——
 //    它们今日在代码里没有落点,登记在 `WorldTimeConstants.cs` 的文件头。
 
-using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.Time;
 using NUnit.Framework;
 
-namespace DaYiJingCheng.Tests.SimContracts
+namespace DaYiJingCheng.Tests.SimTime
 {
     [TestFixture]
     public class WorldTimeTest
