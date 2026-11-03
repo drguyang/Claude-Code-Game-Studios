@@ -28,7 +28,10 @@ using System.Linq;
 using System.Reflection;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.Input;
-using DaYiJingCheng.Sim;
+// ⚠️ 2026-11-03:`using DaYiJingCheng.Sim;` 已删 —— 本文件**零使用**该装配的任何类型
+//    (`AssemblyGates` 的 b2-decl 按 IL 的 AssemblyRef 表判定,比源文本准:
+//    文中出现的 "PatientSpawner" 是反射用的**字符串字面量**,不是类型引用)。
+//    asmdef 里对应的 "Sim" 声明同批移除,否则就是一条遗留声明。
 using DaYiJingCheng.Sim.Contracts;
 using SimCodec = DaYiJingCheng.Sim.Codec.PayloadCodec;
 using UnityEditor;

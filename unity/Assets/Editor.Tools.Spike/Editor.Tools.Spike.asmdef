@@ -10,7 +10,6 @@
         "UnityEngine.UI",
         "Gameplay.Boot",
         "Gameplay.Input",
-        "Sim",
         "Sim.Contracts",
         "Sim.Codec"
     ],
