@@ -20,8 +20,11 @@
 //    本类**一道都不复制**,也不提供任何「读出来的东西能用」的承诺 ——
 //    它只回答「这个号上有没有一份像样的档,以及它停在哪个 tick」。
 //
-// ⚠️ **与 `LoadBytes` 的回退链同源**:final 读不出 ⇒ 再看 `.bak`。两者若不同源,
-//    会出现「屏上说有档、读档说没有」这种最难查的分叉。
+// ⚠️ **与 `LoadBytes` 的回退链同源**:final 读不出 ⇒ 再看 `.bak` —— **但只对保留槽**。
+//    判据归 `SaveSlotLedger.FallsBackToBak`(唯一定义处),本类与 `SaveService` 都调它。
+//    两者若不同源,会出现「屏上说有档、读档说没有」这种最难查的分叉。
+//    🔁 2026-11-04(`TD-persist-19`):手动槽的 `.bak` 不参与 —— 它写侧就产不出来,
+//    盘上若有一份必是旧残留,读它会静默装回更旧的档。
 //
 // ⚠️ **写盘面零触碰** —— 本类只有 `File.Exists` / `FileStream(...Read)` / `Read`。
 //    `SaveWritePathGate` 的 IL 判据扫的是 `Write` / `WriteAsync` / `Flush` / `WriteByte`
@@ -120,14 +123,19 @@ namespace DaYiJingCheng.Sim.Codec
                         : $"save_{slotSeq}.bin";
             string finalPath = Path.Combine(basePath, stem);
             // 保留槽的旁路文件是 `xxx.bin.bak`,手动槽是 `save_{n}.bak` —— 两种形状必须分开。
-            string bakPath = Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak");
+            // 🔁 2026-11-04(`TD-persist-19`):手动槽的 `.bak` **不参与** —— 判据归
+            //    `SaveSlotLedger.FallsBackToBak`(与 `SaveService.LoadBytes` 同一条)。
+            //    盘上若有旧残留 `save_N.bak`,`Load` 读不出来,探针也就**不能**说它有档。
+            string bakPath = SaveSlotLedger.FallsBackToBak(slotSeq)
+                ? Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak")
+                : null;
 
             try
             {
                 if (File.Exists(finalPath))
                     return ReadOne(finalPath);
 
-                if (File.Exists(bakPath))
+                if (bakPath != null && File.Exists(bakPath))
                     return ReadOne(bakPath);
 
                 return new SaveSlotSummary(SaveSlotState.Empty, 0L, 0U);

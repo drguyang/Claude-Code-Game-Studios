@@ -315,6 +315,21 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 > ⚠️ **历史成因如实登记**:过去玩家槽确实见过 `bak` —— 但那是 `TD-persist-15` 那条
 > 跨会话覆盖 bug 的**副产品**(有人已经覆盖了你的档,才留下 `.bak`)。
 > 用户机器上 `save_6/7/8.bin` 无 `.bak`、`save_1…5.bak` 存在,即为实证。
+>
+> 🔁 **2026-11-04 补注(`TD-persist-19` · 用户裁定「两步做掉」)—— 上一段的口径当时只落在写侧**:
+> 「玩家槽不产生 `bak`」由 `TD-persist-16` 写进写侧注释,但 `SaveService.LoadBytes`
+> **仍对任何槽无条件回退 `save_{n}.bak`**。上面那段「历史成因」正好说明了后果:
+> 盘上那些残留 `.bak` 是**可达的**,手动槽一旦校验坏就会**静默装回更旧的档**
+> —— 比「报损」更糟,因为玩家不知道自己拿到的是旧档。
+>
+> **实现口径(读侧已对齐,三处同源)** —— 判据归 **`SaveSlotLedger.FallsBackToBak(seq)`**(唯一定义处):
+> - `SaveService.LoadBytes` —— 手动槽 `bakPath == null` ⇒ 不入回退支;
+> - `SaveSlotProbe.Probe` —— 手动槽不探 `.bak`(否则「屏上说有档、按下去说空」);
+> - `SaveService.TryGetMostRecentSave` —— 手动槽的 `.bak` **不算该槽存在**。
+>
+> **手动槽的两条落点**(`AC-7a-15` 的直接后果):
+> `final` 校验坏 ⇒ `SaveCorruptException`;`final` 缺失(哪怕盘上有残留 `.bak`)⇒ `SaveNotFoundException`。
+> ⚠️ 「缺失即空槽」是**判据的一部分**,不是退让:那份 `.bak` 从来不属于该槽。
 
 ### 五、`ItemInstanceId.Next()` 机制(义务 6 的落点)
 

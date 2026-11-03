@@ -51,6 +51,22 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public static bool IsReservedSlotSeq(uint seq) => seq == ExitSlotSeq || seq == AutoSlotSeq;
 
+        /// <summary>
+        /// 该槽位的 <c>.bak</c> 是否参与**读侧**回退(校验坏 / 缺失时改读 <c>.bak</c>)。
+        /// <para><b>唯一定义处</b> —— 写侧(<see cref="SaveService"/>)与呈现侧
+        /// (<see cref="SaveSlotProbe"/>)都必须调它,不得各写一份:两处若不同向,
+        /// 会出现「屏上说有档、读档说没有」这种最难查的分叉。</para>
+        /// <para>判据 = <see cref="IsReservedSlotSeq"/> —— 理由在**写侧**:
+        /// <c>.bak</c> 只在「同一个文件被写第二次」时产生(`WriteAtomic` 的 final→bak 轮转)。
+        /// 保留槽(退出保存 / 自动存档)反复重写 ⇒ 有 bak;手动槽只进不退 ⇒ **一生只写一次**
+        /// ⇒ **永远没有 bak**。⇒ 对手动槽而言「回退到 bak」**无宾语**,
+        /// 盘上若真有一份,那是旧版本残留,读它 = 静默装回更旧的档(违 `AC-7a-15`)。</para>
+        /// <para>🔁 2026-11-04(`TD-persist-19` · 用户裁定「两步做掉」):本判据此前**只在写侧**成立
+        /// (`TD-persist-16` 收窄了「玩家槽不产生 bak」),读侧仍无条件回退。
+        /// 本条把口径补到读侧,并收成唯一出处。</para>
+        /// </summary>
+        public static bool FallsBackToBak(uint seq) => IsReservedSlotSeq(seq);
+
         private readonly INarrativeContextQuery _narrativeContext;
         private readonly HashSet<uint> _locked = new HashSet<uint>();
         private uint _nextWritableSeq;

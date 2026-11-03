@@ -142,43 +142,61 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════════════════════════════════════════════════════════════
         // ④ `.bak` 回退与 SaveService.LoadBytes 同向
+        //
+        // 🔁 2026-11-04(`TD-persist-19`):回退面**按槽型分派** —— 只有保留槽(1 退出 / 2 自动)
+        //    回退;手动槽(≥ 3)写侧一生只写一次 ⇒ 产不出 bak ⇒ 读侧也不认。
+        //    故本条从「有 bak 就算有档」拆成**两条**:保留槽算、手动槽不算。
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_probe_bakOnly_isOccupied()
+        public void test_probe_exitSlot_bakOnly_isOccupied()
         {
             // 造一份真档,再手工搬成 .bak(模拟「final 丢了、上一好档还在」)
+            SaveService svc = MakeService(NewStream(), tick: 77L);
+            svc.Checkpoint(SaveService.ExitSaveSlot);
+            File.Move(Path.Combine(_dir, SaveService.ExitSaveFileName),
+                      Path.Combine(_dir, SaveService.ExitSaveFileName + ".bak"));
+
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, SaveService.ExitSaveSlot.SlotSeq);
+
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
+                "保留槽:LoadBytes 会回退读 .bak ⇒ 探针必须同向,否则「屏上说没档、按下去却读出来了」");
+            Assert.That(s.Tick, Is.EqualTo(77L));
+        }
+
+        [Test]
+        public void test_probe_manualSlot_bakOnly_isEmpty()
+        {
+            // 同一形态搬到**手动槽**上:盘上只有一份旧残留 `save_4.bak`
             SaveService svc = MakeService(NewStream(), tick: 77L);
             svc.Checkpoint(new SaveSlot(4));
             File.Move(Path.Combine(_dir, "save_4.bin"), Path.Combine(_dir, "save_4.bak"));
 
             SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
 
-            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
-                "LoadBytes 会回退读 .bak ⇒ 探针必须同向,否则「屏上说没档、按下去却读出来了」");
-            Assert.That(s.Tick, Is.EqualTo(77L));
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Empty),
+                "手动槽的 `.bak` 不参与(写侧产不出来,盘上那份是旧残留)" +
+                "⇒ 探针必须与 LoadBytes 同向报「空」,否则屏上说有档、按下去报空槽");
         }
 
         [Test]
         public void test_probe_finalPreferredOverBak()
         {
-            // 🔁 2026-11-03(`TD-persist-15`):**原写法靠的是那条 bug** ——
-            //    它构造第二个 `SaveService` 再写同一个槽,靠「高水位被重置」才写得进去。
-            //    修好之后,跨会话写既有槽位被 7a 拒(那正是要的),原写法当场抛。
-            //    ⇒ 判据不变(**final 可读时以 final 为准**),**造场方式**改为不依赖覆盖:
-            //    写两份**合法**存档(槽 4 = tick 5 / 槽 N = tick 9),再把槽 N 的字节
-            //    搬成槽 4 的 final —— 双档形态(final 新、bak 旧)由此造出,零违规写入。
+            // 🔁 2026-11-04(`TD-persist-19`):造场从手动槽 4 改到**退出保存** ——
+            //    手动槽的 `.bak` 已不参与回退,在它上面造「final 新 / bak 旧」是空动作
+            //    (探针压根不看那份 bak),断言会因「bak 被忽略」而非「final 优先」而绿。
+            string final_ = Path.Combine(_dir, SaveService.ExitSaveFileName);
+            string bak_ = final_ + ".bak";
+
             SaveService old = MakeService(NewStream(), tick: 5L);
-            old.Checkpoint(new SaveSlot(4));                       // save_4.bin(tick 5)
-            File.Copy(Path.Combine(_dir, "save_4.bin"), Path.Combine(_dir, "save_4.bak"));
+            old.Checkpoint(SaveService.ExitSaveSlot);               // save_exit.bin(tick 5)
+            File.Move(final_, bak_);                                // 搬成上一好档
 
             SaveService newer = MakeService(NewStream(), tick: 9L);
-            newer.Checkpoint(new SaveSlot(newer.Ledger.NextWritableSeq));   // save_N.bin(tick 9),N 由扫描决定
-            uint n = newer.Ledger.NextWritableSeq - 1;
-            File.Copy(Path.Combine(_dir, $"save_{n}.bin"), Path.Combine(_dir, "save_4.bin"), overwrite: true);
+            newer.Checkpoint(SaveService.ExitSaveSlot);             // 再写一次 ⇒ final(tick 9)
 
-            Assert.That(SaveSlotProbe.Probe(_dir, 4).Tick, Is.EqualTo(9L),
-                "final 可读时以 final 为准(与 LoadBytes 的次序一致)");
+            Assert.That(SaveSlotProbe.Probe(_dir, SaveService.ExitSaveSlot.SlotSeq).Tick,
+                Is.EqualTo(9L), "final 可读时以 final 为准(与 LoadBytes 的次序一致)");
         }
     }
 }

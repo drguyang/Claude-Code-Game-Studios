@@ -75,17 +75,20 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // AC-7a-06: 双档 bak 机制
+        // 🔁 2026-11-04(`TD-persist-19`):造场从**手动槽 4** 改到**退出保存** ——
+        //    手动槽一生只写一次(`Checkpoint` 的只进不退门),「同一文件写两次」在生产上
+        //    只发生在保留槽。测的是 `WriteAtomic` 的轮转,就该长在**生产形状**上。
         [Test]
         public void test_doubleBackup_bakCreatedOnSecondWrite()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
 
             svc.SaveBytes(slot, Encoding.UTF8.GetBytes("first"));
             svc.SaveBytes(slot, Encoding.UTF8.GetBytes("second"));
 
-            string finalPath = Path.Combine(_testDir, "save_4.bin");
-            string bakPath = Path.Combine(_testDir, "save_4.bak");
+            string finalPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
+            string bakPath = Path.Combine(_testDir, SaveService.ExitSaveFileName + ".bak");
 
             Assert.IsTrue(File.Exists(finalPath), "final 应存在");
             Assert.IsTrue(File.Exists(bakPath), "bak 应存在");
@@ -94,11 +97,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // AC-7a-01: 校验和损坏时自动回退 bak
+        // 🔁 2026-11-04(`TD-persist-19`):造场改到**退出保存** —— 回退面按槽型分派后,
+        //    手动槽**不再回退**(它写侧就产不出 bak,见 `SaveSlotLedger.FallsBackToBak`)。
+        //    本条测的是「回退这件事本身」,故须长在唯一会回退的槽型上。
         [Test]
         public void test_checksumFallback_readsBakWhenFinalCorrupted()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
 
             // 构造合法的存档头(36 字节)
             byte[] raw1 = new byte[36];
@@ -114,7 +120,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2));
 
             // 损坏 final
-            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string finalPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
             byte[] corrupted = File.ReadAllBytes(finalPath);
             corrupted[40] ^= 0xFF;
             File.WriteAllBytes(finalPath, corrupted);
@@ -144,8 +150,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw1)); // 首写:仅 final
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2)); // 二写:r1 → bak,final = r2
 
-            string finalPath = Path.Combine(_testDir, "save_4.bin");
-            string bakPath = Path.Combine(_testDir, "save_4.bak");
+            // 🔁 2026-11-04(`TD-persist-19`):「两级都坏」只在**保留槽**上还是一个有意义的前提 ——
+            //    手动槽已不再回退 `.bak`,把它的 bak 弄坏只是空动作。故本 helper 只在退出保存上用。
+            if (!SaveService.IsExitSaveSlot(slot))
+                throw new ArgumentException("ArrangeBothFilesCorrupted 只对退出保存成立(见 TD-persist-19)");
+            string finalPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
+            string bakPath = Path.Combine(_testDir, SaveService.ExitSaveFileName + ".bak");
 
             byte[] f = File.ReadAllBytes(finalPath); f[40] ^= 0xFF; File.WriteAllBytes(finalPath, f);
             byte[] b = File.ReadAllBytes(bakPath);  b[40] ^= 0xFF; File.WriteAllBytes(bakPath, b);
@@ -157,7 +167,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_corruptState_bothFinalAndBakBad_throwsSaveCorrupt()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
             ArrangeBothFilesCorrupted(svc, slot);
 
             var ex = Assert.Throws<SaveCorruptException>(
@@ -165,7 +175,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "final 与 bak 都坏 ⇒ 必须进入 Corrupt 态并抛 SaveCorruptException" +
                 "(裸 InvalidDataException 与前向不兼容/magic 不符同型不可分,不满足「指定异常」)");
 
-            Assert.AreEqual(4U, ex.SlotSeq, "异常须点名进入 Corrupt 态的槽位");
+            Assert.AreEqual(SaveService.ExitSaveSlot.SlotSeq, ex.SlotSeq, "异常须点名进入 Corrupt 态的槽位");
             StringAssert.Contains("Corrupt", ex.Message, "报文须点名 Corrupt 态");
         }
 
@@ -174,7 +184,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_corruptState_leavesSlotDirectoryUntouched()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
             var (finalPath, bakPath) = ArrangeBothFilesCorrupted(svc, slot);
 
             string[] filesBefore = Directory.GetFiles(_testDir);
@@ -193,11 +203,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // AC-7a-15 的 (a)/(b) 边界:final 坏而 bak 好 ⇒ 回退,**不**进 Corrupt 态
+        // 🔁 2026-11-04(`TD-persist-19`):造场改到**退出保存** —— 回退面按槽型分派后,
+        //    手动槽坏了一律报损,本条在槽 4 上会按设计转红。
         [Test]
         public void test_fallbackState_finalBadBakGood_doesNotEnterCorrupt()
         {
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
 
             byte[] raw1 = new byte[36];
             byte[] raw2 = new byte[36];
@@ -208,7 +220,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.SaveBytes(slot, SaveService.AddChecksum(raw1));
             svc.SaveBytes(slot, SaveService.AddChecksum(raw2));
 
-            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string finalPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
             byte[] f = File.ReadAllBytes(finalPath); f[40] ^= 0xFF; File.WriteAllBytes(finalPath, f);
 
             // 回退成功 ⇒ 既不得抛 Corrupt,也不得抛任何异常
@@ -262,14 +274,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // ★ 判别力用例:这一条把「有没有文件」与「校验过不过」两件事分开。
             //   若判据写成「任一文件缺失 ⇒ NotFound」,本用例会红 —— 但磁盘上**有**东西,
             //   那东西是真坏的,必须报损坏。
+            // 🔁 2026-11-04(`TD-persist-19`):造场改到**退出保存** —— 手动槽的 `.bak` 已不参与
+            //   回退,「final 缺 + bak 坏」对手动槽现在**是空槽**(那份 bak 是旧残留,不属于该槽)。
+            //   本条守的是「缺失 ≠ 损坏」,须长在 bak 还算数的槽型上。
             var svc = new SaveService(_testDir, new SaveCodec());
-            var slot = new SaveSlot(4);
+            SaveSlot slot = SaveService.ExitSaveSlot;
             // 写两次才产生 bak(`WriteAtomic` 只在 final 已存在时才 final→bak 轮转)
             svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
             svc.SaveBytes(slot, SaveService.AddChecksum(MinimalHeaderBytes()));
 
-            string bakPath = Path.Combine(_testDir, "save_4.bak");
-            string finalPath = Path.Combine(_testDir, "save_4.bin");
+            string bakPath = Path.Combine(_testDir, SaveService.ExitSaveFileName + ".bak");
+            string finalPath = Path.Combine(_testDir, SaveService.ExitSaveFileName);
             Assert.IsTrue(File.Exists(bakPath), "夹具前提:两次写入后 bak 存在");
 
             byte[] b = File.ReadAllBytes(bakPath); b[40] ^= 0xFF; File.WriteAllBytes(bakPath, b);
