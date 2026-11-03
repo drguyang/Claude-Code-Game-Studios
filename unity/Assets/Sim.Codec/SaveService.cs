@@ -258,7 +258,7 @@ namespace DaYiJingCheng.Sim.Codec
                 if (!Directory.Exists(_basePath)) return false;
 
                 // ① 退出保存优先(它就是「上次退出那一刻」)
-                if (File.Exists(Path.Combine(_basePath, ExitSaveFileName)))
+                if (File.Exists(ExitFinalPath))
                 {
                     slot = ExitSaveSlot;
                     return true;
@@ -439,8 +439,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// </exception>
         internal byte[] LoadBytes(SaveSlot slot)
         {
-            string finalPath = GetFinalPath(slot);
-            string bakPath = GetBakPath(slot);
+            // 🔁 2026-11-03(用户实测:「继续诊治」每次 Play 都报 SaveNotFoundException,
+            //    slot=4294967295):退出保存的哨兵此前**只有写侧**认得,读侧照玩家槽拼路径
+            //    ⇒ 去开 `save_4294967295.bin` ⇒ 恒空槽。现在读写共用同一出处。
+            string finalPath = IsExitSaveSlot(slot) ? ExitFinalPath : GetFinalPath(slot);
+            string bakPath = IsExitSaveSlot(slot) ? ExitBakPath : GetBakPath(slot);
 
             bool finalExists = File.Exists(finalPath);
             if (finalExists)
@@ -758,8 +761,30 @@ namespace DaYiJingCheng.Sim.Codec
         /// 传给组版委托的槽位标识。`SlotSeq` 取 `uint.MaxValue` —— 它与任何玩家槽
         /// (`0 .. n`)不相交,且**不会被** <see cref="GetFinalPath"/> 用作文件名
         /// (退出保存走 <see cref="WriteExitSave"/> 的独立路径)。
+        /// <para>🔁 <b>2026-11-03 订正(原文不删)</b>:上句「**不会被** `GetFinalPath` 用作文件名」
+        /// 描述的只是**写侧**。读侧 <see cref="Load"/> → <see cref="LoadBytes"/> **确实**走
+        /// `<see cref="GetFinalPath"/>`,于是 `TryGetMostRecentSave` 返回本哨兵后,
+        /// 读档去开 `save_4294967295.bin` ⇒ 恒 `SaveNotFoundException`
+        /// ⇒「继续诊治」**永远**失败(用户实测:每次 Play 都红一条)。
+        /// 现读侧与写侧**共用**同三处路径(<see cref="ExitFinalPath"/> 等)。</para>
         /// </summary>
         public static readonly SaveSlot ExitSaveSlot = new SaveSlot(uint.MaxValue);
+
+        /// <summary>该槽位是否是退出保存的哨兵(`uint.MaxValue`)。</summary>
+        public static bool IsExitSaveSlot(SaveSlot slot) => slot.SlotSeq == ExitSaveSlot.SlotSeq;
+
+        /// <summary>退出保存的**最终**文件(读 / 写共用同一出处)。</summary>
+        private string ExitFinalPath => Path.Combine(_basePath, ExitSaveFileName);
+
+        /// <summary>退出保存的临时文件。</summary>
+        private string ExitTmpPath => Path.Combine(_basePath, ExitSaveFileName + ".tmp");
+
+        /// <summary>
+        /// 退出保存的备份。
+        /// <para>⚠️ 是 `save_exit.bin.bak`,**不是** `save_exit.bak` —— 与玩家槽的
+        /// `save_{n}.bak` 形状不同。读侧若自己拼一遍就会拼错,故两处共用本属性。</para>
+        /// </summary>
+        private string ExitBakPath => Path.Combine(_basePath, ExitSaveFileName + ".bak");
 
         /// <summary>
         /// 退出保存 —— 与 <see cref="SaveBytes"/> **共用同一原子写原语**
@@ -767,10 +792,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// <para>文件名**独立**于玩家槽命名空间 —— 不与任何 `save_{slot_seq}.bin` 相撞。</para>
         /// </summary>
         private void WriteExitSave(byte[] data)
-            => WriteAtomic(Path.Combine(_basePath, ExitSaveFileName),
-                           Path.Combine(_basePath, ExitSaveFileName + ".tmp"),
-                           Path.Combine(_basePath, ExitSaveFileName + ".bak"),
-                           data);
+            => WriteAtomic(ExitFinalPath, ExitTmpPath, ExitBakPath, data);
 
         // ══════════════════════════════════════════════════════════════════
         // 「会话未完整」标志位的写面(AC-7a-17 · 规则十三)
