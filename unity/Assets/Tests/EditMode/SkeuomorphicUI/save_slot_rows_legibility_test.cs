@@ -42,21 +42,39 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
 
         private static IReadOnlyList<SaveSlotView> Mixed() => new[]
         {
-            new SaveSlotView(1u, known: true,  hasSave: true,  tick: 1200L),   // 有档
-            new SaveSlotView(2u, known: true,  hasSave: false, tick: 0L),      // 空槽
-            SaveSlotView.Unbound(3u),                                          // 未绑定
+            new SaveSlotView(1u, known: true, hasSave: true,  tick: 1200L,  dayNumber: 1L),
+            new SaveSlotView(2u, known: true, hasSave: true,  tick: 72005L, dayNumber: 3L),
+            new SaveSlotView(3u, known: true, hasSave: false, tick: 0L),
+            SaveSlotView.Unbound(4u),
         };
 
         [Test]
-        public void test_rows_occupiedShowsNumeral_emptyAndUnboundShowNothing()
+        public void test_rows_occupiedShowsNumeralAndDay_emptyAndUnboundShowNothing()
         {
             SaveSlotsScreen screen = NewScreen(out _);
             screen.SetSlotViews(Mixed());
 
-            Assert.That(screen.SlotRowCount, Is.EqualTo(3), "「留档」新行不计入槽位行数");
-            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹"), "有档 ⇒ 有字(这就是可辨识的那一面)");
-            Assert.That(screen.RowAt(1).MarkText, Is.Empty, "空槽 ⇒ 零字(AC-42-B5)");
-            Assert.That(screen.RowAt(2).MarkText, Is.Empty, "未绑定 ⇒ 零字(与空槽同形)");
+            Assert.That(screen.SlotRowCount, Is.EqualTo(4), "「留档」新行不计入槽位行数");
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹 · 第壹日"),
+                "有档 ⇒ 行号 + 世界日(第二层)");
+            Assert.That(screen.RowAt(1).MarkText, Is.EqualTo("贰 · 第叁日"),
+                "两条有档行必须因**日子不同**而可分 —— 只写行号的话它们仍然一样");
+            Assert.That(screen.RowAt(2).MarkText, Is.Empty, "空槽 ⇒ 零字(AC-42-B5)");
+            Assert.That(screen.RowAt(3).MarkText, Is.Empty, "未绑定 ⇒ 零字(与空槽同形)");
+        }
+
+        [Test]
+        public void test_rows_occupiedWithoutDay_showsNumeralOnly()
+        {
+            // 装配层没给日子(历法未就绪 / 旧数据)⇒ 降级为只写行号,
+            // **不得**拿 tick 冒充日子(那会写出一千多日)。
+            SaveSlotsScreen screen = NewScreen(out _);
+            screen.SetSlotViews(new[]
+            {
+                new SaveSlotView(1u, known: true, hasSave: true, tick: 1200L),
+            });
+
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹"));
         }
 
         [Test]
@@ -84,8 +102,9 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
             Assert.That(screen.RowAt(0).ClassListContains("save-slot-item"), Is.True);
             Assert.That(screen.RowAt(0).ClassListContains("empty-row"), Is.False);
 
-            Assert.That(screen.RowAt(1).ClassListContains("empty-row"), Is.True);
-            Assert.That(screen.RowAt(1).ClassListContains("save-slot-item"), Is.False);
+            Assert.That(screen.RowAt(2).ClassListContains("empty-row"), Is.True,
+                "第 3 行(索引 2)是空槽");
+            Assert.That(screen.RowAt(2).ClassListContains("save-slot-item"), Is.False);
         }
 
         [Test]

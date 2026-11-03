@@ -1698,8 +1698,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 switch (summary.State)
                 {
                     case Sim.Codec.SaveSlotState.Occupied:
-                        views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
-                                                                   hasSave: true, tick: summary.Tick);
+                        views[i] = new UI.Skeuomorphic.SaveSlotView(
+                            seq, known: true, hasSave: true, tick: summary.Tick,
+                            // 🔁 2026-11-03(甲方案第二层):tick → 世界第几日(1 起)。
+                            // 算术与除数**唯一出处** = `WorldTime`(AC-5-05);
+                            // 42 只拿到算好的日子,不做除法。
+                            dayNumber: Sim.Contracts.WorldTime.DayNumberOf(summary.Tick));
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,

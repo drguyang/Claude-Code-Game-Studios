@@ -33,13 +33,25 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>存档头里的 tick(<see cref="HasSave"/> 为 <c>false</c> 时恒 0)。</summary>
         public readonly long Tick;
 
+        /// <summary>
+        /// 世界内第几日(<b>1 起</b>;<c>0</c> = 未定 / 无档)。
+        /// <para>🔁 2026-11-03(甲方案第二层):由装配层按
+        /// <see cref="DaYiJingCheng.Sim.Contracts.WorldTime.TicksPerDay"/> 从
+        /// <see cref="Tick"/> 算出 —— **42 不做除法**,除数只有一个出处(AC-5-05)。</para>
+        /// <para>⚠️ 这是「册内时刻」的**降级形态**:spec §5.4 要的是「世界内日期 + 时段」,
+        /// 而日→月/年 的历法映射归系统 5,今日 5 尚无代码 ⇒ 先只给「第 N 日」。</para>
+        /// </summary>
+        public readonly long DayNumber;
+
         /// <summary>构造。</summary>
-        public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick)
+        public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick,
+                            long dayNumber = 0L)
         {
             SlotSeq = slotSeq;
             Known = known;
             HasSave = hasSave;
             Tick = tick;
+            DayNumber = dayNumber;
         }
 
         /// <summary>未绑定形态(装配层没给状态,或探测失败)。</summary>

@@ -66,7 +66,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // 只有一条通道时,「格线色差」在低对比度设置下会单独失效。
             EnableInClassList("empty-row", IsEmpty);
             EnableInClassList("save-slot-item", !IsEmpty);
-            _mark.text = IsEmpty ? string.Empty : Numeral(view.SlotSeq);
+            _mark.text = RowText(view);
+        }
+
+        /// <summary>
+        /// 有档行的行内文字:`行号 · 第N日`(§5.4 字段一 + 字段二的**降级形态**)。
+        /// <para>⚠️ `DayNumber` 为 0(装配层没给 / 历法未就绪)⇒ 只写行号 ——
+        /// 宁可少一个字段,也不拿 `Tick` 直接当日子显示(那会让玩家看到「第 1200 日」)。</para>
+        /// </summary>
+        private static string RowText(in SaveSlotView view)
+        {
+            if (!view.Known || !view.HasSave) return string.Empty;
+            if (view.DayNumber <= 0L) return Numeral(view.SlotSeq);
+            return Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日";
         }
 
         /// <summary>
@@ -89,9 +101,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// (拾壹 / 贰拾…)是中文数字方案问题,归本地化素材轮,本类不擅自发明。
         /// 今日屏上只有 1–3。</para>
         /// </summary>
-        public static string Numeral(uint slotSeq)
+        public static string Numeral(uint slotSeq) => Numeral((long)slotSeq);
+
+        /// <summary>同上,long 重载(世界日数用它)。</summary>
+        public static string Numeral(long value)
         {
-            switch (slotSeq)
+            switch (value)
             {
                 case 1: return "壹";
                 case 2: return "贰";
@@ -103,7 +118,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 case 8: return "捌";
                 case 9: return "玖";
                 case 10: return "拾";
-                default: return slotSeq.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                default: return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
     }
