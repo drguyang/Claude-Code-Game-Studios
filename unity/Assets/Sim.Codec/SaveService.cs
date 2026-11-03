@@ -44,6 +44,13 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly Action<byte[]> _foldedRowSink;
         private readonly Func<SaveSlot, byte[]> _compose;
         private readonly SaveSlotLedger _ledger;
+
+        /// <summary>
+        /// 构造期「扫存档目录取最大槽号」的失败原因(<c>null</c> = 未失败 / 未发生)。
+        /// <para>非 <c>null</c> ⇒ 高水位不可知 ⇒ <see cref="Checkpoint"/> **拒绝一切写入**
+        /// (fail-closed:不可用 &gt; 不安全)。见 <see cref="ResolveInitialNextWritableSeq"/>。</para>
+        /// </summary>
+        private Exception _slotScanError;
         /// <summary>
         /// 迁移链脚本(ADR-010 §七 · `AC-7a-14`)。**缺省为空** —— 今日零真实历史版本,
         /// 空链下的行为 = 任何 `SaveVersion < 当前` 的档走「断链」并抛
@@ -199,8 +206,21 @@ namespace DaYiJingCheng.Sim.Codec
             //    **第一次手动存/自动 checkpoint 写进槽 0** —— 那号在屏上根本不存在
             //    ⇒ 玩家看到的就是「存了,什么都没有发生」。
             //    ⇒ 装配层现在能传初值;生产传 1(屏上第一个槽),测试缺省仍 0。
-            _ledger = new SaveSlotLedger(narrativeContext, initialNextWritableSeq);
+            //    🔁 2026-11-03 `TD-persist-15` 订正:上句的「初值」**不再成立** ——
+            //       该形参自此是 **floor(下限)**,终值由下面的磁盘扫描决定。
+            // ── 高水位初值 = floor ⊕ **磁盘实况**(TD-persist-15)──────────────────────
+            // 病因:`initialNextWritableSeq` 曾是**唯一**来源,生产传 1 ⇒ 每个新会话内存里
+            //   都从 1 起 ⇒ `EnsureWritable(1)` 判 `1 < 1` = false ⇒ **放行** ⇒ 顶掉磁盘上
+            //   上一会话的 `save_1.bin`(实测尸检:`save_1.bak`/`save_5.bak` 保留旧内容
+            //   3868B,`save_1.bin`/`save_5.bin` 已是新会话的 1868B)。
+            // ⇒ 「槽位只进不退」(GDD 规则十四)语义上**就是跨会话的**,而高水位的唯一合法
+            //   来源是**文件名**(不是存档体内容)。故本形参自此是 **floor(下限)**,不是终值。
+            // ⚠️ 与 ADR-010 §六 的关系:该条只裁「**锁与安全门**均会话内存、不进存档体」,
+            //    **从未**裁过高水位;本类旧注释把「锁与安全门」扩写成「锁与高水位」= 过度引据,
+            //    已于 2026-11-03 就地订正(`SaveSlotLedger` 头注 + ADR-010 §六 加注)。
+            // ⚠️ 先建目录再扫 —— 目录不存在时 `EnumerateFiles` 会抛,而 ctor 本来就负责建它。
             Directory.CreateDirectory(_basePath);
+            _ledger = new SaveSlotLedger(narrativeContext, ResolveInitialNextWritableSeq(initialNextWritableSeq));
         }
 
         /// <summary>
@@ -313,6 +333,69 @@ namespace DaYiJingCheng.Sim.Codec
                 if (fileNameWithoutExtension[i] < '0' || fileNameWithoutExtension[i] > '9') return false;
             return uint.TryParse(fileNameWithoutExtension.Substring(start), out seq);
         }
+
+        /// <summary>
+        /// 高水位初值的**唯一**求值处(构造期一次)。见 <see cref="TryGetHighestPlayerSlotOnDisk"/>。
+        /// </summary>
+        /// <param name="floor">装配层给的下限(生产 = 存档位屏的第一个槽号;测试缺省 0)。</param>
+        /// <returns>
+        /// 磁盘上最大玩家槽号 + 1(与 <paramref name="floor"/> 取大);目录里**没有**玩家槽
+        /// ⇒ 原样返回 <paramref name="floor"/>;枚举失败 ⇒ <see cref="uint.MaxValue"/>
+        /// (fail-closed:高水位不可知时**拒绝一切写入**,承本仓口径「不可用 &gt; 不安全」)。
+        /// </returns>
+        private uint ResolveInitialNextWritableSeq(uint floor)
+        {
+            if (!TryGetHighestPlayerSlotOnDisk(out uint max))
+            {
+                // ⚠️ 「枚举失败」与「目录里一张都没有」是**两件事**,处置方向相反:
+                //    后者 ⇒ 退回 floor(空目录没有可覆盖的东西);前者 ⇒ fail-closed。
+                return _slotScanError == null ? floor : uint.MaxValue;
+            }
+            // `save_4294967295.bin` 存在时 +1 会回绕成 0 ⇒ 护栏**反向失效**。
+            if (max == uint.MaxValue) return uint.MaxValue;
+            uint next = max + 1;
+            return next > floor ? next : floor;
+        }
+
+        /// <summary>
+        /// 存档目录里**最大**的玩家槽号(`save_{N}.bin`;退出保存 `save_exit.bin` 因
+        /// 「`save_` 后必须全数字」被 <see cref="TryParseSlotSeq"/> 排除)。
+        /// <para><b>读的是文件名,不是存档体内容</b> —— 文件存在与否是文件系统自己的事实,
+        /// 不是存档体里存的任何值 ⇒ 不触碰 ADR-010 §六 的「不进存档体」。</para>
+        /// <para><c>false</c> = 一张玩家槽都没有 **或** 枚举失败;两者用
+        /// <see cref="LastSlotScanError"/> 区分。</para>
+        /// </summary>
+        private bool TryGetHighestPlayerSlotOnDisk(out uint max)
+        {
+            max = 0;
+            _slotScanError = null;
+            try
+            {
+                bool found = false;
+                foreach (string file in Directory.EnumerateFiles(_basePath, "save_*.bin"))
+                {
+                    if (!TryParseSlotSeq(Path.GetFileNameWithoutExtension(file), out uint seq)) continue;
+                    if (!found || seq > max) { max = seq; found = true; }
+                }
+                return found;
+            }
+            catch (Exception e)
+            {
+                // ⚠️ 本程序集 `noEngineReferences: true`(门 A)⇒ 无日志面。失败事实经
+                //    `LastSlotScanError` 交给装配层记(与 `LastSaveQueryError` 同一处置)。
+                _slotScanError = e;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 构造期「扫存档目录取最大槽号」的失败原因(<c>null</c> = 未失败)。
+        /// <para>用途:门 A 下本程序集无日志面 ⇒ 失败只能由装配层记(同
+        /// <see cref="LastSaveQueryError"/>)。⚠️ 它与「目录里一张玩家槽都没有」是**两件事**:
+        /// 后者 <c>null</c> + 高水位 = floor,前者 <c>非 null</c> + 高水位 = `uint.MaxValue`
+        /// (拒绝写入)。</para>
+        /// </summary>
+        public Exception LastSlotScanError => _slotScanError;
 
         /// <summary>
         /// 上一次**成功**读档的存档头 `ConfigVersion`(`null` = 尚无成功读档 / 最近一次读档失败)。
@@ -604,6 +687,14 @@ namespace DaYiJingCheng.Sim.Codec
             RequireNarrativeContext();
             RequireCompose(nameof(Checkpoint));
             RequireWriteScheduler(nameof(Checkpoint));
+
+            // 门 ①-b(TD-persist-15):构造期扫目录失败 ⇒ 高水位不可知 ⇒ **拒绝一切写入**。
+            // ⚠️ 刻意**不**靠 `EnsureWritable` 兜 —— 那里会把 `uint.MaxValue` 报成
+            //    「只进不退违例」,归因错(玩家/日志会以为是自己传了个旧槽号)。
+            if (_slotScanError != null)
+                throw new InvalidOperationException(
+                    "存档目录枚举失败,槽位高水位不可知 ⇒ 拒绝写入(fail-closed,不可用 > 不安全):" +
+                    _slotScanError.Message);
 
             // 门 ②:槽位只进不退 + 叙事上下文(AC-7a-19 (b)(c))
             _ledger.EnsureWritable(slot);

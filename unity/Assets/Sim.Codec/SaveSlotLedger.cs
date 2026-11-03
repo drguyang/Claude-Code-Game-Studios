@@ -48,13 +48,19 @@ namespace DaYiJingCheng.Sim.Codec
         /// </param>
         /// <param name="initialNextWritableSeq">
         /// 高水位初值。缺省 0 ⇒ 任何槽位都还没写过。
-        /// <para>⚠️ 从存档恢复时**不得**用存档体里的值 —— 锁与高水位都是会话内存
-        /// (ADR-010 §六)。</para>
-        /// <para>⚠️ <b>本形参今日在装配层不可达</b> —— <see cref="SaveService"/> 构造时
-        /// 恒用默认值 0(`SaveService.cs` 的 `new SaveSlotLedger(narrativeContext)`)。
-        /// 原文此处写「初值由装配层按『本会话从哪个槽位起步』决定」= <b>承诺落空</b>
-        /// (`/code-review` S19-1 W-4)。「从槽位 N 续玩」须由<b>读档路径</b>给出恢复点
-        /// (高水位是会话内存,ADR-010 §六),归 `TD-persist-03`。</para>
+        /// <para>🔁 <b>2026-11-03 订正(`TD-persist-15`),原文不删</b>:</para>
+        /// <para>① 原文写「锁与高水位都是会话内存(ADR-010 §六)」= <b>过度引据</b>。
+        /// ADR-010 §六 逐字只裁「**锁字段不进存档体** —— 锁与安全门均会话内存」,
+        /// <b>从未</b>裁过高水位。⇒ 「不进存档体」对本形参成立(它是构造期入参,
+        /// 不序列化);但「高水位只能取本会话内存里发生过的值」**不成立**,见 ②。</para>
+        /// <para>② <b>只进不退的语义是跨会话的</b>(GDD 规则十四),其唯一合法来源 =
+        /// 存档目录里的**文件名**(`save_{N}.bin` 是否存在),**不是**存档体内容。
+        /// 故 <see cref="SaveService"/> 构造时把本形参当<b>下限(floor)</b>,终值 =
+        /// `max(floor, 磁盘最大槽号 + 1)`。把本形参当终值 ⇒ 每会话从 floor 起 ⇒
+        /// 覆盖上一会话的槽位(<b>已实测发生</b>)。</para>
+        /// <para>③ 原文「本形参今日在装配层不可达」/「归 `TD-persist-03`」均已过期:
+        /// 通道已于 2026-11-03 打开,`TD-persist-03` 已于 2026-10-24 结案且其裁定面
+        /// 不含本形参。现值见 <see cref="SaveService"/> 构造器注释。</para>
         /// </param>
         public SaveSlotLedger(INarrativeContextQuery narrativeContext, uint initialNextWritableSeq = 0)
         {

@@ -16367,3 +16367,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **回归**:EditMode `6772/6735/0/0/37` @ 16:00:16 · PlayMode `324/320/0/2/2` @ 16:01:19 ·
   警告 **0**(全量重编译)· 三元组 = `00128dd6` + 工作树;等式 `6772 − 6771 = 1`(新增 1 条家具反控夹具)
 - **未提交**(等用户指令)
+
+## Session Extract — 2026-11-03 · TD-persist-15(跨会话高水位)
+- 用户裁定 **甲**:扫目录 + 修代码 + ADR 加注
+- 病因:`initialNextWritableSeq: 1` 是**终值** ⇒ 每会话从 1 起 ⇒ 覆盖上一会话 `save_1.bin`
+  (机器上已实测:`save_1.bak` 旧 3868B / `save_1.bin` 新 1868B,`save_6/7/8.bin` 无 `.bak`)
+- 裁定要点:**不是**「扫目录 vs ADR」的冲突,是 `SaveSlotLedger` 头注把 ADR-010 §六 的
+  「锁与安全门」**过度引据**成「锁与高水位」。ADR 已就地加注「本节不覆盖什么」
+- 修法:`SaveService.ResolveInitialNextWritableSeq(floor)` = `max(floor, 磁盘最大槽号+1)`;
+  空目录退回 floor;枚举失败 ⇒ `uint.MaxValue`(拒绝一切写入)+ `LastSlotScanError`
+- 夹具:EditMode +6 / 改写 1(旧写法靠 bug 才成立)/ PlayMode +1 断言
+- 证伪:M1(`return floor`)/ M2(`max + 1` → `max`)各 **4 红**,红的恰是同样 4 条;SHA-256 还原
+- 回归:EditMode `6779/6742/0/0/37` @ 14:01:10Z · PlayMode `324/320/0/2/2` @ 14:17:52Z · 警告 0
+- 新立 **`TD-persist-16`**:修好只进不退后,玩家槽 `.bak` **永不生成** ⇒ `AC-7a-15 (a)` 无宾语
+- **未提交**(等用户指令)

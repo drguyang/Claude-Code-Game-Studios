@@ -397,7 +397,8 @@
 | `TD-persist-10` | `persistence-service` | closed | **N** | R1 |
 | `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-14` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-15` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-15` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-16` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -559,6 +560,16 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十三订(`TD-persist-15` 结案 + `TD-persist-16` 立债 · 2026-11-03 · 实现面 + 债面)** ——
+> 用户裁定「甲:扫目录 + 修代码 + ADR 加注」。变化:`条目 166 → 167`(+1)·
+> `closed 144 → 145`(+1)· `open 18 → 18`(**净 0**:−15 / +16)。
+> 单一变化源两项:`TD-persist-15` 索引行 `open → closed` + 新立 `TD-persist-16`。
+> ⚠️ **`TD-persist-16` 是修 15 时**长出来**的**,不是另一起事故:15 让「每个槽号一生只写一次」
+> 真正成立 ⇒ `WriteAtomic` 的 final→bak 分支对玩家槽**不可达** ⇒ `AC-7a-15 (a)` 的
+> 「回退上一好档」对玩家槽**没有宾语**。用户机器上 `save_6/7/8.bin` 无 `.bak` 即为实证
+> (`save_1…5.bak` 存在,是因为那 5 个**被 bug 覆盖过**)。**两笔不同因、不同解,不合并。**
+> **原件** = `production/qa/evidence/impl-td-persist-15-cross-session-highwater-2026-11-03.md`。
+
 > > 🔁 **五十二订(`TD-persist-15` 立债 · 2026-11-03 · 债面)** ——
 > 用户指令「两件都做」(EPIC 回刷 + 查尺寸突变)。变化:`条目 165 → 166`(+1)·
 > `open 17 → 18`(+1)· `Y 111 → 112`(+1)· **`未闭 P0 面 9 → 10`**(+1)· `epic 分布 2/31 → 3/31`(+1)。
@@ -1029,8 +1040,8 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 166 | 状态 {'closed': 144, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 112, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 10 （已闭但曾标 P0 面的 102 条不计）
+条目 167 | 状态 {'closed': 145, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 113, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 103 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
     random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
 ```
@@ -4339,6 +4350,50 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 7a 的下一次修订轮;② 或任何以「只进不退已成立」形态引用 `AC-7a-19 (b)` 之前(**禁借绿** —— 今日它只在本会话内成立);③ 或 7b 的「槽位列表由台账派生」轮(同批)。 |
 | **归属** | **7a 持久化服务**(高水位初值)· 修法口径 = **用户裁定** · 呈现面(槽位列表)归 **7b** |
 | **⚠️ 为什么这条比「尺寸突变」更值得记** | 本轮原本在查「`save_0` 3868B vs `save_1…8` 1868B」的尺寸差,**结论是那不是 bug**(两个不同会话、不同世界状态,尺寸不同正常)。**顺带查出的这条才是真问题**:它不是「尺寸不对」,是「**玩家的存档会被下一次启动静默覆盖**」。⇒ 如实登记:本轮的**第一判断错了**,真问题在第二层。 |
+
+> ✅ **2026-11-03 已闭**(sprint-24 · 用户裁定「甲:扫目录 + 修代码 + ADR 加注」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-persist-15-cross-session-highwater-2026-11-03.md`。
+>
+> **裁定口径(本条原先悬着的那一问)**:`扫目录` **不算**「从存档体恢复」。
+> 依据不是解释,是**出处错位**:`SaveSlotLedger` 头注把 ADR-010 §六 的
+> 「**锁与安全门**均会话内存」扩写成「锁**与高水位**」,而 ADR 原文**从未**裁过高水位。
+> ⇒ 不存在「扫目录 vs ADR」的冲突;读的是**文件名**,不是文件内容。
+> ADR-010 §六 已就地加注,把「本节不覆盖什么」写明。
+>
+> **修法**:`SaveService` 构造器新增 `ResolveInitialNextWritableSeq(floor)` ——
+> 扫 `save_*.bin` 取 `max(槽号) + 1`,与 `floor` 取大;目录空 ⇒ 原样返回 `floor`;
+> **枚举失败 ⇒ `uint.MaxValue`(拒绝一切写入)+ `LastSlotScanError` 交装配层记**
+> (承本仓口径「不可用 &gt; 不安全」)。`initialNextWritableSeq` 自此是 **floor,不是终值**。
+> `save_exit.bin` 天然不计(`TryParseSlotSeq` 要求 `save_` 后全数字)。
+>
+> **夹具**:`save_slot_lock_release_test.cs` §①-b **新增 6 条**;
+> 另**改写** `save_slot_probe_test.cs::test_probe_finalPreferredOverBak` ——
+> 它的旧写法**靠的就是这条 bug**(构造第二个 `SaveService` 再写槽 1),修好后当场抛;
+> 判据(final 优先于 bak)不变,**造场方式**改为两份合法存档 + 搬字节。
+>
+> **证伪**:M1(不回视磁盘)与 M2(`max + 1` → `max`)各 **4 红**,且红的是同样的 4 条;
+> 未红的两条正好是「必须保持 floor」的负控(空目录 / 非槽文件)。
+> 两轮均 `SHA-256` 逐字节还原(`6dce956e…`),零 `MUT-` 残留。
+>
+> **回归**:EditMode `6779/6742/0/0/37` @ 2026-11-03 14:01:10Z(基线 `6773/6736/0/0/37`
+> ⇒ 等式 `6779 − 6773 = 6` = 新增 6 条)· PlayMode `324/320/0/2/2` @ 14:17:52Z(与基线逐位同)。
+> ⚠️ **首轮 PlayMode 是 `324/319/1`**,红的正是 `test_saveQueryFailure_fallsBackToNoSave` ——
+> 病因不是回归,是**新行为**:该夹具 `chmod 000` 目录,构造期扫目录同向失败 ⇒ 装配层记 Error
+> ⇒ 被判「意料之外的日志」。补 `LogAssert.Expect` + `LastSlotScanError` 断言后转绿。
+> ⚠️ **这条副产品比修复本身更值得记**:它证明 **fail-closed 分支在 Linux 上可达**,
+> 且**已有测试载体**(起草时我判它「无法造异常」,实测被推翻)。
+
+### TD-persist-16 — 玩家槽的 `.bak` **永远不会生成** ⇒ `AC-7a-15 (a)` 的「回退上一好档」对玩家槽无宾语
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `TD-persist-15` 修好「跨会话只进不退」之后,`save_{N}.bin` **每个槽号一生只被写一次**(写点 = `Checkpoint(NextWritableSeq)`,而高水位只进不退)。而 `.bak` 的唯一产生路径是 `WriteAtomic` 的「**final 已存在 ⇒ 先 final → bak**」。⇒ 对玩家槽,**该分支不可达** ⇒ `save_{N}.bak` 永不出现。 |
+| **实测(逐条可跑)** | ① 写点唯一:`grep -n "SaveBytes(" unity/Assets/Sim.Codec/SaveService.cs` ⇒ `:473`(定义)+ `:715`(唯一调用,在 `Checkpoint` 的 worker 内)。<br>② `.bak` 产生条件:`sed -n '493,530p' unity/Assets/Sim.Codec/SaveService.cs` ⇒ `WriteAtomic` 里 `if (File.Exists(finalPath))` 才搬 bak。<br>③ **用户机器上的实证**:`~/.config/unity3d/DefaultCompany/unity/saves/` 里 `save_6/7/8.bin` **没有** `.bak`(它们是新会话里**首次**写入的槽),而 `save_1…5.bak` 存在 —— 那 5 个正是**被 bug 覆盖过**的槽。⇒ `.bak` 过去是**覆盖 bug 的副产品**。 |
+| **影响** | `AC-7a-15 (a)`「`final` 校验失败但 `bak` 通过 ⇒ 自动回退」对**玩家槽**无宾语(对 `save_exit.bin` 仍成立 —— 它每会话重写)。⇒ 玩家槽损坏时只能报损,不能回退。**但**:上一槽仍完好 ⇒ 实际可失去的上限 = **最新一份手动存**。 |
+| **⚠️ 这不是本轮引入的** | 本轮**没有**让任何原本可用的东西失效 —— 它把「`.bak` 由数据覆盖产生」这个**自相矛盾的来源**去掉了。修复前那份 `.bak` 是「有人已经覆盖了你的档」的证据。 |
+| **解除动作(候选,须用户裁定)** | (甲)**接受**:玩家槽无 bak,文档与 `AC-7a-15` 的措辞收窄为「玩家槽损坏 ⇒ 报损(上一槽仍在);`save_exit.bin` 走 bak 回退」<br>(乙)**另加一次写**:每次 checkpoint 后把**上一槽**的 final 链式复制成当前槽的 bak(多一次 I/O,且会把「上一槽」与「本槽」的 bak 语义混起来)<br>(丙)**改双层写**:同一槽写 `.new` 再 `rename`(只防**半写**,防不了事后损坏 —— 后者本就无 bak 可退)<br>⚠️ 三条**均未实测**,本条只登记缺口。 |
+| **触发条件** | ① 7a 下一次修订轮;② 或任何以「`AC-7a-15` 完整兑现」形态引用之前(**禁借绿**);③ 或存档损坏首次成为真实故障时 |
+| **归属** | **7a 持久化服务**(双档语义)· 裁定 = **用户** |
 
 ### TD-skeuo-03 — 模态开合面只认 2 个身份 ⇒ 闭集 9 员里 **7 员无关闭路径**(42)
 

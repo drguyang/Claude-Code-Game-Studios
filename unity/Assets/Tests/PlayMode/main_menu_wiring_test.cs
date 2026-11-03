@@ -386,12 +386,20 @@ namespace DaYiJingCheng.Tests.PlayMode
                 Assert.Ignore("本环境不实施目录权限(疑似 root)⇒ 无法注入查询失败;本条未运行,不计绿");
             }
 
+            // 🔁 2026-11-03(`TD-persist-15`):构造期扫目录与查询同向失败 ⇒ 装配层记一条
+            //    **Error** ⇒ 必须预登记,否则这条夹具会被「意料之外的日志」判红。
+            //    ⚠️ 这条 `Expect` 本身就是「fail-closed 分支**可达**」的实证 ——
+            //    它在 Linux 上真的触发了(`Access to the path … is denied`)。
+            LogAssert.Expect(LogType.Error, new Regex("存档目录枚举失败"));
+
             yield return BootUntilMenuAppears();
 
             var saves = ReadSaveService();
             Assert.IsNotNull(saves, "7a 存档服务应已装配");
             Assert.IsNotNull(saves.LastSaveQueryError,
                 "查询失败必须被**记录**(门 A 下 7a 无日志面 ⇒ 事实出口在这里)");
+            Assert.IsNotNull(saves.LastSlotScanError,
+                "构造期扫目录同样失败 ⇒ 高水位不可知 ⇒ 该事实也须被记录(否则「拒绝一切存档」无从解释)");
             Assert.AreEqual(MainMenuScreen.StartText, ((MainMenuScreen)_driver.CurrentScreen).RowText,
                 "AC-MM-08:查询失败按「无存档」处理(保守方向 = 开新局,不把空档当档读)");
             Assert.IsNull(_boot.ContinuedFromSlot, "查询失败不应产生「继续」目标");

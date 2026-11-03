@@ -941,6 +941,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    而存档位屏只列 1..3 ⇒ 玩家看到「存了却没变化」(用户 smoke 实测)。
                     //    ⚠️ 残余:本屏的槽位列表仍是**固定三行**,第 4 次之后写的槽号出列表
                     //       —— 那属 7b「槽位列表须由台账派生」的呈现面,不在本次修复范围。
+                    // 🔁 2026-11-03 `TD-persist-15`:**本值自此是 floor(下限),不是终值**。
+                    //    终值 = `max(本值, 磁盘上最大 save_{N}.bin 的 N + 1)`,由
+                    //    `SaveService` 构造器扫目录求得(命名约定归它,装配层不拼 `save_*`)。
+                    //    病因:把本值当终值 ⇒ 每个新会话内存里都从 1 起 ⇒ 覆盖上一会话的
+                    //    `save_1.bin`(用户机器上已实测发生)。
                     initialNextWritableSeq: 1,
                     // AC-7a-17 · TD-persist-06:退出保存失败的「记日志」落点。
                     // ⚠️ `SaveService` **不抛**写盘失败(退出路径上抛 = 卡退),故
@@ -987,6 +992,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                         // ADR-038 Amendment A(2026-11-03):v4 → v5 追加季 / 天气四值。
                         new SaveMigrationV4ToV5(),
                     });
+
+                // `TD-persist-15`:构造期扫目录失败 ⇒ 高水位不可知 ⇒ `Checkpoint` 拒绝一切写入。
+                // 门 A 下 `Sim.Codec` 无日志面 ⇒ 失败事实在此落(与 `LastSaveQueryError` 同一处置)。
+                if (saveService.LastSlotScanError != null)
+                    UnityEngine.Debug.LogError(
+                        "[7a][TD-persist-15] 存档目录枚举失败 ⇒ 槽位高水位不可知 ⇒ 本次会话拒绝一切存档:" +
+                        saveService.LastSlotScanError.Message);
 
                 // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25 三裁全取推荐):
                 // `Load` 成功后依序 ResetCursor(义务② 判据 —— AnchorCheckpointTrigger.cs:31
