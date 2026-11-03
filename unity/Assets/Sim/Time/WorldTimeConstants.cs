@@ -35,10 +35,18 @@
 // ② 改它 = 所有历史事件的时间戳与存档同时失效(与改 `TICK_SECONDS` 同级)。
 //    「改一下试试」这件事本身就该是重裁,不该是一个配置文件里的数字。
 //
-// ⚠️ **仍未做(不属本件)**:系统 5 的其余常量(`TICKS_PER_SEASON` / `NIGHT_START` /
-//    `NIGHT_SPAN` / `SEASONS_PER_YEAR` / `WEATHER_BLOCK_TICKS`)与 tick→历法映射
-//    (年/月/日/时辰)。它们在本件里**没有**落点 —— 等 5 的实现轮按同一纪律给单一定义点。
-//    今日唯一的消费方是存档册的「第 N 日」,它只需要「一天多少 tick」。
+// 🔁 **2026-11-03 同日追加(用户裁定甲)**:F-5.1 昼夜落地 —— `NightStart = 27000` ·
+//    `NightSpan = 9000`(夜 = 后四分之一日)。值由用户裁定,公式逐字照 `time-and-weather.md:189-203`。
+//
+// ⚠️ **仍未做(逐项,不借绿)**:
+//    · `TICKS_PER_SEASON` / `SEASONS_PER_YEAR` —— **值未定**,F-5.2 无落点;
+//    · `WEATHER_BLOCK_TICKS` —— **值未定**,F-5.3 无落点;
+//    · tick→**历法**映射(年/月/日/时辰)—— **设计里不存在**:GDD `:90` 明写历书上的
+//      干支与节气是**史实层呈现**、**不是机制读数**;规则一的归属表也无「历法」一行。
+//      ⇒ 存档册的「第 N 日 · 昼/夜」是当前**机制允许的上限**,spec §5.4 的
+//      「三月十九 酉时」需要先改那句 GDD 才可做。
+//    · `AC-5-11`(装载期校验器:非法配置 ⇒ 硬失败)—— 本类是 `const`,**没有装载期**;
+//      该 AC 要的是 5 的配置加载路径,今日不存在。**本条仍 NOT-RUN。**
 
 namespace DaYiJingCheng.Sim.Time
 {
@@ -70,5 +78,61 @@ namespace DaYiJingCheng.Sim.Time
         /// </summary>
         public static long DayNumberOf(long tick)
             => (tick < 0L ? 0L : tick) / TicksPerDay + 1L;
+
+        // ══════════════════════════════════════════════════════════════════
+        // F-5.1 昼夜(time-and-weather.md:189-203)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 夜的起点(日内相位)。**= 27000**(2026-11-03 用户裁定)——
+        /// 与 <see cref="NightSpan"/> 合起来表示「夜 = 一天的后四分之一」。
+        /// <para>定义域 ∈ [0, <see cref="TicksPerDay"/>)(GDD `:202`)。</para>
+        /// </summary>
+        public const long NightStart = 27000L;
+
+        /// <summary>
+        /// 夜的长度(tick)。**= 9000**(2026-11-03 用户裁定 · 1/4 日)。
+        /// <para>定义域 ∈ (0, <see cref="TicksPerDay"/>);`≥ TicksPerDay` = 恒夜 = 昼夜轴消失
+        /// (GDD `:437` 判据为「构建期校验拒绝」)。</para>
+        /// </summary>
+        public const long NightSpan = 9000L;
+
+        /// <summary>日内相位 ∈ [0, <see cref="TicksPerDay"/>)。</summary>
+        public static long DayPhase(long tick) => FMod(tick, TicksPerDay);
+
+        /// <summary>
+        /// F-5.1:`isNight(tick) ⟺ FMod(phase − NIGHT_START, TICKS_PER_DAY) &lt; NIGHT_SPAN`。
+        /// <para>⚠️ **必须**用 <see cref="FMod"/> 式,不能用朴素区间比较 ——
+        /// 夜区间跨日边界(`NIGHT_START + NIGHT_SPAN &gt; TICKS_PER_DAY`)时,朴素写法会
+        /// **静默漏判** `[0, (START+SPAN)−TPD)` 那一段(GDD `:435` / 首轮评审 B-1)。</para>
+        /// <para>⚠️ 生产值 27000 + 9000 = 36000 **恰好不跨日** ⇒ 用朴素写法也能通过所有
+        /// 以生产值构造的夹具。所以环绕正确性由 <see cref="IsNightAt"/> 的**注入参数**夹具守
+        /// (`world_time_test.cs` 用 30000/12000 这组**会跨日**的配置)。</para>
+        /// </summary>
+        public static bool IsNight(long tick) => IsNightAt(DayPhase(tick), NightStart, NightSpan);
+
+        /// <summary>
+        /// F-5.1 的本体(参数可注入)。
+        /// <para>⚠️ 开放为 <c>public</c> 只有一个理由:**夹具要能构造跨日环绕的配置** ——
+        /// 生产值不跨日,拿生产值写不出那条判据。生产代码**只应**调
+        /// <see cref="IsNight"/>;本方法不是第二个入口。</para>
+        /// </summary>
+        /// <param name="phase">日内相位 ∈ [0, <see cref="TicksPerDay"/>)。</param>
+        /// <param name="nightStart">夜的起点。</param>
+        /// <param name="nightSpan">夜的长度。</param>
+        public static bool IsNightAt(long phase, long nightStart, long nightSpan)
+            => FMod(phase - nightStart, TicksPerDay) < nightSpan;
+
+        /// <summary>
+        /// 数学意义上的取模(结果恒 ∈ [0, m))。
+        /// <para>⚠️ C# 的 `%` 是**截断**语义(`-1 % 36000 == -1`)⇒ 直接用会在
+        /// `phase &lt; NIGHT_START` 时给出负数,`&lt; NIGHT_SPAN` 恒真 ⇒ **正午被判成夜**。
+        /// 这正是 GDD `:288` 点名要守的那条。</para>
+        /// </summary>
+        private static long FMod(long a, long m)
+        {
+            long r = a % m;
+            return r < 0L ? r + m : r;
+        }
     }
 }

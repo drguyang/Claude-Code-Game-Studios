@@ -42,39 +42,42 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
 
         private static IReadOnlyList<SaveSlotView> Mixed() => new[]
         {
+            // tick 1200 ⇒ 第 1 日 · 昼;tick 99000 ⇒ 第 3 日 · 夜(相位 27000 = 夜起点)
             new SaveSlotView(1u, known: true, hasSave: true,  tick: 1200L,  dayNumber: 1L),
-            new SaveSlotView(2u, known: true, hasSave: true,  tick: 72005L, dayNumber: 3L),
+            new SaveSlotView(2u, known: true, hasSave: true,  tick: 99000L, dayNumber: 3L,
+                             isNight: true),
             new SaveSlotView(3u, known: true, hasSave: false, tick: 0L),
             SaveSlotView.Unbound(4u),
         };
 
         [Test]
-        public void test_rows_occupiedShowsNumeralAndDay_emptyAndUnboundShowNothing()
+        public void test_rows_occupiedShowsNumeralDayAndTimeOfDay_emptyAndUnboundShowNothing()
         {
             SaveSlotsScreen screen = NewScreen(out _);
             screen.SetSlotViews(Mixed());
 
             Assert.That(screen.SlotRowCount, Is.EqualTo(4), "「留档」新行不计入槽位行数");
-            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹 · 第壹日"),
-                "有档 ⇒ 行号 + 世界日(第二层)");
-            Assert.That(screen.RowAt(1).MarkText, Is.EqualTo("贰 · 第叁日"),
-                "两条有档行必须因**日子不同**而可分 —— 只写行号的话它们仍然一样");
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹 · 第壹日 昼"),
+                "有档 ⇒ 行号 + 世界日 + 时段(第二层 + F-5.1)");
+            Assert.That(screen.RowAt(1).MarkText, Is.EqualTo("贰 · 第叁日 夜"),
+                "两条有档行必须因**日子与时段不同**而可分 —— 只写行号的话它们仍然一样");
             Assert.That(screen.RowAt(2).MarkText, Is.Empty, "空槽 ⇒ 零字(AC-42-B5)");
             Assert.That(screen.RowAt(3).MarkText, Is.Empty, "未绑定 ⇒ 零字(与空槽同形)");
         }
 
         [Test]
-        public void test_rows_occupiedWithoutDay_showsNumeralOnly()
+        public void test_rows_timeOfDay_omittedWhenDayUnknown()
         {
-            // 装配层没给日子(历法未就绪 / 旧数据)⇒ 降级为只写行号,
-            // **不得**拿 tick 冒充日子(那会写出一千多日)。
+            // `DayNumber == 0` = 时间信息未就绪。此时 **不得** 写「昼」——
+            // `IsNight` 的默认值是 false,那正好等于「昼」,写出来就是**静默的错误断言**。
             SaveSlotsScreen screen = NewScreen(out _);
             screen.SetSlotViews(new[]
             {
                 new SaveSlotView(1u, known: true, hasSave: true, tick: 1200L),
             });
 
-            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹"));
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹"),
+                "日子未知 ⇒ 时段也不画(不能拿默认值冒充「昼」)");
         }
 
         [Test]

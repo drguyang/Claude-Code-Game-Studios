@@ -77,8 +77,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         private static string RowText(in SaveSlotView view)
         {
             if (!view.Known || !view.HasSave) return string.Empty;
+            // 时段只在装配层**真的给了日子**时才画 —— `DayNumber == 0` 表示时间信息未就绪,
+            // 此时若仍写「昼」就会凭空断言一个没算过的值(默认 false 正好等于「昼」,
+            // 那是**静默**的错)。宁可不写。
             if (view.DayNumber <= 0L) return Numeral(view.SlotSeq);
-            return Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日";
+            return Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日" +
+                   (view.IsNight ? " 夜" : " 昼");
         }
 
         /// <summary>

@@ -43,15 +43,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public readonly long DayNumber;
 
+        /// <summary>
+        /// 存档时刻是否在世界之**夜**(F-5.1 的 `isNight`;由装配层算,42 只呈现)。
+        /// <para>⚠️ 今日「时段」只有**昼夜两档** —— 十二时辰在设计里不是机制读数
+        /// (GDD `:90` 把历书/时辰一类归「史实层呈现」),故不在此发明。</para>
+        /// </summary>
+        public readonly bool IsNight;
+
         /// <summary>构造。</summary>
         public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick,
-                            long dayNumber = 0L)
+                            long dayNumber = 0L, bool isNight = false)
         {
             SlotSeq = slotSeq;
             Known = known;
             HasSave = hasSave;
             Tick = tick;
             DayNumber = dayNumber;
+            IsNight = isNight;
         }
 
         /// <summary>未绑定形态(装配层没给状态,或探测失败)。</summary>

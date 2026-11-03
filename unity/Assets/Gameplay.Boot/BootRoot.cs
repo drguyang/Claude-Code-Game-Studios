@@ -1703,7 +1703,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                             // 🔁 2026-11-03(甲方案第二层):tick → 世界第几日(1 起)。
                             // 算术与除数**唯一出处** = `WorldTime`(AC-5-05);
                             // 42 只拿到算好的日子,不做除法。
-                            dayNumber: Sim.Time.WorldTime.DayNumberOf(summary.Tick));
+                            dayNumber: Sim.Time.WorldTime.DayNumberOf(summary.Tick),
+                            // 2026-11-03 F-5.1:同一 tick 的昼夜(FMod 环绕安全,
+                            // 公式逐字照 time-and-weather.md:189-203)。
+                            isNight: Sim.Time.WorldTime.IsNight(summary.Tick));
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
