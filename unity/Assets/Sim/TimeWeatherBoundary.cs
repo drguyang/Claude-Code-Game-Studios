@@ -28,7 +28,10 @@ namespace DaYiJingCheng.Sim
         public static bool ValidateNoEventSinkAppend()
         {
             // 检查 TimeBase / WeatherRoll / EnvMod 是否引用 IEventSink
-            var simAssembly = typeof(TimeBase).Assembly;
+            // ⚠️ 2026-11-03(ADR-038 §D6):原写 `typeof(TimeBase)` —— 那是**另一份**
+            //    `Sim.TimeBase`(已删)。这里要的只是「Sim 装配」,与哪个类型无关
+            //    ⇒ 改用自引用,不再耦合任何 5 的类型位置。
+            var simAssembly = typeof(TimeWeatherBoundary).Assembly;
 
             foreach (var type in simAssembly.GetTypes())
             {

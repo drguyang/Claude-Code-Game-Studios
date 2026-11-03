@@ -1068,7 +1068,45 @@
   本件是**互补的第二层**,不重复结清该债)。
   Engine Knowledge Risk **LOW**(纯 BCL 字节布局)。
 
-> **本日志状态**:全部 ADR(001–**037**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-038 ✅ Accepted 2026-11-03]**时间参数外部化(5 的数据集)· 跨表引用形式 · 存档 v4** ——
+  `docs/architecture/adr-038-time-params-externalization.md`。**结清 AC-5-05 的第二半**
+  (「52 引用解析后与 5 同值」)与 **AC-5-11 的「无装载路径」根因**。
+  用户四项裁定(2026-11-03,逐条照准):**范围 = A+B 一起做**(5 的管线 + 52 的数据集)·
+  **存档头记三个时间参数**(`TICKS_PER_DAY` / `NIGHT_START` / `NIGHT_SPAN`)· **52 四值 = `6 / 2 / 6 / 6000`**
+  (`WINDOW_SIZE / BASE / BUDGET_MAX / ROLL_INTERVAL`)· 按三批开工。
+  **§D5–D8 由本轮就地裁定,未经用户逐条确认**(同 ADR-034 / 037 口径,实现轮前可改)。
+  病因(三条叠加):① AC-5-05 的 `THEN` 有两半,2026-11-03 已立的 `TimeConstantSingleDefinitionGate`
+  只覆盖**代码侧定义点唯一**,数据侧那半**无从判定**(52 无数据集 · 跨表引用形式 ADR-014 从未定义);
+  ② 全仓曾**同时存在三份时间实现**(`Sim/TimeBase.cs` 的 `TimeParams` 零消费 · `Sim/World/TimeBase.cs`
+  的 `const` 是唯一生产面 · 本轮新造 `Sim/Time/`),其中第一份**正是为数据路线准备的**;
+  ③ 日长从 `const` 变成运行时数据后与存档撞上 —— `ConfigVersion` 不匹配按 ADR-010 §七 **非致命**,
+  用 36000 记下的档在装 18000 的构建里重放会静默错位。
+  八点裁决:**D1** `assets/data/5_time.json` 只放**已裁定**三值(`ticks_per_day / night_start / night_span`),
+  季参数(`ticks_per_season / seasons_per_year`)与 `weather_block_ticks` 仍是**未裁定**项 ⇒ binder
+  带 `UndecidedKeys` 白名单**显式拒收**并给专用报文(「尚未裁定」而非「未知键」);
+  **D2** 跨表引用形式 = `{"$ref": "<artifact>.<field>"}` —— 52 的 `ticks_per_day` 必须是**对象**,
+  写数字 = 字面副本 ⇒ 构建期拒收;Baker **先烘 5、再建 refs 表、再烘 52**,末了做 `Fix` 级逐位相等断言;
+  **D3** 存档 **v4**:头部在 `snapshotOffset` 之后追加 `i64 × 3`;`FixedSize` **保持 36**(两条历史迁移
+  把它当「旧头部长度」),新增 `FixedSizeV4 = 60` / `HeaderSizeV4 = 92` / `FixedSizeFor(v)` /
+  `HeaderSizeFor(v)`;**正文解析一律按版本取**(实测症状:硬编码 36 会把 `36000` 读成配置版本段的 `count`);
+  新增 `SaveMigrationV3ToV4`(在 36 处插 24 B,写版本 4,正文逐位不动);`Load` 在**迁移后重读头**
+  并过 `RequireTimeParams` 门;读档成功后 `BootRoot.HydrateTimeParamsAfterLoad` 用**档内值**覆盖运行时参数;
+  写档侧取不到数据就抛(`[E-13][persist]`),**不回落常数**;
+  **D4** `assets/data/52_random_events.json` 四值 `6 / 2 / 6 / 6000`,binder 校验 `ticks_per_day % roll_interval == 0` /
+  `window ≥ 1` / `base ≥ 0` / `budget_max ≥ base`;
+  **D5**(就地)`Sim.TimeParams` 留 `Sim`,**不进 `Sim.Contracts`**(它是装载形状,不是跨门契约);
+  **D6**(就地)删除 `Sim/TimeBase.cs` 副本,`FDiv` / `FMod` 迁入 `Sim/World/TimeBase.cs` 唯一实现,
+  全部方法改为**显式收 `TimeParams`**(不读全局态);
+  **D7**(就地)**52 的数据集今日零生产消费**,如实登记 —— 它的落地面是 AC-5-05 的构期断言,不是运行期行为;
+  **D8**(就地)AC-5-05 门补**数据侧四条**(定义文件恰一次 · 同值判定交给 Baker · 其他文件出现字面数字 ⇒ 红 ·
+  字段缺失 ⇒ 红),并如实记「今日数据侧是**空真**」(52 尚未有第二处副本可扫)。
+  **驳回**:只补 5 的数据集(AC-5-05 的第二半仍无判定物)· 只补 52 的数据集(**没有同值参照**)·
+  `TimeParams` 进 `Sim.Contracts`(无跨门消费者,徒增门 A 面)· 存档只记日长(昼夜参数是 `TODMult` 的输入 ⇒
+  掷骰输入,同属重放前提)· v3 档静默回落当前构建值(正是要消灭的静默漂移)。
+  **§Validation V-1…V-10 全部未跑(禁借绿)** —— Accepted 表示方向已裁,不表示任何判据已通过。
+  Engine Knowledge Risk **LOW**(纯数据边界 / BCL 字节布局 / 程序集归属,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**038**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
@@ -1082,13 +1120,14 @@
 > Accepted;文件号按落盘时序)。
 > **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
 > Pre-Production 开工门的技术侧**无阻塞项**。
-> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 / 036 / 037 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
+> **ADR-028 / 029 / 030 / 031 / 032 / 033 / 034 / 035 / 036 / 037 / 038 均非 §Required ADRs 面内** —— ADR-032(病程终态 Kind,
 > 结清 `PRE-S18-C`)· ADR-033(结构 id 撞号,结清 `TD-building-02` 的语义半边)·
 > ADR-034(存档 v2 载荷段,结清 `TD-persist-09` 的裁定半边)· ADR-028(audio 小裁批)·
 > ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)** ·
 > **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)** ·
 > **ADR-036(53 判定链装配,为 `TD-medcons-13` / `-18` / `-19` 立可开工对象;三条债须待其 S4 才可结)** ·
-> **ADR-037(存档 v3 配置版本段 —— 让 `AC-7a-14` 的「哪一张表变了」可判;`[2,3)` 不再是空区间)**
+> **ADR-037(存档 v3 配置版本段 —— 让 `AC-7a-14` 的「哪一张表变了」可判;`[2,3)` 不再是空区间)** ·
+> **ADR-038(时间参数外部化 + 跨表 `$ref` + 存档 v4 —— 结 AC-5-05 的第二半与 AC-5-11 的装载路径)**
 > 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists

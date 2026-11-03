@@ -17,7 +17,10 @@ namespace DaYiJingCheng.Tests.TimeWeather
         public void test_readonlyInterface_noWritePath()
         {
             // 验证 TimeBase / WeatherRoll / EnvMod 无 public 写入方法
-            var simAssembly = typeof(TimeBase).Assembly;
+            // ⚠️ 2026-11-03(ADR-038 §D6):原锚 `typeof(TimeBase)` —— 那是**另一份**
+            //    `Sim.TimeBase`(已删)。这里要的是「Sim 装配」⇒ 改用同装配的 `WeatherRoll`,
+            //    不再耦合 5 的类型位置。
+            var simAssembly = typeof(WeatherRoll).Assembly;
 
             foreach (var type in simAssembly.GetTypes())
             {
@@ -29,7 +32,12 @@ namespace DaYiJingCheng.Tests.TimeWeather
                         if (method.ReturnType == typeof(void) && !method.IsSpecialName)
                         {
                             // 允许的只读方法
-                            if (method.Name.StartsWith("Get") || method.Name.StartsWith("Compute") || method.Name.StartsWith("Is") || method.Name == "Validate")
+                            // ⚠️ 2026-11-03:`== "Validate"` 放宽为 `StartsWith("Validate")` ——
+                            //    `TimeParams.ValidateSeason()` 是**同一类**只读校验器(ADR-038 §D1
+                            //    把未裁定的季参数与已装载的三参数拆成两个校验入口)。
+                            //    这里测的性质是「**无写入方法**」,校验器不是写入面 ⇒ 放宽不削弱判据。
+                            if (method.Name.StartsWith("Get") || method.Name.StartsWith("Compute") ||
+                                method.Name.StartsWith("Is") || method.Name.StartsWith("Validate"))
                             {
                                 continue;
                             }
@@ -46,7 +54,10 @@ namespace DaYiJingCheng.Tests.TimeWeather
         [Test]
         public void test_noFloatLeak_inSim()
         {
-            var simAssembly = typeof(TimeBase).Assembly;
+            // ⚠️ 2026-11-03(ADR-038 §D6):原锚 `typeof(TimeBase)` —— 那是**另一份**
+            //    `Sim.TimeBase`(已删)。这里要的是「Sim 装配」⇒ 改用同装配的 `WeatherRoll`,
+            //    不再耦合 5 的类型位置。
+            var simAssembly = typeof(WeatherRoll).Assembly;
 
             foreach (var type in simAssembly.GetTypes())
             {
@@ -68,7 +79,10 @@ namespace DaYiJingCheng.Tests.TimeWeather
         public void test_frameRateIndependent()
         {
             // 验证 TimeBase / WeatherRoll / EnvMod 不引用 UnityEngine.Time
-            var simAssembly = typeof(TimeBase).Assembly;
+            // ⚠️ 2026-11-03(ADR-038 §D6):原锚 `typeof(TimeBase)` —— 那是**另一份**
+            //    `Sim.TimeBase`(已删)。这里要的是「Sim 装配」⇒ 改用同装配的 `WeatherRoll`,
+            //    不再耦合 5 的类型位置。
+            var simAssembly = typeof(WeatherRoll).Assembly;
 
             foreach (var type in simAssembly.GetTypes())
             {

@@ -51,7 +51,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             IBlobPool blobPool = null)
             => SaveService.AddChecksum(SaveComposer.Compose(
                 allEvents, folded, decoder, codec, worldSeed, configVersion, tick,
-                existingFoldedRows, blobPool: blobPool));
+                timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows, blobPool: blobPool));
     }
 
     public class SaveComposerWiringTest
@@ -155,10 +155,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         /// <summary>正文起点 = 头部 + 配置版本段(ADR-037 §①;本文件是生产 `ParseBody` 的镜像)。</summary>
+        /// <remarks>⚠️ ADR-038 §D3:v4 起头部多 24 B ⇒ 头部长度**按版本取**。</remarks>
         private static int BodyStart(byte[] bytes)
         {
-            ConfigVersionSegment.Decode(bytes, SaveHeaderCodec.HeaderSize, out int cfgBytes);
-            return SaveHeaderCodec.HeaderSize + cfgBytes;
+            int headerSize = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(bytes));
+            ConfigVersionSegment.Decode(bytes, headerSize, out int cfgBytes);
+            return headerSize + cfgBytes;
         }
 
         /// <summary>只取载荷段的 BlobId(不验内容)—— 载荷段专项断言用(ADR-034 §②)。</summary>

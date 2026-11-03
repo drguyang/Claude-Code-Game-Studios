@@ -101,7 +101,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
             svc.Checkpoint(new SaveSlot(0));
 
@@ -120,7 +120,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     fresh.Events, PredicateOf(fresh), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
             svcLoad.Load(new SaveSlot(0));
 
@@ -141,8 +141,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svcLoad.Checkpoint(new SaveSlot(1));
             byte[] secondSave = File.ReadAllBytes(Path.Combine(_testDir, "save_1.bin"));
             // ADR-037:正文起点 = 头部 + 配置版本段
-            ConfigVersionSegment.Decode(secondSave, SaveHeaderCodec.HeaderSize, out int cfgBytes);
-            var r = new CodecReader(secondSave.AsSpan(SaveHeaderCodec.HeaderSize + cfgBytes));
+            // ⚠️ ADR-038 §D3:v4 起头部多 24 B ⇒ 头部长度**按版本取**,不得硬编码 68。
+            int headerSize = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(secondSave));
+            ConfigVersionSegment.Decode(secondSave, headerSize, out int cfgBytes);
+            var r = new CodecReader(secondSave.AsSpan(headerSize + cfgBytes));
             SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
             // 🔁 2026-10-28 ADR-034 §③:改按 count 精确读(原 `DecodeSegment(r.ReadBytes(r.Remaining))`
             //    在 v2 下会把其后的载荷段一起吞进折叠段 ⇒ 报「未读尽」)。
@@ -189,7 +191,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
             svc.Checkpoint(new SaveSlot(0));
 
@@ -214,6 +216,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     fresh.Events, PredicateOf(fresh), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L),
                     existingFoldedRows: fresh.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
             svcLoad.Load(new SaveSlot(0));

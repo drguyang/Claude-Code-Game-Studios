@@ -169,11 +169,15 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>
         /// 取「正文」= 存档末尾那一段。
-        /// <para>无参重载用于基线:正文起点 = 头部定长(此刻的存档必是当前已知布局)。</para>
+        /// <para>无参重载用于基线:正文起点 = **该版本**的头部定长。</para>
+        /// <para>⚠️ ADR-038 §D3:v4 起头部多 24 B ⇒ 必须按版本取
+        /// (<see cref="SaveHeaderCodec.FixedSizeFor"/>)。硬编码 36 会把 v4 档的
+        /// 前 24 B 时间参数算进「正文」,使跨版本迁移的「正文逐位不变」断言假红。</para>
         /// </summary>
         private static byte[] TailBody(byte[] data, int length = -1)
         {
-            if (length < 0) length = data.Length - SaveHeaderCodec.FixedSize;
+            if (length < 0)
+                length = data.Length - SaveHeaderCodec.FixedSizeFor(ReadSaveVersion(data));
             if (length < 0 || length > data.Length)
                 throw new InvalidOperationException(
                     $"迁移链:正文长度 {length} 超出存档长度 {data.Length}");

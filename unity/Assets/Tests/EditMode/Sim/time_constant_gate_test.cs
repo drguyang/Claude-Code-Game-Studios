@@ -1,32 +1,30 @@
-// `TimeConstantSingleDefinitionGate` 的夹具 —— AC-5-05 的执行体判据(2026-11-03 立)。
+// `TimeConstantSingleDefinitionGate` 的夹具 —— AC-5-05 的执行体判据(2026-11-03 立;ADR-038 换向)。
 //
 // 权威来源:
-//   design/gdd/time-and-weather.md §规则四 / AC-5-05(`TICKS_PER_DAY` 代码中只有一个定义点)
+//   design/gdd/time-and-weather.md §规则四 / AC-5-05(值只有一个定义点)
+//   **ADR-038 §D1** —— 三值外部化到 `assets/data/5_time.json`;代码里零 `const`
 //
-// 立门缘由(实测):本轮一度同时存在 `Sim/Time/WorldTime`(36000)与 `Sim/World/TimeBase`(480)
-//   两份日长、两套昼夜公式,**而两边各自有绿灯夹具** —— 没有任何东西会红。
+// 立门缘由(实测两次):
+//   ① 本轮一度同时存在 `Sim/Time/WorldTime`(36000)与 `Sim/World/TimeBase`(480)
+//      两份日长、两套昼夜公式,**而两边各自有绿灯夹具** —— 没有任何东西会红。
+//   ② 首版门自己漏判:`public long TICKS_PER_DAY;`(无初始化)完全不可见,门绿着。
 //
-// 本文件断**十条**,缺一即判据空洞(红向与绿向必须同时存在):
-//   ①  真树上绿(门不是恒红)             —— test_gate_greenOnRealTree
-//   ②  别处出现第二条 ⇒ 红(门真的判)     —— test_gate_detectsSecondDefinitionOutsideAllowedFile
-//   ③  一条都没有 ⇒ 红(正控,防「删光即绿」) —— test_gate_detectsZeroDeclarations
-//   ④  允许文件内写两条 ⇒ 红              —— test_gate_detectsDuplicateInsideAllowedFile
-//   ⑤  **引用**不得误报                   —— test_gate_doesNotFlagReferences
-//   ⑥  扫描面不存在 ⇒ 红(路径错 ≠ 判据通过) —— test_gate_redWhenScanRootMissing
-//   ⑦  行注释里的声明不得误报             —— test_gate_ignoresDeclarationInLineComment
-//   ⑧  字符串字面量里的声明不得误报        —— test_gate_ignoresDeclarationInStringLiteral
-//   ⑨  块注释里的声明不得误报             —— test_gate_ignoresDeclarationInBlockComment
-//   ⑩  剥离后**行号仍准确**               —— test_gate_reportsCorrectLineAfterMultiLineComment
-//   ⑪  数据集里的字面副本 ⇒ 红            —— test_gateDataSet_detectsLiteralCopy
-//   ⑫  三种写法都命中(下划线/驼峰/连字符) —— test_gateDataSet_detectsAllNameForms
-//   ⑬  判据边界:同值换名**看不见**(盲区) —— test_gateDataSet_isNameBasedNotValueBased
-//   ⑭  数据集目录不存在 ⇒ 红               —— test_gateDataSet_redWhenDataRootMissing
+// 本文件断**十二条**,缺一即判据空洞:
+//   ①  允许落点是钉死的字面量          —— test_allowedPath_isTheLiteralWePinned
+//   ②  真树上绿(门不是恒红)           —— test_gate_greenOnRealTree
+//   ③  `const` 声明 ⇒ 红(值不在代码里)  —— test_gate_redOnConstDeclaration
+//   ④  `NIGHT_START` 的 `const` 同样红  —— test_gate_guardsAllThreeNames
+//   ⑤  载体文件外写裸字段 ⇒ 红          —— test_gate_redOnFieldOutsideAllowedFile
+//   ⑥  允许文件内的裸字段 ⇒ 绿(正控)    —— test_gate_greenOnBareFieldInAllowedFile
+//   ⑦  一条都没有 ⇒ 红(防「删光即绿」)  —— test_gate_redOnZeroDeclarations
+//   ⑧  允许文件内写两条 ⇒ 红            —— test_gate_redOnDuplicateInAllowedFile
+//   ⑨  **引用**不得误报                 —— test_gate_doesNotFlagReferences
+//   ⑩  注释里的声明不得误报             —— test_gate_ignoresDeclarationInLineComment
+//   ⑪  字符串字面量里的声明不得误报      —— test_gate_ignoresDeclarationInStringLiteral
+//   ⑫  剥离后**行号仍准确**             —— test_gate_reportsCorrectLineAfterMultiLineComment
+//   ⑬  扫描面不存在 ⇒ 红                —— test_gate_redWhenScanRootMissing
 //
-// ⚠️ ⑦–⑩ 是**首跑实测逼出来的**:剥离前,门自己的头注释与夹具里的字符串实参被双双判成
-//    第二定义点 ⇒ 真树上恒红。恒红的门与恒绿的门同为空洞,故这四条是**判据的一部分**,
-//    不是锦上添花。
-//
-// ⚠️ 本文件直驱 `Evaluate`(纯函数)—— 门链取文件那一层由 ① 与 ⑥ 覆盖。
+// ⚠️ 本文件直驱 `Evaluate`(纯函数)—— 门链取文件那一层由 ② 与 ⑬ 覆盖。
 
 using System.Collections.Generic;
 using DaYiJingCheng.EditorTools.Gates;
@@ -41,10 +39,15 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         /// 允许落点的**字面量**副本 —— 故意不引用被测常量做断言(自指判据 · F3):
         /// 若有人改了门的允许路径,下面这条会红,而不是跟着一起动。
         /// </summary>
-        private const string AllowedPathLiteral = "Assets/Sim/World/TimeBase.cs";
+        private const string AllowedPathLiteral = "Assets/Sim/TimeParams.cs";
 
         private static List<(string, string)> Files(params (string, string)[] pairs)
             => new List<(string, string)>(pairs);
+
+        /// <summary>合法载体(允许文件里的裸字段)。多数用例拿它当「绿的那一半」。</summary>
+        private static (string, string) GoodCarrier()
+            => (AllowedPathLiteral,
+                "public long TICKS_PER_DAY;\npublic long NIGHT_START;\npublic long NIGHT_SPAN;");
 
         [Test]
         public void test_allowedPath_isTheLiteralWePinned()
@@ -57,44 +60,76 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         [Test]
         public void test_gate_greenOnRealTree()
         {
-            // 门链入口,真实工程树:"." = 工程根(unity/)
             List<string> errs = TimeConstantSingleDefinitionGate.RunAll(".");
             Assert.That(errs, Is.Empty,
                 "真实树上必须绿;红行:\n" + string.Join("\n", errs));
         }
 
         [Test]
-        public void test_gate_detectsSecondDefinitionOutsideAllowedFile()
+        public void test_gate_redOnConstDeclaration()
         {
-            // 模拟本轮的真实事故:`TimeBase` 之外又写了一份
+            // ADR-038 §D1:值不在代码里。哪怕它落在「允许文件」也一样红。
             List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;"),
-                ("Assets/Sim/Time/WorldTime.cs", "public const int TicksPerDay = 36000;")));
+                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;")));
 
-            Assert.That(errs, Is.Not.Empty, "第二定义点必须红");
-            Assert.That(string.Join("\n", errs), Does.Contain("Assets/Sim/Time/WorldTime.cs"),
-                "红行须点名违规文件");
+            Assert.That(errs, Is.Not.Empty, "`const` 声明必须红(值应在 5_time.json)");
+            Assert.That(string.Join("\n", errs), Does.Contain("const"),
+                "红行须点明是 const 形态;实际:\n" + string.Join("\n", errs));
         }
 
         [Test]
-        public void test_gate_detectsZeroDeclarations()
+        public void test_gate_guardsAllThreeNames()
         {
-            // 空洞正控:把常量删光不得变绿
+            // 只守 TICKS_PER_DAY 是不够的:昼夜参数同样进数据、同样会被复制
+            foreach (string name in new[] { "NIGHT_START", "NIGHT_SPAN" })
+            {
+                List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
+                    ("Assets/Sim/World/Elsewhere.cs", "public const long " + name + " = 1L;")));
+
+                Assert.That(errs, Is.Not.Empty, $"`{name}` 的 const 必须红");
+            }
+        }
+
+        [Test]
+        public void test_gate_redOnFieldOutsideAllowedFile()
+        {
             List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                ("Assets/Sim/World/TimeBase.cs", "public static class TimeBase { }")));
+                GoodCarrier(),
+                ("Assets/Sim/World/Elsewhere.cs", "public long TICKS_PER_DAY;")));
+
+            Assert.That(errs, Is.Not.Empty, "载体文件之外的裸字段 = 第二份载体");
+            Assert.That(string.Join("\n", errs), Does.Contain("Assets/Sim/World/Elsewhere.cs"),
+                "红行须点名违规文件;实际:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_gate_greenOnBareFieldInAllowedFile()
+        {
+            // 正控:合法形态必须绿 —— 否则「一律红」也能骗过上面那些「必须红」的用例
+            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(GoodCarrier()));
+
+            Assert.That(errs, Is.Empty,
+                "载体文件里的裸字段是**合法形态**;红行:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_gate_redOnZeroDeclarations()
+        {
+            // 空洞正控:把载体删光不得变绿
+            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
+                (AllowedPathLiteral, "public sealed class TimeParams { }")));
 
             Assert.That(errs, Is.Not.Empty, "零条声明 ⇒ 必须红(否则「删掉即变绿」)");
         }
 
         [Test]
-        public void test_gate_detectsDuplicateInsideAllowedFile()
+        public void test_gate_redOnDuplicateInAllowedFile()
         {
             List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
                 (AllowedPathLiteral,
-                 "public const long TICKS_PER_DAY = 36000L;\n" +
-                 "public const long TicksPerDay = 36000L;")));
+                 "public long TICKS_PER_DAY;\npublic long TICKS_PER_DAY;")));
 
-            Assert.That(errs, Is.Not.Empty, "同一文件两条声明同样是第二定义点");
+            Assert.That(errs, Is.Not.Empty, "同一载体槽写两遍同样是第二真源");
         }
 
         [Test]
@@ -102,13 +137,58 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         {
             // 只**引用**不声明 ⇒ 不得误报(否则任何消费者都会被判红)
             List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;"),
+                GoodCarrier(),
                 ("Assets/Sim/WeatherRoll.cs",
-                 "long p = FDiv(tick, TimeBase.TICKS_PER_DAY);\n" +
-                 "// 说明文字里提到 TICKS_PER_DAY 也不算定义")));
+                 "long p = TimeBase.FDiv(tick, params_.TICKS_PER_DAY);\n" +
+                 "// 说明文字里提到 TICKS_PER_DAY 也不算声明")));
 
             Assert.That(errs, Is.Empty,
                 "引用与注释不得命中;红行:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_gate_ignoresDeclarationInLineComment()
+        {
+            // 门自己的头注释就是这个形状
+            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
+                GoodCarrier(),
+                ("Assets/Sim/Notes.cs",
+                 "// 历史:const int TICKS_PER_DAY = 480;  ← 已删\n" +
+                 "public static class Notes { }")));
+
+            Assert.That(errs, Is.Empty,
+                "行注释里的声明不得误报;红行:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_gate_ignoresDeclarationInStringLiteral()
+        {
+            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
+                GoodCarrier(),
+                ("Assets/Tests/FakeFixture.cs",
+                 "static string S = \"public const long TICKS_PER_DAY = 36000L;\";\n" +
+                 "static string V = @\"public const int NIGHT_START = 1;\");")));
+
+            Assert.That(errs, Is.Empty,
+                "字符串字面量里的声明不得误报;红行:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_gate_reportsCorrectLineAfterMultiLineComment()
+        {
+            // 剥离若把换行吃掉,行号就会指错 —— 这条钉住「抹字符但保换行」
+            const string Body =
+                "/* 第一行\n" +
+                "   第二行\n" +
+                "   第三行 */\n" +
+                "public long TICKS_PER_DAY;";
+
+            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
+                ("Assets/Sim/Elsewhere.cs", Body)));
+
+            Assert.That(errs, Is.Not.Empty, "真实声明必须被抓住");
+            Assert.That(string.Join("\n", errs), Does.Contain("Assets/Sim/Elsewhere.cs:4"),
+                "行号须为 4(块注释占前三行);实际红行:\n" + string.Join("\n", errs));
         }
 
         [Test]
@@ -122,122 +202,65 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 剥离面(⑦–⑩):注释与字面量里的同名文本**不得**判成定义点。
-        // 这四条的失败形态不是「漏判」而是「恒红」—— 首跑真树上就是这么红的。
+        // 数据侧(ADR-038 §D1/§D2):值的唯一定义点在 5_time.json,其他数据集只许 $ref
         // ─────────────────────────────────────────────────────────────────────
 
+        private static (string, string) DefFile()
+            => (TimeConstantSingleDefinitionGate.DataDefinitionFile,
+                "{\n  \"schema_version\": 1,\n  \"ticks_per_day\": 36000,\n  \"night_start\": 27000,\n  \"night_span\": 9000\n}");
+
         [Test]
-        public void test_gate_ignoresDeclarationInLineComment()
+        public void test_dataSide_greenOnRealTree()
         {
-            // 本门自己的头注释就是这个形状
-            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;"),
-                ("Assets/Sim/Notes.cs",
-                 "// 历史:const int TICKS_PER_DAY = 480;  ← 已删\n" +
-                 "public static class Notes { }")));
+            List<string> errs = TimeConstantSingleDefinitionGate.RunDataSide(".");
+            Assert.That(errs, Is.Empty,
+                "真实数据树必须绿;红行:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_dataSide_greenWhenOtherFileUsesRef()
+        {
+            List<string> errs = TimeConstantSingleDefinitionGate.EvaluateData(Files(
+                DefFile(),
+                ("assets/data/52_random_events.json",
+                 "{ \"ticks_per_day\": { \"$ref\": \"5_time.ticks_per_day\" } }")));
 
             Assert.That(errs, Is.Empty,
-                "行注释里的声明不得误报;红行:\n" + string.Join("\n", errs));
+                "`$ref` 是合法形态;红行:\n" + string.Join("\n", errs));
         }
 
         [Test]
-        public void test_gate_ignoresDeclarationInStringLiteral()
+        public void test_dataSide_redWhenOtherFileHasLiteralCopy()
         {
-            // 夹具里 `"public const long TICKS_PER_DAY = 36000L;"` 就是这个形状
-            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;"),
-                ("Assets/Tests/FakeFixture.cs",
-                 "static string S = \"public const long TICKS_PER_DAY = 36000L;\";\n" +
-                 "static string V = @\"public const int TicksPerDay = 1;\";")));
+            // AC-5-05 的字面副本 —— 这正是「52 自己也写一份 36000」的形态
+            List<string> errs = TimeConstantSingleDefinitionGate.EvaluateData(Files(
+                DefFile(),
+                ("assets/data/52_random_events.json", "{ \"ticks_per_day\": 36000 }")));
 
-            Assert.That(errs, Is.Empty,
-                "字符串字面量里的声明不得误报;红行:\n" + string.Join("\n", errs));
+            Assert.That(errs, Is.Not.Empty, "字面副本必须红");
+            Assert.That(string.Join("\n", errs), Does.Contain("52_random_events.json"),
+                "红行须点名文件;实际:\n" + string.Join("\n", errs));
         }
 
         [Test]
-        public void test_gate_ignoresDeclarationInBlockComment()
-        {
-            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                (AllowedPathLiteral, "public const long TICKS_PER_DAY = 36000L;"),
-                ("Assets/Sim/Notes.cs",
-                 "/*\n * const long TICKS_PER_DAY = 480L;\n */\npublic static class Notes { }")));
-
-            Assert.That(errs, Is.Empty,
-                "块注释里的声明不得误报;红行:\n" + string.Join("\n", errs));
-        }
-
-        [Test]
-        public void test_gate_reportsCorrectLineAfterMultiLineComment()
-        {
-            // 剥离若把换行吃掉,行号就会指错 —— 这条钉住「抹字符但保换行」
-            const string Body =
-                "/* 第一行\n" +
-                "   第二行\n" +
-                "   第三行 */\n" +
-                "public const long TICKS_PER_DAY = 36000L;";
-
-            List<string> errs = TimeConstantSingleDefinitionGate.Evaluate(Files(
-                ("Assets/Sim/Elsewhere.cs", Body)));
-
-            Assert.That(errs, Is.Not.Empty, "真实声明必须被抓住");
-            Assert.That(string.Join("\n", errs), Does.Contain("Assets/Sim/Elsewhere.cs:4"),
-                "行号须为 4(块注释占前三行);实际红行:\n" + string.Join("\n", errs));
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 数据侧(⑪–⑭):AC-5-05 的「52 数据集中零字面副本」那半边。
-        // ⚠️ 该半边的**当日状态是空真**(assets/data 对日长零命中),不是「已验证」;
-        //    ⑪–⑫ 证明的是「一旦出现就红」,不是「52 的数据集正确」。
-        // ─────────────────────────────────────────────────────────────────────
-
-        [Test]
-        public void test_gateDataSet_detectsLiteralCopy()
+        public void test_dataSide_redWhenDefinitionFileMissing()
         {
             List<string> errs = TimeConstantSingleDefinitionGate.EvaluateData(Files(
                 ("assets/data/52_random_events.json",
-                 "{\n  \"ticks_per_day\": 36000\n}")));
+                 "{ \"ticks_per_day\": { \"$ref\": \"5_time.ticks_per_day\" } }")));
 
-            Assert.That(errs, Is.Not.Empty, "52 数据集里出现日长字面副本必须红");
-            Assert.That(string.Join("\n", errs),
-                Does.Contain("assets/data/52_random_events.json:2"),
-                "红行须点名文件与行号;实际:\n" + string.Join("\n", errs));
+            Assert.That(errs, Is.Not.Empty, "缺定义文件 ⇒ 红");
         }
 
         [Test]
-        public void test_gateDataSet_detectsAllNameForms()
+        public void test_dataSide_redWhenDefinitionFileMissesAField()
         {
-            // 下划线 / 驼峰 / 连字符三种写法是同一个量,必须都命中
-            foreach (string key in new[] { "TICKS_PER_DAY", "ticksPerDay", "ticks-per-day" })
-            {
-                List<string> errs = TimeConstantSingleDefinitionGate.EvaluateData(Files(
-                    ("assets/data/x.json", "{ \"" + key + "\": 36000 }")));
-
-                Assert.That(errs, Is.Not.Empty, $"写法 `{key}` 必须命中");
-            }
-        }
-
-        [Test]
-        public void test_gateDataSet_isNameBasedNotValueBased()
-        {
-            // **判据边界**(不是「通过」):本门按**名字**判,不按值判。
-            // 52 若把日长写成 `{"day_length": 36000}`,本门看不见 —— 这是已登记的盲区。
-            // ⚠️ 本测试的存在意义是**钉住边界的形状**,不是为盲区背书;
-            //    若将来设计了按值/按 schema 的判据,本测试须随之改写或删除。
             List<string> errs = TimeConstantSingleDefinitionGate.EvaluateData(Files(
-                ("assets/data/x.json", "{ \"day_length\": 36000, \"timeout\": 120 }")));
+                (TimeConstantSingleDefinitionGate.DataDefinitionFile,
+                 "{ \"schema_version\": 1, \"ticks_per_day\": 36000, \"night_start\": 27000 }")));
 
-            Assert.That(errs, Is.Empty,
-                "换名同值是已知盲区 —— 若这条突然变红,说明判据被扩成了按值匹配(须重估误报面)");
-        }
-
-        [Test]
-        public void test_gateDataSet_redWhenDataRootMissing()
-        {
-            List<string> errs = TimeConstantSingleDefinitionGate.ScanDataSide(
-                "/no/such/assets/data/__gate_test__");
-
-            Assert.That(errs, Is.Not.Empty,
-                "数据集目录不存在 ⇒ 必须红(`assets/data/` 已入库 47 件,缺面 ≠ 通过)");
+            Assert.That(errs, Is.Not.Empty, "三值缺一 ⇒ 红");
+            Assert.That(string.Join("\n", errs), Does.Contain("night_span"));
         }
     }
 }

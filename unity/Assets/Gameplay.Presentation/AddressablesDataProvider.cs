@@ -214,6 +214,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const string ForagingConstantsAddress = ForagingConstantsCookedCodec.ProductName
             + ".cooked.bytes";
 
+        /// <summary>5 时间天气的系统参数(`5_time.cooked.bytes`;ADR-038 §D1 新增)。
+        /// <para>日长 / 夜起 / 夜长三值的**唯一运行期来源** —— 代码里零 `const`(AC-5-05)。</para></summary>
+        public const string TimeParamsAddress = "5_time.cooked.bytes";
+
+        /// <summary>52 随机事件配置(`52_random_events.cooked.bytes`;ADR-038 §D4 新增)。
+        /// <para>⚠️ 今日本产物**零生产消费方**(见 `RandomEventsDataSet` 头注 / ADR-038 §D7)。</para></summary>
+        public const string RandomEventsAddress = "52_random_events.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -274,6 +282,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private int? _carryCap;
         // 17 采集调参表(S22-9 · 2026-11-01):类实例 ⇒ null 表示未装载。
         private DaYiJingCheng.Sim.Foraging.ForagingConstants _foragingConstants;
+        // 5 时间参数(ADR-038 §D1 · 2026-11-03):struct 解码形 ⇒ 可空承载。
+        private TimeParamsDataSet? _timeParams;
+        // 52 随机事件配置(ADR-038 §D4 · 2026-11-03):struct 解码形 ⇒ 可空承载。
+        private RandomEventsDataSet? _randomEvents;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -465,6 +477,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWorldResources();
                 return (TDataSet)(object)_worldResources.Value;
             }
+            // ── ADR-038 §D1(2026-11-03):5 时间参数(日长 / 夜起 / 夜长的唯一运行期来源)──
+            if (typeof(TDataSet) == typeof(TimeParamsDataSet))
+            {
+                EnsureTimeParams();
+                return (TDataSet)(object)_timeParams.Value;
+            }
+            if (typeof(TDataSet) == typeof(RandomEventsDataSet))
+            {
+                EnsureRandomEvents();
+                return (TDataSet)(object)_randomEvents.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -484,7 +507,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 建造槽位骨架(S20-20 装载面 2026-10-28:WorldBuildSlotsDataSet)" +
                 " + 世界几何 / 地形表(关卡工具 story-002 2026-10-29:WorldGeometryDataSet / WorldTerrainDataSet)" +
                 " + 生态区多边形(关卡工具 story-003 2026-10-29:WorldEcozonesDataSet)" +
-                " + POI 定义 / 资源点(关卡工具 story-004 2026-10-29:WorldPoiDataSet / WorldResourcesDataSet)");
+                " + POI 定义 / 资源点(关卡工具 story-004 2026-10-29:WorldPoiDataSet / WorldResourcesDataSet)" +
+                " + 5 时间参数(ADR-038 §D1 2026-11-03:TimeParamsDataSet)" +
+                " + 52 随机事件配置(ADR-038 §D4 2026-11-03:RandomEventsDataSet)");
         }
 
         /// <summary>
@@ -553,6 +578,49 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
             EnsureInventoryConstants();   // S22-9(2026-11-01):CARRY_CAP 的装载输入
             EnsureForagingConstants();    // S22-9(2026-11-01):17 采前闸三条公式的装载输入
+            EnsureTimeParams();           // ADR-038 §D1(2026-11-03):时间三参数的装载输入
+            EnsureRandomEvents();         // ADR-038 §D4(2026-11-03):52 配置(今日零消费方)
+        }
+
+        /// <summary>52 随机事件配置装载(ADR-038 §D4 · 2026-11-03)。
+        /// <para>⚠️ 今日**零生产消费方** —— 装载它只为让「52 的数据集存在且可读」成为事实,
+        /// 而不是让它跑起来(ADR-038 §D7)。</para>
+        /// <para>与 <see cref="EnsureTimeParams"/> 同款:E-13 硬失败,绝不降级。</para></summary>
+        private void EnsureRandomEvents()
+        {
+            if (_randomEvents.HasValue) return;
+            byte[] bytes = FetchBytes(RandomEventsAddress);
+            try
+            {
+                _randomEvents = RandomEventsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 52 随机事件配置 cooked 解码失败(address={RandomEventsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>5 时间参数装载(ADR-038 §D1 · 2026-11-03)。
+        /// <para>⚠️ 本方法**只解码,不校验值域** —— 值域校验是 `Sim.TimeParams.Validate()`
+        /// (AC-5-11)的义务,由装载方在组装 `TimeParams` 时调一次。理由见 codec 文件头:
+        /// 规则只能有一份,复制进 codec 就成了第二判据。</para>
+        /// <para>与 <see cref="EnsureReadFloor"/> 同款:E-13 硬失败,绝不降级。</para></summary>
+        private void EnsureTimeParams()
+        {
+            if (_timeParams.HasValue) return;
+            byte[] bytes = FetchBytes(TimeParamsAddress);
+            try
+            {
+                _timeParams = TimeParamsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 5 时间参数 cooked 解码失败(address={TimeParamsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
         }
 
         private void EnsureItems()

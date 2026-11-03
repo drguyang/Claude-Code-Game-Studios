@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "ticks_per_day": { "$ref": "5_time.ticks_per_day" },
+  "roll_interval": 6000,
+  "window_size": 6,
+  "base": 2,
+  "budget_max": 6
+}

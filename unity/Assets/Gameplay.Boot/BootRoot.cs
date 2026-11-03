@@ -62,6 +62,12 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         private SimTickDriver _tickDriver;
         private CompositionRootServices _services;
+
+        /// <summary>
+        /// 5 时间参数(ADR-038 §D1)。<c>null</c> = 未预载 / 无数据面 ⇒ 时间未就绪:
+        /// 存档册**不画**「第 N 日 / 昼夜」(<c>DayNumber = 0</c>),而不是拿默认值静默断言一个没算过的值。
+        /// </summary>
+        private Sim.TimeParams _timeParams;
         private PlayerController _player;
         private CameraRig _cameraRig;
 
@@ -374,6 +380,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             _cueMarks = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.PatientCueMarkView();
             // AC-44-15 [L]:语声字幕元件 —— 同序(先造、后挂)。
             _subtitle = new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView();
+
+            // 5 时间参数(ADR-038 §D1 · 2026-11-03):预载成功 ⇒ 烘焙表 + Validate;
+            // 失败 / 未预载 ⇒ null(时间未就绪,存档册不画日与昼夜 —— 不拿默认值冒充)。
+            _timeParams = ResolveTimeParams(preloaded ? DataCorePreloader.Provider : null);
 
             _services = CompositionRoot.Assemble(
                 registry: null,
@@ -979,7 +989,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.SaveService,
                 // 🔁 2026-11-03(甲方案第一层):落笔受理 ⇒ 请求重画槽位行。
                 //    不在此处重探(落盘异步),重探在 `SkeuoRuntimeDriver.OnTickEdge` 等队列排空后。
-                () => _uiDriver?.MarkSaveSlotRowsDirty());
+                () => _uiDriver?.MarkSaveSlotRowsDirty(),
+                // 🔁 ADR-038 §D3(2026-11-03):读档成功 ⇒ 用该档记录的时间三参数覆盖运行时参数。
+                //    ⚠️ 不覆盖 = 用当前构建的值重放旧档 ⇒ 日边界 / 昼夜 / 52 的 TODMult 全错位。
+                HydrateTimeParamsAfterLoad);
             _uiDriver.SaveSlotSink = _saveSlotCommands;
 
             // 🔁 2026-11-03(甲方案第一层):槽位行**每次开册重探磁盘**。
@@ -1388,6 +1401,103 @@ namespace DaYiJingCheng.Gameplay.Boot
             return provider?.Load<TelemetryAnalyticsDataSet>().Tuning;
         }
 
+        /// <summary>
+        /// 读档成功后用**档内记录**的时间参数覆盖运行时参数(ADR-038 §D3)。
+        /// </summary>
+        /// <exception cref="InvalidOperationException">读档返回了但没有可用的时间参数
+        /// (codec / 迁移链契约破坏)⇒ fail-loud,不得沿用旧参数继续跑。</exception>
+        private void HydrateTimeParamsAfterLoad()
+        {
+            Sim.Codec.SaveTimeParams? loaded = _services?.SaveService?.LastLoadedTimeParams;
+            if (!loaded.HasValue)
+                throw new InvalidOperationException(
+                    "读档已返回,但档头没有可用的时间参数 —— " +
+                    "ADR-038 §D3 要求 v4 档必带 TICKS_PER_DAY / NIGHT_START / NIGHT_SPAN;" +
+                    "沿用旧参数会让重放出的日边界与玩家经历的不同(fail-loud)");
+
+            Sim.TimeParams hydrated = HydrateTimeParams(loaded.Value, _timeParams);
+
+            // ── R2(ADR-038 §Risk R2):档内日长必须仍被 52 的 roll_interval 整除 ──
+            // 今日不可达(唯一写档者与读档者用同一份数据),但日长一旦跨构建漂移,
+            // 「窗口边界」会落在日边界内 ⇒ 预算重置点不唯一。取不到 52(测试假件 / 未预载)⇒ 跳过。
+            long rollInterval = ResolveRollInterval(DataCorePreloader.Provider);
+            if (rollInterval > 0)
+                RequireDivisibleWindow(hydrated.TICKS_PER_DAY, rollInterval);
+
+            _timeParams = hydrated;
+        }
+
+        /// <summary>
+        /// 纯决策:用**档内**三值 + 现有季参数拼出运行时 <see cref="Sim.TimeParams"/>(ADR-038 §D3 / V-7)。
+        /// <para>抽出为静态纯函数是为了让判据可直测 —— 私有方法只能靠反射评,而反射会把
+        /// 「方法叫什么」写进夹具(改名即红,与被测行为无关)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">档内三值不可用(fail-loud)。</exception>
+        /// <exception cref="ArgumentException">三值关系不成立(与 `TimeParams.Validate` 同源)。</exception>
+        public static Sim.TimeParams HydrateTimeParams(
+            Sim.Codec.SaveTimeParams loaded, Sim.TimeParams current)
+        {
+            if (!loaded.IsSpecified)
+                throw new InvalidOperationException(
+                    "档头没有可用的时间参数 —— 拒绝沿用旧参数(ADR-038 §D3)");
+
+            var hydrated = new Sim.TimeParams
+            {
+                TICKS_PER_DAY = loaded.TicksPerDay,
+                NIGHT_START = loaded.NightStart,
+                NIGHT_SPAN = loaded.NightSpan,
+                // 两个未裁定的季参数仍不由装载源提供(见 `TimeParams` 头注)。
+                TICKS_PER_SEASON = current?.TICKS_PER_SEASON ?? 0L,
+                SEASONS_PER_YEAR = current?.SEASONS_PER_YEAR ?? 0L,
+            };
+            hydrated.Validate();
+            return hydrated;
+        }
+
+        /// <summary>读 52 的 `ROLL_INTERVAL`(provider 为 null ⇒ 0 = 「不知道」,调用方跳过检查)。</summary>
+        public static long ResolveRollInterval(IDataProvider provider)
+            => provider == null ? 0L : provider.Load<RandomEventsDataSet>().RollInterval;
+
+        /// <summary>
+        /// 档内日长须被 `ROLL_INTERVAL` 整除(ADR-038 §Risk R2 / V-9)。
+        /// </summary>
+        /// <exception cref="InvalidDataException">不整除 ⇒ 拒收该档。</exception>
+        public static void RequireDivisibleWindow(long ticksPerDay, long rollInterval)
+        {
+            if (rollInterval <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(rollInterval), rollInterval, "ROLL_INTERVAL 须 > 0");
+            if (ticksPerDay % rollInterval != 0)
+                throw new InvalidDataException(
+                    $"档内 TICKS_PER_DAY({ticksPerDay})不被 52 的 ROLL_INTERVAL({rollInterval})整除 —— " +
+                    "日边界与子区间边界错位,预算重置点不唯一(ADR-038 §R2)⇒ 拒收该档");
+        }
+
+        /// <summary>
+        /// 装载并校验 5 的时间参数(<c>5_time.cooked.bytes</c>;ADR-038 §D1)。
+        /// <para><b>与 <see cref="ResolveTelemetryKnobs"/> 的差别</b>:这里**有硬校验** ——
+        /// <see cref="Sim.TimeParams.Validate"/> 是 AC-5-11 的执行体,非法配置 ⇒ 抛(启动期硬失败),
+        /// 不返回 null。理由:遥测旋钮缺失只是「少一个功能」,而日长 / 昼夜参数非法会让
+        /// 每一 tick 的相位与 52 的 `TODMult` 都算错 ⇒ 静默腐蚀,**必须 fail-closed**。</para>
+        /// <para>⚠️ <c>provider == null</c> 仍是**合法**返回 null 的唯一情形(未预载 / 测试假件):
+        /// 那时根本没有产物可校验,不构成「配置非法」。</para>
+        /// </summary>
+        /// <exception cref="ArgumentException">产物里的三参数关系不成立(AC-5-11)。</exception>
+        public static Sim.TimeParams ResolveTimeParams(IDataProvider provider)
+        {
+            if (provider == null) return null;
+
+            TimeParamsDataSet data = provider.Load<TimeParamsDataSet>();
+            var p = new Sim.TimeParams
+            {
+                TICKS_PER_DAY = data.TicksPerDay,
+                NIGHT_START = data.NightStart,
+                NIGHT_SPAN = data.NightSpan,
+            };
+            p.Validate();
+            return p;
+        }
+
         /// <summary>听测期诊断 / 听诊档位覆盖缝(`TD-listen-01` **L-2**,2026-10-29 用户裁定「修」)。
         /// <para><b>病因</b>:`CompositionRoot` 的 <c>queryLevel</c> 是局部常量 <c>1</c> 且全库零回写
         /// ⇒ <c>TierIndex(1) = 0</c>(<c>1 &lt; SLOT_BOUNDS[0] = 10</c>)⇒ **恒最低档**
@@ -1698,16 +1808,33 @@ namespace DaYiJingCheng.Gameplay.Boot
                 switch (summary.State)
                 {
                     case Sim.Codec.SaveSlotState.Occupied:
+                        // ADR-038 §D3:**用这一份档自己记录的时间参数**渲染(不是当前构建的)
+                        // —— 否则改过日长后,旧档行会按新值画出与玩家当时不同的「第几日 / 昼夜」。
+                        // v3 及更早的档没有这三值(0)⇒ 回落当前构建的参数并如实画(已知降级)。
+                        Sim.TimeParams rowTime = summary.TimeParams.IsSpecified
+                            ? new Sim.TimeParams
+                            {
+                                TICKS_PER_DAY = summary.TimeParams.TicksPerDay,
+                                NIGHT_START = summary.TimeParams.NightStart,
+                                NIGHT_SPAN = summary.TimeParams.NightSpan,
+                            }
+                            : _timeParams;
+
                         views[i] = new UI.Skeuomorphic.SaveSlotView(
                             seq, known: true, hasSave: true, tick: summary.Tick,
                             // 🔁 2026-11-03(甲方案第二层):tick → 世界第几日(1 起)。
                             // 算术与除数**唯一出处** = `Sim.World.TimeBase`(AC-5-05;有门守着);
                             // 42 只拿到算好的日子,不做除法。
-                            dayNumber: Sim.World.TimeBase.DayNumberOf(summary.Tick),
+                            // ⚠️ ADR-038:日长来自 `5_time` 数据(不再有 const)⇒ 参数未就绪时
+                            //    传 0(「未定」,见 SaveSlotView.DayNumber 的定义),**不**拿默认值冒充。
+                            dayNumber: rowTime == null
+                                ? 0L
+                                : Sim.World.TimeBase.DayNumberOf(summary.Tick, rowTime),
                             // 2026-11-03 F-5.1:同一 tick 的昼夜(FMod 环绕安全,
                             // 公式逐字照 time-and-weather.md:189-203)。
                             // ⚠️ 唯一实现 = `Sim.World.TimeBase`(全仓曾有两套,见其文件头)。
-                            isNight: Sim.World.TimeBase.IsNight(summary.Tick));
+                            isNight: rowTime != null
+                                && Sim.World.TimeBase.IsNight(summary.Tick, rowTime));
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,

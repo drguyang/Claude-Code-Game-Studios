@@ -227,6 +227,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ⚠️ 已知盲区(门内头注已登记):**换名同值**(`const int DayTicks = 36000`)抓不到
             // —— 按名字匹配的判据结构上无法覆盖;要抓得比对值,那会把一切 36000 常量误判成红。
             errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."));
+            // AC-5-05 的**数据侧**半边(ADR-038 §D1/§D2):值的唯一定义点在 assets/data/5_time.json,
+            // 其他数据集只许 `$ref`。
+            errs.AddRange(TimeConstantSingleDefinitionGate.RunDataSide("."));
             return errs;
         }
 

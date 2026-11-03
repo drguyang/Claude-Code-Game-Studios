@@ -16203,3 +16203,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (并订正 `impl-f51-day-night-2026-11-03.md` §七)
 - **仍未做**:AC-5-05 的「引用解析后同值」半边(52 无数据集)· 数据侧今日**空真**
 - **未提交**(等用户指令)
+
+## Session Extract — ADR-038 实现轮(2026-11-03)
+
+- **触发**:用户「按数据路线走」+「A+B 一起做」+「存档头记值(升 v4)」+ 52 四值「6/2/6/6000」
+  +「三个时间参数全记」+「按此开工」
+- **产出**(三批):
+  ① 5 的数据管线:`assets/data/5_time.json` → Binder/Baker/Writer → cooked → `IDataProvider`
+  ② 52 的数据集:`{"$ref": "5_time.ticks_per_day"}` + 四值;Baker 解析后逐位断言同值
+  ③ 存档 v4:头部 +24 B 三参数 · `SaveMigrationV3ToV4` · 读档 hydrate 取档内值 ·
+     `BootRoot.RequireDivisibleWindow`(R2)
+- **顺带收口的既有分叉**:删除零消费的 `Sim/TimeBase.cs`,`TimeBase` 唯一实现改为显式收 `TimeParams`
+- **撞上的翻车点**(如实):`SaveHeaderCodec.FixedSize` 保持 36,但正文解析仍按它取配置版本段
+  ⇒ 44 条 EditMode 红(`count=36000`)。修:新增 `FixedSizeFor/HeaderSizeFor/ReadSaveVersion`,
+  正文解析 / 迁移尾部 / 探针 / 三处夹具全部改按版本取。
+- **证伪轮**:5 条有效变异全转红(M1 字面副本 / M2b HeaderSizeFor / M3 hydrate / M4 legacy 夜长 /
+  M5 整除门),SHA-256 还原;**M2(`FixedSizeFor`)打错靶已作废并重打为 M2b**
+- **回归**:EditMode `6724/6687/0/0/37` · PlayMode `324/320/0/2/2` · 警告 **0**(touch 1339 个 .cs 全量重编译)
+  @ 2026-11-03 11:52 CST · `50f17a7d` + 工作树
+- **证据**:`production/qa/evidence/impl-adr038-time-params-2026-11-03.md`
+  (并给 `impl-ac5-05-time-constant-gate-2026-11-03.md` 追加 §八 订正)
+- **登记未做**:52 零生产消费 · R2 端到端不可达 · AC-5-11 三条季/天气参数装载期 NOT-RUN ·
+  构建期探针轮仍 NOT-RUN · `ApplyMigrationsIfNeeded` 的旧注释已过期未改
+- **未提交**(等用户指令)

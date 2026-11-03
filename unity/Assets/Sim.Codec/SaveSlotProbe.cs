@@ -68,12 +68,27 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>存档格式版本(<see cref="SaveSlotState.Occupied"/> 之外恒 0)。</summary>
         public readonly uint SaveVersion;
 
-        /// <summary>构造。</summary>
+        /// <summary>
+        /// 该档记录的时间三参数(ADR-038 §D3;v3 及更早的档为 0 = 未知)。
+        /// <para>⚠️ **每份档用自己的**(不是当前构建的)—— 否则改过日长之后,
+        /// 旧档行会按新值画出「第几日的昼夜」,与玩家当时看到的不是同一天。</para>
+        /// </summary>
+        public readonly SaveTimeParams TimeParams;
+
+        /// <summary>构造(v3 及更早:无时间参数 ⇒ 全 0)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion)
+            : this(state, tick, saveVersion, default(SaveTimeParams))
+        {
+        }
+
+        /// <summary>构造(v4:带该档记录的时间三参数)。</summary>
+        public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
+                               SaveTimeParams timeParams)
         {
             State = state;
             Tick = tick;
             SaveVersion = saveVersion;
+            TimeParams = timeParams;
         }
     }
 
@@ -119,7 +134,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>读一份文件的头部;文件在但解不出 ⇒ <see cref="SaveSlotState.Corrupt"/>。</summary>
         private static SaveSlotSummary ReadOne(string path)
         {
-            byte[] buf = new byte[SaveHeaderCodec.HeaderSize];
+            byte[] buf;
             int read = 0;
             try
             {
@@ -128,6 +143,12 @@ namespace DaYiJingCheng.Sim.Codec
                 {
                     if (fs.Length < SaveHeaderCodec.HeaderSize)
                         return new SaveSlotSummary(SaveSlotState.Corrupt, 0L, 0U);
+
+                    // ADR-038 §D3:v4 的头部多 24 B。按**文件实际长度**取(不超过 v4 头),
+                    // 这样 v3 档(68+B)照样能读 —— 短读不构成损坏,v4 档读不满才由
+                    // `SaveHeaderCodec.Read` 的「声明 v4 但长度不足」判 Corrupt。
+                    int want = (int)System.Math.Min(fs.Length, SaveHeaderCodec.HeaderSizeV4);
+                    buf = new byte[want];
 
                     while (read < buf.Length)
                     {
@@ -149,8 +170,11 @@ namespace DaYiJingCheng.Sim.Codec
             try
             {
                 SaveHeader header = SaveHeaderCodec.Read(buf);
+                SaveTimeParams time = header.SaveVersion >= 4
+                    ? new SaveTimeParams(header.TicksPerDay, header.NightStart, header.NightSpan)
+                    : default(SaveTimeParams);
                 return new SaveSlotSummary(SaveSlotState.Occupied, header.Tick,
-                                           header.SaveVersion);
+                                           header.SaveVersion, time);
             }
             catch (InvalidDataException)
             {

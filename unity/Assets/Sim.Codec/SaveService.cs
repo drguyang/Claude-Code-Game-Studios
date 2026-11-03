@@ -330,6 +330,16 @@ namespace DaYiJingCheng.Sim.Codec
         public uint? LastLoadedConfigVersion { get; private set; }
 
         /// <summary>
+        /// 最近一次**成功**读档的槽里记录的时间三参数(ADR-038 §D3 · 存档 v4 起)。
+        /// <para><c>null</c> = 本次会话尚未成功读过档(或上一次读档失败)。</para>
+        /// <para>⚠️ 语义与 <see cref="LastLoadedConfigVersion"/> 同款:只有完整成功的读档才产生事实,
+        /// 失败路径在入口已清空,不得沿用上一次的值。</para>
+        /// <para><b>消费者</b>:装配层用它**覆盖**当前构建的数据集值 —— 时间参数属于存档,
+        /// 不属于构建(否则旧档会按新值重放出另一个世界)。</para>
+        /// </summary>
+        public SaveTimeParams? LastLoadedTimeParams { get; private set; }
+
+        /// <summary>
         /// 上一次**成功**读档携带的**逐份**产物 `ConfigVersion`(ADR-037 §④)。
         /// <para><b>空集合的语义 = 「本档不含逐份版本」**(v2 迁上来的旧档,或 v3 但写入时
         /// 未提供逐份数据)⇒ 排查时只能说「无法归因」,**不得**报成「逐份全等」。
@@ -861,15 +871,25 @@ namespace DaYiJingCheng.Sim.Codec
             // (「上一份档的 ConfigVersion」冒充「这一份的」= 排查时指向错误的版本对)。
             LastLoadedConfigVersion = null;
             LastLoadedArtifactConfigVersions = null;
+            LastLoadedTimeParams = null;
             RequireLoadable(slot);                          // ── Gating ──
             byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
             SaveHeader header = SaveHeaderCodec.Read(data);
             RequireSupportedVersion(header);                // ── 前向不兼容 / v1 拒收 ──
+            bool migrated = header.SaveVersion < SaveHeader.CurrentSaveVersion;
             data = ApplyMigrationsIfNeeded(data, header);   // ── 迁移链 ──
+            // ADR-038 §D3:**迁移后重读一次头** —— v3 及更早的档没有时间参数,
+            // 三个字段在第一次 `Read` 时是 0;v3→v4 的脚本把它们补进去之后才成立。
+            // 不重读 = 拿 0 当「本档的日长」,而 0 会让任何 `FMod` 除零。
+            if (migrated) header = SaveHeaderCodec.Read(data);
+            RequireTimeParams(header);                      // ── ADR-038:三参数必须可用 ──
             ReplayInto(data, slot);                         // ── Replaying ──
             // AC-7a-14 · ADR-010 §七:回填「已成功读入的档头携带的配置版本」。
             // 位置在 Replay 之后 = 只有完整成功的读档才产生事实(见属性 doc)。
             LastLoadedConfigVersion = header.ConfigVersion;
+            // ADR-038 §D3:同理 —— 只有完整成功的读档才交出时间参数。
+            LastLoadedTimeParams = new SaveTimeParams(
+                header.TicksPerDay, header.NightStart, header.NightSpan);
         }
 
         /// <summary>载入前置门:叙事上下文 + 槽位未锁(与写同钩,规则十四 / AC-7a-19 (d))。</summary>
@@ -906,6 +926,27 @@ namespace DaYiJingCheng.Sim.Codec
                     $"存档版本 {header.SaveVersion} 早于 v{SaveHeader.PayloadSegmentMinVersion}" +
                     "(首个带载荷段的布局)—— v1 及更早**没有载荷字节**,载荷从未落盘," +
                     "信息不存在 ⇒ 无法迁移(ADR-034 §⑥)。这不是缺迁移脚本");
+        }
+
+        /// <summary>
+        /// 时间参数可用性门(ADR-038 §D3):v4 起档头必须带一组合法的三参数。
+        /// <para>判据与 `Sim.TimeParams.Validate()` 的**关系**同源(这里不做完整校验,
+        /// 因为本装配不引用 `Sim`):<c>TPD &gt; 0</c> 且 <c>NIGHT_SPAN ∈ (0, TPD)</c>。</para>
+        /// <para>⚠️ 失败 = **拒收该档**,不得回落当前构建的数据集值(那正是静默漂移)。</para>
+        /// </summary>
+        private static void RequireTimeParams(in SaveHeader header)
+        {
+            if (header.SaveVersion < 4) return;   // 支持面之外:版本门已在更上方拦下
+
+            if (header.TicksPerDay <= 0)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 TICKS_PER_DAY = {header.TicksPerDay} —— 须 > 0" +
+                    "(ADR-038 §D3:日长为 0 会让相位与预算窗口同时失去定义)");
+
+            if (header.NightSpan <= 0 || header.NightSpan >= header.TicksPerDay)
+                throw new InvalidDataException(
+                    $"存档 v{header.SaveVersion} 的 NIGHT_SPAN = {header.NightSpan} 不在 " +
+                    $"(0, {header.TicksPerDay}) 内 —— 拒收(ADR-038 §D3)");
         }
 
         /// <summary>
@@ -1006,7 +1047,8 @@ namespace DaYiJingCheng.Sim.Codec
             // 🔁 2026-11-01(S22-7 · `TD-persist-13`):原 74 代码行按 `── 段 ──` 注释切成
             //    「配置版本段 / 折叠段 / 载荷段」三个私有方法,游标以 `ref CodecReader` 传递。
             //    **分区不变量未变**:校验顺序、拒收报文、游标推进次序逐字保持原样。
-            int offset = SaveHeaderCodec.HeaderSize;
+            // ADR-038 §D3:v4 起头部多 24 B ⇒ 正文起点**按版本取**,不得硬编码 v3 的 68。
+            int offset = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(data));
             if (data.Length < offset)
                 throw new InvalidDataException(
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");

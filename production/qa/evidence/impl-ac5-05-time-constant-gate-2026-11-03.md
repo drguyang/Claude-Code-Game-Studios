@@ -114,3 +114,20 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/Sim/time_constant_gate_test.cs   
 | 大小写变体(`ticksPerDay` 在 `.cs` 里) | **刻意不管** | 现存唯一一例是夹具值 `event_budget_defer_test.cs:99`(`1200`);判红它会迫使夹具去读生产常量(= 自指判据,`F3`) |
 | 注释/字符串里的声明 | **已不误报** | 由 `StripCommentsAndLiterals` 处理,⑦–⑩ 钉住 |
 | **构建期探针轮**(证明门在建构建时真的被调用) | **NOT-RUN** | 接线在源码里:`AssemblyGates.cs:229` 内一行 `errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."))`,由 `gate_wiring_manifest_test.cs` 的 `EntryWiringManifest` / `ClassConsumerManifest` 双向钉住。但按 `CLAUDE.md` §构建前门,**构建绿 ≠ 门跑了** —— 未做「插无条件失败项 ⇒ 要求 `Build Failure`」的探针轮 ⇒ **不声称已证构建时生效** |
+
+---
+
+## 八、2026-11-03 后续:AC-5-05 的 `THEN` 第二半已落地(本节**订正** §七的前两行)
+
+§七写「引用解析后与 5 同值 = **NOT DONE**」「数据侧 **空真**」—— 那是**当时**的事实。
+同日 ADR-038 实现轮把两半都补上了(证据原件:`impl-adr038-time-params-2026-11-03.md`):
+
+| §七 的项 | 现在 | 载体 |
+|---|---|---|
+| 「引用解析后与 5 同值」 | **已落地** | `assets/data/52_random_events.json` 写 `{"$ref": "5_time.ticks_per_day"}`;`RandomEventsBinder` 解析,`RandomEventsBaker` 做逐位相等断言 —— 判据句从「无可判对象」变成「有可判对象且绿」 |
+| 数据侧「空真」 | **不再空真** | 门现在**能**读到 52 那份文件:它是 `$ref`(对象)⇒ 不算字面副本;把 `$ref` 换成数字 ⇒ `test_dataSide_redWhenOtherFileHasLiteralCopy` 覆盖的正是这个形态 |
+
+**未变的两件事(不得借绿)**:
+① §七最后一行的**构建期探针轮**仍是 `NOT-RUN`;
+② 门的**换名同值盲区**仍在(按名字判,不看值)。52 今天是**唯一**的跨表引用方,
+若将来出现第三份数据集复制日长,只要它用了 `TICKS_PER_DAY` 之外的键名,门照不到 —— 仍登记为盲区。

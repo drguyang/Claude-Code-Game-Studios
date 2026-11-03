@@ -44,7 +44,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// <summary>造一份「不含校验和」的存档:指定版本 / seed / 正文。</summary>
         private static byte[] Save(uint version, ulong worldSeed, byte[] body = null)
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 7U, 100L, 0UL);
+            byte[] v4Header = SaveHeaderCodec.WriteWithoutChecksum(
+                worldSeed, 7U, 100L, 0UL, 36000L, 27000L, 9000L);
+            // ADR-038 §D3:按**目标版本**取头部长度 —— v4 起 60 B,更早 36 B
+            // (v<4 的头就是 v4 头的前 36 字节,布局完全一致)。
+            int headerLen = SaveHeaderCodec.FixedSizeFor(version);
+            var header = new byte[headerLen];
+            Array.Copy(v4Header, 0, header, 0, headerLen);
             SetVersion(header, version);
             body = body ?? Array.Empty<byte>();
             var combined = new byte[header.Length + body.Length];
@@ -90,12 +96,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
             {
                 _calls?.Add(FromVersion);
 
-                // 头部定长部分原样 + 新填充 + 正文原样(正文 = 末尾 data.Length - HeaderFixed 字节)
-                int bodyLen = dataWithoutChecksum.Length - HeaderFixed;
+                // 头部定长部分原样 + 新填充 + 正文原样(正文 = 末尾 data.Length - 头部定长 字节)
+                // ⚠️ ADR-038 §D3:头部定长**按源版本取**(v4 起 60,更早 36)
+                int headerFixed = SaveHeaderCodec.FixedSizeFor(FromVersion);
+                int bodyLen = dataWithoutChecksum.Length - headerFixed;
                 var result = new byte[dataWithoutChecksum.Length + _padBytes];
-                Array.Copy(dataWithoutChecksum, 0, result, 0, HeaderFixed);
-                for (int i = 0; i < _padBytes; i++) result[HeaderFixed + i] = (byte)(0xA0 + i);
-                Array.Copy(dataWithoutChecksum, HeaderFixed, result, HeaderFixed + _padBytes, bodyLen);
+                Array.Copy(dataWithoutChecksum, 0, result, 0, headerFixed);
+                for (int i = 0; i < _padBytes; i++) result[headerFixed + i] = (byte)(0xA0 + i);
+                Array.Copy(dataWithoutChecksum, headerFixed, result, headerFixed + _padBytes, bodyLen);
 
                 if (_advanceVersion) SetVersion(result, FromVersion + 1);
                 _tamper?.Invoke(result);

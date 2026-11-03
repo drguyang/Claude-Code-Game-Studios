@@ -156,6 +156,13 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>20 库存调参表的产物名(S22-9 · 2026-11-01)。</summary>
         public const string InventoryConstantsCookedAssetName = InventoryConstantsBake.CookedFileName;
 
+        /// <summary>5 时间参数的产物名(ADR-038 §D1 · 2026-11-03)。
+        /// <para>单一出处 = <see cref="TimeParamsBaker.CookedFileName"/>(写方 / 读方 address 同值)。</para></summary>
+        public const string TimeParamsCookedAssetName = TimeParamsBaker.CookedFileName;
+
+        /// <summary>52 随机事件配置的产物名(ADR-038 §D4 · 2026-11-03)。</summary>
+        public const string RandomEventsCookedAssetName = RandomEventsBaker.CookedFileName;
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -1340,6 +1347,74 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"SEASON_MULT {result.Bound.SeasonMult.Length} 项" +
                     $"(= seasons_per_year {result.Bound.SeasonsPerYear} ✓)," +
                     $"MAX_QUALITY = {result.MaxQuality}(读自 21a)," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        [MenuItem("大医精诚/数据管线/烘焙 5_time(时间参数 · ADR-038)")]
+        public static void BakeTimeParams()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                TimeParamsBaker.BakeOutput result = TimeParamsBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, TimeParamsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{TimeParamsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"TICKS_PER_DAY = {result.Bound.TicksPerDay}," +
+                    $"NIGHT_START = {result.Bound.NightStart}," +
+                    $"NIGHT_SPAN = {result.Bound.NightSpan}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 52 随机事件配置(ADR-038 §D4)。
+        /// <para>⚠️ **依赖 `5_time` 的作者态**:`ticks_per_day` 是 `{"$ref": "5_time.ticks_per_day"}`,
+        /// 本方法会先绑 5 再绑 52 —— 5 写坏了这里先红。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 52_random_events(随机事件配置 · ADR-038)")]
+        public static void BakeRandomEvents()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                RandomEventsBaker.BakeOutput result = RandomEventsBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, RandomEventsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{RandomEventsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"TICKS_PER_DAY = {result.Bound.TicksPerDay}(经 $ref 解析)," +
+                    $"ROLL_INTERVAL = {result.Bound.RollInterval}," +
+                    $"WINDOW_SIZE = {result.Bound.WindowSize}," +
+                    $"BASE = {result.Bound.Base}, BUDGET_MAX = {result.Bound.BudgetMax}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

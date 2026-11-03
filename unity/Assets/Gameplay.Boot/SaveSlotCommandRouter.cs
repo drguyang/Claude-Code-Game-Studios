@@ -38,6 +38,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Action<uint, Exception> _failureSink;
         private readonly SaveService _saveService;
         private readonly Action _onSaveAccepted;
+        private readonly Action _onLoaded;
 
         /// <summary>构造。</summary>
         /// <param name="sequencer">读档缝合序列器(**唯一**载入入口;可 null = 未接线形态,
@@ -50,12 +51,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         public SaveSlotCommandRouter(LoadSequencer sequencer,
                                      Action<uint, Exception> failureSink = null,
                                      SaveService saveService = null,
-                                     Action onSaveAccepted = null)
+                                     Action onSaveAccepted = null,
+                                     Action onLoaded = null)
         {
             _sequencer = sequencer;
             _failureSink = failureSink;
             _saveService = saveService;
             _onSaveAccepted = onSaveAccepted;
+            _onLoaded = onLoaded;
         }
 
         /// <summary>载入半边是否已接线(未接线 = 生产装配缺存档目录的合法形态)。</summary>
@@ -80,6 +83,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             try
             {
                 _sequencer.Load(new SaveSlot(slotSeq));
+                // ADR-038 §D3:读档成功后**立刻**用该档记录的时间参数覆盖运行时参数。
+                // ⚠️ 放在这里(而不是 UI 侧):这是「读档已成功」的唯一确知点;
+                //    钩子自身抛 ⇒ 视为读档失败(与 `LoadSequencer._afterRestore` 同口径)。
+                _onLoaded?.Invoke();
                 return true;
             }
             catch (Exception ex)

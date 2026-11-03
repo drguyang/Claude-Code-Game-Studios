@@ -11,6 +11,7 @@
 
 using System;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.World;   // TimeBase.FDiv(ADR-038 §D6:全仓唯一一份)
 
 namespace DaYiJingCheng.Sim
 {

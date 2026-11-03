@@ -423,7 +423,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 compose: _ => SaveComposer.Compose(
                     _stream.Events, PredicateOf(), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);   // 夹具与生产的唯一差别:同步内联
             svc.Checkpoint(new SaveSlot((uint)slot));
         }
@@ -442,6 +442,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 compose: _ => SaveComposer.Compose(
                     _stream.Events, PredicateOf(), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L),
                     existingFoldedRows: _stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

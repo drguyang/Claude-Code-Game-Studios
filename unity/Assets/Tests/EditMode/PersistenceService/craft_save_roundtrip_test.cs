@@ -199,7 +199,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 compose: _ => SaveComposer.Compose(
                     stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 260L,
-                    existingFoldedRows: stream.FoldedRows, blobPool: _pool),
+                    timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: stream.FoldedRows, blobPool: _pool),
                 writeScheduler: action => action(), blobRestoreSink: _pool);
 
         /// <summary>最近一次回放的事件段(读档时先到;折叠段紧随其后)。</summary>

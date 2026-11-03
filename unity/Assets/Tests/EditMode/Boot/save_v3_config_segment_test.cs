@@ -220,8 +220,10 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] v3 = ComposeUnsigned(null);      // 无逐份 ⇒ 段 count=0
             byte[] v2 = StripSegmentToV2(v3);       // 去掉段、版本号改 2
 
+            // ⚠️ 目标版本写 **3**(不是 `CurrentSaveVersion`)—— 本件测的是 ADR-037 那一步;
+            //    写当前版本会把 v3→v4 的 24 B 也算进来,断言就成了「v2 直接迁到 v4」。
             byte[] migrated = SaveMigrationChain.Migrate(
-                v2, SaveHeader.CurrentSaveVersion, new ISaveMigration[] { new SaveMigrationV2ToV3() });
+                v2, 3u, new ISaveMigration[] { new SaveMigrationV2ToV3() });
 
             CollectionAssert.AreEqual(v3, migrated,
                 "v2→v3 必须产出与「同一份 v3 直接写出」**逐字节相同**的结果 —— " +
@@ -245,12 +247,31 @@ namespace DaYiJingCheng.Tests.Boot
 
         // ══════════════ 夹具工具 ══════════════
 
+        /// <summary>
+        /// 组一份 **v3 布局**的不含校验和字节。
+        /// <para>⚠️ ADR-038 §D3 之后 `Compose` 出的是 **v4**(头部多 24 B 时间参数)。
+        /// 本夹具是 ADR-037 的 v3 专用件 ⇒ 组完之后**去掉**那 24 B 并把版本号写回 3,
+        /// 否则 `StripSegmentToV2` 与「v3 字节逐位相等」这类断言全部错位。</para>
+        /// </summary>
         private byte[] ComposeUnsigned(IReadOnlyList<ArtifactConfigVersion> artifacts)
-            => SaveComposer.Compose(
+        {
+            byte[] v4 = SaveComposer.Compose(
                 _stream.Events, _predicate, _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: Combined, tick: 20L,
-                existingFoldedRows: _stream.FoldedRows, blobPool: _pool,
+                timeParams: new SaveTimeParams(36000L, 27000L, 9000L), existingFoldedRows: _stream.FoldedRows, blobPool: _pool,
                 artifactConfigs: artifacts);
+
+            int head = SaveHeaderCodec.FixedSize;          // 36 = v3 头
+            int tailStart = SaveHeaderCodec.FixedSizeV4;   // 60 = v4 头之后
+            var v3 = new byte[v4.Length - SaveHeaderCodec.TimeParamsBytes];
+            System.Array.Copy(v4, 0, v3, 0, head);
+            System.Array.Copy(v4, tailStart, v3, head, v4.Length - tailStart);
+            v3[SaveHeaderCodec.SaveVersionOffsetFixed] = 3;
+            v3[SaveHeaderCodec.SaveVersionOffsetFixed + 1] = 0;
+            v3[SaveHeaderCodec.SaveVersionOffsetFixed + 2] = 0;
+            v3[SaveHeaderCodec.SaveVersionOffsetFixed + 3] = 0;
+            return v3;
+        }
 
         /// <summary>把 v3 的**不含校验和**字节还原成 v2:去掉段、版本号写 2。</summary>
         private static byte[] StripSegmentToV2(byte[] v3)
@@ -279,8 +300,13 @@ namespace DaYiJingCheng.Tests.Boot
                     pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),
                     FoldRowCodec.DecodeSegment(bytes)),
                 compose: _ => ComposeUnsigned(null),
-                // ADR-037 §⑤:链必须注册 v2→v3,否则 v2 档在链里断掉(生产装配同款)。
-                migrations: new ISaveMigration[] { new SaveMigrationV2ToV3() },
+                // ADR-037 §⑤ / ADR-038 §D3:链必须注册 v2→v3 **与** v3→v4,
+                // 否则旧档在链里断掉(生产装配同款;目标版本 = 当前 4)。
+                migrations: new ISaveMigration[]
+                {
+                    new SaveMigrationV2ToV3(),
+                    new SaveMigrationV3ToV4(),
+                },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }
 

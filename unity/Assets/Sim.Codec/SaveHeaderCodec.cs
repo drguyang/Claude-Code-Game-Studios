@@ -32,6 +32,44 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public const int FixedSize = 4 + 4 + 8 + 4 + 8 + 8;
 
+        /// <summary>v4 追加的三个时间参数(i64 × 3 = 24 B;ADR-038 §D3)。</summary>
+        public const int TimeParamsBytes = 24;
+
+        /// <summary>v4 起的头部定长(不含校验和)= <see cref="FixedSize"/> + 24。</summary>
+        /// <remarks>
+        /// ⚠️ <see cref="FixedSize"/> **保持 36 不变** —— 它被两条历史迁移脚本(`V2ToV3` 的插入点、
+        /// `V3ToV4` 的插入点)当作「旧头部长度」使用。改它会让迁移把字节插到错误偏移。
+        /// ⇒ 「当前版本的头部长度」读 <see cref="FixedSizeV4"/>。
+        /// </remarks>
+        public const int FixedSizeV4 = FixedSize + TimeParamsBytes;
+
+        /// <summary>v4 起的完整头部长度(含校验和槽)= <see cref="FixedSizeV4"/> + 32。</summary>
+        public const int HeaderSizeV4 = FixedSizeV4 + 32;
+
+        /// <summary>按存档版本取头部定长(不含校验和槽)—— 正文起点 = 它(v4 起 60,更早 36)。</summary>
+        /// <remarks>
+        /// ⚠️ **正文解析必须走本方法**,不得硬编码 <see cref="FixedSize"/> ——
+        /// 混用会把新增的时间参数当成正文首字段(实测症状:配置版本段读出 `count = 36000`)。
+        /// </remarks>
+        public static int FixedSizeFor(uint saveVersion) => saveVersion >= 4 ? FixedSizeV4 : FixedSize;
+
+        /// <summary>按存档版本取完整头部长度(含校验和槽)。</summary>
+        public static int HeaderSizeFor(uint saveVersion) => saveVersion >= 4 ? HeaderSizeV4 : HeaderSize;
+
+        /// <summary>从**完整存档**(magic + 校验和 + …)读版本号 —— 只读一字段,不做其余解析。</summary>
+        /// <param name="data">完整存档字节。</param>
+        /// <exception cref="InvalidDataException">长度不足 magic + 校验和槽 + 版本号。</exception>
+        public static uint ReadSaveVersion(byte[] data)
+        {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            // 完整形态:magic(4) + checksum(32) + saveVersion(4)
+            const int offset = 4 + 32;
+            if (data.Length < offset + 4)
+                throw new InvalidDataException(
+                    $"存档过短:{data.Length} 字节 < 版本号位置 {offset + 4}");
+            return BinaryPrimitives.ReadUInt32LittleEndian(new ReadOnlySpan<byte>(data, offset, 4));
+        }
+
         /// <summary>头部含校验和的完整长度 = <see cref="FixedSize"/> + 32。</summary>
         public const int HeaderSize = FixedSize + 32;
 
@@ -62,16 +100,21 @@ namespace DaYiJingCheng.Sim.Codec
         /// magic(4) + saveVersion(4) + worldSeed(8) + configVersion(4) + tick(8) + snapshotOffset(8)。
         /// <para>调用方把它与正文拼接后交 <see cref="SaveService.AddChecksum"/>。</para>
         /// </summary>
-        public static byte[] WriteWithoutChecksum(ulong worldSeed, uint configVersion,
-                                                  long tick, ulong snapshotOffset)
+        public static byte[] WriteWithoutChecksum(
+            ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset,
+            long ticksPerDay, long nightStart, long nightSpan)
         {
-            var w = new CodecWriter(FixedSize);
+            var w = new CodecWriter(FixedSizeV4);
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.Magic));
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.CurrentSaveVersion));
             w.WriteUInt64LittleEndian(worldSeed);
             w.WriteInt32LittleEndian(unchecked((int)configVersion));
             w.WriteInt64LittleEndian(tick);
             w.WriteUInt64LittleEndian(snapshotOffset);
+            // v4(ADR-038 §D3):时间三参数随档走 —— 读档用它们重放,不用当前构建的数据值。
+            w.WriteInt64LittleEndian(ticksPerDay);
+            w.WriteInt64LittleEndian(nightStart);
+            w.WriteInt64LittleEndian(nightSpan);
             return w.ToArray();
         }
 
@@ -105,10 +148,28 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = r.ReadInt64LittleEndian();
             ulong snapshotOffset = r.ReadUInt64LittleEndian();
 
+            // ── v4(ADR-038 §D3):头部末尾多三个 i64 ──
+            // ⚠️ 必须按版本判:调用方在**迁移之前**就会调本方法(`SaveService.Load`),
+            //    而 v3 档的头部没有这 24 B —— 无条件读会把正文前 24 B 当成时间参数。
+            long ticksPerDay = 0L, nightStart = 0L, nightSpan = 0L;
+            if (saveVersion >= 4)
+            {
+                if (data.Length < HeaderSize + TimeParamsBytes)
+                    throw new InvalidDataException(
+                        $"存档声明 v{saveVersion}(含时间参数),但长度 {data.Length} 字节 < " +
+                        $"头部 {HeaderSize + TimeParamsBytes} 字节");
+                ticksPerDay = r.ReadInt64LittleEndian();
+                nightStart = r.ReadInt64LittleEndian();
+                nightSpan = r.ReadInt64LittleEndian();
+            }
+
             // ⚠️ 校验和槽不进 SaveHeader 的构造器(它不接受),逐字段回填
             return new SaveHeader(worldSeed, configVersion, tick, snapshotOffset)
             {
                 SaveVersion = saveVersion,
+                TicksPerDay = ticksPerDay,
+                NightStart = nightStart,
+                NightSpan = nightSpan,
             };
         }
 

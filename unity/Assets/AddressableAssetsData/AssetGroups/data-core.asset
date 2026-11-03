@@ -99,6 +99,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52feaca9c6c02bed6b0e8fbed142a2a5
+    m_Address: 52_random_events.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7b43b39c5604f0fcdb2d176cc7e2ff2f
     m_Address: diagnosis_read_floor.cooked.bytes
     m_ReadOnly: 0
@@ -227,6 +233,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f7ec58ee81f91c157ad1cd1117a19782
     m_Address: world_geometry.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f92c2b0b730dfc86ab6729154fb26ff9
+    m_Address: 5_time.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core

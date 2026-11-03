@@ -98,6 +98,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             ulong worldSeed,
             uint configVersion,
             long tick,
+            SaveTimeParams timeParams,
             IReadOnlyList<FoldRow> existingFoldedRows = null,
             SaveBufferPool bufferPool = null,
             IBlobPool blobPool = null,
@@ -107,6 +108,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (folded == null) throw new ArgumentNullException(nameof(folded));
             if (decoder == null) throw new ArgumentNullException(nameof(decoder));
             if (codec == null) throw new ArgumentNullException(nameof(codec));
+            // ADR-038 §D3:时间参数必须由调用方给出 —— 不得回落到某个常数。
+            if (!timeParams.IsSpecified)
+                throw new ArgumentException(
+                    "写档缺少时间参数(TicksPerDay ≤ 0)—— 存档 v4 必须记录时间三参数;" +
+                    "回落默认值会让「配置读错」与「一切正常」在存档里不可分",
+                    nameof(timeParams));
 
             // 折叠循环:逐病人(升序,确定性)执行 Fold;新折的行进 rowsAccum,
             // 处理后的病史(被抹行的)留在 currentHistory。
@@ -121,7 +128,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // currentHistory 顺序取(Fold 的 Retained 保持原相对序 ⇒ 指针拼接是恒等的)。
             List<SimEvent> finalEvents = SpliceBack(allEvents, currentHistory);
 
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(
+                worldSeed, configVersion, tick, 0UL,
+                timeParams.TicksPerDay, timeParams.NightStart, timeParams.NightSpan);
             // 🔁 ADR-037 §① —— 配置版本段紧跟头部:**必须在事件段之前**。
             //    插在这里而不是尾部,是 v2→v3 迁移能成立的前提(迁移链按「从末尾算」比对正文,
             //    尾部追加必破该断言)。`null` ⇒ 写出 count=0(= 未知),不伪造。

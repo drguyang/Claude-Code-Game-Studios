@@ -55,7 +55,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static byte[] MinimalSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
                                                long tick = 100L, IReadOnlyList<SimEvent> events = null)
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL, 36000L, 27000L, 9000L);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null); // 配置版本段 count = 0(v3 必备段)
             byte[] folded = new byte[] { 0, 0, 0, 0 };   // 折叠段 count = 0(v2 必备段)
@@ -471,7 +471,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_load_rejectsFutureSaveVersion()
         {
             // 前向不兼容:SaveVersion > CurrentSaveVersion ⇒ 拒绝
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L);
             // ⚠️ 在**未插校验和**的形态下改:magic(0..3) 之后紧接 saveVersion(4..7)。
             //    AddChecksum 会把 saveVersion 挪到 36..39 —— 改必须在挪之前做。
             header[4] = (byte)(SaveHeader.CurrentSaveVersion + 1);
@@ -505,7 +505,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// </summary>
         private static byte[] PrePayloadSave(ulong worldSeed = 1UL)
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL, 36000L, 27000L, 9000L);
             // 同前:`AddChecksum` 之前 saveVersion 在 4..7
             header[SaveHeaderCodec.SaveVersionOffsetFixed] =
                 (byte)(SaveHeader.PayloadSegmentMinVersion - 1);
@@ -601,7 +601,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
             public byte[] Migrate(byte[] dataWithoutChecksum)
             {
                 _calls?.Add(FromVersion);
-                int fixedSize = SaveHeaderCodec.FixedSize;
+                // ADR-038 §D3:按源版本取头部定长(v4 起 60,更早 36)
+                int fixedSize = SaveHeaderCodec.FixedSizeFor(FromVersion);
                 int bodyLen = dataWithoutChecksum.Length - fixedSize;
                 var result = new byte[dataWithoutChecksum.Length + 4];
                 Array.Copy(dataWithoutChecksum, 0, result, 0, fixedSize);

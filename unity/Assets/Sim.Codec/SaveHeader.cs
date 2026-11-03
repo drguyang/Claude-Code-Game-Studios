@@ -37,8 +37,14 @@ namespace DaYiJingCheng.Sim.Codec
         /// 使「哪一张表变了」从不可推断变成可判。插在头部之后(而非尾部)是**可迁移性**要求的:
         /// 迁移链按「从末尾算的字节」比对正文,尾部追加必破该断言(ADR-037 §①)。
         /// v2 档由 `SaveMigrationV2ToV3` 插入 <c>count = 0</c>(= 未知,不得伪造)后升到 v3。</para>
+        /// <para>🔁 <b>v3 → 4(2026-11-03,ADR-038 §D3)</b>:v4 在**头部末尾**追加三个 i64 ——
+        /// <c>TicksPerDay</c> / <c>NightStart</c> / <c>NightSpan</c>(共 24 B),使读档能
+        /// **用存档记下的时间参数重放**,而不是用当前构建的数据值。
+        /// 追加在头部末尾(**不是**正文末尾)同样是为了可迁移性:迁移链按尾部锚定比对正文,
+        /// 尾部追加必破该断言(与 ADR-037 §① 同一条理由)。
+        /// v3 档由 `SaveMigrationV3ToV4` 在旧头部末插入 <c>36000 / 27000 / 9000</c> 后升到 v4。</para>
         /// </summary>
-        public const uint CurrentSaveVersion = 3;
+        public const uint CurrentSaveVersion = 4;
 
         /// <summary>
         /// 首个**带载荷段**的存档版本(ADR-034 §Decision ⑥)。
@@ -56,6 +62,17 @@ namespace DaYiJingCheng.Sim.Codec
         public long Tick;              // 当前 tick
         public ulong SnapshotOffset;   // 快照段偏移
 
+        /// <summary>一个世界日的 tick 数(ADR-038 §D3 · v4 起)。读档时**以此为准**重放。</summary>
+        /// <remarks>⚠️ v3 及更早的档**没有**这三个字段 ⇒ `SaveHeaderCodec.Read` 在版本 &lt; 4 时
+        /// 给它们填 <c>0</c>,由迁移脚本补值后**重新读一次**头(见 `SaveService.Load`)。</remarks>
+        public long TicksPerDay;
+
+        /// <summary>夜的起点(日内相位;ADR-038 §D3 · v4 起)。</summary>
+        public long NightStart;
+
+        /// <summary>夜长(ADR-038 §D3 · v4 起)。</summary>
+        public long NightSpan;
+
         public SaveHeader(ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset)
         {
             MagicValue = Magic;
@@ -65,6 +82,12 @@ namespace DaYiJingCheng.Sim.Codec
             ConfigVersion = configVersion;
             Tick = tick;
             SnapshotOffset = snapshotOffset;
+            // ⚠️ 时间参数**不在此处赋默认值** —— 由 `SaveHeaderCodec.WriteWithoutChecksum`
+            // 的调用方显式给出。留 0 会让「忘了传」看起来像一个合法值(0 是非法日长,
+            // 但只有消费者校验时才暴露);调用方缺失是编译期就能挡的。
+            TicksPerDay = 0L;
+            NightStart = 0L;
+            NightSpan = 0L;
         }
     }
 }

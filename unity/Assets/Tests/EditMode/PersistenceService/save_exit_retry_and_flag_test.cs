@@ -84,7 +84,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// <summary>造一个最小合法存档(头部 + 空事件段 + 空折叠段 + 校验和)。</summary>
         private static byte[] MinimalSaveBytes()
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             byte[] folded = { 0, 0, 0, 0 };
             var combined = new byte[header.Length + body.Length + folded.Length];

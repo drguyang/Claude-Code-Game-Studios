@@ -100,7 +100,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "HarvestGateAllowGate.RunAll",   // S22-9 生产零 HarvestGate.Allow(F6 执行体)· 2026-11-01
                     "CameraSetModeRequesterGate.RunAll", // 生产必须双参 SetMode(ADR-020 Amd C② / AC-ADR020-16)· 2026-11-02
                     "CameraSetModeRequesterGate.RunModeRequestTable", // 档位表 ↔ 代码覆盖(表 ⊆ 代码)· camera-viewpoint/story-007 · 2026-11-02
-                    "TimeConstantSingleDefinitionGate.RunAll", // AC-5-05 日长单一定义点 · 2026-11-03
+                    "TimeConstantSingleDefinitionGate.RunAll", // AC-5-05 日长单一定义点(代码侧)· 2026-11-03
+                    "TimeConstantSingleDefinitionGate.RunDataSide", // AC-5-05 数据侧(5_time 唯一定义 + 52 只许 $ref)· 2026-11-03
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。

@@ -238,6 +238,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // ⚠️ 与上一条同型的历史教训:常量声明了、`Ensure*` 进了 `Preload()`,
             //    但地址表漏登记 ⇒ 两条门同时转红。四处集合相等,漏一处即红。
             AddressablesDataProvider.DiseaseRegistryAddress,
+            // 5 时间参数(ADR-038 §D1 · 2026-11-03):日长 / 夜起 / 夜长的唯一运行期来源。
+            AddressablesDataProvider.TimeParamsAddress,
+            // 52 随机事件配置(ADR-038 §D4 · 2026-11-03):今日零消费方,装载面先立。
+            AddressablesDataProvider.RandomEventsAddress,
             // 建造槽位骨架(S20-20 装载面,2026-10-28:合成世界槽位目录的生产来源)。
             // ⚠️ 本条是**第三次**同型补登记,前两次(BuildModules / DiseaseRegistry)的教训逐字适用。
             AddressablesDataProvider.WorldBuildSlotsAddress,
