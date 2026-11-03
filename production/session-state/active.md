@@ -16320,3 +16320,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **债册**:`未闭 P0 面 2 → 3`(`TD-randomevents-05` 入表;四十六订);`epic 分布 1/31` 不变
 - **文档**:ADR-039 D4/§仍未做 + 证据 §9.7 + `technical-preferences.md` 日志同步为「三条债,归因不同,勿合并」
 - **未提交**(等用户指令)
+
+## Session Extract — TD-randomevents-05 可解性勘察 + 三项裁定(2026-11-03)
+
+- **触发**:用户「查这条可解性」(承上一轮「-05 优先级最高」)
+- **勘察纠正一处旧判断**:「`ClinicCellSource.Configure` 缺数据源」**只对了一半** ——
+  医馆格集的生产实现**存在**(`ClinicRoomExtraction.Extract` → `RoomCells`,
+  `ClinicReviveCellQuery.cs:113` 已在生产里调它)。真阻塞是**语义与量纲**
+- **🔴 决定性证据**:P0 的 9 个 `baked_initial` 槽位里**只有 1 件是家具**
+  (`(6,0,6) Decor mod 7 chamber_pot`),其余 8 件 `furn_type` 全 `null`
+  ⇒ 用真 `FURN_TYPES` 析出的「房间」= **1 格,而且是那个夜壶**
+  ⇒ 接它当医馆地块 = 把「玩家站在夜壶上」判成「在医馆内」**⇒ 不得顺手接上**
+- **三条阻塞**:语义错位(家具簇 ≠ 建筑占地)· 量纲荒谬(1 格夜壶)· 23 结构视图生产为空 ·
+  `isOnExpedition` 自我死锁 · `inCombatCooldown` 也恒假
+- **用户三项裁定**:① 口径 = **甲「建筑占地」**;② **动态量**(玩家可建槽位算);
+  ③ 占地 = **两者都算**(建筑件占格 + 围出内部)
+- **技术路线(已定未落)**:`StructureInstance.OccupiedCells` 是真足迹(源 =
+  `PlaceableChecker.ComputeOccupiedCells`,随朝向变)+ `EnumerateInstances()` ⇒
+  `ClinicCellSource` 从「静态注入」改为「从 registry 派生」;**改契约性质**,
+  须同批改接口头注 + 三消费点同源义务
+- **⚠️ 落地后仍不等价**:P0 的 5 件结构件围不出闭合 ⇒「内部空间」半边恒空 ⇒
+  `isInClinic` 只在墙/门/面板那几格为真
+- **债册**:零计数变化(四十七订,`-05` 本就 open;只补正文)
+- **未提交**(等用户指令)

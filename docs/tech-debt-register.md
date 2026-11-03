@@ -551,6 +551,27 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十七订(`TD-randomevents-05` 可解性勘察 + 三项裁定 · 2026-11-03 · 裁定面,零计数变化)** ——
+> 用户裁定「查这条可解性」⇒ 勘察结论 **= 本轮不可解,但前置已裁清**。
+> **勘察新发现(纠正一处旧判断)**:「`ClinicCellSource.Configure` 缺数据源」**只对了一半** ——
+> 医馆「格集」的生产实现**存在**(`ClinicRoomExtraction.Extract` 出 `RoomCells`,
+> `ClinicReviveCellQuery.cs:113` 已在生产里调它)。真正的阻塞是**语义与量纲**。
+> 🔴 **决定性证据**:P0 的 9 个 `baked_initial` 槽位里**只有 1 件是家具**
+> (`(6,0,6) Decor mod 7 furn_type=chamber_pot`),其余 8 件 `furn_type` 全 `null`。
+> ⇒ 用真 `FURN_TYPES` 析出的「房间」= **1 格,而且是那个夜壶**。接它当医馆地块
+> = 把「玩家站在夜壶上」判成「在医馆内」。**错量的门比空量的门更危险**(会产生
+> 「部分格偶然为真」的不稳定形态),故**不得顺手接上**。
+> **三项裁定(用户 2026-11-03)**:① 口径 = **甲「建筑占地」**(非可走区 / 非生态区);
+> ② **动态量** —— 玩家可建槽位建成后算医馆地块;③ 占地 = **两者都算**(建筑件自身占格 +
+> 围出内部空间)。
+> **技术路线已定,实现未落**:`StructureInstance.OccupiedCells` 是真足迹(源 =
+> `PlaceableChecker.ComputeOccupiedCells`,随朝向变),`EnumerateInstances()` 可枚举 ⇒
+> `ClinicCellSource` 从「静态注入」改为「从 registry 派生」。
+> ⚠️ **该路线改的是 `IClinicCellSource` 的契约性质**,须同批改接口头注 + 三个消费点的同源义务。
+> ⚠️ **P0 的 5 件结构件围不出闭合范围** ⇒「内部空间」半边在 P0 恒空 ⇒ 即使落地,
+> `isInClinic` 只在墙/门/面板那几格为真 —— **仍不与「玩家在医馆里」等价**。
+> **零计数变化**(`-05` 本就 open;本次只补正文)。
+
 > 🔁 **四十六订(`TD-randomevents-05` 立债 · F1 上下文门三项输入生产恒假 · 2026-11-03 · 债面)** ——
 > 变化(算法见 `TD-COUNT` 块,本节不手抄):`条目 +1` · `open +1` · `Y +1` ·
 > **`未闭 P0 面 2 → 3`** · `epic 分布 1/31`(**不变** —— `random-events` 已在分布内)。
@@ -4154,6 +4175,10 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **实测(逐条可跑)** | ① `grep -n "isOnExpedition: false, isInClinic: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② `isInClinic` 的真源 = `IClinicCellSource`,而生产实例 `ClinicCellSource` 是**空集占位**(`Configure` 零生产调用方,类头注自陈)⇒ `IsClinicCell` 恒 false。<br>③ `isOnExpedition` 的真源 = 规则六之二的定义「(玩家有活跃的出诊目标) 且 (玩家不在医馆地块内)」,而「活跃出诊目标」(`ActiveHouseCallQuery`)要求流里已有 `HouseCallStarted`,其生产写者 `HouseCallStartedWriter` 因**双重空集**(出诊类 `event_key` 集 + 医馆地块集均为空)恒零写入 ⇒ **自我死锁**。<br>④ `inCombatCooldown` 同为硬编码 `false`(P0 无战斗冷却源)。 |
 | **⚠️ 失败形态已变(如实登记)** | 2026-11-03 池表落地前,端到端是 **恒 `NoPool`**;落地后变成 **恒 `NoContext`** —— 两者都是零写入,但**归因不同**。任何「52 端到端可跑」的自述在两者任一形态下都是假的。 |
 | **解除动作** | ① `isInClinic` 接 23/24 的真实地块集(`ClinicCellSource.Configure` 的生产调用方);② `isOnExpedition` 按规则六之二的定义求值(需要 `ActiveHouseCallQuery` 能真求值 ⇒ 依赖 ①);③ `inCombatCooldown` 接战斗冷却源(25/27 侧);④ 夹具:三项各一正一反,且**至少一条真装配件**证明 `EvaluateContextGate` 在生产装配下能为真。 |
+| **🔍 可解性勘察(2026-11-03,结论 = 本轮不可解)** | **已找到的**:医馆「格集」的生产实现**存在** —— `ClinicRoomExtraction.Extract(IPlacedStructureReadView, IReadOnlyCollection<string>)` 出 `RoomCells`,且 `ClinicReviveCellQuery.cs:113` 已在生产里调它。⇒ 「`ClinicCellSource.Configure` 缺数据源」这个旧判断**只对了一半**。<br>**三条硬阻塞(逐条实测,任一不解则本条无解)**:<br>**① 语义错位** —— `RoomCells` = **一个连通家具簇**的成员格(24 规则一:恰好 1 个连通簇才成房间),而 GDD `:273` 要的是**建筑占地**。两者不是同一个量。<br>**② 量纲荒谬(决定性证据)** —— P0 的 9 个 `baked_initial` 槽位里,**只有 1 件是家具**:`(6,0,6) Decor mod 7 furn_type=chamber_pot`;其余 8 件是 Shell×4 / Door / Switch / ClinicPanel / Utensil,`furn_type` 全为 `null`。⇒ 用真 `FURN_TYPES` 闭集析出,得到的「房间」= **1 格,而且是那个夜壶**。接它当医馆地块 = 把「玩家站在夜壶上」判成「在医馆内」。<br>**③ 23 的结构视图生产为空** —— `ClinicCellSource.cs:8` 自陈 `StructureInstanceRegistry 生产树零构造` ⇒ 析出输入本身是空集。<br>**④ 自我死锁** —— `isOnExpedition` 要「活跃出诊目标」→ 要 `HouseCallStarted` → 要「玩家从医馆格跨出」→ 要医馆地块集。三者互为前提。<br>**⑤ 第三项也恒假** —— `inCombatCooldown` 硬编码 `false`(P0 无战斗冷却源),即使 ①–④ 全解,上下文门仍需三项齐备。<br>⇒ **不得「顺手接上」**:接一个语义错的量会得到「部分格偶然为真」的不稳定形态,比恒 false 更难排查(错量的门 > 空量的门)。**正确前置 = 先裁「医馆地块集」的形状与所有者**(见下行的开放裁定)。 |
+| **✅ 裁定(2026-11-03 用户,三项全裁)** | **① 口径 = 甲「建筑占地」**(非乙可走区 / 非丙生态区);**② 动态量** —— `baked_initial = false` 的玩家可建槽位建成后**算**医馆地块;③ **占地范围 = 两者都算**(建筑件自身的 `OccupiedCells` **+** 它们围出的内部空间)。<br>⇒ **地块集 = 23 结构表的派生量**,不是烘焙产物、不是 `RoomCells`(后者量纲错,见上)。 |
+| **🔧 技术路线(裁定已定,实现未落)** | **数据面已就位**:`StructureInstance.OccupiedCells` 是**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,随朝向变;`StructureKinds.cs:51`),`StructureInstanceRegistry.EnumerateInstances()` 可枚举。<br>**形状**:`ClinicCellSource` 从「装配期 `Configure(静态集)`」改为「从 registry 派生」——<br>· 建筑件判据 = `module.furn_type == null`(`Shell` / `Door` / `ClinicPanel` / `Utensil` / `Switch` / `Tent`;见 `build_modules.json`),**不是**槽位类型(槽位类型与模块类型是两个维度);<br>· 占格 = 这些结构件的 `OccupiedCells` **并集** ∪ 其**围出内部**(后者须多边形填充,归 23 的实现轮);<br>· 动态性 = 每 tick 求值或订阅 `StructurePlaced` / `StructureRemoved` / `StructureModified` 三种事件后失效重算(与 ADR-009 派生态同构:不进流、可重建)。<br>**⚠️ 这条路线改的是 `IClinicCellSource` 的契约性质**(静态注入 → 派生),须同批改接口头注的「装配期喂一个静态格集」口径,并更新三个消费点(写者 / `F1PipelineInput` / 规则十「无人」)的同源义务。<br>**⚠️ P0 的 5 件结构件围不出闭合范围** ⇒ 「内部空间」半边在 P0 **恒空**;建筑件占格半边可用。⇒ 即使落地,`isInClinic` 只在**墙/门/面板所在的那几格**为真 —— 与「玩家在医馆里」仍不等价。**如实登记,不得当成「已接真源」。** |
+
 | **⚠️ 与 `TD-randomevents-03` / `-04` 的关系** | 三条**不同因、不同解除动作**,不得合并:③ 是「池条目件与 medical 映射」,④ 是「预算的两项修饰子」,本条是「上下文门的三项输入」。本条**优先级最高** —— 它不解,另外两条即使全解也仍是零写入。 |
 | **触发条件** | ① 23/24 交付医馆地块集时(同批);② 或任何以「52 已端到端可跑」形态引用 ADR-039 之前(**禁借绿**);③ 或 P1a 关卡轮开工时。 |
 | **归属** | **52 随机事件导演**(装配侧上下文闭包)· 医馆地块 = **23/24** · 战斗冷却 = **25/27** |
