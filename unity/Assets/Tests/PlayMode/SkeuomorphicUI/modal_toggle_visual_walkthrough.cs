@@ -50,6 +50,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         private bool _panelSettingsOwned;
         private GameObject _cameraGo;
         private Camera _camera;
+        private RenderTexture _target;
         private SkeuoRuntimeDriver _driver;
         private ModalInputDriver _input;
         private bool _held;
@@ -72,6 +73,29 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 _panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
                 _panelSettingsOwned = true;
             }
+
+            // 🔴 **2026-11-04 第三处坑(又是看图才发现的)**:生产面板是 `ScaleWithScreenSize`
+            //    + 参考分辨率 1920,而本夹具的 Game 视图只有 593×429 CSS ⇒ 整块 UI 被缩到 0.31 倍,
+            //    15px 的行字落到屏上只剩 ~5px —— 放大看是一团糊块,据此判「字发虚」是**错判**。
+            //    (暂停壳的字看着还行,只是因为它吃的是主题 28px 默认字号。)
+            //    ⇒ 走查用**运行时副本**改成 `ConstantPixelSize` + scale 1,让形态按 1:1 呈现。
+            //    ⚠️ 必须 `Instantiate` 一份副本:直接改生产资产会被存盘污染(它在 `Assets/` 下)。
+            if (!_panelSettingsOwned)
+            {
+                _panelSettings = UnityEngine.Object.Instantiate(_panelSettings);
+                _panelSettingsOwned = true;
+            }
+            _panelSettings.scaleMode = PanelScaleMode.ConstantPixelSize;
+            _panelSettings.scale = 1f;
+
+            // 🔴 **2026-11-04 第四处坑(承上一条)**:即使 1:1,Game 视图只有 593×429 ——
+            //    比生产参考分辨率 1920×1080 窄三倍多。用这个窗口判「纸页够不够大」「行会不会
+            //    压到框线」会得出**与生产无关**的结论(实测:6 行 + 页脚在 429px 高下必然溢出)。
+            //    ⇒ 把面板直接渲到 1920×1080 的 RenderTexture,再 ReadPixels 存盘:
+            //    判的就是生产比例下的形态,且不再依赖 Game 视图尺寸 / `ScreenCapture`。
+            _target = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32);
+            _target.Create();
+            _panelSettings.targetTexture = _target;
 
             _doc = _go.AddComponent<UIDocument>();
             _doc.panelSettings = _panelSettings;
@@ -125,6 +149,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         {
             if (_go != null) UnityEngine.Object.Destroy(_go);
             if (_cameraGo != null) UnityEngine.Object.Destroy(_cameraGo);
+            if (_target != null) { _target.Release(); UnityEngine.Object.Destroy(_target); }
             // ⚠️ 只销毁**自己造的**面板设置:从 `AssetDatabase` 取到的是**生产资产**,
             //    `Destroy` 它虽被 Unity 拒绝(「Destroying assets is not permitted」),
             //    但会打红字并污染日志 —— 那不是本夹具该有的输出。
@@ -157,6 +182,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.That(_driver.OpenModal(ModalId.SaveSlots), Is.True);
             yield return null;
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots), "② 册已摊开");
+            DumpTree(_doc.rootVisualElement, 0);
             yield return Shot("modal_02_saveslots");
 
             // ③ 按 toggle ⇒ **回暂停壳**(不是回世界、也不是什么都不发生)
@@ -208,6 +234,28 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         private VisualElement Focused()
             => _doc.rootVisualElement.panel.focusController.focusedElement as VisualElement;
 
+        /// <summary>
+        /// 把树与**解析后**的样式打出来(常驻诊断)。
+        /// <para>⚠️ **为什么要留**:截图只能看出「颜色不对」,**看不出为什么**。2026-11-04 就是靠这行
+        /// 打印 `backgroundImage` 的真值(`img=d_console.warnicon` 而不是某张纸纹)才定位到
+        /// 「USS 的 `url("guid:…")` 恒不解析」这个根因 —— 光看图只会得出「水印 / 焦点环坏了」。
+        /// 成本 = 每次走查 ~21 行日志,收益 = 下次形态异常时能一眼看到解析后的真值。</para>
+        /// </summary>
+        private static void DumpTree(VisualElement el, int depth)
+        {
+            var rs = el.resolvedStyle;
+            string cls = el.ClassListContains("paper") ? "paper" : string.Join(".", el.GetClasses());
+            var bi = rs.backgroundImage;
+            string img = bi.texture != null ? bi.texture.name
+                       : bi.sprite != null ? "sprite:" + bi.sprite.name
+                       : bi.renderTexture != null ? "rt" : "none";
+            Debug.Log($"[TREE] {new string(' ', depth * 2)}{(string.IsNullOrEmpty(el.name) ? "(anon)" : el.name)}"
+                      + $" [{cls}] bound={el.worldBound} bg={rs.backgroundColor} img={img}"
+                      + $" borderTop={rs.borderTopColor}({rs.borderTopWidth})"
+                      + $" slice=({rs.unitySliceLeft},{rs.unitySliceTop},{rs.unitySliceRight},{rs.unitySliceBottom})");
+            for (int i = 0; i < el.hierarchy.childCount; i++) DumpTree(el.hierarchy[i], depth + 1);
+        }
+
         private IEnumerator Press()
         {
             _held = true;
@@ -221,14 +269,23 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         private IEnumerator Shot(string name)
         {
             if (Application.isBatchMode) yield break;   // batch 结构性无帧 ⇒ 不请求
+            yield return new WaitForEndOfFrame();       // 让本帧的 UI 绘制落进 RT
+            yield return null;
+
             string dir = Path.Combine(Application.dataPath, "..", "Logs", "shots");
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, name + ".png");
-            ScreenCapture.CaptureScreenshot(path, 2);
-            Debug.Log($"[MODAL] 已请求截图(2×)⇒ {path}");
-            // ScreenCapture 实际写盘延后一两帧 —— 不等就在这里退,图会缺
-            yield return new WaitForEndOfFrame();
-            yield return null;
+
+            RenderTexture prev = RenderTexture.active;
+            RenderTexture.active = _target;
+            var tex = new Texture2D(_target.width, _target.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, _target.width, _target.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            UnityEngine.Object.Destroy(tex);
+            Debug.Log($"[MODAL] 已存帧 {_target.width}x{_target.height} ⇒ {path}");
         }
     }
 }

@@ -605,6 +605,52 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 **Engine Knowledge Risk**:LOW(纯 C# 控制流与 UI Toolkit 焦点 API,均为长期稳定面)。
 
 
+## §十-G · Amendment F —— 贴图引用形态 + 纸面一分为二(填充 vs 页框)(2026-11-04)
+
+**病因**:两件叠在一起,第一件掩盖了第二件。
+
+① **`url("guid:…")` 在 Unity 6.3 的 USS 导入器里恒不解析**。实测逐条日志:
+`SkeuoPaper.uss (line 6): warning: Invalid URI scheme: 'guid'` —— 全库 **8 条**活引用
+(纸 / 卷轴 / 墨 ×3 / 印章 / 焦点环 ×2)全部如此。值被丢弃后元素只剩 `background-color`;
+编辑器还会把该槽位回填成内置的 `d_console.warnicon`(**黄色警告图标**),经 `-unity-slice-*`
+拉伸后看起来像一张「镶金边的琥珀色卡面」—— 因此这个洞在画面上**伪装成了美术效果**,
+活了整整一个月(自 2026-10-05 首次接图起)。
+② 把 ① 修好之后才暴露:页框是画在**纸面图**里的,而 `.paper` 这个类在全仓**既当页/卡、
+也当行**(`CasebookScreen` 每行、`PauseScreen` 的行容器都是 `Create(SkeuoElement.Paper)`)
+⇒ 纹理一活,每一行都套一圈三层黑框(实测暂停壳「继续」「存档位」各一个框,不可用)。
+
+**裁决**(两条,均为实现层必须遵守的形状约束):
+
+1. **USS 里的贴图引用一律用相对路径**(相对 USS 文件所在目录):
+   `background-image: url("Textures/xxx.png")`。**禁用 `url("guid:…")`**。
+   代价 —— 资产移动会静默失联(这正是原注释选择 `guid:` 的理由);但 `guid:` 是**恒失联**,
+   两害取轻。资产移动时必须同批改 USS(与「路径引用」的既有风险描述一致)。
+2. **纸面一分为二**:
+   - `.paper` = **无框底纹**(`paper_hemp-final.png`),供**任何**纸面元件用(含**行**);
+   - `.paper-page` = **纸 + 页框**(`border_paper-final.png`,三道 3px 斜角墨线),**只给「页 / 卡」级
+     容器挂**,并自带 `--skeuo-paper-frame-inset`(44px = 最内墨线外缘 38px + 6px 光学余量)的内缩 ——
+     内容不得压进墨线区。**行不挂本类**(行贴边才是正确形态)。
+
+**与既有裁决的关系**:不推翻 §十 任何一条;`AC-42-C8`(slice 值须来自冻结件)**继续成立**
+—— 本轮 slice 值 / `.meta` 一字未改。但冻结件里「四边延展带」的**实测值来自旧图**
+(墨线位置由 22–57px 变为 12–38px),重测得另行执行 ⇒ 登记 `TD-skeuo-10`。
+
+**门的口径随之订正**:`TextureBindingGates.AssetResolves` 原只按**仓库根**解析路径 ⇒
+合法的相对路径会被判成悬空;现增可选 `ussFilePath`,优先按 **USS 文件所在目录**解析
+(与 Unity 口径一致)。两条把 `guid:` 冻成判据的断言(`texture_binding_gate_test` 的
+`.focus-visible`、`ink_wet_dry_test` 的 `.ink-wet/-dry`)改锚相对路径形式。
+
+**⚠️ 未做 / 不借绿**:
+- 只有**存档册的页**挂了 `.paper-page`;暂停壳 / 脉案 / 主菜单 / 库存等页级容器仍是**无框纸卡**
+  ⇒ 归 `TD-skeuo-09`(视觉方向决定,非本条可裁);
+- **没有任何门在防「URL 形态是否被导入器接受」** —— 本轮靠一次人肉渲染树 dump 抓出来。
+  要不要做这个门须另裁(它读的是**导入日志**,与现有源码级门的形态不同);
+- 九宫格冻结轮的「重画即重测重冻」义务未执行 ⇒ 归 `TD-skeuo-10`。
+
+**Engine Knowledge Risk**:LOW(纯 USS 语法与资源解析行为,零 post-cutoff API;
+本条的依据是**实测日志**,不是文档推断)。
+
+
 ## Alternatives Considered
 
 ### Alternative 1: 全 UGUI 单栈

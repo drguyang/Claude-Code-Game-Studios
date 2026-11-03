@@ -8,7 +8,7 @@
        ✅ 2026-10-08 冻结轮(019-f):ink_light 冻结值 = **0(明示不走九宫格)**,C8 门
        反向核验本文件无任何 `-unity-slice-*` 行。真源 =
        design/assets/specs/nine-slice-freeze-2026-10-08.md。 */
-    background-image: url("guid:5fdd6642437ced664996d9e8d195acac");
+    background-image: url("Textures/ink_light-final.png");
     color: var(--skeuo-ink-fg);
     -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-md);
@@ -31,12 +31,12 @@
    图 = 冻结件 freeze-v1 ink_wet/ink_dry(slice 冻结 0 ⇒ 无 `-unity-slice-*` 行,承
    nine-slice-freeze-2026-10-08.md:53/:54);色走 theme(湿 = 权威浓墨 / 干 = 提案,归数值轮)。 */
 .ink-wet {
-    background-image: url("guid:4ccb158dd9726284480349d2a168e05b");
+    background-image: url("Textures/ink_wet-final.png");
     color: var(--skeuo-ink-fg-wet);
 }
 
 .ink-dry {
-    background-image: url("guid:fbae6e469acaf9fb2b9966cd8a276877");
+    background-image: url("Textures/ink_dry-final.png");
     color: var(--skeuo-ink-fg-dry);
 }
 

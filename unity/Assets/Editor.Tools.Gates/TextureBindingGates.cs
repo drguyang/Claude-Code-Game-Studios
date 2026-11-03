@@ -74,7 +74,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>C11 判定:url 是否可在资产库解析(悬空 GUID / 缺失文件检测)。
         /// <para><paramref name="guidResolver"/> = 可注入的 GUID→路径解析(生产侧传
         /// `AssetDatabase.GUIDToAssetPath`;测试侧传桩 ⇒ 本件保持零引擎依赖)。</para></summary>
-        public static bool AssetResolves(string url, Func<string, string> guidResolver, string repoRoot)
+        public static bool AssetResolves(string url, Func<string, string> guidResolver, string repoRoot,
+                                         string ussFilePath = null)
         {
             if (string.IsNullOrEmpty(url)) return false;
             string rel = url.Replace('\\', '/').Trim();
@@ -84,6 +85,19 @@ namespace DaYiJingCheng.EditorTools.Gates
                 string guid = rel.Substring("guid:".Length).Trim();
                 if (string.IsNullOrEmpty(guid)) return false;
                 return guidResolver != null && !string.IsNullOrEmpty(guidResolver(guid));
+            }
+
+            // 🔁 **2026-11-04 补**:USS 里的相对路径由 **USS 文件所在目录**解析(Unity 口径)。
+            //    原实现只按仓库根 ⇒ `url("Textures/x.png")` 被判 `Assets/Textures/x.png` 不存在,
+            //    合法引用被报成悬空。给 `ussFilePath` 时先按 USS 目录解析,再回落旧口径。
+            if (ussFilePath != null && !rel.Contains("://"))
+            {
+                string ussDirRel = Path.GetDirectoryName(Path.GetRelativePath(repoRoot, ussFilePath));
+                if (!string.IsNullOrEmpty(ussDirRel))
+                {
+                    string cand = Path.Combine(repoRoot, ussDirRel.Replace('\\', '/'), rel);
+                    if (File.Exists(cand)) return true;
+                }
             }
 
             string abs = rel.StartsWith("Assets/", StringComparison.Ordinal)
@@ -164,7 +178,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 foreach (Match m in BackgroundImageUrlRegex.Matches(body))
                 {
                     string url = m.Groups[1].Value;
-                    if (!AssetResolves(url, guidResolver, repoRoot))
+                    if (!AssetResolves(url, guidResolver, repoRoot, ussFile))
                         errs.Add($"[C11] {Path.GetFileName(ussFile)} 的 background-image url(\"{url}\") " +
                                  "无法解析 —— 贴图缺失 / GUID 悬空(禁静默降级纯色)。");
                 }

@@ -16467,3 +16467,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   PlayMode(batch,含新走查件):`326/322/0/2/2` @ 22:45:51Z · 警告 0。
   债册:条目 171 | closed 150 | open 17 | 未闭 P0 面 9 | epic 2/31。
   原件 = `production/qa/evidence/walkthrough-7b-modal-toggle-2026-11-04.md`(含五帧)。
+
+## 纸页轮(2026-11-04 · `TD-skeuo-07` 结案)
+
+- **用户指令**:「按 7b spec §5 补一整套纸页 / 页缘 / 页面的 USS 与九宫格素材。另外 play 启动后
+  console 看到红色信息」+「水印的问题可以用文生图重新做无水印图,不要将就,以效果为优先级」。
+- **查出的真根因(不是样式没写)**:全库 **8 条** `url("guid:…")` 在 Unity 6.3 的 USS 导入器里
+  被判 `Invalid URI scheme: 'guid'` ⇒ 拟物 UI 的**图像层自 2026-10-05 起从未渲染过**。
+  编辑器把槽位回填成内置 `d_console.warnicon`(黄色警告图标),被九宫格拉伸后**看起来像镶金边的
+  琥珀卡面** —— 我被它骗了两轮(先后误判成「水印」与「焦点环被拉成横带」)。
+  抓法:走查件打印 `resolvedStyle.backgroundImage` 真值 ⇒ `img=d_console.warnicon`。
+- **第二层(修好图之后才暴露)**:页框画在纸面图里,而 `.paper` 在全仓既当**页/卡**也当**行**
+  ⇒ 每行套一圈框(暂停壳实测不可用)。⇒ 纸面一分为二:`paper` = 无框底纹 `paper_hemp`、
+  新类 `.paper-page` = 页框 `border_paper` + 44px 内缩。**只挂了存档册的页**。
+- **纹理**:8 张程序化重做,无水印(逐张目视复核 + md5 登记);`focus_brass` 本就干净未动。
+  如实残留:`seal_surface` 去掉了篆书刻字(现为无字印面)、`ink_wet` 斜水痕偏数字化。
+- **走查装置升级**:截图从「截 593×429 Game 视图」改为「面板渲到 **1920×1080 RenderTexture**
+  再 ReadPixels」—— 小视图会把「布局放不下」误判成「设计坏了」。
+- **回归**:EditMode `6811/6774/0/37` · PlayMode `331/327/0/2/2`(@ 2026-11-03T23:34Z ·
+  纸页轮 · `663dca68`+工作树)。PlayMode 总数 +5 = 新几何夹具 5 条。
+- **债册**:`TD-skeuo-07` **closed**;新立 `TD-skeuo-08`(guid URI,**同日开同日关**)、
+  `TD-skeuo-09`(页框契约未统一,open/N)、`TD-skeuo-10`(冻结轮重测重冻,open/N)。
+  条目 171→174 | closed 150→152 | open 17→18 | **未闭 P0 面 9→8** | skeuomorphic-ui 4→3。
+- ADR-013 **§十-G Amendment F** 记录两条形状约束 + 门口径订正。
+- 原件 = `production/qa/evidence/impl-td-skeuo-07-page-frame-and-uss-uri-2026-11-04.md`。
+- **未提交**。

@@ -17,6 +17,11 @@
 
 :root {
     /* ── 纸面(Paper) ── */
+    /* 页框内缩:**内容不得压进九宫格画出来的墨线区**。
+       实测 `border_paper-final.png` 三道 3px 墨线占 12–14 / 24–26 / 36–38px(最内缘 38px),
+       故内缩须 ≥ 38;取 44 = 38 + 6px 光学余量。只给「页 / 卡」级容器用(`.paper-page`),
+       **不给行用** —— 行贴边反而正确(见 SkeuoPaper.uss 的 `.paper` 注释)。 */
+    --skeuo-paper-frame-inset: 44px;
     --skeuo-paper-bg: #f4ecd8;
     --skeuo-paper-bg-aged: #e8dcc4;
     --skeuo-paper-fg: #2b2416;
@@ -165,6 +170,16 @@
        ⚠️ **2026-10-13 探针实证(糊的第二层根因)**:该属性吃 `resource("Assets/…路径")`,
        **不吃 `url("guid:…")`**(对字体恒不解析 ⇒ MissingAssetReference ⇒ 回退位图字体 ⇒ 糊;
        `url(guid:)` 仅对 `background-image` 有效)。全库 10 处字体引用已统一改 `resource`。
+
+       🔴 **2026-11-04 订正(上一句的后半被证伪,原文不删)**:`url("guid:…")`
+       **对 `background-image` 同样不生效**。实测证据(Unity 6.3.24f1 的 USS 导入器):
+       `SkeuoPaper.uss (line 6): warning: Invalid URI scheme: 'guid'` ——
+       导入器直接判「非法 URI scheme」,值被丢弃,元素只剩 `background-color`;
+       编辑器里还会把该槽位回填成内置的 `d_console.warnicon`(黄色警告图标),
+       经 `-unity-slice-*` 拉伸后**看起来像一张金色卡面** —— 极易被误判成美术效果。
+       ⇒ 全库 **8 条** `url("guid:…")` 已改**相对路径**(`url("Textures/xxx.png")`,
+       相对 USS 文件所在目录);`C11` 门(`TextureBindingGates.AssetResolves`)
+       只验「guid → 路径存在」,**验不到这一层**,故那 8 条一直是绿的。
        字体资产 = Fonts/NotoSansCJKsc-Bold SDF.asset(**UnityEngine.TextCore.Text.FontAsset**,
        guid 6bfef9a30546ce4618445ebd7e0be0f5 —— 由 Editor.Tools.Font.SdfFontAssetTool 生成;
        ⚠️ 类型须 TextCore 系 —— `TMPro.TMP_FontAsset` 不继承它,被 UI Toolkit 拒绝;

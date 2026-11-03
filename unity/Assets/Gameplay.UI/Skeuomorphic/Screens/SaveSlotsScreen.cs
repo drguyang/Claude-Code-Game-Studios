@@ -57,6 +57,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
+        /// <summary>册(定宽居中的列):页缘 | 纸页 | 页缘。</summary>
+        private readonly VisualElement _book;
+        /// <summary>纸页本体 —— **行是它的子级**(不是兄弟)。</summary>
         private readonly VisualElement _slotHost;
         private readonly List<SaveSlotItem> _rows = new List<SaveSlotItem>();
         private readonly List<uint> _slots = new List<uint>();
@@ -75,7 +78,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             _root = root;
             _library = library;
-            _slotHost = new VisualElement { name = "slot-list" };
+            _book = new VisualElement { name = "save-book" };
+            _book.AddToClassList("save-book");
+
+            // 🔁 **2026-11-04(`TD-skeuo-07`)**:纸页由「行的**兄弟**」改为「行的**父亲**」。
+            //    旧形态下 `.paper` 是一个空容器,高度只等于自己的内边距 ⇒ 纸塌成顶部一条细带,
+            //    行浮在没有底色的世界上;而焦点环尺寸 = 行尺寸、行铺满面板 ⇒ 环被拉成横贯全宽的铜带
+            //    (与 `.pause-column` 2026-10-31 那条走查缺陷同一个病)。
+            _slotHost = _library.Create(SkeuoElement.Paper);
+            _slotHost.name = "slot-list";
+            // 页框(`.paper-page`,`SkeuoPaper.uss`)—— 只有「页 / 卡」级容器挂;
+            // **行不挂**(行贴边是正确形态,挂上会给每行套一圈框)。
+            _slotHost.AddToClassList("paper-page");
+            _slotHost.AddToClassList("save-page");
 
             // 鱼尾上的页码(`§5.1` 封面区的「当前页码」)—— 零字的物理载体。
             // ⚠️ 数字形态在 spec 里是**本地化素材档**;今日是「a / b」的纯文本替身。
@@ -139,12 +154,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>构建存档位界面 UI。</summary>
         private void BuildUI()
         {
-            _slotHost.Add(_library.Create(SkeuoElement.Paper));
-            // 常驻元件(不随翻页重建):页码 + 两条页缘。
-            _slotHost.Add(_pageMark);
-            _slotHost.Add(_prevEdge);
-            _slotHost.Add(_nextEdge);
-            _root.Add(_slotHost);
+            // 册的层次(`save-slots-7b.md` §5.2):页缘 | **纸页(行都在页里)** | 页缘。
+            // ⚠️ 页缘是纸页的**兄弟**、不是页内的行 —— 它是纸面本体,不是按钮元件(§5.2「零按钮元件」)。
+            _book.Add(_prevEdge);
+            _book.Add(_slotHost);
+            _book.Add(_nextEdge);
+            // 页码由 `UpdateChrome` 每次重排时移到页脚(`BringToFront`),故此处不入树。
+            _root.Add(_book);
         }
 
         /// <summary>
@@ -224,6 +240,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private void UpdateChrome()
         {
             _pageMark.text = (_pageIndex + 1) + " / " + PageCount;
+            // 页码落在**页脚**:每次重排后把它移到子级末尾(行会不断追加在它前面)。
+            // ⚠️ 用 `BringToFront` 而不是 `Add` —— 同一个元素重复 `Add` 会报「已有父级」。
+            if (_pageMark.parent != _slotHost) _slotHost.Add(_pageMark);
+            _pageMark.BringToFront();
 
             // 「还有下一页」由**纸边厚度**传达(§5.2),不由图标传达 ——
             // 不可翻时页缘**不占位**:① `display = None` 退出布局(不占纸面);

@@ -463,7 +463,10 @@
 | `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-05` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
-| `TD-skeuo-07` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-skeuo-08` | `skeuomorphic-ui` | closed | **N** | R1 |
+| `TD-skeuo-09` | `skeuomorphic-ui` | open | **N** | R1 |
+| `TD-skeuo-10` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -572,6 +575,18 @@ PYEVAL
 > ⚠️ **P0 面判 Y 的理由**(可被用户推翻):7b 是 P0 屏,而玩家**读不清自己的档** ——
 > 行字落在无底色的深色背景上、页码与页缘无形态。这不是「美化未做」,是**可用性不成立**。
 > ⚠️ **本轮不动代码**:修它要先裁「载体形态」(接回 UXML / 补一整套 USS),属设计面。
+
+> > 🔁 **六十二订(纸页轮 · 2026-11-04)** —— `TD-skeuo-07` **结案**;
+> 同轮被渲染树 dump 抓出两笔新债并登记(`TD-skeuo-08` / `-09`),外加一笔流程债(`TD-skeuo-10`)。
+> 变化:`open 17 → 18`(+1,`07` 关 −1、`09`/`10` 开 +2)· `closed 150 → 152`(+2,`07`/`08`)·
+> **`未闭 P0 面 9 → 8`**(−1,`07` 关;新开两条均判 **N**)·
+> **`skeuomorphic-ui 4 → 3`**(−1)· 条目数 **171 → 174**(+3)。
+> 变化源:索引行 `TD-skeuo-07` 改 `closed` + 新增 `TD-skeuo-08/09/10` 三行。
+> ⚠️ **`TD-skeuo-08` 同日开同日关**(它是被修 `07` 时抓到的**根因**,不是待办);
+> `09` / `10` 判 **P0 面 N** 的理由:前者是**视觉一致性**(无框纸卡仍可用、可读),
+> 后者是**流程义务**(冻结件测量值过期,但 slice 值今天仍覆盖得住,未坏)。
+> ⚠️ **本轮改了两个门**(`TextureBindingGates.AssetResolves` 的解析口径)与两条把
+> `guid:` 冻成判据的断言 —— 详见 `TD-skeuo-08` 解除动作 ②③。
 
 > > 🔁 **六十订(`TD-skeuo-03` 结案 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户裁定「甲:关闭 + 焦点回进入前载体」。变化:`open 17 → 16`(−1)· `closed 149 → 150`(+1)·
@@ -1127,10 +1142,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 171 | 状态 {'closed': 150, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 108 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4
+条目 174 | 状态 {'closed': 152, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 109 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 3
 ```
 <!-- TD-COUNT:END -->
 
@@ -4804,6 +4819,55 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 42 的下一轮视觉 / USS 轮;② 7b 的 UX 文案与数字形态轮;③ 或任何以「存档册可用」形态引用之前(**禁借绿**)。 |
 | **归属** | **42 拟物 UI**(屏与 USS 元件库)· **7b 存档位 UI**(spec 的形态要求)· 载体形态 = **用户裁定** |
 | **⚠️ 与 `TD-skeuo-04` 的关系** | 不同因、不同解:04 是「闭集 3 员**打不开**」(入口面),本条是「打得开但**不成形**」(呈现面)。修 04 不会让本条变绿。 |
+
+> ✅ **2026-11-04 已闭(用户裁定取乙案「补一整套 USS 与九宫格素材」)**。
+> 原文不删。落地 = 纸页由「行的**兄弟**」改为「行的**父亲**」· `.save-page` / `.save-book` /
+> `.save-slot-edge` / `.save-slot-page` / `.save-slot-mark` 五类补齐规则 · 页框拆成
+> `.paper-page`(见 `TD-skeuo-08` 的同轮发现)· 解除动作 ③ 的几何判据 =
+> `Tests/PlayMode/SkeuomorphicUI/save_slots_page_geometry_test.cs`(5 条,全部用引擎真算的
+> `worldBound`)· 视觉证据 = 1920×1080 的 `modal_02_saveslots.png`(真纸纹 + 三层墨线页框,
+> 行在框内、页码在页脚)。
+> 原件 = `production/qa/evidence/impl-td-skeuo-07-page-frame-and-uss-uri-2026-11-04.md`。
+> 回归:EditMode `6811/6774/0/37` · PlayMode `331/327/0/2/2`(@ 2026-11-03T23:34Z · 纸页轮 · `663dca68`+工作树)。
+
+### TD-skeuo-08 — USS 的 `url("guid:…")` 在 Unity 6.3 **恒不解析** ⇒ 全库图像层从未渲染
+
+> **⚠️ 2026-11-04 立债并同日结案**(查 `TD-skeuo-07` 时被渲染树 dump 抓出来的,**不是猜的**)。
+> 原件 = `production/qa/evidence/impl-td-skeuo-07-page-frame-and-uss-uri-2026-11-04.md` §1。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 全库 **8 条**活引用 `background-image: url("guid:…")`(纸 / 卷轴 / 墨 ×3 / 印章 / 焦点环 ×2)在 Unity 6.3 的 USS 导入器里被判 **`Invalid URI scheme: 'guid'`** ⇒ 该槽位被丢弃 ⇒ **从 2026-10-05 接图起,整套拟物 UI 的纸纹 / 卷轴边 / 墨迹 / 印章 / 焦点环一次都没画出来过**。元素一直只剩 `background-color`,视觉上等于「平涂色块」。 |
+| **实测(逐条可跑)** | ① `grep -o "Invalid URI scheme: 'guid'" <运行日志>` ⇒ 8 条,逐条点名 `Skeuo*.uss (line N)`;② 渲染树 `resolvedStyle.backgroundImage` 打印 ⇒ `img=d_console.warnicon`(Unity 内置**黄色警告图标**);③ 把同一条改成相对路径后同法打印 ⇒ `img=sprite:border_paper-final`。 |
+| **⚠️ 为什么长期没人发现** | ① 编辑器把失配槽位回填成 `d_console.warnicon`,被 `-unity-slice-*` 拉伸后**看起来像一张镶金边的琥珀色卡面** —— 我先误判成「水印」,再误判成「焦点环被拉成横带」,**两次都没往「图根本没加载」上想**;② 既有门 `C11`(`TextureBindingGates.AssetResolves`)只验「guid → 路径存在」,**验得到而 USS 用不了** —— 门与机制不是同一件事;③ 全部夹具判结构,不判像素(与本册 `TD-skeuo-07` 同族)。 |
+| **解除动作** | ① 8 条改**相对路径**(相对 USS 文件目录);② `AssetResolves` 增可选 `ussFilePath`,优先按 **USS 目录**解析(原实现只按仓库根 ⇒ 合法相对路径会被判悬空);③ 两处把 `guid:` 冻成判据的断言改锚路径(`texture_binding_gate_test` 的 `.focus-visible`、`ink_wet_dry_test` 的 `.ink-wet/-dry`);④ 订正 `SkeuoThemeVariables.uss` 里「`url(guid:)` 仅对 `background-image` 有效」这句**已被证伪**的注释(原文不删,加订正段)。 |
+| **⚠️ 未做(不得借绿)** | **没有任何门在防「URL 形态是否被导入器接受」** —— 本轮靠一次人肉 `[TREE]` dump 抓出来。要不要把「导入器零 `Invalid URI scheme` 警告」做成门,须另裁(它读的是**导入日志**,不是源码,与现有源码级门的形态不同)。 |
+| **归属** | **42 拟物 UI**(USS 与元件库) |
+
+### TD-skeuo-09 — 页框契约未统一:`.paper` 既当页又当行,只有存档册挂了页框
+
+> **⚠️ 2026-11-04 立债**(修 `TD-skeuo-08` 的第二层后果,**不是新发现的旧债**)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `border_paper-final.png` 把**三道黑框画在纸面里**。`.paper` 这个类在全仓既用于**页 / 卡**(暂停壳、主菜单、脉案页、库存页、医馆面板…),也用于**行**(`CasebookScreen` 每行、暂停壳的 `paper` 内每行)。纹理一活,每一行都套一圈框 —— 实测暂停壳「继续」「存档位」各一个框,不可用。本轮把纸面拆成 `.paper`(无框底纹)+ `.paper-page`(页框),但**只把 `.paper-page` 挂到了存档册的页上**。 |
+| **现状(可跑)** | `grep -rn "paper-page" unity/Assets --include=*.uss --include=*.cs` ⇒ 只有 `SkeuoPaper.uss` 的定义与 `SaveSlotsScreen.cs` 一处挂载。其余页级容器仍是**无框纸卡**。 |
+| **为什么本轮不擅自扩面** | 给哪几屏上页框、行级要不要保留纸纹、`.paper-aged` 与 `.paper` 的纸质语义(麻纸 / 陈纸)如何分工 —— 都是**视觉方向**决定,属设计面;本轮只解决「存档册读不成形」这一条可判据的缺陷。 |
+| **解除动作** | ① 逐屏判定「页级容器 vs 行级元件」清单;② 页级挂 `.paper-page`(自带 44px 内缩),行级保持 `.paper`;③ 若某屏页高不足以容纳内缩,须连带调布局(内缩是**绝对像素**,不随页高缩放)。 |
+| **触发条件** | 42 的下一轮视觉统一轮;或任何以「某屏纸面形态」引用之前(**禁借绿**)。 |
+| **归属** | **42 拟物 UI** × **设计(视觉方向)** |
+
+### TD-skeuo-10 — 九宫格冻结件的「重画即重冻」义务未执行(8 张图已被替换)
+
+> **⚠️ 2026-11-04 立债**(由用户指令「水印不要将就,重做无水印图」直接触发)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `design/assets/specs/nine-slice-freeze-2026-10-08.md` 逐字:**「任何一张图重画 / 替换 ⇒ 本轮作废,须重测重冻」**。本轮为去水印重画了 **8 张**在用纹理(`border_paper` / `paper_aged` / `border_scroll` / `seal_surface` / `ink_light` / `ink_wet` / `ink_dry` / `paper_hemp`)。`slice` 值 / `.meta` / USS **一字未改**(border_paper 64 · border_scroll 72 · paper_aged 64 · seal 8 · ink_* 0),但**「重测重冻」这个流程动作没做** —— 冻结件里那些「四边延展带」的实测值仍然是**旧图**的。 |
+| **为什么要紧** | `border_paper` 的墨线位置已从旧图的 22–57px 变成新图的 **12–38px**。slice 64 仍覆盖得住(≥38),**所以今天没坏**;但冻结件自称「唯一真源」而其中的测量值已经与盘上的图不符 —— 下一次有人按冻结件调 slice 就会踩空。 |
+| **解除动作** | 按该件 §一 的六步法重测 8 张 → 更新 `freeze-v1` 机器块 → 同批改 `.meta` / USS(若值有变)→ 复跑 C8 门。**值若不变也要重签**(重测的结论本身是证据)。 |
+| **触发条件** | 下一次动任何 `-unity-slice-*` 之前(**硬前置**);或 42 的下一次视觉轮。 |
+| **归属** | **42 拟物 UI** × **美术(切图冻结轮)** |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 

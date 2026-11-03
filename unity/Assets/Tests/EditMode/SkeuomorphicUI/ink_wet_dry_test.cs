@@ -181,12 +181,17 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 
             // Assert ① 各绑冻结件 guid(评审修复:锚 `background-image: url(...)` 全形 ——
             //    只 Contains guid 时块内他处提到 guid 也过,且选择器改造的假红面见文件头登记)
+            // 🔁 **2026-11-04 订正**:原断言锚 `guid:…` 形式。实测 Unity 6.3 的 USS 导入器对
+            //    `url("guid:…")` 一律报 `Invalid URI scheme: 'guid'` ⇒ 值被丢弃、图从未画出来;
+            //    ⇒ 改锚**相对路径**(相对 USS 文件目录),并保留「绑的是哪一张」这一本意。
             Assert.IsTrue(Regex.IsMatch(wetBlock.Value,
-                    $@"background-image:\s*url\(\s*""guid:{InkWetGuid}""\s*\)"),
-                ".ink-wet 须以 background-image 绑 ink_wet-final.png 冻结 guid。");
+                    @"background-image:\s*url\(\s*""Textures/ink_wet-final\.png""\s*\)"),
+                ".ink-wet 须以 background-image 绑 ink_wet-final.png(相对路径形式;" +
+                "`guid:` 形态已实证不解析,不得回退。");
             Assert.IsTrue(Regex.IsMatch(dryBlock.Value,
-                    $@"background-image:\s*url\(\s*""guid:{InkDryGuid}""\s*\)"),
-                ".ink-dry 须以 background-image 绑 ink_dry-final.png 冻结 guid。");
+                    @"background-image:\s*url\(\s*""Textures/ink_dry-final\.png""\s*\)"),
+                ".ink-dry 须以 background-image 绑 ink_dry-final.png(相对路径形式;" +
+                "`guid:` 形态已实证不解析,不得回退。");
 
             // Assert ② 颜色走 theme(湿 = 权威浓墨变量 / 干 = 提案变量;C2 门禁内联色)。
             //    评审修复:`color:` 恰 1 次 + 即该 var —— 防块内后置覆盖(换 var / 具名色)假绿

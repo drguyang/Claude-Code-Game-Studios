@@ -137,6 +137,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/SkeuomorphicUI/modal_toggle_visual_walkthrough.cs",
+                Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
+                         "写盘 = `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫)," +
+                         "目标 `unity/Logs/shots/modal_*.png`(gitignored 指定暂存区,文件头已具名声明五张文件名)。" +
+                         "**不写仓库源、不写入库产物**。" +
+                         "⚠️ 本条的由来 = 同一形态**第六例**(2026-11-04):写走查夹具时又忘了本门," +
+                         "用户先看见 Console 红字(`[fs-write·R2]`)才发现 —— 不是门漏,是作者漏",
+            },
+            new Declaration
+            {
                 FileSuffix = "PlayMode/camera_downed_visual_walkthrough.cs",
                 Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
                          "写盘 = `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫)," +

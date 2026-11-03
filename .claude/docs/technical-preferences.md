@@ -384,6 +384,18 @@
   ⚠️ **未做,不得借绿**:`design/ux/` **无 `processing-18.md`** ⇒ 该屏是**最小可操作壳**,
   排版 / 文案 / 焦点序均未经 `/ux-review`;`AC-42-F1` 的 ⑨ 员记 **`NOT-RUN`** 且**阻塞签核**。
   Engine Knowledge Risk **LOW**(纯枚举与屏载体,零 post-cutoff API)。
+  **⚠️ 2026-11-04 §十-G Amendment F(贴图引用形态 + 纸面一分为二)** —— 病因两件叠在一起:
+  ① **`url("guid:…")` 在 Unity 6.3 的 USS 导入器里恒不解析**(逐条实测
+  `warning: Invalid URI scheme: 'guid'`)⇒ 全库 **8 条**贴图引用**自 2026-10-05 接图起从未生效**,
+  元素只剩 `background-color`;编辑器把该槽位回填成内置 `d_console.warnicon`(黄色警告图标),
+  被 `-unity-slice-*` 拉伸后**看起来像镶金边的琥珀卡面** —— 因此伪装成美术效果活了一个月。
+  ② 修好 ① 才暴露:页框是画在**纸面图**里的,而 `.paper` 既当**页/卡**也当**行** ⇒ 每行套一圈框
+  (实测暂停壳不可用)。 裁决:**USS 贴图一律相对路径**(禁 `guid:`);
+  **`.paper` = 无框底纹**(所有纸面元件含行)· **`.paper-page` = 纸+页框**(只给页/卡级容器,
+  自带 `--skeuo-paper-frame-inset: 44px` 内缩,行不挂)。 门口径随之订正:
+  `TextureBindingGates.AssetResolves` 优先按 **USS 目录**解析相对路径(原只按仓库根,会把合法路径判悬空)。
+  ⚠️ **只挂了存档册页**;其余页级容器仍无框 ⇒ `TD-skeuo-09`。冻结轮「重画即重测重冻」未执行 ⇒ `TD-skeuo-10`。
+  Engine Knowledge Risk **LOW**(纯 USS 语法与资源解析,依据是实测日志而非文档推断)。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。

@@ -49,7 +49,7 @@
        环中心透明 ⇒ 目标自身 background-color 纸底透出(overlay 不挡内容)。
        单槽铁律(保留,语义随甲案收窄):overlay 自身**只许** background-image
        (环图)—— 不得再叠纸纹/底色;目标自身 background 不受影响。 */
-    background-image: url("guid:6d4c0acbd9a141348c34017e96d20ee2");
+    background-image: url("Textures/Brass/focus_brass_2px-final.png");
     -unity-slice-left: 2px;
     -unity-slice-right: 2px;
     -unity-slice-top: 2px;

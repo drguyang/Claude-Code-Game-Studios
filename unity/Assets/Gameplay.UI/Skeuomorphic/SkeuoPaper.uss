@@ -2,8 +2,20 @@
 
 .paper {
     /* 2026-10-05 019-d 接图:引 border_paper-final.png(九宫格边框图,与下列 64px slice 匹配)。
-       GUID 引用(非路径)—— 路径引用在资产移动时静默失联(casebook 移库即此失效模式)。 */
-    background-image: url("guid:9c7bc40f300a2c5539a0dfece9d9e43b");
+       GUID 引用(非路径)—— 路径引用在资产移动时静默失联(casebook 移库即此失效模式)。
+       🔴 **2026-11-04 订正(上一段的两条判断都不成立,原文不删)**:
+       ① `url("guid:…")` 在 Unity 6.3 的 USS 导入器里被判 **Invalid URI scheme** ⇒
+          该槽位从 2026-10-05 接图起**从未真正解析过**,纸纹一直是缺的;
+       ② 相对路径**是**能用的 —— 已改 `url("Textures/border_paper-final.png")`,
+          导入器零警告,`resolvedStyle.backgroundImage.sprite` = `border_paper-final`(实测)。
+       「移动资产会失联」是真的代价,但 `guid:` 是**恒失联**,两害取轻。 */
+    /* 🔁 **2026-11-04 纸面一分为二**(纹理一活就暴露的结构问题):
+       `.paper` 在全仓既当**页/卡**用,也当**行**用(`CasebookScreen` 每行、`PauseScreen` 每行
+       都是 `Create(SkeuoElement.Paper)`)。原 `border_paper-final.png` 把**三道黑框画在纸面里**,
+       修好 `guid:` 之后每一行都套上一圈框 —— 实测暂停壳「继续」「存档位」各一个框,不可用。
+       ⇒ `.paper` 只取**无框底纹**(`paper_hemp-final.png`,同批程序化产物,四边均匀、无文字);
+       页框单独成类 `.paper-page`(见下方),只有「页 / 卡」级容器挂。 */
+    background-image: url("Textures/paper_hemp-final.png");
     background-color: var(--skeuo-paper-bg);
     border-top-width: var(--skeuo-shared-border-width);
     border-right-width: var(--skeuo-shared-border-width);
@@ -38,8 +50,21 @@
 .paper-aged {
     /* 2026-10-05 019-d:旧纸态贴图。⚠️ 本类**不进 C7 判据面**
        (用户裁甲:变体类非注册项,门只查 4 基类)—— 接图靠人工守护,无门覆盖。 */
-    background-image: url("guid:3ebbce0eca27f8999856715176f08e4d");
+    background-image: url("Textures/paper_aged-final.png");
     background-color: var(--skeuo-paper-bg-aged);
+}
+
+/* 页框(2026-11-04 新立):纸 + 三道 3px 斜角墨线,九宫格 slice 64。
+ * 只给「页 / 卡」级容器挂 —— **行不挂**(行贴边是正确形态,见 `.paper` 的注释)。
+ * ⚠️ 与 `.paper` 是同一元素的**两个类**:`.paper` 供底色/边框/圆角/内边距/slice,
+ *    本类只接管 `background-image`(文件内次序在本类之前的 `.paper` 之后 ⇒ 覆盖成立)。 */
+.paper-page {
+    background-image: url("Textures/border_paper-final.png");
+    /* 内缩 = 墨线区外侧:内容不得压进框里(实测最内墨线外缘 38px)。 */
+    padding-top: var(--skeuo-paper-frame-inset);
+    padding-right: var(--skeuo-paper-frame-inset);
+    padding-bottom: var(--skeuo-paper-frame-inset);
+    padding-left: var(--skeuo-paper-frame-inset);
 }
 
 .paper .ink {
@@ -224,4 +249,95 @@
     font-size: var(--skeuo-font-size-lexeme);
     /* 值区横排(2026-10-14):题签与右侧首个词条之间的间距。 */
     margin-right: var(--skeuo-shared-space-md);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 存档册(7b)—— 2026-11-04 · `TD-skeuo-07`
+ *
+ * 病因(图形模式实拍,`production/qa/evidence/walkthrough-7b-modal-toggle-2026-11-04.md`):
+ *   ① 纸页此前是行的**兄弟**而不是行的父亲 ⇒ `.paper` 是空容器、高 = 自身内边距
+ *      ⇒ 纸塌成顶部一条细带,行浮在没有底色的世界上;
+ *   ② 行铺满整个面板、焦点环尺寸 = 行尺寸 ⇒ 环被拉成横贯全宽的铜带
+ *      (与 `.pause-column` 2026-10-31 那条走查缺陷**同一个病**,处置同一条:定宽 + 居中);
+ *   ③ `.save-slot-mark` / `.save-slot-page` / `.save-slot-edge` 三个类**此前零规则**
+ *      ⇒ 行字走引擎默认色,在深色世界背景上读不出。
+ *
+ * 权威:`design/ux/save-slots-7b.md` §5.1(层级)/ §5.2(三区 + 页缘由纸边厚度传达)/
+ *       §5.3(册面元件 · 九宫格 `-unity-slice-*`)。
+ * ⚠️ 九宫格**复用** `.paper` 的冻结值(64px,真源 `nine-slice-freeze-2026-10-08.md`)——
+ *   本批**不新出贴图**:仓内现成的纸纹件带生成水印(见 evidence §6),不能进构建。
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* 册 = 定宽居中(承 `.pause-column` 的列宽契约:宽走 var,不写字面 px —— C4 门禁)。 */
+.save-book {
+    width: var(--skeuo-shared-modal-width);
+    align-self: center;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+/* 纸页 —— 行是它的子级。边框 / 底色 / 内边距 / 九宫格 slice 全部来自 `.paper`,此处只补「页是列」。 */
+.save-page {
+    flex-grow: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* 页框内缩由 `.paper-page` 提供(它才是画框的那一层)—— 本类只管「页是列」。 */
+}
+
+/* 登记行:列容器里子元素默认 `stretch` ⇒ 行宽自然 = 页宽。
+ * ⚠️ 这里**刻意不点名** `.save-slot-item` / `.empty-row` —— 二者已在上面那条
+ *   「等重声明块」里各出现一次,而 `AC-021-2` 的门要求 `.empty-row` **恰出现一次**
+ *   (反序块合并计,防后挂覆盖块让等重/格线运行期失守)。
+ *   本轮实测:第一版在这里多点了一次名 ⇒ 该门当场 1 红。行宽交给容器 stretch 即可。 */
+
+/* 行字(§5.4 字段一 + 字段二降级形态)。此前零规则 —— 这是「字读不出」的直接原因。
+ *
+ * ⚠️ **刻意不写 `-unity-font-definition`**:2026-11-04 实拍对比 —— 暂停壳的行标签是
+ *   裸 `new Label(...)`(不指字体)⇒ 清晰;存档行原先硬指 `NotoSansCJKsc-Bold SDF`,
+ *   同一张截图里**发虚带重影**。两屏同面板、同倍率、同字号量级 ⇒ 差异只在这行 override。
+ *   ⇒ 与暂停壳对齐:字体交给主题默认,这里只定**颜色 / 字号 / 对齐 / 内边距**。 */
+.save-slot-mark {
+    color: var(--skeuo-ink-fg);
+    font-size: var(--skeuo-font-size-md);
+    -unity-text-align: middle-left;
+    padding-left: var(--skeuo-shared-space-sm);
+    padding-right: var(--skeuo-shared-space-sm);
+}
+
+/* 「留档」新行 —— 与槽位行**形态可分**(§5.3:玩家要能看出这一行是「再写一行」)。 */
+.save-slot-writable {
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-bottom-color: var(--skeuo-brass-bg);
+    min-height: var(--skeuo-shared-row-height);
+    width: 100%;
+}
+
+/* 页脚页码(§5.2 封面区「当前页码 · 页脚鱼尾压印」的降级形态:一行居中小字)。 */
+.save-slot-page {
+    color: var(--skeuo-ink-fg-light);
+    font-size: var(--skeuo-font-size-xs);
+    -unity-text-align: middle-center;
+    padding-top: var(--skeuo-shared-space-xs);
+    padding-bottom: var(--skeuo-shared-space-xs);
+}
+
+/* 页缘热区(§5.2:指针点页缘 / 手柄把焦点移到页缘再 Submit;§5.1 序 4「还有下一页」
+ * 由**纸边厚度**传达,不由图标传达)。故它是纸面的一条窄边,不是按钮。 */
+.save-slot-edge {
+    width: var(--skeuo-shared-space-lg);
+    background-color: var(--skeuo-paper-bg-aged);
+    border-top-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-top-color: var(--skeuo-paper-border);
+    border-bottom-color: var(--skeuo-paper-border);
+}
+
+#save-slot-prev {
+    border-right-width: var(--skeuo-shared-border-width);
+    border-right-color: var(--skeuo-paper-border);
+}
+
+#save-slot-next {
+    border-left-width: var(--skeuo-shared-border-width);
+    border-left-color: var(--skeuo-paper-border);
 }

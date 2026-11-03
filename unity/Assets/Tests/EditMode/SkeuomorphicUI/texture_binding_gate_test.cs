@@ -284,8 +284,14 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 
             // Assert: ① 环图 guid 真被引用;② 恰 4 条 slice 全 = 冻结值 2;
             //         ③ 实色 border 不得回归(并存 = 双环 4px,违「2px 视觉厚度」);④ 禁用态复位环
-            Assert.IsTrue(body.Contains("6d4c0acbd9a141348c34017e96d20ee2"),
-                ".focus-visible 须绑黄铜 2px 环图(guid 6d4c0acb…)—— 否则焦点高亮无贴图载体。");
+            // 🔁 **2026-11-04 订正**:原断言锚 `guid 6d4c0acb…` 字符串。实测该形态**恒不解析** ——
+            //    Unity 6.3 的 USS 导入器报 `Invalid URI scheme: 'guid'`,槽位被丢弃,焦点环图
+            //    从未画出来过(编辑器回填成 `d_console.warnicon`,拉伸后是**填充黄带**)。
+            //    ⇒ 改为锚**相对路径**形式,并断言路径指向的正是那张环图。
+            Assert.IsTrue(Regex.IsMatch(body,
+                    @"background-image:\s*url\(""Textures/Brass/focus_brass_2px-final\.png""\)"),
+                ".focus-visible 须绑黄铜 2px 环图(Textures/Brass/focus_brass_2px-final.png)" +
+                "—— 否则焦点高亮无贴图载体。`guid:` 形态已实证不解析,不得回退。");
             Assert.AreEqual(4, slices.Count,
                 $".focus-visible 须恰 4 条 -unity-slice-*,实见 {slices.Count}。");
             foreach (Match m in slices)
