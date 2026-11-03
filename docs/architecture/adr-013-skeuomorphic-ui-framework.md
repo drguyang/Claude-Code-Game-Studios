@@ -546,6 +546,64 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 
 **Engine Knowledge Risk**:LOW(纯 C# 控制流,零引擎 API)。
 
+---
+
+## §十-F · Amendment E —— 模态关闭面**收敛为一个可比较的量** + 栈 + 焦点回进入前载体(2026-11-04 用户裁定甲)
+
+**背景(缺口的形状)**:`ModalOpener` 的契约此前是**两个逐员布尔**
+(`IsPauseOpen` / `IsCasebookOpen`),而 `ModalInputDriver.OnFrame` 据此三分支:
+脉案开 ⇒ 关 · 暂停壳开 ⇒ 关 · **其余一律 ⇒ `OpenPause()`**。
+⇒ 闭集 9 员里,只有 `Casebook` / `Pause` 两员能被同一个 toggle **关掉**;
+另外 7 员(存档位 / 库存容器 / 设置壳 / 教学 / 医馆面板 / 纸近景 / 炮制屏)按同一个键
+**被换屏到暂停壳** —— 玩家以为关掉了,实际换了一个屏,再按一次又回世界,来回打转。
+三份 Approved spec 的出口都写着「同一 action toggle 关闭」
+(`inventory-container-20.md:56` · `clinic-panel-24.md:81` · `casebook-39.md:225`),
+**两条腿都断**。
+
+**三项裁决(用户 2026-11-04 裁定「甲」)**:
+
+| # | 裁决 |
+|---|---|
+| ① | **toggle 语义 = 甲「关闭 + 焦点回进入前载体」**(非乙回世界 / 非丙另接 `Cancel`) |
+| ② | **判据收敛成一个可比较的量** —— `ModalOpener.CurrentModal : ModalId`;规则只有一句:**有模态 ⇒ 关,无模态 ⇒ 开暂停壳**。**不逐员分支**(闭集还会增员,逐员写必然再漏) |
+| ③ | **栈语义(= 壳类专用)** —— **壳类**模态(暂停壳 / 设置壳)开出下一层时压栈,关当前弹回上一层(承 `save-slots-7b.md:198`「回进入前状态栈」);**文档类**(册 / 箱 / 面板 / 近景)换屏**不**压栈 —— 离开即离开;栈空才回世界并把焦点还给**进入前载体**(P-02) |
+
+**实现要点**:
+
+- `ModalOpener` 的两个逐员布尔 → `CurrentModal`;**契约形状本身承载判据** ——
+  逐员布尔的形状必然要求调用方也逐员分支,这是「改一处、漏七处」的结构性来源。
+- `SkeuoRuntimeDriver` 增 `_modalStack` 与 `_entryCarrier`:
+  `OpenModal` 记栈/载体,`CloseModal` 弹栈或还原焦点;`OpenModalCore` 只做开屏、**不碰栈**
+  (否则关-弹会无限压栈)。**重复打开同一个模态不压栈**。
+- **⚠️ 栈的适用面由 PlayMode 实测收窄(首版是通用栈,当场转红)**:通用栈让
+  `Casebook → Inventory → 关闭` **回到脉案**并多发一条 camera 意图,而 `AC-39-07`(Approved)
+  要求「从非脉案模态关屏**零意图**」—— `casebook-39.md:253`「档位回归 Explore」,
+  **离开脉案是单向的**,不是可返回的一层。⇒ 压栈判据改为 `IsShellModal`
+  (暂停壳 / 设置壳是**容器**,会开出下一层;册 / 箱 / 面板 / 近景是**文档**,入口在世界)。
+- 载体还原前判 `carrier.panel != null` —— 载体可能随世界消失(结构被拆 / 屏重建),
+  悬空 `Focus()` 比不还更糟。
+
+**判据**(`Tests/EditMode/Boot/modal_toggle_closure_test.cs` 6 条 · PlayMode 1 条):
+
+- **判据是枚举驱动的**(`Enum.GetValues(typeof(ModalId))`),不是逐员列举 ⇒ 闭集增员时零改动,
+  且**新员自动进判据**(逐员 if 写法下新员不在分支里就会红);
+- **「关闭」与「换屏」必须可分** —— `OpenCalls` 必须为 0。只断「屏没了」不够:
+  换到暂停壳同样会让旧屏消失,那是假绿;
+- 栈:暂停壳 → 存档位 → toggle ⇒ 回**暂停壳**;暂停壳 → toggle ⇒ 回世界;
+- P-02:PlayMode 读引擎真源 `panel.focusController.focusedElement`(EditMode 无 `Panel`,
+  `Focus()` 是空操作,**观测不到**)。
+
+**变异轮**:M1(判据退回逐员两分支)⇒ **2 红**(闭集 + 库存);M2(去掉压栈)⇒ **1 红**(存档位回栈);
+红集互不覆盖;两文件 SHA-256 逐字节还原。
+
+**⚠️ 未做 / 不借绿(本条不覆盖)**:
+- 闭集 3 员(`SettingsShell` / `Tutorial` / `PaperCloseup48`)**生产上开不出来**
+  ⇒ 它们的 toggle 只在契约层被判据覆盖(枚举驱动那条),**未经真装配** —— 归 `TD-skeuo-04`;
+- 焦点回位只在**关闭最外层模态**时生效;换屏(模态套模态)**不**还原载体(设计如此);
+- `Cancel` 动作的读面**仍未接**(本条走 toggle 路线,丙案未采纳)。
+
+**Engine Knowledge Risk**:LOW(纯 C# 控制流与 UI Toolkit 焦点 API,均为长期稳定面)。
+
 
 ## Alternatives Considered
 

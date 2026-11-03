@@ -114,6 +114,26 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 本来就不 focusable 的元素变成可聚焦。</remarks>
         private readonly List<VisualElement> _inertedByModal = new List<VisualElement>();
 
+        /// <summary>
+        /// 模态**栈**:在已开着的模态上再开一个(如暂停壳 →「存档位」行)时压入上一层。
+        /// <para>关当前模态时弹栈回到上一层 —— `save-slots-7b.md:198`「关闭册 | 同一 toggle |
+        /// 回进入前状态栈」即此语义。栈空 ⇒ 真的回世界(见 <see cref="_entryCarrier"/>)。</para>
+        /// <para>⚠️ 只在 `before != None` **且** `before != 目标` 时压栈:重复打开同一个模态
+        /// 不是「进入下一层」,压栈会让关它的时候又弹回它自己。</para>
+        /// </summary>
+        private readonly List<ModalId> _modalStack = new List<ModalId>();
+
+        /// <summary>
+        /// **进入前载体**(P-02):从世界进入最外层模态前持有焦点的那个元素。
+        /// <para>关掉最外层模态后把焦点还回去 —— 承 `inventory-container-20.md:56` /
+        /// `clinic-panel-24.md:81` / `casebook-39.md` 三份 Approved spec 的「焦点回进入前载体」。</para>
+        /// <para>⚠️ 只在 `before == None` 时记录:换屏(模态套模态)不覆盖它,否则关到底会
+        /// 落到「上一层模态刚打开时」的焦点上,而不是玩家真正出发的地方。</para>
+        /// <para>⚠️ 载体可能已不在树上(结构被拆 / 屏重建)⇒ 还原前判 `panel != null`,
+        /// 不在树上就**不**强聚焦(悬空 `Focus()` 会把焦点扔到一个看不见的元素上)。</para>
+        /// </summary>
+        private VisualElement _entryCarrier;
+
         /// <summary>主菜单独占的容器(<c>null</c> = 主菜单没开)。</summary>
         /// <remarks>⚠️ 与 <see cref="_modalContainer"/> **分开**:主菜单不是模态,开它不得动
         /// `_currentModal`(否则规则七的门与 `BlocksPlay` 会读到一个「世界装载之前就摊开的模态」,
@@ -696,6 +716,49 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public bool OpenModal(ModalId modal)
         {
             if (modal == ModalId.None) return false;
+
+            // 🔁 2026-11-04(`TD-skeuo-03`):进模态之前记两件事 —— **栈**与**进入前载体**。
+            //   · 从世界进入(before == None)⇒ 记载体,关到底时把焦点还回去(P-02);
+            //   · **壳类**模态(暂停壳 / 设置壳)开下一层 ⇒ 压栈,关当前时弹回上一层;
+            //   · **文档类**模态(册 / 箱 / 面板 / 近景)换屏 ⇒ **不**压栈 —— 离开即离开,
+            //     见 `IsShellModal` 的注释(该收窄是 `AC-39-07` 转红逼出来的);
+            //   · **重复打开同一个模态**不压栈 —— 那不是「进入下一层」,压了会在关它时又弹回它自己。
+            ModalId previousModal = _currentModal;
+            if (previousModal == ModalId.None)
+            {
+                _entryCarrier = _panel != null
+                    ? _panel.focusController?.focusedElement as VisualElement
+                    : null;
+            }
+            else if (previousModal != modal && IsShellModal(previousModal))
+            {
+                _modalStack.Add(previousModal);
+            }
+
+            return OpenModalCore(modal);
+        }
+
+        /// <summary>
+        /// **壳类**模态 —— 它们会开出「下一层」模态,故离开时要压栈以便关回来。
+        /// <para>🔁 2026-11-04(`TD-skeuo-03` 实现轮,PlayMode 实测逼出来的收窄):
+        /// 首版是**通用栈**(任何模态换屏都压栈),结果 `AC-39-07` 当场转红 ——
+        /// `Casebook → Inventory → 关闭` 会「回到脉案」并多发一条 camera 意图,
+        /// 而该 AC(Approved)要求「从非脉案模态关屏**零意图**」:
+        /// **离开脉案是单向的**(`casebook-39.md:253`「档位回归 Explore」),不是可返回的一层。</para>
+        /// <para>判据不是「哪一员特殊」,而是**这个模态是不是容器**:暂停壳 / 设置壳是壳,
+        /// 册 / 箱 / 面板 / 近景是**文档** —— 文档离开即离开。二者的结构区别在:
+        /// 壳自己会开出下一层(故存在「上一层」可回),而文档的入口在世界、不在另一个模态里。</para>
+        /// </summary>
+        private static bool IsShellModal(ModalId modal)
+            => modal == ModalId.Pause || modal == ModalId.SettingsShell;
+
+        /// <summary>
+        /// 开屏的**实现体** —— 刻意不碰栈与进入前载体(那条归 <see cref="OpenModal"/> /
+        /// <see cref="CloseModal"/>):<see cref="CloseModal"/> 弹栈回上一层时也要走这里,
+        /// 若它自己再压一次栈,关-弹会无限循环。
+        /// </summary>
+        private bool OpenModalCore(ModalId modal)
+        {
             if (_panel == null)
             {
                 Debug.LogError("[SkeuoRuntimeDriver] 无 UIDocument 面板 —— 模态开不出来(非崩溃态)。");
@@ -764,6 +827,26 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             ModalId before = _currentModal;
             CloseModalCore();
             NotifyCasebookCamera(before, _currentModal);
+
+            // 🔁 2026-11-04(`TD-skeuo-03`):关完之后,回到**上一层**或者**进入前载体**。
+            //   · 栈非空 ⇒ 这次关的是「模态套模态」里上面那层(如存档位)⇒ 弹回上一层(暂停壳),
+            //     即 `save-slots-7b.md:198`「关闭册 | 同一 toggle | 回进入前状态栈」;
+            //   · 栈空 ⇒ 真的回世界 ⇒ 把焦点还给进入前的那个元素(P-02)。
+            //   ⚠️ 弹栈走 `OpenModalCore` 而**不是** `OpenModal` —— 后者会再压一次栈(见其注释)。
+            if (_modalStack.Count > 0)
+            {
+                int last = _modalStack.Count - 1;
+                ModalId previous = _modalStack[last];
+                _modalStack.RemoveAt(last);
+                OpenModalCore(previous);
+                return;
+            }
+
+            VisualElement carrier = _entryCarrier;
+            _entryCarrier = null;
+            // 载体会随世界变化消失(结构被拆 / 屏重建)⇒ 不在树上就不强聚焦:
+            // 悬空 `Focus()` 会把焦点扔到一个看不见的元素上,比不还更糟。
+            if (carrier != null && carrier.panel != null) carrier.Focus();
         }
 
         /// <summary>

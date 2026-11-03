@@ -143,6 +143,38 @@ namespace DaYiJingCheng.Tests.PlayMode
                 "本夹具走的是 `BootRoot` 认领预摆壳后的**生产**路径,不是测试直建 driver");
         }
 
+        /// <summary>
+        /// **P-02:关闭最外层模态 ⇒ 焦点回「进入前载体」**（`TD-skeuo-03` · 用户裁定甲）。
+        /// <para>权威:`inventory-container-20.md:56`（「出口:…焦点回**进入前载体**(P-02)」）·
+        /// `clinic-panel-24.md:81`（「开关 toggle ─▶ World(焦点回载体 P-02)」）。</para>
+        /// <para>⚠️ 只能在 PlayMode 验:EditMode 里没有 `Panel` ⇒ `Focus()` 是空操作,
+        /// 「焦点回到哪」根本观测不到。本件读**引擎真源** `panel.focusController.focusedElement`。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_productionAssembly_closeModal_returnsFocusToEntryCarrier()
+        {
+            yield return BootWithPreplacedUi();
+
+            // 造「进入前载体」:世界里一个可聚焦元素并真的获焦。
+            VisualElement carrier = _driver.GetUiRoot();
+            var entry = new VisualElement { name = "entry-carrier" };
+            entry.focusable = true;
+            carrier.Add(entry);
+            entry.Focus();
+            yield return null;
+            Assert.That(Focused(), Is.SameAs(entry), "[前置] 载体必须真的获焦,否则后面无从判别");
+
+            _driver.OpenModal(ModalId.Pause);
+            yield return null;
+            Assert.That(Focused(), Is.Not.SameAs(entry), "[前置] 模态开 ⇒ 焦点离开载体(落在第一行)");
+
+            _driver.CloseModal();
+            yield return null;
+            Assert.That(Focused(), Is.SameAs(entry),
+                "关闭最外层模态 ⇒ 焦点必须回**进入前载体**(P-02);" +
+                "不回位 = 玩家关掉出诊箱后手柄焦点悬空,下一步走不了");
+        }
+
         [UnityTest]
         public IEnumerator test_productionAssembly_closeThenReopen_landsFocusAgain()
         {

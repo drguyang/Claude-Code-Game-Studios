@@ -442,15 +442,14 @@ namespace DaYiJingCheng.Tests.Boot
         {
             public int OpenCalls;
             public int CloseCalls;
-            public bool IsPauseOpen { get; private set; }
 
-            /// <summary>🔁 2026-11-02 · 开册入口轮:脉案开合面(关册 toggle 用)。
-            /// 夹具默认 `false` ⇒ 既有用例的语义逐位不变(它们测的是暂停壳)。</summary>
-            public bool IsCasebookOpen { get; set; }
+            /// <summary>当前模态身份。🔁 2026-11-04(`TD-skeuo-03`):两个逐员布尔 → 本项。
+            /// 夹具可直接把它置成**任意**一员来模拟「玩家正摊着某屏」。</summary>
+            public ModalId CurrentModal { get; set; } = ModalId.None;
 
-            public void OpenPause() { OpenCalls++; IsPauseOpen = true; }
+            public void OpenPause() { OpenCalls++; CurrentModal = ModalId.Pause; }
 
-            public void Close() { CloseCalls++; IsPauseOpen = false; IsCasebookOpen = false; }
+            public void Close() { CloseCalls++; CurrentModal = ModalId.None; }
         }
     }
 }

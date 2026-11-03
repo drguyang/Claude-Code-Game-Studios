@@ -56,18 +56,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             _held = pressed;
             if (!rising) return;
 
-            // 🔁 2026-11-02 · 开册入口轮:脉案是全案**唯一**由世界动作打开的模态(39 的开册),
-            //   它的「关册」必须走同一个 toggle(`casebook-39.md` §7「关册 | toggle」)。
-            //   ⚠️ 分支次序有意义:脉案**先于**暂停壳判 —— 否则开册后按 toggle 会在脉案上面
-            //   叠出暂停壳(玩家看不到册、也回不去),而不是合册。
-            //   ⚠️ 存档位仍沿用「换屏回暂停壳」(ADR-013 §十-C 的已知粗糙边,归 UX spec)——
-            //   本分支只拦**脉案**,不改存档位语义。
-            if (_opener.IsCasebookOpen)
-            {
-                _opener.Close();
-                CloseCount++;
-            }
-            else if (_opener.IsPauseOpen)
+            // 🔁 **2026-11-04(`TD-skeuo-03` 结案轮)**:判据由「逐员 if」收敛成**一个可比较的量**
+            //   —— `CurrentModal`。规则只有一句:**有模态 ⇒ 关,无模态 ⇒ 开暂停壳**。
+            //
+            //   ▍为什么必须收敛(而不是再补几条 else-if)
+            //   闭集有 9 员,旧写法只认 `Casebook` / `Pause` 两个身份 ⇒ 另外 7 员
+            //   (存档位 / 库存容器 / 设置壳 / 教学 / 医馆面板 / 纸近景 / 炮制屏)按同一个 toggle
+            //   会落进第三支 `OpenPause()`,也就是**换屏而不是关闭** —— 玩家以为关掉了,
+            //   实际被弹到暂停壳,再按一次又回世界,来回打转。逐员补分支只是把闭集复制一遍,
+            //   而闭集**还会增员**(它已经增过三次);收敛后闭集增员时本处**零改动**。
+            //
+            //   ▍与 39 的关系
+            //   脉案的「关册 toggle」(`casebook-39.md` §7)现在是这条规则的一个实例 ——
+            //   不再需要「脉案先于暂停壳判」的次序:任何模态开着都走同一条关。
+            if (_opener.CurrentModal != UI.Skeuomorphic.ModalId.None)
             {
                 _opener.Close();
                 CloseCount++;
@@ -98,10 +100,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <inheritdoc/>
-        public bool IsPauseOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.Pause;
-
-        /// <inheritdoc/>
-        public bool IsCasebookOpen => _driver.CurrentModal == UI.Skeuomorphic.ModalId.Casebook;
+        public UI.Skeuomorphic.ModalId CurrentModal => _driver.CurrentModal;
 
         /// <inheritdoc/>
         public void OpenPause() => _driver.OpenModal(UI.Skeuomorphic.ModalId.Pause);
@@ -119,12 +118,15 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public interface ModalOpener
     {
-        /// <summary>当前是否开着**暂停壳**。</summary>
-        bool IsPauseOpen { get; }
-
-        /// <summary>当前是否开着**脉案**(2026-11-02 · 开册入口轮)。
-        /// <para>用途 = 关册 toggle:脉案开着时 toggle 是「合册」而不是「开暂停壳」。</para></summary>
-        bool IsCasebookOpen { get; }
+        /// <summary>
+        /// 当前模态身份(<see cref="UI.Skeuomorphic.ModalId.None"/> = 没有模态摊开)。
+        /// <para><b>契约形状本身就承载了判据</b>:toggle 面只需要「有没有模态、是哪一员」,
+        /// 而**不是**「暂停壳开没开、脉案开没开」。故本接口刻意**不**提供
+        /// `IsXxxOpen` 这类逐员布尔 —— 那种形状必然要求调用方也逐员分支,
+        /// 闭集增员时两处一起改、且总有人漏改(本接口 2026-11-02 的形态就这样漏过 7 员)。</para>
+        /// <para>🔁 2026-11-04(`TD-skeuo-03`):由两个逐员布尔收成本项。</para>
+        /// </summary>
+        UI.Skeuomorphic.ModalId CurrentModal { get; }
 
         /// <summary>打开暂停壳。</summary>
         void OpenPause();
