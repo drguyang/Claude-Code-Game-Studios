@@ -359,9 +359,9 @@ namespace DaYiJingCheng.Tests.PlayMode.CameraMatrix
 
         private IEnumerator Boot()
         {
-            foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (stale != null) UnityEngine.Object.Destroy(stale.gameObject);
-            foreach (var t in UnityEngine.Object.FindObjectsOfType<Transform>(true))
+            foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (t != null && t.name == "CameraRig") UnityEngine.Object.Destroy(t.gameObject);
 
             // ⚠️ `SkeuoUI` 不随 `BootRoot` 销毁(`FindOrCreateSkeuoUi` 会复用已有实例)

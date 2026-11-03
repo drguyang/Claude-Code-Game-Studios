@@ -47,7 +47,10 @@ namespace DaYiJingCheng.Tests.PlayMode
             // BootRoot.OnDestroy 会调 DestroyAll 连根清;此处只兜底(防 OnDestroy 时序差异)
             var visualRoot = GameObject.Find("PatientVisuals");
             if (visualRoot != null) UnityEngine.Object.Destroy(visualRoot);
-            foreach (var t in GameObject.FindObjectsOfType<Transform>())
+            // 🔁 2026-11-03:`FindObjectsOfType<T>()` 在 Unity 6 已废弃(CS0618)。
+            //    原无参形态 = **仅 active** ⇒ 对应 `FindObjectsInactive.Exclude`。
+            foreach (var t in GameObject.FindObjectsByType<Transform>(
+                         FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
                 if (t != null && t.name != null && t.name.StartsWith("PatientVisual_"))
                     UnityEngine.Object.Destroy(t.gameObject);
@@ -150,7 +153,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         private static int CountPatientVisualEntities()
         {
             int n = 0;
-            var all = GameObject.FindObjectsOfType<Transform>();
+            var all = GameObject.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (var t in all)
             {
                 if (t != null && t.name != null && t.name.StartsWith("PatientVisual_"))

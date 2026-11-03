@@ -274,7 +274,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
                     "[FocusNavigationBridge] EventSystem 为空;两栈必须共享同一 EventSystem。");
 
             // 检查场景中是否存在第二个 EventSystem
-            var allEventSystems = UnityEngine.Object.FindObjectsOfType<EventSystem>(includeInactive: true);
+            var allEventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
             if (allEventSystems.Length > 1)
             {
                 throw new InvalidOperationException(

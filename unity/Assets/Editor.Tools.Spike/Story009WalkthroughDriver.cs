@@ -535,6 +535,17 @@ namespace DaYiJingCheng.EditorTools.Spike
                 }
                 Application.runInBackground = _savedRunInBackground;
                 _envSaved = false;
+
+                // 🔁 2026-11-03:`_keyboardAdded` 此前**只写不读**(CS0414)——
+                //    本驱动自带键盘却不拆,编辑器会话里会留一台幻影 Keyboard。
+                //    与 `movement_virtual_key_test.TearDown` 同形:只拆**自己加的**那一台
+                //    (`Keyboard.current` 本来就有时不动它)。
+                if (_keyboard != null && _keyboardAdded)
+                {
+                    InputSystem.RemoveDevice(_keyboard);
+                    _keyboard = null;
+                    _keyboardAdded = false;
+                }
             }
 
             // ── 反射辅助(承 emergency_attempt_wiring_test 同型)──────
@@ -629,7 +640,7 @@ namespace DaYiJingCheng.EditorTools.Spike
                 if (target == null)
                 {
                     // 兜底:任一 PatientVisual_*(在场集可能有多个,id 命名未命中时)
-                    foreach (var t in UnityEngine.Object.FindObjectsOfType<Transform>())
+                    foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
                         if (t.name.StartsWith("PatientVisual_")) { target = t.gameObject; break; }
                 }
                 if (target == null) return;

@@ -117,12 +117,12 @@ namespace DaYiJingCheng.Tests.PlayMode
             // ⇒ 本件启动序读到 ≥2 个 ⇒ `AC-ADR020-10` fail-loud(全量串跑红,定向单跑不暴露)。
             // ⚠️ `FindObjectsOfType<T>(true)` = **含未激活对象**:前序测试的 CameraRig 可能已被
             // `SetActive(false)`(启动序第 5 步),默认重载搜不到 ⇒ 仍会计入 listener 总数。
-            foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (stale != null) UnityEngine.Object.Destroy(stale.gameObject);
             }
             // 连同 CameraRig 宿主一起拆(它们可能各自挂着别的 listener / 相机组件)。
-            foreach (var rig in UnityEngine.Object.FindObjectsOfType<Transform>(true))
+            foreach (var rig in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (rig != null && rig.name == "CameraRig")
                     UnityEngine.Object.Destroy(rig.gameObject);

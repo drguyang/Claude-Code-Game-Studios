@@ -531,8 +531,9 @@ namespace DaYiJingCheng.Tests.EditMode.Foraging
         /// </remarks>
         private static ulong IndependentHashTagged(long a, string tag, long b, long c)
         {
-            const ulong gamma = 0x9E3779B97F4A7C15UL;
-
+            // ⚠️ 2026-11-03:此处原有一条 `const ulong gamma = 0x9E37…` —— **从未参与计算**
+            //    (编译警告 CS0219)。本函数是逐字独立重写的,删掉它**不改变任何输出**;
+            //    留着会让读者误以为这份独立实现走的是 SplitMix64 的 gamma 递增形态。
             static ulong Avalanche(ulong z)
             {
                 z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;

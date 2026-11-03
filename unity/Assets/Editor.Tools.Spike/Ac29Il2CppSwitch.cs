@@ -6,15 +6,23 @@
 //   unity run <proj> -- -batchmode -nographics -quit -executeMethod Ac29Il2CppSwitch.SetMono
 
 using UnityEditor;
+using UnityEditor.Build;   // NamedBuildTarget(2026-11-03:`BuildTargetGroup` 重载在 Unity 6 已废弃)
 using UnityEngine;
 
 public static class Ac29Il2CppSwitch
 {
+    // 🔁 2026-11-03:`PlayerSettings.Get/SetScriptingBackend(BuildTargetGroup)` 在 Unity 6 已废弃
+    //    (CS0618)×4 处换 `NamedBuildTarget` —— 那个 API 把「目标平台」与「平台组」分开,
+    //    避免 `BuildTargetGroup.Standalone` 在打包时被当成整组。语义等价:Standalone 组 → Standalone。
+    private static NamedBuildTarget StandaloneTarget
+        => NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Standalone);
+
     public static void SetIl2cpp()
     {
-        ScriptingImplementation before = PlayerSettings.GetScriptingBackend(BuildTargetGroup.Standalone);
-        PlayerSettings.SetScriptingBackend(BuildTargetGroup.Standalone, ScriptingImplementation.IL2CPP);
-        ScriptingImplementation after = PlayerSettings.GetScriptingBackend(BuildTargetGroup.Standalone);
+        NamedBuildTarget target = StandaloneTarget;
+        ScriptingImplementation before = PlayerSettings.GetScriptingBackend(target);
+        PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.IL2CPP);
+        ScriptingImplementation after = PlayerSettings.GetScriptingBackend(target);
         Debug.Log($"[AC-29] Standalone backend: {before}({(int)before}) -> {after}({(int)after})");
         if (after != ScriptingImplementation.IL2CPP)
         {
@@ -25,8 +33,9 @@ public static class Ac29Il2CppSwitch
 
     public static void SetMono()
     {
-        PlayerSettings.SetScriptingBackend(BuildTargetGroup.Standalone, ScriptingImplementation.Mono2x);
-        ScriptingImplementation after = PlayerSettings.GetScriptingBackend(BuildTargetGroup.Standalone);
+        NamedBuildTarget target = StandaloneTarget;
+        PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
+        ScriptingImplementation after = PlayerSettings.GetScriptingBackend(target);
         Debug.Log($"[AC-29] Standalone backend 归位: {after}({(int)after})");
     }
 }

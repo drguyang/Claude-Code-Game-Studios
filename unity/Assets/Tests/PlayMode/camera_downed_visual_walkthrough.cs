@@ -112,7 +112,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         public IEnumerator test_downed_twoPhase_producesWalkthroughShots()
         {
             // Arrange:清场 + 预摆(承 death_transition 夹具同纪律)。
-            foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (stale != null) UnityEngine.Object.Destroy(stale.gameObject);
             foreach (var cam in UnityEngine.Object.FindObjectsByType<Camera>(
                          FindObjectsInactive.Include, FindObjectsSortMode.None))

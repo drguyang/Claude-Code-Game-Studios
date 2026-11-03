@@ -57,10 +57,17 @@ namespace DaYiJingCheng.Tests.PlayMode
             RestoreEnvironmentIfNeeded();
             Time.captureDeltaTime = 0f;   // 恢复帧节奏,防污染同套件其他测试
 
-            if (_keyboard != null && _keyboard.added)
+            // 🔁 2026-11-03 修(编译警告 CS0414 揪出来的跨测试污染):
+            //    原判据是 `_keyboard != null && _keyboard.added` —— 那是「设备存在」,
+            //    不是「**本测试**添加过它」。编辑器里本来就有键盘 ⇒ `_keyboard` 拿到
+            //    `Keyboard.current` ⇒ Teardown 把**真键盘拆了**,后续测试的键鼠输入全丢。
+            //    `_keyboardAdded` 一直只写不读,正是这条漏掉的判据。现与紧邻的手柄分支同形。
+            if (_keyboard != null && _keyboardAdded)
+            {
                 InputSystem.RemoveDevice(_keyboard);
-            _keyboard = null;
-            _keyboardAdded = false;
+                _keyboard = null;
+                _keyboardAdded = false;
+            }
 
             if (_player != null)
             {

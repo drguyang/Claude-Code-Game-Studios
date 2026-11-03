@@ -42,7 +42,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
     public sealed class PlayerController : MonoBehaviour, IPlayerMotor
     {
         [Header("Movement")]
-        [SerializeField] private float _moveSpeed = 5f;
+        // 🔁 2026-11-03(编译警告 CS0414):原有一条 `[SerializeField] private float _moveSpeed = 5f;`
+        //    —— **全类零读取**。水平速度的真源是 1 的配置(`config.SpeedWalk`,见 `Move` 内
+        //    `F-1-2: SPEED_MODE × ‖MoveInput‖ × K_terrain`),Inspector 上那个字段改多少都无效。
+        //    留着 = 给「玩家速度」造**第二个定义点**,而且它静默不起作用 —— 比没有更坏。
+        //    ⇒ 删字段,**不**把它接进 `Move`(那会把数值从配置挪回序列化面,违「数值 data-driven」)。
         [SerializeField] private float _gravity = -9.81f;
 
         private CharacterController _controller;

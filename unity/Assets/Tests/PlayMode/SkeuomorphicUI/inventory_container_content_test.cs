@@ -204,11 +204,12 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             // ── ⓐ 委派:本屏不得自己求满档 ─────────────────────────────────────
             // ⚠️ 这里喂的 `isFull = false` + `load == cap` 是**生产不可达**的组合
-            //    (`wMin ≥ 1` ⇒ 谓词为假时必有 `load < cap`),它**只**为可判别性而存在:
+            //    (最小件重 ≥ 1 ⇒ 谓词为假时必有 `load < cap`),它**只**为可判别性而存在:
             //    若本屏哪天自己写成 `load >= cap`,这组会返回 Full ⇒ 本行红。
             //    换句话说 —— 这是「委派」这一属性**唯一**能从外部观测到的表达式。
+            // ⚠️ 2026-11-03:原还声明了一条 `const int wMin = 3;` —— **从未被使用**
+            //    (编译警告 CS0219),已删;上文括注里对它的指名改为「最小件重」。
             const int cap = 10;
-            const int wMin = 3;
 
             Assert.That(InventoryContainerScreen.BandOf(cap, cap, isFull: false),
                 Is.Not.EqualTo(CarryBand.Full),

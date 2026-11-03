@@ -232,8 +232,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var ex = Assert.Throws<SaveNotFoundException>(() => svc.LoadBytes(slot),
                 "两级文件都不存在 = 空槽(正常态)⇒ 必须是 SaveNotFoundException");
             Assert.AreEqual(3U, ex.SlotSeq, "异常须点名是哪个槽空着");
-            Assert.IsFalse(ex is SaveCorruptException,
-                "空槽不是损坏的一种 —— 两者不得同型(呈现相反:空页 vs 报损坏)");
+            // 🔁 2026-11-03 修(编译警告 CS0184 揪出来的死断言):
+            //    原文 `Assert.IsFalse(ex is SaveCorruptException, …)` —— `ex` 的静态类型就是
+            //    `SaveNotFoundException`,而两个异常类是**兄弟**(互不继承)⇒ 编译器可证伪该
+            //    `is` 表达式 ⇒ **这条断言永远不会红**(F4「空洞正控」的变体:断的是运行期值,
+            //    而该值由编译期的类型关系决定)。
+            //    它想守的属性是真实的,故改为**结构**判据 —— 若哪天让
+            //    `SaveNotFoundException` 继承 `SaveCorruptException`(或反之),下层 catch 的
+            //    先后次序就会把空槽报成损坏,本行届时转红。
+            Assert.IsFalse(typeof(SaveCorruptException).IsAssignableFrom(typeof(SaveNotFoundException)),
+                "空槽不是损坏的一种 —— 两者不得同型(呈现相反:空页 vs 报损坏)。" +
+                "此断言是**结构**判据,不是对本次返回值的复查:它守的是两个异常类不得互相继承," +
+                "因为那会让 `catch` 的先后次序把空槽误报成损坏。");
         }
 
         [Test]
@@ -289,9 +299,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
             byte[] save = SaveService.AddChecksum(MinimalHeaderBytes());
             save[0] ^= 0xFF; // 破 magic
             var ex = Assert.Throws<InvalidDataException>(() => SaveHeaderCodec.Read(save));
-            Assert.IsFalse(ex is SaveCorruptException,
+            Assert.AreNotEqual(typeof(SaveCorruptException), ex.GetType(),
                 "magic 不符是「格式/版本」问题,不是「两级都坏」—— 二者不得同型" +
                 "(前者提示换版本,后者提示报损坏,呈现相反)");
+            // ⚠️ 2026-11-03(CS0184):原写 `Assert.IsFalse(ex is SaveCorruptException, …)` ——
+            //    `ex` 的静态类型是 `InvalidDataException`,与该异常类无继承关系 ⇒ **永远为真**
+            //    (死断言)。上面改成**类型身份**比较(会红),下面补**结构**判据守继承方向:
+            //    若 `SaveCorruptException` 哪天派生自 `InvalidDataException`,
+            //    `catch (InvalidDataException)` 会把损坏态当格式问题接住。
+            Assert.IsFalse(typeof(InvalidDataException).IsAssignableFrom(typeof(SaveCorruptException)),
+                "SaveCorruptException 不得派生自 InvalidDataException(否则 catch 次序会把损坏态误报成格式问题)");
 
             // ② 刻意**不**是 IOException 的子类 ——(全仓 `catch (IOException)` 五处
             //    会把它当「I/O 暂时失败,可重试」静默吞掉,而 Corrupt 是**不可重试**的终态)

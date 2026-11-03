@@ -134,7 +134,11 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         /// </summary>
         private static GameObject FindPresetCamera()
         {
-            foreach (var cam in Object.FindObjectsOfType<Camera>(includeInactive: true))
+            // 🔁 2026-11-03:`FindObjectsOfType<T>(bool)` 在 Unity 6 已废弃(CS0618),
+            //    换 `FindObjectsByType` 显式给出「含不含 inactive」与「排不排序」两个维度。
+            //    本处只要名字,不需要按 InstanceID 排序 ⇒ `FindObjectsSortMode.None`。
+            foreach (var cam in Object.FindObjectsByType<Camera>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (cam != null && cam.gameObject.name == "Main Camera")
                     return cam.gameObject;
@@ -189,7 +193,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "UI Toolkit 退回引擎内置 DefaultEventSystem(ADR-013 §F1/F4 要求官方桥)。");
 
             // A① 场景内恰一个(防双 EventSystem 回归)
-            var all = Object.FindObjectsOfType<EventSystem>(includeInactive: true);
+            var all = Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             Assert.AreEqual(1, all.Length,
                 $"A① 红:场景内 EventSystem 应恰 1 个,实际 {all.Length} 个 —— " +
                 "双 EventSystem = 焦点栈冲突(ADR-013 §F4 焦点单栈门)。");

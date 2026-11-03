@@ -268,9 +268,9 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
         {
             SaveEnvironment();
 
-            foreach (var stale in UnityEngine.Object.FindObjectsOfType<AudioListener>(true))
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (stale != null) UnityEngine.Object.Destroy(stale.gameObject);
-            foreach (var t in UnityEngine.Object.FindObjectsOfType<Transform>(true))
+            foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (t != null && t.name == RuntimeRigName)
                     UnityEngine.Object.Destroy(t.gameObject);
             DestroyAllNamed(PresetCameraName);
