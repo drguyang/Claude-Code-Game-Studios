@@ -406,6 +406,8 @@
 | `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-05` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-06` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
@@ -551,6 +553,24 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十九订(`TD-randomevents-06` / `-07` 立债 + 三处过期内容订正 · 2026-11-03 · 债面)** ——
+> 用户裁定「分别立债 + 就地订正」。变化:`条目 158 → 160`(+2)· `open 11 → 13`(+2)·
+> `Y 104 → 106`(+2)· **`未闭 P0 面 3 → 5`**(+2)· `epic 分布 1/31`(**不变**)。
+> 单一变化源 = 新立两笔债:
+> · **`TD-randomevents-06`** —— 「出诊类 `event_key` 集」零数据来源 ⇒ `isOnExpedition` 恒假。
+>   GDD `:562` 逐字:「哪些 `event_key` 是急召出诊 = **37 内容件定稿时回填**,**52 侧只持整数集**」
+>   ⇒ **义务双向**(37 定内容 → 52 落集合),今日两者皆空。
+> · **`TD-randomevents-07`** —— 战斗后冷却窗的输入源不存在,且**双重缺口**:`InCombatCooldown`
+>   硬编码 `false`(`:701`)+ `CONTEXT_COOLDOWN` / `COOLDOWN_TICKS` 在 Tuning Knobs 仍是 `*待定*`。
+> 🔴 **同批订正三处已被本轮实现推翻的旧描述**(原文不删,加注指向新实测):
+> ① `-05` 的「实测 ② `ClinicCellSource` 是空集占位」⇒ 第 3 步已改为 `Bind` 派生,**谓词有值(8 格)**,
+>    但 `F1PipelineInput.isInClinic` 仍硬编码 `false` —— **谓词有值 ≠ 它被消费**(这层区分是关键);
+> ② `-05` 的「实测 ③ 23 的结构视图生产为空」⇒ 第 1 步实测推翻(生产 registry 有 9 条);
+> ③ `-03` 的标题「候选池**零数据载体** ⇒ 恒 `NoPool`」⇒ 池表已落、失败形态已变 `NoContext`,
+>    但本债**未结**(medical 映射与端到端真池夹具仍缺)。
+> ⚠️ **`-05` 的「解除动作 ④ 夹具:三项各一正一反 + 至少一条真装配件」今日仍 0 条** ——
+> 三项都不可达,该夹具无从写。**不得因为「契约改完了」就记它部分完成。**
+
 > 🔁 **四十八订(`TD-randomevents-05` 解除顺序第 1–3 步 · 2026-11-03 · 实现面,零计数变化)** ——
 > 用户要求「按解除顺序开始」,本轮完成第 1–3 步:
 > · **第 1 步 = 已完成的旧判断**(「`StructureInstanceRegistry` 生产树零构造」**已过期**:
@@ -932,10 +952,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 158 | 状态 {'closed': 143, 'partial': 3, 'open': 11, '**done**(2026-10-21)': 1} | P0 面 {'Y': 104, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 3 （已闭但曾标 P0 面的 101 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 3 条,分布在 1/31 个 epic
-    random-events: 3
+条目 160 | 状态 {'closed': 143, 'partial': 3, 'open': 13, '**done**(2026-10-21)': 1} | P0 面 {'Y': 106, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 5 （已闭但曾标 P0 面的 101 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 5 条,分布在 1/31 个 epic
+    random-events: 5
 ```
 <!-- TD-COUNT:END -->
 
@@ -4159,7 +4179,12 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **有写者 ≠ 已接线**:52 导演主循环逐 tick 调 `TryStartAtTick` 归 52 接线轮;
 > `IClinicCellSource` 生产装配 + 三处同源钉归 Boot 接线轮;37 侧窗口 / 拒访 hook 不在本件面内。
 
-### TD-randomevents-03 — 候选池**零数据载体** ⇒ 生产端到端恒 `NoPool`(52)
+### TD-randomevents-03 — 候选池数据件**已落**,但 medical 映射与端到端夹具仍缺(52)
+
+> 🔁 **2026-11-03 标题订正(原文不删)**:原题「候选池**零数据载体** ⇒ 生产端到端恒 `NoPool`」——
+> **池表已落**(`52_event_pool.json` / 9 条),且端到端失败形态已变为恒 `NoContext`
+> (见 `TD-randomevents-05`)。本债**未结**:`medical` 条目 → 37 病种的映射仍不存在,
+> 端到端「真池驱动」夹具仍缺。
 
 | 侧 | 内容 |
 |---|---|
@@ -4187,19 +4212,43 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | 侧 | 内容 |
 |---|---|
 | **债描述** | `EventF1Pipeline.EvaluateContextGate` 的判据是 `IsOnExpedition && !IsInClinic`(`EventF1Pipeline.cs:151`),而 `CompositionRoot` 的生产闭包把两项**都硬编码为 `false`**(`CompositionRoot.cs:701`)。⇒ 门恒假 ⇒ 链在 F1 阶段**恒返回 `NoContext`**,永远走不到掷骰与写入。**这不是 `Mod_*` 的连带问题,是更根本的一层**:即使池表已落(2026-11-03)、权重已实现,端到端仍然零写入。 |
-| **实测(逐条可跑)** | ① `grep -n "isOnExpedition: false, isInClinic: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② `isInClinic` 的真源 = `IClinicCellSource`,而生产实例 `ClinicCellSource` 是**空集占位**(`Configure` 零生产调用方,类头注自陈)⇒ `IsClinicCell` 恒 false。<br>③ `isOnExpedition` 的真源 = 规则六之二的定义「(玩家有活跃的出诊目标) 且 (玩家不在医馆地块内)」,而「活跃出诊目标」(`ActiveHouseCallQuery`)要求流里已有 `HouseCallStarted`,其生产写者 `HouseCallStartedWriter` 因**双重空集**(出诊类 `event_key` 集 + 医馆地块集均为空)恒零写入 ⇒ **自我死锁**。<br>④ `inCombatCooldown` 同为硬编码 `false`(P0 无战斗冷却源)。 |
+| **实测(逐条可跑)** | ① `grep -n "isOnExpedition: false, isInClinic: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② ~~`isInClinic` 的真源 = `IClinicCellSource`,而生产实例 `ClinicCellSource` 是**空集占位**(`Configure` 零生产调用方,类头注自陈)⇒ `IsClinicCell` 恒 false。~~ **✅ 2026-11-03 第 3 步已改**:`Configure` 已不存在,改为 `Bind(结构表, 判据)` 派生;生产在 `ApplyBakedInitial` 之后绑定 ⇒ 谓词**有值**(8 格)。**但 `F1PipelineInput.isInClinic` 仍硬编码 `false` —— 谓词有值 ≠ 它被消费。**<br>③ `isOnExpedition` 的真源 = 规则六之二的定义「(玩家有活跃的出诊目标) 且 (玩家不在医馆地块内)」,而「活跃出诊目标」(`ActiveHouseCallQuery`)要求流里已有 `HouseCallStarted`,其生产写者 `HouseCallStartedWriter` 因**双重空集**(出诊类 `event_key` 集 + 医馆地块集均为空)恒零写入 ⇒ **自我死锁**。<br>④ `inCombatCooldown` 同为硬编码 `false`(P0 无战斗冷却源)。 |
 | **⚠️ 失败形态已变(如实登记)** | 2026-11-03 池表落地前,端到端是 **恒 `NoPool`**;落地后变成 **恒 `NoContext`** —— 两者都是零写入,但**归因不同**。任何「52 端到端可跑」的自述在两者任一形态下都是假的。 |
 | **解除动作** | ① `isInClinic` 接 23/24 的真实地块集(`ClinicCellSource.Configure` 的生产调用方);② `isOnExpedition` 按规则六之二的定义求值(需要 `ActiveHouseCallQuery` 能真求值 ⇒ 依赖 ①);③ `inCombatCooldown` 接战斗冷却源(25/27 侧);④ 夹具:三项各一正一反,且**至少一条真装配件**证明 `EvaluateContextGate` 在生产装配下能为真。 |
-| **🔍 可解性勘察(2026-11-03,结论 = 本轮不可解)** | **已找到的**:医馆「格集」的生产实现**存在** —— `ClinicRoomExtraction.Extract(IPlacedStructureReadView, IReadOnlyCollection<string>)` 出 `RoomCells`,且 `ClinicReviveCellQuery.cs:113` 已在生产里调它。⇒ 「`ClinicCellSource.Configure` 缺数据源」这个旧判断**只对了一半**。<br>**三条硬阻塞(逐条实测,任一不解则本条无解)**:<br>**① 语义错位** —— `RoomCells` = **一个连通家具簇**的成员格(24 规则一:恰好 1 个连通簇才成房间),而 GDD `:273` 要的是**建筑占地**。两者不是同一个量。<br>**② 量纲荒谬(决定性证据)** —— P0 的 9 个 `baked_initial` 槽位里,**只有 1 件是家具**:`(6,0,6) Decor mod 7 furn_type=chamber_pot`;其余 8 件是 Shell×4 / Door / Switch / ClinicPanel / Utensil,`furn_type` 全为 `null`。⇒ 用真 `FURN_TYPES` 闭集析出,得到的「房间」= **1 格,而且是那个夜壶**。接它当医馆地块 = 把「玩家站在夜壶上」判成「在医馆内」。<br>**③ 23 的结构视图生产为空** —— `ClinicCellSource.cs:8` 自陈 `StructureInstanceRegistry 生产树零构造` ⇒ 析出输入本身是空集。<br>**④ 自我死锁** —— `isOnExpedition` 要「活跃出诊目标」→ 要 `HouseCallStarted` → 要「玩家从医馆格跨出」→ 要医馆地块集。三者互为前提。<br>**⑤ 第三项也恒假** —— `inCombatCooldown` 硬编码 `false`(P0 无战斗冷却源),即使 ①–④ 全解,上下文门仍需三项齐备。<br>⇒ **不得「顺手接上」**:接一个语义错的量会得到「部分格偶然为真」的不稳定形态,比恒 false 更难排查(错量的门 > 空量的门)。**正确前置 = 先裁「医馆地块集」的形状与所有者**(见下行的开放裁定)。 |
+| **🔍 可解性勘察(2026-11-03,结论 = 本轮不可解)** | **已找到的**:医馆「格集」的生产实现**存在** —— `ClinicRoomExtraction.Extract(IPlacedStructureReadView, IReadOnlyCollection<string>)` 出 `RoomCells`,且 `ClinicReviveCellQuery.cs:113` 已在生产里调它。⇒ 「`ClinicCellSource.Configure` 缺数据源」这个旧判断**只对了一半**。<br>**三条硬阻塞(逐条实测,任一不解则本条无解)**:<br>**① 语义错位** —— `RoomCells` = **一个连通家具簇**的成员格(24 规则一:恰好 1 个连通簇才成房间),而 GDD `:273` 要的是**建筑占地**。两者不是同一个量。<br>**② 量纲荒谬(决定性证据)** —— P0 的 9 个 `baked_initial` 槽位里,**只有 1 件是家具**:`(6,0,6) Decor mod 7 furn_type=chamber_pot`;其余 8 件是 Shell×4 / Door / Switch / ClinicPanel / Utensil,`furn_type` 全为 `null`。⇒ 用真 `FURN_TYPES` 闭集析出,得到的「房间」= **1 格,而且是那个夜壶**。接它当医馆地块 = 把「玩家站在夜壶上」判成「在医馆内」。<br>~~**③ 23 的结构视图生产为空** —— `ClinicCellSource.cs:8` 自陈 `StructureInstanceRegistry 生产树零构造` ⇒ 析出输入本身是空集。~~ **✅ 已作废(2026-11-03 第 1 步实测)**:生产 registry 有 9 条结构(见下行「第 1 步实测」)。<br>**④ 自我死锁** —— `isOnExpedition` 要「活跃出诊目标」→ 要 `HouseCallStarted` → 要「玩家从医馆格跨出」→ 要医馆地块集。三者互为前提。<br>**⑤ 第三项也恒假** —— `inCombatCooldown` 硬编码 `false`(P0 无战斗冷却源),即使 ①–④ 全解,上下文门仍需三项齐备。<br>⇒ **不得「顺手接上」**:接一个语义错的量会得到「部分格偶然为真」的不稳定形态,比恒 false 更难排查(错量的门 > 空量的门)。**正确前置 = 先裁「医馆地块集」的形状与所有者**(见下行的开放裁定)。 |
 | **✅ 裁定(2026-11-03 用户,三项全裁)** | **① 口径 = 甲「建筑占地」**(非乙可走区 / 非丙生态区);**② 动态量** —— `baked_initial = false` 的玩家可建槽位建成后**算**医馆地块;③ **占地范围 = 两者都算**(建筑件自身的 `OccupiedCells` **+** 它们围出的内部空间)。<br>⇒ **地块集 = 23 结构表的派生量**,不是烘焙产物、不是 `RoomCells`(后者量纲错,见上)。 |
 | **🔍 第 1 步实测(2026-11-03)——「生产树零构造」判断已过期** | 解除顺序第 1 步「让 `StructureInstanceRegistry` 在生产树里有内容」**已经完成**,不需要再做。实测:<br>· `MinimalWorldFactory.Create` → `new World(...)`(`World.cs:94` 构造 registry);<br>· `BootRoot.cs:361` 生产**恒传** `world` 给 `CompositionRoot.Assemble`(`BootRoot.cs:411`);<br>· `CompositionRoot.cs:1419` 调 `world.ApplyBakedInitial(modulesCatalog)`;<br>· `World.ApplyBakedInitialBaseline`(`World.cs:180-217`)按 `baked_initial` 逐条 `Restore` + `OccupyCells`。<br>⇒ **生产 registry 里有 9 条结构**(`BakedInitialStructureCount = 9`)。旧判断「零构造」出自 `TD-building-01` 的 2026-10-28 实测,已被 **S20-17 / S20-20** 修掉。**本行原判断作废,原文不删。** |
 | **🔍 第 2 步实测(2026-11-03)——「围出内部」在 P0 结构性不存在** | 不是「数据不足」,是**没有闭合墙**:8 件建筑件的占格(家具 `(6,0,6)` 不算)分成 **4 个互不相连的连通分量** —— `{(2,4)}` · `{(10,5)}` · `{(1,1),(2,1),(3,1),(4,1),(5,1)}`(最长一堵墙)· `{(5,9)}`。⇒ **P0 没有任何闭合边界,「围出的内部空间」= 空集**。<br>⚠️ **我自己在本轮踩了一个空洞正控(F4)**:首版 flood fill 用「地图边界格」当种子,而边界格(`x∈{0,15}` / `z∈{0,15}`)全部**不可走** ⇒ 种子为空 ⇒ 循环空转 ⇒ 把全部 188 格误判成「内部」。改用「建筑件连通分量」判定后结论才成立。**这条记在此处,防下次重犯。**<br>⇒ **裁定 ③「两者都算」的「内部」半边在 P0 恒空**;可用的只有「建筑件占格」半边 = **8 格**(`(1,0,1)` `(2,0,1)` `(2,0,4)` `(3,0,1)` `(4,0,1)` `(5,0,1)` `(5,0,9)` `(10,0,5)`)。 |
 | **✅ 第 3 步已落(2026-11-03)——`IClinicCellSource` 契约改造:静态 → 派生** | **`ClinicCellSource` 已重写**:`Configure(静态集)` → `Bind(StructureInstanceRegistry, Func<int,bool> isBuildingModule)`,每次查询从结构表派生。<br>· **建筑件判据 = `furn_type == null`**(生产 = `id => modulesCatalog.GetFurnType(id) == null`),**不是** `SlotType`(后者粒度过粗:`Decor` 混装家具 6/7 与非家具 9)。<br>· **`Bind` 只许一次**(二次绑定 ⇒ 抛):两次绑定 = 把谓词接到两个结构表 = 同源禁令要防的形态。<br>· **装配顺序**:`clinicCells` 在 `CompositionRoot` 早段构造(被 `RandomEventsDirectorDriver` 立刻消费),而 `structures` / `modulesCatalog` 在更后 ⇒ 故拆「构造 + 后置 `Bind`」两步,**仍是单实例**(服务袋单点发放不变)。<br>· **绑定点在 `ApplyBakedInitial` 之后**(`CompositionRoot.cs:1429`)—— 基线不落 registry 时谓词恒 false。<br>· **装配层传委托而非目录**:首版用 `_modules is BuildModulesCatalog` 判类型 ⇒ 夹具替身恒 false(**F8 行为等价掩盖结构分叉的反面,本轮实测踩到**)。改收 `Func<int,bool>` 后 945/945 转绿。<br>⚠️ **仍未接通的两处消费点**(本步只改契约,不增调用点):`F1PipelineInput.IsInClinic`(硬编码 false;玩家格在装配期不存在,须走 `BindPlayer` 同款迟绑定)· 规则十「无人」检测器(尚未存在)。 |
-| **🔧 技术路线(裁定已定,实现未落)** | **数据面已就位**:`StructureInstance.OccupiedCells` 是**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,随朝向变;`StructureKinds.cs:51`),`StructureInstanceRegistry.EnumerateInstances()` 可枚举。<br>**形状**:`ClinicCellSource` 从「装配期 `Configure(静态集)`」改为「从 registry 派生」——<br>· 建筑件判据 = `module.furn_type == null`(`Shell` / `Door` / `ClinicPanel` / `Utensil` / `Switch` / `Tent`;见 `build_modules.json`),**不是**槽位类型(槽位类型与模块类型是两个维度);<br>· 占格 = 这些结构件的 `OccupiedCells` **并集** ∪ 其**围出内部**(后者须多边形填充,归 23 的实现轮);<br>· 动态性 = 每 tick 求值或订阅 `StructurePlaced` / `StructureRemoved` / `StructureModified` 三种事件后失效重算(与 ADR-009 派生态同构:不进流、可重建)。<br>**⚠️ 这条路线改的是 `IClinicCellSource` 的契约性质**(静态注入 → 派生),须同批改接口头注的「装配期喂一个静态格集」口径,并更新三个消费点(写者 / `F1PipelineInput` / 规则十「无人」)的同源义务。<br>**⚠️ P0 的 5 件结构件围不出闭合范围** ⇒ 「内部空间」半边在 P0 **恒空**;建筑件占格半边可用。⇒ 即使落地,`isInClinic` 只在**墙/门/面板所在的那几格**为真 —— 与「玩家在医馆里」仍不等价。**如实登记,不得当成「已接真源」。** |
+| **🔧 技术路线(~~裁定已定,实现未落~~ ⇒ ✅ 2026-11-03 第 3 步已实现)** | **数据面已就位**:`StructureInstance.OccupiedCells` 是**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,随朝向变;`StructureKinds.cs:51`),`StructureInstanceRegistry.EnumerateInstances()` 可枚举。<br>**形状**:`ClinicCellSource` 从「装配期 `Configure(静态集)`」改为「从 registry 派生」——<br>· 建筑件判据 = `module.furn_type == null`(`Shell` / `Door` / `ClinicPanel` / `Utensil` / `Switch` / `Tent`;见 `build_modules.json`),**不是**槽位类型(槽位类型与模块类型是两个维度);<br>· 占格 = 这些结构件的 `OccupiedCells` **并集** ∪ 其**围出内部**(后者须多边形填充,归 23 的实现轮);<br>· 动态性 = 每 tick 求值或订阅 `StructurePlaced` / `StructureRemoved` / `StructureModified` 三种事件后失效重算(与 ADR-009 派生态同构:不进流、可重建)。<br>**⚠️ 这条路线改的是 `IClinicCellSource` 的契约性质**(静态注入 → 派生),须同批改接口头注的「装配期喂一个静态格集」口径,并更新三个消费点(写者 / `F1PipelineInput` / 规则十「无人」)的同源义务。<br>**⚠️ P0 的 5 件结构件围不出闭合范围** ⇒ 「内部空间」半边在 P0 **恒空**;建筑件占格半边可用。⇒ 即使落地,`isInClinic` 只在**墙/门/面板所在的那几格**为真 —— 与「玩家在医馆里」仍不等价。**如实登记,不得当成「已接真源」。** |
 
 | **⚠️ 与 `TD-randomevents-03` / `-04` 的关系** | 三条**不同因、不同解除动作**,不得合并:③ 是「池条目件与 medical 映射」,④ 是「预算的两项修饰子」,本条是「上下文门的三项输入」。本条**优先级最高** —— 它不解,另外两条即使全解也仍是零写入。 |
 | **触发条件** | ① 23/24 交付医馆地块集时(同批);② 或任何以「52 已端到端可跑」形态引用 ADR-039 之前(**禁借绿**);③ 或 P1a 关卡轮开工时。 |
 | **归属** | **52 随机事件导演**(装配侧上下文闭包)· 医馆地块 = **23/24** · 战斗冷却 = **25/27** |
+
+### TD-randomevents-06 — 「出诊类 `event_key` 集」**零数据来源** ⇒ `isOnExpedition` 恒假(52 ↔ 37)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | GDD 规则十二 12.2 逐字定义「活跃出诊目标 ≡ 存在一条**出诊类** `EventArrived`」,而「出诊类」判据 = **`event_key` ∈ 出诊类条目集**(`random-events.md:562`)。该集合的**内容归 37 内容件**定稿时回填,52 侧只持整数集。今日生产装配传的是 `Array.Empty<int>()`(`CompositionRoot.cs:709`)⇒ 判据恒不命中 ⇒ `ActiveHouseCallQuery` 恒假 ⇒ `isOnExpedition` 恒假 ⇒ 上下文门恒假。 |
+| **实测(逐条可跑)** | ① `grep -n "Array.Empty<int>(), randomEventSpawnChain" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:709`(第二个 `Array.Empty<int>()` 是 `houseCallEventKeys`)。<br>② `grep -rn "出诊类" assets/data/` ⇒ **零命中**(52 池条目件里没有「哪些 key 是出诊类」的标记字段)。<br>③ `ActiveHouseCallQuery.Evaluate(stream, decoder, new[] { … })` 的第三参就是该集合 —— 夹具可喂,生产恒空。 |
+| **⚠️ 归属订正(实测)** | 既有注释写「出诊类 `event_key` 集归 37 内容件」—— **与 GDD 不符,但也不完全错**:GDD `:562` 说的是「**哪些** `event_key` 是急召出诊 = **37 内容件定稿时回填**」,而**集合的持有方仍是 52**(「52 侧只持整数集」)。⇒ 义务是**双向**的:37 定内容 → 52 落整数集。**今日两者皆空**,但混写会让「37 还没定内容」与「52 还没落集合」不可分。 |
+| **解除动作** | ① 37 内容件交付急召出诊条目的 `event_key`(37 的 GDD 轮);② **52 侧**在 `52_event_pool.json` 的条目上加 `is_house_call` 标记(或独立整数集),走 ADR-014 烘焙;<br>③ `CompositionRoot` 的 `houseCallEventKeys` 从池表派生(不再传 `Array.Empty<int>()`);<br>④ 夹具:集合非空 ⇒ `ActiveHouseCallQuery` 真 ⇒ `HouseCallStarted` 可落流。 |
+| **⚠️ 前置** | 依赖 **`TD-randomevents-05` 第 3 步已落**(医馆地块集已派生)与 **`-03` 的 medical 映射**(病人 id 的取得 —— GDD `:580` 登记「出诊类 `EventArrived` 载荷不含病人 id」)。三条**串联**,任一不解则 `isOnExpedition` 不可达。 |
+| **触发条件** | ① 37 内容件定稿急召出诊条目时(同批);② 或任何以「出诊启动链路可跑」形态引用规则十二之前(**禁借绿**)。 |
+| **归属** | **52 随机事件导演**(整数集的持有与装配)· 内容 = **37** |
+
+### TD-randomevents-07 — 战斗后冷却窗(`CONTEXT_COOLDOWN`)的**输入源不存在**(52 ↔ 25/27)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | GDD 规则六之二(`:254`)定义「战斗结算后 × `CONTEXT_COOLDOWN`(短冷却窗内 = 0,全档)」,而 `F1PipelineInput.InCombatCooldown` 在生产闭包里**硬编码 `false`**(`CompositionRoot.cs:701`)⇒ 该乘子恒 1,冷却窗机制**完全不存在**。 |
+| **实测(逐条可跑)** | ① `grep -n "inCombatCooldown: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② `grep -rn "CombatCooldown\|COOLDOWN_TICKS" unity/Assets --include=*.cs \| grep -v Tests` ⇒ **零生产命中**(只有 `EventF1Pipeline` 的读用)。<br>③ `grep -n "CONTEXT_COOLDOWN" design/gdd/random-events.md` ⇒ `:1152`(Tuning Knobs,值 `*待定*`)+ `:1307`(R-5 解除注)。 |
+| **⚠️ 双重缺口** | 不只「没接线」,还**没有值**:`CONTEXT_COOLDOWN` 在 Tuning Knobs 里仍是 `*待定*`,`COOLDOWN_TICKS` 同理(归用户数值轮)。⇒ 即使接了战斗事件源,窗长与系数也无值可填。 |
+| **解除动作** | ① **25/27** 侧交付「战斗结算」的可读信号(战斗结束 tick / 或一条可折叠的战斗事件);② 用户裁定 `COOLDOWN_TICKS` 与 `CONTEXT_COOLDOWN` 的数值;③ 52 侧在装配闭包里从该信号求 `InCombatCooldown`(纯函数:`now - lastCombatTick < COOLDOWN_TICKS`);④ 夹具:窗内 ⇒ 门假;窗外 ⇒ 门真。 |
+| **⚠️ 与 `-05` 的关系** | `-05` 的门是 `IsOnExpedition && !IsInClinic`,`InCombatCooldown` 是**独立的第一道判据**(`EventF1Pipeline.cs:146` 先判它)。⇒ 本债不解,门即使前两项为真仍可能被冷却挡掉;但它**不是**当前的主阻塞(`-05` / `-06` 才是)。 |
+| **触发条件** | ① 25/27 交付战斗结算信号时(同批);② 或用户数值轮裁定 `COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 时;③ 或任何以「规则六之二完整落地」形态引用之前(**禁借绿**)。 |
+| **归属** | **52 随机事件导演**(装配闭包)· 战斗信号 = **25/27** · 数值 = **用户裁定** |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 
