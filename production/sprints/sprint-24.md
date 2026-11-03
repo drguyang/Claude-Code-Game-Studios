@@ -81,18 +81,21 @@
 
 ## Definition of Done for this Sprint
 
-- [ ] Must 2 件完成（`[L]` 半随如实标 `NOT-RUN`，**不借绿**）
-- [ ] QA 计划存在（**见下方阻塞**）
-- [ ] 证伪轮：每件至少一条「改坏生产 ⇒ 夹具转红」
-- [ ] 回归三元组（EditMode / PlayMode 读数 + 截至时刻 + commit）
-- [ ] `python3 tools/debtcount/debtcount.py --check` ⇒ exit 0
-- [ ] `python3 tools/acid/acid_check.py --check` ⇒ exit 0
-- [ ] 收口判定与收口提交同日
+- [x] Must 2 件完成（`[L]` 半随如实标 `NOT-RUN`，**不借绿**）—— S24-1 / S24-2 均 **COMPLETE WITH NOTES**
+- [x] QA 计划存在 —— `production/qa/qa-plan-sprint-24-2026-11-03.md`
+- [x] 证伪轮：每件至少一条「改坏生产 ⇒ 夹具转红」—— S24-1 **6/6** · S24-2 **3/3**（后追加 `TD-processing-08` **6/6**）
+- [x] 回归三元组 —— EditMode `6638/6601/0/37` · PlayMode `324/320/0/2+2` @ 2026-11-03 · `c9284b23`+工作树
+- [x] `python3 tools/debtcount/debtcount.py --check` ⇒ exit 0
+- [x] `python3 tools/acid/acid_check.py --check` ⇒ exit 0
+- [x] 收口判定与收口提交同日 —— 2026-11-03（`c6130cde`）
+- [ ] ⚠️ **`/smoke-check sprint` 未跑** —— 需真启动序走查（主菜单 → 炮制全链 → 存档往返）；
+      本轮只做测试树回归。**按此条 DoD 未完，不得称「全绿收口」。**
 
 ---
 
-> ⚠️ **No QA Plan**：本 sprint 开工时**没有** QA 计划（`production/qa/` 下无 `qa-plan-sprint-24*`）。
-> 先跑 `/qa-plan sprint` 再开工。Production → Polish 门要求 QA 签核报告，而签核报告需要 QA 计划。
+> ~~⚠️ **No QA Plan**：本 sprint 开工时**没有** QA 计划（`production/qa/` 下无 `qa-plan-sprint-24*`）。
+> 先跑 `/qa-plan sprint` 再开工。Production → Polish 门要求 QA 签核报告，而签核报告需要 QA 计划。~~
+> 🔁 **2026-11-03 已解除**：`production/qa/qa-plan-sprint-24-2026-11-03.md` 已落盘（开工前）。原文不删。
 
 ---
 
@@ -190,5 +193,18 @@ python3 tools/debtcount/debtcount.py --check; echo "DEBT=$?"
 
 1. **S24-1 的起货音**：事件表 19 行 cue 里没有 `sfx_process_complete` ⇒ 驱动装配期解析失败 ⇒
    `OnTickEdge` 首行返回，**生产上不出声**。交付的是**发射时机**，不是音效。
-2. **S24-1 的溢出落地**：见 `TD-processing-08`。
+2. ~~**S24-1 的溢出落地**：见 `TD-processing-08`。~~
+   🔁 **2026-11-03 同日结清**（用户裁定甲案）：`InventoryFoldContext` 加必填 `AsOfTick` 切点 +
+   新增 20 侧 `CraftCompletionSettler`（完成 tick 判容量 ⇒ 整批 `DropSpawned`，id 无第二铸造）。
+   `TD-processing-08` **closed**；夹具 8 测、证伪 6/6。⇒ **本条已不成立**。
 3. **S24-2 的两条 NOT-RUN**：`AC-7a-02` 前件不存在（无快照段）· `AC-7a-03` EXTERNAL（ADR-012 矩阵）。
+
+### 收口后追加件（同日，不计入本 sprint 的计划件数）
+
+| 件 | 结果 | 落点 |
+|---|---|---|
+| **`TD-processing-08` 实现轮** | 债 **closed**；fan-out = `InventoryFold` 切点 + `CraftCompletionSettler` | 证据 `impl-td-processing-08-craft-completion-settlement-2026-11-03.md` |
+| **`TD-ci-03` 立债** | GitHub Actions 自 2026-10-10 起零运行；**退 P2** | 债册 `TD-ci-03` |
+
+⚠️ 两件均为**收口后的追加工作**，不改变本 sprint「2 件 Must」的件数与判据；但
+`TD-processing-08` 的实现让本 sprint「如实登记的三处没做完」中的第 2 条**同日消解**。
