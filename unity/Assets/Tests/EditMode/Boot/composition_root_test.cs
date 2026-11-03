@@ -39,8 +39,9 @@ namespace DaYiJingCheng.Tests.Boot
                 "同源单点发放:驱动消费的实例 == 服务袋实例(另立实例 = 同一 tick 两答)");
             Assert.IsFalse(bag.RandomEventsDirector.IsPlayerBound,
                 "装配刚完成时未绑定玩家(id 在装配后才铸造)—— 合法状态,非装配失败");
-            Assert.AreEqual(0, ((ClinicCellSource)bag.ClinicCells).ConfiguredCount,
-                "生产占位 = 空集(裁定②;23/24 接线轮喂真源)");
+            Assert.AreEqual(0, ((ClinicCellSource)bag.ClinicCells).DerivedCellCount,
+                "⚠️ 裸 `Assemble()`(无 world)⇒ 谓词未绑定 ⇒ 0 格。"
+                + "生产走 `BootRoot` 的 world 分支(绑定 + 基线后应为 8 格,见 director 夹具)");
         }
 
         /// <summary>

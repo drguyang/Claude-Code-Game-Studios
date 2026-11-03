@@ -1418,6 +1418,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (world != null)
                     world.ApplyBakedInitial(modulesCatalog);
 
+                // ── 「医馆地块集」绑定(2026-11-03 契约改造 · TD-randomevents-05 第 3 步)──────
+                // 谓词源从「装配期静态格集」改为「从 23 结构表**派生**」(用户裁定:
+                // 甲「建筑占地」+ 动态量)。绑定**必须在 `ApplyBakedInitial` 之后** ——
+                // 基线不落 registry 时谓词恒 false(那是旧形态的缺陷,不是本形态的期望态)。
+                // ⚠️ **单实例**:`clinicCells` 在更早处构造(被 `RandomEventsDirectorDriver`
+                //    立刻消费),此处只**绑定**不重建 —— 另建实例 = 同源禁令(接口头注)。
+                // ⚠️ **P0 实测产出 = 8 格**(建筑件占格;「围出内部」结构性为空,见该类头注)。
+                //    它**不等于**「玩家在医馆里」—— 禁借绿。
+                clinicCells.Bind(structures, id => modulesCatalog.GetFurnType(id) == null);
+
                 clinicRoomMatching = new ClinicRoomMatchingService(
                     structures,
                     modulesCatalog,

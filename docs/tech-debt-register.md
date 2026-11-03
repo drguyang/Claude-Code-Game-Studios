@@ -551,6 +551,21 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十八订(`TD-randomevents-05` 解除顺序第 1–3 步 · 2026-11-03 · 实现面,零计数变化)** ——
+> 用户要求「按解除顺序开始」,本轮完成第 1–3 步:
+> · **第 1 步 = 已完成的旧判断**(「`StructureInstanceRegistry` 生产树零构造」**已过期**:
+>   `BootRoot` 恒传 `world` ⇒ `ApplyBakedInitial` ⇒ 生产 registry **有 9 条结构**。原文作废不删);
+> · **第 2 步 = 结构性不可解**:8 件建筑件分成 **4 个互不相连的连通分量** ⇒ **P0 没有闭合墙**
+>   ⇒「围出内部」= 空集。⚠️ 本轮我自己踩了一个**空洞正控(F4)**:首版 flood fill 用
+>   **不可走的地图边界格**当种子 ⇒ 种子为空 ⇒ 循环空转 ⇒ 把全部 188 格误判成「内部」;
+>   改用「建筑件连通分量」判定后结论才成立。
+> · **第 3 步 = 已落**:`ClinicCellSource` 契约改造(静态注入 → 从 registry 派生),
+>   `Bind` 只许一次,绑定点在 `ApplyBakedInitial` 之后。**首版踩了 F8 的反面**
+>   (用 `is BuildModulesCatalog` 判类型 ⇒ 夹具替身恒 false),改收 `Func<int,bool>` 后转绿。
+> **零计数变化**(`-05` 本就 open;本轮只补正文与实现,未新增/未结案任何债)。
+> **仍未接通**:`F1PipelineInput.IsInClinic`(须迟绑定)· 规则十「无人」检测器(不存在)·
+> 第 4 步(37 的 `event_key` 集)· 第 5 步(25/27 战斗冷却源)。
+
 > 🔁 **四十七订(`TD-randomevents-05` 可解性勘察 + 三项裁定 · 2026-11-03 · 裁定面,零计数变化)** ——
 > 用户裁定「查这条可解性」⇒ 勘察结论 **= 本轮不可解,但前置已裁清**。
 > **勘察新发现(纠正一处旧判断)**:「`ClinicCellSource.Configure` 缺数据源」**只对了一半** ——
@@ -4177,6 +4192,9 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① `isInClinic` 接 23/24 的真实地块集(`ClinicCellSource.Configure` 的生产调用方);② `isOnExpedition` 按规则六之二的定义求值(需要 `ActiveHouseCallQuery` 能真求值 ⇒ 依赖 ①);③ `inCombatCooldown` 接战斗冷却源(25/27 侧);④ 夹具:三项各一正一反,且**至少一条真装配件**证明 `EvaluateContextGate` 在生产装配下能为真。 |
 | **🔍 可解性勘察(2026-11-03,结论 = 本轮不可解)** | **已找到的**:医馆「格集」的生产实现**存在** —— `ClinicRoomExtraction.Extract(IPlacedStructureReadView, IReadOnlyCollection<string>)` 出 `RoomCells`,且 `ClinicReviveCellQuery.cs:113` 已在生产里调它。⇒ 「`ClinicCellSource.Configure` 缺数据源」这个旧判断**只对了一半**。<br>**三条硬阻塞(逐条实测,任一不解则本条无解)**:<br>**① 语义错位** —— `RoomCells` = **一个连通家具簇**的成员格(24 规则一:恰好 1 个连通簇才成房间),而 GDD `:273` 要的是**建筑占地**。两者不是同一个量。<br>**② 量纲荒谬(决定性证据)** —— P0 的 9 个 `baked_initial` 槽位里,**只有 1 件是家具**:`(6,0,6) Decor mod 7 furn_type=chamber_pot`;其余 8 件是 Shell×4 / Door / Switch / ClinicPanel / Utensil,`furn_type` 全为 `null`。⇒ 用真 `FURN_TYPES` 闭集析出,得到的「房间」= **1 格,而且是那个夜壶**。接它当医馆地块 = 把「玩家站在夜壶上」判成「在医馆内」。<br>**③ 23 的结构视图生产为空** —— `ClinicCellSource.cs:8` 自陈 `StructureInstanceRegistry 生产树零构造` ⇒ 析出输入本身是空集。<br>**④ 自我死锁** —— `isOnExpedition` 要「活跃出诊目标」→ 要 `HouseCallStarted` → 要「玩家从医馆格跨出」→ 要医馆地块集。三者互为前提。<br>**⑤ 第三项也恒假** —— `inCombatCooldown` 硬编码 `false`(P0 无战斗冷却源),即使 ①–④ 全解,上下文门仍需三项齐备。<br>⇒ **不得「顺手接上」**:接一个语义错的量会得到「部分格偶然为真」的不稳定形态,比恒 false 更难排查(错量的门 > 空量的门)。**正确前置 = 先裁「医馆地块集」的形状与所有者**(见下行的开放裁定)。 |
 | **✅ 裁定(2026-11-03 用户,三项全裁)** | **① 口径 = 甲「建筑占地」**(非乙可走区 / 非丙生态区);**② 动态量** —— `baked_initial = false` 的玩家可建槽位建成后**算**医馆地块;③ **占地范围 = 两者都算**(建筑件自身的 `OccupiedCells` **+** 它们围出的内部空间)。<br>⇒ **地块集 = 23 结构表的派生量**,不是烘焙产物、不是 `RoomCells`(后者量纲错,见上)。 |
+| **🔍 第 1 步实测(2026-11-03)——「生产树零构造」判断已过期** | 解除顺序第 1 步「让 `StructureInstanceRegistry` 在生产树里有内容」**已经完成**,不需要再做。实测:<br>· `MinimalWorldFactory.Create` → `new World(...)`(`World.cs:94` 构造 registry);<br>· `BootRoot.cs:361` 生产**恒传** `world` 给 `CompositionRoot.Assemble`(`BootRoot.cs:411`);<br>· `CompositionRoot.cs:1419` 调 `world.ApplyBakedInitial(modulesCatalog)`;<br>· `World.ApplyBakedInitialBaseline`(`World.cs:180-217`)按 `baked_initial` 逐条 `Restore` + `OccupyCells`。<br>⇒ **生产 registry 里有 9 条结构**(`BakedInitialStructureCount = 9`)。旧判断「零构造」出自 `TD-building-01` 的 2026-10-28 实测,已被 **S20-17 / S20-20** 修掉。**本行原判断作废,原文不删。** |
+| **🔍 第 2 步实测(2026-11-03)——「围出内部」在 P0 结构性不存在** | 不是「数据不足」,是**没有闭合墙**:8 件建筑件的占格(家具 `(6,0,6)` 不算)分成 **4 个互不相连的连通分量** —— `{(2,4)}` · `{(10,5)}` · `{(1,1),(2,1),(3,1),(4,1),(5,1)}`(最长一堵墙)· `{(5,9)}`。⇒ **P0 没有任何闭合边界,「围出的内部空间」= 空集**。<br>⚠️ **我自己在本轮踩了一个空洞正控(F4)**:首版 flood fill 用「地图边界格」当种子,而边界格(`x∈{0,15}` / `z∈{0,15}`)全部**不可走** ⇒ 种子为空 ⇒ 循环空转 ⇒ 把全部 188 格误判成「内部」。改用「建筑件连通分量」判定后结论才成立。**这条记在此处,防下次重犯。**<br>⇒ **裁定 ③「两者都算」的「内部」半边在 P0 恒空**;可用的只有「建筑件占格」半边 = **8 格**(`(1,0,1)` `(2,0,1)` `(2,0,4)` `(3,0,1)` `(4,0,1)` `(5,0,1)` `(5,0,9)` `(10,0,5)`)。 |
+| **✅ 第 3 步已落(2026-11-03)——`IClinicCellSource` 契约改造:静态 → 派生** | **`ClinicCellSource` 已重写**:`Configure(静态集)` → `Bind(StructureInstanceRegistry, Func<int,bool> isBuildingModule)`,每次查询从结构表派生。<br>· **建筑件判据 = `furn_type == null`**(生产 = `id => modulesCatalog.GetFurnType(id) == null`),**不是** `SlotType`(后者粒度过粗:`Decor` 混装家具 6/7 与非家具 9)。<br>· **`Bind` 只许一次**(二次绑定 ⇒ 抛):两次绑定 = 把谓词接到两个结构表 = 同源禁令要防的形态。<br>· **装配顺序**:`clinicCells` 在 `CompositionRoot` 早段构造(被 `RandomEventsDirectorDriver` 立刻消费),而 `structures` / `modulesCatalog` 在更后 ⇒ 故拆「构造 + 后置 `Bind`」两步,**仍是单实例**(服务袋单点发放不变)。<br>· **绑定点在 `ApplyBakedInitial` 之后**(`CompositionRoot.cs:1429`)—— 基线不落 registry 时谓词恒 false。<br>· **装配层传委托而非目录**:首版用 `_modules is BuildModulesCatalog` 判类型 ⇒ 夹具替身恒 false(**F8 行为等价掩盖结构分叉的反面,本轮实测踩到**)。改收 `Func<int,bool>` 后 945/945 转绿。<br>⚠️ **仍未接通的两处消费点**(本步只改契约,不增调用点):`F1PipelineInput.IsInClinic`(硬编码 false;玩家格在装配期不存在,须走 `BindPlayer` 同款迟绑定)· 规则十「无人」检测器(尚未存在)。 |
 | **🔧 技术路线(裁定已定,实现未落)** | **数据面已就位**:`StructureInstance.OccupiedCells` 是**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,随朝向变;`StructureKinds.cs:51`),`StructureInstanceRegistry.EnumerateInstances()` 可枚举。<br>**形状**:`ClinicCellSource` 从「装配期 `Configure(静态集)`」改为「从 registry 派生」——<br>· 建筑件判据 = `module.furn_type == null`(`Shell` / `Door` / `ClinicPanel` / `Utensil` / `Switch` / `Tent`;见 `build_modules.json`),**不是**槽位类型(槽位类型与模块类型是两个维度);<br>· 占格 = 这些结构件的 `OccupiedCells` **并集** ∪ 其**围出内部**(后者须多边形填充,归 23 的实现轮);<br>· 动态性 = 每 tick 求值或订阅 `StructurePlaced` / `StructureRemoved` / `StructureModified` 三种事件后失效重算(与 ADR-009 派生态同构:不进流、可重建)。<br>**⚠️ 这条路线改的是 `IClinicCellSource` 的契约性质**(静态注入 → 派生),须同批改接口头注的「装配期喂一个静态格集」口径,并更新三个消费点(写者 / `F1PipelineInput` / 规则十「无人」)的同源义务。<br>**⚠️ P0 的 5 件结构件围不出闭合范围** ⇒ 「内部空间」半边在 P0 **恒空**;建筑件占格半边可用。⇒ 即使落地,`isInClinic` 只在**墙/门/面板所在的那几格**为真 —— 与「玩家在医馆里」仍不等价。**如实登记,不得当成「已接真源」。** |
 
 | **⚠️ 与 `TD-randomevents-03` / `-04` 的关系** | 三条**不同因、不同解除动作**,不得合并:③ 是「池条目件与 medical 映射」,④ 是「预算的两项修饰子」,本条是「上下文门的三项输入」。本条**优先级最高** —— 它不解,另外两条即使全解也仍是零写入。 |

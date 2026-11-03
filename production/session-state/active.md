@@ -16343,3 +16343,27 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `isInClinic` 只在墙/门/面板那几格为真
 - **债册**:零计数变化(四十七订,`-05` 本就 open;只补正文)
 - **未提交**(等用户指令)
+
+## Session Extract — TD-randomevents-05 解除顺序第 1–3 步(2026-11-03)
+
+- **触发**:用户「提交推送,然后开始:[解除顺序 1–5]」
+- **已提交并推送**:`00128dd6`(remote `f9d5e247..00128dd6`)
+- **第 1 步 = 旧判断已过期**:「`StructureInstanceRegistry` 生产树零构造」**不再成立** ——
+  `BootRoot.cs:361` 恒传 `world` → `CompositionRoot.cs:1419` `ApplyBakedInitial` →
+  `World.ApplyBakedInitialBaseline` 按 `baked_initial` 逐条 `Restore` ⇒ **生产 registry 有 9 条**
+- **第 2 步 = 结构性不可解**:8 件建筑件分成 **4 个互不相连的连通分量**
+  (`{(2,4)}` · `{(10,5)}` · `{(1,1)…(5,1)}` · `{(5,9)}`)⇒ **P0 没有闭合墙** ⇒「围出内部」= 空集
+  - ⚠️ **我自己踩了空洞正控(F4)**:首版 flood fill 用**不可走的地图边界格**当种子 ⇒ 种子空 ⇒
+    循环空转 ⇒ 把 188 格全误判成「内部」。改用「连通分量」判定后结论才成立
+- **第 3 步 = 已落**:`ClinicCellSource` 契约改造
+  - `Configure(静态集)` → `Bind(StructureInstanceRegistry, Func<int,bool> isBuildingModule)`
+  - 建筑件判据 = **`furn_type == null`**(生产 = `id => modulesCatalog.GetFurnType(id) == null`),
+    **不是 `SlotType`**(`Decor` 混装家具 6/7 与非家具 9)
+  - `Bind` 只许一次(二次 ⇒ 抛);绑定点在 `ApplyBakedInitial` 之后(`CompositionRoot.cs:1429`)
+  - ⚠️ **首版踩了 F8 的反面**:用 `is BuildModulesCatalog` 判类型 ⇒ 夹具替身恒 false;
+    改收 `Func<int,bool>` 后 945/945 转绿
+- **仍未接通**:`F1PipelineInput.IsInClinic`(须迟绑定,玩家格装配期不存在)·
+  规则十「无人」检测器(不存在)· 第 4 步(37 `event_key` 集)· 第 5 步(25/27 战斗冷却源)
+- **回归**:EditMode `6772/6735/0/0/37` @ 16:00:16 · PlayMode `324/320/0/2/2` @ 16:01:19 ·
+  警告 **0**(全量重编译)· 三元组 = `00128dd6` + 工作树;等式 `6772 − 6771 = 1`(新增 1 条家具反控夹具)
+- **未提交**(等用户指令)

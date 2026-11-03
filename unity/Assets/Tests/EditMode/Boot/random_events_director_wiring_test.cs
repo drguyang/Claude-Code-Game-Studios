@@ -32,6 +32,7 @@ namespace DaYiJingCheng.Tests.Boot
         private PayloadDecoder _decoder;
         private RecordingSink _sink;
         private ClinicCellSource _clinicCells;
+        private DaYiJingCheng.Sim.World.StructureInstanceRegistry _structures;
         private List<SimEvent> _stream;
 
         [SetUp]
@@ -42,6 +43,8 @@ namespace DaYiJingCheng.Tests.Boot
             _decoder = new PayloadDecoder(_pool);
             _sink = new RecordingSink();
             _clinicCells = new ClinicCellSource();
+            _structures = new DaYiJingCheng.Sim.World.StructureInstanceRegistry();
+            _clinicCells.Bind(_structures, FakeBuildingCatalog.IsBuilding);
             _stream = new List<SimEvent>();
         }
 
@@ -74,16 +77,55 @@ namespace DaYiJingCheng.Tests.Boot
             return d;
         }
 
-        /// <summary>占位源:默认空集 ⇒ 恒 false;Configure 喂入后命中(23/24 接线轮的缝)。</summary>
+        /// <summary>派生源:结构表为空 ⇒ 恒 false;登记一条建筑件后命中(2026-11-03 契约改造)。</summary>
         [Test]
-        public void test_clinicCellSource_defaultEmpty_configureFeeds()
+        public void test_clinicCellSource_emptyStructures_isFalse_thenRegisterHits()
         {
-            Assert.AreEqual(0, _clinicCells.ConfiguredCount, "占位态 = 0 格");
-            Assert.IsFalse(_clinicCells.IsClinicCell(ClinicCell), "空集 ⇒ 医馆格判据恒 false(fail-safe)");
+            Assert.AreEqual(0, _clinicCells.DerivedCellCount, "结构表为空 ⇒ 0 格");
+            Assert.IsFalse(_clinicCells.IsClinicCell(ClinicCell), "空 ⇒ 医馆格判据恒 false(fail-safe)");
 
-            _clinicCells.Configure(new[] { ClinicCell });
-            Assert.IsTrue(_clinicCells.IsClinicCell(ClinicCell), "Configure 后命中");
+            RegisterBuildingAt(ClinicCell);
+            Assert.AreEqual(1, _clinicCells.DerivedCellCount, "登记 1 条建筑件 ⇒ 1 格");
+            Assert.IsTrue(_clinicCells.IsClinicCell(ClinicCell), "登记后命中");
             Assert.IsFalse(_clinicCells.IsClinicCell(OutsideCell), "集外仍 false");
+        }
+
+        /// <summary>⚠️ 家具**不算**建筑件(判据 = `furn_type == null`,不是 `SlotType`)。</summary>
+        [Test]
+        public void test_clinicCellSource_furniture_isNotClinicCell()
+        {
+            _structures.Register(ClinicCell, FakeBuildingCatalog.FurnitureModuleId, 0, 0);
+            Assert.AreEqual(0, _clinicCells.DerivedCellCount,
+                "家具件不算医馆地块 —— `SlotType` 粒度过粗(`Decor` 混装家具与非家具)");
+            Assert.IsFalse(_clinicCells.IsClinicCell(ClinicCell));
+        }
+
+        /// <summary>登记一条建筑件到指定格(测试缝)。</summary>
+        private void RegisterBuildingAt(WorldPos cell)
+            => _structures.Register(cell, FakeBuildingCatalog.BuildingModuleId, 0, 0);
+
+        /// <summary>最小模块目录:1 = 建筑件(`furn_type` null),2 = 家具件。</summary>
+        private sealed class FakeBuildingCatalog : DaYiJingCheng.Sim.World.IModuleCatalog
+        {
+            public const int BuildingModuleId = 1;
+            public const int FurnitureModuleId = 2;
+
+            /// <summary>判据本体(`furn_type == null` 即建筑件)。</summary>
+            public static bool IsBuilding(int moduleId) => moduleId == BuildingModuleId;
+
+            public DaYiJingCheng.Sim.World.ModuleDefinition? GetModuleDefinition(int moduleId)
+                => moduleId == BuildingModuleId || moduleId == FurnitureModuleId
+                    ? new DaYiJingCheng.Sim.World.ModuleDefinition(
+                        moduleId, DaYiJingCheng.Sim.World.SlotType.Decor,
+                        new[] { new WorldPos(0, 0, 0) }, new[] { 0 }, refundable: 0, cost: 1,
+                        buildItemKey: 1)
+                    : (DaYiJingCheng.Sim.World.ModuleDefinition?)null;
+
+            public bool ContainsModule(int moduleId)
+                => moduleId == BuildingModuleId || moduleId == FurnitureModuleId;
+
+            public System.Collections.Generic.IReadOnlyCollection<int> GetAllModuleIds()
+                => new[] { BuildingModuleId, FurnitureModuleId };
         }
 
         /// <summary>未绑定玩家 ⇒ 边沿 no-op(fail-safe:装配未完成 = 不驱动,不是错误态)。</summary>
@@ -122,7 +164,7 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_director_crossingWithActiveTarget_appliesOnce()
         {
             var d = NewDriver(new[] { HouseCallEventKey });
-            _clinicCells.Configure(new[] { ClinicCell });   // 隔离地块变量(占位源默认空集)
+            RegisterBuildingAt(ClinicCell);   // 隔离地块变量(占位源默认空集)
             BuildSummonedPatientInClinic();
             var entered = _encoder.Encode(EventKind.ActorCellEntered,
                 new ActorCellEnteredPayload(PlayerActorId, OutsideCell, 12));
@@ -141,7 +183,7 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_director_sameTickEdge_drivenOnce()
         {
             var d = NewDriver(new[] { HouseCallEventKey });
-            _clinicCells.Configure(new[] { ClinicCell });   // 隔离地块变量(占位源默认空集)
+            RegisterBuildingAt(ClinicCell);   // 隔离地块变量(占位源默认空集)
             BuildSummonedPatientInClinic();
             var entered = _encoder.Encode(EventKind.ActorCellEntered,
                 new ActorCellEnteredPayload(PlayerActorId, OutsideCell, 12));
