@@ -646,29 +646,36 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 双重空集 ⇒ HouseCallStarted 生产恒零写入(「通电待信」态,见驱动类头注)。
             var clinicCells = new ClinicCellSource();
 
-            // F1 窗口(tick 数)—— **接线旋钮**,非裁定值(52 的窗口数值归数值轮)。
-            const long RandomEventWindowTicks = 200L;
-
-            // ── 52 急召生成链(S22-4)──────────────────────────────────────────────
-            // 生产今日**仍是双真空**:52 的池内容归 37 内容件 ⇒ 候选集空 ⇒ 链每 tick 真跑、
+            // ── 52 急召生成链(S22-4 · 🔁 2026-11-03 ADR-039 运行期消费)──────────────
+            // 生产今日**仍是双真空**:52 的池内容归 37 内容件 ⇒ 候选集空 ⇒ 链每个子区间真跑、
             // 恒 `NoPool`、零写入(与上面 12.1 的「通电待信」同一形态)。
             // ⚠️ `spawnPatient` 缝**刻意抛**:「急召降临 → 病人」需要 52 事件 key → 37 病种的
             //    映射表,今日不存在。返回假病种 = 让「有人开始生成病人了」静默通过(同
             //    `P0HostEventAuthority.Roll` 原来的理由)。池回填时须同批加映射。
-            var randomEventSpawnChain = new RandomEventSpawnChain(
-                stream, encoder,
-                new SeedEventAuthority(_ => Array.Empty<int>(), worldSeed),
-                keysOfTier: _ => Array.Empty<int>(),
-                presence: presence,
-                spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
-                spawnPatient: _ => throw new NotSupportedException(
-                    "急召降临 → 病人创建需要 52 event_key → 37 病种的映射表(归 37 内容件)。" +
-                    "生产今日候选池为空 ⇒ 本缝不可达;回填池内容时须同批给出映射,不得返回假病种。"),
-                contextOf: w => new F1PipelineInput(w, RandomEventWindowTicks,
-                    isNight: false, isOnExpedition: false, isInClinic: false,
-                    inCombatCooldown: false, seasonIndex: 0),   // 上下文源(夜/出诊/医馆)归后续轮
-                tier: 1,                                        // 机会档(急召出诊属此档,GDD:400)
-                windowSize: RandomEventWindowTicks);
+            // ⚠️ ADR-039 D5:取不到 52 配置(`dataProvider == null`,未预载 / 夹具)⇒
+            //    **不构造生成链**(director 收 null = 未接线),不回落默认值。
+            RandomEventSpawnChain randomEventSpawnChain = null;
+            if (dataProvider != null)
+            {
+                RandomEventsDataSet randomEvents = dataProvider.Load<RandomEventsDataSet>();
+                randomEventSpawnChain = new RandomEventSpawnChain(
+                    stream, encoder,
+                    new SeedEventAuthority(_ => Array.Empty<int>(), worldSeed),
+                    keysOfTier: _ => Array.Empty<int>(),
+                    presence: presence,
+                    spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
+                    spawnPatient: _ => throw new NotSupportedException(
+                        "急召降临 → 病人创建需要 52 event_key → 37 病种的映射表(归 37 内容件)。" +
+                        "生产今日候选池为空 ⇒ 本缝不可达;回填池内容时须同批给出映射,不得返回假病种。"),
+                    // ⚠️ 本闭包只提供**上下文旗标**;`WindowSize` 由链按数据集覆盖(ADR-039 D6),
+                    //    这里传 0 是为了让「谁提供它」在源码里唯一。
+                    contextOf: w => new F1PipelineInput(w, windowSize: 0,
+                        isNight: false, isOnExpedition: false, isInClinic: false,
+                        inCombatCooldown: false, seasonIndex: 0),   // 上下文源(夜/出诊/医馆)归后续轮
+                    events: () => stream.Events,                    // 当日计数与掷骰序号的来源(ADR-039 D2)
+                    tier: 1,                                        // 机会档(急召出诊属此档,GDD:400)
+                    config: randomEvents);
+            }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(
                 () => stream.Events, stream, encoder, decoder, clinicCells,

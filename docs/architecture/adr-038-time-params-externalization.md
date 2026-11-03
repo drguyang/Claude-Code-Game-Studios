@@ -171,8 +171,8 @@ magic(4) · SHA256(32) · SaveVersion(u32) · WorldSeed(u64) · ConfigVersion(u3
 **🔁 2026-11-03 收口轮的部分推进(原文不删)**:`ROLL_INTERVAL` 已有**一个真实的生产消费点**
 —— `BootRoot.RequireCrossDatasetWindow` 在启动期读它,与 5 的日长做整除校验(R2);
 这条校验也在读档 hydrate 时重跑。**其余三值**(`WINDOW_SIZE` / `BASE` / `BUDGET_MAX`)
-仍零消费 —— 它们要等 52 的预算 / 抽池主循环(`EventBudget.ComputeDailyBudget` 同样零生产调用点),
-归「52 运行期消费」ADR,不在本件面内。
+**已于同日由 ADR-039 接进运行期**(预算 / 抽数 / 子区间节奏三条门)——
+`EventBudget.ComputeDailyBudget` 自此有生产调用点。
 
 ### D8 —(就地裁定)AC-5-05 门的补洞
 

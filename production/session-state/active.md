@@ -16245,3 +16245,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   警告 **0**(touch 1345 个 .cs 全量重编译)· `59a1d54d` + 工作树
 - **证据**:`impl-adr038-time-params-2026-11-03.md` §七(含 §5.1 三元组与等式)
 - **未提交**(等用户指令)
+
+## Session Extract — ADR-039 52 运行期消费(2026-11-03 · 同日再后续轮)
+
+- **触发**:用户「继续 52 运行期消费」(结 ADR-038 §D7 的「三值零消费」登记)
+- **ADR**:`docs/architecture/adr-039-random-events-runtime-consumption.md`(Accepted 2026-11-03;
+  D1–D7 由实现轮就地拟定,未经用户逐条确认 —— 同 ADR-034/037/038 口径)
+- **四值消费点**:`ROLL_INTERVAL` = 子区间边界门 · `WINDOW_SIZE` = F1 配额总数 + 当日抽取条数上限 ·
+  `BASE`/`BUDGET_MAX` = `EventBudget.ComputeDailyBudget` 的当日降临上限(首次有生产调用点)
+- **D2 状态从流重构**:当日 `EventRolled`/`EventArrived` 计数;`RollRequest.Window` = 预算窗口起点;
+  删除两个读档后不可重建的内存字段
+- **D3**:预算/抽数门排在**掷骰之前**(避免孤儿 `EventRolled`;与 F1 字面次序不同,已登记)
+- **D7**:删除 `RandomEventWindowTicks = 200`(节奏与抽数混用的第三定义点;grep 命中 0)
+- **实跑修正(首轮 26 红)**:装配期即时 `Load<RandomEventsDataSet>` 使五个 partial provider 当场抛
+  ⇒ 新增 `DataCookedDisk.LoadRandomEvents()`(真产物 + 同 codec)+ 五处 `.Add(...)`;
+  ADR-039 §D5 补明「provider 非 null 而表缺失 ⇒ 抛」及其连带义务
+- **证伪轮**:M11/M12/M13/M14b 各转红;**M14 首枪打错靶**(只钉 F1 输入、未钉 `RollRequest`),
+  补夹具后重打;`RandomEventSpawnChain.cs` SHA-256 `c116e0ae…bf7b` 逐字节还原
+- **回归**:EditMode `6754/6717/0/0/37` @ 12:41:57 · PlayMode `324/320/0/2/2` @ 12:45:11 ·
+  警告 **0**(touch 1346 个 .cs 全量重编译)· 三元组 = `8d0c859b` + 工作树
+  等式:`6754 − 6742 = 12` = 新夹具 `[Test]` 数
+- **仍 NOT-RUN / 盲区**:V-7(`dataProvider == null` 的装配夹具)· 生产端到端恒 `NoPool`(候选池空)
+- **证据**:`production/qa/evidence/impl-adr039-random-events-consumption-2026-11-03.md`
+- **未提交**(等用户指令)

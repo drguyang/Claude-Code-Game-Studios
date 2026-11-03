@@ -178,5 +178,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 每条有产出的 `Craft` 都报 <c>CraftRecipeNotInTable</c>。</para></summary>
         public static DaYiJingCheng.Sim.RecipeDataSet LoadRecipes()
             => CookedCodec.ReadRecipeDataSet(ReadAll(AddressablesDataProvider.RecipesAddress));
+
+        // ── 52 随机事件配置(ADR-039 运行期消费 · 2026-11-03)──────────────────
+        // ⚠️ 与 `LoadItems` 同格:**装配期即时**读取(`CompositionRoot` 用它构造生成链),
+        //    故它是「装配面完备」的一部分 —— 提供 partial provider 的装配夹具缺这条表
+        //    会当场抛(五个 `MultiTableProvider` 已同批补表)。
+
+        /// <summary>52 随机事件四值(<c>52_random_events.cooked.bytes</c>;ADR-038 §D4 / ADR-039)。</summary>
+        public static RandomEventsDataSet LoadRandomEvents()
+            => RandomEventsCookedCodec.Read(ReadAll(AddressablesDataProvider.RandomEventsAddress));
     }
 }

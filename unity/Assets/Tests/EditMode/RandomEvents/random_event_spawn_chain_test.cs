@@ -36,7 +36,12 @@ namespace DaYiJingCheng.Tests.RandomEvents
         private static readonly WorldPos SyntheticCell = new WorldPos(9, 0, 4);
         private const ulong WorldSeed = 0xA11CEUL;
         private const int Tier = 1;              // 机会档(急召出诊属此档)
-        private const long WindowSize = 20L;
+        // ── ADR-039 运行期消费的合成配置(量纲分开:节奏是 tick,抽数是条数)──
+        private const long RollInterval = 20L;   // 边界门
+        private const long TicksPerDay = 100L;   // 预算窗口
+        private const int WindowSize = 20;       // 每日抽取条数上限 / F1 配额总数
+        private const int BaseEvents = 6;        // 每日基础事件数
+        private const int BudgetMax = 6;         // 每日硬上限
         private const int DiseaseId = 3;
 
         private InMemoryBlobPool _pool;
@@ -151,21 +156,22 @@ namespace DaYiJingCheng.Tests.RandomEvents
             var counter = new CountingAuthority(NewAuthority());
 
             RandomEventSpawnChain chain = NewChain(sink, presence, () => { }, counter);
-            chain.TrySpawnAtTick(tick: 47L);   // 47 / 20 ⇒ 窗口起点 40
+            chain.TrySpawnAtTick(tick: 40L);   // 20 的倍数 ⇒ 子区间边界;日窗口起点 0
 
             Assert.AreEqual(1, counter.Calls, "恰掷一次");
-            Assert.AreEqual(40L, counter.LastRequest.Win, "win = tick 对齐到窗口起点(47 → 40)");
+            Assert.AreEqual(0L, counter.LastRequest.Win,
+                "win = **预算窗口起点**(一天)· ADR-039 D2;不是 tick 子窗口");
             Assert.AreEqual(Tier, counter.LastRequest.Tier, "tier = 本链的档");
-            Assert.AreEqual(0, counter.LastRequest.Ordinal, "本窗口首次 ⇒ ordinal 0");
+            Assert.AreEqual(0, counter.LastRequest.Ordinal, "当日首次 ⇒ ordinal 0");
 
-            // 同窗口第二次 ⇒ ordinal 递增(否则同窗两次掷骰会掷出同一 key 且流里不可区分)
-            chain.TrySpawnAtTick(tick: 48L);
-            Assert.AreEqual(1, counter.LastRequest.Ordinal, "同窗口第二次 ⇒ ordinal = 1");
+            // 同一日再一个边界 ⇒ ordinal = 当日已掷数(从流计数,读档可重建)
+            chain.TrySpawnAtTick(tick: 60L);
+            Assert.AreEqual(1, counter.LastRequest.Ordinal, "同日第二次 ⇒ ordinal = 1(流里已有 1 条 EventRolled)");
 
-            // 换窗口 ⇒ ordinal 归零
-            chain.TrySpawnAtTick(tick: 61L);   // 窗口 60
-            Assert.AreEqual(60L, counter.LastRequest.Win);
-            Assert.AreEqual(0, counter.LastRequest.Ordinal, "换窗口 ⇒ ordinal 归零");
+            // 换日 ⇒ 计数归零、窗口 = 新日起点
+            chain.TrySpawnAtTick(tick: 120L);   // 日窗口起点 100
+            Assert.AreEqual(100L, counter.LastRequest.Win);
+            Assert.AreEqual(0, counter.LastRequest.Ordinal, "换日 ⇒ ordinal 归零");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -224,9 +230,10 @@ namespace DaYiJingCheng.Tests.RandomEvents
             => new SeedEventAuthority(_ => SyntheticKeys, WorldSeed);
 
         private RandomEventSpawnChain NewChain(
-            IEventSink sink, IPresenceQuery presence, Action onSpawn,
+            CapturingSink sink, IPresenceQuery presence, Action onSpawn,
             IEventAuthority authority = null,
-            Func<int, IReadOnlyList<int>> keysOfTier = null)
+            Func<int, IReadOnlyList<int>> keysOfTier = null,
+            int windowSize = WindowSize)
         {
             return new RandomEventSpawnChain(
                 sink, _encoder, authority ?? NewAuthority(),
@@ -235,11 +242,20 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 spawnAnchorOf: _ => SyntheticCell,
                 spawnPatient: _ => { onSpawn(); return new PatientId(1); },
                 // 合成上下文:**出诊路径上、不在医馆、非冷却** —— F1 上下文门的唯一通行组合
-                contextOf: w => new F1PipelineInput(w, WindowSize,
+                // (WindowSize 由链按 config 覆盖,这里传 0)
+                contextOf: w => new F1PipelineInput(w, windowSize: 0,
                     isNight: false, isOnExpedition: true, isInClinic: false,
                     inCombatCooldown: false, seasonIndex: 0),
+                events: () => sink.Events,
                 tier: Tier,
-                windowSize: WindowSize);
+                config: new RandomEventsDataSet
+                {
+                    TicksPerDay = TicksPerDay,
+                    RollInterval = RollInterval,
+                    WindowSize = windowSize,
+                    Base = BaseEvents,
+                    BudgetMax = BudgetMax,
+                });
         }
 
         // ── 测试替身 ─────────────────────────────────────────────────────

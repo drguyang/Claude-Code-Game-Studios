@@ -219,7 +219,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const string TimeParamsAddress = "5_time.cooked.bytes";
 
         /// <summary>52 随机事件配置(`52_random_events.cooked.bytes`;ADR-038 §D4 新增)。
-        /// <para>⚠️ 今日本产物**零生产消费方**(见 `RandomEventsDataSet` 头注 / ADR-038 §D7)。</para></summary>
+        /// <para>消费方 = `CompositionRoot` 的急召生成链(ADR-039 D1–D7 · 2026-11-03 接通);
+        /// 装配期即时读取 ⇒ 缺表当场抛(不回落默认值,D5)。</para></summary>
         public const string RandomEventsAddress = "52_random_events.cooked.bytes";
 
         /// <summary>5 天气参数(`5_weather.cooked.bytes`;ADR-038 Amendment A 新增)。

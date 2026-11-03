@@ -1114,10 +1114,33 @@
   `IsSpecified` **只判非零**(关系归 `Validate` / `ValidateSeason` / `WeatherParams.Validate`)。
   **同时结清**:R2 的端到端可达性(hydrate 收 `rollInterval` + 启动期 `RequireCrossDatasetWindow`);
   AC-5-11 五条的**装载路径层**(①–④ 经 `ResolveTimeParams`、⑤ 经 `ResolveWeatherParams`)。
-  **仍未做**:天气两值运行期零消费方(`WeatherRoll` 无生产调用点)· 52 的
-  `WINDOW_SIZE` / `BASE` / `BUDGET_MAX` 仍零消费(待「52 运行期消费」ADR)。
+  **仍未做**:天气两值运行期零消费方(`WeatherRoll` 无生产调用点)。
+  ~~52 的 `WINDOW_SIZE` / `BASE` / `BUDGET_MAX` 仍零消费~~ **✅ 同日由 ADR-039 接通**(见下条)。
 
-> **本日志状态**:全部 ADR(001–**038**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-039 ✅ Accepted 2026-11-03]**52 运行期消费(密度预算 · 抽数上限 · 子区间节奏)** ——
+  `docs/architecture/adr-039-random-events-runtime-consumption.md`。**结清 ADR-038 §D7 的
+  「三值零消费」登记**。用户指令「继续 52 运行期消费」;§D1–D7 由实现轮就地拟定,未经用户逐条确认
+  (同 ADR-034 / 037 / 038 口径)。七点裁决:**D1** 四值各自的唯一消费面 ——
+  `ROLL_INTERVAL` = 子区间边界门 · `WINDOW_SIZE` = F1 配额总数 **+** 当日抽取条数上限 ·
+  `BASE` / `BUDGET_MAX` = `EventBudget.ComputeDailyBudget` 的当日降临上限;
+  **D2** 状态**全部从事件流重构**(当日 `EventRolled` / `EventArrived` 计数;`Ordinal` = 当日已掷数;
+  `RollRequest.Window` = 预算窗口起点)—— 删除两个读档后不可重建的内存字段;
+  **D3** 预算 / 抽数门排在**掷骰之前**(与 CDP 同源理由:避免孤儿 `EventRolled`)——
+  与 GDD F1 步骤④ 的字面次序不同,**如实登记为次序判断**;
+  **D4** `mods` 今日 = 空集(P0 无输入源;`ReputationMult` 按 AC-52-20 恒 1);
+  **D5** `dataProvider == null` ⇒ **不构造生成链**(不回落默认值);
+  **D6** 日期窗口用 5 的 `TICKS_PER_DAY`(经 52 数据集的同值断言);
+  **D7** 删除 `RandomEventWindowTicks = 200`(节奏与抽数混用的第三定义点)。
+  **驳回**:维持零消费 · 预算门放在掷骰后(留孤儿行)· 内存计数器(读档不可重建)·
+  两值合一(量纲不同)· 假 `mods`(数值归用户)。
+  **实现落盘**:`RandomEventSpawnChain`(三道门 + 三种新 outcome + `LastF1Input` 观测缝)·
+  `CompositionRoot`(从 `IDataProvider` 取配置)· `random_events_consumption_test`(12 条)。
+  证伪轮 M11 / M12 / M13 / M14b 各转红;**M14 首枪打错靶**(只钉 F1 输入、未钉 `RollRequest`)
+  已作废并补夹具重打。`§Validation` V-1…V-6 有载体;**V-7(`dataProvider == null` 的装配夹具)NOT-RUN**;
+  生产今日候选池为空 ⇒ **端到端恒 `NoPool`**,预算 / 抽数判据只有夹具可达(§R3,禁借绿)。
+  Engine Knowledge Risk **LOW**(纯 C# 整数与事件流读取,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**039**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
@@ -1138,7 +1161,9 @@
 > **ADR-035(用药伤害 Kind + 「永不致死」机械门,只结 `TD-medcons-15` 的**形状半边**,实现半边仍 open)** ·
 > **ADR-036(53 判定链装配,为 `TD-medcons-13` / `-18` / `-19` 立可开工对象;三条债须待其 S4 才可结)** ·
 > **ADR-037(存档 v3 配置版本段 —— 让 `AC-7a-14` 的「哪一张表变了」可判;`[2,3)` 不再是空区间)** ·
-> **ADR-038(时间参数外部化 + 跨表 `$ref` + 存档 v4 —— 结 AC-5-05 的第二半与 AC-5-11 的装载路径)**
+> **ADR-038(时间参数外部化 + 跨表 `$ref` + 存档 v4 —— 结 AC-5-05 的第二半与 AC-5-11 的装载路径)** ·
+> **ADR-039(52 运行期消费 —— 结 ADR-038 §D7 的「三值零消费」;预算 / 抽数 / 节奏三道门有执行体,
+> 但生产候选池为空 ⇒ 端到端仍恒 `NoPool`)**
 > 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists

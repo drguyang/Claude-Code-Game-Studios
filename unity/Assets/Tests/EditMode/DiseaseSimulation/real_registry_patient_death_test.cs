@@ -161,6 +161,9 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                     .Add(DataCookedDisk.LoadWorldEcozones())
                     // 13 调参常量表(TD-audio-032 ① 接线后组合根**即时** Load)—— 缺它装配当场抛。
                     // 本测不读 cue / 行为分档语义,只为装配面完备(盘上真件,零合成)。
+                    // ADR-039(2026-11-03):52 随机事件配置现在是**装配期即时**取表 ——
+                    //    生成链要用它构造,缺表装配当场抛;本门不测其语义,只为装配面完备。
+                    .Add(DataCookedDisk.LoadRandomEvents())
                     .Add(DataCookedDisk.LoadAiPatient()));
 
         /// <summary>把真表行集按 id 取出来(前提断言用 —— 缺行要**当场说清**而不是下游空转)。</summary>
