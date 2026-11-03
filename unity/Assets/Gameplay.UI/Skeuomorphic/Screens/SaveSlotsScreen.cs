@@ -85,23 +85,40 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         public void BindCommandSink(ISaveSlotCommandSink sink) => _sink = sink;
 
         /// <summary>
-        /// 按槽位清单重建行(清单由装配层给 —— 42 不自己发明槽位数)。
+        /// 按槽位号清单重建行(**未绑定**形态)。
+        /// <para>⚠️ 只给了槽号 = 42 不知道哪一槽有档(7b §6「未绑定」:纸线格完整、行字空白)。
+        /// 想画出「有档 / 空槽」的差异须走 <see cref="SetSlotViews"/>。</para>
         /// </summary>
         /// <param name="slotSeqs">槽位序号清单。null / 空 ⇒ 清空全部行。</param>
         public void SetSlots(IReadOnlyList<uint> slotSeqs)
+        {
+            if (slotSeqs == null) { SetSlotViews(null); return; }
+
+            var views = new List<SaveSlotView>(slotSeqs.Count);
+            for (int i = 0; i < slotSeqs.Count; i++)
+                views.Add(SaveSlotView.Unbound(slotSeqs[i]));
+            SetSlotViews(views);
+        }
+
+        /// <summary>
+        /// 按**带状态的**槽位清单重建行(装配层每次开册前探一次)。
+        /// </summary>
+        /// <param name="views">槽位视图清单。null / 空 ⇒ 清空全部行。</param>
+        public void SetSlotViews(IReadOnlyList<SaveSlotView> views)
         {
             for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
             _rows.Clear();
             _slots.Clear();
             if (_writableRow != null) { _writableRow.RemoveFromHierarchy(); _writableRow = null; }
 
-            if (slotSeqs == null) return;
+            if (views == null) return;
 
             var host = _slotHost;
-            for (int i = 0; i < slotSeqs.Count; i++)
+            for (int i = 0; i < views.Count; i++)
             {
-                uint slotSeq = slotSeqs[i];
-                var row = new SaveSlotItem((int)slotSeq);
+                SaveSlotView view = views[i];
+                var row = new SaveSlotItem((int)view.SlotSeq);
+                row.Apply(view);
                 int rowIndex = _rows.Count;
                 // 两条输入路径都落到同一个 `Activate` —— 手柄经官方焦点桥给
                 // `NavigationSubmitEvent`(ADR-011:不自实现焦点算法),指针给 `ClickEvent`。
@@ -112,7 +129,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 //    (ADR-013「不自实现焦点算法」);本屏只定**顺序**。
                 row.tabIndex = rowIndex;
                 _rows.Add(row);
-                _slots.Add(slotSeq);
+                _slots.Add(view.SlotSeq);
                 host.Add(row);
             }
 
@@ -126,7 +143,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// </summary>
         private void BuildWritableRow(VisualElement host)
         {
-            _writableRow = new SaveSlotItem(-1) { name = "save-slot-new" };
+            _writableRow = new SaveSlotItem(-1) { name = "save-slot-new" }.AsWritableRow();
             // 两条输入路径汇到同一出口(与槽位行同纪律)
             _writableRow.RegisterCallback<NavigationSubmitEvent>(_ => ActivateWritable());
             _writableRow.RegisterCallback<ClickEvent>(_ => ActivateWritable());

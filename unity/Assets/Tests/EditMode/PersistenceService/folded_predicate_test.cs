@@ -605,10 +605,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    「一个量」在类型层成立)。位置不变,其余逐位断言不受影响。
             // 🔁 2026-10-28 ADR-034 §⑤:12 → 13(末尾增 `blobRestoreSink` —— 读档按号装池;
             //    前十二个位置**不变**,故下方逐位类型断言全部仍成立)。
-            Assert.AreEqual(13, ps.Length,
+            // 🔁 2026-11-03(smoke 轮 · AC-7a-19 / S19-1 W-4 的装配通道):13 → 14(末尾增
+            //    `initialNextWritableSeq` —— 台账高水位初值;前十三个位置**不变**,
+            //    故下方逐位类型断言全部仍成立)。
+            Assert.AreEqual(14, ps.Length,
                 "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
                 "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink, " +
-                "writeScheduler, bufferPool, blobRestoreSink)");
+                "writeScheduler, bufferPool, blobRestoreSink, initialNextWritableSeq)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,

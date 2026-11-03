@@ -858,7 +858,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                     },
                     narrativeContext,
                     AnchorCheckpointTrigger.DefaultAnchors,
-                    onFired: () => checkpointFallback.NotifyExternalCheckpoint());
+                    // 🔁 2026-11-03(smoke 轮发现 · AC-7a-19 (d)):**解锁必须挂在这里**。
+                    //    病因:`SaveService.Load` 成功后调 `SaveSlotLedger.OnLoaded(slot)` 置锁,
+                    //    而解锁唯一路径 `OnNarrativeAnchor()` **全仓零生产调用点**
+                    //    ⇒ 一个槽位读过一次,本次会话内**再也读不了**(用户实测:
+                    //    「槽位 slot=1 已锁 … 锁持续到下一次叙事事件 checkpoint」永不自解)。
+                    //    本触发器 = 「叙事事件 checkpoint」的**唯一生产落点**
+                    //    (`DefaultAnchors` = 脉案落笔 / 病例结案 / 出诊启动),锁的解除
+                    //    与 GDD 规则十四「锁持续到下一次叙事事件触发 checkpoint」逐字对齐。
+                    //    ⚠️ 只在 checkpoint **成功**后解(onFired 的既有语义)—— 存不成还解锁
+                    //       就等于把 save-scum 通道重新打开。
+                    onFired: () =>
+                    {
+                        checkpointFallback.NotifyExternalCheckpoint();
+                        saveService.OnNarrativeAnchor();
+                    });
 
                 saveService = new SaveService(
                     saveBasePath,
@@ -872,6 +886,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    (与编码器/解码器共用 ⇒ 装完之后既有 `PayloadRef` 直接可解)。
                     //    不传 ⇒ 遇到带载荷的档 `Load` 抛(不静默跳过)。
                     blobRestoreSink: blobPool,
+                    // 🔁 2026-11-03(smoke 轮):台账高水位初值 = **1** —— 与
+                    //    `BootRoot.ManualSaveSlots = {1,2,3}` 的**第一个槽号**对齐。
+                    //    病因:缺省 0 ⇒ 本次会话的**第一次**手动存 / 自动 checkpoint 写进槽 0,
+                    //    而存档位屏只列 1..3 ⇒ 玩家看到「存了却没变化」(用户 smoke 实测)。
+                    //    ⚠️ 残余:本屏的槽位列表仍是**固定三行**,第 4 次之后写的槽号出列表
+                    //       —— 那属 7b「槽位列表须由台账派生」的呈现面,不在本次修复范围。
+                    initialNextWritableSeq: 1,
                     // AC-7a-17 · TD-persist-06:退出保存失败的「记日志」落点。
                     // ⚠️ `SaveService` **不抛**写盘失败(退出路径上抛 = 卡退),故
                     //    GDD「不阻塞退出 **+ 记日志**」里的后半句只能经这条委托兑现。

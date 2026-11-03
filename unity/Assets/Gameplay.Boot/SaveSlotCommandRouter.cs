@@ -37,6 +37,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly LoadSequencer _sequencer;
         private readonly Action<uint, Exception> _failureSink;
         private readonly SaveService _saveService;
+        private readonly Action _onSaveAccepted;
 
         /// <summary>构造。</summary>
         /// <param name="sequencer">读档缝合序列器(**唯一**载入入口;可 null = 未接线形态,
@@ -48,11 +49,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 序列器不暴露它,而这里有两条真实来源(读 / 写),各自注入比「从读那边借一个」清楚。</param>
         public SaveSlotCommandRouter(LoadSequencer sequencer,
                                      Action<uint, Exception> failureSink = null,
-                                     SaveService saveService = null)
+                                     SaveService saveService = null,
+                                     Action onSaveAccepted = null)
         {
             _sequencer = sequencer;
             _failureSink = failureSink;
             _saveService = saveService;
+            _onSaveAccepted = onSaveAccepted;
         }
 
         /// <summary>载入半边是否已接线(未接线 = 生产装配缺存档目录的合法形态)。</summary>
@@ -105,6 +108,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 _saveService.Checkpoint(new SaveSlot(slotSeq));
                 LastSavedSlot = slotSeq;
+                // 🔁 2026-11-03(甲方案第一层):受理后**请求重画**槽位行。
+                //    ⚠️ 只**标记**,不在此处重探 —— 落盘是异步的,此刻磁盘上还是旧状态。
+                //    真正的重探在 `SkeuoRuntimeDriver.OnTickEdge` 里等队列排空之后。
+                _onSaveAccepted?.Invoke();
                 return true;
             }
             catch (Exception ex)

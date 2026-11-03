@@ -976,8 +976,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             _saveSlotCommands = new SaveSlotCommandRouter(
                 _services.LoadSequencer,
                 (slot, ex) => LogLoadFailure(slot, ex),
-                _services.SaveService);
+                _services.SaveService,
+                // 🔁 2026-11-03(甲方案第一层):落笔受理 ⇒ 请求重画槽位行。
+                //    不在此处重探(落盘异步),重探在 `SkeuoRuntimeDriver.OnTickEdge` 等队列排空后。
+                () => _uiDriver?.MarkSaveSlotRowsDirty());
             _uiDriver.SaveSlotSink = _saveSlotCommands;
+
+            // 🔁 2026-11-03(甲方案第一层):槽位行**每次开册重探磁盘**。
+            //    病因:此前灌给 42 的只有 `ManualSaveSlots` 这个**常量** ⇒ 42 不知道
+            //    哪一槽有档 ⇒ 空槽与有档槽长得一样(7b `OQ-SB-5` 登记的那个缺口),
+            //    玩家看到的是「存了,什么都没发生」。
+            //    ⚠️ 未接存档目录 ⇒ `SaveService` 为 null ⇒ 全体「未绑定」(零字),
+            //       与今天的形态一致 —— 不冒充空槽。
+            _uiDriver.SaveSlotViewProvider = BuildSaveSlotViews;
+            // 写盘未落定时不重探(否则按了「留档」立刻重画会读到写之前的磁盘状态)。
+            _uiDriver.SaveInFlight =
+                () => _services.SaveService != null
+                      && _services.SaveService.WriteQueue != null
+                      && _services.SaveService.WriteQueue.Outstanding > 0;
             _uiDriver.SaveSlots = ManualSaveSlots;
 
             // ── 6.3 模态开合入口(2026-10-31 模态开启器轮;同夜 Amendment C 改接暂停壳)──
@@ -1652,6 +1668,50 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "≥2 个 = 每帧警告洪泛 → Console 管道超载 → Editor 进程 EPIPE 终止(2026-10-10 实测 31868 条)。" +
                     "正确形态:运行时 CameraRig 主相机持唯一 listener;预摆 Main Camera 禁用前已摘除其 listener。");
             }
+        }
+
+        /// <summary>
+        /// 把 <see cref="ManualSaveSlots"/> 与本会话的磁盘状态合成 42 能画的槽位视图。
+        /// <para>2026-11-03(甲方案第一层):屏上「有档 / 空槽」的差异**只有这一个来源**。
+        /// 每次开册、每次写盘落定后各调一次 —— 常量清单不会自己更新。</para>
+        /// <para>⚠️ 状态映射的纪律:<see cref="Sim.Codec.SaveSlotState.Occupied"/> ⇒ 有档;
+        /// <see cref="Sim.Codec.SaveSlotState.Empty"/> ⇒ 空槽(零字);
+        /// <b><see cref="Sim.Codec.SaveSlotState.Unknown"/> 与
+        /// <see cref="Sim.Codec.SaveSlotState.Corrupt"/> 一律按「未绑定」画</b> ——
+        /// 把「不知道」和「残缺」画成空槽,等于对玩家断言「这里什么都没写过」,而它可能只是读不出来。</para>
+        /// </summary>
+        private UI.Skeuomorphic.SaveSlotView[] BuildSaveSlotViews()
+        {
+            var views = new UI.Skeuomorphic.SaveSlotView[ManualSaveSlots.Length];
+            SaveService saves = _services?.SaveService;
+            for (int i = 0; i < ManualSaveSlots.Length; i++)
+            {
+                uint seq = ManualSaveSlots[i];
+                if (saves == null)
+                {
+                    // 未接存档目录 = 7a 未装配(合法形态)· 42 画「未绑定」
+                    views[i] = UI.Skeuomorphic.SaveSlotView.Unbound(seq);
+                    continue;
+                }
+
+                Sim.Codec.SaveSlotSummary summary = Sim.Codec.SaveSlotProbe.Probe(saves.BasePath, seq);
+                switch (summary.State)
+                {
+                    case Sim.Codec.SaveSlotState.Occupied:
+                        views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
+                                                                   hasSave: true, tick: summary.Tick);
+                        break;
+                    case Sim.Codec.SaveSlotState.Empty:
+                        views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
+                                                                   hasSave: false, tick: 0L);
+                        break;
+                    default:
+                        // Unknown / Corrupt ⇒ 未绑定(零字可聚焦),不冒充空槽
+                        views[i] = UI.Skeuomorphic.SaveSlotView.Unbound(seq);
+                        break;
+                }
+            }
+            return views;
         }
 
         /// <summary>

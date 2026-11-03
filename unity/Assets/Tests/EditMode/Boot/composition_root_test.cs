@@ -344,7 +344,11 @@ namespace DaYiJingCheng.Tests.Boot
                 //    而是 compose 闭包内的 ConfigVersion 派生失败(E-13 的正确行为)。
                 //    ⚠️ 生产(BootRoot)传 DataCorePreloader.Provider ⇒ compose 正常,不抛 E-13。
                 var ex = Assert.Throws<InvalidOperationException>(
-                    () => bag.SaveService.Checkpoint(new SaveSlot(0)),
+                    // 🔁 2026-11-03(smoke 轮):目标槽由字面 0 改为台账的下一可写槽 ——
+                    //    生产装配把高水位初值种到 1,字面 0 会先被「只进不退」拒掉,
+                    //    掩盖本测要断的 E-13 失败点。
+                    () => bag.SaveService.Checkpoint(
+                        new SaveSlot(bag.SaveService.Ledger.NextWritableSeq)),
                     "无 provider 的装配里 Checkpoint 会走到 compose ⇒ E-13(门已过,失败点在数据派生)");
                 StringAssert.Contains("ConfigVersion", ex.Message);
                 StringAssert.DoesNotContain("narrativeContext", ex.Message,

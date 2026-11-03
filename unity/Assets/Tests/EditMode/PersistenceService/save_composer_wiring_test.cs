@@ -607,11 +607,15 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 Assert.IsTrue(bag.SaveService.Ledger.HasNarrativeContextSource,
                     "生产接线轮:瞬时源已接通(⑤),不得再回到 null fail-closed");
 
+                // 🔁 2026-11-03(smoke 轮):写入目标由字面 `SaveSlot(0)` 改为
+                //    `Ledger.NextWritableSeq` —— 生产装配现在把高水位初值种到 **1**
+                //    (与存档位屏的第一个槽号对齐),字面 0 会被「只进不退」先拒掉,
+                //    掩盖本测真正要断的 E-13 派生失败点。
                 // 行为判据(不止读台账字段):narrativeContext 门已过 ⇒ 失败点前移到
                 // compose 内的 ConfigVersion 派生(E-13;本装配 dataProvider = null)。
                 // 生产(BootRoot)传真 provider ⇒ 不抛 E-13。
                 var exEmpty = Assert.Throws<InvalidOperationException>(
-                    () => bag.SaveService.Checkpoint(new SaveSlot(0)),
+                    () => bag.SaveService.Checkpoint(new SaveSlot(bag.SaveService.Ledger.NextWritableSeq)),
                     "无 provider 装配里 Checkpoint 走到 compose ⇒ E-13(门已过)");
                 StringAssert.Contains("ConfigVersion", exEmpty.Message);
                 StringAssert.DoesNotContain("narrativeContext", exEmpty.Message,
@@ -658,7 +662,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 // 瞬时门放行(Idle)⇒ 失败点前移到 compose 内的 ConfigVersion 派生
                 // (E-13;本装配 dataProvider = null;生产传真 provider ⇒ 不抛)。
                 var ex = Assert.Throws<InvalidOperationException>(
-                    () => bag.SaveService.Checkpoint(new SaveSlot(0)),
+                    () => bag.SaveService.Checkpoint(new SaveSlot(bag.SaveService.Ledger.NextWritableSeq)),
                     "装配刚完成 ⇒ 无未决医疗动作 ⇒ narrativeContext 门放行(失败点在数据派生)");
                 StringAssert.Contains("ConfigVersion", ex.Message);
                 StringAssert.DoesNotContain("narrativeContext", ex.Message,

@@ -155,7 +155,8 @@ namespace DaYiJingCheng.Sim.Codec
             Action<Exception, Exception> exitSaveFailureSink = null,
             Action<Action> writeScheduler = null,
             SaveBufferPool bufferPool = null,
-            IBlobRestoreSink blobRestoreSink = null)
+            IBlobRestoreSink blobRestoreSink = null,
+            uint initialNextWritableSeq = 0)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -191,7 +192,14 @@ namespace DaYiJingCheng.Sim.Codec
             //    `TD-persist-03`,但该债的裁定面(重放 + 字节布局)不含台账初值 —— **W-4 未随
             //    其兑现,仍 open**(证据件 impl-td-persist-03 §六 如实登记;恢复点须由读档
             //    路径给,ADR-010 §六;落点随读档 UX / 槽位台账轮)。
-            _ledger = new SaveSlotLedger(narrativeContext);
+            // 🔁 2026-11-03(smoke 轮 · `/code-review` S19-1 **W-4** 的装配通道闭合):
+            //    高水位初值此前**恒为 0** —— 台账 doc 说「初值由装配层按『本会话从哪个槽位起步』
+            //    决定」,而装配层**无通道可传**,那句承诺落空。
+            //    实测后果(用户 smoke):`ManualSaveSlots = {1,2,3}` 的屏上,
+            //    **第一次手动存/自动 checkpoint 写进槽 0** —— 那号在屏上根本不存在
+            //    ⇒ 玩家看到的就是「存了,什么都没有发生」。
+            //    ⇒ 装配层现在能传初值;生产传 1(屏上第一个槽),测试缺省仍 0。
+            _ledger = new SaveSlotLedger(narrativeContext, initialNextWritableSeq);
             Directory.CreateDirectory(_basePath);
         }
 
@@ -201,8 +209,29 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public IFoldedPredicate FoldedPredicate => _folded;
 
+        /// <summary>
+        /// 存档目录。
+        /// <para>🔁 2026-11-03(甲方案第一层):7b 的槽位行要知道「哪一槽有档」,
+        /// 而 <see cref="SaveSlotProbe"/> 按**同一命名**去读头部。目录必须与
+        /// 本服务用的**逐字相同**,否则「屏上说有档、读档说没有」——
+        /// 由它对外给出,而不是让装配层各自再拼一次路径(那正是双实现的入口)。</para>
+        /// </summary>
+        public string BasePath => _basePath;
+
         /// <summary>槽位台账(锁 / 高水位)。装配层与测试需要驱动叙事锚点时用。</summary>
         public SaveSlotLedger Ledger => _ledger;
+
+        /// <summary>
+        /// 叙事事件 checkpoint 已发生 ⇒ **解除全部槽位的读锁**(`AC-7a-19 (d)` 的解除半边)。
+        /// <para>锁由 <see cref="Load"/> 成功时置上(`SaveSlotLedger.OnLoaded`);GDD 规则十四:
+        /// 「锁持续到下一次叙事事件触发 checkpoint」。本方法即那个解除入口 ——
+        /// 生产调用点 = `AnchorCheckpointTrigger.onFired`(`CompositionRoot` 装配),
+        /// 白名单 = 脉案落笔 / 病例结案 / 出诊启动。</para>
+        /// <para>⚠️ <b>为什么要有这层转发而不是让装配层直接碰 <c>Ledger</c></b>:台账是 7a 的
+        /// 内部契约面,装配层只该看见「叙事锚点到了」这个**语义事件**,不该看见
+        /// 「把哪个 HashSet 清空」。转发也让「解锁」只有一个可 grep 的生产入口。</para>
+        /// </summary>
+        public void OnNarrativeAnchor() => _ledger.OnNarrativeAnchor();
 
         /// <summary>
         /// 存档目录里**最近一份可继续的存档**是哪个槽(无档 / 查询失败 ⇒ <c>false</c>)。

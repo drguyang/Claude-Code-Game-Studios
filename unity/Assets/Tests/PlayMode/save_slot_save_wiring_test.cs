@@ -113,7 +113,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             var saves = ReadSaveService();
             Assert.IsNotNull(saves, "[前置] 7a 应已装配(夹具给了临时存档目录)");
             uint before = saves.Ledger.NextWritableSeq;
-            Assert.AreEqual(0u, before, "[前置] 本会话从未写过 ⇒ 高水位 = 0");
+            // 🔁 2026-11-03(smoke 轮):高水位初值由 0 改为 **1** —— 装配层把初值种到
+            //    存档位屏的**第一个槽号**,否则本会话第一次写入落在屏上不存在的槽 0
+            //    (玩家看到「存了,什么都没发生」)。缺省仍 0(单测/纯 SaveService 构造面)。
+            Assert.AreEqual(1u, before,
+                "[前置] 本会话从未写过 ⇒ 高水位 = 装配初值 1(与屏上第一个槽号对齐)");
 
             // Act:**真派发**提交事件到新行(不是直调 `ActivateWritable`)
             //   承 `casebook_lexicon_book_test.DispatchSubmit` 的实测纪律:

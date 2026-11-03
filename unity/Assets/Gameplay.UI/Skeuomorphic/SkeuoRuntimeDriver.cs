@@ -77,6 +77,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         // 7b 存档位:载入意图出口 + 槽位清单(均由装配层注入 —— 42 不发明槽位数)
         private ISaveSlotCommandSink _saveSlotSink;
         private IReadOnlyList<uint> _saveSlots;
+        private IReadOnlyList<SaveSlotView> _saveSlotViews;
+        private bool _saveSlotsDirty;
         // 暂停壳:继续 / 进存档位(2026-10-31 Amendment C)——
         // ⚠️ 两个动作都由装配层实现:42 **不**自己决定「继续」要把世界恢复成什么,
         //    也不自己调 `OpenModal`(那是换屏,属装配层的时序决定)。
@@ -209,7 +211,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (_screen is SaveSlotsScreen saveSlots)
             {
                 saveSlots.BindCommandSink(_saveSlotSink);
-                saveSlots.SetSlots(_saveSlots);
+                SetSaveSlotRows(null);
             }
             if (_screen is PauseScreen pause) pause.BindCommandSink(_pauseSink);
 
@@ -419,8 +421,45 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             set
             {
                 _saveSlots = value;
-                if (_screen is SaveSlotsScreen saveSlots) saveSlots.SetSlots(_saveSlots);
+                // 只有槽号 ⇒ 全部按「未绑定」画(7b §6:纸线格完整、行字空白)。
+                if (value == null) { _saveSlotViews = null; }
+                else
+                {
+                    var views = new List<SaveSlotView>(value.Count);
+                    for (int i = 0; i < value.Count; i++) views.Add(SaveSlotView.Unbound(value[i]));
+                    _saveSlotViews = views;
+                }
+                SetSaveSlotRows(null);
             }
+        }
+
+        /// <summary>
+        /// 带状态的槽位清单来源(装配层每次开册 / 每次写盘落定后调一次)。
+        /// <para>⚠️ 未注入 ⇒ 退回 <see cref="SaveSlots"/> 的「未绑定」形态,
+        /// 而**不是**画成全体空槽 —— 「我不知道」与「这里没写过」在纸面上都是没写字的一格,
+        /// 但在语义上不能混(混了就等于对玩家断言「你的档没了」)。</para>
+        /// </summary>
+        public Func<IReadOnlyList<SaveSlotView>> SaveSlotViewProvider { get; set; }
+
+        /// <summary>
+        /// 存档写入**是否尚未落定**(由装配层接 <c>SaveService.WriteQueue.Outstanding</c>)。
+        /// <para>写是异步的 ⇒ 按了「留档」之后立刻重探会读到**写之前**的磁盘状态,
+        /// 屏上看起来「按了没反应」。本驱动因此把重探推迟到队列排空之后。</para>
+        /// </summary>
+        public Func<bool> SaveInFlight { get; set; }
+
+        /// <summary>请求在写入落定后重画槽位行(装配层在「落笔已受理」时调)。</summary>
+        public void MarkSaveSlotRowsDirty() => _saveSlotsDirty = true;
+
+        /// <summary>按 <see cref="SaveSlotViewProvider"/> 重取并重画(未注入 ⇒ 用给定清单)。</summary>
+        private void SetSaveSlotRows(IReadOnlyList<SaveSlotView> fallback)
+        {
+            IReadOnlyList<SaveSlotView> views = null;
+            if (SaveSlotViewProvider != null) views = SaveSlotViewProvider();
+            if (views == null) views = fallback;
+            if (views != null) _saveSlotViews = views;
+
+            if (_screen is SaveSlotsScreen saveSlots) saveSlots.SetSlotViews(_saveSlotViews);
         }
 
         /// <summary>已实例化的 Screen(测试观测面)。</summary>
@@ -551,6 +590,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         {
             if (_screen is CasebookScreen casebook && _source != null)
                 casebook.ApplyData(_source);
+
+            // 🔁 2026-11-03:落笔已受理 ⇒ 等写队列排空再重探。
+            //    写是异步的(`SaveService.Checkpoint` 把落盘排进 `SaveWriteQueue`),
+            //    按下去就重探会读到写之前的磁盘状态 —— 那就是「按了没反应」的复现。
+            if (_saveSlotsDirty && _screen is SaveSlotsScreen saveSlots)
+            {
+                bool pending = SaveInFlight != null && SaveInFlight();
+                if (!pending)
+                {
+                    _saveSlotsDirty = false;
+                    SetSaveSlotRows(null);
+                    // 重画会替换行元件 ⇒ 焦点原本落在旧元件上,须重新落一次,
+                    // 否则手柄玩家在存档后**焦点悬空**(一步也走不了)。
+                    if (saveSlots.WritableRow != null && saveSlots.WritableRow.panel != null)
+                        saveSlots.WritableRow.Focus();
+                }
+            }
         }
 
         /// <summary>
@@ -677,7 +733,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (_screen is SaveSlotsScreen saveSlots)
             {
                 saveSlots.BindCommandSink(_saveSlotSink);
-                saveSlots.SetSlots(_saveSlots);
+                // 🔁 2026-11-03:**每次开册重探一次** —— 上一次会话写下的档,
+                //    以及本次会话在别的路径(自动 checkpoint / 退出保存)写下的档,
+                //    都要在摊开时是新的。常量清单不会自己更新。
+                SetSaveSlotRows(null);
                 // 🔁 2026-10-31:开屏后把焦点落到第一行 —— 否则手柄玩家无处可走
                 //    (游戏没有指针)。⚠️ 无 panel 时 `Focus()` 会报错 ⇒ 先判,
                 //    无 panel 是合法的测试形态(逻辑树在、不渲染)。
