@@ -469,6 +469,13 @@ namespace DaYiJingCheng.Sim.Codec
         /// <para><b>测试可达</b>:<c>Sim.Codec/AssemblyInfo.cs</c> 已有
         /// <c>InternalsVisibleTo("Sim.Contracts.Tests")</c> ⇒ 17 处夹具调用**零改动**。</para>
         /// <para>⚠️ <b>生产调用点 = 1</b>(<see cref="Checkpoint"/> 内),故降级无生产影响。</para>
+        /// <para>🔁 <b>2026-11-03(`TD-persist-16` · 用户裁定「甲」)</b>:上句「生产调用点 = 1」
+        /// 仍然成立,但**那个调用点的 `bak` 参数是恒不产生文件的** —— 「槽位只进不退」真正成立后
+        /// (`TD-persist-15`),`save_{N}.bin` 每个槽号**一生只写一次**,而 <see cref="WriteAtomic"/>
+        /// 只在 **`final` 已存在**时才搬 bak ⇒ `save_{N}.bak` **永不出现**。
+        /// ⇒ **不要**在这里「补一个 bak」,也不要写「玩家槽回退到 bak」的夹具:
+        /// 那不是缺口,是**已裁的口径**(ADR-010 §四 加注 · GDD 规则十一 / `AC-7a-15` 订正)。
+        /// 真实存在 bak 的只有 **`save_exit.bin`**(每会话重写)与「会话未完整」标志位。</para>
         /// </remarks>
         internal void SaveBytes(SaveSlot slot, byte[] data)
             => WriteAtomic(GetFinalPath(slot), GetTmpPath(slot), GetBakPath(slot), data);

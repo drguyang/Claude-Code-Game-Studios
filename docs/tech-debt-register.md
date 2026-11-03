@@ -398,7 +398,7 @@
 | `TD-persist-13` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-14` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-15` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-16` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-16` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -560,6 +560,16 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十四订(`TD-persist-16` 结案 · 2026-11-03 · 裁定面)** ——
+> 用户裁定「甲:接受」。变化:`open 18 → 17`(−1)· `closed 145 → 146`(+1)·
+> **`未闭 P0 面 10 → 9`**(−1)· **`epic 分布 3/31 → 2/31`**(−1,`persistence-service` 清零)·
+> 条目数 **167 不动**(结案不加条目)。
+> 单一变化源:`TD-persist-16` 索引行 `open → closed`。
+> ⚠️ **本轮零代码行为改动** —— 收窄的是**措辞**(ADR-010 三处 + GDD 三处 + `SaveService` 一处的
+> `<remarks>`)。**没有**新增 bak、**没有**改回退逻辑、**没有**加夹具。
+> ⚠️ `AC-7a-15` **仍是 BLOCKING AC**,状态不变;收窄的是它的**适用面**
+> (玩家槽无 bak ⇒ `(a)` 对玩家槽是不可满足的前件,实际生效 `(b)`)。
+
 > > 🔁 **五十三订(`TD-persist-15` 结案 + `TD-persist-16` 立债 · 2026-11-03 · 实现面 + 债面)** ——
 > 用户裁定「甲:扫目录 + 修代码 + ADR 加注」。变化:`条目 166 → 167`(+1)·
 > `closed 144 → 145`(+1)· `open 18 → 18`(**净 0**:−15 / +16)。
@@ -1040,10 +1050,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 167 | 状态 {'closed': 145, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 113, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 10 （已闭但曾标 P0 面的 103 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
+条目 167 | 状态 {'closed': 146, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 113, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 104 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4
 ```
 <!-- TD-COUNT:END -->
 
@@ -4394,6 +4404,44 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作(候选,须用户裁定)** | (甲)**接受**:玩家槽无 bak,文档与 `AC-7a-15` 的措辞收窄为「玩家槽损坏 ⇒ 报损(上一槽仍在);`save_exit.bin` 走 bak 回退」<br>(乙)**另加一次写**:每次 checkpoint 后把**上一槽**的 final 链式复制成当前槽的 bak(多一次 I/O,且会把「上一槽」与「本槽」的 bak 语义混起来)<br>(丙)**改双层写**:同一槽写 `.new` 再 `rename`(只防**半写**,防不了事后损坏 —— 后者本就无 bak 可退)<br>⚠️ 三条**均未实测**,本条只登记缺口。 |
 | **触发条件** | ① 7a 下一次修订轮;② 或任何以「`AC-7a-15` 完整兑现」形态引用之前(**禁借绿**);③ 或存档损坏首次成为真实故障时 |
 | **归属** | **7a 持久化服务**(双档语义)· 裁定 = **用户** |
+
+> ✅ **2026-11-03 已闭(用户裁定「甲:接受」)**。原文不删。**本轮零代码行为改动** —— 收窄的是**措辞**。
+>
+> **裁定内容**:玩家槽**没有** `bak`,接受;把文档与 `AC-7a-15` 的措辞收窄为
+> 「**玩家槽损坏 ⇒ 报损**(更早的槽仍在);**`save_exit.bin` 走 bak 回退**」。
+> 候选乙(链式复制上一槽)/ 丙(双层写)**均否决** —— 乙会混淆「上一槽」与「本槽」的 bak 语义,
+> 丙只防半写(而事后损坏本就无 bak 可退,防不到本债指的那种)。
+>
+> **四处落点(逐条可核)**:
+>
+> | # | 文件 | 改了什么 |
+> |---|---|---|
+> | ① | `docs/architecture/adr-010-persistence-save-format.md` §四 | 加注「`bak` 的适用面收窄,机制不变」+ 写清玩家槽 / `save_exit.bin` 两条分叉 + 历史成因(过去的 `.bak` 是覆盖 bug 的副产品) |
+> | ② | 同上 §Consequences | 「『上一好档』恒存在」就地划过并订正(对玩家槽不成立) |
+> | ③ | 同上 §Validation | 「篡改 ⇒ 自动回退 bak」一条注明**只对 `save_exit.bin` 可跑**;玩家槽的对应判据 = 「报损且零写盘」 |
+> | ④ | `design/gdd/persistence-service.md` | 规则十一 订正 + `AC-7a-15` 的**前件可达性**加注(`THEN` 一字不改)+ States 表 `Fallback` / `Corrupt` 两行 |
+> | ⑤ | `unity/Assets/Sim.Codec/SaveService.cs`(`SaveBytes` 的 `<remarks>`) | 给下一个读代码的人:**别在这里补 bak,也别写「玩家槽回退 bak」的夹具** —— 那不是缺口,是已裁口径 |
+>
+> **复算命令(自包含)**:
+> ```bash
+> cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+> grep -n "bak\` 的适用面收窄" docs/architecture/adr-010-persistence-save-format.md
+> grep -n "对玩家槽不成立" docs/architecture/adr-010-persistence-save-format.md
+> grep -n "本条只在 \*\*\`save_exit.bin\`\*\* 上可跑" docs/architecture/adr-010-persistence-save-format.md
+> grep -n "「自动读 \`bak\`」的适用面收窄" design/gdd/persistence-service.md
+> grep -n "本条 \`THEN\` 一字不改" design/gdd/persistence-service.md
+> grep -n "不要.*在这里「补一个 bak」" unity/Assets/Sim.Codec/SaveService.cs
+> ```
+>
+> **回归(只验「注释没引入警告」)**:EditMode `6779/6742/0/0/37` @ 2026-11-03 14:26:27Z →
+> 14:28:20Z · 编译警告 **0**(`grep -c "warning CS" unity/Logs/persist16-editmode.log` ⇒ 0)。
+> 与 `04e3e934` 那轮逐位相同 —— 本轮**零行为改动**,数字不变正是预期。
+>
+> **如实登记的两条边界**:
+> ① **`AC-7a-15 (a)` 仍是 BLOCKING AC,状态不变** —— 它继续对 `save_exit.bin` 成立;
+> 本债收窄的是它的**适用面**,不是把它降级。
+> ② **「玩家槽损坏 ⇒ 回退到上一份手动存」今日不存在** —— 那是**另一个槽**,不是 `bak`;
+> 要那样做须先裁新机制。**不得**把本裁决读成「回退能力已具备」。
 
 ### TD-skeuo-03 — 模态开合面只认 2 个身份 ⇒ 闭集 9 员里 **7 员无关闭路径**(42)
 

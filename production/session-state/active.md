@@ -16381,3 +16381,7 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6779/6742/0/0/37` @ 14:01:10Z · PlayMode `324/320/0/2/2` @ 14:17:52Z · 警告 0
 - 新立 **`TD-persist-16`**:修好只进不退后,玩家槽 `.bak` **永不生成** ⇒ `AC-7a-15 (a)` 无宾语
 - **未提交**(等用户指令)
+- **追加(同日)**:用户裁 `TD-persist-16` **甲:接受** ⇒ 已闭,零代码行为改动
+  (ADR-010 §四/§Consequences/§Validation 三处 + GDD 规则十一 / `AC-7a-15` / States 两行 +
+  `SaveService.SaveBytes` 的 remarks)。`AC-7a-15` **仍 BLOCKING**,收窄的是适用面。
+  EditMode `6779/6742/0/0/37` @ 14:26:27Z · 警告 0 · 未闭 P0 面 9 · epic 2/31。
