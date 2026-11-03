@@ -401,6 +401,7 @@
 | `TD-persist-16` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-17` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-19` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -562,6 +563,19 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> > 🔁 **五十八订(`TD-persist-19` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
+> 7b 转册轮勘察盘面时发现:`TD-persist-16` 收窄的是**写侧**(玩家槽不再产生 `bak`),
+> **读侧 `LoadBytes` 没跟着收窄**,仍对任何槽无条件回退 `save_{n}.bak`。
+> 变化:`open 17 → 18`(+1)· `closed 148 不动`· **`未闭 P0 面 9 → 10`**(+1)·
+> **`epic 分布 2/31 → 3/31`**(+1,`persistence-service` 重新进入)·
+> 条目数 **169 → 170**(+1,立债)。
+> 单一变化源:新增 `TD-persist-19` 索引行(`open` / P0 面 **Y**)。
+> ⚠️ **P0 面判 Y 的理由**(可被用户推翻):它是**静默数据后果** —— 用户盘上已有
+> `save_3/4/5.bak`,手动槽一旦校验坏就会**装回更旧的档且不报损**,与 `AC-7a-15`
+> 「不静默兜底」直接冲突;与 `TD-persist-15`(数据丢失,当年即判 Y)同族。
+> ⚠️ **本轮不动代码**:① 改 `LoadBytes` 会翻转一条既有绿夹具的语义;
+> ② 盘上 `bak` 的处置也须一并裁。两者都归用户。
+
 > > 🔁 **五十七订(`TD-persist-17` 结案 · 2026-11-03 · 实现面 + 债面)** ——
 > 用户裁定「自动存档只占固定槽,不要往后挤手动存档槽」+ 三个追问定死细节。
 > 变化:`open 18 → 17`(−1)· `closed 147 → 148`(+1)·
@@ -1087,10 +1101,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 169 | 状态 {'closed': 148, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 115, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 106 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 4
+条目 170 | 状态 {'closed': 148, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 116, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 106 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 4        persistence-service: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4531,6 +4545,17 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ① 用户机器上 `save_0/1/2.bin` 成为**孤儿**(不可见、不可载);`save_3…8.bin` 仍有效;
 > ② 手动槽只进不退 ⇒ 第 2 次手动存档起落在 4、5…,**册页 6 行/页的转册仍未实现**(归 7b);
 > ③ 行内**不区分**「退出 / 自记 / 手动」三类措辞(归 7b 文案轮)。
+>
+> 🔁 **2026-11-04 复查(原文不删)**:
+> - **① 已处置** —— 六个孤儿(`save_0/1/2.bin` + `.bak`)**搬走**到
+>   `~/.config/unity3d/DefaultCompany/unity/saves/_orphans-2026-11-04/`(**不是删除**,可逆)。
+>   ⚠️ 如实补一句:它们**留在原地也不影响高水位** —— `TryGetHighestPlayerSlotOnDisk` 有
+>   `if (seq < MinManualSlotSeq) continue;`,槽 0/1/2 本来就被跳过。⇒ 这次搬走是**卫生**,不是修正确性。
+> - **② 已解除** —— 7b 转册已实现(`PageSize = 6` · 页缘 · 页码 · 末页专属「留档」新行),
+>   回归 EditMode `6797/6760/0/0/37` @ 2026-11-03 16:14:59Z。原件 =
+>   `production/qa/evidence/impl-7b-paging-2026-11-04.md`。
+> - **③ 仍成立**(行内三类措辞),归 7b 文案轮。
+> - ⚠️ **新发现,不并进本条** —— 手动槽的 `bak` 读侧仍在回退,见 **`TD-persist-19`**。
 
 ### TD-persist-18 — `CHECKPOINT_INTERVAL` 的 tick 换算**错 3 倍**:`18000` tick = **15 min**,而裁决值是 **5 min**
 
@@ -4587,6 +4612,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 42 的下一轮 UX 轮(碰 `main-menu-42.md` / `pause-shell-42.md` 任一件时);② 4 的 `INTERACTABLE_KINDS` 下一次增项时;③ 48 story-004 开工时;④ 或任何以「闭集 9 员全部可达」形态引用之前(**禁借绿**)。 |
 | **归属** | **42**(屏载体与 `MainMenu`/`Pause` 的行)· **4**(纸道具 kind)· **48**(story-004)· **语义裁定 = 用户** |
 | **⚠️ 不得借绿的相邻事实** | `AC-42-F1` 的整体走查状态仍是 `NOT-RUN`,其**具名阻塞**今日是 ⑨ 炮制屏无 `processing-18.md`;但**即使 ⑨ 解除,④⑤⑦ 三员仍走查不了** —— 因为它们在生产上打不开。⇒ 「⑨ 有 spec 了 ⇒ 整体可签核」是**错的**读法,本债是第二道门。 |
+
+### TD-persist-19 — 玩家槽的 `bak` **读侧仍在回退**,而口径已裁「不回退」(7a)
+
+> **⚠️ 2026-11-04 立债(7b 转册轮的勘察副产品)**。它与 `TD-persist-16` 是**同一件事的两半**:
+> 16 收窄的是**写侧**(玩家槽不再产生 `bak`),本条是**读侧没跟着收窄**。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-010 §四` 2026-11-03 加注已裁:玩家槽一生只写一次 ⇒ 无 `bak` ⇒ 「加载 `final` 失败 ⇒ 自动读 `bak`」对玩家槽**无宾语**;损坏 ⇒ 走 `Corrupt` 报损、**不**回退。但 `SaveService.LoadBytes` 对**任何**槽都无条件回退 `save_{n}.bak` —— 代码里没有按槽类型分派。⇒ **判据差**:读侧支持一个写侧产不出来的东西。 |
+| **今日仍**可达**(不是理论问题)** | `TD-persist-15` 的跨会话覆盖 bug 在用户盘上留下了 `save_3.bak` / `save_4.bak` / `save_5.bak`(mtime 2026-11-03 08:22,早于「只进不退」生效)。`save_3.bin` 若校验坏,`LoadBytes` 会**静默装回一份更旧的 3 号档**,而不是报损 —— 正是 `AC-7a-15`「不静默兜底」要禁的形态,且回退**不可见**(玩家不会知道自己拿到的是旧档)。 |
+| **实测(逐条可跑)** | ① `sed -n '599,606p' unity/Assets/Sim.Codec/SaveService.cs` ⇒ `// 回退 bak` / `bool bakExists = File.Exists(bakPath);` / `if (bakExists) { … if (ValidateChecksum(data)) return data; }` —— **无槽类型判断**。<br>② `grep -n "MinManualSlotSeq" unity/Assets/Sim.Codec/SaveService.cs` ⇒ 命中 `:296` / `:382` / `:418` / `:954` —— **全在写侧 / 扫盘 / 常量转发,`LoadBytes`(`:585-624`)内零命中**。<br>③ `ls ~/.config/unity3d/DefaultCompany/unity/saves/*.bak` ⇒ `save_3.bak` / `save_4.bak` / `save_5.bak` / `save_exit.bin.bak` 四件(`save_6/7/8` 无)。<br>④ 对照裁定的出处:`sed -n '299,316p' docs/architecture/adr-010-persistence-save-format.md`。 |
+| **⚠️ 为什么夹具没拦住** | `test_checksumFallback_readsBakWhenFinalCorrupted`(`save_service_test.cs:98`)**正向断言了这个行为**:它用 `SaveBytes` 对**同一个**槽 4 写两次,造出 `bak`,再损坏 `final`、断言回退成功。<br>但 `SaveBytes` 是 `internal` 低层原语,**绕过** `Checkpoint` 的只进不退门 —— 生产上第二次写会被 `EnsureWritable` 抛。⇒ 该夹具造的是**生产不可达**的状态,却把**旧口径**固化成了一条绿判据。这是假绿形态 **F1**(自造断言顶替 AC 语义层)的近亲:断言的是「我造的场景下回退成功」,而 AC-7a-15 要的是「玩家槽不回退」。 |
+| **解除动作** | ① **用户确认口径**(ADR 已裁「不回退」,但读侧改动会改变一条既有绿夹具的语义 ⇒ 须再确认一次,不得实现侧自裁);② `LoadBytes` 按槽分派:保留槽(1 = 退出 / 2 = 自动)回退,手动槽(≥ 3)**直接** `SaveCorruptException`;③ `test_checksumFallback_readsBakWhenFinalCorrupted` 改判 —— 要么挪到保留槽上(它本就只对 `save_exit.bin` 成立),要么翻成「手动槽有 `bak` 也不读,报损」;④ 用户盘上 `save_3/4/5.bak` 的处置(删 / 搬进孤儿目录 / 留)须一并裁 —— 不处置的话,即使代码改了,盘上仍留着一份「会被旧代码复活」的档。 |
+| **触发条件** | ① 7a 的下一次修订轮;② 或任何以「`AC-7a-15` 已兑现」形态引用之前(**禁借绿**);③ 或再出现一次「读到旧档」的实测。 |
+| **归属** | **7a 持久化服务**(`LoadBytes` 分派)· 语义裁定 = **用户** |
+| **⚠️ 与 `TD-persist-16` 的关系** | 16 只管**写侧**(不再产生 `bak`),已闭;本条是**读侧**。修 16 不会让本条变绿 —— 反过来,盘上已有的 `bak` 让本条**今天就可触发**。 |
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 
