@@ -295,3 +295,34 @@ Logs/shots/
 # `tools/falsify/specs/*.json` + 官方驱动,这些散件不是可复算入口。
 # 窄 glob:只匹配仓根 `.claude/jobs/`,不碰 `.claude/skills|docs|rules` 等作者态目录。
 /.claude/jobs/
+
+# ── 拟物 UI 贴图:图片素材不入库(2026-11-04 用户裁定)──
+# 范围 = `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/` 下的 **PNG**,含子目录
+# (`Brass` / `Casebook`)。该目录 18 MB,而 git 存二进制无增量、每改一次就多一份。
+#
+# ⚠️ **仍然入库的两类,都不许加进本规则**:
+#   ① `*.py` 生成脚本(`generate_paper_textures.py` / `Brass/generate_focus_brass_2px.py`)
+#      —— 8 + 1 张图由它们程序化产出、可逐字节复现,脚本是唯一可再生入口;
+#   ② `*.png.meta` —— 带着 `spriteBorder`(九宫格切片权威值)与导入设置。
+#      meta 丢了 ≠ 图丢了:Unity 会重新发 GUID 且 `spriteBorder: 0`,页框不再九宫格拉伸,
+#      `AC-42-C8` 冻结门转红。**冻结轮测出来的数字只存在于 meta 里,不可再生。**
+#
+# 🔴 **失败模式(已知且已接受)**:新克隆上该目录**没有图** ⇒
+#   · `TextureBindingGates` C11 判贴图悬空 ⇒ 构建 / 测试转红;
+#   · UI 画出来只有平涂底色(纸纹 / 卷轴 / 墨迹 / 印章 / 焦点环全缺)。
+#   恢复办法见全库备份的 README:
+#   `/home/gu/文档/nm/nm2/skeuo-texture-backup-2026-11-04/`(18 PNG + 18 meta + md5 清单)
+#   其中 **9 张无脚本可再生**,备份是唯一副本,不要删。
+#
+# ⚠️ **恢复必须先于打开 Unity**:克隆后先按 README 把 PNG 放回,再开编辑器。
+#   否则 `*.png.meta` 会成为**孤儿 meta**(有 meta 无资产),Unity 会删掉它们 ——
+#   而 `spriteBorder` 只存在于 meta 里。真被删了可从 git 取回(`git checkout -- <meta>`),
+#   但那属于事后补救,别指望它。
+#
+# ⚠️ **本规则只管「今后」**:`git rm --cached` 不删历史。这些图在**既有提交里仍在**,
+#   其中相当一部分**已经推到 origin**。要真正把它们从 GitHub 上抹掉 = 重写全部历史 +
+#   强推(所有 commit hash 变,协作者全部要重新克隆)—— 那是另一件事,需单独裁定。
+#
+# 窄 glob(不用整目录):整目录排除会让上面的 `*.py` / `*.meta` 也一起被排除 ——
+# 而 git 无法把已被排除目录里的文件再 include 回来。
+unity/Assets/Gameplay.UI/Skeuomorphic/Textures/**/*.png
