@@ -467,6 +467,21 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             return ids;
         }
 
+        // ── ADR-039 V-7 正控:52 表在场 ⇒ 急召生成链**必须**被构造 ─────────────
+        // ⚠️ 这条与 `random_events_consumption_test.test_assembly_withoutProvider_doesNotBuildChain`
+        //    成对:只有「null ⇒ 链 null」那半时,把 `if (dataProvider != null)` 整块删掉
+        //    也能绿(F4 空洞正控)。本条的靶 = **那个分支的「真」侧**。
+
+        [Test]
+        public void test_readers_assembly_buildsSpawnChain_whenRandomEventsTablePresent()
+        {
+            CompositionRootServices bag = AssembleWith(BuildProvider());
+
+            Assert.IsNotNull(bag.RandomEventsDirector, "驱动恒在");
+            Assert.IsNotNull(bag.RandomEventsDirector.SpawnChain,
+                "52 表在场 ⇒ 生成链必须被构造(ADR-039 D5 的正侧;缺它,「缺省 ⇒ null」可被「永远 null」满足)");
+        }
+
         private static CompositionRootServices AssembleWith(MultiTableProvider provider)
             => CompositionRoot.Assemble(dataProvider: provider);
 

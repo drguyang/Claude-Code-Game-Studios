@@ -137,9 +137,9 @@ cc94d13f…dd78af9  unity/Assets/Gameplay.Boot/BootRoot.cs
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 52 数据集的**生产消费** | **零** | `EventRng.ComputeWindowStart` 仍无生产调用点;本轮的 52 数据集只服务构建期同值断言(ADR-038 §D7) |
-| R2 整除门的**端到端**输入 | 不可达 | 见 §三 V-9 |
-| AC-5-11 的**三条**参数(季 ×2 + 天气块)装载期 | **NOT-RUN** | 值未裁定、不进 schema ⇒ `ValidateSeason()` 只由夹具驱动(ADR-038 §D1 / R4) |
-| AC-5-05 门的**构建期探针轮** | **NOT-RUN** | 与上一轮同:接线在 `AssemblyGates` 里且被 manifest 钉住,但未插无条件失败项做探针轮 ⇒ 不声称构建时生效。承 `impl-ac5-05-time-constant-gate-2026-11-03.md` §七 |
+| R2 整除门的**端到端**输入 | ~~不可达~~ **✅ 已于 §7.2 结清** | 见 §三 V-9 与本件 §七 |
+| AC-5-11 的**三条**参数(季 ×2 + 天气块)装载期 | ~~**NOT-RUN**~~ **✅ 已于 §7.3 结清** | 值未裁定、不进 schema ⇒ `ValidateSeason()` 只由夹具驱动(ADR-038 §D1 / R4)。**Amendment A 之后五条全有装载路径**(`ResolveTimeParams` / `ResolveWeatherParams`) |
+| AC-5-05 门的**构建期探针轮** | ~~**NOT-RUN**~~ **✅ 已于 §7.1 结清** | 与上一轮同:接线在 `AssemblyGates` 里且被 manifest 钉住,但未插无条件失败项做探针轮 ⇒ 不声称构建时生效。承 `impl-ac5-05-time-constant-gate-2026-11-03.md` §七 |
 | 存档 v3 档的**回写** | 不做 | `Load` 只迁内存;盘上那份仍是 v3。下一次 Checkpoint 才会写成 v4 —— 与 ADR-010 §六 的存档时机一致 |
 | `SaveService.ApplyMigrationsIfNeeded` 的旧注释 | **已过期** | 其 XML 注释仍写「当前 `CurrentSaveVersion = 2`」;属历史沿革注释,本轮**未改**(改动会牵动一段带 `TD-persist-10` 结案记录的长注释)。登记为文档债,不在实现轮顺手改 |
 

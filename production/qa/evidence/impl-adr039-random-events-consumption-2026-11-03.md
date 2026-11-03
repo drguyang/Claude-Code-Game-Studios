@@ -50,7 +50,7 @@ ADR-038 落地 52 数据集后,四个值里只有 `ROLL_INTERVAL` 有一个读�
 | V-4 | 界内 ⇒ 恰两条,先骰后降临 | `test_atBoundary_evaluatesAndSpawns`(原链夹具 A 同守) | **PASS** |
 | V-5 | 换日计数归零;`RollRequest.Win` = 日起点;ordinal = 当日已掷数 | `test_newDay_resetsCounts` / `test_rollRequest_usesDayWindow_andStreamOrdinal` | **PASS** |
 | V-6 | `F1PipelineInput.WindowSize` 取自数据集 | `test_f1WindowSize_comesFromConfig_notTickWindow` | **PASS** |
-| V-7 | `dataProvider == null` ⇒ 生成链为 null,不抛 | **NOT-RUN** —— 见 §六 | **NOT-RUN** |
+| V-7 | `dataProvider == null` ⇒ 生成链为 null,不抛;provider 在场 ⇒ 链**必须**被构造(成对) | `test_assembly_withoutProvider_doesNotBuildChain`(反侧)· `reader_wiring_gate_test.test_readers_assembly_buildsSpawnChain_whenRandomEventsTablePresent`(正侧) | **PASS** |
 
 ## 五、证伪轮(4 条有效 + 1 条打错靶)
 
@@ -61,31 +61,53 @@ ADR-038 落地 52 数据集后,四个值里只有 `ROLL_INTERVAL` 有一个读�
 | M13 | 预算门 `if (false)` | 预算四项 | **红 ×4**(7/11) | SHA 相同 |
 | ~~M14~~ | ~~只把 `RollRequest` 的 window 改成 `tick`~~ | 消费夹具 | **未转红(打错靶)** —— 当时没有夹具钉 `RollRequest.Win` | SHA 相同 |
 | M14b | `RollRequest(tick, _tier, 0)`(window 与 ordinal 同时错) | `test_rollRequest_usesDayWindow_andStreamOrdinal` | **红**(11/12) | SHA 相同 |
+| M15 | `CompositionRoot` 的 `if (dataProvider != null)` → `if (true)`(provider 缺省时照样取表) | `test_assembly_withoutProvider_doesNotBuildChain` | **红**(13 条中 1 红) | SHA 相同 |
+| M16 | 同一分支 → `if (false)`(表在场也不建链) | `test_readers_assembly_buildsSpawnChain_whenRandomEventsTablePresent` | **红**(16 条中 1 红) | SHA 相同 |
+
+**M15 / M16 是成对的两枪**:V-7 的单侧夹具必然被其中一枪打不中 ——
+只测「缺省 ⇒ null」时,把整个分支删掉仍然绿(空洞正控);只测「在场 ⇒ 非 null」时,
+恒建链(即 M15 的形态)使「缺省」那半失去意义。两枪各打一侧,合起来才闭合。
 
 **M14 作废的理由**:`LastF1Input.Window` 与 `RollRequest.Win` 是两处独立取值;
 首版夹具只钉了前者,变异打在后者上 ⇒ 靶场不可达。M14b 前已补
 `test_rollRequest_usesDayWindow_andStreamOrdinal`,重打即红。承 `tools/falsify/README.md`
 「变异打错靶」。
 
-**SHA-256(还原后)**:`unity/Assets/Gameplay.Boot/RandomEventSpawnChain.cs`
-`c116e0ae36b3d2dfe4d60ef0bc3626ee4131328593e78b343268aa337348bf7b`。
+**SHA-256(还原后)**:
+- `unity/Assets/Gameplay.Boot/RandomEventSpawnChain.cs`
+  `c116e0ae36b3d2dfe4d60ef0bc3626ee4131328593e78b343268aa337348bf7b`
+- `unity/Assets/Gameplay.Boot/CompositionRoot.cs`(M15 / M16 的变异对象)——
+  **两个哈希,口径不同,勿混读**:
+  · **变异窗口的还原判据** = `fa5dd7e0c5cade91687f498df4a459ff1be3b4406c25044e36d93309e6573c0f`
+    (M15 / M16 各自跑完后,与**变异前同一时刻**的备份逐字节相同;两次都命中此值)
+  · **现盘终态** = `76a16f5e78607ea7a31333a11d681d2681440b8c29a1470fbb5a8059dd44eafb`
+    (其后做了 `:650` 附近的**注释订正**:「52 的池内容归 37」→ 池条目归 52 / 内容归 37)
+  ⇒ 两值不同是**注定的**,不是还原失败。复算:`sha256sum unity/Assets/Gameplay.Boot/CompositionRoot.cs`。
 
 ## 六、未做 / 盲区(逐项,不借绿)
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 生产端到端可达 | **不可达** | 候选池为空(37 / 27 内容未注入)⇒ 链恒 `NoPool`,预算与抽数门只有夹具可达(ADR-039 §R3) |
-| V-7 的 `dataProvider == null` 夹具 | **NOT-RUN** | 该行在 `CompositionRoot.Assemble` 内,需整机装配;现有 `composition_root_test` 未断言生成链指针 |
-| `mods`(F2 的 `Mod_Eco` / `Mod_Rep`) | 空集 | P0 无输入源;`ComputeDailyBudget(BASE, null, MAX)`(ADR-039 D4) |
+| 生产端到端可达 | **不可达 · 已立债** | 池**条目**数据件不存在 ⇒ 链恒 `NoPool`,预算与抽数门只有夹具可达。**`TD-randomevents-03`**(2026-11-03 立;义务方 = 52,37 只提供医疗内容 —— 同批订正了「归 37」的错误写法) |
+| V-7 的装配夹具 | ✅ **已补齐(成对)** | 反侧 + 正侧见 §四;证伪 M15 / M16 各红一枪 |
+| `mods`(F2 的 `Mod_Eco` / `Mod_Rep`) | 空集 · **已立债** | 两值在 GDD 仍是 `*待裁*`;`TD-randomevents-04`(解除动作 = 数值轮裁定 + 生态区接线,实现轮不得自填) |
 | 预算 / 抽数门的**次序**偏离 F1 字面 | 已登记 | ADR-039 §D3 / §R1:掷骰前判定,避免孤儿 `EventRolled` |
 
 ## 七、回归三元组
 
-| 套件 | 结果(total/passed/failed/inconclusive/skipped) | 截至时刻 | 批次 | commit |
-|---|---|---|---|---|
-| EditMode | **6754 / 6717 / 0 / 0 / 37** | 2026-11-03 12:41:57 CST | sprint-24 · ADR-039 实现轮 | `8d0c859b` + 工作树 |
-| PlayMode | **324 / 320 / 0 / 2 / 2** | 2026-11-03 12:45:11 CST | 同上 | 同上 |
-| 编译警告(全量重编译) | **CS 警告 0** | 2026-11-03 12:45:11 CST | 同上(`touch` 全部 1346 个 `.cs` 后跑 PlayMode) | 同上 |
+> **两轮读数,口径不同,勿混读** —— ① = ADR-039 实现轮(已提交 `a1409c1c`);
+> ② = 同日的 V-7 补齐 + 债册立债轮(**本件 §四–§六 的终态**)。
+
+| 轮 | 套件 | 结果(total/passed/failed/inconclusive/skipped) | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|---|
+| ① | EditMode | 6754 / 6717 / 0 / 0 / 37 | 2026-11-03 12:41:57 CST | sprint-24 · ADR-039 实现轮 | `8d0c859b` + 工作树 |
+| ① | PlayMode | 324 / 320 / 0 / 2 / 2 | 2026-11-03 12:45:11 CST | 同上 | 同上 |
+| ① | 编译警告(全量重编译) | **CS 警告 0** | 2026-11-03 12:45:11 CST | 同上(`touch` 全部 1346 个 `.cs` 后跑 PlayMode) | 同上 |
+| **②** | **EditMode** | **6756 / 6719 / 0 / 0 / 37** | **2026-11-03 13:05:10 CST** | sprint-24 · V-7 补齐 + 债册 | **`a1409c1c` + 工作树** |
+| **②** | **PlayMode** | **324 / 320 / 0 / 2 / 2** | **2026-11-03 13:14:04 CST** | 同上 | 同上 |
+| **②** | 编译警告 | **CS 警告 0**(EditMode / PlayMode 两份日志各计一次) | 同上 | 同上 | 同上 |
+
+**第②轮等式**:`6756 − 6754 = 2` = 本轮新增的两条 V-7 夹具(反侧 + 正侧),`passed` 同步 +2。
 
 **等式判据(F7 借绿)**:`6754 − 6742 = 12` = `random_events_consumption_test.cs` 的 `[Test]` 数
 (6742/6705/0/0/37 @ 2026-11-03 12:19:57 CST · sprint-24 · `8d0c859b`+工作树 = Amendment A 批次基线)。

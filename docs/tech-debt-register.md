@@ -403,6 +403,8 @@
 | `TD-enemy-03` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
+| `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
@@ -548,6 +550,20 @@ PYEVAL
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
 >
+> 🔁 **四十五订(`TD-randomevents-03` / `-04` 立债 · 52 运行期消费的两个未闭面 · 2026-11-03 · 债面)** ——
+> 变化(算法见下方 `TD-COUNT` 块,本节不手抄结果):`条目 +2` · `open +2` · `Y +2` ·
+> **`未闭 P0 面 0 → 2`** · **`epic 分布 0/31 → 1/31`**。
+> 单一变化源:**ADR-039 实现轮把 52 的四个数据集值接进运行期后,暴露的两个「接线到位但端到端不可达」面** ——
+> `TD-randomevents-03`(候选池零数据载体 ⇒ 恒 `NoPool`)· `TD-randomevents-04`(F2 的 `ΣMod` 两值
+> `*待裁*` 且无输入源 ⇒ 预算恒 = `BASE`)。
+> 🔴 **必须如实登记的一件事**:本次入表之前,本册的 `未闭 P0 面` 是 **0**(里程碑意义上的干净态)。
+> 这两条**不是新出现的问题**,是**此前从未被登记**的缺口 —— 52 的 epic 于 2026-09-30 标 `Complete`
+> (6/6 stories),而池数据件从那时起就不存在。⇒ **`0` 一直是个未登记面,不是事实**。
+> ⚠️ **不因此把 P0 面改判为 `N`** —— 52 是 P0 系统,「预算 / 抽数两道门只有夹具可达」
+> 正是本项目反复抓过的假绿形态(F1 / F4)。改判 `N` 等于用口径追认一个没发生的事实(R4 立规缘由同款)。
+> ⚠️ 本条与 `TD-randomevents-02` **不同因**:`-02` 是「语义已裁、实现零落点」;这两条是
+> **「实现已落、数据未落」** —— 前者的解除动作全在代码侧,后者的解除动作有一半在**内容/数值轮**。
+
 > 🔁 **四十三订(`TD-itemdb-02` 立债 · 金标准无发号场景 · 2026-10-27 · 债面)** ——
 > 变化 = **`条目 124 → 125`**(+1)· **`open 75 → 76`**(+1)· **`Y 100 → 101`**(+1)·
 > **`未闭 P0 面 62 → 63`**(+1)· **`epic 分布 8/31 → 9/31`**(+1)。
@@ -866,9 +882,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 155 | 状态 {'closed': 143, 'partial': 3, 'open': 8, '**done**(2026-10-21)': 1} | P0 面 {'Y': 101, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 0 （已闭但曾标 P0 面的 101 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 真
+条目 157 | 状态 {'closed': 143, 'partial': 3, 'open': 10, '**done**(2026-10-21)': 1} | P0 面 {'Y': 103, 'N': 48, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 2 （已闭但曾标 P0 面的 101 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 2 条,分布在 1/31 个 epic
+    random-events: 2
 ```
 <!-- TD-COUNT:END -->
 
@@ -4091,6 +4108,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **原件** = `production/qa/evidence/impl-td-randomevents-02-2026-10-25.md`(含 §五 未跑清单)。
 > ⚠️ **有写者 ≠ 已接线**:52 导演主循环逐 tick 调 `TryStartAtTick` 归 52 接线轮;
 > `IClinicCellSource` 生产装配 + 三处同源钉归 Boot 接线轮;37 侧窗口 / 拒访 hook 不在本件面内。
+
+### TD-randomevents-03 — 候选池**零数据载体** ⇒ 生产端到端恒 `NoPool`(52)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ADR-039 把 `ROLL_INTERVAL` / `WINDOW_SIZE` / `BASE` / `BUDGET_MAX` 四值接进了生成链,但**池本身没有任何数据件** —— 生产装配喂的是 `keysOfTier: _ => Array.Empty<int>()`(`CompositionRoot.cs:664`)⇒ 链每子区间真跑、恒返回 `SpawnChainOutcome.NoPool`、零写入。**后果**:`DrawCapReached` / `OverBudget` 两道门**只有夹具可达**,端到端不可达(ADR-039 §R3)。 |
+| **实测(逐条可跑)** | ① `grep -rn "keysOfTier:" unity/Assets --include=*.cs \| grep -v Tests` ⇒ 唯一命中 `CompositionRoot.cs:664` 的 `_ => Array.Empty<int>()`。<br>② `ls assets/data/52_*` ⇒ 只有 `52_random_events.json`(五个标量),**无池条目件**。<br>③ 因此 `RandomEventsConsumptionTest` 的三道门夹具全部用合成 key 集(文件头已注明理由)。 |
+| **⚠️ 归属订正(实测,与本债同批)** | 既有注释写「**52 的池内容归 37 内容件**」,**与 GDD 不符**:`random-events.md:160` 的裁定逐字为「**52 拥有「池条目与调度」,37 拥有「医疗内容」**」。⇒ 池**条目**(key / 档 / 触发方式 / 权重 / `spawn_anchor`)是 **52 的数据件义务**;37 只提供条目所引用的**医疗内容**。今日两者皆空,但**义务方不同** —— 混写会让「52 等 37」与「52 自己还没写」不可分。 |
+| **解除动作** | ① 52 侧出 `assets/data/52_event_pool.json`(规则二 schema + 规则十一 P0 逐档表),走 ADR-014 两阶段烘焙成 `52_event_pool.cooked.bytes`,装进 `data-core`;<br>② `CompositionRoot` 的 `keysOfTier` 改为按档过滤该件(不再是空集);<br>③ `spawnPatient` 缝的映射表同批落(今日它**刻意抛** `NotSupportedException` —— 池一回填、映射缺席即当场可见);<br>④ 夹具:至少一条「真池驱动下三道门全可达」的端到端件,替换/补强现有合成 key 夹具。 |
+| **⚠️ 数值前置** | 池条目的**权重**是数值(归用户裁定,承「数值用户自己调」)⇒ 本债**不承诺**解除时数值已定;权重未定的形态须在数据件里显式标注,不得由实现轮自填。 |
+| **触发条件** | ① 52 内容/数据轮开工;② 或任何以「52 已跑起来 / 端到端可达」形态引用 ADR-039 之前(**禁借绿**);③ 或 37 交付急召出诊内容、需要 `event_key → 病种` 映射时(同批)。 |
+| **归属** | **52 随机事件导演**(池条目数据件 + `keysOfTier` 装配)· 医疗内容 = **37** |
+
+### TD-randomevents-04 — F2 的 `ΣMod`(`Mod_Eco` / `Mod_Rep`)**零输入源**(52)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ADR-039 §D4 让预算走 `ComputeDailyBudget(_baseEvents, null, _budgetMax)`(`RandomEventSpawnChain.cs:177`)—— **`mods` 恒为空**。GDD F2 的 `EventBudgetPerDay = clamp(BASE + ΣMod, 0, BUDGET_MAX)` 里,两项修饰子的**数值均为 `*待裁*`**(`random-events.md:985-986` 与 `:1136`),且 `Mod_Eco` 的输入源(玩家所在生态区)**归系统 6**,`Mod_Rep` 明标 **P1a**。 |
+| **实测(逐条可跑)** | ① `grep -rn "ComputeDailyBudget(" unity/Assets --include=*.cs \| grep -v Tests` ⇒ 唯一生产调用点 `RandomEventSpawnChain.cs:177`,实参 `null`。<br>② `grep -n "Mod_Eco\|Mod_Rep" design/gdd/random-events.md` ⇒ `:985` / `:986` / `:1136`,三处都写 `*待裁*` / `*待定*`。<br>③ `grep -rn "Mod_Eco" unity/Assets --include=*.cs` ⇒ **0**(代码里连名字都没有)。 |
+| **解除动作** | ① 用户裁定 `Mod_Eco` / `Mod_Rep` 的**数值与取值函数**(数值轮,不在实现轮);② `RandomEventSpawnChain` 增加一个**显式**的 mods 供给缝(形参或注入),**不得**在实现里塞默认非零值;③ `Mod_Eco` 的生态区来源接 6 的只读查询(与 `ActorCellEntered` 同源,禁读表现态位置,承 ADR-016 §三);④ 夹具:mods 非空 ⇒ 当日预算确实改变(纯函数面已有 `ComputeDailyBudget` 的边界件,缺的是**接线面**)。 |
+| **触发条件** | ① 用户开始数值轮并裁定两项修饰子;② 或系统 6 交付生态区运行期查询、需要定义「生态区 → 事件密度」时;③ 或任何以「F2 公式已完整落地」形态引用 ADR-039 §D4 之前(**禁借绿**)。 |
+| **归属** | **52 随机事件导演**(预算接线)· 生态区数据 = **6** · 数值 = **用户裁定** |
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 

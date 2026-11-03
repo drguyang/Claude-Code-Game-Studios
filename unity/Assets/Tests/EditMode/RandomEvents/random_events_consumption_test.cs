@@ -207,6 +207,20 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 () => NewChain(windowSize: 0), "WINDOW_SIZE = 0 ⇒ 永不抽取(功能死亡)");
         }
 
+        // ══════════════ V-7 装配面:provider 缺省 ⇒ 不构造生成链 ══════════════
+
+        [Test]
+        public void test_assembly_withoutProvider_doesNotBuildChain()
+        {
+            using (CompositionRootServices bag = CompositionRoot.Assemble())
+            {
+                Assert.IsNotNull(bag.RandomEventsDirector,
+                    "驱动恒在 —— 「未接线」的形态是**链为 null**,不是驱动缺席(否则两种失败不可分)");
+                Assert.IsNull(bag.RandomEventsDirector.SpawnChain,
+                    "ADR-039 D5:dataProvider == null ⇒ 不构造生成链,不回落默认配置");
+            }
+        }
+
         // ══════════════ 夹具 ══════════════
 
         private RandomEventSpawnChain NewChain(

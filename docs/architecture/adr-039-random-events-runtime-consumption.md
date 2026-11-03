@@ -121,8 +121,10 @@ F2 的 `ΣMod` 输入(P0:`Mod_Eco` 待 6;`Mod_Rep` 归 P1a)今日**没有生产�
 - 生成链的**求值节奏**从「每 tick」变为「每 `ROLL_INTERVAL`」(默认 6000 tick = 5 分钟/次),
   这是 GDD 规则一的字面要求,也是性能上的改善。
 - 掷骰序号与窗口改为从流重构 ⇒ 读档后续跑不会漂移。
-- ⚠️ **生产今日仍恒 `NoPool`**:候选池为空(37 / 27 内容未注入)⇒ 预算与抽数的判据
+- ⚠️ **生产今日仍恒 `NoPool`**:池**条目数据件不存在**(`TD-randomevents-03`)⇒ 预算与抽数的判据
   在**端到端**不可达,只有夹具可达。**不得**把本轮写成「52 已跑起来」。
+  ⚠️ **义务方**:池条目归 **52**(GDD 规则二 `:160`),37 只提供医疗内容 —— 原稿沿用的
+  「37 / 27 内容未注入」写法已订正(把两件事混成一句会让「52 还没出件」与「52 在等 37」不可分)。
 - `RandomEventsDirectorDriver` 的 `LastSpawnOutcome` 新增三种具名结果
   (`NotAtBoundary` / `DrawCapReached` / `OverBudget`),观测面更细。
 
@@ -146,7 +148,7 @@ F2 的 `ΣMod` 输入(P0:`Mod_Eco` 待 6;`Mod_Rep` 归 P1a)今日**没有生产�
 |---|---|---|
 | R1 | **预算/抽数门在掷骰之前**与 F1 字面次序不同 | D3 已写明理由与等价性;若将来要严格复刻 F1,须先裁「孤儿 EventRolled 合法」 |
 | R2 | 每边界全流扫描 `O(n)` | 默认 5 分钟一次;逼近日预算量级前不优化(优化会动流同源结构) |
-| R3 | 端到端不可达(空池) | 夹具用合成 key 集驱动;证据里如实记「生产恒 NoPool」 |
+| R3 | 端到端不可达(空池) | 夹具用合成 key 集驱动;证据里如实记「生产恒 NoPool」 —— 已立 **`TD-randomevents-03`**(池条目件缺失;解除动作与义务方见债册) |
 | R4 | `WINDOW_SIZE` 在 `BASE=2` 时通常不先绑定 | 它仍被消费(F1 配额总数 + 当日抽取计数上限);若用户上调 `BASE`,它会先绑定 |
 | R5 | `ROLL_INTERVAL` 改值会改变求值节奏 | 已由 ADR-038 R2 的整除门守住;改值 = 改 `ConfigVersion` |
 
@@ -174,14 +176,14 @@ F2 的 `ΣMod` 输入(P0:`Mod_Eco` 待 6;`Mod_Rep` 归 P1a)今日**没有生产�
 | V-4 | 界内 ⇒ 恰两条(先 `EventRolled` 后 `EventArrived`),ordinal = 当日已掷数 | `…test_atBoundary_evaluatesAndSpawns` / `…test_rollRequest_usesDayWindow_andStreamOrdinal` | **PASS** |
 | V-5 | 换日 ⇒ 计数归零、`RollRequest.Window` = 新日起点 | `…test_newDay_resetsCounts` / `…test_rollRequest_usesDayWindow_andStreamOrdinal` | **PASS** |
 | V-6 | `F1PipelineInput.WindowSize` 取自数据集的 `window_size`(不是 tick 数) | `…test_f1WindowSize_comesFromConfig_notTickWindow` | **PASS** |
-| V-7 | `dataProvider == null` ⇒ director 的生成链为 null(未接线),不抛 | **无载体** —— `CompositionRoot.Assemble` 内的一行分支,现有 `composition_root_test` 未断言生成链指针 | **NOT-RUN** |
+| V-7 | `dataProvider == null` ⇒ director 的生成链为 null(未接线),不抛 | **成对两条**(缺任一即空洞正控):<br>· 反侧 = `random_events_consumption_test.test_assembly_withoutProvider_doesNotBuildChain`<br>· 正侧 = `reader_wiring_gate_test.test_readers_assembly_buildsSpawnChain_whenRandomEventsTablePresent` | **PASS** |
 
-**V-1…V-6 已于同日实现轮落地并跑绿**;证伪轮 M11 / M12 / M13 / M14b 各转红
+**V-1…V-7 全部有载体**;证伪轮 M11 / M12 / M13 / M14b / M15 / M16 各转红
 (证据原件 = `production/qa/evidence/impl-adr039-random-events-consumption-2026-11-03.md`)。
-**V-7 仍 `NOT-RUN`** —— 不得按「已实现」计入判据面;补它需要一条整机装配夹具,
-归下一轮(见证据 §六)。
+⚠️ **V-7 必须是成对的**:只有「缺省 ⇒ null」一侧时,把 `if (dataProvider != null)` 整块删掉
+仍然绿(F4 空洞正控)——M16(分支恒假)打的是正侧,M15(分支恒真)打的是反侧,两枪各中一条。
 
-⚠️ **端到端仍不可达**:生产候选池为空(37 / 27 内容未注入)⇒ 链恒 `NoPool`,
+⚠️ **端到端仍不可达**:池条目数据件不存在(`TD-randomevents-03`)⇒ 链恒 `NoPool`,
 V-2 / V-3 两道门**只有夹具可达**。本表绿 = 「门的执行体存在且可证伪」,
 **不是**「52 已在生产里按预算刷事件」。**禁借绿。**
 

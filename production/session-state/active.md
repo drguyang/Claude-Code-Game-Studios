@@ -16268,3 +16268,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **仍 NOT-RUN / 盲区**:V-7(`dataProvider == null` 的装配夹具)· 生产端到端恒 `NoPool`(候选池空)
 - **证据**:`production/qa/evidence/impl-adr039-random-events-consumption-2026-11-03.md`
 - **未提交**(等用户指令)
+
+## Session Extract — ADR-039 追加轮:V-7 补齐 + 52 两条具名债(2026-11-03 晚些)
+
+- **触发**:用户「提交不推送」+ 要求继续三件:V-7 装配夹具 / 生产恒 NoPool / mods 空集
+- **V-7 已补齐(成对)**:反侧 `random_events_consumption_test.test_assembly_withoutProvider_doesNotBuildChain` ·
+  正侧 `reader_wiring_gate_test.test_readers_assembly_buildsSpawnChain_whenRandomEventsTablePresent`;
+  证伪 M15(`if (true)`)打反侧、M16(`if (false)`)打正侧,**两枪各红一条**,SHA-256 还原
+- **两条具名债入册**:`TD-randomevents-03`(候选池零数据载体 ⇒ 恒 `NoPool`)·
+  `TD-randomevents-04`(F2 的 `Mod_Eco` / `Mod_Rep` 两值 `*待裁*` 且无输入源)
+  ⇒ 债册 `未闭 P0 面 0 → 2` · `epic 分布 0/31 → 1/31`(如实登记:0 是「未被登记」,不是事实)
+- **义务方订正**:GDD `random-events.md:160` 裁定 = 池**条目**归 52、37 只提供医疗内容;
+  原注释与 ADR 文本的「52 的池内容归 37」已就地订正
+- **回归(第②轮)**:EditMode `6756/6719/0/0/37` @ 13:05:10 · PlayMode `324/320/0/2/2` @ 13:14:04 ·
+  CS 警告 0 · 三元组 = `a1409c1c` + 工作树;等式 `6756 − 6754 = 2` = 新增 V-7 夹具数
+- **未提交**(等用户指令)
