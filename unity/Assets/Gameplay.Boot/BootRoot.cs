@@ -1128,7 +1128,29 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 分支纪律:菜单上按下「继续」时才走;`_continueSlot == null`(无档)时
             // 世界已按新局装载,本段**不发生任何动作**(新局不覆盖任何文件)。
             if (_continueSlot.HasValue)
+            {
                 TryContinueFromSave(_continueSlot.Value);
+            }
+            else
+            {
+                // ── 8b. 第一份存档(2026-11-04 用户裁定「只做首份存档」)──
+                // 为什么需要:规则六的三个触发点对新局一个都不覆盖(事件触发要先有叙事事件、
+                //   兜底要等 6000 tick ≙ 5 分钟、退出要关窗、手动槽要玩家自己按)⇒ 开局前
+                //   5 分钟内崩溃 / 强杀 = 盘上零存档。本处补的是那个窗口。
+                // 归类:这是**定时兜底的 t = 0 实例**(同一个 `AutoSaveSlot`、同一个 `Checkpoint`
+                //   入口),不新增第四类触发点 ⇒ `AC-7a-08`「恰三处」的计数不变。
+                // 守卫:`_continueSlot == null` 有两种成因 —— 真没档,或**查询失败**。
+                //   后者「有没有档」未知,写下去可能覆盖上去 ⇒ 由 `FirstSessionSave` 复查。
+                // 失败方向:不阻塞启动序(玩家必须进得去),只记日志。
+                if (FirstSessionSave.TryEstablish(_services.SaveService, out Exception firstSaveError))
+                {
+                    Debug.Log("[BootRoot][7a] 首次启动:已受理初始存档(自动槽,兜底 t=0 实例)");
+                }
+                else if (firstSaveError != null)
+                {
+                    Debug.LogWarning("[BootRoot][7a] 初始存档未写(启动继续,不阻塞):" + firstSaveError);
+                }
+            }
         }
 
         /// <summary>

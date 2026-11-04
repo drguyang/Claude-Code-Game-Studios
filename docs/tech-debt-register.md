@@ -403,6 +403,7 @@
 | `TD-persist-17` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-20` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -596,6 +597,17 @@ PYEVAL
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
 >
+> > 🔁 **六十八订(`TD-persist-20` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
+> 用户问「玩了一会又想重新开始新游戏的,目前的存档设计可以正常进行吗」,勘察结论:**不能**。
+> 变化:`open 17 → 18`(+1)· `closed 156` 不动 · **`未闭 P0 面 8 → 9`**(+1)·
+> **`epic 分布 3/31 → 4/31`**(+1,`persistence-service` 重新进入)·
+> 条目数 **177 → 178**(+1,立债)。
+> 单一变化源:新增 `TD-persist-20` 索引行(`open` / P0 面 **Y**)。
+> ⚠️ **P0 面判 Y 的理由**(可被用户推翻):不是「少个按钮」—— 「最近档」按游戏内 tick 排序,
+> 意味着**将来补的那颗按钮本身会静默失效**(新局 tick 从 0 起,永远输给旧局);
+> 而 `TD-persist-15` 起已确立「玩家机上有真实存档」这一事实 ⇒ 缺重开 = 玩家只能删文件。
+> ⚠️ **本轮不动代码,也不裁定形态**:形态归 `OQ-MM-5`;草案见 **`ADR-040`(Proposed)**。
+
 > > 🔁 **六十七订(`TD-skeuo-12` 结案 · 2026-11-04)** —— 模态容器统一走 `.modal-host`(绝对铺满 + 纵向居中)。
 > 变化:`closed 155 → 156`(+1)· `open 18 → 17`(−1)· **未闭 P0 面 8 不变**(本条标 `N`)·
 > **`skeuomorphic-ui 2 → 1`**(−1)· 条目数 **177 不变**。单一变化源:索引行 `TD-skeuo-12` 改 `closed`。
@@ -1176,10 +1188,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 177 | 状态 {'closed': 156, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 119, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 111 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        processing: 1
+条目 178 | 状态 {'closed': 156, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 111 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4778,6 +4791,17 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **回归**:EditMode `6805/6768/0/0/37` @ 2026-11-03 16:37:18Z → 16:39:09Z ·
 > PlayMode `324/320/0/2/2` @ 16:39:43Z · 编译警告 **0**。等式 `6805 − 6797 = 8` = 新增夹具数。
 > ⚠️ 本条关闭**不**等于 `AC-7a-15` 整体签核(该 AC 仍按其既有状态记)。
+
+### TD-persist-20 — 「重新开始新游戏」**无入口**;且「最近档」按游戏内 tick 排序,将来补的入口会**静默失效**(7a ↔ 7b ↔ 42)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 三件叠在一起,任何一件单独存在都够让「重开」不可用:<br>**① 入口不存在** —— 主菜单只有一行(`main-menu-42.md:86`;有档「继续诊治」/ 无档「开始诊治」),暂停壳三行(继续 / 存档位 / 调治),存档册只有「载入」+「留档」。全仓零 `NewGame` / 新开 / 重开 动作 ⇒ 玩了一阵想重来,**游戏内没有任何路径**,只能去删 `~/.config/unity3d/DefaultCompany/unity/saves/`。<br>**② 「最近档」的判据是游戏内 tick 最大,不是写入时间最新** —— `SaveService.cs:285` `long bestTick = 0L;` · `:329` `if (!found \|\| tick > bestTick)`。新局从 tick 0 起,它写下的任何档 tick 都远小于旧局 ⇒ **下次启动仍然载入旧局**。这不是 UI 能绕过的:它决定「新局」必须先回答**「两条时间线怎么分开」**。<br>**③ 旧档无删除 / 隔离路径** —— `SaveSlotLedger` 只进不退,`SaveSlotProbe` 只读,册子里没有删除行。 |
+| **实测(逐条可跑)** | ① `grep -rnE "\bNewGame\b\|\bRestartGame\b\|\bNewRun\b\|新开一局\|重新开始\|重开新局\|新起一局" unity/Assets --include=*.cs \| grep -v /Tests/ \| wc -l` ⇒ **0**。<br>⚠️ **必须带词边界 / 去掉 `-i`**:首版写成 `-iE "newgame\|new game\|…"` 会命中 **40 处 `new GameObject`**,把「零入口」读成「有一堆入口」——这正是「命令跑出来不是你要的东西」那一类错;<br>② `sed -n '285,330p' unity/Assets/Sim.Codec/SaveService.cs` ⇒ 排序键是 `summary.Tick`(档内 tick),**不是** `File.GetLastWriteTime` / 启动序号 —— 严格大于 ⇒ 并列时按「退出 > 自动 > 手动」的枚举序;<br>③ `sed -n '25,43p' unity/Assets/Gameplay.UI/Skeuomorphic/SaveSlotCommands.cs` ⇒ 恰两个动作 `TryLoad(uint)` / `TrySave()`,无删除 / 新建;<br>④ `grep -n "OQ-MM-5" design/ux/main-menu-42.md` ⇒ `:250` 记「要不要『新开一局 / 设置 / 退出』? **未裁**」。 |
+| **与 spec 的关系** | 不是「没实现」,是**未裁**:`OQ-MM-5` 是开放问题,而 7b 的口径(`save-slot-ui.md:39-40`)明写「跨会话不设锁字段……重开游戏 = 重新开始『今天』」—— 即现行模型是**单时间线的检查点册**。⇒ 本条解除的**第一步是裁定**,不是写代码。 |
+| **解除动作** | ① **裁定 `OQ-MM-5`**(草案形态见 `ADR-040`:一个世界 = 一个存档目录 + 选择索引);② 7a 侧:世界身份与选择判据(不再用 tick 跨世界比较);③ 7b / 42:主菜单或存档册补「新起一局 / 删除一局」与列表;④ 夹具:两世界并存时「最近档」选中**最后游玩的那个**,且旧世界仍可回。<br>⚠️ **禁止的省事做法**:把「新游戏」做成「直接覆盖 `save_auto.bin`」—— 在 tick 排序下会产生「看起来开了新局,下次启动回到旧局」的**静默分叉**,比不做更糟。 |
+| **触发条件** | ① `OQ-MM-5` 裁定;② 或**首次对外发放存档之前**(一旦玩家机上有真实存档,缺「重开」就从体验问题变成数据事故);③ 或任何以「存档功能完成」形态引用之前(**禁借绿**)。 |
+| **归属** | **7a**(选择判据与世界身份)· **7b / 42**(入口与列表)· **形态裁定 = 用户**(`OQ-MM-5`) |
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

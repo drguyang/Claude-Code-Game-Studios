@@ -16586,3 +16586,25 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6831/6794/0/37` · PlayMode `332/328/0/2/2` @ `2026-11-04T03:21:37Z`。
 - 债册:`TD-skeuo-12` closed(六十七订)· 条目 177 · open 17 · 未闭 P0 面 8(不变)。
 - **待提交**。
+
+## 存档三路径 + 首份存档 + 「重开新局」债/ADR 草案(2026-11-04)
+
+- 用户三轮指令串起来的一条线:①「试试退出/自动/手动三种正常存档」②「是不是还差初始开局,
+  作为第一份存档」→ 裁定「只做首份存档(A)」③「玩了一会想重开新游戏,现在能行吗」→
+  裁定「先立债,等 OQ-MM-5,按 D 起草 ADR」。
+- **夹具 7 条全绿**:服务层 4(`save_three_paths_test`)+ 装配层 3
+  (`save_three_paths_assembly_test`,走 `CompositionRoot.Assemble` 真袋子)。
+- **首份存档**:`Gameplay.Boot/FirstSessionSave.cs` + `BootRoot` 启动序第 8b 步(else 分支)。
+  归类 = 定时兜底的 **t=0 实例**(同一个 AutoSaveSlot / 同一个 Checkpoint 入口)⇒ AC-7a-08 计数不变。
+  两条守卫:①已有档绝不写 ②查询失败(未知)不写。GDD 规则六 + AC-7a-08 已加注。
+- **夹具 4 条**:3 条语义 + 1 条接线(`first_session_save_wiring_test`,源码级、剥注释)。
+  **证伪轮**:删掉 else 分支 ⇒ 接线测转红;还原后 SHA-256 逐字节相同
+  (`d70b416f…1643e`)。
+- **重开新局**:勘察结论「不能」—— 入口为零 + 「最近档」按游戏内 tick 排序(新局恒输给旧局)。
+  已立 `TD-persist-20`(open / P0 面 Y)+ 起草 `ADR-040`(**Proposed**,多世界目录 + 索引,
+  存档体一字节不改)。前置 = `OQ-MM-5` 裁定。
+- 回归:EditMode `6842/6805/0/37` @ `2026-11-04T05:23:15Z` · PlayMode `332/328/0/2/2`
+  @ `2026-11-04T05:30:12Z` · `9ec8f39f` + 工作树。
+- 债册:条目 178 · open 18 · 未闭 P0 面 **8 → 9** · 分布 4/31(六十八订)。
+- 原件 = `production/qa/evidence/impl-save-three-paths-and-first-save-2026-11-04.md`。
+- **待提交**。
