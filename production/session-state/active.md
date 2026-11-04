@@ -16780,3 +16780,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   首跑 3 红 = `FsWriteBoundaryGate` R2(同一形态第七例),已补 `Declarations`。
 - 证据 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md` §6。
 - **待提交**。
+
+
+### 补轮:`.bak` 救回走查(2026-11-04)
+
+- 用户「走查一下『覆写后 bak 能救回』」⇒ 新增 `adr041_bak_rescue_walkthrough.cs`(真启动序 + 四帧)。
+- **救回成立**:真 `Checkpoint` 两次(v1=20 / v2=70)→ 打坏 final → 按册子那一行 ⇒
+  `LastLoadedTick = 20`(v1),当前 tick 也回 20。
+- 顺带抓出两个**可见性**缺口(已立 `TD-persist-22`,open / P0 面 N / R4):
+  ① 回退静默(SaveService.cs:641-645 零日志);② 探针只验头部不验校验和 ⇒ 正文坏的档
+  在册子上与好档同形(wb_05/06/07 三帧 SHA-256 逐位相同)。
+- 回归:EditMode `6877/6840/0/37` · PlayMode `341/337/0/2/2`(+1 = 走查件)
+  @ 2026-11-04T15:33:07Z / 15:34:20Z · `046b6139` + 工作树。
+- **待提交**。

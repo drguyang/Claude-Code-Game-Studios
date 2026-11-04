@@ -187,6 +187,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/SkeuomorphicUI/adr041_bak_rescue_walkthrough.cs",
+                Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
+                         "截图走 `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫);" +
+                         "另一处 `File.WriteAllBytes` **只改临时存档根**(`Path.GetTempPath()` 下的" +
+                         "`dyjq_bakrescue_*`,TearDown 自删)里那份**被故意破坏**的存档,用来证 bak 救回;" +
+                         "目标 `unity/Logs/shots/wb_0{5,6,7}_*.png`(gitignored 指定暂存区,文件头已具名声明)。" +
+                         "**不写仓库源、不写入库产物**。",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/Audio/statereport_walkthrough_probe.cs",
                 Reason = "`Application.dataPath` 仅用于**读** DataCooked / Audio;写目标走 Path.GetTempPath()",
             },

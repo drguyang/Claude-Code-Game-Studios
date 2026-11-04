@@ -405,6 +405,7 @@
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-21` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-22` | `persistence-service` | open | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -610,6 +611,16 @@ PYEVAL
 > 「选世界」一侧的载体 `multi_world_boot_wiring_test.test_deleteWorld_throughBoot…` 已删除,
 > 换为 `…test_settingsRow_opensSettingsShell_andClosesBackToMenu`;`world_catalog_test` 的 2 条删除夹具同步移除。
 > **`TD-persist-20` 状态维持 `closed`** —— 它解的是「无重开入口」,而重开(`新起一局`)仍在。
+
+> > 🔁 **七十三订(`TD-persist-22` 立债 · 2026-11-04 · `.bak` 救回走查)** ——
+> 用户指令「走查一下『覆写后 bak 能救回』」⇒ 真启动序走查(`adr041_bak_rescue_walkthrough`)。
+> **走查结论:救回成立**(`LastLoadedTick` = v1 的 tick,而 final 是 v2),顺带查出两个**可见性**缺口
+> (回退静默 / 探针不验校验和 ⇒ 册子看不出正文坏)。
+> 变化:`open 19 → 20`(+1)· `closed 157` 不动 · `partial 3` 不动 ·
+> **`未闭 P0 面 9` 一位不动**(本条判 **N** —— 救回有效、触发面是磁盘位翻转)·
+> `N 53 → 54`(+1)· **epic 分布 4/31 不动**(`persistence-service` 已有 `TD-persist-21` 占位)·
+> 条目数 **180 → 181**(+1)。
+> 单一变化源:新增 `TD-persist-22` 索引行(`open` / P0 面 **N** / R4)。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1233,7 +1244,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 180 | 状态 {'closed': 157, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 53, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 181 | 状态 {'closed': 157, 'partial': 3, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 9 （已闭但曾标 P0 面的 112 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
@@ -4910,6 +4921,23 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **P0 面判 Y 的理由**:不是「少一个按钮」—— 世界目录**只增不减**且**不可达**,
 > 玩家每次「新起一局」都会把一个永久找不回的旧局留在盘上;与 `TD-persist-20` 判 Y 的依据同源。
 > ⚠️ **本条不主张裁定应当改变**;它是「**暂时形态的到期提醒**」。
+
+### TD-persist-22 — `.bak` 救回**静默**:读回来的是上一版,而玩家与册子都看不出(7a ↔ 42)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ADR-041 §D4 裁了「读侧可回退 `.bak`」,**没裁「回退是否可见」**。真启动序走查(`adr041_bak_rescue_walkthrough`,2026-11-04)实测出两个可观测性缺口:<br>**① 回退静默** —— `LoadBytes` 的回退分支**零日志**(`:641-645`),玩家以为读的是最新档,实际是**上一版**(走查实测 `LastLoadedTick=20` 而被打坏的 final 是 `70`)。丢的那段进度**没有任何提示**。<br>**② 正文损坏在册子上不可见** —— `SaveSlotProbe` 只验**头部**(magic + 长度),**不验校验和** ⇒ 正文坏掉的档探针仍报 `Occupied`、册子照旧显示「叁 · 第壹日 昼」。走查三帧(`wb_05` 覆写后 / `wb_06` 正文坏后 / `wb_07` 救回后)**SHA-256 逐位相同** —— 玩家在屏上完全看不出这三态有别。<br>⚠️ **救回本身是有效的**(数据没丢,只是回到上一版),本条记的是**可见性**,不是数据安全。 |
+| **实测(逐条可跑)** | ① `sed -n '639,646p' unity/Assets/Sim.Codec/SaveService.cs` ⇒ 回退分支只有 `ReadAllBytes` + `ValidateChecksum` + `return`,`Debug.Log` 零处;<br>② `sed -n '155,175p' unity/Assets/Sim.Codec/SaveSlotProbe.cs` ⇒ `ProbeFile` 只解头部,**不调** `SaveService.ValidateChecksum`;<br>③ 帧逐位相同:`sha256sum unity/Logs/shots/wb_05_after_overwrite.png unity/Logs/shots/wb_06_after_corrupt.png unity/Logs/shots/wb_07_after_rescue.png`(2026-11-04 实跑三行同值 `e3bc4b17…`);<br>④ 行为面判据已存在:`unity/Assets/Tests/PlayMode/SkeuomorphicUI/adr041_bak_rescue_walkthrough.cs` 判据 ③(`LastLoadedTick == v1`)与判据 ④(救回后探针仍 `Occupied`)。 |
+| **触发条件** | ① 7a 下一轮修订;② 或**首次出现「读档回到了更早的进度」类反馈**;③ 或要做「存档健康度 / 上次会话」类提示(与 `TD-persist-14`、`TD-skeuo-05` 同族 —— 但**本条是误报的反面**:那是提示不该出现,这是该出现时没有);④ 或 42 的册子要加「已损毁」行形态。 |
+| **解除动作** | ① **日志半(7a,便宜)**:回退分支加一条 **Log 级**(不是 LogError —— 抢救是设计内行为)日志,报文点名「final 校验失败,已回退 .bak」。夹具 = 走查件补一条 `LogAssert.Expect`。<br>② **册子半(42 + 用户裁定)**:「此页已损 / 可启封上一版」要不要画、怎么画(拟物语的载体是什么)归 UX —— 且**不得**降级成红字 / toast(`AC-7b-07`)。<br>③ ⚠️ **不得**顺手改成「读档时修盘」:损坏分支零 I/O 是 GDD 规则十一的**禁止**判据(不建空档 / 不删残档 / 不改字节)⇒ 要改须另裁。 |
+| **归属** | **7a**(日志)· **42 + 用户**(册子形态) |
+| **与 spec 的关系** | ADR-041 §D4 只到「可回退」;`save-slot-ui.md` 规则二只写覆写呈现;**回退的可见性两边都没写**。 |
+| **P0 面 = N 的实质理由(R4)** | 触发面是**磁盘位翻转 / 异常写坏**(`WriteAtomic` 是原子的,正常路径产不出「final 在但坏」);且救回有效 ⇒ 玩家最多退一个 checkpoint,数据不丢。缺的是可观测性,不阻塞 P0 出口。 |
+
+> 🔁 **2026-11-04 立债(与走查同轮)** —— 用户指令「走查一下『覆写后 bak 能救回』」。
+> 走查结论:**救回成立**(真启动序:`LastLoadedTick = v1 的 tick`,而 final 是 v2),
+> 顺带把两个可见性缺口钉成了机械判据(走查件的判据 ②/④),故本条**不是**「待验证的怀疑」,
+> 而是「已验证行为里被接受下来的那部分」。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 
