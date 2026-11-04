@@ -16556,3 +16556,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 债册:`TD-skeuo-06` closed(六十五订)· `TD-processing-09` open/P0Y · 未闭 P0 面 7(不变)。
 - 原件 = `production/qa/evidence/impl-td-skeuo-06-processing-ignition-2026-11-04.md`。
 - **待提交**。
+
+## 视觉走查(图形模式七帧)· 2026-11-04
+
+- 用户指令「写脚本去实际看看效果」⇒ 新走查件 `save_and_settings_visual_walkthrough.cs`
+  (PlayMode,**必须图形模式**:`DISPLAY=:0` 且不加 `-batchmode`)。
+  七帧落 `unity/Logs/shots/sv_01…07.png`,逐帧读图判读。
+- **判读**:暂停壳三行 ✅(含新「调治」)· 存档册页框/页码/六行/高水位开册 ✅ ·
+  150% 四行 ✅ · 主菜单提示 ✅ · 炮制三行 ✅(文案是键名,已知粗糙边)。
+- **查出两笔新债**:`TD-skeuo-11`(设置壳是空壳:两条全宽空白纸带、零文字,
+  story-014 标 Complete 但只是结构断言)· `TD-skeuo-12`(所有模态屏贴顶,主菜单居中)。
+- **修掉判据面缺陷(不计条目)**:两个走查件的清屏相机都没指向 RenderTexture ⇒ RT 从未清,
+  UI 逐帧累积(曾截出「两张册页卡叠叠」「暂停行压在设置带上」的假象)。
+  修 = `camera.targetTexture = _target`,且**只在非 batch 挂**(batch 无图形设备会报
+  `RenderTexture.Create failed` 使整条 PlayMode 变红)。
+- 另:新走查件触 `FsWriteBoundaryGate` R2 ⇒ 已在 `Declarations` 具名声明。
+- 终态:EditMode `6831/6794/0/37` · PlayMode `332/328/0/2/2`
+  @ `2026-11-04T03:05:54Z` · sprint-24 视觉走查轮 · `20af6fbf` + 工作树。
+- 债册:条目 177 · open 18 · 未闭 P0 面 **7 → 8**(六十六订)。
+- 原件 = `production/qa/evidence/visual-walkthrough-2026-11-04.md`。
+- **待提交**。

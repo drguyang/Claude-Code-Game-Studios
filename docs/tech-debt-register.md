@@ -468,6 +468,8 @@
 | `TD-skeuo-08` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-09` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-10` | `skeuomorphic-ui` | closed | **N** | R1 |
+| `TD-skeuo-11` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-12` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -594,6 +596,13 @@ PYEVAL
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
 >
+> > 🔁 **六十六订(视觉走查轮查出两笔 · 2026-11-04)** —— 用户指令「写脚本去实际看看效果」;
+> 图形模式七帧(`sv_01`…`sv_07`)判读后新立两债。变化:`open 16 → 18`(+2)· `closed` 不动 ·
+> **未闭 P0 面 7 → 8**(+1,仅 `TD-skeuo-11` 标 **Y**)· **`skeuomorphic-ui 1 → 2`**(+1)·
+> epic 数仍 `3/31` · 条目数 **175 → 177**(+2)。单一变化源:新增两条索引行。
+> ⚠️ **同轮修掉一条判据面缺陷**(不计条目):两个视觉走查件的「清屏相机」都**没指向 RenderTexture**
+> ⇒ RT 从未被清,UI 逐帧累积 —— 逻辑断言全绿而截图会叠影(实测出「两张册页卡叠在一起」)。
+
 > > 🔁 **六十五订(`TD-skeuo-06` 结案 + `TD-processing-09` 立债 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「继续把 TD-skeuo-04 和 06 做掉」。变化:`closed 154 → 155`(+1)· `open 16 → 16`(±0,
 > 结一条立一条)· **未闭 P0 面 7 → 7**(±0,同因)· **epic 分布 `skeuomorphic-ui 2 → 1`(−1)/
@@ -1162,10 +1171,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 175 | 状态 {'closed': 155, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 118, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 7 （已闭但曾标 P0 面的 111 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 3/31 个 epic
-    random-events: 5          processing: 1             skeuomorphic-ui: 1
+条目 177 | 状态 {'closed': 155, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 119, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 111 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4936,6 +4945,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① 逐屏判定「页级容器 vs 行级元件」清单;② 页级挂 `.paper-page`(自带 44px 内缩),行级保持 `.paper`;③ 若某屏页高不足以容纳内缩,须连带调布局(内缩是**绝对像素**,不随页高缩放)。 |
 | **触发条件** | 42 的下一轮视觉统一轮;或任何以「某屏纸面形态」引用之前(**禁借绿**)。 |
 | **归属** | **42 拟物 UI** × **设计(视觉方向)** |
+
+### TD-skeuo-11 — 设置壳是**空壳**:两个无文字、无宽度约束的 paper 元素铺满全宽(42 ↔ 44)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `SettingsScreen.BuildUI()` 只做两件事:`new VisualElement{name="settings-entries"}` + 往里面塞**两个** `SkeuoElement.Paper`。无 Label、无列宽、无容器 class、无页签。⇒ 屏上呈现的是**两条横贯 1920px 的空白纸条**(视觉走查 `sv_02_settings.png` 实测)。`story-014` 标 `Complete`、`settings_shell_test.cs` 10 测全绿 —— 但那些测判的是「两个 paper 元素存在」,**不是「玩家看得见什么」**。 |
+| **实测(逐条可跑)** | ① `grep -n "new Label" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/SettingsScreen.cs` ⇒ **零命中**;<br>② `grep -c "SkeuoElement.Paper" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/SettingsScreen.cs` ⇒ **2**(正是那两个空条);<br>③ 视觉判据:图形模式跑 `SaveAndSettingsVisualWalkthrough` ⇒ `unity/Logs/shots/sv_02_settings.png`,纸上无任何文字。 |
+| **与 spec 的差** | `settings-shell-42.md` §5 规定了页签(簿口系绳牌)、条目焦点与调整;§3 规定「卷宽 `--skeuo-shared-modal-width`、水平居中」。今日一样都没有。 |
+| **解除动作** | ① 屏补 `.paper-page` / `.pause-column` 级的容器与列宽(与其余模态同一契约);② 条目文案与语义**归 44**(`audio-system.md:765` 的 P0 唯一条目:总线音量 / mono)——42 只出壳与焦点,不得自造条目;③ 夹具从「元素存在」升级为「**屏上有 N 条可读条目**且焦点可在其间移动」(否则仍是结构断言);④ 走查补 `sv_02` 的判读结论。 |
+| **触发条件** | ① 44 的音频设置条目接线轮;② 或任何以「设置壳已完成」形态引用之前(**禁借绿**)。 |
+| **归属** | **42**(壳与焦点)· **44**(条目语义)· 走查 = 人工面 |
+
+### TD-skeuo-12 — **所有模态屏贴顶**:暂停壳 / 存档册 / 炮制屏 / 设置壳都不在垂直居中位
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 模态屏的容器没有垂直居中:图形走查五帧里,暂停壳、存档册、炮制屏、设置壳**全部贴在 y=0**(`modal-Pause` bound height=202 起于 0;`save-book` 起于 0;`settings-entries` 起于 0)。而**场景级**的主菜单居中(`.menu-host{justify-content:center}`,`sv_06` 实测居中)。⇒ 同一个 UI 体系里两套纵向定位,且模态侧贴着屏幕上沿。 |
+| **实测(逐条可跑)** | ① `grep -n "justify-content: center" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoPaper.uss` ⇒ 唯一条在 `.menu-host`(场景级屏);<br>② 运行时树 dump(`SaveAndSettingsVisualWalkthrough` 的 `[TREE/pause]` 行)⇒ `bound=(x:720, y:0, w:480, h:202)`;<br>③ 对照 `[TREE/mainmenu]` 的纸面 y 明显居中。 |
+| **为什么不是「顺手改个 CSS」** | 模态容器是驱动建的(`SkeuoRuntimeDriver.InstantiateScreen`),其纵向对齐由容器决定,不是屏自己;改它会影响**全部 9 员**的落点与焦点几何,且 `AC-42-F1` 的走查几何断言(PlayMode `pause_focus_navigation_test` 的 `GiveRowsGeometry`)按当前坐标系给尺寸。须与 42 的布局轮一起改。 |
+| **解除动作** | ① 定「模态屏纵向定位」的权威口径(居中 / 贴顶 + 上边距);② 改**容器**一处(不给每屏各写一份 margin);③ 重跑 `pause_focus_navigation_test` / `save_slots_page_geometry_test`(它们按 `worldBound` 判几何);④ 视觉走查复看。 |
+| **触发条件** | 42 的布局轮 / 任一 must-fix 的观感缺陷轮。 |
+| **归属** | **42**(容器与 USS)· 视觉判读 = 人工面 |
 
 ### TD-skeuo-10 — 九宫格冻结件的「重画即重冻」义务未执行(8 张图已被替换)
 

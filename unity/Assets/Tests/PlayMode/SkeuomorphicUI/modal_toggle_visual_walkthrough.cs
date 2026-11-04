@@ -124,6 +124,12 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             _camera.clearFlags = CameraClearFlags.SolidColor;
             _camera.backgroundColor = new Color(0.12f, 0.12f, 0.14f, 1f);
             _camera.cullingMask = 0;   // 不画任何物体:本件只看 UI
+            // 🔴 **2026-11-04 补**:上面的「清屏相机」当初**没指向 RenderTexture** ⇒ 它清的是
+            //    Game 视图,RT 从没被清过 ⇒ UI 绘制逐帧累积。本文件首轮的五帧看着还行只是
+            //    因为每屏占同一块区域、后画的盖住先画的;换页 / 换屏尺寸一变就露馅
+            //    (新走查件实测到「两张册页卡叠在一起」)。相机与面板必须**同一个目标**。
+            // ⚠️ batch 下没有图形设备:相机渲 RT 会打 `RenderTexture.Create failed` 并使整条变红。
+            if (!Application.isBatchMode) _camera.targetTexture = _target;
 
             // 存档位给足行数(10 行 ⇒ 2 页),让「册页 / 页缘 / 页码」在图上可见。
             // ⚠️ 首轮我喂的是 `SaveSlotView.Unbound` —— 那是**行字空白**的形态
