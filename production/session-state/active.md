@@ -16492,3 +16492,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ADR-013 **§十-G Amendment F** 记录两条形状约束 + 门口径订正。
 - 原件 = `production/qa/evidence/impl-td-skeuo-07-page-frame-and-uss-uri-2026-11-04.md`。
 - **未提交**。
+
+## 贴图不入库(2026-11-04 · 用户裁定「核心资产不上 GitHub」)
+
+- **已落**:`.gitignore` 窄 glob `Textures/**/*.png` · 18 张 PNG `git rm --cached`(磁盘完好)·
+  生成脚本与全部 `.png.meta` **仍入库**(meta 带 spriteBorder,不可再生)·
+  提交 `182044f2`(未推送)。备份 = `/home/gu/文档/nm/nm2/skeuo-texture-backup-2026-11-04/`。
+- **未落(权限拦截,需用户执行)**:历史重写。`origin/main` 上 18 张图**仍在**,`.gitignore`
+  对历史无效。已装 `git-filter-repo`;全量镜像备份已就绪
+  `/home/gu/文档/nm/nm2/Claude-Code-Game-Studios-mirror-backup-2026-11-04.git`(341 MB,HEAD 一致)。
+- ⚠️ **副作用待修**:filter-repo 的第一次失败运行把 `origin` 远端**摘掉了**,尚未加回。
