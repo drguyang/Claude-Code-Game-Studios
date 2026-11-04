@@ -32,6 +32,21 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
             new Dictionary<int, DiseaseCourse>();
         private readonly List<DiseaseCourse> _inOrder = new List<DiseaseCourse>();
 
+        /// <summary>
+        /// 清空全部建档 —— **读档换流后的重建入口**(2026-11-05 · `TD-sim-05`)。
+        /// <para>⚠️ 只该由 <c>DiseaseVitalsService.ResetAfterRestore</c> 调用:读档把事件流换成了
+        /// 存档内容,旧档案里可能有**新流中不存在**的病人(读的是更早的档)⇒ 不清就会
+        /// 在旧病人身上继续求值,而重扫新流时 `ApplyOnset` 又会因「已建档」抛。</para>
+        /// <para>清空后到下一次 `OnTickEdge` 之间,`GetVitals` 对所有病人会抛
+        /// <see cref="PatientCourseNotFoundException"/> —— 那是本类的既有契约(无档 = 抛),
+        /// 呈现侧经 `VitalsQueryOrNone` 读即可(窗口 ≤ 一个 tick)。</para>
+        /// </summary>
+        public void Clear()
+        {
+            _byPatient.Clear();
+            _inOrder.Clear();
+        }
+
         /// <summary>已建档病人数。</summary>
         public int Count => _inOrder.Count;
 

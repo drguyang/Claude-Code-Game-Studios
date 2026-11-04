@@ -201,6 +201,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              DaYiJingCheng.Gameplay.UI.Skeuomorphic.ISubtitleSink subtitleSink = null,
                                                              DaYiJingCheng.Gameplay.UI.Skeuomorphic.IPatientCueMarkSink cueMarkSink = null)
         {
+            // 🔁 2026-11-05(`TD-sim-05` 同族):`afterRestore` 闭包建在本方法**前段**,却要碰后段
+            // 才挂上的两件完成调度器 ⇒ 方法级空壳句柄,装配完成后赋值(见 `servicesRef = services;`)。
+            // ⚠️ 必须声明在**方法级**:`services` 与闭包分处不同的 `if` 块,块内声明在另一块里不可见。
+            CompositionRootServices servicesRef = null;
+
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
                 throw new InvalidOperationException(
@@ -1037,6 +1042,31 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ `worldLoad` 未接世界时为 null ⇒ 空操作(既有调用方零行为变化)。
                     afterRestore: () =>
                     {
+                        // ⚠️ 本闭包建立时 `services` 尚未构造(装配序在后面)⇒ 用一个空壳句柄,
+                        //    装配完成后赋值(见 `servicesRef = services;`)。只读快照,不重排装配序。
+                        // 🔁 **2026-11-05(`TD-sim-05`)**:体征链的派生态与游标**都只进不退**,
+                        // 读一份更早的档后 `_lastTick` 停在读档前 ⇒ 下一个 tick 边沿抛
+                        // 「体征链 Step 时间倒流」,且**每 tick 抛一次**直到时钟追平;
+                        // `_cursor` 停在新流之外 ⇒ 恢复出来的事件一条都不再应用。
+                        // ⚠️ 位置 = 本闭包**第一句**:它只清状态、不读流,先清可以让后面
+                        //    那几段(物品 id 高水位 / 世界重建)跑在一个「尚未求值」的干净面上;
+                        //    真正的重放留给**下一个正常 tick 边沿**(见 `ResetAfterRestore` 的 doc
+                        //    —— 在此立即重放会二次产出死亡候选)。
+                        vitals.ResetAfterRestore();
+
+                        // 🔁 **2026-11-05(`TD-sim-05` 同族)**:另外两处**单调 tick 门**同样只进不退
+                        // (`ProcessingCompletionDriver` / `CraftCompletionSettler`),读早档后同样会
+                        // 每 tick 抛一次。它们与体征链的处置**不同**:不得清零重放(会把已发过的
+                        // 完成 cue / 已落地的成品再发一遍)⇒ 把门**挪到存档时刻**。
+                        // ⚠️ 取 `tickDriver.CurrentTick`:`LoadSequencer` 已在 `afterRestore` **之前**
+                        //    调过 `restoreTick`,此刻它就是存档 tick。只读快照,不依赖调用次序之外的东西。
+                        long restoredTick = tickDriver.CurrentTick;
+                        // ⚠️ 经 `servicesRef` 而不是 `services`:`services` 在本方法**后面**才
+                        //    构造(装配序),局部变量不能前向引用。`servicesRef` 是本闭包建立前
+                        //    声明的空壳,装配完成时才赋值 —— 与既有「闭包捕获后解析对象」同一手法。
+                        servicesRef?.CraftCompletionSettler?.ResumeAt(restoredTick);
+                        servicesRef?.ProcessingCompletion?.ResumeAt(restoredTick);
+
                         // 🔁 **2026-11-02(`TD-persist-12`)**:读档后**先**重构物品 id 高水位,
                         // **再**重建派生态。病因:装配期那次抬升(容器段)只对**开档那一刻的流**
                         // 有效 —— 读档把流换成了存档内容,而 `IdAuthority` 计数器停在旧值
@@ -1975,6 +2005,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                pressCandidates: pressCandidates,
                                                pressSelector: pressSelector,
                                                pressRadius: pressRadius);
+
+            // 🔁 2026-11-05(`TD-sim-05` 同族):补齐 `afterRestore` 闭包的前向捕获句柄。
+            // 该闭包在**本语句之前**建立,却要碰本语句之后才挂上去的两件完成调度器。
+            servicesRef = services;
 
             // 🔁 2026-10-30(ADR-035 §⑤):53 的禁忌结算器 —— `TreatmentHarmOnset` 的唯一生产写者。
             //    表源 = data-core 产物(`CostTable53DataSet`);无 provider ⇒ 空表 ⇒ 任何档都 miss

@@ -377,7 +377,7 @@
 | `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-04` | `disease-simulation` | closed | **Y** | R1 |
-| `TD-sim-05` | `disease-simulation` | open | **Y** | R1 |
+| `TD-sim-05` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
@@ -639,6 +639,14 @@ PYEVAL
 > **`epic 分布 4/31 → 5/31`**(`disease-simulation` 重新进入)· 条目数 **181 → 182**(+1)。
 > 单一变化源:新增 `TD-sim-05` 索引行(`open` / P0 面 **Y** / R1)。
 > ⚠️ **与本轮 `.bak` 统一无关**:那条修订只是**撞见**了它(为了验「只剩备份也能读」才做第二次载入)。
+
+> > 🔁 **七十六订(`TD-sim-05` 结案 · 2026-11-05 · 读档后单调 tick 门)** ——
+> 用户指令「顺手把 TD-sim-05 也修了」。三处单调门各有处置(体征链清空重放 / 两件完成调度器
+> 把门挪到存档时刻),接线在 `afterRestore` 闭包;证伪轮 2 变异各转红。
+> 变化:`open 20 → 19`(−1)· **`closed 157 → 158`**(+1)· `partial 4` 不动 ·
+> **`未闭 P0 面 10 → 9`**(−1)· `Y 122` 不动(该债仍标 P0 面 Y,只是不再未闭)·
+> **`epic 分布 5/31 → 4/31`**(`disease-simulation` 名下未闭 P0 面清零)· 条目数 **182 不变**。
+> **单一变化源**:索引行 `TD-sim-05` 的 `open → closed`。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1262,11 +1270,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 182 | 状态 {'closed': 157, 'partial': 4, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 10 （已闭但曾标 P0 面的 112 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 5/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        disease-simulation: 1
-    persistence-service: 1    processing: 1
+条目 182 | 状态 {'closed': 158, 'partial': 4, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 113 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -3802,6 +3810,25 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 🔁 **2026-11-05 立债(走查附带发现)** —— 用户指令「按行业惯例,把不合理的地方纠正」的实现轮中,
 > PlayMode 走查的第二次载入直接抛出。**不是本轮改动引入**(单调门与 `_lastTick` 的形态早于本轮),
 > 是本轮第一次让「会话内读**更早**的档」这条路径跑起来。
+
+> ✅ **2026-11-05 已闭**(用户指令「顺手把 TD-sim-05 也修了」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-sim-05-load-tick-rewind-2026-11-05.md`。
+> **落地形态(三处,两种处置,刻意不同)**:
+> · **体征链** `DiseaseVitalsService.ResetAfterRestore()` —— 清空课程簿 / 求值结果 / 状态转移历史
+>   + `_cursor` 归零 + `_lastTick` 归零 ⇒ 下一个正常边沿按**新流重放**。
+>   ⚠️ **不在读档序列里立即重放**:会走 `PublishDeathCandidateIfTransferred`(写流)⇒ 二次产出。
+> · **两个完成调度器** `ProcessingCompletionDriver.ResumeAt` / `CraftCompletionSettler.ResumeAt`
+>   —— 把单调门**挪到存档时刻**,`≤ 存档时刻` 视为已处理。
+>   ⚠️ **不得清零重放**:会把已发过的完成 cue / 已落地的成品再发一遍。
+> · **接线** = `CompositionRoot` 的 `afterRestore` 闭包(读档序列里「流已换、世界尚未再跑」的唯一确定点);
+>   该闭包建在 `services` 构造之前 ⇒ 方法级空壳句柄 `servicesRef` 前向捕获。
+> **判据** = 走查件判据 ⑧(玩到 tick 70 → 读回 20 → 关册等时钟越过 75,要求**零异常**)。
+> **证伪轮 2 变异各转红**(M1 摘体征链重置 ⇒ 时间倒流;M2 摘两处 `ResumeAt` ⇒ 炮制非递增 tick),
+> 还原 SHA-256 逐字节一致。
+> **回归** EditMode `6880/6843/0/37` · PlayMode `341/337/0/2/2`(零回归)
+> @ `2026-11-04T19:11:17Z` / `19:12:25Z` · `bcc29770` + 工作树。
+> ⚠️ **仍有未验证面(不借绿)**:退出保存 / 自动存档两条读档路径未单独走查(共用同一钩子,
+> 结构等价但无各自夹具);清空到重建之间 `GetVitals` 抛「未建档」的窗口内 42 的实际读数未验。
 
 ### TD-sim-01 — `SelfLimited(entity, d)` 逐实体判死谓词未落地
 

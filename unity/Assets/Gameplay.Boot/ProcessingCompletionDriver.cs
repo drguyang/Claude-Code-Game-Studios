@@ -101,6 +101,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>累计发出去的 cue 条数(可观测面:AC-18-21「恰 1 条」的计数判据)。</summary>
         public int EmittedCueCount { get; private set; }
 
+        /// <summary>
+        /// 读档重建:把单调门**挪到恢复出来的 tick**(2026-11-05 · `TD-sim-05` 同族)。
+        /// <para>病因与 `DiseaseVitalsService.ResetAfterRestore` 同类:`_lastTick` 只进不退,
+        /// 读一份更早的档后下一个边沿会抛「非递增 tick」,世界每 tick 抛一次。</para>
+        /// <para>⚠️ 与体征链**处置不同**:体征链把状态清空、让下一个边沿重放(它必须从流重建);
+        /// 本类**不能重放** —— 重放会为已经发过的炉**再发一次** cue。所以这里是把门移到存档时刻
+        /// (`tick ≤ 存档时刻` 的一切都视为已处理),之后才继续。</para>
+        /// </summary>
+        public void ResumeAt(long tick)
+        {
+            _lastTick = tick;
+            _buffer.Clear();
+        }
+
         /// <summary>tick 边沿入口 —— 收集本 tick 到点的炉并按炉发 `sfx_process_complete`。</summary>
         /// <param name="tick">当前逻辑 tick(`ITickProvider.CurrentTick`)。</param>
         /// <returns>本 tick 到点的炉数(不是 cue 条数 —— cue 未解析时为 0)。</returns>

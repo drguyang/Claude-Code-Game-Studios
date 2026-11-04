@@ -16820,3 +16820,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   @ 2026-11-04T16:18:05Z / 16:19:18Z · `d5db89d8` + 工作树。
 - 顺带登记 **`TD-sim-05`**(open / P0 面 Y):会话内读档后 `_lastTick` 不回退 ⇒ 抛「时间倒流」。
 - **待提交**。
+
+
+### 补轮:TD-sim-05 读档后单调 tick 门(2026-11-05)
+
+- 用户「顺手把 TD-sim-05 也修了」。三处单调门,两种处置:
+  · 体征链 `ResetAfterRestore()` —— 清空派生态 + 游标归零 ⇒ 下一个边沿按新流重放
+    (不在读档序列里立即重放:会二次产出死亡候选);
+  · `ProcessingCompletionDriver` / `CraftCompletionSettler` —— `ResumeAt(restoredTick)`
+    把门挪到存档时刻(不得清零重放:会重复发货 cue / 重复落地成品)。
+- 接线 = `CompositionRoot` 的 `afterRestore` 闭包(方法级 `servicesRef` 前向捕获)。
+- 判据 = 走查件判据 ⑧(读回 20 后关册等时钟越过 75,要求零异常)。证伪轮 M1/M2 各转红,
+  还原 SHA-256 `19d50eb5…` 一致。
+- 回归:EditMode `6880/6843/0/37` · PlayMode `341/337/0/2/2` @ 19:11:17Z / 19:12:25Z。
+- `TD-sim-05` `open → closed`;原件 = `impl-td-sim-05-load-tick-rewind-2026-11-05.md`。
+- **待提交**。

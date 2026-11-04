@@ -141,6 +141,19 @@ namespace DaYiJingCheng.Sim
 
         private readonly Dictionary<int, Recipe> _recipesByOrdinal;
 
+        /// <summary>
+        /// 读档重建:把单调门**挪到恢复出来的 tick**(2026-11-05 · `TD-sim-05` 同族)。
+        /// <para>病因:`_lastTick` 只进不退,读一份更早的档后下一个边沿抛「非递增 tick」。</para>
+        /// <para>⚠️ **不得改成「清零重放」**:本类每命中一炉会 `DropSpawned` 落地成品,
+        /// 重放等于把已经落过地的成品**再落一次**。所以门移到存档时刻,
+        /// `tick ≤ 存档时刻` 的一切视为已处理。</para>
+        /// </summary>
+        public void ResumeAt(long tick)
+        {
+            _lastTick = tick;
+            _buffer.Clear();
+        }
+
         /// <summary>tick 边沿入口 —— 结算本 tick 到点的炉。</summary>
         /// <param name="tick">当前逻辑 tick(`ITickProvider.CurrentTick`)。</param>
         /// <returns>本 tick 落地的成品**件数**(= 发出的 `DropSpawned` 条数)。</returns>

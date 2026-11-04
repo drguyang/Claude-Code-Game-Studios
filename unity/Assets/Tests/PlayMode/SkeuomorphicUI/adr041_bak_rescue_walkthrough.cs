@@ -246,9 +246,25 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             // ⚠️ **本件到「册子上看得见」为止,不再做第二次载入**:
             //   探针与载入的「同向」已在存储层钉死(`manualSlot_finalMissing_bakAlone_isRecoverable`
             //   同时断言 Probe=Occupied 与 LoadBytes 成功),本件不重复。
-            //   而第二次载入会触发一个**与本轮修订无关的既有缺陷**:
-            //   读档把逻辑时钟拉回去后,`DiseaseVitalsService._lastTick` 不跟着回退 ⇒
-            //   世界继续跑时抛「体征链 Step 时间倒流」(已登记,见走查报告 §7.6)。
+
+            // ── ⑩ 读档之后**世界继续跑**,不得出现任何异常(`TD-sim-05` 的判据)──────
+            //   本件在 ⑥ 已经把逻辑时钟从 tick 70 拉回到 20(读的是一份更早的档)。
+            //   改前:`DiseaseVitalsService._lastTick` 停在 70 ⇒ 之后每个 tick 边沿抛
+            //   `InvalidOperationException: 体征链 Step 时间倒流:tick=N < 上次 70`,
+            //   直到时钟追平 —— console 每 tick 刷一条(本件正是这样抓到它的)。
+            //   改后:读档时 `ResetAfterRestore` 把派生态与游标清零,下一个边沿按新流重建。
+            //   **判据形态**:关册(模态摊开会停 tick)后等时钟越过读档前的 tick;
+            //   UTF 默认把任何未处理的 `LogType.Exception` / Error 判红 ⇒ 等不到就说明还在抛。
+            _driver.CloseModal();
+            long target = tickV2 + 5L;
+            float deadline3 = Time.realtimeSinceStartup + 30f;
+            while (CurrentTick() < target && Time.realtimeSinceStartup < deadline3)
+                yield return null;
+
+            Debug.Log($"[BAK] 读档后世界继续跑:tick={CurrentTick()}(须越过读档前的 {tickV2})");
+            Assert.GreaterOrEqual(CurrentTick(), target,
+                "[判据⑧] 读档后时钟须能越过读档前的 tick —— 卡住或抛异常都意味着" +
+                "体征链的单调门把世界钉死在读档时刻(TD-sim-05)");
         }
 
         // ══════════════════════════════════════════════════════════════════

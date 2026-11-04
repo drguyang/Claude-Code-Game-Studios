@@ -359,6 +359,34 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 读档换流后的**重建入口**(2026-11-05 · `TD-sim-05` · 由 `CompositionRoot` 的
+        /// `afterRestore` 钩子调用 —— 那是读档路径上「流已换、世界尚未再跑」的唯一确定点)。
+        /// <para><b>病因</b>:本类三件派生态(课程簿 / 求值结果 / 状态转移历史)与两个游标
+        /// (`_cursor` / `_lastTick`)**都只进不退**。读一份**更早**的档后:
+        /// ① `_lastTick` 停在读档前的 tick ⇒ 下一个 tick 边沿抛「体征链 Step 时间倒流」
+        /// 且**每 tick 抛一次**,直到时钟追平(用户可见的 console 刷屏);
+        /// ② `_cursor` 停在新流的长度之外 ⇒ 恢复出来的事件**一条都不再应用**;
+        /// ③ 课程簿里留着新流中不存在的病人(更晚才出现的那些)⇒ 会在它们身上继续求值。
+        /// 三者合起来 = 读档后体征链**形同停摆**,且是抛异常的那种停摆。</para>
+        /// <para><b>为什么是「清空 + 归零」而不是「立即重放」</b>:重放要调 `StepAll`,
+        /// 而 `StepAll` 会走 `PublishDeathCandidateIfTransferred`(写流)—— 在读档序列里
+        /// 立即重放等于把**同一批转移再产出一次**。⇒ 只把状态清到「尚未求值」,
+        /// 让**下一个正常 tick 边沿**按既有次序重建(它本来就会做),零额外写流。</para>
+        /// <para>⚠️ **次序**:必须在 `SaveService.Load`(换流)**之后**、下一个 tick 边沿**之前**;
+        /// 清空到重建之间 `GetVitals` 会抛「未建档」—— 那是既有契约,呈现侧走 `VitalsQueryOrNone`。
+        /// ⚠️ 注册表(`_registry`)是**配置**不是派生态,**不清**。</para>
+        /// </summary>
+        public void ResetAfterRestore()
+        {
+            Courses.Clear();
+            _results.Clear();
+            _outcomes.Clear();
+            _outcomeHistory.Clear();
+            _cursor = 0;
+            _lastTick = -1;      // 归零而不是「设为存档 tick」:由下一个边沿自己写下真实值
+        }
+
+        /// <summary>
         /// 一个 tick 边沿的体征链驱动:`应用本 tick 及之前的全部新事件 → 对每个在册病人求值`。
         /// </summary>
         /// <remarks>
