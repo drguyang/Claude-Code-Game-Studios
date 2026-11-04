@@ -92,3 +92,29 @@ DISPLAY=:0 ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity \
    字号的实际缩放归 49(P2),42 只消费 `TextScale` 这个输入。
 3. **`sv_07` 的配方名是键名**,不是中文方名(21a 无 `DisplayName`)。
 4. 设置壳的内容缺口与模态贴顶**已登记为债**,本轮未修。
+
+---
+
+## 6. 修复后复看(同日)
+
+修了两件后重跑同一走查(图形模式),七帧重截:
+
+| 帧 | 修前 | 修后 |
+|---|---|---|
+| `sv_01_pause` | 卡片贴顶 `y=0` | **`y=439`**((1080−202)/2),竖直居中 |
+| `sv_02_settings` | 两条横贯 1920px 的空白纸带 | **居中 480px 卡片**:页框 + 标题「调治」+ 两个行位 |
+| `sv_03/04/05` | 册页贴顶 | 册页居中,页框 / 页码 / 行序不变 |
+| `sv_07_processing` | 候选贴顶 | 候选居中 |
+
+**改了什么**(只动两处):
+
+1. `SkeuoPaper.uss` 新增 `.modal-host` + `SkeuoRuntimeDriver.InstantiateScreen` 挂类 ——
+   **绝对铺满 + `justify-content: center`**;刻意**不碰 `align-items`**,
+   各屏自己的列宽契约(`.pause-column` / `.save-book` 的 `align-self`)继续生效。
+   容器同时置 `pickingMode = Ignore` —— 铺满后不置会把世界 / 其它 UI 的指针拾取全吞掉。
+2. `SettingsScreen.BuildUI` 由「两个裸 `Paper`」改为 `.pause-column` + `.paper-page` +
+   标题 + 两个 `.ruled` 行位。**条目文案仍空**(归 44 / narrative / 49),`TD-skeuo-11` 内容半边仍 open。
+
+**验证**:`pause_focus_navigation_test` / `save_slots_page_geometry_test` 全绿 ——
+它们按 `worldBound` 判几何,是「只改纵向」这件事最直接的哨兵。
+EditMode `6831/6794/0/37` · PlayMode `332/328/0/2/2` @ `2026-11-04T03:21:37Z`。

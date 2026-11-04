@@ -16576,3 +16576,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 债册:条目 177 · open 18 · 未闭 P0 面 **7 → 8**(六十六订)。
 - 原件 = `production/qa/evidence/visual-walkthrough-2026-11-04.md`。
 - **待提交**。
+
+## TD-skeuo-12 结案 + TD-skeuo-11 结构半边(2026-11-04)
+
+- `.modal-host`:模态容器统一**绝对铺满 + 纵向居中**(USS 一处 + `InstantiateScreen` 挂类),
+  容器置 `pickingMode = Ignore`(铺满后会吞指针拾取)。实测暂停壳 `y=0 → 439`。
+- `SettingsScreen`:列宽 480 + `.paper-page` 页框 + 标题「调治」+ 两个 `.ruled` 行位;
+  **条目文案仍空**(44 / narrative / 49),`TD-skeuo-11` 内容半边 open、两行不可聚焦。
+- 回归:EditMode `6831/6794/0/37` · PlayMode `332/328/0/2/2` @ `2026-11-04T03:21:37Z`。
+- 债册:`TD-skeuo-12` closed(六十七订)· 条目 177 · open 17 · 未闭 P0 面 8(不变)。
+- **待提交**。

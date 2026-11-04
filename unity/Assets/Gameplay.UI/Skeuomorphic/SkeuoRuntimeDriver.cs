@@ -969,6 +969,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         private IPresentationRoot InstantiateScreen(string name, out VisualElement container)
         {
             container = new VisualElement { name = "modal-" + name };
+            // 🔁 2026-11-04(`TD-skeuo-12`):模态容器统一走 `.modal-host`(绝对铺满 +
+            //    纵向居中)。此前零 class ⇒ 各屏贴顶,与居中 `.menu-host` 两套定位。
+            //    ⚠️ `pickingMode = Ignore`:铺满后这一层会覆盖整块面板,默认值会吞掉
+            //    世界与其它 UI 的指针拾取;行等子元素仍可拾取(Ignore 只排除这一层自身)。
+            container.AddToClassList("modal-host");
+            container.pickingMode = PickingMode.Ignore;
             _panel.Add(container);
 
             IPresentationRoot created = CreateScreen(name, container);

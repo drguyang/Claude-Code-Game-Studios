@@ -113,6 +113,27 @@
     bottom: 0;
 }
 
+/* 模态容器(`SkeuoRuntimeDriver.InstantiateScreen` 建的那一层)—— 🔁 2026-11-04(`TD-skeuo-12`)
+   此前这一层**零 class**:普通流内元素,高度 = 内容高 ⇒ 所有模态屏贴着屏幕**上沿**
+   (图形走查实测:暂停壳 / 存档册 / 炮制屏 / 设置壳的 `worldBound` 全部起于 y=0),
+   而场景级主菜单(`.menu-host`)是居中的 —— 同一 UI 体系两套纵向定位。
+
+   ⚠️ **只改纵向,不动横向**:`align-items` 保持默认 `stretch`(各屏自己的列宽契约
+   `.pause-column` / `.save-book` 的 `align-self: center` 继续生效),`justify-content`
+   负责把「比视口矮的内容」放到竖直中线。用 `flex-grow` 会随面板里别的元素(候选列表 /
+   字幕)一起重排 ⇒ 改用绝对铺满,模态自成一层。
+
+   ⚠️ **`picking-mode: ignore` 不可省**:铺满之后这一层会覆盖整块面板,默认值会把
+   世界 / 其它 UI 的指针拾取全部吞掉。子元素(行)仍可拾取 —— Ignore 只排除这一层自身。 */
+.modal-host {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+}
+
 /* 主菜单的**纯色背板**(2026-11-01 · `main-menu-42.md` §5「纸面下是纯色底,不是游戏画面」)。
    ⚠️ 色值 = 调色板既有 token `--skeuo-implement-bg`(用户 2026-11-01 裁定复用)——
    **本块不写字面色值**,美术轮改 token 时背板自动跟随。
