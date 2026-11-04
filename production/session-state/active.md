@@ -16608,3 +16608,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 债册:条目 178 · open 18 · 未闭 P0 面 **8 → 9** · 分布 4/31(六十八订)。
 - 原件 = `production/qa/evidence/impl-save-three-paths-and-first-save-2026-11-04.md`。
 - **待提交**。
+
+## ADR-040 D 案实现轮(多世界存档 · 2026-11-04)
+
+- 用户「按 D 案开工吧」,范围裁定 = **一路做到 UI 可点**。
+- **存储** `Gameplay.Boot/WorldCatalog.cs`:一个世界 = 一个目录 + 二进制 `worlds.index`;
+  一次性迁移(旧档搬进 `w1/`,字节零改动)· 索引损坏以目录为准重建 · 原子写。
+  住 Boot 而非 Sim.Codec:`SaveWritePathGate` 只放行 `SaveService` 写盘。
+- **装配** `BootRoot`:1.9 世界目录解析 → 2.96 菜单换世界后整体重装配(退出钩子 / 设备读数重绑)。
+  守卫:多世界与迁移**只在 `_bootWithMainMenu == true`** —— 否则跑测试会迁移开发机真存档(已实测未发生)。
+- **UI** `MainMenuScreen`:0 世界 ⇒ 单行「开始诊治」;N 世界 ⇒ N+1 行(继续诊治 / 第 N 局 / 新起一局)。
+  `IMainMenuCommandSink` 增 `SelectWorld(int)` / `NewWorld()`;42 不拼文案。
+- **规格** `main-menu-42.md` 就地修订:OQ-MM-5 的「新开一局」裁为做;新增 AC-MM-11/12/13。
+- ADR-040 **Proposed → Accepted**;债册 `TD-persist-20` **open → partial**(六十九订)。
+- 回归:EditMode `6855/6818/0/37` · PlayMode `332/328/0/2/2` @ `2026-11-04T05:56:44Z` · `25d0a361` + 工作树。
+- 原件 = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md`。
+- **未做**:删除世界(D6)· 真启动序端到端无 PlayMode 判据 · OQ-MM-5 的「退出」未裁。
+- **待提交**。

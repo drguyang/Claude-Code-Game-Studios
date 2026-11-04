@@ -1186,7 +1186,7 @@
     2 个医馆内区铺满,四生态区是 P1a),且加城镇是关卡重做(ADR-022 唯一作者 + C5 硬失败)。
     ⇒ 解除条件后移为「P1a 关卡 + 四生态区 + 出诊上下文接通」。
 
-- [ADR-040 🟡 **Proposed** 2026-11-04]**多世界存档(一个世界一个存档目录 + 选择索引)** ——
+- [ADR-040 ✅ **Accepted** 2026-11-04(起草于同日「按 D 起草」,随后用户「**按 D 案开工吧**」= 方向裁定 + 开工授权)]**多世界存档(一个世界一个存档目录 + 选择索引)** ——
   `docs/architecture/adr-040-multi-world-save-selection.md`。**`TD-persist-20` 的草案件**。
   用户问「玩了一会又想重新开始新游戏的,目前的存档设计可以正常进行吗」⇒ 勘察结论**不能**:
   ① **入口不存在**(主菜单一行 / 暂停壳三行 / 存档册无删除,全仓零 `NewGame`;`OQ-MM-5` 未裁);
@@ -1200,19 +1200,28 @@
   不进 `SaveHeader` / 三流 / sim(**与 ADR-005 / 006 的边界句,防误读**)·
   **D5** 新局 = 新建目录 + 空流;`FirstSessionSave` 因 basePath 已分目录 ⇒ **零改动**即按世界生效 ·
   **D6** 删除 = 显式动作、真删、不软删 · **D7** 现存单目录档一次性 `Directory.Move` 进 `w1/`,
-  **字节零改动**(不走 `ISaveMigration`)· **D8** 目录管理归装配层,**`WorldCatalog` 落点待裁** ·
-  **D9** UI 归 42 + 7b,`OQ-MM-5` 未裁前不实现 · **D10** `hasSave` / `_continueSlot` 语义收窄为
+  **字节零改动**(不走 `ISaveMigration`)· **D8** 目录管理归装配层(`WorldCatalog` **住 `Gameplay.Boot`** ——
+  实测 `SaveWritePathGate` 只放行 `SaveService` 在 `Sim.Codec` 写盘,放进去必撞门)·
+  **D9** UI 归 42 + 7b(**已落:主菜单世界列表 + 「新起一局」**)· **D10** `hasSave` / `_continueSlot` 语义收窄为
   「最近世界有没有档」(**不同批改 ⇒ 主菜单恒显示「开始诊治」**,静默症状)·
   **D11** 联机 + 多世界归 P1b 的 45 轮(**开放问题,本件不裁**)。
   **否**:A 只登记(今日采纳的是「先立债」不是「永久不做」)· **B 归档旧档**(不是游戏惯例;
   且仍只有一条时间线)· **C 时间线 id 进存档头**(v6 + 迁移 + 黄金夹具重签,代价大一个数量级)·
   E 只改排序键(mtime 不可靠;两世界仍争同一组槽号)。
-  **§Validation V-1…V-8 全部未跑(禁借绿)**;`Status = Proposed` —— **前置 = `OQ-MM-5` 裁定**,
-  未裁之前不转 Accepted、`TD-persist-20` 不解除。Engine Knowledge Risk **LOW**(纯 BCL 目录与字节布局)。
+  **✅ 同日实现轮**(用户「按 D 案开工吧」,范围 = **一路做到 UI 可点**):
+  `WorldCatalog`(目录 / 二进制索引 / 一次性迁移 / 原子写)· 启动序 **1.9 世界目录解析** +
+  **2.96 换世界重装配**(退出钩子与设备读数随袋重绑)· 主菜单**世界列表 + 「新起一局」**
+  (`MainMenuScreen` / `IMainMenuCommandSink` 三意图 / `DriverMainMenuCommandSink` / 装配层)·
+  `main-menu-42.md` 就地修订(`OQ-MM-5` 的「新开一局」裁为**做**)。
+  §Validation **V-1…V-5 PASS**(载体 `world_catalog_test` 8 · `world_switch_isolation_test` 1 ·
+  `main_menu_worlds_test` 4);**V-6…V-8 仍 NOT-RUN**。
+  ⚠️ **未做 / 不得借绿**:**D6 删除世界零实现** ⇒ `TD-persist-20` 只到 **`partial`**;
+  **真启动序端到端无 PlayMode 判据**(世界列表走真目录,`main_menu_wiring_test` 走夹具缝,
+  后者逐字未变);多世界只在 `_bootWithMainMenu == true` 时启用(否则夹具会迁移开发机上的真存档)。
+  Engine Knowledge Risk **LOW**(纯 BCL 目录与字节布局)。
 
 > **本日志状态**:全部 ADR(001–**040**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
-> **ADR-040 于 2026-11-04 以 `Proposed` 入册** —— 它是本日志里**唯一**一条非 Accepted 的条目,
-> 见其条目首行)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+> **ADR-040 于 2026-11-04 以 `Proposed` 入册,同日实现轮转 `Accepted`**)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。

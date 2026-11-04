@@ -107,8 +107,15 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "`preloaded ? DataCorePreloader.Provider : null`)—— 只要求「实参是三元」不够:" +
                 "`preloaded ? null : null` 同样是三元,但那样生产构建仍只走磁盘兜底 ⇒ " +
                 "槽位目录恒空、`PlaceableChecker` 恒 `SlotNotFound`(S20-20 挂标 #1 原形态)");
-            Assert.IsTrue(Regex.IsMatch(code, @"world:\s*world"),
-                "BootRoot 须把世界以具名实参 `world: world` 交给 `CompositionRoot.Assemble`");
+            // 🔁 **2026-11-04(ADR-040 D1 / D5)**:装配调用被抽成 `AssembleServices()`,
+            //    实参从局部量 `world` 变成**缓存字段** `_bootWorld` —— 因为菜单里换了世界之后
+            //    要**整体重装配**,那时局部量已不在作用域。**改判据而非删断言**,并且加一条
+            //    反向腿:字段必须真的来自工厂返回值,否则「传给 Assemble 的是别的东西」仍会溜过。
+            Assert.IsTrue(Regex.IsMatch(code, @"world:\s*_bootWorld"),
+                "BootRoot 须把世界以具名实参 `world: <世界字段>` 交给 `CompositionRoot.Assemble`");
+            Assert.IsTrue(Regex.IsMatch(code, @"_bootWorld\s*=\s*world\s*;"),
+                "缓存字段必须取自 `MinimalWorldFactory.Create(...)` 的返回值 —— " +
+                "否则 `world: _bootWorld` 可能指向一个空世界(装配照样绿,24 的匹配服务恒 null)");
         }
 
         // ══════════════ AC-3:经生产装配路径 ⇒ ClinicRoomMatching != null ══════════════

@@ -1,30 +1,62 @@
 // 主菜单屏(42 · **场景级屏,不是 ModalId 成员**)—— 世界装载之前的唯一入口。
 //
 // 权威来源:
-//   · `design/ux/main-menu-42.md`(2026-11-01 Approved;§1 逐字论证「为什么不得进闭集」)
+//   · `design/ux/main-menu-42.md`(2026-11-01 Approved;**2026-11-04 修订**:单行 → 世界列表 + 新起)
 //   · `design/ux/save-slots-7b.md:189`(「继续诊治」= 存档位的正式入口之一)
 //   · ADR-013 §9 C3(42 只渲染,永不持有游戏状态)—— 本屏只发意图,不判「能不能继续」
 //   · ADR-023 §①(三场景制:MainMenu 是独立场景;本屏是该场景里的 42 UI 根)
+//   · ADR-040(多世界存档)—— 世界列表 = 本屏的行;**选择本身发生在装配之前**
 //
 // ⚠️ **它不是 `IModalState`**:意图上世界的装载先于本屏的消失,「挡住世界」这个语义不成立
 //    (`BlocksPlay` / 规则七的门 / tick 冻结面全部以「世界已在跑」为前提)。
 //
-// ⚠️ **文案由**一个布尔**决定**(`SetHasContinueSave`)—— 有档「继续诊治」/ 无档「开始诊治」;
-//    该布尔的所有者是 7a(装配层注入),本屏**不扫描存档目录**(spec §10 所有者纪律)。
+// 🔁 **2026-11-04 形态变更(ADR-040 D9)**:原「一张纸、一行」改为:
+//    · **没有世界** ⇒ 一行「开始诊治」(= 新建第一个世界;与旧形态逐字相同);
+//    · **有世界**   ⇒ 每个世界一行(最近游玩的那行文案「继续诊治」,其余「第 N 局」)
+//                     + 末行「新起一局」。
+//    行数因此**可变** —— 旧判据「子树内文本元素个数恰为 1」不再成立,已改为「行数与世界数一致」。
+//    ⚠️ 「第 N 局」用的是**世界序号**,不是游玩时长/日期:存档摘要(`OQ-MM-6`)仍未裁,
+//       本屏**不得**自造日期文案(那需要 7a 的槽位元数据源,归后续轮)。
 
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 {
+    using System;
+    using System.Collections.Generic;
     using DaYiJingCheng.Gameplay.Presentation.Skeuomorphic;
     using UnityEngine.UIElements;
+
+    /// <summary>主菜单上「选择一个世界」的呈现形(42 侧 DTO;装配层从 7a 的目录表映射过来)。</summary>
+    public readonly struct MainMenuWorldView
+    {
+        /// <summary>世界序号(≥ 1;`WorldCatalog` 的目录名后缀)。</summary>
+        public readonly int Seq;
+
+        /// <summary>该行的文案(装配层给的**成品文案**,42 不拼字符串)。</summary>
+        public readonly string Label;
+
+        /// <summary>构造。</summary>
+        public MainMenuWorldView(int seq, string label)
+        {
+            Seq = seq;
+            Label = label;
+        }
+    }
 
     /// <summary>主菜单的意图出口(实现方住装配层;42 不反向引用 Boot)。</summary>
     public interface IMainMenuCommandSink
     {
-        /// <summary>玩家确认了唯一那一行:装载世界(有档继续 / 无档开新局,由装配层判定)。</summary>
+        /// <summary>玩家确认了第一行(= 最近游玩的世界;没有任何世界时 = 开新局)。</summary>
         void Continue();
+
+        /// <summary>玩家选了某个具体世界(含第一行以外的世界)。</summary>
+        /// <param name="seq">世界序号。</param>
+        void SelectWorld(int seq);
+
+        /// <summary>玩家选了「新起一局」。</summary>
+        void NewWorld();
     }
 
-    /// <summary>主菜单(场景级屏)—— 一张纸、一行。</summary>
+    /// <summary>主菜单(场景级屏)—— 一张纸,按世界数决定行数。</summary>
     public sealed class MainMenuScreen : PresentationRoot
     {
         /// <summary>有存档时的文案(spec §5 / §6:有档 ⇒「继续诊治」)。</summary>
@@ -32,6 +64,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>无存档时的文案(无档 ⇒「开始诊治」,行仍可用仍获焦)。</summary>
         public const string StartText = "开始诊治";
+
+        /// <summary>「新起一局」的文案(ADR-040 D5 的入口)。</summary>
+        public const string NewWorldText = "新起一局";
 
         /// <summary>
         /// 「上次会话未完整保存」的文案(`AC-7a-17` 后半句的原文措辞,不另造词)。
@@ -41,17 +76,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
-        private readonly Label _label;
-        /// <summary>
-        /// 「上次会话未完整保存」那一行 —— **按需创建**。
-        /// <para>⚠️ 懒建不是性能考虑,是**不变量**:spec §5「一张纸、一行」的判据按
-        /// 「子树内文本元素个数」数(`test_bootWithMenu_showsSingleRow_andLandsFocus`),
-        /// 常驻一个隐藏 Label 会让它在**没有任何东西要报**的常态下也变成 2 个。</para>
-        /// </summary>
+        private readonly Label _label;                    // 旧单行形态的标签(行 0 的 Label)
         private Label _notice;
         private readonly VisualElement _paper;
-        private readonly VisualElement _row;
+        private readonly VisualElement _row;              // 旧单行形态的行(行 0)
         private readonly VisualElement _backdrop;
+        private readonly List<VisualElement> _rows = new List<VisualElement>();
+        private readonly List<Label> _rowLabels = new List<Label>();
         private IMainMenuCommandSink _sink;
         private bool _hasContinueSave;
 
@@ -62,12 +93,6 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _library = library;
 
             // ── 纯色背板(spec §5:世界未装载 ⇒ 纸面下是**纯色底**,不是游戏画面)──
-            // ⚠️ 走 **42 侧全屏背板**而不是相机 `clearFlags = SolidColor`:菜单期启动序第 5 步
-            //    的那个相机**还没建出来**(它在 World 装载之后),此时渲染的是场景里预摆的
-            //    占位相机 —— 改它要么改不到、要么在关屏后留下一台被改过清屏色的相机。
-            // ⚠️ 色值 = 调色板既有 token `--skeuo-implement-bg`(2026-11-01 用户裁定复用,
-            //    故**不新增任何字面色值**);背板因此对美术轮的调色板改动自动跟随。
-            // ⚠️ `pickingMode = Ignore`:背板不参与拾取,点它不挡下面的行。
             var backdrop = new VisualElement { name = "main-menu-backdrop" };
             backdrop.AddToClassList("menu-backdrop");
             backdrop.pickingMode = PickingMode.Ignore;
@@ -91,40 +116,107 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _label = new Label(StartText);
             _row.Add(_label);
 
-            // 两条输入路径汇到同一出口(与 PauseScreen.Activate 同款纪律)
-            _row.RegisterCallback<NavigationSubmitEvent>(_ => Activate());
-            _row.RegisterCallback<ClickEvent>(_ => Activate());
+            _row.RegisterCallback<NavigationSubmitEvent>(_ => ActivateRow(0));
+            _row.RegisterCallback<ClickEvent>(_ => ActivateRow(0));
+            // 旧单行形态(未调用 `SetWorlds` 的调用点)的确认动作 = Continue:
+            // 「有档继续 / 无档开新局」由装配层判定(spec §6),42 只发意图。
+            _row.userData = (Action)(() => _sink?.Continue());
             paper.Add(_row);
 
-            // 「上次会话未完整保存」那一行**不在这里建** —— 见 `EnsureNotice` 的注释:
-            // 常态(标志位为假)下纸面上必须仍然只有一行。
             _paper = paper;
+            _rows.Add(_row);
+            _rowLabels.Add(_label);
         }
 
         /// <summary>纯色背板(观测面:判据读它的不透明度 / 覆盖范围 / 与纸面的绘制先后)。</summary>
         public VisualElement Backdrop => _backdrop;
 
-        /// <summary>唯一落点(开屏时装配层 / 驱动落焦于此)。</summary>
-        public VisualElement FirstFocusable => _row;
+        /// <summary>唯一落点(开屏时装配层 / 驱动落焦于此)—— 恒为第一行。</summary>
+        public VisualElement FirstFocusable => _rows.Count > 0 ? _rows[0] : null;
 
-        /// <summary>当前文案(观测面)。</summary>
-        public string RowText => _label.text;
+        /// <summary>第一行的文案(观测面;兼容旧单行形态)。</summary>
+        public string RowText => _rowLabels.Count > 0 ? _rowLabels[0].text : string.Empty;
+
+        /// <summary>当前行数(观测面:无世界 1 行;有 N 个世界 ⇒ N + 1 行)。</summary>
+        public int RowCount => _rows.Count;
+
+        /// <summary>第 <paramref name="index"/> 行的元件(观测面)。</summary>
+        public VisualElement RowAt(int index) => _rows[index];
+
+        /// <summary>第 <paramref name="index"/> 行的文案(观测面)。</summary>
+        public string RowTextAt(int index) => _rowLabels[index].text;
 
         /// <summary>注入意图出口(未注入 ⇒ 行照画、按了留空:未接线的诚实形态)。</summary>
         public void BindCommandSink(IMainMenuCommandSink sink) => _sink = sink;
 
         /// <summary>
-        /// 设定「有没有可继续的存档」⇒ 切换文案。
+        /// 设定「有没有可继续的存档」⇒ 切换**第一行**文案(仅单行形态下可见)。
         /// <para>⚠️ 只改文案,**不改可用性**:两种态下行都可用、都获焦(spec §6 已裁「无禁用态」)。</para>
         /// </summary>
         public void SetHasContinueSave(bool hasContinueSave)
         {
             _hasContinueSave = hasContinueSave;
-            _label.text = hasContinueSave ? ContinueText : StartText;
+            if (_rows.Count == 1) _rowLabels[0].text = hasContinueSave ? ContinueText : StartText;
         }
 
         /// <summary>当前是否认为「有可继续的存档」(观测面)。</summary>
         public bool HasContinueSave => _hasContinueSave;
+
+        /// <summary>
+        /// 按世界列表重画行(ADR-040 D9)。
+        /// <para>`worlds` 为空 ⇒ 退回单行「开始诊治」;非空 ⇒ 每个世界一行 + 末行「新起一局」。</para>
+        /// <para>⚠️ 第一行文案恒为「继续诊治」(它是最近游玩的世界);其余为装配层给的
+        /// <see cref="MainMenuWorldView.Label"/>。42 **不拼**这些文案。</para>
+        /// </summary>
+        public void SetWorlds(IReadOnlyList<MainMenuWorldView> worlds)
+        {
+            // 拆掉旧行(连同它们的回调),只留背板 / 宿主 / 纸面。
+            for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
+            _rows.Clear();
+            _rowLabels.Clear();
+
+            if (worlds == null || worlds.Count == 0)
+            {
+                // 单行形态:与旧版逐字相同(没有世界 ⇒ 开新局)。
+                // ⚠️ 文案走 `SetHasContinueSave` 的同一套规则(无档「开始诊治」),
+                //    但动作是 **NewWorld** —— 没有世界时「继续」无从谈起。
+                NewRow("main-menu-continue", StartText, 0, () => _sink?.NewWorld());
+                _rowLabels[0].text = _hasContinueSave ? ContinueText : StartText;
+                return;
+            }
+
+            for (int i = 0; i < worlds.Count; i++)
+            {
+                MainMenuWorldView w = worlds[i];
+                int seq = w.Seq;
+                string text = i == 0 ? ContinueText : w.Label;
+                NewRow("main-menu-world-" + seq, text, i,
+                       i == 0 ? (Action)(() => _sink?.Continue()) : () => _sink?.SelectWorld(seq));
+            }
+
+            NewRow("main-menu-new", NewWorldText, _rows.Count, () => _sink?.NewWorld());
+        }
+
+        private VisualElement NewRow(string name, string text, int index, Action activate)
+        {
+            var row = new VisualElement { name = name };
+            row.AddToClassList("ruled");
+            row.focusable = true;
+            row.tabIndex = index;
+
+            var label = new Label(text);
+            row.Add(label);
+
+            // 两条输入路径汇到同一出口(与 PauseScreen.Activate 同款纪律)
+            row.RegisterCallback<NavigationSubmitEvent>(_ => ActivateRow(index));
+            row.RegisterCallback<ClickEvent>(_ => ActivateRow(index));
+            row.userData = activate;
+
+            _paper.Add(row);
+            _rows.Add(row);
+            _rowLabels.Add(label);
+            return row;
+        }
 
         /// <summary>
         /// 按 7a 的标志位决定是否摊开「上次会话未完整保存」。
@@ -143,7 +235,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 建出提示行(幂等)。三条纪律与「非阻塞」逐字对应:
         /// ① `focusable = false` ⇒ 不进焦点序,不抢 <see cref="FirstFocusable"/>;
         /// ② `pickingMode = Ignore` ⇒ 点它不挡下面的行;
-        /// ③ 只有真有事要报时才存在 ⇒ 常态纸面上仍是「一行」。
+        /// ③ 只有真有事要报时才存在。
         /// </summary>
         private void EnsureNotice()
         {
@@ -163,7 +255,14 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>提示元件(观测面;<c>null</c> = 尚未建 —— 常态形态)。</summary>
         public Label SessionIncompleteNotice => _notice;
 
-        /// <summary>确认这一行(手柄 Submit / 指针 Click 的唯一汇合点)。</summary>
-        public void Activate() => _sink?.Continue();
+        /// <summary>确认第一行(兼容旧调用点:手柄 Submit / 指针 Click 的汇合点)。</summary>
+        public void Activate() => ActivateRow(0);
+
+        /// <summary>确认第 <paramref name="index"/> 行(越界 = 无操作,不抛)。</summary>
+        public void ActivateRow(int index)
+        {
+            if (index < 0 || index >= _rows.Count) return;
+            if (_rows[index].userData is Action action) action();
+        }
     }
 }

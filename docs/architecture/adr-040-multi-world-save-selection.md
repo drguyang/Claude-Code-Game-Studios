@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | **Proposed**(2026-11-04 · 用户指令「先立债,等 `OQ-MM-5` 裁定再开工,按 D 起草一份 ADR」;§Decision D1–D11 由本轮就地拟定,**未经用户逐条确认** —— 同 ADR-034 / 037 / 038 / 039 口径) |
+| **Status** | **Accepted**(2026-11-04 · 起草于同日「先立债,按 D 起草」;随后用户指令「**按 D 案开工吧**」= 方向裁定 + 开工授权,故转 Accepted。⚠️ **D1–D11 的细项仍由本轮就地拟定,未经用户逐条确认** —— 同 ADR-034 / 037 / 038 / 039 口径) |
 | **Date** | 2026-11-04 |
 | **Supersedes** | 无 |
 | **Related** | ADR-010(存档布局与唯一写入口)· ADR-005 / ADR-006(确定性边界 · 禁墙钟进 sim)· ADR-014(烘焙数据 · 玩家构建零 JSON 解析器)· ADR-013 §9 C3(42 只渲染)· GDD `persistence-service.md` 规则六 / 规则十三 / 规则十四 · GDD `save-slot-ui.md` 规则二 / 规则三 · UX `main-menu-42.md` **`OQ-MM-5`(未裁)** · 债 `TD-persist-20` |
@@ -125,14 +125,23 @@ if (!found || tick > bestTick)            // :329
 ### D8 — 目录管理归装配层;`Sim.Codec` 的写盘面不扩大
 
 建 / 删 / 搬目录发生在 `Gameplay.Boot`(装配层)。`Sim.Codec` 内**仍只有一处写盘原语**。
-⚠️ **遗留待裁**:`WorldCatalog` 若为了复用 `WriteAtomic` 而住进 `Sim.Codec`,它就是 7a 的
-第二个公开面;若住 `Gameplay.Boot`,则索引写入要么经 `SaveService` 暴露一个受控方法、
-要么在 Boot 侧另设写盘点。**两条都要用户在实现轮前点一条**(本 ADR 不代裁)。
 
-### D9 — UI 归 42 + 7b;`OQ-MM-5` 未裁前**不实现**
+🔁 **起草时标为「待裁」的落点,已由实测证据定死(2026-11-04 实现轮)**:
+`SaveWritePathGate`(`Editor.Tools.Gates/SaveWritePathGate.cs:53-62`)只允许
+**`SaveService` 一个类**在 `Sim.Codec` 里碰写盘 API,方法级只放行 `WriteAtomic`;
+`Directory.CreateDirectory` 也只有「类级」豁免。本类需要建目录 / 搬文件 / 写索引
+⇒ 放进 `Sim.Codec` **必撞门**。⇒ **`WorldCatalog` 住 `Gameplay.Boot`**;
+索引是**元数据、不是存档体**,因而不受「存档体只有一个写入口」约束,
+但仍做原子写(临时文件 → 覆盖),不让「写一半的索引」被读进来。
 
-最小形态:主菜单补一颗「新起一局」;完整形态:主菜单列出世界(「继续最近 / 选择 / 新起」),
-存档册为**世界内**的册子(语义不变)。两种形态都不改本 ADR 的存储面。
+### D9 — UI 归 42 + 7b(已落:主菜单列表形态)
+
+**已实现的形态**(用户「按 D 案开工」后落地):主菜单 = 世界列表 + 「新起一局」——
+没有世界 ⇒ 单行「开始诊治」(与旧形态逐字相同);N 个世界 ⇒ N+1 行
+(第一行「继续诊治」,其余「第 N 局」,末行「新起一局」)。
+规格已就地改写(`main-menu-42.md` 2026-11-04 修订,`OQ-MM-5` 的「新开一局」据此裁定为做)。
+存档册(7b)仍是**世界内**的册子,语义不变 —— 它不承担「换世界」。
+⚠️ 「第 N 局」用的是**世界序号**,不是日期/时长 —— 存档摘要(`OQ-MM-6`)仍未裁,本屏不得自造。
 
 ### D10 — `hasSave` / `_continueSlot` 的语义收窄为「**最近世界**有没有档」
 
@@ -201,18 +210,28 @@ if (!found || tick > bestTick)            // :329
 
 ## Validation
 
-⚠️ **V-1…V-8 全部未跑(禁借绿)**。本件是**草案**:Accepted 表示方向已裁,不表示任何判据已通过。
+🔁 **2026-11-04 实现轮**:V-1…V-5 有载体;V-6…V-8 **仍未跑**(逐条见下)。
 
-| # | 判据 | 载体(计划) | 状态 |
+| # | 判据 | 载体 | 状态 |
 |---|---|---|---|
-| V-1 | 两个世界并存 ⇒ 「最近世界」取 `lastPlayedUtcTicks` 更大者 | 待写 | **NOT-RUN** |
-| V-2 | 新局不触碰其它世界目录(旧世界逐字节不变) | 待写(SHA-256 比对) | **NOT-RUN** |
-| V-3 | 新局首份存档落在**新世界**目录,且旧世界的档不动 | 待写 | **NOT-RUN** |
-| V-4 | 现存单目录档经一次性搬迁后**逐字节可读**,且不触发任何 `ISaveMigration` | 待写 | **NOT-RUN** |
-| V-5 | 索引缺失 / 损坏 ⇒ 以目录为准重建,不静默丢世界 | 待写 | **NOT-RUN** |
-| V-6 | 删除世界后该目录不存在,其它世界不受影响 | 待写 | **NOT-RUN** |
-| V-7 | `hasSave` 在「根目录下只有 `w1/`」时为 true(D10 的防回归) | 待写 | **NOT-RUN** |
-| V-8 | `SaveHeader` 无世界身份字段;`Sim` 程序集零墙钟 API | 待写(反射 + 程序集扫描) | **NOT-RUN** |
+| V-1 | 两个世界并存 ⇒ 「最近世界」取 `lastPlayedUtcTicks` 更大者 | `world_catalog_test.test_listWorlds_sortedByLastPlayed_notBySeq`(序号与时刻**刻意反向**) | **PASS** |
+| V-2 | 新局不触碰其它世界目录(旧世界逐字节不变) | `world_switch_isolation_test.test_newWorld_doesNotTouchExistingWorld`(SHA-256 逐文件) | **PASS** |
+| V-3 | 新局首份存档落在**新世界**目录,且旧世界的档不动 | 同上(两世界各装配一次,各自 `Load`) | **PASS** |
+| V-4 | 现存单目录档经一次性搬迁后**逐字节可读**,且不触发任何 `ISaveMigration` | `world_catalog_test.test_migrateLegacy_movesRootSavesIntoW1_byteIdentical`(SHA + 无关文件不动 + 幂等) | **PASS** |
+| V-5 | 索引缺失 / 损坏 ⇒ 以目录为准重建,不静默丢世界 | `world_catalog_test.test_corruptIndex_worldsSurvive_andNextWriteRebuilds` / `…test_listWorlds_directoryIsAuthoritative` | **PASS** |
+| V-6 | 删除世界后该目录不存在,其它世界不受影响 | — | **NOT-RUN**(D6 的删除动作**本轮未实现**,见下) |
+| V-7 | `hasSave` 在「根目录下只有 `w1/`」时为 true(D10 的防回归) | — | **NOT-RUN**(需真启动序) |
+| V-8 | `SaveHeader` 无世界身份字段;`Sim` 程序集零墙钟 API | — | **NOT-RUN** |
+
+⚠️ **本轮未做 / 不得借绿**:
+- **D6 删除世界**未实现(入口 + 二次确认 + 目录删除)—— `TD-persist-20` 因此**不解除**;
+- **D10 的 `hasSave` 语义收窄**只在**生产路径**(有 `WorldCatalog` 时)实现;
+  夹具缝(`SaveBasePathOverride` 非空)保持旧语义(该目录就是世界目录) —— 这是**故意的**,
+  既有 PlayMode 夹具按此断言;
+- **世界列表的生产路径无 PlayMode 端到端**(`main_menu_wiring_test` 走夹具缝,那条路径逐字未变);
+- `worlds.index` 的**时刻**在**开局选定世界时**与**菜单换世界后**写(`BootRoot.TouchWorld`)。
+  ⇒ 排序语义 = **「最后打开」**,不是「最后保存」。P0 够用(玩家不会在同一个世界内重排);
+  若要「最后保存时刻」,须在存档路径上再接一次 `Touch`,归下一轮。
 
 ---
 

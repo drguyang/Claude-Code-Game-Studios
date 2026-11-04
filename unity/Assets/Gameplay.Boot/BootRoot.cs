@@ -38,6 +38,7 @@ using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using MainMenuWorldView = DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens.MainMenuWorldView;
 using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
@@ -149,6 +150,23 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <remarks>⚠️ 存在理由同 <see cref="BootWithMainMenu"/>:夹具须能把「有档 / 无档 / 查询失败」
         /// 三态摆出来,而生产目录是**玩家数据**(夹具往里写 = 污染,且不可复现)。</remarks>
         [SerializeField] private string _saveBasePathOverride;
+
+        /// <summary>
+        /// 多世界的目录与索引(ADR-040)。<c>null</c> = 走了 <see cref="_saveBasePathOverride"/>
+        /// 的夹具缝 —— 那种情形下「覆盖目录」**直接就是世界目录**,不建子目录、不迁移。
+        /// </summary>
+        private WorldCatalog _worldCatalog;
+
+        /// <summary>本次装配用的世界存档目录(= 7a 的 <c>basePath</c>)。</summary>
+        private string _worldSaveDir;
+
+        /// <summary>菜单里选了**另一个**世界 / 新建世界时记下的目标目录;空 = 不换。</summary>
+        private string _pendingWorldSaveDir;
+
+        /// <summary>装配参数缓存 —— 菜单换世界后要**整体重装配**,参数必须留得住。</summary>
+        private InputActionAsset _bootInputActions;
+        private DaYiJingCheng.Sim.World.World _bootWorld;
+        private bool _bootPreloaded;
 
         /// <summary>主菜单的「继续诊治」信号(开屏后 <c>await</c> 它)。</summary>
         private TaskCompletionSource<bool> _mainMenuContinue;
@@ -396,35 +414,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 见 ADR-038 §D7);取不到 52(未预载 / 夹具)⇒ 不判 —— 「不知道」≠「不合规」。
             RequireCrossDatasetWindow(_timeParams, preloaded ? DataCorePreloader.Provider : null);
 
-            _services = CompositionRoot.Assemble(
-                registry: null,
-                dataProvider: preloaded ? DataCorePreloader.Provider : null,
-                inputActions: inputActions,
-                audio: _audioSeams,
-                // 51 遥测六旋钮(TD-epic-01 第十二片):预载成功 ⇒ 烘焙表;失败 ⇒ null(报告维持「未给」)。
-                telemetryKnobs: ResolveTelemetryKnobs(preloaded ? DataCorePreloader.Provider : null),
-                // 7a 存档目录(S19-1)。⚠️ 只有本处(生产启动序)显式给目录 —— 109 处
-                // EditMode 夹具不给 ⇒ 它们不构造 SaveService(否则各在用户数据目录造一份)。
-                // ⚠️ 今日 `Checkpoint` / `Load` 仍必然抛(叙事上下文驱动源未接通,
-                //    fail-closed,TD-persist-04)—— 目录就位 ≠ 功能可用。
-                // ⚠️ 2026-11-01:目录可被夹具覆盖(主菜单的「有档 / 无档 / 查询失败」三态须可摆)。
-                saveBasePath: string.IsNullOrEmpty(_saveBasePathOverride)
-                    ? Path.Combine(Application.persistentDataPath, "saves")
-                    : _saveBasePathOverride,
-                // S20-17:世界交给装配根 —— 注册表从 `world.Structures` 取(不另传 structures,
-                // 否则「同给且不同实例」的 fail-closed 断言会抛),`StructureWriter` 由它构造。
-                world: world,
-                // 听测期切档缝(`TD-listen-01` L-2 · 2026-10-29)。见 `ResolveDiagnosisQueryLevelOverride`。
-                diagnosisQueryLevelOverride: ResolveDiagnosisQueryLevelOverride(),
-                // 听测期病种索引缝(`TD-listen-01` L-3 · 2026-10-29)。见 `ResolvePatientRegistryIndexOverride`。
-                patientRegistryIndexOverride: ResolvePatientRegistryIndexOverride(),
-                // 病人 cue 的非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)。
-                // ⚠️ **本处是唯一生产装配点** —— 不给 ⇒ `PatientCueDriver` 一路不投递,
-                //    AC-13-F1 的「默认可见」在运行期就不存在(禁借绿:缝存在 ≠ 面上有东西)。
-                cueMarkSink: _cueMarks,
-                // 语声字幕(`AC-44-15` `[L]` 半 · 2026-10-29)。文本源由装配根从事件表解析,
-                // 此处只给**呈现载体**;不给则运行期无字幕可看(判据只落在单元夹具里 = 借绿)。
-                subtitleSink: _subtitle);
+            // 🔁 2026-11-04(ADR-040 D1):装配参数先落字段 —— 菜单里选了**另一个世界**之后
+            //    要整体重装配(见 `ReassembleForWorld`),那时 `inputActions` / `world` 这些
+            //    局部量已经不在作用域里。
+            _bootInputActions = inputActions;
+            _bootWorld = world;
+            _bootPreloaded = preloaded;
+
+            // ── 1.9 世界目录解析(ADR-040 D1 / D7)──
+            // 必须在 `Assemble` **之前**:7a 的 `SaveService` 是按 `basePath` 构造的。
+            _worldSaveDir = ResolveWorldSaveDir();
+
+            _services = AssembleServices();
 
             // ── 2.94 53 判定链的**惰性告警**(ADR-036 D3 · 2026-10-30)──
             // 「空表 / 无数据源 ⇒ 不发」这个语义必须**可观察**,否则它与「机制未启用」同形
@@ -454,28 +455,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `save_exit.bin`(独立文件名,不占玩家槽)。本 try/catch **保留** ——
             //    它兜的「驱动源缺失 = 编程错误」分支退为纵深,写盘侧异常本就不经此抛。
             //    (原记录:兜住后走「置位 + 记日志」路径,即接线前的生产真实行为。)
-            var saveService = _services.SaveService;
-            if (saveService != null)
-            {
-                _sessionWasIncomplete = saveService.IsSessionIncomplete;
-
-                _wantsToQuitHandler = () =>
-                {
-                    try
-                    {
-                        saveService.SaveOnExit();
-                        // ⚠️ SaveOnExit **不抛**写盘失败(它自己置位 + 交观察者),
-                        //    但**会抛**驱动源缺失(编程错误)。两者都在此兜住。
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning(
-                            "[BootRoot][AC-7a-17] 退出保存失败(不阻塞退出):" + e);
-                    }
-                    return true;   // 恒放行退出 —— 「不卡退」是硬约束
-                };
-                Application.wantsToQuit += _wantsToQuitHandler;
-            }
+            // 🔁 2026-11-04(ADR-040 D1):抽成方法 —— 菜单选了**另一个世界**之后要整体重装配,
+            //    退出钩子必须解绑旧的再绑新的(否则退出时写的是上一个世界的 `SaveService`)。
+            WireExitSave();
 
             // ── 2.9 设备态挂接(TD-epic-01 第八片 · 2026-10-19)──
             // 病因:`DeviceStateManager`(story-008)此前**零生产实例**(零生产调用方,与
@@ -519,6 +501,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 本段之后 `Update()` 仍早退(`_booted == false`)⇒ 菜单期零 tick / 零输入泵。
             if (_bootWithMainMenu)
                 await PresentMainMenuAsync();
+
+            // ── 2.96 世界切换后的**整体重装配**(ADR-040 D5)──
+            // 菜单之前装配用的是「默认世界」(最近游玩那个);玩家若选了别的世界 / 新起一局,
+            // 7a 的 `basePath` 必须换成那个目录 —— 而 `SaveService` 的路径是构造期固定的,
+            // 所以只能重建整个服务袋。
+            // ⚠️ 只在**目录不同**时做;选默认世界(最常见的路径)零重装配。
+            if (!string.IsNullOrEmpty(_pendingWorldSaveDir)
+                && !string.Equals(_pendingWorldSaveDir, _worldSaveDir, StringComparison.Ordinal))
+            {
+                ReassembleForWorld(_pendingWorldSaveDir);
+            }
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -1161,6 +1154,195 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ **开不出来 ⇒ 不等**:无面板 / 屏未登记时记 LogError 后直接进世界。
         /// 让启动序挂在一个永不落焦的画面上,比「没有菜单」更糟(玩家连进都进不去)。</para>
         /// </summary>
+        // ══════════════════════════════════════════════════════════════════
+        // 多世界:目录解析 / 重装配(ADR-040 D1 / D5 / D7)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>装配用的服务袋(参数来自启动序缓存字段 —— 换世界时要重跑一次)。</summary>
+        private CompositionRootServices AssembleServices()
+            => CompositionRoot.Assemble(
+                registry: null,
+                dataProvider: _bootPreloaded ? DataCorePreloader.Provider : null,
+                inputActions: _bootInputActions,
+                audio: _audioSeams,
+                // 51 遥测六旋钮(TD-epic-01 第十二片):预载成功 ⇒ 烘焙表;失败 ⇒ null(报告维持「未给」)。
+                telemetryKnobs: ResolveTelemetryKnobs(_bootPreloaded ? DataCorePreloader.Provider : null),
+                // 7a 存档目录(S19-1)。⚠️ 只有本处(生产启动序)显式给目录 —— 109 处
+                // EditMode 夹具不给 ⇒ 它们不构造 SaveService(否则各在用户数据目录造一份)。
+                // 🔁 2026-11-04(ADR-040 D1):此处给的是**世界目录**,不是存档根。
+                //    夹具缝(`_saveBasePathOverride` 非空)下它直接就是世界目录。
+                saveBasePath: _worldSaveDir,
+                // S20-17:世界交给装配根 —— 注册表从 `world.Structures` 取(不另传 structures,
+                // 否则「同给且不同实例」的 fail-closed 断言会抛),`StructureWriter` 由它构造。
+                world: _bootWorld,
+                // 听测期切档缝(`TD-listen-01` L-2 · 2026-10-29)。见 `ResolveDiagnosisQueryLevelOverride`。
+                diagnosisQueryLevelOverride: ResolveDiagnosisQueryLevelOverride(),
+                // 听测期病种索引缝(`TD-listen-01` L-3 · 2026-10-29)。见 `ResolvePatientRegistryIndexOverride`。
+                patientRegistryIndexOverride: ResolvePatientRegistryIndexOverride(),
+                // 病人 cue 的非色相可见对应物(`AC-13-F1` 的 42 侧达成面 · 2026-10-29 · 缺口 D)。
+                // ⚠️ **本处是唯一生产装配点** —— 不给 ⇒ `PatientCueDriver` 一路不投递,
+                //    AC-13-F1 的「默认可见」在运行期就不存在(禁借绿:缝存在 ≠ 面上有东西)。
+                cueMarkSink: _cueMarks,
+                // 语声字幕(`AC-44-15` `[L]` 半 · 2026-10-29)。文本源由装配根从事件表解析,
+                // 此处只给**呈现载体**;不给则运行期无字幕可看(判据只落在单元夹具里 = 借绿)。
+                subtitleSink: _subtitle);
+
+        /// <summary>
+        /// 解析本次要用的**世界存档目录**(ADR-040 D1 / D7)。
+        /// <para>夹具缝(<see cref="_saveBasePathOverride"/> 非空)⇒ 该目录**就是**世界目录:
+        /// 不建 <c>wN/</c> 子目录、不迁移、不构造 <see cref="WorldCatalog"/> ——
+        /// 既有 PlayMode 夹具按「文件直接落在这个目录」断言,那条语义保持不变。</para>
+        /// <para>生产 ⇒ <c>persistentDataPath/saves</c> 作根:先做一次性迁移(D7),再取
+        /// **最近游玩且确有存档**的世界;一个都没有 ⇒ 返回 <c>w1/</c>(目录尚不存在,
+        /// `SaveService` 构造时会建)。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">旧存档迁移失败(E-13 口径,拒绝降级)。</exception>
+        private string ResolveWorldSaveDir()
+        {
+            if (!string.IsNullOrEmpty(_saveBasePathOverride))
+            {
+                _worldCatalog = null;
+                return _saveBasePathOverride;
+            }
+
+            // ⚠️ **只有「主菜单形态」才启用多世界**(2026-11-04)。
+            // 两条理由:① 没有菜单就没有选世界的入口 ⇒ 建了目录也无人可达(「看起来完成、
+            // 实际不可达」);② 更实际的:代码构造的 PlayMode 夹具 `_bootWithMainMenu = false`,
+            // 它们会走**真实** `persistentDataPath` —— 若在此做一次性迁移,跑测试就会搬动
+            // 开发机上的真存档。生产(Boot.unity)恒为 true,故生产行为不变。
+            if (!_bootWithMainMenu)
+            {
+                _worldCatalog = null;
+                return Path.Combine(Application.persistentDataPath, "saves");
+            }
+
+            string root = Path.Combine(Application.persistentDataPath, "saves");
+            _worldCatalog = new WorldCatalog(root);
+
+            try
+            {
+                int moved = _worldCatalog.MigrateLegacy();
+                if (moved > 0)
+                {
+                    Debug.Log($"[BootRoot][7a][ADR-040 D7] 旧存档已搬进 w1/:{moved} 个文件" +
+                              "(字节零改动,不走 ISaveMigration)");
+                }
+            }
+            catch (Exception e)
+            {
+                // ⚠️ **必须失败**,不能降级成「空世界继续跑」:那会把玩家存档留在一个
+                //    谁也读不到的位置,而玩家看到的是「档没了」。
+                throw new InvalidOperationException(
+                    "[BootRoot][E-13][7a] 旧存档迁移失败 —— 拒绝在多世界形态下启动:" + e.Message, e);
+            }
+
+            IReadOnlyList<WorldEntry> worlds = _worldCatalog.ListWorlds();
+            for (int i = 0; i < worlds.Count; i++)
+            {
+                if (!WorldHasSaves(worlds[i].Directory)) continue;
+                TouchWorld(worlds[i].Directory);
+                return worlds[i].Directory;
+            }
+
+            return _worldCatalog.DirectoryOf(1);
+        }
+
+        /// <summary>
+        /// 记「这个世界的最后游玩时刻」(ADR-040 D4 的选择面)。
+        /// <para>⚠️ 墙钟**只用于选择**:不进存档体、不进三流、不进 sim。
+        /// 写失败**不阻断启动**(选择顺序退化为创建序,而世界本身毫发无损)。</para>
+        /// </summary>
+        private void TouchWorld(string worldDir)
+        {
+            if (_worldCatalog == null) return;
+            if (!WorldCatalog.TryParseWorldDir(Path.GetFileName(worldDir), out int seq)) return;
+            try
+            {
+                _worldCatalog.Touch(seq, DateTime.UtcNow.Ticks);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[BootRoot][7a][ADR-040 D4] 世界时刻写入失败(选择顺序退化,不阻断启动):" + e);
+            }
+        }
+
+        /// <summary>这个世界目录里是否**已有存档**(空目录 = 新局尚未写出第一份档)。</summary>
+        private static bool WorldHasSaves(string dir)
+        {
+            if (!Directory.Exists(dir)) return false;
+            return Directory.GetFiles(dir, "save_*.bin").Length > 0;
+        }
+
+        /// <summary>
+        /// 把退出钩子接到**当前**服务袋的 `SaveService`(AC-7a-17)。
+        /// <para>⚠️ 必须先解绑旧的:换世界会重建服务袋,旧闭包捕获的是旧世界的
+        /// `SaveService` —— 不解绑就会「退出时写上一个世界」。</para>
+        /// </summary>
+        private void WireExitSave()
+        {
+            if (_wantsToQuitHandler != null)
+            {
+                Application.wantsToQuit -= _wantsToQuitHandler;
+                _wantsToQuitHandler = null;
+            }
+
+            SaveService saveService = _services?.SaveService;
+            if (saveService == null) return;
+
+            _sessionWasIncomplete = saveService.IsSessionIncomplete;
+
+            _wantsToQuitHandler = () =>
+            {
+                try
+                {
+                    saveService.SaveOnExit();
+                    // ⚠️ SaveOnExit **不抛**写盘失败(它自己置位 + 交观察者),
+                    //    但**会抛**驱动源缺失(编程错误)。两者都在此兜住。
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning(
+                        "[BootRoot][AC-7a-17] 退出保存失败(不阻塞退出):" + e);
+                }
+                return true;   // 恒放行退出 —— 「不卡退」是硬约束
+            };
+            Application.wantsToQuit += _wantsToQuitHandler;
+        }
+
+        /// <summary>
+        /// 菜单选了**另一个世界** / 新起一局之后:换目录并整体重装配(ADR-040 D5)。
+        /// <para>7a 的 `SaveService` 按构造期 `basePath` 工作 ⇒ 换世界只能重建服务袋。
+        /// 代价 = 一次装配(发生在**世界装载之前**,没有正在跑的 sim,故无状态可丢)。</para>
+        /// </summary>
+        private void ReassembleForWorld(string worldDir)
+        {
+            Debug.Log($"[BootRoot][7a][ADR-040 D5] 切换世界目录:{_worldSaveDir} → {worldDir}");
+
+            _services.Dispose();
+            _worldSaveDir = worldDir;
+            _services = AssembleServices();
+            TouchWorld(worldDir);
+
+            // 换袋之后三处「绑在旧袋上」的接线必须重做(否则它们指向已 Dispose 的实例)。
+            WireExitSave();
+            RebindDeviceReadiness();
+        }
+
+        /// <summary>把设备态读数重新绑到新袋的 `EmergencyManualDriver`(2.9 的设备态挂接那一半)。</summary>
+        private void RebindDeviceReadiness()
+        {
+            if (_deviceState == null) return;
+            try
+            {
+                _services.EmergencyManualDriver?.BindDeviceReadiness(
+                    new Input.EmergencyDeviceReadiness(_deviceState));
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[BootRoot][TD-epic-01] 设备态重绑失败 ⇒ cause 记降级:" + e);
+            }
+        }
+
         private async Task PresentMainMenuAsync()
         {
             // ① MainMenu 场景 additive 装载(E-13 同口径:Failed ⇒ 具名异常 + rethrow)
@@ -1182,14 +1364,30 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw;
             }
 
-            // ② 「有没有档」—— 问 7a(唯一所有者),42 不扫目录(spec §10 所有者纪律)
+            // ② 「有没有档」+ **世界列表**(ADR-040 D9)
+            //    ⚠️ 世界列表只含**有档的世界**:空目录(新局尚未写出第一份档)不该出现在菜单上,
+            //       否则玩家会看到一行点进去什么也没有。
             bool hasSave = false;
             _continueSlot = null;
+            var worldRows = new List<MainMenuWorldView>();
+            if (_worldCatalog != null)
+            {
+                IReadOnlyList<WorldEntry> worlds = _worldCatalog.ListWorlds();
+                for (int i = 0; i < worlds.Count; i++)
+                {
+                    if (!WorldHasSaves(worlds[i].Directory)) continue;
+                    worldRows.Add(new MainMenuWorldView(worlds[i].Seq, "第 " + worlds[i].Seq + " 局"));
+                }
+                hasSave = worldRows.Count > 0;
+            }
+
+            // 「继续到哪一档」仍由 7a 答(按 tick,世界内语义不变);世界由 `_worldSaveDir` 定。
             SaveService saves = _services.SaveService;
             if (saves != null)
             {
-                hasSave = saves.TryGetMostRecentSave(out SaveSlot recent);
-                if (hasSave) _continueSlot = recent;
+                bool hasSlot = saves.TryGetMostRecentSave(out SaveSlot recent);
+                if (_worldCatalog == null) hasSave = hasSlot;   // 夹具缝:退回「目录里有没有档」
+                if (hasSlot) _continueSlot = recent;
                 // 门 A 下 7a 无日志面 ⇒ 失败事实在这里落下(不是静默吞掉)
                 if (saves.LastSaveQueryError != null)
                     Debug.LogWarning("[BootRoot][主菜单] 存档目录查询失败,按「无存档」处理:" +
@@ -1209,7 +1407,26 @@ namespace DaYiJingCheng.Gameplay.Boot
             _eventSystem = EnsureEventSystem();
 
             _uiDriver = FindOrCreateSkeuoUi();
-            _uiDriver.MainMenuSink = new DriverMainMenuCommandSink(OnMainMenuContinue);
+            _uiDriver.MainMenuSink = new DriverMainMenuCommandSink(
+                OnMainMenuContinue,
+                selectWorld: seq =>
+                {
+                    // 选另一个世界 ⇒ 记下目录,等菜单关掉后**整体重装配**(见 `ReassembleForWorld`)。
+                    // 选的就是当前世界时目录相同,重装配不发生。
+                    if (_worldCatalog != null) _pendingWorldSaveDir = _worldCatalog.DirectoryOf(seq);
+                    OnMainMenuContinue();
+                },
+                newWorld: () =>
+                {
+                    // 「新起一局」= 新建世界目录;第一份存档由启动序 8b 的 `FirstSessionSave` 写
+                    // (它看到的是空目录 —— 守卫通过)。
+                    if (_worldCatalog != null)
+                    {
+                        WorldEntry created = _worldCatalog.CreateWorld();
+                        _pendingWorldSaveDir = created.Directory;
+                    }
+                    OnMainMenuContinue();
+                });
 
             // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
@@ -1217,7 +1434,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // `_sessionWasIncomplete` = 启动时 7a 读出的「上次会话未完整」标志位(`:457`);
             // 42 只呈现它(`AC-7a-17` 后半句),置位/清除全归 7a。
-            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete))
+            // ⚠️ `worldRows` 只在**多世界形态**(有 catalog)时交出去;夹具缝下交 `null`,
+            //    屏保持旧单行形态且动作为 `Continue` —— 既有 PlayMode 夹具的语义逐字不变。
+            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete,
+                                                _worldCatalog != null ? worldRows : null))
             {
                 Debug.LogError("[BootRoot][主菜单] 主菜单屏开不出来(无面板 / 屏未登记)⇒ " +
                                "不阻塞启动,直接进世界。");

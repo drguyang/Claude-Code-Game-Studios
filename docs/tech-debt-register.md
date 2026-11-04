@@ -403,7 +403,7 @@
 | `TD-persist-17` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-20` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-20` | `persistence-service` | partial | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -597,6 +597,14 @@ PYEVAL
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
 >
+> > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
+> 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
+> 变化:`open 18 → 17`(−1)· `partial 3 → 4`(+1)· `closed 156` 不动 ·
+> **`未闭 P0 面 9` 不变**(`partial` 仍计入)· 条目数 **178 不变**。
+> 单一变化源:`TD-persist-20` 索引行 `open → partial`。
+> ⚠️ **为什么是 partial 不是 closed**:「新起一局 + 选世界」已落地并有用例;
+> **删除世界(D6)**与**真启动序的端到端**仍缺,且 `OQ-MM-5` 的「退出」一项仍未裁。
+
 > > 🔁 **六十八订(`TD-persist-20` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
 > 用户问「玩了一会又想重新开始新游戏的,目前的存档设计可以正常进行吗」,勘察结论:**不能**。
 > 变化:`open 17 → 18`(+1)· `closed 156` 不动 · **`未闭 P0 面 8 → 9`**(+1)·
@@ -1188,7 +1196,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 178 | 状态 {'closed': 156, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 178 | 状态 {'closed': 156, 'partial': 4, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 9 （已闭但曾标 P0 面的 111 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
@@ -4802,6 +4810,18 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① **裁定 `OQ-MM-5`**(草案形态见 `ADR-040`:一个世界 = 一个存档目录 + 选择索引);② 7a 侧:世界身份与选择判据(不再用 tick 跨世界比较);③ 7b / 42:主菜单或存档册补「新起一局 / 删除一局」与列表;④ 夹具:两世界并存时「最近档」选中**最后游玩的那个**,且旧世界仍可回。<br>⚠️ **禁止的省事做法**:把「新游戏」做成「直接覆盖 `save_auto.bin`」—— 在 tick 排序下会产生「看起来开了新局,下次启动回到旧局」的**静默分叉**,比不做更糟。 |
 | **触发条件** | ① `OQ-MM-5` 裁定;② 或**首次对外发放存档之前**(一旦玩家机上有真实存档,缺「重开」就从体验问题变成数据事故);③ 或任何以「存档功能完成」形态引用之前(**禁借绿**)。 |
 | **归属** | **7a**(选择判据与世界身份)· **7b / 42**(入口与列表)· **形态裁定 = 用户**(`OQ-MM-5`) |
+
+> 🔁 **2026-11-04 推进轮(用户指令「按 D 案开工吧」· `ADR-040` 转 Accepted)**:
+> **已落**:`WorldCatalog`(目录 / 索引 / 一次性迁移)· 启动序 1.9 世界目录解析 + 2.96 换世界重装配 ·
+> 主菜单世界列表 + 「新起一局」(`MainMenuScreen` / `IMainMenuCommandSink` / `DriverMainMenuCommandSink` / 装配层)·
+> 规格 `main-menu-42.md` 修订(`OQ-MM-5` 的「新开一局」裁为**做**)。
+> **判据**:`world_catalog_test` 8 条 · `world_switch_isolation_test` 1 条 · `main_menu_worlds_test` 4 条;
+> ADR-040 §Validation **V-1…V-5 PASS**。
+> **仍未做(故本债维持 `partial`、不闭)**:
+> ① **删除世界**(ADR-040 D6)**零实现**;② **真启动序端到端无 PlayMode 判据** ——
+> 世界列表走真目录,而 `main_menu_wiring_test` 走的是夹具缝(那条路径逐字未变);
+> ③ `OQ-MM-5` 的「**退出**」一项仍未裁;④ 「最后游玩时刻」只在**开局选定世界**时写
+> (排序语义 = 「最后打开」,不是「最后保存」)。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

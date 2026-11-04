@@ -534,7 +534,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         /// <returns><c>true</c> = 屏已建并摊开;<c>false</c> = 无面板 / 屏名未登记(不崩)。</returns>
         public bool ShowSceneLevelScreen(string screenName, bool hasContinueSave,
-                                         bool sessionWasIncomplete = false)
+                                         bool sessionWasIncomplete = false,
+                                         System.Collections.Generic.IReadOnlyList<MainMenuWorldView> worlds = null)
         {
             if (_panel == null)
             {
@@ -573,6 +574,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _mainMenuContainer = container;
             menu.BindCommandSink(_mainMenuSink);
             menu.SetHasContinueSave(hasContinueSave);
+            // ADR-040 D9:世界列表。**不给 ⇒ 保持单行形态**(旧调用点逐字不变);
+            // 给了 ⇒ 按世界重画行(空列表 = 单行「开始诊治」)。
+            if (worlds != null) menu.SetWorlds(worlds);
             // 7a 的标志位 ⇒ 42 的非阻塞提示(`AC-7a-17` 后半句;42 只呈现,不判断)
             menu.SetSessionIncompleteNotice(sessionWasIncomplete);
 

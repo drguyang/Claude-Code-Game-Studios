@@ -535,7 +535,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             private readonly IMainMenuCommandSink _inner;
             public CountingSink(IMainMenuCommandSink inner) { _inner = inner; }
             public int Count { get; private set; }
+            public int SelectedSeq { get; private set; } = -1;
+            public int NewWorldCount { get; private set; }
             public void Continue() { Count++; _inner?.Continue(); }
+            public void SelectWorld(int seq) { Count++; SelectedSeq = seq; _inner?.SelectWorld(seq); }
+            public void NewWorld() { NewWorldCount++; _inner?.NewWorld(); }
         }
 
         /// <summary>引擎焦点真源(`Focusable` → `VisualElement`;非元素 ⇒ null)。</summary>

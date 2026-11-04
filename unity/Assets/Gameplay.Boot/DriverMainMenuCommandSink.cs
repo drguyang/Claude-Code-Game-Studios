@@ -27,16 +27,32 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class DriverMainMenuCommandSink : IMainMenuCommandSink
     {
         private readonly Action _continue;
+        private readonly Action<int> _selectWorld;
+        private readonly Action _newWorld;
 
         /// <summary>构造。</summary>
+        /// <param name="continueAction">「继续诊治」(= 最近游玩的世界)。</param>
+        /// <param name="selectWorld">选某个具体世界(<c>null</c> ⇒ 行照画、按了留空)。</param>
+        /// <param name="newWorld">「新起一局」(<c>null</c> ⇒ 同上)。</param>
         /// <exception cref="ArgumentNullException">
-        /// 回调为 null —— 行照画、按了没反应,是「静默空转」,本类拒绝在构造期接受它。</exception>
-        public DriverMainMenuCommandSink(Action continueAction)
+        /// <paramref name="continueAction"/> 为 null —— 行照画、按了没反应,是「静默空转」,
+        /// 本类拒绝在构造期接受它。</exception>
+        public DriverMainMenuCommandSink(Action continueAction,
+                                         Action<int> selectWorld = null,
+                                         Action newWorld = null)
         {
             _continue = continueAction ?? throw new ArgumentNullException(nameof(continueAction));
+            _selectWorld = selectWorld;
+            _newWorld = newWorld;
         }
 
         /// <inheritdoc/>
         public void Continue() => _continue();
+
+        /// <inheritdoc/>
+        public void SelectWorld(int seq) => _selectWorld?.Invoke(seq);
+
+        /// <inheritdoc/>
+        public void NewWorld() => _newWorld?.Invoke();
     }
 }
