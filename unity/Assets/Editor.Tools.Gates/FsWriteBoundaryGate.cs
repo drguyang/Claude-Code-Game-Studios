@@ -146,6 +146,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/SkeuomorphicUI/multi_world_visual_walkthrough.cs",
+                Reason = "同 sv 走查:`Application.dataPath` 仅用于推导项目根以定位 `unity/Logs/shots/`;" +
+                         "写盘 = `File.WriteAllBytes` 存 `mw_*.png`(读 RenderTexture 截图)," +
+                         "全程 `Application.isBatchMode` 守卫(batch 结构性零写盘)," +
+                         "目标 `unity/Logs/shots/`(gitignored 指定暂存区,文件头已具名声明五张文件名)。" +
+                         "临时存档根落在 `Path.GetTempPath()` 并在 TearDown 删除。**不写仓库源、不写入库产物**。",
+            },
+            new Declaration
+            {
                 FileSuffix = "PlayMode/SkeuomorphicUI/modal_toggle_visual_walkthrough.cs",
                 Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
                          "写盘 = `ScreenCapture.CaptureScreenshot`(仅图形模式,`Application.isBatchMode` 守卫)," +

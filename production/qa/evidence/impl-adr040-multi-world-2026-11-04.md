@@ -256,3 +256,86 @@ A/B 两侧都用它。`session_incomplete.flag` 刻意不在快照内 —— 它
 2. **在菜单上选「另一个世界」并读档**(`SelectWorld` 支):新件只走 `NewWorld` 与 `DeleteWorld`。
    重装配的共性已被 A 覆盖(换目录 + 首份存档),但「选中后读旧档」这一跳无真启动序判据。
 3. 本件**不**断存档字节级正确 —— 种子档是故意非法的字节,只让「这个世界有档」成立。
+
+---
+
+## 10. 视觉走查(2026-11-04 · 用户指令「实际去看看目前的存档和启动界面是否符合视觉预期,注意 console 有无红色报错」)
+
+### 10.1 怎么看
+
+新件 `unity/Assets/Tests/PlayMode/SkeuomorphicUI/multi_world_visual_walkthrough.cs`:
+**图形模式**实跑(`DISPLAY=:0`,**不带** `-batchmode`/`-nographics` —— 后者下 `WaitForEndOfFrame`
+永不触发、零截图),1920×1080 RenderTexture,五帧落 `unity/Logs/shots/mw_*.png`。
+
+```bash
+DISPLAY=:0 ~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity \
+  -projectPath "$(cd unity && pwd -P)" -runTests -testPlatform PlayMode \
+  -testFilter "DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI.MultiWorldVisualWalkthrough" \
+  -testResults "$(pwd)/unity/Logs/playmode-mw-visual.xml" \
+  -logFile "$(pwd)/unity/Logs/playmode-mw-visual.log"
+```
+
+⚠️ 比例可读:`PanelSettings.asset` = `ScaleWithScreenSize` + 参考 1920×1080 + Match 0.5
+⇒ **1080p 下缩放因子 = 1**,截图与玩家所见 1:1(走查里设 `ConstantPixelSize/1` 是为了不受 Game 视图尺寸影响)。
+
+### 10.2 五帧判读
+
+| 帧 | 内容 | 判读 |
+|---|---|---|
+| `mw_01_menu_two_worlds` | 真启动序 · 两世界 | ✅ 四行「继续诊治 / 第 1 局 / 新起一局 / 删一局」,与 `AC-MM-11` 逐字一致;首行黄铜焦点环;世界来自**真目录**(日志 `rows=4`) |
+| `mw_02_delete_select` | 删除态 · 选目标 | ✅ 三行「删除 第 2 局 / 删除 第 1 局 / 返回」 |
+| `mw_03_delete_confirm` | 删除态 · 待确认 | ✅ 选中行变「再按一次确认 · 第 2 局」,位置不变 |
+| `mw_04_saveslots_fresh` | 存档册 · 新局 | ✅ 页框 / 两行有档 / 一条空纸线 / 「留档」/ 页码 `1/1` |
+| `mw_05_saveslots_manual` | 存档册 · 留过手动档 | ✅ 三行有档 + 空槽 + 留档;焦点在「留档」(= 生产写完一档后的形态) |
+
+**纸面宽 480px 是 spec 取值**(`--skeuo-shared-modal-width @1680`),不是缩放事故。
+**主菜单那张纸没有页框、存档册有** —— 这是已登记的 `TD-skeuo-09`(只有存档册挂了 `.paper-page`),
+**不是本轮新问题**。
+
+### 10.3 控制台:零红错
+
+`grep -c "\[Error\]" unity/Logs/playmode-mw-visual.log` ⇒ **0**;两轮走查 `2/2 passed`
+(UTF 遇到未处理 `LogError` 会直接判红 ⇒ 这是机械判据,不靠肉眼扫日志)。
+日志里仅两条非红:`Licensing::Module Error: Access token is unavailable`(Unity 许可客户端,环境噪音)、
+`Editor.Tools.Kindgen.asmdef will not be compiled, because it has no scripts`(**既有黄字**)。
+
+### 10.4 ⚠️ 走查抓到一处缺陷:进删除态后**焦点悬空**(已修)
+
+**现象**:第 2、3 帧的黄铜焦点环消失。走查里把焦点对象打出来,**由「看图猜」变成事实**:
+
+```
+[MW] focus/menu-shown     = name=main-menu-world-2 text=继续诊治
+[MW] focus/delete-select  = <null>          ← 修复前
+[MW] focus/delete-confirm = <null>          ← 修复前
+```
+
+**根因**:`MainMenuScreen.Rebuild()` 拆掉全部行重建,焦点挂在**旧元件**上;驱动只在**开屏**时
+聚焦 `FirstFocusable`,`SetWorlds` 回推列表也不聚焦 ⇒ 修复前该文件 `Focus(` **零次**。
+**后果**:无指针形态下 Submit 依赖焦点 ⇒ 手柄/键盘玩家按开「删一局」后**一步也走不了**
+(因果在本仓 `SkeuoRuntimeDriver.OnTickEdge` 的注释里已写过:「焦点悬空,一步也走不了」)。
+鼠标点仍可用,所以屏级 EditMode 夹具(只断文案与 sink 参数,且无面板 ⇒ `Focus()` 是空操作)全绿也抓不到。
+
+**修法**(`MainMenuScreen.cs`):新增 `_focusIndex`(FocusIn 记录)+ `RestoreFocus()`(重建后落回,夹到行数内):
+- 进删除态 ⇒ 第一个世界(它是下一步要选的目标);
+- 进待确认 ⇒ **同一个世界**(不能沿用索引:鼠标点进来的行未必获焦);
+- 装配层回推列表 ⇒ 首行。
+`Fake` 算法一点没加 —— 仍是「落回某一行」,焦点移动归引擎 `FocusController`(ADR-013 §五)。
+
+**机械判据**:`multi_world_boot_wiring_test` 的三条焦点断言(真启动序 + 真面板)。
+**证伪**:把 `RestoreFocus()` 变空操作 ⇒ 新判据**红在自己那句**
+「进删除态后焦点必须落在**第一个世界**上」;还原 SHA-256 逐字节一致(`a037c282…`),零 `MUT-` 残留。
+
+⚠️ **一处「看似同样、其实不是」**(如实区分,避免误报):第 5 帧在首轮也掉过环,但那是**走查绕过**了
+`OnTickEdge` 里生产必做的那次重落焦(`WritableRow.Focus()`)。本轮已让走查补同一步 ——
+现在那一帧等于玩家真实所见,不是缺陷。
+
+### 10.5 回归(三元组)
+
+**截至** `2026-11-04T07:03:24Z` · **批次** sprint-24 视觉走查轮 · **commit** `781d5ef8` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `6862 / 6825 通过 / 0 失败 / 37 跳过` | 同值,零回归 |
+| PlayMode | `336 / 332 通过 / 0 失败 / 2 不确定 / 2 跳过` | 上轮 `334/330` ⇒ **+2/+2**(走查件两条) |
+
+等式:`336 − 334 = 2` = `MultiWorldVisualWalkthrough` 的 `[UnityTest]` 数。

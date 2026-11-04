@@ -118,6 +118,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>删除态里已选中的世界序号(<c>-1</c> = 未选)。</summary>
         private int _pendingDeleteSeq = -1;
 
+        /// <summary>
+        /// 最近一次**被聚焦**的行号 —— 行随形态重建后据此复位焦点。
+        /// <para>⚠️ 2026-11-04(视觉走查抓到):`Rebuild()` 拆掉全部行重建,而焦点挂在**旧元件**上
+        /// ⇒ 进删除态 / 确认删除后焦点悬空。无指针形态下 Submit 依赖焦点(本仓
+        /// `SkeuoRuntimeDriver.OnTickEdge` 的注释逐字写过「焦点悬空,一步也走不了」),
+        /// 手柄玩家按开「删一局」之后**一步也走不了**;鼠标点仍可用,故屏级夹具(只断文案与
+        /// sink 参数)全绿也抓不到。⇒ 重建**必须**把焦点落回去。</para>
+        /// </summary>
+        private int _focusIndex;
+
         /// <summary>创建主菜单屏。</summary>
         public MainMenuScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
         {
@@ -206,6 +216,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 世界列表一变,删除态就作废(列表可能已经没有那一行了)。
             _mode = MainMenuMode.Normal;
             _pendingDeleteSeq = -1;
+            // 列表换了 ⇒ 旧行号没有意义,从首行重新开始(删完世界后由装配层回推,常见路径)。
+            _focusIndex = 0;
             // 没有世界 ⇒ 一定没有可继续的存档(删光之后那句「继续诊治」必须跟着消失)。
             if (_worlds.Count == 0) _hasContinueSave = false;
             Rebuild();
@@ -223,6 +235,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (_worlds.Count == 0) return;          // 没有世界可删
             _mode = MainMenuMode.DeleteSelect;
             _pendingDeleteSeq = -1;
+            // 进删除态 ⇒ 焦点落在**第一个世界**上(玩家下一步就是选它);
+            // 沿用进态前的行号会落到「返回」上,与意图相反(进态前通常站在末行「删一局」)。
+            _focusIndex = 0;
             Rebuild();
         }
 
@@ -231,6 +246,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             _mode = MainMenuMode.Normal;
             _pendingDeleteSeq = -1;
+            _focusIndex = 0;
             Rebuild();
         }
 
@@ -248,6 +264,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 //    但动作是 **NewWorld** —— 没有世界时「继续」无从谈起。
                 NewRow("main-menu-continue", StartText, 0, () => _sink?.NewWorld());
                 _rowLabels[0].text = _hasContinueSave ? ContinueText : StartText;
+                RestoreFocus();
                 return;
             }
 
@@ -267,6 +284,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 }
 
                 NewRow("main-menu-delete-back", BackText, _rows.Count, CancelDelete);
+                RestoreFocus();
                 return;
             }
 
@@ -282,6 +300,29 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             NewRow("main-menu-new", NewWorldText, _rows.Count, () => _sink?.NewWorld());
             // 「删一局」只在**有世界**时出现 —— 没有世界时这一行没有宾语。
             NewRow("main-menu-delete", DeleteWorldText, _rows.Count, EnterDeleteMode);
+            RestoreFocus();
+        }
+
+        /// <summary>
+        /// 重建后把焦点落回 <see cref="_focusIndex"/>(夹到当前行数内)。
+        /// <para>⚠️ 只做「落回这一行」,**不实现焦点算法**(ADR-013 §五:焦点移动归引擎
+        /// `FocusController`);这里补的是「元件被替换后焦点没人接手」这一个洞。</para>
+        /// <para>未接面板时 `Focus()` 是空操作(屏单元夹具即此形态)⇒ 无需判空面板。</para>
+        /// </summary>
+        private void RestoreFocus()
+        {
+            if (_rows.Count == 0) return;
+            if (_focusIndex < 0) _focusIndex = 0;
+            if (_focusIndex >= _rows.Count) _focusIndex = _rows.Count - 1;
+            _rows[_focusIndex].Focus();
+        }
+
+        /// <summary>某世界序号在当前列表里的行号(找不到 ⇒ 0)。</summary>
+        private int IndexOfWorld(int seq)
+        {
+            for (int i = 0; i < _worlds.Count; i++)
+                if (_worlds[i].Seq == seq) return i;
+            return 0;
         }
 
         /// <summary>
@@ -299,6 +340,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             _mode = MainMenuMode.DeleteConfirm;
             _pendingDeleteSeq = seq;
+            // 焦点留在**被选中的那个世界**上(删除态里世界行顺序 = `_worlds` 顺序)。
+            // ⚠️ 不能沿用 `_focusIndex`:鼠标点进来的行可能从没获过焦(点不等于聚焦)。
+            _focusIndex = IndexOfWorld(seq);
             Rebuild();
         }
 
@@ -315,6 +359,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 两条输入路径汇到同一出口(与 PauseScreen.Activate 同款纪律)
             row.RegisterCallback<NavigationSubmitEvent>(_ => ActivateRow(index));
             row.RegisterCallback<ClickEvent>(_ => ActivateRow(index));
+            // 焦点落在哪一行,就记住它 —— 下一次 `Rebuild()` 据此落回(`RestoreFocus`)。
+            row.RegisterCallback<FocusInEvent>(_ => _focusIndex = index);
             row.userData = activate;
 
             _paper.Add(row);

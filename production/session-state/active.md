@@ -16656,3 +16656,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 原件 §9 = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md`。
 - **未覆盖(登记)**:真启动序的一次性迁移(no-op)· 菜单选另一个世界并读档(SelectWorld 支)。
 - **待提交**。
+
+## 视觉走查 + 焦点修复(2026-11-04)
+
+- 用户「实际去看看目前的存档和启动界面是否符合视觉预期,注意 console 有无红色报错」。
+- 新件 `Tests/PlayMode/SkeuomorphicUI/multi_world_visual_walkthrough.cs`(图形模式 `DISPLAY=:0`,五帧 `unity/Logs/shots/mw_*.png`)。
+- 视觉结论:主菜单四行 / 删除态两式 / 存档册两态 **均符合 spec**;480px 纸宽是 `--skeuo-shared-modal-width`,
+  1080p 下 1:1;主菜单无页框 = 已登记的 `TD-skeuo-09`(不是新问题)。
+- console **零 `[Error]`**(UTF 遇未处理 LogError 会判红 ⇒ 机械判据);仅许可客户端与 Kindgen asmdef 黄字两条噪音。
+- ⚠️ **抓到并修掉一处缺陷**:`MainMenuScreen.Rebuild()` 重建行后焦点悬空 ⇒ 手柄/键盘按开「删一局」后一步也走不了。
+  修:新增 `_focusIndex` + `RestoreFocus()`(进删除态⇒首世界 · 待确认⇒同一世界 · 回推列表⇒首行)。
+  机械判据 = `multi_world_boot_wiring_test` 三条焦点断言;证伪 = 把 `RestoreFocus()` 变空操作 ⇒ 红在自己那句,
+  还原 SHA-256 一致(`a037c282…`)。
+- 特意分辨的**非缺陷**:第 5 帧掉环是走查绕过了 `OnTickEdge` 的重落焦;已让走查补同一步,现该帧 = 玩家真实所见。
+- 回归:EditMode `6862/6825/0/37`(同值)· PlayMode `336/332/0/2/2`(+2/+2)@ `2026-11-04T07:03:24Z` · `781d5ef8` + 工作树。
+- 原件 §10 = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md`;spec 已补「行重建后的焦点」一行 + `AC-MM-14` 焦点载体。
+- **待提交**。

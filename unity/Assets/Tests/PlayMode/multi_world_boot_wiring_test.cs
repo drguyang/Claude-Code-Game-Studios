@@ -157,10 +157,18 @@ namespace DaYiJingCheng.Tests.PlayMode
             menu.ActivateRow(3);                       // 「删一局」
             Assert.AreEqual(MainMenuMode.DeleteSelect, menu.Mode);
             Assert.AreEqual(3, menu.RowCount, "删除态:两个世界 + 「返回」");
+            yield return null;
+            // ⚠️ 无指针形态:Submit 依赖焦点 ⇒ 重建后焦点悬空 = 手柄/键盘一步也走不了。
+            //    视觉走查先看到「环没了」,这条把它变成机械判据。
+            Assert.AreEqual("main-menu-delete-2", FocusedName(),
+                "进删除态后焦点必须落在**第一个世界**上(它是下一步要选的目标)");
 
             menu.ActivateRow(0);                       // 选 w2(第一次)
             Assert.AreEqual(MainMenuMode.DeleteConfirm, menu.Mode);
             Assert.IsTrue(Directory.Exists(catalog.DirectoryOf(2)), "第一次确认**不得**删除");
+            yield return null;
+            Assert.AreEqual("main-menu-delete-2", FocusedName(),
+                "进待确认后焦点必须**留在同一个世界**上(两次确认都落在这里)");
 
             menu.ActivateRow(0);                       // 同一行再按(第二次)
             for (int i = 0; i < 5; i++) yield return null;
@@ -173,6 +181,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             // 菜单被回推了新列表(屏自动退出删除态)。
             Assert.AreEqual(MainMenuMode.Normal, menu.Mode, "装配层回推列表 ⇒ 删除态作废");
             Assert.AreEqual(3, menu.RowCount, "剩一个世界 ⇒ 3 行");
+            Assert.AreEqual("main-menu-world-1", FocusedName(),
+                "删完回推列表后焦点也不得悬空(否则玩家按完删除就被卡在菜单上)");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -264,6 +274,13 @@ namespace DaYiJingCheng.Tests.PlayMode
             float deadline = Time.realtimeSinceStartup + seconds;
             while (!File.Exists(path) && Time.realtimeSinceStartup < deadline)
                 yield return null;
+        }
+
+        /// <summary>当前焦点元件的名字(<c>"&lt;null&gt;"</c> = 焦点悬空)。</summary>
+        private string FocusedName()
+        {
+            var focused = _doc.rootVisualElement.focusController?.focusedElement as VisualElement;
+            return focused != null ? focused.name : "<null>";
         }
 
         private bool ReadBooted()

@@ -153,6 +153,7 @@
 | **多个世界**(2026-11-04) | 启动期查得 ≥1 个**有档**的世界 | 每世界一行(第一行「继续诊治」,其余「第 N 局」)+ 「新起一局」+ 「删一局」;**行数 = 世界数 + 2** |
 | **删除态** | 按了「删一局」 | 每世界一行「删除 第 N 局」+ 末行「返回」;选中后该行变「再按一次确认 · 第 N 局」 |
 | 行焦点 | 开屏即落焦 / 方向键(单行 ⇒ 无位移;多行 ⇒ 逐行移动) | 焦点环(与暂停壳同一 overlay 载体) |
+| **行重建后的焦点** | 每次形态切换(进删除态 / 进待确认 / 装配层回推列表)都会**重建行** | **焦点必须落回某一行**:进删除态 ⇒ 第一个世界;待确认 ⇒ 同一个世界;回推列表 ⇒ 首行。⚠️ 2026-11-04 实测:首版重建后焦点悬空 ⇒ 手柄/键盘玩家按开「删一局」后**一步也走不了** |
 | 行按下 | `Submit` / `Click` | 见 §7 |
 
 **显式声明不存在的态**(防实现期自行发明):无「加载中」· 无「不可用行」· 无多页 · 无错误态。
@@ -279,12 +280,20 @@
       `…test_deleteFlow_pressingAnotherWorld_reArmsInsteadOfDeleting` /
       `…test_deleteFlow_backRow_returnsToNormal` / `…test_setWorlds_resetsDeleteMode` /
       `…test_deleteRow_onlyExistsWhenThereAreWorlds`。
+      **焦点**两条(2026-11-04 补):`multi_world_boot_wiring_test.test_deleteWorld_throughBoot_removesOnlyChosenWorld`
+      断「进删除态 ⇒ 焦点在第一个世界」「待确认 ⇒ 焦点仍在同一个世界」「回推列表 ⇒ 焦点不悬空」
+      (真启动序 + 真面板;屏级 EditMode 夹具无面板,`Focus()` 是空操作,测不到这一面)。
       ⚠️ 「删除**真的**删掉了目录、且别的世界逐字节不变」在 `world_catalog_test`(目录级);
       「装配层删完回推列表 / 删的是当前世界时重装配」**无直接夹具**(见下条如实登记)。
 
 > ⚠️ **2026-11-04 如实登记(不借绿)**:AC-MM-11 / 12 的载体是 **EditMode 屏级夹具**;
 > 世界列表的**生产路径**(无 `SaveBasePathOverride` 的真启动序)今日**没有 PlayMode 端到端**。
 > PlayMode 的 `main_menu_wiring_test` 走的是夹具缝(`_worldCatalog == null`),那条路径**逐字未变**。
+>
+> 🔁 **同日补上**:`multi_world_boot_wiring_test`(2 条)走**真启动序** —— 用新缝
+> `SaveRootOverride` 把存档**根**指到临时目录(刻意不设 `SaveBasePathOverride`)⇒ 世界列表
+> 来自**真目录**。原文保留作档案。
+> ⚠️ **同轮抓到的缺陷**:行随形态重建后焦点悬空(见 §6 的「行重建后的焦点」行),已修并加机械判据。
 
 > **两条检查项的 N/A 与理由**(与 `pause-shell-42.md` 同款处置):
 > - **性能判据**:本屏零数据 / 零异步,只有「建一张纸 + 一行 + 落焦」;耗时并入 7b 的「开册 ≤200ms」同栈口径,不重复立 AC。
