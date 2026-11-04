@@ -303,7 +303,16 @@ public static bool ReadFallsBackToBak(uint seq); // 手动槽 true  / 保留槽 
 
 ## Migration Plan
 
-**本件不实现**。实现按下列次序,每步独立可回归:
+🔁 **2026-11-04 实现轮已落(Migration Plan 第 1–6 步)**,第 7 步(债册)随本轮一并记账。
+实现面:`SaveSlotLedger`(删门① / 两条 bak 谓词 / 覆写不清锁注)· `SaveService`(读侧回退 +
+「final 缺失 + 只剩 bak ⇒ 空槽」与探测同向)· `SaveSlotProbe`(占用态只用 `ProbeCountsBak`)·
+`SlotProjections`(Writable 去掉两条子句)· `SaveSlotView.IsLocked` · `SaveSlotItem`(行内二段态)·
+`SaveSlotsScreen`(空槽落笔 / 二段态 / 已锁灰置)· `ISaveSlotCommandSink.TrySaveAt` ·
+`SaveSlotCommandRouter`(落笔执行体 + 独立失败面)· `BootRoot`(`LogSaveFailure` / 挂锁态)。
+**实跑修正两处**:① `System.InvalidDataException` 不存在(是 `System.IO.InvalidDataException`);
+② 4 条既有夹具仍按旧判据断「覆盖被拒」,已按本裁改写(不是放宽断言,是**换判据**)。
+
+原「本件不实现」。实现按下列次序,每步独立可回归:
 
 1. **谓词拆分**(`SaveSlotLedger`):`FallsBackToBak` → `ProbeCountsBak` / `ReadFallsBackToBak`,
    并逐处改消费面(`SaveSlotProbe` / `SaveService.TryGetMostRecentSave` / `LoadBytes`)—— **先做,后开门**;
@@ -324,19 +333,20 @@ public static bool ReadFallsBackToBak(uint seq); // 手动槽 true  / 保留槽 
 
 ## Validation
 
-⚠️ **V-1…V-9 全部未跑 —— 禁借绿**。Accepted 表示方向已裁,不表示任何判据已通过。
+🔁 **2026-11-04 实现轮**:V-1…V-8 有载体;V-9 只做到「代码分离」,日志捕获夹具**未建**
+(见下方如实登记)。
 
-| # | 判据 | 载体(待建) | 状态 |
+| # | 判据 | 载体 | 状态 |
 |---|---|---|---|
-| V-1 | 空槽行 Submit ⇒ 落笔到**该行自己的 `slot_seq`**,盘上出现 `save_{seq}.bin` | EditMode(`save_slots_screen` 屏级 + `save_slot_save_wiring_test` 路由级) | **NOT-RUN** |
-| V-2 | 已有档行**第一次** Submit **零写盘**(前后目录 SHA-256 逐档相同),第二次才落 | EditMode(副作用判据,不是「看返回 true」) | **NOT-RUN** |
-| V-3 | **覆写后 `IsLocked(slot)` 仍为 true**(D3) | EditMode(`SaveSlotLedger` 直测 + 端到端一次) | **NOT-RUN** |
-| V-4 | 覆写生成 `save_{seq}.bak`,内容 = **上一版字节**(逐字节) | EditMode(临时目录) | **NOT-RUN** |
-| V-5 | `final` 校验坏 ⇒ 读侧回退 `.bak` 成功;**同时** `ProbeCountsBak(seq) == false`(探测仍报「有档」而非「空槽」) | EditMode(两条独立断言,不得合并) | **NOT-RUN** |
-| V-6 | 非叙事上下文 ⇒ 覆写被 7a 拒;7b 只画页角注 | EditMode(现成门夹具扩一条覆写路径) | **NOT-RUN** |
-| V-7 | 「留档」仍写 `NextWritableSeq`(追加语义未变) | 既有 `save_slot_save_wiring_test` 保持绿 | **NOT-RUN** |
-| V-8 | 42 **零本地判定**:屏不含「能否覆盖 / 能否载入」的判定分支(`AC-7b-02` / `AC-7b-10` 不变) | 静态复核 + `AC-42` 侧的既有反射门 | **NOT-RUN** |
-| V-9 | 落笔失败日志**不出现** `[7b][载入]` 措辞,且点名门名 | EditMode(日志捕获) | **NOT-RUN** |
+| V-1 | 空槽行 Submit ⇒ 落笔到**该行自己的 `slot_seq`** | `adr041_save_slot_choices_test.test_emptyRow_submit_writesItsOwnSlot` + `save_slot_rows_legibility_test`(行号→槽号三条出口) | **PASS** |
+| V-2 | 已有档行**第一次** Submit **零动作**,第二次才落 | `adr041_save_slot_choices_test.test_occupiedRow_firstSubmit_onlyArms`(断 sink 调用表为空,不是「看返回 true」)· `…test_occupiedRow_rewrite_writesSameSlot` | **PASS**(屏级;盘面副作用由 V-4 覆盖) |
+| V-3 | **覆写后 `IsLocked(slot)` 仍为 true**(D3) | `adr041_slot_overwrite_test.test_overwrite_doesNotClearReadLock` · 屏侧 `…test_lockedRow_openIsDisabled_rewriteStillWorks` | **PASS** |
+| V-4 | 覆写生成 `save_{seq}.bak`,内容 = **上一版字节** | `adr041_slot_overwrite_test.test_overwrite_writesPreviousVersionToBak`(读头部 tick:旧 5 / 新 9) | **PASS** |
+| V-5 | `final` 校验坏 ⇒ 读侧回退 `.bak` 成功;**同时** `ProbeCountsBak` 仍为 false | `manual_slot_bak_scope_test.test_manualSlot_corruptFinal_fallsBackToBak` + `…test_manualSlot_finalMissing_bakAlone_isEmptyEverywhere` + `…test_ledger_twoPredicates_areSplitNotMerged` | **PASS** |
+| V-6 | 非叙事上下文 ⇒ 覆写被 7a 拒 | `adr041_slot_overwrite_test.test_ensureWritable_outsideNarrativeContext_stillThrows` | **PASS** |
+| V-7 | 「留档」仍写 `NextWritableSeq` | `adr041_save_slot_choices_test.test_writableRow_stillUsesAppendSemantics` + `save_slot_save_wiring_test`(保持绿) | **PASS** |
+| V-8 | 42 **零本地判定**(`AC-7b-02` / `AC-7b-10` 不变) | 屏只按视图字段分流(空槽 / 有档 / 已锁),不判「能不能写」;被拒走 sink 返回 false | **PASS**(静态复核) |
+| V-9 | 落笔失败日志**不出现** `[7b][载入]` 措辞,且点名门名 | `BootRoot.LogSaveFailure`(与 `LogLoadFailure` 分家,报文前缀 `[7b][落笔]` + 门名) | **⚠️ NOT-RUN(日志捕获夹具未建)** —— 只断「代码路径已分开」,不主张「日志文案已被夹具钉住」 |
 
 **必须同时跑的反面**(禁借绿):
 - 删门①后,**非手动槽**(0 / 1 / 2)的写路径行为**不变**(保留槽仍原地覆盖);

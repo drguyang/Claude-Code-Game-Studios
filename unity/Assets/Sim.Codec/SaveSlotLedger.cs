@@ -2,8 +2,10 @@
 //
 // 权威来源:
 //   design/gdd/persistence-service.md 规则十四:
-//     · 槽位只进不退:`Checkpoint(slot)` 只能写按时间序递增的槽位,覆盖已有槽位 = 7a 拒绝
+//     · 槽位**只进不退** —— 🔁 **2026-11-04 由 ADR-041 §D2 收窄**:它不再是写入门,
+//       而是「『留档』追加到下一号」的默认目标语义;覆盖既有槽位**合法**。
 //     · 读档即锁:从某槽位载入后,该槽位在同一会话内锁定 reads 侧,锁持续到下一次叙事事件 checkpoint
+//       (**覆写不清锁** —— ADR-041 §D3)
 //     · 载入安全上下文门:读档与写同钩,共用同一观察钩子
 //   design/gdd/save-slot-ui.md:212-214 —— 三个量全归 7a
 //   ADR-010 §六 —— 「锁字段不进存档体」:锁与安全门均**会话内存**,跨会话复位
@@ -38,7 +40,8 @@ namespace DaYiJingCheng.Sim.Codec
         public const uint AutoSlotSeq = 2;
 
         /// <summary>
-        /// 手动存档的第一个槽号。**槽 3 起**,且仍然**只进不退**。
+        /// 手动存档的第一个槽号。**槽 3 起**;覆盖自 2026-11-04 起合法(ADR-041 §D2),
+        /// 「只进不退」只剩「『留档』默认追加到下一号」这一层语义。
         /// <para>🔁 2026-11-03(`TD-persist-17` · 用户裁定「自动存档只占固定槽」):
         /// 此前自动存档与手动存档共用同一递增计数器 ⇒ 自动存档一路吃掉手动槽号。
         /// 现 1 / 2 是保留槽,3+ 才是玩家槽。</para>
@@ -52,20 +55,23 @@ namespace DaYiJingCheng.Sim.Codec
         public static bool IsReservedSlotSeq(uint seq) => seq == ExitSlotSeq || seq == AutoSlotSeq;
 
         /// <summary>
-        /// 该槽位的 <c>.bak</c> 是否参与**读侧**回退(校验坏 / 缺失时改读 <c>.bak</c>)。
-        /// <para><b>唯一定义处</b> —— 写侧(<see cref="SaveService"/>)与呈现侧
-        /// (<see cref="SaveSlotProbe"/>)都必须调它,不得各写一份:两处若不同向,
-        /// 会出现「屏上说有档、读档说没有」这种最难查的分叉。</para>
-        /// <para>判据 = <see cref="IsReservedSlotSeq"/> —— 理由在**写侧**:
-        /// <c>.bak</c> 只在「同一个文件被写第二次」时产生(`WriteAtomic` 的 final→bak 轮转)。
-        /// 保留槽(退出保存 / 自动存档)反复重写 ⇒ 有 bak;手动槽只进不退 ⇒ **一生只写一次**
-        /// ⇒ **永远没有 bak**。⇒ 对手动槽而言「回退到 bak」**无宾语**,
-        /// 盘上若真有一份,那是旧版本残留,读它 = 静默装回更旧的档(违 `AC-7a-15`)。</para>
-        /// <para>🔁 2026-11-04(`TD-persist-19` · 用户裁定「两步做掉」):本判据此前**只在写侧**成立
-        /// (`TD-persist-16` 收窄了「玩家槽不产生 bak」),读侧仍无条件回退。
-        /// 本条把口径补到读侧,并收成唯一出处。</para>
+        /// 该槽位的 <c>.bak</c> 是否算作「这个槽有档」—— **只给探测 / 占用态用**。
+        /// <para>⚠️ 与 <see cref="ReadFallsBackToBak"/> **必须分开**(ADR-041 §D4):
+        /// 覆盖开启后,手动槽也会产生 <c>.bak</c>(旧版留底),但它**不代表这个槽现在有档** ——
+        /// 「有档」的唯一判据仍是 <c>final</c> 存在。把两者合起来正是 `TD-persist-19`
+        /// 那条病(「菜单说有档 ⇒ 按下去说空槽」)的成因。</para>
         /// </summary>
-        public static bool FallsBackToBak(uint seq) => IsReservedSlotSeq(seq);
+        public static bool ProbeCountsBak(uint seq) => IsReservedSlotSeq(seq);
+
+        /// <summary>
+        /// 该槽位的 <c>.bak</c> 是否参与**读档**回退(<c>final</c> 校验坏时改读它)。
+        /// <para>🔁 **2026-11-04(ADR-041 §D4)**:手动槽从 <c>false</c> 改为 <c>true</c> ——
+        /// 覆盖开启后 <c>save_N.bak</c> 第一次真的会由 `WriteAtomic` 产生
+        /// (`final` 已存在才 final→bak),它**就是这一槽的上一版**,回退它是抢救而不是装错档。</para>
+        /// <para>⚠️ 本判据**不参与占用态判定** —— 那半归 <see cref="ProbeCountsBak"/>。
+        /// 两处若混用,会重新制造「屏上有档 / 读档是空」的分叉。</para>
+        /// </summary>
+        public static bool ReadFallsBackToBak(uint seq) => true;
 
         private readonly INarrativeContextQuery _narrativeContext;
         private readonly HashSet<uint> _locked = new HashSet<uint>();
@@ -124,33 +130,33 @@ namespace DaYiJingCheng.Sim.Codec
         public bool IsLocked(SaveSlot slot) => _locked.Contains(slot.SlotSeq);
 
         /// <summary>
-        /// `AC-7a-19 (b)(c)` —— 写前校验,不通过即抛。
-        /// <para>(b) 覆盖既有槽位(`slot_seq &lt; next_writable_seq`)⇒ 抛;</para>
-        /// <para>(c) 不在叙事上下文内 ⇒ 抛。</para>
-        /// <para>锁态**不在此拒** —— 锁拒的是 reads 侧(`Loadable`),写入新槽位不受旧锁影响
-        /// (GDD `:213`「该门不改变锁的 per-slot 会话语义」)。</para>
+        /// 写前校验,不通过即抛。
+        /// <para>门⓪:槽号 0 非法。</para>
+        /// <para>门(c):不在叙事上下文内 ⇒ 抛(`AC-7a-19 (c)` 原样保留)。</para>
+        /// <para>🔁 **2026-11-04(ADR-041 §D2,用户裁定)**:原门①「覆盖既有槽位 ⇒ 抛」
+        /// **已删除** —— 覆盖是合法动作。其理由(「每页 = 一次免费重试」的定价)在实现里
+        /// 从不成立:手动槽总数无上限(`save-slots-7b.md:108`)且从不自动裁剪(`OQ-7a-8`),
+        /// 重试本就不花代价。真正守反 scum 的两条**不依赖它**:读档即锁(见 <see cref="OnLoaded"/>)
+        /// 与叙事上下文门。</para>
+        /// <para>⇒ <c>_nextWritableSeq</c> 的语义收窄为「『留档』的默认目标」,
+        /// **不再是写入门**。</para>
+        /// <para>锁态**不在此拒** —— 锁拒的是 reads 侧(`Loadable`);覆写一个已锁槽是允许的,
+        /// 且**覆写不清锁**(见 <see cref="OnCheckpointCommitted"/> 的注)。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">未注入钩子(fail-closed)。</exception>
-        /// <exception cref="InvalidDataException">覆盖既有槽位(只进不退违例)。</exception>
+        /// <exception cref="InvalidDataException">槽号 0(不是任何槽)。</exception>
         /// <exception cref="InvalidOperationException">不在叙事上下文内。</exception>
         public void EnsureWritable(SaveSlot slot)
         {
             if (_narrativeContext == null) throw NoContextSource();
 
             // 门 ⓪:槽号合法性 —— 0 不是任何槽(1 = 退出 / 2 = 自动 / 3+ = 手动)。
-            //    ⚠️ 这一条**不是**「只进不退」,是「根本没有这个槽」。
             if (slot.SlotSeq == 0)
                 throw new InvalidDataException(
                     "槽号 0 不是合法槽位:1 = 退出保存 · 2 = 自动存档 · 3+ = 手动存档" +
                     "(TD-persist-17 · 用户裁定 2026-11-03)");
 
-            // 门 ①:只进不退 —— **只约束玩家槽**(≥ 3)。
-            //    保留槽 1 / 2 是**固定身份、原地覆盖**:自动存档每来一次就顶掉上一份,
-            //    这正是它该有的语义(它不是玩家的回滚点)。
-            if (slot.SlotSeq >= MinManualSlotSeq && slot.SlotSeq < _nextWritableSeq)
-                throw new InvalidDataException(
-                    $"槽位只进不退:slot_seq={slot.SlotSeq} < next_writable_seq={_nextWritableSeq}" +
-                    "(AC-7a-19 (b) —— 覆盖既有槽位由 7a 拒绝,不是 7b 提示)");
+            // 门 ①(「覆盖既有槽位 ⇒ 抛」)已于 2026-11-04 删除 —— ADR-041 §D2。
 
             if (!_narrativeContext.InNarrativeContext())
                 throw new InvalidOperationException(
@@ -167,11 +173,15 @@ namespace DaYiJingCheng.Sim.Codec
         {
             // 保留槽(1 / 2)不推进高水位 —— 它们不进递增段。
             // ⚠️ 若不挡:写一次自动存档(槽 2)会把 `_nextWritableSeq` 推到 3,
-            //    而 3 正是**第一个**手动槽 ⇒ 玩家的第一次手动存档会被莫名拒掉。
+            //    而 3 正是**第一个**手动槽 ⇒ 「留档」的默认目标会被推错一页。
             if (slot.SlotSeq < MinManualSlotSeq) return;
 
             uint next = slot.SlotSeq + 1;
             if (next > _nextWritableSeq) _nextWritableSeq = next;
+
+            // ⚠️ **本方法不得触碰 `_locked`(ADR-041 §D3 的承载不变式)**:
+            //    覆写一个已锁槽**不解锁** —— 否则「读 A → 覆写 A → 再读 A」在同一叙事
+            //    窗口内可循环,反 scum 归零。锁只在 `OnNarrativeAnchor` 整批解除。
         }
 
         /// <summary>

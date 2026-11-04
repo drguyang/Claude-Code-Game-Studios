@@ -50,9 +50,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public readonly bool IsNight;
 
+        /// <summary>
+        /// 该槽是否**已被读档锁住**(ADR-041 §D5 的「已锁槽行」)。
+        /// <para>锁态归 7a(`SaveSlotLedger.IsLocked`,会话内存);42 只**呈现** ——
+        /// 已锁 ⇒ 行内的「启封」灰置、只留「重写」。</para>
+        /// </summary>
+        public readonly bool IsLocked;
+
         /// <summary>构造。</summary>
         public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick,
-                            long dayNumber = 0L, bool isNight = false)
+                            long dayNumber = 0L, bool isNight = false, bool isLocked = false)
         {
             SlotSeq = slotSeq;
             Known = known;
@@ -60,6 +67,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             Tick = tick;
             DayNumber = dayNumber;
             IsNight = isNight;
+            IsLocked = isLocked;
         }
 
         /// <summary>未绑定形态(装配层没给状态,或探测失败)。</summary>

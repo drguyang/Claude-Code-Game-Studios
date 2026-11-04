@@ -30,6 +30,9 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
             public int SaveCount;
             public bool TryLoad(uint slotSeq) { LastLoad = slotSeq; LoadCount++; return true; }
             public bool TrySave() { SaveCount++; return true; }
+            public bool TrySaveAt(uint slotSeq) { LastSaveAt = slotSeq; SaveAtCount++; return true; }
+            public uint LastSaveAt;
+            public int SaveAtCount;
         }
 
         private static SaveSlotsScreen NewScreen(out RecordingSink sink)
@@ -116,11 +119,24 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
             SaveSlotsScreen screen = NewScreen(out RecordingSink sink);
             screen.SetSlotViews(Mixed());
 
-            screen.Activate(1);
+            // 🔁 2026-11-04(ADR-041 §D1/§D5):行号 → 槽号的映射有三条出口,逐条断。
+            //    ① 空槽行(= 槽 3,行序 2)⇒ 落笔到**它自己的槽号**
+            screen.Activate(2);
+            Assert.That(sink.SaveAtCount, Is.EqualTo(1));
+            Assert.That(sink.LastSaveAt, Is.EqualTo(3u),
+                "空槽行落笔必须写它自己的槽号(写台账高水位 = 按 3 号写到别处)");
 
+            //    ② 未绑定行(= 槽 4,行序 3)⇒ 维持载入路径
+            screen.Activate(3);
             Assert.That(sink.LoadCount, Is.EqualTo(1));
-            Assert.That(sink.LastLoad, Is.EqualTo(2u),
+            Assert.That(sink.LastLoad, Is.EqualTo(4u),
                 "行序号 → 槽号的映射不因行内文字改动而漂移");
+
+            //    ③ 已有档行(= 槽 2,行序 1)⇒ **第一下不得动作**,只展开二段态
+            screen.Activate(1);
+            Assert.That(sink.LoadCount, Is.EqualTo(1), "已有档行第一次 Submit 不得载入");
+            Assert.That(sink.SaveAtCount, Is.EqualTo(1), "也不得落笔");
+            Assert.That(screen.ArmedRowIndex, Is.EqualTo(1), "而是展开二段态");
         }
 
         [Test]

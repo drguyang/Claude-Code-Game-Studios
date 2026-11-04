@@ -303,11 +303,12 @@ namespace DaYiJingCheng.Sim.Codec
 
                 void Consider(SaveSlot candidate)
                 {
-                    // 🔁 2026-11-04(`TD-persist-19`):手动槽的 `.bak` **不算这个槽的东西** ——
-                    //    与 `LoadBytes` 同一条判据(`SaveSlotLedger.FallsBackToBak`)。
-                    //    否则会出现「菜单说有档 ⇒ 按下去说空槽」:正是探针注释里点名的那种分叉。
+                    // 🔁 2026-11-04(`TD-persist-19` 立、ADR-041 §D4 拆):**占用态**只看
+                    //    `ProbeCountsBak`(手动槽 false)—— 覆盖开启后手动槽也有 `.bak`,
+                    //    但它不代表「现在有档」;把手动槽的 bak 算进来会重造
+                    //    「菜单说有档 ⇒ 按下去说空槽」。
                     string finalPath = GetFinalPath(candidate);
-                    string bakPath = SaveSlotLedger.FallsBackToBak(candidate.SlotSeq)
+                    string bakPath = SaveSlotLedger.ProbeCountsBak(candidate.SlotSeq)
                         ? GetBakPath(candidate) : null;
                     bool bakExists = bakPath != null && File.Exists(bakPath);
                     bool present = File.Exists(finalPath) || bakExists;
@@ -618,12 +619,10 @@ namespace DaYiJingCheng.Sim.Codec
             //    此前「哨兵只有写侧认得」曾让「继续诊治」恒 `SaveNotFoundException`。
             string finalPath = GetFinalPath(slot);
 
-            // 🔁 2026-11-04(`TD-persist-19`):**手动槽不回退 `.bak`** —— 判据归 `SaveSlotLedger`
-            //    的唯一定义处(`FallsBackToBak`),呈现侧 `SaveSlotProbe` 调的是同一条。
-            //    `TD-persist-16` 只收窄了**写侧**(玩家槽一生只写一次 ⇒ 不再产生 bak),
-            //    读侧此前仍无条件回退 ⇒ 盘上若有旧版本残留的 `save_N.bak`,
-            //    手动槽一旦校验坏就会**静默装回更旧的档**(违 `AC-7a-15` 的「不静默兜底」)。
-            string bakPath = SaveSlotLedger.FallsBackToBak(slot.SlotSeq) ? GetBakPath(slot) : null;
+            // 🔁 2026-11-04(ADR-041 §D4):**读侧对手动槽也回退 `.bak`** —— 判据 = `ReadFallsBackToBak`。
+            //    覆盖开启后 `save_N.bak` 第一次真的由 `WriteAtomic` 产生(它就是这一槽的**上一版**),
+            //    回退它是抢救;而「占用态」那一半仍由 `ProbeCountsBak` 独立判,两处**不得混用**。
+            string bakPath = SaveSlotLedger.ReadFallsBackToBak(slot.SlotSeq) ? GetBakPath(slot) : null;
 
             bool finalExists = File.Exists(finalPath);
             if (finalExists)
@@ -632,9 +631,14 @@ namespace DaYiJingCheng.Sim.Codec
                 if (ValidateChecksum(data)) return data;
             }
 
-            // 回退 bak(**只有保留槽**有这一支;手动槽 bakPath == null)
+            // 回退 bak。
+            // ⚠️ **只在「final 缺失但 bak 算占用」或「final 在但坏」时才允许**(ADR-041 §D4):
+            //    · 保留槽:bak 算占用(`ProbeCountsBak` true)⇒ final 缺失也回退(旧行为);
+            //    · 手动槽:bak **不算占用**(探测说「空」)⇒ final 缺失时**不得**回退 ——
+            //      否则「屏上说空槽、读档却读得出来」就是新的分叉(TD-persist-19 的同一形态)。
             bool bakExists = bakPath != null && File.Exists(bakPath);
-            if (bakExists)
+            bool bakCountsAsOccupancy = !finalExists && SaveSlotLedger.ProbeCountsBak(slot.SlotSeq);
+            if (bakExists && (finalExists || bakCountsAsOccupancy))
             {
                 byte[] data = File.ReadAllBytes(bakPath);
                 if (ValidateChecksum(data)) return data;
@@ -645,9 +649,10 @@ namespace DaYiJingCheng.Sim.Codec
             //    空槽,控制台打红字「存档损坏且无法回退」——拒绝载入是对的,话是错的,
             //    而且会让玩家以为自己丢了档。
             //    判据 = **磁盘上有没有东西**:一个都没有 = 空槽(正常态);有但校验不过 = 损坏。
-            if (!finalExists && !bakExists)
+            if (!finalExists && !(bakExists && bakCountsAsOccupancy))
             {
                 // ⚠️ 同样**零 I/O** —— 不建空档、不删残档。空槽是正常态,不是要「修」的东西。
+                // 🔁 ADR-041 §D4:手动槽只剩 `.bak` 也按**空槽**处理(与探测同向)。
                 throw new SaveNotFoundException(slot);
             }
 

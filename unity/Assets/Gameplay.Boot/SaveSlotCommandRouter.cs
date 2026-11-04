@@ -36,6 +36,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         private readonly LoadSequencer _sequencer;
         private readonly Action<uint, Exception> _failureSink;
+        private readonly Action<uint, Exception> _saveFailureSink;
         private readonly SaveService _saveService;
         private readonly Action _onSaveAccepted;
         private readonly Action _onLoaded;
@@ -52,13 +53,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                                      Action<uint, Exception> failureSink = null,
                                      SaveService saveService = null,
                                      Action onSaveAccepted = null,
-                                     Action onLoaded = null)
+                                     Action onLoaded = null,
+                                     Action<uint, Exception> saveFailureSink = null)
         {
             _sequencer = sequencer;
             _failureSink = failureSink;
             _saveService = saveService;
             _onSaveAccepted = onSaveAccepted;
             _onLoaded = onLoaded;
+            // 🔁 2026-11-04(ADR-041 §D8):落笔失败**不得**再走载入的记录面 ——
+            //    否则「覆盖被拒」会打成 `[7b][载入] 槽位 N 载入失败`,文字与行为不符。
+            //    可 null ⇒ 回落到通用 failureSink(部分装配的合法形态)。
+            _saveFailureSink = saveFailureSink ?? failureSink;
         }
 
         /// <summary>载入半边是否已接线(未接线 = 生产装配缺存档目录的合法形态)。</summary>
@@ -109,8 +115,23 @@ namespace DaYiJingCheng.Gameplay.Boot
         public bool TrySave()
         {
             if (_saveService == null) return false;
+            return SaveInto(_saveService.Ledger.NextWritableSeq);
+        }
 
-            uint slotSeq = _saveService.Ledger.NextWritableSeq;
+        /// <summary>
+        /// 请求落笔到**指定槽**(ADR-041 §D1 / §D2)。执行面与 <see cref="TrySave"/> 同一个
+        /// `Checkpoint` —— 本类只决定**目标槽号**从哪来(台账 vs 调用方给的)。
+        /// </summary>
+        /// <inheritdoc cref="ISaveSlotCommandSink.TrySaveAt"/>
+        public bool TrySaveAt(uint slotSeq)
+        {
+            if (_saveService == null) return false;
+            return SaveInto(slotSeq);
+        }
+
+        /// <summary>落笔的**唯一执行体**(两条入口共用 —— 各写一份 = 将来必然分叉)。</summary>
+        private bool SaveInto(uint slotSeq)
+        {
             try
             {
                 _saveService.Checkpoint(new SaveSlot(slotSeq));
@@ -124,9 +145,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             catch (Exception ex)
             {
                 // 受检失败形态(全在 `Checkpoint` / 台账内,本类不复制):
-                //   未注入叙事上下文(fail-closed)· 槽位只进不退 · 不在叙事上下文 ·
+                //   未注入叙事上下文(fail-closed)· 槽号 0 · 不在叙事上下文 ·
                 //   组版返回 null · 写队列未注入。
-                _failureSink?.Invoke(slotSeq, ex);
+                // 🔁 2026-11-04(ADR-041 §D8):走**落笔自己的**记录面。
+                _saveFailureSink?.Invoke(slotSeq, ex);
                 return false;
             }
         }

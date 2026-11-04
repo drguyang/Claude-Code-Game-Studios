@@ -330,6 +330,16 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 > **手动槽的两条落点**(`AC-7a-15` 的直接后果):
 > `final` 校验坏 ⇒ `SaveCorruptException`;`final` 缺失(哪怕盘上有残留 `.bak`)⇒ `SaveNotFoundException`。
 > ⚠️ 「缺失即空槽」是**判据的一部分**,不是退让:那份 `.bak` 从来不属于该槽。
+>
+> 🔁 **2026-11-04 再改判(ADR-041 §D4,用户裁定「覆写合法」)—— 上两段的**前提**消失了,原文保留**:
+> 「玩家槽一生只写一次」是上面全部推断的基石;覆盖合法之后 `save_N.bin` **会被写第二次**,
+> `WriteAtomic` 的 `final → bak` 轮转**第一次真的对玩家槽触发** ⇒ **玩家槽从此确实有 `bak`**,
+> 且它就是**这一槽的上一版**。⇒ 判据拆成两条(`SaveSlotLedger`):
+> - **占用态** `ProbeCountsBak(seq)` —— 玩家槽 **false**(有档仍只看 `final`;
+>   否则重造「屏上说有档 / 按下去说空」);
+> - **读档回退** `ReadFallsBackToBak(seq)` —— **恒 true**(手检坏 ⇒ 读上一版,是**抢救**不是装错)。
+> ⚠️ 由此 `final` 缺失 + 只剩 `.bak` 仍是**空槽**(与探测同向,`LoadBytes` 已按此实现)。
+> 「`final` 校验坏 ⇒ 报损」这条**只在没有 `.bak` 时**成立;有 `.bak` 则回退并成功。
 
 ### 五、`ItemInstanceId.Next()` 机制(义务 6 的落点)
 

@@ -164,30 +164,42 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // 判据 ②(b) —— 覆盖既有槽位:7a 拒绝
+        // 判据 ②(b) —— 覆盖既有槽位:🔁 2026-11-04 由「7a 拒绝」改为「**允许**」
+        //   (ADR-041 §D2;原判据原样留档见 `git show ceac3539:…` 的注释段)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_ac7a19b_overwriteExistingSlot_isRejectedBy7a()
+        public void test_ac7a19b_overwriteExistingSlot_isAllowed()
         {
             var svc = ReadyService();
             svc.Checkpoint(new SaveSlot(3));
 
-            // 必须是 7a 抛(InvalidDataException),不是 7b 提示、不是静默忽略
-            var ex = Assert.Throws<InvalidDataException>(
-                () => svc.Checkpoint(new SaveSlot(3)),
-                "覆盖既有槽位须由 7a 拒绝(只进不退)");
-            StringAssert.Contains("只进不退", ex.Message, "报文须点名只进不退");
+            // ① 不抛
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(3)),
+                "覆盖既有槽位自 2026-11-04 起合法(ADR-041 §D2)");
+
+            // ② 高水位**不倒退**(它只由「写过更大的号」推进)
+            Assert.AreEqual(4U, svc.Ledger.NextWritableSeq, "覆盖旧槽不得改高水位");
         }
 
         [Test]
-        public void test_ac7a19b_writableProjectionSaysFalseForStaleSlot()
+        public void test_ac7a19b_writableProjection_ignoresSlotSeqAndLock()
         {
-            // 投影面同一判据:高水位已过 ⇒ Writable = false
+            // 🔁 ADR-041 §D2/§D3:Writable 只剩「在叙事上下文内」一条子句。
             var ctx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 4U);
-            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), ctx), "3 < 4 ⇒ 不可写");
-            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(4), ctx), "4 ≥ 4 ⇒ 可写");
-            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(5), ctx), "5 ≥ 4 ⇒ 可写");
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), ctx),
+                "3 < 4 不再是拒绝理由(覆盖合法)");
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(5), ctx));
+
+            var lockedCtx = new SlotContext(locked: true, inNarrativeContext: true, nextWritableSeq: 4U);
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), lockedCtx),
+                "锁拒的是 reads 侧;覆写已锁槽仍可写(ADR-041 §D3)");
+            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(3), lockedCtx),
+                "而载入被锁挡住 —— 写读自此**不再对称**");
+
+            var outsideCtx = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 1U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), outsideCtx),
+                "叙事上下文门原样保留(AC-7a-19 (c))");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -257,10 +269,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 环 2:读档
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)), "环 2:读档应成功");
 
-            // 环 3:再覆盖回去 —— 必须被拒(否则 = 事实上的 quicksave)
-            Assert.Throws<InvalidDataException>(
-                () => svc.Checkpoint(new SaveSlot(3)),
-                "环 3:覆盖既有槽位须被拒 —— 闭合回路任一环被拒即可");
+            // 环 3:🔁 2026-11-04(ADR-041 §D2)—— **覆写现在合法**
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(3)),
+                "环 3:覆盖既有槽位自 ADR-041 起允许");
+
+            // 环 4:**闭合回路仍断在「读档即锁」上**(反 scum 的承重结构是它,不是槽号单调)
+            Assert.Throws<InvalidOperationException>(
+                () => svc.Load(new SaveSlot(3)),
+                "环 4:同一会话内再读该槽 ⇒ 被锁拒 —— 回路仍然闭合,只是断点从槽号移到了锁上");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -305,16 +321,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    同样满足它;甚至连「第二次起恒返回 false」的实现也能通过(两次比较都是 false)。
             //    ⇒ 该形态**不可能**证伪纯函数性,须换成**真值表对拍**:把投影的输出与
             //    **独立手算的期望值**逐格比对。缓存实现若吞掉任一格的真值即红。
+            // 🔁 2026-11-04(ADR-041 §D2/§D3):真值表按**新公式**重算 ——
+            //    Writable ⟺ inCtx ;Loadable ⟺ ¬locked ∧ inCtx。
             var cases = new[]
             {
                 //                 locked, inCtx, next, slot, 期望 Writable, 期望 Loadable
                 new object[] { false,  true,  0U,  0U,  true,  true  },
-                new object[] { false,  true,  5U,  1U,  false, true  },  // 高水位未到 ⇒ 只挡写
-                new object[] { true,   true,  0U,  0U,  false, false },  // 锁 ⇒ 读写皆挡
+                new object[] { false,  true,  5U,  1U,  true,  true  },  // 高水位**不再挡写**
+                new object[] { true,   true,  0U,  0U,  true,  false },  // 锁只挡读(覆写合法)
                 new object[] { false,  false, 0U,  0U,  false, false },  // 上下文外 ⇒ 读写皆挡
                 new object[] { true,   false, 9U,  9U,  false, false },  // 多因子同时为假
-                new object[] { false,  true,  3U,  3U,  true,  true  },  // 边界:slot == next ⇒ 可写
-                new object[] { false,  true,  3U,  2U,  false, true  },  // 边界:slot == next-1 ⇒ 不可写
+                new object[] { false,  true,  3U,  3U,  true,  true  },  // 边界:slot == next
+                new object[] { false,  true,  3U,  2U,  true,  true  },  // 边界:slot == next-1 仍可写
             };
 
             foreach (var c in cases)
@@ -341,20 +359,22 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_projections_haveIndependentGreyChannels()
         {
-            // 「各配独立灰置通道」的可证形态:
-            // 存在一个状态使 Writable = false 而 Loadable = true(高水位未到)。
-            var blockedBySeq = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 5U);
-            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(4), blockedBySeq), "高水位未到 ⇒ 不可写");
-            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(4), blockedBySeq), "但可载入");
-
-            // 两个正交子句各有一条独有的拒绝路径
+            // 🔁 2026-11-04(ADR-041 §D3):两条投影**不再对称** —— 锁只挡读,Writable ⊇ Loadable。
             var locked = new SlotContext(locked: true, inNarrativeContext: true, nextWritableSeq: 0U);
-            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), locked), "锁 ⇒ 不可写");
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), locked),
+                "锁拒的是 reads 侧;覆写一个已锁槽是允许的(ADR-041 §D3)");
             Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(3), locked), "锁 ⇒ 不可载入");
 
+            // 唯一的共同拒绝子句:叙事上下文门(AC-7a-19 (c))
             var outside = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 0U);
             Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), outside), "上下文外 ⇒ 不可写");
             Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(3), outside), "上下文外 ⇒ 不可载入");
+
+            // 高水位不再是任何一条的拒绝子句(覆盖合法)
+            var stale = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 9U);
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), stale),
+                "slot < 高水位 不再挡写");
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(3), stale), "也从不挡读");
         }
 
         // ══════════════════════════════════════════════════════════════════

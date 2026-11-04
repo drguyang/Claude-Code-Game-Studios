@@ -123,10 +123,11 @@ namespace DaYiJingCheng.Sim.Codec
                         : $"save_{slotSeq}.bin";
             string finalPath = Path.Combine(basePath, stem);
             // 保留槽的旁路文件是 `xxx.bin.bak`,手动槽是 `save_{n}.bak` —— 两种形状必须分开。
-            // 🔁 2026-11-04(`TD-persist-19`):手动槽的 `.bak` **不参与** —— 判据归
-            //    `SaveSlotLedger.FallsBackToBak`(与 `SaveService.LoadBytes` 同一条)。
-            //    盘上若有旧残留 `save_N.bak`,`Load` 读不出来,探针也就**不能**说它有档。
-            string bakPath = SaveSlotLedger.FallsBackToBak(slotSeq)
+            // 🔁 2026-11-04(ADR-041 §D4):**占用态**判据 = `ProbeCountsBak`(手动槽 false)。
+            //    覆盖开启后手动槽也会产生 `.bak`(旧版留底),但它不代表「现在有档」——
+            //    读侧回退另有一条 `ReadFallsBackToBak`(恒 true),两条**不得混用**,
+            //    否则会重造 `TD-persist-19` 那条「屏上说有档 / 读档是空」的分叉。
+            string bakPath = SaveSlotLedger.ProbeCountsBak(slotSeq)
                 ? Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak")
                 : null;
 

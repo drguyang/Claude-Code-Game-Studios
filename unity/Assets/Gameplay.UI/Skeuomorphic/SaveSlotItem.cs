@@ -61,6 +61,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public void Apply(in SaveSlotView view)
         {
+            // ⚠️ 行被重新填充 ⇒ 二段态作废(墨字背后的行文字要变,留着两枚旧墨字会自相矛盾)。
+            ExitChoice();
             IsEmpty = !(view.Known && view.HasSave);
             // class 是**墨色**通道(空行格线 vs 有档墨迹),与文字通道相互独立 ——
             // 只有一条通道时,「格线色差」在低对比度设置下会单独失效。
@@ -83,6 +85,93 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (view.DayNumber <= 0L) return Numeral(view.SlotSeq);
             return Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日" +
                    (view.IsNight ? " 夜" : " 昼");
+        }
+
+        /// <summary>「启封」墨字的元件名(观测面)。</summary>
+        public const string OpenChoiceName = "slot-open";
+
+        /// <summary>「重写」墨字的元件名(观测面)。</summary>
+        public const string RewriteChoiceName = "slot-rewrite";
+
+        private VisualElement _choiceHost;
+        private VisualElement _openChoice;
+        private VisualElement _rewriteChoice;
+        private System.Action _onOpen;
+        private System.Action _onRewrite;
+
+        /// <summary>本行是否正处于「二段态」(行内已出示两枚墨字)。</summary>
+        public bool IsArmed => _choiceHost != null;
+
+        /// <summary>「启封」墨字(<c>null</c> = 未进入二段态;观测面)。</summary>
+        public VisualElement OpenChoice => _openChoice;
+
+        /// <summary>「重写」墨字(<c>null</c> = 未进入二段态;观测面)。</summary>
+        public VisualElement RewriteChoice => _rewriteChoice;
+
+        /// <summary>
+        /// 进入**行内二段态**(ADR-041 §D5):行内文字让位,出示两枚可焦点墨字
+        /// 「启封」/「重写」。**零系统弹窗** —— 这是 7b 的幻想纪律(`AC-7b-07`),
+        /// 先例 = 主菜单删除世界的行内二次确认。
+        /// </summary>
+        /// <param name="onOpen">「启封」= 请求载入(<c>TryLoad</c>)。</param>
+        /// <param name="onRewrite">「重写」= 请求覆写(<c>TrySaveAt</c>)。</param>
+        /// <param name="openDisabled">该槽已锁(读档即锁)⇒ 「启封」灰置且**不可获焦**
+        /// —— 焦点必须落到仍可执行的那一枚上,否则手柄玩家按下去又是「没反应」。</param>
+        public void EnterChoice(System.Action onOpen, System.Action onRewrite, bool openDisabled)
+        {
+            ExitChoice();
+
+            _mark.style.display = DisplayStyle.None;
+
+            _onOpen = onOpen;
+            _onRewrite = onRewrite;
+
+            _choiceHost = new VisualElement { name = "slot-choice" };
+            _choiceHost.AddToClassList("save-slot-choice");
+
+            _openChoice = MakeChoice(OpenChoiceName, "启封", () => ActivateOpen());
+            _rewriteChoice = MakeChoice(RewriteChoiceName, "重写", () => ActivateRewrite());
+
+            // 灰置 = 墨色通道 + **退出焦点序**(关闭模式的手柄玩家不得停在一条按不出结果的墨字上)。
+            _openChoice.SetEnabled(!openDisabled);
+            _openChoice.focusable = !openDisabled;
+            if (openDisabled) _openChoice.AddToClassList("save-slot-choice-disabled");
+
+            _choiceHost.Add(_openChoice);
+            _choiceHost.Add(_rewriteChoice);
+            Add(_choiceHost);
+        }
+
+        /// <summary>「启封」的**执行体**(事件与夹具共用的唯一出口)。</summary>
+        public void ActivateOpen() => _onOpen?.Invoke();
+
+        /// <summary>「重写」的**执行体**(事件与夹具共用的唯一出口)。</summary>
+        public void ActivateRewrite() => _onRewrite?.Invoke();
+
+        /// <summary>退出二段态(墨字合回,行复原)。幂等。</summary>
+        public void ExitChoice()
+        {
+            if (_choiceHost == null) return;
+            _choiceHost.RemoveFromHierarchy();
+            _choiceHost = null;
+            _openChoice = null;
+            _rewriteChoice = null;
+            _onOpen = null;
+            _onRewrite = null;
+            _mark.style.display = DisplayStyle.Flex;
+        }
+
+        /// <summary>建一枚墨字(两条输入路径 —— 手柄 Submit / 指针 Click —— 汇到同一出口)。</summary>
+        private static VisualElement MakeChoice(string name, string text, System.Action activate)
+        {
+            var element = new VisualElement { name = name };
+            element.AddToClassList("save-slot-choice-glyph");
+            element.focusable = true;
+            var label = new Label(text);
+            element.Add(label);
+            element.RegisterCallback<NavigationSubmitEvent>(_ => activate?.Invoke());
+            element.RegisterCallback<ClickEvent>(_ => activate?.Invoke());
+            return element;
         }
 
         /// <summary>

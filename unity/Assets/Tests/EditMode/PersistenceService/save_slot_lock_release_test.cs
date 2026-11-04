@@ -140,18 +140,26 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "磁盘上有 save_3..save_5 ⇒ 本会话下一可写槽必须是 6;从 3 起就是跨会话覆盖");
         }
 
+        /// <summary>
+        /// 🔁 **2026-11-04 改判(ADR-041 §D2/§D4)**:跨会话**显式覆写**既有槽位现在**允许**,
+        /// 且旧版必须留进 `.bak`(上一版可抢救)。
+        /// <para>⚠️ 原判据是「跨会话覆盖被拒」—— 它守的是 `TD-persist-15` 那条**意外**覆盖
+        /// (高水位每会话复位);那一半仍由 `test_crossSession_nextSaveLandsOnFirstFreeSlot`
+        /// 守着(**追加**仍落第一个空槽)。本条改成断「显式覆写是有意为之且有留底」。</para>
+        /// </summary>
         [Test]
-        public void test_crossSession_existingSlot_isRefusedAndBytesUnchanged()
+        public void test_crossSession_explicitOverwrite_isAllowed_andKeepsPrevious()
         {
             WriteSentinel(_testDir, 3, "SESSION-1-A");
             SaveService svc = MakeService(NewStream(), seed: SaveService.MinManualSlotSeq);
 
-            Assert.Throws<InvalidDataException>(
-                () => svc.Checkpoint(new SaveSlot(3)),
-                "覆盖既有槽位必须由 7a 拒绝(GDD 规则十四),而不是被 EnsureWritable 放行");
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(3)),
+                "显式覆写既有槽位自 ADR-041 起合法");
 
-            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_3.bin")), Is.EqualTo("SESSION-1-A"),
-                "拒写之后旧档字节必须逐字不变 —— 只断「抛了没」不足以证明没写坏");
+            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_3.bak")), Is.EqualTo("SESSION-1-A"),
+                "被覆写的那一版必须留在 `.bak`(ADR-041 §D4:上一版可回退)");
+            Assert.That(File.ReadAllText(Path.Combine(_testDir, "save_3.bin")),
+                Is.Not.EqualTo("SESSION-1-A"), "final 已被新内容顶替");
         }
 
         [Test]

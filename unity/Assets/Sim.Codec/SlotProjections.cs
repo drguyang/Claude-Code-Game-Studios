@@ -1,9 +1,10 @@
 // ADR-010 §六 / 7b F-7b.2 —— 槽位两投影(纯函数)。
 //
 // 权威来源:
-//   design/gdd/save-slot-ui.md:206-207 —— 两条公式逐字
-//     Writable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t) ∧ slot_seq(slot) ≥ next_writable_seq
-//     Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
+//   design/gdd/save-slot-ui.md:206-207 —— 两条公式
+//     🔁 2026-11-04(ADR-041 §D2/§D3,用户裁定「覆盖合法」)就地改判:
+//     Writable(slot) ⟺ InNarrativeContext(t)                       ← 原式还带 ¬Locked 与 slot_seq ≥ 高水位
+//     Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)       ← 不变
 //   design/gdd/save-slot-ui.md:212-214 —— 三个输入量(Locked / InNarrativeContext /
 //     next_writable_seq)**全部归 7a**,7b 只呈现
 //   design/gdd/persistence-service.md 规则十四 —— 只进不退 / 读档即锁 / 载入安全上下文门
@@ -72,20 +73,27 @@ namespace DaYiJingCheng.Sim.Codec
     public static class SlotProjections
     {
         /// <summary>
-        /// `Writable(slot) ⟺ ¬Locked ∧ InNarrativeContext ∧ slot_seq ≥ next_writable_seq`。
-        /// <para>第三条子句即 `AC-7a-19 (b)`「覆盖既有槽位 ⇒ 被拒」的判据面 ——
-        /// 写过 `slot_seq = n` 之后高水位变 `n+1`,再写 `n` 不满足 `≥`。</para>
+        /// `Writable(slot) ⟺ InNarrativeContext`。
+        /// <para>🔁 **2026-11-04(ADR-041 §D2 / §D3,用户裁定)**:原式
+        /// `¬Locked ∧ InNarrativeContext ∧ slot_seq ≥ next_writable_seq` 的**两条子句被删**:</para>
+        /// <list type="bullet">
+        ///   <item>`slot_seq ≥ next_writable_seq`(只进不退)不再是写入门 —— 覆盖合法;</item>
+        ///   <item>`¬Locked` 也不再挡写 —— 锁拒的是 **reads 侧**,覆写一个已锁槽是允许的
+        ///         (且覆写**不清锁**,见 `SaveSlotLedger.OnCheckpointCommitted`)。</item>
+        /// </list>
+        /// <para>⇒ 写与读现在**不再对称**:`Writable` 是 `Loadable` 的真超集。
+        /// 槽位号仍作形参保留(调用方语义、签名稳定),但**不参与判定**。</para>
         /// </summary>
         public static bool Writable(SaveSlot slot, in SlotContext ctx)
-            => !ctx.Locked && ctx.InNarrativeContext && slot.SlotSeq >= ctx.NextWritableSeq;
+            => ctx.InNarrativeContext;
 
         /// <summary>
         /// `Loadable(slot) ⟺ ¬Locked ∧ InNarrativeContext`。
         /// <para>**刻意不读 <see cref="SlotContext.NextWritableSeq"/>** ——
-        /// 载入与「只进不退」无关。两条投影因此各有一条独有的拒绝子句
-        /// (Writable 独有 `slot_seq` 子句,Loadable 独有 —— 无),
-        /// 这正是「各配独立灰置通道」的可证形态:存在一个状态使
-        /// `Writable = false` 而 `Loadable = true`(高水位未到),反之不成立。</para>
+        /// 载入与高水位无关。</para>
+        /// <para>🔁 **2026-11-04(ADR-041 §D3)**:写侧不再看锁(见 <see cref="Writable"/>)
+        /// ⇒ 两条投影的包含关系**反转**为 `Writable ⊇ Loadable`。
+        /// 屏上的呈现也随之分开:已锁行的「启封」灰置、**「重写」仍可用**。</para>
         /// </summary>
         public static bool Loadable(SaveSlot slot, in SlotContext ctx)
             => !ctx.Locked && ctx.InNarrativeContext;

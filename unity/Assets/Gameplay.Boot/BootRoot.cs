@@ -1020,7 +1020,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () => _uiDriver?.MarkSaveSlotRowsDirty(),
                 // 🔁 ADR-038 §D3(2026-11-03):读档成功 ⇒ 用该档记录的时间三参数覆盖运行时参数。
                 //    ⚠️ 不覆盖 = 用当前构建的值重放旧档 ⇒ 日边界 / 昼夜 / 52 的 TODMult 全错位。
-                HydrateTimeParamsAfterLoad);
+                HydrateTimeParamsAfterLoad,
+                // 🔁 2026-11-04(ADR-041 §D8):落笔失败走**自己的**记录面 ——
+                //    共用 `LogLoadFailure` 会把「覆盖被拒」打成「[7b][载入] … 载入失败」。
+                saveFailureSink: LogSaveFailure);
             _uiDriver.SaveSlotSink = _saveSlotCommands;
 
             // 🔁 2026-11-03(甲方案第一层):槽位行**每次开册重探磁盘**。
@@ -2262,7 +2265,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                             // 公式逐字照 time-and-weather.md:189-203)。
                             // ⚠️ 唯一实现 = `Sim.World.TimeBase`(全仓曾有两套,见其文件头)。
                             isNight: rowTime != null
-                                && Sim.World.TimeBase.IsNight(summary.Tick, rowTime));
+                                && Sim.World.TimeBase.IsNight(summary.Tick, rowTime),
+                            // 🔁 2026-11-04(ADR-041 §D5):锁态归 7a(会话内存),
+                            //    42 只呈现 —— 已锁行的「启封」灰置、只留「重写」。
+                            isLocked: saves.Ledger != null
+                                      && saves.Ledger.IsLocked(new Sim.Codec.SaveSlot(seq)));
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
@@ -2329,6 +2336,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
             UnityEngine.Debug.LogError(
                 "[7b][载入] 槽位 " + slot + " 载入失败(界面已受理、判定归 7a):" + ex);
+        }
+
+        /// <summary>
+        /// 落笔失败的记录面(ADR-041 §D8)。与 <see cref="LogLoadFailure"/> **刻意分开** ——
+        /// 共用会让「覆写被拒」在日志里显示成「载入失败」。
+        /// <para>受检形态:槽号 0 · 不在叙事上下文 · 组版返回 null · 写队列未注入。
+        /// 报文**点名门名**(异常类型 + 首句),不只打整段异常。</para>
+        /// </summary>
+        private static void LogSaveFailure(uint slot, System.Exception ex)
+        {
+            string gate = ex is System.IO.InvalidDataException
+                ? (ex.Message.StartsWith("槽号 0", System.StringComparison.Ordinal) ? "槽号非法" : "数据非法")
+                : ex is System.InvalidOperationException
+                    ? "叙事上下文 / 装配缺失"
+                    : ex.GetType().Name;
+            UnityEngine.Debug.LogError(
+                "[7b][落笔] 槽位 " + slot + " 落笔被拒(门:" + gate + "):" + ex.Message);
         }
 
         /// <summary>

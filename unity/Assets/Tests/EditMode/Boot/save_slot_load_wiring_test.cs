@@ -206,6 +206,8 @@ namespace DaYiJingCheng.Tests.Boot
             public int SaveCalls;
             public bool TryLoad(uint slotSeq) { Calls.Add(slotSeq); return true; }
             public bool TrySave() { SaveCalls++; return true; }
+            public bool TrySaveAt(uint slotSeq) { SaveAtCalls.Add(slotSeq); return true; }
+            public readonly List<uint> SaveAtCalls = new List<uint>();
         }
     }
 }

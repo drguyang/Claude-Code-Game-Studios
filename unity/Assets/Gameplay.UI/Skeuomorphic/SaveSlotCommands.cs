@@ -40,5 +40,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <returns><c>true</c> = 装配层已受理(已入写队列);<c>false</c> = 未受理
         /// (未接线 / 被门拒绝 —— 判定归装配层,42 只据此不给「成功」反馈)。</returns>
         bool TrySave();
+
+        /// <summary>
+        /// 请求**落笔到指定槽**(ADR-041 §D1 / §D2):空槽行 Submit,或已有档行二段态里选「重写」。
+        /// <para>⚠️ 42 **不判**这个槽能不能写 —— 叙事上下文门 / 槽号合法性全在 7a 的
+        /// `Checkpoint` 内;被拒 ⇒ 返回 <c>false</c> 并留记录,屏只画页角注(`AC-7b-02`)。</para>
+        /// <para>⚠️ 覆盖既有槽位自 2026-11-04 起**合法**(ADR-041 §D2) —— 本方法不再是
+        /// 「一定被拒」的形态;能否写由 7a 决定。</para>
+        /// </summary>
+        /// <param name="slotSeq">目标槽位序号。</param>
+        /// <returns><c>true</c> = 装配层已受理(已入写队列);<c>false</c> = 未受理 / 被门拒绝。</returns>
+        bool TrySaveAt(uint slotSeq);
     }
 }

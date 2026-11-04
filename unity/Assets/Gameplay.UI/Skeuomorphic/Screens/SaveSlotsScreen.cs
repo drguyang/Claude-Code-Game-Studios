@@ -107,6 +107,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>「新行」(落笔入口;<c>null</c> = 尚未收到槽位清单)。</summary>
         private SaveSlotItem _writableRow;
         private int _pageIndex;
+        /// <summary>处于二段态的**页内**行号(<c>-1</c> = 无;ADR-041 §D5)。</summary>
+        private int _armedRowIndex = -1;
+
+        /// <summary>处于二段态的行号(观测面;<c>-1</c> = 没有任何一行展开)。</summary>
+        public int ArmedRowIndex => _armedRowIndex;
 
         /// <summary>创建存档位界面。</summary>
         public SaveSlotsScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
@@ -261,6 +266,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
             _rows.Clear();
             _slots.Clear();
+            // 行随页重建 ⇒ 二段态作废(旧行连同它的两枚墨字一起被拆掉)。
+            _armedRowIndex = -1;
             if (_writableRow != null) { _writableRow.RemoveFromHierarchy(); _writableRow = null; }
 
             int start = _pageIndex * PageCapacity;
@@ -374,7 +381,64 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         public void Activate(int rowIndex)
         {
             if (rowIndex < 0 || rowIndex >= _slots.Count) return;
-            _sink?.TryLoad(_slots[rowIndex]);
+
+            SaveSlotView view = ViewOfRow(rowIndex);
+
+            // ① **未绑定**(装配层没探到状态)⇒ 不声称任何事,维持旧的「尝试载入」路径。
+            if (!view.Known)
+            {
+                _sink?.TryLoad(_slots[rowIndex]);
+                return;
+            }
+
+            // ② **空槽** ⇒ 直接落笔(ADR-041 §D1;7b spec `:228` 的「空行 Submit」)。
+            if (!view.HasSave)
+            {
+                DisarmRow();
+                _sink?.TrySaveAt(_slots[rowIndex]);
+                return;
+            }
+
+            // ③ **已有档** ⇒ 行内二段态(§D5):第一次 Submit 只出示两枚墨字,不动作。
+            if (_armedRowIndex == rowIndex) return;   // 墨字已摊开 ⇒ 由它们接手
+            ArmRow(rowIndex, view);
+        }
+
+        /// <summary>第 <paramref name="rowIndex"/> 行(页内)对应的视图。</summary>
+        private SaveSlotView ViewOfRow(int rowIndex)
+        {
+            int index = _pageIndex * PageCapacity + rowIndex;
+            return index >= 0 && index < _views.Count ? _views[index] : default;
+        }
+
+        /// <summary>
+        /// 进入某行的二段态并落焦(默认落「启封」= 安全侧;已锁槽落「重写」)。
+        /// <para>⚠️ 无指针形态:焦点必须**落到其中一枚墨字上**,否则手柄玩家按完第一下就卡住。</para>
+        /// </summary>
+        private void ArmRow(int rowIndex, in SaveSlotView view)
+        {
+            DisarmRow();
+            SaveSlotItem row = RowAt(rowIndex);
+            if (row == null) return;
+
+            uint seq = _slots[rowIndex];
+            row.EnterChoice(
+                onOpen: () => { DisarmRow(); _sink?.TryLoad(seq); },
+                onRewrite: () => { DisarmRow(); _sink?.TrySaveAt(seq); },
+                openDisabled: view.IsLocked);
+
+            _armedRowIndex = rowIndex;
+
+            VisualElement focus = view.IsLocked ? row.RewriteChoice : row.OpenChoice;
+            if (focus != null && focus.panel != null) focus.Focus();
+        }
+
+        /// <summary>合回二段态(幂等;翻页 / 重画 / 选了别的行都会走它)。</summary>
+        private void DisarmRow()
+        {
+            if (_armedRowIndex < 0) return;
+            RowAt(_armedRowIndex)?.ExitChoice();
+            _armedRowIndex = -1;
         }
 
         /// <summary>

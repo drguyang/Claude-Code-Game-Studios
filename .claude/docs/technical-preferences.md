@@ -1246,7 +1246,14 @@
   **驳回四案**:只补空槽即写(定价理由不成立)· 系统弹窗(违 `AC-7b-07`)· 覆盖 = 先删后写 · 设槽位上限重建稀缺。
   **就地修订三处 GDD 判据**(`save-slot-ui.md` 规则二 / 边界表 / `AC-7b-08`、`persistence-service.md`
   `AC-7a-19 (b)`)与 ADR-010 §四 的一条加注(「玩家槽无 bak」的前提失效)。
-  ⚠️ **本件不实现**:§Validation **V-1…V-9 全部 NOT-RUN(禁借绿)**。
+  🔁 **同日实现轮已落**:`SaveSlotLedger`(删门① / bak 两谓词)· `SaveService`(读侧回退 +
+  「final 缺失只剩 bak ⇒ 空槽」与探测同向)· `SaveSlotProbe` · `SlotProjections`(Writable 去两子句)·
+  `SaveSlotView.IsLocked` · `SaveSlotItem` 行内二段态 · `SaveSlotsScreen` 三路分流 ·
+  `TrySaveAt` · `LogSaveFailure`(与载入失败分家)· `BootRoot` 挂锁态。
+  §Validation **V-1…V-8 PASS · V-9 NOT-RUN**(日志捕获夹具未建,只主张代码路径已分开)。
+  回归 EditMode `6873/6836/0/37`(+12 = 新增两件夹具)· PlayMode `339/335/0/2/2`(零回归)
+  @ `2026-11-04T13:41:27Z` / `13:42:28Z` · `ceac3539` + 工作树;
+  原件 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md`。
   Engine Knowledge Risk **LOW**(纯 C# + UI Toolkit 行内态,零 post-cutoff API;`Sim` 引用集一字不改)。
 
 > **本日志状态**:全部 ADR(001–**041**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,

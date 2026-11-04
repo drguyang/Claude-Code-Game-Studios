@@ -16733,3 +16733,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **已知损失**:游戏内无切换世界 / 无删除世界入口(旧局不可达、世界目录只增不减)。
 - 原件 = `production/qa/evidence/impl-main-menu-fixed-rows-2026-11-04.md`。
 - **待提交**。
+
+## ADR-041 实现轮:存档槽覆盖语义(2026-11-04)
+
+- 用户「实现 ADR-041」。四件事落地:
+  ① **空槽行 Submit = 落笔到它自己的槽号**(7b spec `:228` 的「空行 Submit」首次真落地);
+  ② **覆盖既有槽位 = 允许**(`SaveSlotLedger` 门① 删除),**覆写不清锁**(`_locked` 只在叙事锚点清);
+  ③ **行内二段态**:已有档行第一次 Submit 只出示「启封 / 重写」两枚墨字,**零系统弹窗**;
+     已锁行「启封」灰置并退出焦点序;
+  ④ **`.bak` 判据拆两半**:`ProbeCountsBak`(占用态,手动槽 false)/ `ReadFallsBackToBak`(回读,恒 true)。
+- 反 scum 的承重结构随之写清:读档即锁 + 叙事上下文门,**不再**靠槽号单调
+  (旧「每页 = 一次免费重试」的定价在主动手槽无上限 + 不裁剪时从不成立)。
+- 实跑修正:① `System.InvalidDataException` 不存在(应为 `System.IO.*`);② 4 条既有夹具按旧判据
+  转红 ⇒ **换判据不是放宽**(闭合回路断点移到锁上 / 投影真值表重算 / 跨会话覆写改为「允许且留 bak」)。
+- 回归:EditMode `6873/6836/0/37`(+12 = 新增 6+6)· PlayMode `339/335/0/2/2`(零回归)
+  @ `2026-11-04T13:41:27Z` / `13:42:28Z` · `ceac3539` + 工作树。
+- 文档:`save-slot-ui.md` 规则二改判 / `AC-7b-08` 改写 · `persistence-service.md` `AC-7a-19 (b)` ·
+  `save-slots-7b.md` 交互表 · `adr-010 §四` 两段改判注 · `adr-041` §Validation(V-1…V-8 PASS,**V-9 NOT-RUN**)。
+- 原件 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md`。
+- **待提交**。

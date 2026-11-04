@@ -28,6 +28,9 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
             public int LoadCount;
             public bool TryLoad(uint slotSeq) { LastLoad = slotSeq; LoadCount++; return true; }
             public bool TrySave() => true;
+            public bool TrySaveAt(uint slotSeq) { LastSaveAt = slotSeq; SaveAtCount++; return true; }
+            public uint LastSaveAt;
+            public int SaveAtCount;
         }
 
         private static SaveSlotsScreen NewScreen(out RecordingSink sink)
