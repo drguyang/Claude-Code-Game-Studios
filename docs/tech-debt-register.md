@@ -471,6 +471,7 @@
 | `TD-skeuo-10` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-11` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-12` | `skeuomorphic-ui` | closed | **N** | R1 |
+| `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -604,6 +605,17 @@ PYEVAL
 > 单一变化源:`TD-persist-20` 索引行 `open → partial`。
 > ⚠️ **为什么是 partial 不是 closed**:「新起一局 + 选世界」已落地并有用例;
 > **删除世界(D6)**与**真启动序的端到端**仍缺,且 `OQ-MM-5` 的「退出」一项仍未裁。
+
+> > 🔁 **七十一订(`TD-skeuo-13` 立债 · 2026-11-04 · 视觉走查第二眼)** ——
+> 用户指令「实际去看看目前的存档和启动界面是否符合视觉预期」第二轮(换成**真 7a 数据**的走查)。
+> 同轮修掉一处**存档缺陷**(全新档第一局被编号成「第 2 局」,`w1/` 永不出现),但那处**已修**、不立债。
+> 变化:`open 17 → 18`(+1)· `closed 157 不动` · `partial 3 不动` ·
+> **`未闭 P0 面 8 不变**(本条判 N) · `skeuomorphic-ui` 未闭 P0 面 **仍 2** · 条目数 **178 → 179**。
+> (复算:`python3 tools/debtcount/debtcount.py` ⇒ `条目 179` / `open 18` / `未闭 P0 面 = 8` /
+> `skeuomorphic-ui: 2`。⚠️ 本行首版写成 `2 → 3`,是**把 N 当成会计入未闭 P0 面**的算错,已就地订正。)
+> 单一变化源:新增 `TD-skeuo-13` 索引行(`open` / P0 面 **N**)。
+> ⚠️ **判 N 的理由**:位置是 spec 认过的(`pause-shell-42.md:342`),缺的只是宽度/容器契约;
+> 列表仍可读、可点、可跳 — 是**视觉一致性**问题,不是可用性不成立。
 
 > > 🔁 **七十订(`TD-persist-20` 结案 · 2026-11-04 · 真启动序轮)** ——
 > 用户指令「补真启动序的 PlayMode 判据」⇒ 新件 `multi_world_boot_wiring_test` 2 条。
@@ -1208,7 +1220,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 178 | 状态 {'closed': 157, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 179 | 状态 {'closed': 157, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 53, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 8 （已闭但曾标 P0 面的 112 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        processing: 1
@@ -5080,6 +5092,19 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① 定「模态屏纵向定位」的权威口径(居中 / 贴顶 + 上边距);② 改**容器**一处(不给每屏各写一份 margin);③ 重跑 `pause_focus_navigation_test` / `save_slots_page_geometry_test`(它们按 `worldBound` 判几何);④ 视觉走查复看。 |
 | **触发条件** | 42 的布局轮 / 任一 must-fix 的观感缺陷轮。 |
 | **归属** | **42**(容器与 USS)· 视觉判读 = 人工面 |
+
+### TD-skeuo-13 — 急救候选列表**没有容器定位/宽度契约**:「跳过」被渲染成横贯全屏的米色纸带
+
+> **⚠️ 2026-11-04 立债**(由用户指令「实际去看看目前的存档和启动界面是否符合视觉预期」的**第二轮**走查抓到)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `EmergencyCandidateList.Root`(`EmergencyCandidateList.cs:44`)是**裸 `VisualElement`** —— 零类、零定位;`EmergencyCandidateRuntime.MountTo` 直接 `root.Add(_list.Root)` 挂到 UI 根。UI Toolkit 的默认 `align-items: stretch` ⇒ 列表根**撑满屏宽**;<br>而样式上只有 `.skip-entry` 有纸底(`SkeuoPaper.uss:185` 的 `background-color`),`.candidate-entry` 只有 `min-width` ⇒ 画面上是「左上角两条**贴在深色背景上**的无底文字(止血 / 通气)+ 一条横贯 **1920px** 的米色纸带(跳过)」。<br>⚠️ **位置本身不是缺陷**:`design/ux/pause-shell-42.md:342` 逐字认过「左上角三行 止血 / 通气 / 跳过 是**急救候选列表**(游戏内容),不计入」;缺的是**宽度/容器**契约。 |
+| **实测(逐条可跑)** | ① `grep -n "_root = new VisualElement" unity/Assets/Gameplay.UI/Skeuomorphic/EmergencyCandidateList.cs` ⇒ `:44`,**该行零 `AddToClassList`**;全类无 `style.position` / `style.width`;<br>② `grep -n "background-color" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoPaper.uss` ⇒ 只有 `.skip-entry` 段有(候选项段 `:203` 只有 `min-width`);<br>③ 画面:`unity/Logs/shots/mw_07_saveslots_realboot.png`(1920×1080,左上角即上述形态)。 |
+| **为什么本轮不擅改** | 「列表该贴哪一侧、多宽、要不要纸底」是**视觉方向**;而候选列表的**内容**归 10(`EmergencyCandidateRuntime` 头注自陈「动作判定 / Idle 可达时序 / 候选动作点击行为全归 10 + 数据绑定轮」)。在 42 单方面给宽度 = 替 10 定形态。 |
+| **解除动作** | ① 定「候选列表容器」的形态口径(宽度 / 贴边 / 是否给整块纸底);② 在**载体**一处落地(加一个容器类,不给每个候选项各写一份);③ 视觉走查复看(真启动序帧);④ 若形态改变焦点几何,重跑 `emergency_skip_entry_test` / 相关焦点夹具。 |
+| **触发条件** | ① 42 的下一轮视觉统一轮;② 候选列表接**真动作表**(10 / 21a)时;③ 或任何以「候选列表形态已定」引用之前(**禁借绿**)。 |
+| **归属** | **42**(载体与 USS)× **设计**(形态裁定)× **10**(内容与时序) |
 
 ### TD-skeuo-10 — 九宫格冻结件的「重画即重冻」义务未执行(8 张图已被替换)
 

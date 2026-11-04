@@ -218,8 +218,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    都会指向一个完全不同的世界。
             int next = 1;
             foreach (string dir in Directory.GetDirectories(_root))
-                if (TryParseWorldDir(Path.GetFileName(dir), out int seq) && seq >= next)
+                // ⚠️ **空目录不算已用序号**(2026-11-04 实测修复):`SaveService` 的构造会**建目录**
+                //    ⇒ 全新档启动时默认世界 `w1/` 会先被建出来但一件东西都没写。
+                //    若把它算进高水位,全新档的第一局会被编号成 **2** —— 玩家唯一的那个世界
+                //    叫「第 2 局」,而 `w1/` 永远不存在(日志实测 D5 切换 `w1 → w2`)。
+                if (TryParseWorldDir(Path.GetFileName(dir), out int seq) && seq >= next && HasWorldContent(dir))
                     next = seq + 1;
+            // 索引条目**全部**计入(含墓碑):删掉的世界必须保住它的号,否则号会被复用
+            // (ADR-040 D2)。⇒ 幽灵条目只能从源头拦(`BootRoot.TouchWorld` 不写还没成形的世界)。
             foreach (int seq in ReadIndex().Keys)
                 if (seq >= next) next = seq + 1;
 
@@ -247,6 +253,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    而任何还记着该号的地方会指向一个完全不同的世界(ADR-040 D2「只增不减」)。
             //    `ListWorlds` 只列**目录**,所以墓碑不会出现在菜单上。
             return true;
+        }
+
+        /// <summary>
+        /// 目录里**至少有一件东西**(存档 / 会话未完整标志)⇒ 这个世界已经成形。
+        /// <para>⚠️ 只看「目录存在」不够:7a 的 `SaveService` 构造会建目录,而全新档的
+        /// 默认世界路径正是 <c>w1/</c> —— 建了目录不等于开了局。</para>
+        /// <para>读不到(IO 错)⇒ **保守当已用**:宁可跳号,也不冒险复用别人的序号。</para>
+        /// </summary>
+        private static bool HasWorldContent(string dir)
+        {
+            try { return Directory.GetFiles(dir).Length > 0; }
+            catch (Exception) { return true; }
         }
 
         /// <summary>

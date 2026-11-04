@@ -1331,6 +1331,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             if (_worldCatalog == null) return;
             if (!WorldCatalog.TryParseWorldDir(Path.GetFileName(worldDir), out int seq)) return;
+            // ⚠️ **还没成形的世界不记时刻**(2026-11-04 实测):全新档启动时默认世界是
+            //    `w1/` 这个**预定路径**(目录由 `SaveService` 构造建出,里面空的)。
+            //    若此刻写进索引,`CreateWorld` 的高水位会把它当已用序号 ⇒ 玩家的第一局
+            //    被编号成「第 2 局」,而 `w1/` 永远不存在。⇒ 有内容了才算「游玩过」。
+            if (!Directory.Exists(worldDir)) return;
+            if (Directory.GetFiles(worldDir).Length == 0) return;
             try
             {
                 _worldCatalog.Touch(seq, DateTime.UtcNow.Ticks);

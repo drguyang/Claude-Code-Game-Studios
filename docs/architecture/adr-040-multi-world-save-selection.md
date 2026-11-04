@@ -107,6 +107,16 @@ if (!found || tick > bestTick)            // :329
 `FirstSessionSave` **零改动**即生效:新世界目录里没有档 ⇒ 守卫通过 ⇒ 写一份自动档
 (这就是 2026-11-04 那条「首份存档」在分目录后的自然形态)。
 
+🔁 **2026-11-04 视觉走查轮订正(序号的「成形」判据)**:首发实现里**全新档的第一局被编号成
+「第 2 局」**,且 `w1/` 永远不存在。两个来源叠加:① 启动序 1.9 装配 `SaveService` 时其构造器
+**建目录**(`SaveService.cs:222`)⇒ 默认世界路径 `w1/` 被建出来但一件东西都没写;
+② `BootRoot.TouchWorld(默认世界)` 给这个还不存在的世界写了 `worlds.index` 记录。
+而 `CreateWorld` 的高水位把「目录」与「索引键」都当已用序号。
+⇒ 现行语义:**目录高水位只算「已成形」的世界**(目录里至少有文件);
+索引键仍**全部**计数(墓碑必须保住号,D2 不变);`TouchWorld` 对不存在 / 空目录**不写**。
+判据 = `world_catalog_test.test_createWorld_emptyDirectoryDoesNotConsumeSeq` +
+`multi_world_boot_wiring_test.test_firstRun_newWorldLandsInW1_notW2`。
+
 ### D6 — 「删除世界」= 显式动作,二次确认;**不软删**
 
 删目录本身。理由:玩家显式要求删除,而「归档」会让「我的世界去哪了」变成一个无解答的问题

@@ -186,6 +186,44 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // C. 全新档:第一局必须是 w1(不是 w2)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 空根首次启动 ⇒ 第一局落在 <c>w1/</c>。
+        /// <para>⚠️ 这条守的是一个**只在全新档出现**的缺陷(2026-11-04 视觉走查抓到):
+        /// 启动序 1.9 的 `SaveService` 构造会建出默认世界目录 `w1/`(空),而 `TouchWorld`
+        /// 又给这个还不存在的世界写索引条目 ⇒ `CreateWorld` 的高水位把 `w1` 当已用序号,
+        /// 玩家的**唯一**世界被编号成「第 2 局」,且 `w1/` 永远不存在。
+        /// 老档看不出来(它们本来就有 `w1/`),屏级夹具也看不出来(它们自己喂世界表)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_firstRun_newWorldLandsInW1_notW2()
+        {
+            NewRoot();                                  // 空根:一个世界都没有
+
+            yield return BootUntilMenuAppears();
+
+            var menu = _driver.CurrentScreen as MainMenuScreen;
+            Assert.IsNotNull(menu, "启动序应摊开主菜单");
+            Assert.AreEqual(1, menu.RowCount, "没有世界 ⇒ 单行");
+            Assert.AreEqual(MainMenuScreen.StartText, menu.RowTextAt(0), "无档 ⇒「开始诊治」");
+
+            menu.ActivateRow(0);                        // 「开始诊治」= 新起一局
+            yield return WaitForBoot();
+
+            var catalog = new WorldCatalog(_saveRoot);
+            Assert.IsTrue(Directory.Exists(catalog.DirectoryOf(1)),
+                "全新档的第一局必须落在 w1/(幽灵序号会把玩家唯一的局编号成「第 2 局」)");
+            Assert.IsFalse(Directory.Exists(catalog.DirectoryOf(2)),
+                "不得跳到 w2 —— 那是启动序自己的空目录 + 幽灵索引条目合起来顶出来的号");
+
+            string firstSave = Path.Combine(catalog.DirectoryOf(1), SaveService.AutoSaveFileName);
+            yield return WaitForFile(firstSave);
+            Assert.IsTrue(File.Exists(firstSave), "首份存档必须落在 w1/ 里");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 装置
         // ══════════════════════════════════════════════════════════════════
 

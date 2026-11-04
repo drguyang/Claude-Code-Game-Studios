@@ -179,6 +179,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var catalog = new WorldCatalog(_root, clock: () => 1234L);
             Directory.CreateDirectory(catalog.DirectoryOf(1));
             Directory.CreateDirectory(catalog.DirectoryOf(2));
+            // ⚠️ 目录里**要有东西**才算已用的世界:7a 的 `SaveService` 构造会建目录,
+            //    全新档的默认世界路径正是 `w1/` —— 空目录若占号,玩家的第一局会被编号成 2
+            //    (2026-11-04 实测)。空目录的规则另有专条见下。
+            File.WriteAllBytes(Path.Combine(catalog.DirectoryOf(1), "save_3.bin"), new byte[] { 1 });
+            File.WriteAllBytes(Path.Combine(catalog.DirectoryOf(2), "save_3.bin"), new byte[] { 2 });
 
             WorldEntry created = catalog.CreateWorld();
 
@@ -186,6 +191,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.That(Directory.Exists(created.Directory), Is.True);
             Assert.That(catalog.ListWorlds().Count, Is.EqualTo(3));
             Assert.That(catalog.ListWorlds()[0].Seq, Is.EqualTo(3), "刚建的世界时刻最新");
+        }
+
+        [Test]
+        public void test_createWorld_emptyDirectoryDoesNotConsumeSeq()
+        {
+            var catalog = new WorldCatalog(_root, clock: () => 1234L);
+            // 空目录 = 启动了但还没写出任何东西的世界(7a 的 `SaveService` 构造会建它)。
+            Directory.CreateDirectory(catalog.DirectoryOf(1));
+
+            WorldEntry created = catalog.CreateWorld();
+
+            Assert.That(created.Seq, Is.EqualTo(1),
+                "空目录不是「已用序号」—— 否则全新档的第一局被编号成 2,而 w1/ 永远不存在");
+            Assert.That(created.Directory, Is.EqualTo(catalog.DirectoryOf(1)),
+                "第一局就该落在 w1/(不是另开一个 w2)");
         }
 
         [Test]

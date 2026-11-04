@@ -16672,3 +16672,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6862/6825/0/37`(同值)· PlayMode `336/332/0/2/2`(+2/+2)@ `2026-11-04T07:03:24Z` · `781d5ef8` + 工作树。
 - 原件 §10 = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md`;spec 已补「行重建后的焦点」一行 + `AC-MM-14` 焦点载体。
 - **待提交**。
+
+## 视觉走查第二眼 + 世界序号修复(2026-11-04)
+
+- 用户再发同一指令。这轮把存档册换成**真 7a 数据**(空根 → 开始诊治 → 启动序跑完 → 生产 provider 开册),
+  并新增两帧 `mw_06_menu_first_run` / `mw_07_saveslots_realboot`。
+- ⚠️ **走到真数据才暴露的缺陷**:全新档的**唯一世界被编号成「第 2 局」**,`w1/` 永不出现
+  (`[ADR-040 D5] 切换目录 w1 → w2` 实锤)。两源:① `SaveService` 构造建出空 `w1/`;
+  ② `TouchWorld` 给不存在的世界写索引。修:目录高水位只算**已成形**世界(`HasWorldContent`)+
+  `TouchWorld` 不写空目录/不存在目录;索引墓碑仍全计(D2 不变)。
+- 判据:`multi_world_boot_wiring_test.test_firstRun_newWorldLandsInW1_notW2` +
+  `world_catalog_test.test_createWorld_emptyDirectoryDoesNotConsumeSeq`(既有 `…allocatesNextSeq…`
+  夹具同步补「目录里要有档」前置 —— 夹具随语义更新,不是改判据迁就实现)。
+- 证伪:M1b(空目录也算已用)/ M2(不拦未成形世界)**各打一枪**,都红在「不得跳到 w2」。
+  ⚠️ **M1 首枪作废**(变异语法写坏 ⇒ 编译失败,那一轮 XML 不是这条测试)。
+- **新债 `TD-skeuo-13`**(七十一订,open/P0 **N**):急救候选列表无容器宽度契约 ⇒
+  「跳过」渲染成横贯 1920px 的米色纸带;位置本身是 `pause-shell-42.md:342` 认过的,**本轮不擅改**。
+- 回归:EditMode `6863/6826/0/37`(+1)· PlayMode `338/334/0/2/2`(+2/+2)@ `2026-11-04T10:01:32Z` · `57a3ac9e` + 工作树。
+- 原件 §11 已追加;ADR-040 D5 已加「成形判据」小注。
+- **待提交**。

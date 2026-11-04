@@ -16,12 +16,14 @@
 //        与未捕获异常判红 —— 这就是「console 有没有红错」的机械判据,不靠肉眼)。
 // 不判:观感(纸纹 / 字号 / 墨色)—— 那是 `[L]` 人工面。本件负责**把画面留下来**。
 //
-// 五帧:
+// 七帧:
 //   mw_01_menu_two_worlds   真启动序 · 两个世界:继续诊治 / 第 1 局 / 新起一局 / 删一局
 //   mw_02_delete_select     删除态 · 选目标(每世界一行 + 返回)
 //   mw_03_delete_confirm    删除态 · 待确认(选中那行变「再按一次确认 · 第 N 局」)
-//   mw_04_saveslots_fresh   存档册 · 新局形态(退出 / 自动两槽有档,手动槽空)
-//   mw_05_saveslots_manual  存档册 · 手动留过一档
+//   mw_04_saveslots_fresh   存档册 · 新局形态(固定视图:退出 / 自动两槽有档,手动槽空)
+//   mw_05_saveslots_manual  存档册 · 手动留过一档(固定视图)
+//   mw_06_menu_first_run    **空根**首次启动:单行「开始诊治」
+//   mw_07_saveslots_realboot 存档册 · **真 7a 数据**(启动序 + 首份存档之后,生产 provider 开册)
 
 using System;
 using System.Collections;
@@ -226,7 +228,66 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return Shot("mw_05_saveslots_manual");
         }
 
+        // ══════════════════════════════════════════════════════════════════
+        // ⑥–⑦ 首次启动(空根)+ **真 7a 数据**的存档册
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator walkthrough_firstRun_menuAndRealSaveSlots()
+        {
+            _saveRoot = Path.Combine(Path.GetTempPath(), "dyjq_mwshot_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_saveRoot);         // 空根:一个世界都没有
+
+            _bootGo = new GameObject("BootRoot_FirstRunWalkthrough");
+            _boot = _bootGo.AddComponent<BootRoot>();
+            _boot.BootWithMainMenu = true;
+            _boot.SaveRootOverride = _saveRoot;
+
+            float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
+            while (!_boot.IsMainMenuOpen && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Assert.IsTrue(_boot.IsMainMenuOpen, "[前置] 主菜单须摊开");
+            for (int i = 0; i < 5; i++) yield return null;
+
+            var menu = _driver.CurrentScreen as MainMenuScreen;
+            Assert.IsNotNull(menu, "[前置] 当前场景级屏须是主菜单");
+            Assert.That(menu.RowCount, Is.EqualTo(1), "[前置] 没有世界 ⇒ 单行");
+            Debug.Log($"[MW] 首次启动 rows={menu.RowCount}: {menu.RowTextAt(0)}");
+            LogFocus("first-run-menu");
+            yield return Shot("mw_06_menu_first_run");
+
+            menu.ActivateRow(0);                          // 「开始诊治」= 新起一局
+
+            deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
+            while (!ReadBooted() && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.IsTrue(ReadBooted(), $"{BootTimeoutSeconds}s 内启动序须完成");
+
+            // 7a 的写盘是**异步**的 ⇒ 等文件真落盘(否则册子开出来是空的,归因会错)
+            string autoSave = Path.Combine(_saveRoot, "w1", "save_auto.bin");
+            deadline = Time.realtimeSinceStartup + 10f;
+            while (!File.Exists(autoSave) && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.IsTrue(File.Exists(autoSave),
+                "新局的首份存档须落盘 —— 本节要看的就是**真数据**下的册子");
+
+            // **不注入固定视图**:`BootRoot` 已在启动序里挂好 `SaveSlotViewProvider`(生产路径)
+            Assert.That(_driver.OpenModal(ModalId.SaveSlots), Is.True, "[前置] 存档册须开得出来");
+            var book = _driver.Screen as SaveSlotsScreen;
+            Assert.IsNotNull(book, "[前置] 当前屏须是存档册");
+            for (int i = 0; i < 3; i++) yield return null;
+
+            Debug.Log($"[MW] 真档存档册 page={book.CurrentPage + 1}/{book.PageCount} rows={book.SlotRowCount}");
+            LogFocus("saveslots-real");
+            yield return Shot("mw_07_saveslots_realboot");
+        }
+
         // ── 装置 ──────────────────────────────────────────────────────────
+
+        /// <summary>启动序是否完成(`_booted` 是私有字段 —— 与本仓既有 PlayMode 夹具同法)。</summary>
+        private bool ReadBooted()
+            => _boot != null
+               && (bool)typeof(BootRoot).GetField("_booted",
+                       System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                   .GetValue(_boot);
 
         /// <summary>
         /// 打出当前**焦点对象**(诊断,不改行为)。
