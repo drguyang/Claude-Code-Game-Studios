@@ -2269,14 +2269,26 @@ namespace DaYiJingCheng.Gameplay.Boot
                             // 🔁 2026-11-04(ADR-041 §D5):锁态归 7a(会话内存),
                             //    42 只呈现 —— 已锁行的「启封」灰置、只留「重写」。
                             isLocked: saves.Ledger != null
-                                      && saves.Ledger.IsLocked(new Sim.Codec.SaveSlot(seq)));
+                                      && saves.Ledger.IsLocked(new Sim.Codec.SaveSlot(seq)),
+                            // 🔁 2026-11-05(`TD-persist-22` 册子半边):只剩备份 ⇒ 行上标「前版」。
+                            //    ⚠️ 注意这里的 tick / 日子是**备份那一份**的(探针报的就是它)——
+                            //    这正是要让玩家看见的:按下去读到的是旧的那一版。
+                            fromBackup: summary.Source == Sim.Codec.SaveLoadSource.Bak);
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
                                                                    hasSave: false, tick: 0L);
                         break;
+                    case Sim.Codec.SaveSlotState.Corrupt:
+                        // 🔁 2026-11-05(`TD-persist-22` 册子半边):**探到了、但这一页坏了**
+                        //    ⇒ 与「未绑定」分开(后者是「我不知道」)。已损行按 `hasSave:false`
+                        //    走空槽语义 ⇒ 按下去 = 落笔(那一页本就读不出来,复用它写入是正常出路)。
+                        views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,
+                                                                   hasSave: false, tick: 0L,
+                                                                   damaged: true);
+                        break;
                     default:
-                        // Unknown / Corrupt ⇒ 未绑定(零字可聚焦),不冒充空槽
+                        // Unknown(IO 错 / 路径失效)⇒ 未绑定(零字可聚焦),不冒充空槽,也不冒充已损
                         views[i] = UI.Skeuomorphic.SaveSlotView.Unbound(seq);
                         break;
                 }

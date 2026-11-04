@@ -57,9 +57,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public readonly bool IsLocked;
 
+        /// <summary>
+        /// 这一页**只有备份**(主档没了或读不出)⇒ 行上标「前版」。
+        /// <para>🔁 **2026-11-05(`TD-persist-22` 册子半边)**:7a 的 `SaveSlotSummary.Source` 分清
+        /// 「主档在」与「只剩备份」,本字段只是把它搬到呈现面。**读者要知道的**是「我按下去
+        /// 读到的是旧的那一份」—— 而不是文件叫什么名字。</para>
+        /// </summary>
+        public readonly bool FromBackup;
+
+        /// <summary>
+        /// 这一页**读不出来了**(主档与备份都解不出)⇒ 行上标「此页已损」。
+        /// <para>与「未绑定」`Known=false` **不是一回事**:未绑定是「我不知道」(探测失败),
+        /// 已损是「我探到了,这一页坏了」。两者在纸面上曾经同形(零字),现在分开。</para>
+        /// <para>⚠️ 已损行按下去 = **落笔**(`HasSave=false` 的空槽语义):那一页已经读不出来,
+        /// 复用它写入是正常出路;不把它做成「按下去必然失败」的死行。</para>
+        /// </summary>
+        public readonly bool Damaged;
+
         /// <summary>构造。</summary>
         public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick,
-                            long dayNumber = 0L, bool isNight = false, bool isLocked = false)
+                            long dayNumber = 0L, bool isNight = false, bool isLocked = false,
+                            bool fromBackup = false, bool damaged = false)
         {
             SlotSeq = slotSeq;
             Known = known;
@@ -68,6 +86,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             DayNumber = dayNumber;
             IsNight = isNight;
             IsLocked = isLocked;
+            FromBackup = fromBackup;
+            Damaged = damaged;
         }
 
         /// <summary>未绑定形态(装配层没给状态,或探测失败)。</summary>

@@ -183,6 +183,30 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
+        public void test_probe_corruptFinal_withReadableBak_reportsBak()
+        {
+            // 🔁 2026-11-05(`TD-persist-22` 册子半边):主档**在但读不出**、备份可读 ⇒ 报备份。
+            //    与 `LoadBytes` 的次序完全一致(final 优先、读不出再看 bak)——
+            //    两处不同向就会出现「册子一行空白 / 按下去读得出上一版」。
+            SaveService svc = MakeService(NewStream(), tick: 77L);
+            svc.Checkpoint(new SaveSlot(4));      // final = tick 77
+            string finalPath = Path.Combine(_dir, "save_4.bin");
+            File.Copy(finalPath, Path.Combine(_dir, "save_4.bak"));   // 备份 = 同一份好档
+            // 把主档压成 4 字节(头部都读不出);bak 保持完好
+            File.WriteAllBytes(finalPath, new byte[] { 0, 0, 0, 0 });
+
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
+                "备份可读 ⇒ 这一槽**有档**(改前报 Corrupt ⇒ 行空白,而按下去读得出)");
+            Assert.That(s.Source, Is.EqualTo(SaveLoadSource.Bak));
+            Assert.That(s.Tick, Is.EqualTo(77L), "报的是备份的 tick");
+
+            Assert.DoesNotThrow(
+                () => new SaveService(_dir, new SaveCodec()).LoadBytes(new SaveSlot(4)),
+                "与探测同向:探测说有档 ⇒ 读档必须读得出来");
+        }
+
+        [Test]
         public void test_probe_finalPreferredOverBak()
         {
             // 🔁 2026-11-04(`TD-persist-19`):造场从手动槽 4 改到**退出保存** ——

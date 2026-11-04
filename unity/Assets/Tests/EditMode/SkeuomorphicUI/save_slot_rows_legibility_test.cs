@@ -69,6 +69,36 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         }
 
         [Test]
+        public void test_rows_backupOnlyAndDamaged_areTextVisible_andDistinct()
+        {
+            // 🔁 2026-11-05(`TD-persist-22` 册子半边):两种**异态**必须在册子上看得见,
+            //    且彼此可分 —— 改前它们与「未绑定」在纸面上同形(零字)。
+            SaveSlotsScreen screen = NewScreen(out _);
+            screen.SetSlotViews(new[]
+            {
+                // 只剩备份:探测报的是**备份那一份**的 tick/日子
+                new SaveSlotView(1u, known: true, hasSave: true, tick: 1200L, dayNumber: 1L,
+                                 fromBackup: true),
+                // 已损:探到了、但两级都读不出
+                new SaveSlotView(2u, known: true, hasSave: false, tick: 0L, damaged: true),
+                // 对照:同一 tick 的**正常**档,不带尾缀
+                new SaveSlotView(3u, known: true, hasSave: true, tick: 1200L, dayNumber: 1L),
+            });
+
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹 · 第壹日 昼 · 前版"),
+                "只剩备份 ⇒ 行上写明,否则玩家不知道按下去读到的是旧的那一份");
+            Assert.That(screen.RowAt(1).MarkText, Is.EqualTo("贰 · 此页已损"),
+                "已损 ⇒ 有字(它不是空槽,也不是「我不知道」)");
+            Assert.That(screen.RowAt(2).MarkText, Is.EqualTo("叁 · 第壹日 昼"),
+                "对照:正常档不带任何尾缀 —— 否则尾缀没有判别力");
+
+            // 墨色通道:已损行**不是**空行(空行 = 只有格线没有字)
+            Assert.That(screen.RowAt(1).ClassListContains("empty-row"), Is.False,
+                "已损行须走有档的墨色通道");
+            Assert.That(screen.RowAt(1).ClassListContains("save-slot-item"), Is.True);
+        }
+
+        [Test]
         public void test_rows_timeOfDay_omittedWhenDayUnknown()
         {
             // `DayNumber == 0` = 时间信息未就绪。此时 **不得** 写「昼」——

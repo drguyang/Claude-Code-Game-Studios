@@ -406,7 +406,7 @@
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-21` | `persistence-service` | open | **Y** | R1 |
-| `TD-persist-22` | `persistence-service` | partial | **N** | R4 |
+| `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -647,6 +647,14 @@ PYEVAL
 > **`未闭 P0 面 10 → 9`**(−1)· `Y 122` 不动(该债仍标 P0 面 Y,只是不再未闭)·
 > **`epic 分布 5/31 → 4/31`**(`disease-simulation` 名下未闭 P0 面清零)· 条目数 **182 不变**。
 > **单一变化源**:索引行 `TD-sim-05` 的 `open → closed`。
+
+> > 🔁 **七十七订(`TD-persist-22` 结案 · 2026-11-05 · 册子半边)** ——
+> 用户指令「TD-persist-22 剩下的册子半边也做了」。行文字尾缀「· 前版」/「N · 此页已损」,
+> 并把「探测与载入同向」的最后一块补完(主档在但读不出 ⇒ 探针改看备份)。
+> 变化:`partial 4 → 3`(−1)· **`closed 158 → 159`**(+1)· `open 19` 不动 ·
+> **`未闭 P0 面 9` 一位不动**(本条判 N)· `N 54` 不动 · **epic 分布 4/31 不动** ·
+> 条目数 **182 不变**。
+> **单一变化源**:索引行 `TD-persist-22` 的 `partial → closed`。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1270,7 +1278,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 182 | 状态 {'closed': 158, 'partial': 4, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 182 | 状态 {'closed': 159, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 9 （已闭但曾标 P0 面的 113 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
@@ -5023,6 +5031,23 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > `SaveSlotSummary.Source`(`Final` / `Bak`)随 ADR-041 §D4 改判一并落地,
 > 「主档在」与「只剩备份」在数据上可分。**仍未做的是呈现**:42 拿它画什么、怎么画
 > (`AC-7b-07` 禁徽章 / 红字 / toast)。⇒ ② 从「不可知」变成「已知但没说」。
+
+> ✅ **2026-11-05 册子半边已解 ⇒ 本条 `closed`**(用户指令「TD-persist-22 剩下的册子半边也做了」)。
+> 原文不删。**两处口子都做了,形态 = 行文字尾缀**(零新元件、零徽章、零红字,承 `AC-7b-07`):
+> · **只剩备份** ⇒ `SaveSlotView.FromBackup` ⇒ 行文字尾缀 **「· 前版」**;
+> · **两级都读不出** ⇒ `SaveSlotView.Damaged` ⇒ 行文字 **「N · 此页已损」**(有字、走有档墨色通道)。
+> **③ 顺带补完「探测与载入同向」的最后一块**:主档**在但读不出**时,探针改看备份
+> (`SaveSlotProbe.Probe` 的 `final` 分支)—— 改前它报 `Corrupt` ⇒ 一行空白,而**按下去读得出
+> 上一版**(`TD-persist-19` 的分叉形态,方向相反)。`Unknown`(IO 错)仍走未绑定,**不与已损混**。
+> **交互**:已损行按 `hasSave:false` 的空槽语义 ⇒ 按下去 = **落笔**(那一页本就读不出来,
+> 复用它写入是正常出路;不做成「按下去必然失败」的死行)。
+> **判据**:EditMode 2 条(`save_slot_rows_legibility_test` 的三态可分 + 判别力对照;
+> `save_slot_probe_test` 的「主档坏 + 备份好 ⇒ 报备份」)+ PlayMode 走查判据 ⑤/⑦/⑪ 与帧
+> `wb_08`(「… · 前版」)/ `wb_10`(「… · 此页已损」)。
+> **回归** EditMode `6882/6845/0/37`(+2)· PlayMode `341/337/0/2/2`
+> @ `2026-11-04T22:42:48Z` / `22:44:02Z` · `a29e16ad` + 工作树。
+> ⚠️ **文案「前版」「此页已损」是占位语,归 narrative 内容轮** —— 本债解的是「这一态说得出」,
+> 不是「措辞已定稿」。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

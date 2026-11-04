@@ -16835,3 +16835,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6880/6843/0/37` · PlayMode `341/337/0/2/2` @ 19:11:17Z / 19:12:25Z。
 - `TD-sim-05` `open → closed`;原件 = `impl-td-sim-05-load-tick-rewind-2026-11-05.md`。
 - **待提交**。
+
+
+### 补轮:TD-persist-22 册子半边(2026-11-05)
+
+- 用户「TD-persist-22 剩下的册子半边也做了」。行文字尾缀形态(零新元件/零徽章):
+  · 只剩备份 ⇒ `SaveSlotView.FromBackup` ⇒ 「… · 前版」;
+  · 两级都读不出 ⇒ `SaveSlotView.Damaged` ⇒ 「N · 此页已损」(有字、走有档墨色)。
+- 顺带补完「探测与载入同向」最后一块:主档在但读不出 + 备份可读 ⇒ 探针改报备份
+  (改前报 Corrupt ⇒ 行空白而按下去读得出)。
+- `Unknown`(IO 错)仍走未绑定,与已损分开。
+- 判据:EditMode +2(三态可分 + 判别力对照 / 探针报备份);PlayMode 帧 wb_08 / wb_09 / wb_10。
+- 回归:EditMode `6882/6845/0/37` · PlayMode `341/337/0/2/2` @ 22:42:48Z / 22:44:02Z。
+- `TD-persist-22` `partial → closed`;GDD 六形态表 + UX spec §6 两行已回写。
+- **待提交**。

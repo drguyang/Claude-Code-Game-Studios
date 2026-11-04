@@ -153,7 +153,19 @@ namespace DaYiJingCheng.Sim.Codec
             try
             {
                 if (File.Exists(finalPath))
-                    return ReadOne(finalPath).WithSource(SaveLoadSource.Final);
+                {
+                    SaveSlotSummary final = ReadOne(finalPath).WithSource(SaveLoadSource.Final);
+                    // 🔁 2026-11-05(`TD-persist-22` 册子半边):**主档在但读不出**(头部坏)时,
+                    //    若备份可读 ⇒ 报备份。判据 = 与 `LoadBytes` 的次序完全一致
+                    //    (final 优先、读不出再看 bak)—— 两处若不同向,就会出现
+                    //    「册子上这一行空白 / 按下去却读得出上一版」,那正是 `TD-persist-19` 的分叉形态,
+                    //    只是方向反了。
+                    if (final.State == SaveSlotState.Occupied || !File.Exists(bakPath))
+                        return final;
+
+                    SaveSlotSummary bak = ReadOne(bakPath).WithSource(SaveLoadSource.Bak);
+                    return bak.State == SaveSlotState.Occupied ? bak : final;
+                }
 
                 // 主档没了但备份在 ⇒ **这是一份可恢复的档**,不是空槽(行业惯例:
                 // 备份的语义就是「主档没了用它」)。来源标出来,供呈现层决定要不要说明。

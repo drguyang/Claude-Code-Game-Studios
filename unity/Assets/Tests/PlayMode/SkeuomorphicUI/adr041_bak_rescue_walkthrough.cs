@@ -218,11 +218,16 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return null; yield return null;
             yield return OpenBookAndRefresh();
 
-            Debug.Log($"[BAK] 头部也坏后 探针={SaveSlotProbe.Probe(_worldDir, SlotSeq).State} 行文字=「{RowText(row)}」");
-            Assert.AreEqual(SaveSlotState.Corrupt, SaveSlotProbe.Probe(_worldDir, SlotSeq).State,
-                "[判据⑤] 头部坏 ⇒ 探针才报 Corrupt");
-            Assert.IsEmpty(RowText(row),
-                "[判据⑤] 该行这才呈**未绑定**(零字可聚焦)—— 不冒充空槽,也不冒充有档");
+            Debug.Log($"[BAK] 头部也坏后 探针={SaveSlotProbe.Probe(_worldDir, SlotSeq).State} " +
+                      $"来源={SaveSlotProbe.Probe(_worldDir, SlotSeq).Source} 行文字=「{RowText(row)}」");
+            // 🔁 2026-11-05(`TD-persist-22` 册子半边):主档头部坏、**备份可读** ⇒ 报备份,
+            //   行上标「前版」。改前这里报 Corrupt ⇒ 一行空白,而按下去**读得出上一版**
+            //   (探测与载入不同向,正是 `TD-persist-19` 的分叉形态,只是方向相反)。
+            Assert.AreEqual(SaveSlotState.Occupied, SaveSlotProbe.Probe(_worldDir, SlotSeq).State,
+                "[判据⑤] 主档读不出但备份可读 ⇒ 有档");
+            Assert.AreEqual(SaveLoadSource.Bak, SaveSlotProbe.Probe(_worldDir, SlotSeq).Source);
+            StringAssert.Contains("前版", RowText(row),
+                "[判据⑤] 行上要写出「这是备份那一份」—— 玩家得知道按下去读到的是旧的");
             yield return Shot("wb_08_after_magic_corrupt");
 
             // ── ⑨ 主档**整个没了**、只剩备份(崩在 WriteAtomic 的写窗口)───────────
@@ -241,7 +246,24 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "[判据⑦] 来源 = Bak —— 数据面可分「主档在」与「只剩备份」");
             Assert.IsNotEmpty(RowText(row),
                 "[判据⑦] 册子上这一行**还在**(玩家找得到它)");
+            StringAssert.Contains("前版", RowText(row), "[判据⑦] 只剩备份 ⇒ 标「前版」");
             yield return Shot("wb_09_bak_only");
+
+            // ── ⑪ 主档与备份**都**读不出 ⇒ 「此页已损」─────────────────────
+            //   这是与「未绑定」**(我不知道)** 必须分开的那一态:我探到了,这一页坏了。
+            //   改前两种都在册子上是零字,玩家看不出区别。
+            File.WriteAllBytes(finalPath, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+            File.Delete(bakPath);
+            _driver.MarkSaveSlotRowsDirty();
+            yield return null; yield return null;
+            yield return OpenBookAndRefresh();
+
+            Debug.Log($"[BAK] 两级都坏后 探针={SaveSlotProbe.Probe(_worldDir, SlotSeq).State} 行文字=「{RowText(row)}」");
+            Assert.AreEqual(SaveSlotState.Corrupt, SaveSlotProbe.Probe(_worldDir, SlotSeq).State,
+                "[判据⑪] 两级都读不出 ⇒ Corrupt");
+            StringAssert.Contains("此页已损", RowText(row),
+                "[判据⑪] 行上要写明「这页坏了」—— 而不是一行空白(那样和「我不知道」同形)");
+            yield return Shot("wb_10_damaged");
 
             // ⚠️ **本件到「册子上看得见」为止,不再做第二次载入**:
             //   探针与载入的「同向」已在存储层钉死(`manualSlot_finalMissing_bakAlone_isRecoverable`

@@ -64,7 +64,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // ⚠️ 行被重新填充 ⇒ 二段态作废(两枚墨字所指的是**上一份**行文字的槽,
             //   留着会指向一个已经变了的页)。
             ExitChoice();
-            IsEmpty = !(view.Known && view.HasSave);
+            // ⚠️ 已损行**不是**空行:它有字(「此页已损」),用有档的墨色通道画,
+            //    否则玩家看到的是「格线 + 一句话」的组合,比空槽还怪。
+            IsEmpty = !(view.Known && view.HasSave) && !view.Damaged;
             // class 是**墨色**通道(空行格线 vs 有档墨迹),与文字通道相互独立 ——
             // 只有一条通道时,「格线色差」在低对比度设置下会单独失效。
             EnableInClassList("empty-row", IsEmpty);
@@ -79,13 +81,22 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         private static string RowText(in SaveSlotView view)
         {
+            // 🔁 2026-11-05(`TD-persist-22` 册子半边):**已损**行有字(它既不是空槽,
+            //    也不是「我不知道」)。行号 + 一句状态 —— 玩家据此知道这一页要重写。
+            if (view.Damaged) return Numeral(view.SlotSeq) + " · 此页已损";
+
             if (!view.Known || !view.HasSave) return string.Empty;
             // 时段只在装配层**真的给了日子**时才画 —— `DayNumber == 0` 表示时间信息未就绪,
             // 此时若仍写「昼」就会凭空断言一个没算过的值(默认 false 正好等于「昼」,
             // 那是**静默**的错)。宁可不写。
-            if (view.DayNumber <= 0L) return Numeral(view.SlotSeq);
-            return Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日" +
-                   (view.IsNight ? " 夜" : " 昼");
+            string text = view.DayNumber <= 0L
+                ? Numeral(view.SlotSeq)
+                : Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日" +
+                  (view.IsNight ? " 夜" : " 昼");
+
+            // 只剩备份 ⇒ 尾缀「前版」。玩家要看清按下去读到的是**旧的那一份**。
+            // ⚠️ 文案(`前版` / `此页已损`)归 narrative 内容轮,此处只定「有这两处口子」。
+            return view.FromBackup ? text + " · 前版" : text;
         }
 
         /// <summary>「启封」墨字的元件名(观测面)。</summary>
