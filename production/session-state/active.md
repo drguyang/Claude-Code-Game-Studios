@@ -16691,3 +16691,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6863/6826/0/37`(+1)· PlayMode `338/334/0/2/2`(+2/+2)@ `2026-11-04T10:01:32Z` · `57a3ac9e` + 工作树。
 - 原件 §11 已追加;ADR-040 D5 已加「成形判据」小注。
 - **待提交**。
+
+## 读档后时钟未定位 → console 刷屏(2026-11-04)
+
+- 用户「再进入已有存档,会出现 console 很多红色报错」。现场取自 `~/.config/unity3d/Editor.log`:
+  `BCD-码-3: 事件 tick N 回退于已入流 tick 122` 逐条刷屏。
+- **根因**:读档把三流恢复到最后一条事件的 tick(122),而 `ITickProvider` 只读 + `SaveService`
+  把档头 tick 丢掉 + `LoadSequencer` 无定位步 ⇒ sim 从 0 继续 ⇒ 之后每笔写入都被
+  `EventStream.Append` 的「Tick 非降」拒收 ⇒ **刷屏 + 世界形同停摆**。
+- 修:`SaveService.LastLoadedTick` → `SimTickDriver.Restore(tick)`(定位 + 余量清零)→
+  `LoadSequencer` 第 1.5 步(在 afterRestore 之前)→ `CompositionRoot` 接线。
+- 判据:EditMode 4 条(LoadSequencer 2 + TickDriver 2)+ PlayMode 两段式
+  `resume_existing_save_playmode_test`(先跑到 tick 20 再存档 → 重开 → 继续 ⇒ tick ≥ 存档时刻)。
+- 证伪:注掉定位行 ⇒ **复现用户同一条红错**;还原 SHA-256 一致。
+- 回归:EditMode `6867/6830/0/37`(+4)· PlayMode `339/335/0/2/2`(+1)@ `2026-11-04T11:23:40Z` · `0e916e8c` + 工作树。
+- 原件 = `production/qa/evidence/fix-load-tick-restore-2026-11-04.md`。
+- 残留:① 读档后派生态重建仍为窄轮(四项,既有裁定推迟);② `slot 已锁` 的正常拒绝仍打红字(日志口径另裁)。
+- ⚠️ **本轮我犯过一次 `-projectPath` 指向仓库根的错**(CLAUDE.md 记的那个坑):Unity 在仓库根造出
+  `Library/ Logs/ Temp/ mono_crash.mem.*` 并空转。已停进程;清理命令被权限拒,**目录仍在仓库根**
+  (git 忽略),待用户自行删除。
+- **待提交**。

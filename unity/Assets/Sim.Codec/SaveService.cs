@@ -459,6 +459,18 @@ namespace DaYiJingCheng.Sim.Codec
         public uint? LastLoadedConfigVersion { get; private set; }
 
         /// <summary>
+        /// 最近一次**成功**读档的档头 tick(逻辑时钟)。
+        /// <para>⚠️ 2026-11-04 新增(用户报「再进入已有存档,console 很多红色报错」):
+        /// 此前档头 tick 读进来**就地丢弃**,于是读档后 `ITickProvider` 还停在 0(或旧值),
+        /// 而三流已恢复到最后一条事件的 tick —— 之后每一笔 sim 写入都落在流尾之前,
+        /// `EventStream.Append` 以 `BCD-码-3`(Tick 非降)逐条拒绝:console 刷屏,且
+        /// **sim 侧一个事件都写不进去**(读进来的世界形同停摆)。</para>
+        /// <para>语义与 <see cref="LastLoadedConfigVersion"/> 同款:入口先清 0,只有完整成功的
+        /// 读档才回填;失败路径不得沿用上一次的值。</para>
+        /// </summary>
+        public long LastLoadedTick { get; private set; }
+
+        /// <summary>
         /// 最近一次**成功**读档的槽里记录的时间三参数(ADR-038 §D3 · 存档 v4 起)。
         /// <para><c>null</c> = 本次会话尚未成功读过档(或上一次读档失败)。</para>
         /// <para>⚠️ 语义与 <see cref="LastLoadedConfigVersion"/> 同款:只有完整成功的读档才产生事实,
@@ -1102,6 +1114,7 @@ namespace DaYiJingCheng.Sim.Codec
             LastLoadedConfigVersion = null;
             LastLoadedArtifactConfigVersions = null;
             LastLoadedTimeParams = null;
+            LastLoadedTick = 0L;
             RequireLoadable(slot);                          // ── Gating ──
             byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
             SaveHeader header = SaveHeaderCodec.Read(data);
@@ -1117,6 +1130,9 @@ namespace DaYiJingCheng.Sim.Codec
             // AC-7a-14 · ADR-010 §七:回填「已成功读入的档头携带的配置版本」。
             // 位置在 Replay 之后 = 只有完整成功的读档才产生事实(见属性 doc)。
             LastLoadedConfigVersion = header.ConfigVersion;
+            // 🔁 2026-11-04:档头 tick 必须交出去 —— 读档后 ITickProvider 要定位到这一刻,
+            //    否则后续写入全部早于流尾(`BCD-码-3`)。取**迁移后**的 header(与上面同源)。
+            LastLoadedTick = header.Tick;
             // ADR-038 §D3:同理 —— 只有完整成功的读档才交出时间参数。
             LastLoadedTimeParams = new SaveTimeParams(
                 header.TicksPerDay, header.NightStart, header.NightSpan,

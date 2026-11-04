@@ -16,6 +16,11 @@
 // 调用序(本类的全部语义,Load 内五步;前四步之外第 5 步为 2026-10-31 追加):
 //   1. `SaveService.Load(slot)` —— 读档本体(Gating 门 / 校验和 + bak 回退 / 迁移 /
 //      重放进恢复闭包)。**抛 ⇒ 后四步不动**(原子序:读档失败不得动缝合侧状态)。
+//   1.5 🔁 **2026-11-04 新增:`restoreTick(_saveService.LastLoadedTick)` —— 逻辑时钟定位。**
+//      病因(用户实测「再进入已有存档,console 很多红色报错」):`ITickProvider` 只读、
+//      `SaveService` 又把档头 tick 丢掉 ⇒ 读档后驱动仍停在 0,而三流已到最后一条事件的 tick
+//      ⇒ 之后每笔 sim 写入都落在流尾之前,`EventStream.Append` 以 `BCD-码-3` 逐条拒收:
+//      刷屏 + **世界形同停摆**。⚠️ 次序在 `afterRestore` 之前(派生态重建读当前 tick)。
 //   2. `_anchorTrigger.ResetCursor()` —— 义务② 判据(见上)。
 //   3. `_fallback?.NotifyExternalCheckpoint()` —— 裁定③(fallback 可 null:与三件
 //      存档侧组件同源装配,saveBasePath 为 null ⇒ 全 null ⇒ 本类也不构造)。
@@ -62,6 +67,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly AnchorCheckpointTrigger _anchorTrigger;
         private readonly CheckpointFallback _fallback;
         private readonly Action _afterRestore;
+
+        /// <summary>读档后把逻辑时钟定位到存档 tick(可 null)。见 <see cref="Load"/> 第 1.5 步。</summary>
+        private readonly Action<long> _restoreTick;
         /// <summary>当前烘焙产物的配置版本快照(组合值 + 逐份版本;AC-7a-14 / ADR-037 §⑦);
         /// 与 <see cref="_configVersionRecorder"/> **同生同灭**(见构造器 all-or-nothing 校验)。</summary>
         private readonly Func<ConfigVersionSnapshot> _currentConfigVersion;
@@ -108,7 +116,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                              CheckpointFallback fallback = null,
                              Action afterRestore = null,
                              Func<ConfigVersionSnapshot> currentConfigVersion = null,
-                             Action<ConfigVersionCheck, ConfigVersionDiff> configVersionRecorder = null)
+                             Action<ConfigVersionCheck, ConfigVersionDiff> configVersionRecorder = null,
+                             Action<long> restoreTick = null)
         {
             _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
             _anchorTrigger = anchorTrigger ?? throw new ArgumentNullException(nameof(anchorTrigger));
@@ -124,6 +133,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "半对配置会静默退化成「不记录」—— 那与「两版本一致」在外部观测上不可分");
             _currentConfigVersion = currentConfigVersion;
             _configVersionRecorder = configVersionRecorder;
+            _restoreTick = restoreTick;
         }
 
         /// <summary>本序列器消费的锚点触发器(同源钉观测面 —— 组合根测试断言它 == 服务袋实例)。</summary>
@@ -136,6 +146,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         public void Load(SaveSlot slot)
         {
             _saveService.Load(slot);
+
+            // ── 1.5 逻辑时钟定位(2026-11-04 · 用户报「再进入已有存档,console 很多红色报错」)──
+            // 病因:`ITickProvider` 只读、`SaveService` 又把档头 tick 丢掉 ⇒ 读档后驱动仍停在
+            //   0(或旧值),而三流已恢复到最后一条事件的 tick ⇒ 之后每笔 sim 写入都早于流尾,
+            //   `EventStream.Append` 以 BCD-码-3(Tick 非降)**逐条拒绝**:console 刷屏,
+            //   且**sim 一个事件都写不进去**(读进来的世界形同停摆)。
+            // ⚠️ **次序** = 在 `afterRestore` **之前**:派生态重建读的是当前 tick。
+            _restoreTick?.Invoke(_saveService.LastLoadedTick);
+
             _anchorTrigger.ResetCursor();
             _fallback?.NotifyExternalCheckpoint();
             // 🔁 **2026-10-27 新增(S20-10 B-1 接线)** —— 第 4 步:派生态重建。

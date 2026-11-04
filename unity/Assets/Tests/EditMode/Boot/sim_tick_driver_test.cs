@@ -134,5 +134,39 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.AreEqual("deltaSeconds", exDelta.ParamName, "负墙钟增量须拒收");
             Assert.AreEqual(0L, driver.CurrentTick, "拒收后不推进任何 tick");
         }
+
+        /// <summary>
+        /// `Restore`(读档时钟定位,2026-11-04):定位后从该 tick 继续推进,**余量清零**。
+        /// <para>⚠️ 为什么要测:这是「CurrentTick 单调递增」的唯一合法例外 —— 读档把三流
+        /// 整体替换,时间线从存档 tick 重新开始;不定位则后续写入全部早于流尾(BCD-码-3),
+        /// 症状 = console 刷屏 + 世界形同停摆。</para>
+        /// </summary>
+        [Test]
+        public void test_simTickDriver_restore_seeksAndClearsRemainder()
+        {
+            var driver = new SimTickDriver();          // 0.05 s / tick
+
+            driver.Advance(0.12);                      // 2 tick + 0.02 余量
+            Assert.AreEqual(2L, driver.CurrentTick);
+            Assert.That(driver.RemainderSeconds, Is.GreaterThan(0d), "前置:确有余量");
+
+            driver.Restore(122L);
+            Assert.AreEqual(122L, driver.CurrentTick, "定位到存档 tick");
+            Assert.AreEqual(0d, driver.RemainderSeconds, "余量清零:定位是重新开始计,不带零头");
+
+            // 定位后继续推进:从这里往上数,不再从 0 起
+            driver.Advance(0.05);
+            Assert.AreEqual(123L, driver.CurrentTick, "定位后按常规节奏继续推进");
+        }
+
+        /// <summary>`Restore` 容错:负值按 0(旧档 / 夹具),不抛。</summary>
+        [Test]
+        public void test_simTickDriver_restore_negativeClampsToZero()
+        {
+            var driver = new SimTickDriver();
+            driver.Advance(0.05);
+            driver.Restore(-5L);
+            Assert.AreEqual(0L, driver.CurrentTick, "负 tick 夹到 0(不抛 —— 读档路径不该因坏档头崩)");
+        }
     }
 }

@@ -146,6 +146,47 @@ namespace DaYiJingCheng.Tests.Boot
                 "义务②:ResetCursor 生效 —— 已消费的锚点在读档后重新可触发(游标归零的行为面)");
         }
 
+        /// <summary>
+        /// ④ 时钟定位:Load 成功 ⇒ 恢复器收到**档头 tick**(2026-11-04)。
+        /// <para>病因(用户实测):`ITickProvider` 只读,`SaveService` 又把档头 tick 丢掉
+        /// ⇒ 读档后 sim 从 0 继续,而三流已到最后一条事件的 tick(实测 122)⇒
+        /// 之后每笔写入都被 `EventStream.Append` 的 BCD-码-3(Tick 非降)拒收:
+        /// console 刷屏 + **世界形同停摆**。</para>
+        /// </summary>
+        [Test]
+        public void test_loadSequencer_load_restoresTickFromHeader()
+        {
+            _stream.Append(AnchorEvent(5));
+            WriteSlotOne();                       // 夹具组版固定 `tick: 20L`
+            var loadSide = NewLoadSideService();
+
+            long? restored = null;
+            var sequencer = new LoadSequencer(loadSide, _trigger, _fallback,
+                restoreTick: t => restored = t);
+            sequencer.Load(new SaveSlot(4));
+
+            Assert.AreEqual(20L, loadSide.LastLoadedTick,
+                "档头 tick 须由 `SaveService` 交出来(此前读进来就地丢弃)");
+            Assert.AreEqual(20L, restored,
+                "读档后必须把逻辑时钟定位到档头 tick —— 否则后续写入全部早于流尾");
+        }
+
+        /// <summary>④ 的反面:Load 抛 ⇒ **不得**动时钟(原子序的另一半)。</summary>
+        [Test]
+        public void test_loadSequencer_loadFails_tickNotRestored()
+        {
+            _stream.Append(AnchorEvent(5));
+            WriteSlotOne();
+            var loadSide = NewLoadSideService();
+
+            long? restored = null;
+            var sequencer = new LoadSequencer(loadSide, _trigger, _fallback,
+                restoreTick: t => restored = t);
+            Assert.Throws<SaveNotFoundException>(() => sequencer.Load(new SaveSlot(9)));
+
+            Assert.IsNull(restored, "读档失败 ⇒ 时钟不得被改动(原子序:失败不得留下半截状态)");
+        }
+
         /// <summary>③ 原子序:Load 抛(槽不存在)⇒ 游标不动、兜底计数不清零。</summary>
         [Test]
         public void test_loadSequencer_loadFails_seamsUntouched()

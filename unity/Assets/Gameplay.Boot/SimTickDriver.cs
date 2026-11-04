@@ -78,6 +78,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         public double RemainderSeconds => _acc;
 
         /// <summary>
+        /// 把逻辑时钟**定位**到存档时刻(读档专用;2026-11-04 新增)。
+        /// <para><b>为什么必须有它</b>:读档把三流整体换成存档内容,而流的最后一条事件可能远在
+        /// 未来(实测:档头 tick 122,而驱动仍停在 0)。此后每一笔 sim 写入都落在流尾之前,
+        /// `EventStream.Append` 以 `BCD-码-3`(Tick 非降)逐条拒绝 —— console 刷屏,且
+        /// **读进来的世界一个事件都写不进去**。那正是「再进入已有存档,console 很多红色报错」。</para>
+        /// <para>⚠️ <b>这是「CurrentTick 单调递增」的唯一合法例外</b>:时间线在读档那一刻
+        /// 从存档 tick 重新开始(三流已整体替换,不存在「跨时间线比较 tick」)。故**只许读档路径
+        /// 调用**(生产 = `LoadSequencer`),别处调用会破掉下游「tick 不回退」的默认假设。</para>
+        /// </summary>
+        /// <param name="tick">存档档头 tick(负值按 0 处理 —— 旧档 / 夹具容错,不抛)。</param>
+        public void Restore(long tick)
+        {
+            _currentTick = tick < 0L ? 0L : tick;
+            // 余量清零:定位是「从这一刻重新开始计」,不把定位前的零头带过去。
+            _acc = 0d;
+        }
+
+        /// <summary>
         /// 推进墙钟时间,返回本次实际发生的 tick 数(0 … <c>maxStepsPerFrame</c>)。
         /// </summary>
         /// <param name="deltaSeconds">本帧允许流逝的逻辑时间(秒;halt 期不调用或传 0)。</param>

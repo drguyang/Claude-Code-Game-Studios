@@ -1103,7 +1103,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                     configVersionRecorder: configVersionDrift == null
                         ? null
                         : new Action<DaYiJingCheng.Telemetry.ConfigVersionCheck, ConfigVersionDiff>(
-                            configVersionDrift.Record));
+                            configVersionDrift.Record),
+                    // 🔁 **2026-11-04(读档后时钟定位)**:档头 tick 必须交回 tick 驱动 ——
+                    //    否则读档后 sim 从 0 继续,而流已到最后一条事件的 tick,
+                    //    之后每笔写入都被 `EventStream.Append` 的 BCD-码-3(Tick 非降)拒收:
+                    //    console 刷屏 + 世界形同停摆(用户实测报告)。
+                    //    ⚠️ `tickDriver` 与本装配交给 `CompositionRootServices.TickDriver` 的
+                    //    是**同一个实例**(`:500` 构造),故定位对生产启动序直接生效。
+                    restoreTick: tick => tickDriver.Restore(tick));
             }
 
 
