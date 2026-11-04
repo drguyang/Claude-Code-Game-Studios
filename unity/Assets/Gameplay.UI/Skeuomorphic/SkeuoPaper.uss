@@ -139,6 +139,17 @@
     align-self: center;
 }
 
+/* 主菜单「上次会话未完整保存」—— **非阻塞文本提示**(`AC-7a-17` 后半句 / AC-42-H2)。
+ * 与 `.save-slot-page` 同款「页脚小字」形态:灰墨降档、居中、零边框、零背景。
+ * ⚠️ 不抢焦点、不吃拾取 —— 那两条在 C# 里设(`focusable` / `pickingMode`),此处只管长相。 */
+.menu-notice {
+    color: var(--skeuo-ink-fg-light);
+    font-size: var(--skeuo-font-size-xs);
+    -unity-text-align: middle-center;
+    padding-top: var(--skeuo-shared-space-xs);
+    padding-bottom: var(--skeuo-shared-space-xs);
+}
+
 /* ── 跳过入口 · M2 形态件③(story-023 · AC-023-1/2/3)──
  * 判据权威 = art-bible G2(反数值化)+ emergency-procedures 规则六 / 规则六之甲。
  * **owner = 42**(ADR-013 §三 · `O-10-1`:10 不拥有任何 UI 元素,10 向 42 提规格)——

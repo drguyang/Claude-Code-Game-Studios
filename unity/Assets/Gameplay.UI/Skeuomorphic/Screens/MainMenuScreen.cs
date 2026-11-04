@@ -33,9 +33,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>无存档时的文案(无档 ⇒「开始诊治」,行仍可用仍获焦)。</summary>
         public const string StartText = "开始诊治";
 
+        /// <summary>
+        /// 「上次会话未完整保存」的文案(`AC-7a-17` 后半句的原文措辞,不另造词)。
+        /// <para>⚠️ 这是**文本**提示,不是音频播报 —— ADR-018 §六 / 7b 规则六禁的是后者。</para>
+        /// </summary>
+        public const string SessionIncompleteText = "上次会话未完整保存";
+
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
         private readonly Label _label;
+        /// <summary>
+        /// 「上次会话未完整保存」那一行 —— **按需创建**。
+        /// <para>⚠️ 懒建不是性能考虑,是**不变量**:spec §5「一张纸、一行」的判据按
+        /// 「子树内文本元素个数」数(`test_bootWithMenu_showsSingleRow_andLandsFocus`),
+        /// 常驻一个隐藏 Label 会让它在**没有任何东西要报**的常态下也变成 2 个。</para>
+        /// </summary>
+        private Label _notice;
+        private readonly VisualElement _paper;
         private readonly VisualElement _row;
         private readonly VisualElement _backdrop;
         private IMainMenuCommandSink _sink;
@@ -81,6 +95,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _row.RegisterCallback<NavigationSubmitEvent>(_ => Activate());
             _row.RegisterCallback<ClickEvent>(_ => Activate());
             paper.Add(_row);
+
+            // 「上次会话未完整保存」那一行**不在这里建** —— 见 `EnsureNotice` 的注释:
+            // 常态(标志位为假)下纸面上必须仍然只有一行。
+            _paper = paper;
         }
 
         /// <summary>纯色背板(观测面:判据读它的不透明度 / 覆盖范围 / 与纸面的绘制先后)。</summary>
@@ -107,6 +125,43 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>当前是否认为「有可继续的存档」(观测面)。</summary>
         public bool HasContinueSave => _hasContinueSave;
+
+        /// <summary>
+        /// 按 7a 的标志位决定是否摊开「上次会话未完整保存」。
+        /// <para>⚠️ **只呈现,不判断** —— 标志位的置位/清除全归 7a(`SaveIncompleteFlag`);
+        /// 42 不扫描存档目录、不读标志文件(ADR-013 §9 C3)。</para>
+        /// </summary>
+        public void SetSessionIncompleteNotice(bool raised)
+        {
+            if (raised) EnsureNotice();
+
+            if (_notice != null)
+                _notice.style.display = raised ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        /// <summary>
+        /// 建出提示行(幂等)。三条纪律与「非阻塞」逐字对应:
+        /// ① `focusable = false` ⇒ 不进焦点序,不抢 <see cref="FirstFocusable"/>;
+        /// ② `pickingMode = Ignore` ⇒ 点它不挡下面的行;
+        /// ③ 只有真有事要报时才存在 ⇒ 常态纸面上仍是「一行」。
+        /// </summary>
+        private void EnsureNotice()
+        {
+            if (_notice != null) return;
+
+            _notice = new Label(SessionIncompleteText) { name = "main-menu-incomplete-notice" };
+            _notice.AddToClassList("menu-notice");
+            _notice.focusable = false;
+            _notice.pickingMode = PickingMode.Ignore;
+            _paper.Add(_notice);
+        }
+
+        /// <summary>提示当前是否摊开(观测面)。</summary>
+        public bool SessionIncompleteNoticeShown
+            => _notice != null && _notice.style.display.value == DisplayStyle.Flex;
+
+        /// <summary>提示元件(观测面;<c>null</c> = 尚未建 —— 常态形态)。</summary>
+        public Label SessionIncompleteNotice => _notice;
 
         /// <summary>确认这一行(手柄 Submit / 指针 Click 的唯一汇合点)。</summary>
         public void Activate() => _sink?.Continue();

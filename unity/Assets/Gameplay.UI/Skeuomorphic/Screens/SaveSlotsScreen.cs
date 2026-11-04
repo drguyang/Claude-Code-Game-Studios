@@ -24,15 +24,28 @@
 //   **在落笔后重取**(清单源今日是 `BootRoot.ManualSaveSlots` 常量,归 7b 数值轮),
 //   后者要行内元数据源。两者**都不在本轮面内**,不借绿。
 //
+//   🔁 **2026-11-04 订正(上一段的三条,原文不删,逐条对过代码)**:
+//     ✅「落笔后清单重取」**已做** —— `SkeuoRuntimeDriver.OnTickEdge` 里 `_saveSlotsDirty`
+//        → `SetSaveSlotRows(null)` → 重走 `SaveSlotViewProvider`(`BootRoot.cs:1012`);
+//     ✅「新行即第 1 焦点」**已做** —— 同一段在重画后 `saveSlots.WritableRow.Focus()`;
+//     🔴「清单源是 `BootRoot.ManualSaveSlots` 常量」**这句是错的** ——
+//        `BootRoot.BuildSaveSlotViews`(`:1860-1900`)枚举「退出保存 / 自动保存 / 手动区间」,
+//        每槽经 `SaveSlotProbe.Probe` **真读盘**(占用态 / tick / 该档自己的时间参数)。
+//        常量注入是 2026-11-01 的形态,已被 `TD-persist-15/16/17` 三笔改掉,注释没跟。
+//     ⚠️「行内墨色由淡入浓」**仍未做**(`save-slot-writable` 今日只有 USS 的下边线,无浓淡动画)。
+//
 // 🔁 **2026-11-04 转册轮**:补上 `§5.1` 的「每页 6 行,超出转册续页」——
 //   ① `PageSize = 6`,行只画**当前页那一段窗口**;② 鱼尾页码(`save-slot-page`);
 //   ③ 两条页缘热区(`save-slot-prev` / `save-slot-next`),指针点 + 手柄 Submit 都能翻,
 //   不可翻时**不占位**也退出焦点遍历;④ 翻页后焦点重置为该页首行(`§7.1`);
 //   ⑤ 「留档」新行只出现在**末页**。
-//   ⚠️ **仍未做的两条(不得借绿)**:
-//     · `§5.1` 的「文本缩放 150% ⇒ 页容量降为 4 行」**未做** —— 页容量今日是常数;
-//     · `§7.1` 的「开册首焦点 = 当前高水位行**所在页**的首行」**未做** ——
-//       开册时一律停在首页(装配方仍只取 `FirstFocusable`)。
+//   ✅ **2026-11-04 两条补齐(上一版的「未做」已消解)**:
+//     · `§5.1`「文本缩放 150% ⇒ 页容量降为 4 行」—— 已落:`TextScale` 属性 + `PageCapacity`
+//       (默认 1 ⇒ 6 行,行为不变)。⚠️ **数值归 49**(`TextScaleHook`),42 只消费;
+//       装配层未注入前保持 100%,不早进 `OQ-SS-2` 裁定的 P2 验收面。
+//     · `§7.1`「开册首焦点 = 高水位行**所在页**的首行」—— 已落:`SetSlotViews` 按
+//       `HighWaterPage()` 定起始页;空册仍回首页。焦点本身仍由装配方 `FirstFocusable` 拿,
+//       而它只含**当前页**的行 ⇒ 自然落在该页首行。
 //   ⚠️ 页码的数字形态在 spec 里是**本地化素材档**,今日是「a / b」纯文本替身。
 
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
@@ -50,10 +63,32 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
     {
         /// <summary>
         /// 每页容量(`save-slots-7b.md` §5.1 的 OQ-SB-2:每页 6 行,超出转册续页)。
-        /// <para>⚠️ 规格同时要求「文本缩放 150% ⇒ 页容量降为 4 行」—— **未做**:
-        /// 页容量今日是常数,不随缩放降档(见文末的如实登记)。</para>
+        /// <para>100% 文本缩放下的容量;放大到 <see cref="ZoomThreshold"/> 时降为
+        /// <see cref="PageSizeZoomed"/>。实际容量一律读 <see cref="PageCapacity"/>。</para>
         /// </summary>
         public const int PageSize = 6;
+
+        /// <summary>
+        /// 放大后的页容量(§5.1 / 可访问性表:「文本缩放 75–150% ⇒ 页容量 6 行降为 4 行,
+        /// 溢出转册续页,**不滚动**」)。
+        /// </summary>
+        public const int PageSizeZoomed = 4;
+
+        /// <summary>
+        /// 触发降档的缩放阈值(`150%`)。**含等号**:规格写的就是「150% ⇒ 4 行」。
+        /// </summary>
+        public const float ZoomThreshold = 1.5f;
+
+        /// <summary>
+        /// 当前文本缩放系数(1 = 100%)。
+        /// <para>⚠️ **数值归 49**(`TextScaleHook` 的持有者);42 只**消费**。
+        /// 本类不去读全局单例 —— 装配层把 49 的值灌进来即可(`OQ-SS-2`:无障碍档位验收
+        /// 随 49 落,P0 不早进架)。未注入 ⇒ 保持 1,行为与降档前完全一致。</para>
+        /// </summary>
+        public float TextScale { get; set; } = 1f;
+
+        /// <summary>当前缩放下的页容量(6 或 4)。</summary>
+        public int PageCapacity => TextScale >= ZoomThreshold ? PageSizeZoomed : PageSize;
 
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
@@ -122,7 +157,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         public int CurrentPage => _pageIndex;
 
         /// <summary>总页数(空册也算一页)。</summary>
-        public int PageCount => _views.Count == 0 ? 1 : (_views.Count + PageSize - 1) / PageSize;
+        public int PageCount => _views.Count == 0 ? 1 : (_views.Count + PageCapacity - 1) / PageCapacity;
 
         /// <summary>还有上一页。</summary>
         public bool HasPreviousPage => _pageIndex > 0;
@@ -194,7 +229,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             _views.Clear();
             if (views != null) _views.AddRange(views);
-            _pageIndex = 0;
+            _pageIndex = HighWaterPage();
             RenderPage();
         }
 
@@ -202,15 +237,34 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 画**当前页**:只建本页那一段窗口的行;「留档」新行只出现在**末页**。
         /// <para>⚠️ 行随页重建 ⇒ <see cref="SlotRowCount"/> / <see cref="RowAt"/> 都是**页内**面。</para>
         /// </summary>
+        /// <summary>
+        /// §7.1 开册首焦点:高水位行**所在页**的页码;空册 ⇒ 首页(0)。
+        /// <para>高水位行 = **最后一个有档的行**(视图按 `slot_seq` 升序,手动槽单调分配
+        /// ⇒ 最后一个 `HasSave` 即台账高水位)。</para>
+        /// </summary>
+        private int HighWaterPage()
+        {
+            for (int i = _views.Count - 1; i >= 0; i--)
+            {
+                if (_views[i].HasSave)
+                    return i / PageCapacity;
+            }
+            return 0;
+        }
+
         private void RenderPage()
         {
+            // 缩放变化会让容量变小 ⇒ 旧页码可能越界;此处夹紧,不抛
+            if (_pageIndex >= PageCount) _pageIndex = PageCount - 1;
+            if (_pageIndex < 0) _pageIndex = 0;
+
             for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
             _rows.Clear();
             _slots.Clear();
             if (_writableRow != null) { _writableRow.RemoveFromHierarchy(); _writableRow = null; }
 
-            int start = _pageIndex * PageSize;
-            int end = System.Math.Min(start + PageSize, _views.Count);
+            int start = _pageIndex * PageCapacity;
+            int end = System.Math.Min(start + PageCapacity, _views.Count);
             for (int i = start; i < end; i++)
             {
                 SaveSlotView view = _views[i];

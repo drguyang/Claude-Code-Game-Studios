@@ -220,18 +220,40 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         [UnityTest]
-        public IEnumerator test_nextPageEdge_isLaidOut_onlyWhenThereIsANextPage()
+        public IEnumerator test_pageEdges_areLaidOut_onlyWhenThereIsAPageThatWay()
         {
             SaveSlotsScreen screen = Screen();
-            Assert.IsTrue(screen.HasNextPage, "[前提] 10 行 / 每页 6 行 ⇒ 第一页必有下一页");
-            Assert.IsTrue(screen.HasPreviousPage == false, "[前提] 第一页没有上一页");
 
+            // ⚠️ 开册落在**高水位页**(§7.1),不是第 1 页:本夹具的 10 行全有档
+            // ⇒ 高水位 = 第 9 行 ⇒ 第 2 页(末页)。这条断言本身就是 §7.1 的判据之一 ——
+            // 旧实现在这里开在第 1 页,故它同时是「开册页」的负控。
+            Assert.AreEqual(2, screen.PageCount, "[前提] 10 行 / 每页 6 行 ⇒ 共 2 页");
+            Assert.AreEqual(1, screen.CurrentPage,
+                "[前提] §7.1:开册首焦点 = 高水位行所在页 —— 10 行全有档 ⇒ 开在末页(index 1)");
+
+            // 末页:没有下一页 ⇒ 右侧页缘**不占位**;有上一页 ⇒ 左侧页缘占位。
             // 「还有下一页」由**纸边厚度**传达(§5.2)—— 所以它不是 display 的措辞问题:
             // 不占位时 worldBound 必须是零尺寸,占位时必须有可见宽度。
+            Assert.IsFalse(screen.HasNextPage, "[前提] 末页没有下一页");
+            Assert.IsTrue(screen.HasPreviousPage, "[前提] 末页有上一页");
+            Assert.AreEqual(0f, screen.NextEdge.worldBound.width,
+                "末页没有下一页 ⇒ 右侧页缘**不占位**");
+            Assert.Greater(screen.PreviousEdge.worldBound.width, 0f,
+                "末页有上一页 ⇒ 左侧页缘须占位(纸边厚度)");
+
+            // 翻回第 1 页 —— 两个方向必须**互换**,否则「页缘跟的是 display 而不是页码」,
+            // 即上面那两条在任何页上都恒真。
+            Assert.IsTrue(screen.PreviousPage(), "[前提] 从末页须能翻回第 1 页");
+            yield return null;
+            yield return null;
+
+            Assert.AreEqual(0, screen.CurrentPage, "[前提] 已翻到第 1 页");
+            Assert.IsTrue(screen.HasNextPage, "[前提] 第 1 页有下一页");
+            Assert.IsFalse(screen.HasPreviousPage, "[前提] 第 1 页没有上一页");
             Assert.Greater(screen.NextEdge.worldBound.width, 0f,
-                "第一页有下一页 ⇒ 右侧页缘须占位(纸边厚度)");
+                "第 1 页有下一页 ⇒ 右侧页缘须占位");
             Assert.AreEqual(0f, screen.PreviousEdge.worldBound.width,
-                "第一页没有上一页 ⇒ 左侧页缘**不占位**");
+                "第 1 页没有上一页 ⇒ 左侧页缘**不占位**");
 
             yield return null;
         }

@@ -461,7 +461,7 @@
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
-| `TD-skeuo-05` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-05` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-08` | `skeuomorphic-ui` | closed | **N** | R1 |
@@ -592,6 +592,11 @@ PYEVAL
 > 变化:`closed 152 → 153`(+1)· `open 18 → 17`(−1)· **未闭 P0 面 8 不变**(该债判 N)·
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
+>
+> > 🔁 **六十四订(存档遗留三条结清 · 2026-11-04)** —— `TD-skeuo-05` **结案**;
+> 同批补齐 `TD-skeuo-07` 结案时如实登记的两条规格(转册页容量降档 / 开册首焦点)。
+> 变化:`closed 153 → 154`(+1)· `open 17 → 16`(−1)· **未闭 P0 面 8 → 7**(−1)·
+> **`skeuomorphic-ui 3 → 2`**(−1)。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-05` 改 `closed`。
 > **测量方法首次落仓内载体** `tools/slice-measure/measure_slices.py` —— 原冻结件 §七 写「见会话日志」,
 > 等于把「可复算」写在了一个不存在的地方。
 
@@ -1149,10 +1154,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 174 | 状态 {'closed': 153, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 109 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 3
+条目 174 | 状态 {'closed': 154, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 7 （已闭但曾标 P0 面的 110 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 2/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2
 ```
 <!-- TD-COUNT:END -->
 
@@ -4799,6 +4804,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① **先在 42 或 7b 的 GDD 里补一条 AC**(现无载体 ⇒ 无判据可写);② 用户裁定**形态**(候选:甲 = 主菜单纸面一行墨字(「上次未能安存」)· 乙 = 暂停壳第三行(⚠️ 撞 `OQ-PS-3`「只放继续和存档位」)· 丙 = 存档册页边注(承 7b 规则六的「世界内反馈」口径));③ 装配层把 `BootRoot._sessionWasIncomplete` 接到 42 的呈现面(**只读布尔,42 不持状态** —— 承 ADR-013 §9 C3);④ 夹具:标志位真 ⇒ 提示出现;标志位假 ⇒ 不出现(正反各一条,且须走**真启动序**,不是直接 new 屏)。<br>⚠️ ② 的丙案须先解 `TD-skeuo-03`(存档册今日关不掉,提示挂在册上会更难退)。 |
 | **触发条件** | ① 42 / 7b 的 GDD 下一次修订轮(**须补 AC**);② 或用户裁定提示形态时;③ 或任何以「`AC-7a-17` 完整兑现」形态引用之前(**禁借绿** —— `TD-persist-06` 的 `closed` **不覆盖本半句**)。<br>🔴 **2026-11-03 硬前置(用户两次裁定后补)**:本债的「提示形态裁定」**必须等 `TD-persist-14` 落地之后**。理由(比首版更精确)= 今日 `RaiseIncompleteFlag` 的**唯一**触发路径是 `SaveOnExit` 的失败分支,而该分支把「写盘真的失败」与「**写盘只是慢**(join 超时)」合并成同一个结论 ⇒ 在 14 之前做出提示 = **给一个假阳性做 UI**。用户裁定②逐字:「这种 bug 情况不该出现,为什么还要考虑这种情况的提示语」。⇒ 本债**暂缓**,14 是它的前置。<br>✅ **2026-11-03 前置已解除**:`TD-persist-14` **同日 `closed`**(误置半边已修,原件见其结案块)。⇒ 本债的「形态裁定」**现在可以开工**。<br>⚠️ **但注意**:14 的结案**只覆盖误报**。真「会话没走完」(崩溃 / 强杀)仍检测不到 —— 若玩家实际遇到的是那种情形,提示仍不会出现。⇒ 落提示前须先明确**它到底在为哪个事实服务**,见 14 的残留 ②。 |
 | **归属** | **42 拟物 UI**(提示的呈现载体)· **7b 存档位 UI**(备选载体)· 形态 = **用户裁定** · 7a 侧义务**已尽**(只断言标志位置位) |
+
+> ✅ **2026-11-04 已闭(形态取甲,实现轮就地裁定 · 承 ADR-034 §Decision 口径)**。原文不删。
+> 三步按「解除动作」逐条落:
+> ① **补 AC** —— `design/gdd/skeuomorphic-ui.md` 新立 **`AC-42-H1`(BLOCKING)**,四条判据
+>    (可见 / 不抢焦点 / 不占位 / 42 不判断);本组计数 43 → **44 条(BLOCKING 39)**。
+> ② **形态 = 甲**:主菜单纸面一行「上次会话未完整保存」(`MainMenuScreen.SessionIncompleteText`,
+>    用 `AC-7a-17` 原文措辞,不另造词)。**乙 / 丙未采纳**(乙撞 `OQ-PS-3`;丙承 7b 规则六但载体更远)。
+> ③ **接线**:`SkeuoRuntimeDriver.ShowSceneLevelScreen(..., sessionWasIncomplete = false)` 可选第三参
+>    → `MainMenuScreen.SetSessionIncompleteNotice`;`BootRoot.cs:1131` 传 `_sessionWasIncomplete`
+>    (该字段 `:457` 由 `saveService.IsSessionIncomplete` 赋值,7a 侧早已就绪)。
+> **夹具**:`Tests/EditMode/SkeuomorphicUI/main_menu_session_notice_test.cs` 7 条(含反向「复位后重新不占位」
+> 与结构断言「42 侧零 `System.IO` / `File.` / `Directory.` / `SaveIncompleteFlag`」)。
+> 回归:EditMode **6824/6787/0/37**(较上轮 6811 **+13** = 转册 +6 · 提示 +7,零失败)。
+> ⚠️ **未做(不借绿)**:没有 PlayMode 夹具覆盖「真启动序里 `_sessionWasIncomplete` 真的传到屏」——
+> 本条的装配断言只在 EditMode 层;BootRoot 的启动序仍只有单元级接线证据。
 
 ### TD-skeuo-06 — 炮制屏的「点火」是**静默空操作**(`IProcessingCommandSink` 生产零实现)(18 ↔ 42)
 

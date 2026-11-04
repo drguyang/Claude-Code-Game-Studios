@@ -16516,3 +16516,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 债册:`TD-skeuo-10` **closed**(六十三订)。条目 174 | closed 153 | open 17 | 未闭 P0 面 8(不变)。
 - 原件 = `production/qa/evidence/impl-td-skeuo-10-nine-slice-refreeze-2026-11-04.md`。
 - **未提交**。
+
+## 存档遗留三条结清(2026-11-04)
+
+- **§5.1 文本缩放降档**:`SaveSlotsScreen.TextScale` + `PageCapacity`(150% ⇒ 6 行降 4 行)。
+  数值归 49(P2),42 只消费;未注入时恒 100%,行为与改动前一致。
+- **§7.1 开册首焦点**:`HighWaterPage()` —— 起点页 = 高水位行所在页;空册回首页。
+  `RenderPage` 另加页码夹紧(容量变小后旧页码可能越界)。
+- **`AC-7a-17` 后半句**:42 GDD 新立 **`AC-42-H1`(BLOCKING)**;主菜单纸面一行
+  「上次会话未完整保存」(形态 = **甲**,实现轮就地裁定待追认);`ShowSceneLevelScreen`
+  增可选第三参 → `MainMenuScreen.SetSessionIncompleteNotice`;`BootRoot:1131` 接 `_sessionWasIncomplete`。
+- 夹具:转册 +6(14/14)· 提示 +7(7/7)。全量 EditMode `6824/6787/0/37`(+13,零失败)。
+- 债册:`TD-skeuo-05` **closed**(六十四订)。条目 174 | closed 154 | open 16 |
+  **未闭 P0 面 8 → 7** | skeuomorphic-ui 3 → 2。
+- 原件 = `production/qa/evidence/impl-save-leftovers-2026-11-04.md`。
+- **首轮 PlayMode 两红 → 已修**(见原件 §4.1):① 提示改为**按需创建**(常驻隐藏 Label 会破
+  spec §5「一张纸、一行」的文本元件计数);② 几何夹具前提随 §7.1 更新 —— 开册落在高水位页 ⇒
+  末页无下一页,断言改为「末页 → 翻回第 1 页,两个方向互换」,同时把「开册在末页」写成判据。
+- 终态(三元组):EditMode `6824/6787/0/37` · PlayMode `331/327/0/2/2`
+  @ `2026-11-04T01:28:59Z` · sprint-24 存档遗留轮 · `85de93fa` + 工作树。
+- **待提交**。

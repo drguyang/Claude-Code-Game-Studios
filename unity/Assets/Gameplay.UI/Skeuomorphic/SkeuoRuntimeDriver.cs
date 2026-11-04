@@ -533,7 +533,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 也**不动** <see cref="_modalContainer"/>:常驻脉案屏在它自己那格里,主菜单关掉后原样还在。</para>
         /// </summary>
         /// <returns><c>true</c> = 屏已建并摊开;<c>false</c> = 无面板 / 屏名未登记(不崩)。</returns>
-        public bool ShowSceneLevelScreen(string screenName, bool hasContinueSave)
+        public bool ShowSceneLevelScreen(string screenName, bool hasContinueSave,
+                                         bool sessionWasIncomplete = false)
         {
             if (_panel == null)
             {
@@ -572,6 +573,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _mainMenuContainer = container;
             menu.BindCommandSink(_mainMenuSink);
             menu.SetHasContinueSave(hasContinueSave);
+            // 7a 的标志位 ⇒ 42 的非阻塞提示(`AC-7a-17` 后半句;42 只呈现,不判断)
+            menu.SetSessionIncompleteNotice(sessionWasIncomplete);
 
             ApplySceneLevelFocusScope();
             VisualElement first = menu.FirstFocusable;

@@ -1128,7 +1128,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
             _mainMenuContinue = new TaskCompletionSource<bool>();
 
-            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave))
+            // `_sessionWasIncomplete` = 启动时 7a 读出的「上次会话未完整」标志位(`:457`);
+            // 42 只呈现它(`AC-7a-17` 后半句),置位/清除全归 7a。
+            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete))
             {
                 Debug.LogError("[BootRoot][主菜单] 主菜单屏开不出来(无面板 / 屏未登记)⇒ " +
                                "不阻塞启动,直接进世界。");
