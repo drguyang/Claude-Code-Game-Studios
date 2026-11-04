@@ -159,6 +159,75 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.AreEqual(10U, ledger.NextWritableSeq, "写更大的号才推进");
         }
 
+        // ══════════════════════════════════════════════════════════════════
+        // TD-persist-22 · 日志半边:回退 `.bak` 的**事实出口**(门 A 无日志面 ⇒ 事实归本类)
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_loadBytes_cleanFinal_reportsFinalAsSource()
+        {
+            var svc = new SaveService(_dir, new SaveCodec());
+            var slot = new SaveSlot(3);
+            svc.SaveBytes(slot, MinimalSaveBytes(tick: 7L));
+
+            svc.LoadBytes(slot);
+
+            Assert.AreEqual(SaveLoadSource.Final, svc.LastLoadSource,
+                "正常读档 ⇒ 来源 = 正式档");
+            Assert.AreEqual(SaveLoadFallback.None, svc.LastLoadFallback,
+                "没回退 ⇒ 原因 = None(与「回退了但原因是别的」在类型上可分)");
+        }
+
+        [Test]
+        public void test_loadBytes_corruptFinal_fallsBackToBak_andReportsWhy()
+        {
+            var svc = new SaveService(_dir, new SaveCodec());
+            var slot = new SaveSlot(3);
+
+            svc.SaveBytes(slot, MinimalSaveBytes(tick: 5L));     // v1
+            svc.SaveBytes(slot, MinimalSaveBytes(tick: 9L));     // v2 ⇒ v1 进 .bak
+
+            // 打坏正式档的正文(只翻最后一个字节 ⇒ 校验和必挂;头部仍可解)
+            string finalPath = Path.Combine(_dir, "save_3.bin");
+            byte[] broken = File.ReadAllBytes(finalPath);
+            broken[broken.Length - 1] ^= 0xFF;
+            File.WriteAllBytes(finalPath, broken);
+            Assert.IsFalse(SaveService.ValidateChecksum(File.ReadAllBytes(finalPath)),
+                "[前置] 正式档必须真的坏了");
+
+            byte[] loaded = svc.LoadBytes(slot);
+
+            Assert.AreEqual(5L, SaveHeaderCodec.Read(loaded).Tick,
+                "读回来的是**上一版**(v1 = tick 5),不是被打坏的 v2");
+            Assert.AreEqual(SaveLoadSource.Bak, svc.LastLoadSource,
+                "来源必须是回退档 —— 装配层据此记一条日志(TD-persist-22 日志半边)");
+            Assert.AreEqual(SaveLoadFallback.FinalCorrupt, svc.LastLoadFallback,
+                "原因 = 正式档校验和不过(区别于保留槽的「正式档缺失」)");
+        }
+
+        [Test]
+        public void test_loadBytes_failedLoad_doesNotLeaveStaleSource()
+        {
+            var svc = new SaveService(_dir, new SaveCodec());
+            var slot = new SaveSlot(3);
+
+            svc.SaveBytes(slot, MinimalSaveBytes(tick: 5L));
+            svc.SaveBytes(slot, MinimalSaveBytes(tick: 9L));
+            byte[] broken = File.ReadAllBytes(Path.Combine(_dir, "save_3.bin"));
+            broken[broken.Length - 1] ^= 0xFF;
+            File.WriteAllBytes(Path.Combine(_dir, "save_3.bin"), broken);
+            svc.LoadBytes(slot);                                  // 先成功回退一次
+            Assert.AreEqual(SaveLoadSource.Bak, svc.LastLoadSource, "[前置] 上一次读档走了回退");
+
+            // 两级都打坏 ⇒ 这次读档失败
+            File.Delete(Path.Combine(_dir, "save_3.bak"));
+            Assert.Throws<SaveCorruptException>(() => svc.LoadBytes(slot));
+
+            Assert.AreEqual(SaveLoadSource.None, svc.LastLoadSource,
+                "读档失败 ⇒ 事实出口必须清空,否则装配层会拿**上一次**的回退事实记日志");
+            Assert.AreEqual(SaveLoadFallback.None, svc.LastLoadFallback);
+        }
+
         /// <summary>一份**能过校验和**的最小存档(头部 + 配置版本段 + 空事件段 + 空折叠段)。</summary>
         private static byte[] MinimalSaveBytes(long tick)
         {

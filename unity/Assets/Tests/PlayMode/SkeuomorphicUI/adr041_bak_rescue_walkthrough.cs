@@ -17,6 +17,9 @@
 //   ② 破坏 `save_3.bin` 后,探针报 `Corrupt` ⇒ 册子该行**零字**(未绑定,不冒充空槽);
 //   ③ **按下那一行 ⇒ 读档成功**,`LastLoadedTick` **恰等于**第一次写下的 tick
 //      —— 这是「救回的是上一版」的唯一机械判据(等于 v2 的 tick 就说明救的不是 bak);
+//   ⑥ **回退留下了痕迹**(2026-11-04 · `TD-persist-22` 日志半边):`LogAssert.Expect` 钉住
+//      `LoadSequencer` 那条 `[7a][载入] … 已回退 .bak:**本次读到的是上一版**` + 事实出口
+//      (`LastLoadSource` = `Bak` / `LastLoadFallback` = `FinalCorrupt`);
 //   ④ **已知局限(断言它保持,不是断言它正确)**:救回后 final 仍是坏的 ⇒ 册子再探一次
 //      仍是零字。零 I/O 是 GDD 规则十一的**禁止**判据(不建空档 / 不删残档 / 不改字节),
 //      所以「读档顺手修盘」不是本件能自作主张加的东西 —— 它要么另裁,要么登记成债。
@@ -33,6 +36,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
@@ -170,6 +174,12 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             book.Activate(row);
             Assert.AreEqual(row, book.ArmedRowIndex,
                 "[判据②的连带] 行仍是「有档」形态 ⇒ 按下去进二段态,而不是直接载入");
+            // 🔁 2026-11-04(`TD-persist-22` 日志半边):回退**必须留下痕迹**。
+            //   `SaveService` 住门 A(`noEngineReferences`)⇒ 它只交出事实
+            //   (`LastLoadSource`),日志由唯一共同下游 `LoadSequencer.Load` 记一条 **Log**。
+            //   本断言 = 那条日志**真的出现**且点名「读到的是上一版」。
+            LogAssert.Expect(LogType.Log, new Regex(
+                @"^\[7a\]\[载入\] 槽位 3 的正式档校验和不通过\(内容被写坏\) ⇒ 已回退 \.bak:.*上一版"));
             book.RowAt(row).ActivateOpen();                         // 「启封」
 
             float deadline = Time.realtimeSinceStartup + 30f;
@@ -179,7 +189,12 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             long loaded = Services()?.SaveService?.LastLoadedTick ?? -1L;
             long nowTick = CurrentTick();
-            Debug.Log($"[BAK] 救回后 LastLoadedTick={loaded} 当前 tick={nowTick}");
+            Debug.Log($"[BAK] 救回后 LastLoadedTick={loaded} 当前 tick={nowTick} " +
+                      $"来源={Services()?.SaveService?.LastLoadSource} 原因={Services()?.SaveService?.LastLoadFallback}");
+            Assert.AreEqual(SaveLoadSource.Bak, Services().SaveService.LastLoadSource,
+                "[判据⑥] 事实出口须声明本次读的是回退档(日志就是照它写的)");
+            Assert.AreEqual(SaveLoadFallback.FinalCorrupt, Services().SaveService.LastLoadFallback,
+                "[判据⑥] 原因须是「正式档校验和不过」,不是「正式档缺失」");
             Assert.AreEqual(tickV1, loaded,
                 "[判据③] 读回来的必须是**上一版**(v1 的 tick)—— 等于 v2 就说明读的是 final," +
                 "不是 `.bak`;等于 0 / -1 就说明载入压根没成功");

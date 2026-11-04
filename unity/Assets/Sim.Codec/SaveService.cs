@@ -357,6 +357,22 @@ namespace DaYiJingCheng.Sim.Codec
         public Exception LastSaveQueryError { get; private set; }
 
         /// <summary>
+        /// 最近一次读档**用的是哪一份字节**(`TD-persist-22` 日志半边的载体)。
+        /// <para>⚠️ 本程序集门 A(`noEngineReferences`)⇒ 无日志面。回退 `.bak` 的事实经
+        /// 本属性交给装配层(`LoadSequencer.Load` 记一条 `Debug.Log`)—— 与
+        /// <see cref="LastSaveQueryError"/> 同款先例:把「记在哪」放在能记的那一层。</para>
+        /// <para>取值在 <see cref="LoadBytes"/> 内写;**读档失败时为 <c>None</c>**(不沿用上一次)。</para>
+        /// </summary>
+        public SaveLoadSource LastLoadSource { get; private set; }
+
+        /// <summary>
+        /// 回退到 `.bak` 的**原因**(仅当 <see cref="LastLoadSource"/> = <c>Bak</c> 时非 <c>None</c>)。
+        /// <para>`FinalCorrupt` = 正式档在但校验和不过;`FinalMissing` = 正式档缺失而 `.bak` 算占用
+        /// (保留槽 1 / 2 的形态)。两者对玩家的含义不同 —— 前者说明「这份档曾经写成功过」。</para>
+        /// </summary>
+        public SaveLoadFallback LastLoadFallback { get; private set; }
+
+        /// <summary>
         /// 从文件名主干解析槽号:`save_{digits}` ⇒ <paramref name="seq"/>;
         /// 其余(含 `save_exit`)⇒ <c>false</c>。**命名约定只在本类**。
         /// </summary>
@@ -611,6 +627,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// </exception>
         internal byte[] LoadBytes(SaveSlot slot)
         {
+            // 事实出口先清空(与 `Load` 清 `LastLoaded*` 同纪律):本次读档无论走哪条分支,
+            // 都不得沿用上一次的「用了哪一份字节」—— 否则失败时装配层会记一条**上一次**的回退日志。
+            LastLoadSource = SaveLoadSource.None;
+            LastLoadFallback = SaveLoadFallback.None;
+
             // 🔁 2026-11-03(用户实测:「继续诊治」每次 Play 都报 SaveNotFoundException,
             //    slot=4294967295):退出保存的哨兵此前**只有写侧**认得,读侧照玩家槽拼路径
             //    ⇒ 去开 `save_4294967295.bin` ⇒ 恒空槽。现在读写共用同一出处。
@@ -628,7 +649,11 @@ namespace DaYiJingCheng.Sim.Codec
             if (finalExists)
             {
                 byte[] data = File.ReadAllBytes(finalPath);
-                if (ValidateChecksum(data)) return data;
+                if (ValidateChecksum(data))
+                {
+                    LastLoadSource = SaveLoadSource.Final;
+                    return data;
+                }
             }
 
             // 回退 bak。
@@ -641,7 +666,17 @@ namespace DaYiJingCheng.Sim.Codec
             if (bakExists && (finalExists || bakCountsAsOccupancy))
             {
                 byte[] data = File.ReadAllBytes(bakPath);
-                if (ValidateChecksum(data)) return data;
+                if (ValidateChecksum(data))
+                {
+                    // 🔁 2026-11-04(`TD-persist-22` 日志半边):**这一行是一次抢救**,不是常态。
+                    // 本程序集无日志面(`noEngineReferences`)⇒ 只登记事实,由 `LoadSequencer.Load`
+                    // 记一条 `Debug.Log`。⚠️ 判据口径:回退**不改盘**(GDD 规则十一零 I/O)。
+                    LastLoadSource = SaveLoadSource.Bak;
+                    LastLoadFallback = finalExists
+                        ? SaveLoadFallback.FinalCorrupt
+                        : SaveLoadFallback.FinalMissing;
+                    return data;
+                }
             }
 
             // 🔁 2026-10-31(走查实测后按用户裁定「甲」拆分):**两个态必须分开**。

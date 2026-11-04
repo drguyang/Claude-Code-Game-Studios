@@ -202,8 +202,9 @@ Label 的规则**,优先级高于从父元素**继承**的 `md`** ⇒ 墨字按 
 ### 7.3 结论与登记
 
 - **救回成立**:真启动序里,被覆写过的槽在 final 损坏后仍能读回**上一版**(判据 ③)。
-- **两个可见性缺口已立债**:`TD-persist-22`(`open` / P0 面 **N** / R4)——
+- **两个可见性缺口已立债**:`TD-persist-22`(P0 面 **N** / R4)——
   ① 回退**静默**(`SaveService.cs:641-645` 零日志);② 探针不验校验和 ⇒ 正文坏在册子上不可见。
+  **✅ ① 已于同日解掉** —— 见 §7.5。② 仍 open。
 - ⚠️ **不借绿**:判据 ③ 只证「读回来的 tick 是 v1」,**不证**读回的世界内容逐项正确(归 7a 既有一致性夹具)。
 
 ### 7.4 回归(三元组)
@@ -217,3 +218,47 @@ Label 的规则**,优先级高于从父元素**继承**的 `md`** ⇒ 墨字按 
 - PlayMode `+1`(= 341/337)= 本件走查;
 - 首跑两次全绿,无需修正;本轮只补了 `FsWriteBoundaryGate.Declarations` 一条
   (走查件有写盘 + `Application.dataPath` ⇒ 同一形态第八例,这次是**事先**补的)。
+
+
+---
+
+## 7.5 回退日志(`TD-persist-22` 日志半边 · 2026-11-04 · 用户指令「加回退日志」)
+
+### 形态:事实归 codec,记录归装配层(门 A 下唯一路径)
+
+`Sim.Codec` 是 `noEngineReferences: true` ⇒ **它不能 `Debug.Log`**。与
+`LastSaveQueryError` 同一先例:codec 只**陈述事实**,记录放在能记的那一层。
+
+| 件 | 变更 |
+|---|---|
+| `Sim.Codec/SaveLoadSource.cs`(新) | 枚举 `SaveLoadSource`(`None` / `Final` / `Bak`)· `SaveLoadFallback`(`None` / `FinalCorrupt` / `FinalMissing`) |
+| `SaveService.LoadBytes` | 入口**先清空**两个事实;成功分支各自赋值(失败分支不沿用上一次);回退分支注明「这是一次抢救」 |
+| `LoadSequencer.Load` | `LastLoadSource == Bak` ⇒ 一条 **`Debug.Log`**(不是 Warning/Error —— 抢救是设计内行为,但必须看得见),点名「本次读到的是上一版」+「盘上正式的坏文件未修复」 |
+
+**为什么记在 `LoadSequencer`**:载入有**两个入口** —— `BootRoot.RequestLoad`(「继续诊治」)与
+`SaveSlotCommandRouter.TryLoad`(存档册「启封」)。唯一共同下游就是它,记一处两者都覆盖。
+
+### 判据
+
+| # | 载体 | 断言 |
+|---|---|---|
+| ⑥-a | `adr041_slot_overwrite_test`(EditMode,新 3 条) | 干净档 ⇒ `Final` / `None`;**正文坏 ⇒ `Bak` / `FinalCorrupt` 且读回 v1**;两级都坏 ⇒ 抛且事实出口**被清空**(防「拿上一次的回退记日志」) |
+| ⑥-b | `adr041_bak_rescue_walkthrough`(PlayMode) | `LogAssert.Expect(LogType.Log, ^\[7a\]\[载入\] 槽位 3 的正式档校验和不通过\(内容被写坏\) ⇒ 已回退 \.bak:.*上一版)` + `LastLoadSource`/`LastLoadFallback` 取值 |
+
+实跑输出:`[BAK] 救回后 LastLoadedTick=20 … 来源=Bak 原因=FinalCorrupt`。
+
+### 回归(三元组)
+
+| 套件 | 结果 | 三元组 |
+|---|---|---|
+| EditMode | `6880/6843/0/37` | 截至 `2026-11-04T15:45:06Z` · sprint-24 回退日志轮 · `fa2b1738` + 工作树 |
+| PlayMode | `341/337/0/2/2` | 截至 `2026-11-04T15:46:17Z` · 同批次 |
+
+- EditMode `+3`(6877 → 6880)= 本件新增三条,其余逐位相同 ⇒ **零回归**;
+- PlayMode 计数不变(同一条走查,加了断言)。
+
+### 仍未做(不借绿)
+
+- **② 册子半边仍 open**:正文损坏在册子上**依旧不可见**(探针不验校验和)。要不要画
+  「此页已损 / 可启封上一版」、拟物载体是什么 —— 归 **42 + 用户裁定**;
+- **不得**顺手改成「读档修盘」:损坏分支零 I/O 是 GDD 规则十一的**禁止**判据。

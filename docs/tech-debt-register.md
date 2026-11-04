@@ -405,7 +405,7 @@
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-21` | `persistence-service` | open | **Y** | R1 |
-| `TD-persist-22` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-22` | `persistence-service` | partial | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -621,6 +621,14 @@ PYEVAL
 > `N 53 → 54`(+1)· **epic 分布 4/31 不动**(`persistence-service` 已有 `TD-persist-21` 占位)·
 > 条目数 **180 → 181**(+1)。
 > 单一变化源:新增 `TD-persist-22` 索引行(`open` / P0 面 **N** / R4)。
+
+> > 🔁 **七十四订(`TD-persist-22` 日志半边 · 2026-11-04 · 加回退日志)** ——
+> 用户指令「加回退日志,解掉 TD-persist-22 的日志半边」。
+> 变化:`open 20 → 19`(−1)· **`partial 3 → 4`**(+1)· `closed 157` 不动 ·
+> **`未闭 P0 面 9` 一位不动**(本条判 N —— `partial` 仍计未闭,而它本就不在 P0 面分母)·
+> `N 54` 不动 · **epic 分布 4/31 不动** · 条目数 **181 不变**。
+> **单一变化源**:索引行 `TD-persist-22` 的 `open → partial`(同一笔债推进,不是新增/结案)。
+> ⚠️ **与五订同型**(同一行换字,条目数不动);另一半(册子形态)仍 open。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1244,7 +1252,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 181 | 状态 {'closed': 157, 'partial': 3, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 181 | 状态 {'closed': 157, 'partial': 4, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 9 （已闭但曾标 P0 面的 112 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
@@ -4938,6 +4946,26 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 走查结论:**救回成立**(真启动序:`LastLoadedTick = v1 的 tick`,而 final 是 v2),
 > 顺带把两个可见性缺口钉成了机械判据(走查件的判据 ②/④),故本条**不是**「待验证的怀疑」,
 > 而是「已验证行为里被接受下来的那部分」。
+
+> ✅ **2026-11-04 日志半边已解(`open` → `partial`,用户指令「加回退日志,解掉 TD-persist-22 的日志半边」)**
+> —— **① 回退静默**已消除;**② 正文损坏在册子上不可见**仍 open(归 42 形态 + 用户裁定)。
+> **落地形态**(门 A 约束下的唯一路径:事实归 codec,记录归装配层 —— 与 `LastSaveQueryError` 同一先例):
+> · `Sim.Codec/SaveLoadSource.cs` 新增两个枚举 `SaveLoadSource`(`None` / `Final` / `Bak`)与
+>   `SaveLoadFallback`(`None` / `FinalCorrupt` / `FinalMissing`);
+> · `SaveService.LoadBytes` 在**每次读档入口清空**这两个事实,成功分支各自赋值
+>   (失败分支不沿用上一次 —— 否则装配层会拿**上一次**的回退事实记日志);
+> · `LoadSequencer.Load`(**两个入口 `BootRoot.RequestLoad` 与 `SaveSlotCommandRouter.TryLoad`
+>   的唯一共同下游**)在 `LastLoadSource == Bak` 时记一条 **`Debug.Log`(不是 Warning/Error** ——
+>   抢救是设计内行为,但必须看得见),报文点名「本次读到的是上一版」+「盘上正式的坏文件未修复」。
+> **判据**:
+> · EditMode `adr041_slot_overwrite_test` 新增 3 条 —— 干净档来源 = `Final` / 正文坏回退来源 = `Bak`
+>   且原因 = `FinalCorrupt` / **读档失败后事实出口被清空**(防「拿上一次的回退记日志」);
+> · PlayMode 走查 `adr041_bak_rescue_walkthrough` 判据 ⑥ —— `LogAssert.Expect` 钉住那条日志的
+>   **锚定前缀** + 事实出口取值。走查实跑:`来源=Bak 原因=FinalCorrupt`。
+> **回归**:EditMode `6880/6843/0/37`(+3)· PlayMode `341/337/0/2/2`(零回归)
+> @ `2026-11-04T15:45:06Z` / `15:46:17Z` · `fa2b1738` + 工作树。
+> ⚠️ **仍未做,不得借绿**:② 册子半边(要不要画「此页已损」、拟物载体是什么)归 **42 + 用户**;
+> 且**不得**顺手改成「读档修盘」(GDD 规则十一零 I/O)。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

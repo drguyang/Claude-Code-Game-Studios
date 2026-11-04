@@ -16793,3 +16793,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6877/6840/0/37` · PlayMode `341/337/0/2/2`(+1 = 走查件)
   @ 2026-11-04T15:33:07Z / 15:34:20Z · `046b6139` + 工作树。
 - **待提交**。
+
+
+### 补轮:回退日志(TD-persist-22 日志半边,2026-11-04)
+
+- 用户「加回退日志,解掉 TD-persist-22 的日志半边」。
+- 形态(门 A 下唯一路径):`SaveService` 只交事实(`SaveLoadSource` / `SaveLoadFallback`,
+  新文件 `Sim.Codec/SaveLoadSource.cs`),`LoadSequencer.Load`(两个载入入口的唯一共同下游)
+  记一条 **Log** 级日志 —— 与 `LastSaveQueryError` 同一先例。
+- 判据:EditMode +3(干净档=Final / 正文坏=Bak+FinalCorrupt / 失败后清空事实),
+  PlayMode 走查判据 ⑥(`LogAssert.Expect` 锚定前缀)。
+- 回归:EditMode `6880/6843/0/37`(+3)· PlayMode `341/337/0/2/2`(零回归)
+  @ 2026-11-04T15:45:06Z / 15:46:17Z · `fa2b1738` + 工作树。
+- `TD-persist-22`:`open → partial`(册子半边仍 open);债册七十四订,条目 181 不变。
+- **待提交**。

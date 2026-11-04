@@ -137,6 +137,11 @@ public void OnNarrativeAnchor()      { _locked.Clear(); }
 > **缺口(立 `TD-persist-22`)**:① 回退**静默**(`SaveService.cs:641-645` 零日志);
 > ② `SaveSlotProbe` 只验**头部**、不验校验和 ⇒「final 在但正文坏」时探针报 **`Occupied`**,
 > 册子照旧显示有档(四帧里 `wb_05`/`wb_06`/`wb_07` **逐像素相同**)。
+> **✅ ① 已于同日解掉**(用户指令「加回退日志」):`SaveService` 交出事实
+> (`LastLoadSource` / `LastLoadFallback`,住 `Sim.Codec/SaveLoadSource.cs`),
+> `LoadSequencer.Load`(两个载入入口的唯一共同下游)记一条 **`Log`** 级
+> `[7a][载入] … 已回退 .bak:**本次读到的是上一版**`。判据 = EditMode 3 条 + 走查件判据 ⑥。
+> **② 仍 open**(册子要不要画「此页已损」归 42 + 用户)。
 > ⚠️ 本裁**只裁「允许回退」**,没裁「回退是否可见」—— 那半边归 42 的形态 + 7a 的日志,
 > 且**不得**顺手改成「读档时修盘」(损坏分支零 I/O 是 GDD 规则十一的禁止判据)。
 

@@ -147,6 +147,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             _saveService.Load(slot);
 
+            // ── 1.2 回退 `.bak` 的记录(🔁 2026-11-04 · `TD-persist-22` 日志半边)──
+            // 病因:`SaveService.LoadBytes` 回退 `.bak` 时**零日志**(门 A 无日志面)⇒ 玩家
+            //   以为读的是最新档,实际是**上一版**,丢的那段进度没有任何痕迹。
+            // 位置 = 本类:`BootRoot.RequestLoad`(「继续诊治」)与 `SaveSlotCommandRouter.TryLoad`
+            //   (存档册「启封」)是**两个入口**,唯一共同下游就是这里 —— 记在此处两者都覆盖。
+            // ⚠️ **级别 = Log,不是 Warning / Error**:抢救是设计内行为(ADR-041 §D4),不是故障;
+            //   但它是**异常态**,所以要看得见。⚠️ 文案归 7a(存储层事实),不是给玩家的提示语
+            //   —— 玩家侧要不要告知、怎么告知归 42(`TD-persist-22` 的册子半边,仍 open)。
+            if (_saveService.LastLoadSource == SaveLoadSource.Bak)
+            {
+                UnityEngine.Debug.Log(
+                    "[7a][载入] 槽位 " + slot.SlotSeq + " 的正式档" +
+                    (_saveService.LastLoadFallback == SaveLoadFallback.FinalCorrupt
+                        ? "校验和不通过(内容被写坏)"
+                        : "缺失") +
+                    " ⇒ 已回退 .bak:**本次读到的是上一版**。盘上正式的坏文件**未修复**" +
+                    "(GDD 规则十一:损坏分支零 I/O)—— 下一次成功写入该槽时才会被覆盖。");
+            }
+
             // ── 1.5 逻辑时钟定位(2026-11-04 · 用户报「再进入已有存档,console 很多红色报错」)──
             // 病因:`ITickProvider` 只读、`SaveService` 又把档头 tick 丢掉 ⇒ 读档后驱动仍停在
             //   0(或旧值),而三流已恢复到最后一条事件的 tick ⇒ 之后每笔 sim 写入都早于流尾,
