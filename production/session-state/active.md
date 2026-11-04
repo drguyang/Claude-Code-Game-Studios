@@ -16502,3 +16502,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   对历史无效。已装 `git-filter-repo`;全量镜像备份已就绪
   `/home/gu/文档/nm/nm2/Claude-Code-Game-Studios-mirror-backup-2026-11-04.git`(341 MB,HEAD 一致)。
 - ⚠️ **副作用待修**:filter-repo 的第一次失败运行把 `origin` 远端**摘掉了**,尚未加回。
+
+## 九宫格重冻轮(2026-11-04 · `TD-skeuo-10` 结案)
+
+- 8 张重画图按冻结件 §一 六步法全部重测。**唯一值变更 = `paper_hemp-final.png` 0 → 64**
+  (原因不是测量,是它被 `.paper` 接上作无框底纹,按 R2 取现行渲染切片);其余 7 张维持原值。
+- 同批:冻结件 §二 表 + `freeze-v1` 块 + §七(复算脚本指向仓内)+ 新 §八 round-2 记录;
+  `paper_hemp-final.png.meta` 的 `spriteBorder` 0 → 64。
+- **测量方法首次落仓内载体**:`tools/slice-measure/measure_slices.py`(原 §七 写「见会话日志」= 不可复算)。
+  `--check` 按冻结件「形态」列分流:R1 框图校验 ceil8,其余 R2/R3 **实测不适用**。
+- **变异探针**:`paper_hemp` 的 spriteBorder 改回 0 ⇒ `test_ac42c8_…match_freeze_record` 转红并点名该文件
+  (26/1),SHA-256 逐字节还原 ⇒ 门确实读到新登记,不是空跑。
+- 债册:`TD-skeuo-10` **closed**(六十三订)。条目 174 | closed 153 | open 17 | 未闭 P0 面 8(不变)。
+- 原件 = `production/qa/evidence/impl-td-skeuo-10-nine-slice-refreeze-2026-11-04.md`。
+- **未提交**。

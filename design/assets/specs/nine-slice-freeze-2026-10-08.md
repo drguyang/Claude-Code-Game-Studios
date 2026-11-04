@@ -43,7 +43,7 @@
 | 1 | `border_paper-final.png` | 纸 | **框** | 40 / 39 / 43 / 43 | **64** | `SkeuoPaper.uss` | R1:ceil8(43)=48,现值 64 已过接缝验证(USS 注释甲-B 口径)⇒ `max(64,48)=64` 维持,两口径(43/57)均覆盖 |
 | 2 | `paper_aged-final.png` | 纸 | 满铺(软边污渍) | 24 / 314 / 274 / 171 | **64** | `SkeuoPaper.uss`(随 `.paper` 类) | R2:污渍为渐变非硬边界;实际渲染切片 = `.paper` 的 64 ⇒ 冻结 64 |
 | 3 | `paper_xuan-final.png` | 纸 | 满铺 | 39 / 762 / 226 / 123 | **0** | — | 未接线(逐变体映射归 019 余项);接线时**重开冻结轮** |
-| 4 | `paper_hemp-final.png` | 纸 | 满铺 | 1024 / 1012 / 1024 / 1024 | **0** | — | 同上 |
+| 4 | `paper_hemp-final.png` | 纸 | 满铺 | **1024 ×4**(round-2 实测;round-1 记 1024/1012/1024/1024) | **64** | `SkeuoPaper.uss` | 🔁 **round-2(2026-11-04)改动**:该图此前未接线,round-1 登记 0;现被 `.paper` 用为**无框底纹**(页框另立 `.paper-page`,见 ADR-013 §十-G),故按 **R2** 取现行渲染切片 64。`.meta` 的 `spriteBorder` 同批 0 → 64 |
 | 5 | `paper_burnt_edge-final.png` | 纸 | 满铺 | 221 / 506 / 1024 / 1024 | **0** | — | 同上 |
 | 6 | `border_scroll-final.png` | 卷轴 | **框** | **66 / 64 / 68 / 69** | **72** | `SkeuoScroll.uss` | 🔴 **本轮查出的现值缺陷**:右框延展 69 > 现值 68 ⇒ 现值切掉右框 1px;R1:ceil8(69)=72 ⇒ 冻结 72,USS 同批 68→72(见 §五) |
 | 7 | `scroll_cap-final.png` | 卷轴 | 件 | 1024 ×4 | **0** | — | 未接线;归铜族登记表(2026-10-05 裁定) |
@@ -76,7 +76,7 @@ C8 门(`TextureBindingGates.ValidateSpriteBorderMatchesFreeze`)只解析本块;
 border_paper-final.png|64|SkeuoPaper.uss
 paper_aged-final.png|64|SkeuoPaper.uss
 paper_xuan-final.png|0|-
-paper_hemp-final.png|0|-
+paper_hemp-final.png|64|SkeuoPaper.uss
 paper_burnt_edge-final.png|0|-
 border_scroll-final.png|72|SkeuoScroll.uss
 scroll_cap-final.png|0|-
@@ -129,6 +129,60 @@ Casebook/casebook_paper_base-final.png|0|-
 见会话日志(2026-10-08);要点即 §一 六步,零依赖(numpy + PIL)。
 复算期望:第 1 行 `40/39/43/43`、第 6 行 `66/64/68/69` —— 对不上即说明方法或图变了。
 
+> 🔁 **2026-11-04 round-2 补正**:上句的「见会话日志」= **判据没有仓内载体**,等于不可复算。
+> 现已落 `tools/slice-measure/measure_slices.py`(只读,零写盘):
+> ```bash
+> python3 tools/slice-measure/measure_slices.py            # 打印全部 18 张的四边延展
+> python3 tools/slice-measure/measure_slices.py --check    # 按 §三 规则逐行比对,违例退出码 1
+> ```
+> `--check` **按 §二 表的「形态」列分流**:只有**框**类走 R1(`冻结值 ≥ ceil8(四边最大延展)`),
+> 满铺 / 件 / 表 / 规格出图走 R2·R3(**实测值不作冻结依据**)。
+> ⚠️ round-1 的期望值 `40/39/43/43` · `66/64/68/69` 描述的是**旧图**;8 张重画后实测已变为
+> `39×4` · `72×4`(见 §八)。
+
 **出图脚本(第 17 行铜环,2026-10-08 绑定轮补存)**:
 `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Brass/generate_focus_brass_2px.py`
 —— 与图同目录;`--check` 校验复现(实测**字节级一致**,235 bytes)。依赖 Pillow(清华源安装)。
+
+---
+
+## 八、round-2 重冻记录(2026-11-04)
+
+> **触发**:`TD-skeuo-10` —— 为去 sensenova 水印,**8 张在用纹理被程序化重画**
+> (`border_paper` / `paper_aged` / `border_scroll` / `seal_surface` / `ink_light` /
+> `ink_wet` / `ink_dry` / `paper_hemp`)。本件 §首 逐字规定「任何一张图重画 / 替换 ⇒
+> 本轮作废,须重测重冻」,故按 §一 六步法全部重测。
+
+### 8.1 实测(可复跑:`python3 tools/slice-measure/measure_slices.py`)
+
+| 文件 | round-1 实测 T/B/L/R | **round-2 实测 T/B/L/R** | 规则 | round-1 冻结 | **round-2 冻结** |
+|---|---|---|---|---|---|
+| `border_paper-final.png` | 40 / 39 / 43 / 43 | **39 / 39 / 39 / 39** | R1:`max(ceil8(39)=40, 现行 64)` | 64 | **64(不变)** |
+| `paper_aged-final.png` | 24 / 314 / 274 / 171 | **1024 ×4**(满铺) | R2:不按实测 | 64 | **64(不变)** |
+| `border_scroll-final.png` | 66 / 64 / 68 / 69 | **72 / 72 / 72 / 72** | R1:`max(ceil8(72), 现行 72)` | 72 | **72(不变)** |
+| `seal_surface-final.png` | 1024 ×4 | **0 / 0 / 0 / 0** | R2:石面无框边界 | 8 | **8(不变)** |
+| `ink_light-final.png` | 1024 ×4 | **1024 ×4** | R2:软渐变底,USS 明示无 slice | 0 | **0(不变)** |
+| `ink_wet-final.png` | 212 / 53 / 158 / 274 | **1024 ×4** | R2:同上 | 0 | **0(不变)** |
+| `ink_dry-final.png` | 1024 ×4 | **1024 ×4** | R2:同上 | 0 | **0(不变)** |
+| `paper_hemp-final.png` | 1024 / 1012 / 1024 / 1024 | **1024 ×4** | **R2 + 新接线**:取现行渲染切片 64 | 0 | **64(改)** |
+
+### 8.2 唯一的值变更 = `paper_hemp-final.png` 0 → 64
+
+**不是测量结论变的,是接线变的**:该图此前**全树零引用**,round-1 按「未接线」登记 0;
+2026-11-04 起它被 `.paper` 用作**无框底纹**(页框另立 `.paper-page`,见 ADR-013 §十-G),
+而 `.paper` 的 `-unity-slice-*` = 64 ⇒ 按 R2「冻结值 = 现行渲染切片值」取 **64**。
+
+同批改动:
+- `paper_hemp-final.png.meta` 的 `spriteBorder`: `{0,0,0,0}` → `{64,64,64,64}`;
+- `freeze-v1` 机器块第 4 行 `paper_hemp-final.png|0|-` → `paper_hemp-final.png|64|SkeuoPaper.uss`;
+- §二 表第 4 行同步(形态仍记「满铺」,备注写清取值依据)。
+
+### 8.3 结论与未做
+
+- **其余 7 张的冻结值一字未改** —— 重测的作用是**确认**,不是改值。这本身是证据:
+  重画没有把任何框的几何推出原切片(`border_scroll` 从 69 涨到 72 恰好等于冻结值 72,
+  `border_paper` 从 43 降到 39 仍远在 64 之内)。
+- ⚠️ **`.meta` 的 `spriteMode` / `textureType` / `alphaIsTransparency` 未复验**(本轮只动 `spriteBorder`);
+  E1 格式门覆盖顶层面 16 张,子目录 3 张仍如 §六 所述不在其扫描面内。
+- ⚠️ **冻结件仍自称「round-1」,本文不改其抬头** —— 抬头的「round-1 · 2026-10-08」是历史陈述,
+  按「原文不删」保留;当前有效值以 §二 表与 `freeze-v1` 块为准。

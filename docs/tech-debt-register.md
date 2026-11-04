@@ -466,7 +466,7 @@
 | `TD-skeuo-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-08` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-09` | `skeuomorphic-ui` | open | **N** | R1 |
-| `TD-skeuo-10` | `skeuomorphic-ui` | open | **N** | R1 |
+| `TD-skeuo-10` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -587,6 +587,13 @@ PYEVAL
 > 后者是**流程义务**(冻结件测量值过期,但 slice 值今天仍覆盖得住,未坏)。
 > ⚠️ **本轮改了两个门**(`TextureBindingGates.AssetResolves` 的解析口径)与两条把
 > `guid:` 冻成判据的断言 —— 详见 `TD-skeuo-08` 解除动作 ②③。
+
+> > 🔁 **六十三订(`TD-skeuo-10` 结案 · 2026-11-04)** —— 九宫格冻结件的重测重冻已执行。
+> 变化:`closed 152 → 153`(+1)· `open 18 → 17`(−1)· **未闭 P0 面 8 不变**(该债判 N)·
+> `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
+> 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
+> **测量方法首次落仓内载体** `tools/slice-measure/measure_slices.py` —— 原冻结件 §七 写「见会话日志」,
+> 等于把「可复算」写在了一个不存在的地方。
 
 > > 🔁 **六十订(`TD-skeuo-03` 结案 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户裁定「甲:关闭 + 焦点回进入前载体」。变化:`open 17 → 16`(−1)· `closed 149 → 150`(+1)·
@@ -1142,7 +1149,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 174 | 状态 {'closed': 152, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 174 | 状态 {'closed': 153, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 8 （已闭但曾标 P0 面的 109 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 2/31 个 epic
     random-events: 5          skeuomorphic-ui: 3
@@ -4868,6 +4875,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | 按该件 §一 的六步法重测 8 张 → 更新 `freeze-v1` 机器块 → 同批改 `.meta` / USS(若值有变)→ 复跑 C8 门。**值若不变也要重签**(重测的结论本身是证据)。 |
 | **触发条件** | 下一次动任何 `-unity-slice-*` 之前(**硬前置**);或 42 的下一次视觉轮。 |
 | **归属** | **42 拟物 UI** × **美术(切图冻结轮)** |
+
+> ✅ **2026-11-04 已闭(同日立、同日结案)**。原文不删。
+> 执行 = 8 张重画图按冻结件 **§一 六步法**全部重测(`border_paper` `39×4` · `paper_aged` `1024×4` ·
+> `border_scroll` `72×4` · `seal_surface` `0` · `ink_*` `1024×4` · `paper_hemp` `1024×4`)。
+> **唯一值变更 = `paper_hemp-final.png` `0 → 64`** —— 不是测量结论变的,是**接线变的**
+> (它被 `.paper` 接上作无框底纹,按 R2 取现行渲染切片);其余 7 张重测后**维持原值**,
+> 这本身是证据:重画没把任何框的几何推出原切片。
+> 同批:冻结件增 **§八 round-2 记录** + `freeze-v1` 块第 4 行改 `paper_hemp-final.png|64|SkeuoPaper.uss` ·
+> `paper_hemp-final.png.meta` 的 `spriteBorder` `0 → 64` ·
+> **测量方法落仓内可执行载体** `tools/slice-measure/measure_slices.py`(原冻结件 §七 写「见会话日志」= 不可复算)。
+> **变异探针**:把 `paper_hemp` 的 `spriteBorder` 改回 `0` ⇒ `test_ac42c8_…match_freeze_record`
+> **转红并点名该文件**(26/1),SHA-256 逐字节还原 ⇒ 门确实读了新登记,不是空跑。
+> `C8` 门 + 整个 `texture_binding_gate_test` 回归 **27/27**。
+> ⚠️ **仍成立的局限(不借绿)**:`.meta` 的 `spriteMode` / `textureType` / `alphaIsTransparency`
+> 本轮**未复验**;E1 格式门覆盖顶层面 16 张,子目录 3 张仍不在其扫描面(承冻结件 §六)。
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 
