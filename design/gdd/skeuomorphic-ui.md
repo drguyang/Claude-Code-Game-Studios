@@ -1671,6 +1671,13 @@ P0 焦点载体 spike 的结论(**通过 / 降级**)有书面记录。「载体�
 ⑨ 炮制屏(18,`ModalId.Processing`,🔁 2026-11-02 `ADR-013 §十-E Amendment D` 增员)**;
 **WHEN** 手柄单机走查,**THEN** 可走完且**目视无按键提示浮层**。
 
+> 🔁 **2026-11-04(用户裁定 · 结 `TD-skeuo-04` 的 ④ 半边)**:④ 设置界面壳的**生产入口已接通** ——
+> 暂停壳第三行「调治」(`pause-shell-42.md` §5)。此前该屏屏载体与目录登记齐、但**全仓零开屏点**,
+> 玩家在构建里永远看不见;`settings-shell-42.md` 原写的两个入口又各自被更晚的 Approved 件排除
+> (主菜单 `main-menu-42.md:85-86` 明写不提供设置)。⇒ **④ 的走查不再被「打不开」阻塞**。
+> ⚠️ **整体仍 `NOT-RUN`,且 ⑤ / ⑦ 仍不可达**(⑤ 待 48 的锚点引擎,⑦ 待纸道具 kind + 世界摆点),
+> ⑨ 仍无 `processing-18.md`。本行不改变该 AC 的签核状态。
+
 > 🔁 **2026-11-02(`ADR-013 §十-E Amendment D`)**:闭集 八 → **九**。⑨ 炮制屏的**载体已存在**
 > (`Gameplay.UI/Skeuomorphic/Screens/Processing18Screen.cs`:候选行 + 选中 + 点火;
 > `SkeuoRuntimeDriver` 的 `ScreenFactories["Processing"]` / `ModalScreenNames` /

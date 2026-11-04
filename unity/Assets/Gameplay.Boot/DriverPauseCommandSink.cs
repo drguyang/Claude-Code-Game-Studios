@@ -11,7 +11,10 @@
 //        ──▶ 行「存档位」 ──▶ **本类.OpenSaveSlots** ──▶ `OpenModal(ModalId.SaveSlots)`
 //        ──▶ 存档位行 ──▶ `SaveSlotCommandRouter.TryLoad` ──▶ `LoadSequencer.Load`
 //
-// ⚠️ **两个动作都不判定任何游戏状态**:
+// 🔁 **2026-11-04 第三行「调治」**(用户裁定):`OpenSettings` = 换屏到 `ModalId.SettingsShell` ——
+//    该屏此前**生产上零开屏点**(`TD-skeuo-04`),本行是它的唯一入口。
+//
+// ⚠️ **三个动作都不判定任何游戏状态**:
 //   `Resume` 只合上暂停壳(「继续」要不要恢复 tick / 解冻世界,归世界侧;
 //   今日世界侧在暂停期本就没有冻结机制 —— 见 Amendment C 的「未做」段);
 //   `OpenSaveSlots` 只是换屏,不读存档、不碰 `SaveService`。
@@ -22,7 +25,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
     using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 
-    /// <summary>暂停壳两行的装配层实现(42 → 装配层的单向调用)。</summary>
+    /// <summary>暂停壳三行的装配层实现(42 → 装配层的单向调用)。</summary>
     public sealed class DriverPauseCommandSink : IPauseCommandSink
     {
         private readonly SkeuoRuntimeDriver _driver;
@@ -39,5 +42,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <inheritdoc/>
         public void OpenSaveSlots() => _driver.OpenModal(ModalId.SaveSlots);
+
+        /// <inheritdoc/>
+        public void OpenSettings() => _driver.OpenModal(ModalId.SettingsShell);
     }
 }

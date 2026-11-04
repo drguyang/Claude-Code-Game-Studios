@@ -5,7 +5,7 @@
 //   我上一轮据此报过「焦点逃出模态」,又用量测撤回 —— 那正说明**截图不是判据**。
 //   本文件把 `pause-shell-42.md` 的两条 AC 改成机器判:
 //     · AC-PS-02 开屏后焦点落在「继续」
-//     · AC-PS-03 方向键在**两行之间**移动,且**不逃出模态**
+//     · AC-PS-03 方向键在**各行之间**移动,且**不逃出模态**
 //
 // ▍驱动的是真链(照 u1_assump6_gamepad_chain_test 的配方)
 //   虚拟 Gamepad → `InputSystem_Actions` 的 `UI/Navigate` → 生产 `EventSystem` 的
@@ -15,7 +15,7 @@
 //
 // ▍本文件的边界(先声明,防借绿)
 //   · **无样式表**:`.ruled` 的 `min-height` 来自 USS,测试里不加载样式 ⇒ 行会塌成零高,
-//     而**几何导航需要非零 worldBound** ⇒ 本文件给两行显式尺寸(见 `GiveRowsGeometry`)。
+//     而**几何导航需要非零 worldBound** ⇒ 本文件给各行显式尺寸(见 `GiveRowsGeometry`)。
 //     ⚠️ 这只替代布局,不改被测逻辑;但它也意味着「真样式下的行高」不在本判据面内。
 //   · **不是手感**:移动是否跟手、焦点环好不好看,都不在面内(归人工腿)。
 //   · **不是渲染**:`-nographics` 下没有像素,焦点环「看不看得见」不在面内。
@@ -24,7 +24,9 @@
 //     不是绕过被测行为。具体哪两条、为什么必需,见 `Assemble()` 里那段注释。
 //
 // ▍覆盖(machine-judged)
-//   AC-PS-02 落焦「继续」· AC-PS-03a/03c 两行间移动 + 不逃出模态 · AC-PS-04 开合同键
+//   AC-PS-02 落焦「继续」· AC-PS-03a/03c 行间移动 + 不逃出模态 · AC-PS-04 开合同键
+//   🔁 2026-11-04:暂停壳两行 → **三行**(「调治」,用户裁定);本文件的「两行」措辞随之失效,
+//      判据改为**按 `RowCount` 迭代**,闭集再增员时零改动。
 //   (手柄 start 两半)· AC-PS-05 「存档位」→ 换屏且只留一个容器 · AC-PS-06 模态期
 //   E/F 被拒 + 移动轴折零(via 生产 `ModalGateStateAdapter` / `ModalInputFreeze`)
 //   · AC-PS-09 全手柄 + 全键盘各走完「开壳 → 存档位 → 返回」。
@@ -125,11 +127,11 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // AC-PS-03 · 模态内导航(两行之间),且不逃出模态
+        // AC-PS-03 · 模态内导航(各行之间),且不逃出模态
         // ══════════════════════════════════════════════════════════════════
 
         [UnityTest]
-        public IEnumerator test_acps03_arrowDown_thenUp_movesBetweenTheTwoRows()
+        public IEnumerator test_acps03_arrowDown_thenUp_movesBetweenRows()
         {
             yield return Assemble();
             _driver.OpenModal(ModalId.Pause);
@@ -141,7 +143,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return Press(new Vector2(0f, -1f));      // 下
 
             Assert.That(Focused(), Is.SameAs(pause.RowAt(1)),
-                "AC-PS-03:方向键下 ⇒ 焦点到「存档位」。落不到 = 两行不在同一条导航链上");
+                "AC-PS-03:方向键下 ⇒ 焦点到第二行「存档位」。落不到 = 各行不在同一条导航链上");
 
             yield return Press(new Vector2(0f, 1f));       // 上
 
@@ -180,8 +182,12 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 yield return Press(new Vector2(0f, -1f));
                 Assert.That(Focused(), Is.Not.SameAs(_outsider),
                     $"第 {i + 1} 次下键后焦点落到了模态外的元素上 —— ADR-013 §五「焦点单栈门」破了");
-                Assert.That(Focused(), Is.SameAs(pause.RowAt(0)).Or.SameAs(pause.RowAt(1)),
-                    $"第 {i + 1} 次下键后焦点离开了暂停壳的两行");
+                // 🔁 2026-11-04:按 `RowCount` 迭代而不是列举 0/1 —— 闭集增员(三行「调治」)时
+                //    本判据零改动;写死下标会让下一次增员变成一条**假的**「焦点逃出」红。
+                var allowed = new System.Collections.Generic.List<VisualElement>();
+                for (int r = 0; r < pause.RowCount; r++) allowed.Add(pause.RowAt(r));
+                Assert.That(allowed, Does.Contain(Focused()),
+                    $"第 {i + 1} 次下键后焦点离开了暂停壳的行集({pause.RowCount} 行)");
             }
 
             _driver.CloseModal();
@@ -596,7 +602,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         /// <summary>
-        /// 给两行**显式尺寸**。
+        /// 给各行**显式尺寸**。
         /// <para>⚠️ 测试不加载 USS ⇒ `.ruled` 的 `min-height` 不生效 ⇒ 行会塌成零高,
         /// 而几何导航需要非零 `worldBound`。故此处补上布局;这不是「改被测逻辑」,
         /// 但「真样式下的行高」不在本判据面内(见文件头注)。</para>

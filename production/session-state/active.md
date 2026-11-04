@@ -16536,3 +16536,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 终态(三元组):EditMode `6824/6787/0/37` · PlayMode `331/327/0/2/2`
   @ `2026-11-04T01:28:59Z` · sprint-24 存档遗留轮 · `85de93fa` + 工作树。
 - **待提交**。
+
+## TD-skeuo-04(④)+ TD-skeuo-06 结清(2026-11-04)
+
+- 用户两项裁定:**设置壳入口 = 暂停壳加第三行**(覆盖 OQ-PS-3 的「设置」一项);
+  纸近景 = **拟增第 11 项 kind**。
+- **④ 设置壳可达**:`PauseScreen` 三行(继续/存档位/调治)→ `OpenSettings()` →
+  `ModalId.SettingsShell`;关屏按壳类压栈回暂停壳。夹具 +2。
+  规格回写:`pause-shell-42.md` §5 + OQ-PS-3 / `settings-shell-42.md` §3·§4 / `AC-42-F1` 注。
+- **TD-skeuo-06 闭**:`DriverProcessingCommandSink`(`Gameplay.Boot`)= 该接口**首个生产实现**;
+  `Ignite` → `CraftIgnitionTransaction.Process`;`ToolCell` 由结构注册表解析;
+  依赖全走委派(器具格/料位/重量/载重)。夹具 5 条,判据全在**流的副作用**(恰 1 条 `Craft` / 拒发零条)。
+- **新债 `TD-processing-09`**:`Sim/EnvMod.cs` 中性名是乘性 `Fix.One`,而 F1 的 `EnvMod_total`
+  是**相加增量**(中性 0)⇒ 接进去每炉 +1.0。点火三分量今日传 `Fix.Zero` + 首次告警。
+- **纸近景未做(如实)**:前置 = 枚举 + `interaction_kinds` **重烘** + 第五候选源 + 世界摆点
+  (四份 world_*.json 无纸;`papers[]` 无 cell)+ 锚点引擎 story-003。只做枚举 = 造一个永不出现的 kind。
+- 回归(三元组):EditMode `6831/6794/0/37` · PlayMode `331/327/0/2/2`
+  @ `2026-11-04T02:44:51Z` · sprint-24 TD-04/06 轮 · `75a3a9c4` + 工作树。
+- 债册:`TD-skeuo-06` closed(六十五订)· `TD-processing-09` open/P0Y · 未闭 P0 面 7(不变)。
+- 原件 = `production/qa/evidence/impl-td-skeuo-06-processing-ignition-2026-11-04.md`。
+- **待提交**。

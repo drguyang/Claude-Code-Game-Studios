@@ -117,6 +117,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
         private InteractionPressRouter _pressRouter;
+        // 🔁 2026-11-04(`TD-skeuo-06`):炮制屏的意图出口(点火 / 关屏)。
+        //    此前 `IProcessingCommandSink` 生产实现数为零 ⇒ 屏上点火是**静默空操作**。
+        private DriverProcessingCommandSink _processingSink;
         private ModalInputFreeze _inputFreeze;      // 模态期输入冻结(移动轴 / 建造;2026-10-31)
         private BuildInputDriver _buildDriver;      // S20-19:建造输入驱动
 
@@ -755,7 +758,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    **未选任何料 ⇒ 空集 ⇒ 屏上零行**。空集是合法输入
                     //    (`AdmissiblePredicate` 的 `NoConsumedInstances`),不是 null(fail-closed 会抛)。
                     //    ⇒ 零行是「玩家还没点料」的诚实形态,不是「屏坏了」。
-                    _ =>
+                    structureId =>
                     {
                         if (_uiDriver == null) return false;
                         var recipeSource = _services.RecipeSource;
@@ -764,6 +767,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                         if (!_uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Processing)) return false;
                         var screen = _uiDriver.Screen as UI.Skeuomorphic.Screens.Processing18Screen;
                         if (screen == null) return false;
+                        // 🔁 2026-11-04(`TD-skeuo-06`):接上意图出口。
+                        //    器具格从结构注册表按 `structure_id` 解析(F-5.4 的 ToolCell 锚点),
+                        //    **不用玩家格顶替** —— 起货溢出落点是它。
+                        if (_processingSink != null)
+                        {
+                            _processingSink.SetTool(structureId);
+                            screen.BindCommandSink(_processingSink);
+                        }
                         // 惰性求值:只在屏真打开时读数据集(装配期零读取 —— 见 CompositionRoot 注)
                         // 🔁 **2026-11-02(料位供给)**:品级集不再传空集 —— 它来自 20 屏的选中态
                         // (`ContainerSelectionStore`)。空选中集 ⇒ 空品级集 ⇒ 零行(合法输入)。
@@ -1024,6 +1035,60 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    第八员)—— 于是路径回到 7b 写的形状:Escape → 暂停壳 → 「存档位」行 → 存档位。
             //    `DriverPauseCommandSink` 就是暂停壳那两行的去向(继续 = 合壳 / 存档位 = 换屏)。
             _uiDriver.PauseSink = new DriverPauseCommandSink(_uiDriver);
+
+            // 🔁 2026-11-04(`TD-skeuo-06`):炮制屏点火的生产装配。
+            // ⚠️ 任一件缺失 ⇒ **不构造**,并显式告警(与 `ConsequenceDriver` 同纪律:
+            //    null 可观测,不是「静默降级成空转」)。
+            if (_services.CraftCompletionSettler != null
+                && _services.InventoryLoad != null
+                && _services.RecipeSource != null
+                && _services.ContainerSelection != null)
+            {
+                var craftWriter = new DaYiJingCheng.Sim.World.CraftEventWriter(
+                    _services.EventSink, _services.Encoder, _services.IdAuthority);
+                var worldForTool = _services.World;
+                int craftActor = actorId;
+                _processingSink = new DriverProcessingCommandSink(
+                    _uiDriver,
+                    _services.RecipeSource,
+                    // 料位 = 20 屏的选中态,**对齐**的两份清单由 store 一趟产出。
+                    () =>
+                    {
+                        _services.ContainerSelection.SnapshotSelection(out long[] ids, out int[] qs);
+                        return new ProcessingMaterials(ids, qs);
+                    },
+                    // 单件重量:与起货结算**同一份**映射(`CraftCompletionSettler` 持有两张表)。
+                    (ordinal, line) =>
+                        _services.CraftCompletionSettler.UnitWeightOfOutputLine(ordinal, line, craftActor),
+                    // 载重:20 的投影求和(每次现算,不持快照)。
+                    () =>
+                    {
+                        DaYiJingCheng.Sim.InventoryProjection proj =
+                            _services.InventoryLoad.Rebuild().Projection;
+                        return proj != null ? _services.InventoryLoad.LoadOf(proj, craftActor) : 0L;
+                    },
+                    // 器具格:结构注册表按 `structure_id` 解析(F-5.4 的 ToolCell 锚点)。
+                    id => worldForTool != null
+                          && worldForTool.Structures.TryGet(
+                                 id, out DaYiJingCheng.Sim.World.StructureInstance inst)
+                        ? inst.Anchor
+                        : (DaYiJingCheng.Sim.Contracts.WorldPos?)null,
+                    new HarvestSkillLevelProjection(() => _services.Stream.Events, _services.Decoder),
+                    _services.Stream.Events,
+                    _services.Decoder,
+                    _services.CarryCap.HasValue
+                        ? new DaYiJingCheng.Sim.CarryCapacity(_services.CarryCap.Value)
+                        : (DaYiJingCheng.Sim.CarryCapacity?)null,
+                    () => _tickDriver != null ? _tickDriver.CurrentTick : 0L,
+                    craftActor,
+                    craftWriter);
+            }
+            else
+            {
+                Debug.LogWarning("[BootRoot] 炮制点火未装配(缺 CraftCompletionSettler / InventoryLoad / " +
+                                 "RecipeSource / ContainerSelection 之一)—— 屏上按配方会明确报「点火拒发」, " +
+                                 "不是静默空操作(TD-skeuo-06)。");
+            }
             _modalInput = new ModalInputDriver(
                 PlayerInputReader.PauseTogglePressed,
                 new DriverModalOpener(_uiDriver));

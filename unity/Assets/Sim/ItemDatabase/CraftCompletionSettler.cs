@@ -277,6 +277,26 @@ namespace DaYiJingCheng.Sim
                 "配方表未装载 / 版本不一致;拒绝以「零产出」冒充(fold 侧另报 CraftRecipeNotInTable)");
         }
 
+        /// <summary>
+        /// 配方第 <paramref name="lineIndex"/> 行产出的**单件重量**
+        /// (`CraftIgnitionRequest.UnitWeightOfOutputLine` 的生产实现)。
+        /// </summary>
+        /// <param name="recipeOrdinal">配方 ordinal。</param>
+        /// <param name="lineIndex">`recipe.Outputs` 的行索引(从 0 起)。</param>
+        /// <param name="actorId">玩家 id(仅用于报错归因)。</param>
+        /// <returns>该行产出的单件重量(≥ 1;查不到 ⇒ 抛)。</returns>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么由本类提供而不是点火侧再写一份</b>:`Key → ordinal → weight` 的两张表
+        /// 已经在这里(**同一份** `ItemDataSet` / `RecipeDataSet`),映射的两处失败形态
+        /// (行越界 / 表版本不一致)也已在此 fail-loud。在点火侧另写一份 = 第二真源,
+        /// 两处对「缺重量」的处置迟早分叉。</para>
+        /// </remarks>
+        public int UnitWeightOfOutputLine(int recipeOrdinal, int lineIndex, int actorId)
+        {
+            Recipe recipe = ResolveRecipe(recipeOrdinal, actorId);
+            return WeightOf(ResolveOutputOrdinal(recipe, lineIndex, actorId));
+        }
+
         private int ResolveOutputOrdinal(Recipe recipe, int index, int actorId)
         {
             RecipeEntry[] outs = recipe.Outputs;

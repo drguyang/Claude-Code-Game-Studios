@@ -88,6 +88,42 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 投影里查不到 ⇒ 本方法跳过它。**不抛** —— 那是合法竞态(选中与消耗之间隔了一帧),
         /// 抛会让「正在烧的炉」把整个面板打成崩溃。</para>
         /// </remarks>
+        /// <summary>
+        /// 取**对齐**的 (实例 id, 品级) 两份清单 —— 供点火事务的
+        /// `InputInstanceIds` / `InputQualities`(F1 要求两集合**逐位对位**)。
+        /// </summary>
+        /// <param name="instanceIds">被点名实例 id(**按 id 升序**;空集 = 无选中,非 null)。</param>
+        /// <param name="qualities">与 <paramref name="instanceIds"/> **逐位对位**的品级集。</param>
+        /// <remarks>
+        /// <para>⚠️ <b>为什么不能拿 <see cref="SelectedInstanceIds"/> + <see cref="ConsumedQualitiesOf"/>
+        /// 各取一次</b>:后者会**跳过已消失的实例**(合法竞态),而前者不会 ——
+        /// 两次调用的结果可能不等长,`InputInstanceIds[i]` 与 `InputQualities[i]` 从此错位。
+        /// 错位的品级集在 `AdmissiblePredicate` 里只表现为「min 变了」,**不抛、不报** ——
+        /// 静默放行或静默拒绝。本方法用**一趟遍历**产出两份等长清单,错位在结构上不可表达。</para>
+        /// <para>⚠️ 已消失的实例在**两份清单里同时**跳过(不是只从品级侧跳过)。</para>
+        /// </remarks>
+        public void SnapshotSelection(out long[] instanceIds, out int[] qualities)
+        {
+            InventoryProjection proj = _projection();
+
+            _sorted.Clear();
+            _sorted.AddRange(_selected);
+            _sorted.Sort();
+
+            var ids = new List<long>(_sorted.Count);
+            var qs = new List<int>(_sorted.Count);
+            for (int i = 0; i < _sorted.Count; i++)
+            {
+                long id = _sorted[i];
+                if (proj == null || !proj.TryGet(id, out InventoryRow row)) continue;
+                ids.Add(id);
+                qs.Add(row.Quality);
+            }
+
+            instanceIds = ids.ToArray();
+            qualities = qs.ToArray();
+        }
+
         public IReadOnlyList<int> ConsumedQualitiesOf(int actorId)
         {
             if (_selected.Count == 0) return Array.Empty<int>();

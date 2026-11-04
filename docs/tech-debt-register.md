@@ -339,6 +339,7 @@
 | `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
 | `TD-processing-08` | `processing` | closed | **N** | R4 |
+| `TD-processing-09` | `processing` | open | **Y** | R2 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -462,7 +463,7 @@
 | `TD-skeuo-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-04` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-05` | `skeuomorphic-ui` | closed | **Y** | R1 |
-| `TD-skeuo-06` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-06` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-07` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-08` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-09` | `skeuomorphic-ui` | open | **N** | R1 |
@@ -593,6 +594,13 @@ PYEVAL
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
 >
+> > 🔁 **六十五订(`TD-skeuo-06` 结案 + `TD-processing-09` 立债 · 2026-11-04 · 实现面 + 债面)** ——
+> 用户指令「继续把 TD-skeuo-04 和 06 做掉」。变化:`closed 154 → 155`(+1)· `open 16 → 16`(±0,
+> 结一条立一条)· **未闭 P0 面 7 → 7**(±0,同因)· **epic 分布 `skeuomorphic-ui 2 → 1`(−1)/
+> `processing 0 → 1`(+1)**,epic 数 `3/31` 不变 · 条目数 **174 → 175**(+1,新债)。
+> 变化源两条:`TD-skeuo-06` 索引行 `open → closed`;新增 `TD-processing-09` 索引行(`open` / P0 面 **Y**)。
+> ⚠️ **`TD-skeuo-04` 维持 `open`**:④ 设置壳已可达,⑤ 教学屏 / ⑦ 纸近景仍未做(勘察记录见其正文)。
+
 > > 🔁 **六十四订(存档遗留三条结清 · 2026-11-04)** —— `TD-skeuo-05` **结案**;
 > 同批补齐 `TD-skeuo-07` 结案时如实登记的两条规格(转册页容量降档 / 开册首焦点)。
 > 变化:`closed 153 → 154`(+1)· `open 17 → 16`(−1)· **未闭 P0 面 8 → 7**(−1)·
@@ -1154,10 +1162,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 174 | 状态 {'closed': 154, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 117, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 7 （已闭但曾标 P0 面的 110 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 2/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2
+条目 175 | 状态 {'closed': 155, 'partial': 3, 'open': 16, '**done**(2026-10-21)': 1} | P0 面 {'Y': 118, 'N': 51, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 7 （已闭但曾标 P0 面的 111 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 7 条,分布在 3/31 个 epic
+    random-events: 5          processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4697,6 +4705,17 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **归属** | **42**(屏载体与 `MainMenu`/`Pause` 的行)· **4**(纸道具 kind)· **48**(story-004)· **语义裁定 = 用户** |
 | **⚠️ 不得借绿的相邻事实** | `AC-42-F1` 的整体走查状态仍是 `NOT-RUN`,其**具名阻塞**今日是 ⑨ 炮制屏无 `processing-18.md`;但**即使 ⑨ 解除,④⑤⑦ 三员仍走查不了** —— 因为它们在生产上打不开。⇒ 「⑨ 有 spec 了 ⇒ 整体可签核」是**错的**读法,本债是第二道门。 |
 
+> 🔁 **2026-11-04 部分结清(用户裁定「暂停壳加第三行」)** —— 本条 **仍 `open`**,但三员已分治:
+>
+> | 员 | 状态 | 落点 / 阻塞 |
+> |---|---|---|
+> | ④ `SettingsShell` | ✅ **生产可达** | `PauseScreen` 三行(`继续 / 存档位 / 调治`),第三行 → `ModalId.SettingsShell`;<br>`DriverPauseCommandSink.OpenSettings()`;`pause-shell-42.md` §5 + `OQ-PS-3` 就地注明**仅「设置」一项被 2026-11-04 用户裁定覆盖**,主菜单侧不动。<br>夹具:`modal_opener_test` 两条(经装配 sink 换屏 + 按钮名字面量/文案)。 |
+> | ⑦ `PaperCloseup48` | ⛔ **未做**(本轮勘察后停手) | 真实前置比本条一行描述大得多:① `InteractableKind` 增第 11 项 ⇒ `interaction_kinds.json` + `KindPriority` + `RoutedSystems`(48 未登记)+ **`interaction_kinds.cooked.bytes` 必须重烘**;② 新增**第五候选源** `PaperProps`(`CandidateSources` / `CandidateSetLoader`);③ **世界摆点**今日不存在(`world_*.json` 无纸道具);④ 48 的锚点引擎 `tutorial-onboarding/story-003` 仍 `Ready`。<br>⚠️ 只做 ① 而不做 ②③ = 造一个**永不出现**的 kind(「引用却无登记」的反向形态),故**宁可不做**。 |
+> | ⑤ `Tutorial` | ⛔ **未做** | 整条 `tutorial-onboarding` epic 除 story-001 外全 `Ready`,入口依赖 story-003 的锚点引擎。 |
+>
+> ⇒ 「闭集 9 员全部可达」仍**不成立**(还差 ⑤⑦)。本条**维持 `open`**;`AC-42-F1` 整体仍 `NOT-RUN`。
+> 本轮新增的可判事实:④ 的「生产上打不开」这一条已解除 ⇒ 走查 ④ 不再被可达性阻塞。
+
 ### TD-persist-19 — 玩家槽的 `bak` **读侧仍在回退**,而口径已裁「不回退」(7a)
 
 > **⚠️ 2026-11-04 立债(7b 转册轮的勘察副产品)**。它与 `TD-persist-16` 是**同一件事的两半**:
@@ -4830,6 +4849,40 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① **落一个 `IProcessingCommandSink` 的生产实现**(住 `Gameplay.Boot` —— 它同时看得见 `Sim` + `Gameplay.UI`;同 `ProcessingAdmissionQuery` 的既有落点):`Ignite(ordinal)` 组 `CraftIgnitionRequest`(需料位实例集 / 品级集 / 当前载重 / 单件重量解析)并调 `CraftIgnitionTransaction.Process`;`Close()` 调 `_uiDriver.CloseModal()`。<br>② **装配**:`BootRoot` 开炮制屏时 `screen.BindCommandSink(...)`(`:761-771` 段)。<br>③ **前置未解(如实点名)**:`CraftIgnitionRequest` 需 `InputInstanceIds` / `InputQualities` / `CurrentCarryLoad` / `UnitWeightOfOutputLine` 四件 —— 而料位实例集今日**不存在**(2026-11-02 轮记「20 的选中态接口不存在」;本轮实测已部分变化:有 `ContainerSelectionStore.ConsumedQualitiesOf`,但**只有品级,没有实例 id**)。⇒ **① 在料位实例集落地前做不完**。<br>④ 夹具:真 sink ⇒ 屏上确认 ⇒ `Craft` 事件**恰一条**落流;`Ignite` 被拒(准入 / 单炉 / 容量)⇒ **零事件** + 屏不报成功(正反各一条)。<br>⑤ 证伪:`_sink?.Ignite` 改成 `_sink.Ignite`(去 `?.`)⇒ 若 sink 仍 null 则**抛**(证明今日确为空转);补实现后该变异应**转绿**。 |
 | **触发条件** | ① 18 的「屏上点火端到端」轮开工时;② 或 20 的料位**实例集**接口落地时(同批);③ 或任何以「炮制屏可用」形态引用之前(**禁借绿** —— `ADR-013 §十-E` 的「点火」是**未实现**)。 |
 | **归属** | **42 拟物 UI**(屏的意图出口)· **18 炮制**(点火事务的调用方)· **20 库存**(料位实例集)· **装配 = `Gameplay.Boot`** |
+
+> ✅ **2026-11-04 已闭**(sprint-24 · 用户指令「继续把 TD-skeuo-04 和 06 做掉」)。原文不删。
+> **原件** = `production/qa/evidence/impl-td-skeuo-06-processing-ignition-2026-11-04.md`。
+>
+> **落点**:`Gameplay.Boot/DriverProcessingCommandSink.cs`(新)—— `IProcessingCommandSink` 的
+> **第一个(也是唯一)生产实现**。`Close()` → `CloseModal()`;`Ignite()` → 组
+> `CraftIgnitionRequest` 调 `CraftIgnitionTransaction.Process`(18 的唯一点火事务入口,**零结算逻辑**)。
+> 接线:`BootRoot` 开炮制屏时 `SetTool(structureId)` + `screen.BindCommandSink(_processingSink)`;
+> 器具格经 `World.Structures.TryGet` 解析(F-5.4 的 `ToolCell` 锚点,**不拿玩家格顶替**)。
+>
+> **依赖面全部走委派**(器具格 / 料位 / 单件重量 / 载重)—— 这既让本类可在不装载世界的夹具里被驱动,
+> 也保证「输出行 → 重量」只有**一份**实现(`CraftCompletionSettler.UnitWeightOfOutputLine`)。
+>
+> **夹具 5 条**(`Tests/EditMode/Boot/processing_ignition_sink_test.cs`),判据全部落在**流的副作用**上
+> (恰一条 `Craft` / 被拒时**零条**),不是「方法被调用了」:准入全过 ⇒ 恰 1 条 + id 由发号器铸造 ·
+> 器具格解析不出 ⇒ 拒发且零事件 · 未选料 ⇒ 拒发且零事件 · 两集合不等长 ⇒ 拒发且零事件 ·
+> `Close()` 真的合屏。
+>
+> ⚠️ **本条结案 ≠ 炮制端到端已验**(不借绿):① PC 上「真开档 → 按 E → 点配方 → 流里多一条 `Craft`」
+> 仍**无 PlayMode 判据**(装配层 `BootRoot` 整段与其它 `OnTickEdge` 同状态);② **环境 / 设备三分量
+> 今日恒为增量中性 0** —— 24 的医馆求值与 5 的 `EnvMod_raw` 运行期取值链都不存在,
+> 且 5 的实现中性名与 F1 的加法域不一致 ⇒ 另立 **`TD-processing-09`**。
+> ③ 料位选中集**不按配方过滤**,与准入门口径一致(两者都只看品级 min)—— 归 20 的规则六轮。
+
+### TD-processing-09 — 5 的 `EnvMod_raw` **中性名与 F1 的加法域不一致**,且无运行期取值链(18 ↔ 5 ↔ 24)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 炮制 F1 的 `EnvMod_total = clamp(EnvMod_climate + EnvMod_clinic, ENV_MOD_MIN, ENV_MOD_MAX)` 是**相加的增量**(中性 = **0**,可为负,`item-database.md` §Formulas / D-21-31)。而 `Sim/EnvMod.cs` 的 `ComputeEnvModRaw` 以 **乘性** `Fix.One`(1.0)为中性,且自陈是「简化版」。⇒ **两者不是同一个量纲**:直接接进 F1 会让每炉平白 +1.0 修正(`QtyMultiplier = clamp(1 + ΣM)` ⇒ 产量约翻倍)。 |
+| **实测(逐条可跑)** | ① `grep -rn "ComputeEnvModRaw" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **恰 1 行**(定义处),**零生产调用** ⇒ 该函数从未被任何系统消费。<br>② `grep -rn "EnvModClimate\|EnvModClinic" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 除 `ProcessingSettlementInputs.cs` 的形参与文档外**零生产赋值点**。<br>③ `grep -rn "new ClinicEnvironmentMemo" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **零命中**(24 的医馆求值只在夹具里被构造)。<br>④ `grep -rn "WeatherRoll\." unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 天气仍无运行期消费方(ADR-038 §D7 已如实登记)。 |
+| **当前处置(`TD-skeuo-06` 实现轮就裁定)** | 点火事务的两个环境分量 + `EquipMod` 一律传 **`Fix.Zero`**(加法中性),并在首次点火时打一条显式告警。**不接** `EnvMod.ComputeEnvModRaw` —— 接它是**错的**(中性名不符),不是「暂时不准」。 |
+| **解除动作** | ① **裁 5 侧量的语义**(乘性乘子 vs 加法增量)—— 这是设计与数值问题,须用户/5 的 GDD 轮裁定,**不得由实现轮代裁**;② 按裁定改 `Sim/EnvMod.cs`(或另立 `EnvModDelta`);③ 接 5 的运行期输入链(`EcozoneBaseline` 今日**无数据源** —— `world-and-ecozones.md:742` 写「取全局默认」但全仓无该表;weather 无消费方;season P0 = 0);④ 24 的 `ClinicEnvironmentMemo` 落生产构造点,`EquipMod` / `EnvModClinic` 才有真值;⑤ 本债结案判据 = 一次点火的三分量**均来自各自系统**,且有夹具钉住「非中性输入改变产出」。 |
+| **触发条件** | ① 5 的 EnvMod 语义裁决轮;② 24 的医馆环境接生产轮;③ 或任何以「炮制已吃环境修正」形态引用之前(**禁借绿**)。 |
+| **归属** | **5**(EnvMod 的定义与取值范围)· **24**(医馆分量)· **18**(透传,不钳制)· **语义裁定 = 用户** |
 
 ### TD-skeuo-07 — 存档册**没有纸页**:屏自建的三个 class 零 USS 载体,UXML 零引用(7b · 42)
 
