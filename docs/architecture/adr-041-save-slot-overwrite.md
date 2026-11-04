@@ -333,8 +333,9 @@ public static bool ReadFallsBackToBak(uint seq); // 手动槽 true  / 保留槽 
 
 ## Validation
 
-🔁 **2026-11-04 实现轮**:V-1…V-8 有载体;V-9 只做到「代码分离」,日志捕获夹具**未建**
-(见下方如实登记)。
+🔁 **2026-11-04 实现轮**:V-1…V-8 有载体。
+🔁 **2026-11-04 补 V-9**:日志捕获夹具 `adr041_save_failure_log_test`(4 条)+ 证伪轮
+(前缀改回 `[7b][载入]` ⇒ 3 红),V-9 转 **PASS**。
 
 | # | 判据 | 载体 | 状态 |
 |---|---|---|---|
@@ -346,7 +347,7 @@ public static bool ReadFallsBackToBak(uint seq); // 手动槽 true  / 保留槽 
 | V-6 | 非叙事上下文 ⇒ 覆写被 7a 拒 | `adr041_slot_overwrite_test.test_ensureWritable_outsideNarrativeContext_stillThrows` | **PASS** |
 | V-7 | 「留档」仍写 `NextWritableSeq` | `adr041_save_slot_choices_test.test_writableRow_stillUsesAppendSemantics` + `save_slot_save_wiring_test`(保持绿) | **PASS** |
 | V-8 | 42 **零本地判定**(`AC-7b-02` / `AC-7b-10` 不变) | 屏只按视图字段分流(空槽 / 有档 / 已锁),不判「能不能写」;被拒走 sink 返回 false | **PASS**(静态复核) |
-| V-9 | 落笔失败日志**不出现** `[7b][载入]` 措辞,且点名门名 | `BootRoot.LogSaveFailure`(与 `LogLoadFailure` 分家,报文前缀 `[7b][落笔]` + 门名) | **⚠️ NOT-RUN(日志捕获夹具未建)** —— 只断「代码路径已分开」,不主张「日志文案已被夹具钉住」 |
+| V-9 | 落笔失败日志**不出现** `[7b][载入]` 措辞,且点名门名 | `adr041_save_failure_log_test`(4 条,2026-11-04 补):**反射直调生产方法**,`LogAssert.Expect` 用**锚定前缀**的正则(`^\[7b\]\[落笔\] 槽位 N 落笔被拒\(门:…)`)+ `NoUnexpectedReceived` ⇒ 前缀写错即「未预期日志」转红;另断两条门名(槽号非法 / 数据非法)与载入侧措辞原样(空槽仍 `Log` 级)。**证伪轮**:把前缀改回 `[7b][载入]` ⇒ 3 条转红(载入侧对照条仍绿,正是应有的判别形态),还原后 SHA-256 逐字节一致 | **PASS** |
 
 **必须同时跑的反面**(禁借绿):
 - 删门①后,**非手动槽**(0 / 1 / 2)的写路径行为**不变**(保留槽仍原地覆盖);

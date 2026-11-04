@@ -16752,3 +16752,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `save-slots-7b.md` 交互表 · `adr-010 §四` 两段改判注 · `adr-041` §Validation(V-1…V-8 PASS,**V-9 NOT-RUN**)。
 - 原件 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md`。
 - **待提交**。
+
+### 补轮:V-9 日志捕获夹具(2026-11-04)
+
+- 用户「补 V-9 的日志捕获夹具」。新增 `unity/Assets/Tests/EditMode/Boot/adr041_save_failure_log_test.cs`(4 条)。
+- 形态:**反射直调**生产方法 `BootRoot.LogSaveFailure` / `LogLoadFailure`;判据 = 锚定前缀正则
+  `^\[7b\]\[落笔\] 槽位 N 落笔被拒\(门:…\)` + `LogAssert.NoUnexpectedReceived()` ⇒ 前缀写错即红
+  (「不出现 `[7b][载入]`」是机械可判的)。
+- 证伪轮 1 变异:`[7b][落笔]` → `[7b][载入]` ⇒ **3 红**(三条落笔侧),载入侧对照条仍绿;
+  还原 SHA-256 `55c3fa76…` 前后一致,未用 `git checkout`。
+- 回归:EditMode `6877/6840/0/37` @ `2026-11-04T14:18:57Z`(+4)· PlayMode 未重跑(仅夹具/文档改动)。
+- ADR-041 §Validation **V-1…V-9 全部 PASS**。
+- **待提交**。

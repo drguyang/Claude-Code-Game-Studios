@@ -1250,9 +1250,11 @@
   「final 缺失只剩 bak ⇒ 空槽」与探测同向)· `SaveSlotProbe` · `SlotProjections`(Writable 去两子句)·
   `SaveSlotView.IsLocked` · `SaveSlotItem` 行内二段态 · `SaveSlotsScreen` 三路分流 ·
   `TrySaveAt` · `LogSaveFailure`(与载入失败分家)· `BootRoot` 挂锁态。
-  §Validation **V-1…V-8 PASS · V-9 NOT-RUN**(日志捕获夹具未建,只主张代码路径已分开)。
-  回归 EditMode `6873/6836/0/37`(+12 = 新增两件夹具)· PlayMode `339/335/0/2/2`(零回归)
-  @ `2026-11-04T13:41:27Z` / `13:42:28Z` · `ceac3539` + 工作树;
+  §Validation **V-1…V-9 全部 PASS** —— V-9 由同日补轮 `adr041_save_failure_log_test`(4 条,反射直调
+  生产方法 + 锚定前缀正则)补上,证伪轮「前缀改回 `[7b][载入]` ⇒ 3 红、载入侧对照条仍绿」,
+  还原 SHA-256 一致。
+  回归 EditMode `6877/6840/0/37`(+16:两件新夹具 12 + 日志件 4)· PlayMode `339/335/0/2/2`(零回归)
+  @ `2026-11-04T13:41:27Z` / `13:42:28Z`(日志件补轮 `14:18:57Z`)· `18c274d4` + 工作树;
   原件 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md`。
   Engine Knowledge Risk **LOW**(纯 C# + UI Toolkit 行内态,零 post-cutoff API;`Sim` 引用集一字不改)。
 
