@@ -336,6 +336,58 @@
     padding-right: var(--skeuo-shared-space-sm);
 }
 
+/* ── 行内二段态(ADR-041 §D5 · 2026-11-04 走查修订)──
+ *
+ * 病因(三帧走查实拍 `wb_02_armed` / `wb_03_locked` 暴出,用户指令「三个都改」):
+ *   ① 行文字被 `_mark.style.display = none` **抹掉** ⇒ 按下不可逆的「重写」时,
+ *      屏上恰好看不到要盖的是哪一页(wb_03 里「叁 · 第贰日」整个消失);
+ *   ② 这三个类**全仓零 USS 规则**(`grep -rn "save-slot-choice" --include=*.uss` 命中 0):
+ *      「灰置」只有 `SetEnabled(false)` 的引擎默认半透明,`save-slot-choice-disabled`
+ *      是个没人读的死类;两枚墨字的焦点落点也**没有任何 44 下限声明**;
+ *   ③ 两枚墨字纵向堆叠 ⇒ 二段态让页面长一整行(满页 7 行 ⇒ 8 行)。
+ *
+ * 处置:行改成**单行 flex**,行文字留在左、两枚墨字靠右 —— ①②③ 一起解:
+ *   目标标签始终可见、灰置走墨色降档、行高不变 ⇒ `PageCapacity` 与二段态解耦。
+ * ⚠️ 灰置**不靠**引擎的半透明:那个值与项目墨色梯度无关,换个主题就对不上。 */
+.save-slot-item {
+    flex-direction: row;
+    align-items: center;
+}
+
+.save-slot-choice {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    flex-grow: 1;
+    padding-right: var(--skeuo-shared-space-sm);
+}
+
+.save-slot-choice-glyph {
+    min-height: var(--skeuo-shared-row-height);   /* AB-3:焦点落点下限(此前无声明) */
+    min-width: var(--skeuo-shared-row-height);
+    justify-content: center;
+    align-items: center;
+    margin-left: var(--skeuo-shared-space-sm);
+    padding-left: var(--skeuo-shared-space-xs);
+    padding-right: var(--skeuo-shared-space-xs);
+    color: var(--skeuo-ink-fg);
+    font-size: var(--skeuo-font-size-md);
+    -unity-text-align: middle-center;
+}
+
+/* ⚠️ **必写**:墨字里的 Label 是裸 `new Label(text)`,自带 `.unity-text-element` 类,
+ *   而主题那条 `.unity-text-element { font-size: var(--skeuo-font-size-default) }`(28px)
+ *   是**直接命中 Label 的规则**,优先级高于从父元素**继承**的 `md` ⇒ 墨字按 28px 渲染,
+ *   实测 label 高 49 ⇒ 二段态行 44→56(= 走查第三帧报的那 12px)。后代选择器特异性更高,压得住。
+ *   2026-11-04 实测:`[WB][DIAG] openLabel=49.0 row=56.0` ⇒ 补本条后应回落 44。 */
+.save-slot-choice-glyph .unity-text-element {
+    font-size: var(--skeuo-font-size-md);
+}
+
+.save-slot-choice-disabled {
+    color: var(--skeuo-ink-faded);
+}
+
 /* 「留档」新行 —— 与槽位行**形态可分**(§5.3:玩家要能看出这一行是「再写一行」)。 */
 .save-slot-writable {
     border-bottom-width: var(--skeuo-shared-border-width);

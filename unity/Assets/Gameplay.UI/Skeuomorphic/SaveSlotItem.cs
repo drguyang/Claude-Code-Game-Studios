@@ -61,7 +61,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public void Apply(in SaveSlotView view)
         {
-            // ⚠️ 行被重新填充 ⇒ 二段态作废(墨字背后的行文字要变,留着两枚旧墨字会自相矛盾)。
+            // ⚠️ 行被重新填充 ⇒ 二段态作废(两枚墨字所指的是**上一份**行文字的槽,
+            //   留着会指向一个已经变了的页)。
             ExitChoice();
             IsEmpty = !(view.Known && view.HasSave);
             // class 是**墨色**通道(空行格线 vs 有档墨迹),与文字通道相互独立 ——
@@ -109,9 +110,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public VisualElement RewriteChoice => _rewriteChoice;
 
         /// <summary>
-        /// 进入**行内二段态**(ADR-041 §D5):行内文字让位,出示两枚可焦点墨字
-        /// 「启封」/「重写」。**零系统弹窗** —— 这是 7b 的幻想纪律(`AC-7b-07`),
-        /// 先例 = 主菜单删除世界的行内二次确认。
+        /// 进入**行内二段态**(ADR-041 §D5):两枚可焦点墨字「启封」/「重写」**与行文字同行靠右**。
+        /// **零系统弹窗** —— 这是 7b 的幻想纪律(`AC-7b-07`),先例 = 主菜单删除世界的行内二次确认。
+        /// <para>🔁 **2026-11-04 走查修订(用户指令「三个都改」)**:首版在此把行文字
+        /// `display: none` 抹掉 —— 实拍(`wb_02_armed` / `wb_03_locked`)暴露出真正的问题:
+        /// **玩家在按下不可逆的「重写」时,屏上已看不到要盖的是哪一页**。改法 = 行文字保留,
+        /// 两枚墨字压到同一行的右侧(`SkeuoPaper.uss` 的 `.save-slot-choice` 一族)。
+        /// 副作用(顺带解掉)= 二段态**不再让行高增长**,满页容量与行文字都不受它影响。</para>
         /// </summary>
         /// <param name="onOpen">「启封」= 请求载入(<c>TryLoad</c>)。</param>
         /// <param name="onRewrite">「重写」= 请求覆写(<c>TrySaveAt</c>)。</param>
@@ -120,8 +125,6 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public void EnterChoice(System.Action onOpen, System.Action onRewrite, bool openDisabled)
         {
             ExitChoice();
-
-            _mark.style.display = DisplayStyle.None;
 
             _onOpen = onOpen;
             _onRewrite = onRewrite;
@@ -132,7 +135,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _openChoice = MakeChoice(OpenChoiceName, "启封", () => ActivateOpen());
             _rewriteChoice = MakeChoice(RewriteChoiceName, "重写", () => ActivateRewrite());
 
-            // 灰置 = 墨色通道 + **退出焦点序**(关闭模式的手柄玩家不得停在一条按不出结果的墨字上)。
+            // 灰置 = 墨色通道(`.save-slot-choice-disabled` 走 `--skeuo-ink-faded`)
+            //   + **退出焦点序**(关闭模式的手柄玩家不得停在一条按不出结果的墨字上)。
+            // ⚠️ 2026-11-04 走查修订前这个类名是**死类**(USS 零规则,灰只有引擎默认半透明),
+            //   现已在 `SkeuoPaper.uss` 补齐 —— 类名与其执行体同批存在。
             _openChoice.SetEnabled(!openDisabled);
             _openChoice.focusable = !openDisabled;
             if (openDisabled) _openChoice.AddToClassList("save-slot-choice-disabled");
@@ -158,7 +164,6 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _rewriteChoice = null;
             _onOpen = null;
             _onRewrite = null;
-            _mark.style.display = DisplayStyle.Flex;
         }
 
         /// <summary>建一枚墨字(两条输入路径 —— 手柄 Submit / 指针 Click —— 汇到同一出口)。</summary>

@@ -16764,3 +16764,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6877/6840/0/37` @ `2026-11-04T14:18:57Z`(+4)· PlayMode 未重跑(仅夹具/文档改动)。
 - ADR-041 §Validation **V-1…V-9 全部 PASS**。
 - **待提交**。
+
+
+### 补轮:存档册三帧走查 → 三处修订 + 第四帧(2026-11-04)
+
+- 用户「存档册图形走查,三帧」⇒ 建 `adr041_save_slots_walkthrough.cs`(图形模式,四帧)。
+- 走查抓到三处,用户「三个都改,再走查一帧」:
+  ① 行文字被抹掉(`_mark.style.display=None`)⇒ 按下不可逆「重写」时看不到盖哪一页;
+  ② 二段态三个 class 全仓零 USS 规则(灰置只有引擎半透明 / 焦点落点无 44 下限 / 死类);
+  ③ 二段态多吃一行(容量)。
+  改法:行容器单行 flex,行文字保留 + 两枚墨字同行靠右 —— 三条一起解;灰置走 `--skeuo-ink-faded`。
+- 修的过程中又抓一处:墨字里的裸 Label 被主题 `.unity-text-element`(28px)**直接命中**,
+  压过继承的 `md` ⇒ 墨字按 28px 渲染(实测 label 高 49 ⇒ 行 56)。补后代规则压回 15px。
+- 回归:EditMode `6877/6840/0/37` · PlayMode `340/336/0/2/2`(PlayMode +1 = 走查件)。
+  首跑 3 红 = `FsWriteBoundaryGate` R2(同一形态第七例),已补 `Declarations`。
+- 证据 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md` §6。
+- **待提交**。

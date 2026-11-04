@@ -175,6 +175,18 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "PlayMode/SkeuomorphicUI/adr041_save_slots_walkthrough.cs",
+                Reason = "`Application.dataPath` 仅用于**读**推导项目根,以定位 `unity/Logs/shots/`;" +
+                         "写盘 = `File.WriteAllBytes` 存 `wb_*.png`(读 RenderTexture 截图)," +
+                         "全程 `Application.isBatchMode` 守卫(batch 结构性零写盘 —— " +
+                         "`WaitForEndOfFrame` 在无渲染帧时不触发)," +
+                         "目标 `unity/Logs/shots/`(gitignored 指定暂存区,文件头已具名声明四张文件名)。" +
+                         "**不写仓库源、不写入库产物**。" +
+                         "⚠️ 本条的由来 = 同一形态**第七例**(2026-11-04):ADR-041 走查件建好当晚只跑了" +
+                         "PlayMode,次日的 EditMode 全量第一次把它带进真树断言 —— 届时才点名。",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/Audio/statereport_walkthrough_probe.cs",
                 Reason = "`Application.dataPath` 仅用于**读** DataCooked / Audio;写目标走 Path.GetTempPath()",
             },
