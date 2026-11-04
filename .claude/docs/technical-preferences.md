@@ -1215,9 +1215,17 @@
   `main-menu-42.md` 就地修订(`OQ-MM-5` 的「新开一局」裁为**做**)。
   §Validation **V-1…V-5 PASS**(载体 `world_catalog_test` 8 · `world_switch_isolation_test` 1 ·
   `main_menu_worlds_test` 4);**V-6…V-8 仍 NOT-RUN**。
-  ⚠️ **未做 / 不得借绿**:**D6 删除世界零实现** ⇒ `TD-persist-20` 只到 **`partial`**;
-  **真启动序端到端无 PlayMode 判据**(世界列表走真目录,`main_menu_wiring_test` 走夹具缝,
-  后者逐字未变);多世界只在 `_bootWithMainMenu == true` 时启用(否则夹具会迁移开发机上的真存档)。
+  🔁 **同日补做三件**(原文不删,此处订正):
+  ① **D6 删除世界**已落(主菜单末行「删一局」→ 删除态,两次确认必须落在**同一个**世界;
+  序号只增不减,索引留墓碑)⇒ `TD-persist-20` `partial`;
+  ② **真启动序 PlayMode 判据**已落(`multi_world_boot_wiring_test` 2 条,走新缝 `SaveRootOverride`
+  把存档**根**指到临时目录;刻意不设 `SaveBasePathOverride` —— 那是单世界夹具缝)
+  ⇒ §Validation **V-6 / V-7 / V-8 转 PASS**,`TD-persist-20` **closed**;
+  ③ ⚠️ **夹具先红,逼出一处生产缺陷**:`ReassembleForWorld`(`BootRoot.cs:1392`)复用**同一个**
+  `World` 实例重跑 `CompositionRoot.Assemble`,而 `ApplyBakedInitial` 是 fail-closed 的「只许一次」
+  ⇒ 换世界 / 新起一局 / 删当前世界**一点就崩**。修法收口在装配层
+  (`world.BaselineModuleCatalog == null` 才应用基线),`World` 侧守卫**不放松**。
+  仍不得借绿:多世界只在 `_bootWithMainMenu == true` 时启用(否则夹具会迁移开发机上的真存档)。
   Engine Knowledge Risk **LOW**(纯 BCL 目录与字节布局)。
 
 > **本日志状态**:全部 ADR(001–**040**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,

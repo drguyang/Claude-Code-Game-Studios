@@ -221,7 +221,15 @@ if (!found || tick > bestTick)            // :329
 
 ## Validation
 
-🔁 **2026-11-04 实现轮**:V-1…V-5 有载体;V-6…V-8 **仍未跑**(逐条见下)。
+🔁 **2026-11-04 实现轮**:V-1…V-5 有载体。
+🔁 **2026-11-04 真启动序轮(补最后一跳)**:V-6 / V-7 / V-8 **全部转 PASS** ——
+`multi_world_boot_wiring_test.cs`(2 条)从 `BootRoot` 的真启动序出发,用新缝 `SaveRootOverride`
+把**存档根**指到临时目录(刻意**不设** `SaveBasePathOverride`,否则测的仍是单世界夹具缝),
+于是世界列表 / 一次性迁移 / 世界目录解析 / 换世界重装配全部走**生产路径**。
+⚠️ **这一轮抓到并修掉一处生产缺陷**:`ReassembleForWorld` 拿**同一个** `World` 实例重跑
+`CompositionRoot.Assemble`,而 `ApplyBakedInitial` 是 fail-closed 的「只许一次」⇒ 换世界 /
+新起一局 / 删当前世界**一点就崩**(实测:两条夹具全红,报文「已应用过一次」)。
+修法收口在装配层(`world.BaselineModuleCatalog == null` 才应用),`World` 侧守卫**不放松**。
 
 | # | 判据 | 载体 | 状态 |
 |---|---|---|---|
@@ -230,13 +238,14 @@ if (!found || tick > bestTick)            // :329
 | V-3 | 新局首份存档落在**新世界**目录,且旧世界的档不动 | 同上(两世界各装配一次,各自 `Load`) | **PASS** |
 | V-4 | 现存单目录档经一次性搬迁后**逐字节可读**,且不触发任何 `ISaveMigration` | `world_catalog_test.test_migrateLegacy_movesRootSavesIntoW1_byteIdentical`(SHA + 无关文件不动 + 幂等) | **PASS** |
 | V-5 | 索引缺失 / 损坏 ⇒ 以目录为准重建,不静默丢世界 | `world_catalog_test.test_corruptIndex_worldsSurvive_andNextWriteRebuilds` / `…test_listWorlds_directoryIsAuthoritative` | **PASS** |
-| V-6 | 删除世界后该目录不存在,其它世界不受影响;序号不复用 | `world_catalog_test.test_deleteWorld_removesDirectoryAndIndexEntry_othersSurvive` / `…test_deleteMissingWorld_returnsFalse_noThrow`;屏级二次确认 = `main_menu_worlds_test` 5 条 | **PASS**(目录级 + 屏级);⚠️ **装配层「删完回推列表 / 删当前世界时重装配」无直接夹具** |
-| V-7 | `hasSave` 在「根目录下只有 `w1/`」时为 true(D10 的防回归) | — | **NOT-RUN**(需真启动序) |
-| V-8 | `SaveHeader` 无世界身份字段;`Sim` 程序集零墙钟 API | — | **NOT-RUN** |
+| V-6 | 删除世界后该目录不存在,其它世界不受影响;序号不复用 | `world_catalog_test.test_deleteWorld_removesDirectoryAndIndexEntry_othersSurvive` / `…test_deleteMissingWorld_returnsFalse_noThrow`;屏级二次确认 = `main_menu_worlds_test` 5 条;**装配层这一跳** = `multi_world_boot_wiring_test.test_deleteWorld_throughBoot_removesOnlyChosenWorld`(真启动序:删完 `w2` 目录不在、`w1` 存档文件集逐字节不变、菜单行数当场回落) | **PASS**(目录级 + 屏级 + 装配级) |
+| V-7 | `hasSave` 在「根目录下只有 `w1/`」时为 true(D10 的防回归) | `multi_world_boot_wiring_test.test_newWorld_createsOwnDirectoryAndSave_oldWorldUntouched`(只种 `w1/` ⇒ 第一行是「继续诊治」而非「开始诊治」) | **PASS** |
+| V-8 | `SaveHeader` 无世界身份字段;`Sim` 程序集零墙钟 API | 静态复核(2026-11-04):`SaveHeader` 字段 = `MagicValue / Checksum / SaveVersion / WorldSeed / ConfigVersion / Tick / SnapshotOffset / 七个时间参数`,`grep -niE "worldseq\|world_id" unity/Assets/Sim.Codec/SaveHeader*.cs` ⇒ 零命中(`WorldSeed` 是 ADR-007 的 sim 种子,**不是**存档目录身份);`grep -rnE "DateTime\.(Utc)?Now\|Stopwatch\|Time\.realtimeSinceStartup\|Environment\.TickCount" unity/Assets/Sim --include=*.cs` ⇒ 零命中 | **PASS** |
 
 ⚠️ **本轮未做 / 不得借绿**:
 - ~~**D6 删除世界**未实现~~ → **同日补做**(入口 + 二次确认 + 目录删除 + 序号高水位);
-  `TD-persist-20` 仍**不解除**,但不是因为删除,而是因为下面两条;
+- ~~**世界列表的生产路径无 PlayMode 端到端**~~ → **同日补做**
+  (`multi_world_boot_wiring_test`,载体见 V-6 / V-7);
 - **D10 的 `hasSave` 语义收窄**只在**生产路径**(有 `WorldCatalog` 时)实现;
   夹具缝(`SaveBasePathOverride` 非空)保持旧语义(该目录就是世界目录) —— 这是**故意的**,
   既有 PlayMode 夹具按此断言;

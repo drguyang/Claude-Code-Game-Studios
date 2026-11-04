@@ -103,11 +103,11 @@
 ## 7. 如实登记(不借绿)
 
 1. **删除世界(ADR-040 D6)零实现** —— 菜单没有删除行。世界只增不减。`TD-persist-20` 维持 `partial`。
-2. **真启动序端到端无 PlayMode 判据** —— 世界列表在生产路径(真目录)上没有任何 PlayMode 覆盖;
+2. ~~**真启动序端到端无 PlayMode 判据**~~ —— **已于同日补上**(§9)。
+   原文理由保留作档案:世界列表在生产路径(真目录)上没有任何 PlayMode 覆盖;
    `main_menu_wiring_test` 走的是**夹具缝**(`SaveBasePathOverride` 非空),那条路径逐字未变。
-   所以「玩家真的点了『新起一局』并进了新世界」这件事,**今天没有一条自动判据**。
-3. **`ReassembleForWorld` 无直接夹具** —— 它的两个构件(目录解析、换目录后各世界互不影响)都测了,
-   但「菜单选择 → 重装配」这一跳没有。
+3. ~~**`ReassembleForWorld` 无直接夹具**~~ —— **已于同日补上**(§9.2 A/B 两条都穿过它;
+   而且**夹具先红**,抓到它的一处生产缺陷:**二次应用开档基线 ⇒ 换世界一点就崩**,见 §9.3)。
 4. **排序语义 = 「最后打开」**,不是「最后保存」;`Touch` 只在开局/换世界时写。
 5. **`OQ-MM-5` 的「退出」一项仍未裁**;「设置」已在暂停壳第三行。
 6. **规格修订未经 `/ux-review` 复评** —— `main-menu-42.md` 原为 Approved,本轮就地改写,
@@ -170,3 +170,89 @@
 |---|---|---|
 | EditMode | `6862 / 6825 通过 / 0 失败 / 37 跳过` | 上一轮 `6855/6818/0/37` ⇒ **+7**(屏 5 + 目录 2),零失败 |
 | PlayMode | `332 / 328 通过 / 0 失败 / 2 不确定 / 2 跳过` | **同值** ⇒ 零回归 |
+
+---
+
+## 9. 真启动序轮(2026-11-04 · 用户指令「补真启动序的 PlayMode 判据」)
+
+### 9.1 补的是哪一跳
+
+此前「世界列表走**真目录**」在生产路径上**没有任何 PlayMode 覆盖**:
+`main_menu_wiring_test` 走的是夹具缝(`SaveBasePathOverride` 非空 ⇒ 那个目录**直接当世界目录**,
+单世界形态),而 `world_catalog_test` / `main_menu_worlds_test` / `world_switch_isolation_test`
+全部**绕开启动序**。⇒「玩家真的点了『新起一局』并进了新世界」这件事,当时**一条自动判据都没有**。
+
+新缝 `BootRoot.SaveRootOverride`:把**存档根**指到临时目录(根下照常是 `w1/`、`w2/`)。
+⚠️ 它与 `SaveBasePathOverride` **不是一回事**:后者把某个目录**直接当世界目录**。
+新件刻意**不设**后者 —— 否则测的仍是单世界路径,等于没测。
+
+### 9.2 两条判据(`unity/Assets/Tests/PlayMode/multi_world_boot_wiring_test.cs`)
+
+| 测试 | 断言 |
+|---|---|
+| `test_newWorld_createsOwnDirectoryAndSave_oldWorldUntouched` | 只种 `w1/`(含一份档)⇒ 菜单 3 行且第一行是「继续诊治」(ADR-040 V-7)→ 点「新起一局」→ `w2/` **真的建出来**、`w2/save_auto.bin` **真的落盘**(`FirstSessionSave` 的 t=0 实例)→ `w1` 的档 SHA-256 不变、**存档文件集快照**(文件名 + 每份字节)完全不变 |
+| `test_deleteWorld_throughBoot_removesOnlyChosenWorld` | 种 `w1`+`w2`(时刻刻意反向)⇒ 4 行、最近世界排第一 → 「删一局」→ 删除态 3 行 → 第一次按 `w2` **不得删** → 再按同一行 ⇒ `w2/` 真没了、`w1` 存档文件集逐字节不变、菜单回到正常态且 3 行 |
+
+⚠️ **为什么等文件而不是等帧**:7a 的 `Checkpoint` 入队后由写线程落盘,`_booted == true`
+不代表文件已在盘上 ⇒ 夹具轮询文件(`WaitForFile`),否则是偶发假红。
+
+### 9.3 ⚠️ 夹具先红,逼出一处**生产缺陷**(不是补测试,是改代码)
+
+**症状**:两条夹具首轮全红。`test_deleteWorld_…` 直接抛:
+
+```
+System.InvalidOperationException : `ApplyBakedInitial` 已应用过一次 —— 基线只在开档时点应用一次;
+重新回到基线请用 `Reset()`(它清空后按序重建,不会与既有实例撞号)
+  at DaYiJingCheng.Sim.World.World.ApplyBakedInitial (World.cs:177)
+  at DaYiJingCheng.Gameplay.Boot.CompositionRoot.AssembleCore (CompositionRoot.cs:1439)
+```
+
+**根因**:`ReassembleForWorld`(`BootRoot.cs:1392`)换世界时拿**同一个** `World` 实例
+重跑 `CompositionRoot.Assemble`,而开档基线 `ApplyBakedInitial` 是 fail-closed 的「只许一次」
+⇒ **换世界 / 新起一局 / 删当前世界,玩家一点就崩**。这不是测试环境问题:
+`world` 由 `MinimalWorldFactory.Create` 在启动序只建一次,重装配必然复用它。
+
+**修法**(`CompositionRoot.cs`,装配层一处):
+
+```csharp
+if (world != null && world.BaselineModuleCatalog == null)
+    world.ApplyBakedInitial(modulesCatalog);
+```
+
+- 基线是 `Overlay(0)` 的**派生态**,重装配**不该**再叠一遍;sim 那时还没开跑,状态原样;
+- **守卫不放松**:`World.ApplyBakedInitial` 的直接调用者仍然 fail-closed
+  (`world_buildslots_bake_test` 的「只许一次」夹具逐字未改,仍绿);
+- 既有「经生产装配应用基线」夹具用**全新** `World`(`BaselineModuleCatalog == null`)⇒ 行为不变。
+
+### 9.4 证伪轮(两次,第一次如实作废)
+
+| 轮 | 变异 | 结果 |
+|---|---|---|
+| **M1(作废)** | `NewWorld` 回调里把 `_pendingWorldSaveDir` 指回**当前**世界目录 | 红了,但**靶错**:报的是「继续诊治读档失败(存档损坏)」—— 流程从读档支就崩了,**没走到我那条断言**。按「变异打错靶」纪律不计 |
+| **M2(有效)** | `NewWorld` 回调里往**旧世界目录**写一份 `save_92.bin`(不改流程) | **红在我自己的断言**:`旧世界的**存档文件集**必须完全不变(文件名 + 每份字节)`,差分显示多出 `save_92.bin` |
+
+M2 同时暴露了首版断言的弱点并已修:原断言只哈希**种下去的那一份**档,
+抓不到「往旧世界多写一份」⇒ 改成**存档文件集快照**(`SnapshotSaveFiles`:文件名排序 + 每份 SHA-256),
+A/B 两侧都用它。`session_incomplete.flag` 刻意不在快照内 —— 它在世界**被选中装配**时由 7a 读写,
+属于「这个世界自己的状态」,不是「碰到了别的世界」。
+
+还原 = **SHA-256 逐字节**(`BootRoot.cs` `dc3a53d6…`,变异前后同值),`grep -c MUT-FALSIFY` = **0**。
+
+### 9.5 回归(三元组)
+
+**截至** `2026-11-04T06:36:54Z` · **批次** sprint-24 真启动序轮 · **commit** `5590b8c5` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `6862 / 6825 通过 / 0 失败 / 37 跳过` | 上轮 `6862/6825/0/37` ⇒ **同值**,零回归(本轮无 EditMode 新增件) |
+| PlayMode | `334 / 330 通过 / 0 失败 / 2 不确定 / 2 跳过` | 上轮 `332/328/0/2/2` ⇒ **+2/+2**,恰为新增两条 |
+
+等式:`334 − 332 = 2` = 本文件 `[UnityTest]` 数。
+
+### 9.6 仍未覆盖(如实登记,不借绿)
+
+1. **一次性迁移走真启动序**(`MigrateLegacy`):新件种的是 `w1/`,根目录无旧档 ⇒ 迁移是 no-op。
+   迁移本体由 EditMode `world_catalog_test` 覆盖(字节不变 / 幂等 / 无关文件不动)。
+2. **在菜单上选「另一个世界」并读档**(`SelectWorld` 支):新件只走 `NewWorld` 与 `DeleteWorld`。
+   重装配的共性已被 A 覆盖(换目录 + 首份存档),但「选中后读旧档」这一跳无真启动序判据。
+3. 本件**不**断存档字节级正确 —— 种子档是故意非法的字节,只让「这个世界有档」成立。

@@ -16638,3 +16638,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `6862/6825/0/37` · PlayMode `332/328/0/2/2` @ `2026-11-04T06:12:06Z`。
 - `TD-persist-20` 维持 **partial**(仅剩「真启动序端到端无 PlayMode 判据」)。
 - **待提交**。
+
+## 真启动序 PlayMode 判据(ADR-040 · 2026-11-04)
+
+- 用户「补真启动序的 PlayMode 判据」。新件 `Tests/PlayMode/multi_world_boot_wiring_test.cs` 2 条。
+- **新缝** `BootRoot.SaveRootOverride`(存档**根**覆盖)。与 `SaveBasePathOverride` 不是一回事:
+  后者把某目录**直接当世界目录**(单世界夹具缝)。新件刻意**不设**后者,否则测的仍是那条老路径。
+- 判据 A:`w1/` 有档 ⇒ 菜单 3 行 + 第一行「继续诊治」→「新起一局」⇒ `w2/` 建出、`w2/save_auto.bin` 落盘、
+  `w1` **存档文件集快照**不变。B:两世界 ⇒「删一局」两次确认同一世界 ⇒ 只删 `w2`、`w1` 不变、行数回落。
+- ⚠️ **夹具先红,逼出生产缺陷**:`ReassembleForWorld` 复用同一 `World` 重跑 `Assemble` ⇒
+  `ApplyBakedInitial` 的「只许一次」抛 ⇒ **换世界 / 新起一局 / 删当前世界一点就崩**。
+  修:装配层 `world.BaselineModuleCatalog == null` 才应用基线;`World` 侧守卫不动。
+- 证伪:M1(改 `_pendingWorldSaveDir`)**打错靶**作废;M2(往旧世界写 `save_92.bin`)**红在自己的断言**,
+  顺带暴露首版「只哈希一份档」的弱点 ⇒ 改**存档文件集快照**。还原 SHA-256 逐字节一致、零 `MUT-` 残留。
+- 回归:EditMode `6862/6825/0/37`(同值)· PlayMode `334/330/0/2/2`(+2/+2)@ `2026-11-04T06:36:54Z` · `5590b8c5` + 工作树。
+- ADR-040 §Validation **V-6 / V-7 / V-8 转 PASS**;`TD-persist-20` **closed**(七十订,未闭 P0 面 9 → 8)。
+- 原件 §9 = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md`。
+- **未覆盖(登记)**:真启动序的一次性迁移(no-op)· 菜单选另一个世界并读档(SelectWorld 支)。
+- **待提交**。

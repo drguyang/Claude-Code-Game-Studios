@@ -403,7 +403,7 @@
 | `TD-persist-17` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-20` | `persistence-service` | partial | **Y** | R1 |
+| `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -604,6 +604,18 @@ PYEVAL
 > 单一变化源:`TD-persist-20` 索引行 `open → partial`。
 > ⚠️ **为什么是 partial 不是 closed**:「新起一局 + 选世界」已落地并有用例;
 > **删除世界(D6)**与**真启动序的端到端**仍缺,且 `OQ-MM-5` 的「退出」一项仍未裁。
+
+> > 🔁 **七十订(`TD-persist-20` 结案 · 2026-11-04 · 真启动序轮)** ——
+> 用户指令「补真启动序的 PlayMode 判据」⇒ 新件 `multi_world_boot_wiring_test` 2 条。
+> **夹具先红**,逼出一处生产缺陷:`ReassembleForWorld` 复用同一个 `World` 实例重跑
+> `CompositionRoot.Assemble` ⇒ `ApplyBakedInitial` 的「只许一次」守卫抛异常
+> ⇒ 换世界 / 新起一局 / 删当前世界**一点就崩**。已修(装配层仅在 `BaselineModuleCatalog == null` 时应用)。
+> 变化:`closed 156 → 157`(+1)· `partial 4 → 3`(−1)· `open 17` 不动 ·
+> **`未闭 P0 面 9 → 8`**(−1)· **epic 分布 `4/31 → 3/31`**(`persistence-service` 再次清空)· 条目数 **178 不变**。
+> 单一变化源:`TD-persist-20` 索引行 `partial → closed`。
+> ⚠️ **两项残留不属本债面**:「退出」入口 = `OQ-MM-5` 的**未裁项**(追踪于 spec);
+> 「最后打开」语义 = 已在 ADR-040 §Validation 登记。结案块内已逐条点名 ——
+> **不以「本债关了」为它们背书**。
 
 > > 🔁 **六十八订(`TD-persist-20` 立债 · 2026-11-04 · **仅债面,零代码改动**)** ——
 > 用户问「玩了一会又想重新开始新游戏的,目前的存档设计可以正常进行吗」,勘察结论:**不能**。
@@ -1196,11 +1208,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 178 | 状态 {'closed': 156, 'partial': 4, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 111 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
-    processing: 1
+条目 178 | 状态 {'closed': 157, 'partial': 3, 'open': 17, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 52, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 112 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4826,6 +4837,35 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 世界列表走真目录,而 `main_menu_wiring_test` 走的是夹具缝(那条路径逐字未变);
 > ③ `OQ-MM-5` 的「**退出**」一项仍未裁;④ 「最后游玩时刻」只在**开局选定世界**时写
 > (排序语义 = 「最后打开」,不是「最后保存」)。
+
+> ✅ **2026-11-04 已闭(真启动序轮 · 用户指令「补真启动序的 PlayMode 判据」)**。上文原文不删。
+> **原件** = `production/qa/evidence/impl-adr040-multi-world-2026-11-04.md` §9。
+>
+> **「解除动作」四条逐条落地**:① `OQ-MM-5` 的「新起一局」已裁(**ADR-040 Accepted**);
+> ② 世界身份与选择判据 = 目录 + `worlds.index`,`SaveService` 按**世界目录**构造,
+> 「最近档」不再跨世界比 tick;③ 入口与列表 = 主菜单世界列表 / 「新起一局」/「删一局」;
+> ④ 夹具 = `world_catalog_test`(目录)· `world_switch_isolation_test`(隔离)·
+> `main_menu_worlds_test`(屏)· **`multi_world_boot_wiring_test`(真启动序,2026-11-04 新增 2 条)**。
+>
+> **真启动序轮抓到并修掉一处生产缺陷**(不是补测试,是改代码):
+> `ReassembleForWorld` 复用**同一个** `World` 实例重跑 `CompositionRoot.Assemble`,
+> 而 `ApplyBakedInitial` 是 fail-closed 的「只许一次」⇒ 换世界 / 新起一局 / 删当前世界
+> **一点就崩**(夹具先红,报文「已应用过一次」)。修法收口在装配层 ——
+> 仅当 `world.BaselineModuleCatalog == null` 时应用基线;`World` 侧守卫**不放松**。
+>
+> **判据**(三元组):截至 `2026-11-04T06:36:54Z` · sprint-24 真启动序轮 ·
+> commit `5590b8c5` + 工作树 —— EditMode `6862/6825/0/37`(与上轮**同值**,零回归)·
+> PlayMode `334/330/0/2/2`(上轮 `332/328` ⇒ **+2/+2**,恰为新增两条)。
+> 证伪:把「新局往旧世界写一份档」注入 `NewWorld` 回调 ⇒ 新件**红在我自己的断言**
+> (`旧世界的存档文件集必须完全不变`),还原 SHA-256 逐字节一致、零 `MUT-` 残留。
+>
+> ⚠️ **两项残留,明确不在本债面(不借绿)**:
+> ① `OQ-MM-5` 的「**退出**」入口仍未裁 —— 那是主菜单 spec 的 UX 开放问题(追踪于
+>    `design/ux/main-menu-42.md`),与「重开」无关,不随本条结案;
+> ② 「最后游玩时刻」只在开局 / 换世界时写(排序语义 = **最后打开**)。ADR-040 §Validation 已登记;
+>    要「最后保存时刻」须在存档路径上再接一次 `Touch`,归下一轮。
+> ③ 真启动序**未**覆盖两条路径(如实登记,均在别处有载体):**一次性迁移**(`MigrateLegacy`,
+>    EditMode `world_catalog_test` 覆盖)· **在菜单上选另一个世界并读档**(`SelectWorld` 支)。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

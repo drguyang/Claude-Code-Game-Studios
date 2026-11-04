@@ -152,6 +152,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         [SerializeField] private string _saveBasePathOverride;
 
         /// <summary>
+        /// 存档**根目录**覆盖(夹具用;空 ⇒ <c>persistentDataPath/saves</c>)。
+        /// <para>⚠️ 与 <see cref="_saveBasePathOverride"/> 是**两个不同的缝**,别混:
+        /// 那个把某个目录直接当**世界目录**(单世界形态);本缝把某个目录当**存档根**
+        /// (多世界形态照常:根下是 <c>w1/</c>、<c>w2/</c>…)。
+        /// 存在理由:真启动序的多世界路径要有夹具能跑,而生产根目录是玩家数据。
+        /// </para>
+        /// </summary>
+        [SerializeField] private string _saveRootOverride;
+
+        /// <summary>
         /// 多世界的目录与索引(ADR-040)。<c>null</c> = 走了 <see cref="_saveBasePathOverride"/>
         /// 的夹具缝 —— 那种情形下「覆盖目录」**直接就是世界目录**,不建子目录、不迁移。
         /// </summary>
@@ -189,6 +199,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             get => _saveBasePathOverride;
             set => _saveBasePathOverride = value;
+        }
+
+        /// <summary>存档**根目录**覆盖(夹具面;见 <see cref="_saveRootOverride"/> 注)。</summary>
+        public string SaveRootOverride
+        {
+            get => _saveRootOverride;
+            set => _saveRootOverride = value;
         }
 
         /// <summary>主菜单屏当前是否摊开(观测面;开屏后 <c>true</c>,玩家确认后 <c>false</c>)。</summary>
@@ -1213,10 +1230,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!_bootWithMainMenu)
             {
                 _worldCatalog = null;
-                return Path.Combine(Application.persistentDataPath, "saves");
+                return string.IsNullOrEmpty(_saveRootOverride)
+                    ? Path.Combine(Application.persistentDataPath, "saves")
+                    : _saveRootOverride;
             }
 
-            string root = Path.Combine(Application.persistentDataPath, "saves");
+            string root = string.IsNullOrEmpty(_saveRootOverride)
+                ? Path.Combine(Application.persistentDataPath, "saves")
+                : _saveRootOverride;
             _worldCatalog = new WorldCatalog(root);
 
             try

@@ -1435,7 +1435,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //    没有世界、也就没有占用表可写)。`ApplyBakedInitial` 自带「只许一次」守卫。
                 // ⚠️ 应用基线**不发任何事件**(规则三:开档家具不合成 `StructurePlaced`,
                 //    基线占用不进流、不存档)⇒ 本段零 `IEventSink` 接触。
-                if (world != null)
+                // 🔁 **2026-11-04(ADR-040 D5 重装配轮)· 只在「尚未应用」时应用**:
+                //    换世界 / 新起一局 / 删当前世界时,启动序会拿**同一个** `World` 实例
+                //    重跑一次 `Assemble`(发生在 sim 开跑之前,世界状态原样),而
+                //    `ApplyBakedInitial` 是 fail-closed 的「只许一次」⇒ 直接抛。
+                //    实测:**真启动序 PlayMode 夹具两条全红**,异常正是那句
+                //    「已应用过一次」—— 也就是说这条路径在修之前**玩家一点就崩**。
+                //    ⚠️ 基线是 `Overlay(0)` 的派生态,重装配**不该**再叠一遍;
+                //    但守卫**不放松**:直接调 `ApplyBakedInitial` 仍然 fail-closed
+                //    (`World` 侧不动),这里表达的是「装配不重复开档」。
+                if (world != null && world.BaselineModuleCatalog == null)
                     world.ApplyBakedInitial(modulesCatalog);
 
                 // ── 「医馆地块集」绑定(2026-11-03 契约改造 · TD-randomevents-05 第 3 步)──────
