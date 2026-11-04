@@ -96,3 +96,32 @@ Unhandled log message: '[Exception] InvalidOperationException: BCD-码-3:
    本件不改(改了会动 `LogLoadFailure` 的两级分流,而那条分流是 2026-10-31 用户裁定「甲」的成果)。
 3. **配置版本不匹配是既有非致命项**(用户日志里那行 `# ⚠️ 版本不匹配`)—— ADR-010 §七 明文,
    本件不涉及。
+
+---
+
+## 7. 修复后现场复核(用**用户真机存档**,2026-11-04 · 用户指令「进一次已有存档看看还报不报红,你来」)
+
+> ⚠️ **时点说明**:本节记录的是**当时**的主菜单形态(末行仍是「删一局」)。该形态已由同日
+> 「主菜单固定四行」那笔提交移除 —— 本节**按原样保留**,不据当下形态回改观察记录。
+
+**做法**:临时诊断件把 `~/.config/unity3d/DefaultCompany/unity/saves/` **整目录拷贝**到
+`Path.GetTempPath()`(原件零写入),以 `SaveRootOverride` 指到拷贝,走**用户报错的那条路径** ——
+主菜单「选**另一个**世界」(`SelectWorld` → `ReassembleForWorld` → 读档),然后让世界真跑 3 秒。
+
+**实跑输出**(`unity/Logs/realcheck.log`):
+
+```
+[REAL] 菜单 rows=4: 0=继续诊治  1=第 2 局  2=新起一局  3=删一局
+[REAL] 点第 1 行(main-menu-world-2 / 第 2 局)
+[REAL] 读档后跑了 3 秒:tick = 318
+```
+
+| 判据 | 结果 |
+|---|---|
+| `w2` 最近档 tick(离线读档头) | **255** |
+| 读档 + 3 秒后的 `TickDriver.CurrentTick` | **318**(255 + ≈63 ⇒ 时钟精确接上,且此后每 tick 都在正常推进) |
+| `grep -cE "BCD-码\|InvalidOperationException"`(该轮日志) | **0** |
+| 测试结果 | `1/1 Passed` —— UTF 遇未处理 `LogError` 会判红 ⇒ **全程零红** |
+
+⚠️ **该诊断件依赖开发机上的真实存档,故用完即删、不入库**(可复现步骤见本节正文;
+常驻判据是 `resume_existing_save_playmode_test`,用的是自造存档,CI 可跑)。
