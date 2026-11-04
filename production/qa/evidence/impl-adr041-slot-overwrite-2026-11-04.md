@@ -262,3 +262,68 @@ Label 的规则**,优先级高于从父元素**继承**的 `md`** ⇒ 墨字按 
 - **② 册子半边仍 open**:正文损坏在册子上**依旧不可见**(探针不验校验和)。要不要画
   「此页已损 / 可启封上一版」、拟物载体是什么 —— 归 **42 + 用户裁定**;
 - **不得**顺手改成「读档修盘」:损坏分支零 I/O 是 GDD 规则十一的**禁止**判据。
+
+
+---
+
+## 8. 按行业惯例纠正 bak 语义(2026-11-05 · 用户指令「按行业惯例,把不合理的地方纠正」)
+
+### 8.1 改的是什么
+
+| 层 | 变更 |
+|---|---|
+| 判据 | `SaveSlotLedger.ProbeCountsBak` + `ReadFallsBackToBak` → **一条** `BakCountsAsSave(seq) → true` |
+| 探测 | `SaveSlotProbe.Probe` 对**全部槽型**看 `.bak`;`SaveSlotSummary` 增 `Source`(`Final`/`Bak`) |
+| 载入 | `LoadBytes` 的 `bakCountsAsOccupancy` 改用同一判据 ⇒ `final` 缺失 + `bak` 在 = **可恢复**,不再报空槽 |
+| 最近一份 | `TryGetMostRecentSave` 的候选枚举加 `save_*.bak` ⇒ 只剩备份的槽也能进「继续诊治」 |
+
+### 8.2 为什么(一句话)
+
+`WriteAtomic` 的 `Move(final→bak)` 与 `Move(tmp→final)` 之间有窗口;崩在窗口里 ⇒ `final` 没了、
+`.bak` 是一份**完整上一版**。分叉口径下探测说「空槽」、读档也抛 ⇒ **那份世界不可达**。
+备份的语义就是「主档没了用它」。合并**不会**重造 `TD-persist-19`(那条病是「探测认而读档不认」,
+今日三处同源)。
+
+### 8.3 判据
+
+| 载体 | 断言 |
+|---|---|
+| `manual_slot_bak_scope_test`(改判 4 条) | `final` 缺失 + `bak` 在 ⇒ 探测 `Occupied` / `Source=Bak` / `LoadBytes` 成功且读回 bak 的 tick;「最近一份」认它;主档回位后 `Source` 翻回 `Final`(**来源字段有判别力**) |
+| 同上 · 谓词条 | `BakCountsAsSave` 对 5 个槽型全 `true`(唯一判据) |
+| `save_slot_probe_test`(改判 1 条) | 手动槽 bak-only ⇒ `Occupied` + `Source=Bak`(原判据是 `Empty`,已按新口径改写) |
+| `adr041_bak_rescue_walkthrough`(PlayMode · 新增判据 ⑦ + 帧 `wb_09`) | 删掉主档后册子那一行**还在**(`叁 · 第壹日 昼`),探针 `Occupied` / `Source=Bak` |
+
+**帧对照**:`wb_08`(头部坏)= 该行**空白**;`wb_09`(主档整个删掉、只剩备份)= 该行**在**。
+两张图正好把「读不出来」与「只剩备份」分开画出来。
+
+### 8.4 回归(三元组)
+
+| 套件 | 结果 | 三元组 |
+|---|---|---|
+| EditMode | `6880/6843/0/37` | 截至 `2026-11-04T16:18:05Z` · sprint-24 bak 语义统一轮 · `d5db89d8` + 工作树 |
+| PlayMode | `341/337/0/2/2` | 截至 `2026-11-04T16:19:18Z` · 同批次 |
+
+计数与上一轮逐位相同(改的是既有夹具的**判据**,不是新增)——**零回归**。
+
+### 8.5 没做的两件(理由)
+
+1. **写窗口本身没改**(`Move` → `Copy`)。行业写法通常是 copy,但 `WriteAtomic` 同时服务
+   退出保存,而退出保存有 1 s 的 join 预算(`TD-persist-14`:join 超时 ≠ 写盘失败)。
+   多一次整档拷贝会把这个假阳性面推高。**恢复路径已覆盖**,故不动。
+2. **呈现面没改**。`Source` 已在数据面可分,但「要不要告诉玩家这一页来自备份」是 42 的形态问题,
+   `AC-7b-07` 禁徽章 / 红字 / toast ⇒ 归 `TD-persist-22` ②。
+
+### 8.6 顺带撞见的另一个缺陷(与本轮无关)
+
+PlayMode 走查的**第二次载入**抛出:
+
+```
+[Exception] InvalidOperationException: 体征链 Step 时间倒流:tick=21 < 上次 70
+```
+
+`DiseaseVitalsService._lastTick`(`Gameplay.Boot/DiseaseVitalsService.cs:121`)在**读档时不回退**,
+全类无重置入口 ⇒ 会话内读一份**更早**的档、关册让世界继续跑,就会每 tick 抛一次,直到时钟追平。
+已立 **`TD-sim-05`**(`open` / P0 面 **Y** / R1),解除动作 = 给 `DiseaseVitalsService` 加读档重建入口
+(先例 `AnchorCheckpointTrigger.ResetCursor`)+ 接进 `LoadSequencer`(次序须裁)。
+⚠️ **走查件已改为不触发它**(本件到「册子上看得见」为止,不再做第二次载入)——
+**债不解、走查也不会红**,这是如实登记,不是修掉了。

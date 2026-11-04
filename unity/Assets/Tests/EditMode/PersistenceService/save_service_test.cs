@@ -97,9 +97,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // AC-7a-01: 校验和损坏时自动回退 bak
-        // 🔁 2026-11-04(`TD-persist-19`):造场改到**退出保存** —— 回退面按槽型分派后,
-        //    手动槽**不再回退**(它写侧就产不出 bak,见 `SaveSlotLedger.FallsBackToBak`)。
-        //    本条测的是「回退这件事本身」,故须长在唯一会回退的槽型上。
+        // 🔁 2026-11-05(ADR-041 §D4 修订):回退面**不再按槽型分派**(全部槽型一致),
+        //    本条仍长在退出保存上 —— 它测的是「回退这件事本身」,与槽型无关。
         [Test]
         public void test_checksumFallback_readsBakWhenFinalCorrupted()
         {

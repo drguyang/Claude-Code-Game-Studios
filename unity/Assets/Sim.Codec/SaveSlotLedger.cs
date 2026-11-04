@@ -55,23 +55,20 @@ namespace DaYiJingCheng.Sim.Codec
         public static bool IsReservedSlotSeq(uint seq) => seq == ExitSlotSeq || seq == AutoSlotSeq;
 
         /// <summary>
-        /// 该槽位的 <c>.bak</c> 是否算作「这个槽有档」—— **只给探测 / 占用态用**。
-        /// <para>⚠️ 与 <see cref="ReadFallsBackToBak"/> **必须分开**(ADR-041 §D4):
-        /// 覆盖开启后,手动槽也会产生 <c>.bak</c>(旧版留底),但它**不代表这个槽现在有档** ——
-        /// 「有档」的唯一判据仍是 <c>final</c> 存在。把两者合起来正是 `TD-persist-19`
-        /// 那条病(「菜单说有档 ⇒ 按下去说空槽」)的成因。</para>
+        /// 该槽位的 <c>.bak</c> 是否**算作这个槽的一条存档** —— 探测(占用态)、读档回退、
+        /// 「最近一份」三处**同一条判据**,不再分叉。
+        /// <para>🔁 **2026-11-05 统一(ADR-041 §D4 修订 · 用户裁定「按行业惯例纠正」)**:
+        /// 2026-11-04 曾把它拆成两条(`ProbeCountsBak` / `ReadFallsBackToBak`),理由是
+        /// 「有 bak 不代表这个槽现在有档」。那条理由对**旧残留**成立,对**只剩备份**不成立 ——
+        /// 而备份的语义就是「主档没了用它」。拆开后的实际后果是:崩溃落在 `WriteAtomic` 的
+        /// `final→bak` 与 `tmp→final` 之间时,final 没了、`bak` 是一份**完整的上一版**,
+        /// 而册子说「这里没写过」、读档也说空槽 ⇒ **那份世界不可达**(而 ADR-041 之前
+        /// 手动槽根本产不出 bak,所以这个形态是覆写功能自己带出来的)。</para>
+        /// <para>⚠️ **合并不会重造 `TD-persist-19`**(「屏上说有档 ⇒ 按下去说空槽」):那条病
+        /// 的成因是「探测认 bak 而**读档不认**」。今日读档对全部槽型都认 bak ⇒ 三处同向,
+        /// 无论 bak 算不算占用,屏与载入都不会分叉。**分叉的成因是两处不一致,不是取值本身。**</para>
         /// </summary>
-        public static bool ProbeCountsBak(uint seq) => IsReservedSlotSeq(seq);
-
-        /// <summary>
-        /// 该槽位的 <c>.bak</c> 是否参与**读档**回退(<c>final</c> 校验坏时改读它)。
-        /// <para>🔁 **2026-11-04(ADR-041 §D4)**:手动槽从 <c>false</c> 改为 <c>true</c> ——
-        /// 覆盖开启后 <c>save_N.bak</c> 第一次真的会由 `WriteAtomic` 产生
-        /// (`final` 已存在才 final→bak),它**就是这一槽的上一版**,回退它是抢救而不是装错档。</para>
-        /// <para>⚠️ 本判据**不参与占用态判定** —— 那半归 <see cref="ProbeCountsBak"/>。
-        /// 两处若混用,会重新制造「屏上有档 / 读档是空」的分叉。</para>
-        /// </summary>
-        public static bool ReadFallsBackToBak(uint seq) => true;
+        public static bool BakCountsAsSave(uint seq) => true;
 
         private readonly INarrativeContextQuery _narrativeContext;
         private readonly HashSet<uint> _locked = new HashSet<uint>();

@@ -1,15 +1,18 @@
-// 槽位 `.bak` 的**两条判据**(2026-11-04):
-//   ① `ProbeCountsBak` —— `.bak` 算不算「这个槽有档」;**只给探测 / 占用态用**。
-//   ② `ReadFallsBackToBak` —— 读档时 final 校验坏能不能改读 `.bak`;**恒 true**。
+// 槽位 `.bak` 的**唯一判据**(2026-11-05 统一):
+//   `SaveSlotLedger.BakCountsAsSave` —— `.bak` 算不算这个槽的一条存档;**恒 true**。
+//   探测(占用态)· 「最近一份」· 读档回退**三处同源**,「屏上说有档 / 按下去说空」不可能再分叉。
 //
-// 🔁 **本文件的核心判据在 2026-11-04 反转**(ADR-041 §D4,用户裁定「覆写合法」):
-//   旧口径(`TD-persist-19`)是「手动槽一生只写一次 ⇒ 永不产生 bak ⇒ 盘上若有必是旧残留 ⇒
-//   读它 = 静默装回更旧的档」。覆盖开启后 `save_N.bak` **就是这一槽的上一版**
-//   (`WriteAtomic` 的 final→bak 轮转)⇒ 回退它是**抢救**,不是装错。
-//   ⚠️ 但**占用态仍以 final 为准**:`save_4.bin` 不存在而只有 `save_4.bak` ⇒ 探针报空、
-//      读档也报空槽(**两处必须同向**,否则重造「屏上说有档 / 按下去说空」)。
-//
-// ⚠️ 本文件同时钉住**保留槽的两半**:占用态认 bak、读档也回退。
+// 🔁 **沿革(原文不删,防误读)**:
+//   · **2026-11-04 之前**(`TD-persist-19`):手动槽一生只写一次 ⇒ 产不出 bak ⇒ 盘上若有
+//     必是旧残留 ⇒ 读它会静默装回更旧的档 ⇒ **不认**。
+//   · **2026-11-04**(ADR-041 §D4):覆写合法 ⇒ `save_N.bak` 就是这一槽的上一版 ⇒ 读侧认
+//     (回退),但**占用态仍以 final 为准** ⇒ 两条谓词**刻意分叉**。
+//   · **2026-11-05(本文件当前口径 · 用户裁定「按行业惯例纠正」)**:分叉撤销。
+//     病因:`WriteAtomic` 的 `final→bak` 与 `tmp→final` 之间崩溃,会留下
+//     **final 缺失 + 一份完整的 bak** —— 分叉口径下这一槽报「空槽」、读档也报空槽
+//     ⇒ **那份世界不可达**。备份的语义就是「主档没了用它」,拒绝恢复不是更严格。
+//     ⚠️ 合并**不会**重造 `TD-persist-19`:那条病的成因是「探测认而读档不认」,
+//     今日三处同源,分叉不可能发生 —— **分叉的成因是两处不一致,不是取值本身**。
 //
 // 读盘说明:本文件**不读**仓库内任何外部夹具;全部字节在夹具内构造
 // (`MinimalSaveBytes`),落 `Path.GetTempPath()`,`TearDown` 自删。
@@ -115,18 +118,25 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_manualSlot_finalMissing_bakAlone_isEmptyEverywhere()
+        public void test_manualSlot_finalMissing_bakAlone_isRecoverable()
         {
+            // 崩在 `WriteAtomic` 的 final→bak 与 tmp→final 之间 ⇒ final 没了、bak 是完整上一版
             ArrangeManualSlotWithStaleBak(4, MinimalSaveBytes(tick: 5L), MinimalSaveBytes(tick: 9L));
             File.Delete(Path.Combine(_dir, "save_4.bin"));
 
-            // ⚠️ **两处必须同向**:探测说空 ⇒ 读档也必须说空(否则「屏上说空、读得出来」)。
-            Assert.That(SaveSlotProbe.Probe(_dir, 4).State, Is.EqualTo(SaveSlotState.Empty),
-                "占用态以 final 为准(`ProbeCountsBak` 对手动槽恒 false)");
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
+                "**备份在手就是有档** —— 报「空槽」等于对玩家说「你从没存过」,而盘上有一份能读的世界");
+            Assert.That(s.Tick, Is.EqualTo(5L),
+                "报的是 bak 的 tick(bak = 第一次写的那一版),不是编的");
+            Assert.That(s.Source, Is.EqualTo(SaveLoadSource.Bak),
+                "来源必须是 Bak —— 呈现层要靠它区分「主档在」与「只剩备份」");
 
-            Assert.Throws<SaveNotFoundException>(
-                () => new SaveService(_dir, new SaveCodec()).LoadBytes(new SaveSlot(4)),
-                "final 没了 ⇒ 空槽;只剩 `.bak` 不足以让读档成功(与探测同向)");
+            byte[] loaded = null;
+            Assert.DoesNotThrow(
+                () => loaded = new SaveService(_dir, new SaveCodec()).LoadBytes(new SaveSlot(4)),
+                "探测说有档 ⇒ 读档必须读得出来(**两处同向**,这次是往「都能读」的方向)");
+            Assert.That(SaveHeaderCodec.Read(loaded).Tick, Is.EqualTo(5L), "读回的就是那份 bak");
         }
 
         // ── ② 收窄不得越界:保留槽仍然回退 ──────────────────────────────────────
@@ -151,85 +161,85 @@ namespace DaYiJingCheng.Tests.PersistenceService
         // ── ③ 判据本体:唯一定义处的行为 ────────────────────────────────────────
 
         [Test]
-        public void test_ledger_twoPredicates_areSplitNotMerged()
+        public void test_ledger_bakCountsAsSave_forEverySlotKind()
         {
-            // ① 占用态:只有保留槽认 bak
-            Assert.That(SaveSlotLedger.ProbeCountsBak(SaveSlotLedger.ExitSlotSeq), Is.True, "1 = 退出保存");
-            Assert.That(SaveSlotLedger.ProbeCountsBak(SaveSlotLedger.AutoSlotSeq), Is.True, "2 = 自动存档");
-            Assert.That(SaveSlotLedger.ProbeCountsBak(SaveSlotLedger.MinManualSlotSeq), Is.False,
-                "3 = 第一个手动槽:覆盖虽合法,bak 仍**不算有档**");
-            Assert.That(SaveSlotLedger.ProbeCountsBak(4u), Is.False);
-            Assert.That(SaveSlotLedger.ProbeCountsBak(uint.MaxValue), Is.False);
-
-            // ② 读档回退:所有槽都可回退(覆写后 bak 就是上一版)
-            Assert.That(SaveSlotLedger.ReadFallsBackToBak(SaveSlotLedger.ExitSlotSeq), Is.True);
-            Assert.That(SaveSlotLedger.ReadFallsBackToBak(SaveSlotLedger.AutoSlotSeq), Is.True);
-            Assert.That(SaveSlotLedger.ReadFallsBackToBak(SaveSlotLedger.MinManualSlotSeq), Is.True);
-            Assert.That(SaveSlotLedger.ReadFallsBackToBak(4u), Is.True);
-
-            // ③ 两条**不得合并**:合并即 `TD-persist-19` 那条「屏上说有档 / 读档是空」的成因
-            Assert.That(SaveSlotLedger.ProbeCountsBak(3u),
-                Is.Not.EqualTo(SaveSlotLedger.ReadFallsBackToBak(3u)),
-                "手动槽上两条谓词必须分叉 —— 合并了就没有「占用态只看 final」这条");
+            // 唯一判据,对所有槽型一致 —— 3 = 第一个手动槽、uint.MaxValue = 非法号也一样。
+            // (非法号由 `EnsureWritable` 的槽号门拦,不靠本判据。)
+            foreach (uint seq in new[]
+                     {
+                         SaveSlotLedger.ExitSlotSeq,
+                         SaveSlotLedger.AutoSlotSeq,
+                         SaveSlotLedger.MinManualSlotSeq,
+                         4u,
+                         uint.MaxValue,
+                     })
+            {
+                Assert.That(SaveSlotLedger.BakCountsAsSave(seq), Is.True,
+                    $"槽 {seq}:`.bak` 算这个槽的一条存档 —— 探测 / 最近一份 / 读档三处同源");
+            }
         }
 
         // ── ④ 呈现面与读档面同向(否则「屏上说有档、按下去说空」) ──────────────────
 
         [Test]
-        public void test_probe_manualSlot_ignoresStaleBak()
+        public void test_probe_manualSlot_bakAlone_isOccupiedWithBakSource()
         {
             ArrangeManualSlotWithStaleBak(4, MinimalSaveBytes(tick: 5L), MinimalSaveBytes(tick: 9L));
             File.Delete(Path.Combine(_dir, "save_4.bin"));
 
-            Assert.That(SaveSlotProbe.Probe(_dir, 4).State, Is.EqualTo(SaveSlotState.Empty),
-                "只剩旧残留 bak ⇒ 探针与 LoadBytes 同向报「空」");
+            SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied));
+            Assert.That(s.Source, Is.EqualTo(SaveLoadSource.Bak), "只剩备份 ⇒ 来源 = Bak");
+            Assert.DoesNotThrow(
+                () => new SaveService(_dir, new SaveCodec()).LoadBytes(new SaveSlot(4)),
+                "探针说有档 ⇒ 读档必须读得出来(同向)");
+
+            // 对照:主档回位后来源变回 Final(**来源字段有判别力**,不是恒 Bak)。
+            // 用 SaveBytes 造一份**不同 tick** 的主档(final 缺失 ⇒ 不轮转,bak 保持 5)。
+            new SaveService(_dir, new SaveCodec()).SaveBytes(new SaveSlot(4), MinimalSaveBytes(tick: 9L));
+            SaveSlotSummary withFinal = SaveSlotProbe.Probe(_dir, 4);
+            Assert.That(withFinal.State, Is.EqualTo(SaveSlotState.Occupied));
+            Assert.That(withFinal.Source, Is.EqualTo(SaveLoadSource.Final));
+            Assert.That(withFinal.Tick, Is.EqualTo(9L), "主档在 ⇒ 优先报主档的 tick");
         }
 
         [Test]
-        public void test_mostRecent_manualSlotWithOnlyStaleBak_isNotACandidate()
+        public void test_mostRecent_manualSlotWithOnlyBak_isACandidate()
         {
             ArrangeManualSlotWithStaleBak(4, MinimalSaveBytes(tick: 5L), MinimalSaveBytes(tick: 9L));
             File.Delete(Path.Combine(_dir, "save_4.bin"));
 
             var svc = new SaveService(_dir, new SaveCodec());
-            Assert.That(svc.TryGetMostRecentSave(out SaveSlot slot), Is.False,
-                "整个目录只剩一份属于手动槽的旧残留 bak ⇒ 「没有存档」;" +
-                "若认它,菜单会说「继续诊治」而按下即报空槽");
-
-            // 对照:同一份字节放到 final 位置上 ⇒ 就是有档(证明上面的 false 不是路径写错)
-            File.Copy(Path.Combine(_dir, "save_4.bak"), Path.Combine(_dir, "save_4.bin"));
-            Assert.That(svc.TryGetMostRecentSave(out slot), Is.True);
+            Assert.That(svc.TryGetMostRecentSave(out SaveSlot slot), Is.True,
+                "只剩备份的槽**读得出来** ⇒ 它必须能出现在「继续诊治」里;" +
+                "把它排除 = 让玩家手动找不到一个本来能读的世界");
             Assert.That(slot.SlotSeq, Is.EqualTo(4u));
         }
 
         /// <summary>
-        /// **判别力用例** —— 上一条测不到 `TryGetMostRecentSave` 里的槽型分派(手动槽的候选
-        /// 是按 <c>save_*.bin</c> 枚举的,残留 <c>.bak</c> 根本进不了候选表)。
+        /// **排序判据** —— 「最近一份」与「按下去会读到什么」必须一致。
         ///
-        /// <para>⚠️ 这条是证伪轮 **M1 逼出来的**:把 `FallsBackToBak` 改成恒 `true` 后,
-        /// 上一条**照样绿** ⇒ 它对「手动槽认不认 bak」零判别力(假绿形态 F4「空洞正控」)。</para>
-        ///
-        /// <para>造场:槽 4 的 final 是 tick 5(**头部随后被打坏**),残留 bak 是 tick 900;
-        /// 槽 5 是一份 tick 10 的好档。若认那份残留 bak,「最新一份」会算成槽 4(tick 900)
-        /// —— 而按下必报损坏。</para>
+        /// <para>造场:槽 4 的 final 是 tick 5(**头部随后被打坏**),bak 是 tick 900;
+        /// 槽 5 是一份 tick 10 的好档。槽 4 按下去会回退读到 tick 900 ⇒ 它**才是**最新的;
+        /// 若在这里只看 final,「继续诊治」会指向槽 5(tick 10),把一份更旧的进度当成最新。</para>
         ///
         /// <para>⚠️ final 必须用 <see cref="BreakHeader"/> 毁,不能用 <see cref="Corrupt"/>:
         /// 探针只读头部不验校验和,校验和坏的文件在它眼里仍是 `Occupied` ⇒ 回退支不会走。</para>
         /// </summary>
         [Test]
-        public void test_mostRecent_manualSlot_corruptFinalWithValidStaleBak_ranksBehindReadableSave()
+        public void test_mostRecent_manualSlot_corruptFinal_fallsBackToBakForRanking()
         {
-            // 先写 tick 900 再写 tick 5 ⇒ final = tick 5,bak = tick 900(残留)
+            // 先写 tick 900 再写 tick 5 ⇒ final = tick 5,bak = 900
             ArrangeManualSlotWithStaleBak(4, MinimalSaveBytes(tick: 900L), MinimalSaveBytes(tick: 5L));
             new SaveService(_dir, new SaveCodec())
                 .SaveBytes(new SaveSlot(5), MinimalSaveBytes(tick: 10L));
-            BreakHeader(Path.Combine(_dir, "save_4.bin"));
+            BreakHeader(Path.Combine(_dir, "save_4.bin"));   // 头部坏 ⇒ 探针报 Corrupt
 
             var svc = new SaveService(_dir, new SaveCodec());
             Assert.That(svc.TryGetMostRecentSave(out SaveSlot slot), Is.True);
-            Assert.That(slot.SlotSeq, Is.EqualTo(5u),
-                "槽 4 的 final 坏了,那份 tick=900 的残留 bak **不算该槽的档** ⇒ 最新的是槽 5;" +
-                "认了它,「继续诊治」就指向一个按下去必报损坏的槽");
+            Assert.That(slot.SlotSeq, Is.EqualTo(4u),
+                "槽 4 的 final 头部坏了,但 bak(tick 900)**读得出来** ⇒ 「最近一份」是槽 4;" +
+                "按下去会回退读到 tick 900 —— 排序与实际载入结果一致");
         }
     }
 }

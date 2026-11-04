@@ -1257,6 +1257,14 @@
   @ `2026-11-04T13:41:27Z` / `13:42:28Z`(日志件补轮 `14:18:57Z`)· `18c274d4` + 工作树;
   原件 = `production/qa/evidence/impl-adr041-slot-overwrite-2026-11-04.md`。
   Engine Knowledge Risk **LOW**(纯 C# + UI Toolkit 行内态,零 post-cutoff API;`Sim` 引用集一字不改)。
+  🔁 **2026-11-05 §D4 改判(用户裁定「按行业惯例,把不合理的地方纠正」)—— 两条 bak 谓词合并为一条**
+  `SaveSlotLedger.BakCountsAsSave(seq) → true`。病因:`WriteAtomic` 的 `Move(final→bak)` 与
+  `Move(tmp→final)` 之间崩溃时,`final` 没了而 `.bak` 是**完整上一版**,分叉口径下探测说「空槽」、
+  读档也抛 ⇒ **那份世界不可达**(ADR-041 之前手动槽产不出 bak,该形态是覆写功能自己带出来的)。
+  合并**不会**重造 `TD-persist-19`:那条病是「探测认而读档不认」,**三处同源**后结构上不可能分叉。
+  连带 `SaveSlotSummary.Source`(`Final`/`Bak`);探测 / 最近一份 / 读档三处同源。
+  ⚠️ 同批登记 **`TD-sim-05`**(会话内读档后 `DiseaseVitalsService._lastTick` 不回退 ⇒ 抛「时间倒流」,
+  P0 面 **Y**)—— 与本改判**无关**,是走查第二次载入撞见的既存缺陷。
 
 > **本日志状态**:全部 ADR(001–**041**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > **ADR-040 于 2026-11-04 以 `Proposed` 入册,同日实现轮转 `Accepted`**;**ADR-041 于 2026-11-04 起草即 Accepted**)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;

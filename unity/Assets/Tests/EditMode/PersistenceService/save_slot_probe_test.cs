@@ -165,18 +165,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_probe_manualSlot_bakOnly_isEmpty()
+        public void test_probe_manualSlot_bakOnly_isOccupied()
         {
-            // 同一形态搬到**手动槽**上:盘上只有一份旧残留 `save_4.bak`
+            // 同一形态搬到**手动槽**上:盘上只剩 `save_4.bak`(主档丢了 / 崩在写窗口)
+            // 🔁 2026-11-05(ADR-041 §D4 修订):与保留槽**同一口径** —— 备份在手就是有档。
             SaveService svc = MakeService(NewStream(), tick: 77L);
             svc.Checkpoint(new SaveSlot(4));
             File.Move(Path.Combine(_dir, "save_4.bin"), Path.Combine(_dir, "save_4.bak"));
 
             SaveSlotSummary s = SaveSlotProbe.Probe(_dir, 4);
 
-            Assert.That(s.State, Is.EqualTo(SaveSlotState.Empty),
-                "手动槽的 `.bak` 不参与(写侧产不出来,盘上那份是旧残留)" +
-                "⇒ 探针必须与 LoadBytes 同向报「空」,否则屏上说有档、按下去报空槽");
+            Assert.That(s.State, Is.EqualTo(SaveSlotState.Occupied),
+                "只剩 `.bak` ⇒ 探针报**有档**(它与 LoadBytes 都必须认,否则那份世界不可达)");
+            Assert.That(s.Tick, Is.EqualTo(77L));
+            Assert.That(s.Source, Is.EqualTo(SaveLoadSource.Bak),
+                "来源 = Bak —— 「主档在」与「只剩备份」在数据面必须可分");
         }
 
         [Test]

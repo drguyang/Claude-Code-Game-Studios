@@ -377,6 +377,7 @@
 | `TD-sim-02` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-03` | `disease-simulation` | closed | **Y** | R1 |
 | `TD-sim-04` | `disease-simulation` | closed | **Y** | R1 |
+| `TD-sim-05` | `disease-simulation` | open | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-03` | `player-controller` | closed | **Y** | R1 |
@@ -629,6 +630,15 @@ PYEVAL
 > `N 54` 不动 · **epic 分布 4/31 不动** · 条目数 **181 不变**。
 > **单一变化源**:索引行 `TD-persist-22` 的 `open → partial`(同一笔债推进,不是新增/结案)。
 > ⚠️ **与五订同型**(同一行换字,条目数不动);另一半(册子形态)仍 open。
+
+> > 🔁 **七十五订(`TD-sim-05` 立债 · 2026-11-05 · 走查附带发现)** ——
+> 用户指令「按行业惯例,把不合理的地方纠正」的实现轮,PlayMode 走查的第二次载入抛出
+> `体征链 Step 时间倒流:tick=21 < 上次 70`(`DiseaseVitalsService._lastTick` 不随读档回退)。
+> 变化:`open 19 → 20`(+1)· `closed 157` 不动 · `partial 4` 不动 ·
+> **`未闭 P0 面 9 → 10`**(+1,判 **Y** —— 触发路径是正常玩法)· `Y 121 → 122`(+1)·
+> **`epic 分布 4/31 → 5/31`**(`disease-simulation` 重新进入)· 条目数 **181 → 182**(+1)。
+> 单一变化源:新增 `TD-sim-05` 索引行(`open` / P0 面 **Y** / R1)。
+> ⚠️ **与本轮 `.bak` 统一无关**:那条修订只是**撞见**了它(为了验「只剩备份也能读」才做第二次载入)。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1252,11 +1262,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 181 | 状态 {'closed': 157, 'partial': 4, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 112 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
-    processing: 1
+条目 182 | 状态 {'closed': 157, 'partial': 4, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 112 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 5/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        disease-simulation: 1
+    persistence-service: 1    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -3778,6 +3788,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 而两条债的实现面都很窄(各一个谓词),**在触发条件下随下一个动该 epic 的轮次一并落**即可。
 ⚠️ **不立 story ≠ 不还** —— 两条各带具名触发条件,到点不还即违反本册口径。
 
+### TD-sim-05 — 会话内读档后,**体征链时间倒流**:`_lastTick` 不随读档回退,世界继续跑即抛异常(9 ↔ 7a)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `DiseaseVitalsService.OnTickEdge` 有单调门(`:377-381`):`tick < _lastTick` ⇒ 抛 `InvalidOperationException("体征链 Step 时间倒流…")`。而 `_lastTick`(`:121`)在**读档时不会回退** —— 全类无重置入口。⇒ 玩家在会话内从存档册读一份**更早**的档,关掉册子让世界继续跑,就会每 tick 抛一次,直到逻辑时钟追平原先的 tick。 |
+| **实测(逐条可跑)** | ① 单调门:`sed -n '373,382p' unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs`;<br>② 无重置入口:`grep -n "public void Reset\|_lastTick =" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ 只有 `:121` 初始化与 `:381` 赋值(**没有任何方法把它调回去**);<br>③ 现场:走查件 `adr041_bak_rescue_walkthrough` 第二次载入时抛出 —— `InvalidOperationException: 体征链 Step 时间倒流:tick=21 < 上次 70`(README 级证据见 `impl-adr041-slot-overwrite-2026-11-04.md` §8)。该走查已改为**不触发**它(见同节),**债不解、走查也不会红**。 |
+| **为什么是 P0 面 Y** | 触发路径 = **正常玩法**:玩到第 N 天 → 读档回到第 N−1 天 → 关册 → 世界一跑就抛。异常从 `OnTickEdge` 抛出,体征链在该时段**不更新**(旧时刻覆盖新求值的防护是有意的,代价是这条链停摆),且 console 每 tick 刷一条。与用户 2026-11-04 报的「再进入已有存档 console 刷屏」**同症状、不同触发点**(那条是启动期 tick 未定位,已由 `LoadSequencer:156` 修复)。 |
+| **解除动作** | ① 给 `DiseaseVitalsService` 加一个**读档重建入口**(命名与先例对齐:`AnchorCheckpointTrigger.ResetCursor`),语义 = 清 `_cursor` + `_lastTick` 回落,使读档后从**恢复出来的流**重新求值;<br>② 接在 `LoadSequencer` 的读档序列里(**位置相对 `_afterRestore` 的先后须定**,ADR-036 §R4 已就「ConsequenceDriver 排在 VitalsService 之后」立过同类次序判据 —— 这是一处新的次序裁定,须在实现轮显式写出);<br>③ 夹具:PlayMode 真启动序 —— 玩到 tick T、存档、再玩到 T+Δ、读档、让世界跑 Δ 步,**不得出现任何 `LogType.Exception`**(UTF 默认就会判红,这正是抓它的手段);<br>④ 证伪:把重置调回去 ⇒ ③ 转红。 |
+| **归属** | **9**(体征链本体)· 接线位置 = **7a**(`LoadSequencer`)· 次序裁定 = **用户 / ADR** |
+| **与本次修订的关系** | **独立**。2026-11-05 的 `.bak` 统一(ADR-041 §D4 修订)只是**撞见**了它 —— 那条走查为了验证「只剩备份也能读」做了第二次载入,才把这个既有缺陷暴露出来。**两条债不合并、不互相阻塞。** |
+
+> 🔁 **2026-11-05 立债(走查附带发现)** —— 用户指令「按行业惯例,把不合理的地方纠正」的实现轮中,
+> PlayMode 走查的第二次载入直接抛出。**不是本轮改动引入**(单调门与 `_lastTick` 的形态早于本轮),
+> 是本轮第一次让「会话内读**更早**的档」这条路径跑起来。
+
 ### TD-sim-01 — `SelfLimited(entity, d)` 逐实体判死谓词未落地
 
 | 侧 | 内容 |
@@ -4966,6 +4991,11 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > @ `2026-11-04T15:45:06Z` / `15:46:17Z` · `fa2b1738` + 工作树。
 > ⚠️ **仍未做,不得借绿**:② 册子半边(要不要画「此页已损」、拟物载体是什么)归 **42 + 用户**;
 > 且**不得**顺手改成「读档修盘」(GDD 规则十一零 I/O)。
+>
+> 🔁 **2026-11-05 补充(不改状态,`partial` 维持)**:② 的**数据面**已备好 ——
+> `SaveSlotSummary.Source`(`Final` / `Bak`)随 ADR-041 §D4 改判一并落地,
+> 「主档在」与「只剩备份」在数据上可分。**仍未做的是呈现**:42 拿它画什么、怎么画
+> (`AC-7b-07` 禁徽章 / 红字 / toast)。⇒ ② 从「不可知」变成「已知但没说」。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

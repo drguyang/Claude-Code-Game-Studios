@@ -20,11 +20,12 @@
 //    本类**一道都不复制**,也不提供任何「读出来的东西能用」的承诺 ——
 //    它只回答「这个号上有没有一份像样的档,以及它停在哪个 tick」。
 //
-// ⚠️ **与 `LoadBytes` 的回退链同源**:final 读不出 ⇒ 再看 `.bak` —— **但只对保留槽**。
-//    判据归 `SaveSlotLedger.FallsBackToBak`(唯一定义处),本类与 `SaveService` 都调它。
-//    两者若不同源,会出现「屏上说有档、读档说没有」这种最难查的分叉。
-//    🔁 2026-11-04(`TD-persist-19`):手动槽的 `.bak` 不参与 —— 它写侧就产不出来,
-//    盘上若有一份必是旧残留,读它会静默装回更旧的档。
+// ⚠️ **与 `LoadBytes` 的回退链同源**:final 读不出 ⇒ 再看 `.bak`,**全部槽型一致**。
+//    判据归 `SaveSlotLedger.BakCountsAsSave`(唯一定义处),本类、`SaveService` 与
+//    「最近一份」三处都调它。不同源就会出现「屏上说有档、读档说没有」这种最难查的分叉。
+//    🔁 **2026-11-05(ADR-041 §D4 修订)**:此前手动槽的 `.bak` 不参与,理由是「写侧产不出来,
+//    盘上有一份必是旧残留」。覆写功能上线后该前提失效(`.bak` 就是这一槽的上一版),
+//    而拒绝恢复的代价是「主档没了 ⇒ 那份世界不可达」。已按行业惯例统一。
 //
 // ⚠️ **写盘面零触碰** —— 本类只有 `File.Exists` / `FileStream(...Read)` / `Read`。
 //    `SaveWritePathGate` 的 IL 判据扫的是 `Write` / `WriteAsync` / `Flush` / `WriteByte`
@@ -78,20 +79,41 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public readonly SaveTimeParams TimeParams;
 
+        /// <summary>
+        /// 这份档的字节**来自哪个文件** —— <c>Final</c> = 正式档,<c>Bak</c> = 只剩备份。
+        /// <para>🔁 **2026-11-05 新增(ADR-041 §D4 修订)**:探测与载入统一认 `.bak` 之后,
+        /// 「这个槽有档」不再能区分「主档在」与「只剩备份」。差值本身是玩家/客服都要知道的事实
+        /// (行业惯例:恢复自备份的档可以照常显示,但要说得出它来自备份)。**取值归 7a,
+        /// 要不要显示、怎么显示归 42**(拟物语言里不得降级成徽章 / 红字,`AC-7b-07`)。</para>
+        /// </summary>
+        public readonly SaveLoadSource Source;
+
         /// <summary>构造(v3 及更早:无时间参数 ⇒ 全 0)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion)
-            : this(state, tick, saveVersion, default(SaveTimeParams))
+            : this(state, tick, saveVersion, default(SaveTimeParams), SaveLoadSource.None)
         {
         }
 
-        /// <summary>构造(v4:带该档记录的时间三参数)。</summary>
+        /// <summary>带来源的构造(见 <see cref="Source"/>)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
-                               SaveTimeParams timeParams)
+                               SaveTimeParams timeParams, SaveLoadSource source)
         {
             State = state;
             Tick = tick;
             SaveVersion = saveVersion;
             TimeParams = timeParams;
+            Source = source;
+        }
+
+        /// <summary>复制并改写来源(探测时「先读文件、再标来源」用)。</summary>
+        public SaveSlotSummary WithSource(SaveLoadSource source)
+            => new SaveSlotSummary(State, Tick, SaveVersion, TimeParams, source);
+
+        /// <summary>构造(v4:带该档记录的时间三参数;来源留待调用方标)。</summary>
+        public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
+                               SaveTimeParams timeParams)
+            : this(state, tick, saveVersion, timeParams, SaveLoadSource.None)
+        {
         }
     }
 
@@ -123,21 +145,20 @@ namespace DaYiJingCheng.Sim.Codec
                         : $"save_{slotSeq}.bin";
             string finalPath = Path.Combine(basePath, stem);
             // 保留槽的旁路文件是 `xxx.bin.bak`,手动槽是 `save_{n}.bak` —— 两种形状必须分开。
-            // 🔁 2026-11-04(ADR-041 §D4):**占用态**判据 = `ProbeCountsBak`(手动槽 false)。
-            //    覆盖开启后手动槽也会产生 `.bak`(旧版留底),但它不代表「现在有档」——
-            //    读侧回退另有一条 `ReadFallsBackToBak`(恒 true),两条**不得混用**,
-            //    否则会重造 `TD-persist-19` 那条「屏上说有档 / 读档是空」的分叉。
-            string bakPath = SaveSlotLedger.ProbeCountsBak(slotSeq)
-                ? Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak")
-                : null;
+            // 🔁 **2026-11-05(ADR-041 §D4 修订):全部槽型都认 `.bak`**,与读档同向。
+            //    判据唯一出处 = `SaveSlotLedger.BakCountsAsSave`(恒 true),本处不再自带分派 ——
+            //    「探测认不认 bak」与「读档认不认 bak」是一件事,分成两处就必然有一天分叉。
+            string bakPath = Path.Combine(basePath, reserved ? stem + ".bak" : $"save_{slotSeq}.bak");
 
             try
             {
                 if (File.Exists(finalPath))
-                    return ReadOne(finalPath);
+                    return ReadOne(finalPath).WithSource(SaveLoadSource.Final);
 
-                if (bakPath != null && File.Exists(bakPath))
-                    return ReadOne(bakPath);
+                // 主档没了但备份在 ⇒ **这是一份可恢复的档**,不是空槽(行业惯例:
+                // 备份的语义就是「主档没了用它」)。来源标出来,供呈现层决定要不要说明。
+                if (File.Exists(bakPath))
+                    return ReadOne(bakPath).WithSource(SaveLoadSource.Bak);
 
                 return new SaveSlotSummary(SaveSlotState.Empty, 0L, 0U);
             }

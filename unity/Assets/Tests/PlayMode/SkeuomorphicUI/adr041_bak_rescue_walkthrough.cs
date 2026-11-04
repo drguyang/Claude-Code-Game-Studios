@@ -224,6 +224,31 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.IsEmpty(RowText(row),
                 "[判据⑤] 该行这才呈**未绑定**(零字可聚焦)—— 不冒充空槽,也不冒充有档");
             yield return Shot("wb_08_after_magic_corrupt");
+
+            // ── ⑨ 主档**整个没了**、只剩备份(崩在 WriteAtomic 的写窗口)───────────
+            //   2026-11-05「按行业惯例纠正」后的判据:**备份在手就是有档**。
+            //   改前这里会显示「空槽」,而盘上那份 bak 读得出来 —— 玩家找不到自己的世界。
+            File.Delete(finalPath);
+            _driver.MarkSaveSlotRowsDirty();
+            yield return null; yield return null;
+            yield return OpenBookAndRefresh();
+
+            Debug.Log($"[BAK] 主档删掉后 探针={SaveSlotProbe.Probe(_worldDir, SlotSeq).State} " +
+                      $"来源={SaveSlotProbe.Probe(_worldDir, SlotSeq).Source} 行文字=「{RowText(row)}」");
+            Assert.AreEqual(SaveSlotState.Occupied, SaveSlotProbe.Probe(_worldDir, SlotSeq).State,
+                "[判据⑦] 只剩备份 ⇒ 有档(不是空槽)");
+            Assert.AreEqual(SaveLoadSource.Bak, SaveSlotProbe.Probe(_worldDir, SlotSeq).Source,
+                "[判据⑦] 来源 = Bak —— 数据面可分「主档在」与「只剩备份」");
+            Assert.IsNotEmpty(RowText(row),
+                "[判据⑦] 册子上这一行**还在**(玩家找得到它)");
+            yield return Shot("wb_09_bak_only");
+
+            // ⚠️ **本件到「册子上看得见」为止,不再做第二次载入**:
+            //   探针与载入的「同向」已在存储层钉死(`manualSlot_finalMissing_bakAlone_isRecoverable`
+            //   同时断言 Probe=Occupied 与 LoadBytes 成功),本件不重复。
+            //   而第二次载入会触发一个**与本轮修订无关的既有缺陷**:
+            //   读档把逻辑时钟拉回去后,`DiseaseVitalsService._lastTick` 不跟着回退 ⇒
+            //   世界继续跑时抛「体征链 Step 时间倒流」(已登记,见走查报告 §7.6)。
         }
 
         // ══════════════════════════════════════════════════════════════════
