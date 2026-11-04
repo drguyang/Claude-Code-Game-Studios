@@ -85,7 +85,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             yield return BootUntilMenuAppears();
             var menu = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu, "启动序应摊开主菜单");
-            Assert.AreEqual(1, menu.RowCount, "[第一段] 空根 ⇒ 单行");
+            Assert.AreEqual(MainMenuScreen.FixedRowCount, menu.RowCount,
+                "[第一段] 空根 ⇒ 主菜单仍是固定四行(第一行文案为「开始诊治」)");
             Debug.Log($"[RESUME] 第一段 rows={menu.RowCount}: {menu.RowTextAt(0)}");
 
             menu.ActivateRow(0);                       // 「开始诊治」
@@ -127,8 +128,9 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             var menu2 = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu2, "第二次启动也应摊开主菜单");
-            // N 个世界 ⇒ N + 2 行(世界行 + 「新起一局」+「删一局」,AC-MM-11)
-            Assert.AreEqual(3, menu2.RowCount, "[第二段] 一个世界 ⇒ 3 行");
+            // 2026-11-04:主菜单行集**固定四行**(继续诊治 / 新起一局 / 设置 / 退出游戏),
+            // 与世界数无关(旧的「N + 2 行」判据已作废)。
+            Assert.AreEqual(MainMenuScreen.FixedRowCount, menu2.RowCount, "[第二段] 主菜单恒四行");
             Assert.AreEqual(MainMenuScreen.ContinueText, menu2.RowTextAt(0),
                 "[第二段] 有档 ⇒ 第一行必须是「继续诊治」(否则玩家点的是新局)");
             Debug.Log($"[RESUME] 第二段 rows={menu2.RowCount}: {menu2.RowTextAt(0)}");

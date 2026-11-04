@@ -134,6 +134,16 @@ if (!found || tick > bestTick)            // :329
 - 装配层:删完回推新世界列表;若删的正是**当前装配**的目录 ⇒ 换默认世界重装配
   (否则 `SaveService` 的 `basePath` 指向不存在的目录,下一次保存会把它原地重建)。
 
+> 🔁 **2026-11-04 撤销(用户裁定「删除不留」)** —— **D6 整条作废,原文保留作档案**。
+> 主菜单同日改为**固定四行**(继续诊治 / 新起一局 / 设置 / 退出游戏,见 `main-menu-42.md §5`),
+> 「删一局」、删除态、`IMainMenuCommandSink.DeleteWorld`、`DriverMainMenuCommandSink` 的删除面
+> 与 **`WorldCatalog.DeleteWorld` 全部删除**;索引「墓碑」语义随之作废(没有删除 ⇒ 不需要它为高水位兜底)。
+> ⚠️ **如实登记的后果**:① 游戏内**没有任何删除世界的路径**,只能手动删
+> `~/.config/unity3d/DefaultCompany/unity/saves/wN/` —— 这正是本 ADR §Context 第 1 条点名的病灶;
+> ② 同一批裁定还删掉了**世界列表**(D9 的行形态)⇒ 「继续诊治」恒进**最近游玩**的世界,
+> 其余世界目录**在游戏内不可达**。两者都是**已知损失**,登记在 `docs/tech-debt-register.md`。
+> 本 ADR 的 D1–D5 / D7 / D8 / D10(目录隔离、一次性迁移、装配层归属)不受影响。
+
 ### D7 — 现有单目录存档的一次性迁移
 
 首次以多世界形态启动时:`saves/*.bin` 与 `session_incomplete.flag` **整体搬进 `saves/w1/`**

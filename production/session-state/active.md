@@ -16711,3 +16711,25 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `Library/ Logs/ Temp/ mono_crash.mem.*` 并空转。已停进程;清理命令被权限拒,**目录仍在仓库根**
   (git 忽略),待用户自行删除。
 - **待提交**。
+
+## 主菜单固定四行 + 删除世界能力移除(2026-11-04)
+
+- 用户三轮裁定:①「无论多少世界,主菜单暂时固定三行,和世界多少无关」;
+  ②「删除不留」;③「第一行的世界列表也删掉,退出游戏这行同意增加」。
+  ⇒ 定稿**固定四行**:继续诊治/开始诊治 · 新起一局 · **设置** · **退出游戏**。
+- 代码:重写 `MainMenuScreen`(行集恒定,无重画路径)· `IMainMenuCommandSink` 改四成员 ·
+  `SkeuoRuntimeDriver` 去 `SetMainMenuWorlds` / `worlds` 形参 · `BootRoot` 删
+  `OnMainMenuDeleteWorld`+`BuildWorldRows`,新增 `AnyWorldHasSaves()`,接设置(开 `SettingsShell`)
+  与退出(`Application.Quit()`,全仓首个调用点)· `WorldCatalog.DeleteWorld` **删除**。
+- 夹具:`main_menu_worlds_test` 9→5 · `world_catalog_test` −2 · 真启动序删除件 →
+  `test_settingsRow_opensSettingsShell_andClosesBackToMenu` · 行数断言统一 `FixedRowCount`。
+- 文档:`main-menu-42.md` §5/§6/AC-MM-11/12 改写、AC-MM-14 作废、新增 AC-MM-15 ·
+  ADR-040 D6 撤销注 · **`TD-persist-21` 立债**(open / P0 **Y**)+ 七十二订 + §五 重生成 ·
+  技术偏好 ADR 日志补 ADR-041(另案,Accepted 未实现)。
+- 回归:EditMode `6861/6824/0/37`(基线 `6867/6830/0/37`,−6 = 夹具净删)·
+  PlayMode `339/335/0/2/2`(与基线逐位相同)@ `2026-11-04T13:18:10Z` · `238eef15` + 工作树。
+- 首轮 PlayMode 3 红,**全是夹具侧**(两处遗留「单行」断言 + 我用错 `CurrentScreen`/`Screen`),已修。
+- 中途真门命中:`settings_shell_test` 反射门扫到 `SettingsText`(string 是引用类型)⇒ 改名 `ShellEntryText`。
+- **已知损失**:游戏内无切换世界 / 无删除世界入口(旧局不可达、世界目录只增不减)。
+- 原件 = `production/qa/evidence/impl-main-menu-fixed-rows-2026-11-04.md`。
+- **待提交**。

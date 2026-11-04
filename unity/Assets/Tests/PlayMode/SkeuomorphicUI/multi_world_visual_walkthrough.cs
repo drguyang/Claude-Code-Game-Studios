@@ -11,18 +11,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // 本件判什么 / 不判什么
 // ─────────────────────────────────────────────────────────────────────────────
-// 判:① 真启动序把**真目录**里的世界喂到主菜单上(行数 / 文案 / 删除态的形态);
+// 判:① 真启动序把主菜单摊开成**固定四行**(继续诊治 / 新起一局 / 设置 / 退出游戏),
+//        且**与世界数无关**(种两个世界也一样四行);
 //     ② 路径上**没有任何未处理错误日志**(Unity Test Framework 默认把 `Debug.LogError`
 //        与未捕获异常判红 —— 这就是「console 有没有红错」的机械判据,不靠肉眼)。
 // 不判:观感(纸纹 / 字号 / 墨色)—— 那是 `[L]` 人工面。本件负责**把画面留下来**。
 //
+// 🔁 2026-11-04:世界列表与「删一局」按用户裁定删除 ⇒ 原 `mw_02_delete_select` /
+//    `mw_03_delete_confirm` 两帧作废,换成一帧设置壳(主菜单新增行的可见形态)。
+//
 // 七帧:
-//   mw_01_menu_two_worlds   真启动序 · 两个世界:继续诊治 / 第 1 局 / 新起一局 / 删一局
-//   mw_02_delete_select     删除态 · 选目标(每世界一行 + 返回)
-//   mw_03_delete_confirm    删除态 · 待确认(选中那行变「再按一次确认 · 第 N 局」)
+//   mw_01_menu_two_worlds   真启动序 · 种两个世界仍**固定四行**
+//   mw_02_settings          设置壳(主菜单第三行开出来的形态)
+//   mw_03_menu_after_close  合壳后回到主菜单(焦点还原到「设置」行)
 //   mw_04_saveslots_fresh   存档册 · 新局形态(固定视图:退出 / 自动两槽有档,手动槽空)
 //   mw_05_saveslots_manual  存档册 · 手动留过一档(固定视图)
-//   mw_06_menu_first_run    **空根**首次启动:单行「开始诊治」
+//   mw_06_menu_first_run    **空根**首次启动:同一张四行的纸,第一行是「开始诊治」
 //   mw_07_saveslots_realboot 存档册 · **真 7a 数据**(启动序 + 首份存档之后,生产 provider 开册)
 
 using System;
@@ -125,11 +129,11 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // ①–③ 真启动序 · 多世界主菜单 + 删除态
+        // ①–③ 真启动序 · 主菜单固定四行 + 设置壳
         // ══════════════════════════════════════════════════════════════════
 
         [UnityTest]
-        public IEnumerator walkthrough_mainMenu_twoWorlds_and_deleteStates()
+        public IEnumerator walkthrough_mainMenu_fixedRows_and_settings()
         {
             _saveRoot = Path.Combine(Path.GetTempPath(), "dyjq_mwshot_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_saveRoot);
@@ -156,29 +160,29 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             var menu = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu, "[前置] 当前场景级屏须是主菜单");
-            Assert.That(menu.RowCount, Is.EqualTo(4), "[前置] 两个世界 + 新起一局 + 删一局");
+            // 种了两个世界,主菜单仍是四行 —— 这就是「与世界数无关」的画面判据。
+            Assert.That(menu.RowCount, Is.EqualTo(MainMenuScreen.FixedRowCount),
+                "[前置] 主菜单恒四行(种了两个世界也一样)");
             Debug.Log($"[MW] 主菜单 rows={menu.RowCount}: " +
                       $"0={menu.RowTextAt(0)} / 1={menu.RowTextAt(1)} / 2={menu.RowTextAt(2)} / 3={menu.RowTextAt(3)}");
             LogFocus("menu-shown");
             yield return Shot("mw_01_menu_two_worlds");
 
-            // 删除态 · 选目标
-            menu.ActivateRow(3);
-            Assert.That(menu.Mode, Is.EqualTo(MainMenuMode.DeleteSelect), "[前置] 须进删除态");
-            yield return null;
-            yield return null;
-            Debug.Log($"[MW] 删除态(选目标) rows={menu.RowCount}: {menu.RowTextAt(0)} / {menu.RowTextAt(1)} / {menu.RowTextAt(2)}");
-            LogFocus("delete-select");
-            yield return Shot("mw_02_delete_select");
+            // 设置壳(主菜单第三行)
+            menu.ActivateRow(2);
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SettingsShell),
+                "[前置] 「设置」须开出设置壳");
+            LogFocus("settings");
+            yield return Shot("mw_02_settings");
 
-            // 删除态 · 待确认(同一行再按 = 真删,所以这里只截「已待确认」那一步)
-            menu.ActivateRow(0);
-            Assert.That(menu.Mode, Is.EqualTo(MainMenuMode.DeleteConfirm), "[前置] 须进待确认");
-            yield return null;
-            yield return null;
-            Debug.Log($"[MW] 删除态(待确认) rows={menu.RowCount}: {menu.RowTextAt(0)} / {menu.RowTextAt(1)} / {menu.RowTextAt(2)}");
-            LogFocus("delete-confirm");
-            yield return Shot("mw_03_delete_confirm");
+            // 合壳 ⇒ 回主菜单
+            _driver.CloseModal();
+            for (int i = 0; i < 3; i++) yield return null;
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None), "[前置] 合壳后无模态");
+            Assert.That(_driver.CurrentScreen, Is.SameAs(menu), "[前置] 合壳须回到主菜单");
+            LogFocus("menu-after-close");
+            yield return Shot("mw_03_menu_after_close");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -251,7 +255,8 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             var menu = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu, "[前置] 当前场景级屏须是主菜单");
-            Assert.That(menu.RowCount, Is.EqualTo(1), "[前置] 没有世界 ⇒ 单行");
+            Assert.That(menu.RowCount, Is.EqualTo(MainMenuScreen.FixedRowCount),
+                "[前置] 没有世界 ⇒ 仍是固定四行(第一行文案 =「开始诊治」)");
             Debug.Log($"[MW] 首次启动 rows={menu.RowCount}: {menu.RowTextAt(0)}");
             LogFocus("first-run-menu");
             yield return Shot("mw_06_menu_first_run");

@@ -38,7 +38,6 @@ using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
-using MainMenuWorldView = DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens.MainMenuWorldView;
 using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
@@ -1273,54 +1272,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 主菜单上**二次确认后**的删除(ADR-040 D6)。删完回推新的世界列表;
-        /// 若删掉的正是本次装配用的目录,顺手换一个默认世界重装配 ——
-        /// 否则 `SaveService` 的 `basePath` 指向不存在的目录,**下一次保存会把它原地重建出来**。
+        /// 是否存在**任何一个**有档的世界 —— 主菜单第一行文案(`继续诊治` / `开始诊治`)的唯一输入。
+        /// <para>🔁 2026-11-04:原判据是「世界列表行数 &gt; 0」,世界列表面删除后改为本方法;
+        /// 语义**等价**(列表本就只收有档的世界),只是不再为渲染而构造行。</para>
         /// </summary>
-        private void OnMainMenuDeleteWorld(int seq)
+        private bool AnyWorldHasSaves()
         {
-            if (_worldCatalog == null) return;
-
-            string dir = _worldCatalog.DirectoryOf(seq);
-            bool removed;
-            try
-            {
-                removed = _worldCatalog.DeleteWorld(seq);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("[BootRoot][7a][ADR-040 D6] 删除世界失败(列表不刷新,世界仍在):" + e);
-                return;
-            }
-
-            if (removed)
-            {
-                Debug.Log($"[BootRoot][7a][ADR-040 D6] 已删除世界 w{seq}(含其全部存档)");
-                if (string.Equals(_worldSaveDir, dir, StringComparison.Ordinal))
-                    ReassembleForWorld(ResolveDefaultWorldDir(_worldCatalog));
-            }
-            else
-            {
-                Debug.LogWarning($"[BootRoot][7a][ADR-040 D6] 世界 w{seq} 不存在 —— 只刷新列表");
-            }
-
-            _uiDriver?.SetMainMenuWorlds(BuildWorldRows());
-        }
-
-        /// <summary>主菜单要显示的世界行(装配层产出;42 只渲染)。</summary>
-        private List<MainMenuWorldView> BuildWorldRows()
-        {
-            var rows = new List<MainMenuWorldView>();
-            if (_worldCatalog == null) return rows;
-
+            if (_worldCatalog == null) return false;
             IReadOnlyList<WorldEntry> worlds = _worldCatalog.ListWorlds();
             for (int i = 0; i < worlds.Count; i++)
-            {
-                if (!WorldHasSaves(worlds[i].Directory)) continue;
-                rows.Add(new MainMenuWorldView(worlds[i].Seq, "第 " + worlds[i].Seq + " 局"));
-            }
-            return rows;
+                if (WorldHasSaves(worlds[i].Directory)) return true;
+            return false;
         }
+
+        // 🔁 **2026-11-04 已删除**(用户裁定「删除不留」):原「删一局」的装配层处理
+        //    (`OnMainMenuDeleteWorld`,`ADR-040 D6` 的二次确认后半程)与它专用的
+        //    `BuildWorldRows` 一并移除。
+        //    ⚠️ **如实登记**:`WorldCatalog.DeleteWorld` 同时删除 ⇒ 游戏内**没有任何删除世界
+        //    的路径**(只剩手动删 `~/.config/unity3d/DefaultCompany/unity/saves/wN/`);
+        //    世界**选择**入口也随主菜单固定行一起移除 ⇒ 只能进「最近游玩」的那个世界。
 
         /// <summary>
         /// 记「这个世界的最后游玩时刻」(ADR-040 D4 的选择面)。
@@ -1450,13 +1420,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw;
             }
 
-            // ② 「有没有档」+ **世界列表**(ADR-040 D9)
-            //    ⚠️ 世界列表只含**有档的世界**:空目录(新局尚未写出第一份档)不该出现在菜单上,
-            //       否则玩家会看到一行点进去什么也没有。
+            // ② 「有没有档」(**2026-11-04:主菜单不再显示世界列表**)
+            //    ⚠️ 判据 = **任何一个**世界目录里有档 —— 空目录(新局尚未写出第一份档)不计,
+            //       否则第一行会写成「继续诊治」而点进去什么都没有。
             bool hasSave = false;
             _continueSlot = null;
-            var worldRows = BuildWorldRows();
-            if (_worldCatalog != null) hasSave = worldRows.Count > 0;
+            if (_worldCatalog != null) hasSave = AnyWorldHasSaves();
 
             // 「继续到哪一档」仍由 7a 答(按 tick,世界内语义不变);世界由 `_worldSaveDir` 定。
             SaveService saves = _services.SaveService;
@@ -1486,13 +1455,6 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver = FindOrCreateSkeuoUi();
             _uiDriver.MainMenuSink = new DriverMainMenuCommandSink(
                 OnMainMenuContinue,
-                selectWorld: seq =>
-                {
-                    // 选另一个世界 ⇒ 记下目录,等菜单关掉后**整体重装配**(见 `ReassembleForWorld`)。
-                    // 选的就是当前世界时目录相同,重装配不发生。
-                    if (_worldCatalog != null) _pendingWorldSaveDir = _worldCatalog.DirectoryOf(seq);
-                    OnMainMenuContinue();
-                },
                 newWorld: () =>
                 {
                     // 「新起一局」= 新建世界目录;第一份存档由启动序 8b 的 `FirstSessionSave` 写
@@ -1504,7 +1466,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                     }
                     OnMainMenuContinue();
                 },
-                deleteWorld: OnMainMenuDeleteWorld);
+                // 「设置」= 开设置壳(与暂停壳第三行同一条路:闭集第四员 `SettingsShell`,
+                // 不新增模态成员)。世界装载前打开是安全的 —— `OpenModalCore` 的注入面全部判空。
+                openSettings: () => _uiDriver?.OpenModal(ModalId.SettingsShell),
+                // 「退出游戏」= 唯一的游戏内退出入口(2026-11-04:此前全仓 `Application.Quit` 零调用,
+                // 玩家只能点窗口关闭按钮)。退出保存走既有的 `Application.wantsToQuit` 钩子,不在这里写盘。
+                quit: () =>
+                {
+                    Debug.Log("[BootRoot][主菜单] 玩家选择退出游戏");
+                    Application.Quit();
+                });
 
             // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
@@ -1512,10 +1483,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // `_sessionWasIncomplete` = 启动时 7a 读出的「上次会话未完整」标志位(`:457`);
             // 42 只呈现它(`AC-7a-17` 后半句),置位/清除全归 7a。
-            // ⚠️ `worldRows` 只在**多世界形态**(有 catalog)时交出去;夹具缝下交 `null`,
-            //    屏保持旧单行形态且动作为 `Continue` —— 既有 PlayMode 夹具的语义逐字不变。
-            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete,
-                                                _worldCatalog != null ? worldRows : null))
+            // ⚠️ 2026-11-04:世界列表参数已移除 —— 主菜单行集恒定四行,与夹具缝 / 生产路径无关。
+            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete))
             {
                 Debug.LogError("[BootRoot][主菜单] 主菜单屏开不出来(无面板 / 屏未登记)⇒ " +
                                "不阻塞启动,直接进世界。");

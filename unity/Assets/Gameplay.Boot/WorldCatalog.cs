@@ -235,25 +235,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             return new WorldEntry(next, path, _clock());
         }
 
-        /// <summary>
-        /// **永久删除**一个世界(ADR-040 D6:显式动作、真删、不软删)。
-        /// <para>⚠️ 这是本类唯一的破坏性操作 —— 调用方(主菜单)必须已做二次确认。
-        /// 本类不再问一遍:确认是**交互层**的事,把两处确认叠起来只会让「点了没反应」更难查。</para>
-        /// </summary>
-        /// <returns>目录存在且已删 ⇒ <c>true</c>;本来就不存在 ⇒ <c>false</c>(不抛)。</returns>
-        public bool DeleteWorld(int seq)
-        {
-            string dir = DirectoryOf(seq);
-            if (!Directory.Exists(dir)) return false;
-
-            Directory.Delete(dir, recursive: true);
-
-            // ⚠️ **索引条目刻意保留**(变成墓碑):它是世界序号的**高水位** ——
-            //    删掉它,`CreateWorld` 的下一个序号就会回落并**复用**刚删掉的那个号,
-            //    而任何还记着该号的地方会指向一个完全不同的世界(ADR-040 D2「只增不减」)。
-            //    `ListWorlds` 只列**目录**,所以墓碑不会出现在菜单上。
-            return true;
-        }
+        // 🔁 **2026-11-04 已删除**(用户裁定「删除不留」):`DeleteWorld(int)` 连同主菜单
+        //    的「删一局」入口一并移除 —— 游戏内**没有任何删除世界的路径**。
+        //    ⚠️ **如实登记**:ADR-040 §Context 第 1 条点名的病灶(玩家只能去
+        //    `~/.config/unity3d/DefaultCompany/unity/saves/wN/` 手动删)由此回归。
+        //    ⚠️ 索引里的「墓碑」语义**作废**(没有删除 ⇒ 不需要为高水位保留墓碑):
+        //    `ReadIndex` 仍按 `seq → 时刻` 读,`CreateWorld` 的高水位取目录与索引的并集。
 
         /// <summary>
         /// 目录里**至少有一件东西**(存档 / 会话未完整标志)⇒ 这个世界已经成形。

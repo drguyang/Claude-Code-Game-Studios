@@ -217,39 +217,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // 删除世界(ADR-040 D6)
+        // 「删除世界」已移除(2026-11-04 用户裁定「删除不留」)
         // ══════════════════════════════════════════════════════════════════
-
-        [Test]
-        public void test_deleteWorld_removesDirectoryAndIndexEntry_othersSurvive()
-        {
-            var catalog = new WorldCatalog(_root);
-            Directory.CreateDirectory(catalog.DirectoryOf(1));
-            Directory.CreateDirectory(catalog.DirectoryOf(2));
-            File.WriteAllBytes(Path.Combine(catalog.DirectoryOf(2), "save_3.bin"), new byte[] { 7, 7 });
-            catalog.Touch(1, 100L);
-            catalog.Touch(2, 200L);
-
-            Assert.That(catalog.DeleteWorld(2), Is.True);
-
-            Assert.That(Directory.Exists(catalog.DirectoryOf(2)), Is.False, "目录必须真的没了(不软删)");
-            Assert.That(Directory.Exists(catalog.DirectoryOf(1)), Is.True, "别的世界不受影响");
-
-            IReadOnlyList<WorldEntry> left = catalog.ListWorlds();
-            Assert.That(left.Count, Is.EqualTo(1));
-            Assert.That(left[0].Seq, Is.EqualTo(1));
-
-            // 索引里也不该留孤儿:删完再新建,序号从 3 起(说明 2 的记录已清掉,不会复活)。
-            WorldEntry created = catalog.CreateWorld();
-            Assert.That(created.Seq, Is.EqualTo(3));
-        }
-
-        [Test]
-        public void test_deleteMissingWorld_returnsFalse_noThrow()
-        {
-            var catalog = new WorldCatalog(_root);
-            Assert.That(catalog.DeleteWorld(42), Is.False, "不存在的世界 = false,不是异常");
-        }
+        // ⚠️ `WorldCatalog.DeleteWorld` 与其两条夹具一并删除 —— 能力不存在,
+        //    不可能有「它的夹具」。本条注释是删除的记录(而不是一条永远绿的假夹具)。
 
         // ══════════════════════════════════════════════════════════════════
         // 目录名解析

@@ -1,16 +1,18 @@
-// 主菜单的**世界列表**形态(ADR-040 D9 · 2026-11-04)。
+// 主菜单的**固定行形态**(2026-11-04 用户裁定「无论多少世界,主菜单暂时固定三行,和世界多少无关」
+// —— 落定为**四行**:继续诊治 / 新起一局 / 设置 / 退出游戏)。
 //
 // 权威:
-//   · `design/ux/main-menu-42.md`(**2026-11-04 修订**:单行 → 世界列表 + 新起)
-//   · ADR-040 D4 / D5 / D9 —— 选哪个世界是玩家的事;42 只发意图(ADR-013 §9 C3)
+//   · `design/ux/main-menu-42.md`(2026-11-04 修订:行集恒定,与世界数无关)
+//   · ADR-040(**撤销注**:世界列表与「删一局」自 2026-11-04 起不存在)
+//   · ADR-013 §9 C3 —— 42 只发意图
 //
-// 本件断四件:
-//   ① **没有世界** ⇒ 单行「开始诊治」,确认 = `NewWorld`(不是 `Continue` —— 没有可继续的东西);
-//   ② **有世界** ⇒ 每个世界一行 + 末行「新起一局」,**第一行**文案恒为「继续诊治」且动作 = `Continue`;
-//   ③ 其余世界行按装配层给的文案渲染,确认 = `SelectWorld(seq)`(42 **不拼**文案);
-//   ④ 重画**不留旧行**(SetWorlds 连续调用后行数与最新列表一致)。
+// 本件断五件:
+//   ① 行集恒定 = 4,且**不随世界数 / 存档数变化**;
+//   ② 第一行文案由「有没有档」决定(继续诊治 / 开始诊治),动作恒为 `Continue`;
+//   ③ 「新起一局」「设置」「退出游戏」各路由到自己的意图(**不得串线**);
+//   ④ 未注入 sink ⇒ 按了留空、不抛(未接线的诚实形态);
+//   ⑤ 越界确认 = 无操作。
 
-using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 using NUnit.Framework;
@@ -25,13 +27,13 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         {
             public int ContinueCount;
             public int NewWorldCount;
-            public readonly List<int> Selected = new List<int>();
-            public readonly List<int> Deleted = new List<int>();
+            public int OpenSettingsCount;
+            public int QuitCount;
 
             public void Continue() => ContinueCount++;
-            public void SelectWorld(int seq) => Selected.Add(seq);
             public void NewWorld() => NewWorldCount++;
-            public void DeleteWorld(int seq) => Deleted.Add(seq);
+            public void OpenSettings() => OpenSettingsCount++;
+            public void Quit() => QuitCount++;
         }
 
         private static MainMenuScreen NewScreen(out RecordingSink sink)
@@ -43,180 +45,94 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // ① 没有世界 ⇒ 单行「开始诊治」,动作 = 新起
+        // ① 行集恒定
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_noWorlds_singleRow_andConfirmStartsNewWorld()
+        public void test_rowSet_isFixedFourRows_regardlessOfSaveState()
+        {
+            MainMenuScreen screen = NewScreen(out _);
+
+            Assert.That(screen.RowCount, Is.EqualTo(MainMenuScreen.FixedRowCount),
+                "行数 = 契约常值,与世界数 / 存档数无关");
+            Assert.That(screen.RowCount, Is.EqualTo(4));
+
+            screen.SetHasContinueSave(false);
+            Assert.That(screen.RowCount, Is.EqualTo(4), "无档不得改变行数");
+
+            screen.SetHasContinueSave(true);
+            Assert.That(screen.RowCount, Is.EqualTo(4), "有档不得改变行数");
+
+            Assert.That(screen.RowAt(0).name, Is.EqualTo("main-menu-continue"));
+            Assert.That(screen.RowAt(1).name, Is.EqualTo("main-menu-new"));
+            Assert.That(screen.RowAt(2).name, Is.EqualTo("main-menu-settings"));
+            Assert.That(screen.RowAt(3).name, Is.EqualTo("main-menu-quit"));
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ② 第一行文案随「有没有档」切换,动作恒为 Continue
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_firstRow_textFollowsSaveState_actionIsAlwaysContinue()
         {
             MainMenuScreen screen = NewScreen(out RecordingSink sink);
 
             screen.SetHasContinueSave(false);
-            screen.SetWorlds(new List<MainMenuWorldView>());
-
-            Assert.That(screen.RowCount, Is.EqualTo(1), "没有世界 ⇒ 与旧形态一样只有一行");
             Assert.That(screen.RowTextAt(0), Is.EqualTo(MainMenuScreen.StartText));
-
             screen.ActivateRow(0);
-
-            Assert.That(sink.NewWorldCount, Is.EqualTo(1),
-                "没有世界时「继续」无从谈起 —— 确认必须走 NewWorld");
-            Assert.That(sink.ContinueCount, Is.EqualTo(0));
-        }
-
-        // ══════════════════════════════════════════════════════════════════
-        // ② / ③ 有世界 ⇒ 每个世界一行 + 新起一行
-        // ══════════════════════════════════════════════════════════════════
-
-        [Test]
-        public void test_worlds_renderRows_andRouteToTheRightIntent()
-        {
-            MainMenuScreen screen = NewScreen(out RecordingSink sink);
+            Assert.That(sink.ContinueCount, Is.EqualTo(1),
+                "无档时第一行也发 Continue —— 「开新局 vs 继续」由装配层判(spec §6)");
+            Assert.That(sink.NewWorldCount, Is.EqualTo(0), "第一行**不得**串到「新起一局」");
 
             screen.SetHasContinueSave(true);
-            screen.SetWorlds(new List<MainMenuWorldView>
-            {
-                new MainMenuWorldView(3, "第 3 局"),
-                new MainMenuWorldView(1, "第 1 局"),
-            });
+            Assert.That(screen.RowTextAt(0), Is.EqualTo(MainMenuScreen.ContinueText));
+        }
 
-            Assert.That(screen.RowCount, Is.EqualTo(4), "两个世界 + 「新起一局」+ 「删一局」");
-            Assert.That(screen.RowTextAt(0), Is.EqualTo(MainMenuScreen.ContinueText),
-                "第一行恒为「继续诊治」(最近游玩的世界),不用装配层给的文案");
-            Assert.That(screen.RowTextAt(1), Is.EqualTo("第 1 局"),
-                "其余世界行用装配层给的成品文案(42 不拼字符串)");
-            Assert.That(screen.RowTextAt(2), Is.EqualTo(MainMenuScreen.NewWorldText));
-            Assert.That(screen.RowAt(0).name, Is.EqualTo("main-menu-world-3"));
-            Assert.That(screen.RowAt(1).name, Is.EqualTo("main-menu-world-1"));
-            Assert.That(screen.RowAt(2).name, Is.EqualTo("main-menu-new"));
+        // ══════════════════════════════════════════════════════════════════
+        // ③ 三行各走各的意图(串线是本屏最容易犯的错)
+        // ══════════════════════════════════════════════════════════════════
 
-            screen.ActivateRow(0);
-            Assert.That(sink.ContinueCount, Is.EqualTo(1), "第一行 = 继续(最近世界)");
-            Assert.That(sink.Selected, Is.Empty, "第一行不是「选某个具体序号的另一个世界」");
+        [Test]
+        public void test_rows_routeToDistinctIntents()
+        {
+            MainMenuScreen screen = NewScreen(out RecordingSink sink);
+            screen.SetHasContinueSave(true);
+
+            Assert.That(screen.RowTextAt(1), Is.EqualTo(MainMenuScreen.NewWorldText));
+            Assert.That(screen.RowTextAt(2), Is.EqualTo(MainMenuScreen.ShellEntryText));
+            Assert.That(screen.RowTextAt(3), Is.EqualTo(MainMenuScreen.QuitText));
 
             screen.ActivateRow(1);
-            Assert.That(sink.Selected, Is.EqualTo(new[] { 1 }),
-                "第二个世界行必须带自己的序号");
+            Assert.That(sink.NewWorldCount, Is.EqualTo(1));
+            Assert.That(sink.ContinueCount, Is.EqualTo(0));
 
             screen.ActivateRow(2);
-            Assert.That(sink.NewWorldCount, Is.EqualTo(1));
+            Assert.That(sink.OpenSettingsCount, Is.EqualTo(1));
+            Assert.That(sink.NewWorldCount, Is.EqualTo(1), "设置**不得**顺带开新局");
+
+            screen.ActivateRow(3);
+            Assert.That(sink.QuitCount, Is.EqualTo(1));
+            Assert.That(sink.OpenSettingsCount, Is.EqualTo(1), "退出**不得**顺带开设置");
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // ④ 重画不留旧行
+        // ④ 未接线 ⇒ 按了留空,不抛
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_setWorldsTwice_doesNotLeakRows()
+        public void test_noSink_activateIsNoOp()
         {
-            MainMenuScreen screen = NewScreen(out _);
+            var screen = new MainMenuScreen(new VisualElement(), new SkeuoElementLibrary());
 
-            screen.SetWorlds(new List<MainMenuWorldView>
-            {
-                new MainMenuWorldView(1, "第 1 局"),
-                new MainMenuWorldView(2, "第 2 局"),
-                new MainMenuWorldView(3, "第 3 局"),
-            });
-            Assert.That(screen.RowCount, Is.EqualTo(5), "3 个世界 + 新起 + 删一局");
-
-            screen.SetWorlds(new List<MainMenuWorldView> { new MainMenuWorldView(9, "第 9 局") });
-            Assert.That(screen.RowCount, Is.EqualTo(3), "行数必须跟最新列表走,不累积");
-            Assert.That(screen.RowTextAt(1), Is.EqualTo(MainMenuScreen.NewWorldText));
+            Assert.DoesNotThrow(() => screen.ActivateRow(0));
+            Assert.DoesNotThrow(() => screen.ActivateRow(1));
+            Assert.DoesNotThrow(() => screen.ActivateRow(2));
+            Assert.DoesNotThrow(() => screen.ActivateRow(3));
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // 删除世界(ADR-040 D6):两次都必须落在同一个世界上
-        // ══════════════════════════════════════════════════════════════════
-
-        private static List<MainMenuWorldView> TwoWorlds() => new List<MainMenuWorldView>
-        {
-            new MainMenuWorldView(3, "第 3 局"),
-            new MainMenuWorldView(1, "第 1 局"),
-        };
-
-        [Test]
-        public void test_deleteRow_onlyExistsWhenThereAreWorlds()
-        {
-            MainMenuScreen screen = NewScreen(out _);
-
-            screen.SetWorlds(new List<MainMenuWorldView>());
-            for (int i = 0; i < screen.RowCount; i++)
-                Assert.That(screen.RowTextAt(i), Is.Not.EqualTo(MainMenuScreen.DeleteWorldText),
-                    "没有世界 ⇒ 「删一局」没有宾语,不该出现");
-
-            screen.SetWorlds(TwoWorlds());
-            Assert.That(screen.RowAt(screen.RowCount - 1).name, Is.EqualTo("main-menu-delete"));
-            Assert.That(screen.RowTextAt(screen.RowCount - 1), Is.EqualTo(MainMenuScreen.DeleteWorldText));
-        }
-
-        [Test]
-        public void test_deleteFlow_requiresTwoPressesOnTheSameWorld()
-        {
-            MainMenuScreen screen = NewScreen(out RecordingSink sink);
-            screen.SetWorlds(TwoWorlds());
-
-            screen.ActivateRow(screen.RowCount - 1);          // 「删一局」
-            Assert.That(screen.Mode, Is.EqualTo(MainMenuMode.DeleteSelect));
-            Assert.That(screen.RowTextAt(0), Is.EqualTo("删除 第 3 局"));
-            Assert.That(screen.RowTextAt(screen.RowCount - 1), Is.EqualTo(MainMenuScreen.BackText));
-
-            screen.ActivateRow(0);                            // 第一次:选目标
-            Assert.That(screen.Mode, Is.EqualTo(MainMenuMode.DeleteConfirm));
-            Assert.That(screen.PendingDeleteSeq, Is.EqualTo(3));
-            Assert.That(screen.RowTextAt(0), Does.StartWith("再按一次确认"));
-            Assert.That(sink.Deleted, Is.Empty, "第一次按**不得**删除任何东西");
-
-            screen.ActivateRow(0);                            // 第二次:同一行 ⇒ 真删
-            Assert.That(sink.Deleted, Is.EqualTo(new[] { 3 }));
-        }
-
-        [Test]
-        public void test_deleteFlow_pressingAnotherWorld_reArmsInsteadOfDeleting()
-        {
-            MainMenuScreen screen = NewScreen(out RecordingSink sink);
-            screen.SetWorlds(TwoWorlds());
-
-            screen.ActivateRow(screen.RowCount - 1);          // 删一局
-            screen.ActivateRow(0);                            // 选第 3 局
-            screen.ActivateRow(1);                            // 改成第 1 局
-
-            Assert.That(sink.Deleted, Is.Empty, "换目标 = 重新进入待确认,不是删除");
-            Assert.That(screen.PendingDeleteSeq, Is.EqualTo(1));
-            Assert.That(screen.RowTextAt(1), Does.StartWith("再按一次确认"));
-            Assert.That(screen.RowTextAt(0), Is.EqualTo("删除 第 3 局"),
-                "被换掉的目标必须退回未确认文案");
-        }
-
-        [Test]
-        public void test_deleteFlow_backRow_returnsToNormal()
-        {
-            MainMenuScreen screen = NewScreen(out RecordingSink sink);
-            screen.SetWorlds(TwoWorlds());
-
-            screen.ActivateRow(screen.RowCount - 1);
-            screen.ActivateRow(screen.RowCount - 1);          // 「返回」
-
-            Assert.That(screen.Mode, Is.EqualTo(MainMenuMode.Normal));
-            Assert.That(screen.RowAt(0).name, Is.EqualTo("main-menu-world-3"));
-            Assert.That(sink.Deleted, Is.Empty);
-        }
-
-        [Test]
-        public void test_setWorlds_resetsDeleteMode()
-        {
-            MainMenuScreen screen = NewScreen(out _);
-            screen.SetWorlds(TwoWorlds());
-            screen.ActivateRow(screen.RowCount - 1);
-            Assert.That(screen.Mode, Is.EqualTo(MainMenuMode.DeleteSelect));
-
-            screen.SetWorlds(TwoWorlds());                    // 装配层回推新列表
-
-            Assert.That(screen.Mode, Is.EqualTo(MainMenuMode.Normal), "新列表 ⇒ 删除态作废");
-            Assert.That(screen.PendingDeleteSeq, Is.EqualTo(-1));
-        }
-
-        // ══════════════════════════════════════════════════════════════════
-        // 越界确认 = 无操作(不抛)
+        // ⑤ 越界确认 = 无操作(不抛)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
@@ -226,7 +142,8 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
 
             Assert.DoesNotThrow(() => screen.ActivateRow(-1));
             Assert.DoesNotThrow(() => screen.ActivateRow(99));
-            Assert.That(sink.ContinueCount + sink.NewWorldCount, Is.EqualTo(0));
+            Assert.That(sink.ContinueCount + sink.NewWorldCount
+                        + sink.OpenSettingsCount + sink.QuitCount, Is.EqualTo(0));
         }
     }
 }

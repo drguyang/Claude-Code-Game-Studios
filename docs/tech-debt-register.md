@@ -404,6 +404,7 @@
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
+| `TD-persist-21` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -598,6 +599,18 @@ PYEVAL
 > `skeuomorphic-ui` 未闭 P0 面仍 **3**。条目数 **174 不变**。单一变化源:索引行 `TD-skeuo-10` 改 `closed`。
 > 唯一冻结值变更 = `paper_hemp-final.png` `0 → 64`(因接线,非测量结论);其余 7 张重测后维持原值。
 >
+> > 🔁 **七十二订(`TD-persist-21` 立债 · 2026-11-04 · 主菜单固定四行 + 删除不留)** ——
+> 用户三轮裁定:①「无论多少世界,主菜单暂时固定三行,和世界多少无关」;②「删除不留」;
+> ③「第一行的世界列表也删掉,退出游戏这行同意增加」。
+> 变化:`open 18 → 19`(+1)· `closed 157` 不动 · `partial 3` 不动 ·
+> **`未闭 P0 面 8 → 9`**(+1)· **`epic 分布 3/31 → 4/31`**(`persistence-service` 重新进入)·
+> 条目数 **179 → 180**(+1)。
+> 单一变化源:新增 `TD-persist-21` 索引行(`open` / P0 面 **Y**)。
+> ⚠️ **同批一并作废的记录**(不是新债,只是账目对齐):`TD-persist-20` 结案块列的三项残留里,
+> 「选世界」一侧的载体 `multi_world_boot_wiring_test.test_deleteWorld_throughBoot…` 已删除,
+> 换为 `…test_settingsRow_opensSettingsShell_andClosesBackToMenu`;`world_catalog_test` 的 2 条删除夹具同步移除。
+> **`TD-persist-20` 状态维持 `closed`** —— 它解的是「无重开入口」,而重开(`新起一局`)仍在。
+
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
 > 变化:`open 18 → 17`(−1)· `partial 3 → 4`(+1)· `closed 156` 不动 ·
@@ -1220,10 +1233,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 179 | 状态 {'closed': 157, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 120, 'N': 53, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 112 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        processing: 1
+条目 180 | 状态 {'closed': 157, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 53, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 9 （已闭但曾标 P0 面的 112 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4878,6 +4892,24 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 >    要「最后保存时刻」须在存档路径上再接一次 `Touch`,归下一轮。
 > ③ 真启动序**未**覆盖两条路径(如实登记,均在别处有载体):**一次性迁移**(`MigrateLegacy`,
 >    EditMode `world_catalog_test` 覆盖)· **在菜单上选另一个世界并读档**(`SelectWorld` 支)。
+
+### TD-persist-21 — 主菜单固定四行后:**世界不可切换 · 世界不可删除** ⇒ 旧局在游戏内永久不可达(7a ↔ 42)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 2026-11-04 用户裁定「**无论多少世界,主菜单暂时固定三行,和世界多少无关**」,落定为固定四行(继续诊治 / 新起一局 / 设置 / 退出游戏);随后同一批裁定「**删除不留**」。两项合起来造成**两条能力缺失**:<br>**① 世界不可切换** —— 主菜单不再列世界,`Continue()` 恒进「最近游玩」的那个;`SelectWorld` 从 `IMainMenuCommandSink` 删除 ⇒ **其余世界目录在游戏内没有任何入口**。<br>**② 世界不可删除** —— 「删一局」、删除态、`WorldCatalog.DeleteWorld` 全部删除 ⇒ 想清理世界只能手动删 `~/.config/unity3d/DefaultCompany/unity/saves/wN/`。<br>⚠️ 这两条**不是实现遗漏**,是**用户明示的裁定**;本条记的是**后果**(旧局不可达 · 世界目录只增不减),不是对裁定的质疑。 |
+| **实测(逐条可跑)** | ① `grep -rn "SelectWorld\|DeleteWorld\|SetWorlds\|MainMenuWorldView" unity/Assets --include=*.cs` ⇒ **生产侧零命中**(余下命中全在注释里);<br>② `grep -n "FixedRowCount" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/MainMenuScreen.cs` ⇒ 行数契约常值 = 4;<br>③ `grep -rn "Application.Quit" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **1 处**(主菜单「退出游戏」行,2026-11-04 新增)。 |
+| **触发条件** | ① P0 收口前由用户复核(裁定时用了「**暂时**」一词 ⇒ 本来就预期会回来);② 或**首次出现「玩家想回到上一局」的诉求**;③ 或磁盘上世界目录数 ≥ 5(列表不可见,但盘在长)。 |
+| **解除动作** | ① 世界列表:恢复 `MainMenuWorldView` + `SetWorlds` + `IMainMenuCommandSink.SelectWorld`(屏侧形状可从 `git show 238eef15:unity/.../MainMenuScreen.cs` 取回);② 删除:恢复 `WorldCatalog.DeleteWorld` + 行内二次确认(ADR-040 D6 原文仍在,撤销注在下方);③ 两者都要**真启动序夹具**(`multi_world_boot_wiring_test` 的 A 条可作模板)。<br>⚠️ **不得**用「去文件管理器删」当解除动作 —— 那正是 ADR-040 §Context 第 1 条点名的病灶。 |
+| **归属** | **42**(行与入口)· **7a**(目录能力)· **形态裁定 = 用户** |
+| **与 spec 的关系** | `design/ux/main-menu-42.md §5/§6` 已就地改写并**如实登记后果**;`AC-MM-11 / 12` 改写为固定四行,`AC-MM-14`(删除)标作废。 |
+
+> 🔁 **2026-11-04 立债(与实现同轮)** —— 用户三轮裁定(固定行数 → 删除不留 → 首行世界列表也删)后落地。
+> **同批落地的其余项**(不在本债面):「设置」行(复用 `ModalId.SettingsShell`,闭集不动)、
+> 「退出游戏」行(全仓首个 `Application.Quit` 调用点)。
+> ⚠️ **P0 面判 Y 的理由**:不是「少一个按钮」—— 世界目录**只增不减**且**不可达**,
+> 玩家每次「新起一局」都会把一个永久找不回的旧局留在盘上;与 `TD-persist-20` 判 Y 的依据同源。
+> ⚠️ **本条不主张裁定应当改变**;它是「**暂时形态的到期提醒**」。
 
 ### TD-persist-14 — 「会话未完整」标志位会被**误置**:join 超时 ≠ 写盘失败(7a)
 

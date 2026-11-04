@@ -11,11 +11,12 @@
 //   ⚠️ 它与 `SaveBasePathOverride` 不是一回事:后者把某个目录**直接当世界目录**
 //      (单世界形态);本件刻意**不设**后者,否则测的仍是单世界路径。
 //
-// ▍两条判据
-//   A. 种一个世界 → 启动序列出它 → **点「新起一局」** → 新世界目录出现,
+// ▍判据
+//   A. 种一个世界 → 启动 → **点「新起一局」** → 新世界目录出现,
 //      且它的首份存档真的落在**自己**目录里;旧世界**逐字节不变**。
-//   B. 种两个世界 → 点「删一局」→ 两次确认 → **只删选中的那个**,另一个完好,
-//      菜单行数当场回落。
+//   B. 🔁 2026-11-04 改:原「删一局」判据随该能力一并删除(用户裁定「删除不留」),
+//      改为「**设置**行 ⇒ 真的开出设置壳,合壳后回到主菜单」—— 这是主菜单新增的那一行
+//      唯一需要装配级判据的地方(屏级夹具只断意图,开不开得出屏归装配层)。
 //
 // ⚠️ 本件**不**断存档字节级正确(那归 7a 的 EditMode 夹具);种子档是**故意非法**的字节,
 //   只用来让「这个世界有档」成立。
@@ -107,10 +108,13 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             var menu = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu, "启动序应摊开主菜单");
-            Assert.AreEqual(3, menu.RowCount,
-                "一个世界 ⇒ 「继续诊治」+「新起一局」+「删一局」");
+            // 2026-11-04:行集固定四行,与世界数无关。
+            Assert.AreEqual(MainMenuScreen.FixedRowCount, menu.RowCount,
+                "主菜单恒四行:继续诊治 / 新起一局 / 设置 / 退出游戏");
             Assert.AreEqual(MainMenuScreen.ContinueText, menu.RowTextAt(0));
             Assert.AreEqual(MainMenuScreen.NewWorldText, menu.RowTextAt(1));
+            Assert.AreEqual(MainMenuScreen.ShellEntryText, menu.RowTextAt(2));
+            Assert.AreEqual(MainMenuScreen.QuitText, menu.RowTextAt(3));
 
             menu.ActivateRow(1);                       // 「新起一局」
             yield return WaitForBoot();
@@ -131,58 +135,37 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // B. 「删一局」⇒ 只删选中的那个
+        // B. 「设置」行 ⇒ 真的开出设置壳,合壳后回到主菜单
+        //    (2026-11-04:原「删一局」判据随该能力删除;本行是主菜单新增行的装配级判据)
         // ══════════════════════════════════════════════════════════════════
 
         [UnityTest]
-        public IEnumerator test_deleteWorld_throughBoot_removesOnlyChosenWorld()
+        public IEnumerator test_settingsRow_opensSettingsShell_andClosesBackToMenu()
         {
             NewRoot();
-            var catalog = new WorldCatalog(_saveRoot);
-            Directory.CreateDirectory(catalog.DirectoryOf(1));
-            Directory.CreateDirectory(catalog.DirectoryOf(2));
-            File.WriteAllBytes(Path.Combine(catalog.DirectoryOf(1), "save_3.bin"), new byte[] { 1 });
-            File.WriteAllBytes(Path.Combine(catalog.DirectoryOf(2), "save_3.bin"), new byte[] { 2 });
-            catalog.Touch(1, 100L);
-            catalog.Touch(2, 200L);                    // w2 更新 ⇒ 列表第一行是它
-            string w1Before = SnapshotSaveFiles(catalog.DirectoryOf(1));
-
             yield return BootUntilMenuAppears();
 
             var menu = _driver.CurrentScreen as MainMenuScreen;
-            Assert.IsNotNull(menu);
-            Assert.AreEqual(4, menu.RowCount, "两个世界 +「新起一局」+「删一局」");
-            Assert.AreEqual("main-menu-world-2", menu.RowAt(0).name, "最近打开的世界排第一");
+            Assert.IsNotNull(menu, "启动序应摊开主菜单");
+            Assert.AreEqual("main-menu-settings", menu.RowAt(2).name,
+                "第三行必须是「设置」(行序是契约)");
 
-            menu.ActivateRow(3);                       // 「删一局」
-            Assert.AreEqual(MainMenuMode.DeleteSelect, menu.Mode);
-            Assert.AreEqual(3, menu.RowCount, "删除态:两个世界 + 「返回」");
-            yield return null;
-            // ⚠️ 无指针形态:Submit 依赖焦点 ⇒ 重建后焦点悬空 = 手柄/键盘一步也走不了。
-            //    视觉走查先看到「环没了」,这条把它变成机械判据。
-            Assert.AreEqual("main-menu-delete-2", FocusedName(),
-                "进删除态后焦点必须落在**第一个世界**上(它是下一步要选的目标)");
+            menu.ActivateRow(2);
+            for (int i = 0; i < 3; i++) yield return null;
 
-            menu.ActivateRow(0);                       // 选 w2(第一次)
-            Assert.AreEqual(MainMenuMode.DeleteConfirm, menu.Mode);
-            Assert.IsTrue(Directory.Exists(catalog.DirectoryOf(2)), "第一次确认**不得**删除");
-            yield return null;
-            Assert.AreEqual("main-menu-delete-2", FocusedName(),
-                "进待确认后焦点必须**留在同一个世界**上(两次确认都落在这里)");
+            Assert.AreEqual(ModalId.SettingsShell, _driver.CurrentModal,
+                "「设置」必须开出闭集第四员(与暂停壳第三行同一条路)");
+            // ⚠️ `CurrentScreen` 是**场景级屏**(主菜单)的访问器;模态要读 `Screen`。
+            //    首版用错访问器 ⇒ 断言在「主菜单仍是主菜单」上转红(是夹具错,不是实现错)。
+            Assert.IsInstanceOf<SettingsScreen>(_driver.Screen,
+                "开出来的必须是设置壳");
 
-            menu.ActivateRow(0);                       // 同一行再按(第二次)
-            for (int i = 0; i < 5; i++) yield return null;
+            _driver.CloseModal();
+            for (int i = 0; i < 3; i++) yield return null;
 
-            Assert.IsFalse(Directory.Exists(catalog.DirectoryOf(2)), "第二次确认应真的删掉 w2");
-            Assert.IsTrue(Directory.Exists(catalog.DirectoryOf(1)), "另一个世界必须完好");
-            Assert.AreEqual(w1Before, SnapshotSaveFiles(catalog.DirectoryOf(1)),
-                "删 w2 不得动 w1 的任何一份档(删整个世界是显式动作,不是「顺手清理」)");
-
-            // 菜单被回推了新列表(屏自动退出删除态)。
-            Assert.AreEqual(MainMenuMode.Normal, menu.Mode, "装配层回推列表 ⇒ 删除态作废");
-            Assert.AreEqual(3, menu.RowCount, "剩一个世界 ⇒ 3 行");
-            Assert.AreEqual("main-menu-world-1", FocusedName(),
-                "删完回推列表后焦点也不得悬空(否则玩家按完删除就被卡在菜单上)");
+            Assert.AreEqual(ModalId.None, _driver.CurrentModal, "合壳后不再有模态");
+            Assert.AreSame(menu, _driver.CurrentScreen,
+                "合壳必须回到主菜单(世界装入前主菜单屏一直挂着)");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -206,7 +189,8 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             var menu = _driver.CurrentScreen as MainMenuScreen;
             Assert.IsNotNull(menu, "启动序应摊开主菜单");
-            Assert.AreEqual(1, menu.RowCount, "没有世界 ⇒ 单行");
+            Assert.AreEqual(MainMenuScreen.FixedRowCount, menu.RowCount,
+                "没有世界 ⇒ 仍是固定四行(第一行文案 =「开始诊治」)");
             Assert.AreEqual(MainMenuScreen.StartText, menu.RowTextAt(0), "无档 ⇒「开始诊治」");
 
             menu.ActivateRow(0);                        // 「开始诊治」= 新起一局

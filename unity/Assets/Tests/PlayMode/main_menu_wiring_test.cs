@@ -121,6 +121,10 @@ namespace DaYiJingCheng.Tests.PlayMode
         // AC-MM-01 / 02 / 05 / 08-a
         // ══════════════════════════════════════════════════════════════════
 
+        // ⚠️ **方法名里的 `SingleRow` 是历史名字,不删不改**:它被三份既有证据件按名引用
+        //    (`main-menu-42-impl-2026-11-01.md` / `impl-save-leftovers-2026-11-04.md` /
+        //    `s24-camera-downed-two-phase-2026-11-01.md`),改名会让那些记录指向不存在的符号。
+        //    **本测断言的是纸面 / 文案 / 落焦三件**(行数已随 2026-11-04 固定四行改写为 4)。
         [UnityTest]
         public IEnumerator test_bootWithMenu_showsSingleRow_andLandsFocus()
         {
@@ -150,8 +154,10 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             var labels = new List<Label>();
             menu.Root.Query<Label>().ToList(labels);
-            Assert.AreEqual(1, labels.Count,
-                $"菜单子树内**恰一个**文本元素 —— 实得 {labels.Count} 个(spec §5「一张纸、一行」)");
+            // 2026-11-04:行集固定四行(继续诊治 / 新起一局 / 设置 / 退出游戏)⇒ 恰四个文本元素。
+            // 旧判据「恰一个」属于单行形态,已随用户裁定作废。
+            Assert.AreEqual(4, labels.Count,
+                $"菜单子树内**恰四个**文本元素 —— 实得 {labels.Count} 个(固定四行形态)");
             Assert.AreEqual(MainMenuScreen.StartText, labels[0].text,
                 "AC-MM-08:无存档 ⇒ 文案「开始诊治」");
             Assert.IsNotEmpty(labels[0].text.Trim(), "文字必须可读(空串 = 画了个空行)");
@@ -535,13 +541,13 @@ namespace DaYiJingCheng.Tests.PlayMode
             private readonly IMainMenuCommandSink _inner;
             public CountingSink(IMainMenuCommandSink inner) { _inner = inner; }
             public int Count { get; private set; }
-            public int SelectedSeq { get; private set; } = -1;
             public int NewWorldCount { get; private set; }
+            public int OpenSettingsCount { get; private set; }
+            public int QuitCount { get; private set; }
             public void Continue() { Count++; _inner?.Continue(); }
-            public void SelectWorld(int seq) { Count++; SelectedSeq = seq; _inner?.SelectWorld(seq); }
             public void NewWorld() { NewWorldCount++; _inner?.NewWorld(); }
-            public void DeleteWorld(int seq) { DeletedSeqs.Add(seq); _inner?.DeleteWorld(seq); }
-            public System.Collections.Generic.List<int> DeletedSeqs { get; } = new System.Collections.Generic.List<int>();
+            public void OpenSettings() { OpenSettingsCount++; _inner?.OpenSettings(); }
+            public void Quit() { QuitCount++; _inner?.Quit(); }
         }
 
         /// <summary>引擎焦点真源(`Focusable` → `VisualElement`;非元素 ⇒ null)。</summary>
