@@ -1236,15 +1236,69 @@ namespace DaYiJingCheng.Gameplay.Boot
                     "[BootRoot][E-13][7a] 旧存档迁移失败 —— 拒绝在多世界形态下启动:" + e.Message, e);
             }
 
+            string chosen = ResolveDefaultWorldDir(_worldCatalog);
+            TouchWorld(chosen);
+            return chosen;
+        }
+
+        /// <summary>默认世界 = **最近游玩且有档**的那个;一个都没有 ⇒ <c>w1/</c>(目录尚不存在)。</summary>
+        private static string ResolveDefaultWorldDir(WorldCatalog catalog)
+        {
+            IReadOnlyList<WorldEntry> worlds = catalog.ListWorlds();
+            for (int i = 0; i < worlds.Count; i++)
+                if (WorldHasSaves(worlds[i].Directory)) return worlds[i].Directory;
+
+            return catalog.DirectoryOf(1);
+        }
+
+        /// <summary>
+        /// 主菜单上**二次确认后**的删除(ADR-040 D6)。删完回推新的世界列表;
+        /// 若删掉的正是本次装配用的目录,顺手换一个默认世界重装配 ——
+        /// 否则 `SaveService` 的 `basePath` 指向不存在的目录,**下一次保存会把它原地重建出来**。
+        /// </summary>
+        private void OnMainMenuDeleteWorld(int seq)
+        {
+            if (_worldCatalog == null) return;
+
+            string dir = _worldCatalog.DirectoryOf(seq);
+            bool removed;
+            try
+            {
+                removed = _worldCatalog.DeleteWorld(seq);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("[BootRoot][7a][ADR-040 D6] 删除世界失败(列表不刷新,世界仍在):" + e);
+                return;
+            }
+
+            if (removed)
+            {
+                Debug.Log($"[BootRoot][7a][ADR-040 D6] 已删除世界 w{seq}(含其全部存档)");
+                if (string.Equals(_worldSaveDir, dir, StringComparison.Ordinal))
+                    ReassembleForWorld(ResolveDefaultWorldDir(_worldCatalog));
+            }
+            else
+            {
+                Debug.LogWarning($"[BootRoot][7a][ADR-040 D6] 世界 w{seq} 不存在 —— 只刷新列表");
+            }
+
+            _uiDriver?.SetMainMenuWorlds(BuildWorldRows());
+        }
+
+        /// <summary>主菜单要显示的世界行(装配层产出;42 只渲染)。</summary>
+        private List<MainMenuWorldView> BuildWorldRows()
+        {
+            var rows = new List<MainMenuWorldView>();
+            if (_worldCatalog == null) return rows;
+
             IReadOnlyList<WorldEntry> worlds = _worldCatalog.ListWorlds();
             for (int i = 0; i < worlds.Count; i++)
             {
                 if (!WorldHasSaves(worlds[i].Directory)) continue;
-                TouchWorld(worlds[i].Directory);
-                return worlds[i].Directory;
+                rows.Add(new MainMenuWorldView(worlds[i].Seq, "第 " + worlds[i].Seq + " 局"));
             }
-
-            return _worldCatalog.DirectoryOf(1);
+            return rows;
         }
 
         /// <summary>
@@ -1323,6 +1377,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services = AssembleServices();
             TouchWorld(worldDir);
 
+            // 「继续到哪一档」跟着换 —— 否则启动序末会拿**上一个世界**的槽去读档。
+            _continueSlot = null;
+            if (_services.SaveService != null && _services.SaveService.TryGetMostRecentSave(out SaveSlot slot))
+                _continueSlot = slot;
+
             // 换袋之后三处「绑在旧袋上」的接线必须重做(否则它们指向已 Dispose 的实例)。
             WireExitSave();
             RebindDeviceReadiness();
@@ -1369,17 +1428,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             //       否则玩家会看到一行点进去什么也没有。
             bool hasSave = false;
             _continueSlot = null;
-            var worldRows = new List<MainMenuWorldView>();
-            if (_worldCatalog != null)
-            {
-                IReadOnlyList<WorldEntry> worlds = _worldCatalog.ListWorlds();
-                for (int i = 0; i < worlds.Count; i++)
-                {
-                    if (!WorldHasSaves(worlds[i].Directory)) continue;
-                    worldRows.Add(new MainMenuWorldView(worlds[i].Seq, "第 " + worlds[i].Seq + " 局"));
-                }
-                hasSave = worldRows.Count > 0;
-            }
+            var worldRows = BuildWorldRows();
+            if (_worldCatalog != null) hasSave = worldRows.Count > 0;
 
             // 「继续到哪一档」仍由 7a 答(按 tick,世界内语义不变);世界由 `_worldSaveDir` 定。
             SaveService saves = _services.SaveService;
@@ -1426,7 +1476,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                         _pendingWorldSaveDir = created.Directory;
                     }
                     OnMainMenuContinue();
-                });
+                },
+                deleteWorld: OnMainMenuDeleteWorld);
 
             // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。

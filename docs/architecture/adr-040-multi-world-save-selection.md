@@ -113,6 +113,17 @@ if (!found || tick > bestTick)            // :329
 (且归档目录会与备份工具、`_orphans-*` 这类人工残留混在一起)。
 世界内的「槽位只进不退」不变 —— 它是**世界内**的护栏,不阻止整个世界的删除。
 
+🔁 **2026-11-04 实现(与本 ADR 同轮)**:
+- 入口 = 主菜单末行「删一局」→ 删除态;**只用 Submit 一路输入**,不新增动作、不新增模态屏
+  (`ModalId` 闭集不动);
+- **二次确认 = 两次都落在同一个世界上**:第一次按选中(文案变「再按一次确认 · 第 N 局」),
+  再按同一行才真删;按别的世界 = 换目标(不删);
+- 「返回」离开删除态;
+- **序号只增不减**:删除后索引里**保留墓碑条目**(`ListWorlds` 只列目录,故墓碑不上菜单),
+  否则 `CreateWorld` 会**复用**刚删掉的号,而任何还记着该号的地方会指向另一个世界;
+- 装配层:删完回推新世界列表;若删的正是**当前装配**的目录 ⇒ 换默认世界重装配
+  (否则 `SaveService` 的 `basePath` 指向不存在的目录,下一次保存会把它原地重建)。
+
 ### D7 — 现有单目录存档的一次性迁移
 
 首次以多世界形态启动时:`saves/*.bin` 与 `session_incomplete.flag` **整体搬进 `saves/w1/`**
@@ -219,12 +230,13 @@ if (!found || tick > bestTick)            // :329
 | V-3 | 新局首份存档落在**新世界**目录,且旧世界的档不动 | 同上(两世界各装配一次,各自 `Load`) | **PASS** |
 | V-4 | 现存单目录档经一次性搬迁后**逐字节可读**,且不触发任何 `ISaveMigration` | `world_catalog_test.test_migrateLegacy_movesRootSavesIntoW1_byteIdentical`(SHA + 无关文件不动 + 幂等) | **PASS** |
 | V-5 | 索引缺失 / 损坏 ⇒ 以目录为准重建,不静默丢世界 | `world_catalog_test.test_corruptIndex_worldsSurvive_andNextWriteRebuilds` / `…test_listWorlds_directoryIsAuthoritative` | **PASS** |
-| V-6 | 删除世界后该目录不存在,其它世界不受影响 | — | **NOT-RUN**(D6 的删除动作**本轮未实现**,见下) |
+| V-6 | 删除世界后该目录不存在,其它世界不受影响;序号不复用 | `world_catalog_test.test_deleteWorld_removesDirectoryAndIndexEntry_othersSurvive` / `…test_deleteMissingWorld_returnsFalse_noThrow`;屏级二次确认 = `main_menu_worlds_test` 5 条 | **PASS**(目录级 + 屏级);⚠️ **装配层「删完回推列表 / 删当前世界时重装配」无直接夹具** |
 | V-7 | `hasSave` 在「根目录下只有 `w1/`」时为 true(D10 的防回归) | — | **NOT-RUN**(需真启动序) |
 | V-8 | `SaveHeader` 无世界身份字段;`Sim` 程序集零墙钟 API | — | **NOT-RUN** |
 
 ⚠️ **本轮未做 / 不得借绿**:
-- **D6 删除世界**未实现(入口 + 二次确认 + 目录删除)—— `TD-persist-20` 因此**不解除**;
+- ~~**D6 删除世界**未实现~~ → **同日补做**(入口 + 二次确认 + 目录删除 + 序号高水位);
+  `TD-persist-20` 仍**不解除**,但不是因为删除,而是因为下面两条;
 - **D10 的 `hasSave` 语义收窄**只在**生产路径**(有 `WorldCatalog` 时)实现;
   夹具缝(`SaveBasePathOverride` 非空)保持旧语义(该目录就是世界目录) —— 这是**故意的**,
   既有 PlayMode 夹具按此断言;

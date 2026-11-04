@@ -29,6 +29,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Action _continue;
         private readonly Action<int> _selectWorld;
         private readonly Action _newWorld;
+        private readonly Action<int> _deleteWorld;
 
         /// <summary>构造。</summary>
         /// <param name="continueAction">「继续诊治」(= 最近游玩的世界)。</param>
@@ -39,11 +40,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 本类拒绝在构造期接受它。</exception>
         public DriverMainMenuCommandSink(Action continueAction,
                                          Action<int> selectWorld = null,
-                                         Action newWorld = null)
+                                         Action newWorld = null,
+                                         Action<int> deleteWorld = null)
         {
             _continue = continueAction ?? throw new ArgumentNullException(nameof(continueAction));
             _selectWorld = selectWorld;
             _newWorld = newWorld;
+            _deleteWorld = deleteWorld;
         }
 
         /// <inheritdoc/>
@@ -54,5 +57,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <inheritdoc/>
         public void NewWorld() => _newWorld?.Invoke();
+
+        /// <inheritdoc/>
+        public void DeleteWorld(int seq) => _deleteWorld?.Invoke(seq);
     }
 }

@@ -540,6 +540,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             public void Continue() { Count++; _inner?.Continue(); }
             public void SelectWorld(int seq) { Count++; SelectedSeq = seq; _inner?.SelectWorld(seq); }
             public void NewWorld() { NewWorldCount++; _inner?.NewWorld(); }
+            public void DeleteWorld(int seq) { DeletedSeqs.Add(seq); _inner?.DeleteWorld(seq); }
+            public System.Collections.Generic.List<int> DeletedSeqs { get; } = new System.Collections.Generic.List<int>();
         }
 
         /// <summary>引擎焦点真源(`Focusable` → `VisualElement`;非元素 ⇒ null)。</summary>

@@ -42,6 +42,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         }
     }
 
+    /// <summary>主菜单的形态(观测面 + 内部状态;ADR-040 D6 的删除态只用 Submit 一路输入)。</summary>
+    public enum MainMenuMode
+    {
+        /// <summary>正常:世界行 + 新起一局 + 删一局。</summary>
+        Normal = 0,
+
+        /// <summary>删除态:选一个世界(第一次按 = 选目标)。</summary>
+        DeleteSelect = 1,
+
+        /// <summary>删除态:已选目标,同一行**再按一次**才真删。</summary>
+        DeleteConfirm = 2,
+    }
+
     /// <summary>主菜单的意图出口(实现方住装配层;42 不反向引用 Boot)。</summary>
     public interface IMainMenuCommandSink
     {
@@ -54,6 +67,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>玩家选了「新起一局」。</summary>
         void NewWorld();
+
+        /// <summary>玩家在删除态里**二次确认**了某个世界(ADR-040 D6:真删)。</summary>
+        /// <param name="seq">世界序号。</param>
+        void DeleteWorld(int seq);
     }
 
     /// <summary>主菜单(场景级屏)—— 一张纸,按世界数决定行数。</summary>
@@ -67,6 +84,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>「新起一局」的文案(ADR-040 D5 的入口)。</summary>
         public const string NewWorldText = "新起一局";
+
+        /// <summary>「删一局」的文案(ADR-040 D6 的入口)。</summary>
+        public const string DeleteWorldText = "删一局";
+
+        /// <summary>删除态里「返回」的文案。</summary>
+        public const string BackText = "返回";
 
         /// <summary>
         /// 「上次会话未完整保存」的文案(`AC-7a-17` 后半句的原文措辞,不另造词)。
@@ -85,6 +108,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private readonly List<Label> _rowLabels = new List<Label>();
         private IMainMenuCommandSink _sink;
         private bool _hasContinueSave;
+
+        /// <summary>装配层推来的世界表(重画时要用;删除态也在它之上重建)。</summary>
+        private IReadOnlyList<MainMenuWorldView> _worlds = Array.Empty<MainMenuWorldView>();
+
+        /// <summary>当前形态(正常 / 选删除目标 / 确认删除)。</summary>
+        private MainMenuMode _mode = MainMenuMode.Normal;
+
+        /// <summary>删除态里已选中的世界序号(<c>-1</c> = 未选)。</summary>
+        private int _pendingDeleteSeq = -1;
 
         /// <summary>创建主菜单屏。</summary>
         public MainMenuScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
@@ -170,12 +202,46 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// </summary>
         public void SetWorlds(IReadOnlyList<MainMenuWorldView> worlds)
         {
+            _worlds = worlds ?? Array.Empty<MainMenuWorldView>();
+            // 世界列表一变,删除态就作废(列表可能已经没有那一行了)。
+            _mode = MainMenuMode.Normal;
+            _pendingDeleteSeq = -1;
+            // 没有世界 ⇒ 一定没有可继续的存档(删光之后那句「继续诊治」必须跟着消失)。
+            if (_worlds.Count == 0) _hasContinueSave = false;
+            Rebuild();
+        }
+
+        /// <summary>当前形态(观测面)。</summary>
+        public MainMenuMode Mode => _mode;
+
+        /// <summary>删除态的待确认世界序号(<c>-1</c> = 无)。</summary>
+        public int PendingDeleteSeq => _pendingDeleteSeq;
+
+        /// <summary>进入删除态(观测面 + 装配层的兜底入口;正常由「删一局」行进入)。</summary>
+        public void EnterDeleteMode()
+        {
+            if (_worlds.Count == 0) return;          // 没有世界可删
+            _mode = MainMenuMode.DeleteSelect;
+            _pendingDeleteSeq = -1;
+            Rebuild();
+        }
+
+        /// <summary>退出删除态,回到正常列表。</summary>
+        public void CancelDelete()
+        {
+            _mode = MainMenuMode.Normal;
+            _pendingDeleteSeq = -1;
+            Rebuild();
+        }
+
+        private void Rebuild()
+        {
             // 拆掉旧行(连同它们的回调),只留背板 / 宿主 / 纸面。
             for (int i = 0; i < _rows.Count; i++) _rows[i].RemoveFromHierarchy();
             _rows.Clear();
             _rowLabels.Clear();
 
-            if (worlds == null || worlds.Count == 0)
+            if (_worlds.Count == 0)
             {
                 // 单行形态:与旧版逐字相同(没有世界 ⇒ 开新局)。
                 // ⚠️ 文案走 `SetHasContinueSave` 的同一套规则(无档「开始诊治」),
@@ -185,9 +251,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 return;
             }
 
-            for (int i = 0; i < worlds.Count; i++)
+            if (_mode != MainMenuMode.Normal)
             {
-                MainMenuWorldView w = worlds[i];
+                // ── 删除态(ADR-040 D6)──────────────────────────────────────
+                // 只用 Submit 一路输入:没有新增动作 / 没有新模态屏(闭集不动)。
+                for (int i = 0; i < _worlds.Count; i++)
+                {
+                    MainMenuWorldView w = _worlds[i];
+                    int seq = w.Seq;
+                    bool armed = _mode == MainMenuMode.DeleteConfirm && _pendingDeleteSeq == seq;
+                    string text = armed
+                        ? "再按一次确认 · " + w.Label
+                        : "删除 " + w.Label;
+                    NewRow("main-menu-delete-" + seq, text, i, () => OnDeleteRowActivated(seq));
+                }
+
+                NewRow("main-menu-delete-back", BackText, _rows.Count, CancelDelete);
+                return;
+            }
+
+            for (int i = 0; i < _worlds.Count; i++)
+            {
+                MainMenuWorldView w = _worlds[i];
                 int seq = w.Seq;
                 string text = i == 0 ? ContinueText : w.Label;
                 NewRow("main-menu-world-" + seq, text, i,
@@ -195,6 +280,26 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             }
 
             NewRow("main-menu-new", NewWorldText, _rows.Count, () => _sink?.NewWorld());
+            // 「删一局」只在**有世界**时出现 —— 没有世界时这一行没有宾语。
+            NewRow("main-menu-delete", DeleteWorldText, _rows.Count, EnterDeleteMode);
+        }
+
+        /// <summary>
+        /// 删除态里按下某一行:第一次 = 选目标(进入待确认),**再按同一行** = 真删。
+        /// <para>按别的行 = 换目标(重新进入待确认),不删任何东西 —— 这是「二次确认」的本体:
+        /// 两次都得落在**同一个世界**上。</para>
+        /// </summary>
+        private void OnDeleteRowActivated(int seq)
+        {
+            if (_mode == MainMenuMode.DeleteConfirm && _pendingDeleteSeq == seq)
+            {
+                _sink?.DeleteWorld(seq);
+                return;   // 装配层删完会回推新的世界列表(`SetWorlds`),届时自动回到正常态
+            }
+
+            _mode = MainMenuMode.DeleteConfirm;
+            _pendingDeleteSeq = seq;
+            Rebuild();
         }
 
         private VisualElement NewRow(string name, string text, int index, Action activate)

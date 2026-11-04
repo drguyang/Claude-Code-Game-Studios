@@ -533,6 +533,20 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 也**不动** <see cref="_modalContainer"/>:常驻脉案屏在它自己那格里,主菜单关掉后原样还在。</para>
         /// </summary>
         /// <returns><c>true</c> = 屏已建并摊开;<c>false</c> = 无面板 / 屏名未登记(不崩)。</returns>
+        /// <summary>
+        /// 主菜单**开着的时候**用它回推世界列表(ADR-040 D6:删完一个世界要重画行)。
+        /// <para>返回 <c>false</c> = 当前没有主菜单屏(已进世界 / 未开屏)—— 调用方据此不追加重画。</para>
+        /// </summary>
+        public bool SetMainMenuWorlds(System.Collections.Generic.IReadOnlyList<MainMenuWorldView> worlds)
+        {
+            if (_currentSceneScreen is MainMenuScreen menu)
+            {
+                menu.SetWorlds(worlds);
+                return true;
+            }
+            return false;
+        }
+
         public bool ShowSceneLevelScreen(string screenName, bool hasContinueSave,
                                          bool sessionWasIncomplete = false,
                                          System.Collections.Generic.IReadOnlyList<MainMenuWorldView> worlds = null)

@@ -213,15 +213,40 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             Directory.CreateDirectory(_root);
 
+            // ⚠️ 序号**只增不减**(ADR-040 D2):除了目录,还要看索引 —— 否则删掉 w2 之后
+            //    新建会**复用 2**,而任何还记着「世界 2」的地方(装配层缓存 / 未来的引用)
+            //    都会指向一个完全不同的世界。
             int next = 1;
             foreach (string dir in Directory.GetDirectories(_root))
                 if (TryParseWorldDir(Path.GetFileName(dir), out int seq) && seq >= next)
                     next = seq + 1;
+            foreach (int seq in ReadIndex().Keys)
+                if (seq >= next) next = seq + 1;
 
             string path = DirectoryOf(next);
             Directory.CreateDirectory(path);
             Touch(next, _clock());
             return new WorldEntry(next, path, _clock());
+        }
+
+        /// <summary>
+        /// **永久删除**一个世界(ADR-040 D6:显式动作、真删、不软删)。
+        /// <para>⚠️ 这是本类唯一的破坏性操作 —— 调用方(主菜单)必须已做二次确认。
+        /// 本类不再问一遍:确认是**交互层**的事,把两处确认叠起来只会让「点了没反应」更难查。</para>
+        /// </summary>
+        /// <returns>目录存在且已删 ⇒ <c>true</c>;本来就不存在 ⇒ <c>false</c>(不抛)。</returns>
+        public bool DeleteWorld(int seq)
+        {
+            string dir = DirectoryOf(seq);
+            if (!Directory.Exists(dir)) return false;
+
+            Directory.Delete(dir, recursive: true);
+
+            // ⚠️ **索引条目刻意保留**(变成墓碑):它是世界序号的**高水位** ——
+            //    删掉它,`CreateWorld` 的下一个序号就会回落并**复用**刚删掉的那个号,
+            //    而任何还记着该号的地方会指向一个完全不同的世界(ADR-040 D2「只增不减」)。
+            //    `ListWorlds` 只列**目录**,所以墓碑不会出现在菜单上。
+            return true;
         }
 
         /// <summary>
