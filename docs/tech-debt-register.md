@@ -405,7 +405,7 @@
 | `TD-persist-18` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-19` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-21` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-21` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
@@ -655,6 +655,16 @@ PYEVAL
 > **`未闭 P0 面 9` 一位不动**(本条判 N)· `N 54` 不动 · **epic 分布 4/31 不动** ·
 > 条目数 **182 不变**。
 > **单一变化源**:索引行 `TD-persist-22` 的 `partial → closed`。
+
+> > 🔁 **七十八订(`TD-persist-21` 结案 · 2026-11-05 · 用户裁定「不做,解除债」)** ——
+> 用户四个选项(暂停壳加行 + 新模态 / 恢复主菜单列表 / 只做删除 / 先删后切)一律不取,
+> 裁定**维持现状并解除债务**。
+> 变化:`open 19 → 18`(−1)· **`closed 159 → 160`**(+1)· `partial 3` 不动 ·
+> **`未闭 P0 面 9 → 8`**(−1)· `Y 122` 不动 · **`epic 分布 4/31 → 3/31`**
+> (`persistence-service` 名下未闭 P0 面清零)· 条目数 **182 不变**。
+> **单一变化源**:索引行 `TD-persist-21` 的 `open → closed`。
+> ⚠️ **这是「裁定维持现状」型结案,不是「功能已做」** —— 世界仍不可切换 / 不可删除,
+> 债条正文已就地写明这一点与重新开启的条件(须新立债)。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1278,11 +1288,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 182 | 状态 {'closed': 159, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 9 （已闭但曾标 P0 面的 113 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 9 条,分布在 4/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        persistence-service: 1
-    processing: 1
+条目 182 | 状态 {'closed': 160, 'partial': 3, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 54, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 114 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4989,6 +4998,16 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **P0 面判 Y 的理由**:不是「少一个按钮」—— 世界目录**只增不减**且**不可达**,
 > 玩家每次「新起一局」都会把一个永久找不回的旧局留在盘上;与 `TD-persist-20` 判 Y 的依据同源。
 > ⚠️ **本条不主张裁定应当改变**;它是「**暂时形态的到期提醒**」。
+
+> ✅ **2026-11-05 结案 —— 由用户裁定「不做,解除债」**(原文不删)。
+> **结案方式 = 裁定维持现状,不是限制被解除。** 复述:主菜单仍为固定四行,世界仍不可在游戏内切换、
+> 仍不可在游戏内删除;`WorldCatalog` 仍只有 `ListWorlds` / `CreateWorld` / `TryGetMostRecent` / `Touch`。
+> **⚠️ 能力缺失依然存在** —— 本条被划掉的是「它是否还挂着一笔待办」,**不是**「这个功能做出来了」。
+> 任何把它读成「已支持多世界管理」的说法都是错的。
+> **⚠️ 重新开启的条件(写给将来的读者)**:若再出现「想回到上一局」或「盘上世界目录太多」的诉求,
+> **须新立一笔债 / 新裁一次**(本条的解除动作与选项 A–D 的取舍分析保留在下方,
+> 2026-11-05 的四个选项 = ①暂停壳加行 + 新增第 10 个模态 ②恢复主菜单列表 ③只做删除 ④先删后切)。
+> **盘上残留的世界目录**今日只能手工删:`~/.config/unity3d/DefaultCompany/unity/saves/w<N>/`。
 
 ### TD-persist-22 — `.bak` 救回**静默**:读回来的是上一版,而玩家与册子都看不出(7a ↔ 42)
 
