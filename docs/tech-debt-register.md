@@ -486,6 +486,8 @@
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-19` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1479,10 +1481,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 193 | 状态 {'closed': 164, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 129, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 12 （已闭但曾标 P0 面的 117 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
-    random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
+条目 195 | 状态 {'closed': 164, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 130, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 13 （已闭但曾标 P0 面的 117 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 6/31 个 epic
+    skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -6340,6 +6342,42 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 这是**另一侧的欠账**,在结案时才被照出来。立此条的唯一理由是:
 不登记则 23 建造系统将来落 `build_modules.json` 时,两边会**各自以为对方是源头**,
 而「同源」这条要求**没有任何一处会报警**。
+
+---
+
+## 2026-11-06 · 存档册翻页走查时新揭:`save-slots-7b.md` 交互表里的两条输入面未落(1 条)
+
+**出处**:回答「存档页可以上下向前向后翻页吗」时的真包走查(逐键 + 截图)。
+翻页**主路径可用**(见债描述),但 spec `:256` 交互表写的另两条输入面在代码里**零实现**。
+
+### TD-skeuo-19 — 存档册翻页:**滚轮**与**肩键 `PagePrev/PageNext`** 两条输入面未实现
+
+> **⚠️ 2026-11-06 凌晨立债**(用户指令「现在不用修 sprint24 以外的问题」⇒ 只登记、不修)。
+
+| 侧 | 内容 |
+|---|---|
+| **已可用的路径(先说清楚,免得读成「翻页坏了」)** | ① **指针**:点左/右页缘(`ClickEvent`);② **键盘 / 手柄**:焦点移到末行(或首行)→ `Right`(或 `Left`)落到页缘 → `Submit`。真包实测:1/3 →(末行 `Right` → `Enter`)→ 2/3 →(首行 `Left` → `Enter`)→ 1/3,双向都通。 |
+| **缺口 A:滚轮** | `save-slots-7b.md:256` 的「前页 / 后页 | 点页缘 / **滚轮**」一行。实测 `grep -n "Wheel\|scroll" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/SaveSlotsScreen.cs` **零命中**;全 `Gameplay.UI/` 下 `WheelEvent` **零命中** ⇒ 滚轮翻不动。 |
+| **缺口 B:肩键直读** | 输入资产 `InputSystem_Actions.inputactions` 有 `PagePrev`(`:636`)/`PageNext`(`:645`),绑定在 `leftShoulder` / `rightShoulder`(`:868` / `:901`)。但**全仓无生产消费者**:`grep -rn "PageNext\|PagePrev" unity/Assets --include=*.cs` 只命中 4 处注释 + 测试件;`PlayerInputReader` 仅暴露 `InteractPressed` / `PauseTogglePressed` / `EmergencyPressed`。⇒ spec `:256` 的「L/R 肩 → 页缘行」无执行体,手柄只能走「焦点→页缘→Submit」。 |
+| **⚠️ 与 AC 的关系(禁借绿)** | `AC-7b-04` / `AC-7b-06` 要求的是**焦点遍历**可完成翻页 —— 那条**已满足**(上表已实测)。滚轮与肩键是交互表里的**附加输入面**,不进任何 AC 的判据 ⇒ **本条不是 AC 未过,是 spec 与实现的范围差**。**不得**据此把 7b 判成未达标,也**不得**反过来当作「已全实现」。 |
+| **解除动作** | ① 滚轮:`SaveSlotsScreen` 挂 `WheelEvent`,上滚 = `PreviousPage()` / 下滚 = `NextPage()`,不可翻时 no-op(与 `NextPage` 现有 `return false` 同纪律);② 肩键:`PlayerInputReader` 增两个读面并在装配层转给当前开着的屏,**或**另裁「肩键不做」(与 `OQ-7b-*` 同级裁定)后**改 spec 交互表**,不许就这样两处并存。③ 任一条落地须补夹具(不可翻时 no-op 与可翻时的页号变化各一条)。 |
+| **触发条件** | 任何以「7b 交互表已全覆盖」形态引用之前;或下一次 `/ux-review` 扫 `save-slots-7b.md` 之前。 |
+| **归属** | **42 拟物 UI**(屏)× **3 输入与设备**(`PagePrev/PageNext` 的读面) |
+
+### TD-skeuo-18 — 脉案值区:**查体后不重绘** + 值词条**渲染成不可读墨块**(两条独立缺陷)
+
+> **⚠️ 2026-11-06 凌晨立债**(smoke 第三轮 #9 的复核;用户指令「不用修 sprint24 以外的问题」⇒ 只登记、不修)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 玩家在脉案里点一行(= 查体)后,**值区没有任何变化**;即便强行重绘,查出来的词条也是**一坨黑墨块**,读不出字。两条缺陷互相遮蔽:不修 A 就看不见 B。 |
+| **A:查体后不重绘** | `SkeuoRuntimeDriver.RefreshFromSource()` 全文只有三个触发点 —— `BuildUI`(源在场时)、`Source` 注入、`OpenModal`(开屏当帧)。**没有「数据变了」这条**。查体结果落 `ExaminationLedger`(派生态),UI 不会自己知道。 |
+| **B:词条不可读** | 补上重绘后(试补:`CasebookCommandRouter.AfterExamined` 链一次 `SkeuoRuntimeDriver.RefreshCasebook()`),值区**确实出现了** 5 个词条,但渲染为黑底墨块;截图 3× 放大后**无任何字形**。疑点方向(未证):词条背景(墨迹/九宫格贴图)盖住文字 / 文字色与底同色 / 字体缺字回落。**未定位**。 |
+| **实测(逐条可跑)** | ① 临时探针(已删):`[PROBE-TD9] ExamineChannel channel=FaceColor examineNull=False bound=16` ⇒ 命令链**是通的**,不是未接线;② `grep -n "RefreshFromSource" unity/Assets --include=*.cs` ⇒ 3 处调用,无「查体后」;③ 真包实拍:A 修前值区全空(`smoke-2026-11-05-r3/05-casebook-values-empty.png`),A 修后 5 个黑块(本地未入库,见证据件说明)。 |
+| **⚠️ 顺带订正一处误判** | smoke 第三轮初版把原因写成「`ICasebookDtoSource` 未注入 ⇒ 查了也永远空」——**错**。那行日志打在启动序 6 之前,是时序产物。`CompositionRoot` 在 `casebookSource == null` 时会直接抛,产线上不可能为 null。**已在 `smoke-2026-11-05.md` §第三轮就地订正(原文不删)。** |
+| **解除动作** | ① A:`AfterExamined` 里补一次重绘(最小改动两行,试补已验有效;改动已按用户指令回退,见 `/tmp` 存档);② B:查到墨块成因后修 `CasebookScreen` / `.lexeme` 那条 USS 或字色;**A、B 各自独立验收**,不许用「A 修好了」顶替 B。③ 补一条**端到端**判据(查体 ⇒ 值区文本非空且可读),现有夹具只覆盖到「命令链被调用」。 |
+| **触发条件** | 任何以「脉案可读」形态引用之前(**禁借绿**);或下一次 smoke 重新 gate 之前。 |
+| **归属** | **42 拟物 UI**(屏与渲染)× **8 诊断**(查体结果的读面) |
 
 ### TD-skeuo-17 — **首次启动**的第一层:设置壳按 ESC **关不掉**(`_modalInput` 在那一刻还没构造)
 
