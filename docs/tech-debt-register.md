@@ -468,6 +468,7 @@
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
+| `TD-building-05` | `modular-building` | open | **Y** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -1481,11 +1482,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 195 | 状态 {'closed': 165, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 130, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 13 （已闭但曾标 P0 面的 117 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 6/31 个 epic
+条目 196 | 状态 {'closed': 165, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 131, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 14 （已闭但曾标 P0 面的 117 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
     skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
-    disease-simulation: 1     emergency-procedures: 1   processing: 1
+    disease-simulation: 1     emergency-procedures: 1   modular-building: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -10543,7 +10545,15 @@ done
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-building-04** | `modular-building` | **open** | **N** | R1 |
+| **TD-building-04** | `modular-building` | ~~**open**~~ ⇒ **closed**(2026-11-02) | **N** | R1 |
+
+> 🔁 **2026-11-06 口径订正(本条只改状态,正文一行未删)**:本节表格原写 `open`,
+> 而它已随 **「三条欠裁决」轮(2026-11-02)** 关闭 —— 解除动作逐字要求「须裁(ADR 级)」,
+> 该轮落了 **ADR-010 Amendment A**(`structure_id` 独立空间,不入 `IIdAuthority`;义务 12 的机制半边
+> 划线撤回)。**索引区(§`TD-INDEX` 块)一直是 `closed`,只有这张详情表停在旧值** ——
+> 两处口径分叉,`python3 tools/debtcount/debtcount.py` 只读索引块 ⇒ 计数没错,错的是**读者**
+> (看详情表会以为它还 open)。关闭记录全文见本册
+> 「2026-11-02 · 「三条欠裁决」轮:`TD-processing-03` / `TD-building-04` / `TD-skeuo-01` 关闭」一节。
 
 ---
 
@@ -12593,3 +12603,33 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 - `ADR-012 §Validation` 的「CI 常驻矩阵」项仍**不得勾**(本债退 P2 ≠ 已兑现)。
 - `AC-7a-03`(跨平台字节对拍)仍 **`NOT-RUN · EXTERNAL`**。
 - sprint-24 收口节已同步登记「CI 核查」,并写明**不得声称 CI 绿**。
+
+---
+
+## 2026-11-06 · 炮制链走查轮的**主发现**(1 条)`TD-building-05`
+
+**出处**:`production/qa/smoke-2026-11-06.md` §七(用户「我找不到」+ 我这一侧真包走查)。
+那一轮的目标是**跑通炮制链**(`design/gdd/processing.md` 规则八:选料 → 点火 → 起货);
+跑不通的原因不是操作,是**目标在画面上不存在**。
+
+### TD-building-05 —— P0 运行期**零结构视觉载体**(灶台 / 墙 / 门 / 柜 / 医馆面板 / 家具都没有网格)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 世界里的**静态建筑件**(`world_buildslots.json` 的 18 个槽位:`Shell` / `Door` / `Switch` / `ClinicPanel` / `Utensil` / `Decor` …)在运行期**没有任何可视载体**。`World.unity` 只有 `Ground` + `Directional Light`;运行期唯一被实例化的 3D 物体是**病人胶囊**。⇒ 玩家在画面上看不到灶台、门、柜、医馆面板、建造槽位 ⇒ 系统 **18(炮制)/ 20(容器)/ 23(建造)/ 24(面板)** 的入口**全部不可发现** |
+| **实测(可跑)** | ① `python3 -c "s=open('unity/Assets/Scenes/World.unity').read(); print(s.count('!u!1 &'), s.count('!u!33 &'), s.count('!u!23 &'))"` ⇒ **`2 1 1`**(2 个 GameObject / 1 个 MeshFilter / 1 个 MeshRenderer;`m_Name` 去重 = `Ground` / `Directional Light`)。<br>② `grep -rn "CreatePrimitive" unity/Assets --include=*.cs \| grep -v "/Tests/"` ⇒ **唯一生产命中** `Gameplay.Presentation/Patients/CapsulePatientVisualFactory.cs:49`。<br>③ 真包走查:站到灶台格 `(10,0,5)`(`world_buildslots.json` 的 `slot_type = Utensil`)环视 —— 画面上**没有任何新增物体** |
+| **后果(三条,勿合并)** | ① **不可发现**:用户逐字「我找不到」的直接原因 —— 目标没有形状,玩家只能靠知道格坐标才能站对位置。<br>② **被优先级压住**:`interaction_kinds.json` 的 `kind_priority`:病人(`kind 2`)= **0**,结构(`kind 6`)= **2** ⇒ 病人 3 格内在场时按 `E` **永远先开脉案**(走查实测连续 8 次全落脉案)⇒ 灶台在 P0 医馆里实质**选不中**。<br>③ **不是装配失误**:ADR-023 §② 要求 `World.unity` 零 gameplay GameObject(已满足),ADR-015 §一 把几何分给「纯视觉层」—— 该层在 P0 **尚未实现**。⇒ 本条是**内容/视觉缺口**,不是接线错误 |
+| **为什么 `P0 面 = Y`** | R1:归属 `modular-building`(31 个 P0 epic 之一),且它**阻塞 P0 出口项** —— 系统 18 的端到端人工腿(`AC-18-21` 的 `[I]` 之外那一半)与 `AC-42-F1` ⑨ 的走查都以「玩家能走到并选中灶台」为前提。这不是观感问题:玩家**无从知道目标在哪一格** |
+| **解除动作** | 由 **23 / 关卡工具**补**最小结构视觉**:基线建筑件按 `module_id` 出占位网格(capsule / box 即可,与病人胶囊同级),位置 = 槽位格 × `LATTICE_SIZE`。⚠️ **不要求美术资产**,只要求「可见 + 可辨识 + 与格对齐」。解除判据 = ① 真包走到 `(10,0,5)` 能看见一个可辨识体块;② `AC-18-21` 端到端人工腿跑通 |
+| **不在本债面内** | ② 的**优先级顺序**不是缺陷(`kind_priority` 是 4 的 GDD 裁决);但补完视觉后若灶台仍被病人持续压住,那属**4 的交互设计**另议,不在本条 |
+| **触发条件** | P0 收口走查(炮制 / 建造 / 开箱 / 面板任一) |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-building-05** | `modular-building` | **open** | **Y** | R1 |
+
+> **计数**(2026-11-06 立债时刷新):条目 `195 → 196` · `open 20 → 21` · `closed 165` 不变 ·
+> **未闭 P0 面 `13 → 14`**(`modular-building` 进入未闭分布)。
+> 复算:`python3 tools/debtcount/debtcount.py --print`。
+> ⚠️ 同轮修了 `TD-building-04` 详情表的陈旧状态(索引与正文口径分叉,见本册该节的订正注),
+> **计数不受影响** —— 该条在索引区一直算 closed。
