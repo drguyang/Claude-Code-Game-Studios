@@ -806,9 +806,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                             "存档 v5 必须记录时间三值 + 季二值 + 天气二值(ADR-038 §D3 / Amendment A);" +
                             "回落默认值会让「配置读错」与「一切正常」在存档里不可分");
 
+                    // 🔁 2026-11-06(P0):「时钟落后于流尾」必须**说出来**。
+                    //    组版口(`SaveComposer.EffectiveHeaderTick`)按不变式取流尾(档头永远不早于
+                    //    流尾),但静默修正若没人看见,就成了「时钟 / 装配坏了却照常存档」——
+                    //    与 `TD-persist-22` 的 `.bak` 回退同一条纪律:抢救是设计内行为,但它是
+                    //    **异常态**,要看得见。
+                    long clockTick = tickDriver.CurrentTick;
+                    long streamTail = SaveComposer.MaxEventTick(stream.Events);
+                    if (clockTick < streamTail)
+                    {
+                        UnityEngine.Debug.LogWarning(
+                            $"[7a][存档] 逻辑时钟({clockTick})**落后于**流尾({streamTail})—— " +
+                            "档头按不变式取流尾(否则这份档读回来会把时钟放到历史之前," +
+                            "每笔写入被 BCD-码-3 拒收)。归因:时钟定位 / 时钟源出了缺陷,不是存档路径的问题。");
+                    }
+
                     return SaveComposer.Compose(
                         stream.Events, foldedPredicate, decoder, new SaveCodec(),
-                        worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick,
+                        worldSeed, resolvedConfigVersion.Value, tick: clockTick,
                         timeParams: new SaveTimeParams(
                             saveTime.TICKS_PER_DAY, saveTime.NIGHT_START, saveTime.NIGHT_SPAN,
                             saveTime.TICKS_PER_SEASON, saveTime.SEASONS_PER_YEAR,

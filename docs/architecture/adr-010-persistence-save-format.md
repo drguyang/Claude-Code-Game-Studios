@@ -138,6 +138,20 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 └───────────────────────────────────────────────┘
 ```
 
+> 🔁 **2026-11-06 窄加注 —— 头部 `tick` 的不变式(P0 级,不改布局、不加字段)**:
+> **档头 `tick` 不得早于事件段的最大 tick**(后面简称「流尾」)。
+> - **为什么**:读档按档头 `tick` 定位逻辑时钟(2026-11-04 `238eef15` 起),而
+>   `EventStream.Append` 的 BCD-码-3(Tick 非降)以**流尾**为基线 ⇒ 档头一旦低于流尾,
+>   读档后**每一笔写**都被拒收:console 刷屏、玩家走不动、sim 零写入;更糟的是下一次写档
+>   会把更低的 tick 再写一遍(**坏档自我放大**——盘上实测链:
+>   `save_exit.bin.bak` 档头 0 / 流尾 1554 → 下一次存出 `save_3` 档头 179 / 流尾 1554)。
+> - **写侧执行体**:`SaveComposer.Compose` 的**唯一组版口**取 `max(调用方 tick, 流尾)`
+>   (`SaveComposer.EffectiveHeaderTick`);生产闭包在写前比一次并 `LogWarning`(不静默修正)。
+> - **读侧执行体**:`LoadSequencer` 取 `max(档头, 流尾)` 定位时钟并 `LogWarning`;
+>   `SaveService.LastLoadedStreamTailTick` 交出流尾这个**独立事实**。
+> - **判据**:`save_tick_vs_stream_tail_test`(7 条,含四条负控/正控;证伪轮三变异各自转红)。
+> - ⚠️ 本注**不改任何布局字节**,也不改变「档头 tick 正常时原样使用」的口径。
+
 - **全二进制 codec**:不用 JSON / PlayerPrefs(引擎复核:JSON 按 ADR-006 §五 会静默丢 `Fix`;
   BinaryFormatter 已弃用;JsonUtility 不适用 —— 必须手写,且**按字段名 / tag 编码**(proto 风格字段表),
   **禁位置打包**)。

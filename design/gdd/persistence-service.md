@@ -102,6 +102,15 @@ ADR-012 R-5 的对拍面)。子实例闭包校验(容器 `children` 闭环,装�
 `WorldSeed`(u64,义务 1)与 `ConfigVersion`(u32,义务 2)进存档头;`ConfigVersion` 由
 ADR-014 §五 派生(源文本内容哈希),7a 只消费。
 
+> 🔁 **2026-11-06(P0 补丁 · 规则三之补,不新增规则号)—— 档头 `tick` 不得早于流尾。**
+> 读档按档头 `tick` **定位逻辑时钟**(2026-11-04 `238eef15`),而 `EventStream` 的
+> BCD-码-3 以**流尾**为基线 ⇒ 档头低于流尾的档,读回来之后**每一笔写**都被拒收
+> (console 刷屏 / 玩家走不动 / sim 零写入),且下一次写档会把更低的 tick 再写一遍。
+> **写侧**:`SaveComposer.Compose`(唯一组版口)取 `max(调用方 tick, 流尾)`,
+> 生产闭包写前比一次并 `LogWarning`;**读侧**:`LoadSequencer` 取 `max(档头, 流尾)` 定位并告警,
+> `SaveService.LastLoadedStreamTailTick` 交出流尾这个独立事实。
+> 判据 = `save_tick_vs_stream_tail_test`(7 条)。布局零改动;档头正常(≥ 流尾)时口径不变。
+
 **规则四 · 原子写 + 双档(bak)。**(ADR-010 §四)
 写入流程:`final ← 存档路径(唯一)`,`bak ← final 的上一好档`。写 checkpoint:① 主线程序列化到
 内存 buffer(Step 边界)② 后台线程写 tmp(`Flush(true)` + rename)③ tmp → final 原子替换

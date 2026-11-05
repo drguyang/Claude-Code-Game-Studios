@@ -135,8 +135,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             // currentHistory 顺序取(Fold 的 Retained 保持原相对序 ⇒ 指针拼接是恒等的)。
             List<SimEvent> finalEvents = SpliceBack(allEvents, currentHistory);
 
+            // 🔁 2026-11-06(P0「读档后时钟落后于流尾 ⇒ 每笔写入被 BCD-码-3 拒收」)——
+            //    不变式:**档头 tick 不得早于流尾 tick**。
+            // 病因:写档的 `tick` 由调用方给(生产 = 当前逻辑时钟),而读档侧按档头 tick
+            //   **恢复**时钟。两者一旦分叉成「档头 < 流尾」,那份档读回来就会把时钟放在
+            //   流尾之前 ⇒ 之后每一笔 `Append` 都被 `EventStream` 的 BCD-码-3(Tick 非降)
+            //   拒收:console 刷屏、玩家动不了、sim 一个事件都写不进去;更糟的是**下一次
+            //   写档会把更低的 tick 再写一遍**,坏档自我放大(2026-11-06 实测链:
+            //   `save_exit.bin.bak` 档头 0 / 流尾 1554 → 下一次存出 `save_3` 档头 179 / 流尾 1554)。
+            // 治本点:**唯一组版口**。取两者较大者 —— 时钟落后时唯一不丢信息的选择是流尾
+            //   (档头写低了,流里的历史就会被判成「未来事件」)。
+            // ⚠️ 生产侧的**可观测面**在 `CompositionRoot` 的 `compose` 闭包(写前比一次并告警);
+            //   本类是纯组版(禁侧效应),故此处只做不变式,不打日志。
+            long effectiveTick = EffectiveHeaderTick(allEvents, tick);
+
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(
-                worldSeed, configVersion, tick, 0UL,
+                worldSeed, configVersion, effectiveTick, 0UL,
                 timeParams.TicksPerDay, timeParams.NightStart, timeParams.NightSpan,
                 // 🔁 ADR-038 Amendment A(2026-11-03):v5 追加季 / 天气四值。
                 timeParams.TicksPerSeason, timeParams.SeasonsPerYear,
@@ -359,6 +373,35 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (StreamRouting.Of(e.Kind) == id) picked.Add(e);
             }
             return picked;
+        }
+
+        /// <summary>
+        /// 三流视图里的**最大 tick**(空流 ⇒ <see cref="long.MinValue"/>)。
+        /// <para>⚠️ 取 max 而不是「最后一条」:`EventStream` 的 BCD-码-3 保证入流非降,
+        /// 但本方法也接受装配层从别处拼来的视图(夹具 / 派生视图),取 max 不依赖那个前提。</para>
+        /// </summary>
+        public static long MaxEventTick(IReadOnlyList<SimEvent> all)
+        {
+            long max = long.MinValue;
+            if (all == null) return max;
+            for (int i = 0; i < all.Count; i++)
+            {
+                long t = all[i].Tick;
+                if (t > max) max = t;
+            }
+            return max;
+        }
+
+        /// <summary>
+        /// 档头该写的 tick —— <b>不得早于流尾</b>(不变式,不是偏好)。
+        /// <para>时钟落后于流尾时取流尾:档头写低了,读档侧会把历史事件判成「未来事件」
+        /// (每笔 `Append` 被 BCD-码-3 拒收,世界停摆),且下一次写档会把更低的 tick 再写一遍。</para>
+        /// <para>空流 ⇒ 原样返回调用方给的 tick(没有可保护的历史)。</para>
+        /// </summary>
+        public static long EffectiveHeaderTick(IReadOnlyList<SimEvent> allEvents, long tick)
+        {
+            long tail = MaxEventTick(allEvents);
+            return tail > tick ? tail : tick;
         }
     }
 }

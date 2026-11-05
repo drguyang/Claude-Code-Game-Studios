@@ -498,6 +498,18 @@ namespace DaYiJingCheng.Sim.Codec
         public long LastLoadedTick { get; private set; }
 
         /// <summary>
+        /// 最近一次**成功**读档时,事件段里的**最大 tick**(空事件段 ⇒ <c>0</c>)。
+        /// <para>⚠️ 2026-11-06 新增(P0:读档后时钟落后于流尾 ⇒ 每笔 sim 写入被 BCD-码-3 拒收)。
+        /// 与 <see cref="LastLoadedTick"/>(档头 tick)**不是同一个量**:正常档两者相等或档头更大;
+        /// 一旦 **档头 &lt; 本值**,该档读回来就会把时钟放在流尾之前 —— 世界停摆。
+        /// 消费侧(<c>LoadSequencer</c>)按「两者取较大者」定位时钟,并告警。</para>
+        /// <para>⚠️ <b>回填时机 = 事件段解完后、入流前</b>:除了注入的 `replaySink` 本身抛
+        /// (此时本次读档整体失败,调用方无从拿到时钟,该值也不构成「成功读档的事实」)之外,
+        /// 它与 <see cref="LastLoadedConfigVersion"/> 同款 —— 入口先清 0,读档抛则不沿用旧值。</para>
+        /// </summary>
+        public long LastLoadedStreamTailTick { get; private set; }
+
+        /// <summary>
         /// 最近一次**成功**读档的槽里记录的时间三参数(ADR-038 §D3 · 存档 v4 起)。
         /// <para><c>null</c> = 本次会话尚未成功读过档(或上一次读档失败)。</para>
         /// <para>⚠️ 语义与 <see cref="LastLoadedConfigVersion"/> 同款:只有完整成功的读档才产生事实,
@@ -1166,6 +1178,7 @@ namespace DaYiJingCheng.Sim.Codec
             LastLoadedArtifactConfigVersions = null;
             LastLoadedTimeParams = null;
             LastLoadedTick = 0L;
+            LastLoadedStreamTailTick = 0L;
             RequireLoadable(slot);                          // ── Gating ──
             byte[] data = LoadBytes(slot);                  // ── Verifying:校验和 + bak 回退 ──
             SaveHeader header = SaveHeaderCodec.Read(data);
@@ -1336,6 +1349,14 @@ namespace DaYiJingCheng.Sim.Codec
             LastLoadedArtifactConfigVersions = artifactConfigs;
 
             InstallPayloads(payloads);   // ADR-034 §④:先装池,**再**解事件
+
+            // 2026-11-06(P0):交出**流尾 tick** —— 消费侧据此判断档头 tick 是否落在历史之后,
+            // 见 `LastLoadedStreamTailTick` 的 doc。只在这里赋值:此处是「事件已解出且即将入流」
+            // 的唯一确认点(抛在任何一步之前的读档都不会留下这个事实)。
+            long tail = 0L;
+            for (int i = 0; i < events.Count; i++)
+                if (events[i].Tick > tail) tail = events[i].Tick;
+            LastLoadedStreamTailTick = tail;
 
             _replaySink(events);
             _foldedRowSink(foldedSegment);

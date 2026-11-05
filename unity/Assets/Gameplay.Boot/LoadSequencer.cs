@@ -172,7 +172,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   `EventStream.Append` 以 BCD-码-3(Tick 非降)**逐条拒绝**:console 刷屏,
             //   且**sim 一个事件都写不进去**(读进来的世界形同停摆)。
             // ⚠️ **次序** = 在 `afterRestore` **之前**:派生态重建读的是当前 tick。
-            _restoreTick?.Invoke(_saveService.LastLoadedTick);
+            // 🔁 2026-11-06(P0 补丁)「档头 tick 早于流尾」⇒ 取流尾。
+            // 病因:2026-11-04 的定位只信档头 tick,而档头 tick **可以**低于流尾
+            //   (实测盘上两份:`save_exit.bin.bak` 档头 0 / 流尾 1554 · `save_3` 档头 179 / 流尾 1554
+            //   —— 它们由**时钟落后于流尾的会话**写出)。照档头定位 ⇒ 时钟落在流尾之前 ⇒
+            //   之后每一笔 `Append` 被 `EventStream` 的 BCD-码-3 拒收:console 刷屏、玩家动不了。
+            // 处置:**取两者较大者**并记一条 Warning(不静默,也不拒读 —— 拒读等于这份世界打不开)。
+            long headerTick = _saveService.LastLoadedTick;
+            long streamTailTick = _saveService.LastLoadedStreamTailTick;
+            long restoreTo = headerTick > streamTailTick ? headerTick : streamTailTick;
+            if (headerTick < streamTailTick)
+            {
+                UnityEngine.Debug.LogWarning(
+                    $"[7a][载入] 档头 tick({headerTick})**早于**流尾 tick({streamTailTick})—— " +
+                    "这份档是在「时钟落后于流尾」的会话里写出的(写档侧缺陷,已在 2026-11-06 钉住)。" +
+                    $"本次按**流尾**定位时钟({restoreTo});否则此后每笔写入都会被 BCD-码-3 拒收。");
+            }
+            _restoreTick?.Invoke(restoreTo);
 
             _anchorTrigger.ResetCursor();
             _fallback?.NotifyExternalCheckpoint();
