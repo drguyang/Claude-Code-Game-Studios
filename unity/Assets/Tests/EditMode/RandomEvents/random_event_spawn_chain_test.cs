@@ -241,7 +241,9 @@ namespace DaYiJingCheng.Tests.RandomEvents
             CapturingSink sink, IPresenceQuery presence, Action onSpawn,
             IEventAuthority authority = null,
             Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = null,
-            int windowSize = WindowSize)
+            int windowSize = WindowSize,
+            Func<int, bool> requiresPatient = null,
+            Func<long, bool> canSpawnPatient = null)
         {
             return new RandomEventSpawnChain(
                 sink, _encoder, authority ?? NewAuthority(),
@@ -263,7 +265,60 @@ namespace DaYiJingCheng.Tests.RandomEvents
                     WindowSize = windowSize,
                     Base = BaseEvents,
                     BudgetMax = BudgetMax,
-                });
+                },
+                requiresPatient: requiresPatient,
+                canSpawnPatient: canSpawnPatient);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // E 病人通道(`TD-randomevents-05` 同批 · 2026-11-05)
+        //
+        // 为什么要这两条:上下文门改成**档级**之后,链路真的能走到 ⑦ 之后了。
+        // 而旧序是「先 Append 两条、再在 `spawnPatient` 抛」⇒ 流里留孤儿行。
+        // 这两条把「先判后写」与「遭遇条目不该产病人」两面各钉一处。
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_medicalEntry_patientUnavailable_writesNothing()
+        {
+            var sink = new CapturingSink();
+            var presence = new FakePresence { PresentCount = 0 };
+            int spawnCalls = 0;
+
+            RandomEventSpawnChain chain = NewChain(
+                sink, presence, () => spawnCalls++,
+                requiresPatient: _ => true,          // 抽中的条目需要病人
+                canSpawnPatient: _ => false);        // 而病人通道今日不可用
+
+            SpawnChainOutcome outcome = chain.TrySpawnAtTick(tick: 40L);
+
+            Assert.AreEqual(SpawnChainOutcome.PatientSpawnUnavailable, outcome,
+                "需要病人而通道不可用 ⇒ 具名结果码(不是抛、不是静默 Spawned)");
+            // 副作用判据:只断结果码会被「写了两条再抛」冒充 —— 必须断**流零写入**。
+            Assert.AreEqual(0, sink.Events.Count,
+                $"必须**零写入** —— 改前是先落 `EventRolled`+`EventArrived` 再抛," +
+                $"流里会留下「掷过骰、降临了、没人」的孤儿行(实际写了 {sink.Events.Count} 条)");
+            Assert.AreEqual(0, spawnCalls, "零病人创建");
+        }
+
+        [Test]
+        public void test_encounterEntry_doesNotNeedPatient_stillSpawns()
+        {
+            var sink = new CapturingSink();
+            var presence = new FakePresence { PresentCount = 0 };
+            int spawnCalls = 0;
+
+            RandomEventSpawnChain chain = NewChain(
+                sink, presence, () => spawnCalls++,
+                requiresPatient: _ => false,         // 遭遇条目(27):不产病人
+                canSpawnPatient: _ => false);        // 病人通道不可用也不影响它
+
+            SpawnChainOutcome outcome = chain.TrySpawnAtTick(tick: 40L);
+
+            Assert.AreEqual(SpawnChainOutcome.Spawned, outcome,
+                "遭遇条目不需要病人 ⇒ 病人通道不可用**不得**拖死它");
+            Assert.AreEqual(2, sink.Events.Count, "仍恰两条(先骰后降临)");
+            Assert.AreEqual(0, spawnCalls, "遭遇条目不得调用病人创建");
         }
 
         // ── 测试替身 ─────────────────────────────────────────────────────

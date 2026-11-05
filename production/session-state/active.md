@@ -16875,3 +16875,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **当前 P0 未闭面 = 8 条**:random-events 5(-03/-04/-05/-06/-07)· skeuomorphic-ui 2(-04/-11)·
   processing 1(-09)。
 - **待提交**。
+
+### TD-randomevents-05 实现轮(2026-11-05)
+
+- 债条原文只记「三项输入硬编码 false」。实测**三处并存** + 一处被掩盖:
+  ① `ComputeContextMult` **零生产调用方**(`Execute` 调无参 `HamiltonSplit`);
+  ② `EvaluateContextGate` 的 `IsOnExpedition && !IsInClinic` 与 **AC-52-29 相反**(机会/反应档也被挡死);
+  ③ (被①②掩盖)门一变宽就露出的**孤儿行**:旧序「先 Append 两条、再在 spawnPatient 抛」。
+- 落点:新 `Sim/F1ContextEvaluator.cs`(纯函数,生产闭包只调它)· `Gameplay.Boot/PlayerActorBinding.cs`
+  (玩家 id 迟绑定槽)· `EventF1Pipeline`(乘子进配额层 · 门语义订正 · `CONTEXT_TRAVEL` 接消费面)·
+  `RandomEventSpawnChain`(先判后写 + `PatientSpawnUnavailable` + handler 分流)。
+- 回归:EditMode `6901/6864/0/37` · PlayMode `341/337/0/2/2`(基线 6882/6845 · 341/337 ⇒ +19 / 0)。
+- 证伪轮 **6 变异逐一转红**,SHA-256 逐字节还原。
+- `TD-randomevents-05` **closed**;新立 `TD-randomevents-08`(AC-52-29 的延后半边零接线,P0 面 Y)。
+  计数:条目 183 · open 19 · closed 160 · 未闭 P0 面 **8 不变**(换了一条)。
+- ⚠️ **AC-52-29 不得签核为已完成** —— 只落了「压制」半边。
+- **待提交**。

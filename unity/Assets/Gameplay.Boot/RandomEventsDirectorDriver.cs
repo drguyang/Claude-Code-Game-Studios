@@ -55,6 +55,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly RandomEventSpawnChain _spawnChain;
 
         private HouseCallStartedWriter _writer;
+        private readonly PlayerActorBinding _playerActor;
         private long _lastDrivenTick = -1;
 
         /// <param name="events">事件流只读视图的取用闭包(生产 = <c>() => stream.Events</c>;
@@ -71,7 +72,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             IPayloadDecoder decoder,
             IClinicCellSource clinicCells,
             IReadOnlyCollection<int> houseCallEventKeys,
-            RandomEventSpawnChain spawnChain = null)
+            RandomEventSpawnChain spawnChain = null,
+            PlayerActorBinding playerActor = null)
         {
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
@@ -80,6 +82,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _clinicCells = clinicCells ?? throw new ArgumentNullException(nameof(clinicCells));
             _houseCallEventKeys = houseCallEventKeys ?? throw new ArgumentNullException(nameof(houseCallEventKeys));
             _spawnChain = spawnChain;   // 可 null = 未接线(测试的部分装配);生产恒非 null
+            _playerActor = playerActor; // 可 null = 旧装配(不含 F1 上下文闭包);生产恒非 null
         }
 
         /// <summary>玩家 actorId 是否已绑定(装配后、玩家生成前的间隙 = 未绑定)。</summary>
@@ -121,6 +124,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_writer != null)
                 throw new InvalidOperationException(
                     "玩家 actorId 重复绑定 —— 玩家 id 单调铸造,只许一次(换源须换新装配)");
+            // 🔁 2026-11-05(`TD-randomevents-05`):**同一个 id 也交给 F1 上下文闭包槽** ——
+            //    该闭包在装配期就已建好(早于玩家诞生),只能经这个槽读到 id。
+            //    两处绑定同源:不做这一步 ⇒ 闭包永远 `IsBound = false` ⇒ `IsInClinic` 恒 false,
+            //    与改前硬编码 false 的**行为等价**,等于没修(假绿 F8)。
+            _playerActor?.Bind(playerActorId);
             _writer = new HouseCallStartedWriter(
                 _sink, _encoder, _decoder, _clinicCells, _houseCallEventKeys, playerActorId);
         }

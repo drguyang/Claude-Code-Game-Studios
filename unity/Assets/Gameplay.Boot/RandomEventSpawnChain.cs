@@ -21,14 +21,19 @@
 //    `BASE` / `BUDGET_MAX`(`EventBudget.ComputeDailyBudget` 的当日降临上限)。
 //    状态**全部从事件流重构**(当日 `EventRolled` / `EventArrived` 计数)——
 //    删除原 `_lastWindow` / `_ordinalInWindow` 两个读档后不可重建的内存字段。
-//    ⚠️ 生产今日候选池仍为空 ⇒ **恒 `NoPool`**,预算/抽数判据只有夹具可达(ADR-039 §R3)。
+//    ⚠️ ~~生产今日候选池仍为空 ⇒ **恒 `NoPool`**~~ **已过期(2026-11-03 池条目件落地)**:
+//    候选池非空;~~恒 `NoContext`~~ **亦已过期(2026-11-05 `TD-randomevents-05`)** ——
+//    上下文门改为档级后,链在生产里**真的会落流**;今天挡在最后一步的是
+//    **`medical` 条目的病种映射不存在**(`PatientSpawnUnavailable`,`TD-randomevents-03`)。
 //
 // ▍今天**没做**的(逐条具名,不借绿)
 //   · **密度预算的 mods 输入**(F2 的 `Mod_Eco` / `Mod_Rep`)—— P0 无输入源 ⇒ 今日 `mods = ∅`。
 //   · **权重 / 历史标记乘子** —— 见 `EventDraw` 头注。
-//   · **生成点解析** —— `spawnAnchorOf` 由装配方注入(6 的出生锚;测试传合成格)。
-//   · **生产池内容** —— 52 的池条目归 37 内容件;生产今日候选集为空 ⇒ `NoPool`,
-//     **链路真跑但零写入**(与 `RandomEventsDirectorDriver` 的「通电待信」同一形态)。
+//   · **生成点解析** —— `spawnAnchorOf` 由装配方注入(6 的出生锚;测试传合成格);
+//     生产今日是 `(0,0,0)` 具名占位(6 的出生锚解析归 P1a 关卡)。
+//   · **`medical` 条目的病种映射** —— 归 37 内容件(`TD-randomevents-03`)。
+//     ⇒ 生产今日:`encounter` 条目**真落两条事件**;`medical` 条目走
+//     `PatientSpawnUnavailable`(**零写入**,不是孤儿行)。
 
 using System;
 using System.Collections.Generic;
@@ -40,7 +45,8 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>急召生成链的单次结果(失败面全部**具名**,不返回 bool)。</summary>
     public enum SpawnChainOutcome
     {
-        /// <summary>已掷骰、已落 `EventRolled` + `EventArrived`、已请求病人出现。</summary>
+        /// <summary>已掷骰、已落 `EventRolled` + `EventArrived`;需要病人的条目已请求病人出现
+        /// (`handler = encounter` 的条目不产病人 —— 2026-11-05)。</summary>
         Spawned = 0,
 
         /// <summary>候选池为空(生产今日)⇒ 零写入(诚实 fail-safe,不是缺陷)。</summary>
@@ -64,6 +70,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>该档 `ΣW = 0`(全部条目权重归零)⇒ 跳过本轮、**不掷骰、不报错**
         /// (GDD Edge Cases `:1065`;`KeyGate` 全封或全档 `TODMult = 0` 都会触发)。</summary>
         ZeroWeight = 7,
+
+        /// <summary>
+        /// 抽中的是**需要病人**的条目,而「病人出现」这条通道今日不可用
+        /// (`handler = medical` → 37 病种映射表尚不存在,`TD-randomevents-03`)⇒ **零写入**。
+        /// <para>🔁 2026-11-05(`TD-randomevents-05` 同批):改前该形态是**先 Append 两条、
+        /// 再在 `spawnPatient` 抛** —— 流里留下「掷过骰、降临了、没人」的孤儿行,违反本类
+        /// ⑥ CAP 预检立下的同一条纪律(「失败必须排在第一次 `Append` 之前」)。</para>
+        /// </summary>
+        PatientSpawnUnavailable = 8,
     }
 
     /// <summary>52 急召生成链:抽池 → 掷骰 → F1 → `EventArrived` → 病人出现。</summary>
@@ -77,6 +92,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Func<long, WorldPos> _spawnAnchorOf;
         private readonly Func<long, PatientId> _spawnPatient;
         private readonly Func<long, F1PipelineInput> _contextOf;
+        private readonly Func<int, bool> _requiresPatient;
+        private readonly Func<long, bool> _canSpawnPatient;
         private readonly Func<IReadOnlyList<SimEvent>> _events;
         private readonly int _tier;
         private readonly long _rollInterval;
@@ -95,10 +112,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="presence">在场读面 —— CAP 预检用,**必须与 `EventStream` 同一实例**。</param>
         /// <param name="spawnAnchorOf">生成点解析(tick → 整数格);6 的出生锚,测试传合成格。</param>
         /// <param name="spawnPatient">病人出现(tick → 新病人 id);生产 = `PatientSpawner.SpawnNext`。</param>
-        /// <param name="contextOf">F1 上下文输入(window → 上下文)—— **由装配方给**(夜 / 出诊路径 /
-        /// 医馆 / 战斗冷却 / 季节全是别处的状态,本链不自己猜;内部硬编码 = 造假的上下文)。
-        /// ⚠️ `EventF1Pipeline.EvaluateContextGate` 的现行判据 = `IsOnExpedition &amp;&amp; !IsInClinic`
-        /// ⇒ 上下文给不全时链路恒 `NoContext`(这是判决,不是 bug)。</param>
+        /// <param name="contextOf">F1 上下文输入(**本次掷骰 tick** → 上下文)—— **由装配方给**
+        /// (夜 / 出诊路径 / 医馆 / 战斗冷却 / 季节全是别处的状态,本链不自己猜;
+        /// 内部硬编码 = 造假的上下文)。
+        /// <para>🔁 2026-11-05(`TD-randomevents-05`):实参由**窗口起点**改为**当前 tick**
+        /// —— 玩家格必须按此刻算(拿一天前的起点 = 一天前的位置)。</para>
+        /// <para>⚠️ 上下文「给不全」的判决已随同批修正改为**档级**:医馆只压威胁档
+        /// (`Quotas[威胁] == 0` ⇒ `NoQuota`),机会 / 反应档照常(AC-52-29);
+        /// 链路恒 `NoContext` 只在**战斗冷却**时成立。</para></param>
         /// <param name="tier">本链抽取的档 id。</param>
         /// <param name="config">52 的烘焙配置(`ROLL_INTERVAL` / `WINDOW_SIZE` / `BASE` / `BUDGET_MAX` / `TICKS_PER_DAY`)。</param>
         /// <param name="events">事件流只读视图 —— 当日计数与掷骰序号的**唯一来源**(ADR-039 D2)。</param>
@@ -115,7 +136,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             Func<IReadOnlyList<SimEvent>> events,
             int tier,
             in RandomEventsDataSet config,
-            int causeClueKey = 0)
+            int causeClueKey = 0,
+            Func<int, bool> requiresPatient = null,
+            Func<long, bool> canSpawnPatient = null)
         {
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
@@ -126,6 +149,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             _spawnPatient = spawnPatient ?? throw new ArgumentNullException(nameof(spawnPatient));
             _contextOf = contextOf ?? throw new ArgumentNullException(nameof(contextOf));
             _events = events ?? throw new ArgumentNullException(nameof(events));
+            // 两者皆可 null(= 旧语义:每条都算「需要病人」,且不预检)——
+            // 既有夹具不传它们,行为一字不变。
+            _requiresPatient = requiresPatient;
+            _canSpawnPatient = canSpawnPatient;
             if (config.RollInterval <= 0)
                 throw new ArgumentOutOfRangeException(nameof(config), config.RollInterval,
                     "ROLL_INTERVAL 须 > 0(边界门除零)");
@@ -189,7 +216,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // ⑤ F1:上下文门 + 档配额(排在掷骰之前 —— 配额为 0 就不该掷)
             //    窗口 = **预算窗口起点**(一天),不是 tick 子窗口(ADR-039 D2)。
-            F1PipelineInput raw = _contextOf(dayStart);
+            // 🔁 2026-11-05(`TD-randomevents-05`):闭包实参由**窗口起点**改为**当前 tick**。
+            //    玩家格与昼夜都必须按「此刻」算 —— 拿一天前的起点会得到一天前的位置,
+            //    而 `IsInClinic` 正是玩家位置。`Window` 仍由下方按 `dayStart` 覆盖(ADR-039 D2)。
+            F1PipelineInput raw = _contextOf(tick);
             var input = new F1PipelineInput(
                 dayStart, _windowSize, raw.IsNight, raw.IsOnExpedition, raw.IsInClinic,
                 raw.InCombatCooldown, raw.SeasonIndex);
@@ -216,6 +246,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    落流的 `EventRolled`(`SimEvent.Tick`)重建 ⇒ 不引入不可重构输入。
             EventRollResult roll = _authority.Roll(new RollRequest(dayStart, _tier, rollsToday, tick));
 
+            // ⑦之二 **病人通道预检 —— 必须在第一次 Append 之前**(与 ⑥ 同一条纪律)。
+            //    🔁 2026-11-05(`TD-randomevents-05`):`EvaluateContextGate` 改成档级之后,
+            //    链路能走到这里了,而旧序是「先 Append 两条、再在 `spawnPatient` 抛」
+            //    ⇒ 流里留下「掷过骰、降临了、没人」的孤儿行。现改为**先判后写**。
+            //    ⚠️ 掷骰本身是**纯函数**(`SeedEventAuthority.Roll` 无状态),在此早退不改随机序。
+            //    ⚠️ `requiresPatient == null` ⇒ 沿用旧语义(每条都要病人);生产恒传。
+            bool needsPatient = _requiresPatient == null || _requiresPatient(roll.ChosenKey);
+            if (needsPatient && _canSpawnPatient != null && !_canSpawnPatient(tick))
+                return SpawnChainOutcome.PatientSpawnUnavailable;
+
             // ⑧ 落两条事件 —— 顺序固定(先骰后降临;AD-52-822「一次降临恰一条 EventArrived」)
             _sink.Append(new SimEvent(tick, PatientId.None, -1, EventKind.EventRolled,
                 _encoder.Encode(EventKind.EventRolled,
@@ -227,7 +267,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     new EventArrivedPayload(roll.ChosenKey, roll.Tier, anchor, _causeClueKey))));
 
             // ⑨ 病人出现(9 的写者;自身仍受 `EventStream` 的 AC-15 把守 = 第二道门)
-            _spawnPatient(tick);
+            //    🔁 2026-11-05:只有**需要病人**的条目才走这一步 —— `handler = encounter` 的
+            //    条目(27 人形遭遇 / 野兽)不产病人。此前无条件调用是「病人通道」张冠李戴,
+            //    也正是 `medical` 映射缺失时会让**遭遇条目**一起被那道刻意抛拖死的原因。
+            if (needsPatient) _spawnPatient(tick);
 
             return SpawnChainOutcome.Spawned;
         }

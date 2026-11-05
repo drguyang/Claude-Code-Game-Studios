@@ -651,6 +651,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 双重空集 ⇒ HouseCallStarted 生产恒零写入(「通电待信」态,见驱动类头注)。
             var clinicCells = new ClinicCellSource();
 
+            // ── 🔁 2026-11-05(`TD-randomevents-05`):F1 上下文闭包的两项迟绑定输入 ──────
+            // ① 玩家 actorId —— 装配期还不存在(`BootRoot` 后置生成玩家后才 `BindPlayer`),
+            //    而 F1 闭包此刻就要建 ⇒ 经 `PlayerActorBinding` 单槽读(与 `ClinicCellSource.Bind`
+            //    同款迟绑定,不是新机制)。`RandomEventsDirectorDriver.BindPlayer` 同批写它。
+            var playerActor = new PlayerActorBinding();
+            // ② 出诊类 event_key 集 —— 生产**今日为空集**。这是**等数据**不是等代码:
+            //    37 内容件定稿回填后,从这里接上即生效(见 `TD-randomevents-06`)。
+            //    ⚠️ 与写者**共用一个数组实例**(同源):闭包的 `isOnExpedition` 与写者的
+            //    `NoActiveTarget` 必须对同一集合求值,两份 = 同一 tick 两个答案。
+            int[] houseCallEventKeys = Array.Empty<int>();
+
             // ── 52 急召生成链(S22-4 · 🔁 2026-11-03 ADR-039 运行期消费 · 同日池条目件落地)──────
             // ⚠️ **义务方别混读**(2026-11-03 订正,承 GDD `random-events.md:160` 的裁定):
             //    池**条目**(key / 档 / 触发方式 / 权重 / 锚点)归 **52**;37 只提供条目所引用的
@@ -696,22 +707,47 @@ namespace DaYiJingCheng.Gameplay.Boot
                         "该表今日不存在;返回假病种会让『有人开始生成病人了』静默通过,故刻意抛。"),
                     // ⚠️ 本闭包只提供**上下文旗标**;`WindowSize` 由链按数据集覆盖(ADR-039 D6),
                     //    这里传 0 是为了让「谁提供它」在源码里唯一。
-                    // ⚠️ `isNight` 按**窗口起点**判(本闭包只拿得到窗口起点),权重按 **roll tick** 判
-                    //    —— 在「窗口内跨过昼夜分界」的那一个子区间两者会不同。如实登记:
-                    //    F1 的上下文门今天**不读 `isNight`**(判据只有 `IsOnExpedition & !IsInClinic`),
-                    //    故该差异今日零可观测影响;接上下文门时须同批把 tick 传进本闭包。
-                    contextOf: w => new F1PipelineInput(w, windowSize: 0,
-                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(w, poolTime),
-                        isOnExpedition: false, isInClinic: false,
-                        inCombatCooldown: false, seasonIndex: 0),   // 上下文源(出诊/医馆)归后续轮
+                    // 🔁 **2026-11-05(`TD-randomevents-05`):三项输入全部改求真值**
+                    //    (改前 `isOnExpedition: false, isInClinic: false` 写死 ⇒ 门恒假 ⇒
+                    //    链恒 `NoContext`,与池表 / 权重全部无关)。
+                    //    ⚠️ 闭包实参由**窗口起点**改为**本次掷骰 tick** —— 玩家格与昼夜都必须
+                    //    按「此刻」算,拿一天前的窗口起点会得到一天前的位置。承本段原文的
+                    //    「接上下文门时须同批把 tick 传进本闭包」。
+                    contextOf: tick => F1ContextEvaluator.Evaluate(
+                        tick: tick,
+                        events: stream.Events,
+                        decoder: decoder,
+                        clinicCells: clinicCells,
+                        playerActorId: playerActor.IsBound ? playerActor.ActorId : F1ContextEvaluator.NoPlayer,
+                        houseCallEventKeys: houseCallEventKeys,
+                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(tick, poolTime)),
                     events: () => stream.Events,                    // 当日计数与掷骰序号的来源(ADR-039 D2)
                     tier: 1,                                        // 机会档(急召出诊属此档,GDD:400)
-                    config: randomEvents);
+                    config: randomEvents,
+                    // ── 🔁 2026-11-05(`TD-randomevents-05`):按条目 `handler` 决定「要不要病人」 ──
+                    // 池里 `encounter`(27 人形遭遇 / 野兽)不产病人,`medical`(37 病例模板)才产。
+                    // 改前是**无条件**调 `spawnPatient` ⇒ 遭遇条目也会撞上那道刻意抛。
+                    requiresPatient: key =>
+                    {
+                        IReadOnlyList<EventPoolEntryData> pool = eventPool.Entries;
+                        for (int i = 0; i < pool.Count; i++)
+                            if (pool[i].Key == key)
+                                return pool[i].Handler == PoolHandler.Medical;
+                        // 查不到 ⇒ **保守按「要病人」** —— 宁可拒(具名零写入),
+                        // 不可悄悄少一个病人(那是静默的数据缺失)。
+                        return true;
+                    },
+                    // 🔴 **今日恒 false,是诚实值不是占位**:`medical` 条目 → 37 病种的映射表
+                    //    尚不存在(`TD-randomevents-03`),没有映射就没有「生成哪个病」的答案。
+                    //    返回一个假病种会让「有人开始生成病人了」静默通过 —— 那正是本闭包
+                    //    刻意抛要防的形态。⇒ 现状 = 遭遇条目照常落 `EventRolled`/`EventArrived`,
+                    //    医疗条目走 `PatientSpawnUnavailable`(零写入)。映射表落地后改这一处。
+                    canSpawnPatient: _ => false);
             }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(
                 () => stream.Events, stream, encoder, decoder, clinicCells,
-                Array.Empty<int>(), randomEventSpawnChain);
+                houseCallEventKeys, randomEventSpawnChain, playerActor);
             if (!string.IsNullOrEmpty(saveBasePath))
             {
                 // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。

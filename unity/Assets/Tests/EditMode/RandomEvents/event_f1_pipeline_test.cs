@@ -54,18 +54,75 @@ namespace DaYiJingCheng.Tests.RandomEvents
             Assert.AreEqual(1, quotas[3], "灾难档配额 = 1");
         }
 
-        // AC-52-20: ContextGate 纯布尔
+        // AC-52-29(BLOCKING) + AC-52-20: ContextGate 只判「全档归零」
+        //
+        // 🔁 2026-11-05(`TD-randomevents-05`)改写。改前本用例断言
+        //   `clinicInput ⇒ EvaluateContextGate == false` —— 那是**全档门**,
+        //   与 AC-52-29 逐字相反:「玩家在医馆地块内,威胁档被 ContextMult=0 压制;
+        //   **机会 / 反应档照常生成**」。旧断言把 AC 的反面写成了判据,故一并订正。
         [Test]
-        public void test_contextGate_boolean()
+        public void test_contextGate_onlyAllTierZeroBlocks()
         {
             var input = new F1PipelineInput(0, 10, false, true, false, false, 0);
             Assert.IsTrue(EventF1Pipeline.EvaluateContextGate(input), "出诊中应通过 ContextGate");
 
+            // AC-52-29:在医馆**仍通过**门 —— 被压的是威胁档,不是整条链。
             var clinicInput = new F1PipelineInput(0, 10, false, false, true, false, 0);
-            Assert.IsFalse(EventF1Pipeline.EvaluateContextGate(clinicInput), "在医馆应不通过");
+            Assert.IsTrue(EventF1Pipeline.EvaluateContextGate(clinicInput),
+                "在医馆必须通过 ContextGate —— 机会 / 反应档照常生成(AC-52-29);" +
+                "威胁档由配额层压成 0(NoQuota),不是 NoContext");
 
             var combatInput = new F1PipelineInput(0, 10, false, true, false, true, 0);
             Assert.IsFalse(EventF1Pipeline.EvaluateContextGate(combatInput), "战斗冷却应不通过");
+        }
+
+        // AC-52-20: ContextMult **必须真的进配额层**
+        //
+        // 🔁 2026-11-05(`TD-randomevents-05`)新增。旧夹具只测 `ComputeContextMult` 的
+        //   返回值,**从不测它是否被 `Execute` 使用** —— 而改前 `Execute` 调的是无参
+        //   `HamiltonSplit(windowSize)` ⇒ 该函数零生产调用方、医馆对配额零影响,夹具全绿。
+        //   那是「自造断言顶替 AC 语义层」:断言的是被测函数的输出,不是 AC 要求的落点。
+        //   本用例钉的是**管线出口**,不是中间函数。
+        [Test]
+        public void test_execute_clinic_zeroesThreatQuota_keepsOthers()
+        {
+            var clinic = new F1PipelineInput(0, 10, false, false, true, false, 0);
+            var output = EventF1Pipeline.Execute(clinic, 0, 3);
+
+            Assert.IsTrue(output.ContextGatePassed, "医馆门应通过(AC-52-29)");
+            Assert.AreEqual(0, output.Quotas[0], "医馆内威胁档配额必须 = 0(否则 ComputeContextMult 没进管线)");
+            Assert.Greater(output.Quotas[1], 0, "机会档照常");
+            Assert.Greater(output.Quotas[2], 0, "反应档照常");
+            Assert.Greater(output.Quotas[3], 0, "灾难档照常");
+
+            long sum = 0;
+            foreach (int q in output.Quotas) sum += q;
+            Assert.AreEqual(10, sum, "被压掉的威胁档配额按原比例让给其余档(GDD 规则六之二),总数不丢");
+        }
+
+        // AC-52-20: 战斗冷却 ⇒ 全档归零 + 门不过
+        [Test]
+        public void test_execute_combatCooldown_allQuotasZero_gateFails()
+        {
+            var combat = new F1PipelineInput(0, 10, false, true, false, true, 0);
+            var output = EventF1Pipeline.Execute(combat, 0, 3);
+
+            Assert.IsFalse(output.ContextGatePassed, "战斗冷却门不过");
+            for (int i = 0; i < 4; i++)
+                Assert.AreEqual(0, output.Quotas[i], $"战斗冷却档 {i} 配额应 = 0");
+        }
+
+        // 对照组:不施加任何上下文修饰 ⇒ 配额回到 {3,3,1,1}/8 的原始比例
+        [Test]
+        public void test_execute_noContext_quotaIsOriginalRatio()
+        {
+            var plain = new F1PipelineInput(0, 8, false, false, false, false, 0);
+            var output = EventF1Pipeline.Execute(plain, 0, 3);
+
+            Assert.AreEqual(3, output.Quotas[0]);
+            Assert.AreEqual(3, output.Quotas[1]);
+            Assert.AreEqual(1, output.Quotas[2]);
+            Assert.AreEqual(1, output.Quotas[3]);
         }
 
         // AC-52-20: ContextMult 只在配额层进入
@@ -80,6 +137,37 @@ namespace DaYiJingCheng.Tests.RandomEvents
             Assert.AreEqual(1, mult[1], "医馆机会档应保留");
             Assert.AreEqual(1, mult[2], "医馆反应档应保留");
             Assert.AreEqual(1, mult[3], "医馆灾难档应保留");
+        }
+
+        // AC-52-20 / 规则六之二第一行:出诊路径抬威胁 / 机会档
+        //
+        // 🔁 2026-11-05(`TD-randomevents-05`)新增。改前 `ComputeContextMult` **完全不读
+        //   `IsOnExpedition`** ⇒ 那个旗标求值出来没有任何消费方(「零消费方 = AC 未落地」)。
+        //   本条钉的是**消费关系**:旗标一真,前两档乘子就动。
+        [Test]
+        public void test_contextMult_onExpedition_liftsThreatAndOpportunity()
+        {
+            var onExpedition = new F1PipelineInput(0, 8, false, true, false, false, 0);
+
+            int[] mult = EventF1Pipeline.ComputeContextMult(onExpedition, travelMult: 2);
+
+            Assert.AreEqual(2, mult[0], "威胁档 ×CONTEXT_TRAVEL");
+            Assert.AreEqual(2, mult[1], "机会档 ×CONTEXT_TRAVEL");
+            Assert.AreEqual(1, mult[2], "反应档不动(GDD 只点名前两档)");
+            Assert.AreEqual(1, mult[3], "灾难档不动");
+        }
+
+        // 规则六之二:`CONTEXT_TRAVEL` 的 `num ≥ den` ⇒ 整数倍须 ≥ 1
+        [Test]
+        public void test_contextMult_travelBelowOne_throws()
+        {
+            var onExpedition = new F1PipelineInput(0, 8, false, true, false, false, 0);
+
+            // ⚠️ `Assert.Throws<T>` 是**精确类型**匹配(`ArgumentOutOfRangeException` 虽派生自
+            //    `ArgumentException`,断言 `ArgumentException` 会红)—— 本行钉的就是精确类型。
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                EventF1Pipeline.ComputeContextMult(onExpedition, travelMult: 0),
+                "0 会把整档压没 —— 那是冷却 / 医馆的语义,不是「出诊」的");
         }
 
         // AC-52-20: 战斗冷却全档 ×0

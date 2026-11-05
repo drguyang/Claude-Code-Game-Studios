@@ -416,9 +416,10 @@
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
-| `TD-randomevents-05` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-05` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-06` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-08` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
@@ -679,6 +680,18 @@ PYEVAL
 > 设计出处 = `ADR-040 §Amendment A`(Valheim 形态,含 A6 分期与 A8 全 `NOT-RUN` 的 V 表)。
 > ⚠️ **同一天出现两条方向相反的裁定**(上午「不做,解除债」/ 下午「完全模仿英灵」)——
 > 两条都保留,以本条为当前有效;引用上午那条的文档须按本条理解。
+
+> > 🔁 **八十订(`TD-randomevents-05` 结案 + 新立 `-08` · 2026-11-05 · 实现轮)** ——
+> 上下文门整层重做(`ComputeContextMult` 接进配额层 · `EvaluateContextGate` 按 AC-52-29 改为档级 ·
+> `IsInClinic` 接真源 · `CONTEXT_TRAVEL` 接消费面 · 病人通道「先判后写」)。
+> 变化:`open 19 → 19`(结 `-05` −1、立 `-08` +1)· **`closed 159 → 160`**(+1)·
+> **`未闭 P0 面 8 → 8` 不变**(两条皆判 **Y**:`-05` 带走一条未闭 Y,`-08` 补上一条)·
+> **`Y 121 → 122`**(+1,条目总数涨一条而它判 Y)· **`epic 分布 3/31` 不变** ·
+> 条目 **182 → 183**(+1)。
+> **变化源**:索引行 `TD-randomevents-05` `open → closed` + 新增 `TD-randomevents-08` 行。
+> ⚠️ **未闭 P0 面「不变」不等于「没变化」** —— 换掉的是一条(`-05` 的关掉了,`-08` 的新开)。
+> ⚠️ **`-05` 结案不覆盖 AC-52-29**:它的 `THEN` 句两半,本轮只落「压制」半边;
+> 「延后 / 补发 / 作废」半边新立 `-08`,**签核该 AC 前必须先解 `-08`**。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1302,8 +1315,8 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 182 | 状态 {'closed': 159, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 121, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 113 条不计）
+条目 183 | 状态 {'closed': 160, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 8 （已闭但曾标 P0 面的 114 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        processing: 1
 ```
@@ -4614,6 +4627,40 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 23/24 交付医馆地块集时(同批);② 或任何以「52 已端到端可跑」形态引用 ADR-039 之前(**禁借绿**);③ 或 P1a 关卡轮开工时。 |
 | **归属** | **52 随机事件导演**(装配侧上下文闭包)· 医馆地块 = **23/24** · 战斗冷却 = **25/27** |
 
+> ✅ **2026-11-05 实现轮 —— 上下文门这一层结案**(原件 =
+> `production/qa/evidence/impl-td-randomevents-05-2026-11-05.md`)。
+>
+> **本轮挖出债条原文没写的两处并存缺陷**(都是「旧夹具全绿」的形态):
+> · **② `ComputeContextMult` 零生产调用方** —— `Execute` 调的是**无参** `HamiltonSplit(windowSize)`
+>   ⇒ 上下文乘子**从未进配额层**。旧夹具只断言该函数的**返回值**,不断言它被管线使用
+>   ⇒ 自造断言顶替 AC 语义层(假绿 F1)。
+> · **③ `EvaluateContextGate` 与 AC-52-29 相反** —— 原判据 `IsOnExpedition && !IsInClinic`
+>   是**全档门**,而 AC-52-29 逐字要求「威胁档被压制,**机会 / 反应档照常生成**」。
+>   旧夹具 `test_contextGate_boolean` 断的正是该 AC 的**反面**,已一并订正。
+> · 另有 **④ 孤儿行**(被 ②③ 掩盖):门一变宽链路就能走到 ⑦ 之后,而旧序是「先 Append 两条、
+>   再在 `spawnPatient` 抛」⇒ 每次掷骰往流里塞一对孤儿事件。已改为**先判后写**
+>   (新 `SpawnChainOutcome.PatientSpawnUnavailable`),并按条目 `handler` 分流
+>   (`encounter` 不产病人 —— 改前无条件调用,遭遇条目被医疗映射的缺失一起拖死)。
+>
+> **落点**:新 `unity/Assets/Sim/F1ContextEvaluator.cs`(纯函数,生产闭包只调它)+
+> `Gameplay.Boot/PlayerActorBinding.cs`(玩家 id 迟绑定槽,与 `BindPlayer` 同源)+
+> `Sim/EventF1Pipeline.cs`(乘子进配额层 · 门语义订正 · `CONTEXT_TRAVEL` 接进消费面)+
+> `Gameplay.Boot/RandomEventSpawnChain.cs`(先判后写 + handler 分流)。
+> **同源**:`F1ContextEvaluator` 与 `HouseCallStartedWriter` 共用服务袋**同一个** `IClinicCellSource`
+> 实例(第三点「规则十无人检测器」仍缺,见 `ClinicCellSource` 头注)。
+>
+> **③ `inCombatCooldown` 仍恒 false,但不记为未解** —— P0 **无**「战斗结算后冷却窗」的流表达
+> (25 / 27);真源出现时改 `F1ContextEvaluator` **一处**,门的语义不变。这是「当下正确值」。
+>
+> **回归三元组**:EditMode **`6901/6864/0/37`** · PlayMode **`341/337/0/2/2`** @ `2026-11-05` ·
+> sprint-24 `-05` 轮 · `46afde4e` + 工作树。基线 `6882/6845/0/37` / `341/337/0/2/2`;
+> 增量 `6901−6882 = 19` = 新增夹具数(12 + 5 + 2),`6864−6845 = 19`,failed **0**。
+> **证伪轮 6 变异逐一转红**(见原件 §四)。
+>
+> **⚠️ 转出(不并账)**:AC-52-29 的**延后半边**(规则六之三:医馆内威胁档入
+> `DeferredThreatSlot`、当日内补发、跨日作废)**仍零生产接线** ⇒ 新立 **`TD-randomevents-08`**。
+> **AC-52-29 不得签核为已完成** —— 本轮只落了它的「压制」半边。
+
 ### TD-randomevents-06 — 「出诊类 `event_key` 集」**零数据来源** ⇒ `isOnExpedition` 恒假(52 ↔ 37)
 
 | 侧 | 内容 |
@@ -4637,6 +4684,17 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 与 `-05` 的关系** | `-05` 的门是 `IsOnExpedition && !IsInClinic`,`InCombatCooldown` 是**独立的第一道判据**(`EventF1Pipeline.cs:146` 先判它)。⇒ 本债不解,门即使前两项为真仍可能被冷却挡掉;但它**不是**当前的主阻塞(`-05` / `-06` 才是)。 |
 | **触发条件** | ① 25/27 交付战斗结算信号时(同批);② 或用户数值轮裁定 `COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 时;③ 或任何以「规则六之二完整落地」形态引用之前(**禁借绿**)。 |
 | **归属** | **52 随机事件导演**(装配闭包)· 战斗信号 = **25/27** · 数值 = **用户裁定** |
+
+### TD-randomevents-08 — AC-52-29 的**延后半边**零生产接线:医馆内的威胁档被「丢弃」而非「延后」(52)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | **AC-52-29(BLOCKING `[B][I]`)** 的 `THEN` 句有**两半**:①「威胁档被 `ContextMult = 0` 压制」(**✅ 2026-11-05 `TD-randomevents-05` 轮已落**);②「**并记入 `DeferredThreatSlot`**;当日内离开医馆 ⇒ **立即补发**;跨日未补发 ⇒ **作废不结转**」(规则六之三)。<br>**② 半边今日零生产接线** —— 写者与状态载体**都已存在**(见下),但**没有任何生产调用方**。后果:医馆内威胁档配额被压成 0 ⇒ 该档条目**根本不进抽取** ⇒ 既不入槽、也不可能补发 ⇒ **玩家在医馆内永远等不到威胁事件,离开医馆也不会补发**。<br>⚠️ 这不是「少一个锦上添花的功能」:AC-52-29 是 BLOCKING,而**只落压制不落延后** = 把「延后」偷换成「丢弃」,正是该 AC 二轮修正时专门点名的形态。 |
+| **实测(逐条可跑)** | ① 写者存在:`ls unity/Assets/Sim/DeferredThreatSlotWriter.cs`;<br>② **零生产调用方**:`grep -rn "DeferredThreatSlotWriter\|TryDefer\|TryClear" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 命中**全在注释里**(`RandomEventsDirectorDriver.cs:26-28` 的「具名槽」段 · `WriterExistenceGate.cs:134-141` 的豁免注 · `EventBudget.cs:20` · `HouseCallStartedWriter.cs:19`)⇒ **零 `new` / 零调用**;<br>③ 导演类头注逐字登记未接:`RandomEventsDirectorDriver.cs:26-28`「延迟威胁:入槽 `TryDefer` / 补发 `TryClear` / 跨日作废 `TryClear`」;**<br>④ 判零发生在抽取之前:`RandomEventSpawnChain` ⑤ 的 `Quotas[_tier] <= 0 ⇒ NoQuota` —— 威胁档在医馆内配额为 0,链**直接返回**,连「该入槽」这句话都走不到。 |
+| **解除动作** | ① **判据顺序要重排**:「威胁档 ∧ 医馆内 ∧ 当日」必须**在 `NoQuota` 之前**判 —— 因为入槽本身是一条 `ThreatDeferred` 事件(**不是**零写入分支),顺序错了就永远入不了槽;<br>② 接入三处:入槽(`TryDefer`)· 离开医馆(`TryClear`,补发 —— 与 `HouseCallStartedWriter` 共用同一次跨格判定)· 跨日(`TryClear`,作废 —— **无 `DayBoundary` 事件,驱动形态须另裁**);<br>③ 夹具:三条路径各一(入槽 / 补发 / 作废)+ 一条「医馆内威胁档不入流但入槽」;证伪 = 删掉 `TryDefer` 调用 ⇒ 转红;<br>④ ⚠️ **不得**为省事把「威胁档在医馆内直接丢弃」写成 AC 的解释 —— 那是本债要消灭的形态。 |
+| **触发条件** | ① **AC-52-29 签核前(硬前置)**;② 或 52 下一次动延迟威胁 / 主循环节;③ 或 P1a 关卡轮(医馆真能围出闭合空间之后)。 |
+| **归属** | **52 随机事件导演**(接入)· 写者 `Sim/DeferredThreatSlotWriter.cs` **已有** · 状态载体 `EventBudget.DeferSlots` + 流折叠 **已有**(`TD-randomevents-01` 2026-10-25 落地,21 条夹具) |
+| **与 `-05` 的关系** | **同一条 AC 的两半,不同因**:`-05` = 「压制怎么算」(已解),本条 = 「压制之后那条威胁去哪」(未接)。`-05` 结案**不覆盖**本条。 |
 
 ### TD-persist-15 — 高水位初值硬编码 `1` ⇒ **每次启动都会覆盖已有槽位**(7a 的「只进不退」护栏失效)
 
