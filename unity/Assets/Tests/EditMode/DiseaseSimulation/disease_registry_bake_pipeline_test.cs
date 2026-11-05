@@ -203,6 +203,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 { "DIS_DYSENTERY", "care" },              // 同上
                 { "DIS_TETANUS", "none" },                // 发病后无解(K8)
                 { "DIS_NEURASTHENIA", "symptomatic_only" },
+                // 🔁 2026-11-05 新增(DIS_FEBRILE_SEIZURE):轴 = 柳树皮 symptomatic
+                // ⇒ 派生 handle = symptomatic_only(与麻疹/风湿热同类)
+                { "DIS_FEBRILE_SEIZURE", "symptomatic_only" },
             };
 
             Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),
@@ -435,6 +438,14 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 // ── 豁免类:主观族(R3.6 —— 客观族中性,主观族有词条)──
                 { "DIS_NEURASTHENIA", new[] {
                     "sign_fatigue", "sign_insomnia", "sign_palpitation", "sign_low_mood" } },
+
+                // 🔁 2026-11-05 新增(DIS_FEBRILE_SEIZURE,热性惊厥 —— P0 病种上限 8 → 9)。
+                // GDD diagnosis-system.md :463 flush(发热) · :533(本次新行) convulsion
+                // ——「正在抽」是**共享入口**,不是鉴别点;:615 neck_supple 阴性「排除破伤风(早期)」
+                // —— 在本案里它是与脑膜炎/破伤风分家的**硬负锚**。
+                // 序 = 通道位序(面色 1 → 姿态 4),阴性锚点殿后(与其余各行同序)。
+                { "DIS_FEBRILE_SEIZURE", new[] {
+                    "sign_flush", "sign_convulsion", "sign_neck_supple" } },
             };
 
             Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),

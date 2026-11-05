@@ -420,6 +420,9 @@
 | `TD-randomevents-06` | `random-events` | partial | **Y** | R1 |
 | `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-08` | `random-events` | open | **Y** | R1 |
+| `TD-diagnosis-02` | `diagnosis-system` | partial | **Y** | R1 |
+| `TD-sim-06` | `disease-simulation` | partial | **Y** | R1 |
+| `TD-emergency-01` | `emergency-procedures` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | closed | **Y** | R1 |
@@ -704,6 +707,30 @@ PYEVAL
 > **未做**(归 37);今日表里的两条 `true` 是 **52 的占位初值**,不是 37 的定稿。
 > ⚠️ **端到端仍恒假**:医疗条目产不出 `EventArrived`(`-03` 的病种映射缺失)⇒ 本集合非空
 > 但**没有一条出诊类事件落流**。凡以「出诊链路可跑」形态引用规则十二者,仍按未通处理。
+
+> > 🔁 **八十二订(`TD-diagnosis-02` / `TD-sim-06` / `TD-emergency-01` 立债 · 2026-11-05 · 债面)** ——
+> **变化源 = 三笔新登记,无一条状态变更。** 病因同一处:用户要求把「儿童高热惊厥 / 卡鱼刺 /
+> 偏头痛」**容纳进 52 急召**(不是推到 P1),而三路专家勘察后,**缺件是三件不同类的东西**,
+> 且**没有一件是「52 再改一行」能解决的** —— 三件全落在别的系统里。
+>
+> · **`TD-diagnosis-02`(8)** —— 体征闭集 38 条里,**抽搐 / 头痛 / 咽部异物 一条都没有**。
+>   最接近的 `sign_trismus` / `sign_opisthotonus` 是**破伤风专属**(意识清醒下的肌强直),
+>   拿来当惊厥用 = 把两种病写成一回事。
+> · **`TD-sim-06`(9)** —— 病种表只装得下**有自然病程曲线**的行,已证明**只有四种形态可表示**
+>   (A 自限 / B 平台致死 / C 豁免 / D 急持续),**「非致死且非自限」不可表示**;
+>   而抽搐是**症状**、异物是**瞬时事件**、中毒是**环境暴露**,三类都无曲线。
+>   叠加 P0 病种**硬上限 8 已触满**(`disease-simulation.md:1406`「想加第 9 个 ⇒ 拒绝」)。
+> · **`TD-emergency-01`(10)** —— `EmergencyAction` **恰 2 员**,卡鱼刺的正解(器械取出)是**第三动作**,
+>   `OQ-10-4` 冻结、增员须 `/design-review` ⇒ **玩家没有任何可点的动作**。
+>
+> 变化:`条目 183 → 186`(+3)· `open 18 → 21`(+3)· **`未闭 P0 面 8 → 11`**(+3)·
+> `Y 122 → 125`(+3)· `N 55` 不动 · `closed 160` / `partial 4` 不动 ·
+> `epic 分布 3/31 → 6/31`(`diagnosis-system` / `disease-simulation` / `emergency-procedures` 三 epic 首次入分布)。
+> ⚠️ **三个数全动,不是「同一行换字」** —— 与八十一订性质相反。
+> ⚠️ **本批不声称任何一条已可解**:三件都须用户裁定(见各自「解除动作」),
+> 本轮只把「缺什么、缺在谁那儿」钉死,使 52 侧的内容工作有出处可依。
+> ⚠️ **`TD-randomevents-03` 未被本批覆盖** —— 它记「key → 病种无映射」,
+> `TD-sim-06` 记「有映射也装不下新症」,**两条不同因,勿合并结案**。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1327,10 +1354,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 183 | 状态 {'closed': 160, 'partial': 4, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 8 （已闭但曾标 P0 面的 114 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        processing: 1
+条目 186 | 状态 {'closed': 160, 'partial': 6, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 125, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 114 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
+    random-events: 5          skeuomorphic-ui: 2        diagnosis-system: 1
+    disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -4728,6 +4756,59 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① **AC-52-29 签核前(硬前置)**;② 或 52 下一次动延迟威胁 / 主循环节;③ 或 P1a 关卡轮(医馆真能围出闭合空间之后)。 |
 | **归属** | **52 随机事件导演**(接入)· 写者 `Sim/DeferredThreatSlotWriter.cs` **已有** · 状态载体 `EventBudget.DeferSlots` + 流折叠 **已有**(`TD-randomevents-01` 2026-10-25 落地,21 条夹具) |
 | **与 `-05` 的关系** | **同一条 AC 的两半,不同因**:`-05` = 「压制怎么算」(已解),本条 = 「压制之后那条威胁去哪」(未接)。`-05` 结案**不覆盖**本条。 |
+
+### TD-diagnosis-02 — 体征词条闭集装不下新急症:**抽搐 / 头痛 / 咽部异物** 无一有载体(8 ↔ 9)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 8 的体征闭集今日 **38 条**(`assets/data/disease_registry.json` 的 `signs[].sign_key` 去重),全部落在 9 那 15 行的病种 / 伤情上。要容纳 52 急召的三类候选症,**一条现成词条都没有**:<br>· **抽搐** —— 最近的是 `sign_trismus`(牙关紧闭)/ `sign_opisthotonus`(角弓反张),二者是**破伤风的专属体征**,不是惊厥的全身体征(惊厥 = 四肢阵挛 + **意识丧失**;破伤风 = **意识清醒**下的肌强直)。拿它们冒充 = 把两种病写成一回事。<br>· **头痛** —— **零命中**(38 条里无任何 head / pain 词条)。`sign_low_mood` / `sign_insomnia` 属神经衰弱的情绪面,不可复用。<br>· **咽部异物 / 吞咽困难** —— **零命中**。 |
+| **实测(逐条可跑)** | ① 词条数:`python3 -c "import json;d=json.load(open('assets/data/disease_registry.json'));print(len({s['sign_key'] for r in d['diseases'] for s in r['signs']}))"` ⇒ **38**;<br>② 无既有词条:`python3 -c "…"` 后再 `grep -cE "convuls\|headache\|throat\|dysphag"` ⇒ **0**;<br>③ 通道位是 **6 位闭集**(`Sim.Contracts.SignChannel`:`Complexion` / `Voice` / `Posture` / `Breathing` / `Palpation` / `Wound`),`DiagnosisChannelMaskMap.cs:151-152` 的 `allMaskBits` 按该 6 位硬编码 ⇒ 新词条**必须**落进这 6 位之一,**不得新增第 7 位**(否则该断言与呈现层同步破)。 |
+| **解除动作** | ① 按 6 位闭集定义新词条(建议:`sign_convulsion` → `Posture`;`sign_headache` → `Voice`(主诉)+ `Complexion`;`sign_throat_foreign_body` → `Voice` + `Palpation`);<br>② 逐条给 `appear_at`(Q16.16 分数串,承 ADR-006 禁浮点);<br>③ 挂到病种行的 `signs[]` 上 —— **但 9 的病种表已触满 P0 上限**(见 `TD-sim-06`),故本债的**落点形态**取决于后者怎么裁;<br>④ 夹具:词条入表后 `SignChannel` 位掩码非 0;`DiagnosisChannelMaskMap` 的全位断言仍绿。 |
+| **触发条件** | ① 52 急召要产**可被 8 查出的**病人之前(硬前置);② 或 9 的病种表下一轮增行时;③ 或任何以「52 医疗条目端到端跑通」形态引用之前(**禁借绿** —— 今日 `canSpawnPatient` 恒 `false`)。 |
+| **归属** | **8 诊断系统**(体征词条与通道)· 数据落 `assets/data/disease_registry.json` · `appear_at` 数值归**用户** |
+
+> 🔁 **2026-11-05 推进(`open → partial`)—— 抽搐一条已解,头痛 / 咽部异物两条仍开。**
+> 用户裁定「到场时还在抽」⇒ `sign_convulsion` 走**姿态通道**(掩码 4),**不动 AC-8-34**
+> (病史通道白名单仍单员,`sign_purulent_stool` 一票独留)。已落:
+> `assets/data/diagnosis_signs.json` 44 行(`+sign_convulsion`,`tier_named=1`,`reveal_by=[视诊]`)·
+> `design/gdd/diagnosis-system.md` R-8.2 姿态组 +1 行并并入 Lv1 档 ·
+> 重烘 `diagnosis_signs.cooked.bytes` = **44 行** · `ConfigVersion = 0x653DD991`。
+> **引用集 38 → 39**(`DIS_FEBRILE_SEIZURE` 引用它)· **孤儿数不变 5**(它是被引用的)。
+> ⚠️ **仍未解**:`sign_headache`(头痛)与 `sign_throat_foreign_body`(咽部异物)**零载体** ——
+> 创意总监 2026-11-05 裁定「偏头痛不进 P0(红鲱鱼)」「卡鱼刺不进 P0(P1a)」⇒ 它们**暂不补**,
+> 但债不因此消失:哪天那两个题材进 P0,这两条词条仍是硬前置。
+> ⇒ 本债**不得**因 `sign_convulsion` 落地记 `closed`。
+
+### TD-sim-06 — 病种表只装得下「有自然病程的曲线」:**抽搐 / 异物 / 暴露** 三类真急症无第五种形态(9)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 9 的每一行都必须有 `natural_progress` 曲线。R1-22 / R1-34 / R1-35 已证明该曲线族**只有四种可表示形态**:<br>**A 自限**(`self_limit=true`)· **B 平台致死**(`plateau ∧ lethal`)· **C 豁免**(`plateau ∧ ¬lethal`,比值须 `0.12 < r < 0.30`)· **D 急持续**(`lethal ∧ r ≥ 0.58`)。**「非致死且非自限」不可表示。**<br>⇒ 三类真急症**结构上无处落脚**:<br>· **抽搐** —— 是**症状**(麻疹 / 痢疾 / 疟疾 / 流脑的并发症),不是病程;<br>· **异物梗阻** —— 是**瞬时机械事件**(卡住 → 取出 → 好了),没有曲线;<br>· **暴露中毒** —— 是**环境事件的函数**(离开火盆就好),不是内生病程。<br>硬塞会逼实现者写「为某病种特判的 `if`」,正撞 9 规则九。 |
+| **实测(逐条可跑)** | ① 现有 15 行的形态分布(按上列四类逐行分类):**A = 5**(`DIS_MALARIA` / `DIS_RHEUMATIC_FEVER` / `DIS_MEASLES` / `INJ_BLUNT` / `INJ_DRUG_HARM`)· **B = 2**(`DIS_HEART_FAILURE` / `DIS_TYPHOID`)· **C = 1**(`DIS_NEURASTHENIA`)· **D = 7**(`INJ_STAB` / `INJ_LACERATION` / `INJ_HEMORRHAGE` / `INJ_CLAW` / `INJ_BITE` / `DIS_DYSENTERY` / `DIS_TETANUS`),合计 15;<br>② 上限出处:`design/gdd/disease-simulation.md:400`(R3.1「现列 8 项 —— 恰好触满上限」)· `:1406`(「想加第 9 个 P0 病种 ⇒ **拒绝**」);<br>③ 形态闭包出处:同 GDD 的 R1-22 / R1-34 / R1-35。 |
+| **⚠️ 本条与 `TD-randomevents-03` 的关系** | `-03` 记的是「52 的事件 key 到 37 病种**没有映射**」;本条记的是「**就算有映射,有三类症状在 9 的表里没有形状可表示**」。**两条不同因**:`-03` 解了也只是把 key 指到现存 8 行病种上,装不下任何新症。 |
+| **解除动作(须用户裁三选一)** | **(甲) 零新增行** —— 三类全部按「症状 / 事件」挂到既有行上(惊厥挂麻疹;异物挂 `INJ_*` 伤情;中毒不进表)· **不破 P0 上限,`natural_progress` 一字不动**;<br>**(乙)** 用户推翻 `:1406` 的 P0 上限,立第 9+ 行 —— 与现行 BLOCKING 级裁定直接冲突,须显式改判;<br>**(丙)** 为 9 增设第五种形态「事件型」(`natural_progress` 变可选)—— **动 9 的骨架,须另开 ADR**。<br>裁定后:若走(甲),只需 `TD-diagnosis-02` 的词条 + 37 的病历内容,**9 零改动**;夹具按裁定形态各一条。 |
+| **触发条件** | ① 52 急召要产**端到端可见的**病人之前;② 或 9 的下一次修订轮;③ 或任何以「P0 病种表已够用」形态引用之前(**禁借绿** —— 够用的是**8 行病种**,装不下的是**三类急症**,两者不是同一句话)。 |
+| **归属** | **9 模拟核心**(形态闭包)· 上限裁定 = **用户** · 若开第五形态则**另开 ADR** |
+
+> 🔁 **2026-11-05 推进(`open → partial`)—— 抽搐那一类已解,异物 / 暴露两类仍开。**
+> 用户裁定「**放宽到 9,做惊厥**」⇒ 走上文**解除动作的(乙)**(推翻 `:1406` 的 P0 上限),已落:
+> `disease-simulation.md` R3.1 / R3.3 / §Quick Reference ④ / 规则九 / OQ-3 / 边界表**六处**同批订正
+> (原文划线保留);`assets/data/disease_registry.json` 增 `DIS_FEBRILE_SEIZURE`(id 17,**A 自限型**,
+> `a_peak=20` ⇒ 永不危殆),重烘 `disease_registry.cooked.bytes` = **16 行** · `ConfigVersion = 0x583B1393`。
+> **上限自此是 9,不是「~8 但破例了」** —— 加第 10 个仍须再裁一次。
+> ⚠️ **仍未解的两类**:「异物梗阻」(瞬时机械事件)与「暴露中毒」(环境函数)**在 9 的表里依旧没有形态** ——
+> 它们不是「再裁一次上限」能解的,是曲线族本身装不下。⇒ 本债**不得**因惊厥落地记 `closed`。
+> ⚠️ **形态闭包本身一字未动**:新行落进 **A 自限**,R1-22 / R1-34 / R1-35 对第五形态的禁止仍成立。
+
+### TD-emergency-01 — `EmergencyAction` 只有 2 个动作:**卡鱼刺的「取出」无处落脚**(10 ↔ 52/37)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `EmergencyAction` 枚举今日**恰 2 员**:`HemostasisBandage = 0` / `RhythmVentilation = 1`(2026-09-20 `OQ-10-4` 冻结;2026-10-02 `OQ-10-6` 裁为「枚举住 10 侧」)。<br>52 急召若要容纳「**卡鱼刺**」,其正解动作是**额镜 + 压舌板 + 长镊取出** —— 一个**既有 2 动作都不覆盖**的第三动作。<br>⇒ 「容纳卡鱼刺」在代码层**不可表达**:即便 37 写了病历、8 加了体征,**玩家没有任何可点的动作**。 |
+| **实测(逐条可跑)** | ① 枚举:`sed -n '21,30p' unity/Assets/Sim/EmergencyProcedures/EmergencyAction.cs` ⇒ 两员;<br>② 冻结出处:`design/gdd/emergency-procedures.md:1081`(`OQ-10-4` 逐字:「本条的枚举闭集内容(P0 = 2 动作)仍随 `OQ-10-4` 冻结,**增员走 `/design-review`**」)与 `:1083`(`OQ-10-6` 甲案「`EmergencyAction` 枚举住 10 侧」);<br>③ 无第三动作:`grep -rn "EmergencyAction\." unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 只出现这两个成员。 |
+| **解除动作** | ① **用户裁定是否增员** —— `OQ-10-4` 明写增员走 `/design-review`,本债**不代裁**;<br>② 若增员:第三动作的**数值形态**(节奏?单次?`eff_mag` 承 F-10.2)须与该 GDD 的两动作体系一致,**不得只加枚举不加行为**;<br>③ 若**不**增员:卡鱼刺必须改形态(例如只做「判断 + 建议转送」,不做取出动作)—— 那须由创意侧裁定,并同步登记「玩家无法施治」;<br>④ 夹具:增员后新动作在 AC-10 的**延迟门**(`L_input < 50 ms`)与**抖动门**(`TICK_PERIOD ≪ 动作周期`)下须有载体。 |
+| **触发条件** | ① 52 急召要容纳「需器械取出」类病症之前;② 或 10 的下一次 GDD 修订轮;③ 或任何以「卡鱼刺已可玩」形态引用之前(**禁借绿**)。 |
+| **归属** | **10 急救动作**(动作词表)· 增员裁定 = **用户 + `/design-review`** · 内容侧 = **37** |
 
 ### TD-persist-15 — 高水位初值硬编码 `1` ⇒ **每次启动都会覆盖已有槽位**(7a 的「只进不退」护栏失效)
 

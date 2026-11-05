@@ -390,9 +390,10 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_diseaseActionAxis_has6TreatableBy()
         {
-            // AC-9-03: treatable_by 关系 = 6 条非空关系 + 2 个空数组病种(DIS_TETANUS / DIS_NEURASTHENIA)
+            // AC-9-03: treatable_by 关系 = 7 条非空关系 + 2 个空数组病种(DIS_TETANUS / DIS_NEURASTHENIA)
+            // 🔁 2026-11-05:6 → 7(新增 DIS_FEBRILE_SEIZURE → 柳树皮 symptomatic,P0 病种上限 8 → 9)
             var result = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
-            Assert.AreEqual(6, result.TreatableBy.Count, "treatable_by 应有 6 条非空关系");
+            Assert.AreEqual(7, result.TreatableBy.Count, "treatable_by 应有 7 条非空关系");
         }
 
         [Test]

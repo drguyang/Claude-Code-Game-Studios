@@ -652,6 +652,21 @@
       "tier_named": 1,
       "polarity": "阳性体征",
       "neg_weight": null
+    },
+    {
+      "sign_id": "sign_convulsion",
+      "display_词": [
+        "四肢抽动",
+        "四肢抽搐、叫不应",
+        "四肢阵挛、意识丧失、牙关紧咬"
+      ],
+      "channel": "姿态",
+      "reveal_by": [
+        "视诊"
+      ],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
     }
   ]
 }

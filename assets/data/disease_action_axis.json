@@ -16,6 +16,7 @@
     "DIS_MEASLES":         [ { "action": 10, "polarity": "symptomatic" } ],
     "DIS_DYSENTERY":       [ { "action": 10, "polarity": "symptomatic" } ],
     "DIS_TETANUS":         [],
-    "DIS_NEURASTHENIA":    []
+    "DIS_NEURASTHENIA":    [],
+    "DIS_FEBRILE_SEIZURE": [ { "action": 10, "polarity": "symptomatic" } ]
   }
 }

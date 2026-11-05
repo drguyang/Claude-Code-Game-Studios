@@ -474,9 +474,11 @@ AC-8-20 / AC-8-26 曾标 `BLOCKED-BY-OQ-8 / OQ-25-8` → ✅ **2026-09-20 解除
 > **本表行数 34 → 43**,内容金标须**有意识重钉**(`sign_table_test.cs` `GoldenContentHash`)。
 >
 > **⚠️ 2026-10-23 就地订正(原文留痕)**:上文「清单只覆盖 9 的 **R2 伤情 11 项 + R3 病种 7 项**」
-> 的**计数已过期** —— 实测 `assets/data/disease_registry.json` 为 **伤情 5 行 + 病种 8 行 = 13 行**
-> (`INJ_*` 5 / `DIS_*` 8)。复算:`python3 -c "import json,collections;d=json.load(open('assets/data/disease_registry.json'));print(collections.Counter(r['kind'] for r in d['diseases']))"`
-> ⇒ `Counter({'disease': 8, 'injury': 5})`。
+> 的**计数已过期** —— 实测 `assets/data/disease_registry.json` 为 **伤情 ~~5~~ 7 行 + 病种 ~~8~~ 9 行 = ~~13~~ 16 行**
+> (`INJ_*` 7 / `DIS_*` 9)。复算:`python3 -c "import json,collections;d=json.load(open('assets/data/disease_registry.json'));print(collections.Counter(r['kind'] for r in d['diseases']))"`
+> ⇒ `Counter({'disease': 9, 'injury': 7})`。
+> 🔁 **2026-11-05 复算并订正**(上句的 5/8/13 是 2026-10-23 的值,已过期):伤情 5 → **7**(`INJ_BLUNT` 2026-10-30 · `INJ_DRUG_HARM` 2026-10-30 + 原 5 项),
+> 病种 8 → **9**(用户裁定「P0 病种上限 8 → 9」新增 `DIS_FEBRILE_SEIZURE`,见 `disease-simulation.md` R3.1)。**本次订正是被该裁定直接触发的,不是顺手改数**。
 >
 > **⚠️ 2026-10-23 新增:`reserved` 字段(AC-8-34 反向孤儿子句的闭合标注)。**
 > 本表 43 行中有 **5 行未被 9 的注册表引用**(`sign_retraction` / `sign_cheyne_stokes` /
@@ -533,9 +535,10 @@ AC-8-20 / AC-8-26 曾标 `BLOCKED-BY-OQ-8 / OQ-25-8` → ✅ **2026-09-20 解除
 | `sign_neck_stiffness` | 脖子发硬 | 脖子转不动 | **颈项强直** | **破伤风** · 脑膜刺激 —— **与角弓反张同源的早期所见**;**由触诊而非视诊所得** |
 | `sign_risus` | 怪笑 | 笑得不对劲 | **苦笑面容** | **破伤风** |
 | `sign_joint_swelling` | 关节肿 | 关节红肿 | **游走性**关节红肿 | **风湿热**(「游走性」是它的鉴别点) |
+| `sign_convulsion` | 四肢抽动 | 四肢抽搐、叫不应 | **四肢阵挛、意识丧失、牙关紧咬** | **热性惊厥** · **疟疾**(昏迷前)—— 🔁 **2026-11-05 新增**(用户裁定「**到场时还在抽**」⇒ 是**体格所见**,走姿态通道,**不借 AC-8-34 的病史白名单**)。⚠️ **「正在抽」是共享入口,不是鉴别点** —— 两个病都会抽,差别在「抽完之后会不会昏过去」(0.20 vs 0.45) |
 
 > **`tier_named` 逐行覆盖(2026-09-14 复核补 M1)** —— 本组**不再默认继承组头**:
-> `sign_orthopnea` / `sign_curled` / `sign_joint_swelling` = **Lv1**(整体体态,粗档即可指名);
+> `sign_orthopnea` / `sign_curled` / `sign_joint_swelling` / `sign_convulsion` = **Lv1**(整体体态,粗档即可指名;🔁 2026-11-05 `sign_convulsion` 并入此档 —— 抽动是**整身的**,粗档的「四肢抽动」已经是可指名的证据,不需要分节);
 > `sign_risus` / `sign_trismus` / `sign_opisthotonus` = **Lv20**(苦笑 / 牙关 / 角弓反张的**分节**
 > 是**局部层**所见,粗档只有「怪笑 / 张不开嘴」这一层印象,**叫不出名 = 不构成证据**);
 > `sign_neck_stiffness` = **Lv20**(触诊所得,且**与角弓反张同源**,同步定在细档)。

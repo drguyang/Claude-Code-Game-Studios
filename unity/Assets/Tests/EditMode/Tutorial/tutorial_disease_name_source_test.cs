@@ -39,11 +39,13 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             return dir.FullName;
         }
 
-        /// <summary>真实词表里**应当出现**的全部显示名(GDD disease-simulation.md §R3 的 8 病 12 名)。</summary>
+        /// <summary>真实词表里**应当出现**的全部显示名(GDD disease-simulation.md §R3 的 9 病 13 名)。
+        /// <para>🔁 2026-11-05:8 病 12 名 → 9 病 13 名(用户裁定 P0 病种上限 8 → 9,新增 `DIS_FEBRILE_SEIZURE` 热性惊厥)。
+        /// ⚠️ 本表的**条数不写死**:正向断言用 `ExpectedDisplayNames.Length`,加病种只改这张表。</para>
         private static readonly string[] ExpectedDisplayNames =
         {
             "风湿热", "心衰", "风湿性心脏病", "麻疹", "伤寒", "肠伤寒",
-            "细菌性痢疾", "痢疾", "间日疟", "疟疾", "破伤风", "神经衰弱",
+            "细菌性痢疾", "痢疾", "间日疟", "疟疾", "破伤风", "神经衰弱", "热性惊厥",
         };
 
         /// <summary>作业种子文本(只读)。</summary>
@@ -56,7 +58,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         // ════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_realTable_isReady_andPinsTwelveDisplayNames()
+        public void test_realTable_isReady_andPinsAllDisplayNames()
         {
             var source = new TutorialDiseaseNameSource(RepoRoot());
 
@@ -178,8 +180,8 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             StringAssert.Contains("[④]", joined, "失败须来自第 ④ 项");
             StringAssert.Contains("伤寒", joined, "命中项须点名词条「伤寒」");
             StringAssert.Contains("n_observe_1", joined, "命中项须点名条目 id");
-            StringAssert.Contains("字典 12 条", joined,
-                "扫描字典须是真表的 12 个显示名(空表 / 弱表都会改变这个数)");
+            StringAssert.Contains("字典 13 条", joined,
+                "扫描字典须是真表的 13 个显示名(空表 / 弱表都会改变这个数;🔁 2026-11-05 +热性惊厥)");
         }
 
         [Test]

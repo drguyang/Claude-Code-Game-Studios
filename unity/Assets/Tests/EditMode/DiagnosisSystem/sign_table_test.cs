@@ -20,7 +20,7 @@
 //   ② 每类违例**各红在己**(经 BakeFails:断言触底到规则 tag + **恰一条错误**排他 ——
 //      夹具串味 / 多错折叠即此抓);
 //   ③ 扫描面/行集断言 Is.Not.Empty(防空过滤跑假绿 —— 承 story-001 Q-5);
-//   ④ 内容金标:R-8.2 43 行的 id|通道|档|极性|揭示法|三档词 逐字冻结(QA MAJOR-1)。
+//   ④ 内容金标:R-8.2 44 行的 id|通道|档|极性|揭示法|三档词 逐字冻结(QA MAJOR-1)。
 //
 // ⚠️ 驱动**生产**接缝:DiagnosisSignBaker.BakeFromRepo(菜单与测试共用同一台机器)、
 //   DiagnosisSignBinderProbe.Bake(夹具直喂)—— 不是测试侧的重实现。
@@ -131,7 +131,7 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             "\"polarity\":\"阳性体征\"," +
             "\"neg_weight\":null}]}";
 
-        // 仓库种子的 43 条主键(GDD R-8.2 冻结清单逐字 —— 任何增删改名必须过 /design-review)
+        // 仓库种子的 44 条主键(GDD R-8.2 冻结清单逐字 —— 任何增删改名必须过 /design-review)
         private static readonly string[] PinnedSignIds =
         {
             "sign_pallor", "sign_flush", "sign_diaphoresis", "sign_rash", "sign_koplik", "sign_jaundice",
@@ -147,6 +147,8 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             "sign_wound_stab", "sign_wound_laceration", "sign_wound_hemorrhage",
             "sign_wound_claw", "sign_wound_bite",
             "sign_fatigue", "sign_insomnia", "sign_palpitation", "sign_low_mood",
+            // ── 2026-11-05 增补 1 条(用户裁定:P0 病种上限 8 → 9,第 9 位 = 热性惊厥)──
+            "sign_convulsion",
         };
 
         // ═══════════════════════════════════════════════════════════
@@ -159,7 +161,7 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             // 仓库真种子须**真通过** —— 装载路径可用的最直接判据(非恒拒)。
             DiagnosisSignBaker.BakeOutput outp = DiagnosisSignBaker.BakeFromRepo(RepoRoot);
             Assert.That(outp.Rows, Is.Not.Empty, "扫描面自证(空集 ⇒ 种子/键失配,单跑假绿面)");
-            Assert.AreEqual(43, outp.Rows.Count, "R-8.2 冻结清单 = 43 行(阳性 39 + 阴性 4)");
+            Assert.AreEqual(44, outp.Rows.Count, "R-8.2 冻结清单 = 44 行(阳性 40 + 阴性 4;🔁 2026-11-05 sign_convulsion)");
             Assert.Greater(outp.Cooked.Length, 20, "产物须含 20 字节头 + 载荷");
         }
 
@@ -185,7 +187,7 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             DiagnosisSignBaker.BakeOutput outp = DiagnosisSignBaker.BakeFromRepo(RepoRoot);
             DiagnosisSignDataSet ds = DiagnosisSignCookedCodec.Read(outp.Cooked);
 
-            Assert.AreEqual(43, ds.Rows.Count, "回读须得 43 行(证载荷未截断)");
+            Assert.AreEqual(44, ds.Rows.Count, "回读须得 44 行(证载荷未截断)");
             Assert.DoesNotThrow(
                 () => DiagnosisSignTableValidator.Validate(ds.Rows),
                 "回读所得行集喂回校验器须仍通过(闭路)");
@@ -443,7 +445,8 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         /// 测的是夹具形态而不是数据(自引式假绿同型)。现在走
         /// <see cref="DiseaseRegistryBaker.BakeFromRepo"/> 的**真行集**,与生产同源。</para>
         /// <para>⚠️ 实测基线(2026-10-23,可复算见 `tests/unit/diagnosis_system/README.md`):
-        /// 引用集 **38** / 词表 **43** 行 / 孤儿 **5** / 悬空 **0** —— 五条孤儿全部带 `reserved`。</para>
+        /// 引用集 **39** / 词表 **44** 行 / 孤儿 **5** / 悬空 **0** —— 五条孤儿全部带 `reserved`。
+        /// <para>🔁 2026-11-05:引用集 38 → 39、词表 43 → 44(新增 `sign_convulsion`,由 `DIS_FEBRILE_SEIZURE` 引用);孤儿数**不变**(它是被引用的,不是孤儿)。</para>
         /// </summary>
         [Test]
         public void test_ac834_reverseOrphan_reservedAnnotationCloses()
@@ -567,13 +570,13 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             // ① 主键集 == 冻结清单(增删改名必须过 /design-review)
             CollectionAssert.AreEquivalent(
                 PinnedSignIds, rows.Select(r => r.SignId).ToArray(),
-                "R-8.2 主键集须与 GDD 冻结清单逐字一致(43 项)");
+                "R-8.2 主键集须与 GDD 冻结清单逐字一致(44 项)");
 
             // ② 极性分布:阳性 39 / 阴性 4(2026-10-23:30 → 39,新增 9 条全阳性)
             List<SignLexemeRow> negatives = rows.Where(r => r.Polarity == SignPolarity.Negative).ToList();
             List<SignLexemeRow> positives = rows.Where(r => r.Polarity == SignPolarity.Positive).ToList();
             Assert.AreEqual(4, negatives.Count, "阴性体征 = 4 行");
-            Assert.AreEqual(39, positives.Count, "阳性体征 = 39 行");
+            Assert.AreEqual(40, positives.Count, "阳性体征 = 40 行(🔁 2026-11-05 +sign_convulsion)");
 
             // ③ 阴性侧:全 tier_named = Lv20 + neg_weight raw > 0(C-6;不钉占位量级)
             foreach (SignLexemeRow n in negatives)
@@ -618,21 +621,24 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
                 Assert.AreEqual(1, s.TierNamed, $"主观 {s.SignId} 须 tier_named=1(问诊出生自带)");
         }
 
-        /// <summary>R-8.2 **内容金标**(QA MAJOR-1):43 行的
+        /// <summary>R-8.2 **内容金标**(QA MAJOR-1):44 行的
         /// id|通道序数|档|极性序数|揭示法序数串|粗档|中档|细档 逐字冻结。
         /// <para>存在性金标(test_r82_existence)不钉词与通道 —— 本测补上:任何词改动 /
         /// 通道挪动 / 档漂移 ⇒ 金标红,须**过 /design-review 并有意识重钉**(禁顺手重钉)。</para>
         /// <para>⚠️ 2026-10-23 有意识重钉 <c>3954e294</c> → <c>3f8a0cd1</c> ——
         /// **34 行 → 43 行**:新增「伤口」组 5 条(补 9 的 Wound 位悬空)+
         /// 「主观族」组 4 条(R3.6 豁免类的词条载体)。非数值轮产物,是**词表扩容**;
-        /// 行数断言(43)与金标同批改,两者须一致。</para></summary>
-        private const string GoldenContentHash = "3f8a0cd1";
+        /// 行数断言(43)与金标同批改,两者须一致。</para>
+        /// <para>🔁 <b>2026-11-05 有意识重钉</b>(用户裁定「P0 病种上限 8 → 9,做惊厥」):
+        /// **43 行 → 44 行**,新增姿态组 `sign_convulsion`。它是 `DIS_FEBRILE_SEIZURE`
+        /// 的唯一载体,而后者是 52 急召 2×2 判断矩阵的良性对照行 —— 不是顺手加词。</para></summary>
+        private const string GoldenContentHash = "8bac974e";
 
         [Test]
         public void test_r82_contentFrozen_golden()
         {
             List<string> lines = BuildContentLines();
-            Assert.AreEqual(43, lines.Count, "R-8.2 冻结行数 = 43");
+            Assert.AreEqual(44, lines.Count, "R-8.2 冻结行数 = 44");
             string actual = Fnv1aHex(lines);
             if (!string.Equals(GoldenContentHash, actual, StringComparison.Ordinal))
                 Assert.Fail(
@@ -715,7 +721,7 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
                 "AC-8-35:扩展烘焙前常量哈希须已在金标上(把本测与金标绑死,防同进程自比较恒真)");
 
             DiagnosisSignBaker.BakeOutput seedOutp = DiagnosisSignBaker.BakeFromRepo(RepoRoot);
-            Assert.AreEqual(43, seedOutp.Rows.Count, "种子 43 行");
+            Assert.AreEqual(44, seedOutp.Rows.Count, "种子 44 行");
 
             const string extraRow =
                 ",{\"sign_id\":\"sign_story002_extra\",\"display_词\":[\"额外粗档\",\"额外中档\",\"额外细档\"]," +
@@ -733,8 +739,8 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
 
             byte[] cooked = DiagnosisSignBinderProbe.Bake(extended);
             List<SignLexemeRow> extendedRows = DiagnosisSignCookedCodec.Read(cooked).Rows;
-            // 2026-10-23:43 + 1 = 44(词表 34 → 43 行后同步;原值 35 = 34 + 1)
-            Assert.AreEqual(44, extendedRows.Count, "扩展种子须烘出 44 行(加行零代码改动)");
+            // 2026-11-05:44 + 1 = 45(词表 43 → 44 行后同步;2026-10-23 时为 43 + 1 = 44)
+            Assert.AreEqual(45, extendedRows.Count, "扩展种子须烘出 45 行(加行零代码改动)");
 
             List<string> linesAfter = BuildConstantLines();
             Assert.AreEqual(string.Join("\n", linesBefore), string.Join("\n", linesAfter),

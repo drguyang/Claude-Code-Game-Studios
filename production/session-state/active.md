@@ -16903,3 +16903,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `TD-randomevents-06` `open → partial`(解除动作 ① 归 37 未做)。计数:open 18 · partial 4 · 未闭 P0 面 8。
 - ⚠️ **端到端仍恒假**:医疗条目产不出 `EventArrived`(等 `-03` 的病种映射)⇒ 集合非空但无非出诊类事件落流。
 - **待提交**。
+
+### 52 急召容纳「儿童高热惊厥」实现轮(2026-11-05 · 数据 + 文档,零新增夹具)
+
+- **用户三项裁定**:① 登记债 + 增加必要内容(不推 P1)· ② **P0 病种上限 8 → 9,做惊厥** · ③ **`sign_convulsion` 走姿态通道**(「到场时还在抽」⇒ 体格所见,**不放宽 AC-8-34**)。
+- 数据:`DIS_FEBRILE_SEIZURE`(id 17,A 自限型,`a_peak=20` ⇒ 永不危殆)· `sign_convulsion`(姿态/tier 1)· 轴 +柳树皮 symptomatic · 病名闭集 9。
+- 重烘:体征 **44 行** `0x653DD991` · 病种 **16 行** `0x583B1393` · 处置轴 **7 关系** `0xA6CBE9DE` · **`53_cost_table` 亦须重烘**(其 `ConfigVersion` 按设计由 53 源 + 注册表两源一起派生)。
+- 回归:EditMode **`6909 / 6872 / 0 / 37`**(与基线逐位相同 —— **本轮未新增 `[Test]`**,只改期望值)· PlayMode **`341 / 337 / 0 / 2 / 2`**(逐位相同)。
+- 证伪轮 **6 变异,M1/M2/M3/M3b/M4 全部红在靶点**,SHA-256 逐字节还原(三数据文件「成功」)。**M3′ 一处打偏已如实登记**(删轴条目推不动 `handle` —— `DiseaseHandle.Derive` 对 `care`/`none` 硬编码、`symptomatic_only` 是兜底)。
+- 债:`TD-diagnosis-02` / `TD-sim-06` **open → partial**;`TD-emergency-01`(卡鱼刺)维持 open。计数 186 · open 19 · partial 6 · 未闭 P0 面 11。
+- ⚠️ **端到端仍恒假** —— `canSpawnPatient` 恒 `false`(等 `TD-randomevents-03`)。本件只证数据行存在与一致,不证任何病人真被生成。
+- 证据原件 = `production/qa/evidence/impl-febrile-seizure-containment-2026-11-05.md`。
+- **待提交**。
