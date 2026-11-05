@@ -16963,3 +16963,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `TD-build-02` 维持 **partial**:①②④ 已落、③ 执行一次;唯一未闭面 = CI 的 `player-build.yml` 从未在 CI 上跑过。
 - 计数:条目 192 · open 20 · partial 9 · closed 162 · 未闭 P0 面 12(不变)· N 58。
 - 证据原件 = `production/qa/evidence/impl-td-build-02-company-product-2026-11-05.md`。commit `bbd7978b`。
+
+### TD-persist-23 兑现轮(PlayMode 夹具存档根 · 2026-11-05 晚)
+
+- 用户指令:「按 TD-persist-23 把 PlayMode 夹具的存档根修了」。
+- **21 个夹具 / 22 个站点**补 `X.SaveRootOverride = PlayModeTempSaveRoot.New("<夹具名>")`(多世界缝;不换 `SaveBasePathOverride`,换缝会改被测行为)。
+- 新增 `Assets/Tests/PlayMode/PlayModeTempSaveRoot.cs`(每夹具一个互不相同的临时根)+ `Assets/Tests/EditMode/PersistenceService/playmode_save_root_gate_test.cs`(含 `AddComponent<BootRoot>` 而**剥注释后**无覆盖 ⇒ 红;空集守卫 = 真启动序文件 < 10 也红)。
+- 判据:**修前**跑全量 PlayMode ⇒ 真实存档根多出 `save_auto.bin`;**修后** ⇒ `diff -rq` **零输出**。
+- 证伪轮 M1(漏一个夹具)/ M2(判据串失效→空集守卫)/ M3(注释顶替门)各红在靶点,SHA-256 逐字节还原。
+- 回归 EditMode `6941 / 6904 / 0 / 0 / 37`(+1 = 新门)· PlayMode `341 / 337 / 0 / 2 / 2`(逐位不变)· 构建 `Result: Success`。
+- `TD-persist-23` **closed**;计数:条目 192 · open 19 · partial 9 · closed 163 · 未闭 P0 面 12(本条判 N,不变)。
+- 边界:临时目录不清理(与既有夹具同口径);`FsWriteBoundaryGate` 不扩面(间接写归新门)。
+- 证据原件 = `production/qa/evidence/impl-td-persist-23-playmode-save-root-2026-11-05.md`。commit `49af55f8`。
