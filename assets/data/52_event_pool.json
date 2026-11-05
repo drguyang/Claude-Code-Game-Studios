@@ -1,16 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "night_threat_mult": { "num": 3, "den": 2 },
   "tod_mult_max": { "num": 2, "den": 1 },
   "entries": [
-    { "key": 1001, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 1002, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 1003, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 1004, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 1005, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 2001, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "encounter", "cause_flag": "" },
-    { "key": 2002, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "medical",   "cause_flag": "" },
-    { "key": 2003, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path", "trigger_mode": "random", "handler": "medical",   "cause_flag": "" },
-    { "key": 3001, "w_base": 100, "tier": "reaction",    "spawn_anchor": "clinic_front", "trigger_mode": "random", "handler": "medical",   "cause_flag": "" }
+    { "key": 1001, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 1002, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 1003, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 1004, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 1005, "w_base": 100, "tier": "threat",      "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 2001, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false },
+    { "key": 2002, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": true  },
+    { "key": 2003, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": true  },
+    { "key": 3001, "w_base": 100, "tier": "reaction",    "spawn_anchor": "clinic_front", "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": false }
   ]
 }

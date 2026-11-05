@@ -33,6 +33,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] EntryKeys =
         {
             "key", "w_base", "tier", "spawn_anchor", "trigger_mode", "handler", "cause_flag",
+            // 🔁 2026-11-05(`TD-randomevents-06`):急召出诊标记。**必填** ——
+            //    缺字段不能默认 false:那会让「37 还没定内容」与「定了、说不是」不可分,
+            //    而这两者一个该等、一个该停。
+            "is_house_call",
         };
 
         /// <summary>档名 → id(闭集四员,规则三「属且只属一档」)。</summary>
@@ -209,10 +213,23 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (wBase < 0)
                 errors.Add($"{at}.w_base = {wBase} 须 ≥ 0(W_base 是整数个数,负值无意义)");
 
+            // 急召出诊标记(必填;类型须为 JSON 布尔 —— 整数 0/1 会让作者态不可读,
+            // 与 `tier`/`handler` 用字符串枚举是同一条口径)。
+            if (!node.TryGet("is_house_call", out JsonNode houseCallNode))
+            {
+                errors.Add($"{at} 缺 is_house_call(必填;`false` ≠ 「还没定」)");
+                return null;
+            }
+            if (houseCallNode.Kind != JsonNodeKind.Boolean)
+            {
+                errors.Add($"{at}.is_house_call 须为 JSON 布尔(实得 {houseCallNode.Kind})");
+                return null;
+            }
+
             if (errors.Count != before) return null;
 
             return new EventPoolEntryData(key, wBase, tier, anchor, trigger,
-                                          (PoolHandler)handler, causeFlagKey);
+                                          (PoolHandler)handler, causeFlagKey, houseCallNode.Bool);
         }
 
         private static bool ReadEnum(JsonNode node, string key, string[] names, string at,

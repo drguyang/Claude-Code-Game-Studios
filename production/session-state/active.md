@@ -16891,3 +16891,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   计数:条目 183 · open 19 · closed 160 · 未闭 P0 面 **8 不变**(换了一条)。
 - ⚠️ **AC-52-29 不得签核为已完成** —— 只落了「压制」半边。
 - **待提交**。
+
+### TD-randomevents-06 实现轮(2026-11-05 · 52 侧机制,内容侧仍开)
+
+- 池条目 schema 增**必填布尔** `is_house_call`(→ `schema_version 1 → 2`,条目 28→32 B,已重烘 `0xC1768C4D`);
+  `EventPoolBinder` 缺字段/非布尔 ⇒ 构建期拒收(不默认 false);`EventPoolDataSet.HouseCallKeys()` 派生;
+  装配层 `Array.Empty<int>()` 硬编码删除。
+- 当前 `true` 的两条 = 2002 / 2003(52 按规则十一 P0 占位给的初值,**不是 37 定稿**);3001 是 clinic_front ⇒ false。
+- 回归:EditMode `6909/6872/0/37`(+8)· PlayMode `341/337/0/2/2`(逐位相同)。
+- 证伪轮 4 变异全红在指定靶点,SHA-256 逐字节还原。
+- `TD-randomevents-06` `open → partial`(解除动作 ① 归 37 未做)。计数:open 18 · partial 4 · 未闭 P0 面 8。
+- ⚠️ **端到端仍恒假**:医疗条目产不出 `EventArrived`(等 `-03` 的病种映射)⇒ 集合非空但无非出诊类事件落流。
+- **待提交**。

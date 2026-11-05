@@ -417,7 +417,7 @@
 | `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-05` | `random-events` | closed | **Y** | R1 |
-| `TD-randomevents-06` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-06` | `random-events` | partial | **Y** | R1 |
 | `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-08` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
@@ -692,6 +692,18 @@ PYEVAL
 > ⚠️ **未闭 P0 面「不变」不等于「没变化」** —— 换掉的是一条(`-05` 的关掉了,`-08` 的新开)。
 > ⚠️ **`-05` 结案不覆盖 AC-52-29**:它的 `THEN` 句两半,本轮只落「压制」半边;
 > 「延后 / 补发 / 作废」半边新立 `-08`,**签核该 AC 前必须先解 `-08`**。
+
+> > 🔁 **八十一订(`TD-randomevents-06` 推进 · 2026-11-05 · `open → partial`)** ——
+> 52 侧机制落地:池条目 schema 增**必填布尔** `is_house_call`(→ 产物 `schema_version 1 → 2`,
+> 条目 `28 → 32 B`,已重烘焙)· `EventPoolDataSet.HouseCallKeys()` 派生整数集 ·
+> 装配层 `Array.Empty<int>()` 硬编码删除 · 新夹具 8 条。
+> 变化:`open 19 → 18`(−1)· **`partial 3 → 4`**(+1)· `closed 160` 不动 ·
+> **`未闭 P0 面 8` 不变**(`partial` 仍计入)· `Y 122` 不动 · 条目 **183 不变**。
+> **单一变化源**:索引行 `TD-randomevents-06` 的 `open → partial`。
+> ⚠️ **为什么是 `partial` 不是 `closed`**:解除动作 ①「37 交付出诊类 `event_key` 的内容」
+> **未做**(归 37);今日表里的两条 `true` 是 **52 的占位初值**,不是 37 的定稿。
+> ⚠️ **端到端仍恒假**:医疗条目产不出 `EventArrived`(`-03` 的病种映射缺失)⇒ 本集合非空
+> 但**没有一条出诊类事件落流**。凡以「出诊链路可跑」形态引用规则十二者,仍按未通处理。
 
 > > 🔁 **六十九订(`TD-persist-20` 推进 · 2026-11-04 · 实现面 + 债面)** ——
 > 用户指令「按 D 案开工吧」⇒ ADR-040 由 `Proposed` 转 **Accepted**,实现一轮。
@@ -1315,7 +1327,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 183 | 状态 {'closed': 160, 'partial': 3, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 183 | 状态 {'closed': 160, 'partial': 4, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 122, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 8 （已闭但曾标 P0 面的 114 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 8 条,分布在 3/31 个 epic
     random-events: 5          skeuomorphic-ui: 2        processing: 1
@@ -4672,6 +4684,27 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 前置** | 依赖 **`TD-randomevents-05` 第 3 步已落**(医馆地块集已派生)与 **`-03` 的 medical 映射**(病人 id 的取得 —— GDD `:580` 登记「出诊类 `EventArrived` 载荷不含病人 id」)。三条**串联**,任一不解则 `isOnExpedition` 不可达。 |
 | **触发条件** | ① 37 内容件定稿急召出诊条目时(同批);② 或任何以「出诊启动链路可跑」形态引用规则十二之前(**禁借绿**)。 |
 | **归属** | **52 随机事件导演**(整数集的持有与装配)· 内容 = **37** |
+
+> 🔧 **2026-11-05 实现轮 —— 52 侧机制**结案**,内容侧仍开**(状态 `open → partial`)。
+>
+> **解除动作逐条**:
+> | # | 动作 | 状态 |
+> |---|---|---|
+> | ① | 37 内容件交付急召出诊的 `event_key`(37 的 GDD 轮) | **❌ 未做** —— 归 37,不在本轮面内 |
+> | ② | 池条目加 `is_house_call` 标记,走 ADR-014 烘焙 | **✅** `assets/data/52_event_pool.json` 每条新增**必填布尔** `is_house_call`;`EventPoolBinder` 白名单 + 类型校验(缺字段 / 非布尔 ⇒ **构建期拒收**,不默认 `false`);产物 `schema_version 1 → 2`、条目 `28 → 32 B`;已重烘焙(`ConfigVersion 0xC1768C4D`) |
+> | ③ | `CompositionRoot` 的 `houseCallEventKeys` 从池表派生 | **✅** `EventPoolDataSet.HouseCallKeys()`(**有落点可测**,不在装配层写无夹具的内联循环)⇒ `Array.Empty<int>()` 硬编码已删 |
+> | ④ | 夹具:集合非空 ⇒ `ActiveHouseCallQuery` 真 ⇒ `HouseCallStarted` 可落流 | **✅** `house_call_keys_from_pool_test` **8 条**(真表派生 / 语义自洽 / 产物往返 / `default` 空数组 / 全 false / 升序 / 缺字段拒收 / 非布尔拒收)+ 既有的 `house_call_test` 20 条覆盖「集合非空 ⇒ 写者可达」 |
+>
+> **当前值(如实标注:不是 37 的定稿)** —— `is_house_call = true` 的两条是
+> **`2002` / `2003`**(52 按 GDD 规则十一 P0 内容占位给的初值:`handler = medical` **且**
+> `spawn_anchor = travel_path` = 「要你走过去的那种求诊」)。`3001` 是 `clinic_front` 医疗条目
+> ⇒ **false**。37 定稿时**逐条改表,零代码改动**。
+>
+> **⚠️ 端到端仍不通(禁借绿)** —— 集合非空**不等于** `isOnExpedition` 能为真:医疗条目要先
+> 产出 `EventArrived`,而病人通道今日恒 `PatientSpawnUnavailable`(`TD-randomevents-03`:52 事件 →
+> 37 病种的映射表不存在)。**在那之前没有任何出诊类 `EventArrived` 落流。**
+>
+> **回归三元组**:见 `production/qa/evidence/impl-td-randomevents-06-2026-11-05.md` §三。
 
 ### TD-randomevents-07 — 战斗后冷却窗(`CONTEXT_COOLDOWN`)的**输入源不存在**(52 ↔ 25/27)
 

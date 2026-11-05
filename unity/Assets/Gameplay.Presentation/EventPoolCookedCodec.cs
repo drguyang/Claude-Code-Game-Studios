@@ -16,15 +16,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
     public static class EventPoolCookedCodec
     {
         /// <summary>读方认领的 <c>schema_version</c>。</summary>
-        public const uint ExpectedSchemaVersion = 1u;
+        /// <remarks>🔁 2026-11-05(`TD-randomevents-06`):1 → **2**(条目追加 `is_house_call`)。</remarks>
+        public const uint ExpectedSchemaVersion = 2u;
 
         private const string ProductName = "52_event_pool";
 
         /// <summary>固定头部字节数(5 × i32)。</summary>
         public const int FixedPayloadBytes = 20;
 
-        /// <summary>每条条目字节数(7 × i32)。</summary>
-        public const int EntryBytes = 28;
+        /// <summary>每条条目字节数(8 × i32;`is_house_call` 于 2026-11-05 追加)。</summary>
+        public const int EntryBytes = 32;
 
         /// <summary>解码。</summary>
         /// <exception cref="InvalidDataException">头部损坏 / schemaVersion 不匹配 / 载荷长度不符 / 条目越界。</exception>
@@ -65,12 +66,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     int trigger = r.ReadInt32();
                     int handler = r.ReadInt32();
                     int causeFlagKey = r.ReadInt32();
+                    int isHouseCall = r.ReadInt32();
 
                     if (handler != (int)PoolHandler.Encounter && handler != (int)PoolHandler.Medical)
                         throw E13($"条目 {key} 的 handler={handler} 不在闭集 {{0,1}} —— 产物损坏");
 
+                    // 值域守形状(0/1);语义(哪些条目该为真)归 Binder 与内容侧。
+                    if (isHouseCall != 0 && isHouseCall != 1)
+                        throw E13($"条目 {key} 的 is_house_call={isHouseCall} 不在闭集 {{0,1}} —— 产物损坏");
+
                     rows.Add(new EventPoolEntryData(key, wBase, tier, anchor, trigger,
-                                                    (PoolHandler)handler, causeFlagKey));
+                                                    (PoolHandler)handler, causeFlagKey,
+                                                    isHouseCall == 1));
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);

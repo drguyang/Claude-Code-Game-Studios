@@ -39,9 +39,10 @@ namespace DaYiJingCheng.Tests.RandomEvents
             => new EventPoolDataSet(entries, nightNum, nightDen, maxNum, maxDen, 0u, 1u);
 
         private static EventPoolEntryData Entry(int key, int wBase, int tier,
-                                                int trigger = 0, int causeFlag = 0)
+                                                int trigger = 0, int causeFlag = 0,
+                                                bool isHouseCall = false)
             => new EventPoolEntryData(key, wBase, tier, spawnAnchor: 1, triggerMode: trigger,
-                                      PoolHandler.Encounter, causeFlag);
+                                      PoolHandler.Encounter, causeFlag, isHouseCall);
 
         // ══════════════ 一、`W_i` 的算术 ══════════════
 

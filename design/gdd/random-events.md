@@ -561,6 +561,14 @@ HouseCallStarted 落流 ⟺ (活跃出诊目标存在) 且 (玩家本 tick 首�
 
 - **「出诊类」判据 = `event_key` ∈ 出诊类条目集**(构建期配置:池条目 schema 的
   `key`,规则二;哪些 `event_key` 是急召出诊 = 37 内容件定稿时回填,52 侧只持整数集)。
+  > 🔁 **2026-11-05(`TD-randomevents-06`)机制已落,内容未定**:池条目 schema 增 **`is_house_call`**
+  > (必填布尔 → `52_event_pool.cooked.bytes` 的第 8 个 i32,schema_version **1 → 2**),
+  > 装配层经 `EventPoolDataSet.HouseCallKeys()` 派生整数集 —— 数据一改即生效,**零代码改动**。
+  > ⚠️ **当前值 = 52 按本文规则十一 P0 内容占位给的初值**(`handler = medical` **且**
+  > `spawn_anchor = travel_path` 的两条:`2002` / `2003`),**不是 37 的定稿**。
+  > 37 定稿时**逐条改表**,不需改代码。
+  > ⚠️ **端到端仍不通**:医疗条目要产出 `EventArrived` 得先有「病种映射」(`TD-randomevents-03`);
+  > 在那之前本集合非空但**没有任何出诊类 `EventArrived` 落流** ⇒ `isOnExpedition` 仍恒假。**禁借绿。**
 - **① 立案终止**:`CaseOpened` 落流即出诊生命周期终点 —— 与 37 的「立案时刻 = 抵达 +
   就诊交互」同一时刻,零新事件。
 - **② 过期**:急召窗口期数值归 37 内容件(若其定义了窗口);P0 配置无窗口 ⇒ 活跃目标

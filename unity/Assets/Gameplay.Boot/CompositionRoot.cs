@@ -656,10 +656,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    而 F1 闭包此刻就要建 ⇒ 经 `PlayerActorBinding` 单槽读(与 `ClinicCellSource.Bind`
             //    同款迟绑定,不是新机制)。`RandomEventsDirectorDriver.BindPlayer` 同批写它。
             var playerActor = new PlayerActorBinding();
-            // ② 出诊类 event_key 集 —— 生产**今日为空集**。这是**等数据**不是等代码:
-            //    37 内容件定稿回填后,从这里接上即生效(见 `TD-randomevents-06`)。
-            //    ⚠️ 与写者**共用一个数组实例**(同源):闭包的 `isOnExpedition` 与写者的
-            //    `NoActiveTarget` 必须对同一集合求值,两份 = 同一 tick 两个答案。
+            // ② 出诊类 event_key 集 —— **从池表派生**(`TD-randomevents-06`,2026-11-05)。
+            //    改前是硬编码 `Array.Empty<int>()` ⇒ `ActiveHouseCallQuery` 恒假 ⇒
+            //    `isOnExpedition` 恒假。现在成员身份写在 `52_event_pool.json` 的
+            //    `is_house_call` 上,经 ADR-014 烘进产物;本行只在数据未加载时兜底为空。
+            //    ⚠️ 与写者**共用一个数组实例**(同源),见下方 `RandomEventsDirectorDriver` 构造。
             int[] houseCallEventKeys = Array.Empty<int>();
 
             // ── 52 急召生成链(S22-4 · 🔁 2026-11-03 ADR-039 运行期消费 · 同日池条目件落地)──────
@@ -681,6 +682,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 RandomEventsDataSet randomEvents = dataProvider.Load<RandomEventsDataSet>();
                 EventPoolDataSet eventPool = dataProvider.Load<EventPoolDataSet>();
+
+                // ── 出诊类 event_key 集:从池表的 `is_house_call` 派生(TD-randomevents-06) ──
+                // GDD 规则十二 12.2:「哪些 `event_key` 是急召出诊 = 内容侧回填,52 侧只持整数集」。
+                // ⇒ 数据一改,这里**零代码改动**跟着变。今日池里标真的是 2002 / 2003。
+                // ⚠️ 派生逻辑住在 `EventPoolDataSet.HouseCallKeys()`(**有落点可测**),
+                //    不在本方法里写内联循环 —— 「集合恒空」正是本债要消灭的形态。
+                houseCallEventKeys = eventPool.HouseCallKeys();
 
                 // 夜间判据的唯一出处 = `Sim.World.TimeBase.IsNight`(AC-5-05 有门守着)。
                 // ⚠️ 参数未就绪(`ResolveTimeParams` 返回 null)⇒ **恒判白天**,不拿默认值冒充。

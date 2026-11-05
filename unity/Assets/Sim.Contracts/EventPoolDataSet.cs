@@ -60,11 +60,20 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>规则九的因果标记 key(0 = 无)。</summary>
         public readonly int CauseFlagKey;
 
+        /// <summary>
+        /// 本条是否**急召出诊**(GDD 规则十二 12.2 的「出诊类」判据;`TD-randomevents-06`)。
+        /// <para>装配层据此派生 `ActiveHouseCallQuery` 的整数集 —— **不再传 `Array.Empty&lt;int&gt;()`**。
+        /// 该集合的成员身份**归内容侧**(37 定稿时逐条回填),52 只持整数集(GDD `random-events.md:563`)。</para>
+        /// </summary>
+        public readonly bool IsHouseCall;
+
         public EventPoolEntryData(int key, int wBase, int tier, int spawnAnchor,
-                                  int triggerMode, PoolHandler handler, int causeFlagKey)
+                                  int triggerMode, PoolHandler handler, int causeFlagKey,
+                                  bool isHouseCall)
         {
             Key = key; WBase = wBase; Tier = tier; SpawnAnchor = spawnAnchor;
             TriggerMode = triggerMode; Handler = handler; CauseFlagKey = causeFlagKey;
+            IsHouseCall = isHouseCall;
         }
     }
 
@@ -99,6 +108,29 @@ namespace DaYiJingCheng.Sim.Contracts
 
         /// <summary>烘焙时随产物落盘的 schema 版本。</summary>
         public readonly uint SchemaVersion;
+
+        /// <summary>
+        /// 急召出诊条目的 key 集合(按池表序 = **key 升序**;空表 ⇒ 空数组)。
+        /// <para>GDD 规则十二 12.2 的「出诊类条目集」—— 装配层据此填
+        /// `ActiveHouseCallQuery` 的整数集(`TD-randomevents-06`)。</para>
+        /// <para>⚠️ 提成方法而不是在装配层写内联循环:那条内联循环**没有落点可测**,
+        /// 而「集合恒空」正是本债要消灭的形态(改前是硬编码 `Array.Empty&lt;int&gt;()`)。</para>
+        /// </summary>
+        public int[] HouseCallKeys()
+        {
+            if (Entries == null || Entries.Count == 0) return System.Array.Empty<int>();
+
+            int n = 0;
+            for (int i = 0; i < Entries.Count; i++)
+                if (Entries[i].IsHouseCall) n++;
+            if (n == 0) return System.Array.Empty<int>();
+
+            var keys = new int[n];
+            int w = 0;
+            for (int i = 0; i < Entries.Count; i++)
+                if (Entries[i].IsHouseCall) keys[w++] = Entries[i].Key;
+            return keys;
+        }
 
         public EventPoolDataSet(IReadOnlyList<EventPoolEntryData> entries,
                                 int nightThreatMultNum, int nightThreatMultDen,
