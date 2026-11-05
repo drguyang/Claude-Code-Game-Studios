@@ -16951,3 +16951,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 债册 `TD-build-02` **open → partial**;①(company/product)与 ④(运维文档)仍未做;③ 的「每发必跑」是常驻义务。计数块已重生成:open 20→19 · partial 8→9 · 未闭 P0 面 12 不变。
 - 调试跑局再次写过真实存档,已对 `saves.old5` 逐件还原并 `diff` 零输出;一处**未坐实**已如实登记(19:10 出现的根级 `save_auto.bin`,1622 B 旧格式尺寸,归因候选 = PlayMode 夹具直 `AddComponent<BootRoot>()`)。
 - 证据原件 = `production/qa/evidence/impl-td-build-02-player-build-entry-2026-11-05.md`。commit `39ab422b`。
+
+### TD-build-02 ① 轮(company/product + 旧档随迁 · 2026-11-05 晚)
+
+- 用户指令:「把 company/product 也设了(TD-build-02 ①)」;`AskUserQuestion` 裁定 = **`DaYiJingCheng` / `大医精诚`**,旧档**搬过去**。
+- `ProjectSettings.asset` 两行改动;存档根 → `~/.config/unity3d/DaYiJingCheng/大医精诚/saves`(整目录 mv,前后 `diff -rq` 零差异)。
+- 产物 → `大医精诚.x86_64` + `大医精诚_Data`(123,546,177 B · 23.9 s);窗口标题 `大医精诚`(xdrive 因标题变化改为按 PID 定位,脚本 `/home/gu/.claude/jobs/6001633c/tmp/xdrive3.py`)。
+- 真启动:主菜单「继续诊治」可点(旧档被找到)→ 世界 → 退出;四屏有字,`Font not found` = 0。
+- 回归 EditMode `6940/6903/0/0/37` · PlayMode `341/337/0/2/2`,与改名前逐位相同。
+- **坐实 `TD-persist-23`**:全量 PlayMode 回归往真实存档根写 `save_auto.bin`(1622 B、`DYJQ`、`SaveVersion 5`),已立债并清理。同时**订正**上一份证据件里「1622 B = 旧格式」的错判。
+- `TD-build-02` 维持 **partial**:①②④ 已落、③ 执行一次;唯一未闭面 = CI 的 `player-build.yml` 从未在 CI 上跑过。
+- 计数:条目 192 · open 20 · partial 9 · closed 162 · 未闭 P0 面 12(不变)· N 58。
+- 证据原件 = `production/qa/evidence/impl-td-build-02-company-product-2026-11-05.md`。commit `bbd7978b`。
