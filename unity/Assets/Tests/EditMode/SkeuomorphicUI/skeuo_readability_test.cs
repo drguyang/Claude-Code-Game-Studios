@@ -125,6 +125,76 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // ②′ 存档册 ≥24px(2026-11-05 字号轮 · 用户裁定「乙:24px + 行高 44→50」)
+        //
+        //  病因(用户实测):「选项读取和覆写字体看不清」。取帧像素算的墨/纸对比
+        //  **13.29:1**(承诺 ≥7:1)⇒ 颜色侧合格,唯一未满足的是**字号**:
+        //  `save-slots-7b.md:312` 的「行字段 / 页角注 ≥24px @1080p」自 spec 订立起从未成立
+        //  (行字 15px / 墨字 15px / 页码 11px)。且 24px **在原五档里无档位**(上限 22px)。
+        // ⚠️ 几何腿(24px 装不装得进行高)**不在本件**:无渲染宿主量不出 layout
+        //  (见本文件头 §几何腿的诚实边界)⇒ 该腿 = 走查 `Adr041SaveSlotsWalkthrough`
+        //  的 `[WB][量尺]`,实测 `openFontSize=24.0 row=50.0(二段态前 50.0)`。
+        // ══════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_s3_2b_paperToken_atLeast24px()
+        {
+            string theme = ReadTheme();
+            var m = Regex.Match(theme, @"--skeuo-font-size-paper:\s*(\d+(?:\.\d+)?)px");
+            Assert.IsTrue(m.Success,
+                "缺 `--skeuo-font-size-paper` token —— 24px 在 `xs..xl` 五档里**无档位**" +
+                "(上限 `xl = 22px`),该 token 是纸面下限的可引用载体。");
+            double px = double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            Assert.That(px, Is.GreaterThanOrEqualTo(MinFontSizePx),
+                $"`--skeuo-font-size-paper` = {px}px,须 ≥ {MinFontSizePx}px(`:85` / 7b `:312`)。" +
+                "下调即违约 —— 且**不会红在别处**:几何腿只判「二段态前后等高」,字号变小它照样绿。");
+        }
+
+        [Test]
+        public void test_s3_2b_saveBookText_bindsPaperToken()
+        {
+            string paper = StripComments(ReadUss("SkeuoPaper.uss"));
+
+            foreach (string cls in new[]
+                     {
+                         ".save-slot-mark",                          // 行字段
+                         ".save-slot-page",                          // 页角注
+                         ".save-slot-choice-glyph .unity-text-element", // 二段态墨字(用户点名的那两个)
+                     })
+            {
+                var block = Regex.Match(paper, Regex.Escape(cls) + @"\s*\{[^}]*\}");
+                Assert.IsTrue(block.Success, $"缺 `{cls}` 声明块。");
+                Assert.IsTrue(Regex.IsMatch(block.Value, @"font-size:\s*var\(--skeuo-font-size-paper\)"),
+                    $"`{cls}` 须绑 `var(--skeuo-font-size-paper)`(≥{MinFontSizePx}px)—— " +
+                    "7b `:312`「行字段 / 页角注 ≥24px」的载体;改回 `md` 即红。");
+            }
+        }
+
+        [Test]
+        public void test_s3_2b_saveBookRows_useSaveRowHeightToken()
+        {
+            string theme = ReadTheme();
+            var mt = Regex.Match(theme, @"--skeuo-save-row-height:\s*(\d+(?:\.\d+)?)px");
+            Assert.IsTrue(mt.Success, "缺 `--skeuo-save-row-height` token。");
+            double rowPx = double.Parse(mt.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            Assert.That(rowPx, Is.GreaterThanOrEqualTo(44.0),
+                $"`--skeuo-save-row-height` = {rowPx}px,须 ≥ 44(AB-3 焦点落点高半)。");
+
+            string paper = StripComments(ReadUss("SkeuoPaper.uss"));
+            foreach (string cls in new[] { ".save-slot-item", ".save-slot-writable" })
+            {
+                MatchCollection blocks = Regex.Matches(paper, Regex.Escape(cls) + @"\s*\{[^}]*\}");
+                Assert.That(blocks.Count, Is.GreaterThanOrEqualTo(1), $"缺 `{cls}` 声明块。");
+                // 取**最后**一块:`.save-slot-item` 在共享等重块里出现一次(44),
+                // 本册的抬升是后挂覆盖块 —— 判据看生效的那一块。
+                string last = blocks[blocks.Count - 1].Value;
+                Assert.IsTrue(Regex.IsMatch(last, @"min-height:\s*var\(--skeuo-save-row-height\)"),
+                    $"`{cls}` 生效块须 `min-height: var(--skeuo-save-row-height)` —— " +
+                    "24px 字盒 43 + 6 = 49,共享 44 装不下(实测 22px 起行高就涨)。");
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // ③ 底衬走 var(零内联 / 零硬编码 —— C2/C4 门禁同款)
         // ══════════════════════════════════════════════════════════════════════
         [Test]

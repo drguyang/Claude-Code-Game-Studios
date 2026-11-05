@@ -339,7 +339,9 @@
  *   ⇒ 与暂停壳对齐:字体交给主题默认,这里只定**颜色 / 字号 / 对齐 / 内边距**。 */
 .save-slot-mark {
     color: var(--skeuo-ink-fg);
-    font-size: var(--skeuo-font-size-md);
+    /* 🔁 2026-11-05:`md`(15px)→ 纸面下限 24px(用户裁定「乙」)。
+       7b §9 的「行字段 ≥24px @1080p」自 spec 订立起从未满足(实测 15px)。 */
+    font-size: var(--skeuo-font-size-paper);
     -unity-text-align: middle-left;
     padding-left: var(--skeuo-shared-space-sm);
     padding-right: var(--skeuo-shared-space-sm);
@@ -361,6 +363,10 @@
 .save-slot-item {
     flex-direction: row;
     align-items: center;
+    /* 🔁 2026-11-05(用户裁定「乙」):本册行高由共享的 44 抬到 50 —— 24px 字盒 43 + 6 = 49。
+       ⚠️ **等重不破**:空槽行与有字行都是本类(同一条声明),二段态前后也都是 50。
+       共享 44 留给其余列表屏(全局一动会连带脉案 / 库存 / 容器三屏的每页容量)。 */
+    min-height: var(--skeuo-save-row-height);
 }
 
 .save-slot-choice {
@@ -380,7 +386,7 @@
     padding-left: var(--skeuo-shared-space-xs);
     padding-right: var(--skeuo-shared-space-xs);
     color: var(--skeuo-ink-fg);
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
     -unity-text-align: middle-center;
 }
 
@@ -390,7 +396,13 @@
  *   实测 label 高 49 ⇒ 二段态行 44→56(= 走查第三帧报的那 12px)。后代选择器特异性更高,压得住。
  *   2026-11-04 实测:`[WB][DIAG] openLabel=49.0 row=56.0` ⇒ 补本条后应回落 44。 */
 .save-slot-choice-glyph .unity-text-element {
-    font-size: var(--skeuo-font-size-md);
+    /* 🔁 2026-11-05(用户实测:「选项读取和覆写字体看不清」):`md`(15px)→ 纸面下限 24px。
+       实测墨/纸对比度 **13.29:1**(取帧像素算的)⇒ 问题**不是颜色**而是**字号**。
+       ⚠️ **15 → 18 → 20 的教训**:15/18/20 都一样压得进 44px 行高(字盒 30/35/37),
+       22px 起行高才涨 ⇒ **只看行高不再是判据**,须同时看**解析后的字号**(见走查量尺
+       `openFontSize`),否则「改了 CSS 但盒子没动」会被误读成「没生效」。
+       ⇒ 现取 24px(= 7b §9 的行字段下限),行高随之抬到 50(见 `--skeuo-save-row-height`)。 */
+    font-size: var(--skeuo-font-size-paper);
 }
 
 .save-slot-choice-disabled {
@@ -401,14 +413,19 @@
 .save-slot-writable {
     border-bottom-width: var(--skeuo-shared-border-width);
     border-bottom-color: var(--skeuo-brass-bg);
-    min-height: var(--skeuo-shared-row-height);
+    /* 🔁 2026-11-05:与槽位行同高 —— 它也是本册的一行,矮一截会被读成「不是行」。 */
+    min-height: var(--skeuo-save-row-height);
     width: 100%;
 }
 
 /* 页脚页码(§5.2 封面区「当前页码 · 页脚鱼尾压印」的降级形态:一行居中小字)。 */
 .save-slot-page {
     color: var(--skeuo-ink-fg-light);
-    font-size: var(--skeuo-font-size-xs);
+    /* 🔁 2026-11-05:同步抬到纸面下限 —— `save-slots-7b.md:312` 明确点名
+       「最小字号(**行字段 / 页角注**) ≥24px @1080p」,此前 11px。
+       本行不是用户点名的项,但它与本轮同一屏的其余文字同属该条,留 11px 会让这屏
+       **肉眼即与自己的 spec 矛盾**(行字 24 / 页码 11)。 */
+    font-size: var(--skeuo-font-size-paper);
     -unity-text-align: middle-center;
     padding-top: var(--skeuo-shared-space-xs);
     padding-bottom: var(--skeuo-shared-space-xs);

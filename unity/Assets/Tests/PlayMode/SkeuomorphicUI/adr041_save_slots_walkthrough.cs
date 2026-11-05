@@ -193,6 +193,10 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                       $"open={armedRow.OpenChoice?.resolvedStyle.height:F1} " +
                       $"rewrite={armedRow.RewriteChoice?.resolvedStyle.height:F1} " +
                       $"openLabel={armedRow.OpenChoice?.Q<Label>()?.resolvedStyle.height:F1} " +
+                      // 🔁 2026-11-05:补**解析后的字号** —— 只量盒子高不足以判「字号有没有生效」
+                      //    (15px 与 18px 的字盒高实测同为 35,若只看 35 会误判成「CSS 没吃到」)。
+                      $"openFontSize={armedRow.OpenChoice?.Q<Label>()?.resolvedStyle.fontSize:F1} " +
+                      $"markFontSize={markEl?.resolvedStyle.fontSize:F1} " +
                       $"flexDir={armedRow.resolvedStyle.flexDirection}");
             // 判据 = 「二段态不多占一行」,**不是**「一格像素都不许动」:
             //   实测残余 1px(row 的 border-bottom 落在两态的盒模型口径差上,
