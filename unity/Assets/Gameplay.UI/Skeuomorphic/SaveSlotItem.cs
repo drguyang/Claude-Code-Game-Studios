@@ -72,6 +72,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             EnableInClassList("empty-row", IsEmpty);
             EnableInClassList("save-slot-item", !IsEmpty);
             _mark.text = RowText(view);
+            _noticeShown = false;   // 重探 = 提示作废(与二段态同一条纪律)
         }
 
         /// <summary>
@@ -103,6 +104,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // ⚠️ 文案(`前版` / `此页已损` / `已锁`)归 narrative 内容轮,此处只定「有三处口子」。
             if (view.IsLocked) text += " · 已锁";
             return view.FromBackup ? text + " · 前版" : text;
+        }
+
+        private bool _noticeShown;
+
+        /// <summary>
+        /// 已锁行的**一次性提示**(🔁 2026-11-05 用户实测:「点已有存档 → 选读取 → 没有重新进入游戏」)。
+        /// <para>⚠️ 真因不是「没反应」,是更坏的形态:已锁槽的「启封」被灰置并退出焦点序
+        /// ⇒ 二段态的焦点落到**「重写」** ⇒ **一次确认就覆写这个槽**。
+        /// ⇒ 已锁行**不再进二段态**(`SaveSlotsScreen.Activate` 在进入前就拦),
+        /// 改为在行上说明原因;本方法只负责把那句话写出来。</para>
+        /// <para>提示是**一次性的**:下一次重探(`Apply`)自动作废,不会越叠越长。</para>
+        /// </summary>
+        public void ShowLockedNotice(string notice)
+        {
+            if (_noticeShown || _mark == null || string.IsNullOrEmpty(notice)) return;
+            _noticeShown = true;
+            _mark.text = _mark.text + " · " + notice;
         }
 
         /// <summary>「启封」墨字的元件名(观测面)。</summary>

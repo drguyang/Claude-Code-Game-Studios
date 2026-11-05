@@ -120,6 +120,27 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         }
 
         [Test]
+        public void test_lockedRow_activate_doesNotEnterTwoStage_andExplainsWhy()
+        {
+            // 🔁 2026-11-05(用户实测:「点已有存档 → 选读取 → 没有重新进入游戏」)。
+            //    真因更坏:已锁槽的「启封」灰置且退出焦点序 ⇒ 二段态焦点落到**「重写」**
+            //    ⇒ 一次确认就**覆写**这个槽。⇒ 已锁行不再进二段态,改为行上说明。
+            SaveSlotsScreen screen = NewScreen(out _);
+            screen.SetSlotViews(new[]
+            {
+                new SaveSlotView(1u, known: true, hasSave: true, tick: 1200L, dayNumber: 1L,
+                                 isLocked: true),
+            });
+
+            screen.Activate(0);
+
+            Assert.That(screen.ArmedRowIndex, Is.EqualTo(-1),
+                "已锁行**不得**进入二段态 —— 否则默认焦点在「重写」上,一次确认就覆写存档");
+            Assert.That(screen.RowAt(0).MarkText, Does.Contain("推进一次剧情后可启封"),
+                "必须说明为什么点不动,不能只是「点了没反应」");
+        }
+
+        [Test]
         public void test_rows_timeOfDay_omittedWhenDayUnknown()
         {
             // `DayNumber == 0` = 时间信息未就绪。此时 **不得** 写「昼」——

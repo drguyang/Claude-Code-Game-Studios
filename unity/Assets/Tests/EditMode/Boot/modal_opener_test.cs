@@ -167,6 +167,41 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
+        public void test_toggleDriver_atFirstLayer_doesNotOpenPause_butStillCloses()
+        {
+            // 🔁 2026-11-05(用户实测:「第一层的设置,点设置然后 ESC 后无法回到上一层」)。
+            //    本驱动已提到 `_booted` 早退之前(菜单期也要能关壳),但菜单期**无模态时按 ESC
+            //    不得摊开暂停壳** —— 那是世界内的东西。
+            var opener = new FakeOpener();
+            bool held = false;
+            bool inWorld = false;
+            var driver = new ModalInputDriver(() => held, opener, canOpenPause: () => inWorld);
+
+            held = true;
+            driver.OnFrame();
+            Assert.That(opener.OpenCalls, Is.EqualTo(0), "第一层无模态 ⇒ ESC 不得开暂停壳");
+            Assert.That(opener.CloseCalls, Is.EqualTo(0), "也不得错觉成「关了个什么」");
+
+            // 菜单里开了设置壳 ⇒ ESC 必须能关掉(这正是用户报的那条)
+            held = false;
+            driver.OnFrame();                       // 松开
+            opener.CurrentModal = ModalId.SettingsShell;   // 模拟「点设置」把壳打开(非本驱动所为)
+            held = true;
+            driver.OnFrame();
+            Assert.That(opener.CloseCalls, Is.EqualTo(1),
+                "第一层有模态 ⇒ ESC 必须关得掉 —— 用户实测「设置壳关不掉」就是这一条");
+
+            // 进世界后:无模态按 ESC ⇒ 正常开暂停壳
+            held = false;
+            driver.OnFrame();                       // 松开
+            inWorld = true;
+            int opensBefore = opener.OpenCalls;
+            held = true;
+            driver.OnFrame();
+            Assert.That(opener.OpenCalls, Is.EqualTo(opensBefore + 1), "进世界后 ⇒ ESC 恢复开壳");
+        }
+
+        [Test]
         public void test_toggleDriver_nullDependencies_throwAtConstruction()
         {
             Assert.Throws<ArgumentNullException>(() => new ModalInputDriver(null, new FakeOpener()));
@@ -297,6 +332,34 @@ namespace DaYiJingCheng.Tests.Boot
         {
             var adapter = new ModalGateStateAdapter((SkeuoRuntimeDriver)null);
             Assert.That(adapter.IsOpen, Is.False, "无 UI ⇒ 无模态(诚实降级,不是假装开着)");
+        }
+
+        // ══════════════ ⑥-b 设置壳的回退层数(2026-11-05 用户实测追问)══════════════
+
+        /// <summary>
+        /// 「暂停壳 → 调治 → ESC」应当**回到暂停壳**,再按一次才回世界。
+        /// <para>用户 2026-11-05 实测报「点了设置,然后再按 ESC 回不去」—— 本夹具先钉死
+        /// **现有层数语义**,是不是 bug 由裁定决定,不由实现期自行改口径。</para>
+        /// <para>⚠️ 本条只走驱动层(`CloseModal`),不驱动键盘 —— 输入面另有 `AC-PS-09` 覆盖。</para>
+        /// </summary>
+        [Test]
+        public void test_settingsFromPause_escapeReturnsToPause_thenToWorld()
+        {
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            _driver.OpenModal(ModalId.Pause);
+            var pause = (PauseScreen)_driver.Screen;
+
+            pause.Activate(3);                                   // 「调治」→ SettingsShell
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SettingsShell),
+                "夹具前提:调治行换到设置壳");
+
+            _driver.CloseModal();
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause),
+                "第一次 ESC:设置壳 ⇒ **回暂停壳**(壳类模态压栈,OQ-PS-1 同族语义)");
+
+            _driver.CloseModal();
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "第二次 ESC:暂停壳 ⇒ 回世界(栈已空)");
         }
 
         // ══════════════ ⑦ 暂停壳:存档位的正式入口(2026-10-31 Amendment C)══════════════

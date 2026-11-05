@@ -117,22 +117,28 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_lockedRow_openIsDisabled_rewriteStillWorks()
+        public void test_lockedRow_doesNotEnterTwoStage_andSaysWhy()
         {
+            // 🔁 **2026-11-05 口径改判(用户实测驱动)**:本条原断「已锁行仍进二段态,
+            //    「启封」灰置、「重写」可用」。实际后果是**灾难性的**:焦点被落在
+            //    「重写」上(`SaveSlotsScreen.ArmRow`),玩家以为在「读取」,一次确认就**覆写存档**。
+            //    用户实测逐字:「点已有存档,选择读取,没有重新进入游戏」—— 真因是这个。
+            //    依据:`save-slots-7b.md:143` 本来就写「已锁行**仍可聚焦**,Submit 给**拒绝反馈**」
+            //    ⇒ 原实现**偏离 spec**,本条随之改成 spec 的形状。
+            //    ⚠️ 副作用如实登记:UI 不再提供「覆写已锁槽」的入口(台账侧 ADR-041 §D3 仍允许)。
             SaveSlotsScreen screen = NewScreen(out RecordingSink sink);
             screen.SetSlotViews(Mixed());
 
             screen.Activate(2);                        // 槽 5 = 有档且已锁
             SaveSlotItem row = screen.RowAt(2);
 
-            Assert.That(row.OpenChoice, Is.Not.Null);
-            Assert.That(row.OpenChoice.focusable, Is.False,
-                "已锁 ⇒ 「启封」必须退出焦点序(否则手柄停在一个按不出结果的墨字上)");
-            Assert.That(row.OpenChoice.enabledSelf, Is.False, "灰置");
-
-            row.ActivateRewrite();
-            Assert.That(sink.SaveAts, Is.EqualTo(new[] { 5u }),
-                "覆写已锁槽是允许的(ADR-041 §D3:锁拒的是 reads 侧)");
+            Assert.That(screen.ArmedRowIndex, Is.EqualTo(-1), "已锁行**不得**进二段态");
+            Assert.That(row.OpenChoice, Is.Null, "二段态的墨字一个都不该出现");
+            Assert.That(row.MarkText, Does.Contain("推进一次剧情后可启封"),
+                "必须说明原因 —— 不能只是「点了没反应」");
+            Assert.That(sink.SaveAts, Is.Empty,
+                "**一旦误触就是毁档**:已锁行点一下不得产生任何落笔");
+            Assert.That(sink.Loads, Is.Empty, "也不得触发载入(锁着,载入必被 7a 拒)");
         }
 
         // ══════════════════════════════════════════════════════════════════

@@ -30,16 +30,19 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         private readonly Func<bool> _togglePressed;
         private readonly ModalOpener _opener;
+        private readonly Func<bool> _canOpenPause;
         private bool _held;
 
         /// <summary>输入读面 + 打开面(均为注入 —— 夹具可直驱,不必碰设备)。</summary>
         /// <param name="togglePressed">开合键是否按住(生产 = `PlayerInputReader.PauseTogglePressed`)。</param>
         /// <param name="opener">42 侧的开关面(生产 = `SkeuoRuntimeDriver` 的适配)。</param>
         /// <exception cref="ArgumentNullException">任一为 null(静默空转 = 按键没反应且无记录)。</exception>
-        public ModalInputDriver(Func<bool> togglePressed, ModalOpener opener)
+        public ModalInputDriver(Func<bool> togglePressed, ModalOpener opener,
+                                Func<bool> canOpenPause = null)
         {
             _togglePressed = togglePressed ?? throw new ArgumentNullException(nameof(togglePressed));
             _opener = opener ?? throw new ArgumentNullException(nameof(opener));
+            _canOpenPause = canOpenPause;
         }
 
         /// <summary>至今成功开 / 关的次数(观测面;夹具据此断言「一次按下 = 恰好一次动作」)。</summary>
@@ -76,6 +79,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
             else
             {
+                // 🔁 2026-11-05:**第一层只关不开**。本驱动已提到 `_booted` 早退之前
+                //    (菜单期也要能关掉设置壳),但菜单期「无模态时按 ESC」**不得**摊开暂停壳
+                //    —— 那是世界内的东西,压在场景级主菜单上就是第二个层级被凭空造出来。
+                //    生产注入 `() => _booted`;null = 恒可开(夹具的既有形态)。
+                if (_canOpenPause != null && !_canOpenPause()) return;
                 _opener.OpenPause();
                 OpenCount++;
             }

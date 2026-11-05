@@ -399,6 +399,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 return;
             }
 
+            // ②-b **已锁** ⇒ **不进二段态**(🔁 2026-11-05 用户实测的整改)。
+            //   病因:已锁槽的「启封」被灰置并退出焦点序 ⇒ 二段态焦点落到**「重写」**
+            //   ⇒ 玩家以为在「读取」,一次确认却**覆写了这个槽**。
+            //   ⇒ 锁住就不给二段态,改为在行上说明原因(可读路径仍可达:推进一次剧情后解锁)。
+            if (view.IsLocked)
+            {
+                DisarmRow();
+                RowAt(rowIndex)?.ShowLockedNotice("推进一次剧情后可启封");
+                return;
+            }
+
             // ③ **已有档** ⇒ 行内二段态(§D5):第一次 Submit 只出示两枚墨字,不动作。
             if (_armedRowIndex == rowIndex) return;   // 墨字已摊开 ⇒ 由它们接手
             ArmRow(rowIndex, view);

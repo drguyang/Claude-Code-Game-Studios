@@ -1142,7 +1142,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
             _modalInput = new ModalInputDriver(
                 PlayerInputReader.PauseTogglePressed,
-                new DriverModalOpener(_uiDriver));
+                new DriverModalOpener(_uiDriver),
+                // 🔁 2026-11-05:第一层(主菜单)**只关不开** —— 世界还没起,暂停壳没有意义;
+                //    但菜单里打开的设置壳仍须能被 ESC 关掉(见 `Update` 里本驱动的位置)。
+                canOpenPause: () => _booted);
 
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
             // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选
@@ -2422,11 +2425,16 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private void Update()
         {
-            if (!_booted || _tickDriver == null || _player == null) return;
-
-            // 模态开合(2026-10-31):键沿 → 42 的 OpenModal / CloseModal。放帧泵最前 ——
-            // 它是纯呈现层开关,不读 tick、不写 sim,先于一切 sim 侧驱动执行。
+            // 🔁 2026-11-05(用户实测:「进入程序第一层的设置,点设置然后 ESC 后无法回到上一层」):
+            //    模态开合**必须跑在 `_booted` 早退之前**。病因:菜单期 `_booted == false`
+            //    (见 `:517`「菜单期零 tick / 零输入泵」)⇒ 早退把 `ModalInputDriver` 一起挡在门外
+            //    ⇒ **第一层打开的设置壳没人接 ESC**,壳关不掉。
+            //    ⚠️ 它本来就该在这儿:该驱动是**纯呈现层开关**(不读 tick、不写 sim),
+            //    与「世界是否在跑」无关 —— 与 `OnFrameEdge` 同一条判据(2026-11-05 前者已搬)。
+            //    ⚠️ `_modalInput` 在启动序 `:1143` 才构造;此前为 null ⇒ `?.` 兜住。
             _modalInput?.OnFrame();
+
+            if (!_booted || _tickDriver == null || _player == null) return;
 
             // 🔁 2026-11-05(smoke-2026-11-05.md 的 B 条):存档槽位重探走**每帧**,不走 tick 边沿。
             //    病因:存档册是挡路模态 ⇒ 世界冻结 ⇒ `CurrentTick > tickBefore` 恒假 ⇒
