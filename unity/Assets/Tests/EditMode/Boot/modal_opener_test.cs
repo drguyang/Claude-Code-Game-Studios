@@ -403,7 +403,7 @@ namespace DaYiJingCheng.Tests.Boot
             var pause = (PauseScreen)_driver.Screen;
 
             Assert.That(pause.RowCount, Is.EqualTo(5),
-                "壳 = 继续 / 保存 / 存档位 / 调治 / 退出游戏 五行" +
+                "壳 = 继续 / 保存 / 存档位 / 调治 / 返回主菜单 五行" +
                 "(2026-11-05 参照英灵神殿第二层增「保存」;同日早些增第四行,2026-11-04 增第三行)");
 
             pause.Activate(2);   // 「存档位」(1 = 保存,2026-11-05 增)
@@ -526,7 +526,7 @@ namespace DaYiJingCheng.Tests.Boot
             var pause = (PauseScreen)_driver.Screen;
 
             // 🔁 2026-11-05:增「保存」与「退出游戏」—— 陈旧期望 3 → 5。
-            string[] expected = { "继续", "保存", "存档位", "调治", "退出游戏" };
+            string[] expected = { "继续", "保存", "存档位", "调治", "返回主菜单" };
             for (int i = 0; i < pause.RowCount; i++)
             {
                 Label text = pause.RowAt(i).Q<Label>();

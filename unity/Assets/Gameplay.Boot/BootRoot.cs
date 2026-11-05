@@ -536,22 +536,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    该 handle —— 既不泄漏(卸载即释放),又保住 ADR-023 §⑤ 拆序第 4 步
             //    `UnloadSceneAsync(handle)` 所需的句柄;Phase 1 不卸载 ⇒ handle 常驻是
             //    设计而非泄漏。**场景内实例不手动 Release**(坑 B:Addressables 自管)。
-            try
-            {
-                _worldLoadHandle = Addressables.LoadSceneAsync("world", LoadSceneMode.Additive);
-                await _worldLoadHandle.Task;
-                if (_worldLoadHandle.Status == AsyncOperationStatus.Failed)
-                    throw new InvalidOperationException(
-                        "LoadSceneAsync(world) 返回 Failed" +
-                        (_worldLoadHandle.OperationException != null
-                            ? ":" + _worldLoadHandle.OperationException.Message
-                            : string.Empty));
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[BootRoot][E-13] World 场景 additive 加载失败(address = world):{e}");
-                throw;
-            }
+            // 🔁 2026-11-05:装载体抽成 `LoadWorldSceneAsync()` —— 「返回主菜单」回程走**同一段**
+            //    (两处各写一份必然分叉;抽出后启动序与回程共用一个调用点)。
+            await LoadWorldSceneAsync();
 
             // ── 4. 玩家生成 ──
             // tick 驱动由组合根创建(ADR-005 抽象点 · G2.2 起墨龄同源;纯 C# 装配件,
@@ -1067,12 +1054,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `Application.wantsToQuit` 钩子,此处**不写盘** —— 写盘归 7a,两处各写一份必然分叉)。
             //    放进 `DriverPauseCommandSink` 会引入 `UnityEngine` 依赖到 42 侧程序集面,
             //    故以委托注入(ADR-025 §①)。
+            // 🔁 2026-11-05 晚改判(用户裁定):第四行由「退出游戏」改为**「返回主菜单」**。
+            //    「退出游戏」只留在主菜单那一行(第一层);局内点是**回第一层**,不是退进程。
+            //    实现见 `ReturnToMainMenuAsync`(落盘 → 关世界 → 重开主菜单屏)。
             _uiDriver.PauseSink = new DriverPauseCommandSink(_uiDriver,
-                quit: () =>
-                {
-                    Debug.Log("[BootRoot][暂停壳] 玩家选择退出游戏");
-                    Application.Quit();
-                },
+                returnToMainMenu: RequestReturnToMainMenu,
                 // 🔁 2026-11-05:「保存」行一键落笔(参照英灵神殿第二层)。
                 //    目标槽**不经 UI** —— 台账的 `NextWritableSeq` 是唯一宿主(ADR-013 §9 C3);
                 //    返回 false = 门拒(叙事上下文 / 未接线),42 据此**如实显示**失败,不假装成功。
@@ -1525,11 +1511,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 openSettings: () => _uiDriver?.OpenModal(ModalId.SettingsShell),
                 // 「退出游戏」= 唯一的游戏内退出入口(2026-11-04:此前全仓 `Application.Quit` 零调用,
                 // 玩家只能点窗口关闭按钮)。退出保存走既有的 `Application.wantsToQuit` 钩子,不在这里写盘。
-                quit: () =>
-                {
-                    Debug.Log("[BootRoot][主菜单] 玩家选择退出游戏");
-                    Application.Quit();
-                });
+                quit: QuitApplication);
 
             // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
@@ -1562,8 +1544,191 @@ namespace DaYiJingCheng.Gameplay.Boot
             await UnloadMainMenuSceneAsync();
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        // 「返回主菜单」(2026-11-05 晚 · 用户裁定:暂停壳第四行由「退出游戏」改为此)
+        //
+        // 语义:**回第一层,不退进程**。世界的 sim 与玩家都不销毁 —— 只把帧泵闸关掉、
+        // 把 World 场景卸掉、把主菜单屏重新摊开;玩家在第一层按「继续诊治」即回到原局。
+        // ⚠️ **不是什么**:不是 `Application.Quit()`(那只留在主菜单那一行),也不是「重开一局」。
+        // ⚠️ **ADR-023 §⑤ 拆序六步的落地范围**:本处只做第 1 步(停 Step)与第 5 步
+        //   (`UnloadSceneAsync`) + 病人视觉显式销毁;第 2 步(落盘 flush)由
+        //   `SaveSlotCommandRouter.TrySave` 的同步 `Checkpoint` 覆盖;第 3/4/6 步
+        //   (`ReleaseInstance` / `Release` handle / 断言登记簿空)归 ADR-023 的
+        //   V-1…V-7(未跑,禁借绿)—— **本处不声称拆序已按六步验过**。
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>世界是否被「返回主菜单」挂起(挂起期 `_booted == false`)。</summary>
+        private bool _worldPaused;
+
+        /// <summary>「返回主菜单」形态下,第一层选中后的放行信号(与启动序的 `_mainMenuContinue` 分开)。</summary>
+        private TaskCompletionSource<bool> _returnMenuChoice;
+
+        /// <summary>暂停壳第四行的意图入口(不 async void:异常在内部收敛并落日志)。</summary>
+        private void RequestReturnToMainMenu()
+        {
+            Debug.Log("[BootRoot][暂停壳] 玩家选择返回主菜单");
+            _ = ReturnToMainMenuAsync();
+        }
+
+        /// <summary>把「回第一层」跑完:落盘 → 闸门关 → 关模态 → 卸世界 → 摊开主菜单。</summary>
+        private async Task ReturnToMainMenuAsync()
+        {
+            if (_worldPaused || !_booted) return;          // 幂等:重复按不叠拆
+
+            // ① **先落盘再回**(玩家点「返回主菜单」不该丢这一段进度)。
+            //    ⚠️ 必须在关闸**之前**:`_booted = false` 会停 tick,而写盘的重探挂在 tick 边沿上。
+            if (_saveSlotCommands != null)
+            {
+                try { _saveSlotCommands.TrySave(); }
+                catch (Exception e) { Debug.LogError("[BootRoot][返回主菜单] 落盘失败:" + e); }
+            }
+
+            // ② 关帧泵闸(Update 早退 ⇒ 停 tick、停输入泵)+ 合上所有模态
+            _booted = false;
+            _worldPaused = true;
+            _uiDriver?.CloseAllModals();
+
+            // ③ 卸世界场景(ADR-023 §⑤ 第 5 步;病人视觉由 spawner 自持,须显式销毁)
+            await UnloadWorldSceneForMenuAsync();
+
+            // ④ 重开第一层
+            await PresentMainMenuForReturnAsync();
+        }
+
+        /// <summary>卸 World 场景 + 销毁非场景根的病人视觉实体。</summary>
+        private async Task UnloadWorldSceneForMenuAsync()
+        {
+            try
+            {
+                _services?.PatientVisualSpawner?.DestroyAll();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[BootRoot][返回主菜单] 病人视觉销毁失败(继续拆场景):" + e);
+            }
+
+            if (!_worldLoadHandle.IsValid()) return;
+            AsyncOperationHandle<SceneInstance> handle = _worldLoadHandle;
+            _worldLoadHandle = default;
+            await Addressables.UnloadSceneAsync(handle).Task;
+        }
+
+        /// <summary>
+        /// 摊开主菜单屏并等玩家选(返回主菜单形态)。
+        /// <para>与启动序的 `PresentMainMenuAsync` **共用行集与装配**,差别只有两处:
+        /// ① 场景要**重新加载**(启动序那次已在 2.95 之后卸载);
+        /// ② 等待的是 `_returnMenuChoice` 而不是启动序的 `_mainMenuContinue`。</para>
+        /// </summary>
+        private async Task PresentMainMenuForReturnAsync()
+        {
+            try
+            {
+                _mainMenuLoadHandle = Addressables.LoadSceneAsync(MainMenuSceneAddress, LoadSceneMode.Additive);
+                await _mainMenuLoadHandle.Task;
+                if (_mainMenuLoadHandle.Status == AsyncOperationStatus.Failed)
+                    throw new InvalidOperationException("LoadSceneAsync(mainmenu) 返回 Failed");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[BootRoot][返回主菜单] 主菜单场景加载失败,停在黑屏而非静默降级:{e}");
+                throw;
+            }
+
+            bool hasSave = _worldCatalog != null
+                ? AnyWorldHasSaves()
+                : _services?.SaveService?.TryGetMostRecentSave(out _) == true;
+
+            _returnMenuChoice = new TaskCompletionSource<bool>();
+
+            if (!_uiDriver.ShowSceneLevelScreen("MainMenu", hasSave, _sessionWasIncomplete))
+            {
+                // 开不出屏 ⇒ **不能**把玩家晾在黑屏上:直接放行(等价于「继续」),并记红。
+                Debug.LogError("[BootRoot][返回主菜单] 主菜单屏开不出来 ⇒ 直接回到世界(不让玩家卡死)");
+                _returnMenuChoice.TrySetResult(false);
+            }
+
+            await EnsureUiInputSelectionAsync();
+            await _returnMenuChoice.Task;
+
+            _uiDriver.DismissSceneLevelScreen();
+            await UnloadMainMenuSceneAsync();
+
+            // ⑤ 关第一层,回世界(选了「新起一局 / 换世界」则先换袋)
+            await ResumeWorldFromReturnMenuAsync();
+        }
+
+        /// <summary>从第一层回到世界:必要时换袋(新起一局 / 换世界),重载 World 场景,重新开闸。</summary>
+        private async Task ResumeWorldFromReturnMenuAsync()
+        {
+            if (!string.IsNullOrEmpty(_pendingWorldSaveDir)
+                && !string.Equals(_pendingWorldSaveDir, _worldSaveDir, StringComparison.Ordinal))
+            {
+                ReassembleForWorld(_pendingWorldSaveDir);
+                _pendingWorldSaveDir = null;
+
+                // ⚠️ **换袋之后必须补首份存档** —— 启动序里这件事由第 8b 步的
+                //    `FirstSessionSave.TryEstablish` 做(其注释逐字写「第一份存档由启动序 8b 写」)。
+                //    回程不走启动序 ⇒ 不补这一步,「新起一局」建出来的世界里**一份档都没有**
+                //    (实测:世界目录建了、里面空的;再点「继续诊治」会写成「开始诊治」)。
+                //    失败方向与启动序一致:**不阻塞**,只记日志(玩家必须回得去)。
+                if (FirstSessionSave.TryEstablish(_services.SaveService, out Exception firstSaveError))
+                    Debug.Log("[BootRoot][返回主菜单][7a] 新世界:已受理初始存档(自动槽,兜底 t=0 实例)");
+                else if (firstSaveError != null)
+                    Debug.LogWarning("[BootRoot][返回主菜单][7a] 新世界初始存档未写(不阻塞):" + firstSaveError);
+            }
+
+            await LoadWorldSceneAsync();
+
+            _worldPaused = false;
+            _booted = true;
+            Debug.Log("[BootRoot][返回主菜单] 已回到世界(闸门重新打开)");
+        }
+
+        /// <summary>加载 World 场景(启动序第 3 步与「返回主菜单」回程共用同一段)。</summary>
+        private async Task LoadWorldSceneAsync()
+        {
+            try
+            {
+                _worldLoadHandle = Addressables.LoadSceneAsync("world", LoadSceneMode.Additive);
+                await _worldLoadHandle.Task;
+                if (_worldLoadHandle.Status == AsyncOperationStatus.Failed)
+                    throw new InvalidOperationException(
+                        "LoadSceneAsync(world) 返回 Failed" +
+                        (_worldLoadHandle.OperationException != null
+                            ? ":" + _worldLoadHandle.OperationException.Message
+                            : string.Empty));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[BootRoot][E-13] World 场景 additive 加载失败(address = world):{e}");
+                throw;
+            }
+        }
+
+        /// <summary>退出进程(主菜单第四行)。</summary>
+        /// <remarks>
+        /// 🔁 2026-11-05:补**编辑器分支**。`Application.Quit()` 在编辑器 Play 模式下**什么都不做**
+        /// —— 玩家在编辑器里点「退出游戏」会以为坏了(实测:日志打了、进程不退)。
+        /// 编辑器里退出的正确形态 = 停止 Play 模式。
+        /// </remarks>
+        private static void QuitApplication()
+        {
+            Debug.Log("[BootRoot][主菜单] 玩家选择退出游戏");
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
         /// <summary>主菜单「继续诊治 / 开始诊治」的确认回调(幂等:双击 / 两次输入只算一次)。</summary>
-        private void OnMainMenuContinue() => _mainMenuContinue?.TrySetResult(true);
+        private void OnMainMenuContinue()
+        {
+            // 🔁 2026-11-05:「返回主菜单」形态下,同一个确认要放行的是**回世界**那条 await;
+            //    启动序那条 `_mainMenuContinue` 此时早已完成(启动期就等过了)。
+            if (_worldPaused) { _returnMenuChoice?.TrySetResult(true); return; }
+            _mainMenuContinue?.TrySetResult(true);
+        }
 
         /// <summary>
         /// 菜单期等「UI 输入桥的初始选中」就绪(逐帧调 <see cref="BootstrapEventSystemSelection"/>,

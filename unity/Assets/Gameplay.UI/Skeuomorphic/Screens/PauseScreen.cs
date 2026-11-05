@@ -11,11 +11,14 @@
 //   (主菜单「调治」/ 暂停壳内项)已被更晚的 Approved 件各自排除 —— 主菜单 `main-menu-42.md:85-86`
 //   明写「不提供设置」,`OQ-PS-3`(2026-10-31)明写「只放继续和存档位」。
 //   ⇒ 用户在此二选一中裁定取**暂停壳加第三行**,`OQ-PS-3` 自此被本裁定覆盖(原文留档)。
-//   🔁 **2026-11-05 用户裁定(本轮)**:第四行「退出游戏」。
-//   ↑ 上一版此处写「『退出』等其余项仍归 42 的暂停壳 UX 轮」—— 原文留档,本轮由用户裁定提前兑现。
+//   🔁 **2026-11-05 早些时候用户裁定**:第四行「退出游戏」。
+//   ↑ 上一版此处写「『退出』等其余项仍归 42 的暂停壳 UX 轮」—— 原文留档,由该裁定提前兑现。
 //   语义**与主菜单第四行逐字同构**:`Application.Quit()`,退出保存走既有
 //   `Application.wantsToQuit` 钩子(`BootRoot`),本屏与出口实现都**不写盘**。
 //   触发缘由:玩家实测「按 ESC 只有继续/存档/调治,没有退出」—— 局内唯一退出手段是关窗口。
+//   🔁 **2026-11-05 晚用户裁定(改判)**:第四行**改名「返回主菜单」并改语义** ——
+//   点它回到**第一层**(主菜单屏),不再退进程;「退出游戏」只留在主菜单那一行。
+//   理由:在局内想回第一层换局 / 看设置,原来只有「退进程再启动」一条路。
 //   ⚠️ 退出是**不可逆的破坏性动作**,故它排在最后一行(焦点默认落第一行「继续」,不落它)。
 //
 // ⚠️ 行用 `.ruled` 类:与脉案行同一声明块 ⇒ 44px 下限 + 格线,不需要新样式表规则
@@ -47,11 +50,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         bool RequestSave();
 
         /// <summary>
-        /// 退出游戏(2026-11-05 用户裁定 —— 暂停壳第四行)。
-        /// <para>⚠️ **不可逆**:实现方须先落盘再退,但**写盘归 7a**(`Application.wantsToQuit`
-        /// 钩子),本接口只表达意图。与主菜单第四行**同一个出口语义**。</para>
+        /// **返回主菜单**(🔁 2026-11-05 晚用户裁定:原「退出游戏」改名并改语义 ——
+        /// 点它是**回第一层**,不是退进程;退出游戏仍归主菜单那一行)。
+        /// <para>⚠️ 与「继续」相对:继续 = 合壳回世界;**返回主菜单 = 回第一层**。
+        /// 实现方须**先落盘再回**,不静默丢进度;写盘归 7a,本接口只表达意图。</para>
         /// </summary>
-        void Quit();
+        void ReturnToMainMenu();
     }
 
     /// <summary>暂停壳(ModalId.Pause)—— 平面拟物 UI,手柄走查。</summary>
@@ -91,7 +95,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             => rowIndex >= 0 && rowIndex < _rows.Length ? _rows[rowIndex] : null;
 
         /// <summary>确认某一行(两条输入路径的唯一汇合点)。</summary>
-        /// <param name="rowIndex">0 = 继续,1 = 保存,2 = 存档位,3 = 调治,4 = 退出游戏;越界 ⇒ 忽略。</param>
+        /// <param name="rowIndex">0 = 继续,1 = 保存,2 = 存档位,3 = 调治,4 = 返回主菜单;越界 ⇒ 忽略。</param>
         public void Activate(int rowIndex)
         {
             if (rowIndex == 0) _sink?.Resume();
@@ -103,7 +107,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             }
             else if (rowIndex == 2) _sink?.OpenSaveSlots();
             else if (rowIndex == 3) _sink?.OpenSettings();
-            else if (rowIndex == 4) _sink?.Quit();
+            else if (rowIndex == 4) _sink?.ReturnToMainMenu();
         }
 
         /// <summary>落笔待落定(驱动在写盘落定后调 <see cref="RefreshSaveHint"/> 前用)。</summary>
@@ -116,11 +120,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         public void CompletePendingSave() => _savePending = false;
 
         /// <summary>该行的文案(<c>null</c> = 越界)。文案权威 = `pause-shell-42.md` §5。</summary>
-        private static readonly string[] RowLabels = { "继续", "保存", "存档位", "调治", "退出游戏" };
+        private static readonly string[] RowLabels = { "继续", "保存", "存档位", "调治", "返回主菜单" };
 
         /// <summary>该行的元件名(观测面 / 夹具定位;与行序一一对应)。</summary>
         private static readonly string[] RowNames =
-            { "pause-resume", "pause-save", "pause-save-slots", "pause-settings", "pause-quit" };
+            { "pause-resume", "pause-save", "pause-save-slots", "pause-settings", "pause-main-menu" };
 
         /// <summary>「保存」行号(0 起)。</summary>
         private const int SaveRowIndex = 1;

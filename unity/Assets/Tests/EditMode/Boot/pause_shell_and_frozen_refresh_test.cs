@@ -6,7 +6,7 @@
 //   · `design/ux/pause-shell-42.md` §5(行集);本轮用户裁定新增第四行「退出游戏」
 //
 // ── 本件断的两件事 ─────────────────────────────────────────────
-// ① 暂停壳是**四行**,第四行文案 =「退出游戏」,`Activate(3)` 走 `IPauseCommandSink.Quit`;
+// ① 暂停壳是**五行**,末行文案 =「返回主菜单」,`Activate(4)` 走 `IPauseCommandSink.ReturnToMainMenu`;
 //    且未注入出口时**不崩**(诚实留空)。
 // ② 存档槽位的重探住在 `OnFrameEdge()`(每帧),**不在** `OnTickEdge()`(tick 边沿)——
 //    因为存档册是挡路模态,世界在它摊开期间真停 tick ⇒ tick 边沿**永不发生**。
@@ -62,7 +62,7 @@ namespace DaYiJingCheng.Tests.Boot
             public int ResumeCount;
             public int SaveSlotsCount;
             public int SettingsCount;
-            public int QuitCount;
+            public int ReturnToMainMenuCount;
             public int RequestSaveCount;
 
             /// <summary>夹具可设:落笔是否被门拒。</summary>
@@ -71,7 +71,7 @@ namespace DaYiJingCheng.Tests.Boot
             public void Resume() => ResumeCount++;
             public void OpenSaveSlots() => SaveSlotsCount++;
             public void OpenSettings() => SettingsCount++;
-            public void Quit() => QuitCount++;
+            public void ReturnToMainMenu() => ReturnToMainMenuCount++;
             public bool RequestSave() { RequestSaveCount++; return RequestSaveAccepted; }
         }
 
@@ -86,13 +86,14 @@ namespace DaYiJingCheng.Tests.Boot
 
             // 字面量 4 —— 不与 `RowCount` 自指(自指判据:改实现时两边一起动 = 恒真)。
             Assert.That(pause.RowCount, Is.EqualTo(5),
-                "暂停壳必须是五行(继续 / 保存 / 存档位 / 调治 / 退出游戏)。" +
+                "暂停壳必须是五行(继续 / 保存 / 存档位 / 调治 / 返回主菜单)。" +
                 "2026-11-05 参照英灵神殿第二层增「保存」;同日早些增「退出游戏」。");
 
             // 末行文案必须真的画出来(首版教训:只挂 `.ruled` 没有 Label ⇒ 行在、玩家看不见)。
             var label = pause.RowAt(4)?.Q<Label>();
             Assert.That(label, Is.Not.Null, "末行必须有 Label(空壳行 = 玩家看不见的行)");
-            Assert.That(label.text, Is.EqualTo("退出游戏"), "文案权威 = pause-shell-42.md §5");
+            Assert.That(label.text, Is.EqualTo("返回主菜单"),
+                "🔁 2026-11-05 晚改判:末行由「退出游戏」改为「返回主菜单」(退进程只留主菜单那一行)");
         }
 
         [Test]
@@ -105,7 +106,8 @@ namespace DaYiJingCheng.Tests.Boot
 
             pause.Activate(4);
 
-            Assert.That(sink.QuitCount, Is.EqualTo(1), "末行必须走 IPauseCommandSink.Quit");
+            Assert.That(sink.ReturnToMainMenuCount, Is.EqualTo(1),
+                "末行必须走 IPauseCommandSink.ReturnToMainMenu");
             Assert.That(sink.ResumeCount + sink.SaveSlotsCount + sink.SettingsCount, Is.EqualTo(0),
                 "按退出**不得**顺带触发其它三行(行序错位的指纹)");
         }
@@ -121,16 +123,17 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
-        public void test_driverPauseSink_quit_delegatesToInjectedAction()
+        public void test_driverPauseSink_returnToMainMenu_delegatesToInjectedAction()
         {
-            int quit = 0;
-            var sink = new DriverPauseCommandSink(_driver, quit: () => quit++);
-            sink.Quit();
-            Assert.That(quit, Is.EqualTo(1), "退出动作必须转给装配层注入的委托(42 侧不持 UnityEngine 退出)");
+            int calls = 0;
+            var sink = new DriverPauseCommandSink(_driver, returnToMainMenu: () => calls++);
+            sink.ReturnToMainMenu();
+            Assert.That(calls, Is.EqualTo(1),
+                "回第一层必须转给装配层注入的委托(42 侧不持 UnityEngine / 不拆场景)");
 
             // null 委托 = 未接线:不崩、不造动作。
             var unbound = new DriverPauseCommandSink(_driver);
-            Assert.DoesNotThrow(() => unbound.Quit(), "未注入退出动作时不得抛");
+            Assert.DoesNotThrow(() => unbound.ReturnToMainMenu(), "未注入回第一层动作时不得抛");
         }
 
         // ══════════════ ①-b 「保存」行(2026-11-05 参照英灵神殿第二层)══════════════
@@ -150,7 +153,7 @@ namespace DaYiJingCheng.Tests.Boot
             pause.Activate(1);
 
             Assert.That(sink.RequestSaveCount, Is.EqualTo(1), "第二行必须走 IPauseCommandSink.RequestSave");
-            Assert.That(sink.ResumeCount + sink.SaveSlotsCount + sink.SettingsCount + sink.QuitCount,
+            Assert.That(sink.ResumeCount + sink.SaveSlotsCount + sink.SettingsCount + sink.ReturnToMainMenuCount,
                 Is.EqualTo(0), "按「保存」不得顺带触发别的行(行序错位的指纹)");
             Assert.That(pause.SavePending, Is.True, "已受理 ⇒ 置待落定,由驱动在写队列排空后重读年龄");
         }

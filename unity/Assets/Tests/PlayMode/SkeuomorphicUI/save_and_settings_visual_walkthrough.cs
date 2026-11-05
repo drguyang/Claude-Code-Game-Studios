@@ -146,7 +146,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.That(pause.RowCount, Is.EqualTo(5), "[前置] 2026-11-05 起是五行");
             Assert.That(pause.RowAt(1)?.Q<Label>()?.text, Is.EqualTo("保存"),
                 "[前置] 「保存」行文案(参照英灵神殿第二层)");
-            Assert.That(pause.RowAt(4)?.Q<Label>()?.text, Is.EqualTo("退出游戏"),
+            Assert.That(pause.RowAt(4)?.Q<Label>()?.text, Is.EqualTo("返回主菜单"),
                 "[前置] 末行文案 —— 走查帧里要看得见这一行");
             // ⚠️ 本走查**不按**第四行:`Application.Quit()` 会真的退进程(此处 PauseSink 也没注入退出委托)。
             //    退出腿归 `AC-PS-11` 的人眼走查。

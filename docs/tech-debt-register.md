@@ -480,7 +480,7 @@
 | `TD-skeuo-11` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-12` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
-| `TD-skeuo-14` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-14` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
@@ -1395,7 +1395,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 190 | 状态 {'closed': 161, 'partial': 7, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 190 | 状态 {'closed': 161, 'partial': 8, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 12 （已闭但曾标 P0 面的 115 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
@@ -5571,6 +5571,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | 用户裁定要做多世界 / 重开新局时。 |
 | **归属** | **装配层(启动序)** · UI 行 = 42 |
 
+> 🔁 **2026-11-05 推进(`open → partial`,用户裁定「第二层退出游戏改名返回主菜单、回到第一层」)** ——
+> **解除动作 ①②④ 已落**;③ 的**自动化 PlayMode 判据仍缺**,故记 `partial` 不记 `closed`。
+> - **①(落盘口径)**:回第一层**先落盘** —— 走与「保存」行同一个 `SaveSlotCommandRouter.TrySave`
+>   (同步 `Checkpoint`),不静默丢进度。
+> - **②(重入路径 + 场景拆装)**:新增 `BootRoot.ReturnToMainMenuAsync` ——
+>   落盘 → `_booted = false`(关帧泵闸) → `CloseAllModals` → **卸 World 场景**
+>   (`Addressables.UnloadSceneAsync`,ADR-023 §⑤ 第 5 步;病人视觉先 `DestroyAll`,
+>   它是非场景根内容) → 重载 `MainMenu` 场景 + 摊开第一层 → 玩家按「继续诊治」→
+>   `ResumeWorldFromReturnMenuAsync`(必要时 `ReassembleForWorld` + **补首份存档** →
+>   重载 World → 开闸)。装载体抽成 `LoadWorldSceneAsync()` 与启动序第 3 步**共用**。
+>   ⚠️ **sim 与玩家都不销毁** —— 回第一层是「挂起」不是「重开」;世界目录只在「新起一局」时才换。
+> - **④(UI 行)**:暂停壳第 4 行由「退出游戏」改「**返回主菜单**」;「退出游戏」只留主菜单那一行
+>   (`IPauseCommandSink.Quit` → `ReturnToMainMenu`)。主菜单「退出游戏」补**编辑器分支**
+>   (`EditorApplication.isPlaying = false`)——`Application.Quit()` 在编辑器 Play 下什么都不做,
+>   玩家会以为坏了(本轮实测)。
+> - **实机验证(真 player,非夹具)**:进世界 → 暂停 → 返回主菜单(世界卸掉、第一层摊开)→
+>   继续诊治(回世界、闸门重开)→ 再返回 → 新起一局(切袋 w4→w5 并进新局)→ 主菜单按退出(进程真的退)。
+> - ⚠️ **仍缺(故 partial)**:解除动作 ③ 要求的**自动化 PlayMode 判据**没写 ——
+>   本轮只有人工驱动的实拍,没有一条夹具能在回归里守住它。
+> - ⚠️ **拆序六步只做了 2 步**:第 1 步(停 Step)与第 5 步(`UnloadSceneAsync`);
+>   第 3/4/6 步(`ReleaseInstance` / `Release` handle / 断言登记簿空)仍归 ADR-023 的 V-1…V-7(NOT-RUN)。
+
 ### TD-skeuo-15 — 第一层缺 **CREDITS / CINEMATICS** 两行,且两者在 P0 **零内容**
 
 > **⚠️ 2026-11-05 立债**(用户指令「连第一层一起对齐英灵神殿」;查证后按「先不补」裁定登记)。
@@ -6241,7 +6263,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | 侧 | 内容 |
 |---|---|
-| **债描述** | ① 全仓**零** `BuildPipeline.BuildPlayer` 的生产入口,唯一一处是**探针用途**的 `CostTableProbeBuildCli`(其头注自陈「本类不是产品的一部分」,产物落 `/tmp`,文件名 `CostTableProbe.x86_64`);CI(`.github/workflows/`)只跑测试,不出包。<br>② `ProjectSettings` 的 company / product 未设 ⇒ 建出来的 player 把存档写到 `~/.config/unity3d/unknown/unknown/`,与编辑器的 `~/.config/unity3d/DefaultCompany/unity/` **不是同一个目录** ⇒ 打包版看不到编辑器里的存档,且**所有构建共用**这一个 `unknown/unknown`。 |
+| **债描述** | ① 全仓**零** `BuildPipeline.BuildPlayer` 的生产入口,唯一一处是**探针用途**的 `CostTableProbeBuildCli`(其头注自陈「本类不是产品的一部分」,产物落 `/tmp`,文件名 `CostTableProbe.x86_64`);CI(`.github/workflows/`)只跑测试,不出包。<br>② `ProjectSettings` 的 company / product 未设 ⇒ 建出来的 player 把存档写到 `~/.config/unity3d/unknown/unknown/`,与编辑器的 `~/.config/unity3d/DefaultCompany/unity/` **不是同一个目录** ⇒ 打包版看不到编辑器里的存档,且**所有构建共用**这一个 `unknown/unknown`。<br>🔴 **2026-11-05 订正(原文不删):上面这一句的后半是错的。** 真跑「返回主菜单」轮时实测 —— `unknown/unknown/` 只是 **PlayerPrefs** 的目录(启动日志 `PlayerPrefs - Creating folder: …/unknown`);**存档根 = `Application.persistentDataPath/saves` = `DefaultCompany/unity/saves`,与编辑器用的是同一个目录**(player 日志逐字:`切换世界目录:…/DefaultCompany/unity/saves/w4 → …/w5`)。⇒ 真问题**不是「打包版看不到档」,而是反过来的:构建与编辑器共用同一份真实存档** —— 我在调试时跑的那几局直接写进了本机真实档(造出 `w5/`、给 `w4` 追加 `save_13/14.bin`,已清理 w5 与索引条目并如实登记)。该形态在发布前的风险 = **开发期一次误跑就改动玩家的档**。 |
 | **实测(逐条可跑)** | ① `grep -rn "BuildPipeline.BuildPlayer" unity/Assets --include=*.cs` ⇒ **仅 1 处**(`Editor.Tools.Bake/Cli/CostTableProbeBuildCli.cs`);<br>② 实跑该 CLI 出包后启动,`ls ~/.config/unity3d/` ⇒ 出现 `unknown/`(其下再一层 `unknown/`),而编辑器侧是 `DefaultCompany/unity/`;<br>③ CI 侧 `grep -rn "unity-builder\|BuildPlayer" .github/workflows/` ⇒ 零命中。 |
 | **为什么重要** | **正是这条债让「打包后全屏无字」潜伏至今**:字体是 `resource("Assets/…")`(只在编辑器成立),而**没人用正式路径出过包**,夹具又全跑在编辑器里 ⇒ 一路绿灯。构建入口不存在 ⇒ 这一类缺陷**永远**只在玩家手上有包的时候才暴露。 |
 | **解除动作** | ① `ProjectSettings` 设 company / product(存档根随之确定;**已发的包注意存档不迁移**);② 立正式构建入口(菜单 + CI),场景清单取 `EditorBuildSettings`(不另立第二份);③ 出包后**至少跑一次真启动冒烟**(启动 → 主菜单 → 进世界 → 暂停 → 存档册),判据 = 屏上有字 + 无 `Font not found` 告警;④ 存档根写进文档,免得测试数据与真存档混住。 |
