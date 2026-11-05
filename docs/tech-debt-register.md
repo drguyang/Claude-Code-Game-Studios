@@ -485,7 +485,7 @@
 | `TD-skeuo-14` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
-| `TD-skeuo-17` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -730,6 +730,15 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **九十一订(`TD-skeuo-17` 结案 · 2026-11-05 深夜 · 首启复验轮)** ——
+> **单一变化源:一条状态变更(`open → closed`),零新登记。**
+> 用户指令「按①把 `_modalInput` 提前,然后首启复验」⇒ 新增幂等的 `EnsureModalInput()`,
+> 在主菜单摊开后、等确认前提早装配;6.3 改调同一处(不留第二份构造)。
+> 变化:`条目 193` 不动 · `open 20 → 19`(−1)· **`closed 163 → 164`**(+1)· `partial 9` 不动 ·
+> `Y 129` / `N 58` 不动 · **`未闭 P0 面 13 → 12`**(−1)· **`skeuomorphic-ui 5 → 4`** ·
+> **`epic 分布 6/31` 不动**(该 epic 名下仍有 4 条未闭 P0 面)。
+> ⚠️ **判据只认首启路径**:第三轮就是在这个点上被「回程能关」骗过的 —— 本轮复验刻意不复用回程结论。
 
 > > 🔁 **九十订(`TD-skeuo-17` 立债 · 2026-11-05 深夜 · smoke 第三轮)** ——
 > 用户指令「补跑 smoke-check 出第三轮判定,这次由你直接操作」⇒ 我直跑真 player 走查,
@@ -1470,10 +1479,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 193 | 状态 {'closed': 163, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 129, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 13 （已闭但曾标 P0 面的 116 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 6/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
+条目 193 | 状态 {'closed': 164, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 129, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 12 （已闭但曾标 P0 面的 117 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
+    random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -6345,6 +6354,21 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ① 把 `_modalInput` 的构造提到**主菜单闸门之前**(最小改法);或 ② 让 `Update` 在 `_modalInput == null` 且当前有模态摊开时**显式告警**(把 `?.` 的静默改成可见)。**两种都要补一条判据**:「首次启动路径」上设置壳能被 ESC 关掉 —— 夹具形态建议用 `BootWithMainMenu = true` 的 PlayMode 件驱动,而不是编辑器手点。⚠️ **修完必须在首次启动路径复验**,回程路径验过不算(那正是本债的假绿形态)。 |
 | **触发条件** | 任何以「第一层可用」形态引用之前(**禁借绿**);或下一次 `/smoke-check sprint` 重新 gate 之前(**硬前置**)。 |
 | **归属** | **42 拟物 UI × 装配层(`BootRoot`)** —— 缺陷在**构造次序**,不在屏实现 |
+
+#### ✅ 2026-11-05 深夜:`open` → **`closed`**(用户指令「按①把 `_modalInput` 提前,然后首启复验」)
+
+**证据原件**:`production/qa/evidence/impl-td-skeuo-17-modal-input-order-2026-11-05.md`。
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| 生产 | `BootRoot.EnsureModalInput()`(新增,幂等)+ `PresentMainMenuAsync` 末尾调用 + 6.3 改调它 | 单一装配点(不搬语句、不留两处构造) |
+| 夹具 | `main_menu_wiring_test::test_mainMenu_modalInputDriver_isWiredWhenMenuAppears` | **主菜单摊开时** `_modalInput` 非 null |
+| 证伪 | M1 删掉主菜单处的调用(保留 6.3) | 新门红、其余 8 条全绿(零连带);SHA-256 还原一致 |
+| **首启复验** | 真包首次启动 → 「设置」→ **ESC 关得掉**(回主菜单,焦点在「设置」) | 实拍 3 图;⚠️ **只走首启路径**,不复用回程结论 |
+| 回归 | EditMode `6941/6904/0/0/37` · PlayMode `342/338/0/2/2`(`342−341=1` = 新门) | 构建 `Result: Succeeded` |
+
+⚠️ **本债结案 ≠ smoke 第三轮转绿**:第三轮 Verdict 仍是 **FAIL**(同轮的 #9 脉案 DTO 未注入)。
+**smoke 必须重跑**才谈得上重新 gate。
 
 ### TD-persist-23 — 全量 PlayMode 回归会往**真实存档根**写一份 `save_auto.bin`(测试产物混进玩家存档目录)
 

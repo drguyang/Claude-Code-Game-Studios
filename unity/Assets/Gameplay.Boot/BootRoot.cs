@@ -1135,12 +1135,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                  "RecipeSource / ContainerSelection 之一)—— 屏上按配方会明确报「点火拒发」, " +
                                  "不是静默空操作(TD-skeuo-06)。");
             }
-            _modalInput = new ModalInputDriver(
-                PlayerInputReader.PauseTogglePressed,
-                new DriverModalOpener(_uiDriver),
-                // 🔁 2026-11-05:第一层(主菜单)**只关不开** —— 世界还没起,暂停壳没有意义;
-                //    但菜单里打开的设置壳仍须能被 ESC 关掉(见 `Update` 里本驱动的位置)。
-                canOpenPause: () => _booted);
+            EnsureModalInput();
 
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
             // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选
@@ -1514,6 +1509,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 玩家只能点窗口关闭按钮)。退出保存走既有的 `Application.wantsToQuit` 钩子,不在这里写盘。
                 quit: QuitApplication);
 
+            // 🔁 **2026-11-05 深夜(`TD-skeuo-17`)**:模态开合驱动必须在这里就装配好。
+            //    病因:启动序 **2.95** 的主菜单闸门早于 **6** 的 UI 装配 ——
+            //    若等 6.3 才建驱动,**首次启动**的第一层里 `_modalInput` 是 null,
+            //    `Update` 的 `_modalInput?.OnFrame()` 静默空转 ⇒ 「设置」壳按 ESC 关不掉
+            //    (回程的第一层因为驱动已存在,同一操作正常 —— 这正是上轮误判「已修」的原因)。
+            EnsureModalInput();
+
             // ⚠️ 信号**先建、后开屏**:开屏即落焦,确认动作在同一个调用栈里就可能发生
             //    (手柄 Submit 在下一帧即可到达)⇒ 「先开屏后建 TCS」会丢那次确认,启动序挂死。
             _mainMenuContinue = new TaskCompletionSource<bool>();
@@ -1805,6 +1807,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 其 <see cref="SkeuoRuntimeDriver.CurrentModal"/> / 屏 / 注入面原样带入。
         /// 归位后复用退化为「**同一 `BootRoot` 内**幂等」,销毁即随之销毁。</para>
         /// </summary>
+        /// <summary>装配模态开合驱动(**幂等**:已装配则原样返回)。
+        /// <para>🔁 <b>2026-11-05 深夜(`TD-skeuo-17`)</b>:必须在**任何模态可能被摊开之前**装配。
+        /// 启动序里主菜单闸门在 <b>2.95</b>、UI 装配在 <b>6</b> —— 若只在 6.3 建驱动,
+        /// 「首次启动」的第一层里本字段是 <c>null</c>,`Update` 的
+        /// <c>_modalInput?.OnFrame()</c> **静默空转** ⇒ 设置壳按 ESC 关不掉。
+        /// 回程的第一层因为驱动已存在而正常 —— 这个不对称正是上轮把它误判成「已修」的原因。</para>
+        /// <para>⚠️ `_uiDriver` 未就绪时不构造(返回而不抛):它由
+        /// <see cref="FindOrCreateSkeuoUi"/> 在场景预摆缺失时自建,而自建路径本身可能失败
+        /// (无 PanelSettings)。此时**不装配**比装一个指向 null 的驱动器更安全;
+        /// 下一个调用点(6.3)会再试一次。</para>
+        /// </summary>
+        private void EnsureModalInput()
+        {
+            if (_modalInput != null || _uiDriver == null) return;
+
+            _modalInput = new ModalInputDriver(
+                PlayerInputReader.PauseTogglePressed,
+                new DriverModalOpener(_uiDriver),
+                // 第一层(主菜单)**只关不开** —— 世界还没起,暂停壳没有意义;
+                // 但菜单里打开的设置壳仍须能被 ESC 关掉。
+                canOpenPause: () => _booted);
+        }
+
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
         {
             var existing = UnityEngine.Object.FindFirstObjectByType<SkeuoRuntimeDriver>();

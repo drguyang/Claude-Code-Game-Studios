@@ -444,6 +444,29 @@ namespace DaYiJingCheng.Tests.PlayMode
 #endif
         }
 
+        /// <summary>`TD-skeuo-17` 的回归门:**主菜单摊开时,模态开合驱动必须已装配**。
+        /// <para><b>病根</b>:启动序 2.95 的主菜单闸门早于 6 的 UI 装配。若驱动只在 6.3 构造,
+        /// 首次启动的第一层里 `_modalInput == null` ⇒ `Update` 的 `_modalInput?.OnFrame()`
+        /// 静默空转 ⇒「设置」壳按 ESC 关不掉。**回程**的第一层因为驱动已存在而正常 ——
+        /// 这个不对称正是上轮把它误判为「已修」的原因,故本门必须锚在**菜单摊开的时刻**。</para>
+        /// <para>⚠️ 为什么不断言「按 ESC 能关壳」:那要真的注入键盘事件,而 batch 模式下
+        /// 键盘注入受工程设置限制(`PlayerInputReader` 直读 `Keyboard.current`)。
+        /// 本门断的是**根因本身**(驱动是否在场),它红了那句面板早就成立。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_mainMenu_modalInputDriver_isWiredWhenMenuAppears()
+        {
+            yield return BootUntilMenuAppears();
+
+            object modalInput = typeof(BootRoot)
+                .GetField("_modalInput", BindingFlags.NonPublic | BindingFlags.Instance)
+                .GetValue(_boot);
+
+            Assert.That(modalInput, Is.Not.Null,
+                "主菜单摊开时 `_modalInput` 仍为 null ⇒ 第一层开出来的设置壳没有任何东西接 ESC" +
+                "(TD-skeuo-17:驱动必须在主菜单闸门之前装配,不能等启动序 6.3)。");
+        }
+
         /// <summary>预摆 UI 壳 → 起 BootRoot(开主菜单断言)→ 等菜单摊开。</summary>
         private IEnumerator BootUntilMenuAppears()
         {
