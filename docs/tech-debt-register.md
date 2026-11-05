@@ -452,6 +452,7 @@
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | closed | **N** | R3-裁 |
 | `TD-build-02` | `（跨 epic · 治理／构建与发布）` | open | **N** | R3-裁 |
+| `TD-build-03` | `patient-ai` | open | **Y** | R1 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
@@ -727,6 +728,21 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十五订(`TD-skeuo-16` / `TD-skeuo-14` 推进 + `TD-build-03` 立债 · 2026-11-05 晚 · 真 player 轮)** ——
+> **三处变化源,逐条列清**(勿并读):
+> ① `TD-skeuo-16` `open → partial`(全屏字号抬到 24px 那一轮,commit `5c2bfdd1`);
+> ② `TD-skeuo-14` `open → partial`(暂停壳末行「返回主菜单」真回到第一层,commit `3621f51b`);
+> ③ **新增 `TD-build-03`**(用户指令「把着色器剥离那条也登记成债」)。
+> 累计变化:`条目 190 → 191`(+1)· `open 22 → 21`(① −1、② −1、③ +1)· `partial 6 → 8`(+2 = ①②)·
+> `closed 161` 不动 · `Y 127 → 128`(+1,只有 `TD-build-03` 判 Y)· `N 57` 不动 ·
+> **`未闭 P0 面 12 → 13`**(+1)· **`epic 分布 6/31 → 7/31`**(`patient-ai` 首次进入)。
+> ⚠️ **`TD-build-03` 为何判 Y**(与 `TD-build-02` 判 N 不同族):它不是「没有入口」的治理债,
+> 而是**玩家在打包版里一个病人都看不见** —— `Shader.Find("Universal Render Pipeline/Lit")`
+> 在 player 里恒 null(零 `.mat` 引用 + 不在 Always Included),工厂按设计抛异常、每 tick 一次。
+> 实测 2489 条,首次出现**早于**本轮任何改动。
+> ⚠️ **它的归属填 `patient-ai` 而非「治理」**:代码住 `Gameplay.Presentation/Patients/`,
+> 是 13 的视觉侧;填「治理」会让 M3 的「31 个 epic 各 0」多出一个**不存在的 epic 桶**。
 
 > > 🔁 **八十四订(`TD-build-02` + `TD-skeuo-16` 立债 · 2026-11-05 · 真启动实拍)** ——
 > **单一变化源 = 两笔新登记,无一条状态变更。** 病因同一处:**用户指令「你自己启动游戏看看存档册」**,
@@ -1395,11 +1411,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 190 | 状态 {'closed': 161, 'partial': 8, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 12 （已闭但曾标 P0 面的 115 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
+条目 191 | 状态 {'closed': 161, 'partial': 8, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 13 （已闭但曾标 P0 面的 115 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
-    disease-simulation: 1     emergency-procedures: 1   processing: 1
+    disease-simulation: 1     emergency-procedures: 1   patient-ai: 1
+    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -6269,6 +6286,19 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ① `ProjectSettings` 设 company / product(存档根随之确定;**已发的包注意存档不迁移**);② 立正式构建入口(菜单 + CI),场景清单取 `EditorBuildSettings`(不另立第二份);③ 出包后**至少跑一次真启动冒烟**(启动 → 主菜单 → 进世界 → 暂停 → 存档册),判据 = 屏上有字 + 无 `Font not found` 告警;④ 存档根写进文档,免得测试数据与真存档混住。 |
 | **触发条件** | 首次对外发放构建之前(**硬前置**);或任何「打包没问题」形态的引用之前(**禁借绿** —— 今日无正式包可谈「打包没问题」)。 |
 | **归属** | **治理**(构建 / 发布)· CI = devops |
+
+### TD-build-03 — 病人物体的占位材质在**构建里恒建不出来**(URP Lit 被剥离 ⇒ 玩家在打包版看不到病人)
+
+> **⚠️ 2026-11-05 立债**(用户指令「把着色器剥离那条也登记成债」;由「返回主菜单」轮的真 player 实跑撞见)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `CapsulePatientVisualFactory.CreatePlaceholderMaterial()` 用 **`Shader.Find("Universal Render Pipeline/Lit")`**(失败再试 `"Standard"`)在**运行期**建材质。编辑器里永远找得到;而 **player 只打包「被引用到的」着色器**,全仓**零 `.mat` 资产**引用 URP Lit ⇒ 该着色器**不进包** ⇒ `Shader.Find` 恒返 null ⇒ 工厂**按设计抛异常**(它刻意不静默建品红材质)⇒ `PatientVisualSpawner.OnTickEdge` 每个 tick 抛一次,**病人一个都画不出来**。 |
+| **实测(逐条可跑)** | ① player 日志(2026-11-05 18:0x 真包):`grep -c "找不到 URP Lit 也找不到 Standard" <Player.log>` ⇒ **2489**;<br>② 异常栈 = `CapsulePatientVisualFactory.CreatePlaceholderMaterial → PatientVisualSpawner.OnTickEdge → BootRoot.Update`,**首次出现早于任何本轮改动**(第 59 行)⇒ 与本轮无关的既有缺陷;<br>③ `grep -rl "Universal Render Pipeline/Lit" unity/Assets --include=*.mat` ⇒ **零命中**(没有任何材质资产把该着色器拖进包);<br>④ `grep -n "m_AlwaysIncludedShaders" -A 8 unity/ProjectSettings/GraphicsSettings.asset` ⇒ 只有 7 个**内置**着色器,URP Lit **不在其中**;<br>⑤ `grep -rn "Shader.Find(" unity/Assets --include=*.cs` ⇒ 生产代码**仅此一处**(`CapsulePatientVisualFactory.cs:85-86`)。 |
+| **为什么编辑器里发现不了** | 编辑器恒有全量着色器库 ⇒ 夹具与 Play 模式全绿。**只有真包**才暴露 —— 与 `TD-build-02`(没有正式构建入口)同一条因果链:没人出包 ⇒ 这类缺陷没有暴露面。 |
+| **解除动作** | 三选一(须裁):**① 资产驱动(推荐)** —— 做一个 `.mat`(URP Lit)资产放进 `Resources/` 或 `Addressables`,工厂改成加载它而不是 `Shader.Find`;好处 = 着色器随依赖进包,且与「运行期不手搓材质」的方向一致;或 **②** 把 `Universal Render Pipeline/Lit` 加进 `GraphicsSettings → Always Included Shaders`(最省事,但会把该着色器的**全部变体**打进包,体积代价最大);或 **③** 病人占位改成预制体资产(与 ① 同源)。**禁用**「静默回退到品红」—— 那正是 `3b97a850` 之前的状态。 |
+| **触发条件** | 任何一次对外发放构建之前(**硬前置**);或任何以「病人可见」形态引用之前(**禁借绿**)。 |
+| **归属** | **13 病人 AI**(病人视觉表现侧,`Gameplay.Presentation/Patients/`)· 构建资源形态 = 治理 |
 
 ### TD-itemdb-01 — `cost(m)` 全库无作者态载体,「与 `cost(m)` 同源」今日不可满足
 
