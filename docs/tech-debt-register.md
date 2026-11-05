@@ -451,6 +451,7 @@
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | closed | **N** | R3-裁 |
+| `TD-build-02` | `（跨 epic · 治理／构建与发布）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
@@ -481,6 +482,7 @@
 | `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-14` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
+| `TD-skeuo-16` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -725,6 +727,27 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十四订(`TD-build-02` + `TD-skeuo-16` 立债 · 2026-11-05 · 真启动实拍)** ——
+> **单一变化源 = 两笔新登记,无一条状态变更。** 病因同一处:**用户指令「你自己启动游戏看看存档册」**,
+> 我真构建了一个 player 跑起来(此前从没人在**真包**里看过这一屏),一次揪出两件夹具永远看不见的东西:
+>
+> · **`TD-build-02`(治理)** —— 全仓**零正式构建入口**(唯一一处是探针 CLI,产物落 `/tmp`),
+>   且 `ProjectSettings` 的 company / product 未设 ⇒ player 把存档写到 `unknown/unknown/`,
+>   与编辑器的 `DefaultCompany/unity/` 不是同一个目录。**正是这条债让「打包后全屏无字」潜伏至今**:
+>   字体 `resource("Assets/…")` 只在编辑器成立,而没人出过正式包、夹具又全跑在编辑器里 ⇒ 一路绿灯。
+>   (该字体缺陷本轮**已修**,不在本条债内;本条记的是「为什么会漏」那层。)
+> · **`TD-skeuo-16`(42)** —— 纸面「≥24px @1080p」是**全项目**承诺,2026-11-05 只把**存档册**做到
+>   (新增 `--skeuo-font-size-paper`);`.skip-entry` / `.pause-save-hint` / `.menu-notice` 等仍停在 15px / 11px。
+>
+> 变化:`条目 188 → 190`(+2)· `open 20 → 22`(+2)· `closed 161` / `partial 6` 不动 ·
+> **`未闭 P0 面 11 → 12`**(+1,只有 `TD-skeuo-16` 判 **Y**;`TD-build-02` 判 **N** —— 治理面)·
+> `Y 126 → 127`(+1)· `N 56 → 57`(+1)·
+> **`epic 分布 6/31` 不变**(`skeuomorphic-ui` 名下 `3 → 4` 条,该 epic 早已在分布内)。
+> ⚠️ **两笔的 P0 面判法不同,勿混读**:`TD-skeuo-16` 是玩家**看得见的**无障碍承诺缺口(Y);
+> `TD-build-02` 是构建/发布治理(N)—— 与 `TD-ci-01` 同族口径。
+> ⚠️ **两笔都不属于本轮已修的范围**:本轮修的是「打包后无字」与「已锁说明溢出」,
+> 两笔记的是**没被覆盖的另外半边**。
 
 > > 🔁 **八十二订(`TD-diagnosis-02` / `TD-sim-06` / `TD-emergency-01` 立债 · 2026-11-05 · 债面)** ——
 > **变化源 = 三笔新登记,无一条状态变更。** 病因同一处:用户要求把「儿童高热惊厥 / 卡鱼刺 /
@@ -1372,10 +1395,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 188 | 状态 {'closed': 161, 'partial': 6, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 126, 'N': 56, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 115 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
-    random-events: 4          skeuomorphic-ui: 3        diagnosis-system: 1
+条目 190 | 状态 {'closed': 161, 'partial': 6, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 12 （已闭但曾标 P0 面的 115 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
+    random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -5561,6 +5584,19 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | 发版前(CREDITS)/ P1 过场系统落地(CINEMATICS)。 |
 | **归属** | **42**(行集)· 内容 = 叙事 / 制作 |
 
+### TD-skeuo-16 — 纸面「≥24px @1080p」只在存档册成立,其余屏仍停在 15px / 11px
+
+> **⚠️ 2026-11-05 立债**(用户裁定「乙:24px + 存档册行高 44→50」时,我在交付说明里如实登记的那条边界)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `accessibility-requirements.md:85` 与 `save-slots-7b.md:312` 的「**纸面 UI ≥24px @1080p**」是**全项目**承诺,但 2026-11-05 只把**存档册**拉到了 24px(新增 `--skeuo-font-size-paper`)。其余文本类仍停在 `md`(15px)/ `sm`(13px)/ `xs`(11px)—— 玩家在**急救候选行、暂停壳的保存提示、主菜单提示、印章小字**上看到的仍是低于下限的字。 |
+| **实测(逐条可跑)** | 去掉注释后扫 `unity/Assets/Gameplay.UI/Skeuomorphic/*.uss` 的 `font-size: var(--skeuo-font-size-{xs,sm,md,lg,xl})`,实测命中:<br>`SkeuoPaper.uss` `.skip-entry`(md)· `.pause-save-hint`(xs)· `.menu-notice`(xs);`SkeuoInk.uss` `.ink-body`(sm)· `.ink-title`(lg);`SkeuoMarks.uss` `.mark-check`(lg)· `.mark-seal`(sm);`SkeuoSeal.uss` `.seal`(lg)· `.seal-small`(md);`SkeuoBrass/Implement/Scroll.uss` `.brass` / `.implement` / `.ink`(md)。<br>⚠️ 其中 `.pause-save-hint`(「上次保存：N 分钟前」)与 `.menu-notice` 是**玩家必读的状态句**,优先级最高。 |
+| **为什么本轮不做** | 逐屏抬字号会**改每屏的行高与页容量**(存档册就是因此从 44 抬到 50),各屏都有各自的走查与 AC(`AC-42-*` / 各屏 §11),必须一屏一裁一验,不能一次性全局替换。 |
+| **解除动作** | ① 逐屏列名单并按优先级排(状态句 > 标签 > 装饰小字);② 每屏抬字号 + 同步行高/页容量 + 图形走查复验;③ 把 `test_s3_2b_*` 三条门从「只扫存档册三类」扩成**按屏全覆盖**(现门只认 `.save-slot-*`)。 |
+| **触发条件** | 该屏进入 polish 轮,或任何以「无障碍承诺已满足」形态引用之前(**禁借绿**)。 |
+| **归属** | **42**(USS 与屏)· 各屏 UX spec 的 §11 面 |
+
 ### TD-skeuo-13 — 急救候选列表**没有容器定位/宽度契约**:「跳过」被渲染成横贯全屏的米色纸带
 
 > **⚠️ 2026-11-04 立债**(由用户指令「实际去看看目前的存档和启动界面是否符合视觉预期」的**第二轮**走查抓到)。
@@ -6183,6 +6219,19 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 这是**另一侧的欠账**,在结案时才被照出来。立此条的唯一理由是:
 不登记则 23 建造系统将来落 `build_modules.json` 时,两边会**各自以为对方是源头**,
 而「同源」这条要求**没有任何一处会报警**。
+
+### TD-build-02 — 全仓**零正式构建入口**,且 player 的 company/product 未设(存档目录与编辑器不同)
+
+> **⚠️ 2026-11-05 立债**(用户指令「你自己启动游戏看看存档册」:真跑一遍才发现——此前**从没有**人用正式路径出过包)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ① 全仓**零** `BuildPipeline.BuildPlayer` 的生产入口,唯一一处是**探针用途**的 `CostTableProbeBuildCli`(其头注自陈「本类不是产品的一部分」,产物落 `/tmp`,文件名 `CostTableProbe.x86_64`);CI(`.github/workflows/`)只跑测试,不出包。<br>② `ProjectSettings` 的 company / product 未设 ⇒ 建出来的 player 把存档写到 `~/.config/unity3d/unknown/unknown/`,与编辑器的 `~/.config/unity3d/DefaultCompany/unity/` **不是同一个目录** ⇒ 打包版看不到编辑器里的存档,且**所有构建共用**这一个 `unknown/unknown`。 |
+| **实测(逐条可跑)** | ① `grep -rn "BuildPipeline.BuildPlayer" unity/Assets --include=*.cs` ⇒ **仅 1 处**(`Editor.Tools.Bake/Cli/CostTableProbeBuildCli.cs`);<br>② 实跑该 CLI 出包后启动,`ls ~/.config/unity3d/` ⇒ 出现 `unknown/`(其下再一层 `unknown/`),而编辑器侧是 `DefaultCompany/unity/`;<br>③ CI 侧 `grep -rn "unity-builder\|BuildPlayer" .github/workflows/` ⇒ 零命中。 |
+| **为什么重要** | **正是这条债让「打包后全屏无字」潜伏至今**:字体是 `resource("Assets/…")`(只在编辑器成立),而**没人用正式路径出过包**,夹具又全跑在编辑器里 ⇒ 一路绿灯。构建入口不存在 ⇒ 这一类缺陷**永远**只在玩家手上有包的时候才暴露。 |
+| **解除动作** | ① `ProjectSettings` 设 company / product(存档根随之确定;**已发的包注意存档不迁移**);② 立正式构建入口(菜单 + CI),场景清单取 `EditorBuildSettings`(不另立第二份);③ 出包后**至少跑一次真启动冒烟**(启动 → 主菜单 → 进世界 → 暂停 → 存档册),判据 = 屏上有字 + 无 `Font not found` 告警;④ 存档根写进文档,免得测试数据与真存档混住。 |
+| **触发条件** | 首次对外发放构建之前(**硬前置**);或任何「打包没问题」形态的引用之前(**禁借绿** —— 今日无正式包可谈「打包没问题」)。 |
+| **归属** | **治理**(构建 / 发布)· CI = devops |
 
 ### TD-itemdb-01 — `cost(m)` 全库无作者态载体,「与 `cost(m)` 同源」今日不可满足
 
