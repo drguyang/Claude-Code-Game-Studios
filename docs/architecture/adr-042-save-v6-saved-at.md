@@ -85,7 +85,9 @@ ADR-038 §D3 逐字相同:迁移链按「从末尾算的字节」比对正文(`S
 
 - 存 **UTC**、显示**本地时区**(玩家认自己墙上的钟);
 - 格式 `2026-11-05 23:41:07`(定长、可排序、无本地化歧义);
-- 字号 = 纸面 24px 的**一半**(12px,`--skeuo-font-size-slot-time`);
+- 字号 = 纸面 24px 的**一半**(12px,`--skeuo-font-size-slot-time`)。
+  ✅ **已定稿**:2026-11-06 真包走查后用户确认「这两处字号和灰度没问题」⇒ 12px 与
+  灰底 `0.28` 自此不再待裁(实测值见证据件 §3.1 / §3.2);
 - 位置 = 行的**最右端**(用户追加裁定「时刻加在行末尾」),二段态的墨字插在它与行文字之间;
 - `0` / 越界 ⇒ **零字**(不占位、不编造)。
 
@@ -201,7 +203,7 @@ Loadable(slot) ⟺ InNarrativeContext(t)                     ← 摘掉 ¬Locked
 | V-7 | 两投影真值表按新公式逐格对拍 | `save_slot_contract_test.test_projections_areSameInputSameOutput` |
 | V-8 | 已锁行 = 灰底类 + 零字 + 二段态两枚墨字状态 | `save_slot_rows_legibility_test` · `adr041_save_slot_choices_test` |
 | V-9 | 行文字无序号、时刻在行末、半字号类、0 不显示 | `save_slot_rows_legibility_test` |
-| V-10 | 真包走查:册子实拍(字号 / 对比度按实拍再调) | `production/qa/evidence/impl-adr042-*.md` 的截图组 |
+| V-10 | 真包走查:册子实拍(字号 / 对比度按实拍再调) | `production/qa/evidence/impl-adr042-*.md` 的截图组 —— **已跑**:5 帧 · 灰底 0.14 不可辨 ⇒ 抬 0.28 · 用户 2026-11-06 确认两值定稿 |
 | V-11 | EditMode / PlayMode 全量回归 | 证据件里的三元组 |
 
 ⚠️ **V-1…V-11 的实跑结果以 `production/qa/evidence/impl-adr042-save-v6-and-slot-lock-2026-11-06.md` 为准**;
