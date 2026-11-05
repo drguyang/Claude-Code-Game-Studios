@@ -208,3 +208,144 @@ python3 tools/debtcount/debtcount.py --check; echo "DEBT=$?"
 
 ⚠️ 两件均为**收口后的追加工作**，不改变本 sprint「2 件 Must」的件数与判据；但
 `TD-processing-08` 的实现让本 sprint「如实登记的三处没做完」中的第 2 条**同日消解**。
+
+---
+
+## 收口后追加件 · 第二批（2026-11-04 ~ 2026-11-05）
+
+> **登记时点**：2026-11-05 · 用户指令「把这两天的工作补进 `sprint-24.md` 的收口后追加件节」。
+>
+> ⚠️ **本节不改变本 sprint 的任何判据**：`Status` 仍为 **Closed**，「2 件 Must」的件数、
+> 逐件判定与 DoD 三项**一字不动**。本节记录的是**收口之后两天里实际推进的东西** ——
+> 按 `CAPACITY-MODEL.md` 的口径，它们属于 **sprint-25 的候选面**，不是本 sprint 的交付物。
+> 不把它们说成「sprint-24 的一部分」，也不因此重开本 sprint。
+
+**范围与复算**（`c6130cde` = 收口时的 HEAD，见上文 §⚠️ CI 核查）：
+
+```bash
+git log --pretty=format:"%ad" --date=format:"%Y-%m-%d" c6130cde..HEAD | sort | uniq -c
+# 2026-11-05 实测：28 笔 2026-11-03（已由上节覆盖）
+#                30 笔 2026-11-04 + 12 笔 2026-11-05 = 42 笔 ← 本节登记面
+```
+
+### 一、存档面（本批最大一块，30 笔的大半）
+
+**多世界（ADR-040 D 案）从 `Proposed` 一路做到 UI 可点**：
+`3b3fbf11` 主菜单世界列表 + 新起一局 · `5590b8c5` 删除世界（`§D6`，二次确认 + 序号高水位）·
+`ceac3539` 主菜单改回固定四行 · `0e916e8c` 修「全新档第一局落在 w1」
+（空目录 + 幽灵索引顶号）· `781d5ef8` 补真启动序 PlayMode 判据，**顺带修出重装配二次应用开档
+基线**（该缺陷是夹具先红逼出来的）· `57a3ac9e` 修主菜单行重建后焦点悬空 · `25d0a361` 三路径验证 + 首份存档。
+
+**读档时钟链**（三笔同一根因）：`238eef15` 读档后逻辑时钟未定位 · `efa72b06` 补真档现场复核 ·
+`a29e16ad` 单调 tick 门不再卡死世界 ⇒ **`TD-sim-05` closed**。
+
+**存档槽语义（ADR-041）**：`18c274d4` 空槽即写 / 覆写不清锁 / 行内二段确认 ·
+`9f7c994c` 补 V-9 日志捕获夹具 · `046b6139` 二段态保留行文字 · `bcc29770` **`§D4` 改判** ——
+两条 bak 谓词合并为一条（`.bak` 一律算存档）· `d8d42d4f` 玩家槽不再回退 bak ⇒ **`TD-persist-19` closed** ·
+`fa2b1738` 走查救回成立、**立 `TD-persist-22`** · `d5db89d8` + `78981d08` 让册子说得出「前版 /
+此页已损」⇒ **`TD-persist-22` closed**。
+
+**册子形态**：`93bf989c` 槽号按身份固定 · `5c455b1e` 转册（每页 6 行 / 页缘 / 鱼尾页码）·
+`75a3a9c4` 存档遗留三条结清。
+
+### 二、拟物 UI（贴图与屏形态）
+
+- **`TD-skeuo-03` closed**（`a0073916` + 六十订 `787396b0`）：闭集 9 员都能被同一个 toggle 关掉。
+- **`TD-skeuo-07` / `-08` closed**（`406044ea`）：`url("guid:…")` 在 Unity 6.3 恒不解析 ⇒ 8 条贴图引用
+  自接图起从未生效；同时 `.paper` 一分为二（无框底纹 / `.paper-page` 纸+页框）。
+- **`TD-skeuo-12` closed**（`9ec8f39f`）：模态屏统一竖直居中 + 设置壳补页框。
+- **`TD-skeuo-04` 的 ④ 半边 / `TD-skeuo-06` closed**（`20af6fbf`）：设置壳入口接通 + 炮制点火生产实现。
+- **`TD-skeuo-10` closed**（`85de93fa`）：九宫格冻结件 round-2 重冻 + 测量脚本入库。
+- 走查件：`663dca68`（模态开合链图形模式走查）· `29324019`（七帧视觉走查 + 两笔新债）·
+  `182044f2` / `f369cd6f`（拟物贴图**不入库**，核心资产不上 GitHub）。
+
+### 三、52 事件链（三笔，把「恒零写入」的最后两级打通）
+
+| 提交 | 内容 | 债 |
+|---|---|---|
+| `fae861ee` | F1 上下文门接真源，并订正与 `AC-52-29` **相反**的判据 | `TD-randomevents-05` **closed** |
+| `7f6af7e9` | 出诊类 `event_key` 集改从数据派生 | `TD-randomevents-06` `open → partial`（机制结，内容侧开） |
+| `ea8b946d` | **系统 52** 的事件 → **系统 37** 病种的映射接通（`disease_id` 外键，池 `schema_version 2 → 3`） | `TD-randomevents-03` **closed** |
+
+⚠️ **端到端仍未证**：`isOnExpedition` 需真走出诊路径（人工走局），
+且 `PatientAppearedDriver` 脚手架仍在跑 ⇒ 归因须按 `DiseaseOnset.disease_id`（脚手架 = `INJ_STAB` = 2，
+52 = 7 / 17 / 11），**不按「有没有病人」**。
+
+### 四、病种与夹具
+
+- `be723016`：**P0 病种上限 8 → 9**（推翻 `disease-simulation.md:1406` 的 8，用户裁定「放宽到 9」）+
+  新增热性惊厥对照行 ⇒ `TD-diagnosis-02` / `TD-sim-06` `open → partial`。卡鱼刺 / 偏头痛**未进 P0**，
+  `TD-emergency-01` 维持 `open`。
+- `3f639bb3`：钉住 `DIS_MALARIA` 的昏迷余量 —— `a_peak/scale = 0.45` 与 `COMA_THRESHOLD = 29491/65536`
+  只差 **0.2 ULP**，Q16.16 除法**恰好**舍到 29491、比较用 `>=` 才成立 ⇒ 昏迷支靠「压线」成立，
+  此前**零覆盖**。补 4 条夹具（字面量哨兵 + 真表 + 运行时舍入 + 窗口宽度）。
+
+### 五、文档 / 仓务
+
+`46afde4e` 世界管理定 Valheim 形态（ADR-040 `§Amendment A`，实现押后 P1）·
+`c4d41a49` ADR-040 `§D11` 补裁「**角色进度跟人走**」（与 `ADR-026 §⑥` 相抵已显式登记，P0 不做事）·
+`d25beeea` `TD-persist-21` 先结后**同日重开**（`P0 面 Y → N`，范围裁定不是能力补齐）·
+`4737e13b` `.gitignore` 忽略 `ref_valheim/`。
+
+### 债面变化（两日合计，可用 `git show` 只读复算）
+
+| 量 | 11-03 末（`28a8d84a`） | 11-05 末（`3f639bb3`） | 差 |
+|---|---|---|---|
+| 条目 | 169 | **186** | **+17** |
+| `closed` | 147 | **161** | **+14** |
+| `partial` | 3 | **6** | **+3** |
+| `open` | 18 | **18** | ±0 |
+| **未闭 P0 面** | **10** | **10** | **±0（但成分全换）** |
+| epic 分布 | **3/31**（persistence 1 / random-events 5 / skeuo 4） | **6/31**（processing 1 / random-events 4 / diagnosis 1 / disease 1 / emergency 1 / skeuo 2） | **3/31 → 6/31** |
+
+⚠️ **「未闭 P0 面 10 → 10」不表示没进展**：11-03 那 10 条（persistence / random-events / skeuo 三个 epic）
+**已全部清偿**，今天的 10 条是**另一批**（含三个新 `partial`）。epic 摊布从 3 个变成 6 个是**这条**的读数。
+
+```bash
+# 复算（只读取，不改工作树）—— 11-03 末 vs 当前
+python3 - <<'PY'
+import re,subprocess,collections
+def stats(rev):
+    t=subprocess.run(['git','show',f'{rev}:docs/tech-debt-register.md'],capture_output=True,text=True).stdout
+    m=re.search(r'<!-- TD-INDEX:BEGIN -->(.*?)<!-- TD-INDEX:END -->',t,re.S)
+    rows=[[c.strip() for c in l.strip().strip('|').split('|')] for l in m.group(1).split('\n') if l.startswith('| `TD-')]
+    live=[r for r in rows if r[2]!='closed' and r[3].strip('*')=='Y']
+    return len(rows),dict(collections.Counter(r[2] for r in rows)),len(live),dict(collections.Counter(r[1].strip('`') for r in live))
+print(stats('28a8d84a')); print(stats('HEAD'))
+PY
+# 期望：条目 169 / closed 147 / partial 3 / open 18 / 未闭 P0 面 10（epic 3 个）
+#       条目 186 / closed 161 / partial 6 / open 18 / 未闭 P0 面 10（epic 6 个）
+```
+
+当前 10 条未闭 P0 面：`TD-processing-09` · `TD-randomevents-04` / `-06`(partial) / `-07` / `-08` ·
+`TD-diagnosis-02`(partial) · `TD-sim-06`(partial) · `TD-emergency-01` · `TD-skeuo-04` / `TD-skeuo-11`。
+
+### 门
+
+| 门 | 结果 | 复算 |
+|---|---|---|
+| `python3 tools/debtcount/debtcount.py --check` | **exit 0** | `✅ §五 输出块与索引块一致` |
+| `python3 tools/acid/acid_check.py --check` | **exit 0** | — |
+
+### 回归三元组
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| EditMode | **`6919 / 6882 / 0 / 37`** | `2026-11-05T10:53:13Z` | sprint-24 追加批（疟疾夹具轮） | `3f639bb3`（工作树干净） |
+| PlayMode | **`341 / 337 / 0 / 2 / 2`** | `2026-11-05T10:00:32Z` | 同上（热性惊厥轮） | `3f639bb3` |
+
+```bash
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/ed-mal-full.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/playmode-febrile.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+git status --short          # 期望：空 ⇒ 上表两行对应 `3f639bb3` 的干净工作树
+```
+
+⚠️ PlayMode 那一行是 **`10:00:32Z`** 的跑（疟疾轮的 `10:53` 只跑了 EditMode）。它对本轮成立的理由
+**不是省事**：`git diff --stat -- '*.cs' ':!*Tests*'` 在疟疾轮为空 ⇒ 生产代码逐字节未变。
+这是**论证**，不是另一次观测。
+
+### 仍未做（承上文「如实登记的三处没做完」）
+
+1. **`/smoke-check sprint` 仍未跑** —— 见 §DoD 第 3 条与本文件末的收口门表，**本 sprint 依旧不得称「全绿收口」**。
+2. **`TD-randomevents-04` 退 P1a**（`Mod_Eco` / `Mod_Rep` 无 P0 观测面），`-06` 内容侧、`-07` / `-08` 仍开。
+3. **卡鱼刺 / 偏头痛不入 P0**（`TD-emergency-01` 维持 `open`）：动作轴只有 2 个动作，装不下「取出」。
