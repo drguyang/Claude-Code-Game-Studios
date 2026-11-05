@@ -16986,3 +16986,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 新立 **`TD-skeuo-17`**(P0 面 Y);计数:条目 193 · open 20 · 未闭 P0 面 **13** · skeuomorphic-ui **5**。
 - **Verdict = FAIL**;sprint-24 的 DoD 最后一条仍不勾(已加注第三轮结果)。走查对真实存档的写入已还原(diff 零输出)。
 - 证据:`production/qa/smoke-2026-11-05.md` §第三轮 + `production/qa/evidence/smoke-2026-11-05-r3/*.png`。commit `94b1da52`。
+
+### TD-skeuo-17 兑现轮(首启第一层 ESC · 2026-11-05 深夜)
+
+- 用户指令:「按①把 `_modalInput` 提前,然后首启复验」。
+- `BootRoot.EnsureModalInput()`(幂等)新增;`PresentMainMenuAsync` 设完 `MainMenuSink` 后调用;启动序 6.3 改调同一处(不留第二份构造)。
+- 新门 `main_menu_wiring_test::test_mainMenu_modalInputDriver_isWiredWhenMenuAppears`(断言主菜单摊开时驱动已就绪);证伪 M1(删主菜单处调用)⇒ 新门红、其余 8 条全绿,SHA-256 还原。
+- **首启复验**:真包首次启动 → 「设置」→ ESC **关掉并回主菜单**(焦点在「设置」);实拍三图。刻意**只走首启路径**,不复用回程结论。
+- 回归 EditMode `6941/6904/0/0/37` · PlayMode `342/338/0/2/2`(`342−341=1` = 新门)· 构建 `Result: Succeeded`。
+- `TD-skeuo-17` **closed**;未闭 P0 面 **13 → 12** · skeuomorphic-ui 5 → 4 · 计数:条目 193 · open 19 · closed 164。
+- ⚠️ **smoke 第三轮的 FAIL 不因此转绿** —— 同轮还发现 #9 脉案 `ICasebookDtoSource` 未注入(值区恒空),要重跑才有新判定。
+- 走查对存档的写入(exit 存档 / index)已还原。证据 = `production/qa/evidence/impl-td-skeuo-17-modal-input-order-2026-11-05.md`。commit `35ba48dd`。
