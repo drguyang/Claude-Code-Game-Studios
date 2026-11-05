@@ -1226,7 +1226,17 @@
   ⇒ 换世界 / 新起一局 / 删当前世界**一点就崩**。修法收口在装配层
   (`world.BaselineModuleCatalog == null` 才应用基线),`World` 侧守卫**不放松**。
   仍不得借绿:多世界只在 `_bootWithMainMenu == true` 时启用(否则夹具会迁移开发机上的真存档)。
-  Engine Knowledge Risk **LOW**(纯 BCL 目录与字节布局)。
+  **🔁 2026-11-05 §Amendment A(用户「完全模仿英灵」· 实现押后 P1)**:登记 Valheim 形态的
+  世界管理设计 —— 主菜单 **5 行固定**(继续诊治 / 选择世界 / 存档管理 / 设置 / 退出游戏;
+  用户明裁**保留**「继续诊治」)· 世界列表是**场景级屏、不进 `ModalId` 闭集**,
+  故 `ShowSceneLevelScreen` 的白名单须由「只收主菜单」扩到二员 ·
+  玩家**命名** + `worlds.index` **v2**(`{seq, ticks, name}`,读 v1 回落「第 N 局」)·
+  删除挂在**管理态**、行内二段确认、真删 + 索引墓碑(恢复 §D6 内核)。
+  **三处刻意偏离**:① 世界内**保留存档册**(Valheim 一个世界一份状态)· ② **不引入角色层**
+  (单一大夫 + 状态住事件流)· ③ 保留「继续诊治」行。
+  ⚠️ **零实现**:§A8 V-1…V-7 全 `NOT-RUN`;`TD-persist-21` 同日由「结案」改判**重开**,
+  `P0 面 Y → N`(范围裁定,**不是**能力补齐 —— 世界仍不可切换 / 不可删除)。
+  Engine Knowledge Risk **LOW**(纯 BCL 与 UI 层级,零 post-cutoff API)。
 
 - [ADR-041 ✅ **Accepted** 2026-11-04]**存档槽的覆盖语义(空槽即写 · 覆写不清锁 · 行内二段确认)** ——
   `docs/architecture/adr-041-save-slot-overwrite.md`。**由用户对「点空档 = 保存 / 点已有档 = 提示读档或覆盖」
