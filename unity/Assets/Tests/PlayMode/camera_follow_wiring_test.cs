@@ -96,6 +96,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             _root = new GameObject("BootRoot_CameraFollow");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("camera_follow_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

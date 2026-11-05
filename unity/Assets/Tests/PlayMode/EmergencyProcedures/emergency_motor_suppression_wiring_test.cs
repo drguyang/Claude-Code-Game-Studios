@@ -156,6 +156,7 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         {
             _root = new GameObject("BootRoot_MotorSuppression");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("emergency_motor_suppression_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

@@ -178,7 +178,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             var go = new GameObject(name);
             go.SetActive(false);
             _roots.Add(go);
-            return go.AddComponent<BootRoot>();
+            var __boot = go.AddComponent<BootRoot>();
+            __boot.SaveRootOverride = PlayModeTempSaveRoot.New("skeuo_ui_lifetime_test");
+            return __boot;
         }
 
         /// <summary>调私有装载缝 `FindOrCreateSkeuoUi`(本债的被测面)。</summary>

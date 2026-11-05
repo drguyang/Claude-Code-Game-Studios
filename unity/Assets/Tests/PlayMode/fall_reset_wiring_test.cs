@@ -79,6 +79,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Arrange:真启动序(与门④冒烟同源)
             _root = new GameObject("BootRoot_FallReset");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("fall_reset_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

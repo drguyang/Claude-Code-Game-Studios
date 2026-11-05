@@ -217,6 +217,7 @@ namespace DaYiJingCheng.Tests.PlayMode.DeathRespawn
 
             _root = new GameObject("BootRoot_DownedCamera");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("downed_camera_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

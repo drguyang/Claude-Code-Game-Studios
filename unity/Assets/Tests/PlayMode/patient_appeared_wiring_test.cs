@@ -80,6 +80,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Arrange:真启动序(与门④冒烟同源)
             _root = new GameObject("BootRoot_PatientWiring");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("patient_appeared_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

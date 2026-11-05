@@ -155,6 +155,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             _root = new GameObject("BootRoot_DeathTransition");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("death_transition_playmode_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

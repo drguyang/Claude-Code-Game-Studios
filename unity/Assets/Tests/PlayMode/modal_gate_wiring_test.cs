@@ -353,6 +353,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             _root = new GameObject("BootRoot_ModalGateWiring");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("modal_gate_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

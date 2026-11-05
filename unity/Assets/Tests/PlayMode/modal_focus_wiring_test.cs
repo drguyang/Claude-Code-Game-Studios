@@ -306,6 +306,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             _root = new GameObject("BootRoot_ModalFocusWiring");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("modal_focus_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

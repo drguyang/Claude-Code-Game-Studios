@@ -433,6 +433,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             //    BootRoot 禁 Start —— 启动序含 Addressables / world 加载,与本测无关)
             _bootGo = new GameObject("BootRoot_Assump6Chain");
             var boot = _bootGo.AddComponent<BootRoot>();
+            boot.SaveRootOverride = PlayModeTempSaveRoot.New("u1_assump6_gamepad_chain_test");
             boot.enabled = false;
             _es = InvokePrivate(boot, "EnsureEventSystem") as EventSystem;
             Assert.IsNotNull(_es, "[夹具红] EnsureEventSystem 返回 null");

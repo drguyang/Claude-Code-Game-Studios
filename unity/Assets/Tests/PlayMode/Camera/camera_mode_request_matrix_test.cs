@@ -377,6 +377,7 @@ namespace DaYiJingCheng.Tests.PlayMode.CameraMatrix
 
             _root = new GameObject("BootRoot_ModeMatrix");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("camera_mode_request_matrix_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline) yield return null;

@@ -285,6 +285,7 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
 
             _root = new GameObject("BootRoot_CasebookEntry");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("casebook_entry_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

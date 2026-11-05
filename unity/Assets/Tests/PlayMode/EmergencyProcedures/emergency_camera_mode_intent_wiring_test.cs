@@ -148,6 +148,7 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         {
             _root = new GameObject("BootRoot_CameraModeIntent");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("emergency_camera_mode_intent_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

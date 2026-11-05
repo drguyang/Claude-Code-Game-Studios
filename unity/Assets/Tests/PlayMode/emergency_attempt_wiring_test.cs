@@ -85,6 +85,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Arrange:真启动序(与门④冒烟同源)
             _root = new GameObject("BootRoot_EmergencyWiring");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("emergency_attempt_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)
@@ -137,6 +138,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Arrange:真启动序
             _root = new GameObject("BootRoot_EmergencyWiring_Manual");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("emergency_attempt_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)

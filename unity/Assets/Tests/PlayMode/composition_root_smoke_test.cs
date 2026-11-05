@@ -89,6 +89,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Arrange:根对象(Boot 启动序宿主;Awake 即跑,零异步零装配)
             _root = new GameObject("BootRoot_Smoke");
             _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("composition_root_smoke_test");
 
             // Act:帧循环等四步启动序完成(_booted = true 置位于 Player.Initialize 之后)
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;

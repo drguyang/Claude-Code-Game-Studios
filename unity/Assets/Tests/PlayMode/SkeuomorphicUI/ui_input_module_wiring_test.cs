@@ -180,6 +180,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             // 真启动序(与门④冒烟同源)—— BootRoot.Start 内第 6.7 步装配官方桥
             _bootGo = new GameObject("BootRoot_UiInputWiring");
             _boot = _bootGo.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("ui_input_module_wiring_test");
 
             float deadline = Time.realtimeSinceStartup + 15f;
             while (!ReadBool(_boot, "_booted") && Time.realtimeSinceStartup < deadline)
@@ -247,6 +248,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             _bootGo = new GameObject("BootRoot_Bootstrap");
             var boot = _bootGo.AddComponent<BootRoot>();
+            boot.SaveRootOverride = PlayModeTempSaveRoot.New("ui_input_module_wiring_test");
             boot.enabled = false;   // 禁 Start(启动序含 Addressables / world 加载,与本门无关)
             SetField(boot, "_uiDriver", driver);
 

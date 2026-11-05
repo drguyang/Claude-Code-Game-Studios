@@ -407,7 +407,7 @@
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-21` | `persistence-service` | open | **N** | R1 |
 | `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
-| `TD-persist-23` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-23` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -729,6 +729,15 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十九订(`TD-persist-23` 结案 · 2026-11-05 晚 · 夹具存档根轮)** ——
+> **单一变化源:一条状态变更(`open → closed`),零新登记。**
+> 用户指令「按 TD-persist-23 把 PlayMode 夹具的存档根修了」⇒ 21 个夹具补 `SaveRootOverride`
+> (临时根)+ 新增机械门 `playmode_save_root_gate_test`。
+> 变化:`条目 192` 不动 · `open 20 → 19`(−1)· **`closed 162 → 163`**(+1)· `partial 9` 不动 ·
+> `Y 128` / `N 58` 不动 · **`未闭 P0 面 12` 不动**(本条判 `N`,故结案不改该数)· `epic 分布 6/31` 不动。
+> ⚠️ **结案判据是前后 `diff`,不是门绿**:修前跑全量 PlayMode ⇒ 真实存档根多出 `save_auto.bin`;
+> 修后 ⇒ **零差异**。
 
 > > 🔁 **八十八订(`TD-build-02` ① 兑现 + `TD-persist-23` 立债 · 2026-11-05 晚 · 改名轮)** ——
 > **两处变化源,逐条列清**(勿并读):
@@ -1450,7 +1459,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 192 | 状态 {'closed': 162, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 192 | 状态 {'closed': 163, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 12 （已闭但曾标 P0 面的 116 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
@@ -6324,6 +6333,29 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ①(最直接)给所有「真启动序」PlayMode 件补 `SaveRootOverride`(多世界形态)或 `SaveBasePathOverride`(单世界形态),**指向 `Path.GetTempPath()`**;② 补机械门:`Assets/Tests/PlayMode/**/*.cs` 里出现 `AddComponent<BootRoot>()` 而**同文件内**没有 `SaveRootOverride` / `SaveBasePathOverride` ⇒ 红(空集守卫:扫到 0 处 `AddComponent<BootRoot>` 也红,防路径写错恒绿)。③ 与 ② 同批复核 `FsWriteBoundaryGate` 的声明表是否需要扩到「间接写」—— **不做也行**,但须在门注里写明这一面归 ② 那条新门。 |
 | **触发条件** | 任何一次「回归跑干净」形态的引用之前(**禁借绿**);或发布前最后一次全量回归之前(**硬前置**,否则发布机上的真档目录里会多出测试局)。 |
 | **归属** | **persistence-service**(7a 存档根)× **治理**(测试边界) |
+
+#### ✅ 2026-11-05 兑现轮:`open` → **`closed`**(用户指令「按 TD-persist-23 把 PlayMode 夹具的存档根修了」)
+
+**证据原件**:`production/qa/evidence/impl-td-persist-23-playmode-save-root-2026-11-05.md`
+(前后对照 + M1/M2/M3 证伪 + 回归三元组)。
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| 夹具(①) | **21 个文件 / 22 个站点**各补 `X.SaveRootOverride = PlayModeTempSaveRoot.New("<夹具名>");` | 用 `SaveRootOverride`(**多世界形态**)而非 `SaveBasePathOverride` —— 「不设覆盖」时 `BootRoot` 走的本就是多世界那条路,换缝会**改掉被测行为** |
+| 辅助 | `Assets/Tests/PlayMode/PlayModeTempSaveRoot.cs`(新) | 每个夹具一个互不相同的临时根(`/tmp/dyjc-pm-<名>-<guid8>`) |
+| 机械门(②) | `Assets/Tests/EditMode/PersistenceService/playmode_save_root_gate_test.cs`(新) | 扫 `Assets/Tests/PlayMode/**/*.cs`,含 `AddComponent<BootRoot>` 而**剥注释后**无覆盖 ⇒ 红;**空集守卫**(扫到的真启动序文件 < 10 ⇒ 红) |
+| 前后对照 | `cp -a <saves> /tmp/before` → 跑全量 PlayMode → `diff -rq` | 修前:`只在 live 中存在 save_auto.bin`;修后:**零输出** |
+| 回归 | EditMode `6941/6904/0/0/37`(+1 = 新门)· PlayMode `341/337/0/2/2`(逐位不变) | 补覆盖**不改**被测行为 |
+| 构建 | `Result: Success` · 错误数 0 · 18.7 s | ⚠️ 绿 ≠ 门跑了,不据此主张任何门已验证 |
+
+**证伪轮**:M1 删一个夹具的覆盖行 ⇒ 红且点名该文件;M2 判据串改成不存在的类型 ⇒ 命中空集守卫;
+M3 覆盖行改成注释 ⇒ 仍红(证明判据锚在剥注释后的代码上)。三变异 SHA-256 逐字节还原。
+
+⚠️ **解除动作 ③ 取「不做」并写明**:`FsWriteBoundaryGate` 不扩到「间接写」——
+它扫的是测试里的**直接写盘调用**,`BootRoot` 的间接写归本轮的**新门**,不在旧门里堆规则。
+
+⚠️ **临时目录不清理**(`/tmp/dyjc-pm-*` 会累积,每个几 KB):与既有夹具同口径 ——
+`TearDown` 里删除若抛异常会把「清理」变成二次失败。
 
 ### TD-build-02 — 全仓**零正式构建入口**,且 player 的 company/product 未设(存档目录与编辑器不同)
 
