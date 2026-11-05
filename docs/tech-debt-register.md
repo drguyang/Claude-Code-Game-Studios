@@ -452,7 +452,7 @@
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | closed | **N** | R3-裁 |
 | `TD-build-02` | `（跨 epic · 治理／构建与发布）` | open | **N** | R3-裁 |
-| `TD-build-03` | `patient-ai` | open | **Y** | R1 |
+| `TD-build-03` | `patient-ai` | closed | **Y** | R1 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
 | `TD-building-01` | `modular-building` | closed | **Y** | R1 |
@@ -728,6 +728,19 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十六订(`TD-build-03` 结案 · 2026-11-05 晚 · 真 player 轮)** ——
+> **单一变化源:一条状态变更(`open → closed`),零新登记、零其它状态变更。**
+> 用户裁定「按①把着色器那条也修了」⇒ 占位材质改**资产驱动**
+> (`Resources/PatientPlaceholderMaterial.mat` + `Resources.Load<Material>`),运行期不再 `Shader.Find`。
+> 变化:`条目 191` 不动 · `open 21 → 20`(−1)· **`closed 161 → 162`**(+1)· `partial 8` 不动 ·
+> `Y 128` / `N 57` / 条目总数全部不动 ·
+> **`未闭 P0 面 13 → 12`**(−1)· **`epic 分布 7/31 → 6/31`**(`patient-ai` 名下**清零**,该 epic 退出未闭面)。
+> ⚠️ **`P0 面` 列仍记 `Y`**(判的是「它是否落在 P0 面上」,不是「它现在开没开」——
+> 与 `TD-medcons-01…05` 等既有关闭条目同口径)。
+> ⚠️ **本条结案只覆盖「打包版病人看不见」这一半**:`TD-build-02`(零正式构建入口)仍 `open`,
+> 且解除动作 ②(Always Included)未采用 ⇒ 「运行期手搓材质」没有全局禁令,**残余面已写进条目正文**。
+> 证据原件 = `production/qa/evidence/impl-td-build-03-shader-strip-2026-11-05.md`。
 
 > > 🔁 **八十五订(`TD-skeuo-16` / `TD-skeuo-14` 推进 + `TD-build-03` 立债 · 2026-11-05 晚 · 真 player 轮)** ——
 > **三处变化源,逐条列清**(勿并读):
@@ -1411,12 +1424,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 191 | 状态 {'closed': 161, 'partial': 8, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 13 （已闭但曾标 P0 面的 115 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
+条目 191 | 状态 {'closed': 162, 'partial': 8, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 12 （已闭但曾标 P0 面的 116 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
-    disease-simulation: 1     emergency-procedures: 1   patient-ai: 1
-    processing: 1
+    disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -6299,6 +6311,33 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | 三选一(须裁):**① 资产驱动(推荐)** —— 做一个 `.mat`(URP Lit)资产放进 `Resources/` 或 `Addressables`,工厂改成加载它而不是 `Shader.Find`;好处 = 着色器随依赖进包,且与「运行期不手搓材质」的方向一致;或 **②** 把 `Universal Render Pipeline/Lit` 加进 `GraphicsSettings → Always Included Shaders`(最省事,但会把该着色器的**全部变体**打进包,体积代价最大);或 **③** 病人占位改成预制体资产(与 ① 同源)。**禁用**「静默回退到品红」—— 那正是 `3b97a850` 之前的状态。 |
 | **触发条件** | 任何一次对外发放构建之前(**硬前置**);或任何以「病人可见」形态引用之前(**禁借绿**)。 |
 | **归属** | **13 病人 AI**(病人视觉表现侧,`Gameplay.Presentation/Patients/`)· 构建资源形态 = 治理 |
+
+#### ✅ 2026-11-05 兑现轮:`open` → **`closed`**(用户裁定「按①把着色器那条也修了」)
+
+**证据原件**:`production/qa/evidence/impl-td-build-03-shader-strip-2026-11-05.md`
+(证伪轮 M1/M2/M3 + 真包 A/B + 回归三元组)。
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| 资产 | `unity/Assets/Gameplay.Presentation/Patients/Resources/PatientPlaceholderMaterial.mat`(新) | `m_Shader.guid = 933532a4fcc9baf4fa0491de14d08ed7` = `com.unity.render-pipelines.universal@…/Shaders/Lit.shader.meta` 的 guid,**同一个** |
+| 运行期 | `CapsulePatientVisualFactory.LoadPlaceholderMaterial()`(`Resources.Load<Material>`) | 加载不到**抛**;`NeutralGrey` 常量已删(色值真源移到 `.mat`) |
+| 资产生成器 | `Editor.Tools.Bake/Cli/CreatePatientPlaceholderMaterialCli.cs`(新) | 资产已存在即 `Exit(2)` —— 只创建不覆盖,**不会成为第二个色值真源** |
+| 夹具 | `patient_visual_seams_test.cs::test_placeholderMaterial_comesFromAsset_notRuntimeShaderFind`(改写) | 行为层:资产能加载且 `shader.name == "Universal Render Pipeline/Lit"`;源码层:`Resources.Load<Material>` 在场 / `Shader.Find` **不在场** / 缺资产抛异常 |
+| 真包 | 探针 CLI 出包 → 图形模式跑 | `grep -c "找不到 URP Lit" <Player.log>` = **0**(旧包 `plog5.txt` 1442 / `rm2.txt` 1676);实拍病人 3 个胶囊可见 |
+
+**证伪轮**:M1 资产改名(`.mat` → `.mat.off`)⇒ 3 红;M2 加回 `Shader.Find` ⇒ 恰源码层 1 红;
+M3 `throw` 换 `return null` ⇒ 恰源码层 1 红。三变异 SHA-256 逐字节还原一致。
+**回归**:EditMode `6940/6903/0/0/37` · PlayMode `341/337/0/2/2`,与 `ed-rm.xml` / `pm-rm.xml` 逐位相同;
+**测试数零增减**(改写是替换)。
+
+⚠️ **本债原文「实测 ③ `grep -rl "Universal Render Pipeline/Lit" … --include=*.mat` 零命中」的口径已订正**:
+`.mat` 按 **GUID** 引用着色器,**不写名字**,那一句从来没有「看见引用」的能力 ——
+它是「零命中」为真、结论也碰巧为真,但**检查手法本身不可判**。本轮改为比 GUID(见上表第一行)。
+**原文不删,在此加注。**
+
+⚠️ **解除动作 ②(Always Included Shaders)未采用**,故「运行期手搓材质」这件事本身没有全局禁令 ——
+只有「本工厂不得再出现 `Shader.Find`」这一条**源码级负判据**。将来出现第二处手搓材质时,
+本条不提供任何保护。**这是闭合后的残余面,如实登记。**
 
 ### TD-itemdb-01 — `cost(m)` 全库无作者态载体,「与 `cost(m)` 同源」今日不可满足
 

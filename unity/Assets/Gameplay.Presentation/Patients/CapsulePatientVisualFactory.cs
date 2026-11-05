@@ -10,9 +10,12 @@
 //   ⇒ 兑换真资产 = 在 `CompositionRoot` 把本类换成 `PrefabPatientVisualFactory`,
 //      **spawner / 位置 / 交互 / 夹具全部不动**。
 //
-// ⚠️ **零资产依赖**:本类不用 prefab、不用 Addressables、不读 `assets/data/`
-//   —— 灰盒的全部内容 = 一个 `CreatePrimitive(Capsule)` + 一个运行时建的材质。
-//   这正是「等真实资产兑换」的前提:没有需要一起删掉的资产文件。
+// ⚠️ **一个资产依赖**(2026-11-05 起,`TD-build-03`):`Resources/PatientPlaceholderMaterial.mat`。
+//   上一句原文写「零资产依赖 …… 一个运行时建的材质」—— **该说法的代价已兑现为缺陷**:
+//   材质在运行期由 `Shader.Find` 手搓 ⇒ **没有任何资产引用那个着色器** ⇒ player 构建把
+//   URP Lit 当未使用剥离 ⇒ 打包版恒抛「找不到 URP Lit」,病人**根本画不出来**
+//   (实测日志 2489 条)。现改为加载资产,着色器随资产依赖进包。
+//   ⇒ 「等真实资产兑换」的前提不变:要删的东西现在**多一个** `.mat`(与本文件同批删)。
 
 using UnityEngine;
 
@@ -27,8 +30,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Patients
         /// <summary>胶囊的默认局部缩放 —— 高 1.0、粗 0.6,视觉上接近「一个人」的细长比。</summary>
         private static readonly Vector3 DefaultScale = new Vector3(0.6f, 1.0f, 0.6f);
 
-        /// <summary>中性灰 —— 零语义(不映射体征 / 病种 / 九态;那归 13 的 `Material(p)` + 8 词表)。</summary>
-        private static readonly Color NeutralGrey = new Color(0.7f, 0.7f, 0.7f);
+        /// <summary>占位材质的 Resources 资源名(相对 `Resources/` 的路径,不带扩展名)。
+        /// <para>⚠️ **颜色不在这里** —— 中性灰 `(0.7, 0.7, 0.7)` 的唯一真源就是那个 `.mat`。
+        /// 此处**刻意不保留色值常量**:留着它就会在「改资产」与「改常量」之间有第二条路,
+        /// 而两条路必然分叉(改了一处、另一处仍是旧值,且两边都不报错)。</para>
+        /// <para>资产出处:`Editor.Tools.Bake/Cli/CreatePatientPlaceholderMaterialCli.cs`
+        /// (只在资产**不存在**时创建,故不会与本行路径脱节)。</para></summary>
+        internal const string PlaceholderMaterialResourcePath = "PatientPlaceholderMaterial";
 
         /// <inheritdoc />
         /// <remarks>
@@ -50,7 +58,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Patients
             }
 
             capsule.transform.localScale = DefaultScale;
-            capsule.GetComponent<Renderer>().sharedMaterial = CreatePlaceholderMaterial();
+            capsule.GetComponent<Renderer>().sharedMaterial = LoadPlaceholderMaterial();
             return capsule;
         }
 
@@ -72,29 +80,27 @@ namespace DaYiJingCheng.Gameplay.Presentation.Patients
             Object.Destroy(visual);
         }
 
-        /// <summary>占位胶囊的中性灰材质(URP Lit 优先;Standard 仅作非 URP 构建的回退)。
-        /// <para>⚠️ 必须按属性存在性写色:URP Lit 用 <c>_BaseColor</c>,<c>Standard</c> 用 <c>_Color</c>
-        /// (<c>Material.color</c> 只映射后者)。错误着色器(品红)在实机上是可观测的回归信号 ——
-        /// 它会让「本帧是否正常渲染」这一观察失效,不得以「占位无所谓」放过。</para>
-        /// <para>🔴 <b>本条是 `3b97a850` 的修复本体</b>(2026-10-20):修复前写
-        /// <c>Shader.Find("Standard")</c>,在 URP 工程下返回 <c>null</c> ⇒ Unity 走错误着色器
-        /// ⇒ 胶囊**通体品红**(用户实机报告「品红色病人胶囊占位」)。</para>
+        /// <summary>加载占位胶囊的中性灰材质资产(`Resources/PatientPlaceholderMaterial.mat`)。
+        /// <para>🔴 <b>本条是 `TD-build-03` 的修复本体</b>(2026-11-05):修复前在**运行期**
+        /// 用 <c>Shader.Find</c> 现找着色器 —— 而着色器只被代码字符串引用,没有资产引用它 ⇒
+        /// player 构建把它当未使用**剥离** ⇒ 打包版恒抛「找不到 URP Lit」,病人**画不出来**。
+        /// 现改为加载资产:资产引用 = 构建期的可见依赖,着色器随之进包。</para>
+        /// <para>⚠️ <b>不得加回 `Shader.Find` 回退</b>:它会让「资产丢了」这一缺陷在编辑器与
+        /// EditMode 夹具里**完全隐身**(编辑器内置 shader 恒在),只在打包版发作 ——
+        /// 那正是本缺陷活了这么久的原因。</para>
+        /// <para>⚠️ <b>失败必须显性</b>:加载不到就抛,不得返回 null 让 Unity 走错误着色器(品红)。
+        /// 品红在实机上是「本帧是否正常渲染」的观察噪声(<c>3b97a850</c> 的教训)。</para>
         /// </summary>
-        internal static Material CreatePlaceholderMaterial()
+        internal static Material LoadPlaceholderMaterial()
         {
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null) shader = Shader.Find("Standard");
+            var mat = Resources.Load<Material>(PlaceholderMaterialResourcePath);
 
-            // ⚠️ 两个都找不到 ⇒ **必须显性失败**,不得静默建出一个品红材质。
-            //    静默回退正是 `3b97a850` 之前的状态 —— 那时没有人发现,直到用户实机报告。
-            if (shader == null)
+            if (mat == null)
                 throw new System.InvalidOperationException(
-                    "[patient-visual] 找不到 URP Lit 也找不到 Standard —— 无法建占位材质。" +
-                    "继续下去 Unity 会走错误着色器(品红),而品红在实机上是「本帧是否正常渲染」的观察噪声。");
+                    $"[patient-visual] 加载不到 Resources/{PlaceholderMaterialResourcePath}.mat —— " +
+                    "占位材质资产缺失或路径变了。继续下去 Unity 会走错误着色器(品红)," +
+                    "而品红在实机上是「本帧是否正常渲染」的观察噪声。");
 
-            var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", NeutralGrey);
-            else mat.color = NeutralGrey;
             return mat;
         }
     }

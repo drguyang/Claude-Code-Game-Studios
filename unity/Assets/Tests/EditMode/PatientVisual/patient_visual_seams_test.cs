@@ -14,6 +14,12 @@
 //   `PatientVisualWiring 1/1`(验接线闭合),**没验颜色**;
 //   全仓 `grep -rn "CreatePlaceholderMaterial\|_BaseColor\|品红" unity/Assets/Tests/`
 //   在 2026-10-30 之前**零命中**。⇒ 修复本身是真的,但**没有夹具防它回来**。
+//
+// 🔁 **2026-11-05(`TD-build-03`)**:占位材质从「运行期 `Shader.Find` 手搓」改为
+//   「加载 `Resources/PatientPlaceholderMaterial.mat`」。原先那条源码文本判据
+//   (`test_placeholderMaterial_urpLitFirst_andLoudFailOnBothMissing`)守的是**已被推翻的
+//   实现形态**,同批改写为 `test_placeholderMaterial_comesFromAsset_notRuntimeShaderFind`
+//   —— 新增**行为层**判据(资产能加载 + shader 恰为 URP Lit),它才是防「资产被删」的那条。
 
 using System;
 using System.Reflection;
@@ -33,7 +39,11 @@ namespace DaYiJingCheng.Tests.Unit.PatientVisual
         /// <para><b>判据</b>:走**真实生产路径** —— `CapsulePatientVisualFactory.Create(1)` 出来的
         /// GameObject,其 `Renderer.sharedMaterial` 非 null、shader 非 null、基色恰为中性灰
         /// `(0.7, 0.7, 0.7)` 且**不是**品红 `(1,0,1)`。</para>
-        /// <para>⚠️ <b>为什么不测内部 helper</b>:`CreatePlaceholderMaterial` 是 `internal`
+        /// <para>✅ <b>2026-11-05(`TD-build-03`)起本条的判别力变强了</b>:材质改为从
+        /// `Resources/PatientPlaceholderMaterial.mat` 加载 ⇒ 「资产被删 / 路径改名」会**当场抛**,
+        /// 本条转红。此前运行期现找着色器,资产不存在这种形态**物理上无法发生**,
+        /// 故那时只覆盖「挂上了 + 色对 + 非品红」。</para>
+        /// <para>⚠️ <b>为什么不测内部 helper</b>:`LoadPlaceholderMaterial` 是 `internal`
         /// (测试装配看不到,也没有 `InternalsVisibleTo`)—— 而且**走生产路径更强**:
         /// 它连带证明「材质真的被挂到渲染器上」,而不只是「helper 返回值对」。</para>
         ///
@@ -46,16 +56,14 @@ namespace DaYiJingCheng.Tests.Unit.PatientVisual
         /// [PROBE-UNLIT]   Unlit/Color
         /// [PROBE-DIFFUSE] Legacy Shaders/Diffuse
         /// </code>
-        /// <para>⇒ **编辑器里 `Standard` 永远找得到**(内置 shader 恒在),所以
-        /// 「回退到 `3b97a850` 之前的形态」这条变异(M18)**只有源码文本那条红**,
-        /// 本条**照样绿**。品红是**运行期**现象:URP player 构建时 `Standard` 被剥离
-        /// (`GraphicsSettings.asset` 的 `m_AlwaysIncludedShaders` 七项里不含它),
-        /// `Shader.Find` 才返回 null ⇒ 走错误着色器。**EditMode 无法复现该条件。**</para>
-        /// <para>⇒ 本条的**真实判别力**只覆盖「材质挂上了 + 基色对 + 不是品红」这三项;
-        /// 「shader 是否为 null」这一项在 EditMode 下**恒真**(判别力为零)。
-        /// 「两个 shader 都找不到 ⇒ throw」那条分支由
-        /// <see cref="test_placeholderMaterial_contract_documentsLoudFailure"/> 用**源码文本**守
-        /// —— 那是唯一可在 EditMode 判定的形态。</para>
+        /// <para>⇒ **编辑器里 `Standard` 永远找得到**(内置 shader 恒在),所以那条探针的结论是:
+        /// 「运行期 `Shader.Find` 是否失败」在 EditMode 下**不可判定** —— 失败形态只在打包版出现。
+        /// 那正是 `TD-build-03`(打包版 2489 条异常 / 病人画不出来)能活一个月的机制。</para>
+        /// <para>⇒ 本条的**真实判别力**覆盖「材质挂上了 + 基色对 + 不是品红」这三项,
+        /// 外加(2026-11-05 起)「资产存在且能加载」—— 因为材质现在**来自资产**,
+        /// 资产缺失会在 <see cref="CapsulePatientVisualFactory.Create"/> 里当场抛。
+        /// 「生产码不得用 `Shader.Find`」那条**负判据**由
+        /// <see cref="test_placeholderMaterial_comesFromAsset_notRuntimeShaderFind"/> 守。</para>
         /// </summary>
         [Test]
         public void test_placeholderVisual_materialIsNeutralGrey_notMagentaColor()
@@ -95,33 +103,47 @@ namespace DaYiJingCheng.Tests.Unit.PatientVisual
             }
         }
 
-        /// <summary>**唯一可在 EditMode 判定的「品红防线」**:生产码里 URP Lit 必须**先于**
-        /// Standard 被查找,且两者皆 null 时**显性失败**。
-        /// <para>⚠️ 这条用的是**源码文本**判据(不是行为判据)—— 因为它守的那个分支
-        /// (「两个 shader 都找不到」)在编辑器里**不可达**(`Standard` 恒在)。
-        /// 如实登记:本条的判别力 = 「源码结构」,不是「运行期行为」。</para>
-        /// <para>M18 实测:回退到 `Shader.Find("Standard")` 单行 + 无 null 检查
-        /// ⇒ 本条**转红**(该轮唯一红的一条)。</para>
+        /// <summary>`TD-build-03` 的回归门:材质必须**来自资产**,不得在运行期 `Shader.Find`。
+        /// <para><b>病根</b>:运行期 `Shader.Find` 找的着色器若没有任何资产引用它,player 构建
+        /// 会把它当未使用**剥离**;而**编辑器与 EditMode 下 `Shader.Find` 恒成功**(内置 shader 恒在)
+        /// ⇒ 该缺陷在开发环境**完全隐身**,只在打包版发作(实测 2489 条异常,病人画不出来)。</para>
+        /// <para><b>判据分两层</b>:</para>
+        /// <list type="number">
+        /// <item><b>行为层(主判据)</b>:`Resources.Load&lt;Material&gt;(\"PatientPlaceholderMaterial\")`
+        /// 拿到非 null 材质,且其 shader 名**恰为** `Universal Render Pipeline/Lit`。
+        /// 资产被删 / 改名 / 换成 Standard ⇒ 本条当场红。</item>
+        /// <item><b>源码层</b>:生产码里 `<c>Resources.Load&lt;Material&gt;</c>` 在场、
+        /// `<c>Shader.Find</c>` **不在场**(负判据 —— 加回它就是让本缺陷复活)、
+        /// 加载不到时 `<c>throw new System.InvalidOperationException</c>`(不得静默 null)。</item>
+        /// </list>
+        /// <para>⚠️ 源码层扫的是**去注释后的代码** —— 源文件头注里也写着这些名字,
+        /// 直接用 IndexOf 会命中文档而非实现(2026-10-30 实跑踩过:红在注释上)。</para>
         /// </summary>
         [Test]
-        public void test_placeholderMaterial_urpLitFirst_andLoudFailOnBothMissing()
+        public void test_placeholderMaterial_comesFromAsset_notRuntimeShaderFind()
         {
-            string src = ReadOwnSource();
-            string code = StripComments(src);
+            // ── 行为层:资产真的能加载,且 shader 就是 URP Lit ──
+            var asset = Resources.Load<Material>("PatientPlaceholderMaterial");
+            Assert.That(asset, Is.Not.Null,
+                "Resources/PatientPlaceholderMaterial.mat 加载不到 —— 资产被删 / 移出 Resources / 路径改名。" +
+                "这一条在打包版上表现为「病人完全不可见」(TD-build-03)。");
+            Assert.That(asset.shader, Is.Not.Null, "资产存在但其 shader 引用断了(着色器包缺失?)");
+            Assert.That(asset.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"),
+                "资产的 shader 不是 URP Lit —— 换成 Standard 在 URP player 构建下会被剥离," +
+                "那正是 TD-build-03 的病根路径");
 
-            // ① URP Lit 必须先被查找(URP 工程里 Standard 会被剥离 ⇒ 不能只找 Standard)
-            // ⚠️ 必须扫**去注释后的代码** —— 源文件头注里也写着这两个名字,
-            //    直接用 IndexOf 会命中文档而非实现(本轮实跑踩过:红在注释上)。
-            int urpIdx = code.IndexOf("Universal Render Pipeline/Lit", StringComparison.Ordinal);
-            int stdIdx = code.IndexOf("\"Standard\"", StringComparison.Ordinal);
-            Assert.That(urpIdx, Is.GreaterThan(0), "代码里必须查找 URP Lit(注释里的提及不算)");
-            Assert.That(stdIdx, Is.GreaterThan(0), "代码里必须有 Standard 回退");
-            Assert.That(urpIdx, Is.LessThan(stdIdx),
-                "URP Lit 必须**先于** Standard 被查找 —— URP player 构建会剥离 Standard,先找它才拿得到");
+            // ── 源码层:走资产加载,不走运行期查找 ──
+            string code = StripComments(ReadOwnSource());
 
-            // ② 两者皆 null ⇒ 显性失败(不得静默建出 null-shader 材质)
+            Assert.That(code, Does.Contain("Resources.Load<Material>"),
+                "占位材质必须经 Resources 加载资产(资产引用 = 构建期的可见依赖,着色器才会进包)");
+            Assert.That(code, Does.Contain("\"PatientPlaceholderMaterial\""),
+                "资源名必须是 PatientPlaceholderMaterial(与本测行为层同名,否则两处会静默分叉)");
+            Assert.That(code, Does.Not.Contain("Shader.Find"),
+                "生产码里**不得**再出现 Shader.Find —— 它在编辑器恒成功、只在打包版失败," +
+                "会把 TD-build-03 这类缺陷重新变成隐身形态");
             Assert.That(code, Does.Contain("throw new System.InvalidOperationException"),
-                "两个 shader 都找不到时必须 throw —— 静默回退正是 3b97a850 之前「没人发现」的形态");
+                "加载不到时必须 throw —— 静默返回 null 会让 Unity 走错误着色器(品红)");
         }
 
         /// <summary>去掉 `//` 行注释与 `/* */` 块注释(判据须锚在**实现**上,不锚在文档上)。
