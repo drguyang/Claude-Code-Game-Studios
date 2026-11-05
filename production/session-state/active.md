@@ -16975,3 +16975,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `TD-persist-23` **closed**;计数:条目 192 · open 19 · partial 9 · closed 163 · 未闭 P0 面 12(本条判 N,不变)。
 - 边界:临时目录不清理(与既有夹具同口径);`FsWriteBoundaryGate` 不扩面(间接写归新门)。
 - 证据原件 = `production/qa/evidence/impl-td-persist-23-playmode-save-root-2026-11-05.md`。commit `49af55f8`。
+
+### smoke-check 第三轮(2026-11-05 深夜 · 用户「由你直接操作」)
+
+- 自动化:EditMode `6941/6904/0/0/37` · PlayMode `341/337/0/2/2`(failed 0);`run_smoke.py` 自动 PASS 16 · FAIL 0 · 具名人工 3 · 无名 3 ⇒ **exit=3 INCOMPLETE**。
+- 出包走正式入口(`大医精诚.x86_64`),人眼走查:主菜单 / 设置壳 / 世界 / 脉案 / 暂停壳 / 保存 / 存档册 / 已锁行 / 二段态 / 启封读档 / 返回主菜单 / 退出。
+- 🔴 **D1 FAIL 复现**,根因钉死:`ModalInputDriver` 在启动序 **6.3** 才构造,主菜单闸门在 **2.95** ⇒ 首启那一刻 `_modalInput == null`,`?.OnFrame()` 静默;对照 = 回程后同一路径 ESC 可用。⇒ round-2「D1 已修」**改判为不充分**。
+- ✅ D2 四半全 PASS(人眼):已锁行不入二段态 / 默认焦点在启封 / 启封后关屏回世界 / 日志「玩家回到档内格 WorldPos(tick 534)」。
+- 🔴 关键路径 #9:脉案值区恒空(`ICasebookDtoSource` 未注入)⇒ 当前构建不可能 PASS。
+- 新立 **`TD-skeuo-17`**(P0 面 Y);计数:条目 193 · open 20 · 未闭 P0 面 **13** · skeuomorphic-ui **5**。
+- **Verdict = FAIL**;sprint-24 的 DoD 最后一条仍不勾(已加注第三轮结果)。走查对真实存档的写入已还原(diff 零输出)。
+- 证据:`production/qa/smoke-2026-11-05.md` §第三轮 + `production/qa/evidence/smoke-2026-11-05-r3/*.png`。commit `94b1da52`。
