@@ -16940,3 +16940,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ 残余面:`TD-build-02`(零正式构建入口)仍 open;解除动作 ②(Always Included)未采用 ⇒ 「运行期手搓材质」无全局禁令。
 - ⚠️ 调试跑局写过用户真实存档(`w4/save_17.bin` 等),已对备份 `diff -rq` **逐件还原**。
 - 证据原件 = `production/qa/evidence/impl-td-build-03-shader-strip-2026-11-05.md`。commit `3cb64ba2`。
+
+### TD-build-02 兑现轮(②正式构建入口 · 2026-11-05 晚)
+
+- 用户指令:「按②再修 TD-build-02(正式构建入口)」。
+- 落盘:`Editor.Tools.Bake/Cli/PlayerBuildCli.cs`(唯一执行体,场景清单只读 `EditorBuildSettings`)· `Editor.Tools.Bake/PlayerBuildMenu.cs`(大医精诚/Build 三条菜单,零构建逻辑,不 Exit)· `.github/workflows/player-build.yml`(CI,**NOT-RUN**)。
+- 本地真跑:同一条 `-executeMethod …PlayerBuildCli.Build` ⇒ `Result: Succeeded` · 场景 1(`Boot.unity`)· 123,546,171 B · 17.8 s · exit 0。产物 `unity/builds/Linux-x64/unity.x86_64`(`.gitignore:65 [Bb]uilds/` 覆盖)。
+- 真启动冒烟用**正式入口产物**:主菜单 / 世界 / 暂停壳 / 存档册四屏有字;`Font not found` = 0;材质错误 = 0;退出游戏正常。
+- 回归 EditMode `6940 / 6903 / 0 / 0 / 37`(零测试件改动 —— 两个新类是编辑期工具,由真出包验证,不写夹具以免自造断言)。PlayMode 沿用本轮早先 `341 / 337 / 0 / 2 / 2`。
+- 债册 `TD-build-02` **open → partial**;①(company/product)与 ④(运维文档)仍未做;③ 的「每发必跑」是常驻义务。计数块已重生成:open 20→19 · partial 8→9 · 未闭 P0 面 12 不变。
+- 调试跑局再次写过真实存档,已对 `saves.old5` 逐件还原并 `diff` 零输出;一处**未坐实**已如实登记(19:10 出现的根级 `save_auto.bin`,1622 B 旧格式尺寸,归因候选 = PlayMode 夹具直 `AddComponent<BootRoot>()`)。
+- 证据原件 = `production/qa/evidence/impl-td-build-02-player-build-entry-2026-11-05.md`。commit `39ab422b`。
