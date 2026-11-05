@@ -65,6 +65,7 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly INarrativeContextQuery _context;
         private readonly IReadOnlyList<EventKind> _anchors;
         private readonly Action _onFired;
+        private readonly Action _onAnchorObserved;
         private int _cursor;
 
         /// <summary>
@@ -77,13 +78,23 @@ namespace DaYiJingCheng.Sim.Codec
         /// <param name="context">瞬时源(规则十四「一个量」—— 与闭包内门同一实例)。</param>
         /// <param name="anchors">白名单(生产 = <see cref="DefaultAnchors"/>;测试注入小集)。**非空**。</param>
         /// <param name="onFired">checkpoint 成功后的通知(生产 = 兜底计数清零);可 null。</param>
+        /// <param name="onAnchorObserved">
+        /// **锚点事件被观察到**即通知(生产 = 解除读档锁);可 null。
+        /// <para>🔁 **2026-11-05(用户裁定甲案)**:与 <paramref name="onFired"/> 的差别是
+        /// **不问 checkpoint 成功与否、也不问瞬时源是否安全** —— GDD 规则十四的字面是
+        /// 「锁持续到下一次**叙事事件**」,不是「下一次**成功的存盘**」。原实现把解锁挂在
+        /// <paramref name="onFired"/> 上 ⇒ 存盘被门拒的那一刻,锁虽然该解却不解。</para>
+        /// <para>⚠️ 仍**不是**「无条件解锁」:调用点在 <c>_cursor = events.Count</c> **之后、
+        /// 且仅在本次 drain 真看到锚点时** —— 同一锚点只会通知一次(游标语义保证)。</para>
+        /// </param>
         /// <exception cref="ArgumentNullException">任一必填驱动源为 null。</exception>
         /// <exception cref="ArgumentException"><paramref name="anchors"/> 为空
         /// (空白名单 = 事件触发半边恒哑 = 配置错误,必须构造期暴露)。</exception>
         public AnchorCheckpointTrigger(Func<bool> checkpoint,
                                         INarrativeContextQuery context,
                                         IReadOnlyList<EventKind> anchors,
-                                        Action onFired = null)
+                                        Action onFired = null,
+                                        Action onAnchorObserved = null)
         {
             _checkpoint = checkpoint ?? throw new ArgumentNullException(nameof(checkpoint));
             _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -95,6 +106,7 @@ namespace DaYiJingCheng.Sim.Codec
                     "这是配置错误,不要构造一个永不触发的观察器", nameof(anchors));
             _anchors = anchors;
             _onFired = onFired;
+            _onAnchorObserved = onAnchorObserved;
         }
 
         /// <summary>
@@ -133,6 +145,13 @@ namespace DaYiJingCheng.Sim.Codec
 
             if (!anchorSeen)
                 return;
+
+            // 🔁 2026-11-05(用户裁定甲案):**锚点被观察到**即通知,早于安全门与存盘。
+            //    GDD 规则十四的字面 = 「锁持续到下一次叙事事件」,不是「下一次成功的存盘」。
+            //    原实现只在 `_checkpoint()` 返回 true 时解锁 ⇒ 门不安全的那次虽然**确实
+            //    发生了叙事事件**,锁却不解 —— 玩家看到的仍是「已锁」,而日志里什么都没有。
+            _onAnchorObserved?.Invoke();
+
             if (!_context.InNarrativeContext())
                 return;   // 裁定③:不安全 ⇒ 该次不触发,兜底顺延补上
 

@@ -321,10 +321,11 @@ namespace DaYiJingCheng.Tests.Boot
             _driver.OpenModal(ModalId.Pause);
             var pause = (PauseScreen)_driver.Screen;
 
-            Assert.That(pause.RowCount, Is.EqualTo(3),
-                "壳 = 继续 / 存档位 / 调治 三行(2026-11-04 用户裁定增第三行;此前 OQ-PS-3 裁两行)");
+            Assert.That(pause.RowCount, Is.EqualTo(5),
+                "壳 = 继续 / 保存 / 存档位 / 调治 / 退出游戏 五行" +
+                "(2026-11-05 参照英灵神殿第二层增「保存」;同日早些增第四行,2026-11-04 增第三行)");
 
-            pause.Activate(1);   // 「存档位」
+            pause.Activate(2);   // 「存档位」(1 = 保存,2026-11-05 增)
 
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots),
                 "暂停壳的「存档位」行必须真的换到 7b 的屏 —— 否则正式入口是假的");
@@ -341,7 +342,7 @@ namespace DaYiJingCheng.Tests.Boot
             _driver.OpenModal(ModalId.Pause);
             var pause = (PauseScreen)_driver.Screen;
 
-            pause.Activate(2);   // 「调治」
+            pause.Activate(3);   // 「调治」(2026-11-05 起行序后移一位)
 
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SettingsShell),
                 "第三行必须真的换到设置壳 —— 否则设置壳仍是零开屏点");
@@ -359,11 +360,12 @@ namespace DaYiJingCheng.Tests.Boot
             _driver.OpenModal(ModalId.Pause);
             var pause = (PauseScreen)_driver.Screen;
 
-            Assert.That(pause.RowAt(2), Is.Not.Null, "第三行必须存在");
-            Assert.That(pause.RowAt(2).name, Is.EqualTo("pause-settings"),
-                "第三行的元件名是夹具定位锚点 —— 改名会让真挂载面与夹具脱钩");
+            // 🔁 2026-11-05:行序后移一位(第二行插了「保存」)⇒ 「调治」由 2 → 3。
+            Assert.That(pause.RowAt(3), Is.Not.Null, "「调治」行必须存在");
+            Assert.That(pause.RowAt(3).name, Is.EqualTo("pause-settings"),
+                "该行的元件名是夹具定位锚点 —— 改名会让真挂载面与夹具脱钩");
 
-            var label = pause.RowAt(2).Q<Label>();
+            var label = pause.RowAt(3).Q<Label>();
             Assert.That(label, Is.Not.Null, "行必须有可见文字(空行 = 可点但玩家看不见,2026-10-31 实拍缺陷)");
             Assert.That(label.text, Is.EqualTo("调治"), "文案权威 = pause-shell-42.md §5");
         }
@@ -389,7 +391,7 @@ namespace DaYiJingCheng.Tests.Boot
             var pause = (PauseScreen)_driver.Screen;
 
             Assert.DoesNotThrow(() => pause.Activate(0));
-            Assert.DoesNotThrow(() => pause.Activate(1));
+            Assert.DoesNotThrow(() => pause.Activate(1));   // 「保存」未接线形态
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.Pause), "无出口时不得自己乱换屏");
         }
 
@@ -442,7 +444,8 @@ namespace DaYiJingCheng.Tests.Boot
             _driver.OpenModal(ModalId.Pause);
             var pause = (PauseScreen)_driver.Screen;
 
-            string[] expected = { "继续", "存档位", "调治" };
+            // 🔁 2026-11-05:增「保存」与「退出游戏」—— 陈旧期望 3 → 5。
+            string[] expected = { "继续", "保存", "存档位", "调治", "退出游戏" };
             for (int i = 0; i < pause.RowCount; i++)
             {
                 Label text = pause.RowAt(i).Q<Label>();

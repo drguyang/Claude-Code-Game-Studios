@@ -139,18 +139,24 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTest]
         public IEnumerator walkthrough_pause_settings_saveslots_mainmenu_processing()
         {
-            // ── ① 暂停壳三行 ──────────────────────────────────────────────
+            // ── ① 暂停壳四行(🔁 2026-11-05 用户裁定增「退出游戏」)─────────────
             Assert.That(_driver.OpenModal(ModalId.Pause), Is.True, "[前置] 暂停壳须开得出来");
             var pause = _driver.Screen as PauseScreen;
             Assert.That(pause, Is.Not.Null, "[前置] 当前屏须是暂停壳");
-            Assert.That(pause.RowCount, Is.EqualTo(3), "[前置] 本轮改成三行");
+            Assert.That(pause.RowCount, Is.EqualTo(5), "[前置] 2026-11-05 起是五行");
+            Assert.That(pause.RowAt(1)?.Q<Label>()?.text, Is.EqualTo("保存"),
+                "[前置] 「保存」行文案(参照英灵神殿第二层)");
+            Assert.That(pause.RowAt(4)?.Q<Label>()?.text, Is.EqualTo("退出游戏"),
+                "[前置] 末行文案 —— 走查帧里要看得见这一行");
+            // ⚠️ 本走查**不按**第四行:`Application.Quit()` 会真的退进程(此处 PauseSink 也没注入退出委托)。
+            //    退出腿归 `AC-PS-11` 的人眼走查。
             yield return null;
             DumpTree(_doc.rootVisualElement, 0, "pause");
             yield return Shot("sv_01_pause");
 
             // ── ② 第三行「调治」⇒ 设置壳 ─────────────────────────────────
             _driver.PauseSink = new DriverPauseCommandSink(_driver);
-            pause.Activate(2);
+            pause.Activate(3);   // 「调治」(2026-11-05 起行序后移一位)
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SettingsShell),
                 "第三行必须真的换到设置壳");
             yield return null;

@@ -173,7 +173,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return null; yield return null;
 
             SaveSlotItem armedRow = book.RowAt(2);
-            Assert.That(armedRow.MarkText, Is.EqualTo("叁 · 第叁日 夜"),
+            // 🔁 2026-11-05:期望值加「已锁」—— 本轮让锁**有文字面**(`SaveSlotItem.RowText`)。
+            //    本条断的是「二段态不得抹掉行文字」,加尾缀不改变这个意图,只是把新形态钉住。
+            Assert.That(armedRow.MarkText, Is.EqualTo("叁 · 第叁日 夜 · 已锁"),
                 "[前置] 二段态不得抹掉行文字 —— 玩家要看得见盖的是哪一页");
             float heightAfterArm = armedRow.resolvedStyle.height;
             // 量尺(常驻观测面):二段态的四个盒子高度 + 行高的前后值。

@@ -171,6 +171,73 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.AreEqual(0, _notifies);
         }
 
+        // ── 锚点被观察到 ⇒ 解锁(2026-11-05 用户裁定甲案)──
+        //
+        // 病因(`production/qa/smoke-2026-11-05.md`):读档锁的唯一解除原挂在 `onFired` 上,
+        // 而 `onFired` 只在 **checkpoint 成功** 时调 ⇒ 门不安全的那一次虽然**叙事事件真的
+        // 发生了**,锁却不解。玩家实测一局连撞五次 `slot=2 已锁`,而且界面**什么都不说**。
+        // GDD 规则十四的字面 = 「锁持续到下一次**叙事事件**」,不是「下一次成功的存盘」。
+
+        [Test]
+        public void test_onAnchorObserved_firesWhenGateUnsafe_andCheckpointNotAttempted()
+        {
+            int observed = 0;
+            var trigger = new AnchorCheckpointTrigger(
+                () => { _fires++; return true; },
+                new FuncNarrativeContextQuery(() => false),   // 瞬时源不安全
+                AnchorCheckpointTrigger.DefaultAnchors,
+                onFired: () => _notifies++,
+                onAnchorObserved: () => observed++);
+
+            _events.Add(Ev(1, EventKind.CaseClosed));
+            trigger.Drain(_events);
+
+            Assert.AreEqual(1, observed,
+                "锚点被观察到即须通知解锁 —— 不问安全门、不问存盘成败(裁定③的「不存盘」仍成立)");
+            Assert.AreEqual(0, _fires, "门不安全 ⇒ 仍**不得**尝试存盘(裁定③未被本改判触碰)");
+            Assert.AreEqual(0, _notifies, "兜底计数仍只在存盘成功时清零(裁定④不变)");
+        }
+
+        [Test]
+        public void test_onAnchorObserved_firesWhenCheckpointFails()
+        {
+            int observed = 0;
+            var trigger = new AnchorCheckpointTrigger(
+                () => { _fires++; return false; },            // 存盘**失败**
+                new FuncNarrativeContextQuery(() => true),
+                AnchorCheckpointTrigger.DefaultAnchors,
+                onFired: () => _notifies++,
+                onAnchorObserved: () => observed++);
+
+            _events.Add(Ev(1, EventKind.JudgmentRecorded));
+            trigger.Drain(_events);
+
+            Assert.AreEqual(1, _fires, "夹具前提:闭包被调用");
+            Assert.AreEqual(1, observed, "存盘失败**不**影响解锁 —— 锚点已经发生");
+            Assert.AreEqual(0, _notifies, "但兜底计数仍不清(裁定④:失败不清)");
+        }
+
+        [Test]
+        public void test_onAnchorObserved_notCalledWithoutAnchor_orTwiceForSameAnchor()
+        {
+            int observed = 0;
+            var trigger = new AnchorCheckpointTrigger(
+                () => { _fires++; return true; },
+                new FuncNarrativeContextQuery(() => true),
+                AnchorCheckpointTrigger.DefaultAnchors,
+                onAnchorObserved: () => observed++);
+
+            _events.Add(Ev(1, EventKind.ActorCellEntered));   // 白名单外
+            trigger.Drain(_events);
+            Assert.AreEqual(0, observed,
+                "非锚点事件**不得**解锁 —— 否则反 scum 归零(读档后随便走走就能重读)");
+
+            _events.Add(Ev(2, EventKind.CaseClosed));
+            trigger.Drain(_events);
+            trigger.Drain(_events);                            // 同一锚点再 drain 一次
+            Assert.AreEqual(1, observed, "同一锚点只通知一次(游标语义;重复通知 = 解锁面被放大)");
+        }
+
         // ── 游标与流替换(EventStream.Restore,读档)──
 
         [Test]

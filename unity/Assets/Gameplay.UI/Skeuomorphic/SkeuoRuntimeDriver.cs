@@ -233,7 +233,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 saveSlots.BindCommandSink(_saveSlotSink);
                 SetSaveSlotRows(null);
             }
-            if (_screen is PauseScreen pause) pause.BindCommandSink(_pauseSink);
+            if (_screen is PauseScreen pause) BindPause(pause);
 
             if (Source != null)
             {
@@ -496,7 +496,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             set
             {
                 _pauseSink = value;
-                if (_screen is PauseScreen pause) pause.BindCommandSink(_pauseSink);
+                if (_screen is PauseScreen pause) BindPause(pause);
             }
         }
 
@@ -615,24 +615,59 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         {
             if (_screen is CasebookScreen casebook && _source != null)
                 casebook.ApplyData(_source);
-
-            // 🔁 2026-11-03:落笔已受理 ⇒ 等写队列排空再重探。
-            //    写是异步的(`SaveService.Checkpoint` 把落盘排进 `SaveWriteQueue`),
-            //    按下去就重探会读到写之前的磁盘状态 —— 那就是「按了没反应」的复现。
-            if (_saveSlotsDirty && _screen is SaveSlotsScreen saveSlots)
-            {
-                bool pending = SaveInFlight != null && SaveInFlight();
-                if (!pending)
-                {
-                    _saveSlotsDirty = false;
-                    SetSaveSlotRows(null);
-                    // 重画会替换行元件 ⇒ 焦点原本落在旧元件上,须重新落一次,
-                    // 否则手柄玩家在存档后**焦点悬空**(一步也走不了)。
-                    if (saveSlots.WritableRow != null && saveSlots.WritableRow.panel != null)
-                        saveSlots.WritableRow.Focus();
-                }
-            }
         }
+
+        /// <summary>
+        /// 绑定暂停壳的意图出口 + 「上次保存」年龄来源(幂等)。
+        /// <para>🔁 2026-11-05:三处注入面(装配期 / setter / 开屏期)必须**同一份实现** ——
+        /// 各写一遍是「同一件事多个出处」的经典分叉点。</para>
+        /// </summary>
+        private void BindPause(PauseScreen pause)
+        {
+            pause.BindCommandSink(_pauseSink);
+            pause.LastSaveAgeMinutes = SaveAgeMinutes;
+            pause.RefreshSaveHint();
+        }
+
+        /// <summary>
+        /// **每帧**边沿(与世界是否在跑无关):消费存档槽位的重探请求。
+        /// <para>🔁 **2026-11-05(用户实测缺陷 · smoke-2026-11-05.md)**:本块原先住在
+        /// <see cref="OnTickEdge"/> 里,而 `BootRoot.Update` 只在
+        /// `CurrentTick > tickBefore` 时调 `OnTickEdge`。存档册是 `BlocksPlay` 模态 ⇒
+        /// ADR-013 §十-C Amendment D 使世界在册子摊开期间**真停 tick** ⇒
+        /// **tick 永不推进 ⇒ 重探永不发生** ⇒ 玩家点了空档,盘上明明写成功了(实测 9 个槽),
+        /// 册子上那一行**还是空的**,于是反复点、反复覆写(盘上留下 `.bak` 正是这个证据)。</para>
+        /// <para>⇒ 重探**不能**挂在 tick 边沿上:它要服务的正是「摊开着的册子」。</para>
+        /// </summary>
+        public void OnFrameEdge()
+        {
+            // 🔁 2026-11-05 晚:同一条判据也服务暂停壳「保存」行的副标题
+            //    (落笔落定后把「已落笔」换成真实年龄)。两者共用 `_saveSlotsDirty` ——
+            //    它就是「存档状态变过」这一个量,不给同一件事造第二个标记。
+            bool pending = SaveInFlight != null && SaveInFlight();
+
+            if (_screen is PauseScreen pauseScreen && pauseScreen.SavePending && !pending)
+            {
+                pauseScreen.CompletePendingSave();
+                pauseScreen.LastSaveAgeMinutes = SaveAgeMinutes;
+                pauseScreen.RefreshSaveHint();
+            }
+
+            if (!_saveSlotsDirty || !(_screen is SaveSlotsScreen saveSlots) || pending) return;
+
+            _saveSlotsDirty = false;
+            SetSaveSlotRows(null);
+            // 重画会替换行元件 ⇒ 焦点原本落在旧元件上,须重新落一次,
+            // 否则手柄玩家在存档后**焦点悬空**(一步也走不了)。
+            if (saveSlots.WritableRow != null && saveSlots.WritableRow.panel != null)
+                saveSlots.WritableRow.Focus();
+        }
+
+        /// <summary>
+        /// 「上次保存」年龄(分钟;null 或负数 = 不知道)。**只用于呈现** ——
+        /// 墙钟不进存档头 / 三流 / sim(ADR-040 §D4 的同一条边界)。
+        /// </summary>
+        public Func<int> SaveAgeMinutes { get; set; }
 
         /// <summary>
         /// 挂载拟物样式表(编辑器清单 ⇒ <c>rootVisualElement.styleSheets</c>)。
@@ -813,7 +848,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
             if (_screen is PauseScreen pauseScreen)
             {
-                pauseScreen.BindCommandSink(_pauseSink);
+                BindPause(pauseScreen);
                 VisualElement first = pauseScreen.FirstFocusable;
                 if (first != null && first.panel != null) first.Focus();
             }

@@ -968,11 +968,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    与 GDD 规则十四「锁持续到下一次叙事事件触发 checkpoint」逐字对齐。
                     //    ⚠️ 只在 checkpoint **成功**后解(onFired 的既有语义)—— 存不成还解锁
                     //       就等于把 save-scum 通道重新打开。
-                    onFired: () =>
-                    {
-                        checkpointFallback.NotifyExternalCheckpoint();
-                        saveService.OnNarrativeAnchor();
-                    });
+                    // 🔁 **2026-11-05 改判(用户裁定甲案 · smoke-2026-11-05.md)**:
+                    //    解锁移出 `onFired`,改挂 `onAnchorObserved` —— **锚点事件被观察到即解**,
+                    //    不问安全门、不问存盘成败。依据 = GDD 规则十四的字面
+                    //    「锁持续到下一次**叙事事件**」,不是「下一次**成功的存盘**」。
+                    //    ⚠️ 上一句「存不成还解锁就等于把 save-scum 通道重新打开」**是错的**:
+                    //       scum 的定义是「读档 → 什么都不做 → 再读档」;锚点事件(脉案落笔 /
+                    //       病例结案 / 出诊启动)本身就意味着玩家**推进了剧情**,那正是规则十四
+                    //       允许重读的时刻。把解锁绑在存盘成功上,只是让它多失败一种情形。
+                    //    原文留档(承「原文不删、就地加注」)。
+                    onFired: () => checkpointFallback.NotifyExternalCheckpoint(),
+                    onAnchorObserved: () => saveService.OnNarrativeAnchor());
 
                 saveService = new SaveService(
                     saveBasePath,

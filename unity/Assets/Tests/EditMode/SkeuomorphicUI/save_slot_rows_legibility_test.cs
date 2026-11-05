@@ -99,6 +99,27 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         }
 
         [Test]
+        public void test_row_lockedSlot_showsLockSuffix()
+        {
+            // 🔁 2026-11-05(用户裁定甲案 · `smoke-2026-11-05.md` 的「没法读档」):
+            //    读档即锁此前**只有行为面**(「启封」灰置)、**零文字面** ⇒ 玩家点了没反应,
+            //    屏上什么都不说,只有日志里有半句。锁是**会自解**的(下一次叙事锚点),
+            //    所以文案只陈述状态,不写「永不可读」。
+            SaveSlotsScreen screen = NewScreen(out _);
+            screen.SetSlotViews(new[]
+            {
+                new SaveSlotView(1u, known: true, hasSave: true, tick: 1200L, dayNumber: 1L,
+                                 isLocked: true),
+                new SaveSlotView(2u, known: true, hasSave: true, tick: 1200L, dayNumber: 1L),
+            });
+
+            Assert.That(screen.RowAt(0).MarkText, Is.EqualTo("壹 · 第壹日 昼 · 已锁"),
+                "已锁 ⇒ 行上写明(否则「点了没反应」无法与「界面坏了」区分)");
+            Assert.That(screen.RowAt(1).MarkText, Is.EqualTo("贰 · 第壹日 昼"),
+                "对照:未锁不带尾缀 —— 否则尾缀没有判别力");
+        }
+
+        [Test]
         public void test_rows_timeOfDay_omittedWhenDayUnknown()
         {
             // `DayNumber == 0` = 时间信息未就绪。此时 **不得** 写「昼」——

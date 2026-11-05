@@ -143,7 +143,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return Press(new Vector2(0f, -1f));      // 下
 
             Assert.That(Focused(), Is.SameAs(pause.RowAt(1)),
-                "AC-PS-03:方向键下 ⇒ 焦点到第二行「存档位」。落不到 = 各行不在同一条导航链上");
+                "AC-PS-03:方向键下 ⇒ 焦点到第二行「保存」(2026-11-05 起第二行是「保存」)。落不到 = 各行不在同一条导航链上");
 
             yield return Press(new Vector2(0f, 1f));       // 上
 
@@ -253,8 +253,10 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             GiveRowsGeometry(pause);
             yield return null;
 
-            yield return Press(new Vector2(0f, -1f));      // 焦点 → 「存档位」
-            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "[夹具前提] 焦点在「存档位」");
+            // 🔁 2026-11-05:第二行插了「保存」⇒「存档位」由行 1 移到行 2,须按两次下。
+            yield return Press(new Vector2(0f, -1f));
+            yield return Press(new Vector2(0f, -1f));
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(2)), "[夹具前提] 焦点在「存档位」");
 
             yield return PressButton(GamepadButton.South);
 
@@ -472,8 +474,10 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             GiveRowsGeometry(pause);
             yield return null;
 
-            yield return Press(new Vector2(0f, -1f));                  // 左摇杆下
-            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "② 摇杆移到「存档位」");
+            // 🔁 2026-11-05:第二行插了「保存」⇒「存档位」由行 1 移到行 2。
+            yield return Press(new Vector2(0f, -1f));                  // 左摇杆下 → 保存
+            yield return Press(new Vector2(0f, -1f));                  // 左摇杆下 → 存档位
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(2)), "② 摇杆移到「存档位」");
 
             yield return PressButton(GamepadButton.South);             // 南键确认
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots), "③ 南键进存档位屏");
@@ -506,8 +510,10 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             GiveRowsGeometry(pause);
             yield return null;
 
+            // 🔁 2026-11-05:第二行插了「保存」⇒「存档位」由行 1 移到行 2。
             yield return PressKey(Key.DownArrow);
-            Assert.That(Focused(), Is.SameAs(pause.RowAt(1)), "② 方向键下移到「存档位」");
+            yield return PressKey(Key.DownArrow);
+            Assert.That(Focused(), Is.SameAs(pause.RowAt(2)), "② 方向键下移到「存档位」");
 
             yield return PressKey(Key.Enter);
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SaveSlots), "③ Enter 进存档位屏");

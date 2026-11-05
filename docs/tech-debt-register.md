@@ -479,6 +479,8 @@
 | `TD-skeuo-11` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-12` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
+| `TD-skeuo-14` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1370,10 +1372,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 186 | 状态 {'closed': 161, 'partial': 6, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 125, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 10 （已闭但曾标 P0 面的 115 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 6/31 个 epic
-    random-events: 4          skeuomorphic-ui: 2        diagnosis-system: 1
+条目 188 | 状态 {'closed': 161, 'partial': 6, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 126, 'N': 56, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 115 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
+    random-events: 4          skeuomorphic-ui: 3        diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -5532,6 +5534,32 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① 定「模态屏纵向定位」的权威口径(居中 / 贴顶 + 上边距);② 改**容器**一处(不给每屏各写一份 margin);③ 重跑 `pause_focus_navigation_test` / `save_slots_page_geometry_test`(它们按 `worldBound` 判几何);④ 视觉走查复看。 |
 | **触发条件** | 42 的布局轮 / 任一 must-fix 的观感缺陷轮。 |
 | **归属** | **42**(容器与 USS)· 视觉判读 = 人工面 |
+
+### TD-skeuo-14 — **进入世界后回不到第一层**:主菜单只能前进、不能回退
+
+> **⚠️ 2026-11-05 立债**(用户对照英灵神殿「两层启动结构」时点出;本轮只做第二层「保存」行,本条留待另裁)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 启动序 `BootRoot.Boot` 是**一趟一次性线性 async**(`_booted` 之后 `Update` 才跑),主菜单场景 `MainMenu.unity` 只被 **additive 拆掉、从不重进** —— 全仓 **零** `ReloadMainMenu` / `ReturnToMainMenu`。⇒ 进了世界之后,第一层的「新起一局 / 选择世界」再也回不去;玩家唯一的退出手段是 `Application.Quit()`(退出整进程)。 |
+| **实测(逐条可跑)** | `grep -rn "ReloadMainMenu\|ReturnToMainMenu" unity/Assets --include=*.cs` ⇒ **零命中**;`grep -n "UnloadMainMenuSceneAsync" unity/Assets/Gameplay.Boot/BootRoot.cs` ⇒ 只有**单向**拆场景三处,无反向加载;`_booted` 守卫见 `BootRoot.Update` 首行早退。 |
+| **为什么不是「加一行」** | 要回第一层必须裁三件:① 退到主菜单**要不要强制存盘**(与退出保存 `/` 自动槽的关系);② 世界场景按 ADR-023 的**拆序六步**怎么拆(`UnloadSceneAsync` 不销毁 `InstantiateAsync` 产物,不强制就漏一个世界);③ 回去之后是**重走启动序**(世界目录重解析 / 服务重装配)还是只重开菜单屏。三者都是 ADR-023 / ADR-040 面的裁定,不是 UI 改动。 |
+| **解除动作** | ① 裁上述三件(ADR 级);② 实现重入路径 + 场景拆装;③ 真启动序 PlayMode 判据(参照 `multi_world_boot_wiring_test` 的 `SaveRootOverride` 缝合法);④ 暂停壳加「返回主菜单」行(第三/第四行位置待定)。 |
+| **触发条件** | 用户裁定要做多世界 / 重开新局时。 |
+| **归属** | **装配层(启动序)** · UI 行 = 42 |
+
+### TD-skeuo-15 — 第一层缺 **CREDITS / CINEMATICS** 两行,且两者在 P0 **零内容**
+
+> **⚠️ 2026-11-05 立债**(用户指令「连第一层一起对齐英灵神殿」;查证后按「先不补」裁定登记)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 英灵神殿第一层五行(START GAME / CINEMATICS / SETTINGS / CREDITS / QUIT),我们四行(继续诊治 / 新起一局 / 设置 / 退出游戏)。差的 CREDITS 与 CINEMATICS 在 P0 **都没有内容**:全仓 `Credits` / `制作名单` / `Cinematic` **零命中**,P0 也没有过场系统(「不加剧情门」是用户 2026-11-05 的裁定)。⇒ 现在补行 = **死行**(点了什么都不发生),与 `TD-skeuo-04` 的「屏在、零开屏点」互为镜像。 |
+| **实测(逐条可跑)** | `grep -rln "Credits\|制作名单\|Cinematic" unity/Assets --include=*.cs` ⇒ **零命中**;`grep -n "FixedRowCount" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/MainMenuScreen.cs` ⇒ `4`,行集见 `:109-112`。 |
+| **为什么不能照抄** | 英灵神殿的 CREDITS 是一屏静态名单、CINEMATICS 是它的过场播放器;我们没有名单内容、也没有过场。空壳行会被玩家读成「坏了」,而不是「还没做」。 |
+| **解除动作** | ① 先有**内容**(最小制作名单:项目名 / 引擎 / 工具链 / 致谢);② 过场系统(P1)成立后才谈 CINEMATICS;③ 两行按 `main-menu-42.md` 的行集口径补,并回写 `AC-42-F1`。 |
+| **触发条件** | 发版前(CREDITS)/ P1 过场系统落地(CINEMATICS)。 |
+| **归属** | **42**(行集)· 内容 = 叙事 / 制作 |
 
 ### TD-skeuo-13 — 急救候选列表**没有容器定位/宽度契约**:「跳过」被渲染成横贯全屏的米色纸带
 

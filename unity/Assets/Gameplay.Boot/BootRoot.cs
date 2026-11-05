@@ -1020,7 +1020,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () => _uiDriver?.MarkSaveSlotRowsDirty(),
                 // 🔁 ADR-038 §D3(2026-11-03):读档成功 ⇒ 用该档记录的时间三参数覆盖运行时参数。
                 //    ⚠️ 不覆盖 = 用当前构建的值重放旧档 ⇒ 日边界 / 昼夜 / 52 的 TODMult 全错位。
-                HydrateTimeParamsAfterLoad,
+                // 🔁 2026-11-05:读档成功也请求重探 —— 读档会**置锁**(`AC-7a-19 (d)`),
+                //    而「已锁」是靠行文字呈现的(`SaveSlotItem.RowText`)⇒ 不重探的话,
+                //    摊开的册子上那一行要等玩家关掉再打开才变得出来。
+                () =>
+                {
+                    HydrateTimeParamsAfterLoad();
+                    _uiDriver?.MarkSaveSlotRowsDirty();
+                },
                 // 🔁 2026-11-04(ADR-041 §D8):落笔失败走**自己的**记录面 ——
                 //    共用 `LogLoadFailure` 会把「覆盖被拒」打成「[7b][载入] … 载入失败」。
                 saveFailureSink: LogSaveFailure);
@@ -1046,7 +1053,39 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-10-31 晚:开合对象由**存档位**改为**暂停壳**(ADR-013 §十-C 立 Pause 为
             //    第八员)—— 于是路径回到 7b 写的形状:Escape → 暂停壳 → 「存档位」行 → 存档位。
             //    `DriverPauseCommandSink` 就是暂停壳那两行的去向(继续 = 合壳 / 存档位 = 换屏)。
-            _uiDriver.PauseSink = new DriverPauseCommandSink(_uiDriver);
+            // 🔁 2026-11-05(用户裁定):暂停壳第四行「退出游戏」。
+            //    ⚠️ 与主菜单第四行**同一个出口**(`Application.Quit()`;退出保存走既有的
+            //    `Application.wantsToQuit` 钩子,此处**不写盘** —— 写盘归 7a,两处各写一份必然分叉)。
+            //    放进 `DriverPauseCommandSink` 会引入 `UnityEngine` 依赖到 42 侧程序集面,
+            //    故以委托注入(ADR-025 §①)。
+            _uiDriver.PauseSink = new DriverPauseCommandSink(_uiDriver,
+                quit: () =>
+                {
+                    Debug.Log("[BootRoot][暂停壳] 玩家选择退出游戏");
+                    Application.Quit();
+                },
+                // 🔁 2026-11-05:「保存」行一键落笔(参照英灵神殿第二层)。
+                //    目标槽**不经 UI** —— 台账的 `NextWritableSeq` 是唯一宿主(ADR-013 §9 C3);
+                //    返回 false = 门拒(叙事上下文 / 未接线),42 据此**如实显示**失败,不假装成功。
+                requestSave: () => _saveSlotCommands != null && _saveSlotCommands.TrySave());
+
+            // 🔁 2026-11-05:「上次保存：N 分钟前」的来源(参照英灵神殿第二层)。
+            //    ⚠️ **墙钟只用于呈现** —— 不进存档头 / 三流 / sim(ADR-040 §D4 同一条边界)。
+            //    读**当前世界目录**下最新一份 `save_*.bin` 的 mtime;无档 ⇒ -1(屏上写「尚未保存」)。
+            _uiDriver.SaveAgeMinutes = () =>
+            {
+                string dir = _services?.SaveService?.BasePath;
+                if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return -1;
+                DateTime newest = DateTime.MinValue;
+                foreach (string f in Directory.EnumerateFiles(dir, "save_*.bin"))
+                {
+                    DateTime t = File.GetLastWriteTimeUtc(f);
+                    if (t > newest) newest = t;
+                }
+                if (newest == DateTime.MinValue) return -1;
+                double minutes = (DateTime.UtcNow - newest).TotalMinutes;
+                return minutes < 0d ? 0 : (int)minutes;
+            };
 
             // 🔁 2026-11-04(`TD-skeuo-06`):炮制屏点火的生产装配。
             // ⚠️ 任一件缺失 ⇒ **不构造**,并显式告警(与 `ConsequenceDriver` 同纪律:
@@ -2388,6 +2427,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 模态开合(2026-10-31):键沿 → 42 的 OpenModal / CloseModal。放帧泵最前 ——
             // 它是纯呈现层开关,不读 tick、不写 sim,先于一切 sim 侧驱动执行。
             _modalInput?.OnFrame();
+
+            // 🔁 2026-11-05(smoke-2026-11-05.md 的 B 条):存档槽位重探走**每帧**,不走 tick 边沿。
+            //    病因:存档册是挡路模态 ⇒ 世界冻结 ⇒ `CurrentTick > tickBefore` 恒假 ⇒
+            //    挂在 `OnTickEdge` 里的重探永不执行 ⇒ 写成功了而册子上那行还是空的。
+            //    ⚠️ 位置:必须在 `_modalInput.OnFrame()` **之后**(开屏/换屏当帧就能重探一次)、
+            //    且在 tick 泵**之前**(与世界是否在跑无关 —— 这正是本条的全部意义)。
+            _uiDriver?.OnFrameEdge();
 
             // 先跑 tick 泵(Advance + 逐边沿),再按推进后的 CurrentTick 驱动病人出现 ——
             // 次序不可反:驱动读的是**本帧推进后**的 tick;若在 PumpFrame 之前调,
