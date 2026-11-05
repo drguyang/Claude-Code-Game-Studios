@@ -16928,3 +16928,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ GDD 规则二「52 不拥有任何内容字段」与 `disease_id` 的关系已就地加注:**解释不是新裁决**。
 - 证据原件 = `production/qa/evidence/impl-td-randomevents-03-2026-11-05.md`。
 - **待提交**。
+
+### TD-build-03 兑现轮(2026-11-05 晚 · 占位材质改资产驱动)
+
+- 用户指令:「按①把着色器那条也修了」。病因回顾:运行期 `Shader.Find("Universal Render Pipeline/Lit")` 无资产引用 ⇒ 构建剥离 ⇒ 打包版病人画不出来(旧包 1442/1676 条异常)。
+- 落盘:`Resources/PatientPlaceholderMaterial.mat`(URP Lit,0.7 灰)· `CapsulePatientVisualFactory` 改 `Resources.Load<Material>`(缺资产抛,删 `NeutralGrey` 常量)· 新增资产生成器 CLI(存在即失败,不覆盖)· 夹具改写为「行为层 + 源码层禁 Shader.Find」。
+- 证伪轮 M1(资产改名→3 红)/ M2(加回 Shader.Find→1 红)/ M3(throw→return null→1 红),SHA-256 逐字节还原。
+- 真包复验:材质错误 **0** 条(旧包 1442/1676),世界内 **3 个病人胶囊可见**(实拍两张)。
+- 回归 EditMode **`6940 / 6903 / 0 / 0 / 37`** · PlayMode **`341 / 337 / 0 / 2 / 2`**,与 `ed-rm.xml` / `pm-rm.xml` 逐位相同;测试数零增减。
+- `TD-build-03` **closed**;未闭 P0 面 **13 → 12**;epic 分布 **7/31 → 6/31**(`patient-ai` 清零)。计数块已由 `debtcount.py` 重生成。
+- ⚠️ 残余面:`TD-build-02`(零正式构建入口)仍 open;解除动作 ②(Always Included)未采用 ⇒ 「运行期手搓材质」无全局禁令。
+- ⚠️ 调试跑局写过用户真实存档(`w4/save_17.bin` 等),已对备份 `diff -rq` **逐件还原**。
+- 证据原件 = `production/qa/evidence/impl-td-build-03-shader-strip-2026-11-05.md`。commit `3cb64ba2`。
