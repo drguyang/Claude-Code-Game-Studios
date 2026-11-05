@@ -179,6 +179,13 @@
        **不吃 `url("guid:…")`**(对字体恒不解析 ⇒ MissingAssetReference ⇒ 回退位图字体 ⇒ 糊;
        `url(guid:)` 仅对 `background-image` 有效)。全库 10 处字体引用已统一改 `resource`。
 
+       🔴 **2026-11-05 订正(`resource("Assets/…")` 只在编辑器成立,原文不删)**:
+       `resource()` 是**运行期字符串查找** —— 编辑器吃全路径,而 **player 只按 Resources 相对路径解析**
+       ⇒ 上句那个写法打进包**恒落空**,实测 player 日志 `Font not found for path: Assets/…`,
+       屏上**一个字都没有**(纸 / 格线 / 焦点环全在)。真机实拍才暴露:此前所有夹具都跑在编辑器里。
+       ⇒ 字体资产已搬进 `Skeuomorphic/Resources/Fonts/`,11 处引用改
+       `resource("Fonts/NotoSansCJKsc-Bold SDF")`(无扩展名,Resources 相对)。
+
        🔴 **2026-11-04 订正(上一句的后半被证伪,原文不删)**:`url("guid:…")`
        **对 `background-image` 同样不生效**。实测证据(Unity 6.3.24f1 的 USS 导入器):
        `SkeuoPaper.uss (line 6): warning: Invalid URI scheme: 'guid'` ——
@@ -267,7 +274,7 @@
    ⚠️ 本规则设**字体 + 兜底字号**(`--skeuo-font-size-default` = 28px,即第二根因的修法);
    **不设 color** —— 逐元素类仍可覆盖色与字号(同特异性下后加载者胜)。 */
 .unity-text-element {
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     /* ⚠️ **字号是糊的第二根因(B-6-4 · 2026-10-13 用户实证定稿)**:
        SDF 资产采样点 = 32px(`m_PointSize`),清晰档 `.channel-label` = 28px(近采样点);
        而糊的裸 Label 无字号 ⇒ 落主题默认 ≈14px(**远小于采样点**)⇒ SDF 缩采样不足 = 糊。

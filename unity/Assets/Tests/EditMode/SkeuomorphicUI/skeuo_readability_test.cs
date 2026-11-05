@@ -158,7 +158,8 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             foreach (string cls in new[]
                      {
                          ".save-slot-mark",                          // 行字段
-                         ".save-slot-page",                          // 页角注
+                         ".save-slot-page",                          // 页角注(页码)
+                         ".save-slot-notice",                        // 页角注(「为什么不能」)
                          ".save-slot-choice-glyph .unity-text-element", // 二段态墨字(用户点名的那两个)
                      })
             {

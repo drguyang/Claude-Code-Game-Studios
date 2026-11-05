@@ -26,7 +26,7 @@
 
 .scroll .ink {
     color: var(--skeuo-scroll-fg);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-md);
 }
 

@@ -69,7 +69,7 @@
 
 .paper .ink {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -196,7 +196,7 @@
     color: var(--skeuo-ink-fg);
     min-height: var(--skeuo-shared-row-height);
     padding-left: var(--skeuo-shared-space-sm);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -243,7 +243,7 @@
  *   `background-image`,同样与本处 `background-color` 不重叠。 */
 .channel-reading {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
     border-top-width: var(--skeuo-shared-border-width);
@@ -260,7 +260,7 @@
 
 .channel-reading-negative {
     color: var(--skeuo-ink-negative);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
     border-top-width: var(--skeuo-shared-border-width);
@@ -286,7 +286,7 @@
  * ⚠️ 本类**不进 Registry**(语义样式类,承 `.channel-reading` 同款边界)。 */
 .channel-label {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-lexeme);
     /* 值区横排(2026-10-14):题签与右侧首个词条之间的间距。 */
     margin-right: var(--skeuo-shared-space-md);
@@ -416,6 +416,15 @@
     /* 🔁 2026-11-05:与槽位行同高 —— 它也是本册的一行,矮一截会被读成「不是行」。 */
     min-height: var(--skeuo-save-row-height);
     width: 100%;
+}
+
+/* 页角注(§11「为什么不能」)—— 与页码同为页脚小字,但墨色不降档:
+ * 它是**可操作信息**,不是装饰;降档会读成「不重要」。 */
+.save-slot-notice {
+    color: var(--skeuo-ink-fg);
+    font-size: var(--skeuo-font-size-paper);
+    -unity-text-align: middle-center;
+    padding-top: var(--skeuo-shared-space-xs);
 }
 
 /* 页脚页码(§5.2 封面区「当前页码 · 页脚鱼尾压印」的降级形态:一行居中小字)。 */

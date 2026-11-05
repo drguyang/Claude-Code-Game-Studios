@@ -150,10 +150,16 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             //    病因:原先已锁行照样进二段态,而「启封」灰置退出焦点序 ⇒ 焦点落到**「重写」**
             //    ⇒ 玩家以为在「读取」,一次确认却**覆写了这个槽**。现在改为行上说明原因。
             Assert.That(book.ArmedRowIndex, Is.EqualTo(-1), "[判据] 已锁行不得进入二段态(否则默认焦点在「重写」上)");
-            Assert.That(book.RowAt(2).MarkText, Does.Contain("推进一次剧情后可启封"),
+            // 🔁 2026-11-05 字号轮:理由改挂**页角注**(7b §11),行上只留「已锁」。
+            //    病因:行字 15→24px 后,`12 · 第壹日 昼 · 已锁 · 推进一次剧情后可启封`
+            //    在 1600×900 实机里**被硬裁在页框外**(2026-11-05 真 player 实拍)。
+            Assert.That(book.NoticeText, Does.Contain("推进一次剧情后可启封"),
                 "[判据] 已锁行必须**说明原因** —— 不能只是「点了没反应」");
+            Assert.That(book.RowAt(2).MarkText, Does.Contain("已锁"),
+                "[判据] 行文字仍须有状态字样");
             yield return null; yield return null;
-            Debug.Log($"[WB] 已锁帧 armed={book.ArmedRowIndex} 行文字「{book.RowAt(2).MarkText}」");
+            Debug.Log($"[WB] 已锁帧 armed={book.ArmedRowIndex} 行文字「{book.RowAt(2).MarkText}」" +
+                      $" 页角注「{book.NoticeText}」");
             yield return Shot("wb_03_locked");
 
             // ── ④ 满页 + 二段态(2026-11-04 修订复验)───────────────────────

@@ -16,7 +16,7 @@
     border-bottom-width: var(--skeuo-shared-border-width);
     border-left-width: var(--skeuo-shared-border-width);
     color: var(--skeuo-implement-fg);
-    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
     font-size: var(--skeuo-font-size-md);
 }
 

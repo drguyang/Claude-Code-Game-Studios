@@ -126,3 +126,47 @@ for f in ('ed-final24','pm-final24'):
    `≥24px @1080p` 是全项目纸面承诺，不是本册专属。
 2. **文本缩放 150% ⇒ 页容量降 4 行** 仍 `NOT-RUN`（`save-slots-7b.md` §11 既有缺口，与本轮无关）。
 3. **人眼复验**：本轮只到「走查帧 + 量尺」；玩家真按「启封 / 重写」的手感未验。
+
+---
+
+# 附:真启动实拍(用户指令「你自己启动游戏看看存档册」)
+
+**做法** —— 真 player,不是夹具:
+`unity -batchmode -quit -executeMethod …CostTableProbeBuildCli.Build`(既有 CLI,19–28 s,产物落
+`/tmp/dyjc-costtable-probe/`)→ `DISPLAY=:0` 跑起来 → python-xlib(XTEST 发键 / `XGetImage` 截图)
+驱动「继续诊治 → 世界 → ESC → 存档位」并逐帧截图。存档副本喂到 player 的
+`~/.config/unity3d/unknown/unknown/saves`(player 的 company/product 是 `unknown`,与编辑器的
+`DefaultCompany/unity` 不是同一个目录)。
+
+## 实拍揪出的两个真缺陷(夹具绿、实机红)
+
+### 缺陷 1 —— **打包后全屏无字**(与本轮字号改动无关,是既有缺陷)
+
+| 侧 | 内容 |
+|---|---|
+| 症状 | player 里主菜单只剩纸、格线、焦点环,**一个字都没有**;编辑器里正常 |
+| 判据 | player 日志一行:`Font not found for path: Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset` |
+| 根因 | USS 的 `resource("Assets/…")` 是**运行期字符串查找**,只在编辑器认全路径;player 里按 Resources 相对路径解析 ⇒ 恒查不到 ⇒ 全部 `-unity-font-definition` 落空 |
+| 修复 | SDF 字体搬进 `Assets/Gameplay.UI/Skeuomorphic/Resources/Fonts/`(11 处引用改 `resource("Fonts/NotoSansCJKsc-Bold SDF")`) |
+| 验证 | 重建 + 重跑 ⇒ 主菜单四行文字正常(截图 `p01.png`),日志**无**该告警 |
+
+⚠️ **这不是本轮引入的**:字号改动只动 `font-size`,没碰 `-unity-font-definition`。
+它意味着**此前任何一次真打包都没有文字** —— 因为此前从没人在真 player 里看过这一屏
+(测试夹具都跑在编辑器里)。
+
+### 缺陷 2 —— 已锁行的说明在 24px 下**溢出被硬裁**
+
+| 侧 | 内容 |
+|---|---|
+| 症状 | 实机 1600×900:`12 · 第壹日 昼 · 已锁 · 推进一次剧情后可启封` **冲出页框被硬裁**(`p07_wide.png`) |
+| 量 | 页内可用宽 ≈ 480 − 页框内缩 44×2 − 行内衬 16 = **376**,24px 下约 **15.6 字**;该句 ≈ 20 字宽 |
+| 修复 | 按 7b §11 的**原定落点**办:理由归**页角注**(该行明写「页角注含可操作信息(『为什么不能』)⇒ 禁止自动消失」),行文字只留状态「· 已锁」 |
+| 落地 | `SaveSlotsScreen` 新增 `_notice`(`.save-slot-notice`,24px,墨色不降档)+ `NoticeText`;三处清空(换行 / 翻页 / 重画)、空注 `display: none` 不占位;`SaveSlotItem.ShowLockedNotice` 删除 |
+| 验证 | 实机 `q05.png`:行「柒 · 第壹日 昼 · 已锁」+ 页角注「推进一次剧情后可启封」,均完整可见 |
+
+**顺带实拍确认(本轮早先的两条修复在真 player 里成立)**:
+- 读档后**真的回到世界**(截图 `q03.png` —— 存档册关掉、画面回到世界场景);
+- 已锁行**不进二段态**(`q05.png`);
+- 暂停壳五行 + 「上次保存：1 分钟前」(`p03.png`)。
+
+**截图** = `$CLAUDE_JOB_DIR/tmp/{p01..p07,q01..q05}.png`(临时目录,判读结论已写进本件)。

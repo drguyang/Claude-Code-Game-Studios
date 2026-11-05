@@ -136,8 +136,12 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
 
             Assert.That(screen.ArmedRowIndex, Is.EqualTo(-1),
                 "已锁行**不得**进入二段态 —— 否则默认焦点在「重写」上,一次确认就覆写存档");
-            Assert.That(screen.RowAt(0).MarkText, Does.Contain("推进一次剧情后可启封"),
+            // 🔁 2026-11-05:理由移出**行文字**、落到**页角注**(7b §11)——
+            //    行字 24px 后行宽装不下这句(实测硬裁在页框外)。
+            Assert.That(screen.NoticeText, Does.Contain("推进一次剧情后可启封"),
                 "必须说明为什么点不动,不能只是「点了没反应」");
+            Assert.That(screen.RowAt(0).MarkText, Does.Contain("已锁"),
+                "行上仍须有**状态**字样(理由归页角注,各行其位)");
         }
 
         [Test]

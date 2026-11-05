@@ -134,8 +134,12 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
 
             Assert.That(screen.ArmedRowIndex, Is.EqualTo(-1), "已锁行**不得**进二段态");
             Assert.That(row.OpenChoice, Is.Null, "二段态的墨字一个都不该出现");
-            Assert.That(row.MarkText, Does.Contain("推进一次剧情后可启封"),
-                "必须说明原因 —— 不能只是「点了没反应」");
+            // 🔁 2026-11-05 字号轮:「为什么不能」改挂**页角注**(7b §11 的原定落点)——
+            //    行字 24px 后整行超宽,这句话拼在行上会被硬裁在页框外(1600×900 实拍)。
+            Assert.That(screen.NoticeText, Does.Contain("推进一次剧情后可启封"),
+                "必须说明原因 —— 不能只是「点了没反应」(落点 = 页角注,不是行文字)");
+            Assert.That(row.MarkText, Does.Not.Contain("推进一次剧情后可启封"),
+                "行文字只留状态「· 已锁」;理由在页角注 —— 否则 24px 下行宽装不下");
             Assert.That(sink.SaveAts, Is.Empty,
                 "**一旦误触就是毁档**:已锁行点一下不得产生任何落笔");
             Assert.That(sink.Loads, Is.Empty, "也不得触发载入(锁着,载入必被 7a 拒)");

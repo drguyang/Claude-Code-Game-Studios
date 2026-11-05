@@ -101,6 +101,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>**全部**槽位视图(跨页保留;当前页只是它的一段窗口)。</summary>
         private readonly List<SaveSlotView> _views = new List<SaveSlotView>();
         private readonly Label _pageMark;
+
+        /// <summary>页角注:「为什么不能」(7b §11)。空串 = 无。</summary>
+        private readonly Label _notice;
         private readonly VisualElement _prevEdge;
         private readonly VisualElement _nextEdge;
         private ISaveSlotCommandSink _sink;
@@ -136,6 +139,14 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // ⚠️ 数字形态在 spec 里是**本地化素材档**;今日是「a / b」的纯文本替身。
             _pageMark = new Label { name = "save-slot-page" };
             _pageMark.AddToClassList("save-slot-page");
+
+            // 🔁 2026-11-05 字号轮:**「为什么不能」改挂页角注**(7b §11 的原定落点:
+            //   「页角注含可操作信息(『为什么不能』)⇒ **禁止自动消失**,保持到焦点移动」)。
+            //   病因:上一轮把这句话拼在**行文字**上;行字 15→24px 后整行超宽
+            //   ⇒ 实机 `12 · 第壹日 昼 · 已锁 · 推进一次剧情后可启封` **硬裁在页框外**
+            //   (1600×900 实跑实拍)。24px 下行的可用宽度 ≈ 15.6 字,装不下这句。
+            _notice = new Label { name = "save-slot-notice" };
+            _notice.AddToClassList("save-slot-notice");
 
             // 页缘热区(`§5.2`):指针点页缘、手柄把焦点移到页缘行再 Submit。
             // ⚠️ **不是按钮元件** —— 7b §5.2 明写「零按钮元件」,页缘是纸面本体。
@@ -268,6 +279,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _slots.Clear();
             // 行随页重建 ⇒ 二段态作废(旧行连同它的两枚墨字一起被拆掉)。
             _armedRowIndex = -1;
+            // 页角注同样作废:它陈述的是**某一行**的理由,行都不在了,理由不该留着。
+            SetNotice(string.Empty);
             if (_writableRow != null) { _writableRow.RemoveFromHierarchy(); _writableRow = null; }
 
             int start = _pageIndex * PageCapacity;
@@ -301,6 +314,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private void UpdateChrome()
         {
             _pageMark.text = (_pageIndex + 1) + " / " + PageCount;
+            // 页角注(「为什么不能」)在页码**上方**,同为页脚小字。
+            if (_notice.parent != _slotHost) _slotHost.Add(_notice);
+            _notice.BringToFront();
             // 页码落在**页脚**:每次重排后把它移到子级末尾(行会不断追加在它前面)。
             // ⚠️ 用 `BringToFront` 而不是 `Add` —— 同一个元素重复 `Add` 会报「已有父级」。
             if (_pageMark.parent != _slotHost) _slotHost.Add(_pageMark);
@@ -384,6 +400,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             SaveSlotView view = ViewOfRow(rowIndex);
 
+            // 焦点已移到这一行 ⇒ 上一行留下的页角注作废(7b §11「保持到焦点移动」)。
+            // ②-b 的已锁支会在下面重新写它。
+            SetNotice(string.Empty);
+
             // ① **未绑定**(装配层没探到状态)⇒ 不声称任何事,维持旧的「尝试载入」路径。
             if (!view.Known)
             {
@@ -406,13 +426,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (view.IsLocked)
             {
                 DisarmRow();
-                RowAt(rowIndex)?.ShowLockedNotice("推进一次剧情后可启封");
+                SetNotice("推进一次剧情后可启封");
                 return;
             }
 
             // ③ **已有档** ⇒ 行内二段态(§D5):第一次 Submit 只出示两枚墨字,不动作。
             if (_armedRowIndex == rowIndex) return;   // 墨字已摊开 ⇒ 由它们接手
             ArmRow(rowIndex, view);
+        }
+
+        /// <summary>页角注(「为什么不能」)。空串 = 无话可说。</summary>
+        /// <remarks>7b §11:该位**禁止自动消失**,保持到焦点移动 ⇒ 只在
+        /// 「换行 / 翻页 / 重画」三处清空,不做定时清除。</remarks>
+        public string NoticeText => _notice?.text ?? string.Empty;
+
+        private void SetNotice(string text)
+        {
+            if (_notice == null) return;
+            _notice.text = text ?? string.Empty;
+            // 空注**不占位**:一句都没有时不留一条空白带(否则每页无端多一行高度)。
+            _notice.style.display = string.IsNullOrEmpty(_notice.text)
+                ? DisplayStyle.None
+                : DisplayStyle.Flex;
         }
 
         /// <summary>第 <paramref name="rowIndex"/> 行(页内)对应的视图。</summary>
