@@ -485,6 +485,7 @@
 | `TD-skeuo-14` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
+| `TD-skeuo-17` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -729,6 +730,16 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **九十订(`TD-skeuo-17` 立债 · 2026-11-05 深夜 · smoke 第三轮)** ——
+> 用户指令「补跑 smoke-check 出第三轮判定,这次由你直接操作」⇒ 我直跑真 player 走查,
+> 在**首次启动**路径上重现了 round-2 报「已修」的 D1(设置壳 ESC 关不掉),并把根因钉死:
+> `_modalInput` 在启动序 6.3 才构造,而主菜单闸门在 2.95 ⇒ 那一刻驱动是 `null`,`?.` 静默。
+> 变化:`条目 192 → 193`(+1)· `open 19 → 20`(+1)· `closed 163` / `partial 9` 不动 ·
+> `Y 128 → 129`(+1)· `N 58` 不动 · **`未闭 P0 面 12 → 13`**(+1)·
+> **`skeuomorphic-ui 4 → 5`**(epic 数仍 `6/31`)。
+> ⚠️ **这是 round-2「D1 ✅」的改判**:不是新缺陷,是**同一条缺陷的修复不充分** ——
+> 二轮只走了「世界已起」的路径(= 回程形态),恰好绕开病灶。
 
 > > 🔁 **八十九订(`TD-persist-23` 结案 · 2026-11-05 晚 · 夹具存档根轮)** ——
 > **单一变化源:一条状态变更(`open → closed`),零新登记。**
@@ -1459,10 +1470,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 192 | 状态 {'closed': 163, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 12 （已闭但曾标 P0 面的 116 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
-    random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
+条目 193 | 状态 {'closed': 163, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 129, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 13 （已闭但曾标 P0 面的 116 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 6/31 个 epic
+    skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -6320,6 +6331,20 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 这是**另一侧的欠账**,在结案时才被照出来。立此条的唯一理由是:
 不登记则 23 建造系统将来落 `build_modules.json` 时,两边会**各自以为对方是源头**,
 而「同源」这条要求**没有任何一处会报警**。
+
+### TD-skeuo-17 — **首次启动**的第一层:设置壳按 ESC **关不掉**(`_modalInput` 在那一刻还没构造)
+
+> **⚠️ 2026-11-05 立债**(smoke 第三轮由我直接操作真 player 复验 D1 时当场重现并钉死根因)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 主菜单 →「设置」摊开设置壳 → 按 **ESC 无任何反应**(连按两次亦然)。同一操作在**回程**的第一层(进世界→暂停壳→返回主菜单)却**正常**。差别不在 UI 层,在**启动序的构造次序**。 |
+| **根因(已钉死)** | `ModalInputDriver` 在启动序 **6.3** 构造(`BootRoot.cs:1138`),而**主菜单闸门在 2.95**(`BootRoot.cs:512-519` `await PresentMainMenuAsync()`)。⇒ **首次启动的第一层,`_modalInput` 仍是 `null`**,`Update` 里的 `_modalInput?.OnFrame()`(`:2645`)**静默空转** —— `?.` 把「驱动不存在」和「没有按键」变成了同一种沉默。 |
+| **复现(逐条可跑)** | 真包首次启动 → 主菜单 ↓↓ Enter → ESC → 截图;隔 2 s 再按一次 → 截图 ⇒ 两帧**逐像素相同**。对照:进世界 → 暂停壳「返回主菜单」→ 同路径 → ESC **关得掉**(焦点回到「设置」行)。证据图 `production/qa/evidence/smoke-2026-11-05-r3/{02,03,04}-*.png`。 |
+| **为什么第二轮报了「已修」却没修好** | 第二轮把 `_modalInput.OnFrame()` 提到 `_booted` 早退**之前** —— 那是**必要但不充分**:它解决「驱动被早退挡住」,**没解决「驱动此刻根本不存在」**。二轮的验证只走了**世界已起**的路径(= 回程形态),恰好绕开了病灶。**这是本轮抓到的第三个「只修一半就报已修」**(前两例:round-2 的 D2 三半)。 |
+| **解除动作** | ① 把 `_modalInput` 的构造提到**主菜单闸门之前**(最小改法);或 ② 让 `Update` 在 `_modalInput == null` 且当前有模态摊开时**显式告警**(把 `?.` 的静默改成可见)。**两种都要补一条判据**:「首次启动路径」上设置壳能被 ESC 关掉 —— 夹具形态建议用 `BootWithMainMenu = true` 的 PlayMode 件驱动,而不是编辑器手点。⚠️ **修完必须在首次启动路径复验**,回程路径验过不算(那正是本债的假绿形态)。 |
+| **触发条件** | 任何以「第一层可用」形态引用之前(**禁借绿**);或下一次 `/smoke-check sprint` 重新 gate 之前(**硬前置**)。 |
+| **归属** | **42 拟物 UI × 装配层(`BootRoot`)** —— 缺陷在**构造次序**,不在屏实现 |
 
 ### TD-persist-23 — 全量 PlayMode 回归会往**真实存档根**写一份 `save_auto.bin`(测试产物混进玩家存档目录)
 
