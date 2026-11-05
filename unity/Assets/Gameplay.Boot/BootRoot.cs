@@ -1329,7 +1329,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         //    (`OnMainMenuDeleteWorld`,`ADR-040 D6` 的二次确认后半程)与它专用的
         //    `BuildWorldRows` 一并移除。
         //    ⚠️ **如实登记**:`WorldCatalog.DeleteWorld` 同时删除 ⇒ 游戏内**没有任何删除世界
-        //    的路径**(只剩手动删 `~/.config/unity3d/DefaultCompany/unity/saves/wN/`);
+        //    的路径**(只剩手动删 `~/.config/unity3d/DaYiJingCheng/大医精诚/saves/wN/`
+        //    —— 该路径于 2026-11-05 随 `TD-build-02` ① 的 company/product 变更而变);
         //    世界**选择**入口也随主菜单固定行一起移除 ⇒ 只能进「最近游玩」的那个世界。
 
         /// <summary>

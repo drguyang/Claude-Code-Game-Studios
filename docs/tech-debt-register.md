@@ -407,6 +407,7 @@
 | `TD-persist-20` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-21` | `persistence-service` | open | **N** | R1 |
 | `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
+| `TD-persist-23` | `persistence-service` | open | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -728,6 +729,18 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十八订(`TD-build-02` ① 兑现 + `TD-persist-23` 立债 · 2026-11-05 晚 · 改名轮)** ——
+> **两处变化源,逐条列清**(勿并读):
+> ① `TD-build-02` 的解除动作 **①**(company / product)已落 —— 状态**不变**(`partial`:唯一未闭面
+> 转为「CI 的 `player-build.yml` 从未在 CI 上跑过」);
+> ② **新增 `TD-persist-23`**(全量 PlayMode 回归往真实存档根写 `save_auto.bin`,本轮当场坐实)。
+> 累计变化:`条目 191 → 192`(+1)· `open 19 → 20`(① 不变、② +1)· `partial 9` 不动 ·
+> `closed 162` 不动 · `N 57 → 58`(+1)· `Y 128` 不动 ·
+> **`未闭 P0 面 12` 不动**(`TD-persist-23` 判 **N**:测试套件不随包出货,玩家不可达)。
+> ⚠️ **为什么 `TD-persist-23` 判 N 而 `TD-skeuo-*` 判 Y**:判的是「玩家能不能撞上」。
+> 玩家撞不上(测试不出货),但**开发机上的真档目录会长测试局** —— 这是 R4「触发条件是否在
+> P0 内可满足」判 N、但**仍须在发布前清账**的那一类。
 
 > > 🔁 **八十七订(`TD-build-02` 推进 ② · 2026-11-05 晚 · 真出包轮)** ——
 > **单一变化源:一条状态变更(`open → partial`),零新登记、零其它状态变更。**
@@ -1437,7 +1450,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 191 | 状态 {'closed': 162, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 192 | 状态 {'closed': 162, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 58, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 12 （已闭但曾标 P0 面的 116 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
@@ -6299,6 +6312,19 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 不登记则 23 建造系统将来落 `build_modules.json` 时,两边会**各自以为对方是源头**,
 而「同源」这条要求**没有任何一处会报警**。
 
+### TD-persist-23 — 全量 PlayMode 回归会往**真实存档根**写一份 `save_auto.bin`(测试产物混进玩家存档目录)
+
+> **⚠️ 2026-11-05 立债**(`TD-build-02` ① 兑现轮里做前后 `diff` 时撞见,并当场坐实)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | PlayMode 夹具里有若干条**直接 `AddComponent<BootRoot>()`** 的「真启动序」件(如 `case_opened_wiring_test.cs:89`),它们**不设** `SaveBasePathOverride` / `SaveRootOverride` ⇒ `BootRoot` 落到默认存档根 = `Application.persistentDataPath/saves` ⇒ 启动序里的 `FirstSessionSave` 往**玩家真实存档目录**写一份 `save_auto.bin`。后果不在 CI(容器里是空的),而在**开发机**:每次跑全量 PlayMode 都在真档目录里留一份测试局;而下一次真启动会把根级单世界存档**按设计迁移归档**进 `w1/save_auto.bin.migrated-*`(1.7 多世界迁移)⇒ 测试产物**长进真局目录**。 |
+| **实测(逐条可跑)** | `cp -a <saves> /tmp/saves.before` → 跑全量 PlayMode → `diff -rq /tmp/saves.before <saves>` ⇒ **只在 live 中存在:`save_auto.bin`**(1622 B)。内容:`44 59 4a 51`(`DYJQ`)+ 头部 `0x24` 处 `05 00 00 00` = `SaveVersion 5` ⇒ **当前版本的空局存档**,不是旧格式。 |
+| **为什么夹具看不见** | ① `FsWriteBoundaryGate`(S16-4)扫的是 `Assets/Tests/**` 里的**直接写盘调用**;本形态是 `BootRoot` **间接**写,门结构上看不见。② `save_composer_wiring_test.cs:709-714` 的反向门只查「测试源码里有没有把 `persistentDataPath` 当 `saveBasePath` 传」,**同样看不见「不传 ⇒ 走默认根」**。⇒ 两道门都绿,而目录在长。 |
+| **解除动作** | ①(最直接)给所有「真启动序」PlayMode 件补 `SaveRootOverride`(多世界形态)或 `SaveBasePathOverride`(单世界形态),**指向 `Path.GetTempPath()`**;② 补机械门:`Assets/Tests/PlayMode/**/*.cs` 里出现 `AddComponent<BootRoot>()` 而**同文件内**没有 `SaveRootOverride` / `SaveBasePathOverride` ⇒ 红(空集守卫:扫到 0 处 `AddComponent<BootRoot>` 也红,防路径写错恒绿)。③ 与 ② 同批复核 `FsWriteBoundaryGate` 的声明表是否需要扩到「间接写」—— **不做也行**,但须在门注里写明这一面归 ② 那条新门。 |
+| **触发条件** | 任何一次「回归跑干净」形态的引用之前(**禁借绿**);或发布前最后一次全量回归之前(**硬前置**,否则发布机上的真档目录里会多出测试局)。 |
+| **归属** | **persistence-service**(7a 存档根)× **治理**(测试边界) |
+
 ### TD-build-02 — 全仓**零正式构建入口**,且 player 的 company/product 未设(存档目录与编辑器不同)
 
 > **⚠️ 2026-11-05 立债**(用户指令「你自己启动游戏看看存档册」:真跑一遍才发现——此前**从没有**人用正式路径出过包)。
@@ -6329,11 +6355,32 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 - **① `ProjectSettings` 的 company / product 仍未设**(实测 `DefaultCompany` / `unity`)⇒ 产物名 `unity.x86_64`、
   存档根仍与编辑器同一个目录。**这条不做,「开发期一次误跑就动玩家档」的风险原样保留。**
+  🔁 **2026-11-05 当晚已落**,见下方「① 兑现」段。
 - **④ 存档根写进文档**:只在条目的订正段里记了(`Application.persistentDataPath/saves`),未另建运维文档。
 - **③ 的常驻性**:本轮执行了一次,**每次对外发放前都要重跑**,不是一次性状态。
 
 ⚠️ **`CostTableProbeBuildCli` 不删**:它是 `CLAUDE.md` §构建前门(BuildGate)探针轮的载体
 (要能出 `Result: Failure`),不能拿正式入口顶替 —— 两者用途不同,并存不是重复。
+
+#### 🔁 同日续:① 兑现(company / product 已设 + 旧存档已搬)
+
+**证据原件**:`production/qa/evidence/impl-td-build-02-company-product-2026-11-05.md`。
+
+| 面 | 值 |
+|---|---|
+| `ProjectSettings.asset` | `companyName: DaYiJingCheng` · `productName: 大医精诚`(取值经 `AskUserQuestion` 由用户裁定) |
+| 存档根(**唯一权威,本行即 ④ 的落点**) | `~/.config/unity3d/DaYiJingCheng/大医精诚/saves` |
+| 产物 | `unity/builds/Linux-x64/大医精诚.x86_64` + `大医精诚_Data/` · 123 546 177 B · 23.9 s |
+| 旧存档 | 整目录搬到新路径(用户裁定「搬过去」),搬迁前后 `diff -rq` 零差异 |
+| 真启动 | 主菜单「继续诊治」可点(旧档被找到)→ 进世界 → 3 病人可见 → 退出;四屏有字,`Font not found` = 0 |
+| 回归 | EditMode `6940/6903/0/0/37` · PlayMode `341/337/0/2/2` —— 与改名前的基线逐位相同 |
+
+**① 的固有代价(写进正文,防后人误读)**:PlayerPrefs **没有**跟着搬 ⇒ 旧 `prefs` 留在
+`DefaultCompany/unity/`。今日无自定义改键故影响为零;将来玩家改过键再换这两个标识会让改键**静默复位**。
+⇒ **发布后不得再改 company / product**。
+
+**状态仍为 `partial`**:①②④ 已落、③ 已执行一次;唯一未闭面 = **CI 的 `player-build.yml` 从未在 CI 上跑过**
+(仓库未推送 / secrets 未配)⇒ 按「NOT-RUN 不得借绿」维持 `partial`,不记 `closed`。
 
 ---
 

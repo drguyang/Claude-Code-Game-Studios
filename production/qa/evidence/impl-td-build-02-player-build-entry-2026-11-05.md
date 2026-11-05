@@ -87,10 +87,16 @@ grep -c '找不到 URP Lit\|加载不到 Resources' <Player.log>  # 0
 备份留 `/tmp/dyjc-costtable-probe/saves.old{4,5}`(`/tmp` 清理后即失效)。
 
 ⚠️ **一处未坐实、如实登记**:根目录那个 1622 B 的 `save_auto.bin` 是 **19:10**(PlayMode 全量跑的中途)
-出现在备份里的,而它的大小等于**旧格式(v1)存档**的尺寸。本轮**没有**坐实它是谁写的 ——
+出现在备份里的。本轮**没有**坐实它是谁写的 ——
 候选 = PlayMode 夹具直接 `AddComponent<BootRoot>()`(`case_opened_wiring_test.cs:89` 即此形态,
 未设 `SaveBasePathOverride` / `SaveRootOverride`)走 `FirstSessionSave`,或更早某轮的遗留。
 **归因未决,不在本轮回写任何结论**。若要坐实:单跑该夹具一次,前后比对 `saves/` 根目录。
+
+> 🔁 **2026-11-05 当晚已坐实(原文不删,此处订正)**:后续对全量 PlayMode 做前后 `diff -rq`,
+> **恰多出 `saves/save_auto.bin`(1622 B)** ⇒ 是 **PlayMode 回归写的**,不是旧轮遗留。
+> ⚠️ 同时订正本文上一版的一个**错判**:我写「1622 B = 旧格式(v1)存档尺寸」——**错**,
+> 1622 B 是**当前版本**空局存档的尺寸(头部 `0x24` 处 `05 00 00 00` = `SaveVersion 5`)。
+> 已立 **`TD-persist-23`**;证据见 `production/qa/evidence/impl-td-build-02-company-product-2026-11-05.md` §3③。
 
 ## 6. 回归
 

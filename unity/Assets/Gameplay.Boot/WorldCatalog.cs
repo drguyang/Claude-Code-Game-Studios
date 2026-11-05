@@ -238,7 +238,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         // 🔁 **2026-11-04 已删除**(用户裁定「删除不留」):`DeleteWorld(int)` 连同主菜单
         //    的「删一局」入口一并移除 —— 游戏内**没有任何删除世界的路径**。
         //    ⚠️ **如实登记**:ADR-040 §Context 第 1 条点名的病灶(玩家只能去
-        //    `~/.config/unity3d/DefaultCompany/unity/saves/wN/` 手动删)由此回归。
+        //    `~/.config/unity3d/DaYiJingCheng/大医精诚/saves/wN/` 手动删)由此回归。
+        //    ⚠️ 路径于 2026-11-05 随 `TD-build-02` ① 变更(company/product 由
+        //    `DefaultCompany/unity` 改为 `DaYiJingCheng/大医精诚`),旧路径下已无存档。
         //    ⚠️ 索引里的「墓碑」语义**作废**(没有删除 ⇒ 不需要为高水位保留墓碑):
         //    `ReadIndex` 仍按 `seq → 时刻` 读,`CreateWorld` 的高水位取目录与索引的并集。
 
