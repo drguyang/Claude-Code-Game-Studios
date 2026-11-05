@@ -487,7 +487,7 @@
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
-| `TD-skeuo-19` | `skeuomorphic-ui` | open | **N** | R1 |
+| `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1481,7 +1481,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 195 | 状态 {'closed': 164, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 130, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 195 | 状态 {'closed': 165, 'partial': 9, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 130, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 13 （已闭但曾标 P0 面的 117 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 6/31 个 epic
     skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
@@ -6363,6 +6363,29 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ① 滚轮:`SaveSlotsScreen` 挂 `WheelEvent`,上滚 = `PreviousPage()` / 下滚 = `NextPage()`,不可翻时 no-op(与 `NextPage` 现有 `return false` 同纪律);② 肩键:`PlayerInputReader` 增两个读面并在装配层转给当前开着的屏,**或**另裁「肩键不做」(与 `OQ-7b-*` 同级裁定)后**改 spec 交互表**,不许就这样两处并存。③ 任一条落地须补夹具(不可翻时 no-op 与可翻时的页号变化各一条)。 |
 | **触发条件** | 任何以「7b 交互表已全覆盖」形态引用之前;或下一次 `/ux-review` 扫 `save-slots-7b.md` 之前。 |
 | **归属** | **42 拟物 UI**(屏)× **3 输入与设备**(`PagePrev/PageNext` 的读面) |
+
+#### ✅ 2026-11-06:`open` → **`closed`**(用户裁定「不做肩键」+「滚轮也移焦/翻页」)
+
+**证据原件**:`production/qa/evidence/impl-td-skeuo-19-save-book-paging-2026-11-06.md`。
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| **缺口 A 滚轮** | `SaveSlotsScreen.HandleWheel` / `OnWheel`(挂 `_book`)—— 与上下键**同一条竖轴**:一格 = 一行,到页边界才翻页 | EditMode `save_book_paging_test` 5 条 + PlayMode `save_book_paging_focus_test` 3 条 |
+| **缺口 B 上下键** | `SaveSlotsScreen.HandleEdgeMove` / `IsEdgeMove` —— 只有**页边界那一行**才拦,且**必须有页可翻** | 同左,EditMode 5 条 + PlayMode 2 条 |
+| **肩键(原解除动作 ②)** | **不做** —— 用户 2026-11-06 裁定「不用想的太复杂,键盘和手柄的上下键移动到本页最上和最下就能进行翻页」;`PagePrev` / `PageNext` 维持**零生产消费者**,spec 交互表就地改口径 | `design/ux/save-slots-7b.md` §7 表 + 表下口径订正 |
+| 附带①(同轮用户指令) | 「留档」行恒落在**下一笔手动档的位置**(无手动档 = 第 3 位;有 = 最新手动档下一行)= `BootRoot.BuildSaveSlotViews` 不再单画空手动槽 | 真包两帧:`tdskeuo19-2026-11-06/01-liudang-3rd-no-manual-save.png`(第 3 位)· `…/02-liudang-4th-after-manual-save.png`(第 4 位) |
+| 附带② | `PageCount` 改**含「留档」行** —— 旧算法只数槽位行,槽位行恰满一页时新行被塞成第 7 行(页容量 6) | EditMode `save_slots_paging_test` 既有 13 行 / 8 行 / 空册三档全绿 |
+
+**回归**:EditMode `6957 / 6920 / 0 / 0 / 37`(基线 `6947 / 6910`,+10/+10)· PlayMode `347 / 343 / 0 / 2 / 2`
+(基线 `342 / 338`,+5/+5)@ `2026-11-06 03:0x CST` · `6aba5507` + 工作树。
+
+**走查抓出的真缺陷(已修,非探针轮)**:单页册上 `Down` 从末行按不动 —— 边界判据只看「是不是末行」,
+不看「有没有页可翻」⇒ 拦下事件 + `StepPage` 返回 false + `PreventDefault` ⇒ 焦点被卡在末行,
+**走不到它下面的「留档」新行**。修法 = `IsEdgeMove` 以 `HasNextPage` / `HasPreviousPage` 为必要条件。
+
+⚠️ **不借绿**:真包的**指针腿**(把指针停在册子上滚一格)**NOT-RUN** —— XTEST 瞄准不可靠
+(实测指针事件确实抵达面板:`rootmove` / `rootdown` / `rootwheel` 都收到过,但抬窗后 warp 的 x 卡住、
+随后 motion 整批不再送达);该格由 PlayMode 件覆盖,物理鼠标下的行为**待带真指针设备的走查**。
 
 ### TD-skeuo-18 — 脉案值区:**查体后不重绘** + 值词条**渲染成不可读墨块**(两条独立缺陷)
 

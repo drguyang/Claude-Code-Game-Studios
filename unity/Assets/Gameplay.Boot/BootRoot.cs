@@ -2452,11 +2452,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-11-03(`TD-persist-17` · 用户裁定):槽号语义 = 1 退出 · 2 自动 · 3+ 手动。
             //    清单**由台账派生**,不再是固定三行 —— 手动槽只进不退,第二次手动存档落在 4,
             //    固定清单会让它「存得进去、看不见」。
-            //    范围 = [1, 2] + [3 .. max(next-1, 3)](至少留一格空槽给「下一笔」)。
+            //    范围 = [1, 2] + [3 .. next-1](无手动档时**只有 [1, 2]**)。
+            //    🔁 **2026-11-06(用户裁定)**:「留档提示默认初始在 3 号位置,如果有手动存档记录,
+            //    留档提示默认在最新手动存档记录的下一行」⇒ **不再单独画一格空手动槽**:
+            //    那一格与 42 的「留档」新行是**同一个目标**(都落到 `NextWritableSeq`),
+            //    并排会出现两行「按了就存到同一处」。空手动槽让位给「留档」行之后,
+            //    它自然落在「退出 / 自动」之后的第 3 位、有档时落在最新手动档的下一行。
+            //    ⚠️ 空槽行**没有消失** —— 退出 / 自动 两格在本局还没写过时仍是空槽,
+            //    ADR-041 §D1 的「空槽即写它自己的 `slot_seq`」照旧可达。
             uint next = saves0?.Ledger?.NextWritableSeq ?? SaveService.MinManualSlotSeq;
             uint lastManual = next > SaveService.MinManualSlotSeq
                 ? next - 1u
-                : SaveService.MinManualSlotSeq;
+                : SaveService.MinManualSlotSeq - 1u;
 
             var display = new System.Collections.Generic.List<uint>
             {

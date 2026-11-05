@@ -112,6 +112,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private int _pageIndex;
         /// <summary>处于二段态的**页内**行号(<c>-1</c> = 无;ADR-041 §D5)。</summary>
         private int _armedRowIndex = -1;
+        /// <summary>已排进调度器、尚未执行的翻页(同帧连按只认一次)。</summary>
+        private bool _turnPending;
 
         /// <summary>处于二段态的行号(观测面;<c>-1</c> = 没有任何一行展开)。</summary>
         public int ArmedRowIndex => _armedRowIndex;
@@ -160,6 +162,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _prevEdge.RegisterCallback<ClickEvent>(_ => PreviousPage());
             _nextEdge.RegisterCallback<NavigationSubmitEvent>(_ => NextPage());
             _nextEdge.RegisterCallback<ClickEvent>(_ => NextPage());
+            // 🔁 **2026-11-06(`TD-skeuo-19` 缺口 A)**:滚轮翻页 —— `save-slots-7b.md:256`
+            //    的交互表从订立起就写着「点页缘 / **滚轮**」,而全库零 `WheelEvent` 实现。
+            //    挂**册**而不是挂页缘:滚轮是「在册子上滚」的意图,玩家不会先把指针
+            //    精确停在一条窄页缘上。滚轮语义不走「不可翻就不占位」那套(它不是焦点件)。
+            _book.RegisterCallback<WheelEvent>(OnWheel);
             _prevEdge.focusable = true;
             _nextEdge.focusable = true;
 
@@ -173,7 +180,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         public int CurrentPage => _pageIndex;
 
         /// <summary>总页数(空册也算一页)。</summary>
-        public int PageCount => _views.Count == 0 ? 1 : (_views.Count + PageCapacity - 1) / PageCapacity;
+        /// <remarks>🔁 **2026-11-06**:页数里**含「留档」新行**(它只出现在末页,但确实占一格)。
+        /// 旧算法只数槽位行 ⇒ 槽位行恰好填满一页时,新行被塞进那一页的第 7 行(页容量 6),
+        /// 纸页硬撑出一行 —— 4 笔手动档即触达,是既存缺陷。空册 = 1 页(新行自己占那一页)。</remarks>
+        public int PageCount => (_views.Count + 1 + PageCapacity - 1) / PageCapacity;
 
         /// <summary>还有上一页。</summary>
         public bool HasPreviousPage => _pageIndex > 0;
@@ -246,6 +256,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _views.Clear();
             if (views != null) _views.AddRange(views);
             _pageIndex = HighWaterPage();
+            // 排进调度器的翻页若因**合屏 / 换源**没执行,标记必须归零 ——
+            // 否则下次开册的第一下边界键会被当成「已排过」而静默丢掉。
+            _turnPending = false;
             RenderPage();
         }
 
@@ -295,6 +308,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 // `NavigationSubmitEvent`(ADR-011:不自实现焦点算法),指针给 `ClickEvent`。
                 row.RegisterCallback<NavigationSubmitEvent>(_ => Activate(rowIndex));
                 row.RegisterCallback<ClickEvent>(_ => Activate(rowIndex));
+                // 🔁 **2026-11-06(`TD-skeuo-19` 缺口 B)**:行边界上的上下移 = 翻页。
+                //    挂在**行**上、TrickleDown 先看:只有「已经到本页最上 / 最下还继续走」
+                //    才拦(此时 `HandleEdgeMove` 返回 true);中间行原样 return false,
+                //    事件继续走官方焦点桥 —— 本屏仍**不自己实现焦点算法**(ADR-013)。
+                //    ⚠️ 拦下后**必须重落焦**(`StepPage` 里做):不能让焦点留在被拆掉的旧行上。
+                //    `PreventDefault` 是否真能挡住本版的默认焦点动作 —— **未验证**(夹具只跑
+                //    用户回调阶段),归真包按键注入走查;若挡不住,默认动作的落点会盖掉重落焦。
+                row.RegisterCallback<NavigationMoveEvent>(evt =>
+                {
+                    if (!IsEdgeMove(rowIndex, evt.direction)) return;
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                    // ⚠️ 翻页**不在派发途中做**:它会拆掉正在收事件的那一行,而焦点系统与
+                    //    默认动作阶段还拿着这个 target —— PlayMode 实测「当场翻页」会把焦点
+                    //    丢成悬空(`FocusedRowIndex` = −1)。⇒ 推到本轮派发之后执行。
+                    TurnAfterDispatch(evt.direction == NavigationMoveEvent.Direction.Up ? -1 : +1);
+                }, TrickleDown.TrickleDown);
                 // 焦点顺序 = 行序(AC-7b-04:`slot_seq` 升序,不可重排)。
                 // ⚠️ 不自己实现焦点算法 —— tabIndex + focusable 交给官方 `FocusController`
                 //    (ADR-013「不自实现焦点算法」);本屏只定**顺序**。
@@ -348,6 +378,159 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             return true;
         }
 
+        /// <summary>
+        /// **行边界上的上下移 = 翻页**(`TD-skeuo-19` 缺口 B;用户 2026-11-06 裁定
+        /// 「键盘和手柄的上下键移动到本页最上和最下就能进行翻页」)。
+        /// <para>键鼠的方向键与手柄的 D-pad 都是**导航移动**,不是独立动作 ⇒ 不需要读
+        /// `PagePrev` / `PageNext`,也就不需要在装配层再加一个输入驱动(那是把简单事做复杂)。</para>
+        /// <para>语义:焦点在**首行**再向上 ⇒ 前一页;在**末行**再向下 ⇒ 后一页。
+        /// 中间行照常移焦(本方法 <c>return false</c>,事件继续走官方焦点桥)。
+        /// 到页边界 ⇒ 同样 <c>false</c>(没得翻 = 不动,与页缘热区同一纪律)。</para>
+        /// </summary>
+        /// <param name="rowIndex">当前焦点所在的**页内**行号(0 起)。</param>
+        /// <param name="direction">导航方向。</param>
+        /// <returns>是否真的翻了页。</returns>
+        public bool HandleEdgeMove(int rowIndex, NavigationMoveEvent.Direction direction)
+            => IsEdgeMove(rowIndex, direction)
+                ? StepPage(direction == NavigationMoveEvent.Direction.Up ? -1 : +1)
+                : false;
+
+        /// <summary>这一下是不是**页边界上的往外走**(是 ⇒ 该翻页;不是 ⇒ 放它继续走焦点桥)。</summary>
+        private bool IsEdgeMove(int rowIndex, NavigationMoveEvent.Direction direction)
+        {
+            if (rowIndex < 0 || rowIndex >= _rows.Count) return false;
+            // ⚠️ **必须是「有页可翻」才算边界** —— 否则拦下来又没有下一页时,焦点被卡在末行、
+            //    永远走不到它下面的「留档」新行(真包实测:单页册上 `Down` 从末行按不动)。
+            if (direction == NavigationMoveEvent.Direction.Up && rowIndex == 0) return HasPreviousPage;
+            if (direction == NavigationMoveEvent.Direction.Down && rowIndex == _rows.Count - 1)
+                return HasNextPage;
+            return false;
+        }
+
+        /// <summary>
+        /// 把翻页推到**本轮事件派发结束之后**再执行(见注册处的长注释)。
+        /// <para>用屏根的调度器:它随屏入面板,派发结束时必然还在;同一帧连按只认一次。</para>
+        /// </summary>
+        private void TurnAfterDispatch(int direction)
+        {
+            if (_turnPending) return;
+            _turnPending = true;
+            _root.schedule.Execute(() =>
+            {
+                _turnPending = false;
+                StepPage(direction);
+            }).ExecuteLater(0);
+        }
+
+        /// <summary>
+        /// 焦点所在的**页内**行号(观测面;<c>-1</c> = 焦点不在本页的槽位行上)。
+        /// <para>「留档」新行算作 <see cref="SlotRowCount"/>(即行数之后的一位)——
+        /// 它在这条**竖轴**上确实排在末行下面,滚轮/方向键从它往上走要落到末行。</para>
+        /// </summary>
+        public int FocusedRowIndex
+        {
+            get
+            {
+                if (!(_book.panel?.focusController?.focusedElement is VisualElement focused))
+                    return -1;
+
+                if (focused is SaveSlotItem item)
+                {
+                    int i = _rows.IndexOf(item);
+                    if (i >= 0) return i;
+                    if (_writableRow != null && ReferenceEquals(item, _writableRow))
+                        return _rows.Count;
+                }
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// 滚轮(**缺口 A**;spec §7 交互表「点页缘 / 滚轮」)。
+        /// <para>🔁 **2026-11-06 用户追加裁定**:「鼠标的滚轮也能移动焦点上下,也能进行翻页」——
+        /// 滚轮**不是**「一格一页」,而是与上下键**同一条竖轴**:一格 = 一行,
+        /// 到本页最上 / 最下再滚 = 翻页。两者共用 <see cref="HandleEdgeMove"/> 的边界判据。</para>
+        /// <para>方向:UI Toolkit 的约定是**向上滚 = <c>deltaY &gt; 0</c>**(与浏览器 / 文本滚动一致)。</para>
+        /// <para>焦点不在本页行上(未入面板 / 落在页缘或二段态的墨字上)⇒ 从滚来的那一端进入:
+        /// 向下滚落**首行**,向上滚落**末行**。空页(零行)⇒ 无可移动,<c>return false</c> 不消费。</para>
+        /// </summary>
+        /// <param name="deltaY">滚轮位移(向下为负)。</param>
+        /// <returns>是否消费了这次滚动(移动了焦点或翻了页)。</returns>
+        public bool HandleWheel(float deltaY) => HandleWheel(deltaY, FocusedRowIndex);
+
+        /// <param name="focusedRowIndex">起点(<see cref="FocusedRowIndex"/> 的显式形态,便于夹具直调)。</param>
+        /// <inheritdoc cref="HandleWheel(float)"/>
+        public bool HandleWheel(float deltaY, int focusedRowIndex)
+        {
+            if (deltaY == 0f) return false;   // 某些设备静止时也发零位移事件
+
+            int count = _rows.Count;
+            if (count == 0) return false;
+
+            bool up = deltaY > 0f;
+            if (focusedRowIndex < 0 || focusedRowIndex > count)
+                focusedRowIndex = up ? count : -1;   // 焦点悬空 ⇒ 从滚来的那一端进入
+
+            if (up)
+            {
+                if (focusedRowIndex == 0) return StepPage(-1);
+                FocusRow(focusedRowIndex - 1);
+                return true;
+            }
+
+            if (focusedRowIndex == count - 1)
+            {
+                if (StepPage(+1)) return true;
+                // 末页的最下一行:再往下只剩「留档」新行,有就落上去(它才是这条轴的端点)。
+                if (_writableRow != null) { _writableRow.Focus(); return true; }
+                return false;
+            }
+            if (focusedRowIndex >= count) return false;   // 已在留档新行,底下没有东西了
+            FocusRow(focusedRowIndex + 1);
+            return true;
+        }
+
+        /// <summary>滚轮事件入口:处理了才消费掉(空页 ⇒ 让事件继续往上走)。</summary>
+        private void OnWheel(WheelEvent evt)
+        {
+            if (evt == null) return;
+            if (!HandleWheel(evt.delta.y)) return;
+            evt.StopPropagation();
+            evt.PreventDefault();
+        }
+
+        /// <summary>
+        /// 翻一页并落到**移动来的那一端**(<paramref name="direction"/> = +1 后一页 / -1 前一页)。
+        /// <para>⚠️ 落点与 <see cref="NextPage"/> 的「页内焦点重置为该页首行」**不同**,是有意的:
+        /// 若向下翻页后焦点落在首行,再向上滚一格就立刻翻回去 —— 册子会卡在两页之间来回跳,
+        /// 永远滚不进第二页。落到「移动来的那一端」后,整本册子是**一条连续的竖轴**。</para>
+        /// <para>页缘热区 Submit 仍走 <see cref="NextPage"/> / <see cref="PreviousPage"/>
+        /// (那是「我要翻页」的明确意图,落首行符合 §7.1)。</para>
+        /// </summary>
+        private bool StepPage(int direction)
+        {
+            if (direction < 0)
+            {
+                if (!HasPreviousPage) return false;
+                _pageIndex--;
+            }
+            else
+            {
+                if (!HasNextPage) return false;
+                _pageIndex++;
+            }
+            RenderPage();
+            FocusPageEnd(fromTop: direction > 0);
+            return true;
+        }
+
+        /// <summary>把焦点落到某一行(越界 / 未入面板时 <c>Focus()</c> 是空操作,不抛)。</summary>
+        private void FocusRow(int rowIndex)
+        {
+            if (rowIndex < 0 || rowIndex >= _rows.Count) return;
+            _rows[rowIndex].Focus();
+        }
+
         /// <summary>翻到上一页(不可翻 ⇒ <c>false</c>,不抛)。</summary>
         public bool PreviousPage()
         {
@@ -359,9 +542,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         }
 
         /// <summary>翻页后把焦点重置为该页首行(§7.1「页内焦点重置为该页首行」)。</summary>
-        private void FocusFirstRowOfPage()
+        private void FocusFirstRowOfPage() => FocusPageEnd(fromTop: true);
+
+        /// <summary>翻页后落焦:本页首行或末行(无槽位行时退到「留档」新行)。</summary>
+        private void FocusPageEnd(bool fromTop)
         {
-            VisualElement target = _rows.Count > 0 ? (VisualElement)_rows[0] : (VisualElement)_writableRow;
+            VisualElement target = null;
+            if (_rows.Count > 0)
+                target = fromTop ? (VisualElement)_rows[0] : (VisualElement)_rows[_rows.Count - 1];
+            else if (_writableRow != null)
+                target = _writableRow;
             // 未接入面板时 `Focus()` 是空操作(屏单元夹具即此形态),故无需判空面板。
             target?.Focus();
         }
