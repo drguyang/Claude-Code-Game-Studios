@@ -20,7 +20,7 @@
     border-left-width: var(--skeuo-brass-border-width);
     color: var(--skeuo-brass-fg);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
 }
 
 /* 蚀刻刻度 — 黄铜侧合法(墨侧禁) */

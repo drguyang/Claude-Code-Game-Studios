@@ -70,7 +70,7 @@
 .paper .ink {
     color: var(--skeuo-ink-fg);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
 }
 
 /* ── 线格 · M2 形态件①(story-021 · AC-021-1/2)──
@@ -105,7 +105,7 @@
    (同字号会让 5 行看起来像 6 行)。
    ⚠️ 字号走 var(AC-42-C5:禁硬编码 font-size)。 */
 .pause-save-hint {
-    font-size: var(--skeuo-font-size-xs);
+    font-size: var(--skeuo-font-size-paper);
     -unity-text-align: middle-left;
 }
 
@@ -174,7 +174,7 @@
  * ⚠️ 不抢焦点、不吃拾取 —— 那两条在 C# 里设(`focusable` / `pickingMode`),此处只管长相。 */
 .menu-notice {
     color: var(--skeuo-ink-fg-light);
-    font-size: var(--skeuo-font-size-xs);
+    font-size: var(--skeuo-font-size-paper);
     -unity-text-align: middle-center;
     padding-top: var(--skeuo-shared-space-xs);
     padding-bottom: var(--skeuo-shared-space-xs);
@@ -197,7 +197,7 @@
     min-height: var(--skeuo-shared-row-height);
     padding-left: var(--skeuo-shared-space-sm);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
 }
 
 /* ── 候选动作列表项 · M2 形态件③(sprint-05 T2.4 · EmergencyCandidateList 载体)──

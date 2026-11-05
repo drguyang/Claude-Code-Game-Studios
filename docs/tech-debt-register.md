@@ -482,7 +482,7 @@
 | `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-14` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
-| `TD-skeuo-16` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1395,7 +1395,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 190 | 状态 {'closed': 161, 'partial': 6, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 190 | 状态 {'closed': 161, 'partial': 7, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 127, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 12 （已闭但曾标 P0 面的 115 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
@@ -5596,6 +5596,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | ① 逐屏列名单并按优先级排(状态句 > 标签 > 装饰小字);② 每屏抬字号 + 同步行高/页容量 + 图形走查复验;③ 把 `test_s3_2b_*` 三条门从「只扫存档册三类」扩成**按屏全覆盖**(现门只认 `.save-slot-*`)。 |
 | **触发条件** | 该屏进入 polish 轮,或任何以「无障碍承诺已满足」形态引用之前(**禁借绿**)。 |
 | **归属** | **42**(USS 与屏)· 各屏 UX spec 的 §11 面 |
+
+> 🔁 **2026-11-05 推进(`open → partial`)**:用户指令「再把其它屏的字号也抬到 24px」。
+> 把九份 USS 里**全部**低于 24px 的 `font-size: var(--skeuo-font-size-*)` 14 处抬到
+> `--skeuo-font-size-paper`(24px):`.brass` / `.implement` / `.ink` / `.ink-title` / `.ink-body` /
+> `.mark-check` / `.mark-seal` / `.paper .ink` / `.pause-save-hint` / `.menu-notice` /
+> `.skip-entry` / `.scroll .ink` / `.seal` / `.seal-small`(其中 `ink-title` / `ink-body` / `seal-small`
+> **零挂载点**,一并改以免下次被当成「还有活类低于下限」)。
+> **门**:解除动作 ③ 已落 —— 新增 `test_s3_2c_everyUssFontSize_atLeastPaperFloor`
+> (**不列名单**,扫九份 USS 每条字号声明解析成 px 比 24;含空集守卫);证伪轮把 `.menu-notice`
+> 改回 11px ⇒ 该门当场红、零连带,`SHA-256` 逐字节还原。
+> **实机复验(真 player)**:主菜单 / 世界急救候选行 / 暂停壳(含「上次保存：N 分钟前」副标题)/
+> 设置壳 / 脉案 / 存档册 —— 均 24px 以上、无溢出。
+> ⚠️ **仍 open 的那一半(故记 partial,不记 closed)**:库存 / 容器 / 教学 / 炮制 / 纸近景
+> **五屏在 P0 无键盘入口**(`TD-skeuo-03` 记的正是这个:闭集 9 员里 7 员的 toggle 语义无法表达),
+> ⇒ 只能靠静态门保证字号, **溢出是视觉面、未验**。解除 = 给这五屏一条可达路径(调试口或夹具面板)后逐屏走查。
 
 ### TD-skeuo-13 — 急救候选列表**没有容器定位/宽度契约**:「跳过」被渲染成横贯全屏的米色纸带
 

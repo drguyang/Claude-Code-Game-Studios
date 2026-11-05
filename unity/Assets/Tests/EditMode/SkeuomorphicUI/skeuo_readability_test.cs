@@ -196,6 +196,54 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // ②″ **全屏**不低于纸面下限(2026-11-05 · 结 `TD-skeuo-16`)
+        //
+        //  上一条(②′)只认存档册三类,`TD-skeuo-16` 的解除动作 ③ 点名的正是这个盲区:
+        //  「把门从『只扫存档册三类』扩成按屏全覆盖」。本条件即该扩面 ——
+        //  **不列名单**,直接把九份 USS 里每一条 `font-size: var(--skeuo-font-size-*)`
+        //  解析成 px 比下限:名单会腐烂(新加一个类就漏),扫全量不会。
+        // ⚠️ 解析用的数值来自主题文件本身 —— 这不是自指判据:被断言的是
+        //  「**每一处使用**的字号 ≥ 字面量 24」,把 token 值调小会当场红。
+        // ══════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_s3_2c_everyUssFontSize_atLeastPaperFloor()
+        {
+            string theme = StripComments(ReadTheme());
+            double TokenPx(string name)
+            {
+                var mm = Regex.Match(theme, Regex.Escape(name) + @":\s*(\d+(?:\.\d+)?)px");
+                Assert.IsTrue(mm.Success, $"主题文件里没有 `{name}`。");
+                return double.Parse(mm.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            var bad = new System.Collections.Generic.List<string>();
+            int scanned = 0;
+            foreach (string file in Directory.GetFiles(SkeuoDir, "*.uss"))
+            {
+                string css = StripComments(File.ReadAllText(file));
+                foreach (Match block in Regex.Matches(css, @"([^{}]+)\{([^}]*)\}"))
+                {
+                    var use = Regex.Match(block.Groups[2].Value, @"font-size:\s*var\((--skeuo-font-size-[\w-]+)\)");
+                    if (!use.Success) continue;
+                    scanned++;
+                    double px = TokenPx(use.Groups[1].Value);
+                    if (px < MinFontSizePx)
+                    {
+                        string sel = block.Groups[1].Value.Trim().Split('\n')[^1].Trim();
+                        bad.Add($"{Path.GetFileName(file)} `{sel}` = {px}px");
+                    }
+                }
+            }
+            // 空集守卫:路径写错/正则失效时,上面会一条都扫不到而恒绿(假绿 F4)。
+            Assert.That(scanned, Is.GreaterThanOrEqualTo(10),
+                $"只扫到 {scanned} 处字号声明 —— 扫描面塌了(九份 USS 合计数远不止)。");
+            Assert.That(bad, Is.Empty,
+                "以下文本低于纸面下限 " + MinFontSizePx + "px(`accessibility-requirements:85`):\n  "
+                + string.Join("\n  ", bad));
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // ③ 底衬走 var(零内联 / 零硬编码 —— C2/C4 门禁同款)
         // ══════════════════════════════════════════════════════════════════════
         [Test]

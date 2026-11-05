@@ -20,7 +20,7 @@
     border-bottom-left-radius: var(--skeuo-seal-radius);
     color: var(--skeuo-seal-fg);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-lg);
+    font-size: var(--skeuo-font-size-paper);
     padding-top: var(--skeuo-shared-space-sm);
     padding-right: var(--skeuo-shared-space-sm);
     padding-bottom: var(--skeuo-shared-space-sm);
@@ -35,5 +35,5 @@
 }
 
 .seal-small {
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
 }

@@ -9,7 +9,7 @@
 /* 勾(单笔) — 完成 */
 .mark-check {
     color: var(--skeuo-ink-fg);
-    font-size: var(--skeuo-font-size-lg);
+    font-size: var(--skeuo-font-size-paper);
 }
 
 /* 点(单点) — 陈旧 */
@@ -40,7 +40,7 @@
 .mark-seal {
     background-color: var(--skeuo-seal-bg);
     color: var(--skeuo-seal-fg);
-    font-size: var(--skeuo-font-size-sm);
+    font-size: var(--skeuo-font-size-paper);
     padding: var(--skeuo-marks-seal-padding);
 }
 

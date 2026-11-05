@@ -11,7 +11,7 @@
     background-image: url("Textures/ink_light-final.png");
     color: var(--skeuo-ink-fg);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
     /* ⚠️ 2026-10-12:`text-shadow` 非 UI Toolkit 属性(同 font-family 一并删;
        UI Toolkit 无文本阴影面,墨韵由背景图 ink_light 承载)。原值:1px 1px 0 ink-faded。*/
 }
@@ -41,14 +41,14 @@
 }
 
 .ink-title {
-    font-size: var(--skeuo-font-size-lg);
+    font-size: var(--skeuo-font-size-paper);
     /* ⚠️ 2026-10-12:`font-weight` 非 UI Toolkit 属性(同 font-family 一并改;
        UI Toolkit 只有 `-unity-font-style`,且只吃 bold/italic 枚举,不吃数字权重)。*/
     -unity-font-style: bold;
 }
 
 .ink-body {
-    font-size: var(--skeuo-font-size-sm);
+    font-size: var(--skeuo-font-size-paper);
     /* ⚠️ 2026-10-12:`line-height` 非 UI Toolkit 属性 —— 删除(UI Toolkit 行高
        由字号/ascender 自算,无 USS 覆盖面)。原 `line-height: 1.6` 是 Web CSS 残留。*/
 }

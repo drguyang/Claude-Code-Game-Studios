@@ -27,7 +27,7 @@
 .scroll .ink {
     color: var(--skeuo-scroll-fg);
     -unity-font-definition: resource("Fonts/NotoSansCJKsc-Bold SDF");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-paper);
 }
 
 /* 卷轴杆(纯装饰,不承载文本) */
