@@ -17033,3 +17033,27 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `TD-skeuo-19` **closed**;计数:条目 195 · open 20 · closed 165(未闭 P0 面 13 不变 —— 该债 P0 面为 N)。
 - 证据 = `production/qa/evidence/impl-td-skeuo-19-save-book-paging-2026-11-06.md` + `…/tdskeuo19-2026-11-06/*.png`。
   commit `5dff210f`。
+
+### P0 修复轮(「继续诊治」后走不动 · 2026-11-06 晨)
+
+- 用户报告:读档后**玩家走不动**,`Player.log` 刷 1552 条 `BCD-码-3: 事件 tick N 回退于已入流 tick 1554`;
+  指令 =「先修这个 P0,顺手二分」。
+- 根因:**档头 tick 早于流尾**。盘上手工解码实证:`w2/save_exit.bin.bak` 档头 0 / 流尾 1554 ·
+  `w2/save_3` 档头 179 / 流尾 1554(由前一份坏档的会话写出 = 坏档自我放大)。
+  读档按档头定位时钟 ⇒ 时钟落在历史之前 ⇒ 每笔 `Append` 被拒收。
+- 二分:**与今日三个 UI 提交及 ADR-042 无关** —— `LoadSequencer.cs` / `SimTickDriver.cs` 今日零改动;
+  真包探针(临时 `[PROBE-P0]`,已验证后删除)实测 `Restore(20286)` 且泵的驱动与袋内驱动**同实例**。
+- 修法(布局零改动):读侧 `SaveService.LastLoadedStreamTailTick` 交出流尾 + `LoadSequencer` 取
+  `max(档头, 流尾)` 并告警;写侧组版口 `SaveComposer.EffectiveHeaderTick` 取 `max(调用方, 流尾)` +
+  `CompositionRoot` 闭包写前告警。
+- 判据 `save_tick_vs_stream_tail_test` **7 条**;证伪轮 **M1/M2/M3 各自转红**(端到端那条在 M1/M2 下仍绿 =
+  纵深防御的预期形态,如实登记),三文件 SHA-256 逐字节还原。
+- 回归 EditMode `6968/6931/0/0/37`(+7/+7)· PlayMode `349/345/0/2/2`(逐位不变)
+  @ `2026-11-05T22:10:49Z` · commit `79fa3d42` + 工作树。
+- 真包复验(修复后):「继续诊治」→ 连按 `W` ⇒ 位移可见、**0 条**异常。⚠️ **坏档形态的真包验收 NOT-RUN**
+  (造该形态要改用户存档 —— 拒绝);首犯会话不可考(`Player.log` 每次启动覆盖)。
+- 文档:ADR-010 §一 窄加注 + 7a GDD 规则三之补。
+- 同轮产出 `production/qa/smoke-2026-11-06.md`:**PASS WITH WARNINGS**(A–D `INCOMPLETE`,
+  3 条无载体逐条具名;炮制链端到端 NOT-RUN)。证据 = `production/qa/evidence/fix-p0-tick-behind-stream-tail-2026-11-06.md`。
+  commit `d0d4d9f1`。
+- 下一步候选:① 炮制链端到端走查(人 / 真指针)② S24-1 四条 `[L]` ③ `design/ux/processing-18.md`(阻塞 `AC-42-F1` ⑨)。
