@@ -1,0 +1,89 @@
+name: Player Build
+
+# `TD-build-02` 解除动作 ② 的 **CI 面**(用户 2026-11-05 裁定「按②再修 TD-build-02(正式构建入口)」)。
+#
+# 判据不是「YAML 看起来对」,而是**产出一个可运行的 player 并作为 artifact 上传** ——
+# 故末尾有一步「产物不存在 ⇒ 本 job 失败」,不允许「跑完了但什么也没产出」记成绿。
+#
+# ⚠️ **本 job 从未在本机跑过**(禁借绿,如实登记,与 `unity-tests.yml` 的 `il2cpp-determinism`
+#   同款纪律)。未实测项:
+#     ① 镜像 tag `unityci/editor:ubuntu-6000.3.24f1-linux-il2cpp-3` 是否已发布
+#        (game-ci 对新版本镜像有滞后;若未发布,改用 `game-ci/unity-builder@v4` 出包)。
+#     ② 容器内 `unity-editor` 跑 `-executeMethod` 是否需要额外的 license 挂载参数。
+#     ③ 仓库是否已配置 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`(未配置时本 job 走 skip 分支,
+#        与 `unity-tests.yml` 两个测试 job 同款)。
+#   **本地等价腿已跑通**(2026-11-05,证据
+#   `production/qa/evidence/impl-td-build-02-player-build-entry-2026-11-05.md`):
+#   同一条 `-executeMethod DaYiJingCheng.EditorTools.Bake.PlayerBuildCli.Build` 在桌面出包并真启动冒烟。
+#   本 job 要补的是**常驻性**,不是判据本身。
+#
+# 触发面刻意窄:出包贵(Library 缓存之外还要编译全部资源),不挂在每次 push 上。
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  linux64-player:
+    name: "Linux x64 Player (Release)"
+    runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-6000.3.24f1-linux-il2cpp-3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: Library-player-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+          restore-keys: |
+            Library-player-
+            Library-
+
+      - name: Unity CI Login
+        id: login
+        env:
+          UNITY_CLIENT_ID: ${{ secrets.UNITY_CLIENT_ID }}
+          UNITY_CLIENT_SECRET: ${{ secrets.UNITY_CLIENT_SECRET }}
+        run: |
+          if [ -z "$UNITY_CLIENT_ID" ] || [ -z "$UNITY_CLIENT_SECRET" ]; then
+            echo "⚠️ UNITY_CLIENT_ID / UNITY_CLIENT_SECRET 未配置 —— 本 job **未跑**。"
+            echo "   不得记为绿(TD-build-02 的「CI 出包」项维持未勾)。"
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          unity-editor -batchmode -nographics -quit \
+            -username "$UNITY_CLIENT_ID" -password "$UNITY_CLIENT_SECRET" \
+            -logFile /dev/stdout || true
+
+      - name: 出包(与菜单/本地 batch 同一执行体)
+        if: steps.login.outputs.skipped == 'false'
+        run: |
+          unity-editor -batchmode -quit -nographics -projectPath unity \
+            -executeMethod DaYiJingCheng.EditorTools.Bake.PlayerBuildCli.Build \
+            -logFile /dev/stdout
+
+      - name: 产物必须存在(空产物 = 失败,不许记绿)
+        if: steps.login.outputs.skipped == 'false'
+        run: |
+          set -euo pipefail
+          EXE=$(find unity/builds/Linux-x64 -maxdepth 1 -name '*.x86_64' -type f | head -1)
+          if [ -z "$EXE" ]; then
+            echo "::error::构建返回成功但产物不存在(unity/builds/Linux-x64/*.x86_64)。"
+            echo "   这正是「跑完了但什么都没产出」的假绿形态,必须失败。"
+            exit 1
+          fi
+          echo "✓ 产物:$EXE"
+          ls -la "$EXE"
+
+      - name: Upload Player
+        if: steps.login.outputs.skipped == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux64-player
+          path: unity/builds/Linux-x64
+          if-no-files-found: error

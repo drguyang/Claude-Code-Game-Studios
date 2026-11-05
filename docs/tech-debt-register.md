@@ -451,7 +451,7 @@
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | closed | **N** | R3-裁 |
-| `TD-build-02` | `（跨 epic · 治理／构建与发布）` | open | **N** | R3-裁 |
+| `TD-build-02` | `（跨 epic · 治理／构建与发布）` | partial | **N** | R3-裁 |
 | `TD-build-03` | `patient-ai` | closed | **Y** | R1 |
 | `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
 | `TD-itemdb-02` | `item-database` | closed | **Y** | R1 |
@@ -728,6 +728,19 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **八十七订(`TD-build-02` 推进 ② · 2026-11-05 晚 · 真出包轮)** ——
+> **单一变化源:一条状态变更(`open → partial`),零新登记、零其它状态变更。**
+> 用户裁定「按②再修 TD-build-02(正式构建入口)」⇒ 立 `PlayerBuildCli`(单一执行体)+
+> `PlayerBuildMenu`(菜单)+ `.github/workflows/player-build.yml`(CI,NOT-RUN),
+> 并用**正式入口产物**跑了一次真启动冒烟。
+> 变化:`条目 191` 不动 · `open 20 → 19`(−1)· **`partial 8 → 9`**(+1)· `closed 162` 不动 ·
+> `Y 128` / `N 57` 不动 · **`未闭 P0 面 12` 不动**(`partial` 仍计入未闭,§五 脚本判据 `!= closed`)·
+> **`epic 分布 6/31` 不动**(本条属治理面,`P0 面 = N`)。
+> ⚠️ **为什么是 `partial` 不是 `closed`**:解除动作共四条,本轮只做了 ②(③ 执行了一次,
+> 不是一次性状态;④ 只记在条目正文)。**① `ProjectSettings` 的 company / product 仍未设** ——
+> 那是「构建与编辑器共用一个真实存档根」的直接成因,不做则风险原样保留。
+> ⚠️ **CI 侧记 NOT-RUN,不得借绿**:`player-build.yml` 从未在本机跑过(三条未实测项写在文件头)。
 
 > > 🔁 **八十六订(`TD-build-03` 结案 · 2026-11-05 晚 · 真 player 轮)** ——
 > **单一变化源:一条状态变更(`open → closed`),零新登记、零其它状态变更。**
@@ -1424,7 +1437,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 191 | 状态 {'closed': 162, 'partial': 8, 'open': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 191 | 状态 {'closed': 162, 'partial': 9, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 128, 'N': 57, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 12 （已闭但曾标 P0 面的 116 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 6/31 个 epic
     random-events: 4          skeuomorphic-ui: 4        diagnosis-system: 1
@@ -6298,6 +6311,31 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ① `ProjectSettings` 设 company / product(存档根随之确定;**已发的包注意存档不迁移**);② 立正式构建入口(菜单 + CI),场景清单取 `EditorBuildSettings`(不另立第二份);③ 出包后**至少跑一次真启动冒烟**(启动 → 主菜单 → 进世界 → 暂停 → 存档册),判据 = 屏上有字 + 无 `Font not found` 告警;④ 存档根写进文档,免得测试数据与真存档混住。 |
 | **触发条件** | 首次对外发放构建之前(**硬前置**);或任何「打包没问题」形态的引用之前(**禁借绿** —— 今日无正式包可谈「打包没问题」)。 |
 | **归属** | **治理**(构建 / 发布)· CI = devops |
+
+#### 🔁 2026-11-05 兑现轮 ②:`open` → **`partial`**(用户裁定「按②再修 TD-build-02(正式构建入口)」)
+
+**证据原件**:`production/qa/evidence/impl-td-build-02-player-build-entry-2026-11-05.md`
+(本地真出包 + 真启动冒烟 + 存档还原 + 未坐实项)。
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| 构建执行体 | `unity/Assets/Editor.Tools.Bake/Cli/PlayerBuildCli.cs`(新) | `BuildPlayer(bool)` 不退出编辑器;`Build()`/`BuildDevelopment()` 是 batch 入口;**场景清单只读 `EditorBuildSettings`**,空清单一律拒绝(退出码 2);产物 `unity/builds/<RID>/<product>.x86_64` |
+| 菜单 | `unity/Assets/Editor.Tools.Bake/PlayerBuildMenu.cs`(新) | `大医精诚/Build/出包 · Linux x64 (Release / Development)` + `打开产物目录`;**零构建逻辑**,只调上面那个方法 |
+| CI | `.github/workflows/player-build.yml`(新) | `workflow_dispatch` + `v*` tag;末尾「产物不存在 ⇒ job 失败」;⚠️ **本 job 未在本机跑过(NOT-RUN)**,三条未实测项写在文件头注 |
+| 本地真跑 | 同一条 `-executeMethod …PlayerBuildCli.Build` | `Result: Succeeded` · 场景 1 个(`Boot.unity`)· 123 546 171 B · 17.8 s · 退出码 0 |
+| 真启动冒烟(解除动作 ③) | 用**正式入口产物**跑(不是探针包) | 主菜单/世界/暂停壳/存档册四屏**有字**,`Font not found` = 0,材质错误 = 0,退出游戏正常 |
+
+**仍未做(故 `partial` 而非 `closed`)**:
+
+- **① `ProjectSettings` 的 company / product 仍未设**(实测 `DefaultCompany` / `unity`)⇒ 产物名 `unity.x86_64`、
+  存档根仍与编辑器同一个目录。**这条不做,「开发期一次误跑就动玩家档」的风险原样保留。**
+- **④ 存档根写进文档**:只在条目的订正段里记了(`Application.persistentDataPath/saves`),未另建运维文档。
+- **③ 的常驻性**:本轮执行了一次,**每次对外发放前都要重跑**,不是一次性状态。
+
+⚠️ **`CostTableProbeBuildCli` 不删**:它是 `CLAUDE.md` §构建前门(BuildGate)探针轮的载体
+(要能出 `Result: Failure`),不能拿正式入口顶替 —— 两者用途不同,并存不是重复。
+
+---
 
 ### TD-build-03 — 病人物体的占位材质在**构建里恒建不出来**(URP Lit 被剥离 ⇒ 玩家在打包版看不到病人)
 
