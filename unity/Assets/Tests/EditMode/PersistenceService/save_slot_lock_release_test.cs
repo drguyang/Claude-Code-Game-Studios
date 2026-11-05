@@ -237,14 +237,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
             svc.Load(new SaveSlot(3));                       // 首次读档成功
             Assert.That(svc.Ledger.IsLocked(new SaveSlot(3)), Is.True, "读档成功即置锁(AC-7a-19 (d))");
 
-            Assert.Throws<InvalidOperationException>(() => svc.Load(new SaveSlot(3)),
-                "同一会话内再读 = 已锁(这正是用户 smoke 看到的报错)");
+            // 🔁 **2026-11-06(用户裁定「锁搬到写侧」)**:已锁挡的是**写**。
+            //    旧形态在此断「再读被拒」—— 那条已作废(读可以反复);现断覆写被拒。
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)), "已锁仍可读(读可反复)");
+            Assert.Throws<InvalidOperationException>(() => svc.Checkpoint(new SaveSlot(3)),
+                "同一会话内覆写该槽 = 已锁(锁在写侧)");
 
             svc.OnNarrativeAnchor();                          // 「下一次叙事事件 checkpoint」
 
             Assert.That(svc.Ledger.IsLocked(new SaveSlot(3)), Is.False, "叙事锚点到达 ⇒ 锁解除");
-            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)),
-                "解锁后同一槽位必须**重新可读** —— 这是本条修复的全部意义");
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(3)),
+                "解锁后同一槽位必须**重新可写** —— 这是本条修复的全部意义(现落点在写侧)");
         }
 
         // ══════════════════════════════════════════════════════════════════

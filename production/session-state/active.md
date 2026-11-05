@@ -16997,3 +16997,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - `TD-skeuo-17` **closed**;未闭 P0 面 **13 → 12** · skeuomorphic-ui 5 → 4 · 计数:条目 193 · open 19 · closed 164。
 - ⚠️ **smoke 第三轮的 FAIL 不因此转绿** —— 同轮还发现 #9 脉案 `ICasebookDtoSource` 未注入(值区恒空),要重跑才有新判定。
 - 走查对存档的写入(exit 存档 / index)已还原。证据 = `production/qa/evidence/impl-td-skeuo-17-modal-input-order-2026-11-05.md`。commit `35ba48dd`。
+
+### ADR-042 兑现轮(存档 v6 / 锁搬到写侧 / 册子行列形态 · 2026-11-06 凌晨)
+
+- 用户四条 UI 指令 + 三处澄清(「已锁不保留小字」/「时刻加在行末尾」/「把锁改到写侧」/ 时间来源「写进存档头」),
+  又两道中途指令:「现有存档数据全部删除,方便一会测试」·「真包截图看实际效果再调整时刻字号大小和灰色的对比度」。
+- **存档 v6**:头部定长段末 +8 B `SavedAtUtcTicks`;`FixedSize 92→100` / `HeaderSize 124→132` / `CurrentSaveVersion 5→6`;
+  新迁移 `SaveMigrationV5ToV6`(92 处插 8 个 0 = 未知,正文逐位不动);生产唯一墙钟点 = `CompositionRoot.compose`。
+- **锁搬到写侧**:`RequireLoadable` 摘锁门、`EnsureWritable` 加门①′、两投影按新公式重写;`AC-7a-19 (d)` 落点由读改到写。
+- **42 呈现**:去行首序号(仅 `DayNumber==0` 回退保留)、行末半字号本地时刻(12px)、已锁整行灰底(零字)、
+  已锁进二段态且「重写」灰置不可获焦、删页角注。
+- 回归 EditMode `6947/6910/0/0/37`(+6)· PlayMode `342/338/0/2/2`(零回归)· 构建 `Result: Succeeded`。
+- **真包实拍**:灰底 0.14 **实测不可辨** ⇒ 抬到 **0.28**(已锁行 206,196,175 vs 未锁 227,219,200);
+  12px 时刻 1× 略小、6× 可读 —— **是否回调等用户实拍裁定**。
+- 无障碍让步如实登记:`skeuo_readability_test` 增**唯一具名例外** `.save-slot-time`(带规模守卫 + 陈旧例外守卫),
+  `accessibility-requirements.md` 同批记。
+- 证据 = `production/qa/evidence/impl-adr042-save-v6-and-slot-lock-2026-11-06.md` + `…/adr042-2026-11-06/*.png`。

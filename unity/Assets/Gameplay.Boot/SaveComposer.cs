@@ -86,6 +86,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para><b>可空</b>:仅当<b>没有任何</b>事件引用载荷(<c>Payload.Length &gt; 0</c>)时允许省略 ——
         /// 此时载荷段写 <c>count = 0</c>,布局仍完整。有引用而无池 ⇒ 抛。</para>
         /// </param>
+        /// <param name="savedAtUtcTicks">
+        /// 落笔那一刻的真实世界时刻(UTC ticks;ADR-042 · v6 起)。
+        /// <para>⚠️ <b>纯呈现量</b> —— 册子每行末尾显示它;三流 / 重放 / 判定一律不读。
+        /// <c>0</c> = <b>未知</b>(默认值),只允许<b>夹具</b>模拟「时刻未知的老档」时省略;
+        /// 生产路径恒传真值,判据 = `save_v6_saved_at_test` 在真实装配上断言非零。</para>
+        /// </param>
         /// <returns>不含校验和的存档体:头部 + 事件段 + 折叠段 + 载荷段(ADR-034 v2 布局)。</returns>
         /// <exception cref="ArgumentNullException">任一必填引用入参为 null。</exception>
         /// <exception cref="InvalidOperationException">有载荷引用但 <paramref name="blobPool"/> 为 null;
@@ -102,7 +108,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             IReadOnlyList<FoldRow> existingFoldedRows = null,
             SaveBufferPool bufferPool = null,
             IBlobPool blobPool = null,
-            IReadOnlyList<ArtifactConfigVersion> artifactConfigs = null)
+            IReadOnlyList<ArtifactConfigVersion> artifactConfigs = null,
+            long savedAtUtcTicks = 0L)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
@@ -133,7 +140,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 timeParams.TicksPerDay, timeParams.NightStart, timeParams.NightSpan,
                 // 🔁 ADR-038 Amendment A(2026-11-03):v5 追加季 / 天气四值。
                 timeParams.TicksPerSeason, timeParams.SeasonsPerYear,
-                timeParams.WeatherBlockTicks, timeParams.IntensityMax);
+                timeParams.WeatherBlockTicks, timeParams.IntensityMax,
+                // 🔁 ADR-042(2026-11-06):v6 追加**落笔时刻**(纯呈现量,sim 永不读)。
+                //    ⚠️ 0 = 未知 —— 只允许夹具模拟「时刻未知的老档」时省略;
+                //    生产路径(`CompositionRoot` 的 `compose` 闭包)恒传 `DateTime.UtcNow.Ticks`。
+                savedAtUtcTicks);
             // 🔁 ADR-037 §① —— 配置版本段紧跟头部:**必须在事件段之前**。
             //    插在这里而不是尾部,是 v2→v3 迁移能成立的前提(迁移链按「从末尾算」比对正文,
             //    尾部追加必破该断言)。`null` ⇒ 写出 count=0(= 未知),不伪造。

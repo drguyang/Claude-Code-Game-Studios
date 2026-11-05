@@ -345,6 +345,32 @@
     -unity-text-align: middle-left;
     padding-left: var(--skeuo-shared-space-sm);
     padding-right: var(--skeuo-shared-space-sm);
+    /* 🔁 2026-11-06(ADR-042 呈现侧):行首序号删除后,行文字吃满剩余宽度 ⇒
+       把「行末时刻」与二段态墨字推到右侧(UI Toolkit 无 `margin-left: auto`,
+       用 `flex-grow` 达成同一效果)。 */
+    flex-grow: 1;
+}
+
+/* ── 行末的真实世界时刻(2026-11-06 · ADR-042 呈现侧)──
+ * 用户裁定:「每行最后增加一半大小字体的真实世界时间(年月日小时分钟秒)」。
+ * ⚠️ 它是**副信息**:字号取 `--skeuo-font-size-slot-time`(12px = 纸面 24 的一半),
+ *   不与行字段的 24px 无障碍下限冲突(下限管的是行字段,不是副信息)。
+ * ⚠️ 值来自档头 `SavedAtUtcTicks`;0 = 未知 ⇒ 标签零字(此时它仍占位,
+ *   由 `flex-shrink: 0` + 零宽内容自然塌成 0 宽,不影响行文字吃满)。 */
+.save-slot-time {
+    color: var(--skeuo-ink-fg-light);
+    font-size: var(--skeuo-font-size-slot-time);
+    -unity-text-align: middle-right;
+    padding-right: var(--skeuo-shared-space-sm);
+    flex-shrink: 0;
+}
+
+/* ── 已锁行 = 整行灰底(2026-11-06 · 用户裁定「已锁换成灰色背景」)──
+ * ⚠️ 用户明确要求**不再写字**(旧形态是行末「· 已锁」+ 点击后的页角注,两处都已删)。
+ *   已知风险如实登记:状态只走色彩通道 ⇒ 色觉障碍玩家读不出「已锁」;
+ *   仍可分辨的是**按下去的反应**(重写灰置)。补非色彩通道须先改该裁定。 */
+.save-slot-locked {
+    background-color: var(--skeuo-paper-bg-locked);
 }
 
 /* ── 行内二段态(ADR-041 §D5 · 2026-11-04 走查修订)──
@@ -373,7 +399,9 @@
     flex-direction: row;
     justify-content: flex-end;
     align-items: center;
-    flex-grow: 1;
+    /* 🔁 2026-11-06(ADR-042 呈现侧):`flex-grow` 1 → 0 —— 撑开剩余宽度的职责
+       已交给 `.save-slot-mark`(行文字),否则两者会平分空白、把行末时刻挤到中间。 */
+    flex-grow: 0;
     padding-right: var(--skeuo-shared-space-sm);
 }
 

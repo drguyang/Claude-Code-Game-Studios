@@ -2508,14 +2508,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                             // ⚠️ 唯一实现 = `Sim.World.TimeBase`(全仓曾有两套,见其文件头)。
                             isNight: rowTime != null
                                 && Sim.World.TimeBase.IsNight(summary.Tick, rowTime),
-                            // 🔁 2026-11-04(ADR-041 §D5):锁态归 7a(会话内存),
-                            //    42 只呈现 —— 已锁行的「启封」灰置、只留「重写」。
+                            // 🔁 2026-11-04(ADR-041 §D5)/ 🔁 2026-11-06(锁搬到写侧):
+                            //    锁态归 7a(会话内存),42 只呈现 —— 已锁行**整行灰底**,
+                            //    二段态里「启封」可用、「重写」灰置(ADR-042 同批裁定)。
                             isLocked: saves.Ledger != null
                                       && saves.Ledger.IsLocked(new Sim.Codec.SaveSlot(seq)),
                             // 🔁 2026-11-05(`TD-persist-22` 册子半边):只剩备份 ⇒ 行上标「前版」。
                             //    ⚠️ 注意这里的 tick / 日子是**备份那一份**的(探针报的就是它)——
                             //    这正是要让玩家看见的:按下去读到的是旧的那一版。
-                            fromBackup: summary.Source == Sim.Codec.SaveLoadSource.Bak);
+                            fromBackup: summary.Source == Sim.Codec.SaveLoadSource.Bak,
+                            // 🔁 **2026-11-06 ADR-042**:落笔时刻 —— 行末半字号显示。
+                            //    ⚠️ 0 = 未知(v5 及更早的档)⇒ 42 不画时间,不拿 tick 顶替。
+                            savedAtUtcTicks: summary.SavedAtUtcTicks);
                         break;
                     case Sim.Codec.SaveSlotState.Empty:
                         views[i] = new UI.Skeuomorphic.SaveSlotView(seq, known: true,

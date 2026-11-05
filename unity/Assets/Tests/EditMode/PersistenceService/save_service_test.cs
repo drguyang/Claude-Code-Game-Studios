@@ -338,7 +338,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// <summary>构造一段最小可读头部(magic 正确),供「破 magic」用。</summary>
         private static byte[] MinimalHeaderBytes()
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null);   // ADR-037:配置版本段(必备)
             byte[] folded = new byte[] { 0, 0, 0, 0 }; // 折叠段 count = 0(v1 必备段)

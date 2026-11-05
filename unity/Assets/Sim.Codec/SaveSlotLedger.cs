@@ -137,8 +137,13 @@ namespace DaYiJingCheng.Sim.Codec
         /// 与叙事上下文门。</para>
         /// <para>⇒ <c>_nextWritableSeq</c> 的语义收窄为「『留档』的默认目标」,
         /// **不再是写入门**。</para>
-        /// <para>锁态**不在此拒** —— 锁拒的是 reads 侧(`Loadable`);覆写一个已锁槽是允许的,
-        /// 且**覆写不清锁**(见 <see cref="OnCheckpointCommitted"/> 的注)。</para>
+        /// <para>🔁 <b>2026-11-06(用户裁定,ADR-042 同批)新增门①′:该槽已锁 ⇒ 抛</b> ——
+        /// 锁**从读侧搬到写侧**。旧口径是「已锁 ⇒ 不可读、可覆写」;用户从册子上看,
+        /// 已锁行按下去屏上零反应,而覆写一个「你刚从这里读回来」的档才是真正会咬人的动作。
+        /// ⇒ 现口径:<b>已锁 = 不能覆写,仍可读</b>。反 scum 的承重件因此从
+        /// 「禁止重读」换成「禁止把当前进度盖回这个槽」。</para>
+        /// <para>⇒ 「覆写不清锁」(<see cref="OnCheckpointCommitted"/>)随之变成**不可达**的
+        /// 描述:已锁槽根本进不来写路径。锁只在 <see cref="OnNarrativeAnchor"/> 整批解除。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">未注入钩子(fail-closed)。</exception>
         /// <exception cref="InvalidDataException">槽号 0(不是任何槽)。</exception>
@@ -154,6 +159,12 @@ namespace DaYiJingCheng.Sim.Codec
                     "(TD-persist-17 · 用户裁定 2026-11-03)");
 
             // 门 ①(「覆盖既有槽位 ⇒ 抛」)已于 2026-11-04 删除 —— ADR-041 §D2。
+            // 门 ①′ 覆位(2026-11-06,ADR-042 同批):**已锁 ⇒ 拒写**。它不是当年那条
+            // 「覆盖 = 拒」的复活 —— 未锁槽的覆写仍然合法;这条只挡「你刚从这里读回来」的那一槽。
+            if (_locked.Contains(slot.SlotSeq))
+                throw new InvalidOperationException(
+                    $"槽位 slot={slot.SlotSeq} 已锁(读档即锁;锁挡的是**覆写**,不是读)," +
+                    "锁持续到下一次叙事事件 checkpoint —— 换个空槽或等解锁");
 
             if (!_narrativeContext.InNarrativeContext())
                 throw new InvalidOperationException(
@@ -176,13 +187,14 @@ namespace DaYiJingCheng.Sim.Codec
             uint next = slot.SlotSeq + 1;
             if (next > _nextWritableSeq) _nextWritableSeq = next;
 
-            // ⚠️ **本方法不得触碰 `_locked`(ADR-041 §D3 的承载不变式)**:
-            //    覆写一个已锁槽**不解锁** —— 否则「读 A → 覆写 A → 再读 A」在同一叙事
-            //    窗口内可循环,反 scum 归零。锁只在 `OnNarrativeAnchor` 整批解除。
+            // ⚠️ **本方法不得触碰 `_locked`**:锁只在 `OnNarrativeAnchor` 整批解除。
+            //    🔁 2026-11-06(ADR-042 同批):「覆写不清锁」这条注的**适用面已消失** ——
+            //    已锁槽根本进不来写路径(`EnsureWritable` 门 ①′ 先抛)。保留本注的理由是
+            //    **不变式本身**:将来若有人放开写侧门,这里也绝不能顺手解锁。
         }
 
         /// <summary>
-        /// `AC-7a-19 (d)` —— 读档成功后置锁(reads 侧)。
+        /// `AC-7a-19 (d)` —— 读档成功后置锁(**写侧**:挡覆写,不挡读;2026-11-06 改判)。
         /// <para>锁持续到下一次叙事事件 checkpoint,由 <see cref="OnNarrativeAnchor"/> 解除。</para>
         /// </summary>
         public void OnLoaded(SaveSlot slot)

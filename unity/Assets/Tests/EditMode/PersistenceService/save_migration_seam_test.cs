@@ -67,7 +67,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// <summary>造一份**含校验和**的完整存档(指定版本)。</summary>
         private static byte[] Save(uint version, byte[] body = null)
         {
-            byte[] v4Head = SaveHeaderCodec.WriteWithoutChecksum(WorldSeed, 7U, 100L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+            byte[] v4Head = SaveHeaderCodec.WriteWithoutChecksum(WorldSeed, 7U, 100L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             // ADR-038 §D3:`WriteWithoutChecksum` 现在恒写 **v4** 头(60 B)。本夹具要造的是
             // **旧版本**的档 ⇒ 必须按目标版本截短,否则「v1 档」会带着 v4 的 24 B 时间参数,
             // 迁移脚本按 36 插入就会把这 24 B 当成正文(v3→v4 的插入点因此错位)。
@@ -120,7 +120,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_invokesChainAndUsesItsOutput()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
 
             byte[] input = Save(version: 1);
             Assert.That(SaveHeaderCodec.Read(input).SaveVersion, Is.EqualTo(1u), "夹具坐实:输入确是 v1");
@@ -143,7 +143,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_sameVersion_passesThroughWithoutCallingChain()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
 
             byte[] input = Save(version: SaveHeader.CurrentSaveVersion);
             byte[] output = svc.ApplyMigrationsIfNeeded(input, SaveHeaderCodec.Read(input));
@@ -160,7 +160,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_migratedOutput_loadsAndReplays_whileRawV1IsRejected()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
 
             byte[] v1 = Save(version: 1);
             byte[] migrated = svc.ApplyMigrationsIfNeeded(v1, SaveHeaderCodec.Read(v1));

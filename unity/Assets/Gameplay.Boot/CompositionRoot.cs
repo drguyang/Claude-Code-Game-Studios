@@ -822,7 +822,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                         // 🔁 2026-10-28 ADR-034 §②:载荷段**引用驱动** —— 组版时对折叠后
                         //    存活事件取 distinct BlobId,逐个从本池取字节写进存档。
                         //    缺池而确有引用 ⇒ `SaveComposer` 抛(拒绝写出读不回来的档)。
-                        blobPool: blobPool);
+                        blobPool: blobPool,
+                        // 🔁 **2026-11-06 ADR-042**:落笔时刻 —— 全仓**唯一**读墙钟的生产点。
+                        //    ⚠️ 纯呈现量:它进档头(册子行末显示),但**不进**三流 / 重放 / 判定。
+                        //    `DateTime.UtcNow.Ticks` 在 `Sim` 程序集仍是零命中(V-8 同款判据)。
+                        savedAtUtcTicks: System.DateTime.UtcNow.Ticks);
                 };
 
                 // 重放 + 折叠行交出 —— `TD-persist-03` 修复轮(2026-10-24,用户四裁定):
@@ -1051,6 +1055,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                         new SaveMigrationV3ToV4(),
                         // ADR-038 Amendment A(2026-11-03):v4 → v5 追加季 / 天气四值。
                         new SaveMigrationV4ToV5(),
+                        // 🔁 ADR-042(2026-11-06):v5 → v6 追加落笔时刻(补 0 = 未知)。
+                        new SaveMigrationV5ToV6(),
                     });
 
                 // `TD-persist-15`:构造期扫目录失败 ⇒ 高水位不可知 ⇒ `Checkpoint` 拒绝一切写入。

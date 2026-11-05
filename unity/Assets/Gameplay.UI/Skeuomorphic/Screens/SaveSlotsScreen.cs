@@ -419,16 +419,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 return;
             }
 
-            // ②-b **已锁** ⇒ **不进二段态**(🔁 2026-11-05 用户实测的整改)。
-            //   病因:已锁槽的「启封」被灰置并退出焦点序 ⇒ 二段态焦点落到**「重写」**
-            //   ⇒ 玩家以为在「读取」,一次确认却**覆写了这个槽**。
-            //   ⇒ 锁住就不给二段态,改为在行上说明原因(可读路径仍可达:推进一次剧情后解锁)。
-            if (view.IsLocked)
-            {
-                DisarmRow();
-                SetNotice("推进一次剧情后可启封");
-                return;
-            }
+            // ②-b **已锁** ⇒ **照常进二段态**,但「重写」灰置(🔁 2026-11-06 用户裁定)。
+            //   病因(旧形态):已锁槽按下去**屏上零反应** —— 异常只进日志、行上只多一句
+            //   页角注;而「已锁」在 7a 里锁的其实是**读**,和玩家的直觉(「这页现在动不了」)拧着。
+            //   ⇒ 现口径:锁 = 挡覆写、不挡读。二段态照出,启封可用、重写灰置不可获焦。
+            //   ⚠️ 行上的「已锁」文字与页角注**都已删除** —— 状态只走整行灰底(用户明确要求)。
 
             // ③ **已有档** ⇒ 行内二段态(§D5):第一次 Submit 只出示两枚墨字,不动作。
             if (_armedRowIndex == rowIndex) return;   // 墨字已摊开 ⇒ 由它们接手
@@ -471,11 +466,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             row.EnterChoice(
                 onOpen: () => { DisarmRow(); _sink?.TryLoad(seq); },
                 onRewrite: () => { DisarmRow(); _sink?.TrySaveAt(seq); },
-                openDisabled: view.IsLocked);
+                // 🔁 2026-11-06(ADR-042 同批):灰置的是「重写」(已锁 = 不许盖回去)。
+                rewriteDisabled: view.IsLocked);
 
             _armedRowIndex = rowIndex;
 
-            VisualElement focus = view.IsLocked ? row.RewriteChoice : row.OpenChoice;
+            // 落焦恒在「启封」= 安全侧:它是现在唯一恒可执行的那一枚。
+            VisualElement focus = row.OpenChoice;
             if (focus != null && focus.panel != null) focus.Focus();
         }
 

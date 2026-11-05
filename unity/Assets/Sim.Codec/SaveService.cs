@@ -1151,8 +1151,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// 比对与标注**不在本类**(见该属性 doc);本方法**不因**两版本不同而改变任何行为。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// 未注入 <c>narrativeContext</c>(fail-closed);不在叙事上下文内;槽位已锁;
+        /// 未注入 <c>narrativeContext</c>(fail-closed);不在叙事上下文内;
         /// 未注入 <c>replaySink</c>;存档含载荷而未注入 <c>blobRestoreSink</c>。
+        /// <para>⚠️ <b>「槽位已锁」不再是拒绝理由</b>(2026-11-06 锁改到写侧,见 <see cref="RequireLoadable"/>)。</para>
         /// </exception>
         /// <exception cref="InvalidDataException">
         /// 存档损坏且无法回退;magic 不符;版本早于载荷段布局(ADR-034 §⑥)。
@@ -1190,7 +1191,16 @@ namespace DaYiJingCheng.Sim.Codec
                 header.WeatherBlockTicks, header.IntensityMax);
         }
 
-        /// <summary>载入前置门:叙事上下文 + 槽位未锁(与写同钩,规则十四 / AC-7a-19 (d))。</summary>
+        /// <summary>载入前置门:叙事上下文(规则十四「载入安全上下文门」)。</summary>
+        /// <remarks>
+        /// 🔁 <b>2026-11-06(用户裁定,ADR-042 同批)锁从读侧搬到写侧</b>:本门**不再查锁**。
+        /// <para>旧口径(<c>AC-7a-19 (d)</c> 原读法):「读档即锁 ⇒ 该槽在本次叙事窗口内不可再读」。
+        /// 用户从册子上看:已锁行按下去**屏上零反应**(异常只进日志),而「为什么不能」又说不清 ——
+        /// 裁定改为「<b>锁挡的是覆写,不是读</b>」。</para>
+        /// <para>⇒ 反 scum 的承重件从「禁止重读」换成「**禁止把当前进度盖回这个槽**」
+        /// (见 <see cref="SaveSlotLedger.EnsureWritable"/> 的锁门)。**读可以反复** ——
+        /// 这是本次裁定的显式后果,不是遗漏。</para>
+        /// </remarks>
         private void RequireLoadable(SaveSlot slot)
         {
             RequireNarrativeContext();
@@ -1198,10 +1208,6 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidOperationException(
                     $"不在叙事上下文内,拒绝载入 slot={slot.SlotSeq}" +
                     "(规则十四「载入安全上下文门」—— 读档与写同钩)");
-            if (_ledger.IsLocked(slot))
-                throw new InvalidOperationException(
-                    $"槽位 slot={slot.SlotSeq} 已锁(AC-7a-19 (d) 读档即锁)," +
-                    "锁持续到下一次叙事事件 checkpoint");
         }
 
         /// <summary>版本门:前向不兼容 + v1 及更早拒收(**必须早于**迁移链分支)。</summary>

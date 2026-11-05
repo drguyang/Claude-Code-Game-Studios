@@ -55,7 +55,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static byte[] MinimalSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
                                                long tick = 100L, IReadOnlyList<SimEvent> events = null)
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null); // 配置版本段 count = 0(v3 必备段)
             byte[] folded = new byte[] { 0, 0, 0, 0 };   // 折叠段 count = 0(v2 必备段)
@@ -183,19 +183,20 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_ac7a19b_writableProjection_ignoresSlotSeqAndLock()
+        public void test_ac7a19b_writableProjection_ignoresSlotSeq_butHonoursLock()
         {
-            // 🔁 ADR-041 §D2/§D3:Writable 只剩「在叙事上下文内」一条子句。
+            // 🔁 2026-11-06(用户裁定「锁搬到写侧」):Writable ⟺ ¬Locked ∧ InNarrativeContext。
+            //    高水位**仍不挡写**(ADR-041 §D2 那半条裁定不动)。
             var ctx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 4U);
             Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), ctx),
-                "3 < 4 不再是拒绝理由(覆盖合法)");
+                "3 < 4 不再是拒绝理由(未锁槽的覆盖仍合法)");
             Assert.IsTrue(SlotProjections.Writable(new SaveSlot(5), ctx));
 
             var lockedCtx = new SlotContext(locked: true, inNarrativeContext: true, nextWritableSeq: 4U);
-            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), lockedCtx),
-                "锁拒的是 reads 侧;覆写已锁槽仍可写(ADR-041 §D3)");
-            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(3), lockedCtx),
-                "而载入被锁挡住 —— 写读自此**不再对称**");
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), lockedCtx),
+                "已锁 ⇒ 拒写(锁挡的是覆写,不是读)");
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(3), lockedCtx),
+                "已锁仍可读 —— 读可以反复");
 
             var outsideCtx = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 1U);
             Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), outsideCtx),
@@ -225,16 +226,22 @@ namespace DaYiJingCheng.Tests.PersistenceService
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_ac7a19d_loadLocksSlotForReads()
+        public void test_ac7a19d_loadLocksSlotForWrites_notForReads()
         {
+            // 🔁 **2026-11-06 口径改判(用户裁定「锁搬到写侧」)**:旧形态断「再读被拒」;
+            //    现形态断「可以再读、但不能覆写」。两者都防住了「读→改→再读」的循环,
+            //    但断点从**读**移到了**写** —— 这是裁定本身,不是松动。
             var svc = ReadyService();
             svc.Checkpoint(new SaveSlot(3));
 
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)), "首次载入应允许");
             Assert.IsTrue(svc.Ledger.IsLocked(new SaveSlot(3)), "载入后该槽位须已锁");
 
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)),
+                "已锁仍可读 —— 读可以反复");
+
             var ex = Assert.Throws<InvalidOperationException>(
-                () => svc.Load(new SaveSlot(3)), "再次载入同槽须被拒(读档即锁)");
+                () => svc.Checkpoint(new SaveSlot(3)), "覆写已锁槽须被拒(锁在写侧)");
             StringAssert.Contains("已锁", ex.Message);
         }
 
@@ -269,14 +276,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 环 2:读档
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)), "环 2:读档应成功");
 
-            // 环 3:🔁 2026-11-04(ADR-041 §D2)—— **覆写现在合法**
-            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(3)),
-                "环 3:覆盖既有槽位自 ADR-041 起允许");
+            // 环 3:🔁 **2026-11-06(用户裁定)—— 回路断在这里**:覆写**你刚从里面读回来**的那个槽
+            // 被锁拒。未锁的槽仍可覆写(ADR-041 §D2 那半条裁定仍在),下面紧接着断给它看。
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(3)),
+                "环 3:覆写已锁槽 ⇒ 被拒(锁挡写,不挡读)");
+            StringAssert.Contains("已锁", ex.Message);
 
-            // 环 4:**闭合回路仍断在「读档即锁」上**(反 scum 的承重结构是它,不是槽号单调)
-            Assert.Throws<InvalidOperationException>(
-                () => svc.Load(new SaveSlot(3)),
-                "环 4:同一会话内再读该槽 ⇒ 被锁拒 —— 回路仍然闭合,只是断点从槽号移到了锁上");
+            // 环 3′:同一条回路里,**别的**(未锁)槽照旧可覆写 —— 否则「锁」被读成「禁止覆写」。
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(4)),
+                "环 3′:未锁槽的覆写仍然合法 — 锁只锁**这一槽**");
+
+            // 环 4:再读该槽**仍然允许**(锁不挡读) —— 反 scum 的承重件是环 3,不是环 4。
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(3)),
+                "环 4:读可以反复 —— 回路闭合在写侧,不在读侧");
+            Assert.IsFalse(svc.Ledger.IsLocked(new SaveSlot(4)), "槽 4 未读过 ⇒ 未锁");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -321,14 +335,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    同样满足它;甚至连「第二次起恒返回 false」的实现也能通过(两次比较都是 false)。
             //    ⇒ 该形态**不可能**证伪纯函数性,须换成**真值表对拍**:把投影的输出与
             //    **独立手算的期望值**逐格比对。缓存实现若吞掉任一格的真值即红。
-            // 🔁 2026-11-04(ADR-041 §D2/§D3):真值表按**新公式**重算 ——
-            //    Writable ⟺ inCtx ;Loadable ⟺ ¬locked ∧ inCtx。
+            // 🔁 2026-11-06(用户裁定「锁搬到写侧」):真值表按**新公式**重算 ——
+            //    Writable ⟺ ¬locked ∧ inCtx ;Loadable ⟺ inCtx。
             var cases = new[]
             {
                 //                 locked, inCtx, next, slot, 期望 Writable, 期望 Loadable
                 new object[] { false,  true,  0U,  0U,  true,  true  },
                 new object[] { false,  true,  5U,  1U,  true,  true  },  // 高水位**不再挡写**
-                new object[] { true,   true,  0U,  0U,  true,  false },  // 锁只挡读(覆写合法)
+                new object[] { true,   true,  0U,  0U,  false, true  },  // 锁只挡写(读可反复)
                 new object[] { false,  false, 0U,  0U,  false, false },  // 上下文外 ⇒ 读写皆挡
                 new object[] { true,   false, 9U,  9U,  false, false },  // 多因子同时为假
                 new object[] { false,  true,  3U,  3U,  true,  true  },  // 边界:slot == next
@@ -359,11 +373,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_projections_haveIndependentGreyChannels()
         {
-            // 🔁 2026-11-04(ADR-041 §D3):两条投影**不再对称** —— 锁只挡读,Writable ⊇ Loadable。
+            // 🔁 2026-11-06(用户裁定「锁搬到写侧」):两条投影仍**不对称**,但方向反转 ——
+            //    锁只挡写,Loadable ⊇ Writable。
             var locked = new SlotContext(locked: true, inNarrativeContext: true, nextWritableSeq: 0U);
-            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), locked),
-                "锁拒的是 reads 侧;覆写一个已锁槽是允许的(ADR-041 §D3)");
-            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(3), locked), "锁 ⇒ 不可载入");
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(3), locked),
+                "锁挡的是写侧 —— 不许把当前进度盖回你刚读回来的那一槽");
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(3), locked), "锁不挡读(可反复)");
 
             // 唯一的共同拒绝子句:叙事上下文门(AC-7a-19 (c))
             var outside = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 0U);
@@ -491,7 +506,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_load_rejectsFutureSaveVersion()
         {
             // 前向不兼容:SaveVersion > CurrentSaveVersion ⇒ 拒绝
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             // ⚠️ 在**未插校验和**的形态下改:magic(0..3) 之后紧接 saveVersion(4..7)。
             //    AddChecksum 会把 saveVersion 挪到 36..39 —— 改必须在挪之前做。
             header[4] = (byte)(SaveHeader.CurrentSaveVersion + 1);
@@ -525,7 +540,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// </summary>
         private static byte[] PrePayloadSave(ulong worldSeed = 1UL)
         {
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             // 同前:`AddChecksum` 之前 saveVersion 在 4..7
             header[SaveHeaderCodec.SaveVersionOffsetFixed] =
                 (byte)(SaveHeader.PayloadSegmentMinVersion - 1);

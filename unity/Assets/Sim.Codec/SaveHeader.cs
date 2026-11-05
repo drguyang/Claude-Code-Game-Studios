@@ -47,8 +47,16 @@ namespace DaYiJingCheng.Sim.Codec
         /// <c>TicksPerSeason</c> / <c>SeasonsPerYear</c> / <c>WeatherBlockTicks</c> / <c>IntensityMax</c>
         /// (共 32 B)。理由与 D3 同一条:这四个量都是**模拟 / 掷骰的输入**,不随档走会静默改变重放。
         /// v4 档由 `SaveMigrationV4ToV5` 在 v4 头部末插入用户裁定的四值后升到 v5。</para>
+        /// <para>🔁 <b>v5 → 6(2026-11-06,ADR-042)</b>:v6 在头部末尾**再追加**一个 i64 ——
+        /// <c>SavedAtUtcTicks</c>(落笔那一刻的 UTC ticks),共 8 B。
+        /// <para>⚠️ 这一条**不是**模拟输入,与前两次追加的动机相反:它只服务**呈现**
+        /// (存档册每行末尾的真实世界时刻)。它与 sim 的边界是硬的 ——
+        /// 三流、重放、判定**一律不读它**;`Sim` 程序集仍零墙钟 API。</para>
+        /// <para>⚠️ 迁移补不出它:v5 及更早的档**从未记录**落笔时刻 ⇒ 迁移写 <c>0</c>
+        /// (= 未知),呈现层对 0 一律**不显示时间**(宁可缺,不编造)。
+        /// 这与 ADR-037「未知 ≠ 无差异」同一条纪律。</para></para>
         /// </summary>
-        public const uint CurrentSaveVersion = 5;
+        public const uint CurrentSaveVersion = 6;
 
         /// <summary>
         /// 首个**带载荷段**的存档版本(ADR-034 §Decision ⑥)。
@@ -89,6 +97,15 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>天气强度上界(ADR-038 Amendment A · v5 起)。</summary>
         public long IntensityMax;
 
+        /// <summary>
+        /// 落笔那一刻的真实世界时刻(UTC ticks;ADR-042 · v6 起)。
+        /// <para><b>纯呈现量</b>:存档册每行末尾显示它。**三流 / 重放 / 判定一律不读** ——
+        /// 它与 sim 的确定性面零交集(`Sim` 程序集仍零墙钟 API)。</para>
+        /// <para>⚠️ <c>0</c> = <b>未知</b>(v5 及更早的档迁移而来;那时从未记录)。
+        /// 呈现层对 0 **不显示时间**,不得拿别的量顶替。</para>
+        /// </summary>
+        public long SavedAtUtcTicks;
+
         public SaveHeader(ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset)
         {
             MagicValue = Magic;
@@ -108,6 +125,9 @@ namespace DaYiJingCheng.Sim.Codec
             SeasonsPerYear = 0L;
             WeatherBlockTicks = 0L;
             IntensityMax = 0L;
+            // ⚠️ 同理不赋「现在」—— 写档调用方必须显式给(ADR-042);
+            //    留 0 = 未知,会让「忘了传」在册子上看起来像「这份档没有时刻」。
+            SavedAtUtcTicks = 0L;
         }
     }
 }

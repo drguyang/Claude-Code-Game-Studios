@@ -2,9 +2,10 @@
 //
 // 权威来源:
 //   design/gdd/save-slot-ui.md:206-207 —— 两条公式
-//     🔁 2026-11-04(ADR-041 §D2/§D3,用户裁定「覆盖合法」)就地改判:
-//     Writable(slot) ⟺ InNarrativeContext(t)                       ← 原式还带 ¬Locked 与 slot_seq ≥ 高水位
-//     Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)       ← 不变
+//     🔁 2026-11-04(ADR-041 §D2/§D3,用户裁定「覆盖合法」):Writable 删去 ¬Locked 与高水位两条子句
+//     🔁 2026-11-06(用户裁定「锁搬到写侧」,ADR-042 同批):
+//     Writable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)       ← ¬Locked 回到写入门
+//     Loadable(slot) ⟺ InNarrativeContext(t)                       ← 摘掉 ¬Locked(读可反复)
 //   design/gdd/save-slot-ui.md:212-214 —— 三个输入量(Locked / InNarrativeContext /
 //     next_writable_seq)**全部归 7a**,7b 只呈现
 //   design/gdd/persistence-service.md 规则十四 —— 只进不退 / 读档即锁 / 载入安全上下文门
@@ -73,29 +74,30 @@ namespace DaYiJingCheng.Sim.Codec
     public static class SlotProjections
     {
         /// <summary>
-        /// `Writable(slot) ⟺ InNarrativeContext`。
-        /// <para>🔁 **2026-11-04(ADR-041 §D2 / §D3,用户裁定)**:原式
-        /// `¬Locked ∧ InNarrativeContext ∧ slot_seq ≥ next_writable_seq` 的**两条子句被删**:</para>
+        /// `Writable(slot) ⟺ ¬Locked ∧ InNarrativeContext`。
+        /// <para>🔁 **2026-11-06(用户裁定,ADR-042 同批)锁从读侧搬到写侧** ——
+        /// `¬Locked` **回到写入门**,并从 <see cref="Loadable"/> **移除**。
+        /// 旧口径(2026-11-04 ADR-041 §D2/D3)是「锁拒读、覆写合法」;用户裁定反转为
+        /// 「<b>锁挡覆写、读可反复</b>」:</para>
         /// <list type="bullet">
-        ///   <item>`slot_seq ≥ next_writable_seq`(只进不退)不再是写入门 —— 覆盖合法;</item>
-        ///   <item>`¬Locked` 也不再挡写 —— 锁拒的是 **reads 侧**,覆写一个已锁槽是允许的
-        ///         (且覆写**不清锁**,见 `SaveSlotLedger.OnCheckpointCommitted`)。</item>
+        ///   <item>`slot_seq ≥ next_writable_seq`(只进不退)**仍然不挡写** —— ADR-041 §D2 的
+        ///         那半条裁定不动(未锁槽的覆写依旧合法);</item>
+        ///   <item>`¬Locked` **恢复为写入门** —— 已锁 = 你刚从这里读回来,不许把当前进度盖回去。</item>
         /// </list>
-        /// <para>⇒ 写与读现在**不再对称**:`Writable` 是 `Loadable` 的真超集。
-        /// 槽位号仍作形参保留(调用方语义、签名稳定),但**不参与判定**。</para>
+        /// <para>槽位号仍作形参保留(调用方语义、签名稳定),但**不参与判定**。</para>
         /// </summary>
         public static bool Writable(SaveSlot slot, in SlotContext ctx)
-            => ctx.InNarrativeContext;
+            => !ctx.Locked && ctx.InNarrativeContext;
 
         /// <summary>
-        /// `Loadable(slot) ⟺ ¬Locked ∧ InNarrativeContext`。
+        /// `Loadable(slot) ⟺ InNarrativeContext`。
         /// <para>**刻意不读 <see cref="SlotContext.NextWritableSeq"/>** ——
         /// 载入与高水位无关。</para>
-        /// <para>🔁 **2026-11-04(ADR-041 §D3)**:写侧不再看锁(见 <see cref="Writable"/>)
-        /// ⇒ 两条投影的包含关系**反转**为 `Writable ⊇ Loadable`。
-        /// 屏上的呈现也随之分开:已锁行的「启封」灰置、**「重写」仍可用**。</para>
+        /// <para>🔁 **2026-11-06**:载入**不再看锁**(锁搬到写侧,见 <see cref="Writable"/>)。
+        /// 屏上的呈现随之反转:已锁行<b>整行灰底</b>、二段态里「启封」**墨字可用**、
+        /// 「重写」灰置不可获焦。</para>
         /// </summary>
         public static bool Loadable(SaveSlot slot, in SlotContext ctx)
-            => !ctx.Locked && ctx.InNarrativeContext;
+            => ctx.InNarrativeContext;
     }
 }

@@ -52,8 +52,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         /// <summary>
         /// 该槽是否**已被读档锁住**(ADR-041 §D5 的「已锁槽行」)。
-        /// <para>锁态归 7a(`SaveSlotLedger.IsLocked`,会话内存);42 只**呈现** ——
-        /// 已锁 ⇒ 行内的「启封」灰置、只留「重写」。</para>
+        /// <para>锁态归 7a(`SaveSlotLedger.IsLocked`,会话内存);42 只**呈现**。</para>
+        /// <para>🔁 <b>2026-11-06(ADR-042 同批,用户裁定)锁改到写侧</b>:已锁 ⇒
+        /// <b>不能覆写、仍可读</b>。呈现 = 整行**灰底** + 二段态里「启封」**墨字可用**、
+        /// 「重写」**灰置不可获焦**。旧形态(启封灰、重写可用 = 读侧锁)已作废。</para>
         /// </summary>
         public readonly bool IsLocked;
 
@@ -74,10 +76,19 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public readonly bool Damaged;
 
+        /// <summary>
+        /// 该档**落笔那一刻**的真实世界时刻(UTC ticks;ADR-042 · v6 起)。
+        /// <para>⚠️ <c>0</c> = <b>未知</b>(v5 及更早的档迁移而来)⇒ 行上**不显示时间**。
+        /// 不得拿 tick / 文件时间顶替 —— 那是另一个量。</para>
+        /// <para>呈现归 42(行末半字号),格式化也在 42 侧(本地时区转换只影响显示)。</para>
+        /// </summary>
+        public readonly long SavedAtUtcTicks;
+
         /// <summary>构造。</summary>
         public SaveSlotView(uint slotSeq, bool known, bool hasSave, long tick,
                             long dayNumber = 0L, bool isNight = false, bool isLocked = false,
-                            bool fromBackup = false, bool damaged = false)
+                            bool fromBackup = false, bool damaged = false,
+                            long savedAtUtcTicks = 0L)
         {
             SlotSeq = slotSeq;
             Known = known;
@@ -88,6 +99,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             IsLocked = isLocked;
             FromBackup = fromBackup;
             Damaged = damaged;
+            SavedAtUtcTicks = savedAtUtcTicks;
         }
 
         /// <summary>未绑定形态(装配层没给状态,或探测失败)。</summary>

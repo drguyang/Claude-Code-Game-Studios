@@ -24,7 +24,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>行内文字的元件名(观测面)。</summary>
         public const string MarkElementName = "slot-mark";
 
+        /// <summary>行末真实世界时刻的元件名(观测面;ADR-042)。</summary>
+        public const string TimeElementName = "slot-time";
+
         private readonly Label _mark;
+        private readonly Label _time;
 
         /// <summary>槽位序号(1 起;「留档」新行 = -1)。</summary>
         public int SlotIndex { get; }
@@ -34,6 +38,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         /// <summary>行内文字(观测面;空串 = 零字)。</summary>
         public string MarkText => _mark.text;
+
+        /// <summary>行末真实世界时刻的文字(观测面;空串 = 未知 / 非有档行;ADR-042)。</summary>
+        public string TimeText => _time.text;
+
+        /// <summary>行末时刻的元件(观测面;夹具据此断「字号一半」的 class)。</summary>
+        public VisualElement TimeLabel => _time;
 
         /// <summary>创建存档槽位项。</summary>
         /// <remarks>
@@ -51,6 +61,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _mark = new Label { name = MarkElementName };
             _mark.AddToClassList("save-slot-mark");
             Add(_mark);
+            // 🔁 **2026-11-06(ADR-042 呈现侧,用户裁定)**:行末的真实世界时刻,半字号。
+            //    它**只在行末**、**只有值**才画(0 = 未知 ⇒ 零字,不占位也不编造)。
+            _time = new Label { name = TimeElementName };
+            _time.AddToClassList("save-slot-time");
+            Add(_time);
         }
 
         /// <summary>
@@ -72,18 +87,45 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             EnableInClassList("empty-row", IsEmpty);
             EnableInClassList("save-slot-item", !IsEmpty);
             _mark.text = RowText(view);
+            // 🔁 **2026-11-06(用户裁定)**:已锁 ⇒ **整行灰底**,不再写字。
+            //    ⚠️ 用户明确要求「不保留小字」⇒ 状态只走色彩通道。已知风险(如实登记):
+            //    色觉障碍玩家读不出「已锁」—— 但按下去的反应不同(重写灰置)仍可分辨,
+            //    且页上不再出现第二处文案。若要补非色彩通道,须先改这条裁定。
+            EnableInClassList("save-slot-locked", view.Known && view.HasSave && view.IsLocked);
+            _time.text = FormatTime(view);
+        }
+
+        /// <summary>行末的真实世界时刻(本地时区;<c>0</c> / 越界 ⇒ 零字)。</summary>
+        /// <remarks>
+        /// ⚠️ 只认 <see cref="SaveSlotView.SavedAtUtcTicks"/>(= 档头里那一刻)。
+        /// **不**拿 tick、也**不**读文件时间 —— 那是另外两个量,顶上去就是编造。
+        /// </remarks>
+        private static string FormatTime(in SaveSlotView view)
+        {
+            if (!view.Known || !view.HasSave) return string.Empty;
+            long ticks = view.SavedAtUtcTicks;
+            if (ticks <= 0L || ticks > System.DateTime.MaxValue.Ticks) return string.Empty;
+            // 存 UTC、**按本地时区显示** —— 玩家认的是自己墙上的钟。
+            System.DateTime local = new System.DateTime(ticks, System.DateTimeKind.Utc).ToLocalTime();
+            return local.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>
-        /// 有档行的行内文字:`行号 · 第N日`(§5.4 字段一 + 字段二的**降级形态**)。
-        /// <para>⚠️ `DayNumber` 为 0(装配层没给 / 历法未就绪)⇒ 只写行号 ——
-        /// 宁可少一个字段,也不拿 `Tick` 直接当日子显示(那会让玩家看到「第 1200 日」)。</para>
+        /// 有档行的行内文字:`第N日 昼`(§5.4 字段二的**降级形态**)。
+        /// <para>🔁 **2026-11-06(用户裁定「每行最前的序号没必要」)**:行首的槽位序号
+        /// (壹/贰/…) **已删除**。理由:序号是**内部编号**,玩家认页靠的是「第几日 + 时刻」;
+        /// 序号占掉行首最宽的一格,却对「我该读哪一页」零帮助。</para>
+        /// <para>🔁 同日:已锁**不再尾缀「· 已锁」** —— 用户裁定改用整行灰底
+        /// (见 <see cref="Apply"/>)。</para>
+        /// <para>⚠️ `DayNumber` 为 0(时间参数未就绪 / v3 及更早的档)⇒ 退回**只写序号** ——
+        /// 这是唯一仍会看到序号的形态,目的是「有档的行不得画成空白行」;
+        /// 宁可露出一个本该删掉的字段,也不让一页有档的纸看起来是空的。</para>
         /// </summary>
         private static string RowText(in SaveSlotView view)
         {
             // 🔁 2026-11-05(`TD-persist-22` 册子半边):**已损**行有字(它既不是空槽,
-            //    也不是「我不知道」)。行号 + 一句状态 —— 玩家据此知道这一页要重写。
-            if (view.Damaged) return Numeral(view.SlotSeq) + " · 此页已损";
+            //    也不是「我不知道」)。一句状态 —— 玩家据此知道这一页要重写。
+            if (view.Damaged) return "此页已损";
 
             if (!view.Known || !view.HasSave) return string.Empty;
             // 时段只在装配层**真的给了日子**时才画 —— `DayNumber == 0` 表示时间信息未就绪,
@@ -91,17 +133,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // 那是**静默**的错)。宁可不写。
             string text = view.DayNumber <= 0L
                 ? Numeral(view.SlotSeq)
-                : Numeral(view.SlotSeq) + " · 第" + Numeral(view.DayNumber) + "日" +
-                  (view.IsNight ? " 夜" : " 昼");
+                : "第" + Numeral(view.DayNumber) + "日" + (view.IsNight ? " 夜" : " 昼");
 
             // 只剩备份 ⇒ 尾缀「前版」。玩家要看清按下去读到的是**旧的那一份**。
-            // 🔁 **2026-11-05(用户裁定甲案)**:已锁槽尾缀「已锁」——
-            //    此前锁只影响「启封」可不可按(`ArmRow` 的 `openDisabled`),**零文字面**
-            //    ⇒ 玩家点了没反应、屏上什么都不说、只有日志里有半句
-            //    (`槽位 slot=N 已锁(AC-7a-19 (d) 读档即锁)`,实测一局连撞五次)。
-            //    锁是**会自解**的(下一次叙事锚点),所以文案只陈述状态,不写「永不可读」。
-            // ⚠️ 文案(`前版` / `此页已损` / `已锁`)归 narrative 内容轮,此处只定「有三处口子」。
-            if (view.IsLocked) text += " · 已锁";
+            // ⚠️ 文案(`前版` / `此页已损`)归 narrative 内容轮,此处只定「有两处口子」。
             return view.FromBackup ? text + " · 前版" : text;
         }
 
@@ -137,9 +172,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         /// <param name="onOpen">「启封」= 请求载入(<c>TryLoad</c>)。</param>
         /// <param name="onRewrite">「重写」= 请求覆写(<c>TrySaveAt</c>)。</param>
-        /// <param name="openDisabled">该槽已锁(读档即锁)⇒ 「启封」灰置且**不可获焦**
-        /// —— 焦点必须落到仍可执行的那一枚上,否则手柄玩家按下去又是「没反应」。</param>
-        public void EnterChoice(System.Action onOpen, System.Action onRewrite, bool openDisabled)
+        /// <param name="rewriteDisabled">
+        /// 该槽已锁(读档即锁)⇒ 「重写」灰置且**不可获焦**。
+        /// <para>🔁 <b>2026-11-06(用户裁定,ADR-042 同批):锁搬到写侧</b> ——
+        /// 灰置的那一枚从「启封」换成「重写」。已锁 = 你刚从这里读回来,不许把当前进度盖回去;
+        /// **读仍可反复**。</para>
+        /// <para>⚠️ 灰置必须同时退出焦点序:否则手柄玩家按第一下就落在一条按不出结果的墨字上,
+        /// 「点了没反应」——这正是旧形态(启封灰置)被裁定换掉的原因之一。</para>
+        /// </param>
+        public void EnterChoice(System.Action onOpen, System.Action onRewrite, bool rewriteDisabled)
         {
             ExitChoice();
 
@@ -156,13 +197,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             //   + **退出焦点序**(关闭模式的手柄玩家不得停在一条按不出结果的墨字上)。
             // ⚠️ 2026-11-04 走查修订前这个类名是**死类**(USS 零规则,灰只有引擎默认半透明),
             //   现已在 `SkeuoPaper.uss` 补齐 —— 类名与其执行体同批存在。
-            _openChoice.SetEnabled(!openDisabled);
-            _openChoice.focusable = !openDisabled;
-            if (openDisabled) _openChoice.AddToClassList("save-slot-choice-disabled");
+            _rewriteChoice.SetEnabled(!rewriteDisabled);
+            _rewriteChoice.focusable = !rewriteDisabled;
+            if (rewriteDisabled) _rewriteChoice.AddToClassList("save-slot-choice-disabled");
 
             _choiceHost.Add(_openChoice);
             _choiceHost.Add(_rewriteChoice);
-            Add(_choiceHost);
+            // 🔁 2026-11-06:墨字插在**行文字与行末时刻之间** —— 时刻恒为行末最后一物
+            //    (用户裁定「时刻加在行末尾」)。`Add` 会把它排到时刻右边。
+            Insert(IndexOf(_time), _choiceHost);
         }
 
         /// <summary>「启封」的**执行体**(事件与夹具共用的唯一出口)。</summary>

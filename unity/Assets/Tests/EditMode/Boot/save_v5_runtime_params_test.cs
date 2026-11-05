@@ -76,8 +76,10 @@ namespace DaYiJingCheng.Tests.Boot
             byte[] signed = SaveService.AddChecksum(ComposeUnsigned(ArchiveTime));
             File.WriteAllBytes(Path.Combine(_testDir, "save_4.bin"), signed);
 
-            Assert.That(SaveHeaderCodec.Read(signed).SaveVersion, Is.EqualTo(5u),
-                "写出的档必须声明 v5 —— 否则下面的往返测的是旧布局");
+            Assert.That(SaveHeaderCodec.Read(signed).SaveVersion,
+                Is.EqualTo(SaveHeader.CurrentSaveVersion),
+                "写出的档必须声明**当前**版本 —— 否则下面的往返测的是旧布局" +
+                "(🔁 2026-11-06 ADR-042:v5 → v6,本条随之从字面 5 改为跟随常量)");
 
             SaveService load = NewLoadSide();
             load.Load(new SaveSlot(4));
@@ -337,9 +339,26 @@ namespace DaYiJingCheng.Tests.Boot
             for (int i = 0; i < 8; i++) b[offset + i] = (byte)(value >> (8 * i));
         }
 
-        /// <summary>v5 字节 → v4(去掉季/天气 32 B,版本号写 4)。</summary>
-        private static byte[] DowngradeToV4(byte[] v5)
+        /// <summary>v6 字节 → v5(去掉落笔时刻 8 B,版本号写 5)。</summary>
+        /// <remarks>
+        /// 🔁 **2026-11-06(ADR-042)**:`Compose` 现在出 v6。所有「降级到旧版」的夹具都必须
+        /// **逐级往回剥** —— 直接按 v5 的偏移去剥会把落笔时刻那 8 B 留在正文头上,
+        /// 症状是「尾随 8 字节未被任何字段消费」(实测踩到)。
+        /// </remarks>
+        private static byte[] DowngradeToV5(byte[] v6)
         {
+            int head = SaveHeaderCodec.FixedSizeV5;           // 92
+            var v5 = new byte[v6.Length - SaveHeaderCodec.SavedAtBytes];
+            Array.Copy(v6, 0, v5, 0, head);
+            Array.Copy(v6, SaveHeaderCodec.FixedSizeV6, v5, head, v6.Length - SaveHeaderCodec.FixedSizeV6);
+            WriteVersion(v5, 5);
+            return v5;
+        }
+
+        /// <summary>v6 字节 → v4(去掉落笔时刻 8 B + 季/天气 32 B,版本号写 4)。</summary>
+        private static byte[] DowngradeToV4(byte[] v6)
+        {
+            byte[] v5 = DowngradeToV5(v6);
             int head = SaveHeaderCodec.FixedSizeV4;           // 60
             var v4 = new byte[v5.Length - SaveHeaderCodec.SeasonWeatherBytes];
             Array.Copy(v5, 0, v4, 0, head);
@@ -403,6 +422,8 @@ namespace DaYiJingCheng.Tests.Boot
                     new SaveMigrationV2ToV3(),
                     new SaveMigrationV3ToV4(),
                     new SaveMigrationV4ToV5(),
+                    // ADR-042:链末端多一级,不补则旧档在 v5→v6 断掉
+                    new SaveMigrationV5ToV6(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

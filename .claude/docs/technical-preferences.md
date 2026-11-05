@@ -1285,7 +1285,29 @@
   ⚠️ 同批登记 **`TD-sim-05`**(会话内读档后 `DiseaseVitalsService._lastTick` 不回退 ⇒ 抛「时间倒流」,
   P0 面 **Y**)—— 与本改判**无关**,是走查第二次载入撞见的既存缺陷。
 
-> **本日志状态**:全部 ADR(001–**041**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-042 ✅ **Accepted** 2026-11-06]**存档 v6(落笔时刻进档头)· 锁从读侧搬到写侧 · 存档册行列形态** ——
+  `docs/architecture/adr-042-save-v6-saved-at.md`。**由用户的四条 UI 指令上溯**——
+  「每行最前的序号没必要」·「行末加一半字号的真实世界时间」·「已锁换灰底(不保留小字)」·
+  「覆写灰置」,经追问澄清为「**只有已锁行不可覆写**」+「**把锁改到写侧**」。
+  **D1** 存档 **v6**:头部定长段末尾 +8 B `SavedAtUtcTicks`(i64, UTC ticks);
+  `FixedSize 92 → 100`、`HeaderSize 124 → 132`、`CurrentSaveVersion 5 → 6`。
+  **D2** 迁移 `SaveMigrationV5ToV6` 在 92 处插 8 个 **0**(= 未知),**不伪造**——v5 及更早从未记录落笔时刻。
+  **D3** 墙钟**唯一**生产读取点 = 装配层组版闭包(`DateTime.UtcNow.Ticks`);`Sim` 程序集仍零墙钟 API。
+  **D4** 呈现:存 UTC、按**本地时区**显示 `yyyy-MM-dd HH:mm:ss`、**半字号 12px**、行**最右端**、`0` 不显示。
+  **D5** **锁从读侧搬到写侧** —— `Writable ⟺ ¬Locked ∧ InNarrativeContext`、`Loadable ⟺ InNarrativeContext`;
+  `SaveService.RequireLoadable` 摘掉锁门,`SaveSlotLedger.EnsureWritable` 新增门 ①′。
+  ⚠️ **显式后果**:读过的档可以无限重读;反 scum 只挡「读→改写→再读」的**写**那一半。
+  **D6** 行文字去序号(`DayNumber == 0` 才回退到序号,保证有档行不空白);已锁 = 整行灰底、零字。
+  **D7** 二段态:已锁行照常展开,「启封」可用、「重写」灰置且**不可获焦**(焦点恒落启封)。
+  **就地改判两处**:ADR-040 §D4 的「墙钟不进存档头」**收窄**(仍不进 sim、仍不参与确定性求值)·
+  ADR-041 §D3「覆写不清锁」的**适用面消失**(不变式保留);
+  **就地改判一条 AC 口径**:`AC-7a-19 (d)` 的锁**落点**由读改到写(闭合回路仍在,断点换位置)。
+  **无障碍让步如实登记**:行末时刻 12px 低于 `accessibility-requirements:85` 的 24px 下限 ⇒
+  `skeuo_readability_test` 增**一条具名例外**(带规模守卫 + 陈旧例外守卫),并写进
+  `accessibility-requirements.md`;用户指令「真包截图看实际效果再调整」⇒ 字号可能回调。
+  Engine Knowledge Risk **LOW**(纯 BCL 字节布局与时间转换,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**042**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > **ADR-040 于 2026-11-04 以 `Proposed` 入册,同日实现轮转 `Accepted`**;**ADR-041 于 2026-11-04 起草即 Accepted**)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;

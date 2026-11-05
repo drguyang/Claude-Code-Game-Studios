@@ -55,19 +55,30 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>v5 起的完整头部长度(含校验和槽)= <see cref="FixedSizeV5"/> + 32 = 124。</summary>
         public const int HeaderSizeV5 = FixedSizeV5 + 32;
 
-        /// <summary>按存档版本取头部定长(不含校验和槽)—— 正文起点 = 它(v4 起 60,更早 36)。</summary>
+        /// <summary>v6 追加的落笔时刻(i64 = 8 B;ADR-042)。</summary>
+        public const int SavedAtBytes = 8;
+
+        /// <summary>v6 起的头部定长(不含校验和)= <see cref="FixedSizeV5"/> + 8 = 100。</summary>
+        public const int FixedSizeV6 = FixedSizeV5 + SavedAtBytes;
+
+        /// <summary>v6 起的完整头部长度(含校验和槽)= <see cref="FixedSizeV6"/> + 32 = 132。</summary>
+        public const int HeaderSizeV6 = FixedSizeV6 + 32;
+
+        /// <summary>按存档版本取头部定长(不含校验和槽)—— 正文起点 = 它(v6 起 100 · v5 起 92 · v4 起 60 · 更早 36)。</summary>
         /// <remarks>
         /// ⚠️ **正文解析必须走本方法**,不得硬编码 <see cref="FixedSize"/> ——
         /// 混用会把新增的时间参数当成正文首字段(实测症状:配置版本段读出 `count = 36000`)。
         /// </remarks>
         public static int FixedSizeFor(uint saveVersion)
-            => saveVersion >= 5 ? FixedSizeV5
+            => saveVersion >= 6 ? FixedSizeV6
+             : saveVersion >= 5 ? FixedSizeV5
              : saveVersion >= 4 ? FixedSizeV4
              : FixedSize;
 
         /// <summary>按存档版本取完整头部长度(含校验和槽)。</summary>
         public static int HeaderSizeFor(uint saveVersion)
-            => saveVersion >= 5 ? HeaderSizeV5
+            => saveVersion >= 6 ? HeaderSizeV6
+             : saveVersion >= 5 ? HeaderSizeV5
              : saveVersion >= 4 ? HeaderSizeV4
              : HeaderSize;
 
@@ -119,9 +130,10 @@ namespace DaYiJingCheng.Sim.Codec
             ulong worldSeed, uint configVersion, long tick, ulong snapshotOffset,
             long ticksPerDay, long nightStart, long nightSpan,
             long ticksPerSeason, long seasonsPerYear,
-            long weatherBlockTicks, long intensityMax)
+            long weatherBlockTicks, long intensityMax,
+            long savedAtUtcTicks)
         {
-            var w = new CodecWriter(FixedSizeV5);
+            var w = new CodecWriter(FixedSizeV6);
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.Magic));
             w.WriteInt32LittleEndian(unchecked((int)SaveHeader.CurrentSaveVersion));
             w.WriteUInt64LittleEndian(worldSeed);
@@ -137,6 +149,10 @@ namespace DaYiJingCheng.Sim.Codec
             w.WriteInt64LittleEndian(seasonsPerYear);
             w.WriteInt64LittleEndian(weatherBlockTicks);
             w.WriteInt64LittleEndian(intensityMax);
+            // v6(ADR-042):落笔那一刻的真实世界时刻 —— **纯呈现量**,sim 永不读它。
+            // 0 = 未知。生产路径恒给(`CompositionRoot` 传 `DateTime.UtcNow.Ticks`),
+            // 由 `save_v6_saved_at_test` 在真实装配上断言非零。
+            w.WriteInt64LittleEndian(savedAtUtcTicks);
             return w.ToArray();
         }
 
@@ -176,6 +192,8 @@ namespace DaYiJingCheng.Sim.Codec
             long ticksPerDay = 0L, nightStart = 0L, nightSpan = 0L;
             long ticksPerSeason = 0L, seasonsPerYear = 0L;
             long weatherBlockTicks = 0L, intensityMax = 0L;
+            // ── v6(ADR-042):头部末尾再多一个 i64(落笔时刻;0 = 未知)──
+            long savedAtUtcTicks = 0L;
             if (saveVersion >= 4)
             {
                 if (data.Length < HeaderSize + TimeParamsBytes)
@@ -197,6 +215,14 @@ namespace DaYiJingCheng.Sim.Codec
                 weatherBlockTicks = r.ReadInt64LittleEndian();
                 intensityMax = r.ReadInt64LittleEndian();
             }
+            if (saveVersion >= 6)
+            {
+                if (data.Length < HeaderSizeV6)
+                    throw new InvalidDataException(
+                        $"存档声明 v{saveVersion}(含落笔时刻),但长度 {data.Length} 字节 < " +
+                        $"头部 {HeaderSizeV6} 字节");
+                savedAtUtcTicks = r.ReadInt64LittleEndian();
+            }
 
             // ⚠️ 校验和槽不进 SaveHeader 的构造器(它不接受),逐字段回填
             return new SaveHeader(worldSeed, configVersion, tick, snapshotOffset)
@@ -209,6 +235,7 @@ namespace DaYiJingCheng.Sim.Codec
                 SeasonsPerYear = seasonsPerYear,
                 WeatherBlockTicks = weatherBlockTicks,
                 IntensityMax = intensityMax,
+                SavedAtUtcTicks = savedAtUtcTicks,
             };
         }
 

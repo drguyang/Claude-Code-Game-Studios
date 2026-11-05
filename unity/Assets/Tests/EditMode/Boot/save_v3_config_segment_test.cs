@@ -263,8 +263,12 @@ namespace DaYiJingCheng.Tests.Boot
                 artifactConfigs: artifacts);
 
             int head = SaveHeaderCodec.FixedSize;          // 36 = v3 头
-            int tailStart = SaveHeaderCodec.FixedSizeV5;   // 92 = v5 头之后(24 + 32 都去掉)
-            var v3 = new byte[v4.Length - (SaveHeaderCodec.TimeParamsBytes + SaveHeaderCodec.SeasonWeatherBytes)];
+            // 🔁 2026-11-06(ADR-042):`Compose` 现在出 **v6**(再 +8 B 落笔时刻)⇒ 尾巴起点跟着抬到 100,
+            //    去掉的字节数 = 24 + 32 + 8。只改一处不改另一处 ⇒ 正文错位 8 字节、读成「段损坏」。
+            int tailStart = SaveHeaderCodec.FixedSizeV6;   // 100 = v6 头之后(24 + 32 + 8 都去掉)
+            var v3 = new byte[v4.Length - (SaveHeaderCodec.TimeParamsBytes
+                                          + SaveHeaderCodec.SeasonWeatherBytes
+                                          + SaveHeaderCodec.SavedAtBytes)];
             System.Array.Copy(v4, 0, v3, 0, head);
             System.Array.Copy(v4, tailStart, v3, head, v4.Length - tailStart);
             v3[SaveHeaderCodec.SaveVersionOffsetFixed] = 3;
@@ -308,6 +312,8 @@ namespace DaYiJingCheng.Tests.Boot
                     new SaveMigrationV2ToV3(),
                     new SaveMigrationV3ToV4(),
                     new SaveMigrationV4ToV5(),
+                    // ADR-042:链末端多一级,不补则旧档在 v5→v6 断掉
+                    new SaveMigrationV5ToV6(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

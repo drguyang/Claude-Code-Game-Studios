@@ -88,6 +88,13 @@ namespace DaYiJingCheng.Sim.Codec
         /// </summary>
         public readonly SaveLoadSource Source;
 
+        /// <summary>
+        /// 该档**落笔那一刻**的真实世界时刻(UTC ticks;ADR-042 · v6 起)。
+        /// <para>⚠️ <c>0</c> = <b>未知</b>(v5 及更早的档迁移而来 —— 那时从未记录)。
+        /// 呈现层对 0 **一律不显示时间**,不得拿文件时间 / tick 顶替。</para>
+        /// </summary>
+        public readonly long SavedAtUtcTicks;
+
         /// <summary>构造(v3 及更早:无时间参数 ⇒ 全 0)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion)
             : this(state, tick, saveVersion, default(SaveTimeParams), SaveLoadSource.None)
@@ -97,17 +104,26 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>带来源的构造(见 <see cref="Source"/>)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
                                SaveTimeParams timeParams, SaveLoadSource source)
+            : this(state, tick, saveVersion, timeParams, source, 0L)
+        {
+        }
+
+        /// <summary>全参构造(v6 起:带落笔时刻)。</summary>
+        public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
+                               SaveTimeParams timeParams, SaveLoadSource source,
+                               long savedAtUtcTicks)
         {
             State = state;
             Tick = tick;
             SaveVersion = saveVersion;
             TimeParams = timeParams;
+            SavedAtUtcTicks = savedAtUtcTicks;
             Source = source;
         }
 
         /// <summary>复制并改写来源(探测时「先读文件、再标来源」用)。</summary>
         public SaveSlotSummary WithSource(SaveLoadSource source)
-            => new SaveSlotSummary(State, Tick, SaveVersion, TimeParams, source);
+            => new SaveSlotSummary(State, Tick, SaveVersion, TimeParams, source, SavedAtUtcTicks);
 
         /// <summary>构造(v4:带该档记录的时间三参数;来源留待调用方标)。</summary>
         public SaveSlotSummary(SaveSlotState state, long tick, uint saveVersion,
@@ -218,10 +234,11 @@ namespace DaYiJingCheng.Sim.Codec
                     if (fs.Length < SaveHeaderCodec.HeaderSize)
                         return new SaveSlotSummary(SaveSlotState.Corrupt, 0L, 0U);
 
-                    // ADR-038 §D3 / Amendment A:v4 头 +24 B、v5 头 +32 B。按**文件实际长度**取
-                    // (不超过 v5 头),这样 v3 / v4 档照样能读 —— 短读不构成损坏;
-                    // 声明 v5 而读不满才由 `SaveHeaderCodec.Read` 的「长度不足」判 Corrupt。
-                    int want = (int)System.Math.Min(fs.Length, SaveHeaderCodec.HeaderSizeV5);
+                    // ADR-038 §D3 / Amendment A / ADR-042:v4 头 +24 B、v5 头 +32 B、v6 头 +8 B。
+                    // 按**文件实际长度**取(不超过 v6 头),这样 v3 / v4 / v5 档照样能读 ——
+                    // 短读不构成损坏;声明 v6 而读不满才由 `SaveHeaderCodec.Read` 的
+                    // 「长度不足」判 Corrupt。
+                    int want = (int)System.Math.Min(fs.Length, SaveHeaderCodec.HeaderSizeV6);
                     buf = new byte[want];
 
                     while (read < buf.Length)
@@ -250,7 +267,9 @@ namespace DaYiJingCheng.Sim.Codec
                                          header.WeatherBlockTicks, header.IntensityMax)
                     : default(SaveTimeParams);
                 return new SaveSlotSummary(SaveSlotState.Occupied, header.Tick,
-                                           header.SaveVersion, time);
+                                           header.SaveVersion, time, SaveLoadSource.None,
+                                           // ADR-042:0 = 未知(v5 及更早的档)。
+                                           header.SavedAtUtcTicks);
             }
             catch (InvalidDataException)
             {

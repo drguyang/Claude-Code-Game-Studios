@@ -232,7 +232,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static byte[] MinimalSaveBytes(long tick)
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(
-                1UL, 1U, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L);
+                1UL, 1U, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null);
             byte[] folded = new byte[] { 0, 0, 0, 0 };

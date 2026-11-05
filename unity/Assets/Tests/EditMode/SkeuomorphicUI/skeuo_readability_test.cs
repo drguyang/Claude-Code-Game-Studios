@@ -49,6 +49,16 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         /// <summary>纸面 UI 最小字号下限(`accessibility-requirements.md:85` @1080p 基准)。</summary>
         private const double MinFontSizePx = 24.0;
 
+        /// <summary>
+        /// 字号下限的**具名例外**(2026-11-06 · ADR-042 §D4)。
+        /// <para>用户裁定「行末的真实世界时刻用**一半大小**的字体」⇒ 12px(纸面 24 的一半)。
+        /// `:85` 的下限管的是**行字段**(玩家靠它决定读哪一页);时刻是**副信息**
+        /// —— 没有它玩家仍能选页,只是同一天多次存档时分不出先后。</para>
+        /// <para>⚠️ **本表只许一行,且必须仍被 USS 实际使用**(见测试里的陈旧例外守卫)——
+        /// 不许它变成一个「以后再说」的口袋,也不许留一条已经没人用的豁免。</para>
+        /// </summary>
+        private static readonly string[] FontFloorExemptSelectors = { ".save-slot-time" };
+
         /// <summary>墨字 on 纸面承诺对比(`:87` / `casebook-39.md:309`)。</summary>
         private const double MinContrastRatio = 7.0;
 
@@ -218,6 +228,9 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             }
 
             var bad = new System.Collections.Generic.List<string>();
+            // 具名例外的**实际命中计数** —— 用来抓「豁免还在、类已经没了」的陈旧例外。
+            var exemptHits = new System.Collections.Generic.Dictionary<string, int>();
+            foreach (string sel in FontFloorExemptSelectors) exemptHits[sel] = 0;
             int scanned = 0;
             foreach (string file in Directory.GetFiles(SkeuoDir, "*.uss"))
             {
@@ -231,10 +244,21 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     if (px < MinFontSizePx)
                     {
                         string sel = block.Groups[1].Value.Trim().Split('\n')[^1].Trim();
+                        if (exemptHits.ContainsKey(sel)) { exemptHits[sel]++; continue; }
                         bad.Add($"{Path.GetFileName(file)} `{sel}` = {px}px");
                     }
                 }
             }
+
+            // 例外表的**规模守卫**:多出一条 = 在做一次没有裁定的无障碍让步。
+            Assert.AreEqual(1, FontFloorExemptSelectors.Length,
+                "字号下限例外只许一条(ADR-042 §D4 的 `.save-slot-time`);" +
+                "再加一条就是改一条已裁定的无障碍承诺,须先有裁定");
+            // **陈旧例外守卫**:豁免名单里的选择器必须仍以 <24px 出现 —— 否则它已无用。
+            foreach (var kv in exemptHits)
+                Assert.Greater(kv.Value, 0,
+                    $"例外 `{kv.Key}` 在 USS 里已经不存在(或已抬到下限之上)⇒ 把它从 " +
+                    "FontFloorExemptSelectors 删掉,别留一条空豁免");
             // 空集守卫:路径写错/正则失效时,上面会一条都扫不到而恒绿(假绿 F4)。
             Assert.That(scanned, Is.GreaterThanOrEqualTo(10),
                 $"只扫到 {scanned} 处字号声明 —— 扫描面塌了(九份 USS 合计数远不止)。");
