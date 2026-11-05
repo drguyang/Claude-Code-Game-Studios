@@ -571,6 +571,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 共用同一空间」(IdAuthority 头注 + ADR-006 Amendment B 第二十六批:不新开第二计数器;
             // entities.yaml 的 next_player_id 是**存档头字段位**,不新增第三个 C# 计数器)。
             int actorId = _services.IdAuthority.NextPatientId().Value;
+            // 🔁 2026-11-05:读档后要把玩家送回档内格,而那是**回调**(点击时)才跑
+            //    ⇒ 本局部量必须留一个字段版(换成第二处 `NextPatientId()` = 第二个 id)。
+            _playerActorId = actorId;
 
             // ── 4.3a. 1 侧传送 sink 绑定(S23-7 · 2026-11-01)────────────────────
             // 构造在 CompositionRoot 死亡消费段(服务袋 TeleportSink);玩家此刻才存在
@@ -1026,6 +1029,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () =>
                 {
                     HydrateTimeParamsAfterLoad();
+                    RestorePlayerCellFromStream();
+                    // 🔁 2026-11-05(用户实测「点已有存档,选择读取,没有重新进入游戏」):
+                    //    读档成功后**一次关到世界** —— `save-slots-7b.md` §9 要求
+                    //    「载入执行 → 画押笔迹 → **合册** → 拆序」。此前这里只重探槽位行、
+                    //    **从不关屏** ⇒ 册子还摊着、画面没变 ⇒ 玩家只能读成「什么都没发生」。
+                    _uiDriver?.CloseAllModals();
                     _uiDriver?.MarkSaveSlotRowsDirty();
                 },
                 // 🔁 2026-11-04(ADR-041 §D8):落笔失败走**自己的**记录面 ——
@@ -2398,6 +2407,41 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>受检形态:槽号 0 · 不在叙事上下文 · 组版返回 null · 写队列未注入。
         /// 报文**点名门名**(异常类型 + 首句),不只打整段异常。</para>
         /// </summary>
+        /// <summary>玩家实体的 id(与花名册同一 id;`IIdAuthority` 机制 A)。</summary>
+        private int _playerActorId = -1;
+
+        /// <summary>
+        /// 读档后把玩家**送回档内格**(🔁 2026-11-05 · 用户裁定「传送回档内格」)。
+        /// <para>病因:读档只重建流 / 世界 / 库存(`CompositionRoot.afterRestore`),**从不碰玩家**
+        /// ⇒ 世界回到档内状态,人还站在读档前的位置 —— 画面上就是「读完了但我怎么还在这」,
+        /// 与用户报的「没有重新进入游戏」同一族观感。</para>
+        /// <para>格的真源 = **世界流里最后一条属于本玩家的 `ActorCellEntered`**
+        /// (单人只有一个玩家 id,加这一条是为与后续联机同形)。</para>
+        /// <para>⚠️ 走 `ITeleportCommandSink`(ADR-025 §③ 的整数命令半),**不**直接写
+        /// `transform.position`:后者是表现态,写它会让「读档落点」成为第四种重建源。</para>
+        /// <para>⚠️ 找不到(档里从没跨过格)或未接线 ⇒ **什么都不做**(留空,不猜出生点)。</para>
+        /// </summary>
+        private void RestorePlayerCellFromStream()
+        {
+            if (_services?.Stream == null || _services.Decoder == null) return;
+            if (_services.TeleportSink == null || _playerActorId < 0) return;
+
+            System.Collections.Generic.IReadOnlyList<SimEvent> events = _services.Stream.Events;
+            for (int i = events.Count - 1; i >= 0; i--)
+            {
+                if (events[i].Kind != EventKind.ActorCellEntered) continue;
+
+                DaYiJingCheng.Sim.Contracts.ActorCellEnteredPayload p =
+                    _services.Decoder.Decode<DaYiJingCheng.Sim.Contracts.ActorCellEnteredPayload>(
+                        events[i].Kind, events[i].Payload);
+                if (p.ActorId != _playerActorId) continue;
+
+                _services.TeleportSink.RequestTeleport(_playerActorId, p.Cell);
+                Debug.Log("[BootRoot][读档] 玩家回到档内格 " + p.Cell + "(tick " + p.Tick + ")");
+                return;
+            }
+        }
+
         private static void LogSaveFailure(uint slot, System.Exception ex)
         {
             string gate = ex is System.IO.InvalidDataException

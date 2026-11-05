@@ -890,6 +890,31 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         }
 
         /// <summary>
+        /// **一次关到世界**:关掉当前模态并把整个栈拆空。
+        /// <para>🔁 2026-11-05(用户实测:「点已有存档,选择读取,**没有重新进入游戏**」):
+        /// 读档成功后代码**从不关屏** —— 册子还摊着,画面没变,玩家只能读成「什么都没发生」。
+        /// `save-slots-7b.md` §9 逐字要求「载入执行 → 画押笔迹 → **合册** → 拆序」。</para>
+        /// <para>⚠️ **只给「读档成功」用**:其它关屏仍走 <see cref="CloseModal"/> 的一层语义
+        /// (ESC = 退一层)。把两者混成一个会让「按 ESC 直接跳出整个嵌套」。</para>
+        /// <para>⚠️ 防死循环:每次 <see cref="CloseModal"/> 至少弹一层栈或落到 `None`,
+        /// 上限只是护栏(栈深度受闭集大小约束,不可能到 16)。</para>
+        /// </summary>
+        public void CloseAllModals()
+        {
+            int guard = 0;
+            while (_currentModal != ModalId.None)
+            {
+                CloseModal();
+                if (++guard > 16)
+                {
+                    Debug.LogError("[SkeuoRuntimeDriver] CloseAllModals 未能在 16 步内收敛 —— " +
+                                   "模态栈可能被写坏(当前 " + _currentModal + ")");
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
         /// 关屏的**实现体**(不发 39 的档位意图)。
         /// <para>⚠️ 为什么与 <see cref="CloseModal"/> 分开:<see cref="OpenModal"/> 换屏时会先关旧屏,
         /// 那一步若发意图,「脉案 → 库存」就会在中间态多发一条 `Explore`。

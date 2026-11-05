@@ -202,6 +202,24 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
+        public void test_closeAllModals_fromNestedShell_reachesWorld()
+        {
+            // 🔁 2026-11-05(用户实测「点已有存档,选择读取,没有重新进入游戏」):
+            //    读档成功后必须**一次关到世界**(7b §9「合册 → 拆序」),而不是退一层。
+            _driver.PauseSink = new DriverPauseCommandSink(_driver);
+            _driver.OpenModal(ModalId.Pause);
+            ((PauseScreen)_driver.Screen).Activate(3);              // → 设置壳(嵌套)
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.SettingsShell), "夹具前提:两层嵌套");
+
+            _driver.CloseAllModals();
+
+            Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
+                "一次关到世界 —— 退一层会让玩家停在中转的壳上");
+            Assert.That(_driver.Screen, Is.Null, "屏也必须真的没了");
+            Assert.That(_driver.BlocksPlay, Is.False, "世界不再被挡");
+        }
+
+        [Test]
         public void test_toggleDriver_nullDependencies_throwAtConstruction()
         {
             Assert.Throws<ArgumentNullException>(() => new ModalInputDriver(null, new FakeOpener()));
