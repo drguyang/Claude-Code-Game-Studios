@@ -17013,3 +17013,23 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 无障碍让步如实登记:`skeuo_readability_test` 增**唯一具名例外** `.save-slot-time`(带规模守卫 + 陈旧例外守卫),
   `accessibility-requirements.md` 同批记。
 - 证据 = `production/qa/evidence/impl-adr042-save-v6-and-slot-lock-2026-11-06.md` + `…/adr042-2026-11-06/*.png`。
+
+### TD-skeuo-19 兑现轮(存档册翻页的两条输入面 · 2026-11-06 凌晨)
+
+- 用户两轮裁定:「键盘和手柄的上下键移动到本页最上和最下就能进行翻页」·「鼠标的滚轮也能移动焦点上下,也能进行翻页」;
+  中途第三条:「留档提示默认初始在 3 号位置,如果有手动存档记录,留档提示默认在最新手动存档记录的下一行」。
+- **肩键路线不做**(用户裁定「不用想的太复杂」):删 `SaveBookPageDriver` / `PagePrevPressed` / `PageNextPressed` /
+  `SkeuoRuntimeDriver.PagePrev|PageNext`;`PagePrev`/`PageNext` 维持零生产消费者,spec 交互表就地改口径。
+- **滚轮与上下键同一条竖轴**:一格 = 一行,到页边界才翻页(`HandleWheel` / `HandleEdgeMove`,共用 `StepPage`);
+  方向翻页落**移动来的那一端**(否则下滑翻页后落首行、再上滑立刻翻回,册子卡在两页之间)。
+- **派发途中不翻页**:拆掉正在收事件的行会把焦点丢成 −1(PlayMode 实测)⇒ `TurnAfterDispatch` 用屏根调度器推到派发之后。
+- **走查抓出的真缺陷(已修)**:单页册上 `Down` 从末行按不动 —— 边界判据缺「有没有页可翻」⇒ `PreventDefault` 把焦点卡死,
+  走不到「留档」行。`IsEdgeMove` 现以 `HasNextPage`/`HasPreviousPage` 为必要条件。
+- **「留档」定位**(用户第三条):`BootRoot.BuildSaveSlotViews` 不再单画空手动槽(与「留档」同一目标 `NextWritableSeq`)⇒
+  无手动档 = 第 3 位、有 = 最新手动档下一行;`PageCount` 同批改为**含「留档」行**(否则槽位恰满一页时新行被塞成第 7 行)。
+- 回归 EditMode `6957/6920/0/0/37`(基线 6947/6910,+10)· PlayMode `347/343/0/2/2`(基线 342/338,+5)· 构建 `Result: Succeeded`。
+- 真包两帧证「留档」第 3 位 / 第 4 位。⚠️ **指针腿真机 NOT-RUN**:XTEST 在该窗口上瞄不准(事件确实抵达面板,但 warp 后 x 卡住)
+  —— 该格由 PlayMode 件覆盖,物理鼠标行为待带真指针设备的走查。
+- `TD-skeuo-19` **closed**;计数:条目 195 · open 20 · closed 165(未闭 P0 面 13 不变 —— 该债 P0 面为 N)。
+- 证据 = `production/qa/evidence/impl-td-skeuo-19-save-book-paging-2026-11-06.md` + `…/tdskeuo19-2026-11-06/*.png`。
+  commit `5dff210f`。
