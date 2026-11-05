@@ -243,14 +243,14 @@ namespace DaYiJingCheng.Tests.RandomEvents
             Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = null,
             int windowSize = WindowSize,
             Func<int, bool> requiresPatient = null,
-            Func<long, bool> canSpawnPatient = null)
+            Func<int, bool> canSpawnPatient = null)
         {
             return new RandomEventSpawnChain(
                 sink, _encoder, authority ?? NewAuthority(),
                 candidatesOfTier ?? new Func<int, long, IReadOnlyList<WeightedKey>>((_, __) => Weighted(SyntheticKeys)),
                 presence,
                 spawnAnchorOf: _ => SyntheticCell,
-                spawnPatient: _ => { onSpawn(); return new PatientId(1); },
+                spawnPatient: (_, __) => { onSpawn(); return new PatientId(1); },
                 // 合成上下文:**出诊路径上、不在医馆、非冷却** —— F1 上下文门的唯一通行组合
                 // (WindowSize 由链按 config 覆盖,这里传 0)
                 contextOf: w => new F1PipelineInput(w, windowSize: 0,

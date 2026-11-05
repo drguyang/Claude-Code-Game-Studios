@@ -16,16 +16,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
     public static class EventPoolCookedCodec
     {
         /// <summary>读方认领的 <c>schema_version</c>。</summary>
-        /// <remarks>🔁 2026-11-05(`TD-randomevents-06`):1 → **2**(条目追加 `is_house_call`)。</remarks>
-        public const uint ExpectedSchemaVersion = 2u;
+        /// <remarks>🔁 2026-11-05(`TD-randomevents-06`):1 → **2**(条目追加 `is_house_call`)。
+        /// 🔁 2026-11-05(`TD-randomevents-03`):2 → **3**(条目追加 `disease_id`)。</remarks>
+        public const uint ExpectedSchemaVersion = 3u;
 
         private const string ProductName = "52_event_pool";
 
         /// <summary>固定头部字节数(5 × i32)。</summary>
         public const int FixedPayloadBytes = 20;
 
-        /// <summary>每条条目字节数(8 × i32;`is_house_call` 于 2026-11-05 追加)。</summary>
-        public const int EntryBytes = 32;
+        /// <summary>每条条目字节数(9 × i32;`is_house_call` / `disease_id` 均于 2026-11-05 追加)。</summary>
+        public const int EntryBytes = 36;
 
         /// <summary>解码。</summary>
         /// <exception cref="InvalidDataException">头部损坏 / schemaVersion 不匹配 / 载荷长度不符 / 条目越界。</exception>
@@ -67,6 +68,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     int handler = r.ReadInt32();
                     int causeFlagKey = r.ReadInt32();
                     int isHouseCall = r.ReadInt32();
+                    int diseaseId = r.ReadInt32();
 
                     if (handler != (int)PoolHandler.Encounter && handler != (int)PoolHandler.Medical)
                         throw E13($"条目 {key} 的 handler={handler} 不在闭集 {{0,1}} —— 产物损坏");
@@ -75,9 +77,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     if (isHouseCall != 0 && isHouseCall != 1)
                         throw E13($"条目 {key} 的 is_house_call={isHouseCall} 不在闭集 {{0,1}} —— 产物损坏");
 
+                    // 值域守形状(≥ 0);「medical 必须 > 0 / encounter 必须 = 0」归 Binder。
+                    if (diseaseId < 0)
+                        throw E13($"条目 {key} 的 disease_id={diseaseId} 为负 —— 产物损坏");
+
                     rows.Add(new EventPoolEntryData(key, wBase, tier, anchor, trigger,
                                                     (PoolHandler)handler, causeFlagKey,
-                                                    isHouseCall == 1));
+                                                    isHouseCall == 1, diseaseId));
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);

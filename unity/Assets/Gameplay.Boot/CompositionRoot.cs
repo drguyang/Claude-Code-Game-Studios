@@ -710,9 +710,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                     candidatesOfTier: candidatesOfTier,
                     presence: presence,
                     spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
-                    spawnPatient: _ => throw new NotSupportedException(
-                        "急召降临 → 病人创建需要 52 `handler = medical` 条目 → 37 病种的映射表(归 37 内容件)。" +
-                        "该表今日不存在;返回假病种会让『有人开始生成病人了』静默通过,故刻意抛。"),
+                    // 🔁 **2026-11-05(`TD-randomevents-03`):映射表已落** ——
+                    //    「哪个 key 产哪个病」= 池条目的 `disease_id` 外键(`assets/data/52_event_pool.json`),
+                    //    构建期由 `EventPoolBinder` 强制「medical ⇒ > 0 / encounter ⇒ 0」。
+                    //    改前此缝**刻意抛** NotSupportedException(无映射就没有答案)。
+                    // ⚠️ **`presence.AddPresent` 不可省**:`EventStream.Append` 的 AC-15 在场检查
+                    //    会拒收未登记的病人 —— 省掉它则链报 `Spawned`、流里有 `DiseaseOnset`,
+                    //    但 13 看不见、9 不 Step、37 不开案:**链「成功」而世界毫无变化**。
+                    // 判据本体住 `EventPoolPatientSpawner`(**装配与夹具的单一出处**)——
+                    // 内联 lambda 会让夹具只能照抄一遍,生产改坏了夹具照样绿。
+                    spawnPatient: EventPoolPatientSpawner.SpawnPatient(
+                        eventPool, spawner.SpawnNext, presence, _ => new WorldPos(0, 0, 0)),
                     // ⚠️ 本闭包只提供**上下文旗标**;`WindowSize` 由链按数据集覆盖(ADR-039 D6),
                     //    这里传 0 是为了让「谁提供它」在源码里唯一。
                     // 🔁 **2026-11-05(`TD-randomevents-05`):三项输入全部改求真值**
@@ -735,22 +743,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ── 🔁 2026-11-05(`TD-randomevents-05`):按条目 `handler` 决定「要不要病人」 ──
                     // 池里 `encounter`(27 人形遭遇 / 野兽)不产病人,`medical`(37 病例模板)才产。
                     // 改前是**无条件**调 `spawnPatient` ⇒ 遭遇条目也会撞上那道刻意抛。
-                    requiresPatient: key =>
-                    {
-                        IReadOnlyList<EventPoolEntryData> pool = eventPool.Entries;
-                        for (int i = 0; i < pool.Count; i++)
-                            if (pool[i].Key == key)
-                                return pool[i].Handler == PoolHandler.Medical;
-                        // 查不到 ⇒ **保守按「要病人」** —— 宁可拒(具名零写入),
-                        // 不可悄悄少一个病人(那是静默的数据缺失)。
-                        return true;
-                    },
-                    // 🔴 **今日恒 false,是诚实值不是占位**:`medical` 条目 → 37 病种的映射表
-                    //    尚不存在(`TD-randomevents-03`),没有映射就没有「生成哪个病」的答案。
-                    //    返回一个假病种会让「有人开始生成病人了」静默通过 —— 那正是本闭包
-                    //    刻意抛要防的形态。⇒ 现状 = 遭遇条目照常落 `EventRolled`/`EventArrived`,
-                    //    医疗条目走 `PatientSpawnUnavailable`(零写入)。映射表落地后改这一处。
-                    canSpawnPatient: _ => false);
+                    requiresPatient: EventPoolPatientSpawner.RequiresPatient(eventPool),
+                    // 「这条能不能产病人」= 池表里有病种外键(> 0)。
+                    // 🔁 改前是 `_ => false`(映射表不存在的诚实值)⇒ 医疗条目恒
+                    //    `PatientSpawnUnavailable` ⇒ 端到端零写入。
+                    canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(eventPool));
             }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(

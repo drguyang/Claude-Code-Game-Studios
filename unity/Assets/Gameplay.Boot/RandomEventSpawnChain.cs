@@ -90,10 +90,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Func<int, long, IReadOnlyList<WeightedKey>> _candidatesOfTier;
         private readonly IPresenceQuery _presence;
         private readonly Func<long, WorldPos> _spawnAnchorOf;
-        private readonly Func<long, PatientId> _spawnPatient;
+        private readonly Func<int, long, PatientId> _spawnPatient;
         private readonly Func<long, F1PipelineInput> _contextOf;
         private readonly Func<int, bool> _requiresPatient;
-        private readonly Func<long, bool> _canSpawnPatient;
+        private readonly Func<int, bool> _canSpawnPatient;
         private readonly Func<IReadOnlyList<SimEvent>> _events;
         private readonly int _tier;
         private readonly long _rollInterval;
@@ -131,14 +131,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier,
             IPresenceQuery presence,
             Func<long, WorldPos> spawnAnchorOf,
-            Func<long, PatientId> spawnPatient,
+            Func<int, long, PatientId> spawnPatient,
             Func<long, F1PipelineInput> contextOf,
             Func<IReadOnlyList<SimEvent>> events,
             int tier,
             in RandomEventsDataSet config,
             int causeClueKey = 0,
             Func<int, bool> requiresPatient = null,
-            Func<long, bool> canSpawnPatient = null)
+            Func<int, bool> canSpawnPatient = null)
         {
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
@@ -253,7 +253,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⚠️ 掷骰本身是**纯函数**(`SeedEventAuthority.Roll` 无状态),在此早退不改随机序。
             //    ⚠️ `requiresPatient == null` ⇒ 沿用旧语义(每条都要病人);生产恒传。
             bool needsPatient = _requiresPatient == null || _requiresPatient(roll.ChosenKey);
-            if (needsPatient && _canSpawnPatient != null && !_canSpawnPatient(tick))
+            if (needsPatient && _canSpawnPatient != null && !_canSpawnPatient(roll.ChosenKey))
                 return SpawnChainOutcome.PatientSpawnUnavailable;
 
             // ⑧ 落两条事件 —— 顺序固定(先骰后降临;AD-52-822「一次降临恰一条 EventArrived」)
@@ -270,7 +270,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    🔁 2026-11-05:只有**需要病人**的条目才走这一步 —— `handler = encounter` 的
             //    条目(27 人形遭遇 / 野兽)不产病人。此前无条件调用是「病人通道」张冠李戴,
             //    也正是 `medical` 映射缺失时会让**遭遇条目**一起被那道刻意抛拖死的原因。
-            if (needsPatient) _spawnPatient(tick);
+            if (needsPatient) _spawnPatient(roll.ChosenKey, tick);
 
             return SpawnChainOutcome.Spawned;
         }

@@ -37,6 +37,10 @@ namespace DaYiJingCheng.EditorTools.Bake
             //    缺字段不能默认 false:那会让「37 还没定内容」与「定了、说不是」不可分,
             //    而这两者一个该等、一个该停。
             "is_house_call",
+            // 🔁 2026-11-05(`TD-randomevents-03`):病种外键。`handler` 回答「该问谁要内容」,
+            //    本字段回答「内容是哪一个」。**必填** —— 缺字段不能默认 0:那会让
+            //    「37 还没定」与「定了、说这条不产病人」不可分(与 `is_house_call` 同理)。
+            "disease_id",
         };
 
         /// <summary>档名 → id(闭集四员,规则三「属且只属一档」)。</summary>
@@ -226,10 +230,27 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return null;
             }
 
+            // 病种外键(必填整数;`0` = 本条目不产病人)。
+            if (!ReadInt(node, "disease_id", at, errors, out int diseaseId)) return null;
+            if (diseaseId < 0)
+                errors.Add($"{at}.disease_id = {diseaseId} 须 ≥ 0(0 = 本条目不产病人)");
+
+            // 与 `handler` 的一致性(**本字段存在的意义就在这条**):
+            //   · medical   ⇒ 必须指一个真病种(> 0),否则「医疗条目」没有内容可产;
+            //   · encounter ⇒ 必须为 0,否则遭遇条目会凭空产出病人(玩家打了一头狼,来了个病人)。
+            // 改前两者都无从表达 —— `canSpawnPatient` 只能恒 false。
+            if ((PoolHandler)handler == PoolHandler.Medical && diseaseId == 0)
+                errors.Add($"{at} handler=medical 但 disease_id=0 —— 医疗条目必须指向一个真病种" +
+                           "(0 只给 `encounter`;「内容还没定」不是合法状态,该条件目暂不进池)");
+            if ((PoolHandler)handler == PoolHandler.Encounter && diseaseId != 0)
+                errors.Add($"{at} handler=encounter 但 disease_id={diseaseId} —— 遭遇条目不产病人," +
+                           "本字段须为 0(否则打完敌人凭空出现病人)");
+
             if (errors.Count != before) return null;
 
             return new EventPoolEntryData(key, wBase, tier, anchor, trigger,
-                                          (PoolHandler)handler, causeFlagKey, houseCallNode.Bool);
+                                          (PoolHandler)handler, causeFlagKey, houseCallNode.Bool,
+                                          diseaseId);
         }
 
         private static bool ReadEnum(JsonNode node, string key, string[] names, string at,

@@ -238,6 +238,162 @@ namespace DaYiJingCheng.Tests.RandomEvents
             }
         }
 
+        // ══════════════ 真池驱动:映射的端到端(TD-randomevents-03 ④)══════════════
+        //
+        // ⚠️ 本组是**唯一**用真池的夹具 —— 与文件头的「合成 key」纪律不冲突,理由不同:
+        //    合成 key 测**门**(预算 / 抽数 / 节奏),真池测**映射**。
+        //    映射若用合成 key 测,`disease_id` 外键填错也会全绿(自造断言顶替 AC 语义层)。
+
+        private static readonly string RealRepoRoot = ComputeRealRepoRoot();
+
+        private static string ComputeRealRepoRoot(
+            [System.Runtime.CompilerServices.CallerFilePath] string thisFile = "")
+            => System.IO.Path.GetFullPath(System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(thisFile) ?? ".", "..", "..", "..", "..", ".."));
+
+        private static EventPoolDataSet RealPool()
+        {
+            string json = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(RealRepoRoot, "assets", "data", "52_event_pool.json"));
+            DaYiJingCheng.EditorTools.Bake.EventPoolBinder.BindResult bound =
+                DaYiJingCheng.EditorTools.Bake.EventPoolBinder.Bind(json);
+            return new EventPoolDataSet(bound.Entries,
+                bound.NightThreatMultNum, bound.NightThreatMultDen,
+                bound.TodMultMaxNum, bound.TodMultMaxDen,
+                configVersion: 0u, schemaVersion: bound.SchemaVersion);
+        }
+
+        /// <summary>池表 `disease_id` 必须指向 9 注册表里**真实存在**的病种 id。</summary>
+        /// <remarks>⚠️ 这是**外键闭合**判据,不是「值不为 0」—— 后者对 `9999` 也会绿。
+        /// 与 `AC-8-34` 的体征外键同格:载体 = 单测,baker 不读注册表(不新造 52→9 的数据依赖)。</remarks>
+        [Test]
+        public void test_realPool_diseaseIdResolvesToRealRegistryEntry()
+        {
+            EventPoolDataSet pool = RealPool();
+
+            string regJson = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(RealRepoRoot, "assets", "data", "disease_registry.json"));
+            DaYiJingCheng.EditorTools.Bake.DiseaseRegistryBinder.BindResult reg =
+                DaYiJingCheng.EditorTools.Bake.DiseaseRegistryBinder.Bind(regJson);
+
+            var realIds = new HashSet<int>();
+            for (int i = 0; i < reg.Rows.Count; i++) realIds.Add(reg.Rows[i].DiseaseId);
+
+            int medicalCount = 0;
+            foreach (EventPoolEntryData e in pool.Entries)
+            {
+                if (e.Handler == PoolHandler.Encounter)
+                {
+                    Assert.That(e.DiseaseId, Is.EqualTo(0),
+                        $"遭遇条目 {e.Key} 不得带病种外键(否则打完敌人凭空出现病人)");
+                    continue;
+                }
+
+                medicalCount++;
+                Assert.That(e.DiseaseId, Is.GreaterThan(0),
+                    $"医疗条目 {e.Key} 的 disease_id 须 > 0");
+                Assert.That(realIds.Contains(e.DiseaseId), Is.True,
+                    $"医疗条目 {e.Key} 的 disease_id={e.DiseaseId} 不在 9 的注册表里 —— 悬空外键" +
+                    "(运行期会 spawn 出一个不存在的病种,或直接被拒)");
+            }
+
+            Assert.That(medicalCount, Is.GreaterThan(0),
+                "医疗条目数 = 0 ⇒ 本测零判别力(空洞正控),且 52 永远产不出病人");
+        }
+
+        /// <summary>「查不到 key」与「查到了但不产病人」必须可区分。</summary>
+        [Test]
+        public void test_diseaseIdOfKey_threeStatesAreDistinct()
+        {
+            EventPoolDataSet pool = RealPool();
+
+            int medicalKey = 0, encounterKey = 0;
+            foreach (EventPoolEntryData e in pool.Entries)
+            {
+                if (medicalKey == 0 && e.DiseaseId > 0) medicalKey = e.Key;
+                if (encounterKey == 0 && e.Handler == PoolHandler.Encounter) encounterKey = e.Key;
+            }
+            Assert.That(medicalKey, Is.Not.EqualTo(0), "前置:池里须有医疗条目");
+            Assert.That(encounterKey, Is.Not.EqualTo(0), "前置:池里须有遭遇条目");
+
+            Assert.That(pool.DiseaseIdOfKey(medicalKey), Is.GreaterThan(0), "医疗条目 → 真病种 id");
+            Assert.That(pool.DiseaseIdOfKey(encounterKey), Is.EqualTo(0), "遭遇条目 → 0(不产病人)");
+            Assert.That(pool.DiseaseIdOfKey(-12345), Is.EqualTo(EventPoolDataSet.KeyAbsent),
+                "查不到的 key → KeyAbsent —— 合并成 0 会让拼写错的 key 静默降级成「不产病人」");
+        }
+
+        /// <summary>
+        /// **端到端**:真池驱动 ⇒ 链走到 ⑨ ⇒ 产出的病人携带池表给该 key 定的病种。
+        /// </summary>
+        /// <remarks>判据与生产装配同源:`requiresPatient` / `canSpawnPatient` / `spawnPatient`
+        /// 三个闭包全部只经 `DiseaseIdOfKey` 取值(与 `CompositionRoot` 一致)。</remarks>
+        [Test]
+        public void test_realPool_drivingChain_spawnsPatientWithMappedDisease()
+        {
+            EventPoolDataSet pool = RealPool();
+            var spawned = new List<(long Tick, int DiseaseId)>();
+            var presence = new RecordingPresence();
+
+            // ⚠️ 三个闭包**全部取自生产类** `EventPoolPatientSpawner`,不在这里重写判据 ——
+            //    重写就等于「夹具照抄一遍生产逻辑」,生产改坏了本测照样绿(假绿 F1)。
+            var chain = new RandomEventSpawnChain(
+                _sink, _encoder,
+                new SeedEventAuthority((_, __) => EventWeighting.CandidatesOfTier(pool, Tier, false), WorldSeed),
+                candidatesOfTier: (_, __) => EventWeighting.CandidatesOfTier(pool, Tier, false),
+                presence: presence,
+                spawnAnchorOf: _ => SyntheticCell,
+                spawnPatient: EventPoolPatientSpawner.SpawnPatient(
+                    pool,
+                    spawnCore: (diseaseId, tick) =>
+                    {
+                        var pid = new PatientId(spawned.Count + 1);
+                        spawned.Add((tick, diseaseId));
+                        return pid;
+                    },
+                    presence: presence,
+                    anchorOf: _ => SyntheticCell),
+                contextOf: tick => new F1PipelineInput(tick, windowSize: 0, isNight: false,
+                    isOnExpedition: true, isInClinic: false,
+                    inCombatCooldown: false, seasonIndex: 0),
+                events: () => _sink.Events,
+                tier: Tier,
+                config: new RandomEventsDataSet
+                {
+                    // ⚠️ `WindowSize = 20`:真登记在场之后,产出的病人会累计到
+                    //    `PATIENT_APPEARANCE_CAP = 24`,超出即被 `EventStream.Append` 的 AC-15 拒收。
+                    //    窗口收到 20 次抽取 ⇒ 医疗条目期望 ~13 条,**在硬界内**。
+                    //    (改前走的是假在场面,永不撞界 —— 那是「夹具没接真件」的另一形态。)
+                    TicksPerDay = 1000000L, RollInterval = 20L, WindowSize = 20,
+                    Base = 1000, BudgetMax = 1000,
+                },
+                requiresPatient: EventPoolPatientSpawner.RequiresPatient(pool),
+                canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(pool));
+
+            for (long t = 20L; t <= 1200L; t += 20L) chain.TrySpawnAtTick(t);
+
+            Assert.That(spawned, Is.Not.Empty,
+                "端到端零病人 ⇒ 本测无判别力(空洞正控);真池下医疗条目应当能走到 ⑨");
+
+            // 池表里**全部医疗条目的病种集** —— 产出的病种必须落在这个集合里。
+            // (`spawnCore` 拿不到 key,所以不能逐条比 key;但「病种来自池表医疗条目」
+            //  这一条足以钉死映射来源 —— 拼错 id / 用 encounter 的病种都会越界。)
+            var medicalDiseaseIds = new HashSet<int>();
+            foreach (EventPoolEntryData e in pool.Entries)
+                if (e.Handler == PoolHandler.Medical) medicalDiseaseIds.Add(e.DiseaseId);
+            Assert.That(medicalDiseaseIds.Count, Is.GreaterThan(0), "前置:池里须有医疗条目");
+
+            foreach ((long tick, int diseaseId) in spawned)
+            {
+                Assert.That(medicalDiseaseIds.Contains(diseaseId), Is.True,
+                    $"tick={tick} 产出的病种 {diseaseId} 不在池表医疗条目的病种集 " +
+                    $"[{string.Join(",", medicalDiseaseIds)}] 内 —— 映射来源错了");
+            }
+            Assert.That(_sink.Events.Count, Is.GreaterThan(0),
+                "落库必须有事件 —— 零事件而「成功」= 链报 Spawned 而世界无变化");
+            Assert.That(presence.Added.Count, Is.EqualTo(spawned.Count),
+                "每个产出的病人都必须登记在场(AC-15) —— 漏登记则链报 Spawned 而世界无变化");
+        }
+
         // ══════════════ 夹具 ══════════════
 
         private RandomEventSpawnChain NewChain(
@@ -252,7 +408,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 candidatesOfTier: candidatesOfTier ?? ((_, __) => Weighted(SyntheticKeys)),
                 presence: new FakePresence(),
                 spawnAnchorOf: _ => SyntheticCell,
-                spawnPatient: _ => new PatientId(1),
+                spawnPatient: (_, __) => new PatientId(1),
                 contextOf: w => new F1PipelineInput(w, windowSize: 0,
                     isNight: false, isOnExpedition: true, isInClinic: false,
                     inCombatCooldown: false, seasonIndex: 0),
@@ -326,6 +482,27 @@ namespace DaYiJingCheng.Tests.RandomEvents
             public bool IsPresent(PatientId patientId) => false;
             public bool IsPresentAt(WorldPos cell) => false;
             public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
+        }
+
+        /// <summary>真·在场写面 + 只读视图 —— 端到端夹具用它证明 `AddPresent` 真的被调用。</summary>
+        private sealed class RecordingPresence : IPresenceQuery, IPresenceWriter
+        {
+            public readonly List<PatientId> Added = new List<PatientId>();
+            private readonly HashSet<int> _ids = new HashSet<int>();
+
+            public int PresentCount => _ids.Count;
+            public bool IsPresent(PatientId patientId) => _ids.Contains(patientId.Value);
+            public bool IsPresentAt(WorldPos cell) => false;
+            public IReadOnlyCollection<int> PresentPatientIds() => new List<int>(_ids);
+
+            public void AddPresent(PatientId patientId, WorldPos cell)
+            {
+                Added.Add(patientId);
+                _ids.Add(patientId.Value);
+            }
+
+            public void RemovePresent(PatientId patientId) => _ids.Remove(patientId.Value);
+            public void MovePresent(PatientId patientId, WorldPos toCell) { }
         }
     }
 }

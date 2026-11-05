@@ -67,13 +67,24 @@ namespace DaYiJingCheng.Sim.Contracts
         /// </summary>
         public readonly bool IsHouseCall;
 
+        /// <summary>
+        /// 本条目产出的**病种 id**(指向 9 的病种注册表;`0` = 本条目不产病人)。
+        /// <para>🔁 2026-11-05(`TD-randomevents-03`):`handler` 只回答「**该问谁要内容**」,
+        /// 本字段回答「**内容是哪一条**」—— 前者是枚举,后者是外键。两者缺一,
+        /// `spawnPatient` 缝就没有「生成哪个病」的答案(`TD-randomevents-05` 的
+        /// `canSpawnPatient: _ => false` 正是那个缺口的诚实值)。</para>
+        /// <para>⚠️ **必须是定值,不得运行时随机挑** —— 随机挑 = 引入一条不在三流里的掷骰输入,
+        /// 违反 ADR-016 §一「决策可重建 ⟺ 全部输入 ∈ {事件流, 烘焙数据, 二者纯函数}」。</para>
+        /// </summary>
+        public readonly int DiseaseId;
+
         public EventPoolEntryData(int key, int wBase, int tier, int spawnAnchor,
                                   int triggerMode, PoolHandler handler, int causeFlagKey,
-                                  bool isHouseCall)
+                                  bool isHouseCall, int diseaseId)
         {
             Key = key; WBase = wBase; Tier = tier; SpawnAnchor = spawnAnchor;
             TriggerMode = triggerMode; Handler = handler; CauseFlagKey = causeFlagKey;
-            IsHouseCall = isHouseCall;
+            IsHouseCall = isHouseCall; DiseaseId = diseaseId;
         }
     }
 
@@ -130,6 +141,26 @@ namespace DaYiJingCheng.Sim.Contracts
             for (int i = 0; i < Entries.Count; i++)
                 if (Entries[i].IsHouseCall) keys[w++] = Entries[i].Key;
             return keys;
+        }
+
+        /// <summary>「该 key 不在池里」的哨兵(与「在池里但本条目不产病人」的 `0` 刻意分开)。</summary>
+        public const int KeyAbsent = -1;
+
+        /// <summary>
+        /// 查某条池条目产出的病种 id。
+        /// <para>返回:<b>`&gt; 0`</b> = 该病种 id · <b>`0`</b> = 条目在池里但**不产病人**
+        /// (`handler = encounter`,或医疗条目尚未定内容)· <b><see cref="KeyAbsent"/></b> = 该 key
+        /// 不在池里。</para>
+        /// <para>⚠️ **三态不是冗余** —— 「查不到 key」与「查到了但本条不产病人」是两件事:
+        /// 前者是数据缺失(须 fail-loud),后者是正常内容(`encounter` 条目本就不产病人)。
+        /// 合并成 `0` 会让拼写错的 key 静默降级成「不产病人」。</para>
+        /// </summary>
+        public int DiseaseIdOfKey(int key)
+        {
+            if (Entries == null) return KeyAbsent;
+            for (int i = 0; i < Entries.Count; i++)
+                if (Entries[i].Key == key) return Entries[i].DiseaseId;
+            return KeyAbsent;
         }
 
         public EventPoolDataSet(IReadOnlyList<EventPoolEntryData> entries,

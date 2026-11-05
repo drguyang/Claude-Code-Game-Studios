@@ -42,7 +42,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
                                                 int trigger = 0, int causeFlag = 0,
                                                 bool isHouseCall = false)
             => new EventPoolEntryData(key, wBase, tier, spawnAnchor: 1, triggerMode: trigger,
-                                      PoolHandler.Encounter, causeFlag, isHouseCall);
+                                      PoolHandler.Encounter, causeFlag, isHouseCall, diseaseId: 0);
 
         // ══════════════ 一、`W_i` 的算术 ══════════════
 

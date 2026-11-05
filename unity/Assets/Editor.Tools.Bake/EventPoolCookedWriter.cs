@@ -24,7 +24,7 @@ namespace DaYiJingCheng.EditorTools.Bake
     internal static class EventPoolCookedWriter
     {
         /// <summary>每条条目的固定字节数(8 × i32)。</summary>
-        public const int EntryBytes = 32;
+        public const int EntryBytes = 36;   // 9 × i32(2026-11-05 追加 disease_id)
 
         /// <summary>固定头部(5 × i32:四个乘子 + count)。</summary>
         public const int FixedPayloadBytes = 20;
@@ -51,6 +51,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                     w.Write((int)e.Handler);
                     w.Write(e.CauseFlagKey);
                     w.Write(e.IsHouseCall ? 1 : 0);
+                    w.Write(e.DiseaseId);
                 }
                 w.Flush();
                 return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);

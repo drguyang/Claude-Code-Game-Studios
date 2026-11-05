@@ -16915,3 +16915,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **端到端仍恒假** —— `canSpawnPatient` 恒 `false`(等 `TD-randomevents-03`)。本件只证数据行存在与一致,不证任何病人真被生成。
 - 证据原件 = `production/qa/evidence/impl-febrile-seizure-containment-2026-11-05.md`。
 - **待提交**。
+
+### TD-randomevents-03 实现轮(2026-11-05 · 52 事件 → 37 病种的映射 + 端到端)
+
+- 池条目加**病种外键 `disease_id`**(`schema_version 2 → 3`,条目 32 → 36 B,产物 328 → 364 B,`ConfigVersion = 0x5BCD9E9B`);构建期强制「medical ⇒ > 0 / encounter ⇒ 0」。
+- 映射内容(创意总监 2026-11-05 裁定):**2002 → 7 间日疟** · **2003 → 17 热性惊厥** · **3001 → 11 麻疹**;其余 6 条 encounter = 0。卡鱼刺 / 偏头痛未进 P0。
+- 三个判据提成生产类 **`Gameplay.Boot/EventPoolPatientSpawner.cs`**(装配与夹具单一出处)—— 首版夹具是**照抄**生产闭包,属自造断言(假绿 F1),已改。
+- 回归:EditMode **`6915 / 6878 / 0 / 37`**(+6 = 新增夹具数)· PlayMode **`341 / 337 / 0 / 2 / 2`**(逐位相同)。
+- 证伪轮 **5 变异全红在靶点**,四份文件 SHA-256 逐字节还原。M5 专打「删掉 `presence.AddPresent`」——链报 `Spawned`、流有事件、病人不可见。
+- `TD-randomevents-03` **closed**。计数 186 · open 18 · partial 6 · 未闭 P0 面 **10** · epic 分布 **6/31 不变**。
+- ⚠️ **仍未证**:玩家真走出诊路径(`isOnExpedition` 需人工走局);`PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`(脚手架=INJ_STAB=2,52=7/17/11),不按「有没有病人」**。
+- ⚠️ GDD 规则二「52 不拥有任何内容字段」与 `disease_id` 的关系已就地加注:**解释不是新裁决**。
+- 证据原件 = `production/qa/evidence/impl-td-randomevents-03-2026-11-05.md`。
+- **待提交**。

@@ -414,7 +414,7 @@
 | `TD-enemy-03` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
-| `TD-randomevents-03` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-03` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
 | `TD-randomevents-05` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-06` | `random-events` | partial | **Y** | R1 |
@@ -707,6 +707,22 @@ PYEVAL
 > **未做**(归 37);今日表里的两条 `true` 是 **52 的占位初值**,不是 37 的定稿。
 > ⚠️ **端到端仍恒假**:医疗条目产不出 `EventArrived`(`-03` 的病种映射缺失)⇒ 本集合非空
 > 但**没有一条出诊类事件落流**。凡以「出诊链路可跑」形态引用规则十二者,仍按未通处理。
+
+> > 🔁 **八十三订(`TD-randomevents-03` 结案 · 2026-11-05 · 实现面 + 债面)** ——
+> **单一变化源**:索引行 `TD-randomevents-03` 由 `open` → `closed`(解除动作 ③④ 本轮落齐)。
+> 变化:`closed 160 → 161`(+1)· `open 19 → 18`(−1)· 条目 **186 不变** ·
+> **`未闭 P0 面 11 → 10`**(−1)· `Y 125` / `N 55` 不动 ·
+> **`epic 分布 6/31` 不变** —— `random-events` 名下**仍有 4 条**未闭 P0 面(`-04` `-05` 半边 `-07` `-08`),
+> 本条结案只把它从 5 条减到 4 条,不足以让该 epic 退出分布。
+> 现行分布:`random-events 4` · `skeuomorphic-ui 2` · `diagnosis-system 1` ·
+> `disease-simulation 1` · `emergency-procedures 1` · `processing 1`。
+> 落点:池条目 **`disease_id` 外键**(`schema_version 2 → 3`,条目 32 → 36 B,重烘 `0x5BCD9E9B`)·
+> 构建期「medical ⇒ > 0 / encounter ⇒ 0」· 生产类 **`EventPoolPatientSpawner`**(判据单一出处,
+> 夹具执行同一份而不是镜像)· 6 条新夹具。
+> ⚠️ **仍未证**:玩家真走到出诊路径(`isOnExpedition` 要人工走局);且
+> `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
+> ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
+> 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
 
 > > 🔁 **八十二订(`TD-diagnosis-02` / `TD-sim-06` / `TD-emergency-01` 立债 · 2026-11-05 · 债面)** ——
 > **变化源 = 三笔新登记,无一条状态变更。** 病因同一处:用户要求把「儿童高热惊厥 / 卡鱼刺 /
@@ -1354,10 +1370,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 186 | 状态 {'closed': 160, 'partial': 6, 'open': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 125, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 114 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
-    random-events: 5          skeuomorphic-ui: 2        diagnosis-system: 1
+条目 186 | 状态 {'closed': 161, 'partial': 6, 'open': 18, '**done**(2026-10-21)': 1} | P0 面 {'Y': 125, 'N': 55, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 115 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 6/31 个 epic
+    random-events: 4          skeuomorphic-ui: 2        diagnosis-system: 1
     disease-simulation: 1     emergency-procedures: 1   processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -4636,6 +4652,42 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 数值前置** | 池条目的**权重**是数值(归用户裁定,承「数值用户自己调」)⇒ 本债**不承诺**解除时数值已定;权重未定的形态须在数据件里显式标注,不得由实现轮自填。 |
 | **触发条件** | ① 52 内容/数据轮开工;② 或任何以「52 已跑起来 / 端到端可达」形态引用 ADR-039 之前(**禁借绿**);③ 或 37 交付急召出诊内容、需要 `event_key → 病种` 映射时(同批)。 |
 | **归属** | **52 随机事件导演**(池条目数据件 + `keysOfTier` 装配)· 医疗内容 = **37** |
+
+> ✅ **2026-11-05 实现轮 —— 结案**(原件 = `production/qa/evidence/impl-td-randomevents-03-2026-11-05.md`)。
+>
+> **解除动作 ③「`spawnPatient` 缝的映射表」已落**:映射不是独立的表,而是**池条目上的病种外键**
+> `disease_id`(int,`0` = 本条目不产病人)。理由:一张独立映射表会造出「key → 病种」的**第二真源**,
+> 而池条目本来就按 key 唯一 —— 外键挂在它身上,一个 key 只有一处答案。
+> · 作者态 `assets/data/52_event_pool.json`:**`schema_version 2 → 3`**,9 条全部补 `disease_id`;
+> · 构建期强制(`EventPoolBinder`):**`medical` ⇒ `> 0`**、**`encounter` ⇒ `0`** ——
+>   「内容还没定」不是合法状态,该条目暂不进池;
+> · 产物:`52_event_pool.cooked.bytes` **328 → 364 B**(条目 32 → 36 B),`ConfigVersion = 0x5BCD9E9B`;
+> · 读方 `EventPoolCookedCodec`:`ExpectedSchemaVersion 2 → 3`,`EntryBytes 32 → 36`。
+>
+> **映射内容(创意总监 2026-11-05 裁定)**:
+> | key | 档 / 锚 | 病种 | 出处 |
+> |---|---|---|---|
+> | 2002 | 机会 / 旅行路径 / 急召出诊 | **7 = `DIS_MALARIA` 间日疟** | 唯一对因手柄(金鸡纳皮)的案子 |
+> | 2003 | 机会 / 旅行路径 / 急召出诊 | **17 = `DIS_FEBRILE_SEIZURE` 热性惊厥** | 「同一张脸、两个相反答案」的良性对照行 |
+> | 3001 | 反应 / 医馆前 | **11 = `DIS_MEASLES` 麻疹** | 「少做」的出诊(koplik 先于皮疹) |
+> ⚠️ **卡鱼刺 / 偏头痛未进** —— 创意总监裁定不进 P0(见 `TD-diagnosis-02` / `TD-emergency-01`)。
+>
+> **解除动作 ④「端到端夹具」已落(6 条)**:`RandomEventsConsumptionTest` 三条
+> (外键闭合 / 三态可区分 / **真池驱动端到端**)· `house_call_keys_from_pool_test` 三条
+> (产物往返 `disease_id` · medical 带 0 ⇒ 拒收 · encounter 带病种 ⇒ 拒收)。
+> **端到端那条执行的是生产类** `EventPoolPatientSpawner`(2026-11-05 新建),不是照抄一遍判据 ——
+> 提成具名纯函数之前,夹具只能镜像内联 lambda,生产改坏了照样绿(假绿 F1)。
+>
+> **⚠️ 一处如实登记:脚手架的归属混淆**。`PatientAppearedDriver`(接线期脚手架,每 60 tick 从
+> `registry[0]` 刷一个病人)仍在生产里跑 ⇒ **「看到一个病人」不能证明是 52 产出的**。
+> 但**事件流本身能区分**:脚手架产出的 `DiseaseOnset` 带 `INJ_STAB`(id 2),
+> 52 产出的带 7 / 17 / 11。⇒ 手工验证时按 `disease_id` 归因,**不按「有没有病人」归因**。
+> 脚手架退役(删 `MaxPatientsDuringWiring` 与相关分支)是另一件独立决定,本债不解它。
+>
+> **回归**:EditMode `6915/6878/0/37`(基线 `6909/6872/0/37`,增量 `6915−6909 = 6` = 新增夹具数)·
+> PlayMode `341/337/0/2/2`(逐位相同)。**证伪轮 5 变异全红在靶点**,SHA-256 逐字节还原。
+> ⚠️ **仍不得签核为「52 端到端可跑」的更强形态**:`isOnExpedition` 要玩家真的带出诊目标跨出医馆格,
+> 那需要人工走一局验证 —— 本债只证「数据与判据齐了、链能走到 ⑨ 并产出正确病种」。
 
 ### TD-randomevents-04 — F2 的 `ΣMod`(`Mod_Eco` / `Mod_Rep`)**零输入源**(52)
 

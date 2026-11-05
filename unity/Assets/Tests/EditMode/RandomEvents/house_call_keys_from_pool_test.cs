@@ -81,6 +81,56 @@ namespace DaYiJingCheng.Tests.RandomEvents
         // ── ② 产物:烘焙 → 解码,仍是同一组 ────────────────────────────────
 
         [Test]
+        public void test_cookedArtifact_roundTripsDiseaseId()
+        {
+            // 产物里的 `disease_id` 必须与源表逐条相同 —— 读方丢字段的话,运行期会
+            // 按 0 处理 ⇒ 全部医疗条目「不产病人」,而源表看起来完全正确(静默)。
+            EventPoolDataSet decoded = EventPoolCookedCodec.Read(File.ReadAllBytes(CookedPath));
+            EventPoolBinder.BindResult bound = EventPoolBinder.Bind(File.ReadAllText(SourcePath));
+
+            Assert.That(decoded.Entries.Count, Is.EqualTo(bound.Entries.Count), "条目数须一致");
+            for (int i = 0; i < bound.Entries.Count; i++)
+            {
+                Assert.That(decoded.Entries[i].Key, Is.EqualTo(bound.Entries[i].Key));
+                Assert.That(decoded.Entries[i].DiseaseId, Is.EqualTo(bound.Entries[i].DiseaseId),
+                    $"条目 {bound.Entries[i].Key} 的 disease_id 未往返 —— " +
+                    "读方丢字段 ⇒ 运行期全按 0(医疗条目静默不产病人)");
+            }
+        }
+
+        [Test]
+        public void test_medicalWithZeroDisease_isRejected()
+        {
+            // 「内容还没定」不是合法状态 —— 该条件目暂不进池,而不是带个 0 混进来。
+            string json = PoolWith(
+                "{ \"key\": 2002, \"w_base\": 100, \"tier\": \"opportunity\", " +
+                "\"spawn_anchor\": \"travel_path\", \"trigger_mode\": \"random\", " +
+                "\"handler\": \"medical\", \"cause_flag\": \"\", " +
+                "\"is_house_call\": true, \"disease_id\": 0 }");
+
+            var ex = Assert.Throws<BakeValidationException>(() => EventPoolBinder.Bind(json));
+
+            Assert.That(string.Join("\n", ex.Errors), Does.Contain("disease_id=0"),
+                "医疗条目必须指向真病种 —— 允许 0 会让「医疗」与「不产病人」同时成立");
+        }
+
+        [Test]
+        public void test_encounterWithDisease_isRejected()
+        {
+            // 遭遇条目带了病种 ⇒ 打完敌人凭空出现病人。
+            string json = PoolWith(
+                "{ \"key\": 2002, \"w_base\": 100, \"tier\": \"opportunity\", " +
+                "\"spawn_anchor\": \"travel_path\", \"trigger_mode\": \"random\", " +
+                "\"handler\": \"encounter\", \"cause_flag\": \"\", " +
+                "\"is_house_call\": false, \"disease_id\": 7 }");
+
+            var ex = Assert.Throws<BakeValidationException>(() => EventPoolBinder.Bind(json));
+
+            Assert.That(string.Join("\n", ex.Errors), Does.Contain("encounter"),
+                "遭遇条目的 disease_id 必须为 0");
+        }
+
+        [Test]
         public void test_cookedArtifact_roundTripsIsHouseCall()
         {
             byte[] bytes = File.ReadAllBytes(CookedPath);
@@ -90,9 +140,9 @@ namespace DaYiJingCheng.Tests.RandomEvents
 
             Assert.That(HouseCallKeys(decoded.Entries), Is.EqualTo(HouseCallKeys(bound.Entries)),
                 "烘焙产物与源表必须同组 —— 不一致 = 产物过期(须重跑「烘焙 52 池条目表」)");
-            Assert.That(EventPoolCookedCodec.EntryBytes, Is.EqualTo(32),
-                "条目宽度 32 B(schema_version 2 追加 is_house_call);" +
-                "改回 28 会让读方越界或错位");
+            Assert.That(EventPoolCookedCodec.EntryBytes, Is.EqualTo(36),
+                "条目宽度 36 B(schema_version 3 追加 disease_id);" +
+                "改回 32 会让读方越界或错位");
 
             // 装配层取的就是这个方法(`CompositionRoot`: `houseCallEventKeys = eventPool.HouseCallKeys()`)
             // ⇒ 本条同时证「生产派生路径」,不是另写一份等价遍历。
@@ -115,7 +165,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
         {
             var pool = new EventPoolDataSet(new[]
             {
-                new EventPoolEntryData(1, 100, 0, 1, 0, PoolHandler.Encounter, 0, isHouseCall: false),
+                new EventPoolEntryData(1, 100, 0, 1, 0, PoolHandler.Encounter, 0, isHouseCall: false, diseaseId: 0),
             }, 3, 2, 2, 1, 0u, 2u);
 
             Assert.That(pool.HouseCallKeys(), Is.Empty, "一条都没标 ⇒ 空集(与改前的硬编码同形,但**可观测**了)");
@@ -126,9 +176,9 @@ namespace DaYiJingCheng.Tests.RandomEvents
         {
             var pool = new EventPoolDataSet(new[]
             {
-                new EventPoolEntryData(2002, 100, 1, 1, 0, PoolHandler.Medical, 0, isHouseCall: true),
-                new EventPoolEntryData(2003, 100, 1, 1, 0, PoolHandler.Medical, 0, isHouseCall: true),
-                new EventPoolEntryData(3001, 100, 2, 0, 0, PoolHandler.Medical, 0, isHouseCall: false),
+                new EventPoolEntryData(2002, 100, 1, 1, 0, PoolHandler.Medical, 0, isHouseCall: true, diseaseId: 7),
+                new EventPoolEntryData(2003, 100, 1, 1, 0, PoolHandler.Medical, 0, isHouseCall: true, diseaseId: 17),
+                new EventPoolEntryData(3001, 100, 2, 0, 0, PoolHandler.Medical, 0, isHouseCall: false, diseaseId: 11),
             }, 3, 2, 2, 1, 0u, 2u);
 
             Assert.That(pool.HouseCallKeys(), Is.EqualTo(new[] { 2002, 2003 }),
@@ -138,7 +188,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
         // ── ③④ 负控:缺字段 / 非布尔 ⇒ 构建期拒收 ──────────────────────────
 
         private static string PoolWith(string entryBody)
-            => "{ \"schema_version\": 2, " +
+            => "{ \"schema_version\": 3, " +
                "\"night_threat_mult\": { \"num\": 3, \"den\": 2 }, " +
                "\"tod_mult_max\": { \"num\": 2, \"den\": 1 }, " +
                "\"entries\": [ " + entryBody + " ] }";
@@ -146,7 +196,10 @@ namespace DaYiJingCheng.Tests.RandomEvents
         private const string EntryHead =
             "{ \"key\": 2002, \"w_base\": 100, \"tier\": \"opportunity\", " +
             "\"spawn_anchor\": \"travel_path\", \"trigger_mode\": \"random\", " +
-            "\"handler\": \"medical\", \"cause_flag\": \"\"";
+            "\"handler\": \"medical\", \"cause_flag\": \"\", \"disease_id\": 7" +
+            // ⚠️ `disease_id` 放进 head:两个负控测的是 `is_house_call`,若 head 缺病种外键,
+            //    失败原因会变成「缺 disease_id」——靶子打偏(证伪轮的 M-类教训同型)。
+            "";
 
         [Test]
         public void test_missingIsHouseCall_isRejected()
