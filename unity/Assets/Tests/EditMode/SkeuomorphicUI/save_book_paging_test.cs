@@ -194,6 +194,93 @@ namespace DaYiJingCheng.Tests.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // ④ 末页只剩「留档」一行(槽位行恰好填满前一页)——
+        //    2026-11-06 用户实测抓到的缺陷:从这一行向上走**回不到前一页的末行**,
+        //    因为旧实现只看槽位行(`_rows.Count == 0` ⇒ 直接 no-op / 不拦)。
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>6 条空槽(恰好填满一页)⇒ 「留档」被挤到第 2 页。</summary>
+        private static SaveSlotView[] SixEmptyViews()
+        {
+            var views = new SaveSlotView[6];
+            for (uint i = 0; i < views.Length; i++)
+                views[i] = new SaveSlotView(i + 1u, known: true, hasSave: false, tick: 0L);
+            return views;
+        }
+
+        private static SaveSlotsScreen WritableOnlyLastPage()
+        {
+            var screen = new SaveSlotsScreen(new VisualElement(), new SkeuoElementLibrary());
+            screen.SetSlotViews(SixEmptyViews());
+            return screen;
+        }
+
+        [Test]
+        public void test_refreshAfterSave_followsWritableRowToItsPage()
+        {
+            SaveSlotsScreen book = WritableOnlyLastPage();
+            Assert.That(book.PageCount, Is.EqualTo(2), "前置:6 槽 + 「留档」⇒ 两页");
+            Assert.That(book.CurrentPage, Is.EqualTo(0), "开册口径(§7.1):高水位页 —— 无档 ⇒ 首页");
+
+            // 开册口径不变(默认 false)
+            book.SetSlotViews(SixEmptyViews());
+            Assert.That(book.CurrentPage, Is.EqualTo(0), "开册不得自己跳到末页");
+
+            // 写盘落定后的重画:跟到「留档」所在页
+            book.SetSlotViews(SixEmptyViews(), followWritablePage: true);
+            Assert.That(book.CurrentPage, Is.EqualTo(1),
+                "写盘后必须跟过去 —— 否则玩家眼前那页没有可写的地方(用户实测缺陷)");
+            Assert.That(book.SlotRowCount, Is.EqualTo(0), "该页只有「留档」一行");
+            Assert.That(book.WritableRow, Is.Not.Null);
+        }
+
+        [Test]
+        public void test_wheelUp_fromWritableOnlyPage_returnsToPreviousPage()
+        {
+            SaveSlotsScreen book = WritableOnlyLastPage();
+            Assert.That(book.PageCount, Is.EqualTo(2), "前置:6 槽 + 「留档」⇒ 两页");
+            Assert.That(book.NextPage(), Is.True);
+            Assert.That(book.SlotRowCount, Is.EqualTo(0), "前置:末页没有槽位行");
+            Assert.That(book.WritableRow, Is.Not.Null, "前置:末页只剩「留档」");
+
+            Assert.That(book.HandleWheel(+1f, 0), Is.True, "「留档」向上滚必须能翻回前一页");
+            Assert.That(book.CurrentPage, Is.EqualTo(0));
+
+            // 反向:「留档」向下滚没有下一处了 ⇒ 不消费、页号不动
+            book.NextPage();
+            Assert.That(book.HandleWheel(-1f, 0), Is.False, "轴上已是末端");
+            Assert.That(book.CurrentPage, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void test_writableEdgeMove_up_flipsBack_whenPageHasNoSlotRows()
+        {
+            SaveSlotsScreen book = WritableOnlyLastPage();
+            book.NextPage();
+            Assert.That(book.SlotRowCount, Is.EqualTo(0), "前置:本页没有槽位行");
+
+            Assert.That(book.HandleWritableEdgeMove(NavigationMoveEvent.Direction.Up), Is.True,
+                "「留档」上方的唯一去处就是前一页 ⇒ 必须由本屏翻页");
+            Assert.That(book.CurrentPage, Is.EqualTo(0));
+            Assert.That(book.HandleWritableEdgeMove(NavigationMoveEvent.Direction.Up), Is.False,
+                "翻回的这一页有槽位行 ⇒ 向上归官方焦点桥,不由本屏翻页");
+        }
+
+        [Test]
+        public void test_writableEdgeMove_up_isNotIntercepted_whenSlotRowsAbove()
+        {
+            SaveSlotsScreen book = TwoPages();     // 8 槽 ⇒ 末页 2 行 + 「留档」
+            book.NextPage();
+            Assert.That(book.SlotRowCount, Is.EqualTo(2), "前置:本页有槽位行");
+
+            Assert.That(book.HandleWritableEdgeMove(NavigationMoveEvent.Direction.Up), Is.False,
+                "上方还有槽位行 ⇒ 交给官方焦点桥,不得由本屏翻页");
+            Assert.That(book.HandleWritableEdgeMove(NavigationMoveEvent.Direction.Down), Is.False,
+                "向下不归翻页管");
+            Assert.That(book.CurrentPage, Is.EqualTo(1));
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // ③ 页缘热区那条路**不受影响**(它是「我要翻页」的明确意图)
         // ══════════════════════════════════════════════════════════════════
 

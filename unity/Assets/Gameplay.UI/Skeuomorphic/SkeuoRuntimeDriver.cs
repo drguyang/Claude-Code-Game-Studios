@@ -472,14 +472,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public void MarkSaveSlotRowsDirty() => _saveSlotsDirty = true;
 
         /// <summary>按 <see cref="SaveSlotViewProvider"/> 重取并重画(未注入 ⇒ 用给定清单)。</summary>
-        private void SetSaveSlotRows(IReadOnlyList<SaveSlotView> fallback)
+        /// <param name="followWritablePage">
+        /// <c>true</c> = 跟到「留档」行所在页(写盘落定后的重画);<c>false</c> = 按 §7.1 落高水位页(开册)。
+        /// </param>
+        private void SetSaveSlotRows(IReadOnlyList<SaveSlotView> fallback, bool followWritablePage = false)
         {
             IReadOnlyList<SaveSlotView> views = null;
             if (SaveSlotViewProvider != null) views = SaveSlotViewProvider();
             if (views == null) views = fallback;
             if (views != null) _saveSlotViews = views;
 
-            if (_screen is SaveSlotsScreen saveSlots) saveSlots.SetSlotViews(_saveSlotViews);
+            if (_screen is SaveSlotsScreen saveSlots)
+                saveSlots.SetSlotViews(_saveSlotViews, followWritablePage);
         }
 
         /// <summary>已实例化的 Screen(测试观测面)。</summary>
@@ -656,7 +660,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (!_saveSlotsDirty || !(_screen is SaveSlotsScreen saveSlots) || pending) return;
 
             _saveSlotsDirty = false;
-            SetSaveSlotRows(null);
+            // 写盘落定 ⇒ 跟着「留档」行翻页:第 6 格恰好填满一页时它被挤到下一页,
+            // 不跟过去的话玩家眼前那页**没有可写的地方**(2026-11-06 用户实测)。
+            SetSaveSlotRows(null, followWritablePage: true);
             // 重画会替换行元件 ⇒ 焦点原本落在旧元件上,须重新落一次,
             // 否则手柄玩家在存档后**焦点悬空**(一步也走不了)。
             if (saveSlots.WritableRow != null && saveSlots.WritableRow.panel != null)

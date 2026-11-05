@@ -58,8 +58,27 @@
 - **未证**:把指针**稳定停在册子上**再滚一格。实测 XTEST 的 `warp_pointer` 在抬窗后一小段时间里
   只更新 y、x 卡在 15;之后 motion 事件整体不再送达(键盘仍正常)⇒ **瞄不准**,不是功能没做。
   探针已删,证据仅存本节文字(日志在 `/home/gu/.claude/jobs/6001633c/tmp/player-probe2.log`)。
-- ⇒ 「滚轮到册子上 ⇒ 焦点动」这一格记 **NOT-RUN(真机腿)**,由 §2 的 PlayMode 件覆盖。
-  物理鼠标下是否与 PlayMode 一致,**待人工/后续带真指针设备的走查**。
+- ⇒ 我这一侧(自动化注入)记 **NOT-RUN**;但**用户随后用真鼠标自己点/滚,当场确认「鼠标滚轮正常」**
+  —— 指针腿在**真设备**上成立,§3.3 的两条缺陷也是他在真鼠标下发现的。⇒ 结论:**指针路径可用**,
+  不可用的只是我这套 XTEST 瞄准。
+
+## 3.3 用户真鼠标走查抓到的两处缺陷(同日修复)
+
+用户接过真包自己点,报了两条 —— 都**不是**我这轮新引入的判定错,而是「竖轴只数槽位行」的老口径
+在**末页只剩「留档」一格**这一形态上露出来的洞:
+
+| # | 现象(用户原话) | 根因 | 修法 |
+|---|---|---|---|
+| 1 | 「第 7 行留档时,上和鼠标上滚回不到第一页的第六行」 | 边界判据只看槽位行:该页 `_rows.Count == 0` ⇒ 滚轮 `return false`(直接 no-op)、方向键**根本没有监听者** | 竖轴改成「槽位行 + 留档行」:`HandleWheel` 用 `total = slots + writable` 走 `FocusSlot`;新增 `HandleWritableEdgeMove` / `IsWritableEdgeMove` 挂在「留档」行上(本页没有槽位行且还有前一页 ⇒ `StepPage(-1)`) |
+| 2 | 「存档第六行后,留档去了第二页,但界面还留在第一页没去第二页」 | 第 6 格恰好填满一页 ⇒ 「留档」被挤到第 2 页;写盘落定后的重画仍按**高水位页**落(§7.1 的开册口径) | `SetSlotViews(views, followWritablePage)`;`SkeuoRuntimeDriver` 的**脏标记重画**传 `true`(跟到「留档」页),**开册仍传 false**(口径不变) |
+
+判据:EditMode `save_book_paging_test` +4 条(留档页向上翻回 / 不越界拦 / 空册 no-op 保持)、
+PlayMode `save_book_paging_focus_test` +2 条(留档行向上滚落**前页末行**、脏重画跟页并落焦「留档」)。
+回归 EditMode `6961 / 6924 / 0 / 0 / 37` · PlayMode `349 / 345 / 0 / 2 / 2`。
+
+> ⚠️ 顺带修了一处**夹具侧**的连带:`pause_shell_and_frozen_refresh_test` 用反射调
+> `SetSaveSlotRows(driver, new object[]{ null })`,签名多一个参数后抛 `TargetParameterCountException`
+> ⇒ 补传 `false`(它模拟的是**开册**那次重画)。
 
 ## 4. 未做 / 边界
 

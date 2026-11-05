@@ -251,16 +251,25 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 按**带状态的**槽位清单重建行(装配层每次开册前探一次)。
         /// </summary>
         /// <param name="views">槽位视图清单。null / 空 ⇒ 清空全部行。</param>
-        public void SetSlotViews(IReadOnlyList<SaveSlotView> views)
+        /// <param name="followWritablePage">
+        /// <c>true</c> = 翻到**「留档」行所在页**(写盘落定后的重画);<c>false</c> = 按 §7.1 落高水位页(开册)。
+        /// <para>🔁 **2026-11-06 用户实测**:「存档第六行后,留档去了第二页,但界面还留在第一页」——
+        /// 第 6 格恰好填满一页时,「留档」被挤到下一页;写盘后的重画若不跟过去,
+        /// 玩家眼前那一页**没有可写的地方**,还以为存丢了。</para>
+        /// </param>
+        public void SetSlotViews(IReadOnlyList<SaveSlotView> views, bool followWritablePage = false)
         {
             _views.Clear();
             if (views != null) _views.AddRange(views);
-            _pageIndex = HighWaterPage();
+            _pageIndex = followWritablePage ? WritablePage() : HighWaterPage();
             // 排进调度器的翻页若因**合屏 / 换源**没执行,标记必须归零 ——
             // 否则下次开册的第一下边界键会被当成「已排过」而静默丢掉。
             _turnPending = false;
             RenderPage();
         }
+
+        /// <summary>「留档」行永远在**末页**(它排在全部槽位行之后)⇒ 它所在页 = 末页。</summary>
+        private int WritablePage() => PageCount - 1;
 
         /// <summary>
         /// 画**当前页**:只建本页那一段窗口的行;「留档」新行只出现在**末页**。
@@ -395,6 +404,25 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 ? StepPage(direction == NavigationMoveEvent.Direction.Up ? -1 : +1)
                 : false;
 
+        /// <summary>
+        /// **「留档」行上的向上 = 翻回前一页**(2026-11-06 用户实测:末页只剩它一格时,
+        /// 向上走回不到前一页的末行)。
+        /// <para>为什么单独一条:它**不在** <see cref="_rows"/> 里,行边界判据对它无从生效;
+        /// 而它在竖轴上确实是**末端那一档**,所以「上面还有没有别的东西」= 本页有没有槽位行。</para>
+        /// <para>本页还有槽位行 ⇒ 交给官方焦点桥(它会落到最后一行),本方法返回 false。</para>
+        /// </summary>
+        public bool HandleWritableEdgeMove(NavigationMoveEvent.Direction direction)
+        {
+            if (!IsWritableEdgeMove(direction)) return false;
+            return StepPage(-1);
+        }
+
+        /// <summary>「留档」行上的这一下该不该由本屏翻页(只有「本页没有槽位行且还有前一页」)。</summary>
+        private bool IsWritableEdgeMove(NavigationMoveEvent.Direction direction)
+            => direction == NavigationMoveEvent.Direction.Up
+               && _rows.Count == 0
+               && HasPreviousPage;
+
         /// <summary>这一下是不是**页边界上的往外走**(是 ⇒ 该翻页;不是 ⇒ 放它继续走焦点桥)。</summary>
         private bool IsEdgeMove(int rowIndex, NavigationMoveEvent.Direction direction)
         {
@@ -452,7 +480,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 到本页最上 / 最下再滚 = 翻页。两者共用 <see cref="HandleEdgeMove"/> 的边界判据。</para>
         /// <para>方向:UI Toolkit 的约定是**向上滚 = <c>deltaY &gt; 0</c>**(与浏览器 / 文本滚动一致)。</para>
         /// <para>焦点不在本页行上(未入面板 / 落在页缘或二段态的墨字上)⇒ 从滚来的那一端进入:
-        /// 向下滚落**首行**,向上滚落**末行**。空页(零行)⇒ 无可移动,<c>return false</c> 不消费。</para>
+        /// 向下滚落**首行**,向上滚落**末行**。整页无可停之处 ⇒ <c>return false</c> 不消费。</para>
+        /// <para>⚠️ 「末行」**含「留档」新行** —— 它是这条竖轴的**端点**,不是附属物:
+        /// 末页只剩它一格时(槽位行恰好填满前一页),从它向上滚必须能翻回前一页的末行
+        /// (2026-11-06 用户实测抓到:旧实现只看槽位行,`_rows.Count == 0` 直接 no-op)。</para>
         /// </summary>
         /// <param name="deltaY">滚轮位移(向下为负)。</param>
         /// <returns>是否消费了这次滚动(移动了焦点或翻了页)。</returns>
@@ -464,30 +495,37 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             if (deltaY == 0f) return false;   // 某些设备静止时也发零位移事件
 
-            int count = _rows.Count;
-            if (count == 0) return false;
+            // 空册(一条槽位都没有)= 可导航的东西一件没有 ⇒ 不消费(与「空页翻不动」同一纪律)。
+            // ⚠️ 判据是 `_views`,不是 `_rows` —— 「本页没有槽位行」不等于「册子是空的」:
+            //    末页只剩「留档」一行时 `_rows.Count` 也是 0,而那时**必须**能向上翻回前一页。
+            if (_views.Count == 0) return false;
+
+            int slots = _rows.Count;
+            bool hasWritable = _writableRow != null;
+            int total = slots + (hasWritable ? 1 : 0);   // 竖轴总档位(槽位行 + 留档行)
+            if (total == 0) return false;
 
             bool up = deltaY > 0f;
-            if (focusedRowIndex < 0 || focusedRowIndex > count)
-                focusedRowIndex = up ? count : -1;   // 焦点悬空 ⇒ 从滚来的那一端进入
+            if (focusedRowIndex < 0 || focusedRowIndex >= total)
+                focusedRowIndex = up ? total : -1;   // 焦点悬空 ⇒ 从滚来的那一端进入
 
             if (up)
             {
                 if (focusedRowIndex == 0) return StepPage(-1);
-                FocusRow(focusedRowIndex - 1);
+                FocusSlot(focusedRowIndex - 1);
                 return true;
             }
 
-            if (focusedRowIndex == count - 1)
-            {
-                if (StepPage(+1)) return true;
-                // 末页的最下一行:再往下只剩「留档」新行,有就落上去(它才是这条轴的端点)。
-                if (_writableRow != null) { _writableRow.Focus(); return true; }
-                return false;
-            }
-            if (focusedRowIndex >= count) return false;   // 已在留档新行,底下没有东西了
-            FocusRow(focusedRowIndex + 1);
+            if (focusedRowIndex == total - 1) return StepPage(+1);   // 已在轴的末端
+            FocusSlot(focusedRowIndex + 1);
             return true;
+        }
+
+        /// <summary>把焦点落到竖轴上的第 <paramref name="slot"/> 档(槽位行或「留档」行)。</summary>
+        private void FocusSlot(int slot)
+        {
+            if (slot >= 0 && slot < _rows.Count) { _rows[slot].Focus(); return; }
+            if (slot == _rows.Count) _writableRow?.Focus();
         }
 
         /// <summary>滚轮事件入口:处理了才消费掉(空页 ⇒ 让事件继续往上走)。</summary>
@@ -567,6 +605,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 两条输入路径汇到同一出口(与槽位行同纪律)
             _writableRow.RegisterCallback<NavigationSubmitEvent>(_ => ActivateWritable());
             _writableRow.RegisterCallback<ClickEvent>(_ => ActivateWritable());
+            // 「留档」行上的向上:本页还有槽位行 ⇒ 交给官方焦点桥(落到最后一行);
+            // 本页只剩它一格 ⇒ 翻回前一页的末行(`StepPage(-1)` 的落点)。
+            _writableRow.RegisterCallback<NavigationMoveEvent>(evt =>
+            {
+                if (!IsWritableEdgeMove(evt.direction)) return;
+                evt.StopPropagation();
+                evt.PreventDefault();
+                TurnAfterDispatch(-1);
+            }, TrickleDown.TrickleDown);
             _writableRow.tabIndex = _rows.Count;   // 焦点顺序 = 行序,新行在最后
             host.Add(_writableRow);
         }

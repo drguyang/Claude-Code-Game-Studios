@@ -236,6 +236,59 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         [UnityTest]
+        public IEnumerator test_wheelUp_fromWritableOnlyPage_landsOnPreviousPageLastRow()
+        {
+            SaveSlotsScreen screen = Screen();
+            // 6 槽 ⇒ 第 1 页正好填满,第 2 页只剩「留档」一格
+            var views = new List<SaveSlotView>();
+            for (uint seq = 1; seq <= 6; seq++)
+                views.Add(new SaveSlotView(seq, known: true, hasSave: false, tick: 0L));
+            screen.SetSlotViews(views);
+            yield return null;
+
+            Assert.AreEqual(2, screen.PageCount, "[前置] 6 槽 + 「留档」⇒ 两页");
+            Assert.IsTrue(screen.NextPage());
+            Assert.AreEqual(0, screen.SlotRowCount, "[前置] 末页没有槽位行");
+            Assert.IsNotNull(screen.WritableRow, "[前置] 末页只剩「留档」");
+
+            screen.WritableRow.Focus();
+            Assert.AreEqual(0, screen.FocusedRowIndex, "[前置] 焦点在「留档」上(轴上的第 0 档)");
+
+            Assert.IsTrue(screen.HandleWheel(+1f), "「留档」向上滚必须能翻回前一页");
+            Assert.AreEqual(0, screen.CurrentPage);
+            Assert.AreEqual(screen.SlotRowCount - 1, screen.FocusedRowIndex,
+                "落点 = 前一页**末行**(不是首行 —— 否则再滚一格又翻回来,卡在两页之间)");
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator test_dirtyRefreshAfterSave_followsWritableRowToItsPage()
+        {
+            SaveSlotsScreen screen = Screen();
+            // 6 条空槽 ⇒ 第 1 页填满,「留档」被挤到第 2 页
+            var views = new List<SaveSlotView>();
+            for (uint seq = 1; seq <= 6; seq++)
+                views.Add(new SaveSlotView(seq, known: true, hasSave: false, tick: 0L));
+            IReadOnlyList<SaveSlotView> six = views;
+
+            _driver.SaveSlotViewProvider = () => six;
+            _driver.MarkSaveSlotRowsDirty();
+            _driver.OnFrameEdge();          // 生产逐帧路径:脏标记在这里消费
+            yield return null;
+
+            Assert.AreEqual(2, screen.PageCount, "[前置] 6 槽 + 「留档」⇒ 两页");
+            Assert.AreEqual(1, screen.CurrentPage,
+                "写盘落定后的重画必须跟到「留档」所在页 —— 否则眼前那页没有可写的地方(用户实测)");
+            Assert.AreEqual(0, screen.SlotRowCount, "该页只有「留档」");
+            Assert.IsNotNull(screen.WritableRow);
+            Assert.AreEqual(0, screen.FocusedRowIndex,
+                "焦点落在「留档」上(本页零槽位行 ⇒ 轴上的第 0 档即它)");
+
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator test_wheel_onSinglePageBook_doesNotTurn()
         {
             SaveSlotsScreen screen = Screen();

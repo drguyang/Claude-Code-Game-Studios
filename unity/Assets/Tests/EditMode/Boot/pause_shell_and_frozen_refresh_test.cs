@@ -207,7 +207,9 @@ namespace DaYiJingCheng.Tests.Boot
             MethodInfo m = typeof(SkeuoRuntimeDriver).GetMethod("SetSaveSlotRows",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(m, Is.Not.Null, "夹具前提:SetSaveSlotRows 不存在(重探路径改名了?)");
-            m.Invoke(driver, new object[] { null });
+            // 🔁 2026-11-06:签名多了一个 `followWritablePage`(写盘后跟页用)——
+            //    本夹具模拟的是**开册那次重画** ⇒ 传 false(§7.1 的开册口径)。
+            m.Invoke(driver, new object[] { null, false });
         }
 
         [Test]
