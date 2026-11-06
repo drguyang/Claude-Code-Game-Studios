@@ -17065,3 +17065,12 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **QA 计划**:`production/qa/qa-plan-sprint-25-2026-11-06.md`;四张 tutorial 卡面的 `## QA Test Cases` 已补 4 条缺口(002 六谓词映射 / 003 闩不可序列化 / 004 字幕管线 / 005 零按键提示词族)
 - 下一步:`/story-readiness production/epics/tutorial-onboarding/story-002-...` 然后 `/dev-story`
 <!-- QA-PLAN: 2026-11-06 | System: sprint-25 | Plan written: production/qa/qa-plan-sprint-25-2026-11-06.md -->
+
+## Session Extract — S25-3 炮制屏收口(2026-11-06)
+- 代码:`Processing18Screen`(二段确认 / 三空态注 / 开屏落焦 / 留屏)· `CompositionRootServices.FurnaceBusy` · `CompositionRoot` 装配 · `BootRoot` 传参
+- 判据 `processing18_screen_test` 5 → 13 全绿;证伪 M1–M4 各自转红,SHA-256 `cf778fe2…e55601` 逐字节还原
+- 回归 EditMode `6968/6931/0/0/37` @16:30 · PlayMode `359/355/0/2/2` @16:24(+8 = 新增夹具)
+- ⚠️ 自伤一次:`AC-42-F3` 词门抓到文件头注释**复述了避让表九词**;已改成「见避让表」,重跑 0 红
+- `TD-skeuo-21` 结案(代码可判面);债 `open 23 → 22` · 未闭 P0 面 `16 → 15`
+- 证据 = `production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md`;sprint yaml S25-3 = `review`
+- **未做**:真包 [L](点火 → 完成 → 起货 / 二段可辨 / 空态可读)· `AC-42-F1` ⑨ · `AC-18-24`

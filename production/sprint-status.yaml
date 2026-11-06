@@ -57,14 +57,14 @@ stories:
     name: "炮制屏收口:processing-18 落地 + TD-skeuo-21 结案 + 真包点火→出丹"
     file: "docs/tech-debt-register.md#td-skeuo-21"
     priority: must-have
-    status: ready-for-dev
+    status: review
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "炮制链"
     blocker: ""
     completed: ""
-    note: "四条实现差:二段确认 / 三种空态注 / 开屏落焦(TD-skeuo-21)/ 点火后留屏。spec = design/ux/processing-18.md(Draft)。"
+    note: "四条实现差全部落地(二段确认 / 三种空态注 / 开屏落焦 / 点火后留屏)。判据 5 → 13 条全绿;证伪 M1–M4 各自转红。回归 EditMode 6968/6931 · PlayMode 359/355(+8)。⚠️ 真包 [L](点火→起货 / 二段可辨 / 空态可读)未跑 ⇒ 未 done。证据 = production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md。"
   - id: "S25-4"
     name: "tutorial/004 三媒体调度与纸近景模态"
     file: "production/epics/tutorial-onboarding/story-004-three-media-scheduling-paper-modal.md"

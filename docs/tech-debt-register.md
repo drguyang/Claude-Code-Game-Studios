@@ -491,7 +491,7 @@
 | `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-20` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
-| `TD-skeuo-21` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-21` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1485,10 +1485,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 199 | 状态 {'closed': 166, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 16 （已闭但曾标 P0 面的 118 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 6        random-events: 4          modular-building: 2
+条目 199 | 状态 {'closed': 167, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 15 （已闭但曾标 P0 面的 119 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
     diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
     processing: 1
 ```
@@ -12682,3 +12682,7 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **解除动作** | 与 `TD-skeuo-20` 同一修法:在 `Rebuild()` 末尾按 **`Recipe.Ordinal`** 还原焦点(`FocusedOrdinal()` → 重建 → `FocusAfterRebuild`),空态 / 未挂 panel ⇒ 不落;或把「开屏落第一焦点」上收到 `OpenModalCore` 的通用路径(须先普查其余屏,避免双落焦)。解除判据 = 真包开屏后**第一次 `Submit` 即进入二段态**。 |
 | **与 spec 的关系** | `design/ux/processing-18.md` §13 的「开屏落焦」`[A]` 条与「重绑保持焦点」条**均以本条解除为前提**;spec 已写 ≠ 已验。 |
 | **触发条件** | 已触发(代码可判,2026-11-06) |
+| **✅ 2026-11-06 结案(S25-3)** | `Processing18Screen.Bind` 末尾落焦(`FocusedOrdinal()` → `Rebuild()` → `FocusAfterRebuild(preferredOrdinal)`):优先回到**同一 `Recipe.Ordinal`** 的行,否则第一行;空态 / 未挂 panel ⇒ **不落**(不悬空 `Focus()`)。不按元素引用 —— 重建会重造行(`TD-skeuo-20` 同一条教训)。 |
+| **判据(可跑)** | `processing18_screen_test` 新增 `test_spec_openFocus_firstRow`(开标 ⇒ `focusController.focusedElement == FirstFocusable`)与 `test_spec_rebind_keepsFocusByOrdinal`(焦点在第 2 行时重绑 ⇒ 回同一 ordinal 的新行)。整件 **13/13 PASS**。 |
+| **证伪轮** | **M1**(注掉 `FocusAfterRebuild(...)` 调用)⇒ **3 红**(开屏落焦 / 重绑保持 / 焦点移开撤销);还原后 SHA-256 `cf778fe2…e55601` 逐字节一致。 |
+| **⚠️ 真包面** | 「真包开屏后第一次 `Submit` 即进入二段态」**仍 NOT-RUN** —— 见 §13 的 `[L]` 与 S25-3 的真包验收。**本条结案只覆盖代码可判面 + PlayMode 夹具**。 |
