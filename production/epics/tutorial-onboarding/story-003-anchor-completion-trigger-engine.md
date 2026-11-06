@@ -90,6 +90,13 @@
   - Then: `Completion[judge]`(p1)=true,(p2)=false;Fire 各自独立
   - Edge cases: 联机运行面 BLOCKED-BY-45
 
+- **AC-5**: 闩不可序列化 + 播种/增量两口分家(🔁 **2026-11-06 sprint-25 `/qa-plan` 轮补** —— 原 AC-1 只测「播种不重燃」,**没测「闩本身不可被存档」**;Implementation Notes 说「两口禁共用」,原卡无对应用例)
+  - Given: 触发引擎的公开成员面
+  - When: 类型面断言(字段 / 属性逐项)
+  - Then: **无任何可序列化字段承载闩状态**(`[SerializeField]` / 公开可写 / `ISerializable` 零命中)
+  - Edge cases: 播种走播种口、冷启动后的新事件走增量口 —— 二者**不得共用同一个方法**:
+    往播种口投一笔新事件 ⇒ **不得产生 Fire**(该口只置饱和,不触发边沿)
+
 ---
 
 ## Test Evidence

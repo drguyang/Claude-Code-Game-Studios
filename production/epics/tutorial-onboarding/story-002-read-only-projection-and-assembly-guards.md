@@ -89,6 +89,14 @@
   - Then: judge 谓词各自 true 互不可见;treat 谓词按 initiator 过滤
   - Edge cases: 联机真环境运行面 BLOCKED-BY-45(单机夹具不替代其 closure)
 
+- **AC-5**: 六谓词判据事件映射(🔁 **2026-11-06 sprint-25 `/qa-plan` 轮补** —— 原 AC-1 只测纯函数性质,未逐条覆盖六步映射)
+  - Given: 六类事件各一条(`CaseOpened` / `JudgmentRecorded(author=p)` /
+    `EmergencyAttempt ∨ DrugTreatmentApplied(initiator=p)` / `CaseClosed` / `Checkpoint` 写回执 / `StructurePlaced`)
+  - When: 分别投影
+  - Then: **只有**对应那一步的谓词为 true,其余五条 false(逐条 iff)
+  - Edge cases: 同一 `Kind` 由**不同作者**产生 ⇒ 按 `author_player_id` 过滤,不得把别人的动作算到自己头上;
+    世界级事件(`Patient = -1`)不误入作者过滤
+
 ---
 
 ## Test Evidence
