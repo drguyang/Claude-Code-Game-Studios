@@ -2153,10 +2153,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                     ordinal => SubtitleTextOf(audio.Table, ordinal));
 
                 // 口述的空间化锚点:P0 **没有师父实体** ⇒ 没有声源格,取**听者格**(相机格)。
-                // 听者缝未接 ⇒ 原点 —— 只在无声学意义的环境(夹具)里发生。
-                Func<Int3> tutorialCell = audio.ListenerCell != null
-                    ? audio.ListenerCell
-                    : (Func<Int3>)(() => default(Int3));
+                // 听者缝未接 ⇒ 原点(= 本局无声学锚点)。
+                // ⚠️ **必须在调用时读 `audio.ListenerCell`,不能在装配时判空**(2026-11-06 真包实测):
+                //    `Assemble` 跑在 `BootRoot` 第 5.2 步**之前**,而那一步才把缝填上
+                //    ⇒ 原来那版三元在装配那一刻就固化成 `null` 分支,**缝后来接了也不生效**。
+                //    症状:口述声源格恒 `(0,0,0)`,玩家在 (0,0,13) 时被全 3D 对数衰减压低。
+                Func<Int3> tutorialCell = () =>
+                {
+                    Func<Int3> seam = audio.ListenerCell;
+                    return seam != null ? seam() : default(Int3);
+                };
 
                 services.TutorialSeams = new TutorialChainSeams(
                     tutorialContent, tutorialMedia, tutorialCell,

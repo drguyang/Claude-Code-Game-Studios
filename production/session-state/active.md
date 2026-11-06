@@ -17127,3 +17127,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⇒ 「E 为什么没出立案」**仍未定位**,最可能是 16×16 图里盲走没走到病人跟前(无可读位置面)
 - 夹具缺口:`emergency_skip_entry_test` 只判「入口存在 + 可获焦」,**零条判「跳过真的产生一次 Attempt」**
 - 证据件已就地订正(原文不删):walkthrough-s25-4c-…md §1 / §4 / §7
+
+## Session Extract — 教学口述「出声/字幕」实证 + ListenerCell 缺陷修复(2026-11-06 21:00–21:50)
+- **口述出声已证**:`parec` 录 sink monitor,与 `Narration_TeachObserve_01.wav` 归一化互相关 **0.9199**(负控 ≈0);
+  字幕上屏截图文本 = **44 事件表**的 `subtitle_text`(不是 48 内容表)⇒ AC-44-15 单一真源真包成立
+- **缺陷两环(只修一环无效,已实测)**:
+  ① `AudioAssemblySeams.ListenerCell` 全仓零赋值点(注释自称「由 BootRoot 注入」= 假自述)
+  ② 即便填了缝,`CompositionRoot` 在 `Assemble` 那一刻就判空,而此时缝还没填 ⇒ 固化成 null 分支
+  ⇒ 口述声源格恒 `(0,0,0)`,玩家在 (0,0,13) 被全 3D 对数衰减压低 **约 30 dB**
+- **修复**:`BootRoot` 填缝(并把听者缝与遮挡缝解耦)+ `CompositionRoot` 改**调用时读**;
+  实测增益 `0.0216 → 0.6631`(−33.3 → −3.6 dB;对 `paplay` 直放控制 0.8306 即净恢复 ≈30 dB)
+- **回归**:EditMode `7059/7022/0/0/37` · PlayMode `359/355/0/2/2`(双零回归)@21:47:04Z / 21:48:44Z · `1f6490a1` + 工作树
+- ⚠️ **坑**:`-runTests` 不能带 `-quit`(会在测试框架启动前退出,**不产 XML 且退出码 0**)
+- 存档:20/20 SHA-256 回到原始态;测试世界挪到 `saves.testing-*`(未删)
+- **未提交**:`WalkthroughDiagnostics.cs`(+meta)+ `BootRoot.cs` / `CompositionRoot.cs` / `TutorialMediaDriver.cs`
+- 证据 = `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md` §8 / §9

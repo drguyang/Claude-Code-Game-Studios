@@ -171,6 +171,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 source: NoSource,
                 looped: false));
 
+            // 走查仪表(默认零开销):口述投递时把**真正用的声源格**打出来 ——
+            // 「音量不对」时第一个要分清的就是「格传错了」还是「别处衰减」。
+            if (WalkthroughDiagnostics.Enabled)
+                UnityEngine.Debug.Log(
+                    $"[tutorialdiag] 口述投递 cue={ordinal} cell=({sourceCell.X},{sourceCell.Y},{sourceCell.Z})");
+
             _subtitles.Show(new SubtitleLineData(_speaker, text));
         }
     }

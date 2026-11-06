@@ -951,18 +951,40 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 换算 = `FloorToInt(world / latticeSize)`,与 1 的 `GetCell()` 同一约定
             //    (`player-controller-and-movement.md:162` 的跨格判定式);`latticeSize` 已由
             //    上面 `ApplyLatticeFromWorldGeometry` 从 6 的产物取得。
-            if (_services.RenderTarget is AudioSourceRenderTarget sources
-                && _audioSeams != null && _audioSeams.OccludedFor != null)
+            // 🔁 **2026-11-06(真包走查带出的缺陷修复)**:这条 λ 现在落**两个**读面。
+            //    此前只给了渲染目标(`sources.SetListenerCell`),`AudioAssemblySeams.ListenerCell`
+            //    全程为 null —— 而 `CompositionRoot.cs:1811` 的注释写的是「由 BootRoot 注入」,
+            //    那句注入**不存在**。于是 `CompositionRoot.cs:2157` 的听者缝判定恒走
+            //    `default(Int3)` 支,**教学口述的声源格永远是世界原点**。
+            //    ⚠️ **这只修好了第一环** —— 光填缝**不生效**(实测:增益逐位不变)。第二环在
+            //    `CompositionRoot` 那侧:它原来在**装配那一刻**就判空,而本步在装配之后才跑 ⇒
+            //    判空结果被固化成 null 分支。两环都修才有效(延迟读 × 填缝)。
+            //    ⚠️ 实测:填缝 + 延迟读之后,口述增益 0.0216 → **0.6631**(−33.3 → −3.6 dB,
+            //    对 `paplay` 直放控制 0.8306 即净恢复约 30 dB)。
+            //    证据 = `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md` §9。
+            // ⚠️ 顺序:听者缝**不依赖**遮挡缝(`OccludedFor` 只是渲染目标那一半的前置)——
+            //    之前把两者绑在同一个 `if` 里,世界几何退化 ⇒ 遮挡缝不接 ⇒ **听者缝也一起断**,
+            //    而那两个量的语义没有依赖关系。
+            // ⚠️ `LatticeSize == 0`(未供给)⇒ 不接:那是「未装配」,不是「听者在原点」。
+            if (_audioSeams != null && _audioSeams.LatticeSize > 0f)
             {
                 Transform cam = _cameraRig.Camera.transform;
                 float lattice = _audioSeams.LatticeSize;
-                sources.SetListenerCell(() =>
+                Func<Int3> cameraCell = () =>
                 {
                     Vector3 p = cam.position;
                     return new Int3(Mathf.FloorToInt(p.x / lattice),
                                     Mathf.FloorToInt(p.y / lattice),
                                     Mathf.FloorToInt(p.z / lattice));
-                });
+                };
+
+                _audioSeams.ListenerCell = cameraCell;
+
+                if (_services.RenderTarget is AudioSourceRenderTarget sources
+                    && _audioSeams.OccludedFor != null)
+                {
+                    sources.SetListenerCell(cameraCell);
+                }
             }
 
             // ── 6. 拟物 UI 运行时装配(sprint-05 T2.1 / T2.2)──
@@ -2792,7 +2814,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 本调用**可能投递音频与字幕**(44 / 42 的入向口),但它不写三流、不判 sim 状态。
             if (_tickDriver.CurrentTick > tickBefore && _services != null && _services.TutorialChain != null)
             {
-                _services.TutorialChain.OnTickEdge(_tickDriver.CurrentTick);
+                TutorialChainTick tut = _services.TutorialChain.OnTickEdge(_tickDriver.CurrentTick);
+                // `-tutorialdiag`:发火瞬间单独一行(否则只能从「下一秒的读数」倒推)
+                if (WalkthroughDiagnostics.Enabled && tut.AnyFired)
+                    WalkthroughDiagnostics.ReportFired(_tickDriver.CurrentTick, tut.FiredStepIds, tut.NarrationsPlayed);
+            }
+
+            // `-tutorialdiag` 现场读数(每秒一行;不带旗标时零开销,见 WalkthroughDiagnostics 头注)。
+            // 放在这里 = 教学链跑完之后 ⇒ 读到的是**本 tick 终态**的教学事实数。
+            if (WalkthroughDiagnostics.Enabled && _tickDriver.CurrentTick > tickBefore
+                && _tickDriver.CurrentTick % WalkthroughDiagnostics.ReportEveryTicks == 0)
+            {
+                WalkthroughDiagnostics.Report(
+                    _tickDriver.CurrentTick,
+                    // 玩家 actor id 取自行走链的归属(它由 Attach(actorId) 传入);
+                    // `PlayerController` 的 `_actorId` 是私有的,不为一行调试日志去开口子。
+                    _services?.TutorialChain?.PlayerId ?? -1,
+                    _player != null ? _player.LastCommittedCell : default,
+                    _services != null ? _services.Presence : null,
+                    _services?.EmergencyChannel?.State.ToString(),
+                    _services?.TutorialChain?.FactCount ?? 0,
+                    _services?.TutorialChain?.SeededCompletedSteps ?? 0);
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):
