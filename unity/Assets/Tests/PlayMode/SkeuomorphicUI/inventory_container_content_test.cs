@@ -284,6 +284,68 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // ⑥ `TD-skeuo-20`:开屏(首次 Bind)焦点落进第一格
+        // ══════════════════════════════════════════════════════════════════
+        [UnityTest]
+        public IEnumerator test_tdSkeuo20_bind_focusesFirstCell()
+        {
+            yield return SetUp();
+
+            var items = new[]
+            {
+                new ContainerItemDto(instanceId: 100L, itemOrdinal: 0, quality: 1, qty: 1),
+                new ContainerItemDto(instanceId: 101L, itemOrdinal: 1, quality: 1, qty: 1),
+            };
+            _screen.Bind(new InventoryContainerDto(42L, items, 0L, 0, false));
+            yield return null;
+
+            // 前置:屏须已挂到 panel 上(否则 Focus() 是空操作,断言会「因为没测到」而变红)
+            Assert.That(_screen.FirstFocusable, Is.Not.Null, "⑥ 前置:有格 ⇒ 有首格");
+            Assert.That(_screen.FirstFocusable.panel, Is.Not.Null, "⑥ 前置:首格须已挂 panel");
+
+            VisualElement focused =
+                _doc.rootVisualElement.panel.focusController.focusedElement as VisualElement;
+            Assert.That(focused, Is.SameAs(_screen.FirstFocusable),
+                "⑥ 开屏后焦点须落在第一格 —— 否则键盘/手柄的第一次 Return 落空(TD-skeuo-20)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ⑦ 负控:换箱重绑后,焦点须回到**同一件物品**的格(重建会换元素,故按 id 还原)
+        // ══════════════════════════════════════════════════════════════════
+        [UnityTest]
+        public IEnumerator test_tdSkeuo20_rebind_keepsFocusOnSameInstance()
+        {
+            yield return SetUp();
+
+            var items = new[]
+            {
+                new ContainerItemDto(100L, 0, 1, 1),
+                new ContainerItemDto(101L, 1, 1, 1),
+                new ContainerItemDto(102L, 2, 1, 1),
+            };
+            _screen.Bind(new InventoryContainerDto(42L, items, 0L, 0, false));
+            yield return null;
+
+            // 玩家把焦点移到第 2 格(前置:焦点确实动了)
+            VisualElement second = _screen.CellAt(1);
+            second.Focus();
+            yield return null;
+            Assert.That(_doc.rootVisualElement.panel.focusController.focusedElement,
+                Is.SameAs(second), "⑦ 前置:焦点已到第 2 格(instance 101)");
+
+            // 重绑(库存变动 / 换箱)—— 注意 `RebuildPage` 会**重造格**,旧元素已脱离 panel
+            _screen.Bind(new InventoryContainerDto(42L, items, 0L, 0, false));
+            yield return null;
+
+            VisualElement focused =
+                _doc.rootVisualElement.panel.focusController.focusedElement as VisualElement;
+            Assert.That(focused, Is.SameAs(_screen.CellAt(1)),
+                "⑦ 负控:重绑后焦点须回到 instance 101 的**新**格(不得被拽回第一格,也不得停在已脱离的旧元素上)");
+            Assert.That(_screen.InstanceIdAt(1), Is.EqualTo(101L),
+                "⑦ 前置:第 2 格确为 instance 101");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 辅助
         // ══════════════════════════════════════════════════════════════════
 

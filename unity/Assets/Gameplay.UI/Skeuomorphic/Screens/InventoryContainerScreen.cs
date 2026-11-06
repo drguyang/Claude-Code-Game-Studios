@@ -161,8 +161,59 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (_page >= _pageCount) _page = _pageCount - 1;
             if (_page < 0) _page = 0;
 
+            // 🔁 **2026-11-06(`TD-skeuo-20`)**:重建**之前**先记下焦点在哪一格(按 `instance_id`)。
+            // 病因:本屏此前**只有** `FirstFocusable` 属性,**没有任何地方消费它** ——
+            //   `SkeuoRuntimeDriver` 只对主菜单 / 存档位 / 暂停壳三处显式聚焦(它们各自调),
+            //   其余模态屏谁聚焦谁自己负责,而本屏两者都没有 ⇒ 开屏后
+            //   `panel.focusController.focusedElement == null`,键盘 / 手柄玩家的
+            //   **第一次 `Return`(导航提交)落空**,必须先按一次方向键。
+            // 实测(真包 2026-11-06 11:52):第一次 `Return` 行无变化;`Down` + `Return` 才有金色边框。
+            long focusedInstanceId = FocusedInstanceId();
+
             Band = BandOf(container.CarryLoad, container.CarryCap, container.IsFull);
             RebuildPage();
+            FocusAfterRebuild(focusedInstanceId);
+        }
+
+        /// <summary>当前焦点所在格的 `instance_id`(焦点不在本屏的格上 ⇒ <c>-1</c>)。</summary>
+        /// <remarks>⚠️ `focusController.focusedElement` 的静态类型是 `Focusable`
+        /// (`VisualElement` 是它的子类)—— 必须先判类型再比对引用。</remarks>
+        private long FocusedInstanceId()
+        {
+            VisualElement probe = FirstFocusable;
+            if (probe == null || probe.panel == null) return -1L;
+
+            Focusable current = probe.panel.focusController?.focusedElement;
+            if (!(current is VisualElement element)) return -1L;
+
+            for (int i = 0; i < _cells.Count; i++)
+                if (ReferenceEquals(_cells[i], element)) return _cellInstanceIds[i];
+            return -1L;
+        }
+
+        /// <summary>
+        /// 重建之后落焦点(`TD-skeuo-20`):优先回到**重建前那一件物品**的格,否则落第一格。
+        /// <para>⚠️ 为什么按 `instance_id` 而不是按元素引用:本屏每次 `Bind` 都**重造格**
+        /// (`RebuildPage`),旧元素已脱离 panel ⇒ 按引用还原必然落空。按 id 还原才
+        /// 「换箱重绑不把玩家读到一半的位置拽走」。</para>
+        /// <para>⚠️ 空箱 / 元素未挂 panel ⇒ 不落(悬空 `Focus()` 会把焦点扔到看不见的元素上)。</para>
+        /// </summary>
+        private void FocusAfterRebuild(long preferredInstanceId)
+        {
+            VisualElement target = null;
+            if (preferredInstanceId >= 0L)
+            {
+                for (int i = 0; i < _cellInstanceIds.Count; i++)
+                {
+                    if (_cellInstanceIds[i] != preferredInstanceId) continue;
+                    target = _cells[i];
+                    break;
+                }
+            }
+            if (target == null) target = FirstFocusable;
+            if (target == null || target.panel == null) return;
+
+            target.Focus();
         }
 
         /// <summary>翻页(方向 = -1 上一页 / +1 下一页;越界 ⇒ 不动)。</summary>

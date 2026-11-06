@@ -192,3 +192,69 @@ python3 -c "import json;d=json.load(open('assets/data/world_buildslots.json'));p
 | `w1` / `w2` | `diff` ⇒ **一致**(本轮全程走 `w3`) |
 | 测试世界 `w3` | **已删除**;`worlds.index` 还原,SHA-256 `61edf427…2887df1` 两侧一致 |
 | 探针 | **已从源码删除**;`grep -c PROBE-4 InteractionPressRouter.cs` = 0,该文件 git 显示未修改 |
+
+---
+
+## 9. `TD-skeuo-20` 修复轮(2026-11-06 13:1x–13:39)—— 开屏即有焦点
+
+### 9.1 修法
+
+`InventoryContainerScreen.Bind` 里,**重建之前**先按 `instance_id` 记下焦点在哪一格,重建后还原:
+
+```csharp
+long focusedInstanceId = FocusedInstanceId();   // 旧元素即将被重造 ⇒ 只能按 id 记
+...
+RebuildPage();
+FocusAfterRebuild(focusedInstanceId);           // 优先回到同一件物品,否则落第一格
+```
+
+- **为什么不按元素引用**:`RebuildPage` 每次 `Bind` 都**重造格**,旧元素已脱离 panel ⇒ 按引用还原必然落空。
+- **三条「不落」**:空箱 / 元素未挂 panel(悬空 `Focus()`)/ 无更优目标时落第一格。
+- ⚠️ `focusController.focusedElement` 的静态类型是 `Focusable`(不是 `VisualElement`)—— 首版按
+  `VisualElement` 接收,编译期 `CS0266`,已改成 `is VisualElement` 模式匹配。
+
+### 9.2 判据与证伪
+
+| 项 | 结果 |
+|---|---|
+| `inventory_container_content_test` | **7/7 PASS**(5 既有 + 2 新增)`unity/Logs/tdskeuo20-playmode.xml` |
+| 新增 ①(正控) | `test_tdSkeuo20_bind_focusesFirstCell`:开屏 ⇒ `focusController.focusedElement == FirstFocusable` |
+| 新增 ②(负控) | `test_tdSkeuo20_rebind_keepsFocusOnSameInstance`:焦点在第 2 格(instance 101)时重绑 ⇒ 焦点回到 **101 的新格**(不是第一格,也不是已脱离的旧元素) |
+| 证伪轮 M1 | 注掉 `FocusAfterRebuild(...)` ⇒ **2 红 / 5 绿**(恰好新增两条);还原 SHA-256 `ee6e44c0…02790bc0f` 一致,`MUTATION` 残留 0 |
+
+### 9.3 真包验收(判据 = 不看提示也能一次按中)
+
+| # | 动作 | 观测 |
+|---|---|---|
+| 1 | 新局 → 采到 2 件(同 §8 前四步) | — |
+| 2 | 站到柜 `(5,0,5)` 按 `E` | `Container#1@5,0,5 d=0 => Container#1`;屏开时**行已带金色边框**(`12-row.png`)—— 修复前该边框要按一次方向键才出现 |
+| 3 | **只按一次 `Return`**(不按任何方向键) | 画面无可见变化(`12` vs `13` 像素差 ≈ 0)—— 因为边框是**焦点环**,选中类的视觉与它重合 |
+| 4 | 走到灶台 `(14,0,14)` 按 `E` | `Utensil#9@14,0,14 d=1`;**炮制屏出现两行**(`14-processing-after-first-return.png`)⇒ **那一次 `Return` 确实选中了** |
+
+⚠️ **判据为什么用「下游有行」而不是「行变色」**:焦点环与选中态在本屏的视觉重合,像素判据**分不出**二者;
+而「炮制屏有行」只在 `consumedQualities` 非空时成立 ⇒ 是**因果下游**的判据,不会被焦点环冒充。
+
+### 9.4 副作用
+
+| 项 | 结果 |
+|---|---|
+| `w1` / `w2` | 逐字节一致 |
+| 测试世界 `w3` / `w4` | **已删除**;`worlds.index` 还原(SHA-256 `61edf427…2887df1` 一致) |
+| 探针 | **已从源码删除**;`InteractionPressRouter.cs` git 显示**未修改**(逐字节回 HEAD) |
+
+### 9.5 全量回归带出的一处**预期红**:关卡黄金哈希重签
+
+全量 EditMode 首跑 **6968 / 6930 / 1 / 37** —— 唯一红的是
+`test_ac3_newDispatchPath_bytesEqualPreRefactorGolden`(`unity/Logs/skeuo20-editmode.xml`):
+
+```
+Expected: "681d503d…ffd1fd"   (1697 B)
+But was:  "be93eed1…ecce242"  (1698 B)
+```
+
+**这是黄金哈希在正常工作**,不是回归:本轮 `TD-building-05` 的空间解把器具槽
+`(10,0,5)` → `(14,0,14)`(`"5"` → `"14"` 多一个字符,1697 → 1698 B),盘上产物本来就该变。
+
+处置(**不是「改夹具让它变绿」**):声明为合法内容变更 → 重签常量 →
+`level_source_generalization_test` 单独复跑 **14 / 13 / 0**(1 skip)。
+常量旁留了第四次重签的记录(原值 `681d503d…` 与变更理由都在注释里,原文不删)。

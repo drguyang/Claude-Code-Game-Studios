@@ -489,7 +489,7 @@
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
-| `TD-skeuo-20` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-20` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
@@ -1484,10 +1484,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 198 | 状态 {'closed': 165, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 133, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 16 （已闭但曾标 P0 面的 117 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 6        random-events: 4          modular-building: 2
+条目 198 | 状态 {'closed': 166, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 133, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 15 （已闭但曾标 P0 面的 118 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
     diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
     processing: 1
 ```
@@ -12656,6 +12656,10 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **为什么 `P0 面 = Y`** | R1:`skeuomorphic-ui` 是 31 个 P0 epic 之一,且该屏是**炮制链与 20 料位面的唯一入口**。 |
 | **解除动作** | 给 `InventoryContainerScreen` 实现 `FirstFocusable`(首格),或在 `Bind` 末尾 `cell?.Focus()`;同批**普查其余屏**是否都有初始焦点(`SkeuoRuntimeDriver` 里 `FirstFocusable` 的调用点已列出可比的四屏)。解除判据 = 真包开屏后**第一次 `Return` 即可选中**。 |
 | **不在本债面内** | 行文案用 `item_key` / `器物#0` 而非显示名 —— 那是 21a 显示名轮 / 42 文案轮,与焦点无关 |
+| **✅ 2026-11-06 结案** | 修法:`InventoryContainerScreen.Bind` 末尾按 **`instance_id`** 还原焦点(`FocusedInstanceId` → `RebuildPage` → `FocusAfterRebuild`)—— 不按元素引用,因为 `RebuildPage` 每次重造格,旧元素已脱离 panel。空箱 / 未挂 panel ⇒ 不落(悬空 `Focus()`) |
+| **判据(可跑)** | `inventory_container_content_test` 新增 **2 条**:`test_tdSkeuo20_bind_focusesFirstCell`(开屏 ⇒ `focusController.focusedElement == FirstFocusable`)、`test_tdSkeuo20_rebind_keepsFocusOnSameInstance`(负控:重绑后焦点回到 **instance 101 的新格**,不被拽回第一格)。整件 **7/7 PASS**(`unity/Logs/tdskeuo20-playmode.xml`) |
+| **证伪轮** | **M1**:注掉 `FocusAfterRebuild(...)` 调用 ⇒ **2 红 / 5 绿**(恰好是新增的两条);还原后 SHA-256 `ee6e44c0…02790bc0f` 逐字节一致(`grep -c MUTATION` = 0) |
+| **真包验收** | 2026-11-06 13:39:开柜屏时**行已带金色边框**(此前要按方向键才有);**只按一次 `Return`** ⇒ 走到灶台按 `E`,炮制屏出现 **两行**(`dry_willow_bark` / `extract_salicyclic`)—— 证明那一次 `Return` 确实选中了。证据 `production/qa/evidence/walkthrough-2026-11-06-space-fix.md` §9 |
 
 > **计数**(2026-11-06 立债时刷新):条目 `195 → 196` · `open 20 → 21` · `closed 165` 不变 ·
 > **未闭 P0 面 `13 → 14`**(`modular-building` 进入未闭分布)。
