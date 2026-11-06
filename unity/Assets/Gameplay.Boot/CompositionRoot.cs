@@ -25,6 +25,7 @@ using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.Presentation.Patients;   // 病人视觉两接缝的占位实现(TD-prescription-06 兑换轮)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
+using DaYiJingCheng.Gameplay.Presentation.Tutorial;    // TutorialContentTable(48 教学链 · S25-4c)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -2132,6 +2133,37 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                      out int processCompleteOrdinal)
                     ? processCompleteOrdinal
                     : AudioEventDataSet.NoOrdinal);
+
+            // ── 48 教学链的装配缝(2026-11-06 · S25-4c)──────────────────────────────
+            // 三件缺一不可:① 内容表(需 `AddressablesDataProvider` —— 假 provider 对未知表
+            // 会抛/盲转,故不用 `dataProvider != null` 这个更宽的口);② 音频缝(44 的 cue 解析 +
+            // 事件表 `subtitle_text`);③ 字幕口(42 的 `ISubtitleSink`)。
+            // 任一缺席 ⇒ **不装配**、留 null,由 `BootRoot` 启动期显式告警 —— 与「本局没有教学」不可区分。
+            if (dataProvider is AddressablesDataProvider && audio != null && subtitleSink != null)
+            {
+                TutorialContentTable tutorialContent = dataProvider.Load<TutorialContentTable>();
+
+                // 字幕文本 = **事件表**行的 `subtitle_text`(AC-44-15 的单一真源),
+                // 与 `PatientCueDriver` 用的是同一个查表函数(同源,不另写一份)。
+                var tutorialMedia = new TutorialMediaDriver(
+                    audioSink, subtitleSink,
+                    cue => audio.TryResolveCue(cue, out int tutorialCueOrdinal)
+                        ? tutorialCueOrdinal
+                        : TutorialMediaDriver.NoOrdinal,
+                    ordinal => SubtitleTextOf(audio.Table, ordinal));
+
+                // 口述的空间化锚点:P0 **没有师父实体** ⇒ 没有声源格,取**听者格**(相机格)。
+                // 听者缝未接 ⇒ 原点 —— 只在无声学意义的环境(夹具)里发生。
+                Func<Int3> tutorialCell = audio.ListenerCell != null
+                    ? audio.ListenerCell
+                    : (Func<Int3>)(() => default(Int3));
+
+                services.TutorialSeams = new TutorialChainSeams(
+                    tutorialContent, tutorialMedia, tutorialCell,
+                    // ⚠️ 7a 未交出「已存过档」读面 ⇒ archive 步**永不完结**(如实登记,
+                    //    不伪造一个恒真回执 —— 那会让「还没存过」直接算学会)。
+                    checkpointWritten: null);
+            }
 
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);

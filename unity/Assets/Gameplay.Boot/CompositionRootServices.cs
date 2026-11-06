@@ -113,6 +113,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 由 <c>Assemble</c> 在构造完本对象后赋值(与 <see cref="ConsequenceDriver"/> 同款)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.ProcessingCompletionDriver ProcessingCompletion { get; internal set; }
 
+        /// <summary>48 教学链的**装配缝**(2026-11-06 · S25-4c)。
+        /// <para>装配期定「内容表 + 翻译层 + 口述锚点」;玩家 id 由 `BootRoot` 生成后才
+        /// <see cref="DaYiJingCheng.Gameplay.Boot.TutorialChainSeams.Attach"/> 出可驱动的链。</para>
+        /// <para>⚠️ <c>null</c> = **未装配**(无 provider ⇒ 内容表装载面不存在 / 音频缝或字幕口缺席)
+        /// ⇒ `BootRoot` 启动期须**显式告警**:与「本局没有教学」不可区分。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.TutorialChainSeams TutorialSeams { get; internal set; }
+
+        /// <summary>48 的教学链驱动(**生产唯一实例**;2026-11-06 · S25-4c)。
+        /// <para>每个 tick 边沿跑 `Project → Evaluate → Dispatch → Play`。
+        /// <c>null</c> = 未绑定玩家(装配缝为 null,或玩家尚未生成)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.TutorialChainDriver TutorialChain { get; internal set; }
+
         /// <summary>20 的**完成时点结算入口**(`TD-processing-08` · R-18-D[甲]② 起货溢出)。
         /// <para>每个 tick 边沿:对本 tick 到点的每炉,按当时 `CarryLoad` 判容量;装不下 ⇒
         /// 本批成品整批 `DropSpawned`(锚点 = `tool_cell`,id 原样引用点火已铸)。</para>

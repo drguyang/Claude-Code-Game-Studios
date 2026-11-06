@@ -836,6 +836,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    —— 方笺页落笔 / 开方对象 = 当前脉案绑定病人(42 侧会话)。
             _services.PrescriptionPage?.SetAuthor(actorId);
 
+            // ── 4.7. 48 教学链接线(S25-4c · 2026-11-06):玩家 id 已定 ⇒ 可 Attach ──
+            // ⚠️ **`Attach` 内部立即播种**(按当时流投影一次,只置饱和不 Fire)——
+            //    读档进来的已完成步因此不会被重播。放在「流已就绪 + 玩家已有 id」之后是硬要求,
+            //    提前会让播种读到未装载的流(把整段教学重播一遍)。
+            // ⚠️ 未装配(null)必须**显式告警**:它与「本局没有教学」在行为上不可区分。
+            if (_services.TutorialSeams != null)
+                _services.TutorialChain = _services.TutorialSeams.Attach(_services.Stream, _services.Decoder, actorId);
+            else
+                Debug.LogWarning("[48][tutorial] 教学链未装配 —— 内容表/音频缝/字幕口 至少缺一," +
+                                 "本局不会有任何教学口述与纸指引(不是「教学已完成」)。");
+
             // ── 4.65. 急救跳过入口写路径接线(story-009 · R-9.4)──
             // 候选列表「跳过」项 Submit → EmergencyChannelDriver.SkipAction
             //   → 先发 Explore 档位意图,再委派 EmergencyManualDriver.TryManual(method 1)。
@@ -2774,6 +2785,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null)
             {
                 _services.RandomEventsDirector?.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 48 教学链(S25-4c · 2026-11-06):同一 tick 边沿序列内,排在本边沿**所有事件生产者之后**
+            // —— 教学完成度读的是事件流,排在前面会晚一拍看到本 tick 的 `CaseOpened` / `JudgmentRecorded`。
+            // ⚠️ 本调用**可能投递音频与字幕**(44 / 42 的入向口),但它不写三流、不判 sim 状态。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null && _services.TutorialChain != null)
+            {
+                _services.TutorialChain.OnTickEdge(_tickDriver.CurrentTick);
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):

@@ -142,3 +142,17 @@
 | AC-2 字幕真的上屏 | `Gameplay.Boot` 里把意图翻成 `AudioCueDto` + `SubtitleLineView.Show` 的那层(42 的接收口已在) |
 | AC-48-06 / AC-48-15 [L] | 真包手柄走查;`…-three-media-walkthrough.md` **未创建** |
 | AC-48-09 联机半边 | BLOCKED-BY-45(`TR-tutorial-006`) |
+
+**2026-11-06 · S25-4b 翻译层**(证据 = `production/qa/evidence/impl-s25-4b-tutorial-media-translation-2026-11-06.md`)
+
+- `Gameplay.Boot/TutorialMediaDriver`:`TutorialMediaIntent` → `AudioCueDto`(44 入向)+ `SubtitleLineData`(42 入向)。字幕文本取**事件表 `subtitle_text`**(`AC-44-15`),不取意图自带的 `Text`。判据 10 条,证伪 5/5 转红。
+- 加边 `Boot → Gameplay.UI.Tutorial`(ADR-025 §① 窄修订);48 自身的引用集一字未改,`AC-48-11` 仍成立。
+- ⚠️ **仍有零生产调用点**:链上游(投影 → 触发 → 调度 → 本层)未接,四个待裁点见证据 §6。**本件不把「能翻译」记成「已播出」。**
+- ⚠️ **查出两表分歧**:同一 cue 的台词在 48 内容表与音频事件表里**不同**(四条全不同)。`AC-48-15` 要的是「同一行、不得两处各写一份」,现在是两份。内容对账与「同源」机械门**未做**,见证据 §5。
+
+**2026-11-06 · S25-4c 生产接线**(证据 = `production/qa/evidence/impl-s25-4c-tutorial-chain-wiring-2026-11-06.md`)
+
+- 整条链首次有生产驱动:`TutorialChainDriver`(事件流 → 投影 → 边沿 → 调度 → 投递),`TutorialChainSeams` 在玩家生成后 `Attach`;接线三处 = `CompositionRoot:2137-2165`(装配)/ `BootRoot:845`(绑定玩家)/ `BootRoot:2795`(tick 边沿末尾)。
+- **播种在构造期**(读档进来的已完成步不重播);**增量游标 + 换流指纹**(换世界/读档 ⇒ 重建 + 重新播种)。判据 10 条,证伪 4/4 转红。
+- ⚠️ **`archive` 步今天永不完结**:7a 没有「已存过档」读面,`checkpointWritten` 传 `null`(不伪造恒真回执)。
+- ⚠️ **生产装配路径无自动化判据**:`TutorialSeams` 只在 `dataProvider is AddressablesDataProvider` 时装配,EditMode 夹具走不到该分支 ⇒ 「真接上了」只有代码面证据,须真包走查确认(`[L]`)。

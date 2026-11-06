@@ -9,6 +9,7 @@
         "Gameplay.Presentation",
         "Telemetry",
         "Gameplay.UI",
+        "Gameplay.UI.Tutorial",
         "Unity.InputSystem",
         "Unity.Addressables",
         "Unity.ResourceManager",

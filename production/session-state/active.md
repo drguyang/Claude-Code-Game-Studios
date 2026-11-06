@@ -17093,3 +17093,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 证据 = `production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md`;sprint yaml S25-4 = `review`
 - **未做**:世界侧走近摊开(待 6 + 4)· 示范片段(待 13 + 42)· 字幕投递(待 Boot 翻译层)· AC-48-06/15 [L] · AC-48-09 联机(BLOCKED-BY-45)
 - 下一步:用户裁定是否入库;S25-1 / S25-2 / S25-4 三件均 `In Review`,待 `/code-review` + `/story-done`
+
+## Session Extract — S25-4b 翻译层(2026-11-06)
+- 新件:`Gameplay.Boot/TutorialMediaDriver`(意图 → `AudioCueDto` + `SubtitleLineData`)+ 判据 10 条
+- 字幕文本取事件表 `subtitle_text`(AC-44-15),不取意图自带;证伪 5/5 转红,还原哈希一致
+- 加边 `Boot → Gameplay.UI.Tutorial`(ADR-025 §① 窄修订);48 引用集未改,AC-48-11 仍成立
+- 回归 EditMode `7049/7012/0/0/37` @11:19:52Z(+10)· PlayMode `359/355/0/2/2`(零回归)
+- ⚠️ **零生产调用点**:链上游(投影→触发→调度)+ 四个待裁点(驱动节奏 / 玩家 id / 口述锚点格 / 增量游标)见证据 §6
+- ⚠️ **两表分歧**:四条 cue 的台词在 48 内容表与音频事件表里不同 ⇒ AC-48-15「同一行」不成立;待内容对账 + 同源机械门(证据 §5)
+- 证据 = `production/qa/evidence/impl-s25-4b-tutorial-media-translation-2026-11-06.md`
+
+## Session Extract — S25-4c 全链接线(2026-11-06)
+- 新件:`TutorialChainDriver`(事件流→投影→边沿→调度→投递)+ `TutorialChainSeams`(装配缝,玩家 id 后置 Attach)
+- 接线:`CompositionRoot:2137-2165` / `BootRoot:845` / `BootRoot:2795`(tick 边沿末尾,排所有事件生产者之后)
+- 播种在构造期(读档不重播);增量游标 + 换流指纹;判据 10 条;证伪 4/4 转红(SHA-256 逐字节还原)
+- 回归 EditMode `7059/7022/0/0/37` @11:49:39Z(+10)· PlayMode `359/355/0/2/2`(零回归)
+- ⚠️ `archive` 步永不完结(7a 无「已存过档」读面)· 生产装配路径**无**自动化判据(走不到 AddressablesDataProvider 分支)⇒ 须真包走查
+- 证据 = `production/qa/evidence/impl-s25-4c-tutorial-chain-wiring-2026-11-06.md`
