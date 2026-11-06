@@ -17110,3 +17110,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归 EditMode `7059/7022/0/0/37` @11:49:39Z(+10)· PlayMode `359/355/0/2/2`(零回归)
 - ⚠️ `archive` 步永不完结(7a 无「已存过档」读面)· 生产装配路径**无**自动化判据(走不到 AddressablesDataProvider 分支)⇒ 须真包走查
 - 证据 = `production/qa/evidence/impl-s25-4c-tutorial-chain-wiring-2026-11-06.md`
+
+## Session Extract — S25-4c 真包走查(2026-11-06 19:59–20:10)
+- 包:builds/Linux-x64,Success 19:59(源 e1c2669e);XTest 键盘注入
+- **结论:教学口述一次都没跑出来**(零发火 ⇒ Play 零调用)
+- 教学链**装配成功**:启动日志无「[48][tutorial] 教学链未装配」,而其它 Debug.Log 正常落盘
+- 根因:进世界即弹急救候选屏,`ModalGate.Accept` 的 `_armed.IsArmed ⇒ false` 把 `E` 全拒 ⇒ 到不了 CaseOpened
+- 「跳过」按 Return / 点击均无可见效果 —— 原因**未定位**(焦点 / 回调 / 重新 Armed 三可能)
+- 对照:UI 输入是通的(Escape 弹暂停壳);屏幕上 `【病人】咳…` 是 44 的病人字幕,不是教学
+- 副作用:w3 移出存档树 · 存档 20/20 SHA-256 还原 · 源码零改动
+- 证据 = production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(+3 张截图)
