@@ -258,3 +258,58 @@ But was:  "be93eed1…ecce242"  (1698 B)
 处置(**不是「改夹具让它变绿」**):声明为合法内容变更 → 重签常量 →
 `level_source_generalization_test` 单独复跑 **14 / 13 / 0**(1 skip)。
 常量旁留了第四次重签的记录(原值 `681d503d…` 与变更理由都在注释里,原文不删)。
+
+---
+
+## 10. 干净包确认(2026-11-06 14:07–14:20)—— 修复在**无探针**构建上成立
+
+### 10.1 出包溯源
+
+| 项 | 值 |
+|---|---|
+| 包目录 | `unity/builds/Linux-x64/` |
+| 构建结果 | `Build Finished, Result: Success`(14:07 CST) |
+| 程序集 | `大医精诚_Data/Managed/Gameplay.Boot.dll` **2026-11-06 14:07** · SHA-256 `bf916580f8d77dbce59e6b60ff121c908eb62d69cc56327e5b316c8cae023ffb` |
+| ⚠️ 可执行文件本身 | `大医精诚.x86_64` 仍是 **2026-11-05 20:25**(启动器为缓存件,本批未重写)—— **判「包是不是新的」不能看它,要看 `_Data/`** |
+| 无探针判据 | `grep -a -c 'PROBE-4' 大医精诚_Data/Managed/Gameplay.Boot.dll` ⇒ **0**;源码 `InteractionPressRouter.cs` 同样 0;`git status` 该文件干净 |
+
+### 10.2 判据与观测
+
+| # | 动作 | 观测 |
+|---|---|---|
+| 1 | 新局 → 采集 2 件 → 走到柜 `(5,0,5)` 按 `E` | 容器屏开,行 `器物#0 品1·叠2`;行周**开屏即有 2px 铜环**(`21-clean-container-focus.png` / `21b-clean-container-row-zoom.png`)—— 修复前该环要**先按一次方向键**才出现(§8.1 实测) |
+| 2 | **只按一次 `Return`**(不按任何方向键) | 画面无可见变化 —— 与 §9.3 同因:本屏**没有** `.selected` 样式(`grep -rn selected --include=*.uss` 零命中),选中态与焦点环在视觉上重合 |
+| 3 | 走到灶台附近按 `E` | 炮制屏出现**两行**:`dry_willow_bark` / `extract_salicylic`(`23-clean-processing.png` / `22-clean-processing-rows-zoom.png`)⇒ `consumedQualities` 非空 ⇒ **第 2 步那一次 `Return` 确实选中了** |
+
+⚠️ **为什么第 3 步是因果判据**:`Processing18Screen` 的行**只在** `AdmissiblePredicate.Judge` 收到非空
+`consumedQualities` 时才出现(否则是 §4 记的「空壳」)。修复前真包实测:一次 `Return` ⇒ 空壳;
+`Down` + `Return` ⇒ 两行(§8.2 / §9.3)。本轮干净包一次 `Return` ⇒ 两行,**与修复版同形**。
+
+### 10.3 走位法(可复用)
+
+玩家位置在画面上**无反馈**(无小地图、无坐标)。本轮用**存档扫格**定位:
+
+1. 暂停壳 → `保存` 行 → 落笔(须 `Writable`,即无未处置医疗动作);
+2. 扫最新 `save_*.bin` 的字节 —— `ActorCellEnteredPayload = {1: actorId(i32), 2: cell(3×i32), 3: tick(i64)}`,
+   暴力匹配 `data[i]==1 && data[i+5]==2 && data[i+18]==3`,按 `tick` 排序取末条即当前格;
+3. 方向标定(实测):`W = +z`、`D = +x`,`SpeedWalk = 5`,起步加速 `Accel = 10`(≈ 0.5 s 到全速)。
+
+本轮实测轨迹:`(5,0,6)` → `(12,0,13)` → `(14,0,13)`。
+
+### 10.4 ⚠️ 一条被误当「没反应」的干扰(登记,不是缺陷)
+
+在 `(12,0,13)` 按 `E` **开不出炮制屏**。查表后确认不是缺陷:`assets/data/world_resources.json` 在
+`(12,0,12)` 有采集点(`item_key = 2`)⇒ 采集点 `d∞ = 1`;灶台 `(14,0,14)` 的 `d∞ = 2`。
+4 的选靶是 `argmin ⟨d∞, KindPriority, StableId⟩`,**距离是键 ①,`KindPriority` 只在等距时破平**
+(`r_interact = 3`)。⇒ 采集点**压住**灶台。走到 `(14,0,13)` 后灶台 `d∞ = 1`、采集点 `d∞ = 2`,`E` 即命中。
+
+**这与 §1 / §6 订正过的那条是同一机制**(「病人压住灶台」的真因也是键 ①,不是键 ②):
+`KindPriority` 从不跨距离生效,任何**更近**的候选都会赢。走查时「E 没反应」先查半径内有没有更近的候选。
+
+### 10.5 副作用
+
+| 项 | 结果 |
+|---|---|
+| `w1` / `w2` 与 `worlds.index` | 备份 `saves-before-cleanverify-1409.tar` 逐字节还原;**20/20 文件 SHA-256 全部 OK**(含 `worlds.index`)。⚠️ 本轮启动时索引里 `w2` 的时刻被刷新过,已随还原回到备份值 |
+| 本轮新建的测试世界 `w3` / `w4` | **已移出**存档树 ⇒ `.claude/jobs/<job>/tmp/testworld-w{3,4}-2026-11-06`(本轮 `rm -rf` 被拒 ⇒ 改为移出:**可逆**;内容均为测试局存档) |
+| 源码 / 探针 | 本轮**零源码改动**、零探针注入 |
