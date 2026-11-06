@@ -45,7 +45,7 @@ stories:
     name: "tutorial/003 Anchor/Completion 两相触发引擎"
     file: "production/epics/tutorial-onboarding/story-003-anchor-completion-trigger-engine.md"
     priority: must-have
-    status: ready-for-dev
+    status: review
     owner: ""
     estimate_days: 0
     complexity: M

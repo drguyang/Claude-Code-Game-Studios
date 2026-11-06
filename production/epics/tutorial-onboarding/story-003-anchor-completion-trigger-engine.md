@@ -1,12 +1,12 @@
 # Story 003: Anchor/Completion 两相触发引擎
 
 > **Epic**: 教学与引导
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-06
 
 ## Context
 
@@ -31,13 +31,23 @@
 
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
-- [ ] 六步谓词各自独立求值:observe(并入 ① 锚)/ judge / treat / close / archive / manage,判据事件按规则三映射(`CaseOpened` / `JudgmentRecorded(author=p)` / `EmergencyAttempt`∨`DrugTreatmentApplied(initiator=p)` / `CaseClosed` / `Checkpoint` 写回执 / `StructurePlaced`)
-- [ ] **AC-48-08 冷播种**:读档后以「流已含 step3 完成事件」夹具播种 ⇒ `Completion` 立真、`FireAdvance` **不重燃**(媒体不重播);逐位:两次读同档播种结果一致
-- [ ] 边沿唯一性:同进程内同 (step, phase) 的 Fire 计数 ≤ 1;事件回灌 / 重放不致二次 Fire
-- [ ] **可跳步**:直接完成 manage(建了房)而 judge 未完成 ⇒ 合法,不报错不惩罚;**可回头**:回头翻旧事不重燃 anchor;**不补播**:错过的 anchor 媒体不追播(F-48.2)
-- [ ] 谓词单调:已 true 的 Completion 不因后续事件回 false(投影只增;闩只进不退)
-- [ ] 联机各玩家各自求值(按 `player_id` 分路,单机双 id 夹具);联机运行面 BLOCKED-BY-45,禁借绿
-- [ ] 触发引擎零设门副作用:Fire 只**产出媒体调度意图**(交 Story 004),不拦截 / 不禁用任何玩法(设门守卫本体 = Story 005)
+- [x] 六步谓词各自独立求值:observe(并入 ① 锚)/ judge / treat / close / archive / manage,判据事件按规则三映射(`CaseOpened` / `JudgmentRecorded(author=p)` / `EmergencyAttempt`∨`DrugTreatmentApplied(initiator=p)` / `CaseClosed` / `Checkpoint` 写回执 / `StructurePlaced`)
+  - 载体:引擎按**步 id 闭集**逐条求值,互不牵连(`test_ac3_skipSteps_onlyCompletedOneFires` / `…noCompensationOutput_forSkippedSteps`);映射本身归 S25-1 的 `Proj`(`test_ac5_*`)
+- [x] **AC-48-08 冷播种**:读档后以「流已含 step3 完成事件」夹具播种 ⇒ `Completion` 立真、`FireAdvance` **不重燃**(媒体不重播);逐位:两次读同档播种结果一致
+  - 载体:`test_ac48_08_seed_marksLatchWithoutFiring` / `…afterSeed_newCompletionFiresOnlyItself` / `…seedTwice_isIdempotent_noFire`
+- [x] 边沿唯一性:同进程内同 (step, phase) 的 Fire 计数 ≤ 1;事件回灌 / 重放不致二次 Fire
+  - 载体:`test_ac2_sameViewEvaluatedTwice_firesOnlyOnce` / `…olderViewAfterNewer_doesNotRefireNorUnlatch`
+  - ⚠️ **相位维退化**:`F-48.1` 里**会发火的只有 `Anchor`**(`Completion` 是单调读时谓词,不出事件)⇒ 「(step, phase)」在本实现里恰等于「step」。已在类注写明;若将来 GDD 增出第二个发火相再加维,不预先虚构
+- [x] **可跳步**:直接完成 manage(建了房)而 judge 未完成 ⇒ 合法,不报错不惩罚;**可回头**:回头翻旧事不重燃 anchor;**不补播**:错过的 anchor 媒体不追播(F-48.2)
+  - 载体:`test_ac3_skipSteps_onlyCompletedOneFires` / `…comeBackLater_firesThatStepOnly` / `…noCompensationOutput_forSkippedSteps`
+- [x] 谓词单调:已 true 的 Completion 不因后续事件回 false(投影只增;闩只进不退)
+  - 载体:`test_ac2_olderViewAfterNewer_doesNotRefireNorUnlatch`(回灌旧视图 ⇒ 不复燃、不撤销闩)
+- [x] 联机各玩家各自求值(按 `player_id` 分路,单机双 id 夹具);联机运行面 BLOCKED-BY-45,禁借绿
+  - 载体:`test_ac4_twoPlayers_haveIndependentLatches` + `test_guard_crossPlayerView_throws`(串玩家 fail-loud,且抛前零副作用)
+  - ⚠️ **只覆盖单机夹具半边**;联机运行面仍 `BLOCKED-BY-45`
+- [x] 触发引擎零设门副作用:Fire 只**产出媒体调度意图**(交 Story 004),不拦截 / 不禁用任何玩法(设门守卫本体 = Story 005)
+  - 载体:`test_ac5_publicSurface_hasNoGateMembers`(公开面恰为六个成员,多出解锁 / 禁用 / 拦截类即红)+ `test_ac5_seedMouthNeverEmitsIntent`
+  - ⚠️ **48 全 API 面的零设门反射守卫**归 Story 005;本条只钉本类
 
 ---
 
@@ -103,7 +113,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Tutorial/tutorial_trigger_engine_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing(18 条,2026-11-06)
 
 ---
 
@@ -116,4 +126,17 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**2026-11-06 实施轮(sprint-25 S25-2)—— 代码面完成**
+
+- **落点**:`unity/Assets/Gameplay.UI/Tutorial/TutorialTrigger.cs` —— 一实例 = 一名玩家;
+  `Seed`(播种口,零 Fire)/ `Evaluate`(增量口,产出媒体调度意图)。闩 = `readonly bool[]`,**不可序列化、永不复位**。
+- **判据**:新增 **18 条**,全绿;证伪 M1–M4 各自转红(播种跑 Fire / 已闩复燃 / 串玩家 / 播种不置闩),SHA-256 逐字节还原。
+- **回归**:EditMode `7016 / 6979 / 0 / 0 / 37`(基线 `6998 / 6961` ⇒ +18/+18,零回归)。
+- **设计取舍**:相位维**退化**为「每步至多一次」—— `F-48.1` 里会发火的只有 `Anchor`
+  (`Completion` 是单调读时谓词,不出事件)。已在类注写明,不预先虚构第二相。
+- **⚠️ 未做(禁借绿)**:
+  - **零生产调用点** —— 消费方 = Story 004(媒体调度),那件未做前「教学真的会说话」在生产上是空的(F2 自陈);
+  - **播种时机未接线**(「读档完成 → 首帧前」),同样归 Story 004 的装配;
+  - 联机运行面 `BLOCKED-BY-45`;
+  - `archive` 步依赖 7a 回执口,生产上恒 false(承 S25-1 的登记)。
+- **证据**:`production/qa/evidence/impl-s25-2-tutorial-trigger-2026-11-06.md`。
