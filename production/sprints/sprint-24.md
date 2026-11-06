@@ -354,3 +354,182 @@ git status --short          # 期望：空 ⇒ 上表两行对应 `3f639bb3` 的
 1. **`/smoke-check sprint` 仍未跑** —— 见 §DoD 第 3 条与本文件末的收口门表，**本 sprint 依旧不得称「全绿收口」**。
 2. **`TD-randomevents-04` 退 P1a**（`Mod_Eco` / `Mod_Rep` 无 P0 观测面），`-06` 内容侧、`-07` / `-08` 仍开。
 3. **卡鱼刺 / 偏头痛不入 P0**（`TD-emergency-01` 维持 `open`）：动作轴只有 2 个动作，装不下「取出」。
+
+---
+
+## 收口后追加件 · 第三批（2026-11-06）
+
+> **登记时点**：2026-11-06 · 用户指令「补第三节，把今天三批活登记进去」。
+>
+> ⚠️ **本节不改变本 sprint 的任何判据**，与第一 / 第二批同口径 —— `Status` 仍为 **Closed**，
+> 「2 件 Must」的件数、逐件判定与 DoD 三项**一字不动**。本节登记的是收口之后**第三天**实际推进的
+> 东西，按 `CAPACITY-MODEL.md` 属于 **sprint-25 的候选面**，不是本 sprint 的交付物。
+
+**范围复算**（自包含，只读）：
+
+```bash
+git rev-list --count --since="2026-11-06 00:00" HEAD      # 期望：21
+git log --since="2026-11-06 00:00" --pretty=format:"%h %ad %s" --date=format:"%H:%M"
+# 21 笔 = 本节「三批」14 笔（批一 4 · 批二 6 · 批三 4）+ 同日凌晨一轮 7 笔
+# 注:三批按**主题**分，不按时间连续 —— 批一的真机验收（08:28）落在批二的首两笔（07:09）之后
+```
+
+### 一、批一（06:15–08:28）—— 档头 tick 早于流尾（「继续诊治」后走不动）
+
+| 笔 | 内容 |
+|---|---|
+| `d0d4d9f1` | `fix(persist)`：读侧 `max(档头, 流尾)` + 写侧组版口 `max(调用方, 流尾)`，**布局零改动** |
+| `d6e4f2fa` | 会话摘要（P0 修复轮 + smoke 复跑） |
+| `2cb17d69` | `smoke-2026-11-06` 补炮制链走查实录 |
+| `6e649dab` | 真机验收补跑：用盘上**本来就有的**真坏档 `w2/save_3`（档头 179 / 流尾 1554）启封 |
+
+**根因**：读档按**档头**定位时钟，而档头 tick 早于流尾 ⇒ 时钟落在历史之前 ⇒ 此后每笔 `Append` 被拒收
+（`BCD-码-3` 刷 1552 条）；写档侧从不校验该不变式 ⇒ 坏档自我放大。
+
+**判据**：`save_tick_vs_stream_tail_test` **7 条**；证伪轮 **M1 / M2 / M3 各自转红**，还原 SHA-256 逐字节
+（端到端那条在 M1/M2 下仍绿 = 纵深防御的预期形态，**如实登记**）。
+
+**真机**：钳位告警出现、时钟按流尾 1554 定位、`BCD-码-3` **0 条**、载入后位移可见。
+⚠️ **写档侧钳位的真包可观测面 = NOT-RUN** —— 读侧钳位已让「时钟落后流尾」的活会话不可能自然出现，
+只能由 EditMode `test_compose_headerTick_neverBehindStreamTail` 覆盖；**首犯会话不可考**（`Player.log` 每次启动覆盖）。
+
+证据：`production/qa/evidence/fix-p0-tick-behind-stream-tail-2026-11-06.md` · `walkthrough-2026-11-06-p0-realplayer.md`
+
+### 二、批二（07:09–13:25）—— 空间解：病人两角 · 灶台第三角 · 地面覆盖整张图
+
+| 笔 | 内容 |
+|---|---|
+| `e2d7af89` · `db19e0ee` | 炮制链走查实录 / World 场景计数订正（炮制屏入口不可达的取证） |
+| `2ce5ab35` | 立 `TD-building-05`（P0 零结构视觉载体） |
+| `d40cc570` | 炮制链真包复测：13 次 `E` 零命中 —— **订正上一轮的错误归因** |
+| `d4f3b4be` | 空间解本体：`PatientWiringPositions`（2 格）+ `PresenceCellAnchorSource`（新）· `MaxPatientsDuringWiring` 3 → 2 · 灶台 `(10,0,5)` → `(14,0,14)` · Ground 18×18 居中 |
+| `42493f6b` | 全链跑步：采集 → 选料 → 灶台三段跑通，空壳归因坐实 |
+
+**本轮最重要的产出是一条订正**：上一轮记的「病人 `KindPriority` 压住灶台」**不成立** ——
+病人当时**全部登记在 `(0,0,0)`**、玩家也在 `(0,0,0)`，按键 ①（格距）病人 `d∞ = 0` 就赢了，
+`KindPriority`（键 ②）**根本没参与**。玩家走不动的真因是 `Ground` 只有 **10×10 米**、世界格是 16×16 ⇒
+`x,z ≳ 5` 之外脚下没有地板，探针实测 `player=0,-6,-9` / `player=-9,-7,0`（y 为负 = 在坠落）。
+
+**新债**：`TD-building-05`（P0 运行期零结构视觉载体，**open**）· `TD-building-06`（地面 10×10 vs 16×16，
+**open** —— 已就地改成 18×18，但**没建立任何门** ⇒ 下次改世界尺寸同型复发）；`TD-building-04` 详情表订正。
+
+⚠️ **批二没有自己的全量回归** —— 它随批三的 13:43 / 13:49 那两次全量一起被判（见下「回归三元组」）。
+这是**论证**，不是又跑了一次。
+
+证据：`production/qa/evidence/walkthrough-2026-11-06-space-fix.md` §1–§8
+
+### 三、批三（13:32–14:25）—— `TD-skeuo-20` + 干净包确认
+
+| 笔 | 内容 |
+|---|---|
+| `be775dec` | `fix(ui)`：容器屏 `Bind` 重建前后按 **`instance_id`** 还原焦点；关卡黄金哈希**第四次重签**（`681d503d…` → `be93eed1…`，1697 → 1698 B，理由 = 灶台格多一个字符） |
+| `63c358af` | `.gitignore`：走查/测试截图窄 glob（`production/qa/evidence/**/*.png|jpg|jpeg`），**证据正文仍跟踪** |
+| `9233d003` | 证据 §10（干净包确认） |
+| `0293d635` | `chore(packages)`：Unity 自动升级 Linux 工具链 1.1.0 → 1.1.1，原样入库 |
+
+**判据**：`inventory_container_content_test` **7/7**（+2：正控 `test_tdSkeuo20_bind_focusesFirstCell` ·
+负控 `test_tdSkeuo20_rebind_keepsFocusOnSameInstance`）；证伪 **M1**（注掉 `FocusAfterRebuild`）⇒
+**2 红 / 5 绿**，恰为新增两条，还原 SHA-256 `ee6e44c0…02790bc0f` 逐字节一致。
+
+**干净包**：`Gameplay.Boot.dll` @ 14:07 · SHA-256 `bf916580f8d77dbce59e6b60ff121c908eb62d69cc56327e5b316c8cae023ffb`；
+`grep -a -c 'PROBE-4'` 该 DLL = **0**、源码 = 0。
+⚠️ 可执行文件本体仍是 11-05 20:25 的缓存启动器 —— **判包新旧要看 `_Data/`，不能看它**。
+
+**真包三步**：开屏行周**即有** 2px 铜环 → 只按一次 `Return`（画面无变化：本屏没有 `.selected` 样式，
+选中态与焦点环视觉重合）→ 灶台旁 `E` 得炮制屏**两行**（`dry_willow_bark` / `extract_salicylic`）
+= **因果下游判据**（行只在 `consumedQualities` 非空时出现）。
+
+**附带登记（不是缺陷）**：在 `(12,0,13)` 按 `E` 开不出炮制屏 —— 采集点 `(12,0,12)` 的 `d∞=1` 赢了
+灶台 `(14,0,14)` 的 `d∞=2`；**距离是键 ①，`KindPriority` 只在等距时破平**。同一条机制就是批二订正的那件事。
+
+证据：`production/qa/evidence/walkthrough-2026-11-06-space-fix.md` §9–§10
+
+### 四、附：同日凌晨一轮（02:05–04:04，**不计入「三批」**）
+
+只列指针，避免日账出现缺口：**ADR-042**（存档 v6 落笔时刻 + 锁从读侧搬到写侧 + 存档册行列形态，
+`a92775d3` · `6aba5507` · `c87fa607` 立 `TD-skeuo-18`）·
+**`TD-skeuo-19`**（存档册滚轮/上下键到页边界翻页 + 留档行落位，`5dff210f` · `79fa3d42`）·
+`9854db6b` IL2CPP 工具链包由编辑器解析至 1.1.1（出包派生）。
+证据件：`impl-adr042-save-v6-and-slot-lock-2026-11-06.md` · `impl-td-skeuo-19-save-book-paging-2026-11-06.md`。
+
+### 债面变化（11-05 末 → 11-06 末，含凌晨一轮）
+
+| 量 | 11-05 末（`b2c07753`） | 11-06 末（`9233d003`） | 差 |
+|---|---|---|---|
+| 条目 | 193 | **198** | **+5** |
+| `closed` | 164 | **166** | **+2** |
+| `partial` | 9 | 9 | ±0 |
+| `open` | 19 | **22** | **+3** |
+| **未闭 P0 面** | **12** | **15** | **+3** |
+| epic 分布 | 6/31 | **7/31** | **+`modular-building`（2 条）** |
+
+新增五条：`TD-building-05`（open）· `TD-building-06`（open）· `TD-skeuo-18`（open）·
+`TD-skeuo-20`（closed）· `TD-skeuo-19`（closed）。
+
+⚠️ 与第二批同一个提醒：**未闭 P0 面 12 → 15 不是「没干活」** —— 三批关掉一条（`TD-skeuo-20`），
+批二新开两条并带进**一整个 epic 面**（`modular-building`）。这两条是「修好了但没建门」，不是新缺陷面扩大。
+
+```bash
+python3 tools/debtcount/debtcount.py --print
+# 期望:条目 198 | closed 166 | partial 9 | open 22 | done 1 | 未闭 P0 面 = 15(7/31 个 epic)
+
+# 逐条差集(11-05 末 vs HEAD,只读)
+python3 - <<'PY'
+import re, subprocess
+def rows(rev):
+    t = subprocess.run(['git','show',f'{rev}:docs/tech-debt-register.md'],
+                       capture_output=True, text=True).stdout
+    m = re.search(r'<!-- TD-INDEX:BEGIN -->(.*?)<!-- TD-INDEX:END -->', t, re.S)
+    out = {}
+    for l in m.group(1).split('\n'):
+        if not l.startswith('| `TD-'): continue
+        c = [x.strip() for x in l.strip().strip('|').split('|')]
+        out[c[0].strip('`')] = (c[1].strip('`'), c[2], c[3])
+    return out
+a, b = rows('b2c07753'), rows('HEAD')
+print('新增:', {k: b[k] for k in b if k not in a})
+print('状态变化:', {k: (a[k][1], b[k][1]) for k in b if k in a and a[k][1] != b[k][1]})
+PY
+# 期望:新增 5 条(building-05/06, skeuo-18/19/20);状态变化为空
+```
+
+### 门
+
+| 门 | 结果 | 复算 |
+|---|---|---|
+| `python3 tools/debtcount/debtcount.py --check` | **exit 0** | `✅ §五 输出块与索引块一致` |
+| `python3 tools/acid/acid_check.py --check` | **exit 0** | — |
+| 工作树 | **干净** | `git status --short` 期望空（本提交前） |
+
+### 回归三元组
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| EditMode（批一） | **`6968 / 6931 / 0 / 0 / 37`** | `2026-11-05T22:10:49Z`（= 11-06 06:10 CST） | 档头 tick P0 修复轮 | `79fa3d42` + 工作树（补丁尚未提交） |
+| PlayMode（批一） | **`349 / 345 / 0 / 2 / 2`** | 同上 | 同上 | 同上 |
+| EditMode（批二+批三） | **`6968 / 6931 / 0 / 0 / 37`** | `2026-11-06 13:49 CST` | 干净包前的全量（**黄金重签之后**） | `be775dec` 的前一刻 —— 工作树内容即该提交 |
+| PlayMode（批二+批三） | **`351 / 347 / 0 / 2 / 2`** | `2026-11-06 14:03 CST` | 同批 | `be775dec`（14:00 提交，14:03 跑测） |
+
+**等式判据**：PlayMode `349 → 351` / `345 → 347` ⇒ **+2 / +2**，恰为 `TD-skeuo-20` 新增的两条夹具，
+零回归。EditMode `6968` 与批一逐位相同 —— 批二/批三**没有加 EditMode 夹具**，而黄金哈希重签是
+**常量**变更（不增删测试），两者自洽。
+
+⚠️ 批二那次全量首跑是 **`6968 / 6930 / 1 / 0 / 37`**，唯一红的是
+`test_ac3_newDispatchPath_bytesEqualPreRefactorGolden`（1697 → 1698 B）。**那是黄金哈希在正常工作**，
+不是回归 —— 处置是**声明为合法内容变更 + 重签常量并留注**，不是「改夹具让它变绿」。
+
+```bash
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/skeuo20-editmode2.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/skeuo20-playmode-full.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+```
+
+### 仍未做（本节口径）
+
+1. **炮制链「点火 → 完成 → 起货」端到端仍 `NOT-RUN`** —— 今天只跑到「灶台屏有两行」（选料面通了），
+   `AC-18-21` 的人工腿仍未过。⚠️ 它同时是 `smoke-2026-11-06` §七 的那条阻塞项。
+2. **四条 `[L]`（听测 3 + 手柄走查 1）未做** —— 人听 / 人走，不借绿。
+3. **`design/ux/processing-18.md` 仍缺** ⇒ `AC-42-F1` ⑨ 阻塞签核。
+4. **`TD-building-05` / `TD-building-06` 仍 `open`** —— 前者是 P0 运行期零结构视觉（灶台不可见），
+   后者已就地盖住整张图但**没有门**；两条都不在本 sprint 的件面内。
+5. **CI 仍零运行**（`TD-ci-03`）；`smoke-2026-11-06.md` 仍是 **PASS WITH WARNINGS**
+   （`run_smoke.py` exit 3 = `INCOMPLETE`，3 条无载体）⇒ 按本文件 §DoD 原文，**仍不得**记「smoke 已通过」。
