@@ -152,3 +152,43 @@ python3 -c "import json;d=json.load(open('assets/data/world_buildslots.json'));p
 **P0 地面只有 10×10,而世界格是 16×16** —— 越过 `x,z ≈ 5` 即无地板,玩家自由落体。
 这是「任何空间走查都不可进行」的**结构性原因**,与「结构无视觉」(`TD-building-05`)是两件事:
 前者让**移动**不可用,后者让**目标**不可见。已登记 **`TD-building-06`**。
+
+---
+
+## 8. 炮制链全链跑步(2026-11-06 11:42–11:55)—— **链通了**
+
+用户指令:「跑一遍:采集 → 容器选料 → 灶台」。
+
+| # | 动作 | 观测(探针逐字 / 截图) |
+|---|---|---|
+| 1 | 主菜单「新起一局」 | `[PROBE-4] player=0,0,0 inRange=4 … => BuildSlot#17` |
+| 2 | 走到 `(2,0,2)`,`E` | `ForageSpot#0@2,0,2 d=0 … => ForageSpot#0`(起表;采集是持续交互) |
+| 3 | **原地不动**等 8 s | 不动 = 不打断(`Advance` 的打断条件是「玩家格变了」) |
+| 4 | 走到 `(5,0,5)`,`E` | `Container#1@5,0,5 d=0 … => Container#1`;屏上出现 **「器物#0 品1 叠2」** ⇒ **采集真的进了背包(叠 2)** — `09-container.png` |
+| 5 | `Down` → `Return` | 行出现金色边框 — `10f-row-after.png` |
+| 6 | 走到 `(14,0,14)` 旁,`E` | `Utensil#9@14,0,14 d=1 … => Utensil#9` |
+| 7 | 截屏 | 炮制屏 **两行**:`dry_willow_bark` / `extract_salicylic` — `11-processing-with-material.png` |
+
+**⇒ 上一轮的「空壳」原因被坐实**:零行 = 没有选料(`NoConsumedInstances`),不是屏坏。
+选料之后同一条链在同一台机器上出两行。
+
+**为什么只有 2 行(不是 4)**:配方表 4 条里 `craft_wooden_splint`(owner=`craft`)与
+`assemble_wooden_post`(owner=`build`)不属炮制;灶台屏只列 `process` 两类。
+**行文案 = `recipe_id` 键名**(`dry_willow_bark`),不是「麻黄汤」式显示名 —— 已知粗糙边(21a 显示名轮)。
+
+### 8.1 本轮新抓到的缺陷:容器屏开屏**无初始焦点**(已立 `TD-skeuo-20`)
+
+- **实测**:开屏后**第一次 `Return` 无任何视觉变化**(裁切放大 `10c-row.png`:行无金色边框);
+  **先 `Down` 再 `Return`** 才出现边框(`10f-row-after.png`),随后灶台屏才出现两行。
+- **机理**:`InventoryContainerScreen` 既无 `FirstFocusable`,也无 `Focus()` 调用
+  (全仓 `FirstFocusable` 只出现在 `MainMenuScreen` / `PauseScreen` / `CasebookScreen` / `SaveSlotsScreen`)。
+- **后果**:键盘 / 手柄玩家会以为屏坏了;而且它与「零行」叠加时,「空壳」和「没操作对」不可区分。
+
+### 8.2 副作用处置(同 §5 口径)
+
+| 项 | 结果 |
+|---|---|
+| 走查前备份 | `saves-before-chain-1142.tar` |
+| `w1` / `w2` | `diff` ⇒ **一致**(本轮全程走 `w3`) |
+| 测试世界 `w3` | **已删除**;`worlds.index` 还原,SHA-256 `61edf427…2887df1` 两侧一致 |
+| 探针 | **已从源码删除**;`grep -c PROBE-4 InteractionPressRouter.cs` = 0,该文件 git 显示未修改 |

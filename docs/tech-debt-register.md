@@ -489,6 +489,7 @@
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-20` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
@@ -1483,10 +1484,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 197 | 状态 {'closed': 165, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 132, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 15 （已闭但曾标 P0 面的 117 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
+条目 198 | 状态 {'closed': 165, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 133, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 16 （已闭但曾标 P0 面的 117 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 6        random-events: 4          modular-building: 2
     diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
     processing: 1
 ```
@@ -12645,8 +12646,21 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **解除动作** | **已在本轮就地修掉(最小)** —— `Ground` 的 Transform 改为 `pos (7.5,0,7.5)` / `scale (1.8,1,1.8)`(18×18,覆盖 `x,z ∈ [-1.5,16.5]`,四边各留 1.5 m 余量)。**债仍记 `open`**:修的是「盖住整张图」,**没有**建立任何门(下次改世界尺寸 ⇒ 同型复发)。建议的**结构性解除**:由关卡工具按 `world_size × LATTICE_SIZE` 生成地面(ADR-022 仍是唯一作者),或加一条构建期断言「地面包围盒 ⊇ 世界包围盒」。 |
 | **触发条件** | 已触发(2026-11-06 真包走查) |
 
+### TD-skeuo-20 —— 容器屏开屏时**无初始焦点**(第一次提交键落空)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `InventoryContainerScreen` 打开后**没有任何元素被聚焦**:该类既未实现 `FirstFocusable`,也**没有**在 `Bind` / 重建后调 `Focus()`(全仓 `FirstFocusable` 只出现在 `MainMenuScreen` / `PauseScreen` / `CasebookScreen` / `SaveSlotsScreen`,容器屏缺席)。⇒ 键盘 / 手柄玩家开屏后第一次按 `Return`(导航提交)**无任何效果**,必须先按一次方向键把焦点移进列表。 |
+| **实测(可跑,2026-11-06 11:52)** | 真包:采集 2 件 → 走到柜 `(5,0,5)` 按 `E` 开容器屏 → **第一次 `Return`**:行无变化(裁切放大图 `10c-row.png` 无金色边框)→ **`Down` 后再 `Return`**:行出现金色边框(`10f-row-after.png`)→ 走到灶台按 `E`:**炮制屏出现 2 行**(`11-processing-with-material.png`)⇒ 证明「选中」确实是 `Down`+`Return` 那一步发生的。 |
+| **后果** | ① 玩家会以为**屏坏了**(按了没反应);② 4 的 `E` 已经把屏打开、且 `AC-18-10b` 只在有选中时才出行 ⇒ 零行 + 无焦点叠加时,「空壳」与「没操作对」不可区分;③ 违反 `technical-preferences.md` 的手柄焦点导航取向(`TR-concept-008`)。 |
+| **为什么 `P0 面 = Y`** | R1:`skeuomorphic-ui` 是 31 个 P0 epic 之一,且该屏是**炮制链与 20 料位面的唯一入口**。 |
+| **解除动作** | 给 `InventoryContainerScreen` 实现 `FirstFocusable`(首格),或在 `Bind` 末尾 `cell?.Focus()`;同批**普查其余屏**是否都有初始焦点(`SkeuoRuntimeDriver` 里 `FirstFocusable` 的调用点已列出可比的四屏)。解除判据 = 真包开屏后**第一次 `Return` 即可选中**。 |
+| **不在本债面内** | 行文案用 `item_key` / `器物#0` 而非显示名 —— 那是 21a 显示名轮 / 42 文案轮,与焦点无关 |
+
 > **计数**(2026-11-06 立债时刷新):条目 `195 → 196` · `open 20 → 21` · `closed 165` 不变 ·
 > **未闭 P0 面 `13 → 14`**(`modular-building` 进入未闭分布)。
+> **🔁 2026-11-06 同日后续两债**:同轮加 `TD-building-06` 与 `TD-skeuo-20` ⇒ 上方三个数**已过期**;
+> 现行值以 `TD-COUNT` 区间为准(`python3 tools/debtcount/debtcount.py --print`)。原文不删,留作当时口径。
 > 复算:`python3 tools/debtcount/debtcount.py --print`。
 > ⚠️ 同轮修了 `TD-building-04` 详情表的陈旧状态(索引与正文口径分叉,见本册该节的订正注),
 > **计数不受影响** —— 该条在索引区一直算 closed。
