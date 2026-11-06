@@ -2179,6 +2179,9 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                 services.ProcessingAdmission = new ProcessingAdmissionQuery(
                     craftSkillLevels, furnaceBusy, selectionStore.ConsumedQualitiesOf);
+                // 单炉查询的**第二读取面**(不是第二实现):只给炮制屏的空态选词用。
+                // 与 `ProcessingAdmissionQuery` 内部持有的是**同一个实例** —— 一处真源。
+                services.FurnaceBusy = furnaceBusy;
             }
 
             // ── 17 采集驱动挂上服务包(S22-9 · 2026-11-01)────────────────────────

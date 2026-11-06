@@ -144,6 +144,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>炮制准入查询(<code>O-18-R6</code> 的接口半边;42 屏的数据源)。</summary>
         public IProcessingAdmissionQuery ProcessingAdmission { get; internal set; }
 
+        /// <summary>单炉查询(`ISingleFurnaceQuery` 的生产实现 —— **只给炮制屏的空态选词用**)。
+        /// <para>⚠️ 它**不参与**准入判定:准入的单一是 `ProcessingAdmission`(内部已转接同一个查询);
+        /// 本属性另开一路,是为了让屏能区分「炉上有药」与「无方可起」两种空态
+        /// (`design/ux/processing-18.md` §6.1)。两处共用**同一个** `FurnaceBusyQuery` 实例。</para>
+        /// <para>⚠️ 无数据(<c>dataProvider == null</c>)时为 <c>null</c> ⇒ 屏只有两种空态措辞
+        /// (无料 / 无方),不猜「炉忙」。</para></summary>
+        public ISingleFurnaceQuery FurnaceBusy { get; internal set; }
+
         /// <summary>料位选中态(20 容器屏写入 / 18 炮制屏读取;装配层是唯一合法宿主 ——
         /// 两屏各自持有都会出问题,见 `ContainerSelectionStore` 类注)。</summary>
         public ContainerSelectionStore ContainerSelection { get; internal set; }

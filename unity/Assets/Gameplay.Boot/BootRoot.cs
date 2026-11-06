@@ -781,7 +781,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                         var qualities = store != null
                             ? store.ConsumedQualitiesOf(actorId)
                             : (System.Collections.Generic.IReadOnlyList<int>)System.Array.Empty<int>();
-                        screen.Bind(recipeSource().Recipes, admission, actorId, qualities);
+                        // 🔁 **2026-11-06(S25-3 · processing-18 §6.1)**:另传单炉查询 ——
+                        //    **只给空态选词**(「炉上有药,火未熄」vs「无方可起」),不参与准入判定。
+                        screen.Bind(recipeSource().Recipes, admission, actorId, qualities,
+                                    _services.FurnaceBusy);
                         return true;
                     });
             }
