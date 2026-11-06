@@ -491,6 +491,7 @@
 | `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-20` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
+| `TD-skeuo-21` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
@@ -1484,10 +1485,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 198 | 状态 {'closed': 166, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 133, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 15 （已闭但曾标 P0 面的 118 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
+条目 199 | 状态 {'closed': 166, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 16 （已闭但曾标 P0 面的 118 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 16 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 6        random-events: 4          modular-building: 2
     diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
     processing: 1
 ```
@@ -12668,3 +12669,16 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 > 复算:`python3 tools/debtcount/debtcount.py --print`。
 > ⚠️ 同轮修了 `TD-building-04` 详情表的陈旧状态(索引与正文口径分叉,见本册该节的订正注),
 > **计数不受影响** —— 该条在索引区一直算 closed。
+
+### TD-skeuo-21 —— 炮制屏开屏时**无初始焦点**(`TD-skeuo-20` 的同族第二实例)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `Processing18Screen` 有 `FirstFocusable` 属性,但**没有任何地方消费它**:类内零 `Focus(` 调用,`SkeuoRuntimeDriver.OpenModalCore` 也只对 `SaveSlotsScreen` / `PauseScreen` 两处显式落焦(主菜单另有 `:586`,`CasebookScreen` 自聚焦)⇒ `ModalId.Processing` 开屏后 `panel.focusController.focusedElement == null`,第一次 `Submit` 落空。 |
+| **实测(可跑,2026-11-06 代码级)** | `grep -n "\.Focus()" unity/Assets/Gameplay.UI/Skeuomorphic/SkeuoRuntimeDriver.cs` ⇒ 4 处,分别属于主菜单 / 存档册(两处)/ 暂停壳;**无一处覆盖 `Processing`**。`grep -n "Focus(" unity/Assets/Gameplay.UI/Skeuomorphic/Screens/Processing18Screen.cs` ⇒ **零命中**。对照:`InventoryContainerScreen` 修复后已自落焦。 |
+| **后果** | ① 与 `TD-skeuo-20` 同形:玩家按 `Submit` 无反应、以为屏坏了;② **本屏比容器屏更严重** —— 它是**不可撤销动作**的唯一入口(落火),而 spec `design/ux/processing-18.md` §7 还要**两次** `Submit`(二段确认)⇒ 焦点不存在时,二段确认的第一步同样落空,「按了没反应」出现两次。 |
+| **未观测面(如实登记)** | **真包未试**:2026-11-06 真包开过本屏(`23-clean-processing.png` 有两行),但**没有按过 `Submit`**,故本条是**代码可判**,不是真包实测。补跑条件 = 下一次真包到灶台。 |
+| **为什么 `P0 面 = Y`** | R1:`skeuomorphic-ui` 是 P0 epic;本屏是炮制链(18)在 P0 的唯一入口。 |
+| **解除动作** | 与 `TD-skeuo-20` 同一修法:在 `Rebuild()` 末尾按 **`Recipe.Ordinal`** 还原焦点(`FocusedOrdinal()` → 重建 → `FocusAfterRebuild`),空态 / 未挂 panel ⇒ 不落;或把「开屏落第一焦点」上收到 `OpenModalCore` 的通用路径(须先普查其余屏,避免双落焦)。解除判据 = 真包开屏后**第一次 `Submit` 即进入二段态**。 |
+| **与 spec 的关系** | `design/ux/processing-18.md` §13 的「开屏落焦」`[A]` 条与「重绑保持焦点」条**均以本条解除为前提**;spec 已写 ≠ 已验。 |
+| **触发条件** | 已触发(代码可判,2026-11-06) |
