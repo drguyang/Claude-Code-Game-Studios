@@ -12686,3 +12686,4 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **判据(可跑)** | `processing18_screen_test` 新增 `test_spec_openFocus_firstRow`(开标 ⇒ `focusController.focusedElement == FirstFocusable`)与 `test_spec_rebind_keepsFocusByOrdinal`(焦点在第 2 行时重绑 ⇒ 回同一 ordinal 的新行)。整件 **13/13 PASS**。 |
 | **证伪轮** | **M1**(注掉 `FocusAfterRebuild(...)` 调用)⇒ **3 红**(开屏落焦 / 重绑保持 / 焦点移开撤销);还原后 SHA-256 `cf778fe2…e55601` 逐字节一致。 |
 | **⚠️ 真包面** | 「真包开屏后第一次 `Submit` 即进入二段态」**仍 NOT-RUN** —— 见 §13 的 `[L]` 与 S25-3 的真包验收。**本条结案只覆盖代码可判面 + PlayMode 夹具**。 |
+| **🔁 2026-11-06 16:37 真包已补跑(上行的「未跑」作废,原文保留)** | 新局 → 灶台按 `E` ⇒ 炮制屏两行且**第一行带铜环**;只按一次 `Return` ⇒ 行变 `── 落火` 且**未点火**。⇒ **开屏落焦在真包成立**。证据 = `production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md` §8(`w10-processing.png` / `w11-armed.png`)。 |
