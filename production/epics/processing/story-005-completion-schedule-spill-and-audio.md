@@ -1,7 +1,9 @@
 # Story 005: 完成调度、起货溢出与等待期音频护栏
 
 > **Epic**: 炮制
-> **Status**: In Progress
+> **Status**: Complete
+> 🔁 **2026-11-06 订正**:卡面此前停在 `In Progress`,而 `sprint-24` 收口判定与下方 Completion Notes 均为
+> **COMPLETE WITH NOTES** —— 状态漂移,现按实况订正。**不涉及任何 AC 面**(四条 `[L]` 仍 `NOT-RUN`)。
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
