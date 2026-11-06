@@ -1,12 +1,12 @@
 # Story 004: 三媒体调度与纸近景模态
 
 > **Epic**: 教学与引导
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-06
 
 ## Context
 
@@ -31,14 +31,14 @@
 
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
-- [ ] Fire 意图 → 三媒体调度正确:anchor Fire 播口述(44 cue + 字幕),完成 Fire 按需播示范 / 纸指引;键全部来自 Story 001 的 `.cooked`(cueId / clipKey / paper 条目),无硬编码
-- [ ] 口述字幕 = AC-44-15 管线路径(narration text 进字幕队列,**零「无字幕口述」路径**);字幕可见性走查 [L](AC-48-06 子项)
-- [ ] 示范 = 13 经 42 的一次性片段:播一次即散,不可被教学状态重播(重燃守住在 Story 003,呈现侧只消费)
-- [ ] 纸近景:静态道具(6 摆放,非拾取物)走近 → 请求 `ModalId.PaperCloseup48` 摊开;合上回 Explore 焦点;`IModalState` 可见「有模态摊开」(承 ADR-013 Amendment A 只读口)
-- [ ] **AC-48-10**:37 代码面零教学分支(grep + 37 的 AC 回扫,本 story 是联动验证方);48→37 只读单向
-- [ ] **AC-48-09**:两玩家投影独立 → 各自媒体互不干扰(P0 单机夹具 = 双 id 两路调度;联机仲裁 **BLOCKED-BY-45 / TR-tutorial-006**,禁借绿)
-- [ ] **AC-48-06 [L]**:三媒体可读性走查(口述+字幕成对 / 示范能看懂动作 / 纸图文自含)+ 无显式指令词(词族 = Story 001 扫描器复用)[L]
-- [ ] **AC-48-15 [L]**：纸近景手柄走查(走近→摊开→翻页→合上,无指针依赖) + 教学口述复用 AC-44-15 字幕管线(字幕必过 AC-44-15 管线;教学口述零字幕是禁项)
+- [x] Fire 意图 → 三媒体调度正确:anchor Fire 播口述(44 cue + 字幕),完成 Fire 按需播示范 / 纸指引;键全部来自 Story 001 的 `.cooked`(cueId / clipKey / paper 条目),无硬编码 —— ✅ **调度面已落**(`tutorial_dispatcher_test` 14 条:键逐条回查 `.cooked`、绝对次序、字幕成对);⚠️ **播放面** NOT-RUN(见 Completion Notes)
+- [ ] 口述字幕 = AC-44-15 管线路径(narration text 进字幕队列,**零「无字幕口述」路径**);字幕可见性走查 [L](AC-48-06 子项) —— ⚠️ **未勾**:cue/字幕**成对是结构性的**(同一行、单一构造路径,`test_ac5_*` 3 条),但 42 的 `SubtitleLine` **没有生产调用点**(翻译层未写)
+- [ ] 示范 = 13 经 42 的一次性片段:播一次即散,不可被教学状态重播(重燃守住在 Story 003,呈现侧只消费) —— ⚠️ **未勾**:13 的片段资产与 42 的播放口均未接;调度器只产出 `SegmentKey` 意图
+- [ ] 纸近景:静态道具(6 摆放,非拾取物)走近 → 请求 `ModalId.PaperCloseup48` 摊开;合上回 Explore 焦点;`IModalState` 可见「有模态摊开」(承 ADR-013 Amendment A 只读口) —— ⚠️ **未勾**:内容面已落(`paper_closeup48_screen_test` 9 条:绑定 / 翻页 / 页码 / 模态身份);**世界侧「走近摊开」** 待 6 的纸道具 + 4 的交互判定
+- [x] **AC-48-10**:37 代码面零教学分支(grep + 37 的 AC 回扫,本 story 是联动验证方);48→37 只读单向 —— ✅ 符号面扫 `Sim` 装配(`tutorial|onboarding|guide`),扫描面为空即红
+- [x] **AC-48-09**:两玩家投影独立 → 各自媒体互不干扰(P0 单机夹具 = 双 id 两路调度;联机仲裁 **BLOCKED-BY-45 / TR-tutorial-006**,禁借绿) —— ✅ P0 单机双 id 夹具已落;联机仲裁仍 **BLOCKED-BY-45**
+- [ ] **AC-48-06 [L]**:三媒体可读性走查(口述+字幕成对 / 示范能看懂动作 / 纸图文自含)+ 无显式指令词(词族 = Story 001 扫描器复用)[L] —— ⚠️ **未勾**:[L] 走查未做
+- [ ] **AC-48-15 [L]**：纸近景手柄走查(走近→摊开→翻页→合上,无指针依赖) + 教学口述复用 AC-44-15 字幕管线(字幕必过 AC-44-15 管线;教学口述零字幕是禁项) —— ⚠️ **未勾**:手柄走查与字幕可见性均未做
 
 ---
 
@@ -107,7 +107,7 @@
 
 **Story Type**: UI
 **Required evidence**: `production/qa/evidence/tutorial-onboarding/story-004-three-media-walkthrough.md`(AC-48-06/15 [L],含截图 + 主创签核)+ `unity/Assets/Tests/EditMode/Tutorial/tutorial_dispatcher_test.cs`(AC-1/3/4 自动化面) — must exist
-**Status**: [ ] Not yet created
+**Status**: [x] 自动化面已落(`tutorial_dispatcher_test.cs` 14 条 + `paper_closeup48_screen_test.cs` 9 条);[ ] **[L] 走查未做**(`…-three-media-walkthrough.md` 未创建,不得代签)
 
 ---
 
@@ -120,4 +120,25 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**2026-11-06 · S25-4 实现轮**(证据原件 = `production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md`)
+
+**落了什么**
+- `TutorialDispatcher`(住 `Gameplay.UI.Tutorial`):`Dispatch(firedStepIds)` → **有序**媒体意图。次序 = 内容表步序 → 步内口述(`Order` 升序,同 `Order` 按 id)→ 示范 → 纸。纯函数,零游戏状态。
+- **为什么产出 `TutorialMediaIntent` 而不是 `AudioCueDto`**(结构性,不是取舍):`AudioCueDto` 声明在 `Sim.Contracts`,而 48 装配的引用集恰 = `{Gameplay.Presentation}`(`AC-48-11`)⇒ 48 写不出那个类型名。翻译成 44 / 42 的 DTO 归 `Gameplay.Boot`。
+- `PaperCloseupScreen` 由空壳改为内容绑定屏:`Bind` / `TurnPage`(越界即停,不回绕)/ 页码**仅多页时**显示 / `ModalId.PaperCloseup48`。
+- 判据 **23 条**(调度器 14 + 纸屏 9);回归 **EditMode `7039 / 7002 / 0 / 0 / 37`** · **PlayMode `359 / 355 / 0 / 2 / 2`**(基线 `7016 / 6979` / `359 / 355` ⇒ 零回归)。
+
+**证伪轮 6/6 转红。** ⚠️ 但**首轮 m1 / m2 是假存活**(全绿逃逸),两条判据当场补齐:
+- m1(步序反转):原判据只断言「换 Fire 次序输出不变」= **不变性**,正反两路一起反 ⇒ 恒真。补 `test_ac1_stepOrder_isTheContentTableOrder` 钉**绝对次序**。
+- m2(`Order` 失效):原判据先 `OrderBy(cueId)` 再 `AreEquivalent` ⇒ 顺序被自己抹掉;更根本的是**真表每步至多 1 条口述** ⇒ 排序分支**无输入可达**。把规则提成 `TutorialDispatcher.OrderNarrations`(纯函数)并用**合成行**直测(合成 id 刻意让 id 序与 order 序相反)。
+
+**两处机械门命中(改名,不改语义)**:`Append*` 私有方法名被 `ClinicPanelRefreshTest.test_ac42d2_…` 判成「写三流」⇒ 改 `Collect*`;`TutorialMediaIntent.ClipKey` 被 `NoHealthbarFeedbackTest.test_rejectionWhitelist_noSilentClipping_…` 判成裁切字段 ⇒ 改 `SegmentKey`。两条已补进 `.claude/docs/coding-standards.md` §命名 — 机械门避让表(**扫描面是 `Gameplay.UI*` 整个前缀,不只 `Skeuomorphic/`**)。
+
+**⚠️ 未做 / NOT-RUN(禁借绿)**
+| 项 | 缺什么 |
+|---|---|
+| AC-2 世界侧:走近纸道具 → 摊开 | 6 的纸道具摆放 + 4 的交互判定 |
+| AC-3 示范媒体真的播一次 | 13 的片段资产 + 42 的播放口 |
+| AC-2 字幕真的上屏 | `Gameplay.Boot` 里把意图翻成 `AudioCueDto` + `SubtitleLineView.Show` 的那层(42 的接收口已在) |
+| AC-48-06 / AC-48-15 [L] | 真包手柄走查;`…-three-media-walkthrough.md` **未创建** |
+| AC-48-09 联机半边 | BLOCKED-BY-45(`TR-tutorial-006`) |

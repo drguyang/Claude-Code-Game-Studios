@@ -69,14 +69,14 @@ stories:
     name: "tutorial/004 三媒体调度与纸近景模态"
     file: "production/epics/tutorial-onboarding/story-004-three-media-scheduling-paper-modal.md"
     priority: should-have
-    status: backlog
+    status: review
     owner: ""
     estimate_days: 0
     complexity: L
     chain: "教学链"
     blocker: ""
     completed: ""
-    note: "依赖 S25-2 的 Fire 边沿。字幕子项若 AC-44-15 未就位 ⇒ BLOCKED-BY。HIGH engine risk(近景模态焦点桥)。"
+    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 字幕投递(待 Boot 翻译层)· AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md。"
   - id: "S25-5"
     name: "tutorial/005 零设门与零按键提示守卫及走查"
     file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"

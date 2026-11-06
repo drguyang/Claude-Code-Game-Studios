@@ -17083,3 +17083,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 未复现:「无方可起」(手上料两种配方都可发起)· AC-18-24 手柄走查 · AC-42-F1 ⑨
 - 存档逐字节还原 20/20 OK;测试世界 w3 移出到 job tmp
 - 证据 §8 + 截图 w10/w11/w12/w14/w15;S25-3 → done
+
+## Session Extract — S25-4 三媒体调度与纸近景(2026-11-06)
+- 代码:`TutorialDispatcher`(意图形状,非 DTO —— 48 引不到 `Sim.Contracts`)· `PaperCloseupScreen` 补内容绑定
+- 判据 23 条(调度器 14 + 纸屏 9);证伪 6/6 转红
+- ⚠️ 证伪首轮 m1/m2 **假存活**:m1 只钉「不变性」未钉绝对次序;m2 靶场里没有靶(真表每步 ≤1 条口述)⇒ 补 `test_ac1_stepOrder_isTheContentTableOrder` + 提 `OrderNarrations` 纯函数 + 合成行直测
+- ⚠️ 撞机械门两次:`Append*` 方法名 / `ClipKey` 字段名 ⇒ 改 `Collect*` / `SegmentKey`;避让表补两行(扫描面 = `Gameplay.UI*` 整个前缀)
+- 回归 EditMode `7039/7002/0/0/37` @ 11:04:11Z · PlayMode `359/355/0/2/2`(均零回归,`89405366` + 工作树)
+- 证据 = `production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md`;sprint yaml S25-4 = `review`
+- **未做**:世界侧走近摊开(待 6 + 4)· 示范片段(待 13 + 42)· 字幕投递(待 Boot 翻译层)· AC-48-06/15 [L] · AC-48-09 联机(BLOCKED-BY-45)
+- 下一步:用户裁定是否入库;S25-1 / S25-2 / S25-4 三件均 `In Review`,待 `/code-review` + `/story-done`
