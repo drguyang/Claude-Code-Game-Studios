@@ -151,8 +151,12 @@
 只在命令行带 `-tutorialdiag` 时,每 20 tick(1 s)打一行
 
 ```
-[tutorialdiag] tick=120 actor=0 cell=(0,0,0) 在场=2 #1@(1,0,14) #2@(14,0,1) 最近=#1 距离=14 急救=Idle 教学facts=4 seeded=0
+[tutorialdiag] t=12.35 tick=120 actor=0 cell=(0,0,0) 在场=2 #1@(1,0,14) #2@(14,0,1) 最近=#1 距离=14 急救=Idle 教学facts=4 seeded=0
 ```
+> 🔁 2026-11-06 22:10:本节初写时行首没有 `t=`;§10 为了区分「冻结」与「边沿延迟」加了墙钟
+> (`Time.realtimeSinceStartup`,秒)。⚠️ 加它是**有代价**的:走查脚本 `diag_walk.py` 原本按
+> `[tutorialdiag] tick=` 开头匹配,加了前缀就整条失效(实测:那一轮零读数、零发火)。
+> 改格式 = 改解析器,两处必须同批动。
 
 发火瞬间另打一行 `[tutorialdiag] ★发火 tick=N steps=… 口述=N`。
 ⚠️ **只读**:不写流、不改状态、不碰存档;未带旗标 ⇒ 每 tick 只多一次静态 bool 读。
@@ -365,3 +369,85 @@ Func<Int3> tutorialCell = () =>
 ⚠️ **复算时的一个坑(如实登记)**:`-runTests` **不能与 `-quit` 同用** —— 那样 Unity 在测试框架启动前就退出,
 **不产 XML 且退出码仍为 0**(`Exiting batchmode successfully now!`)。首次就是这么跑的,日志 421 行、零测试痕迹。
 判据:XML 不存在 ⇒ 该轮**什么都没跑**,不得按「无失败」计。
+
+---
+
+## 10. 模态关闭补跑一次教学边沿(2026-11-06 22:05–22:20 · 用户裁定)
+
+### 10.1 改了什么
+
+`BootRoot.Update()`:
+
+```csharp
+bool worldFrozen = _inputFreeze != null && _inputFreeze.IsBlocked;
+bool justThawed = _worldFrozenLastFrame && !worldFrozen;   // 解冻的那一帧
+_worldFrozenLastFrame = worldFrozen;
+...
+// 正常 tick 边沿块之后
+if (justThawed && _services?.TutorialChain != null)
+    _services.TutorialChain.OnTickEdge(_tickDriver.CurrentTick);
+```
+
+**安全前提 = 同 tick 重复调用幂等**。`TutorialChainDriver.OnTickEdge` 的 `tick` 形参
+**在函数体里一次都没用**(只按事件游标推进 + 发火闸去重)⇒ 二次调用必然空转。
+该前提由新夹具 `test_onTickEdge_sameTickTwice_firesOnce` 钉住
+(判别力:去掉发火闸去重 ⇒ `_audio.Emitted.Count` 变 2 ⇒ 转红)。
+
+⚠️ **只对教学链补跑**。其他 tick 边沿驱动(病人出现 / 急救 / 病程 / 时段)**未做**,也不在本条面内 —— 别顺手推广。
+
+### 10.2 真包实测时间线(`-tutorialdiag` 已带墙钟)
+
+```
+t=25.38  tick=300  facts=17
+t=26.38  tick=320  facts=17
+t=29.34  ★解冻补跑 tick=331 facts=17
+t=29.34  口述投递 cue=15 cell=(0,4,16)
+t=29.34  ★发火 tick=331 steps=observe 口述=1
+t=29.75  tick=340  facts=18
+```
+
+- **补跑确实触发**,且与发火**同一帧**。
+- **只发一次** —— 同一帧/下一帧的正常 tick 边沿没有二次发火(幂等前提在真包里也成立)。
+- **冻结确实存在**:`t=26.38` 到 `t=29.34` 共 2.96 s,按 20 Hz 应走 59 tick,实际只走了 **11** tick
+  ⇒ 约 **2.4 s 世界是冻着的**。
+
+### 10.3 ⚠️ 归因订正(§8.5 的那句话说过头了)
+
+§8.5 我写「关掉脉案之后师父才开口」并暗示存在可观的**边沿延迟**。按 10.2 的时间线:
+
+- 玩家体感的那段等待(**约 2.4 s**)是**冻结本身的时长**,不是边沿延迟 —— 冻结期间本就不该发火。
+- 补跑真正改善的是「**关掉之后还要再等下一个 tick**」那一小段:**≤ 1 tick ≈ 50 ms**。
+- 我此前口头说的「延迟数千毫秒」**把冻结时长当成了边沿延迟**,订正。
+
+⇒ 补跑仍然值得做(它把「关掉即开口」变成**确定**行为,不再依赖该帧 tick 是否真的推进),
+但它**不是**把 2.4 s 缩短到 0 —— 那 2.4 s 来自 `ADR-013 §十-C` 的冻结裁定,要改得动那条裁定。
+
+### 10.4 判据与回归
+
+**基线溯源三元组**:截至时刻 `2026-11-06 22:16:25 CST`(EM)/ `22:19:41 CST`(PM) · 批次:模态解冻补跑轮 · commit:`905ce971` + 工作树
+
+| 套件 | 结果 | XML | 对照 |
+|---|---|---|---|
+| EditMode | `total=7060 passed=7023 failed=0 inconclusive=0 skipped=37` | `unity/Logs/em-thaw.xml` | 上轮 `7059/7022` ⇒ **+1/+1 = 新增夹具那一条**(等式自洽) |
+| PlayMode | `total=359 passed=355 failed=0 inconclusive=2 skipped=2` | `unity/Logs/pm-thaw.xml` | 零回归 |
+
+编译错 0(两个日志各查一遍)。
+
+**证伪轮(新夹具的判别力)** —— 变异靶点 = `TutorialTrigger.cs:119` 的 `if (_latched[i]) continue;`(发火闸去重):
+
+| 项 | 值 |
+|---|---|
+| 变异前 SHA-256 | `b10ae752e2642a36496a6c0c5590fac3fafcaadcf30ac7ae27b1121b5a506d3f` |
+| 变异后 | `total=11 passed=6 **failed=5**` |
+| 转红项 | **`test_onTickEdge_sameTickTwice_firesOnce`** · `test_sameCompletion_doesNotRefireOnLaterTicks` · `test_incremental_newEventFiresOnlyItsOwnStep` · `test_seed_fromLoadedStream_doesNotReplay` · `test_checkpointSeam_whenWired_archiveFiresOnce` |
+| 还原后 SHA-256 | `b10ae752…` **逐字节一致** |
+
+⇒ 新夹具**不是恒绿的**;它盯的那个属性(同 tick 二次调用不得重发)对**去重被拿掉**这件事有判别力。
+
+### 10.5 仍然不成立的说法(禁借绿)
+
+| 说法 | 状态 |
+|---|---|
+| 「补跑把师父开口的等待从 2.4 s 变成 0」 | **假** —— 那 2.4 s 是冻结时长,由 `ADR-013 §十-C` 裁定,本件不动它 |
+| 其余三条口述(`judge` / `close` / `archive`)的出声 | **NOT-RUN** |
+| 其他 tick 边沿驱动(病人出现 / 急救 / 病程)是否也该补跑 | **未裁、未做** —— 本件只覆盖教学链 |

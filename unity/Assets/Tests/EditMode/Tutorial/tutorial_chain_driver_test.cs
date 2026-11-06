@@ -146,6 +146,28 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         }
 
         [Test]
+        public void test_onTickEdge_sameTickTwice_firesOnce()
+        {
+            // 🔁 2026-11-06(用户裁定「模态关闭时补跑一次边沿」的**前提**)——
+            //    `BootRoot` 在模态解冻那一帧会对**同一个 tick** 再调一次 `OnTickEdge`。
+            //    这么做安全,靠的就是本条的属性:推进只认**事件游标**(`tick` 参数不参与判定),
+            //    发火靠闸自身去重 ⇒ 同一 tick 二次调用必须是空转。
+            //    ⚠️ 判别力:若有人给发火闸去掉去重,`_audio.Emitted.Count` 会变成 2,本条转红。
+            var chain = _seams.Attach(_stream, _decoder, Player);
+            _stream.Append(CaseOpened(10));
+
+            TutorialChainTick first = chain.OnTickEdge(10);
+            TutorialChainTick second = chain.OnTickEdge(10);   // 同一 tick,模拟「解冻补跑」
+
+            Assert.That(first.FiredStepIds, Is.EqualTo(new[] { "observe" }), "正控:第一次必须真的发火");
+            Assert.That(first.NarrationsPlayed, Is.EqualTo(1));
+            Assert.That(second.FiredStepIds, Is.Empty, "同一 tick 二次调用不得重发");
+            Assert.That(second.NarrationsPlayed, Is.Zero);
+            Assert.That(_audio.Emitted.Count, Is.EqualTo(1), "口述只发一次");
+            Assert.That(_subtitles.Shown.Count, Is.EqualTo(1));
+        }
+
+        [Test]
         public void test_incremental_newEventFiresOnlyItsOwnStep()
         {
             var chain = _seams.Attach(_stream, _decoder, Player);

@@ -1599,6 +1599,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>世界是否被「返回主菜单」挂起(挂起期 `_booted == false`)。</summary>
         private bool _worldPaused;
 
+        /// <summary>上一帧世界是否被挡路模态冻住(`ADR-013 §十-C Amendment D`)。
+        /// <para>用途只有一处:识别**解冻的那一帧**,让教学链补跑一次边沿
+        /// (冻结期间进流的 `CaseOpened` 没有 tick 边沿可走)。</para></summary>
+        private bool _worldFrozenLastFrame;
+
         /// <summary>「返回主菜单」形态下,第一层选中后的放行信号(与启动序的 `_mainMenuContinue` 分开)。</summary>
         private TaskCompletionSource<bool> _returnMenuChoice;
 
@@ -2755,6 +2760,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //      (`accessibility-requirements.md:128`)。P0 无联机,故当前无冲突;
             //      P1b 接 45 时**必须**在此加会话判定,不得把本冻结带进网络会话。
             bool worldFrozen = _inputFreeze != null && _inputFreeze.IsBlocked;
+
+            // 🔁 2026-11-06(用户裁定):记下**解冻的那一帧** —— 挡路模态关掉时世界恢复,
+            //    但冻结期间进流的事实(如玩家立案产生的 `CaseOpened`)**没有 tick 边沿可走**,
+            //    教学链要等下一个 tick 才看得到。真包实测:关掉脉案后师父的口述要延迟数千毫秒才出声,
+            //    而教学想教的是「边看病人边听师父说」—— 那一步在体验上就错位了。
+            //    ⚠️ 只对**教学链**补跑:其他 tick 边沿驱动(病人出现 / 急救 / 病程)的补跑
+            //       未经裁定,不在本条面内 —— 别顺手推广。
+            bool justThawed = _worldFrozenLastFrame && !worldFrozen;
+            _worldFrozenLastFrame = worldFrozen;
+
             if (!worldFrozen)
             {
                 MovementFeed.PumpFrame(_player, _tickDriver,
@@ -2818,6 +2833,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // `-tutorialdiag`:发火瞬间单独一行(否则只能从「下一秒的读数」倒推)
                 if (WalkthroughDiagnostics.Enabled && tut.AnyFired)
                     WalkthroughDiagnostics.ReportFired(_tickDriver.CurrentTick, tut.FiredStepIds, tut.NarrationsPlayed);
+            }
+
+            // 🔁 2026-11-06(用户裁定):**解冻补跑** —— 模态刚关掉的那一帧再推一次教学链边沿。
+            //    为什么安全:`TutorialChainDriver.OnTickEdge` 按**事件游标**推进(同一 tick 二次调用
+            //    看到的是零新增事件),而发火闸 `_trigger` 自身去重 ⇒ 重复调用幂等。
+            //    这两条前提由 `tutorial_chain_driver_test.test_onTickEdge_sameTickTwice_firesOnce` 钉住 ——
+            //    若哪天去掉了去重,那条夹具会红。
+            //    ⚠️ 放在正常边沿块**之后**:解冻帧若同时推进了 tick,正常边沿已经跑过一次,
+            //       这里只会是空转(幂等),不会双发。
+            if (justThawed && _services != null && _services.TutorialChain != null)
+            {
+                if (WalkthroughDiagnostics.Enabled)
+                    WalkthroughDiagnostics.ReportThaw(_tickDriver.CurrentTick, _services.TutorialChain.FactCount);
+                TutorialChainTick thawed = _services.TutorialChain.OnTickEdge(_tickDriver.CurrentTick);
+                if (WalkthroughDiagnostics.Enabled && thawed.AnyFired)
+                    WalkthroughDiagnostics.ReportFired(_tickDriver.CurrentTick, thawed.FiredStepIds, thawed.NarrationsPlayed);
             }
 
             // `-tutorialdiag` 现场读数(每秒一行;不带旗标时零开销,见 WalkthroughDiagnostics 头注)。

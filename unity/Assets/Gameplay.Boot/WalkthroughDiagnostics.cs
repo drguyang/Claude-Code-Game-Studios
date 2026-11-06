@@ -75,7 +75,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                   int factCount, int seededSteps)
         {
             var sb = new StringBuilder(160);
-            sb.Append("[tutorialdiag] tick=").Append(tick);
+            sb.Append("[tutorialdiag] t=").Append(UnityEngine.Time.realtimeSinceStartup.ToString("F2"));
+            sb.Append(" tick=").Append(tick);
             sb.Append(" actor=").Append(actorId);
             sb.Append(" cell=(").Append(playerCell.X).Append(',').Append(playerCell.Y)
               .Append(',').Append(playerCell.Z).Append(')');
@@ -85,6 +86,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             sb.Append(" 急救=").Append(channelState ?? "未装配");
             sb.Append(" 教学facts=").Append(factCount).Append(" seeded=").Append(seededSteps);
             UnityEngine.Debug.Log(sb.ToString());
+        }
+
+        /// <summary>模态解冻补跑的瞬间报告(每次解冻一行)。</summary>
+        public static void ReportThaw(long tick, int factCount)
+        {
+            UnityEngine.Debug.Log(
+                $"[tutorialdiag] ★解冻补跑 t={UnityEngine.Time.realtimeSinceStartup:F2} tick={tick} facts={factCount}");
         }
 
         /// <summary>教学步发火的瞬间报告。</summary>

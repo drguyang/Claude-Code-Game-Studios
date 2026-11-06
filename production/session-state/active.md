@@ -17142,3 +17142,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 存档:20/20 SHA-256 回到原始态;测试世界挪到 `saves.testing-*`(未删)
 - **未提交**:`WalkthroughDiagnostics.cs`(+meta)+ `BootRoot.cs` / `CompositionRoot.cs` / `TutorialMediaDriver.cs`
 - 证据 = `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md` §8 / §9
+
+## Session Extract — 模态解冻补跑教学边沿(2026-11-06 22:05–22:25)
+- 改动:`BootRoot.Update()` 记 `_worldFrozenLastFrame`,解冻帧对教学链补跑一次 `OnTickEdge`
+  (安全前提 = 同 tick 幂等,`OnTickEdge` 的 `tick` 形参在体内根本没用,只按事件游标推进)
+- 新夹具 `test_onTickEdge_sameTickTwice_firesOnce`;证伪轮变异 `TutorialTrigger.cs:119` 去重 ⇒ 5 红(**含该条**),
+  SHA-256 逐字节还原
+- 真包实测:`★解冻补跑 t=29.34 tick=331 facts=17` → `★发火 tick=331` 同帧,且只发一次
+- ⚠️ **归因订正**:体感那 2.4 s 等待是**冻结本身**(26.38→29.34 只走 11 tick),不是边沿延迟;
+  补跑改善的是「关掉后还要再等下一个 tick」≤50 ms。此前口述「延迟数千毫秒」把冻结当成了边沿延迟
+- 回归:EditMode `7060/7023/0/0/37`(+1 = 新夹具)· PlayMode `359/355/0/2/2` @22:16:25Z / 22:19:41Z
+- 存档回原始态 20/20;证据 = 同一份走查件 §10
