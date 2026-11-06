@@ -469,6 +469,7 @@
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
 | `TD-building-05` | `modular-building` | open | **Y** | R1 |
+| `TD-building-06` | `modular-building` | open | **Y** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -1482,11 +1483,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 196 | 状态 {'closed': 165, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 131, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 14 （已闭但曾标 P0 面的 117 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          diagnosis-system: 1
-    disease-simulation: 1     emergency-procedures: 1   modular-building: 1
+条目 197 | 状态 {'closed': 165, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 132, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 15 （已闭但曾标 P0 面的 117 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
+    diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
     processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -12624,10 +12625,25 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **不在本债面内** | ② 的**优先级顺序**不是缺陷(`kind_priority` 是 4 的 GDD 裁决);但补完视觉后若灶台仍被病人持续压住,那属**4 的交互设计**另议,不在本条 |
 | **🔁 2026-11-06 真包实测补证(细化后果 ②)** | 09:32–09:38 走查(证据 `production/qa/evidence/walkthrough-2026-11-06-crafting.md`):用「保存→解 `ActorCellEntered`」探位,走到 **≈(11,0,5)**(距灶台格 `(10,0,5)` **1 格**)后按 `E` —— 开的是**脉案**;再绕灶台一圈(`D/W/A/S` 各 2 s ×10 腿,每腿按一次 `E`),**十次全部**是同一张脉案(与模板像素差 ≤ 0.5 千),而离开病人区后按 `E` **什么都不开**(亮度 120)。⇒ ② 从「会压住」升级为 **「在 P0 医馆的实测位置集合里 100% 压住」**;炮制屏在本版**一次都没开出来** |
 | **触发条件** | P0 收口走查(炮制 / 建造 / 开箱 / 面板任一) |
+| **🔁 2026-11-06 空间解轮 —— 后果 ② 的归因作废(原文保留)** | 本节上方「② 被优先级压住」与 09:32 的实测补证,**归因错误**。逐字证据见 `production/qa/evidence/walkthrough-2026-11-06-space-fix.md` §3:旧代码把**每个病人**都登记在 `(0,0,0)`(`PatientAppearedDriver.cs:113` 与 `CompositionRoot` 的 `spawnAnchorOf` / `spawnPatient`),而玩家也停在 `(0,0,0)` ⇒ 病人 `d∞ = 0` ⇒ **F-4.1 的键 ①(格距)已分出胜负,`KindPriority`(键 ②)根本没有参与**。「病人优先级压住灶台」**不成立**。修复后(病人 `(1,0,14)` / `(14,0,1)`,灶台 `(14,0,14)`)实测:`player=15,0,15 … Utensil#9@14,0,14 d=1 … => Utensil#9`,炮制屏**开得出来**(模态门判据见该证据 §3 丁) |
+| **🔁 2026-11-06 灶台格变更** | 本条正文与解除判据里的 `(10,0,5)` 已过期:`P0ClinicLevel` 的 `UtensilCellX/Z` 由 `10/5` 改为 **`14/14`**(用户裁定「灶台占另一个角落」),已重导 `world_buildslots.json` + 重烘 `world_buildslots.cooked.bytes`(ConfigVersion `0xD5CCD18E`)。解除判据 ① 相应改为「真包走到 **`(14,0,14)`** 能看见一个可辨识体块」 |
+| **🔁 2026-11-06「不在本债面内」的落点已具名** | 原写「补完视觉后若灶台仍被病人压住,那属 4 的交互设计**另议**」⇒ 悬空。现口径:**不需要另议** —— 键 ② 在**等距**时已被观测到生效(同格 `Utensil#9` 以 `KindPriority 2 < 5` 胜过 `BuildSlot#238`)。本条只需补视觉,4 的规则一字不改 |
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
 | **TD-building-05** | `modular-building` | **open** | **Y** | R1 |
+| **TD-building-06** | `modular-building` | **open** | **Y** | R1 |
+
+### TD-building-06 —— P0 地面只有 **10×10 米**,而世界格是 **16×16**(越界即坠落)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `World.unity` 的 `Ground` 是 Unity 内置 **Plane 网格**(`m_Mesh: {fileID: 10209}` = 默认 10×10 米)+ 一个 `MeshCollider`,Transform 原为 `pos (0,0,0) scale (1,1,1)`。而世界格是 `16×1×16`(ADR-015 §三:1 格 = 1 米)。⇒ **地板只覆盖 `x,z ∈ [-5,5]`**,世界格 `[0,15]` 里约 **3/4 没有地面**;玩家走出去即自由落体。 |
+| **实测(可跑)** | ① `python3 -c "s=open('unity/Assets/Scenes/World.unity').read();print('!u!64' in s)"` + 读 `Ground` 的 Transform ⇒ Plane 网格、scale 1。② 真包探针(`[PROBE-4]`,2026-11-06 10:20)按方向键后:`player=0,-6,-9` / `player=-9,-7,0` —— **y 为负 = 在坠落**,且格子越走越远(滑行)。③ 同一轮修复后:**`player=8,0,0` / `player=15,0,15`,y 恒 0**。 |
+| **后果(两条,勿合并)** | ① **移动不可用**:任何走出中央 10×10 的方向都掉出世界,且**没有复位** —— 玩家此后只能看到天空。② **它让所有空间走查的结论不可信**:坠落中的 `x/z` 仍在变,「我走到了 `(x,z)`」会变成假观测(2026-11-06 09:32 那一轮正是如此,见 `TD-building-05` 的订正行)。 |
+| **为什么 `P0 面 = Y`** | R1:归属 `modular-building` / 关卡内容,且**阻塞任何 P0 空间走查**(炮制 / 建造 / 开箱 / 面板 / 采集)。它不是观感问题:玩家**无法到达**绝大多数格子。 |
+| **解除动作** | **已在本轮就地修掉(最小)** —— `Ground` 的 Transform 改为 `pos (7.5,0,7.5)` / `scale (1.8,1,1.8)`(18×18,覆盖 `x,z ∈ [-1.5,16.5]`,四边各留 1.5 m 余量)。**债仍记 `open`**:修的是「盖住整张图」,**没有**建立任何门(下次改世界尺寸 ⇒ 同型复发)。建议的**结构性解除**:由关卡工具按 `world_size × LATTICE_SIZE` 生成地面(ADR-022 仍是唯一作者),或加一条构建期断言「地面包围盒 ⊇ 世界包围盒」。 |
+| **触发条件** | 已触发(2026-11-06 真包走查) |
 
 > **计数**(2026-11-06 立债时刷新):条目 `195 → 196` · `open 20 → 21` · `closed 165` 不变 ·
 > **未闭 P0 面 `13 → 14`**(`modular-building` 进入未闭分布)。

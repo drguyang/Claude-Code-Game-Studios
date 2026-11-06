@@ -109,9 +109,13 @@ namespace DaYiJingCheng.EditorTools.Level
         public const int SwitchModuleId = 14;
 
         /// <summary>器具槽的格(内景东侧空地)。</summary>
-        public const int UtensilCellX = 10;
+        // 🔁 **2026-11-06(P0 空间解 · 用户裁定「灶台占另一个角落」)**:`(10,5)` → `(14,14)`。
+        //    原格在 Decor 区旁,与病人活动面重叠;新格 = 医馆的第三个内角(内角定义见
+        //    `PatientWiringPositions` 的注:`x,z ∈ [1,14]` 才可走,外圈 `0/15` 是墙)。
+        //    ⚠️ 这是**关卡数据变更**,不是 4 的机制变更 —— 候选集 / 优先级一字未动。
+        public const int UtensilCellX = 14;
         /// <summary>见 <see cref="UtensilCellX"/>。</summary>
-        public const int UtensilCellZ = 5;
+        public const int UtensilCellZ = 14;
         /// <summary>医馆面板槽的格。</summary>
         public const int ClinicPanelCellX = 5;
         /// <summary>见 <see cref="ClinicPanelCellX"/>。</summary>

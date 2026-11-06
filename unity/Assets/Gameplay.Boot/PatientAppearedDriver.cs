@@ -55,8 +55,11 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>接线期病人数上限哨(B 案):真节奏(52)到位后删除本常量与相关分支。
         /// <para>不是 sim 硬界 —— <see cref="DaYiJingCheng.Sim.EventStream.PATIENT_APPEARANCE_CAP"/>
-        /// (24)才是;本哨只防接线期观测面被刷屏。</para></summary>
-        private const int MaxPatientsDuringWiring = 3;
+        /// (24)才是;本哨只防接线期观测面被刷屏。</para>
+        /// <para>🔁 <b>2026-11-06(P0 空间解 · 用户裁定)</b>:3 → <b>2</b> —— 与
+        /// <see cref="PatientWiringPositions"/> 的两格一一对应(每格至多一个病人,
+        /// 否则「分居两角」会被叠加成「同格重叠」)。</para></summary>
+        private const int MaxPatientsDuringWiring = 2;
 
         private readonly PatientSpawner _spawner;
         private readonly IPresenceWriter _presence;
@@ -107,10 +110,12 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 在场登记前置:SpawnNext 之前登记,否则 EventStream.Append 的 AC-15
             // 在场检查拒收(2026-10-10 实测:事件数 0,无异常)。
-            // ⚠️ 登记用的 cell 是**接线占位**(0,0,0)—— 真实位置归 6 世界生态区
-            //    + 13 病人 AI 的空间侧;本驱动只保证「在场」这一布尔事实。
+            // 🔁 **2026-11-06(P0 空间解 · 用户裁定)**:登记格由字面量 `(0,0,0)` 改为
+            //    `PatientWiringPositions` 的两内角之一 —— 此前**所有病人叠在同一格**上,
+            //    既互相重叠,也让「病人把灶台压住」这类走查无法判定。
+            //    ⚠️ 真实位置仍归 6 世界生态区 + 13 病人 AI 的空间侧;本表是接线占位。
             var patientId = _spawner.SpawnNext(_diseaseId, tick);
-            _presence.AddPresent(patientId, new WorldPos(0, 0, 0));
+            _presence.AddPresent(patientId, PatientWiringPositions.CellFor(_spawnedCount));
             _lastSpawnTick = tick;
             _spawnedCount++;
         }

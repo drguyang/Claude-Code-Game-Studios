@@ -496,7 +496,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ 位置接缝住 `Sim.Contracts`(只用 BCL `WorldPos`),故真位置实现可由 sim 侧提供;
             //      视觉接缝住表现层(签名须出现 `GameObject`)。两处分居是刻意的(承 ADR-029/031 模式)。
             var patientVisualFactory = new CapsulePatientVisualFactory();
-            var patientAnchors = new RingPatientAnchorSource();
+            // 🔁 **2026-11-06(P0 空间解)**:位置来源由「围绕玩家的环」改为**登记簿的格** ——
+            //    环实现让病人跟着玩家走,与 4 读的整数格不是同一个东西 ⇒ 走查无法判定
+            //    「E 为什么选中了它」。换成同源后:看得到的 = 选得中的。
+            //    ⚠️ 环实现保留(它是这条接缝的参考实现,且既有夹具直接构造它)。
+            var patientAnchors = new PresenceCellAnchorSource(
+                id => presence.TryGetCell(new PatientId(id), out WorldPos cell)
+                    ? cell
+                    : (WorldPos?)null);
             var patientVisuals = new PatientVisualSpawner(presence, patientVisualFactory, patientAnchors);
 
             // ── tick 驱动(ADR-005 抽象点之一 · G2.2)──
@@ -709,7 +716,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     new SeedEventAuthority(candidatesOfTier, worldSeed),
                     candidatesOfTier: candidatesOfTier,
                     presence: presence,
-                    spawnAnchorOf: _ => new WorldPos(0, 0, 0),   // 生成点解析归 6;占位锚 = 与 clinicCells 空集同款具名占位
+                    // 🔁 **2026-11-06(P0 空间解)**:占位锚由字面量 `(0,0,0)` 改为与驱动路径
+                    //    **同一张表**(`PatientWiringPositions`)—— 两条出生路径共用一个出处,
+                    //    否则「驱动产的病人在南角、52 产的病人在原点」会成为第二套位置真源。
+                    spawnAnchorOf: tick => PatientWiringPositions.CellFor(tick),
                     // 🔁 **2026-11-05(`TD-randomevents-03`):映射表已落** ——
                     //    「哪个 key 产哪个病」= 池条目的 `disease_id` 外键(`assets/data/52_event_pool.json`),
                     //    构建期由 `EventPoolBinder` 强制「medical ⇒ > 0 / encounter ⇒ 0」。
@@ -720,7 +730,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 判据本体住 `EventPoolPatientSpawner`(**装配与夹具的单一出处**)——
                     // 内联 lambda 会让夹具只能照抄一遍,生产改坏了夹具照样绿。
                     spawnPatient: EventPoolPatientSpawner.SpawnPatient(
-                        eventPool, spawner.SpawnNext, presence, _ => new WorldPos(0, 0, 0)),
+                        eventPool, spawner.SpawnNext, presence,
+                        PatientWiringPositions.CellFor),
                     // ⚠️ 本闭包只提供**上下文旗标**;`WindowSize` 由链按数据集覆盖(ADR-039 D6),
                     //    这里传 0 是为了让「谁提供它」在源码里唯一。
                     // 🔁 **2026-11-05(`TD-randomevents-05`):三项输入全部改求真值**
