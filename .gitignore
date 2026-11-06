@@ -336,3 +336,13 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/**/*.png
 #    将来不会有「该入库的资产落进来」的情形。窄 glob 的前提是「目录里混着作者态」,
 #    本目录不满足。若哪天要在仓内保存真正的参考素材,应另立目录并逐类写规则。
 ref_valheim/
+
+# ── 测试 / 走查截图(2026-11-06 用户指令)────────────────────────────────
+# 证据**正文**(`production/qa/evidence/**/*.md`)继续入库;截图只留本地。
+# 理由:截图是**过程留痕**,判定价值在正文的判据与复算命令里;每轮几十张 PNG
+#       让仓库体积与 diff 噪声线性膨胀,且这些图**不可复现地绑定当时的构包**。
+# ⚠️ 窄 glob,**不整目录** —— 同目录下有 `.md` 必须继续入库(整目录排除会一并吞掉)。
+# ⚠️ 本规则只管「今后」:`git rm --cached` 不删历史,既有提交里的图仍在。
+production/qa/evidence/**/*.png
+production/qa/evidence/**/*.jpg
+production/qa/evidence/**/*.jpeg
