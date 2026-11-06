@@ -121,4 +121,10 @@
 
 1. ~~**教学第一步在真包里不可达**(急危病人 ⇒ Armed ⇒ `E` 被拒)~~ —— **🔁 20:25 证伪**:那张列表是 Idle 常态 HUD,与 Armed 无关。原文保留以标记判断错误。
 2. **「跳过」在真包里不可观测地生效** —— §4.3:**它本来就不该生效**(未立案 ⇒ `_boundPatient = None` ⇒ 静默返回)。真正的问题是**可观测性**:玩家按下去看不出发生了什么(零提示纪律 AC-11-12 的代价)。
-3. **走查工具缺一条能力** —— 本次无法读到「玩家格 / 病人格」,只能盲走。上一轮 S25-3 是靠**扫存档的 `ActorCellEntered` 载荷**取的格;本轮存档是增量 checkpoint,没有现成的解密路径 ⇒ 走查前应先备一个「读当前玩家格」的手段。
+3. **走查工具缺一条能力** —— 本次无法读到「玩家格 / 病人格」,只能盲走。
+   🔁 **2026-11-06 20:45 已补**:`unity/Assets/Editor.Tools.Spike/SaveCellDumpCli.cs`(Editor-only,不进构建)
+   离线读最新世界的存档,打印 `ActorCellEntered`(每 actor 最后一格)/ `DiseaseOnset`(病人+病种+最近锚点)/ `CaseOpened`(立案)。
+   **实测(w2,527 事件)**:actor 0(玩家)最后在格 `(4,0,2)` @tick 23445,跨格事件 507 条;病人 0–9 的出现 tick 齐全;立案 1 条(patient 7 @16622)。
+   ⚠️ **病人格读不到** —— `DiseaseOnset` 载荷**不含格**(registry 逐字:`onset_tick/disease_id/patient_id/patient_seed/seq`),
+   `ActorCellEntered` 的 author = **1 玩家控制器**(病人不动这个流)。病人位置是**呈现态**(13 移动),只在 `PresenceQuery.TryGetCell` 这个**内存面**里。
+   ⇒ 「玩家格」有了;**「病人格」要另有手段**(在 Boot 加一条命令行开关驱动的调试打印,属生产代码改动,待裁)。
