@@ -1,12 +1,12 @@
 # Story 002: 只读投影 Proj 与装配护栏
 
 > **Epic**: 教学与引导
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-06
 
 ## Context
 
@@ -31,12 +31,20 @@
 
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
-- [ ] `Proj(streamSnapshot, player_id) → 教学谓词输入` 为纯函数;六步谓词各自的判据事件(CaseOpened / JudgmentRecorded(author=p) / EmergencyAttempt·DrugTreatmentApplied(initiator=p) / CaseClosed / Checkpoint written / StructurePlaced)可从投影读出
-- [ ] **AC-48-03**:教学进度零落盘 —— 48 无任何存档写入路径;存档字节流不含 tutorial 进度字段(与无 48 的基线存档逐字节一致);区分 ADR-014 内容加载(读 `.cooked` 合法,非进度落盘)
-- [ ] **AC-48-04**:48 程序集公开面的递归反射扫描零命中禁引类型(`SimEvent` / `PatientState` / `Fix` 及其嵌套泛型参数)
-- [ ] **AC-48-11**:48 asmdef `references` 白名单不含 `IEventSink` / `IEventAuthority` 所在程序集(编译期失败,非 grep)
-- [ ] 联机各玩家投影独立:同一 `Proj` 对两个 `player_id` 出两条独立结果(P0 单机夹具 = 两个发号 id 各投影;联机运行时 **BLOCKED-BY-45**,禁借绿)
-- [ ] 投影不可变性:同一输入两次求值字节一致;追加一条流事件 ⇒ 输出仅按单调性增长(不回收)
+- [x] `Proj(streamSnapshot, player_id) → 教学谓词输入` 为纯函数;六步谓词各自的判据事件(CaseOpened / JudgmentRecorded(author=p) / EmergencyAttempt·DrugTreatmentApplied(initiator=p) / CaseClosed / Checkpoint written / StructurePlaced)可从投影读出
+  - 载体:`tutorial_projection_test.test_ac5_eachPredicateEvent_completesOnlyItsOwnStep`(六条 iff)+ `test_ac1_sameInput_evaluatesIdenticallyTwice` / `…prefixIsMonotoneSubsetOfFull`
+  - ⚠️ F-48.1 ③ 的「或」由代码侧**析取组**补(内容表 `predicateKind` 是单值)—— 载体 `test_ac5_emergencyAttempt_alsoCompletesTreatStep`
+- [x] **AC-48-03**:教学进度零落盘 —— 48 无任何存档写入路径;存档字节流不含 tutorial 进度字段(与无 48 的基线存档逐字节一致);区分 ADR-014 内容加载(读 `.cooked` 合法,非进度落盘)
+  - 载体:`test_ac4803_saveBytes_areUnchangedByProjection`(**字面面**:真 `EventStream` + 真 `SaveComposer.Compose`,投影前后两份存档体逐字节相同)+ `test_ac4803_projection_doesNotMutateTheStream` / `…streamCountUnchanged` + 48 装配引用集**不含** `Sim` / `Sim.Codec`(无写盘可达面)
+- [x] **AC-48-04**:48 程序集公开面的递归反射扫描零命中禁引类型(`SimEvent` / `PatientState` / `Fix` 及其嵌套泛型参数)
+  - 载体:`tutorial_assembly_guard_test.test_ac48_04_exportedSurface_hasNoSimTypes`;**负向夹具证明门会红**(嵌套泛型 `Fix` / 构造参数 `SimEvent`);正控证明门不恒红
+  - ⚠️ `PatientState` **今日全库不存在**(只有表现层 `PresentPatientState`)⇒ 该支是**零输入可达的规则**,如实登记,不当作已兑现的守卫
+- [x] **AC-48-11**:48 asmdef `references` 白名单不含 `IEventSink` / `IEventAuthority` 所在程序集(编译期失败,非 grep)
+  - 载体:编译产物引用集断言 + asmdef 逐字相等。**编译期性**来自「无引用 ⇒ 写不出该类型名」;⚠️ 「真加引用就编不过」的**构建级负例未做**(见证据件 §7-2)
+- [x] 联机各玩家投影独立:同一 `Proj` 对两个 `player_id` 出两条独立结果(P0 单机夹具 = 两个发号 id 各投影;联机运行时 **BLOCKED-BY-45**,禁借绿)
+  - 载体:`test_ac4_twoPlayersAuthoredEvents_stayIndependent` · `test_ac5_judgmentByOtherPlayer_doesNotCompleteMyStep` —— **只覆盖单机夹具半边**;联机运行面仍 `BLOCKED-BY-45`
+- [x] 投影不可变性:同一输入两次求值字节一致;追加一条流事件 ⇒ 输出仅按单调性增长(不回收)
+  - 载体:`test_ac1_sameInput_evaluatesIdenticallyTwice`(`Describe()` 规范串逐字相等)· `test_ac1_prefixIsMonotoneSubsetOfFull` · `test_ac1_defaultView_isFailClosed`
 
 ---
 
@@ -116,4 +124,14 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**2026-11-06 实施轮(sprint-25 S25-1)—— 代码面完成,`AC-48-03` 的字面面 `NOT-RUN`**
+
+- **落点裁定(TR-tutorial-003 就近解释)**:`Proj` 住**新装配 `Gameplay.UI.Tutorial`**,引用集**恰 = `{ Gameplay.Presentation }`**。依据 = `AC-48-11` 要求白名单不含 `Sim.Contracts`(声明 `IEventSink` / `IEventAuthority` 处),而 `Gameplay.UI` 引用了它。解码面(`TutorialEventFact` / `ITutorialProjectionFeed` / `TutorialSnapshotBuilder`)住 `Gameplay.Presentation/Tutorial/`。
+  - `TR-tutorial-003` **status 维持 `partial`** —— 本件是**实现侧登记**,不是架构回写(承 Implementation Notes 5)。
+- **判据**:新增 **30 条**(投影 20 + 守卫 10),全绿;证伪 M1–M5 各自转红,SHA-256 逐字节还原。
+- **回归**:EditMode `6998 / 6961 / 0 / 0 / 37`(基线 `6968 / 6931` ⇒ +30/+30,零回归)。
+- **同批补登记**:`ADR-025 §①` 增 `Gameplay.UI.Tutorial` 行 · `AssemblyGates.Manifest` · `control-manifest.md` 入口注 · `gate_wiring_manifest_test` 的 ClassVerdict + EntryWiring。
+- **⚠️ 未做(禁借绿)**:`AC-48-11` 的**构建级负例**(真加引用验证编不过;已跑的是编译产物引用集 + asmdef 逐字)· 联机运行面(`BLOCKED-BY-45`)· `BuildGate` 探针轮 · 7a checkpoint 回执生产实现(今日缺省恒 false ⇒ `archive` 步生产上恒不成立)。
+  - 🔁 `AC-48-03` 的「存档字节逐字节」已由用户 2026-11-06 指令**补跑**(`test_ac4803_saveBytes_areUnchangedByProjection`),原文不删。
+- **证据**:`production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md`。
+- **本轮被门抓到三次**(CS0104 同名 / 私有包装不入接线集 / 类名不以 `Gate` 结尾不被认作门)—— 详见证据件 §6,第三条已无其他文档承载,值得进 `coding-standards` 的命名避让节。

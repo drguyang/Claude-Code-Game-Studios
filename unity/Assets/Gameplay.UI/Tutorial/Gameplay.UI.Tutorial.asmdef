@@ -1,0 +1,16 @@
+{
+    "name": "Gameplay.UI.Tutorial",
+    "rootNamespace": "DaYiJingCheng.Gameplay.UI.Tutorial",
+    "references": [
+        "Gameplay.Presentation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

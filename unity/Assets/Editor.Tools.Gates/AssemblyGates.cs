@@ -68,6 +68,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // Telemetry = 51 遥测边界层(2026-10-19 TD-epic-01 还债件;ADR-019 §三「住边界层」的编译期表达)。
             // noEngineReferences: true + 只读消费者 ⇒ 与 Sim.Contracts 同款门槛,不进 b2 的引擎扫描面。
             "Telemetry",
+            // Gameplay.UI.Tutorial = 48 只读投影 Proj 的装配(sprint-25 S25-1 · tutorial-002,
+            // 2026-11-06 增员;ADR-025 §① 同批回写)。引用集**恰 = { Gameplay.Presentation }** ——
+            // 不引 `Sim.Contracts` 是 AC-48-11 的**编译期**表达(`IEventSink`/`IEventAuthority`
+            // 声明在 Sim.Contracts ⇒ 无引用即写不出那个类型名)。
+            "Gameplay.UI.Tutorial",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake", "Editor.Tools.Font",
             // Editor.Tools.Capture = 截图工具(2026-10-14 增员;ADR-025 §① 同批回写)。
@@ -230,6 +235,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             // AC-5-05 的**数据侧**半边(ADR-038 §D1/§D2):值的唯一定义点在 assets/data/5_time.json,
             // 其他数据集只许 `$ref`。
             errs.AddRange(TimeConstantSingleDefinitionGate.RunDataSide("."));
+            // AC-48-04 —— 48 只读投影装配的公开面零 sim 类型(sprint-25 S25-1,2026-11-06)。
+            // 缘由:`tutorial-002` 落盘时 `TutorialSurfaceGate` 只有 EditMode 测试驱动,而
+            // AC-48-04 是 `[A]` 级判据 ⇒ 按 `GateWiringManifestTest` 的既有规矩
+            // 「升格 BLOCKING ⇒ 先找强制点」,本门补这条强制点(菜单 / reload / 构建前三处共用)。
+            // ⚠️ 入口写在 `TutorialSurfaceGate.RunAll()` 里而**不是**本类的私有方法:
+            //    门链 manifest 按 `类名.方法` 抽接线,私有包装会让「声明 Chain 但链上看不见它」转红
+            //    (2026-11-06 实测)。
+            errs.AddRange(TutorialSurfaceGate.RunAll());
             return errs;
         }
 

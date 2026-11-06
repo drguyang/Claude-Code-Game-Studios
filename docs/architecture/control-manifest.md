@@ -187,6 +187,11 @@ rule, see the referenced ADR.
 
 **程序集清单(ADR-025)**
 - **七装配**: `Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.Tools` 族(2026-09-25 story-001 B1 拆装六 → 七);**asmdef 集合恰 = 表 ∪ 测试装配族**,多一个未登记装配 = 构建失败 — ADR-025 §①/§④
+  - 🔁 **2026-11-06 加注(原文不删,`Manifest Version` **不重盖** —— 本注是**登记**,不是规则变更)**:
+    上行「七装配」是 **2026-09-25 的快照**,此后已增 `Gameplay.Boot`(2026-10-09)、
+    `Telemetry`(2026-10-19)、测试装配族数支,以及 **`Gameplay.UI.Tutorial`(2026-11-06 · sprint-25 S25-1
+    · 48 只读投影 `Proj`)**。**权威清单 = `ADR-025 §①` 的表**(逐行都带增员日期);
+    本行只作入口提示。⇒ 判「装配是否合法」请看 ADR-025 §① + `AssemblyGates.Manifest`,**不要数这里的个数**。
 - `Sim`:引用集 **恰 = {BCL, `Sim.Contracts`}**,`noEngineReferences: true`;含 19 个 sim 模块 + `StreamRouting.g.cs`,**25 与 9 同程序集** — ADR-025 §①
 - `Sim.Contracts`:引用集 **恰 = BCL**;含 `WorldPos` · **七抽象点** · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ITeleportCommandSink` — ADR-025 §①/§③
 - `Sim.Codec`:BCL only;7a 三流 codec + 存档头 + `Fix` 编码器(`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")` = D-21-18 守卫的可执行形态) — ADR-025 §①

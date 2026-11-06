@@ -4583,7 +4583,7 @@
     domain: Core
     adr: ADR-025
     status: partial
-    note: "D-R3 回填(2026-09-21)。清单机制在;48 的投影接口具体落哪个 asmdef(归 Gameplay.Presentation 还是 Gameplay.UI)未点名。"
+    note: "D-R3 回填(2026-09-21)。清单机制在;48 的投影接口具体落哪个 asmdef(归 Gameplay.Presentation 还是 Gameplay.UI)未点名。🔁 2026-11-06(sprint-25 S25-1 · tutorial-002):**就近解释已落** —— 48 的 `Proj` 住**新装配 `Gameplay.UI.Tutorial`**(引用集恰 = { `Gameplay.Presentation` };解码面 `ITutorialProjectionFeed` / `TutorialSnapshotBuilder` 住 `Gameplay.Presentation/Tutorial/`),依据 = `AC-48-11` 要求 48 的引用白名单不含 `Sim.Contracts`(声明 `IEventSink` / `IEventAuthority` 处),而 `Gameplay.UI` 引用了它。ADR-025 §① 已同批追加该行 + `AssemblyGates.Manifest` 已登记。⚠️ **status 维持 partial** —— 本行是**实现侧登记**,架构回写轮确认前不得记 covered(承 story-002 Implementation Notes 5)。"
   - id: TR-tutorial-004
     system: tutorial-and-onboarding
     gdd: design/gdd/tutorial-and-onboarding.md

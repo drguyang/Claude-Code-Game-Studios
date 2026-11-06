@@ -102,6 +102,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "CameraSetModeRequesterGate.RunModeRequestTable", // 档位表 ↔ 代码覆盖(表 ⊆ 代码)· camera-viewpoint/story-007 · 2026-11-02
                     "TimeConstantSingleDefinitionGate.RunAll", // AC-5-05 日长单一定义点(代码侧)· 2026-11-03
                     "TimeConstantSingleDefinitionGate.RunDataSide", // AC-5-05 数据侧(5_time 唯一定义 + 52 只许 $ref)· 2026-11-03
+                    "TutorialSurfaceGate.RunAll",   // AC-48-04 48 装配公开面零 sim 类型 · 2026-11-06(S25-1)
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -304,6 +305,20 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Note = "S18-1 AC ⑥(BLOCKING · `R2-AC6`)。2026-10-22 立:此前长期 NOT-RUN" +
                        " —— S18-1 测试注释自述「有 AST 式断言」,实测该断言从未存在(第五个假绿形态)。" +
                        "判据形态按 qa-plan:80 = 源码 + IL 双证,两半都在 RunAll 内合流" },
+
+            new ClassVerdict { ClassName = "TutorialSurfaceGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-48-04(2026-11-06 · sprint-25 S25-1)48 公开面零 sim 类型。" +
+                       "**初判 TestDriven 被本表自带规矩驳回**:AC-48-04 是 `[A]` 级判据," +
+                       "`ExpectedTestDrivenClasses` 明确禁止把承载判据的门判成「无强制点」档" +
+                       "⇒ 改判 Chain 并补 `TutorialSurfaceGate.RunAll()` 接进 `AssemblyGates.RunAll`" +
+                       "(菜单 / reload / 构建前三处共用;与 `InventoryDtoFloatGate` 同一条先例)。" +
+                       "⚠️ 入口**必须**写成 `TutorialSurfaceGate.RunAll()` 而非 `AssemblyGates` 的私有包装 —— " +
+                       "门链 manifest 按 `类名.方法` 抽接线,私有包装会让「声明 Chain 但链上看不见它」转红(2026-11-06 实测)。" +
+                       "⚠️ 装配按**名字** `Assembly.Load` 取 —— 48 装配编译失败时本门所在装配仍能编过," +
+                       "错误由本门报出而不是变成「门自己也编不过」。" +
+                       "⚠️ **构建期是否真的执行未跑探针轮** —— 按 CLAUDE.md §BuildGate「构建绿 ≠ 门跑了」" +
+                       "口径,不记绿(与 `InventoryDtoFloatGate` 同款如实登记)。" },
 
             // ── 仅测试驱动(**无构建期强制点**)──
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,

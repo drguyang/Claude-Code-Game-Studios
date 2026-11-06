@@ -20,8 +20,11 @@
 |---|---|---|---|
 | **`strip` / `grip` / `trip`** 等**含 `rip` 子串**的成员名 | `NoHealthbarFeedbackTest.test_markRegistry_noPaperTear_noTearFields` | 破纸词表 `{tear, rip, break, split, fracture}` 按**成员名小写子串**匹配,**限引用类型**(`f.FieldType.IsClass \|\| IsInterface`),`BindingFlags.DeclaredOnly` | story-025 实现轮(2026-10-18):`const string DetentStripClass` + `private readonly VisualElement _detentStrip` **双双命中** ⇒ 改 `band` |
 
-**适用范围**:仅 **`Gameplay.UI/Skeuomorphic/**` 的成员名**(该门只扫 42 侧装配)。
-**不是**全仓禁令 —— 值内容、局部变量、注释均不在扫描面内。
+| **门类名不以 `Gate` / `Gates` 结尾**(如叫 `*Guard` / `*Scanner`) | `GateWiringManifestTest.test_classManifest_chainKindEntriesAreActuallyWired` · `test_entryWiring_matchesManifest_bidirectionally` | 门链解析器 `GateChainSource.GateClassNameSuffixes = {"Gate","Gates"}`:限定的 `X.Method(` **只有 X 以 Gate/Gates 结尾才被认作门接线** ⇒ 叫 `*Guard` 的门即使**真的被 `RunAll` 调用**,也不进接线集,两条判据同时红,报错却是「声明 Chain 但链上看不见它」—— 指向 manifest,不指向命名 | S25-1(2026-11-06):`TutorialSurfaceGuard` 已接进 `RunAll` 仍两红 ⇒ 改名 `TutorialSurfaceGate` 即绿 |
+
+**适用范围(逐行不同)**:
+- 含 `rip` 子串成员名 —— 仅 **`Gameplay.UI/Skeuomorphic/**` 的成员名**(该门只扫 42 侧装配);**不是**全仓禁令 —— 值内容、局部变量、注释均不在扫描面内。
+- 门类名 `Gate` / `Gates` 后缀 —— **`unity/Assets/Editor.Tools.Gates/**` 的 `public static class` 名**。⚠️ 这一条**不写在任何命名规范里**,却在两条门里执行;新增门类时按它命名,或用 `TestDriven` 档(非 BLOCKING)避开。
 
 **同族提醒(未穷举)**:`AC-42-F3` 词门扫 `Skeuomorphic/**/*.cs` 的**全文(含注释)**,
 避让 `未查标签` / `占位符` / `计数` / `分组` / `排序` / `检索控件` / `同源提示` / `数字角标` / `进度填充`。

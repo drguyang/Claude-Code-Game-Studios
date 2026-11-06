@@ -33,14 +33,14 @@ stories:
     name: "tutorial/002 只读投影 Proj 与装配护栏"
     file: "production/epics/tutorial-onboarding/story-002-read-only-projection-and-assembly-guards.md"
     priority: must-have
-    status: ready-for-dev
+    status: review
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "教学链"
     blocker: ""
     completed: ""
-    note: "联机子项(两 player_id 独立投影)BLOCKED-BY-45,单机双 id 夹具不替代 closure。"
+    note: "代码面完成:30 条新判据全绿 · EditMode 6998/6961(基线 6968/6931,+30,零回归)· 证伪 M1–M5 各自转红 · AC-48-03 存档字节字面面已补跑。仍未做:AC-48-11 构建级负例 / 联机 BLOCKED-BY-45 / BuildGate 探针轮。证据 = production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md"
   - id: "S25-2"
     name: "tutorial/003 Anchor/Completion 两相触发引擎"
     file: "production/epics/tutorial-onboarding/story-003-anchor-completion-trigger-engine.md"
