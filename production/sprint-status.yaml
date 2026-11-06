@@ -9,43 +9,83 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 #
-# ⚠️ sprint-14 … sprint-23 的完整 yaml 已分别归档为
+# ⚠️ sprint-14 … sprint-24 的完整 yaml 已分别归档为
 #    `production/sprint-status-sprint1{4,…,9}-archive.yaml` · `sprint20-archive` ·
-#    `sprint21-archive` · `sprint22-archive` · `sprint23-archive`,不随本文件覆盖丢失。
-#    sprint-23 归档 SHA-256(前 16 位)= `89fdd962bed97b2f`(2026-11-03 规划轮归档)。
+#    `sprint21-archive` · `sprint22-archive` · `sprint23-archive` · `sprint24-archive`,
+#    不随本文件覆盖丢失。sprint-24 归档 SHA-256(前 16 位)= `f19ca6b18dfdcfee`(2026-11-06 规划轮归档)。
+#    ⚠️ 归档件是**覆盖前快照**:其中 `S24-1` 记 `done`,与 `processing/story-005` 卡面
+#    `In Progress` 的漂移同批订正(sprint-25 的 S25-3 收口时处理),本文件不改归档件。
 #
-# 本文件 = sprint-24 活件(炮制尾 + 7a 在制品 · 2 件 Must · Nice = 0)。
-#    ⚠️ 路线图 §6.5 的 sprint-24 行已过期 —— 4 件里 3 件先期完成,
-#    实况见 `production/sprints/sprint-24.md` §Phase 1.5 复核。
-#    ⚠️ 本 sprint **无 QA 计划** —— 开工前须跑 `/qa-plan sprint`。
+# 本文件 = sprint-25 活件(教学链 4 件 + 炮制屏收口 · Must 3 / Should 2 / Nice 0)。
+#    件集裁定 = 用户 2026-11-06「照此定稿 + 48 GDD 结案」。
+#    ⚠️ 本 sprint **尚无 QA 计划**(`qa-plan-sprint-25` 不存在)—— 用户裁定开工后立即跑 `/qa-plan sprint`。
+#    ⚠️ `file` 字段:story 件指卡面;S25-3 是 **TD 工作项**(载体 = 债册条目 + UX spec),不是新 story。
 
-sprint: 24
-goal: "清掉 18 炮制链的最后一卡,并结清挂了 9 天的 7a 在制品(QA 假绿退回件)"
-start: "2026-11-03"
-end: "2026-11-09"
-generated: "2026-11-03"
-updated: "2026-11-03"
+sprint: 25
+goal: "把「能打开」的炮制链推到「能走通」,并落地教学链的前两件(48 GDD 于本轮结案)"
+start: "2026-11-06"
+end: "2026-11-12"
+generated: "2026-11-06"
+updated: "2026-11-06"
 
 stories:
-  - id: "S24-1"
-    name: "processing/005 完成调度、溢出落地与等待期音频护栏"
-    file: "production/epics/processing/story-005-completion-schedule-spill-and-audio.md"
+  - id: "S25-1"
+    name: "tutorial/002 只读投影 Proj 与装配护栏"
+    file: "production/epics/tutorial-onboarding/story-002-read-only-projection-and-assembly-guards.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
+    chain: "教学链"
     blocker: ""
-    completed: "2026-11-03"
-    note: "COMPLETE WITH NOTES(2026-11-03)。AC-18-21 [I] PASS(18 侧:调度落点 + cue 发射 + 无墙钟,证伪 6/6 命中);四条 [L] 未跑(听测 2 / 手柄走查 / 逐屏走查)。两处残余已登记:① 事件表无 sfx_process_complete 行 ⇒ 生产不出声;② 20 侧无完成时点结算入口 ⇒ 溢出落地半边 NOT-RUN,新债 TD-processing-08。"
-  - id: "S24-2"
-    name: "persistence-service/001 存储抽象层(二进制 codec 接口 + 校验骨架)—— 7 条 AC 逐条重判"
-    file: "production/epics/persistence-service/story-001-storage-abstraction.md"
+    completed: ""
+    note: "联机子项(两 player_id 独立投影)BLOCKED-BY-45,单机双 id 夹具不替代 closure。"
+  - id: "S25-2"
+    name: "tutorial/003 Anchor/Completion 两相触发引擎"
+    file: "production/epics/tutorial-onboarding/story-003-anchor-completion-trigger-engine.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
+    chain: "教学链"
     blocker: ""
-    completed: "2026-11-03"
-    note: "COMPLETE WITH NOTES(2026-11-03 重判轮)。7 条 AC:PASS 5(01/04/05/06 + 18 加宽)· NOT-RUN 2(02 前件不存在:布局无快照段 · 03 EXTERNAL:ADR-012 矩阵)。假绿夹具(AC-7a-04 只断 bytes.Length>0)已整条重写;顺带修出真缺陷 —— SaveHeaderCodec.HasValidMagic 用主机端序 BitConverter(违 ADR-010 §一)。证伪 3/3 命中。"
+    completed: ""
+    note: "依赖 S25-1(Proj)。联机运行面 BLOCKED-BY-45。"
+  - id: "S25-3"
+    name: "炮制屏收口:processing-18 落地 + TD-skeuo-21 结案 + 真包点火→出丹"
+    file: "docs/tech-debt-register.md#td-skeuo-21"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    chain: "炮制链"
+    blocker: ""
+    completed: ""
+    note: "四条实现差:二段确认 / 三种空态注 / 开屏落焦(TD-skeuo-21)/ 点火后留屏。spec = design/ux/processing-18.md(Draft)。"
+  - id: "S25-4"
+    name: "tutorial/004 三媒体调度与纸近景模态"
+    file: "production/epics/tutorial-onboarding/story-004-three-media-scheduling-paper-modal.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: L
+    chain: "教学链"
+    blocker: ""
+    completed: ""
+    note: "依赖 S25-2 的 Fire 边沿。字幕子项若 AC-44-15 未就位 ⇒ BLOCKED-BY。HIGH engine risk(近景模态焦点桥)。"
+  - id: "S25-5"
+    name: "tutorial/005 零设门与零按键提示守卫及走查"
+    file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    chain: "教学链"
+    blocker: ""
+    completed: ""
+    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。"

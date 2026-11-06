@@ -17057,3 +17057,11 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   3 条无载体逐条具名;炮制链端到端 NOT-RUN)。证据 = `production/qa/evidence/fix-p0-tick-behind-stream-tail-2026-11-06.md`。
   commit `d0d4d9f1`。
 - 下一步候选:① 炮制链端到端走查(人 / 真指针)② S24-1 四条 `[L]` ③ `design/ux/processing-18.md`(阻塞 `AC-42-F1` ⑨)。
+
+## Session Extract — sprint-25 规划轮(2026-11-06)
+- **Sprint-25 已开**:`production/sprints/sprint-25.md` · `production/sprint-status.yaml`(sprint-24 yaml 归档 `sprint-status-sprint24-archive.yaml`,SHA-256 `f19ca6b18dfdcfee`)
+  - 件集(用户 2026-11-06 裁定「照此定稿 + 48 GDD 结案」):Must = S25-1 `tutorial-002` · S25-2 `tutorial-003` · S25-3 炮制屏收口;Should = S25-4 `tutorial-004` · S25-5 `tutorial-005`
+- **前置已落**:`design/gdd/tutorial-and-onboarding.md` 由 `In Review` → **Approved**(结案注写明「用户接受,非重跑评审」);`processing/story-005` 卡面状态漂移已订正为 `Complete`
+- **QA 计划**:`production/qa/qa-plan-sprint-25-2026-11-06.md`;四张 tutorial 卡面的 `## QA Test Cases` 已补 4 条缺口(002 六谓词映射 / 003 闩不可序列化 / 004 字幕管线 / 005 零按键提示词族)
+- 下一步:`/story-readiness production/epics/tutorial-onboarding/story-002-...` 然后 `/dev-story`
+<!-- QA-PLAN: 2026-11-06 | System: sprint-25 | Plan written: production/qa/qa-plan-sprint-25-2026-11-06.md -->
