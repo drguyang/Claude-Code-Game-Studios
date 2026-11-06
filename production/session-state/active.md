@@ -17120,3 +17120,10 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 对照:UI 输入是通的(Escape 弹暂停壳);屏幕上 `【病人】咳…` 是 44 的病人字幕,不是教学
 - 副作用:w3 移出存档树 · 存档 20/20 SHA-256 还原 · 源码零改动
 - 证据 = production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(+3 张截图)
+
+## Session Extract — 「跳过」无效根因追查(2026-11-06 20:20–20:30)
+- **确定的一条**:「跳过」在**任何一次立案/查体之前**必然是空操作 —— `SubmitEmergencySkip` 里 `_boundPatient.Value < 0 ⇒ return`(静默零提示);`_boundPatient` 唯一写入点 = `CasebookVitalsSource.ChangePatient` ← 唯一调用方 = `InteractionInputDriver.cs:231`(世界 E)
+- **我自己错了一条**:上一轮写「急救 Armed 把 E 全拒」——**已证伪**。候选列表可见 ⟺ 通道**未** Armed(`onIdleGate` 注释:`Arm ⇒ 隐藏`),它是 **Idle 常态 HUD**;且 `Interact` 有绑定(`<Keyboard>/e`)
+- ⇒ 「E 为什么没出立案」**仍未定位**,最可能是 16×16 图里盲走没走到病人跟前(无可读位置面)
+- 夹具缺口:`emergency_skip_entry_test` 只判「入口存在 + 可获焦」,**零条判「跳过真的产生一次 Attempt」**
+- 证据件已就地订正(原文不删):walkthrough-s25-4c-…md §1 / §4 / §7
