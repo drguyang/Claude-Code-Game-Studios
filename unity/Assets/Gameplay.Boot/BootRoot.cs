@@ -37,7 +37,9 @@ using DaYiJingCheng.Gameplay.Presentation.Input;      // DeviceSwitchTuningDataS
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
+using DaYiJingCheng.Gameplay.Presentation.Tutorial;   // TutorialNarrationRow(走查仪表逐条复查口述)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using DaYiJingCheng.Gameplay.UI.Tutorial;             // TutorialMediaIntent(同上)
 using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
@@ -842,7 +844,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    提前会让播种读到未装载的流(把整段教学重播一遍)。
             // ⚠️ 未装配(null)必须**显式告警**:它与「本局没有教学」在行为上不可区分。
             if (_services.TutorialSeams != null)
+            {
                 _services.TutorialChain = _services.TutorialSeams.Attach(_services.Stream, _services.Decoder, actorId);
+
+                // 走查仪表:带 `-tutorialnarrcheck` 时把**全部四条口述**用生产解析面依次播一遍。
+                // 用途 = 回答「其余三条 cue 在真包里到底解析得出、播得响吗」——
+                // 它不替教学链发火(发火仍只由事件流驱动),只走同一条 翻译层 → 44 → 42 路径。
+                if (WalkthroughDiagnostics.NarrationCheckEnabled)
+                    StartCoroutine(PlayAllNarrationsForDiagnostics());
+            }
             else
                 Debug.LogWarning("[48][tutorial] 教学链未装配 —— 内容表/音频缝/字幕口 至少缺一," +
                                  "本局不会有任何教学口述与纸指引(不是「教学已完成」)。");
@@ -2709,6 +2719,28 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="freeze">模态冻结面;为 <c>null</c> ⇒ 原样透传(诚实降级)。</param>
         public static Vector2 ResolveMoveAxis(Vector2 raw, ModalInputFreeze freeze)
             => freeze != null ? freeze.FilterMovement(raw) : raw;
+
+        /// <summary>走查仪表:`-tutorialnarrcheck` 逐条播放 48 的全部口述(每条一次,条间留间隔便于录音切分)。</summary>
+        /// <remarks>⚠️ **不替教学链发火** —— 发火仍只由事件流驱动。本方法只走同一条
+        /// `TutorialMediaDriver → 44 cue + 42 字幕` 路径,用来回答「其余几条 cue 在真包里
+        /// 解析得出、播得响吗」。默认关闭,生产零开销。</remarks>
+        private System.Collections.IEnumerator PlayAllNarrationsForDiagnostics()
+        {
+            yield return new WaitForSeconds(3f);
+            if (_services?.TutorialSeams == null) yield break;
+
+            IReadOnlyList<TutorialNarrationRow> rows = _services.TutorialSeams.ContentForDiagnostics.Narration;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                TutorialNarrationRow row = rows[i];
+                var intents = new[] { TutorialMediaIntent.Narration("diag", row.CueId, row.Text) };
+                UnityEngine.Debug.Log($"[tutorialdiag] ▶口述复查 {i + 1}/{rows.Count} cue={row.CueId}");
+                _services.TutorialSeams.MediaForDiagnostics.Play(
+                    intents, _services.TutorialSeams.SourceCellForDiagnostics());
+                yield return new WaitForSeconds(WalkthroughDiagnostics.NarrationCheckGapSeconds);
+            }
+            UnityEngine.Debug.Log("[tutorialdiag] ▶口述复查完毕");
+        }
 
         private void Update()
         {

@@ -47,6 +47,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>`archive` 步的回执缝是否已接(`false` ⇒ 该步永不完结)。</summary>
         public bool CheckpointWritable => _checkpointWritten != null;
 
+        /// <summary>内容表(`internal` —— 仅供同程序集的走查仪表复查口述清单)。</summary>
+        internal TutorialContentTable ContentForDiagnostics => _content;
+
+        /// <summary>翻译层(`internal` —— 仅供同程序集的走查仪表逐条投递口述)。</summary>
+        internal TutorialMediaDriver MediaForDiagnostics => _media;
+
+        /// <summary>口述的空间化锚点取值委托(`internal` —— 同上)。</summary>
+        internal Func<Int3> SourceCellForDiagnostics => _sourceCell;
+
         /// <summary>绑定玩家,产出可驱动的链。</summary>
         /// <param name="stream">三流合并视图。</param>
         /// <param name="decoder">载荷解码器。</param>

@@ -34,6 +34,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>命令行旗标。带它才说话。</summary>
         public const string Flag = "-tutorialdiag";
 
+        /// <summary>口述音轨复查旗标(`-tutorialnarrcheck`)。
+        /// <para>带它 ⇒ 启动后把 48 的**全部口述**用生产解析面依次播一遍(每条一次,间隔 <see cref="NarrationCheckGapSeconds"/> 秒)。
+        /// 用途:回答「其余几条 cue 在真包里解析得出、播得响吗」——
+        /// **不替教学链发火**(发火仍只由事件流驱动),只走同一条 `翻译层 → 44 → 42` 路径。</para>
+        /// <para>⚠️ 与 <see cref="Flag"/> 独立:两者可单用也可同用。默认关闭 ⇒ 生产零开销。</para></summary>
+        public const string NarrationCheckFlag = "-tutorialnarrcheck";
+
+        /// <summary>口述复查的条间间隔(秒)—— 须**大于最长素材**(Close 4.9 s),否则录音里会叠在一起。</summary>
+        public const float NarrationCheckGapSeconds = 5.5f;
+
         /// <summary>每多少 tick 打一行(20 Hz ⇒ 1 s)。</summary>
         public const int ReportEveryTicks = 20;
 
@@ -54,11 +64,30 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
         }
 
-        private static bool Detect()
+        private static bool _narrationResolved;
+        private static bool _narrationEnabled;
+
+        /// <summary>是否带 `-tutorialnarrcheck` 启动(进程内只解析一次)。</summary>
+        public static bool NarrationCheckEnabled
+        {
+            get
+            {
+                if (!_narrationResolved)
+                {
+                    _narrationResolved = true;
+                    _narrationEnabled = HasArgument(NarrationCheckFlag);
+                }
+                return _narrationEnabled;
+            }
+        }
+
+        private static bool Detect() => HasArgument(Flag);
+
+        private static bool HasArgument(string flag)
         {
             string[] args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length; i++)
-                if (string.Equals(args[i], Flag, StringComparison.OrdinalIgnoreCase)) return true;
+                if (string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase)) return true;
             return false;
         }
 
