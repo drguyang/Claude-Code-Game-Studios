@@ -18,7 +18,12 @@
 #
 # 本文件 = sprint-25 活件(教学链 4 件 + 炮制屏收口 · Must 3 / Should 2 / Nice 0)。
 #    件集裁定 = 用户 2026-11-06「照此定稿 + 48 GDD 结案」。
-#    ⚠️ 本 sprint **尚无 QA 计划**(`qa-plan-sprint-25` 不存在)—— 用户裁定开工后立即跑 `/qa-plan sprint`。
+#    ✅ QA 计划**已产出**:`production/qa/qa-plan-sprint-25-2026-11-06.md`
+#       (规划轮本行原写「尚无 QA 计划」—— 2026-11-06 收口轮订正,原文不删改述:该计划确实是在
+#        规划文件成文**之后**才跑出来的,不是规划时漏登记)。
+#    🔁 2026-11-06 晚:登记**计划外追加件 3 条**(S25-6/7/8,全部由用户当轮直接指派)。
+#       口径承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,实际 3 ⇒ **超支 2**。
+#       追加件照 sprint-23 归档件的先例排在 `stories:` 末尾并带 `# ⚠️ 计划外追加` 注释。
 #    ⚠️ `file` 字段:story 件指卡面;S25-3 是 **TD 工作项**(载体 = 债册条目 + UX spec),不是新 story。
 
 sprint: 25
@@ -76,16 +81,57 @@ stories:
     chain: "教学链"
     blocker: ""
     completed: ""
-    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 字幕投递(待 Boot 翻译层)· AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md。"
+    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。🔁 2026-11-06 晚补齐两个子轮(同一卡面,不另算件):**S25-4b** Boot 翻译层(48 意图 → 44 音 + 42 字幕,字幕文本取事件表的 subtitle_text 作单一真源)· **S25-4c** 全链驱动(事件流 → 解码 → 投影 → 评估 → 调度 → 投递,增量游标 + 流替换重播种),commit e1c2669e。⇒ 原记 NOT-RUN 的「字幕投递(待 Boot 翻译层)」**已落**。真包已证:教学口述**出声**(与素材归一化互相关 0.9199)且**出字幕**(屏上文本 = 事件表口径,非 48 内容表);同轮查出并修掉口述声源格恒为世界原点的缺陷(-33.3 → -3.6 dB)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 其余三条口述(judge/close/archive)的出声 · AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md · impl-s25-4b-tutorial-media-translation-2026-11-06.md · impl-s25-4c-tutorial-chain-wiring-2026-11-06.md · walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(§8/§9/§10)。"
   - id: "S25-5"
     name: "tutorial/005 零设门与零按键提示守卫及走查"
     file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"
     priority: should-have
-    status: backlog
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "教学链"
     blocker: ""
     completed: ""
-    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。"
+    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。"
+
+  # ⚠️ 计划外追加(2026-11-06 用户当轮直接指派)—— 不属 §七 收口判定的计划件扫描面。
+  #    承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,本轮实际 3 ⇒ 超支 2。
+  - id: "S25-6"
+    name: "走查仪表 -tutorialdiag:真包现场读数(玩家格 / 病人格 / 最近距离 / 急救态 / 教学事实数)"
+    file: "unity/Assets/Gameplay.Boot/WalkthroughDiagnostics.cs"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    chain: "—"
+    blocker: ""
+    completed: "2026-11-06"
+    note: "计划外追加。病因:走查只能在 16×16 图里盲走 —— `SaveCellDumpCli` 只能读落盘 checkpoint,且病人位置是呈现态、不进流。旗标门控,默认零开销,只读不写流不改状态。没有它,第二轮走查仍定位不到「E 没反应」是「没走到跟前」。commit 905ce971。⚠️ 改日志行格式 = 必须同批改走查脚本的解析前缀(实测踩过一次:加 `t=` 前缀后整轮零读数)。"
+  # ⚠️ 计划外追加(2026-11-06 用户「①,修 ListenerCell 并重跑确认音量」)。
+  - id: "S25-7"
+    name: "教学口述声源格恒为世界原点 —— 听者缝零注入 + 装配期判空"
+    file: "unity/Assets/Gameplay.Boot/CompositionRoot.cs"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    chain: "教学链"
+    blocker: ""
+    completed: "2026-11-06"
+    note: "计划外追加。真包实测缺陷:口述出声但被空间化压低 -33.3 dB。根因**两环**:① `AudioAssemblySeams.ListenerCell` 全仓零赋值点(注释自称「由 BootRoot 注入」= 假自述);② 即便填了缝也不生效 —— `CompositionRoot` 在 `Assemble` 那一刻就判空,而填缝在 BootRoot 第 5.2 步(之后)⇒ 固化成 null 分支。**只修 ① 是假修**(实测增益逐位不变),延迟读 + 填缝两环都修才有效:0.0216 → 0.6631(净恢复约 30 dB)。回归 EditMode 7059/7022 · PlayMode 359/355。commit 905ce971。"
+  # ⚠️ 计划外追加(2026-11-06 用户「修模态关闭时补跑一次边沿」)。
+  - id: "S25-8"
+    name: "模态解冻补跑教学边沿(挡路模态关闭那一帧再推一次 OnTickEdge)"
+    file: "unity/Assets/Gameplay.Boot/BootRoot.cs"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    chain: "教学链"
+    blocker: ""
+    completed: "2026-11-06"
+    note: "计划外追加。冻结期间进流的 CaseOpened 没有 tick 边沿可走。安全前提 = 同 tick 幂等(`OnTickEdge` 的 tick 形参体内未使用 + 发火闸去重),由新夹具 `test_onTickEdge_sameTickTwice_firesOnce` 钉住。真包实测:解冻与发火同一帧且只发一次。⚠️ **归因订正**:体感那 2.4 s 是**冻结本身**的时长,不是边沿延迟;补跑只改善「关掉后再等下一个 tick」那一小段(≤50 ms),**不会**把 2.4 s 变 0。只覆盖教学链,其他 tick 边沿驱动未做也未裁。回归 EditMode 7060/7023(+1 = 新夹具)· PlayMode 359/355。commit 6246d9be。"
