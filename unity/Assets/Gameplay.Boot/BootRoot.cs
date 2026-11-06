@@ -2762,6 +2762,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    且在 tick 泵**之前**(与世界是否在跑无关 —— 这正是本条的全部意义)。
             _uiDriver?.OnFrameEdge();
 
+            // 走查仪表:焦点读数走**每帧**(周期读数挂在 tick 边沿上,而模态摊开时 tick 停
+            // ⇒ 冻结期间一行都没有,恰好是「按了没反应」最需要看见的时候)。
+            if (WalkthroughDiagnostics.Enabled && _uiDriver != null)
+                WalkthroughDiagnostics.ReportFocusIfChanged(_uiDriver.GetUiRoot());
+
             // 先跑 tick 泵(Advance + 逐边沿),再按推进后的 CurrentTick 驱动病人出现 ——
             // 次序不可反:驱动读的是**本帧推进后**的 tick;若在 PumpFrame 之前调,
             // CurrentTick 恒 0(首帧未 Advance)⇒ 驱动把 _lastSpawnTick 钉在 0,

@@ -333,6 +333,48 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "落焦病名栏 + 真派发 NavigationSubmitEvent ⇒ 摊开(接线缺失则本测红,而①–⑥仍绿)");
         }
 
+        /// <summary>
+        /// ⑦d:**开册即落焦** —— 只按玩家的真实动作序(落焦病名栏 → 提交),**不预先给条目 `Focus()`**。
+        /// <para><b>病因(2026-11-06 真包走查)</b>:病名栏 Submit 原只做「开册 + 建条目」而**不移焦**;
+        /// 册子容器又是 append 到 `right-column` **末尾**,树序排在「折」(`fold-edge`)之后
+        /// ⇒ 玩家按一次 <c>Tab</c> 落在「折」上,而「折」的 Submit 是**右页折回** ——
+        /// 看到的是「界面变了」,不会想到「我跳过了册子」。真包实测两次误入。</para>
+        /// <para>⚠️ 与 ⑦b 的分工:⑦b 用 `DispatchSubmit(entries[i])` 里自带的 `Focus()`
+        /// **强设**焦点再提交 ⇒ 它证的是「条目收到 Submit 会指认」,**跳过了可达性**。
+        /// 本测补的就是那一步:开册之后焦点是否**已经**在第一条条目上。</para>
+        /// <para>⚠️ 判别力:删掉 `FocusFirstLexiconEntry()` 的调用 ⇒ 焦点仍停在病名栏 ⇒ 本测红。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_openBook_movesFocusToFirstEntry()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var src = new FakeSource();
+            src.Seen.AddRange(new[] { 7, 9 });
+            src.Texts[7] = "伤寒"; src.Texts[9] = "温病";
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(src);
+
+            VisualElement row = root.Q<VisualElement>("channel-disease-name");
+            Assert.IsNotNull(row, "前置:病名栏存在");
+
+            // 玩家的真实动作序:导航到病名栏(落焦)→ 按提交。此后**不再**给任何元素 Focus()。
+            DispatchSubmit(row);
+
+            Assert.IsTrue(screen.IsLexiconBookOpen, "前置:册子已摊开");
+            var entries = CollectEntryRows(root);
+            Assert.AreEqual(2, entries.Count, "前置:两条条目");
+
+            Assert.AreEqual(entries[0], root.panel.focusController.focusedElement,
+                "开册后焦点须在**第一条条目**上 —— 否则玩家要 Tab 过「折」才能进册子," +
+                "而在「折」上提交会把右页折回(真包实测的误入形态)");
+        }
+
         /// <summary>⑦b:条目行「落焦 + 提交」(真派发)⇒ 写通道收到显式 lexicon_id。</summary>
         [UnityTest]
         public IEnumerator test_submitWiring_entryRowEvent_forwardsLexiconId()

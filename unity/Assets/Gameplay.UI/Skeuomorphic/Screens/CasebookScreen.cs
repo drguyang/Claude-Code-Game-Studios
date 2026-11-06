@@ -407,9 +407,31 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             {
                 _bookOpen = true;
                 RefreshLexiconBook();
+                FocusFirstLexiconEntry();
                 return;
             }
             _commandSink?.SubmitConfidence();
+        }
+
+        /// <summary>
+        /// 病名册刚摊开时,把焦点送到**第一条条目**(无条目 / 无面板 ⇒ 空操作)。
+        /// <para><b>病因(2026-11-06 真包走查)</b>:病名栏 Submit 只做「开册 + 建条目」,**不动焦点**;
+        /// 而册子容器是 append 到 `right-column` **末尾**的,树序排在「折」(`fold-edge`)之后
+        /// ⇒ 键盘/手柄玩家按一次 <c>Tab</c> 落在**「折」**上,而「折」的 Submit 是右页折回 ——
+        /// 看到的是「界面变了」,不会想到「我跳过了册子」。真包实测两次误入,故开册即落焦。</para>
+        /// <para>⚠️ 只在**开册**这一处调用,不进 <see cref="RefreshLexiconBook"/> ——
+        /// 册子因数据刷新而重建时**不得抢焦点**(否则玩家在别处操作时焦点会被拽走)。</para>
+        /// <para>⚠️ 无面板(`panel == null`,屏单元直调语义方法的既有夹具形态)⇒ 不动 ——
+        /// 无面板时 <c>Focus()</c> 无意义,强行调只会噪声。</para>
+        /// </summary>
+        private void FocusFirstLexiconEntry()
+        {
+            if (_lexiconBook == null || _lexiconBook.panel == null) return;
+            for (int i = 0; i < _lexiconBook.childCount; i++)
+            {
+                VisualElement child = _lexiconBook[i];
+                if (child != null && child.focusable) { child.Focus(); return; }
+            }
         }
 
         /// <summary>指认一条词(**语义动作面**;条目行 Submit 的转发目标)。</summary>

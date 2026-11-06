@@ -117,6 +117,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             UnityEngine.Debug.Log(sb.ToString());
         }
 
+        private static string _lastFocus;
+
+        /// <summary>焦点读数(**每帧调,仅在焦点变化时打一行**)。
+        /// <para>病因(2026-11-06 真包走查):走查者**看不见焦点在哪** ⇒ 只能盲按;
+        /// 而「开屏根本没有焦点」时所有 Submit 都会被引擎**静默丢弃** ——
+        /// 看起来就是「按键没反应」。周期读数又挂在 tick 边沿上,而模态摊开时 **tick 停**
+        /// ⇒ 冻结期间一行都没有。故本读数走**每帧**,与 tick 无关。</para></summary>
+        /// <param name="root">UI 面板根(可空 ⇒ 空操作)。</param>
+        public static void ReportFocusIfChanged(UnityEngine.UIElements.VisualElement root)
+        {
+            if (root == null || root.panel == null) return;
+            var focused = root.panel.focusController.focusedElement as UnityEngine.UIElements.VisualElement;
+            string name;
+            if (focused == null) name = "(无焦点)";
+            else if (!string.IsNullOrEmpty(focused.name)) name = focused.name;
+            else name = "<匿名;" + (focused.userData ?? "-") + ">";
+            if (name == _lastFocus) return;
+            _lastFocus = name;
+            UnityEngine.Debug.Log("[tutorialdiag] 焦点=" + name);
+        }
+
         /// <summary>模态解冻补跑的瞬间报告(每次解冻一行)。</summary>
         public static void ReportThaw(long tick, int factCount)
         {

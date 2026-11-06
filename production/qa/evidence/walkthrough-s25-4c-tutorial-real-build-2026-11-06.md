@@ -532,3 +532,169 @@ t=29.75  tick=340  facts=18
 | PlayMode | `total=359 passed=355 failed=0 inconclusive=2 skipped=2` | `unity/Logs/pm-narr.xml` |
 
 编译错 0。本轮**未新增测试**(只加旗标与内部访问器)⇒ 总数与上轮同值,等式自洽。
+
+---
+
+## 12. 病名册接不上 Tab 的根因与修法(2026-11-06 23:45–23:59)
+
+### 12.1 根因:三个代码事实叠在一起
+
+| # | 事实 | 位置 |
+|---|---|---|
+| ① | 病名栏 Submit 只做「开册 + 重建条目」,**不移动焦点** | `CasebookScreen.cs:393-408`(`_bookOpen = true; RefreshLexiconBook(); return;`) |
+| ② | 册子容器由 `anchor.parent.Add(_lexiconBook)` **append 到 `right-column` 末尾** | `:627` |
+| ③ | 「折」(`fold-edge`) 在 `BuildUI` 里早已加入同一栏,**且 `focusable = true`** | `:165`(对比 `:154` 的 confidence 不可聚焦) |
+
+⇒ `right-column` 树序 = **病名 → 折 → 册子条目 1 → 条目 2 …**
+⇒ UI Toolkit 无显式 `tabIndex` 时**树序即 Tab 序** ⇒ 从病名栏按一次 `Tab` 落在**「折」**上,
+再按一次才进册子;而「折」的 Submit 是 `SubmitFold`(右页折回、盖住判断区)
+⇒ 玩家看到的是「界面变了」,不会想到「我刚刚跳过了册子」。
+
+⚠️ **我自己的走查要打折**:那几轮在病名栏之后按了很多键(Tab×7 / Down×2 / Up×5…),
+**具体哪一次把我带到「方笺续页」的不能指定**。§12.1 三条是代码事实(可复算);
+「我撞上了哪一关」是推断,不写进判据。
+
+### 12.2 为什么既有夹具全绿而没抓到
+
+`casebook_lexicon_book_test` 的 ⑦b 是这么写的:
+
+```csharp
+DispatchSubmit(entries[1]);   // 内部先 target.Focus()，再发 NavigationSubmitEvent
+```
+
+**它先 `Focus()` 把焦点强设到条目上,再提交** —— 证明的是「条目收到 Submit 会指认」,
+**跳过了「焦点能不能走到条目」这一问**。六条语义判据 + 一条派发判据全绿,而这条路径实际不好走。
+⇒ 与 `.claude/docs/coding-standards.md` 假绿表 **F1(自造断言顶替 AC 语义层)** 同型:
+AC 要的是「玩家能指认病名」,夹具证的是「条目收到事件会指认」。
+
+### 12.3 修法(用户裁定「按 A 修」)
+
+`CasebookScreen` 增 `FocusFirstLexiconEntry()`,在 `SubmitDiseaseNameBar()` **开册那一条路径**上调用:
+
+```csharp
+_bookOpen = true;
+RefreshLexiconBook();
+FocusFirstLexiconEntry();   // ← 新增
+return;
+```
+
+- 无条目 / 无面板 ⇒ **空操作**(屏单元直调语义方法的既有夹具形态不受影响)。
+- **只在开册处调用,不进 `RefreshLexiconBook`** —— 册子因数据刷新重建时不得抢焦点。
+- 不动树序、不动视觉布局(那是 B 案,会让条目上移到「折」之上)。
+
+### 12.4 新夹具(补的正是缺失的那一层)
+
+`casebook_lexicon_book_test.test_openBook_movesFocusToFirstEntry`
+—— **只按玩家真实动作序**:落焦病名栏 → 真派发 Submit,**不给任何条目 `Focus()`**;
+断言 `panel.focusController.focusedElement == 第一条条目`。
+
+**证伪轮**:去掉 `FocusFirstLexiconEntry()` 的调用 —
+
+| 项 | 值 |
+|---|---|
+| 变异前 SHA-256 | `ebc501a65f9db2deb79a7c797481f83743d9219c85d77f55502d5ff9a98e395f` |
+| 变异后 | `total=12 passed=11 **failed=1**` |
+| 转红项 | **`test_openBook_movesFocusToFirstEntry`**(恰好一条,不多不少) |
+| 还原后 SHA-256 | `ebc501a6…` **逐字节一致** |
+
+### 12.5 回归
+
+**基线溯源三元组**:截至时刻 `2026-11-06 23:57:25 CST`(EM)/ `23:58:44 CST`(PM) · 批次:病名册落焦轮 · commit:`95698054` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7060 passed=7023 failed=0 inconclusive=0 skipped=37` | 与上轮同值(本轮未加 EditMode 测试) |
+| PlayMode | `total=360 passed=356 failed=0 inconclusive=2 skipped=2` | 上轮 `359/355` ⇒ **+1 = 新夹具那一条**(等式自洽) |
+
+编译错 0。
+
+### 12.6 ⚠️ 仍未验证(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| **真包里 judge 步能否因此走通** | **NOT-RUN** —— 修的是「焦点送不进册子」,夹具已证、证伪已过;**但没有重跑真包走查**。「修好了」≠「走通了」 |
+| `close` 步 | 同上,更在其后 |
+| 手柄路径(`AC-48-24` / `AC-18-24`) | **NOT-RUN** —— 本轮只碰键盘/导航语义,未在手柄上复验 |
+
+---
+
+## 13. 重跑真包攻 judge(2026-11-06 23:45 – 2026-11-07 00:35)—— **仍未触发**,但挖出三条更硬的缺陷
+
+### 13.1 先补仪表:焦点读数(否则一直是盲按)
+
+前几轮失败根因之一是**看不见焦点在哪**。而周期读数(`tick` 整除 20 打一行)挂在**tick 边沿**上,
+模态摊开时 **tick 停** ⇒ 冻结期间**一行都没有**,恰好是最需要看见的时候。
+
+⇒ `WalkthroughDiagnostics.ReportFocusIfChanged()`:每帧读 `panel.focusController.focusedElement`,
+**仅在变化时**打 `[tutorialdiag] 焦点=<name|匿名;userData|(无焦点)>`。
+
+**实测焦点轨迹(一次完整走查)**:
+
+```
+焦点=(无焦点)              ← 脉案刚打开
+焦点=channel-complexion    ← 按 Down
+焦点=channel-voice         ← Tab
+焦点=channel-posture       ← Tab
+焦点=channel-breathing     ← Tab
+焦点=channel-palpation     ← Tab(触感)
+焦点=(无焦点)              ← ★ 按 Right
+```
+
+### 13.2 三条实测缺陷(都是代码事实,有轨迹)
+
+| # | 现象 | 判据 |
+|---|---|---|
+| **D-1** | **脉案开屏时没有任何元素持焦** | 轨迹第一行恒为 `(无焦点)`;此时 `Submit` 被引擎**静默丢弃**(引擎语义:导航提交落在 `focusedElement` 上,无焦点则丢弃 —— 既有夹具 ⑦c 已钉住该语义) |
+| **D-2** | **从下方行按 `Right` 会把焦点整个丢掉** | 从 `channel-palpation` 按 `Right` ⇒ `焦点=(无焦点)`。右栏只有 病名/？/折,都靠在顶部 ⇒ 从第 5 行往右**没有候选**,引擎不是"不动"而是**失焦**;且**无自动恢复** ⇒ 之后所有 Submit 全被丢弃。**这正是"按了没反应"的机械原因** |
+| **D-3** | Tab 序实测与树序一致,多按会落到翻页键 | `complexion → voice → posture → breathing → palpation → inquiry → disease-name → fold-edge → page-edge-prev → …`。从「触感」到「病名」**只需 2 次 Tab**;我此前按 4 次,多出的两下落在 `fold-edge` 与 `page-edge-prev`(前案 = **翻页**)—— 这就是屡次"翻到方笺续页"的真凶 |
+
+D-1 / D-2 都是**可玩性缺陷**:键盘/手柄玩家进脉案先要吃一次"按键无效",再从下方行往右会直接失能。
+
+### 13.3 judge 为什么**仍然**没触发:病名册是空的
+
+修好东西后按正确序列走(2 次 Tab 到病名 → Submit),焦点轨迹停在 `channel-disease-name`,
+**没有出现任何条目焦点** ⇒ `RefreshLexiconBook` 建了**零条目**。
+
+而查体**确实写入了**:关掉脉案再打开,五行都出现墨迹(面色 5 笔 / 语声 3 / 姿态 4 / 呼吸 2 / 触感 5)。
+⇒ 卡点不在查体,在**「已见病名」为空**:
+
+```csharp
+// CasebookVitalsSource.cs:139-147
+SeenLexiconIds => _viewerActorId < 0 ? 空
+                : _lexiconBook.PointableLexiconIds(_seenDisease.SeenDiseaseIds(_viewerActorId));
+```
+
+三环中**哪一环返回空未定**:`_viewerActorId`(BootRoot:881 `SetViewer` 已调)·
+`SeenDiseaseIds`(`OnExamined` 写在 `BootRoot` 的 `AfterExamined` 缝上)·
+`PointableLexiconIds`(词表里可指认的 id)。
+
+**没查下去**,是因为再往下要逐个读三环的生产值 —— 这不是"再走一次"能回答的,需要加读数。
+
+### 13.4 本轮**未**达成的与未验证的(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| `judge` 步真包触发 | **仍未触发**(卡在 §13.3) |
+| `close` 步 | 仍未触发 |
+| 手柄路径 | **NOT-RUN** |
+| 三条口述的**游戏内**触发 | 仍未验(§11 证的是 cue → 声音,**不是**触发) |
+
+### 13.5 下一步(若要继续)
+
+给 `CasebookVitalsSource.SeenLexiconIds` 的三环各加一行 `-tutorialdiag` 读数
+(`viewer` / `SeenDiseaseIds.Count` / `PointableLexiconIds.Count`),一次真包即可定位是哪一环空。
+在此之前,任何"judge 走通了"的说法都不成立。
+
+### 13.6 最终树回归(含焦点读数)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 00:45:34 CST`(EM)/ `00:46:59 CST`(PM) · 批次:病名册落焦 + 焦点读数轮 · commit:`95698054` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7060 passed=7023 failed=0 inconclusive=0 skipped=37` | 与上一轮同值(本轮未加 EditMode 测试) |
+| PlayMode | `total=360 passed=356 failed=0 inconclusive=2 skipped=2` | 较 `359/355` **+1 = §12.4 新夹具那一条** |
+
+编译错 0(两个日志各查一遍)。
+
+⚠️ **为什么要重跑**:§12.5 那轮(EM `7060/7023` · PM `360/356`)跑在**加焦点读数之前**,
+其数字不覆盖**当前**工作树。按「禁借绿」,提交前必须在最终树上重跑,而不是沿用上一轮的数。

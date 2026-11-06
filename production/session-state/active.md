@@ -17165,3 +17165,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   **不能说**:教学六步在真包里都能教到 —— judge 的游戏内触发未走通,archive 结构不可达。
 - 回归 EditMode `7060/7023/0/0/37` · PlayMode `359/355/0/2/2` @23:33 / 23:36 CST · `f4292aae` + 工作树
 - 存档回原始态 20/20;证据 = 同一份走查件 §11
+
+## Session Extract — 病名册接不上 Tab 的根因与修法(2026-11-06 23:45–23:59)
+- **根因三事实**:① 病名栏 Submit 不移焦(`CasebookScreen.cs:393-408`)② 册子容器 append 到 right-column 末尾(`:627`)
+  ③ 「折」早加入同栏且 focusable(`:165`)⇒ 树序 = 病名 → **折** → 条目… ⇒ 一次 Tab 落在「折」,
+  其 Submit = 右页折回(看起来像"跳到别的界面")
+- **夹具缺口**:⑦b 的 `DispatchSubmit(entries[1])` 内部先 `Focus()` 强设焦点 ⇒ 跳过「可达性」,F1 同型
+- **修法 A**:`FocusFirstLexiconEntry()` 只在开册路径调用;无条目/无面板空操作;不进 RefreshLexiconBook(不抢焦点)
+- **新夹具** `test_openBook_movesFocusToFirstEntry`(只走玩家真实动作序);证伪轮变异 ⇒ **恰好 1 红**,SHA-256 逐字节还原
+- 回归 EditMode `7060/7023/0/0/37` · PlayMode `360/356/0/2/2`(+1 = 新夹具)@23:57:25Z / 23:58:44Z · `95698054` + 工作树
+- ⚠️ **真包 judge 能否因此走通 = NOT-RUN**(没重走);手柄路径 NOT-RUN
+- 证据 = 同一份走查件 §12
+
+## Session Extract — 重跑真包攻 judge(2026-11-06 23:45 – 11-07 00:35)
+- **仍未触发 judge**;但挖出三条硬缺陷(均有焦点轨迹判据):
+  D-1 脉案**开屏无焦点** ⇒ 第一次 Submit 被引擎静默丢弃
+  D-2 从第 5 行(触感)按 `Right` ⇒ **焦点整个丢掉且不恢复** ⇒ 之后 Submit 全失效(「按了没反应」的机械原因)
+  D-3 Tab 序实测 `complexion→voice→posture→breathing→palpation→inquiry→disease-name→fold-edge→page-edge-prev`;
+      从触感到病名**只需 2 次 Tab**,多按两下会落到 fold-edge / 前案(翻页)—— 屡次"翻到方笺"的真凶
+- 新增 `WalkthroughDiagnostics.ReportFocusIfChanged`(每帧、仅变化时打;因为周期读数挂 tick 边沿,冻结期间零读数)
+- **卡点**:病名册**零条目**。查体确实写入(关掉重开可见墨迹),但 `SeenLexiconIds`
+  = `PointableLexiconIds(SeenDiseaseIds(viewer))` 三环中哪一环空**未定**
+- 下一步:给那三环各加一行读数,一次真包定位
+- 存档回原始态 20/20;证据 = 同一份走查件 §13
+- 最终树回归(含焦点读数):EditMode `7060/7023/0/0/37` · PlayMode `360/356/0/2/2` @00:45:34Z / 00:46:59Z
+  —— ⚠️ §12.5 那轮跑在加焦点读数之前,不覆盖最终树,故本轮重跑
