@@ -1,12 +1,12 @@
 # Story 002: 只读投影 Proj 与装配护栏
 
 > **Epic**: 教学与引导
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-06
+> **Last Updated**: 2026-11-07
 
 ## Context
 
@@ -41,6 +41,10 @@
   - ⚠️ `PatientState` **今日全库不存在**(只有表现层 `PresentPatientState`)⇒ 该支是**零输入可达的规则**,如实登记,不当作已兑现的守卫
 - [x] **AC-48-11**:48 asmdef `references` 白名单不含 `IEventSink` / `IEventAuthority` 所在程序集(编译期失败,非 grep)
   - 载体:编译产物引用集断言 + asmdef 逐字相等。**编译期性**来自「无引用 ⇒ 写不出该类型名」;⚠️ 「真加引用就编不过」的**构建级负例未做**(见证据件 §7-2)
+  - 🔁 **2026-11-07 收口轮**:上句的缺口已补,且**原假设被证伪** —— 「真加引用」**编得过**(0 错)。
+    现载体三件:① EditMode 夹具(原两条)② **构建期门 `b2-exact`**(`AssemblyGates.ExactRefWhitelist`,
+    `RunAll` 三处强制点)③ **构建级三条观测**(D1 探针 / P2 真负例 / N 编译负例)。
+    详见证据件 §8;`ExactRefWhitelist` 表本身仍无单元夹具(`§8.6-3` 如实登记)
 - [x] 联机各玩家投影独立:同一 `Proj` 对两个 `player_id` 出两条独立结果(P0 单机夹具 = 两个发号 id 各投影;联机运行时 **BLOCKED-BY-45**,禁借绿)
   - 载体:`test_ac4_twoPlayersAuthoredEvents_stayIndependent` · `test_ac5_judgmentByOtherPlayer_doesNotCompleteMyStep` —— **只覆盖单机夹具半边**;联机运行面仍 `BLOCKED-BY-45`
 - [x] 投影不可变性:同一输入两次求值字节一致;追加一条流事件 ⇒ 输出仅按单调性增长(不回收)
@@ -111,7 +115,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Tutorial/tutorial_projection_test.cs` + `unity/Assets/Tests/EditMode/Tutorial/tutorial_assembly_guard_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing(31 条:投影 20 + 守卫 11,2026-11-07)
 
 ---
 
@@ -135,3 +139,29 @@
   - 🔁 `AC-48-03` 的「存档字节逐字节」已由用户 2026-11-06 指令**补跑**(`test_ac4803_saveBytes_areUnchangedByProjection`),原文不删。
 - **证据**:`production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md`。
 - **本轮被门抓到三次**(CS0104 同名 / 私有包装不入接线集 / 类名不以 `Gate` 结尾不被认作门)—— 详见证据件 §6,第三条已无其他文档承载,值得进 `coding-standards` 的命名避让节。
+
+**2026-11-07 收口轮(sprint-25 S25-1)—— `AC-48-11` 的构建期半边补齐,本卡转 Complete**
+
+- **「构建期」此前不存在**(实测):往 asmdef 加 `Sim.Contracts` **且真用上** `IEventSink`
+  ⇒ 编译通过、`b2-decl` 双向差集为空 ⇒ **旧门全绿、构建成功**。当时 `AC-48-11` 的唯一执行体是
+  EditMode 夹具,而夹具**不在构建链上**。
+  ⚠️ **原登记的「真加引用就编不过」是错的** —— 语言的限制是「**无引用写不出类型名**」,
+  不是「有引用编不过」;原文不删,口径以此为准。
+- **新增构建期强制点**:`AssemblyGates.ExactRefWhitelist` + `CheckExactReferenceWhitelist`,
+  接进 `RunAll()`(菜单 / reload / `BuildGate` 三处共用)。判据 = 源 asmdef 的 `references`
+  与白名单**集合相等**,**两向都报**。
+- **三条观测**(构建级,均可复跑):
+  - **D1 探针轮**:在 `TutorialSurfaceGate.RunAll()` 插无条件失败项 ⇒ `Build Finished, Result: Failure`;
+    探针串 `Logs/s25-1-d1-probe.log:1068`;栈帧 `BuildGate.OnPreprocessBuild`(`AssemblyGates.cs:1570`);
+    错误数 = 1(= 只有本探针);SHA-256 `cd684c4f…` 逐字节还原。
+  - **P2 真负例**:asmdef 加 `Sim.Contracts` + 真用 `IEventSink` ⇒ 编译 **0** 错 · `b2-decl` **0** 输出 ·
+    `b2-exact` **1** 条(`Logs/s25-1-p2-negative.log:1216`)· 构建 `Failure`(`:1271`)。
+  - **N 编译负例**:只删引用保留使用 ⇒ `error CS0234`(`Logs/s25-1-n-compile.log:759`),exit=1
+    ⇒「无引用写不出类型名」由**观测**坐实(此前是语言级推断)。
+- **干净构建**:还原后 `Build Finished, Result: Success`(`Logs/s25-1-close-build-final.log:8779`,
+  起始 `2026-11-07T06:01:17Z`)。
+- **回归**:见证据件 `impl-s25-1-tutorial-projection-2026-11-06.md` §9(截至时刻 · 批次 · commit 三元组)。
+- **仍未做(禁借绿)**:联机运行面 `BLOCKED-BY-45` · 7a 的 checkpoint 回执口(零生产实现 ⇒ `archive` 步
+  生产上恒不成立)。
+  ~~`ExactRefWhitelist` 表无独立单元夹具~~ 🔁 **同轮已补**:
+  `test_ac48_11_buildGateWhitelist_matchesTheAsmdefFace`(字面量期望 + 门表 ↔ asmdef 双向一致)。

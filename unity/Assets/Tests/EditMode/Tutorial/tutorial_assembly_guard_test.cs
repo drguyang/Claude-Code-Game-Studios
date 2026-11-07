@@ -155,6 +155,27 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         }
 
         [Test]
+        public void test_ac48_11_buildGateWhitelist_matchesTheAsmdefFace()
+        {
+            // 2026-11-07(收口轮):AC-48-11 此前只有**夹具**这一层执行体 —— 而夹具不在构建链上。
+            // 新增的 `b2-exact` 门把同一判据抬到构建期;本用例守住「那张表**还在、还没被放宽**」。
+            // ⚠️ 期望值写**字面量**(不引被测表),否则改表时断言两边一起动 = 自指判据(F3)。
+            Assert.That(AssemblyGates.ExactRefWhitelist.TryGetValue(TutorialAsm, out string[] gateExpected),
+                Is.True,
+                $"[b2-exact] 白名单里没有「{TutorialAsm}」条目 —— AC-48-11 的**构建期**强制点消失" +
+                "(只剩 EditMode 夹具,而夹具不进构建链)");
+
+            CollectionAssert.AreEquivalent(new[] { "Gameplay.Presentation" }, gateExpected,
+                "[b2-exact] 白名单被放宽/改窄 —— 它与 asmdef 判据必须是**同一份口径**,否则" +
+                "「构建前会拦住」重新变成空话");
+
+            // 双向:门表 ↔ asmdef 源。任一侧被单方面改动都会在这里分叉。
+            IReadOnlyList<string> refs = ReferencesOf(ReadAsmdef(AsmdefPath(TutorialAsm)));
+            CollectionAssert.AreEquivalent(gateExpected, refs,
+                "[b2-exact] 门表与 asmdef 源不一致 —— 改一侧必须同批改另一侧");
+        }
+
+        [Test]
         public void test_ac48_11_compiledReferences_excludeTheEventSinkAssembly()
         {
             // 编译**之后**的事实:产物引用的装配集里不得出现 Sim.Contracts / Sim / Sim.Codec。

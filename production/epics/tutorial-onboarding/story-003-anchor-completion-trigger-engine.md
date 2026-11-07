@@ -1,12 +1,12 @@
 # Story 003: Anchor/Completion 两相触发引擎
 
 > **Epic**: 教学与引导
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-06
+> **Last Updated**: 2026-11-07
 
 ## Context
 
@@ -140,3 +140,22 @@
   - 联机运行面 `BLOCKED-BY-45`;
   - `archive` 步依赖 7a 回执口,生产上恒 false(承 S25-1 的登记)。
 - **证据**:`production/qa/evidence/impl-s25-2-tutorial-trigger-2026-11-06.md`。
+
+**2026-11-07 收口轮(sprint-25 S25-2)—— 两条「未做」由 S25-4c 关闭,本卡转 Complete**
+
+- 🔁 **原「零生产调用点」(证据件 §6-1,F2 自陈)** —— **已关闭**。生产装配:
+  - `unity/Assets/Gameplay.Boot/BootRoot.cs:848` —— 玩家 id 已定后
+    `_services.TutorialSeams.Attach(_services.Stream, _services.Decoder, actorId)`;
+  - `unity/Assets/Gameplay.Boot/TutorialChainDriver.cs` —— 构造期 `new TutorialTrigger(playerId, _steps)`,
+    每 tick 边沿 `Evaluate` → 调度 → 投递;`BootRoot.cs:2886` 驱动。
+  ⇒ 触发引擎**不再是测试专用件**。⚠️ 边界不变:`Evaluate` 只在 `BootRoot` 的 tick 边沿被调,
+  引擎本身仍不读帧 / 不读 `Time.*`。
+- 🔁 **原「播种时机未接线」(证据件 §6-4)** —— **已关闭**。`TutorialChainDriver` 构造期即 `Seed()`
+  (`TutorialChainDriver.cs:117`),而 `Attach` 位于「流已就绪 + 玩家 id 已定」之后
+  (`BootRoot.cs:842-848` 的注释逐字写明这条次序是硬要求)。换流(读档)时由
+  `DetectStreamReplacement()` → `Seed()` 重播种(`:135-136`)。
+- **回归**:`production/qa/evidence/impl-s25-2-tutorial-trigger-2026-11-06.md` §7
+  (EditMode `7067 / 7030 / 0 / 0 / 37` @ `2026-11-07T06:16:11Z` · PlayMode `364 / 360 / 0 / 2 / 2` @ `06:17:14Z`
+  · `3bc99c6d` + 工作树)。**本卡自身无新增夹具**(本轮只补证据链),等式判据归 S25-1 那一条。
+- **仍未做(禁借绿)**:联机运行面 `BLOCKED-BY-45` · `archive` 步依赖 7a 回执口(生产恒 false) ·
+  相位维退化(= 设计取舍,非缺口;GDD 增第二发火相时才加维)。

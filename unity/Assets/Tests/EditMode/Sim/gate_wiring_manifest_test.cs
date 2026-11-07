@@ -83,6 +83,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "CheckReferenceDuplicates",      // b3-refdup
                     "CheckGateA",                    // b2 门 A
                     "CheckReferenceDeclarations",    // b2-decl 声明面(TD-gate-04)· 2026-10-31 接线上线
+                    "CheckExactReferenceWhitelist",  // b2-exact 引用集「恰 =」白名单(AC-48-11 构建期强制点)· 2026-11-07 接线上线
                     "CheckPayloadRefCallsites",      // b6 载荷手搓
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线
@@ -325,7 +326,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "⚠️ 装配按**名字** `Assembly.Load` 取 —— 48 装配编译失败时本门所在装配仍能编过," +
                        "错误由本门报出而不是变成「门自己也编不过」。" +
                        "⚠️ **构建期是否真的执行未跑探针轮** —— 按 CLAUDE.md §BuildGate「构建绿 ≠ 门跑了」" +
-                       "口径,不记绿(与 `InventoryDtoFloatGate` 同款如实登记)。" },
+                       "口径,不记绿(与 `InventoryDtoFloatGate` 同款如实登记)。" +
+                       "🔁 **2026-11-07(S25-1 收口轮)已补探针轮**:`RunAll()` 首行插无条件失败项 ⇒ " +
+                       "`Build Finished, Result: Failure`,探针串在 `Logs/s25-1-d1-probe.log:1068`," +
+                       "栈帧 `BuildGate.OnPreprocessBuild`(`AssemblyGates.cs:1570`),错误数 = 1;" +
+                       "SHA-256 逐字节还原。原文保留作当时口径。" },
 
             // ── 仅测试驱动(**无构建期强制点**)──
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,

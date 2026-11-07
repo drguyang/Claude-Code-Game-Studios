@@ -82,3 +82,36 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('/home/gu/.claude/jobs
 3. **联机运行面**:双玩家真实联机进度独立 `BLOCKED-BY-45`;单机双 id 夹具**不替代**其 closure。
 4. **播种时机未接线**:「读档完成 → 首帧前一次性播种」是 Control Manifest 的要求,而今日**没有任何生产代码调用 `Seed`** —— 同上,归 Story 004 的装配。
 5. **archive 步的回执**:仍走 S25-1 的 `ITutorialProjectionFeed.HasCheckpointWritten`,生产上恒 false(7a 无回执口)⇒ 该步在生产上不会发火。已在 S25-1 证据件登记,此处不重复计。
+
+---
+
+## 7. 2026-11-07 收口轮 —— §6-1 / §6-4 两条由 S25-4c 关闭
+
+| 原登记 | 现状 | 载体(可复算) |
+|---|---|---|
+| §6-1 **零生产调用点**(F2 自陈:只被测试驱动) | **已关闭** | `BootRoot.cs:848` `TutorialSeams.Attach(...)`;`TutorialChainDriver.cs:112` `new TutorialTrigger(...)`;`:154` `_trigger.Evaluate(view)`;`BootRoot.cs:2886` 每 tick 边沿驱动 |
+| §6-4 **播种时机未接线**(「读档完成 → 首帧前」) | **已关闭** | `TutorialChainDriver.cs:117` 构造期 `Seed()`;`Attach` 在「流已就绪 + 玩家 id 已定」之后(`BootRoot.cs:842-848` 注释逐字写明该次序是硬要求);换流重播种 `:135-136` |
+
+```bash
+grep -n "TutorialTrigger\|_trigger.Evaluate" unity/Assets/Gameplay.Boot/TutorialChainDriver.cs
+grep -n "TutorialSeams.Attach" unity/Assets/Gameplay.Boot/BootRoot.cs
+```
+
+⚠️ **不变的部分**:`Evaluate` 仍只在 tick 边沿被调,引擎本身不读帧 / 不读 `Time.*`;
+闩仍不可序列化(S25-1 的装配引用集守着零落盘)。**这些不是本轮改动**,只是重新确认。
+
+### 回归三元组
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| EditMode | **`7067 / 7030 / 0 / 0 / 37`** | `2026-11-07T06:16:11Z` | S25-1/S25-2 收口全量(末轮,终树) | `3bc99c6d` + 工作树 |
+| PlayMode | **`364 / 360 / 0 / 2 / 2`** | `2026-11-07T06:17:14Z` | 同批(末轮,终树) | `3bc99c6d` + 工作树 |
+
+**等式判据**:EditMode `7067 − 7066 = 1` —— 那 1 条属 **S25-1**(`b2-exact` 白名单),
+**本卡未新增夹具**;PlayMode `364 = 364`,零回归。
+
+### 仍未做(禁借绿)
+
+1. 联机运行面 `BLOCKED-BY-45`(单机双 id 夹具不替代其 closure)。
+2. `archive` 步依赖 7a 的 checkpoint 回执口 —— 生产恒 false。
+3. 相位维退化(= 设计取舍,非缺口)。

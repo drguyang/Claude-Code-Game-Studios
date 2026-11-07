@@ -17286,3 +17286,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 证据:§19.8 已补;干净日志 `/tmp/dyjc-kbm-world-pass.log`
 - ⚠️ 过程失误如实记:首轮 PASS 日志被变异轮同名覆盖 ⇒ 之后改用 `--log` 分名
 - 未入库(等用户指令)
+
+## Session Extract — S25-1 / S25-2 收口(2026-11-07 06:0x–06:2xZ)
+
+- 用户「先收 S25-1 和 S25-2」
+- **S25-1**:AC-48-11 的构建期半边此前**不存在**(实测证伪原假设「真加引用编不过」)⇒
+  新增 `AssemblyGates.ExactRefWhitelist` + `CheckExactReferenceWhitelist`(接 `RunAll` 三处强制点);
+  三条观测:D1 探针(TutorialSurfaceGate ⇒ Failure)/ P2 真负例(加 Sim.Contracts ⇒ Failure)/
+  N 编译负例(无引用 ⇒ CS0234)。新增 1 条夹具守门表。**转 Complete**。
+- **S25-2**:原两条「未做」(零生产调用点 / 播种时机)由 **S25-4c** 关闭(BootRoot:848 Attach、
+  TutorialChainDriver 构造期 Seed、每 tick Evaluate)。**转 Complete**。
+- 回归(终树末轮):EditMode `7067/7030/0/0/37` @ 06:16:11Z · PlayMode `364/360/0/2/2` @ 06:17:14Z
+  (`Logs/s25-1-close-editmode3.xml` / `s25-1-close-playmode2.xml`)
+- 证据:impl-s25-1 §8/§9 · impl-s25-2 §7
+- 未入库(等用户指令)

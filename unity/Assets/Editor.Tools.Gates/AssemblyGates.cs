@@ -143,6 +143,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             CheckReferenceDuplicates(errs);  // b3-refdup(复盘行动项 2 · sprint-13 S13-4)
             CheckGateA(errs);                // b2
             CheckReferenceDeclarations(errs); // b2-decl(TD-gate-04 · 2026-10-31)
+            CheckExactReferenceWhitelist(errs); // b2-exact(AC-48-11 构建期强制点 · 2026-11-07)
             CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
             // b7 写者存在性门(M2 阶段 2 · 批次 D,2026-10-10):registry 每支 author 声明
             // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
@@ -343,6 +344,30 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static readonly HashSet<string> DeclStrictSet =
             new HashSet<string>(DeclStrictAssemblies, StringComparer.Ordinal);
 
+        // ═══ b2-exact 引用白名单(「恰 =」级,但**按装配点名**,不是门 A 那种全体 strict)═══
+        // 2026-11-07(sprint-25 S25-1 收口轮 · AC-48-11 的**构建期强制点**)。
+        //
+        // 病因(实测,不是预防性洁癖):AC-48-11 字面是「asmdef 引用的白名单不含 Sim.Contracts,
+        //   **编译期失败**,非 grep」,而 `CheckReferenceDeclarations` 对非门 A 装配的
+        //   「声明而未使用」只发 `Debug.LogWarning`(提示级)—— 于是把 `Sim.Contracts` 加进
+        //   `Gameplay.UI.Tutorial` 的 references **并真的用上**,双向差集为空 ⇒ 构建**照常成功**。
+        //   当时的唯一执行体是 EditMode 夹具 `test_ac48_11_asmdefWhitelist_isExactlyPresentation`,
+        //   而夹具**不在构建链上** ⇒ 「构建前会拦住」是假的(与 `TD-gate-02` 同型)。
+        //
+        // 判据:源 asmdef 的 `references` 解析后与白名单**集合相等**(两向都报):
+        //   多一条 ⇒ 违例(尤其 `Sim.Contracts` —— `IEventSink` / `IEventAuthority` 的声明处);
+        //   少一条 ⇒ 违例(投影拿不到内容表,且删掉它等于把「恰 =」判成「⊆」)。
+        //
+        // 与 `DeclStrictAssemblies` 的分工:`DeclStrict` 是**全局**(门 A 三装配,「声明未使用」即违例);
+        //   本表是**点名 + 集合相等**(只有登记在此的装配适用)。两者不合并 —— 合并会把
+        //   「恰 =」语义误加到全部装配上,那会让每个合法声明都变红。
+        public static readonly IReadOnlyDictionary<string, string[]> ExactRefWhitelist =
+            new Dictionary<string, string[]>(StringComparer.Ordinal)
+            {
+                // AC-48-11:48 只读投影只允许读**呈现层**(Gameplay.Presentation)。
+                { "Gameplay.UI.Tutorial", new[] { "Gameplay.Presentation" } },
+            };
+
         /// <summary>声明面 ↔ 使用面的双向差集(纯函数,零 I/O —— 测试直接喂合成输入)。</summary>
         public sealed class RefDeclDiff
         {
@@ -407,19 +432,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         private static void CheckReferenceDeclarations(List<string> errs)
         {
-            var pathByName = new Dictionary<string, string>(StringComparer.Ordinal);
-            var guidToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var f in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
-            {
-                var nm = Regex.Match(File.ReadAllText(f), "\"name\"\\s*:\\s*\"([^\"]+)\"");
-                if (!nm.Success) continue;
-                string name = nm.Groups[1].Value;
-                pathByName[name] = f;
-                var g = File.Exists(f + ".meta")
-                    ? Regex.Match(File.ReadAllText(f + ".meta"), "^guid:\\s*([0-9a-fA-F]{32})", RegexOptions.Multiline)
-                    : null;
-                if (g != null && g.Success) guidToName[g.Groups[1].Value] = name;
-            }
+            BuildAsmdefIndex(out var pathByName, out var guidToName);
 
             var strict = DeclStrictSet;
             foreach (var asmName in Manifest.OrderBy(n => n, StringComparer.Ordinal))
@@ -456,6 +469,57 @@ namespace DaYiJingCheng.EditorTools.Gates
                 foreach (var r in diff.UsedOnly)
                     errs.Add($"[b2-decl] 装配「{asmName}」**使用**了工程内引用「{r}」但 asmdef 未声明 —— " +
                              "今天 Unity 不允许这种组合 ⇒ 本门解析面漏了(GUID 失配 / 正则失配)。拒绝放行。");
+            }
+        }
+
+        /// <summary>扫 `Assets/**/*.asmdef`,交出「装配名 → asmdef 路径」与「guid → 装配名」两张表
+        /// (b2-decl 与 b2-exact 共用 —— 两份索引会让 GUID 解析在其中一处静默失明)。</summary>
+        private static void BuildAsmdefIndex(
+            out Dictionary<string, string> pathByName, out Dictionary<string, string> guidToName)
+        {
+            pathByName = new Dictionary<string, string>(StringComparer.Ordinal);
+            guidToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var f in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
+            {
+                var nm = Regex.Match(File.ReadAllText(f), "\"name\"\\s*:\\s*\"([^\"]+)\"");
+                if (!nm.Success) continue;
+                string name = nm.Groups[1].Value;
+                pathByName[name] = f;
+                var g = File.Exists(f + ".meta")
+                    ? Regex.Match(File.ReadAllText(f + ".meta"), "^guid:\\s*([0-9a-fA-F]{32})", RegexOptions.Multiline)
+                    : null;
+                if (g != null && g.Success) guidToName[g.Groups[1].Value] = name;
+            }
+        }
+
+        /// <summary>b2-exact —— <see cref="ExactRefWhitelist"/> 点名装配的 asmdef `references`
+        /// 必须与白名单**集合相等**(两向都报违例)。AC-48-11 的构建期强制点。
+        /// <para>⚠️ 本门读**源 asmdef**,不读编译产物 —— 理由同 b2-decl(源级多一条声明即违例,
+        /// 不必等源码用到它;而「用到即差集为空」正是它要补的盲区)。</para></summary>
+        private static void CheckExactReferenceWhitelist(List<string> errs)
+        {
+            BuildAsmdefIndex(out var pathByName, out var guidToName);
+
+            foreach (var pair in ExactRefWhitelist.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                // asmdef 缺失已由 b3 的封闭性门报,这里不重复报。
+                if (!pathByName.TryGetValue(pair.Key, out string path)) continue;
+
+                var declared = ParseDeclaredRefs(File.ReadAllText(path), guidToName, Manifest, out var unresolved);
+                foreach (var u in unresolved)
+                    errs.Add($"[b2-exact] 装配「{pair.Key}」的 asmdef 引用「{u}」无法解析到装配名 —— " +
+                             "解析失明时集合比较会退化成「少一条」,拒绝放行。");
+
+                var expected = new HashSet<string>(pair.Value, StringComparer.Ordinal);
+                var actual = new HashSet<string>(declared, StringComparer.Ordinal);
+
+                foreach (var extra in actual.Except(expected).OrderBy(x => x, StringComparer.Ordinal))
+                    errs.Add($"[b2-exact] 装配「{pair.Key}」声明了白名单外的引用「{extra}」—— " +
+                             $"该装配的引用集**恰** = {{ {string.Join(", ", expected)} }}(AC-48-11);" +
+                             "多一条即违例(`Sim.Contracts` 是 `IEventSink` / `IEventAuthority` 的声明处)。");
+                foreach (var missing in expected.Except(actual).OrderBy(x => x, StringComparer.Ordinal))
+                    errs.Add($"[b2-exact] 装配「{pair.Key}」缺白名单引用「{missing}」—— " +
+                             "删掉它等于把「恰 =」判成「⊆」,且投影拿不到内容表。拒绝放行。");
             }
         }
 

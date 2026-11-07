@@ -31,33 +31,33 @@ goal: "把「能打开」的炮制链推到「能走通」,并落地教学链的
 start: "2026-11-06"
 end: "2026-11-12"
 generated: "2026-11-06"
-updated: "2026-11-06"
+updated: "2026-11-07"
 
 stories:
   - id: "S25-1"
     name: "tutorial/002 只读投影 Proj 与装配护栏"
     file: "production/epics/tutorial-onboarding/story-002-read-only-projection-and-assembly-guards.md"
     priority: must-have
-    status: review
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "教学链"
     blocker: ""
-    completed: ""
-    note: "代码面完成:30 条新判据全绿 · EditMode 6998/6961(基线 6968/6931,+30,零回归)· 证伪 M1–M5 各自转红 · AC-48-03 存档字节字面面已补跑。仍未做:AC-48-11 构建级负例 / 联机 BLOCKED-BY-45 / BuildGate 探针轮。证据 = production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md"
+    completed: "2026-11-07"
+    note: "代码面完成:30 条新判据全绿 · 证伪 M1–M5 各自转红 · AC-48-03 存档字节字面面已补跑。🔁 2026-11-07 收口轮:AC-48-11 的**构建期半边此前不存在**(实测:asmdef 加 Sim.Contracts 且真用上 ⇒ 编译 0 错、b2-decl 双向差集为空 ⇒ 旧门全绿、构建成功;原登记的「真加引用就编不过」被证伪)。⇒ 新增 b2-exact 构建期门(ExactRefWhitelist + CheckExactReferenceWhitelist,接进 RunAll 三处强制点)+ 三条观测:D1 探针轮(TutorialSurfaceGate ⇒ Failure,探针串在日志 + BuildGate 栈帧)、P2 真负例(加引用 ⇒ 编译 0 错、b2-exact 1 条、构建 Failure)、N 编译负例(无引用用类型 ⇒ CS0234)。⚠️ 首跑红 1 = gate_wiring_manifest(新入口未声明)—— 门在正常工作,处置为补声明。回归 EditMode 7067/7030(+1)· PlayMode 364/360(零回归)@ 2026-11-07T06:16:11Z / 06:17:14Z · 3bc99c6d+工作树。仍未做:联机 BLOCKED-BY-45 / 7a checkpoint 回执口(archive 步生产恒 false)。证据 = production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md(§8/§9)"
   - id: "S25-2"
     name: "tutorial/003 Anchor/Completion 两相触发引擎"
     file: "production/epics/tutorial-onboarding/story-003-anchor-completion-trigger-engine.md"
     priority: must-have
-    status: review
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "教学链"
     blocker: ""
-    completed: ""
-    note: "依赖 S25-1(Proj)。联机运行面 BLOCKED-BY-45。"
+    completed: "2026-11-07"
+    note: "18 条判据全绿 · 证伪 M1–M4 各自转红。🔁 2026-11-07 收口轮:原两条「未做」由 **S25-4c** 关闭 —— ① 零生产调用点 ⇒ BootRoot.cs:848 Attach → TutorialChainDriver 构造 TutorialTrigger、每 tick 边沿 Evaluate(BootRoot.cs:2886);② 播种时机 ⇒ 构造期 Seed()(TutorialChainDriver.cs:117),位于「流已就绪 + 玩家 id 已定」之后,换流重播种。本卡本轮无新增夹具(等式判据归 S25-1)。回归同批(EditMode 7067/7030 · PlayMode 364/360)@ 2026-11-07T06:16:11Z / 06:17:14Z · 3bc99c6d+工作树。仍未做:联机 BLOCKED-BY-45 / archive 依赖 7a 回执口(恒 false)/ 相位维退化(设计取舍)。证据 = production/qa/evidence/impl-s25-2-tutorial-trigger-2026-11-06.md(§7)"
   - id: "S25-3"
     name: "炮制屏收口:processing-18 落地 + TD-skeuo-21 结案 + 真包点火→出丹"
     file: "docs/tech-debt-register.md#td-skeuo-21"
