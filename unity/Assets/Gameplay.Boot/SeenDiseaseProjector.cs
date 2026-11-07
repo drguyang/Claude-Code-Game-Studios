@@ -102,6 +102,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             int tickInt = checked((int)tick);
             NoveltyClass novelty = _novelty.Query(actorId, DiagnosisSkillId, diseaseId, tickInt);
 
+            // 走查仪表(`-tutorialdiag`):投影落地的瞬间读数。
+            // 病名册三环读数(见 WalkthroughDiagnostics)说 `novelty=0` 时,靠这行区分
+            // 「查体根本没走到投影」与「走到了但抛了」—— 两者的修法完全不同。
+            if (WalkthroughDiagnostics.Enabled)
+                WalkthroughDiagnostics.ReportExamined(patient.Value, actorId, diseaseId,
+                                                      novelty.ToString(), tick);
+
             // ③ 构造载荷(SkillGrownEmitter 唯一出口;level = null ⇒ 未升级哨兵)
             //    ⚠️ 2026-10-23(round38 · 用户裁定 丙-3):本重载**缺省 xpGain**,
             //    内部按「基准难度 Fix.One」算 XP_gain = BASE × 1.0 × K_novelty。

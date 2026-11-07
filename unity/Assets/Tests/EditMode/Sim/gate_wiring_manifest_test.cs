@@ -86,6 +86,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "CheckPayloadRefCallsites",      // b6 载荷手搓
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线
+                    "LexiconRegistryCrossRefGate.RunAll", // 词表 ↔ 注册表跨表外键(悬空 disease_ids)· 2026-11-07 接线上线
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
                     "ForagingFloatGate.RunAllWithIl", // AC-17-10 17 求值路径零浮点(源级+IL)· 2026-10-31
                     "AntiFantasyDtoGate.RunAll",     // AC-17-09 呈现 DTO 反幻想 · 2026-10-31
@@ -250,6 +251,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "与 ADR-012 CI 门不互斥。半守(接口反射)在 folded_predicate_test:655" },
             new ClassVerdict { ClassName = "WriterExistenceGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
+            new ClassVerdict { ClassName = "LexiconRegistryCrossRefGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "2026-11-07 真包走查驱动立门:词表 `disease_ids` 逐值须 ∈ 病种注册表 id 集。" +
+                       "病因 = 「伤寒」外键写成 `1`,而真注册表 id 段是 2..17 ⇒ 病名册生产恒空、" +
+                       "教学链 `judge` 步永不发火,而构建 / 烘焙 / 全部夹具当时**都是绿的**。" +
+                       "⚠️ 读烘焙产物(与运行期同一份字节);源 ↔ 产物漂移归 cooked_drift_all_artifacts_test" },
             new ClassVerdict { ClassName = "DiseaseConstantRegistryGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
                 Note = "PRE-S18-B 机械半边(2026-10-22 立)。查 `entities.yaml` 三阈值 + " +

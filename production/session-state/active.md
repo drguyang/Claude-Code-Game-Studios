@@ -17190,3 +17190,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 存档回原始态 20/20;证据 = 同一份走查件 §13
 - 最终树回归(含焦点读数):EditMode `7060/7023/0/0/37` · PlayMode `360/356/0/2/2` @00:45:34Z / 00:46:59Z
   —— ⚠️ §12.5 那轮跑在加焦点读数之前,不覆盖最终树,故本轮重跑
+
+## Session Extract — 三环读数 → judge 走通 → 跨表门(2026-11-07 01:0x–02:0x)
+
+- **三环读数定位**:`pointable=0` 是第三环空 —— ① viewer 0(已设)· ② seen 1(查体真写了 SkillGrown)· ③ 词表反查 0。
+  病因两条,彼此独立:词表「伤寒」外键写成 `1`(真注册表 id 段 2..17,无 1);且出厂默认病人是 id 2(刺伤),词表里没有伤情词条
+- **修 A**:`case_judgment_lexicon.json` `disease_ids [1] → [10]`(= `DIS_TYPHOID`)→ 重烘(`0x74C8A843`)→ **必须重建 player**(词表走 Addressables bundle)
+- **伤寒病人**:用现成启动缝 `DYJC_AUDITION_REGISTRY_INDEX=8`(第 8 条 = id 10),**未改代码**
+- **judge 走通**:真包 `★发火 tick=331 steps=observe,judge 口述=2`;`pointable` 0→1,病名列出现「伤寒」条目
+  ⚠️ 边界:发火走的是**解冻补跑**路径;出厂默认(刺伤)仍翻不到任何词条;`close` / 手柄仍 NOT-RUN
+- **连带修 4 条夹具**(数据一改全红,且其中两条本就靠那条错数据成立,改后还暴露 e2e 两处写死:
+  固定 60 tick 的推进 + 诊断等级 → 改为按位置推进 + 等级 20)
+- **跨表门**:`LexiconRegistryCrossRefGate`(判据本体纯函数 + 两条空集守卫),接入 `AssemblyGates.RunAll:160`,
+  手写 manifest 两处同步;证伪轮把产物字节 `0A→01` ⇒ 全量 **6 红**(含 `assembly_gate_runall` = 门真在链上),
+  SHA-256 `a83af2bc…` 逐字节还原
+- 回归:EditMode `7066/7029/0/0/37`(+6 = 新夹具)· PlayMode `360/356/0/2/2` @01:56:37Z / 02:01:27Z
+- ⚠️ 读数坑:PlayMode XML 用 `-f` 判「跑完」会读到半截(`341/337/0`);判据须含 `<test-run ... total=`

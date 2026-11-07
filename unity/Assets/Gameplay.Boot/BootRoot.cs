@@ -2767,6 +2767,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (WalkthroughDiagnostics.Enabled && _uiDriver != null)
                 WalkthroughDiagnostics.ReportFocusIfChanged(_uiDriver.GetUiRoot());
 
+            // 走查仪表:病名册三环读数(**每帧**,与焦点读数同理由 —— 脉案摊开时 tick 停)。
+            // 只在数值变化时打一行,故常态零输出;查体 / 开册那一刻各出一行。
+            if (WalkthroughDiagnostics.Enabled && _services != null
+                && _services.CasebookSource != null)
+            {
+                _services.CasebookSource.GetLexiconRingCounts(
+                    out int ringViewer, out int ringSeen, out int ringPointable,
+                    out int ringRows, out int ringNovelty);
+                WalkthroughDiagnostics.ReportLexiconRingsIfChanged(
+                    ringViewer, ringSeen, ringPointable, ringRows, ringNovelty);
+            }
+
             // 先跑 tick 泵(Advance + 逐边沿),再按推进后的 CurrentTick 驱动病人出现 ——
             // 次序不可反:驱动读的是**本帧推进后**的 tick;若在 PumpFrame 之前调,
             // CurrentTick 恒 0(首帧未 Advance)⇒ 驱动把 _lastSpawnTick 钉在 0,

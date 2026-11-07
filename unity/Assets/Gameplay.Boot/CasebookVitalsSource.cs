@@ -140,10 +140,45 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             get
             {
-                if (_viewerActorId < 0) return Array_.Empty<int>();
-                int[] seen = _seenDisease.SeenDiseaseIds(_viewerActorId);
-                return _lexiconBook.PointableLexiconIds(seen);
+                ComputeLexiconRings(out _, out int[] pointable);
+                return pointable;
             }
+        }
+
+        /// <summary>病名册的两环求值 —— <see cref="SeenLexiconIds"/> 与走查读数**共用同一条**。
+        /// <para>⚠️ 拆出来只为让读数与生产读到的是**同一次求值**;若读数自己再算一遍,
+        /// 量到的就可能不是玩家实际看到的那条链(读数变第二真源 —— 本项目已抓过多次同型)。</para></summary>
+        /// <param name="seen">已见病种 id 集(观看者未设 ⇒ 空)。</param>
+        /// <param name="pointable">经词表反查后的可指认 <c>lexicon_id</c> 列表(升序)。</param>
+        private void ComputeLexiconRings(out int[] seen, out int[] pointable)
+        {
+            if (_viewerActorId < 0)
+            {
+                seen = Array_.Empty<int>();
+                pointable = Array_.Empty<int>();
+                return;
+            }
+            seen = _seenDisease.SeenDiseaseIds(_viewerActorId);
+            pointable = _lexiconBook.PointableLexiconIds(seen);
+        }
+
+        /// <summary>走查读数(`-tutorialdiag`)专用:把 <see cref="SeenLexiconIds"/> 的三环拆开报。
+        /// <para>三环 = ① 观看者是否已设 · ② 已见病种集 · ③ 词表反查结果;另附词表总行数与
+        /// 新颖度字典总条目数(区分「查体没记」与「记了但人/技能对不上」)。</para></summary>
+        /// <param name="viewer">观看者 actorId(负 = 未设)。</param>
+        /// <param name="seen">已见病种数。</param>
+        /// <param name="pointable">可指认词条数。</param>
+        /// <param name="rows">词表总行数(含孤儿条目;0 = 词表没装载)。</param>
+        /// <param name="noveltyEntries">新颖度字典总条目数(全 actor / 全技能,含采集侧)。</param>
+        internal void GetLexiconRingCounts(out int viewer, out int seen, out int pointable,
+                                           out int rows, out int noveltyEntries)
+        {
+            viewer = _viewerActorId;
+            ComputeLexiconRings(out int[] seenIds, out int[] pointableIds);
+            seen = seenIds.Length;
+            pointable = pointableIds.Length;
+            rows = _lexiconBook.TotalRows;
+            noveltyEntries = _seenDisease.Novelty.Count;
         }
 
         /// <inheritdoc/>

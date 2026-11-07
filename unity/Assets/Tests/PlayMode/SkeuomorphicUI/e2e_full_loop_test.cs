@@ -75,7 +75,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
     /// <summary>七环节全链收口判据(sprint-08 E2E-3)。</summary>
     internal sealed class e2e_full_loop_test
     {
-        private const int DiseaseId = 1;          // 内联注册表病种 1(词表反查有 id)
+        // 🔁 2026-11-07:`1 → 10`(理由同 `casebook_point_identify_chain_test` 的同名常量)——
+        //    词表外键由悬空的 `[1]` 修为 `[10]`,`伤寒` = `DIS_TYPHOID` = 真注册表 id 10。
+        private const int DiseaseId = 10;
 
         private GameObject _go;
         private UIDocument _doc;
@@ -202,7 +204,17 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         // ── 世界装配:组合根 + 病人 + 在场 + 开案 + 作者 ──────────────────
         private void AssembleWorld()
         {
-            _bag = CompositionRoot.Assemble();
+            // 真注册表(病种 10 = DIS_TYPHOID 才在真词表里有外键);见 <see cref="DiseaseId"/> 的注。
+            // ⚠️ 同时把诊断查体等级定到 **20**(两个边界同时卡住,不是随手取):
+            //    · 下界:`READ_FLOOR(0) = base_read = 1.0`,而真表 伤寒 归一峰值只有 **0.667**
+            //      ⇒ 等级太低时任何体征都读不出(§F-8.1 门),③ 环必然空。定表实测
+            //      `READ_FLOOR(15) = 0.6719 > 0.667`(仍读不出)· `READ_FLOOR(20) = 0.5833 < 0.667` ✓;
+            //    · 上界:`SLOT_BOUNDS = {10,20,50}` ⇒ 等级 ≥ 50 时 `TierIndex = 3`,而词条行只有
+            //      三档词 ⇒ `SignChannelBinder` 抛「档位 slot 越界」(实测于等级 60)。
+            //    ⇒ 20 = 区间 `[20, 49]` 的下端,既读得出又落在第三档内。
+            _bag = CompositionRoot.Assemble(
+                registry: DaYiJingCheng.Gameplay.Presentation.DataCookedDisk.LoadDiseaseRegistry().Rows,
+                diagnosisQueryLevelOverride: 20);
             _patient = _bag.PatientSpawner.SpawnNext(diseaseId: DiseaseId, tick: 0);
             _bag.Presence.AddPresent(_patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);
@@ -226,23 +238,32 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         /// <summary>
-        /// 推进病程越过潜伏期(③ 环对照前置 —— 判据要求值区有词条)。
-        /// <para>⚠️ 2026-10-14 A 案订正:fallback 病种已配真 F1 曲线(潜伏 20 tick / τ=40 达峰 /
-        /// **plateau 保持峰值不衰减**)⇒ 推出「潜伏 + 上升」落到 plateau 上即可,不再需要
-        /// 2000+ tick 的等待(旧值 2500 是 legacy `RecoveryTime = 2000` 时代的产物)。
-        /// 推 60 tick = 潜伏 20 + 上升 20 + plateau 20,留 20 tick 余量 ⇒ position ≡ 1.0
-        /// (plateau 分支恒返回 A_peak ⇒ 多推也不会衰减回 0 —— 这正是 A 案的目的)。
-        /// batch 无渲染等待,60 tick 推进是瞬时的纯 Step。</para>
+        /// 推进病程直到体征可读(③ 环对照前置 —— 判据要求值区有词条)。
+        /// <para>🔁 <b>2026-11-07(病种 1 → 真表 10 的连带)</b>:原实现推**固定 60 tick**,
+        /// 那是按 fallback 接线曲线(潜伏 20 / τ=40 / plateau)算出来的。改用真表 `DIS_TYPHOID`
+        /// 之后(潜伏 **1200** / `tau_rise` **3600** / 归一后峰值 ≈ `a_peak 667/10 ÷ scale 100` = 0.667),
+        /// 60 tick 连潜伏期都过不去 ⇒ 原断言当场红。**这个红是对的**:它暴露的是
+        /// **夹具把曲线写死了**,而不是实现坏了。</para>
+        /// <para>⇒ 改为**按位置推进**:推到 `position ≥ 0.60` 为止 —— 依据是定表实测
+        /// `READ_FLOOR(20) = **0.5833**`(本夹具把诊断等级定在 20,见 `AssembleWorld` 的注),
+        /// 取 0.60 留余量;上限 20000 tick(潜伏 1200 + τ_rise 3600,推到 0.60 约需 9.5e3;纯 Step,瞬时)。
+        /// 夹具因此对曲线参数**不写死**,数值轮再调曲线也不会红。</para>
         /// </summary>
         private void AdvancePastIncubation()
         {
-            for (int i = 0; i < 60; i++)
+            const float MinPosition = 0.60f;  // > 定表实测 `READ_FLOOR(20) = 0.5833`(等级 20 的可读门)
+            const int MaxTicks = 20000;       // 到 0.60 需 ≈ 1200 + 3600·ln(0.667/0.067) ≈ 9.5e3 tick
+            int advanced = 0;
+            while (advanced < MaxTicks
+                   && _bag.VitalsService.GetVitals(_patient).Position < MinPosition)
             {
                 _bag.TickDriver.Advance(0.05d);
                 _bag.VitalsService.OnTickEdge(_bag.TickDriver.CurrentTick);
+                advanced++;
             }
-            Assert.Greater(_bag.VitalsService.GetVitals(_patient).Position, 0f,
-                "推进过潜伏 + 上升 ⇒ position > 0(plateau 型 ⇒ τ=40 后恒 = 1.0;60 留余量)");
+            Assert.GreaterOrEqual(_bag.VitalsService.GetVitals(_patient).Position, MinPosition,
+                $"推进 {advanced} tick 后 position 仍 < {MinPosition} —— 真表曲线被改坏或阈值写错" +
+                "(判据:真表 DIS_TYPHOID 潜伏 1200 + τ_rise 3600 ⇒ 6000 tick 内必越过 0.167)");
         }
 
         /// <summary>玩家 GameObject + 交互输入驱动(施治环 F 注入的语义落点)。</summary>

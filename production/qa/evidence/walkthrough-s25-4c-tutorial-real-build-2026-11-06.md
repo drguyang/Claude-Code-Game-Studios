@@ -698,3 +698,265 @@ SeenLexiconIds => _viewerActorId < 0 ? 空
 
 ⚠️ **为什么要重跑**:§12.5 那轮(EM `7060/7023` · PM `360/356`)跑在**加焦点读数之前**,
 其数字不覆盖**当前**工作树。按「禁借绿」,提交前必须在最终树上重跑,而不是沿用上一轮的数。
+
+---
+
+## 14. 三环读数落地:空的是**第三环**(2026-11-07)
+
+§13.5 说的那次真包跑完了。**答案:ring 3(`pointable`)空,而它空的两个原因都不是代码。**
+
+### 14.1 读数(真包,`-tutorialdiag`,同一进程一次走查)
+
+```
+[tutorialdiag] 病名册环 t=10.40 viewer=0 seen=0 pointable=0 词表行=3 novelty=0      ← 进世界
+[tutorialdiag] 查体投影 patient=1 actor=0 disease=2 novelty=First tick=311           ← 查面色
+[tutorialdiag] 病名册环 t=28.51 viewer=0 seen=1 pointable=0 词表行=3 novelty=1
+[tutorialdiag] 查体投影 patient=1 actor=0 disease=2 novelty=Stale tick=311   ×4      ← 又查 4 行
+[tutorialdiag] ★发火 tick=311 steps=observe 口述=1                                   ← 只有 observe 发火
+```
+
+逐环判决:
+
+| 环 | 读数 | 结论 |
+|---|---|---|
+| ① `viewer` | `0` | **不空** —— `SetViewer` 生效 |
+| ② `seen` | `1`(`novelty` 由 `0` → `1`) | **不空** —— `OnExamined` 真写过一条 `SkillGrown` |
+| ③ `pointable` | `0` | **空的是这一环** |
+| 附:`词表行` | `3` | 词表**装载成功**(不是管线没接) |
+
+### 14.2 第三环为什么空 —— 两个彼此独立的错配,任一单独成立都足以清零
+
+**错配 A:词表外键指向一个不存在的病种 id。**
+
+```
+assets/data/case_judgment_lexicon.json
+  {lexicon_id:1, text:"伤寒", disease_ids:[1]}   ← id 1
+  {lexicon_id:2, text:"湿温", disease_ids:[]}    ← 孤儿
+  {lexicon_id:3, text:"温毒", disease_ids:[]}    ← 孤儿
+assets/data/disease_registry.json 的 id 段 = 2..17(17 条),**没有 id 1**
+```
+
+⇒ 「伤寒」这一条反查命中不了任何真实病种(顺带记:按 `disease_names.json`,`伤寒` 是
+`DIS_TYPHOID`,注册表 id = **10**,不是 1)。
+
+⚠️ **烘焙期没有任何跨表校验**:`JudgmentLexiconBinder.ReadDiseaseIds` 只查
+「数组 / 元素是整数」(见 `:136-158`),不比对注册表 ⇒ 悬空外键**静默烘进去**。
+时间线可核:词表烘于 `6223ca13`(2026-10-12),当时生产只有 fallback 注册表
+(`DiseaseId = 1`);**2026-10-22 B1 接真表(id 从 2 起)后,这个 1 就悬空了**,而没人报错。
+
+**错配 B:真包里出现的病人,病种恒为 id 2(`INJ_STAB` 刺伤),词表里没有「刺伤」这个词条。**
+
+```
+[tutorialdiag] 查体投影 patient=1 actor=0 disease=2 ...
+```
+生产 `CompositionRoot` 的 `PatientAppearedDriver` 取 `registryIndex: 0`
+⇒ 注册表第 0 条 = id **2** = `INJ_STAB`。而病名册三词条是 伤寒 / 湿温 / 温毒 —— **没有一个对应伤情**。
+
+⇒ 即使把错配 A 修成 `disease_ids:[10]`,本轮这个病人(`disease=2`)照样反查不出条目。
+**两个都要动,或者换病人,或者给伤情补词条 —— 这是内容/设计裁定,不是改一行代码。**
+
+### 14.3 本轮验到了什么(**只**这一条)
+
+- 三环里**只有第三环空**,已由真包读数直接观测,不是推断。
+- 查体 → `SkillGrown` → `NoveltyTracker` 这条写路径在真包里**是通的**(`novelty 0→1`)。
+- `judge` 之所以不触发,根因**不在教学链、不在焦点、不在查体**,在**词表外键与病人病种**。
+
+### 14.4 本轮**未**做(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| `judge` 步真包触发 | **仍未触发**(且按 §14.2,不修数据就不可能触发) |
+| 修错配 A(`disease_ids:[1]` → `[10]`) | **未做** —— 改的是作者态数据,且改完仍不够(见错配 B) |
+| 修错配 B(给词表补伤情 / 换病人病种) | **未做** —— 内容 / 设计裁定 |
+| 加跨表门(词表 `disease_ids` ⊆ 注册表 id) | **未做** —— 若要做,它是防复发的那一半 |
+
+### 14.5 本轮的仪表改动(与 §14.1 读数同源)
+
+| 文件 | 改了什么 |
+|---|---|
+| `WalkthroughDiagnostics.cs` | 新增 `ReportLexiconRingsIfChanged`(每帧、仅变化时打)· `ReportExamined` |
+| `CasebookVitalsSource.cs` | 抽出 `ComputeLexiconRings` 供生产与读数**共用同一次求值** + `GetLexiconRingCounts`(`internal`) |
+| `SeenDiseaseProjector.cs` | `OnExamined` 落地瞬间打一行(区分「没走到投影」与「走到了但抛了」) |
+| `BootRoot.cs` | 每帧调读数(与焦点读数同理由:脉案摊开时 tick 停,周期读数一行都没有) |
+
+构建:`unity/Logs/build-ring.log:8750` `Build Finished, Result: Success.` · 错误数 0 · 22.9 s。
+
+**存档**:走查前备份 `saves/` 20 个文件 → 走查后 `rsync -a --delete` 还原 → 逐文件 SHA-256
+与备份**20/20 一致**(走查期间产生过 `saves/w3/save_auto.bin`,已随还原消失)。
+
+---
+
+## 15. `judge` 走通(2026-11-07)—— 修 A + 伤寒病人
+
+### 15.1 改了什么
+
+**① 修错配 A(作者态数据 + 重烘)**
+
+```
+assets/data/case_judgment_lexicon.json
+  { "lexicon_id": 1, "text": "伤寒", "disease_ids": [1] }   →  [10]
+```
+
+理由:`伤寒` = `DIS_TYPHOID` = 注册表 id **10**(`disease_registry.json` id 段 = 2..17,无 1)。
+
+烘焙:`unity/Logs/bake-lexicon.log:397`
+`case_judgment_lexicon.cooked.bytes = 73 B, 3 行, ConfigVersion = 0x74C8A843`
+产物逐字节核对:`...e4 bc a4 e5 af 92 01 0a...` —— 病种数组长度 `01`、值 `0a`(= 10)。
+
+**② 换伤寒病人 —— 用现成的启动期缝,不改代码**
+
+`DYJC_AUDITION_REGISTRY_INDEX=8`(`BootRoot.ResolvePatientRegistryIndexOverride`)⇒
+`PatientAppearedDriver` 取注册表第 8 条 = id **10** = `DIS_TYPHOID`。
+真包日志自证:`[BootRoot] 病人病种索引覆盖 = 8(DYJC_AUDITION_REGISTRY_INDEX;听测期专用)`。
+
+**③ 重建 player**(`unity/Logs/build-ring2.log:8619` `Build Finished, Result: Success.`,错误 0,18.1 s)。
+⚠️ **必须重建**:词表产物走 Addressables bundle(`<build>/…_Data/StreamingAssets/aa/`),只重烘不重建 ⇒ 包里仍是旧字节。
+
+### 15.2 真包读数(一次走查,新起一局)
+
+```
+[tutorialdiag] 查体投影 patient=1 actor=0 disease=10 novelty=First tick=331      ← 伤寒病人
+[tutorialdiag] 病名册环 t=29.58 viewer=0 seen=1 pointable=1 词表行=3 novelty=1   ← 三环全非空
+[tutorialdiag] 焦点=channel-disease-name
+[tutorialdiag] 焦点=<匿名;1>          ← 开册后焦点落在词条(lexicon_id=1)
+[tutorialdiag] 焦点=(无焦点)
+[tutorialdiag] ★解冻补跑 t=43.96 tick=331 facts=17
+[tutorialdiag] 口述投递 cue=15 cell=(0,4,16)
+[tutorialdiag] 口述投递 cue=16 cell=(0,4,16)
+[tutorialdiag] ★发火 tick=331 steps=observe,judge 口述=2
+```
+
+截图 `jd1.png`:病名列出现「**伤寒**」条目行且**带焦点框**(其上是 `?` 空栏,其下是「折」)。
+⇒ §14 的 `pointable=0` 已转 `1`,病名册**有条目了**。
+
+**★发火 `steps=observe,judge 口述=2`** —— `judge` 步真包触发,并投递了 2 条口述
+(`observe` 与 `judge` 各一)。
+
+### 15.3 ⚠️ 这条结论的边界(禁借绿,逐条写清)
+
+| 边界 | 说明 |
+|---|---|
+| **发火发生在「解冻补跑」路径上** | 整个开册/查体/指认期间世界冻结(`tick` 恒 331),两条步**同一趟解冻补跑**一起发火。**没有**单独观测到 `judge` 在「普通 tick 边沿」发火 —— 该路径与解冻补跑共用同一个 `OnTickEdge`,但本轮的观测只覆盖后者 |
+| **伤寒病人来自启动期旋钮** | `DYJC_AUDITION_REGISTRY_INDEX=8` 是**听测期专用**缝。**出厂默认(`registryIndex: 0` = `INJ_STAB` 刺伤)仍然一本词条都翻不到** —— 这个缺口没被本轮填上 |
+| **词表仍只有 1 条真关联** | 3 行里 2 行是孤儿(`湿温` / `温毒` 的 `disease_ids` 仍为 `[]`);GDD 说的 37 条词表**没有**成文 |
+| **`close` 步** | 仍未触发 |
+| **手柄路径** | 仍 `NOT-RUN` |
+| **口述听感** | 只证到「投递了 2 条 cue」(`口述投递`),**没有**本轮录音互相关;出声判据见 §11 |
+
+### 15.4 连带修的一处测试弱化(不修就是 F4 空洞正控)
+
+`case_judgment_lexicon.json` 改 `[1]→[10]` 后,`lexicon_book_source_test` 里两条
+**端到端**判据会**静默变弱**:它们用 `SpawnNext(diseaseId: 1)`(EditMode fallback 注册表的
+占位 id),而病种 1 在真词表里没有关联行 ⇒ 两侧都空 ⇒
+`foreach` **零次迭代**(⑥)、`空 == 空`(⑦)—— 都恒真。
+
+处置(改成**可证伪的事实断言**,而不是删掉):
+- ⑥ 显式写死「病种 1 ⇒ 反查为空(当下正确行为,非装载失败)」+ 补一条真表判据
+  「已见 10 ⇒ 词条 1 入册」(外键再悬空即红);
+- ⑦ 补一条「病种 1 ⇒ DTO 面为空」,让 `空 == 空` 的弱相等至少被一条硬断言钉住。
+
+**PlayMode 一侧更严重:三条链上判据直接变红(它们的前提本来就是那条错数据)。**
+
+| 夹具 | 改前 | 改后 |
+|---|---|---|
+| `casebook_point_identify_chain_test` | `DiseaseId = 1`(注释写着「内联注册表病种 1(**词表反查有 id**)」) | `10` + 传**真注册表** |
+| `e2e_full_loop_test` | 同上 | `10` + 真注册表 + `diagnosisQueryLevelOverride: 20` |
+
+⚠️ `e2e_full_loop_test` 换真病种后还连带暴露**两处夹具写死**:
+1. `AdvancePastIncubation` 原推**固定 60 tick**(按 fallback 曲线 潜伏 20 / τ=40 算的),
+   而真表 伤寒是 潜伏 **1200** / τ_rise **3600** ⇒ 连潜伏都过不去。
+   ⇒ 改为**按位置推进**(推到 `position ≥ 0.60`,上限 20000 tick),不再写死曲线参数。
+2. 诊断等级:定表实测 `READ_FLOOR(0) = 1.0` 而 伤寒 归一峰值只有 **0.667**
+   ⇒ 等级 0 下**任何体征都读不出**;但等级 60 又触发
+   `[SignChannelBinder] 档位 slot 越界(词表长度 3)`(因为 `SLOT_BOUNDS = {10,20,50}`
+   ⇒ 等级 ≥ 50 时档序 = 3,而词条行只有三档词)。
+   ⇒ 取 **20**:`READ_FLOOR(20) = 0.5833 < 0.667` 读得出,且档序 = 2 合法。
+   (这两个数都是从烘焙产物 `diagnosis_read_floor.cooked.bytes` 直接解出来的,不是估的。)
+
+### 15.5 复算命令
+
+```bash
+# 词表制品里的外键(应为 01 0a = 长度 1、值 10)
+xxd -s 0x20 -l 16 unity/Assets/DataCooked/case_judgment_lexicon.cooked.bytes
+# 期望:e4bc a4e5 af92 010a …(「伤寒」UTF-8 + 数组长度 01 + 病种 id 0a)
+# 烘焙行(应为 73 B / 3 行 / ConfigVersion 0x74C8A843)
+grep "烘焙完成" unity/Logs/bake-lexicon.log
+# 构建行
+grep "Build Finished" unity/Logs/build-ring2.log
+```
+
+### 15.6 回归(最终树)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 00:19:58Z`(EM)/ `00:32:18Z`(PM,2026-11-07)·
+批次:修 A + 伤寒病人轮 · commit `33901b5d` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7060 passed=7023 failed=0 inconclusive=0 skipped=37` | 与 §14 基线**同值**(本轮未增删用例,只改钉值与强度) |
+| PlayMode | `total=360 passed=356 failed=0 inconclusive=2 skipped=2` | 与 §14 基线**同值** |
+
+**天然证伪(不是模拟的)**:把词表退回旧值(`[1]`)时,同一批夹具当场红
+—— EditMode **1 红**(`test_bake_roundtrip_threeRows_withOrphan`,`Expected 1 / But was 10`)
+· PlayMode **3 红**(两条链上判据 + e2e 的「病名册非空」前置)。⇒ 这两处判据**真的钉着这条数据**,
+不是恒绿。
+
+**存档**:走查前备份 → 走查后 `rsync -a --delete` 还原 → **20/20 逐字节一致**。
+
+---
+
+## 16. 跨表外键门(2026-11-07 · 用户裁定「跨表门也加上」)
+
+### 16.1 门在哪
+
+| 项 | 位置 |
+|---|---|
+| 门类 | `unity/Assets/Editor.Tools.Gates/LexiconRegistryCrossRefGate.cs` |
+| 判据本体(纯函数) | `:90` `RunAll(IReadOnlyList<JudgmentLexemeRow>, IReadOnlyList<DiseaseRegistryEntry>)` |
+| 构建期入口 | `:54` `RunAll()` —— 读两份烘焙产物 |
+| **接进链** | `AssemblyGates.cs:160` `errs.AddRange(LexiconRegistryCrossRefGate.RunAll());`(`RunAll` = 菜单 / 域重载 / 构建前门三处共用) |
+| 接线声明 | `gate_wiring_manifest_test.cs` 的 `EntryWiringManifest["RunAll"]` + `ClassConsumerManifest`(均**手写**,承 C-1 的「禁从源生成」) |
+| 判据夹具 | `unity/Assets/Tests/EditMode/DataPipeline/lexicon_registry_cross_ref_gate_test.cs`(**6 条**) |
+
+### 16.2 判据(两条 + 两条守卫)
+
+- **C1 悬空外键**:词表每行 `disease_ids` 逐值必须 ∈ 病种注册表 id 集;缺 ⇒ 红,报错串**点名** `lexicon_id` / 词条 / 下标 / 那个 id。
+- **C2 只查一向**:注册表里有病种没有对应词条**合法**(孤儿条目是设计内形态 —— `AC-37-35` 的双射候选拒**依赖**它),不得反向报红。
+- **守卫 G1/G2**:词表 0 行 / 注册表 0 行 ⇒ 红(空集上 C1 恒真 = 空洞正控)。
+
+**读的是烘焙产物**(`DataCookedDisk.LoadJudgmentLexicon` / `LoadDiseaseRegistry`,与运行期同一 codec、同一份字节;
+为此在 `DataCookedDisk` 开了同源读路径 —— 原唯一读路径在 `Gameplay.Boot`,而门所在的装配不引用它)。
+⚠️ **如实登记盲区**:改了源 JSON 忘了重烘时,本门看的是旧产物 ⇒ 可能绿;该形态由
+`cooked_drift_all_artifacts_test` 兜。**两者互补,本门的绿不得读成「源数据也一致」。**
+
+**同批结清一处自陈 NOT-RUN**:`JudgmentLexiconTable.cs` 的 `JudgmentLexiconValidator` 文档原写
+「与真实注册表的全量交叉检查归烘焙落地轮(**登记 NOT-RUN**)」—— 注册表已于 2026-10-22 落地,
+该前置消失;本门即其实行体(原文不删,已就地加注)。
+
+### 16.3 证伪轮 —— 门**真的会红**(不是模拟,在于链上观测)
+
+**变异窗口**:`case_judgment_lexicon.cooked.bytes` 第 `0x27` 字节 `0A → 01`(= 把 disease_id 10 改回当初那个悬空 1);
+窗口内**未读**该文件。跑全量 EditMode,结果 `7066 / 7023 / **6 红**`:
+
+| 红件 | 归因 |
+|---|---|
+| `lexicon_registry_cross_ref_gate_test.test_realArtifacts_zeroErrors` | **靶心** —— 门读盘上字节,当场红,报错串含 `disease_ids[0]=1` |
+| `assembly_gate_runall` 的 `test_assemblyGates_runAll_zeroErrors_b3_b2_b6_b7` | **证明门在链上**(不只是夹具能过) |
+| `test_adr031_v4_b5GateStillPassesOnRealTree` | 另一个走 `RunAll` 的判据,同因 |
+| `drift[case_judgment_lexicon.cooked.bytes]` | 源 ↔ 产物漂移门(预期内:变异只改产物) |
+| `lexicon_book_source_test` 两条 | 悬空 id 一回来,`[1]` 就又"命中"了 ⇒ §15.4 新加的两条断言转红 |
+
+**还原判据 = SHA-256 逐字节**:变异前 `a83af2bc…d40222`,还原后同值(`diff` 零差异)。
+⇒ 这一刻的工作树与跑出 `7066/7029` 的那棵树**逐字节相同**。
+
+### 16.4 回归(含新门)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 01:56:37Z`(EM)/ `02:01:27Z`(PM)· 批次:跨表门外键轮 · commit `33901b5d` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7066 passed=7029 failed=0 inconclusive=0 skipped=37` | 较 §15.6 `7060/7023` **+6** —— 等式:7066 − 7060 = 6 = 新夹具条数 |
+| PlayMode | `total=360 passed=356 failed=0 inconclusive=2 skipped=2` | 与 §15.6 **同值**,零回归 |
+
+⚠️ **一处读数坑(如实记)**:PlayMode 首读时 `-f` 判据在 XML **刚创建、尚未写完**时就放行,
+读到 `341/337/0` 这种截断值。判据应是「文件存在 **且** 含 `<test-run ... total=` 闭合」,
+或读前先确认 mtime 稳定 —— 否则会把「读到半截」当成「少了 19 条测试」。

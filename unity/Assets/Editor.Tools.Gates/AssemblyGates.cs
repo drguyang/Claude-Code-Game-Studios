@@ -153,6 +153,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 「registry ↔ 代码」一致性,都住在 RunAll(菜单 / reload / 构建前三处共用)。
             // ⚠️ 只查登记存在性,不查数值(数值归用户数值轮;判了会恒红)。
             errs.AddRange(DiseaseConstantRegistryGate.RunAll());
+            // 病名册词表 ↔ 病种注册表 跨表外键门(2026-11-07 真包走查驱动):
+            // 词表 `disease_ids` 逐值必须 ∈ 注册表 id 集。病因 = 伤寒外键指向 id `1`,
+            // 而真注册表 id 段是 2..17 ⇒ 书恒空、`judge` 步永不发火,而全部构建/夹具当时全绿。
+            // ⚠️ 读**烘焙产物**(与运行期同一份字节);源 ↔ 产物漂移归 `cooked_drift_all_artifacts_test`。
+            errs.AddRange(LexiconRegistryCrossRefGate.RunAll());
             // 53 静态面门(S12-9 · story-002,2026-10-15):AC-53-03 零浮点 +
             // AC-53-12 零 31 符号 —— 扫 `Assets/Sim/Consequences/*.cs`(MedConsFloatGate)。
             errs.AddRange(MedConsFloatGate.RunAll("."));

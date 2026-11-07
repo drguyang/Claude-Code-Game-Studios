@@ -159,6 +159,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static DiseaseRegistryDataSet LoadDiseaseRegistry()
             => DiseaseRegistryCookedCodec.Read(ReadAll(AddressablesDataProvider.DiseaseRegistryAddress));
 
+        /// <summary>病名册词表(<c>case_judgment_lexicon.cooked.bytes</c>)。
+        /// <para>🔁 2026-11-07:本方法为**跨表门**新开 —— 消费方 =
+        /// <c>Editor.Tools.Gates.LexiconRegistryCrossRefGate</c>(词表 <c>disease_ids</c> ⊆ 注册表 id)。
+        /// 此前只有 <c>Gameplay.Boot/DiagnosisCookedDisk.LoadJudgmentLexicon</c> 一条读路径,
+        /// 而 `Editor.Tools.Gates` 不引用 `Gameplay.Boot`。</para>
+        /// <para>⚠️ 与那条读路径**同一份字节 + 同一个 codec**(地址常量取
+        /// <see cref="AddressablesDataProvider.JudgmentLexiconAddress"/>),零第二真源。</para></summary>
+        public static DaYiJingCheng.Gameplay.Presentation.Casebook.JudgmentLexiconDataSet LoadJudgmentLexicon()
+            => DaYiJingCheng.Gameplay.Presentation.Casebook.JudgmentLexiconCookedCodec.Read(
+                ReadAll(AddressablesDataProvider.JudgmentLexiconAddress));
+
         // ── 21a 物品种子表(S20-10/11/12 修复轮 · 2026-10-27)────────────────
         // ⚠️ 同 `LoadDiseaseRegistry`:消费方是**生产装配**(`CompositionRoot` 的
         //    `InventoryLoadService` 惰性取数),不只是测试。它在这里的意义 =

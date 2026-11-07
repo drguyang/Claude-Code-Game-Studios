@@ -43,11 +43,15 @@ namespace DaYiJingCheng.Tests.CaseSystem
             JudgmentLexiconDataSet ds = JudgmentLexiconCookedCodec.Read(bake.Cooked);
 
             Assert.GreaterOrEqual(ds.Rows.Count, 3, "源 JSON 至少 3 行");
-            // 源数据形状:1 号关联病种 1;2/3 号孤儿(AC-37-35 结构保证)
+            // 源数据形状:1 号关联病种 10;2/3 号孤儿(AC-37-35 结构保证)
+            // 🔁 2026-11-07:外键由悬空的 `1` 修为 `10`(`伤寒` = `DIS_TYPHOID`;
+            //    真注册表 id 段 = 2..17,**没有 1** ⇒ 原值让病名册在生产里恒空,
+            //    真包实测 `pointable=0`。本断言随之改钉新值 —— 它钉的就是**源数据**,
+            //    源数据一改它必须跟着动(否则就是自指判据的反面:钉死一个错值)。
             JudgmentLexemeRow r1 = ds.Rows[0];
             Assert.AreEqual(1, r1.LexiconId);
             Assert.AreEqual("伤寒", r1.Text);
-            CollectionAssert.AreEqual(new[] { 1 }, r1.DiseaseIds);
+            CollectionAssert.AreEqual(new[] { 10 }, r1.DiseaseIds);
             Assert.AreEqual(0, ds.Rows[1].DiseaseIds.Length, "2 号应为孤儿条目");
             Assert.AreEqual(0, ds.Rows[2].DiseaseIds.Length, "3 号应为孤儿条目");
             Assert.AreEqual(bake.ConfigVersion, ds.ConfigVersion, "ConfigVersion roundtrip 失配");

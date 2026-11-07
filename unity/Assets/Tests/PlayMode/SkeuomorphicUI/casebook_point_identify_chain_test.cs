@@ -38,7 +38,13 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
     internal sealed class casebook_point_identify_chain_test
     {
         private const int PlayerId = 9001;
-        private const int DiseaseId = 1;          // 内联注册表的病种 1(词表反查有 id)
+
+        // 🔁 2026-11-07:`1 → 10`。原值用**内联 fallback 注册表**(只有病种 1),而词表外键
+        //    由悬空的 `[1]` 修为 `[10]`(`伤寒` = `DIS_TYPHOID`;真注册表 id 段 2..17,**无 1**)
+        //    ⇒「词表反查有 id」这个前提在病种 1 上**不再成立**。
+        //    本夹具改用**真注册表**并取病种 10 —— 断言的含义不变(真链:查体 ⇒ 已见集 ⇒ 反查),
+        //    变的是它赖以成立的那条数据。
+        private const int DiseaseId = 10;
 
         private GameObject _go;
         private UIDocument _doc;
@@ -59,7 +65,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         /// <summary>真组合根 + 真病人 + 真开案 + 作者 + 观看者(落笔前置齐备)。</summary>
         private void AssembleChain()
         {
-            _bag = CompositionRoot.Assemble();
+            // 真注册表(病种 10 = DIS_TYPHOID 才在真词表里有外键);见 <see cref="DiseaseId"/> 的注。
+            _bag = CompositionRoot.Assemble(
+                registry: DaYiJingCheng.Gameplay.Presentation.DataCookedDisk.LoadDiseaseRegistry().Rows);
             _patient = _bag.PatientSpawner.SpawnNext(diseaseId: DiseaseId, tick: 0);
             _bag.Presence.AddPresent(_patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);

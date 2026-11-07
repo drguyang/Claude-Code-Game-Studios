@@ -145,6 +145,44 @@ namespace DaYiJingCheng.Gameplay.Boot
                 $"[tutorialdiag] ★解冻补跑 t={UnityEngine.Time.realtimeSinceStartup:F2} tick={tick} facts={factCount}");
         }
 
+        private static string _lastLexiconRings;
+
+        /// <summary>病名册三环读数(**每帧调,仅在数值变化时打一行**)。
+        /// <para>病因(2026-11-07):`judge` 步在真包走不通,已定位到「病名册零条目」,
+        /// 但条目集 = `PointableLexiconIds(SeenDiseaseIds(viewer))` 三环里**哪一环空**未定 ——
+        /// 三环各有完全不同的修法(未设观看者 / 查体没记进新颖度 / 词表反查不通),
+        /// 猜错就白改。本读数一次真包即可定位。</para>
+        /// <para>⚠️ 走**每帧**而非 tick 边沿:脉案摊开时世界冻结,周期读数一行都不会有。</para></summary>
+        /// <param name="viewer">观看者 actorId(负 = 未设)。</param>
+        /// <param name="seen">已见病种数(新颖度环)。</param>
+        /// <param name="pointable">可指认词条数(词表反查环)。</param>
+        /// <param name="rows">词表总行数(0 = 词表没装载)。</param>
+        /// <param name="noveltyEntries">新颖度字典总条目数(含采集侧;0 = 从没写过)。</param>
+        public static void ReportLexiconRingsIfChanged(int viewer, int seen, int pointable,
+                                                      int rows, int noveltyEntries)
+        {
+            var sb = new StringBuilder(96);
+            sb.Append("viewer=").Append(viewer).Append(" seen=").Append(seen)
+              .Append(" pointable=").Append(pointable).Append(" 词表行=").Append(rows)
+              .Append(" novelty=").Append(noveltyEntries);
+            string key = sb.ToString();
+            if (key == _lastLexiconRings) return;
+            _lastLexiconRings = key;
+            UnityEngine.Debug.Log("[tutorialdiag] 病名册环 t=" +
+                                  UnityEngine.Time.realtimeSinceStartup.ToString("F2") + " " + key);
+        }
+
+        /// <summary>「见过病 D」投影落地的瞬间读数(每次查体一行)。
+        /// <para>用途:三环读数说 `novelty=0` 时,靠这行区分「查体根本没走到投影」
+        /// 与「走到了但抛了」。**不发火、不写流** —— 只读路径上的既有量。</para></summary>
+        public static void ReportExamined(int patientId, int actorId, int diseaseId,
+                                          string novelty, long tick)
+        {
+            UnityEngine.Debug.Log("[tutorialdiag] 查体投影 patient=" + patientId +
+                                  " actor=" + actorId + " disease=" + diseaseId +
+                                  " novelty=" + novelty + " tick=" + tick);
+        }
+
         /// <summary>教学步发火的瞬间报告。</summary>
         public static void ReportFired(long tick, System.Collections.Generic.IReadOnlyList<string> steps, int narrations)
         {

@@ -110,10 +110,20 @@ namespace DaYiJingCheng.Tests.Boot
 
             int[] seen = bag.SeenDisease.SeenDiseaseIds(player);
             Assert.AreEqual(new[] { 1 }, seen, "查体后 ⇒ 已见集含病种 1");
-            // 词表反查:病种 1 在 S1.0 真表里的关联行(若有)入册;此处只断言串联非抛 + 结果自洽
-            int[] book = bag.LexiconBook.PointableLexiconIds(seen);
-            foreach (int id in book)
-                Assert.GreaterOrEqual(id, 1, "入册条目 id ≥ 1(0 = 空栏哨兵,不入册)");
+
+            // ⚠️ 2026-11-07(`TD` 无号 · 真包实测驱动):词表外键由**悬空的** `[1]` 修为 `[10]`。
+            //    判据:真注册表 id 段是 2..17,**没有 1**;而 `伤寒` = `DIS_TYPHOID` = **10**。
+            //    故「病种 1」(EditMode fallback 注册表的占位 id)在真词表里**本就无关联行**
+            //    ⇒ 反查为空是**当下的正确行为**,不是装载失败。
+            //    这里写成**显式断言**而不是留着 `foreach` 空转过关 —— 后者是 F4「空洞正控」
+            //    (空集合让断言恒真,零判别力)。
+            Assert.IsEmpty(bag.LexiconBook.PointableLexiconIds(seen),
+                "病种 1 = fallback 占位,真词表不关联它 ⇒ 反查为空");
+
+            // 真表那条关联必须真的在:已见 10(伤寒)⇒ 词条 1 入册。
+            // 这条是「词表外键指向**真实**病种」的判据 —— 外键再悬空(改回 1 之类)本条即红。
+            Assert.AreEqual(new[] { 1 }, bag.LexiconBook.PointableLexiconIds(new[] { 10 }),
+                "真词表:伤寒(lexicon_id=1)关联病种 10 ⇒ 已见 10 时入册");
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -138,6 +148,12 @@ namespace DaYiJingCheng.Tests.Boot
                 bag.LexiconBook.PointableLexiconIds(bag.SeenDisease.SeenDiseaseIds(player)),
                 bag.CasebookSource.SeenLexiconIds,
                 "DTO 源 SeenLexiconIds = 词表反查结果(件 C → E 接线一致)");
+
+            // ⚠️ 2026-11-07:上一条两侧**同时为空**时是**弱判据**(F4 空洞正控)。
+            //    故把当下的事实写死:病种 1 无词条关联 ⇒ 这一串在 EditMode 里为空。
+            //    词表数据一变(例如将来 fallback 占位也进词表),本条与⑥一起红,逼人复核。
+            Assert.IsEmpty(bag.CasebookSource.SeenLexiconIds,
+                "病种 1 无词条关联 ⇒ DTO 面为空(与真表一致;非接线失败)");
         }
 
         // ══════════════════════════════════════════════════════════════════════

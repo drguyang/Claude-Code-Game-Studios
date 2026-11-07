@@ -67,7 +67,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Casebook
         /// <para>若每行恰一个 disease_id 且全体互异,则词表与**任意**同基数注册表都可完美配对
         /// ⇒ 拒。孤儿条目或多对一链接的存在使其结构性不可能双射。</para>
         /// <para>⚠️ 与真实病种注册表的**全量交叉检查**归 disease_registry.json 烘焙落地轮
-        /// (登记 NOT-RUN —— 注册表现为代码内联 fallback,非数据文件,交叉检查无输入)。</para></summary>
+        /// (登记 NOT-RUN —— 注册表现为代码内联 fallback,非数据文件,交叉检查无输入)。</para>
+        /// <para>🔁 <b>2026-11-07 就地加注(原文不删)</b>:那条登记的前置**已消失** ——
+        /// 注册表于 2026-10-22(B1)落成烘焙产物 id 段 2..17。执行体已立 =
+        /// <c>Editor.Tools.Gates.LexiconRegistryCrossRefGate</c>(接进 <c>AssemblyGates.RunAll</c>,
+        /// 判据 = 词表 <c>disease_ids</c> 逐值 ∈ 注册表 id 集)。
+        /// <b>立门缘由</b>:该缺口存活期间,「伤寒」的外键一直是悬空的 <c>1</c>
+        /// ⇒ 病名册在生产里恒空、教学链 <c>judge</c> 步永不发火,而**构建 / 烘焙 / 全部夹具全绿**
+        /// —— 2026-11-07 真包走查才抓到。</para></summary>
         public static void Validate(IReadOnlyList<JudgmentLexemeRow> rows)
         {
             if (rows == null || rows.Count == 0)
