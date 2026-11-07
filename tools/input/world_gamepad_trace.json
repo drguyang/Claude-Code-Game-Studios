@@ -1,0 +1,26 @@
+{
+  "name": "world_gamepad_path",
+  "_comment": [
+    "世界空间手柄路径的真包时间线(2026-11-07)。与 PlayMode 的",
+    "Tests/PlayMode/world_gamepad_path_test.cs 三条判据同口径,但**顺序不同**:",
+    "急救档位排在最前 —— 因为「就诊」会摊开脉案模态,而 F-4.2 规定模态期交互输入被丢弃",
+    "(按下 = 没发生)。先做急救就不用为了关册去模拟另一套输入。",
+    "",
+    "轴约定(与 MovementInputReader 同源):stick[1] = +z = 前进;stick[0] = +x。",
+    "面键:west = 急救(PlayerInputReader.EmergencyPressed 的手柄支);",
+    "      north = 交互(InteractPressed 的手柄支);south = 菜单确认。"
+  ],
+  "steps": [
+    { "seconds": 6.0, "note": "等启动 + 世界预载(日志出现 [世界装载])" },
+    { "button": "south", "seconds": 0.15, "note": "主菜单确认首行(继续诊治);实测 World 是预载、sim 停在菜单" },
+    { "seconds": 5.0, "note": "等进世界 + 首个 diag 读数" },
+
+    { "button": "west", "seconds": 3.5, "note": "③ 急救:按住 3.5 s(> AbortIdleTicks 2.5 s)" },
+    { "seconds": 1.0, "note": "松开后回 Explore" },
+
+    { "stick": [0, 1], "seconds": 3.0, "note": "① 走近:前推 3 s(≈14 m;工具内部已按 evdev 反向处理 y)" },
+    { "stick": [0, 0], "seconds": 0.5 },
+    { "button": "north", "seconds": 0.15, "note": "② 就诊(Unity buttonNorth = Interact)" },
+    { "seconds": 1.5, "note": "开册" }
+  ]
+}

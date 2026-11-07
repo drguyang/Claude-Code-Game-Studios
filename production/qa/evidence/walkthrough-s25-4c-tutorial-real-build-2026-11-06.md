@@ -1219,3 +1219,95 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/playmode-worldga
 | 松开后聚合出的两个急救事件 | `test_wg_03` **不断言** `EmergencyAttempt` / `EmergencyTreatmentApplied`(那是 `emergency_attempt_wiring_test` 的面);本件只判**档位**与 **Armed 存续** |
 | 世界空间形态 | 接线期形态:单玩家、病人至多 2 个(`PatientWiringPositions`)、外圈 `0/15` 不可走 —— 不是设计形态 |
 | 键鼠真包的世界空间路径 | 仍是 §13 / §17 的**非系统**走查,未做成判据 |
+
+---
+
+## 19.7 真包手柄可达(B 路 · 2026-11-07 · 用户「按B进行」)
+
+### 为什么此前不可达(环境实测,不是能力问题)
+
+| 事实 | 实测值 | 后果 |
+|---|---|---|
+| `/dev/uinput` | `crw------- root root`(0600) | **造不出**虚拟手柄 |
+| `/dev/input/event*` | `crw-rw---- root:input`(0660)、无 ACL | 游戏以 `gu` 运行 ⇒ **读不到任何手柄**(真手柄也一样) |
+| 键盘为什么一直正常 | Unity 在图形会话下**走 X11**、不经 evdev | 键鼠走查与手柄**不是同一条路** —— 所以手柄从来没人验过 |
+
+### 一次性授权(用户已执行)
+
+```bash
+sudo bash tools/input/install_uinput_permissions.sh
+```
+
+只改两条 udev 规则,**按用户组**授权(不是 0666),可撤销:
+`/dev/uinput` → `root:gu 0660`;`/dev/input/event*` → `root:gu 0660`。
+脚本自检输出:`✅ /dev/uinput 可写` · `✅ /dev/input/event0 可读`。
+
+### 工具面(`tools/input/`)
+
+| 文件 | 作用 |
+|---|---|
+| `vpad.py` | uinput 虚拟手柄(造设备 + 推摇杆/面键),创建即打印 `node=/dev/input/eventN` |
+| `verify_world_gamepad.py` | 起 player(`-tutorialdiag -batchmode -nographics`)→ **边读读数边推输入**(自适应)→ 判 PASS/FAIL |
+| `world_gamepad_trace.json` | 静态时间线(手动复现用;自适应脚本不依赖) |
+| `install_uinput_permissions.sh` | 上面那条 sudo |
+| `README.md` | 用法 + 五个坑 |
+
+### 实测踩到的五个坑(每条都有失败证据,全部已修)
+
+1. **摇杆 Y 轴反向** —— evdev 的 `ABS_Y` 最大值朝下,Unity 按原值映射。
+   证据:第一轮 `stick=(0,+1)` 把玩家从 `cell.z=0` 推到 **−5** 并掉出地面(坠落重置回 `(0,0,0)`)。
+   修:`vpad.set_stick` 内部对 `y` **取负**;修后同一输入 `cell.z` 单调 `0→4→9→14`。
+2. **`West` / `North` 在 evdev 与 Unity 之间是反的** —— evdev `BTN_NORTH`(0x133) = Unity
+   **`buttonWest`**;evdev `BTN_WEST`(0x134) = Unity **`buttonNorth`**(evdev 按 SNES 方位命名,
+   Unity 按 Xbox 物理方位)。证据:探针按 0x133 ⇒ 读数 `手柄=…:W` 且 `急救=Armed`、`档位=Treatment`;
+   按 0x134 ⇒ 读数 `手柄=…:N`。修:表按 **Unity 语义**命名。
+3. **窗口失焦 ⇒ 设备停用 + 游戏停更** —— `ResetAndDisableNonBackgroundDevices` +
+   `runInBackground=false`。证据:读数列从 `手柄=Gamepad#3:` 变 `手柄=无`,此后按键全部静默失效
+   (实测正好吞掉「就诊」那一按;日志也同时断流)。修:验证器默认 `-batchmode -nographics`
+   (无窗口即无失焦),并保留窗口模式下的**周期重置焦**。
+4. **模态摊开 ⇒ tick 停**(ADR-013 §十-C)⇒ **周期读数不再出现**。
+   证据:第一版把「就诊」判成 `FAIL(模态=Casebook 样本 0)`,而脉案**已经开了** —— 只是冻结后
+   一行都没打。修:`WalkthroughDiagnostics.ReportModalTierIfChanged` **每帧、变化才打**
+   (与既有焦点读数同因同法)。
+5. **世界是预载、sim 停在主菜单** —— 必须先按 **South** 确认首行才进世界;否则 `[tutorialdiag]`
+   一行都没有,看起来像「设备没被识别」。修:验证器先按 South 再等首行读数。
+
+### 最终判据(真包,一轮,自适应驱动)
+
+```
+PASS ① 走近    cell.z 区间 [0, 14],前进 14 格(要求 ≥ 3);走完距离 1
+PASS ③ 急救档位 Armed 样本 3 · Treatment 样本 4 · Treatment 之后回 Explore 样本 6
+PASS ② 就诊    模态=Casebook 样本 1
+```
+
+⚠️ ③ 同时是 §19.3 那个修复的**真包证据**:按住 3.5 s(> `AbortIdleTicks` 2.5 s)全程 `Armed`,
+未被看门狗误杀 —— 修前这一轮会停在 `Treatment` 后约 2.5 s 掉回 `Explore`。
+
+### 本轮改动面
+
+- 生产代码:**只有走查仪表**(`WalkthroughDiagnostics` 增 `模态/档位` 周期列、`路由` 列、
+  `模态/档位` 每帧变化行;`BootRoot` 三处只读调用)。**零行为改动**,不带 `-tutorialdiag` 时整段不进。
+- 工具:新增 `tools/input/`(五件)。
+- 系统:一条可撤销的 udev 规则(仓库外,见上)。
+
+### 边界(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| 真实手柄硬件 | **不在面内**(虚拟设备发标准轴值;固件 / 死区 / 厂商映射差异验不到) |
+| 画面 / 布局 / 焦点可见性 | **不在面内**(`-batchmode -nographics`) |
+| 「跟不跟手」主观判断 | **不在面内** |
+| CI | 需要 `/dev/uinput` 权限 ⇒ 普通 runner 上**跑不了**,只能在本机(有 udev 规则时)跑 |
+
+### 回归(最终树)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 05:11:36Z`(EM)/ `05:14:13Z`(PM)· 批次:真包手柄 B 路 ·
+commit `2249d1ff` + 工作树
+
+| 套件 | 结果 | 对照(§19.5) |
+|---|---|---|
+| EditMode | `total=7066 passed=7029 failed=0 skipped=37` | 同值 |
+| PlayMode | `total=364 passed=360 failed=0 inconclusive=2 skipped=2` | 同值 |
+
+⚠️ **本轮未新增自动化夹具** —— 两处生产改动是**走查仪表**(只在 `-tutorialdiag` 下进),
+其判据是上面那轮真包。如实登记:这几行读数**无夹具覆盖**,改动若失效只会在真包侧暴露。

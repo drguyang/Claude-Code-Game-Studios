@@ -2767,6 +2767,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (WalkthroughDiagnostics.Enabled && _uiDriver != null)
                 WalkthroughDiagnostics.ReportFocusIfChanged(_uiDriver.GetUiRoot());
 
+            // 走查仪表:模态 / 相机档位(**每帧、变化才打**)—— 同焦点读数理由:模态摊开时 tick 停。
+            if (WalkthroughDiagnostics.Enabled)
+                WalkthroughDiagnostics.ReportModalTierIfChanged(
+                    _uiDriver != null ? _uiDriver.CurrentModal.ToString() : "?",
+                    _cameraRig != null ? _cameraRig.Mode.ToString() : "?",
+                    _tickDriver != null ? _tickDriver.CurrentTick : 0L);
+
             // 走查仪表:病名册三环读数(**每帧**,与焦点读数同理由 —— 脉案摊开时 tick 停)。
             // 只在数值变化时打一行,故常态零输出;查体 / 开册那一刻各出一行。
             if (WalkthroughDiagnostics.Enabled && _services != null
@@ -2914,7 +2921,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     _services != null ? _services.Presence : null,
                     _services?.EmergencyChannel?.State.ToString(),
                     _services?.TutorialChain?.FactCount ?? 0,
-                    _services?.TutorialChain?.SeededCompletedSteps ?? 0);
+                    _services?.TutorialChain?.SeededCompletedSteps ?? 0,
+                    // 🔁 2026-11-07:模态与相机档位的只读读数(真包世界空间手柄判据;
+                    //    不带 `-tutorialdiag` 时整段不进)。
+                    _uiDriver != null ? _uiDriver.CurrentModal.ToString() : "?",
+                    _cameraRig != null ? _cameraRig.Mode.ToString() : "?",
+                    _pressRouter != null
+                        ? (_pressRouter.LastRoutedKind.HasValue
+                            ? _pressRouter.LastRoutedKind.Value.ToString() : "无")
+                        : "未建");
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):

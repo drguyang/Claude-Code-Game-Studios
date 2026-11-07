@@ -17253,3 +17253,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 证据原件:§19 已补进 `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md`
 - ⚠️ 真包手柄**不可达**:`/dev/uinput` 仅 root,用户不在 `input` 组
 - 未入库(等用户指令)
+
+## Session Extract — 真包手柄可达(B 路 · 2026-11-07 05:00–05:15Z)
+
+- 用户「按B进行」⇒ uinput 虚拟手柄注入真包。用户已跑一次性 sudo(udev 按组授权,可撤销)
+- 新工具 `tools/input/`:`vpad.py` / `verify_world_gamepad.py`(自适应)/ `world_gamepad_trace.json` /
+  `install_uinput_permissions.sh` / `README.md`
+- **五个坑(都有失败证据,全修)**:
+  ① 摇杆 Y 反向(evdev ABS_Y 最大朝下)⇒ 修前把玩家推到 cell.z=−5 掉出地面
+  ② **West/North 在 evdev 与 Unity 之间互换**(BTN_NORTH 0x133 = Unity buttonWest)⇒ 探针实证
+  ③ 窗口失焦 ⇒ 设备停用 + 游戏停更 ⇒ 改 `-batchmode -nographics`
+  ④ **模态摊开 tick 停** ⇒ 周期读数消失(第一版把「就诊」误判 FAIL,其实册已开)⇒ 加每帧变化行
+  ⑤ 世界预载、sim 停主菜单 ⇒ 必须先按 South 进世界
+- **真包三条判据全 PASS**:走近 14 格 · 急救 Armed/Treatment→Explore(按住 3.5 s 不被误杀 =
+  §19.3 修复的真包证据)· 就诊 `模态=Casebook`
+- 生产改动**只有走查仪表**(`WalkthroughDiagnostics` 三处读数 + `BootRoot` 只读调用),零行为改动;
+  ⚠️ 如实登记:这几行**无夹具覆盖**
+- 回归:EditMode `7066/7029/0/0/37` · PlayMode `364/360/0/2/2` @05:11:36Z / 05:14:13Z
+- 证据:§19.7 已补进 `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md`
+- 未入库(等用户指令)

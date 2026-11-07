@@ -99,9 +99,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="channelState">急救通道态的字面(<c>null</c> ⇒ 打「未装配」)。</param>
         /// <param name="factCount">教学链已解码的事实条数。</param>
         /// <param name="seededSteps">构造期播种时已完成的步数。</param>
+        /// <param name="modal">当前模态(<c>SkeuoRuntimeDriver.CurrentModal</c>;可空 ⇒ 打「?」)。
+        /// 🔁 2026-11-07 新增:真包里「就诊 = 开了脉案」此前只能靠截图肉眼判。</param>
+        /// <param name="cameraMode">当前相机档位(<c>CameraRig.Mode</c>;可空 ⇒ 打「?」)。
+        /// 🔁 2026-11-07 新增:急救档位(Treatment / Explore)同上。</param>
         public static void Report(long tick, int actorId, WorldPos playerCell,
                                   PresenceRegistry presence, string channelState,
-                                  int factCount, int seededSteps)
+                                  int factCount, int seededSteps,
+                                  string modal = null, string cameraMode = null,
+                                  string routed = null)
         {
             var sb = new StringBuilder(160);
             sb.Append("[tutorialdiag] t=").Append(UnityEngine.Time.realtimeSinceStartup.ToString("F2"));
@@ -113,6 +119,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             AppendPatients(sb, playerCell, presence);
 
             sb.Append(" 急救=").Append(channelState ?? "未装配");
+            // 🔁 2026-11-07(世界空间手柄 path 的真包判据):模态与相机档位此前**没有读数面** ——
+            //    「就诊 = 开了脉案」「急救档位 = Treatment / Explore」在真包里只能靠截图肉眼判。
+            //    两列都是**读**呈现层现状(DTO),不参与任何逻辑;不带 `-tutorialdiag` 时零开销。
+            sb.Append(" 模态=").Append(modal ?? "?");
+            sb.Append(" 档位=").Append(cameraMode ?? "?");
+            // 🔁 2026-11-07(真包手柄注入排查):`手柄=` 列把 Unity **看到的** Gamepad 现状打出来 ——
+            //    区分「设备没进 Input System」与「进了但按键码对不上」两因。只读、无副作用。
+            sb.Append(" 手柄=").Append(DescribeGamepad());
+            // 🔁 2026-11-07:`路由=` = 上一次 E(Interact)按下沿选中的种类
+            //    (`InteractionPressRouter.LastRoutedKind`;`无` = 选过但没目标,`未建` = 路由未装配)。
+            //    用来区分「按键没到驱动」与「到了但一个候选都没选中」。
+            sb.Append(" 路由=").Append(routed ?? "?");
             sb.Append(" 教学facts=").Append(factCount).Append(" seeded=").Append(seededSteps);
             UnityEngine.Debug.Log(sb.ToString());
         }
@@ -136,6 +154,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (name == _lastFocus) return;
             _lastFocus = name;
             UnityEngine.Debug.Log("[tutorialdiag] 焦点=" + name);
+        }
+
+        private static string _lastModalTier;
+
+        /// <summary>模态 / 相机档位读数(**每帧调,仅在变化时打一行**)。
+        /// <para>🔁 2026-11-07(真包手柄判据):与 <see cref="ReportFocusIfChanged"/> 同因 ——
+        /// 周期读数挂在 tick 边沿,而**模态摊开时 tick 停** ⇒ 脉案刚开的那一刻之后一行都没有,
+        /// 「就诊 = 开了脉案」在日志里**永远看不到**(实测:整轮 0 条 `模态=Casebook`,
+        /// 而屏其实已经开了、世界被冻结)。故走每帧 + 变化才打。</para></summary>
+        public static void ReportModalTierIfChanged(string modal, string mode, long tick)
+        {
+            string key = (modal ?? "?") + "/" + (mode ?? "?");
+            if (key == _lastModalTier) return;
+            _lastModalTier = key;
+            UnityEngine.Debug.Log($"[tutorialdiag] 模态={modal ?? "?"} 档位={mode ?? "?"} tick={tick}");
         }
 
         /// <summary>模态解冻补跑的瞬间报告(每次解冻一行)。</summary>
@@ -197,6 +230,26 @@ namespace DaYiJingCheng.Gameplay.Boot
                 }
             sb.Append(" 口述=").Append(narrations);
             UnityEngine.Debug.Log(sb.ToString());
+        }
+
+        /// <summary>
+        /// Unity **看到的** Gamepad 现状(真包手柄注入排查用;2026-11-07)。
+        /// <para>区分两因:设备根本没进 Input System(<c>无</c>)vs 进了但按键码对不上
+        /// (名字有了、按住的位没有)。名字里的空格换成 <c>_</c> —— 读数行按空白切分。</para>
+        /// </summary>
+        private static string DescribeGamepad()
+        {
+            var gp = UnityEngine.InputSystem.Gamepad.current;
+            if (gp == null) return "无";
+            var sb = new StringBuilder(40);
+            sb.Append((gp.name ?? "?").Replace(' ', '_')).Append('#').Append(gp.deviceId).Append(':');
+            if (gp.buttonSouth.isPressed) sb.Append('S');
+            if (gp.buttonEast.isPressed) sb.Append('E');
+            if (gp.buttonWest.isPressed) sb.Append('W');
+            if (gp.buttonNorth.isPressed) sb.Append('N');
+            if (gp.startButton.isPressed) sb.Append('T');
+            if (gp.leftStick.ReadValue().sqrMagnitude > 0.01f) sb.Append("_LS");
+            return sb.ToString();
         }
 
         private static void AppendPatients(StringBuilder sb, WorldPos playerCell, PresenceRegistry presence)
