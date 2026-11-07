@@ -63,33 +63,42 @@
 
 ## QA Test Cases
 
-**[Logic story — automated test specs]:**
+> 🔁 **2026-11-08 回填(sprint-26 `/qa-plan`)** —— 本节由 `production/qa/qa-plan-sprint-26-2026-11-08.md` §S26-2 派生。
 
-- **AC-1**: J(c,p) 末笔折叠正确
-  - Given: 病例 c 上玩家 p 依次 Record → Revise → Revise;玩家 q 对 c 也 Record
+**[Logic story — automated test specs]**
+文件:`unity/Assets/Tests/EditMode/Casebook/casebook_volume_projection_test.cs`(约 9 条)
+
+- **AC-1 · `J(c,p)` 末笔折叠**
+  - Given: p 对 c 依次 Record → Revise → Revise;q 对 c 也 Record
   - When: `ProjectVolume(E, p)`
-  - Then: p 的分册含 c 的第三笔为 `Current`、前两笔 `Stale`;q 的第一笔**不出现**在 p 的分册
-  - Edge cases: p 对 c 零落笔 ⇒ c 以「空白页」态出现(页在、痕无),可聚焦(承规则七空行可聚焦)
+  - Then: c 的**第三笔 = `Current`**、前两笔 `Stale`;**q 的笔不出现**在 p 的分册
+  - Edge: 同 `Tick` 的两笔按 `Seq` 定序;零落笔 ⇒ 空白页(页在、痕无),可聚焦
 
-- **AC-2**: 痕零落盘(AC-39-13)
-  - Given: 全量可序列化类型 + `CaseClosed` 载荷 schema
-  - When: 反射扫描字段名/类型
-  - Then: 无任何 trace/revision/stale 类字段;写盘字节流里不随投影出现新字段
-  - Edge cases: 存档 round-trip 后投影重算 = 存档前投影(痕可重建性)
+- **AC-2 · 痕零落盘(AC-39-13)**
+  - Given: 全部可序列化类型 + `CaseClosed` 载荷 schema
+  - When: 反射扫字段名 / 类型
+  - Then: 无 `trace` / `revision` / `stale` 类字段
+  - Edge: 存档 round-trip 后投影重算 == 存档前投影(**逐位**)
 
-- **AC-3**: 分册跨机不裂(单机夹具)
-  - Given: 事件流固定;p 的 id = 2;模拟「存档 → 新会话 → 计数器由 `max(id)+1` 重构」
-  - When: 重构后以 p=2 再投影
-  - Then: 分册逐位相同
-  - Edge cases: 迁移后有新人加入得 id=3 ⇒ 不影响 p=2 分册;联机多机真夹具 BLOCKED-BY-45
+- **AC-3 · 跨机不裂(单机夹具,口径收窄)**
+  - Given: 事件流固定、p.id = 2;模拟「存档 → 新会话 → 计数器由 `max(id)+1` 重构」
+  - Then: 以 p=2 再投影,分册**逐位相同**;迁移后新人得 id=3 不影响 p=2
+  - ⚠️ **本条只证「重构不变」,不证「跨机稳定」** —— `AC-39-04 ③` 是 `BLOCKED-BY-45`,记 `NOT-RUN`
 
-- **AC-4**: 无「全量」重载(能力面)
+- **AC-4 · 无「全量」重载(能力面)**
   - Given: `ProjectVolume` 公开签名
-  - When: 编译期检查(存在 `(events)` 单参重载 = 失败)
-  - Then: `player_id` 为必选 int 参数;返回集内每条判断的 author 均 == 参数
-  - Edge cases: 传未发号的 id ⇒ 空分册(不报错、不「退化为全量」)
+  - Then: `player_id` 为必选 int 参数;**不存在** `(events)` 单参重载(以反射/编译期判,**不靠人看代码**)
+  - Edge: 传未发号的 id ⇒ 空分册(**不报错、不退化为全量**)
 
----
+- **AC-5 · 4 人互不污染**
+  - Given: 同一病例流,4 个发号 id
+  - Then: 各投影各的分册,内容独立(AC-39-04 的可单机子集)
+
+- **AC-6 · 「旧」态是枚举非颜色**
+  - Then: 呈现侧 `Stale` / `Current` 是**整数态值**,不是色值
+
+- **假绿防线**
+  - **F3**:折叠顺序若用被测常量做期望值 ⇒ 改常量时两边一起动;期望值写**字面量**
 
 ## Test Evidence
 

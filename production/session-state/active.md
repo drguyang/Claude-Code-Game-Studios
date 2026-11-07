@@ -17378,3 +17378,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `tests/smoke/critical_paths.json` #18/#22 的 `reason`(status 仍 none)·
   `production/sprints/sprint-25.md` §收口后追加件 二-3 的同句
 - 未做:未跑 `gh auth login`(不需要);未碰任何计数
+
+## Session Extract — sprint-26 QA 计划(2026-11-08)
+
+- `production/qa/qa-plan-sprint-26-2026-11-08.md` 成文:5 件(39 脉案链 4 + 库存 1)逐件规格
+- EditMode 新增 ≈ 36 条 · `[L]`/人工 5 组(其中 **BLOCKING 2 组**:AC-39-11 手柄全程 · AC-39-09 空白病名栏)
+- 已回填 5 张 story 卡面的 `## QA Test Cases` 节(全部带「原稿判据内核 + 边界 + 假绿防线」)
+- 三条硬约束:**名+返回类型双面扫描**(承 S25 `TutorialZeroGate` G2 教训)·
+  **能力面 ≠ 呈现面**· **BLOCKED-BY-45 残项一律 NOT-RUN**
+- ⚠️ `AC-20-20` 早就不缺前置(R9 2026-10-27 已回写),未勾只因走查未执行 ⇒ 记 NOT-RUN,禁写 BLOCKED
+- 下一步:开 S26-1(casebook-001,链头)

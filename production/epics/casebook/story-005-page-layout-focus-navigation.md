@@ -66,32 +66,38 @@
 
 ## QA Test Cases
 
-**[UI story — walkthrough + automated asset scans]:**
+> 🔁 **2026-11-08 回填(sprint-26 `/qa-plan`)** —— 本节由 `production/qa/qa-plan-sprint-26-2026-11-08.md` §S26-4 派生。
+> ⚠️ UI 类的自动化**只覆盖资产可扫面**;导航面归人工走查。
 
-- **AC-1**: 焦点序铁律
-  - Given: 一张七行读数全空的页 + 一张部分落笔的页
-  - When: 手柄 / Tab 连续正向遍历一圈
-  - Then: 访问序 = 面色→语声→姿态→呼吸→触感→病名→置信度,两页一致;空行被访问且仅触发压痕声 + 高亮
-  - Edge cases: 快速连按(超出刷新率的导航意图)不丢序、不重入
+**[UI story — automated asset scans]**
+文件:`unity/Assets/Tests/EditMode/Casebook/casebook_uxml_scan_test.cs`(约 4 条)
 
-- **AC-2**: 零按键提示资产扫描
+- **AC-1 · 页内零按键提示(规则八 / AC-8-44 39 侧)**
   - Given: `Casebook.uxml` + 相关 USS
-  - When: Story 004 扫描器(键闭集 + `text=` 黑名单)跑本 story 资产
+  - When: 词族扫描(**复用 S26-3 的同一张表,禁分叉**)+ `text=` 黑名单
   - Then: 零命中
-  - Edge cases: tooltip / `alt` 属性同扫(提示的旁路)
+  - Edge: `tooltip` / `alt` 属性同扫(提示的旁路)
 
-- **AC-3**: 两输入路径等价走查(AC-39-11 [L])
-  - Given: 干净存档 + 4 例病例夹具(1 全落笔 / 1 部分 / 2 空白)
-  - When: 仅用手柄走完「开册→翻至例 2→逐行读→落笔预览→合册」;录屏
-  - Then: 无一步需要指针 / 键盘;每步焦点可见;走查单 + 截图落证据目录 [L]
-  - Edge cases: 中途合册再开(焦点回册壳不飘走);4 人夹具下切册页签可达
+- **AC-2 · 焦点声明序 = 铁律序**
+  - Given: UXML 解析结果
+  - When: 读七行的**声明顺序**
+  - Then: 恰为 面色 → 语声 → 姿态 → 呼吸 → 触感 → 病名 → 置信度;无 `tabIndex` 乱序属性
+  - 理由:声明序即铁律的**物理保证** —— 这条可自动化,不必等走查
 
-- **AC-4**: 「旧」态非色单载
-  - Given: 同病例有当前笔 + 旧笔
-  - When: 截图 + 色觉模拟(灰度化)复查
-  - Then: 灰度下旧笔仍可辨(铅笔对勾承载);区分通道 ≠ 仅颜色 [L](AC-39-12 走查单)
+- **AC-3 · 空行在序中且可聚焦**
+  - Then: 空行元素存在于声明序、不是 `display:none`
 
----
+- **AC-4 · 无色单载**
+  - Then: 「旧」态元件引用**对勾形状**资源,不是纯色 class
+
+- **AC-5 · P0 无 disabled 按钮**
+  - Then: 首次打开路径无 `SetEnabled(false)`
+
+**[人工走查 —— 两条,见 QA 计划 §Manual]**
+
+- **`AC-39-11` `[L]` BLOCKING** 纯手柄全程:开册 → 翻至例 2 → 逐行读 → 落笔预览 → 合册;
+  七行访问序两页一致;空行有压痕声 + 高亮、零文案;合册再开焦点不飘。**无手柄 ⇒ `NOT-RUN`**
+- **`AC-39-12` `[L]` ADVISORY** 纸的物理感 + 「旧」态灰度仍可辨(非色单载)
 
 ## Test Evidence
 

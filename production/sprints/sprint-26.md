@@ -3,7 +3,10 @@
 > **前置**:`sprint-25` 已收口(2026-11-07,Closed with carryover;其「收口后追加件」六节与
 > S25-5 结转件补做均已落盘)。归档 yaml = `production/sprint-status-sprint25-archive.yaml`
 > (SHA-256 前 16 位 `8af99691c31f55bf`,覆盖前快照,8 个 story 条目)。
-> **QA 计划**:开工后立即跑 `/qa-plan sprint`(承 sprint-25 的用户裁定)。
+> **QA 计划**:✅ **已产出** —— `production/qa/qa-plan-sprint-26-2026-11-08.md`
+> (5 件逐件规格 + 假绿防线 F3/F4/F6/F7/F8/F9 点名到 AC + 人工 5 组 + smoke 范围),
+> 并已**回填进 5 张 story 卡面的 `## QA Test Cases` 节**。规划时本行原写「开工后立即跑」—— 原文不删,
+> 该计划确实是在计划文件成文**之后**跑出来的。
 > **容量口径**:本文件**不设结束日期** ⇒ 进度一律按 `production/CAPACITY-MODEL.md` §三 的
 > 「记录三元 + 约束三条」评估,**不用燃尽率、不用「件/日」**(该单位已整条废止)。
 

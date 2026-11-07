@@ -63,33 +63,40 @@
 
 ## QA Test Cases
 
-**[Logic story — automated test specs]:**
+> 🔁 **2026-11-08 回填(sprint-26 `/qa-plan`)** —— 本节由 `production/qa/qa-plan-sprint-26-2026-11-08.md` §S26-3 派生。
+> ⚠️ **口径**:本 story 只管「API 里**做不到**」。「就算有人偷加,UI 也不显示」**不是达标**。
 
-- **AC-1**: 公开签名黑名单扫描
+**[Logic story — automated test specs + 走查脚本]**
+文件:`unity/Assets/Tests/EditMode/Casebook/casebook_anti_fantasy_guard_test.cs`(约 8 条)
+
+- **AC-1 · 公开签名黑名单(AC-39-05)**
   - Given: 39 程序集全部 public 类型
-  - When: 反射枚举方法/属性/字段,匹配标识符黑名单
-  - Then: 零命中(命中 = 构建失败)
-  - Edge cases: 内部实验性方法标 `[Obsolete]` 也算命中(扫描面 = 全 public,无豁免)
+  - When: 反射匹配**方法名 / 参数名 / 返回类型名** ∈ `{GroupByDisease, SortByDisease, SearchDisease, CountBy*, CountUnopened, UnopenedCount, …}`
+  - Then: 零命中
+  - Edge: `[Obsolete]` 内部方法**也算命中**(扫描面 = 全 public,无豁免)
+  - ⚠️ **必须名 + 返回类型双面**:`Get()` 返回带病种维度的 DTO 照样泄漏(sprint-25 `TutorialZeroGate` G2 的教训)
 
-- **AC-2**: DTO 无病种维度
-  - Given: 39 消费的全部投影 DTO
+- **AC-2 · DTO 无病种维度**
   - When: `PresentationDtoGuard` 递归扫描 + 字段名黑名单
-  - Then: 无 `disease_id`/病名分组结构;`disease_id` 零出现
-  - Edge cases: 嵌套集合元素类型也被递归(列表泛型参数扫描)
+  - Then: `disease_id` 零出现,**含嵌套泛型实参**
 
-- **AC-3**: 文本键闭集
-  - Given: `.cooked` 文本表 + 39 UXML/USS 资产
-  - When: 构建期扫描:① 39 引用的键 ⊆ 闭集;② `text=` 直写 = 0;③ 黑名单词族(同源/相似/未结N/提醒)= 0
-  - Then: 三项全零命中
-  - Edge cases: 注释与测试夹具排除在扫描集外(白名单目录表)
+- **AC-3 · 文本键闭集(AC-39-06a)**
+  - 三项全零:① `.cooked` 键 ⊆ 闭集;② USS/UXML `text=` 直写 = 0;③ 黑名单词族 `{同源, 相似, 同症, 未结N, 提醒}` = 0
+  - Edge: 注释与测试夹具**排除**在扫描集外(白名单目录表)—— 否则注释里的「count」被误判
 
-- **AC-4**: 跨病例比较不存在(AC-39-08)
-  - Given: 投影 API 面
-  - When: 评审 + 断言:无任何函数接受「≥2 病例」输入对并返回相似/同源判定
-  - Then: 零命中;单病例状态词读出(37 的已处置)合法
-  - Edge cases: 串接组「叠」是同一**病人**的分组(允许),不是病种分组(禁止)—— 判据写进断言注释
+- **AC-4 · 零跨病例聚合(AC-39-08)**
+  - Then: 无任何函数接受「≥2 病例」输入对并返回相似/同源判定
+  - Edge: **串接组 = 同一病人的分组(允许)**,不是病种分组(禁止)—— 判据写进断言注释 + 一条正控
 
----
+- **AC-5 · `[L]` 走查脚本(AC-39-09)**
+  - 交付:`production/qa/evidence/casebook/story-004-l-walkthrough-scripts.md`
+  - 内容:空白病名栏的三案链存档 + 截图清单 + 「零提示 / 零兜底清单 / 零催办」逐条
+  - ⚠️ **脚本存在 ≠ 走查已跑**;执行归 QA 轮,未跑即 `NOT-RUN`
+
+- **假绿防线(本件高危)**
+  - **F4**:每条守卫配**负夹具**(故意造一个违例类型 ⇒ 必红),否则「零命中」与「扫描面空」不可区分
+  - **F3**:黑名单期望值写**字面量**;另加「故意扩充一个词 ⇒ 必红」的变异
+  - **F6**:每条守卫给 `file:line` + 一条能证明它会红的命令
 
 ## Test Evidence
 

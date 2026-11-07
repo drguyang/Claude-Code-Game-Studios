@@ -66,39 +66,45 @@
 
 ## QA Test Cases
 
-**[Logic story — automated test specs]:**
+> 🔁 **2026-11-08 回填(sprint-26 `/qa-plan`)** —— 本节由 `production/qa/qa-plan-sprint-26-2026-11-08.md` §S26-1 派生。
+> 原稿四条规格保留其判据内核,补了边界、假绿防线与「哪条不算覆盖」。
 
-- **AC-1**: 分册态段 round-trip 逐位还原
-  - Given: 构造含 2 名玩家 × 3 病人的分册态(两个 tick 各不同)
+**[Logic story — automated test specs]**
+文件:`unity/Assets/Tests/EditMode/Casebook/casebook_segment_codec_test.cs`(约 10 条)
+
+- **AC-1 · 段 round-trip 逐位相等**
+  - Given: 2 玩家 × 3 病人、两个 tick 各不同
   - When: 写出二进制段 → 读回
-  - Then: 全部字段与写出前逐位相等(bit-identical)
-  - Edge cases: 空分册(0 病人)round-trip = 恒等
+  - Then: 全部字段 `bit-identical`(**逐位**,不是「值相等」)
+  - Edge: 空分册(0 病人)round-trip = **恒等**;tick 取 `long.MinValue` / `0` / `long.MaxValue` 三档不失真
 
-- **AC-2**: 禁浮点静态检查
+- **AC-2 · 段内零浮点(反射)**
   - Given: 分册态段的全部序列化类型
-  - When: 反射扫描字段类型
-  - Then: 无 `float` / `double`;`Fix` 不走 Unity serializer(承 D-21-18 探针形制)
-  - Edge cases: 词表 id 越界(∉闭集)⇒ 解码硬失败,非静默吞
+  - When: 反射扫字段类型,**含泛型实参递归**
+  - Then: 无 `float` / `double`
+  - Edge: 词表 id 越界(∉ 闭集)⇒ 解码**硬失败**,非静默吞
 
-- **AC-3**: 分册键走真发号
-  - Given: 全新存档,`IIdAuthority` 计数器起点
+- **AC-2b · `Fix` 不经 Unity serializer(D-21-18 探针形制)**
+  - Then: `Fix` 走自定义二进制编码器;断言**不是** `JsonUtility` / `ISerializationCallbackReceiver` 路径
+
+- **AC-3 · 分册键走真发号**
+  - Given: 全新存档,计数器起点
   - When: 两名玩家相继进入
-  - Then: 分册键 = 发号器给的 `player_id`(非恒 0);同玩家重连不重发
-  - Edge cases: 单机 P0 ⇒ 仍走发号路径(首个 id 由计数器给,不特判常量)
+  - Then: 分册键 = `IIdAuthority` 给的 id(**非恒 0**);同玩家重连**不重发**
+  - Edge: 单机 P0 仍走发号路径,**不特判常量 0**
 
-- **AC-4**: 39 对 `IEventSink` 零调用
-  - Given: 分册态读写全流程跑通
-  - When: 静态断言 39 程序集内 `Append` 调用计数
-  - Then: = 0(分册态不进三流)
-  - Edge cases: 断言为编译期/构建期扫描,非运行时计数(承门 A 白名单断言先例)
+- **AC-4 · 39 零 `IEventSink.Append`**
+  - 判据:构建期 / 静态扫描 39 程序集内 `Append` 调用计数 = 0;**非运行时计数**
 
-- **AC-5**: 段损坏自动回退
+- **AC-5 · 段损坏自动回退**
   - Given: 人为翻转分册态段一字节
   - When: 读档
-  - Then: checksum 失败 ⇒ 回退上一 checkpoint;若仅分册段缺 ⇒ 空分册 + 从病例流可重建
-  - Edge cases: 三流完好、分册段损坏 ⇒ 游戏可继续(不判全档作废)
+  - Then: checksum 失败 ⇒ 回退上一 checkpoint;**三流完好时游戏可继续**(不判全档作废)
+  - Edge: 仅段缺失 ⇒ 空分册,且从病例流判断记录**重放出同一分册**
 
----
+- **边界与假绿防线**
+  - **F9**:每条 fail-closed 自述单独对 `default(T)` 验一遍(构造器守卫可被绕过)
+  - **F4**:正控前先断「构造确实改变了被测面」,否则「恒等 round-trip」在空实现下也绿
 
 ## Test Evidence
 

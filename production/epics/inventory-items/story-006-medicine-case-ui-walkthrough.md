@@ -67,30 +67,29 @@
 
 ## QA Test Cases
 
-*Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
+> 🔁 **2026-11-08 回填(sprint-26 `/qa-plan`)** —— 本节由 `production/qa/qa-plan-sprint-26-2026-11-08.md` §S26-5 派生。
 
-- **AC-20-10** [L]: 满溢感走查。
-  - Given: 可玩构建;从空箱逐件添至满。
-  - When: 人工走查(禁提示数字条件下判断「能否再装」)。
-  - Then: 四档可读(空/半满/近满/合盖受阻);零负重条/百分比;主创签核页归档 `production/qa/evidence/inventory-10-<date>.md`。
-  - Edge cases: 恰临界(`cap − W_MIN` 带,与机制谓词 AC-20-18 对照同一状态)。
-- **四档单调(可自动化半边)**。
-  - Given: `carry_load` 0..cap 全整数扫描;合成阈值组。
-  - When: 求档。
-  - Then: 档号随 carry_load 单调不增(松弛度视角)且只由 slack 决定(无第二输入);接缝 cap 值 = 20 的 `CARRY_CAP`(对象同一)。
-  - Edge cases: 阈值相邻平段(档不变);W_MIN>1 临界带不误判「满」。
-- **AC-20-20** [I](~~BLOCKED-BY-R9~~ **R9 ✅ 已回写 2026-10-27**;机制半边与走查半边现均可做)。
-  - Given: 超一屏夹具(>COLUMNS×ROWS 件);手柄独占。
-  - When: PageNext + 方向键遍历。
-  - Then: 全部器物可达、无死角;同内容同按键序列 ⇒ 同焦点目标(两次遍历路径逐位比);顺序 = instance_id 升序可见。~~R9 未回写 ⇒ 走查判据半边未勾~~ —— **✅ 2026-10-27 R9 已回写**:判据半边**不再缺前置**,本条未勾的唯一原因是**走查未执行**,按 `NOT-RUN` 记(禁借形状绿纪律不变)。
-  - Edge cases: 中途增删一件(投影变化)⇒ 焦点重定位确定性;末页回翻。
-- **AC-20-11 / 23** [L]: 音效听测 + 色盲手柄走查。
-  - Given: 录音样本 / 色盲模拟 + 两品级同种器物对。
-  - When: 听测 / 走查。
-  - Then: 零播报音(无 jingle/警告);存在非颜色通道区分品级;证据归档,与 44/42 联合签核。
-  - Edge cases: 走查未跑 ⇒ 未勾,禁借 EditMode 绿。
+**[Logic 半边 —— 自动化]**
+文件:`unity/Assets/Tests/EditMode/Inventory/carry_tier_monotonicity_test.cs`(约 5 条)
 
----
+- **四档对 `slack` 单调不增**:`carry_load` 从 0 到 `cap` 全整数扫描 ⇒ 档号随载重单调不增
+- **只由 `slack` 决定**:同一 `slack` 不同构造路径 ⇒ 同档(无第二输入)
+- **`CARRY_CAP` 唯一来源**:20/42 接缝里 cap 值与 20 的 `CARRY_CAP` **对象同一**
+- **临界带不误判**:`cap − W_MIN` 带内不判「满」(与机制谓词 AC-20-18 对照**同一状态**)
+- **阈值相邻平段**:档不变(穷举整数序列)
+- Edge: `carry_load = 0` / `= cap` / `= cap + 1`(越界)三档
+
+**[人工半边 —— 走查 / 听测]**,证据落 `production/qa/evidence/inventory-{10,11,20,23}-<date>.md`
+
+- **AC-20-10 `[L]`**:从空箱逐件添至满 —— 不看数字也知能否再装;**零负重条 / 百分比**
+- **AC-20-11 `[L]`**:全部库存音效听测 —— **零拾取 jingle、零满箱警告**(与 AC-44-09 联合)
+- **AC-20-23 `[L]`**:色盲模拟 + 仅手柄 —— 两品级同种器物**存在非颜色通道**(形状 / 药签文字)
+- **AC-20-20 `[I]`**:超一屏夹具,手柄仅用 `PagePrev/PageNext` + 方向键 —— **全部可达**;
+  同内容 + 同按键序列 ⇒ **同焦点目标**(两次遍历路径逐位比);序 = `instance_id` 升序
+
+⚠️ **AC-20-20 不缺前置**(R9 2026-10-27 已回写);未勾的唯一原因是**走查未执行**,记 `NOT-RUN`,**禁写成 `BLOCKED`**。
+
+**假绿防线**:F8 —— 42 与 20 若各写一份分档判据而行为巧合一致,证伪轮须**改坏其中一处**要求转红。
 
 ## Test Evidence
 
