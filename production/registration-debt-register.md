@@ -75,6 +75,24 @@
 | C7 已注册类 | sprint-04 :1156 | 黄铜/器具/焦点族零登记表 | 待裁 | 决定 019-d 接图量 |
 | S3 落点 | sprint-04 :1758 | S3 落点待裁(新 story-005 或挂 tick 接线 epic) | 归 TD 裁 | — |
 
+### E. 教学媒体资产(2026-11-07 · sprint-25 收口轮新立)
+
+> 病因:48 的三媒体里,**口述**那一路已闭环,另两路的**资产与接口两头都没有登记**——
+> 只在 GDD / UX spec 里写了归属,资产册(`design/assets/`)与批次册(`production/asset-batches/`)零条目。
+> 用户 2026-11-07 追问「缺的资产登记了吗」⇒ 逐条核后补登**资产条目**(`entity-inventory.md` §Props #9 +
+> 新增 §Animation Clips 6 行),但 **spec 与批次仍未出**,故本册留痕。
+
+| ID | 来源 | 内容 | 归属轮 | 备注 |
+|---|---|---|---|---|
+| TUT-资产-1 | `48_demonstration_clips.json` / story-004 AC-3 | **6 个示范片段**(`mentor_pulse_exam` … `mentor_place_structure`)只有**键名表**,**零资产文件 · 零 spec · 零批次** | 13 epic 资产轮 + art spec 轮 | 已补资产册条目(Animation Clips 6) |
+| TUT-资产-2 | `paper-closeup-48.md:238` | **纸世界道具**(摆在格上的那张纸)此前**全仓零登记**;归属 = 6 的布置轮,但**锚点格数据不存在** | 6 世界修订轮(布置)+ art(模型) | 已补资产册条目(Props #9);走查前提 |
+| TUT-资产-3 | `paper-closeup-48.md:237` | 纸插图 `paper_wangzhen_01_v1` 归 art(AB §8.2 UI-纸 1K 图集),**随图集走不单列**;今日**无素材** | art 资产轮 | 与既有 UI 贴图惯例一致,不另建资产行 |
+| TUT-接口-1 | story-004 / 本轮实测 | **42 缺 one-shot 片段播放口** —— `Presentation`/`UI` 搜 `Demonstration|SegmentKey|clipKey`(排除 Tutorial)**零命中** | 42 接口轮(与 13 资产同批) | 这是**接口**不是资产,但同为「示范能播」的前件 |
+| TUT-接口-2 | story-004 / 本轮实测 | **纸近景无生产开口** —— `OpenModal(ModalId.PaperCloseup48)` 全仓**零生产调用点**,走近摊开整条腿不可达 | 4(走近判定)+ 6(道具)+ 42 | 与 TUT-资产-2 同源;走查前提 |
+
+> ⚠️ **这五条不解,`AC-48-06` / `AC-48-15` 的 `[L]` 走查就跑不了** —— 不是「没测」,是**对象不存在**。
+> 复算:`grep -rn "OpenModal(ModalId.PaperCloseup48)" unity/Assets --include=*.cs | grep -v /Tests/` ⇒ **0**。
+
 ---
 
 ## 二、已结登记债(Closed · 留审计轨迹)

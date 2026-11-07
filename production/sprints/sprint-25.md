@@ -282,3 +282,24 @@ python3 tests/smoke/run_smoke.py --results unity/Logs/s25-4-em-final.xml unity/L
 | EditMode | **`7076 / 7039 / 0 / 0 / 37`** | `2026-11-07T13:46:21Z` | 同批 | 同上 |
 
 **等式判据**:PlayMode `365 − 364 = 1` = 新增的跳闸线用例;EditMode 不带改动(零回归)。
+
+### 五、资产登记补登(2026-11-07 · 用户追问「缺的资产登记了吗」)
+
+**答:此前只登记了「归属」,没登记「资产条目」。** 逐条核后补三处:
+
+| 面 | 补了什么 |
+|---|---|
+| `design/assets/entity-inventory.md` | §Props 新增 **#9 教学纸·世界道具**;新增 **§Animation Clips(6)**(6 个 `mentor_*` 示范片段);Summary `Props FP 7→8` · 新增 Animation 6 · **FP 62→69 / Total 104→111** |
+| 同上 · §Spec Files Index | 加缺口注:三族**资产条目已补,spec 仍未出** |
+| `production/registration-debt-register.md` §E | 新立 5 条:`TUT-资产-1/2/3`(6 片段 · 纸道具 · 纸插图)+ `TUT-接口-1/2`(42 播放口 · 纸近景生产开口) |
+
+**登记前的实况(逐条实测,不是印象)**:
+
+| 缺的东西 | 之前登记在哪 | 资产册? | spec? | 批次? |
+|---|---|---|---|---|
+| 6 个示范片段 | 只有 `48_demonstration_clips.json` 的**键名**(自陈「只登记键名与片段语义」) | ❌ | ❌ | ❌ |
+| 纸·世界道具 | 只在 `paper-closeup-48.md:238` 记「归 6 布置轮」 | ❌ | ❌ | ❌ |
+| 纸·插图 | 只在 UX spec `:237` 记「归 art,AB §8.2 图集」 | 随图集走,不单列 | ❌ | ❌ |
+| 42 one-shot 播放口 | 只在 story-004 的 `BLOCKED-BY` 注 | —(接口非资产) | ❌ | — |
+
+⚠️ **补登 ≠ 补齐**:资产文件、spec、批次三样仍未出;`AC-48-06` / `AC-48-15` 的 `[L]` 走查**仍然跑不了**。

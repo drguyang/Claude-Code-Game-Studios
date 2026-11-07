@@ -141,7 +141,7 @@
 | 4 | 建造模块（模块化网格） | 医馆改造/帐篷 | modular-building.md, ADR-015/ADR-003 |
 | 5 | 疫情爆发区域（Boss 场景） | 瘟疫扩散视觉 | game-pillars.md §四, random-events.md |
 
-### Props (8)
+### Props (9 · 实数 8 —— #8 已划删)
 
 | # | Entity | Description | Source |
 |---|--------|-------------|--------|
@@ -153,6 +153,25 @@
 | 6 | 铜压尺（存档位视觉） |  art-bible §2 |
 | 7 | 印泥盒 |  art-bible §2 |
 | 8 | ~~教学纸近景（PaperCloseup48）~~ **删 —— 重复计数** | ⚠️ **2026-10-03**:本项与 **HUD #4** 是**同一资产**,列两遍 ⇒ 本小节实数 **7**(非 8)。归属见 HUD 侧 | paper-closeup-48.md, ADR-013 §十 ⑦ |
+| 9 | **教学纸 · 世界道具**(纸本身) | 摆在世界的静态纸(不可拾取);走近 ⇒ 42 摊开 `ModalId.PaperCloseup48`。⚠️ **2026-11-07 补登** —— 此前只在 `paper-closeup-48.md:238` 记「归 6 布置轮」,**资产册里没有它**,也没有模型 spec | paper-closeup-48.md §12(归属 6), tutorial-and-onboarding.md AC-48-15 |
+
+### Animation Clips (6) · **2026-11-07 补登**
+
+> 48 的**示范**媒体:13 的师父(mentor)一次性动作片段,经 **42 的 one-shot clip 接口**播放(48 只调度)。
+> 键名真源 = `assets/data/48_demonstration_clips.json`(**只登记键名与语义,不含资产**);
+> ⚠️ 本节补的是**资产条目** —— 此前 6 个键在资产册里**一条都没有**,且今天**零资产文件**。
+
+| # | clipKey | 步 | 说明 | Source |
+|---|---------|----|------|--------|
+| 1 | `mentor_pulse_exam` | observe | 示范者搭脉 | 48_demonstration_clips.json |
+| 2 | `mentor_open_notebook` | judge | 翻开本子落笔 | 同上 |
+| 3 | `mentor_bandage_demo` | treat | 包扎处置 | 同上 |
+| 4 | `mentor_close_case` | close | 合上病例 | 同上 |
+| 5 | `mentor_open_ledger` | archive | 翻开存档册 | 同上 |
+| 6 | `mentor_place_structure` | manage | 摆放建造物 | 同上 |
+
+> ⚠️ **播放口也不存在**:`Presentation` / `UI` 里搜 `Demonstration|SegmentKey|clipKey`(排除 Tutorial 自身)**零命中**
+> ⇒ 42 今天**没有**这条接口。资产与接口两件都缺(登记见 `production/registration-debt-register.md` §E)。
 
 ### Items (4)
 
@@ -250,7 +269,7 @@
 |----------|------------------------|-----------------|-------|
 | Characters | 2 | 2 | 4 |
 | Enemies | — | 3 | 3 |
-| Props | 6 | 7 | 13 |
+| Props | 6 | 8 | 14 |
 | Buildings/Environment | 1 | 5 | 6 |
 | Items | 6 | 4 | 10 |
 | UI Screens | 1 | 6 | 7 |
@@ -259,7 +278,8 @@
 | SFX | 10 | 10 | 20 |
 | Ambient | 1 | 3 | 4 |
 | VFX Events | 7 | 6 | 13 |
-| **Total** | **42** | **62** | **104** |
+| **Animation Clips** | — | **6** | **6** |
+| **Total** | **42** | **69** | **111** |
 
 > ⚠️ **2026-10-03 二次订正(2026-10-03 三次收口)**:
 > **Props 8→7** —— 教学纸近景与 **HUD #4** 是同一资产,列两遍;去重后归属 **HUD 侧**
@@ -268,6 +288,12 @@
 > (接收了 Props 侧的归属),**不是 7**。原订正把「去重后归属 HUD」误写成「HUD 减为 7」。
 > ⇒ **FP = 63 − 1(去重) = 62**,而非原文的 61;Total = 42 + 62 = **104**,而非 103。
 > 上表 FP 列已就地改为 **Props 7 / HUD 8**(Total 列 13→12、15→16)。VS 列 42 不受影响。
+
+> 🔁 **2026-11-07 补登(教学媒体资产)**:+**1** Props(教学纸·世界道具)+ **6** Animation Clips
+> (48 的 6 个示范片段,`mentor_*`)⇒ FP `62 → 69`,Total `104 → 111`。
+> ⚠️ **这三族(纸插图 `paper_wangzhen_01_v1` / 纸世界道具 / 6 片段)** 此前**只在 GDD / UX spec 里记了归属**,
+> 资产册与 spec 册两头都没有条目 —— 本次补的是**资产条目**,**spec 仍未出**(见 §Spec Files Index 末注)。
+> 另:纸插图本身仍未单列(它归 art 的 UI-纸 1K 图集,AB §8.2;单张插图不单独建资产行,与既有 UI 贴图惯例一致)。
 
 ## Spec Files Index
 
@@ -294,6 +320,11 @@
 > **2026-09-29 修正**：后三项（纸质地图卷轴 / 铜怀表 / 教学纸近景）的 spec 头部
 > 原标 `Tier: Vertical Slice Critical`，但对应资产在本清单里位于 **Full Production** 节
 > （Props #1 / #2 / #8）。三份 spec 的头部 Tier 已同步改为 Full Production。
+
+> ⚠️ **2026-11-07 缺口(教学媒体)**:本索引**没有** `48` 的三族资产 ——
+> 纸插图(`paper_wangzhen_01_v1`,随 UI-纸图集走,不单列)、**纸世界道具**、**6 个示范片段**。
+> 三者在前两节已补**资产条目**,但 **spec 文件仍未出**;归属与解除动作登记在
+> `production/registration-debt-register.md` §E。
 
 **Spec coverage**(**2026-10-03 订正**): 磁盘实测 **19 份 spec** = **14 VS Critical** + **5 Full Production**
 (`audio-material-manifest` · `main-menu` · 及三份原标 VS 后改 FP 者);VS Critical 层覆盖全部需出图资产。
