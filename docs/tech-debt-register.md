@@ -11411,6 +11411,43 @@ cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
 python3 tools/debtcount/debtcount.py --print   # 期望:条目 150 | open 7 | P0 面 {'Y':101,'N':44,'~~**Y**~~':4,'~~**N**~~':1} | 未闭 P0 面 = 0
 python3 tools/debtcount/debtcount.py --check   # 期望:退出码 0
 grep -n "if: env.UNITY_CLIENT_ID" .github/workflows/unity-tests.yml   # 期望 5 命中(五处 if 仍恒假)
+
+### 🔁 2026-11-07 再确认(用户「推到 p2」)
+
+**出处**:sprint-25 收口后的补做轮,我在汇报里把 CI 列为「须用户 `gh auth login` 才能动」的第 2 条;
+用户回「推到 p2」。
+
+**处置 = 维持 2026-11-02 的裁定,不改状态**:
+
+| 项 | 值 | 变化 |
+|---|---|---|
+| `status` | `open` | 不变(工作确实没做) |
+| `P0 面` | `~~N~~`(退 P2) | 不变 |
+| 归属 | **P2 的 CI 轮** | 不变 |
+
+⚠️ **本轮要改的不是债册,是我自己的措辞** —— 把「凭证在用户侧 ⇒ 等用户登录」这个隐含前提
+从下游文档里去掉。它有两处害:(a) 让人以为**一条命令就解锁**,而本债 §「即便 secret 配好了」列的
+**6 条结构缺陷仍在盘上**,配好 secret 后五个干活 step 仍全 skip;(b) 让 CI 在收口时反复被当成
+「待用户处理的动作项」提出,而它**已裁 P2**,不是 P0 的欠账。
+
+同批订正:
+
+- `tests/smoke/critical_paths.json` 的 **#18 / #22** 两条 `reason` ——
+  原写「`TD-ci-01`(EXTERNAL,凭证在用户侧)」⇒ 补「**已退 P2**(2026-11-02 裁定 · 2026-11-07 再确认)」,
+  并写明「退 P2 不改变判据:ADR-012 §Validation 的常驻矩阵项仍不得勾」;
+  **`status` 仍为 `none`**(判据本身今天确实没有可执行载体,这一条不受归属影响)。
+- `production/sprints/sprint-25.md` §收口后追加件 二-3 的同句。
+
+⚠️ **未做、也不在 P2 之前做**:`gh auth login` 现在**不是**任何轮次的前置。它在 P2 的 CI 轮开始时
+才成为前置,且那时要连 `TD-ci-03`(连 run 都没被创建)一起处理 —— 两者不同因,见该节 §三。
+
+复算(本节不动任何计数):
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 tools/debtcount/debtcount.py --check   # 期望:退出码 0
+python3 -c "import json;d=json.load(open('tests/smoke/critical_paths.json'));print([i['status'] for i in (d['items'] if isinstance(d,dict) else d) if i['id'] in (18,22)])"  # 期望 ['none','none']
+```
 ```
 
 ---

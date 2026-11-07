@@ -17345,7 +17345,7 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   实测:8 通道全查后分册 `SignCount` 仍 0 ⇒ 新增 **跳闸线**用例 `test_ce_05_casebookReadings_tripwire_signsAreStillEmpty`,
   9 侧一旦产体征即转红(届时改正向判据 + 把 #9 改 `test`)
 - **#18/#22 维持 none**:ADR-012 跨构建矩阵,`TD-ci-01` EXTERNAL
-- **CI**:`gh auth status` = 「token in keyring is invalid」⇒ 仍零运行;**须用户 `gh auth login`** 才能动
+- **CI**:`gh auth status` = 「token in keyring is invalid」⇒ 仍零运行。🔁 **2026-11-07 用户「推到 p2」** ⇒ 维持 2026-11-02 裁定(`TD-ci-01` / `TD-ci-03` 同批退 P2);**`gh auth login` 不再是任何轮次的前置**,到 P2 CI 轮才需要
 - **示范 / 纸**:grep 实测 42 零播放口 · 纸零世界锚点 ⇒ 缺的是资产与内容格,不是代码
 - 回归:PlayMode `365/361/0/2/2` @13:43:00Z · EditMode `7076/7039/0/0/37` @13:46:21Z
 - 未入库(4 个文件:sprint-25.md · critical_paths.json · casebook_entry_wiring_test.cs · active.md)
@@ -17368,3 +17368,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   AssemblyGates.cs · TutorialProjection.cs · TutorialTrigger.cs · gate_wiring_manifest_test.cs ·
   tutorial_assembly_guard_test.cs)+ 新增 6 件(TutorialZeroGate.cs/.meta · AssemblyInfo.cs/.meta ·
   tutorial_zero_gate_guard_test.cs/.meta)+ 证据件
+
+## Session Extract — CI 退 P2 再确认(2026-11-07 · 用户「推到 p2」)
+
+- **不是新裁定** —— `TD-ci-01` / `TD-ci-03` 已于 2026-11-02 退 P2;本轮是**再确认** + 清掉下游措辞
+- 改的**不是债册状态**,是我自己的说法:把「凭证在用户侧 ⇒ 等用户登录」这个隐含前提去掉
+  (它掩盖了 6 条结构缺陷:配好 secret 后五个干活 step 仍全 skip;`TD-ci-03` 是另一因)
+- 落点:`docs/tech-debt-register.md` TD-ci-01 §新增「2026-11-07 再确认」·
+  `tests/smoke/critical_paths.json` #18/#22 的 `reason`(status 仍 none)·
+  `production/sprints/sprint-25.md` §收口后追加件 二-3 的同句
+- 未做:未跑 `gh auth login`(不需要);未碰任何计数
