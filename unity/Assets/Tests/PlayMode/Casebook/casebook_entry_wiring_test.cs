@@ -34,6 +34,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
 {
@@ -251,6 +252,57 @@ namespace DaYiJingCheng.Tests.PlayMode.CasebookEntry
                 "脉案开着时 Escape = 合册;非 None ⇒ 要么没合上,要么被暂停壳顶替(玩家回不去册)");
             Assert.AreEqual(streamBeforeClose, StreamCount(),
                 "合册本身**不得**写流(`casebook-39.md` §8:开 / 关册无 SimEvent;档位 = 本机表现态)");
+        }
+
+        // ══ ⑤ 脉案读数:**跳闸线**(tripwire),不是「有读数」的正向判据 ══
+        //
+        // 背景(`tests/smoke/critical_paths.json` #9 一直记 `none` —— 2026-11-07 查清原因):
+        //   42 的画法本身是完整的(`CasebookScreen.ApplyData` → `SignChannelBinder.Bind` → `.channel-reading`),
+        //   但它的**前件**—— 9 侧产出的体征 —— 今天恒为零(`DiseaseVitalsService` 恒 mask=0)。
+        //   实测(本用例):把 8 个通道**全部**查一遍之后,分册快照 `SignCount` 仍是 **0**
+        //   ⇒ `ActiveSignCount > 0` 那道门永不放开 ⇒ 脉案永远是空行。
+        //
+        // ⇒ 今天能写的判据只有「**跳闸线**」:断言当前确实为零。**9 侧一旦开始产出体征,
+        //    本用例立即转红**,逼人把它改成真正的正向判据(`.channel-reading` 出现 + 值来自 DTO),
+        //    并把 `critical_paths.json` #9 的载体接上。
+        // ⚠️ 它**不是**在「认可空读数」—— 红的时候的处置是**补判据**,不是删本用例。
+        [UnityTest]
+        public IEnumerator test_ce_05_casebookReadings_tripwire_signsAreStillEmpty()
+        {
+            yield return BootAndWaitForPatient();
+            yield return TeleportPlayerToPatient();
+            yield return PressInteract();
+            yield return null;
+            Assert.AreEqual(ModalId.Casebook, UiDriver.CurrentModal, "[前置] 已开册");
+
+            VisualElement root = UiDriver.GetUiRoot();
+            Assert.IsNotNull(root, "UI 根为空 —— 本判据无处可跑");
+
+            // 8 个通道全查:能查的都查了,才谈得上「9 侧没产出体征」
+            for (int ch = 0; ch <= (int)DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel.Subjective; ch++)
+                _services.CasebookCommands.ExamineChannel(
+                    (DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel)ch);
+            yield return null;
+            yield return null;
+
+            Assert.AreEqual(0, _services.CasebookSource.ActiveSignCount,
+                "分册快照出现体征了 —— **9 侧的体征接线已落地**。请把本用例改成正向判据:" +
+                "断言 `.channel-reading` 出现且词条来自 DTO,并把 `critical_paths.json` #9 接上载体。" +
+                "(这条红是**工作提示**,不是回归。)");
+
+            List<VisualElement> readings = root.Query<VisualElement>(className: "channel-reading").ToList();
+            Assert.AreEqual(0, readings.Count,
+                "体征数为 0 却出现了读数格 ⇒ 42 在造占位(与 `CasebookScreen.ApplyData` 的 tripwire 门矛盾)");
+
+            // 与体征无关、今天**就成立**的一半:UI 里不得出现 `disease_id` 这个标识符。
+            foreach (VisualElement el in root.Query<VisualElement>().ToList())
+            {
+                Assert.IsFalse((el.name ?? string.Empty).Contains("disease_id"),
+                    $"UI 元素名出现 `disease_id`:{el.name}");
+                if (el is TextElement textEl)
+                    Assert.IsFalse((textEl.text ?? string.Empty).Contains("disease_id"),
+                        $"UI 文本出现 `disease_id`:「{textEl.text}」");
+            }
         }
 
         // ══════════════════════════ 辅助 ══════════════════════════

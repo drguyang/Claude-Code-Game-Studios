@@ -17337,3 +17337,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 收口口径:**Closed with carryover** —— Must 3 全交付;Should 的 S25-5 结转;
   三媒体只通口述一路;四条 [L] / smoke / 联机面全部 NOT-RUN 且如实列在 §六
 - 待入库:2 个文件(sprint-25.md · sprint-status.yaml)
+
+## Session Extract — sprint-25 收口后追加件(2026-11-07 · 用户「继续完成」)
+
+- **smoke 首次真跑**:`run_smoke.py --results <EM> <PM>` ⇒ 16 PASS / 0 FAIL / 3 具名人工 / **3 无载体** ⇒ **exit 3 = INCOMPLETE**(不是 PASS)
+- **#9 查清 = 前件不存在**:42 画法完整,缺的是 9 侧的体征(`DiseaseVitalsService` 恒 mask=0)。
+  实测:8 通道全查后分册 `SignCount` 仍 0 ⇒ 新增 **跳闸线**用例 `test_ce_05_casebookReadings_tripwire_signsAreStillEmpty`,
+  9 侧一旦产体征即转红(届时改正向判据 + 把 #9 改 `test`)
+- **#18/#22 维持 none**:ADR-012 跨构建矩阵,`TD-ci-01` EXTERNAL
+- **CI**:`gh auth status` = 「token in keyring is invalid」⇒ 仍零运行;**须用户 `gh auth login`** 才能动
+- **示范 / 纸**:grep 实测 42 零播放口 · 纸零世界锚点 ⇒ 缺的是资产与内容格,不是代码
+- 回归:PlayMode `365/361/0/2/2` @13:43:00Z · EditMode `7076/7039/0/0/37` @13:46:21Z
+- 未入库(4 个文件:sprint-25.md · critical_paths.json · casebook_entry_wiring_test.cs · active.md)

@@ -222,3 +222,63 @@ python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s25-4-pm-f
 
 ⚠️ 追加 3 件全是「走查手段不足」连带查出的缺口(S25-6 是工具,S25-7/8 是它查出的两个缺陷),
 不是新特性 —— 但**按口径仍计超支**,作复盘素材。
+
+---
+
+## 收口后追加件(2026-11-07 · 承用户「继续完成」的三条遗留)
+
+> 本节**不计入**本 sprint 的计划件数(与 sprint-24 的「收口后追加件」同口径)。
+
+### 一、`/smoke-check sprint` 首次真跑
+
+```bash
+python3 tests/smoke/run_smoke.py --results unity/Logs/s25-4-em-final.xml unity/Logs/s25-4-pm-final.xml
+```
+
+| 读数 | 值 |
+|---|---|
+| 合计 | 22 条 |
+| 自动 PASS | **16** |
+| 自动 FAIL | **0** |
+| 未跑(需结果件) | 0 |
+| 具名人工 | 3(#19 / #20 性能与延迟、#3 启动序人看) |
+| **无载体(无名)** | **3**(#9 / #18 / #22) |
+| 退出码 | **3 = INCOMPLETE** |
+
+⚠️ **这不是 PASS**:`exit 3` 按 skill 与 `TD-smoke-01` 的口径是「无失败,但有具名无载体条目」。
+`smoke-2026-11-06.md` 的 `PASS WITH WARNINGS` 结论不变。
+
+### 二、#9 查清:**前件不存在**,不是「没人写测试」
+
+原登记理由写「需 42 接真 DTO 的运行时观测量」。**该判断是错的**(至少不完整)。
+
+- 42 的画法**是完整的**:`CasebookScreen.ApplyData` → `SignChannelBinder.Bind` → `.channel-reading`;
+- 真正缺的是**它的前件** —— 9 侧产出的体征。`ActiveSignCount > 0` 那道门今天永不放开;
+- **实测**(PlayMode `casebook_entry_wiring_test.test_ce_05_casebookReadings_tripwire_signsAreStillEmpty`):
+  把 8 个查体通道**全部**查一遍之后,分册快照 `SignCount` 仍 = **0**
+  ⇒ `DiseaseVitalsService` 恒 `mask = 0`(`CasebookScreen.cs:750` 的注释已写「tripwire 语义」)。
+
+处置:
+1. 新增用例 = **跳闸线** —— 断言当前确实为零。**9 侧一旦产出体征它立即转红**,
+   届时改成正向判据(断言读数出现且来自 DTO)并把 `critical_paths.json` #9 改成 `test`;
+2. `critical_paths.json` 的 #9 `reason` 就地订正(状态仍 `none` —— 今天确实没有可执行正判据);
+3. #18 / #22 维持 `none`:两者都是 **ADR-012 跨构建矩阵**,`TD-ci-01` EXTERNAL(凭证在用户侧)。
+
+### 三、另两条遗留的**结论**(不是「没做」)
+
+| 遗留 | 实测结论 | 缺什么 |
+|---|---|---|
+| 示范媒体 | `Presentation` / `UI` 里搜 `Demonstration|SegmentKey|clipKey`(排除 Tutorial 自身)**零命中** ⇒ 42 **没有一次性片段播放口** | 13 的片段资产 + 42 的播放口 |
+| 纸近景 | `p_wangzhen` 只存在于 `48_tutorial_content.json`;**全仓无任何世界锚点**;`OpenModal(PaperCloseup48)` 零生产调用点 | 6 的纸道具格 + 4 的走近判定 + 插图资产 |
+
+⇒ 这两条**不是补几行代码就能通**的:`纸` 缺的是**内容**(道具摆在哪一格),`示范` 缺的是**资产**。
+在没有这两样之前把机制焊上去,只会得到一个「点不到」或「看不见」的功能。
+
+### 四、回归三元组(本节)
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| PlayMode | **`365 / 361 / 0 / 2 / 2`** | `2026-11-07T13:43:00Z` | 收口后追加件 | 工作树(`ed5baa3c` 之上) |
+| EditMode | **`7076 / 7039 / 0 / 0 / 37`** | `2026-11-07T13:46:21Z` | 同批 | 同上 |
+
+**等式判据**:PlayMode `365 − 364 = 1` = 新增的跳闸线用例;EditMode 不带改动(零回归)。
