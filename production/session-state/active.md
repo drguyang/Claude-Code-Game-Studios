@@ -17272,3 +17272,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `7066/7029/0/0/37` · PlayMode `364/360/0/2/2` @05:11:36Z / 05:14:13Z
 - 证据:§19.7 已补进 `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md`
 - 未入库(等用户指令)
+
+## Session Extract — 真包键鼠世界空间路径(2026-11-07 05:16–05:30Z)
+
+- 用户「验一下键鼠的真包世界空间路径」
+- 注入层与手柄那侧**不同**:X11 XTest(`tools/input/xkeys.py`),必须有窗口 + 焦点;
+  不能用 `-batchmode`。(实测依据:给 event* 授权**之前**键盘就能读 ⇒ Unity 键盘走 X11)
+- 新工具 `tools/input/verify_world_kbm.py`:复用 `verify_world_gamepad` 的 parse/judge,
+  注入换成 W(按住)/E/F(按住 3.5 s);新增 `[tutorialdiag] 键=` 列(本轮)
+- 真包一轮 **PASS ×3**:走近 15 格 · 急救 Armed 3/Treatment 4/Explore 6 · 就诊 `模态=Casebook`
+- 变异 K1(去掉 W)+ K2(去掉 E)⇒ ① ② 转红、③ 仍绿;还原 SHA-256 `c041595a…` 一致
+- 回归:EditMode `7066/7029/0/0/37` · PlayMode `364/360/0/2/2` @05:23:42Z / 05:26:23Z
+- 证据:§19.8 已补;干净日志 `/tmp/dyjc-kbm-world-pass.log`
+- ⚠️ 过程失误如实记:首轮 PASS 日志被变异轮同名覆盖 ⇒ 之后改用 `--log` 分名
+- 未入库(等用户指令)

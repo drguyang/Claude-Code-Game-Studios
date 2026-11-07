@@ -127,6 +127,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-11-07(真包手柄注入排查):`手柄=` 列把 Unity **看到的** Gamepad 现状打出来 ——
             //    区分「设备没进 Input System」与「进了但按键码对不上」两因。只读、无副作用。
             sb.Append(" 手柄=").Append(DescribeGamepad());
+            sb.Append(" 键=").Append(DescribeKeys());
             // 🔁 2026-11-07:`路由=` = 上一次 E(Interact)按下沿选中的种类
             //    (`InteractionPressRouter.LastRoutedKind`;`无` = 选过但没目标,`未建` = 路由未装配)。
             //    用来区分「按键没到驱动」与「到了但一个候选都没选中」。
@@ -250,6 +251,26 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (gp.startButton.isPressed) sb.Append('T');
             if (gp.leftStick.ReadValue().sqrMagnitude > 0.01f) sb.Append("_LS");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Unity **读到的**键盘按键(真包键鼠注入排查用;2026-11-07)。
+        /// <para>与 <see cref="DescribeGamepad"/> 同一用途:区分「键没进 Input System」与
+        /// 「进了但没被消费」。`X` = Escape。空 = 一个都没按。</para>
+        /// </summary>
+        private static string DescribeKeys()
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return "无";
+            var sb = new StringBuilder(8);
+            if (kb.wKey.isPressed || kb.upArrowKey.isPressed) sb.Append('W');
+            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) sb.Append('A');
+            if (kb.sKey.isPressed || kb.downArrowKey.isPressed) sb.Append('S');
+            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) sb.Append('D');
+            if (kb.eKey.isPressed) sb.Append('E');
+            if (kb.fKey.isPressed) sb.Append('F');
+            if (kb.escapeKey.isPressed) sb.Append('X');
+            return sb.Length == 0 ? "." : sb.ToString();
         }
 
         private static void AppendPatients(StringBuilder sb, WorldPos playerCell, PresenceRegistry presence)

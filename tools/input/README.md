@@ -36,6 +36,7 @@ sudo bash tools/input/install_uinput_permissions.sh
 | `verify_world_gamepad.py` | 起 player（`-tutorialdiag -batchmode -nographics`）→ **边读读数边推输入**（自适应）→ 判 PASS/FAIL |
 | `world_gamepad_trace.json` | 静态时间线，供 `vpad.py --trace` 手动复现（自适应脚本已不依赖它） |
 | `install_uinput_permissions.sh` | 上面那条 sudo |
+| `xkeys.py` / `verify_world_kbm.py` | **键鼠那一侧**:X11 XTest 注入 + 同一套三条判据 |
 
 ## 跑
 
@@ -59,6 +60,27 @@ PASS ① 走近    cell.z 区间 [0, 14]，前进 14 格
 PASS ③ 急救档位 Armed 样本 3 · Treatment 样本 4 · Treatment 之后回 Explore 样本 6
 PASS ② 就诊    模态=Casebook 样本 1
 ```
+
+## 键鼠路径(另一条注入层,2026-11-07 同轮跑通)
+
+```bash
+python3 tools/input/verify_world_kbm.py
+```
+
+同一套判据(走近 / 就诊 / 急救档位),注入换成 **W / E / F**,走 **X11 XTest**。
+与手柄那条有**两处结构性差别,不能互推**:
+
+| | 手柄(uinput) | 键鼠(XTest) |
+|---|---|---|
+| 需要窗口 | 不需要(设备级) | **需要**(XTest 只发焦点窗口) |
+| 能否 `-batchmode` | 能 | **不能**(无 X 连接) |
+| 失焦影响 | 设备被停用 | 按键打到别处 |
+| 注入期 | 无焦点要求 | **每 1.5 s 重置焦点** |
+
+实测:一轮 `PASS ×3`;`键=F` / `键=W` 读数可见。判据非空转:变异「去掉 W 保持 + 去掉 E」
+⇒ ① ② 转红、③ 仍绿(单红 = 独立靶)。
+
+⚠️ **鼠标**:世界空间 P0 没有指针动作(交互是键位),鼠标面在 42 UI 走查里,不在本判据内。
 
 ## 实测踩到的五个坑（**都是真的会静默失败的那种**）
 
