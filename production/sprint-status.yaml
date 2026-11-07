@@ -74,14 +74,14 @@ stories:
     name: "tutorial/004 三媒体调度与纸近景模态"
     file: "production/epics/tutorial-onboarding/story-004-three-media-scheduling-paper-modal.md"
     priority: should-have
-    status: review
+    status: done
     owner: ""
     estimate_days: 0
     complexity: L
     chain: "教学链"
     blocker: ""
-    completed: ""
-    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。🔁 2026-11-06 晚补齐两个子轮(同一卡面,不另算件):**S25-4b** Boot 翻译层(48 意图 → 44 音 + 42 字幕,字幕文本取事件表的 subtitle_text 作单一真源)· **S25-4c** 全链驱动(事件流 → 解码 → 投影 → 评估 → 调度 → 投递,增量游标 + 流替换重播种),commit e1c2669e。⇒ 原记 NOT-RUN 的「字幕投递(待 Boot 翻译层)」**已落**。真包已证:教学口述**出声**(与素材归一化互相关 0.9199)且**出字幕**(屏上文本 = 事件表口径,非 48 内容表);同轮查出并修掉口述声源格恒为世界原点的缺陷(-33.3 → -3.6 dB)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 其余三条口述(judge/close/archive)的出声 · AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md · impl-s25-4b-tutorial-media-translation-2026-11-06.md · impl-s25-4c-tutorial-chain-wiring-2026-11-06.md · walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(§8/§9/§10)。🔁 2026-11-06 深夜再对账:**四条口述全部出声已证** —— 真包用生产解析面依次播 48 的四条 cue 并录音,归一化互相关 Observe 0.8848 / **Judge 0.9978** / **Close 0.9911** / **Archive 0.9798**,增益 0.607–0.618(−4.2~−4.3 dB)四条一致,起点间隔 5.5 s 与设定吻合。(⚠️ 这不是「六步都能教到」:`judge` / `close` 的**游戏内触发**未走通(手动脉案走查卡在把焦点送进病名册条目,不是走不通的证据),`archive` 仍 **结构不可达**。宁可少记,不借绿。)commit 4b3bfaf2。"
+    completed: "2026-11-07"
+    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。🔁 2026-11-06 晚补齐两个子轮(同一卡面,不另算件):**S25-4b** Boot 翻译层(48 意图 → 44 音 + 42 字幕,字幕文本取事件表的 subtitle_text 作单一真源)· **S25-4c** 全链驱动(事件流 → 解码 → 投影 → 评估 → 调度 → 投递,增量游标 + 流替换重播种),commit e1c2669e。⇒ 原记 NOT-RUN 的「字幕投递(待 Boot 翻译层)」**已落**。真包已证:教学口述**出声**(与素材归一化互相关 0.9199)且**出字幕**(屏上文本 = 事件表口径,非 48 内容表);同轮查出并修掉口述声源格恒为世界原点的缺陷(-33.3 → -3.6 dB)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 其余三条口述(judge/close/archive)的出声 · AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md · impl-s25-4b-tutorial-media-translation-2026-11-06.md · impl-s25-4c-tutorial-chain-wiring-2026-11-06.md · walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(§8/§9/§10)。🔁 2026-11-06 深夜再对账:**四条口述全部出声已证** —— 真包用生产解析面依次播 48 的四条 cue 并录音,归一化互相关 Observe 0.8848 / **Judge 0.9978** / **Close 0.9911** / **Archive 0.9798**,增益 0.607–0.618(−4.2~−4.3 dB)四条一致,起点间隔 5.5 s 与设定吻合。(⚠️ 这不是「六步都能教到」:`judge` / `close` 的**游戏内触发**未走通(手动脉案走查卡在把焦点送进病名册条目,不是走不通的证据),`archive` 仍 **结构不可达**。宁可少记,不借绿。)commit 4b3bfaf2。 🔁 **2026-11-07 收口轮**:口述一路**闭环并有真包观测**(字幕上屏 = 事件表口径 · 音频互相关 0.6032);`AC-48-06`/`AC-48-15` 的字幕半边成立,走查半边**对象不存在**(纸屏无生产开口)。示范 `BLOCKED-BY` 13+42、纸 `BLOCKED-BY` 6+4 —— 两条触发面**今天不存在**,AC 复选框保留未勾。🔁 **同日追加甲案(用户裁定)**:`TD-tutorial-01` 已**结案** —— 四条文案对齐事件表并重烘,新增构建期跨表门 `TutorialNarrationSubtitleCrossRefGate`(接 `AssemblyGates.RunAll`)+ 9 条夹具;真负例:JSON 还原成旧版重烘 ⇒ 夹具红 + 构建 `Failure`(四条 [C3] 进构建日志);证伪 M1/M2 各自单红;数据与产物 SHA-256 逐字节还原。回归 EditMode 7076/7039(+9)· PlayMode 364/360 @ 07:20:04Z / 07:21:12Z。证据 = production/qa/evidence/impl-s25-4d-narration-subtitle-crossref-2026-11-07.md。**Complete 口径 = 本 story 自身范围完成**,不得读成三媒体全通。"
   - id: "S25-5"
     name: "tutorial/005 零设门与零按键提示守卫及走查"
     file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"

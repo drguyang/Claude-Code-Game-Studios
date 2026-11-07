@@ -16,13 +16,12 @@
 // AC-44-15 逐字:「文本本体 = 44 维护的事件表 `subtitle_text` 字段,上游发射点解析」。
 // ⇒ 本类**不用** `TutorialMediaIntent.Text` 投字幕,而是 `ordinal → 表行 → subtitle_text`。
 //
-// ⚠️ **2026-11-06 如实登记的既有分歧(不在本层修)**:同一 cue 在两张表里台词**不同** ——
-//    `assets/data/48_tutorial_content.json` 的 `narration[].text` 与
-//    `assets/data/audio_events.json` 的 `rows[].subtitle_text` 对同样四条 cue 给出了两种措辞
-//    (例:`Narration_TeachObserve_01` =「先看看这个人。气色、神态,都在脸上。」
-//     vs「喘着气,气色、神态,都在脸上。」)。`AC-48-15` 要的是「同一行、不得两处各写一份」,
-//    而现在是**两份**。本层按 AC-44-15 取音频表为准;两表的**内容对账**与「同源」的机械门
-//    归内容轮 / 构建期校验,**未做**,不得据本类推断已一致。
+// ⚠️ **2026-11-06 登记的既有分歧 —— 2026-11-07 已收口(原文保留)**:当时同一 cue 在两张表里
+//    台词**不同**(`48_tutorial_content.json` 的 `narration[].text` vs `audio_events.json` 的
+//    `rows[].subtitle_text`,四条全不一致)。用户 2026-11-07 裁定**甲案**:以音频表(配音的事实)
+//    为准对齐,并立构建期跨表门 `TutorialNarrationSubtitleCrossRefGate`
+//    (判据 C1 缺行 / C2 无字幕 / C3 文本不一致 + 三个空集/重复守卫,接进 `AssemblyGates.RunAll`)。
+//    ⇒ 两表自此**必须逐字相等**,分叉 = 构建失败。本类仍按 AC-44-15 取音频表为准(单一真源不变)。
 //
 // ═══ 本类不做什么 ═══════════════════════════════════════════════════════════
 //   · **不排序、不去重、不计时**:输入即意图(顺序由 `TutorialDispatcher` 给),

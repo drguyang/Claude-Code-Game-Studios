@@ -398,7 +398,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         //  AC-1 / AC-2 ③ · 长度边界**成对**
         // ════════════════════════════════════════════════════════════════
 
-        private const string SeedObserveText = "\"text\": \"先看看这个人。气色、神态,都在脸上。\"";
+        private const string SeedObserveText = "\"text\": \"喘着气,气色、神态,都在脸上。\"";
 
         [Test]
         public void test_check3_text170_passes()

@@ -17300,3 +17300,29 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   (`Logs/s25-1-close-editmode3.xml` / `s25-1-close-playmode2.xml`)
 - 证据:impl-s25-1 §8/§9 · impl-s25-2 §7
 - 未入库(等用户指令)
+
+## Session Extract — S25-4 收口(2026-11-07)
+
+- 用户「继续收 S25-4」
+- 口述一路**闭环**:字幕生产调用点 `TutorialMediaDriver.cs:180`;真包屏上文本 = 事件表 `subtitle_text`、
+  音频互相关 0.6032 ⇒ 字幕 AC 勾上(evidence = walkthrough-s25-4c §8.2/§8.3)
+- 另两路**生产触发面不存在**:示范(`TutorialMediaDriver` 显式不消费)· 纸(`OpenModal(PaperCloseup48)`
+  全仓零生产调用点)⇒ `BLOCKED-BY` 13+42 / 6+4,AC 复选框保留未勾
+- 新立 `TD-tutorial-01`:48 内容表 `text` vs 44 事件表 `subtitle_text` 四条全不一致(第二真源);
+  归属须用户裁(甲:对齐+跨表门 / 乙:删 48 的 text 真正单一真源)
+- 件面:S25-4 → done(Complete 口径 = 本 story 自身范围);门 debtcount/acid 均 exit 0
+- 回归沿用 S25-4c 末轮(本轮无代码改动):EditMode 7067/7030 @06:16:11Z · PlayMode 364/360 @06:17:14Z
+- 未入库(等用户指令)
+
+## Session Extract — S25-4d 文案跨表对齐(2026-11-07 · 用户裁定甲案)
+
+- 用户「甲:对齐两张表文案并补上跨表校验」
+- 数据:48 四条 `narration[].text` 对齐事件表 `subtitle_text`;重烘 1904 B
+- 门:`TutorialNarrationSubtitleCrossRefGate`(C1 缺行 / C2 无字幕 / C3 不一致 + G1/G2/G3),
+  接 `AssemblyGates.RunAll`;manifest 的 EntryWiring + ClassVerdict 同批补登
+- 判据 9 条;**真负例**:JSON 还原旧版重烘 ⇒ 夹具红 + **构建 Failure**(四条 [C3])
+- 证伪 M1(C3 停用)/ M2(删 G1)各单红;门 SHA-256 f40f4dc6… 还原
+- 中途 6 条红 = 旧文案种子锚点失效(夹具前提守卫正常工作)⇒ 更新锚点,不放宽守卫
+- 回归(终树):EditMode 7076/7039/0/0/37 @07:20:04Z · PlayMode 364/360/0/2/2 @07:21:12Z
+- `TD-tutorial-01` **结案**;未闭 P0 面仍 15 · 7/31
+- 未入库(等用户指令)

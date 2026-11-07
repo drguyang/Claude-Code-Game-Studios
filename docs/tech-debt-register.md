@@ -500,6 +500,7 @@
 | `TD-foraging-04` | `foraging` | closed | **N** | R4 |
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 | `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | closed | **N** | R3-裁 |
+| `TD-tutorial-01` | `tutorial-onboarding` | closed | **N** | R4 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -1485,7 +1486,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 199 | 状态 {'closed': 167, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 59, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 200 | 状态 {'closed': 168, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 60, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 15 （已闭但曾标 P0 面的 119 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
     skeuomorphic-ui: 5        random-events: 4          modular-building: 2
@@ -12687,3 +12688,30 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **证伪轮** | **M1**(注掉 `FocusAfterRebuild(...)` 调用)⇒ **3 红**(开屏落焦 / 重绑保持 / 焦点移开撤销);还原后 SHA-256 `cf778fe2…e55601` 逐字节一致。 |
 | **⚠️ 真包面** | 「真包开屏后第一次 `Submit` 即进入二段态」**仍 NOT-RUN** —— 见 §13 的 `[L]` 与 S25-3 的真包验收。**本条结案只覆盖代码可判面 + PlayMode 夹具**。 |
 | **🔁 2026-11-06 16:37 真包已补跑(上行的「未跑」作废,原文保留)** | 新局 → 灶台按 `E` ⇒ 炮制屏两行且**第一行带铜环**;只按一次 `Return` ⇒ 行变 `── 落火` 且**未点火**。⇒ **开屏落焦在真包成立**。证据 = `production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md` §8(`w10-processing.png` / `w11-armed.png`)。 |
+
+### TD-tutorial-01 —— 教学口述的文案在 48 内容表与 44 事件表里**各写一份且四条全不一致**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 同一句口述在两处各有一份文案:`assets/data/48_tutorial_content.json` 的 `narration[].text`(作者态内容表)与 `assets/data/audio_events.json` 的 `rows[].subtitle_text`(44 事件表)。四条教学口述**全部不同**,且差异是**整句改写**、不是标点。运行期字幕**只读事件表**(`TutorialMediaDriver.cs:160-161`,S25-4b 裁定),48 那份仍由 `TutorialDispatcher.cs:219` 装进 `TutorialMediaIntent.Text`,而该字段**零显示消费方**。 |
+| **实测(可跑,2026-11-07)** | `python3 -c "import json;c={r['cueId']:r['text'] for r in json.load(open('assets/data/48_tutorial_content.json',encoding='utf-8'))['narration']};a={r['cue']:r['subtitle_text'] for r in json.load(open('assets/data/audio_events.json',encoding='utf-8'))['rows'] if r['cue'] in c};print([(k,c[k],a[k]) for k in c if c[k]!=a[k]])"` ⇒ 四条全部命中。例:`Narration_TeachObserve_01` 内容表 `先看看这个人。气色、神态,都在脸上。` vs 事件表 `喘着气,气色、神态,都在脸上。` |
+| **哪一份是「真的」** | **事件表那一份** —— 配音资产就是按它生成的(2026-10-21 audio 走查记录「首词『喘着气』」;真包字幕上屏也是这一句)。48 那份是更早的作者态草稿,今日**不驱动任何呈现**。 |
+| **后果** | ① 未来有人改 48 的文案(直觉上「内容归 48」)**不会**改变字幕与配音 —— 静默无效;② 若有人把 `intent.Text` 接回显示面,字幕会立刻与配音不符;③ 「同一句话两处维护」本身是第二真源,迟早分叉(已经分叉了)。 |
+| **为什么 `P0 面 = N`(R4)** | 不影响任何 P0 判据:AC-48-15 的字面要求是「字幕必须过 AC-44-15 管线」,而**字幕与配音取的是同一行**,成立。本条是**作者态一致性**问题,不阻塞 P0 出口;但它的触发条件很浅(下一次改文案),所以必须留痕而不是口头记。 |
+| **解除动作(须用户裁,二选一)** | **甲**:把 48 的 4 行文本对齐事件表并重烘 `48_tutorial_content.cooked`,再补一条跨表门(同 cue ⇒ 两表文本必须相等);**乙**:把 `text` 从 48 内容表移除、`TutorialMediaIntent.Text` 一并去掉 —— 真正单一真源(代价:改烘焙 schema + 若干夹具)。**它是内容归属问题(文案属于 48 还是 44),不是实现细节,故不自行裁**。 |
+| **触发条件** | ① 任何一次修改教学口述文案(立即触发);② 若 `intent.Text` 被接回显示面 ⇒ 本条的 P0 面立刻改判 **Y**。 |
+| **出处** | `production/qa/evidence/impl-s25-4b-tutorial-media-translation-2026-11-06.md` §5 · `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md` §9(真包屏上文本 = 事件表口径) |
+
+**✅ 2026-11-07 结案(用户裁定甲案 · sprint-25 S25-4 收口轮)**
+
+| 侧 | 内容 |
+|---|---|
+| **裁定** | 用户 2026-11-07 选**甲**:以**事件表**(配音的事实)为准对齐 48 的文案,并补跨表机械门。乙案(删 48 的 `text`、改烘焙 schema)未采纳。 |
+| **数据对齐** | `assets/data/48_tutorial_content.json` 的四条 `narration[].text` 改为事件表 `subtitle_text` 逐字同值(`Observe/Judge/Close/Archive`);重烘 `48_tutorial_content.cooked.bytes`(1904 B)。 |
+| **机械门(执行体)** | `unity/Assets/Editor.Tools.Gates/TutorialNarrationSubtitleCrossRefGate.cs` —— C1 缺行 / C2 无字幕(缺失或空串)/ C3 文本不一致 + G1 口述 0 行 / G2 事件表 0 行 / G3 cue 重复 三个守卫;**方向只查 48 → 44**(事件表里另有字幕文本合法)。接进 `AssemblyGates.RunAll`(菜单 / reload / 构建前三处共用),门链 manifest 与 `EntryWiringManifest` 同批补登。 |
+| **判据(9 条)** | `unity/Assets/Tests/EditMode/Tutorial/tutorial_narration_subtitle_crossref_test.cs`:真产物一致 1 + 五类负向 + 两侧空集守卫 + 正控 1。 |
+| **真负例(证明它抓得住原本的 bug)** | 把 48 JSON 临时还原成 `HEAD` 版并重烘 ⇒ ① 夹具:`test_realArtifacts_narrationAndSubtitleAreAligned` **红**,四条 `[C3]` 全报;② **构建级**:`PlayerBuildCli.Build` ⇒ `Build Finished, Result: Failure`,`[48↔44][C3]` 四条进构建日志(`Logs/s25-4-build-neg.log:976/997/1018/1039`,`:1138` 失败行)。⇒ 这条门在生产链路里**真的会拦**。 |
+| **证伪轮** | **M1**(停用 C3 比较)⇒ `test_detect_textMismatch_reportsBothSides` 单红;**M2**(删 G1 空集守卫)⇒ `test_emptyNarration_isRed_notVacuousGreen` 单红。还原 = SHA-256 `f40f4dc6…` 逐字节一致,`grep FALSIFY` = 0。 |
+| **还原判据** | 数据侧 JSON `0929c1b9…` / 烘焙产物 `942fdbfe…` 均逐字节回到对齐后状态;还原后干净构建 `Success`(`Logs/s25-4-build-final.log:8559`,起始 `2026-11-07T07:15:11Z`)。 |
+| **回归三元组** | EditMode `7076 / 7039 / 0 / 0 / 37` @ `2026-11-07T07:20:04Z` · PlayMode `364 / 360 / 0 / 2 / 2` @ `07:21:12Z`;等式 `7076 − 7067 = 9` = 本件新增 9 条,零回归。 |
+| **⚠️ 残留(如实登记)** | 本门读**烘焙产物** ⇒ 「改了源 JSON 忘重烘」时它看的是旧产物(两边都旧、可能仍自洽)⇒ 可能绿;该形态由 `cooked_drift_all_artifacts_test` 兜,**两者互补**。另:本轮的构建级真负例是**历史观测**,非常驻门(常驻的是门本身 + 9 条夹具)。 |

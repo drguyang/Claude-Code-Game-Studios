@@ -1,12 +1,12 @@
 # Story 004: 三媒体调度与纸近景模态
 
 > **Epic**: 教学与引导
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-06
+> **Last Updated**: 2026-11-07
 
 ## Context
 
@@ -32,13 +32,19 @@
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
 - [x] Fire 意图 → 三媒体调度正确:anchor Fire 播口述(44 cue + 字幕),完成 Fire 按需播示范 / 纸指引;键全部来自 Story 001 的 `.cooked`(cueId / clipKey / paper 条目),无硬编码 —— ✅ **调度面已落**(`tutorial_dispatcher_test` 14 条:键逐条回查 `.cooked`、绝对次序、字幕成对);⚠️ **播放面** NOT-RUN(见 Completion Notes)
-- [ ] 口述字幕 = AC-44-15 管线路径(narration text 进字幕队列,**零「无字幕口述」路径**);字幕可见性走查 [L](AC-48-06 子项) —— ⚠️ **未勾**:cue/字幕**成对是结构性的**(同一行、单一构造路径,`test_ac5_*` 3 条),但 42 的 `SubtitleLine` **没有生产调用点**(翻译层未写)
-- [ ] 示范 = 13 经 42 的一次性片段:播一次即散,不可被教学状态重播(重燃守住在 Story 003,呈现侧只消费) —— ⚠️ **未勾**:13 的片段资产与 42 的播放口均未接;调度器只产出 `SegmentKey` 意图
-- [ ] 纸近景:静态道具(6 摆放,非拾取物)走近 → 请求 `ModalId.PaperCloseup48` 摊开;合上回 Explore 焦点;`IModalState` 可见「有模态摊开」(承 ADR-013 Amendment A 只读口) —— ⚠️ **未勾**:内容面已落(`paper_closeup48_screen_test` 9 条:绑定 / 翻页 / 页码 / 模态身份);**世界侧「走近摊开」** 待 6 的纸道具 + 4 的交互判定
+- [x] 口述字幕 = AC-44-15 管线路径(narration text 进字幕队列,**零「无字幕口述」路径**);字幕可见性走查 [L](AC-48-06 子项)
+  - ✅ **2026-11-07 收口轮勾上**:生产调用点存在(`TutorialMediaDriver.cs:180` `_subtitles.Show(...)`,
+    链上游 = `TutorialChainDriver` → `TutorialMediaDriver`);cue/字幕**成对是结构性的**(同一行、单一构造路径,3 条);
+    **真包实测**:屏幕上出现 `【师父】喘着气,气色、神态,都在脸上。` = **事件表** `subtitle_text`
+    (`walkthrough-s25-4c…§8.2` 判据 2),同时段声学的归一化互相关 0.6032(同 §8.3)
+    ⇒ 「有字幕、字幕与配音同源」两头都**是观测不是意图**。
+  - ⚠️ 上一版之所以未勾,是因为当时 `SubtitleLine` 没有生产调用点(S25-4b 之后才有)。
+- [ ] 示范 = 13 经 42 的一次性片段:播一次即散,不可被教学状态重播(重燃守住在 Story 003,呈现侧只消费) —— ⚠️ **未勾 · `BLOCKED-BY` 13(AI epic)的片段资产 + 42 的播放口**:调度器只产出 `SegmentKey` 意图,`TutorialMediaDriver` 显式**不消费**演示意图(`:30`),生产上**没有任何东西会演一段示范**。重燃守卫本身在 Story 003 已证
+- [ ] 纸近景:静态道具(6 摆放,非拾取物)走近 → 请求 `ModalId.PaperCloseup48` 摊开;合上回 Explore 焦点;`IModalState` 可见「有模态摊开」(承 ADR-013 Amendment A 只读口) —— ⚠️ **未勾 · `BLOCKED-BY` 6(纸道具)/ 4(交互判定)**:内容面已落(`paper_closeup48_screen_test` 9 条:绑定 / 翻页 / 页码 / 模态身份);**但生产上没有第二条路径能打开这块屏** —— `TutorialMediaDriver` 不消费纸意图(`:140` 只计数),`SkeuoRuntimeDriver` 有屏工厂却无人请求 ⇒ 「走近摊开」整条腿**端到端不可达**(2026-11-07 复核)
 - [x] **AC-48-10**:37 代码面零教学分支(grep + 37 的 AC 回扫,本 story 是联动验证方);48→37 只读单向 —— ✅ 符号面扫 `Sim` 装配(`tutorial|onboarding|guide`),扫描面为空即红
 - [x] **AC-48-09**:两玩家投影独立 → 各自媒体互不干扰(P0 单机夹具 = 双 id 两路调度;联机仲裁 **BLOCKED-BY-45 / TR-tutorial-006**,禁借绿) —— ✅ P0 单机双 id 夹具已落;联机仲裁仍 **BLOCKED-BY-45**
-- [ ] **AC-48-06 [L]**:三媒体可读性走查(口述+字幕成对 / 示范能看懂动作 / 纸图文自含)+ 无显式指令词(词族 = Story 001 扫描器复用)[L] —— ⚠️ **未勾**:[L] 走查未做
-- [ ] **AC-48-15 [L]**：纸近景手柄走查(走近→摊开→翻页→合上,无指针依赖) + 教学口述复用 AC-44-15 字幕管线(字幕必过 AC-44-15 管线;教学口述零字幕是禁项) —— ⚠️ **未勾**:手柄走查与字幕可见性均未做
+- [ ] **AC-48-06 [L]**:三媒体可读性走查(口述+字幕成对 / 示范能看懂动作 / 纸图文自含)+ 无显式指令词(词族 = Story 001 扫描器复用)[L] —— ⚠️ **部分**:① 口述+字幕成对**已有真包观测**(`walkthrough-s25-4c…§8.2` 判据 2);② 示范 / 纸两腿**走查对象不存在**(见上两条 `BLOCKED-BY`)⇒ 该 AC **不可能整体跑通**,须待 13 / 6 落地后重排;③ 无显式指令词是 Story 001 扫描器的自动化面
+- [ ] **AC-48-15 [L]**：纸近景手柄走查(走近→摊开→翻页→合上,无指针依赖) + 教学口述复用 AC-44-15 字幕管线(字幕必过 AC-44-15 管线;教学口述零字幕是禁项) —— ⚠️ **半边成立/半边不可达**:字幕半边**已有真包观测**(见第一条 AC);纸近景手柄走查**结构上做不了** —— 该屏今日无生产开口(见 AC-2 的 `BLOCKED-BY`),走查只能靠测试直调,那不是走查
 
 ---
 
@@ -107,7 +113,7 @@
 
 **Story Type**: UI
 **Required evidence**: `production/qa/evidence/tutorial-onboarding/story-004-three-media-walkthrough.md`(AC-48-06/15 [L],含截图 + 主创签核)+ `unity/Assets/Tests/EditMode/Tutorial/tutorial_dispatcher_test.cs`(AC-1/3/4 自动化面) — must exist
-**Status**: [x] 自动化面已落(`tutorial_dispatcher_test.cs` 14 条 + `paper_closeup48_screen_test.cs` 9 条);[ ] **[L] 走查未做**(`…-three-media-walkthrough.md` 未创建,不得代签)
+**Status**: [x] 自动化面已落(`tutorial_dispatcher_test.cs` 14 条 + `paper_closeup48_screen_test.cs` 9 条 + 翻译层 10 + 链驱动 10);[ ] **[L] 走查未做**(`…-three-media-walkthrough.md` 未创建,**不得代签**;且纸 / 示范两腿的走查对象今天不存在,见 AC 注)
 
 ---
 
@@ -156,3 +162,30 @@
 - **播种在构造期**(读档进来的已完成步不重播);**增量游标 + 换流指纹**(换世界/读档 ⇒ 重建 + 重新播种)。判据 10 条,证伪 4/4 转红。
 - ⚠️ **`archive` 步今天永不完结**:7a 没有「已存过档」读面,`checkpointWritten` 传 `null`(不伪造恒真回执)。
 - ⚠️ **生产装配路径无自动化判据**:`TutorialSeams` 只在 `dataProvider is AddressablesDataProvider` 时装配,EditMode 夹具走不到该分支 ⇒ 「真接上了」只有代码面证据,须真包走查确认(`[L]`)。
+
+**2026-11-07 收口轮(sprint-25 S25-4)—— 口述一路闭环,另两路的生产触发面不存在**
+
+> ⚠️ **本件 `Complete` 的口径**:它指 **本 story 自身范围**(调度 / 翻译 / 投递 / 纸屏内容面)完成。
+> **三媒体里今天只有「口述」这一路真的能播**;「示范」与「纸」两路的**生产触发面不存在**,
+> 分别 `BLOCKED-BY` 13(AI epic 的片段资产 + 42 播放口)与 6/4(纸道具 + 交互判定)。
+> AC 复选框**保留未勾**,那才是机器可读的事实 —— 不得把本条读成「三媒体全通」。
+
+- **口述一路闭环(实测,非意图)**:`TutorialChainDriver` → `TutorialDispatcher` → `TutorialMediaDriver`
+  (`:180` `_subtitles.Show` / 44 `CueRenderSink.Emit`)在**生产装配**下跑通;真包屏幕上出现
+  `【师父】喘着气,气色、神态,都在脸上。`(= **事件表** `subtitle_text`),同一时段音频归一化互相关 **0.6032**
+  (负控 ≈ 0)。⇒ **字幕可见 + 出声**两头都是观测。
+- **`AC-48-06` / `AC-48-15` 拆开看**:字幕那半边成立(上文);走查那半边**结构上做不了**
+  —— 纸近景屏今日**无生产开口**(`SkeuoRuntimeDriver` 有屏工厂,但无人请求;`TutorialMediaDriver`
+  只对纸意图计数、不摊屏)⇒ 手柄走查的对象不存在。**不代签 `[L]`**。
+- ~~**新立债 `TD-tutorial-01`**~~ 🔁 **同日已结案(用户裁定甲案)**:四条文案对齐到**事件表**
+  (`48_tutorial_content.json` → 逐字同值,重烘 1904 B),并补**构建期跨表门**
+  `TutorialNarrationSubtitleCrossRefGate`(C1/C2/C3 + G1/G2/G3,接进 `AssemblyGates.RunAll`),
+  判据 9 条。**真负例**证明它抓得住原 bug:把 JSON 还原成 `HEAD` 版重烘 ⇒ 夹具红 + **构建 `Failure`**;
+  证伪 M1/M2 各自单红;数据与产物 SHA-256 逐字节还原。
+  证据 = `production/qa/evidence/impl-s25-4d-narration-subtitle-crossref-2026-11-07.md`。
+- **回归(终树)**:EditMode `7076 / 7039 / 0 / 0 / 37` @ `2026-11-07T07:20:04Z` ·
+  PlayMode `364 / 360 / 0 / 2 / 2` @ `07:21:12Z` · `cdbefccc` + 工作树。
+  等式 `7076 − 7067 = 9` = 本轮新增的跨表门夹具,零回归。
+- **仍未做 / NOT-RUN**:① 示范播放(`BLOCKED-BY` 13 + 42)· ② 纸近景走近摊开(`BLOCKED-BY` 6 + 4)·
+  ③ `AC-48-06` / `AC-48-15` 的 `[L]` 走查(对象不全)· ④ 联机演出仲裁(`BLOCKED-BY-45` / TR-tutorial-006)·
+  ⑤ `three-media-walkthrough.md` **未创建**(不得代签)。

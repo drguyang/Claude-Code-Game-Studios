@@ -163,8 +163,8 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         {
             // 判别力判据:真表若只是「返回一个词表但扫描没接上」,本测会绿着骗人 ⇒ 必须命中。
             // 命中即**硬失败**(AC 的意图),故断言面 = 抛出的错误报文,而不是「成功后看计数」。
-            const string Original = "先看看这个人。气色、神态,都在脸上。";
-            const string WithDisease = "先看看这个人。气色、神态,伤寒的样子,都在脸上。";
+            const string Original = "喘着气,气色、神态,都在脸上。";
+            const string WithDisease = "喘着气,气色、神态,伤寒的样子,都在脸上。";
             string json = Seed();
             int idx = json.IndexOf(Original, StringComparison.Ordinal);
             Assert.GreaterOrEqual(idx, 0, "夹具前提:种子须含该句 → " + Original);

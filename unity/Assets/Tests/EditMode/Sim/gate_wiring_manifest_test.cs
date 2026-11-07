@@ -105,6 +105,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "TimeConstantSingleDefinitionGate.RunAll", // AC-5-05 日长单一定义点(代码侧)· 2026-11-03
                     "TimeConstantSingleDefinitionGate.RunDataSide", // AC-5-05 数据侧(5_time 唯一定义 + 52 只许 $ref)· 2026-11-03
                     "TutorialSurfaceGate.RunAll",   // AC-48-04 48 装配公开面零 sim 类型 · 2026-11-06(S25-1)
+                    "TutorialNarrationSubtitleCrossRefGate.RunAll", // TD-tutorial-01 48 口述文案 ↔ 44 字幕跨表一致 · 2026-11-07
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -314,8 +315,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        " —— S18-1 测试注释自述「有 AST 式断言」,实测该断言从未存在(第五个假绿形态)。" +
                        "判据形态按 qa-plan:80 = 源码 + IL 双证,两半都在 RunAll 内合流" },
 
-            new ClassVerdict { ClassName = "TutorialSurfaceGate", Kind = WiringKind.Chain,
-                Consumer = "RunAll",
+            new ClassVerdict { ClassName = "TutorialSurfaceGate", Kind = WiringKind.Chain,                Consumer = "RunAll",
                 Note = "AC-48-04(2026-11-06 · sprint-25 S25-1)48 公开面零 sim 类型。" +
                        "**初判 TestDriven 被本表自带规矩驳回**:AC-48-04 是 `[A]` 级判据," +
                        "`ExpectedTestDrivenClasses` 明确禁止把承载判据的门判成「无强制点」档" +
@@ -331,6 +331,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "`Build Finished, Result: Failure`,探针串在 `Logs/s25-1-d1-probe.log:1068`," +
                        "栈帧 `BuildGate.OnPreprocessBuild`(`AssemblyGates.cs:1570`),错误数 = 1;" +
                        "SHA-256 逐字节还原。原文保留作当时口径。" },
+
+            new ClassVerdict { ClassName = "TutorialNarrationSubtitleCrossRefGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "TD-tutorial-01 的执行体(2026-11-07 用户裁定甲案):48 口述文案 ↔ 44 字幕文本\n"
+                       + "跨表一致。病因 = 同一句口述两处各写一份且四条全不一致,运行期只读事件表 ⇒ 改 48 那份静默无效。\n"
+                       + "入口写成 `类名.方法` 形(不做私有包装),与 TutorialSurfaceGate 同格。" },
 
             // ── 仅测试驱动(**无构建期强制点**)──
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,

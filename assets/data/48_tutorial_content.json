@@ -72,25 +72,25 @@
       "id": "n_observe_1",
       "cueId": "Narration_TeachObserve_01",
       "order": 1,
-      "text": "先看看这个人。气色、神态,都在脸上。"
+      "text": "喘着气,气色、神态,都在脸上。"
     },
     {
       "id": "n_judge_1",
       "cueId": "Narration_TeachJudge_01",
       "order": 1,
-      "text": "看明白了,就翻本子记一笔。"
+      "text": "哼了一声,看明白了,就翻本子记一笔。"
     },
     {
       "id": "n_close_1",
       "cueId": "Narration_TeachClose_01",
       "order": 1,
-      "text": "处置妥当,一个病例才算了结。"
+      "text": "叹口气,处置妥当,一个病例才算了结。"
     },
     {
       "id": "n_archive_1",
       "cueId": "Narration_TeachArchive_01",
       "order": 1,
-      "text": "要紧的,都写进册子。"
+      "text": "哼着小曲,要紧的,都写进册子。"
     }
   ],
   "demonstrations": [

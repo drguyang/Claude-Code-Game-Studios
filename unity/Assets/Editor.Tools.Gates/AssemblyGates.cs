@@ -249,6 +249,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             //    门链 manifest 按 `类名.方法` 抽接线,私有包装会让「声明 Chain 但链上看不见它」转红
             //    (2026-11-06 实测)。
             errs.AddRange(TutorialSurfaceGate.RunAll());
+            // 48 口述文案 ↔ 44 字幕文本的跨表门(2026-11-07 · TD-tutorial-01 的执行体)。
+            // 病因:同一句口述两处各写一份且四条全不一致,而运行期只读事件表 ⇒ 改 48 那份静默无效。
+            // 与 TutorialSurfaceGate 同格:入口用 `类名.方法` 形,不做本类的私有包装(门链 manifest 按此抽接线)。
+            errs.AddRange(TutorialNarrationSubtitleCrossRefGate.RunAll());
             return errs;
         }
 
