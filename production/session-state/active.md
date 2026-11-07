@@ -17217,3 +17217,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归:EditMode `7066/7029/0/0/37` · PlayMode `360/356/0/2/2` @02:17:39Z / 02:18:46Z · `f35ae13d` + 工作树
 - ⚠️ `ConfigVersion` 变了 ⇒ 旧档比对走 ADR-010 §七 非致命分支(本轮用新起一局,未涉旧档)
 - 仍不成立:发火走解冻补跑路径 · 4 行里 2 行仍孤儿 · close / 手柄 NOT-RUN · 口述无录音互相关
+
+## Session Extract — 手柄路径验证(2026-11-07 03:0x)
+
+- 用**既有虚拟手柄**形态(AddDevice<Gamepad> + QueueStateEvent)走生产整链
+  (module → PanelEventHandler → panel.SendEvent),新夹具 `casebook_gamepad_navigation_test`
+- 判据:Down 逐行(每次恰好一次移动)→ Up 回列首 → Right 到病名 → Submit 开册且落焦条目 → Submit 落笔
+- **三条发现**:
+  F-1 环境:`-nographics` 下 42 行自动高度恒 0 ⇒ 夹具给显式行高 + 「行高 0 ⇒ 夹具红」闸
+  F-2 几何:右栏只有两行,从问诊按 Right **无候选**;手柄真实路径 = 列首右走一次
+      (Tab 树序 ≠ 手柄几何序,不能互推)
+  F-3 **产品缺陷**:在 NavigationSubmitEvent 派发中直接 Focus() 会被随后的输入更新清掉
+      (探针:Focus 执行了,focusable/enabled/panel 全正常,但两帧后 focusedElement 恒 null;
+       之后任意帧再 Focus 就立住)。键鼠夹具直接 SendEvent 不走 EventSystem ⇒ 旧证据只见成功面
+      ⇒ `CasebookScreen.FocusFirstLexiconEntry` 改 **推迟一帧**落焦;连带
+        `casebook_lexicon_book_test` 补 `yield return null`
+- 改动后重建包 + 真包复核:焦点仍落 `<匿名;4>`,`★发火 steps=observe,judge` ✅
+- 回归:EditMode `7066/7029/0/0/37` · PlayMode `361/357/0/2/2`(+1 = 新夹具)@03:07:28Z / 03:08:58Z
+- 存档 20/20 逐字节还原

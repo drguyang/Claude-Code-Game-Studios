@@ -427,11 +427,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private void FocusFirstLexiconEntry()
         {
             if (_lexiconBook == null || _lexiconBook.panel == null) return;
+
+            VisualElement first = null;
             for (int i = 0; i < _lexiconBook.childCount; i++)
             {
                 VisualElement child = _lexiconBook[i];
-                if (child != null && child.focusable) { child.Focus(); return; }
+                if (child != null && child.focusable) { first = child; break; }
             }
+            if (first == null) return;
+
+            // 🔁 **2026-11-07(手柄路径实测)**:改为**推迟一帧**落焦。
+            //    病因:`SubmitDiseaseNameBar` 是在 `NavigationSubmitEvent` 的**派发过程中**被调的,
+            //    此时直接 `Focus()` 会被随后的输入更新清掉 —— 虚拟手柄实测 `Focus()` 确实执行了
+            //    (探针:child.focusable=True / enabled=True / panel=True),但**两帧后 focusedElement
+            //    恒为 null**;而同样的一次 `Focus()` 在任何后续帧调用都能立住。
+            //    键鼠路径(fixture 直接 `SendEvent`)不走 EventSystem,故旧证据只见过「落焦成功」这一面。
+            //    `ExecuteLater(0)` = 下一个面板更新 → 焦点立住。
+            first.schedule.Execute(() =>
+            {
+                // 条目可能在调度与执行之间被重建 / 摘除(RefreshLexiconBook 会 Clear)
+                if (first.panel != null && first.focusable) first.Focus();
+            }).ExecuteLater(0);
         }
 
         /// <summary>指认一条词(**语义动作面**;条目行 Submit 的转发目标)。</summary>

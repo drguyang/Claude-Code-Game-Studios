@@ -1024,3 +1024,84 @@ assets/data/case_judgment_lexicon.json
 | `close` 步 | 仍未触发 |
 | 手柄路径 | 仍 `NOT-RUN` |
 | 口述听感 | 只证到投递 2 条 cue,**没有**录音互相关 |
+
+---
+
+## 18. 手柄路径验证(2026-11-07 · 用户「验手柄路径,用之前的虚拟手柄」)
+
+### 18.1 用什么验
+
+复用项目**既有的虚拟手柄**形态(`InputSystem.AddDevice<Gamepad>()` + `QueueStateEvent`,
+先例 = `U1Assump6GamepadChainTest` / `pause_focus_navigation_test`),走**生产**的整条链:
+
+```
+虚拟 Gamepad → InputSystemUIInputModule.Process → PanelEventHandler.OnMove/OnSubmit
+  → Panel.SendEvent(NavigationMove / NavigationSubmit) → FocusController → 42 屏回调
+```
+
+新夹具:`unity/Assets/Tests/PlayMode/SkeuomorphicUI/casebook_gamepad_navigation_test.cs`
+
+**为什么不能用既有那条链上夹具代替**:`casebook_point_identify_chain_test` 的
+`Submit(el)` 是 `el.Focus()` + `el.SendEvent(NavigationSubmitEvent)` —— **绕过了输入层**,
+「手柄的 Navigation 动作有没有接到这条路上」完全不在判据面内。
+
+### 18.2 判据(一条测到底)
+
+① 方向键逐行移动,**每次按键恰好一次**焦点移动(无双触发);
+② 从面色按 Down 能**逐行走到**问诊(不是「先 Focus 上去再看能不能用」);
+③ 横走到病名行;
+④ 手柄 Submit ⇒ 病名册摊开且焦点落**条目**;再 Submit ⇒ 病例流出现 `JudgmentRecorded`,
+   载荷 `lexiconId` = 词表显式 id。
+
+结果:**通过**。轨迹 `channel-complexion→voice→posture→breathing→palpation→inquiry`(Down 五次)
+→ Up 五次回列首 → Right → `channel-disease-name` → Submit → 焦点 `<unnamed>`(条目)→ Submit → 落笔。
+
+### 18.3 这一轮挖出的三件事(前两件是环境/几何事实,第三件是**产品缺陷**)
+
+**F-1 环境(夹具,不是产品)**:`-nographics` 下 42 的行**自动高度恒为 0**
+(`worldBound = 1356×0`,带不带图形一样)⇒ 几何导航无高差、`Down` 找不到邻居。
+夹具给七行**显式行高**(既有两条手柄导航夹具同样用显式尺寸),并在断言里加了
+「行高为 0 ⇒ **夹具红**」的闸 —— 不得把环境限制读成产品缺陷。
+
+**F-2 几何(真实形状,不是缺陷)**:**右栏只有两行**(病名 / 折),左栏六行
+⇒ 只有与右栏竖直波段重叠的左栏行(面色 / 语声)能右走成功;
+**从问诊(第 6 行)按 Right 无候选、焦点不动**(实测)。
+⇒ 手柄玩家的真实路径 = **在列首右走一次**,而不是「一路 Down 再右」
+(Tab 的树序 ≠ 手柄的几何序 —— 这两条路径结论不同,不能互推)。
+
+**F-3 产品缺陷(已修)**:在 `NavigationSubmitEvent` **派发过程中**直接
+`FocusFirstLexiconEntry()` 落焦,焦点会被随后的输入更新**清掉**。
+证据(探针 + 复现):`Focus()` 确实执行了(条目 `focusable=True / enabledInHierarchy=True /
+panel=True`,且 `Focus()` 前后都在),但**两帧后 `focusedElement` 恒为 `null`**;
+而同样一次 `Focus()` 在之后任意一帧调用都能立住。
+**为什么此前没被发现**:键鼠侧夹具是直接 `SendEvent`,**不走 EventSystem** ⇒ 只见过「成功」那一面。
+**修法**:`CasebookScreen.FocusFirstLexiconEntry` 改为 `schedule.Execute(...).ExecuteLater(0)`
+(下一个面板更新落焦),带「条目可能已被重建 / 摘除」的守卫。
+连带:`casebook_lexicon_book_test.test_openBook_movesFocusToFirstEntry` 补 `yield return null`
+(它原本同步读焦点)。
+
+### 18.4 改动后真包复核(生产代码变了,必须重启包验证)
+
+重建 player(`Logs/build-padfix.log` `Build Finished, Result: Success.`,错误 0,24.9 s)后,
+按 §17 的**同一路径**(默认刺伤病人、零启动旋钮)重走一遍:
+`焦点=channel-disease-name → 焦点=<匿名;4> → ★发火 tick=331 steps=observe,judge 口述=2`
+⇒ 推迟一帧的改动**没有**破坏键鼠路径。
+
+### 18.5 回归(最终树)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 03:07:28Z`(EM)/ `03:08:58Z`(PM)· 批次:手柄路径轮 · commit `9e07c156` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7066 passed=7029 failed=0 inconclusive=0 skipped=37` | 与 §17.5 **同值** |
+| PlayMode | `total=361 passed=357 failed=0 inconclusive=2 skipped=2` | 较 §17.5 `360/356` **+1** —— 等式:361 − 360 = 1 = 新手柄夹具那一条 |
+
+### 18.6 仍然不成立的说法(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| 真实手柄硬件 | **不在面内**(轴死区 / 平台映射 / 驱动差异) |
+| 焦点高亮**看得见看不见** | **不在面内**(`-nographics`) |
+| 「移动跟不跟手」主观判断 | **不在面内** |
+| 覆盖范围 | 只覆盖**脉案 → 病名册 → 指认**这一段;**不含**世界空间的走近 / 就诊 / 急救档位 |
+| `close` 步 | 仍未触发(键鼠与手柄皆然) |

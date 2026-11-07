@@ -366,6 +366,11 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             // 玩家的真实动作序:导航到病名栏(落焦)→ 按提交。此后**不再**给任何元素 Focus()。
             DispatchSubmit(row);
 
+            // 🔁 2026-11-07:落焦**推迟一帧**(见 `CasebookScreen.FocusFirstLexiconEntry` 的注)——
+            //    在 `NavigationSubmitEvent` 派发过程中直接 `Focus()` 会被随后的输入更新清掉
+            //    (手柄路径实测;键鼠此处是直接 SendEvent,故旧断言同步读也能过)。
+            yield return null;
+
             Assert.IsTrue(screen.IsLexiconBookOpen, "前置:册子已摊开");
             var entries = CollectEntryRows(root);
             Assert.AreEqual(2, entries.Count, "前置:两条条目");
