@@ -843,6 +843,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                         existingFoldedRows: stream.FoldedRows,
                         // 🔁 2026-10-31 ADR-037 §①:配置版本段(逐份)。null ⇒ 写 count=0(=未知)。
                         artifactConfigs: resolvedArtifacts,
+                        // ⚠️ **2026-11-08 现状**:分册态**恒 null ⇒ 每份存档写空段**。
+                        //    原因不是「忘了接」,是**39 今天没有运行期分册态持有者** ——
+                        //    `CasebookScreen` 只渲染、不持状态(ADR-013 §9 C3),而
+                        //    「谁在什么时候把 `CasebookVolumeSnapshot` 交出来」是 story-005
+                        //    / story-007 的交付面。段格式与编解码**已完整可往返**,见
+                        //    `casebook_segment_codec_test`;此处留空只影响本 sprint 之前的行为
+                        //    (本来就零分册态),不构成回退。
+                        casebookVolume: null,
                         // 🔁 2026-10-25 AC-7a-07:`Compose` 现返回**不含校验和**的字节
                         //    (SHA256 移到 worker),`combined` 的合成缓冲从本池租。
                         bufferPool: saveBufferPool,
@@ -1084,6 +1092,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                         new SaveMigrationV4ToV5(),
                         // 🔁 ADR-042(2026-11-06):v5 → v6 追加落笔时刻(补 0 = 未知)。
                         new SaveMigrationV5ToV6(),
+                        // 🔁 ADR-010 §三 义务 13(2026-11-08):v6 → v7 在配置版本段之后
+                        //    插入**空**分册态段。旧档从未记录过分册态 ⇒ 补任何值都是伪造;
+                        //    分册正文本就不在段里(读时从病例流投影),故无信息丢失。
+                        new SaveMigrationV6ToV7(),
                     });
 
                 // `TD-persist-15`:构造期扫目录失败 ⇒ 高水位不可知 ⇒ `Checkpoint` 拒绝一切写入。

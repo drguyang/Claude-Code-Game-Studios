@@ -213,6 +213,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     new SaveMigrationV3ToV4(),
                     new SaveMigrationV4ToV5(),
                     new SaveMigrationV5ToV6(),
+                    // ADR-010 义务 13(2026-11-08):v6 → v7 插空分册态段;不补则旧档在链里断掉
+                    new SaveMigrationV6ToV7(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

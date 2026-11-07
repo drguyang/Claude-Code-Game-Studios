@@ -159,8 +159,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private static int BodyStart(byte[] bytes)
         {
             int headerSize = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(bytes));
-            ConfigVersionSegment.Decode(bytes, headerSize, out int cfgBytes);
-            return headerSize + cfgBytes;
+            // 🔁 2026-11-08(ADR-010 义务 13):v7 在**头部之后、配置版本段之前**多一个分册态段。
+            //    本方法是生产 `ParseBody` 的镜像 ⇒ 次序与它严格一致。
+            CasebookSegment.Decode(bytes, headerSize, out int casebookBytes);
+            ConfigVersionSegment.Decode(bytes, headerSize + casebookBytes, out int cfgBytes);
+            return headerSize + casebookBytes + cfgBytes;
         }
 
         /// <summary>只取载荷段的 BlobId(不验内容)—— 载荷段专项断言用(ADR-034 §②)。</summary>

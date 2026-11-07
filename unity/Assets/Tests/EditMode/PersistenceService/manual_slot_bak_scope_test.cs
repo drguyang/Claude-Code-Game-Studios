@@ -54,12 +54,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 1UL, 1U, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null);
+            // 🔁 2026-11-08(ADR-010 义务 13):v7 的分册态段(空)—— 不补则事件段错位
+            byte[] casebook = CasebookSegment.Encode(null);
             byte[] folded = new byte[] { 0, 0, 0, 0 };
-            byte[] combined = new byte[header.Length + cfg.Length + body.Length + folded.Length];
+            byte[] combined = new byte[header.Length + cfg.Length + casebook.Length
+                                        + body.Length + folded.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(cfg, 0, combined, header.Length, cfg.Length);
-            Array.Copy(body, 0, combined, header.Length + cfg.Length, body.Length);
-            Array.Copy(folded, 0, combined, header.Length + cfg.Length + body.Length, folded.Length);
+            Array.Copy(casebook, 0, combined, header.Length, casebook.Length);
+            Array.Copy(cfg, 0, combined, header.Length + casebook.Length, cfg.Length);
+            int at = header.Length + casebook.Length + cfg.Length;
+            Array.Copy(body, 0, combined, at, body.Length);
+            at += body.Length;
+            Array.Copy(folded, 0, combined, at, folded.Length);
             return SaveService.AddChecksum(combined);
         }
 

@@ -339,14 +339,35 @@ namespace DaYiJingCheng.Tests.Boot
             for (int i = 0; i < 8; i++) b[offset + i] = (byte)(value >> (8 * i));
         }
 
+        /// <summary>
+        /// v7 字节 → v6(去掉**分册态段** 8 B,版本号写 6)。
+        /// <para>🔁 2026-11-08(ADR-010 义务 13):v7 在配置版本段之后插了空分册态段。
+        /// 下面的各档降级夹具都以「当前版本组版结果」为原料,不先把它摘掉,
+        /// 降级出来的 v3/v4/v5 档就会带着 8 个无人消费的尾字节 ⇒ 读档报「段长错误」。
+        /// ⚠️ 插入点用 `ConfigVersionSegment.Decode` **算**出来,不硬编码 ——
+        /// 逐份版本段的长度取决于写侧给了几条,猜一个偏移会在别的夹具上静默错位。</para>
+        /// </summary>
+        private static byte[] DowngradeToV6(byte[] v7)
+        {
+            int cutAt = SaveHeaderCodec.FixedSizeV6;   // 100 = v6 头部末尾;分册态段紧跟其后
+            int extra = DaYiJingCheng.Sim.Codec.CasebookSegment.EmptySize;   // 8
+
+            var v6 = new byte[v7.Length - extra];
+            Array.Copy(v7, 0, v6, 0, cutAt);
+            Array.Copy(v7, cutAt + extra, v6, cutAt, v7.Length - cutAt - extra);
+            WriteVersion(v6, 6);
+            return v6;
+        }
+
         /// <summary>v6 字节 → v5(去掉落笔时刻 8 B,版本号写 5)。</summary>
         /// <remarks>
         /// 🔁 **2026-11-06(ADR-042)**:`Compose` 现在出 v6。所有「降级到旧版」的夹具都必须
         /// **逐级往回剥** —— 直接按 v5 的偏移去剥会把落笔时刻那 8 B 留在正文头上,
         /// 症状是「尾随 8 字节未被任何字段消费」(实测踩到)。
         /// </remarks>
-        private static byte[] DowngradeToV5(byte[] v6)
+        private static byte[] DowngradeToV5(byte[] v7)
         {
+            byte[] v6 = DowngradeToV6(v7);
             int head = SaveHeaderCodec.FixedSizeV5;           // 92
             var v5 = new byte[v6.Length - SaveHeaderCodec.SavedAtBytes];
             Array.Copy(v6, 0, v5, 0, head);
@@ -424,6 +445,7 @@ namespace DaYiJingCheng.Tests.Boot
                     new SaveMigrationV4ToV5(),
                     // ADR-042:链末端多一级,不补则旧档在 v5→v6 断掉
                     new SaveMigrationV5ToV6(),
+                    new SaveMigrationV6ToV7(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }

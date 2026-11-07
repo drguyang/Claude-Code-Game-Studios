@@ -55,8 +55,16 @@ namespace DaYiJingCheng.Sim.Codec
         /// <para>⚠️ 迁移补不出它:v5 及更早的档**从未记录**落笔时刻 ⇒ 迁移写 <c>0</c>
         /// (= 未知),呈现层对 0 一律**不显示时间**(宁可缺,不编造)。
         /// 这与 ADR-037「未知 ≠ 无差异」同一条纪律。</para></para>
+        /// <para>🔁 <b>v6 → 7(2026-11-08,ADR-010 §三 义务 13)</b>:v7 在<b>配置版本段之后、
+        /// 事件段之前</b>插入<b>分册态段</b>(<c>volumeCount:i32 + 册级 8 B × n +
+        /// pageCount:i32 + 页级 24 B × n</c>),承载 39 脉案的分册键 / 两个 tick / 页码 / 折叠状态。
+        /// 插在头部之后(而非尾部)仍是<b>可迁移性</b>要求(同 ADR-037 §①)。
+        /// <para>⚠️ <b>本段不含「已落笔判断」</b> —— 它与 <c>AC-39-13</c>(痕 = 病例流读时投影)
+        /// 冲突,2026-11-08 用户裁定取架构口径(甲案):正文由 <c>F-39.2</c> 读时投影,不进存档。</para>
+        /// <para>v6 档由 <c>SaveMigrationV6ToV7</c> 插入<b>空段</b>(两个 <c>count = 0</c>)后升到 v7 ——
+        /// 旧档从未记录过分册态,补任何值都是伪造;分册正文本就不在本段,故无信息丢失。</para></para>
         /// </summary>
-        public const uint CurrentSaveVersion = 6;
+        public const uint CurrentSaveVersion = 7;
 
         /// <summary>
         /// 首个**带载荷段**的存档版本(ADR-034 §Decision ⑥)。

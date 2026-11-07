@@ -109,7 +109,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             SaveBufferPool bufferPool = null,
             IBlobPool blobPool = null,
             IReadOnlyList<ArtifactConfigVersion> artifactConfigs = null,
-            long savedAtUtcTicks = 0L)
+            long savedAtUtcTicks = 0L,
+            CasebookVolumeSnapshot casebookVolume = null)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
@@ -162,6 +163,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 ADR-037 §① —— 配置版本段紧跟头部:**必须在事件段之前**。
             //    插在这里而不是尾部,是 v2→v3 迁移能成立的前提(迁移链按「从末尾算」比对正文,
             //    尾部追加必破该断言)。`null` ⇒ 写出 count=0(= 未知),不伪造。
+            // 🔁 ADR-010 §三 义务 13(存档 v7)—— 分册态段**紧跟头部**、配置版本段之前。
+            //    ⚠️ 位置不是口味:插在配置版本段之后时,迁移链的「正文末尾等长」断言
+            //    必然横跨插入点 ⇒ 几何上不可能成立(2026-11-08 实测)。放在头部之后
+            //    与 ADR-037 的 V2ToV3 同一个位置,尾部窗口不重叠。
+            //    `null` ⇒ 写出空段(两个 count = 0),**不伪造**分册态。
+            byte[] casebookSegment = CasebookSegment.Encode(casebookVolume);
             byte[] configSegment = ConfigVersionSegment.Encode(artifactConfigs);
             byte[] events = SimEventListCodec.Encode(finalEvents, codec);
             byte[] foldedSegment = FoldRowCodec.EncodeSegment(rowsAccum);
@@ -169,14 +176,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    折叠抹除的病史行不得贡献 blob(否则已折叠病人的载荷永远写进存档,永不回收)。
             byte[] payloadSegment = EncodePayloadSegment(finalEvents, blobPool);
 
-            int total = header.Length + configSegment.Length + events.Length
-                        + foldedSegment.Length + payloadSegment.Length;
+            int total = header.Length + configSegment.Length + casebookSegment.Length
+                        + events.Length + foldedSegment.Length + payloadSegment.Length;
             var combined = bufferPool == null
                 ? new byte[total]
                 : bufferPool.Rent(total);
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(configSegment, 0, combined, header.Length, configSegment.Length);
-            int at = header.Length + configSegment.Length;
+            Array.Copy(casebookSegment, 0, combined, header.Length, casebookSegment.Length);
+            int at = header.Length + casebookSegment.Length;
+            Array.Copy(configSegment, 0, combined, at, configSegment.Length);
+            at += configSegment.Length;
             Array.Copy(events, 0, combined, at, events.Length);
             at += events.Length;
             Array.Copy(foldedSegment, 0, combined, at, foldedSegment.Length);

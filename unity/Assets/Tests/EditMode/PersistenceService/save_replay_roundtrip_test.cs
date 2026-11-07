@@ -143,8 +143,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // ADR-037:正文起点 = 头部 + 配置版本段
             // ⚠️ ADR-038 §D3:v4 起头部多 24 B ⇒ 头部长度**按版本取**,不得硬编码 68。
             int headerSize = SaveHeaderCodec.HeaderSizeFor(SaveHeaderCodec.ReadSaveVersion(secondSave));
-            ConfigVersionSegment.Decode(secondSave, headerSize, out int cfgBytes);
-            var r = new CodecReader(secondSave.AsSpan(headerSize + cfgBytes));
+            // 🔁 2026-11-08(ADR-010 义务 13):v7 的分册态段**紧跟头部**(配置版本段之前)
+            CasebookSegment.Decode(secondSave, headerSize, out int casebookBytes);
+            ConfigVersionSegment.Decode(secondSave, headerSize + casebookBytes, out int cfgBytes);
+            var r = new CodecReader(secondSave.AsSpan(headerSize + casebookBytes + cfgBytes));
             SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
             // 🔁 2026-10-28 ADR-034 §③:改按 count 精确读(原 `DecodeSegment(r.ReadBytes(r.Remaining))`
             //    在 v2 下会把其后的载荷段一起吞进折叠段 ⇒ 报「未读尽」)。

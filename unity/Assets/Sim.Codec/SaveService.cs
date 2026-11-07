@@ -530,6 +530,18 @@ namespace DaYiJingCheng.Sim.Codec
         public IReadOnlyList<ArtifactConfigVersion> LastLoadedArtifactConfigVersions { get; private set; }
 
         /// <summary>
+        /// 上一次**成功**读档携带的**分册态**(ADR-010 §三 义务 13,存档 v7 起)。
+        /// <para>空快照(<see cref="CasebookVolumeSnapshot.IsEmpty"/>)是<b>合法</b>语义 ——
+        /// 新世界本来就没有分册态;v6 迁上来的旧档也落到这里(迁移只插空段,不伪造)。
+        /// ⇒ 「空」≠「读失败」,后者走异常。</para>
+        /// <para>⚠️ 本段<b>不含已落笔判断</b>(2026-11-08 用户裁定甲案):病名 / 置信度 / 痕
+        /// 一律由 <c>F-39.2</c> 从病例流读时投影,不进存档(`AC-39-13`)。</para>
+        /// <para>⚠️ 与 <see cref="LastLoadedArtifactConfigVersions"/> 同款:入口先置 <c>null</c>,
+        /// 读档完整成功后才回填。</para>
+        /// </summary>
+        public CasebookVolumeSnapshot LastLoadedCasebookVolume { get; private set; }
+
+        /// <summary>
         /// 后台写盘 worker(AC-7a-07)。**只读暴露**,供夹具与装配收尾等待队列排空。
         /// <para>⚠️ 生产主线程**不得**在 Step 边界调 <see cref="SaveWriteQueue.WaitForIdle()"/>
         /// —— 那等于把异步化撤销。生产唯一的等待点是 <see cref="SaveOnExit"/>。</para>
@@ -1176,6 +1188,7 @@ namespace DaYiJingCheng.Sim.Codec
             // (「上一份档的 ConfigVersion」冒充「这一份的」= 排查时指向错误的版本对)。
             LastLoadedConfigVersion = null;
             LastLoadedArtifactConfigVersions = null;
+            LastLoadedCasebookVolume = null;
             LastLoadedTimeParams = null;
             LastLoadedTick = 0L;
             LastLoadedStreamTailTick = 0L;
@@ -1342,11 +1355,13 @@ namespace DaYiJingCheng.Sim.Codec
                     "静默丢弃 = 不可逆数据丢失;TD-persist-03 动作 ⑤)");
 
             ParseBody(data, out IReadOnlyList<ArtifactConfigVersion> artifactConfigs,
+                      out CasebookVolumeSnapshot casebookVolume,
                       out IReadOnlyList<SimEvent> events,
                       out byte[] foldedSegment, out IReadOnlyList<PayloadEntry> payloads);
             // ADR-037 §④:逐份版本随读档一起交出 —— 「未知(count=0)」与「无差异」的区分
             // 由消费者按 `HasPerArtifactData` 判,本类不做任何降级。
             LastLoadedArtifactConfigVersions = artifactConfigs;
+            LastLoadedCasebookVolume = casebookVolume;
 
             InstallPayloads(payloads);   // ADR-034 §④:先装池,**再**解事件
 
@@ -1386,6 +1401,7 @@ namespace DaYiJingCheng.Sim.Codec
         private void ParseBody(
             byte[] data,
             out IReadOnlyList<ArtifactConfigVersion> artifactConfigs,
+            out CasebookVolumeSnapshot casebookVolume,
             out IReadOnlyList<SimEvent> events,
             out byte[] foldedSegment,
             out IReadOnlyList<PayloadEntry> payloads)
@@ -1399,6 +1415,11 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidDataException(
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");
 
+            // ADR-010 §三 义务 13(存档 v7):分册态段**紧跟头部**,配置版本段之前。
+            // ⚠️ 次序与写侧严格对称。之所以在配置版本段**之前**而非之后:迁移链的
+            // 「正文末尾等长」断言按末尾取窗,插在配置版本段之后会让窗口横跨插入点
+            // ⇒ 该不变式几何上不可能成立(2026-11-08 实测)。
+            casebookVolume = ParseCasebookSegment(data, ref offset);
             artifactConfigs = ParseConfigVersionSegment(data, ref offset);
 
             var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
@@ -1424,6 +1445,21 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidDataException(
                     $"配置版本段之后无剩余字节(offset={offset}, 长度={data.Length})—— 已损坏");
             return configs;
+        }
+
+        /// <summary>
+        /// 解析分册态段(ADR-010 §三 义务 13;存档 v7 起)。
+        /// <para>段 = <c>volumeCount:i32 + 册级记录×n + pageCount:i32 + 页级记录×n</c>,
+        /// 自描述 ⇒ 无头部偏移字段。空段(两个 <c>count = 0</c>)是合法语义,不是损坏。</para>
+        /// </summary>
+        private static CasebookVolumeSnapshot ParseCasebookSegment(byte[] data, ref int offset)
+        {
+            CasebookVolumeSnapshot volume = CasebookSegment.Decode(data, offset, out int segmentBytes);
+            offset += segmentBytes;
+            if (data.Length < offset)
+                throw new InvalidDataException(
+                    $"分册态段之后无剩余字节(offset={offset}, 长度={data.Length})—— 已损坏");
+            return volume;
         }
 
         /// <summary>

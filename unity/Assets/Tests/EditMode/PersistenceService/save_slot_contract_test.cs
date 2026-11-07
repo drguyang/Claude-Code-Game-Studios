@@ -58,15 +58,22 @@ namespace DaYiJingCheng.Tests.PersistenceService
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL, 36000L, 27000L, 9000L, 252000L, 5L, 6000L, 100L, 0L);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
             byte[] cfg = ConfigVersionSegment.Encode(null); // 配置版本段 count = 0(v3 必备段)
+            // 🔁 2026-11-08(ADR-010 义务 13):v7 起配置版本段之后多一个**分册态段**。
+            //    不补 ⇒ 事件段从分册段的字节起读 ⇒ 读档报「段长错误 / 缺折叠段」。
+            byte[] casebook = CasebookSegment.Encode(null); // 分册态段 count = 0(v7 必备段)
             byte[] folded = new byte[] { 0, 0, 0, 0 };   // 折叠段 count = 0(v2 必备段)
             byte[] payloads = new byte[] { 0, 0, 0, 0 }; // 载荷段 count = 0(v2 必备段)
-            var combined = new byte[header.Length + cfg.Length + body.Length + folded.Length + payloads.Length];
+            var combined = new byte[header.Length + cfg.Length + casebook.Length
+                                    + body.Length + folded.Length + payloads.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(cfg, 0, combined, header.Length, cfg.Length);
-            Array.Copy(body, 0, combined, header.Length + cfg.Length, body.Length);
-            Array.Copy(folded, 0, combined, header.Length + cfg.Length + body.Length, folded.Length);
-            Array.Copy(payloads, 0, combined,
-                header.Length + cfg.Length + body.Length + folded.Length, payloads.Length);
+            Array.Copy(casebook, 0, combined, header.Length, casebook.Length);
+            Array.Copy(cfg, 0, combined, header.Length + casebook.Length, cfg.Length);
+            int at = header.Length + casebook.Length + cfg.Length;
+            Array.Copy(body, 0, combined, at, body.Length);
+            at += body.Length;
+            Array.Copy(folded, 0, combined, at, folded.Length);
+            at += folded.Length;
+            Array.Copy(payloads, 0, combined, at, payloads.Length);
             // 🔁 **2026-10-25 AC-7a-07 口径变更**:`compose` 委托的契约已改为
             // **返回未签名**字节(用户裁定「Compose 返回未签名」)—— 校验和由 worker
             // 在后台补(`AddChecksum` 也在非主线程,AC-7a-07 两半之一)。

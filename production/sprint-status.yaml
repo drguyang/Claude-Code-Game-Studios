@@ -33,14 +33,14 @@ stories:
     name: "casebook/001 分册态数据契约与存档段"
     file: "production/epics/casebook/story-001-volume-state-contract-and-save-segment.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "脉案链"
     blocker: ""
-    completed: ""
-    note: "链头。分册态段按 ADR-010 §一 落槽(义务 13);禁 float、Fix 走自定义编码器 + EditMode 探针;player_id 经 IIdAuthority,45 铸造契约残记 NOT-RUN 不记绿。解锁 003。"
+    completed: "2026-11-08"
+    note: "**COMPLETE WITH NOTES**(用户 2026-11-08 裁定)。存档 v6 → v7:分册态段(分册键 / 两个 tick / 页码 / 折叠态)进布局,段序 = 头部 | 分册态段 | 配置版本段 | 事件段 | 折叠段 | 载荷段。21 条判据;回归 EditMode 7107/7070(+21)· PlayMode 365/361 零回归。三处如实登记:① 卡面引用的 F-39.3 **在 GDD 里不存在**(权威落回 ADR-010 义务 13 + 规则一);② AC-1 的「呈现缓存」与 AC-39-13 冲突 ⇒ 按用户裁定甲案**不落正文**;③ 迁移插入点被实测**改判**(原插配置版本段之后 ⇒ TailBody 末尾窗口必然横跨插入点,整链假红;改插头部之后),已立 TD-persist-24。⚠️ 写侧(AC-5 发号 / 端到端往返)留 story-005/007,生产 compose 恒传 null(写空段)。证据 = production/qa/evidence/impl-s26-1-casebook-segment-2026-11-08.md。链头。分册态段按 ADR-010 §一 落槽(义务 13);禁 float、Fix 走自定义编码器 + EditMode 探针;player_id 经 IIdAuthority,45 铸造契约残记 NOT-RUN 不记绿。解锁 003。"
   - id: "S26-2"
     name: "casebook/003 分册键与改写痕读时投影"
     file: "production/epics/casebook/story-003-volume-key-and-revision-trace-projection.md"

@@ -120,7 +120,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_invokesChainAndUsesItsOutput()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6(), new SaveMigrationV6ToV7() });
 
             byte[] input = Save(version: 1);
             Assert.That(SaveHeaderCodec.Read(input).SaveVersion, Is.EqualTo(1u), "夹具坐实:输入确是 v1");
@@ -143,7 +143,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_seam_sameVersion_passesThroughWithoutCallingChain()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6(), new SaveMigrationV6ToV7() });
 
             byte[] input = Save(version: SaveHeader.CurrentSaveVersion);
             byte[] output = svc.ApplyMigrationsIfNeeded(input, SaveHeaderCodec.Read(input));
@@ -160,7 +160,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_persist10_migratedOutput_loadsAndReplays_whileRawV1IsRejected()
         {
             var mig = new FakeV1ToV2();
-            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6() });
+            SaveService svc = MakeService(new ISaveMigration[] { mig, new SaveMigrationV2ToV3(), new SaveMigrationV3ToV4(), new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6(), new SaveMigrationV6ToV7() });
 
             byte[] v1 = Save(version: 1);
             byte[] migrated = svc.ApplyMigrationsIfNeeded(v1, SaveHeaderCodec.Read(v1));

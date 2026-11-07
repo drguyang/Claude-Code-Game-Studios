@@ -408,6 +408,7 @@
 | `TD-persist-21` | `persistence-service` | open | **N** | R1 |
 | `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-23` | `persistence-service` | closed | **N** | R4 |
+| `TD-persist-24` | `persistence-service` | open | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -1486,7 +1487,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 200 | 状态 {'closed': 168, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 60, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 201 | 状态 {'closed': 168, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 61, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 15 （已闭但曾标 P0 面的 119 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
     skeuomorphic-ui: 5        random-events: 4          modular-building: 2
@@ -12752,3 +12753,19 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **还原判据** | 数据侧 JSON `0929c1b9…` / 烘焙产物 `942fdbfe…` 均逐字节回到对齐后状态;还原后干净构建 `Success`(`Logs/s25-4-build-final.log:8559`,起始 `2026-11-07T07:15:11Z`)。 |
 | **回归三元组** | EditMode `7076 / 7039 / 0 / 0 / 37` @ `2026-11-07T07:20:04Z` · PlayMode `364 / 360 / 0 / 2 / 2` @ `07:21:12Z`;等式 `7076 − 7067 = 9` = 本件新增 9 条,零回归。 |
 | **⚠️ 残留(如实登记)** | 本门读**烘焙产物** ⇒ 「改了源 JSON 忘重烘」时它看的是旧产物(两边都旧、可能仍自洽)⇒ 可能绿;该形态由 `cooked_drift_all_artifacts_test` 兜,**两者互补**。另:本轮的构建级真负例是**历史观测**,非常驻门(常驻的是门本身 + 9 条夹具)。 |
+
+---
+
+## TD-persist-24 —— `SaveMigrationChain` 的「正文末尾等长」断言是 **tail-anchored 启发式**,中途插入的迁移会假红(7a · 2026-11-08 立)
+
+| 项 | 内容 |
+|---|---|
+| **状态** | `open` · `P0 面 = **N**`(R4:不影响任何 P0 判据,但会让下一次迁移**误判成「迁移改坏了正文」**) |
+| **病象(实测,不是推断)** | 给存档 v7 加分册态段时,我按「紧跟配置版本段」插入(当时的自然位置),`SaveMigrationV6ToV7` 的三条单项断言全过(版本号 ✅ / WorldSeed ✅ / 尾部字节数组 ✅),但**整链跑**报 `迁移脚本 FromVersion=6 改变了事件正文 —— 违反 AC-7a-14`。**正文一个字节都没动**。 |
+| **根因(几何,不是巧合)** | 断言按**末尾等长**取窗(`TailBody(current, bodyBefore.Length)`)。把 `bodyBefore` 记作 `L`、新档总长记作 `T`。在**配置版本段之后**插入 8 B 时,末尾 `L` 字节的窗口起点 = `T − L`,而插入点 = `100 + cfgLen`;当 `L ≥ 事件段长 + 8` 时窗口必然**横跨插入点** ⇒ 比的是「cfg 的尾巴 + 新插入的 8 B + 事件」对「cfg + 事件」,恒不等。**与文件大小无关** —— 真实存档同样失败(实测:`test_adr037_composeWritesArtifacts_andLoadReturnsThem` 无论正文多长都红)。 |
+| **为何至今没暴露** | 既有的四条迁移(`V2ToV3` / `V3ToV4` / `V4ToV5` / `V5ToV6`)**全部**插在「新版本的头部区」内 ⇒ 窗口落不到插入点。v7 是第一条想往**正文中段**插的迁移。 |
+| **本轮的处置(就地绕开,不改断言)** | **把分册态段挪到头部之后、配置版本段之前**(与 `V2ToV3` 同一个位置)⇒ 插入点回到「头部区」,窗口不再重叠,整链复绿。段序随之定为 `头部 \| 分册态段 \| 配置版本段 \| 事件段 \| 折叠段 \| 载荷段`。 |
+| **为什么没顺手修断言** | 改成「按事件段首尾对齐比较」需要在链里知道**每一版**的段序与各段长度,而链的输入只有字节 + 版本号;贸然改会让**四条既有迁移的判据同时失去保护**。⇒ 登记而非就地动刀(承「不在实现轮现场消化」纪律)。 |
+| **解除动作** | 二选一,**须用户裁**:**(甲)** 给 `ISaveMigration` 增一个「本步插入了多少字节、插在哪」的自述契约,链按 `TailBody(len − insertedBytes)` 比;**乙)** 链改为比较「事件段本体」(需 `ParseBody` 级解析,等于让链依赖段序)。**甲**改动小、且能顺手覆盖「删段」形态。 |
+| **触发条件** | 任何一条**插入点不在头部区**的迁移(即:插在正文中段 / 段间)。下一次改存档布局时必撞。 |
+| **出处** | `production/qa/evidence/impl-s26-1-casebook-segment-2026-11-08.md` §4;`unity/Assets/Sim.Codec/SaveMigrationV6ToV7.cs` 文件头的「为什么插在配置版本段之前」段。 |

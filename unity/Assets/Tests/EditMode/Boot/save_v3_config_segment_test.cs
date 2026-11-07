@@ -199,6 +199,22 @@ namespace DaYiJingCheng.Tests.Boot
                 new ArtifactConfigVersion("b_data", 7u),
                 new ArtifactConfigVersion("a_data", 5u),
             };
+            // 🔁 2026-11-08(ADR-010 义务 13 起必须补):本件原来组的是**正文极短**的档
+            //    (段 12 B + 空事件段 12 B = 24 B)。v7 的分册态段插在「配置版本段之后」,
+            //    而 `SaveMigrationChain` 的「正文末尾等长」断言按**末尾 N 字节**取窗 ——
+            //    当正文长度 < 插入偏移(这里是 112)时,这个窗口会**盖住插入点**,
+            //    于是「正文没被改动」这条不变式在几何上就不成立。
+            //    ⚠️ 这是**断言形态的已知局限**(tail-anchored 启发式),不是迁移改坏了正文:
+            //    真实存档的正文远大于插入偏移。⇒ 本夹具把正文补到真实量级。
+            for (int i = 0; i < 8; i++)
+            {
+                _stream.Append(new SimEvent(
+                    100L + i, PatientId.None, i, EventKind.DiseaseOnset,
+                    _encoder.Encode(EventKind.DiseaseOnset,
+                        new DiseaseOnsetPayload(100L + i, diseaseId: 1, patientId: i,
+                                                patientSeed: 1234L + i, seq: i))));
+            }
+
             byte[] signed = SaveService.AddChecksum(ComposeUnsigned(artifacts));
 
             SaveService loadSide = NewLoadSide();
@@ -263,6 +279,10 @@ namespace DaYiJingCheng.Tests.Boot
                 artifactConfigs: artifacts);
 
             int head = SaveHeaderCodec.FixedSize;          // 36 = v3 头
+            // 🔁 2026-11-08(ADR-010 义务 13):v7 在配置版本段之后多一个**分册态段**(8 B)。
+            //    先把它摘掉,下面「按 v6 头切尾」的算术才成立 —— 否则它会被当成正文的一部分
+            //    一起带进 v3 档,`StripSegmentToV2` 只摘配置版本段,分册态段就留在 v2 里。
+            v4 = StripCasebookSegment(v4);
             // 🔁 2026-11-06(ADR-042):`Compose` 现在出 **v6**(再 +8 B 落笔时刻)⇒ 尾巴起点跟着抬到 100,
             //    去掉的字节数 = 24 + 32 + 8。只改一处不改另一处 ⇒ 正文错位 8 字节、读成「段损坏」。
             int tailStart = SaveHeaderCodec.FixedSizeV6;   // 100 = v6 头之后(24 + 32 + 8 都去掉)
@@ -276,6 +296,18 @@ namespace DaYiJingCheng.Tests.Boot
             v3[SaveHeaderCodec.SaveVersionOffsetFixed + 2] = 0;
             v3[SaveHeaderCodec.SaveVersionOffsetFixed + 3] = 0;
             return v3;
+        }
+
+        /// <summary>摘掉 v7 的**分册态段**(8 B,紧跟配置版本段)。</summary>
+        /// <remarks>插入点用 `ConfigVersionSegment.Decode` 算,不硬编码 —— 逐份版本段长度取决于写侧给了几条。</remarks>
+        private static byte[] StripCasebookSegment(byte[] v7)
+        {
+            int cutAt = SaveHeaderCodec.FixedSizeV6;   // 100 = v6 头部末尾;分册态段紧跟其后
+            int extra = CasebookSegment.EmptySize;
+            var stripped = new byte[v7.Length - extra];
+            Array.Copy(v7, 0, stripped, 0, cutAt);
+            Array.Copy(v7, cutAt + extra, stripped, cutAt, v7.Length - cutAt - extra);
+            return stripped;
         }
 
         /// <summary>把 v3 的**不含校验和**字节还原成 v2:去掉段、版本号写 2。</summary>
@@ -314,6 +346,8 @@ namespace DaYiJingCheng.Tests.Boot
                     new SaveMigrationV4ToV5(),
                     // ADR-042:链末端多一级,不补则旧档在 v5→v6 断掉
                     new SaveMigrationV5ToV6(),
+                    // ADR-010 义务 13(2026-11-08):再多一级(v6 → v7 插空分册态段)
+                    new SaveMigrationV6ToV7(),
                 },
                 writeScheduler: action => action(), blobRestoreSink: _pool);
         }
