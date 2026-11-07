@@ -54,6 +54,19 @@ namespace DaYiJingCheng.Tests.CaseSystem
             CollectionAssert.AreEqual(new[] { 10 }, r1.DiseaseIds);
             Assert.AreEqual(0, ds.Rows[1].DiseaseIds.Length, "2 号应为孤儿条目");
             Assert.AreEqual(0, ds.Rows[2].DiseaseIds.Length, "3 号应为孤儿条目");
+
+            // 🔁 2026-11-07(用户裁定「让诊室默认来一个刺伤病人」):补第 4 行「刺伤」→ 病种 2。
+            //    病因:出厂默认病人就是注册表第 0 条 = id 2(`INJ_STAB` 刺伤),
+            //    而词表原先三个词条全是病名、没有伤情 ⇒ **不改启动旋钮就一本词条都翻不到**,
+            //    教学链 `judge` 步在新手默认路径上永远走不到。
+            //    ⚠️ 这条钉的是**源数据**(词表作者态):行被删 / 外键被改 ⇒ 立刻红。
+            Assert.GreaterOrEqual(ds.Rows.Count, 4, "源 JSON 至少 4 行(第 4 行 = 刺伤)");
+            JudgmentLexemeRow r4 = ds.Rows[3];
+            Assert.AreEqual(4, r4.LexiconId);
+            Assert.AreEqual("刺伤", r4.Text);
+            CollectionAssert.AreEqual(new[] { 2 }, r4.DiseaseIds,
+                "刺伤 = 注册表 id 2(INJ_STAB)—— 出厂默认病人的病种");
+
             Assert.AreEqual(bake.ConfigVersion, ds.ConfigVersion, "ConfigVersion roundtrip 失配");
         }
 

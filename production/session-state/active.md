@@ -17206,3 +17206,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   SHA-256 `a83af2bc…` 逐字节还原
 - 回归:EditMode `7066/7029/0/0/37`(+6 = 新夹具)· PlayMode `360/356/0/2/2` @01:56:37Z / 02:01:27Z
 - ⚠️ 读数坑:PlayMode XML 用 `-f` 判「跑完」会读到半截(`341/337/0`);判据须含 `<test-run ... total=`
+
+## Session Extract — 默认病人 = 刺伤(2026-11-07 02:0x–02:2x)
+
+- **前提纠正**:默认病人**本来就是**刺伤(`registryIndex: 0` ⇒ 注册表第 0 条 = id 2 `INJ_STAB`);
+  缺的是词表里没有伤情词条 ⇒ 默认路径一本都翻不到
+- 词表补第 4 行 `{lexicon_id:4, text:"刺伤", disease_ids:[2]}` → 重烘 92 B / 4 行 / `0x0A2BD752` → 重建包
+- **真包(零启动旋钮)**:`disease=2` · `pointable` 0→1 · 焦点 `<匿名;4>` · `★发火 tick=332 steps=observe,judge 口述=2`;截图显示「刺伤」
+- `judgment_lexicon_bake_test` 增第 4 行断言(钉源数据)
+- 回归:EditMode `7066/7029/0/0/37` · PlayMode `360/356/0/2/2` @02:17:39Z / 02:18:46Z · `f35ae13d` + 工作树
+- ⚠️ `ConfigVersion` 变了 ⇒ 旧档比对走 ADR-010 §七 非致命分支(本轮用新起一局,未涉旧档)
+- 仍不成立:发火走解冻补跑路径 · 4 行里 2 行仍孤儿 · close / 手柄 NOT-RUN · 口述无录音互相关

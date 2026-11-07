@@ -837,7 +837,7 @@ assets/data/case_judgment_lexicon.json
 | 边界 | 说明 |
 |---|---|
 | **发火发生在「解冻补跑」路径上** | 整个开册/查体/指认期间世界冻结(`tick` 恒 331),两条步**同一趟解冻补跑**一起发火。**没有**单独观测到 `judge` 在「普通 tick 边沿」发火 —— 该路径与解冻补跑共用同一个 `OnTickEdge`,但本轮的观测只覆盖后者 |
-| **伤寒病人来自启动期旋钮** | `DYJC_AUDITION_REGISTRY_INDEX=8` 是**听测期专用**缝。**出厂默认(`registryIndex: 0` = `INJ_STAB` 刺伤)仍然一本词条都翻不到** —— 这个缺口没被本轮填上 |
+| **伤寒病人来自启动期旋钮** | `DYJC_AUDITION_REGISTRY_INDEX=8` 是**听测期专用**缝。**出厂默认(`registryIndex: 0` = `INJ_STAB` 刺伤)仍然一本词条都翻不到** —— 这个缺口没被本轮填上。🔁 **2026-11-07 后续轮已填**(见 §17):词表补第 4 行「刺伤」,默认病人即可走通 |
 | **词表仍只有 1 条真关联** | 3 行里 2 行是孤儿(`湿温` / `温毒` 的 `disease_ids` 仍为 `[]`);GDD 说的 37 条词表**没有**成文 |
 | **`close` 步** | 仍未触发 |
 | **手柄路径** | 仍 `NOT-RUN` |
@@ -960,3 +960,67 @@ grep "Build Finished" unity/Logs/build-ring2.log
 ⚠️ **一处读数坑(如实记)**:PlayMode 首读时 `-f` 判据在 XML **刚创建、尚未写完**时就放行,
 读到 `341/337/0` 这种截断值。判据应是「文件存在 **且** 含 `<test-run ... total=` 闭合」,
 或读前先确认 mtime 稳定 —— 否则会把「读到半截」当成「少了 19 条测试」。
+
+---
+
+## 17. 诊室默认病人 = 刺伤(2026-11-07 · 用户裁定「让诊室默认来一个刺伤病人」)
+
+### 17.1 先纠一处前提:**默认本来就是刺伤**
+
+`CompositionRoot` 的 `PatientAppearedDriver` 取 `registryIndex: 0` ⇒ 注册表第 0 条 =
+id **2** = `INJ_STAB` **刺伤**。§15/§16 那两轮的 `disease=2` 读数就是它。
+⇒ 「让默认来一个刺伤病人」要动的**不是病人**,是**词表**:当时四个词条里没有伤情,
+默认病人因此一本词条都翻不到(§15.3 的第二条边界)。
+
+### 17.2 改了什么
+
+```
+assets/data/case_judgment_lexicon.json
+  + { "lexicon_id": 4, "text": "刺伤", "disease_ids": [2] }
+```
+
+烘焙:`unity/Logs/bake-lexicon2.log:428`
+`case_judgment_lexicon.cooked.bytes = 92 B, 4 行, ConfigVersion = 0x0A2BD752`(旧:73 B / 3 行 / `0x74C8A843`)。
+重建 player:`unity/Logs/build-stab.log:8756` `Build Finished, Result: Success.` · 错误 0 · 30.7 s。
+
+⚠️ **`ConfigVersion` 变了** ⇒ 旧存档在新包上比对会走 ADR-010 §七 的**非致命**分支(告警不阻断)。
+本轮走查用「新起一局」,不涉旧档。
+
+### 17.3 真包读数 —— **不带任何 `DYJC_*` 旋钮**
+
+```
+[tutorialdiag] 病名册环 t=10.45 viewer=0 seen=0 pointable=0 词表行=4 novelty=0     ← 进世界
+[tutorialdiag] 查体投影 patient=1 actor=0 disease=2 novelty=First tick=332          ← 默认病人 = 刺伤
+[tutorialdiag] 病名册环 t=29.57 viewer=0 seen=1 pointable=1 词表行=4 novelty=1
+[tutorialdiag] 焦点=channel-disease-name
+[tutorialdiag] 焦点=<匿名;4>          ← 开册焦点落在 lexicon_id=4「刺伤」
+[tutorialdiag] ★发火 tick=332 steps=observe,judge 口述=2
+```
+
+截图 `jg1.png`:病名列出现「**刺伤**」条目行且带焦点框。
+⇒ **出厂路径**(默认病人 + 默认词表 + 零启动参数)从头走到 `judge` 发火。
+
+### 17.4 夹具
+
+`judgment_lexicon_bake_test` 增 4 行断言(`Rows.Count ≥ 4` / `LexiconId = 4` / `Text = "刺伤"` /
+`DiseaseIds = [2]`)—— 钉的是**源数据**,行被删或外键被改即红。
+既有「病种 1 ⇒ 反查为空」两条断言不受影响(仍无词条关联 1)。
+
+### 17.5 回归(最终树)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 02:17:39Z`(EM)/ `02:18:46Z`(PM)· 批次:默认刺伤病人轮 · commit `f35ae13d` + 工作树
+
+| 套件 | 结果 | 对照 |
+|---|---|---|
+| EditMode | `total=7066 passed=7029 failed=0 inconclusive=0 skipped=37` | 与 §16.4 **同值**(未增删用例,只在既有夹具里加断言) |
+| PlayMode | `total=360 passed=356 failed=0 inconclusive=2 skipped=2` | 与 §16.4 **同值**,零回归 |
+
+### 17.6 仍然不成立的说法(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| 发火走的是**解冻补跑**路径 | 仍然成立(§15.3 第一条边界没变) |
+| 词表 4 行里只有 2 行有外键 | `湿温` / `温毒` 仍是孤儿;GDD 的 37 条仍未成文 |
+| `close` 步 | 仍未触发 |
+| 手柄路径 | 仍 `NOT-RUN` |
+| 口述听感 | 只证到投递 2 条 cue,**没有**录音互相关 |

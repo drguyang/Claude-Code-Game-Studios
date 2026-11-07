@@ -3,6 +3,7 @@
   "entries": [
     { "lexicon_id": 1, "text": "伤寒", "disease_ids": [10] },
     { "lexicon_id": 2, "text": "湿温", "disease_ids": [] },
-    { "lexicon_id": 3, "text": "温毒", "disease_ids": [] }
+    { "lexicon_id": 3, "text": "温毒", "disease_ids": [] },
+    { "lexicon_id": 4, "text": "刺伤", "disease_ids": [2] }
   ]
 }
