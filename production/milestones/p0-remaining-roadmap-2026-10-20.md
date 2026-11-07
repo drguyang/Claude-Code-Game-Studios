@@ -950,6 +950,16 @@ M3 Exit（epic 面） =
 | **sprint-24** | 炮制链尾 + 采集尾 | `processing-002` · `processing-004` · `processing-005` · `foraging-002`<br>🔁 **2026-11-03 取件前复核(Phase 1.5)**:本行**已过期** —— 逐件实跑卡面:`processing-002` / `processing-004` / `foraging-002` 三件均 **`Complete`**(先期交付),**实际只剩 `processing-005`(Ready)**。⇒ 本 sprint 的件集由用户 2026-11-03 重裁为 **2 件**:`processing-005`(炮制尾)+ `persistence-service-001`(2026-10-25 QA 假绿退回件,已挂 9 天)。原文不删,实况见 `production/sprints/sprint-24.md` §Phase 1.5 复核 | sprint-21 | 🔁 **Exit 判据随件集重裁**:原写「`processing-002` 的 42 走查半边仍挂」—— 该件已 Complete,该挂标已不适用;新 Exit = 2 件各自收口(`[L]` 半随如实标 `NOT-RUN`) |
 | **sprint-25** | 教学链尾 | `tutorial-002` · `tutorial-003` · `tutorial-004` · `tutorial-005` | sprint-17 | `002/003` 挂 `BLOCKED-BY-45`(联机运行面) |
 | **sprint-26** | **呈现收尾簇**(**不得拆**) | `casebook-005` · `casebook-006` · `inventory-006` · `death-respawn-006` | sprint-19 · sprint-22 | 全部落在 42 元件库 + UI 走查面 |
+> > 🔁 **2026-11-07 取件前复核(Phase 1.5,原文不删)**:本行**两处已过期**。
+> > ① 件集 **2 / 4 已 `Complete`** —— `casebook-006`(相机模式意图,`Complete ✅ 2026-11-02`)·
+> >    `death-respawn-006`(呈现白名单,`Complete`);仍 `Ready` 的只有 `casebook-005` 与 `inventory-006`。
+> > ② **依赖倒置** —— `casebook-005` 的 `## Dependencies` 逐字写「Depends on: Story 002 · **003** · **004**」,
+> >    而 003 / 004 被本表排在 **sprint-27** ⇒ 按原行排,sprint-26 起手第一件事就卡在自己的前置上。
+> > ⇒ **用户 2026-11-07 裁定取件集为「A · 脉案链整条」**:sprint-26 = `casebook-001` → `003` → `004`(Must,
+> >    串行)+ `casebook-005` / `inventory-006`(Should)+ 本表 §6.5.4 指定落本 sprint 的 **`A2-1` 被动让位**
+> >    (容量已满,结转 sprint-27)。实况见 `production/sprints/sprint-26.md` §Phase 1.5 复核。
+> > ⚠️ **sprint-27 行随之受影响**:其件集 `casebook-001/003/004` 已被本 sprint 取走,`inventory-005` 已 `Complete`
+> >    ⇒ sprint-27 的件集须在取件前重取(本注不代裁)。
 | **sprint-27** | 脉案链尾 | `casebook-001` · `casebook-003` · `casebook-004` · `inventory-005` | sprint-17 · sprint-19 | — |
 | **sprint-28** | 内部可推收尾 | `medical-consequences-004` · `save-slot-ui-001` | **sprint-19(G-4)** | `AC-7b-01/02/10` 转可判 |
 | **sprint-29** | **批 C 外部阻塞** | `emergency-008` · `patient-ai-005` · `skeuo-019(b/d)` · `world-ecozones-005` | **外部**(美术 / UX 裁定 / 关卡工具 CI) | 素材与冻结到位才动 —— **现在做 = 自造断言** |

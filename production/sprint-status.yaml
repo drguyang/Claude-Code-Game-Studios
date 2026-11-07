@@ -9,129 +9,83 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 #
-# ⚠️ sprint-14 … sprint-24 的完整 yaml 已分别归档为
+# ⚠️ sprint-14 … sprint-25 的完整 yaml 已分别归档为
 #    `production/sprint-status-sprint1{4,…,9}-archive.yaml` · `sprint20-archive` ·
-#    `sprint21-archive` · `sprint22-archive` · `sprint23-archive` · `sprint24-archive`,
-#    不随本文件覆盖丢失。sprint-24 归档 SHA-256(前 16 位)= `f19ca6b18dfdcfee`(2026-11-06 规划轮归档)。
-#    ⚠️ 归档件是**覆盖前快照**:其中 `S24-1` 记 `done`,与 `processing/story-005` 卡面
-#    `In Progress` 的漂移同批订正(sprint-25 的 S25-3 收口时处理),本文件不改归档件。
+#    `sprint21-archive` · `sprint22-archive` · `sprint23-archive` · `sprint24-archive` ·
+#    `production/sprint-status-sprint25-archive.yaml`,不随本文件覆盖丢失。
+#    sprint-25 归档 SHA-256(前 16 位)= `8af99691c31f55bf`(2026-11-07 规划轮归档,8 个 story 条目)。
 #
-# 本文件 = sprint-25 活件(教学链 4 件 + 炮制屏收口 · Must 3 / Should 2 / Nice 0)。
-#    件集裁定 = 用户 2026-11-06「照此定稿 + 48 GDD 结案」。
-#    ✅ QA 计划**已产出**:`production/qa/qa-plan-sprint-25-2026-11-06.md`
-#       (规划轮本行原写「尚无 QA 计划」—— 2026-11-06 收口轮订正,原文不删改述:该计划确实是在
-#        规划文件成文**之后**才跑出来的,不是规划时漏登记)。
-#    🔁 2026-11-06 晚:登记**计划外追加件 3 条**(S25-6/7/8,全部由用户当轮直接指派)。
-#       口径承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,实际 3 ⇒ **超支 2**。
-#       追加件照 sprint-23 归档件的先例排在 `stories:` 末尾并带 `# ⚠️ 计划外追加` 注释。
-#    ⚠️ `file` 字段:story 件指卡面;S25-3 是 **TD 工作项**(载体 = 债册条目 + UX spec),不是新 story。
+# 本文件 = sprint-26 活件(脉案链 4 件 + 库存 1 件 · Must 3 / Should 2 / Nice 0)。
+#    件集裁定 = 用户 2026-11-07「A · 脉案链整条」+「Must 3 / Should 2」+「忽视起止日期」。
+#    ⚠️ 本 sprint **不设结束日期** ⇒ 进度按 `production/CAPACITY-MODEL.md` §三 评估,
+#       不用燃尽率、不用「件/日」。
+#    ⚠️ `file` 字段:全部为 story 卡面。
 
-sprint: 25
-goal: "把「能打开」的炮制链推到「能走通」,并落地教学链的前两件(48 GDD 于本轮结案)"
-start: "2026-11-06"
-end: "2026-11-12"
-generated: "2026-11-06"
+sprint: 26
+goal: "把 39 脉案的数据链从「契约未定」推到「页可摊开」—— 分册态有段、痕有投影、能力面有守卫"
+start: "2026-11-07"
+end: ""
+generated: "2026-11-07"
 updated: "2026-11-07"
 
 stories:
-  - id: "S25-1"
-    name: "tutorial/002 只读投影 Proj 与装配护栏"
-    file: "production/epics/tutorial-onboarding/story-002-read-only-projection-and-assembly-guards.md"
+  - id: "S26-1"
+    name: "casebook/001 分册态数据契约与存档段"
+    file: "production/epics/casebook/story-001-volume-state-contract-and-save-segment.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
-    chain: "教学链"
+    chain: "脉案链"
     blocker: ""
-    completed: "2026-11-07"
-    note: "代码面完成:30 条新判据全绿 · 证伪 M1–M5 各自转红 · AC-48-03 存档字节字面面已补跑。🔁 2026-11-07 收口轮:AC-48-11 的**构建期半边此前不存在**(实测:asmdef 加 Sim.Contracts 且真用上 ⇒ 编译 0 错、b2-decl 双向差集为空 ⇒ 旧门全绿、构建成功;原登记的「真加引用就编不过」被证伪)。⇒ 新增 b2-exact 构建期门(ExactRefWhitelist + CheckExactReferenceWhitelist,接进 RunAll 三处强制点)+ 三条观测:D1 探针轮(TutorialSurfaceGate ⇒ Failure,探针串在日志 + BuildGate 栈帧)、P2 真负例(加引用 ⇒ 编译 0 错、b2-exact 1 条、构建 Failure)、N 编译负例(无引用用类型 ⇒ CS0234)。⚠️ 首跑红 1 = gate_wiring_manifest(新入口未声明)—— 门在正常工作,处置为补声明。回归 EditMode 7067/7030(+1)· PlayMode 364/360(零回归)@ 2026-11-07T06:16:11Z / 06:17:14Z · 3bc99c6d+工作树。仍未做:联机 BLOCKED-BY-45 / 7a checkpoint 回执口(archive 步生产恒 false)。证据 = production/qa/evidence/impl-s25-1-tutorial-projection-2026-11-06.md(§8/§9)"
-  - id: "S25-2"
-    name: "tutorial/003 Anchor/Completion 两相触发引擎"
-    file: "production/epics/tutorial-onboarding/story-003-anchor-completion-trigger-engine.md"
+    completed: ""
+    note: "链头。分册态段按 ADR-010 §一 落槽(义务 13);禁 float、Fix 走自定义编码器 + EditMode 探针;player_id 经 IIdAuthority,45 铸造契约残记 NOT-RUN 不记绿。解锁 003。"
+  - id: "S26-2"
+    name: "casebook/003 分册键与改写痕读时投影"
+    file: "production/epics/casebook/story-003-volume-key-and-revision-trace-projection.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
-    chain: "教学链"
+    chain: "脉案链"
     blocker: ""
-    completed: "2026-11-07"
-    note: "18 条判据全绿 · 证伪 M1–M4 各自转红。🔁 2026-11-07 收口轮:原两条「未做」由 **S25-4c** 关闭 —— ① 零生产调用点 ⇒ BootRoot.cs:848 Attach → TutorialChainDriver 构造 TutorialTrigger、每 tick 边沿 Evaluate(BootRoot.cs:2886);② 播种时机 ⇒ 构造期 Seed()(TutorialChainDriver.cs:117),位于「流已就绪 + 玩家 id 已定」之后,换流重播种。本卡本轮无新增夹具(等式判据归 S25-1)。回归同批(EditMode 7067/7030 · PlayMode 364/360)@ 2026-11-07T06:16:11Z / 06:17:14Z · 3bc99c6d+工作树。仍未做:联机 BLOCKED-BY-45 / archive 依赖 7a 回执口(恒 false)/ 相位维退化(设计取舍)。证据 = production/qa/evidence/impl-s25-2-tutorial-trigger-2026-11-06.md(§7)"
-  - id: "S25-3"
-    name: "炮制屏收口:processing-18 落地 + TD-skeuo-21 结案 + 真包点火→出丹"
-    file: "docs/tech-debt-register.md#td-skeuo-21"
+    completed: ""
+    note: "痕 = 读时投影、零独立存储(AC-39-13);J(c,p) = 该作者在病例 c 上的最后一笔判断;分册键跨 join/leave 稳定不重号。依赖 001。解锁 005。"
+  - id: "S26-3"
+    name: "casebook/004 反幻想三条「绝不」的能力面守卫"
+    file: "production/epics/casebook/story-004-anti-fantasy-capability-guards.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
-    chain: "炮制链"
+    chain: "脉案链"
     blocker: ""
-    completed: "2026-11-06"
-    note: "四条实现差全部落地;判据 5 → 13 条全绿;证伪 M1–M4 各自转红;回归 EditMode 6968/6931 · PlayMode 359/355(+8)。真包已跑通:开屏落焦 → 二段(第一次不点火) → 落火留屏 → 3 s 后产物入账(器物#0 消失 / 器物#1 出现) → 空态「案上无料」。⚠️ 仍 NOT-RUN 三项:「无方可起」真包未复现 · AC-18-24 手柄走查 · AC-42-F1 ⑨。证据 = production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md。"
-  - id: "S25-4"
-    name: "tutorial/004 三媒体调度与纸近景模态"
-    file: "production/epics/tutorial-onboarding/story-004-three-media-scheduling-paper-modal.md"
+    completed: ""
+    note: "每条「绝不」各配负夹具;守卫是**能力面**不是提示面 ——「做不到」不得用「没显示」冒充。依赖 002/003(API 面成形后才有可扫对象)。解锁 005。"
+  - id: "S26-4"
+    name: "casebook/005 脉案页布局与无指针焦点导航"
+    file: "production/epics/casebook/story-005-page-layout-focus-navigation.md"
     priority: should-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: L
-    chain: "教学链"
+    chain: "脉案链"
     blocker: ""
-    completed: "2026-11-07"
-    note: "调度器 14 条 + 纸屏 9 条 = 23 条判据;证伪 6/6 转红(首轮 m1/m2 假存活,判据已补);回归 EditMode 7039/7002 · PlayMode 359/355(零回归)。🔁 2026-11-06 晚补齐两个子轮(同一卡面,不另算件):**S25-4b** Boot 翻译层(48 意图 → 44 音 + 42 字幕,字幕文本取事件表的 subtitle_text 作单一真源)· **S25-4c** 全链驱动(事件流 → 解码 → 投影 → 评估 → 调度 → 投递,增量游标 + 流替换重播种),commit e1c2669e。⇒ 原记 NOT-RUN 的「字幕投递(待 Boot 翻译层)」**已落**。真包已证:教学口述**出声**(与素材归一化互相关 0.9199)且**出字幕**(屏上文本 = 事件表口径,非 48 内容表);同轮查出并修掉口述声源格恒为世界原点的缺陷(-33.3 → -3.6 dB)。⚠️ 仍 NOT-RUN:世界侧走近摊开(待 6 纸道具 + 4 交互)· 示范片段(待 13 资产 + 42 播放口)· 其余三条口述(judge/close/archive)的出声 · AC-48-06/15 [L] 走查 · AC-48-09 联机(BLOCKED-BY-45)。证据 = production/qa/evidence/impl-s25-4-three-media-scheduling-paper-modal-2026-11-06.md · impl-s25-4b-tutorial-media-translation-2026-11-06.md · impl-s25-4c-tutorial-chain-wiring-2026-11-06.md · walkthrough-s25-4c-tutorial-real-build-2026-11-06.md(§8/§9/§10)。🔁 2026-11-06 深夜再对账:**四条口述全部出声已证** —— 真包用生产解析面依次播 48 的四条 cue 并录音,归一化互相关 Observe 0.8848 / **Judge 0.9978** / **Close 0.9911** / **Archive 0.9798**,增益 0.607–0.618(−4.2~−4.3 dB)四条一致,起点间隔 5.5 s 与设定吻合。(⚠️ 这不是「六步都能教到」:`judge` / `close` 的**游戏内触发**未走通(手动脉案走查卡在把焦点送进病名册条目,不是走不通的证据),`archive` 仍 **结构不可达**。宁可少记,不借绿。)commit 4b3bfaf2。 🔁 **2026-11-07 收口轮**:口述一路**闭环并有真包观测**(字幕上屏 = 事件表口径 · 音频互相关 0.6032);`AC-48-06`/`AC-48-15` 的字幕半边成立,走查半边**对象不存在**(纸屏无生产开口)。示范 `BLOCKED-BY` 13+42、纸 `BLOCKED-BY` 6+4 —— 两条触发面**今天不存在**,AC 复选框保留未勾。🔁 **同日追加甲案(用户裁定)**:`TD-tutorial-01` 已**结案** —— 四条文案对齐事件表并重烘,新增构建期跨表门 `TutorialNarrationSubtitleCrossRefGate`(接 `AssemblyGates.RunAll`)+ 9 条夹具;真负例:JSON 还原成旧版重烘 ⇒ 夹具红 + 构建 `Failure`(四条 [C3] 进构建日志);证伪 M1/M2 各自单红;数据与产物 SHA-256 逐字节还原。回归 EditMode 7076/7039(+9)· PlayMode 364/360 @ 07:20:04Z / 07:21:12Z。证据 = production/qa/evidence/impl-s25-4d-narration-subtitle-crossref-2026-11-07.md。**Complete 口径 = 本 story 自身范围完成**,不得读成三媒体全通。"
-  - id: "S25-5"
-    name: "tutorial/005 零设门与零按键提示守卫及走查"
-    file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"
+    completed: ""
+    note: "焦点顺序铁律永不重排;空行可聚焦、零提示文字;P0 无 disabled 按钮。AC-39-11 / AC-39-12 的 [L] 走查未跑即 NOT-RUN。HIGH engine risk(UI Toolkit 焦点桥)—— 抄 TD-skeuo-20 修法,不自实现焦点算法。依赖 002/003/004。"
+  - id: "S26-5"
+    name: "inventory/006 药箱容器摆放、翻页遍历与满溢四档呈现"
+    file: "production/epics/inventory-items/story-006-medicine-case-ui-walkthrough.md"
     priority: should-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 0
     complexity: M
-    chain: "教学链"
+    chain: "库存链"
     blocker: ""
-    completed: "2026-11-07"
-    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。🔁 2026-11-07 收口轮:本件**未开工,整件结转 sprint-26**(理由 = 本轮 Should 额度被 S25-4 占满 + 追加件超支 2;见 `sprint-25.md` §收口 六-1);状态维持 `ready-for-dev`,卡面 `Ready` 不动。🔁 **2026-11-07 当晚(用户「开 S25-5」)结转件已补做 ⇒ 上面那句结转作废**:`TutorialZeroGate` 构建期门(标识符黑名单 + **返回类型黑名单** + 资产后缀闭集)接进 `AssemblyGates.RunAll` 三处强制点 · `tutorial_zero_gate_guard_test` 10 条 · **发现并修掉一处真实违规**(`TutorialProjection.Project` 公开返回 `TutorialProgressView` ⇒ 规则五此前不成立;处置 = 四类型**内化** + `InternalsVisibleTo`,非改名)。证伪 M1–M4 各自单红,SHA-256 逐字节还原。回归 EditMode 7086/7049(+10)· PlayMode 365/361(零回归)@ 2026-11-07T14:44:12Z / 14:32:34Z · 923890a5+工作树。⚠️ **仍未做**:AC-48-07 [L] NOT-RUN(走查对象不全)· AC-48-05 [L] BLOCKED-BY-SPEC(纸屏零生产开口)。证据 = production/qa/evidence/impl-s25-5-zero-gate-guards-2026-11-07.md。"
-
-  # ⚠️ 计划外追加(2026-11-06 用户当轮直接指派)—— 不属 §七 收口判定的计划件扫描面。
-  #    承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,本轮实际 3 ⇒ 超支 2。
-  - id: "S25-6"
-    name: "走查仪表 -tutorialdiag:真包现场读数(玩家格 / 病人格 / 最近距离 / 急救态 / 教学事实数)"
-    file: "unity/Assets/Gameplay.Boot/WalkthroughDiagnostics.cs"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    chain: "—"
-    blocker: ""
-    completed: "2026-11-06"
-    note: "计划外追加。病因:走查只能在 16×16 图里盲走 —— `SaveCellDumpCli` 只能读落盘 checkpoint,且病人位置是呈现态、不进流。旗标门控,默认零开销,只读不写流不改状态。没有它,第二轮走查仍定位不到「E 没反应」是「没走到跟前」。commit 905ce971。⚠️ 改日志行格式 = 必须同批改走查脚本的解析前缀(实测踩过一次:加 `t=` 前缀后整轮零读数)。🔁 2026-11-06 深夜同一件仪器的第二个旗标:**`-tutorialnarrcheck`**(独立于 `-tutorialdiag`,默认关)—— 教学链装配后把 48 的全部口述用**生产解析面**逐条播一遍,用于「cue 解析得出、播得响吗」。⚠️ **不替教学链发火**,只走同一条 `翻译层 → 44 → 42` 路径。commit 4b3bfaf2。"
-  # ⚠️ 计划外追加(2026-11-06 用户「①,修 ListenerCell 并重跑确认音量」)。
-  - id: "S25-7"
-    name: "教学口述声源格恒为世界原点 —— 听者缝零注入 + 装配期判空"
-    file: "unity/Assets/Gameplay.Boot/CompositionRoot.cs"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    chain: "教学链"
-    blocker: ""
-    completed: "2026-11-06"
-    note: "计划外追加。真包实测缺陷:口述出声但被空间化压低 -33.3 dB。根因**两环**:① `AudioAssemblySeams.ListenerCell` 全仓零赋值点(注释自称「由 BootRoot 注入」= 假自述);② 即便填了缝也不生效 —— `CompositionRoot` 在 `Assemble` 那一刻就判空,而填缝在 BootRoot 第 5.2 步(之后)⇒ 固化成 null 分支。**只修 ① 是假修**(实测增益逐位不变),延迟读 + 填缝两环都修才有效:0.0216 → 0.6631(净恢复约 30 dB)。回归 EditMode 7059/7022 · PlayMode 359/355。commit 905ce971。"
-  # ⚠️ 计划外追加(2026-11-06 用户「修模态关闭时补跑一次边沿」)。
-  - id: "S25-8"
-    name: "模态解冻补跑教学边沿(挡路模态关闭那一帧再推一次 OnTickEdge)"
-    file: "unity/Assets/Gameplay.Boot/BootRoot.cs"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 0
-    complexity: S
-    chain: "教学链"
-    blocker: ""
-    completed: "2026-11-06"
-    note: "计划外追加。冻结期间进流的 CaseOpened 没有 tick 边沿可走。安全前提 = 同 tick 幂等(`OnTickEdge` 的 tick 形参体内未使用 + 发火闸去重),由新夹具 `test_onTickEdge_sameTickTwice_firesOnce` 钉住。真包实测:解冻与发火同一帧且只发一次。⚠️ **归因订正**:体感那 2.4 s 是**冻结本身**的时长,不是边沿延迟;补跑只改善「关掉后再等下一个 tick」那一小段(≤50 ms),**不会**把 2.4 s 变 0。只覆盖教学链,其他 tick 边沿驱动未做也未裁。回归 EditMode 7060/7023(+1 = 新夹具)· PlayMode 359/355。commit 6246d9be。"
+    completed: ""
+    note: "满溢四档呈现;AC-42-F1 的库存屏项。R9 回写已于 2026-10-27 解除,BLOCKED-BY 注保留不删。与脉案链无依赖,可并行。"
