@@ -45,14 +45,14 @@ stories:
     name: "casebook/003 分册键与改写痕读时投影"
     file: "production/epics/casebook/story-003-volume-key-and-revision-trace-projection.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "脉案链"
     blocker: ""
-    completed: ""
-    note: "痕 = 读时投影、零独立存储(AC-39-13);J(c,p) = 该作者在病例 c 上的最后一笔判断;分册键跨 join/leave 稳定不重号。依赖 001。解锁 005。"
+    completed: "2026-11-08"
+    note: "**COMPLETE WITH NOTES**。`CasebookVolumeProjection.ProjectVolume(events, playerId, decoder)`;页序复用 CaseListOrdering(不另写排序);作者过滤在**解码之后、入册之前**(他人笔根本不进本册容器);末笔 Current 其余 Stale;零落笔仍出**空白页**(规则七空行可聚焦)。14 条判据;证伪 M1/M2/M3 各 4/2/1 条单红,SHA-256 还原。首轮全量红 1 = 既有门把 enum 的编译器字段 value__ 判成可变状态 ⇒ 该门限定到非 enum 类型 + 补两条空转守卫(非 enum 扫描面逐字未变)。回归 EditMode 7121/7084(+14)· PlayMode 365/361 零回归。⚠️ AC-39-04 ③ 跨机 player_id 稳定 = NOT-RUN · BLOCKED-BY-45(单机只证「重构不变」)。证据 = production/qa/evidence/impl-s26-2-casebook-volume-projection-2026-11-08.md。解锁 005。"
   - id: "S26-3"
     name: "casebook/004 反幻想三条「绝不」的能力面守卫"
     file: "production/epics/casebook/story-004-anti-fantasy-capability-guards.md"

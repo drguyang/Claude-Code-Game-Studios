@@ -1,12 +1,13 @@
 # Story 003: 分册键与改写痕读时投影(F-39.2)
 
 > **Epic**: 脉案
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-11-08(COMPLETE WITH NOTES)** —— 投影 / 能力面 / 零落盘三面全落;
+> **跨机稳定**(`AC-39-04 ③`)`BLOCKED-BY-45`,单机只证「重构不变」,见 §Completion Notes
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-08
 
 ## Context
 
@@ -31,12 +32,18 @@
 
 *From GDD `design/gdd/casebook.md`, scoped to this story:*
 
-- [ ] `J(c, p)` = 病例流中 (case c, author p) 的最后一笔 `JudgmentRecorded/JudgmentRevised`(按 `(Tick, Seq)` 全序取末),纯函数读时折叠
-- [ ] 改写痕(第几版 / 「旧」态)由流投影得出,**零独立存储**;AC-39-13 静态断言:痕字段 ∉ 任何可序列化类型、∉ `CaseClosed` 载荷
-- [ ] 分册可见性判据 = `player_id`:玩家 p 的分册检索 API 只能取回自己落过笔的病例判断;无参数为「全部作者」的重载存在即失败(AC-39-04 ①② 部分;③ id 跨机稳定性 **BLOCKED-BY-45**)
+- [x] `J(c, p)` = 病例流中 (case c, author p) 的最后一笔 `JudgmentRecorded/JudgmentRevised`(按 `(Tick, Seq)` 全序取末),纯函数读时折叠
+  - ✅ `CasebookVolumeProjection.ProjectVolume`;末笔 `Current`、其余 `Stale`;同 tick 按 `Seq` 定序;入参乱序不改结果。
+- [x] 改写痕(第几版 / 「旧」态)由流投影得出,**零独立存储**;AC-39-13 静态断言:痕字段 ∉ 任何可序列化类型、∉ `CaseClosed` 载荷
+  - ✅ 反射扫四处面(`CasebookVolumeRecord` / `CasebookPageRecord` / `CasebookVolumeSnapshot` / `CaseClosedPayload`),`trace` / `stale` / `revision` 零命中;**负控**证明扫描词表会中。
+- [x] 分册可见性判据 = `player_id`:玩家 p 的分册检索 API 只能取回自己落过笔的病例判断;无参数为「全部作者」的重载存在即失败(AC-39-04 ①② 部分;③ id 跨机稳定性 **BLOCKED-BY-45**)
+  - ✅ `player_id` 是**签名级必选**参数;反射断言「每个 `ProjectVolume` 重载都有 `playerId`」;未发号 id ⇒ 全空白页(**不退化为全量**)。
 - [ ] 同一玩家换机 / 重连 / 主机迁移后 `player_id` 不变 ⇒ 分册不裂(单机夹具模拟迁移:`max(id)+1` 高水位重构,承 ADR-006 Amend. B);联机真夹具 **BLOCKED-BY-45,禁借绿**
-- [ ] 「旧」态数据标记(供 42 渲染铅笔对勾)是**枚举非颜色**(整数态值,承全案「非色报态」纪律)
-- [ ] 4 人联机投影互不污染:同一病例流,4 个 `player_id` 各投影各的分册,内容独立(AC-39-04 夹具的可单机子集:4 个发号 id 模拟)
+  - ⚠️ **单机半边 ✅ / 联机半边 `NOT-RUN`**:「同流同 id 重投影逐位相同」已证;「新人加入不影响既有分册」已证。**「跨机 `player_id` 稳定性」一句无载体** —— 那是 45 的铸造契约(`AC-39-04 ③`),`BLOCKED-BY-45`,**不借绿**。
+- [x] 「旧」态数据标记(供 42 渲染铅笔对勾)是**枚举非颜色**(整数态值,承全案「非色报态」纪律)
+  - ✅ `JudgmentTraceState.Current = 0` / `Stale = 1`,夹具钉住整数值。
+- [x] 4 人联机投影互不污染:同一病例流,4 个 `player_id` 各投影各的分册,内容独立(AC-39-04 夹具的可单机子集:4 个发号 id 模拟)
+  - ✅ 4 个作者同一病例流 ⇒ 各自 1 笔、互不可见。
 
 ---
 
@@ -104,7 +111,9 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Casebook/casebook_volume_projection_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: ✅ 已创建并跑通(14 条)。⚠️ 本件用**假 decoder** 注入 —— 被测生产类是真身,
+被替身的是**协作者** `IPayloadDecoder`(生产实现住 `Sim.Codec`,`Casebook.Tests` 不引那支装配);
+不是 F2「测 Fake、生产类零命中」。
 
 ---
 
@@ -117,4 +126,41 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**2026-11-08 收口(`COMPLETE WITH NOTES`)。**
+
+### 落了什么
+
+`unity/Assets/Gameplay.UI/Casebook/CasebookVolumeProjection.cs`(新):
+`ProjectVolume(events, playerId, decoder) → ProjectedVolume`
+—— 页序**复用** `CaseListOrdering.OrderedList`(不另写一份排序,那会是第二份序);
+判断按 `(Tick, Seq)` 归并,末笔 `Current`、其余 `Stale`;零落笔的病例仍出**空白页**;
+作者过滤在**解码之后**(别人的笔根本不进本册容器 —— 这是能力面的数据侧落实,不是渲染时才筛)。
+
+判据:`unity/Assets/Tests/EditMode/Casebook/casebook_volume_projection_test.cs`(14 条)。
+
+### 证伪轮(3 条,各自单红,**单红归因清楚**)
+
+| # | 变异 | 期望红 | 实测 |
+|---|---|---|---|
+| **M1** | 关掉作者过滤(`author != playerId && false`) | 一切「别人的笔不该出现」的判据 | ✅ **4 条红**(AC-1 末笔 / AC-3 新人 / AC-4 未发号 / AC-6 四人) |
+| **M2** | 末笔不再标 `Current`(全 `Stale`) | AC-1 两条 | ✅ **2 条红** |
+| **M3** | 加一个「全部作者」重载 `ProjectVolume(events, decoder)` | AC-4 反射断言 | ✅ **恰 1 条红** |
+
+还原 = **备份 + `cp` 回 + SHA-256 逐字节**(`4a09cf1790d414d1…`),`grep -rn FALSIFY unity/Assets` = **0**。
+
+### 一条刻意的设计选择(不是遗漏)
+
+**页的存在性跟病例流走,不跟「我落过笔」走。** 零落笔的病例仍然出一页(`IsBlank`),因为
+GDD 规则七要求空行可聚焦 —— 「页在、痕无」与「这病人不在我的册子里」是两件不同的事。
+把两者合一,会让「我还没写过的病例」在册子里直接**消失**,而它本该是一张可以翻到、
+可以落笔的空白页。
+
+### 仍未做(不得借绿)
+
+1. **`AC-39-04 ③` 跨机 `player_id` 稳定 = `NOT-RUN`** —— 45 的铸造契约。单机夹具只证
+   「同流同 id 重投影逐位相同」与「新人加入不影响既有分册」,**不证跨机**。
+2. **接上加载路径**:本件与 `CaseListOrdering` 一样,**不读 `IEventSink`、不做流加载** ——
+   入参是「已加载的只读事件列表」。`CasesOf` 具名接口 = `TR-casebook-008` gap,待 37 修订轮。
+3. **呈现侧**:铅笔对勾的视觉归 42(AC-39-12 `[L]`),本件只交整数值。
+
+证据 = `production/qa/evidence/impl-s26-2-casebook-volume-projection-2026-11-08.md`。

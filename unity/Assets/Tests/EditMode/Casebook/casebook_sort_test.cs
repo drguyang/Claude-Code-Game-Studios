@@ -404,7 +404,18 @@ namespace DaYiJingCheng.Tests.Unit.Casebook
         public void test_casebookTypes_haveNoMutableState()
         {
             // Arrange:字段 + 属性两面(🔁 2026-10-21:原版只扫字段 ⇒ 带 setter 的属性逃逸)
-            Type[] types = CasebookTypes();
+            // 🔁 **2026-11-08(ADR-010 义务 13 轮)**:扫**类型本体**,排除 enum。
+            //    C# 的 enum 会被编译器生成一个**非 readonly 的实例字段 `value__`**(枚举值的存储本身),
+            //    它对本判据要保护的属性(「不得引入可变状态 / 缓存第二真源」)零威胁 ——
+            //    enum 是值类型,不能持有跨调用的状态。此前该命名空间里没有 enum,所以这条从未显形。
+            //    ⚠️ **没有放宽判据**:非 enum 类型的扫描面**逐字未变**;下面的两条非空守卫保证
+            //    它仍在真的扫东西(排除 enum 后若一个类型都不剩,本测会红而不是空转)。
+            Type[] types = CasebookTypes().Where(t => !t.IsEnum).ToArray();
+            Assert.That(types, Is.Not.Empty,
+                "排除 enum 后类型集为空 —— 扫描面丢失(假绿守卫)");
+            Assert.That(CasebookTypes().Any(t => t.IsEnum), Is.True,
+                "命名空间里还没有 enum ⇒ 上面那行排除是**死代码**,应删掉而不是留着");
+
             FieldInfo[] fields = types
                 .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
                                              BindingFlags.Instance | BindingFlags.Static |
