@@ -165,3 +165,16 @@
   生产上恒不成立)。
   ~~`ExactRefWhitelist` 表无独立单元夹具~~ 🔁 **同轮已补**:
   `test_ac48_11_buildGateWhitelist_matchesTheAsmdefFace`(字面量期望 + 门表 ↔ asmdef 双向一致)。
+
+**🔁 2026-11-07 晚(S25-5 轮)—— 本卡的一处夹具锚点被改,性质是「上轮成果被 AC-48-17 推翻」**
+
+S25-5 落 `TutorialZeroGate`(公开面零门禁词)时首跑即红:`TutorialProjection.Project` **公开返回**
+`TutorialProgressView` ⇒ 规则五(零设门)当时**不成立**。处置 = 把 `TutorialStepCompletion` /
+`TutorialProgressView` / `TutorialProjection` / `TutorialTrigger` **内化**(`internal` +
+`InternalsVisibleTo("Gameplay.Boot")` / `("Sim.Contracts.Tests")`)。
+
+**连带**:`test_ac48_04_exportedSurface_hasNoSimTypes` 的锚点类型原为 `TutorialProjection`
+(用来断言「扫到的是 48 装配且公开面非空」),内化后它不在公开面 ⇒ 锚点改为 `TutorialDispatcher`。
+⚠️ **只改了公开面的锚点**:`AC-48-04` 的另一半(编译产物引用集不含 `Sim*.Contracts` + 递增到
+`AC-48-11` 的 `b2-exact` 白名单)是**装配级**判据,与公开面无关,**零改动、仍全绿**。
+细节见 `production/qa/evidence/impl-s25-5-zero-gate-guards-2026-11-07.md` §1。

@@ -106,6 +106,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "TimeConstantSingleDefinitionGate.RunDataSide", // AC-5-05 数据侧(5_time 唯一定义 + 52 只许 $ref)· 2026-11-03
                     "TutorialSurfaceGate.RunAll",   // AC-48-04 48 装配公开面零 sim 类型 · 2026-11-06(S25-1)
                     "TutorialNarrationSubtitleCrossRefGate.RunAll", // TD-tutorial-01 48 口述文案 ↔ 44 字幕跨表一致 · 2026-11-07
+                    "TutorialZeroGate.RunAll",       // AC-48-17 48 公开面零门禁查询 API(规则五零设门)· 2026-11-07(S25-5)
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -337,6 +338,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Note = "TD-tutorial-01 的执行体(2026-11-07 用户裁定甲案):48 口述文案 ↔ 44 字幕文本\n"
                        + "跨表一致。病因 = 同一句口述两处各写一份且四条全不一致,运行期只读事件表 ⇒ 改 48 那份静默无效。\n"
                        + "入口写成 `类名.方法` 形(不做私有包装),与 TutorialSurfaceGate 同格。" },
+
+            new ClassVerdict { ClassName = "TutorialZeroGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-48-17(2026-11-07 · sprint-25 S25-5)48 公开面零「解锁 / 门禁 / 完成状态」查询 API。\n"
+                       + "规则五要求的是**做不到**而不是**没做**:只要公开面留着 `IsTutorialActive()`,下一个系统顺手一查门就出现了。\n"
+                       + "判据 = 公开类型名 / 成员名 / 返回类型名 三条命中黑名单词表(改名旁路也挡)。" },
 
             // ── 仅测试驱动(**无构建期强制点**)──
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,

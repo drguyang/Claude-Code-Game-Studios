@@ -303,3 +303,32 @@ python3 tests/smoke/run_smoke.py --results unity/Logs/s25-4-em-final.xml unity/L
 | 42 one-shot 播放口 | 只在 story-004 的 `BLOCKED-BY` 注 | —(接口非资产) | ❌ | — |
 
 ⚠️ **补登 ≠ 补齐**:资产文件、spec、批次三样仍未出;`AC-48-06` / `AC-48-15` 的 `[L]` 走查**仍然跑不了**。
+
+### 六、S25-5 结转件已补做(2026-11-07 当晚 · 用户「开 S25-5」)
+
+**§收口 六-1 记的「S25-5 整件结转 sprint-26」作废** —— 用户当轮直接指派开工,当日做完。
+sprint 的收口结论**不因此改变**(它仍是 Closed with carryover 时点上的判定),
+但 `sprint-status.yaml` 的 S25-5 已转 `done`(标 `completed: 2026-11-07`,并就地记了结转句的作废)。
+
+| 落点 | 内容 |
+|---|---|
+| `unity/Assets/Editor.Tools.Gates/TutorialZeroGate.cs`(新) | G1 标识符黑名单 · **G2 返回类型黑名单**(堵「改名不换类型」旁路)· 资产后缀闭集 · 扫描面为 0 即红 · 装配载入失败不静默 |
+| `AssemblyGates.RunAll()` | 接进三处强制点(调用 / `EntryWiringManifest` / `ClassVerdict`);**首跑红 1 = 新入口未声明**,证明 manifest 门在工作 |
+| `unity/Assets/Tests/EditMode/Tutorial/tutorial_zero_gate_guard_test.cs`(新) | 10 条:真装配正控 · 非空洞守卫 · G1 / G2 负夹具 · 干净正控 · 空扫描面 · 真 48 目录闭集 · 临时目录负夹具 · 零按键词族 · AC-48-12 音频白名单 |
+| `Gameplay.UI/Tutorial/AssemblyInfo.cs`(新)+ 四类型内化 | `TutorialStepCompletion` / `TutorialProgressView` / `TutorialProjection` / `TutorialTrigger` → `internal` + `InternalsVisibleTo` |
+
+**🔴 本轮的价值不在「补了判据」,在「判据一落就抓到既有违规」**:
+`TutorialProjection.Project` 公开返回 `TutorialProgressView` ⇒ 任何玩法系统都能读到「玩家走到第几步」
+⇒ **规则五(零设门)当时不成立**,而 GDD 与 UX spec 都写着它成立。
+处置 = **内化**,不是改名(改名只换词,G2 照样抓住;`internal` 让「拿到接口」在编译期不可能)。
+
+**证伪 M1–M4 各自单红**,SHA-256 逐字节还原(备份 + `cp` 回,不用 `git checkout`)。
+⚠️ M2 首枪编译失败(`CS0053`/`CS0051`)⇒ 变异未生效、测试没红 —— 补全变异后才转红,已如实记入证据件。
+
+**回归**:EditMode `7086 / 7049 / 0 / 0 / 37` @ `2026-11-07T14:44:12Z` · PlayMode `365 / 361 / 0 / 2 / 2` @ `14:32:34Z` ·
+`923890a5` + 工作树。等式:`7086 − 7076 = 10` = 新文件 `[Test]` 计数。
+
+**仍未做(不借绿)**:`AC-48-07 [L]` **NOT-RUN**(走查对象不全:archive 恒不成立 + 示范/纸无触发面)·
+`AC-48-05 [L]` **BLOCKED-BY-SPEC**(纸屏零生产开口 + `OQ-C4` 仍欠)。
+
+证据 = `production/qa/evidence/impl-s25-5-zero-gate-guards-2026-11-07.md`。

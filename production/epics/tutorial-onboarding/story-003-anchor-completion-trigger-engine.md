@@ -159,3 +159,13 @@
   · `3bc99c6d` + 工作树)。**本卡自身无新增夹具**(本轮只补证据链),等式判据归 S25-1 那一条。
 - **仍未做(禁借绿)**:联机运行面 `BLOCKED-BY-45` · `archive` 步依赖 7a 回执口(生产恒 false) ·
   相位维退化(= 设计取舍,非缺口;GDD 增第二发火相时才加维)。
+
+**🔁 2026-11-07 晚(S25-5 轮)—— `TutorialTrigger` 由 `public` 内化为 `internal`**
+
+AC-48-17(零设门)的扫描器 `TutorialZeroGate` 判定:`TutorialTrigger.HasFired` / `FireCount`
+是**完成状态查询**,而整类公开 ⇒ 玩法系统可直接读「玩家做了几步」。处置 = 整类 `internal`
+(配 `AssemblyInfo.cs` 的 `InternalsVisibleTo("Gameplay.Boot")` / `("Sim.Contracts.Tests")`)。
+
+⚠️ **这是「整类内化」而非「接口面设计」** —— 更干净的形态是把两个查询拆出去或只在测试可见。
+今日 48 无对外暴露 `TutorialTrigger` 的需求,内化已足够;**若将来有,须重判**这两个成员该不该存在。
+发动机的**行为面零改动**(`Seed` / `Evaluate` / 边沿逻辑一字未动),本卡的 18 条判据仍全绿。

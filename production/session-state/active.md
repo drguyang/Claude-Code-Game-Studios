@@ -17349,3 +17349,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **示范 / 纸**:grep 实测 42 零播放口 · 纸零世界锚点 ⇒ 缺的是资产与内容格,不是代码
 - 回归:PlayMode `365/361/0/2/2` @13:43:00Z · EditMode `7076/7039/0/0/37` @13:46:21Z
 - 未入库(4 个文件:sprint-25.md · critical_paths.json · casebook_entry_wiring_test.cs · active.md)
+
+## Session Extract — S25-5 结转件补做(2026-11-07 · 用户「开 S25-5」)
+
+- **口径**:原 §收口 六-1 记的「S25-5 结转 sprint-26」**作废**,当日开工当日做完;sprint 收口结论不变
+- 落盘(未入库):`TutorialZeroGate.cs`(新,构建期门 G1 名 + **G2 返回类型** + 资产后缀闭集)·
+  `tutorial_zero_gate_guard_test.cs`(新,10 条)· `AssemblyInfo.cs`(新,两条 IVT)·
+  `TutorialProjection/TutorialTrigger/TutorialProgressView/TutorialStepCompletion` **内化**
+- 🔴 **判据一落就抓到既有违规**:`TutorialProjection.Project` 公开返回 `TutorialProgressView`
+  ⇒ 规则五(零设门)**当时不成立**。处置 = 内化,**不是改名**(改名只换词,G2 照样抓)
+- 连带:`tutorial_assembly_guard_test` 的 AC-48-04 锚点 `TutorialProjection` → `TutorialDispatcher`
+  (装配级判据不受影响)
+- 证伪 M1–M4 各自单红;**M2 首枪编译失败(CS0053/CS0051)⇒ 变异未生效**,补全后才红(已如实记)
+- 回归:EditMode `7086/7049/0/0/37` @14:44:12Z · PlayMode `365/361/0/2/2` @14:32:34Z ·
+  `923890a5`+工作树;等式 `7086−7076=10` = 新文件 `[Test]` 数
+- ⚠️ 仍未做:`AC-48-07 [L]` NOT-RUN · `AC-48-05 [L]` BLOCKED-BY-SPEC(纸屏零生产开口)
+- 待入库:11 个文件(story-002/003/005 · sprint-25.md · sprint-status.yaml · active.md ·
+  AssemblyGates.cs · TutorialProjection.cs · TutorialTrigger.cs · gate_wiring_manifest_test.cs ·
+  tutorial_assembly_guard_test.cs)+ 新增 6 件(TutorialZeroGate.cs/.meta · AssemblyInfo.cs/.meta ·
+  tutorial_zero_gate_guard_test.cs/.meta)+ 证据件

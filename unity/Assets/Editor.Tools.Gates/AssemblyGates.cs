@@ -253,6 +253,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 病因:同一句口述两处各写一份且四条全不一致,而运行期只读事件表 ⇒ 改 48 那份静默无效。
             // 与 TutorialSurfaceGate 同格:入口用 `类名.方法` 形,不做本类的私有包装(门链 manifest 按此抽接线)。
             errs.AddRange(TutorialNarrationSubtitleCrossRefGate.RunAll());
+            // 48 的零设门守卫(2026-11-07 · S25-5 · AC-48-17):公开面零「解锁 / 门禁 / 完成状态」查询 API。
+            // 规则五要的是**做不到**,不是**没做** —— 构建期红才是它成立的判据。
+            errs.AddRange(TutorialZeroGate.RunAll());
             return errs;
         }
 

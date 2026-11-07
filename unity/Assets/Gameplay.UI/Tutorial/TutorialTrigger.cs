@@ -42,7 +42,9 @@ namespace DaYiJingCheng.Gameplay.UI.Tutorial
     /// (不出事件)。故 AC 里「(step, phase) 至多 Fire 一次」在此退化为「每步至多 Fire 一次」;
     /// 若将来 GDD 增出第二个发火相,再加相位维,不预先虚构。</para>
     /// </summary>
-    public sealed class TutorialTrigger
+    /// <summary>两相触发引擎 —— **internal**(AC-48-17):`HasFired` / `FireCount` 等价于
+    /// 「这一步完成了吗」的查询;玩法系统不该拿它设门。消费方 = `Gameplay.Boot` 的链驱动。</summary>
+    internal sealed class TutorialTrigger
     {
         private static readonly ReadOnlyCollection<string> NoFired =
             Array.AsReadOnly(Array.Empty<string>());

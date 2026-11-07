@@ -33,7 +33,9 @@ using DaYiJingCheng.Gameplay.Presentation.Tutorial;
 namespace DaYiJingCheng.Gameplay.UI.Tutorial
 {
     /// <summary>一步的完成判据(只读形;`Completion_s` 的单步结果)。</summary>
-    public readonly struct TutorialStepCompletion
+    // ⚠️ **internal,不是 public**(AC-48-17 零设门):它是「某一步完成了吗」的查询载体。
+    //    48 之外的玩法系统拿不到它 ⇒ 「按教学进度设门」在**编译期**就写不出来。
+    internal readonly struct TutorialStepCompletion
     {
         /// <summary>步 id ∈ 六步闭集(<c>observe</c> / <c>judge</c> / <c>treat</c> / <c>close</c> /
         /// <c>archive</c> / <c>manage</c>;取自内容表,不在此处另立枚举)。</summary>
@@ -59,7 +61,9 @@ namespace DaYiJingCheng.Gameplay.UI.Tutorial
     /// <para>⚠️ <b>不可变</b>:全部字段只读,集合经 <see cref="ReadOnlyCollection{T}"/> 承载;
     /// 无 `Add` / `Sort` / `Clear`。它**不是**进度存储 —— 每次读取现算(规则四)。</para>
     /// </summary>
-    public readonly struct TutorialProgressView
+    /// <summary>教学进度视图 —— **internal**(AC-48-17):这一步 / 全部完成与否的查询面,
+    /// 只给 48 自己与装配层(`Gameplay.Boot`)用;玩法系统拿不到 ⇒ 无法据教学进度设门。</summary>
+    internal readonly struct TutorialProgressView
     {
         private static readonly ReadOnlyCollection<TutorialStepCompletion> NoSteps =
             Array.AsReadOnly(Array.Empty<TutorialStepCompletion>());
@@ -150,7 +154,8 @@ namespace DaYiJingCheng.Gameplay.UI.Tutorial
     /// <summary>
     /// 48 的只读投影(`Proj(p)`)。六步各自独立求值,不存在蕴含链(F-48.2)。
     /// </summary>
-    public static class TutorialProjection
+    /// <summary>投影求值 —— **internal**(AC-48-17):返回进度视图,故与视图同档内部化。</summary>
+    internal static class TutorialProjection
     {
         /// <summary>`archive` 步的判据字面(GDD 规则八:该步取字面 <c>Checkpoint</c>,不是 `Kind`)。</summary>
         public const string CheckpointPredicateKind = "Checkpoint";

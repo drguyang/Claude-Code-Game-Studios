@@ -86,14 +86,14 @@ stories:
     name: "tutorial/005 零设门与零按键提示守卫及走查"
     file: "production/epics/tutorial-onboarding/story-005-zero-gate-zero-keyhint-guards-walkthrough.md"
     priority: should-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     chain: "教学链"
     blocker: ""
-    completed: ""
-    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。🔁 2026-11-07 收口轮:本件**未开工,整件结转 sprint-26**(理由 = 本轮 Should 额度被 S25-4 占满 + 追加件超支 2;见 `sprint-25.md` §收口 六-1);状态维持 `ready-for-dev`,卡面 `Ready` 不动。"
+    completed: "2026-11-07"
+    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。🔁 2026-11-07 收口轮:本件**未开工,整件结转 sprint-26**(理由 = 本轮 Should 额度被 S25-4 占满 + 追加件超支 2;见 `sprint-25.md` §收口 六-1);状态维持 `ready-for-dev`,卡面 `Ready` 不动。🔁 **2026-11-07 当晚(用户「开 S25-5」)结转件已补做 ⇒ 上面那句结转作废**:`TutorialZeroGate` 构建期门(标识符黑名单 + **返回类型黑名单** + 资产后缀闭集)接进 `AssemblyGates.RunAll` 三处强制点 · `tutorial_zero_gate_guard_test` 10 条 · **发现并修掉一处真实违规**(`TutorialProjection.Project` 公开返回 `TutorialProgressView` ⇒ 规则五此前不成立;处置 = 四类型**内化** + `InternalsVisibleTo`,非改名)。证伪 M1–M4 各自单红,SHA-256 逐字节还原。回归 EditMode 7086/7049(+10)· PlayMode 365/361(零回归)@ 2026-11-07T14:44:12Z / 14:32:34Z · 923890a5+工作树。⚠️ **仍未做**:AC-48-07 [L] NOT-RUN(走查对象不全)· AC-48-05 [L] BLOCKED-BY-SPEC(纸屏零生产开口)。证据 = production/qa/evidence/impl-s25-5-zero-gate-guards-2026-11-07.md。"
 
   # ⚠️ 计划外追加(2026-11-06 用户当轮直接指派)—— 不属 §七 收口判定的计划件扫描面。
   #    承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,本轮实际 3 ⇒ 超支 2。

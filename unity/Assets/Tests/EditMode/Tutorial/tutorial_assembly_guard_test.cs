@@ -71,8 +71,12 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             Type[] exported = TutorialAssembly.GetExportedTypes();
             Assert.That(exported, Is.Not.Empty,
                 "48 装配公开面为空 —— 扫描面零输入,本判据会空转通过");
-            Assert.That(exported, Does.Contain(typeof(TutorialProjection)),
-                "投影入口必须在本装配的公开面内(否则扫的是别的装配)");
+            // 🔁 **2026-11-07(S25-5 · AC-48-17)**:锚点类型由 `TutorialProjection` 改为 `TutorialDispatcher` ——
+            // 前者已被**内化**(internal + `InternalsVisibleTo`),因为它返回的正是「教学进度视图」,
+            // 而规则五要求这种查询面**不存在**。⚠️ 这只改了**公开面**的锚点:
+            // `AC-48-04` 的另一半(编译产物引用集不含 `Sim*.Contracts`)是**装配级**判据,不受内化影响。
+            Assert.That(exported, Does.Contain(typeof(TutorialDispatcher)),
+                "调度器必须在本装配的公开面内(否则扫的是别的装配)");
 
             // Act
             IReadOnlyList<string> violations = TutorialSurfaceGate.ScanAssembly(TutorialAssembly);

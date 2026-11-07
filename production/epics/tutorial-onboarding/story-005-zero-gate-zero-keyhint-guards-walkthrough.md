@@ -1,12 +1,12 @@
 # Story 005: 零设门与零按键提示守卫及走查
 
 > **Epic**: 教学与引导
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-07
 
 ## Context
 
@@ -31,13 +31,20 @@
 
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
-- [ ] **AC-48-17 零设门**:48 公开 API 反射扫描,标识符黑名单 ∈ {`progress`,`unlocked`,`gate`,`inTutorial`,`tutorialState`,`canAccess`,…} 零命中;无任何返回「教学进度」的公开查询面(调度意图出参除外,其类型不携带门槛语义)
-- [ ] **AC-48-01 / AC-48-02 叠加层与素材闭集**:48 程序集 + 资产清单闭集扫描:零 HUD 叠加层预制 / UXML 浮层,零新增 `Sprite`/`Texture`(纸 = 世界内物件纹理,不在禁列);闭集外的资产引用 = 构建失败
-- [ ] **零按键提示**(联合 AC-8-44 / AC-3-F1a / 39 规则八):48 资产无按键字形 / 「按X」词族(词族扫描器复用 39 Story 004 的同一实现)
-- [ ] **AC-48-12 零状态播报音**:48 触发源全量 ∈ 行为反馈白名单(44 的 AC-44-09 断言跑 48 子集);无「学会了 X」jingle / sting
+- [x] **AC-48-17 零设门**:48 公开 API 反射扫描,标识符黑名单 ∈ {`progress`,`unlocked`,`gate`,`inTutorial`,`tutorialState`,`canAccess`,…} 零命中;无任何返回「教学进度」的公开查询面(调度意图出参除外,其类型不携带门槛语义)
+  - ✅ **2026-11-07 落地,且发现并修掉一处真实违规**:扫描器 `TutorialZeroGate`(G1 标识符 / G2 **返回类型**)首跑即红 —— `TutorialProgressView` 是**公开类型**,`TutorialProjection.Project` 公开返回它 ⇒ 规则五当时**不成立**。处置 = **内化**(`internal` + `InternalsVisibleTo("Gameplay.Boot")` / `("Sim.Contracts.Tests")`):投影 / 进度视图 / 步骤完成视图 / 触发引擎全部改为 internal。**不是改名** —— 改名只换词不换可达性。
+- [x] **AC-48-01 / AC-48-02 叠加层与素材闭集**:48 程序集 + 资产清单闭集扫描:零 HUD 叠加层预制 / UXML 浮层,零新增 `Sprite`/`Texture`(纸 = 世界内物件纹理,不在禁列);闭集外的资产引用 = 构建失败
+  - ✅ `TutorialZeroGate.ScanAssetIndex`:48 目录只允许 `.cs/.asmdef/.meta/.md`,**今日实测零违规**(48 无自有资产);负夹具(临时目录放 `Tooltip.uxml` + `hint.png`)证明它会红
+- [x] **零按键提示**(联合 AC-8-44 / AC-3-F1a / 39 规则八):48 资产无按键字形 / 「按X」词族(词族扫描器复用 39 Story 004 的同一实现)
+  - ✅ **同一张词表,不另写一份**:判据直接用 `TutorialContentSchema.ExplicitInstructionTokens`(烘焙校验 5 的同一个常量对象)⇒ 一处扩充两处生效。扫描面 = 48 内容表里**全部用户可见文本**(step.title / narration.text / paper.title / paper.body),实测零命中
+- [x] **AC-48-12 零状态播报音**:48 触发源全量 ∈ 行为反馈白名单(44 的 AC-44-09 断言跑 48 子集);无「学会了 X」jingle / sting
+  - ✅ 48 的每条口述 cue 逐条回查 44 事件表:`whitelist_category` ∈ `AudioEventTableGates.WhitelistCategories`、`trigger_source` ∉ `ForbiddenTriggerSources`(后者 = 状态播报形态)⇒ 48 子集在 44 的白名单断言下成立
 - [ ] **AC-48-07 [L] 无视教学零惩罚走查**:全程不响应任何教学媒体,六步照常可达、病例照常生成、建造照常;走查单 + 录屏 [L]
+  - ⚠️ **NOT-RUN** —— `[L]` 人工走查,本轮未跑,**不代签**。前件:六步里 `archive` 生产恒不成立(7a 无回执读面)、示范 / 纸两腿无触发面 ⇒ 走查对象不全
 - [ ] **AC-48-05 [L] 手柄六步全程走查**:纯手柄完成「被口述引到 → 读纸 → 做六步」自然路径(不靠教学也通,靠教学也好通;两路都无死角)[L]
-- [ ] 守卫负夹具:故意加一个 `GetProgress()` / 一个浮层资产 ⇒ 扫描必红(证明守卫有牙齿)
+  - ⚠️ **BLOCKED-BY-SPEC + 对象不全**:`OQ-C4` 三媒体节奏 spec 仍欠;**纸屏今日无生产开口**(`OpenModal(PaperCloseup48)` 零调用点)⇒ 「读纸」那一步走不了。**不代签**
+- [x] 守卫负夹具:故意加一个 `GetProgress()` / 一个浮层资产 ⇒ 扫描必红(证明守卫有牙齿)
+  - ✅ 四条变异各自单红(M1 词表失效 / M2 把进度视图改回 public / M3 停用返回类型判定 / M4 放行 `.uxml`),SHA-256 逐字节还原
 
 ---
 
@@ -110,7 +117,17 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/Tutorial/tutorial_zero_gate_guard_test.cs`(守卫组)+ `production/qa/evidence/tutorial-onboarding/story-005-no-gate-walkthrough.md`(AC-48-05/07 [L],录屏截图 + 签核) — must exist
-**Status**: [ ] Not yet created
+**Status**: ⚠️ **半成立** —— 守卫组**已落**(10 条判据,全绿);走查件 `story-005-no-gate-walkthrough.md` **不存在且本轮不造**。
+
+| AC | 载体 | 状态 |
+|---|---|---|
+| AC-48-17 零设门 | `TutorialZeroGate.cs`(构建期)+ `tutorial_zero_gate_guard_test.cs` 正控 / G1 / G2 / 干净正控 / 空扫描面 | ✅ 有载体,4 条变异各自单红 |
+| AC-48-01/02 素材闭集 | `TutorialZeroGate.ScanAssetIndex` + 真 48 目录用例 + 临时目录负夹具 | ✅ |
+| 零按键提示 | 同上件,复用 `TutorialContentSchema.ExplicitInstructionTokens` | ✅ |
+| AC-48-12 音频白名单 | 同上件,逐 cue 回查 44 事件表 | ✅ |
+| AC-48-07 / AC-48-05 [L] | — | ⚠️ **NOT-RUN / BLOCKED-BY-SPEC**,不代签 |
+
+⚠️ **「守卫组全绿」不等于「AC-48-07 走查通过」** —— 前者是「48 不可能设门」的静态判据,后者是「玩起来真的没惩罚」的动态观测。两者不同层,不得互相顶替。
 
 ---
 
@@ -123,4 +140,60 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**2026-11-07 收口。口径 = 本 story 自身范围(自动化守卫)完成;[L] 走查两件 NOT-RUN。**
+
+### 落了什么
+
+1. **`TutorialZeroGate.cs`(新,构建期门)**:G1 标识符黑名单 + **G2 返回类型黑名单** + 资产后缀闭集。
+   接进 `AssemblyGates.RunAll()`(接线三处:调用、`EntryWiringManifest`、`ClassVerdict` —— 首跑红 1 即「新入口未声明」,证明 manifest 门在工作)。
+2. **`tutorial_zero_gate_guard_test.cs`(新,10 条)**:真 48 装配正控 · 非空洞守卫 · G1 夹具 · G2 夹具 · 干净正控 · 空扫描面 · 真 48 目录闭集 · 临时目录负夹具 · 零按键词族 · AC-48-12 音频白名单。
+3. **`tutorial_assembly_guard_test.cs` 增 1 条**:`test_ac48_11_buildGateWhitelist_matchesTheAsmdefFace` —— 把 S25-1 的 `b2-exact` 表与 asmdef 源做双向对账(期望值写字面量,不引被测表,避 F3 自指判据)。
+
+### 🔴 本轮发现并修掉的一处**真实违规**(不是新写判据发现的「设计缺陷」,是既有代码违反既有规则)
+
+`TutorialProgressView` / `TutorialProjection` / `TutorialStepCompletion` / `TutorialTrigger` 原本是 **public**。
+`TutorialProjection.Project` 公开返回 `TutorialProgressView` ⇒ 任何玩法系统都能拿到「玩家走到第几步」。
+**规则五(零设门)当时不成立**,而 GDD 与 UX spec 都写着「48 的 API 面禁止暴露进度查询」。
+
+处置 = **内化**:四类型改 `internal`,新增 `AssemblyInfo.cs` 声明
+`InternalsVisibleTo("Gameplay.Boot")`(驱动方)与 `("Sim.Contracts.Tests")`(夹具面)。
+⚠️ **不是改名** —— 改名只把 `GetProgress` 换成 `Get()` 而不改可达性,G2 盲测那条旁路;内化让「想设门也拿不到接口」在**编译期**成立。
+
+**连带代价(如实记)**:`tutorial_assembly_guard_test.test_ac48_04_exportedSurface_hasNoSimTypes` 的**锚点类型**原本是 `TutorialProjection`,内化后它不再在公开面 ⇒ 锚点改为 `TutorialDispatcher`。
+AC-48-04 的另一半(编译产物引用集)是**装配级**判据,不受影响。已在夹具内就地加注。
+
+### 证伪轮(4 条,各自单红)
+
+| # | 变异 | 期望转红 | 实测 |
+|---|---|---|---|
+| M1 | `HitToken` 恒 false(词表永不匹配) | G1 命名夹具 + 真装配正控 | ✅ 2 条红 |
+| M2 | 把 `TutorialProgressView` + `TutorialStepCompletion` 改回 public | AC-48-17 正控 | ✅ 红 |
+| M3 | 停用 G2 返回类型判定 | G2 改名旁路夹具 | ✅ 红 |
+| M4 | `AllowedFileSuffixes` 放行 `.uxml` | 资产闭集负夹具 | ✅ 红 |
+
+还原 = **备份 + `cp` 回 + SHA-256 逐字节比对**(不用 `git checkout`):
+`TutorialZeroGate.cs` = `9b70f2a3dcfaa9e8384caa5eb6bd2169fed721251bc22641728a1a40120b8f01` ·
+`TutorialProjection.cs` = `cf1c78908cc981b1e516e40eaf08d1da66d2fed41e3ed664358ee7a2cb8eba06`;`grep -rn "FALSIFY" unity/Assets` = 0。
+
+### 回归三元组
+
+EditMode `7086 / 7049 / 0 / 0 / 37` @ `2026-11-07T14:42:13Z → 14:44:12Z` · 批次 `sprint-25 收口后 S25-5` · commit `923890a5` + 工作树
+(基线 `7076 / 7039` @ 同日 13:46:21Z ⇒ **+10 / +10,零回归**)。
+
+**等式判据**:`7086 − 7076 = 10` = 新文件 `tutorial_zero_gate_guard_test.cs` 的 `[Test]` 计数(**实测 `grep -c "\[Test\]"` = 10**)。
+⚠️ `tutorial_assembly_guard_test.cs` 本轮**只改了锚点**(`git diff --stat` = 6 插 2 删,**零新增 `[Test]`**),
+其 `test_ac48_11_buildGateWhitelist_matchesTheAsmdefFace` 早在 `cdbefccc`(S25-1 轮)入库并已计入 `7076` 基线 —— 故不计入本轮的差额。
+
+PlayMode `365 / 361 / 0 / 2 / 2` @ `2026-11-07T14:32:13Z → 14:32:34Z`(零回归)。
+
+### 仍未做(不得借绿)
+
+1. **AC-48-07 [L] 无视教学零惩罚走查** —— NOT-RUN。前件不全:六步里 `archive` 生产恒不成立(7a 无回执读面)、示范 / 纸两腿无触发面。
+2. **AC-48-05 [L] 手柄六步全程走查** —— **BLOCKED-BY-SPEC**:`OQ-C4` 三媒体节奏 spec 仍欠;纸屏无生产开口。
+3. **`TutorialTrigger.HasFired` / `FireCount` 的归属** —— 本轮只把 `TutorialTrigger` 整类内化以避开 G1;更干净的形态是**把这两个查询拆出去**或改为只在测试可见。今日内化已足够(玩法拿不到),但这是「整类内化」而非「接口面设计」,记作**将来若 48 需要对外暴露 `TutorialTrigger` 则须重判**。
+4. **联机面** —— BLOCKED-BY-45。
+
+### 与 S25-1 的关系(勿混记)
+
+S25-1 的 `b2-exact` 管的是「48 引用了谁」(引用集恰 = `{Gameplay.Presentation}`);本件的 `TutorialZeroGate` 管的是「48 暴露了什么」(公开面零门禁词)。
+**两条判据正交**,任一单独存在都不足以支撑规则五 —— 前者防「48 自己设门」,后者防「48 把门卖给别人」。
