@@ -101,14 +101,17 @@
 
 ## Definition of Done for this Sprint
 
-- [ ] Must 3 件交付(`[L]` / `BLOCKED-BY` 半随如实标 `NOT-RUN`,**不借绿**)
-- [ ] QA 计划存在(`/qa-plan sprint` 产出 `production/qa/qa-plan-sprint-25-*.md`)
-- [ ] 每件至少一条「改坏生产 ⇒ 夹具转红」的证伪轮,还原 SHA-256 逐字节
-- [ ] 回归三元组(EditMode / PlayMode)写入收口节
-- [ ] `python3 tools/debtcount/debtcount.py --check` exit 0
-- [ ] `python3 tools/acid/acid_check.py --check` exit 0
-- [ ] `processing/story-005` 状态漂移已订正
-- [ ] GDD `tutorial-and-onboarding.md` 的结案注已落(原文不删)
+- [x] Must 3 件交付(`[L]` / `BLOCKED-BY` 半随如实标 `NOT-RUN`,**不借绿**)—— 2026-11-07,见 §收口 一
+- [x] QA 计划存在(`production/qa/qa-plan-sprint-25-2026-11-06.md`)
+- [x] 每件至少一条「改坏生产 ⇒ 夹具转红」的证伪轮,还原 SHA-256 逐字节 —— 见 §收口 二
+- [x] 回归三元组(EditMode / PlayMode)写入收口节 —— 见 §收口 三
+- [x] `python3 tools/debtcount/debtcount.py --check` exit 0 —— 条目 200 · 未闭 P0 面 15
+- [x] `python3 tools/acid/acid_check.py --check` exit 0
+- [x] `processing/story-005` 状态漂移已订正(卡面 `Complete`,与 S25-3 对齐)
+- [x] GDD `tutorial-and-onboarding.md` 的结案注已落(原文不删)
+
+> 🔁 **2026-11-07 收口轮**:上表八条逐条有载体。**未做的是「遗留」不是「判据」** ——
+> 四条 `[L]` 走查 · smoke · 联机面 · S25-5 结转,全部列在 §收口 六,不得据本节读成「全部做完」。
 
 ## 复算(自包含,只读)
 
@@ -124,3 +127,98 @@ python3 tools/debtcount/debtcount.py --print
 # GDD 结案状态
 head -4 design/gdd/tutorial-and-onboarding.md
 ```
+
+---
+
+## 收口(2026-11-07)
+
+> **Status**: **Closed with carryover** —— **Must 3 件全部交付**;Should 2 件中 S25-4 交付、
+> **S25-5 整件结转 sprint-26**;计划外追加 3 件同日完成(超支 2,见 §七)。
+
+### 一、逐件判定
+
+| ID | 件 | Verdict | 判据 / 残留(如实) |
+|---|---|---|---|
+| **S25-1** | `tutorial-002` 只读投影 + 装配护栏 | **COMPLETE WITH NOTES** | `AC-48-03` 存档字节逐字节 · `AC-48-04` 递归反射(负向夹具证明会红)· **`AC-48-11` 补构建期门 `b2-exact`**(D1 探针 / P2 真负例 / N 编译负例三条观测);**残留**:联机 `BLOCKED-BY-45` · 7a checkpoint 回执口零生产实现 |
+| **S25-2** | `tutorial-003` Anchor/Completion | **COMPLETE WITH NOTES** | 18 条判据;原两条「未做」(零生产调用点 / 播种时机)由 **S25-4c** 关闭(`BootRoot:848` → `TutorialChainDriver` 构造期 `Seed`);**残留**:联机 `BLOCKED-BY-45` · `archive` 步依赖 7a 回执(恒 false) |
+| **S25-3** | 炮制屏收口 | **COMPLETE WITH NOTES** | 判据 5 → **13** 条全绿;真包「开屏落焦 → 二段 → 落火留屏 → 3 s 后产物入账 → 空态」;**残留**:「无方可起」真包未复现 · `AC-18-24` 手柄走查 · `AC-42-F1` ⑨ |
+| **S25-4** | `tutorial-004` 三媒体调度 | **COMPLETE WITH NOTES** | **口述一路闭环**:真包字幕上屏(= 事件表口径)+ 音频互相关 0.6032;跨表文案门 `TD-tutorial-01` 结案。**另两路的生产触发面不存在**:示范 `BLOCKED-BY` 13+42、纸 `BLOCKED-BY` 6+4;`AC-48-06`/`AC-48-15` 的 `[L]` 走查对象不全 |
+| **S25-5** | `tutorial-005` 零设门守卫 | **CARRYOVER → sprint-26** | 未开工(`Status: Ready`);自动化守卫可先行,`[L]` 走查依赖 `OQ-C4` 三媒体节奏 spec |
+| **S25-6** | `-tutorialdiag` 走查仪表 | DONE | 旗标门控、默认零开销 |
+| **S25-7** | 教学口述声源格恒为原点 | DONE | 两环同修;增益 0.0216 → 0.6631(净恢复约 30 dB) |
+| **S25-8** | 模态解冻补跑教学边沿 | DONE | 同 tick 幂等有夹具;归因订正:体感 2.4 s 是**冻结本身** |
+
+### 二、证伪轮(逐件,还原 = SHA-256 逐字节)
+
+| 件 | 变异 | 命中 |
+|---|---|---|
+| S25-1 | M1–M5(作者轴 / archive 回执 / 空集真 / 析取支 / 禁引词表) | **5/5** |
+| S25-1 | D1 构建探针 + P2 真负例(asmdef 加 `Sim.Contracts`)+ N 编译负例 | **3/3**(构建 `Failure` × 2 · `CS0234` × 1) |
+| S25-2 | M1–M4(播种跑 Fire / 已闩复燃 / 串玩家 / 播种不置闩) | **4/4** |
+| S25-3 | M1–M4(落焦 / 二段 / 产物入账 / 空态) | **4/4** |
+| S25-4 | m1–m6(步序 / `Order` / 键回查 / 字幕成对 / 双路 / 纸屏页码) | **6/6**(首轮 m1/m2 假存活,判据已补) |
+| S25-4d | M1(停用 C3 比较)· M2(删空集守卫) | **2/2** |
+
+### 三、回归三元组(**终树**)
+
+| 套件 | 结果 | 截至时刻 | 批次 | commit |
+|---|---|---|---|---|
+| EditMode | **`7076 / 7039 / 0 / 0 / 37`** | `2026-11-07T07:20:04Z` | sprint-25 收口轮 | `27bced91` |
+| PlayMode | **`364 / 360 / 0 / 2 / 2`** | `2026-11-07T07:21:12Z` | 同批 | `27bced91` |
+
+**等式判据**:`7076 − 7067 = 9` = S25-4d 新增的跨表门夹具;PlayMode `364 = 364`。
+⚠️ **commit 的读法**:测跑发生在提交**之前**,当时内容已在工作树;`git add -A` 后 `git status` 为空
+⇒ 提交内容与测跑内容**逐字节相同**。中间那次 `7066 / 7028 / 1` 是 `gate_wiring_manifest` 抓到
+「新接线未声明」—— 门在正常工作,处置为补声明。
+
+```bash
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s25-4-em-final.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('unity/Logs/s25-4-pm-final.xml').getroot();print({k:r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})"
+```
+
+### 四、门
+
+| 门 | 结果 |
+|---|---|
+| `python3 tools/debtcount/debtcount.py --check` | **exit 0**(条目 200 · 未闭 P0 面 **15**) |
+| `python3 tools/acid/acid_check.py --check` | **exit 0** |
+| `PlayerBuildCli.Build` | **Success**(`Logs/s25-4-build-final.log:8559`,起始 `2026-11-07T07:15:11Z`) |
+| `/smoke-check sprint` | **未跑** —— 不声称 smoke 已过;`smoke-2026-11-06.md` 仍是 `PASS WITH WARNINGS`(`run_smoke.py` exit 3,3 条无载体) |
+| CI | **零运行**(`TD-ci-03` P2)⇒ **本 sprint 不得在任何地方声称「CI 绿」** |
+
+### 五、债面变化
+
+| 项 | 开工(2026-11-06 规划时) | 收口(2026-11-07) |
+|---|---|---|
+| 条目 | 199 | **200** |
+| closed / partial / open / done | 166 / 9 / 23 / 1 | **168 / 9 / 22 / 1** |
+| **未闭 P0 面** | 16 | **15** |
+| epic 分布 | — | 7/31(不变) |
+
+复算:`python3 tools/debtcount/debtcount.py --print`。
+
+- **结案 2 条**:`TD-skeuo-21`(S25-3 开屏落焦)· `TD-tutorial-01`(S25-4d,当日立当日结)。
+- **本 sprint 未留下任何未闭新债** —— 唯一新增的 `TD-tutorial-01` 当天结案。
+
+### 六、仍未做 / 结转(**禁止读成「已全通」**)
+
+1. **S25-5 整件** → sprint-26(零设门守卫 + `AC-48-07` 无视教学零惩罚走查)。
+2. **三媒体只通了一路**:口述 ✅;示范 = 13 片段资产 + 42 播放口皆无;纸近景 = `OpenModal(PaperCloseup48)`
+   全仓**零生产调用点**(`BLOCKED-BY` 6 + 4)。⇒ 「教学会说话」成立,「教学会演、会摊纸」不成立。
+3. **所有联机面** `BLOCKED-BY-45`(S25-1 / S25-2 / S25-4 各有一条)。
+4. **四条 `[L]` 未跑**:`AC-48-06` / `AC-48-15`(走查对象不全)· `AC-18-24` 手柄走查 · `AC-42-F1` ⑨。
+   **不代签**。
+5. **`archive` 步生产恒不成立**:7a 无「已存过档」读面,`checkpointWritten` 传 `null`(不伪造恒真回执)。
+6. **smoke 未跑**;`walkthrough-s25-4c` 的 §8 是**口述一路**的真包走查,**不是**三媒体走查。
+
+### 七、产能(承 `production/CAPACITY-MODEL.md` §3.3)
+
+| 元 | 值 |
+|---|---|
+| 计划件 | 5(Must 3 / Should 2)⇒ 完成 **4** · 结转 **1** |
+| 计划外追加 | **3**(全 S,全部同日完成)⇒ 额度 1,**超支 2** |
+| 复杂度分布 | M×4 · L×1(计划内) |
+| 追加率 | 60% |
+
+⚠️ 追加 3 件全是「走查手段不足」连带查出的缺口(S25-6 是工具,S25-7/8 是它查出的两个缺陷),
+不是新特性 —— 但**按口径仍计超支**,作复盘素材。

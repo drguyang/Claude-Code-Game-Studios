@@ -17326,3 +17326,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归(终树):EditMode 7076/7039/0/0/37 @07:20:04Z · PlayMode 364/360/0/2/2 @07:21:12Z
 - `TD-tutorial-01` **结案**;未闭 P0 面仍 15 · 7/31
 - 未入库(等用户指令)
+
+## Session Extract — sprint-25 收口(2026-11-07)
+
+- 用户「先入库,再写收口节」
+- 入库:`27bced91`(S25-4d 跨表门 + 数据对齐),工作树清空
+- 写 `production/sprints/sprint-25.md` §收口(一逐件判定 / 二证伪轮 / 三回归三元组 /
+  四门 / 五债面 / 六仍未做 / 七产能);DoD 八条逐条打勾并附载体
+- `sprint-status.yaml`:S25-5 加「结转 sprint-26」注(状态维持 ready-for-dev)
+- 收口口径:**Closed with carryover** —— Must 3 全交付;Should 的 S25-5 结转;
+  三媒体只通口述一路;四条 [L] / smoke / 联机面全部 NOT-RUN 且如实列在 §六
+- 待入库:2 个文件(sprint-25.md · sprint-status.yaml)

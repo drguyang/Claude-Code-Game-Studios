@@ -93,7 +93,7 @@ stories:
     chain: "教学链"
     blocker: ""
     completed: ""
-    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。"
+    note: "自动化守卫可先行;[L] 走查需 S25-4 链路可跑,且 OQ-C4 三媒体节奏 spec 仍欠 ⇒ 可标 BLOCKED-BY-SPEC。🔁 2026-11-06 订正:本行原记 `backlog`(↔ Not Started),而卡面 `Status` 为 **Ready** ⇒ 两处漂移,按卡的 `ready-for-dev` 对齐(不改卡面)。🔁 2026-11-07 收口轮:本件**未开工,整件结转 sprint-26**(理由 = 本轮 Should 额度被 S25-4 占满 + 追加件超支 2;见 `sprint-25.md` §收口 六-1);状态维持 `ready-for-dev`,卡面 `Ready` 不动。"
 
   # ⚠️ 计划外追加(2026-11-06 用户当轮直接指派)—— 不属 §七 收口判定的计划件扫描面。
   #    承 `production/CAPACITY-MODEL.md` §3.3:散件追加额度 = 1,本轮实际 3 ⇒ 超支 2。
