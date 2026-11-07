@@ -237,6 +237,17 @@ namespace DaYiJingCheng.Gameplay.Input
             ResetToIdle();
         }
 
+        /// <summary>
+        /// 每接收一笔样本时触发(<b>2026-11-07 新增</b>)。
+        /// <para>为什么需要它:接线形态下 `OnAfterUpdate` 直接把读数喂给**本类**(<see cref="Feed"/>),
+        /// 而「采样活跃度看门狗」的基准住在装配层驱动(<c>EmergencyChannelDriver</c>)里 ——
+        /// 那条链**不经过**驱动的 `Feed`,所以驱动看不到样本,真机长按 50 tick 就被误中止。
+        /// 触发点 = <see cref="Feed"/> 成功之后(即「样本真的被接收」,不是「回调跑了一次」)。</para>
+        /// <para>⚠️ 订阅方在回调内**不得抛**(本类可能正处在 `InputSystem.onAfterUpdate` 里)。
+        /// 本类自身不持有订阅者之外的状态,也不因订阅方存在与否改变行为。</para>
+        /// </summary>
+        public event Action Sampled;
+
         /// <summary>逐帧读数的**瞬态观察接口**(10 预表现 / 调试):Armed 且**本帧已被采样**
         /// = Reading(读数由聚合器消化,不跨帧缓存,承 G9)。帧间不可观察为 Reading ——
         /// 观察语义只在采样帧内成立(见 <see cref="_sampledThisFrame"/>)。</summary>
@@ -257,6 +268,7 @@ namespace DaYiJingCheng.Gameplay.Input
             _aggregator.Sample(r);
             _sampleCount++;
             _sampledThisFrame = true;
+            Sampled?.Invoke();   // 2026-11-07:装配层据此推「采样活跃」基准(看门狗)
             return true;
         }
 

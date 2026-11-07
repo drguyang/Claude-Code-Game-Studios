@@ -26,6 +26,11 @@
 //     onAfterUpdate 每 Armed 帧喂 ⇒ 长按永不被误杀);看门狗只拦「采样真停 ≥ 50 tick」
 //     (设备断连 / 回调死 —— Suspended 入口归 story-008 前的兜底)。
 //     检查点 = tick 边沿(BootRoot 的 tick 边沿序列内 OnTickEdge),不由渲染帧驱动。
+//     ⚠️ **2026-11-07 订正(原文不删)**:上一段说「接线模式 onAfterUpdate 每 Armed 帧喂」——
+//     **喂的是通道自己,不是本类的 `Feed`** ⇒ `lastActiveTick` 在真机上从不推进,按住满
+//     50 tick 必被中止(零事件)。现改为 `Attach` 订阅通道的 `Sampled` 事件推进基准
+//     (夹具侧 `FeedForTest` 那条缝不变)。真启动序判据见
+//     `Tests/PlayMode/world_gamepad_path_test.cs` 的 `test_wg_03`。
 //   - Idle 门(R-9.3):Arm ⇒ 候选列表隐藏(onIdleGate(false));End / Abort ⇒ 复现
 //     (onIdleGate(true))。回调由组合根注入指向 EmergencyCandidateRuntime.SetVisible
 //     —— 本类不引 Gameplay.UI(可见性是回调,不是依赖)。
@@ -89,9 +94,22 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>Armed 起点的逻辑 tick(Idle 态无意义;观测面)。</summary>
         private long _armedTick;
 
-        /// <summary>最近一次成功 Feed 的逻辑 tick(中止看门狗基准;评审 F-1 修订 ——
-        /// 按住语义下「边沿活跃」不可用,「采样活跃」才是输入存活的正确代理)。</summary>
+        /// <summary>最近一次「采样活跃」的逻辑 tick(中止看门狗基准;评审 F-1 修订 ——
+        /// 按住语义下「边沿活跃」不可用,「采样活跃」才是输入存活的正确代理)。
+        /// <para>🔁 <b>2026-11-07(真机缺陷修)</b>:本字段此前只在 <see cref="Feed"/> /
+        /// <see cref="FeedForTest"/> 里推进 —— 而**接线形态下采样根本不经过这两个方法**:
+        /// 通道的 `OnAfterUpdate` 直接喂通道自身。<see cref="Attach"/> 由此改为订阅通道的
+        /// <c>Sampled</c> 事件,每笔被接收的样本把基准推到这个 tick。夹具看不出来,是因为
+        /// 既有两条夹具都走 `FeedForTest`(那条缝经过本类)。</para></summary>
         private long _lastActiveTick;
+
+        /// <summary>通道采样回调(<see cref="Attach"/> 订阅 / <see cref="Detach"/> 退订)。</summary>
+        private void OnChannelSampled()
+        {
+            // 接线形态下这是**唯一**的活跃来源:通道每接收一笔样本就推一次基准。
+            // ⚠️ 回调内不抛(通道的 `Feed` 可能在 `InputSystem.onAfterUpdate` 里被调)。
+            _lastActiveTick = _currentTick();
+        }
 
         /// <param name="channel">3 的直读通道(组合根装配;逻辑层 / 接线模式均合法)。</param>
         /// <param name="manual">手动入口驱动(聚合上行与 Skip 共用的 Process 链宿主)。</param>
@@ -203,11 +221,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             rig.SetMode(mode, RequesterId);
         }
 
-        /// <summary>挂接通道 onAfterUpdate(透传;接线模式唯一,AC-9-01 fail-loud 由通道抛)。</summary>
-        public void Attach() => _channel.Attach();
+        /// <summary>挂接通道 onAfterUpdate(透传;接线模式唯一,AC-9-01 fail-loud 由通道抛)。
+        /// <para>🔁 2026-11-07:顺带订阅通道的 <c>Sampled</c> —— 接线形态下采样不经过本类的
+        /// <see cref="Feed"/>,不订阅就推不动中止看门狗的基准(真机长按 50 tick 被误杀)。</para></summary>
+        public void Attach()
+        {
+            _channel.Attach();                     // 先挂(重复挂会抛)⇒ 抛出的那一轮不留悬空订阅
+            _channel.Sampled += OnChannelSampled;
+        }
 
         /// <summary>卸下通道 onAfterUpdate(透传;幂等)。</summary>
-        public void Detach() => _channel.Detach();
+        public void Detach()
+        {
+            _channel.Sampled -= OnChannelSampled;
+            _channel.Detach();
+        }
 
         /// <summary>
         /// 预约通道(Idle → Armed,候选列表隐藏)。非 Idle 态由通道自己抛(重复预约 = 编程错误)。

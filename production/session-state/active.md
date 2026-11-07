@@ -17235,3 +17235,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 改动后重建包 + 真包复核:焦点仍落 `<匿名;4>`,`★发火 steps=observe,judge` ✅
 - 回归:EditMode `7066/7029/0/0/37` · PlayMode `361/357/0/2/2`(+1 = 新夹具)@03:07:28Z / 03:08:58Z
 - 存档 20/20 逐字节还原
+
+## Session Extract — 世界空间手柄路径(2026-11-07 03:35–03:58Z)
+
+- 用户:「验世界空间的手柄路径(走近、就诊、急救档位)」
+- 新夹具 `Tests/PlayMode/world_gamepad_path_test.cs`(真启动序 `BootRoot` + 虚拟手柄,**零键盘注入**)
+  · ①摇杆 4 m 位移 + `ActorCellEntered` 跨格;**②沿同一条路走到病人旁,只按手柄 North ⇒
+    CaseOpened×1 + 开册;③West ⇒ Treatment,按住 3 s 仍 Armed,松开 ⇒ Explore**
+- **产品缺陷(已修)**:急救看门狗基准 `_lastActiveTick` 在接线形态下**永不推进**
+  (通道 `OnAfterUpdate` 直喂通道自身,不经 `EmergencyChannelDriver.Feed`)⇒ 真机按住
+  > 50 tick(2.5 s)被 `AbortAction` 中止,零事件。判别证据 = 采样 `0→149` 但 `IsArmed=False`。
+  修法 = 通道新增 `event Action Sampled`(`Feed` 成功后触发)+ 驱动 `Attach/Detach` 订阅退订。
+  ⚠️ 第一版按 `SampleCount` 在 tick 边沿比对的修法**被既有夹具打红**(off-by-one),已废弃
+- 证伪轮 M1/M2/M3/M3′ **四条各转红**,逐字节还原(SHA-256 一致);Detach 退订行如实记「无判别力」
+- 回归(最终树):EditMode `7066/7029/0/0/37` · PlayMode `364/360/0/2/2`
+  (361→364,等式 +3 = 新夹具三条)@ 03:51:21Z / 03:53:56Z · `c44f9135`+工作树
+- 证据原件:§19 已补进 `production/qa/evidence/walkthrough-s25-4c-tutorial-real-build-2026-11-06.md`
+- ⚠️ 真包手柄**不可达**:`/dev/uinput` 仅 root,用户不在 `input` 组
+- 未入库(等用户指令)

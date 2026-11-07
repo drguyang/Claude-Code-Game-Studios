@@ -1103,5 +1103,119 @@ panel=True`,且 `Focus()` 前后都在),但**两帧后 `focusedElement` 恒为 `
 | 真实手柄硬件 | **不在面内**(轴死区 / 平台映射 / 驱动差异) |
 | 焦点高亮**看得见看不见** | **不在面内**(`-nographics`) |
 | 「移动跟不跟手」主观判断 | **不在面内** |
-| 覆盖范围 | 只覆盖**脉案 → 病名册 → 指认**这一段;**不含**世界空间的走近 / 就诊 / 急救档位 |
+| 覆盖范围 | 只覆盖**脉案 → 病名册 → 指认**这一段;**不含**世界空间的走近 / 就诊 / 急救档位 —— 🔁 **2026-11-07 补:世界空间那三条已由 §19 覆盖**(真启动序 + 虚拟手柄;仍不含真实手柄硬件) |
 | `close` 步 | 仍未触发(键鼠与手柄皆然) |
+
+---
+
+## 19. 世界空间手柄路径(2026-11-07 · 用户「验世界空间的手柄路径(走近、就诊、急救档位)」)
+
+### 19.1 用什么验(以及为什么不是真包)
+
+新夹具 `unity/Assets/Tests/PlayMode/world_gamepad_path_test.cs`:**真 `BootRoot` 启动序 +
+虚拟手柄,零键盘注入**。三条判据都走生产帧泵,不手调驱动:
+
+```
+BootRoot.Update → MovementFeed.PumpFrame → _interactionDriver.OnFrame()
+               → _cameraRig.Tick(档位机结算)
+```
+
+**为什么本轮没有真包**:§18 的手柄验证用的是**面板侧**虚拟设备(进程内 `AddDevice<Gamepad>`);
+而真包是独立进程,手柄注入只能经 `/dev/uinput` —— 本机实测 `crw------- root root`、
+当前用户**不在 `input` 组**(`id -nG` 无 `input`)⇒ 造不出虚拟手柄。PlayMode 真启动序
+是这条判据在当前环境下能拿到的**最强形态**(它跑的是与真包同一套装配与帧泵)。
+
+**与既有覆盖的分工**(逐条对过,不是重复):
+`movement_virtual_key_test` 手动装配、无启动序、不读世界流;`casebook_entry_wiring_test`
+**先把玩家传送**到病人身边且键盘优先;`emergency_camera_mode_intent_wiring_test`
+**直接调 `driver.Arm`**、玩家按键不在链上;`casebook_gamepad_navigation_test` 手柄只到 42 面板。
+
+### 19.2 三条判据与结果
+
+| # | 判据 | 结果 |
+|---|---|---|
+| ① 走近 | 摇杆 `(0,+1)` 推 4 m ⇒ `transform.z` 前进 **且** `LastCommittedCell.Z` 变号 **且** 世界流新增 `ActorCellEntered`(载荷格 z > 起点) | **PASS** |
+| ② 就诊 | 沿**同一条走出来的路**走到 `d∞ ≤ 2`(病人 `(1,0,14)`,玩家沿 `x=0` 走到 `z≈12–14`),**只按手柄 North** ⇒ 恰 1 条 `CaseOpened` + `CurrentModal == Casebook` | **PASS** |
+| ③ 急救档位 | West 按下沿 ⇒ Armed ⇒ 相机 `Treatment`;按住 180 帧(3 s,> `AbortIdleTicks` 50 tick)**仍 Armed**;松开 ⇒ Idle ⇒ `Explore` | **PASS**(**先红后绿,见 19.3**) |
+
+### 19.3 挖出的产品缺陷(已修):急救看门狗基准在接线形态下**永不推进**
+
+**症状**:真启动序 + 手柄按住 West,相机进 `Treatment` 后约 2.5 s 被中止回 `Explore`,
+零事件 —— 玩家按住 3 秒等于什么都没发生。
+
+**判别证据(夹具先做判别步,把两因分开)**:按住 180 帧后实测
+**采样计数 `0 → 149`(样本在进)、`IsArmed = False`** ⇒ 不是「输入没进来」,是
+**看门狗基准没被采样推进**。
+
+**根因**:`EmergencyDirectReadChannel.OnAfterUpdate` 把读数喂给**通道自身**
+(`EmergencyDirectReadChannel.Feed`),**不经过** `EmergencyChannelDriver.Feed` ——
+而 `_lastActiveTick` 只在后者里写 ⇒ 基准停在 `Arm` 那一刻 ⇒ 50 tick 后 `AbortAction`
+(零事件,规则六之甲)。
+
+**为什么此前没被发现**:既有两条夹具都走**测试缝** `FeedForTest`(那条缝经过本类,会推基准);
+L2 相机夹具直接 `Arm` → `EndAction`,不在「按住 > 2.5 s」的形态里。⇒ 同一失败形态:
+**夹具走一条缝、生产走另一条缝**,行为断言在夹具面恒真。
+
+**修法(两处,最小面)**:
+1. `EmergencyDirectReadChannel` 新增 `event Action Sampled`,在 `Feed` **成功之后**触发
+   (「样本真的被接收」,不是「回调跑了一次」);
+2. `EmergencyChannelDriver.Attach()` 订阅、`Detach()` 退订,回调里把 `_lastActiveTick`
+   推到当前 tick —— 与既有 `Feed` 路径**同一时刻语义**。
+
+> 🔁 **中途改过一次修法(原文不删)**:第一版按 `_channel.SampleCount` 在 tick 边沿比对。
+> 它把「样本」归到**下一个** tick 边沿 ⇒ 既有夹具
+> `emergency_channel_wiring_test.test_armedIdleBeyondAbortTicks_tickEdgeAborts_zeroEvents`
+> 转红(49 tick 仍 Armed,50 tick 才因基准被推到 1 而未达阈值)。实战跑出来 ⇒ 改为事件订阅,
+> 语义与 `Feed` 同刻,既有夹具不需要改。
+
+### 19.4 证伪轮(四条变异,**每条各转红**,逐字节还原)
+
+| 变异 | 靶 | 判据 | 结果 | 还原(SHA-256) |
+|---|---|---|---|---|
+| **M1** `MovementFeed.ProcessMovementFrame` 改喂 `Vector3.zero` | ① | `test_wg_01` | `Failed(total=1,p=0,f=1)` | `c7f7194e…` 一致 |
+| **M2** `BootRoot.Update` 删 `_interactionDriver?.OnFrame()` | ② | `test_wg_02` | `Failed` | `2937cb84…` 一致 |
+| **M3** 看门狗基准**不随采样推进**(还原到修前形态) | ③ | `test_wg_03` | `Failed` | `875457e8…` 一致 |
+| **M3′** `Attach()` **不订阅** `Sampled`(针对最终修法) | ③ | `test_wg_03` | `Failed(total=1,p=0,f=1)` | `c0d4da1b…` 一致 |
+
+**M3 打的是被废弃的第一版修法**;最终修法由 **M3′** 单独打 —— 一手一枪,不共用。
+还原全部「备份 `cp` 回 + SHA-256 比对」,无 `git checkout`;窗口内未编辑被变异文件与测试件。
+
+**如实登记两处无判别力的面**:
+- `Detach()` 的**退订行**无可观察差异(回调是幂等赋值,重复订阅不改变结果)⇒ 无变异可打;
+- `Attach` 的调用次序(先挂通道再订阅)不改变结果,未单独打。
+
+### 19.5 回归(最终树)
+
+**基线溯源三元组**:截至时刻 `2026-11-07 03:51:21Z`(EM)/ `03:53:56Z`(PM)·
+批次:世界空间手柄路径轮 · commit `c44f9135` + 工作树
+
+| 套件 | 结果 | 对照(§18.5) | 等式 |
+|---|---|---|---|
+| EditMode | `total=7066 passed=7029 failed=0 inconclusive=0 skipped=37` | `7066/7029/0/0/37` | 同值 |
+| PlayMode | `total=364 passed=360 failed=0 inconclusive=2 skipped=2` | `361/357/0/2/2` | **364 − 361 = 3 = 新增三条**(`test_wg_01/02/03`) |
+
+复算(命令自包含):
+
+```bash
+cd unity
+~/Unity/Hub/Editor/6000.3.24f1/Editor/Unity -batchmode -nographics -projectPath "$PWD" \
+  -runTests -testPlatform PlayMode \
+  -testFilter "world_gamepad_path_test" \
+  -testResults "$PWD/Logs/playmode-worldgamepad.xml" -logFile "$PWD/Logs/playmode-worldgamepad.log"
+python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('Logs/playmode-worldgamepad.xml').getroot();print(r.get('result'),r.get('total'),r.get('passed'),r.get('failed'))"
+# 期望: Passed 3 3 0
+```
+
+⚠️ **旧的 `Logs/editmode-final.xml` / `playmode-final.xml` 是 2026-11-04 的残留** ——
+本轮已覆盖,判读前先看 `start-time`(本轮 = `2026-11-07 03:51Z/03:53Z`)。
+
+### 19.6 仍然不成立的说法(禁借绿)
+
+| 项 | 状态 |
+|---|---|
+| 真实手柄硬件 | **不在面内**(虚拟 Gamepad 不覆盖驱动 / 死区 / 平台映射 / 真实摇杆漂移) |
+| 真包里的手柄 | **不可达**(`/dev/uinput` 仅 root,当前用户不在 `input` 组) |
+| 「跟不跟手」「走起来顺不顺」 | **不在面内**(主观判断;且 `-nographics`) |
+| 松开后聚合出的两个急救事件 | `test_wg_03` **不断言** `EmergencyAttempt` / `EmergencyTreatmentApplied`(那是 `emergency_attempt_wiring_test` 的面);本件只判**档位**与 **Armed 存续** |
+| 世界空间形态 | 接线期形态:单玩家、病人至多 2 个(`PatientWiringPositions`)、外圈 `0/15` 不可走 —— 不是设计形态 |
+| 键鼠真包的世界空间路径 | 仍是 §13 / §17 的**非系统**走查,未做成判据 |
