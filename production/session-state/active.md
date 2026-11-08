@@ -17470,3 +17470,14 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **回归**:EditMode `7168/7131/0/0/37` · PlayMode `370/366/0/2/2` @ `2026-11-08T06:10:14Z`。
   证伪 M-D(`prevId != curId` 守卫)/ M-E(`previous = current` 追踪)各恰 1 红,SHA 还原。
 - **未做**:压痕声听测 · 主创签核 · 换词同屏真包图像。
+
+## Session Extract — S26-4 续三(2026-11-08 · 第二个病种)
+
+- **`seen ≥ 2` 打通**:`PatientAppearedDriver` 由「恒取注册表首条」改为**按出现序轮转**
+  (起点 = `registryIndex`;单条注册表退化为原行为)。真包:`病人出现 #0 disease=2 / #1 disease=3`
+  ⇒ 两病人各查一遍后 `seen=2 novelty=2`。新增 `-tutorialdiag` 读数行(仅旗标下打)。
+- **换词改判仍不可达,卡点下沉**:词表 `case_judgment_lexicon.json` 4 行里 2 行孤儿,
+  只覆盖病种 2/10,病人拿到 2/3 ⇒ `pointable=1`。新债 **`TD-casebook-03`**(归 37 / 内容轮)。
+- 判据:`patient_disease_rotation_test.cs` 3 条;证伪「改回 `_diseaseIds[0]`」⇒ ①②恰红、③仍绿。
+- 回归:EditMode `7171/7134/0/0/37` · PlayMode `370/366/0/2/2` @ `2026-11-08T07:19:20Z`。
+- 探针自坑:两格曼哈顿距离相等 ⇒ min/max 取到同一病人 ⇒ `seen` 恒 1(已记入证据 §5)。

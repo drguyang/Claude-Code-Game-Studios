@@ -497,6 +497,7 @@
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-walkthrough-01` | `walkthrough` | closed | **N** | R1 |
 | `TD-casebook-02` | `casebook` | open | **N** | R1 |
+| `TD-casebook-03` | `casebook` | open | **N** | R1 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
@@ -12842,3 +12843,15 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **解除判据** | (甲) UI Toolkit 后续版本提供方向过滤开关(或 6.4 行为变化)⇒ 复测本探针;(乙) 手感轮裁定「接受回弹」⇒ 本条改 `won't-fix` 并写进 UX 说明。二者之一落地即结。 |
 | **触发条件** | 已触发(2026-11-08 走查) |
 | **P0 面 = N** | 不改产品行为、不阻塞任何 AC —— `AC-39-11` 要的是「可达」,双向都已实测可达。 |
+
+### TD-casebook-03 —— 判断词表只覆盖 2 个病种、且有 2 条**孤儿行**(病名册拿不出第二个词)
+
+| 侧 | 内容 |
+|---|---|
+| **现象** | 医师见过**两个**病种后(`病名册环 … seen=2`),病名册仍只有**一条**词(`pointable=1`)。 |
+| **实测(2026-11-08 真包)** | `assets/data/case_judgment_lexicon.json` 共 4 行:`1 伤寒 → disease_ids [10]` · `2 湿温 → null` · `3 温毒 → null` · `4 刺伤 → disease_ids [2]`。⇒ **只有病种 2 与 10 各有词**,另两行是孤儿(`disease_ids` 为空,永不命中)。病人轮转拿到的是病种 **2 与 3** ⇒ 只有「刺伤」可指认。 |
+| **后果** | 「换词改判 / 旧笔同屏」在真包里**仍然不可达** —— 与上一轮的「单病种」不同,这一轮**已打通病种多样性**(`seen=2` 实测),卡点下沉到**词表覆盖**。 |
+| **归属** | 词表数据归 **37 判断记录 / 内容轮**(`case-system` 规则四的词表面);39 是**受方**。 |
+| **解除判据** | 满足其一:① 词表补齐到「至少两个病种各有词」(且孤儿行补 `disease_ids` 或删);② 病人生成的病种**取自词表覆盖集**。判据 = 真包 `病名册环 pointable ≥ 2`。 |
+| **触发条件** | 已触发(2026-11-08 换词走查) |
+| **P0 面 = N** | 不改任何 AC 判据 —— `AC-39-12` 的「同屏」已由 PlayMode 夹具覆盖;本条挡的是**真包图像**,不是功能。 |

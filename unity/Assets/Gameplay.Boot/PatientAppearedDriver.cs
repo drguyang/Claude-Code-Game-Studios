@@ -18,6 +18,11 @@
 //     不表达设计意图(真实节奏由 52 随机事件导演 + 6 世界生态区产出)。
 //   - 病种来源:注册表第一个条目的 DiseaseId(最小内联注册表 ⇒ 恒 1)。
 //     注册表未建的现状下这是唯一不依赖假数据的取法。
+//     🔁 **2026-11-08 订正**:改为**按下标轮转**(第 n 个病人取 `(index + n) % Count`)。
+//        病因不是「取法不好」,是**副作用**:两名病人恒同病种 ⇒ 医师永远只见得到**一个病种**
+//        ⇒ 病名册恒 1 条词 ⇒ 「换词改判 / 旧笔同屏」在真包里**结构上不可达**
+//        (`[tutorialdiag] 病名册环 … seen=1`,两个病人各查一遍仍是 1)。
+//        真表 16 行时两名病人拿到两个不同病种;单行注册表(测试 fixture)退化为原行为。
 //   - 有界性:驱动**不**强制 PATIENT_APPEARANCE_CAP(24)—— 那是 9 的 sim 侧硬界
 //     (ADR-008 §六);本驱动只保证「按节奏出现」,超界由 sim 侧拒收(承 ADR-030 §有界性)。
 //     ⚠️ 但驱动**自己**守一个更小的接线期上限(见上),两者不冲突:24 是 sim 硬界,
@@ -63,7 +68,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private readonly PatientSpawner _spawner;
         private readonly IPresenceWriter _presence;
-        private readonly int _diseaseId;
+        /// <summary>按出现序轮转的病种 id 序列(以 <c>registryIndex</c> 为起点)。
+        /// <para>第 n 个病人取 <c>_diseaseIds[n % _diseaseIds.Length]</c>。
+        /// 单条注册表 ⇒ 全部同一个(与轮转前逐位相同)。</para></summary>
+        private readonly int[] _diseaseIds;
         private long _lastSpawnTick = -1;
         private int _spawnedCount;
 
@@ -87,7 +95,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new ArgumentOutOfRangeException(
                     nameof(registryIndex), registryIndex,
                     $"registryIndex 须在 [0, {registry.Count}) —— 越界会取到不存在的病种");
-            _diseaseId = registry[registryIndex].DiseaseId;
+            // 轮转序列 = 从 registryIndex 起绕一圈(整表参与,不只第一条)
+            _diseaseIds = new int[registry.Count];
+            for (int i = 0; i < registry.Count; i++)
+                _diseaseIds[i] = registry[(registryIndex + i) % registry.Count].DiseaseId;
         }
 
         /// <summary>
@@ -114,7 +125,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `PatientWiringPositions` 的两内角之一 —— 此前**所有病人叠在同一格**上,
             //    既互相重叠,也让「病人把灶台压住」这类走查无法判定。
             //    ⚠️ 真实位置仍归 6 世界生态区 + 13 病人 AI 的空间侧;本表是接线占位。
-            var patientId = _spawner.SpawnNext(_diseaseId, tick);
+            // 🔁 2026-11-08:按出现序轮转病种(见文件头注的订正条)。
+            int diseaseId = _diseaseIds[_spawnedCount % _diseaseIds.Length];
+            var patientId = _spawner.SpawnNext(diseaseId, tick);
+
+            // 走查读数(仅 `-tutorialdiag`;默认零开销):回答「注册表有几条 / 第 n 个病人拿了哪个病种」。
+            // 2026-11-08 加 —— 此前只能从 `病名册环 seen=` 反推,而那个读数分不清
+            // 「两个病人同病种」与「第二次查体没生效」。
+            if (WalkthroughDiagnostics.Enabled)
+                UnityEngine.Debug.Log(
+                    $"[tutorialdiag] 病人出现 #{_spawnedCount} id={patientId.Value} " +
+                    $"disease={diseaseId} 注册表={_diseaseIds.Length}");
             _presence.AddPresent(patientId, PatientWiringPositions.CellFor(_spawnedCount));
             _lastSpawnTick = tick;
             _spawnedCount++;
