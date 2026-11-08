@@ -2767,6 +2767,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (WalkthroughDiagnostics.Enabled && _uiDriver != null)
                 WalkthroughDiagnostics.ReportFocusIfChanged(_uiDriver.GetUiRoot());
 
+            // 走查仪表:手柄读数走**每帧**(同焦点读数理由 —— 模态摊开时 tick 停,
+            // 而「按住 start 开/合册」恰恰发生在 tick 停的那段时间里)。
+            if (WalkthroughDiagnostics.Enabled)
+                WalkthroughDiagnostics.ReportGamepadIfChanged();
+
             // 走查仪表:模态 / 相机档位(**每帧、变化才打**)—— 同焦点读数理由:模态摊开时 tick 停。
             if (WalkthroughDiagnostics.Enabled)
                 WalkthroughDiagnostics.ReportModalTierIfChanged(

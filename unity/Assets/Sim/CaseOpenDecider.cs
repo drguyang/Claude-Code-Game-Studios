@@ -151,5 +151,48 @@ namespace DaYiJingCheng.Sim
 
             return last;
         }
+
+        /// <summary>
+        /// 痕判据(读时投影):该案**当前这一笔**是否由改判产生。
+        /// <para>语义(`design/gdd/casebook.md` 规则六「改判留痕」+ 39 的 `AC-39-12`
+        /// 「「旧」态灰度仍可辨(非色单载)」):**新起一笔**(<c>JudgmentRecorded)⇒ 无痕;
+        /// **改判**(<c>JudgmentRevised)**且新值非空**(<c>LexiconId != 0</c>)⇒ 有痕;
+        /// **擦除**(改判成空判断,<c>LexiconId == 0</c>)⇒ 无痕(病名栏已空,没有可标的「旧」)。
+        /// </para>
+        /// <para>⚠️ <b>必须是投影而不是状态位</b>:若由写侧(命令路由)记一个 bool,
+        /// 读档后它归零 ⇒ 痕会**凭空消失**,违反「痕 = 读时投影」(`AC-39-13`)。
+        /// 本函数只扫事件流,故重放 / 读档后逐位一致。</para>
+        /// <para>归属判据与 <see cref="LastJudgmentOf"/> 同源(<b>载荷自带的 <c>CaseId</c></b>,
+        /// 不是流序推断)⇒ 传**整条流**即可。</para>
+        /// </summary>
+        /// <param name="events">病例流事件列表(已按全序排列)。传整条流。</param>
+        /// <param name="caseId">案件 case_id。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)。</param>
+        /// <returns>当前这一笔由改判产生且非空 ⇒ <c>true</c>。</returns>
+        public static bool IsCurrentJudgmentRewritten(IReadOnlyList<SimEvent> events, CaseId caseId,
+                                                      IPayloadDecoder decoder)
+        {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+
+            bool marked = false;
+
+            foreach (var e in events)
+            {
+                if (e.Kind == EventKind.JudgmentRecorded)
+                {
+                    if (decoder.Decode<JudgmentRecordedPayload>(EventKind.JudgmentRecorded, e.Payload)
+                              .CaseId.Equals(caseId))
+                        marked = false;          // 新起一笔 ⇒ 不带痕
+                }
+                else if (e.Kind == EventKind.JudgmentRevised)
+                {
+                    var p = decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRevised, e.Payload);
+                    if (p.CaseId.Equals(caseId))
+                        marked = p.LexiconId != 0;   // 擦除不留痕
+                }
+            }
+
+            return marked;
+        }
     }
 }

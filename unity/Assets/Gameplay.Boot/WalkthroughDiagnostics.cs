@@ -157,6 +157,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             UnityEngine.Debug.Log("[tutorialdiag] 焦点=" + name);
         }
 
+        private static string _lastGamepad;
+
+        /// <summary>手柄读数(**每帧调,仅在变化时打一行**)。
+        /// <para>🔁 2026-11-08(`TD-walkthrough-01` 的正确闭合方式):<see cref="Report"/> 里的
+        /// `手柄=` 列挂在 **tick 边沿**上,而**模态一摊开 tick 就停**(ADR-013 §十-C)—— 于是
+        /// 「按住 start 开了暂停壳」那一刻之后**一行周期读数都不会再出**,`T` 位永远打不出来。
+        /// 上一轮据此判「`start` 没送达 Unity」,**是读数面造成的误判**:焦点读数显示暂停壳确实
+        /// 开了(`焦点=pause-resume` / `模态=Pause`),那就是 `startButton` 被消费了。
+        /// ⇒ 手柄读数改走每帧 + 变化才打,与 <see cref="ReportFocusIfChanged"/> 同因同法。</para></summary>
+        public static void ReportGamepadIfChanged()
+        {
+            string now = DescribeGamepad();
+            if (now == _lastGamepad) return;
+            _lastGamepad = now;
+            UnityEngine.Debug.Log("[tutorialdiag] 手柄=" + now);
+        }
+
         private static string _lastModalTier;
 
         /// <summary>模态 / 相机档位读数(**每帧调,仅在变化时打一行**)。
@@ -249,7 +266,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (gp.buttonWest.isPressed) sb.Append('W');
             if (gp.buttonNorth.isPressed) sb.Append('N');
             if (gp.startButton.isPressed) sb.Append('T');
-            if (gp.leftStick.ReadValue().sqrMagnitude > 0.01f) sb.Append("_LS");
+            // 🔁 2026-11-08(TD-walkthrough-01 排查):`U` = selectButton。
+            //    病因:虚拟手柄的 BTN_START **内核层已送达**(读自己的 event 节点可见
+            //    `BTN_START=1/0`),但 `startButton.isPressed` 恒假 ⇒ 怀疑 Unity 的 evdev
+            //    映射把它落到了别的 PlayerInput 上。加这一位才能分辨「没送达」与「落到别处」。
+            if (gp.selectButton.isPressed) sb.Append('U');
+            if (gp.leftStick.ReadValue().sqrMagnitude > 0.01f)
+                sb.Append("_LS(").Append(gp.leftStick.ReadValue().x.ToString("F2")).Append(',')
+                  .Append(gp.leftStick.ReadValue().y.ToString("F2")).Append(')');
+            // 🔁 2026-11-08(TD-walkthrough-01):**落点转储** —— 把该设备上**所有**按住的
+            //    ButtonControl 的名字打出来。上面那六位只认已知面键,若 BTN_START 落到了
+            //    别的 control(或根本没进设备),从 `S/E/W/N/T/U` 是分辨不出来的。
+            foreach (var c in gp.allControls)
+            {
+                if (c is UnityEngine.InputSystem.Controls.ButtonControl bc && bc.isPressed)
+                    sb.Append("_P(").Append(c.name).Append(')');
+            }
             return sb.ToString();
         }
 

@@ -31,7 +31,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>
     /// 脉案只读数源的生产实装 —— 把 42 接到**查体分册快照**(sprint-05 T2.1 + G1.4)。
     /// </summary>
-    public sealed class CasebookVitalsSource : ICasebookDtoSource
+    public sealed class CasebookVitalsSource : ICasebookDtoSource, ICasebookRewriteMarkSource
     {
         private readonly ExaminationLedger _ledger;
         private readonly IReadOnlyList<SimEvent> _caseStream;
@@ -273,6 +273,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                 long current = _tick.CurrentTick;
                 long age = current - last.Value.Tick;
                 return age < 0 ? 0L : age;
+            }
+        }
+
+        /// <summary>
+        /// 改判留痕(42 侧「旧」态元件的判据源 —— 2026-11-08)。
+        /// <para>真源 = **事件流投影**,不是写侧状态位:`CaseStreamQuery.IsCurrentJudgmentRewritten`
+        /// 扫该案**全部**判断事件、最后一条胜 ⇒ 读档 / 重放后逐位一致(`AC-39-13`)。</para>
+        /// <para>无绑定病人 / 无开案 / 未落笔 ⇒ <c>false</c>(42 按「无痕」渲染,零假数据)。</para>
+        /// </summary>
+        public bool HasRewriteMark
+        {
+            get
+            {
+                if (_patient.Value < 0) return false;
+                CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, _patient.Value);
+                if (!openCase.HasValue) return false;
+                return CaseStreamQuery.IsCurrentJudgmentRewritten(_caseStream, openCase.Value, _decoder);
             }
         }
     }

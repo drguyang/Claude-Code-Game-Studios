@@ -64,3 +64,40 @@
 判定:          [ ] PASS   [ ] FAIL   [ ] NOT-RUN(原因:____)
 主创签核:      ______   日期:______
 ```
+
+---
+
+# 5. 🔁 2026-11-08 同日更新:前置**部分**解除(元件已造出来),但像素半边**仍**跑不了(原因换了)
+
+上面 §1 说「42 侧根本没有痕渲染元件」。**这句今天已经不成立** —— 元件已落盘:
+
+| 落点 | 内容 |
+|---|---|
+| `Sim/CaseOpenDecider.cs` | `CaseStreamQuery.IsCurrentJudgmentRewritten` —— 痕 = **读时投影**(该案最后一条判断是改判且非空) |
+| `Gameplay.UI/Skeuomorphic/CasebookBinding.cs` | 新能力接口 `ICasebookRewriteMarkSource`(并列能力接口,**不**给 `ICasebookDtoSource` 加成员 —— 否则 7 个夹具连坐) |
+| `Gameplay.Boot/CasebookVitalsSource.cs` | 生产实现(扫病例流;**不**缓存写侧状态位,读档后痕不丢) |
+| `Gameplay.UI/Skeuomorphic/Screens/CasebookScreen.cs` | 匿名 `VisualElement` + `.rewrite-mark`,**对勾由两条边框画出**(零文本零字号),不可聚焦 / 不拾取,`Visibility.Hidden` 默认(出现/消失不重排) |
+| 判据 | EditMode 9 条(query 6 + 接线 3)· PlayMode 3 条(可见性 / 退化路径 / 不入焦点环) |
+
+⇒ §3 的四条判据里,**前三条的机器半边已有载体**;「灰度化后仍可辨」这条要的是**像素**:
+
+## 5.1 像素半边为什么仍 `NOT-RUN`(**原因已换成数据面**)
+
+真包里要出现痕,必须**真的改判一次**:开册 → 病名栏 Submit → 病名册选词落笔 → 再 Submit 改判。
+而真包当前 `[tutorialdiag]` 读数为 **`病名册环 viewer=0 seen=0 pointable=0 词表行=4 novelty=0`**
+⇒ **病名册零条目** ⇒ 落不了笔 ⇒ 改不了判 ⇒ **痕永远不会出现**。
+
+| 前置 | 状态 |
+|---|---|
+| 42 痕渲染元件 | ✅ **已存在**(本轮) |
+| 痕数据面(事件流投影) | ✅ 已存在(本轮) |
+| **真包能落笔**(病名册有条目 ⇒ `seen > 0`) | ❌ **仍缺** —— 归 8 / 9 的查体→新颖度→词表反查链,不归本 story |
+
+⇒ 本单第二半记 **`NOT-RUN`**,解除判据 = 真包里 `病名册环` 的 `seen` / `pointable` 非零
+(即能在册上选到词、落一笔),届时复跑 §3 四条并做灰度化截图。
+
+## 5.2 §2 第一半(纸的物理感)本轮**已跑**
+
+见 `story-005-focus-navigation-walkthrough.md` §9:翻页(脉案 ⇄ 方笺)前后截图、
+焦点逐行(每行一帧)、停 5 秒零像素变化、合册再开。**压痕声未听测**(44 侧素材未验),
+「惯性/阻滞手感」仍需人耳人眼 ⇒ 这两项留在主创签核面。

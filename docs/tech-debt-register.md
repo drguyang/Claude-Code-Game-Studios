@@ -495,7 +495,7 @@
 | `TD-skeuo-21` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
-| `TD-walkthrough-01` | `walkthrough` | open | **N** | R1 |
+| `TD-walkthrough-01` | `walkthrough` | closed | **N** | R1 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
@@ -12783,3 +12783,48 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **触发条件** | 已触发(2026-11-08,AC-39-11 走查轮) |
 | **➕ 同日追加(2026-11-08 · 第二条读数缺口)** | 真包**横推左摇杆**在脉案里**不产生任何焦点移动**(两次推、整帧哈希相同),而同一次运行的**竖推**每次一格 ⇒ 同一设备、同一 `UI/Navigate` 动作,只有横向无效。<br>**但不是产品问题**:同日新增的 PlayMode 导航夹具(`u1_assump6_gamepad_chain_test.test_casebook_rightMove_reachesDiseaseNameColumn`)用生产整链驱动真 `CasebookScreen`,读数 `right→channel-disease-name` ⇒ **几何面能跨**。<br>⇒ 缺口在**注入层到 Unity 的那一段**(evdev `ABS_X` → `Gamepad.leftStick.x` → `UI/Navigate`),与 `start` 键同一族。**解除判据**:真包里从「面色」横推 ⇒ 焦点落到「病名」;两条(`start` / 横推)各自单测即可,不必一起修。 |
 | **⚠️ 不得借绿** | 本条**不是**「脉案关不掉」的证据。产品侧 `ModalInputDriver` 的规则是「有模态 ⇒ 关」,代码可判;真包未验的唯一原因是本债。 |
+
+#### ✅ 2026-11-08 收口(两半**都**有实测归因;原文不删)
+
+**结论先说:本条登记的**两个现象**里,**
+- ①**「`start` 未送达」= 工具面真缺陷**(`vpad.py` 发错码)—— 已修;
+- ②**「横推不产生导航」= 误判** —— 注入层与产品侧**本来都是通的**,那是**读数面**造成的假象。
+
+**⚠️ 误判的共同根因(比两条现象本身更重要)**:`手柄=` 列原来只挂在 **tick 边沿**的周期行上,
+而**模态一摊开 tick 就停**(ADR-013 §十-C)。于是「按住 start 把册/壳开出来」那一刻之后**一行周期读数都不再出现**,
+`T` 位**结构上永远打不出来**。同族的误判还有一次:上一轮把「Pause 自己开了」当成「别的键干的」,
+其实**那就是 start**(焦点读数看得见 `焦点=pause-resume` / `模态=Pause`,只是 `T` 位没处打)。
+⇒ 修法 = 手柄读数改走**每帧 + 变化才打**(`WalkthroughDiagnostics.ReportGamepadIfChanged`,
+与 `ReportFocusIfChanged` 同因同法)。
+
+**① 的真因与修法 —— 不是 udev,也不是 vendor 表:**
+`vpad` 把「Unity 意图名」映射到 evdev 码时按**码名对字面**(`start` → `BTN_START`),
+而 Unity 的 Linux evdev 后端在**本设备声明的能力顺序**上建 `Gamepad` 布局 ⇒ 同一个码在这台虚拟设备上
+落到**别的 control**。实测手段(可复跑):逐个面键按住 0.7 s,读 `[tutorialdiag] 手柄=` 的 `_P(<control>)` 落点转储。
+
+| 本表键(Unity 意图) | 旧码 | 旧码落点 | **新码** | 新码落点 |
+|---|---|---|---|---|
+| `start` | `BTN_START`(315) | `leftStickPress` | **`BTN_TR2`(313)** | `start` ✅ |
+| `select` | `BTN_SELECT`(314) | **无** | **`BTN_TL2`(312)** | `select` ✅ |
+| `l3` | `BTN_THUMBL`(317) | 无 | **`BTN_START`(315)** | `leftStickPress` ✅ |
+| `r3` | `BTN_THUMBR`(318) | 无 | **`BTN_MODE`(316)** | `rightStickPress` ✅ |
+| `south/east/west/north` · `l1/r1` | 不变 | 同位 | 不变 | 同位 |
+
+**不可达(本虚拟设备无码可达,已如实登记,不装样子)**:`leftTrigger` / `rightTrigger` / `guide`。
+**顺带的负面结果**:换 `vendor/product` 到 `0x045E/0x028E`(Xbox 360)⇒ Unity **根本不建 `Gamepad` 设备**
+⇒ 「按型号选映射表」这条候选被排除,问题在**能力顺序**,不在型号。
+(故 `vpad.py` 保留 `VPAD_VENDOR` / `VPAD_PRODUCT` 环境变量,作为将来同类排查的入口。)
+
+**② 的实测(真包,修好 `start` 的同一轮)**:
+`面色` 右推一格 ⇒ 焦点 `channel-disease-name`;左推一格 ⇒ 回 `channel-complexion`。
+**横向本来就是通的**;上一轮「整帧哈希相同」是因为那一轮按的是**短促两次推 + 整帧比对**,
+而在 tick 冻结的模态里,焦点变化不一定会改变整帧像素命中的区域之外的东西 —— 更主要的是
+当时**没有 `焦点=` 列参与判读**(那一列是本轮才接进走查脚本的读面之一)。
+⚠️ **仍登记一条观测(不是缺陷)**:长按右推(1.6 s)**会让焦点在 `面色 ⇄ 病名` 之间来回** ——
+从最右列继续右推时 UI Toolkit 的方向导航会退回到反方向候选。单推一次不受影响,
+手感上属「顶到头会弹」,归**数值/手感轮**看要不要抑制。
+
+**解除判据(逐条给实测值)**:① 世界里长按 `start` ⇒ `手柄=` 出现 `T_P(start)` **且** 暂停壳摊开 = **已达成**;
+② 脉案里右推 ⇒ 焦点落到 `channel-disease-name` = **已达成**。
+⇒ 本条**closed**;它挡住的 AC-39-11 合册步**已执行**(见 `production/qa/evidence/casebook/story-005-focus-navigation-walkthrough.md` 的 §9)。
+

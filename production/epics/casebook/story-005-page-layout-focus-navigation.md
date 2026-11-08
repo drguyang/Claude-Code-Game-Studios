@@ -43,8 +43,20 @@
 - [ ] 键鼠与手柄两输入路径**完整等价**可走完「翻册 → 读病例 → 落笔预览 → 合上」全流(手柄路径无死角;落笔提交走 Story 006 的意图路径)
 - [ ] 页内**零按键提示**(规则八联合 AC-8-44 / AC-3-F1a 的 39 侧):UXML 资产扫描无 hint 类元件(黑名单词族同 Story 004 扫描器复用)
 - [ ] 「旧」态渲染 = 铅笔对勾元件(USS 元件库),非颜色单载;当前笔与旧笔同屏可区分且区分通道非 hue-only
+  > 🟡 **2026-11-08 部分落地(仍未勾)**:留痕元件已存在 —— `CasebookScreen` 的匿名 `Label("✓")`
+  > (`.rewrite-mark`),不可聚焦 / 不拾取 / `Visibility.Hidden` 默认,承载物是**字形**不是颜色;
+  > 数据面 = `CaseStreamQuery.IsCurrentJudgmentRewritten`(**读时投影**)+ 能力接口
+  > `ICasebookRewriteMarkSource`。判据:EditMode 9 · PlayMode 3;证伪 M-A/B/C 各恰 1 红。
+  > ⚠️ **仍未满足的那一半**:AC 要求「**当前笔与旧笔同屏**可区分」,而现实现只标「这一笔改过」,
+  > **不显示旧词文本**(旧词的读时投影尚未做)。⇒ 本行**不勾**。
 - [ ] 串接组「线订成叠」按 Story 002 的分组标记装订呈现,组内顺序 = 全序输出,UI 不重排
-- [ ] **AC-39-11 [L]** 手柄全程诊断走查用例(六员页 × 一遍全流)成文并执行一轮,录屏/截图证据落 `production/qa/evidence/` [L]
+- [x] **AC-39-11 [L]** 手柄全程诊断走查用例(六员页 × 一遍全流)成文并执行一轮,录屏/截图证据落 `production/qa/evidence/` [L]
+  > ✅ **2026-11-08 执行**(`TD-walkthrough-01` 修好 `vpad.start` 之后重跑):开册 → 竖推 8 站环 →
+  > 右推 `channel-complexion → channel-disease-name` → 翻页(脉案 ⇄ 方笺)→ `start` 合册
+  > (模态 `Casebook → None`)→ 走到 `#76` 开**例 2** → 竖推焦点序**与例 1 逐项相同** → 合册。
+  > 原件 = `production/qa/evidence/casebook/story-005-focus-navigation-walkthrough.md` **§9**。
+  > ⚠️ **范围如实登记**:六员页里只有「册」这一员在纯手柄下走过全程,其余五员(箱 / 暂停 / 设置 /
+  > 教学 / 近景)**本轮未走**;压痕声与落笔预览未测(判据对象归 story-006)。
 - [ ] **AC-39-12 [L]** 纸的物理感走查(翻页 / 压痕 / 墨迹显现节奏)建走查单,主创签核 [L]
 
 ---
@@ -112,6 +124,13 @@
 **Story Type**: UI
 **Required evidence**: `production/qa/evidence/casebook/story-005-focus-navigation-walkthrough.md`(含截图 + 主创签核)+ `unity/Assets/Tests/EditMode/CasebookGuards/casebook_uxml_scan_test.cs`(AC-2 资产扫描可自动化部分) — must exist
 **Status**: [~] **自动化半边已落**(12 条判据,见下);**走查半边不通过**(见 §S26-4 记录)
+> 🔁 **2026-11-08 同日续(原文不删)**:上面那句「走查半边不通过」**已不成立** ——
+> `TD-walkthrough-01` 收口后重跑,`AC-39-11` **整条走通**(开册 → 竖推 8 站环 → 横推可达病名 →
+> 翻页 → 合册 → 走到 `#76` 开**例 2** → 焦点序与例 1 逐项相同 → 合册),已勾。
+> 仍不勾的两条:`AC-39-12`(纸的物理感需**主创签核** + 痕的灰度化像素半边被
+> 「真包 `病名册环 seen=0` 落不了笔」挡着)· 「「旧」态 = 当前笔与旧笔**同屏**」那半(旧词文本投影未做)。
+> 本批新增判据:EditMode `casebook_rewrite_mark_test` 9 条 · PlayMode 同名 3 条;
+> 证伪 M-A/M-B/M-C 各恰 1 红;回归 `7166/7129/0/0/37` · `369/365/0/2/2` @ `2026-11-08T05:11:39Z`。
 
 > 🔁 **2026-11-08 落点订正(原文不删)**:本卡与 QA 计划原写 `Tests/EditMode/Casebook/` ——
 > `Casebook/` 有自己的 asmdef(`Casebook.Tests`),**够不着 `Editor.Tools.Gates`**,

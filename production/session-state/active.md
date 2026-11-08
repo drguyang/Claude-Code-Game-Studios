@@ -17438,3 +17438,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 回归 EditMode 7157/7120 @02:28:35Z · PlayMode 366/362 @03:21:09Z(EditMode 末轮另跑)
 - 下一步:入库;S26-5(库存)或回脉案链 story-006
 
+
+## Session Extract — S26-4 续三件(2026-11-08 · TD-walkthrough-01 收口 + 例 2 + 留痕元件)
+
+- **① `TD-walkthrough-01` closed**:`vpad.BUTTONS` 按**Unity 意图**重排(`start` → `BTN_TR2`,
+  `select` → `BTN_TL2`, `l3` → `BTN_START`, `r3` → `BTN_MODE`);`0x028E` 负面结果(Unity 不建设备)已记。
+  真因 = **能力声明顺序**,不是 udev、不是 vendor 表。
+- **读数面教训**:`手柄=` 原只在 tick 边沿打 ⇒ 模态摊开 tick 停 ⇒ `T` 位**永远打不出来**。
+  新增 `ReportGamepadIfChanged`(每帧 + 变化才打)+ `DescribeGamepad` 尾部 `_P(<control>)` 落点转储。
+- **② 例 2 已跑通**:`verify_world_gamepad.py --walk3911` 重写(标定 4 向 + `cell=` 反馈闭环走路),
+  走到 `#76@(14,0,1)` 开册,竖推焦点序**与例 1 逐项相同**。
+- **③ 留痕元件**:`CaseStreamQuery.IsCurrentJudgmentRewritten`(读时投影)+ 能力接口
+  `ICasebookRewriteMarkSource` + `CasebookVitalsSource.HasRewriteMark` + 42 匿名 `Label("✓")`
+  (不可聚焦 / 不拾取 / Hidden 默认 / 字形承载)。判据 EditMode 9 · PlayMode 3;证伪 M-A/B/C 各恰 1 红。
+- **仍未做**:痕的「当前笔与旧笔同屏」(旧词文本投影未做)· 像素灰度化(真包 `病名册环 seen=0` 落不了笔)·
+  压痕声听测 · 主创签核 · 长按横推来回弹(归手感轮)。
+- **工作树未入库**:`CaseOpenDecider.cs` / `CasebookBinding.cs` / `CasebookVitalsSource.cs` /
+  `CasebookScreen.cs` / `BootRoot.cs` / `WalkthroughDiagnostics.cs` / `vpad.py` /
+  `verify_world_gamepad.py` / 两个新测试件 + 三份证据件 + 债册/卡面。
+- **下一步**:等回归数 → 入库;S26-5 或 39 链后续。

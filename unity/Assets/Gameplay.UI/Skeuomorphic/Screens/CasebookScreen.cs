@@ -80,6 +80,24 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>脉案页容器(五通道 + 右栏的包裹行;<see cref="_onPrescriptionPage"/> 控制显隐)。</summary>
         private VisualElement _casebookFace;
 
+        /// <summary>改判留痕元件(铅笔对勾;**匿名**、不可聚焦、不拾取)。
+        /// <para>⚠️ **用笔画画出来,不是字形**(2026-11-08 实测逼出来的两处改动):
+        /// ① 首版是 <c>Label("✓")</c> ⇒ `casebook_render_test.test_ac8_23_emptyRows_…` 当场红
+        /// (该门断言右栏文本面 ⊆ {病名, ?, 折});② 同时 18px 也破
+        /// `test_casebook_all_labels_resolve_to_sdf` 的 24px 下限。
+        /// ⇒ 两条门都指向同一件事:**这不是文字,是记号**。改用「右边框 + 下边框 + 旋转」画对勾,
+        /// 零文本、零字号,而「非色单载」仍由**形状**承载(AC-39-12 要的正是这个)。</para>
+        /// <para>⚠️ 字段名避开 42 的两张机械词表:不含 <c>rip</c> / <c>clip</c> /
+        /// <c>Append</c> / <c>Write</c> / <c>Emit</c>(`coding-standards` §命名避让表)。</para></summary>
+        private VisualElement _rewriteMark;
+
+        /// <summary>留痕可得性(只读观测面;夹具断言用,不参与任何判定)。
+        /// <para>42 只读不持(ADR-013 §9 C3):真源是数据面的 `HasRewriteMark`,
+        /// 本属性只回元件当下的可见性。</para></summary>
+        public bool RewriteMarkVisible =>
+            _rewriteMark != null &&
+            _rewriteMark.style.visibility.value == Visibility.Visible;
+
         /// <summary>戥子档位行容器(方笺页内;每次重读 <c>DoseDetentCount</c> 重建)。</summary>
         private VisualElement _dentchDoses;
 
@@ -148,6 +166,33 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 病名栏双输入路径(键盘 Submit + 鼠标 Click —— B-6-1/P-04 双导航等价)。
             BindSubmitAndClick(rightColumn.Q<VisualElement>("channel-disease-name"),
                 SubmitDiseaseNameBar);
+
+            // ── 改判留痕元件(2026-11-08;`AC-39-12`「旧」态非色单载的判据对象)──
+            // ⚠️ **匿名 + 不可聚焦 + 不拾取**:① 匿名 ⇒ 不进 spec 面 name 序
+            //    (`test_cross_uxmlSpec_buildUi_nameSequence_equivalent` 只比具名序,不破);
+            //    ② `focusable = false` ⇒ 焦点环仍 K = 10,铁律序**一个位置都不动**;
+            //    ③ `pickingMode = Ignore` ⇒ 不吃鼠标。
+            // ⚠️ 承载物是**字形**(对勾)不是颜色 ⇒ 灰度/色盲下仍可辨(非色单载)。
+            //    `Visibility.Hidden`(不是 `display: none`)⇒ 出现 / 消失**不引起重排**。
+            // 对勾 = **两条边框 + 旋转**(形如 ✓),不落任何文本 / 字号 ——
+            // 理由见字段注(两条既有门 2026-11-08 各红过一次)。
+            _rewriteMark = new VisualElement();
+            _rewriteMark.AddToClassList("rewrite-mark");
+            _rewriteMark.focusable = false;
+            _rewriteMark.pickingMode = PickingMode.Ignore;
+            _rewriteMark.style.visibility = Visibility.Hidden;
+            _rewriteMark.style.width = 11f;
+            _rewriteMark.style.height = 20f;
+            _rewriteMark.style.marginLeft = 8f;
+            _rewriteMark.style.marginTop = 6f;
+            // 石墨色(铅笔),与纸面同族;**不是状态色** —— 状态由形状的有无承载。
+            var graphite = new UnityEngine.Color(0.22f, 0.19f, 0.16f, 0.9f);
+            _rewriteMark.style.borderRightWidth = 3f;
+            _rewriteMark.style.borderBottomWidth = 3f;
+            _rewriteMark.style.borderRightColor = graphite;
+            _rewriteMark.style.borderBottomColor = graphite;
+            _rewriteMark.style.rotate = new Rotate(new Angle(42f));
+            rightColumn.Add(_rewriteMark);
             var confidence = _library.Create(SkeuoElement.Paper);
             confidence.name = "confidence-mark";
             confidence.Add(new Label("?") { name = "confidence-question" });
@@ -814,6 +859,20 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                     cell.Add(new Label(reading.Word ?? string.Empty));
                     row.Add(cell);
                 }
+            }
+
+            // ── 改判留痕(2026-11-08):「旧」态的**非色单载**承载物 ──
+            // 权威:`design/gdd/casebook.md` 规则六「改判留痕 · 痕不计分」+
+            //       39 的 `AC-39-12`「「旧」态灰度仍可辨(**非色单载**)」。
+            // 判据源 = **事件流投影**(`ICasebookRewriteMarkSource.HasRewriteMark`,
+            // 由装配层扫病例流算 —— 本屏零缓存、零状态位,AC-42-D3 不破)。
+            // ⚠️ 未实现该能力接口的源(含全部既有夹具)⇒ 按**无痕**渲染:不崩、不造痕。
+            // ⚠️ 观测面:`RewriteMarkVisible`(只读;供夹具断言,不参与任何判定)。
+            if (_rewriteMark != null)
+            {
+                bool marked = dtoSource is ICasebookRewriteMarkSource mark && mark.HasRewriteMark;
+                _rewriteMark.style.visibility =
+                    marked ? Visibility.Visible : Visibility.Hidden;
             }
         }
     }

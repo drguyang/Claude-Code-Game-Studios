@@ -326,30 +326,181 @@ def main(argv=None):
         if args.walk3911:
             out = args.walk3911
 
-            def nudge(direction, tag, n=1, hold=0.18, settle=0.45):
-                """摇杆推一格:UI Navigate 读的是左摇杆的离散 move 事件。"""
-                axis = {"down": (0, 1), "up": (0, -1), "left": (-1, 0), "right": (1, 0)}[direction]
-                for i in range(n):
-                    vpad.set_stick(ui, axis[0], axis[1]); wait(hold)
-                    vpad.set_stick(ui, 0, 0); wait(settle)
-                _shot(out, tag, args.log)
+            # 🔁 2026-11-08(TD-walkthrough-01 收口轮):本档按**修好的 vpad** 重写 ——
+            #    ① `start` 现在真的落在 `Gamepad.startButton` 上(见 `vpad.BUTTONS` 的实测表);
+            #    ② 摇杆方向按**实测效果**定名(推 `y=+1` ⇒ 焦点往「面色」走 = UI 的**上**);
+            #    ③ 读数走 `焦点=` / `模态=` 两列(模态摊开时 tick 停,周期行不再出现)。
 
-            def submit():
-                vpad.press(ui, "south", True); wait(0.25); vpad.press(ui, "south", False)
+            def _lines():
+                try:
+                    with open(args.log, "r", encoding="utf-8", errors="replace") as f:
+                        return f.readlines()
+                except FileNotFoundError:
+                    return []
+
+            def since(n, key):
+                return [l.split(key, 1)[1].rstrip("\n") for l in _lines()[n:] if key in l]
+
+            def focus_now():
+                t = since(0, " 焦点=")
+                return t[-1].strip() if t else "?"
+
+            def wait_focus(pred, timeout=8.0):
+                t0 = time.time()
+                while time.time() - t0 < timeout:
+                    f = focus_now()
+                    if pred(f):
+                        return f
+                    time.sleep(0.15)
+                return focus_now()
+
+            def move(direction, hold=0.18, settle=0.45):
+                axis = {"up": (0, 1), "down": (0, -1),
+                        "left": (-1, 0), "right": (1, 0)}[direction]
+                vpad.set_stick(ui, axis[0], axis[1]); wait(hold)
+                vpad.set_stick(ui, 0, 0); wait(settle)
+
+            def submit(hold=0.25):
+                vpad.press(ui, "south", True); wait(hold); vpad.press(ui, "south", False)
                 wait(0.9)
 
-            # ⓠ 探针:模态**未开**时按 start,暂停壳会不会开(验「是按钮没到」还是「关册路径没接」)
+            print(f"[verify][walk3911] 开册后 模态={_last_modal(args.log)} 焦点={focus_now()}", flush=True)
+            _shot(out, "01-opened.png", args.log)
+
+            # ── ① 竖向:一格一停,盯焦点名字 ──
+            seen = [focus_now()]
+            for i in range(9):
+                move("up")
+                seen.append(focus_now())
+                _shot(out, f"02-vert-{i+1:02d}.png", args.log)
+            print(f"[verify][walk3911] 竖推焦点序 = {seen}", flush=True)
+
+            # ── ② 横向:回到「面色」,再右推(短按 = 一格)──
+            for _ in range(12):
+                if focus_now() == "channel-complexion":
+                    break
+                move("up")
+            print(f"[verify][walk3911] 横推前 焦点={focus_now()}", flush=True)
+            _shot(out, "03-right-before.png", args.log)
+            move("right", hold=0.18, settle=0.6)
+            print(f"[verify][walk3911] 右推一格后 焦点={focus_now()}", flush=True)
+            _shot(out, "03-right-after.png", args.log)
+            move("left", hold=0.18, settle=0.6)
+            print(f"[verify][walk3911] 左推一格后 焦点={focus_now()}", flush=True)
+            _shot(out, "03-left-after.png", args.log)
+
+            # ── ③ 翻页:走到「下一页」页缘 → Submit → 两页对照 ──
+            target = wait_focus(lambda f: f == "page-edge-next", timeout=1.0)
+            if target != "page-edge-next":
+                for _ in range(12):
+                    move("down")
+                    if focus_now() == "page-edge-next":
+                        break
+            print(f"[verify][walk3911] 翻页前 焦点={focus_now()} 模态={_last_modal(args.log)}", flush=True)
+            _shot(out, "05-page1.png", args.log)
+            submit()
+            print(f"[verify][walk3911] 翻页后 焦点={focus_now()} 模态={_last_modal(args.log)}", flush=True)
+            _shot(out, "06-page2.png", args.log)
+
+            # ── ④ 合册:start(修好后真的到 `startButton`)──
+            n = len(_lines())
             vpad.press(ui, "start", True); wait(0.3); vpad.press(ui, "start", False)
-            wait(1.5)
-            _shot(out, "00-start-in-world.png", args.log)
-            print(f"[verify][walk3911] 世界里按 start 之后 模态={_last_modal(args.log)}", flush=True)
-            # 再按一次关掉(若开了)
-            vpad.press(ui, "start", True); wait(0.3); vpad.press(ui, "start", False)
-            wait(1.5)
-            print(f"[verify][walk3911] 再按一次 start 之后 模态={_last_modal(args.log)}", flush=True)
-            vpad.press(ui, "north", True); wait(1.2); vpad.press(ui, "north", False)
-            wait(2.0)
-            print(f"[verify][walk3911] 收尾 模态={_last_modal(args.log)}", flush=True)
+            wait(1.6)
+            print(f"[verify][walk3911] 合册 手柄痕={since(n, ' 手柄=')[-3:]}", flush=True)
+            print(f"[verify][walk3911] 合册后 模态={_last_modal(args.log)}", flush=True)
+            _shot(out, "07-closed.png", args.log)
+
+            # ── ⑤ 例 2:走到**另一个病人**跟前开册,验「七行访问序两页一致」──
+            #    走法 = 4 向摇杆 + `cell=` 反馈闭环(先用两次短推标定「前推是 +z 还是 −z」)。
+            def current_cell():
+                r = last_row()
+                return r["cell"] if r else None
+
+            def push(direction, seconds):
+                axis = {"up": (0, 1), "down": (0, -1),
+                        "left": (-1, 0), "right": (1, 0)}[direction]
+                vpad.set_stick(ui, axis[0], axis[1]); wait(seconds)
+                vpad.set_stick(ui, 0, 0); wait(0.25)
+
+            def others():
+                """读 `在场=` 里的 `#id@(x,y,z)`,返回 [(id, (x,y,z))]。"""
+                import re as _re
+                for line in reversed(_lines()):
+                    if "在场=" not in line:
+                        continue
+                    found = _re.findall(r"#(-?\d+)@\((-?\d+),(-?\d+),(-?\d+)\)", line)
+                    if found:
+                        return [(int(a), (int(b), int(c), int(d))) for a, b, c, d in found]
+                return []
+
+            # 标定:前推 0.7 s 看 z 怎么变;右推 0.7 s 看 x 怎么变
+            c0 = current_cell()
+            push("up", 0.7); c1 = current_cell()
+            push("right", 0.7); c2 = current_cell()
+            if not (c0 and c1 and c2):
+                print("[verify][walk3911] ⚠️ 标定读不到 cell —— 例 2 NOT-RUN", flush=True)
+                fwd = (0, 1); rgt = (1, 0)
+            else:
+                fwd = (0, 1) if c1[2] >= c0[2] else (0, -1)
+                rgt = (1, 0) if c2[0] >= c1[0] else (-1, 0)
+                print(f"[verify][walk3911] 标定 cell {c0} → {c1} → {c2} ⇒ 前推={fwd} 右推={rgt}", flush=True)
+
+            def walk_dir(axis, seconds):
+                vpad.set_stick(ui, axis[0], axis[1]); wait(seconds)
+                vpad.set_stick(ui, 0, 0); wait(0.2)
+
+            def walk_to(tx, tz, timeout=60.0):
+                t0 = time.time()
+                stuck = 0
+                while time.time() - t0 < timeout:
+                    c = current_cell()
+                    if c is None:
+                        tick_focus(); time.sleep(0.3); continue
+                    dx, dz = tx - c[0], tz - c[2]
+                    if abs(dx) <= 1 and abs(dz) <= 1:
+                        return c
+                    if abs(dz) >= abs(dx):
+                        walk_dir((0, fwd[1] if dz > 0 else -fwd[1]), 0.7)
+                    else:
+                        walk_dir((rgt[0] if dx > 0 else -rgt[0], 0), 0.7)
+                    c2_ = current_cell()
+                    stuck = stuck + 1 if (c2_ == c) else 0
+                    if stuck >= 4:      # 撞墙:换轴绕
+                        walk_dir((rgt[0] if dx > 0 else -rgt[0], 0), 0.9)
+                        stuck = 0
+                    tick_focus()
+                return current_cell()
+
+            target = None
+            cur = current_cell()
+            best = -1
+            for pid, cell in others():
+                if cur is not None and cell == cur:
+                    continue
+                d = abs(cell[0] - (cur[0] if cur else 0)) + abs(cell[2] - (cur[2] if cur else 0))
+                if d > best:            # 取**最远**的那个 = 刚看过的那位之外的另一个
+                    best = d
+                    target = (pid, cell)
+            if target is None:
+                print("[verify][walk3911] ⚠️ 场上只有一个病人 —— 例 2 NOT-RUN", flush=True)
+            else:
+                print(f"[verify][walk3911] 例 2 目标 = #{target[0]}@{target[1]}", flush=True)
+                got = walk_to(target[1][0], target[1][2])
+                print(f"[verify][walk3911] 走到 {got}(目标 {target[1]})", flush=True)
+                vpad.press(ui, "north", True); wait(1.2); vpad.press(ui, "north", False)
+                wait(2.5)
+                print(f"[verify][walk3911] 例 2 开册后 模态={_last_modal(args.log)}", flush=True)
+                _shot(out, "08-case2-opened.png", args.log)
+                seen2 = []
+                for i in range(9):
+                    move("up")
+                    seen2.append(focus_now())
+                    _shot(out, f"09-case2-vert-{i+1:02d}.png", args.log)
+                print(f"[verify][walk3911] 例 2 竖推焦点序 = {seen2}", flush=True)
+                vpad.press(ui, "start", True); wait(0.3); vpad.press(ui, "start", False)
+                wait(1.6)
+                print(f"[verify][walk3911] 例 2 合册后 模态={_last_modal(args.log)}", flush=True)
+                _shot(out, "10-case2-closed.png", args.log)
     finally:
         if ui is not None:
             try:

@@ -51,6 +51,24 @@ NAME = "DYJC Virtual Gamepad"
 
 # Unity `Gamepad` 布局需要的面键名 → evdev 码。
 #
+# 🔁 **2026-11-08(`TD-walkthrough-01` 收口轮):本表按「**Unity 侧实测落点**」重排。**
+#    上一版按「码名对得上」写(`start` → `BTN_START`),实测**全错** —— Unity 的 Linux
+#    evdev 后端在本设备的**能力声明顺序**上建 `Gamepad` 布局,同一码在这台虚拟设备上与
+#    真手柄落点不同。实测手段:每人按住 0.7 s,读真包 `[tutorialdiag] 手柄=` 的
+#    `_P(<control>)` 落点转储(`probe_map.py`)。
+#
+#    | 本表键(= Unity 意图) | 发这个码 | Unity 实测落点 |
+#    |---|---|---|
+#    | south / east / west / north | `BTN_SOUTH` / `BTN_EAST` / `BTN_NORTH` / `BTN_WEST` | 同位(west/north **交换**见下) |
+#    | **start** | **`BTN_TR2`(313)** | `start` ✅(旧版发 `BTN_START` ⇒ 落到 `leftStickPress`) |
+#    | **select** | **`BTN_TL2`(312)** | `select` ✅(旧版发 `BTN_SELECT` ⇒ **什么都不是**) |
+#    | l1 / r1 | `BTN_TL` / `BTN_TR` | `leftShoulder` / `rightShoulder` ✅ |
+#    | **l3 / r3** | **`BTN_START`(315)** / **`BTN_MODE`(316)** | `leftStickPress` / `rightStickPress` ✅ |
+#
+#    **不可达(本虚拟设备无码可达,发原码等于什么都没按)**:`leftTrigger` / `rightTrigger`
+#    (`BTN_TL2` / `BTN_TR2` 被 start/select 占用)、`guide`(`BTN_MODE` 被 r3 占用)、
+#    以及 `BTN_SELECT`(314)/`BTN_THUMBL`(317)/`BTN_THUMBR`(318) 三个码 —— 实测落点为「无」。
+#
 # ⚠️ **实测(2026-11-07 真包探针)**:`West` / `North` 在 evdev 与 Unity 之间**是反的** ——
 #    evdev 的 `BTN_NORTH`(= BTN_X,0x133)在 Unity 里是 **`buttonWest`**;
 #    evdev 的 `BTN_WEST`(= BTN_Y,0x134)在 Unity 里是 **`buttonNorth`**。
@@ -63,15 +81,12 @@ BUTTONS = {
     "east": ecodes.BTN_EAST,
     "west": ecodes.BTN_NORTH,     # ← Unity buttonWest(见上)
     "north": ecodes.BTN_WEST,     # ← Unity buttonNorth(见上)
-    "start": ecodes.BTN_START,
-    "select": ecodes.BTN_SELECT,
+    "start": ecodes.BTN_TR2,      # ← Unity startButton(2026-11-08 实测;非同名的 BTN_START)
+    "select": ecodes.BTN_TL2,     # ← Unity selectButton(同上)
     "l1": ecodes.BTN_TL,
     "r1": ecodes.BTN_TR,
-    "l2": ecodes.BTN_TL2,
-    "r2": ecodes.BTN_TR2,
-    "l3": ecodes.BTN_THUMBL,
-    "r3": ecodes.BTN_THUMBR,
-    "mode": ecodes.BTN_MODE,
+    "l3": ecodes.BTN_START,       # ← Unity leftStickPress
+    "r3": ecodes.BTN_MODE,        # ← Unity rightStickPress
 }
 
 ABS = {
@@ -103,11 +118,14 @@ def build_device():
             (ecodes.ABS_HAT0Y, _abs_info(-1, 1)),
         ],
     }
+    # 🔁 2026-11-08(TD-walkthrough-01):vendor/product 可经环境变量覆盖,用来分辨
+    #   「Unity 的 evdev 映射按型号选表」与「设备本身缺能力」。实测记录见该债。
+    #   `0x045E/0x02EA` = Xbox One S(默认);`0x045E/0x028E` = Xbox 360 有线(另一张常见表)。
     ui = evdev.UInput(
         caps,
         name=NAME,
-        vendor=0x045E,      # Microsoft
-        product=0x02EA,     # Xbox One S 控制器（Unity 认得的常见档）
+        vendor=int(os.environ.get("VPAD_VENDOR", "0x045E"), 0),
+        product=int(os.environ.get("VPAD_PRODUCT", "0x02EA"), 0),
         version=0x0301,
         bustype=ecodes.BUS_USB,
     )

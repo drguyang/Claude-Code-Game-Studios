@@ -107,3 +107,56 @@
 2. **两页一致**(全空 / 部分落笔)未验 —— 只开了一例。
 3. **手柄下的压痕声**未听测(44 侧)。
 4. **主创签核**未做 —— 本件是观测记录,不是签核。
+
+---
+
+# 9. 🔁 2026-11-08 同日重跑:整条走查**走通了**(上面 §1–§8 原文不删,结论以本节为准)
+
+**包**:`Build Finished, Result: Success` @ `2026-11-08T04:32:51Z`(源 `6d82cdd9` + 工作树,
+含 `ReportGamepadIfChanged` 每帧手柄读数)
+**驱动**:`python3 tools/input/verify_world_gamepad.py --walk3911 <OUTDIR>`(脚本本轮重写)
+**修好的是什么**:`TD-walkthrough-01` 两条 —— 详见债册该条的「收口」段。一句话:
+`vpad` 的 `start` **发错了 evdev 码**(`BTN_START` 在本虚拟设备上被 Unity 映射到 `leftStickPress`,
+`Gamepad.startButton` 对应的是 `BTN_TR2`);而「横推不动」是**读数面**造成的误判。
+
+## 9.1 逐条判据(全部由**读数**给出,不是看图猜)
+
+| AC-39-11 步 | 读数(逐字) | 结论 |
+|---|---|---|
+| 开册 | `模态=Casebook 档位=Casebook` | ✅ |
+| 逐行读(竖向) | `page-edge-next → page-edge-prev → channel-inquiry → channel-palpation → channel-breathing → channel-posture → channel-voice → channel-complexion → page-edge-next` | ✅ **8 站环**(六通道 + 两页缘),方向 = 铁律序的逆序回环 |
+| **横向**(此前判 FAIL 的那一条) | 右推 ⇒ `channel-complexion → channel-disease-name`;左推 ⇒ `channel-disease-name → channel-complexion` | ✅ **双向可达** |
+| 翻页 | `page-edge-next` 上 Submit ⇒ 焦点 `<匿名;1>`,画面由**脉案页**变**方笺页**(截图 `05-page1` / `06-page2`) | ✅ |
+| **合册** | `手柄=T_P(start)` ⇒ `模态=Casebook → None`,同时 `档位=Casebook → Explore` | ✅ |
+| **例 2 开册** | 走到 `#76@(14,0,1)` 按 `north` ⇒ `模态=Casebook` | ✅ |
+| **七行访问序两页一致** | 例 2 竖推焦点序 = `['page-edge-next','page-edge-prev','channel-inquiry','channel-palpation','channel-breathing','channel-posture','channel-voice','channel-complexion','page-edge-next']` —— **与例 1 逐项相同** | ✅ |
+| 例 2 合册 | `模态=None` | ✅ |
+
+⚠️ **「两页」的口径**:册内**只有两页**(脉案页 ⇄ 方笺续页,`CasebookScreen` §5.3;
+K=10 = 五通道 5 + 问诊 1 + 病名 1 + 折边 1 + 页缘 2)。本例的「两页一致」因此有两层意思,
+两层都测了:**① 册内两页**的翻页(脉案 ⇄ 方笺);**② 两个病例**的七行访问序(例 1 = `#69`,
+例 2 = `#76`)。AC 卡面写的「翻至**例 2**」按第 ② 层执行 —— **不是**「册内第二页」。
+多病例**分册**本身仍归 story-002/003 的投影面,不在本条。
+
+## 9.2 一条如实登记的观测(**不是**缺陷,未修)
+
+**长按右推(1.6 s)会让焦点在 `channel-complexion ⇄ channel-disease-name` 之间来回**:
+到了最右列继续右推,UI Toolkit 的方向导航会退回反方向候选。单推一格不受影响。
+⇒ 手感上属「顶到头会弹」,归**数值 / 手感轮**看是否要抑制;本条**不据此判红**。
+
+## 9.3 仍未做(不得借绿)
+
+1. **落笔预览 / 压痕声** —— `AC-39-12` 的判据对象(**痕渲染元件**)今日**不存在**,归 story-006。
+2. **主创签核** —— 本件是观测记录,不是签核。
+3. **`[×]` 的六员页全流** —— 本轮跑的是**脉案页 + 方笺页**两页;`AC-39-11` 卡面「六员页 × 一遍全流」
+   里的六员页(册 / 箱 / 暂停 / 设置 / 教学 / 近景)只有**册**这一员在纯手柄下走过全程,
+   其余五员本轮**未走**(不在本 story 的 Out of Scope 之外,但也不在本轮范围内)。
+
+## 9.4 复跑
+
+```bash
+python3 tools/input/verify_world_gamepad.py --walk3911 /tmp/ac3911
+# 截图(不进库,`.gitignore:346`):01-opened / 02-vert-01..09 / 03-right-before,after /
+#   03-left-after / 05-page1 / 06-page2 / 07-closed / 08-case2-opened /
+#   09-case2-vert-01..09 / 10-case2-closed
+```

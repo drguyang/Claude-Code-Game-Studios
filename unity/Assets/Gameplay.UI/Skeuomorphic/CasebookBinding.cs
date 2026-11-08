@@ -181,4 +181,25 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 动作语义归 21a / 10 真动作表轮 —— 本入口只承载跳过。</remarks>
         void SubmitEmergencySkip();
     }
+
+    /// <summary>
+    /// **改判留痕**的只读数据面(可选能力接口;2026-11-08 新增)。
+    /// <para>病因:`design/gdd/casebook.md` 规则六「改判留痕 · 痕不计分」与 39 的
+    /// `AC-39-12`「「旧」态灰度仍可辨(**非色单载**)」要求屏上有一个**形状**承载
+    /// 「这一笔是改过的」,而 <see cref="ICasebookDtoSource"/> 从未有对应的读面 ⇒
+    /// 42 侧无判据对象(走查只能记 `NOT-RUN`)。</para>
+    /// <para>⚠️ <b>为什么是**并列能力接口**而不是给 <see cref="ICasebookDtoSource"/>
+    /// 加成员</b>:后者有 7 个夹具实现,加成员会把「本条与它们无关」变成一次
+    /// 七处连坐的改动;而「有没有痕」是**装配层答得出、夹具可答不出**的能力 ——
+    /// 未实现 ⇒ 屏按「无痕」渲染(不崩、不造痕),这正是能力接口该有的语义。</para>
+    /// <para>⚠️ <b>真源必须是事件流投影</b>(`AC-39-13`):实现方**不得**缓存写侧的
+    /// 「刚改过口」布尔 —— 那样读档后痕会凭空消失。判据见
+    /// <c>CaseStreamQuery.IsCurrentJudgmentRewritten</c>。</para>
+    /// </summary>
+    public interface ICasebookRewriteMarkSource
+    {
+        /// <summary>当前绑定病人的**开案**里,这一笔判断是否由改判产生(擦除不算)。
+        /// <para>无绑定病人 / 无开案 / 未落笔 ⇒ <c>false</c>。</para></summary>
+        bool HasRewriteMark { get; }
+    }
 }
