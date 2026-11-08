@@ -62,9 +62,25 @@ namespace DaYiJingCheng.EditorTools.Gates
         public const string CasebookUxmlRelativePath =
             "unity/Assets/Gameplay.UI/Skeuomorphic/Screens/Casebook39.uxml";
 
-        /// <summary>构建期入口:按名载入 `Gameplay.UI` 并扫 39 命名空间的公开面。</summary>
+        /// <summary>39 的本地化文案键闭集(AC-39-06a 的作者态数据,ADR-014 管线)。</summary>
+        public const string CasebookTextRelativePath = "assets/data/casebook_text.json";
+
+        /// <summary>键名形:`cb` 前缀 + ASCII 驼峰。闭集里不许出现别的形状。</summary>
+        public const string KeyPattern = @"^cb[A-Z][A-Za-z0-9]*$";
+
+        /// <summary>构建期入口:扫 39 命名空间的公开面 + 作者态文案闭集与 UXML。</summary>
+        /// <param name="root">Unity 工程目录(与 `AssemblyGates` 其余门的 `RunAll(".")` 同口径,
+        /// 其父目录即仓库根)。</param>
         /// <returns>违例串列表(空 = 全过)。</returns>
-        public static List<string> RunAll()
+        public static List<string> RunAll(string root = ".")
+        {
+            var errs = new List<string>();
+            errs.AddRange(ScanAssemblySurface());
+            errs.AddRange(ScanAuthoringSurface(root));
+            return errs;
+        }
+
+        private static List<string> ScanAssemblySurface()
         {
             Assembly asm;
             try
@@ -86,6 +102,156 @@ namespace DaYiJingCheng.EditorTools.Gates
                 .ToArray();
 
             return ScanPublicSurface(types, "39");
+        }
+
+        /// <summary>
+        /// 作者态面:**文案键闭集** + **UXML 文本**。
+        /// <para>2026-11-08(S26-3 续):此前只有 EditMode 测试读这两个资产,**构建期门不读**
+        /// ⇒ AC-39-06a 的资产半边在真构建里没有执行体。本方法补上构建期强制点。</para>
+        /// </summary>
+        public static List<string> ScanAuthoringSurface(string root = ".")
+        {
+            var errs = new List<string>();
+            string projectDir = Path.GetFullPath(root ?? ".");
+            string repoRoot = Path.GetFullPath(Path.Combine(projectDir, ".."));
+
+            // ── ① 键闭集 ──
+            string textPath = Path.Combine(repoRoot, CasebookTextRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            List<(string key, string text)> entries;
+            if (!File.Exists(textPath))
+            {
+                errs.Add($"[AC-39-06a] 找不到文案键闭集「{textPath}」—— 闭集判据没有宾语(非「通过」)");
+                entries = new List<(string, string)>();
+            }
+            else
+            {
+                entries = ParseTextKeys(File.ReadAllText(textPath), errs);
+            }
+            errs.AddRange(ScanTextKeySet(entries, "casebook_text.json"));
+
+            // ── ② UXML 文本(黑名单 + **必须 ∈ 闭集值集**)──
+            string uxmlPath = Path.Combine(repoRoot, CasebookUxmlRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(uxmlPath))
+            {
+                errs.Add($"[AC-39-06a] 找不到 39 的 UXML「{uxmlPath}」—— 文本面判据无法成立(非「通过」)");
+                return errs;
+            }
+
+            List<(string where, string text)> texts = ExtractUxmlTexts(File.ReadAllText(uxmlPath));
+            errs.AddRange(ScanTexts(texts, "Casebook39.uxml"));
+            errs.AddRange(ScanUxmlAgainstClosedSet(
+                texts, entries.Select(e => e.text).ToList(), "Casebook39.uxml"));
+            return errs;
+        }
+
+        /// <summary>
+        /// 解析闭集 JSON(ADR-014 §三:Newtonsoft **仅作词法器**,绑定层自写)。
+        /// 解析失败也进 <paramref name="errs"/> —— 坏的闭集文件不得静默退化成空集。
+        /// </summary>
+        public static List<(string key, string text)> ParseTextKeys(string json, List<string> errs)
+        {
+            var list = new List<(string, string)>();
+            if (errs == null) throw new ArgumentNullException(nameof(errs));
+
+            Newtonsoft.Json.Linq.JToken root;
+            try
+            {
+                root = Newtonsoft.Json.Linq.JToken.Parse(json);
+            }
+            catch (Exception ex)
+            {
+                errs.Add($"[AC-39-06a] casebook_text.json **解析失败** —— " +
+                         $"{ex.GetType().Name}: {ex.Message}");
+                return list;
+            }
+
+            if (!(root["keys"] is Newtonsoft.Json.Linq.JArray keys))
+            {
+                errs.Add("[AC-39-06a] casebook_text.json 缺 `keys` 数组 —— 闭集不可判(非「空集即通过」)");
+                return list;
+            }
+
+            foreach (Newtonsoft.Json.Linq.JToken t in keys)
+            {
+                string k = (string)t["key"];
+                string v = (string)t["text"];
+                if (k == null || v == null)
+                {
+                    errs.Add($"[AC-39-06a] casebook_text.json 有条目缺 `key` / `text`:{t.ToString(Newtonsoft.Json.Formatting.None)}");
+                    continue;
+                }
+                list.Add((k, v));
+            }
+            return list;
+        }
+
+        /// <summary>闭集自身的判据:空集 / 键形 / 重复 / 空文案 / 黑名单与病种词族。</summary>
+        public static List<string> ScanTextKeySet(
+            IEnumerable<(string key, string text)> entries, string label)
+        {
+            var errs = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var pattern = new System.Text.RegularExpressions.Regex(KeyPattern);
+            int scanned = 0;
+
+            foreach ((string key, string text) in entries ?? Enumerable.Empty<(string, string)>())
+            {
+                scanned++;
+                if (!pattern.IsMatch(key))
+                    errs.Add($"[AC-39-06a] {label} 的键「{key}」形状不合法(须 `cb` + 驼峰 —— " +
+                             "闭集是**可枚举的有限集**,键名形状是它可被机械比对的前提)");
+
+                if (!seen.Add(key))
+                    errs.Add($"[AC-39-06a] {label} 的键「{key}」**重复** —— 重复键 = 两条真源");
+
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    errs.Add($"[AC-39-06a] {label} 的键「{key}」文案为空 —— 空文案在屏上是「没做好」,不是「不给提示」");
+                    continue;
+                }
+
+                foreach (string bad in TextBlacklist)
+                    if (text.IndexOf(bad, StringComparison.Ordinal) >= 0)
+                        errs.Add($"[AC-39-06a] {label} 的键「{key}」文案含禁用词「{bad}」:「{text}」");
+
+                CheckName(key, $"{label} 的键「{key}」", errs);
+                CheckName(text, $"{label} 的键「{key}」文案", errs);
+            }
+
+            if (scanned == 0)
+                errs.Add($"[AC-39-06a] {label} 的键闭集为 **0 条** —— 判据不可执行(非「通过」)。" +
+                         "空闭集会让下面「UXML 文案 ∈ 闭集」恒假,也会让门看起来全绿。");
+
+            return errs;
+        }
+
+        /// <summary>
+        /// UXML 的每个非空 <c>text=</c> 都必须 ∈ 闭集的值集。
+        /// <para>这是「闭集」这件事真正有牙齿的地方:没有它,闭集只是一份自说自话的清单 ——
+        /// 在 UXML 里直接写一段新字面量照样绕过。AC-39-06a 的 2026-09-19 注
+        /// (「字符串扫描测不到 UXML 元素 ⇒ 本地化 key 闭集 + USS `text=` 黑名单」)问的就是这一条。</para>
+        /// </summary>
+        public static List<string> ScanUxmlAgainstClosedSet(
+            IEnumerable<(string where, string text)> texts,
+            ICollection<string> allowedTexts, string label)
+        {
+            var errs = new List<string>();
+            var allowed = new HashSet<string>(allowedTexts ?? new List<string>(), StringComparer.Ordinal);
+            int scanned = 0;
+
+            foreach ((string where, string text) in texts ?? Enumerable.Empty<(string, string)>())
+            {
+                scanned++;
+                if (string.IsNullOrEmpty(text)) continue;   // 空 text 是「这里还不该有字」,合法
+                if (allowed.Contains(text)) continue;
+                errs.Add($"[AC-39-06a] {label} 的「{where}」写了「{text}」,但该串**不在键闭集里** —— " +
+                         "自由新增的字面量 = 绕开闭集;要显示它,先给它一个键");
+            }
+
+            if (scanned == 0)
+                errs.Add($"[AC-39-06a] {label} 的文本扫描面为 **0 条** —— 判据不可执行(非「通过」)。");
+
+            return errs;
         }
 
         /// <summary>

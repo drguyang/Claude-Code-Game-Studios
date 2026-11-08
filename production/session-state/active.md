@@ -17400,3 +17400,18 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   报文门名漏 17 的两个门(留档不顺手改)
 - 落点订正:`Casebook/` 有自己的 asmdef 够不着 `Editor.Tools.Gates` ⇒ 实落 `CasebookGuards/`
 - 下一步:S26-4(casebook-005 页布局与无指针焦点导航,L)
+
+## Session Extract — S26-3 续轮:三条 NOT-RUN 收口(2026-11-08)
+
+- **① 文案键闭集落地**:`assets/data/casebook_text.json`(13 键)+ `ScanTextKeySet` +
+  `ScanUxmlAgainstClosedSet`(**UXML 每个 text= 必须 ∈ 闭集值集**)+ `ScanAuthoringSurface`
+  接进 `RunAll`(此前资产半边在真构建里没有执行体)
+  - 键名 `cbDiseaseName` 撞病种词门 ⇒ 改 `cbNameBar`,理由写进该文件 `keyNamingNote`
+- **② AC-39-09 [L] 真包走查**:`production/qa/evidence/casebook/ac39-09-walkthrough-result-2026-11-08.md`
+  - 零提示/零兜底/零催办/零同源/空行可聚焦 全成立;**5 秒停留前后两帧 SHA-256 相同**
+  - 仍 NOT-RUN:手柄 · 两例翻页 · 听测;主创签核未做
+  - 过程:自写驱动整轮 键=. / 模态=None(驱动时序问题),换成 verify_world_kbm.py 时序即正常
+- **③ 构建报文门名改派生**:`RunAll(out failingGroups)` + `BuildGate` 的 Add/Mark;
+  探针轮报文实测 `失败门组:39 反幻想`。⚠️ 首版用方法组引用 ⇒ 门链解析器两条转红,改回直调 + Mark
+- 回归 EditMode `7145/7108/0/0/37` @ 01:32:07Z · PlayMode `365/361/0/2/2` @ 01:33:14Z · `39c51ab1`+工作树
+- 下一步:S26-4(casebook-005 页布局与无指针焦点导航,L)

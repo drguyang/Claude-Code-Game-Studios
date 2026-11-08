@@ -10,6 +10,9 @@
      故本脚本**不能**用 `-batchmode -nographics`(无 X 连接 ⇒ 无法注入)。
   2. **注入期间要周期性重置焦点** —— 别的窗口抢焦会让按键全部打到别处。
 
+`--walk39` 另可跑 **AC-39-09 的 `[L]` 走查**:开册后连拍截图 + `Tab` 走满焦点环 + 在病名栏停 5 秒
+(2026-11-08 加;判读那一步是**人**的事 —— 脚本只产图与读数,不产 PASS/FAIL)。
+
 判据来自 `[tutorialdiag]` 的 `cell=` / `急救=` / `模态=` / `档位=` / `键=`
 (后四列里的 `键=` 是本轮为排查加的:区分「键没进 Input System」与「没被消费」)。
 """
@@ -31,6 +34,56 @@ ROOT = gw.ROOT
 DEFAULT_BUILD = gw.DEFAULT_BUILD
 DEFAULT_LOG = "/tmp/dyjc-kbm-world.log"
 RE_KEY = re.compile(r"键=(\S+)")
+RE_MODAL = re.compile(r"模态=(\S+)")
+
+_SHOT_WIN = [None]
+
+
+def _shot(out_dir, name):
+    """把玩家窗口提到最上层再抓,裁到窗口矩形 —— 免得被别的窗口遮住。
+
+    ⚠️ 图**不进库**:`.gitignore:346` 的 `production/qa/evidence/**/*.png` 覆盖,
+    与既往所有走查同例。要留档就自己拷出去。
+    """
+    from Xlib import X, display as _xdisplay
+    from PIL import Image as _Image
+    dsp = _xdisplay.Display(":0")
+    w = _SHOT_WIN[0]
+    root = dsp.screen().root
+    g = root.get_geometry()
+    if w is not None:
+        try:
+            w.configure(stack_mode=X.Above); dsp.sync(); time.sleep(0.35)
+        except Exception:
+            pass
+    raw = root.get_image(0, 0, g.width, g.height, X.ZPixmap, 0xFFFFFFFF)
+    img = _Image.frombytes("RGB", (g.width, g.height), raw.data, "raw", "BGRX")
+    if w is not None:
+        try:
+            geo = w.get_geometry()
+            tr = w.translate_coords(root, 0, 0)
+            x, y = -tr.x, -tr.y
+            img = img.crop((max(0, x), max(0, y),
+                            min(g.width, x + geo.width), min(g.height, y + geo.height)))
+        except Exception:
+            pass
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, name)
+    img.save(path)
+    print(f"[kbm][shot] {path} {img.width}x{img.height}", flush=True)
+
+
+def _last_modal(log):
+    try:
+        with open(log, "r", encoding="utf-8", errors="replace") as f:
+            for line in reversed(f.readlines()):
+                if line.startswith("[tutorialdiag]"):
+                    m = RE_MODAL.search(line)
+                    if m:
+                        return m.group(1)
+    except FileNotFoundError:
+        pass
+    return "?"
 
 
 def main(argv=None):
@@ -38,6 +91,8 @@ def main(argv=None):
     ap.add_argument("--build", default=DEFAULT_BUILD)
     ap.add_argument("--log", default=DEFAULT_LOG)
     ap.add_argument("--min-advance", type=int, default=3)
+    ap.add_argument("--walk39", metavar="OUTDIR", default=None,
+                    help="跑 AC-39-09 的 [L] 走查并把截图落到 OUTDIR(不产 PASS/FAIL)")
     args = ap.parse_args(argv)
 
     if not os.path.exists(args.build):
@@ -64,6 +119,7 @@ def main(argv=None):
             print("[kbm] ⚠️ 找不到玩家窗口 —— XTest 无处可发", flush=True)
             return 2
         xkeys.focus(win)
+        _SHOT_WIN[0] = win
         print("[kbm] 已置焦玩家窗口", flush=True)
 
         last_focus = [time.time()]
@@ -143,6 +199,31 @@ def main(argv=None):
         # ── ② 就诊:E ──
         xkeys.tap("e", ms=200)
         wait(2.5)
+
+        if args.walk39:
+            # ── AC-39-09 [L] 走查(2026-11-08)──
+            # ⚠️ 本段**只产证据**,不产判定:零提示 / 零催办 / 空白病名栏是人看图 + 主创签核的事。
+            print(f"[kbm][walk39] 开册后 模态={_last_modal(args.log)}", flush=True)
+            _shot(args.walk39, "01-after-visit.png")
+
+            # 焦点走查:逐行走(Down),看反馈是否**只有**外框、零文字
+            for i in range(4):
+                xkeys.tap("Down"); wait(0.4)
+            _shot(args.walk39, "02-focus-row.png")
+
+            # Tab 走满一圈:环里应当有「病名」(右列第一格)
+            for i in range(10):
+                xkeys.tap("Tab"); wait(0.45)
+                _shot(args.walk39, f"03-tab-{i:02d}.png")
+
+            # 回到病名栏停 5 秒:前后两帧应**逐字节相同**(零像素变化 ⇒ 无 tooltip)
+            for _ in range(6):
+                xkeys.tap("Tab"); wait(0.45)
+            _shot(args.walk39, "04-namebar-A.png")
+            wait(5.0)
+            _shot(args.walk39, "05-namebar-B.png")
+            print("[kbm][walk39] 04-namebar-A 与 05-namebar-B 的 SHA-256 相同 ⇒ 5 秒零像素变化",
+                  flush=True)
     finally:
         if player.poll() is None:
             player.terminate()

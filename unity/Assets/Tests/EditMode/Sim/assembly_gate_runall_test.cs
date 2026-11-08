@@ -65,5 +65,25 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Assert.IsTrue(dirs.Cast<object>().Any(),
                 "b6 扫描目录非空 —— 空集 = 门扫不到任何文件(假绿防护)");
         }
+        /// <summary>
+        /// `RunAll(out failingGroups)` 与无参重载**同源**:同一个调用点产出的两份结果不得分叉。
+        /// <para>2026-11-08(S26-3 续):构建报文的门名原来是**手写散文枚举**,实测已漂(补 39 之前
+        /// 就漏了 17 的两个门)。改成派生后,报文与「哪些门真的失败」同源 —— 本条钉住「同源」这件事:
+        /// 无参重载只是 `<c>=> RunAll(out _)</c>`,若有人把它复制成第二份实现,两份迟早分叉。</para>
+        /// </summary>
+        [Test]
+        public void test_assemblyGates_runAll_overloadsAgree()
+        {
+            var plain = AssemblyGates.RunAll();
+            var withGroups = AssemblyGates.RunAll(out var groups);
+
+            Assert.That(withGroups, Is.EqualTo(plain), "两条重载的红行集合必须逐项相同");
+            Assert.That(groups, Is.Not.Null, "failingGroups 须被赋值(不许留 null)");
+
+            // 零红 ⇔ 零失败门组。反方向(有红 ⇒ 组非空)由构建期探针轮证,不在此处造红树。
+            if (plain.Count == 0)
+                Assert.That(groups, Is.Empty,
+                    "零条红行却报了失败门组 —— 标签与 errs 已经分叉:\n" + string.Join(" / ", groups));
+        }
     }
 }

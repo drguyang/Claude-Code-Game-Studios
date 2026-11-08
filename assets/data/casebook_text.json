@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "description": "39 脉案的本地化文案键闭集(AC-39-06a)。闭合语义:39 屏上**出现的每一段字**都必须在这里有一个键 —— `CasebookAntiFantasyGate` 拒绝任何 UXML `text=` 里不在本表 `text` 值集内的字面量。键名一律 `cb` 前缀 + 驼峰(`^cb[A-Z][A-Za-z0-9]*$`);文案不得含 AC-39-06a 的黑名单词族(同源 / 相似 / 同症 / 未结 / 提醒 / 催促 / 待办 / 红点 / 徽章)。",
+    "owner": "39 脉案",
+    "authority": "design/gdd/casebook.md AC-39-06a · docs/architecture/adr-014-data-pipeline-and-json-parser.md §一",
+    "keyNamingNote": "键名避开 `disease` 词干:**门按子串扫病种维度词**,而「病名栏」是玩家落笔的空白行 —— 语义正当,但机械门分不出「能力面泄漏」与「一个标签」。项目既有先例见 `.claude/docs/coding-standards.md` §命名 — 机械门避让表(`rip` / `clip` 同型)。改的是键名,不是文案。",
+    "textNote": "文案终稿归 narrative / 文案轮;本件今日的判据是「闭集」这件事,不是措辞好不好。"
+  },
+  "keys": [
+    { "key": "cbTitle", "text": "脉案" },
+    { "key": "cbChannelFace", "text": "面色" },
+    { "key": "cbChannelVoice", "text": "语声" },
+    { "key": "cbChannelPosture", "text": "姿态" },
+    { "key": "cbChannelBreathing", "text": "呼吸" },
+    { "key": "cbChannelTouch", "text": "触感" },
+    { "key": "cbChannelHistory", "text": "问诊" },
+    { "key": "cbNameBar", "text": "病名" },
+    { "key": "cbConfidenceQuestion", "text": "?" },
+    { "key": "cbFold", "text": "折" },
+    { "key": "cbPagePrev", "text": "前案" },
+    { "key": "cbPageNext", "text": "后案" },
+    { "key": "cbRxSurface", "text": "方笺" }
+  ]
+}

@@ -15,15 +15,15 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 |---|---|
 | 39 公开面零病种维度 / 零聚合催促 API(AC-39-05 / AC-39-08) | ✅ 13 条判据全绿 |
 | 39 的 UXML 文本面零反幻想词族(AC-39-06a 的 `text=` 半边) | ✅ |
-| **AC-39-06a 的「本地化键闭集」半边** | 🔴 **`NOT-RUN`** —— **闭集本身不存在**(见 §5) |
+| **AC-39-06a 的「本地化键闭集」半边** | ✅ **2026-11-08 已补齐**(`casebook_text.json` 13 键 + UXML 必须 ∈ 闭集值集,见 §8) |
 | AC-39-01 类型面(39 的呈现 DTO 过 `PresentationDtoGuard`) | ✅ 4 个根类型 + 负控 |
-| 证伪轮 M1–M11 | ✅ 各自转红,SHA-256 逐字节还原 |
+| 证伪轮 M1–M17 | ✅ 各自转红,SHA-256 逐字节还原 |
 | **构建期探针轮** | ✅ `Result: Failure`,探针串在日志,`steps` 止于 `Preprocess Player` |
-| AC-39-09 `[L]` 走查 | 🔴 **`NOT-RUN`** —— 脚本已交,执行与签核归 QA 轮 |
+| AC-39-09 `[L]` 走查 | ✅ **2026-11-08 真包执行一轮**(键鼠);手柄 / 两例翻页 / 听测仍 `NOT-RUN`,**主创签核未做** |
 
 ---
 
-## 1. 判据(13 条)
+## 1. 判据(23 条)
 
 | 组 | 覆盖 |
 |---|---|
@@ -36,6 +36,8 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 | AC-39-01 类型面 | `ProjectedVolume` / `VolumePage` / `JudgmentTrace` / `CaseId` 过 DtoGuard ⇒ 空;`diseaseId` 合成件 ⇒ 红 |
 | AC-39-06a 文本面 | 真 `Casebook39.uxml` 零命中(先断抽到的 `text=` 非空)· 「同源」「未结」合成段 ⇒ 红 |
 | F4 守卫 | `ScanTexts(空集)` ⇒ 红 · 缺 UXML 文件 ⇒ **报错不静默** |
+| AC-39-06a 闭集 | 真数据集零违例 · **UXML 全部 `text=` ∈ 闭集值集** · 闭集外字面量 ⇒ 红 |
+| 闭集自检 | 坏 JSON / 缺 `keys` ⇒ 红(不静默退化) · 键形 · 重复键 · 空文案 · 空闭集 ⇒ 各 1 红 |
 
 ## 2. 词表为什么**不含** `sort` / `group` / `count`
 
@@ -43,7 +45,7 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 `CaseSheet.Count`(册内例数)都是**合法**用法。把这三个词一律拉黑会造出一条**永远红**的门 ——
 那不是严谨,是没人会去修的噪声。M10 反向证明了这条取舍有判别力:把 `count` 塞进病种词表 ⇒ 3 条转红。
 
-## 3. 证伪轮(11 条 · 一属性一条)
+## 3. 证伪轮(17 条 · 一属性一条)
 
 | # | 变异 | 期望 | 实测 |
 |---|---|---|---|
@@ -58,6 +60,12 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 | **M9** | 从 `AssemblyGates.RunAll` 摘掉接线 | 门链双向差集两条 | ✅ **2 红** |
 | **M10** | 词表**过宽**(塞 `count`) | 合法用法被误判那条 | ✅ **3 红**(见 §2) |
 | **M11** | 给 `VolumePage` 加 `diseaseId` 属性 | 类型面登记真在扫 | ✅ **2 红**(两门各一,见下) |
+| **M12** | 去掉「UXML 文案 ∈ 闭集」判据 | 闭集牙齿 | ✅ 恰 1 红 |
+| **M13** | 坏 JSON 静默吞掉 | 「坏闭集不得退化成空集」 | ✅ 恰 1 红 |
+| **M14** | 去掉键形判据 | 键形 | ✅ 恰 1 红 |
+| **M15** | 去掉重复键判据 | 重复键 = 两条真源 | ✅ 恰 1 红 |
+| **M16** | 去掉空闭集守卫 | F4 | ✅ 恰 1 红 |
+| **M17** | 往 `Casebook39.uxml` 插一句闭集外字面量 | **构建期门也读资产** | ✅ **2 红**(含走 `RunAll` 的那条 ⇒ 构建期强制点成立) |
 
 **M11 为什么是 2 红而不是 1 红**:同一个违例被**两个独立判据**各自抓住 ——
 `PresentationDtoGuard`(类型面)与 `CasebookAntiFantasyGate`(名面)。这不是串扰,是纵深。
@@ -88,15 +96,11 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 
 ## 5. 未做 / 缺口(不得借绿)
 
-1. **AC-39-06a 的「本地化键闭集」半边 = `NOT-RUN`。**
-   AC 原文的对象是 `casebook_text_keys` 闭集,而全仓 `assets/data/` 无该数据集,
-   `grep -rln "casebook_text_keys\|casebook_text" --include=*.json --include=*.yaml assets/ unity/ docs/` **零命中**。
-   ⇒ 那半**没有宾语**,不记绿。已交的是 AC 自带的替代载体(2026-09-19 注:「字符串扫描测不到 UXML 元素
-   ⇒ 本地化 key 闭集 + USS `text=` 黑名单」),即 `text=` 黑名单 + 可复用的 `ScanTexts` 原语。
-   **闭集落地时**把它接进 `ScanTexts` 即可,门不用改。
-2. **AC-39-09 `[L]` 走查 = `NOT-RUN`。** 脚本见
-   `production/qa/evidence/casebook/story-004-l-walkthrough-scripts.md`;**脚本存在 ≠ 走查已跑**。
-3. **扫描面边界**:只扫 `DaYiJingCheng.Gameplay.UI.Casebook` 命名空间 + `Casebook39.uxml`。
+1. **AC-39-06a 的「本地化键闭集」半边 —— ✅ 已补齐(§8)。**
+2. **AC-39-09 `[L]` 走查 —— ✅ 键鼠路径已真包执行**(见
+   `production/qa/evidence/casebook/ac39-09-walkthrough-result-2026-11-08.md`)。
+   仍 `NOT-RUN`:手柄路径 · 两例翻页对照 · 听测零 jingle;**主创签核未做**(不代签)。
+3. **扫描面边界**:只扫 `DaYiJingCheng.Gameplay.UI.Casebook` 命名空间 + `Casebook39.uxml` + `casebook_text.json`。
    42 元件库全域、8 的词表**不在此面内**(各归各的 AC)。
 4. **AC-39-01 是 ADVISORY**(2026-09-19 降级,`AC-37-15` 的真子集)。本件补的是**登记义务**那一半
    (39 消费的呈现 DTO 进守卫扫描面),不宣称它是 BLOCKING 面。
@@ -105,14 +109,15 @@ AC-39-09(`[L]`,本件只交脚本)· AC-39-01(ADVISORY,`AC-37-15` 的真子集)
 
 | 套件 | 计数 | 截至时刻 | 批次 | commit |
 |---|---|---|---|---|
-| EditMode | `7134 / 7097 / 0 / 0 / 37` | `2026-11-08T00:11:51Z` | sprint-26 S26-3 | `bade1ce6` + 工作树 |
-| PlayMode | `365 / 361 / 0 / 2 / 2` | `2026-11-08T00:13:02Z` | 同上 | 同上 |
+| EditMode | `7145 / 7108 / 0 / 0 / 37` | `2026-11-08T01:32:07Z` | sprint-26 S26-3(续) | `39c51ab1` + 工作树 |
+| PlayMode | `365 / 361 / 0 / 2 / 2` | `2026-11-08T01:33:14Z` | 同上 | 同上 |
 
-**基线**(S26-2 收口后)`7121 / 7084` ⇒ **+13 / +13,零回归**。
-**等式判据**:`7134 − 7121 = 13` = 本夹具的 `[Test]` 计数。
+**基线**(本 story 上一轮,即 `39c51ab1`)`7134 / 7097` ⇒ **+11 / +11,零回归**。
+**等式判据**:`7145 − 7134 = 11` = 本夹具 **+10**(13 → 23)+ `assembly_gate_runall_test` **+1**。
 
 ```bash
-grep -c "\[Test\]" unity/Assets/Tests/EditMode/CasebookGuards/casebook_anti_fantasy_guard_test.cs   # ⇒ 13
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/CasebookGuards/casebook_anti_fantasy_guard_test.cs   # ⇒ 23
+grep -c "\[Test\]" unity/Assets/Tests/EditMode/Sim/assembly_gate_runall_test.cs                      # ⇒ 3
 ```
 
 ## 7. 一处流程事实(如实记)
@@ -121,3 +126,40 @@ grep -c "\[Test\]" unity/Assets/Tests/EditMode/CasebookGuards/casebook_anti_fant
 `FakeDiseaseSnapshot`,而门的契约是**点名命中的词面**(`diseas`)+ 面名(「返回类型」)。
 处置 = **改断言去贴合实际契约,不是改门去贴合我的措辞**;
 若反过来把类型名塞进报文,等于让报文迁就一个测试,而不是让测试描述一个契约。
+
+## 8. 2026-11-08 续轮:三条 `NOT-RUN` 收口
+
+### 8.1 本地化键闭集(AC-39-06a 的另一半)
+
+| 件 | 落点 |
+|---|---|
+| 闭集数据 | `assets/data/casebook_text.json`(13 键,`cb` 前缀 + 驼峰) |
+| 词法 | `ParseTextKeys`(Newtonsoft **仅作词法器**,ADR-014 §三;绑定层自写) |
+| 闭集自检 | `ScanTextKeySet` —— 键形 / 重复 / 空文案 / 黑名单词族 / 病种词族 / **空集即红** |
+| **闭合** | `ScanUxmlAgainstClosedSet` —— UXML 每个非空 `text=` **必须 ∈ 闭集值集** |
+| 构建期 | `ScanAuthoringSurface` 接进 `RunAll` —— 此前这两个资产**只有 EditMode 读**,真构建里没有执行体 |
+
+⚠️ **键名避让记一笔**:首个键写作 `cbDiseaseName`(「病名栏」),被本门按「病种维度词」判红。
+文案「病名」是玩家落笔的标签,语义正当 —— 但机械门分不出「能力面泄漏」与「一个标签」。
+处置 = **改键名为 `cbNameBar`**,并把理由写进该文件的 `keyNamingNote`(与
+`.claude/docs/coding-standards.md` §命名 — 机械门避让表的 `rip` / `clip` 同型)。
+
+### 8.2 AC-39-09 `[L]` 走查执行
+
+结果与截图另立件:`production/qa/evidence/casebook/ac39-09-walkthrough-result-2026-11-08.md`。
+最强的一条证据 = **焦点停在病名栏 5 秒,前后两帧 SHA-256 完全相同**(零像素变化)。
+仍 `NOT-RUN`:手柄路径 · 两例翻页对照 · 听测;**主创签核未做**。
+
+### 8.3 构建报文门名:散文枚举 → 派生
+
+原报文是一串**手写门名清单**,实测已漂(补 39 之前就漏了 17 的两个门)。改成派生:
+
+- `AssemblyGates.RunAll(out List<string> failingGroups)`;无参重载 = `RunAll(out _)`,两条重载由
+  `assembly_gate_runall_test.test_assemblyGates_runAll_overloadsAgree` 钉住同源。
+- `BuildGate` 用局部 `Add(label, items)` / `Mark(label, before)`,**标签与调用点同处一行**。
+- ⚠️ 第一版把 `CheckXxx(errs)` 改成了方法组引用 `Step("…", CheckXxx)`,**门链解析器当场转红**
+  (`entryWiring_matchesManifest_bidirectionally` + `extractor_actuallyExtractsKnownMembers`)——
+  它按 `名字(` 抽接线,方法组没有括号。改回**直调 + `Mark` 记账**才既保住可见性又保住归属。
+  这一红是守卫该红:**它证明「门链看得见谁」这件事本身被机械守着**。
+- **探针轮**:给 39 门插无条件失败项 ⇒ `Build Finished, Result: Failure`,
+  报文 = `失败门组:39 反幻想`(不再是那串固定清单)。

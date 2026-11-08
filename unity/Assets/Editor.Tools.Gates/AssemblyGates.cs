@@ -136,45 +136,78 @@ namespace DaYiJingCheng.EditorTools.Gates
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
-        public static List<string> RunAll()
+        public static List<string> RunAll() => RunAll(out _);
+
+        /// <summary>
+        /// 全门链。另出 <paramref name="failingGroups"/> —— **哪些门真的报了错**。
+        /// <para>2026-11-08(S26-3 续):构建报文的门名原是一串**手写散文枚举**,实测已漂 ——
+        /// 补 39 之前它就漏了 17 的两个门。病因是结构性的:枚举与调用点分居两处,而枚举
+        /// **不是判据**,没有任何东西会为它转红。改成派生后两者同源,漂不动。</para>
+        /// </summary>
+        public static List<string> RunAll(out List<string> failingGroups)
         {
             var errs = new List<string>();
-            CheckManifestClosure(errs);      // b3
-            CheckReferenceDuplicates(errs);  // b3-refdup(复盘行动项 2 · sprint-13 S13-4)
-            CheckGateA(errs);                // b2
-            CheckReferenceDeclarations(errs); // b2-decl(TD-gate-04 · 2026-10-31)
-            CheckExactReferenceWhitelist(errs); // b2-exact(AC-48-11 构建期强制点 · 2026-11-07)
-            CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
+            failingGroups = new List<string>();
+            List<string> groups = failingGroups;
+            void Add(string label, IEnumerable<string> items)
+            {
+                bool any = false;
+                foreach (string e in items) { errs.Add(e); any = true; }
+                if (any) groups.Add(label);
+            }
+            int mark = 0;
+            void Mark(string label, int before)
+            {
+                if (errs.Count > before) groups.Add(label);
+            }
+            mark = errs.Count;
+            CheckManifestClosure(errs);   // b3
+            Mark("装配封闭性", mark);
+            mark = errs.Count;
+            CheckReferenceDuplicates(errs);   // b3-refdup(复盘行动项 2 · sprint-13 S13-4)
+            Mark("引用重复", mark);
+            mark = errs.Count;
+            CheckGateA(errs);   // b2
+            Mark("门 A", mark);
+            mark = errs.Count;
+            CheckReferenceDeclarations(errs);   // b2-decl(TD-gate-04 · 2026-10-31)
+            Mark("引用声明", mark);
+            mark = errs.Count;
+            CheckExactReferenceWhitelist(errs);   // b2-exact(AC-48-11 构建期强制点 · 2026-11-07)
+            Mark("精确引用白名单", mark);
+            mark = errs.Count;
+            CheckPayloadRefCallsites(errs);   // b6(ADR-029 §③)
+            Mark("载荷引用调用点", mark);
             // b7 写者存在性门(M2 阶段 2 · 批次 D,2026-10-10):registry 每支 author 声明
             // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
             // 共用 RunAll)—— 承「零调用方的门形同虚设」口径。
-            errs.AddRange(WriterExistenceGate.RunAll());
+            Add("b7 写者存在性", WriterExistenceGate.RunAll());
             // 9 调参常量登记完整性门(2026-10-22 · PRE-S18-B 机械半边):`entities.yaml`
             // 的三阈值 + 干预窗口须各有独立 `name:` 块。与 b7 同格 —— 两者都是
             // 「registry ↔ 代码」一致性,都住在 RunAll(菜单 / reload / 构建前三处共用)。
             // ⚠️ 只查登记存在性,不查数值(数值归用户数值轮;判了会恒红)。
-            errs.AddRange(DiseaseConstantRegistryGate.RunAll());
+            Add("9 常量登记", DiseaseConstantRegistryGate.RunAll());
             // 病名册词表 ↔ 病种注册表 跨表外键门(2026-11-07 真包走查驱动):
             // 词表 `disease_ids` 逐值必须 ∈ 注册表 id 集。病因 = 伤寒外键指向 id `1`,
             // 而真注册表 id 段是 2..17 ⇒ 书恒空、`judge` 步永不发火,而全部构建/夹具当时全绿。
             // ⚠️ 读**烘焙产物**(与运行期同一份字节);源 ↔ 产物漂移归 `cooked_drift_all_artifacts_test`。
-            errs.AddRange(LexiconRegistryCrossRefGate.RunAll());
+            Add("病名册外键", LexiconRegistryCrossRefGate.RunAll());
             // 53 静态面门(S12-9 · story-002,2026-10-15):AC-53-03 零浮点 +
             // AC-53-12 零 31 符号 —— 扫 `Assets/Sim/Consequences/*.cs`(MedConsFloatGate)。
-            errs.AddRange(MedConsFloatGate.RunAll("."));
+            Add("53 零浮点", MedConsFloatGate.RunAll("."));
             // 17 采集零浮点门(story-005 · AC-17-10,2026-10-31):扫 `Assets/Sim/Foraging/**/*.cs`。
             // 与上一条同族但**各自持有词表** —— 共用一份会让改 53 的判据静默改掉 17 的(见 ForagingFloatGate)。
-            errs.AddRange(ForagingFloatGate.RunAllWithIl("."));
+            Add("17 采集零浮点", ForagingFloatGate.RunAllWithIl("."));
             // 2026-10-31(story-005 · AC-17-09):呈现 DTO 反幻想递归扫描(构建期强制点)。
-            errs.AddRange(AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));
+            Add("17 呈现 DTO 反幻想", AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));
             // 写盘边界门(S16-4 · retro-14 行动项 A4,2026-10-20):测试不得写仓库。
             // 扫 `Assets/Tests/**/*.cs` —— R1 字面量相对目标 + R2 「锚点 × 写盘」须具名声明。
-            errs.AddRange(FsWriteBoundaryGate.RunAll("."));
+            Add("写盘边界", FsWriteBoundaryGate.RunAll("."));
             // PlayMode 装配的 `UnityEditor` 裸用门(TD-testasm-01,2026-10-21):IL2CPP 腿自
             // 2026-10-13 起结构性坏 8 天,唯一发现途径是「跑一次 IL2CPP 构建」(数十分钟)。
             // 扫 `Assets/Tests/PlayMode/**/*.cs` —— 该装配 `includePlatforms: []` ⇒ 进 player,
             // 裸用 `UnityEditor` ⇒ CS0234 ⇒ 整个 player 出不来。
-            errs.AddRange(PlayerAssemblyGate.RunAll("."));
+            Add("PlayMode 裸用 UnityEditor", PlayerAssemblyGate.RunAll("."));
             // PlayMode TearDown 禁 `GameObject.Find` 清场门(2026-11-01):
             // 病因 = `AC-ADR020-10` 在**全量串跑**下**偶发红**(run1 绿 / run2 红)。四步根因链:
             //   ① `camera_follow_wiring_test` 的 TearDown 用 `GameObject.Find("Main Camera")` +
@@ -184,63 +217,63 @@ namespace DaYiJingCheng.EditorTools.Gates
             //   ③ `BootRoot.FindInactiveInclusive` 取**第一个**同名相机摘 listener;
             //   ④ `FindObjectsSortMode.None` 的枚举序**不保证稳定** ⇒ 有时摘错 ⇒ 偶发 2 个。
             // ⇒ 本门钉形态:清场必须看得见 inactive 件。
-            errs.AddRange(PlayModeTeardownFindGate.RunAll("."));
+            Add("PlayMode 清场 Find", PlayModeTeardownFindGate.RunAll("."));
             // 存档写盘可达面 IL 门(AC-7a-08 ③ · 2026-10-25):仅 `SaveService` 可达写盘 API。
             // AC-7a-08 的三方守里,前两方(接口签名反射 + 接口级正面枚举)只看 `ISaveService`
             // 自己的公开面,**看不见旁路**(别处直调 SaveBytes / 直接 File.* / 类内长出新写盘点)。
             // 第三方的执行体此前**从未存在** —— 本条即其落点。
-            errs.AddRange(SaveWritePathGate.RunAll());
+            Add("存档写盘可达面", SaveWritePathGate.RunAll());
             // 后台写盘路径「零 Unity API」方法级 IL 门(AC-7a-07 第二句 · 2026-10-25)。
             // ⚠️ **本门在 b2 绿时不可能红** —— 被扫的两个类型住在 `noEngineReferences: true`
             //    的 `Sim.Codec`。它是 b2 的**推论**,不是独立判据。立它的理由见
             //    `SaveAsyncBoundaryGate.cs` 文件头 §判别力(方法级判据面 + 搬家检测 +
             //    GDD 字面点名的「被调集合」形态)。**不得**把它记作 AC-7a-07 的独立兑现物。
-            errs.AddRange(SaveAsyncBoundaryGate.RunAll());
+            Add("存档异步边界", SaveAsyncBoundaryGate.RunAll());
             // 忘词令符号门(AC-7a-09 判据层 · 2026-10-25):运行期装配符号表零 q 系列标识符。
             // 原 blocked-by TD-ci-01(「单独落没有东西会跑它」)—— 前提已变:RunAll 三处强制点
             // (菜单 / reload / 构建前门)即本地强制点;与 ADR-012 CI 门不互斥(CI 落地时再挂一层)。
             // 扫描形态 = Cecil 符号名(类型/方法/字段/属性/事件),注释与字符串天然不可见
             // ⇒ AC-7a-04 的「假阳性白名单」结构性为零。
-            errs.AddRange(SaveVocabularyGate.RunAll());
+            Add("忘词令符号", SaveVocabularyGate.RunAll());
             // 20 输出 DTO 双层零浮点门(AC-20-15 · 2026-10-26 S20-11 落):
             // 层 1 递归反射 + 层 2 Cecil IL,两层共用「按源目录枚举」的类型清单。
             // **为什么必须进 RunAll 而不是挂 TestDriven**:AC-20-15 是 BLOCKING 级判据,
             // 而 `GateWiringManifestTest` 的 TestDriven 封闭集判据明确禁止把 BLOCKING
             // 判据判成「无强制点」档(该表自带规矩:升格 BLOCKING ⇒ 先找强制点)。
-            errs.AddRange(InventoryDtoFloatGate.RunAll("."));
+            Add("20 输出 DTO 零浮点", InventoryDtoFloatGate.RunAll("."));
             // AC-20-21 存在性门(2026-10-26 S20-12 落):CARRY_CAP > 0 ∧ 存在可达状态使
             // `CanCarry == false`(自指谓词,不需要外部清单)。可达性是**真模拟构造**的
             // (贪心领最重的一件直到装不下),且经真 `CarryLoadSolver.CanCarry` 求值。
             // ⚠️ 本门是**弱门**(领取次数无上界 ⇒ 几乎恒绿),真正能抓的是物品表结构性空洞;
             // 「cap 大到能带齐一切」须等 OQ-20-9 的具名 ESSENTIAL_KIT 才立得了真门
             // —— 已在门内与 GDD :705-712 双处登记,不得读成「取舍存在性已全面验证」。
-            errs.AddRange(CarryCapExistenceGate.RunAll("."));
+            Add("20 负重存在性", CarryCapExistenceGate.RunAll("."));
             // 采集闸门跳过门(S22-9 · 2026-11-01):生产码零 `HarvestGate.Allow`。
             // 缘由:`HarvestGate` 是裸 struct,传 `Allow` 在类型面**完全合法**而语义 = 跳过采前闸
             // ⇒ `CarryLoadSolver.CanCarry` / `NodeRemaining.CanHarvest` 都不再被求值。
             // `Resolve` 的注释已写禁令 —— 注释不是执行体(F6),本门是它的执行体。
-            errs.AddRange(HarvestGateAllowGate.RunAll("."));
+            Add("采集闸门跳过", HarvestGateAllowGate.RunAll("."));
             // 2 相机「生产调用方必须用双参 `SetMode(mode, requesterId)`」门(2026-11-02):
             // 甲案(ADR-020 Amendment C ②)的「同一请求方可降档」判据依赖 `requesterId`。
             // 走单参重载 / 显式传 `-1` ⇒ 该判据**恒假** ⇒「只能由请求方退出」**静默失效**
             // (不崩、不红),表现为「玩家复活后相机卡在倒下档」。
             // `ICameraRig.SetMode` 的 XML 注释已写此禁令 —— **注释不是执行体**(F6),本门是它的执行体。
-            errs.AddRange(CameraSetModeRequesterGate.RunAll("."));
+            Add("2 相机双参 SetMode", CameraSetModeRequesterGate.RunAll("."));
             // 2 相机「档位表 ↔ 代码」覆盖门(camera-viewpoint/story-007 · 2026-11-02):
             // 上一条只判**语法**,从不看 `R-2-5` 那张表 ⇒ 2026-11-02 实测 6 条有效行里
             // 有 2 条(39 的两行)**零生产调用点**而门全绿。本门补上「表 ⊆ 代码」。
             // ⚠️ 它只证明「有人声明要发」,证不了「真的会发」—— 后者归 PlayMode 矩阵夹具。
-            errs.AddRange(CameraSetModeRequesterGate.RunModeRequestTable("."));
+            Add("2 相机档位表覆盖", CameraSetModeRequesterGate.RunModeRequestTable("."));
             // AC-5-05 —— `TICKS_PER_DAY` 全仓只有一个定义点(2026-11-03 立)。
             // 缘由(实测,不是预防性洁癖):本轮一度同时存在 `Sim/Time/WorldTime`(36000)
             // 与 `Sim/World/TimeBase`(480)两份日长、两套昼夜公式,**而两边各自的夹具都绿**
             // —— 没有任何东西会红。本门就是「不再允许第二次」的执行体。
             // ⚠️ 已知盲区(门内头注已登记):**换名同值**(`const int DayTicks = 36000`)抓不到
             // —— 按名字匹配的判据结构上无法覆盖;要抓得比对值,那会把一切 36000 常量误判成红。
-            errs.AddRange(TimeConstantSingleDefinitionGate.RunAll("."));
+            Add("5 日长单一定义", TimeConstantSingleDefinitionGate.RunAll("."));
             // AC-5-05 的**数据侧**半边(ADR-038 §D1/§D2):值的唯一定义点在 assets/data/5_time.json,
             // 其他数据集只许 `$ref`。
-            errs.AddRange(TimeConstantSingleDefinitionGate.RunDataSide("."));
+            Add("5 日长时间数据侧", TimeConstantSingleDefinitionGate.RunDataSide("."));
             // AC-48-04 —— 48 只读投影装配的公开面零 sim 类型(sprint-25 S25-1,2026-11-06)。
             // 缘由:`tutorial-002` 落盘时 `TutorialSurfaceGate` 只有 EditMode 测试驱动,而
             // AC-48-04 是 `[A]` 级判据 ⇒ 按 `GateWiringManifestTest` 的既有规矩
@@ -248,17 +281,17 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ⚠️ 入口写在 `TutorialSurfaceGate.RunAll()` 里而**不是**本类的私有方法:
             //    门链 manifest 按 `类名.方法` 抽接线,私有包装会让「声明 Chain 但链上看不见它」转红
             //    (2026-11-06 实测)。
-            errs.AddRange(TutorialSurfaceGate.RunAll());
+            Add("48 装配公开面", TutorialSurfaceGate.RunAll());
             // 48 口述文案 ↔ 44 字幕文本的跨表门(2026-11-07 · TD-tutorial-01 的执行体)。
             // 病因:同一句口述两处各写一份且四条全不一致,而运行期只读事件表 ⇒ 改 48 那份静默无效。
             // 与 TutorialSurfaceGate 同格:入口用 `类名.方法` 形,不做本类的私有包装(门链 manifest 按此抽接线)。
-            errs.AddRange(TutorialNarrationSubtitleCrossRefGate.RunAll());
+            Add("48 字幕跨表", TutorialNarrationSubtitleCrossRefGate.RunAll());
             // 48 的零设门守卫(2026-11-07 · S25-5 · AC-48-17):公开面零「解锁 / 门禁 / 完成状态」查询 API。
             // 规则五要的是**做不到**,不是**没做** —— 构建期红才是它成立的判据。
-            errs.AddRange(TutorialZeroGate.RunAll());
+            Add("48 零设门", TutorialZeroGate.RunAll());
             // 39 脉案的反幻想能力面守卫(2026-11-08 · S26-3 · AC-39-05 / AC-39-08):
             // 公开面零病种维度、零聚合/催促词。规则四要的是**能力面做不到**,不是**界面上没画**。
-            errs.AddRange(CasebookAntiFantasyGate.RunAll());
+            Add("39 反幻想", CasebookAntiFantasyGate.RunAll());
             return errs;
         }
 
@@ -1565,36 +1598,63 @@ namespace DaYiJingCheng.EditorTools.Gates
             public void OnPreprocessBuild(BuildReport report)
             {
                 var errs = new List<string>();
-                errs.AddRange(AssemblyGates.RunAll());
+                // 失败门组:**派生**,不写死(2026-11-08 · S26-3 续)。
+                // 原报文是一串手写散文枚举,实测已漂 —— 补 39 之前就漏了 17 的两个门(`:1588` / `:1589`)。
+                // 枚举与调用点分居两处、且枚举不是判据 ⇒ 结构性必漂。派生后两者同源。
+                var failingGroups = new List<string>();
+                void Add(string label, IEnumerable<string> items)
+                {
+                    bool any = false;
+                    foreach (string e in items) { errs.Add(e); any = true; }
+                    if (any) failingGroups.Add(label);
+                }
+                int mark = 0;
+                void Mark(string label, int before)
+                {
+                    if (errs.Count > before) failingGroups.Add(label);
+                }
+
+                {
+                    // `RunAll` 自己报出它内部**哪几门**失败(逐门标签),这里原样并进同一个集合 ——
+                    // 否则整个 RunAll 只记成一笔「RunAll 失败」,比原散文枚举还粗。
+                    int before = errs.Count;
+                    List<string> runAllGroups;
+                    foreach (string e in AssemblyGates.RunAll(out runAllGroups)) errs.Add(e);
+                    if (errs.Count > before) failingGroups.AddRange(runAllGroups);
+                }
+                mark = errs.Count;
                 AssemblyGates.CheckToFloatCallsites(errs);
-                errs.AddRange(AssemblyGates.RunAudioBoundary(out _));
+                Mark("ToFloat 白名单", mark);
+                Add("44 边界门", AssemblyGates.RunAudioBoundary(out _));
                 // 2026-10-05(diagnosis story-001):8 的边界门接入构建前门 fail-fast。
                 // warnings `out _` 与 44 门同格(本门当前无 WARN 级发现,预留)——
                 // 一旦启用 WARN 级发现,须同步在本路径补转发,勿静默吞(评审登记)。
-                errs.AddRange(DiagnosisBoundaryGates.RunAll(out _));
-                errs.AddRange(InputBoundaryGates.RunAll(out var roots));
+                Add("8 边界门", DiagnosisBoundaryGates.RunAll(out _));
+                Add("3 意图边界门", InputBoundaryGates.RunAll(out var roots));
                 // 2026-10-06(prescription story-003 · 结构侧评审 M-1):11 的写者独占 /
                 // 算法独占 / 病名面 / 载荷成对门**此前只接菜单**(`RunMenu`),构建路径无强制点
                 // ⇒ AC-10-06b 字面的「漂移 ⇒ 构建失败」没有执行体。此处补接,与 8 / 3 门同格。
-                errs.AddRange(PrescriptionWriterGates.RunAll(out var rxSummary));
+                Add("11 写者门", PrescriptionWriterGates.RunAll(out var rxSummary));
                 foreach (var s in rxSummary) Debug.Log("[PrescriptionWriterGates] " + s);
                 // 2026-10-21(TD-gate-02 收口):6 / 10 两个 IL 门的构建期强制点。
                 // 与 RunMenu 同一形态,守卫在门内(见 RunMenu 处注释)。
-                errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22
-                errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
+                Add("6 生态区整数门", EcozoneIntegerGates.RunAll());       // AC-6-22
+                Add("10 急救整数门", EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
                 // 2026-10-22(S18-1 AC ⑥):规则九门接入构建前 fail-fast(与上面两 IL 门同格)。
-                errs.AddRange(RuleNineGate.RunAll("."));           // AC ⑥ · 规则九(源码 + IL)
+                Add("规则九门", RuleNineGate.RunAll("."));           // AC ⑥ · 规则九(源码 + IL)
                 // 2026-10-31(story-005 · AC-17-10):17 求值路径零浮点,源级 + IL 级。
-                errs.AddRange(ForagingFloatGate.RunAllWithIl("."));
-                errs.AddRange(AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));   // AC-17-09
+                Add("17 采集零浮点门", ForagingFloatGate.RunAllWithIl("."));
+                Add("17 呈现 DTO 反幻想门", AntiFantasyDtoGate.RunAll(ScriptAssemblyPath("Sim.Contracts")));   // AC-17-09
                 if (roots == 0)
+                {
                     errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
+                    failingGroups.Add("3 意图边界门 · A7 扫描根");
+                }
                 if (errs.Count == 0) return;
                 foreach (var e in errs) Debug.LogError(e);
                 throw new BuildFailedException(
-                    $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
-                    "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门 / 6 生态区整数门 / " +
-                    "10 急救整数门 / 9 常量登记门 / 规则九门 / 39 反幻想门)—— 见构建日志红行。");
+                    $"[AssemblyGates] 构建前门失败 {errs.Count} 条 —— 失败门组:" +
+                    $"{string.Join(" / ", failingGroups)}(逐条红行的前缀给出具体门 / AC 编号)。");
             }
         }
     }

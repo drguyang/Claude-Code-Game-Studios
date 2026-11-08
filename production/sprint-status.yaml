@@ -64,7 +64,7 @@ stories:
     chain: "脉案链"
     blocker: ""
     completed: "2026-11-08"
-    note: "**COMPLETE WITH NOTES**。`CasebookAntiFantasyGate` 扫 39 命名空间公开面 + `Casebook39.uxml` 的 `text=`:R1 病种维度(`diseas`/`diagnos`/`symptom`,把 AC-39-05 整个包住 —— 拿不到病种就无从分组/检索/计数)· R2 聚合催促词 · 文本黑名单。**名 + 返回类型双面**(承 sprint-25 G2);词表刻意不含 sort/group/count(合法用法),M10 反向证明该取舍有判别力。13 条判据;证伪 M1–M11 全红、SHA-256 逐字节还原;**构建期探针轮 Result: Failure**(探针串在日志 + steps 止于 Preprocess Player)。回归 EditMode 7134/7097(+13)· PlayMode 365/361 零回归。⚠️ 三处 NOT-RUN 不借绿:① AC-39-06a 的「本地化键闭集」半边 —— 闭集 `casebook_text_keys` 全仓不存在 ⇒ 无宾语;② AC-39-09 [L] 走查只交脚本;③ 构建报文的门名是散文枚举,17 的两个门漏登如实留档。证据 = production/qa/evidence/impl-s26-3-casebook-anti-fantasy-guards-2026-11-08.md。解锁 005。"
+    note: "**COMPLETE WITH NOTES**。`CasebookAntiFantasyGate` 扫 39 命名空间公开面 + `Casebook39.uxml` 的 `text=`:R1 病种维度(`diseas`/`diagnos`/`symptom`,把 AC-39-05 整个包住 —— 拿不到病种就无从分组/检索/计数)· R2 聚合催促词 · 文本黑名单。**名 + 返回类型双面**(承 sprint-25 G2);词表刻意不含 sort/group/count(合法用法),M10 反向证明该取舍有判别力。23 条判据;证伪 M1–M17 全红、SHA-256 逐字节还原;**构建期探针轮 Result: Failure**(探针串在日志 + steps 止于 Preprocess Player)。回归 EditMode 7145/7108(+11)· PlayMode 365/361 零回归。**续轮(用户「继续完成」)已把三条 NOT-RUN 收口**:① 闭集落地 `assets/data/casebook_text.json`(13 键)+ UXML 每个 `text=` 必须 ∈ 闭集值集 + 构建期也读资产;② AC-39-09 键鼠路径真包走查一轮(5 秒停留前后两帧 SHA-256 相同 = 零像素变化),手柄 / 两例翻页 / 听测仍 NOT-RUN,主创签核未做;③ 构建报文门名改**派生**(`RunAll(out failingGroups)`),探针轮实测 `失败门组:39 反幻想`。证伪扩到 M1–M17。证据 = production/qa/evidence/impl-s26-3-casebook-anti-fantasy-guards-2026-11-08.md。解锁 005。"
   - id: "S26-4"
     name: "casebook/005 脉案页布局与无指针焦点导航"
     file: "production/epics/casebook/story-005-page-layout-focus-navigation.md"

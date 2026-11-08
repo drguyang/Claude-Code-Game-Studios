@@ -13,9 +13,10 @@
 //   · **F3**:词表期望值写**字面量**,不引被测常量;
 //   · **F6**:本门有 `file:line` + 有能证明它会红的负夹具(下面四条)。
 //
-// ⚠️ 读真实资产(`Casebook39.uxml`)的具名声明(承 `.claude/rules/test-standards.md`):
-//    **只读**该 UXML,不写;之所以读真表而非内联字面量 —— 要验的正是**盘上那份**资产里有没有
-//    反幻想词族。内联一份副本会让「资产被改坏」这件事完全不可见。
+// ⚠️ 读真实资产(`Casebook39.uxml` / `assets/data/casebook_text.json`)的具名声明(承 `.claude/rules/test-standards.md`):
+//    **只读**这两件,不写;之所以读真表而非内联字面量 —— 要验的正是**盘上那份**资产里有没有
+//    反幻想词族、以及 UXML 的每个 `text=` 是否真的都在闭集里。内联一份副本会让
+//    「资产被改坏 / 有人偷偷加了一段字」完全不可见。
 
 using System;
 using System.Collections.Generic;
@@ -176,7 +177,126 @@ namespace DaYiJingCheng.Tests.EditMode.CasebookGuards
             Assert.That(errs, Is.Not.Empty, "DtoGuard 抓不住 diseaseId ⇒ 上一条无判别力");
         }
 
-        // ══════════════ AC-39-06a 文本面 ══════════════
+        // ══════════════ AC-39-06a 键闭集(2026-11-08 补:此前「没有宾语」)══════════════
+
+        [Test]
+        public void test_ac39_06a_realTextKeySet_isClosedAndClean()
+        {
+            // 真数据集走一遍完整链路(读盘 → 词法 → 闭集判据),不内联副本
+            string path = Path.Combine(RepoRoot(), CasebookAntiFantasyGate.CasebookTextRelativePath);
+            Assert.That(File.Exists(path), Is.True, $"缺文案键闭集:`{path}`");
+
+            var errs = new List<string>();
+            var entries = CasebookAntiFantasyGate.ParseTextKeys(File.ReadAllText(path), errs);
+            errs.AddRange(CasebookAntiFantasyGate.ScanTextKeySet(entries, "casebook_text.json"));
+
+            Assert.That(entries.Count, Is.GreaterThan(0), "闭集抽不出条目 —— 判据空转(F4)");
+            Assert.That(errs, Is.Empty, string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_ac39_06a_uxmlTexts_allComeFromClosedSet()
+        {
+            // 这一条才是「闭集」的牙齿:UXML 里自由新增的字面量绕不过去
+            string repo = RepoRoot();
+            string textPath = Path.Combine(repo, CasebookAntiFantasyGate.CasebookTextRelativePath);
+            string uxmlPath = Path.Combine(repo, CasebookAntiFantasyGate.CasebookUxmlRelativePath);
+
+            var sink = new List<string>();
+            var entries = CasebookAntiFantasyGate.ParseTextKeys(File.ReadAllText(textPath), sink);
+            var texts = CasebookAntiFantasyGate.ExtractUxmlTexts(File.ReadAllText(uxmlPath));
+
+            Assert.That(texts.Count, Is.GreaterThan(0), "抽不到 text= —— 判据空转");
+            List<string> errs = CasebookAntiFantasyGate.ScanUxmlAgainstClosedSet(
+                texts, entries.Select(e => e.text).ToList(), "Casebook39.uxml");
+            Assert.That(errs, Is.Empty, string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_ac39_06a_fixture_textOutsideClosedSet_isRed()
+        {
+            var texts = new List<(string, string)> { ("fixture", "读数") };
+            List<string> errs = CasebookAntiFantasyGate.ScanUxmlAgainstClosedSet(
+                texts, new List<string> { "脉案" }, "fixture");
+
+            Assert.That(errs, Has.Count.EqualTo(1), string.Join("\n", errs));
+            StringAssert.Contains("不在键闭集里", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_fixture_badKeyShape_isRed()
+        {
+            List<string> errs = CasebookAntiFantasyGate.ScanTextKeySet(
+                new List<(string, string)> { ("Disease_Name", "病名") }, "fixture");
+
+            Assert.That(errs, Is.Not.Empty, "键形不合法未被抓住");
+            StringAssert.Contains("形状不合法", string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_ac39_06a_fixture_duplicateKey_isRed()
+        {
+            List<string> errs = CasebookAntiFantasyGate.ScanTextKeySet(
+                new List<(string, string)> { ("cbTitle", "脉案"), ("cbTitle", "脉案") }, "fixture");
+
+            Assert.That(errs.Count, Is.EqualTo(1), string.Join("\n", errs));
+            StringAssert.Contains("重复", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_fixture_emptyText_isRed()
+        {
+            List<string> errs = CasebookAntiFantasyGate.ScanTextKeySet(
+                new List<(string, string)> { ("cbTitle", "   ") }, "fixture");
+
+            Assert.That(errs.Count, Is.EqualTo(1), string.Join("\n", errs));
+            StringAssert.Contains("文案为空", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_emptyKeySet_isRed()
+        {
+            // F4:空闭集会让「UXML ∈ 闭集」恒假,也会让门看起来全绿
+            List<string> errs = CasebookAntiFantasyGate.ScanTextKeySet(
+                new List<(string, string)>(), "fixture");
+
+            Assert.That(errs, Has.Count.EqualTo(1));
+            StringAssert.Contains("0 条", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_emptyUxmlTextSurface_isRed()
+        {
+            List<string> errs = CasebookAntiFantasyGate.ScanUxmlAgainstClosedSet(
+                new List<(string, string)>(), new List<string> { "脉案" }, "fixture");
+
+            Assert.That(errs, Has.Count.EqualTo(1));
+            StringAssert.Contains("0 条", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_malformedJson_isRedNotSilent()
+        {
+            var errs = new List<string>();
+            var entries = CasebookAntiFantasyGate.ParseTextKeys("{ this is not json", errs);
+
+            Assert.That(entries, Is.Empty);
+            Assert.That(errs.Count, Is.EqualTo(1), "坏 JSON 必须报错,不得静默退化成空集");
+            StringAssert.Contains("解析失败", errs[0]);
+        }
+
+        [Test]
+        public void test_ac39_06a_jsonWithoutKeysArray_isRedNotSilent()
+        {
+            var errs = new List<string>();
+            var entries = CasebookAntiFantasyGate.ParseTextKeys("{\"schemaVersion\":1}", errs);
+
+            Assert.That(entries, Is.Empty);
+            Assert.That(errs.Count, Is.EqualTo(1), "缺 keys 数组必须报错");
+            StringAssert.Contains("keys", errs[0]);
+        }
+
+        // ══════════════ AC-39-06a 文本面(黑名单半边)══════════════
 
         [Test]
         public void test_ac39_06a_realUxml_hasNoAntiFantasyWords()
