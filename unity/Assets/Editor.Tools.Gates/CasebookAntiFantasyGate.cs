@@ -58,6 +58,28 @@ namespace DaYiJingCheng.EditorTools.Gates
             "同源", "相似", "同症", "未结", "提醒", "催促", "待办", "红点", "徽章",
         };
 
+        /// <summary>
+        /// **按键提示**词族(规则八 / `AC-8-44` 的 39 侧执行体,2026-11-08 · S26-4)。
+        /// <para>规则八要的是「零按键提示浮层」:纸上**不许出现**「按 E 查看」「点击落笔」这类字。
+        /// 此前全仓只有两条半判据 —— 元件**名**里的 `hint` / `tooltip` token(PlayMode 树遍历),
+        /// 和 AC-39-06a 的反幻想词表;一段写着「按 E 开册」的 Label 文字**两处都抓不到**。</para>
+        /// <para>⚠️ 词表刻意短:只收**明确指向输入**的词。`按` 单字会误伤「按时」这类正常中文,
+        /// 但 39 的文案面(闭集 + UXML)今天只有 13 个词,且闭集由本门把着 —— 真撞上时
+        /// 处置是**改文案**或**把该词从表里删掉并说明**,不是把判据放宽。</para>
+        /// </summary>
+        public static readonly string[] HintTokens =
+        {
+            "按 E", "按E", "按键", "按 ", "点击", "按下", "键位", "手柄按",
+            "press ", "Press ", "click to", "key hint", "button prompt",
+        };
+
+        /// <summary>焦点环的声明序铁律(GDD 规则七 2026-10-06 订正面;前七项固定,其后折边 / 页缘)。</summary>
+        public static readonly string[] FocusIronLaw =
+        {
+            "channel-complexion", "channel-voice", "channel-posture", "channel-breathing",
+            "channel-palpation", "channel-inquiry", "channel-disease-name",
+        };
+
         /// <summary>39 独占的 UXML(AC-39-06a 的资产面)。</summary>
         public const string CasebookUxmlRelativePath =
             "unity/Assets/Gameplay.UI/Skeuomorphic/Screens/Casebook39.uxml";
@@ -138,7 +160,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             List<(string where, string text)> texts = ExtractUxmlTexts(File.ReadAllText(uxmlPath));
+            string uxmlText = File.ReadAllText(uxmlPath);
             errs.AddRange(ScanTexts(texts, "Casebook39.uxml"));
+            errs.AddRange(ScanHintTexts(texts, "Casebook39.uxml"));                       // 规则八(AC-8-44)
+            errs.AddRange(ScanHintTexts(entries.Select(e => (e.key, e.text)), "casebook_text.json"));
+            errs.AddRange(ScanHintAttributes(uxmlText, "Casebook39.uxml"));               // tooltip / alt 旁路
+            errs.AddRange(ScanFocusDeclarationOrder(uxmlText, "Casebook39.uxml"));        // 规则七铁律序
             errs.AddRange(ScanUxmlAgainstClosedSet(
                 texts, entries.Select(e => e.text).ToList(), "Casebook39.uxml"));
             return errs;
@@ -305,6 +332,100 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// 文本面扫描(AC-39-06a):给定若干段用户可见文本,命中黑名单词族即违例。
         /// </summary>
         public static List<string> ScanTexts(IEnumerable<(string where, string text)> texts, string label)
+            => ScanTextsWithTokenTable(texts, label, TextBlacklist, "[AC-39-06a]", "反幻想禁用词");
+
+        /// <summary>
+        /// **按键提示**扫描(规则八 / `AC-8-44` 的 39 侧):同一条循环,换词表。
+        /// <para>⚠️ 与 `ScanTexts` **共用一个执行体** —— 两张表若各写一份循环,迟早一边改了另一边没改。</para>
+        /// </summary>
+        public static List<string> ScanHintTexts(IEnumerable<(string where, string text)> texts, string label)
+            => ScanTextsWithTokenTable(texts, label, HintTokens, "[AC-8-44]", "按键提示词");
+
+        /// <summary>
+        /// 提示的**旁路**:UXML 的 <c>tooltip=</c> / <c>alt=</c> 属性。
+        /// <para>规则八禁的是「浮层 / 提示条」,而 tooltip 正好是**不写进 text、却在悬停时冒出来**的那一种 ——
+        /// 现有扫描(元件名 token + 文本词表)对它完全失明。此处一律拒收:**39 的纸上不挂 tooltip / alt**。</para>
+        /// </summary>
+        public static List<string> ScanHintAttributes(string uxml, string label)
+        {
+            var errs = new List<string>();
+            if (string.IsNullOrEmpty(uxml))
+            {
+                errs.Add($"[AC-8-44] {label} 的 UXML 为空 —— 属性判据不可执行(非「通过」)。");
+                return errs;
+            }
+
+            foreach (string attr in new[] { "tooltip=", "alt=" })
+            {
+                int at = 0;
+                while (true)
+                {
+                    int i = uxml.IndexOf(attr, at, StringComparison.Ordinal);
+                    if (i < 0) break;
+                    int line = 1 + uxml.Take(i).Count(ch => ch == '\n');
+                    errs.Add($"[AC-8-44] {label} 第 {line} 行出现 `{attr}` 属性 —— " +
+                             "提示不得走侧面通道(规则八禁的是「冒出来的提示」,不是「只禁可见标签」)");
+                    at = i + attr.Length;
+                }
+            }
+            return errs;
+        }
+
+        /// <summary>
+        /// 焦点环的**声明序**(规则七铁律的物理保证)。
+        /// <para>判据 = UXML 里带 <c>focusable="true"</c> 的元素,**按文档出现顺序**的前七项恰为铁律序。
+        /// 声明序即 UI Toolkit 的默认焦点序(未显式设 `tabIndex` 时)——所以这一条能自动化,
+        /// 不必等手柄走查;走查证的是「运行时真的按这个序走」,两件事不同。</para>
+        /// <para>其后的 折边 / 前案 / 后案 **不在铁律面内**(GDD 只钉前七项),但必须仍在环上。</para>
+        /// </summary>
+        public static List<string> ScanFocusDeclarationOrder(string uxml, string label)
+        {
+            var errs = new List<string>();
+            if (string.IsNullOrEmpty(uxml))
+            {
+                errs.Add($"[AC-8-23] {label} 的 UXML 为空 —— 焦点序判据不可执行(非「通过」)。");
+                return errs;
+            }
+
+            var order = new List<(string name, int line)>();
+            int at = 0;
+            while (true)
+            {
+                int i = uxml.IndexOf('<', at);
+                if (i < 0) break;
+                int end = uxml.IndexOf('>', i);
+                if (end < 0) break;
+                string tag = uxml.Substring(i, end - i + 1);
+                at = end + 1;
+
+                if (tag.IndexOf("focusable=\"true\"", StringComparison.Ordinal) < 0) continue;
+                int ni = tag.IndexOf("name=\"", StringComparison.Ordinal);
+                if (ni < 0) continue;
+                int ns = ni + "name=\"".Length;
+                int ne = tag.IndexOf('"', ns);
+                if (ne < 0) continue;
+                order.Add((tag.Substring(ns, ne - ns), 1 + uxml.Take(i).Count(ch => ch == '\n')));
+            }
+
+            if (order.Count < FocusIronLaw.Length)
+            {
+                errs.Add($"[AC-8-23] {label} 的可聚焦元素只有 {order.Count} 个,少于铁律的 " +
+                         $"{FocusIronLaw.Length} 项 —— 焦点环缺员(非「通过」)");
+                return errs;
+            }
+
+            for (int i = 0; i < FocusIronLaw.Length; i++)
+            {
+                if (order[i].name == FocusIronLaw[i]) continue;
+                errs.Add($"[AC-8-23] {label} 第 {order[i].line} 行的焦点位 {i + 1} 是「{order[i].name}」," +
+                         $"铁律要求「{FocusIronLaw[i]}」—— 焦点顺序**永不重排**(规则七;重排会让肌肉记忆失效)");
+            }
+            return errs;
+        }
+
+        private static List<string> ScanTextsWithTokenTable(
+            IEnumerable<(string where, string text)> texts, string label,
+            string[] tokens, string tag, string kindLabel)
         {
             var errs = new List<string>();
             var scanned = 0;
@@ -313,15 +434,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             {
                 scanned++;
                 if (string.IsNullOrEmpty(text)) continue;
-                foreach (string bad in TextBlacklist)
+                foreach (string bad in tokens)
                 {
                     if (text.IndexOf(bad, StringComparison.Ordinal) >= 0)
-                        errs.Add($"[AC-39-06a] {label} 的「{where}」出现反幻想禁用词「{bad}」:「{text.Trim()}」");
+                        errs.Add($"{tag} {label} 的「{where}」出现{kindLabel}「{bad}」:「{text.Trim()}」");
                 }
             }
 
             if (scanned == 0)
-                errs.Add($"[AC-39-06a] {label} 的文本扫描面为 **0 条** —— 判据不可执行(非「通过」)。");
+                errs.Add($"{tag} {label} 的文本扫描面为 **0 条** —— 判据不可执行(非「通过」)。");
 
             return errs;
         }

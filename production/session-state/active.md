@@ -17415,3 +17415,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   探针轮报文实测 `失败门组:39 反幻想`。⚠️ 首版用方法组引用 ⇒ 门链解析器两条转红,改回直调 + Mark
 - 回归 EditMode `7145/7108/0/0/37` @ 01:32:07Z · PlayMode `365/361/0/2/2` @ 01:33:14Z · `39c51ab1`+工作树
 - 下一步:S26-4(casebook-005 页布局与无指针焦点导航,L)
+
+## Session Extract — S26-4 casebook-005 焦点导航(2026-11-08 · 进行中)
+
+- **口径订正**:卡面 + QA 计划的焦点序是 2026-10-06 前旧版(…→病名→置信度);权威 = GDD 规则七
+  订正面(…→问诊栏→病名,置信度不在环内)+ 2026-10-12「页缘入 K ⇒ K=10」
+- **门扩展**(`CasebookAntiFantasyGate`):`HintTokens`(规则八)· `ScanHintTexts`(与 ScanTexts 同一执行体)
+  · `ScanHintAttributes`(tooltip/alt 旁路)· `ScanFocusDeclarationOrder`(UXML 声明序 = 铁律序)
+- **判据**:`Tests/EditMode/CasebookGuards/casebook_uxml_scan_test.cs` **12 条**;证伪 M18–M23
+- **查实的事实**:`Casebook39.uxml` 是 **spec 面**,运行面是 `CasebookScreen.BuildUI()`(零 CloneTree)
+  ⇒ 已补 `test_ac8_44_buildUiFace_zeroHintTexts`(真构造一次屏)
+- **AC-39-11 走查**:开册 ✓ · 焦点可见 ✓ · 竖向 8 态环 · **病名/折 两套输入都到不了** ⇒ 记 FAIL
+- **TD-walkthrough-01**:vpad 的 start 未送达 `Gamepad.startButton`(west 对照可通)⇒ 合册步 NOT-RUN
+- 待用户裁:深挖导航成因(写 PlayMode 导航夹具)vs 先入库
+
+## Session Extract — S26-4 收尾(2026-11-08 · 自动化半边完成,走查 NOT-RUN)
+
+- **判据**:`Tests/EditMode/CasebookGuards/casebook_uxml_scan_test.cs` 12 条;门扩 hint 词表 + tooltip/alt + 声明序
+- **证伪 M18–M24**;新增 PlayMode 导航夹具 `test_casebook_rightMove_reachesDiseaseNameColumn`
+- **三件查实**:旧焦点序订正 · UXML 是 spec 面(运行时 BuildUI)· 真包横推不动归注入层
+- **两条债/未做**:TD-walkthrough-01(start 未送达 + 横推不产生导航)· AC-39-12 无痕渲染对象
+- 回归 EditMode 7157/7120 @02:28:35Z · PlayMode 366/362 @03:21:09Z(EditMode 末轮另跑)
+- 下一步:入库;S26-5(库存)或回脉案链 story-006
+

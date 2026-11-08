@@ -182,6 +182,58 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // S26-4 追加:脉案页的**方向导航能不能走到右列**
+        //
+        // 背景(2026-11-08 真包走查):手柄竖推给出 8 态环
+        // (面色→语声→姿态→呼吸→触感→问诊→前案→后案),「病名」「折」不在环上;
+        // **横推零效果**(整帧哈希相同),而键鼠 Right 键同样无效、Tab 却能到。
+        // 两套输入断在同一处 ⇒ 先判**是不是布局几何**的问题,而不是按键映射。
+        //
+        // 本测驱动的是生产整链(与上面两条同一装配),内容换成真实的 `CasebookScreen`。
+        // 判据:从「面色」右推应落到「病名」(病名与面色同高、在其右)。
+        // 🔴 红了 ⇒ 几何序在脉案页不成立 = **产品缺陷**,且这里有可复现夹具;
+        // 🟢 绿了 ⇒ 产品侧导航正常,真包里的失败来自输入路径(虚拟手柄 / 模块),不是布局。
+        // ══════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator test_casebook_rightMove_reachesDiseaseNameColumn()
+        {
+            yield return AssembleProductionChain(
+                root => new DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens.CasebookScreen(
+                    root, new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoElementLibrary()),
+                focusName: "channel-complexion");
+
+            Assert.AreEqual("channel-complexion", CurrentFocusName(),
+                "[夹具红] 起点不是「面色」—— 落焦未生效,本测不可判。");
+
+            yield return Press(new Vector2(1f, 0f));   // 面色 --右--> 病名
+            string right = CurrentFocusName();
+
+            // 回到起点再测下推 —— 上一步已经把焦点挪到右列,从那里 down 测的是另一件事
+            _root.Q<VisualElement>("channel-complexion").Focus();
+            yield return null;
+            yield return null;
+            yield return Press(new Vector2(0f, -1f));  // 面色 --下--> 语声
+            string down = CurrentFocusName();
+
+            var b1 = _root.Q<VisualElement>("channel-complexion")?.worldBound ?? Rect.zero;
+            var b2 = _root.Q<VisualElement>("channel-voice")?.worldBound ?? Rect.zero;
+            var b7 = _root.Q<VisualElement>("channel-disease-name")?.worldBound ?? Rect.zero;
+            TestContext.Out.WriteLine(
+                $"[S26-4 脉案导航] right→{right} · down→{down} | " +
+                $"面色={b1} 语声={b2} 病名={b7} | 面板={_root.worldBound}");
+
+            // 判据:**右推能不能跨到右列**。这是真包走查里失效的那一步。
+            Assert.AreEqual("channel-disease-name", right,
+                $"脉案页右推焦点落到「{right}」,而不是右列的「病名」—— " +
+                "「病名」是 GDD 规则七铁律的第 7 位。红了 = 几何序在本页不成立(产品缺陷)," +
+                "不是按键映射问题(同一链在 3×3 网格上四向都对)。");
+
+            // ⚠️ 下推**不断言**,只记读数:本夹具的面板高度与真包不同(见上方 worldBound 一行),
+            //    竖向几何不可比;真包里下推是通的(走查 8 态环)。拿本夹具的结果去判竖向 = 越权。
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // 判据 ② —— 引擎自动完成空间选邻居
         // ══════════════════════════════════════════════════════════════════
 
@@ -401,7 +453,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         /// 装配**生产同款**链:UIDocument 面板 → BootRoot.EnsureEventSystem(生产方法)→
         /// 等 interop bridge 建面板载体 → 选中载体 → 聚焦中心格 → 加虚拟手柄。
         /// </summary>
-        IEnumerator AssembleProductionChain()
+        IEnumerator AssembleProductionChain(
+            System.Action<VisualElement> buildContent = null, string focusName = null)
         {
             // 1. 面板就绪
             float t0 = Time.realtimeSinceStartup;
@@ -416,13 +469,14 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
             _root = _doc.rootVisualElement;
 
-            BuildGrid(_root);
+            if (buildContent == null) BuildGrid(_root);
+            else buildContent(_root);
             _root.RegisterCallback<NavigationMoveEvent>(OnNavMove, TrickleDown.TrickleDown);
             _root.RegisterCallback<FocusInEvent>(_ => { _focusGained++; }, TrickleDown.TrickleDown);
             yield return null;
             yield return null;   // 让 layout 算出 worldBound(几何序依赖它)
 
-            if (At(1, 1).worldBound.width <= 0f)
+            if ((focusName == null ? At(1, 1) : _root.Q<VisualElement>(focusName))?.worldBound.width <= 0f)
             {
                 Assert.Fail("[夹具红] worldBound 全零 —— 布局未计算,几何序判据不可测;" +
                             "转【桌面】Play 腿,不改判据。");
@@ -463,7 +517,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             _module = module;
 
             // 5. 起点:中心格聚焦
-            FocusCentre();
+            if (focusName == null) FocusCentre();
+            else _root.Q<VisualElement>(focusName)?.Focus();
             yield return null;
 
             Assert.IsNotNull(_root.panel?.focusController?.focusedElement,

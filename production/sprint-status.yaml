@@ -69,14 +69,14 @@ stories:
     name: "casebook/005 脉案页布局与无指针焦点导航"
     file: "production/epics/casebook/story-005-page-layout-focus-navigation.md"
     priority: should-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: L
     chain: "脉案链"
     blocker: ""
     completed: ""
-    note: "焦点顺序铁律永不重排;空行可聚焦、零提示文字;P0 无 disabled 按钮。AC-39-11 / AC-39-12 的 [L] 走查未跑即 NOT-RUN。HIGH engine risk(UI Toolkit 焦点桥)—— 抄 TD-skeuo-20 修法,不自实现焦点算法。依赖 002/003/004。"
+    note: "**自动化半边已落(12 条判据·证伪 M18–M24)**;走查半边 NOT-RUN。三件查实:① 卡面/QA 计划的焦点序是 2026-10-06 前旧版(…→病名→置信度),权威 = …→问诊栏→病名 + 环 K=10,已订正;② **Casebook39.uxml 不是运行面**(运行时是 BuildUI 代码建树)⇒ 补了代码面提示词判据;③ 真包「横推不动」经 PlayMode 整链夹具判为**注入层**问题(读数 right→channel-disease-name),记 TD-walkthrough-01。⚠️ AC-39-11 = NOT-RUN(合册被虚拟手柄 start 挡住 + 横推不产生导航,同属该债;两页对照缺第二例);AC-39-12 = NOT-RUN(42 侧零痕渲染元件,判据没有对象);主创签核未做。回归 EditMode 7157/7120(+12)@03:26:57Z · PlayMode 366/362(+1)@03:21:09Z。"
   - id: "S26-5"
     name: "inventory/006 药箱容器摆放、翻页遍历与满溢四档呈现"
     file: "production/epics/inventory-items/story-006-medicine-case-ui-walkthrough.md"

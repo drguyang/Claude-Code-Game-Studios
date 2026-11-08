@@ -495,6 +495,7 @@
 | `TD-skeuo-21` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
+| `TD-walkthrough-01` | `walkthrough` | open | **N** | R1 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
@@ -12769,3 +12770,16 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **解除动作** | 二选一,**须用户裁**:**(甲)** 给 `ISaveMigration` 增一个「本步插入了多少字节、插在哪」的自述契约,链按 `TailBody(len − insertedBytes)` 比;**乙)** 链改为比较「事件段本体」(需 `ParseBody` 级解析,等于让链依赖段序)。**甲**改动小、且能顺手覆盖「删段」形态。 |
 | **触发条件** | 任何一条**插入点不在头部区**的迁移(即:插在正文中段 / 段间)。下一次改存档布局时必撞。 |
 | **出处** | `production/qa/evidence/impl-s26-1-casebook-segment-2026-11-08.md` §4;`unity/Assets/Sim.Codec/SaveMigrationV6ToV7.cs` 文件头的「为什么插在配置版本段之前」段。 |
+
+### TD-walkthrough-01 —— 虚拟手柄/注入层的两条读数缺口:**`start` 键未送达** + **横推摇杆在真包里不产生 UI 导航**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `tools/input/vpad.py` 造的是 uinput 虚拟手柄,面键 `west` / `north` / `south` 都能被 Unity 读到(既有走查全依赖它),但 **`start` 按下去 `Gamepad.startButton.isPressed` 恒为 false** ⇒ 任何依赖「暂停壳 / 模态开合键」的走查都做不了。 |
+| **实测(可跑,2026-11-08)** | `[tutorialdiag]` 的 `手柄=` 列对 `startButton` 打 `T`(`WalkthroughDiagnostics.DescribeGamepad`)。真包世界里**长按 `west` 2.5 s** ⇒ 读数出现 `Gamepad#3:W`(对照成功);**长按 `start` 2.5 s** ⇒ 读数只到 `Gamepad#3:`(**从不出现 `T`**)。同一次运行、同一个设备。 |
+| **后果** | AC-39-11(`AC-39-11 [L]` **BLOCKING**)的「**合册**」步**无法执行**,只能记 `NOT-RUN` —— 而该 AC 的整条走查(开册 → 翻页 → 逐行读 → 合册)因此**永远差一步**。同理,任何要按 ESC/start 的模态走查(暂停壳、存档位、设置壳)在纯手柄侧都做不了。 |
+| **为什么 `P0 面 = N`** | 不改产品行为:它是**测量工具**缺口,不是游戏缺陷。但它**挡住了一条 BLOCKING AC 的闭合**,所以必须显式登记而不是口头记。 |
+| **解除动作** | ① 先定位 `BTN_START` 为什么没映射 —— 候选:uinput 设备未被 udev 标成 joystick(`ID_INPUT_JOYSTICK`)、或 Unity Linux evdev 布局按 vendor/product 选了别的映射表(当前 `0x045E/0x02EA` Xbox One S);② 备用路径 = 给 vpad 加一个 `ABS_HAT` 之外的显式 `BTN_START` 探针读数(把 `startButton` 之外的可观测量补上,免得下次又只能看到 `T` 缺失)。**解除判据** = 真包世界里长按 `start` ⇒ `手柄=` 出现 `T`,且暂停壳摊开。 |
+| **触发条件** | 已触发(2026-11-08,AC-39-11 走查轮) |
+| **➕ 同日追加(2026-11-08 · 第二条读数缺口)** | 真包**横推左摇杆**在脉案里**不产生任何焦点移动**(两次推、整帧哈希相同),而同一次运行的**竖推**每次一格 ⇒ 同一设备、同一 `UI/Navigate` 动作,只有横向无效。<br>**但不是产品问题**:同日新增的 PlayMode 导航夹具(`u1_assump6_gamepad_chain_test.test_casebook_rightMove_reachesDiseaseNameColumn`)用生产整链驱动真 `CasebookScreen`,读数 `right→channel-disease-name` ⇒ **几何面能跨**。<br>⇒ 缺口在**注入层到 Unity 的那一段**(evdev `ABS_X` → `Gamepad.leftStick.x` → `UI/Navigate`),与 `start` 键同一族。**解除判据**:真包里从「面色」横推 ⇒ 焦点落到「病名」;两条(`start` / 横推)各自单测即可,不必一起修。 |
+| **⚠️ 不得借绿** | 本条**不是**「脉案关不掉」的证据。产品侧 `ModalInputDriver` 的规则是「有模态 ⇒ 关」,代码可判;真包未验的唯一原因是本债。 |

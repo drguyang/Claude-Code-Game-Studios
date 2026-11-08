@@ -157,6 +157,52 @@ def judge(rows, min_advance):
     return results
 
 
+_SHOT_WIN = [None]
+
+
+def _shot(out_dir, name, log):
+    """抓玩家窗口(裁到窗口矩形)。⚠️ 图不进库:`.gitignore:346` 覆盖 evidence/**/*.png。"""
+    from Xlib import X, display as _xdisplay
+    from PIL import Image as _Image
+    dsp = _xdisplay.Display(":0")
+    w = _SHOT_WIN[0]
+    root = dsp.screen().root
+    g = root.get_geometry()
+    if w is not None:
+        try:
+            w.configure(stack_mode=X.Above); dsp.sync(); time.sleep(0.35)
+        except Exception:
+            pass
+    raw = root.get_image(0, 0, g.width, g.height, X.ZPixmap, 0xFFFFFFFF)
+    img = _Image.frombytes("RGB", (g.width, g.height), raw.data, "raw", "BGRX")
+    if w is not None:
+        try:
+            geo = w.get_geometry()
+            tr = w.translate_coords(root, 0, 0)
+            x, y = -tr.x, -tr.y
+            img = img.crop((max(0, x), max(0, y),
+                            min(g.width, x + geo.width), min(g.height, y + geo.height)))
+        except Exception:
+            pass
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, name)
+    img.save(path)
+    print(f"[verify][shot] {path} {img.width}x{img.height} 模态={_last_modal(log)}", flush=True)
+
+
+def _last_modal(log):
+    try:
+        with open(log, "r", encoding="utf-8", errors="replace") as f:
+            for line in reversed(f.readlines()):
+                if line.startswith("[tutorialdiag]"):
+                    m = RE_MODAL.search(line)
+                    if m:
+                        return m.group(1)
+    except FileNotFoundError:
+        pass
+    return "?"
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="真包世界空间手柄路径判据")
     ap.add_argument("--build", default=DEFAULT_BUILD)
@@ -165,9 +211,14 @@ def main(argv=None):
     ap.add_argument("--timeout", type=float, default=90.0, help="整轮超时(秒)")
     ap.add_argument("--min-advance", type=int, default=3, help="走近判据:cell.z 至少前进几格")
     ap.add_argument("--keep-log", action="store_true", default=True)
+    ap.add_argument("--walk3911", metavar="OUTDIR", default=None,
+                    help="跑 AC-39-11 的 [L] 手柄走查(隐含 --windowed,要窗口才能截图)")
     ap.add_argument("--windowed", action="store_true",
                     help="开窗口跑(默认 -batchmode -nographics:无窗口 ⇒ 不受失焦停更影响)")
     args = ap.parse_args(argv)
+
+    if args.walk3911:
+        args.windowed = True
 
     if not os.path.exists(args.build):
         sys.stderr.write(f"[verify] 找不到 player: {args.build}\n")
@@ -208,6 +259,7 @@ def main(argv=None):
             time.sleep(0.3)
         if win is not None:
             focus_window(win)
+            _SHOT_WIN[0] = win
             print("[verify] 已置焦玩家窗口", flush=True)
         else:
             print("[verify] ⚠️ 未找到玩家窗口 —— 不置焦(输入可能被停用)", flush=True)
@@ -270,6 +322,34 @@ def main(argv=None):
         # ── ② 就诊:North(Unity 的 buttonNorth = Interact)──
         vpad.press(ui, "north", True); wait(1.2); vpad.press(ui, "north", False)
         wait(2.5)
+
+        if args.walk3911:
+            out = args.walk3911
+
+            def nudge(direction, tag, n=1, hold=0.18, settle=0.45):
+                """摇杆推一格:UI Navigate 读的是左摇杆的离散 move 事件。"""
+                axis = {"down": (0, 1), "up": (0, -1), "left": (-1, 0), "right": (1, 0)}[direction]
+                for i in range(n):
+                    vpad.set_stick(ui, axis[0], axis[1]); wait(hold)
+                    vpad.set_stick(ui, 0, 0); wait(settle)
+                _shot(out, tag, args.log)
+
+            def submit():
+                vpad.press(ui, "south", True); wait(0.25); vpad.press(ui, "south", False)
+                wait(0.9)
+
+            # ⓠ 探针:模态**未开**时按 start,暂停壳会不会开(验「是按钮没到」还是「关册路径没接」)
+            vpad.press(ui, "start", True); wait(0.3); vpad.press(ui, "start", False)
+            wait(1.5)
+            _shot(out, "00-start-in-world.png", args.log)
+            print(f"[verify][walk3911] 世界里按 start 之后 模态={_last_modal(args.log)}", flush=True)
+            # 再按一次关掉(若开了)
+            vpad.press(ui, "start", True); wait(0.3); vpad.press(ui, "start", False)
+            wait(1.5)
+            print(f"[verify][walk3911] 再按一次 start 之后 模态={_last_modal(args.log)}", flush=True)
+            vpad.press(ui, "north", True); wait(1.2); vpad.press(ui, "north", False)
+            wait(2.0)
+            print(f"[verify][walk3911] 收尾 模态={_last_modal(args.log)}", flush=True)
     finally:
         if ui is not None:
             try:
