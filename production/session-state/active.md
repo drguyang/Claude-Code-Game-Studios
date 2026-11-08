@@ -17457,3 +17457,16 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `CasebookScreen.cs` / `BootRoot.cs` / `WalkthroughDiagnostics.cs` / `vpad.py` /
   `verify_world_gamepad.py` / 两个新测试件 + 三份证据件 + 债册/卡面。
 - **下一步**:等回归数 → 入库;S26-5 或 39 链后续。
+
+## Session Extract — S26-4 续二(2026-11-08 · 留笔可见 / 旧笔同屏 / 像素 / 回弹归因)
+
+- **查实一个真包缺陷并修**:42 从不渲染病名笔迹 + 模态内 tick 冻结导致永不重绘 ⇒ 落笔后屏上空白。
+  修:`ApplyDiseaseNameTexts`(当前笔 / 旧笔)+ 写后 `RefreshAfterAction()`。
+  ⚠️ 首版叫 `RefreshAfterWrite` ⇒ `AC-42-D2` 命名门当场红(方法名含 Write)⇒ 改名。
+- **像素判据达成**:真包 `病名 ✓刺伤`,灰度化后对勾形状仍清晰(非色单载)。
+- **旧笔同屏**:元件 + PlayMode 三段式判据齐;**真包拿不出第二个词**(`seen=1`,全场单一病种)⇒ 不勾,给解除判据。
+- **顶头右推回弹**:单推即弹,归引擎方向导航无候选回退;修它 = 自实现焦点算法(Forbidden)⇒
+  记 `TD-casebook-02`(open,N),给两条解除判据。
+- **回归**:EditMode `7168/7131/0/0/37` · PlayMode `370/366/0/2/2` @ `2026-11-08T06:10:14Z`。
+  证伪 M-D(`prevId != curId` 守卫)/ M-E(`previous = current` 追踪)各恰 1 红,SHA 还原。
+- **未做**:压痕声听测 · 主创签核 · 换词同屏真包图像。

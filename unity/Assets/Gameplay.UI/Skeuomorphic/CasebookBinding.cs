@@ -201,5 +201,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>当前绑定病人的**开案**里,这一笔判断是否由改判产生(擦除不算)。
         /// <para>无绑定病人 / 无开案 / 未落笔 ⇒ <c>false</c>。</para></summary>
         bool HasRewriteMark { get; }
+
+        /// <summary>当前记录的病名词 id(`0` = 未落笔)。
+        /// <para>⚠️ 只出 **`lexicon_id`**,不出 `disease_id`(AC-37-15 守密);文本由
+        /// <see cref="ICasebookDtoSource.TextOfLexicon"/> 反查。</para></summary>
+        int CurrentLexiconId { get; }
+
+        /// <summary>上一笔病名词 id(`0` = 没有上一笔 / 上一笔是擦除)。
+        /// <para>「当前笔与旧笔**同屏**」(`AC-39-12`)的旧笔来源;与 <see cref="HasRewriteMark"/>
+        /// **同源同扫**(`CaseStreamQuery.TryGetRewriteMarks`),不会互相矛盾。</para></summary>
+        int PreviousLexiconId { get; }
     }
 }

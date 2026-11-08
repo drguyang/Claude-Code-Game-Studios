@@ -496,6 +496,7 @@
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-walkthrough-01` | `walkthrough` | closed | **N** | R1 |
+| `TD-casebook-02` | `casebook` | open | **N** | R1 |
 | `TD-interaction-02` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-03` | `interaction-system` | closed | **N** | R4 |
 | `TD-interaction-04` | `interaction-system` | closed | **N** | R4 |
@@ -12828,3 +12829,16 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 ② 脉案里右推 ⇒ 焦点落到 `channel-disease-name` = **已达成**。
 ⇒ 本条**closed**;它挡住的 AC-39-11 合册步**已执行**(见 `production/qa/evidence/casebook/story-005-focus-navigation-walkthrough.md` 的 §9)。
 
+
+### TD-casebook-02 —— 脉案最右列「顶头右推会弹回左列」(引擎方向导航的无候选回退)
+
+| 侧 | 内容 |
+|---|---|
+| **现象** | 焦点在 `channel-disease-name`(右列唯一可聚焦项)时,**再右推 ⇒ 焦点弹回 `channel-complexion`**(左列第一格);长按则来回弹。 |
+| **实测(可跑,2026-11-08 真包)** | `病名上单推右 ×3 = ['channel-disease-name','channel-complexion','channel-disease-name','channel-complexion']`;**单推就会弹**,不是「长按重复」造成的。长按 1.5 s 的焦点痕同形(8 次交替)。复现:`verify_world_gamepad.py --walk3911` 后在同一位置连推。 |
+| **归因** | 不是我们的布局:PlayMode 夹具证明 `面色 → 病名` 可达、`病名 → 面色` 也可达(左推);**右推**从最右项出发时,UI Toolkit 的 `FocusController` 在「该方向无候选」时按**整体最近**回退到左列大块。属引擎方向导航语义。 |
+| **为什么不修** | Control Manifest **Forbidden:自实现焦点移动算法**(ADR-013 §五)。要修就得自己算「该方向有没有候选」再 `PreventDefault()`,那正是被禁的那件事。⇒ **技术上可选,纪律上不许**。 |
+| **影响有限** | ① 玩家手感上表现为「顶到头会弹」,不丢功能(左推正常、Tab/上下正常);② 它**不影响**铁律序(声明序由夹具守)与 K=10。 |
+| **解除判据** | (甲) UI Toolkit 后续版本提供方向过滤开关(或 6.4 行为变化)⇒ 复测本探针;(乙) 手感轮裁定「接受回弹」⇒ 本条改 `won't-fix` 并写进 UX 说明。二者之一落地即结。 |
+| **触发条件** | 已触发(2026-11-08 走查) |
+| **P0 面 = N** | 不改产品行为、不阻塞任何 AC —— `AC-39-11` 要的是「可达」,双向都已实测可达。 |

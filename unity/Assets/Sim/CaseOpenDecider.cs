@@ -153,46 +153,68 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 痕判据(读时投影):该案**当前这一笔**是否由改判产生。
-        /// <para>语义(`design/gdd/casebook.md` 规则六「改判留痕」+ 39 的 `AC-39-12`
-        /// 「「旧」态灰度仍可辨(非色单载)」):**新起一笔**(<c>JudgmentRecorded)⇒ 无痕;
-        /// **改判**(<c>JudgmentRevised)**且新值非空**(<c>LexiconId != 0</c>)⇒ 有痕;
-        /// **擦除**(改判成空判断,<c>LexiconId == 0</c>)⇒ 无痕(病名栏已空,没有可标的「旧」)。
-        /// </para>
-        /// <para>⚠️ <b>必须是投影而不是状态位</b>:若由写侧(命令路由)记一个 bool,
-        /// 读档后它归零 ⇒ 痕会**凭空消失**,违反「痕 = 读时投影」(`AC-39-13`)。
-        /// 本函数只扫事件流,故重放 / 读档后逐位一致。</para>
+        /// 改判留痕的**唯一判据**(读时投影),并带出当前笔 / 上一笔的词 id。
+        /// <para>`current` = 当前记录的词(`0` = 未落笔)· `previous` = 上一笔的词(`0` = 无上一笔)。
+        /// `marked` 与这两个 id **同一次扫描**得出,结构上不可能自相矛盾。</para>
+        /// <para>语义(`design/gdd/casebook.md` 规则六「改判留痕」+ 39 的 `AC-39-12`):
+        /// **新起一笔**(<c>JudgmentRecorded</c>)⇒ 清痕;**改判**(<c>JudgmentRevised</c>)**且新值非空**
+        /// ⇒ 标痕;**擦除**(改判成空判断,<c>LexiconId == 0</c>)⇒ 清痕。
+        /// 「疑似 → 确定」这类**只改置信度、不改词**的一步不算改判(词没变,没有「旧」可标)。</para>
+        /// <para>⚠️ <b>必须是投影而不是状态位</b>:写侧记一个 bool,读档后它归零 ⇒ 痕会**凭空消失**,
+        /// 违反「痕 = 读时投影」(`AC-39-13`)。本函数只扫事件流,重放 / 读档后逐位一致。</para>
         /// <para>归属判据与 <see cref="LastJudgmentOf"/> 同源(<b>载荷自带的 <c>CaseId</c></b>,
         /// 不是流序推断)⇒ 传**整条流**即可。</para>
         /// </summary>
-        /// <param name="events">病例流事件列表(已按全序排列)。传整条流。</param>
-        /// <param name="caseId">案件 case_id。</param>
-        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)。</param>
-        /// <returns>当前这一笔由改判产生且非空 ⇒ <c>true</c>。</returns>
-        public static bool IsCurrentJudgmentRewritten(IReadOnlyList<SimEvent> events, CaseId caseId,
-                                                      IPayloadDecoder decoder)
+        public static bool TryGetRewriteMarks(IReadOnlyList<SimEvent> events, CaseId caseId,
+                                              IPayloadDecoder decoder,
+                                              out int current, out int previous)
         {
             if (decoder == null) throw new ArgumentNullException(nameof(decoder));
 
             bool marked = false;
+            current = 0;
+            previous = 0;
 
             foreach (var e in events)
             {
                 if (e.Kind == EventKind.JudgmentRecorded)
                 {
-                    if (decoder.Decode<JudgmentRecordedPayload>(EventKind.JudgmentRecorded, e.Payload)
-                              .CaseId.Equals(caseId))
-                        marked = false;          // 新起一笔 ⇒ 不带痕
+                    if (!decoder.Decode<JudgmentRecordedPayload>(EventKind.JudgmentRecorded, e.Payload)
+                                .CaseId.Equals(caseId)) continue;
+                    previous = current;
+                    current = LexiconOf(e, decoder);
+                    marked = false;                       // 新起一笔 ⇒ 不带痕
                 }
                 else if (e.Kind == EventKind.JudgmentRevised)
                 {
-                    var p = decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRevised, e.Payload);
-                    if (p.CaseId.Equals(caseId))
-                        marked = p.LexiconId != 0;   // 擦除不留痕
+                    if (!decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRevised, e.Payload)
+                                .CaseId.Equals(caseId)) continue;
+                    previous = current;
+                    current = LexiconOf(e, decoder);
+                    marked = current != 0;                // 擦除(0)不留痕
                 }
             }
 
             return marked;
+        }
+
+        /// <summary>
+        /// 痕判据(读时投影):该案**当前这一笔**是否由改判产生。
+        /// <para>⚠️ 只是 <see cref="TryGetRewriteMarks"/> 的 bool 面 —— **判据只有一处**。
+        /// 两处各写一份就是 F8(行为等价掩盖结构分叉):今天行为相同,明天改一处就悄悄分叉。</para>
+        /// </summary>
+        public static bool IsCurrentJudgmentRewritten(IReadOnlyList<SimEvent> events, CaseId caseId,
+                                                      IPayloadDecoder decoder)
+        {
+            return TryGetRewriteMarks(events, caseId, decoder, out _, out _);
+        }
+
+        /// <summary>判断事件的 `lexicon_id`(0 = 空判断 / 擦除)。</summary>
+        private static int LexiconOf(SimEvent e, IPayloadDecoder decoder)
+        {
+            return e.Kind == EventKind.JudgmentRecorded
+                ? decoder.Decode<JudgmentRecordedPayload>(EventKind.JudgmentRecorded, e.Payload).LexiconId
+                : decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRevised, e.Payload).LexiconId;
         }
     }
 }

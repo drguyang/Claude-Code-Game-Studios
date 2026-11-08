@@ -282,14 +282,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 扫该案**全部**判断事件、最后一条胜 ⇒ 读档 / 重放后逐位一致(`AC-39-13`)。</para>
         /// <para>无绑定病人 / 无开案 / 未落笔 ⇒ <c>false</c>(42 按「无痕」渲染,零假数据)。</para>
         /// </summary>
-        public bool HasRewriteMark
+        public bool HasRewriteMark => _marks.HasRewriteMark;
+
+        /// <inheritdoc/>
+        public int CurrentLexiconId => _marks.Current;
+
+        /// <inheritdoc/>
+        public int PreviousLexiconId => _marks.Previous;
+
+        /// <summary>三面(有无痕 / 当前词 / 旧词)的**同一次扫描**结果 —— 三处各扫一遍会让
+        /// 「屏上有痕但无旧词」这种自相矛盾形态在理论上可达。缓存只在**本属性组**生命周期内
+        /// 有效(每次读取重算,不是 42 侧状态位;AC-42-D3 不破)。</summary>
+        private (bool HasRewriteMark, int Current, int Previous) _marks
         {
             get
             {
-                if (_patient.Value < 0) return false;
+                if (_patient.Value < 0) return (false, 0, 0);
                 CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, _patient.Value);
-                if (!openCase.HasValue) return false;
-                return CaseStreamQuery.IsCurrentJudgmentRewritten(_caseStream, openCase.Value, _decoder);
+                if (!openCase.HasValue) return (false, 0, 0);
+
+                bool marked = CaseStreamQuery.TryGetRewriteMarks(
+                    _caseStream, openCase.Value, _decoder,
+                    out int current, out int previous);
+                return (marked, current, previous);
             }
         }
     }

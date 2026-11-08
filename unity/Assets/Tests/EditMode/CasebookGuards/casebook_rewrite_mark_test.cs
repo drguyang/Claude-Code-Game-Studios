@@ -105,6 +105,38 @@ namespace DaYiJingCheng.Tests.CasebookGuards
         }
 
         /// <summary>
+        /// 当前笔 / 旧笔的 id(`TryGetRewriteMarks`):改判后 = (新词, 旧词)。
+        /// <para>反证:把 `LastTwoJudgmentsOf` 里的 `secondLast = last;` 删掉 ⇒ 旧词恒 0,本条红。</para>
+        /// </summary>
+        [Test]
+        public void test_revised_reportsCurrentAndPreviousLexicon()
+        {
+            bool marked = CaseStreamQuery.TryGetRewriteMarks(
+                new List<SimEvent> { Recorded(200, 0, lexiconId: 5), Revised(260, 1, lexiconId: 9) },
+                Case, Decoder, out int current, out int previous);
+
+            Assert.That(marked, Is.True);
+            Assert.That(current, Is.EqualTo(9), "当前笔 = 最后一条判断的词");
+            Assert.That(previous, Is.EqualTo(5), "旧笔 = 上一条判断的词");
+        }
+
+        /// <summary>
+        /// 只落笔一次 ⇒ 有 current、**无** previous,且 `marked` 为 false
+        /// (旧词不显示;「同屏」不得把新笔当旧笔)。
+        /// </summary>
+        [Test]
+        public void test_recordedOnly_previousIsZero_notMarked()
+        {
+            bool marked = CaseStreamQuery.TryGetRewriteMarks(
+                new List<SimEvent> { Recorded(200, 0, lexiconId: 5) },
+                Case, Decoder, out int current, out int previous);
+
+            Assert.That(marked, Is.False);
+            Assert.That(current, Is.EqualTo(5));
+            Assert.That(previous, Is.EqualTo(0));
+        }
+
+        /// <summary>
         /// **别的案**的改判不标本案(归属按载荷自带的 `CaseId`,不是流序)。
         /// <para>反证:把两处 `if (!...CaseId.Equals(caseId)) continue;` 去掉(退回流序口径)
         /// ⇒ 本条红。</para>

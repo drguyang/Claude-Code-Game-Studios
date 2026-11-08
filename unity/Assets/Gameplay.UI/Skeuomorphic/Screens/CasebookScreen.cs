@@ -91,6 +91,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <c>Append</c> / <c>Write</c> / <c>Emit</c>(`coding-standards` §命名避让表)。</para></summary>
         private VisualElement _rewriteMark;
 
+        /// <summary>病名**当前笔**的文本元件(惰性创建 —— 无内容时**不建**,
+        /// 否则空册会多出一个空 Label,把「右栏文本面」判据的表撑脏)。</summary>
+        private Label _nameCurrent;
+
+        /// <summary>病名**旧笔**的文本元件(淡墨;只在「有痕」且旧词非空时存在)。
+        /// <para>「当前笔与旧笔**同屏**」(`AC-39-12`)的落地件 —— 旧笔与当前笔并排,
+        /// 靠 <see cref="_rewriteMark"/> 的对勾指出「哪一笔是改过的」。</para></summary>
+        private Label _namePrevious;
+
         /// <summary>留痕可得性(只读观测面;夹具断言用,不参与任何判定)。
         /// <para>42 只读不持(ADR-013 §9 C3):真源是数据面的 `HasRewriteMark`,
         /// 本属性只回元件当下的可见性。</para></summary>
@@ -192,7 +201,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _rewriteMark.style.borderRightColor = graphite;
             _rewriteMark.style.borderBottomColor = graphite;
             _rewriteMark.style.rotate = new Rotate(new Angle(42f));
-            rightColumn.Add(_rewriteMark);
+            // ⚠️ 挂在**病名行内**(不是右栏容器):挂容器会落到下一行去(真包截图实测:
+            //    对勾悬在病名行下方、压在下一行的边线上)。行内 = 紧挨词文本,才是「同屏」。
+            rightColumn.Q<VisualElement>("channel-disease-name")?.Add(_rewriteMark);
             var confidence = _library.Create(SkeuoElement.Paper);
             confidence.name = "confidence-mark";
             confidence.Add(new Label("?") { name = "confidence-question" });
@@ -448,6 +459,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // (`casebook_command_router_test` 仍断言 SubmitDiseaseName(0) 抛)。
             // ⚠️ 42 只读不持状态(ADR-013 §9 C3):「是否已指认」经 DTO 观测面
             // `PendingConfidence` 回读(0 = 空),不在本屏自持一份。
+            // ⚠️ 2026-11-08 试过「去掉 `!_bookOpen` 让合册后仍循环」—— **回退**:
+            //    实测会把 `casebook_lexicon_book_test` / `casebook_point_identify_chain_test`
+            //    的两条既有判据(摊开后才循环)打成红。册子摊开态是**循环档位的入口**,
+            //    不是可以随手合上的装饰 —— 见 `submitCycle_threeStates` 的三段式。
             if (!_bookOpen || _sourceForBook == null || _sourceForBook.PendingConfidence == 0)
             {
                 _bookOpen = true;
@@ -456,6 +471,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 return;
             }
             _commandSink?.SubmitConfidence();
+            // 🔁 2026-11-08:同上 —— 循环落笔的每一步都要**当场**刷出来(否则第二笔看不见)
+            RefreshAfterAction();
         }
 
         /// <summary>
@@ -497,7 +514,30 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>指认一条词(**语义动作面**;条目行 Submit 的转发目标)。</summary>
         /// <param name="lexiconId">显式 <c>lexicon_id</c>(非册内显示索引 —— TD 第五风险)。</param>
-        public void PointLexicon(int lexiconId) => _commandSink?.SubmitDiseaseName(lexiconId);
+        public void PointLexicon(int lexiconId)
+        {
+            _commandSink?.SubmitDiseaseName(lexiconId);
+
+            // 🔁 2026-11-08(真包走查逼出来的缺陷):**写后不重绘**。
+            //    `ApplyData` 只挂在 **tick 边沿**上,而模态一摊开**世界就冻**(ADR-013 §十-C)
+            //    ⇒ 落笔之后屏上一动不动,看起来像「按了没反应」。真包实测:事件流里有痕、
+            //    而病名栏仍写着「病名」(那时 42 还不渲染词文本,本轮一并补上)。
+            //   ⇒ 写动作结束后**当场重读一次源**(零缓存,ADR-013 §9 C3)。
+            //   ⚠️ 册子**不合**:摊开态是档位循环的入口(`test_lexiconBook_submitCycle_threeStates`
+            //      的三段式),合上会让「疑似→确定→擦除」少一步。
+            RefreshAfterAction();
+        }
+
+        /// <summary>
+        /// 写动作之后**立刻**重读一次源。
+        /// <para>⚠️ 模态摊开时世界冻结 ⇒ tick 边沿刷新**不会来**,不能等它;
+        /// 而 42 只读不持(ADR-013 §9 C3)⇒ 重读是唯一正确的刷新手段,不是缓存副本。</para>
+        /// </summary>
+        private void RefreshAfterAction()   // ⚠️ 名字避 `Write`(AC-42-D2 门按方法名子串扫)
+        {
+            if (_sourceForBook != null) ApplyData(_sourceForBook);
+        }
+
 
         // ══════════════════════════════════════════════════════════════════════
         // 翻页 / 折页 / 戥子(sprint-08 S2 · 2026-10-12)
@@ -873,6 +913,70 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 bool marked = dtoSource is ICasebookRewriteMarkSource mark && mark.HasRewriteMark;
                 _rewriteMark.style.visibility =
                     marked ? Visibility.Visible : Visibility.Hidden;
+            }
+
+            ApplyDiseaseNameTexts(dtoSource);
+        }
+
+        /// <summary>
+        /// 病名栏的两笔字:**当前笔**与**旧笔**(`AC-39-12`「当前笔与旧笔同屏可区分」)。
+        /// <para>⚠️ 惰性创建 / 惰性销毁:无内容 ⇒ 元件**不存在**(不是空 Label)——
+        /// 空册时右栏的文本面必须仍是 {病名, ?, 折}(`casebook_render_test.test_ac8_23_…`),
+        /// 多一个空 Label 也会被那条判据看见。</para>
+        /// <para>⚠️ 42 只读不持:词 id 与「有没有痕」都来自数据面(能力接口),
+        /// 文本经 <see cref="ICasebookDtoSource.TextOfLexicon"/> 反查,42 不持词表。</para>
+        /// </summary>
+        private void ApplyDiseaseNameTexts(ICasebookDtoSource src)
+        {
+            var anchor = _root.Q<VisualElement>("channel-disease-name");
+            if (anchor == null) return;
+
+            var marks = src as ICasebookRewriteMarkSource;
+            int curId = marks?.CurrentLexiconId ?? 0;
+            int prevId = marks?.PreviousLexiconId ?? 0;
+            bool marked = marks != null && marks.HasRewriteMark;
+
+            string curText = curId > 0 ? src.TextOfLexicon(curId) : null;
+            // 旧笔只在**真的换了词**时出现:
+            //   · `marked` = 最后一步是改判(且非擦除);
+            //   · `prevId != curId` 排掉「只改置信度、词没变」的那一步 —— 否则两笔同一个词,
+            //     「同屏」看着像重影。
+            string prevText = (marked && prevId > 0 && prevId != curId)
+                ? src.TextOfLexicon(prevId) : null;
+
+            if (string.IsNullOrEmpty(curText))
+            {
+                if (_nameCurrent != null) { _nameCurrent.RemoveFromHierarchy(); _nameCurrent = null; }
+            }
+            else
+            {
+                if (_nameCurrent == null)
+                {
+                    _nameCurrent = new Label();
+                    _nameCurrent.AddToClassList("channel-reading");   // 与通道读数同族墨色
+                    _nameCurrent.pickingMode = PickingMode.Ignore;
+                    _nameCurrent.focusable = false;                   // 装饰:不进焦点环
+                    anchor.Add(_nameCurrent);
+                }
+                _nameCurrent.text = curText;
+            }
+
+            if (string.IsNullOrEmpty(prevText))
+            {
+                if (_namePrevious != null) { _namePrevious.RemoveFromHierarchy(); _namePrevious = null; }
+            }
+            else
+            {
+                if (_namePrevious == null)
+                {
+                    _namePrevious = new Label();
+                    // 淡墨档:`ink-failed` 同族(既有降档类),不新造颜色
+                    _namePrevious.AddToClassList("channel-reading-negative");
+                    _namePrevious.pickingMode = PickingMode.Ignore;
+                    _namePrevious.focusable = false;
+                    anchor.Add(_namePrevious);
+                }
+                _namePrevious.text = prevText;
             }
         }
     }

@@ -40,7 +40,16 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
         private sealed class MarkingSource : ICasebookDtoSource, ICasebookRewriteMarkSource
         {
+            /// <summary>词 id → 文本(测试里只放两条:当前 / 旧)。</summary>
+            private readonly Dictionary<int, string> _words = new Dictionary<int, string>
+            {
+                [3] = "风寒",
+                [5] = "刺伤",
+            };
+
             public bool HasRewriteMark { get; set; }
+            public int CurrentLexiconId { get; set; }
+            public int PreviousLexiconId { get; set; }
             public int ActiveSignCount => 0;
             public IReadOnlyList<SignLexemeRow> RevealedRows => new List<SignLexemeRow>();
             public int PrecisionSlot => 0;
@@ -48,7 +57,8 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public IReadOnlyList<int> SeenLexiconIds => new List<int>();
             public byte PendingConfidence => 0;
             public int DoseDetentCount => 0;
-            public string TextOfLexicon(int lexiconId) => null;
+            public string TextOfLexicon(int lexiconId) =>
+                _words.TryGetValue(lexiconId, out string t) ? t : null;
         }
 
         private GameObject _go;
@@ -169,5 +179,65 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.That(focusable.Count, Is.EqualTo(10),
                 $"入环元素数须仍为 10,实为 {focusable.Count}:{string.Join(",", focusable)}");
         }
+
+        /// <summary>
+        /// 「当前笔与旧笔**同屏**」(`AC-39-12`):改判后两笔的文本**同时**在右栏,
+        /// 且旧笔带淡墨档、当前笔带正文墨档;把痕去掉 ⇒ 旧笔消失(不是把旧笔当新笔显示)。
+        /// <para>反证:把 `prevText` 的 `marked &&` 去掉 ⇒ 本条第二段红(无痕时旧词仍显示)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_revised_showsCurrentAndPreviousTextSideBySide()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var source = new MarkingSource
+            {
+                HasRewriteMark = false,
+                CurrentLexiconId = 3,
+                PreviousLexiconId = 5,
+            };
+
+            // ① 只落笔、没改判:当前笔可见,**旧笔不得出现**
+            screen.ApplyData(source);
+            Assert.That(TextsInNameRow(root), Does.Contain("风寒"), "当前笔须显示");
+            Assert.That(TextsInNameRow(root), Does.Not.Contain("刺伤"),
+                "未改判时不得显示旧笔(否则「同屏」是假的)");
+
+            // ② 改判:两笔同屏
+            source.HasRewriteMark = true;
+            screen.ApplyData(source);
+            var texts = TextsInNameRow(root);
+            Assert.That(texts, Does.Contain("风寒"), "改判后当前笔仍在");
+            Assert.That(texts, Does.Contain("刺伤"), "改判后旧笔须同屏(AC-39-12)");
+
+            // ③ **同一词**的改判(只改置信度)⇒ 旧笔**不出现** —— 否则两笔同一个词 = 重影。
+            //    反证:去掉 `prevId != curId` 那条守卫 ⇒ 此处红。
+            var sameWord = new MarkingSource
+            {
+                HasRewriteMark = true,
+                CurrentLexiconId = 3,
+                PreviousLexiconId = 3,
+            };
+            screen.ApplyData(sameWord);
+            var same = TextsInNameRow(root);
+            Assert.That(same, Is.EqualTo(new List<string> { "病名", "风寒" }),
+                "当前笔与旧笔是同一个词时,右栏只许出现一个词(不得画成两笔同屏)");
+        }
+
+        /// <summary>右栏病名行内的文本集合(只取直接文本,不做推断)。</summary>
+        private static List<string> TextsInNameRow(VisualElement root)
+        {
+            var row = root.Q<VisualElement>("channel-disease-name");
+            var texts = new List<string>();
+            if (row == null) return texts;
+            foreach (var e in row.Query<Label>().Build())
+                if (!string.IsNullOrEmpty(e.text)) texts.Add(e.text);
+            return texts;
+        }
+
     }
 }
