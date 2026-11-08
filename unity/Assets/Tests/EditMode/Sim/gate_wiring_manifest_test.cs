@@ -107,6 +107,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "TutorialSurfaceGate.RunAll",   // AC-48-04 48 装配公开面零 sim 类型 · 2026-11-06(S25-1)
                     "TutorialNarrationSubtitleCrossRefGate.RunAll", // TD-tutorial-01 48 口述文案 ↔ 44 字幕跨表一致 · 2026-11-07
                     "TutorialZeroGate.RunAll",       // AC-48-17 48 公开面零门禁查询 API(规则五零设门)· 2026-11-07(S25-5)
+                    "CasebookAntiFantasyGate.RunAll", // AC-39-05 / AC-39-08 39 公开面零病种维度、零聚合催促词 · 2026-11-08(S26-3)
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -338,6 +339,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Note = "TD-tutorial-01 的执行体(2026-11-07 用户裁定甲案):48 口述文案 ↔ 44 字幕文本\n"
                        + "跨表一致。病因 = 同一句口述两处各写一份且四条全不一致,运行期只读事件表 ⇒ 改 48 那份静默无效。\n"
                        + "入口写成 `类名.方法` 形(不做私有包装),与 TutorialSurfaceGate 同格。" },
+
+            new ClassVerdict { ClassName = "CasebookAntiFantasyGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-39-05 / AC-39-08(2026-11-08 · sprint-26 S26-3)39 公开面零病种维度、零聚合 / 催促词。\n"
+                       + "规则四要的是**能力面做不到**:「就算有人偷加,UI 也不显示」不算达标 —— 归纳是玩家的动作,不是界面的功能。\n"
+                       + "词表刻意**不含** sort / group / count:它们在本模块有合法用法(CaseSortKey / CaseGroup / CaseSheet.Count)。" },
 
             new ClassVerdict { ClassName = "TutorialZeroGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",

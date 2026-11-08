@@ -17388,3 +17388,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   **能力面 ≠ 呈现面**· **BLOCKED-BY-45 残项一律 NOT-RUN**
 - ⚠️ `AC-20-20` 早就不缺前置(R9 2026-10-27 已回写),未勾只因走查未执行 ⇒ 记 NOT-RUN,禁写 BLOCKED
 - 下一步:开 S26-1(casebook-001,链头)
+
+## Session Extract — S26-3 casebook-004 反幻想能力面守卫(2026-11-08)
+
+- 门:`unity/Assets/Editor.Tools.Gates/CasebookAntiFantasyGate.cs`(R1 病种维度 · R2 聚合催促 · 文本黑名单)
+- 接线:`AssemblyGates.RunAll()` + `gate_wiring_manifest_test` 双向差集;报文门名补「39 反幻想门」
+- 判据:`Tests/EditMode/CasebookGuards/casebook_anti_fantasy_guard_test.cs` 13 条
+- 证伪 M1–M11 全红(SHA-256 还原);**构建期探针轮 Result: Failure**
+- 回归 EditMode `7134/7097/0/0/37` @ `00:11:51Z` · PlayMode `365/361/0/2/2`(基线 7121/7084 ⇒ +13/+13)
+- ⚠️ NOT-RUN 三条:AC-39-06a 本地化键闭集(闭集不存在)· AC-39-09 [L] 走查(只交脚本)·
+  报文门名漏 17 的两个门(留档不顺手改)
+- 落点订正:`Casebook/` 有自己的 asmdef 够不着 `Editor.Tools.Gates` ⇒ 实落 `CasebookGuards/`
+- 下一步:S26-4(casebook-005 页布局与无指针焦点导航,L)

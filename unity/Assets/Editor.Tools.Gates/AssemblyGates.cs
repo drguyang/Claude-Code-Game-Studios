@@ -256,6 +256,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 48 的零设门守卫(2026-11-07 · S25-5 · AC-48-17):公开面零「解锁 / 门禁 / 完成状态」查询 API。
             // 规则五要的是**做不到**,不是**没做** —— 构建期红才是它成立的判据。
             errs.AddRange(TutorialZeroGate.RunAll());
+            // 39 脉案的反幻想能力面守卫(2026-11-08 · S26-3 · AC-39-05 / AC-39-08):
+            // 公开面零病种维度、零聚合/催促词。规则四要的是**能力面做不到**,不是**界面上没画**。
+            errs.AddRange(CasebookAntiFantasyGate.RunAll());
             return errs;
         }
 
@@ -1591,7 +1594,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 throw new BuildFailedException(
                     $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
                     "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门 / 6 生态区整数门 / " +
-                    "10 急救整数门 / 9 常量登记门 / 规则九门)—— 见构建日志红行。");
+                    "10 急救整数门 / 9 常量登记门 / 规则九门 / 39 反幻想门)—— 见构建日志红行。");
             }
         }
     }

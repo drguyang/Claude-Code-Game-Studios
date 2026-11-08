@@ -1,12 +1,12 @@
 # Story 004: 反幻想三条「绝不」的能力面守卫
 
 > **Epic**: 脉案
-> **Status**: Ready
+> **Status**: Complete With Notes
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-08
 
 ## Context
 
@@ -31,12 +31,14 @@
 
 *From GDD `design/gdd/casebook.md`, scoped to this story:*
 
-- [ ] **AC-39-05 能力面**:39 公开 API 与投影 DTO 上不存在「按 `disease_id`/病名 分组 / 排序 / 检索 / 计数」的任何方法或参数(反射断言:公开签名扫描,标识符黑名单 ∈ {GroupByDisease, SortByDisease, SearchDisease, CountBy*, CountUnopened, UnopenedCount…})
-- [ ] **AC-39-06a 本地化键闭集 + USS 文本黑名单**:脉案用到的全部文本键 ∈ 闭集(「读数 / 落笔 / 翻页 / 合上」类),扫描不出「同源 / 相似 / 同症 / 未结 N / 提醒」类字符串;USS/UXML 里 `text=` 直写 = 黑名单命中即构建失败
-- [ ] **AC-39-08 零归纳辅助**:39 无任何「跨病例聚合视图」(同一投影不做两次以上病例间的比较;`J(c,p)` 仅病例内)
-- [ ] **`disease_id` 类型面**:39 消费的全部 DTO 过 `PresentationDtoGuard` 递归扫描子集(与 AC-37-15 同判据、共享扫描器),零命中(= AC-39-01 的本 story 侧落点)
-- [ ] **AC-39-09 [L]** 「病名列空白、零催促」人工走查项**建立走查脚本与证据模板**(本 story 交付走查用例文档,执行与主创签核归 QA 轮)[L]
-- [ ] 「未结」状态词仅作为**单病例**的 37 状态读出(已处置/未处置的呈现权归 37 判据),39 不做**跨病例**计数
+- [x] **AC-39-05 能力面**:39 公开 API 与投影 DTO 上不存在「按 `disease_id`/病名 分组 / 排序 / 检索 / 计数」的任何方法或参数(反射断言:公开签名扫描,标识符黑名单 ∈ {GroupByDisease, SortByDisease, SearchDisease, CountBy*, CountUnopened, UnopenedCount…})
+- [~] **AC-39-06a 本地化键闭集 + USS 文本黑名单**:脉案用到的全部文本键 ∈ 闭集(「读数 / 落笔 / 翻页 / 合上」类),扫描不出「同源 / 相似 / 同症 / 未结 N / 提醒」类字符串;USS/UXML 里 `text=` 直写 = 黑名单命中即构建失败
+  —— **`text=` 黑名单半边 = 已落;「本地化键闭集」半边 = `NOT-RUN`**(闭集本身不存在,见 §Completion Notes 1)
+- [x] **AC-39-08 零归纳辅助**:39 无任何「跨病例聚合视图」(同一投影不做两次以上病例间的比较;`J(c,p)` 仅病例内)
+- [x] **`disease_id` 类型面**:39 消费的全部 DTO 过 `PresentationDtoGuard` 递归扫描子集(与 AC-37-15 同判据、共享扫描器),零命中(= AC-39-01 的本 story 侧落点)
+- [x] **AC-39-09 [L]** 「病名列空白、零催促」人工走查项**建立走查脚本与证据模板**(本 story 交付走查用例文档,执行与主创签核归 QA 轮)[L]
+  —— **脚本已交;走查本身 `NOT-RUN`**
+- [x] 「未结」状态词仅作为**单病例**的 37 状态读出(已处置/未处置的呈现权归 37 判据),39 不做**跨病例**计数
 
 ---
 
@@ -101,8 +103,15 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `unity/Assets/Tests/EditMode/Casebook/casebook_anti_fantasy_guard_test.cs` + `production/qa/evidence/casebook/story-004-l-walkthrough-scripts.md`([L] 走查脚本模板,执行留 QA 轮) — must exist and pass
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/CasebookGuards/casebook_anti_fantasy_guard_test.cs` + `production/qa/evidence/casebook/story-004-l-walkthrough-scripts.md`([L] 走查脚本模板,执行留 QA 轮) — must exist and pass
+**Status**: [x] Created and passing — 13 条判据 · 证伪 M1–M11 · 构建期探针轮 `Result: Failure`
+原件 = `production/qa/evidence/impl-s26-3-casebook-anti-fantasy-guards-2026-11-08.md`
+
+> 🔁 **2026-11-08 落点订正(原文不删)**:本卡与 QA 计划原写 `Tests/EditMode/Casebook/`,
+> **实测不能放那里** —— `Casebook/` 有自己的 asmdef(`Casebook.Tests`),只引
+> `Sim.Contracts` + `Gameplay.UI`,**够不着 `Editor.Tools.Gates`**,在那边调不到门本体。
+> 实际落点 = `Tests/EditMode/CasebookGuards/`(走大装配 `Sim.Contracts.Tests`)。
+> 这是装配事实,不是偏好。
 
 ---
 
@@ -115,4 +124,58 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**COMPLETE WITH NOTES(2026-11-08 · sprint-26 S26-3)**
+
+### 交付物
+
+| 件 | 路径 |
+|---|---|
+| 门本体 | `unity/Assets/Editor.Tools.Gates/CasebookAntiFantasyGate.cs` |
+| 接线 | `AssemblyGates.RunAll()`(构建前门链)· `gate_wiring_manifest_test` 双向差集两处 |
+| 判据 | `unity/Assets/Tests/EditMode/CasebookGuards/casebook_anti_fantasy_guard_test.cs`(13 条) |
+| `[L]` 走查脚本 | `production/qa/evidence/casebook/story-004-l-walkthrough-scripts.md` |
+| 证据原件 | `production/qa/evidence/impl-s26-3-casebook-anti-fantasy-guards-2026-11-08.md` |
+
+### 三条「绝不」怎么落成「做不到」
+
+判据落在**公开 API 面**,不落在「界面上有没有画红点」。
+R1 病种维度零出现(`diseas` / `diagnos` / `symptom`)—— **这一条把 AC-39-05 整个包住**:
+拿不到病种,就无从「按病种分组 / 排序 / 检索 / 计数」。R2 聚合 / 催促词
+(`unopened` / `undone` / `pending` / `remind` / `alert` / `badge` / `notify` / `similar` / `samesource`)。
+
+⚠️ **词表刻意不含 `sort` / `group` / `count`** —— `CaseSortKey` / `CaseGroup` / `CaseSheet.Count`
+都是合法用法;一律拉黑会造出一条**永远红**的门。M10 反向证明该取舍有判别力(塞进 `count` ⇒ 3 条转红)。
+
+⚠️ **名 + 返回类型双面扫**(承 sprint-25 `TutorialZeroGate` G2 的教训):方法名干净但返回带病种维度的类型
+照样泄漏 ⇒ M2 专钉这一面,恰 1 红。
+
+### 前瞻性登记(不借绿)
+
+1. **AC-39-06a 的「本地化键闭集」半边 = `NOT-RUN`。**
+   AC 原文的对象是 `casebook_text_keys` 闭集,而 `assets/data/` 无该数据集,
+   `grep -rln "casebook_text_keys\|casebook_text" --include=*.json --include=*.yaml assets/ unity/ docs/` **零命中**
+   ⇒ 那半**没有宾语**。已交的是 AC 自带替代载体的另半边(`text=` 黑名单)+ 可复用的 `ScanTexts` 原语;
+   闭集落地时接进去即可,门不用改。**卡的该条记 `[~]`,不是 `[x]`。**
+2. **AC-39-09 `[L]` 走查 = `NOT-RUN`** —— 脚本存在 ≠ 走查已跑。
+3. **扫描面边界**:只扫 `DaYiJingCheng.Gameplay.UI.Casebook` + `Casebook39.uxml`;
+   42 元件库全域、8 的词表不在此面内。
+4. **`BuildFailedException` 报文里的门名是散文枚举**,补 `39 反幻想门` 之前就已漏了 17 的两个门
+   (`AssemblyGates.cs:1588` / `:1589`)。本轮只补自己这一支,17 的漏登如实留档。
+
+### 判据(13 条)+ 证伪(11 条)+ 探针轮(1 轮)
+
+证伪 M1–M11 全部转红(单红 8 条 / 双红 2 条 / 三红 1 条,归因见证据 §3);SHA-256 逐字节还原,
+`grep -rn "MUTANT\|FALSIFY" unity/Assets` 零命中。
+**构建期探针轮**:插无条件失败项 ⇒ `Build Finished, Result: Failure` · 探针串在日志 ·
+utp `steps` 止于 `Preprocess Player` · 栈帧 `AssemblyGates.cs:1593`(见证据 §4 的两半口径)。
+
+### 回归
+
+EditMode `7134 / 7097 / 0 / 0 / 37` @ `2026-11-08T00:11:51Z` · sprint-26 S26-3 · `bade1ce6` + 工作树;
+PlayMode `365 / 361 / 0 / 2 / 2` @ `00:13:02Z` 同一 triple。基线(S26-2)`7121 / 7084` ⇒ **+13 / +13,零回归**;
+等式 `7134 − 7121 = 13` = 本夹具 `[Test]` 计数。
+
+### 一处流程事实
+
+首轮定向 11 条里 1 红 —— **不是门错了,是我的断言写窄了**(断言报文里有类型名,而门的契约是点名命中词面)。
+处置 = 改断言贴契约,**不是**改门贴措辞。
