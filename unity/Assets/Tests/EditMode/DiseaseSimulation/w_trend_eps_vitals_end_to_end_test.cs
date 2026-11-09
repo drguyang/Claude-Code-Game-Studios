@@ -537,6 +537,12 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                             null, System.Array.Empty<DaYiJingCheng.Sim.Consequences.CostTable53.Row>(), null),
                         0u);
 
+                // 🔁 2026-11-09(T14):装配现在**会**问急救动作表(`CompositionRoot` 用它构造
+                //    `EmergencyActionTable`,取代原先代码里的静态动作行)。同 53 三表之例,
+                //    不再是「接线错」⇒ 给**真表**(仓库产物现读,同一份字节 + 同一个 codec)。
+                if (typeof(TDataSet) == typeof(DaYiJingCheng.Gameplay.Presentation.EmergencyActionDataSet))
+                    return (TDataSet)(object)DaYiJingCheng.Gameplay.Presentation.DataCookedDisk.LoadEmergencyActions();
+
                 throw new InvalidOperationException(
                     $"MultiTableProvider 无 {typeof(TDataSet).Name} —— 本测不该问到它(真问 = 接线错)");
             }

@@ -189,6 +189,11 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             new ArtifactBake(DataBakeMenu.EventPoolCookedAssetName,
                 root => EventPoolBaker.BakeFromRepo(root).Cooked),
 
+            // ── 10 急救动作表(1 份;T14 · 2026-11-09;GDD `emergency-procedures.md:843`)──
+            //    ⚠️ 本份是**动作行的唯一真源** —— 此前九个字段住在代码静态字段里。
+            new ArtifactBake(DataBakeMenu.EmergencyActionCookedAssetName,
+                root => EmergencyActionBaker.BakeFromRepo(root).Cooked),
+
             // ── 48 教学内容(1 份;S17-3 story-001 AC-5 接线,2026-10-21)──
             new ArtifactBake(DataBakeMenu.TutorialContentCookedAssetName,
                 root => TutorialContentBake.BakeFromRepo(root).Cooked),
@@ -481,7 +486,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
             // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
             // 🔁 2026-11-02(AC-4-22):38 → 39(+world_containers,开档容器实例)。
-            const int pinnedDeclared = 43; // 2026-11-03 实测(43 份;+1 = 52_event_pool · ADR-039 后续轮)
+            const int pinnedDeclared = 44; // 2026-11-09 实测(44 份;+1 = emergency_action · T14)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

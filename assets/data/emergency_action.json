@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "_note": "急救动作表(GDD design/gdd/emergency-procedures.md :843 的 10-DC 数据契约)。本文件是动作行的唯一作者态真源;运行时经 ADR-014 两阶段烘焙成 emergency_action.cooked.bytes。",
+  "_note_result_mul": "result_mul 按 JudgeResult 序数索引(Missed=0 / AppliedWeak=1 / Applied=2),三档为 AC-10-16 已裁定值 {1/4, 1/2, 1};构建期会逐值比对,漂移即拒收(OQ-10-1 已裁非零,改回 0 须重开该 OQ)。",
+  "_note_missing_rows": "动作 1/2/3 的 id 空间已开(OQ-10-4 二次裁定 2026-11-09),但其动作行**尚未裁定数值**。缺行时生产侧会响亮拒绝(EmergencyActionTable.Require),不会静默回退动作 0。",
+  "rows": [
+    {
+      "action_id": 0,
+      "polarity": 2,
+      "base_potency": "1",
+      "mag_threshold": 50,
+      "min_edges": 1,
+      "min_hold_ticks": 5,
+      "half_life_ticks": 100,
+      "duration_ticks": 200,
+      "result_mul": ["1/4", "1/2", "1"]
+    }
+  ]
+}

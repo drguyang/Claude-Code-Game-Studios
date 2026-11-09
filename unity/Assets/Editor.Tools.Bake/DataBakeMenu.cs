@@ -166,6 +166,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>5 天气参数的产物名(ADR-038 Amendment A · 2026-11-03)。</summary>
         public const string WeatherParamsCookedAssetName = WeatherParamsBaker.CookedFileName;
 
+        /// <summary>急救动作表产物名(T14 · 2026-11-09;GDD `emergency-procedures.md:843`)。</summary>
+        public const string EmergencyActionCookedAssetName = EmergencyActionBaker.CookedFileName;
+
         /// <summary>52 池条目表的产物名(2026-11-03 · ADR-039 后续轮)。</summary>
         public const string EventPoolCookedAssetName = EventPoolBaker.CookedFileName;
 
@@ -1388,6 +1391,40 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"NIGHT_SPAN = {result.Bound.NightSpan}," +
                     $"TICKS_PER_SEASON = {result.Bound.TicksPerSeason}," +
                     $"SEASONS_PER_YEAR = {result.Bound.SeasonsPerYear}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙急救动作表(T14 · 2026-11-09)。
+        /// <para>权威 = GDD `design/gdd/emergency-procedures.md:843` 的 10-DC 数据契约。</para>
+        /// <para>⚠️ 今日只含动作 0(止血包扎);动作 1/2/3 的 id 空间已开但**数值未裁定**。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 emergency_action(急救动作表 · GDD :843)")]
+        public static void BakeEmergencyActions()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                EmergencyActionBaker.BakeOutput result = EmergencyActionBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, EmergencyActionCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{EmergencyActionCookedAssetName} = {result.Cooked.Length} B," +
+                    $"动作行 = {result.Bound.Rows.Count}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

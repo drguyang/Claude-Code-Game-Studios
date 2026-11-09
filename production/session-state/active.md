@@ -17783,3 +17783,30 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **未做**:动作 1/2/3 的**数值**归数值轮;玩家**选择动作**的交互不存在(`Arm(0)` 硬编码)⇒
   本件把「静默用错参数」换成了「响亮拒绝」,但玩家仍无法选择动作。
 - 证据:`production/qa/evidence/impl-t13-emergency-action-table-2026-11-09.md`。
+
+## Session Extract — 急救动作表外部化 · T14(2026-11-09)
+
+- **用户「走甲」** —— 把 GDD `emergency-procedures.md:843` 指定、却**从未存在**的产物建起来。
+- **病灶**:`assets/data/emergency_action.json` 无源文件 / binder / cooked / codec;九个字段一直住代码。
+  `action_tables_bake_test` 只测 schema 校验器、不碰管线 ⇒「有烘焙测试」是假印象
+  (与 T13「判据测默认表、生产用副本」同族)。
+- **做法**:完整 ADR-014 管线 —— 源 JSON → binder(DC-1…DC-6 复用 `EmergencyActionSchema`)→
+  `emergency_action.cooked.bytes`(**84 B** = 20 头 + 4 + 60 · `0x058A6C2D`)→ codec → `EmergencyActionTable`;
+  Addressables 组 +1(**44 条**)· 预载清单 22 → **23** · 漂移门登记 + 哨兵 43 → **44**。
+- **`result_mul` 双保险**:GDD `:1049` 说它归数据表,**且** AC-10-16 是绝对裁定值 ⇒ 数据承载 +
+  **构建期逐档比对** `GetResultMulTiers()`,漂移即拒收(报文同时点 `AC-10-16` 与 `OQ-10-1`)。
+- **`ProductionDefault` 只剩一个用途**:无 provider 的夹具上下文;不参与生产装配,
+  且被 `test_productionDefault_equalsArtifactRow` **逐字段**钉在产物上(两份副本不许分叉)。
+- **新夹具**:`emergency_action_artifact_test` **11 条**。
+- **回归**:EditMode `7338/7301/0/0/37`(+12)· PlayMode `373/368/0/2/3`(零变化)
+  @ `2026-11-09T22:51:20Z` / `22:52:42Z` · `d84ba5a3` + 工作树。
+  等式:+12 = 新夹具 11 + `cooked_drift_all_artifacts_test` 的**按产物参数化**用例 1。
+- ⚠️ **首轮 28 红 = 两条真实缺口 + 一处我的实现错**:
+  ① 27 条:`MultiTableProvider 无 EmergencyActionDataSet` —— 5 个夹具把「装配会问哪些表」写成
+     **枚举断言**,装配多问一张就红。这是设计意图(逼「新增装载 = 同批补夹具」),已补 5 处分支。
+  ② 1 条:catalog 陈旧(43 vs 44)—— 跑「构建 Addressables 内容」后一致。
+     ⚠️ catalog 落 `unity/Library/`(gitignored)⇒ **新检出后必须重跑该菜单**,否则 Preload() E-13。
+  ③ 我的错:codec 载荷长度校验漏了 `row_count` 自己的 4 B(写成 `rowCount × BytesPerRow`)。
+- ⚠️ **未做**:动作 1/2/3 的行(数值归数值轮;**现在补它们是改 JSON,不是改代码**)·
+  玩家选择动作的交互 · 与技法解锁的联动。
+- 证据:`production/qa/evidence/impl-t14-emergency-action-artifact-2026-11-09.md`。

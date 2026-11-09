@@ -232,6 +232,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>块长 / 强度上界的唯一运行期来源;启动期进 `WeatherParams.Validate()`(AC-5-11)。</para></summary>
         public const string WeatherParamsAddress = "5_weather.cooked.bytes";
 
+        /// <summary>急救动作表(T14 · 2026-11-09;GDD `emergency-procedures.md:843`)。
+        /// <para>运行期动作行的**唯一真源** —— 代码里不再另存一份动作行。</para></summary>
+        public const string EmergencyActionAddress = EmergencyActionDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -300,6 +304,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private EventPoolDataSet? _eventPool;
         // 5 天气参数(ADR-038 Amendment A · 2026-11-03):struct 解码形 ⇒ 可空承载。
         private WeatherParamsDataSet? _weatherParams;
+        private EmergencyActionDataSet? _emergencyActions;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -507,6 +512,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureWeatherParams();
                 return (TDataSet)(object)_weatherParams.Value;
             }
+            if (typeof(TDataSet) == typeof(EmergencyActionDataSet))
+            {
+                EnsureEmergencyActions();
+                return (TDataSet)(object)_emergencyActions.Value;
+            }
             // ── ADR-039 后续轮(2026-11-03):52 池条目表(候选集 + F1 步骤② 权重的来源)──
             if (typeof(TDataSet) == typeof(EventPoolDataSet))
             {
@@ -607,6 +617,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureTimeParams();           // ADR-038 §D1(2026-11-03):时间三参数的装载输入
             EnsureRandomEvents();         // ADR-038 §D4(2026-11-03):52 配置(今日零消费方)
             EnsureWeatherParams();        // ADR-038 Amendment A(2026-11-03):天气块长 / 强度上界
+            EnsureEmergencyActions();     // T14(2026-11-09):急救动作表(GDD :843 的产物)
             EnsureEventPool();            // ADR-039 后续轮(2026-11-03):52 池条目表
         }
 
@@ -633,6 +644,23 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>5 天气参数装载(ADR-038 Amendment A · 2026-11-03)。
         /// <para>与 <see cref="EnsureTimeParams"/> 同款:E-13 硬失败,绝不降级;值域校验归
         /// `Sim.WeatherParams.Validate()`(AC-5-11),由装载方调用。</para></summary>
+        /// <summary>急救动作表装载(T14 · 2026-11-09)。</summary>
+        private void EnsureEmergencyActions()
+        {
+            if (_emergencyActions.HasValue) return;
+            byte[] bytes = FetchBytes(EmergencyActionAddress);
+            try
+            {
+                _emergencyActions = EmergencyActionCookedCodec.Read(bytes);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 急救动作表 cooked 解码失败(address={EmergencyActionAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
         private void EnsureWeatherParams()
         {
             if (_weatherParams.HasValue) return;

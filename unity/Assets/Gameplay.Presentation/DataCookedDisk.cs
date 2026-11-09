@@ -155,6 +155,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         //    不只是测试。它在这里的意义 = 「产物已烘但 Addressables catalog 未重建」时的
         //    同一份字节兜底(同 codec、同校验,非降级)。
 
+        /// <summary>10 急救动作表(<c>emergency_action.cooked.bytes</c>;T14 · 2026-11-09)。
+        /// <para>消费方 = **生产装配**(`CompositionRoot` 构造 `EmergencyActionTable`),
+        /// 不只是测试 —— 与 <see cref="LoadDiseaseRegistry"/> 同格:provider 为 null 时读
+        /// **同一份烘焙产物 + 同一个 codec**。</para></summary>
+        public static EmergencyActionDataSet LoadEmergencyActions()
+            => EmergencyActionCookedCodec.Read(ReadAll(AddressablesDataProvider.EmergencyActionAddress));
+
         /// <summary>9 病种注册表(<c>disease_registry.cooked.bytes</c>;含全局 <c>W</c> / <c>TREND_EPS</c>)。</summary>
         public static DiseaseRegistryDataSet LoadDiseaseRegistry()
             => DiseaseRegistryCookedCodec.Read(ReadAll(AddressablesDataProvider.DiseaseRegistryAddress));

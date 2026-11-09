@@ -356,6 +356,26 @@
 > ⚠️ **未做**:动作 1/2/3 的**数值**归数值轮;玩家**选择动作**的交互不存在(`Arm(0)` 硬编码)⇒
 > 本件把「静默用错参数」换成了「响亮拒绝」,但玩家仍无法选择动作。
 
+| **T14** | 急救动作表**外部化**(GDD `:843` 指定的产物) | 源→产物→行逐值一致 · 代码副本被钉在产物上 |
+
+> **✅ T14 已落(2026-11-09 · 用户「走甲」)**
+> **病灶**:GDD `emergency-procedures.md:843` 的 10-DC 数据契约点名了 `assets/data/emergency_action.json`
+> —— 而它**从未存在**(无源文件 / binder / cooked / codec)。九个字段一直住代码。
+> `action_tables_bake_test` 只测 schema 校验器、不碰管线 ⇒「有烘焙测试」是假印象
+> (与 T13「判据测默认表、生产用副本」同族)。
+> **做法**:建完整 ADR-014 管线 —— 源 JSON → binder(DC-1…DC-6 复用 `EmergencyActionSchema`)→
+> `emergency_action.cooked.bytes`(84 B · `0x058A6C2D`)→ codec → `EmergencyActionTable`;
+> Addressables 组 +1(44 条)· 预载清单 22 → 23 · 漂移门登记 + 哨兵 43 → 44。
+> **`result_mul` 双保险**:GDD `:1049` 说它归数据表,**且** AC-10-16 是绝对裁定值 ⇒
+> 数据承载 + **构建期逐档比对** `GetResultMulTiers()`,漂移即拒收。
+> **`ProductionDefault` 只剩一个用途**:无 provider 的夹具上下文;它不参与生产装配,
+> 且被 `test_productionDefault_equalsArtifactRow` **逐字段**钉在产物上。
+> **首轮 28 红全部是真实缺口**:27 条来自 5 个 `MultiTableProvider`(它们把「装配会问哪些表」
+> 写成枚举断言 —— 设计意图,逼着「新增装载 = 同批补夹具」)+ 1 条 catalog 陈旧(43 vs 44,
+> 跑「构建 Addressables 内容」后一致)。**catalog 落 `Library/`(gitignored)⇒ 新检出须重跑该菜单。**
+> ⚠️ **未做**:动作 1/2/3 的行(数值归数值轮;现在补它们**是改 JSON 不是改代码**)·
+> 玩家选择动作的交互 · 与技法解锁的联动。
+
 ---
 
 ## 8. 风险

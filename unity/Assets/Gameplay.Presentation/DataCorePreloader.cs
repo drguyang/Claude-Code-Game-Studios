@@ -244,6 +244,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.RandomEventsAddress,
             // 52 池条目表(ADR-039 后续轮 · 2026-11-03):候选集 + F1 步骤② 权重。
             AddressablesDataProvider.EventPoolAddress,
+            // 10 急救动作表(T14 · 2026-11-09;GDD `emergency-procedures.md:843`)。
+            AddressablesDataProvider.EmergencyActionAddress,
             // 5 天气参数(ADR-038 Amendment A · 2026-11-03):块长 / 强度上界。
             AddressablesDataProvider.WeatherParamsAddress,
             // 建造槽位骨架(S20-20 装载面,2026-10-28:合成世界槽位目录的生产来源)。

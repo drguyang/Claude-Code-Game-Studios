@@ -556,7 +556,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             // cause 判据的输入面(TD-epic-01 第八片):空 = 夹具默认「玩家选择」;
             // 生产 BootRoot 以 3 的 DeviceStateManager 造 EmergencyDeviceReadiness 适配注入
             // (启动序 4.2 —— 设备态须先挂接才能读到在场设备)。
-            var emergencyManual = new EmergencyManualDriver(emergencyProcessor, presence);
+            // ── 10 的急救动作表(T14 · 2026-11-09)──────────────────────────────
+            //    GDD `emergency-procedures.md:843` 指定的产物 `emergency_action.cooked.bytes`
+            //    —— 动作行的**唯一真源**。此前九个字段住在代码静态字段里(`EmergencyActionTable`
+            //    的 `ProductionDefault` 只是无 provider 时的回落,不再参与生产装配)。
+            //    生产 = provider;无 provider(EditMode / 未预载)= `DataCookedDisk` 的
+            //    **同一份字节 + 同一个 codec**(与 `loadItemsSeed` 同款双路)。
+            DaYiJingCheng.Gameplay.Presentation.EmergencyActionDataSet emergencyActionData =
+                dataProvider != null
+                    ? dataProvider.Load<DaYiJingCheng.Gameplay.Presentation.EmergencyActionDataSet>()
+                    : DataCookedDisk.LoadEmergencyActions();
+            var emergencyManual = new EmergencyManualDriver(
+                emergencyProcessor, presence, devices: null,
+                actions: new EmergencyActionTable(emergencyActionData.Rows));
 
             // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
             // 病因(playtest 2026-10-10 §6):病人在场但**零视觉实体** ⇒ 人工面看不到病人,

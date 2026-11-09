@@ -147,6 +147,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a19d4029ad6bd82bcb2d95d3be208faa
+    m_Address: emergency_action.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a2b9028dae01387c7930880bdebd835e
     m_Address: 53_delay_table.cooked.bytes
     m_ReadOnly: 0
