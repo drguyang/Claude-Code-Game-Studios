@@ -271,6 +271,23 @@ namespace DaYiJingCheng.Sim
         /// 故本字段是**唯一**新增项。</para>
         /// </summary>
         public int TraumaHalfLife;
+
+        /// <summary>
+        /// 进入**病人抽取池**所需的最低「处方用药」等级(2026-11-09 T2)。
+        /// <para>语义 = **内容节奏软门**,不是技能解锁门 —— 动作由奇遇/物品开
+        /// (`design/gdd/reviews/technique-unlock-map-2026-11-09.md` §5.1:技法门是硬门,
+        /// 本字段只在**已解锁的池内**收窄)。</para>
+        /// <para><c>0</c> = 开局即可投放。仅病行有意义;<b>伤行恒 0</b>(伤情不走日常病人池)。</para>
+        /// <para>⚠️ 本字段**不参与 sim 求值** —— 唯一消费方是病人出现驱动(装配层)。</para>
+        /// </summary>
+        public int MinSkillLevel;
+
+        /// <summary>
+        /// 科普点(一句话,2026-11-09 T2)。内容层文案,**不进 sim 求值**。
+        /// <para>用途 = 教学/手册侧引用该病「要教会玩家的一件事」。</para>
+        /// <para><c>null</c> = 未撰写(合法:内容归内容轮);空串由 binder 拒收(写了就不能是空)。</para>
+        /// </summary>
+        public string TeachPoint;
     }
 
     /// <summary>

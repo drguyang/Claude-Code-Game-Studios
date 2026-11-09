@@ -38,6 +38,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] RootKeys =
             { "schema_version", "diseases", "injuries", "trend_window_ticks", "trend_eps" };
 
+        /// <summary>伤情数组的键名(与 <c>diseases</c> 对称)。</summary>
+        private const string InjuryArrayKey = "injuries";
+
+        /// <summary>`min_skill_level` 的合法上界 = 技能上限 <c>SKILL_CAP</c>。
+        /// <para>⚠️ **镜像值,不是真源** —— 真源 = 30 技能系统(GDD §3.2:`SKILL_CAP = 60`,
+        /// `skill-system.md:193`)。此处只用于**拒收越界值**,不做任何求值;
+        /// 30 若改上界,本常量须同批改(与 `RecipeSettlementConstants.SkillCap` 由调用方传入不同 ——
+        /// 那里有数据源可传,病种注册表没有)。</para></summary>
+        private const int MaxSkillLevel = 60;
+
         private static readonly string[] DiseaseRowKeys =
         {
             // ── 本件绑定的键 ──
@@ -55,6 +65,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             //                  `DiseaseHandle.Derive`),只是**输入不是 JSON 里那个键**。
             //                  故它**不**进 BoundRowKeys —— 那张表记的是「从 JSON 读了哪些键」。
             "zh", "causes", "treatable_by", "handle",
+            // ── 2026-11-09(T2)起绑定 ──
+            "min_skill_level", "teach_point",
         };
 
         /// <summary>`signs[]` 词条的键白名单(GDD R1.3 的 `signs[]` + `channel_mask`)。</summary>
@@ -80,6 +92,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             "occupation_mod", "region_mod", "climate_mod",
             "scale", "trauma_half_life", "natural_progress",
             "signs", "relapse",
+            "min_skill_level", "teach_point",
         };
 
         /// <summary>
@@ -278,7 +291,22 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 DiseaseRegistryEntry e = BindRow(
                     arr.Items[i], $"{arrayKey}[{i}]", errors, unbound, terminal, causalByKey);
-                if (e != null) rows.Add(e);
+                if (e == null) continue;
+
+                // ── 分区一致性(2026-11-09 T2)──
+                //   `injuries` 的契约 = 只装伤。放错侧 = 伤情/病种口径**静默错位**
+                //   (病人池会抽到伤、伤情结算会读到病),故硬失败。
+                //   ⚠️ 反向(伤行留在 `diseases`)本步**刻意不查**:那是拆表前的合法形态,
+                //      既有合成源仍用它;等 T4 抽取接线时再收紧。
+                //   ⚠️ `Unspecified` 不重复报 —— 缺 `kind` / 非法值已由 `ReadKind` 记错。
+                if (string.Equals(arrayKey, InjuryArrayKey, StringComparison.Ordinal)
+                    && e.Kind != DiseaseKind.Injury
+                    && e.Kind != DiseaseKind.Unspecified)
+                    errors.Add(
+                        $"{arrayKey}[{i}] kind={e.Kind} —— `injuries` 数组只收 `kind: injury` 的行" +
+                        "(放错侧会让伤情与病种口径静默错位)");
+
+                rows.Add(e);
             }
         }
 
@@ -336,6 +364,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Scale = ReadFix(node, "scale", errors, where),
                 TraumaHalfLife = ReadInt(node, "trauma_half_life", errors, where, 0),
 
+                // ── 2026-11-09(T2):病人抽取池的软门 + 科普点 ──
+                MinSkillLevel = ReadInt(node, "min_skill_level", errors, where, 0),
+                TeachPoint = ReadOptionalString(node, "teach_point", errors, where),
+
                 // ── treatable_by:**刻意不绑**(2026-10-23 口径不变)──
                 //   9 GDD R1.3 把它定义在病种条目内,但 story-007 起已拆到
                 //   `disease_action_axis.json` 作**单一真源**。若这里也填,轴与条目就构成
@@ -347,6 +379,16 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Relapse = BindRelapse(node, where, errors),
                 Signs = BindSigns(node, where, errors),
             };
+
+            // ── `min_skill_level` 值域(2026-11-09 T2)──
+            //   ⚠️ 上界**必须查**:`min_skill_level > SKILL_CAP` 会让该病**永远进不了池**,
+            //      而失败是静默的(池子里少一行,没人报错)—— 与本文件 `terminal_state`
+            //      必填门同族的「静默死数据」形态。下界同理(负数等于永远不可达)。
+            if (e.MinSkillLevel < 0 || e.MinSkillLevel > MaxSkillLevel)
+                errors.Add(
+                    $"{where}.min_skill_level={e.MinSkillLevel} ∉ [0,{MaxSkillLevel}] —— " +
+                    "越界会让该病**永远无法进入病人池**(静默死行);" +
+                    $"上界 = 技能上限(SKILL_CAP,30 §3.2)");
 
             // ── handle:派生(GDD `:329`),不读 JSON 里那个键 ──
             //   `causalByKey == null` = 轴未接线 ⇒ 留 null(「未声明」),**不猜**。
@@ -553,8 +595,31 @@ namespace DaYiJingCheng.EditorTools.Bake
             return n.Str;
         }
 
-        private static bool ReadBool(JsonNode obj, string key, List<string> errors, string where)
+        /// <summary>读**可选字符串** —— 缺键 / <c>null</c> ⇒ <c>null</c>(「未声明」);
+        /// 给了就必须是非空串(空串 = 写了但没内容,与漏写不可区分 ⇒ 拒收)。</summary>
+        /// <remarks>
+        /// <para><b>为什么不是 <see cref="ReadString"/></b>:那个是「必填」语义(缺键即错)。
+        /// `teach_point` 是内容层文案,内容归内容轮 —— 未撰写是**合法态**,故必须可缺省。</para>
+        /// </remarks>
+        private static string ReadOptionalString(JsonNode obj, string key, List<string> errors, string where)
         {
+            if (!obj.TryGet(key, out JsonNode n) || n.Kind == JsonNodeKind.Null)
+                return null;
+            if (n.Kind != JsonNodeKind.String)
+            {
+                errors.Add($"{where}.{key} 须为字符串(实得 {n.Kind})");
+                return null;
+            }
+            if (string.IsNullOrWhiteSpace(n.Str))
+            {
+                errors.Add($"{where}.{key} 为空串 —— 要么不写(未撰写),要么写一句实际内容" +
+                           "(空串与漏写不可区分,会让「有没有科普点」永远无法判定)");
+                return null;
+            }
+            return n.Str;
+        }
+
+        private static bool ReadBool(JsonNode obj, string key, List<string> errors, string where)        {
             string label = $"{where}.{key}";
             if (!obj.TryGet(key, out JsonNode n))
             {

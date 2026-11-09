@@ -258,6 +258,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             Compare(w + ".scale", expected.Scale.Raw, actual.Scale.Raw, errors);
             Compare(w + ".trauma_half_life", expected.TraumaHalfLife, actual.TraumaHalfLife, errors);
 
+            // ── 2026-11-09(T2)新增两字段:同样**必须**逐字段比(见下方 2026-10-23 注)──
+            Compare(w + ".min_skill_level", expected.MinSkillLevel, actual.MinSkillLevel, errors);
+            if (!string.Equals(expected.TeachPoint, actual.TeachPoint, StringComparison.Ordinal))
+                errors.Add($"{w}.teach_point 往返后 \"{actual.TeachPoint}\" ≠ 绑定值 \"{expected.TeachPoint}\"");
+
             if ((expected.Curve != null) != (actual.Curve != null))
             {
                 errors.Add($"{w}.curve 有无往返后不一致(绑定 {(expected.Curve != null ? "有" : "无")}," +

@@ -30,7 +30,23 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const string CookedFileName = "disease_registry.cooked.bytes";
 
         /// <summary>病种条目(入流序 = 作者态数组序;装配层据此建 id → 条目字典)。</summary>
+        /// <remarks>
+        /// <para>这是**并集**(`diseases` ∪ `injuries`,按 id 升序)。需要按侧取子集时用
+        /// <see cref="Diseases"/> / <see cref="Injuries"/> —— 那两个视图在**装载期分桶一次**,
+        /// 运行期消费方**不再写** `if (Kind == Injury)`(承 GDD 规则九:禁在代码里按 kind 分叉;
+        /// 分桶只发生在数据边界这一处)。</para>
+        /// </remarks>
         public readonly IReadOnlyList<DiseaseRegistryEntry> Rows;
+
+        /// <summary>**病侧**视图(2026-11-09 T2):<c>Kind != Injury</c> 的全部行。
+        /// <para>含 <c>Disease</c> **与** <c>Poison</c> —— 中毒是病程(有自己的起点与曲线),
+        /// 不是「被送入的状态」,与伤情分属两侧。</para>
+        /// <para>用途 = 病人抽取池的**候选全集**(真正的门在 T4 的技法门 + 等级门)。</para>
+        /// </summary>
+        public readonly IReadOnlyList<DiseaseRegistryEntry> Diseases;
+
+        /// <summary>**伤侧**视图(2026-11-09 T2):<c>Kind == Injury</c> 的全部行。</summary>
+        public readonly IReadOnlyList<DiseaseRegistryEntry> Injuries;
 
         /// <summary>
         /// 全局 <c>W</c>(趋势差分窗口,tick;GDD Tuning §四 <c>:1743</c>)。
@@ -60,6 +76,24 @@ namespace DaYiJingCheng.Gameplay.Presentation
             TrendEpsRaw = trendEpsRaw;
             SchemaVersion = schemaVersion;
             ConfigVersion = configVersion;
+
+            // ── 分桶(**唯一**一处按 kind 分叉;2026-11-09 T2)──
+            //   ⚠️ 分桶放在装载期而不是每个消费方各自过滤:后者会让「按 kind 分叉」
+            //      在代码里长出 N 份,正是 GDD 规则九要防的形态。
+            var diseases = new List<DiseaseRegistryEntry>();
+            var injuries = new List<DiseaseRegistryEntry>();
+            if (rows != null)
+            {
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    DiseaseRegistryEntry e = rows[i];
+                    if (e == null) continue;
+                    if (e.Kind == DiseaseKind.Injury) injuries.Add(e);
+                    else diseases.Add(e);
+                }
+            }
+            Diseases = diseases;
+            Injuries = injuries;
         }
     }
 }

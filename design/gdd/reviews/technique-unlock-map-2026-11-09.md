@@ -178,6 +178,14 @@
 > 仅 offset 12–15 不同**;并须实测这两个值是「新源文本的哈希」而非任意值。
 > 实测结果:4171 B 前后等长,**diff 恰 4 字节(12,13,14,15)**,payload 从 20 起全等。
 | **T2** | 病表加 `min_skill_level` / `teach_point` | 新夹具 3 条 |
+
+> **✅ T2 已落(2026-11-09)**:cooked `schema_version` 2 → 3(行尾追加两字段,产物 4171 → 4299 B);
+> `DiseaseRegistryDataSet` 增 `Diseases` / `Injuries`(装载期分桶一次);`injuries` 侧加
+> 「只收 `kind: injury`」硬门(**反向刻意不查**,收紧归 T4)。夹具 **7 条**
+> (`disease_registry_partition_test`),比原定 3 条多 4 条(值域 / 空串 / 往返 / 回归锚)。
+> 两列的值**均未填**:`min_skill_level` 全 0、`teach_point` 全 null —— 内容归内容轮。
+> 回归 EditMode `7178/7141/0/37`(+7)· PlayMode `370/366/0/2/2`。
+> 证据 = `production/qa/evidence/impl-t2-registry-views-and-columns-2026-11-09.md`。
 | **T3** | **技法解锁状态**的权威载体(ADR 级:谁持有、进不进流、如何重建) | ADR 落盘 |
 | **T4** | 抽取改「技法门 + 等级门」 | 夹具:未解锁病永不入池;钩子病例可入且标记 |
 | **T5** | 钩子病例的判定与收场 | 夹具:每章计数上限 / 必须可诊断 / 必须给出缺失技法 |

@@ -163,6 +163,12 @@ namespace DaYiJingCheng.EditorTools.Bake
             //   `disease_action_axis.json` 是单一真源(D-9-K),运行期查轴
             //   (`ITreatableByLookup`)。烘一份进来 = 第二真源、可分叉。
             //   ⇒ 读方把 `TreatableBy` 恒置 null,本处不写任何字节。
+
+            // ── 2026-11-09(T2 · schema_version 2 → 3)──
+            //   行尾追加两个字段。放**行尾**而不是插在中间:读方 `ReadRow` 是逐字段顺序
+            //   镜像的,插中间会让后续每个字段的偏移都变,镜像错位的风险面更大。
+            w.Write(e.MinSkillLevel);                    // int(仅病行有意义;伤行恒 0)
+            WriteString32(w, e.TeachPoint);              // i32 字节长 + UTF-8(null = -1)
         }
 
         /// <summary>写 <see cref="CookedFormat"/> 规定的字符串形状:i32 字节长 + UTF-8(无终止符)。</summary>
