@@ -287,13 +287,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    回退枚举影子 + 离牌门恒放行,与接线前**逐位相同**。
             System.Collections.Generic.ISet<int> emergencyActionAxis = null;
             ITreatableByLookup treatableBy = null;
+            // 2026-11-09(ADR-043 §D5):技法 id 闭集 = 处置轴的全部 action id(10 + 11 两侧)。
+            //   ⚠️ 与 emergencyActionAxis(**只** owner=10)不同:解锁对象包含处方动作。
+            //   null = 未接线(无 provider)⇒ 写者侧跳过闭集校验(与 emergencyActionAxis 回退同口径)。
+            System.Collections.Generic.HashSet<int> knownTechniqueIds = null;
             if (dataProvider != null)
             {
                 DiseaseActionAxisDataSet axis = dataProvider.Load<DiseaseActionAxisDataSet>();
                 var owner10 = new System.Collections.Generic.HashSet<int>();
+                knownTechniqueIds = new System.Collections.Generic.HashSet<int>();
                 for (int i = 0; i < axis.Actions.Count; i++)
+                {
+                    knownTechniqueIds.Add(axis.Actions[i].ActionId);
                     if (axis.Actions[i].Owner == "10")
                         owner10.Add(axis.Actions[i].ActionId);
+                }
                 emergencyActionAxis = owner10;
 
                 // treatable_by 查表面(2026-10-23 用户裁定「运行期查轴」)。
@@ -2182,6 +2190,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    不伪造一个恒真回执 —— 那会让「还没存过」直接算学会)。
                     checkpointWritten: null);
             }
+
+            // ── 30 的技法解锁(2026-11-09 · ADR-043 §D2/§D6/§D7)────────────────
+            //   查询 = 病史流折叠;写者 = 唯一 Append 落点(去重 + 闭集 + 编码)。
+            //   ⚠️ 起步集写入**不在这里** —— 玩家 id 要到 BootRoot 第 4 步才铸造
+            //      (`_playerActorId`),故 `TechniqueUnlockBootstrap.Ensure` 在那边调用。
+            var techniqueUnlockQuery = new TechniqueUnlockProjection(() => stream.Events, decoder);
+            services.TechniqueUnlocks = techniqueUnlockQuery;
+            services.TechniqueUnlockWriter = new TechniqueUnlockWriter(
+                stream, encoder, techniqueUnlockQuery, knownTechniqueIds);
 
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);

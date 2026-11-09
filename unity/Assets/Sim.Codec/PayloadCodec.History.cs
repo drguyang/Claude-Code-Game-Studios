@@ -642,5 +642,40 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
             return new TreatmentHarmOnsetPayload(tick, patientId, injuryId, harmKind, severityBand, seq);
         }
+
+        // ── 18. TechniqueUnlocked(ADR-043 §D4)───────────────────────────
+        // tag: 1 ActorId · 2 TechniqueId · 3 SourceId —— 三个 i32,**全部必填**。
+        // ⚠️ 载荷无 Tick / 无 Seq:两者都是**事件头**的量(SimEvent.Tick / Seq),
+        //    载荷再存一遍 = 第二真源。与 TreatmentHarmOnset 的 `tick` 复述不同 ——
+        //    那一支的 registry 明写「载荷自述」,本支不要求(ADR-043 §D4)。
+
+        public static byte[] Encode(in TechniqueUnlockedPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt32(1, p.ActorId);
+            w.WriteFieldInt32(2, p.TechniqueId);
+            w.WriteFieldInt32(3, p.SourceId);
+            return w.ToArray();
+        }
+
+        private static TechniqueUnlockedPayload DecodeTechniqueUnlocked(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            int actorId = 0, techniqueId = 0, sourceId = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.TechniqueUnlocked), ref seen))
+                {
+                    case 1: actorId = r.ReadInt32LittleEndian(); break;
+                    case 2: techniqueId = r.ReadInt32LittleEndian(); break;
+                    case 3: sourceId = r.ReadInt32LittleEndian(); break;
+                    default: throw new InvalidDataException($"TechniqueUnlocked: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.TechniqueUnlocked), seen, (1u << 3) - 1);
+            r.EnsureFullyConsumed();
+            return new TechniqueUnlockedPayload(actorId, techniqueId, sourceId);
+        }
     }
 }

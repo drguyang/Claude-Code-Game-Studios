@@ -564,6 +564,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⇒ 本局部量必须留一个字段版(换成第二处 `NextPatientId()` = 第二个 id)。
             _playerActorId = actorId;
 
+            // ── 4.4a. 技法起步集(2026-11-09 · ADR-043 §D9)──────────────────────
+            //   判据 = **事件流为空**(新世界);读档 ⇒ 流非空 ⇒ no-op,不会重发。
+            //   ⚠️ 必须在这里而不是 `CompositionRoot.Assemble`:起步集的 actor = 玩家,
+            //      而玩家 id 是**本步**才铸造的(与 TeleportSink / MotorLease 的迟绑定同格)。
+            //   ⚠️ 漏掉本行 = 新世界里**一个技法都没有** ⇒ T4 的病人池恒空 ——
+            //      而那表现为「没有病人」,不是报错(静默空世界)。
+            TechniqueUnlockBootstrap.Ensure(
+                _services.Stream.Events, _services.TechniqueUnlockWriter,
+                actorId, _tickDriver.CurrentTick);
+
             // ── 4.3a. 1 侧传送 sink 绑定(S23-7 · 2026-11-01)────────────────────
             // 构造在 CompositionRoot 死亡消费段(服务袋 TeleportSink);玩家此刻才存在
             // ⇒ 在此迟绑定。复活链(29 revive 回调 → issuer → 本 sink)自此全通。

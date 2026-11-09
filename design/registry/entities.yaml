@@ -3347,3 +3347,22 @@ constants:
     constraint: "落**病史流**(病人侧;与 InjuryOnset / DiseaseOnset / CareApplied 同流 —— 9 的主场,可随终态折叠)。**写者 = 53**(禁忌结算方 = 主机唯一 Append,ADR-005;本条经 ADR-035 §Decision ⑤ 显式扩张 53 的写者面,不得再扩第三支)。**injury_id 是外键** —— 53 不得持伤情属性副本(disease-simulation.md:671-672 接口铁律二);**severity_band 是档位引用** —— 分值住在 9 的词表里,`band → magnitude` 换算归 9(ADR-035 §Implementation 5),守 AC-53-01「53 零后果数值字段」。**有界性 ≤ 每完成一次用药至多 1 条**(禁忌命中才写),与 tick 频率无关(扩展 ADR-008 §六,不重写)。⚠️ **过量支在 P0 挂起**(ADR-035 §Decision ⑥):`Overdose` 成员保留但构建期拒收,解除条件 = TD-sim-02 + TD-prescription-09 两条均结案"
     added: 2026-10-30
     revised: ""
+
+  - name: SimEvent.Kind.TechniqueUnlocked
+    status: active
+    source: docs/architecture/adr-043-technique-unlock-kind.md   # 本件 §D1(命名首现归 ADR-043)
+    referenced_by:
+      - docs/architecture/adr-043-technique-unlock-kind.md   # D1 载体 / D2 写者 / D4 载荷 / D6 唯一性 / D8 折叠豁免 / D10 有界性
+      - design/gdd/skill-system.md      # 30:§3.3「不掉已解锁的动作」的机制落点(解锁集合须可重建)
+      - design/gdd/emergency-procedures.md  # 10:动作可用性(action ∈ 已解锁集)
+      - design/gdd/systems-index.md     # H1 ③「非物品能力不设解锁门」的改判落点(:827)
+      - docs/architecture/adr-026-skill-growth-fixed-point.md  # §⑦ 折叠豁免先例(SkillGrown 同族)
+      - docs/architecture/adr-010-persistence-save-format.md   # §三 义务:不折叠 / 不快照
+      - design/gdd/reviews/technique-unlock-map-2026-11-09.md  # 三层模型 / 病例两类门
+    unit: kind
+    stream: history
+    author: "30 技能与熟练度(承 H1 ③「非物品能力 → 30」的归属;奇遇 / 手册宿主只是**调用方**,经 TechniqueUnlockEmitter 请求、主机统一 Append —— ADR-005 主机唯一权威)"
+    payload_schema: "actor_id: i32(学习者;玩家 id 空间,ADR-006 Amendment B 适用面扩大)· technique_id: i32(**= 处置轴 `disease_action_axis.json` 的 action id** —— 与 treatable_by 共用同一 id 空间,不新建技法表,ADR-043 §D5)· source_id: i32(来源:手册页 / 奇遇 id;**不参与任何判定**,仅供排查与 51 遥测,§D4/R4)。全部整数域、零 Fix、零引用类型(ADR-024 A2)。⚠️ **无 tick / 无 seq 字段** —— 两者是事件头 SimEvent.Tick / Seq 的量,入载荷 = 第二真源;无 patient_id —— 解锁是玩家级事实,`Patient = PatientId.None`(与 ADR-007 五支同格)"
+    constraint: "落**病史流**(与 SkillGrown 同族:玩家级成长事实;ADR-043 §D1 —— 世界流装的是世界状态,玩家能力不是)。**写者 = 30**;**同一 (actor, technique) 至多一条** —— 重复授予 = no-op(不写、不抛,§D6),这是有界性的基础。**单调只增**:不存在「忘掉一招」的路径(skill-system.md:218「不掉已解锁的动作」)。**不参与 7a 折叠、不独立快照**(§D8;折叠谓词豁免,与 ADR-026 §⑦ 案 1 同型;读档后由流重建)。**查询** = `ITechniqueUnlockQuery`(Sim.Contracts)+ 病史流折叠实装(ADR-043 §D7)。有界性 = |actors| × |techniques|,与 tick 频率 / 帧率无关(解锁由内容事件触发,非逐帧;扩展 ADR-008 §六,不重写)。⚠️ **本支不新增技能、不改 30 的 19 项表** —— `skill-system.md:232`「给技能加门亦违法」只覆盖 19 项技能,技法(动作)不在那张表里(ADR-043 §1.3)"
+    added: 2026-11-09
+    revised: ""

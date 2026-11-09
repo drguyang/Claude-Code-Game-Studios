@@ -1,4 +1,4 @@
-// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(38 支,stream 分布 16/5/17;
+// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(39 支,stream 分布 17/5/17;
 //          2026-10-25 `HouseCallStarted` 入表 36 → 37 —— TD-persist-04 动作② 结构裁定)
 //          · 成员级出处见各支 registry 条目的 source 字段(ADR-007 §三 / ADR-008 §三 /
 //            ADR-009 Amendment F–I / ADR-016 §二 / ADR-021 §三 等)
@@ -11,7 +11,7 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary>三逻辑流全部 38 支具名事件 Kind(2026-10-30 起;原 37 支见追加区注)。</summary>
+    /// <summary>三逻辑流全部 39 支具名事件 Kind(2026-11-09 ADR-043 起;原 38 支见追加区注)。</summary>
     public enum EventKind : int
     {
         // ── 病史流 History(15)────────────────────────────────────────────
@@ -70,5 +70,7 @@ namespace DaYiJingCheng.Sim.Contracts
                                      // 锚点白名单第三员 —— 规则六事件触发 checkpoint)
         TreatmentHarmOnset,          // ADR-035 §Decision ④(用药伤害 onset · 写者 = 53 · 病史流;
                                      // 效果一律外键 → 9 的伤情 id;过量支 P0 挂起见 §⑥)
+        TechniqueUnlocked,           // ADR-043 §D1(技法解锁 · 写者 = 30 · 病史流;
+                                     // 载荷 (actor_id, technique_id, source_id) 全整数域)
     }
 }

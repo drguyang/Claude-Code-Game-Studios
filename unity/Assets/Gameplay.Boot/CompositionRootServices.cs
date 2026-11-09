@@ -49,6 +49,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 语义:`null` 或阈值空 ⇒ 过量代价**不结算**,与「表为空」一致(零事件)。</para></summary>
         public DaYiJingCheng.Sim.Consequences.OverdoseSettler OverdoseSettler { get; internal set; }
 
+        /// <summary>技法解锁的只读查询(2026-11-09 · ADR-043 §D7)。
+        /// <para><c>null</c> = 未装配(测试上下文 / 装配失败路径)⇒ **全部技法视为未解锁** ——
+        /// 这是安全侧(宁可少投放病例,也不会让未学会的动作凭空可用)。</para>
+        /// <para>生产面 = 病史流折叠投影(`TechniqueUnlockProjection`),同源可重建。</para></summary>
+        public DaYiJingCheng.Sim.Contracts.ITechniqueUnlockQuery TechniqueUnlocks { get; internal set; }
+
+        /// <summary>技法解锁的写者端口(2026-11-09 · ADR-043 §D2/§D6)。
+        /// <para>这是**唯一**能写 `TechniqueUnlocked` 的对象;奇遇 / 手册宿主经它请求。
+        /// <c>null</c> = 未装配(与 <see cref="TechniqueUnlocks"/> 同格)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockWriter TechniqueUnlockWriter { get; internal set; }
+
         /// <summary>17 采集的**生产驱动**(2026-11-01 · S22-9)。
         /// <para>每个 tick 边沿把一次主动交互翻译成一次采集裁决:3 的输入沿 → 4 的选择器 →
         /// **真闸门**(`CanCarry` + `CanHarvest`)→ `HarvestOrchestrator.Resolve`。</para>

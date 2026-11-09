@@ -414,4 +414,28 @@ namespace DaYiJingCheng.Sim.Contracts
             HarmKind = harmKind; SeverityBand = severityBand; Seq = seq;
         }
     }
+
+    /// <summary>ADR-043 §D4(技法解锁 · 写者 = **30**)。「这个大夫学会了这一招」= 布尔事实,
+    /// **不是量** —— 故无 `Level`、无 `PatientId`(与 `SkillGrown` 的差别)。
+    /// <para><b>技法 id 空间</b> = 处置轴 `disease_action_axis.json` 的 action id(D5)——
+    /// 与 `treatable_by` 共用同一 id,不新建第二张表。</para>
+    /// <para><b>`SourceId` 不参与任何判定</b>(D4 / R4):它只记「从哪学的」(手册页 / 奇遇 id),
+    /// 供排查与 51 遥测。任何按它分支的代码都违规。</para>
+    /// <para><b>有界性</b> ≤ `|actors| × |techniques|`,每个 `(actor, technique)` 至多一条;
+    /// 单调只增(不存在「忘掉一招」)。</para>
+    /// </summary>
+    public readonly struct TechniqueUnlockedPayload
+    {
+        /// <summary>谁学会了(玩家 id 空间)。</summary>
+        public readonly int ActorId;
+        /// <summary>哪一招(= 处置轴 action id)。</summary>
+        public readonly int TechniqueId;
+        /// <summary>从哪学的(手册页 / 奇遇 id;不参与判定)。</summary>
+        public readonly int SourceId;
+
+        public TechniqueUnlockedPayload(int actorId, int techniqueId, int sourceId)
+        {
+            ActorId = actorId; TechniqueId = techniqueId; SourceId = sourceId;
+        }
+    }
 }

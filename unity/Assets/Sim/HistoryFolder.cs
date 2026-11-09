@@ -12,7 +12,8 @@
 //   条件 ④ 落在本件而非布尔 —— ADR-026 §⑦ 的判据是「折叠之后 `Level(s)@t` 逐位一致」,
 //   那是对**产物**的断言,不是对返回值的断言。
 //
-// ⚠️ 折叠的抹除面 = 该病人的**全部**病史行,减去 `SkillGrown` 行。
+// ⚠️ 折叠的抹除面 = 该病人的**全部**病史行,减去 `SkillGrown` 行(ADR-026 §⑦)
+//   与 `TechniqueUnlocked` 行(ADR-043 §D8 —— 玩家级成长事实,与病人折叠无关)。
 //   为何不保留「无终态病程」的行:折叠谓词按**病人整体**判定(GDD F-7a-4 `:328`
 //   「输出:布尔」),而终态是 F4 九态的**吸收态**(ADR-032 ⑤)⇒ 判成终态的病人不存在
 //   「仍在演进的病程」。此外,除 onset / outcome 之外的病史行**不携带病种 id**
@@ -176,7 +177,13 @@ namespace DaYiJingCheng.Sim
             {
                 SimEvent e = history[i];
                 bool belongsToFolded = e.Patient.Value == patientId;
-                if (belongsToFolded && e.Kind != EventKind.SkillGrown)
+                // 条件 ④(ADR-026 §⑦ · ADR-043 §D8):成长与解锁**不随病人折叠被抹除**。
+                //   ⚠️ `TechniqueUnlocked` 的 `Patient` 恒 `None(-1)` ⇒ 结构上本来就不会命中
+                //   `belongsToFolded`;此处**显式列出**是为了让这条不变式在代码里可见 ——
+                //   若将来有人改「保留面」的判据(例如改成按流别保留),这一行仍在。
+                if (belongsToFolded
+                    && e.Kind != EventKind.SkillGrown
+                    && e.Kind != EventKind.TechniqueUnlocked)
                     continue;
                 retained.Add(e);
             }

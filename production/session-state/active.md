@@ -17500,3 +17500,34 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `[lexicon-multi-row-link]` 只允许「一词多病」,不允许「多词同病」;未提交的「湿温→10」已还原到 HEAD。
   ② `53_cost_table` 的 ConfigVersion 把注册表源一起哈希 ⇒ 拆表必重烘。
 - **未做**:T2(两视图 + `min_skill_level`/`teach_point`)· T3(技法解锁的权威载体 ADR)· T4–T7。
+
+## Session Extract — 病种集重梳 · T2(2026-11-09)
+
+- **T2 已落**:`DiseaseRegistryEntry` 增 `MinSkillLevel` / `TeachPoint`;cooked schema 2 → 3
+  (行尾追加两字段;产物 4171 → 4299 B);`DiseaseRegistryDataSet` 增 `Diseases` / `Injuries`
+  两视图(装载期**分桶一次** —— 运行期消费方不再按 kind 写分支);`injuries` 侧加
+  「只收 `kind: injury`」硬门(**反向刻意不查**,收紧归 T4)。
+- **两列的值均未填**:`min_skill_level` 全 0、`teach_point` 全 null(内容/数值归用户)。
+- **判据**:`disease_registry_partition_test` **7 条**(分区不丢不重 · injuries 只收伤 ·
+  缺 kind 两侧拒 · 两字段往返 · 缺省 null · 值域 [0,60] · 空串拒)。
+- **回归**:EditMode `7178/7141/0/37`(+7)· PlayMode `370/366/0/2/2` @ `2026-11-09T06:27Z` · `027b065d`+工作树。
+  定向:drift 47/47 · pipeline 32/32 · cost 34/34。
+- **夹具连带**:既有 4 处 `schema_version` 字面量与 14 处 `.Replace("\"schema_version\": 2"…)` 同步改 3
+  (后者不改会让「版本不匹配」与 trend 窗口三条测试**静默失效** —— 实测撞到)。
+- 证据:`production/qa/evidence/impl-t2-registry-views-and-columns-2026-11-09.md`。
+- **未做**:T3(技法解锁权威载体 ADR)· T4(抽取接线)· T5(钩子病例)· T6(手册缺页)· T7(补数据)。
+
+## Session Extract — 病种集重梳 · T3(ADR-043 技法解锁载体,2026-11-09)
+
+- **ADR-043 已落并转 Accepted**(用户「按你的，M1–M7 实现」⇒ Q1/Q2/Q3 全按起草倾向):
+  写者 = **30** · 技法 id = **处置轴 action id**(零新表) · 起步集 = **空流一次性写入**。
+- **两处既有口径被显式改判**:① `systems-index.md:827` H1 ③「非物品能力不设解锁门」→ 设奇遇门;
+  ② `skill-system.md:232`「给技能加门亦违法」→ **收窄到 19 项技能**(技法不是技能),已补边界注。
+- **M1–M7 全部落盘**:registry 条目 · `EventKind` 追加(末尾,零位移)· kindgen(39 支 17/5/17)·
+  Payload/Emitter/Codec/Encoder · `ITechniqueUnlockQuery` + 流折叠投影 · 写者(闭集 + 去重)·
+  空流起步集(BootRoot 4.4a)。连带:`HistoryFolder.Erase` 显式豁免 · `ADR-010` 义务 16。
+- **判据**:`technique_unlock_test` **10 条**;黄金字节两条仍绿(追加未位移既有 enum 值)。
+- **回归**:EditMode `7188/7151/0/37`(+10)· PlayMode `370/366/0/2/2` @ `2026-11-09T09:13Z` · `027b065d`+工作树。
+- **实现期三处订正(已回写 ADR)**:发射器 3 参(非 4 参)· 闭集校验在写者侧(Sim.Contracts 不读数据)·
+  支数字面量的测试字号面是 3 个不是 2 个。V-8 仍 `NOT-RUN`(归 T4)。
+- 证据:`production/qa/evidence/impl-adr043-technique-unlock-2026-11-09.md`。

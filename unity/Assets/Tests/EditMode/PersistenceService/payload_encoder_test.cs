@@ -159,18 +159,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_ac2904_dispatchCovers36Kinds()
         {
-            Assert.AreEqual(36, EncodableKinds.Length,
-                "可编码 Kind 须恰 36 支(38 总 − 2 Judgment;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset)");
+            Assert.AreEqual(37, EncodableKinds.Length,
+                "可编码 Kind 须恰 37 支(39 总 − 2 Judgment;2026-10-30 ADR-035 起 37→38;2026-11-09 ADR-043 起 38→39:加 TechniqueUnlocked)");
 
             // 与 PayloadCodec 的具名 Encode 重载集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Encode" && !m.IsGenericMethodDefinition)
                 .ToList();
 
-            // 36 支单参重载 + 2 支双参(Judgment)重载 = 38
+            // 37 支单参重载 + 2 支双参(Judgment)重载 = 39
             int singleArg = named.Count(m => m.GetParameters().Length == 1);
             int doubleArg = named.Count(m => m.GetParameters().Length == 2);
-            Assert.AreEqual(36, singleArg, "单参具名 Encode 重载须恰 36");
+            Assert.AreEqual(37, singleArg, "单参具名 Encode 重载须恰 37");
             Assert.AreEqual(2, doubleArg, "双参(Judgment)具名 Encode 重载须恰 2");
         }
 

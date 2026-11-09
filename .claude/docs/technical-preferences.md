@@ -1307,7 +1307,33 @@
   `accessibility-requirements.md`;用户指令「真包截图看实际效果再调整」⇒ 字号可能回调。
   Engine Knowledge Risk **LOW**(纯 BCL 字节布局与时间转换,零 post-cutoff API)。
 
-> **本日志状态**:全部 ADR(001–**042**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+- [ADR-043 ✅ **Accepted** 2026-11-09]**技法解锁状态的权威载体(`TechniqueUnlocked`)** ——
+  `docs/architecture/adr-043-technique-unlock-kind.md`。**H1 ③ 的改判件**(原裁「非物品能力 → 30 熟练度,
+  **不设解锁门**」)。用户 2026-11-09 裁定「技能的开启需要剧情的奇遇或者 boss 关卡事件」+
+  「按你的,M1–M7 实现」⇒ Q1/Q2/Q3 全按起草倾向。
+  **D1** 新病史流 Kind `TechniqueUnlocked`(枚举**追加区末尾**,既有成员值零位移);
+  **D2** 写者 = **30**(承 H1 ③ 的归属,只改「不设门」那半句);**D3** 入口
+  `TechniqueUnlockEmitter.EmitUnlock(actor, technique, source)`(纯载荷构造,不 Append);
+  **D4** 载荷 `(actor_id, technique_id, source_id)` 全 i32、**无 tick / 无 seq / 无 patient_id**;
+  **D5** 技法 id = **处置轴 `disease_action_axis.json` 的 action id**(零新表、零新 id 空间);
+  **D6** 同一 `(actor, technique)` 至多一条,重复授予 **no-op**;
+  **D7** `ITechniqueUnlockQuery` 住 `Sim.Contracts`,实装 = 病史流折叠投影(O(n),不加缓存);
+  **D8** 不参与 7a 折叠、不独立快照(与 `SkillGrown` 同一豁免;`ADR-010 §三` **义务 16**);
+  **D9** 起步集 = **空流一次性写入**(不做数据里的 `starting` 标志 —— 那是第二真源);
+  **D10** 有界性 `|actors| × |techniques|`,单调只增。
+  **两处既有口径被显式改判**:① `systems-index.md:827` H1 ③「不设解锁门」→ 设奇遇门;
+  ② `skill-system.md:232`「给技能加门亦违法」→ **适用范围收窄到 19 项技能**(技法不是技能,
+  已在该文件补边界注)。**本件不新增技能、不改 30 的 19 项表。**
+  **实现落盘(M1–M7)**:`entities.yaml` 新条目 · `EventKind` 追加 · kindgen(39 支,17/5/17)·
+  `TechniqueUnlockedPayload` + Emitter + PayloadCodec/Encoder 重载 · `ITechniqueUnlockQuery` +
+  `TechniqueUnlockProjection` · `TechniqueUnlockWriter`(闭集门 + 去重) ·
+  `TechniqueUnlockBootstrap`(BootRoot 第 4.4a 步)。**支数字面量 38 → 39 共 7 处生产码 +
+  2 个测试探针键同批改**(承 `TD-persist-11` 教训)。
+  判据:新夹具 `technique_unlock_test` **10 条**;黄金字节夹具(`SimCodecRoundtripTest` /
+  `DeterminismGoldenFixturesTest`)仍全绿 ⇒ 追加未位移既有 enum 值。
+  Engine Knowledge Risk **LOW**(纯事件边界与装配,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**043**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > **ADR-040 于 2026-11-04 以 `Proposed` 入册,同日实现轮转 `Accepted`**;**ADR-041 于 2026-11-04 起草即 Accepted**)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
