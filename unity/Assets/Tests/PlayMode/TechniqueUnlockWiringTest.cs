@@ -40,8 +40,11 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            var player = GameObject.Find("Player");
-            if (player != null) UnityEngine.Object.Destroy(player);
+            // ⚠️ 不能用 `GameObject.Find` —— 它只查 active 对象,而启动序会把预摆件
+            //    `SetActive(false)` ⇒ 清场静默失效 ⇒ 同名件跨测累积(assembly gate `pm-teardown-find`)。
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<GameObject>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (stale.name == "Player") UnityEngine.Object.Destroy(stale);
 
             AsyncOperationHandle<SceneInstance> handle = default;
             bool valid = false;

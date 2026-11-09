@@ -1059,6 +1059,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                 .CasebookCameraRequester(() => _cameraRig);
             _uiDriver.CasebookCameraRequest = _casebookCameraRequester.Request;
 
+            // ── 6.1c 手册近景的内容宿主(T10 · 2026-11-09)─────────────────────────
+            //   补三处零消费者:`PaperCloseupScreen.Bind` · `SetMissingPaperIds` ·
+            //   `TutorialPaperMissing.Compute` —— T6 会画、T8 会判、48 有表,三件之间
+            //   此前**没有任何一根线**。本段把那条线接上。
+            //   内容表取**教学链那一个实例**(`TutorialChainSeams.Content`),不另装载 ——
+            //   同一张表两条来路迟早分叉。
+            //   ⚠️ 教学链未装配(无 data provider / 无音频字幕口 ⇒ `TutorialSeams == null`)⇒
+            //      宿主不建,`PaperCloseups` 留 null。语义 = **本局没有手册内容**,不是「宿主坏了」。
+            //   ⚠️ **今日零生产调用方**:「走近摊纸」的世界交互(4 + 关卡)不存在 ⇒
+            //      玩家打不开这本手册。装配就位 ≠ 可达(承 ADR-044 §D7 同款口径)。
+            if (_services.TutorialSeams != null && _services.TechniqueUnlocks != null)
+            {
+                _services.PaperCloseups = new PaperCloseupPresenter(
+                    _services.TutorialSeams.Content.Papers,
+                    _services.TechniqueUnlocks,
+                    () => _playerActorId);
+            }
+
             // ── 6.2 存档位载入接线(2026-10-31 · TD-persist-04 裁定②「通电待信」的收尾)──
             // 病因:`RequestLoad` 今日零调用方 ⇒ AC-7a-14 的比对执行体与 ADR-037 的逐表归因
             // **全部**停在「读档路径一旦被调用」这一层,从未有过生产可达性。

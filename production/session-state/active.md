@@ -17684,3 +17684,30 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **只交管道,不交水**:今日零规则 ⇒ 零扫描零写入。补第一行**不需要改任何代码**。
   值域词表(`poi_id` / `event_key` / `disease_id`)今日**无机械门**兜 —— 开始填之前应各补一道。
 - 证据:`production/qa/evidence/impl-t9-technique-unlock-trigger-2026-11-09.md`。
+
+## Session Extract — 手册近景的内容宿主 · T10(2026-11-09)
+
+- **用户裁定「按甲」** —— 三候选里唯一不需要新裁法则的一条(R2 三条反馈的第二条:缺页可见)。
+- **补的断点(三处零消费者)**:`PaperCloseupScreen.Bind` · `SetMissingPaperIds` ·
+  `TutorialPaperMissing.Compute`;且 `ModalId.PaperCloseup48` **没有任何东西打开它**。
+  T6 会画、T8 会判、48 有表 —— 三件之间此前没有一根线。
+- **形状**:`PaperCloseupPresenter`(Gameplay.Boot)—— `Build()` 现算快照(纸条目 + 缺页 id 集)·
+  `TryPresent(ui)` **先算后开**(算会抛,先开会留玩家看一本白纸)再喂屏。
+  装配在 `BootRoot` 第 **6.1c** 步(`_uiDriver` 已建之后)。
+- **单一判据源**:钩子病例的 `PatientDrawDecision.MissingTechniques` **不接进来** ——
+  它是缺页集的**子集**(没解锁的技法若有教学页,那页必缺)。接两个源 = 同一事实两个口径。
+  「指出**哪一门**」的高亮今日无呈现载体(缺页态是二值撕口)⇒ 未做,不造第三种状态。
+- **同一个实例**:`TutorialChainSeams.Content` 新开公开读面 —— 手册近景与教学链读同一张 48 表。
+- **新夹具**:EditMode `paper_closeup_presenter_test` **11 条** · PlayMode
+  `PaperCloseupWiringTest` **1 条**(五段:宿主非空 / 开屏 / 已绑定 / 缺页集一致 / 渲染面消费)。
+- **回归**:EditMode `7296/7259/0/0/37`(+11)· PlayMode `373/368/0/2/3`(+1)
+  @ `2026-11-09T15:58:38Z` / `15:59:54Z` · `153c4ce6` + 工作树。
+- ⚠️ **首轮 2 红 = 门抓到 T9 的一个遗留**(不是门太严,是**时间窗**):
+  `pm-teardown-find` 点名 `PaperCloseupWiringTest.cs:51` 与 **`TechniqueUnlockWiringTest.cs:43`**
+  —— 后者写于 T9 的 EditMode 全量跑**之后**(14:38 vs 14:35),而 T9 那批只跑了 PlayMode
+  ⇒ 已入库(`153c4ce6`)的文件带着违例,第一次被全量 EditMode 扫到在本轮。
+  **教训**:PlayMode 夹具写完只跑 PlayMode 是个缺口 —— 静态门的扫描面覆盖 PlayMode 树,
+  但只有 EditMode 套件会跑它。两份均已改 `FindObjectsByType(Include)`,未放宽门。
+- ⚠️ **只交宿主,不交可达**:「走近摊纸」的世界交互(4 + 关卡)不存在 ⇒ 玩家打不开这本手册;
+  `teachTechnique` 全库一处未填 ⇒ 缺页集恒空。
+- 证据:`production/qa/evidence/impl-t10-paper-closeup-host-2026-11-09.md`。

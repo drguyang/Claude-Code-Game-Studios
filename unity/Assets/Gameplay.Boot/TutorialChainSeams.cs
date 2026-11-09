@@ -47,6 +47,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>`archive` 步的回执缝是否已接(`false` ⇒ 该步永不完结)。</summary>
         public bool CheckpointWritable => _checkpointWritten != null;
 
+        /// <summary>
+        /// 48 内容表**本身**(T10 · 2026-11-09)。
+        /// <para>为什么公开:手册近景(42 的 `PaperCloseup48`)要读同一张 `papers[]`,
+        /// 而它的宿主住 `Gameplay.Boot`。若宿主另走一条装载路径,同一张表就有两条来路
+        /// —— 一条烘焙产物、一条随便什么,迟早分叉。本属性让**同一个实例**被两个消费者读。</para>
+        /// <para>⚠️ 只读语义:调用方不得改表(表是不可变解码产物)。</para>
+        /// </summary>
+        public TutorialContentTable Content => _content;
+
         /// <summary>内容表(`internal` —— 仅供同程序集的走查仪表复查口述清单)。</summary>
         internal TutorialContentTable ContentForDiagnostics => _content;
 

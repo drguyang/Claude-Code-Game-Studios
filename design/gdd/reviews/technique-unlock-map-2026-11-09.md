@@ -291,6 +291,22 @@
 > 零行的 baked artifact 要动六处去运一张空表,而「表是空的」与「表没装上」运行期不可区分。
 > **升级路径是一个缝**:驱动只认 `IReadOnlyList<TechniqueUnlockRule>`,将来外部化换来源即可。
 
+| **T10** | 手册近景的**内容宿主**(缺页 → 屏;「缺页可见」) | 缺页判据接到屏上 · 换 actor 换集合 · 零缓存 |
+
+> **✅ T10 已落(2026-11-09 · 用户裁定「按甲」)** —— R2 三条反馈的第二条(缺页可见)。
+> **补的断点(三处零消费者)**:`PaperCloseupScreen.Bind` · `SetMissingPaperIds` ·
+> `TutorialPaperMissing.Compute` —— T6 会画、T8 会判、48 有表,**三件之间没有任何一根线**;
+> 且 `ModalId.PaperCloseup48` **没有任何东西打开它**。
+> **形状**:`PaperCloseupPresenter`(`Gameplay.Boot`)—— `Build()` 现算快照(纸条目 + 缺页 id 集),
+> `TryPresent(ui)` 先算后开(算会抛,先开会留玩家看一本白纸)再喂屏。装配在 `BootRoot` 第 6.1c 步。
+> **单一判据源**:钩子病例的 `PatientDrawDecision.MissingTechniques` **不接进来** ——
+> 它是缺页集的**子集**(没解锁的技法若有教学页,那页必缺),接两个源 = 同一事实两个口径。
+> 「指出**哪一门**」的高亮今日无呈现载体(屏的缺页态是二值撕口),登记为未做,不造第三种状态。
+> **同一个实例**:`TutorialChainSeams.Content` 新开公开读面 —— 手册近景与教学链读**同一张** 48 表,
+> 不另装载(同一份数据两条来路迟早分叉)。
+> ⚠️ **仍不交可见行为**:「走近摊纸」的世界交互(4 + 关卡)不存在 ⇒ 玩家打不开这本手册;
+> 且 `teachTechnique` 全库一处未填 ⇒ 缺页集恒空。**宿主就位 ≠ 可达**,承 ADR-044 §D7 口径。
+
 ---
 
 ## 8. 风险

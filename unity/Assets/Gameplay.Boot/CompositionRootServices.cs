@@ -68,6 +68,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 起步集调用同格)。<c>null</c> = 未装配。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockDriver TechniqueUnlockDriver { get; internal set; }
 
+        /// <summary>手册近景(42 的 `PaperCloseup48`)的**内容宿主**(T10 · 2026-11-09)。
+        /// <para>算缺页 → 开屏 → 喂屏(`PaperCloseupPresenter.TryPresent`)。</para>
+        /// <para>⚠️ 今日**零生产调用方**:「走近摊纸」的世界交互(4 的交互点 + 关卡布置)
+        /// 尚未存在 ⇒ 玩家打不开这本手册。装配就位 ≠ 可达,承 ADR-044 §D7 同款口径。</para>
+        /// <para><c>null</c> = 未装配(无 48 内容表 / 未装 UI)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.PaperCloseupPresenter PaperCloseups { get; internal set; }
+
         /// <summary>钩子病例的收场写者端口(2026-11-09 · ADR-044 §D2/§D6)。
         /// <para>这是**唯一**能写 `CaseReferred` 的对象;42 的转诊交互 / 剧本经它请求。</para>
         /// <para>⚠️ 本轮**没有生产调用方**(ADR-044 §D7 如实登记)—— 宿主未建之前不得
