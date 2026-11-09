@@ -6,7 +6,8 @@
 //
 // 本文件要证明的四件事:
 //   ① **两侧不丢不重** —— `Rows` 恰 = `Diseases ∪ Injuries`,且两侧无交;
-//   ② **`Injuries` 只收伤** —— 把病行放进 `injuries` ⇒ 构建期拒收(放错侧是静默错位);
+//   ② **两侧只收自己那侧** —— 病行进 `injuries` / 伤行进 `diseases` 均构建期拒收
+//      (放错侧是静默错位;反向是 2026-11-09 T4 收紧的,原文只写单向);
 //   ③ **缺 `kind` 仍被拒**(T1 前既有行为,此处置为回归锚);
 //   ④ **两个新字段真的进字节** —— `min_skill_level` / `teach_point` 往返后逐值相等;
 //      且越界 / 空串各自被拒(否则「字段存在」与「字段被校验」无法区分)。
@@ -114,6 +115,23 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 () => DiseaseRegistryBaker.BakeFromJson(bad));
             Assert.That(ex.Message, Does.Contain("injuries"),
                 "报文须点名是 `injuries` 数组放错侧(否则读者会去查 diseases):" + ex.Message);
+        }
+
+        /// <summary>
+        /// 反向(**T4 起收紧**):把伤行放进 `diseases` ⇒ 同样构建期拒收。
+        /// <para><b>判别力</b>:删掉 `BindRows` 里的 `else if (… kind == Injury)` 分支 ⇒
+        /// 本条转绿(不再抛),暴露「伤行留在病侧静默通过」—— 那是 T2 当时**刻意留的**
+        /// 口子(T2 的判据只写单向),T4 的投放门以 `Rows` 为候选面,故必须双向。</para>
+        /// </summary>
+        [Test]
+        public void test_diseasesArray_withInjuryKind_isRejected()
+        {
+            string bad = Doc(Row(31, "INJ_WRONG_SIDE", "injury"), Row(7, "DIS_A", "disease"));
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBaker.BakeFromJson(bad));
+            Assert.That(ex.Message, Does.Contain("diseases"),
+                "报文须点名是 `diseases` 数组放错侧:" + ex.Message);
         }
 
         /// <summary>缺 <c>kind</c> ⇒ 仍被拒(T1 前的既有行为,这里是回归锚)。</summary>

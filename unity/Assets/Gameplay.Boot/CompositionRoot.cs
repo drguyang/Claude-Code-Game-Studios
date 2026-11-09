@@ -287,6 +287,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    回退枚举影子 + 离牌门恒放行,与接线前**逐位相同**。
             System.Collections.Generic.ISet<int> emergencyActionAxis = null;
             ITreatableByLookup treatableBy = null;
+            // 2026-11-09(T4):`treatable_by` 的**反向**索引 —— 病例投放的技法门要用
+            //   「这个病种有哪些技法能治」,而 `ITreatableByLookup` 只提供正向查询。
+            //   null = 未接线(无 provider)⇒ 投放门判 `NotWired` 并放行(见 `PatientDrawEligibility`)。
+            TechniqueDrawIndex techniqueDrawIndex = null;
             // 2026-11-09(ADR-043 §D5):技法 id 闭集 = 处置轴的全部 action id(10 + 11 两侧)。
             //   ⚠️ 与 emergencyActionAxis(**只** owner=10)不同:解锁对象包含处方动作。
             //   null = 未接线(无 provider)⇒ 写者侧跳过闭集校验(与 emergencyActionAxis 回退同口径)。
@@ -310,6 +314,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //   ⚠️ `axis.TreatableBy` 为 null ⇒ 构造函数 fail-loud(空表 = 「所有处置
                 //      都不可用」,与「未接线」不是同一状态;静默降级会把数据缺失伪装成设计)。
                 treatableBy = new DiseaseActionAxisTreatableByLookup(axis);
+
+                // 反向索引(T4):同一份轴行集,不产生第二真源 —— 两件各自只做自己的形状。
+                // ⚠️ `axis.TreatableBy` 为 null 时**上面那行已经抛了**(构造函数 fail-loud),
+                //    本行天然拿不到 null;此处不再重复判。
+                techniqueDrawIndex = new TechniqueDrawIndex(axis.TreatableBy);
             }
 
             // ── 体征链核心(批次 C):apply 驱动 + 投影桥 + IVitalsQuery 生产实装 ──
@@ -468,8 +477,44 @@ namespace DaYiJingCheng.Gameplay.Boot
                     $"Assemble: patientRegistryIndexOverride={registryIndex} 越界 —— " +
                     $"注册表只有 {resolvedRegistry.Count} 条(索引须 ∈ [0, {resolvedRegistry.Count - 1}])。" +
                     "静默钳位会让「设了 N 但听的是别的」成为静默故障");
+            // ── 病人投放资格(T4 · 2026-11-09)─────────────────────────────────
+            // 两路出生(本驱动 + 52 的 `spawnPatient`)共用**同一份**判据 —— 出处是
+            // `PatientDrawEligibility`(纯函数),不在两处各写一遍(同 `EventPoolPatientSpawner`
+            // 头注的「自造断言顶替 AC 语义层」理由:内联判据无法被夹具直接执行)。
+            //
+            // ⚠️ 玩家 id 的迟绑定槽**必须在这里建**:门要按玩家算「他会哪几招」,而玩家要到
+            //    `BootRoot` 第 4 步才铸造 ⇒ 只能先出槽、后 `Bind`。与 F1 上下文闭包共用
+            //    **同一个**实例(原声明点在 F1 段,本处前移;纯 `new`,无副作用)。
+            var playerActor = new PlayerActorBinding();
+            // ⚠️ 解锁查询同理:它的构造在下方 30 的装配段(晚于本驱动)。闭包在**调用时**读,
+            //    故此处只留变量位 —— 装配完成前没有 tick,不会被求值。
+            ITechniqueUnlockQuery techniqueUnlockQuery = null;
+
+            // P0 的「处方用药」等级 = 装配常量 0。与 `AssemblySkillGrowthPort` 的构造实参
+            // 共用本常量(见下方其构造点)—— 两处各写一个 `0` 就是两个可各自漂移的定义点。
+            // 真等级归 30 实装;本行不越界到 30 的生产契约(`ISkillLevelQuery.QueryLevel`
+            // 仍是唯一真等级来源,见 `CompositionRoot.cs` 诊断段的同款声明)。
+            const int P0PrescriptionLevel = 0;
+
+            Func<int, bool> isTechniqueUnlockedForPlayer = techniqueId =>
+                playerActor.IsBound
+                && techniqueUnlockQuery != null
+                && techniqueUnlockQuery.IsUnlocked(playerActor.ActorId, techniqueId);
+
+            Func<DiseaseRegistryEntry, bool> admitEntry = row =>
+                PatientDrawEligibility.Decide(
+                    row, techniqueDrawIndex, P0PrescriptionLevel,
+                    isTechniqueUnlockedForPlayer, playerActor.IsBound).Admitted;
+
+            // 52 路径按**病种 id** 判(池表只给外键)。查不到的 id ⇒ 不拦:
+            // 那不是投放门能判的对象,而下游 9 的「病种不在注册表内」fail-loud 会接手。
+            Func<int, bool> isDiseaseAdmissible = diseaseId =>
+                !registryById.TryGetValue(diseaseId, out DiseaseRegistryEntry candidate)
+                || admitEntry(candidate);
+
             var patientDriver = new PatientAppearedDriver(
-                spawner, presence, resolvedRegistry, registryIndex: registryIndex);
+                spawner, presence, resolvedRegistry, registryIndex: registryIndex,
+                admit: admitEntry);
 
             // ── 病例开账写者 + 驱动(sprint-05 T1.2;🔁 2026-11-02 改为玩家动作驱动)──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
@@ -668,10 +713,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             var clinicCells = new ClinicCellSource();
 
             // ── 🔁 2026-11-05(`TD-randomevents-05`):F1 上下文闭包的两项迟绑定输入 ──────
-            // ① 玩家 actorId —— 装配期还不存在(`BootRoot` 后置生成玩家后才 `BindPlayer`),
-            //    而 F1 闭包此刻就要建 ⇒ 经 `PlayerActorBinding` 单槽读(与 `ClinicCellSource.Bind`
-            //    同款迟绑定,不是新机制)。`RandomEventsDirectorDriver.BindPlayer` 同批写它。
-            var playerActor = new PlayerActorBinding();
+            // ① 玩家 actorId —— 迟绑定槽 `playerActor` 已于**上方 T4 的投放资格段**构造
+            //    (本段必须与投放门共用同一个实例;两处各 `new` 一份 = 两个真源)。
+            //    `BootRoot` 后置生成玩家后才 `BindPlayer`,闭包在此刻只读。
             // ② 出诊类 event_key 集 —— **从池表派生**(`TD-randomevents-06`,2026-11-05)。
             //    改前是硬编码 `Array.Empty<int>()` ⇒ `ActiveHouseCallQuery` 恒假 ⇒
             //    `isOnExpedition` 恒假。现在成员身份写在 `52_event_pool.json` 的
@@ -764,10 +808,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 池里 `encounter`(27 人形遭遇 / 野兽)不产病人,`medical`(37 病例模板)才产。
                     // 改前是**无条件**调 `spawnPatient` ⇒ 遭遇条目也会撞上那道刻意抛。
                     requiresPatient: EventPoolPatientSpawner.RequiresPatient(eventPool),
-                    // 「这条能不能产病人」= 池表里有病种外键(> 0)。
+                    // 「这条能不能产病人」= 池表里有病种外键(> 0)**且**该病种此刻通过投放资格。
                     // 🔁 改前是 `_ => false`(映射表不存在的诚实值)⇒ 医疗条目恒
                     //    `PatientSpawnUnavailable` ⇒ 端到端零写入。
-                    canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(eventPool));
+                    // 🔁 2026-11-09(T4):第二道判据 = `isDiseaseAdmissible`(与病人出现驱动
+                    //    **同一份** `PatientDrawEligibility`)。
+                    canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(
+                        eventPool, isDiseaseAdmissible));
             }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(
@@ -1729,7 +1776,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             var drugCatalog = new MinimalDrugCatalog();                 // 21a 最小换算表
             var portionsStore = new MinimalPortionsStore();            // 20 最小库存面
-            var skillGrowthPort = new AssemblySkillGrowthPort(stream, encoder, prescriptionLevel: 0);
+            var skillGrowthPort = new AssemblySkillGrowthPort(stream, encoder,
+                prescriptionLevel: P0PrescriptionLevel);
             // 2026-10-30(ADR-035 §①B):把体征查询接给 11 的禁忌判据。
             // ⚠️ 必须经 `VitalsQueryOrNone` 包装 —— `DiseaseVitalsService.GetVitals` 对**无病程**的病人
             //    抛 `PatientCourseNotFoundException`,而「在场」不等于「有病程」;
@@ -2195,7 +2243,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   查询 = 病史流折叠;写者 = 唯一 Append 落点(去重 + 闭集 + 编码)。
             //   ⚠️ 起步集写入**不在这里** —— 玩家 id 要到 BootRoot 第 4 步才铸造
             //      (`_playerActorId`),故 `TechniqueUnlockBootstrap.Ensure` 在那边调用。
-            var techniqueUnlockQuery = new TechniqueUnlockProjection(() => stream.Events, decoder);
+            techniqueUnlockQuery = new TechniqueUnlockProjection(() => stream.Events, decoder);
             services.TechniqueUnlocks = techniqueUnlockQuery;
             services.TechniqueUnlockWriter = new TechniqueUnlockWriter(
                 stream, encoder, techniqueUnlockQuery, knownTechniqueIds);

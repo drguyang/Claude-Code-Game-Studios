@@ -37,9 +37,15 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Path.Combine(RepoRoot(), "assets", "data", "disease_registry.json");
 
         /// <summary>取一份**最小合法**源文本(单行 injury),供注入测试改写。</summary>
+        /// <remarks>
+        /// 🔁 2026-11-09(T4):伤行由 `diseases` 搬到 `injuries`,`diseases` 留空数组。
+        /// 病因 = 分区门**双向收紧**了(伤行留在病侧现在是硬失败)—— 本条夹具原本是
+        /// 拆表前的合法形态,现在不再是。行内容一字未改,只换顶层键。
+        /// </remarks>
         private static string MinimalJson() => @"{
   ""schema_version"": 3,
-  ""diseases"": [
+  ""diseases"": [],
+  ""injuries"": [
     {
       ""id"": 2,
       ""key"": ""INJ_PROBE"",

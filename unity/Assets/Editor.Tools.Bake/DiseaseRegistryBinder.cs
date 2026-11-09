@@ -296,8 +296,12 @@ namespace DaYiJingCheng.EditorTools.Bake
                 // ── 分区一致性(2026-11-09 T2)──
                 //   `injuries` 的契约 = 只装伤。放错侧 = 伤情/病种口径**静默错位**
                 //   (病人池会抽到伤、伤情结算会读到病),故硬失败。
-                //   ⚠️ 反向(伤行留在 `diseases`)本步**刻意不查**:那是拆表前的合法形态,
-                //      既有合成源仍用它;等 T4 抽取接线时再收紧。
+                //   ⚠️ 反向(伤行留在 `diseases`)2026-11-09 **T4 起也查**(原注「等 T4 抽取接线
+                //      时再收紧」已兑现):投放门的候选面就是 `Rows`,伤行留在病侧会让
+                //      「病人池抽到伤情」与「病种口径」静默混流。
+                //      当年留它的唯一理由是「既有合成源仍用拆表前的形态」—— 实测全仓
+                //      **零处**合成源把 `kind: injury` 写在 `diseases` 里,
+                //      故收紧零回归(唯一改动的夹具是 `MinimalJson`,已同步搬到 `injuries`)。
                 //   ⚠️ `Unspecified` 不重复报 —— 缺 `kind` / 非法值已由 `ReadKind` 记错。
                 if (string.Equals(arrayKey, InjuryArrayKey, StringComparison.Ordinal)
                     && e.Kind != DiseaseKind.Injury
@@ -305,6 +309,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                     errors.Add(
                         $"{arrayKey}[{i}] kind={e.Kind} —— `injuries` 数组只收 `kind: injury` 的行" +
                         "(放错侧会让伤情与病种口径静默错位)");
+                else if (!string.Equals(arrayKey, InjuryArrayKey, StringComparison.Ordinal)
+                         && e.Kind == DiseaseKind.Injury)
+                    errors.Add(
+                        $"{arrayKey}[{i}] kind={e.Kind} —— `diseases` 数组不收 `kind: injury` 的行" +
+                        "(伤情归 `injuries`;放错侧同样是口径静默错位)");
 
                 rows.Add(e);
             }

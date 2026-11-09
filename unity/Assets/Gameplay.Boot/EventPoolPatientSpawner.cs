@@ -36,10 +36,23 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>「这条**能不能**产病人」——池表给了病种外键才可以。</summary>
-        public static Func<int, bool> CanSpawnPatient(EventPoolDataSet pool)
+        /// <param name="pool">池表数据集。</param>
+        /// <param name="isDiseaseAdmissible">投放资格(T4 · `PatientDrawEligibility.Decide` 的
+        /// `Admitted` 位,按病种 id 求值)。<c>null</c> = 未接线 ⇒ 不拦
+        /// (与 `ITreatableByLookup` 的 null 语义同源)。
+        /// <para>⚠️ 与 `<c>disease_id &gt; 0</c>` 是**两道独立判据**,不合并:
+        /// 前者问「这条池条目有没有指定病种」,后者问「那个病种此刻能不能投放」。
+        /// 合并后「池表漏填外键」与「技法未解锁」会有同一个返回值,归因就断了。</para></param>
+        public static Func<int, bool> CanSpawnPatient(EventPoolDataSet pool,
+                                                      Func<int, bool> isDiseaseAdmissible = null)
         {
             if (pool.Entries == null) throw new ArgumentNullException(nameof(pool));
-            return key => pool.DiseaseIdOfKey(key) > 0;
+            return key =>
+            {
+                int diseaseId = pool.DiseaseIdOfKey(key);
+                if (diseaseId <= 0) return false;
+                return isDiseaseAdmissible == null || isDiseaseAdmissible(diseaseId);
+            };
         }
 
         /// <summary>产病人:按池表外键取病种 → 创建 → **登记在场**。</summary>

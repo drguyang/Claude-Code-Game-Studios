@@ -17531,3 +17531,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **实现期三处订正(已回写 ADR)**:发射器 3 参(非 4 参)· 闭集校验在写者侧(Sim.Contracts 不读数据)·
   支数字面量的测试字号面是 3 个不是 2 个。V-8 仍 `NOT-RUN`(归 T4)。
 - 证据:`production/qa/evidence/impl-adr043-technique-unlock-2026-11-09.md`。
+
+## Session Extract — 病种集重梳 · T4(病人投放资格:技法门硬 + 等级门软,2026-11-09)
+
+- **判据 = 纯函数** `PatientDrawEligibility.Decide`(住 `Gameplay.Boot`;装配与夹具单一出处)。
+  七值判定:`Admissible` / `HookCase` / `Undeclared` / `NoUnlockedTechnique` / `LevelTooLow` /
+  `PlayerNotReady` / `NotWired`。
+- **反向索引** `TechniqueDrawIndex`:病种 key → 能治它的技法 id 集。
+  `ITreatableByLookup` 只有正向查询(`(病种,处置) → 极性`),投放门要的是「这个病种有哪些技法」。
+- **三态而不是两态(本件最关键判断)**:声明且未解锁 ⇒ **拒**(今日实测 7 个 `DIS_*` 真被拒);
+  轴里没覆盖 ⇒ **放行并计数**。严格两态会让「世界没病人」变成**静默**的设计结论 ——
+  今日伤情 7 行在 `treatable_by` 里零命中,而 9 个 `DIS_*` 的技法 10/11/12 又都不在起步集 `{0,1}`。
+- **两路共用同一份判据**:`PatientAppearedDriver`(驱动,按行)+ `EventPoolPatientSpawner.CanSpawnPatient`
+  (52,按病种 id)。`playerActor` 迟绑定槽前移到投放段(与 F1 上下文闭包同一实例);
+  `P0PrescriptionLevel = 0` 抽常量(与 `AssemblySkillGrowthPort` 共用)。
+- **连带**:分区门**双向化**(伤行进 `diseases` 现为构建期失败;清偿 T2 的「收紧归 T4」)——
+  `MinimalJson` 伤行搬到 `injuries`。
+- **判据**:`patient_draw_eligibility_test` **15 条** + 反向门负例 **1 条**。
+- **回归**:EditMode `7204/7167/0/37`(+16)· PlayMode `370/366/0/2/2` @ `2026-11-09T09:54:47Z` · `be3bf708`+工作树。
+- **首轮 1 红是我夹具期望值写错**(上限哨 2 人时两拍都投放同一个可用户者),只改断言不改实现。
+- **已知数据形状缺口**:**「作者态 `[]`」与「完全不写 key」在运行期不可区分**(`treatable_by` 只以行存在,
+  两者行集逐字节相同)⇒ 都落 `Undeclared`。要区分须让烘焙器另存一份「声明过但为空」的 key 集。
+  不影响核心判据(「声明了 N≥1 门且都没解锁」可表达)。
+- 证据:`production/qa/evidence/impl-t4-patient-draw-eligibility-2026-11-09.md`。
+- **未做**:T5(钩子病例判定与收场)· T6(手册缺页)· T7(补数据;伤情写进 `treatable_by` 后
+  「未覆盖」的 7 行会变真门)。`min_skill_level` 全 0 ⇒ 等级门的拒绝分支**只有夹具可达**。

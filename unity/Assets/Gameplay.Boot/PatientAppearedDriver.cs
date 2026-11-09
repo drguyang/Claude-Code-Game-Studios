@@ -23,6 +23,9 @@
 //        ⇒ 病名册恒 1 条词 ⇒ 「换词改判 / 旧笔同屏」在真包里**结构上不可达**
 //        (`[tutorialdiag] 病名册环 … seen=1`,两个病人各查一遍仍是 1)。
 //        真表 16 行时两名病人拿到两个不同病种;单行注册表(测试 fixture)退化为原行为。
+//   - 🔁 **2026-11-09(T4)**:轮转**先过投放资格**(`PatientDrawEligibility`:技法门硬 + 等级门软)。
+//     「未解锁的病例不出现」自此在**本驱动**上也成立 —— 改前它把整张注册表无差别轮转,
+//     `treatable_by` / `min_skill_level` 两列在生产里**零消费方**(列有值,没人看)。
 //   - 有界性:驱动**不**强制 PATIENT_APPEARANCE_CAP(24)—— 那是 9 的 sim 侧硬界
 //     (ADR-008 §六);本驱动只保证「按节奏出现」,超界由 sim 侧拒收(承 ADR-030 §有界性)。
 //     ⚠️ 但驱动**自己**守一个更小的接线期上限(见上),两者不冲突:24 是 sim 硬界,
@@ -68,21 +71,30 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private readonly PatientSpawner _spawner;
         private readonly IPresenceWriter _presence;
-        /// <summary>按出现序轮转的病种 id 序列(以 <c>registryIndex</c> 为起点)。
-        /// <para>第 n 个病人取 <c>_diseaseIds[n % _diseaseIds.Length]</c>。
-        /// 单条注册表 ⇒ 全部同一个(与轮转前逐位相同)。</para></summary>
-        private readonly int[] _diseaseIds;
+        /// <summary>按出现序轮转的注册表行(以 <c>registryIndex</c> 为起点)。
+        /// <para>扫到第一个**通过投放资格**的行即取它;单条注册表 ⇒ 全部同一个
+        /// (与轮转前逐位相同)。</para></summary>
+        private readonly DiseaseRegistryEntry[] _rotation;
+        /// <summary>投放资格谓词(T4)。<c>null</c> = 未接线 ⇒ 全部放行(与接线前逐位相同)。</summary>
+        private readonly Func<DiseaseRegistryEntry, bool> _admit;
+        /// <summary>下一轮从哪一格开始扫(落选时停在原位,由下一次重新扫)。</summary>
+        private int _rotationCursor;
         private long _lastSpawnTick = -1;
         private int _spawnedCount;
+        private bool _loggedNoAdmissible;
 
         /// <param name="spawner">病人创建器(9 的 DiseaseOnset 写者)。</param>
         /// <param name="presence">在场登记写面(spawn 后须登记,否则 EventStream 的 AC-15 拒收)。</param>
         /// <param name="registry">病种注册表(默认取第一个条目;空表 fail-loud)。</param>
         /// <param name="registryIndex">取第几条(2026-10-29 · `TD-listen-01` 的 L-3:听测专用病种 = 1)。
         /// 默认 0 ⇒ 与接线前**逐位相同**。</param>
+        /// <param name="admit">投放资格谓词(T4 · `PatientDrawEligibility`)。
+        /// <b><c>null</c> = 未接线 ⇒ 不拦</b>(与 `ITreatableByLookup` 的 null 语义同源;
+        /// 109 处既有夹具由此保持逐位不变)。</param>
         public PatientAppearedDriver(PatientSpawner spawner, IPresenceWriter presence,
                                       IReadOnlyList<DiseaseRegistryEntry> registry,
-                                      int registryIndex = 0)
+                                      int registryIndex = 0,
+                                      Func<DiseaseRegistryEntry, bool> admit = null)
         {
             _spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -96,9 +108,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     nameof(registryIndex), registryIndex,
                     $"registryIndex 须在 [0, {registry.Count}) —— 越界会取到不存在的病种");
             // 轮转序列 = 从 registryIndex 起绕一圈(整表参与,不只第一条)
-            _diseaseIds = new int[registry.Count];
+            _rotation = new DiseaseRegistryEntry[registry.Count];
             for (int i = 0; i < registry.Count; i++)
-                _diseaseIds[i] = registry[(registryIndex + i) % registry.Count].DiseaseId;
+                _rotation[i] = registry[(registryIndex + i) % registry.Count];
+            _admit = admit;
         }
 
         /// <summary>
@@ -126,7 +139,40 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    既互相重叠,也让「病人把灶台压住」这类走查无法判定。
             //    ⚠️ 真实位置仍归 6 世界生态区 + 13 病人 AI 的空间侧;本表是接线占位。
             // 🔁 2026-11-08:按出现序轮转病种(见文件头注的订正条)。
-            int diseaseId = _diseaseIds[_spawnedCount % _diseaseIds.Length];
+            // 🔁 2026-11-09(T4):轮转序列先过**投放资格**(技法门硬 + 等级门软)——
+            //    从游标起绕一圈取第一个通过者。全表落选 ⇒ 本拍**不产病人**
+            //    (那是「还没解锁」的正常态,不是错误:不抛、不写半条事件)。
+            //    ⚠️ `_admit == null` ⇒ 不拦,且取的格子与旧实现(`_spawnedCount % len`)
+            //       逐位相同 —— 109 处既有夹具因此零改动。
+            DiseaseRegistryEntry picked = null;
+            for (int k = 0; k < _rotation.Length; k++)
+            {
+                int idx = (_rotationCursor + k) % _rotation.Length;
+                DiseaseRegistryEntry candidate = _rotation[idx];
+                if (_admit == null || _admit(candidate))
+                {
+                    picked = candidate;
+                    _rotationCursor = (idx + 1) % _rotation.Length;
+                    break;
+                }
+            }
+            if (picked == null)
+            {
+                // 前推节奏哨:否则每帧重扫 + 日志刷屏。真解锁后下一次扫描自然能成,
+                // 故本分支**不**是终止态。
+                _lastSpawnTick = tick;
+                if (!_loggedNoAdmissible)
+                {
+                    _loggedNoAdmissible = true;
+                    if (WalkthroughDiagnostics.Enabled)
+                        UnityEngine.Debug.Log(
+                            $"[tutorialdiag] 病人池为空 —— {_rotation.Length} 条注册表行全部未通过投放资格" +
+                            "(技法未解锁 / 等级不足 / 数据未覆盖);解锁或补数据后自动恢复");
+                }
+                return;
+            }
+
+            int diseaseId = picked.DiseaseId;
             var patientId = _spawner.SpawnNext(diseaseId, tick);
 
             // 走查读数(仅 `-tutorialdiag`;默认零开销):回答「注册表有几条 / 第 n 个病人拿了哪个病种」。
@@ -135,7 +181,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (WalkthroughDiagnostics.Enabled)
                 UnityEngine.Debug.Log(
                     $"[tutorialdiag] 病人出现 #{_spawnedCount} id={patientId.Value} " +
-                    $"disease={diseaseId} 注册表={_diseaseIds.Length}");
+                    $"disease={diseaseId} 注册表={_rotation.Length}");
             _presence.AddPresent(patientId, PatientWiringPositions.CellFor(_spawnedCount));
             _lastSpawnTick = tick;
             _spawnedCount++;
