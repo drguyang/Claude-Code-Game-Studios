@@ -488,3 +488,25 @@
     border-left-width: var(--skeuo-shared-border-width);
     border-left-color: var(--skeuo-paper-border);
 }
+
+/* ── 缺页(T6 · 2026-11-09)──────────────────────────────────────────────
+   钩子病例的载体:这一页教的那一招玩家还不会 ⇒ 纸上只剩**标题**,
+   正文不显示,压一道斜向撕口。
+   ⚠️ 不引新贴图:承 ADR-013 §十-G Amendment F —— USS 贴图一律**相对路径**,
+      `url("guid:…")` 在 Unity 6.3 导入器里恒不解析。本类只用已有变量与纯色。
+   ⚠️ 这是「不存在」的呈现,不是灰按钮(承 AC-8-44 / campaign-arc.md:153)。 */
+.paper-missing {
+    background-image: none;
+    background-color: var(--skeuo-paper-bg-aged);
+}
+
+.paper-missing-mark {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--skeuo-paper-missing-mark-height);
+    rotate: -9deg;
+    background-color: var(--skeuo-paper-border);
+    opacity: 0.45;
+}

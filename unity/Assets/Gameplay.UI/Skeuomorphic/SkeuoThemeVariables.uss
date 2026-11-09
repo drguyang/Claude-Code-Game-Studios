@@ -141,6 +141,9 @@
     /* ── 记号(Marks)— 形状几何(尺寸走此族,非 shared-space)──
        ⚠️ 记号是**几何形状**非排版间距 ⇒ 不占 shared-space 语义位。 */
     --skeuo-marks-border-width: 1px;        /* 单折角线宽 */
+    /* T6 缺页撕口(T6 · 2026-11-09):一道斜线。**不内联字面量** ——
+       `SkeuoUssPolicy` 的 C4 判据要求尺寸走主题变量。 */
+    --skeuo-paper-missing-mark-height: 2px;
     --skeuo-marks-border-width-double: 2px; /* 双线角 / 双叠角线宽 */
     --skeuo-marks-dot-size: 4px;            /* 点(陈旧) */
     --skeuo-marks-dot-radius: 2px;

@@ -218,6 +218,20 @@
 > ⚠️ **写者零生产调用方**(玩家转诊交互不存在)⇒ **转诊功能不可用**,只交了载体。
 > ⚠️ **「章」在运行期不存在** ⇒ 接线恒章号 0,「每章 1 例」今日退化为**整局 1 例**(具名缺口)。
 | **T6** | 手册缺页元件(42/48) | 真包截图 |
+
+> **✅ T6 元件与状态已落(2026-11-09)**:`PaperCloseupScreen` 增缺页态 ——
+> `SetMissingPaperIds`(按**纸条目 id**,不按页序)+ `IsCurrentPageMissing`;
+> 缺页那张**只留标题**、正文不摆、纸面挂 `paper-missing` 并显出撕口
+> (`.paper-missing` / `.paper-missing-mark`,零新贴图;线宽走主题变量
+> `--skeuo-paper-missing-mark-height` —— 硬编码被 `SkeuoUssPolicy` 的 C4 判据当场抓到)。
+> 夹具 EditMode **+5 条**;回归 EditMode `7238/7201/0/37`(+5)· PlayMode `371/366/0/2/3`
+> (总数 +1 / 跳过 +1,通过数不变)`@ 2026-11-09T11:44:30Z`。
+> 证据 = `production/qa/evidence/impl-t6-paper-missing-2026-11-09.md`。
+> ⚠️ **真包截图 `NOT-RUN`**:`RenderTexture.Create` 在 batch 下失败,`ScreenCapture` 不触发 ⇒
+> 走查夹具在 batch 下 `Assert.Ignore`;须图形模式跑 `PaperMissingWalkthrough` 出
+> `unity/Logs/shots/paper_missing.png`,**机械绿不得当成截图已验收**。
+> ⚠️ **「哪一页缺」的数据绑定未做**(`TutorialPaperRow` 无 `teachTechnique`),与「谁调用
+> `SetMissingPaperIds`」同格 —— 宿主未建。
 | **T7** | 补三条数据(蛇毒行 / 破伤风治疗项 / 毛地黄金鸡纳奇遇) | drift 全绿 + 走查 |
 
 > ⚠️ **T3 不在任何现有 ADR 面内**:H1 的所有权只登记了「谁拥有」,没定「怎么存、怎么重建」。

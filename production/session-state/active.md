@@ -17591,3 +17591,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **写者零生产调用方**(玩家转诊交互不存在)⇒ **转诊功能不可用**,本轮只交载体。
 - 证据:`production/qa/evidence/impl-t5b-case-referred-2026-11-09.md`。
 - **未做**:T6 手册缺页(42/48)· T7 补数据(蛇毒行 / 破伤风治疗项 / 毛地黄金鸡纳奇遇 / 伤情写进 treatable_by)。
+
+## Session Extract — 病种集重梳 · T6(手册缺页元件,2026-11-09)
+
+- **元件 + 状态已落**:`PaperCloseupScreen.SetMissingPaperIds`(按**纸条目 id**,不按页序)
+  + `IsCurrentPageMissing`;缺页那张**只留标题**、正文不摆、纸面挂 `paper-missing`、显出撕口。
+- **USS**:`.paper-missing` / `.paper-missing-mark`(零新贴图)+ 主题变量
+  `--skeuo-paper-missing-mark-height`。**首轮 1 红**是 `SkeuoUssPolicy` 的 C4 判据抓到
+  `height: 2px` 硬编码 —— 门在起作用,已改走变量。
+- **判据**:EditMode **+5 条**(只剩标题 / 类与撕口随页切换 / 未声明零变化 / `null` ≠ 全缺 / 按 id 不按页序)。
+- **回归**:EditMode `7238/7201/0/37`(+5)· PlayMode `371/366/0/2/3`(总数 +1 / 跳过 +1,通过数不变)
+  @ `2026-11-09T11:44:30Z` · `cef0bdcc`+工作树。
+- ⚠️ **真包截图 `NOT-RUN`**:`RenderTexture.Create` 在 batch 下失败、`ScreenCapture` 不触发
+  ⇒ 走查夹具 `paper_missing_walkthrough` 在 batch 下 `Assert.Ignore`(PlayMode 的 skipped 里就是它)。
+  须图形模式跑出 `unity/Logs/shots/paper_missing.png`。**机械绿 ≠ 截图已验收**。
+- ⚠️ **未做**:「哪一页缺」的数据绑定(`TutorialPaperRow` 无 `teachTechnique`,要改 48 管线)·
+  「谁调用 `SetMissingPaperIds`」(宿主未建)· 缺页文案(内容归用户)。
+- 证据:`production/qa/evidence/impl-t6-paper-missing-2026-11-09.md`。
