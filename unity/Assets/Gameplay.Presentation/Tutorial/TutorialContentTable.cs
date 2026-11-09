@@ -143,11 +143,23 @@ namespace DaYiJingCheng.Gameplay.Presentation.Tutorial
         /// <summary>插图素材键。</summary>
         public string IllustrationKey { get; }
 
+        /// <summary>
+        /// 本页**教哪一门技法**(T8 · 2026-11-09;技法 id 空间 = 9 的处置轴)。
+        /// <para><c>-1</c>(<c>TutorialContentSchema.NoTechnique</c>)= 不教任何技法。
+        /// 语义:这一页在手里 ⇒ 会这一招;被撕掉 ⇒ 还不会。</para>
+        /// </summary>
+        public int TeachTechnique { get; }
+
+        /// <summary>本页是否绑定了一门技法(<c>false</c> = 纯知识页,如「望诊四要」)。</summary>
+        public bool TeachesTechnique => TeachTechnique >= 0;
+
         public TutorialPaperRow(string id, string stepId, string title, string body,
-            string aspectRatio, string illustrationKey)
+            string aspectRatio, string illustrationKey,
+            int teachTechnique = -1)
         {
             Id = id; StepId = stepId; Title = title; Body = body;
             AspectRatio = aspectRatio; IllustrationKey = illustrationKey;
+            TeachTechnique = teachTechnique;
         }
     }
 
@@ -324,13 +336,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Tutorial
 
         private static ReadOnlyCollection<TutorialPaperRow> ReadPapers(BinaryReader r)
         {
-            int count = ReadCount(r, "papers", minBytesPerRow: 6 * 4);
+            // 每行最少字节 = 6 个字符串的长度前缀(6×4)+ teach_technique:i32(4)= **28**。
+            // 🔁 T8(2026-11-09 · schemaVersion 2):由 6×4 抬到 7×4 —— 行尾多了 `teach_technique`。
+            int count = ReadCount(r, "papers", minBytesPerRow: 7 * 4);
             var rows = new TutorialPaperRow[count];
             for (int i = 0; i < count; i++)
             {
                 rows[i] = new TutorialPaperRow(
                     ReadString(r), ReadString(r), ReadString(r),
-                    ReadString(r), ReadString(r), ReadString(r));
+                    ReadString(r), ReadString(r), ReadString(r),
+                    r.ReadInt32());
             }
             return Array.AsReadOnly(rows);
         }

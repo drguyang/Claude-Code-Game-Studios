@@ -60,10 +60,15 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ 与 <paramref name="diseaseNames"/> 同款纪律(2026-10-21 C-1):默认注入而非默认 null ——
         /// 否则任何忘记传参的调用点都会让 ② 的外部半边静默 NOT-RUN。表真缺席时来源自身返回 <c>false</c>,
         /// 仍得 NOT-RUN;两个半边各自独立,不互相拖累。</para></param>
+        /// <param name="techniqueIds">技法 id 闭集来源(T8 · ② 的 <c>teachTechnique</c> 半边);
+        /// 传 <c>null</c> = **用该仓根的默认来源**(<see cref="TutorialTechniqueIdSource"/>,
+        /// 读 <c>assets/data/disease_action_axis.json</c> 的 <c>actions[].id</c>)。
+        /// <para>⚠️ 与上面两个来源同款纪律:默认注入而非默认 null —— 否则任何忘记传参的调用点
+        /// 都会让这条半边静默 NOT-RUN。轴真缺席时来源自身返回 <c>false</c>,仍得 NOT-RUN。</para></param>
         /// <exception cref="BakeValidationException">词法 / 六项校验任一失败(聚合)。</exception>
         public static BakeOutput BakeFromRepo(
             string repoRoot, ITutorialDiseaseNameSource diseaseNames = null,
-            ITutorialMediaKeySource mediaKeys = null)
+            ITutorialMediaKeySource mediaKeys = null, ITutorialTechniqueIdSource techniqueIds = null)
         {
             if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
 
@@ -74,23 +79,24 @@ namespace DaYiJingCheng.EditorTools.Bake
             string json = File.ReadAllText(path);
             return BakeFromJson(json,
                 diseaseNames ?? new TutorialDiseaseNameSource(repoRoot),
-                mediaKeys ?? new TutorialMediaKeySource(repoRoot));
+                mediaKeys ?? new TutorialMediaKeySource(repoRoot),
+                techniqueIds ?? new TutorialTechniqueIdSource(repoRoot));
         }
 
         /// <summary>绑定入口(负例直接喂 JSON 串 —— 不落盘;与 <see cref="BakeFromRepo"/> 同一校验体)。</summary>
         /// <exception cref="BakeValidationException">任一构建期拒收(聚合)。</exception>
         public static TutorialContentBinder.BindResult BindForTest(
             string json, ITutorialDiseaseNameSource diseaseNames = null,
-            ITutorialMediaKeySource mediaKeys = null)
-            => TutorialContentBinder.Bind(json, diseaseNames, mediaKeys);
+            ITutorialMediaKeySource mediaKeys = null, ITutorialTechniqueIdSource techniqueIds = null)
+            => TutorialContentBinder.Bind(json, diseaseNames, mediaKeys, techniqueIds);
 
         /// <summary>从 JSON 串烘焙(不落盘;与 <see cref="BakeFromRepo"/> 同一编码路径)。</summary>
         /// <exception cref="BakeValidationException">任一构建期拒收(聚合)。</exception>
         public static BakeOutput BakeFromJson(
             string json, ITutorialDiseaseNameSource diseaseNames = null,
-            ITutorialMediaKeySource mediaKeys = null)
+            ITutorialMediaKeySource mediaKeys = null, ITutorialTechniqueIdSource techniqueIds = null)
         {
-            var bound = TutorialContentBinder.Bind(json, diseaseNames, mediaKeys);
+            var bound = TutorialContentBinder.Bind(json, diseaseNames, mediaKeys, techniqueIds);
             uint configVersion = DeriveConfigVersion(json);
             return new BakeOutput(
                 TutorialContentCookedWriter.Write(bound, configVersion), configVersion, bound);

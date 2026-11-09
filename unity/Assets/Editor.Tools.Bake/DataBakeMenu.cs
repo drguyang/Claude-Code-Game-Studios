@@ -638,7 +638,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
                 TutorialContentBake.BakeOutput result = TutorialContentBake.BakeFromRepo(
                     repoRoot, new TutorialDiseaseNameSource(repoRoot),
-                    new TutorialMediaKeySource(repoRoot));
+                    new TutorialMediaKeySource(repoRoot),
+                    // T8(2026-11-09):② 的 teachTechnique 半边 —— 技法 id 闭集来自 9 的处置轴。
+                    new TutorialTechniqueIdSource(repoRoot));
 
                 string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
                 Directory.CreateDirectory(cookedDir);

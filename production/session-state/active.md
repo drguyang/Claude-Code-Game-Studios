@@ -17632,3 +17632,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **蛇毒行的曲线与体征是派生值,未经用户逐值裁定**(已裁档位 + 相位分数推得,体征零新增)。
 - **未做**:毛地黄金鸡纳两段奇遇(map §3.2 仍草案,§9 待确认)· 「预防」极性无正解(待裁)。
 - 证据:`production/qa/evidence/impl-t7-data-technique-coverage-2026-11-09.md`。
+
+## Session Extract — 手册页 ↔ 技法绑定 · T8(2026-11-09)
+
+- **用户裁定「按丙」** —— 三候选里唯一不需要新裁决的一条(甲=解锁触发通路、乙=执行体都要裁)。
+- **五层同步**:48 源 JSON · schema 键 · binder · writer/decoder · 运行时行。纸行尾加 `teach_technique:i32`
+  (缺省 `-1` = 不教任何技法,取 -1 不取 0 —— 0 是合法技法 id 止血包扎)。
+- **跨表真源**:`TutorialTechniqueIdSource` 读 9 的处置轴 `actions[].id`(ADR-043 §D5),不另立词表;
+  轴缺席 ⇒ 该半边 NOT-RUN,损坏 / 零条 ⇒ 抛。
+- **新纯函数** `TutorialPaperMissing.Compute(papers, isTechniqueUnlocked)`:缺页 ⇔
+  `TeachesTechnique ∧ ¬isUnlocked`;纯知识页永不缺;查询未注入必须抛。
+- **`schemaVersion` 1 → 2 并与全局 `CookedFormat.SchemaVersion` 解耦** —— 48 布局领先基线一格,
+  否则要么 48 谎报版本,要么为一件产物抬全部 16 件的版本。
+- **产物**:48 从 1904 → **1908 B**(+4 = 1 张纸 × i32)· `0xD82AFB19`。
+- **新夹具** `tutorial_paper_technique_test` **18 条**。
+- **回归**:EditMode `7264/7227/0/0/37`(+18)· PlayMode `371/366/0/2/3`(零变化)
+  @ `2026-11-09T14:07:25Z` / `14:09:00Z` · `6e93e025` + 工作树。
+- ⚠️ **中途 1 红 = 夹具打错靶**:`test_check1_unknownKey_throws` 的替换锚点是 `"schemaVersion": 1,`
+  —— 拿**会变的值**当锚点,版本抬到 2 当场失配。已改锚 `"meta": {`(结构不锚值)。
+- ⚠️ **只交能力,不交可见行为**:今日种子唯一那张「望诊四要」是纯知识页 ⇒ 全库 `teachTechnique`
+  一处未填,缺页集合恒空;「谁调用 `SetMissingPaperIds`」仍未建。
+- **侦察结论(存档)**:`TechniqueUnlockWriter.TryUnlock` 生产调用点 = 起步集写入器 ⇒
+  P0 里其余技法永远锁着,17 行注册表只有 6 行可投放。这是甲/乙两条候选的存在理由。
+- 证据:`production/qa/evidence/impl-t8-paper-technique-binding-2026-11-09.md`。

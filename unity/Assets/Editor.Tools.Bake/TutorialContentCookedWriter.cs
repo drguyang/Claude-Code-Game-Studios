@@ -15,7 +15,14 @@
 //    demonstration_count : i32
 //    demonstration_count × { id: str, step_id: str, actor: str, clip_key: str }
 //    paper_count       : i32
-//    paper_count × { id: str, step_id: str, title: str, body: str, aspect_ratio: str, illustration_key: str }
+//    paper_count × { id: str, step_id: str, title: str, body: str, aspect_ratio: str, illustration_key: str,
+//                    teach_technique: i32 }        ← T8(2026-11-09 · schemaVersion 1 → 2)追加
+//    ⚠️ `teach_technique` = **行尾字段**,`-1` = 不教任何技法(`TutorialContentSchema.NoTechnique`)。
+//       每行固定 +4 B、无分支(不做「有就写 / 没有就跳」的可变长块)。
+//       ⚠️ **不**声称「旧读方读新产物会在尾部校验处干净报错」:实测解码侧的 `ReadString`
+//       把 `-1` 当作 `null` 吞掉 ⇒ 行边界错位**可能延后到更后面才炸**,形态不可预判。
+//       真正的判据是**同批**的往返夹具(写方与读方一起改)与 `payload.Position != payload.Length`;
+//       版本号(1 → 2)是给人类看的信号,不是机械保护。
 //
 // ⚠️ **行序 = 全序,唯一**:
 //   · steps            → 按 **schema 六步闭集序**(TutorialContentSchema.StepIds 的下标;
@@ -202,6 +209,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 WriteString(w, rows[i].Body);
                 WriteString(w, rows[i].AspectRatio);
                 WriteString(w, rows[i].IllustrationKey);
+                // 🔁 2026-11-09(T8 · schemaVersion 2):纸 ↔ 技法绑定。
+                //    -1 = 不教任何技法;写作 i32(不是可选块)⇒ 每行固定 +4 B,布局无分支。
+                w.Write(rows[i].TeachTechnique);
             }
         }
 

@@ -233,7 +233,6 @@
 > ⚠️ **「哪一页缺」的数据绑定未做**(`TutorialPaperRow` 无 `teachTechnique`),与「谁调用
 > `SetMissingPaperIds`」同格 —— 宿主未建。
 | **T7** | 补三条数据(蛇毒行 / 破伤风治疗项 / 毛地黄金鸡纳奇遇) | drift 全绿 + 走查 |
-
 > **✅ T7 两条数据已落(2026-11-09 · 经 `OQ-10-4` 二次裁定解锁)** —— 处置轴 **5 → 7 门**
 > (`2 清创缝合` / `3 蛇伤处置`,均 owner 10)+ `treatable_by` **9 → 16 键 / 15 关系**;
 > 注册表 **16 → 17 行**(新增 `TOX_ENVENOMATION`,`kind: poison`,id 18)。
@@ -253,6 +252,23 @@
 
 > ⚠️ **T3 不在任何现有 ADR 面内**:H1 的所有权只登记了「谁拥有」,没定「怎么存、怎么重建」。
 > 它必须先于 T4 —— 否则 `treatable_by` 的过滤没有输入源。
+
+| **T8** | 手册页 ↔ 技法绑定(`papers[].teachTechnique`,48 管线五层 + 缺页判定) | 悬空 id 构建期拒收 · 缺页纯函数可证伪 |
+
+> **✅ T8 已落(2026-11-09 · 用户裁定「按丙」)** —— 48 的 `papers[]` 每行新增可选
+> `teachTechnique`(技法 id;缺省 = **不教任何技法**)。**五层同步**:源 JSON · schema 键 ·
+> binder(`ReadOptionalInt` + ② 的第三条外部半边)· writer/decoder(行尾 `i32`,每行固定 +4 B)·
+> 运行时 `TutorialPaperRow.TeachTechnique` / `TeachesTechnique`。
+> **新判据**:`TutorialPaperMissing.Compute(papers, isTechniqueUnlocked)` —— 缺页 ⇔
+> `TeachesTechnique ∧ ¬isUnlocked`;**纯知识页永不缺**(否则整本手册会全白);
+> **查询未注入必须抛**(默认「全未解锁」会把未接线渲染成「整本被撕光」)。
+> **跨表真源**:`TutorialTechniqueIdSource` 读 9 的处置轴 `actions[].id`(ADR-043 §D5),
+> **不另立词表**;轴缺席 ⇒ 该半边 NOT-RUN,轴损坏 / 零条 ⇒ 抛。
+> ⚠️ **`schemaVersion` 1 → 2,并与全局 `CookedFormat.SchemaVersion` 解耦** ——
+> 48 的载荷布局领先基线一格;若仍绑全局常量,要么 48 谎报版本,要么为一件产物抬全部 16 件的版本。
+> ⚠️ **只交判定,不交宿主** —— 谁调用 `SetMissingPaperIds`(42/48 的交互)仍未建;
+> **内容也未写死**:今日种子里那张「望诊四要」是纯知识页,`teachTechnique` 全库**一处未填** ⇒
+> 「哪一页教哪门技法」归内容轮。本步交的是**能力**,不是可见行为。
 
 ---
 

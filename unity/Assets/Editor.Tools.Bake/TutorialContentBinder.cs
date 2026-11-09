@@ -184,12 +184,23 @@ namespace DaYiJingCheng.EditorTools.Bake
         public readonly string AspectRatio;
         /// <summary>插图素材键(归 art;48 零素材)。</summary>
         public readonly string IllustrationKey;
+        /// <summary>
+        /// 本页**教哪一门技法**(T8 · 2026-11-09)。
+        /// <para>技法 id 空间 = 9 的处置轴 action id(ADR-043 §D5)。
+        /// <see cref="TutorialContentSchema.NoTechnique"/>(<c>-1</c>)= 不教任何技法(如「望诊四要」是诊断侧)。</para>
+        /// <para>语义:**这一页在手里 ⇒ 玩家会这一招;这一页被撕掉 ⇒ 还不会** ——
+        /// 钩子病例的载体(map §5.2)。缺页集合由
+        /// <c>TutorialPaperMissing.Compute</c> 按「技法是否已解锁」求。</para>
+        /// </summary>
+        public readonly int TeachTechnique;
 
         public TutorialPaper(string id, string stepId, string title, string body,
-            string aspectRatio, string illustrationKey)
+            string aspectRatio, string illustrationKey,
+            int teachTechnique = TutorialContentSchema.NoTechnique)
         {
             Id = id; StepId = stepId; Title = title; Body = body;
             AspectRatio = aspectRatio; IllustrationKey = illustrationKey;
+            TeachTechnique = teachTechnique;
         }
     }
 
@@ -223,6 +234,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             public readonly bool CueIdTableReady;
             /// <summary>13 clipKey 表是否就绪(② 的外部半边;false ⇒ 该半边 NOT-RUN)。</summary>
             public readonly bool ClipKeyTableReady;
+            /// <summary>
+            /// 技法 id 闭集是否就绪(② 的 <c>teachTechnique</c> 半边 · T8;false ⇒ 该半边 NOT-RUN)。
+            /// <para>⚠️ 与「校验通过」不是同一命题:false 表示**没有表可查**,不是「查过没问题」。</para>
+            /// </summary>
+            public readonly bool TechniqueIdTableReady;
 
             /// <summary>内容条目总数(6 步 + 4 口述 + 6 示范 + 1 纸 = 17;GDD 内容债口径)。</summary>
             public int ContentItemCount =>
@@ -232,12 +248,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                 IReadOnlyList<TutorialStep> steps, IReadOnlyList<TutorialNarration> narration,
                 IReadOnlyList<TutorialDemonstration> demonstrations, IReadOnlyList<TutorialPaper> papers,
                 TutorialTextScanResult diseaseScan, TutorialTextScanResult instructionScan,
-                bool cueIdTableReady, bool clipKeyTableReady)
+                bool cueIdTableReady, bool clipKeyTableReady, bool techniqueIdTableReady = false)
             {
                 SchemaVersion = schemaVersion; Steps = steps; Narration = narration;
                 Demonstrations = demonstrations; Papers = papers;
                 DiseaseScan = diseaseScan; InstructionScan = instructionScan;
                 CueIdTableReady = cueIdTableReady; ClipKeyTableReady = clipKeyTableReady;
+                TechniqueIdTableReady = techniqueIdTableReady;
             }
         }
 
@@ -253,8 +270,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <param name="json">源文本。</param>
         /// <param name="diseaseNames">病名闭集来源;null = 未就绪(⇒ 第 ④ 项 NOT-RUN)。</param>
         /// <param name="mediaKeys">cueId / clipKey 表来源;null = 未就绪(⇒ ② 的外部半边 NOT-RUN)。</param>
+        /// <param name="techniqueIds">技法 id 闭集来源(T8);null = 未就绪(⇒ ② 的 <c>teachTechnique</c> 半边 NOT-RUN)。</param>
         public static BindResult Bind(string json, ITutorialDiseaseNameSource diseaseNames = null,
-            ITutorialMediaKeySource mediaKeys = null)
+            ITutorialMediaKeySource mediaKeys = null, ITutorialTechniqueIdSource techniqueIds = null)
         {
             // ── ① JSON 合法 ────────────────────────────────────────────────
             if (!JsonStage1Lexer.TryParse(json, out JsonNode root, out string lexErr))
@@ -294,6 +312,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             ValidateExternalMediaKeys(narration, demos, mediaKeys, errors,
                 out bool cueReady, out bool clipReady);
 
+            // ② 的第三条外部半边(T8):纸「教哪一门技法」须 ∈ 9 的处置轴 action 闭集。
+            ValidatePaperTechniqueIds(papers, techniqueIds, errors, out bool techReady);
+
             // ── ③ 长度约束(长度 + 自含)──────────────────────────────────
             ValidateLengths(narration, papers, errors);
 
@@ -306,7 +327,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
             return new BindResult(schemaVersion, steps, narration, demos, papers,
-                                  diseaseScan, instructionScan, cueReady, clipReady);
+                                  diseaseScan, instructionScan, cueReady, clipReady, techReady);
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -559,7 +580,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                     errors.Add($"[①] {where} aspectRatio「{aspectRatio}」非法(须 W:H 形,两段正整数;" +
                                "近景纸与道具纸一致性判据归 6 布置轮 OQ-C2)");
 
-                list.Add(new TutorialPaper(id, stepId, title, body, aspectRatio, illustrationKey));
+                list.Add(new TutorialPaper(id, stepId, title, body, aspectRatio, illustrationKey,
+                    ReadOptionalInt(row, "teachTechnique", where, errors,
+                                    TutorialContentSchema.NoTechnique)));
             }
             return list;
         }
@@ -707,6 +730,46 @@ namespace DaYiJingCheng.EditorTools.Bake
                         errors.Add($"[②] 示范「{demos[i].Id}」.clipKey「{key}」∉ 13 示范片段表" +
                                    $"(表 {table.Count} 条)—— 悬垂键(规则八校验 2:clipKey→13 表)");
                 }
+            }
+        }
+
+        /// <summary>
+        /// ② 的第三条外部半边(T8 · 2026-11-09):<c>papers[].teachTechnique</c> 须 ∈ 9 的处置轴 action 闭集。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么是硬失败</b>:悬空技法 id 的后果不是「少一条数据」—— 技法解锁查询对它
+        /// 恒 false ⇒ 那张纸**永久判为缺页**(一本永远被撕过的书),而构建 / 烘焙 / 夹具可以全绿。
+        /// 承 `LexiconRegistryCrossRefGate` 的同一次事故形态。</para>
+        /// <para><b>缺席语义</b>:<paramref name="source"/> 为 null 或表缺席 ⇒
+        /// <paramref name="ready"/> = false,该半边记 **NOT-RUN** —— 不抛、不崩、不借绿。</para>
+        /// <para>⚠️ <see cref="TutorialContentSchema.NoTechnique"/> 是「不教任何技法」的合法值,
+        /// **不参与**闭集校验(它不是技法 id)。</para>
+        /// </remarks>
+        private static void ValidatePaperTechniqueIds(
+            List<TutorialPaper> papers, ITutorialTechniqueIdSource source, List<string> errors,
+            out bool ready)
+        {
+            ready = false;
+            if (source == null) return;   // 未就绪:不抛、不崩、不借绿
+
+            if (!source.TryGetTechniqueIds(out IReadOnlyCollection<int> ids) || ids == null || ids.Count == 0)
+                return;
+
+            ready = true;
+            var table = new HashSet<int>(ids);
+            for (int i = 0; i < papers.Count; i++)
+            {
+                int t = papers[i].TeachTechnique;
+                if (t == TutorialContentSchema.NoTechnique) continue;   // 不教技法 = 合法
+                if (t < 0)
+                {
+                    errors.Add($"[②] 纸「{papers[i].Id}」.teachTechnique={t} 非法 —— " +
+                               $"-1 是「不教任何技法」的唯一哨兵,其余负数不是 id");
+                    continue;
+                }
+                if (!table.Contains(t))
+                    errors.Add($"[②] 纸「{papers[i].Id}」.teachTechnique={t} ∉ 9 的处置轴 action 闭集" +
+                               $"(轴 {ids.Count} 门)—— 悬垂键(规则八校验 2 的技法半边,T8)");
             }
         }
 
@@ -934,6 +997,36 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 errors.Add($"[①] {where}.{key}={n.Int} 越 int32 域");
                 return 0;
+            }
+            return (int)n.Int;
+        }
+
+        /// <summary>
+        /// 读**可选**整数字段(键缺席 ⇒ <paramref name="absentValue"/>;键在但类型/域错 ⇒ 记错 + 回退)。
+        /// </summary>
+        /// <remarks>
+        /// <para>与 <see cref="ReadInt"/> 分开是刻意的:**缺席**与**写错**是两件事 ——
+        /// 前者是「作者没声明」(合法,如望诊纸不教任何技法),后者是拼写 / 类型错误(硬失败)。
+        /// 一个方法两种语义会让「漏写键」静默通过,正是本仓反复抓过的形态。</para>
+        /// <para>⚠️ 键**在但为 null** 也按缺席处理(显式 `"teachTechnique": null` 与不写等价,
+        /// 与 `treatment_difficulty` 等既有可选字段同口径)。</para>
+        /// </remarks>
+        private static int ReadOptionalInt(JsonNode row, string key, string where,
+            List<string> errors, int absentValue)
+        {
+            if (!row.TryGet(key, out JsonNode n) || n.Kind == JsonNodeKind.Null)
+                return absentValue;
+
+            if (n.Kind != JsonNodeKind.Integer)
+            {
+                errors.Add($"[①] {where}.{key} 须为整数(实得 {n.Kind}={n.RawText};" +
+                           "技法 id 写成字符串 / 浮点均硬失败)");
+                return absentValue;
+            }
+            if (n.Int < int.MinValue || n.Int > int.MaxValue)
+            {
+                errors.Add($"[①] {where}.{key}={n.Int} 越 int32 域");
+                return absentValue;
             }
             return (int)n.Int;
         }

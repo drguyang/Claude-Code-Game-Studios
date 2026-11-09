@@ -41,6 +41,27 @@ namespace DaYiJingCheng.EditorTools.Bake
         bool TryGetDiseaseNames(out IReadOnlyCollection<string> names);
     }
 
+    /// <summary>
+    /// 技法 id 闭集的生产来源(T8 · 2026-11-09)—— <c>papers[].teachTechnique</c> 的外部键半边。
+    /// </summary>
+    /// <remarks>
+    /// <para><b>为什么要跨表</b>:纸「教哪一门技法」是**引用** 9 的处置轴(<c>DiseaseHandle</c> /
+    /// ADR-043 §D5:技法 id 空间 = <c>disease_action_axis.json</c> 的 action id)。悬空 id 会让
+    /// 「这一页缺」永远判不出来(技法解锁查询对它恒 false)⇒ 缺页态**静默全缺**或**静默不缺**,
+    /// 两种都是假绿。承 `LexiconRegistryCrossRefGate` 的同款理由(悬空外键静默烘进产物)。</para>
+    /// <para><b>缺席语义(承 <see cref="ITutorialDiseaseNameSource"/> 的同款纪律)</b>:
+    /// 文件不存在 ⇒ 返回 false(② 的这条半边记 NOT-RUN,**不阻断烘焙**);
+    /// 文件存在却损坏 / 无 <c>actions[]</c> / 零条 ⇒ 抛 <c>BakeValidationException</c>
+    /// —— 损坏不得静默降级成「未就绪」。</para>
+    /// </remarks>
+    public interface ITutorialTechniqueIdSource
+    {
+        /// <summary>尝试取得技法 id 闭集。</summary>
+        /// <param name="ids">成功时为闭集;失败时为 null。</param>
+        /// <returns>true = 轴可用(须逐条校验 <c>teachTechnique</c>);false = 轴缺席(NOT-RUN)。</returns>
+        bool TryGetTechniqueIds(out IReadOnlyCollection<int> ids);
+    }
+
     /// <summary>第 ④ 项(病名闭集扫描)的结果三态 —— **结构化**,不靠字符串判真假。</summary>
     public enum TutorialDiseaseScanOutcome
     {
@@ -68,8 +89,18 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>源目录名(相对仓根;承既有先例 <c>assets/data/</c>)。</summary>
         public const string DataDirName = "assets/data";
 
-        /// <summary>期望的 <c>schemaVersion</c>(= <see cref="CookedFormat.SchemaVersion">CookedFormat.SchemaVersion</see>)。</summary>
-        public const uint ExpectedSchemaVersion = CookedFormat.SchemaVersion;
+        /// <summary>期望的 <c>schemaVersion</c>。</summary>
+        /// <remarks>
+        /// <para>🔁 **2026-11-09(T8):1 → 2,并与 <see cref="CookedFormat.SchemaVersion"/> 解耦。**</para>
+        /// <para>原写法 = <c>= CookedFormat.SchemaVersion</c>(全局基线 1)。T8 给 <c>papers[]</c> 行尾
+        /// 追加了 <c>teach_technique:i32</c>,48 的载荷布局因此**领先**全局基线一格;
+        /// 若仍绑全局常量,要么 48 谎报版本(布局变了版本没变 ⇒ 旧产物被当新布局解),
+        /// 要么为了 48 一件事把**全部 16 件产物**的版本抬上去。</para>
+        /// <para>⇒ 48 自带版本号。**这不会破坏单一出处**:<c>CookedFormat.SchemaVersion</c> 是
+        /// 「格式基线」,各产物的 <c>schemaVersion</c> 是「该产物自己的布局代数」——
+        /// 二者本就是两个量,原写法只是把默认值当成了等号。</para>
+        /// </remarks>
+        public const uint ExpectedSchemaVersion = 2;
 
         // ── 机制值(GDD 已裁,冻结)────────────────────────────────────────
 
@@ -77,6 +108,14 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>计数单位 = UTF-16 码元(<see cref="string.Length"/>);中日韩常字各占 1 ——
         /// 与「170 字符」的本地化估算口径一致。</para></summary>
         public const int MaxTextChars = 170;
+
+        /// <summary>
+        /// <c>papers[].teachTechnique</c> 的「不教任何技法」哨兵(T8 · 2026-11-09)。
+        /// <para>⚠️ 取 <c>-1</c> 而不是 <c>0</c>:技法 id <c>0</c> 是**合法**值(止血包扎),
+        /// 用 0 当哨兵会让「不教」与「教止血包扎」在数据层不可分 —— 与 ADR-007 §四 用
+        /// <c>PatientId.None = -1</c> 的理由同型。</para>
+        /// </summary>
+        public const int NoTechnique = -1;
 
         /// <summary>纸标题的行数上限(规则八校验 3 · 2 行过 / 3 行拒)。</summary>
         public const int MaxTitleLines = 2;
@@ -141,6 +180,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         public static readonly string[] PaperKeys =
         {
             "id", "step", "title", "body", "aspectRatio", "illustrationKey", "note",
+            // 🔁 2026-11-09(T8):纸 ↔ 技法绑定。缺省 = 不教任何技法(如「望诊四要」是诊断侧,不是技法)。
+            "teachTechnique",
         };
 
         // ── 外置词族表(Implementation Note 3 / 4 —— 扩充归文案轮)──────────

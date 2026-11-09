@@ -125,7 +125,10 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             Assert.AreEqual(6, bound.Demonstrations.Count, "P0 种子示范 6 条");
             Assert.AreEqual(1, bound.Papers.Count, "P0 种子纸 1 条");
             Assert.AreEqual(17, bound.ContentItemCount, "GDD 内容债口径:6 + 4 + 6 + 1 = 17");
-            Assert.AreEqual(1u, bound.SchemaVersion, "schemaVersion = 1");
+            // 🔁 2026-11-09(T8):1 → 2。`papers[]` 行尾追加了 `teach_technique:i32`,
+            //    48 的载荷布局领先全局 `CookedFormat.SchemaVersion` 一格 ⇒
+            //    `TutorialContentSchema.ExpectedSchemaVersion` 自此自带版本号(不再绑全局常量)。
+            Assert.AreEqual(2u, bound.SchemaVersion, "schemaVersion = 2(T8 起;纸行尾多了 teach_technique)");
         }
 
         [Test]
@@ -288,7 +291,10 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             Assert.AreEqual((byte)'Y', output.Cooked[1]);
             Assert.AreEqual((byte)'J', output.Cooked[2]);
             Assert.AreEqual((byte)'C', output.Cooked[3]);
-            Assert.AreEqual(1u, ReadU32(output.Cooked, 8), "schemaVersion 只住头槽(offset 8)");
+            // ⚠️ 用**字面量** 2u 而不是 `TutorialContentSchema.ExpectedSchemaVersion` ——
+            //    写成常量会让「断言与被测值一起变」(自指判据,假绿形态 F3)。
+            Assert.AreEqual(2u, ReadU32(output.Cooked, 8),
+                "schemaVersion 只住头槽(offset 8)—— T8 起为 2");
             Assert.AreEqual(output.ConfigVersion, ReadU32(output.Cooked, 12), "configVersion @ offset 12");
             Assert.AreEqual((uint)(output.Cooked.Length - 20), ReadU32(output.Cooked, 16), "payloadLength @ 16");
         }
@@ -325,7 +331,10 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_check1_unknownKey_throws()
         {
-            string json = Mutate(Seed(), "\"schemaVersion\": 1,", "\"schemaVersion\": 1,\n  \"extra\": 0,");
+            // ⚠️ 锚点用 `"meta": {`(根对象里唯一),**不用** `"schemaVersion": N,` ——
+            //    后者随 T8 的 1 → 2 当场让本夹具「打错靶」(2026-11-09 实测红过一次)。
+            //    锚点应当锚**结构**,不锚会变的**值**。
+            string json = Mutate(Seed(), "\"meta\": {", "\"extra\": 0,\n  \"meta\": {");
             var ex = AssertThrowsTagged(json, "[①]");
             bool named = false;
             for (int i = 0; i < ex.Errors.Count; i++)

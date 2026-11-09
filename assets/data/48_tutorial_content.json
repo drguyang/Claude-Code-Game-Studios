@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "meta": {
     "contentStatus": "seed",
     "description": "48 教学与引导 —— P0 作者态内容载体(AC-48-01 / OQ-48-1 已裁 2026-09-21 · ADR-014 烘焙)。本件为 schema 种子:文本字段为示例文案,终稿归 narrative;结构 / 判据 / 校验为正式契约。",
