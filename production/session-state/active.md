@@ -17810,3 +17810,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **未做**:动作 1/2/3 的行(数值归数值轮;**现在补它们是改 JSON,不是改代码**)·
   玩家选择动作的交互 · 与技法解锁的联动。
 - 证据:`production/qa/evidence/impl-t14-emergency-action-artifact-2026-11-09.md`。
+
+## Session Extract — 裁决清单(2026-11-10)
+
+- **产出**:`design/gdd/reviews/technique-unlock-decision-sheet-2026-11-10.md`
+  —— T1–T14 之后所有欠账的逐条可裁件(A 数值/内容 · B 机制裁决 · C 归属别处)。
+- **侦察修正了两处我先前的说法**:
+  ① **A7 已裁**:`INJ_DRUG_HARM` 的 `[]` 在 `disease_action_axis.json` 的 `_note` 里明写为刻意
+     (自限型药毒无处置;落 `Undeclared` 放行 + 计数是正确可见状态)。我上一轮报成「待裁」是错的。
+  ② **A5 卡在 A5-pre**:规则行三类源里只有 `disease_id` 今天可填 —— `world_poi.json` 无 POI 状态枚举、
+     `52_event_pool.json` 无「哪个 key 是哪个奇遇」。⇒ 今日唯一可落地的规则形式 = 「处置某病 → 学会某技法」。
+- **最小可转起来的一组**:**A1 + A4 + A5-a + B2 + C3 + A3**(缺任一环,其余环节的行为都不可见)。
+- **两条我明确不推荐**:C1-b(手工改 `world_*.json` —— 唯一会破 ADR-022 唯一作者的一条)·
+  A2-a(给伤情填 `causal` 会改判 `handle`,那是改裁决不是补数据)。
+- 未入库前状态:工作树仅有该件 + 本段。
