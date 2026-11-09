@@ -17608,3 +17608,27 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **未做**:「哪一页缺」的数据绑定(`TutorialPaperRow` 无 `teachTechnique`,要改 48 管线)·
   「谁调用 `SetMissingPaperIds`」(宿主未建)· 缺页文案(内容归用户)。
 - 证据:`production/qa/evidence/impl-t6-paper-missing-2026-11-09.md`。
+
+## Session Extract — 病种集重梳 · T7(补数据,2026-11-09)
+
+- **全落,但经过一次裁决**:首轮落盘撞上 `OQ-10-4`(P0 急救动作冻结为 2),EditMode 当场 5 红;
+  呈报后用户裁定「**开,按你说的改 OQ-10-4**」⇒ `emergency-procedures.md` §一立 Amendment,
+  P0 急救动作 **2 → 4**,`EmergencyAction` 枚举补 `Debridement = 2` / `SnakebiteCare = 3`。
+- **数据**:处置轴 5 → **7 门**;`treatable_by` 7 → **15 关系**(16 键);注册表 16 → **17 行**
+  (新增 `TOX_ENVENOMATION`,id 18,`kind: poison`)。「未覆盖」9 行 → **2 行**,均为具名豁免
+  (`DIS_NEURASTHENIA` 豁免类 / `INJ_DRUG_HARM` 自限型药毒)。
+- **映射**:四件伤情 → `0 止血包扎`;咬伤 / 钝击 / 破伤风 → `2 清创缝合`;蛇毒 → `3 蛇伤处置`。
+  极性一律 `symptomatic`(填 `causal` 会把破伤风 handle 从 `none` 改判成 `causal`)。
+- **重烘三份**:轴 412 → 736 B(`0xAEC288E6`)· 注册表 4299 → 4686 B(`0x7C7FF96D`)·
+  **53 三表同批**(其 ConfigVersion 由「代价表源 + 注册表源」联合派生)。
+- **新夹具** `technique_coverage_test`(**8 条**):每行有归宿 / 豁免不陈旧 / 豁免集合相等 /
+  理由非空 / 轴键不悬空 / 六件伤情各指那一门 / 破伤风蛇毒挂技法但 handle 与 kind 不变 /
+  轴 owner-10 段 = `{0,1,2,3}`。
+- **回归**:EditMode `7246/7209/0/0/37`(+8)· PlayMode `371/366/0/2/3`(零变化)
+  @ `2026-11-09T12:46:34Z` / `12:48:37Z` · `17067116` + 工作树。
+  另:注释订正后过滤回归 `32/32/0/0/0` @ `12:49:28Z`。
+- ⚠️ **只开 id 空间,不交执行体** —— 清创缝合 / 蛇伤处置的 `EmergencyActionRow` 与 4 的交互接线
+  **都不存在** ⇒ 病人会因技法解锁被投放,但玩家还做不出这两个动作。**不得读成「清创可用」。**
+- ⚠️ **蛇毒行的曲线与体征是派生值,未经用户逐值裁定**(已裁档位 + 相位分数推得,体征零新增)。
+- **未做**:毛地黄金鸡纳两段奇遇(map §3.2 仍草案,§9 待确认)· 「预防」极性无正解(待裁)。
+- 证据:`production/qa/evidence/impl-t7-data-technique-coverage-2026-11-09.md`。

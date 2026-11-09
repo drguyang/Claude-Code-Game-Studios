@@ -404,6 +404,39 @@
         { "sign_key": "sign_neck_supple", "channel_mask": 4, "appear_at": "1/20" }
       ],
       "_rowNote": "✅ **2026-11-05 用户裁定新增**(P0 病种上限 8 → 9,同一裁定同时改 disease-simulation.md 的 R3.1 与边界表)。第 9 个 P0 病种 = 热性惊厥,来自 52 急召出诊的内容需求(儿童高热惊厥)。**形态 = A 自限型**(self_limit=true ∧ lethal=false,与 DIS_MEASLES 同类):R1-22 禁「急性保持型非致死」,且它不在死亡白名单。A_peak/Scale = 0.20,**低于 CRITICAL 0.30** ⇒ 永远不会危殆;这正是不做任何处置也不会出事的医学诚实(单纯热性惊厥不增加癫痫风险,退热药也不预防复发)。**与 DIS_MALARIA 的对照是本行存在的唯一理由**:同一个正在抽搐的孩子,疟疾峰值 0.45 ≥ COMA 阈值(29491/65536)会昏过去,热性惊厥峰值 0.20 不会 —— 两行峰值差 0.25 是 2×2 判断矩阵里唯一靠数据看得见的差。**体征三选**:sign_convulsion(姿态,本次新增 —— 用户 2026-11-05 裁定「到场时还在抽」,故是体格所见而非病史报告,走姿态通道,不借 AC-8-34 的病史白名单)· sign_flush(面色,发热)· sign_neck_supple(姿态,**阴性体征** —— 颈软,这是与脑膜炎/破伤风分家的硬负锚)。除 sign_convulsion 外**零新增体征词条**。⚠️ 处置轴(who treats it)不在本文件:`assets/data/disease_action_axis.json` 的 treatable_by 才是载体,注册表内 treatable_by 恒空。"
+    },
+    {
+      "id": 18,
+      "key": "TOX_ENVENOMATION",
+      "kind": "poison",
+      "min_skill_level": 0,
+      "zh": "蛇毒",
+      "severity": 5,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "terminal_state": false,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 600,
+        "a_peak": "100",
+        "tau_rise": "1200",
+        "tau_peak": 6000,
+        "tau_fall": "3000",
+        "plateau": false,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [
+        { "sign_key": "sign_pallor", "channel_mask": 1, "appear_at": "1/4" },
+        { "sign_key": "sign_fatigue", "channel_mask": 64, "appear_at": "1/4" },
+        { "sign_key": "sign_diaphoresis", "channel_mask": 1, "appear_at": "11/20" },
+        { "sign_key": "sign_tachypnea", "channel_mask": 8, "appear_at": "11/20" },
+        { "sign_key": "sign_pulse_rapid", "channel_mask": 16, "appear_at": "11/20" },
+        { "sign_key": "sign_cold_clammy", "channel_mask": 16, "appear_at": "11/20" },
+        { "sign_key": "sign_delirium", "channel_mask": 2, "appear_at": "17/20" }
+      ],
+      "_rowNote": "🔁 **2026-11-09 建行(T7 补数据 · `OQ-10-4` 二次裁定后)** —— `_whitelistSource` 里「`TOX_ENVENOMATION` 刻意不建」那一条自此**只对 `kind: injury` 成立**:本行是 `kind: poison`,落在 `diseases` 数组(`injuries` 数组自 T4 起只收 `kind: injury`,poison 进不去,也不该进 —— `DiseaseRegistryDataSet.Diseases` 的定义就是 `Kind != Injury`,GDD `:374` 写明「蛇毒 = poison,蛇咬的伤口另记 `INJ_LACERATION`」)。 ⚠️ **曲线与体征是 T7 的派生值,未经用户逐值裁定** —— 每处取值都能指到既有已裁口径:`A_peak/Scale = 1.00` 承 Tuning §五「急性保持型 = 1.000」(`:1712`)且 R1-34 要求 ≥ DEATH 0.58;`incubation = 600`(30 s 潜伏,与 INJ_* 的 0 区分,中毒起效慢于外伤)、`tau_peak = 6000`(5 min 达峰)承 `INJ_DRUG_HARM` 的「中毒更慢更久」同款理由;四档 `appear_at` 严格照 `_appearAtNote` 的相位分数 × 峰值(0.25 早期 / 0.55 中期 / 0.85 晚期特异),故 `17/20` 的 `sign_delirium` 是本行唯一「晚期特异」体征。 ⚠️ **数值轮可整行重定** —— 这里只保证① 17 条区间校验全过、② 体征键全部是 8 的既有词条(零新增)、③ 相位序医学正确(出汗 / 脉速 / 呼吸促早于谵妄)。 ⚠️ **死亡率语义**:`lethal: true` 是 GDD `:293` 的「现实医学语义」,不是模型门;模型上它属急性保持型 ⇒ 越阈 + 过 `TREATMENT_WINDOW` 即死,与破伤风同型。 ⚠️ **处置轴不在本文件**:`treatable_by` 恒空,关系住 `disease_action_axis.json`(`TOX_ENVENOMATION → 3 蛇伤处置 / symptomatic`)。 ⚠️ **技法 id 3 只开了 id 空间,没有执行体**(见 `OQ-10-4` 二次裁定)⇒ 蛇咬伤病人会因技法解锁而被投放,但玩家还做不出「蛇伤处置」这个动作。"
     }
   ],
   "injuries": [

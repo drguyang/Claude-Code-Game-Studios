@@ -9,8 +9,8 @@
 // F-10.2 形状: MAG_CAP(L) 档位表
 // 表外字段零泄漏
 //
-// ⚠️ DC-4 NOT-RUN 注记: 枚举内容（P0 = 2 动作）的验证依赖 OQ-10-4 冻结清单，
-//    本测试只验证机制（Enum.IsDefined），不验证枚举内容。
+// ⚠️ DC-4 NOT-RUN 注记: 枚举内容（P0 = 4 动作，2026-11-09 由 2 扩到 4）的验证依赖 OQ-10-4
+//    冻结清单，本测试只验证机制（Enum.IsDefined），不验证枚举内容。
 // ⚠️ DC-5 NOT-RUN 注记: kindgen 差集断言归 disease-simulation story 002/003，
 //    本测试只验证白名单字符串存在，不验证构建期联动。
 
@@ -108,15 +108,22 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         }
 
         [Test]
-        public void test_dc4_enumContent_p0TwoActions()
+        public void test_dc4_enumContent_p0FourActions()
         {
-            // OQ-10-4 冻结: P0 = 2 个急救动作
+            // OQ-10-4 冻结: P0 = 4 个急救动作
+            // 🔁 2026-11-09 二次裁定(用户「开,按你说的改 OQ-10-4」):2 → 4,
+            //    追加 `Debridement`(清创缝合,id 2) / `SnakebiteCare`(蛇伤处置,id 3)。
+            //    ⚠️ 这两门**只开 id 空间,不交执行体** —— 见枚举头注 + 证据件 §8。
             var values = Enum.GetValues(typeof(EmergencyAction));
-            Assert.AreEqual(2, values.Length, "P0 应恰有 2 个急救动作");
+            Assert.AreEqual(4, values.Length, "P0 应恰有 4 个急救动作");
             Assert.IsTrue(Enum.IsDefined(typeof(EmergencyAction), "HemostasisBandage"),
                 "应含 止血包扎");
             Assert.IsTrue(Enum.IsDefined(typeof(EmergencyAction), "RhythmVentilation"),
                 "应含 节奏型通气");
+            Assert.IsTrue(Enum.IsDefined(typeof(EmergencyAction), "Debridement"),
+                "应含 清创缝合");
+            Assert.IsTrue(Enum.IsDefined(typeof(EmergencyAction), "SnakebiteCare"),
+                "应含 蛇伤处置");
         }
 
         // ══════════ DC-5: Kind 白名单含三 Kind ══════════

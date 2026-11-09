@@ -38,6 +38,16 @@
 | AC-9-01 | `disease_action_axis.json` 存在且可烘焙 | `DiseaseActionAxisBaker.BakeFromRepo` 不抛 |
 | AC-9-02 | 处置轴闭集 = {0, 1, 10, 11, 12} | 烘焙产物 `Actions.Count == 5` |
 | AC-9-03 | treatable_by 关系 = 8 病种 × 处置 × 极性 | 烘焙产物 `TreatableBy.Count == 6` |
+
+> 🔁 **2026-11-09 就地加注(原文不删)** —— T7 补数据把处置轴 5 → **7** 门
+> (`2 清创缝合` / `3 蛇伤处置`,均 owner 10),treatable_by 7 → **15 条关系**。
+> **经过**:首轮落盘时**当场红了三条夹具**(轴 `owner=="10"` 段与 `EmergencyAction` 枚举双向钉死;
+> 枚举成员数被 `OQ-10-4` 冻结为 2),遂整体撤回并呈报。用户同日裁定「**开,按你说的改 OQ-10-4**」
+> ⇒ `emergency-procedures.md` §一立 Amendment 把 P0 急救动作 **2 → 4**,枚举补
+> `Debridement` / `SnakebiteCare`,两门技法才落得了地。
+> ⚠️ **只开 id 空间,不交执行体**(两个动作的行数据与 4 的交互接线都不存在)。
+> 夹具随之改名 `test_diseaseActionAxis_has7Actions` / `test_diseaseActionAxis_has15TreatableByRelations`,
+> 判据强度不变(仍钉「恰等于登记的那一组」)。
 | AC-9-04 | 9-DC-1: owner ∈ {"10", "11"} | 负夹具:owner="12" ⇒ 烘焙期硬失败 |
 | AC-9-05 | 9-DC-2: polarity ∈ {causal, symptomatic} | 负夹具:polarity="unknown" ⇒ 烘焙期硬失败 |
 | AC-9-06 | 9-DC-3: action_id 唯一 | 负夹具:重复 id ⇒ 烘焙期硬失败 |

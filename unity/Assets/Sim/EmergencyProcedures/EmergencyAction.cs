@@ -3,6 +3,8 @@
 // 权威来源:
 //   OQ-10-6 裁决: 归系统 10（急救动作是系统 10 核心职责）
 //   OQ-10-4 裁决: P0 = 2 个急救动作（止血包扎 + 节奏型通气）
+//     🔁 2026-11-09 二次裁定(用户「开,按你说的改 OQ-10-4」): P0 → **4 个**,
+//        追加 ③ 清创缝合(id 2) · ④ 蛇伤处置(id 3)。⚠️ **只开 id 空间,不交执行体**。
 //   ADR-014: 两阶段烘焙
 //   GDD emergency-procedures.md: 数据契约 10-DC
 
@@ -17,11 +19,20 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
     /// P0 动作清单（OQ-10-4 裁决）:
     ///   0 = 止血包扎（包扎→按压两拍，同一动作序列）
     ///   1 = 节奏型通气（总谱呈现「人工呼吸法」，内部映射 CPR 节奏动作集）
+    /// 🔁 2026-11-09 二次裁定（用户「开,按你说的改 OQ-10-4」）:
+    ///   2 = 清创缝合（`adventure-catalog.md` #8「清创缝合 + 基础外科」）
+    ///   3 = 蛇伤处置（`technique-unlock-map-2026-11-09.md` §3.1「制动 + 加压包扎」）
+    /// ⚠️ 2 / 3 **只开 id 空间**:对应的 `EmergencyActionRow`（极性 / potency / 幅度门 /
+    /// 保持 tick）与 4 的交互接线**都不存在** ⇒ 病人会因技法解锁而被投放，但玩家还做不出这两个动作。
+    /// ⚠️ 成员值**刻意保持 0–3 连续**：`EmergencyAttempt.action` 是 int，值住在事件载荷里，
+    /// 而 `ActionAxisReaderGate` 要求本枚举与 9 的轴 `owner=="10"` 段**逐值相等**。
     /// </summary>
     public enum EmergencyAction : int
     {
         HemostasisBandage = 0,  // 止血包扎（包扎→按压）
-        RhythmVentilation = 1  // 节奏型通气（CPR 节奏集）
+        RhythmVentilation = 1,  // 节奏型通气（CPR 节奏集）
+        Debridement = 2,        // 清创缝合（⚠️ 无执行体）
+        SnakebiteCare = 3       // 蛇伤处置（⚠️ 无执行体）
     }
 
     /// <summary>
@@ -93,7 +104,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// <para>⚠️ **单一轴归 9,两贡献者共用 id 空间**(用户 2026-10-07 裁定):
         /// 9 的注册表 = 处置 id 的**唯一 master**;10 的 `EmergencyAction` 与 11 的
         /// `prescription_actions.json` 都是该轴上的条目。</para>
-        /// <para>⚠️ `EmergencyAction` 枚举**保留**为 10 侧对 0–1 段的**类型别名**
+        /// <para>⚠️ `EmergencyAction` 枚举**保留**为 10 侧对 0–3 段(**2026-11-09 前是 0–1 段**)的**类型别名**
         /// (载荷 `EmergencyAttempt.action` 的字段类型不变 ⇒ 零涟漪)。</para>
         /// <para>⚠️ **本方法仍是影子(Enum.IsDefined)—— 但自 2026-10-20 起不再是 DC-4 的
         /// 唯一判据**:运行期真源门已落在 <c>HostEmergencyProcessor.Process</c> 入口
@@ -102,6 +113,10 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// <para>⚠️ 影子**已知会错**的地方:9 的轴若新增一个 `owner=="10"` 的处置 id(如 2),
         /// <see cref="EmergencyAction"/> 枚举没有对应成员 ⇒ 本方法会**错误地拒绝**它。
         /// 运行期已由注入的轴门覆盖该情形(读轴,不读枚举)。</para>
+        /// <para>🔁 **2026-11-09**:上一句描述的情形**已经发生** —— `OQ-10-4` 二次裁定后轴多了
+        /// id 2 / 3,枚举成员**同批补上**(见枚举头注),故影子今日仍与轴逐值相等。
+        /// 这正是那两条夹具(`action_tables_bake_test` 的 DC-4 + `ActionAxisReaderGateTest`)
+        /// 存在的意义:它们逼着「轴增员 ⇒ 枚举同步」在**同一个提交**里发生。</para>
         /// <para><b>真源</b> = 9 的烘焙产物 `disease_action_axis.cooked.bytes` 的 `actions` 段,
         /// 经 <c>DiseaseActionAxisCookedCodec</c> 解码后按 `owner=="10"` 过滤。
         /// 接线点在装配层(<c>Sim</c> 够不着 <c>Gameplay.Presentation</c>)——

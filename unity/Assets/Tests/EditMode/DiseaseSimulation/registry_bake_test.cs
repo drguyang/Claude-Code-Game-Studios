@@ -372,7 +372,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         public void test_diseaseActionAxis_bakesSuccessfully()
         {
             // AC-9-01: disease_action_axis.json 存在且可烘焙
-            // ⚠️ 本测是弱断言(只验不抛)—— AC-9-01 的「不抛」已被 has5Actions/has6TreatableBy 隐式覆盖。
+            // ⚠️ 本测是弱断言(只验不抛)—— AC-9-01 的「不抛」已被 has7Actions/has15TreatableByRelations 隐式覆盖。
             // ⚠️ 保留本测是为了显式记录 AC-9-01 的验证点。
             var result = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
             Assert.IsNotNull(result.Cooked, "烘焙产物不应为 null");
@@ -380,20 +380,29 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         }
 
         [Test]
-        public void test_diseaseActionAxis_has5Actions()
+        public void test_diseaseActionAxis_has7Actions()
         {
             // AC-9-02: 处置轴闭集 = {0, 1, 10, 11, 12}
+            // 🔁 2026-11-09(T7 · 同日 `OQ-10-4` 二次裁定后):5 → **7**,
+            //    新增 `2 清创缝合` / `3 蛇伤处置`(均 owner 10)。用户裁定「开,按你说的改 OQ-10-4」
+            //    ⇒ P0 急救动作 2 → 4,`EmergencyAction` 枚举同批补上 `Debridement` / `SnakebiteCare`。
+            //    ⚠️ **只开 id 空间,不交执行体** —— 两个动作的 `EmergencyActionRow` 与 4 的交互接线
+            //    都不存在 ⇒ 病人会因技法解锁被投放,但玩家还做不出这两个动作。
+            //    ⚠️ story-007 的 AC-9-02 写的是「{0,1,10,11,12}」= **当时的行集快照**,已在原处就地加注。
             var result = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
-            Assert.AreEqual(5, result.Actions.Count, "处置轴应有 5 个条目");
+            Assert.AreEqual(7, result.Actions.Count, "处置轴应有 7 个条目");
         }
 
         [Test]
-        public void test_diseaseActionAxis_has6TreatableBy()
+        public void test_diseaseActionAxis_has15TreatableByRelations()
         {
             // AC-9-03: treatable_by 关系 = 7 条非空关系 + 2 个空数组病种(DIS_TETANUS / DIS_NEURASTHENIA)
             // 🔁 2026-11-05:6 → 7(新增 DIS_FEBRILE_SEIZURE → 柳树皮 symptomatic,P0 病种上限 8 → 9)
+            // 🔁 2026-11-09(T7):7 → **15**。`disease_action_axis.json` 的 treatable_by 段
+            //    现 16 个键、共 15 条关系行(DIS_NEURASTHENIA 仍为空数组)。
+            //    增量 = 破伤风 1 + 蛇毒 1 + 伤情 6(INJ_DRUG_HARM 刻意留空:自限型药毒无处置)。
             var result = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
-            Assert.AreEqual(7, result.TreatableBy.Count, "treatable_by 应有 7 条非空关系");
+            Assert.AreEqual(15, result.TreatableBy.Count, "treatable_by 应有 15 条非空关系");
         }
 
         [Test]

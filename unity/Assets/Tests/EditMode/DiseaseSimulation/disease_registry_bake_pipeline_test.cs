@@ -212,6 +212,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 // 🔁 2026-11-05 新增(DIS_FEBRILE_SEIZURE):轴 = 柳树皮 symptomatic
                 // ⇒ 派生 handle = symptomatic_only(与麻疹/风湿热同类)
                 { "DIS_FEBRILE_SEIZURE", "symptomatic_only" },
+                // 🔁 2026-11-09 新增(T7):蛇毒。轴 = 蛇伤处置 symptomatic ⇒ symptomatic_only。
+                //    **不是 injury**(kind: poison),但 handle 派生规则对它与对伤情同形 ——
+                //    都只取决于「轴里有没有 causal 行」。
+                { "TOX_ENVENOMATION", "symptomatic_only" },
             };
 
             Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),
@@ -452,6 +456,19 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 // 序 = 通道位序(面色 1 → 姿态 4),阴性锚点殿后(与其余各行同序)。
                 { "DIS_FEBRILE_SEIZURE", new[] {
                     "sign_flush", "sign_convulsion", "sign_neck_supple" } },
+
+                // 🔁 2026-11-09 新增(TOX_ENVENOMATION,蛇毒,`kind: poison`)。
+                // ⚠️ **本行体征/阈值是 T7 的派生值,未经用户逐值裁定**(数值轮可整行重定)。
+                // 序 = **`appear_at` 升序**(不是通道位序):0.25 早期两条 → 0.55 中期四条
+                // → 0.85 晚期特异一条。这条序规则与本表其余各行不同,故单写一句 ——
+                // 其余各行「阴性锚点殿后 / 通道位序」,本行**没有阴性锚点**。
+                // 医学点:出汗 / 脉速 / 呼吸促 / 肢冷 属中毒**中期**,谵妄属**晚期**
+                // (神经毒 / 循环衰竭期),故 `sign_delirium` 落在最后。
+                // 零新增体征词条 —— 七条全是 8 的既有行。
+                { "TOX_ENVENOMATION", new[] {
+                    "sign_pallor", "sign_fatigue", "sign_diaphoresis",
+                    "sign_tachypnea", "sign_pulse_rapid", "sign_cold_clammy",
+                    "sign_delirium" } },
             };
 
             Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),
