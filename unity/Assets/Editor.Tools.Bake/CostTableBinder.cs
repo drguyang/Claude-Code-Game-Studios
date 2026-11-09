@@ -55,6 +55,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] RowKeys =
             { "harm_kind", "band", "injury_id", "severity_band" };
 
+        /// <summary>**9 注册表**源文件的顶层行数组(2026-11-09 T1 拆表后的两员)。
+        /// <para>⚠️ 与上面的 <see cref="RootKeys"/> 不是同一份 —— 那张是本代价表自己的根键。</para>
+        /// <para>本表唯一用途 = `<c>AssertNoCompoundsCanary</c>` 扫「任一行是否出现 compounds」。
+        /// 拆表后必须两数组都扫,否则伤情行会静默逃过到期复查。</para></summary>
+        private static readonly string[] RegistryRowArrayKeys = { "diseases", "injuries" };
+
         /// <summary>一行代价(键 = `(HarmKind, Band)`;效果 = **外键引用** 9 的伤情 id)。</summary>
         public readonly struct CostRow
         {
@@ -260,24 +266,32 @@ namespace DaYiJingCheng.EditorTools.Bake
                     { $"disease_registry.json 阶段1 词法失败(canary 前置):{lexErr}" });
             if (root == null || root.Kind != JsonNodeKind.Object) return;
 
-            if (!root.TryGet("diseases", out JsonNode list) || list.Kind != JsonNodeKind.Array) return;
-
-            for (int i = 0; i < list.Items.Count; i++)
+            // 🔁 2026-11-09(T1 拆表):源文件顶层由单 `diseases` 拆成 `diseases` / `injuries`
+            //   两个数组(`technique-unlock-map-2026-11-09.md` §7 T1)。本 canary 必须**两个都扫** ——
+            //   只扫 `diseases` 会让伤情行上的 `compounds` 静默逃过到期复查,而那正是它唯一的作用。
+            //   ⚠️ 这条修的是**可观测面**,不是新判据:原判据「任一行出现 compounds 即抛」逐字不变。
+            for (int k = 0; k < RegistryRowArrayKeys.Length; k++)
             {
-                JsonNode row = list.Items[i];
-                if (row.Kind != JsonNodeKind.Object) continue;
-                foreach (string key in row.Keys)
+                string arrayKey = RegistryRowArrayKeys[k];
+                if (!root.TryGet(arrayKey, out JsonNode list) || list.Kind != JsonNodeKind.Array) continue;
+
+                for (int i = 0; i < list.Items.Count; i++)
                 {
-                    if (!string.Equals(key, "compounds", StringComparison.Ordinal)) continue;
-                    throw new BakeValidationException(new List<string>
+                    JsonNode row = list.Items[i];
+                    if (row.Kind != JsonNodeKind.Object) continue;
+                    foreach (string key in row.Keys)
                     {
-                        $"[N-4′ canary] 疾病注册表第 {i} 行出现 `compounds` 键 ⇒ **ADR-035 N-4 到期复查**。" +
-                        "这是**复查提醒,不是拒绝**(compounds 本身是合法的 9 侧机制)。出手步骤:" +
-                        "① 遍历 代价表白名单 × compounds 可达闭包,判有无 `lethal == true` 的 target;" +
-                        "② 有 ⇒ 把本 canary 换成原式 N-4 并同批写夹具;无 ⇒ 在 ADR-035 §Risks R2 销案后删除本 canary。" +
-                        "在此之前 `CostTableBinder` 拒绝烘焙 —— 因为「非致死伤 → 复合 → 致死病」这条绕行" +
-                        "一旦成立,本表**永不致死**的保证就破了。",
-                    });
+                        if (!string.Equals(key, "compounds", StringComparison.Ordinal)) continue;
+                        throw new BakeValidationException(new List<string>
+                        {
+                            $"[N-4′ canary] 疾病注册表 {arrayKey} 第 {i} 行出现 `compounds` 键 ⇒ **ADR-035 N-4 到期复查**。" +
+                            "这是**复查提醒,不是拒绝**(compounds 本身是合法的 9 侧机制)。出手步骤:" +
+                            "① 遍历 代价表白名单 × compounds 可达闭包,判有无 `lethal == true` 的 target;" +
+                            "② 有 ⇒ 把本 canary 换成原式 N-4 并同批写夹具;无 ⇒ 在 ADR-035 §Risks R2 销案后删除本 canary。" +
+                            "在此之前 `CostTableBinder` 拒绝烘焙 —— 因为「非致死伤 → 复合 → 致死病」这条绕行" +
+                            "一旦成立,本表**永不致死**的保证就破了。",
+                        });
+                    }
                 }
             }
         }

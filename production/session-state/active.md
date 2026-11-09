@@ -17481,3 +17481,22 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 判据:`patient_disease_rotation_test.cs` 3 条;证伪「改回 `_diseaseIds[0]`」⇒ ①②恰红、③仍绿。
 - 回归:EditMode `7171/7134/0/0/37` · PlayMode `370/366/0/2/2` @ `2026-11-08T07:19:20Z`。
 - 探针自坑:两格曼哈顿距离相等 ⇒ min/max 取到同一病人 ⇒ `seen` 恒 1(已记入证据 §5)。
+
+## Session Extract — 病种集重梳 / 技法层 / T1 拆表(2026-11-09)
+
+- **设计裁决(用户 2026-11-09)**:① 三层正交模型(知识永久 / 物品可缺 / 熟练只改稳度与省料);
+  ② 钩子病例**每章 1–3 例**,可诊断 · 指出缺哪门技法 · 不点破地点;③ 毛地黄 / 金鸡纳**补奇遇**。
+- **两份对照件落盘**:
+  - `design/gdd/reviews/disease-set-rework-proposal-2026-11-08.md`(病种集草案,已被 T1 部分推进)
+  - `design/gdd/reviews/technique-unlock-map-2026-11-09.md`(技法开启表 · 病例两类门 · 分步 T1–T7)
+- **T1 已落盘**:`disease_registry.json` 拆 `diseases`(9)+ `injuries`(7),行文本逐字未改;
+  `DiseaseRegistryBinder` 两数组共用行绑定并按 id 并集;`CostTableBinder` 的 N-4′ canary 改为两数组都扫。
+  判据订正:**除 cooked 头 offset 12–15(ConfigVersion)外逐字节不变**(实测差恰 4 字节)。
+- **连带重烘**:`disease_registry.cooked.bytes` · `53_cost_table.cooked.bytes`(后者 ConfigVersion 依赖注册表源文本)。
+- **回归**:EditMode `7171/7134/0/37` · PlayMode `370/366/0/2/2` @ `2026-11-09T05:55Z` · `839eebcc`+工作树(零回归、零新增)。
+  定向:`cooked_drift 47/47` · `DiseaseRegistryBakePipelineTest 32/32` · `CostTableBinderTest 34/34`。
+  证据:`production/qa/evidence/impl-t1-disease-registry-split-2026-11-09.md`。
+- **途中发现(已记证据 §4)**:① 词表模型**无法表达「同一病的两个时代俗名」** ——
+  `[lexicon-multi-row-link]` 只允许「一词多病」,不允许「多词同病」;未提交的「湿温→10」已还原到 HEAD。
+  ② `53_cost_table` 的 ConfigVersion 把注册表源一起哈希 ⇒ 拆表必重烘。
+- **未做**:T2(两视图 + `min_skill_level`/`teach_point`)· T3(技法解锁的权威载体 ADR)· T4–T7。

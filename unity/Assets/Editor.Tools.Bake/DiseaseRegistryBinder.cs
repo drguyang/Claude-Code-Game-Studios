@@ -36,7 +36,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         //    (GDD Tuning §四 :1743-1744;R1.3 的逐病种字段表里没有它们 ⇒ 不逐病种)。
         //    作者态缺省 = 两键可省(缺 = 未配置 = 0),因为数值轮尚未裁定。
         private static readonly string[] RootKeys =
-            { "schema_version", "diseases", "trend_window_ticks", "trend_eps" };
+            { "schema_version", "diseases", "injuries", "trend_window_ticks", "trend_eps" };
 
         private static readonly string[] DiseaseRowKeys =
         {
@@ -214,23 +214,20 @@ namespace DaYiJingCheng.EditorTools.Bake
             // 2026-10-31(S21-10):侧信道集合 —— `terminal_state == true` 的行键(DiseaseRowKeys 有、
             // BoundRowKeys 无 ⇒ 不值进 entry,由 BindResult.TerminalRowKeys 交给 53 的 N-5)。
             var terminal = new SortedSet<string>(StringComparer.Ordinal);
-            if (!root.TryGet("diseases", out JsonNode arr))
-            {
-                errors.Add("disease_registry.json 缺 diseases 数组");
-            }
-            else if (arr.Kind != JsonNodeKind.Array)
-            {
-                errors.Add($"disease_registry.json diseases 须为数组(实得 {arr.Kind})");
-            }
-            else
-            {
-                for (int i = 0; i < arr.Items.Count; i++)
-                {
-                    DiseaseRegistryEntry e = BindRow(
-                        arr.Items[i], $"diseases[{i}]", errors, unbound, terminal, causalTreatmentByDiseaseKey);
-                    if (e != null) rows.Add(e);
-                }
-            }
+            // ── 2026-11-09 T1:源文件拆成 `diseases` / `injuries` 两个数组 ──
+            //   口径:`technique-unlock-map-2026-11-09.md` §7 T1 —— **纯结构拆分,行为零变化**。
+            //   - 两个数组的行 schema **完全相同**(承 GDD 规则九:伤情照填全部字段)。
+            //   - 绑定后**按 id 升序并集** —— 真表的书写序本就是 id 升序,故载荷段逐字节不变;
+            //     排序让「数组落在哪一侧」不影响产物(不排序则顺序随拆分而变)。
+            //   - `injuries` **可省**(= 空的旧形态,兼容既有夹具与合成源);`diseases` 仍必填。
+            //   ⚠️ 本步**不**校验「injuries 里的行 kind 必须是 injury」—— 那属 T2
+            //      (`DiseaseRegistryDataSet` 增 `Diseases`/`Injuries` 视图时同批做)。
+            BindRows(root, "diseases", required: true, rows, errors, unbound, terminal,
+                     causalTreatmentByDiseaseKey);
+            BindRows(root, "injuries", required: false, rows, errors, unbound, terminal,
+                     causalTreatmentByDiseaseKey);
+
+            rows.Sort((a, b) => a.DiseaseId.CompareTo(b.DiseaseId));
 
             // ── ★ 校验器调用点(本件承重面)──
             //    仅当绑定本身无错时跑 —— 否则断言的是半成型行集,错误会重复且难读。
@@ -251,6 +248,38 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             return new BindResult(rows, schemaVersion, new List<string>(unbound), new List<string>(terminal),
                                   trendWindowTicks, trendEpsRaw);
+        }
+
+        // ── 数组 ────────────────────────────────────────────────────────────
+
+        /// <summary>绑一个顶层行数组(`diseases` / `injuries`),把行追加进 <paramref name="rows"/>。</summary>
+        /// <param name="required"><c>false</c> ⇒ 缺键不记错(空集);<c>true</c> ⇒ 缺键即错。</param>
+        /// <remarks>
+        /// <para><b>为什么两个数组共用一套行绑定</b>:GDD 规则九(`disease-simulation.md:356-358`)
+        /// 明写伤情与病种走**同一张 schema**,「省字段 = 实现里多一个 `if kind == injury`」。
+        /// 拆数组只改**行落在哪个顶层键下**,不改行的形状 ⇒ 绑定路径必须同一条。</para>
+        /// </remarks>
+        private static void BindRows(JsonNode root, string arrayKey, bool required,
+                                     List<DiseaseRegistryEntry> rows, List<string> errors,
+                                     SortedSet<string> unbound, SortedSet<string> terminal,
+                                     IReadOnlyDictionary<string, bool> causalByKey)
+        {
+            if (!root.TryGet(arrayKey, out JsonNode arr))
+            {
+                if (required) errors.Add($"disease_registry.json 缺 {arrayKey} 数组");
+                return;
+            }
+            if (arr.Kind != JsonNodeKind.Array)
+            {
+                errors.Add($"disease_registry.json {arrayKey} 须为数组(实得 {arr.Kind})");
+                return;
+            }
+            for (int i = 0; i < arr.Items.Count; i++)
+            {
+                DiseaseRegistryEntry e = BindRow(
+                    arr.Items[i], $"{arrayKey}[{i}]", errors, unbound, terminal, causalByKey);
+                if (e != null) rows.Add(e);
+            }
         }
 
         // ── 单行 ────────────────────────────────────────────────────────────
