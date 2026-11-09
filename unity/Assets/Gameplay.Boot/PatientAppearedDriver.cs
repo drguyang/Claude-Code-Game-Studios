@@ -75,8 +75,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>扫到第一个**通过投放资格**的行即取它;单条注册表 ⇒ 全部同一个
         /// (与轮转前逐位相同)。</para></summary>
         private readonly DiseaseRegistryEntry[] _rotation;
-        /// <summary>投放资格谓词(T4)。<c>null</c> = 未接线 ⇒ 全部放行(与接线前逐位相同)。</summary>
-        private readonly Func<DiseaseRegistryEntry, bool> _admit;
+        /// <summary>投放资格判据(T4/T5)。<c>null</c> = 未接线 ⇒ 全部放行(与接线前逐位相同)。</summary>
+        private readonly Func<DiseaseRegistryEntry, PatientDrawDecision> _admit;
         /// <summary>下一轮从哪一格开始扫(落选时停在原位,由下一次重新扫)。</summary>
         private int _rotationCursor;
         private long _lastSpawnTick = -1;
@@ -88,13 +88,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="registry">病种注册表(默认取第一个条目;空表 fail-loud)。</param>
         /// <param name="registryIndex">取第几条(2026-10-29 · `TD-listen-01` 的 L-3:听测专用病种 = 1)。
         /// 默认 0 ⇒ 与接线前**逐位相同**。</param>
-        /// <param name="admit">投放资格谓词(T4 · `PatientDrawEligibility`)。
+        /// <param name="admit">投放资格判据(T4/T5 · `PatientDrawEligibility` 的结果)。
         /// <b><c>null</c> = 未接线 ⇒ 不拦</b>(与 `ITreatableByLookup` 的 null 语义同源;
-        /// 109 处既有夹具由此保持逐位不变)。</param>
+        /// 109 处既有夹具由此保持逐位不变)。返回 <c>PatientDrawDecision</c> 而不是 bool,
+        /// 是为了让**钩子标记**能传出来(T5 §5.2 的「必须指出缺哪门技法」依赖它)。
         public PatientAppearedDriver(PatientSpawner spawner, IPresenceWriter presence,
                                       IReadOnlyList<DiseaseRegistryEntry> registry,
                                       int registryIndex = 0,
-                                      Func<DiseaseRegistryEntry, bool> admit = null)
+                                      Func<DiseaseRegistryEntry, PatientDrawDecision> admit = null)
         {
             _spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -145,13 +146,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⚠️ `_admit == null` ⇒ 不拦,且取的格子与旧实现(`_spawnedCount % len`)
             //       逐位相同 —— 109 处既有夹具因此零改动。
             DiseaseRegistryEntry picked = null;
+            PatientDrawDecision pickedDecision = default;
             for (int k = 0; k < _rotation.Length; k++)
             {
                 int idx = (_rotationCursor + k) % _rotation.Length;
                 DiseaseRegistryEntry candidate = _rotation[idx];
-                if (_admit == null || _admit(candidate))
+                if (_admit == null)
                 {
                     picked = candidate;
+                    pickedDecision = default;
+                    _rotationCursor = (idx + 1) % _rotation.Length;
+                    break;
+                }
+                PatientDrawDecision decision = _admit(candidate);
+                if (decision.Admitted)
+                {
+                    picked = candidate;
+                    pickedDecision = decision;
                     _rotationCursor = (idx + 1) % _rotation.Length;
                     break;
                 }
@@ -179,9 +190,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 2026-11-08 加 —— 此前只能从 `病名册环 seen=` 反推,而那个读数分不清
             // 「两个病人同病种」与「第二次查体没生效」。
             if (WalkthroughDiagnostics.Enabled)
+            {
+                // T5:钩子病例必须在走查读数里可见 —— 否则「这一例为什么治不了」只能靠玩家猜。
+                string hook = pickedDecision.IsHookCase ? " hook=1" : " hook=0";
+                string missing = pickedDecision.MissingTechniques.Count == 0
+                    ? ""
+                    : " 缺技法=[" + string.Join(",", pickedDecision.MissingTechniques) + "]";
                 UnityEngine.Debug.Log(
                     $"[tutorialdiag] 病人出现 #{_spawnedCount} id={patientId.Value} " +
-                    $"disease={diseaseId} 注册表={_rotation.Length}");
+                    $"disease={diseaseId} 注册表={_rotation.Length}{hook}{missing}");
+            }
             _presence.AddPresent(patientId, PatientWiringPositions.CellFor(_spawnedCount));
             _lastSpawnTick = tick;
             _spawnedCount++;

@@ -235,7 +235,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var driver = new PatientAppearedDriver(
                 spawner, presence, new[] { blocked, open },
                 admit: row => PatientDrawEligibility.Decide(
-                    row, index, 0, t => unlocked.Contains(t)).Admitted);
+                    row, index, 0, t => unlocked.Contains(t)));
 
             driver.OnTickEdge(0);
             driver.OnTickEdge(60);
@@ -264,7 +264,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var driver = new PatientAppearedDriver(
                 spawner, new PresenceRegistry(), new[] { Row(7, "DIS_LOCKED") },
                 admit: row => PatientDrawEligibility.Decide(
-                    row, Index(("DIS_LOCKED", 12)), 0, _ => false).Admitted);
+                    row, Index(("DIS_LOCKED", 12)), 0, _ => false));
 
             driver.OnTickEdge(0);
             driver.OnTickEdge(60);

@@ -501,16 +501,38 @@ namespace DaYiJingCheng.Gameplay.Boot
                 && techniqueUnlockQuery != null
                 && techniqueUnlockQuery.IsUnlocked(playerActor.ActorId, techniqueId);
 
-            Func<DiseaseRegistryEntry, bool> admitEntry = row =>
-                PatientDrawEligibility.Decide(
+            // ── 钩子病例的配额账本(T5a · 2026-11-09)────────────────────────────
+            // 「每章 1–3 例」的计数**从事件流重建**(不设内存计数器 —— 读档后不可重建,
+            // 与 `ADR-039 §D2` 删两个内存字段同因)。
+            // ⚠️ 索引未接线(`dataProvider == null`)⇒ 没有账本 ⇒ `hookAllowed` 恒 false
+            //    ⇒ 钩子层整体不生效,与 T4 的门逐位相同。
+            HookCaseLedger hookCaseLedger = techniqueDrawIndex == null
+                ? null
+                : new HookCaseLedger(() => stream.Events, decoder, techniqueDrawIndex, registryById);
+
+            Func<DiseaseRegistryEntry, PatientDrawDecision> admitEntry = row =>
+            {
+                // 钩子放行只在「技法全锁」这一种拒收上生效,且要过章内配额 + 可诊断性。
+                // ⚠️ 玩家未绑定时不判配额:那时 `CountHookCases` 不知道按谁的解锁算。
+                bool hookAllowed = false;
+                if (hookCaseLedger != null && playerActor.IsBound
+                    && techniqueDrawIndex.IsDeclared(row.DiseaseKey))
+                {
+                    hookAllowed = HookCasePolicy.AllowsInjection(
+                        row, hookCaseLedger.CountHookCases(playerActor.ActorId));
+                }
+
+                return PatientDrawEligibility.Decide(
                     row, techniqueDrawIndex, P0PrescriptionLevel,
-                    isTechniqueUnlockedForPlayer, playerActor.IsBound).Admitted;
+                    isTechniqueUnlockedForPlayer, playerActor.IsBound,
+                    asHookCase: false, hookAllowed: hookAllowed);
+            };
 
             // 52 路径按**病种 id** 判(池表只给外键)。查不到的 id ⇒ 不拦:
             // 那不是投放门能判的对象,而下游 9 的「病种不在注册表内」fail-loud 会接手。
             Func<int, bool> isDiseaseAdmissible = diseaseId =>
                 !registryById.TryGetValue(diseaseId, out DiseaseRegistryEntry candidate)
-                || admitEntry(candidate);
+                || admitEntry(candidate).Admitted;
 
             var patientDriver = new PatientAppearedDriver(
                 spawner, presence, resolvedRegistry, registryIndex: registryIndex,

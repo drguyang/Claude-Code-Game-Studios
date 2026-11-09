@@ -17556,3 +17556,20 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 证据:`production/qa/evidence/impl-t4-patient-draw-eligibility-2026-11-09.md`。
 - **未做**:T5(钩子病例判定与收场)· T6(手册缺页)· T7(补数据;伤情写进 `treatable_by` 后
   「未覆盖」的 7 行会变真门)。`min_skill_level` 全 0 ⇒ 等级门的拒绝分支**只有夹具可达**。
+
+## Session Extract — 病种集重梳 · T5a(钩子病例判定,2026-11-09)
+
+- **规则 1/2/3 已落**:`HookCasePolicy`(可诊断性 + `MaxPerChapter = 1`)· `HookCaseLedger`
+  (**事件流重建**「已注入几例」:onset 那一刻该病种技法全锁才算钩子;后解锁不追溯)·
+  `PatientDrawDecision.MissingTechniques`(规则 3)· 两路放行改判 `HookCase` 并打标。
+- **「可诊断」口径** = `signs[]` 至少一条**体格通道**(排除 `Subjective` / `History` —— 8 的 MaskOf 对这两位返回 0)。
+- **账本不设内存计数器**(读档不可重建,同 `ADR-039 §D2` 删两字段的理由)。
+- **判据**:`hook_case_policy_test` **20 条**。
+- **回归**:EditMode `7224/7187/0/37`(+20)· PlayMode `370/366/0/2/2` @ `2026-11-09T10:58:34Z` · `7fbb56a7`+工作树。
+- **两轮编译失败**(漏 using / 夹具 `Sink` 未实现 `IEventSink`)—— 均停在编译期,修好后第三轮全绿。
+- **收场未做,须先裁载体**:甲 新增 `PatientOutcome.Transferred = 3`(**与 `FoldRowCodec` 的 `{1,2}` 损坏哨兵冲突**,
+  有夹具明写「未知 outcome(3) = 档损坏」⇒ 存档格式级)· 乙 新增病例流 Kind(**建议**)· 丙 不新增载体。
+- **「章」运行期不存在** ⇒ 接线恒章号 0,「每章 1 例」退化为**整局 1 例**(具名缺口)。
+- **生产可达性**:驱动上限 2 人 + 轮转首两格是伤情 ⇒ 今日真包抽不到钩子(机制在,暴露面缺)。
+- 证据:`production/qa/evidence/impl-t5a-hook-case-judgment-2026-11-09.md`。
+- **未做**:T5b 收场载体 · T6 手册缺页 · T7 补数据。

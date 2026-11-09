@@ -33,6 +33,7 @@
 //   ⚠️ 谁来决定「这一例是不是钩子」不归本类 —— 那是 T5(每章 1–3 例 + 三条反馈)。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Prescription;
 
@@ -72,11 +73,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>被判定的病种 id(回带,便于日志与夹具对应)。</summary>
         public readonly int DiseaseId;
 
-        /// <summary>构造一次判定。</summary>
+        /// <summary>
+        /// 该病种**声明了但玩家没解锁**的技法 id(升序;**空** = 不适用)。
+        /// <para>T5 §5.2 规则 3「必须指出缺的是哪一门技法」的数据面 ——
+        /// 只在 <see cref="PatientDrawVerdict.NoUnlockedTechnique"/> /
+        /// <see cref="PatientDrawVerdict.HookCase"/> 上有意义。</para>
+        /// <para>⚠️ 经属性暴露而非字段:`readonly struct` 的 <c>default</c> 绕过构造器,
+        /// 字段会是 <c>null</c> ⇒ 调用方 `.Count` 直接 NRE(F9 同族)。属性归一成空数组。</para>
+        /// </summary>
+        public IReadOnlyList<int> MissingTechniques => _missingTechniques ?? Array.Empty<int>();
+
+        private readonly IReadOnlyList<int> _missingTechniques;
+
+        /// <summary>构造一次判定(无技法缺口信息)。</summary>
         public PatientDrawDecision(PatientDrawVerdict verdict, int diseaseId)
+            : this(verdict, diseaseId, null) { }
+
+        /// <summary>构造一次判定(带技法缺口)。</summary>
+        public PatientDrawDecision(PatientDrawVerdict verdict, int diseaseId,
+                                   IReadOnlyList<int> missingTechniques)
         {
             Verdict = verdict;
             DiseaseId = diseaseId;
+            _missingTechniques = missingTechniques;
         }
 
         /// <summary>是否允许该病种进入本轮候选。</summary>
@@ -111,7 +130,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="playerPrescriptionLevel">玩家「处方用药」等级(P0 是装配常量;真等级归 30 实装)。</param>
         /// <param name="isTechniqueUnlocked">技法解锁谓词(已绑定玩家的调用方负责闭包)。</param>
         /// <param name="playerBound">玩家 id 是否已绑定;`false` ⇒ 判 <see cref="PatientDrawVerdict.PlayerNotReady"/>。</param>
-        /// <param name="asHookCase">是否按钩子病例放行(§5.2);跳过两道门并打标。</param>
+        /// <param name="asHookCase">是否**强制**按钩子病例放行(§5.2);跳过两道门并打标。
+        /// <para>⚠️ 与 <paramref name="hookAllowed"/> 的区别:`asHookCase` = 「这一例**已经判定**为钩子」
+        /// (无条件放行);`hookAllowed` = 「**若**它因技法全锁被拒,可以改判为钩子」——
+        /// 后者只在技法门真的拒收时生效,等级门拒收**不**改判。</para></param>
+        /// <param name="hookAllowed">技法全锁时是否允许改判为 <see cref="PatientDrawVerdict.HookCase"/>。
+        /// 由调用方经 <c>HookCasePolicy</c> 判(章内配额 + 可诊断性)。默认 <c>false</c> ⇒ 与 T4 逐位相同。</param>
         /// <exception cref="ArgumentNullException"><paramref name="row"/> 为 null。</exception>
         /// <exception cref="ArgumentNullException"><paramref name="isTechniqueUnlocked"/> 为 null。
         /// <para>⚠️ 刻意**不**在 `index == null` 时容忍 null 谓词:两个 null 都表示「未接线」,
@@ -122,7 +146,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             int playerPrescriptionLevel,
             Func<int, bool> isTechniqueUnlocked,
             bool playerBound = true,
-            bool asHookCase = false)
+            bool asHookCase = false,
+            bool hookAllowed = false)
         {
             if (row == null) throw new ArgumentNullException(nameof(row));
             if (isTechniqueUnlocked == null) throw new ArgumentNullException(nameof(isTechniqueUnlocked));
@@ -151,7 +176,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 if (isTechniqueUnlocked(techniques[i])) { anyUnlocked = true; break; }
             }
-            if (!anyUnlocked) return new PatientDrawDecision(PatientDrawVerdict.NoUnlockedTechnique, id);
+            if (!anyUnlocked)
+            {
+                // T5 §5.2 规则 3:把**缺哪几门**回带出去(钩子病例的呈现要用它)。
+                var missing = new int[techniques.Count];
+                for (int i = 0; i < techniques.Count; i++) missing[i] = techniques[i];
+
+                // ⑤ 钩子放行(T5 §5.2):**只有**技法全锁这一种拒收可以被改判。
+                //    等级不足不在此列 —— 那是同一门技法内部的难易档,不是「缺一门知识」。
+                //    ⚠️ 是否允许改判由调用方经 `HookCasePolicy` 判(章内配额 / 可诊断性),
+                //       本函数只认这个布尔 —— 判据与配额分成两层,便于各自单测。
+                return new PatientDrawDecision(
+                    hookAllowed ? PatientDrawVerdict.HookCase : PatientDrawVerdict.NoUnlockedTechnique,
+                    id, missing);
+            }
 
             // ⑤ 等级门(软):与技法门**不乘**,过了才看。
             if (row.MinSkillLevel > playerPrescriptionLevel)
