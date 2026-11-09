@@ -60,6 +60,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>null</c> = 未装配(与 <see cref="TechniqueUnlocks"/> 同格)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockWriter TechniqueUnlockWriter { get; internal set; }
 
+        /// <summary>技法解锁的**触发驱动**(2026-11-09 · T9)。
+        /// <para>每个 tick 边沿扫一遍事件流,把奇遇 / Boss / 病例翻成解锁请求
+        /// (`TechniqueUnlockDriver`)。规则表今日为空 ⇒ 零扫描、零写入。</para>
+        /// <para>⚠️ <b>构造点不在 `CompositionRoot.Assemble`</b> —— 它需要玩家 id,
+        /// 而玩家 id 是 `BootRoot` 第 4 步才铸造的(与 <see cref="TechniqueUnlockWriter"/> 的
+        /// 起步集调用同格)。<c>null</c> = 未装配。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockDriver TechniqueUnlockDriver { get; internal set; }
+
         /// <summary>钩子病例的收场写者端口(2026-11-09 · ADR-044 §D2/§D6)。
         /// <para>这是**唯一**能写 `CaseReferred` 的对象;42 的转诊交互 / 剧本经它请求。</para>
         /// <para>⚠️ 本轮**没有生产调用方**(ADR-044 §D7 如实登记)—— 宿主未建之前不得

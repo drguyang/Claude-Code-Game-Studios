@@ -270,6 +270,27 @@
 > **内容也未写死**:今日种子里那张「望诊四要」是纯知识页,`teachTechnique` 全库**一处未填** ⇒
 > 「哪一页教哪门技法」归内容轮。本步交的是**能力**,不是可见行为。
 
+| **T9** | 技法解锁的**触发通路**(奇遇 / Boss / 病例 → 解锁) | 三类源各一条通路 · 匹配约束可证伪 · 幂等 |
+
+> **✅ T9 已落(2026-11-09 · 用户「开工 T9」)** —— 「甲」的**机制**半边。
+> **补的断点**:T3 之后 `TechniqueUnlockWriter.TryUnlock` 全仓唯一调用点 = 起步集(`{0,1}`)
+> ⇒ 其余技法 P0 里**永远锁着**,17 行注册表只有 6 行可投放。本步接上触发通路。
+> **形状**:`TechniqueUnlockDriver`(`Gameplay.Boot`)每 tick 边沿**全量扫**事件流
+> (`PoiStateChanged` / `EventArrived` / `CaseClosed` 三类),命中 `TechniqueUnlockRule` 即交写者。
+> **零游标** —— 读档是整表替换,游标必然失配且**静默**(漏解锁);全量扫 + 写者 D6 去重 ⇒
+> 幂等、读档自愈。零规则时直接 return,今日零开销。
+> **匹配约束**(四个都是「去掉就变绿」的可证伪点):POI 须**状态相符**(只按 id 匹配会让
+> 「进去转一圈」也算解锁)· 奇遇须 `tier ≥ minTier`(用 ≥ 不用 =,更强的不该反而解锁不了)·
+> 病例须 `Treated == true`(写死在驱动,不做成字段)· 病种须**按位**命中集合。
+> ⚠️ **写入 tick = 当前 tick**,不照抄源事件 tick —— 读档重放时源事件全在过去,
+> 照抄会撞 `EventStream.Append` 的 Tick 回退断言(BCD-码-3)。
+> ⚠️ **规则表今日为空**(`TechniqueUnlockRules.Default` = `[]`)—— 三条候选源在数据侧
+> **都没有可映射的语义**(`world_poi.json` 只有 `{poi_id, type}` 无状态词表 ·
+> `52_event_pool.json` 只有数字 key + 权重 · 病例无「病种→技法」映射)⇒ 规则行是**内容**,
+> 归内容轮。载体取**代码常量**(与 `TechniqueUnlockBootstrap.StartingTechniques` 同格):
+> 零行的 baked artifact 要动六处去运一张空表,而「表是空的」与「表没装上」运行期不可区分。
+> **升级路径是一个缝**:驱动只认 `IReadOnlyList<TechniqueUnlockRule>`,将来外部化换来源即可。
+
 ---
 
 ## 8. 风险

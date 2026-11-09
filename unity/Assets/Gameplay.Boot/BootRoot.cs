@@ -574,6 +574,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.Stream.Events, _services.TechniqueUnlockWriter,
                 actorId, _tickDriver.CurrentTick);
 
+            // ── 4.4b. 技法解锁的触发驱动(2026-11-09 · T9)──────────────────────
+            //   每个 tick 边沿扫一遍事件流,把「奇遇 / Boss / 病例」翻成解锁请求。
+            //   ⚠️ 必须在这里而不是 `CompositionRoot.Assemble`:驱动要**玩家 id**,而那是
+            //      第 4 步才铸造的(与 4.4a 的起步集逐字同因)。
+            //   ⚠️ 规则表今日**为空**(`TechniqueUnlockRules.Default`)⇒ 驱动零扫描、零写入。
+            //      这不是「没接上」:接上了、也跑了,只是没有一行内容 —— 补一行即活,
+            //      不需要改任何代码(见该常量的 remarks 与 T9 证据件)。
+            _services.TechniqueUnlockDriver = new TechniqueUnlockDriver(
+                _services.Stream, _services.Decoder,
+                TechniqueUnlockRules.Default, _services.TechniqueUnlockWriter, actorId);
+
             // ── 4.3a. 1 侧传送 sink 绑定(S23-7 · 2026-11-01)────────────────────
             // 构造在 CompositionRoot 死亡消费段(服务袋 TeleportSink);玩家此刻才存在
             // ⇒ 在此迟绑定。复活链(29 revive 回调 → issuer → 本 sink)自此全通。
@@ -2893,6 +2904,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null)
             {
                 _services.RandomEventsDirector?.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 30 技法解锁的触发扫描(T9 · 2026-11-09):同一 tick 边沿序列内,排在**本边沿所有
+            // 事件生产者之后** —— 它读的是事件流,排前面会晚一拍看到本 tick 的 `EventArrived`
+            // (与 48 教学链同一条理由)。
+            // ⚠️ 规则表为空 ⇒ 内部直接 return,今日零开销、零写入。
+            // ⚠️ 它**会**写事件(`TechniqueUnlocked` → 病史流),但写者是唯一落点且 D6 去重 ⇒
+            //    同一份流重复扫描不产生重复行(读档后再扫一遍是安全的,且是设计意图:
+            //    玩家 id 读档后重新铸造,历史解锁由重扫补写给他)。
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.TechniqueUnlockDriver != null)
+            {
+                _services.TechniqueUnlockDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
 
             // 48 教学链(S25-4c · 2026-11-06):同一 tick 边沿序列内,排在本边沿**所有事件生产者之后**

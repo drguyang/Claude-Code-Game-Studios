@@ -17655,3 +17655,32 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **侦察结论(存档)**:`TechniqueUnlockWriter.TryUnlock` 生产调用点 = 起步集写入器 ⇒
   P0 里其余技法永远锁着,17 行注册表只有 6 行可投放。这是甲/乙两条候选的存在理由。
 - 证据:`production/qa/evidence/impl-t8-paper-technique-binding-2026-11-09.md`。
+
+## Session Extract — 技法解锁的触发通路 · T9(2026-11-09)
+
+- **用户指令「开工 T9，接技法解锁的触发通路」** —— 交付「甲」的**机制**半边。
+- **补的断点**:T3 之后 `TechniqueUnlockWriter.TryUnlock` 生产调用点只有起步集(`{0,1}`)
+  ⇒ 17 行注册表只有 6 行可投放,其余 11 行永久拒。本步接上触发通路。
+- **形状**:`TechniqueUnlockDriver`(`Gameplay.Boot`)每 tick 边沿**全量扫**事件流,三类源各一支
+  (`PoiStateChanged` / `EventArrived` / `CaseClosed`),命中 `TechniqueUnlockRule` 交写者。
+- **零游标**:`EventStream.Restore` 是整表替换 ⇒ 游标必然失配且**静默**(漏解锁)。
+  全量扫 + 写者 D6 去重 ⇒ 幂等、读档自愈。零规则直接 return,今日零开销。
+- **四条可证伪的匹配约束**:POI 须状态相符 · 奇遇 `tier ≥ minTier`(≥ 不用 =)·
+  病例须 `Treated == true`(写死在驱动,不做成字段)· 病种须**按位**命中集合(≥64 永不命中)。
+- ⚠️ **写入 tick = 当前 tick**,不照抄源事件 tick —— 读档重放时源事件全在过去,
+  照抄会撞 `EventStream.Append` 的 Tick 回退断言(BCD-码-3)。
+- ⚠️ **规则表今日为空**(`TechniqueUnlockRules.Default` = `[]`),三条候选源数据侧无可用语义
+  (`world_poi.json` 无状态词表 · `52_event_pool.json` 只有数字 key · 病例无「病种→技法」映射)
+  ⇒ 规则行归内容轮。载体取**代码常量**(与 `StartingTechniques` 同格);升级路径是一个缝。
+- **装配**:`BootRoot` 第 **4.4b** 步(玩家 id 已铸造之后)· tick 泵排在 52 驱动**之后**
+  (同 48 教学链理由:读流者须在本边沿所有生产者之后)。
+- **零新增 Kind / 零 registry / 零存档格式 / 零 ADR 改动**;`Sim` 与 `Sim.Contracts` 引用集未动。
+- **新夹具**:EditMode `technique_unlock_trigger_test` **21 条** · PlayMode
+  `TechniqueUnlockWiringTest` **1 条**(真启动序 + 反射比对写者同源 / 读流同源 / actor = 玩家)。
+- **回归**:EditMode `7285/7248/0/0/37`(+21)· PlayMode `372/367/0/2/3`(+1)
+  @ `2026-11-09T14:35:18Z` / `14:39:41Z` · `06c23e3a` + 工作树。
+- ⚠️ **编译期两轮红(我的写法错)**:① 具名实参 `MinTier:` 对私有形参 `minTier`(CS1739 ×3);
+  ② `params` 前接具名实参(CS1501)。均未放宽任何校验。
+- ⚠️ **只交管道,不交水**:今日零规则 ⇒ 零扫描零写入。补第一行**不需要改任何代码**。
+  值域词表(`poi_id` / `event_key` / `disease_id`)今日**无机械门**兜 —— 开始填之前应各补一道。
+- 证据:`production/qa/evidence/impl-t9-technique-unlock-trigger-2026-11-09.md`。
