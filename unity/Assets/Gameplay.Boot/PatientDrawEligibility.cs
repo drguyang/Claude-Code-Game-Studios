@@ -170,6 +170,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ④ 技法门(硬):∃ t ∈ treatable_by(d) : t 已解锁。
             //    声明为空数组 ⇒ 空集 ⇒ 恒假 ⇒ 拒收(与「有技法但都没解锁」同判:
             //    对投放门而言两者都是「此刻一门都使不出来」)。
+            //    🔁 **2026-11-09(T11 实测)订正 —— 上面那句「声明为空数组 ⇒ 拒收」不成立。**
+            //    作者态 `"X": []` 在烘焙产物里**不留痕** ⇒ 该 key 根本不存在于 `TechniqueDrawIndex`
+            //    ⇒ 走 ③ 的 `Undeclared` 分支 ⇒ **放行**。实测 `DIS_NEURASTHENIA` 落在
+            //    `AlwaysDrawable`(判据 = `draw_surface_audit_test.test_realData_emptyDeclaredRow_isUndeclaredNotBlocked`)。
+            //    原文不删,留作闭环记录 —— 这正是当初把该行判成「永拒」的那条注释。
             System.Collections.Generic.IReadOnlyList<int> techniques = index.TechniquesOf(row.DiseaseKey);
             bool anyUnlocked = false;
             for (int i = 0; i < techniques.Count; i++)
