@@ -184,5 +184,60 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return new DrawSurfaceReport(rows, index, playerLevel, always, never, coverage);
         }
+
+        /// <summary>
+        /// 技法覆盖门(T12 · 2026-11-09):零覆盖技法集 **必须恰好等于**具名豁免集。
+        /// </summary>
+        /// <param name="coverage">逐技法覆盖(须由 <see cref="Compute"/> 传入全部 action id 得出 ——
+        /// 否则「零覆盖」与「不存在」不可区分)。</param>
+        /// <param name="exemptions">具名豁免(技法 id → 理由)。</param>
+        /// <returns>两个方向的差集。</returns>
+        /// <exception cref="ArgumentNullException">任一入参为 null。</exception>
+        /// <remarks>
+        /// ⚠️ 写成**集合相等**(两个方向的差集都要空),不是「包含」:
+        /// 只查「零覆盖 ⊆ 豁免」会让豁免表无限长大;只查「豁免 ⊆ 零覆盖」会让新出现的
+        /// 零覆盖技法无人处理。两个方向都是静默失效面。
+        /// </remarks>
+        public static CoverageGateResult EvaluateCoverageGate(
+            IReadOnlyList<TechniqueCoverage> coverage,
+            IReadOnlyDictionary<int, string> exemptions)
+        {
+            if (coverage == null) throw new ArgumentNullException(nameof(coverage));
+            if (exemptions == null) throw new ArgumentNullException(nameof(exemptions));
+
+            var gaps = new List<int>();
+            var covered = new HashSet<int>();
+            for (int i = 0; i < coverage.Count; i++)
+            {
+                TechniqueCoverage c = coverage[i];
+                if (c.RowCount > 0) { covered.Add(c.TechniqueId); continue; }
+                if (!exemptions.ContainsKey(c.TechniqueId)) gaps.Add(c.TechniqueId);
+            }
+
+            var stale = new List<int>();
+            foreach (int techniqueId in exemptions.Keys)
+                if (covered.Contains(techniqueId)) stale.Add(techniqueId);
+
+            return new CoverageGateResult(gaps, stale);
+        }
+    }
+
+    /// <summary>技法覆盖门的判定结果(T12)。</summary>
+    public readonly struct CoverageGateResult
+    {
+        /// <summary>覆盖 0 行**且**未登记豁免的技法 —— 必为空(否则有技法白开了还没人知道)。</summary>
+        public readonly IReadOnlyList<int> UnexcusedGaps;
+
+        /// <summary>登记了豁免、但**已经有覆盖**的技法 —— 必为空(豁免陈旧 ⇒ 门在掩护一个已消失的缺口)。</summary>
+        public readonly IReadOnlyList<int> StaleExemptions;
+
+        internal CoverageGateResult(IReadOnlyList<int> unexcusedGaps, IReadOnlyList<int> staleExemptions)
+        {
+            UnexcusedGaps = unexcusedGaps;
+            StaleExemptions = staleExemptions;
+        }
+
+        /// <summary>两侧都空 ⇒ 通过。</summary>
+        public bool Passed => UnexcusedGaps.Count == 0 && StaleExemptions.Count == 0;
     }
 }
