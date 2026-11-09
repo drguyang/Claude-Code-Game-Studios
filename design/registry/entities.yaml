@@ -3366,3 +3366,19 @@ constants:
     constraint: "落**病史流**(与 SkillGrown 同族:玩家级成长事实;ADR-043 §D1 —— 世界流装的是世界状态,玩家能力不是)。**写者 = 30**;**同一 (actor, technique) 至多一条** —— 重复授予 = no-op(不写、不抛,§D6),这是有界性的基础。**单调只增**:不存在「忘掉一招」的路径(skill-system.md:218「不掉已解锁的动作」)。**不参与 7a 折叠、不独立快照**(§D8;折叠谓词豁免,与 ADR-026 §⑦ 案 1 同型;读档后由流重建)。**查询** = `ITechniqueUnlockQuery`(Sim.Contracts)+ 病史流折叠实装(ADR-043 §D7)。有界性 = |actors| × |techniques|,与 tick 频率 / 帧率无关(解锁由内容事件触发,非逐帧;扩展 ADR-008 §六,不重写)。⚠️ **本支不新增技能、不改 30 的 19 项表** —— `skill-system.md:232`「给技能加门亦违法」只覆盖 19 项技能,技法(动作)不在那张表里(ADR-043 §1.3)"
     added: 2026-11-09
     revised: ""
+
+  - name: SimEvent.Kind.CaseReferred
+    status: active
+    source: docs/architecture/adr-044-case-referred-kind.md   # 本件 §D1(命名首现归 ADR-044)
+    referenced_by:
+      - docs/architecture/adr-044-case-referred-kind.md   # D1 载体 / D2 写者 / D3 载荷 / D5 不自动结案 / D6 唯一性
+      - design/gdd/reviews/technique-unlock-map-2026-11-09.md  # §5.2 收场三选一(用户 2026-11-09 裁定)
+      - docs/architecture/adr-008-case-event-stream.md   # 病例流第 6 支(按 Kind 路由)
+      - docs/architecture/adr-032-patient-outcome-kind.md  # **不扩**其终态词表(ADR-044 §1.2)
+    unit: kind
+    stream: case
+    author: "37 病例系统(主机唯一 Append,ADR-008 §一;宿主(42 转诊交互 / 剧本)只调用写者)"
+    payload_schema: "patient_id: i32 · case_id: 三元组(Tick, Patient, Seq) · reason: i32 闭集(0 = 转诊 · 1 = 送医)。全部整数域、零 Fix、零引用类型(ADR-024 A2)。⚠️ 无 tick / 无 seq 字段 —— 两者是事件头 SimEvent.Tick / Seq 的量,入载荷 = 第二真源"
+    constraint: "落**病例流**(转诊是病例侧结论,不是 F4 九态 —— ADR-044 §1.3)。**写者 = 37**。**同一个 case_id 至多一条** —— 重复转诊 = no-op(不写、不抛,§D6)。**不是病程终态**:不碰 `PatientOutcome` 词表、不碰折叠行 `FoldRowCodec` 的 `{1,2}` 损坏哨兵、不影响 `Folded(p)` 条件 ①(§D4)。**转诊不自动结案** —— `CaseClosed` 与本支正交,二者次序归 37 GDD(§D5)。**触发点本轮未接**(玩家转诊交互不存在,§D7)。有界性 = |病例|,与 tick 频率 / 帧率无关(扩展 ADR-008 §六,不重写)"
+    added: 2026-11-09
+    revised: ""

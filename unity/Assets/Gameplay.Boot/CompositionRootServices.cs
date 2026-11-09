@@ -60,6 +60,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>null</c> = 未装配(与 <see cref="TechniqueUnlocks"/> 同格)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockWriter TechniqueUnlockWriter { get; internal set; }
 
+        /// <summary>钩子病例的收场写者端口(2026-11-09 · ADR-044 §D2/§D6)。
+        /// <para>这是**唯一**能写 `CaseReferred` 的对象;42 的转诊交互 / 剧本经它请求。</para>
+        /// <para>⚠️ 本轮**没有生产调用方**(ADR-044 §D7 如实登记)—— 宿主未建之前不得
+        /// 声称「转诊可用」。<c>null</c> = 未装配。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.HookCaseClosureWriter HookCaseClosures { get; internal set; }
+
         /// <summary>17 采集的**生产驱动**(2026-11-01 · S22-9)。
         /// <para>每个 tick 边沿把一次主动交互翻译成一次采集裁决:3 的输入沿 → 4 的选择器 →
         /// **真闸门**(`CanCarry` + `CanHarvest`)→ `HarvestOrchestrator.Resolve`。</para>

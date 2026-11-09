@@ -2270,6 +2270,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.TechniqueUnlockWriter = new TechniqueUnlockWriter(
                 stream, encoder, techniqueUnlockQuery, knownTechniqueIds);
 
+            // 钩子病例的收场写者(2026-11-09 · ADR-044 §D2)。
+            //   ⚠️ 本轮**零生产调用方**(§D7):玩家转诊交互不存在。装配它 = 让宿主就位时
+            //      不必再改装配;**不**等于「转诊可用」。
+            services.HookCaseClosures = new HookCaseClosureWriter(
+                stream, encoder, () => stream.Events, decoder);
+
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);
 

@@ -1333,7 +1333,26 @@
   `DeterminismGoldenFixturesTest`)仍全绿 ⇒ 追加未位移既有 enum 值。
   Engine Knowledge Risk **LOW**(纯事件边界与装配,零 post-cutoff API)。
 
-> **本日志状态**:全部 ADR(001–**043**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
+
+- [ADR-044 ✅ **Accepted** 2026-11-09]**钩子病例的收场载体(`CaseReferred`)** ——
+  `docs/architecture/adr-044-case-referred-kind.md`。**T5 的收场半边**(map §5.2「转诊 / 送医 / 死亡,
+  三选一」)。用户 2026-11-09 裁定「**按乙**」= 新增病例流 Kind。
+  **甲被驳的实证**:`PatientOutcome.Transferred = 3` 会与 `FoldRowCodec` 的 `{1,2}`
+  **损坏哨兵**直接冲突(`fold_row_codec_test.cs:93-94` 明写「未知 outcome(3) = 档损坏」)⇒
+  加 3 会把损坏信号变成合法数据,是存档格式级变更(版本 + 迁移 + 金标准重签)。
+  **D1** 新病例流 Kind `CaseReferred`(枚举追加区末尾,既有成员值零位移);
+  **D2** 写者 = **37**(病例流唯一写者)· **D3** 载荷 `(patient_id, case_id, reason)`,
+  `reason ∈ {0 转诊, 1 送医}` 闭集(**编解码两侧都拒收域外值**)· **D4** **不是病程终态**
+  (不碰 `PatientOutcome` / 折叠词表 / `Folded(p)` 条件 ①)· **D5** **不自动结案**
+  (`CaseClosed` 与本支正交,次序归 37 GDD)· **D6** 同一 `case_id` 至多一条,重复 = no-op ·
+  **D7** 触发点**未接**(玩家转诊交互不存在)⇒ **不得声称「转诊可用」**。
+  **实现落盘**:`entities.yaml` 新条目 · `EventKind` 追加 · kindgen(**40 支 = 17/6/17**)·
+  `CaseReferredPayload` + codec(tag 1/2/3) · `HookCaseClosureWriter`(闭集 + 去重) ·
+  服务袋 `HookCaseClosures`。支数字面量 39 → 40(生产码 7 处 + 测试探针 3 处)。
+  夹具 `case_referred_test` **9 条**;回归 EditMode `7233/7196/0/37` · PlayMode `370/366/0/2/2`
+  @ `2026-11-09T11:16:39Z`。Engine Knowledge Risk **LOW**(纯 Kind 登记与整数载荷,零 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**044**)均有日志条目(**ADR-032 于 2026-10-28 补登记**,
 > **ADR-040 于 2026-11-04 以 `Proposed` 入册,同日实现轮转 `Accepted`**;**ADR-041 于 2026-11-04 起草即 Accepted**)。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;

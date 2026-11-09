@@ -23,7 +23,7 @@
 //    「判据可跑且能打出漂移」,**不证**「烘焙器会在漂移时 throw」。
 // 4. **AC-11-22 的 7a 序列化白名单半边** —— ✅ **2026-10-15 S11-4 已落判据**(原记 BLOCKED-BY-7a)。
 //    **载体识别(非 AC 文本收窄 —— AC 一字未动)**:AC 原文为「**7a 的序列化器**两个 Kind
-//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 39 支闭集 ∩ `PayloadCodec.DecodeBoxed`
+//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 40 支闭集 ∩ `PayloadCodec.DecodeBoxed`
 //    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛 `DefaultPathMarker` 特征串)。
 //    ⚠️ 7a **从未有过**独立的「存档白名单**表**」—— `ADR-010` 与 `persistence-service.md`
 //    全文皆无此产物;原 NOT-RUN 把它读成一张数据表,故判为未落地。
@@ -672,10 +672,10 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             //   已登记成员的解析失败消息是各解码器自己的文本,不含该串。
             // 可捕获性:删任一行 `case` ⇒ 立刻红。
             var closure = (EventKind[])Enum.GetValues(typeof(EventKind));
-            Assert.AreEqual(39, closure.Length,
-                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 39 支;变更哨兵 —— " +
+            Assert.AreEqual(40, closure.Length,
+                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 40 支;变更哨兵 —— " +
                 "若本次变更**有意**增删 Kind,须先改 registry 再重跑 kindgen。" +
-                "2026-10-30 ADR-035 起 37 → 38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38 → 39:加 TechniqueUnlocked)");
+                "2026-10-30 ADR-035 起 37 → 38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38 → 39:加 TechniqueUnlocked;2026-11-09 ADR-044 起 39 → 40:加 CaseReferred)");
 
             var unlisted = new List<string>();
             foreach (EventKind k in closure)

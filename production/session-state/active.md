@@ -17573,3 +17573,21 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **生产可达性**:驱动上限 2 人 + 轮转首两格是伤情 ⇒ 今日真包抽不到钩子(机制在,暴露面缺)。
 - 证据:`production/qa/evidence/impl-t5a-hook-case-judgment-2026-11-09.md`。
 - **未做**:T5b 收场载体 · T6 手册缺页 · T7 补数据。
+
+## Session Extract — 病种集重梳 · T5b(收场载体 CaseReferred,2026-11-09)
+
+- **用户裁定「按乙」** ⇒ 新增**病例流** Kind `CaseReferred`(ADR-044),不碰 `PatientOutcome`。
+- **甲被驳的实证**:`FoldRowCodec` 的 `{1,2}` 是**损坏哨兵**(`fold_row_codec_test.cs:93-94` 明写
+  「未知 outcome(3) = 档损坏」)⇒ 加 `Transferred=3` 会把损坏信号变成合法数据,存档格式级代价。
+- **语义边界**:不是病程终态(**不碰** `PatientOutcome` / 折叠词表 / `Folded(p)` 条件 ①)·
+  不自动结案(`CaseClosed` 与本支正交,次序归 37 GDD)· 同一 `case_id` 至多一条(重复 no-op)·
+  `reason ∈ {0 转诊, 1 送医}` 闭集,**编解码两侧都拒收域外值**。
+- **落盘**:`entities.yaml` · `EventKind` 追加 · kindgen **40 支(17/6/17)** ·
+  `CaseReferredPayload` + codec · `HookCaseClosureWriter`(闭集 + 去重) · 服务袋 `HookCaseClosures` ·
+  支数字面量 39 → 40(生产码 7 处 + 测试探针 3 处)。
+- **判据**:`case_referred_test` **9 条**。
+- **回归**:EditMode `7233/7196/0/37`(+9)· PlayMode `370/366/0/2/2` @ `2026-11-09T11:16:39Z` · `20d3e2bd`+工作树。
+- **一轮编译失败**(夹具漏 `using DaYiJingCheng.Sim`),补上后全绿。
+- ⚠️ **写者零生产调用方**(玩家转诊交互不存在)⇒ **转诊功能不可用**,本轮只交载体。
+- 证据:`production/qa/evidence/impl-t5b-case-referred-2026-11-09.md`。
+- **未做**:T6 手册缺页(42/48)· T7 补数据(蛇毒行 / 破伤风治疗项 / 毛地黄金鸡纳奇遇 / 伤情写进 treatable_by)。

@@ -29,7 +29,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
-    /// <summary>39 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38→39:加 TechniqueUnlocked)。</summary>
+    /// <summary>40 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38→39:加 TechniqueUnlocked;2026-11-09 ADR-044 起 39→40:加 CaseReferred)。</summary>
     public static partial class PayloadCodec
     {
         /// <summary>
@@ -98,8 +98,9 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.HouseCallStarted:          return DecodeHouseCallStarted(payloadBytes);
                 case EventKind.TreatmentHarmOnset:        return DecodeTreatmentHarmOnset(payloadBytes);
                 case EventKind.TechniqueUnlocked:         return DecodeTechniqueUnlocked(payloadBytes);
+                case EventKind.CaseReferred:              return DecodeCaseReferred(payloadBytes);
                 default:
-                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 39 支闭集内 {DefaultPathMarker}");
+                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 40 支闭集内 {DefaultPathMarker}");
             }
         }
 

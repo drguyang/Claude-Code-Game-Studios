@@ -196,5 +196,56 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
             return new JudgmentRevisedPayload(patientId, caseId, authorPlayerId, lexiconId, confidence);
         }
+
+        // ── 17. CaseReferred(ADR-044 §D3)─────────────────────────────────
+        // tag: 1 PatientId · 2 CaseId · 3 Reason —— 三个字段,**全部必填**。
+        // ⚠️ 载荷无 tick / 无 seq:两者都是事件头的量(SimEvent.Tick / Seq),入载荷 = 第二真源。
+        // ⚠️ `Reason` 是**闭集** {0 转诊, 1 送医};解码期拒收其它值 ——
+        //    与「空表惰性」不同:理由域不完整时宁可炸,否则呈现层会写出「原因未知」的转诊单。
+
+        public static byte[] Encode(in CaseReferredPayload p)
+        {
+            RequireReasonDeclared(p.Reason);
+            var w = new CodecWriter();
+            w.WriteFieldInt32(1, p.PatientId);
+            w.WriteFieldCaseId(2, p.CaseId);
+            w.WriteFieldInt32(3, p.Reason);
+            return w.ToArray();
+        }
+
+        private static CaseReferredPayload DecodeCaseReferred(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            int patientId = 0, reason = -1;
+            CaseId caseId = default;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.CaseReferred), ref seen))
+                {
+                    case 1: patientId = r.ReadInt32LittleEndian(); break;
+                    case 2: caseId = r.ReadFieldCaseId(); break;
+                    case 3: reason = r.ReadInt32LittleEndian(); break;
+                    default: throw new InvalidDataException($"CaseReferred: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.CaseReferred), seen, (1u << 3) - 1);
+            RequireReasonDeclared(reason);
+            r.EnsureFullyConsumed();
+            return new CaseReferredPayload(patientId, caseId, reason);
+        }
+
+        /// <summary><c>reason</c> 值域守卫(ADR-044 §D3 闭集)。</summary>
+        /// <exception cref="InvalidDataException">不在 {0 转诊, 1 送医} 内。</exception>
+        private static void RequireReasonDeclared(int reason)
+        {
+            if (reason != CaseReferredPayload.ReasonTransferred
+                && reason != CaseReferredPayload.ReasonHospitalized)
+            {
+                throw new InvalidDataException(
+                    $"CaseReferred: reason={reason} 不在闭集 {{0=转诊, 1=送医}} 内 —— " +
+                    "理由域不完整时宁可炸,否则呈现层会写出「原因未知」的转诊单(ADR-044 §D3)");
+            }
+        }
     }
 }
