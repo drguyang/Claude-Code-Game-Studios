@@ -70,51 +70,28 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>3 的设备就绪读数(可空 —— 未注入 = 夹具默认「玩家选择」,见文件头注)。</summary>
         private IEmergencyDeviceReadiness _devices;
 
-        /// <summary>最小动作表(action 0 = 止血包扎;真实表归 10/21a 烘焙轮)。</summary>
+        /// <summary>动作表(T13 · 2026-11-09):按 `attempt.Action` 取行,取不到即抛。</summary>
         /// <remarks>
-        /// ⚠️ **2026-10-23(用户裁定 ② · round34 执行):`ResultMul` 不再手写副本**。
-        /// <para><b>原状</b>:本行曾写 <c>ResultMul = new long[] { 0, 32768, 65536 }</c> ——
-        /// 由 sprint-06 G4.2(`8457d5b`,2026-10-11)作为「最小动作表」占位随手填入。
-        /// <b>`Missed` 档 = 0 与 GDD 冲突</b>:GDD `emergency-procedures.md` `:639` / `:856` /
-        /// AC-10-16(`:1049`)三处钉死 `{65536, 32768, 16384}`,且 `:856` 明写
-        /// 「三支均 **> 0**」「**改回 0 须重开 `OQ-10-1`**」,而 `OQ-10-1` 已于
-        /// **2026-09-18 由用户裁定为非零**(`:1068`)。</para>
-        /// <para><b>为什么长期未被发现</b>:既有判据(`judge_test.cs:322`)断言的是
-        /// <see cref="EmergencyActionSchema.GetResultMulTiers"/> 这个 **schema 默认表**,
-        /// 而本类用的是**另一份手写副本** —— 判据测默认表、生产用副本,两者漂移无人可见。
-        /// 影响是实的:<c>BandageRow</c> 是活生产路径(`CompositionRoot.cs:260` →
-        /// `BootRoot.cs:285` → `SubmitEmergencySkip`),玩家跳过 / 判 Missed 时 potency 被
-        /// 归零 ⇒ 处置全废,与 GDD 刻意记账的「抖了也不至于全废」相反。</para>
-        /// <para><b>现口径</b>:直接引用 <see cref="EmergencyActionSchema.GetResultMulTiers"/>,
-        /// **副本消失** ⇒ 只有一份真源,不可能再漂移。判据 =
-        /// <c>Tests/EditMode/EmergencyProcedures/emergency_result_mul_production_drift_test.cs</c>
-        /// (黑盒驱动真驱动,从流里解出 <c>drug_potency</c> 比对 GDD 三档)。</para>
+        /// ⚠️ 本件之前是**一张私有静态行、无条件使用** —— `attempt.Action` 从不被读。
+        /// 见 `EmergencyActionTable` 文件头的病灶记述。
         /// </remarks>
-        private static readonly EmergencyActionRow BandageRow = new EmergencyActionRow
-        {
-            ActionId = 0,
-            Polarity = 2,        // 平
-            BasePotency = 65536, // 1.0 in Q16.16
-            MagThreshold = 50,
-            MinEdges = 1,
-            MinHoldTicks = 5,
-            HalfLifeTicks = 100,
-            DurationTicks = 200,
-            // 唯一真源 = schema 默认表(AC-10-16:{65536, 32768, 16384})。禁在此另写副本。
-            ResultMul = EmergencyActionSchema.GetResultMulTiers(),
-        };
+        private readonly EmergencyActionTable _actions;
+
 
         /// <param name="processor">主机侧急救处理器(规则十一)。</param>
         /// <param name="presence">在场查询 —— 急救前置:病人须在场
         /// (C3-M1;与处方侧 <c>PrescribeFlow</c> 1c 对称)。</param>
         /// <param name="devices">3 的设备就绪读数(判 `cause` 用;**可空** = 夹具默认「玩家选择」)。
         /// 生产由 BootRoot 以 <see cref="DeviceStateManager"/> 适配后注入。</param>
+        /// <param name="actions">动作表;**省略 = 生产默认表**(今日只有动作 0)。</param>
         public EmergencyManualDriver(HostEmergencyProcessor processor, IPresenceQuery presence,
-                                     IEmergencyDeviceReadiness devices = null)
+                                     IEmergencyDeviceReadiness devices = null,
+                                     EmergencyActionTable actions = null)
         {
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
             _devices = devices;
+            _actions = actions ?? EmergencyActionTable.ProductionDefault;
         }
 
         /// <summary>后置注入设备读数(BootRoot SetAuthor 同款形态 —— 设备态须先挂接才能读到在场设备)。
@@ -241,7 +218,11 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // cause = 判据解析(原 hardcode 0 ⇒ 降级恒 0;见文件头注 + ResolveCause)。
             // ⚠️ 第九片:幅度门豁免的判据**不是** cause —— 见下。
-            _processor.Process(attempt, BandageRow, ctx, patientId, tick, ResolveCause(), IsAnalogChannelAbsent);
+            // ── 按**动作 id** 取行(T13)────────────────────────────────────────
+            //    ⚠️ 取不到就抛,不回退动作 0:回退会让「判定用 A 的参数、事件记 B 的动作」
+            //      再次静默发生 —— 那正是本件要消灭的形态。
+            EmergencyActionRow row = _actions.Require(attempt.Action);
+            _processor.Process(attempt, row, ctx, patientId, tick, ResolveCause(), IsAnalogChannelAbsent);
             return new EmergencyManualResult(true);
         }
     }

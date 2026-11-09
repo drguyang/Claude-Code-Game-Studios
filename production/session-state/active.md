@@ -17760,3 +17760,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - ⚠️ **新登记一笔账**:`DiseaseRegistryEntry.TeachPoint` **零消费**(只有 schema 字段 + 编解码);
   §5.2 规则 4「不点破获得地点」⇒ 呈现面刻意不接,但「字段全库无人读」本身是欠账。
 - 证据:`production/qa/evidence/impl-t12-technique-side-gate-2026-11-09.md`。
+
+## Session Extract — 急救动作表按 ActionId 取行 · T13(2026-11-09)
+
+- **用户「走甲」** —— 只改「怎么取行」,不动任何数值。
+- **病灶(实测)**:`EmergencyManualDriver.TryAttempt` 结算尾**无条件**用私有静态 `BandageRow`,
+  `attempt.Action` **从未被读过** —— 而那是**真的写进事件流**的字段。
+  ⇒ 任何把 `Action` 设成 1/2/3 的路径都会用**止血包扎的参数**判定、流里却记成别的动作,完全静默。
+- **今天不可达**:`InteractionInputDriver.cs:189` 与 `TryManual` 都硬编码 `action: 0`
+  ⇒ 现状行为与修改前逐位相同。所以它是**哑的隐患**,不是活的 bug。
+- **但它卡在下一步**:T7 已开动作 2/3 的 id 空间,谁去「给清创加一行数据」会**加完什么都不发生**。
+- **做法**:`EmergencyActionTable`(id → 行)+ `Require` 缺行即抛(报文给动作号 + 已注册集合 +
+  下一步)+ `ProductionDefault` 今日只有动作 0;`EmergencyManualDriver` 删掉静态行,改 `_actions` 字段
+  (ctor 可选第 4 参,**现有调用方零改动**)。
+- **新夹具**:`emergency_action_table_test` **9 条**。两条硬骨头:
+  ① 端到端「换表即换 potency」(驱动若忽略表/用硬编码行,两个动作得同一值 ⇒ 红);
+  ② 「缺行时流零事件」(只看异常类型不够 —— 下层也可能抛同类型异常而流已被污染)。
+- **回归**:EditMode `7326/7289/0/0/37`(+9)· PlayMode `373/368/0/2/3`(零变化)
+  @ `2026-11-09T22:18:23Z` / `22:19:30Z` · `e2bd90fc` + 工作树。
+- ⚠️ 中途一轮编译红(我的写法错):`ProductionDefault` 用全限定名、其余用简单名却漏了
+  `using DaYiJingCheng.Sim.EmergencyProcedures;`(CS0246 ×4)。
+- ⚠️ **未做**:动作 1/2/3 的**数值**归数值轮;玩家**选择动作**的交互不存在(`Arm(0)` 硬编码)⇒
+  本件把「静默用错参数」换成了「响亮拒绝」,但玩家仍无法选择动作。
+- 证据:`production/qa/evidence/impl-t13-emergency-action-table-2026-11-09.md`。
