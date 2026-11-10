@@ -292,6 +292,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 39 脉案的反幻想能力面守卫(2026-11-08 · S26-3 · AC-39-05 / AC-39-08):
             // 公开面零病种维度、零聚合/催促词。规则四要的是**能力面做不到**,不是**界面上没画**。
             Add("39 反幻想", CasebookAntiFantasyGate.RunAll());
+            // 地面覆盖门(T22 批四 · 2026-11-11 · `TD-building-06` 的**结构性解除**)。
+            // 病因:`World.unity` 的 `Ground` 是 10×10 的内置 Plane,而世界格 16×16 ⇒
+            // 约 3/4 的格子没有地面,玩家走出去即坠落(实测探针 y 为负)。2026-11-06 已手改
+            // Transform 盖住整张图,但**零门** ⇒ 下次改世界尺寸就同型复发,而症状是静默的
+            // (场景照常加载、构建照常成功,只有走上去的人会掉下去)。
+            // 判据 = 地面覆盖面 ⊇ 世界格外接(尺寸取 `world_geometry` 真产物),外加
+            // 碰撞体齐备 / 平面水平 / 内置网格已登记四条 fail-closed 前置。
+            Add("地面覆盖", GroundCoverageGate.RunAll("."));
             return errs;
         }
 

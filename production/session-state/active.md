@@ -18167,3 +18167,29 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `debtcount --check` exit 0(条目 205 · closed 170 · open 24 · 未闭 P0 面 **15** 不变)。
 - 证据:`production/qa/evidence/casebook/impl-t22c-lexicon-coverage-2026-11-10.md`;
   截图 `unity/Logs/shots/t22c/`(本地,不入库)。
+
+### 第 15 轮(T22 批四 · 地面覆盖门 + 非致死伤情可达性)
+
+- **开工前先复勘,发现卡面过期**:用户点的「丁 · 非致死伤情(`TD-sim-03`)」**2026-10-30 就结案**,
+  且今天有 7 件伤情、其中 **2 件非致死**(`INJ_BLUNT` / `INJ_DRUG_HARM`)、技法 2 也有解锁路径。
+  用户改选 **丙 + 甲**(乙 / 丁 排到批五 / 批六;丁 须先由用户三选一裁定)。
+- **丙 · `TD-building-06` 结构性解除**:新增 `GroundCoverageGate`(五条判据全 fail-closed:
+  找得到 Ground / 碰撞体同源 / 未旋转 / 覆盖面 ⊇ 世界格外接(尺寸取 `world_geometry` 真产物)+ 齐平 /
+  内置网格已登记),接进 `AssemblyGates.RunAll` + `GateWiringManifestTest` 两份手写清单。
+  夹具 `ground_coverage_gate_test` **8 条**(含「重演原缺陷」与「世界改大就红」)。
+- **证伪 7 轮**:M1 场景改回原缺陷 ⇒ 夹具红 **且** `AssemblyGateRunAllTest` 红(门在真链上、吃真场景)·
+  M2 删接线 ⇒ 两份 manifest 清单各红 · **M3 首枪是空 if(变异打错靶,0 红),M3b 才对** · M4 覆盖短路 ⇒ 2 红 ·
+  M5 丢 `TopOffsetY` ⇒ 1 红。四文件 SHA-256 逐字节还原,无 `FALSIFY` 残留。
+- **甲 · 非致死伤情「可撞见」—— 答案是不能**:真包 `病人出现 #0 disease=2 / #1 disease=3`,此后零新增。
+  两条入口都不通:① 接线驱动上限 **2** 且轮转从注册表首位起扫(`PatientAppearedDriver.cs:70`);
+  ② 52 池 `medical` 只映射 `{7,9,11,17}`,零伤情。**且与技法门无关** —— 即使解锁技法 2 也撞不见。
+- **未做(如实)**:「结案 ⇒ 解锁技法 2」未实测(结案页要求窗口内有处置事件,实拍到拒绝行 `病未处置`);
+  药害真跑无入口。
+- **回归**:EditMode `7419 / 7382 / 0 / 0 / 37` @ `17:36:16Z`–`17:38:22Z` ·
+  PlayMode `376 / 371 / 0 / 2 / 3` @ `17:39:00Z`–`17:39:22Z`(`e2b11e51` + 工作树)。
+  等式 `7419 − 7411 = 8`;PlayMode 零变化。
+- **债册**:`TD-building-06` **`open` → `closed`**(附闭合记录);新登记 **`TD-sim-07`**
+  (非致死伤情无投放入口,P0 面 **Y**,待用户三选一裁定);`TD-medcons-15` 加补记(「归 playtest」需限定)。
+  `debtcount --check` exit 0(条目 206 · closed 171 · open 24 · **未闭 P0 面 15 不变**)。
+- 证据:`production/qa/evidence/impl-t22d-ground-gate-and-injury-reachability-2026-11-11.md`;
+  截图 `unity/Logs/shots/t22d/`(本地,不入库);存档根已原样还原。

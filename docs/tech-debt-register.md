@@ -424,6 +424,7 @@
 | `TD-randomevents-08` | `random-events` | open | **Y** | R1 |
 | `TD-diagnosis-02` | `diagnosis-system` | partial | **Y** | R1 |
 | `TD-sim-06` | `disease-simulation` | partial | **Y** | R1 |
+| `TD-sim-07` | `disease-simulation` | open | **Y** | R1 |
 | `TD-emergency-01` | `emergency-procedures` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | closed | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
@@ -470,7 +471,7 @@
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
 | `TD-building-05` | `modular-building` | partial | **Y** | R1 |
-| `TD-building-06` | `modular-building` | open | **Y** | R1 |
+| `TD-building-06` | `modular-building` | closed | **Y** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -1491,11 +1492,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 205 | 状态 {'closed': 170, 'partial': 10, 'open': 24, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 65, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 15 （已闭但曾标 P0 面的 119 条不计）
+条目 206 | 状态 {'closed': 171, 'partial': 10, 'open': 24, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 65, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 15 （已闭但曾标 P0 面的 120 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          modular-building: 2
-    diagnosis-system: 1       disease-simulation: 1     emergency-procedures: 1
+    skeuomorphic-ui: 5        random-events: 4          disease-simulation: 2
+    diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
     processing: 1
 ```
 <!-- TD-COUNT:END -->
@@ -2748,7 +2749,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | # | 债 | 出处 | 触发条件 |
 |---|---|---|---|
 | TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 ✅ **2026-10-29 结案(用户裁定「收窄到出现类事件」)** —— `EventStream` 增 `IsPatientAppearance`(今日恰 = `DiseaseOnset`,ADR-030 ①),CAP 只对该类生效 ⇒ 离屏病人的后果不再被当成新病人拒收;`ConsequenceEmitter` 的类头接缝登记与 S-B2 报文同批改注(CAP **不再**是本件成因,守卫保留)。旧夹具 `test_w5_…_capsThrowPropagates_notSwallowed` **由红转绿**并改名为 `test_tdMedcons14_…_emitsDespiteFullCap`(旧断言以文字留档 —— 留一条绿的旧断言等于把缺陷钉成规格) |
-| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」**。<br>🔁 **2026-10-30 再记(不改状态,`open` 维持)**:`ADR-035` 的 **T1 全部落盘**(S1–S7 + S9;`§Validation` **V-1…V-10 全部已证**),其连带后果 = **story-003 的 AC-5 由 PARTIAL 转 PASS(判据面)**(`TD-s13-02` 据此 **closed**)。⇒ 本条今日**只剩实现半边**:`T2`(真实禁忌行 —— 须 `TD-prescription-09` + `TD-sim-03`)/ `T3`(过量支 —— 再加 `TD-sim-02`)。**本条保持 `open`**,因为「药害机制从未跑过真实材料」这件事仍然成立。<br>🔁 **2026-10-30 第三记(不改状态,`open` 维持)**:三条 T2/T3 前置**各有进展但无一结清** —— ① **`TD-sim-03` 已 `closed`**(注册表现有 `INJ_BLUNT`,非致死伤情从 0 件 → 1 件);② **`TD-prescription-09` `open` → `partial`**(载荷第八项 `ContraindicationBand` 已落,「判定」半边仍缺 ⇒ 今日恒 `-1`);③ `TD-sim-02` 未动。⇒ **T2 仍不可开工**:缺的是**真实行内容**(代价表 `rows` 仍空)+ 11 的判定。另:53 的**运行期读方**已落(`CostTable53CookedCodec` + provider 接线 + 12 条夹具),即「表装进来没人要」这条已消除<br>🔁 **2026-10-30 第四记(✅ `open` → `closed`)**:本条的全部要件已兑现 —— ① **代价表已建**:`53_cost_table.json` = 3 禁忌行 + **2 过量行**,`harm_kind_enabled` = `[contraindication, overdose]`,`overdose_band_thresholds` = `["1","3/2"]`,产物 **124 B / 5 行**;② **T2 禁忌支真跑**:`ContraindicationSettler`(真表真查);③ **T3 过量支真跑**:`TD-sim-02` 结案后由 9 的 `PeakDrugLoad` 供料,`OverdoseSettler` + `OverdoseEvaluator` 结算,`CostTable53.RejectHarmKind` 与 `CostTableBinder` 的两处「过量即拒」挂起分支**同批撤销**;④ `ADR-035 §Validation` V-1…V-10 已于 2026-10-30 全部证毕。⇒ 原判据「代价表本身未建」**已不成立**,本条结案。⚠️ **结案 ≠ 药害在实玩中可撞见**:后者取决于 `drug_potency` / `half_life` 与阈值的组合,数值已给(过量档线约两剂 / 三剂),但**未做实际游玩验证** —— 归 playtest,不挂本债。 |
+| TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 ~~**现为:形状半边已结,实现半边卡两条上游债**~~ ⚠️ **2026-10-29 补注(不改本行状态,`open` 维持)**:形状半边已由 **`ADR-035`**(2026-10-29 Accepted)结清 —— 表形状 / 四层所有权 / 「永不致死」构建期跨表断言 / 新 Kind `TreatmentHarmOnset` 四件均已裁;但 **ADR Accepted ≠ 可以开工**:实现半边卡 **`TD-sim-02`**(9 的 F1 缺毒性项)+ **`TD-prescription-09`**(11 载荷缺禁忌命中)= `ADR-035 §⑥` 定死的过量支解除条件,且 `ADR-035 §Validation` **V-1…V-8 全部未跑(禁借绿)**。🔁 **同日收窄(用户裁定「收窄 R1」)**:实现半边改按 **T1 / T2 / T3** 三档 —— **T1 形状件**(空表 + `CostTableBinder` + 视图 + Kind 登记 + 文本 + 证伪)**不被任何上游债阻塞**;**T2 禁忌支真跑**前须 `TD-prescription-09`(2026-10-29 S1 普查后**追加**:还须 `TD-sim-03` —— 注册表 5 件伤情全 `lethal=true`,表里的 `injury_id` 无可填,`N-1` 的绿是**真空真**);**T3 过量支真跑**前再加 `TD-sim-02`(见 `ADR-035 §Risks R1`)⇒ 本条**不再是「一律卡两条债」**。<br>🔁 **2026-10-30 再记(不改状态,`open` 维持)**:`ADR-035` 的 **T1 全部落盘**(S1–S7 + S9;`§Validation` **V-1…V-10 全部已证**),其连带后果 = **story-003 的 AC-5 由 PARTIAL 转 PASS(判据面)**(`TD-s13-02` 据此 **closed**)。⇒ 本条今日**只剩实现半边**:`T2`(真实禁忌行 —— 须 `TD-prescription-09` + `TD-sim-03`)/ `T3`(过量支 —— 再加 `TD-sim-02`)。**本条保持 `open`**,因为「药害机制从未跑过真实材料」这件事仍然成立。<br>🔁 **2026-10-30 第三记(不改状态,`open` 维持)**:三条 T2/T3 前置**各有进展但无一结清** —— ① **`TD-sim-03` 已 `closed`**(注册表现有 `INJ_BLUNT`,非致死伤情从 0 件 → 1 件);② **`TD-prescription-09` `open` → `partial`**(载荷第八项 `ContraindicationBand` 已落,「判定」半边仍缺 ⇒ 今日恒 `-1`);③ `TD-sim-02` 未动。⇒ **T2 仍不可开工**:缺的是**真实行内容**(代价表 `rows` 仍空)+ 11 的判定。另:53 的**运行期读方**已落(`CostTable53CookedCodec` + provider 接线 + 12 条夹具),即「表装进来没人要」这条已消除<br>🔁 **2026-10-30 第四记(✅ `open` → `closed`)**:本条的全部要件已兑现 —— ① **代价表已建**:`53_cost_table.json` = 3 禁忌行 + **2 过量行**,`harm_kind_enabled` = `[contraindication, overdose]`,`overdose_band_thresholds` = `["1","3/2"]`,产物 **124 B / 5 行**;② **T2 禁忌支真跑**:`ContraindicationSettler`(真表真查);③ **T3 过量支真跑**:`TD-sim-02` 结案后由 9 的 `PeakDrugLoad` 供料,`OverdoseSettler` + `OverdoseEvaluator` 结算,`CostTable53.RejectHarmKind` 与 `CostTableBinder` 的两处「过量即拒」挂起分支**同批撤销**;④ `ADR-035 §Validation` V-1…V-10 已于 2026-10-30 全部证毕。⇒ 原判据「代价表本身未建」**已不成立**,本条结案。⚠️ **结案 ≠ 药害在实玩中可撞见**:后者取决于 `drug_potency` / `half_life` 与阈值的组合,数值已给(过量档线约两剂 / 三剂),但**未做实际游玩验证** —— 归 playtest,不挂本债。<br>🔁 **2026-11-11(T22 批四)补记(不改本行状态,`closed` 维持)**:上句「归 playtest」需要一个限定 —— 真包实测表明 **playtest 在今天的构建上也撞不见**:接线驱动每会话上限 2 且轮转从注册表首位起扫 ⇒ 恒为病种 2 / 3;52 池 `medical` 条目只映射 `{7,9,11,17}`、零伤情 ⇒ 「非致死伤情 / 药害可撞见」今日 = **无入口**。已另立 **`TD-sim-07`**(裁定权 = 用户:提高接线上限 / 给池加伤情条目 / 显式划掉这条口径)。 |
 
 
 ## 2026-10-17 · medcons story-003 复核(S13-6 新判据实测轮)
@@ -4973,6 +4974,19 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **仍未解的两类**:「异物梗阻」(瞬时机械事件)与「暴露中毒」(环境函数)**在 9 的表里依旧没有形态** ——
 > 它们不是「再裁一次上限」能解的,是曲线族本身装不下。⇒ 本债**不得**因惊厥落地记 `closed`。
 > ⚠️ **形态闭包本身一字未动**:新行落进 **A 自限**,R1-22 / R1-34 / R1-35 对第五形态的禁止仍成立。
+
+### TD-sim-07 —— **非致死伤情在 P0 没有投放入口** ⇒ 「药害可撞见」恒假(9 ↔ 52)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `TD-sim-03` 结案(注册表有 `INJ_BLUNT` / `INJ_DRUG_HARM` 两件非致死伤情),`TD-medcons-15` 结案(53 的代价表 + 禁忌 / 过量两settler 全跑)。但**没有任何一条路**能把一件**非致死伤情**送到玩家面前 ⇒ 「药害会不会致死 / 会不会被撞见」这类话在 P0 **无法被观测**,绿灯一律按「无输入」读。 |
+| **实测(逐条可跑)** | ① 真包(`-tutorialdiag`):`病人出现 #0 disease=2` / `#1 disease=3`,此后 55 秒零新增、`在场=2` 恒定;② 接线驱动上限 = **2**(`PatientAppearedDriver.cs:70` 的 `MaxPatientsDuringWiring`),而轮转从注册表**首位**起扫 ⇒ 前两例恒为 `2`/`3`;③ 注册表序上 `INJ_BLUNT` 是第 **15** 位 id ⇒ 要走到它需要一次会话投 ≥ 15 例;④ 52 池的 `medical` 条目只映射病种 `{7,9,11,17}`(读 `assets/data/52_event_pool.json` 的 `entries[].disease_id`),**零伤情**;其余条目 `disease_id = 0`。 |
+| **后果(勿合并成一句)** | ① 「药害可撞见」在 P0 = **否**;② 但它**不是**技法门造成的 —— `INJ_BLUNT` 需要技法 2,而技法 2 有解锁路径(`TechniqueUnlockRules.Default` 的 `ForCase(2,2)`),**即使解锁也仍然撞不见**(人数上限先挡住);③ 因此 `TD-medcons-15` 那句「归 playtest」需要一个限定:**在今天的构建上 playtest 也撞不见**,不是玩家没找到。 |
+| **⚠️ 未验证的一步(不得读成已证)** | 本轮**没有**走通「结案 ⇒ 技法 2 解锁」(结案页要求窗口内存在处置事件;实拍到拒绝行 `病未处置`)。技法 2 的解锁路径是**代码依据**,对上述结论无影响(卡点在人数上限),但不得记为已实测。 |
+| **解除动作** | 三选一(须用户裁):**(甲)** 把接线期上限 `MaxPatientsDuringWiring` 提高 / 改成可配(它是**自陈的临时旋钮**,注释写明「真节奏到位后删除」),使一局能走到注册表后段;**(乙)** 给 52 池加一条 `medical` 条目映射到伤情(`disease_id` 指 `15`/`16`),让「钝击伤 / 药毒病人」有第二个来源;**(丙)** 裁定「P0 不需要撞见非致死伤情」⇒ 本条改 `won't-fix`,并把「药害可撞见」从一切验收口径里**显式划掉**。 |
+| **判据(裁定后)** | 有一局真包日志出现 `病人出现 #n disease=15`(或 `16`),且该病人可被处置 / 结案。 |
+| **归属** | 投放面归 **9**(驱动上限 / 轮转起点)· 池条目归 **52** · 裁定 = **用户** |
+| **`P0 面 = Y` 的理由** | 它挡的是「药害机制**能不能被玩家感知**」这个 P0 已开支路的最终一环;不改任何 AC 判据,但任何「药害可用」形态的引用都须带上本条。 |
 
 ### TD-emergency-01 — `EmergencyAction` 只有 2 个动作:**卡鱼刺的「取出」无处落脚**(10 ↔ 52/37)
 
@@ -12691,6 +12705,30 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **为什么 `P0 面 = Y`** | R1:归属 `modular-building` / 关卡内容,且**阻塞任何 P0 空间走查**(炮制 / 建造 / 开箱 / 面板 / 采集)。它不是观感问题:玩家**无法到达**绝大多数格子。 |
 | **解除动作** | **已在本轮就地修掉(最小)** —— `Ground` 的 Transform 改为 `pos (7.5,0,7.5)` / `scale (1.8,1,1.8)`(18×18,覆盖 `x,z ∈ [-1.5,16.5]`,四边各留 1.5 m 余量)。**债仍记 `open`**:修的是「盖住整张图」,**没有**建立任何门(下次改世界尺寸 ⇒ 同型复发)。建议的**结构性解除**:由关卡工具按 `world_size × LATTICE_SIZE` 生成地面(ADR-022 仍是唯一作者),或加一条构建期断言「地面包围盒 ⊇ 世界包围盒」。 |
 | **触发条件** | 已触发(2026-11-06 真包走查) |
+
+#### ✅ TD-building-06 关闭记录 —— 结构性解除落地:地面覆盖门(2026-11-11 · T22 批四)
+
+**解除动作选取**:上述「建议的结构性解除」两案里的**第二案**(构建期断言)——
+不是关卡工具生成(那要动 ADR-022 的唯一作者面与 `world_*.json` 六件产物),
+而是把「地面 ⊇ 世界」做成**判据**。
+
+| 件 | 落点 |
+|---|---|
+| 门 | `unity/Assets/Editor.Tools.Gates/GroundCoverageGate.cs` |
+| 接线 | `AssemblyGates.RunAll`(`Add("地面覆盖", …)`)· `GateWiringManifestTest` 的**两份**手写清单 |
+| 夹具 | `Tests/EditMode/ModularBuilding/ground_coverage_gate_test.cs`(**8 条**) |
+| 原件 | `production/qa/evidence/impl-t22d-ground-gate-and-injury-reachability-2026-11-11.md` §1–§2 |
+
+**判据五条**(全 fail-closed):找得到 `Ground`(找不到 ⇒ 红,不是跳过)· 有 `MeshCollider`
+且与渲染网格同源 · 未旋转 · 覆盖面 ⊇ 世界格外接(尺寸取 `world_geometry` **真产物**)+ 顶面齐平 · 内置网格已登记。
+
+**证伪**:M1 把场景改回原缺陷 ⇒ `test_realScene…` 红、`AssemblyGateRunAllTest` 也红
+(**门在真链上、吃真场景**);M2 删接线 ⇒ 两份 manifest 清单各红;M4 覆盖比较短路 ⇒ 2 红;
+M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 才对**—— 已如实登记。
+四文件 SHA-256 逐字节还原。
+
+⚠️ **本条的关闭判据是「有了门」,不是「地面一定对」**:门只覆盖 `Ground` 这一件预摆件;
+若将来地面改成**运行期生成**,本门结构上失效,须改判生成器的输入(**不得删门了事**,门内头注已写)。
 
 ### TD-skeuo-20 —— 容器屏开屏时**无初始焦点**(第一次提交键落空)
 
