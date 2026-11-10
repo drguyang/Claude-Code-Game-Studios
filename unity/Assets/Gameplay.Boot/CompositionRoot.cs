@@ -510,32 +510,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 ? null
                 : new HookCaseLedger(() => stream.Events, decoder, techniqueDrawIndex, registryById);
 
-            Func<DiseaseRegistryEntry, PatientDrawDecision> admitEntry = row =>
-            {
-                // 钩子放行只在「技法全锁」这一种拒收上生效,且要过章内配额 + 可诊断性。
-                // ⚠️ 玩家未绑定时不判配额:那时 `CountHookCases` 不知道按谁的解锁算。
-                bool hookAllowed = false;
-                if (hookCaseLedger != null && playerActor.IsBound
-                    && techniqueDrawIndex.IsDeclared(row.DiseaseKey))
-                {
-                    // 🔁 2026-11-10(B1-b):改走**章内**口径 —— `ChapterAdvanced` 事件立起来之后,
-                    //    「每章 1 例」才第一次真的是「每章」而不是「整局」。
-                    //    ⚠️ 今日无生产者写那条事件 ⇒ 章恒 0 ⇒ 本章 = 整局,行为与改前逐位相同。
-                    hookAllowed = HookCasePolicy.AllowsInjection(
-                        row, hookCaseLedger.CountHookCasesInCurrentChapter(playerActor.ActorId));
-                }
+            // ── 🔁 2026-11-10(T18 乙):三段内联 λ **收进 `PatientAdmissionPolicy`** ──
+            //   病因(T17 实测):判据本体早有名字,但「钩子配额怎么算 / 等级传什么 /
+            //   未绑定时怎么办」这三段只活在本方法的 λ 里,夹具想问同一个问题只能**照抄**。
+            //   收成具名类之后,装配与夹具**走同一个对象** ⇒ 「生产改坏了夹具照样绿」的
+            //   那最后一个口子关掉。判据一行未改,只是换了落点。
+            var admission = new PatientAdmissionPolicy(
+                techniqueDrawIndex, isTechniqueUnlockedForPlayer, playerActor,
+                hookCaseLedger, P0PrescriptionLevel);
 
-                return PatientDrawEligibility.Decide(
-                    row, techniqueDrawIndex, P0PrescriptionLevel,
-                    isTechniqueUnlockedForPlayer, playerActor.IsBound,
-                    asHookCase: false, hookAllowed: hookAllowed);
-            };
+            Func<DiseaseRegistryEntry, PatientDrawDecision> admitEntry = admission.Decide;
 
             // 52 路径按**病种 id** 判(池表只给外键)。查不到的 id ⇒ 不拦:
             // 那不是投放门能判的对象,而下游 9 的「病种不在注册表内」fail-loud 会接手。
-            Func<int, bool> isDiseaseAdmissible = diseaseId =>
-                !registryById.TryGetValue(diseaseId, out DiseaseRegistryEntry candidate)
-                || admitEntry(candidate).Admitted;
+            Func<int, bool> isDiseaseAdmissible = admission.DiseaseAdmissible(registryById);
 
             var patientDriver = new PatientAppearedDriver(
                 spawner, presence, resolvedRegistry, registryIndex: registryIndex,
@@ -791,6 +779,19 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 参数未就绪(`ResolveTimeParams` 返回 null)⇒ **恒判白天**,不拿默认值冒充。
                 Sim.TimeParams poolTime = BootRoot.ResolveTimeParams(dataProvider);
 
+                // ── 🔁 2026-11-10(T18 丙):**投放资格前移到候选集** ────────────────
+                // 改前:资格只在**抽中之后**判(`canSpawnPatient`)。被拒的那一眼不写事件
+                // (ADR-039 §D3 防孤儿行)⇒ `Ordinal` 不前进 ⇒ 当天每一眼都落在同一个
+                // `(win, tier, ordinal)` 上 ⇒ 抽到同一个 key、同样被拒 ⇒ **整日零产出**。
+                // (T17 端到端实测:种子 0x5EED 的一天 6 眼全 `PatientSpawnUnavailable`。)
+                // 现在:不可产出的条目**根本不进抽池** ⇒ 抽中的必然可产、序号照常前进。
+                // ⚠️ 链上的 `canSpawnPatient` **保留**(防御):两处判据同源于
+                //    `PatientAdmissionPolicy`,分叉即说明装配不一致 —— 那时链会响亮拒。
+                Func<int, bool> requiresPatient = EventPoolPatientSpawner.RequiresPatient(eventPool);
+                Func<int, bool> canSpawnPatient =
+                    EventPoolPatientSpawner.CanSpawnPatient(eventPool, isDiseaseAdmissible);
+                Func<int, bool> canProduceKey = key => !requiresPatient(key) || canSpawnPatient(key);
+
                 // 档 → 加权候选集。`HistoryMult ≡ 1`(P0 无 `HIST_W` 表,规则九;见 `EventWeighting`)。
                 // ⚠️ 签名是 `(档, roll tick)` —— 昼夜**必须按掷骰那一刻**算:
                 //    一天之内昼夜会翻转(GDD AC-52-45 的 `TODMult` 就是昼夜的函数),
@@ -799,7 +800,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = (tier, tick) =>
                     EventWeighting.CandidatesOfTier(
                         eventPool, tier,
-                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(tick, poolTime));
+                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(tick, poolTime),
+                        historyMult: null,
+                        keyFilter: canProduceKey);
 
                 randomEventSpawnChain = new RandomEventSpawnChain(
                     stream, encoder,
@@ -844,14 +847,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ── 🔁 2026-11-05(`TD-randomevents-05`):按条目 `handler` 决定「要不要病人」 ──
                     // 池里 `encounter`(27 人形遭遇 / 野兽)不产病人,`medical`(37 病例模板)才产。
                     // 改前是**无条件**调 `spawnPatient` ⇒ 遭遇条目也会撞上那道刻意抛。
-                    requiresPatient: EventPoolPatientSpawner.RequiresPatient(eventPool),
+                    // 🔁 2026-11-10(T18 丙):两个闭包提到上方成局部量 —— 候选集过滤要用**同一份**。
+                    requiresPatient: requiresPatient,
                     // 「这条能不能产病人」= 池表里有病种外键(> 0)**且**该病种此刻通过投放资格。
                     // 🔁 改前是 `_ => false`(映射表不存在的诚实值)⇒ 医疗条目恒
                     //    `PatientSpawnUnavailable` ⇒ 端到端零写入。
                     // 🔁 2026-11-09(T4):第二道判据 = `isDiseaseAdmissible`(与病人出现驱动
                     //    **同一份** `PatientDrawEligibility`)。
-                    canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(
-                        eventPool, isDiseaseAdmissible));
+                    canSpawnPatient: canSpawnPatient);
             }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(

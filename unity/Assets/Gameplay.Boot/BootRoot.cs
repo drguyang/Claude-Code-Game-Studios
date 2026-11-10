@@ -92,6 +92,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>模态开合驱动(键沿 → 42 的 OpenModal / CloseModal;启动序内装配)。</summary>
         private ModalInputDriver _modalInput;
 
+        /// <summary>手册近景的开合驱动(`M` / 手柄 `select`;T18 甲 · 2026-11-10)。</summary>
+        private PaperCloseupToggleDriver _manualToggle;
+
         /// <summary>
         /// 存档位清单(7b 界面画哪几个槽)。
         /// <para>⚠️ <b>数值出处 = 7b,不是本类</b>:本轮的目的是把载入路径**接通**,
@@ -1080,8 +1083,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   同一张表两条来路迟早分叉。
             //   ⚠️ 教学链未装配(无 data provider / 无音频字幕口 ⇒ `TutorialSeams == null`)⇒
             //      宿主不建,`PaperCloseups` 留 null。语义 = **本局没有手册内容**,不是「宿主坏了」。
-            //   ⚠️ **今日零生产调用方**:「走近摊纸」的世界交互(4 + 关卡)不存在 ⇒
-            //      玩家打不开这本手册。装配就位 ≠ 可达(承 ADR-044 §D7 同款口径)。
+            //   ⚠️ ~~**今日零生产调用方**:「走近摊纸」的世界交互(4 + 关卡)不存在 ⇒
+            //      玩家打不开这本手册。~~ 🔁 **2026-11-10(T18 甲)**:手册已有开屏入口 ——
+            //      `M` / 手柄 `select` → `PaperCloseupToggleDriver` → `TryPresentManual()`(下方)。
+            //      「走近摊纸」那个世界道具仍不存在(C1-a 等关卡工具),**但手册不再打不开**。
             if (_services.TutorialSeams != null && _services.TechniqueUnlocks != null)
             {
                 _services.PaperCloseups = new PaperCloseupPresenter(
@@ -1923,14 +1928,49 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private void EnsureModalInput()
         {
-            if (_modalInput != null || _uiDriver == null) return;
+            if (_uiDriver == null) return;
 
-            _modalInput = new ModalInputDriver(
-                PlayerInputReader.PauseTogglePressed,
-                new DriverModalOpener(_uiDriver),
-                // 第一层(主菜单)**只关不开** —— 世界还没起,暂停壳没有意义;
-                // 但菜单里打开的设置壳仍须能被 ESC 关掉。
-                canOpenPause: () => _booted);
+            if (_modalInput == null)
+            {
+                _modalInput = new ModalInputDriver(
+                    PlayerInputReader.PauseTogglePressed,
+                    new DriverModalOpener(_uiDriver),
+                    // 第一层(主菜单)**只关不开** —— 世界还没起,暂停壳没有意义;
+                    // 但菜单里打开的设置壳仍须能被 ESC 关掉。
+                    canOpenPause: () => _booted);
+            }
+
+            // 🔁 2026-11-10(T18 甲):**手册的开屏入口**。与暂停壳分开一个驱动,因为判据不同:
+            //    ESC = 「有模态就关」;M = 「无模态才开、手册开着则关、别的模态摊着就不抢」。
+            //    把它并进 `ModalInputDriver` 会让那一处收敛好的单条规则又要长分支。
+            if (_manualToggle == null)
+            {
+                _manualToggle = new PaperCloseupToggleDriver(
+                    PlayerInputReader.ManualPressed,
+                    () => _uiDriver.CurrentModal,
+                    TryPresentManual,
+                    _uiDriver.CloseModal);
+            }
+        }
+
+        /// <summary>
+        /// 打开手册近景并喂数据(T18 甲)——
+        /// <see cref="PaperCloseupToggleDriver"/> 的「开」这一面。
+        /// </summary>
+        /// <returns><c>true</c> = 真的开出来了;<c>false</c> = 本局没有手册内容 / 尚未入世 / 开屏被拒。</returns>
+        /// <remarks>
+        /// <para>⚠️ <b>菜单期不开</b>(`_booted == false`):手册是玩家身上那本,第一层里他没有。
+        /// 这与暂停壳的 `canOpenPause: () => _booted` **同一条理由**,但判据落点不同 ——
+        /// 那边是驱动的形参,这里是闭包里的早退(驱动只管开合,不管「本局有没有这本东西」)。</para>
+        /// <para>⚠️ `PaperCloseups == null` = 本局没有手册内容(教学链未装配),不是故障 ——
+        /// 返回 <c>false</c> 让驱动如实不计开屏次数(与 42 侧「缺写通道 = 留空」同纪律)。</para>
+        /// </remarks>
+        private bool TryPresentManual()
+        {
+            if (!_booted) return false;
+            if (_uiDriver == null || _services == null) return false;
+            if (_services.PaperCloseups == null) return false;
+            return _services.PaperCloseups.TryPresent(_uiDriver);
         }
 
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
@@ -2804,6 +2844,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    与「世界是否在跑」无关 —— 与 `OnFrameEdge` 同一条判据(2026-11-05 前者已搬)。
             //    ⚠️ `_modalInput` 在启动序 `:1143` 才构造;此前为 null ⇒ `?.` 兜住。
             _modalInput?.OnFrame();
+
+            // 🔁 2026-11-10(T18 甲):手册的开合**同在 `_booted` 早退之前** —— 与上一行同因:
+            //    它是纯呈现层开关(不读 tick、不写 sim),而「本局有没有这本手册」由
+            //    `TryPresentManual()` 自己判(菜单期返回 false)。
+            _manualToggle?.OnFrame();
 
             if (!_booted || _tickDriver == null || _player == null) return;
 

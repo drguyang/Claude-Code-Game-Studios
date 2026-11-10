@@ -12,8 +12,10 @@
 //   ⑤ `PaperCloseupScreen.IsCurrentPageMissing` 与快照一致
 //      —— 渲染面真的消费了那句话(③④ 都绿而本句假 = 判据没落到屏上)。
 //
-// ⚠️ **本测不证明可达** —— 「走近摊纸」的世界交互不存在,玩家点不开这本手册。
-//    本件证的是「宿主被调用时,屏的内容与缺页态是对的」。
+// ⚠️ ~~**本测不证明可达** —— 「走近摊纸」的世界交互不存在,玩家点不开这本手册。~~
+//    🔁 **2026-11-10(T18 甲)**:手册**已经有开屏入口**了 —— `M` / 手柄 `select`
+//    → `PaperCloseupToggleDriver` → `BootRoot.TryPresentManual()`(本文件 §⑥)。
+//    「走近摊纸」那个世界道具仍不存在(C1-a 等关卡工具),**但手册不再打不开**。
 //
 // 形态承 `TechniqueUnlockWiringTest`(真启动序 + 反射观测 + Addressables 世界卸载)。
 
@@ -157,6 +159,54 @@ namespace DaYiJingCheng.Tests.PlayMode
             // ── ⑤ 渲染面真的消费了那句话 ────────────────────────────────
             Assert.That(screen.IsCurrentPageMissing, Is.False,
                 "屏上的缺页态与快照不一致 ⇒ 判据没落到屏上");
+        }
+
+        /// <summary>
+        /// **开屏入口真的接上了**(T18 甲):启动序后 `_manualToggle` 存在,且它注入的
+        /// 「开」这一面(`TryPresentManual`)能把手册摊开。
+        /// </summary>
+        /// <remarks>
+        /// <para>本条补的是 C1 的断点:`TryPresent` 此前**零生产调用方** ⇒ 手册在游戏里
+        /// 一次都打不开,缺页机制「齐全但不触发」。驱动本身的开合判据(上升沿 / 只认无模态 /
+        /// 手册开着则关)由 EditMode 的 `paper_closeup_toggle_test` 覆盖;**本条只证接线**。</para>
+        /// <para>⚠️ 本条**不证按键能用**:`M` 的读面是 `PlayerInputReader.ManualPressed`,
+        /// batch 下虚拟键盘注入需另开工程设置(见 `project_unity_keyboard_injection_batch`),
+        /// 真包走查才是它的判据。</para>
+        /// </remarks>
+        [UnityTest]
+        public IEnumerator test_manualToggle_isWiredToThePresenter()
+        {
+            _root = new GameObject("BootRoot_ManualToggle");
+            _boot = _root.AddComponent<BootRoot>();
+            _boot.SaveRootOverride = PlayModeTempSaveRoot.New("paper_closeup_toggle_test");
+
+            float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
+            while (!ReadBooted() && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Assert.IsTrue(ReadBooted(), "启动序须在超时内完成");
+            yield return null;
+
+            object toggle = typeof(BootRoot)
+                .GetField("_manualToggle", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(_boot);
+            Assert.IsNotNull(toggle,
+                "`_manualToggle` 为 null ⇒ 手册没有开屏入口(C1 的断点仍在:缺页机制不可达)");
+
+            var ui = typeof(BootRoot)
+                .GetField("_uiDriver", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(_boot) as SkeuoRuntimeDriver;
+            Assert.IsNotNull(ui, "BootRoot._uiDriver 应存在(第 6 步建)");
+            Assert.AreEqual(ModalId.None, ui.CurrentModal, "前置:开屏前无模态");
+
+            MethodInfo tryPresentManual = typeof(BootRoot)
+                .GetMethod("TryPresentManual", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(tryPresentManual, "`TryPresentManual` 应存在(驱动注入的那一面)");
+
+            bool opened = (bool)tryPresentManual.Invoke(_boot, null);
+
+            Assert.IsTrue(opened, "返回 false ⇒ 本局没有手册内容(教学链未装配)或开屏被拒");
+            Assert.AreEqual(ModalId.PaperCloseup48, ui.CurrentModal,
+                "模态不是 PaperCloseup48 ⇒ 接线接到了别的屏(或根本没开)");
         }
 
         private bool ReadBooted()

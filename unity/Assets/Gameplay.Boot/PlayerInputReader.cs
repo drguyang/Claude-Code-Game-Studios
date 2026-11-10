@@ -118,5 +118,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             Gamepad pad = Gamepad.current;
             return pad != null && pad.buttonEast.isPressed;
         }
+
+        /// <summary>
+        /// **掏出怀里的手册**(C1-c / T18 甲 · 2026-11-10)—— 手册近景的开屏键。
+        /// <para>键盘 <c>M</c> / 手柄 <c>selectButton</c>(View / Back)。</para>
+        /// <para>为什么是 <c>M</c>:Manual 的首字母;现占用的是 E(交互)/ F(急救)/
+        /// R(转诊)/ Escape(暂停壳)/ 1–4(选动作)/ WASD(移动),<c>M</c> 与它们**零冲突**,
+        /// 且手柄侧 <c>selectButton</c> 是唯一还空着的系统键(start 已归暂停壳)。</para>
+        /// <para>⚠️ 本方法只给**按住**态,边沿化与「什么时候才允许开」归
+        /// <see cref="PaperCloseupToggleDriver"/>(与 <see cref="PauseTogglePressed"/> 同一分工)。</para>
+        /// </summary>
+        public static bool ManualPressed()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.mKey.isPressed)
+                return true;
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.selectButton.isPressed;
+        }
     }
 }

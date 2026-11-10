@@ -17904,3 +17904,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **待你裁的一条**:2.2 的「首抽被拒 ⇒ 整日零产出」是**当下行为**,本批只登记未定性
   (也可能该保留 —— 配额本就稀缺)。证据 §6 已具名。
 - 证据:`production/qa/evidence/impl-t17-e2e-day-2026-11-10.md`。
+
+### 第 5 轮(T18 · 用户勾「甲 + 乙 + 丙」,丙/丙′ 互斥经二次追问定为「真的改」)
+
+- **甲 = 手册开屏入口(C1 的按键变体)**:`TryPresent` 此前**生产零调用方** ⇒ T10 宿主 + A4 七张纸 +
+  缺页集在游戏里一次都打不开。新增 `M`(手柄 `select`)→ `PaperCloseupToggleDriver` →
+  `BootRoot.TryPresentManual()`。三条判据:只在无模态时开 / 手册开着再按 = 关 / 只有上升沿算一次。
+  ⚠️ 不碰暂停壳 spec(那要改 Approved 的五行 + `AC-42-F1` 走查);⚠️ 按键真机可用性未测(batch 无虚拟键盘)。
+- **乙 = 投放资格收成 `PatientAdmissionPolicy`**:`CompositionRoot` 的内联 λ(钩子配额/等级/未绑定)
+  有了具名落点 ⇒ T17 端到端夹具不再自己组一遍,钩子配额走真账本(常量替身消失)。
+- **丙 = 投放资格前移到候选集**(`EventWeighting.CandidatesOfTier` 的 `keyFilter`,ADR-039 **Amendment A**):
+  不可产出的条目不进抽池 ⇒ 抽到的必然可产 ⇒ 序号照常前进 ⇒ T17 的**「死日」在结构上消失**。
+  代价:当日分布变条件分布;候选集变成 `(档, tick, 流状态)` 的函数;全滤空 ⇒ `NoPool`(新可达分支)。
+- **T17 三测**:主测与第三测**逐项不变**;第二测改判为「配额用尽 ⇒ 2002 退池、日照常产出」,
+  直接断言候选数 **3**(那一行就是丙的判据)。
+- **实施期两个真问题**(都是我先写错、实跑抓出):
+  ① `TechniqueUnlockBootstrap.Ensure` 必须在流为空时调 —— 我把预置病例写在它前面,导致起步集没写(候选数 3→1);
+  ② 预置病人与**同 tick 的急召降临**撞 `ActiveHouseCallQuery` 的「同 tick 恰一病人」fail-loud。
+  ⚠️ **② 是生产上的潜在抛点**(`PatientAppearedDriver` 与 52 的降临无协调),本批未修,**建议另立债**。
+- **证伪轮 5 变异全红**(资格恒放行 / 删 keyFilter / 去边沿化 / 去模态互斥 / 去再按即关),
+  `sha256sum -c` 三文件全部还原。⚠️ 前两条**各自只红一条测** = 本批最薄的覆盖。
+- **定稿回归**:EditMode `7364 / 7327 / 0 / 0 / 37` @ `03:02:16Z`–`03:04:53Z` ·
+  PlayMode `374 / 369 / 0 / 2 / 3` @ `03:05:17Z`–`03:06:14Z` · `fa42ac74` + 工作树。
+  等式 `7364 − 7358 = 6`(新夹具 6 条)· `374 − 373 = 1`(新接线测)。
+- 证据:`production/qa/evidence/impl-t18-manual-entry-admission-filter-2026-11-10.md`;
+  ADR 窄修订:`docs/architecture/adr-039-random-events-runtime-consumption.md` §Amendment A。

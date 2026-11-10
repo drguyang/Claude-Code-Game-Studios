@@ -44,10 +44,24 @@ namespace DaYiJingCheng.Sim
         /// 规则九的历史乘子(**P0 恒 null**)。留形参是为了「落表时只改调用点」——
         /// 传 null ⇒ 全部条目 `HistoryMult ≡ 1`。非 null 时按 `causeFlagKey` 查。
         /// </param>
+        /// <param name="keyFilter">
+        /// 条目过滤(**P0 生产 = 投放资格**;`null` = 不过滤)。
+        /// <para>🔁 <b>2026-11-10(T18 丙)</b> —— 病因:投放资格原先只在**抽中之后**判
+        /// (`RandomEventSpawnChain` 的 `canSpawnPatient`)。而被拒的那一眼**不写任何事件**
+        /// (ADR-039 §D3 防孤儿行),`Ordinal`(当日已掷数)因此不前进 ⇒ 同一天里每一眼都落在
+        /// 同一个 `(win, tier, ordinal)` 上 ⇒ **抽到同一个 key、同样被拒** ⇒ 整日零产出。
+        /// 实测见 `impl-t17-e2e-day-2026-11-10.md` §2.2。</para>
+        /// <para>把资格**前移到候选集**:不可产出的条目根本不进抽池 ⇒ 抽中的必然可产、
+        /// 序号照常前进。代价是当日分布变成「在可产出条目上的条件分布」——
+        /// 那正是「不为做不成的事掷骰」应有的分布。</para>
+        /// <para>⚠️ 判定仍保留在链上(`PatientSpawnUnavailable`)**作为防御分支**:
+        /// 两处判据同源于 `PatientAdmissionPolicy`,分叉即说明装配不一致。</para>
+        /// </param>
         /// <returns>该档全部**随机**条目的加权候选(无候选 ⇒ 空集,调用方走 `NoPool`)。</returns>
         public static IReadOnlyList<WeightedKey> CandidatesOfTier(
             EventPoolDataSet pool, int tier, bool isNight,
-            IReadOnlyDictionary<int, Fix> historyMult = null)
+            IReadOnlyDictionary<int, Fix> historyMult = null,
+            Func<int, bool> keyFilter = null)
         {
             if (pool.Entries == null) return Array.Empty<WeightedKey>();
 
@@ -62,6 +76,7 @@ namespace DaYiJingCheng.Sim
                 EventPoolEntryData e = pool.Entries[i];
                 if (e.Tier != tier) continue;
                 if (e.TriggerMode != TriggerRandom) continue;   // 脚本条目不进抽池
+                if (keyFilter != null && !keyFilter(e.Key)) continue;   // 投放资格(T18 丙)
 
                 long w = e.WBase;
 

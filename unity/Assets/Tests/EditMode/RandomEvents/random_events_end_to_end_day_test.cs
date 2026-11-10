@@ -40,12 +40,14 @@
 //   `RandomEventsDirectorDriver` · `TechniqueUnlockBootstrap/Writer/Projection/Driver` ·
 //   `ClinicCellSource`(未绑定形态 —— 生产里玩家未出生前就是它)。
 //
-//   ⚠️ **一处夹具自写的组装**:`isDiseaseAdmissible` 这个 λ 在 `CompositionRoot` 里是
-//      内联的(没有具名落点),本件按它的**同一份**判据组了一遍(`Decide` + 钩子层**关**)。
-//      这不是照抄判据(判据本体在 `PatientDrawEligibility`),但它确实是本件与生产装配的
-//      唯一差异点,故**显式登记**:本件**不测钩子病例通道**(`hookAllowed ≡ false` ——
-//      那是 T5 的层,另有用例),并断言「本日零 `PatientSpawnUnavailable`」使这处简化
-//      对结论**不可观测**。
+//   ⚠️ **T17 时本件有一处夹具自写的组装,已于 T18 乙收掉**:`isDiseaseAdmissible` 那段
+//      在 `CompositionRoot` 里原是内联 λ(无落点可调),夹具只能自己组一遍并把钩子配额
+//      用常量代替。T18 把它收成 `PatientAdmissionPolicy` ⇒ 本件现在**调的就是生产类**,
+//      钩子配额也走真账本(`HookCaseLedger`),不再有常量替身。
+//
+//   ⚠️ **T18 丙**:投放资格**前移到候选集**(`EventWeighting.CandidatesOfTier` 的 `keyFilter`)。
+//      ⇒ 本件的三组期望值与 T17 时**不同**:T17 的「首抽被拒 ⇒ 整日零产出」在结构上消失了,
+//      第二测因此改成「配额用尽 ⇒ 该条目退池、日照常产出」。
 
 using System;
 using System.Collections.Generic;
@@ -92,7 +94,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
         [Test]
         public void test_realData_oneDay_producesBudgetThenClosesTheGate()
         {
-            Harness h = Harness.Build(worldSeed: 0xA11CEUL, hookAllowed: false);
+            Harness h = Harness.Build(worldSeed: 0xA11CEUL);
 
             // ── 前置(反空洞正控):真池在这一档真的有候选,否则下面全是「没跑」 ──
             Assert.That(h.Pool.Entries.Count, Is.GreaterThan(0), "前置:池表须非空");
@@ -159,79 +161,87 @@ namespace DaYiJingCheng.Tests.RandomEvents
         // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 世界种子 `0x5EED`:当日首次抽取 = 2002(打摆子 / 间日疟),而疟疾只认技法 12
-        /// (金鸡纳,未解锁)⇒ 投放门拒 ⇒ 掷骰不落流 ⇒ **序号不前进** ⇒ 后五个边界
-        /// 抽到**同一个 key**、同样被拒。
+        /// 钩子配额**已用掉**(流里先有一例钩子病例)⇒ 技法全锁的 2002 **不进抽池** ——
+        /// 同一天照常产出两位病人,不再是「整日零产出」。
         /// </summary>
         /// <remarks>
-        /// <para>⚠️ <b>本测钉的是当下行为,不是设计意图。</b>它成立的两个前提各自都「对」:
-        /// ① ADR-039 §D3 不许「先落 `EventRolled` 再被后半截拒绝」(孤儿行);
-        /// ② `Ordinal` = 当日**已掷**数(从流重构)。两者相乘的后果是:被拒的那一眼
-        /// **不消耗掷骰序**,于是同一天里每一眼都落在同一个 `(win, tier, ordinal)` 上
-        /// ⇒ 同一个 key。跨日无此问题(`win = dayStart` 变)。
-        /// 若判定这是缺陷,该改的是链的序号口径 —— 本测会**当场转红**,正好当作判据。</para>
-        /// <para>种子的选取**不是**为了挑一个好看的结论:疟疾是池里两条「技法全锁」的
-        /// 医疗条目之一(另一条是 3001 麻疹,它不在机会档),所以「首抽即锁」是一个
-        /// 真实可达的日型,不构造它等于对这一整类日子零覆盖。</para>
-        /// <para>⚠️ <b>本测关掉了钩子通道</b>(`hookAllowed: false`)——那是**章内配额已用完**
-        /// 的生产形态。配额还在时生产会把它改判成钩子病例、当天照常出病人,见
-        /// <see cref="test_realData_withHookQuotaAvailable_theSameDayYieldsTwoPatients"/>。
-        /// 两条一起读才是完整的:「死日」不是链坏了,是**配额耗尽后**这个日型的真实后果。</para>
+        /// <para>这条钉的是 **T18 丙**的判据。改前(资格只在**抽中之后**判)的失败形态是:
+        /// 被拒的那一眼不写事件(ADR-039 §D3 防孤儿行)⇒ `Ordinal` 不前进 ⇒ 当天每一眼都落在
+        /// 同一个 `(win, tier, ordinal)` 上 ⇒ 抽到同一个 key、同样被拒 ⇒ **整日零产出**
+        /// (T17 实测:种子 `0x5EED` 的 6 眼全是 `PatientSpawnUnavailable`)。
+        /// 资格前移到候选集之后,该条目**根本不进抽池**,抽取序在剩下的条目上正常推进。</para>
+        /// <para>与第三测对照读:同一世界种子、同一份数据,**唯一变量是章内钩子配额** ——
+        /// 配额在 ⇒ 2002 以钩子病例身份进池(4 条候选);配额用完 ⇒ 它退池(3 条候选)。
+        /// ⇒ 「死日」这个形态**在结构上消失**,而不是被别的机制掩盖掉。</para>
+        /// <para>⚠️ 「配额已用掉」用生产写者造(`PatientSpawner.SpawnNext` 写一条病种 7 的
+        /// `DiseaseOnset`):账本按「onset 那一刻该病种一门技法都没解锁」自然判它是一例钩子。
+        /// **不伪造事件、不直接改账本计数**。</para>
+        /// <para>⚠️ 本测换种子(`0xA`,不是第二测的 `0x5EED`),原因是**预置病例必须落在
+        /// tick 0**,而若当日**第一眼**抽中的是出诊类条目(2003 / 2004 都是 `is_house_call`),
+        /// 它的 `EventArrived` 也落在 tick 0 ⇒ 该 tick 有两条 `DiseaseOnset` ⇒
+        /// `ActiveHouseCallQuery` 的「同 tick 恰一病人」判据**响亮抛**(规则十二 12.3)。
+        /// 实测踩到过。⇒ 选一个首眼抽中 2001(遭遇条,不产病人)的种子。
+        /// </para>
         /// </remarks>
         [Test]
-        public void test_realData_whenFirstDrawIsLocked_theWholeDayIsDead()
+        public void test_realData_whenHookQuotaIsSpent_theLockedKeyLeavesThePool()
         {
-            Harness h = Harness.Build(worldSeed: 0x5EEDUL, hookAllowed: false);
+            Harness h = Harness.Build(worldSeed: 0xAUL, preSeedHookCase: true);
 
-            Assert.That(h.OpportunityCandidateCount, Is.EqualTo(4), "前置:同主测");
+            Assert.That(h.OpportunityCandidateCount, Is.EqualTo(3),
+                "**这就是丙的判据**:2002 因投放资格不过而退池 ⇒ 机会档只剩 2001 / 2003 / 2004");
 
             DayResult day = h.RunOneDay();
 
             Assert.That(day.OutcomeSequence, Is.EqualTo(new[]
                 {
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
-                    nameof(SpawnChainOutcome.PatientSpawnUnavailable),
+                    nameof(SpawnChainOutcome.Spawned),
+                    nameof(SpawnChainOutcome.Spawned),
+                    nameof(SpawnChainOutcome.OverBudget),
+                    nameof(SpawnChainOutcome.OverBudget),
+                    nameof(SpawnChainOutcome.OverBudget),
+                    nameof(SpawnChainOutcome.OverBudget),
                 }),
-                "首次抽中「技法全锁」的医疗条目 ⇒ 每一眼都因同一个 (win,tier,ordinal) 抽到同一个 key 而被拒");
+                "候选集里没有不可产出的条目 ⇒ 前两眼都能产;预算 2 用尽后余四眼 OverBudget");
 
-            Assert.That(h.Count(EventKind.EventRolled), Is.EqualTo(0), "被拒的一眼零写入(ADR-039 §D3:防孤儿行)");
-            Assert.That(h.Count(EventKind.EventArrived), Is.EqualTo(0));
-            Assert.That(h.Count(EventKind.DiseaseOnset), Is.EqualTo(0));
-            Assert.That(h.Presence.Added, Is.Empty);
+            Assert.That(day.OutcomeSequence, Has.No.Member(nameof(SpawnChainOutcome.PatientSpawnUnavailable)),
+                "前移之后 `PatientSpawnUnavailable` 只是防御分支 —— 生产路径上不该再出现");
 
-            // 解锁只剩起步集 —— 证明「零降临」不是「解锁驱动没接上」:
-            // 同一条驱动在主测里写出了第三条,这里不写是因为**没有来源事件**。
+            Assert.That(h.Count(EventKind.EventRolled), Is.EqualTo(2));
+            Assert.That(h.Count(EventKind.EventArrived), Is.EqualTo(2));
+            // 1 = 预置的钩子病例(病种 7);+1 = 本日产出的那位(2004 心衰;2001 是遭遇条)。
+            Assert.That(h.Count(EventKind.DiseaseOnset), Is.EqualTo(2));
+            Assert.That(h.Presence.Added.Count, Is.EqualTo(2));
+
             var ids = new List<int>();
             foreach (TechniqueUnlockedPayload u in h.Unlocks()) ids.Add(u.TechniqueId);
-            Assert.That(ids, Is.EquivalentTo(new[] { 0, 1 }),
-                "本日无 `EventArrived` ⇒ 三条 Event 源规则全不命中(解锁驱动照常每 tick 跑)");
+            Assert.That(ids, Is.EquivalentTo(new[] { 0, 1, 11 }),
+                "0/1 = 起步集;11 = 毛地黄(2004 触发)");
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        //  第三测:同一天 + 钩子配额还在(= 生产形态)⇒ 死日变活日
+        //  第三测:同一天 + 钩子配额还在 ⇒ 技法全锁的病种以**钩子病例**身份进池
         // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 种子 `0x5EED` 不变、只把钩子通道打开:2002(疟疾)被改判为**钩子病例**放行 ——
-        /// 病人照常出现,而「降临了一个疟疾病人」又解锁了金鸡纳。
+        /// 种子 `0x5EED`、配额还在:2002(疟疾)准入为**钩子病例** ⇒ 病人照常出现,
+        /// 而「降临了一个疟疾病人」又解锁了金鸡纳。
         /// </summary>
         /// <remarks>
-        /// <para>这条钉的是**生产语义**,不是另一份夹具:钩子放行的判据本体在
-        /// `PatientDrawEligibility.Decide` + `HookCasePolicy.AllowsInjection`,本件只是把
-        /// 「配额还在」这个**状态**用常量 `hookAllowed: true` 表达出来(真正的配额计数在
-        /// `HookCaseLedger`,它的准入口径另有夹具)。</para>
-        /// <para>与第二测对照读:同一个世界种子、同一份数据,**唯一变量是配额**——
-        /// 配额在 ⇒ 两个病人 + 学会金鸡纳;配额用完 ⇒ 整日零产出。
+        /// <para>这条钉的是**生产语义**:钩子放行的判据本体在 `PatientDrawEligibility.Decide` +
+        /// `HookCasePolicy.AllowsInjection`,配额计数在 `HookCaseLedger`;**三者都是生产件**
+        /// (T18 乙之后夹具不再自己组这一段)。</para>
+        /// <para>与第二测对照读:同一世界种子、同一份数据,**唯一变量是配额**——
+        /// 配额在 ⇒ 4 条候选、2002 以钩子身份被抽中;配额用完 ⇒ 3 条候选、2002 退池。
         /// 这正是 hook 规则 1「每章 1–3 例」在流层的可观测形态。</para>
         /// </remarks>
         [Test]
-        public void test_realData_withHookQuotaAvailable_theSameDayYieldsTwoPatients()
+        public void test_realData_withHookQuotaAvailable_theLockedKeyEntersAsHookCase()
         {
-            Harness h = Harness.Build(worldSeed: 0x5EEDUL, hookAllowed: true);
+            Harness h = Harness.Build(worldSeed: 0x5EEDUL);
+
+            Assert.That(h.OpportunityCandidateCount, Is.EqualTo(4),
+                "配额还在 ⇒ 2002 以钩子病例身份留在候选集里");
 
             DayResult day = h.RunOneDay();
 
@@ -328,7 +338,11 @@ namespace DaYiJingCheng.Tests.RandomEvents
             }
 
             /// <summary>按生产装配的形状拼一台(见文件头「复用了哪些」)。</summary>
-            public static Harness Build(ulong worldSeed, bool hookAllowed)
+            /// <param name="worldSeed">世界种子。</param>
+            /// <param name="preSeedHookCase">是否**先把一例钩子病例塞进流** —— 等价于
+            /// 「本章的钩子配额已经用掉」。⚠️ 走生产写者(`PatientSpawner.SpawnNext` 写
+            /// `DiseaseOnset`),不伪造事件;账本(`HookCaseLedger`)据此自然算出 count = 1。</param>
+            public static Harness Build(ulong worldSeed, bool preSeedHookCase = false)
             {
                 // ── ① 真产物 ──
                 var provider = new RealTablesProvider();
@@ -365,26 +379,48 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 var projection = new TechniqueUnlockProjection(() => stream.Events, decoder);
                 var unlockWriter = new TechniqueUnlockWriter(stream, encoder, projection, knownTechniqueIds);
 
-                // ── ③ 投放资格(T4)—— 与 `CompositionRoot` 同一份判据 ──
+                // ── 起步集**必须在流为空时**写(ADR-043 §D9 的判据):先于任何预置事件 ──
+                //    ⚠️ 放到后面(与预置的钩子病例同序)会让 `Ensure` 看到非空流 ⇒ no-op ⇒
+                //    一门起步技法都没有 ⇒ 所有病种被技法门拒 ⇒ 候选集只剩「不产病人」的遭遇条目。
+                //    (这处顺序在 T18 首跑实测中真的踩到了,行为是候选数 3 → 1。)
+                TechniqueUnlockBootstrap.Ensure(stream.Events, unlockWriter, playerActorId, tick: 0);
+
+                // ── ③ 投放资格 —— 🔁 **T18 乙后走生产件 `PatientAdmissionPolicy`** ──
+                //   改前本文件在这里**自己组**一遍(钩子配额用常量代替),因为
+                //   `CompositionRoot` 里那段是内联 λ、没有落点可调。T18 把它收成具名类 ⇒
+                //   装配与夹具此后**是同一个对象**,分叉只可能发生在「有没有 new 它」这一点。
                 Func<int, bool> isTechniqueUnlocked = techniqueId
                     => projection.IsUnlocked(playerActorId, techniqueId);
 
-                Func<DiseaseRegistryEntry, PatientDrawDecision> admitEntry = row =>
-                    PatientDrawEligibility.Decide(
-                        row, drawIndex, playerPrescriptionLevel: 0, isTechniqueUnlocked,
-                        playerBound: true, asHookCase: false, hookAllowed: hookAllowed);
+                var hookCases = new HookCaseLedger(() => stream.Events, decoder, drawIndex, registryById);
+                var admission = new PatientAdmissionPolicy(
+                    drawIndex, isTechniqueUnlocked, playerActor, hookCases, playerPrescriptionLevel: 0);
 
-                Func<int, bool> isDiseaseAdmissible = diseaseId =>
-                    !registryById.TryGetValue(diseaseId, out DiseaseRegistryEntry candidate)
-                    || admitEntry(candidate).Admitted;
+                Func<int, bool> isDiseaseAdmissible = admission.DiseaseAdmissible(registryById);
 
                 // ── ④ 52 链(候选集 / 上下文 / 病人三条缝,全部走生产件)──
+                // 🔁 **T18 丙**:投放资格**前移到候选集**(与 `CompositionRoot` 同一份组合)。
+                Func<int, bool> requiresPatient = EventPoolPatientSpawner.RequiresPatient(pool);
+                Func<int, bool> canSpawnPatient = EventPoolPatientSpawner.CanSpawnPatient(pool, isDiseaseAdmissible);
+                Func<int, bool> canProduceKey = key => !requiresPatient(key) || canSpawnPatient(key);
+
                 Func<int, long, IReadOnlyList<WeightedKey>> candidatesOfTier = (tier, tick) =>
-                    EventWeighting.CandidatesOfTier(pool, tier, isNight: TimeBase.IsNight(tick, time));
+                    EventWeighting.CandidatesOfTier(pool, tier,
+                        isNight: TimeBase.IsNight(tick, time),
+                        historyMult: null,
+                        keyFilter: canProduceKey);
 
                 int[] houseCallKeys = pool.HouseCallKeys();
                 var clinicCells = new ClinicCellSource();   // 未绑定形态 ⇒ 恒 false(生产里玩家未出生前即此)
                 var spawner = new PatientSpawner(ids, stream, encoder, worldSeed);
+
+                // 「配额已用掉」的形态:先让 9 真写一条钩子病例的 `DiseaseOnset`(病种 7 疟疾,
+                // 此刻只认技法 12 ⇒ 账本判它是一例钩子)。**不伪造事件、不改账本**。
+                if (preSeedHookCase)
+                {
+                    PatientId hookPatient = spawner.SpawnNext(diseaseId: 7, tick: 0L);
+                    presence.AddPresent(hookPatient, AnchorCell);
+                }
 
                 var chain = new RandomEventSpawnChain(
                     stream, encoder,
@@ -402,16 +438,15 @@ namespace DaYiJingCheng.Tests.RandomEvents
                     events: () => stream.Events,
                     tier: OpportunityTier,
                     config: config,
-                    requiresPatient: EventPoolPatientSpawner.RequiresPatient(pool),
-                    canSpawnPatient: EventPoolPatientSpawner.CanSpawnPatient(pool, isDiseaseAdmissible));
+                    requiresPatient: requiresPatient,
+                    canSpawnPatient: canSpawnPatient);
 
                 var director = new RandomEventsDirectorDriver(
                     () => stream.Events, stream, encoder, decoder, clinicCells,
                     houseCallKeys, chain, playerActor);
                 director.BindPlayer(playerActorId);   // 与生产同序:装配后置绑定(玩家 id 原则上一刻才铸造)
 
-                // ── ⑤ 起步集 + 解锁驱动(生产 BootRoot 4.4a / 4.4b 的同序)──
-                TechniqueUnlockBootstrap.Ensure(stream.Events, unlockWriter, playerActorId, tick: 0);
+                // ── ⑤ 解锁驱动(生产 `BootRoot` 4.4b;起步集已在上方写完)──
                 var unlockDriver = new TechniqueUnlockDriver(
                     stream, decoder, TechniqueUnlockRules.Default, unlockWriter, playerActorId);
 
