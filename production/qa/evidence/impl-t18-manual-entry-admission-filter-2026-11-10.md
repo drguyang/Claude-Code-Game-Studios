@@ -143,3 +143,57 @@ grep -rn "TryPresent" unity/Assets --include=*.cs | grep -v /Tests/   # 改前:�
 4. **丙的两处薄覆盖**:M18-1 / M18-2 只被一条夹具钉住(§5 末注)。
 5. **`NoPool` 的新可达分支无专打夹具** —— 已有夹具覆盖 `NoPool`(合成空池),但「全档被资格滤空」
    这一形态没有专门造过。
+
+---
+
+## 8. 同批修复:§4.2 的出诊链接抛点(用户「现在修复」)
+
+### 8.1 改的是什么
+
+`ActiveHouseCallQuery.Evaluate` 的链接判据:
+
+| | 改前 | 改后 |
+|---|---|---|
+| 判据 | 该 tick **恰有**一条 `DiseaseOnset`(0 或多都抛) | **急召那条 `EventArrived` 之后的第一条**同 tick `DiseaseOnset` |
+| 同 tick 两条 | **抛**(「链接歧义」) | 取**之后的第一条**,第二条视为别的系统的病人 |
+| 该位置没有 onset | 抛 | **仍抛**(断链 fail-loud 保留) |
+
+**为什么「之后的第一条」就是 52 的病人**:链在 `RandomEventSpawnChain` 里
+**先 Append `EventArrived`、紧接着 Append 它的 `DiseaseOnset`**(⑧ → ⑨,同一次同步调用),
+中间没有别的写者能插进来。别的系统(9 的 `PatientAppearedDriver`)在同一 tick 产的病人
+要么在这条降临**之前**(不在扫描区间),要么在它**之后第二**条 —— 两种都不会被误取。
+
+### 8.2 改了哪些件
+
+| 件 | 改动 |
+|---|---|
+| `Sim/ActiveHouseCallQuery.cs` | 链接判据(见上)+ 文件头 / `remarks` / `exception` 三处口径 |
+| `design/gdd/random-events.md` §12.3 | 补一句**消歧**(同 tick 可能有多条 onset;取降临之后第一条)—— GDD 原文只说「9 在降临 tick 创建的病人」,从未要求「恰一条」,是**实现侧收紧**的 |
+| `house_call_test` | `test_ac5257_linkDuplicateOnset_throws`(钉「多条即抛」)**改判**为 `test_ac5257_linkTakesFirstOnsetAfterSummons_secondOnsetIsIgnored`;新增 `test_ac5257_onsetBeforeSummonsAtSameTick_isNotTheLink`(判别力:取「任意一条同 tick」会中招) |
+| `random_events_end_to_end_day_test` 第二测 | **换回种子 `0x5EED`** —— 它正是改前会抛的那个形态(预置病例与当日首眼降临同落 tick 0)⇒ 本测同时成为**修复的回归钉子** |
+
+> ⚠️ 第二测的「由红转绿」是本次修复的直接判据:**改前它抛**(T18 第一跑的原话:
+> `出诊链接歧义:急召降临 tick 0 处 DiseaseOnset 有 2 条`),**改后它绿**且断言 3 位病人。
+
+### 8.3 证伪轮(2 变异,全红;SHA-256 还原)
+
+| # | 变异 | 结果 |
+|---|---|---|
+| **ML-1** | 扫描起点由 `summonsIndex + 1` 改为 `0`(忽略位置) | 1 红:`onsetBeforeSummonsAtSameTick` |
+| **ML-2** | 断链改为返回 inactive(不抛) | **3 红**:`linkMissingOnset` · `onsetAtAdjacentTick` · `writer_brokenLink_propagatesFailLoud` |
+
+### 8.4 回归(修复后)
+
+**三元组**:截至 `2026-11-10T03:36:58Z` / `03:38:09Z` · **全量** · `78d49b27` + 工作树。
+
+| 套件 | 本次 | 对照(T18 提交) | 差 |
+|---|---|---|---|
+| EditMode(全量) | **`7365 / 7328 / 0 / 0 / 37`** @ `03:34:25Z`–`03:36:58Z` | `7364 / 7327 / 0 / 0 / 37` @ `03:02:16Z` · `78d49b27` | **+1 / +1** |
+| PlayMode(全量) | **`374 / 369 / 0 / 2 / 3`** @ `03:37:13Z`–`03:38:09Z` | `374 / 369 / 0 / 2 / 3` @ `03:05:17Z` · `78d49b27` | **零变化** |
+
+等式:`7365 − 7364 = 1`(删 1 条改判测、加 2 条 + 删 1 条 = 净 +1)。
+
+### 8.5 仍未做
+
+- **9 与 52 的出病人节奏仍无协调**:本修复消掉了「同 tick 两病人 ⇒ 抛」这个**故障形态**,
+  但没有让两边**知道彼此**。若将来要「同一 tick 至多一个病人」这种更强的语义,那是另一条改动线。

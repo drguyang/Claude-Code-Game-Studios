@@ -4,7 +4,9 @@
 //   · AC-52-56:跨出医馆 ⇒ 恰一条 HouseCallStarted(Patient = None,载荷 target_patient_id
 //     与急召链接的病人一致);同 tick 重入 / 跨回再跨出 ⇒ 仍恰一条(一次性)。
 //   · AC-52-57:派生定义三条件 —— ①立案后活跃转假;②无立案无窗口 ⇒ 持续活跃(P0 无窗口);
-//     ③读档重建(同流再判读)逐位一致。链接断裂 fail-loud(2026-10-25 裁定①)。
+//     ③读档重建(同流再判读)逐位一致。链接断裂 fail-loud(2026-10-25 裁定①;
+//     🔁 **2026-11-10 T18 改判**:链接 = 降临那条**之后的第一条**同 tick `DiseaseOnset`,
+//     同 tick 的第二条不再算歧义 —— 那可能是别的系统产的病人)。
 //   · AC-52-58:医馆内移动不触发 / 无目标不触发 / 本 tick 无跨格不触发;
 //     且 HouseCallStarted 落流的同一 Step 问 checkpoint 门 ⇒ 门答「安全」
 //     (12.4:旅途段不构成 unsafe —— 锚点③ 不得自否决,防呆注的否证钉)。
@@ -205,16 +207,41 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 "链接断裂须抛,不静默返回 inactive(静默 = 第二真源形态)");
         }
 
-        /// <summary>裁定①:降临 tick 处 DiseaseOnset 多条 ⇒ fail-loud(链接目标不可判定,拒绝猜)。</summary>
+        /// <summary>
+        /// 裁定①(🔁 2026-11-10 T18 改判):链接 = 降临那条**之后的第一条**同 tick `DiseaseOnset`;
+        /// 同 tick 的**第二条**不算歧义——那可能是别的系统产的病人。
+        /// </summary>
+        /// <remarks>改前的判据是「恰一条,多条即抛」,它把 9 与 52 在同 tick 各产一个病人
+        /// 误判成「流已坏」。见 `impl-t18-…-2026-11-10.md` §4.2 的实测。</remarks>
         [Test]
-        public void test_ac5257_linkDuplicateOnset_throws()
+        public void test_ac5257_linkTakesFirstOnsetAfterSummons_secondOnsetIsIgnored()
         {
             AddSummons(10);
-            AddOnset(10, 42);
-            AddOnset(10, 43);
-            Assert.Throws<InvalidOperationException>(
-                () => ActiveHouseCallQuery.Evaluate(_stream, _decoder, new[] { HouseCallEventKey }),
-                "同 tick 双病人 = 链接歧义,fail-loud");
+            AddOnset(10, 42);   // 52 自己的(紧随 `EventArrived` 之后)
+            AddOnset(10, 43);   // 别的系统的(例如 9 的 PatientAppearedDriver 恰巧同 tick)
+
+            var r = ActiveHouseCallQuery.Evaluate(_stream, _decoder, new[] { HouseCallEventKey });
+
+            Assert.IsTrue(r.Active);
+            Assert.AreEqual(42, r.TargetPatientId,
+                "链接须取**降临之后的第一条**;取到 43 = 把别人的病人当成了急召目标");
+        }
+
+        /// <summary>
+        /// 同 tick 里**先于**降临出现的那条 onset **不是**链接目标(判别力:取「任意一条同 tick」
+        /// 的写法会在这里取到 41)。
+        /// </summary>
+        [Test]
+        public void test_ac5257_onsetBeforeSummonsAtSameTick_isNotTheLink()
+        {
+            AddOnset(10, 41);   // 别的系统的病人,先入流
+            AddSummons(10);
+            AddOnset(10, 42);   // 52 的
+
+            var r = ActiveHouseCallQuery.Evaluate(_stream, _decoder, new[] { HouseCallEventKey });
+
+            Assert.IsTrue(r.Active);
+            Assert.AreEqual(42, r.TargetPatientId, "先于降临的那条不是急召病人");
         }
 
         /// <summary>相邻 tick 的 onset(急召 tick ± 1)不构成链接 —— 必须**同 tick**。</summary>

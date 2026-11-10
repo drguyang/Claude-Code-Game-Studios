@@ -17929,3 +17929,19 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   等式 `7364 − 7358 = 6`(新夹具 6 条)· `374 − 373 = 1`(新接线测)。
 - 证据:`production/qa/evidence/impl-t18-manual-entry-admission-filter-2026-11-10.md`;
   ADR 窄修订:`docs/architecture/adr-039-random-events-runtime-consumption.md` §Amendment A。
+
+### 第 6 轮(T18 尾 · 用户「这条 §4.2 的潜在抛点，现在修复」)
+
+- **病灶**:`ActiveHouseCallQuery` 要求「急召降临 tick **恰有**一条 `DiseaseOnset`」⇒ 9 的
+  `PatientAppearedDriver` 若在同 tick 也产一个病人 ⇒ **响亮抛**。生产上可达(两边节奏互不协调)。
+- **改法**:链接判据 = **急召那条 `EventArrived` 之后的第一条**同 tick `DiseaseOnset`。
+  依据:链先 Append 降临、紧接着 Append 它的病人(⑧→⑨ 同步),中间无别的写者 ⇒ 位置即身份。
+  **断链仍抛**(fail-loud 保留)。
+- **同步**:GDD `random-events.md` §12.3 补一句消歧(原文只说「9 在降临 tick 创建的病人」,
+  「恰一条」是**实现侧收紧**的,不是 GDD 要求)。
+- **判据**:`house_call_test` 的「多条即抛」改判 + 新增「先于降临的 onset 不是链接目标」;
+  T18 端到端第二测**换回种子 `0x5EED`**(正是改前会抛的那形态)⇒ **由红转绿**,同时成为回归钉子。
+- **证伪轮 2 变异全红**(忽略位置 / 断链不抛),SHA-256 还原。
+- **回归**:EditMode `7365 / 7328 / 0 / 0 / 37` @ `03:34:25Z`–`03:36:58Z`(基线 7364,+1)·
+  PlayMode `374 / 369 / 0 / 2 / 3` @ `03:37:13Z`–`03:38:09Z`(零变化)· `78d49b27` + 工作树。
+- 证据:`production/qa/evidence/impl-t18-manual-entry-admission-filter-2026-11-10.md` §8。

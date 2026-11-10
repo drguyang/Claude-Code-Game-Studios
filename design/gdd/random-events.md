@@ -601,6 +601,12 @@ HouseCallStarted 落流 ⟺ (活跃出诊目标存在) 且 (玩家本 tick 首�
   不参与高水位 —— `entities.yaml` constraint 同款)。
 - ⚠️ **「病人创建于急召降临 tick」的时机义务登记给 9 / 37**(若其实现轮裁定病人创建于
   立案 tick 而非降临 tick,则本条 12.3 的读流口径失效,须另裁关联形状 —— 两轮互为前置)。
+- 🔁 **2026-11-10(T18)补一句消歧**:同一 tick 里**可能有多条** `DiseaseOnset` ——
+  9 的 `PatientAppearedDriver` 有自己的出病人节奏,与 52 的降临**互不协调**。
+  消歧判据 = **急召那条 `EventArrived` 之后的第一条同 tick `DiseaseOnset`**
+  (链在 `RandomEventSpawnChain` 里先 Append 降临、紧接着 Append 它的病人,中间无别的写者)。
+  ⚠️ 实现侧原先收紧成「该 tick **恰有**一条,否则抛」—— 那会把「别的系统同 tick 也产了病人」
+  误判成「流已坏」,在生产上可达;已于同批改回本条口径。
 
 **12.4 「出诊流程进行中」与 checkpoint 门的安全语义(并入查询的口径):**
 

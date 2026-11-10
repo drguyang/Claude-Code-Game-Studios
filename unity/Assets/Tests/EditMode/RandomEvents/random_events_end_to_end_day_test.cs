@@ -176,17 +176,16 @@ namespace DaYiJingCheng.Tests.RandomEvents
         /// <para>⚠️ 「配额已用掉」用生产写者造(`PatientSpawner.SpawnNext` 写一条病种 7 的
         /// `DiseaseOnset`):账本按「onset 那一刻该病种一门技法都没解锁」自然判它是一例钩子。
         /// **不伪造事件、不直接改账本计数**。</para>
-        /// <para>⚠️ 本测换种子(`0xA`,不是第二测的 `0x5EED`),原因是**预置病例必须落在
-        /// tick 0**,而若当日**第一眼**抽中的是出诊类条目(2003 / 2004 都是 `is_house_call`),
-        /// 它的 `EventArrived` 也落在 tick 0 ⇒ 该 tick 有两条 `DiseaseOnset` ⇒
-        /// `ActiveHouseCallQuery` 的「同 tick 恰一病人」判据**响亮抛**(规则十二 12.3)。
-        /// 实测踩到过。⇒ 选一个首眼抽中 2001(遭遇条,不产病人)的种子。
-        /// </para>
+        /// <para>🔁 <b>本测同时是「出诊链接」修复的回归钉子</b>:预置病例与当日首眼的急召降临
+        /// **同落 tick 0** ⇒ 该 tick 有两条 `DiseaseOnset`。改前 `ActiveHouseCallQuery`
+        /// 要求「同 tick 恰一条」⇒ **响亮抛**(T18 实测:种子 `0x5EED` 的第一跑就红在这里)。
+        /// 现在的链接判据是「降临那条**之后的第一条**」⇒ 取 52 自己那位,不抛。
+        /// 若有人把判据改回「恰一条」,本测**当场转红**。</para>
         /// </remarks>
         [Test]
         public void test_realData_whenHookQuotaIsSpent_theLockedKeyLeavesThePool()
         {
-            Harness h = Harness.Build(worldSeed: 0xAUL, preSeedHookCase: true);
+            Harness h = Harness.Build(worldSeed: 0x5EEDUL, preSeedHookCase: true);
 
             Assert.That(h.OpportunityCandidateCount, Is.EqualTo(3),
                 "**这就是丙的判据**:2002 因投放资格不过而退池 ⇒ 机会档只剩 2001 / 2003 / 2004");
@@ -209,14 +208,14 @@ namespace DaYiJingCheng.Tests.RandomEvents
 
             Assert.That(h.Count(EventKind.EventRolled), Is.EqualTo(2));
             Assert.That(h.Count(EventKind.EventArrived), Is.EqualTo(2));
-            // 1 = 预置的钩子病例(病种 7);+1 = 本日产出的那位(2004 心衰;2001 是遭遇条)。
-            Assert.That(h.Count(EventKind.DiseaseOnset), Is.EqualTo(2));
-            Assert.That(h.Presence.Added.Count, Is.EqualTo(2));
+            // 1 = 预置的钩子病例(病种 7);+2 = 本日产出的两位(2004 心衰 / 2003 惊厥)。
+            Assert.That(h.Count(EventKind.DiseaseOnset), Is.EqualTo(3));
+            Assert.That(h.Presence.Added.Count, Is.EqualTo(3));
 
             var ids = new List<int>();
             foreach (TechniqueUnlockedPayload u in h.Unlocks()) ids.Add(u.TechniqueId);
             Assert.That(ids, Is.EquivalentTo(new[] { 0, 1, 11 }),
-                "0/1 = 起步集;11 = 毛地黄(2004 触发)");
+                "0/1 = 起步集;11 = 毛地黄(2004 触发)。2003 那条规则指向技法 1 ⇒ 写者去重后不新增");
         }
 
         // ══════════════════════════════════════════════════════════════════════

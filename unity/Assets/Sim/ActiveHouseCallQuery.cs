@@ -13,10 +13,17 @@
 //   TD-randomevents-02 —— 本查询的兑现轮(2026-10-25)。
 //
 // 核心机制:
-//   - **EventArrived ↔ 病人链接(裁定①,2026-10-25)**:急召 EventArrived 的
-//     Envelope Tick(急召降临 tick)处**恰有一条 DiseaseOnset** —— 0 条或多条都
-//     fail-loud 抛 InvalidOperationException(链接是「9 在降临 tick 创建病人」的
-//     流层不变量;缺 / 重复 = 流已坏,静默取第一条 = 第二真源形态)。
+//   - **EventArrived ↔ 病人链接(裁定①,2026-10-25;🔁 2026-11-10 T18 改判)**:
+//     链接 = **该条 `EventArrived` 之后的第一条同 tick `DiseaseOnset`**。
+//     🔁 改前的判据是「该 tick **恰有**一条 DiseaseOnset,0 或多都抛」—— 它把
+//     「**别的系统**在同一 tick 也产了一个病人」误判成「流已坏」。而 9 的
+//     `PatientAppearedDriver` 有自己的出病人节奏、与 52 的降临**互不协调**
+//     ⇒ 那个抛点在生产上可达(T18 实测撞到;证据件 `impl-t18-…-2026-11-10.md` §4.2)。
+//     为什么「之后的第一条」就是 52 的病人:链在 `RandomEventSpawnChain` 里
+//     **先 Append `EventArrived`、紧接着 Append 它的 `DiseaseOnset`**(⑧ → ⑨,同一次同步调用),
+//     中间没有别的写者能插进来 ⇒ 该位置的第一条必然属于它。
+//     ⚠️ **仍然 fail-loud**:该位置**没有**同 tick 的 onset ⇒ 链接断裂(9 侧未接线 / 流已坏),
+//        不静默返回 inactive(静默 = 第二真源形态)。
 //   - 「最新」按**流序**不按 tick 排序(流按 Tick 非降是写入期硬不变量;
 //     DeathCellQuery 同款纪律 —— 另排一次 = 同一事实的第二份判据)。
 //   - 终止判定只查**目标病人**的 CaseOpened(Envelope Patient == target ∧
@@ -63,12 +70,13 @@ namespace DaYiJingCheng.Sim
         /// <remarks>
         /// <para><b>P0 边界(裁定③)</b>:窗口过期与拒访检查为零 —— 窗口归 37(P0 =
         /// 永不过期),拒访 hook 登记归 37 的 GDD 轮;两者落地时**改本方法**,不改调用方。</para>
-        /// <para><b>死链 fail-loud(裁定①)</b>:最新出诊类 EventArrived 的降临 tick 处
-        /// DiseaseOnset 非「恰一条」即抛 —— 这是 9 侧「病人创建时机」的流层不变量,
-        /// 本查询是它的第一个消费者,故由查询执行断言(不另设门)。</para>
+        /// <para><b>死链 fail-loud(裁定①)</b>:最新出诊类 `EventArrived` **之后**没有同 tick 的
+        /// `DiseaseOnset` ⇒ 抛(`DiseaseOnset` 是 9 侧「病人创建时机」的流层不变量)。
+        /// 🔁 **2026-11-10(T18)**:判据由「该 tick 恰一条」改为「之后的第一条」——
+        /// 同 tick 的**第二条**不再算歧义(那可能是别的系统产的病人,见文件头)。</para>
         /// </remarks>
-        /// <exception cref="InvalidOperationException">急召降临 tick 处 DiseaseOnset
-        /// 为 0 条或多条(裁定① fail-loud)。</exception>
+        /// <exception cref="InvalidOperationException">急召降临那条 `EventArrived` 之后
+        /// 没有同 tick 的 `DiseaseOnset`(裁定① fail-loud)。</exception>
         public static ActiveHouseCall Evaluate(
             IReadOnlyList<SimEvent> events,
             IPayloadDecoder decoder,
@@ -80,6 +88,7 @@ namespace DaYiJingCheng.Sim
 
             // ① 最新出诊类 EventArrived(流序最后一条胜 —— 流按 Tick 非降)。
             long summonsTick = -1;
+            int summonsIndex = -1;
             bool foundSummons = false;
             for (int i = 0; i < events.Count; i++)
             {
@@ -94,35 +103,37 @@ namespace DaYiJingCheng.Sim
                     continue;
 
                 summonsTick = e.Tick;
+                summonsIndex = i;
                 foundSummons = true;   // 流序遍历,后者覆盖前者 = 最新
             }
 
             if (!foundSummons)
                 return default;
-            // ② 链接:降临 tick 处恰一条 DiseaseOnset(0 条或多条 ⇒ fail-loud,裁定①)。
+            // ② 链接:**降临那一条之后的第一条同 tick `DiseaseOnset`**(见文件头 §链接规则)。
+            //    ⚠️ 改前是「该 tick 恰一条,否则抛」—— 那条判据把「**别的系统**在同一 tick
+            //    也产了一个病人」误判成「流已坏」,而 9 的 `PatientAppearedDriver` 有自己的
+            //    出病人节奏、与 52 的降临**互不协调**(T18 实测撞到,见证据件 §4.2)。
             int targetPatientId = -1;
-            int onsetCount = 0;
-            for (int i = 0; i < events.Count; i++)
+            for (int i = summonsIndex + 1; i < events.Count; i++)
             {
                 SimEvent e = events[i];
-                if (e.Kind != EventKind.DiseaseOnset || e.Tick != summonsTick)
+                if (e.Kind != EventKind.DiseaseOnset)
                     continue;
+                // 流按 Tick 非降 ⇒ 走到更晚的 tick 就不必再找了。
+                if (e.Tick != summonsTick)
+                    break;
 
                 DiseaseOnsetPayload payload =
                     decoder.Decode<DiseaseOnsetPayload>(EventKind.DiseaseOnset, e.Payload);
 
                 targetPatientId = payload.PatientId;
-                onsetCount++;
+                break;
             }
 
-            if (onsetCount == 0)
+            if (targetPatientId < 0)
                 throw new InvalidOperationException(
-                    $"出诊链接断裂:急召降临 tick {summonsTick} 处 DiseaseOnset 为 0 条 " +
+                    $"出诊链接断裂:急召降临 tick {summonsTick} 之后没有任何 DiseaseOnset " +
                     "(规则十二 12.3 —— 病人由 9 在急召降临 tick 创建;9 侧写者未接线或流已坏)");
-            if (onsetCount > 1)
-                throw new InvalidOperationException(
-                    $"出诊链接歧义:急召降临 tick {summonsTick} 处 DiseaseOnset 有 {onsetCount} 条 " +
-                    "(规则十二 12.3 —— 同 tick 恰一病人;链接目标不可判定,拒绝猜)");
 
             // ③ 终止:目标病人已 CaseOpened(立案 = 终点)⇒ 无活跃目标。
             //    P0 零窗口过期检查 + 零拒访检查(裁定③;hook 归 37)。
