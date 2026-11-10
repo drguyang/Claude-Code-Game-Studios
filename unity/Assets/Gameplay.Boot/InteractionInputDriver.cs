@@ -61,6 +61,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private bool _interactHeld;
         private bool _emergencyHeld;
         private bool _referHeld;
+        private bool _closeHeld;
 
         /// <summary>当前选中的急救动作(<c>EmergencyAction</c> ordinal;B2-b,2026-11-10)。
         /// <para>默认 0 = 止血包扎 —— 与 B2-b 之前的硬编码逐位相同,故「不按数字键」的玩家
@@ -105,6 +106,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// `HookCaseClosureWriter` 没有任何生产调用点。</para></summary>
         private readonly Action<PatientId> _routeReferPress;
 
+        /// <summary>结案键(`C` / 手柄 `leftShoulder`)的路由(T19 甲 · 2026-11-10;可 null = 未接线)。
+        /// <para>与 <see cref="_routeReferPress"/> 同一分工:本类只把「按键 + 最近在场病人」交出去,
+        /// 「他现在有没有开着的病例 / 该不该结」由 37 的写者从病例流判。</para></summary>
+        private readonly Action<PatientId> _routeClosePress;
+
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
 
@@ -137,7 +143,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                       Action<PatientId, long> caseOpen = null,
                                       Func<bool> openCasebook = null,
                                       Func<WorldPos> playerCell = null,
-                                      Action<PatientId> routeReferPress = null)
+                                      Action<PatientId> routeReferPress = null,
+                                      Action<PatientId> routeClosePress = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
@@ -148,6 +155,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _playerCell = playerCell;
             _openCasebook = openCasebook;
             _routeReferPress = routeReferPress;
+            _routeClosePress = routeClosePress;
         }
 
         /// <summary>
@@ -214,6 +222,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (refer && !_referHeld && allowed && _routeReferPress != null)
                 _routeReferPress(NearestPresentPatient());
             _referHeld = refer;
+
+            // ── T19 甲(2026-11-10):结案键 ──────────────────────────────────
+            bool closeCase = PlayerInputReader.CloseCasePressed();
+            if (closeCase && !_closeHeld && allowed && _routeClosePress != null)
+                _routeClosePress(NearestPresentPatient());
+            _closeHeld = closeCase;
 
             // 观测位**不清零**:Last* = 「最近一次触发」的观测面(测试读走最近一次,
             // 而非「仅本帧」)。初始 None ⇒ 从未触发恒 None(EditMode 空转判据不依赖清除)。

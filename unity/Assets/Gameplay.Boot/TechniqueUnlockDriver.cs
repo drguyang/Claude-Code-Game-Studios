@@ -156,14 +156,22 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// <see cref="DiseaseIdSet"/> 是 <c>ulong</c> 位集(bit = disease_id)。
-        /// 越界 id 返回 <c>false</c> —— 病种 id ≥ 64 时位集**表达不了**它,
-        /// 而「表达不了」不能当成「命中」(那会让一条写错的规则无条件触发)。
+        /// <see cref="DiseaseIdSet"/> 是 <c>ulong</c> 位集,位序 = **<c>DiseaseId − 1</c>**
+        /// (`DiseaseIdSet` 的位序契约;`PatternDetector.cs:78` 与 `TelemetryReporter` 的
+        /// `bit + 1` 是同一口径)。越界 id 返回 <c>false</c> —— 病种 id &gt; 64 时位集
+        /// **表达不了**它,而「表达不了」不能当成「命中」(那会让一条写错的规则无条件触发)。
+        /// <para>🔁 <b>2026-11-10(T19)修复 off-by-one</b>:原实现读的是 <c>bit = diseaseId</c>
+        /// (`set.Bits >> diseaseId`),与生产写入侧(<c>bit = id − 1</c>)差一位 ⇒
+        /// 一条「病种 4 结案 ⇒ 解锁某技法」的规则会被**病种 5**的结案触发(静默开错技法)。
+        /// 之所以一直没被发现:`CaseCloseWriter` 生产调用点当时为 0(T19 才接上),而本类的
+        /// 夹具按 <c>1UL &lt;&lt; d</c> 造位集、与错误读法**自洽**(自指判据·F3)。
+        /// 夹具已同步改为 <c>1UL &lt;&lt; (d − 1)</c>,并新增一条**能分辨两种读法**的判据。</para>
         /// </summary>
         private static bool ContainsDisease(in DiseaseIdSet set, int diseaseId)
         {
-            if (diseaseId < 0 || diseaseId >= 64) return false;
-            return ((set.Bits >> diseaseId) & 1UL) != 0UL;
+            int bit = diseaseId - 1;             // 位序契约:bit = DiseaseId − 1
+            if (bit < 0 || bit >= 64) return false;
+            return ((set.Bits >> bit) & 1UL) != 0UL;
         }
     }
 }

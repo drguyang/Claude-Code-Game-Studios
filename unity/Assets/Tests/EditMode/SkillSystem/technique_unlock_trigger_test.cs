@@ -243,7 +243,11 @@ namespace DaYiJingCheng.Tests.SkillSystem
         private static CaseClosedPayload Closed(bool treated, params int[] diseaseIds)
         {
             ulong bits = 0UL;
-            foreach (int d in diseaseIds) bits |= 1UL << d;
+            // 🔁 2026-11-10(T19):位序 = **DiseaseId − 1**(`DiseaseIdSet` 的位序契约,
+            //    与 `PatternDetector.DiseaseBitIndex` / `TelemetryReporter` 的 `bit + 1` 同一口径)。
+            //    ⚠️ 原实现写的是 `1UL << d` —— 与驱动里那个同样差一位的读法**自洽**,
+            //    于是两边一起错、夹具全绿(自指判据·F3)。见 `ContainsDisease` 的 remarks。
+            foreach (int d in diseaseIds) bits |= 1UL << (d - 1);
             return new CaseClosedPayload(patientId: 5, caseId: new CaseId(30, 5, 0),
                                          diseaseSet: new DiseaseIdSet(bits), treated: treated);
         }
@@ -290,17 +294,44 @@ namespace DaYiJingCheng.Tests.SkillSystem
         }
 
         /// <summary>
+        /// **相邻 id 不串门**(T19 的 off-by-one 钉子):集合里只有病种 **5**,规则指向病种 **4**
+        /// ⇒ 必须不解锁。
+        /// <para>判别力:`bit = diseaseId` 的错读法会把「病种 5」写成 bit 5,而它按 bit 4 去查时
+        /// 命中的正是**病种 5 的正确位**(bit 4)—— 于是「治好了拉伤,学会了治刀伤」。
+        /// 本条在正确位序下绿、在差一位的读法下**红**。</para>
+        /// </summary>
+        [Test]
+        public void test_caseAdjacentDiseaseId_doesNotLeak()
+        {
+            var h = new Harness(KnownTechniques);
+            h.Append(EventKind.CaseClosed, new PatientId(5), 30,
+                     Closed(treated: true, diseaseIds: 5));
+
+            Assert.That(h.Driver(new[] { TechniqueUnlockRule.ForCase(4, 2) }).OnTickEdge(30),
+                        Is.EqualTo(0),
+                        "病种 5 的结案不能让病种 4 的规则命中 —— 位序 = DiseaseId − 1,差一位就是静默开错技法");
+        }
+
+        /// <summary>
         /// 病种 id ≥ 64 ⇒ 位集**表达不了**,判为不命中。
         /// <para>若把越界当命中,一条写错的规则会无条件触发(最坏形态:全表误开)。</para>
         /// </summary>
         [Test]
-        public void test_caseDiseaseIdAtOrAbove64_neverMatches()
+        public void test_caseDiseaseIdAbove64_neverMatches()
         {
             var h = new Harness(KnownTechniques);
-            h.Append(EventKind.CaseClosed, new PatientId(5), 30, Closed(treated: true, diseaseIds: 0));
+            // 集合 = {64}(bit 63,ulong **可**表达)—— 位序 = DiseaseId − 1 ⇒ 边界是 id 64 可、65 不可。
+            h.Append(EventKind.CaseClosed, new PatientId(5), 30, Closed(treated: true, diseaseIds: 64));
 
+            Assert.That(h.Driver(new[] { TechniqueUnlockRule.ForCase(diseaseId: 65, techniqueId: 2) })
+                        .OnTickEdge(30), Is.EqualTo(0),
+                        "病种 65 的位 = 64,ulong 表达不了 ⇒ 不得当成命中(否则一条写错的规则会无条件全开)");
+
+            // 正控(反空洞):同一条流、同一个位集,规则指向 **64**(bit 63)⇒ 必须命中。
+            // 没有这一条,上一个断言可以被「永远返回 0」满足。
             Assert.That(h.Driver(new[] { TechniqueUnlockRule.ForCase(diseaseId: 64, techniqueId: 2) })
-                        .OnTickEdge(30), Is.EqualTo(0));
+                        .OnTickEdge(30), Is.EqualTo(1),
+                        "64 可表达:它命中不了就说明上一条是「全都不命中」而不是越界判死");
         }
 
         // ════════════════════════════════════════════════════════════════

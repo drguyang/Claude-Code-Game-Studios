@@ -136,5 +136,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             Gamepad pad = Gamepad.current;
             return pad != null && pad.selectButton.isPressed;
         }
+
+        /// <summary>
+        /// **结案**键(T19 甲 · 2026-11-10)—— 把当前开着的病例收口。
+        /// <para>键盘 <c>C</c> / 手柄 <c>leftShoulder</c>。</para>
+        /// <para>为什么是 <c>C</c>:Close 的首字母;现占用 E(交互)/ F(急救)/ R(转诊)/
+        /// M(手册)/ Escape(暂停壳)/ 1–4(选动作)/ WASD(移动),<c>C</c> 与它们零冲突。</para>
+        /// <para>⚠️ 本方法只给**按住**态;边沿化归 <see cref="InteractionInputDriver"/>
+        /// (与转诊键同一分工)。⚠️ 按下即「玩家自述已处置」—— 证据那半边仍由 37 的写者查流。</para>
+        /// </summary>
+        public static bool CloseCasePressed()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.cKey.isPressed)
+                return true;
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.leftShoulder.isPressed;
+        }
     }
 }

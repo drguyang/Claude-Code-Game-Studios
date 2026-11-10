@@ -87,6 +87,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para><c>null</c> = 未装配。⚠️ 装配就位 ≠ 钩子病例可转(配额仍归 `HookCasePolicy`)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.HookCaseReferDriver HookCaseRefers { get; internal set; }
 
+        /// <summary>结案键的装配层驱动(T19 甲 · 2026-11-10)。
+        /// <para>把「C 键 + 最近在场病人」翻译成「该病人当前开着的那一例」再交给
+        /// `CaseCloseWriter`。改前 `CaseCloseWriter.TryClose` 的生产调用点 = 0 ——
+        /// 病例永不收口,三条 Case 源解锁规则(技法 2 / 3 / 10)因此全部不可达。</para>
+        /// <para><c>null</c> = 未装配。⚠️ 装配就位 ≠ 按得下就成:写者仍复核
+        /// 「窗口内有没有处置证据」(玩家只提供了「已处置」的自述那一半)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.CaseCloseDriver CaseClosers { get; internal set; }
+
         /// <summary>章节推进写者(B1-b · 2026-11-10)。
         /// <para>这是**唯一**能写 `ChapterAdvanced` 的对象;叙事 / 奇遇宿主经它推进章节。</para>
         /// <para>⚠️ 今日**没有生产者调用它**(叙事系统未建)⇒ 章号恒 0 ⇒ 「每章 1 例」

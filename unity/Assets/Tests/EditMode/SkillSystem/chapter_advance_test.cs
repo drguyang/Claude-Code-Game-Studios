@@ -185,7 +185,7 @@ namespace DaYiJingCheng.Tests.SkillSystem
                 Encoder = new PayloadEncoder(Pool);
                 Decoder = new PayloadDecoder(Pool);
                 var writer = new HookCaseClosureWriter(Sink, Encoder, () => Sink.Events, Decoder);
-                Driver = new HookCaseReferDriver(writer, () => Sink.Events, Decoder, () => Tick);
+                Driver = new HookCaseReferDriver(writer, () => Sink.Events, () => Tick);
             }
 
             public void Open(long tick, int patientId, long seq)

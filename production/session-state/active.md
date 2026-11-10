@@ -17945,3 +17945,30 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **回归**:EditMode `7365 / 7328 / 0 / 0 / 37` @ `03:34:25Z`–`03:36:58Z`(基线 7364,+1)·
   PlayMode `374 / 369 / 0 / 2 / 3` @ `03:37:13Z`–`03:38:09Z`(零变化)· `78d49b27` + 工作树。
 - 证据:`production/qa/evidence/impl-t18-manual-entry-admission-filter-2026-11-10.md` §8。
+
+### 第 7 轮(T19 甲 · 用户勾「甲 · 接上结案路径」)
+
+- **病灶**:`CaseCloseWriter.TryClose` 生产调用点 = 0 ⇒ ① 三条 Case 源解锁规则(技法 2 / 3 / 10)
+  全不可达;② 病例停在立案、永不收口;③ `Folded(p)` 条件① 永假(7a 折叠永不发生)。
+- **改法(只补链接,不复制判据)**:`CaseCloseDriver`(装配层)+ `CaseStreamQuery.DiseaseSetOf`
+  (病种位集,位序 `DiseaseId − 1`)+ `PlayerInputReader.CloseCasePressed`(`C` / 手柄 `leftShoulder`)
+  + `InteractionInputDriver.routeClosePress`(边沿)+ `BootRoot` 接线 + `services.CaseClosers`。
+  键 = 玩家「已处置」自述(`isChecked: true`);**证据半边仍由写者查流**。
+- **两处取舍**:① 「找开着的病例」收敛到既有 `CaseStreamQuery.OpenCaseOf`(删除 T19 曾写的
+  `TryFindOpenCase` —— 它会是第二份判据);`HookCaseReferDriver` 随之摘掉 `decoder` 依赖。
+  ② `DiseaseSetOf` 并入既有 `CaseStreamQuery` 类,不新立类型(曾误建同名文件,编译前自查发现)。
+- **同批抓到的生产缺陷**:`TechniqueUnlockDriver.ContainsDisease` **off-by-one**(读 `bit = id`,
+  全库写 `bit = id − 1`)⇒ 「病种 4 结案解锁某技法」被**病种 5** 触发。此前被「夹具按 `1UL << d`
+  自洽」掩盖(自指判据 F3)。已改 + 新增相邻 id 不串门判据 + id 64 正控。
+- **判据**:新 EditMode `case_close_driver_test` **11 条**(含端到端:真结案 → 生产规则表 → 技法 2);
+  新 PlayMode `CaseCloseWiringTest` 1 条(驱动在位 + 按键缝已接)。
+- **证伪轮 4 变异全红**:isChecked→false(4 红)· 位序差一位(5 红)· 越界守卫放宽(1 红)·
+  删跨病人过滤(2 红);SHA-256 两件还原「成功」。⚠️ 如实登记:`patient.IsNone` 守卫**无判别变异**
+  (流里无 `Patient -1` 的开案 ⇒ 去掉它测仍绿),写者侧另有一道同款守卫。
+- **回归**:EditMode `7377 / 7340 / 0 / 0 / 37` @ `04:44:48Z`–`04:46:53Z` ·
+  PlayMode `375 / 370 / 0 / 2 / 3` @ `04:47:46Z`–`04:48:07Z` · `a91eb0d1` + 工作树。
+  等式 `7377 − 7365 = 12` = 新文件 11 + `technique_unlock_trigger_test` 新增 1;`375 − 374 = 1`。
+- **未覆盖(禁借绿)**:`C` 的按键读面在 batch 下不可注入(同 `M` / `R`),边沿逻辑零夹具,
+  判据 = 真包走查;39 脉案页的勾选 UI / 二次确认未做;送医支仍无按键(ADR-044 §D7)。
+- 证据:`production/qa/evidence/impl-t19-case-close-wiring-2026-11-10.md`;
+  GDD 加注:`design/gdd/case-system.md` 规则八「已处置」段;写者头注:`CaseCloseWriter.cs:35`。

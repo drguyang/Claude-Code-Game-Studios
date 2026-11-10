@@ -7,9 +7,12 @@
 //
 // ── 本类只做一件 T5b 没做的事:把「按键」翻译成「哪一例」 ─────────────────
 //   `HookCaseClosureWriter.TryRefer` 要 `CaseId`(三元组 Tick/Patient/Seq),
-//   而按键只给出「最近在场病人」。本类从**病例流**反查那个病人**当前开着的那一例**:
-//   扫一遍流,取该病人**最后一条 `CaseOpened`**,且该 case 没有对应的 `CaseClosed`。
+//   而按键只给出「最近在场病人」。本类从**病例流**取那个病人**当前开着的那一例**
+//   (`CaseStreamQuery.OpenCaseOf` —— 全仓唯一判据,与 `CaseOpenWriter` / `JudgmentWriter` /
+//   `FoldedPredicate` 条件③ 同一个读法)。
 //   ⚠️ 这是读取,不是判据 —— 「这一例该不该转诊」仍归 37(本类只说「他现在有一例开着」)。
+//   ⚠️ 取到的 caseId 只是**候选**:写者自己会对着真流再复核(`IsOpen` / `IsClosed` 按精确三元组),
+//      所以本类不需要第二套「哪一案」判据。
 //
 // ⚠️ **不得**因为本类存在就声称「转诊已可用」:它接上了按键,但
 //   ① 钩子病例的配额 / 可诊断性仍由 `HookCasePolicy` 判;
@@ -18,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -27,22 +31,20 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         private readonly HookCaseClosureWriter _writer;
         private readonly Func<IReadOnlyList<SimEvent>> _events;
-        private readonly IPayloadDecoder _decoder;
         private readonly Func<long> _tick;
 
         /// <param name="writer">37 的收场写者(唯一 Append 落点)。</param>
-        /// <param name="events">事件流只读视图(反查开着的病例)。</param>
-        /// <param name="decoder">载荷解码器(ADR-031)。</param>
+        /// <param name="events">事件流只读视图(取开着的病例)。</param>
         /// <param name="tick">当前 tick(<see cref="ITickProvider.CurrentTick"/>)。</param>
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
+        /// <remarks>🔁 2026-11-10(T19):原第三参 <c>decoder</c> 已摘 —— 反查改用
+        /// <c>CaseStreamQuery.OpenCaseOf</c>(它只读事件头,不解载荷),本类因此不再需要解码器。</remarks>
         public HookCaseReferDriver(HookCaseClosureWriter writer,
                                    Func<IReadOnlyList<SimEvent>> events,
-                                   IPayloadDecoder decoder,
                                    Func<long> tick)
         {
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _events = events ?? throw new ArgumentNullException(nameof(events));
-            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _tick = tick ?? throw new ArgumentNullException(nameof(tick));
         }
 
@@ -62,45 +64,21 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>该病人**当前开着的那一例**(没有 ⇒ <c>false</c>)。</summary>
         /// <remarks>
-        /// <para>判据 = 「最后一条 `CaseOpened(patient)`」且「没有任何 `CaseClosed` 的
-        /// `CaseId` 等于它」。用**最后一条**而不是第一条:同一病人可以先后立案多次,
-        /// 只有最新那例是「现在开着的」。</para>
-        /// <para>⚠️ `CaseId` 的三元组 = (立案事件 Tick, 病人, 立案事件 Seq) ——
-        /// 它是**从事件头读出来的**,不是另一处存的(ADR-006 Amendment A 的全序键)。</para>
+        /// 🔁 **2026-11-10(T19)**:判据正文从本类搬走 —— 直接复用
+        /// <see cref="CaseStreamQuery.OpenCaseOf"/>(全仓唯一读法:最后一条 <c>CaseOpened</c>
+        /// 且其后无该病人的 <c>CaseClosed</c>)。本方法只是「同一判据的 bool 面」。
         /// </remarks>
         private bool TryFindOpenCase(PatientId patient, out CaseId caseId)
         {
             caseId = default;
-
             IReadOnlyList<SimEvent> events = _events();
             if (events == null) return false;
 
-            var closed = new HashSet<CaseId>();
-            SimEvent? lastOpened = null;
+            CaseId? open = CaseStreamQuery.OpenCaseOf(events, patient.Value);
+            if (!open.HasValue) return false;
 
-            for (int i = 0; i < events.Count; i++)
-            {
-                SimEvent e = events[i];
-
-                if (e.Kind == EventKind.CaseOpened)
-                {
-                    CaseOpenedPayload p = _decoder.Decode<CaseOpenedPayload>(e.Kind, e.Payload);
-                    if (p.PatientId == patient.Value) lastOpened = e;
-                    continue;
-                }
-
-                if (e.Kind == EventKind.CaseClosed)
-                {
-                    CaseClosedPayload p = _decoder.Decode<CaseClosedPayload>(e.Kind, e.Payload);
-                    closed.Add(p.CaseId);
-                }
-            }
-
-            if (lastOpened == null) return false;
-
-            SimEvent opened = lastOpened.Value;
-            caseId = new CaseId(opened.Tick, opened.Patient.Value, opened.Seq);
-            return !closed.Contains(caseId);
+            caseId = open.Value;
+            return true;
         }
     }
 }

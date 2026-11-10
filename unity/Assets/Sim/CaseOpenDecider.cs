@@ -60,8 +60,8 @@ namespace DaYiJingCheng.Sim
     }
 
     /// <summary>
-    /// 流前缀查询:OpenCaseOf(p) := 最近 CaseOpened 且无其后 CaseClosed。
-    /// GDD 规则二 Implementation Notes 第 2 条。
+    /// 三流前缀查询:<see cref="OpenCaseOf"/>(开着的病例)· <see cref="DiseaseSetOf"/>(病人病种位集)
+    /// 等纯函数读法。GDD 规则二 Implementation Notes 第 2 条。
     /// </summary>
     public static class CaseStreamQuery
     {
@@ -98,6 +98,50 @@ namespace DaYiJingCheng.Sim
         public static bool HasOpenCase(IReadOnlyList<SimEvent> events, int patientId)
         {
             return OpenCaseOf(events, patientId).HasValue;
+        }
+
+        /// <summary>
+        /// 该病人**此刻的全部病种**(位集,位序 <c>bit index = DiseaseId − 1</c>)。
+        /// </summary>
+        /// <param name="events">事件流只读视图(混流全集即可 —— 本方法按 <c>Kind</c> / <c>Patient</c> 自筛)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031)。</param>
+        /// <param name="patient">病人。</param>
+        /// <returns>位集;无 onset / 病人为 <see cref="PatientId.None"/> ⇒ 空集(<c>Bits == 0</c>)。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="decoder"/> 为 null。</exception>
+        /// <remarks>
+        /// <para><b>载体 = <see cref="EventKind.DiseaseOnset"/></b>(ADR-030):「病人带着某病出现」
+        /// 是它在病史流上的唯一记录,且病种**只增** ⇒ 扫全部 onset 即「此刻的全部病种」,
+        /// 不需要窗口,也不需要开案快照(后者生产上恒为空集,见 T19)。</para>
+        /// <para>⚠️ <b>位序契约</b>:bit index = <c>DiseaseId − 1</c>(<see cref="DiseaseIdSet"/>;
+        /// 与 <c>PatternDetector.DiseaseBitIndex</c> / <c>TelemetryReporter</c> 的 <c>bit + 1</c> 同口径)。
+        /// 「差一位」在本项目**抓到过一次**(<c>TechniqueUnlockDriver.ContainsDisease</c>,T19)——
+        /// 表现是「治好 A 病学会治 B 病」的静默错配,不是崩溃。</para>
+        /// <para>越界病种 id(<c>&lt; 1</c> 或 <c>&gt; 64</c>)**跳过**:位集表达不了它,
+        /// 塞进相邻位等于凭空发明一个病种(数据层另有 <c>DiseaseId ∈ [1, 64]</c> 校验)。</para>
+        /// <para>与 <c>FoldedPredicate.DiseasesOf</c>(7a 折叠侧,返回**首现序**列表)口径一致、
+        /// 形状不同 —— 两侧都是「扫同一批 onset」,不是两套判据。</para>
+        /// </remarks>
+        public static DiseaseIdSet DiseaseSetOf(IReadOnlyList<SimEvent> events, IPayloadDecoder decoder,
+                                               PatientId patient)
+        {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+            if (events == null || patient.IsNone) return default;
+
+            ulong bits = 0UL;
+            for (int i = 0; i < events.Count; i++)
+            {
+                SimEvent e = events[i];
+                if (e.Kind != EventKind.DiseaseOnset) continue;
+
+                DiseaseOnsetPayload p = decoder.Decode<DiseaseOnsetPayload>(e.Kind, e.Payload);
+                if (p.PatientId != patient.Value) continue;
+
+                int bit = p.DiseaseId - 1;
+                if (bit < 0 || bit >= 64) continue;
+                bits |= 1UL << bit;
+            }
+
+            return new DiseaseIdSet(bits);
         }
 
         /// <summary>

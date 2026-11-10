@@ -851,7 +851,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //   驱动只把「按键 + 最近在场病人」交过来;「他现在有没有开着的病例」
                 //   由 `HookCaseReferDriver` 从病例流反查,判定仍归 37 的写者。
                 //   ⚠️ 未装配(`null`)⇒ 按键什么都不做(与「没按」同形,不是静默降级)。
-                routeReferPress: patient => _services.HookCaseRefers?.TryRefer(patient));
+                routeReferPress: patient => _services.HookCaseRefers?.TryRefer(patient),
+                // ── T19 甲(2026-11-10):C = 结案 ──
+                //   改前 `CaseCloseWriter.TryClose` 的生产调用点 = 0 ⇒ 病例永不收口,
+                //   三条 Case 源解锁规则(技法 2 / 3 / 10)全部不可达。
+                //   「该不该结」全在写者里(四条前置);本缝只把「按键 + 最近在场病人」交过去。
+                routeClosePress: patient => _services.CaseClosers?.TryClose(patient));
             _interactionDriver = interaction;
             _pressRouter = pressRouter;
 

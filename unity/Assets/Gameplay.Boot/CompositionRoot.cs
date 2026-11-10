@@ -2298,7 +2298,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ 只覆盖**转诊**(`ReasonTransferred`);送医今日没有按键。
             //   ⚠️ 装配就位 ≠ 钩子病例一定会被当钩子投放(那仍归 `HookCasePolicy` 的章内配额)。
             services.HookCaseRefers = new HookCaseReferDriver(
-                services.HookCaseClosures, () => stream.Events, decoder,
+                services.HookCaseClosures, () => stream.Events,
+                () => tickDriver != null ? tickDriver.CurrentTick : 0L);
+
+            // 🔁 2026-11-10(T19 甲):**结案**的写者 + 驱动。
+            //   改前 `CaseCloseWriter.TryClose` 的生产调用点 = 0(写者自己的头注就这么写着)
+            //   ⇒ 病例永不收口,三条 Case 源解锁规则(技法 2 / 3 / 10)全部不可达。
+            //   `stream.Events` 交的是**活列表引用**(与 `CaseOpenWriter` 同一口径)——
+            //   写者内部按 Kind 自筛,混流全集即可。
+            var caseCloseWriter = new CaseCloseWriter(
+                stream, encoder, decoder, stream.Events);
+            services.CaseClosers = new CaseCloseDriver(
+                caseCloseWriter, () => stream.Events, decoder,
                 () => tickDriver != null ? tickDriver.CurrentTick : 0L);
 
             // 🔁 2026-11-10(B1-b):章节推进写者。今日**零生产者**(叙事 / 奇遇宿主未建)

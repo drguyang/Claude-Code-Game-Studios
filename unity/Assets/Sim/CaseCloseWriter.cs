@@ -33,6 +33,10 @@
 //   - `disease_set`(结案快照)由**调用方**给出 —— 与 `CaseOpenWriter.disease_snapshot` **同一口径**
 //     (9 的病种状态在解码侧,Sim 侧够不着;已解码字段由调用方喂入)。
 //   - 生产触发点(结案 UI「已处置」勾选 + 确认 → 本写者)尚未接线:归 37/42 的交互装配轮。
+//     🔁 **2026-11-10(T19 甲)已接** —— `CaseCloseDriver`(装配层)把「结案键 `C` / 手柄
+//     `leftShoulder` + 最近在场病人」翻成 `TryClose(..., isChecked: true)`;按键本身就是
+//     GDD 规则六-4 的「玩家自述已处置」那一半,**证据那半边仍由本类查流**(见 :151 的窗口判据)。
+//     本行原陈述不删,留作闭环记录。
 //   - `IEventAuthority.IsHost` 门不在本件:与既有写者(CaseOpenWriter / PatientSpawner /
 //     PrescribeFlow / StructureKinds / HostEmergencyProcessor)同格 —— 主机唯一由「谁调用写者」
 //     保证(ADR-005),客户端写通道的统一门禁归 45 轮。
