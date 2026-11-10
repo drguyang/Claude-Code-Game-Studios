@@ -46,13 +46,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <item><c>3</c> —— <b>2026-11-09</b>(T2)行尾追加 <c>min_skill_level</c>(i32)
         /// + <c>teach_point</c>(i32 字节长 + UTF-8;null = 未撰写)。
         /// 二者**只增不改**既有字段序 —— 插中间会让后续字段偏移全变。</item>
+        /// <item><c>4</c> —— <b>2026-11-10</b>(T15 · C2-a,用户裁定「删字段」)
+        /// 行尾的 <c>teach_point</c> 槽**删除**。<c>min_skill_level</c> 保留。
+        /// 删在行尾 ⇒ 既有字段偏移零变化 —— 与当初「只增、放行尾」是同一条理由。</item>
         /// </list>
         /// <para>⚠️ <b>为什么升它而不是升 <c>CookedFormat.FormatVersion</c></b>:
         /// 后者是**全局** 20 字节头格式号,与单个产物的载荷形状无关
         /// (承 <c>DiseaseRegistryCookedWriter</c> 头注 2026-10-22 的口径订正)。
         /// 单个产物的载荷演化由**头槽 schemaVersion** 承载 —— 本常量就是它的读方对偶。</para>
         /// </remarks>
-        public const uint ExpectedSchemaVersion = 3u;
+        public const uint ExpectedSchemaVersion = 4u;
 
         /// <summary>产物基名(仅用于错误报文;真名单一出处 = <see cref="DiseaseRegistryDataSet.CookedFileName"/>)。</summary>
         private const string ProductName = "disease_registry";
@@ -203,9 +206,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 e.Signs = signs;
             }
 
-            // ── 2026-11-09(T2 · schema_version 2 → 3):行尾两个字段 ──
+            // ── 2026-11-09(T2 · schema_version 2 → 3)行尾字段;2026-11-10(T15)删 teach_point ──
             e.MinSkillLevel = r.ReadInt32();
-            e.TeachPoint = CookedReadUtil.ReadString32(r, $"{ProductName}.{where}.teach_point");
+            // 🔁 2026-11-10(T15 · schema_version 4):`teach_point` 的
+            //    `ReadString32` 调用已删(C2-a)。行尾少一个字符串槽。
 
             // ── treatable_by:**本产物不携带**(2026-10-23 口径不变)──
             //  轴是单一真源(`D-9-K`),运行期由装配层的 `ITreatableByLookup` 查。

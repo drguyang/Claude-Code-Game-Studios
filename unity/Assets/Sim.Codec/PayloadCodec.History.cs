@@ -677,5 +677,45 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
             return new TechniqueUnlockedPayload(actorId, techniqueId, sourceId);
         }
+
+        // ── 19. ChapterAdvanced(2026-11-10 · B1-b)──────────────────────────
+        // tag: 1 Chapter · 2 SourceId —— 两个 i32,**全部必填**。
+        // ⚠️ 载荷无 Tick / 无 Seq / 无 PatientId:前两者是**事件头**的量,后者因章节是
+        //    玩家级事实(Patient = PatientId.None)。同 TechniqueUnlocked 的口径。
+
+        public static byte[] Encode(in ChapterAdvancedPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt32(1, p.Chapter);
+            w.WriteFieldInt32(2, p.SourceId);
+            return w.ToArray();
+        }
+
+        private static ChapterAdvancedPayload DecodeChapterAdvanced(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            int chapter = 0, sourceId = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.ChapterAdvanced), ref seen))
+                {
+                    case 1: chapter = r.ReadInt32LittleEndian(); break;
+                    case 2: sourceId = r.ReadInt32LittleEndian(); break;
+                    default: throw new InvalidDataException($"ChapterAdvanced: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.ChapterAdvanced), seen, (1u << 2) - 1);
+            r.EnsureFullyConsumed();
+            // ⚠️ 本层**不做值域校验**(chapter ≥ 1 / 单调)—— 与 `PayloadCodec` 的其余成员一致:
+            //    它只管**形状**(tag 集合 / 耗尽)。值域门在写者侧(`ChapterAdvanceWriter`:
+            //    `chapter < 1` 抛、倒退抛),那才是**唯一生产者**;在解码侧再判一次会让
+            //    「同一判据两份实现」,而两份实现必然分叉。
+            //    ⚠️ 2026-11-10 起草期一度在解码侧加过 `chapter < 1` 拒收,实测**当场打破**
+            //    `payload_encoder_test` / `payload_decoder_test` 的全 Kind 往返夹具
+            //    (它们用 `Activator.CreateInstance` 造默认实参 ⇒ chapter = 0)——
+            //    即「解码侧值域门」会把通用往返面绑死在具体值域上。已撤回。
+            return new ChapterAdvancedPayload(chapter, sourceId);
+        }
     }
 }

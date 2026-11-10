@@ -19,6 +19,14 @@
 //   全仓零章节状态(无 GDD 字段、无存档字段、无事件)。`HookCaseLedger` 因此只数
 //   **全局**钩子病例;接线恒取 `chapterOf() == 0` ⇒ 「每章 1 例」退化为「整局 1 例」。
 //   这是**具名缺口**(见证据件 §未做),不是本类的判据缺陷:判据本身接受任意章号。
+//
+// 🔁 **2026-11-10(B1-b,用户裁定「新增 ChapterAdvanced 事件」)** —— 上一段的
+//   「无事件」已不成立:`EventKind.ChapterAdvanced` 已入 registry,写者 =
+//   `ChapterAdvanceWriter`,读侧 = `HookCaseLedger.CurrentChapter()` /
+//   `CountHookCasesInCurrentChapter()`,装配已改走章内口径。
+//   ⚠️ **但缺口本身仍未消失**:P0 尚无叙事系统发那条事件 ⇒ 章号恒 0 ⇒
+//   「每章 1 例」在**今日运行时**仍等于「整局 1 例」。变的是**载体就位**,
+//   不是**行为生效** —— 解除条件 = 叙事轮接上生产者(奇遇宿主)。
 
 using System;
 using DaYiJingCheng.Sim;

@@ -438,4 +438,28 @@ namespace DaYiJingCheng.Sim.Contracts
             ActorId = actorId; TechniqueId = techniqueId; SourceId = sourceId;
         }
     }
+
+    /// <summary>
+    /// 章节推进(`ChapterAdvanced`,2026-11-10 · B1-b)。
+    /// <para><b>病因</b>:`HookCasePolicy.MaxPerChapter = 1` 的「每章」在运行期**不存在**
+    /// —— 全仓零章节状态(无 GDD 字段 / 无存档字段 / 无事件)⇒ 钩子配额退化成
+    /// 「整局 1 例」。本载荷是那个「章」的**唯一真源载体**(ADR-005 唯一真源口径:
+    /// 状态从事件流重构,不做存档头字段)。</para>
+    /// <para>⚠️ **章号是绝对量,不是增量** —— 载荷 `Chapter` = 推进**之后**的章号。
+    /// 若写成增量,「从流重构当前章」就要把每条都累加,而重放期任一条被折叠 / 丢弃
+    /// 都会让章号静默漂移;绝对量则是「取最后一条」,天然可重建且幂等可判。</para>
+    /// </summary>
+    public readonly struct ChapterAdvancedPayload
+    {
+        /// <summary>推进**之后**的章号(绝对量;≥ 1)。</summary>
+        public readonly int Chapter;
+
+        /// <summary>推进的来源 id(奇遇 / 剧情节点 id;不参与判定,供排查与 51 遥测)。</summary>
+        public readonly int SourceId;
+
+        public ChapterAdvancedPayload(int chapter, int sourceId)
+        {
+            Chapter = chapter; SourceId = sourceId;
+        }
+    }
 }

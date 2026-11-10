@@ -70,5 +70,53 @@ namespace DaYiJingCheng.Gameplay.Boot
             Gamepad pad = Gamepad.current;
             return pad != null && pad.buttonWest.isPressed;
         }
+
+        /// <summary>
+        /// 急救**动作选择**键(B2-b · 2026-11-10 用户裁定「按键切换」)。
+        /// <para>键盘 <c>1</c>–<c>4</c> / 手柄方向键 <b>上=0 · 右=1 · 下=2 · 左=3</b>
+        /// ⇒ 返回 <c>EmergencyAction</c> ordinal。没按 ⇒ <c>-1</c>。</para>
+        /// <para>⚠️ 返回的是「**此刻按住**的键」,不是边沿 —— 边沿化归调用方
+        /// (与 <see cref="InteractPressed"/> 同款:本类不持状态)。</para>
+        /// <para>为什么选这几组键:WASD 是 1 的移动面、E/F/Escape 已各有所属
+        /// (Interact / Emergency / 暂停壳),数字键与方向键是全键盘手柄两端都有的
+        /// **零冲突**位置。⚠️ 这是过渡最小面(ADR-011 §一):动作资产侧的正式绑定
+        /// 待独立 story,届时本方法的读面整体迁到 InputAction。</para>
+        /// </summary>
+        public static int EmergencyActionPressed()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.digit1Key.isPressed) return 0;
+                if (kb.digit2Key.isPressed) return 1;
+                if (kb.digit3Key.isPressed) return 2;
+                if (kb.digit4Key.isPressed) return 3;
+            }
+
+            Gamepad pad = Gamepad.current;
+            if (pad != null)
+            {
+                if (pad.dpad.up.isPressed) return 0;
+                if (pad.dpad.right.isPressed) return 1;
+                if (pad.dpad.down.isPressed) return 2;
+                if (pad.dpad.left.isPressed) return 3;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// **转诊 / 送医**键(C3-a · 2026-11-10 用户裁定「接进输入层」)。
+        /// <para>键盘 <c>R</c> / 手柄 <c>buttonEast</c>(B/○)。</para>
+        /// <para>为什么是 <c>R</c>:<c>Refer</c> 的首字母,且与 WASD 移动、E/F 交互、
+        /// 数字键选动作、Escape 暂停壳**全部不冲突**。</para>
+        /// </summary>
+        public static bool ReferPressed()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.rKey.isPressed)
+                return true;
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.buttonEast.isPressed;
+        }
     }
 }

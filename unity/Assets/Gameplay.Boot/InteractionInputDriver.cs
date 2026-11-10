@@ -60,6 +60,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private bool _interactHeld;
         private bool _emergencyHeld;
+        private bool _referHeld;
+
+        /// <summary>当前选中的急救动作(<c>EmergencyAction</c> ordinal;B2-b,2026-11-10)。
+        /// <para>默认 0 = 止血包扎 —— 与 B2-b 之前的硬编码逐位相同,故「不按数字键」的玩家
+        /// 行为零变化。</para></summary>
+        private int _selectedAction;
+
+        /// <summary>上一帧的动作选择键(-1 = 未按)。边沿化用 —— 按住同一数字键不重复换动作。</summary>
+        private int _lastActionKey = -1;
 
         /// <summary>模态门(规则七方向②;可 null = 未接线形态 —— 那时不做模态抑制)。</summary>
         private readonly ModalGate _gate;
@@ -88,6 +97,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 🔁 旧形态只有 <see cref="_playerPosition"/> 一路(表现态连续位置)—— 与 4 规则二
         /// 「玩家格取路 (a) = 经流确立的格」冲突;本轮把**生产**路径换成格,视觉位置只留作夹具回落。</para></summary>
         private readonly Func<WorldPos> _playerCell;
+
+        /// <summary>R 按下沿 → **转诊 / 送医**(C3-a · 2026-11-10;可 null = 未接线)。
+        /// <para>实参由装配层接到 `HookCaseReferDriver.TryRefer` —— 本类**不做**病例查找,
+        /// 也不判「这一例能不能转」(那归 37 的写者 + 本案是否仍开着)。</para>
+        /// <para>⚠️ ADR-044 §D7 的「零调用方」说的正是这条缝:本缝接上之前,
+        /// `HookCaseClosureWriter` 没有任何生产调用点。</para></summary>
+        private readonly Action<PatientId> _routeReferPress;
 
         /// <summary>最近一次被查体的病人(观测面/测试接缝;None = 从未触发)。</summary>
         public PatientId LastExaminedPatient { get; private set; } = PatientId.None;
@@ -120,7 +136,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                       Func<bool> routeInteractPress = null,
                                       Action<PatientId, long> caseOpen = null,
                                       Func<bool> openCasebook = null,
-                                      Func<WorldPos> playerCell = null)
+                                      Func<WorldPos> playerCell = null,
+                                      Action<PatientId> routeReferPress = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
@@ -130,6 +147,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _caseOpen = caseOpen;
             _playerCell = playerCell;
             _openCasebook = openCasebook;
+            _routeReferPress = routeReferPress;
         }
 
         /// <summary>
@@ -167,11 +185,35 @@ namespace DaYiJingCheng.Gameplay.Boot
             _interactHeld = interact;
 
             bool emergency = PlayerInputReader.EmergencyPressed();
+
+            // ── B2-b(2026-11-10):动作选择键 ─────────────────────────────────
+            // 语义 = **按住急救键期间换动作 = 当前动作作废、用新动作重来**。
+            // 为什么不是「中途改 arm」:直读通道的 `Arm` 在非 Idle 态**抛**
+            // (`EmergencyDirectReadChannel.Arm`:重复预约 = 编程错误),故只能
+            // Abort(丢弃累计、不发) → Arm(新动作)。这也符合手感 —— 做到一半换动作,
+            // 之前的拍子本就不该算进新动作。
+            int actionKey = PlayerInputReader.EmergencyActionPressed();
+            bool actionSwitched = false;
+            if (actionKey >= 0 && actionKey != _lastActionKey)
+            {
+                _selectedAction = actionKey;
+                actionSwitched = true;
+            }
+            _lastActionKey = actionKey;
+
             if (emergency && !_emergencyHeld && allowed)
                 BeginEmergency();
             else if (!emergency && _emergencyHeld)
                 EndEmergency();
+            else if (emergency && actionSwitched && allowed)
+                SwitchEmergencyAction();
             _emergencyHeld = emergency;
+
+            // ── C3-a(2026-11-10):转诊 / 送医键 ──────────────────────────────
+            bool refer = PlayerInputReader.ReferPressed();
+            if (refer && !_referHeld && allowed && _routeReferPress != null)
+                _routeReferPress(NearestPresentPatient());
+            _referHeld = refer;
 
             // 观测位**不清零**:Last* = 「最近一次触发」的观测面(测试读走最近一次,
             // 而非「仅本帧」)。初始 None ⇒ 从未触发恒 None(EditMode 空转判据不依赖清除)。
@@ -186,8 +228,31 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientId target = NearestPresentPatient();
             if (target.Value < 0) return;
 
-            _services.EmergencyChannel.Arm(actionOrdinal: 0, target);   // 0 = 止血包扎(真表归 21a/10)
+            _services.EmergencyChannel.Arm(actionOrdinal: _selectedAction, target);   // B2-b:选中的动作(默认 0 = 止血包扎)
             LastEmergencyPatient = target;
+        }
+
+        /// <summary>
+        /// 按住急救键期间换动作(B2-b · 2026-11-10)。
+        /// <para><b>为什么是 Abort + Arm 而不是「改 arm」</b>:直读通道的 `Arm` 在非 Idle 态
+        /// **抛**(重复预约 = 编程错误,见 `EmergencyDirectReadChannel.Arm` 的守卫),故换动作
+        /// 只能「作废当前这次、用新动作重开」。语义上也对:做到一半换动作,之前的拍子
+        /// 本就不该算进新动作。</para>
+        /// <para>⚠️ <b>Abort = 丢弃累计、不发事件</b>(规则六之甲 / F-10.5 附注)——
+        /// 换动作**不产生**一条 `EmergencyAttempt`。若玩家换完就松手,本次动作零事件。</para>
+        /// <para>目标沿用 <see cref="LastEmergencyPatient"/>(Arm 时锁定的那个人)——
+        /// 换动作不该换病人,否则玩家会在「动作选择」里意外改变目标。</para>
+        /// </summary>
+        private void SwitchEmergencyAction()
+        {
+            if (_services.EmergencyChannel == null) return;
+            if (!_services.EmergencyChannel.IsArmed) return;
+
+            PatientId target = LastEmergencyPatient;
+            if (target.Value < 0) return;
+
+            _services.EmergencyChannel.AbortAction();
+            _services.EmergencyChannel.Arm(actionOrdinal: _selectedAction, target);
         }
 
         /// <summary>F 松开沿:EndAction 聚合上行(零样本 / 不在场 ⇒ 零事件,零提示纪律)。

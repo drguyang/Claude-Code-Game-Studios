@@ -9,8 +9,11 @@
 //   ② **两侧只收自己那侧** —— 病行进 `injuries` / 伤行进 `diseases` 均构建期拒收
 //      (放错侧是静默错位;反向是 2026-11-09 T4 收紧的,原文只写单向);
 //   ③ **缺 `kind` 仍被拒**(T1 前既有行为,此处置为回归锚);
-//   ④ **两个新字段真的进字节** —— `min_skill_level` / `teach_point` 往返后逐值相等;
-//      且越界 / 空串各自被拒(否则「字段存在」与「字段被校验」无法区分)。
+//   ④ **新字段真的进字节** —— `min_skill_level` 往返后逐值相等,且越界被拒
+//      (否则「字段存在」与「字段被校验」无法区分)。
+//      🔁 **2026-11-10(T15 · C2-a,用户裁定「删字段」)**:`teach_point` 已删 ——
+//      ④ 的 `teach_point` 半边换成了**删除的负控**:现在写 `teach_point` 必须被
+//      未知键门拒收。删字段而不留这条,「删了」与「留着但没人读」在夹具上不可区分。
 //
 // ⚠️ 本文件**只读**仓库文件(不写盘)⇒ 不触发 `FsWriteBoundaryGate`。
 
@@ -59,7 +62,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         private static string Doc(string diseasesJson, string injuriesJson) => @"{
-  ""schema_version"": 3,
+  ""schema_version"": 4,
   ""diseases"": [" + diseasesJson + @"],
   ""injuries"": [" + injuriesJson + @"]
 }";
@@ -156,26 +159,23 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         /// 保证即便那边被删也能看见。</para>
         /// </summary>
         [Test]
-        public void test_minSkillLevelAndTeachPoint_surviveCookedRoundTrip()
+        public void test_minSkillLevel_survivesCookedRoundTrip()
         {
-            string extra = "      \"min_skill_level\": 12,\n" +
-                           "      \"teach_point\": \"死人的是脱水,不是腹泻\",\n";
+            string extra = "      \"min_skill_level\": 12,\n";
             string json = Doc(Row(7, "DIS_A", "disease", extra), "");
 
             var outp = DiseaseRegistryBaker.BakeFromJson(json);
             DiseaseRegistryDataSet ds = DiseaseRegistryBaker.Materialize(outp);
 
             Assert.That(ds.Rows[0].MinSkillLevel, Is.EqualTo(12));
-            Assert.That(ds.Rows[0].TeachPoint, Is.EqualTo("死人的是脱水,不是腹泻"));
         }
 
-        /// <summary>未写 <c>teach_point</c> ⇒ 往返后仍是 <c>null</c>(「未撰写」不被伪装成空串)。</summary>
+        /// <summary>未写 <c>min_skill_level</c> ⇒ 往返后是 <c>0</c>(「开局可投放」的缺省)。</summary>
         [Test]
-        public void test_absentTeachPoint_staysNull()
+        public void test_absentMinSkillLevel_defaultsToZero()
         {
             var outp = DiseaseRegistryBaker.BakeFromJson(Doc(Row(7, "DIS_A", "disease"), ""));
             DiseaseRegistryDataSet ds = DiseaseRegistryBaker.Materialize(outp);
-            Assert.That(ds.Rows[0].TeachPoint, Is.Null);
             Assert.That(ds.Rows[0].MinSkillLevel, Is.EqualTo(0), "缺省 = 0(开局可投放)");
         }
 
@@ -192,11 +192,17 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             }
         }
 
-        /// <summary>空串 <c>teach_point</c> ⇒ 拒(空串与漏写不可区分 ⇒ 「有没有科普点」永远判不出)。</summary>
+        /// <summary>
+        /// <c>teach_point</c> 已删(C2-a)⇒ 现在写它必须被**未知键门**拒收。
+        /// <para><b>为什么这条必须有</b>:删字段后若不写这条,「字段真删了」与
+        /// 「字段留着但没人读」在夹具上**完全不可区分**(两者都绿)。它把删除变成可判的。</para>
+        /// <para>判别力:若有人把 `teach_point` 加回白名单却不加回字段 ⇒ 本条仍绿——
+        /// 那种形态由 `BoundRowKeys` ↔ `BindRow` 的差集判据兜(声明了却不绑定 = 报 UnboundKeys)。</para>
+        /// </summary>
         [Test]
-        public void test_emptyTeachPoint_isRejected()
+        public void test_teachPoint_removed_isRejectedAsUnknownKey()
         {
-            string json = Doc(Row(7, "DIS_A", "disease", "      \"teach_point\": \"  \",\n"), "");
+            string json = Doc(Row(7, "DIS_A", "disease", "      \"teach_point\": \"一句科普\",\n"), "");
             var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(json));
             Assert.That(ex.Message, Does.Contain("teach_point"), ex.Message);
         }

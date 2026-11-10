@@ -56,21 +56,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 截至当前流尾,已注入的钩子病例数。
+        /// 计数主实现。<paramref name="targetChapter"/> &lt; 0 ⇒ 全局;否则只数该章内的。
         /// </summary>
         /// <param name="actorId">玩家 actor id(解锁事件按 actor 区分)。</param>
+        /// <param name="targetChapter">目标章号(&lt;0 = 全局口径)。</param>
         /// <returns>钩子病例条数(0 = 一例都没有)。</returns>
-        public int CountHookCases(int actorId)
+        private int CountHookCasesCore(int actorId, int targetChapter)
         {
             IReadOnlyList<SimEvent> events = _events();
             if (events == null) return 0;
 
             var unlocked = new HashSet<int>();
             int hooks = 0;
+            int chapter = 0;   // 0 = 从未推进(B1-b;无 ChapterAdvanced 事件时恒 0)
 
             for (int i = 0; i < events.Count; i++)
             {
                 SimEvent e = events[i];
+
+                if (e.Kind == EventKind.ChapterAdvanced)
+                {
+                    chapter = _decoder.Decode<ChapterAdvancedPayload>(e.Kind, e.Payload).Chapter;
+                    continue;
+                }
 
                 if (e.Kind == EventKind.TechniqueUnlocked)
                 {
@@ -81,6 +89,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 }
 
                 if (e.Kind != EventKind.DiseaseOnset) continue;
+
+                // 章内口径:只数落在目标章里的 onset(全局口径 targetChapter < 0 ⇒ 恒真)。
+                if (targetChapter >= 0 && chapter != targetChapter) continue;
 
                 DiseaseOnsetPayload onset = _decoder.Decode<DiseaseOnsetPayload>(e.Kind, e.Payload);
                 if (!_registryById.TryGetValue(onset.DiseaseId, out DiseaseRegistryEntry row)) continue;
@@ -101,5 +112,58 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return hooks;
         }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  章切分(B1-b · 2026-11-10)
+        // ══════════════════════════════════════════════════════════════════════
+        // 🔁 2026-11-10:上一条 `CountHookCases` 是**全局**计数。此前「每章 1 例」退化成
+        //    「整局 1 例」,正是因为调用方恒传 `chapterOf() == 0`(见 `HookCasePolicy` 头注)。
+        //    本批立了 `ChapterAdvanced` 事件 ⇒ 章可以从流重建,下面两条是那段读法。
+        // ⚠️ **两条并存是刻意的**:`CountHookCases(actor)` 保留为「全局」口径(既有夹具与
+        //    「玩家到底见过几个钩子」的诊断都用它),章内配额走新方法。
+        //    把它改写成章内口径会**静默**改掉既有语义 —— 那才是真正的坑。
+
+        /// <summary>
+        /// 当前章号(<c>0</c> = 从未推进)。
+        /// <para>判据 = 流里**最后一条** <see cref="EventKind.ChapterAdvanced"/> 的
+        /// <c>Chapter</c>(绝对量,故取最后一条即当前值);空流 / 无此事件 ⇒ 0。</para>
+        /// </summary>
+        public int CurrentChapter()
+        {
+            IReadOnlyList<SimEvent> events = _events();
+            if (events == null) return 0;
+
+            int chapter = 0;
+            for (int i = 0; i < events.Count; i++)
+            {
+                SimEvent e = events[i];
+                if (e.Kind != EventKind.ChapterAdvanced) continue;
+                chapter = _decoder.Decode<ChapterAdvancedPayload>(e.Kind, e.Payload).Chapter;
+            }
+            return chapter;
+        }
+
+        /// <summary>
+        /// 只数**当前章**内的钩子病例 —— 这是 `HookCasePolicy.MaxPerChapter` 要的那个数。
+        /// <para>前向扫一遍,维护「此刻在第几章」;onset 落在当前章才计。
+        /// **后推进不追溯**:先前章里注入的钩子不会被算进本章(否则每推进一次配额就被历史吃掉)。</para>
+        /// <para>⚠️ 今日无生产者写 `ChapterAdvanced` ⇒ `CurrentChapter() == 0`,本章 = 整局
+        /// (与 `CountHookCases(actor)` 逐值相同)。这是**载体就位、生产者未接**的如实状态,
+        /// 不是本方法的缺陷。</para>
+        /// </summary>
+        /// <param name="actorId">玩家 actor id(解锁事件按 actor 区分)。</param>
+        /// <returns>当前章内已注入的钩子病例数。</returns>
+        public int CountHookCasesInCurrentChapter(int actorId)
+            => CountHookCasesCore(actorId, targetChapter: CurrentChapter());
+
+        /// <summary>
+        /// 截至当前流尾,**全局**已注入的钩子病例数(不分章)。
+        /// <para>⚠️ 章内配额请用 <see cref="CountHookCasesInCurrentChapter"/>。本方法保留
+        /// 全局口径是**刻意**的:既有夹具与「玩家一共见过几个钩子」的诊断都读它。
+        /// 把它改写成章内口径会**静默**改掉既有语义。</para>
+        /// </summary>
+        /// <param name="actorId">玩家 actor id(解锁事件按 actor 区分)。</param>
+        /// <returns>钩子病例条数(0 = 一例都没有)。</returns>
+        public int CountHookCases(int actorId) => CountHookCasesCore(actorId, targetChapter: -1);
     }
 }

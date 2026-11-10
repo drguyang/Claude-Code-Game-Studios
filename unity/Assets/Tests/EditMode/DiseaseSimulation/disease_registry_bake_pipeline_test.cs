@@ -43,7 +43,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         /// 拆表前的合法形态,现在不再是。行内容一字未改,只换顶层键。
         /// </remarks>
         private static string MinimalJson() => @"{
-  ""schema_version"": 3,
+  ""schema_version"": 4,
   ""diseases"": [],
   ""injuries"": [
     {
@@ -259,7 +259,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
 
         /// <summary>含非空 <c>signs[]</c> + <c>relapse</c> 块的最小源文本。</summary>
         private static string RichJson() => @"{
-  ""schema_version"": 3,
+  ""schema_version"": 4,
   ""diseases"": [
     {
       ""id"": 7,
@@ -579,9 +579,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 "formatVersion 不符");
             // ⚠️ 2026-10-23 起期望值改 2(布局加了 handle / relapse / signs[] 三块)。
             //    🔁 2026-11-09(T2)改 3:行尾追加 min_skill_level + teach_point。
+            //    🔁 2026-11-10(T15 · C2-a)改 4:行尾删 teach_point(字段已删)。
             //    断言**仍写死字面量**而不是读 `ExpectedSchemaVersion` —— 那样本行会退化成
             //    「常量 == 常量」的同义反复,测不出「binder 把源文件声明的版本原样写进头槽」。
-            Assert.That(ReadU32Le(b, 8), Is.EqualTo(3u), "schemaVersion 应为源文件声明的 3");
+            Assert.That(ReadU32Le(b, 8), Is.EqualTo(4u), "schemaVersion 应为源文件声明的 4");
             Assert.That(ReadU32Le(b, 12), Is.EqualTo(outp.ConfigVersion), "configVersion 不符");
 
             uint payloadLen = ReadU32Le(b, 16);
@@ -665,8 +666,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_trendWindow_present_isReadBack()
         {
             string json = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"trend_window_ticks\": 120,\n  \"trend_eps\": \"1966/65536\",");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"trend_window_ticks\": 120,\n  \"trend_eps\": \"1966/65536\",");
             var outp = DiseaseRegistryBaker.BakeFromJson(json);
 
             Assert.That(outp.TrendWindowTicks, Is.EqualTo(120L),
@@ -682,24 +683,24 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         {
             // ① 负 W
             string negW = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"trend_window_ticks\": -2,");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"trend_window_ticks\": -2,");
             var ex1 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(negW), "负 W 须拒(0 = 未配置,负值无意义)");
             Assert.That(ex1.Message, Does.Contain("trend_window_ticks"));
 
             // ② 奇数 W —— GDD Tuning :1743「须为偶数(取 W/2)」
             string oddW = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"trend_window_ticks\": 121,");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"trend_window_ticks\": 121,");
             var ex2 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(oddW), "奇数 W 须拒(取 W/2 会丢半个 tick)");
             Assert.That(ex2.Message, Does.Contain("trend_window_ticks"));
 
             // ③ 负 TREND_EPS
             string negEps = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"trend_eps\": \"-1\",");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"trend_eps\": \"-1\",");
             var ex3 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(negEps), "负 TREND_EPS 须拒");
             Assert.That(ex3.Message, Does.Contain("trend_eps"));
@@ -710,8 +711,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_underscorePrefixedKeys_areAllowed()
         {
             string withNote = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"_note\": \"作者态注记\",");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"_note\": \"作者态注记\",");
             Assert.DoesNotThrow(() => DiseaseRegistryBaker.BakeFromJson(withNote),
                 "`_` 前缀注记被当成未知键 —— 判据过宽");
         }
@@ -728,7 +729,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         [Test]
         public void test_schemaVersionMismatch_isRejectedAtBake()
         {
-            string bad = MinimalJson().Replace("\"schema_version\": 3", "\"schema_version\": 1");
+            string bad = MinimalJson().Replace("\"schema_version\": 4", "\"schema_version\": 1");
             var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(bad));
             Assert.That(ex.Message, Does.Contain("schema_version"),
                 "报文须点名 schema_version,否则作者看不出是自己版本号写错了");
@@ -784,7 +785,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_emptyRegistry_isRejected()
         {
             string bad = @"{
-  ""schema_version"": 3,
+  ""schema_version"": 4,
   ""diseases"": []
 }";
             var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(bad));
@@ -796,7 +797,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_malformedJson_isRejectedAtStage1()
         {
             var ex = Assert.Throws<BakeValidationException>(
-                () => DiseaseRegistryBaker.BakeFromJson("{ \"schema_version\": 3, "));
+                () => DiseaseRegistryBaker.BakeFromJson("{ \"schema_version\": 4, "));
             Assert.That(ex.Message, Does.Contain("阶段1").Or.Contain("词法"));
         }
 
@@ -844,8 +845,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_authorNotes_areNotCountedAsUnbound()
         {
             string withNote = MinimalJson().Replace(
-                "\"schema_version\": 3,",
-                "\"schema_version\": 3,\n  \"_note\": \"注记\",");
+                "\"schema_version\": 4,",
+                "\"schema_version\": 4,\n  \"_note\": \"注记\",");
             var outp = DiseaseRegistryBaker.BakeFromJson(withNote);
             Assert.That(outp.UnboundKeys, Is.Empty);
         }

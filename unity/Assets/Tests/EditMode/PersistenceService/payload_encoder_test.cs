@@ -150,7 +150,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ AC-29-04: 分派完备性(32 + 2)══════════
 
-        /// <summary>可由 Encode&lt;T&gt; 表达的 38 支(40 − Judgment 两支;2026-10-30 ADR-035 起 35→36;2026-11-09 ADR-043/044 起 36→38)。</summary>
+        /// <summary>可由 Encode&lt;T&gt; 表达的 39 支(41 − Judgment 两支;2026-10-30 ADR-035 起 35→36;2026-11-09 ADR-043/044 起 36→38;2026-11-10 B1-b 起 38→39)。</summary>
         private static readonly EventKind[] EncodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>()
                 .Where(k => k != EventKind.JudgmentRecorded && k != EventKind.JudgmentRevised)
@@ -159,18 +159,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_ac2904_dispatchCovers36Kinds()
         {
-            Assert.AreEqual(38, EncodableKinds.Length,
-                "可编码 Kind 须恰 38 支(40 总 − 2 Judgment;2026-10-30 ADR-035 起 37→38;2026-11-09 ADR-043 起 38→39;2026-11-09 ADR-044 起 39→40:加 CaseReferred)");
+            Assert.AreEqual(39, EncodableKinds.Length,
+                "可编码 Kind 须恰 39 支(41 总 − 2 Judgment;2026-10-30 ADR-035 起 37→38;2026-11-09 ADR-043 起 38→39;2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced)");
 
             // 与 PayloadCodec 的具名 Encode 重载集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Encode" && !m.IsGenericMethodDefinition)
                 .ToList();
 
-            // 38 支单参重载 + 2 支双参(Judgment)重载 = 40
+            // 39 支单参重载 + 2 支双参(Judgment)重载 = 41
             int singleArg = named.Count(m => m.GetParameters().Length == 1);
             int doubleArg = named.Count(m => m.GetParameters().Length == 2);
-            Assert.AreEqual(38, singleArg, "单参具名 Encode 重载须恰 38");
+            Assert.AreEqual(39, singleArg, "单参具名 Encode 重载须恰 39");
             Assert.AreEqual(2, doubleArg, "双参(Judgment)具名 Encode 重载须恰 2");
         }
 

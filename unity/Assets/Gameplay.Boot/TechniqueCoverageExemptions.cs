@@ -36,10 +36,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 [1] =
                     "节奏型通气 —— P0 **没有任何病种**把它列进 treatable_by(T11 实测:覆盖 0 行)。" +
-                    "它是起步集的一名(T3 的 StartingTechniques = {0,1}),玩家开局就会,但投放面上完全无效:" +
-                    "「有了技法」与「技法有用」是两件事。" +
-                    "出口二选一 —— ① 给某个病种挂上它(改 disease_action_axis.json);" +
-                    "② 把它从 StartingTechniques 移出。任一落地后删本行。",
+                    "🔁 2026-11-10(A3-b,用户裁定「从起步集移出」):它已于本批从 " +
+                    "`StartingTechniques` 移出(现 = {0}),不再是「开局白给一个没用的动作」。" +
+                    "⚠️ **但本行不能删** —— 本门的判据是「零覆盖集 == 豁免键集」," +
+                    "与起步集无关;移出起步集**不改覆盖**,删了本条门当场转红。" +
+                    "(原文「② 把它从 StartingTechniques 移出。任一落地后删本行」是**错的**,已订正。)" +
+                    "唯一出口 = ① 给它挂上病种(改 disease_action_axis.json;A2 内容批)。",
             };
 
         /// <summary>某门技法是否已登记为具名豁免。</summary>

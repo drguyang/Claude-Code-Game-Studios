@@ -224,6 +224,70 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 Sink.Events.Add(new SimEvent(tick, new PatientId(patientId), -1,
                     EventKind.DiseaseOnset, Encoder.Encode(EventKind.DiseaseOnset, p)));
             }
+
+            /// <summary>章推进(B1-b · 2026-11-10)。</summary>
+            public void Chapter(long tick, int chapter)
+            {
+                var p = new ChapterAdvancedPayload(chapter, 0);
+                Sink.Events.Add(new SimEvent(tick, PatientId.None, -1,
+                    EventKind.ChapterAdvanced, Encoder.Encode(EventKind.ChapterAdvanced, p)));
+            }
+        }
+
+        // ── ⑤b 章切分(B1-b · 2026-11-10)──────────────────────────────────────
+
+        /// <summary>无 <c>ChapterAdvanced</c> ⇒ 当前章 = 0(「从未推进」的哨兵)。</summary>
+        [Test]
+        public void test_ledger_currentChapter_withoutChapterEvents_isZero()
+        {
+            var l = new Ledger(Index(("DIS_X", 12)), Row(5, "DIS_X"));
+            l.Onset(10, 5, 100);
+            Assert.That(l.Cursor.CurrentChapter(), Is.EqualTo(0));
+        }
+
+        /// <summary>当前章 = 流里**最后一条** <c>ChapterAdvanced</c>(载荷是绝对量,故取最后一条)。</summary>
+        [Test]
+        public void test_ledger_currentChapter_takesLatestAbsoluteValue()
+        {
+            var l = new Ledger(Index(("DIS_X", 12)), Row(5, "DIS_X"));
+            l.Chapter(5, 1);
+            l.Chapter(50, 2);
+            Assert.That(l.Cursor.CurrentChapter(), Is.EqualTo(2));
+        }
+
+        /// <summary>
+        /// 章内口径:先前章注入的钩子**不算进**本章(否则每推进一次配额就被历史吃掉)。
+        /// <para>判别力:若实现把章比较写反 / 漏写,本章会数到 2(全局值)。</para>
+        /// </summary>
+        [Test]
+        public void test_ledger_chapterScope_excludesEarlierChapters()
+        {
+            var l = new Ledger(Index(("DIS_X", 12)), Row(5, "DIS_X"));
+            l.Onset(10, 5, 100);      // 章 0 的钩子
+            l.Chapter(20, 1);
+            l.Onset(30, 5, 101);      // 章 1 的钩子
+
+            Assert.That(l.Cursor.CountHookCases(Actor), Is.EqualTo(2), "全局口径仍是 2");
+            Assert.That(l.Cursor.CountHookCasesInCurrentChapter(Actor), Is.EqualTo(1),
+                "章 1 内只有 1 例 —— 「每章 1 例」要的是这个数,不是整局");
+        }
+
+        /// <summary>
+        /// **载体就位 ≠ 行为生效**:今日无生产者写 `ChapterAdvanced` ⇒ 章恒 0 ⇒
+        /// 章内口径与全局口径**逐值相同**(即以「整局」代替「本章」)。
+        /// <para>这条不是「缺口已修」的证明,恰恰相反 —— 它把「今日两者相同」钉住,
+        /// 将来叙事轮接上生产者后本条**应当**转红,那时才可以说「每章 1 例真的生效了」。</para>
+        /// </summary>
+        [Test]
+        public void test_ledger_chapterScope_withoutProducer_equalsGlobal()
+        {
+            var l = new Ledger(Index(("DIS_X", 12)), Row(5, "DIS_X"));
+            l.Onset(10, 5, 100);
+            l.Onset(20, 5, 101);
+
+            Assert.That(l.Cursor.CountHookCasesInCurrentChapter(Actor),
+                        Is.EqualTo(l.Cursor.CountHookCases(Actor)),
+                        "无章节事件 ⇒ 章恒 0 ⇒ 两口径相同(今日如实状态)");
         }
 
         [Test]

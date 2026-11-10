@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """kindgen —— SimEvent.Kind 单一真源生成器 + 构建期断言(ADR-024 §⑤)。
 
-输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 40 支,stream/author/payload_schema 必填)
+输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 41 支,stream/author/payload_schema 必填)
        unity/Assets/Sim.Contracts/EventKind.cs(C# 侧镜像)
 输出 : unity/Assets/Sim/StreamRouting.g.cs(Kind→StreamId 纯函数 switch)
 
@@ -107,8 +107,14 @@ def parse_registry():
 
 def parse_eventkind_cs():
     text = EVENTKIND_CS.read_text(encoding="utf-8")
-    body = text.split("public enum EventKind", 1)[1]
-    body = body.split("}", 1)[0]
+    head = text.split("public enum EventKind", 1)[1]
+    # 🔁 2026-11-10(B1-b):原实现是 `body.split("}", 1)[0]` —— **遇到第一个 `}` 就截断**,
+    #   而成员行尾的注释里只要出现一个 `}`(如 ADR-044 的 `reason∈{0 转诊,1 送医}`),
+    #   其后**全部成员静默消失**。当时 CaseReferred 恰好是最后一条,所以没暴露;
+    #   本批在它后面追加 ChapterAdvanced 时当场命中(报「有 registry 无 C#」,
+    #   而 C# 里明明写着)。⇒ 改用配平花括号取体,注释里的括号不再影响解析。
+    open_idx = head.find("{")
+    body = _brace_body(head, open_idx)
     return [m.group(1) for m in re.finditer(r"^\s{8}(\w+),", body, re.M)]
 
 
@@ -308,8 +314,8 @@ def main():
 
     kinds = parse_registry()
     rep = []
-    if len(kinds) != 40:
-        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 40(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37;2026-10-30 ADR-035 TreatmentHarmOnset 起 37 → 38;2026-11-09 ADR-043 TechniqueUnlocked 起 38 → 39;2026-11-09 ADR-044 CaseReferred 起 39 → 40)")
+    if len(kinds) != 41:
+        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 41(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37;2026-10-30 ADR-035 TreatmentHarmOnset 起 37 → 38;2026-11-09 ADR-043 TechniqueUnlocked 起 38 → 39;2026-11-09 ADR-044 CaseReferred 起 39 → 40;2026-11-10 B1-b ChapterAdvanced 起 40 → 41)")
     stats = {"structs": 0, "fields": 0}          # A2 非空跑证据(随成功行打印)
     a1_streams(kinds, rep)
     a2_payload_types(kinds, rep, stats)

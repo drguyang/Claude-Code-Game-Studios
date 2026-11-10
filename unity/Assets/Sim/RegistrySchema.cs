@@ -282,12 +282,15 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         public int MinSkillLevel;
 
-        /// <summary>
-        /// 科普点(一句话,2026-11-09 T2)。内容层文案,**不进 sim 求值**。
-        /// <para>用途 = 教学/手册侧引用该病「要教会玩家的一件事」。</para>
-        /// <para><c>null</c> = 未撰写(合法:内容归内容轮);空串由 binder 拒收(写了就不能是空)。</para>
-        /// </summary>
-        public string TeachPoint;
+        // 🔁 2026-11-10(T15 · C2-a,用户裁定「删字段」):`public string TeachPoint;` 已删除。
+        //    T2(2026-11-09)加它时它只有 schema 字段 + 编解码,**全库零消费方**
+        //    (`grep -rn "TeachPoint" unity/Assets --include=*.cs` 的命中全是
+        //     锻造/编解码/夹具本身)。字段躺在那儿 = 一个「声明了却没人读」的量,
+        //    与 `BoundRowKeys` 要消灭的静默丢弃同型。
+        //    ⇒ 连带:作者态 `schema_version` 3 → 4(cooked 载荷少一个字符串槽)、
+        //      binder 白名单两处、写入器、读码器、往返断言、产物重签。
+        //    ⚠️ 若将来要「病人处置后科普一句」,那是**新字段 + 新消费方**同批落,
+        //      不是把本字段加回来(加回来仍会零消费)。
     }
 
     /// <summary>

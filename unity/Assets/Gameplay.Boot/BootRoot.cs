@@ -835,7 +835,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 openCasebook: () =>
                     _uiDriver != null && _uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Casebook),
                 // 🔁 2026-11-02:急救 Arm 目标改走整数格(4 规则二「玩家格取路 (a)」)。
-                playerCell: () => _player != null ? _player.LastCommittedCell : default);
+                playerCell: () => _player != null ? _player.LastCommittedCell : default,
+                // ── C3-a(2026-11-10):R = 转诊 ──
+                //   驱动只把「按键 + 最近在场病人」交过来;「他现在有没有开着的病例」
+                //   由 `HookCaseReferDriver` 从病例流反查,判定仍归 37 的写者。
+                //   ⚠️ 未装配(`null`)⇒ 按键什么都不做(与「没按」同形,不是静默降级)。
+                routeReferPress: patient => _services.HookCaseRefers?.TryRefer(patient));
             _interactionDriver = interaction;
             _pressRouter = pressRouter;
 

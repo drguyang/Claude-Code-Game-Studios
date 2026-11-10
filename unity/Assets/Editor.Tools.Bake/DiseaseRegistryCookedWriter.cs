@@ -168,7 +168,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             //   行尾追加两个字段。放**行尾**而不是插在中间:读方 `ReadRow` 是逐字段顺序
             //   镜像的,插中间会让后续每个字段的偏移都变,镜像错位的风险面更大。
             w.Write(e.MinSkillLevel);                    // int(仅病行有意义;伤行恒 0)
-            WriteString32(w, e.TeachPoint);              // i32 字节长 + UTF-8(null = -1)
+            // 🔁 2026-11-10(T15 · schema_version 3 → 4):`teach_point` 槽已删(C2-a)。
+            //   行尾因此**少一个** `i32 字节长 + UTF-8`。删在行尾同样不影响任何
+            //   既有字段的偏移 —— 这正是当初把它放行尾的同一个理由。
         }
 
         /// <summary>写 <see cref="CookedFormat"/> 规定的字符串形状:i32 字节长 + UTF-8(无终止符)。</summary>

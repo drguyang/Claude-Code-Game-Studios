@@ -81,6 +81,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 声称「转诊可用」。<c>null</c> = 未装配。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.HookCaseClosureWriter HookCaseClosures { get; internal set; }
 
+        /// <summary>转诊键的装配层驱动(C3-a · 2026-11-10)。
+        /// <para>把「R 键 + 最近在场病人」翻译成「该病人当前开着的那一例」再交给
+        /// <see cref="HookCaseClosures"/>。**只覆盖转诊**(送医今日无按键)。</para>
+        /// <para><c>null</c> = 未装配。⚠️ 装配就位 ≠ 钩子病例可转(配额仍归 `HookCasePolicy`)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.HookCaseReferDriver HookCaseRefers { get; internal set; }
+
+        /// <summary>章节推进写者(B1-b · 2026-11-10)。
+        /// <para>这是**唯一**能写 `ChapterAdvanced` 的对象;叙事 / 奇遇宿主经它推进章节。</para>
+        /// <para>⚠️ 今日**没有生产者调用它**(叙事系统未建)⇒ 章号恒 0 ⇒ 「每章 1 例」
+        /// 在运行时仍等于「整局 1 例」。载体就位 ≠ 行为生效。<c>null</c> = 未装配。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.ChapterAdvanceWriter ChapterAdvances { get; internal set; }
+
         /// <summary>17 采集的**生产驱动**(2026-11-01 · S22-9)。
         /// <para>每个 tick 边沿把一次主动交互翻译成一次采集裁决:3 的输入沿 → 4 的选择器 →
         /// **真闸门**(`CanCarry` + `CanHarvest`)→ `HarvestOrchestrator.Resolve`。</para>

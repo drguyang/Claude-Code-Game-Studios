@@ -9,7 +9,7 @@
 //   ADR-006 Amendment G-3 —— freehand_text 迁入 blob 变长段;sim 消费面不持有该值
 //
 // 分派完备性(ADR-029 §① 修正 ④,用户 2026-10-02 裁定):
-//   40 支具名 Encode 重载中 **37 支**可经 Encode<T> 表达;余 2 支
+//   41 支具名 Encode 重载中 **38 支**可经 Encode<T> 表达;余 2 支
 //   (JudgmentRecorded / JudgmentRevised)多收一个 `string freehandText` ——
 //   该值**不在 T 里**(struct 故意不含,承 G-3「sim 消费面不持有该值」),
 //   故本实现对其**抛 NotSupportedException**(错误串指向具名重载)。
@@ -121,6 +121,7 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.TreatmentHarmOnset:        return PayloadCodec.Encode((TreatmentHarmOnsetPayload)payload);
                 case EventKind.TechniqueUnlocked:         return PayloadCodec.Encode((TechniqueUnlockedPayload)payload);
                 case EventKind.CaseReferred:              return PayloadCodec.Encode((CaseReferredPayload)payload);
+                case EventKind.ChapterAdvanced:           return PayloadCodec.Encode((ChapterAdvancedPayload)payload);
 
                 // ── 2 支显式不支持(ADR-029 §① 修正 ④)──────────────────────
                 // 这两支的具名重载多收 `string freehandText`(ADR-006 G-3 的 blob 变长段),
@@ -140,7 +141,7 @@ namespace DaYiJingCheng.Sim.Codec
                         "(写者归 37 case-system 的 GDD 轮另裁。)");
 
                 default:
-                    throw new InvalidOperationException($"未知 EventKind={(int)kind} —— 不在 40 支闭集内 {PayloadCodec.DefaultPathMarker}");
+                    throw new InvalidOperationException($"未知 EventKind={(int)kind} —— 不在 41 支闭集内 {PayloadCodec.DefaultPathMarker}");
             }
         }
     }

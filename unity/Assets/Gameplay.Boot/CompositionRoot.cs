@@ -518,8 +518,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (hookCaseLedger != null && playerActor.IsBound
                     && techniqueDrawIndex.IsDeclared(row.DiseaseKey))
                 {
+                    // 🔁 2026-11-10(B1-b):改走**章内**口径 —— `ChapterAdvanced` 事件立起来之后,
+                    //    「每章 1 例」才第一次真的是「每章」而不是「整局」。
+                    //    ⚠️ 今日无生产者写那条事件 ⇒ 章恒 0 ⇒ 本章 = 整局,行为与改前逐位相同。
                     hookAllowed = HookCasePolicy.AllowsInjection(
-                        row, hookCaseLedger.CountHookCases(playerActor.ActorId));
+                        row, hookCaseLedger.CountHookCasesInCurrentChapter(playerActor.ActorId));
                 }
 
                 return PatientDrawEligibility.Decide(
@@ -2286,6 +2289,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ 本轮**零生产调用方**(§D7):玩家转诊交互不存在。装配它 = 让宿主就位时
             //      不必再改装配;**不**等于「转诊可用」。
             services.HookCaseClosures = new HookCaseClosureWriter(
+                stream, encoder, () => stream.Events, decoder);
+
+            // 🔁 2026-11-10(C3-a):转诊键的驱动 —— 把 ADR-044 §D7 的「零调用方」补上。
+            //   ⚠️ 只覆盖**转诊**(`ReasonTransferred`);送医今日没有按键。
+            //   ⚠️ 装配就位 ≠ 钩子病例一定会被当钩子投放(那仍归 `HookCasePolicy` 的章内配额)。
+            services.HookCaseRefers = new HookCaseReferDriver(
+                services.HookCaseClosures, () => stream.Events, decoder,
+                () => tickDriver != null ? tickDriver.CurrentTick : 0L);
+
+            // 🔁 2026-11-10(B1-b):章节推进写者。今日**零生产者**(叙事 / 奇遇宿主未建)
+            //   ⇒ 章号恒 0,钩子配额仍是「整局 1 例」。装配它是为了让宿主就位时
+            //   不必再改装配 —— 与 `HookCaseClosures` 在 T5b 时的处置逐字同格。
+            services.ChapterAdvances = new ChapterAdvanceWriter(
                 stream, encoder, () => stream.Events, decoder);
 
             services.ContraindicationSettler = new ContraindicationSettler(

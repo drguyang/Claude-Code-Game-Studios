@@ -66,7 +66,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             //                  故它**不**进 BoundRowKeys —— 那张表记的是「从 JSON 读了哪些键」。
             "zh", "causes", "treatable_by", "handle",
             // ── 2026-11-09(T2)起绑定 ──
-            "min_skill_level", "teach_point",
+            // 🔁 2026-11-10(T15 · A6-a:删 TeachPoint):`teach_point` 从本表移除 ——
+            //    字段本身已删(见 `RegistrySchema.DiseaseRegistryEntry`),白名单留着它
+            //    会让它变成「允许声明但会被丢弃的键」,而 dBoundRowKeys 的差集判据
+            //    正是用来抓这种静默丢弃的。
+            "min_skill_level",
         };
 
         /// <summary>`signs[]` 词条的键白名单(GDD R1.3 的 `signs[]` + `channel_mask`)。</summary>
@@ -92,7 +96,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             "occupation_mod", "region_mod", "climate_mod",
             "scale", "trauma_half_life", "natural_progress",
             "signs", "relapse",
-            "min_skill_level", "teach_point",
+            "min_skill_level",   // 🔁 2026-11-10:`teach_point` 已删(见 DiseaseRowKeys 注)
         };
 
         /// <summary>
@@ -373,9 +377,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Scale = ReadFix(node, "scale", errors, where),
                 TraumaHalfLife = ReadInt(node, "trauma_half_life", errors, where, 0),
 
-                // ── 2026-11-09(T2):病人抽取池的软门 + 科普点 ──
+                // ── 2026-11-09(T2):病人抽取池的软门 ──
+                // 🔁 2026-11-10(T15):`teach_point` 已删(C2-a 用户裁定「删字段」)——
+                //    它此前只有 schema 字段 + 编解码,全库**零消费方**;留着 = 一个
+                //    「声明了却没人读」的字段,与 BoundRowKeys 要消灭的静默丢弃同型。
                 MinSkillLevel = ReadInt(node, "min_skill_level", errors, where, 0),
-                TeachPoint = ReadOptionalString(node, "teach_point", errors, where),
 
                 // ── treatable_by:**刻意不绑**(2026-10-23 口径不变)──
                 //   9 GDD R1.3 把它定义在病种条目内,但 story-007 起已拆到
@@ -604,29 +610,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             return n.Str;
         }
 
-        /// <summary>读**可选字符串** —— 缺键 / <c>null</c> ⇒ <c>null</c>(「未声明」);
-        /// 给了就必须是非空串(空串 = 写了但没内容,与漏写不可区分 ⇒ 拒收)。</summary>
-        /// <remarks>
-        /// <para><b>为什么不是 <see cref="ReadString"/></b>:那个是「必填」语义(缺键即错)。
-        /// `teach_point` 是内容层文案,内容归内容轮 —— 未撰写是**合法态**,故必须可缺省。</para>
-        /// </remarks>
-        private static string ReadOptionalString(JsonNode obj, string key, List<string> errors, string where)
-        {
-            if (!obj.TryGet(key, out JsonNode n) || n.Kind == JsonNodeKind.Null)
-                return null;
-            if (n.Kind != JsonNodeKind.String)
-            {
-                errors.Add($"{where}.{key} 须为字符串(实得 {n.Kind})");
-                return null;
-            }
-            if (string.IsNullOrWhiteSpace(n.Str))
-            {
-                errors.Add($"{where}.{key} 为空串 —— 要么不写(未撰写),要么写一句实际内容" +
-                           "(空串与漏写不可区分,会让「有没有科普点」永远无法判定)");
-                return null;
-            }
-            return n.Str;
-        }
+        // 🔁 2026-11-10(T15 · C2-a):`ReadOptionalString` 随 `teach_point` 一并删除 ——
+        //    它当时的**唯一**调用点就是那个字段(删字段后它会变成死代码)。
 
         private static bool ReadBool(JsonNode obj, string key, List<string> errors, string where)        {
             string label = $"{where}.{key}";
