@@ -208,6 +208,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>`CARRY_CAP` 的运行期唯一来源 —— 补之前该表**连产物都不存在**。</para></summary>
         public const string InventoryConstantsAddress = "inventory_constants.cooked.bytes";
 
+        /// <summary>37 同源检测旋钮表 address(T20 · 2026-11-10)。
+        /// <para>⚠️ 产物名单一出处 = <c>CasePatternBake.CookedFileName</c>;本处为字面串
+        /// (边界程序集不引用 Editor.Tools.Bake)。</para></summary>
+        public const string CasePatternAddress = CasePatternDataSet.CookedFileName;
+
         /// <summary>17 采集调参表(`foraging_constants.cooked.bytes`)。
         /// <para>⚠️ **S22-9(2026-11-01)才进预载** —— 产物与烘焙链早就存在,但**运行期零读方**,
         /// 故一直没进 `data-core` 预载。采前闸要真跑(采量 / 品级 / 余量三条公式)就必须先有表。</para></summary>
@@ -294,6 +299,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private WorldResourcesDataSet? _worldResources;
         // 20 库存调参表(S22-9 · 2026-11-01):单标量载荷 ⇒ 可空 int 承载。
         private int? _carryCap;
+
+        /// <summary>37 同源检测旋钮(装载后缓存;`null` = 未装载)。</summary>
+        private CasePatternDataSet? _casePattern;
         // 17 采集调参表(S22-9 · 2026-11-01):类实例 ⇒ null 表示未装载。
         private DaYiJingCheng.Sim.Foraging.ForagingConstants _foragingConstants;
         // 5 时间参数(ADR-038 §D1 · 2026-11-03):struct 解码形 ⇒ 可空承载。
@@ -613,6 +621,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureWorldContainers();      // 2026-11-02 · AC-4-22(开档容器实例)
             EnsureAiPatient();   // TD-audio-032 ①(2026-10-29)
             EnsureInventoryConstants();   // S22-9(2026-11-01):CARRY_CAP 的装载输入
+            EnsureCasePattern();          // T20(2026-11-10):37 同源检测阈值
             EnsureForagingConstants();    // S22-9(2026-11-01):17 采前闸三条公式的装载输入
             EnsureTimeParams();           // ADR-038 §D1(2026-11-03):时间三参数的装载输入
             EnsureRandomEvents();         // ADR-038 §D4(2026-11-03):52 配置(今日零消费方)
@@ -1298,6 +1307,42 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     $"[E-13][data-core] 库存调参表 cooked 解码失败(address={InventoryConstantsAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
+            }
+        }
+
+        /// <summary>
+        /// 37 同源检测旋钮表(`PATTERN_THRESHOLD`)的装载(T20 · 2026-11-10)。
+        /// <para>与 <see cref="InventoryConstantsCookedCodec"/> 同款:两条读路
+        /// (盘上直读 / Addressables)读**同一份**产物、走**同一套**判据,不构成第二真源。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">装载 / 解码失败(启动期硬失败)。</exception>
+        private void EnsureCasePattern()
+        {
+            if (_casePattern.HasValue) return;
+            byte[] bytes = FetchBytes(CasePatternAddress);
+            try
+            {
+                _casePattern = CasePatternCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 37 同源检测旋钮表 cooked 解码失败(address={CasePatternAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>37 同源检测旋钮表(GDD `case-system.md:480` 的 `PATTERN_THRESHOLD`)。
+        /// <para>⚠️ 读不到 ⇒ 抛(启动期硬失败),**不回落**代码常量 —— 回落会让
+        /// 「改了值但没重烘」静默失效,而 `TR-case-031` 要的正是「改值可追溯」。</para></summary>
+        /// <exception cref="InvalidOperationException">产物装载失败(启动期硬失败)。</exception>
+        public CasePatternDataSet CasePattern
+        {
+            get
+            {
+                EnsureCasePattern();
+                return _casePattern.Value;
             }
         }
 

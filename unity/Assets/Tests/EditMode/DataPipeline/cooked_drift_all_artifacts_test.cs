@@ -257,6 +257,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             new ArtifactBake(DataBakeMenu.InventoryConstantsCookedAssetName,
                 root => InventoryConstantsBake.BakeFromRepo(root).Cooked),
 
+            // ── 37 同源检测旋钮表(1 份;T20 · 2026-11-10 —— PATTERN_THRESHOLD 的运行期来源)──
+            //    ⚠️ 与 inventory_constants 在 S22-9 之前的形态同构:Binder 早就在,产物不存在
+            //    ⇒ `PatternRecognitionWriter` 的阈值**零来源** ⇒ 规则八运行期从未运行。
+            //    ⚠️ 本门顺带钉住 `TR-case-031` 的可追溯面:手改 `case_pattern.json` 不重烘 = 红。
+            new ArtifactBake(DataBakeMenu.CasePatternCookedAssetName,
+                root => CasePatternBake.BakeFromRepo(root).Cooked),
+
             // ── 建造槽位骨架(1 份;S20-20 落盘,2026-10-28)──
             //    ⚠️ **本门第五次抓到同类漏登记** —— S20-20 落了 `world_buildslots.cooked.bytes`
             //    却没登记,全量回归首跑即红两条(`noGhostArtifact` + `pinnedDeclared` 25→26)。
@@ -486,7 +493,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 2026-10-30(ADR-035 T1·S9):36 → 37(+53_cost_table,代价表烘焙链补建)。
             // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
             // 🔁 2026-11-02(AC-4-22):38 → 39(+world_containers,开档容器实例)。
-            const int pinnedDeclared = 44; // 2026-11-09 实测(44 份;+1 = emergency_action · T14)
+            // 🔁 2026-11-10(T20):44 → 45(+case_pattern,37 同源检测阈值的运行期通道)。
+            const int pinnedDeclared = 45; // 2026-11-10 实测(45 份;+1 = case_pattern · T20)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

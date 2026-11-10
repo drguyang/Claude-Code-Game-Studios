@@ -57,6 +57,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1d70c045af26c5d1f91b677e86dfddf5
+    m_Address: case_pattern.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2348d2df9bf6ac59a80b783e4131fea6
     m_Address: world_resources.cooked.bytes
     m_ReadOnly: 0

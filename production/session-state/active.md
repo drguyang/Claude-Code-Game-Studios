@@ -17972,3 +17972,31 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   判据 = 真包走查;39 脉案页的勾选 UI / 二次确认未做;送医支仍无按键(ADR-044 §D7)。
 - 证据:`production/qa/evidence/impl-t19-case-close-wiring-2026-11-10.md`;
   GDD 加注:`design/gdd/case-system.md` 规则八「已处置」段;写者头注:`CaseCloseWriter.cs:35`。
+
+### 第 8 轮(T20 第一批 · 用户裁「丁 = 甲:先接同源检测,再挂章」)
+
+- **两条零生产调用点一次补齐**:① `PatternRecognitionWriter` 生产构造点 = 0 ⇒ 37 规则八
+  (三例同源 ⇒ 世界级 `PatternRecognized`)运行期**从未跑过**;② `ChapterAdvanceWriter` 零生产者
+  ⇒ 章号恒 0 ⇒ `HookCasePolicy.MaxPerChapter = 1` 等于「整局 1 例」。
+- **数据件**:`assets/data/case_pattern.json`(`pattern_threshold` = 3,GDD `:480`)走 ADR-014 全套
+  (Binder / CookedWriter / Bake / 菜单 / Codec / provider / 预载表 / 漂移门 45)。
+  阈值**不写代码常量** —— TR-case-031 要「改值可追溯」。`version`(冻结三元组 3/3)取
+  `disease_registry` 的 ConfigVersion,不由 37 旋钮表派生。
+- **驱动** `PatternRecognitionDriver`:有新 `CaseClosed` ⇒ `TryRecognize`;章 = 已识别同源模式条数
+  ⇒ `TryAdvance`。两处口径**本件就地裁**(何时检测 / 章的含义),已在证据 §2.3 具名。
+- **门抓到我的两处漏登记**(如实记录):`DataCorePreloader.DataCoreAddresses` 漏地址 ⇒
+  ProviderWiring / Pipeline 两门红;catalog 未重建 ⇒ CatalogFreshness 红。补后全绿。
+  ⇒ 该注释自陈这是**第六次**同型漏登记。
+- **判据**:新 EditMode `pattern_recognition_driver_test` 7 条(含三例端到端 + fires-once + 读档自愈);
+  新 PlayMode `PatternRecognitionWiringTest` 1 条(驱动在位 + 反射读到的阈值 = 3);
+  `drift[case_pattern.cooked.bytes]` 参数化 1 条。
+- **证伪轮**:M1(删 TryRecognize)3 红 · M3(阈值下界 2→1)1 红 · M4(章差一)3 红 ·
+  **M2(`_lastCaseClosedCount` 初值 -1→0)未红** ⇒ 如实登记:该哨兵**不是承重件**,
+  语义保证在写者 fires-once;注释已就地订正。SHA-256 两件还原「成功」。
+- **回归**:EditMode `7385 / 7348 / 0 / 0 / 37` @ `08:47:02Z`–`08:49:07Z` ·
+  PlayMode `376 / 371 / 0 / 2 / 3` @ `08:50:01Z`–`08:50:22Z` · `ada07b5a` + 工作树。
+  等式 `7385 − 7377 = 8`(新夹具 7 + drift 参数化 1)· `376 − 375 = 1`。
+- 证据:`production/qa/evidence/impl-t20-pattern-recognition-chapter-2026-11-10.md`;
+  加注:`HookCasePolicy.cs` / `ChapterAdvanceWriter.cs`(两处「零生产者」原陈述保留)。
+- **T20 第二批待做**:丙 = 独立结案页 + 纸面墨勾(用户已选),须先落 39 `OQ-CB-7` 结案行 +
+  §7 动作表 + §8 Events Fired,再上 42(含 `ModalId` 闭集增员与 `AC-42-F1` 同步)。

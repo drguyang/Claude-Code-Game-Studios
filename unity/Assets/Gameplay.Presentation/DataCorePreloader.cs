@@ -271,6 +271,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
             //    WorldGeometry 之后),前四次的教训逐字适用:`Ensure*` / `Preload()` / 地址表 / 常量
             //    **四处集合相等**,漏一处即红。
             AddressablesDataProvider.AiPatientAddress,
+            // 37 同源检测旋钮表(T20 · 2026-11-10:`PATTERN_THRESHOLD` 的生产载体)。
+            // ⚠️ 本条是**第六次**同型补登记 —— 前四次(BuildModules / DiseaseRegistry /
+            //    WorldBuildSlots / WorldGeometry)与第五次(AiPatient)的教训逐字适用:
+            //    `Ensure*` / `Preload()` / 地址表 / 常量**四处集合相等**,漏一处即红。
+            AddressablesDataProvider.CasePatternAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

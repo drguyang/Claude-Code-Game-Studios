@@ -101,6 +101,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 在运行时仍等于「整局 1 例」。载体就位 ≠ 行为生效。<c>null</c> = 未装配。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.ChapterAdvanceWriter ChapterAdvances { get; internal set; }
 
+        /// <summary>同源检测 + 章节推进的每 tick 驱动(T20 · 2026-11-10)。
+        /// <para>⚠️ <c>null</c> = 未装配(`dataProvider` 为 null 或无 37 旋钮产物)—— 与
+        /// 「机制未启用」同形,故 `BootRoot` 启动期须有显式日志。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.PatternRecognitionDriver PatternRecognition { get; internal set; }
+
         /// <summary>17 采集的**生产驱动**(2026-11-01 · S22-9)。
         /// <para>每个 tick 边沿把一次主动交互翻译成一次采集裁决:3 的输入沿 → 4 的选择器 →
         /// **真闸门**(`CanCarry` + `CanHarvest`)→ `HarvestOrchestrator.Resolve`。</para>

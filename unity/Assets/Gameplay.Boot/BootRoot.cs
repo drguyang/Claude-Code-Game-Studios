@@ -596,6 +596,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.Stream, _services.Decoder,
                 TechniqueUnlockRules.Default, _services.TechniqueUnlockWriter, actorId);
 
+            // ── 4.3a0. 37 同源检测 + 章推进(T20 · 2026-11-10)─────────────────────
+            // 装配点在 `CompositionRoot`(`dataProvider` 有 37 旋钮产物才建);本步只做
+            // **未装配的显式日志** —— 否则与「机制未启用」同形。
+            if (_services.PatternRecognition == null)
+                Debug.LogWarning(
+                    "[37] 同源检测未装配 —— 规则八(三例同源 ⇒ 世界级 PatternRecognized)在运行期不会运行," +
+                    "章号恒 0(钩子配额 = 整局 1 例)。原因:无 dataProvider 或 case_pattern 产物未装载。");
+
             // ── 4.3a. 1 侧传送 sink 绑定(S23-7 · 2026-11-01)────────────────────
             // 构造在 CompositionRoot 死亡消费段(服务袋 TeleportSink);玩家此刻才存在
             // ⇒ 在此迟绑定。复活链(29 revive 回调 → issuer → 本 sink)自此全通。
@@ -2998,6 +3006,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 && _services != null && _services.TechniqueUnlockDriver != null)
             {
                 _services.TechniqueUnlockDriver.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 37 同源检测 + 章节推进(T20 · 2026-11-10):同一 tick 边沿序列内,排在
+            // **本边沿所有事件生产者之后** —— 它读的是 `CaseClosed`(玩家按 `C` 产生,
+            // 发生在 Update 的输入段),且写 `PatternRecognized` / `ChapterAdvanced`。
+            // ⚠️ 没有新结案 ⇒ 内部零扫描(与"零规则零扫描"同款省法);首轮恒扫(读档自愈)。
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.PatternRecognition != null)
+            {
+                _services.PatternRecognition.OnTickEdge(_tickDriver.CurrentTick);
             }
 
             // 48 教学链(S25-4c · 2026-11-06):同一 tick 边沿序列内,排在本边沿**所有事件生产者之后**

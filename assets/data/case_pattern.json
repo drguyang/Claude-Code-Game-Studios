@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_note": "系统 37 病例系统的自家调参表(2026-11-10 T20 立)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。【本表刻意只有 pattern_threshold 一个键】—— GDD design/gdd/case-system.md:480 的旋钮表:『PATTERN_THRESHOLD | int | ≥ 2 | 调参旋钮 | P0 = 3 | 进 ConfigVersion 覆盖集』;安全范围的下界 2 由 CasePatternBinder 阶段 2 执法(1 = 单例即同源,归纳退化成猜测;PatternRecognitionWriter 构造器亦有同款纵深守卫)。【值 3 的出处】GDD P0 值,未经用户改值。【为什么这个键必须有产物】TR-case-031 要求『改值可追溯(ConfigVersion 变),不拒载』—— 值住在代码常量里就改不动版本号;PatternRecognizedPayload.Version 是冻结三元组之一,它的 真源 = disease_registry 的 ConfigVersion(不由本表派生)。【消费方】CompositionRoot 装配 PatternRecognitionWriter 时读取;读不到 ⇒ 不装配(惰性,与 52 的 dataProvider==null 同款)。",
+  "pattern_threshold": 3
+}

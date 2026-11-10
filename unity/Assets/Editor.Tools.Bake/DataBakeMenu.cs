@@ -156,6 +156,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>20 库存调参表的产物名(S22-9 · 2026-11-01)。</summary>
         public const string InventoryConstantsCookedAssetName = InventoryConstantsBake.CookedFileName;
 
+        /// <summary>37 同源检测旋钮表的产物名(T20 · 2026-11-10;单一出处 = <see cref="CasePatternBake.CookedFileName"/>)。</summary>
+        public const string CasePatternCookedAssetName = CasePatternBake.CookedFileName;
+
         /// <summary>5 时间参数的产物名(ADR-038 §D1 · 2026-11-03)。
         /// <para>单一出处 = <see cref="TimeParamsBaker.CookedFileName"/>(写方 / 读方 address 同值)。</para></summary>
         public const string TimeParamsCookedAssetName = TimeParamsBaker.CookedFileName;
@@ -1326,6 +1329,42 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{InventoryConstantsCookedAssetName} = {result.Cooked.Length} B," +
                     $"CARRY_CAP = {result.Bound.CarryCap}," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 37 同源检测旋钮表(T20 · 2026-11-10):
+        /// 仓库 <c>assets/data/case_pattern.json</c> → <see cref="CasePatternBinder"/>(阶段 2)
+        /// → deterministic 编码 → <see cref="CasePatternCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ **本菜单是 <see cref="CasePatternBinder"/> 的唯一生产调用点链路** ——
+        /// 补烘前该表没有产物 ⇒ `PatternRecognitionWriter` 的阈值**零来源**
+        /// (与 `inventory_constants` 在 S22-9 之前的形态同构)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 case_pattern(37 同源检测旋钮)")]
+        public static void BakeCasePattern()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                CasePatternBake.BakeOutput result = CasePatternBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(Path.Combine(cookedDir, CasePatternCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{CasePatternCookedAssetName} = {result.Cooked.Length} B," +
+                    $"PATTERN_THRESHOLD = {result.Bound.PatternThreshold}," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

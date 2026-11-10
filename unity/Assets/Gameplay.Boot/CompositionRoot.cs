@@ -2318,6 +2318,33 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.ChapterAdvances = new ChapterAdvanceWriter(
                 stream, encoder, () => stream.Events, decoder);
 
+            // ── 🔁 2026-11-10(T20 · 用户裁定「先接同源检测,再挂章」)──────────────
+            //   ① `PatternRecognitionWriter` 改前**零生产构造点** ⇒ 37 规则八(三例同源 ⇒
+            //      世界级 `PatternRecognized`)运行期从未运行;53 的后果链与 39 的「图样」都以它为前提。
+            //   ② `ChapterAdvanceWriter` 改前零生产者 ⇒ 章号恒 0 ⇒ `HookCasePolicy.MaxPerChapter = 1`
+            //      在运行期等于「整局 1 例」。
+            //   ⚠️ 阈值**只能**来自 37 自己的产物(`case_pattern.cooked.bytes`,GDD :480 的旋钮,
+            //      TR-case-031 要求改值可追溯)—— 读不到 ⇒ **不装配**(不回落代码常量)。
+            //   ⚠️ `Version` 字段(冻结三元组 3/3)= 病种映射表版本,真源 = `disease_registry` 的
+            //      ConfigVersion,**不由** 37 的旋钮表派生(两个版本号量纲不同)。
+            if (dataProvider is DaYiJingCheng.Gameplay.Presentation.AddressablesDataProvider patternProvider)
+            {
+                DaYiJingCheng.Gameplay.Presentation.CasePatternDataSet casePattern =
+                    patternProvider.CasePattern;
+                DaYiJingCheng.Gameplay.Presentation.DiseaseRegistryDataSet registryForVersion =
+                    patternProvider.Load<DaYiJingCheng.Gameplay.Presentation.DiseaseRegistryDataSet>();
+
+                var recognizer = new PatternRecognitionWriter(
+                    stream, encoder, decoder, stream.Events,
+                    worldSeed: unchecked((long)worldSeed),
+                    patternThreshold: casePattern.PatternThreshold,
+                    scriptedChains: null,   // P0 无脚本三案链(F-37.1b 的数据面未建;全走自然检测)
+                    version: unchecked((int)registryForVersion.ConfigVersion));
+
+                services.PatternRecognition = new PatternRecognitionDriver(
+                    stream, recognizer, services.ChapterAdvances, decoder);
+            }
+
             services.ContraindicationSettler = new ContraindicationSettler(
                 stream.Events, decoder, costTable, encoder, services.EventSink);
 
