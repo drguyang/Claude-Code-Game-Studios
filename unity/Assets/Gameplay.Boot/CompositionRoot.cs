@@ -2143,7 +2143,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 structureVisuals = new StructureVisualSpawner(new StructureVisualFactory());
                 int spawned = structureVisuals.SpawnAll(structureProvider.Load<WorldBuildSlotsDataSet>());
-                UnityEngine.Debug.Log($"[结构视觉] 占位体块 {spawned} 个(建造槽位骨架 + 灰盒,零美术资产)");
+                // 🔁 2026-11-10(T22 批二):容器柜也要有体块 —— `TD-building-05` 的病句点名了「柜」,
+                //    而容器**不在**建造槽位表里(`world_containers` 是另一件产物)⇒ 只铺槽位时
+                //    20 的入口仍然看不见。顺序 = 先槽位(它清场)再容器(并存)。
+                int containers = structureVisuals.SpawnContainers(
+                    structureProvider.Load<WorldContainersDataSet>());
+                UnityEngine.Debug.Log(
+                    $"[结构视觉] 槽位体块 {spawned} 个 + 容器柜 {containers} 个(灰盒,零美术资产)");
             }
 
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,

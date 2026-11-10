@@ -40,6 +40,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
     using System.Collections.Generic;
     using DaYiJingCheng.Gameplay.Presentation.Skeuomorphic;
     using DaYiJingCheng.Sim.Contracts;
+    using UnityEngine;
     using UnityEngine.UIElements;
 
     /// <summary>容器屏的选中出口(实现方住装配层;42 不反向引用 Boot)。</summary>
@@ -71,6 +72,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private readonly VisualElement _pageHost;
         private readonly VisualElement _prevDetent;
         private readonly VisualElement _nextDetent;
+        // 🔁 2026-11-10(T22 批二):载重四档的**几何**载体(§6:全走几何堆高,禁条/禁色梯度)
+        private readonly VisualElement _rim;    // 沿口:近满起可见
+        private readonly VisualElement _lid;    // 半盖:满档才出现(合盖受阻)
         private readonly List<VisualElement> _cells = new List<VisualElement>();
         private readonly List<long> _cellInstanceIds = new List<long>();
         private readonly HashSet<long> _selected = new HashSet<long>();
@@ -86,17 +90,49 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _root = root;
             _library = library;
 
+            // 🔁 **2026-11-10(T22 批二)补壳**:此前把格区 / 翻页两块纸面**直接挂在面板根上**
+            // ⇒ 屏上是两条**横贯全屏的空白纸带**(真包 20:42 实测 —— 与 `TD-skeuo-11`
+            // 记录的设置壳同型)。现按其余模态屏的同一块契约收口:
+            // 列宽(`.pause-column`)+ 页框(`.paper-page`)+ 标题,内容住页里。
+            // ⚠️ `.paper-page` 的页框**只给页级容器**(ADR-013 §十-G Amendment F)——
+            //    内层 `item-grid-paper` 仍是 `.paper`(无框底纹),不然每行套一圈框。
+            var host = new VisualElement { name = "inventory-host" };
+            host.AddToClassList("pause-column");
+
+            var page = _library.Create(SkeuoElement.Paper);
+            page.name = "inventory-page";
+            page.AddToClassList("paper-page");
+            page.Add(new Label("药箱") { name = "inventory-title" });
+
             _gridHost = new VisualElement { name = "item-grid" };
             var gridPaper = _library.Create(SkeuoElement.Paper);
             gridPaper.name = "item-grid-paper";   // ⚠️ 必须具名 —— 重建只清格、不清纸面
             _gridHost.Add(gridPaper);
-            _root.Add(_gridHost);
+            page.Add(_gridHost);
 
             _pageHost = new VisualElement { name = "pagination" };
             var pagePaper = _library.Create(SkeuoElement.Paper);
             pagePaper.name = "pagination-paper";
             _pageHost.Add(pagePaper);
-            _root.Add(_pageHost);
+            page.Add(_pageHost);
+
+            host.Add(page);
+            _root.Add(host);
+
+            _rim = new VisualElement { name = "box-rim" };
+            _rim.AddToClassList("box-rim");
+            _rim.style.height = 2f;                              // 一条沿口(几何,不是色带)
+            _rim.style.backgroundColor = new Color(0.28f, 0.20f, 0.13f);
+            _rim.style.display = DisplayStyle.None;
+            _gridHost.Add(_rim);
+
+            _lid = new VisualElement { name = "box-lid" };
+            _lid.AddToClassList("box-lid");
+            _lid.style.height = 10f;                             // 半盖压下来那一截
+            _lid.style.marginTop = -6f;                          // 与格区重叠 = 顶住(不是盖满)
+            _lid.style.backgroundColor = new Color(0.20f, 0.14f, 0.09f);
+            _lid.style.display = DisplayStyle.None;
+            _gridHost.Add(_lid);
 
             // §5.2 ④ 页缘铜扣(左右)= PagePrev / PageNext 的焦点落点。
             _prevDetent = MakeDetent("page-prev");
@@ -171,7 +207,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             long focusedInstanceId = FocusedInstanceId();
 
             Band = BandOf(container.CarryLoad, container.CarryCap, container.IsFull);
-            RebuildPage();
+            RebuildPage();          // 内含 ApplyBandGeometry
             FocusAfterRebuild(focusedInstanceId);
         }
 
@@ -255,9 +291,12 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// (F8「行为等价掩盖结构分叉」):两份式子今天同值,任一侧改口径就静默分叉,
         /// 而夹具因行为一致**抓不住**。⇒ 谓词只在一处求值(装配层调 `CarryLoadSolver` 本体),
         /// 本屏拿**结果**。</para>
-        /// <para>⚠️ <b>中间两档的切点归本屏**(布局参数域,§6 只钉「单调不增 + 满档具名谓词」)。
-        /// 用整数**上取整**,不用 `cap/4` 直接整除 —— `cap = 3` 时 `3/4 = 0` ⇒ 小箱永远到不了
-        /// `NearFull`(实测踩到:`cap=3, load=2` 被判 Half)。</para>
+        /// <para>🔁 <b>2026-11-10(T22 批二)把中间两档的切点改回 spec 的整数式</b>:
+        /// 原实现用 `slack ≤ ceil(cap/4)` / `≤ ceil(cap/2)` 两道**相对阈值** —— 那是实现自造,
+        /// `inventory-container-20.md` §6(Approved)从来没有 3/4 那道界。该 spec 是**逐档一条整数式**
+        /// (空 = `CarryLoad = 0` · 半满 = `2×CarryLoad ≤ cap` · 近满 = 剩下的,直到 20 的谓词
+        /// 把最顶一档拿走)⇒ 现实现逐字用那两条,**中间不再有第二道阈值**。
+        /// 实测差异:`cap=10 / load=6` 旧实现报 `Half`,spec 报 `NearFull`。</para>
         /// </remarks>
         public static CarryBand BandOf(long carryLoad, int carryCap, bool isFull)
         {
@@ -268,16 +307,56 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 throw new ArgumentOutOfRangeException(nameof(carryCap), carryCap,
                     "容量不可能为负(`CARRY_CAP` ∈ int>0;0 = 未装配,不是非法)");
 
-            // 满档 = 20 的谓词结果。**本屏不重新求值**(见 remarks 的 F8 说明)。
-            if (isFull) return CarryBand.Full;
-            if (carryLoad <= 0L) return CarryBand.Empty;
+            // 判据序 = §6 的自上而下首个命中(该表 2026-09-22 /ux-review 轮补的序声明)
+            // —— **序**是函数良定的一部分,不是实现细节,故逐条对上那四行的顺序。
+            if (isFull) return CarryBand.Full;      // 满:20 的具名谓词(本屏不重算)
 
-            long slack = (long)carryCap - carryLoad;
-            long nearFullAt = (carryCap + 3) / 4;   // ceil(cap/4)
-            long halfAt = (carryCap + 1) / 2;       // ceil(cap/2)
-            if (slack <= nearFullAt) return CarryBand.NearFull;
-            if (slack <= halfAt) return CarryBand.Half;
-            return CarryBand.Empty;
+            // 容量真值缺席(`cap == 0`)⇒ 恒空档,与载重无关(AC-20-13 禁默认容量;
+            // 旧式子 `slack = -5 ≤ 0` 会把「不知道」报成「快满了」—— 夹具手算时当场撞到)。
+            if (carryCap == 0) return CarryBand.Empty;
+
+            if (carryLoad <= 0L) return CarryBand.Empty;   // 空:箱底可见
+
+            // 半满:§6 的整数式 `2 × CarryLoad ≤ cap`(无浮点、无取整)
+            if (2L * carryLoad <= carryCap) return CarryBand.Half;
+
+            return CarryBand.NearFull;                     // 近满:剩下的,直到 20 的谓词接手
+        }
+
+        /// <summary>沿口是否可见(近满与满可见;<see cref="CarryBand.Half"/> 及以下不可见)。</summary>
+        public bool IsRimVisible => _rim.style.display != DisplayStyle.None;
+
+        /// <summary>半盖是否出现(只有满档 —— §6「合盖受阻(半盖顶住)」)。</summary>
+        public bool IsLidVisible => _lid.style.display != DisplayStyle.None;
+
+        /// <summary>当前格的竖直间隙(像素;越小 = 堆得越高)。观测面,供夹具比四档的几何差异。</summary>
+        public float CellGapPx { get; private set; }
+
+        /// <summary>
+        /// 让四档在屏上**看得出区别**,且只用几何(§6:「四档做成颜色梯度」= 禁;「全走几何堆高」)。
+        /// </summary>
+        /// <remarks>
+        /// <para>四档的几何语汇:空 = 器物零落(间隙最大)· 半满 = 仍留空隙 · 近满 = 挤到沿口
+        /// (间隙归零 + 沿口出现)· 满 = 高出沿口且**半盖顶住**(间隙为负 + 半盖出现)。</para>
+        /// <para>⚠️ <b>本方法不读载重</b> —— 它只读 <see cref="Band"/>,而 `Band` 的唯一来源是
+        /// `BandOf`(满档又是 20 的谓词)。这里若再算一次 `slack`,就是 BL-27 禁的第二份判据。</para>
+        /// </remarks>
+        private void ApplyBandGeometry()
+        {
+            switch (Band)
+            {
+                case CarryBand.Empty:    CellGapPx = 6f;  break;
+                case CarryBand.Half:     CellGapPx = 3f;  break;
+                case CarryBand.NearFull: CellGapPx = 0f;  break;
+                default:                 CellGapPx = -3f; break;   // Full:高出沿口
+            }
+
+            _rim.style.display = Band == CarryBand.NearFull || Band == CarryBand.Full
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _lid.style.display = Band == CarryBand.Full ? DisplayStyle.Flex : DisplayStyle.None;
+
+            for (int i = 0; i < _cells.Count; i++)
+                _cells[i].style.marginTop = CellGapPx;
         }
 
         private void RebuildPage()
@@ -323,6 +402,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             }
 
             UpdateDetents();
+            ApplyBandGeometry();   // 翻页重造格 ⇒ 几何须跟着回来(否则翻一页就掉回「空箱的零落」)
         }
 
         private void ApplySelectedClass(int cellIndex)

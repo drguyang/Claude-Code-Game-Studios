@@ -189,5 +189,41 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Transform child = root.Find(name);
             return child == null ? null : child.gameObject;
         }
+
+        // ══════════ ⑦ 容器柜(T22 批二):与槽位**并存**,不是替代 ══════════
+
+        private static WorldContainersDataSet Containers(params WorldContainerRow[] rows)
+            => new WorldContainersDataSet(rows, schemaVersion: 1u, configVersion: 1u);
+
+        [Test]
+        public void test_spawnContainers_createsCabinetAtCell_nextToSlots()
+        {
+            _spawner.SpawnAll(Data(
+                new WorldBuildSlotRow(new WorldPos(1, 0, 1), MaskOf(SlotType.Shell), true, 8)));
+            int added = _spawner.SpawnContainers(Containers(
+                new WorldContainerRow(1L, new WorldPos(5, 0, 5))));
+
+            Assert.AreEqual(1, added, "一行容器 ⇒ 一个柜体");
+            Assert.AreEqual(2, _spawner.SpawnedCount, "槽位与容器**并存**(不是替代)");
+
+            GameObject cabinet = FindChild("ContainerVisual_1");
+            Assert.IsNotNull(cabinet, "柜体按 instance_id 命名");
+            Vector3 scale = StructureVisualFactory.ContainerScale;
+            Assert.AreEqual(5f, cabinet.transform.position.x, 1e-4f);
+            Assert.AreEqual(5f, cabinet.transform.position.z, 1e-4f);
+            Assert.AreEqual(scale.y * 0.5f, cabinet.transform.position.y, 1e-4f, "贴地,同槽位体块口径");
+            Assert.AreNotEqual(StructureVisualFactory.ScaleOf(SlotType.Decor), scale,
+                "柜子不能长得和装饰件一样 —— 走查要靠它认出 20 的入口");
+        }
+
+        [Test]
+        public void test_realArtifact_oneContainerCabinet()
+        {
+            WorldContainersDataSet real = DataCookedDisk.LoadWorldContainers();
+            Assert.AreEqual(1, real.Containers.Count, "真产物 1 个容器(数据变了要重新看这条)");
+            Assert.AreEqual(1, _spawner.SpawnContainers(real));
+            Assert.IsNotNull(FindChild("ContainerVisual_1"),
+                "容器柜在 (5,0,5) —— 20 的入口必须看得见");
+        }
     }
 }

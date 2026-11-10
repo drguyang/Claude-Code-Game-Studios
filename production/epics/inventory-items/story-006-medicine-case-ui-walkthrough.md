@@ -1,12 +1,12 @@
 # Story 006: 药箱容器摆放、翻页遍历与满溢四档呈现
 
 > **Epic**: 库存与物品
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-11-10
 
 ## Context
 
@@ -111,4 +111,30 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+### 2026-11-10 · T22 批二(未收口 —— 记 In Progress)
+
+**这一轮补的是「屏本体到能用」的四件**,外加 QA 计划点名、此前**不存在**的那件 Logic 夹具:
+
+| # | 发现(实测) | 处置 |
+|---|---|---|
+| ① | 屏**没有壳**:格区与翻页两块纸面直接挂在面板根上 ⇒ 真包是**两条横贯全屏的空白纸带**(与 `TD-skeuo-11` 记过的设置壳同型) | 补 `.pause-column` + `.paper-page` + 标题「药箱」 |
+| ② | **`Band` 算了但零呈现** ⇒ `AC-20-10` 的「满溢感可读」**没有对象** | 新增 `ApplyBandGeometry`:格间隙 6/3/0/−3 px、近满起出「沿口」、满档出「半盖」(**全走几何**,§6 禁颜色梯度) |
+| ③ | 分档函数**与已批准 spec 不符** —— 实现自造了 `ceil(cap/4)` 那道界,而 `inventory-container-20.md` §6 是逐档整数式(`cap=10/load=6`:实现 `Half` / spec `NearFull`) | `BandOf` 逐字改为 §6 的整数式 |
+| ④ | `cap == 0` 且 `load > 0` 会报 `NearFull`(「容量不知道」被报成「快满了」) | 加 `cap == 0 ⇒ Empty` 早退 + 夹具 |
+| ⑤ | `carry_tier_monotonicity_test`(QA 计划 §S26-5 点名的文件)**不存在** | 新写 **8 条**(含四档几何 2 条) |
+
+另:容器柜(20 的入口)此前**没有可视载体**(`TD-building-05` 点名了「柜」),
+本批让 `world_containers` 也出体块 —— 真包日志 `槽位体块 9 个 + 容器柜 1 个`。
+
+**判据**:EditMode `carry_tier_monotonicity_test` 8 条 · `structure_visual_spawner_test` +2 条 ·
+既有 PlayMode `inventory_container_content_test` 7/7 仍绿。证伪轮 5 变异(M4 打了三枪才红 ——
+前两枪分别暴露**空洞正控 F4** 与**自指判据 F3**,已就地修夹具)。
+
+**未收口(禁借绿)**:
+- `AC-20-10` / `AC-20-23` 的 **[L] 人工腿** = 未跑(真包只看到空箱一档;零色盲模拟)。
+- `AC-20-20` 的**真手柄腿** = 未跑(PlayMode 7 条只覆盖逻辑腿)。
+- `AC-20-11` **音效听测** = 未跑。
+- 药箱视觉仍粗糙(格内是「器物#序号·品N·叠M」,页内无箱体造型)—— 归美术 / UX 轮。
+- `OQ-20-11`(「箱内」与「身上」不可分)本批**未动** —— 它决定「药箱装什么」,不是「长什么样」。
+
+证据原件 = `production/qa/evidence/impl-t22b-inventory-container-2026-11-10.md`。

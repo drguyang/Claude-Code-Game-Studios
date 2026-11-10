@@ -245,12 +245,14 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             }
 
             // ── 小箱不退化 ────────────────────────────────────────────────────
-            // cap=3 / wMin=1:满档谓词 `load > 2` ⇒ load=2 非满、slack=1。
-            // `nearFullAt` 若写整除 `3/4 = 0`,此处掉到 Half ⇒ 小箱档位退化。
+            // cap=3 / wMin=1:满档谓词 `load > 2` ⇒ load=2 非满。
+            // 🔁 2026-11-10(T22 批二):切点改为 spec §6 的整数式 `2×load ≤ cap` ⇒ 半满。
+            //    cap=3 / load=2:`2×2 = 4 > 3` ⇒ NearFull。任何用「cap/4 整除」的写法
+            //    (`3/4 = 0`)会在这里得出 Half ⇒ 小箱档位退化。
             Assert.That(InventoryContainerScreen.BandOf(2, 3, isFull: false),
                 Is.EqualTo(CarryBand.NearFull),
-                "④ 小箱 cap=3:`load=2` ⇒ 非 Full · `slack=1 <= ceil(3/4)=1` ⇒ NearFull。" +
-                "**若切点写整除 `cap/4=0`,此处掉到 Half ⇒ 小箱档位退化 ⇒ 本测红**");
+                "④ 小箱 cap=3:`load=2` ⇒ 非 Full · `2×2 > 3` ⇒ NearFull。" +
+                "**若切点写成 cap 的比例(如 `cap/4` 整除),此处掉到 Half ⇒ 本测红**");
 
             Assert.That(InventoryContainerScreen.BandOf(0, cap, isFull: false),
                 Is.EqualTo(CarryBand.Empty), "④ load = 0 ⇒ Empty");

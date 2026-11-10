@@ -82,6 +82,38 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
             return box;
         }
 
+        /// <summary>创一个**容器柜**的视觉实体(与建造槽位分开命名,走查一眼能分辨)。
+        /// <para>🔁 2026-11-10(T22 批二):`TD-building-05` 的病句里点名了「柜」,而
+        /// `world_containers` 的行**不是**建造槽位(它有自己的产物)⇒ 只铺槽位的话,
+        /// 20 的入口(容器柜)仍然看不见。</para></summary>
+        /// <param name="instanceId">容器实例 id(只进名字)。</param>
+        /// <returns>体块;<paramref name="instanceId"/> 为负 ⇒ null。</returns>
+        public GameObject CreateContainer(long instanceId)
+        {
+            if (instanceId < 0L) return null;
+            Material material = MaterialForContainer();
+            if (material == null) return null;
+
+            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = $"ContainerVisual_{instanceId}";
+            var collider = box.GetComponent<Collider>();
+            if (collider != null)
+            {
+                if (!Application.isPlaying) Object.DestroyImmediate(collider);
+                else Object.Destroy(collider);
+            }
+
+            box.transform.localScale = ContainerScale;
+            box.GetComponent<Renderer>().sharedMaterial = material;
+            return box;
+        }
+
+        /// <summary>容器柜的局部缩放(米):比装饰件大、比帐篷小,扁而宽(柜子的形状)。</summary>
+        public static readonly Vector3 ContainerScale = new Vector3(0.85f, 0.95f, 0.55f);
+
+        /// <summary>容器柜的色调(深木色;与 `Decor` 的草木绿、`Utensil` 的砖红拉开)。</summary>
+        public static readonly Color ContainerTint = new Color(0.45f, 0.32f, 0.20f);
+
         /// <summary>销毁(幂等;双路径,同病人 factory)。</summary>
         public void Destroy(GameObject visual)
         {
@@ -157,6 +189,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
             if (_tintedByType[i] == null)
                 _tintedByType[i] = new Material(_base) { color = TintOf(type) };
             return _tintedByType[i];
+        }
+
+        /// <summary>容器柜专用材质槽 —— 用 `_tintedByType` 的**末尾**索引(与 `SlotType` 值域隔开)。</summary>
+        private const int ContainerMaterialIndex = 31;
+
+        private Material MaterialForContainer()
+        {
+            if (_base == null) _base = Resources.Load<Material>(SharedPlaceholderMaterialResourcePath);
+            if (_base == null) return null;
+
+            if (_tintedByType[ContainerMaterialIndex] == null)
+                _tintedByType[ContainerMaterialIndex] = new Material(_base) { color = ContainerTint };
+            return _tintedByType[ContainerMaterialIndex];
         }
     }
 }

@@ -85,6 +85,36 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         /// 全量跑 3 红,差的就是这一条)。</para></summary>
         public Transform Root => _root != null ? _root.transform : null;
 
+        /// <summary>
+        /// 铺容器柜的体块(2026-11-10 · T22 批二)。
+        /// <para>⚠️ 与 `SpawnAll` **并列而非合并**:容器不是建造槽位(它有自己的产物
+        /// `world_containers.cooked.bytes`),合并会把两条数据源塞进一个签名。</para>
+        /// <para>⚠️ **不先清**:容器是要和槽位体块**并存**的。调用顺序 = 先 `SpawnAll`(它清场),
+        /// 再 `SpawnContainers`。</para>
+        /// </summary>
+        /// <param name="data">容器实例行集。</param>
+        /// <returns>成功生成的体块数。</returns>
+        public int SpawnContainers(WorldContainersDataSet data)
+        {
+            var rows = data.Containers;
+            if (rows == null || rows.Count == 0) return 0;
+
+            int spawned = 0;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                WorldContainerRow row = rows[i];
+                GameObject visual = _factory.CreateContainer(row.InstanceId);
+                if (visual == null) continue;
+
+                if (_root == null) _root = new GameObject(RootName);
+                visual.transform.SetParent(_root.transform, false);
+                visual.transform.position = CellToWorld(row.Cell, visual.transform.localScale);
+                _visuals.Add(visual);
+                spawned++;
+            }
+            return spawned;
+        }
+
         /// <summary>销毁全部体块(连根;幂等)。</summary>
         public void DestroyAll()
         {
