@@ -67,6 +67,24 @@ namespace DaYiJingCheng.Tests.CaseSystem
             CollectionAssert.AreEqual(new[] { 2 }, r4.DiseaseIds,
                 "刺伤 = 注册表 id 2(INJ_STAB)—— 出厂默认病人的病种");
 
+            // 🔁 2026-11-10(T22 批三 · `TD-casebook-03`):补第 5 / 6 行 ——
+            //    割伤 → 病种 3(`INJ_LACERATION`)· 疟疾 → 病种 7(`DIS_MALARIA`)。
+            //    病因:真包开局前两例拿的是病种 **2 与 3**(`[tutorialdiag] 病人出现 #0 disease=2 /
+            //    #1 disease=3`),而词表当时只覆盖 2 ⇒ 病名册 `pointable=1`,第二例无词可指认。
+            //    ⚠️ 两条孤儿行(2 号湿温 / 3 号温毒)**刻意保留且继续置空** ——
+            //    AC-37-35 的「双射候选拒」依赖孤儿条目存在(`test_ac3735_bijectiveCandidate_rejected`)。
+            Assert.GreaterOrEqual(ds.Rows.Count, 6, "源 JSON 至少 6 行(第 5 / 6 行 = 割伤 / 疟疾)");
+            JudgmentLexemeRow r5 = ds.Rows[4];
+            Assert.AreEqual(5, r5.LexiconId);
+            Assert.AreEqual("割伤", r5.Text);
+            CollectionAssert.AreEqual(new[] { 3 }, r5.DiseaseIds,
+                "割伤 = 注册表 id 3(INJ_LACERATION)—— 开局第二例的病种");
+            JudgmentLexemeRow r6 = ds.Rows[5];
+            Assert.AreEqual(6, r6.LexiconId);
+            Assert.AreEqual("疟疾", r6.Text);
+            CollectionAssert.AreEqual(new[] { 7 }, r6.DiseaseIds,
+                "疟疾 = 注册表 id 7(DIS_MALARIA)");
+
             Assert.AreEqual(bake.ConfigVersion, ds.ConfigVersion, "ConfigVersion roundtrip 失配");
         }
 

@@ -13,6 +13,13 @@
 //   · `CaseOpened`       → patientId + 病种集(立案;教学 `observe` 步的判据)
 //   · `CaseClosed`       → patientId + treated(结案;教学 `close` 步的判据)      ← 2026-11-10 T21 补
 //   · `CaseReferred`     → patientId + 理由(ADR-044 的收场半边)                 ← 2026-11-10 T21 补
+//   · `JudgmentRecorded` / `JudgmentRevised` → caseId + `lexicon_id` + 档位
+//     (落笔 / 改判;`AC-39-12`「旧笔同屏」的**数据腿**)                          ← 2026-11-10 T22 批三 补
+//
+// ── T22 批三 补的一处(2026-11-10)──────────────────────────────────────────
+// 「同屏两笔 + 铅笔勾」在屏上是**一个**观察面,而它由事件流推导(`IsCurrentJudgmentRewritten`
+// 读 `JudgmentRevised`)⇒ 屏上看见不等于流里真有。补齐本组打印后,同一件事有**两条独立腿**:
+// 落盘字节里逐条 `lexicon_id` / 档位,与屏上「✓ + 新旧两笔」互为对照。
 //
 // ── T21 补的两处(2026-11-10 真包走查暴露的缺口)──────────────────────────────
 // ① **只打 `CaseOpened` 不打 `CaseClosed`** ⇒ 结案页提交后,本工具**看不出**事件是否真落了,
@@ -120,6 +127,7 @@ namespace DaYiJingCheng.EditorTools.Spike
             PrintActorCells(events, decoder);
             PrintPatients(events, decoder);
             PrintCases(events, decoder);
+            PrintJudgments(events, decoder);
             return 0;
         }
 
@@ -252,6 +260,39 @@ namespace DaYiJingCheng.EditorTools.Spike
             }
             Debug.Log($"{LogTag}   CaseOpened {opened} 条(教学 observe 步的判据)· " +
                       $"CaseClosed {closed} 条(教学 close 步的判据)· CaseReferred {referred} 条");
+        }
+
+        /// <summary>
+        /// 落笔 / 改判逐条打印(`AC-39-12`「旧笔同屏」的**数据腿**)。
+        /// <para>⚠️ 两笔的区别就是事件 `Kind`:`JudgmentRecorded` = 本病人首笔,
+        /// `JudgmentRevised` = 改写(屏上因此出铅笔勾 + 旧笔淡墨)。</para>
+        /// </summary>
+        private static void PrintJudgments(IReadOnlyList<SimEvent> events, PayloadDecoder decoder)
+        {
+            Debug.Log($"{LogTag} ── 判断落笔 / 改判 ──");
+            int recorded = 0, revised = 0;
+            for (int i = 0; i < events.Count; i++)
+            {
+                SimEvent e = events[i];
+                if (e.Kind == EventKind.JudgmentRecorded)
+                {
+                    JudgmentRecordedPayload p = decoder.Decode<JudgmentRecordedPayload>(e.Kind, in e.Payload);
+                    Debug.Log($"{LogTag}   JudgmentRecorded: patient {p.PatientId} · " +
+                              $"case ({p.CaseId.Tick},{p.CaseId.Patient},{p.CaseId.Seq}) · " +
+                              $"lexicon={p.LexiconId} confidence={p.Confidence} · tick {e.Tick}");
+                    recorded++;
+                }
+                else if (e.Kind == EventKind.JudgmentRevised)
+                {
+                    JudgmentRevisedPayload p = decoder.Decode<JudgmentRevisedPayload>(e.Kind, in e.Payload);
+                    Debug.Log($"{LogTag}   JudgmentRevised: patient {p.PatientId} · " +
+                              $"case ({p.CaseId.Tick},{p.CaseId.Patient},{p.CaseId.Seq}) · " +
+                              $"lexicon={p.LexiconId} confidence={p.Confidence} · tick {e.Tick}");
+                    revised++;
+                }
+            }
+            Debug.Log($"{LogTag}   JudgmentRecorded {recorded} 条 · JudgmentRevised {revised} 条" +
+                      (revised > 0 ? "(改判:屏上应出铅笔勾 + 旧笔淡墨)" : ""));
         }
     }
 }

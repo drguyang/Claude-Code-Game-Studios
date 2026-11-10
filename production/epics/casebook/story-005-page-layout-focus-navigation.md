@@ -6,7 +6,7 @@
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-08
+> **Last Updated**: 2026-11-10
 
 ## Context
 
@@ -57,6 +57,14 @@
   > 而病人拿到 2 / 3 ⇒ 病名册 `pointable=1` 仍只有一条词。⇒ 新债 `TD-casebook-03`(归 37 / 内容轮),
   > 解除判据 = 真包 `pointable ≥ 2`。**本行仍不勾**,理由已由「病种不够」换成「词表没覆盖」。
   > 原件 = `production/qa/evidence/casebook/impl-s26-4c-rewrite-visible-and-pixels-2026-11-08.md`。
+  > 🔁 **2026-11-10(T22 批三)—— 卡点已解除**:词表补两行(`割伤 → 病种 3` · `疟疾 → 病种 7`,
+  > 用户裁定「丁 · 新增两行正确病名」;两条孤儿行**保留且继续置空**,`AC-37-35` 的双射候选拒依赖它们)。
+  > 真包实测:`病人出现 #0 disease=2 / #1 disease=3` → 查两例后
+  > `病名册环 seen=2 pointable=2 词表行=6`(`TD-casebook-03` 的解除判据 = **真包 `pointable ≥ 2`**,达成)。
+  > 改判实跑:`病名 ✓割伤` + 旧笔 `刺伤` 同屏;落盘 `JudgmentRecorded lexicon=4 → JudgmentRevised lexicon=5`。
+  > 同批新增机械门 `lexicon_draw_coverage_test`(把「词表覆盖」与「开局投哪两例」连起来 ——
+  > 这条债的病根就是**两侧各自都绿**;证伪 M1 重演原缺陷即转红)。
+  > **本行仍不勾**:`AC-39-12` 的签核要件是「纸的物理感 + 主创签核」,那一半未跑。
 - [ ] 串接组「线订成叠」按 Story 002 的分组标记装订呈现,组内顺序 = 全序输出,UI 不重排
 - [x] **AC-39-11 [L]** 手柄全程诊断走查用例(六员页 × 一遍全流)成文并执行一轮,录屏/截图证据落 `production/qa/evidence/` [L]
   > ✅ **2026-11-08 执行**(`TD-walkthrough-01` 修好 `vpad.start` 之后重跑):开册 → 竖推 8 站环 →
@@ -66,6 +74,13 @@
   > ⚠️ **范围如实登记**:六员页里只有「册」这一员在纯手柄下走过全程,其余五员(箱 / 暂停 / 设置 /
   > 教学 / 近景)**本轮未走**;压痕声与落笔预览未测(判据对象归 story-006)。
 - [ ] **AC-39-12 [L]** 纸的物理感走查(翻页 / 压痕 / 墨迹显现节奏)建走查单,主创签核 [L]
+  > 🔁 **2026-11-10(T22 批三)**:「旧 / 新同屏 + 页边铅笔小勾」那一半**真包已跑通**,
+  > 卡点(`TD-casebook-03` 的 `pointable=1`)已解除 —— 见下一条 AC「旧态渲染」的 2026-11-10 注。
+  > 本行**仍不勾**:它要的是「纸的物理感 + **主创签核**」,那一半本轮**没跑**。
+  > 真包读数:`病人出现 #0 disease=2 / #1 disease=3` · `病名册环 seen=2 pointable=2 词表行=6`;
+  > 屏上 `✓割伤` + 旧笔 `刺伤`(最暗像素 21 vs 142;灰度下 ✓ 仍由**形状**可辨);
+  > 落盘 `JudgmentRecorded lexicon=4 → JudgmentRevised lexicon=5`。
+  > 原件 = `production/qa/evidence/casebook/impl-t22c-lexicon-coverage-2026-11-10.md` §5。
 
 ---
 
@@ -139,6 +154,10 @@
 > 「真包 `病名册环 seen=0` 落不了笔」挡着)· 「「旧」态 = 当前笔与旧笔**同屏**」那半(旧词文本投影未做)。
 > 本批新增判据:EditMode `casebook_rewrite_mark_test` 9 条 · PlayMode 同名 3 条;
 > 证伪 M-A/M-B/M-C 各恰 1 红;回归 `7166/7129/0/0/37` · `369/365/0/2/2` @ `2026-11-08T05:11:39Z`。
+> 🔁 **2026-11-10(T22 批三)**:上句「痕的灰度化像素半边被『真包 `seen=0` 落不了笔』挡着」
+> **已解除** —— 词表补两行后真包 `seen=2 pointable=2`,改判同屏两笔 + 铅笔勾已拍下(彩 / 灰度)。
+> 新增门 `lexicon_draw_coverage_test`(2 条);回归 `7411/7374/0/0/37` · `376/371/0/2/3`
+> @ `2026-11-10T15:40:13Z` / `15:42:59Z`(`c4639852` + 工作树)。
 
 > 🔁 **2026-11-08 落点订正(原文不删)**:本卡与 QA 计划原写 `Tests/EditMode/Casebook/` ——
 > `Casebook/` 有自己的 asmdef(`Casebook.Tests`),**够不着 `Editor.Tools.Gates`**,
@@ -187,5 +206,37 @@ EditMode `7157 / 7120 / 0 / 0 / 37` @ `2026-11-08T03:26:57Z` · PlayMode `366 / 
 
 - **`AC-39-11` = `NOT-RUN`**:合册被虚拟手柄 `start` 挡住、真包横推不产生导航(同属
   `TD-walkthrough-01`);两页对照缺第二例;压痕声未听测。
+  > 🔁 **2026-11-08 续已改判**(见 §Test Evidence 的同日注):`TD-walkthrough-01` 收口后整条走通,AC 已勾。
 - **`AC-39-12` = `NOT-RUN`**:42 侧**零痕渲染元件** ⇒ 「旧」态判据没有对象;纸感那半未跑。
+  > 🔁 **2026-11-10(T22 批三)**:「零痕渲染元件」这句**已过期**(2026-11-08 起元件就在);
+  > 当时真正的卡点是**词表覆盖**(`TD-casebook-03`),现已解除并跑出同屏两笔 + 铅笔勾。
+  > **仍不勾的只剩**「纸的物理感 + 主创签核」。
 - **主创签核**未做。
+
+---
+
+## Completion Notes —— 2026-11-10 T22 批三(脉案收口)
+
+**IN PROGRESS → 仍 IN PROGRESS**(本批解除的是**卡点**,不是签核要件)。
+
+| 件 | 落点 |
+|---|---|
+| 词表两行 | `assets/data/case_judgment_lexicon.json`(`割伤→[3]` · `疟疾→[7]`;孤儿 `湿温`/`温毒` **保留置空**) |
+| 重烘产物 | `unity/Assets/DataCooked/case_judgment_lexicon.cooked.bytes`(92 B/4 行 → **130 B/6 行**) |
+| 新机械门 | `Tests/EditMode/CaseSystem/lexicon_draw_coverage_test.cs`(**2 条**)—— 「词表覆盖 vs 开局投放」 |
+| 源数据夹具 | `judgment_lexicon_bake_test`(钉住第 5 / 6 行) |
+| 走查工具 | `SaveCellDumpCli` 补 `JudgmentRecorded` / `JudgmentRevised`(改判的**数据腿**) |
+| 证据 | `production/qa/evidence/casebook/impl-t22c-lexicon-coverage-2026-11-10.md` |
+
+**真包读数**:`病人出现 #0 disease=2 / #1 disease=3` · `病名册环 seen=2 pointable=2 词表行=6` ·
+屏 `✓割伤` + 旧笔 `刺伤` · 落盘 `JudgmentRecorded lexicon=4 → JudgmentRevised lexicon=5` · 零异常。
+
+**证伪**:M1(删两行重烘)2 红 —— **重演原始缺陷**(`pointable=1`);M2(反查忽略已见集)2 红;
+M3(资格门拒病种 3)1 红 ⇒ 本门吃的是**生产判据**,不是抄死的字面量。四文件 SHA-256 逐字节还原。
+
+**回归**:EditMode `7411 / 7374 / 0 / 0 / 37` @ `2026-11-10T15:40:13Z`–`15:42:17Z` ·
+PlayMode `376 / 371 / 0 / 2 / 3` @ `15:42:59Z`–`15:43:21Z` · `c4639852` + 工作树
+(基线 `7409 / 7372` ⇒ **+2**,等式 `7411 − 7409 = 2`;PlayMode 零变化)。
+
+**新登记**:`TD-casebook-04` —— 改判到**另一个词**的路径埋两个坑(落笔后焦点掉成「无焦点」;
+病名栏与册条目之间隔着**折边**,其 `Submit` 会折页)。功能可达,但**不是干净的手柄路径**,本批未改。

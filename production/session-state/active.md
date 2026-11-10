@@ -18137,3 +18137,33 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `AC-20-20` 的真手柄腿、`AC-20-11` 听测**全部 NOT-RUN**;药箱视觉仍粗糙;`OQ-20-11` 本批未动。
 - 证据:`production/qa/evidence/impl-t22b-inventory-container-2026-11-10.md`;
   截图 `unity/Logs/shots/t22/`(本地,按 2026-11-06 指令不入库)。
+
+### 第 14 轮(T22 批三 · 脉案收口 `casebook-005`)
+
+- **用户裁定两段**:① 卡点怎么走 =「丙 · 补词表映射」;② 具体映射 =「**丁 · 新增两行正确病名**」
+  (`割伤 → [3]` · `疟疾 → [7]`;两条孤儿行 `湿温` / `温毒` **保留且继续置空** ——
+  `AC-37-35` 的双射候选拒依赖它们存在)。
+- **数据 + 重烘**:`case_judgment_lexicon.cooked.bytes` 92 B / 4 行 → **130 B / 6 行**
+  (`ConfigVersion` `0x7819DE00` → `0xB0BD7E16`)。
+- **新机械门** `lexicon_draw_coverage_test`(**2 条**,`Tests/EditMode/CaseSystem/`):把
+  「**词表覆盖**」与「**按生产判据算出的开局前两例**」连起来 —— 本债的病根是两侧各自都绿,
+  缺的就是这条线。同批把两行新数据钉进 `judgment_lexicon_bake_test`(源数据夹具)。
+- **真包**(`PlayerBuildCli.BuildDevelopment` Success · 19.7 s · 数据目录 `23:10:25`):
+  `病人出现 #0 disease=2 / #1 disease=3` → 查两例后
+  **`病名册环 seen=2 pointable=2 词表行=6`**(`TD-casebook-03` 的解除判据达成)· 零异常。
+  ⚠️ 开工前我按 `draw_surface_audit` 手推「开局投 9 / 14」**推错了** —— 实跑是 2 / 3。
+- **改判两条独立腿**:屏 `病名 ✓割伤` + 旧笔 `刺伤`(最暗像素 21 vs 142;灰度下 ✓ 由**形状**可辨)
+  · 落盘 `JudgmentRecorded lexicon=4 → JudgmentRevised lexicon=5 @tick 2410`。
+  为数据腿顺手补了 `SaveCellDumpCli` 的 `Judgment*` 打印(Editor-only)。
+- **证伪 3 条**:M1 删两行重烘 ⇒ **2 红**(`pointable=1`,**重演原缺陷**)· M2 反查忽略已见集 ⇒ 2 红 ·
+  M3 资格门拒病种 3 ⇒ 1 红(证明本门吃生产判据)。四文件 SHA-256 逐字节还原、无 `FALSIFY` 残留。
+- **回归**:EditMode `7411 / 7374 / 0 / 0 / 37` @ `15:40:13Z`–`15:42:17Z` ·
+  PlayMode `376 / 371 / 0 / 2 / 3` @ `15:42:59Z`–`15:43:21Z`(`c4639852` + 工作树)。
+  等式 `7411 − 7409 = 2`;PlayMode 零变化。
+- **story**:`casebook-005` **仍 `In Progress`** —— 卡点解除 ≠ 签核要件满足;`AC-39-12` 的
+  「纸的物理感 + **主创签核**」那半仍是 `NOT-RUN`。
+- **债册**:`TD-casebook-03` **`open` → `closed`**;新登记 `TD-casebook-04`(改判到**另一个词**的
+  路径埋两个坑:落笔后焦点掉空 · 病名栏与册条目之间隔着**折边**,其 Submit 会折页;P0 面 **N**)。
+  `debtcount --check` exit 0(条目 205 · closed 170 · open 24 · 未闭 P0 面 **15** 不变)。
+- 证据:`production/qa/evidence/casebook/impl-t22c-lexicon-coverage-2026-11-10.md`;
+  截图 `unity/Logs/shots/t22c/`(本地,不入库)。
