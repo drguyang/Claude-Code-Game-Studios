@@ -469,7 +469,7 @@
 | `TD-building-02` | `modular-building` | closed | **N** | R1 |
 | `TD-building-03` | `modular-building` | closed | **N** | R1 |
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
-| `TD-building-05` | `modular-building` | open | **Y** | R1 |
+| `TD-building-05` | `modular-building` | partial | **Y** | R1 |
 | `TD-building-06` | `modular-building` | open | **Y** | R1 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -1490,7 +1490,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 201 | 状态 {'closed': 168, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 61, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 204 | 状态 {'closed': 169, 'partial': 10, 'open': 24, '**done**(2026-10-21)': 1} | P0 面 {'Y': 134, 'N': 64, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 15 （已闭但曾标 P0 面的 119 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
     skeuomorphic-ui: 5        random-events: 4          modular-building: 2
@@ -12673,9 +12673,11 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **🔁 2026-11-06 灶台格变更** | 本条正文与解除判据里的 `(10,0,5)` 已过期:`P0ClinicLevel` 的 `UtensilCellX/Z` 由 `10/5` 改为 **`14/14`**(用户裁定「灶台占另一个角落」),已重导 `world_buildslots.json` + 重烘 `world_buildslots.cooked.bytes`(ConfigVersion `0xD5CCD18E`)。解除判据 ① 相应改为「真包走到 **`(14,0,14)`** 能看见一个可辨识体块」 |
 | **🔁 2026-11-06「不在本债面内」的落点已具名** | 原写「补完视觉后若灶台仍被病人压住,那属 4 的交互设计**另议**」⇒ 悬空。现口径:**不需要另议** —— 键 ② 在**等距**时已被观测到生效(同格 `Utensil#9` 以 `KindPriority 2 < 5` 胜过 `BuildSlot#238`)。本条只需补视觉,4 的规则一字不改 |
 
+| **🔁 2026-11-10(T22 批一 · `open` → `partial`)** | **视觉载体已落**(`StructureVisualFactory` + `StructureVisualSpawner`,按 `world_buildslots` 的 9 个 `baked_initial` 行铺体块;空槽不画)。**真包实测**:开局见四道白墙;走到灶台 `(14,0,14)` 见砖红方块;按 `E` ⇒ 屏上「釜上无料」(18 自己的应答,**不是脉案** —— 对照 2026-11-06 的「十次全落脉案」)。日志 `[结构视觉] 占位体块 9 个`。判据 = 7 条 EditMode 夹具 + 5 变异证伪(每条各红一至两条,还原 SHA-256 逐字节)。证据原件 = `production/qa/evidence/impl-t22-structure-visuals-2026-11-10.md`。<br>⚠️ **未 closed 的理由(如实)**:解除判据 ② 是「`AC-18-21` 端到端人工腿」,而该 AC 讲的是**起货可读性**(`CompleteTick` 到达后 1 tick 内可判),本轮只跑到「灶台可发现 + 可选中」,**没有跑到起货** ⇒ ② 仍 `NOT-RUN`,`P0 面` 维持 **Y**。<br>⚠️ **两处边界**:① 体块**无碰撞**(可穿墙)—— 有意,与病人胶囊同纪律,归 23 的物理/建造轮;② 本条正文的灶台格 `(10,0,5)` 是 2026-11-06 空间解**之前**的旧值,现行 = **`(14,0,14)`**(`world_buildslots.json` 实测)。 |
+
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-building-05** | `modular-building` | **open** | **Y** | R1 |
+| **TD-building-05** | `modular-building` | **partial** | **Y** | R1 |
 | **TD-building-06** | `modular-building` | **open** | **Y** | R1 |
 
 ### TD-building-06 —— P0 地面只有 **10×10 米**,而世界格是 **16×16**(越界即坠落)

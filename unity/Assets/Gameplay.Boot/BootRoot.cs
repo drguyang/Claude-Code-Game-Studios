@@ -1738,6 +1738,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             try
             {
                 _services?.PatientVisualSpawner?.DestroyAll();
+                _services?.StructureVisualSpawner?.DestroyAll();   // T22 批一(同一次显式清理,见 OnDestroy 注)
             }
             catch (Exception e)
             {
@@ -3265,6 +3266,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 病人视觉实体清理(sprint-05 T2.0):视觉根节点由 PatientVisualSpawner 自持,
             // 不靠层级继承(Boot 场景常驻,看不见 World 卸载)⇒ 显式调用销毁面。
             _services?.PatientVisualSpawner?.DestroyAll();
+
+            // 🔁 2026-11-10 T22 批一:结构体块同理 —— 根节点同样自持(`StructureVisuals`),
+            //    不卸载就会在下次进入世界时**叠出第二套**(画面上只是变亮一点,是静默的)。
+            _services?.StructureVisualSpawner?.DestroyAll();
 
             // 急救直读通道卸挂(story-009):onAfterUpdate 是全局静态回调,必须在
             // BootRoot 销毁时显式 Detach,否则域内悬挂委托引用已弃通道(下次 Play 泄漏)。

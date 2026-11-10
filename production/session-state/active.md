@@ -18085,3 +18085,30 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `saves.t21-reject-run/`;**用户原存档已原样还原**(`saves/` = `w1` + `w2` + `worlds.index`)。
 - 证据:`production/qa/evidence/walkthrough-t21-realbuild-2026-11-10.md`(§1.1 阳性主链 / §3 辅助工具 /
   §4.1 两条坑 / §7 AC 面 / §8 回归);截图 `unity/Logs/shots/t21/19–28`。
+
+### 第 12 轮(T22 批一 · 用户「开工 T22」四选全取;本批 = 甲 · 结构最小视觉)
+
+- **范围**:用户四选全取(甲/乙/丙/丁)。**丁(`TD-sim-03`)已 closed**(注册表现在有
+  `INJ_BLUNT` / `INJ_DRUG_HARM` 两件 `lethal=false ∧ self_limit=true`,行号 378 记为 closed)
+  ⇒ 无需再动,已在报告里说明。本批只做**甲**;乙(脉案收口)、丙(药箱屏)顺延。
+- **交付**:`StructureVisualFactory` + `StructureVisualSpawner`(Presentation/Building)+
+  装配根/服务袋/BootRoot 三处接线。按 `world_buildslots` 的 **9 个 `baked_initial` 行**铺体块,
+  **空槽不画**(与 4 的选择器读同一个 `baked_initial`,不许分叉)。
+- **真包实测**:`[结构视觉] 占位体块 9 个` · 开局见四道白墙 · 走到灶台 `(14,0,14)` 见砖红方块 ·
+  **按 `E` ⇒ 「釜上无料」**(18 自己的应答,对照 2026-11-06 的「十次全落脉案」)· 零异常。
+- **判据**:`structure_visual_spawner_test` **7 条**;全量 EditMode `7399 / 7362 / 0 / 0 / 37`
+  @ `11:56:35Z`–`11:58:41Z` · PlayMode `376 / 371 / 0 / 2 / 3` @ `11:59:21Z`–`11:59:42Z`
+  (`34e1da7c` + 工作树)。等式 `7399 − 7392 = 7`,PlayMode 零变化。
+- **证伪轮 5 变异**(全部转红):空槽也画(2 红)· 根恒建(1)· 不抬半高(1)· 不清簿记(2)·
+  灶台缩放=墙(1);还原 SHA-256 两件成功、无 `FALSIFY` 残留。
+- **首跑 28 红 → 修掉两个真问题**:① `dataProvider != null` 守卫写宽 ⇒ 夹具假 provider 上
+  `Load<WorldBuildSlotsDataSet>()` 抛 ⇒ 25 条 DataPipeline/DiseaseSimulation 红(改用
+  `is AddressablesDataProvider`,与 17 采集块同守卫);② 我的夹具用 `GameObject.Find` 找体块,
+  全量跑时命中别的测试遗留的同名根 ⇒ 改走 spawner 的 `Root`。
+- **债册**:`TD-building-05` **`open` → `partial`**(`P0 面` 仍 **Y**)—— 判据 ①(看得见)已过,
+  判据 ②(`AC-18-21` 的**起货可读性**端到端腿)未跑。`debtcount --check` exit 0
+  (条目 204 · partial 10 · open 24 · 未闭 P0 面 **15** 不变)。
+- **边界**:体块**无碰撞**(可穿墙,有意,与病人胶囊同纪律);债册正文的灶台格 `(10,0,5)` 是
+  空间解之前的旧值,现行 `(14,0,14)`。
+- 证据:`production/qa/evidence/impl-t22-structure-visuals-2026-11-10.md`;
+  截图 `unity/Logs/shots/t22/`(本地,按 2026-11-06 指令不入库)。

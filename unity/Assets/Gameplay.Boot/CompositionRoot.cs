@@ -2128,6 +2128,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (harvest == null)
                 throw new InvalidOperationException("Assemble: HarvestOrchestrator 装配产出 null");
 
+            // ── 建造槽位的最小视觉载体(T22 批一 · `TD-building-05` 的躯干)─────────────
+            // 病因:此前运行期**唯一**的 3D 物体是病人胶囊 —— 灶台 / 墙 / 门 / 柜 / 医馆面板
+            //   零载体 ⇒ 玩家看不到目标,18 / 20 / 23 / 24 的入口全部**不可发现**。
+            // 形状:与病人同构(数据给「在哪」,factory 给「长什么样」),零美术资产。
+            // ⚠️ `dataProvider == null`(EditMode 部分装配)⇒ 不建。这**不是**「世界没有槽位」,
+            //    是「本次装配没装世界数据」—— 两者在画面上不可区分,故留 null 并在取用处判空。
+            // ⚠️ **只在真 provider 下铺** —— 与上面 17 采集块同一道守卫(`is AddressablesDataProvider`)。
+            //    夹具的 `IDataProvider` 假件只认自己那几个地址,对它 `Load` 世界槽位会抛;
+            //    2026-11-10 首跑实测:去掉这层守卫 ⇒ 25 条 DataPipeline / DiseaseSimulation 夹具转红。
+            //    代价:EditMode 夹具路径上**没有**结构体块 —— 那是「本次装配没装世界」,不是「世界没有槽位」。
+            StructureVisualSpawner structureVisuals = null;
+            if (dataProvider is AddressablesDataProvider structureProvider)
+            {
+                structureVisuals = new StructureVisualSpawner(new StructureVisualFactory());
+                int spawned = structureVisuals.SpawnAll(structureProvider.Load<WorldBuildSlotsDataSet>());
+                UnityEngine.Debug.Log($"[结构视觉] 占位体块 {spawned} 个(建造槽位骨架 + 灰盒,零美术资产)");
+            }
+
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
@@ -2192,7 +2210,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                //    (无 data-core ⇒ 三者 null ⇒ BootRoot 不建路由)。
                                                pressCandidates: pressCandidates,
                                                pressSelector: pressSelector,
-                                               pressRadius: pressRadius);
+                                               pressRadius: pressRadius,
+                                               // 🔁 2026-11-10 T22 批一:建造槽位的占位体块
+                                               //    (已在本语句之前铺完;null = 本次装配没装世界数据)。
+                                               structureVisualSpawner: structureVisuals);
 
             // 🔁 2026-11-05(`TD-sim-05` 同族):补齐 `afterRestore` 闭包的前向捕获句柄。
             // 该闭包在**本语句之前**建立,却要碰本语句之后才挂上去的两件完成调度器。

@@ -19,6 +19,7 @@ using DaYiJingCheng.Sim.Contracts.SkillSystem;         // NoveltyTracker(S20-15)
 using DaYiJingCheng.Sim.World;                         // World / StructureWriter(S20-17 装配轮)
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation;             // ClinicRoomMatchingService(TD-building-01 读侧)
+using DaYiJingCheng.Gameplay.Presentation.Building;    // StructureVisualSpawner(T22 批一)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Building;   // BuildController(S20-19)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片)
@@ -264,6 +265,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>病人最小可见实体驱动(sprint-05 T2.0)—— 按在场集 spawn 占位视觉;
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public PatientVisualSpawner PatientVisualSpawner { get; }
+
+        /// <summary>建造槽位的占位体块生成器(T22 批一 · `TD-building-05`)—— 按
+        /// `WorldBuildSlotsDataSet` **一次性**铺完(静态几何,不挂 tick 边沿)。
+        /// <para>⚠️ null 合法(provider 不可用 / 夹具不装世界数据):此时场景里没有结构体块,
+        /// 与「世界本来就没有槽位」在画面上不可区分 —— 故装配根在 null 时**打一行告警**。</para></summary>
+        public StructureVisualSpawner StructureVisualSpawner { get; }
 
         /// <summary>体征链核心服务(批次 C):apply 驱动 + 投影桥 +
         /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
@@ -609,7 +616,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          BuildController buildController = null,
                                          DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader pressCandidates = null,
                                          DaYiJingCheng.Gameplay.Interaction.InteractionSelector pressSelector = null,
-                                         DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null)
+                                         DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null,
+                                         StructureVisualSpawner structureVisualSpawner = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -624,6 +632,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             EmergencyManualDriver = emergencyManualDriver;
             EmergencyChannel = emergencyChannel;
             PatientVisualSpawner = patientVisualSpawner;
+            StructureVisualSpawner = structureVisualSpawner;
             VitalsService = vitalsService;
             DeathCandidates = deathCandidates;
             DeathConsumer = deathConsumer;
