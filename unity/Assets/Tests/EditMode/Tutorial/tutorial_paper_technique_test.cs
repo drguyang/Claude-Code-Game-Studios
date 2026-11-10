@@ -94,9 +94,9 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_absentTeachTechnique_defaultsToNoTechnique()
         {
-            var bound = TutorialContentBake.BindForTest(Seed(), null, null, new FakeTechniqueIds(0, 1));
+            var bound = TutorialContentBake.BindForTest(Seed(), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12));
 
-            Assert.That(bound.Papers.Count, Is.EqualTo(1));
+            Assert.That(bound.Papers.Count, Is.EqualTo(7), "A4 起 7 张(第 0 张仍是不教技法的望诊四要)");
             Assert.That(bound.Papers[0].TeachTechnique, Is.EqualTo(TutorialContentSchema.NoTechnique),
                 "缺省必须是 -1(不教任何技法)—— 用 0 当哨兵会让它与「教止血包扎」不可分");
             Assert.That(TutorialContentSchema.NoTechnique, Is.Not.EqualTo(0),
@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_explicitZero_isDistinctFromAbsent()
         {
-            var bound = TutorialContentBake.BindForTest(SeedWith("0"), null, null, new FakeTechniqueIds(0, 1));
+            var bound = TutorialContentBake.BindForTest(SeedWith("0"), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12));
 
             Assert.That(bound.Papers[0].TeachTechnique, Is.EqualTo(0));
             Assert.That(bound.Papers[0].TeachTechnique,
@@ -124,7 +124,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         public void test_danglingTechniqueId_isRejected()
         {
             var ex = Assert.Throws<BakeValidationException>(
-                () => TutorialContentBake.BindForTest(SeedWith("99"), null, null, new FakeTechniqueIds(0, 1)));
+                () => TutorialContentBake.BindForTest(SeedWith("99"), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12)));
 
             Assert.That(string.Join(";", ex.Errors), Does.Contain("悬垂键"),
                 "报文须点明这是悬垂键 —— 说成「非法值」会让人去查格式而不是查轴");
@@ -135,7 +135,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         public void test_negativeOtherThanSentinel_isRejected()
         {
             var ex = Assert.Throws<BakeValidationException>(
-                () => TutorialContentBake.BindForTest(SeedWith("-2"), null, null, new FakeTechniqueIds(0, 1)));
+                () => TutorialContentBake.BindForTest(SeedWith("-2"), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12)));
 
             Assert.That(string.Join(";", ex.Errors), Does.Contain("-2"));
         }
@@ -145,7 +145,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         public void test_wrongType_isRejected()
         {
             var ex = Assert.Throws<BakeValidationException>(
-                () => TutorialContentBake.BindForTest(SeedWith("\"0\""), null, null, new FakeTechniqueIds(0, 1)));
+                () => TutorialContentBake.BindForTest(SeedWith("\"0\""), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12)));
 
             Assert.That(string.Join(";", ex.Errors), Does.Contain("teachTechnique"));
         }
@@ -228,14 +228,14 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_roundTrip_preservesTeachTechnique()
         {
-            var baked = TutorialContentBake.BakeFromJson(SeedWith("3"), null, null, new FakeTechniqueIds(0, 3));
+            var baked = TutorialContentBake.BakeFromJson(SeedWith("3"), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12));
 
             Assert.That(TutorialContentTable.TryDecode(baked.Cooked, out var table, out string error), Is.True, error);
-            Assert.That(table.Papers.Count, Is.EqualTo(1));
+            Assert.That(table.Papers.Count, Is.EqualTo(7), "A4 起 7 张");
             Assert.That(table.Papers[0].TeachTechnique, Is.EqualTo(3),
                 "写方 / 读方字段序不一致 ⇒ 本条红(布局漂移的唯一机械兜现)");
 
-            var bakedSentinel = TutorialContentBake.BakeFromJson(Seed(), null, null, new FakeTechniqueIds(0, 3));
+            var bakedSentinel = TutorialContentBake.BakeFromJson(Seed(), null, null, new FakeTechniqueIds(0, 1, 2, 3, 10, 11, 12));
             Assert.That(TutorialContentTable.TryDecode(bakedSentinel.Cooked, out var t2, out string e2), Is.True, e2);
             Assert.That(t2.Papers[0].TeachTechnique, Is.EqualTo(-1));
             Assert.That(t2.Papers[0].TeachesTechnique, Is.False);

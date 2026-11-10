@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DaYiJingCheng.EditorTools.Bake;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
@@ -114,10 +115,30 @@ namespace DaYiJingCheng.Tests.SkillSystem
 
         /// <summary>生产规则表今日为空 —— 本件交机制,不交内容(内容归内容轮)。</summary>
         [Test]
-        public void test_productionRules_areEmptyToday()
+        public void test_productionRules_threeEventPlusTwoCase()
         {
-            Assert.That(TechniqueUnlockRules.Default.Count, Is.EqualTo(0),
-                "生产规则表今日必须为空 —— 若有人填了行,须同批更新 T9 证据件的「未做」表");
+            // 🔁 2026-11-10:原条断言「生产规则表今日必须为空」。
+            //    当日先落 A5 的三条 **Event 源**规则,再补两条 **Case 源**规则
+            //    (P0 里唯一真的会触发的源,见 `TechniqueUnlockRules.Default` 的 remarks)
+            //    ⇒ 本条改为钉住**两个源各自的成员**(而不是「非空」这种弱断言)。
+            Assert.That(TechniqueUnlockRules.Default.Count, Is.EqualTo(5), "三条 Event + 两条 Case");
+            Assert.That(TechniqueUnlockRules.Default.Select(r => r.SourceKind).Distinct().ToArray(),
+                Is.EquivalentTo(new[] { TechniqueUnlockSourceKind.Event, TechniqueUnlockSourceKind.Case }),
+                "P0 不用 Poi 源 —— `world_poi.json` 没有状态词表,填 Poi 规则必悬空");
+
+            TechniqueUnlockRule[] ev = TechniqueUnlockRules.Default
+                .Where(r => r.SourceKind == TechniqueUnlockSourceKind.Event).ToArray();
+            Assert.That(ev.Select(r => r.SourceId).ToArray(), Is.EqualTo(new[] { 2002, 2003, 2004 }),
+                "「打摆子」/「热性惊厥」/「溃兵军医」");
+            Assert.That(ev.Select(r => r.TechniqueId).ToArray(), Is.EqualTo(new[] { 12, 1, 11 }),
+                "金鸡纳皮 / 节奏型通气 / 毛地黄");
+
+            TechniqueUnlockRule[] cs = TechniqueUnlockRules.Default
+                .Where(r => r.SourceKind == TechniqueUnlockSourceKind.Case).ToArray();
+            Assert.That(cs.Select(r => r.SourceId).ToArray(), Is.EqualTo(new[] { 2, 6 }),
+                "INJ_STAB(刀伤)/ INJ_BITE(咬伤)");
+            Assert.That(cs.Select(r => r.TechniqueId).ToArray(), Is.EqualTo(new[] { 2, 3 }),
+                "清创缝合 / 蛇伤处置");
         }
 
         // ════════════════════════════════════════════════════════════════

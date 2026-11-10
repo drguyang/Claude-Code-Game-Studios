@@ -98,7 +98,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             Assert.That(table.Steps.Count, Is.EqualTo(6), "步骤数");
             Assert.That(table.Narration.Count, Is.EqualTo(4), "口述数");
             Assert.That(table.Demonstrations.Count, Is.EqualTo(6), "示范数");
-            Assert.That(table.Papers.Count, Is.EqualTo(1), "纸数");
+            Assert.That(table.Papers.Count, Is.EqualTo(7), "纸数(A4 2026-11-10:1 张望诊 + 6 张技法页)");
         }
 
         /// <summary>分支请求的地址**必须**是 <see cref="AddressablesDataProvider.TutorialContentAddress"/>。

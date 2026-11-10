@@ -11,6 +11,9 @@
     { "key": 2001, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "encounter", "cause_flag": "", "is_house_call": false, "disease_id": 0 },
     { "key": 2002, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": true,  "disease_id": 7  },
     { "key": 2003, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": true,  "disease_id": 17 },
+    { "key": 2004, "w_base": 100, "tier": "opportunity", "spawn_anchor": "travel_path",  "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": true,  "disease_id": 9  },
     { "key": 3001, "w_base": 100, "tier": "reaction",    "spawn_anchor": "clinic_front", "trigger_mode": "random", "handler": "medical",   "cause_flag": "", "is_house_call": false, "disease_id": 11 }
-  ]
+  ],
+
+  "_note": "2026-11-10(A5,用户裁定「照准」)—— 事件**语义**登记。池只存数字 key,语义原先全库零处;本节是**登记**,不被 codec 读取(不进 cooked 载荷)。key→语义:2002「打摆子」(disease_id 7 间日疟,house_call)· 2003「热性惊厥」(disease_id 17)· **2004「溃兵军医」**(disease_id 9 心衰,本次新增)—— 三条各绑一门技法(12 / 1 / 11)。1001–1005 威胁遭遇 · 2001 机会遭遇 · 3001 麻疹,**均不绑技法**。⚠️ 2004 是本次新增:池里此前**没有** disease_id 9(心衰)的条目,而「溃兵军医」要落第四章就必须有它;它的其余四列取既有 medical 条目的形状(tier=opportunity / travel_path / random / house_call),w_base=100 与全部既有条目一致 —— 权重归数值轮,本批不动分布。⚠️ 本节被读入前须在 EventPoolBinder.RootKeys 白名单里(2026-11-10 同批加),否则未知键门拒收。"
 }

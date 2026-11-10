@@ -138,9 +138,21 @@ namespace DaYiJingCheng.Tests.PlayMode
             var expected = new System.Collections.Generic.List<string>();
             foreach (object id in missing) expected.Add((string)id);
 
-            // 今日内容:唯一那张纸不教技法 ⇒ 缺页集为空
-            Assert.That(expected, Is.Empty,
-                "今日 48 只有一张**纯知识页**,缺页集必须为空 —— 非空说明内容表被改过,须同批核对");
+            // 🔁 2026-11-10(A4):48 由「一张纯知识页」变成「1 张望诊 + 6 张技法页」。
+            //    开局只解锁技法 0(止血包扎)⇒ 六张技法页**全部缺**。原断言「缺页集必须为空」
+            //    钉的是旧内容态,现按新内容态改写(并要求望诊那张**永不**出现在缺页集里)。
+            // ⚠️ 本条钉的是**「缺页集 = 技法页 − 已解锁技法」这个关系**,不是一张固定的名单。
+            //    2026-11-10 同日两次改动都落在它上面:
+            //      · A4:48 由 1 张纯知识页变成 +6 张技法页 ⇒ 缺页集不再为空;
+            //      · 起步集回补技法 1 ⇒ `p_tongqi`(教节奏型通气)**开局就有** ⇒ 不缺。
+            //    ⇒ 六张技法页里缺 **5** 张。**改了 `StartingTechniques` 就要回来复核这一行。**
+            Assert.That(expected, Is.EquivalentTo(new[]
+                { "p_qingchuang", "p_sheshang", "p_liushupi", "p_maodihuang", "p_jinjina" }),
+                "五张技法页缺(清创 / 蛇伤 / 柳树皮 / 毛地黄 / 金鸡纳);成员错了 ⇒ 绑定或解锁查询坏了");
+            Assert.That(expected, Does.Not.Contain("p_tongqi"),
+                "节奏型通气在**起步集**里 ⇒ 它那张纸开局就有,不该缺");
+            Assert.That(expected, Does.Not.Contain("p_wangzhen"),
+                "望诊四要不是技法页(teachTechnique 缺省)⇒ 它永远不该进缺页集");
 
             // ── ⑤ 渲染面真的消费了那句话 ────────────────────────────────
             Assert.That(screen.IsCurrentPageMissing, Is.False,

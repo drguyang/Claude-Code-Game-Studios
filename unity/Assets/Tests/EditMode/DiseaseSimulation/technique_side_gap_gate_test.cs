@@ -182,9 +182,10 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_productionRules_haveNoDanglingSourceIds()
         {
-            Assert.That(TechniqueUnlockRules.Default.Count, Is.EqualTo(0),
-                "规则表今日为空 ⇒ 下面这条是**空真**,不是「查过没问题」。" +
-                "填了第一行之后,请删掉本条断言,让下一条真正起作用");
+            // 🔁 2026-11-10(A5):原第一条断言「规则表今日为空 ⇒ 下面这条是空真」。
+            //    规则表已有三条内容 ⇒ 按它自己的指示删掉那条守卫,让下一条**真正起作用**。
+            Assert.That(TechniqueUnlockRules.Default.Count, Is.GreaterThan(0),
+                "规则表非空 —— 下一条断言才不是空真(A5 起三条)");
 
             IReadOnlyList<string> violations = TechniqueUnlockRuleValidator.Validate(
                 TechniqueUnlockRules.Default, PoiIds(), EventKeys(), RegistryDiseaseIds());

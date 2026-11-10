@@ -581,6 +581,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ 规则表今日**为空**(`TechniqueUnlockRules.Default`)⇒ 驱动零扫描、零写入。
             //      这不是「没接上」:接上了、也跑了,只是没有一行内容 —— 补一行即活,
             //      不需要改任何代码(见该常量的 remarks 与 T9 证据件)。
+            //   🔁 2026-11-10(A5):规则表已有**三条 Event 源规则**,上句「为空」不再成立。
+            //      驱动照常每 tick 扫描;但 52 的运行期链路被 `TD-randomevents-05` /
+            //      ADR-039 §R3 挡着 ⇒ **今日仍不会写任何一条解锁事件**。
             _services.TechniqueUnlockDriver = new TechniqueUnlockDriver(
                 _services.Stream, _services.Decoder,
                 TechniqueUnlockRules.Default, _services.TechniqueUnlockWriter, actorId);

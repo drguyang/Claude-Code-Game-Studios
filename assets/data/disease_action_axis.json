@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_note": "系统 9 的**处置轴单一 master** + treatable_by 关系(2026-10-07 重开 9 落地)。两段同住一份文件 = 单一真源:DC-2 / DC-4 读 actions 段(闭集本体);9 的 F1 门与 11 的 DC-4 双表对拍读 treatable_by 段。⚠️ 本文件**只承载动作轴子集** —— 病种条目的曲线/严重度/传染性等数值仍冻结待用户数值轮,故**不**建完整 disease_registry.json(建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据 = GDD 点名的「判据对合法输入类误判」)。⚠️ 背离登记:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,本文件把它拆到独立文件 —— 理由见上。两阶段烘焙 → disease_action_axis.cooked.bytes → IDataProvider。 🔁 **2026-11-09(T7 补数据 · `OQ-10-4` 二次裁定后)** —— 处置轴 5 → **7** 门,新增 `2 清创缝合` / `3 蛇伤处置`(均 owner 10);treatable_by 9 → **16 键 / 15 关系**。 ⚠️ **为什么能加了**:首轮起草时这两门撞死了 —— 轴 `owner==\"10\"` 段与 `EmergencyAction` 枚举**双向钉死**(`action_tables_bake_test` 的 DC-4 + `ActionAxisReaderGateTest`),而枚举成员数由 `OQ-10-4` 冻结为 2(`emergency-procedures.md:847`)。用户 2026-11-09 裁定「**开,按你说的改 OQ-10-4**」⇒ P0 急救动作 **2 → 4**(`emergency-procedures.md` §一 Amendment),枚举同批补上 `Debridement = 2` / `SnakebiteCare = 3`,本条才落得了地。 ⚠️ **只开 id 空间,不交执行体**:两个动作的 `EmergencyActionRow`(极性 / potency / 幅度门 / 保持 tick)与 4 的交互接线**都不存在** ⇒ 病人会因技法解锁而被投放,但玩家还做不出这两个动作。不得读成「清创可用」。 ⚠️ **极性一律取 `symptomatic`,不取 `causal`** —— `handle` 由「轴里有没有 causal 行」派生(`DiseaseHandle.Derive`):给伤情 / 破伤风填 `causal` 会把它们从 `symptomatic_only` / `none` 改判成 `causal`,而 GDD `:294` 把 `none` 钉死为「仅 DIS_TETANUS」、`AC-43` 逐病种断言 —— 那是改裁决,不是补数据。 ⚠️ **`INJ_DRUG_HARM` 刻意仍为 `[]`** —— 自限型药毒无处置(GDD `:659`),给它挂一门技法等于凭空发明一味药;`[]` 在 T4 的三态里落 `Undeclared`(放行 + 计数),是**正确**的可见状态。",
+  "_note": "系统 9 的**处置轴单一 master** + treatable_by 关系(2026-10-07 重开 9 落地)。两段同住一份文件 = 单一真源:DC-2 / DC-4 读 actions 段(闭集本体);9 的 F1 门与 11 的 DC-4 双表对拍读 treatable_by 段。⚠️ 本文件**只承载动作轴子集** —— 病种条目的曲线/严重度/传染性等数值仍冻结待用户数值轮,故**不**建完整 disease_registry.json(建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据 = GDD 点名的「判据对合法输入类误判」)。⚠️ 背离登记:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,本文件把它拆到独立文件 —— 理由见上。两阶段烘焙 → disease_action_axis.cooked.bytes → IDataProvider。 🔁 **2026-11-09(T7 补数据 · `OQ-10-4` 二次裁定后)** —— 处置轴 5 → **7** 门,新增 `2 清创缝合` / `3 蛇伤处置`(均 owner 10);treatable_by 9 → **16 键 / 15 关系**。 ⚠️ **为什么能加了**:首轮起草时这两门撞死了 —— 轴 `owner==\"10\"` 段与 `EmergencyAction` 枚举**双向钉死**(`action_tables_bake_test` 的 DC-4 + `ActionAxisReaderGateTest`),而枚举成员数由 `OQ-10-4` 冻结为 2(`emergency-procedures.md:847`)。用户 2026-11-09 裁定「**开,按你说的改 OQ-10-4**」⇒ P0 急救动作 **2 → 4**(`emergency-procedures.md` §一 Amendment),枚举同批补上 `Debridement = 2` / `SnakebiteCare = 3`,本条才落得了地。 ⚠️ **只开 id 空间,不交执行体**:两个动作的 `EmergencyActionRow`(极性 / potency / 幅度门 / 保持 tick)与 4 的交互接线**都不存在** ⇒ 病人会因技法解锁而被投放,但玩家还做不出这两个动作。不得读成「清创可用」。 ⚠️ **极性一律取 `symptomatic`,不取 `causal`** —— `handle` 由「轴里有没有 causal 行」派生(`DiseaseHandle.Derive`):给伤情 / 破伤风填 `causal` 会把它们从 `symptomatic_only` / `none` 改判成 `causal`,而 GDD `:294` 把 `none` 钉死为「仅 DIS_TETANUS」、`AC-43` 逐病种断言 —— 那是改裁决,不是补数据。 ⚠️ **`INJ_DRUG_HARM` 刻意仍为 `[]`** —— 自限型药毒无处置(GDD `:659`),给它挂一门技法等于凭空发明一味药;`[]` 在 T4 的三态里落 `Undeclared`(放行 + 计数),是**正确**的可见状态。 🔁 **2026-11-10(A2,用户裁定「照准」)** —— `DIS_FEBRILE_SEIZURE` / `DIS_HEART_FAILURE` 各追加一条 `action 1`(节奏型通气,两者均 symptomatic):惊厥时保持气道 / 心衰端坐呼吸时辅助通气。两病**原有的一条**(惊厥→10 柳树皮、心衰→11 毛地黄)保留 ⇒ 同一病有两个可做的手段。⚠️ 极性仍是 symptomatic —— 改 causal 会改判 `handle`,那是改裁决。连带:技法 1 自此**有覆盖**,`TechniqueCoverageExemptions.ByDesign[1]` 必须删除(陈旧豁免 = 门红)。",
   "actions": [
     { "id": 0,  "name": "止血包扎",   "owner": "10" },
     { "id": 1,  "name": "节奏型通气", "owner": "10" },
@@ -13,13 +13,15 @@
   "treatable_by": {
     "DIS_MALARIA":         [ { "action": 12, "polarity": "causal" } ],
     "DIS_RHEUMATIC_FEVER": [ { "action": 10, "polarity": "symptomatic" } ],
-    "DIS_HEART_FAILURE":   [ { "action": 11, "polarity": "symptomatic" } ],
+    "DIS_HEART_FAILURE":   [ { "action": 11, "polarity": "symptomatic" },
+                             { "action": 1,  "polarity": "symptomatic" } ],
     "DIS_TYPHOID":         [ { "action": 10, "polarity": "symptomatic" } ],
     "DIS_MEASLES":         [ { "action": 10, "polarity": "symptomatic" } ],
     "DIS_DYSENTERY":       [ { "action": 10, "polarity": "symptomatic" } ],
     "DIS_TETANUS":         [ { "action": 2,  "polarity": "symptomatic" } ],
     "DIS_NEURASTHENIA":    [],
-    "DIS_FEBRILE_SEIZURE": [ { "action": 10, "polarity": "symptomatic" } ],
+    "DIS_FEBRILE_SEIZURE": [ { "action": 10, "polarity": "symptomatic" },
+                             { "action": 1,  "polarity": "symptomatic" } ],
     "TOX_ENVENOMATION":    [ { "action": 3,  "polarity": "symptomatic" } ],
     "INJ_STAB":            [ { "action": 0,  "polarity": "symptomatic" } ],
     "INJ_LACERATION":      [ { "action": 0,  "polarity": "symptomatic" } ],

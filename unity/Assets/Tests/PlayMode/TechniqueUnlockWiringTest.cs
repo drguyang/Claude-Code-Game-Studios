@@ -10,7 +10,9 @@
 //   ④ 驱动的 actor id = `BootRoot._playerActorId`
 //      —— 否则解锁写给了一个不存在的学习者(流里有行、玩家学不到)。
 //
-// ⚠️ **本测不证明「规则会触发」** —— 生产规则表今日为空(`TechniqueUnlockRules.Default`),
+// ⚠️ **本测不证明「规则会触发」** —— 🔁 2026-11-10(A5)起规则表已有三条内容,
+//    但 52 的运行期链路(`TD-randomevents-05` / ADR-039 §R3)挡着 ⇒ 今日仍零写入。
+//    原文「生产规则表今日为空」不再成立,保留作历史:
 //    触发语义由 EditMode 的 `technique_unlock_trigger_test` 证。两者分工必须分开读:
 //    本件证**接线存在且指向正确对象**,彼件证**匹配语义正确**。
 //
@@ -135,9 +137,12 @@ namespace DaYiJingCheng.Tests.PlayMode
                 "解锁须写给玩家本人;写给别的 id = 流里有行而玩家学不到");
 
             // ── 附:今日内容态(不是判据缺失,是内容未裁定)────────────────
+            // 🔁 2026-11-10(A5):规则表由「今日为空」变成三条 Event 源规则。
+            //    ⚠️ 本测仍**不**证明它们会触发(52 的上下文门 / 候选池挡着)——
+            //    变的只是「驱动拿到的是不是那张真表」这件事有内容可数了。
             object ruleCount = driver.GetType().GetProperty("RuleCount")?.GetValue(driver);
-            Assert.AreEqual(0, (int)ruleCount,
-                "生产规则表今日为空 —— 若有人填了行,须同批更新 T9 证据件的「未做」表");
+            Assert.AreEqual(5, (int)ruleCount,
+                "三条 Event 源(2002 金鸡纳 / 2003 通气 / 2004 毛地黄)+ 两条 Case 源(刀伤→清创 / 咬伤→蛇伤)");
         }
 
         private bool ReadBooted()

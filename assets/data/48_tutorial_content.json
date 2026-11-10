@@ -37,7 +37,7 @@
       "note": "判据 = EmergencyAttempt 或 DrugTreatmentApplied 二选一存在(承 F-48.1 ③)。",
       "narration": [],
       "demonstrations": ["d_treat_1"],
-      "papers": []
+      "papers": ["p_tongqi", "p_qingchuang", "p_sheshang", "p_liushupi", "p_maodihuang", "p_jinjina"]
     },
     {
       "id": "close",
@@ -146,6 +146,66 @@
       "aspectRatio": "4:3",
       "illustrationKey": "paper_wangzhen_01_v1",
       "note": "纸上之图 = 教学纸首件(承 paper-closeup-48.md §10);插图素材归 art(AB §8.3 UI-纸 1K 档),illustrationKey 承 AB §8.2 命名。"
+    },
+    {
+      "id": "p_tongqi",
+      "step": "treat",
+      "title": "节奏型通气",
+      "body": "掌根压在胸口正中,两臂伸直,靠上身的分量往下压。每分钟一百下,一下一下,不要停。停下那一刻,他就真的停了。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_tongqi_01_v1",
+      "teachTechnique": 1,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
+    },
+    {
+      "id": "p_qingchuang",
+      "step": "treat",
+      "title": "清创缝合",
+      "body": "先冲,再剪,后缝。腐肉不除,缝上也是白缝。针脚要密,线要留长——肿起来的时候,还得松一松。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_qingchuang_01_v1",
+      "teachTechnique": 2,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
+    },
+    {
+      "id": "p_sheshang",
+      "step": "treat",
+      "title": "蛇伤处置",
+      "body": "咬伤的地方要比心口低。布带绑在伤口上方一掌,松到能塞进两根手指。别让他动,动一次,毒走一步。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_sheshang_01_v1",
+      "teachTechnique": 3,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
+    },
+    {
+      "id": "p_liushupi",
+      "step": "treat",
+      "title": "柳树皮",
+      "body": "刮掉粗皮,取里层,捣碎煮水。它退的是热,不是病。热退了病还在,别以为治好了。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_liushupi_01_v1",
+      "teachTechnique": 10,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
+    },
+    {
+      "id": "p_maodihuang",
+      "step": "treat",
+      "title": "毛地黄",
+      "body": "毛地黄,又名洋地黄。一片药,三分险:多一分停心,少一分不济。量在分毫之间,差一点就是两条命。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_maodihuang_01_v1",
+      "teachTechnique": 11,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
+    },
+    {
+      "id": "p_jinjina",
+      "step": "treat",
+      "title": "金鸡纳",
+      "body": "金鸡纳树皮磨粉,苦得舌根发麻。寒热每隔一日交替发作的时候,才见它的本事——它退的是病,不只是热。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_jinjina_01_v1",
+      "teachTechnique": 12,
+      "note": "2026-11-10(A4,用户裁定「照准」):一门技法一张纸;teachTechnique = 处置轴 action id。插图素材归 art,illustrationKey 按 AB §8.2 占位。"
     }
   ]
 }

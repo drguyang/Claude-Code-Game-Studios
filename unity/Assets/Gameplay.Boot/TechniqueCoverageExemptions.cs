@@ -30,18 +30,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <remarks>
         /// <para>判据面由 <c>technique_side_gap_gate_test</c> 执行:
         /// 实际零覆盖集 **必须恰好等于** 本表键集(集合相等,防「悄悄加豁免」与「豁免陈旧」).</para>
+        /// <para>🔁 <b>2026-11-10(A2,用户裁定「照准」)—— 本表今日为空</b>:
+        /// 技法 1(节奏型通气)已在 `disease_action_axis.json` 里挂上
+        /// `DIS_FEBRILE_SEIZURE` / `DIS_HEART_FAILURE` 两条 ⇒ 它**不再零覆盖** ⇒
+        /// 豁免行按「集合相等」判据必须删除(留着 = 陈旧豁免,门当场红)。
+        /// 这正是 T12 那条判据的两个方向都在生效的证据。</para>
+        /// <para>⚠️ 空表**不是**「这个门坏了」:判据是集合相等,零覆盖集今日也是空集。
+        /// 若将来又出现零覆盖技法,加行即可 —— 但要按裁定加,不许为了转绿加。</para>
         /// </remarks>
         public static readonly IReadOnlyDictionary<int, string> ByDesign =
             new Dictionary<int, string>
             {
-                [1] =
-                    "节奏型通气 —— P0 **没有任何病种**把它列进 treatable_by(T11 实测:覆盖 0 行)。" +
-                    "🔁 2026-11-10(A3-b,用户裁定「从起步集移出」):它已于本批从 " +
-                    "`StartingTechniques` 移出(现 = {0}),不再是「开局白给一个没用的动作」。" +
-                    "⚠️ **但本行不能删** —— 本门的判据是「零覆盖集 == 豁免键集」," +
-                    "与起步集无关;移出起步集**不改覆盖**,删了本条门当场转红。" +
-                    "(原文「② 把它从 StartingTechniques 移出。任一落地后删本行」是**错的**,已订正。)" +
-                    "唯一出口 = ① 给它挂上病种(改 disease_action_axis.json;A2 内容批)。",
+                // 🔁 2026-11-10(A2):原 `[1]` 条目已删 —— 技法 1 有覆盖了。
             };
 
         /// <summary>某门技法是否已登记为具名豁免。</summary>

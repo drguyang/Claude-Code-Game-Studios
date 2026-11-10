@@ -116,15 +116,15 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         // ════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_seed_content_bakes_andHasSeventeenItems()
+        public void test_seed_content_bakes_andHasTwentyThreeItems()
         {
             var bound = TutorialContentBinder.Bind(Seed());
 
             Assert.AreEqual(6, bound.Steps.Count, "六步(观察并入 ① 锚,闭集恰 6 员)");
             Assert.AreEqual(4, bound.Narration.Count, "P0 种子口述 4 条");
             Assert.AreEqual(6, bound.Demonstrations.Count, "P0 种子示范 6 条");
-            Assert.AreEqual(1, bound.Papers.Count, "P0 种子纸 1 条");
-            Assert.AreEqual(17, bound.ContentItemCount, "GDD 内容债口径:6 + 4 + 6 + 1 = 17");
+            Assert.AreEqual(7, bound.Papers.Count, "P0 纸 7 条(2026-11-10 A4:望诊 1 + 技法页 6)");
+            Assert.AreEqual(23, bound.ContentItemCount, "内容债口径:6 步 + 4 口述 + 6 示范 + 7 纸 = 23(A4 起 17 → 23)");
             // 🔁 2026-11-09(T8):1 → 2。`papers[]` 行尾追加了 `teach_technique:i32`,
             //    48 的载荷布局领先全局 `CookedFormat.SchemaVersion` 一格 ⇒
             //    `TutorialContentSchema.ExpectedSchemaVersion` 自此自带版本号(不再绑全局常量)。
@@ -588,7 +588,11 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_check1_aspectRatioMalformed_throws()
         {
-            string json = Mutate(Seed(), "\"aspectRatio\": \"4:3\"", "\"aspectRatio\": \"4x3\"");
+            // 🔁 2026-11-10(A4):纸由 1 张变 7 张 ⇒ `"aspectRatio": "4:3"` 不再唯一(7 处)。
+            //    锚点改成「aspectRatio + 望诊那张的 illustrationKey」组合 —— 后者全表唯一。
+            string json = Mutate(Seed(),
+                "\"aspectRatio\": \"4:3\",\n      \"illustrationKey\": \"paper_wangzhen_01_v1\"",
+                "\"aspectRatio\": \"4x3\",\n      \"illustrationKey\": \"paper_wangzhen_01_v1\"");
             var ex = AssertThrowsTagged(json, "[①]");
             StringAssert.Contains("aspectRatio", string.Join("\n", ex.Errors));
         }
@@ -597,7 +601,9 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         public void test_check1_aspectRatioZeroSegment_throws()
         {
             // 「两段正整数」的另一半:0 不是正数 ⇒ 拒(只测格式会漏掉这条)
-            string json = Mutate(Seed(), "\"aspectRatio\": \"4:3\"", "\"aspectRatio\": \"4:0\"");
+            string json = Mutate(Seed(),
+                "\"aspectRatio\": \"4:3\",\n      \"illustrationKey\": \"paper_wangzhen_01_v1\"",
+                "\"aspectRatio\": \"4:0\",\n      \"illustrationKey\": \"paper_wangzhen_01_v1\"");
             AssertThrowsTagged(json, "[①]");
         }
 

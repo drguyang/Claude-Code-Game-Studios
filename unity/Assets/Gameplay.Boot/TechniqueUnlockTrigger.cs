@@ -17,6 +17,9 @@
 //    `world_poi.json` 只有 `{poi_id, type}`(**没有**状态词表)· `52_event_pool.json`
 //    只有数字 key + 权重 · 病例侧**没有**「病种 → 技法」映射。⇒ 规则行是**内容**,
 //    归内容轮 —— 与 `TechniqueUnlockBootstrap.StartingTechniques`(`:36`)逐字同格。
+//    🔁 **2026-11-10(A5)**:① 的一半已消解 —— 事件的语义登记进了
+//    `52_event_pool.json` 的 `_note`,本表因此有了三条 Event 源规则;
+//    POI 状态词表与「病种 → 技法」映射仍未裁。
 // ② **同族先例**:本子系统的内容本来就住代码常量(起步集)。同一件事两种载体 = 第二套口径。
 // ③ **零行为的管线是负资产**:今日若造 baked artifact,要动六处(源 JSON / binder /
 //    cooked 写器 / 运行时 codec / Addressables 组 + meta / 漂移门哨兵)去运一张**空表**,
@@ -150,6 +153,13 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// 生产规则表 —— **今日零行**。
     /// </summary>
     /// <remarks>
+    /// <para>🔁 <b>2026-11-10(A5)订正</b>:上句「今日零行」已不成立 —— 本表自本批起有
+    /// **三条 Event 源规则**(见 <see cref="TechniqueUnlockRules.Default"/>)。下文是
+    /// **T9 起草时**的口径,原样保留作历史;「为什么可以是空的」那段的答案(
+    /// 交付的是机制不是内容)仍然成立,只是内容这半边已经补上了。</para>
+    /// <para>🔁 **2026-11-10 另一处订正**:下段「值域今日无机械门」也已被 T12 推翻 ——
+    /// `TechniqueUnlockRuleValidator` + `technique_side_gap_gate_test` ⑤ 现在会逐条校验
+    /// 三类源 id 是否落在各自的真表里。</para>
     /// <para><b>为什么可以是空的</b>:本件交付的是**机制**,不是内容。空表 ⇒ 驱动零扫描、
     /// 零写入、零开销;补一行就活。这不是「未实现」,是「内容未裁定」——
     /// 两者在代码上同形,在报告里必须分开写。</para>
@@ -169,8 +179,41 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </remarks>
     public static class TechniqueUnlockRules
     {
-        /// <summary>生产规则集(空 ⇒ 驱动不扫描)。</summary>
+        /// <summary>生产规则集(2026-11-10 A5 起三条;此前为空)。</summary>
+        /// <remarks>
+        /// <para>🔁 <b>2026-11-10(A5,用户裁定「照准」)</b>:本表由空表变成三条 **Event 源**规则。
+        /// 事件 key 的语义登记在 <c>assets/data/52_event_pool.json</c> 的 <c>_note</c>
+        /// (池本身只存数字 key,语义原先全库零处)。</para>
+        /// <para><c>minTier = -1</c> = 任意档 —— 池里的 <c>tier</c>(threat / opportunity / reaction)
+        /// 到 <c>EventArrivedPayload.Tier</c> 的 ordinal 映射今日没有权威件,
+        /// 设下限会造出「配置看着对、却永远不触发」的静默失效。</para>
+        /// <para>⚠️ <b>三条今日都不会触发</b>:52 的运行期链路被
+        /// <c>TD-randomevents-05</c>(上下文门硬编码 false ⇒ 恒 <c>NoContext</c>)与
+        /// ADR-039 §R3(生产候选池为空 ⇒ 恒 <c>NoPool</c>)挡着。本表落地的是
+        /// 「规则有内容」,**不是**「技能够解锁了」—— 与 `ChapterAdvanced` 同一口径。</para>
+        /// </remarks>
         public static readonly IReadOnlyList<TechniqueUnlockRule> Default =
-            Array.Empty<TechniqueUnlockRule>();
+            new[]
+            {
+                // ── Event 源(三条)—— 语义登记在 `52_event_pool.json` 的 `_note` ──
+                // 「打摆子」(第三章)—— 疟疾病人上门 ⇒ 学会金鸡纳皮
+                TechniqueUnlockRule.ForEvent(2002, -1, 12),
+                // 「热性惊厥」(第三章)—— 抽搐的孩子 ⇒ 学会节奏型通气
+                TechniqueUnlockRule.ForEvent(2003, -1, 1),
+                // 「溃兵军医」(第四章)—— 心衰病人 + 军医药箱 ⇒ 学会毛地黄
+                TechniqueUnlockRule.ForEvent(2004, -1, 11),
+
+                // ── Case 源(两条)—— ⚠️ 这两条是**今天唯一真的会触发**的规则 ──
+                //   `CaseClosed` 是三条源里唯一活着的事件源:`EventArrived` 压在 52 的死链后面
+                //   (`TD-randomevents-05` / ADR-039 §R3),`PoiStateChanged` 缺状态词表。
+                //   ⇒ 把「处置完一个现在还治得动的病」接成成长链,是 P0 里唯一能让玩家
+                //     **真的学会一门技法**的路径。
+                //   链:止血(起步集)处置刀伤 → 学会清创 → 咬伤/钝击/破伤风可投放
+                //       → 清创处置咬伤 → 学会蛇伤处置 → 蛇毒可投放
+                //   ⚠️ 两条都**不循环**:被触发的那门技法,处置它自己那条病种时不需要它
+                //      (刀伤由技法 0 处置;咬伤由技法 2 处置)。
+                TechniqueUnlockRule.ForCase(2, 2),   // INJ_STAB(刀伤)→ 清创缝合
+                TechniqueUnlockRule.ForCase(6, 3),   // INJ_BITE(咬伤)→ 蛇伤处置
+            };
     }
 }

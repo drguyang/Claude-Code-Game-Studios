@@ -28,6 +28,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] RootKeys =
         {
             "schema_version", "night_threat_mult", "tod_mult_max", "entries",
+            // 🔁 2026-11-10(A5):`_note` = **语义登记**键,不进 cooked 载荷。
+            //   池只存数字 key,「哪个 key 是哪个奇遇」原先全库零处 —— A5 把它登记在这里。
+            //   与 `emergency_action.json` / `disease_action_axis.json` 的 `_note` 同形
+            //   (那两个 binder 早已白名单该键);不加它就会被未知键门拒收。
+            "_note",
         };
 
         private static readonly string[] EntryKeys =

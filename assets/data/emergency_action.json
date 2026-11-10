@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "_note": "急救动作表(GDD design/gdd/emergency-procedures.md :843 的 10-DC 数据契约)。本文件是动作行的唯一作者态真源;运行时经 ADR-014 两阶段烘焙成 emergency_action.cooked.bytes。",
+  "_note": "急救动作表(GDD design/gdd/emergency-procedures.md :843 的 10-DC 数据契约)。本文件是动作行的唯一作者态真源;运行时经 ADR-014 两阶段烘焙成 emergency_action.cooked.bytes。 🔁 2026-11-10(A1,用户裁定「照准」):九格数值照准草案落定 —— 通气 = 节奏(三下、按得久、衰减慢)· 清创 = 外科(幅度门最高、两拍)· 蛇伤 = 制动加压(单拍、药效最长)。⚠️ polarity 一律取 2(平),与动作 0 同格;处置轴里这三门都是 symptomatic —— 给伤情 / 破伤风填 causal 会把 handle 从 symptomatic_only / none 改判成 causal,那是改裁决不是补数据。数值仍归用户,改它只改本文件。",
   "_note_result_mul": "result_mul 按 JudgeResult 序数索引(Missed=0 / AppliedWeak=1 / Applied=2),三档为 AC-10-16 已裁定值 {1/4, 1/2, 1};构建期会逐值比对,漂移即拒收(OQ-10-1 已裁非零,改回 0 须重开该 OQ)。",
-  "_note_missing_rows": "动作 1/2/3 的 id 空间已开(OQ-10-4 二次裁定 2026-11-09),但其动作行**尚未裁定数值**。缺行时生产侧会响亮拒绝(EmergencyActionTable.Require),不会静默回退动作 0。",
+  "_note_missing_rows": "✅ 2026-11-10(A1,用户裁定「照准」):动作 1/2/3 的行已补齐,本节原记的「尚未裁定数值」不再成立。缺行时会响亮拒绝(EmergencyActionTable.Require),该守卫保留 —— 它是「有人加了新动作 id 却忘了加行」的防线。",
   "rows": [
     {
       "action_id": 0,
@@ -13,7 +13,56 @@
       "min_hold_ticks": 5,
       "half_life_ticks": 100,
       "duration_ticks": 200,
-      "result_mul": ["1/4", "1/2", "1"]
+      "result_mul": [
+        "1/4",
+        "1/2",
+        "1"
+      ]
+    },
+    {
+      "action_id": 1,
+      "polarity": 2,
+      "base_potency": "1",
+      "mag_threshold": 50,
+      "min_edges": 3,
+      "min_hold_ticks": 10,
+      "half_life_ticks": 150,
+      "duration_ticks": 300,
+      "result_mul": [
+        "1/4",
+        "1/2",
+        "1"
+      ]
+    },
+    {
+      "action_id": 2,
+      "polarity": 2,
+      "base_potency": "1",
+      "mag_threshold": 60,
+      "min_edges": 2,
+      "min_hold_ticks": 8,
+      "half_life_ticks": 120,
+      "duration_ticks": 240,
+      "result_mul": [
+        "1/4",
+        "1/2",
+        "1"
+      ]
+    },
+    {
+      "action_id": 3,
+      "polarity": 2,
+      "base_potency": "1",
+      "mag_threshold": 50,
+      "min_edges": 1,
+      "min_hold_ticks": 5,
+      "half_life_ticks": 200,
+      "duration_ticks": 400,
+      "result_mul": [
+        "1/4",
+        "1/2",
+        "1"
+      ]
     }
   ]
 }

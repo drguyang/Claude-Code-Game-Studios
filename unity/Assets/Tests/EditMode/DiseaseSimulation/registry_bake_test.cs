@@ -394,15 +394,17 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         }
 
         [Test]
-        public void test_diseaseActionAxis_has15TreatableByRelations()
+        public void test_diseaseActionAxis_has17TreatableByRelations()
         {
             // AC-9-03: treatable_by 关系 = 7 条非空关系 + 2 个空数组病种(DIS_TETANUS / DIS_NEURASTHENIA)
             // 🔁 2026-11-05:6 → 7(新增 DIS_FEBRILE_SEIZURE → 柳树皮 symptomatic,P0 病种上限 8 → 9)
             // 🔁 2026-11-09(T7):7 → **15**。`disease_action_axis.json` 的 treatable_by 段
             //    现 16 个键、共 15 条关系行(DIS_NEURASTHENIA 仍为空数组)。
             //    增量 = 破伤风 1 + 蛇毒 1 + 伤情 6(INJ_DRUG_HARM 刻意留空:自限型药毒无处置)。
+            // 🔁 2026-11-10(A2):15 → **17**。`DIS_FEBRILE_SEIZURE` / `DIS_HEART_FAILURE`
+            //    各追加一条 `action 1`(节奏型通气)—— 键数不变(16),关系行 +2。
             var result = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
-            Assert.AreEqual(15, result.TreatableBy.Count, "treatable_by 应有 15 条非空关系");
+            Assert.AreEqual(17, result.TreatableBy.Count, "treatable_by 应有 17 条非空关系(A2 起)");
         }
 
         [Test]

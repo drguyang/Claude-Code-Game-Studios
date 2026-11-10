@@ -55,7 +55,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
         {
             EventPoolBinder.BindResult bound = EventPoolBinder.Bind(File.ReadAllText(SourcePath));
 
-            Assert.That(HouseCallKeys(bound.Entries), Is.EqualTo(new[] { 2002, 2003 }),
+            Assert.That(HouseCallKeys(bound.Entries), Is.EqualTo(new[] { 2002, 2003, 2004 }),
                 "真表 `is_house_call = true` 的条目 —— 装配层据此派生 `houseCallEventKeys`," +
                 "不再传 `Array.Empty<int>()`(改前那个写法让 `ActiveHouseCallQuery` 恒假)");
         }
@@ -146,7 +146,7 @@ namespace DaYiJingCheng.Tests.RandomEvents
 
             // 装配层取的就是这个方法(`CompositionRoot`: `houseCallEventKeys = eventPool.HouseCallKeys()`)
             // ⇒ 本条同时证「生产派生路径」,不是另写一份等价遍历。
-            Assert.That(decoded.HouseCallKeys(), Is.EqualTo(new[] { 2002, 2003 }),
+            Assert.That(decoded.HouseCallKeys(), Is.EqualTo(new[] { 2002, 2003, 2004 }),
                 "解出的池表经 `HouseCallKeys()` 必须给出同一组 —— 装配层就靠它填整数集");
         }
 
@@ -181,6 +181,8 @@ namespace DaYiJingCheng.Tests.RandomEvents
                 new EventPoolEntryData(3001, 100, 2, 0, 0, PoolHandler.Medical, 0, isHouseCall: false, diseaseId: 11),
             }, 3, 2, 2, 1, 0u, 2u);
 
+            // ⚠️ 本条用的是**夹具自造池**(三条:2002 / 2003 / 3001),不是真表 ⇒
+            //    2026-11-10 加真表条目 2004 时**本行不该跟着改**(那次替换曾误伤到这里)。
             Assert.That(pool.HouseCallKeys(), Is.EqualTo(new[] { 2002, 2003 }),
                 "集合按池表序(= key 升序)⇒ 确定性判据的一部分,不许另排一次");
         }

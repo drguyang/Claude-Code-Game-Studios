@@ -272,7 +272,9 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
 
             // ⚠️ 6 = 4 件伤情(技法 0)+ 2 行**未声明**(`DIS_NEURASTHENIA` / `INJ_DRUG_HARM`,
             //    它们在空技法集下也放行)。**不含任何一种病** —— 10 个病种全要技法 2/3/10/11/12。
-            Assert.That(starter.Count, Is.EqualTo(6),
+            // 🔁 2026-11-10:6 → **8**。起步集回补了技法 1(A3-b 的前提被 A2 消掉),
+            //    而 A2 给技法 1 挂了热性惊厥 / 心衰两个病种 ⇒ 开局**第一次有可投放的病种**。
+            Assert.That(starter.Count, Is.EqualTo(8),
                 "开局面变了 —— 复核 R1(map §8)并更新 T11 证据件 §2 的表");
         }
 
@@ -302,7 +304,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         /// 补一行 `treatable_by` 或给某个病种加它,本条的期望值才该改。</para>
         /// </summary>
         [Test]
-        public void test_realData_techniqueOneCoversNothing()
+        public void test_realData_techniqueOneCoversTwoRows()
         {
             DrawSurfaceReport report = RealReport();
 
@@ -312,8 +314,9 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 if (c.TechniqueId == 1) { found = true; rows = c.RowCount; break; }
 
             Assert.IsTrue(found, "技法 1 必须出现在覆盖表里(传了 actionIds ⇒ 零覆盖也要列出)");
-            Assert.That(rows, Is.EqualTo(0),
-                "技法 1(节奏型通气)今日覆盖 0 行 —— 内容缺口,补数据后更新本值");
+            Assert.That(rows, Is.EqualTo(2),
+                "🔁 2026-11-10(A2):技法 1 覆盖 2 行(DIS_FEBRILE_SEIZURE / DIS_HEART_FAILURE)。\n" +
+                "本条原写 0(内容缺口);补数据后按「红了就复核内容再更新」的纪律改到这里。");
         }
 
         /// <summary>把整张表打进测试输出(证据件的复算来源)。</summary>

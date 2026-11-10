@@ -69,14 +69,14 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         public void test_sourceAndProduct_agreeOnRowSet()
         {
             EmergencyActionBinder.BindResult bound = Bound();
-            Assert.That(bound.Rows.Count, Is.EqualTo(1), "今日只裁定了动作 0(止血包扎)");
+            Assert.That(bound.Rows.Count, Is.EqualTo(4), "A1(2026-11-10):动作 0/1/2/3 四行已齐");
             Assert.That(bound.Rows[0].ActionId, Is.EqualTo(0));
 
             EmergencyActionBaker.BakeOutput baked = EmergencyActionBaker.BakeFromJson(Seed());
             // 抛形:解码失败各自抛 E-13,不需要断言返回值
             EmergencyActionDataSet ds = EmergencyActionCookedCodec.Read(baked.Cooked);
 
-            Assert.That(ds.Rows.Count, Is.EqualTo(1));
+            Assert.That(ds.Rows.Count, Is.EqualTo(4));
             Assert.That(ds.Rows[0].ActionId, Is.EqualTo(0));
             Assert.That(ds.SchemaVersion, Is.EqualTo(EmergencyActionCookedCodec.ExpectedSchemaVersion));
         }
@@ -221,7 +221,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             EmergencyActionDataSet ds = DataCookedDisk.LoadEmergencyActions();
             var table = new EmergencyActionTable(ds.Rows);
 
-            Assert.That(table.Count, Is.EqualTo(1));
+            Assert.That(table.Count, Is.EqualTo(4));
             Assert.That(table.Require(0).BasePotency, Is.EqualTo(65536), "动作 0 的 base_potency = 1.0");
         }
     }
