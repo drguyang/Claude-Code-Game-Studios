@@ -121,7 +121,7 @@ namespace DaYiJingCheng.Tests.SkillSystem
             //    当日先落 A5 的三条 **Event 源**规则,再补两条 **Case 源**规则
             //    (P0 里唯一真的会触发的源,见 `TechniqueUnlockRules.Default` 的 remarks)
             //    ⇒ 本条改为钉住**两个源各自的成员**(而不是「非空」这种弱断言)。
-            Assert.That(TechniqueUnlockRules.Default.Count, Is.EqualTo(5), "三条 Event + 两条 Case");
+            Assert.That(TechniqueUnlockRules.Default.Count, Is.EqualTo(6), "三条 Event + 三条 Case");
             Assert.That(TechniqueUnlockRules.Default.Select(r => r.SourceKind).Distinct().ToArray(),
                 Is.EquivalentTo(new[] { TechniqueUnlockSourceKind.Event, TechniqueUnlockSourceKind.Case }),
                 "P0 不用 Poi 源 —— `world_poi.json` 没有状态词表,填 Poi 规则必悬空");
@@ -135,10 +135,10 @@ namespace DaYiJingCheng.Tests.SkillSystem
 
             TechniqueUnlockRule[] cs = TechniqueUnlockRules.Default
                 .Where(r => r.SourceKind == TechniqueUnlockSourceKind.Case).ToArray();
-            Assert.That(cs.Select(r => r.SourceId).ToArray(), Is.EqualTo(new[] { 2, 6 }),
-                "INJ_STAB(刀伤)/ INJ_BITE(咬伤)");
-            Assert.That(cs.Select(r => r.TechniqueId).ToArray(), Is.EqualTo(new[] { 2, 3 }),
-                "清创缝合 / 蛇伤处置");
+            Assert.That(cs.Select(r => r.SourceId).ToArray(), Is.EqualTo(new[] { 2, 6, 17 }),
+                "INJ_STAB(刀伤)/ INJ_BITE(咬伤)/ DIS_FEBRILE_SEIZURE(惊厥)");
+            Assert.That(cs.Select(r => r.TechniqueId).ToArray(), Is.EqualTo(new[] { 2, 3, 10 }),
+                "清创缝合 / 蛇伤处置 / 柳树皮");
         }
 
         // ════════════════════════════════════════════════════════════════

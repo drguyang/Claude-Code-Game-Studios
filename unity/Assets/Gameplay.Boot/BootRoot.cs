@@ -584,6 +584,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   🔁 2026-11-10(A5):规则表已有**三条 Event 源规则**,上句「为空」不再成立。
             //      驱动照常每 tick 扫描;但 52 的运行期链路被 `TD-randomevents-05` /
             //      ADR-039 §R3 挡着 ⇒ **今日仍不会写任何一条解锁事件**。
+            //   🔁 **2026-11-10(T17)再订正** —— 上一行那句「仍不会写」也已不成立:
+            //      两笔债都结案了(上下文门 2026-11-05 接真值 / 池表已落 10 条),
+            //      端到端实测(`random_events_end_to_end_day_test`)里,第一天抽中 2004
+            //      就写出了一条 `TechniqueUnlocked`(技法 11 毛地黄)。⇒ 本驱动今日
+            //      **会**真的解锁,触发与否取决于当日掷骰与投放资格。
             _services.TechniqueUnlockDriver = new TechniqueUnlockDriver(
                 _services.Stream, _services.Decoder,
                 TechniqueUnlockRules.Default, _services.TechniqueUnlockWriter, actorId);

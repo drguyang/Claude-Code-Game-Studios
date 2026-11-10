@@ -141,8 +141,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             //    ⚠️ 本测仍**不**证明它们会触发(52 的上下文门 / 候选池挡着)——
             //    变的只是「驱动拿到的是不是那张真表」这件事有内容可数了。
             object ruleCount = driver.GetType().GetProperty("RuleCount")?.GetValue(driver);
-            Assert.AreEqual(5, (int)ruleCount,
-                "三条 Event 源(2002 金鸡纳 / 2003 通气 / 2004 毛地黄)+ 两条 Case 源(刀伤→清创 / 咬伤→蛇伤)");
+            Assert.AreEqual(6, (int)ruleCount,
+                "三条 Event 源(2002 金鸡纳 / 2003 通气 / 2004 毛地黄)+ 三条 Case 源(刀伤→清创 / 咬伤→蛇伤 / 惊厥→柳树皮)");
         }
 
         private bool ReadBooted()

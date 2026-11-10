@@ -179,7 +179,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </remarks>
     public static class TechniqueUnlockRules
     {
-        /// <summary>生产规则集(2026-11-10 A5 起三条;此前为空)。</summary>
+        /// <summary>生产规则集(2026-11-10:三条 Event 源 + 三条 Case 源;此前为空)。</summary>
         /// <remarks>
         /// <para>🔁 <b>2026-11-10(A5,用户裁定「照准」)</b>:本表由空表变成三条 **Event 源**规则。
         /// 事件 key 的语义登记在 <c>assets/data/52_event_pool.json</c> 的 <c>_note</c>
@@ -187,10 +187,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para><c>minTier = -1</c> = 任意档 —— 池里的 <c>tier</c>(threat / opportunity / reaction)
         /// 到 <c>EventArrivedPayload.Tier</c> 的 ordinal 映射今日没有权威件,
         /// 设下限会造出「配置看着对、却永远不触发」的静默失效。</para>
-        /// <para>⚠️ <b>三条今日都不会触发</b>:52 的运行期链路被
-        /// <c>TD-randomevents-05</c>(上下文门硬编码 false ⇒ 恒 <c>NoContext</c>)与
-        /// ADR-039 §R3(生产候选池为空 ⇒ 恒 <c>NoPool</c>)挡着。本表落地的是
-        /// 「规则有内容」,**不是**「技能够解锁了」—— 与 `ChapterAdvanced` 同一口径。</para>
+        /// <para>🔁 <b>2026-11-10(T17)订正 —— 原文写「三条今日都不会触发」,该判断已不成立。</b>
+        /// 它依据的两个前提都已在此前被消掉:<c>TD-randomevents-05</c>(上下文门硬编码 false)
+        /// 于 2026-11-05 结案,`F1ContextEvaluator` 改读真状态;ADR-039 §R3(生产候选池为空)
+        /// 随池条目件落地消失(今日 10 条)。**实测**(`random_events_end_to_end_day_test`,
+        /// 真产物 + 真 tick 泵):世界种子 `0xA11CE` 的第一天抽中 **2004**,于是
+        /// `EventArrived(2004)` → 本表第三条写出 **技法 11(毛地黄)**。
+        /// ⇒ 三条 Event 源里**这一条今天真的会触发**;另两条抽不抽得到取决于当日掷骰,
+        /// 不是「不会」,而是「看这一局抽到什么」。</para>
         /// </remarks>
         public static readonly IReadOnlyList<TechniqueUnlockRule> Default =
             new[]
@@ -203,17 +207,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 「溃兵军医」(第四章)—— 心衰病人 + 军医药箱 ⇒ 学会毛地黄
                 TechniqueUnlockRule.ForEvent(2004, -1, 11),
 
-                // ── Case 源(两条)—— ⚠️ 这两条是**今天唯一真的会触发**的规则 ──
-                //   `CaseClosed` 是三条源里唯一活着的事件源:`EventArrived` 压在 52 的死链后面
-                //   (`TD-randomevents-05` / ADR-039 §R3),`PoiStateChanged` 缺状态词表。
-                //   ⇒ 把「处置完一个现在还治得动的病」接成成长链,是 P0 里唯一能让玩家
-                //     **真的学会一门技法**的路径。
-                //   链:止血(起步集)处置刀伤 → 学会清创 → 咬伤/钝击/破伤风可投放
-                //       → 清创处置咬伤 → 学会蛇伤处置 → 蛇毒可投放
-                //   ⚠️ 两条都**不循环**:被触发的那门技法,处置它自己那条病种时不需要它
-                //      (刀伤由技法 0 处置;咬伤由技法 2 处置)。
-                TechniqueUnlockRule.ForCase(2, 2),   // INJ_STAB(刀伤)→ 清创缝合
-                TechniqueUnlockRule.ForCase(6, 3),   // INJ_BITE(咬伤)→ 蛇伤处置
+                // ── Case 源(三条)—— **不依赖 52** 的成长链 ──
+                //   `EventArrived` 那条路要靠 52 的运行期链路(池 / 预算 / 上下文门)才来;
+                //   `PoiStateChanged` 缺状态词表,今日零生产者。⇒ 把「处置完一个现在还治得动的病」
+                //   接成成长链,是 P0 里**玩家自己按得住**的那条路。
+                //   ⚠️ 三条都**不循环**:被触发的那门技法,处置触发它的那条病种时用不上 ——
+                //      刀伤由技法 0 处置;咬伤由技法 2 处置;惊厥由技法 1(起步集)处置。
+                TechniqueUnlockRule.ForCase(2, 2),    // INJ_STAB(刀伤)→ 清创缝合
+                TechniqueUnlockRule.ForCase(6, 3),    // INJ_BITE(咬伤)→ 蛇伤处置
+                // 🔁 **2026-11-10(T17 丙)**:热性惊厥 → 柳树皮(10)。
+                //   病因:技法 10 今天**没有任何解锁路径** —— 三条 Event 源里没有它,
+                //   而它覆盖的四个病种(风湿热 / 伤寒 / 麻疹 / 痢疾)在 `treatable_by` 里
+                //   **只有它一门** ⇒ 那四行永久锁死,`PatientDrawEligibility` 恒判
+                //   `NoUnlockedTechnique`。挂到惊厥上是因为**惊厥还治得动**:
+                //   `DIS_FEBRILE_SEIZURE` 声明了 `{10, 1}`,而 1 在起步集 ⇒ 这类病人
+                //   开局就会出现、能被处置完、结案 —— 于是「退了热」这门手艺就学到了。
+                TechniqueUnlockRule.ForCase(17, 10),  // DIS_FEBRILE_SEIZURE(惊厥)→ 柳树皮
             };
     }
 }
