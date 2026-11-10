@@ -18000,3 +18000,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   加注:`HookCasePolicy.cs` / `ChapterAdvanceWriter.cs`(两处「零生产者」原陈述保留)。
 - **T20 第二批待做**:丙 = 独立结案页 + 纸面墨勾(用户已选),须先落 39 `OQ-CB-7` 结案行 +
   §7 动作表 + §8 Events Fired,再上 42(含 `ModalId` 闭集增员与 `AC-42-F1` 同步)。
+
+### 第 9 轮(T20 第二批 · 用户裁「丙 = 独立结案页 + 纸面墨勾」)
+
+- **补的断点**:`AC-37-04`(BLOCKING)要的「玩家勾选『已处置』」这个自述动作**没有载体**
+  (`OQ-CB-7`,2026-10-20 登记)。T19 的 `C` 一键即结 = **隐式**自述,与 GDD「勾选」不等。
+- **形态裁定**:39 §5.3 禁「复选框」vs GDD 字面「勾选」⇒ 取**纸面墨勾**(墨侧允许手法,
+  与折边 / 铅笔小勾同族);独立屏(脉案五通道焦点序已满,且结案不可撤销)。
+  入口 = `C` 改为**开结案页**(T19 的一键语义退役为 `TryClose` 缺省参数);拒绝 = **一行淡墨字**。
+- **落地**:`ModalId.CaseClose = 10`(第十员)+ 屏表两处 + `CaseCloseScreen` +
+  `CaseClosePresenter` + `BootRoot` 换路由 + `CaseCloseDriver` 收 `isChecked` 参数(缺省 true)。
+- **文档**:ADR-013 **§十-F Amendment E** · `skeuomorphic-ui.md` 闭集九→十 + `AC-42-F1` ⑩ ·
+  **新 spec** `design/ux/case-close-42.md`(**Draft,未经 /ux-review** ⇒ ⑩ 记 `NOT-RUN`)。
+- **⚠️ 闭集同步面 = 四处,不是三处**:`dentch_input_test`(其注释早写着「本轮漏改过本处」)
+  **本批我又漏了**,由 PlayMode 全量 `failed=1` 抓出。已把「四处」写进该处注释。
+- **判据**:新 EditMode `case_close_screen_test` **7 条**(不开空页 / 开屏绑定 / 墨勾落擦 /
+  未勾被拒留页 / 勾+有处置真结案 / 取消零写 / 叠栈恢复)。
+- **证伪轮 4 变异各红 1 条**(忽略墨勾 / 被拒也合页 / 墨勾不可擦 / 不查开着的病例),
+  SHA-256 两件还原「成功」。
+- **回归**:EditMode `7392 / 7355 / 0 / 0 / 37` @ `09:11:26Z`–`09:13:31Z` ·
+  PlayMode `376 / 371 / 0 / 2 / 3` @ `09:16:44Z`–`09:17:05Z` · `998692e2` + 工作树。
+  等式 `7392 − 7385 = 7`;PlayMode 零变化。
+- **未覆盖(禁借绿)**:① UI 事件绑定未验(EditMode 无 PanelSettings ⇒ `SendEvent` 不派发,
+  夹具走公开入口);② `AC-42-F1` ⑩ + `AC-CC-01…08` 全 `NOT-RUN`;③ 视觉未截图;
+  ④ `C` 语义变更只有真包能体会。
+- 证据:`production/qa/evidence/impl-t20b-case-close-page-2026-11-10.md`。

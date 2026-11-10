@@ -396,6 +396,14 @@
   `TextureBindingGates.AssetResolves` 优先按 **USS 目录**解析相对路径(原只按仓库根,会把合法路径判悬空)。
   ⚠️ **只挂了存档册页**;其余页级容器仍无框 ⇒ `TD-skeuo-09`。冻结轮「重画即重测重冻」未执行 ⇒ `TD-skeuo-10`。
   Engine Knowledge Risk **LOW**(纯 USS 语法与资源解析,依据是实测日志而非文档推断)。
+  **⚠️ 2026-11-10 §十-F Amendment E(T20 第二批 · 用户裁定「丙 · 独立结案页 + 纸面墨勾」)** ——
+  闭集 **九 → 十**,增 **`CaseClose`**(37 的结案形态;载体 = `casebook-39.md:370` 的 `OQ-CB-7`)。
+  「勾选」vs §5.3 禁「复选框」的裁定 = **纸面墨勾**(墨侧允许手法,屏上无复选框元素)。
+  同步面 = `ModalId` / `ModalScreenNames` / `ScreenFactories` / `AC-42-F1` ⑩ / 闭集基数断言 **四处**
+  (`dto_boundary_and_modal_test` · `modal_gate_test` · `dentch_input_test` · `modal_toggle_closure_test` 枚举驱动无需改)。
+  ⚠️ **`AC-42-F1` ⑩ 记 `NOT-RUN`**:`design/ux/case-close-42.md` 是本轮**新写、未经 `/ux-review`** 的 spec。
+  ⚠️ **UI 事件绑定未验**:EditMode 下无 PanelSettings ⇒ `SendEvent` 不派发,夹具走屏上公开入口。
+  Engine Knowledge Risk **LOW**(纯枚举成员 + 屏目录登记 + 标准 `RegisterCallback`)。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。

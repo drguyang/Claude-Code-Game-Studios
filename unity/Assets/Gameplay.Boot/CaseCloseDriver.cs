@@ -77,7 +77,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 位序 `DiseaseId − 1`)。**不用**开案快照 —— 它在生产上恒为空集
         /// (`CaseOpenedDriver.TryOpen` 传 `default`),见 `CaseStreamQuery` 头注。</para>
         /// </remarks>
-        public CaseCloseWriteResult TryClose(PatientId patient)
+        /// <param name="isChecked">玩家是否已在结案页**落墨勾**(「已处置」的自述)。
+        /// 🔁 2026-11-10(T20):原实现永远传 <c>true</c>(按键即自述);独立结案页落地后由屏给出。
+        /// 缺省 <c>true</c> 保留原行为,只为不打断既有夹具与「无屏快捷键」路径。</param>
+        public CaseCloseWriteResult TryClose(PatientId patient, bool isChecked = true)
         {
             if (patient.IsNone) return CaseCloseWriteResult.RejectNotOpen;
 
@@ -91,7 +94,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             DiseaseIdSet diseaseSet = CaseStreamQuery.DiseaseSetOf(_events(), _decoder, patient);
 
             // isChecked = 玩家按下「结案」即自述已处置;证据那半边仍由写者查流(见文件头)。
-            return _writer.TryClose(_tick(), caseId, diseaseSet, isChecked: true);
+            return _writer.TryClose(_tick(), caseId, diseaseSet, isChecked);
         }
     }
 }

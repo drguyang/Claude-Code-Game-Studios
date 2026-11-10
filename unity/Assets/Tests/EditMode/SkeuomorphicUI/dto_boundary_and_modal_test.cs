@@ -79,7 +79,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         public void test_modal_id_enum_has_seven_members_plus_none()
         {
             var values = System.Enum.GetValues(typeof(ModalId));
-            Assert.AreEqual(10, values.Length); // None + 9 members(🔁 原 None + 8,再原 None + 7)
+            Assert.AreEqual(11, values.Length); // None + 10 members(🔁 原 None + 9,再原纯 8,再原纯 7)
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.None));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Casebook));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.SaveSlots));
@@ -90,6 +90,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.PaperCloseup48));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Pause));
             Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.Processing));
+            Assert.IsTrue(System.Enum.IsDefined(typeof(ModalId), ModalId.CaseClose));
         }
 
         // 闭集编号的连续性:Amendment C 的新员必须**接在末尾**,不得插队重编号 ——
@@ -98,11 +99,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_modal_id_enum_member_count_matches_adr()
         {
-            Assert.AreEqual(10, System.Enum.GetValues(typeof(ModalId)).Length,
-                "ADR-013 §十 现行闭集 = None + 9 员;改动须先改 ADR,再改本判据");
+            Assert.AreEqual(11, System.Enum.GetValues(typeof(ModalId)).Length,
+                "ADR-013 §十 现行闭集 = None + 10 员(第十员 CaseClose · T20);改动须先改 ADR,再改本判据");
             Assert.AreEqual(8, (int)ModalId.Pause, "新员必须接在末尾(不得插队重编号)");
             Assert.AreEqual(9, (int)ModalId.Processing,
                 "🔁 2026-11-02 Amendment D:第九员接在末尾 = 9(插队会让序列化过的场景指向错的屏)");
+            Assert.AreEqual(10, (int)ModalId.CaseClose,
+                "🔁 2026-11-10 T20:第十员接在末尾 = 10(同上:插队 = 序列化过的场景指向错的屏)");
         }
 
         [Test]

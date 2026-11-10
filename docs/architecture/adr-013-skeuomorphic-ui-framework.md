@@ -848,3 +848,43 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 `Gameplay.Presentation` 侧 `IModalGateState` 仍是「只有一个布尔」形态(4 仍看不到成员清单,AC-4-09)。
 
 **Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记 + 纯 C# 契约,不触及任何 post-cutoff API)。
+
+### 十-F、Amendment E(2026-11-10 · 用户裁定「丙 · 独立结案页 + 纸面墨勾」)—— 闭集第十员 `CaseClose`
+
+> **本节是 Amendment,不重开 §一–§九 / §十 / §十-B…§十-E 的任何裁决。
+> 它只执行 §十 预置的同步义务。**
+
+**增员 `CaseClose`(第十员)** —— 病因:`design/ux/casebook-39.md:370` 的 **`OQ-CB-7`**:
+`casebook.md:141` 逐字写「结案页『已处置』勾选 = UI 仪式,不产生独立事件」,并把形态权判给
+**39 定形态 / 42 落地**;而 39 的 §7 动作表与 §8 Events Fired **从未收下这件事**,
+42 的 `ICasebookCommandSink` 六个命令**零结案命令**。⇒ `AC-37-04`(BLOCKING)要求存在的
+那个人动作,在 P0 里一直没有载体。
+
+**为什么是独立屏,不是脉案内的一行**:
+- 39 §5.3 明令本屏禁「**复选框**」,而 GDD 字面是「勾选」—— 形态裁定 = **纸面墨勾**
+  (墨侧允许手法,与「折边」「铅笔小勾」同族,不新增控件族、不进 UI-8.4 禁入清单);
+- 脉案页的五通道焦点序已排满(§7 的 K = 6),再塞一个动作会改动已 Approved 的焦点契约;
+- 结案是**一次性的破坏性动作**(不可撤销),独立页给得起确认距离。
+
+**同步义务(§十 六条,逐条落到本轮)**:
+1. `ModalId.CaseClose = 10`(接在末尾,旧值零位移);
+2. `SkeuoRuntimeDriver.ModalScreenNames` + `ScreenFactories` 各加一行(键 = `"CaseClose"`);
+3. 新屏 `Screens/CaseCloseScreen.cs`(墨勾行 + 结案行 + 淡墨拒绝行);
+4. 装配层 `CaseClosePresenter`(开屏 / 提交 / 合屏)—— 判定仍全在 37 的 `CaseCloseWriter`;
+5. `AC-42-F1` 闭集点名 **九 → 十**;
+6. 闭集门两处同步(`dto_boundary_and_modal_test` 10 → 11 值 · `modal_gate_test.ClosedSetMembers`)。
+
+**⚠️ 未做 / 不得借绿**:
+- **`design/ux/case-close-42.md` 是本轮新写的 spec**,未经 `/ux-review` ⇒
+  **`AC-42-F1` ⑩ 记 `NOT-RUN`**,按该 AC 的纪律**阻塞签核**(与 ⑨ 炮制屏同一处境)。
+- **UI 事件绑定未经真事件验证** —— EditMode 下 42 的 UI 根无 PanelSettings(`panel == null`),
+  `SendEvent` 不派发;判据走的是屏上的公开入口(`ActivateInkRow` / `ActivateSubmitRow`)。
+  真事件 = 真包走查,目前无走查件。
+- **`C` 键语义改变**:从「一次按键即结案」(T19)改为「开结案页」(T20 第二批)。
+  T19 的 `CaseCloseDriver.TryClose(patient)` 缺省 `isChecked = true` 仍保留该行为,
+  状语:无屏路径(如未来的快捷键)仍可直接结案。
+
+**边界**:本 Amendment **不**改写 §十-E 的炮制屏判定;`Gameplay.Presentation` 侧
+`IModalGateState` 仍是「只有一个布尔」(4 侧仍看不到成员清单,AC-4-09)。
+
+**Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记 + 标准 `RegisterCallback`,零 post-cutoff API)。

@@ -403,13 +403,18 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
             //    前两处已同步、本处漏了。教训:「闭集增员」的同步面**必须 grep 全部基数断言**,
             //    不能只改记得住的那两处。
             //    本判据的原意仍是「**方笺不增员**」—— 该原意不变,变的只是基数。
+            // 🔁 **2026-11-10(T20 第二批)**:闭集 9 员 → **10 员**(增 `CaseClose`,ADR-013 §十-F)。
+            //    ⚠️ **本轮又漏改本处**(PlayMode 全量实测 `failed=1` 抓出)—— 上一轮也漏过,
+            //    教训逐字不变:闭集增员的同步面**必须 grep 全部基数断言**,不能只改记得住的那几处。
             var names = Enum.GetNames(typeof(ModalId));
-            Assert.AreEqual(10, names.Length,
-                "ModalId = None + 9 员(🔁 原 None + 8,再原 None + 7;Amendment D 增 Processing)。");
-            Assert.AreEqual(9, names.Count(n => n != "None"), "闭集实员须为 9。");
+            Assert.AreEqual(11, names.Length,
+                "ModalId = None + 10 员(🔁 原 None + 9;Amendment E 增 CaseClose)。");
+            Assert.AreEqual(10, names.Count(n => n != "None"), "闭集实员须为 10。");
             Assert.That(names, Does.Contain("Pause"), "第八员必须是 Pause(Amendment C 裁定的那一个)");
             Assert.That(names, Does.Contain("Processing"),
                 "第九员必须是 Processing(Amendment D 裁定的那一个,`O-18-R6` 的载体)");
+            Assert.That(names, Does.Contain("CaseClose"),
+                "第十员必须是 CaseClose(Amendment E 裁定的那一个,37 的结案形态)");
             Assert.That(names, Does.Not.Contain("Prescription").And.Not.Contain("Formula"),
                 "增员**不是**方笺(§十-B:方笺 = 脉案同一本书内的一页,不增员)");
         }

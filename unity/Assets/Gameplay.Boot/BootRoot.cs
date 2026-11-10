@@ -87,6 +87,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private DaYiJingCheng.Gameplay.Presentation.DeathTransition.DownedCameraRequester
             _downedCameraRequester;
         private SkeuoRuntimeDriver _uiDriver;
+
+        /// <summary>结案页的装配层驱动(T20 第二批 · 2026-11-10)。
+        /// <para><c>null</c> = 未装配(无 UI 驱动 / 无 `CaseClosers`)⇒ 按键什么都不做。</para></summary>
+        private CaseClosePresenter _caseClosePresenter;
         /// <summary>存档位载入路由(42 确认动作 → <c>LoadSequencer</c>;启动序内装配)。</summary>
         private SaveSlotCommandRouter _saveSlotCommands;
         /// <summary>模态开合驱动(键沿 → 42 的 OpenModal / CloseModal;启动序内装配)。</summary>
@@ -864,7 +868,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //   改前 `CaseCloseWriter.TryClose` 的生产调用点 = 0 ⇒ 病例永不收口,
                 //   三条 Case 源解锁规则(技法 2 / 3 / 10)全部不可达。
                 //   「该不该结」全在写者里(四条前置);本缝只把「按键 + 最近在场病人」交过去。
-                routeClosePress: patient => _services.CaseClosers?.TryClose(patient));
+                // ⚠️ 语句 lambda:`TryOpen` 返 bool(开没开成),这里**故意不看** ——
+                //    「没开屏」= 没有开着的病例(不开空页),不是错误。
+                routeClosePress: patient => { _caseClosePresenter?.TryOpen(patient); });
             _interactionDriver = interaction;
             _pressRouter = pressRouter;
 
@@ -1059,6 +1065,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver = FindOrCreateSkeuoUi();
             if (_services.CasebookSource != null)
                 _uiDriver.Source = _services.CasebookSource;
+
+            // ── 6.0a. 结案页(T20 第二批 · 2026-11-10)──────────────────────────
+            // `C` 从「直接结案」改为「开结案页」:墨勾 = GDD 规则八的「显式勾选」,
+            // 「结案」行才真写。⚠️ 判定仍全在 37 的写者里,本件只翻译屏上意图。
+            if (_services.CaseClosers != null && _uiDriver != null)
+                _caseClosePresenter = new CaseClosePresenter(
+                    _services.CaseClosers, _uiDriver, () => _services.Stream.Events);
 
             // ── 6.0. 病人 cue 可见对应物挂载(`AC-13-F1` 达成面 · 2026-10-29 · 缺口 D)──
             // 挂载 = 纯渲染资源(42 C3)。无 UI 根(panel 未就绪 / 测试自建空壳)⇒ 不挂,
