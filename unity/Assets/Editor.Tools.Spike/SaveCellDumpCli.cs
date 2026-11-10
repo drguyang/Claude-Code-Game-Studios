@@ -11,17 +11,29 @@
 //   · `EventArrived`     → 事件的 `SpawnAnchor`(病人出现的锚点,52 的掷骰结果)
 //   · `DiseaseOnset`     → patientId(病人出现,ADR-030)
 //   · `CaseOpened`       → patientId + 病种集(立案;教学 `observe` 步的判据)
+//   · `CaseClosed`       → patientId + treated(结案;教学 `close` 步的判据)      ← 2026-11-10 T21 补
+//   · `CaseReferred`     → patientId + 理由(ADR-044 的收场半边)                 ← 2026-11-10 T21 补
+//
+// ── T21 补的两处(2026-11-10 真包走查暴露的缺口)──────────────────────────────
+// ① **只打 `CaseOpened` 不打 `CaseClosed`** ⇒ 结案页提交后,本工具**看不出**事件是否真落了,
+//    只能绕道去读 `-tutorialdiag` 的「★发火 steps=close」(那确实是流里的 `CaseClosed` 推出的,
+//    但看的人要自己追一条长链路)。现按「一对事件成对打印」补齐。
+// ② **槽号写死 `AutoSaveSlot`** ⇒ 走查里手动保存落的是 `save_3.bin`,而工具永远读 `save_auto.bin`
+//    (T21 实测:读出来是 5 分钟前的旧档,事件总数 2 而不是 30)。现允许用环境变量 `CELLDUMP_SLOT`
+//    指定槽号(`1` = 退出档 / `2` = 自动槽 / `≥3` = 手动槽,取值见 `SaveSlotLedger`),缺省仍是自动槽。
 //
 // ── 边界 ────────────────────────────────────────────────────────────────────
 // ⚠️ 住 `Editor.Tools.Spike`(Editor-only,`includePlatforms: ["Editor"]`)—— **不进构建**。
 // ⚠️ **只读**:不写任何存档、不改运行期状态;载入走 `SaveService.Load` 的正常路径
 //    (含迁移链),不是自己解析字节 —— 免得造出「第二套格式解读」。
 // ⚠️ 读的是**落盘的存档**(最近一次 checkpoint),不是内存里的当前态 ⇒ 至多滞后 5 分钟。
-//    走查里需要更近的快照时,先在暂停壳按「保存」再跑本工具。
+//    走查里需要更近的快照时,先在暂停壳按「保存」再跑本工具(并配 `CELLDUMP_SLOT`)。
 //
 // 用法(batch;仓库根下):
 //   cd unity && Unity -batchmode -quit -projectPath "$PWD" \
 //     -executeMethod DaYiJingCheng.EditorTools.Spike.SaveCellDumpCli.Dump -logFile Logs/celldump.log
+//   # 读指定槽(例:走查里手动存的 3 号槽)
+//   CELLDUMP_SLOT=3 Unity -batchmode -quit …（同上）
 
 using System;
 using System.Collections.Generic;
@@ -59,10 +71,14 @@ namespace DaYiJingCheng.EditorTools.Spike
             string savesRoot = Path.Combine(Application.persistentDataPath, "saves");
             Debug.Log($"{LogTag} saves 根 = {savesRoot}(persistentDataPath = {Application.persistentDataPath})");
 
-            string worldDir = NewestWorldWithAutoSave(savesRoot);
+            // 槽号:缺省 = 自动槽。`CELLDUMP_SLOT` 供走查读手动槽(见文件头 §T21 ②)。
+            SaveSlot slot = ResolveSlot(out string slotNote);
+            Debug.Log($"{LogTag} 槽位 = {slotNote}(文件名 {FileNameOfSafe(slot)})");
+
+            string worldDir = NewestWorldWith(savesRoot, FileNameOfSafe(slot));
             if (worldDir == null)
             {
-                Debug.LogError($"{LogTag} 没有找到任何含 {SaveService.AutoSaveFileName} 的世界目录");
+                Debug.LogError($"{LogTag} 没有找到任何含 {FileNameOfSafe(slot)} 的世界目录");
                 return 2;
             }
             Debug.Log($"{LogTag} 世界目录 = {worldDir}");
@@ -90,7 +106,7 @@ namespace DaYiJingCheng.EditorTools.Spike
                     new SaveMigrationV4ToV5(), new SaveMigrationV5ToV6(),
                 });
 
-            service.Load(SaveService.AutoSaveSlot);
+            service.Load(slot);
 
             if (events == null)
             {
@@ -107,16 +123,50 @@ namespace DaYiJingCheng.EditorTools.Spike
             return 0;
         }
 
-        private static string NewestWorldWithAutoSave(string savesRoot)
+        /// <summary>
+        /// 解析要读的槽:<c>CELLDUMP_SLOT</c> 缺省/非法 ⇒ 自动槽。
+        /// <para>⚠️ 槽号语义以 <see cref="SaveSlotLedger"/> 为准:<c>1</c> = 退出档 ·
+        /// <c>2</c> = 自动槽 · <c>≥3</c> = 手动槽(0 不是合法槽号,<c>EnsureWritable</c> 会拒收 ——
+        /// 这里也不把它当手动槽)。</para>
+        /// </summary>
+        private static SaveSlot ResolveSlot(out string note)
+        {
+            string raw = Environment.GetEnvironmentVariable("CELLDUMP_SLOT");
+            if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int seq)
+                && seq >= (int)SaveSlotLedger.ExitSlotSeq)
+            {
+                note = $"env CELLDUMP_SLOT={seq}";
+                return new SaveSlot((uint)seq);
+            }
+
+            note = string.IsNullOrEmpty(raw) ? "缺省(自动槽)" : $"env CELLDUMP_SLOT={raw} 非法 ⇒ 自动槽";
+            return SaveService.AutoSaveSlot;
+        }
+
+        /// <summary>
+        /// 槽号 → 文件名。**与 `SaveService.FinalNameOf` 同一命名约定**(那边是 private)。
+        /// <para>⚠️ 这里刻意复刻而不是反射调私有方法:`Editor.Tools.Spike` 与 `Sim.Codec` 之间
+        /// 没有 asmdef 边,反射会引入一条脆弱耦合。命名约定若变,本处须同步(三处字面量的
+        /// 单一真源仍是 `SaveService`)。</para>
+        /// </summary>
+        private static string FileNameOfSafe(SaveSlot slot)
+        {
+            if (SaveService.IsExitSaveSlot(slot)) return "save_exit.bin";
+            if (SaveService.IsAutoSaveSlot(slot)) return SaveService.AutoSaveFileName;
+            return $"save_{slot.SlotSeq}.bin";
+        }
+
+        /// <summary>找**含指定文件名**的世界目录,按该文件的 mtime 取最新。</summary>
+        private static string NewestWorldWith(string savesRoot, string fileName)
         {
             if (!Directory.Exists(savesRoot)) return null;
             string best = null;
             DateTime bestTime = DateTime.MinValue;
             foreach (string dir in Directory.GetDirectories(savesRoot))
             {
-                string auto = Path.Combine(dir, SaveService.AutoSaveFileName);
-                if (!File.Exists(auto)) continue;
-                DateTime t = File.GetLastWriteTimeUtc(auto);
+                string file = Path.Combine(dir, fileName);
+                if (!File.Exists(file)) continue;
+                DateTime t = File.GetLastWriteTimeUtc(file);
                 if (t > bestTime) { bestTime = t; best = dir; }
             }
             return best;
@@ -172,17 +222,36 @@ namespace DaYiJingCheng.EditorTools.Spike
 
         private static void PrintCases(IReadOnlyList<SimEvent> events, PayloadDecoder decoder)
         {
-            Debug.Log($"{LogTag} ── 立案 ──");
-            int n = 0;
+            Debug.Log($"{LogTag} ── 病例流(立案 / 结案 / 转诊)──");
+            int opened = 0, closed = 0, referred = 0;
             for (int i = 0; i < events.Count; i++)
             {
                 SimEvent e = events[i];
-                if (e.Kind != EventKind.CaseOpened) continue;
-                CaseOpenedPayload p = decoder.Decode<CaseOpenedPayload>(e.Kind, in e.Payload);
-                Debug.Log($"{LogTag}   CaseOpened: patient {p.PatientId} · tick {e.Tick}");
-                n++;
+                if (e.Kind == EventKind.CaseOpened)
+                {
+                    CaseOpenedPayload p = decoder.Decode<CaseOpenedPayload>(e.Kind, in e.Payload);
+                    Debug.Log($"{LogTag}   CaseOpened: patient {p.PatientId} · tick {e.Tick}");
+                    opened++;
+                }
+                else if (e.Kind == EventKind.CaseClosed)
+                {
+                    CaseClosedPayload p = decoder.Decode<CaseClosedPayload>(e.Kind, in e.Payload);
+                    Debug.Log($"{LogTag}   CaseClosed: patient {p.PatientId} · " +
+                              $"case ({p.CaseId.Tick},{p.CaseId.Patient},{p.CaseId.Seq}) · " +
+                              $"treated={p.Treated} · tick {e.Tick}");
+                    closed++;
+                }
+                else if (e.Kind == EventKind.CaseReferred)
+                {
+                    CaseReferredPayload p = decoder.Decode<CaseReferredPayload>(e.Kind, in e.Payload);
+                    Debug.Log($"{LogTag}   CaseReferred: patient {p.PatientId} · " +
+                              $"case ({p.CaseId.Tick},{p.CaseId.Patient},{p.CaseId.Seq}) · " +
+                              $"reason={p.Reason} · tick {e.Tick}");
+                    referred++;
+                }
             }
-            Debug.Log($"{LogTag}   共 {n} 条(CaseOpened 是教学 observe 步的判据)");
+            Debug.Log($"{LogTag}   CaseOpened {opened} 条(教学 observe 步的判据)· " +
+                      $"CaseClosed {closed} 条(教学 close 步的判据)· CaseReferred {referred} 条");
         }
     }
 }
