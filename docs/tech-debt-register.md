@@ -486,7 +486,7 @@
 | `TD-skeuo-11` | `skeuomorphic-ui` | open | **Y** | R1 |
 | `TD-skeuo-12` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-13` | `skeuomorphic-ui` | open | **N** | R1 |
-| `TD-skeuo-14` | `skeuomorphic-ui` | partial | **Y** | R1 |
+| `TD-skeuo-14` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
@@ -1493,10 +1493,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 207 | 状态 {'closed': 173, 'partial': 10, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 13 （已闭但曾标 P0 面的 122 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 4        random-events: 3          disease-simulation: 2
+条目 207 | 状态 {'closed': 174, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 12 （已闭但曾标 P0 面的 123 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 7/31 个 epic
+    random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
     processing: 1
 ```
@@ -5739,6 +5739,32 @@ M4 预算门恒通过 ⇒ 1 红 · **M5 首枪是空操作变异(0 红)** · **M
 >   本轮只有人工驱动的实拍,没有一条夹具能在回归里守住它。
 > - ⚠️ **拆序六步只做了 2 步**:第 1 步(停 Step)与第 5 步(`UnloadSceneAsync`);
 >   第 3/4/6 步(`ReleaseInstance` / `Release` handle / 断言登记簿空)仍归 ADR-023 的 V-1…V-7(NOT-RUN)。
+
+#### ✅ TD-skeuo-14 关闭记录 —— 解除动作 ③ 补上自动化 PlayMode 判据(2026-11-11 · T22 批七)
+
+**开工复勘**:债册 §解除动作的三件裁定(落盘口径 / 拆序 / 走哪条重入路径)与 ④(暂停壳第 4 行)
+**2026-11-05 已裁并实现**,`partial` 的唯一原因就是 ③ 的自动化判据没写。本批 = 补那一条。
+
+| 件 | 落点 |
+|---|---|
+| 夹具 | `Tests/PlayMode/return_to_main_menu_wiring_test.cs` —— 2 条(正向 + 幂等负控) |
+| 装置 | `SaveRootOverride` 指临时**根**(多世界形态);**不用** `SaveBasePathOverride`(单世界缝) |
+| 顺带修的实现缺陷 | `PresentMainMenuForReturnAsync` 回程**不置** `IsMainMenuOpen` ⇒ 「第一层是否摊开」公开面上恒假;现与 `ShowSceneLevelScreen` / `DismissSceneLevelScreen` 同进同出 |
+| 原件 | `production/qa/evidence/impl-t22g-return-to-main-menu-test-2026-11-11.md` |
+
+**判据**:进世界 → 经生产意图出口 `PauseSink.ReturnToMainMenu()` ⇒ ① World 场景**真的卸了**
+② 帧泵闸关 ③ 第一层摊开 ④ **落盘先发生**(世界目录快照须有档变新)→ 按「继续诊治」⇒
+World 装回、闸重开、第一层收掉。负控:第一层摊着时重复调 ⇒ 不重复拆、不卡死、继续仍有效。
+
+**证伪四枪**(全在最终版夹具上重跑):M1 去掉 `TrySave()` ⇒ 1 红 · M2 不卸场景 ⇒ 2 红 ·
+M3 回程不置位 ⇒ 2 红 · M4 不关闸 ⇒ 2 红。`BootRoot.cs` SHA-256 逐字节还原。
+
+⚠️ **M1 打了三枪才真红,两次都是判据的错**(如实登记):v1「盘上有自动档」= 空洞正控
+(启动序 8b 早写过);v2「自动档变新」= **盯错文件**(暂停壳 `TrySave()` 写的是**手动槽**,
+自动档不动 ⇒ 那是一次**假红**);v3 = **世界目录快照**(任一 `save_*.bin` 新出现或变新)才对。
+
+⚠️ **本条的关闭不等于拆序六步验过**:ADR-023 §⑤ 的 V-1…V-7 仍 `NOT-RUN`(第 3/4/6 步未验),
+**不得**据本件为绿称拆序按六步验过。
 
 ### TD-skeuo-15 — 第一层缺 **CREDITS / CINEMATICS** 两行,且两者在 P0 **零内容**
 

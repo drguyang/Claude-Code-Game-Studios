@@ -1795,11 +1795,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Debug.LogError("[BootRoot][返回主菜单] 主菜单屏开不出来 ⇒ 直接回到世界(不让玩家卡死)");
                 _returnMenuChoice.TrySetResult(false);
             }
+            else
+            {
+                // 🔁 2026-11-11(T22 批七 · `TD-skeuo-14` 解除动作 ③):**回程也要置位**。
+                //    这个标志此前只在启动序 `PresentMainMenuAsync` 里被置 —— 回程把它漏了,
+                //    于是「第一层是否摊开着」在公开面上**恒假**,装配级夹具无从判(只剩反射)。
+                //    ⚠️ 不是纯观测字段:它是「第一层在、世界不在」的唯一公开读数,
+                //    置位点必须与 `ShowSceneLevelScreen` 同进同出(下方 dismiss 处清)。
+                IsMainMenuOpen = true;
+            }
 
             await EnsureUiInputSelectionAsync();
             await _returnMenuChoice.Task;
 
             _uiDriver.DismissSceneLevelScreen();
+            IsMainMenuOpen = false;
             await UnloadMainMenuSceneAsync();
 
             // ⑤ 关第一层,回世界(选了「新起一局 / 换世界」则先换袋)
