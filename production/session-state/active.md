@@ -18492,3 +18492,46 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   ③ 不跑 app.py / Trellis2TexturingPipeline / renderers ④ DINOv3 按 dinov3-license 记录)
   + 勘察证据与可复跑命令;顶部注 / §8.10.6.10 残余① / AB-11 行 / `milestones §7.5` 同步。
 - **未做**:补丁未写、比对未跑、Blender 未装、试点未跑。**⏸ 不是准入**;白名单仍只认 ✅ 两行。
+
+### 第 30 轮(T22 批十九 · 乙:Pixal3D 导出补丁 + 比对夹具)
+
+- **用户指令**:「开工乙,写补丁和比对夹具」。
+- **新增 `tools/ovoxel-export/`**:
+  - `uv_raster.py` —— NumPy UV 空间光栅化 + 属性插值;接受 `(V,2)` 顶点 UV(cumesh
+    实际返回形态)或 `(T,3,2)` 逐角 UV;输出 `(1,R,R,4)`,`.xy`=重心、`.w`=tri+1;
+    重叠取最高 tri 序号。
+  - `postprocess_patched.py` —— TRELLIS.2 MIT 文件的补丁副本;仅替换 3 处 dr 调用,
+    文件头写明上游 URL、`sha256 ef51a1ba…`、MIT 出处;其余逐字节相同。
+  - `apply_patch.py` —— 上游 SHA 校验 → 备份 `.orig` → 复制 → 静态复查
+    `nvdiffrast import : 0` / `nvdiffrast calls : 0`;`--revert` 还原。
+  - `test_uv_raster.py`(13)· `test_apply_patch.py`(4) · `compare_with_nvdiffrast.py`
+    (栅格层对拍,退出码 2 = NOT-RUN)· `compare_glb_textures.py`(贴图层 PSNR,
+    同一资产两份 GLB)· `README.md` · `LICENSE-TRELLIS.2.txt`。
+- **对齐 dr 的三处关键细节**(读 `NVlabs/nvdiffrast` 源码确认,不是猜):
+  ① `csrc/torch/torch_rasterize.cpp:148-149` 的 `xs/xo/ys/yo` ⇒ **uv(0,0) = 第 0 行/列**;
+  ② `csrc/common/rasterize.cu:93` 输出 `(b0,b1,z/w,tri+1)`;`interpolate.cu:73-79` 用
+     `b2 = 1-b0-b1` ⇒ 与我们的插值权重一致;
+  ③ 写出前 `__saturatef(b0/b1)` + 对角归一化 ⇒ 已照抄。
+- **测试**:`python3 -m unittest tools/ovoxel-export/test_uv_raster.py tools/ovoxel-export/test_apply_patch.py`
+  ⇒ **Ran 17 tests, OK (skipped=1)**;skip = torch 适配器(本机无 torch),记 `NOT-RUN`。
+  真实上游文件上的 `--apply` / `--check` / `--revert` 实跑:OK,还原后 sha256
+  `ef51a1ba0f2748ffb4c265b47d382cee956f23c6a52d0f3587e6d8beccb7e54a` 与上游一致。
+- **性能(合成基准,本机 CPU)**:4096² / 200k 三角形 ⇒ 光栅化 4.2 s + 插值 1.65 s
+  (覆盖 20%);离线导出可接受。
+- **未做(不得借绿)**:dr 对拍 `compare_with_nvdiffrast.py` = `NOT-RUN`(无 torch/CUDA);
+  真 `to_glb` 端到端未跑;torch 适配器未测;A800 上的 4096² PSNR/接缝未出数。
+  ⇒ `art-bible §8.10.6.11` 的 **⏸ 不变**,判据 ② 仍是硬前置。
+- **文档同步**:§8.10.6.11 判据①改为可执行命令 + 实现进展块;AB-11 行 / `milestones §7.5` 同步。
+
+### 第 31 轮(T22 批二十 · 用户裁定「先放弃 Pixal3D」)
+
+- **用户裁定**:**先放弃 Pixal3D**。不再投入补丁/对拍/试点;已做的勘察与工具**留档**。
+- **白名单**:`§8.10.6.11` Pixal3D 行 **⏸ → ❌ 放弃**(理由写「用户裁定」+ 技术勘察结论
+  已存档);计数 → **✅×2 / ⏸×1(InstantMesh)/ ❌×3(Hunyuan3D / TRELLIS / Pixal3D)**。
+  顶部注 / §8.10.6.10 残余① / AB-11 行 / `milestones §7.5` 同步。
+- **冻结**:解锁判据标题改为「已冻结 · 仅留档」;实现进展块改写为「不会为已放弃的路线去
+  A800 补跑」。**不得**把 17 条单测读成 Pixal3D 可用 —— 判据②从未跑。
+- **工具处理**:`tools/ovoxel-export/` **保留但冻结**(README 首段写明「归档,不接入管线」)。
+  未删除(未入库的删除不可恢复,须用户明确指令);未提交,留在工作树。
+- **后续**:图生 3D 试点从 **TripoSR / TripoSG** 两行 ✅ 里选;Blender 安装与三件套试点
+  仍是欠项,Pixal3D 不再是其前置。

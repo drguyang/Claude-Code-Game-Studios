@@ -36,8 +36,9 @@
 > 程序化网格立管线、留痕、许可与质量门。**Status: Accepted(2026-11-11 用户逐项裁定五项)**;
 > **不改写 §8.1–8.9 任何判据**,**不豁免 §8.11 灰盒政策**。
 > ⚠️ **Accepted 表示方向已裁,不表示试点已跑或 Blender 已装**;白名单已于 2026-11-11
-> 登记 2 个可商用模型(TripoSR / TripoSG),其余候选已核为 **❌×2 / ⏸×2**
-> (其中 **Pixal3D 的解锁判据**见 §8.10.6.11)—— 残余执行前置见 §8.10.6.10。
+> 登记 2 个可商用模型(TripoSR / TripoSG),其余候选已核为 **❌×3 / ⏸×1**。
+> **Pixal3D 于 2026-11-11 由用户裁定先放弃**(技术勘察与补丁留档,不接入管线,见 §8.10.6.11)——
+> 残余执行前置见 §8.10.6.10。
 
 ---
 
@@ -1138,7 +1139,7 @@ anim_[actorclass]_[action]_[variant]
 
 ---
 
-### 8.10.6 3D 生成政策(草案 · 2026-11-11 · AB-11 · 待用户裁定)
+### 8.10.6 3D 生成政策(2026-11-11 · AB-11 · Accepted)
 
 > **Status: Accepted(2026-11-11 用户逐项裁定 §8.10.6.10 五项)** —— 方向已裁;
 > **不表示试点已跑、白名单已满、Blender 已装**。它只覆盖**几何与贴图的生成方式**;
@@ -1288,7 +1289,7 @@ anim_[actorclass]_[action]_[variant]
 **残余执行前置(Accepted 不表示已完成)**:
 
 1. ~~**模型白名单尚无已核条目**~~ → **2026-11-11 已登记 2 个可商用条目**(TripoSR · TripoSG),
-   另 4 个候选已核为 `❌ ×2 / ⏸ ×2`(见 §8.10.6.11)。**白名单外的模型仍不得使用**。
+   另 4 个候选已核为 `❌ ×3 / ⏸ ×1`(见 §8.10.6.11;Pixal3D 已由用户裁定放弃)。**白名单外的模型仍不得使用**。
 2. **Blender 未安装** —— 安装后把版本号写入本节与资产 spec;未装前角色/清理管线不可开工。
 3. **试点未跑** —— 三件套 + 角色试件的四个数未测;试点 PASS 前不得进 P2 批量。
 
@@ -1304,21 +1305,28 @@ anim_[actorclass]_[action]_[variant]
 | Hunyuan3D 2.0 | `tencent/Hunyuan3D-2` / `-2mini` | Tencent Hunyuan 3D 2.0 Community License | 2026-11-11 | **❌** | **地域排除**:协议不适用于 EU / UK / South Korea,且第 5(c) 禁止在 Territory 外使用/展示 Output ⇒ 与 Steam 全球发行冲突。另:>1M MAU 须另获 Tencent 授权 |
 | TRELLIS | `microsoft/TRELLIS-image-large` | MIT(模型与主体代码),**子模块除外** | 2026-11-11 | **❌** | 子模块 `diffoctreerast` 为 **research / non-commercial** 许可(其 LICENSE §2 / §4 明写);不替换该子模块前不得商用 |
 | InstantMesh | `TencentARC/InstantMesh` | Apache-2.0(代码 + 权重卡片) | 2026-11-11 | **⏸ 待核** | 依赖 `Zero123++` 权重:其 v1.1 为 OpenRAIL、v1.2 卡片**无许可字段**;依赖链未清前不得作为唯一管线 |
-| **Pixal3D** | `TencentARC/Pixal3D`(权重 `license:mit`) | MIT(代码/权重;NOTICE 明写) | 2026-11-11 | **⏸ 条件可解锁** | 阻塞**不在模型许可,在导出路径**:`inference.py:17/:263` 经 `o_voxel.postprocess.to_glb` 烘焙贴图,该文件 `:10/:230/:237/:249` 用 **nvdiffrast**(NVIDIA 1-Way §3.3 非商用)。dr **非可选**——`o_voxel/__init__` 导入 postprocess ⇒ 不装即无法导出 GLB。依赖点仅 3 行、位于 **MIT** 的 `o_voxel`(上游 = microsoft/TRELLIS.2);解锁判据见下方。另:DINOv3 条件器为自定义 `dinov3-license`(非 MIT) |
+| **Pixal3D** | `TencentARC/Pixal3D`(权重 `license:mit`) | MIT(代码/权重;NOTICE 明写) | 2026-11-11 | **❌ 放弃**(项目裁定,非许可) | **2026-11-11 用户裁定先放弃**。技术侧已勘察完毕:阻塞**不在模型许可,在导出路径** —— `inference.py:17/:263` 经 `o_voxel.postprocess.to_glb` 烘焙贴图,该文件 `:10/:230/:237/:249` 用 **nvdiffrast**(NVIDIA 1-Way §3.3 非商用);依赖点仅 3 行、位于 **MIT** 的 `o_voxel`。补丁与对拍夹具已留档 `tools/ovoxel-export/`(**冻结,不接入管线**)。另:DINOv3 条件器为自定义 `dinov3-license`(非 MIT) |
 | *(其他)* | — | — | — | **❌ 未核** | 未列入本表者默认**不得使用** |
 
 > ⚠️ **白名单只认上表 `✅` 两行**;`❌ / ⏸` 行是**核查记录**,不是准入。
 > 候选名单不构成许可结论;不同版本/权重可能不同,按版本逐条核。
 > **模型权重不入库**,只登记名字、版本、哈希与许可结论。
 
-**Pixal3D 解锁判据(2026-11-11 渲染器勘察 · 四条全满足才转 ✅)**
+**Pixal3D 解锁判据(2026-11-11 渲染器勘察 · ⚠️ 已冻结:同日用户裁定先放弃,以下仅留档备用)**
 
 | # | 判据 | 判定方式(可跑) |
 |---|---|---|
-| 1 | fork `o_voxel`(microsoft/TRELLIS.2 `o-voxel/`,MIT),以**自研 UV 空间光栅化**替换 `postprocess.py:230/237/249`;构建与运行期**不安装、不 import** `nvdiffrast` / `nvdiffrec` | `grep -rn "nvdiff" <fork>/o_voxel/` 零命中;`pip list \| grep -i nvdiff` 零命中 |
-| 2 | 补丁产物与 dr 版在 ≥3 个资产上比对 | 缺 texel 率 0;纹理 PSNR ≥ 35 dB;UV 接缝无可见差 |
+| 1 | fork `o_voxel`(microsoft/TRELLIS.2 `o-voxel/`,MIT),以**自研 UV 空间光栅化**替换 `postprocess.py:230/237/249`;构建与运行期**不安装、不 import** `nvdiffrast` / `nvdiffrec` | `python3 tools/ovoxel-export/apply_patch.py --check` 输出 `nvdiffrast import : 0` 与 `nvdiffrast calls : 0`;`pip list \| grep -i nvdiff` 零命中 |
+| 2 | 补丁产物与 dr 版在 ≥3 个资产上比对 | `compare_with_nvdiffrast.py --mesh a.glb --mesh b.glb --mesh c.glb`(栅格层)+ `compare_glb_textures.py --a … --b …`(贴图层):缺 texel 率 0;纹理 PSNR ≥ 35 dB;UV 接缝无可见差 |
 | 3 | **不运行** `app.py` / `Trellis2TexturingPipeline` / `renderers/*` | 三者仍依赖 dr,只服务 Gradio 预览与基线文本化 |
 | 4 | DINOv3 条件器按 `dinov3-license` 记录并随分发附协议(或改用官方 gated repo) | 权重不随游戏分发 ⇒ 内部合规记录即可;随工具分发 ⇒ 须附协议 |
+
+> **2026-11-11 实现进展(⚠️ 已随放弃冻结,不改变 ❌)** —— 判据 ① 的执行体已留档:
+> `tools/ovoxel-export/`(`uv_raster.py` + `postprocess_patched.py` + `apply_patch.py` +
+> 两个测试件 + 两个对拍夹具)。本机可跑的 **17 条中 16 绿 / 1 条显式 `NOT-RUN`**
+> (torch 适配器:本机无 torch);在真实上游 `postprocess.py` 上 `--apply` 后 `--check` 为 OK,
+> `--revert` 回填 sha256 `ef51a1ba…` 与上游一致。**判据 ②(dr 对拍)与真 `to_glb` 端到端
+> 从未跑**;且**不会**为已放弃的路线去 A800 补跑。
 
 > **勘察证据(2026-11-11,命令见下)**:`inference.py:263-269` → `o_voxel.postprocess.to_glb`;
 > `postprocess.py:10` 顶层 `import nvdiffrast.torch as dr`,仅 `:230` `RasterizeCudaContext()` /
@@ -1572,7 +1580,7 @@ PY
 | AB-5 | **《双材》支柱归属** —— **2026-09-21 用户裁 = 确认并加注**:「主归属三,来历判据归四∩五」成立;`casebook.md` / `camera-and-viewpoint.md:101` 已就地加注(史实约束面 vs 视觉立法面) | ✅ 已裁 |
 | AB-9 | **「兽」的形状语言立法** —— **2026-09-21 用户裁 = 巨物化门对兽不设禁**:§3.1 兽行此**不受**人形敌人「禁巨物化」约束(「失序非可憎」对兽不同判;巨化归危难的建筑尺度形);人形敌人四行不动;落点 = 25/27 敌人资产规格 | ✅ 已裁 |
 | AB-10 | **§8 Asset Standards 与 P0 基线竞争** —— **2026-09-21 用户裁 = §8 前置补写**:§8 登记为 Pre-Production 内容启动的**前置强制项**(P0 工期不改,只改档序:§8 先于 §5–9 其余),slice 用灰盒豁免 **不再隐式宽限** | ✅ 已裁 · §8 规范内容已补写(2026-09-29, art-director + technical-artist 并行)· ⚠️ **2026-10-03 订正**:本条**核心交付物**(灰盒政策:定义 + 判定点 + 判定者)**当时漏项**,已于 2026-10-03 补为 **§8.11 Gray-Box Policy** —— 本条就此**才真正兑现** |
-| **AB-11** | **3D 生成政策(§8.10.6)** —— 2026-11-11 起草并**当日逐项裁定五项**(方法纳入 / 白名单 / Blender / 角色边界 / 试点阈值) | ✅ **已裁(Accepted)**;残余:Blender 待装 · 试点待跑 · **Pixal3D 解锁补丁待写**(白名单已登记 ✅×2 / ⏸×2 / ❌×2) |
+| **AB-11** | **3D 生成政策(§8.10.6)** —— 2026-11-11 起草并**当日逐项裁定五项**(方法纳入 / 白名单 / Blender / 角色边界 / 试点阈值) | ✅ **已裁(Accepted)**;残余:Blender 待装 · 试点待跑 · **Pixal3D 已放弃(补丁/夹具留档 `tools/ovoxel-export/`,不接入管线)**(白名单 ✅×2 / ⏸×1 / ❌×3) |
 | AB-6 | 生态区四名的**史实核验**(`O-6-13`)未结案 ⇒ §3.2 / §4.3 继承待定态;§1 P4 的商路断言同批 | 40 考据轮 |
 | AB-7 | §4.4 的 `SAT_BLOOM_*` 四旋钮**定值**归数值轮(承「数值用户自己调」家规) | 数值轮 |
 | AB-8 | ~~§5–7 / §9 未写~~ → **✅ 已补写(2026-09-28)**;AD-ART-BIBLE 可跑 | 已结案 |
