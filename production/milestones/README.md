@@ -673,7 +673,8 @@ find unity/Assets/Tests/EditMode -name '*.cs' | wc -l                           
 grep -rn "(5, *0, *5)\|(14, *0, *14)\|(2, *0, *2)\|(10, *0, *2)" unity/Assets/Tests --include=*.cs | wc -l   # ≥68(仅四种坐标)
 ```
 
-- 3D 网格资产 = **0**(无 `.fbx/.obj/.blend/.glb`);本机**未安装 Blender**。
+- 3D 网格资产 = **0**(无 `.fbx/.obj/.blend/.glb`);**Blender 4.5.16 LTS 已于 2026-11-11
+  安装并锁版**(`art-bible §8.10.6.12`),但**尚未产出任何资产**。
 - 烘焙产物**固定文件名**(`world_geometry.cooked` 等),**无按 `level_id` 分套**。
 
 ### 7.3 已同意:就地演进,不做双关卡
@@ -702,7 +703,8 @@ grep -rn "(5, *0, *5)\|(14, *0, *14)\|(2, *0, *2)\|(10, *0, *2)" unity/Assets/Te
 2. ~~**人物资产来源**:程序化低多边形 / CC0 资产包 / 装 Blender 自建(P3)。~~
    **✅ 2026-11-11 裁**:环境 = ComfyUI 图像生成 + 图生 3D + **Blender** 清理;
    角色 = **AI 首版网格 + Blender 重拓扑/绑骨**(面部/手部手工),见 `art-bible §8.10.6.7` / `§8.10.6.10` 裁定 3–4。
-   ⚠️ 执行前置仍欠:Blender 未装、三件套试点未跑;模型白名单已登记 2 个可商用
+   ⚠️ 执行前置:~~Blender 未装~~ → **✅ Blender 4.5.16 LTS 已装并锁版**
+   (`art-bible §8.10.6.12`);**三件套试点未跑**。模型白名单已登记 2 个可商用
    (TripoSR / TripoSG),其余候选核为 **❌×3 / ⏸×1**(见 `art-bible §8.10.6.11`)。
    **Pixal3D 于 2026-11-11 由用户裁定先放弃**:技术侧勘察已完成(阻塞是 `o_voxel`
    导出路径的 nvdiffrast,3 个调用点、上游 MIT 代码),补丁与夹具留档
