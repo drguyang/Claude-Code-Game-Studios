@@ -18453,3 +18453,42 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   AB-11 → ✅ 已裁(残余三项)。
 - **plan §7.5 第 2 项** 同步为已裁(ComfyUI + Blender),残余前置写明。
 - **未做**:Blender 未装 · 白名单未填 · 试点未跑。**不得把 Accepted 读成执行完成。**
+
+### 第 28 轮(T22 批十七 · 3D 模型许可核查 + 白名单登记)
+
+- **核查方法**:GitHub raw LICENSE + README;HF 权重卡片走 `hf-mirror.com`(直连 huggingface.co 超时)。
+- **白名单(§8.10.6.11)**:✅ **TripoSR**(MIT,代码+预训练模型)· ✅ **TripoSG**(MIT,代码+权重)。
+  ❌ **Hunyuan3D 2.0**(Tencent 社区许可:EU/UK/韩国排除 + Territory 外禁用 Output,与全球发行冲突;
+  >1M MAU 另授权)· ❌ **TRELLIS**(子模块 `diffoctreerast` research/non-commercial)·
+  ⏸ **InstantMesh**(Apache-2.0 本体,但依赖 Zero123++ 权重 v1.1 OpenRAIL / v1.2 无许可字段,待核)。
+- **文档**:§8.10.6.11 填表 + 可复跑核查命令;§8.10.6.10 残余①更新;顶部注与 milestones §7.5 同步。
+- **残余**:Blender 未装 · 试点未跑。白名单外模型仍不得使用。
+- **补充(2026-11-11 · Pixal3D)**:`TencentARC/Pixal3D` 本体与权重 MIT(NOTICE 明写),
+  但构建于 TRELLIS.2,渲染依赖 **nvdiffrast**(NVIDIA 1-Way Commercial 许可 §3.3 仅限非商用)
+  ⇒ 白名单仍记 **❌**;解锁路径 = 替换渲染器或取得 NVIDIA 商用授权。
+
+### 第 29 轮(T22 批十八 · Pixal3D 渲染器勘察 + 白名单改 ⏸)
+
+- **用户指令**:「勘察渲染器」→ 结论汇报后裁「**甲,先把白名单改成 ⏸。我有云 gpu a800**」。
+- **勘察结论(实测,非推断)**:
+  - dr **不只在预览**:`inference.py:17 / :263-269` 经 `o_voxel.postprocess.to_glb` 导出 GLB;
+    `o_voxel/postprocess.py:10` 顶层 `import nvdiffrast.torch as dr`,`:230/237/249` 三处调用
+    (`RasterizeCudaContext` / `rasterize` / `interpolate`),用途 = **UV 空间三角形光栅化**
+    (求每 texel 的 face_id + 重心),非光照、非可微。
+  - **dr 非可选**:`o_voxel/__init__` 导入 `postprocess` ⇒ 不装 nvdiffrast 连 import 都失败,
+    不存在「只推理不导出」的开关。
+  - **可剥离**:依赖点仅 3 行,且 wheel 内 `postprocess.py` 与上游 `microsoft/TRELLIS.2`
+    (MIT)**逐字节相同**(sha256 前缀 `ef51a1ba0f2748ff`)⇒ fork + 自研光栅化即可,不碰权重。
+  - Pixal3D 本仓库内 dr 仅 `renderers/*`(函数内 import,预览)与 `trellis2_texturing.py`
+    (顶层 import,但**不被** `pixal3d_image_to_3d.py` 引用;`pipelines/__init__.py` 懒加载)。
+  - **新增许可发现**:默认图像条件器是 **DINOv3**(`camenduru/...` 镜像),其许可是自定义
+    `dinov3-license`(**非 MIT**;授予全球免费可商用,但分发 DINO Materials 须附同协议);
+    Pixal3D `NOTICE` 只列 dinov2,**与实际代码不一致**;官方 `facebook/dinov3-...` 为 gated,
+    代码 `trellis2_image_to_3d.py:104-107` 明文 HACK 换镜像。
+  - **硬件**:本机 GTX 1050 Ti **4 GB**;官方门槛 **≥24 GB** ⇒ 本机不可跑;用户已有**云 A800**
+    ⇒ 该前置解除。
+- **文档改动**:`art-bible §8.10.6.11` Pixal3D 行 **❌ → ⏸ 条件可解锁** + 新增**四条解锁判据**
+  (① fork o_voxel 去 dr ② 与 dr 版 ≥3 资产比对:缺 texel 0 / PSNR ≥35 dB / 接缝无差
+  ③ 不跑 app.py / Trellis2TexturingPipeline / renderers ④ DINOv3 按 dinov3-license 记录)
+  + 勘察证据与可复跑命令;顶部注 / §8.10.6.10 残余① / AB-11 行 / `milestones §7.5` 同步。
+- **未做**:补丁未写、比对未跑、Blender 未装、试点未跑。**⏸ 不是准入**;白名单仍只认 ✅ 两行。

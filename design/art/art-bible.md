@@ -35,7 +35,9 @@
 > **2026-11-11 · §8.10.6 3D 生成政策(AB-11)** —— 为 AI 图生 3D / 多视图重建 /
 > 程序化网格立管线、留痕、许可与质量门。**Status: Accepted(2026-11-11 用户逐项裁定五项)**;
 > **不改写 §8.1–8.9 任何判据**,**不豁免 §8.11 灰盒政策**。
-> ⚠️ **Accepted 表示方向已裁,不表示试点已跑或白名单已满** —— 残余执行前置见 §8.10.6.10。
+> ⚠️ **Accepted 表示方向已裁,不表示试点已跑或 Blender 已装**;白名单已于 2026-11-11
+> 登记 2 个可商用模型(TripoSR / TripoSG),其余候选已核为 **❌×2 / ⏸×2**
+> (其中 **Pixal3D 的解锁判据**见 §8.10.6.11)—— 残余执行前置见 §8.10.6.10。
 
 ---
 
@@ -1285,7 +1287,8 @@ anim_[actorclass]_[action]_[variant]
 
 **残余执行前置(Accepted 不表示已完成)**:
 
-1. **模型白名单尚无已核条目** —— 见 §8.10.6.11;白名单为空时不得使用任何 3D 生成模型。
+1. ~~**模型白名单尚无已核条目**~~ → **2026-11-11 已登记 2 个可商用条目**(TripoSR · TripoSG),
+   另 4 个候选已核为 `❌ ×2 / ⏸ ×2`(见 §8.10.6.11)。**白名单外的模型仍不得使用**。
 2. **Blender 未安装** —— 安装后把版本号写入本节与资产 spec;未装前角色/清理管线不可开工。
 3. **试点未跑** —— 三件套 + 角色试件的四个数未测;试点 PASS 前不得进 P2 批量。
 
@@ -1294,11 +1297,85 @@ anim_[actorclass]_[action]_[variant]
 > **规则**:白名单是**准入前提**,不是推荐列表。未登记的模型**一律不得**用于资产。
 > 每行必须给出许可证原文 URL、核查日期与结论;只有「可商用 = ✅」的模型才有效。
 
-| 模型 | 版本 | 许可证 | 核查日期 | 可商用 | 备注 |
+| 模型 | 版本 / 权重 | 许可证 | 核查日期 | 可商用 | 备注 |
 |---|---|---|---|---|---|
-| *(待登记)* | — | — | — | — | 候选:Hunyuan3D / TripoSG / TRELLIS / InstantMesh 等,**均未核,不得使用** |
+| **TripoSR** | `stabilityai/TripoSR`(权重) | **MIT**(代码 + 预训练模型) | 2026-11-11 | **✅** | README 明写「includes the source code, pretrained models」;HF 卡片 `license:mit` |
+| **TripoSG** | `VAST-AI/TripoSG`(权重) | **MIT** | 2026-11-11 | **✅** | 仓库 LICENSE = MIT;HF 卡片 `license:mit`;依赖见 `requirements.txt`(均宽松) |
+| Hunyuan3D 2.0 | `tencent/Hunyuan3D-2` / `-2mini` | Tencent Hunyuan 3D 2.0 Community License | 2026-11-11 | **❌** | **地域排除**:协议不适用于 EU / UK / South Korea,且第 5(c) 禁止在 Territory 外使用/展示 Output ⇒ 与 Steam 全球发行冲突。另:>1M MAU 须另获 Tencent 授权 |
+| TRELLIS | `microsoft/TRELLIS-image-large` | MIT(模型与主体代码),**子模块除外** | 2026-11-11 | **❌** | 子模块 `diffoctreerast` 为 **research / non-commercial** 许可(其 LICENSE §2 / §4 明写);不替换该子模块前不得商用 |
+| InstantMesh | `TencentARC/InstantMesh` | Apache-2.0(代码 + 权重卡片) | 2026-11-11 | **⏸ 待核** | 依赖 `Zero123++` 权重:其 v1.1 为 OpenRAIL、v1.2 卡片**无许可字段**;依赖链未清前不得作为唯一管线 |
+| **Pixal3D** | `TencentARC/Pixal3D`(权重 `license:mit`) | MIT(代码/权重;NOTICE 明写) | 2026-11-11 | **⏸ 条件可解锁** | 阻塞**不在模型许可,在导出路径**:`inference.py:17/:263` 经 `o_voxel.postprocess.to_glb` 烘焙贴图,该文件 `:10/:230/:237/:249` 用 **nvdiffrast**(NVIDIA 1-Way §3.3 非商用)。dr **非可选**——`o_voxel/__init__` 导入 postprocess ⇒ 不装即无法导出 GLB。依赖点仅 3 行、位于 **MIT** 的 `o_voxel`(上游 = microsoft/TRELLIS.2);解锁判据见下方。另:DINOv3 条件器为自定义 `dinov3-license`(非 MIT) |
+| *(其他)* | — | — | — | **❌ 未核** | 未列入本表者默认**不得使用** |
 
-> ⚠️ 候选名单只是**待核对象**,不构成许可结论;不同版本的许可可能不同,按版本逐条核。
+> ⚠️ **白名单只认上表 `✅` 两行**;`❌ / ⏸` 行是**核查记录**,不是准入。
+> 候选名单不构成许可结论;不同版本/权重可能不同,按版本逐条核。
+> **模型权重不入库**,只登记名字、版本、哈希与许可结论。
+
+**Pixal3D 解锁判据(2026-11-11 渲染器勘察 · 四条全满足才转 ✅)**
+
+| # | 判据 | 判定方式(可跑) |
+|---|---|---|
+| 1 | fork `o_voxel`(microsoft/TRELLIS.2 `o-voxel/`,MIT),以**自研 UV 空间光栅化**替换 `postprocess.py:230/237/249`;构建与运行期**不安装、不 import** `nvdiffrast` / `nvdiffrec` | `grep -rn "nvdiff" <fork>/o_voxel/` 零命中;`pip list \| grep -i nvdiff` 零命中 |
+| 2 | 补丁产物与 dr 版在 ≥3 个资产上比对 | 缺 texel 率 0;纹理 PSNR ≥ 35 dB;UV 接缝无可见差 |
+| 3 | **不运行** `app.py` / `Trellis2TexturingPipeline` / `renderers/*` | 三者仍依赖 dr,只服务 Gradio 预览与基线文本化 |
+| 4 | DINOv3 条件器按 `dinov3-license` 记录并随分发附协议(或改用官方 gated repo) | 权重不随游戏分发 ⇒ 内部合规记录即可;随工具分发 ⇒ 须附协议 |
+
+> **勘察证据(2026-11-11,命令见下)**:`inference.py:263-269` → `o_voxel.postprocess.to_glb`;
+> `postprocess.py:10` 顶层 `import nvdiffrast.torch as dr`,仅 `:230` `RasterizeCudaContext()` /
+> `:237` `dr.rasterize` / `:249` `dr.interpolate` 三处 —— 用途 = **UV 空间三角形光栅化**
+> (求每 texel 的 `face_id` + 重心坐标),**非光照、非可微**。wheel 内 `postprocess.py` 与上游
+> TRELLIS.2 **逐字节相同**(sha256 前缀 `ef51a1ba0f2748ff`)。Pixal3D 本仓库内 dr 仅出现在
+> 预览 `renderers/*`(函数内 import)与 `trellis2_texturing.py`(顶层 import,但**不被**
+> `pixal3d_image_to_3d.py` 引用;`pipelines/__init__.py` 为懒加载)。
+> **硬件前置**:官方门槛 NVIDIA ≥24 GB;本机 GTX 1050 Ti 4 GB 不可运行,
+> **用户已有云 A800** ⇒ 该前置**已解除**。
+
+**核查方法(可复跑,2026-11-11)**:
+
+```bash
+# 仓库 LICENSE(逐模型)
+for u in \
+  https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/main/LICENSE \
+  https://raw.githubusercontent.com/VAST-AI-Research/TripoSG/main/LICENSE \
+  https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2/main/LICENSE \
+  https://raw.githubusercontent.com/microsoft/TRELLIS/main/LICENSE \
+  https://raw.githubusercontent.com/TencentARC/Pixal3D/master/LICENSE \
+  https://raw.githubusercontent.com/TencentARC/Pixal3D/master/NOTICE ; do
+  echo "== $u"; curl -L --max-time 20 -s "$u" | head -3
+done
+
+# HF 权重卡片的 license 字段(本机访问 huggingface.co 超时,mirror 可用)
+for m in stabilityai/TripoSR VAST-AI/TripoSG tencent/Hunyuan3D-2 \
+         microsoft/TRELLIS-image-large TencentARC/InstantMesh TencentARC/Pixal3D ; do
+  echo "== $m"
+  curl -L --max-time 20 -s "https://hf-mirror.com/api/models/$m" \
+    | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('cardData',{}).get('license'),[t for t in d.get('tags',[]) if t.startswith('license:')])"
+done
+
+# TRELLIS 子模块与 TRELLIS.2 渲染依赖的非商用条款
+curl -L --max-time 20 -s https://raw.githubusercontent.com/JeffreyXiang/diffoctreerast/master/LICENSE \
+  | grep -in "non-commercial\|research purposes"
+curl -L --max-time 20 -s https://raw.githubusercontent.com/NVlabs/nvdiffrast/main/LICENSE.txt \
+  | grep -in "non-commercial\|research or evaluation"
+
+# Pixal3D 渲染器依赖(2026-11-11 勘察):确认 dr 在 GLB 导出路径里,且不可选
+curl -L --max-time 20 -s https://raw.githubusercontent.com/TencentARC/Pixal3D/master/inference.py \
+  | grep -n "import o_voxel\|to_glb"                     # 期望 :17 与 :263
+curl -L --max-time 20 -s https://raw.githubusercontent.com/microsoft/TRELLIS.2/main/o-voxel/o_voxel/postprocess.py \
+  | grep -n "nvdiffrast\|RasterizeCudaContext\|dr\.rasterize\|dr\.interpolate"
+# 期望 :10(顶层 import)+ :230 / :237 / :249 三个调用点
+# wheel 内 postprocess.py 与上游逐字节一致(解锁时要打补丁的对象 = 这份 MIT 源码)
+curl -L --max-time 60 -s -o /tmp/o_voxel.whl \
+  https://github.com/JeffreyXiang/Storages/releases/download/Space_Wheels_251210/o_voxel-0.0.1-cp310-cp310-linux_x86_64.whl
+python3 - <<'PY'
+import zipfile, hashlib, urllib.request
+w = zipfile.ZipFile('/tmp/o_voxel.whl').read('o_voxel/postprocess.py')
+u = urllib.request.urlopen(
+    'https://raw.githubusercontent.com/microsoft/TRELLIS.2/main/o-voxel/o_voxel/postprocess.py',
+    timeout=20).read()
+print('same:', hashlib.sha256(w).hexdigest() == hashlib.sha256(u).hexdigest())
+PY
+```
 
 ---
 
@@ -1495,7 +1572,7 @@ anim_[actorclass]_[action]_[variant]
 | AB-5 | **《双材》支柱归属** —— **2026-09-21 用户裁 = 确认并加注**:「主归属三,来历判据归四∩五」成立;`casebook.md` / `camera-and-viewpoint.md:101` 已就地加注(史实约束面 vs 视觉立法面) | ✅ 已裁 |
 | AB-9 | **「兽」的形状语言立法** —— **2026-09-21 用户裁 = 巨物化门对兽不设禁**:§3.1 兽行此**不受**人形敌人「禁巨物化」约束(「失序非可憎」对兽不同判;巨化归危难的建筑尺度形);人形敌人四行不动;落点 = 25/27 敌人资产规格 | ✅ 已裁 |
 | AB-10 | **§8 Asset Standards 与 P0 基线竞争** —— **2026-09-21 用户裁 = §8 前置补写**:§8 登记为 Pre-Production 内容启动的**前置强制项**(P0 工期不改,只改档序:§8 先于 §5–9 其余),slice 用灰盒豁免 **不再隐式宽限** | ✅ 已裁 · §8 规范内容已补写(2026-09-29, art-director + technical-artist 并行)· ⚠️ **2026-10-03 订正**:本条**核心交付物**(灰盒政策:定义 + 判定点 + 判定者)**当时漏项**,已于 2026-10-03 补为 **§8.11 Gray-Box Policy** —— 本条就此**才真正兑现** |
-| **AB-11** | **3D 生成政策(§8.10.6)** —— 2026-11-11 起草并**当日逐项裁定五项**(方法纳入 / 白名单 / Blender / 角色边界 / 试点阈值) | ✅ **已裁(Accepted)**;残余:白名单待登记 · Blender 待装 · 试点待跑 |
+| **AB-11** | **3D 生成政策(§8.10.6)** —— 2026-11-11 起草并**当日逐项裁定五项**(方法纳入 / 白名单 / Blender / 角色边界 / 试点阈值) | ✅ **已裁(Accepted)**;残余:Blender 待装 · 试点待跑 · **Pixal3D 解锁补丁待写**(白名单已登记 ✅×2 / ⏸×2 / ❌×2) |
 | AB-6 | 生态区四名的**史实核验**(`O-6-13`)未结案 ⇒ §3.2 / §4.3 继承待定态;§1 P4 的商路断言同批 | 40 考据轮 |
 | AB-7 | §4.4 的 `SAT_BLOOM_*` 四旋钮**定值**归数值轮(承「数值用户自己调」家规) | 数值轮 |
 | AB-8 | ~~§5–7 / §9 未写~~ → **✅ 已补写(2026-09-28)**;AD-ART-BIBLE 可跑 | 已结案 |
