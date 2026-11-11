@@ -79,6 +79,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         private IReadOnlyList<uint> _saveSlots;
         private IReadOnlyList<SaveSlotView> _saveSlotViews;
         private bool _saveSlotsDirty;
+        /// <summary>脉案值区「数据变了」标记(`TD-skeuo-18` A;见 <see cref="MarkCasebookDirty"/>)。</summary>
+        private bool _casebookDirty;
         // 暂停壳:继续 / 进存档位(2026-10-31 Amendment C)——
         // ⚠️ 两个动作都由装配层实现:42 **不**自己决定「继续」要把世界恢复成什么,
         //    也不自己调 `OpenModal`(那是换屏,属装配层的时序决定)。
@@ -473,6 +475,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>请求在写入落定后重画槽位行(装配层在「落笔已受理」时调)。</summary>
         public void MarkSaveSlotRowsDirty() => _saveSlotsDirty = true;
 
+        /// <summary>
+        /// 标记**脉案值区**需要重读(装配层在「查体完成」时调;2026-11-11 · `TD-skeuo-18` A)。
+        /// <para>⚠️ 为什么需要它:<see cref="OnTickEdge"/> 已经在每 tick 重读,但**脉案是挡路模态**
+        /// ⇒ ADR-013 §十-C Amendment D 让世界在册子摊开期间真停 tick ⇒ tick 边沿**永不发生**
+        /// ⇒ 玩家点一行查体,值区一动不动。故重读改挂每帧边沿(见 <see cref="OnFrameEdge"/>),
+        /// 而每帧无脑 `ApplyData` 会每帧重建读数格 DOM ⇒ 用脏标记收敛到「数据真的变了」那一帧。</para>
+        /// </summary>
+        public void MarkCasebookDirty() => _casebookDirty = true;
+
         /// <summary>按 <see cref="SaveSlotViewProvider"/> 重取并重画(未注入 ⇒ 用给定清单)。</summary>
         /// <param name="followWritablePage">
         /// <c>true</c> = 跟到「留档」行所在页(写盘落定后的重画);<c>false</c> = 按 §7.1 落高水位页(开册)。
@@ -647,6 +658,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// </summary>
         public void OnFrameEdge()
         {
+            // 🔁 2026-11-11(`TD-skeuo-18` A):**脉案值区的重读也走每帧** —— 与下方存档册重探同因:
+            //    脉案是挡路模态 ⇒ 世界冻结(ADR-013 §十-C Amendment D)⇒ `OnTickEdge` 不触发
+            //    ⇒ 玩家点行查体后值区一动不动(`smoke-2026-11-05.md` 第三轮 #9 的 A 条)。
+            //    ⚠️ 用脏标记而非每帧无脑 `ApplyData`:后者会每帧重建读数格 DOM(GC + 焦点/悬停抖动)。
+            //    置位点 = 装配层「查体完成」回调(与病名册投影同一个 `AfterExamined`)。
+            if (_casebookDirty && _source != null && _screen is CasebookScreen casebookDirty)
+            {
+                _casebookDirty = false;
+                casebookDirty.ApplyData(_source);
+            }
+
             // 🔁 2026-11-05 晚:同一条判据也服务暂停壳「保存」行的副标题
             //    (落笔落定后把「已落笔」换成真实年龄)。两者共用 `_saveSlotsDirty` ——
             //    它就是「存档状态变过」这一个量,不给同一件事造第二个标记。

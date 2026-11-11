@@ -490,10 +490,11 @@
 | `TD-skeuo-15` | `skeuomorphic-ui` | open | **N** | R1 |
 | `TD-skeuo-16` | `skeuomorphic-ui` | partial | **Y** | R1 |
 | `TD-skeuo-17` | `skeuomorphic-ui` | closed | **Y** | R1 |
-| `TD-skeuo-18` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-skeuo-18` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-20` | `skeuomorphic-ui` | closed | **Y** | R1 |
 | `TD-skeuo-19` | `skeuomorphic-ui` | closed | **N** | R1 |
 | `TD-skeuo-21` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-skeuo-22` | `skeuomorphic-ui` | open | **N** | R3 |
 | `TD-casebook-01` | `casebook` | closed | **Y** | R1 |
 | `TD-interaction-01` | `interaction-system` | closed | **N** | R4 |
 | `TD-walkthrough-01` | `walkthrough` | closed | **N** | R1 |
@@ -1492,10 +1493,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 206 | 状态 {'closed': 172, 'partial': 10, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 65, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 14 （已闭但曾标 P0 面的 121 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 3          disease-simulation: 2
+条目 207 | 状态 {'closed': 173, 'partial': 10, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 13 （已闭但曾标 P0 面的 122 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 13 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 4        random-events: 3          disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
     processing: 1
 ```
@@ -6461,6 +6462,44 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **解除动作** | ① A:`AfterExamined` 里补一次重绘(最小改动两行,试补已验有效;改动已按用户指令回退,见 `/tmp` 存档);② B:查到墨块成因后修 `CasebookScreen` / `.lexeme` 那条 USS 或字色;**A、B 各自独立验收**,不许用「A 修好了」顶替 B。③ 补一条**端到端**判据(查体 ⇒ 值区文本非空且可读),现有夹具只覆盖到「命令链被调用」。 |
 | **触发条件** | 任何以「脉案可读」形态引用之前(**禁借绿**);或下一次 smoke 重新 gate 之前。 |
 | **归属** | **42 拟物 UI**(屏与渲染)× **8 诊断**(查体结果的读面) |
+
+#### ✅ TD-skeuo-18 关闭记录 —— A 搬到每帧边沿、B 关掉小格上的墨渍图(2026-11-11 · T22 批六)
+
+**A 的病因订正(原文「`RefreshFromSource` 没有『数据变了』这条触发」只对了一半)**:
+`OnTickEdge()` **一直**在调 `ApplyData`,问题是那个 tick 边沿在册子摊开时**不会发生**
+—— 脉案是挡路模态,ADR-013 §十-C Amendment D 让世界停 tick
+(`BootRoot` 里 `_uiDriver.OnTickEdge()` 的唯一调用条件 = `CurrentTick > tickBefore`)。
+⇒ 与 2026-11-05 存档册重探是**同一条病**。
+
+| 件 | 落点 |
+|---|---|
+| 脏标记 | `SkeuoRuntimeDriver.MarkCasebookDirty()` + 每帧消费(`OnFrameEdge` 开头,**先于**存档册那段 `return`) |
+| 置位点 | `BootRoot` 的 `AfterExamined` —— **合成一个 lambda 挂两个消费者**(病名册投影 + 置脏);`AfterExamined` 是 `{get;set;}` **属性**,两次独立赋值会静默覆盖 |
+| 读数格 | `SkeuoPaper.uss` 新增复合规则 `.channel-reading*.ink-*{ background-image:none }` |
+| 夹具 | PlayMode `skeuo_runtime_driver_test` **+2**(置脏⇒出字 / 不置脏⇒不重画)· EditMode `ink_wet_dry_test` **+1**(抑制规则) |
+| 原件 | `production/qa/evidence/impl-t22f-casebook-value-area-2026-11-11.md` |
+
+**B 的病因(原文只写到「疑点方向,未定位」)**:`.ink-wet` / `.ink-dry` 的 `background-image`
+是 **1024² 全不透明**整幅图(实测 alpha 恒 255;均值亮度 wet **63** / dry **146**),
+拉伸进约 100×40 的读数格 ⇒ 整格变墨块;文字色同为近黑 ⇒ 字与底同色。
+修法**保留 story-022 的类契约**(T2.5 三条继续绿),只在小格上关掉底图 ——
+art-bible §4.5 本来的区分就是**明度轴的颜色差**。
+
+**真包判据**:脉案摊开后连做查体,值区在 **`tick` 停在 249** 的情况下出现
+`面色不好 / 面色发红 / …`(5 条)与 `说话没力气 / …`(3 条),字清晰可读
+(`unity/Logs/shots/t22f/05-after-exam2.png` / `06-after-exam3.png`)。
+
+**证伪四枪**:M1 去掉脏标记条件 ⇒ 负控红 · M2 `MarkCasebookDirty` 空操作 ⇒ 正例红 ·
+M3 删 USS 抑制规则 ⇒ EditMode 红 · **M4 构建级**(去掉 `BootRoot` 的置脏调用 → 重建 → 同一走查)
+⇒ 查体发生而值区**全空**。三文件 SHA-256 逐字节还原,M4 后已重建干净包。
+
+**同日另立 `TD-skeuo-22`**(治理债,`P0 面 = N`):`skeuo_readability_test` 的对比门只算主题色,
+看不见运行期叠加类画的底图 —— 它**一直绿**而真屏不可读。本条修的是症状,**不是门的盲区**。
+
+⚠️ **本条的「解除判据」两半都达成**:① 查体 ⇒ 值区当场更新(真包 + 夹具);② 词条可读(真包实拍)。
+⚠️ **仍 NOT-RUN 的一点(如实)**:第一次 `Return` 之后值区仍空 —— 按 `TD-skeuo-20` 的先例
+很可能是「第一次 Submit 建立焦点」而非「查体了但没刷新」,本轮**没有**单独埋点证明是哪一种;
+A 的结论不依赖它(第 2、3 次查体都当场出字)。
 
 ### TD-skeuo-17 — **首次启动**的第一层:设置壳按 ESC **关不掉**(`_modalInput` 在那一刻还没构造)
 
@@ -12805,6 +12844,20 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **证伪轮** | **M1**(注掉 `FocusAfterRebuild(...)` 调用)⇒ **3 红**(开屏落焦 / 重绑保持 / 焦点移开撤销);还原后 SHA-256 `cf778fe2…e55601` 逐字节一致。 |
 | **⚠️ 真包面** | 「真包开屏后第一次 `Submit` 即进入二段态」**仍 NOT-RUN** —— 见 §13 的 `[L]` 与 S25-3 的真包验收。**本条结案只覆盖代码可判面 + PlayMode 夹具**。 |
 | **🔁 2026-11-06 16:37 真包已补跑(上行的「未跑」作废,原文保留)** | 新局 → 灶台按 `E` ⇒ 炮制屏两行且**第一行带铜环**;只按一次 `Return` ⇒ 行变 `── 落火` 且**未点火**。⇒ **开屏落焦在真包成立**。证据 = `production/qa/evidence/impl-s25-3-processing-screen-closure-2026-11-06.md` §8(`w10-processing.png` / `w11-armed.png`)。 |
+
+### TD-skeuo-22 —— 值区对比门**只算主题色**,看不见**运行期叠加类**画在格上的不透明底图(42)
+
+> **2026-11-11 立债**(T22 批六:`TD-skeuo-18` B 的复盘产物 —— **本次修的是症状,不是门的盲区**)。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `skeuo_readability_test.test_s3_1_bothReadingInks_contrastAtLeast7to1_onBacking` 的判据是 **两个主题变量的亮度比**(`--skeuo-ink-fg` / `--skeuo-ink-negative` on `--skeuo-reading-backing`)。它**不知道**读数格在运行期还会被状态类叠加(`.ink-wet` / `.ink-dry`),而那两类的 `background-image` 是**不透明**整幅图 ⇒ 真屏上字与底同色。门一直是绿的,缺陷活了约一个月(`smoke-2026-11-05` 第三轮才撞见)。 |
+| **实测(逐条可跑)** | ① 门只读主题变量:`sed -n '74,90p' unity/Assets/Tests/EditMode/SkeuomorphicUI/skeuo_readability_test.cs`(`LuminanceOfHex(ExtractHex(theme, …))`,**零** `background-image` 处理);<br>② 叠加类的不透明实测:`python3 -c "from PIL import Image; im=Image.open('unity/Assets/Gameplay.UI/Skeuomorphic/Textures/ink_wet-final.png').convert('RGBA'); px=list(im.resize((64,64)).getdata()); print(min(p[3] for p in px), max(p[3] for p in px))"` ⇒ `255 255`(全不透明);<br>③ 真包:`TD-skeuo-18` 修前值区为墨块、修后词条清晰(`production/qa/evidence/impl-t22f-casebook-value-area-2026-11-11.md` §3)。 |
+| **为什么单独立债而不就地补门** | 补门要回答「哪些类能命中读数格」—— 今天只有 `ink-*` 两个,将来任何状态类(焦点 / 选中 / 警告色)都可能叠上去。写成**白名单**会随新类腐烂;写成**封闭判定**须先定「可叠到读数格的类集合」的权威出处。这需要一次设计裁定,不是实现动作。 |
+| **解除动作(建议)** | ① 在门里增一条**封闭**判据:对每个能命中 `.channel-reading*` 的复合规则,若声明含 `url(` 且不是 `background-image: none` ⇒ **红**(「读数格任何状态下都不许有底图」;`TD-skeuo-18` 的修法就此从「纪律」升为「门」);<br>② 反例守卫:若将来确需底图,须在该门里登记**具名例外**并同时给对比实测(不是口头声明);<br>③ 同族普查:`--skeuo-ink-faded`(3.87:1)那一族的门是否也有同样的「只看主题色」盲区。 |
+| **触发条件** | ① 任何以「值区对比 ≥7:1 已由门守住」形态引用之前;**禁借绿**;② 或下一次给读数格加状态类时。 |
+| **归属** | **42 拟物 UI**(门与 USS)· 门 = `Editor.Tools.Gates` 族 |
+| **`P0 面 = N` 的理由** | R3(治理):它不阻塞 P0 出口,但它**掩护过**一条 P0 面债(`TD-skeuo-18` B)⇒ 登记时写明「不得据本条为绿称值区对比已验」。 |
 
 ### TD-tutorial-01 —— 教学口述的文案在 48 内容表与 44 事件表里**各写一份且四条全不一致**
 

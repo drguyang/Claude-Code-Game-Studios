@@ -392,6 +392,50 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // TD-skeuo-18(2026-11-11 · T22 批六)
+        //   A:查体后值区不重绘 —— 病因是重读挂在 tick 边沿,而脉案是挡路模态 ⇒
+        //      世界冻结 ⇒ tick 边沿永不发生。修法 = 脏标记 + **每帧**边沿。
+        //   B(值词条渲染成墨块)的判据不在这里:`class` 契约由既有 T2.5 三条钉着
+        //      (它们必须继续绿),「小格不铺墨渍图」是 USS 规则的判据
+        //      ⇒ `ink_wet_dry_test.test_tdSkeuo18_readingCells_suppressInkTexture`。
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_tdSkeuo18_markDirty_frameEdge_refreshesValueArea()
+        {
+            // 起始 = 门开但零词条(空行),与「查体前」同形。
+            var source = new FakeCasebookSource(GateOpen, Array.Empty<SignLexemeRow>(), 0);
+            var (driver, panel) = BootDriver("Casebook", source);
+            Assert.IsNull(panel.Q<VisualElement>("reading-channel-complexion"),
+                "查体前:值区为空行(未查 = 空行,不是占位文字)");
+
+            // 查体落定(派生态变了)→ 装配层调 MarkCasebookDirty;本帧的边沿把它读进去。
+            source.SetRows(new[] { Row("s_face", new[] { "面色词" }, DiagnSignChannel.FaceColor) });
+            driver.MarkCasebookDirty();
+            driver.OnFrameEdge();
+
+            Assert.AreEqual("面色词",
+                panel.Q<VisualElement>("reading-channel-complexion")?.Q<Label>()?.text,
+                "查体后值区须在本帧出现读数(脉案摊开 ⇒ tick 停 ⇒ 不能等 tick 边沿)");
+        }
+
+        [Test]
+        public void test_tdSkeuo18_withoutDirty_frameEdge_doesNotRebuild()
+        {
+            // 负控(独立于正例):**不**置脏 ⇒ 每帧边沿不得重画。
+            // 为什么这是个要钉的性质:`ApplyData` 会重建读数格 DOM,每帧重建 = 每帧 GC +
+            // 焦点/悬停抖动;脏标记存在的全部意义就是把它收敛到「数据真的变了」那一帧。
+            var source = new FakeCasebookSource(GateOpen, Array.Empty<SignLexemeRow>(), 0);
+            var (driver, panel) = BootDriver("Casebook", source);
+
+            source.SetRows(new[] { Row("s_face", new[] { "面色词" }, DiagnSignChannel.FaceColor) });
+            driver.OnFrameEdge();   // 未 MarkCasebookDirty
+
+            Assert.IsNull(panel.Q<VisualElement>("reading-channel-complexion"),
+                "未置脏 ⇒ 本帧不重画(否则每帧重建 DOM,脏标记形同虚设)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // helpers
         // ══════════════════════════════════════════════════════════════════
 

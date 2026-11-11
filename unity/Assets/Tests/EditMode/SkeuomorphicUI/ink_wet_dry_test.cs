@@ -303,5 +303,60 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 return (double)ink / px.Count;
             }
         }
+
+        // ── TD-skeuo-18 B(2026-11-11 · T22 批六):值区格**关掉墨渍图** ──
+
+        /// <summary>
+        /// 值区格上的墨龄状态只走明度轴,**不铺不透明墨渍图**。
+        /// <para>病因(真包实拍 + 资产实测):两张图是 1024² **不透明**整幅图
+        /// (wet 平均亮度 63 / 中心 67;dry 均值 146),被拉伸进约 100×40 的读数格
+        /// ⇒ 整格压成墨块;文字色同为近黑 ⇒ 三倍放大也读不出字形。</para>
+        /// <para>⚠️ 本测**不**判「类是否挂上」—— 那是既有 T2.5 三条的判据(必须继续绿);
+        /// 本测只判「小格上有没有铺那张图」。</para>
+        /// </summary>
+        [Test]
+        public void test_tdSkeuo18_readingCells_suppressInkTexture()
+        {
+            // 正控前置:基类的 url 仍在(否则本规则测的是一个已不存在的冲突 ——
+            // 把基类 url 删掉也会「绿」,而那会打红 AC-022 的冻结件判据)。
+            string inkPath = Path.Combine(SkeuoDir, "SkeuoInk.uss");
+            Assert.IsTrue(File.Exists(inkPath), $"前置失败:{inkPath} 不存在。");
+            string ink = Regex.Replace(File.ReadAllText(inkPath), @"/\*.*?\*/", "",
+                RegexOptions.Singleline);
+            Assert.IsTrue(Regex.IsMatch(ink,
+                    @"\.ink-wet\s*\{[^}]*url\(\s*""Textures/ink_wet-final\.png""\s*\)"),
+                "前置:`.ink-wet` 基类仍绑不透明墨渍图(大面积书写面的载体,AC-022 冻结件)。");
+
+            // 判据本体:SkeuoPaper.uss 里那条复合规则 —— 选择器含四员,声明里 background-image: none,
+            // 且**不得**再引任何 url。
+            string ussPath = Path.Combine(SkeuoDir, "SkeuoPaper.uss");
+            Assert.IsTrue(File.Exists(ussPath), $"前置失败:{ussPath} 不存在。");
+            string body = Regex.Replace(File.ReadAllText(ussPath), @"/\*.*?\*/", "",
+                RegexOptions.Singleline);
+            body = Regex.Replace(body, @"//[^\r\n]*", "");
+
+            var rule = Regex.Match(body,
+                @"([^{}]*\.channel-reading\.ink-wet[^{}]*)\{([^}]*)\}");
+            Assert.IsTrue(rule.Success,
+                "缺 `.channel-reading.ink-wet` 复合规则 —— 值区格会重新铺上 1024² 不透明墨渍图" +
+                "(= 整格墨块,字读不出;TD-skeuo-18 B)。");
+
+            string selectors = rule.Groups[1].Value;
+            string decls = rule.Groups[2].Value;
+            foreach (string sel in new[]
+                     {
+                         ".channel-reading.ink-wet",
+                         ".channel-reading.ink-dry",
+                         ".channel-reading-negative.ink-wet",
+                         ".channel-reading-negative.ink-dry",
+                     })
+                Assert.IsTrue(selectors.Contains(sel),
+                    $"复合规则的选择器须覆盖 {sel}(阳性 / 阴性 × 湿 / 干 四组合缺一即漏)。");
+
+            Assert.IsTrue(Regex.IsMatch(decls, @"background-image:\s*none\s*;"),
+                "复合规则须显式 `background-image: none`(判据本体:小格不铺墨渍图)。");
+            Assert.IsFalse(decls.Contains("url("),
+                "复合规则不得再引任何贴图(小格只留明度轴的颜色差,art-bible §4.5)。");
+        }
     }
 }

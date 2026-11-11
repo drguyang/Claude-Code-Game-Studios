@@ -925,10 +925,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-11-02(结清 `TD-diagnosis-01`):行级查体完成 ⇒ 「见过病 D」投影。
             //    actorId 只有这里有(装配期未知),故接在这里而非组合根 ——
             //    `CasebookCommandRouter` 只发 (病人, tick),玩家 id 由本处补齐。
-            if (_services.CasebookCommands != null && _services.SeenDisease != null)
+            // 🔁 2026-11-11(`TD-skeuo-18` A):**同一个回调挂两个消费者** —— 病名册投影 +
+            //    脉案值区重读。⚠️ 故意写成**一个** lambda 而不是两次 `+=`:
+            //    `AfterExamined` 是 `{get;set;}` 属性(不是 event),谁后赋值谁覆盖 ⇒
+            //    两个订阅点分散写,后来者会把前者**静默顶掉**(本轮开工前它就是单播)。
+            //    合成一个 delegate ⇒ 「漏一个」与「全漏」在观感上不同,不会静默半坏。
+            //    ⚠️ 重读**不能**靠 tick 边沿:脉案是挡路模态 ⇒ 世界冻结 ⇒ tick 不推进
+            //    (见 `SkeuoRuntimeDriver.MarkCasebookDirty` 的说明)。
+            if (_services.CasebookCommands != null)
             {
                 _services.CasebookCommands.AfterExamined =
-                    (patient, tick) => _services.SeenDisease.OnExamined(patient, tick, actorId);
+                    (patient, tick) =>
+                    {
+                        _services.SeenDisease?.OnExamined(patient, tick, actorId);
+                        _uiDriver?.MarkCasebookDirty();
+                    };
             }
 
             // ── 4.7. 病名册观看者(sprint-08 S1.1 件 E):SetViewer(玩家 actorId 已定)──

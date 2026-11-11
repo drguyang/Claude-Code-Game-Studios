@@ -860,6 +860,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 墨龄阈值归**数值轮**(art-bible §4.5 未定墨干时刻);此处用常量承载,
             // 派生自 ITickProvider 的 tick 差(1 tick = 50 ms,TICK_SECONDS 已裁定)
             // ⇒ INK_DRY_AFTER_TICKS = 墨龄超过该 tick 数即视为已干。
+            // 🔁 2026-11-11(`TD-skeuo-18` B):状态类的**施加**保留(story-022 T2.5 的形态对),
+            //    但它的**不透明墨渍图在小格上必须关掉** —— 见 `SkeuoPaper.uss` 的
+            //    `.channel-reading*.ink-*` 复合规则(病因与资产实测写在那一处)。
             const long InkDryAfterTicks = 200L;   // = 10 秒(200 × 50 ms)
             long inkAge = dtoSource.InkAgeTicks;
 
@@ -895,6 +898,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                     // `.ink-wet`/`.ink-dry` 与 `.channel-reading*` 同写 `color`,单元素双类时
                     // 胜负由未钉死的 stylesheet 加载序决定 —— 焦点接线前不可观测(今日零施加者),
                     // 非缺陷;裁决项登记不擅自裁。
+                    // 🔁 2026-11-11(`TD-skeuo-18` B):两类照挂(上一条裁决不变),但**底图**被
+                    //    `SkeuoPaper.uss` 的 `.channel-reading*.ink-*` 复合规则关掉 —— 那两张
+                    //    不透明墨渍图在小格里会把整格压成墨块(病因与实测见该规则块)。
                     cell.AddToClassList(inkAge >= InkDryAfterTicks ? "ink-dry" : "ink-wet");
                     cell.Add(new Label(reading.Word ?? string.Empty));
                     row.Add(cell);
