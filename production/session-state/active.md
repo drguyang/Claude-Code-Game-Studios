@@ -18385,3 +18385,25 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **不得借绿**:`AC-39-12` 仍不勾(淡入抓帧 0.27 s > 0.12 s ⇒ 肉眼未判;主创签核未做);
   `TD-casebook-04` 人工腿未跑(本局病人 `disease=14/16` 不可指认 ⇒ 册内零条目)。
 - 证据:`production/qa/evidence/casebook/impl-t22k-paper-indent-and-focus-traps-2026-11-11.md`。
+
+### 第 23 轮(T22 批十二 · 药箱人工腿 —— 两条真缺陷 + 满档复核)
+
+- **用户裁定**:范围 = **甲 · 药箱人工腿(S26-5)**(`AC-20-10 / 11 / 20 / 23` 真包走查)。
+- **缺陷 ①(已修)翻页后焦点悬空**:`page-next` → `Return` 后 `焦点=(无焦点)`,第 2 页方向键不可达。
+  `TurnPage` 重建后**推迟一帧**落焦到新页首格(`ExecuteLater(0)`;同帧 `Focus()` 会被
+  `NavigationSubmitEvent` 的后续输入更新清掉)。`TD-skeuo-23` closed。
+- **缺陷 ②(已修)四档沿口/半盖从未上屏**:`RebuildPage` 清树只豁免 `item-grid-paper`,
+  把 `box-rim` / `box-lid` 一并摘掉 ⇒ `display:flex` 画在树外。清树豁免二者;
+  新夹具断言 `panel != null`。修后真包满档实测半盖 `(51,36,23)` 277×5 px。`TD-skeuo-24` closed(P0 面 Y)。
+- **判据**:PlayMode 新增 **2** 条;定向 9/9;证伪 M1(删推迟落焦)与 M2(撤豁免)各恰 1 红,
+  两轮 `sha256sum -c` 还原成功(`63139b45…`)。全量 EditMode `7453/7416/0/0/37` ·
+  PlayMode `388/383/0/2/3` @ `2026-11-11T08:38:06Z`–`08:42:12Z`(`323871d4` + 工作树)。
+  等式 `7453−7453=0` · `388−386=2`。
+- **真包**:两资源种类 4 格共用 `node_id`(品种 id)⇒ 每 60 s 最多 2 次成功采集;10 轮后 load = 60,
+  满档半盖/沿口上屏(`80-band-open.png` · `81-band-lastpage.png`)。翻页焦点:两遍 trail
+  `container-item-2 → … → 13 → page-next → 14` 逐项相同。
+- **连带**:`TD-foraging-05`(open,N)登记 —— `node_id = resource_id` 使同种多格共享余量池,
+  与 GDD「节点稳定标识」口径不同;`AC-20-23` `NOT-RUN`(cap_table 在 L<20 把品级裁到 1)。
+- **不得借绿**:`AC-20-10 / 11 / 23` 的 `[L]` 均未勾(满档已拍但未签核;近满修后未单独抓帧;
+  零音效仅机器侧);`AC-20-20` 未勾(键盘两遍已实测,**物理手柄未接**)。
+- 证据:`production/qa/evidence/impl-t22l-inventory-human-legs-2026-11-11.md`。

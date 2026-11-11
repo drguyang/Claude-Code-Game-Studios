@@ -509,6 +509,9 @@
 | `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | closed | **N** | R3-裁 |
 | `TD-tutorial-01` | `tutorial-onboarding` | closed | **N** | R4 |
 | `TD-audio-110` | `audio-system` | closed | **Y** | R1 |
+| `TD-skeuo-23` | `skeuomorphic-ui` | closed | **N** | R1 |
+| `TD-foraging-05` | `foraging` | open | **N** | R4 |
+| `TD-skeuo-24` | `skeuomorphic-ui` | closed | **Y** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -1494,8 +1497,8 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 208 | 状态 {'closed': 176, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 136, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 125 条不计）
+条目 211 | 状态 {'closed': 178, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 137, 'N': 68, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 126 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
     random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
@@ -13104,3 +13107,44 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **同批(非本债)** | 用户要求「背景一直有的咳嗽」调疏:病人重档每 2 s 咳一次(`severe=40` tick)⇒ `assets/data/ai_patient.json` 抬到 **120/240/360**(6/12/18 s),重烘 `ConfigVersion = 0x0487E33C`。属 **13 调参**,不是音频缺陷;真种子逐值相等判据随之退役(结构约束仍锁)。 |
 | **归属** | `audio-system`(44)· 近场半径 = 混音参数 |
 | **状态** | **closed**(2026-11-11)。残留见下:远处病人(> max_distance 12 m)仍完全静音 —— 这是空间化的设计面,不是缺陷,但 P0 房间里「在另一头说话听不见」需数值轮确认。 |
+
+### TD-skeuo-23 —— 药箱翻页后**焦点悬空**(42)
+
+| 侧 | 内容 |
+|---|---|
+| **现象** | 药箱第 1 页把焦点移到 `page-next` 铜扣、按 `Return` 翻到第 2 页后,焦点变 `(无焦点)`;第 2 页只有 2 件器物时,方向键**无处可走**(必须先用指针点一下才能继续)。 |
+| **实测(修复前 · 2026-11-11 T22 批十二真包)** | `t22l-probe2.log` 的焦点序列:`container-item-11 → 12 → 13 → page-next →`(按 Return)`(无焦点)`。 |
+| **根因** | `InventoryContainerScreen.TurnPage` 只做 `_page = target; RebuildPage();` —— `RebuildPage` 把旧格从树上摘掉(焦点随元素脱离 panel 而丢失),而新格**没有任何 `Focus()`**。与 `TD-skeuo-20`(开屏零焦点)同型,但发生在**翻页**路径。 |
+| **修法** | 重建后把焦点**推迟一帧**落到新页首格(`schedule.Execute(...).ExecuteLater(0)`)。⚠️ 推迟是必需的:本方法由铜扣的 `NavigationSubmitEvent` 派发中调用,同帧直接 `Focus()` 会被随后的输入更新清掉(与 `FocusFirstLexiconEntry` 同因)。新页必有一格(`target < _pageCount` ⇒ 每页至少一格),空判仅作 fail-closed,不设「落铜扣」分支(不可达)。 |
+| **判据** | PlayMode `inventory_container_content_test.test_ac2020_pageTurn_movesFocusToNewPageFirstCell`(15 件,翻页后焦点 = 第 2 页首格 `container-item-112`)。证伪 M1(删掉推迟落焦整块)⇒ **恰该条红**(其余 7 条绿),文件 SHA-256 逐字节还原。 |
+| **真包复核** | 修复后同一路径:`… → page-next → AFTER:container-item-14`(第 2 页首格);再 `Down` → `container-item-15` → `page-prev`。把同一序列**连走两遍**,两次 trail 逐项相同(`container-item-2 → … → 13 → page-next → 14`)。 |
+| **归属** | `skeuomorphic-ui`(42 呈现层) |
+| **P0 面 = N** | `AC-20-20` 的「可遍历 + 同序列同目标」由本修法 + PlayMode 夹具覆盖;本条挡的是**焦点体验**。当时第 2 页方向键确实不可达(指针仍可用),若用户要求「手柄全可达」可改 Y。 |
+| **状态** | **closed**(2026-11-11)。 |
+
+### TD-foraging-05 —— `node_id` 实为**品种 id**:同种多格共享一个余量池(17 / 54)
+
+| 侧 | 内容 |
+|---|---|
+| **现象** | `assets/data/world_resources.json` 的 4 个资源点两两同 `resource_id`(1/1/2/2);`HarvestWorldQuery.cs:85` 把 `nodeId = row.ResourceId` ⇒ `NodeRemaining` 按**品种**共享余量与回生窗口,而不是按格。实测:先采 `(2,0,2)` 再立刻采 `(5,0,9)`,第二次几乎总被余量门拒(同一口井)。 |
+| **数据依据** | 关卡工具明写「资源 id 是**种类**」(`ResourceSource.cs:109`;排序键必须含格坐标的理由同此),且允许同种多格;GDD `foraging.md:303` 却把 `node_id` 定义为**节点**稳定标识,F-17-3 的余量按**节点**重算 —— 两侧语义不同。 |
+| **后果** | ① 采集产出被跨格合并压低(本批为凑满档实测:每 60 s 窗口最多 2 次成功采集);② `AC-17-08` 的「同节点」差分判据在实现里变成「同品种」;③ 关卡工具允许的「同种多点」在运行期是同一池。 |
+| **归属** | `foraging`(17)· 数据形状 + 关卡工具(54)口径 |
+| **解除判据** | 二选一,须用户裁定:(a) **节点 id = 格唯一实例 id**(关卡工具出 `node_instance_id` / `resource_index`,`node_id` 用它,余量按格);(b) **明确同种共享池**(改 `foraging.md` F-17-3 与 `world_resources` schema,把「种类」升格为语义裁定 —— 须 ADR 级)。 |
+| **触发条件** | 已触发(2026-11-11 药箱满档走查的采集环节) |
+| **P0 面 = N** | 不改任何库存 AC;只影响采集节奏与 17 的余量语义。⚠️ **若 (a) 被裁为正确读法,它是 17 的 P0 缺陷,可改 Y**。 |
+| **状态** | **open** |
+
+### TD-skeuo-24 —— 药箱四档的**沿口 / 半盖从未上屏**(42 · 清树循环吃掉非格子件)
+
+| 侧 | 内容 |
+|---|---|
+| **现象(2026-11-11 T22 批十二真包)** | 药箱从空到满走查,`ApplyBandGeometry` 的格间隙确实在变,但**近满的「沿口」与满档的「半盖」一次也没出现**。真包 `70-fast*.png` 的像素扫描:近满应有 2 px 沿口色 `(71,51,33)`、满档应有 10 px 半盖色 `(51,36,23)`,两者**零命中**。 |
+| **根因** | `InventoryContainerScreen.RebuildPage` 的清树循环只豁免 `item-grid-paper`,`_rim` / `_lid` 是构造期加进 `_gridHost` 的**非格子件** ⇒ `Bind` 的首次 `RebuildPage` 把它们从树上摘掉。之后 `ApplyBandGeometry` 设 `display: flex` 打在**树外元素**上:属性为真,屏上为零。 |
+| **为什么夹具没抓到** | 既有判据(`carry_tier_monotonicity_test` 的 5′/5″ 与 PlayMode 5″)只断言 `style.display` / `IsRimVisible` **属性**,查不到「元素仍在树上」⇒ 典型的 F1(自造断言顶替 AC 语义层)/ F8(结构分叉被行为等价掩盖)。 |
+| **修法** | 清树循环同时豁免 `box-rim` / `box-lid`(与 `item-grid-paper` 同列);并新增 PlayMode 夹具断言 `rim.panel != null` / `lid.panel != null`。 |
+| **判据** | `inventory_container_content_test.test_ac2010_bandGeometry_rimAndLidStayAttachedAcrossRebuild`(NearFull: load 55/60 ⇒ rim 上树;Full: load 60 + 谓词 ⇒ lid 上树)。证伪 M2(撤掉两条豁免)⇒ **恰该条红**(其余 8 条绿);还原 SHA-256 = `63139b45…`。 |
+| **真包复核(修后)** | 重建玩家包后载入同一存档(load = 60):`80-band-open.png` 在 y 396–400 实测 **277×5 px 的 `(51,36,23)`**(半盖;UI 缩放后 10 px 变 5 px),紧邻 y 402 出现沿口混色 `(123,88,41)` ⇒ 四档的几何通道**真的上屏**。 |
+| **归属** | `skeuomorphic-ui`(42 呈现层) |
+| **P0 面 = Y** | `AC-20-10` 的主视觉通道(不看数字也知能否再装)在修复前**生产上不存在**;这不是手感加分项,是该 AC 的判据物。 |
+| **状态** | **closed**(2026-11-11)。 |

@@ -138,6 +138,75 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "② 回第 1 页 ⇒ 下一页铜扣须恢复可交互形");
         }
 
+        /// <summary>
+        /// ②b 翻页后**焦点跟到新页**(2026-11-11 T22 批十二 真包走查缺陷)。
+        /// <para>真包实测:第 2 页有 2 件器物,按下一页铜扣后焦点掉成「无焦点」⇒
+        /// 方向键无处可走。`AC-20-20` 要「稳定且可达」;焦点悬空即不可达。</para>
+        /// <para>判别力:删 `TurnPage` 里的推迟落焦 ⇒ 本条红(既有 ② 仍绿 —— 它只查页码/类名)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_ac2020_pageTurn_movesFocusToNewPageFirstCell()
+        {
+            yield return SetUp();
+
+            var items = new ContainerItemDto[15];
+            for (int i = 0; i < items.Length; i++)
+                items[i] = new ContainerItemDto(100L + i, i, 1, 1);
+            _screen.Bind(new InventoryContainerDto(42L, items, 0L, 0, false));
+            yield return null;
+
+            Assert.That(_screen.CellCount, Is.EqualTo(12), "前置:第 1 页 12 格");
+            _screen.FirstFocusable.Focus();
+            yield return null;
+
+            _screen.TurnPage(+1);
+            yield return null;      // 推迟一帧落焦
+
+            var focused = _doc.rootVisualElement.panel.focusController.focusedElement as VisualElement;
+            Assert.That(focused, Is.Not.Null,
+                "翻页后焦点须落在新页 —— 悬空 ⇒ 手柄 / 键盘玩家在药箱里走不动(AC-20-20)");
+            Assert.That(focused.name, Is.EqualTo("container-item-112"),
+                "焦点须落新页**首格**(第 13 件,instance_id 112)");
+        }
+
+        /// <summary>
+        /// ②c **沿口 / 半盖必须留在树上**(2026-11-11 T22 批十二 真包走查)。
+        /// <para>真包实测:近满 / 满档只有格间隙变化,`box-rim` 与 `box-lid` 从未出现。
+        /// 根因 = `RebuildPage` 的清树循环只豁免 `item-grid-paper`,把构造期加进去的
+        /// 这两个非格子件一并摘掉 ⇒ `ApplyBandGeometry` 设的 `display:flex` 画在**树外**元素上。</para>
+        /// <para>判别力:删掉 `RebuildPage` 对 `box-rim` / `box-lid` 的豁免 ⇒ 本条红
+        /// (既有 5′ / 5″ 仍绿 —— 它们只查 `style.display` 属性,查不到「仍在树上」)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_ac2010_bandGeometry_rimAndLidStayAttachedAcrossRebuild()
+        {
+            yield return SetUp();
+
+            var items = new ContainerItemDto[12];
+            for (int i = 0; i < items.Length; i++)
+                items[i] = new ContainerItemDto(200L + i, i, 1, 1);
+
+            // 近满:55 / 60,谓词 false ⇒ NearFull
+            _screen.Bind(new InventoryContainerDto(42L, items, 55L, 60, false));
+            yield return null;
+
+            var rim = _doc.rootVisualElement.Q<VisualElement>("box-rim");
+            Assert.That(rim, Is.Not.Null, "沿口元素须存在");
+            Assert.That(rim.panel, Is.Not.Null,
+                "近满档的沿口必须**真在树上** —— 属性 true 而 panel null 就是画不出来");
+            Assert.That(_screen.IsRimVisible, Is.True, "近满档沿口须为可见");
+
+            // 满:60 / 60 + 谓词 true ⇒ Full
+            _screen.Bind(new InventoryContainerDto(42L, items, 60L, 60, true));
+            yield return null;
+
+            var lid = _doc.rootVisualElement.Q<VisualElement>("box-lid");
+            Assert.That(lid, Is.Not.Null, "半盖元素须存在");
+            Assert.That(lid.panel, Is.Not.Null,
+                "满档的半盖必须**真在树上** —— 属性 true 而 panel null 就是画不出来");
+            Assert.That(_screen.IsLidVisible, Is.True, "满档半盖须为可见");
+        }
+
         // ══════════════════════════════════════════════════════════════════
         // ③ 选中:点 ⇒ 出口收到;再点 ⇒ 取消
         // ══════════════════════════════════════════════════════════════════

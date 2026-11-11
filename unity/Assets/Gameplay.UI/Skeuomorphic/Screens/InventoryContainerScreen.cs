@@ -260,6 +260,22 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (target < 0 || target >= _pageCount || target == _page) return;
             _page = target;
             RebuildPage();
+
+            // 🔁 2026-11-11(T22 批十二 真包走查):翻页后**焦点必须跟到新页** ——
+            //    旧实现只 `RebuildPage()`,而格子在重建时被摘掉 ⇒ 引擎焦点掉成「无焦点」
+            //    (真包实测:第 2 页有 2 件器物,按 Down 走不动)。`AC-20-20` 要求
+            //    「同一箱内容 + 同一方向键 ⇒ 同一焦点目标,稳定且可达」,焦点悬空即不可达。
+            //    ⚠️ 推迟一帧:本方法由铜扣的 `NavigationSubmitEvent` 派发中调用,直接
+            //    `Focus()` 会被随后的输入更新清掉(与 `FocusFirstLexiconEntry` 同因)。
+            //    ⚠️ 新页必有格:`target < _pageCount`(上面已判),而 `_pageCount ≥ 1` 时
+            //    每页至少一格(`Bind` 的空箱走 `_pageCount = 1` 且 `TurnPage` 早退)⇒
+            //    此处的空判只是 fail-closed,不另设「落铜扣」分支(那条**不可达**,写了也无夹具能证)。
+            if (_cells.Count == 0) return;
+            VisualElement resume = _cells[0];
+            resume.schedule.Execute(() =>
+            {
+                if (resume.panel != null && resume.focusable) resume.Focus();
+            }).ExecuteLater(0);
         }
 
         /// <summary>切换某格的选中态(两条输入路径的唯一汇合点)。</summary>
@@ -364,10 +380,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _cells.Clear();
             _cellInstanceIds.Clear();
             // 只清格,不清纸面/容器(纸面是首建时加的,见构造函数)
+            // 🔁 2026-11-11(T22 批十二 真包走查):**沿口 / 半盖也必须留下** —— 它们同样是
+            //    构造期加进 `_gridHost` 的**非格**子件。旧循环只豁免 `item-grid-paper`,
+            //    于是 `Bind` 的首次 `RebuildPage` 就把 `_rim` / `_lid` 从树上摘掉,
+            //    之后 `ApplyBandGeometry` 再怎么 `display:flex` 都画不出来
+            //    (属性面为真、屏上为零 —— 真包四档只剩格间隙 6/3/0/−3 px,
+            //     实测近满/满档的「沿口 / 半盖」从未出现)。夹具同步改为断言**仍在树上**。
             for (int i = _gridHost.childCount - 1; i >= 0; i--)
             {
                 var child = _gridHost[i];
-                if (child.name == "item-grid-paper") continue;
+                if (child.name == "item-grid-paper" ||
+                    child.name == "box-rim" ||
+                    child.name == "box-lid") continue;
                 _gridHost.Remove(child);
             }
 

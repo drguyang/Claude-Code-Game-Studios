@@ -6,7 +6,7 @@
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-10
+> **Last Updated**: 2026-11-11
 
 ## Context
 
@@ -95,8 +95,11 @@
 
 **Story Type**: UI
 **Required evidence**:
-- Manual walkthrough doc + interaction test: `production/qa/evidence/inventory-{10,11,20,23}-<date>.md`(ADVISORY/UI 门)
+- Manual walkthrough doc + interaction test: `production/qa/evidence/impl-t22l-inventory-human-legs-2026-11-11.md`(本批)· 此前 `impl-t22b-inventory-container-2026-11-10.md`
 - Logic(四档单调/接缝半边): `unity/Assets/Tests/EditMode/Inventory/carry_tier_monotonicity_test.cs`
+- 呈现半边(2026-11-11 新增,PlayMode): `unity/Assets/Tests/PlayMode/SkeuomorphicUI/inventory_container_content_test.cs` ——
+  `test_ac2020_pageTurn_movesFocusToNewPageFirstCell`(翻页后焦点落新页首格)·
+  `test_ac2010_bandGeometry_rimAndLidStayAttachedAcrossRebuild`(沿口/半盖必须在树上)
 
 **Status**: [ ] Not yet created
 
@@ -138,3 +141,26 @@
 - `OQ-20-11`(「箱内」与「身上」不可分)本批**未动** —— 它决定「药箱装什么」,不是「长什么样」。
 
 证据原件 = `production/qa/evidence/impl-t22b-inventory-container-2026-11-10.md`。
+
+### 2026-11-11 · T22 批十二(人工腿 —— 查出两条真缺陷)
+
+用户裁定范围 = **甲 · 药箱人工腿(S26-5)**,即 `AC-20-10 / 11 / 20 / 23` 的真包走查。
+
+| # | 发现(实测) | 处置 |
+|---|---|---|
+| ① | **翻页后焦点悬空**:第 1 页末行 `Down` 到 `page-next`、`Return` 翻到第 2 页后 `焦点=(无焦点)`;第 2 页 2 件器物方向键走不动 | 修 `TurnPage`(推迟一帧落焦到新页首格);新增 PlayMode 夹具;真包同序列两遍 trail 逐项相同。`TD-skeuo-23` closed |
+| ② | **四档的沿口 / 半盖从未上屏**:`RebuildPage` 清树只豁免 `item-grid-paper`,把构造期加的 `box-rim` / `box-lid` 一并摘掉 ⇒ `display:flex` 画在树外 | 清树豁免二者 + 新增「仍在树上」夹具。修后真包满档实测半盖色 `(51,36,23)` 277×5 px。`TD-skeuo-24` closed(P0 面 Y) |
+| ③ | **满档可达性**:两资源种类的 4 个格共用 `node_id`(品种 id)⇒ 每 60 s 窗口最多 2 次成功采集;本批 10 轮采到 load = 60 | 采集域问题另立 `TD-foraging-05`(open);**不属本故事** |
+| ④ | **AC-20-23 无对象**:全部采集都是 `品1`;`cap_table[L] = 1 + min(L,20)/20` 在 L < 20 时把品级裁到 1 | `NOT-RUN`,阻塞物具名(采集等级 ≥ 20 或改 cap_table,归数值轮/用户裁) |
+
+**判据**:PlayMode 新增 **2** 条;定向 9/9;证伪 M1 / M2 各恰 1 红,`sha256sum -c` 双轮还原成功。
+全量 EditMode `7453/7416/0/0/37` · PlayMode `388/383/0/2/3` @ `2026-11-11T08:38:06Z`–`08:42:12Z`
+(`323871d4` + 工作树;等式 `7453−7453=0` · `388−386=2`)。
+
+**未收口(禁借绿)**:
+- `AC-20-10` / `AC-20-23` / `AC-20-11` 的 `[L]` 人工腿**均未勾** —— 满档已拍但主创未签核;
+  近满修后未单独抓帧(修前那帧不能算);零音效只有机器侧证据(21 行 cue 表零库存项),人耳未听。
+- `AC-20-20` 未勾:遍历与确定性已用键盘(同一 `NavigationMoveEvent` 桥)实测两遍,
+  **物理手柄腿未跑**(无设备)—— 不以键盘代签手柄。
+
+证据原件 = `production/qa/evidence/impl-t22l-inventory-human-legs-2026-11-11.md`。
