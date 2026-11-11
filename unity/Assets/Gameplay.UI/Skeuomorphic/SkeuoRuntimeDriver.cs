@@ -74,6 +74,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 
         private ICasebookDtoSource _source;
         private ICasebookCommandSink _commandSink;
+
+        /// <summary>脉案页的**呈现反馈声**请求面(2026-11-11 · `AC-39-12`)。
+        /// <para>实现方住装配层(它把请求翻成 `AudioCueDto` 交 44);未注入 ⇒ 无声。
+        /// 与 <see cref="CommandSink"/> 同款注入方向(42 不反向引用装配层)。</para></summary>
+        private ICasebookCueSink _cueSink;
         // 7b 存档位:载入意图出口 + 槽位清单(均由装配层注入 —— 42 不发明槽位数)
         private ISaveSlotCommandSink _saveSlotSink;
         private IReadOnlyList<uint> _saveSlots;
@@ -230,6 +235,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
             if (_commandSink != null && _screen is CasebookScreen preBound)
                 preBound.BindCommandSink(_commandSink);
+            if (_cueSink != null && _screen is CasebookScreen preBoundCue)
+                preBoundCue.BindCueSink(_cueSink);
 
             // 🔁 2026-10-31 载入接线轮:存档位屏同款补绑(幂等)。缺注入 ⇒ 行照画、按了留空。
             if (_screen is SaveSlotsScreen saveSlots)
@@ -415,6 +422,21 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 _commandSink = value;
                 if (_screen is CasebookScreen casebook)
                     casebook.BindCommandSink(_commandSink);
+            }
+        }
+
+        /// <summary>
+        /// 屏外注入的**呈现反馈声**请求面(2026-11-11 · `AC-39-12`)。
+        /// <para>实现方住装配层(把请求翻成 <c>AudioCueDto</c> 交 44);未注入 ⇒ 无声
+        /// (不崩、不造声)。注入方向与 <see cref="CommandSink"/> 同款。</para></summary>
+        public ICasebookCueSink CueSink
+        {
+            get => _cueSink;
+            set
+            {
+                _cueSink = value;
+                if (_screen is CasebookScreen casebook)
+                    casebook.BindCueSink(_cueSink);
             }
         }
 
@@ -863,6 +885,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (_source != null) _screen.Bind(_source);
             if (_commandSink != null && _screen is CasebookScreen casebook)
                 casebook.BindCommandSink(_commandSink);
+            if (_cueSink != null && _screen is CasebookScreen casebookCue)
+                casebookCue.BindCueSink(_cueSink);
             if (_screen is SaveSlotsScreen saveSlots)
             {
                 saveSlots.BindCommandSink(_saveSlotSink);

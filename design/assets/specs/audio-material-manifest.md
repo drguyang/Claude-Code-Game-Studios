@@ -96,6 +96,7 @@
 | [SFX #1] 诊脉接触音 | `Pulse_Contact` | **Stethoscope** | ✗ | `PlayerExamAction` | `PlayerExamAction` | `sfx_pulse_contact_01.wav` | 1 |
 | [SFX #2] 听诊器接触音 | `Steth_Contact` | **Stethoscope** | ✗ | `PlayerExamAction` | `PlayerExamAction` | `sfx_steth_contact_{chest,back}_01.wav` | 2 |
 | [SFX #7] 纸面物理声 | `Page_Turn` | **UICue** | ✗ | `PlayerExamAction` | `PlayerExamAction` | `ui_page_turn_{fwd,back}_01.wav` | 2 |
+| [SFX #11] 纸面压痕反馈声 | `UI_Paper_Indent` | **UICue** | ✗ | `PlayerExamAction` | `PlayerExamAction` | `ui_paper_indent_01.wav` | 1 |
 | [SFX #8] 脚步声 | `Footstep_Base` | **SFX** | ✗ | `WorldPerceptible` | `WorldPerceptible` | `sfx_footstep_{stone,dirt,humus,snow}_01.wav` | 4 |
 | [SFX #9] 药柜/器物声 | `Cabinet_Prop` | **SFX** | ✗ | `PlayerAction` | `PlayerAction` | `sfx_cabinet_{drawer,handle}_01.wav` · `sfx_prop_place_01.wav` | 3 |
 | [SFX #10] 世界声 | `World_Sfx_Base` | **SFX** | ✗ | `WorldPerceptible` | `WorldPerceptible` | `sfx_world_{dog,horse,gong,bell,birds}_01.wav` | 5 |

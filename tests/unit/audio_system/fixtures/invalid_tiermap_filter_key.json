@@ -97,9 +97,6 @@
       "occlusion_lowpass": 1200,
       "whitelist_category": "ContinuousPhysiology",
       "trigger_source": "ContinuousPhysiology",
-      "min_distance": 1,
-      "max_distance": 12,
-      "occlusion_lowpass": 1200,
       "priority_class": 1
     },
     {
@@ -128,6 +125,21 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
+    },
+    {
+      "schema_version": 1,
+      "cue": "UI_Paper_Indent",
+      "assets": [
+        "ui_paper_indent_01.wav"
+      ],
+      "bus": "UICue",
+      "loop": false,
+      "whitelist_category": "PlayerExamAction",
+      "trigger_source": "PlayerExamAction",
       "min_distance": 1,
       "max_distance": 12,
       "occlusion_lowpass": 1200,

@@ -18360,3 +18360,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **不得借绿**:声学判据(`AC-44-03 [L]` 等)仍 `NOT-RUN`;`NearFieldFloor` 与咳嗽间隔都是**种子值**
   (数值轮);>12 m 病人仍完全无声(空间化设计面);走查造出 `w4…w10` 本机测试世界。
 - 证据:`production/qa/evidence/impl-t22j-audio-level-and-cough-tune-2026-11-11.md`。
+
+### 第 22 轮(T22 批十一 · 脉案续链:焦点两坑 + 纸面反馈声 + 翻页淡入)
+
+- **用户裁定**:范围 = **甲 · 脉案页 S26-4(续链)**;压痕声 = **甲 · 新生成一支短纸声**;翻页惯性 = **甲 · 做淡入过渡**;
+  素材试听后 = **可以搬入**。
+- **`TD-casebook-04` 两个焦点坑(实现已落,状态仍 `open`)**:① 落笔重建后焦点按 `lexicon_id` 回到**刚用的条目**;
+  ② 册容器插到 `fold-edge` **之前** ⇒ 病名栏一格可达册。
+- **纸面反馈声**:42 只请求(`ICasebookCueSink`)→ 装配层 `CasebookCueRouter` → `AudioCueDto`;
+  空间锚 = 玩家当前格(不是原点)。空行落焦请求压痕声(有 `.channel-reading*` 则不发);翻页请求翻页声。
+- **素材 / 数据**:`ui_paper_indent_01.wav`(0.843 s,44.1 kHz,`loadType 0`)· 事件表末位追加
+  `UI_Paper_Indent`(`UICue` / `PlayerExamAction`)· 需求 **SFX-11** · `RequiredCues` / `RequiredRequirements` 加项 ·
+  权威件冻结表加行 · 重烘 **21 行 / `0x8484C950`** · `audio` 组 43 素材。
+- **翻页淡入**:`display` 逻辑切换**不变**,新页 `opacity 0→1`,时长 `0.12 s × MotionScaleHook.Scale`,
+  `Scale=0` ⇒ 瞬切(AC-42-G4)。
+- **判据**:EditMode 新 `casebook_cue_router_test` 6 · `paper_indent_cue_test` 4 · PlayMode ⑧a–⑧f 6;
+  全量 EditMode `7453/7416/0/0/37` @ `06:50:22Z`–`06:52:30Z` ·
+  PlayMode `386/381/0/2/3` @ `06:53:23Z`–`06:53:45Z`(`7b56ea96` + 工作树)。
+  等式 `7453−7443=10` · `386−380=6`。
+- **证伪 8 枪**:M1–M8 各恰 1 红(M7 2 红),两文件 SHA-256 逐字节还原。
+- **真包**:压痕声 **16 次** `cue=20` · 翻页声 **3 次** `cue=11`(均 `group=UICue`);monitor 峰值 16359(−5 dBFS)。
+- **连带面(逐项同步,曾红 11 条)**:8 份非法夹具补必需 cue 行 · 「起货末位」判据改成「ordinal 恒 19 + 最新追加行在末位」·
+  A 锁常量 9 → 10 项 · 权威件冻结表补 `[SFX #11]`。
+- **不得借绿**:`AC-39-12` 仍不勾(淡入抓帧 0.27 s > 0.12 s ⇒ 肉眼未判;主创签核未做);
+  `TD-casebook-04` 人工腿未跑(本局病人 `disease=14/16` 不可指认 ⇒ 册内零条目)。
+- 证据:`production/qa/evidence/casebook/impl-t22k-paper-indent-and-focus-traps-2026-11-11.md`。

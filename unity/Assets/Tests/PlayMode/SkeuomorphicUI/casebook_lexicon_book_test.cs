@@ -37,11 +37,17 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         {
             public readonly List<int> Seen = new List<int>();
             public readonly Dictionary<int, string> Texts = new Dictionary<int, string>();
+
+            /// <summary>活跃体征数(0 = 全空行;>0 才放行 <see cref="Rows"/> 进值区)。</summary>
+            public int ActiveCount;
+
+            /// <summary>已查词条(2026-11-11 · ⑧d 用真 `ApplyData` 路径造「非空行」)。</summary>
+            public readonly List<SignLexemeRow> Rows = new List<SignLexemeRow>();
             public byte Pending;
             public int DetentCount;   // 方笺页戥子档数(S2)
 
-            public int ActiveSignCount => 0;
-            public IReadOnlyList<SignLexemeRow> RevealedRows => new List<SignLexemeRow>();
+            public int ActiveSignCount => ActiveCount;
+            public IReadOnlyList<SignLexemeRow> RevealedRows => Rows;
             public int PrecisionSlot => 0;
             public long InkAgeTicks => 0;
             public IReadOnlyList<int> SeenLexiconIds => Seen;
@@ -438,6 +444,225 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         }
 
         // ── helpers ─────────────────────────────────────────────────────────
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ⑧ T22 批十一 —— `TD-casebook-04` 的两个焦点坑 + `AC-39-12` 的反馈声
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// ⑧a:落笔一次之后,焦点**留在刚用的条目**(`TD-casebook-04` 坑①)。
+        /// <para><b>病因</b>:`PointLexicon` → `RefreshAfterAction` → `ApplyData` →
+        /// `RefreshLexiconBook` 的 `Clear()` 把焦点元素摘出层级 ⇒ 引擎焦点变 null ⇒
+        /// 想改判的玩家「没有焦点」,只能从头 Tab 一遍。</para>
+        /// <para>判别力:把 `RestoreLexiconFocus` 的调用删掉 ⇒ 本条红(而 ⑦d「开册落焦」仍绿;
+        /// 两者测的是不同时刻 —— 开册时 vs 写后重建时)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_pointIdentify_keepsFocusOnUsedEntry()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var src = new FakeSource();
+            src.Seen.AddRange(new[] { 7, 9 });
+            src.Texts[7] = "伤寒"; src.Texts[9] = "温病";
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(src);
+
+            DispatchSubmit(root.Q<VisualElement>("channel-disease-name"));   // 摊开
+            yield return null;                                               // 等开册落焦
+
+            var entries = CollectEntryRows(root);
+            Assert.AreEqual(2, entries.Count, "前置:两条条目");
+
+            // 玩家动作:导航到第二条条目 + 提交(= 指认 lexicon_id 9)
+            DispatchSubmit(entries[1]);
+            yield return null;                                               // 等重建后的落焦
+
+            Assert.IsTrue(screen.IsLexiconBookOpen, "落笔后册子仍摊开(档位循环的入口)");
+            VisualElement focused = root.panel.focusController.focusedElement as VisualElement;
+            Assert.IsNotNull(focused,
+                "落笔后焦点必须**仍在册内**(旧实现被 `Clear()` 摘掉 ⇒ 无焦点,改判无从下手)");
+            Assert.IsTrue(focused.userData is int, "焦点元素须是条目行(userData = lexicon_id)");
+            Assert.AreEqual(9, (int)focused.userData,
+                "焦点须回到**刚用的那一条**(9),不是重建后的第一条(7)");
+        }
+
+        /// <summary>
+        /// ⑧b:册已摊开时,病名栏的下一格焦点是**册条目**,不是「折」(`TD-casebook-04` 坑②)。
+        /// <para>判据 = 树序即焦点序(ADR-013 §五 不自实现导航算法):取全树 focusable 序,
+        /// 断言 `channel-disease-name` 的下一项是条目(`userData` 为 int)、且条目之后才是
+        /// `fold-edge`。判别力:把容器改回 `host.Add`(排在折边之后)⇒ 本条红。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_openBook_entriesPrecedeFoldEdge_inFocusOrder()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var src = new FakeSource();
+            src.Seen.AddRange(new[] { 7, 9 });
+            src.Texts[7] = "伤寒"; src.Texts[9] = "温病";
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(src);
+
+            DispatchSubmit(root.Q<VisualElement>("channel-disease-name"));
+            yield return null;
+
+            var order = new List<VisualElement>(
+                root.Query<VisualElement>().Where(e => e.focusable).ToList());
+            int iName = order.FindIndex(e => e.name == "channel-disease-name");
+            int iFold = order.FindIndex(e => e.name == "fold-edge");
+            Assert.GreaterOrEqual(iName, 0, "前置:病名栏可聚焦");
+            Assert.GreaterOrEqual(iFold, 0, "前置:折边可聚焦");
+
+            VisualElement next = order[iName + 1];
+            Assert.IsTrue(next.userData is int,
+                $"病名栏的下一格须是**册条目**(userData = lexicon_id);实得 {next.name}。" +
+                "落在折边上 ⇒ 再按 Submit 会把右页折回(玩家以为「界面变了」)");
+
+            int iEntry = order.FindIndex(iName + 1, e => e.userData is int);
+            Assert.GreaterOrEqual(iEntry, 0, "前置:册条目在焦点序里");
+            Assert.Less(iEntry, iFold,
+                "册条目须排在折边**之前**(病名栏出发一次 Down 一格可达 —— TD-casebook-04 坑②)");
+        }
+
+        /// <summary>
+        /// ⑧c:空行落焦 ⇒ **请求**一次纸面压痕声(`AC-39-12` 第一半 · GDD `casebook.md:224`)。
+        /// <para>42 只请求不发声(ADR-018 §一):本测断言请求次数,不断言音频。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_emptyRowFocus_requestsPaperIndentOnce()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var cues = new FakeCueSink();
+            screen.BindCueSink(cues);
+            var src = new FakeSource();          // ActiveSignCount = 0 ⇒ 六行全空
+            screen.ApplyData(src);
+
+            VisualElement row = root.Q<VisualElement>("channel-complexion");
+            Assert.IsNotNull(row, "前置:面色行存在");
+            row.Focus();
+            yield return null;
+
+            Assert.AreEqual(1, cues.Indents,
+                "空行获得焦点 ⇒ 请求一次压痕声(零提示文字,反馈只有声 + 高亮)");
+        }
+
+        /// <summary>
+        /// ⑧d:非空行(有读数格)落焦 ⇒ **不**请求压痕声。
+        /// <para>数据面走真 `RevealedRows`(生产同一条 `ApplyData` 路径),不在夹具里
+        /// 手造 `.channel-reading` 元素 —— 否则测的是夹具自己的类名。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_nonEmptyRowFocus_doesNotRequestIndent()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var cues = new FakeCueSink();
+            screen.BindCueSink(cues);
+            var src = new FakeSource { ActiveCount = 1 };
+            src.Rows.Add(new SignLexemeRow(
+                "sign_pallor", new[] { "面色苍白", null, null },
+                SignChannel.FaceColor, new[] { RevealMethod.Inspection }, 1,
+                SignPolarity.Positive, null));
+            screen.ApplyData(src);
+
+            VisualElement row = root.Q<VisualElement>("channel-complexion");
+            Assert.IsNotNull(row, "前置:面色行存在");
+            Assert.IsNotNull(row.Query<VisualElement>(className: "channel-reading").First(),
+                "前置:该行已有读数格(数据面驱动,非夹具手造)");
+
+            row.Focus();
+            yield return null;
+
+            Assert.AreEqual(0, cues.Indents,
+                "有读数的行不请求压痕声 —— 压痕声只在「空行」上(否则翻册时连续压痕盖住呼吸层)");
+        }
+
+        /// <summary>⑧e:翻页(前案 / 后案)⇒ 各请求一次翻页声;逻辑切换仍即时(display 立即切)。</summary>
+        [UnityTest]
+        public IEnumerator test_pageTurn_requestsCue_andSwitchesImmediately()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            var cues = new FakeCueSink();
+            screen.BindCueSink(cues);
+            screen.ApplyData(new FakeSource());
+
+            screen.SubmitPageNext();
+            VisualElement rx = root.Q<VisualElement>("prescription-page");
+            Assert.AreEqual(DisplayStyle.Flex, rx.style.display.value,
+                "翻页的**逻辑切换**须即时(淡入只是视觉,不延迟状态)");
+            Assert.AreEqual(1, cues.PageTurns, "翻页 ⇒ 请求一次翻页声");
+
+            screen.SubmitPagePrev();
+            Assert.AreEqual(2, cues.PageTurns, "回翻 ⇒ 再请求一次");
+        }
+
+        /// <summary>⑧f:翻页淡入时长受动效缩放约束(`AC-42-G4`:Scale=0 ⇒ 瞬切且完全可用)。</summary>
+        [UnityTest]
+        public IEnumerator test_pageTurn_fadeDuration_scalesAndDegradesToInstant()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            screen.ApplyData(new FakeSource());
+
+            VisualElement rx = root.Q<VisualElement>("prescription-page");
+
+            screen.SubmitPageNext();
+            yield return null;                    // 等淡入的调度步执行
+            Assert.Greater(rx.style.transitionDuration.value[0].value, 0f,
+                "Scale = 1 ⇒ 翻页有可见淡入(不是瞬切)");
+            Assert.AreEqual(1f, rx.style.opacity.value, 1e-3f,
+                "淡入目标 = 完全可见");
+
+            // 无障碍:Scale = 0 ⇒ 无动效,新页立即全可见
+            screen.SubmitPagePrev();              // 回到首页
+            screen.Motion.Scale = 0f;
+            screen.SubmitPageNext();
+            yield return null;
+            Assert.AreEqual(1f, rx.style.opacity.value, 1e-3f,
+                "Scale = 0 ⇒ 不设透明起点(瞬切且完全可用,AC-42-G4 后半)");
+        }
+
+        /// <summary>测试用反馈声接缝(记录请求次数;不发任何真实音频)。</summary>
+        private sealed class FakeCueSink : ICasebookCueSink
+        {
+            public int Indents;
+            public int PageTurns;
+            public void RequestPaperIndent() => Indents++;
+            public void RequestPageTurn() => PageTurns++;
+        }
 
         /// <summary>收集病名册条目行(容器匿名;条目行 = 无 name 但 userData 为 int 的纸元件)。</summary>
         private static List<VisualElement> CollectEntryRows(VisualElement root)

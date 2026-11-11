@@ -66,6 +66,12 @@
       ]
     },
     {
+      "id": "SFX-11",
+      "name": "纸面压痕反馈声(空行落焦)",
+      "cue": "UI_Paper_Indent",
+      "files": ["ui_paper_indent_01.wav"]
+    },
+    {
       "id": "AMB-1",
       "name": "医馆室内环境音",
       "cue": "Clinic_Room_Tone",

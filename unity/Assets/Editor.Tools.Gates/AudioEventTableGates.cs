@@ -248,6 +248,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             "BreathLayer_Adventitious_Fine", // 呼吸两层 —— 附加音层(细湿啰音)
             "WorldBreath_Baseline",        // 世界语境呼吸(F-44.7 主通道,AC-44-16 的载体行)
             "sfx_process_complete",        // 18 的起货锚点(AC-18-21)· 2026-11-11 T22 批九加行同批加门
+            "UI_Paper_Indent",             // 39 的空行压痕声(AC-39-12 第一半)· 2026-11-11 T22 批十一加行同批加门
         };
 
         /// <summary>世界语境呼吸的 cue 名(AC-44-16 的载体行;= <see cref="RequiredCues"/> 第 4 员,
@@ -1049,14 +1050,16 @@ public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEvent
                     "sfx_world_birds_01.wav", "sfx_world_door_bell_01.wav", "sfx_world_vendor_cry_01.wav",
                     "sfx_world_throat_clear_01.wav", "sfx_world_crying_01.wav", "sfx_world_bell_01.wav",
                 }),
+            new AssetRequirement("SFX-11", "纸面压痕反馈声(空行落焦)", "UI_Paper_Indent",
+                new[] { "ui_paper_indent_01.wav" }),
             new AssetRequirement("AMB-1",  "医馆室内环境音",  "Clinic_Room_Tone",
                 new[] { "amb_clinic_room_loop.wav" }),
         };
 
-        /// <summary>R-2 的 9 项 id(具名清单 —— 差集与顺序断言都基于它)。</summary>
+        /// <summary>R-2 的 10 项 id(具名清单 —— 差集与顺序断言都基于它)。</summary>
         public static readonly IReadOnlyList<string> RequiredRequirementIds = new[]
         {
-            "SFX-1", "SFX-2", "SFX-3", "SFX-6", "SFX-7", "SFX-8", "SFX-9", "SFX-10", "AMB-1",
+            "SFX-1", "SFX-2", "SFX-3", "SFX-6", "SFX-7", "SFX-8", "SFX-9", "SFX-10", "SFX-11", "AMB-1",
         };
 
         /// <summary>世界声的 4 cue(档位拆分;AC-44-E4 的「按 9 个文件比、不按 cue 数比」)。</summary>

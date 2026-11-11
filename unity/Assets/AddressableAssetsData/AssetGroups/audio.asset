@@ -21,6 +21,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 14f32b055b3e2c888a2e8c4ee346aaf6
+    m_Address: ui_paper_indent_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 16cb3f23ad3f6a2a5ac09a3c32669f51
     m_Address: ui_page_turn_fwd_01.wav
     m_ReadOnly: 0

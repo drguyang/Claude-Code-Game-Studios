@@ -47,6 +47,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <para>⚠️ 可为 null(未接线 ⇒ Submit 留空,不崩、不造动作)。</para></summary>
         private ICasebookCommandSink _commandSink;
 
+        /// <summary>呈现反馈声请求面(2026-11-11 · <c>AC-39-12</c> 第一半)。
+        /// <para>⚠️ 可为 null(未接线 ⇒ 无声,不崩、不造声)。本屏**只请求**,
+        /// 声源 / 总线 / volume 全在 44(ADR-018 §一 / ADR-028)。</para></summary>
+        private ICasebookCueSink _cueSink;
+
+        /// <summary>动效缩放钩子(规则十钩子④;翻页淡入的时长 = 基准 × <see cref="MotionScaleHook.Scale"/>)。
+        /// <para>⚠️ 置 0 ⇒ 瞬切,界面仍完全可用(<c>AC-42-G4</c> 后半);数值归 49 的无障碍设置。</para></summary>
+        private readonly MotionScaleHook _motion = new MotionScaleHook();
+
         /// <summary>病名册是否摊开(**纯呈现态**,零游戏状态 —— 与
         /// <see cref="ClinicPanelScreen"/> 的 <c>_refreshPending</c> 同格;
         /// 翻页 / 折页零写入,<c>AC-39-10</c>)。</summary>
@@ -338,6 +347,29 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             header.AddToClassList("channel-label");   // 题签档(S3:24px 无障碍下限)
             row.Add(header);
             parent.Add(row);
+
+            // ── 空行聚焦反馈(2026-11-11 · `AC-39-12` 第一半 / GDD `casebook.md:224`)──
+            // 「空行**必须可聚焦**,有反馈(**压痕声 / 行高亮**),零提示文案」。
+            // 行高亮 = `SkeuoFocusVisible` 的既有类;压痕声经本回调请求 44(本屏不持声源)。
+            // ⚠️ 判定挂在 **FocusIn** 上(玩家动作),不挂在数据变化上 —— 否则「读数变了」
+            //    会被伪装成一次玩家动作(违 ADR-018 §六 无提示音铁律的语义面)。
+            row.RegisterCallback<FocusInEvent>(OnChannelFocusIn);
+        }
+
+        /// <summary>通道行获得焦点 ⇒ **空行**才请求压痕声(<c>AC-39-12</c>)。
+        /// <para>空行 = 该行**没有**读数格(<c>.channel-reading</c> / <c>.channel-reading-negative</c>);
+        /// 这是「未查 = 空行」的既有呈现事实(GDD `casebook.md:329`),不引入第二套判定。</para>
+        /// <para>⚠️ 病名行也挂本回调,但它带词文本后就不再是空行;未落笔时按空行发声,与
+        /// 「空行可聚焦 + 有反馈」同一条规则。</para></summary>
+        private void OnChannelFocusIn(FocusInEvent evt)
+        {
+            if (_cueSink == null) return;
+            if (evt.currentTarget is not VisualElement row) return;
+            bool hasReading =
+                row.Query<VisualElement>(className: "channel-reading").First() != null ||
+                row.Query<VisualElement>(className: "channel-reading-negative").First() != null;
+            if (hasReading) return;
+            _cueSink.RequestPaperIndent();
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -357,6 +389,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>注入写通道(42 UI 事件 → 装配层写者;未注入 ⇒ Submit 留空)。</summary>
         public void BindCommandSink(ICasebookCommandSink sink) => _commandSink = sink;
+
+        /// <summary>注入**呈现反馈声**请求面(2026-11-11;未注入 ⇒ 无声、不崩)。
+        /// <para>⚠️ 与 <see cref="BindCommandSink"/> 同纪律:42 只请求,不持状态。</para></summary>
+        public void BindCueSink(ICasebookCueSink sink) => _cueSink = sink;
+
+        /// <summary>动效缩放钩子(测试接缝 / 无障碍设置落点;置 0 ⇒ 翻页瞬切)。</summary>
+        public MotionScaleHook Motion => _motion;
 
         /// <summary>给一行可聚焦通道绑「行级查体」的双输入路径(2026-11-02 · `TD-diagnosis-01`)。</summary>
         /// <param name="rowName">行名(建行时的 name;本方法**按名回查**,不改 `AddChannel` 签名)。</param>
@@ -587,6 +626,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             ApplyPageVisibility();
             RefreshDentchDoses();
             FocusFirstOf(_rxPage);            // ⚠️ B-6-2 人工复验红(2026-10-14):见 FocusFirstOf 注
+            _cueSink?.RequestPageTurn();         // AC-39-12:翻页 = 玩家动作 ⇒ 纸面翻页声
             _commandSink?.SubmitPageTurn();   // 通知装配层(纯呈现量;实现方可 no-op)
         }
 
@@ -600,6 +640,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _onPrescriptionPage = false;
             ApplyPageVisibility();
             FocusFirstOf(_casebookFace);      // ⚠️ 同上:回首页焦点亦须落进可见页
+            _cueSink?.RequestPageTurn();         // 同上(回翻也是玩家动作)
             _commandSink?.SubmitPageTurn();
         }
 
@@ -647,6 +688,49 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (_rxPage != null)
                 _rxPage.style.display =
                     _onPrescriptionPage ? DisplayStyle.Flex : DisplayStyle.None;
+
+            // 🔁 2026-11-11(`AC-39-12` 第一半 · 用户裁定「做淡入过渡」):
+            //    旧行为 = `display` **瞬切** —— 走查单 §2 第 1 条要求「翻页有纸的
+            //    惯性/阻滞感,不是瞬切」,瞬切是**不通过**的直接原因。
+            //    修法:**逻辑切换不变**(display 立即切 ⇒ 状态 / 焦点 / 夹具语义零变化),
+            //    只给**新页**加一段短不透明度淡入 —— 视觉上不再「闪一下换页」。
+            //    ⚠️ 时长走 `MotionScaleHook`(规则十钩子④):Scale=0 ⇒ 瞬切,界面仍可用。
+            FadeInPage(_onPrescriptionPage ? _rxPage : _casebookFace);
+        }
+
+        /// <summary>翻页淡入的基准时长(**种子值**,数值归用户数值轮)。</summary>
+        /// <remarks>取 0.12 s:短到不拖沓、长到肉眼能看出「换页用了点时间」。
+        /// ⚠️ 不是自由旋钮 —— 实际时长 = 本值 × <see cref="MotionScaleHook.Scale"/>,
+        /// 无障碍设置置 0 时**必须**退化为瞬切(<c>AC-42-G4</c> 后半)。</remarks>
+        private const float PageTurnFadeSeconds = 0.12f;
+
+        /// <summary>新页淡入(纯呈现;零状态、零计时器字段 —— 时长由调度器执行一次)。</summary>
+        private void FadeInPage(VisualElement page)
+        {
+            if (page == null) return;
+
+            float seconds = _motion.EvaluateDuration(PageTurnFadeSeconds);
+            if (seconds <= 0f)
+            {
+                page.style.opacity = 1f;      // 无障碍:无动效 ⇒ 瞬切且完全可见
+                return;
+            }
+
+            page.style.transitionProperty =
+                new List<StylePropertyName> { new StylePropertyName("opacity") };
+            // 第一帧时长 0:先把新页压到全透明(不让它在过渡前闪一下)
+            page.style.transitionDuration =
+                new List<TimeValue> { new TimeValue(0f, TimeUnit.Millisecond) };
+            page.style.opacity = 0f;
+
+            page.schedule.Execute(() =>
+            {
+                page.style.transitionDuration = new List<TimeValue>
+                {
+                    new TimeValue(seconds * 1000f, TimeUnit.Millisecond),
+                };
+                page.style.opacity = 1f;
+            }).ExecuteLater(0);
         }
 
         /// <summary>
@@ -747,8 +831,24 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 //   (判定 = 条目必经 anchor 后邻容器,不依赖容器 naming)。
                 _lexiconBook = new VisualElement();
                 var anchor = _root.Q<VisualElement>("channel-disease-name");
-                anchor?.parent?.Add(_lexiconBook);
+                var host = anchor?.parent;
+                // 🔁 2026-11-11(`TD-casebook-04` 坑② · 用户裁定「续链」):
+                //    原为 `host.Add(_lexiconBook)` ⇒ 容器排在「折」(`fold-edge`)**之后**
+                //    ⇒ 病名栏出发按一次 `Down` 落在折边上,再按 Submit 就把页折了。
+                //    现插到折边**之前**:册条目紧贴病名栏 ⇒ 从病名栏一格可达册。
+                //    ⚠️ 只影响「册已摊开」时的环;未摊开时容器不存在 ⇒ K=10 的既有环一字不变。
+                var foldEdge = host?.Q<VisualElement>("fold-edge");
+                if (host != null && foldEdge != null) host.Insert(host.IndexOf(foldEdge), _lexiconBook);
+                else host?.Add(_lexiconBook);
             }
+
+            // ── 焦点保持(`TD-casebook-04` 坑① · 2026-11-11)────────────────────
+            // 病因:落笔后 `RefreshAfterAction` 重读源 ⇒ 本方法 `Clear()` 重建条目 ⇒
+            //   引擎把焦点元素摘出层级 ⇒ `focusedElement` 变 null ⇒ 想改判的玩家「没焦点」。
+            // 修法:**只**在「焦点本来就在册条目上」时,记下它承载的 `lexicon_id`,
+            //   重建后把焦点送回**同一条目**。焦点不在册里 ⇒ 一律不动(不得抢焦点 ——
+            //   数据刷新不得把玩家正在别处操作的手拽走)。
+            int focusedLexiconId = FocusedLexiconId();
             _lexiconBook.Clear();
 
             IReadOnlyList<int> ids = _sourceForBook.SeenLexiconIds;
@@ -764,6 +864,42 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 BindSubmitAndClick(entry, () => PointLexicon(lexiconId));   // 键盘 Submit + 鼠标 Click(P-04)
                 _lexiconBook.Add(entry);
             }
+
+            // 焦点回到重建前那条条目(`TD-casebook-04` 坑①);推迟一帧,理由同
+            // `FocusFirstLexiconEntry`(派发过程中直接 Focus 会被随后的输入更新清掉)。
+            RestoreLexiconFocus(focusedLexiconId);
+        }
+
+        /// <summary>焦点若在册条目上,取该条目承载的 `lexicon_id`;否则 0。
+        /// <para>⚠️ 用 `focusedElement` 真源(引擎 `<c>FocusController</c>`),不用本屏记账 ——
+        /// 42 不持焦点状态(ADR-013 §9 C3)。</para></summary>
+        private int FocusedLexiconId()
+        {
+            if (_lexiconBook == null || _lexiconBook.panel == null) return 0;
+            if (_lexiconBook.panel.focusController.focusedElement is not VisualElement focused) return 0;
+            if (!ReferenceEquals(focused.parent, _lexiconBook)) return 0;
+            return focused.userData is int id ? id : 0;
+        }
+
+        /// <summary>把焦点送回 `lexiconId` 对应的条目(同 <see cref="FocusedLexiconId"/> 的配对半边)。
+        /// <para>条目已不在新集合里(如词被移除)⇒ 留空不强行 —— 与「零假数据」同纪律。</para></summary>
+        private void RestoreLexiconFocus(int lexiconId)
+        {
+            if (lexiconId <= 0 || _lexiconBook == null || _lexiconBook.panel == null) return;
+
+            VisualElement target = null;
+            for (int i = 0; i < _lexiconBook.childCount; i++)
+            {
+                VisualElement child = _lexiconBook[i];
+                if (child != null && child.focusable && child.userData is int id && id == lexiconId)
+                { target = child; break; }
+            }
+            if (target == null) return;
+
+            target.schedule.Execute(() =>
+            {
+                if (target.panel != null && target.focusable) target.Focus();
+            }).ExecuteLater(0);
         }
 
         // ══════════════════════════════════════════════════════════════════════

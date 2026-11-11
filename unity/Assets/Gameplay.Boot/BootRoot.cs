@@ -1133,6 +1133,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_services.CasebookCommands != null)
                 _uiDriver.CommandSink = _services.CasebookCommands;
 
+            // ── 6.1a 呈现反馈声注入(2026-11-11 · T22 批十一 · `AC-39-12` 第一半)──
+            // 病因:`design/gdd/casebook.md:394` 要求翻页 / 压痕声属行为反馈白名单,
+            // 而 42 侧**零音频回调** —— 空行落焦只有高亮、没有压痕声,翻页是无声瞬切。
+            // 分工:42 发语义请求(`ICasebookCueSink`),本处翻译成 `AudioCueDto` 交 44。
+            // ⚠️ 空间锚 = 玩家格(经流确立),不是原点 —— 见 `CasebookCueRouter` 头注。
+            if (_services.AudioSink != null && _audioSeams != null
+                && _audioSeams.TryResolveCue(CasebookCueRouter.PageTurnCueName, out int pageTurnOrdinal))
+            {
+                _audioSeams.TryResolveCue(CasebookCueRouter.PaperIndentCueName, out int indentOrdinal);
+                _uiDriver.CueSink = new CasebookCueRouter(
+                    _services.AudioSink,
+                    () =>
+                    {
+                        // 玩家可能尚未装配(门禁 / 早期帧)⇒ 退回原点格(仍在世界内)。
+                        var p = _player != null ? _player.LastCommittedCell : default;
+                        return new Int3(p.X, p.Y, p.Z);
+                    },
+                    pageTurnOrdinal,
+                    indentOrdinal);
+            }
+
             // ── 6.1b 39 的档位请求接线(casebook/story-006 · 2026-11-02)────────────
             // 病因:`camera-and-viewpoint.md` 的 `R-2-5` 表写着「39 打开脉案 ⇒ 请求 Casebook」,
             // 而生产侧此前**零个请求点**(`CameraMode.Casebook` 只出现在相机内部的优先级表与

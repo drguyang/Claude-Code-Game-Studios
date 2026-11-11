@@ -183,6 +183,31 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     }
 
     /// <summary>
+    /// 脉案页的**呈现反馈声**请求面(可选能力接口;2026-11-11 新增 · T22 批十一)。
+    /// <para>权威:`design/gdd/casebook.md:394`「翻页声 / 压痕声 / 落笔声 ∈ **行为反馈白名单**」
+    /// 与 `skeuomorphic-ui.md:1341`「42 侧 = 纸面**压痕声** + 行高亮」;ADR-018 §六 的无提示音
+    /// 铁律要求这些声**只报行为、不报状态**(故由玩家动作触发,不由数据变化触发)。</para>
+    /// <para>⚠️ **42 只请求,不持有声源**(ADR-018 §一 / ADR-028):本接口没有
+    /// `AudioSource` / clip / 总线 —— 实现方(装配层)把请求翻成 `AudioCueDto` 交给 44;
+    /// 未注入 ⇒ 静默(不崩、不造声),与 <see cref="ICasebookCommandSink"/> 同纪律。</para>
+    /// <para>⚠️ **不做「是否在报状态」的判断**:请求时机由本屏按**玩家动作**发
+    /// (焦点进入空行 / 翻页),不按读数变化发 —— 语义面归 44 的白名单门。</para>
+    /// </summary>
+    public interface ICasebookCueSink
+    {
+        /// <summary>焦点**首次进入一条空行**(未查 = 无读数格的通道行)⇒ 纸面压痕声。
+        /// <para>空行判定由本屏做得(读 <c>.channel-reading</c> 子元素的有无),
+        /// 不在实现方重算 —— 两侧各算一份 = 第二真源。</para>
+        /// <para>非空行 / 同一个行的重复 FocusIn ⇒ **不发**(翻册时的连续压痕会盖住呼吸层)。</para></summary>
+        void RequestPaperIndent();
+
+        /// <summary>翻页(前案 ⇄ 后案)⇒ 纸面翻页声。
+        /// <para>⚠️ 只报**玩家翻页**这一个动作;首屏打开 / 数据刷新**不**发
+        /// (那会把「数据变了」伪装成玩家行为,违 ADR-018 §六)。</para></summary>
+        void RequestPageTurn();
+    }
+
+    /// <summary>
     /// **改判留痕**的只读数据面(可选能力接口;2026-11-08 新增)。
     /// <para>病因:`design/gdd/casebook.md` 规则六「改判留痕 · 痕不计分」与 39 的
     /// `AC-39-12`「「旧」态灰度仍可辨(**非色单载**)」要求屏上有一个**形状**承载

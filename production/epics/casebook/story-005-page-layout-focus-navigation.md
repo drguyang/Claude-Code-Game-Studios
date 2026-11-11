@@ -6,7 +6,7 @@
 > **Type**: UI
 > **Estimate**: 6h
 > **Manifest Version**: 2026-11-02
-> **Last Updated**: 2026-11-10
+> **Last Updated**: 2026-11-11
 
 ## Context
 
@@ -39,7 +39,15 @@
   > 现行 UXML(`Casebook39.uxml` 头注)与 PlayMode `casebook_render_test.cs` 的
   > `ExpectedFocusOrder` **都是订正版**;本卡与 QA 计划的旧序是没跟上 GDD 的那一处。
   > 另:焦点环实际 **K = 10**(2026-10-12 用户裁定「页缘入 K」)= 五通道 + 问诊栏 + 病名 + 折边 + 前案 + 后案。
-- [ ] 空行聚焦反馈 = 压痕声(44 白名单触发源)+ 行高亮,**零文字提示**;聚焦不产生任何游戏状态写入
+- [x] 空行聚焦反馈 = 压痕声(44 白名单触发源)+ 行高亮,**零文字提示**;聚焦不产生任何游戏状态写入
+  > ✅ **2026-11-11(T22 批十一)**:此前 42 侧**零音频回调**,空行落焦只有高亮。本批接上
+  > `ICasebookCueSink`(42 只请求)→ `CasebookCueRouter`(装配层)→ `AudioCueDto`(44);
+  > 空行判定 = 无 `.channel-reading*` 子元素。表行 `UI_Paper_Indent`(bus `UICue`)末位追加,
+  > 素材 `unity/Assets/Audio/ui_paper_indent_01.wav`(0.843 s,loadType 0),走查人 2026-11-11 试听并批准搬入。
+  > 真包:逐行导航 **16 次** `oneshot cue=20 … group=UICue … playing=True`,空间锚 = 玩家格。
+  > 零文字(既有 hint 扫描门)· 零写入(42 无 `IEventSink`)。判据:EditMode `casebook_cue_router_test` 6 ·
+  > PlayMode ⑧c/⑧d 2;证伪 M3/M4 各恰 1 红。
+  > 原件 = `production/qa/evidence/casebook/impl-t22k-paper-indent-and-focus-traps-2026-11-11.md`。
 - [ ] 键鼠与手柄两输入路径**完整等价**可走完「翻册 → 读病例 → 落笔预览 → 合上」全流(手柄路径无死角;落笔提交走 Story 006 的意图路径)
 - [ ] 页内**零按键提示**(规则八联合 AC-8-44 / AC-3-F1a 的 39 侧):UXML 资产扫描无 hint 类元件(黑名单词族同 Story 004 扫描器复用)
 - [ ] 「旧」态渲染 = 铅笔对勾元件(USS 元件库),非颜色单载;当前笔与旧笔同屏可区分且区分通道非 hue-only
@@ -76,7 +84,13 @@
 - [ ] **AC-39-12 [L]** 纸的物理感走查(翻页 / 压痕 / 墨迹显现节奏)建走查单,主创签核 [L]
   > 🔁 **2026-11-10(T22 批三)**:「旧 / 新同屏 + 页边铅笔小勾」那一半**真包已跑通**,
   > 卡点(`TD-casebook-03` 的 `pointable=1`)已解除 —— 见下一条 AC「旧态渲染」的 2026-11-10 注。
-  > 本行**仍不勾**:它要的是「纸的物理感 + **主创签核**」,那一半本轮**没跑**。
+  > 🔁 **2026-11-11(T22 批十一)**:第一半的两条声与淡入**已实现并有载体** ——
+  > 翻页声(`Page_Turn` / `oneshot cue=11` · 真包 3 次)· 压痕声(`UI_Paper_Indent` / `cue=20` · 真包 16 次)
+  > · 翻页淡入(`transitionDuration = 0.12 s × MotionScaleHook.Scale`,Scale=0 瞬切)。
+  > **仍不勾**:① 淡入只有单测,抓帧 0.27 s > 0.12 s ⇒ **肉眼判读未做**;
+  > ② 「纸的物理感」与**主创签核**是人的判定;③ 第二半(痕)的证据见批三。
+  > 原件 = `production/qa/evidence/casebook/impl-t22k-paper-indent-and-focus-traps-2026-11-11.md`。
+  > **原文保留(2026-11-10 当时的状态)**:本行**仍不勾**:它要的是「纸的物理感 + **主创签核**」,那一半本轮**没跑**。
   > 真包读数:`病人出现 #0 disease=2 / #1 disease=3` · `病名册环 seen=2 pointable=2 词表行=6`;
   > 屏上 `✓割伤` + 旧笔 `刺伤`(最暗像素 21 vs 142;灰度下 ✓ 仍由**形状**可辨);
   > 落盘 `JudgmentRecorded lexicon=4 → JudgmentRevised lexicon=5`。
@@ -240,3 +254,31 @@ PlayMode `376 / 371 / 0 / 2 / 3` @ `15:42:59Z`–`15:43:21Z` · `c4639852` + 工
 
 **新登记**:`TD-casebook-04` —— 改判到**另一个词**的路径埋两个坑(落笔后焦点掉成「无焦点」;
 病名栏与册条目之间隔着**折边**,其 `Submit` 会折页)。功能可达,但**不是干净的手柄路径**,本批未改。
+
+---
+
+## Completion Notes —— 2026-11-11 T22 批十一(续链:焦点两坑 + 纸面反馈声)
+
+**IN PROGRESS → 仍 IN PROGRESS**(本批解除的是两个焦点坑与「空行无反馈」,不是 `AC-39-12` 的签核要件)。
+
+| 件 | 落点 |
+|---|---|
+| 焦点保持 | `CasebookScreen.FocusedLexiconId` / `RestoreLexiconFocus`(重建后回刚用条目) |
+| 册条目优先 | `RefreshLexiconBook` 把容器插到 `fold-edge` **之前**(病名栏一格可达册) |
+| 反馈声请求面 | `ICasebookCueSink` · `SkeuoRuntimeDriver.CueSink` · `CasebookCueRouter`(装配层) |
+| 空行压痕声 | `AddChannel` 的 `FocusInEvent` ⇒ 无 `.channel-reading*` 才请求 |
+| 翻页声 + 淡入 | `SubmitPageNext/Prev` · `ApplyPageVisibility → FadeInPage`(`0.12 s × MotionScaleHook`) |
+| 素材 + 表行 | `ui_paper_indent_01.wav` · `audio_events.json` 末位 `UI_Paper_Indent` · SFX-11 · 重烘 `0x8484C950`(21 行) |
+| 判据 | EditMode `casebook_cue_router_test` 6 · `paper_indent_cue_test` 4 · PlayMode ⑧a–⑧f 6 |
+| 证据 | `production/qa/evidence/casebook/impl-t22k-paper-indent-and-focus-traps-2026-11-11.md` |
+
+**真包**:压痕声 16 次 / 翻页声 3 次(均 `group=UICue`、空间锚 = 玩家格);monitor 峰值 16359(−5 dBFS)。
+
+**证伪**:M1–M8 各恰 1 红(M7 2 红),`CasebookScreen.cs` / `CasebookCueRouter.cs` SHA-256 逐字节还原。
+
+**回归**:EditMode `7453 / 7416 / 0 / 0 / 37` @ `06:50:22Z`–`06:52:30Z` ·
+PlayMode `386 / 381 / 0 / 2 / 3` @ `06:53:23Z`–`06:53:45Z`(`7b56ea96` + 工作树)。
+等式:EditMode `7453 − 7443 = 10`;PlayMode `386 − 380 = 6`。
+
+**仍未跑(不得借绿)**:`AC-39-12` 的肉眼判读与**主创签核**;`TD-casebook-04` 的人工腿
+(本局两名病人 `disease=14/16` 不在词表覆盖内 ⇒ 册内零条目,真包无法做「落笔 → 改判」)。
