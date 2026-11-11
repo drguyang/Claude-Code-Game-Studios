@@ -131,9 +131,16 @@ namespace DaYiJingCheng.EditorTools.Bake
             foreach (string c in codeCues.Except(docCues).OrderBy(x => x, StringComparer.Ordinal))
                 errors.Add($"[E1 · B 出处] 常量里的 cue「{c}」在权威件冻结表内找不到 —— 文档滞后于代码?");
             // 文件侧**双向**报 —— 文件是 E4 的比对量纲,多一个少一个都改变归属面。
+            // 🔁 2026-11-11(T22 批九):「文档多」那一侧须扣除**已具名豁免的非 R-2 素材** ——
+            //    `AudioEventTableGates.LibraryUnregisteredExempt` 就是那张清单的单一出处
+            //    (音乐层 / 48 教学口述 / 炮制起货)。不扣 ⇒ 权威件每登记一支非 R-2 素材,
+            //    B 锁就报「不在常量内」;而把它塞进 R-2 九项会**改变归属裁定** ——
+            //    「9 项」是 2026-10-17 用户裁定,不是实现面能改的。
+            var nonR2Files = new HashSet<string>(
+                AudioEventTableGates.LibraryUnregisteredExempt, StringComparer.Ordinal);
             foreach (string f in codeFiles.Except(docFiles).OrderBy(x => x, StringComparer.Ordinal))
                 errors.Add($"[E1 · B 出处] 常量文件「{f}」在权威件冻结表内找不到");
-            foreach (string f in docFiles.Except(codeFiles).OrderBy(x => x, StringComparer.Ordinal))
+            foreach (string f in docFiles.Except(codeFiles).Except(nonR2Files).OrderBy(x => x, StringComparer.Ordinal))
                 errors.Add($"[E1 · B 出处] 权威件文件「{f}」不在常量内 —— 归属变更须同步三处");
             return errors;
         }

@@ -18297,3 +18297,37 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **不得借绿**:`g(·)` 其余四项未实现(天气 / 昼夜 / 季节);气候基线数值全 0(数值轮);
   `BootRoot.BuildProcessingEnvMods` **无装配级判据**。
 - 证据:`production/qa/evidence/impl-t22h-processing-envmod-wiring-2026-11-11.md`。
+
+### 第 20 轮(T22 批九 · 结构视觉剩余半边 `TD-building-05` + 顺手接起货音)
+
+- **用户裁定链**:候选 **丙 · 结构视觉剩余半边** → `TD-building-05` ② 的处理取 **丙 · 顺手接起货音**
+  → 候选试听 **通过 · 搬入并接线** → E5 走查判定取 **甲 · 判定不是状态播报、日期改成今天**。
+- **开工复勘推翻卡面两处陈旧前提**:`AC-18-21` 早已有 13 条机器夹具(S24-1,`process_completion_and_spill_test`);
+  `OQ-18-9` 已于 2026-10-06 裁。⇒ 真正的「剩余半边」= **生产无起货可感知信号**,不是 AC 缺载体。
+- **① 生产装配级判据(新)**:`Tests/EditMode/Boot/structure_visual_wiring_test.cs` 2 条 ——
+  真 `IDataProvider` 装配 ⇒ `SpawnedCount == baked 槽位 + 容器行`(数取自真产物);负控 = 无 provider ⇒ 生成器 null。
+  上一轮 7 条夹具是 `new` 生成器,不证明「装配真的接上并铺出来」。
+- **② 起货音 `sfx_process_complete`**:素材(`assets/audio-staging/` → 搬入 `unity/Assets/Audio/`,
+  44.1 kHz 单声道 16 bit 1.375 s,`.meta` `loadType: 0`)· 表行**末位追加**(书序 = ordinal,只能追加)·
+  `AudioEventTableGates.RequiredCues` + `LibraryUnregisteredExempt` · 清单 §一之三 ·
+  重烘 20 行 `ConfigVersion = 0x51895E27` · Addressables `audio` 组 · 判据 `process_complete_cue_test` 4 条。
+- **E5 走查**:谓词文件第 20 条(人耳判定,`status_words: null`)+ `date` → 2026-11-11 +
+  `_instructions` ⑦ 注明「其余 19 条沿用 2026-10-21 走查,本次未重听」;probe 重跑 ⇒ 新记录
+  `docs/audio/statereport-walkthrough-a591833793aebe2a.md`(内容寻址,旧记录保留)。
+- **加一条必需 cue 的连带面(全量 46 红一次暴露,逐项同步)**:夹具缺行 / 计数 5→6(含
+  `test_missingRequiredCue_reportsRed` 的 Arrange 自证 4→5)/ E4「有素材无归属」→ 豁免 /
+  B 锁「权威件文件不在常量内」→ `AudioRequirementsBake` 扣除具名豁免 / E5「清单 cue 无判定」→ 补 verdict。
+- **证伪五枪**:M1 删 RequiredCues 名 ⇒ 1 红 · M2 驱动常量改名 ⇒ 1 红 · M3 末两行交换 ⇒ **2 红** ·
+  M4 meta `loadType 0→1` ⇒ 1 红 · M5 装配不铺槽位 ⇒ 1 红。五文件 SHA-256 逐字节还原(终态对照全一致)。
+- **回归**:定向四套件 `199 / 199 / 0` @ `02:57:08Z`–`02:57:42Z`;
+  EditMode 全量 `7443 / 7406 / 0 / 0 / 37` @ `03:02:07Z`–`03:04:14Z`;
+  PlayMode 全量 `380 / 375 / 0 / 2 / 3` @ `03:05:07Z`–`03:05:29Z`(`622554f5` + 工作树)。
+  基线(批八)`7437 / 7400` ⇒ **+6**(4 + 2 新 `[Test]`);PlayMode 逐项相同。
+- **债册**:`TD-building-05` **维持 `partial` / P0 面 Y**(新增 2026-11-11 行:两件落地 + 为什么仍不 closed);
+  `TD-processing-08` **维持 `closed`**,其关闭记录「起货音仍不响」**加日期订正注**(原文保留);
+  `debtcount --check` exit 0 —— 条目 207 · closed 175 · partial 9 · open 22 · 未闭 P0 面 **11**(6/31 epic)。
+  **数字不变是因为两个方向都没动**,不是没刷。
+- **不得借绿**:② 的人工腿仍 `NOT-RUN`(**端到端没人跑过**;⚠️ 初稿「无发料入口 ⇒ 不可达」被实测推翻 ——
+  料可经 4 个资源点采集 → 20 屏选中 → 点火,路径齐备);
+  `sfx_process_light` / `sfx_process_work` 未落;`AC-44-03 [L]` 等声学判据仍 `NOT-RUN`(试听只证「这一版能接受」)。
+- 证据:`production/qa/evidence/impl-t22i-structure-visual-and-complete-cue-2026-11-11.md`。

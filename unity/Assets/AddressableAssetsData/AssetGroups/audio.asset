@@ -213,6 +213,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfe922b5ec4a48e68c315838c74ee744
+    m_Address: sfx_process_complete.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e3aacb7c16322f5ad87f8754d25742ce
     m_Address: sfx_steth_contact_chest_01.wav
     m_ReadOnly: 0

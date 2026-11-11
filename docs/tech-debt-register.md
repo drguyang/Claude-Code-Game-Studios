@@ -8177,6 +8177,11 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 - 原件：`production/qa/evidence/impl-td-processing-08-craft-completion-settlement-2026-11-03.md`。
 - ⚠️ **本债只结「下落的宾语」这一半**：起货音仍不响（事件表无 `sfx_process_complete` 行），
   AC-18-21 的四条 `[L]` 仍 `NOT-RUN`。
+  🔁 **2026-11-11 订正(原文保留)**:「起货音仍不响」**已不成立** —— T22 批九给事件表加了
+  `sfx_process_complete` 行(20 行,`ConfigVersion = 0x51895E27`)并接了 `RequiredCues` 门
+  ⇒ 完成时点现在**有**一条可感知 cue。**本债维持 `closed`(下落的宾语仍在)**,此订正只改
+  上面那句现状描述;**AC-18-21 的四条 `[L]` 仍 `NOT-RUN`**(人耳/声学判据未签)。
+  起货可感知信号的归属债是 `TD-building-05` ②(仍 `partial`)。
 
 #### TD-processing-06 关闭记录 —— 跨存档往返夹具(真落盘 → 真读回)
 
@@ -12822,6 +12827,8 @@ R6–R12 同批全红;SHA-256 还原 11/11 `FINAL-OK`;M1–M10 全红 `PROBE-OK`
 | **🔁 2026-11-06「不在本债面内」的落点已具名** | 原写「补完视觉后若灶台仍被病人压住,那属 4 的交互设计**另议**」⇒ 悬空。现口径:**不需要另议** —— 键 ② 在**等距**时已被观测到生效(同格 `Utensil#9` 以 `KindPriority 2 < 5` 胜过 `BuildSlot#238`)。本条只需补视觉,4 的规则一字不改 |
 
 | **🔁 2026-11-10(T22 批一 · `open` → `partial`)** | **视觉载体已落**(`StructureVisualFactory` + `StructureVisualSpawner`,按 `world_buildslots` 的 9 个 `baked_initial` 行铺体块;空槽不画)。**真包实测**:开局见四道白墙;走到灶台 `(14,0,14)` 见砖红方块;按 `E` ⇒ 屏上「釜上无料」(18 自己的应答,**不是脉案** —— 对照 2026-11-06 的「十次全落脉案」)。日志 `[结构视觉] 占位体块 9 个`。判据 = 7 条 EditMode 夹具 + 5 变异证伪(每条各红一至两条,还原 SHA-256 逐字节)。证据原件 = `production/qa/evidence/impl-t22-structure-visuals-2026-11-10.md`。<br>⚠️ **未 closed 的理由(如实)**:解除判据 ② 是「`AC-18-21` 端到端人工腿」,而该 AC 讲的是**起货可读性**(`CompleteTick` 到达后 1 tick 内可判),本轮只跑到「灶台可发现 + 可选中」,**没有跑到起货** ⇒ ② 仍 `NOT-RUN`,`P0 面` 维持 **Y**。<br>⚠️ **两处边界**:① 体块**无碰撞**(可穿墙)—— 有意,与病人胶囊同纪律,归 23 的物理/建造轮;② 本条正文的灶台格 `(10,0,5)` 是 2026-11-06 空间解**之前**的旧值,现行 = **`(14,0,14)`**(`world_buildslots.json` 实测)。 |
+
+| **🔁 2026-11-11(T22 批九 · 维持 `partial`)** | 两件事同批落:**① 生产装配级判据** —— 上一轮 7 条夹具直接 `new` 生成器(证的是「生成器对」,不是「装配接上并铺出来」),本轮补 `Tests/EditMode/Boot/structure_visual_wiring_test.cs` 2 条:真 `IDataProvider` 装配 ⇒ `SpawnedCount == baked 槽位 + 容器行`(**数取自真产物**);负控 = 无 provider 装配 ⇒ 生成器为 null。证伪 M5(装配不铺槽位)⇒ 红。<br>**② 起货无可感知信号** ⇒ 已接:`assets/data/audio_events.json` 末位新增 `sfx_process_complete` 行 + 素材 + `.meta`(`loadType: 0`)+ `AudioEventTableGates.RequiredCues` 同批加门 + 重烘(`ConfigVersion = 0x51895E27`,20 行)+ Addressables `audio` 组;判据 `process_complete_cue_test` 4 条。人耳试听 2026-11-11 由走查人判过(E5 谓词第 20 条,`status_words: null`)。<br>**为什么仍不 `closed`**:解除判据 ② 是「`AC-18-21` 端到端人工腿」,而**端到端从未跑过** ⇒ `NOT-RUN`。⚠️ **初稿写「P0 无任何发料入口 ⇒ 不可达」,实测不成立**:料可从 4 个资源点采集(`world_resources.json`;`CompositionRoot.cs:1518` 的 `if (dataProvider is AddressablesDataProvider)` 段内 `:1627` 装配 `HarvestInteractionDriver`)→ 20 屏选中态(`ContainerSelectionStore`)→ 点火,路径齐备。⇒ 本批把 ② 从「即使跑也听不到完成信号」变成「**路径齐备、可跑但未跑**」;`P0 面` 维持 **Y**。<br>⚠️ GDD `:833` 点名的另两支(`sfx_process_light` / `sfx_process_work`)未落 —— 它们在 P0 **无生产消费点**,不随本批加行(加了会造出「表里有、无人发」的死 cue,且 `RequiredCues` 门会把它们锁成必需)。 |
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|

@@ -3,7 +3,7 @@
     "AC-44-E5 手跑走查的**人耳判定**文件。填完、跑一遍走查,才会生成可归档的走查记录。",
     "",
     "① reviewer / date 必填。date 须 YYYY-MM-DD,且填你**实际听的那天**。",
-    "② verdicts[] 必须覆盖事件表**全部 19 条** cue(按 cue 名字符串精确匹配,不能漏、不能重复)。",
+    "② verdicts[] 必须覆盖事件表**全部 20 条** cue(按 cue 名字符串精确匹配,不能漏、不能重复)。",
     "③ 每条 cue 两个字段:",
     "   not_reporting —— 为什么它**不是**状态播报(照实写你听到的是什么,对着 manifest 的「参考解读」核)。空字符串会被拒。",
     "   status_words  —— 你在声音里听到的**状态结论**词。没有结论 ⇒ 写 null(**不是** \"\"、不是 [])。",
@@ -14,10 +14,11 @@
     "   留着不代表你听过;改掉必须是真的听到了结论词。",
     "⑤ Music_Encounter_Layer 的判定口径按 G1/G2:**听不出切换的那一刻**才算过;",
     "   听得出「哪一段新乐句 / 哪一拍告诉你遭遇开始了」⇒ 写进 status_words(词形用字幕或结论词形里的字,如「遭遇」不在清单内,须写在 not_reporting 里并另报)。",
-    "⑥ 2026-10-21 C-1:新增 4 条 Narration_Teach*_01(48 教学口述)。其 not_reporting 首版为编排方代填的建议稿;**2026-10-21 已由走查人 dr_guyang 亲耳复核(四段合成一条 17.49 s 试听),判定成立,status_words 维持 null**⇒ 这 4 条的判定强度与其余 15 条相同。"
+    "⑥ 2026-10-21 C-1:新增 4 条 Narration_Teach*_01(48 教学口述)。其 not_reporting 首版为编排方代填的建议稿;**2026-10-21 已由走查人 dr_guyang 亲耳复核(四段合成一条 17.49 s 试听),判定成立,status_words 维持 null**⇒ 这 4 条的判定强度与其余 15 条相同。",
+    "⑦ 2026-11-11(T22 批九):新增 sfx_process_complete(18 的起货锚点,AC-18-21)。该条由走查人 dr_guyang 于 **2026-11-11** 亲耳试听素材候选后判定 status_words=null。⚠️ 文件 date 随之改为 2026-11-11;其余 19 条的判定**沿用 2026-10-21 那一次走查**(本次未重听)—— 日期字段表达「本文件最后一次被人耳确认的那天」,不表示 20 条都在该日重判。"
   ],
   "reviewer": "dr_guyang",
-  "date": "2026-10-21",
+  "date": "2026-11-11",
   "verdicts": [
     {
       "cue": "Voice_Cough_Damp",
@@ -112,6 +113,11 @@
     {
       "cue": "Narration_TeachArchive_01",
       "not_reporting": "听到的是医者一边哼小曲一边收拾 —— 「哼着小曲」是闲适的声形;「要紧的都写进册子」讲的是记录动作,没有读出任何结论",
+      "status_words": null
+    },
+    {
+      "cue": "sfx_process_complete",
+      "not_reporting": "听到的是一次**器物动作**:陶罐盖被掀起的一声闷响 + 细微陶瓷刮擦。它是实体发出的声音,玩家要自己从「盖子响了」推断「这一炉成了」—— 声音本身没有说出「成了」两个字,也没有任何提示音式的上扬/收束。2026-11-11 由走查人亲耳试听 assets/audio-staging/sfx_process_complete/sfx_process_complete.post.wav 后判定",
       "status_words": null
     }
   ]

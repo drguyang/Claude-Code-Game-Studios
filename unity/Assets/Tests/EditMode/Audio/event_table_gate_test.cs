@@ -51,7 +51,8 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Assert
             Assert.That(errors, Is.Empty,
                 "合法最小表必须全绿,否则后续负向夹具的红失去归因:\n" + string.Join("\n", errors));
-            Assert.That(table.Rows, Has.Count.EqualTo(5), "夹具自证:四支必需 cue + 一支乐层行");
+            Assert.That(table.Rows, Has.Count.EqualTo(6),
+                "夹具自证:五支必需 cue(含 2026-11-11 新增的 sfx_process_complete)+ 一支乐层行");
         }
 
         /// <summary>仓库真种子过门(规则 7 对 <c>assets/data/audio_events.json</c> 生效:空表 / 缺必需 cue 都会在这里红)。</summary>
@@ -149,7 +150,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             }
 
             table.Rows = kept;
-            Assert.That(kept, Has.Count.EqualTo(4), "Arrange 自证:恰删一行");
+            Assert.That(kept, Has.Count.EqualTo(5), "Arrange 自证:恰删一行(6 行夹具 − 1)");
 
             // Act
             IReadOnlyList<string> errors = AudioEventTableGates.Validate(table);

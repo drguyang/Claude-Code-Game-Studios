@@ -142,6 +142,25 @@
 > **为什么拆**:9 项并进一条 cue 时,事件表 `RowKeys` **没有「档位」字段** ⇒
 > 运行时无法按威胁/机会/反应/灾难选音。**拆 cue 用 `cue` 键本身承载档位语义**,
 > 零 schema 改动 —— 优于「新增 schema 键」(后者须改 `RowKeys` + 绑定层 + 夹具)。
+
+### 一之三、炮制行为声 —— `sfx_process_complete`(2026-11-11 · T22 批九)
+
+> GDD `audio-system.md:833` 逐字点名三支:`sfx_process_light`(起炉)/ `sfx_process_complete`(起货)/
+> `sfx_process_work`(行为声床),发射方 = **18**(2026-09-19 发射方改判)。
+> 本节**只落起货那一支** —— 它是 `AC-18-21` 的具名载体,也是今天唯一有生产消费点的一支
+> (`ProcessingCompletionDriver.CompleteCueName` 逐字查该名);
+> 起炉 / 行为声床**仍未落**(前者无发射点,后者依赖动画节拍)。
+
+| 项 | **cue id(冻结)** | bus | loop | whitelist_category | trigger_source | **文件(冻结)** | 量 |
+|---|---|---|---|---|---|---|---|
+| [SFX #11] 炮制起货 | `sfx_process_complete` | **SFX** | ✗ | `WorldPerceptible` | `WorldPerceptible` | `sfx_process_complete.wav` | 1 |
+
+⚠️ **cue id 刻意是资产式小写,不是 PascalCase** —— 它不是一个「分类 cue」,而是一个**事件锚点**:
+生产侧按名字逐字查表(`ProcessingCompletionDriver.CompleteCueName`)。改名 = 改代码常量 + 表行,
+两处必须同批;`AudioEventDataSet.RequiredCues` 的门也在同一批加。
+⚠️ **类别判据**:完成不是玩家输入,而是**器物状态变化被在场者感知** ⇒ `WorldPerceptible`,
+不是 `PlayerAction`(后者 = 拾取 / 建造 / 命中这类玩家动作)。
+
 >
 > ⚠️ **`entity-inventory.md` #10 的 5 项与 52 的 9 项缺口** —— 本表以 52 为准;
 > `entity-inventory.md` 未就地改注(归其所有者)。

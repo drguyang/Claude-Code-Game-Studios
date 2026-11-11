@@ -347,6 +347,21 @@
       "max_distance": 12,
       "occlusion_lowpass": 1200,
       "priority_class": 1
+    },
+    {
+      "schema_version": 1,
+      "cue": "sfx_process_complete",
+      "assets": [
+        "sfx_process_complete.wav"
+      ],
+      "bus": "SFX",
+      "loop": false,
+      "whitelist_category": "WorldPerceptible",
+      "trigger_source": "WorldPerceptible",
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "priority_class": 1
     }
   ]
 }

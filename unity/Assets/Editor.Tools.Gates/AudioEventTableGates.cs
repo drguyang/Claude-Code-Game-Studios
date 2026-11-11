@@ -246,7 +246,8 @@ namespace DaYiJingCheng.EditorTools.Gates
             "Voice_Cough_Damp",            // 语声族(GDD F-44.3 示例 cue id :361)
             "BreathLayer_Base_Calm",       // 呼吸两层 —— 基础气流层(规则四)
             "BreathLayer_Adventitious_Fine", // 呼吸两层 —— 附加音层(细湿啰音)
-            WorldBreathCue,                // 世界语境呼吸(F-44.7 主通道,AC-44-16 的载体行)
+            "WorldBreath_Baseline",        // 世界语境呼吸(F-44.7 主通道,AC-44-16 的载体行)
+            "sfx_process_complete",        // 18 的起货锚点(AC-18-21)· 2026-11-11 T22 批九加行同批加门
         };
 
         /// <summary>世界语境呼吸的 cue 名(AC-44-16 的载体行;= <see cref="RequiredCues"/> 第 4 员,
@@ -1191,7 +1192,7 @@ public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEvent
 
         /// <summary>素材库内**不属 R-2** 但合法存在的文件(逐项具名 —— 加一项须改代码,同 A 锁纪律)。</summary>
         /// <remarks>
-        /// ⚠️ 目前两类:
+        /// ⚠️ 目前三类:
         /// ① <c>music_encounter_layer_loop.wav</c>(<c>Music_Encounter_Layer</c> 行,
         ///    R-2 归属表未列音乐层 —— 它是 GDD 规则七的必需 cue,不属 R-2 九项)。
         /// ② 48 教学口述四件(2026-10-21 C-1,用户裁定「加进豁免清单」)——
@@ -1208,6 +1209,11 @@ public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEvent
             "Narration_TeachJudge_01.wav",
             "Narration_TeachClose_01.wav",
             "Narration_TeachArchive_01.wav",
+            // ③ 炮制起货(2026-11-11 · T22 批九):GDD `audio-system.md:833` 的 `sfx_process_*` 族
+            //    (八支补充族之一),归属 = **18**(发射方改判 2026-09-19)· 载体 = `AC-18-21`。
+            //    不属 R-2 九项 —— R-2 是「诊断 / 急救 / 世界」三条**感知通道**的归属闭合,
+            //    炮制行为声不属其中任何一条。逐项具名(同上:豁免面不随前缀自动扩张)。
+            "sfx_process_complete.wav",
         };
 
 
