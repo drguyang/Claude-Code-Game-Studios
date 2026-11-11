@@ -39,10 +39,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         public const string FileName = "world_ecozones.json";
 
         /// <summary>根对象白名单(ADR-014 §三:未知键 = 构建失败)。</summary>
-        internal static readonly string[] RootKeys = { "schema_version", "level_id", "zones" };
+        internal static readonly string[] RootKeys = { "schema_version", "level_id", "default_climate_env_mod", "zones" };
 
         /// <summary>行对象白名单。</summary>
-        internal static readonly string[] ZoneKeys = { "ecozone_id", "name", "vertices" };
+        internal static readonly string[] ZoneKeys = { "ecozone_id", "name", "climate_env_mod", "vertices" };
 
         /// <summary>绑定结果(已通过结构门 + C4)。</summary>
         public readonly struct BindResult
@@ -53,10 +53,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>源 schema_version。</summary>
             public readonly uint SchemaVersion;
 
+            /// <summary>**全局默认**气候基线(无生态区格的 `EnvMod` 输入;AC-5-12)。</summary>
+            public readonly Fix DefaultClimateEnvMod;
+
             /// <summary>构造绑定结果。</summary>
-            public BindResult(IReadOnlyList<EcozoneZoneSpec> zones, uint schemaVersion)
+            public BindResult(IReadOnlyList<EcozoneZoneSpec> zones, uint schemaVersion, Fix defaultClimateEnvMod)
             {
-                Zones = zones; SchemaVersion = schemaVersion;
+                Zones = zones; SchemaVersion = schemaVersion; DefaultClimateEnvMod = defaultClimateEnvMod;
             }
         }
 
@@ -83,6 +86,11 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             ClinicMachineSchema.ReadRequiredString(root, "level_id", "根", FileName, errors, out _);
 
+            // 全局默认气候基线(AC-5-12)。**必填** —— 缺了它,「不在任何生态区」这条路径
+            // 就只能靠代码里的魔法常量,而那正是本表要消灭的形态。
+            ClinicMachineSchema.ReadRequiredFix(
+                root, "default_climate_env_mod", "根", FileName, errors, out Fix defaultClimateEnvMod);
+
             var zones = new List<EcozoneZoneSpec>();
 
             if (!root.TryGet("zones", out JsonNode zonesNode) || zonesNode.Kind != JsonNodeKind.Array)
@@ -102,7 +110,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             // 结构门全过之后才跑几何门 —— 形状都不对时跑 C4 只会产出误报。
             if (errors.Count == 0)
             {
-                var source = new EcozoneSource(zones);
+                var source = new EcozoneSource(zones, defaultClimateEnvMod);
                 if (EcozonePolygonCheck.TryCheck(source, out List<string> c4))
                     errors.AddRange(c4);
             }
@@ -111,7 +119,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             // 行序由**数据**定(id 升序),不由书写顺序定 —— cooked 的行序是产物的一部分。
             zones.Sort((a, b) => a.Id.CompareTo(b.Id));
-            return new BindResult(zones, schemaVersion);
+            return new BindResult(zones, schemaVersion, defaultClimateEnvMod);
         }
 
         /// <summary>解析一个生态区行(白名单 + 类型 + 顶点二元组)。</summary>
@@ -137,6 +145,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             if (!ClinicMachineSchema.ReadRequiredString(row, "name", where, FileName, errors, out string name))
+                return null;
+
+            // 气候属性 → EnvMod 分量(加法增量,中性 0,可为负;schema 2 起必填)。
+            // ⚠️ 必须走 **Fix 字符串 + FixParse**(ADR-014 §三):JSON 数字会经 double 中转。
+            // ⚠️ **不设值域**:5 侧零钳制(B-3),负值是该分量的合法形态;
+            //    真出问题时暴露在 21a 的单点钳制,而不是这里的静默截断。
+            if (!ClinicMachineSchema.ReadRequiredFix(row, "climate_env_mod", where, FileName, errors,
+                    out Fix climateEnvMod))
                 return null;
 
             if (!row.TryGet("vertices", out JsonNode vNode) || vNode.Kind != JsonNodeKind.Array)
@@ -165,7 +181,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 vertices[v] = new WorldPos(px, 0, pz);
             }
 
-            return new EcozoneZoneSpec((int)idNode.Int, name, vertices);
+            return new EcozoneZoneSpec((int)idNode.Int, name, vertices, climateEnvMod);
         }
 
         /// <summary>读一个 i32(越域 / 非整数 ⇒ false)。</summary>

@@ -49,10 +49,30 @@ namespace DaYiJingCheng.EditorTools.Level
         /// 声明时统一填 0;导出面只写 `[x, z]` 二元组(见 <see cref="EcozoneSource"/> 文件头)。</remarks>
         public readonly WorldPos[] Vertices;
 
+        /// <summary>该区的**气候属性 → EnvMod 分量**的查表值(加法增量,中性 0,可为负)。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 <b>2026-11-11(`TD-processing-09` · 用户裁定「乙 · 再补生态区基线」)</b>:
+        /// GDD `world-and-ecozones.md:918` 早已把「生态区的气候属性集」定为 **6 定义 / 5 消费**
+        /// (查表),而此前**全仓没有这张表** —— `time-and-weather.md` 的 AC-5-12 因此没有宾语。
+        /// 本字段是那张表**唯一已裁的一项**(EnvMod 分量);温度 / 湿度 / 风等其余属性未裁,
+        /// **不在此臆造**。
+        /// <para>⚠️ <b>取值归数值轮</b>(与 `OQ-5-4` / `OQ-5-5` 同批)。今日每个区声明 `Fix.Zero`
+        /// —— 那是**中性占位**,不是「该区气候无影响」的裁定。改动该值 = 改
+        /// `world_ecozones.cooked` 的 `ConfigVersion`(ADR-014 §五)。</para>
+        /// <para>⚠️ <b>为什么不是选项形参</b>:带默认值会让「忘了填」与「填了 0」在产物上
+        /// 不可分,而这张表存在的全部意义就是「值被作者显式声明过」。</para>
+        /// </remarks>
+        public readonly Fix ClimateEnvMod;
+
         /// <summary>构造一个生态区声明。</summary>
-        public EcozoneZoneSpec(int id, string name, WorldPos[] vertices)
+        /// <param name="id">`ecozone_id`(≥ 0)。</param>
+        /// <param name="name">作者可读名。</param>
+        /// <param name="vertices">闭合多边形顶点(只用 x / z)。</param>
+        /// <param name="climateEnvMod">气候属性 → EnvMod 分量(加法增量,中性 0;见字段注)。</param>
+        public EcozoneZoneSpec(int id, string name, WorldPos[] vertices, Fix climateEnvMod)
         {
-            Id = id; Name = name; Vertices = vertices;
+            Id = id; Name = name; Vertices = vertices; ClimateEnvMod = climateEnvMod;
         }
     }
 
@@ -69,11 +89,26 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>全部生态区声明(声明序;**id 唯一**由 <see cref="EcozonePolygonCheck"/> 校验)。</summary>
         public readonly IReadOnlyList<EcozoneZoneSpec> Zones;
 
+        /// <summary>**全局默认**气候基线 —— 玩家不在任何生态区(`EcozoneId.None`)时取此值。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 <b>2026-11-11(`TD-processing-09` 裁决乙)</b>:GDD `time-and-weather.md` **AC-5-12**
+        /// 逐字要求「玩家 cell 位于无生态区格(含未驻留 chunk)时,`EnvMod_raw` 取**全局默认**,
+        /// **非最近区**」—— 而此前全仓**没有**该默认值的数据位。
+        /// <para>⚠️ 它不是「某个区的值」:取最近区会在两区中点格产出**取决于几何**的结果,
+        /// 那正是 AC-5-12 的可测反例。故它必须是独立的根级字段。</para>
+        /// <para>⚠️ 取值归数值轮;今日 `Fix.Zero`(中性占位)。</para>
+        /// </remarks>
+        public readonly Fix DefaultClimateEnvMod;
+
         /// <summary>构造。</summary>
+        /// <param name="zones">生态区声明。</param>
+        /// <param name="defaultClimateEnvMod">全局默认气候基线(无生态区时取它;AC-5-12)。</param>
         /// <exception cref="ArgumentNullException"><paramref name="zones"/> 为 null。</exception>
-        public EcozoneSource(IReadOnlyList<EcozoneZoneSpec> zones)
+        public EcozoneSource(IReadOnlyList<EcozoneZoneSpec> zones, Fix defaultClimateEnvMod)
         {
             Zones = zones ?? throw new ArgumentNullException(nameof(zones));
+            DefaultClimateEnvMod = defaultClimateEnvMod;
         }
 
         /// <summary>按 id 升序的行集(**确定性导出的起点**;声明序不承载语义)。</summary>

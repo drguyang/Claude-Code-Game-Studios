@@ -18269,3 +18269,31 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - **不得借绿**:ADR-023 §⑤ 拆序六步全量 V-1…V-7 仍 `NOT-RUN`;真包人工走查本轮未重跑
   (引 2026-11-05 旧结论,未重盖时间戳)。
 - 证据:`production/qa/evidence/impl-t22g-return-to-main-menu-test-2026-11-11.md`。
+
+### 第 19 轮(T22 批八 · 炮制三分量接真值 `TD-processing-09`)
+
+- **用户两项裁定**:① EnvMod 语义 = **甲 · 加法增量**(中性 0、可为负、零钳制);
+  ② 接线范围 = **乙 · 再补生态区基线**(为 6 造「气候 → EnvMod 分量」表)。
+- **5 的语义重写**:`Sim/EnvMod.cs` —— `ComputeEnvModRaw`(乘性 `Fix.One` + 凭空造的天气/夜晚/季节系数)
+  → `ComputeEnvModDelta`(基线透传,`Neutral = Fix.Zero`)。其余四项保留入参形状但**不消费**
+  (`g(·)` 形状 = `OQ-5-4` 未裁,不得由实现轮自造系数)。
+- **6 的数据位**:`world_ecozones` **schema 1 → 2**(每区 `climate_env_mod` + 根级
+  `default_climate_env_mod`,值全 0 = 中性占位)。**由关卡工具导出**(ADR-022 §二)后重烘,
+  产物 128 B / `ConfigVersion = 0x8837AE1E`。烘焙链五件同批(EcozoneZoneSpec / Exporter /
+  Binder / Writer / Codec)。
+- **装配**:`CompositionRoot` 的 `if (structures != null)` 段**首次**生产构造 `ClinicEnvironmentMemo`
+  (八件全齐)+ `EcozoneClimateBaseline`;`DriverProcessingCommandSink` 收 `Func<WorldPos, ProcessingEnvMods>`,
+  缝 null 才退回中性 0 并告警;`BootRoot.BuildProcessingEnvMods` 取值前补齐 `Structure*` 失效
+  (EC-24-05),24 取 `memo.GetDto()`、5 取 `ComputeEnvModDelta(climate.Of(炮制格))`。
+- **夹具**:`EnvModRawTest` 9 条(重写)· `EcozoneClimateBaselineTest` 5 条(新)· `ProcessingIgnitionSinkTest` +2。
+- **证伪五枪**:M1 乘性中性 ⇒ 5 红 · M2 自造昼夜系数 ⇒ 1 红 · M3 兜底极性反 ⇒ 3 红 ·
+  M4 错配降级为默认 ⇒ 1 红 · M5 真值丢弃 ⇒ 1 红。三文件 SHA-256 逐字节还原。
+  ⚠️ **M4 首枪打错靶**:`idx < 0 → idx < -1` 在 `BinarySearch` 补码返回值上等价(本例 -2)⇒ 0 红。
+- **回归**:EditMode `7437 / 7400 / 0 / 0 / 37` @ `02:07:38Z`–`02:10:17Z` ·
+  PlayMode `380 / 375 / 0 / 2 / 3` @ `02:10:33Z`–`02:11:36Z`(`5d15dbdd` + 工作树)。
+  EditMode `+9` = 本批新增 `[Test]`;PlayMode 与基线逐项相同(零回归)。
+- **债册**:`TD-processing-09` **`open` → `closed`**(附闭合记录);`debtcount --check` exit 0
+  (条目 207 · closed 175 · open 22 · **未闭 P0 面 12 → 11**,`processing` epic 清零 7/31 → 6/31)。
+- **不得借绿**:`g(·)` 其余四项未实现(天气 / 昼夜 / 季节);气候基线数值全 0(数值轮);
+  `BootRoot.BuildProcessingEnvMods` **无装配级判据**。
+- 证据:`production/qa/evidence/impl-t22h-processing-envmod-wiring-2026-11-11.md`。

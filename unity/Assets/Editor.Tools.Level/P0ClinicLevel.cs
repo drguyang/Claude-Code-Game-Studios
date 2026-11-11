@@ -327,18 +327,20 @@ namespace DaYiJingCheng.EditorTools.Level
             var zones = new List<EcozoneZoneSpec>
             {
                 // 医馆前厅:x ∈ [1,8] × z ∈ [1,14]
+                // ⚠️ 气候 → EnvMod 分量 = 0(**中性占位**)—— 取值归数值轮(`TD-processing-09` 裁定乙)。
                 new EcozoneZoneSpec(0, "clinic_ward", new[]
                 {
                     P(1, 1), P(8, 1), P(8, 14), P(1, 14),
-                }),
+                }, Fix.Zero),
                 // 药圃:x ∈ [8,14] × z ∈ [1,14] —— 与上面**共享 x = 8 这条边**
                 new EcozoneZoneSpec(1, "herb_courtyard", new[]
                 {
                     P(8, 1), P(14, 1), P(14, 14), P(8, 14),
-                }),
+                }, Fix.Zero),
             };
 
-            return new EcozoneSource(zones);
+            // 全局默认基线(AC-5-12:无生态区格取它,不取最近区)—— 取值归数值轮,今日中性 0。
+            return new EcozoneSource(zones, Fix.Zero);
         }
 
         // ═══════════════════════════════════════════════════════════════════════

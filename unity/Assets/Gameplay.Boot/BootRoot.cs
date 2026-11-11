@@ -1267,7 +1267,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                         : (DaYiJingCheng.Sim.CarryCapacity?)null,
                     () => _tickDriver != null ? _tickDriver.CurrentTick : 0L,
                     craftActor,
-                    craftWriter);
+                    craftWriter,
+                    // 🔁 2026-11-11(`TD-processing-09`):三个修正分量的真值面。
+                    //    `null` ⇔ 装配层没接世界(24 的 memo / 6 的基线都要 `structures`)⇒
+                    //    sink 退回中性 0 并告警(可观测降级)。
+                    BuildProcessingEnvMods());
             }
             else
             {
@@ -3414,6 +3418,50 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return new DaYiJingCheng.Sim.Contracts.InventoryContainerDto(
                 containerInstanceId, items, load, cap, isFull);
+        }
+
+        /// <summary>
+        /// 构造「炮制三分量」的取值面(`TD-processing-09` 结案轮 · 2026-11-11)。
+        /// <para><b>三分量各自来自各自的系统</b>:`EquipMod` / `EnvMod_clinic` 来自 24 的
+        /// 求值 Memoize 交付面;`EnvMod_climate` 来自 5 的 `EnvMod.ComputeEnvModDelta`,
+        /// 其生态区基线由 6 的 `world_ecozones` 表查得。</para>
+        /// <para>⚠️ **返回 null ⇔ 装配层没接世界**(24 的 memo 与 6 的基线都要 `structures`):
+        /// sink 据此退回增量中性 0 并告警 —— 降级可观测,不是静默。</para>
+        /// <para>⚠️ <b>24 的缓存失效在取值前补齐</b>(EC-24-05):memo 的失效键是 `Structure*`
+        /// 三支,而本工程的驱动不共享事件泵(各自扫流)⇒ 取值前把「键新于当前缓存」的
+        /// 结构事件喂一遍。不补这一步,memo 会在**第一次**求值后永远命中 ——
+        /// 玩家造完家具后炮制仍按旧布局算(静默陈旧值)。
+        /// 代价 = 每次点火扫一遍事件表(点火是玩家动作,不在 tick 热路径上)。</para>
+        /// </summary>
+        private Func<DaYiJingCheng.Sim.Contracts.WorldPos, ProcessingEnvMods> BuildProcessingEnvMods()
+        {
+            DaYiJingCheng.Gameplay.Presentation.ClinicEnvironmentMemo memo = _services?.ClinicEnvironment;
+            DaYiJingCheng.Gameplay.Presentation.EcozoneClimateBaseline climate = _services?.EcozoneClimate;
+            if (memo == null || climate == null) return null;
+
+            return cell =>
+            {
+                // ① 把缓存之后到达的 `Structure*` 事件补齐(单调失效;`Apply` 自带 Kind 闭集过滤)。
+                System.Collections.Generic.IReadOnlyList<DaYiJingCheng.Sim.Contracts.SimEvent> events =
+                    _services.Stream.Events;
+                for (int i = 0; i < events.Count; i++)
+                {
+                    DaYiJingCheng.Sim.Contracts.SimEvent e = events[i];
+                    if (DaYiJingCheng.Sim.EventOrder.KeyOf(e).CompareTo(memo.CachedKey) > 0)
+                        memo.Apply(e);
+                }
+
+                // ② 24 的两个分量(同一次求值一起产出,不可能漂移)。
+                DaYiJingCheng.Sim.Contracts.ClinicEnvDto dto = memo.GetDto();
+
+                // ③ 5 的环境分量 —— cell = **炮制发生格**(F-5.4 调用点表),不是玩家格。
+                var input = new DaYiJingCheng.Sim.EnvModInput(climate.Of(cell), 0, 0, false, 0);
+
+                return new ProcessingEnvMods(
+                    dto.EquipMod,
+                    DaYiJingCheng.Sim.EnvMod.ComputeEnvModDelta(input),
+                    dto.EnvMod);
+            };
         }
     }
 

@@ -142,8 +142,8 @@ namespace DaYiJingCheng.EditorTools.Level
                 new EcozoneZoneSpec(0, "scaffold_zone", new[]
                 {
                     P(1, 1), P(6, 1), P(6, 6), P(1, 6),
-                }),
-            });
+                }, Fix.Zero),
+            }, Fix.Zero);
         }
 
         // ⚠️ 以下两件与 `P0ClinicLevel` 的对应方法**形状相同、数值也相同**(外环 1 格不可走、

@@ -280,11 +280,11 @@ namespace DaYiJingCheng.Tests.LevelTool
             var v = new WorldPos[xzPairs.Length / 2];
             for (int i = 0; i < v.Length; i++)
                 v[i] = new WorldPos(xzPairs[2 * i], 0, xzPairs[2 * i + 1]);
-            return new EcozoneZoneSpec(id, "zone_" + id, v);
+            return new EcozoneZoneSpec(id, "zone_" + id, v, Fix.Zero);
         }
 
         private static EcozoneSource Source(params EcozoneZoneSpec[] zones)
-            => new EcozoneSource(new List<EcozoneZoneSpec>(zones));
+            => new EcozoneSource(new List<EcozoneZoneSpec>(zones), Fix.Zero);
 
         /// <summary>断言 C4 报出**含指定关键词**的违例(不抛形的 `TryCheck` 面)。</summary>
         private static void AssertViolation(EcozoneSource src, params string[] keywords)

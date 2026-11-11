@@ -8,7 +8,14 @@
 // ⚠️ 载荷布局(全部 little-endian;固定字段顺序):
 //   world_ecozones.cooked
 //     i32 zone_count
-//     zone_count × { i32 ecozone_id; i32 vertex_count; vertex_count × { i32 x; i32 z } }
+//     i64 default_climate_env_mod_raw
+//     zone_count × { i32 ecozone_id; i32 vertex_count; vertex_count × { i32 x; i32 z };
+//                    i64 climate_env_mod_raw }
+//
+// 🔁 **2026-11-11(`TD-processing-09` 裁决乙 · schema 2)**:每条 zone 记录**尾部追加**
+//    `i64 climate_env_mod_raw`(Fix 的 raw)。追加而非插队 = 既有三条记录的字节序不变,
+//    旧读方只看前段时不会错位(**但仍须拒 schema 1** —— `AssertFullyConsumed` 会拦)。
+//    该字段来自 `EcozoneZoneSpec.ClimateEnvMod`,值归数值轮(今日全 0)。
 //
 // ⚠️ **顶点只写 `x` / `z`,不写 `y`** —— GDD F-6-3 §四 逐字「横轴 = 与射线方向垂直的那个轴,
 //    不是 y」,而 runtime `EcozonePolygon` 的 `Contains` / `IsBoundary` / `Cross` 从不读 `Y`。
@@ -42,6 +49,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             using (var w = new BinaryWriter(payload, System.Text.Encoding.UTF8))
             {
                 w.Write(bound.Zones.Count);
+                // schema 2:全局默认基线(AC-5-12「不在任何生态区 ⇒ 取全局默认」)
+                w.Write(bound.DefaultClimateEnvMod.Raw);
                 for (int i = 0; i < bound.Zones.Count; i++)
                 {
                     DaYiJingCheng.EditorTools.Level.EcozoneZoneSpec z = bound.Zones[i];
@@ -52,6 +61,8 @@ namespace DaYiJingCheng.EditorTools.Bake
                         w.Write(z.Vertices[v].X);
                         w.Write(z.Vertices[v].Z);
                     }
+                    // schema 2:气候属性 → EnvMod 分量(Fix raw;中性 0,可为负 —— 5 侧零钳制)
+                    w.Write(z.ClimateEnvMod.Raw);
                 }
                 w.Flush();
                 return ClinicMachineCookedWriter.FinishHeader(

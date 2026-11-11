@@ -1685,6 +1685,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
 
             ClinicRoomMatchingService clinicRoomMatching = null;
+            // 🔁 2026-11-11(`TD-processing-09` 结案轮):24 求值的**生产构造点**与 5 的气候基线查询。
+            //    null ⇔ 未接世界(structures == null)⇒ 炮制侧退回「三分量未接线」的显式告警形态。
+            DaYiJingCheng.Gameplay.Presentation.ClinicEnvironmentMemo clinicEnvironment = null;
+            DaYiJingCheng.Gameplay.Presentation.EcozoneClimateBaseline ecozoneClimate = null;
             StructureWriter structureWriter = null;
             BuildController buildController = null;      // S20-19:42 的建造发起方(null ⇔ 无世界)
             if (structures != null)
@@ -1698,6 +1702,25 @@ namespace DaYiJingCheng.Gameplay.Boot
                 ClinicRoomDataSet clinicRooms = dataProvider != null
                     ? dataProvider.Load<ClinicRoomDataSet>()
                     : DataCookedDisk.LoadClinicRoom();
+                // 🔁 2026-11-11(`TD-processing-09`):24 求值的另外五件输入。
+                //    memo 的构造面要求「八件全齐」(缺任一件 ⇒ 链只能给出恒 ROOM_NONE),
+                //    故这里一次取齐;provider / 磁盘两条路读**同一份**产物 + **同一个** codec。
+                ClinicContextDataSet clinicContexts = dataProvider != null
+                    ? dataProvider.Load<ClinicContextDataSet>()
+                    : DataCookedDisk.LoadClinicContext();
+                ClinicAdjDataSet clinicAdj = dataProvider != null
+                    ? dataProvider.Load<ClinicAdjDataSet>()
+                    : DataCookedDisk.LoadClinicAdj();
+                ClinicRoomNameDataSet clinicRoomNames = dataProvider != null
+                    ? dataProvider.Load<ClinicRoomNameDataSet>()
+                    : DataCookedDisk.LoadClinicRoomNames();
+                ClinicContextNameDataSet clinicContextNames = dataProvider != null
+                    ? dataProvider.Load<ClinicContextNameDataSet>()
+                    : DataCookedDisk.LoadClinicContextNames();
+                // 6 的生态区产物:多边形表与气候基线表**同一份装载**(见 BuildEcozoneRegistry 注)。
+                WorldEcozonesDataSet ecozonesData = dataProvider != null
+                    ? dataProvider.Load<WorldEcozonesDataSet>()
+                    : DataCookedDisk.LoadWorldEcozones();
 
                 // ⚠️ 赋值(不是 `var` 声明):实例在上面已声明 —— fold 的 R16 闭包按引用捕获它
                 //    (A-5 修复轮)。仍**只构造一处**。
@@ -1743,6 +1766,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                     modulesCatalog,
                     clinicFurniture.Catalogue,
                     clinicRooms.Table);
+
+                // ── 24 的求值 Memoize(EC-24-05 的生产构造点 · 2026-11-11 `TD-processing-09`)──
+                // 八件输入全部来自本段已有的实例 / 已装载的产物,零新增装配边。
+                // ⚠️ **这不是状态**(GDD `:123-127`):删掉它 24 的输出一字不变,只是每次重算。
+                // 失效键 = `Structure*` 三支;那三支的投递点在 `BootRoot` 的事件泵侧
+                // (与 `Take` 同一个循环里),见 `ClinicEnvironmentMemo.Apply` 的用法注。
+                clinicEnvironment = new DaYiJingCheng.Gameplay.Presentation.ClinicEnvironmentMemo(
+                    structures,
+                    modulesCatalog,
+                    clinicFurniture.Catalogue,
+                    clinicRooms.Table,
+                    clinicContexts.Table,
+                    clinicAdj.Table,
+                    clinicRoomNames.Table,
+                    clinicContextNames.Table);
+
+                // ── 6 的生态区气候基线(5 的 F-5.4 入参 · AC-5-12)──────────────────
+                // 几何判定仍走 `EcozoneRegistry` 的唯一实现;本类只做「格 → 区 → 值」查表。
+                ecozoneClimate = new DaYiJingCheng.Gameplay.Presentation.EcozoneClimateBaseline(
+                    BuildEcozoneRegistry(ecozonesData),
+                    ecozonesData);
 
                 // ── 24 → 29 复活床格查询(规则六 · 2026-11-01 · 结清 `TD-clinic-18` 实现半)──
                 // 三支依赖全来自本段已有的实例,零新增装配边(⚠️ 必须**复用同一实例**:
@@ -2276,7 +2320,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                pressRadius: pressRadius,
                                                // 🔁 2026-11-10 T22 批一:建造槽位的占位体块
                                                //    (已在本语句之前铺完;null = 本次装配没装世界数据)。
-                                               structureVisualSpawner: structureVisuals);
+                                               structureVisualSpawner: structureVisuals,
+                                               // 🔁 2026-11-11(`TD-processing-09`):24 的求值 Memoize
+                                               //    与 6 的生态区气候基线。两者同 null 性(都要 `structures`)。
+                                               clinicEnvironment: clinicEnvironment,
+                                               ecozoneClimate: ecozoneClimate);
 
             // 🔁 2026-11-05(`TD-sim-05` 同族):补齐 `afterRestore` 闭包的前向捕获句柄。
             // 该闭包在**本语句之前**建立,却要碰本语句之后才挂上去的两件完成调度器。
@@ -2687,17 +2735,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <exception cref="InvalidOperationException">产物缺失(E-13 口径 —— provider / 磁盘同款)。</exception>
         /// <exception cref="InvalidDataException">产物损坏 / 空表。</exception>
         public static EcozoneRegistry LoadEcozoneRegistry(IDataProvider dataProvider)
-        {
-            WorldEcozonesDataSet data = dataProvider != null
+            => BuildEcozoneRegistry(dataProvider != null
                 ? dataProvider.Load<WorldEcozonesDataSet>()
-                : DataCookedDisk.LoadWorldEcozones();
+                : DataCookedDisk.LoadWorldEcozones());
+
+        /// <summary>从**已解码**的生态区产物建注册表(行 → 多边形;唯一映射实现)。
+        /// <para>拆出来是为了让「同一份产物既建多边形表、又建气候基线表」时只装载**一次**
+        /// (`TD-processing-09` 接线轮)—— 两次装载虽读同一份字节,却会让两表来自两个实例,
+        /// 而「同批产物」这条纪律只能由单次装载保证。</para>
+        /// <para>⚠️ `Register` 的廉价校验在此是**纵深防御** —— C4 已在烘焙期拒过
+        /// (顶点<3 / 重合相邻 / 自交);它若在这里抛,说明产物被手工改过(违反 ADR-022 §二)。</para></summary>
+        public static EcozoneRegistry BuildEcozoneRegistry(WorldEcozonesDataSet data)
+        {
+            if (data.Zones == null)
+                throw new InvalidOperationException("[E-13][data-core] 生态区行集为 null —— 产物损坏");
 
             var registry = new EcozoneRegistry();
             for (int i = 0; i < data.Zones.Count; i++)
             {
                 WorldEcozoneRow row = data.Zones[i];
-                // `Register` 的廉价校验(顶点<3 / 重合相邻 / 自交)在此是**纵深防御** ——
-                // C4 已在烘焙期拒过;它若在这里抛,说明产物被手工改过(违反 ADR-022 §二)。
                 registry.Register(new EcozonePolygon(new EcozoneId(row.EcozoneId), row.Vertices));
             }
             return registry;

@@ -140,6 +140,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static ClinicRoomDataSet LoadClinicRoom()
             => ClinicMachineCookedCodec.ReadRoom(ReadAll(AddressablesDataProvider.ClinicRoomAddress));
 
+        /// <summary>24 CONTEXT_TABLE(<c>clinicmachine_context.cooked.bytes</c>;`TD-processing-09` 接线轮)。
+        /// <para>此前只有 provider 面能取到它 —— 而 `ClinicEnvironmentMemo` 需要全部三张表,
+        /// EditMode / 无 provider 的装配路径因此构造不出 memo。</para></summary>
+        public static ClinicContextDataSet LoadClinicContext()
+            => ClinicMachineCookedCodec.ReadContext(ReadAll(AddressablesDataProvider.ClinicContextAddress));
+
+        /// <summary>24 ADJ_TABLE(<c>clinicmachine_adj.cooked.bytes</c>;同上)。</summary>
+        public static ClinicAdjDataSet LoadClinicAdj()
+            => ClinicMachineCookedCodec.ReadAdj(ReadAll(AddressablesDataProvider.ClinicAdjAddress));
+
         /// <summary>24 ROOM_NAMES 词表(<c>clinicmachine_room_names.cooked.bytes</c>;裁定 ①-C)。</summary>
         public static ClinicRoomNameDataSet LoadClinicRoomNames()
             => ClinicMachineCookedCodec.ReadRoomNames(

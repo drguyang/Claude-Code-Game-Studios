@@ -9,7 +9,14 @@
 // ⚠️ 载荷布局(全部 little-endian;固定字段顺序):
 //   world_ecozones.cooked
 //     i32 zone_count
-//     zone_count × { i32 ecozone_id; i32 vertex_count; vertex_count × { i32 x; i32 z } }
+//     i64 default_climate_env_mod_raw
+//     zone_count × { i32 ecozone_id; i32 vertex_count; vertex_count × { i32 x; i32 z };
+//                    i64 climate_env_mod_raw }
+//
+// 🔁 **2026-11-11(`TD-processing-09` 裁决乙 · schema 1 → 2)**:每条 zone 记录尾追加
+//    `i64 climate_env_mod_raw`(该区气候属性 → EnvMod 分量;5 的加法增量输入)。
+//    schema 1 的产物**无**该字段 ⇒ 一律拒收(不按 0 补 —— 「补 0」会让
+//    「产物没带基线」与「基线恰好是 0」在运行期不可分)。
 //
 // ⚠️ **本件为什么住在 `Gameplay.Presentation`**:`EcozoneRegistry` / `EcozonePolygon` 住 `Sim`
 //   (门 A 侧),而读 cooked 字节需要 `BinaryReader` + 头校验工具(本程序集)。`Sim` 引用集
@@ -32,10 +39,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>顶点(闭合环;**首尾不重复**;`Y` 恒 0)。</summary>
         public readonly WorldPos[] Vertices;
 
+        /// <summary>该区的**气候属性 → EnvMod 分量**(加法增量,中性 0,可为负)。
+        /// <para>5 的 F-5.4 输入(6 定义 / 5 消费,`world-and-ecozones.md:918`)。</para></summary>
+        public readonly Fix ClimateEnvMod;
+
         /// <summary>构造。</summary>
-        public WorldEcozoneRow(int ecozoneId, WorldPos[] vertices)
+        public WorldEcozoneRow(int ecozoneId, WorldPos[] vertices, Fix climateEnvMod)
         {
-            EcozoneId = ecozoneId; Vertices = vertices;
+            EcozoneId = ecozoneId; Vertices = vertices; ClimateEnvMod = climateEnvMod;
         }
     }
 
@@ -54,10 +65,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>源内容哈希派生的 ConfigVersion(u32;ADR-014 §五)。</summary>
         public readonly uint ConfigVersion;
 
+        /// <summary>**全局默认**气候基线 —— 玩家不在任何生态区时取它(AC-5-12;**不取最近区**)。</summary>
+        public readonly Fix DefaultClimateEnvMod;
+
         /// <summary>构造。</summary>
-        public WorldEcozonesDataSet(IReadOnlyList<WorldEcozoneRow> zones, uint schemaVersion, uint configVersion)
+        public WorldEcozonesDataSet(IReadOnlyList<WorldEcozoneRow> zones, uint schemaVersion,
+                                    uint configVersion, Fix defaultClimateEnvMod)
         {
             Zones = zones; SchemaVersion = schemaVersion; ConfigVersion = configVersion;
+            DefaultClimateEnvMod = defaultClimateEnvMod;
         }
     }
 
@@ -70,7 +86,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>本产物的作者态 schema_version 期望值(per-product 口径)。</summary>
         /// <remarks>⚠️ 与 `Editor.Tools.Level.LevelExporter.EcozonesSchemaVersion` **必须同值** ——
         /// 守护机制见 `WorldGeometryCookedCodec.ExpectedSchemaVersion` 的同款注。</remarks>
-        public const uint ExpectedSchemaVersion = 1u;
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>读生态区多边形。</summary>
         /// <param name="bytes">cooked 字节(含 20 字节头)。</param>
@@ -93,6 +109,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     throw new InvalidDataException(
                         $"[cooked] {ProductName} zone_count = {zoneCount} —— 生态区集合不得为空" +
                         "(空表与「未声明」不可分,且会让 `EcozoneOf` 恒回 None,而那是 story-003 要消灭的状态;E-13)");
+
+                // schema 2:全局默认基线(AC-5-12)。零值域校验 —— 5 侧零钳制(B-3)。
+                long defaultClimateEnvModRaw = r.ReadInt64();
+                Fix defaultClimateEnvMod = new Fix(defaultClimateEnvModRaw);
 
                 var zones = new WorldEcozoneRow[zoneCount];
                 int prevId = -1;
@@ -123,12 +143,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
                         int z = r.ReadInt32();
                         vertices[v] = new WorldPos(x, 0, z);
                     }
-                    zones[i] = new WorldEcozoneRow(id, vertices);
+
+                    // schema 2:气候属性 → EnvMod 分量。**零值域校验** —— 5 侧零钳制(B-3),
+                    // 负值是合法形态;越界由 21a F1 的单点钳制处理。
+                    long climateEnvModRaw = r.ReadInt64();
+
+                    zones[i] = new WorldEcozoneRow(id, vertices, new Fix(climateEnvModRaw));
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);
 
-                return new WorldEcozonesDataSet(Array.AsReadOnly(zones), schemaVersion, configVersion);
+                return new WorldEcozonesDataSet(
+                    Array.AsReadOnly(zones), schemaVersion, configVersion, defaultClimateEnvMod);
             }
         }
 

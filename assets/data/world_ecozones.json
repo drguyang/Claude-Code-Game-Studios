@@ -1,8 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "level_id": "p0_clinic",
+  "default_climate_env_mod": "0",
   "zones": [
-    {"ecozone_id": 0, "name": "clinic_ward", "vertices": [[1, 1], [8, 1], [8, 14], [1, 14]]},
-    {"ecozone_id": 1, "name": "herb_courtyard", "vertices": [[8, 1], [14, 1], [14, 14], [8, 14]]}
+    {"ecozone_id": 0, "name": "clinic_ward", "climate_env_mod": "0", "vertices": [[1, 1], [8, 1], [8, 14], [1, 14]]},
+    {"ecozone_id": 1, "name": "herb_courtyard", "climate_env_mod": "0", "vertices": [[8, 1], [14, 1], [14, 14], [8, 14]]}
   ]
 }

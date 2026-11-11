@@ -339,7 +339,7 @@
 | `TD-processing-06` | `processing` | closed | **N** | R4 |
 | `TD-processing-07` | `processing` | partial | ~~**Y**~~ | R1 |
 | `TD-processing-08` | `processing` | closed | **N** | R4 |
-| `TD-processing-09` | `processing` | open | **Y** | R2 |
+| `TD-processing-09` | `processing` | closed | **Y** | R2 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -1493,12 +1493,11 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 207 | 状态 {'closed': 174, 'partial': 9, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 12 （已闭但曾标 P0 面的 123 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 12 条,分布在 7/31 个 epic
+条目 207 | 状态 {'closed': 175, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 124 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
     random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
-    processing: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -5609,6 +5608,40 @@ M4 预算门恒通过 ⇒ 1 红 · **M5 首枪是空操作变异(0 红)** · **M
 | **解除动作** | ① **裁 5 侧量的语义**(乘性乘子 vs 加法增量)—— 这是设计与数值问题,须用户/5 的 GDD 轮裁定,**不得由实现轮代裁**;② 按裁定改 `Sim/EnvMod.cs`(或另立 `EnvModDelta`);③ 接 5 的运行期输入链(`EcozoneBaseline` 今日**无数据源** —— `world-and-ecozones.md:742` 写「取全局默认」但全仓无该表;weather 无消费方;season P0 = 0);④ 24 的 `ClinicEnvironmentMemo` 落生产构造点,`EquipMod` / `EnvModClinic` 才有真值;⑤ 本债结案判据 = 一次点火的三分量**均来自各自系统**,且有夹具钉住「非中性输入改变产出」。 |
 | **触发条件** | ① 5 的 EnvMod 语义裁决轮;② 24 的医馆环境接生产轮;③ 或任何以「炮制已吃环境修正」形态引用之前(**禁借绿**)。 |
 | **归属** | **5**(EnvMod 的定义与取值范围)· **24**(医馆分量)· **18**(透传,不钳制)· **语义裁定 = 用户** |
+
+#### ✅ TD-processing-09 关闭记录 —— 语义改判(加法增量)+ 三分量接真值(2026-11-11 · T22 批八)
+
+**用户两项裁定**:① **EnvMod 语义 = 甲 · 加法增量**(中性 **0**、可为负、零钳制);
+② **接线范围 = 乙 · 再补生态区基线**(为 6 造「气候 → EnvMod 分量」表,5 的 `g(·)` 至少有一项真有数据源)。
+
+| 件 | 落点 |
+|---|---|
+| 5 的语义 | `Sim/EnvMod.cs` 重写:`ComputeEnvModRaw` → `ComputeEnvModDelta` = 基线透传,`Neutral = Fix.Zero`;删掉凭空造的天气 / 夜晚 / 季节系数 |
+| 6 的数据位 | `world_ecozones` **schema 1 → 2**:每区 `climate_env_mod` + 根级 `default_climate_env_mod`(值全 0 = 中性占位,值归数值轮);**由关卡工具导出**(ADR-022 §二),非手写 |
+| 烘焙链 | `EcozoneZoneSpec` / `LevelExporter` / `WorldEcozonesBinder` / `WorldEcozonesCookedWriter` / `WorldEcozonesCookedCodec` 五件同批 |
+| 查询面 | `Gameplay.Presentation/EcozoneClimateBaseline.cs`(格 → `EcozoneOf` → 基线;**无区 ⇒ 全局默认,非最近区**;多边形表有而气候表没有 ⇒ **抛**) |
+| 24 的构造点 | `CompositionRoot` 的 `if (structures != null)` 段 —— **全仓首次** `new ClinicEnvironmentMemo`(八件全齐)+ `EcozoneClimateBaseline` |
+| 18 的取值 | `DriverProcessingCommandSink` 收 `Func<WorldPos, ProcessingEnvMods>`;缝 null 才退回中性 0 **并告警** |
+| 装配 | `BootRoot.BuildProcessingEnvMods`:取值前补齐 `Structure*` 失效(EC-24-05)、24 取 `memo.GetDto()`、5 取 `ComputeEnvModDelta(climate.Of(炮制格))` |
+| 原件 | `production/qa/evidence/impl-t22h-processing-envmod-wiring-2026-11-11.md` |
+
+**判据**:`EnvModRawTest` 9 条(中性 / 负值原样 / 加法合成 / 未裁项不自造系数 / 纯函数 / 零 float)·
+`EcozoneClimateBaselineTest` 5 条(区内 / 区外取全局默认**且非最近区** / 错配即抛 / 行序守卫)·
+`ProcessingIgnitionSinkTest` +2(非中性输入**改变产出** · 缝收到的格 = **炮制发生格**)。
+**证伪五枪**,各钉一条不同性质:M1 退回乘性中性 ⇒ 5 红 · M2 自造昼夜系数 ⇒ 1 红 ·
+M3 兜底判据极性反 ⇒ 3 红 · M4 错配降级为默认 ⇒ 1 红 · M5 拿到真值后丢弃 ⇒ 1 红。
+三文件 SHA-256 逐字节还原。
+⚠️ **M4 首枪打错靶**(如实):`idx < 0` → `idx < -1` 在 `BinarySearch` 的**补码**返回值上等价
+(本例 `-2`),0 红 ≠ 夹具没牙。
+
+**回归**:EditMode `7437/7400/0/0/37` · PlayMode `380/375/0/2/3`
+(@ `2026-11-11T02:07:38Z`–`02:11:36Z` · T22 批八 · `5d15dbdd` + 工作树)。PlayMode 与基线逐项相同;
+EditMode `+9` = 本批新增 `[Test]`。
+
+⚠️ **关闭 ≠ `g(·)` 已实现**(不得借绿):今天只做**基线项透传**;天气 / 昼夜 / 季节的系数形状 =
+`OQ-5-4`(**未裁**,值归用户),且天气本身仍无运行期取值链(`WeatherRoll` 零生产调用点)。
+⚠️ **未做**:`BootRoot.BuildProcessingEnvMods` **无装配级判据**(与 42 的其它 `OnTickEdge` 同状态);
+气候基线**数值全 0** —— 真实气候差异须由关卡工具改作者态后重烘(改值 = 改 `ConfigVersion`)。
 
 ### TD-skeuo-07 — 存档册**没有纸页**:屏自建的三个 class 零 USS 载体,UXML 零引用(7b · 42)
 

@@ -433,6 +433,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 失效机制 / Memoize 归 story-005)。</para></summary>
         public ClinicRoomMatchingService ClinicRoomMatching { get; }
 
+        /// <summary>24 的求值 Memoize(EC-24-05;`TD-processing-09` 结案轮的生产构造点)。
+        /// <para>null ⇔ 未接世界(`structures == null`)⇒ 24 的输出取不到,炮制侧退回中性 0 并告警。</para>
+        /// <para>⚠️ <b>它不是状态</b>:删掉它 24 的输出一字不变(只是每次重算)。</para></summary>
+        public ClinicEnvironmentMemo ClinicEnvironment { get; }
+
+        /// <summary>6 的生态区气候基线查询(5 的 F-5.4 入参;AC-5-12)。
+        /// <para>与 <see cref="ClinicEnvironment"/> **同 null 性**(两者都在 `structures != null` 段构造)。</para></summary>
+        public EcozoneClimateBaseline EcozoneClimate { get; }
+
         /// <summary>
         /// 世界实例(S20-17 装配轮 · 2026-10-28)。
         /// <para><b>null ⇔ 装配时未传入 <c>world</c></b>(既有 117 处 <c>Assemble</c> 调用方
@@ -617,7 +626,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          DaYiJingCheng.Gameplay.Interaction.CandidateSetLoader pressCandidates = null,
                                          DaYiJingCheng.Gameplay.Interaction.InteractionSelector pressSelector = null,
                                          DaYiJingCheng.Gameplay.Interaction.InteractionRadius pressRadius = null,
-                                         StructureVisualSpawner structureVisualSpawner = null)
+                                         StructureVisualSpawner structureVisualSpawner = null,
+                                         ClinicEnvironmentMemo clinicEnvironment = null,
+                                         EcozoneClimateBaseline ecozoneClimate = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -671,6 +682,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             PressCandidates = pressCandidates;
             PressSelector = pressSelector;
             PressRadius = pressRadius;
+            // 🔁 2026-11-11(`TD-processing-09`):24 求值 Memoize + 6 生态区气候基线。
+            ClinicEnvironment = clinicEnvironment;
+            EcozoneClimate = ecozoneClimate;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

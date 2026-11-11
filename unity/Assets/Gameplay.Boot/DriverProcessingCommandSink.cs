@@ -23,14 +23,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ⚠️ 三条如实登记(不借绿)
 // ─────────────────────────────────────────────────────────────────────────────
-// ① **环境 / 设备三分量今日传增量中性 0**。
-//    `EquipMod` / `EnvMod_clinic`(24)与 `EnvMod_climate`(5)的**运行期取值链**今日都不存在:
-//    · 24 的 `ClinicEnvEvaluation` 生产上零构造点(`ClinicEnvironmentMemo` 只在夹具里被 new);
-//    · 5 的 `Sim/EnvMod.cs` 是「简化版」,且其**中性值定义与 F1 的加法域不一致**
-//      (它返回乘性 `Fix.One`,而 `EnvMod_total = clamp(climate + clinic, …)` 是**相加的增量**,
-//      中性 = 0)。把它接进生产会让每炉平白 +1.0 修正。
-//    ⇒ 本类按 **F1 的加法中性 0** 传,并在首次点火时**打一条显式告警**(不静默)。
-//    这是「今天只能取到这个值」,不是「值已确定」—— 见债册 `TD-sim-03`。
+// ① **环境 / 设备三分量:已接真值**(2026-11-11 `TD-processing-09` 结案轮;原文不删,保留旧态)。
+//    旧态(2026-11-04 立本类时):三分量一律传增量中性 0,并打一条告警 —— 因为
+//    24 的求值 Memoize 生产上零构造点、5 的 `EnvMod_raw` 无运行期取值链。
+//    现态:`BootRoot` 经 `Func<WorldPos, ProcessingEnvMods>` 注入三件真值:
+//      · `EquipMod` / `EnvMod_clinic` ← `ClinicEnvironmentMemo.GetDto()`(24)
+//      · `EnvMod_climate` ← `EnvMod.ComputeEnvModDelta`(5;基线由 6 的生态区表查得)
+//    ⚠️ 缝为 `null`(装配层没接世界 / 夹具未注入)时仍退回中性 0,并**当场告警** ——
+//    降级必须是可观测的,不是静默的。
 // ② **料位选中集不按配方过滤**:`ContainerSelectionStore` 只存「玩家点了哪几栈」,
 //    并不知道这一剂要哪几味。准入门(`AdmissiblePredicate`)今日同样只看品级 min,
 //    两者口径一致 —— 本条不在此处另造一份过滤(那就是第二真源),归 20 的规则六轮。
@@ -67,6 +67,34 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
     }
 
+    /// <summary>F1 的三个修正分量 —— 各自来自各自的系统(`TD-processing-09` 结案轮)。
+    /// <para>三者都是**加法增量**(中性 0),与 `ProcessingInputs` 的形参一一对位;
+    /// 18 侧**原样透传**,求和与钳制只在 21a F1(AC-18-06 / B-3)。</para>
+    /// </summary>
+    public readonly struct ProcessingEnvMods
+    {
+        /// <summary>24 的设备修正(`ClinicEnvDto.EquipMod`)。</summary>
+        public readonly Fix EquipMod;
+
+        /// <summary>5 的环境分量(`EnvMod.ComputeEnvModDelta`;cell = **炮制发生格**)。</summary>
+        public readonly Fix EnvModClimate;
+
+        /// <summary>24 的医馆分量(`ClinicEnvDto.EnvMod`)。</summary>
+        public readonly Fix EnvModClinic;
+
+        /// <summary>构造。</summary>
+        public ProcessingEnvMods(Fix equipMod, Fix envModClimate, Fix envModClinic)
+        {
+            EquipMod = equipMod; EnvModClimate = envModClimate; EnvModClinic = envModClinic;
+        }
+
+        /// <summary>三分量中性(全 0)—— 与 F1 的加法域同数。
+        /// <para>⚠️ 用 `default` 表达中性是**刻意**的:三个分量都是 `default(Fix) == 0`,
+        /// 与构造出的中性逐位相同(承 F9:`default(struct)` 绕过构造器,但此处零值即中性,
+        /// 不存在被绕过的不变量)。</para></summary>
+        public static ProcessingEnvMods Neutral => default;
+    }
+
     /// <summary>炮制屏的装配层实现(42 → 装配层的单向调用)。</summary>
     /// <remarks>
     /// <para>⚠️ <b>依赖面全部是委派</b>(器具格 / 料位 / 单件重量 / 载重):这些都住在别的系统里,
@@ -88,6 +116,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Func<long> _tick;
         private readonly int _actorId;
         private readonly CraftEventWriter _writer;
+
+        /// <summary>三个修正分量的取值面(`null` ⇔ 未接 24 / 5 ⇒ 退回中性 0 并告警)。</summary>
+        private readonly Func<WorldPos, ProcessingEnvMods> _envModsOf;
 
         /// <summary>本屏这次打开时选中的器具(structure_id);**未喂 ⇒ 点火拒发**。</summary>
         private long? _toolStructureId;
@@ -111,7 +142,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             CarryCapacity? capacity,
             Func<long> tick,
             int actorId,
-            CraftEventWriter writer)
+            CraftEventWriter writer,
+            Func<WorldPos, ProcessingEnvMods> envModsOf = null)
         {
             _driver = driver ?? throw new ArgumentNullException(nameof(driver));
             _recipeSource = recipeSource ?? throw new ArgumentNullException(nameof(recipeSource));
@@ -127,6 +159,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _tick = tick ?? throw new ArgumentNullException(nameof(tick));
             _actorId = actorId;
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+            _envModsOf = envModsOf;
         }
 
         /// <summary>装配层在开屏时告知**这次**用的是哪件器具(`structure_id`)。</summary>
@@ -183,21 +216,31 @@ namespace DaYiJingCheng.Gameplay.Boot
             for (int i = 0; i < qualities.Length; i++)
                 if (qualities[i] < minQuality) minQuality = qualities[i];
 
-            if (!_neutralModsWarned)
+            // 🔁 2026-11-11(`TD-processing-09` 结案):三分量**真的来自各自系统**。
+            //    `null` 缝(未接世界)才退回中性 0 —— 那是可观测的降级,不是常态。
+            ProcessingEnvMods mods;
+            if (_envModsOf != null)
             {
-                _neutralModsWarned = true;
-                Debug.LogWarning("[炮制] 环境 / 设备三分量暂用**增量中性 0**:24 的医馆求值与 5 的 " +
-                                 "EnvMod_raw 运行期取值链今日都不存在(`TD-sim-03`;5 的实现中性名与 F1 " +
-                                 "的加法域不一致,接进来会让每炉 +1.0)。");
+                mods = _envModsOf(toolCell.Value);
+            }
+            else
+            {
+                if (!_neutralModsWarned)
+                {
+                    _neutralModsWarned = true;
+                    Debug.LogWarning("[炮制] 环境 / 设备三分量取不到值(装配层未接 24 的求值 Memoize " +
+                                     "或 6 的生态区基线)⇒ 本次及后续点火一律按**增量中性 0** 传。");
+                }
+                mods = ProcessingEnvMods.Neutral;
             }
 
             var supply = new ProcessingInputs(
                 recipe,
                 _actorId,
                 minQuality,
-                Fix.Zero,      // EquipMod —— 24 未接线(见上)
-                Fix.Zero,      // EnvMod_climate —— 5 未接线(见上)
-                Fix.Zero);     // EnvMod_clinic —— 24 未接线(见上)
+                mods.EquipMod,       // 24 的设备修正
+                mods.EnvModClimate,  // 5 的环境分量(cell = 炮制发生格)
+                mods.EnvModClinic);  // 24 的医馆分量
 
             long carryLoad = _carryLoad();
 

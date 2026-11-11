@@ -104,7 +104,8 @@ namespace DaYiJingCheng.Tests.Boot
 
         private DriverProcessingCommandSink NewSink(
             ProcessingMaterials materials,
-            System.Func<long, WorldPos?> toolCellOf)
+            System.Func<long, WorldPos?> toolCellOf,
+            System.Func<WorldPos, ProcessingEnvMods> envModsOf = null)
             => new DriverProcessingCommandSink(
                 _driver,
                 () => new RecipeDataSet
@@ -122,7 +123,8 @@ namespace DaYiJingCheng.Tests.Boot
                 new CarryCapacity(1000),
                 () => Tick,
                 Actor,
-                _writer);
+                _writer,
+                envModsOf);
 
         private static readonly ProcessingMaterials Materials
             = new ProcessingMaterials(new long[] { 1L, 2L }, new[] { 3, 3 });
@@ -198,6 +200,68 @@ namespace DaYiJingCheng.Tests.Boot
 
             Assert.That(_driver.CurrentModal, Is.EqualTo(ModalId.None),
                 "Close 必须真的合屏 —— 此前 `_sink?.Close()` 恒空转(TD-skeuo-06)");
+        }
+
+        // ── ⑥ 三分量接真值:`TD-processing-09` 结案判据 ⑤ ─────────────────────
+
+        /// <summary>非中性输入**改变产出** —— 债册 `TD-processing-09` 的解除判据 ⑤。</summary>
+        /// <remarks><b>判别力</b>:把 sink 的三分量改回硬编码 `Fix.Zero`(旧态)⇒ 本测红;
+        /// 把 `envModsOf` 的返回值忽略 ⇒ 本测红。
+        /// ⚠️ 本条**只**钉「值有影响力」这一件事 —— 它**不**证明三分量在生产装配里取到了
+        /// 真值(那条由 `BootRoot.BuildProcessingEnvMods` 的装配面与 24 / 6 的夹具各自承担)。</remarks>
+        [Test]
+        public void test_ignite_nonNeutralMods_changeCraftOutputQuantity()
+        {
+            int neutralQty = IgniteAndReadFirstOutputQty(envModsOf: null);
+
+            int boostedQty = IgniteAndReadFirstOutputQty(envModsOf:
+                _ => new ProcessingEnvMods(
+                    equipMod: FixParse.Parse("1/5"),      // 24 设备修正上限
+                    envModClimate: FixParse.Parse("1/5"), // 5 环境分量
+                    envModClinic: FixParse.Parse("1/5"))); // 24 医馆分量
+
+            Assert.That(neutralQty, Is.GreaterThanOrEqualTo(1), "前提:中性也要产出一件以上");
+            Assert.That(boostedQty, Is.GreaterThan(neutralQty),
+                "三分量若接进 F1 就**必须改变产出**;仍是中性值 ⇒ 缝没接上(旧态)");
+        }
+
+        /// <summary>缝收到的格 = **炮制发生格**(F-5.4 调用点表),不是玩家格。</summary>
+        [Test]
+        public void test_ignite_envModsSeam_receivesToolCell()
+        {
+            WorldPos toolCell = new WorldPos(2, 0, 5);
+            WorldPos? seen = null;
+            DriverProcessingCommandSink sink = NewSink(Materials, _ => toolCell,
+                cell => { seen = cell; return ProcessingEnvMods.Neutral; });
+            sink.SetTool(42L);
+
+            Assert.That(sink.Ignite(RecipeOrdinal), Is.True);
+
+            Assert.That(seen.HasValue, Is.True, "三分量取值缝必须被调用(否则生产上永远拿不到真值)");
+            Assert.That(seen.Value.X, Is.EqualTo(toolCell.X), "cell 须是器具格 —— F-5.4 的炮制发生格");
+            Assert.That(seen.Value.Z, Is.EqualTo(toolCell.Z));
+        }
+
+        /// <summary>跑一次点火,返回落流 `Craft` 的首条产出量。</summary>
+        private int IgniteAndReadFirstOutputQty(System.Func<WorldPos, ProcessingEnvMods> envModsOf)
+        {
+            // 每个用例独立一套流 / 发号器 —— 免得前一条的 Craft 混进后一条的断言。
+            _sink = new CountingSink();
+            _ids = new CountingIdAuthority();
+            _pool = new InMemoryBlobPool();
+            _encoder = new PayloadEncoder(_pool);
+            _decoder = new PayloadDecoder(_pool);
+            _writer = new CraftEventWriter(_sink, _encoder, _ids);
+
+            DriverProcessingCommandSink sink = NewSink(Materials, _ => new WorldPos(2, 0, 5), envModsOf);
+            sink.SetTool(42L);
+
+            Assert.That(sink.Ignite(RecipeOrdinal), Is.True);
+            Assert.That(_sink.Count, Is.EqualTo(1));
+
+            CraftPayload payload = _decoder.Decode<CraftPayload>(EventKind.Craft, _sink.Events[0].Payload);
+            Assert.That(payload.OutputQty, Is.Not.Null.And.Not.Empty);
+            return payload.OutputQty[0];
         }
 
         // ── 夹具替身 ────────────────────────────────────────────────────────

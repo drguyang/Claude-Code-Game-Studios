@@ -66,7 +66,12 @@ namespace DaYiJingCheng.EditorTools.Level
         public const uint GeometrySchemaVersion = 2u;
 
         /// <summary>`world_ecozones.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
-        public const uint EcozonesSchemaVersion = 1u;
+        /// <remarks>🔁 <b>2026-11-11(`TD-processing-09` 裁决乙):1 → 2</b> —— 行对象新增
+        /// `climate_env_mod`(该区气候属性 → EnvMod 分量,`Fix` 写字符串)。旧 schema 1 的产物
+        /// **无**该字段 ⇒ 读方须拒(`WorldEcozonesCookedCodec.ExpectedSchemaVersion` 同值 2)。
+        /// ⚠️ 三处必须同时改:本常量 / codec 的 `ExpectedSchemaVersion` / Binder 的 `ZoneKeys`
+        /// (前两者由 `CookedFormat` 的头校验交叉,漏改时重烘当场报 schema 不符)。</remarks>
+        public const uint EcozonesSchemaVersion = 2u;
 
         /// <summary>`world_terrain.json` 的 schema_version(单一出处;读侧 codec 的期望值与它同值)。</summary>
         public const uint TerrainSchemaVersion = 1u;
@@ -283,8 +288,9 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         /// <summary>
-        /// 序列化 `world_ecozones.json`(story-003 AC-1)。
-        /// <para>形状 = `schema_version` + `level_id` + `zones: [{ecozone_id, name, vertices}]`。</para>
+        /// 序列化 `world_ecozones.json`(story-003 AC-1;schema 2 起带气候基线)。
+        /// <para>形状 = `schema_version` + `level_id` +
+        /// `zones: [{ecozone_id, name, climate_env_mod, vertices}]`。</para>
         /// <para>⚠️ **顶点写 `[x, z]` 二元组,不是三元组** —— GDD F-6-3 §四 明写「横轴是 z,
         /// 不是 y」且 y 不参与判定。把恒 0 的 y 写进文件会造出一个「看起来像字段的常量」,
         /// 读者会以为它有意义(本仓反复清的形态)。</para>
@@ -307,6 +313,8 @@ namespace DaYiJingCheng.EditorTools.Level
             sb.Append("{\n");
             sb.Append("  \"schema_version\": ").Append(Num((int)EcozonesSchemaVersion)).Append(",\n");
             sb.Append("  \"level_id\": ").Append(Quote(src.LevelId)).Append(",\n");
+            sb.Append("  \"default_climate_env_mod\": ")
+              .Append(Quote(FixLiteral(src.Ecozones.DefaultClimateEnvMod))).Append(",\n");
             // 行序 = ecozone_id 升序 ⇒ 作者重排声明不改变字节流(与 slots / terrain_table 同源)。
             List<EcozoneZoneSpec> zones = src.Ecozones.SortedById();
 
@@ -316,6 +324,7 @@ namespace DaYiJingCheng.EditorTools.Level
                 EcozoneZoneSpec z = zones[i];
                 sb.Append("    {\"ecozone_id\": ").Append(Num(z.Id))
                   .Append(", \"name\": ").Append(Quote(z.Name))
+                  .Append(", \"climate_env_mod\": ").Append(Quote(FixLiteral(z.ClimateEnvMod)))
                   .Append(", \"vertices\": [");
                 for (int v = 0; v < z.Vertices.Length; v++)
                 {
