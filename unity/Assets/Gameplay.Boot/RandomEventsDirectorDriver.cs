@@ -53,6 +53,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IClinicCellSource _clinicCells;
         private readonly IReadOnlyCollection<int> _houseCallEventKeys;
         private readonly RandomEventSpawnChain _spawnChain;
+        // 🔁 2026-11-11(T22 批五):威胁档链与延迟收尾。改前**只有**一条 `tier: 1`(机会档)链
+        //    ⇒ 威胁档在整局里一次都不抽(`Tier = 0` 无人驱动)—— AC-52-29 ② 不是「少接一段」,
+        //    是「它挂靠的链不存在」。两者均可 null(旧装配 / 部分夹具),行为与接线前逐位相同。
+        private readonly RandomEventSpawnChain _threatSpawnChain;
+        private readonly DeferredThreatReleaseDriver _deferredRelease;
 
         private HouseCallStartedWriter _writer;
         private readonly PlayerActorBinding _playerActor;
@@ -73,7 +78,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             IClinicCellSource clinicCells,
             IReadOnlyCollection<int> houseCallEventKeys,
             RandomEventSpawnChain spawnChain = null,
-            PlayerActorBinding playerActor = null)
+            PlayerActorBinding playerActor = null,
+            RandomEventSpawnChain threatSpawnChain = null,
+            DeferredThreatReleaseDriver deferredRelease = null)
         {
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
@@ -83,6 +90,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             _houseCallEventKeys = houseCallEventKeys ?? throw new ArgumentNullException(nameof(houseCallEventKeys));
             _spawnChain = spawnChain;   // 可 null = 未接线(测试的部分装配);生产恒非 null
             _playerActor = playerActor; // 可 null = 旧装配(不含 F1 上下文闭包);生产恒非 null
+            _threatSpawnChain = threatSpawnChain;
+            _deferredRelease = deferredRelease;
         }
 
         /// <summary>玩家 actorId 是否已绑定(装配后、玩家生成前的间隙 = 未绑定)。</summary>
@@ -98,6 +107,18 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>急召生成链(S22-4;`null` = 未接线)。</summary>
         public RandomEventSpawnChain SpawnChain => _spawnChain;
+
+        /// <summary>威胁档链(<c>null</c> = 未接线)。</summary>
+        public RandomEventSpawnChain ThreatSpawnChain => _threatSpawnChain;
+
+        /// <summary>延迟威胁收尾驱动(<c>null</c> = 未接线)。</summary>
+        public DeferredThreatReleaseDriver DeferredRelease => _deferredRelease;
+
+        /// <summary>最近一次边沿的**威胁档**链结果(观测接缝;未接线恒 <c>null</c>)。</summary>
+        public SpawnChainOutcome? LastThreatSpawnOutcome { get; private set; }
+
+        /// <summary>最近一次边沿的延迟收尾读数(未接线恒 <c>null</c>)。</summary>
+        public DeferredThreatReleaseReport? LastDeferredRelease { get; private set; }
 
         /// <summary>最近一次边沿的生成链结果(观测接缝;未接线恒 <c>null</c>)。</summary>
         public SpawnChainOutcome? LastSpawnOutcome { get; private set; }
@@ -129,6 +150,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    两处绑定同源:不做这一步 ⇒ 闭包永远 `IsBound = false` ⇒ `IsInClinic` 恒 false,
             //    与改前硬编码 false 的**行为等价**,等于没修(假绿 F8)。
             _playerActor?.Bind(playerActorId);
+            // 🔁 2026-11-11(T22 批五):延迟威胁的补发也按玩家格判 —— 同一个 id、同一时机绑定
+            //    (不在这里补 ⇒ 那条驱动永远 `IsPlayerBound == false` ⇒ 只会作废、永不补发,
+            //     而「永不补发」在夹具里看不出来:作废也是写)。
+            _deferredRelease?.BindPlayer(playerActorId);
             _writer = new HouseCallStartedWriter(
                 _sink, _encoder, _decoder, _clinicCells, _houseCallEventKeys, playerActorId);
         }
@@ -170,6 +195,46 @@ namespace DaYiJingCheng.Gameplay.Boot
                     LastSpawnOutcome = null;
                     UnityEngine.Debug.LogError(
                         "[52][急召生成链] 本 tick 生成被拒(下一边沿重试,不杀帧):" + ex.Message);
+                }
+            }
+
+            // ── 威胁档链(AC-52-29 ②;2026-11-11 T22 批五新增)────────────────────────
+            // ⚠️ 排在机会档链之后、出诊启动之前:三条链共享当日 `WINDOW_SIZE` 与密度预算
+            //    (都从流计数),故**次序影响谁先拿到名额** ⇒ 固定为「机会 → 威胁 → 出诊」,
+            //    与档序(threat=0 < opportunity=1)相反 —— 选它的理由是**机会档是现状**,
+            //    先跑它才不会让新加的威胁档改变既有机会事件的当日节奏。
+            if (_threatSpawnChain != null)
+            {
+                try
+                {
+                    LastThreatSpawnOutcome = _threatSpawnChain.TrySpawnAtTick(tick);
+                    LastSpawnError = null;
+                }
+                catch (Exception ex)
+                {
+                    LastSpawnError = ex;
+                    LastThreatSpawnOutcome = null;
+                    UnityEngine.Debug.LogError(
+                        "[52][威胁档链] 本 tick 生成被拒(下一边沿重试,不杀帧):" + ex.Message);
+                }
+            }
+
+            // ── 延迟威胁收尾(补发 / 跨日作废;GDD 规则六之三)────────────────────────
+            // ⚠️ **不依赖玩家绑定**:跨日作废与玩家无关;补发虽要用玩家格,但跨格事件来自流,
+            //    `PlayerCellCrossing` 只按 `_playerActorId` 筛 —— 那由构造参数给,
+            //    与 `HouseCallStartedWriter` 的晚绑定不是同一件事。
+            if (_deferredRelease != null)
+            {
+                try
+                {
+                    LastDeferredRelease = _deferredRelease.OnTickEdge(tick);
+                }
+                catch (Exception ex)
+                {
+                    LastSpawnError = ex;
+                    LastDeferredRelease = null;
+                    UnityEngine.Debug.LogError(
+                        "[52][延迟威胁] 本 tick 收尾失败(下一边沿重试,不杀帧):" + ex.Message);
                 }
             }
 

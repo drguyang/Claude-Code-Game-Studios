@@ -763,6 +763,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ ADR-039 D5:取不到 52 配置(`dataProvider == null`,未预载 / 夹具)⇒
             //    **不构造生成链**(director 收 null = 未接线),不回落默认值。
             RandomEventSpawnChain randomEventSpawnChain = null;
+            // 🔁 2026-11-11(T22 批五 · `TD-randomevents-08`):威胁档链 + 延迟威胁收尾。
+            //   改前装配里**只有一条 `tier: 1`** 的链 ⇒ 威胁档(Tier = 0)整局一次都不抽。
+            RandomEventSpawnChain randomEventThreatSpawnChain = null;
+            DeferredThreatReleaseDriver deferredThreatRelease = null;
             if (dataProvider != null)
             {
                 RandomEventsDataSet randomEvents = dataProvider.Load<RandomEventsDataSet>();
@@ -855,11 +859,64 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // 🔁 2026-11-09(T4):第二道判据 = `isDiseaseAdmissible`(与病人出现驱动
                     //    **同一份** `PatientDrawEligibility`)。
                     canSpawnPatient: canSpawnPatient);
+
+                // ══════════════════════════════════════════════════════════════════
+                // 威胁档链(tier 0)+ 延迟威胁(AC-52-29 ② · GDD 规则六之三)
+                // ══════════════════════════════════════════════════════════════════
+                // 为什么必须**另建一条链**,而不是给原链换个 tier:
+                //   `RandomEventSpawnChain` 的 `tier` 是构造参数 —— 一条链只服务一个档。
+                //   要两个档都跑就得到建两条。改前只建了 `tier: 1`,威胁档在整局里
+                //   **一次都不抽** ⇒ AC-52-29 ② 那半边不是「少接一段」,是「它挂靠的链不存在」。
+                //
+                // ⚠️ `DEFER_MAX` 的来源:GDD Tuning Knobs `:1176` 仍是「*待定*」(归数值轮),
+                //    而 52 的数据集也没有这一列。这里的 **3** 是**接线期占位值**,不是裁定值
+                //    —— 与 `PatientAppearedDriver.SpawnIntervalTicks` 同格(旋钮,不是数值)。
+                const int DeferMaxPlaceholder = 3;
+
+                var deferredThreatWriter = new DeferredThreatSlotWriter(stream, encoder);
+
+                randomEventThreatSpawnChain = new RandomEventSpawnChain(
+                    stream, encoder,
+                    new SeedEventAuthority(candidatesOfTier, worldSeed),
+                    candidatesOfTier: candidatesOfTier,
+                    presence: presence,
+                    spawnAnchorOf: tick => PatientWiringPositions.CellFor(tick),
+                    spawnPatient: EventPoolPatientSpawner.SpawnPatient(
+                        eventPool, spawner.SpawnNext, presence,
+                        PatientWiringPositions.CellFor),
+                    contextOf: tick => F1ContextEvaluator.Evaluate(
+                        tick: tick,
+                        events: stream.Events,
+                        decoder: decoder,
+                        clinicCells: clinicCells,
+                        playerActorId: playerActor.IsBound ? playerActor.ActorId : F1ContextEvaluator.NoPlayer,
+                        houseCallEventKeys: houseCallEventKeys,
+                        isNight: poolTime != null && Sim.World.TimeBase.IsNight(tick, poolTime)),
+                    events: () => stream.Events,
+                    tier: (int)Sim.EventTier.Threat,              // 0(威胁档)
+                    config: randomEvents,
+                    requiresPatient: requiresPatient,
+                    canSpawnPatient: canSpawnPatient,
+                    // ── 延后三参:三个一起给才算接线(缺一个整体关掉,不做半接)──
+                    deferWriter: deferredThreatWriter,
+                    deferDecoder: decoder,
+                    deferMax: DeferMaxPlaceholder);
+
+                deferredThreatRelease = new DeferredThreatReleaseDriver(
+                    () => stream.Events, stream, encoder, decoder, clinicCells,
+                    deferredThreatWriter,
+                    spawnAnchorOf: tick => PatientWiringPositions.CellFor(tick),
+                    deferMax: DeferMaxPlaceholder,
+                    ticksPerDay: randomEvents.TicksPerDay,
+                    baseEvents: randomEvents.Base,
+                    budgetMax: randomEvents.BudgetMax);
             }
 
             var randomEventsDirector = new RandomEventsDirectorDriver(
                 () => stream.Events, stream, encoder, decoder, clinicCells,
-                houseCallEventKeys, randomEventSpawnChain, playerActor);
+                houseCallEventKeys, randomEventSpawnChain, playerActor,
+                threatSpawnChain: randomEventThreatSpawnChain,
+                deferredRelease: deferredThreatRelease);
             if (!string.IsNullOrEmpty(saveBasePath))
             {
                 // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。

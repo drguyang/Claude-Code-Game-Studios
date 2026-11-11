@@ -72,6 +72,22 @@ namespace DaYiJingCheng.Gameplay.Boot
         ZeroWeight = 7,
 
         /// <summary>
+        /// **威胁档 ∧ 医馆内 ⇒ 延后**(AC-52-29 ② / GDD 规则六之三):本 tick **抽了骰**、
+        /// 落了 `EventRolled`,但**不落 `EventArrived`、不产病人**,改把抽中的 key 记进
+        /// `DeferredThreatSlot`(一条 `ThreatDeferred`)。
+        /// <para>⚠️ 这与 <see cref="Spawned"/> 的区别是「到没到」,不是「抽没抽」——
+        /// 用于观测「延后支真的走了」。</para>
+        /// </summary>
+        ThreatDeferred = 9,
+
+        /// <summary>
+        /// 该延后而 `DEFER_MAX` 个挂起槽全被占 ⇒ **零写入**(连 `EventRolled` 都不落)。
+        /// <para>排空槽这一步**必须**在掷骰之前 —— 否则留下「掷过骰、没入槽、也没降临」的孤儿行
+        /// (与本类 ⑥ CAP 预检同一条纪律)。</para>
+        /// </summary>
+        DeferSlotsFull = 10,
+
+        /// <summary>
         /// 抽中的是**需要病人**的条目,而「病人出现」这条通道今日不可用
         /// (`handler = medical` → 37 病种映射表尚不存在,`TD-randomevents-03`)⇒ **零写入**。
         /// <para>🔁 2026-11-05(`TD-randomevents-05` 同批):改前该形态是**先 Append 两条、
@@ -102,6 +118,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly int _budgetMax;
         private readonly long _ticksPerDay;
         private readonly int _causeClueKey;
+
+        // ── 延迟威胁(AC-52-29 ②;三者任一为 null / ≤ 0 ⇒ 「未接线」,行为与接线前逐位相同)──
+        private readonly DeferredThreatSlotWriter _deferWriter;
+        private readonly IPayloadDecoder _deferDecoder;
+        private readonly int _deferMax;
 
         /// <param name="sink">事件写入通道。</param>
         /// <param name="encoder">载荷编码器(ADR-029)。</param>
@@ -138,7 +159,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             in RandomEventsDataSet config,
             int causeClueKey = 0,
             Func<int, bool> requiresPatient = null,
-            Func<int, bool> canSpawnPatient = null)
+            Func<int, bool> canSpawnPatient = null,
+            DeferredThreatSlotWriter deferWriter = null,
+            IPayloadDecoder deferDecoder = null,
+            int deferMax = 0)
         {
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
@@ -172,6 +196,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             _budgetMax = config.BudgetMax;
             _ticksPerDay = config.TicksPerDay;
             _causeClueKey = causeClueKey;
+            // 三个一起给才算「接线」—— 缺一个就整体关掉,不做半接(半接会让「延后」在某些
+            // 分支悄悄退化成 `NoQuota`,而那种退化**没有报文**)。
+            if (deferWriter != null && deferDecoder != null && deferMax > 0)
+            {
+                _deferWriter = deferWriter;
+                _deferDecoder = deferDecoder;
+                _deferMax = deferMax;
+            }
         }
 
         /// <summary>
@@ -226,7 +258,35 @@ namespace DaYiJingCheng.Gameplay.Boot
             LastF1Input = input;
             F1PipelineOutput f1 = EventF1Pipeline.Execute(input, minTier: 0, maxTier: 3);
             if (!f1.ContextGatePassed) return SpawnChainOutcome.NoContext;
-            if (f1.Quotas[_tier] <= 0) return SpawnChainOutcome.NoQuota;
+
+            // ⑤之二 **AC-52-29 ② · 医馆内威胁档:压制之后「延后」,不是「丢弃」**
+            //   GDD 规则六之三:`若 威胁档到期 且 玩家在医馆地块内:该抽取被 ContextMult = 0 压制,
+            //   不生成;记入 DeferredThreatSlot`。⇒ 判据顺序上,**这一支必须排在 `NoQuota` 之前**:
+            //   入槽本身是一条事件(`ThreatDeferred`),而 `NoQuota` 是**零写入**分支 ——
+            //   先返回 NoQuota 就永远走不到入槽(`TD-randomevents-08` 解除动作①)。
+            //
+            //   ⚠️ **抽中的 key 从哪来**:载荷 `{slot_index, event_key}` 要求一个具体 key,
+            //      而配额被压成 0 就不该抽 ⇒ 两者表面冲突。本实现取「**仍抽一次、只是不降临**」:
+            //      「该抽取被压制」这句的主语是**那一次抽取**,压的是它的**结果落地**。
+            //      代价 = 该次抽取占当日 `WINDOW_SIZE` 的一个名额(它确实掷了骰,`EventRolled` 可重建)。
+            //      → 这是本件**首定**的口径,若 52 后续裁定「压制时不应占用抽数」,改这一处。
+            //
+            //   ⚠️ `isSameDay: true` 是**由构造保证**的:槽在本 tick 写入,而跨日作废由
+            //      `DeferredThreatReleaseDriver` 按「槽的 tick 日 < 当前日」逐槽发
+            //      `ThreatDeferralCleared(作废)`(无 `DayBoundary` 事件,故走流内 tick 日比较)。
+            bool clinicSuppressedThreat =
+                _tier == (int)EventTier.Threat
+                && EventBudget.ShouldDefer(EventTier.Threat, raw.IsInClinic, isSameDay: true);
+
+            int deferSlot = -1;
+            if (f1.Quotas[_tier] <= 0)
+            {
+                // 未接线 / 非该形态 ⇒ 维持原语义(零写入)
+                if (!clinicSuppressedThreat || _deferWriter == null) return SpawnChainOutcome.NoQuota;
+
+                // 空槽必须在**掷骰之前**确认 —— 否则留下「掷过骰、没入槽、也没降临」的孤儿行
+                if (!TryAllocateDeferSlot(events, out deferSlot)) return SpawnChainOutcome.DeferSlotsFull;
+            }
 
             // ⑥ **CAP 预检 —— 必须排在第一次 Append 之前**
             //    失效模式(不这么做):`EventRolled` 先落流,后半截被 AC-15 拒 ⇒ 流里留下
@@ -256,6 +316,26 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (needsPatient && _canSpawnPatient != null && !_canSpawnPatient(roll.ChosenKey))
                 return SpawnChainOutcome.PatientSpawnUnavailable;
 
+            // ⑦之三 **延后支**:只落骰,不落降临、不产病人,改把 key 记进挂起槽。
+            //   ⚠️ 未绑病人预检(⑦之二)在这里**同样生效** —— 挂起一条「永远补发不出来」的威胁
+            //      只是把失败推迟到补发那一刻,且那时玩家已经离开医馆、更难解释。
+            if (clinicSuppressedThreat)
+            {
+                _sink.Append(new SimEvent(tick, PatientId.None, -1, EventKind.EventRolled,
+                    _encoder.Encode(EventKind.EventRolled,
+                        new EventRolledPayload((int)roll.Win, roll.Tier, roll.Ordinal, roll.ChosenKey))));
+
+                DeferredThreatWriteResult deferred =
+                    _deferWriter.TryDefer(tick, deferSlot, roll.ChosenKey, _deferMax);
+                if (deferred != DeferredThreatWriteResult.Applied)
+                    // 预检已保证空槽存在 ⇒ 走到这儿是**不变量被破坏**(流损坏 / 并发写)。
+                    // 不静默:孤儿 `EventRolled` 已经落流了,吞掉会让「延后」变成「丢失」。
+                    throw new InvalidOperationException(
+                        $"[52] 延后入槽失败({deferred}):预检选中的 slot {deferSlot} 在写入时不可用 —— " +
+                        "流可能被并发改动(本链假定主机单线程写)");
+                return SpawnChainOutcome.ThreatDeferred;
+            }
+
             // ⑧ 落两条事件 —— 顺序固定(先骰后降临;AD-52-822「一次降临恰一条 EventArrived」)
             _sink.Append(new SimEvent(tick, PatientId.None, -1, EventKind.EventRolled,
                 _encoder.Encode(EventKind.EventRolled,
@@ -273,6 +353,28 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (needsPatient) _spawnPatient(roll.ChosenKey, tick);
 
             return SpawnChainOutcome.Spawned;
+        }
+
+        /// <summary>
+        /// 找一个**空闲挂起槽**(升序取第一个空闲位)。
+        /// </summary>
+        /// <param name="events">事件流只读视图(槽集从流折叠 —— ADR-007 §三 唯一真源)。</param>
+        /// <param name="slot">选中的槽位;无空槽时为 -1。</param>
+        /// <returns>有空槽 ⇒ true。</returns>
+        /// <remarks>
+        /// ⚠️ 折叠用 `EventBudget.ReconstructDeferSlots`(**生产同一个折叠器**,不另写一套):
+        /// 槽的占用 / 释放由 `ThreatDeferred` / `ThreatDeferralCleared` 两条事件承重,
+        /// 本方法只读结果。流损坏(同槽双占 / 清未占用槽)时折叠器**抛** —— 不在这里吞。
+        /// </remarks>
+        private bool TryAllocateDeferSlot(IReadOnlyList<SimEvent> events, out int slot)
+        {
+            slot = -1;
+            BudgetState state = EventBudget.ReconstructDeferSlots(events, _deferDecoder, _deferMax);
+            for (int i = 0; i < _deferMax; i++)
+            {
+                if (!state.DeferSlots.ContainsKey(i)) { slot = i; return true; }
+            }
+            return false;
         }
 
         /// <summary>最近一次求值用的 F1 输入(观测接缝;`null` = 还没走到 F1)。</summary>

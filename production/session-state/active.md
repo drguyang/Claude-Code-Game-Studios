@@ -18193,3 +18193,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `debtcount --check` exit 0(条目 206 · closed 171 · open 24 · **未闭 P0 面 15 不变**)。
 - 证据:`production/qa/evidence/impl-t22d-ground-gate-and-injury-reachability-2026-11-11.md`;
   截图 `unity/Logs/shots/t22d/`(本地,不入库);存档根已原样还原。
+
+### 第 16 轮(T22 批五 · 威胁档链 + 延迟三支)
+
+- **开工复勘查出比债册更重的一层**:`TD-randomevents-08` 写「零生产调用方」,实测**威胁档链在
+  生产里根本不存在** —— 装配根只建了 `tier: 1`(机会档)一条链(`git show f9037b8c:…CompositionRoot.cs`
+  ⇒ 一处 `new`,且 `tier: 1`),`ShouldDefer` 与 `DeferredThreatSlotWriter` 的生产 `grep -c` 都是 0。
+  ⇒ 只补 `TryDefer` 会变成「接线了但永不执行」。用户裁定 **甲 · 全做**。
+- **落五件**:① `Sim/PlayerCellCrossing.cs`(新,跨格判定单一出处,`HouseCallStartedWriter` 改为调它)
+  ② `RandomEventSpawnChain`(延后支排在 `NoQuota` **之前** · 空槽预检排在**掷骰之前** ·
+   新结果 `ThreatDeferred` / `DeferSlotsFull`)③ `DeferredThreatReleaseDriver`(新:跨日作废 → 离开补发 →
+   预算耗尽丢弃;槽集与挂起日**全部从流折叠**,零内存日界标志)④ 导演(三条腿依次驱动 + 两条观测缝)
+  ⑤ 装配根(威胁链 + 释放驱动 + 写者)。
+- **证伪 6 枪**:M1 延后谓词恒假 ⇒ **4 红** · M2 空槽预检恒成功 ⇒ **1 红** · M3 跨日判据 `>` ⇒ **3 红** ·
+  M4 预算门恒通过 ⇒ **1 红** · **M5 首枪空操作变异(0 红,`>=` 落在已有 `> tick` 守卫之后)** ·
+  **M5b 真变异 ⇒ 10 红,同枪打红「延迟补发」与「出诊启动」两个消费者**(证明共用单一出处,不是照抄)。
+  三文件 SHA-256 逐字节还原。
+- **回归**:EditMode `7427 / 7390 / 0 / 0 / 37` @ `2026-11-11T00:38:52Z`–`00:41:29Z` ·
+  PlayMode `376 / 371 / 0 / 2 / 3` @ `00:41:29Z`–`00:42:25Z`(`f9037b8c` + 工作树)。
+  等式 `7427 − 7419 = 8` = 新夹具 `[Test]` 计数;PlayMode 零变化。
+- **债册**:`TD-randomevents-08` **`open` → `closed`**(附闭合记录);`debtcount --check` exit 0
+  (条目 206 · closed **172** · open **23** · **未闭 P0 面 14**(random-events 4 → **3**))。
+- **未解 / 不得借绿**:`DEFER_MAX` 仍是 GDD `:1176` 的 `*待定*`(本轮 `DeferMaxPlaceholder = 3` 只是接线旋钮);
+  端到端「补发 ⇒ 玩家看见威胁」**NOT-RUN**(生产候选池为空,`TD-randomevents-03` 未解);
+  「跨日作废」与「预算耗尽丢弃」在流里 `reason` **同值**(闭集只两员),今日后果相同但不可区分。
+- 证据:`production/qa/evidence/impl-t22e-threat-chain-and-deferral-2026-11-11.md`。

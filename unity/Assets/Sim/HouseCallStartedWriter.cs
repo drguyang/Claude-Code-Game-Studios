@@ -107,51 +107,20 @@ namespace DaYiJingCheng.Sim
             if (!target.Active)
                 return HouseCallStartResult.NoActiveTarget;
 
-            // ② 玩家本 tick 的跨格事件(恰好覆盖语义:每 tick 每玩家至多一条)。
-            WorldPos currentCell = default;
-            bool enteredThisTick = false;
-            for (int i = 0; i < events.Count; i++)
-            {
-                SimEvent e = events[i];
-                if (e.Kind != EventKind.ActorCellEntered || e.Tick != tick)
-                    continue;
+            // ② + ③ 跨格读数(**单一出处** = `PlayerCellCrossing.At`,2026-11-11 T22 批五抽取)。
+            //    ⚠️ 抽出的动机是**复用**而非重构趣味:延迟威胁的「离开医馆补发」要用**同一次**
+            //       跨格判定(`TD-randomevents-08` 解除动作 ②)。照抄一份 = 第二份判据,
+            //       两处一旦分叉则同一次跨格给出两种结论,而两边夹具都会绿(假绿形态 F8)。
+            //    判据与本类原实现逐字同源:本格 = 本 tick 最后一条;上一格 = 更早的最后一条;
+            //    无前序 ⇒ 不构成「跨出」。
+            PlayerCellCrossing crossing =
+                PlayerCellCrossing.At(events, _decoder, _playerActorId, tick);
 
-                ActorCellEnteredPayload payload =
-                    _decoder.Decode<ActorCellEnteredPayload>(EventKind.ActorCellEntered, e.Payload);
-
-                if (payload.ActorId != _playerActorId)
-                    continue;
-
-                currentCell = payload.Cell;
-                enteredThisTick = true;
-            }
-
-            if (!enteredThisTick)
+            if (!crossing.HasCurrent)
                 return HouseCallStartResult.NoCrossingThisTick;
 
-            // ③ 前一格 = 此前(流序)最后一条 entered 的格;无前序格 ⇒ 无从构成「跨出」。
-            WorldPos previousCell = default;
-            bool hasPrevious = false;
-            for (int i = 0; i < events.Count; i++)
-            {
-                SimEvent e = events[i];
-                if (e.Kind != EventKind.ActorCellEntered || e.Tick >= tick)
-                    continue;
-
-                ActorCellEnteredPayload payload =
-                    _decoder.Decode<ActorCellEnteredPayload>(EventKind.ActorCellEntered, e.Payload);
-
-                if (payload.ActorId != _playerActorId)
-                    continue;
-
-                previousCell = payload.Cell;   // 流序最后一条胜(流按 Tick 非降)
-                hasPrevious = true;
-            }
-
             // 12.1 逐字:从**医馆格**跨出到**非医馆格**。
-            if (!hasPrevious
-                || !_clinicCells.IsClinicCell(previousCell)
-                || _clinicCells.IsClinicCell(currentCell))
+            if (!crossing.CrossedOutOf(_clinicCells))
                 return HouseCallStartResult.NotCrossingOut;
 
             // ④ 本 tick 已写入过 ⇒ 拒(每 tick 恰一条;写者可能被导演循环同 tick 重入)。

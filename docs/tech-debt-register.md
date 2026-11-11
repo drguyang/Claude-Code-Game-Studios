@@ -421,7 +421,7 @@
 | `TD-randomevents-05` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-06` | `random-events` | partial | **Y** | R1 |
 | `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
-| `TD-randomevents-08` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-08` | `random-events` | closed | **Y** | R1 |
 | `TD-diagnosis-02` | `diagnosis-system` | partial | **Y** | R1 |
 | `TD-sim-06` | `disease-simulation` | partial | **Y** | R1 |
 | `TD-sim-07` | `disease-simulation` | open | **Y** | R1 |
@@ -1492,10 +1492,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 206 | 状态 {'closed': 171, 'partial': 10, 'open': 24, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 65, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 15 （已闭但曾标 P0 面的 120 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 15 条,分布在 7/31 个 epic
-    skeuomorphic-ui: 5        random-events: 4          disease-simulation: 2
+条目 206 | 状态 {'closed': 172, 'partial': 10, 'open': 23, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 65, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 14 （已闭但曾标 P0 面的 121 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 14 条,分布在 7/31 个 epic
+    skeuomorphic-ui: 5        random-events: 3          disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
     processing: 1
 ```
@@ -4931,6 +4931,41 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① **AC-52-29 签核前(硬前置)**;② 或 52 下一次动延迟威胁 / 主循环节;③ 或 P1a 关卡轮(医馆真能围出闭合空间之后)。 |
 | **归属** | **52 随机事件导演**(接入)· 写者 `Sim/DeferredThreatSlotWriter.cs` **已有** · 状态载体 `EventBudget.DeferSlots` + 流折叠 **已有**(`TD-randomevents-01` 2026-10-25 落地,21 条夹具) |
 | **与 `-05` 的关系** | **同一条 AC 的两半,不同因**:`-05` = 「压制怎么算」(已解),本条 = 「压制之后那条威胁去哪」(未接)。`-05` 结案**不覆盖**本条。 |
+
+#### ✅ TD-randomevents-08 关闭记录 —— 威胁档链 + 延迟三支一次接完(2026-11-11 · T22 批五)
+
+**开工复勘查出比本条写得更重的一层**:解除动作 ②「接入三处」隐含「链会跑到那一支」,
+而实测**威胁档链在生产里根本不存在** —— 装配根只建了 `tier: 1`(机会档)一条链。
+复算(指向批四提交 `f9037b8c`):
+
+```bash
+git show f9037b8c:unity/Assets/Gameplay.Boot/CompositionRoot.cs | grep -n "new RandomEventSpawnChain\|tier:"
+# ⇒ 只 :807 一处 new,且 :845 是 tier: 1
+git show f9037b8c:unity/Assets/Gameplay.Boot/RandomEventSpawnChain.cs | grep -c ShouldDefer      # ⇒ 0
+git show f9037b8c:unity/Assets/Gameplay.Boot/CompositionRoot.cs | grep -c DeferredThreatSlotWriter # ⇒ 0
+```
+
+⇒ 只补一个 `TryDefer` 调用会把「零接线」变成「接线了但永不执行」。用户裁定 **甲 · 全做**。
+
+| 件 | 落点 |
+|---|---|
+| 跨格判定单一出处 | `Sim/PlayerCellCrossing.cs`(**新**;`HouseCallStartedWriter.cs:117` 与 `DeferredThreatReleaseDriver.cs:191` 共调,**定义 1 处 · 调用 2 处**) |
+| 威胁档链 + 入槽 | `Gameplay.Boot/RandomEventSpawnChain.cs`(`clinicSuppressedThreat` 排在 `NoQuota` **之前**;空槽预检排在**掷骰之前**;新结果 `ThreatDeferred` / `DeferSlotsFull`) |
+| 补发 / 跨日作废 / 预算丢弃 | `Gameplay.Boot/DeferredThreatReleaseDriver.cs`(**新**;槽集与挂起日**全部从流折叠**,零内存日界标志) |
+| 装配 | `CompositionRoot.cs`(威胁链 `tier: Threat` + 释放驱动 + `DeferredThreatSlotWriter`);`RandomEventsDirectorDriver.cs`(三条腿依次驱动) |
+| 夹具 | `Tests/EditMode/RandomEvents/deferred_threat_wiring_test.cs`(**8 条**) |
+| 原件 | `production/qa/evidence/impl-t22e-threat-chain-and-deferral-2026-11-11.md` |
+
+**证伪 6 枪**:M1 延后谓词恒假 ⇒ 4 红 · M2 空槽预检恒成功 ⇒ 1 红 · M3 跨日判据 `>` ⇒ 3 红 ·
+M4 预算门恒通过 ⇒ 1 红 · **M5 首枪是空操作变异(0 红)** · **M5b 真变异 ⇒ 10 红,且同枪打红
+「延迟补发」与「出诊启动」两个消费者** ⇒ 共用单一出处不是照抄。三文件 SHA-256 逐字节还原。
+
+**未解 / 不得借绿**:① `DEFER_MAX` 仍是 GDD Tuning Knobs `:1176` 的 `*待定*`(本轮用
+`DeferMaxPlaceholder = 3` **接线**,不是裁定值);② 端到端「补发 ⇒ 玩家看见威胁」**NOT-RUN**
+(生产候选池为空,`TD-randomevents-03` 未解 ⇒ 与 ADR-039 §R3 同一条登记);
+③ 「跨日作废」与「预算耗尽丢弃」在流里**同值**(`reason` 闭集只有 `{0=补发,1=作废}`),
+今日后果相同但**不可区分** —— 已写进驱动头注;要区分须扩值域三处同批。
+
 
 ### TD-diagnosis-02 — 体征词条闭集装不下新急症:**抽搐 / 头痛 / 咽部异物** 无一有载体(8 ↔ 9)
 
