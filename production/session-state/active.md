@@ -18555,3 +18555,26 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   将来若自研 Blender 自动化脚本,登记为 `tools/dcc` 类 Tooling 工具,**仍不是游戏系统**。
 - **仍未做**:三件套 + 角色试点未跑(§8.10.6.9);资产 spec 的「Blender 版本」字段未填。
 - **状态**:文档改动未提交,等「入库」。
+
+### 第 33 轮(T22 批二十三 · 试点环境准备,用户中途叫停)
+
+- **用户指令**:「开工试点:三件套 + 角色试件」;三项回答 = 云 GPU(给了登录脚本)/
+  本地 ComfyUI + SD1.5 / 角色用 Blender 自动 remesh 近似并如实标注。
+- **随后用户叫停**:「先不用测试环境了,我之后再测试」⇒ 本轮**在环境准备阶段停止**,
+  **试点未开始、未产出任何资产、未改任何 art-bible 判据**。
+- **云端现状**(`ssh sysu-job` 已通):
+  - 实际 GPU = **Tesla V100-SXM2-16GB**,driver 460.73(CUDA 11.x 线),**不是 A800**;
+  - 镜像默认无 python/conda/外网;`source /app/bin/proxy.sh` 后可用;
+  - 已建 `/GPUFS/sysu_tyu2_2/envs/triposr`(conda Python 3.10.22);
+    `pip install torch==2.0.1` **被中途停止**,env 内 torch 处于**半安装**状态(3.2 GB),
+    恢复时须先 `pip install --force-reinstall torch==2.0.1 torchvision==0.15.2`。
+- **本地现状**:
+  - `~/opt/ComfyUI` = **v0.3.44**(checkout;最新版 0.45 的 comfy_kitchen 与 torch 2.6 不兼容);
+  - `~/opt/comfyui-venv` = Python 3.10 + **torch 2.6.0+cu124**;`--quick-test-for-ci` 退出 0
+    (仅 `nodes_audio.py` import 失败,不影响 SD1.5);
+  - SD1.5 fp16 权重下载**未完成**:370,324,004 / 2,132,696,762 B(需续传)。
+- **记忆**:已写 `reference_nscc_cloud_gpu.md`(proxy / setuid apt / HOME 不可写 / V100),
+  并挂到 `MEMORY.md`。
+- **恢复清单**:① 续传 SD1.5 → 跑 ComfyUI 出 4 张概念图;② 云端重装 torch + TripoSR;
+  ③ 三件套 + 角色试件;④ 四个数 + 失败率;⑤ 证据原件 + 资产 spec。
+  **不得**把「环境已装一半」写成试点已开始。
