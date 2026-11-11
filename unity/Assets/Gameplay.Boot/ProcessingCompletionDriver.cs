@@ -18,15 +18,14 @@
 // 本类是**装配层**:把 `Sim` 的答案接成 44 能吃的 `AudioCueDto`。
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// ⚠️ 今日**生产上不会出声** —— 这是事实,不是缺陷掩盖
+// 🔁 2026-11-11(T22 批九):**表里已有该行,本类在生产上会出声**
 // ─────────────────────────────────────────────────────────────────────────────
-// `assets/data/audio_events.json` 的 19 行 cue 里**没有** `sfx_process_*` 三行
-// (bus 表满的是咳嗽 / 呼吸 / 世界 / 教学 narration)。⇒ 装配期 `TryResolveCue` 解析不到
-// ⇒ ordinal = `AudioEventDataSet.NoOrdinal` ⇒ 本类在 <see cref="OnTickEdge"/> 首行即返回,
-// **不扫描、不发 cue**。往表里加行是一次数据改动(归 44 的路线图),加完本类无需改动即生效。
-//
-// ⚠️ 因此**不得**把本类接线读成「起货音已实现」:AC-18-09 / 22 两条听测仍是 `[L]` 未跑,
-//    它们要听得见,先得有素材 + 表行 + 44 的白名单断言。本类只保证「发射时机」这一侧。
+// 原文(保留,已不成立):「今日**生产上不会出声** —— `audio_events.json` 的 19 行 cue 里
+// 没有 `sfx_process_*` 三行 ⇒ 装配期 `TryResolveCue` 解析不到 ⇒ 首行即返回」。
+// 现状:`sfx_process_complete` 已作为**第 20 行**追加(素材 + 重烘 20 行 + Addressables),
+// `RequiredCues` 同批加门(`AudioEventTableGates`)⇒ `CueResolved` 在生产上为 true。
+// ⚠️ 仍**不得**把它读成「起货音已验收」:AC-18-09 / 22 的听测 `[L]` 仍 `NOT-RUN`,
+//    素材「能接受」只等于人耳试听一次通过,不等于声学判据签核。
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // 为什么在本类里持有「上一 tick」而不是每次都算
@@ -53,8 +52,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>起货 cue 的**名字**(GDD `processing.md:597-598` 逐字)。
         /// <para>⚠️ 本常量不是第二份白名单:表里没有该名 ⇒ <c>TryGetOrdinal</c> 返回 false,
         /// 装配层据此传 <see cref="AudioEventDataSet.NoOrdinal"/>,本类不发声(可观测)。</para>
-        /// <para>⚠️ 名字**故意不写进** `AudioEventDataSet.RequiredCues` —— 那个门是「表里必须有」
-        /// 的构建期断言,把本名加进去会让今天的构建直接失败;加表行的那一轮再同步加门。</para>
+        /// <para>⚠️ 名字现在**也**写进了 <c>AudioEventDataSet.RequiredCues</c> 的构建期断言
+        /// (2026-11-11 T22 批九:加表行与加门同批)—— 原文「加表行的那一轮再同步加门」已兑现。</para>
         /// </summary>
         public const string CompleteCueName = "sfx_process_complete";
 

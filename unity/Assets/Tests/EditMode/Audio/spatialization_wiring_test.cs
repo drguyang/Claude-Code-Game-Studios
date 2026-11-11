@@ -177,7 +177,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "rolloff 非 Logarithmic ⇒ 远处不是「听不清」而是骤停,形同门限");
             Assert.That(src.dopplerLevel, Is.EqualTo(0f).Within(1e-6),
                 "多普勒未关 ⇒ 玩家移动会拉出音高变化(可听辨的伪事件)");
-            Assert.That(src.minDistance, Is.EqualTo(AudioTuning.SpatialMinDistance).Within(1e-5));
+            // 🔁 2026-11-11(真包「整局无声」修复):无表兜底 min 经**近场下限**抬到 6 m ——
+            //    听者 = 第三人称相机(离地声源恒 ~5.5 m),表列 min=1 会把每条 cue 压掉 27 dB。
+            // ⚠️ 断言用**字面量 6f**,不引用 `AudioTuning.NearFieldFloor` —— 引常量会让
+            //    变异两边一起动(自指判据 F3),证伪轮零判别力。
+            Assert.That(src.minDistance, Is.EqualTo(6f).Within(1e-5),
+                "近场下限未生效 ⇒ 第三人称听者下所有 cue 都吃满滚降(实测 −27 dB)");
             Assert.That(src.maxDistance, Is.EqualTo(AudioTuning.SpatialMaxDistance).Within(1e-5));
         }
 

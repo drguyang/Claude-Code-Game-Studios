@@ -427,7 +427,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             source.dopplerLevel = 0f;
             // ⚠️ 距离两端**不在这里**定 —— 它们逐 cue 变化,见 `ApplySpatialDistance`
             //    (在 `SpawnCore` 里按本行的表列重设;此处只给兜底初值,防首帧读到 Unity 默认 1/500)。
-            source.minDistance = AudioTuning.SpatialMinDistance;
+            source.minDistance = AudioTuning.NearFieldFloor;
             source.maxDistance = AudioTuning.SpatialMaxDistance;
             return source;
         }
@@ -458,6 +458,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             source.minDistance = min;
             source.maxDistance = max;
+
+            // 🔁 2026-11-11(真包走查「整局无声」修复):近场下限。
+            // 听者 = 第三人称主相机,离地面声源恒约 5.5 m ⇒ 表列 `min=1` 让每条 cue 都吃满
+            // Logarithmic 滚降(实测 −27 dB)。下限抬到 `NearFieldFloor` 后,玩家附近的声源
+            // 回到近场(0 dB 附近);远处的仍按 max 衰减 —— 只丢「近距离过陡」那一截。
+            if (source.minDistance < AudioTuning.NearFieldFloor)
+                source.minDistance = AudioTuning.NearFieldFloor;
         }
 
         /// <summary>空间化四列的**兜底次数**(可观测面:&gt; 0 证明「有列没查到、退回了代码常量」)。

@@ -508,6 +508,7 @@
 | `TD-diagnosis-01` | `diagnosis-system` | closed | **N** | R4 |
 | `TD-docs-01` | `（跨 epic · 治理／AC 编号空间）` | closed | **N** | R3-裁 |
 | `TD-tutorial-01` | `tutorial-onboarding` | closed | **N** | R4 |
+| `TD-audio-110` | `audio-system` | closed | **Y** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -1493,8 +1494,8 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 207 | 状态 {'closed': 175, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 135, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 124 条不计）
+条目 208 | 状态 {'closed': 176, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 136, 'N': 66, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 11 （已闭但曾标 P0 面的 125 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
     random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
@@ -13087,3 +13088,18 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **触发条件** | 已触发(2026-11-10 改判走查) |
 | **P0 面 = N** | 功能可达(本批已走通并拍下同屏两笔),本条挡的是**手感 / 焦点体验**,不阻塞任何 AC 判定。 |
 | **为什么本批不修** | 用户本批裁定的是「补词表映射」;焦点落点属 42 交互面,改动会碰 `AC-39-11` 的既有走查基线,须单独一轮 + 重走。 |
+
+
+### TD-audio-110 —— P0 真包**整局音量为 −27 dB 级**(第三人称听者 + 表列 min_distance = 1)
+
+| 侧 | 内容 |
+|---|---|
+| **现象(2026-11-11 T22 批十真包走查)** | 玩家报告「游戏里没声音」。`-tutorialdiag` 诊断证明管线**全通**:`seams=ok rows=20 clipsLoaded=20 missing=0 buses=ok` · `起货 cue 解析 resolved=True ordinal=19` · `oneshot cue=19 clip=sfx_process_complete vol=1.000 playing=True group=SFX`。但 sink 监视器(`parec` 录 USB 声卡 monitor)上,游戏输出 RMS ≈ −40 dBFS、峰值 1335,而同一文件 `paplay` 直放峰值 **30504**(≈ **27 dB** 差)⇒ **放出来了但听不见**。 |
+| **根因** | 听者 = 第三人称主相机(ADR-020 §七),离地面声源恒 ≈ `sqrt(4.33² + 3.41²) ≈ 5.5 m`;而事件表 `min_distance = 1` + `Logarithmic` 滚降 ⇒ 每条 cue 都被压掉 14–17 dB。近距离再叠 mixer/素材差异,实测合计约 27 dB。 |
+| **修法** | `AudioTuning.NearFieldFloor = 6f`;`AudioSourcePool.CreateSource` 与 `ApplySpatialDistance` 把 `minDistance` **下限**抬到该值(表列更大者不降)。听者仍钉在主相机(不改 ADR-020 §七),只改近场半径。 |
+| **实测(修后)** | 同一 sink monitor:峰值 **7156**(−13 dBFS)、RMS ≈ 1900(−24 dBFS),比修前 **+15.6 dB**;用户实机确认「声音正常」「声音大了很多」;起货 cue `[audiodiag] 起货 cue 发射 tick=3795 ordinal=19 clip=sfx_process_complete`。 |
+| **判据** | `spatialization_wiring_test.test_td028_poolPinsSpatialTriple_atCreationPoint` 断言 `minDistance == 6f`(**字面量**,不引用常量 —— 防自指判据);证伪 M1(`6f → 1f`)⇒ 该条**红**,SHA-256 逐字节还原。 |
+| **值域** | `NearFieldFloor = 6` 是**种子值**(= 相机后置偏移量级),归数值轮;改它只影响近场,远处仍按 `max_distance` 衰减。 |
+| **同批(非本债)** | 用户要求「背景一直有的咳嗽」调疏:病人重档每 2 s 咳一次(`severe=40` tick)⇒ `assets/data/ai_patient.json` 抬到 **120/240/360**(6/12/18 s),重烘 `ConfigVersion = 0x0487E33C`。属 **13 调参**,不是音频缺陷;真种子逐值相等判据随之退役(结构约束仍锁)。 |
+| **归属** | `audio-system`(44)· 近场半径 = 混音参数 |
+| **状态** | **closed**(2026-11-11)。残留见下:远处病人(> max_distance 12 m)仍完全静音 —— 这是空间化的设计面,不是缺陷,但 P0 房间里「在另一头说话听不见」需数值轮确认。 |

@@ -36,25 +36,35 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             PatientAiBinder.BindResult bound = PatientAiBinder.Bind(File.ReadAllText(path));
 
-            Assert.That(bound.CueIntervals.Severe, Is.EqualTo(40));
-            Assert.That(bound.CueIntervals.Mild, Is.EqualTo(90));
-            Assert.That(bound.CueIntervals.Recover, Is.EqualTo(120));
+            // 🔁 2026-11-11(T22 批十真包走查):用户要求把「每 2 s 一次的背景咳嗽」调疏 ⇒
+            //    真种子值已从 40/90/120 改到 120/240/360。**逐值相等断言随之退场**
+            //    (它锁的是「搬表时没顺手调数」,而调数现在是用户的显式裁定)。
+            //    仍锁的是**结构合法性**:重档密于轻档、轻档不疏于恢复档。
+            Assert.That(CueIntervals.Validate(bound.CueIntervals), Is.Empty,
+                "真种子的 cue 间隔须满足 0 < severe < mild ≤ recover");
+            Assert.That(bound.CueIntervals.Severe, Is.GreaterThan(0));
+            Assert.That(bound.CueIntervals.Severe, Is.LessThan(bound.CueIntervals.Mild));
+            Assert.That(bound.CueIntervals.Mild, Is.LessThanOrEqualTo(bound.CueIntervals.Recover));
             Assert.That(bound.SchemaVersion, Is.EqualTo(1u));
         }
 
-        /// <summary>真种子表的 cue 间隔 = **现有代码常量的照抄**(整数域,无损)。
-        /// <para>⚠️ 本条是「没改数值」的判据 —— 停用它,「顺手调了数」就无人察觉。</para></summary>
+        /// <summary>🔁 **2026-11-11 退役(原文保留)**:原判据 = 真种子表的 cue 间隔
+        /// **逐值等于** `CueIntervals.Default`(「搬表时没顺手调数」)。
+        /// <para>⚠️ 该前提在用户首次调参后已不成立 —— 2026-11-11 真包走查后用户要求
+        /// 「背景一直有的咳嗽」调疏,值改为 120/240/360(见 `assets/data/ai_patient.json`
+        /// 的 `cue_intervals._note`)。保留旧断言 = 禁止调参。
+        /// ⇒ 判据改由 <see cref="test_realSeedTable_zeroErrors"/> 的**结构合法性**承担
+        /// (仍是「改坏了会红」:顺序颠倒 / 非正 / 超界都被 binder 与 Validate 拒)。</para></summary>
         [Test]
-        public void test_realSeedTable_cueIntervalsMatchLegacyConstants()
+        public void test_realSeedTable_cueIntervalsMatchLegacyConstants_retired()
         {
             string path = Path.Combine(RepoRoot(), "assets", "data", "ai_patient.json");
             PatientAiBinder.BindResult bound = PatientAiBinder.Bind(File.ReadAllText(path));
 
-            CueIntervals legacy = CueIntervals.Default;
-
-            Assert.That(bound.CueIntervals.Severe, Is.EqualTo(legacy.Severe), "severe 须照抄");
-            Assert.That(bound.CueIntervals.Mild, Is.EqualTo(legacy.Mild), "mild 须照抄");
-            Assert.That(bound.CueIntervals.Recover, Is.EqualTo(legacy.Recover), "recover 须照抄");
+            // 不再比 `CueIntervals.Default`(那是回退常量,不是出厂真值)。
+            // 保留一条反向哨兵:真种子**不得**被静默改回全部相同(那会让档间不可辨)。
+            Assert.That(bound.CueIntervals.Severe, Is.Not.EqualTo(bound.CueIntervals.Mild),
+                "三档若全相等 ⇒ 「咳得更凶了」不可辨(反幻约束 F-13.5)");
         }
 
         /// <summary>行为分档阈值 = 现有常量经**定点化**后的值(不是 float 字面量本身)。

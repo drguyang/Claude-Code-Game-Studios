@@ -350,6 +350,37 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `AudioRenderAssembled = false` 可观测 —— 不是静默失败。
             _audioSeams = BuildAudioSeams(preloaded ? DataCorePreloader.Provider : null);
 
+            // ── 2.6b. 音频装配诊断(`-tutorialdiag` 专用;2026-11-11 T22 批十走查发现「整局无声」)
+            // 只读现状,零行为;默认关闭 ⇒ 生产零开销。
+            // 判据分工:seams=null ⇒ NullRenderTarget 链;missing>0 ⇒ clip 装载失败;
+            // buses=null ⇒ 混音器/总线面缺;listenerVol=0 / pause=true ⇒ 听者侧。
+            if (WalkthroughDiagnostics.Enabled)
+            {
+                AudioSourceRenderTarget.Verbose = true;
+                string detail;
+                if (_audioSeams == null)
+                {
+                    detail = "seams=null(→ NullRenderTarget,整局无声)";
+                }
+                else
+                {
+                    int rows = _audioSeams.Table.HasValue ? _audioSeams.Table.Value.RowCount : -1;
+                    int loaded = _audioSeams.Clips != null ? _audioSeams.Clips.LoadedCount : -1;
+                    int missing = _audioSeams.Clips != null ? _audioSeams.Clips.MissingCues.Count : -1;
+                    detail = $"seams=ok rows={rows} clipsLoaded={loaded} missing={missing} "
+                           + $"buses={(_audioSeams.Buses == null ? "null" : "ok")}";
+                }
+                Debug.Log($"[audiodiag] preload={preloaded} {detail} "
+                        + $"listenerVol={AudioListener.volume} pause={AudioListener.pause} "
+                        + $"rate={UnityEngine.AudioSettings.outputSampleRate}");
+                if (_audioSeams != null)
+                {
+                    bool resolved = _audioSeams.TryResolveCue(
+                        ProcessingCompletionDriver.CompleteCueName, out int cueOrdinal);
+                    Debug.Log($"[audiodiag] 起货 cue 解析 resolved={resolved} ordinal={cueOrdinal}");
+                }
+            }
+
             // ── 2.65 设置链装配(2026-10-29 · `TD-audio-105` 缺口 A)──────────────
             // 病因:`AudioSettingsStore` 生产**零构造点**、`MixerPushSink` **零接线**、
             //   `mono_enabled` **零消费方** ⇒ 玩家在 42 设置壳拨任何东西都不产生声学变化。
@@ -3179,7 +3210,30 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null
                 && _services.ProcessingCompletion != null)
             {
+                int cueBefore = _services.ProcessingCompletion.EmittedCueCount;
                 _services.ProcessingCompletion.OnTickEdge(_tickDriver.CurrentTick);
+                if (WalkthroughDiagnostics.Enabled
+                    && _services.ProcessingCompletion.EmittedCueCount != cueBefore)
+                {
+                    int ordinal = -1;
+                    if (_audioSeams != null)
+                    {
+                        _audioSeams.TryResolveCue(ProcessingCompletionDriver.CompleteCueName,
+                                                  out ordinal);
+                        AudioClip clip = _audioSeams.Clips != null && ordinal >= 0
+                            ? _audioSeams.Clips.Resolve(ordinal) : null;
+                        string camPos = _cameraRig != null && _cameraRig.Camera != null
+                            ? _cameraRig.Camera.transform.position.ToString() : "null";
+                        Debug.Log($"[audiodiag] 起货 cue 发射 tick={_tickDriver.CurrentTick} "
+                                + $"ordinal={ordinal} clip={(clip == null ? "null" : clip.name)} "
+                                + $"cam={camPos} 累计={_services.ProcessingCompletion.EmittedCueCount}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[audiodiag] 起货 cue 发射 tick={_tickDriver.CurrentTick} "
+                                + $"seams=null 累计={_services.ProcessingCompletion.EmittedCueCount}");
+                    }
+                }
             }
 
             // 起货溢出的**结算**(`TD-processing-08` · R-18-D[甲]② · 2026-11-03):

@@ -118,6 +118,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// (取 `WorldBreath_Baseline` 行的现值,便于对账)。</summary>
         public const float SpatialMaxDistance = 12f;
 
+        /// <summary>近场**下限**(米):`minDistance` 不低于此值(2026-11-11 真包走查实测修复)。
+        /// <para><b>病因</b>:听者 = 第三人称主相机(ADR-020 §七),它位于玩家背后上方约
+        /// <c>sqrt(4.33² + 3.41²) ≈ 5.5 m</c>;而表列 `min_distance = 1` 让**所有**声源都落在
+        /// 近场之外,`Logarithmic` 滚降把每一条 cue 压掉 14–17 dB。实测起货 cue 的输出峰值
+        /// 比原声文件低约 **27 dB**(sink 监视器:游戏 1335 vs `paplay` 30504),玩家听不见。</para>
+        /// <para><b>为什么改这里而不是改相机/听者</b>:ADR-020 §七 把 `AudioListener` 的单挂点
+        /// 钉在主相机上,搬走听者 = 违背已裁口径;而 `min_distance` 是**声学参数**,第三人称
+        /// 游戏的标准做法就是让近场半径 ≥ 听者与可交互目标的典型距离。数值仍归用户调
+        /// (本值 = 6 m,= 相机后置偏移量级)。</para></summary>
+        public const float NearFieldFloor = 6f;
+
         // `rank_key` 的 `priority_class`(GDD :848 类序:自身/检查 &lt; 世界≈生理 &lt; 氛围)。
         // 数值越小越优先;**类别 ≠ 总线**(同一类可走不同 bus,GDD :861 逐字)。
 

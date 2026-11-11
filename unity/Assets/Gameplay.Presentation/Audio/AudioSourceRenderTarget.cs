@@ -41,6 +41,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         private readonly Func<int, AudioClip> _clipOf;
         // story-020:按**整条 cue**(含声源实体 / 强度)解析 —— 变体选择要用到 Source 作患者身份。
         private readonly Func<AudioCueDto, AudioClip> _cueClipOf;
+
+        /// <summary>走查诊断开关(2026-11-11 T22 批十:真包整局无声的定位面)。
+        /// <para>仅由装配层在 `-tutorialdiag` 下置 true;默认 false ⇒ 生产零开销。
+        /// 开启后前 5 次 one-shot / loop 各打一行**源级**读数(音量 / 空间化 / 混音组 / 听者)。</para></summary>
+        public static bool Verbose;
+        private static int _verboseCount;
         private readonly Func<int, string> _busForCue;
 
         // S15-4(TD-audio-028):空间化链。**同一池**共享(SAC-018-4 单池不变量)——
@@ -181,6 +187,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             source.clip = clip;
             source.loop = false;
             source.Play();
+            if (Verbose && _verboseCount < 200)
+            {
+                _verboseCount++;
+                var listener = UnityEngine.Object.FindObjectOfType<AudioListener>();
+                Debug.Log($"[audiodiag] oneshot cue={cue.Cue} clip={clip.name} "
+                        + $"vol={source.volume:F3} playing={source.isPlaying} "
+                        + $"blend={source.spatialBlend:F2} min={source.minDistance:F2} "
+                        + $"max={source.maxDistance:F2} roll={source.rolloffMode} "
+                        + $"group={(source.outputAudioMixerGroup == null ? "null" : source.outputAudioMixerGroup.name)} "
+                        + $"pos={source.transform.position} "
+                        + $"listener={(listener == null ? "null" : listener.transform.position.ToString())} "
+                        + $"listenerVol={AudioListener.volume} pause={AudioListener.pause}");
+            }
             _pool.EnqueueOneShot(cue.Source, source);
         }
 
@@ -203,6 +222,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             source.clip = clip;
             source.loop = true;
             source.Play();
+            if (Verbose && _verboseCount < 200)
+            {
+                _verboseCount++;
+                var listener = UnityEngine.Object.FindObjectOfType<AudioListener>();
+                Debug.Log($"[audiodiag] loop cue={cue.Cue} clip={clip.name} "
+                        + $"vol={source.volume:F3} playing={source.isPlaying} "
+                        + $"blend={source.spatialBlend:F2} min={source.minDistance:F2} "
+                        + $"max={source.maxDistance:F2} roll={source.rolloffMode} "
+                        + $"group={(source.outputAudioMixerGroup == null ? "null" : source.outputAudioMixerGroup.name)} "
+                        + $"pos={source.transform.position} "
+                        + $"listener={(listener == null ? "null" : listener.transform.position.ToString())} "
+                        + $"listenerVol={AudioListener.volume} pause={AudioListener.pause}");
+            }
         }
 
         /// <summary>把刚 spawn 的源交给空间化链定位(未接线 ⇒ 空操作,保持旧形态)。

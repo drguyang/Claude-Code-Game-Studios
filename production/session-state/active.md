@@ -18331,3 +18331,32 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   料可经 4 个资源点采集 → 20 屏选中 → 点火,路径齐备);
   `sfx_process_light` / `sfx_process_work` 未落;`AC-44-03 [L]` 等声学判据仍 `NOT-RUN`(试听只证「这一版能接受」)。
 - 证据:`production/qa/evidence/impl-t22i-structure-visual-and-complete-cue-2026-11-11.md`。
+
+### 第 21 轮(T22 批十 · 真包走查带出的两条缺陷:混音电平 + 咳嗽节奏)
+
+- **用户意图**:先「能不能你来操作跑,我来看」→ 走查中发现「游戏里没声音」→「赶紧修复声音太小的问题」
+  → 修好(「声音大了很多」「声音正常」)后「2背景一直有的咳嗽修复一下」。
+- **① 整局音量 −27 dB**:
+  - 先证管线全通(`[audiodiag] seams=ok rows=20 clipsLoaded=20 missing=0` · `起货 cue 解析 resolved=True ordinal=19` ·
+    `oneshot cue=19 clip=sfx_process_complete playing=True`),再量电平 —— monitor 峰值 1335 vs 素材峰值 29204 = **−26.8 dB**。
+  - 根因 = 听者钉在第三人称相机(ADR-020 §七)离地面 5.5 m + 表列 `min_distance=1` + `Logarithmic` 滚降。
+  - 修法 = `AudioTuning.NearFieldFloor = 6f`,`AudioSourcePool` 在 `CreateSource` / `ApplySpatialDistance` 抬下限。
+    **不动听者挂点**。修后同一素材 −10.5 dB(**+16.3 dB**),`t22j-measure.raw` 已落盘。
+- **② 咳嗽 2 s 一次** = `ai_patient.json` 的 `cue_intervals 40/90/120` → **120/240/360**,重烘
+  `ConfigVersion = 0x0487E33C`。本构建实测 #2 severe **120×8** · #1 recover **360×3**。
+- **判据重写**:旧 `test_realSeedTable_cueIntervalsMatchLegacyConstants` 的等式前提随用户调值**失效**
+  ⇒ `zeroErrors` 改断结构约束(Validate 空 / Severe>0 / Severe<Mild / Mild≤Recover / SchemaVersion==1),
+  旧条改名 `…_retired` 只留 `Severe != Mild` 哨兵。
+- **证伪**:M1 `NearFieldFloor 6→1` ⇒ 1 红(字面量断言 `minDistance == 6f`);
+  M2 `severe 120→240` ⇒ 10 红(含 `test_cooked*` 7 条源↔cooked 同步)。
+  还原 SHA-256:`ai_patient.json b4e3b926…` · `AudioTuning.cs 5dc9d986…`(与备份逐字节一致)。
+- **回归**:EditMode `7443 / 7406 / 0 / 0 / 37` @ `05:36:19Z`–`05:38:26Z` ·
+  PlayMode `380 / 375 / 0 / 2 / 3` @ `05:39:19Z`–`05:39:41Z`(`622554f5` + 工作树)。
+  **与批九逐项相同** —— 本批无新增 `[Test]`(两条就地重写 + 一条改名),不是借绿。
+- **构建**:`player-build-20261111T054417Z.log` = `Result: Success` 18.73 s;
+  `data-core` bundle 13:44:56 > cooked 13:35:35 ⇒ 出货构建含新咳嗽间隔。
+- **债册**:新增 `TD-audio-110`(`closed`,P0 面 Y)—— 病因 / 修法 / 实测 / 判据 / 残留五段;
+  `debtcount --check` exit 0 —— 条目 **208** · closed **176** · partial 9 · open 22 · 未闭 P0 面 **11**(6/31 epic)。
+- **不得借绿**:声学判据(`AC-44-03 [L]` 等)仍 `NOT-RUN`;`NearFieldFloor` 与咳嗽间隔都是**种子值**
+  (数值轮);>12 m 病人仍完全无声(空间化设计面);走查造出 `w4…w10` 本机测试世界。
+- 证据:`production/qa/evidence/impl-t22j-audio-level-and-cough-tune-2026-11-11.md`。
