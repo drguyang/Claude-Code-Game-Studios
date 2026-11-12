@@ -7,6 +7,13 @@
 > **ADR Ref**: ADR-015（模块化建造 · 同一整数格）· ADR-003（模块化网格）
 > **Scene**: 城郊营地（P0 场景 C）· **hero 名额 1/3**
 
+```budget
+asset: pending
+family: building-module
+tier: hero
+scene: outskirts-camp
+```
+
 ---
 
 ## Visual Description

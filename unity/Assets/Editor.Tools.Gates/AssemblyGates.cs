@@ -300,6 +300,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 判据 = 地面覆盖面 ⊇ 世界格外接(尺寸取 `world_geometry` 真产物),外加
             // 碰撞体齐备 / 平面水平 / 内置网格已登记四条 fail-closed 前置。
             Add("地面覆盖", GroundCoverageGate.RunAll("."));
+            // 2026-11-12 —— 3D 面数门(§8.5 档位表 + §8.10.6.3 `budget_tier`)。
+            // 病因:§8.10.6.5 的表一直自称「构建期 fail-closed 门」,而实测 `Editor.Tools.Gates/`
+            // 下**零** mesh / 面数门 ⇒ 3D 资产的面数上限从未有人守(Seed3D 试件 ~50 万面能过,
+            // 是因为**没人会红**,不是因为批过)。本门读 spec 的 ```budget 块。
+            // ⚠️ `asset: pending` 只记「未测」、**不算通过** ⇒ 三数必须打进日志,
+            //    否则 2 条声明 / 0 条实测会被读成「2 件都合格」。
+            var poly = PolyBudgetGates.RunAllDetailed(".");
+            Add("3D 面数", poly.Errors);
+            foreach (var w in poly.Warnings) Debug.LogWarning(w);
+            Debug.Log($"[PolyBudgetGates] 声明 {poly.Declared} / 实测 {poly.Measured} / 未测 {poly.Pending}");
             return errs;
         }
 

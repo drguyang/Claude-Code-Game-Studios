@@ -7,6 +7,13 @@
 > **ADR Ref**: ADR-015（两层世界：逻辑层 + 纯视觉层）· ADR-023（World 场景 additive）
 > **Scene**: 城市废墟街区（P0 场景 A）· **hero 名额 1/3**
 
+```budget
+asset: pending
+family: building-module
+tier: hero
+scene: city-ruins
+```
+
 ---
 
 ## Visual Description

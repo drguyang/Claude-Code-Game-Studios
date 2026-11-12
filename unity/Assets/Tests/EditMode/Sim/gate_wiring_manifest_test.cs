@@ -109,6 +109,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "TutorialZeroGate.RunAll",       // AC-48-17 48 公开面零门禁查询 API(规则五零设门)· 2026-11-07(S25-5)
                     "CasebookAntiFantasyGate.RunAll", // AC-39-05 / AC-39-08 39 公开面零病种维度、零聚合催促词 · 2026-11-08(S26-3)
                     "GroundCoverageGate.RunAll", // 地面 ⊇ 世界格 + 碰撞体/水平/内置网格已登记(TD-building-06 结构性解除)· 2026-11-11(T22 批四)
+                    "PolyBudgetGates.RunAllDetailed", // §8.5 面数档位 + §8.10.6.3 budget_tier(此前无执行体)· 2026-11-12
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -262,6 +263,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "(尺寸取 world_geometry 真产物),外加碰撞体 / 平面水平 / 内置网格已登记三条 fail-closed 前置。" +
                        "病因 = 场景是 10x10 的 Plane 而世界 16x16,约 3/4 的格子没有地面;" +
                        "2026-11-06 手改 Transform 只修好当下事实,零门 ⇒ 改世界尺寸即静默复发" },
+            new ClassVerdict { ClassName = "PolyBudgetGates", Kind = WiringKind.Chain,
+                Consumer = "RunAllDetailed",
+                Note = "§8.5 面数档位 + §8.10.6.3 budget_tier 的执行体(2026-11-12)" +
+                       "(病因 = §8.10.6.5 的表一直自称「构建期 fail-closed 门」," +
+                       "而 Editor.Tools.Gates 下零 mesh 门 ⇒ 3D 资产面数上限从未有人守)。" +
+                       "输入 = spec 的 ```budget 块;`asset: pending` 只记「未测」,不算通过" },
             new ClassVerdict { ClassName = "LexiconRegistryCrossRefGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll",
                 Note = "2026-11-07 真包走查驱动立门:词表 `disease_ids` 逐值须 ∈ 病种注册表 id 集。" +
