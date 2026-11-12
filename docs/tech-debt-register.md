@@ -5447,6 +5447,8 @@ M4 预算门恒通过 ⇒ 1 红 · **M5 首枪是空操作变异(0 红)** · **M
 > 代价 = 2026-11-05 上半天那条「维持现状」的结论**不再成立**,引用它的地方按本段理解。
 > **解除动作不变**(见下表),但**开工时点 = P1**,与 §Amendment A 的 A6 分期对齐。
 
+> 🔍 **2026-11-12 核账结论:登记正确,零改动 —— 本册已核条目里账面质量最高的一条**。三条实测命令**今日复跑仍得出债行自己写的结果**:① `grep -rn "SelectWorld\|DeleteWorld\|SetWorlds\|MainMenuWorldView" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 命中**全在注释里**(`SkeuoRuntimeDriver.cs:615` · `MainMenuScreen.cs:17` · `WorldCatalog.cs:238` · `BootRoot.cs:1520/:1522`);② `MainMenuScreen.cs:65` `public const int FixedRowCount = 4;`;③ `grep -rn "Application\.Quit" unity/Assets --include=*.cs \| grep -v "//"` ⇒ **恰 1 处真调用** `BootRoot.cs:1935`(其余命中全为注释)。补齐一条债行未点名的事实:`WorldCatalog` 公开面仍只有 `ListWorlds`(`:174`)/ `CreateWorld`(`:212`)/ `Touch`(`:264`)+ `TryGetMostRecent`,**无 `DeleteWorld`** ⇒ 「不可删除」在类型面上仍成立。**触发条件三条均未触发**(P0 未收口 · 无「想回上一局」诉求 · 盘上世界数未见 ≥ 5)⇒ `open` 与 `P0 面 = N` 均正确,维持原判。复算:`grep -n "public " unity/Assets/Gameplay.Boot/WorldCatalog.cs \| head`
+
 ### TD-persist-22 — `.bak` 救回**静默**:读回来的是上一版,而玩家与册子都看不出(7a ↔ 42)
 
 | 侧 | 内容 |
