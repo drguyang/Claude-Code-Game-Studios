@@ -104,6 +104,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>已触发的拍数。</summary>
         public int FiredCount => _fired.Count;
 
+        /// <summary>节拍表的总拍数。</summary>
+        public int TotalCount => _beats.Count;
+
+        /// <summary>诊断读数:`已触发/总拍数 show=在播的拍`(不带 `-tutorialdiag` 时无人调用)。</summary>
+        public string Summary =>
+            FiredCount.ToString() + "/" + TotalCount + " show=" + (_showingId ?? "-");
+
         /// <summary>当前正在显示字幕的拍 id(`null` = 无字幕)。</summary>
         public string ShowingId => _showingId;
 

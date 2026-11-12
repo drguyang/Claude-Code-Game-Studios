@@ -3180,7 +3180,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     _pressRouter != null
                         ? (_pressRouter.LastRoutedKind.HasValue
                             ? _pressRouter.LastRoutedKind.Value.ToString() : "无")
-                        : "未建");
+                        : "未建",
+                    // 序章节拍读数(2026-11-13):真包里此前**看不见**「玩家看到过哪一句」——
+                    // 字幕与场景重叠,截图暗像素数不可判。只读,不参与逻辑。
+                    _prologueBeats != null ? _prologueBeats.Summary : "未建");
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):

@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                   PresenceRegistry presence, string channelState,
                                   int factCount, int seededSteps,
                                   string modal = null, string cameraMode = null,
-                                  string routed = null)
+                                  string routed = null, string beat = null)
         {
             var sb = new StringBuilder(160);
             sb.Append("[tutorialdiag] t=").Append(UnityEngine.Time.realtimeSinceStartup.ToString("F2"));
@@ -133,6 +133,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    用来区分「按键没到驱动」与「到了但一个候选都没选中」。
             sb.Append(" 路由=").Append(routed ?? "?");
             sb.Append(" 教学facts=").Append(factCount).Append(" seeded=").Append(seededSteps);
+            // 🔁 2026-11-13(序章节拍走查):`节拍=` = 已触发数 / 表长 + 当前在播的拍 id。
+            //    病因:序章节拍的判据是「玩家看到了一句什么」,而这在真包里**没有读数面** ——
+            //    只能靠截图肉眼认字,而字幕与场景重叠(条带里的暗像素数会被场景污染,
+            //    实测「无字幕 82 / 有字幕 222」不能与「一片深色地面 342」区分)。
+            //    本列只读驱动现状,**不参与任何逻辑**;不带 `-tutorialdiag` 时整段不进。
+            sb.Append(" 节拍=").Append(beat ?? "未装配");
             UnityEngine.Debug.Log(sb.ToString());
         }
 

@@ -169,5 +169,29 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new PrologueBeatDriver(Array.Empty<PrologueBeat>(), () => default, subs, narrationTicks: 0));
         }
+
+        /// <summary>诊断读数:已触发数 / 总拍数 / 在播拍 id(走查时唯一的「看到过哪一句」证据面)。</summary>
+        [Test]
+        public void test_summary_reportsFiredTotalAndShowing()
+        {
+            var subs = new FakeSubtitles();
+            var driver = MakeDriver(
+                new[]
+                {
+                    new PrologueBeat("P1-01", () => true, "第一句"),
+                    new PrologueBeat("P1-02", () => true, "第二句"),
+                    new PrologueBeat("P1-03", () => false, "第三句"),
+                },
+                () => default, subs, ticks: 10);
+
+            Assert.That(driver.TotalCount, Is.EqualTo(3));
+            Assert.That(driver.Summary, Is.EqualTo("0/3 show=-"), "首 tick 之前无触发、无在播");
+
+            driver.OnTickEdge(1);
+            Assert.That(driver.Summary, Is.EqualTo("1/3 show=P1-01"));
+
+            driver.OnTickEdge(11);   // 到点清字幕
+            Assert.That(driver.Summary, Is.EqualTo("1/3 show=-"), "清屏后不得仍报在播");
+        }
     }
 }
