@@ -20,6 +20,19 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>序章第一段(P1-01 … P1-05)的节拍表。</summary>
     public static class PrologueBeats
     {
+        /// <summary>教堂(A1 区)的格矩形,**闭区间**(权威:`chapter-1-tent-clinic.md` §3 分区)。
+        /// <para>⚠️ 这四值同时服务两处:节拍表的区域判定、灰盒地坪(`CompositionRoot` 的
+        /// 「关内地面」)。写第二份 = 让「玩家踩到的范围」与「看起来是屋里的范围」分叉。</para>
+        /// <para>🔁 2026-11-13 实测:数据里教堂确实存在(不可走格围出的 x∈[4,15] / z∈[14,29],
+        /// 东墙 z∈[20,23] 有塌口),但此前**没有任何网格** —— 玩家在教堂里看见的是旷野。</para></summary>
+        public const int ChurchX0 = 4;
+        /// <summary>见 <see cref="ChurchX0"/>。</summary>
+        public const int ChurchX1 = 15;
+        /// <summary>见 <see cref="ChurchX0"/>。</summary>
+        public const int ChurchZ0 = 14;
+        /// <summary>见 <see cref="ChurchX0"/>。</summary>
+        public const int ChurchZ1 = 29;
+
         /// <summary>
         /// 组装第一段的五拍。
         /// </summary>

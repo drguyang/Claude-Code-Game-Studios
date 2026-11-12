@@ -26,6 +26,7 @@ using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.Presentation.Patients;   // 病人视觉两接缝的占位实现(TD-prescription-06 兑换轮)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Tutorial;    // TutorialContentTable(48 教学链 · S25-4c)
+using DaYiJingCheng.Gameplay.Presentation.World;       // WorldWallGreybox(丙 · 墙体灰盒,2026-11-13)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -2303,6 +2304,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                     structureProvider.Load<WorldContainersDataSet>());
                 UnityEngine.Debug.Log(
                     $"[结构视觉] 槽位体块 {spawned} 个 + 容器柜 {containers} 个(灰盒,零美术资产)");
+
+                // ── 墙体与关内地坪的灰盒(2026-11-13 · 丙 · D2 最小美术)─────────────
+                // 病因(真包走查实测):教堂的墙**在逻辑层存在**(`walkable` 里 2555 格不可走,
+                //   教堂轮廓与东墙塌口都在),但**没有任何网格** ⇒ 玩家站在教堂里看见的是旷野,
+                //   而旁白在说「钟楼」「案头」「告示」。与 `TD-building-05` 同型:数据在、画面没有。
+                // 做法:墙体**纯派生**自几何产物(不可走边界 ⇒ 体块),零第二份作者数据;
+                //   地坪用 `PrologueBeats` 的 A1 矩形(节拍表与地坪同一组常量)。
+                // ⚠️ 守卫与上面同款(`is AddressablesDataProvider`):夹具的假 provider
+                //   只认自己那几个地址,对它 Load 几何会抛 —— 2026-11-10 已踩过一次。
+                var walls = new WorldWallGreybox();
+                WorldGeometryDataSet geometryForWalls = structureProvider.Load<WorldGeometryDataSet>();
+                int wallCells = walls.BuildWalls(geometryForWalls.SizeX, geometryForWalls.SizeY,
+                                                 geometryForWalls.SizeZ, geometryForWalls.Walkable);
+                int floorTiles = walls.BuildFloor(PrologueBeats.ChurchX0, PrologueBeats.ChurchZ0,
+                                                  PrologueBeats.ChurchX1, PrologueBeats.ChurchZ1);
+                UnityEngine.Debug.Log(
+                    $"[世界视觉] 边界墙 {wallCells} 格 + 关内地坪 {floorTiles} 块(灰盒,零美术资产)");
             }
 
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
