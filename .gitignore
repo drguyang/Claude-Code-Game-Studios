@@ -249,6 +249,22 @@ assets/design-references/
 #    过宽规则会让它们静默消失(承 coding-standards §.gitignore 窄 glob)。
 assets/design-references/3d-pilot/**/*.glb
 
+# === 3D 试点进工程的那一份(2026-11-12 立 · 用户裁定「不入库 + 门加第三态」) ===
+# 为什么不入库:火山方舟 ToS 未核(art-bible §8.10.6.11-A ⏸),而本仓库是 PUBLIC。
+# 与上一条的区别:上一条是**参考资料**;这一条是**已经进 Unity 工程**的交付件 ——
+# 它们被 design/assets/specs/*.md 的 ```budget 块按路径引用,所以缺席必须可解释。
+# ⇒ 配套:spec 写 `asset_home: local-only`,面数门见字按「本地缺席(未测)」记,**不判红**;
+#    **文件在盘上时照常测量、照常红**(第三态不是免检通道)。
+# ⚠️ 只窄到 Pilot 目录 + 只窄到模型/贴图扩展名,**不做 `unity/Assets/Art/**` 整目录** ——
+#    将来定稿模型必须入库(承 coding-standards §.gitignore 窄 glob,理由同上一条)。
+# ⚠️ `.meta` 一并忽略:没有二进制的时候留着一堆指向空文件的 .meta 只会让 `git status` 噪音化,
+#    二进制放回来时 Unity 会重新生成。
+unity/Assets/Art/3D/Pilot/**/*.fbx
+unity/Assets/Art/3D/Pilot/**/*.png
+unity/Assets/Art/3D/Pilot/**/*.fbm/
+unity/Assets/Art/3D/Pilot/**/*.meta
+unity/Assets/Art/3D/Pilot.meta
+
 # === AI 音频暂存区:仅迭代版本不入库,搬入 unity/Assets/Audio/ 的定稿才入库 ===
 # 2026-10-17 立。口径与上一段同型,分的是「哪一批」而不是「要不要」:
 #   · assets/audio-staging/<cue>/ 是反映「先暂存,听后搬入」的**中间态** ——

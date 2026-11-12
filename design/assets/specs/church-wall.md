@@ -8,11 +8,17 @@
 > **Scene**: 城市废墟街区（P0 场景 A）· **hero 名额 1/3**
 
 ```budget
-asset: pending
+asset: Assets/Art/3D/Pilot/ChurchWall/church-wall.fbx
+asset_home: local-only
 family: building-module
 tier: hero
 scene: city-ruins
 ```
+
+> **`asset_home: local-only`（2026-11-12 用户裁定）**：本件按策略**不入库** ——
+> 火山方舟 ToS 仍 `⏸`（§8.10.6.11-A），而仓库是 PUBLIC。
+> ⇒ 本机缺席时面数门记「本地缺席」并告警，**不判红**；**文件在盘上时照常量、照常红**。
+> 换机器要复核面数，须先用 `~/opt/pilot/` 的脚本从云端产物重跑。
 
 ---
 
@@ -28,15 +34,21 @@ scene: city-ruins
 > 但**断口边缘呈方块台阶**（不是参差碎砖），且**整体厚度 ≈ 高度**（见 §Technical Specs）。
 > ⚠️ 512 px 缩略图上的「横向层纹」是**砖缝**，不是重建伪影 —— 判读须放大后再下结论。
 
+> **2026-11-12 减面后复看（20,000）**：砖缝、灰缝、剥落白灰、尖拱窗框、窗台**仍然都在** ——
+> 它们是 baseColor 贴图的内容，几何减面不吃这一层；墙体轮廓略变钝，未见塌陷、破洞或 UV 拉花。
+> 断口台阶**没变好也没变坏**（那是 500k 原件的缺陷，不是减面造成的）。
+> ⚠️ 这**只能**说明「本件的细节主要靠贴图承担」；**不能**反推「所有几何细节都安全」——
+> 帐篷布边须条在 8k 档确实被压碎过（`TD-art-01`）。
+
 ## Technical Specs
 
 | Property | Value | Notes |
 |---|---|---|
-| 面数预算 | **20,000**（hero 档） | 实测 medium **499,936** = **25×**；`low` 99,962 = 5× |
+| 面数预算 | **20,000**（hero 档） | 生成件 medium **499,936** = **25×**；`low` 99,962 = 5×；**交付件已减面至 20,000**（Blender 复核 = Unity 实测，见 Asset Breakdown） |
 | 贴图 | **2 × 4096²**（albedo + MetallicRoughness） | **无 normal**（建筑模块允许，§8.9.2 走顶点法线） |
 | 目标尺寸 | **暂定 6.054 × 6.037 × 6.000 m**（按高 6 m 归一） | ⚠️ **深度 ≈ 高度** ⇒ 这是**带厚基座的墙体碎块**,不是薄墙;真实比例须裁基座或非均匀压缩 |
 | 材质槽 | 1 | |
-| LOD | **未生成**（要求 3 级） | |
+| LOD | **未生成**（要求 3 级） | 交付件 = 20k 档；`low` 99,962 面原件可作 LOD1 候选，但**未定切换距离、未验减面后法线/UV** ⇒ 不登记为 LOD |
 | 碰撞 | **未建**（须与渲染网格分离） | 好消息:清理后为**闭合实体**,碰撞可由渲染网格派生 |
 | 清理状态 | ✅ **已清理**（2026-11-12） | 非流形边 **0** · 边界边 **0**(闭合) · 删碎面 0 · 顶点 335,961 → 249,852 |
 
@@ -44,9 +56,10 @@ scene: city-ruins
 
 | 文件 | 面数 | 状态 |
 |---|---|---|
-| `church-wall-medium.glb` | 499,936 | ✅ 已生成（zip 内 `pbr/mesh_textured_pbr.glb`） |
-| `church-wall-low.glb` | 99,962 | ✅ 已生成（同参数 `subdivisionlevel low`） |
+| `church-wall-medium.glb` | 499,936 | ✅ 已生成（zip 内 `pbr/mesh_textured_pbr.glb`）· **未减面原件，未入库** |
+| `church-wall-low.glb` | 99,962 | ✅ 已生成（同参数 `subdivisionlevel low`）· **未减面原件，未入库** |
 | `church-wall.glb`（清理版） | 499,936 | ✅ 2026-11-12 · 顶点 249,852 · 0 非流形 · **0 边界边（闭合实体）** · 38 MB · sha256 `bca4c72d212ba55c…` |
+| **`church-wall.fbx`（交付件）** | **20,000** | ✅ 2026-11-12 · 减面比 0.04001（COLLAPSE）· 0.98 MB · Blender 复导 **20,000 tris / 20,297 verts** · 减面后**仍闭合**（非流形 0 / 边界 0 / 退化 0）· Unity `PolyBudgetGates` 实测同等 |
 
 ## AI Generation Prompt
 
@@ -78,7 +91,7 @@ scene: city-ruins
 | `source_images` | `assets/design-references/3d-pilot/input-sn-v3/church-wall-3q.png`（sha256 `655b11fed2f6bc0e…`） |
 | `service_task` | `cgt-20261112094856-gk4zm`（medium，398 s）· `cgt-20261112095904-fnbhk`（low，460 s）· 调用日 2026-11-12 |
 | `reconstruction` | 图生 3D，单图，`subdivisionlevel=medium` / `low`，radius / threshold 由服务端定（不可调） |
-| `dcc_cleanup` | **Blender 4.5.16 LTS** · 合并重复顶点（1e-5）→ 去退化 → 重算法线 → 归一 6.000 m → 轴心移到包围盒中心；**未减面** |
+| `dcc_cleanup` | **Blender 4.5.16 LTS** · 合并重复顶点（1e-5）→ 去退化 → 重算法线 → 归一 6.000 m → 轴心移到包围盒中心 → **减面 COLLAPSE 至 20,000**（ratio 0.04001）→ 导出 FBX（Unity 无 glTF 导入器） |
 | `license_review` | **⏸ 待核** — 火山方舟 ToS 原文未取得（见 §8.10.6.11-A）；输出不可复现、服务端版本不可钉 |
 
 ## Open Questions
