@@ -240,6 +240,15 @@ unity/_tools/
 # 规格真源仍是 design/assets/specs/*.md;定稿版的生成留痕在 casebook-paper.md §8.10.2。
 assets/design-references/
 
+# === 3D 试点的模型二进制(2026-11-12 立) ===
+# 逐件 27–35 MB、二进制不可 diff、可由 `~/opt/pilot/clean_glb.py` 从云端产物重跑复现。
+# ⚠️ 如实登记:今天**命中的是上面那条目录级规则**,不是本行 —— git 在目录被排除后
+#    不再下钻,故本行**当前不被咨询**(`git check-ignore -v` 报的是 :241)。
+#    保留本行 = 给「将来有人把目录规则收窄」留的兜底,**不是**「有这条就生效」。
+# ⚠️ 只窄到试点目录,**不做全仓 `*.glb`** —— unity/Assets 下将来的定稿模型必须入库,
+#    过宽规则会让它们静默消失(承 coding-standards §.gitignore 窄 glob)。
+assets/design-references/3d-pilot/**/*.glb
+
 # === AI 音频暂存区:仅迭代版本不入库,搬入 unity/Assets/Audio/ 的定稿才入库 ===
 # 2026-10-17 立。口径与上一段同型,分的是「哪一批」而不是「要不要」:
 #   · assets/audio-staging/<cue>/ 是反映「先暂存,听后搬入」的**中间态** ——
