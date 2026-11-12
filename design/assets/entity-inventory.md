@@ -131,15 +131,21 @@
 | 2 | 蛇/熊/狼/野狗（野兽） | 可猎杀/驱赶/驯化 | random-events.md, enemy-ai.md |
 | 3 | 驯化动物（P1a） | 可招为护卫 | enemy-ai.md §七 |
 
-### Environment / Buildings (5)
+### Environment / Buildings (7)
+
+> ⚠️ **2026-11-12 用户裁定:P0 场景 1 → 3**(原「小镇街道（P0 小场景）」一条拆为三条;
+> `game-concept.md:721` 与 `world-and-ecozones.md` R-6-4 已同批订正)。三张属**同一地理单元**
+> 的载入切分,不是三个生态区。
 
 | # | Entity | Description | Source |
 |---|--------|-------------|--------|
-| 1 | 小镇街道（P0 小场景） | 清末民初街景 | world-and-ecozones.md, game-concept.md |
-| 2 | 野外生态区 ×4 | 租界/贫民窟/战乱前线/深山疫区 | world-and-ecozones.md |
-| 3 | POI（各生态区地点） | 印章式标记 | world-and-ecozones.md, ADR-021 |
-| 4 | 建造模块（模块化网格） | 医馆改造/帐篷 | modular-building.md, ADR-015/ADR-003 |
-| 5 | 疫情爆发区域（Boss 场景） | 瘟疫扩散视觉 | game-pillars.md §四, random-events.md |
+| 1 | 城市废墟街区（P0 场景 A） | 清末民初街景废墟:教堂断墙 · 药铺废墟 · 坍塌救助站(首个探索点) | world-and-ecozones.md, game-concept.md, campaign-arc.md:42 |
+| 2 | 七里路（P0 场景 B） | 城郊之间的土路:捡建材 · 野狗 / 地痞遭遇(52 途中事件) | world-and-ecozones.md R-6-4, campaign-arc.md:30 |
+| 3 | 城郊营地（P0 场景 C） | 被弃田地 + 帐篷医馆(序章唯一新建)+ 医馆室内 | world-and-ecozones.md, modular-building.md |
+| 4 | 野外生态区 ×4 | 租界/贫民窟/战乱前线/深山疫区 | world-and-ecozones.md |
+| 5 | POI（各生态区地点） | 印章式标记 | world-and-ecozones.md, ADR-021 |
+| 6 | 建造模块（模块化网格） | 医馆改造/帐篷 | modular-building.md, ADR-015/ADR-003 |
+| 7 | 疫情爆发区域（Boss 场景） | 瘟疫扩散视觉 | game-pillars.md §四, random-events.md |
 
 ### Props (9 · 实数 8 —— #8 已划删)
 
