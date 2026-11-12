@@ -351,9 +351,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         /// <summary>
         /// 出生点(sprint-05 T1.4):坠落重置的目标位置。
-        /// 默认 (0, 1, 0)(与 BootRoot 生成玩家时的 Teleport 位置一致)。
+        /// <para>🔁 <b>2026-11-12(P1-b2)</b>:`(0,1,0)` → **`(18,1,21)`** ——
+        /// 序章 128×40 换绑后原点是**区外不可走格**。⚠️ 与
+        /// `CompositionRoot.WorldSpawnCell` **必须同值**,否则「重置回出生点」会把玩家丢进不可走区。</para>
         /// </summary>
-        private static readonly Vector3 SpawnPosition = new Vector3(0f, 1f, 0f);
+        private static readonly Vector3 SpawnPosition = new Vector3(18f, 1f, 21f);
 
         /// <summary>
         /// tick 边沿提交(ADR-020 Amendment B)。

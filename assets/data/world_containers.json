@@ -1,8 +1,11 @@
 {
   "schema_version": 1,
-  "level_id": "p0_clinic",
-  "world_size": [16, 1, 16],
+  "level_id": "p0_prologue",
+  "world_size": [128, 1, 40],
   "containers": [
-    {"instance_id": 1, "cell": [5, 0, 5]}
+    {"instance_id": 1, "cell": [101, 0, 9]},
+    {"instance_id": 2, "cell": [24, 0, 6]},
+    {"instance_id": 3, "cell": [28, 0, 9]},
+    {"instance_id": 4, "cell": [7, 0, 8]}
   ]
 }

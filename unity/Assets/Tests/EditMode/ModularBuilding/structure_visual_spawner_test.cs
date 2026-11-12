@@ -175,9 +175,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(9, baked, "18 行里只有 9 行真站着东西(8 个空装饰位 + 1 个空帐篷位留给玩家)");
             Assert.AreEqual(baked, _spawner.SpawnAll(real), "baked 行数 == 体块数");
 
-            Assert.IsNotNull(FindChild("StructureVisual_Utensil_14_0_14"),
-                "灶台在 (14,0,14) —— 18 的入口必须看得见");
-            Assert.IsNull(FindChild("StructureVisual_Tent_12_0_12"),
+            // 🔁 2026-11-12(P1-b2):坐标随医馆骨架平移 +(96,+4)。
+            Assert.IsNotNull(FindChild("StructureVisual_Utensil_110_0_18"),
+                "灶台在 (110,0,18) —— 18 的入口必须看得见");
+            Assert.IsNull(FindChild("StructureVisual_Tent_108_0_16"),
                 "帐篷位是空槽 ⇒ 真产物这条腿同样不得画");
         }
 
@@ -220,10 +221,11 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_realArtifact_oneContainerCabinet()
         {
             WorldContainersDataSet real = DataCookedDisk.LoadWorldContainers();
-            Assert.AreEqual(1, real.Containers.Count, "真产物 1 个容器(数据变了要重新看这条)");
-            Assert.AreEqual(1, _spawner.SpawnContainers(real));
+            // 🔁 2026-11-12(P1-b2):序章的容器是 4 件(医馆柜 + 药铺木箱 ×2 + 救助站书箱 ×1)。
+            Assert.AreEqual(4, real.Containers.Count, "真产物 4 个容器(数据变了要重新看这条)");
+            Assert.AreEqual(4, _spawner.SpawnContainers(real));
             Assert.IsNotNull(FindChild("ContainerVisual_1"),
-                "容器柜在 (5,0,5) —— 20 的入口必须看得见");
+                "医馆柜在 (101,0,9) —— 20 的入口必须看得见");
         }
     }
 }

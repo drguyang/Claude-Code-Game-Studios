@@ -125,8 +125,21 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         /// <see cref="test_sweep_noGhostArtifact_onDiskButUnregistered"/> 会立刻红
         /// (盘上有该文件却没登记 = 幽灵产物)。</para>
         /// </summary>
-        private static readonly ArtifactBake[] BakedArtifacts =
+        private static readonly ArtifactBake[] BakedArtifacts = BuildBakedArtifacts();
+
+        /// <summary>
+        /// 构造 <see cref="BakedArtifacts"/> —— 导航格切片**按名字表逐条展开**。
+        /// <para>🔁 **2026-11-12(P1-b2)**:此前 nav 是 4 条硬编码(0…3)。
+        /// 序章 128×40 / chunk 8×8 ⇒ 80 片 —— 80 条手写既冗长又会与名字表脱节,
+        /// 改为按 `DataBakeMenu.WorldNavChunkCookedAssetNames`(出货事实的单一出处)展开。
+        /// <para>⚠️ **判据没变**:名字表的**内容**仍是 80 个字面量,漂移门的
+        /// `test_sweep_declaredArtifactNames_allTriaged` 仍按字面量扫源码;
+        /// 这里只消除「同一份名字抄两遍」这个裂口。</para>
+        /// </summary>
+        private static ArtifactBake[] BuildBakedArtifacts()
         {
+            var arts = new List<ArtifactBake>
+            {
             // ── item-database(2 份;同一次烘焙产出,共用 ConfigVersion)──
             new ArtifactBake(DataBakeMenu.ItemsCookedAssetName,
                 root => ItemDatabaseBaker.BakeFromRepo(root).ItemsCooked),
@@ -298,17 +311,9 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => WorldPoiBake.BakeFromRepo(root).Cooked),
             new ArtifactBake(WorldResourcesBake.CookedFileName,
                 root => WorldResourcesBake.BakeFromRepo(root).Cooked),
-            // 2026-10-29(关卡工具 story-005):导航格切片,4 份(P0 = 2×1×2 chunk,用户裁定)。
-            // ⚠️ 条数**写死 4** 是刻意的:P0 关卡的 chunk 划分是**数据**(8×1×8),不是运行期算出来的;
-            //    若将来改了 chunk 尺寸,本表与 `pinnedDeclared` 须同批重签 —— 那正是本门的要求。
-            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[0],
-                root => WorldNavChunkBake.BakeFromRepo(root, 0).Cooked),
-            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[1],
-                root => WorldNavChunkBake.BakeFromRepo(root, 1).Cooked),
-            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[2],
-                root => WorldNavChunkBake.BakeFromRepo(root, 2).Cooked),
-            new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[3],
-                root => WorldNavChunkBake.BakeFromRepo(root, 3).Cooked),
+            // 2026-10-29(关卡工具 story-005):导航格切片 —— **条数不再写死**,
+            // 🔁 2026-11-12(P1-b2)从 4 条硬编码改为循环展开(80 片,见方法尾)。
+            //    ⚠️ 名字仍全部来自 `DataBakeMenu.WorldNavChunkCookedAssetNames`(出货事实表)。
             // 2026-10-29(`TD-audio-032` ①):13 调参常量表。
             //    ⚠️ 本门**第八次**遇到「新增产物」这一步 —— 前七次的教训逐字适用:
             //    落盘后首跑全量必红两条(`noGhostArtifact` 点名 + `declared ≠ pinned`)。
@@ -344,7 +349,18 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    ⚠️ 本门**第十二次**遇到「新增产物」这一步。
             new ArtifactBake(WeatherParamsBaker.CookedFileName,
                 root => WeatherParamsBaker.BakeFromRepo(root).Cooked),
-        };
+            };
+
+            // 导航格切片:逐片一条现烘委托(80 片;条数 = 名字表长度,单一出处)。
+            for (int i = 0; i < DataBakeMenu.WorldNavChunkCookedAssetNames.Length; i++)
+            {
+                int chunk = i;   // 闭包捕获副本(循环变量直接捕获会全指向末值)
+                arts.Add(new ArtifactBake(DataBakeMenu.WorldNavChunkCookedAssetNames[chunk],
+                    root => WorldNavChunkBake.BakeFromRepo(root, chunk).Cooked));
+            }
+
+            return arts.ToArray();
+        }
 
         /// <summary>
         /// <b>已知未烘产物登记</b> —— 仓里有 baker 与菜单项,但**有意不落盘**的产物。
@@ -494,7 +510,9 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 🔁 2026-11-01(S22-9):37 → 38(+inventory_constants,CARRY_CAP 的运行期通道)。
             // 🔁 2026-11-02(AC-4-22):38 → 39(+world_containers,开档容器实例)。
             // 🔁 2026-11-10(T20):44 → 45(+case_pattern,37 同源检测阈值的运行期通道)。
-            const int pinnedDeclared = 45; // 2026-11-10 实测(45 份;+1 = case_pattern · T20)
+            // 🔁 2026-11-12(P1-b2):45 → **121** —— 导航格切片从 4 条扩到 80 条(+76)。
+            //    其余 41 份产物名不变(`world_*` 七张表名字不带 level 后缀,只是内容换关卡)。
+            const int pinnedDeclared = 121; // 2026-11-12 实测(45 − 4 + 80 = 121)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

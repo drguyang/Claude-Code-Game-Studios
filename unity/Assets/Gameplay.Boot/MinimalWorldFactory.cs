@@ -237,13 +237,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    `nav_streaming_wiring_test::test_factory_worldHasNavLattice_…` 单独钉住
             //    (它拿**真产物**跑,若真损坏那条会红)。
             NavLattice navLattice = null;
+            // 🔁 2026-11-12(P1-b2):半径由**拓扑**算(见 StreamingRadiusFor),不再用常量。
+            int streamingRadius = StreamingRadiusFor(geo.Topology);
             string navNote;
             try
             {
                 navLattice = LoadNavLattice(geo, dataProvider, out int navChunkCount);
                 navNote = $"导航格 {navChunkCount} 片已装载并全驻留;" +
                           $"chunk = {geo.ChunkSizeX}×{geo.ChunkSizeY}×{geo.ChunkSizeZ}," +
-                          $"流式半径 = {NavStreamingRadius}";
+                          $"流式半径 = {streamingRadius}";
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is FileNotFoundException)
             {
@@ -252,16 +254,22 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             Debug.Log($"[世界装载] {navNote}。");
 
-            return new World(geometry, slotCatalog, navLattice, NavStreamingRadius);
+            return new World(geometry, slotCatalog, navLattice, streamingRadius);
         }
 
         /// <summary>
-        /// P0 的 chunk 流式半径(chunk 单位)。
-        /// <para>⚠️ **`1` 是刻意的**:P0 的 chunk 划分 = 2×1×2,半径 1 ⇒ 任何玩家格都覆盖全部 4 块
-        /// ⇒ 与「未接导航格」逐格等价,**零行为变更**。流式真正生效要等大世界的关卡设计轮 ——
-        /// 那时调这个数(或改成本关卡的声明字段)才会看到「未驻留 = block」的生产面。</para>
+        /// 流式半径(chunk 单位)—— **按拓扑算,覆盖全图**。
+        /// <para><b>设计意图</b>(自初版保留):任何玩家格 ⇒ **全部** chunk 驻留 ⇒ 导航格与
+        /// 「未接导航格」逐格等价(零行为变更)。流式真正生效要等大世界的关卡设计轮。</para>
+        /// <para>🔁 <b>2026-11-12(P1-b2)</b>:原实现是 `public const int NavStreamingRadius = 1`,
+        /// 注释写明「P0 的 chunk 划分 = 2×1×2,半径 1 ⇒ 覆盖全部 4 块」—— 那**恰好**成立,
+        /// 属于「常量与尺寸耦合」的写法。序章换成 16×5 片后,半径 1 只覆盖 3×3 ⇒ 玩家走出
+        /// 第一屏即撞 block(`nav_streaming_wiring_test` 实测驻留 4/80)。
+        /// 改为 `max(ChunksX, ChunksZ)`:任一 chunk 为中心都能覆盖到两端 ⇒ 「覆盖全图」
+        /// 从**魔法常量**变成**结构性质**,换更大关卡时该性质仍成立。</para>
         /// </summary>
-        public const int NavStreamingRadius = 1;
+        public static int StreamingRadiusFor(ChunkTopology topo)
+            => System.Math.Max(topo.ChunksX, topo.ChunksZ);
 
         /// <summary>
         /// 按 chunk 装载导航格切片并建 <see cref="NavLattice"/>。

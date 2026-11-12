@@ -46,9 +46,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.That(output.Bound.Rows.Count, Is.GreaterThan(0), "真种子须非空");
             Assert.That(output.Cooked.Length, Is.GreaterThan(20), "产物须含 20 字节头 + 载荷");
             Assert.That(output.ConfigVersion, Is.Not.EqualTo(0u), "ConfigVersion 须由内容哈希派生");
-            Assert.That(output.Bound.Width, Is.EqualTo(16), "声明范围 X 须 = 合成世界 16");
-            Assert.That(output.Bound.Height, Is.EqualTo(1), "声明范围 Y 须 = 合成世界 1");
-            Assert.That(output.Bound.Depth, Is.EqualTo(16), "声明范围 Z 须 = 合成世界 16");
+            // 🔁 2026-11-12(P1-b2):真种子换成序章 128×1×40(字面量 —— 钉的是「读到哪份产物」)。
+            Assert.That(output.Bound.Width, Is.EqualTo(128), "声明范围 X 须 = 序章世界 128");
+            Assert.That(output.Bound.Height, Is.EqualTo(1), "声明范围 Y 须 = 世界 1 层");
+            Assert.That(output.Bound.Depth, Is.EqualTo(40), "声明范围 Z 须 = 序章世界 40");
 
             // Decor = SlotType 序数 5;Shell = 6(写 401 字面量,不引用被测枚举 —— 自指判据会逃逸)。
             Assert.That(output.Bound.Rows.Any(r => r.TypeOrdinal == 5), Is.True,
@@ -422,12 +423,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     WorldBuildSlotsBake.BakeFromRepo(RepoRoot).Bound.Rows.Count),
                 "目录格数须等于烘焙产物行数(装载不得丢行)");
 
-            // Decor 3×3 区里的一格**空地**(种子定义见 P0ClinicLevel:6..8 × 6..8;
-            // (6,0,6) 是唯一那格 `baked_initial = true` 的已占用格 —— 刻意不用它:
-            // 🔁 2026-10-28(S20-20 挂标 #2)订正 —— 原文「运行期今日不应用初始占用」已过期,
-            //    基线**现已应用**(`World.ApplyBakedInitial`),用 (6,0,6) 会得到 `Occupied`;
-            //    本条判的是「空地可建」,所以仍取空地 (7,0,7)。下面另立一条腿专门判基线。
-            var anchor = new WorldPos(7, 0, 7);
+            // Decor 3×3 区里的一格**空地**。
+            // 🔁 2026-11-12(P1-b2):区域随医馆骨架平移 +(96,+4) ⇒ (102..104, 10..12);
+            //    (102,0,10) 是唯一那格 `baked_initial = true` 的已占用格(陶罐),刻意不用它
+            //    (基线**现已应用**,用它会得到 `Occupied`);本条判的是「空地可建」。
+            //    历史坐标:(6..8, 6..8) / 空地 (7,0,7) —— P0 16×16 时代。
+            var anchor = new WorldPos(103, 0, 11);
             Assert.That(world.SlotCatalog.IsValidSlot(anchor), Is.True,
                 "Decor 区的锚点格须在目录内(种子与装载的坐标对不上 ⇒ 数据与世界不是同一张图纸)");
 

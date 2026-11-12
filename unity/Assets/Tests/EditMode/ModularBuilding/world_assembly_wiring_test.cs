@@ -196,8 +196,11 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.IsNotNull(writer, "前置:装配根须产出结构写者(AC-2 / AC-3)");
 
             const int moduleSurgeryTable = 2;          // 真产物行:足迹 [(0,0,0),(1,0,0)]
-            var anchor = new WorldPos(2, 0, 2);
-            var second = new WorldPos(3, 0, 2);        // 非锚点足迹格
+            // 🔁 2026-11-12(P1-b2):原坐标 (2,0,2)/(3,0,2) 属于 P0 16×16;序章里 z=2 在 A 区
+            //    之外(不可走)。改为七里路 B 区中段(x 32–95 / z 14–25)—— 该区无槽位、无容器,
+            //    「非基线占用」这个前置成立。
+            var anchor = new WorldPos(50, 0, 20);
+            var second = new WorldPos(51, 0, 20);      // 非锚点足迹格
 
             // ⚠️ **2026-10-28(S20-20 挂标 #2)判据订正 —— 原文不删**:
             //    上一版这里是 `Assert.AreEqual(0, world.OccupiedCount, "前置:未放置 ⇒ 占用表须空")`。

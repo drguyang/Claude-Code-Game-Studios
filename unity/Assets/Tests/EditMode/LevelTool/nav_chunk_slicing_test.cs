@@ -107,7 +107,10 @@ namespace DaYiJingCheng.Tests.LevelTool
         [Test]
         public void test_ac1_latticeFromBakedChunks_reproducesDeclaredWalkable()
         {
-            LevelSource src = P0();
+            // 🔁 2026-11-12(P1-b2):声明面由 `P0()`(16×16)改为**基准关卡** ——
+            //    本测读的是**盘上切片**(换绑后 80 片 / 128×40),若声明面仍是 P0,
+            //    尺寸与片数都对不上,红在「导航格与声明不一致」而与被测逻辑无关。
+            LevelSource src = LevelCatalog.Define(LevelCatalog.CanonicalLevelId);
             var resident = new Dictionary<int, IReadOnlyList<int>>();
             int chunkCount = src.GetChunkTopology().ChunkCount;
             for (int i = 0; i < chunkCount; i++)
@@ -141,10 +144,15 @@ namespace DaYiJingCheng.Tests.LevelTool
         [Test]
         public void test_ac2_oneFilePerChunk_canonicalNaming()
         {
-            IReadOnlyList<DataSetProduct> products = LevelExporter.ExportNavChunks(P0());
+            // 🔁 2026-11-12(P1-b2):源由 `P0()`(16×16 ⇒ 4 片)改为**基准关卡**,
+            //    片数与文件名期望都由同一份源推出 —— 本条钉的是「基准关卡产物命名符合契约」,
+            //    不是「基准关卡恰好有 4 片」。写死 4 会在换绑时红,而红的原因与被测逻辑无关。
+            LevelSource canonical = LevelCatalog.Define(LevelCatalog.CanonicalLevelId);
+            IReadOnlyList<DataSetProduct> products = LevelExporter.ExportNavChunks(canonical);
 
-            Assert.That(products.Count, Is.EqualTo(4),
-                "P0 = 16×1×16、chunk 8×1×8 ⇒ 2×1×2 = 4 块(用户裁定 2026-10-29)");
+            int expectedChunks = canonical.GetChunkTopology().ChunkCount;
+            Assert.That(products.Count, Is.EqualTo(expectedChunks),
+                $"基准关卡的 chunk 数须由几何推出({expectedChunks})—— 写死一个数会让「换关卡 / 换 chunk 尺寸」后少切或多切");
 
             for (int i = 0; i < products.Count; i++)
                 Assert.That(products[i].FileName, Is.EqualTo("world_nav_" + i + ".json"),
@@ -160,7 +168,8 @@ namespace DaYiJingCheng.Tests.LevelTool
         public void test_ac2_chunkKeys_agreeWithGeometryProduct()
         {
             WorldGeometryDataSet geom = DataCookedDisk.LoadWorldGeometry();
-            LevelSource src = P0();
+            // 🔁 2026-11-12(P1-b2):与盘上几何产物比对 ⇒ 源须是**基准关卡**(同 AC-1 的理由)。
+            LevelSource src = LevelCatalog.Define(LevelCatalog.CanonicalLevelId);
 
             Assert.That((geom.ChunkSizeX, geom.ChunkSizeY, geom.ChunkSizeZ),
                 Is.EqualTo((src.ChunkSizeX, src.ChunkSizeY, src.ChunkSizeZ)),
@@ -410,8 +419,12 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             string[] registered = DataBakeMenu.WorldNavChunkCookedAssetNames;
 
-            Assert.That(registered.Length, Is.EqualTo(P0().GetChunkTopology().ChunkCount),
-                "登记表长度须等于 P0 的 chunk 数(4)");
+            // 🔁 2026-11-12(P1-b2):比较基准由 `P0()` 改为**基准关卡本身**(由几何推 chunk 数),
+            //    理由同 `test_ac2_oneFilePerChunk_canonicalNaming` —— 换绑不应让本测红。
+            int canonicalChunks = LevelCatalog.Define(LevelCatalog.CanonicalLevelId)
+                .GetChunkTopology().ChunkCount;
+            Assert.That(registered.Length, Is.EqualTo(canonicalChunks),
+                $"登记表长度须等于基准关卡的 chunk 数(由几何推出 = {canonicalChunks},不写死)");
 
             for (int i = 0; i < registered.Length; i++)
                 Assert.That(WorldNavChunkDataSet.CookedFileNameFor(i), Is.EqualTo(registered[i]),

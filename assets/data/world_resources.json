@@ -1,11 +1,10 @@
 {
   "schema_version": 2,
-  "level_id": "p0_clinic",
-  "level_size": [16, 1, 16],
+  "level_id": "p0_prologue",
+  "level_size": [128, 1, 40],
   "resources": [
-    {"resource_id": 1, "cell": [2, 0, 2], "item_key": 0, "ecozone_id": 0},
-    {"resource_id": 1, "cell": [5, 0, 9], "item_key": 0, "ecozone_id": 0},
-    {"resource_id": 2, "cell": [10, 0, 2], "item_key": 2, "ecozone_id": 1},
-    {"resource_id": 2, "cell": [12, 0, 12], "item_key": 2, "ecozone_id": 1}
+    {"resource_id": 1, "cell": [116, 0, 20], "item_key": 4, "ecozone_id": 1},
+    {"resource_id": 2, "cell": [118, 0, 24], "item_key": 4, "ecozone_id": 1},
+    {"resource_id": 3, "cell": [120, 0, 22], "item_key": 4, "ecozone_id": 1}
   ]
 }

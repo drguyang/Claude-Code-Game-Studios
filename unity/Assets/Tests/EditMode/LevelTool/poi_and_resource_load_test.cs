@@ -289,10 +289,11 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             World world = MinimalWorldFactory.Create(null);   // 磁盘兜底 = 真产物
 
-            Assert.That(world.Geometry.GetPoiId(new WorldPos(4, 0, 4)), Is.EqualTo(0),
-                "(4,0,4) 在真产物里是 poi_id 0");
-            Assert.That(world.Geometry.GetPoiId(new WorldPos(11, 0, 7)), Is.EqualTo(1),
-                "(11,0,7) 在真产物里是 poi_id 1 —— 只回 0 的实现会在这里红");
+            // 🔁 2026-11-12(P1-b2):坐标换成序章真产物(教堂废墟 / 药铺废墟 / 救助站 / 营地火堆)。
+            Assert.That(world.Geometry.GetPoiId(new WorldPos(15, 0, 21)), Is.EqualTo(0),
+                "(15,0,21) 在真产物里是 poi_id 0(教堂废墟)");
+            Assert.That(world.Geometry.GetPoiId(new WorldPos(24, 0, 8)), Is.EqualTo(1),
+                "(24,0,8) 在真产物里是 poi_id 1(药铺废墟)—— 只回 0 的实现会在这里红");
             Assert.That(world.Geometry.GetPoiId(new WorldPos(0, 0, 0)), Is.EqualTo(-1),
                 "非 POI 格须回 -1(「全填同一个 id」的实现会在这里红)");
         }
@@ -352,10 +353,11 @@ namespace DaYiJingCheng.Tests.LevelTool
         {
             World world = MinimalWorldFactory.Create(null);
 
-            Assert.That(world.Geometry.GetResourceId(new WorldPos(2, 0, 2)), Is.EqualTo(1),
-                "(2,0,2) 在真产物里是 resource_id 1");
-            Assert.That(world.Geometry.GetResourceId(new WorldPos(10, 0, 2)), Is.EqualTo(2),
-                "(10,0,2) 是 resource_id 2 —— 只回一个 id 的实现会在这里红");
+            // 🔁 2026-11-12(P1-b2):坐标换成序章真产物(止血草三处,均在营地 C4)。
+            Assert.That(world.Geometry.GetResourceId(new WorldPos(116, 0, 20)), Is.EqualTo(1),
+                "(116,0,20) 在真产物里是 resource_id 1");
+            Assert.That(world.Geometry.GetResourceId(new WorldPos(118, 0, 24)), Is.EqualTo(2),
+                "(118,0,24) 是 resource_id 2 —— 只回一个 id 的实现会在这里红");
             Assert.That(world.Geometry.GetResourceId(new WorldPos(0, 0, 0)), Is.EqualTo(-1),
                 "非资源格须回 -1");
         }

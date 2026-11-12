@@ -234,9 +234,12 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(walkableCount, Is.GreaterThan(0), "全不可走 —— Binder / codec 的域门本应拦住");
             Assert.That(walkableCount, Is.LessThan(geo.Walkable.Length),
                 "全可走 ⇒ 与旧的合成世界同形,「可走性来自产物」失去观察面(AC-4)");
-            Assert.That(geo.SizeX, Is.EqualTo(16));
+            // 🔁 2026-11-12(P1-b2):世界换成序章 128×1×40(5,120 格,可走 2,565 格)。
+            //    ⚠️ 尺寸仍作**字面量**断言 —— 它钉的是「装载面读到的是哪一份产物」,
+            //    若改成从产物自己推,就变成自指判据(产物错了本测照样绿)。
+            Assert.That(geo.SizeX, Is.EqualTo(128));
             Assert.That(geo.SizeY, Is.EqualTo(1));
-            Assert.That(geo.SizeZ, Is.EqualTo(16));
+            Assert.That(geo.SizeZ, Is.EqualTo(40));
         }
 
         /// <summary>AC-4(`TD-audio-035` ① 换源):`Create(…, out latticeSizeMm)` 把**产物声明的**

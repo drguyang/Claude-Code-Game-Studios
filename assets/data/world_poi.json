@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "level_id": "p0_clinic",
-  "level_size": [16, 1, 16],
+  "level_id": "p0_prologue",
+  "level_size": [128, 1, 40],
   "pois": [
-    {"poi_id": 0, "cell": [4, 0, 4], "type": 1, "guard_ref": 2},
-    {"poi_id": 1, "cell": [11, 0, 7], "type": 2, "guard_ref": 1},
-    {"poi_id": 2, "cell": [3, 0, 12], "type": 1, "guard_ref": 0}
+    {"poi_id": 0, "cell": [15, 0, 21], "type": 1, "guard_ref": 0},
+    {"poi_id": 1, "cell": [24, 0, 8], "type": 1, "guard_ref": 2},
+    {"poi_id": 2, "cell": [8, 0, 8], "type": 1, "guard_ref": 0},
+    {"poi_id": 3, "cell": [116, 0, 14], "type": 1, "guard_ref": 0}
   ]
 }

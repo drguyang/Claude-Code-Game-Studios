@@ -335,7 +335,10 @@ namespace DaYiJingCheng.Tests.LevelTool
         [Test]
         public void test_ac5_fileNames_canonicalUnsuffixed_othersSuffixed()
         {
-            Assert.That(WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, "p0_clinic"),
+            // 🔁 2026-11-12(P1-b2):入参由字面量 `"p0_clinic"` 改为 `LevelCatalog.CanonicalLevelId`
+            //    —— 本条钉的是「基准关卡无后缀」这条**命名形状**,不是「哪个关卡是基准」。
+            //    期望值仍是字面量(它是 ADR-022 §三 的契约文本),不随换绑漂移。
+            Assert.That(WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, LevelCatalog.CanonicalLevelId),
                 Is.EqualTo("world_buildslots.json"),
                 "基准关卡的文件名 = ADR-022 §三 的契约字面(不得加后缀)");
             Assert.That(WorldDataSets.FileNameFor(WorldDataSetKind.BuildSlots, "scaffold_second"),

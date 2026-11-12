@@ -102,7 +102,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 待 1 的初始化路径补发后**自动失效**(那时 `TryLastCellOf` 恒命中,
         /// 本常量成为死值)。归属 = 1 的 epic,不在 29 story-004 面内。</para>
         /// </summary>
-        private static readonly WorldPos WorldSpawnCell = new WorldPos(0, 1, 0);
+        /// <para>🔁 <b>2026-11-12(P1-b2)</b>:值由 `(0,1,0)` 改为 **A2 教堂前庭 `(18,1,21)`**
+        /// —— 序章关卡 128×40 换绑后,`(0,0,0)` 落在**区外不可走格**,玩家一出生就掉出世界。
+        /// 坐标出处 = `design/levels/chapter-1-tent-clinic.md` §7(出生 / 相机锚点)。
+        /// ⚠️ 与 `PlayerController.SpawnPosition` **必须同值**(坠落重置的目标点)。</para>
+        private static readonly WorldPos WorldSpawnCell = new WorldPos(18, 1, 21);
 
         /// <summary>拾取宽容半径(整数格,Chebyshev;S23-6 装配期常量,实值归数值轮)。</summary>
         private const int PickToleranceCells = 1;

@@ -246,10 +246,12 @@ namespace DaYiJingCheng.Tests.LevelTool
             Assert.That(registry.Count, Is.GreaterThanOrEqualTo(2),
                 "真产物至少两个区;装载到空表 = 装载面没接");
 
-            Assert.That(registry.EcozoneOf(new WorldPos(4, 0, 4)), Is.EqualTo(new EcozoneId(0)),
-                "(4,4) 在 clinic_ward(x∈[1,8]) 内部 ⇒ 须回 0");
-            Assert.That(registry.EcozoneOf(new WorldPos(10, 0, 4)), Is.EqualTo(new EcozoneId(1)),
-                "(10,4) 在 herb_courtyard(x∈[8,14]) 内部 ⇒ 须回 1(只回 0 的实现会在这里红)");
+            // 🔁 2026-11-12(P1-b2):坐标换成序章的两区
+            //    (urban_ruins x∈[1,95]/z∈[5,34] · field_camp x∈[95,127]/z∈[5,34])。
+            Assert.That(registry.EcozoneOf(new WorldPos(10, 0, 10)), Is.EqualTo(new EcozoneId(0)),
+                "(10,10) 在 urban_ruins 内部 ⇒ 须回 0");
+            Assert.That(registry.EcozoneOf(new WorldPos(116, 0, 20)), Is.EqualTo(new EcozoneId(1)),
+                "(116,20) 在 field_camp 内部 ⇒ 须回 1(只回 0 的实现会在这里红)");
             Assert.That(registry.EcozoneOf(new WorldPos(0, 0, 0)), Is.EqualTo(EcozoneId.None),
                 "(0,0) 在两区之外 ⇒ 须回 None(`NONE` 是合法结果,GDD EC-6-10)");
         }

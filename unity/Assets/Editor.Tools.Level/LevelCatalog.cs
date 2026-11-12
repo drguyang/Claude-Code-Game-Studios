@@ -24,17 +24,20 @@ namespace DaYiJingCheng.EditorTools.Level
     {
         /// <summary>
         /// 基准关卡 id —— **它的数据集文件名不带 `_{level_id}` 后缀**(ADR-022 §三 的契约字面)。
-        /// <para>单一出处 = <see cref="P0ClinicLevel.LevelId"/>;此处只做**命名语义**的别名,
-        /// 不另起一个字面量。</para>
+        /// <para>🔁 **2026-11-12(P1-b2)**:由 `p0_clinic` 换成 `p0_prologue`(序章 128×1×40)。
+        /// 这是**运行期装载面的单点** —— `world_*.json` / `world_*.cooked` 的文件名、
+        /// `data-core` 组条目、80 片导航格切片、地面覆盖门的世界尺寸全部跟着它走。</para>
+        /// <para>⚠️ **不得**为了「多一个关卡」改它:换绑 = 运行期世界整体改,且中间态不可绿
+        /// (夹具直接读盘上 canonical 产物)⇒ 须与夹具迁移同批。</para>
         /// </summary>
-        public const string CanonicalLevelId = P0ClinicLevel.LevelId;
+        public const string CanonicalLevelId = PrologueLevel.LevelId;
 
         /// <summary>全部已登记关卡 id(声明序;基准关卡在第一位)。</summary>
         public static readonly IReadOnlyList<string> LevelIds = new[]
         {
+            PrologueLevel.LevelId,
             P0ClinicLevel.LevelId,
             ScaffoldSecondLevel.LevelId,
-            PrologueLevel.LevelId,
         };
 
         /// <summary>按 id 产出声明式关卡源。</summary>

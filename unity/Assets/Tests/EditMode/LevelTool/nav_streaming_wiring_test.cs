@@ -190,10 +190,13 @@ namespace DaYiJingCheng.Tests.LevelTool
             //    `NavLattice` 构造后默认全驻留 ⇒ 不喂格的话 `NavStreamingRadius` 这个旋钮
             //    **从未被求值**,把它改成 -1(什么都不驻留)本测仍绿。喂一格之后半径才真正生效。
             world.OnActorCellEntered(new WorldPos(1, 0, 1));
+            // 🔁 2026-11-12(P1-b2):半径由常量改为**按拓扑算**(`StreamingRadiusFor`),
+            //    期望值仍是「喂一格后仍全驻留」—— 判据不变,只是「覆盖全图」的来源变了。
             Assert.That(((NavLattice)world.Nav).ResidentChunkCount,
                 Is.EqualTo(geo.Topology.ChunkCount),
-                $"P0 = 2×1×2 共 {geo.Topology.ChunkCount} 块,半径 {MinimalWorldFactory.NavStreamingRadius} " +
-                "须覆盖全部 ⇒ 喂一格后仍全驻留(否则「与未接线逐格等价」不成立)");
+                $"共 {geo.Topology.ChunkCount} 块,半径 " +
+                $"{MinimalWorldFactory.StreamingRadiusFor(geo.Topology)} 须覆盖全部 ⇒ " +
+                "喂一格后仍全驻留(否则「与未接线逐格等价」不成立)");
 
             int mismatches = 0;
             for (int x = 0; x < geo.SizeX; x++)
