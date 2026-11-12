@@ -4959,13 +4959,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 
 | 侧 | 内容 |
 |---|---|
-| **债描述** | GDD 规则六之二(`:254`)定义「战斗结算后 × `CONTEXT_COOLDOWN`(短冷却窗内 = 0,全档)」,而 `F1PipelineInput.InCombatCooldown` 在生产闭包里**硬编码 `false`**(`CompositionRoot.cs:701`)⇒ 该乘子恒 1,冷却窗机制**完全不存在**。 |
-| **实测(逐条可跑)** | ① `grep -n "inCombatCooldown: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`。<br>② `grep -rn "CombatCooldown\|COOLDOWN_TICKS" unity/Assets --include=*.cs \| grep -v Tests` ⇒ **零生产命中**(只有 `EventF1Pipeline` 的读用)。<br>③ `grep -n "CONTEXT_COOLDOWN" design/gdd/random-events.md` ⇒ `:1152`(Tuning Knobs,值 `*待定*`)+ `:1307`(R-5 解除注)。 |
+| **债描述** | GDD 规则六之二(`:254`)定义「战斗结算后 × `CONTEXT_COOLDOWN`(短冷却窗内 = 0,全档)」,而 `F1PipelineInput.InCombatCooldown` 在生产闭包里**硬编码 `false`**(~~`CompositionRoot.cs:701`~~ ⇒ 🔁 现 `Sim/F1ContextEvaluator.cs:102`)⇒ 该乘子恒 1,冷却窗机制**完全不存在**。 |
+| **实测(逐条可跑)** | ① ~~`grep -n "inCombatCooldown: false" unity/Assets/Gameplay.Boot/CompositionRoot.cs` ⇒ 命中 `:701`~~ ⇒ 🔁 **2026-11-12 位置已变**:`grep -rn "inCombatCooldown: false" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 命中 **`Sim/F1ContextEvaluator.cs:102`**(生产经 `CompositionRoot.cs:840` / `:887` 的 `contextOf` 闭包调它,`RandomEventSpawnChain.cs:257` 消费)。**硬编码 `false` 本身仍在**。<br>② ~~`grep -rn "CombatCooldown\|COOLDOWN_TICKS" unity/Assets --include=*.cs \| grep -v Tests` ⇒ **零生产命中**~~ ⇒ ⚠️ **2026-11-12 本条 grep 已失效(会得出反向错误结论)**:它现在命中 `Sim/CombatCooldown.cs`,而那是**系统 25 的武器冷却 / 压制**(`IsCooldownComplete` / `SuppressionState`),**与 52 的 `CONTEXT_COOLDOWN` 同名不同概念**。⇒ 正确判据:`grep -rn "CONTEXT_COOLDOWN\|ContextCooldown" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ **零命中**(结论不变,只是判据换掉)。<br>③ `grep -n "CONTEXT_COOLDOWN" design/gdd/random-events.md` ⇒ `:1175`(Tuning Knobs,值 `*待定*`)+ `:1330`(R-5 解除注)。 |
 | **⚠️ 双重缺口** | 不只「没接线」,还**没有值**:`CONTEXT_COOLDOWN` 在 Tuning Knobs 里仍是 `*待定*`,`COOLDOWN_TICKS` 同理(归用户数值轮)。⇒ 即使接了战斗事件源,窗长与系数也无值可填。 |
 | **解除动作** | ① **25/27** 侧交付「战斗结算」的可读信号(战斗结束 tick / 或一条可折叠的战斗事件);② 用户裁定 `COOLDOWN_TICKS` 与 `CONTEXT_COOLDOWN` 的数值;③ 52 侧在装配闭包里从该信号求 `InCombatCooldown`(纯函数:`now - lastCombatTick < COOLDOWN_TICKS`);④ 夹具:窗内 ⇒ 门假;窗外 ⇒ 门真。 |
 | **⚠️ 与 `-05` 的关系** | `-05` 的门是 `IsOnExpedition && !IsInClinic`,`InCombatCooldown` 是**独立的第一道判据**(`EventF1Pipeline.cs:146` 先判它)。⇒ 本债不解,门即使前两项为真仍可能被冷却挡掉;但它**不是**当前的主阻塞(`-05` / `-06` 才是)。 |
 | **触发条件** | ① 25/27 交付战斗结算信号时(同批);② 或用户数值轮裁定 `COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 时;③ 或任何以「规则六之二完整落地」形态引用之前(**禁借绿**)。 |
 | **归属** | **52 随机事件导演**(装配闭包)· 战斗信号 = **25/27** · 数值 = **用户裁定** |
+
+> 🔍 **2026-11-12 核账结论:结论成立,零改动本体;两处实测指针已订正(见上表)**。
+> **本条今天修不了,原因是两件前置都不在实现轮**:
+> ① **25/27 侧须先交付「战斗结算」可读信号** —— 实测 `grep -rn "CombatEnded\|BattleEnded\|CombatResolved" unity/Assets --include=*.cs` ⇒ **零命中**,信号不存在;
+> ② **`COOLDOWN_TICKS` / `CONTEXT_COOLDOWN` 的数值归用户数值轮**(GDD `:1175` 仍 `*待定*`)。
+> 解除动作四件里,我能做的只有 ③(装配闭包求值)与 ④(夹具)——**没有信号源、没有值**,接上去只能是恒 `false` 的缝,
+> 而那正是本册反复警告的「**假装实现**」形态(与 `:4864` 的「错量的门 > 空量的门」同族)。
+> **`P0 面` 维持 `Y`** —— 用户至今**未给过**「转 P1a」的裁定(区别于 `TD-randomevents-04` 的 2026-11-03 明裁)。
+> ⚠️ **下次改这里时先看判据②的新命令**:旧 grep 会命中系统 25 的同名类,误判成「已实现」。
 
 ### TD-randomevents-08 — AC-52-29 的**延后半边**零生产接线:医馆内的威胁档被「丢弃」而非「延后」(52)
 
