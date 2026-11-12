@@ -2321,6 +2321,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                   PrologueBeats.ChurchX1, PrologueBeats.ChurchZ1);
                 UnityEngine.Debug.Log(
                     $"[世界视觉] 边界墙 {wallCells} 格 + 关内地坪 {floorTiles} 块(灰盒,零美术资产)");
+
+                // ── 三件可交互实物的灰盒(2026-11-13 · 乙)───────────────────────
+                // 为什么需要它们:段拍条件从「一片区域」改成「按下 E」之后,若那件东西
+                // 在画面上不存在,玩家就无从知道该按哪里 —— 交互门会退化成「盲按」。
+                // 位置与节拍判定读**同一份** `PrologueAnchors`(写第二份 = 分叉)。
+                int markers = 0;
+                for (int i = 0; i < PrologueAnchors.FirstAct.Length; i++)
+                {
+                    PrologueAnchor a = PrologueAnchors.FirstAct[i];
+                    markers += walls.BuildMarker(a.MarkerName, a.CellX, a.CellZ, a.Size, a.Tint);
+                }
+                UnityEngine.Debug.Log($"[世界视觉] 可交互锚点 {markers} 件(台阶 / 告示 / 案头)");
             }
 
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,

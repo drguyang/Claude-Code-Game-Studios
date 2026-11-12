@@ -170,6 +170,70 @@ namespace DaYiJingCheng.Tests.Boot
                 new PrologueBeatDriver(Array.Empty<PrologueBeat>(), () => default, subs, narrationTicks: 0));
         }
 
+        /// <summary>多前置:**全部**完成才求值(乙 · 2026-11-13)。
+        /// <para>🗝 立此条缘由:真包实测 `P1-05`(神父走)只要求「读过登记簿」,
+        /// 于是神父在玩家看台阶与告示之前就走了 —— 正典顺序被打乱。</para></summary>
+        [Test]
+        public void test_multiRequires_allMustFire()
+        {
+            var subs = new FakeSubtitles();
+            var gates = new[] { true, true, false };
+            var driver = MakeDriver(
+                new[]
+                {
+                    new PrologueBeat("A", () => gates[0], "甲"),
+                    new PrologueBeat("B", () => gates[1], "乙"),
+                    new PrologueBeat("C", () => gates[2], "丙"),
+                    new PrologueBeat("D", () => true, "丁", requires: new[] { "A", "B", "C" }),
+                },
+                () => default, subs, ticks: 1);
+
+            for (int t = 1; t <= 10; t++) driver.OnTickEdge(t);
+            Assert.That(driver.HasFired("D"), Is.False, "三件里差一件,丁不得触发");
+
+            gates[2] = true;
+            for (int t = 11; t <= 20; t++) driver.OnTickEdge(t);
+            Assert.That(driver.HasFired("D"), Is.True, "三件齐了之后丁须触发");
+        }
+
+        /// <summary>要求交互的拍:**没按 E 就一直不触发**,按了才触发(乙 · 2026-11-13)。</summary>
+        [Test]
+        public void test_requiresInteract_needsKeyPress()
+        {
+            var subs = new FakeSubtitles();
+            var driver = MakeDriver(
+                new[] { new PrologueBeat("K", () => true, "读了", requiresInteract: true) },
+                () => default, subs, ticks: 1);
+
+            for (int t = 1; t <= 5; t++) driver.OnTickEdge(t);
+            Assert.That(driver.HasFired("K"), Is.False, "玩家站在物件旁但没按 E ⇒ 不算读过");
+            Assert.That(subs.Shown, Is.Empty);
+
+            driver.NotifyInteract();
+            driver.OnTickEdge(6);
+            Assert.That(driver.HasFired("K"), Is.True);
+        }
+
+        /// <summary>交互按键**只活一个 tick**:在别处按的 E 不会在走过来之后补触发。</summary>
+        [Test]
+        public void test_interactPress_expiresAfterOneTick()
+        {
+            var subs = new FakeSubtitles();
+            bool inZone = false;
+            var driver = MakeDriver(
+                new[] { new PrologueBeat("K", () => inZone, "读了", requiresInteract: true) },
+                () => default, subs, ticks: 1);
+
+            driver.NotifyInteract();          // 在区域外按了 E
+            driver.OnTickEdge(1);             // 本 tick 条件不成立 ⇒ 按键作废
+            Assert.That(driver.HasFired("K"), Is.False);
+
+            inZone = true;
+            driver.OnTickEdge(2);             // 走进来了,但那次按键早已过期
+            Assert.That(driver.HasFired("K"), Is.False,
+                "把旧按键缓存成意图 = 与 F-4.2「模态期意图不排队」同一条纪律的反例");
+        }
+
         /// <summary>诊断读数:已触发数 / 总拍数 / 在播拍 id(走查时唯一的「看到过哪一句」证据面)。</summary>
         [Test]
         public void test_summary_reportsFiredTotalAndShowing()

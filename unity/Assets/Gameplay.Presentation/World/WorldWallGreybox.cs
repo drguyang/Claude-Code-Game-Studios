@@ -56,6 +56,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         private Material _base;
         private Material _wallMaterial;
         private Material _floorMaterial;
+        private readonly List<Material> _markerMaterials = new List<Material>();
 
         /// <summary>构造。</summary>
         /// <param name="baseMaterial">底材质;**null = 按 <see cref="BaseMaterialResourcePath"/>
@@ -177,6 +178,48 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             return 1;
         }
 
+        /// <summary>
+        /// 在一个格里铺一件**可交互实物**(台阶 / 告示 / 案头这类锚点)。
+        /// </summary>
+        /// <param name="name">物件名(ASCII;层级里辨认用)。</param>
+        /// <param name="cellX">格 X。</param>
+        /// <param name="cellZ">格 Z。</param>
+        /// <param name="size">尺寸(米;`y` 为高度,底部贴 y = 0)。</param>
+        /// <param name="tint">色调(灰盒期用色相区分物件类别)。</param>
+        /// <returns>1(建成)/ 0(材质取不到)。</returns>
+        /// <remarks>⚠️ 锚点**不带碰撞体** —— 玩家要能走到它旁边按 E,挡住反而是缺陷
+        /// (与墙体的取舍相反;墙体挡人是有意的)。</remarks>
+        public int BuildMarker(string name, int cellX, int cellZ, Vector3 size, Color tint)
+        {
+            if (!EnsureMaterials()) return 0;
+            if (string.IsNullOrEmpty(name) || size.x <= 0f || size.y <= 0f || size.z <= 0f) return 0;
+
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+            AddBox(verts, normals, tris,
+                   new Vector3(cellX * MetersPerCell, size.y * 0.5f, cellZ * MetersPerCell),
+                   new Vector3(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f));
+
+            var mesh = new Mesh { name = name + "_Mesh" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+
+            if (_root == null) _root = new GameObject(RootName);
+            var go = new GameObject(name);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var mat = new Material(_base != null ? _base : Resources.Load<Material>(BaseMaterialResourcePath))
+            {
+                color = tint,
+            };
+            _markerMaterials.Add(mat);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            go.transform.SetParent(_root.transform, false);
+            return 1;
+        }
+
         /// <summary>销毁全部已铺视觉(幂等;世界切换 / 重装配时调)。</summary>
         public void DestroyAll()
         {
@@ -186,6 +229,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 else Object.DestroyImmediate(_root);
                 _root = null;
             }
+            for (int i = 0; i < _markerMaterials.Count; i++)
+            {
+                if (_markerMaterials[i] == null) continue;
+                if (Application.isPlaying) Object.Destroy(_markerMaterials[i]);
+                else Object.DestroyImmediate(_markerMaterials[i]);
+            }
+            _markerMaterials.Clear();
             WallCells = 0;
             FloorTiles = 0;
         }

@@ -83,6 +83,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 边沿位**仍由本类持有**(单一边沿所有者);钩子只在边沿内被调。</para></summary>
         private readonly Func<bool> _routeInteractPress;
 
+        /// <summary>E 按下沿的**旁路观察者**(2026-11-13 · 序章节拍;可 null = 无人观察)。
+        /// <para>与 `_routeInteractPress` **并列**、不替代:路由决定「这一下打给谁」,
+        /// 本缝只回答「玩家按了没有」。序章节拍要的是后者 —— 台阶 / 告示 / 案头
+        /// 不是 4 的 `InteractableKind` 候选,走不了路由。</para>
+        /// <para>⚠️ 只在**同一条边沿条件**下被调(模态门放行 ∧ 按下沿),故模态期按 E
+        /// 不会给节拍照记账 —— 与 F-4.2「模态期意图丢弃」同源。</para></summary>
+        private readonly Action _onInteractEdge;
+
         /// <summary>就诊 → 立案(2026-11-02 · `TD-casebook-01`;可 null = 未接线)。
         /// <para>参数 = (被就诊的病人, 立案 tick)。实参由装配层接到
         /// `CaseOpenedDriver.TryOpen` —— 本类**不做**立案判定(在场 / 去重归 37 的 writer)。</para></summary>
@@ -144,7 +152,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                       Func<bool> openCasebook = null,
                                       Func<WorldPos> playerCell = null,
                                       Action<PatientId> routeReferPress = null,
-                                      Action<PatientId> routeClosePress = null)
+                                      Action<PatientId> routeClosePress = null,
+                                      Action onInteractEdge = null)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _playerPosition = playerPosition ?? throw new ArgumentNullException(nameof(playerPosition));
@@ -156,6 +165,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _openCasebook = openCasebook;
             _routeReferPress = routeReferPress;
             _routeClosePress = routeClosePress;
+            _onInteractEdge = onInteractEdge;
         }
 
         /// <summary>
@@ -179,6 +189,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             bool interact = PlayerInputReader.InteractPressed();
             if (interact && !_interactHeld && allowed)
             {
+                // 旁路观察者(序章节拍的「读毕」判据):只看「按了没有」,不参与路由。
+                _onInteractEdge?.Invoke();
                 // 🔁 2026-11-02(结清 `TD-interaction-01`):**一次路由**决定「这一下打给谁」。
                 //   接线时本类不再自己挑病人 —— 种类归 4 的 `InteractionSelector`(全序三键)。
                 // ⚠️ 未接线(`null`)⇒ 退回「最近在场病人」的就诊:那是**夹具形态**

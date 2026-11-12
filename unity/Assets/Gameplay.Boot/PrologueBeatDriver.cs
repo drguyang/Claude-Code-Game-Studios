@@ -38,20 +38,43 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>触发条件(**每 tick 求值一次**;不得有副作用 —— 会被反复调用)。</summary>
         public readonly Func<bool> When;
 
-        /// <summary>前置节拍 id(`null` = 无前置)。前置未触发时本拍**不求值**。</summary>
-        public readonly string Requires;
+        /// <summary>前置节拍 id(`null` / 空 = 无前置)。任一前置未触发 ⇒ 本拍**不求值**。
+        /// <para>🔁 2026-11-13(乙):由单值改为集合。单值时 `P1-05`(神父走)只要求
+        /// 「读过登记簿」,于是玩家还没看台阶与告示,神父就走了 —— 真包实测的顺序是
+        /// 开场 → 登记簿 → 神父走 → 台阶刻字 → 告示。多前置让「三样都看过才发生」可表达。</para></summary>
+        public readonly string[] Requires;
+
+        /// <summary>是否要求**玩家按下交互键**(E)才触发。
+        /// <para>🔁 2026-11-13(乙):脚本 §第一段 的三拍完成判据都是「读毕」,而实现只做
+        /// 区域进入 ⇒ 玩家只是路过就把「登记簿」读了。按 E 之后才算读过。</para></summary>
+        public readonly bool RequiresInteract;
 
         /// <summary>要播的字幕;空串 = 本拍只有状态(不显示)。</summary>
         public readonly string Narration;
 
-        /// <summary>构造一拍。</summary>
-        public PrologueBeat(string id, Func<bool> when, string narration, string requires = null)
+        /// <summary>构造(单前置;保留给「只依赖一拍」的常见形态)。</summary>
+        public PrologueBeat(string id, Func<bool> when, string narration, string requires = null,
+                            bool requiresInteract = false)
+            : this(id, when, narration,
+                   string.IsNullOrEmpty(requires) ? null : new[] { requires }, requiresInteract)
+        {
+        }
+
+        /// <summary>构造(多前置)。</summary>
+        /// <param name="id">节拍 id。</param>
+        /// <param name="when">触发条件(无副作用)。</param>
+        /// <param name="narration">字幕。</param>
+        /// <param name="requires">前置节拍 id 集(全部完成才求值;`null` = 无前置)。</param>
+        /// <param name="requiresInteract">是否要求本拍窗口内有一次交互按键。</param>
+        public PrologueBeat(string id, Func<bool> when, string narration, string[] requires,
+                            bool requiresInteract = false)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentException("节拍 id 不得为空", nameof(id));
             Id = id;
             When = when ?? throw new ArgumentNullException(nameof(when));
             Narration = narration ?? string.Empty;
             Requires = requires;
+            RequiresInteract = requiresInteract;
         }
     }
 
@@ -81,6 +104,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         private long _lastTick = -1;
         private string _showingId;
         private long _hideAtTick = -1;
+        private bool _interactPending;
+
+        /// <summary>前置是否全部完成(`Requires` 为空 ⇒ true)。</summary>
+        private bool RequiresMet(in PrologueBeat beat)
+        {
+            if (beat.Requires == null) return true;
+            for (int i = 0; i < beat.Requires.Length; i++)
+                if (!_fired.Contains(beat.Requires[i])) return false;
+            return true;
+        }
 
         /// <summary>构造。</summary>
         /// <param name="beats">节拍表(声明序 = 字幕的优先序)。</param>
@@ -120,6 +153,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>某拍是否已触发。</summary>
         public bool HasFired(string id) => _fired.Contains(id);
 
+        /// <summary>玩家按下了交互键(由输入层在**按下沿**调用)。
+        /// <para>语义 = **只活一个 tick**:本 tick 求值时用掉就清,过期作废。
+        /// 这样「在远处按了 E,再走过来」不会补触发 —— 那是把按键缓存成意图,
+        /// 与 `F-4.2`(模态期意图不排队)同一条纪律。</para></summary>
+        public void NotifyInteract() => _interactPending = true;
+
         /// <summary>tick 边沿推进。</summary>
         /// <exception cref="ArgumentOutOfRangeException">`tick` 为负。</exception>
         public void OnTickEdge(long tick)
@@ -128,6 +167,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
             if (tick == _lastTick) return;
             _lastTick = tick;
+
+            // 交互按键只在本 tick 有效(见 `NotifyInteract`)。
+            bool interact = _interactPending;
+            _interactPending = false;
 
             // ① 到点清字幕 —— 清完**本 tick 不再播新拍**:同一 tick 里 Hide + Show
             //    会让字幕先空一帧再出现(闪烁),而且「一拍一 tick」的节奏会被清屏那拍吃掉。
@@ -147,7 +190,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 PrologueBeat beat = _beats[i];
                 if (_fired.Contains(beat.Id)) continue;
-                if (beat.Requires != null && !_fired.Contains(beat.Requires)) continue;
+                if (!RequiresMet(beat)) continue;
+                if (beat.RequiresInteract && !interact) continue;
                 if (!beat.When()) continue;
 
                 _fired.Add(beat.Id);

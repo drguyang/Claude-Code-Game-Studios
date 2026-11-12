@@ -918,7 +918,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //   「该不该结」全在写者里(四条前置);本缝只把「按键 + 最近在场病人」交过去。
                 // ⚠️ 语句 lambda:`TryOpen` 返 bool(开没开成),这里**故意不看** ——
                 //    「没开屏」= 没有开着的病例(不开空页),不是错误。
-                routeClosePress: patient => { _caseClosePresenter?.TryOpen(patient); });
+                routeClosePress: patient => { _caseClosePresenter?.TryOpen(patient); },
+                // ── 序章节拍的「读毕」判据(2026-11-13 · 乙)──────────────
+                //   三拍(台阶 / 告示 / 登记簿)的完成判据是「读毕」,而此前只做区域进入
+                //   ⇒ 玩家路过就把登记簿读了。这里只把**按下沿**转给节拍驱动,
+                //   路由仍在 `_routeInteractPress` 那条线上,两条互不替代。
+                onInteractEdge: () => _prologueBeats?.NotifyInteract());
             _interactionDriver = interaction;
             _pressRouter = pressRouter;
 
