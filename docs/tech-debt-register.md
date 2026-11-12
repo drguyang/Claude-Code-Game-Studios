@@ -13169,3 +13169,17 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **触发条件** | P1a 美术量产前;或「单场景近景 hero 件 > 3」时(hero 档兜不住)。 |
 | **P0 面 = N** | 不阻塞 P0 出口:20k hero 档已让 P0 的帐篷 / 断墙可用;本条是**质量改进**,不是缺失功能。 |
 | **状态** | **open**(2026-11-12 立) |
+
+### TD-test-01 —— `ecozone_polygon_check_test.test_ac1_undeclaredEcozones_throws` 在 **GUI Test Runner** 里把编辑器跑到 11 GB 后冻结(LevelTool · 2026-11-12 立)
+
+| 侧 | 内容 |
+|---|---|
+| **现象** | 在 Unity 编辑器 GUI 的 Test Runner 里跑 `unity/Assets/Tests/EditMode/LevelTool/ecozone_polygon_check_test.cs:83` 的 `test_ac1_undeclaredEcozones_throws`,编辑器内存一路涨到 **~11 GB** 后**冻结**,须 `kill -9` 强杀。同批其他测试不受影响。 |
+| **疑似根因(未证)** | 该夹具触发「未知 ecozone ⇒ 抛」路径,猜测在**构造错误字符串**或**递归遍历多边形邻接**时有量级失控;**未定位**,可能与 `PolyBudgetGates.ParseSpec` 第 37 轮那个 `continue` 死循环同型(循环推进条件被分支跳过)。 |
+| **与 PolyBudgetGates 死循环的异同** | **同**:都是「夹具跑 runner 直接卡死」的形态,内存 ~GB 级涨;**异**:PolyBudgetGates 是 batch 模式必卡,本条只在 GUI Test Runner 复现过 —— batch 下是否同卡**未验**。 |
+| **影响面** | ① 该条夹具目前**事实上跑不了** ⇒ `AC-1` 的「undeclared ⇒ 抛」**没有可执行判据**;② 若根因真在生产代码里,**AC-1 在生产环境也可能踩雷**;③ 修它之前,任何人想用 GUI 跑全量 LevelTool 夹具都会被卡住。 |
+| **解除判据** | 三条同时成立:① 定位根因(读代码 + 最小复现,不许再猜环境);② 修复后 batch + GUI 两路各跑一次,内存稳定 < 2 GB;③ 加回归锁夹具(参考 `test_polyBudget_parser_unknownAssetHome_terminatesAndAdvances` 的形态:若改回坏写法,夹具必须当场红或死循环超时)。 |
+| **触发条件** | 任何想跑 LevelTool 全套夹具的人;或 AC-1 要进 CI 常驻时。 |
+| **P0 面 = Y** | AC-1 是 BLOCKING 判据(undeclared ⇒ 抛),它**没有可执行判据** = 该 AC 处于「自述顶替门」状态(F6)。 |
+| **状态** | **open**(2026-11-12 立;由 3D 试点排查第 36/37 轮顺带发现 —— 同一次排查抓到 PolyBudgetGates 的死循环后,意识到本条症状同型,值得独立立案) |
+| **参考** | `pilot-3d-seed3d-2026-11-12.md` §14.6(同型案例的根因定位过程);`.claude/docs/coding-standards.md` §假绿形态登记表 **F10**(夹具喂死循环) |
