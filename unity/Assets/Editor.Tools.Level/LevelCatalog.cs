@@ -34,6 +34,7 @@ namespace DaYiJingCheng.EditorTools.Level
         {
             P0ClinicLevel.LevelId,
             ScaffoldSecondLevel.LevelId,
+            PrologueLevel.LevelId,
         };
 
         /// <summary>按 id 产出声明式关卡源。</summary>
@@ -47,6 +48,10 @@ namespace DaYiJingCheng.EditorTools.Level
             {
                 case P0ClinicLevel.LevelId:      return P0ClinicLevel.Define();
                 case ScaffoldSecondLevel.LevelId: return ScaffoldSecondLevel.Define();
+                // 🔁 2026-11-12(P1-a · 序章场景规格 Approved):新增序章三段 128×40 关卡源。
+                //    ⚠️ **非 canonical** —— 产物带 `_p0_prologue` 后缀;canonical 换绑须与
+                //    68 处字面坐标夹具迁移**同批**(P1-b/P1-c),单做 = 半截状态。
+                case PrologueLevel.LevelId:       return PrologueLevel.Define();
                 default:
                     throw new ArgumentException(
                         $"[关卡工具] 未知关卡 id = '{levelId}';已登记 = [{string.Join(", ", LevelIds)}]",
