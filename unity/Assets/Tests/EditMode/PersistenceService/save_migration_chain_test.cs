@@ -76,6 +76,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
         private sealed class FakeMigration : ISaveMigration
         {
             public uint FromVersion { get; }
+
+            /// <summary>本步在正文**开头**插入 <c>_padBytes</c> 字节(`TD-persist-24` 甲案的声明面)。</summary>
+            public BodyEdit BodyEdit => new BodyEdit(0, _padBytes);
             private readonly int _padBytes;
             private readonly Action<byte[]> _tamper;
             private readonly bool _advanceVersion;
@@ -106,6 +109,76 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 Array.Copy(dataWithoutChecksum, headerFixed, result, headerFixed + _padBytes, bodyLen);
 
                 if (_advanceVersion) SetVersion(result, FromVersion + 1);
+                _tamper?.Invoke(result);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 可配置的假迁移步:**在正文的任意偏移**插入 / 删除一段字节,并按需声明(或不声明)`BodyEdit`。
+        /// <para>为什么需要它(2026-11-12 · `TD-persist-24`):<see cref="FakeMigration"/> 只在正文
+        /// **开头**插入 ⇒ 尾部取窗永不横跨插入点,测不到那条病的几何。本类把编辑点放到**正文中段**,
+        /// 正是「中段插入 ⇒ 正文一字节没改却假红」的直接复现面。</para>
+        /// </summary>
+        private sealed class BodyEditingMigration : ISaveMigration
+        {
+            public uint FromVersion { get; }
+
+            private readonly int _at;          // 旧正文中的真实编辑点
+            private readonly int _count;       // > 0 插入 / < 0 删除
+            private readonly bool _declare;    // false = 声明 None(模拟「漏写」)
+            private readonly int _declaredAt;
+            private readonly int _declaredCount;
+            private readonly Action<byte[]> _tamper;
+
+            /// <param name="fromVersion">源版本。</param>
+            /// <param name="at">旧正文中的真实编辑偏移。</param>
+            /// <param name="count">&gt; 0 插入 / &lt; 0 删除。</param>
+            /// <param name="declare">是否声明(默认声明为真实值)。</param>
+            /// <param name="declaredAt">声明的偏移(默认 = <paramref name="at"/>;用于造「声明错」)。</param>
+            /// <param name="declaredCount">声明的字节数(默认 = <paramref name="count"/>;用于造「声明错」)。</param>
+            /// <param name="tamper">在升版本号之后对结果做的破坏(用于「声明了编辑也必须挡住额外篡改」)。</param>
+            public BodyEditingMigration(uint fromVersion, int at, int count, bool declare = true,
+                                        int? declaredAt = null, int? declaredCount = null,
+                                        Action<byte[]> tamper = null)
+            {
+                FromVersion = fromVersion;
+                _at = at;
+                _count = count;
+                _declare = declare;
+                _declaredAt = declaredAt ?? at;
+                _declaredCount = declaredCount ?? count;
+                _tamper = tamper;
+            }
+
+            public BodyEdit BodyEdit => _declare
+                ? new BodyEdit(_declaredAt, _declaredCount)
+                : Sim.Codec.BodyEdit.None;
+
+            public byte[] Migrate(byte[] dataWithoutChecksum)
+            {
+                int headerFixed = SaveHeaderCodec.FixedSizeFor(FromVersion);
+                int bodyLen = dataWithoutChecksum.Length - headerFixed;
+                var result = new byte[dataWithoutChecksum.Length + _count];
+                Array.Copy(dataWithoutChecksum, 0, result, 0, headerFixed);
+
+                // 编辑点之前的正文原样
+                Array.Copy(dataWithoutChecksum, headerFixed, result, headerFixed, _at);
+
+                if (_count > 0)
+                {
+                    for (int i = 0; i < _count; i++) result[headerFixed + _at + i] = (byte)(0xB0 + i);
+                    Array.Copy(dataWithoutChecksum, headerFixed + _at, result,
+                               headerFixed + _at + _count, bodyLen - _at);
+                }
+                else
+                {
+                    // 删除:旧 [at, at+|count|) 丢弃,其余后移
+                    Array.Copy(dataWithoutChecksum, headerFixed + _at - _count, result,
+                               headerFixed + _at, bodyLen - _at + _count);
+                }
+
+                SetVersion(result, FromVersion + 1);
                 _tamper?.Invoke(result);
                 return result;
             }
@@ -245,6 +318,107 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 () => SaveMigrationChain.Migrate(
                     Save(0U, 42UL, new byte[] { 1, 2, 3 }), 1U,
                     new List<ISaveMigration> { bad }));
+
+            StringAssert.Contains("已发生事件", ex.Message);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ⑤ 正文**中段**编辑(2026-11-12 · TD-persist-24 甲案的判据面)
+        //    病史:`TailBody` 只认「末尾等长」⇒ 中段插入的取窗横跨插入点,
+        //    正文一字节没改也报「改变了事件正文」。这组夹具钉住「按声明跳过编辑段」。
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>中段**插入** + 正确声明 ⇒ **放行**(旧实现会假红 —— 这就是本债的病)。</summary>
+        [Test]
+        public void test_migrate_midBodyInsertion_declaredEdit_passes()
+        {
+            byte[] body = { 1, 2, 3, 4, 5, 6 };
+            byte[] input = Save(0U, 42UL, body);
+            var step = new BodyEditingMigration(0U, at: 2, count: 3);   // 正文偏移 2 插 3 字节
+
+            byte[] output = SaveMigrationChain.Migrate(input, 1U, new List<ISaveMigration> { step });
+
+            var tail = new byte[body.Length + 3];
+            Array.Copy(output, output.Length - tail.Length, tail, 0, tail.Length);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 0xB0, 0xB1, 0xB2, 3, 4, 5, 6 }, tail,
+                "声明的中段插入须放行,且编辑段之外的事件字节逐位不变");
+        }
+
+        /// <summary>中段插入但**不声明** ⇒ 抛(漏写声明不得静默通过)。</summary>
+        [Test]
+        public void test_migrate_midBodyInsertion_undeclaredEdit_throws()
+        {
+            var step = new BodyEditingMigration(0U, at: 2, count: 3, declare: false);
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => SaveMigrationChain.Migrate(
+                    Save(0U, 42UL, new byte[] { 1, 2, 3, 4, 5, 6 }), 1U,
+                    new List<ISaveMigration> { step }));
+
+            StringAssert.Contains("BodyEdit", ex.Message, "报文须点名声明契约");
+            StringAssert.Contains("声明必须与实际一致", ex.Message);
+        }
+
+        /// <summary>声明的字节数与实际不符 ⇒ 抛(声明不能拿来蒙混)。</summary>
+        [Test]
+        public void test_migrate_declaredCountMismatch_throws()
+        {
+            var step = new BodyEditingMigration(0U, at: 2, count: 3, declaredCount: 1);
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => SaveMigrationChain.Migrate(
+                    Save(0U, 42UL, new byte[] { 1, 2, 3, 4, 5, 6 }), 1U,
+                    new List<ISaveMigration> { step }));
+
+            StringAssert.Contains("声明必须与实际一致", ex.Message);
+        }
+
+        /// <summary>声明的编辑点越界 ⇒ 抛(几何不可信,不得放行)。</summary>
+        [Test]
+        public void test_migrate_declaredAtOutOfRange_throws()
+        {
+            var step = new BodyEditingMigration(0U, at: 2, count: 3, declaredAt: 99);
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => SaveMigrationChain.Migrate(
+                    Save(0U, 42UL, new byte[] { 1, 2, 3, 4, 5, 6 }), 1U,
+                    new List<ISaveMigration> { step }));
+
+            StringAssert.Contains("BodyEdit.At", ex.Message);
+            StringAssert.Contains("越界", ex.Message);
+        }
+
+        /// <summary>中段**删除** + 正确声明 ⇒ 放行(覆盖「删段」形态)。</summary>
+        [Test]
+        public void test_migrate_midBodyDeletion_declaredEdit_passes()
+        {
+            byte[] body = { 1, 2, 3, 4, 5, 6 };
+            byte[] input = Save(0U, 42UL, body);
+            var step = new BodyEditingMigration(0U, at: 2, count: -2);   // 删掉第 3、4 字节
+
+            byte[] output = SaveMigrationChain.Migrate(input, 1U, new List<ISaveMigration> { step });
+
+            var tail = new byte[body.Length - 2];
+            Array.Copy(output, output.Length - tail.Length, tail, 0, tail.Length);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 5, 6 }, tail,
+                "声明的中段删除须放行,其余事件字节逐位不变");
+        }
+
+        /// <summary>
+        /// **声明了编辑也不能顺手改别的字节** —— 判据强度未因本改动放松。
+        /// <para>⚠️ 这条是「声明 **≠** 免检」的守门夹具:若将来有人把「跳过编辑段」写宽成
+        /// 「只比长度」,本条当场红。</para>
+        /// </summary>
+        [Test]
+        public void test_migrate_declaredEdit_stillRejectsTamperingOutsideEdit()
+        {
+            var step = new BodyEditingMigration(
+                0U, at: 2, count: 3, tamper: d => d[d.Length - 1] ^= 0xFF);   // 动正文最后一个字节
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => SaveMigrationChain.Migrate(
+                    Save(0U, 42UL, new byte[] { 1, 2, 3, 4, 5, 6 }), 1U,
+                    new List<ISaveMigration> { step }));
 
             StringAssert.Contains("已发生事件", ex.Message);
         }

@@ -32,6 +32,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>本步能迁移的源版本。</summary>
         public uint FromVersion => 2;
 
+        /// <summary>本步在正文**开头**插入 4 字节(<c>count = 0</c> 的配置版本段;`TD-persist-24` 甲案)。</summary>
+        public BodyEdit BodyEdit => new BodyEdit(0, 4);
+
         /// <summary>目标版本(恒 = <see cref="FromVersion"/> + 1,链会自检)。</summary>
         public uint ToVersion => 3;
 

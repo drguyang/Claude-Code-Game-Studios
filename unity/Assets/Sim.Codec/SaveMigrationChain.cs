@@ -27,6 +27,15 @@
 // ⚠️ 如果某个真实迁移**确实要改正文**(如事件载荷加字段),那条迁移**不满足**
 //    AC-7a-14 的「已发生事件原样」⇒ 它要么不该存在,要么须先改 AC。
 //    本类的断言会把这条路**堵死并报错**,而不是放行 —— 这正是它该做的。
+//
+// 🔁 **2026-11-12 TD-persist-24(甲案)—— 「尾部等长」升级为「按声明跳过编辑段」**
+// 上面那条「按尾部处理」只解决了**头部长度变化**,没解决**插入点不在正文开头**:
+// 当插入点落在正文中段时,末尾窗口必然横跨插入点 ⇒ 正文一个字节没改也报假红
+// (实测见 `impl-s26-1-casebook-segment-2026-11-08.md` §4)。当时的绕开是「把段挪到正文开头」,
+// 但那只是**避开几何**,不是消除它 —— 下一次有人往中段插,同样假红。
+// ⇒ 现由 `ISaveMigration.BodyEdit` **自述**「插入/删除了多少字节、在旧正文哪个偏移」,
+//   链据其**跳过编辑段**后逐位比;声明与实际长度变化不符 ⇒ 当场抛(漏写声明不会静默通过)。
+//   ⚠️ **判据强度未变**:被保留的字节仍逐位比(改内容照旧抛)。
 
 using System;
 using System.Collections.Generic;
@@ -124,13 +133,76 @@ namespace DaYiJingCheng.Sim.Codec
                         $"{seedBefore} ⇒ {seedNow} —— 违反 AC-7a-14 / ADR-007 §二 " +
                         "(WorldSeed 被改 ⇒ 全案病程与事件流同时作废)");
 
-                // ── 每级断言③:已发生事件逐位不变(尾部锚定,与头部长度变化无关)──
-                byte[] bodyNow = TailBody(current, bodyBefore.Length);
-                if (!CryptographicOperations.FixedTimeEquals(bodyNow, bodyBefore))
+                // ── 每级断言③:已发生事件逐位不变(按本步声明的正文编辑跳过编辑段)──
+                // 🔁 2026-11-12 TD-persist-24:原实现把 `TailBody(current, bodyBefore.Length)` 直接
+                //    与 bodyBefore 比 ⇒ 只认「正文开头插入」这一种几何。现在按 BodyEdit 跳过
+                //    编辑段再逐位比 —— 中段插入 / 删除不再假红,而被保留的字节仍逐位相同。
+                BodyEdit edit = step.BodyEdit;
+                byte[] bodyNow = TailBody(current);
+
+                // 守卫⓪:声明必须与实际长度变化相符。**漏写声明 = 当场红**
+                // (否则编辑段会滑进比较窗,表现成「正文被改了」这种误导性报文)。
+                int actualDelta = bodyNow.Length - bodyBefore.Length;
+                if (actualDelta != edit.Count)
                     throw new InvalidOperationException(
-                        $"迁移脚本 FromVersion={v} 改变了事件正文 —— 违反 AC-7a-14 " +
-                        "「已发生事件原样保留」。注意断言按**末尾等长**取段:" +
-                        "若本步确实要改正文(如事件载荷加字段),那样的是 AC 变更,不是迁移");
+                        $"迁移脚本 FromVersion={v} 的正文长度变化了 {actualDelta} 字节," +
+                        $"而其 BodyEdit 声明 {edit.Count} 字节 —— 声明必须与实际一致。" +
+                        "插入 / 删除正文段须在 BodyEdit 里自述 (at, count);没动正文则 Count 必须为 0。" +
+                        "⚠️ 违反 AC-7a-14 的判定没有变化:被保留的事件字节仍逐位比");
+
+                if (edit.IsNone)
+                {
+                    if (!CryptographicOperations.FixedTimeEquals(bodyNow, bodyBefore))
+                        throw new InvalidOperationException(
+                            $"迁移脚本 FromVersion={v} 改变了事件正文 —— 违反 AC-7a-14 " +
+                            "「已发生事件原样保留」。注意断言按**末尾等长**取段:" +
+                            "若本步确实要改正文(如事件载荷加字段),那样的是 AC 变更,不是迁移");
+                }
+                else
+                {
+                    if (edit.At < 0 || edit.At > bodyBefore.Length)
+                        throw new InvalidOperationException(
+                            $"迁移脚本 FromVersion={v} 的 BodyEdit.At = {edit.At} 越界" +
+                            $"(旧正文长度 {bodyBefore.Length}) —— 编辑点须落在正文内。" +
+                            "⚠️ 已发生事件的判据不变,只是编辑点声明不可信");
+
+                    // 插入:旧 [At, ·) ↔ 新 [At+|Count|, ·);删除:旧 [At+|Count|, ·) ↔ 新 [At, ·)
+                    int oldSuffixStart = edit.At + Math.Max(0, -edit.Count);
+                    int newSuffixStart = edit.At + Math.Max(0, edit.Count);
+                    int suffixLen = bodyBefore.Length - oldSuffixStart;
+
+                    if (suffixLen < 0 || newSuffixStart > bodyNow.Length ||
+                        bodyNow.Length - newSuffixStart != suffixLen)
+                        throw new InvalidOperationException(
+                            $"迁移脚本 FromVersion={v} 的 BodyEdit 与正文几何不自洽:" +
+                            $"At={edit.At} / Count={edit.Count} / 旧正文 {bodyBefore.Length} B / " +
+                            $"新正文 {bodyNow.Length} B —— 已发生事件的判据不变,拒绝放行");
+
+                    // ① 编辑点**之前**的字节逐位不变
+                    if (!CryptographicOperations.FixedTimeEquals(
+                            new ReadOnlySpan<byte>(bodyBefore, 0, edit.At),
+                            new ReadOnlySpan<byte>(bodyNow, 0, edit.At)))
+                        throw new InvalidOperationException(
+                            $"迁移脚本 FromVersion={v} 改变了事件正文(编辑点之前的 {edit.At} B)" +
+                            " —— 违反 AC-7a-14「已发生事件原样保留」");
+
+                    // ② 编辑点**之后**的字节逐位不变(跳过本步声明插入 / 删除的那一段)
+                    if (suffixLen > 0 && !CryptographicOperations.FixedTimeEquals(
+                            new ReadOnlySpan<byte>(bodyBefore, oldSuffixStart, suffixLen),
+                            new ReadOnlySpan<byte>(bodyNow, newSuffixStart, suffixLen)))
+                        throw new InvalidOperationException(
+                            $"迁移脚本 FromVersion={v} 改变了事件正文(编辑点之后的 {suffixLen} B)" +
+                            " —— 违反 AC-7a-14「已发生事件原样保留」。" +
+                            "⚠️ 本步声明的 BodyEdit 只允许**跳过**它自己插入 / 删除的那一段," +
+                            "其余字节仍须逐位相同");
+                }
+
+                // ── 滚动基线:下一步的比较对象是**本步的产物**(不是进链前的那份)──
+                // 🔁 2026-11-12 TD-persist-24:新增 = 每步 BodyEdit 各自声明的几何不同,
+                //    「长度恒定」这个隐含前提已不成立 ⇒ 不能再拿进链前的正文比全程。
+                //    ⚠️ 归纳面未削弱:每步都要求「除自己声明编辑的那一段外逐位不变」,
+                //    多步串起来后,原始事件字节仍逐位保留(插入 / 删除的字节本就不是事件)。
+                bodyBefore = bodyNow;
             }
 
             return current;

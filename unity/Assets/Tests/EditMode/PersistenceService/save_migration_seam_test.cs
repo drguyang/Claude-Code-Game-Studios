@@ -90,6 +90,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             public int Calls;
             public uint FromVersion => 1;
 
+            /// <summary>等长变换 ⇒ 不编辑正文(`TD-persist-24` 甲案的声明面)。</summary>
+            public BodyEdit BodyEdit => BodyEdit.None;
+
             public byte[] Migrate(byte[] dataWithoutChecksum)
             {
                 Calls++;

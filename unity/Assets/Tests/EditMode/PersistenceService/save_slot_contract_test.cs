@@ -634,6 +634,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             private readonly List<uint> _calls;
             public uint FromVersion { get; }
 
+            /// <summary>本步在正文**开头**插 4 字节填充(`TD-persist-24` 甲案的声明面)。</summary>
+            public BodyEdit BodyEdit => new BodyEdit(0, 4);
+
             public PaddingMigration(uint fromVersion, List<uint> calls = null)
             {
                 FromVersion = fromVersion;

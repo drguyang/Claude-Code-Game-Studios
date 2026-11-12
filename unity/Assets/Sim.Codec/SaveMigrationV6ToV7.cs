@@ -41,6 +41,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>本步能迁移的源版本。</summary>
         public uint FromVersion => 6;
 
+        /// <summary>本步在正文**开头**插入 8 字节(空分册态段;`TD-persist-24` 甲案)。</summary>
+        /// <remarks>⚠️ 段序 = `头部 | 分册态段 | 配置版本段 | …` ⇒ 分册态段**紧贴头部末尾**,
+        /// 在「旧正文」坐标里就是偏移 0(不是「配置版本段之后」的字面位置 —— 见文件头 2026-11-08 改判段)。</remarks>
+        public BodyEdit BodyEdit => new BodyEdit(0, CasebookSegment.EmptySize);
+
         /// <summary>目标版本(恒 = <see cref="FromVersion"/> + 1)。</summary>
         public uint ToVersion => 7;
 

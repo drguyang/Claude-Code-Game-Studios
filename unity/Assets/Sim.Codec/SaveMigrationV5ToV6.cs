@@ -28,6 +28,11 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>本步能迁移的源版本。</summary>
         public uint FromVersion => 5;
 
+        /// <summary>本步**不编辑正文**(`TD-persist-24` 甲案)。</summary>
+        /// <remarks>⚠️ 插在旧头部末尾的 8 B 被**新版本的头部定长吸收**(`FixedSizeFor` 92 → 100),
+        /// 故正文长度不变 —— 声明 `None`,不是 `(0, +8)`。</remarks>
+        public BodyEdit BodyEdit => BodyEdit.None;
+
         /// <summary>目标版本(恒 = <see cref="FromVersion"/> + 1)。</summary>
         public uint ToVersion => 6;
 

@@ -419,7 +419,7 @@
 | `TD-persist-21` | `persistence-service` | open | **N** | R1 |
 | `TD-persist-22` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-23` | `persistence-service` | closed | **N** | R4 |
-| `TD-persist-24` | `persistence-service` | open | **N** | R4 |
+| `TD-persist-24` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-11` | `persistence-service` | closed | **N** | R4 |
 | `TD-persist-12` | `persistence-service` | closed | **N** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -760,6 +760,15 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **九十二订(`TD-persist-24` 结案 · 2026-11-12 · 甲案实现轮)** ——
+> **单一变化源:一条状态变更(`open → closed`),零新登记。**
+> 用户裁定「甲案」⇒ `ISaveMigration` 增 `BodyEdit` 自述契约,链按声明跳过编辑段后逐位比;
+> 五条真实迁移补声明(其中 `V3ToV4` / `V4ToV5` / `V5ToV6` 实测为 `None` —— 插入被新版本头部吸收)。
+> 夹具 `SaveMigrationChainTest` 12 → 18;证伪 3/3 转红;回归 EditMode `7483/7446/0/0/37` ·
+> PlayMode `388/383/0/2/3`(`2026-11-12T12:39:57Z` · `43511234`+工作树)。
+> 证据 = `production/qa/evidence/impl-td-persist-24-body-edit-2026-11-12.md`。
+> 变化:`条目` 不动 · `open → closed` 各 −1/+1 · `P0 面 N` 不动(R4)· `未闭 P0 面` 不动。
 
 > > 🔁 **九十一订(`TD-skeuo-17` 结案 · 2026-11-05 深夜 · 首启复验轮)** ——
 > **单一变化源:一条状态变更(`open → closed`),零新登记。**
@@ -1509,7 +1518,7 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 212 | 状态 {'closed': 180, 'partial': 9, 'open': 22, '**done**(2026-10-21)': 1} | P0 面 {'Y': 137, 'N': 69, '~~**Y**~~': 4, '~~**N**~~': 2}
+条目 212 | 状态 {'closed': 181, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 137, 'N': 69, '~~**Y**~~': 4, '~~**N**~~': 2}
 未闭 P0 面 = 11 （已闭但曾标 P0 面的 126 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
     random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
@@ -12985,6 +12994,34 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **解除动作** | 二选一,**须用户裁**:**(甲)** 给 `ISaveMigration` 增一个「本步插入了多少字节、插在哪」的自述契约,链按 `TailBody(len − insertedBytes)` 比;**乙)** 链改为比较「事件段本体」(需 `ParseBody` 级解析,等于让链依赖段序)。**甲**改动小、且能顺手覆盖「删段」形态。 |
 | **触发条件** | 任何一条**插入点不在头部区**的迁移(即:插在正文中段 / 段间)。下一次改存档布局时必撞。 |
 | **出处** | `production/qa/evidence/impl-s26-1-casebook-segment-2026-11-08.md` §4;`unity/Assets/Sim.Codec/SaveMigrationV6ToV7.cs` 文件头的「为什么插在配置版本段之前」段。 |
+
+> ✅ **2026-11-12 结案(甲案 —— 用户裁定「甲案」后实现落盘)**。证据原件 =
+> `production/qa/evidence/impl-td-persist-24-body-edit-2026-11-12.md`。
+>
+> **契约**:`ISaveMigration` 增 **`BodyEdit BodyEdit { get; }`**(`Sim.Codec/ISaveMigration.cs`):
+> `At` = **旧正文**中的编辑点、`Count` = **&gt;0 插入 / &lt;0 删除 / 0 未编辑** 的字节数。
+> **链**(`SaveMigrationChain.cs` 断言③)改为:① **守卫⓪** `新正文长 − 本步输入正文长 == Count`
+> (漏写声明**当场红**,不再滑进比较窗);② `None` ⇒ 整段逐位比(与旧行为逐字节等价);
+> ③ 否则编辑点**之前**逐位比 + 编辑点**之后**(跳过声明的那一段)逐位比;
+> ④ **滚动基线** `bodyBefore = bodyNow`(每步比自己的输入 —— 首跑被 `multiStep` 夹具抓出,
+> 拿进链前那份比全程会误报 `8 ≠ 4`)。
+>
+> **五条真实迁移的声明**:`V2ToV3 (0,+4)` · **`V3ToV4 / V4ToV5 / V5ToV6 = None`** · `V6ToV7 (0,+8)`。
+> ⚠️ **三条 `None` 是实测纠出来的,不是推断**:初版按「插在头部之后 ⇒ 计正文」写成 `(0,+k)`,
+> 全量 EditMode **六红**(「正文长度变化 0 ≠ 声明 24」)—— 那三处插入的字节**被新版本增长的
+> 头部定长吸收**(`FixedSizeFor` 36→60 / 60→92 / 92→100),正文长度**不变**。
+>
+> **判据**:新增 6 条夹具(中段插入 / 漏声明 / 声明数不符 / 声明点越界 / 中段删除 /
+> 声明了也挡额外篡改),`SaveMigrationChainTest` **12 → 18**。
+> **证伪轮 3/3 各自转红**(M1 停用跳过 ⇒ 7 红;M2 停用后缀比较 ⇒ 2 红;M3 停用守卫⓪ ⇒ 2 红),
+> 还原 SHA-256 `457a959f…` 逐字节一致、变异串零残留。
+> **回归**(截至 `2026-11-12T12:39:57Z` · `43511234`+工作树):EditMode **`7483/7446/0/0/37`** ·
+> PlayMode **`388/383/0/2/3`**。
+>
+> ⚠️ **未放松的部分(不得借绿)**:编辑段之外的字节**仍逐位比**(夹具⑥ + 变异 M2 双证);
+> `StructureIdRemap.cs` 那条「**不得**做成 `ISaveMigration`」的理由**仍成立**(它改的是事件**内容**,
+> `BodyEdit` 只让链知道「跳过哪一段」,不放宽内容判据)。
+> `P0 面` 维持 **N**(R4:不影响任何 P0 判据;本条结的是「下一次迁移会假红」这条结构性风险)。
 
 ### TD-walkthrough-01 —— 虚拟手柄/注入层的两条读数缺口:**`start` 键未送达** + **横推摇杆在真包里不产生 UI 导航**
 

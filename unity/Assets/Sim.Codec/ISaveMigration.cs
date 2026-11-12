@@ -34,6 +34,40 @@ using System;
 namespace DaYiJingCheng.Sim.Codec
 {
     /// <summary>
+    /// 迁移对**正文**做的一处结构性编辑(插入 / 删除)。
+    /// <para>🔁 <b>2026-11-12 新增(`TD-persist-24` 的甲案)</b>。病因:链原先只按**末尾等长**
+    /// 取段比对正文 ⇒ 任何**插入点不在正文开头**的迁移都会假红(取窗横跨插入点,
+    /// 比的是「插入前的尾巴」对「插入后的尾巴」)。真实存档同样失败,与文件大小无关。</para>
+    /// <para>⚠️ <b>只描述「结构」,不描述「内容」</b>:本结构让链知道**跳过哪一段**再比,
+    /// 却**不放松**逐字节判据 —— 被保留的字节仍须逐位相同(改内容照样抛)。</para>
+    /// </summary>
+    public readonly struct BodyEdit
+    {
+        /// <summary>编辑点在**旧正文**中的偏移(<c>0 ≤ At ≤ 旧正文长度</c>)。<see cref="Count"/> 为 0 时无意义。</summary>
+        public readonly int At;
+
+        /// <summary>
+        /// 编辑的字节数:**&gt; 0 = 插入**、**&lt; 0 = 删除**、**0 = 本步不编辑正文**。
+        /// </summary>
+        public readonly int Count;
+
+        /// <summary>声明一处正文编辑。</summary>
+        /// <param name="at">旧正文中的偏移。</param>
+        /// <param name="count">插入(&gt;0)/ 删除(&lt;0)/ 不编辑(0)的字节数。</param>
+        public BodyEdit(int at, int count)
+        {
+            At = at;
+            Count = count;
+        }
+
+        /// <summary>本步**不**编辑正文(绝大多数迁移 —— 只动头部定长字段)。</summary>
+        public static BodyEdit None => default;
+
+        /// <summary>是否未编辑正文。</summary>
+        public bool IsNone => Count == 0;
+    }
+
+    /// <summary>
     /// 存档迁移链的**单步**脚本:`SaveVersion == FromVersion` 的存档 ⇒ `FromVersion + 1`。
     /// <para><b>输入 / 输出都是「已剥掉校验和槽」的完整存档字节</b>
     /// (`magic + saveVersion + worldSeed + configVersion + tick + snapshotOffset + 正文`)。
@@ -47,6 +81,18 @@ namespace DaYiJingCheng.Sim.Codec
     {
         /// <summary>本步能迁移的**源**版本。迁完的产物版本恒为 <c>FromVersion + 1</c>。</summary>
         uint FromVersion { get; }
+
+        /// <summary>
+        /// 本步对**正文**做的**唯一一处**结构性编辑(插入 / 删除),供链把
+        /// 「已发生事件逐位不变」这条断言从「末尾等长」升级为「按声明跳过编辑段后逐位比」。
+        /// <para>🔁 <b>2026-11-12(`TD-persist-24` 甲案)</b>。**必须与实际字节变化一致** ——
+        /// 链会核对「新正文长 − 旧正文长 == <see cref="BodyEdit.Count"/>」,
+        /// 声明漏写 / 写错一律当场抛(不得靠「反正链不比长度」蒙混)。</para>
+        /// <para>⚠️ 只动**头部定长字段**的迁移(今天五条真实迁移中四条)声明
+        /// <see cref="BodyEdit.None"/> 即可。若本步插入的段**恰好落在正文开头**
+        /// (今天 `V6ToV7` 这类),写 <c>new BodyEdit(0, +k)</c> —— 与旧行为逐字节等价。</para>
+        /// </summary>
+        BodyEdit BodyEdit { get; }
 
         /// <summary>
         /// 执行本步迁移。
