@@ -80,6 +80,15 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>建筑模块的近景 hero 上界(§8.5 · 2026-11-12 新增档)。</summary>
         public const int BuildingModuleHeroCeiling = 20000;
 
+        /// <summary>`asset_home` 缺省值:资产随仓库走,缺席即红(P6)。</summary>
+        public const string AssetHomeRepo = "repo";
+
+        /// <summary>
+        /// `asset_home: local-only` —— 资产按**策略**不入库(第三方 ToS 未结 / 体积),
+        /// 因此本机缺席**不是**故障。见 P9/P10。
+        /// </summary>
+        public const string AssetHomeLocalOnly = "local-only";
+
         /// <summary>一个 ```budget 块。</summary>
         public sealed class Declaration
         {
@@ -90,7 +99,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             public string Tier;
             public string Scene;
 
+            /// <summary>`repo`(缺省)/ `local-only`。见 P9。</summary>
+            public string AssetHome;
+
             public bool IsHero => string.Equals(Tier, "hero", StringComparison.Ordinal);
+
+            public bool IsLocalOnly => string.Equals(AssetHome, AssetHomeLocalOnly, StringComparison.Ordinal);
         }
 
         /// <summary>门的一次判决:错 = 失败;警告 = 未测,不失败但必须可见。</summary>
@@ -98,6 +112,13 @@ namespace DaYiJingCheng.EditorTools.Gates
         {
             public readonly List<string> Errors = new List<string>();
             public readonly List<string> Warnings = new List<string>();
+
+            /// <summary>
+            /// 逐件实测读数(仅记录,不参与判决)。
+            /// ⚠️ 没有这一组,「实测 2 / 绿」只证明两件都 ≤ 上界,**报不出数字** ——
+            /// 数字不可复核就等于没有数字(见 coding-standards §Review Evidence Standards)。
+            /// </summary>
+            public readonly List<string> Notes = new List<string>();
 
             /// <summary>声明条数。</summary>
             public int Declared;
@@ -107,6 +128,13 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             /// <summary>`asset: pending` 的条数。</summary>
             public int Pending;
+
+            /// <summary>
+            /// `asset_home: local-only` 且本机缺席的条数 —— **按策略未测,不是通过,也不是故障**。
+            /// ⚠️ 单列这个数,是为了让「未测」的两种来源(pending = 还没接 / 本地缺席 = 按策略不在库里)
+            /// 在日志里可分辨;混成一个数会让「50 件都没测」看起来像「都合格」。
+            /// </summary>
+            public int LocalAbsent;
         }
 
         // ═══ 解析 ═══
@@ -146,9 +174,9 @@ namespace DaYiJingCheng.EditorTools.Gates
 
                     string key = raw.Substring(0, colon).Trim();
                     string val = raw.Substring(colon + 1).Trim();
-                    if (key != "asset" && key != "family" && key != "tier" && key != "scene")
+                    if (key != "asset" && key != "family" && key != "tier" && key != "scene" && key != "asset_home")
                     {
-                        errors.Add($"[PolyBudget] {specRelPath}:{startLine} 未知键 `{key}`(只认 asset/family/tier/scene)");
+                        errors.Add($"[PolyBudget] {specRelPath}:{startLine} 未知键 `{key}`(只认 asset/family/tier/scene/asset_home)");
                         continue;
                     }
                     if (map.ContainsKey(key))
@@ -170,8 +198,22 @@ namespace DaYiJingCheng.EditorTools.Gates
                 map.TryGetValue("family", out d.Family);
                 map.TryGetValue("tier", out d.Tier);
                 map.TryGetValue("scene", out d.Scene);
+                map.TryGetValue("asset_home", out d.AssetHome);
                 if (string.IsNullOrEmpty(d.Tier)) d.Tier = "normal";
+                if (string.IsNullOrEmpty(d.AssetHome)) d.AssetHome = AssetHomeRepo;
+
+                // P9:asset_home 闭集。拼错的 `local_only` 若被静默当成 repo,会在新机器上把
+                //     「按策略缺席」判成「文件丢失」—— 一个错字换来一条误导性的红。
+                if (d.AssetHome != AssetHomeRepo && d.AssetHome != AssetHomeLocalOnly)
+                {
+                    errors.Add($"[PolyBudget] {specRelPath}:{startLine} `asset_home` 未知:`{d.AssetHome}`" +
+                               $"(只认 {AssetHomeRepo} / {AssetHomeLocalOnly})");
+                    // 不得 `continue`:那会跳过 `i = j + 1` ⇒ i 停在原块,同一个块被无限重解析,
+                    // 每轮 errors.Add 一个新字符串 ⇒ 内存爆炸(v12…v21 卡死的根因,2026-11-12 实测定位)。
+                    goto Advance;
+                }
                 list.Add(d);
+            Advance:
                 i = j + 1;
             }
             return list;
@@ -252,6 +294,14 @@ namespace DaYiJingCheng.EditorTools.Gates
 
                 if (string.IsNullOrEmpty(d.Asset) || d.Asset == PendingAsset)
                 {
+                    // `pending`(还没接)与 `local-only`(已接但按策略不入库)互斥:
+                    // 同时写意味着两套「缺席」口径叠在一件资产上,后续谁也说不清它到底有没有被量过。
+                    if (d.IsLocalOnly)
+                    {
+                        report.Errors.Add($"[PolyBudget] {where} `asset: pending` 与 `asset_home: local-only` 互斥" +
+                                          "(pending = 尚未接入;local-only = 已接入但按策略不入库)");
+                        continue;
+                    }
                     report.Pending++;
                     report.Warnings.Add($"[PolyBudget] {where} asset=pending ⇒ 三角面**未测**(不是通过);" +
                                         $"上界 {ceiling}({d.Family}{(hero ? "/hero" : "")})");
@@ -261,12 +311,25 @@ namespace DaYiJingCheng.EditorTools.Gates
                 int? tris = triangleLookup != null ? triangleLookup(d.Asset) : null;
                 if (!tris.HasValue)
                 {
+                    // P10:按策略不入库的资产,本机缺席 = 预期状态,**不是** fail-closed 的射程。
+                    //      ⚠️ 但「文件在」的时候**照样量、照样红** —— 否则 local-only 会变成免检通道。
+                    if (d.IsLocalOnly)
+                    {
+                        report.LocalAbsent++;
+                        report.Warnings.Add($"[PolyBudget] {where} `{d.Asset}` 按策略不入库(asset_home: local-only)" +
+                                            $"⇒ 本机缺席,三角面**未测**(不是通过);上界 {ceiling}" +
+                                            $"({d.Family}{(hero ? "/hero" : "")})");
+                        continue;
+                    }
                     report.Errors.Add($"[PolyBudget] {where} 声明的 asset 不存在或不可导入:`{d.Asset}`" +
-                                      "(fail-closed;未入库请写 `asset: pending`)");
+                                      "(fail-closed;未入库请写 `asset: pending`,按策略不入库请写 `asset_home: local-only`)");
                     continue;
                 }
 
                 report.Measured++;
+                string verdict = tris.Value > ceiling ? "超" : "≤";
+                report.Notes.Add($"[PolyBudget] {where} `{d.Asset}` 三角面 {tris.Value:N0} {verdict} 上界 {ceiling:N0}" +
+                                 $"({d.Family}{(hero ? "/hero" : "")},用掉 {tris.Value * 100.0 / ceiling:F1}%)");
                 if (tris.Value > ceiling)
                 {
                     report.Errors.Add($"[PolyBudget] {where} `{d.Asset}` 三角面 {tris.Value:N0} > 上界 {ceiling:N0}" +

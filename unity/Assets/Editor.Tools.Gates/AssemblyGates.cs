@@ -309,7 +309,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             var poly = PolyBudgetGates.RunAllDetailed(".");
             Add("3D 面数", poly.Errors);
             foreach (var w in poly.Warnings) Debug.LogWarning(w);
-            Debug.Log($"[PolyBudgetGates] 声明 {poly.Declared} / 实测 {poly.Measured} / 未测 {poly.Pending}");
+            foreach (var n in poly.Notes) Debug.Log(n);
+            Debug.Log($"[PolyBudgetGates] 声明 {poly.Declared} / 实测 {poly.Measured} / 未测 {poly.Pending}" +
+                      $" / 本地缺席 {poly.LocalAbsent}");
             return errs;
         }
 
