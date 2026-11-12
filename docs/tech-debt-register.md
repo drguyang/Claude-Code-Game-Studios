@@ -428,7 +428,7 @@
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-03` | `random-events` | closed | **Y** | R1 |
-| `TD-randomevents-04` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-04` | `random-events` | open | **N** | R4 |
 | `TD-randomevents-05` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-06` | `random-events` | partial | **Y** | R1 |
 | `TD-randomevents-07` | `random-events` | open | **Y** | R1 |
@@ -760,6 +760,14 @@ PYEVAL
 > `PatientAppearedDriver` 脚手架仍在跑 ⇒ **归因按 `DiseaseOnset.disease_id`,不按「有没有病人」**。
 > ⚠️ **GDD 规则二「52 不拥有任何内容字段」** 与 `disease_id` 的关系已就地加注 ——
 > 那是**解释不是新裁决**;若判定外键也算内容字段,须迁到 37 的独立映射件。
+
+> > 🔁 **九十三订(`TD-randomevents-04` 分类订正 · 2026-11-12 · 甲案)** ——
+> **单一变化源:索引行一条 `P0 面` 值订正(`Y/R1 → N/R4`),零新登记、零代码改动。**
+> 病因 = 2026-11-03 用户裁定「`Mod_Eco` / `Mod_Rep` 整体推 P1a」**未同步到索引行**
+> (条目正文已写「两项都不在 P0 落地」)。按 §一 R4 判 `N`。
+> 变化:`条目` 不动 · `open` / `closed` 不动 · **`P0 面 Y 137 → 136` / `N 69 → 70`** ·
+> **`未闭 P0 面 11 → 10`** · **`random-events 3 → 2`** · `epic 分布 6/31` 不动。
+> ⚠️ 结的是**分类错误**,不是「F2 已完整落地」—— `ΣMod` 仍恒空。
 
 > > 🔁 **九十二订(`TD-persist-24` 结案 · 2026-11-12 · 甲案实现轮)** ——
 > **单一变化源:一条状态变更(`open → closed`),零新登记。**
@@ -1518,10 +1526,10 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 212 | 状态 {'closed': 181, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 137, 'N': 69, '~~**Y**~~': 4, '~~**N**~~': 2}
-未闭 P0 面 = 11 （已闭但曾标 P0 面的 126 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 11 条,分布在 6/31 个 epic
-    random-events: 3          skeuomorphic-ui: 3        disease-simulation: 2
+条目 212 | 状态 {'closed': 181, 'partial': 9, 'open': 21, '**done**(2026-10-21)': 1} | P0 面 {'Y': 136, 'N': 70, '~~**Y**~~': 4, '~~**N**~~': 2}
+未闭 P0 面 = 10 （已闭但曾标 P0 面的 126 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 10 条,分布在 6/31 个 epic
+    skeuomorphic-ui: 3        disease-simulation: 2     random-events: 2
     diagnosis-system: 1       emergency-procedures: 1   modular-building: 1
 ```
 <!-- TD-COUNT:END -->
@@ -4847,6 +4855,19 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | ① 用户开始数值轮并裁定两项修饰子;② 或系统 6 交付 P1a 四生态区、需要定义「生态区 → 事件密度」时;③ 或任何以「F2 公式已完整落地」形态引用 ADR-039 §D4 之前(**禁借绿**)。 |
 | **🔁 2026-11-03 用户裁定:整体推 P1a** | 两项**都不在 P0 落地**,理由逐条实测(不是「以后再说」):<br>① **`Mod_Rep` 无值来源** —— GDD 规则五明标 P1a,而 #31 声誉系统 P0 不存在 ⇒ 任何接线只能是恒 0 的缝(与不接等价,却多一层易被误读为「已实现」的代码)。<br>② **`Mod_Eco` 在 P0 无可观测面** —— P0 世界是 **16×16**(`world_geometry.json`),`walkable` 为 14×14 医馆内部,现有 2 个生态区(`clinic_ward` x1-8 / `herb_courtyard` x8-14)**正好铺满**;GDD `world-and-ecozones.md:69` 自陈「P0 = 一间医馆 + 一个小场景」,四生态区是 **P1a**。<br>③ **更根本的一层**:事件链在 P0 **恒不求值** —— `isOnExpedition` 生产恒 `false`(活跃出诊目标要 37 的 `event_key` 集,今日为空)、`isInClinic` 恒 `false`(`ClinicCellSource` 是**空集占位**,23/24 地块集未接)⇒ `EvaluateContextGate` 恒假 ⇒ 恒 `NoContext`。**即使加了城镇也一样**。<br>④ **加城镇不是加一条 JSON** —— ADR-022 规定世界几何**唯一作者 = 关卡工具**,C5「边界单一源」是**硬失败** ⇒ 须同批改 `world_geometry` / `world_buildslots` / `world_ecozones` / `world_nav` / `world_poi` 五份输入并重跑工具 = **P1a 的关卡规模**。<br>⇒ **本债的解除条件整体后移**:不再是「用户数值轮」,而是「P1a 关卡 + 四生态区 + 出诊上下文接通」三者齐备。 |
 | **归属** | **52 随机事件导演**(预算接线)· 生态区数据 = **6** · 数值 = **用户裁定** |
+
+> 🔍 **2026-11-12 核账 + 索引行对齐(甲案 · 用户裁定)** —— **本条不改任何代码,只订正索引行**。
+> **不一致**:上表「2026-11-03 用户裁定:整体推 P1a」逐条写明两项**都不在 P0 落地**,
+> 而索引行仍标 `P0 面 = Y` / `R1`。按 §一 **R4**(归属 ∈ P0 epic、但正文自陈 P0 面 = N
+> 并给出实质理由 ⇒ **N**)应判 **`N`**。与 `TD-persist-21` 的「范围裁定 `Y → N`」同型,
+> 区别只是**那条改了、这条漏改**。
+> **为何不是「52 端到端可跑」的 P0 阻塞**:端到端的真阻塞是 **`TD-randomevents-05`**
+> (上下文门 `EvaluateContextGate` 生产恒假 ⇒ 恒 `NoContext`);本条只让预算少了两个修饰子,
+> 而 GDD `:1008` / `:1009` 两值**本来就写「待裁」** ⇒ **不存在任何 P0 AC 要求它们非零**。
+> 复算:`grep -n "Mod_Eco\|Mod_Rep" design/gdd/random-events.md` ⇒ 三处均 `*待裁*` / `*待定*`。
+> **数字变化**:`未闭 P0 面 11 → 10` · `random-events 3 → 2` · `P0 面 Y 137 → 136` / `N 69 → 70`。
+> ⚠️ **不得借绿**:本条结的是**分类错误**,不是「F2 公式已完整落地」——
+> `ΣMod` 仍恒空,任何以「F2 已完整」形态引用 ADR-039 §D4 的说法仍为假(原触发条件 ③ 不变)。
 
 ### TD-randomevents-05 — F1 上下文门的三项输入**生产恒假** ⇒ 事件链恒 `NoContext`(52)
 
