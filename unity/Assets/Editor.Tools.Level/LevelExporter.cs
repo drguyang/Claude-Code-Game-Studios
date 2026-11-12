@@ -821,6 +821,25 @@ namespace DaYiJingCheng.EditorTools.Level
                           Path.Combine(repoRoot, "unity", "Logs", "level-tool", written[i]));
         }
 
+        /// <summary>
+        /// batch 入口:导出**序章三段关卡**(`p0_prologue`,128×40)到 `unity/Logs/level-tool/`(暂存区)。
+        /// <para>🔁 <b>2026-11-12(P1-b1 新增)</b>。为什么**只到暂存区**:序章关卡当前是**非 canonical**
+        /// —— 烘焙入口按基准关卡的固定文件名单点读,写进 `assets/data/` 只会得到一份**没有消费者**的
+        /// 作者态数据(见 <see cref="ExportLevelToStaging"/> 的注释)。canonical 换绑须与
+        /// 槽位补齐 + 夹具迁移 + Addressables 组同批(P1-b2),不在本入口面内。</para>
+        /// <para>⚠️ 本入口的判据 = 「七件全部可序列化、nav 切片一片不缺」,**不是**「世界已换」。</para>
+        /// </summary>
+        /// <remarks>⚠️ 与 `ExportScaffoldLevelToStaging` 同款:`-executeMethod` 须配 `-quit`。</remarks>
+        public static void ExportPrologueLevelToStaging()
+        {
+            string repoRoot = RepositoryRoot();
+            IReadOnlyList<string> written = ExportLevelToStaging(repoRoot, PrologueLevel.LevelId);
+            for (int i = 0; i < written.Count; i++)
+                Debug.Log($"[关卡工具] 已导出(暂存){PrologueLevel.LevelId} → " +
+                          Path.Combine(repoRoot, "unity", "Logs", "level-tool", written[i]));
+            Debug.Log($"[关卡工具] {PrologueLevel.LevelId} 共写出 {written.Count} 个文件");
+        }
+
         /// <summary>仓库根(`unity/Assets` 的上两级)。</summary>
         public static string RepositoryRoot()
             => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
