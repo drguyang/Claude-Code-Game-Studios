@@ -243,43 +243,97 @@ namespace DaYiJingCheng.EditorTools.Level
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 建造槽(帐篷 = P0 唯一新建;Shell = P1a 自由建造面)
+        // 建造槽(用户 2026-11-12 裁定「甲案」:P0 医馆 18 槽整体平移到营地)
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>槽位:帐篷槽 1(C2)+ Shell 4(P1a 自由建造的占位面)。</summary>
+        /// <summary>医馆骨架平移的 X 偏移(帐篷 (12,12) → (108,16))。</summary>
         /// <remarks>
-        /// ⚠️ 帐篷槽**承现有语义**:`bakedInitial = false` / `moduleId = NoModule`
-        /// —— 「序章那一次新建」的落点,不是开档既有件。
-        /// ⚠️ Shell 四格同样 `bakedInitial = false`:P1a 才建;P0 它们只是「这里能建」的声明,
-        /// 运行期不占格、不产 `structure_id`。
+        /// ⚠️ **纯平移是刻意的**:24 的房间析出靠家具**连通簇**、4 的交互三件靠面板 / 开关 /
+        /// 器具的**邻接** —— 一格不差地平移才能让这些相对关系原样成立。
+        /// 因此本文件的槽位**一律由 `P0ClinicLevel` 的常量加偏移算出来**,不写第二份字面量
+        /// (手改单个格 = 平移性质失效,夹具会把这条钉住)。
+        /// </remarks>
+        private const int ClinicOffsetX = 96;
+
+        /// <summary>见 <see cref="ClinicOffsetX"/>。</summary>
+        private const int ClinicOffsetZ = 4;
+
+        /// <summary>槽位:P0 医馆 18 槽按 +(96,+4) 整体平移(帐篷 = P0 唯一新建)。</summary>
+        /// <remarks>
+        /// ⚠️ **`baked_initial` 逐槽保持原值**(用户 2026-11-12 甲案):外墙 / 门 / 器具 / 面板 /
+        /// 开关 / 陶罐在开档时就在 —— 与「教堂捡来的门板与房梁」叙事相容;帐篷仍是**唯一**新建。
+        /// ⚠️ 连带事实(用户已知情):8 个建筑格从开局起就在营地 ⇒ `isInClinic` 在营地**开局即真**,
+        /// 与今天 16×16 医馆的行为一致。「建帐篷前营地不算医馆」是 24 的语义变更,不在本映射面内。
         /// </remarks>
         private static IReadOnlyList<SlotSpec> BuildSlots()
         {
-            var slots = new List<SlotSpec>
-            {
-                new SlotSpec(108, 0, 16, SlotType.Tent, bakedInitial: false, moduleId: SlotSpec.NoModule),
+            var slots = new List<SlotSpec>(18);
 
-                new SlotSpec(106, 0, 14, SlotType.Shell, bakedInitial: false, moduleId: SlotSpec.NoModule),
-                new SlotSpec(110, 0, 14, SlotType.Shell, bakedInitial: false, moduleId: SlotSpec.NoModule),
-                new SlotSpec(106, 0, 18, SlotType.Shell, bakedInitial: false, moduleId: SlotSpec.NoModule),
-                new SlotSpec(110, 0, 18, SlotType.Shell, bakedInitial: false, moduleId: SlotSpec.NoModule),
-            };
+            // ① 家具 3×3(仅 (DecorPreOccupiedDx, DecorPreOccupiedDz) 那格开档已有陶罐)
+            for (int dz = 0; dz < 3; dz++)
+                for (int dx = 0; dx < 3; dx++)
+                {
+                    bool preOccupied = dx == P0ClinicLevel.DecorPreOccupiedDx
+                                    && dz == P0ClinicLevel.DecorPreOccupiedDz;
+                    slots.Add(new SlotSpec(
+                        P0ClinicLevel.DecorOriginX + dx + ClinicOffsetX, 0,
+                        P0ClinicLevel.DecorOriginZ + dz + ClinicOffsetZ, SlotType.Decor,
+                        bakedInitial: preOccupied,
+                        moduleId: preOccupied ? P0ClinicLevel.DecorPreOccupiedModuleId : SlotSpec.NoModule));
+                }
+
+            // ② 外墙条带 ×4
+            for (int i = 0; i < P0ClinicLevel.ShellStripLength; i++)
+                slots.Add(new SlotSpec(
+                    P0ClinicLevel.ShellStripXStart + i + ClinicOffsetX, 0,
+                    P0ClinicLevel.ShellStripZ + ClinicOffsetZ, SlotType.Shell,
+                    bakedInitial: true, moduleId: P0ClinicLevel.ShellModuleId));
+
+            // ③ 门 / 器具 / 面板 / 开关(全部开档既有)
+            slots.Add(new SlotSpec(
+                P0ClinicLevel.DoorCellX + ClinicOffsetX, 0, P0ClinicLevel.DoorCellZ + ClinicOffsetZ,
+                SlotType.Door, bakedInitial: true, moduleId: P0ClinicLevel.DoorModuleId));
+            slots.Add(new SlotSpec(
+                P0ClinicLevel.UtensilCellX + ClinicOffsetX, 0, P0ClinicLevel.UtensilCellZ + ClinicOffsetZ,
+                SlotType.Utensil, bakedInitial: true, moduleId: P0ClinicLevel.UtensilModuleId));
+            slots.Add(new SlotSpec(
+                P0ClinicLevel.ClinicPanelCellX + ClinicOffsetX, 0, P0ClinicLevel.ClinicPanelCellZ + ClinicOffsetZ,
+                SlotType.ClinicPanel, bakedInitial: true, moduleId: P0ClinicLevel.ClinicPanelModuleId));
+            slots.Add(new SlotSpec(
+                P0ClinicLevel.SwitchCellX + ClinicOffsetX, 0, P0ClinicLevel.SwitchCellZ + ClinicOffsetZ,
+                SlotType.Switch, bakedInitial: true, moduleId: P0ClinicLevel.SwitchModuleId));
+
+            // ④ 帐篷 —— P0 唯一新建(`campaign-arc:303`)
+            slots.Add(new SlotSpec(
+                P0ClinicLevel.TentCellX + ClinicOffsetX, 0, P0ClinicLevel.TentCellZ + ClinicOffsetZ,
+                SlotType.Tent, bakedInitial: false, moduleId: SlotSpec.NoModule));
+
             return slots;
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 开档容器(药铺木箱 ×2;救助站书箱 ×1)
+        // 开档容器(药铺木箱 ×2 · 救助站书箱 ×1 · 医馆柜 ×1)
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>开档自带容器(物品实例;`instance_id` 与掉落共用 `IIdAuthority` 空间)。</summary>
+        /// <remarks>
+        /// ⚠️ 医馆柜沿用 `P0ClinicLevel.CabinetInstanceId`(= 1L)与同一个平移偏移 ——
+        /// 装配根的 `ReconstructItemHighWater` 按高水位抬号,换关卡不改变该契约。
+        /// </remarks>
         private static ContainerSource BuildContainers()
         {
             static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
             return new ContainerSource(new[]
             {
-                new ContainerSpec(1L, P(24, 6)),
-                new ContainerSpec(2L, P(28, 9)),
-                new ContainerSpec(3L, P(7, 8)),
+                // 医馆柜(P0 既有,平移进营地)
+                new ContainerSpec(
+                    P0ClinicLevel.CabinetInstanceId,
+                    P(P0ClinicLevel.CabinetCellX + ClinicOffsetX, P0ClinicLevel.CabinetCellZ + ClinicOffsetZ)),
+                // 药铺木箱 ×2(A4)
+                new ContainerSpec(2L, P(24, 6)),
+                new ContainerSpec(3L, P(28, 9)),
+                // 救助站书箱 ×1(A5)
+                new ContainerSpec(4L, P(7, 8)),
             });
         }
     }

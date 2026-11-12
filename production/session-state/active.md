@@ -18713,3 +18713,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   而不是继续怀疑环境。当时把「2 条新解析测试 = 纯字符串」当因果无关 ⇒ 多绕 6 轮。
   旧记录(供查):`2026-11-11 08:38Z` EditMode 7453/7416/0/37,135 秒。
   临时件:旧 Library(7.2 GB)在 `~/.claude/jobs/6001633c/tmp/Library-before-rebuild`(可删)。
+
+## 2026-11-12 晚 · 序章 18 槽按甲案落地(P1-b1 收尾)
+
+- **用户裁定「甲案」**:P0 医馆 18 建造槽整体平移 **+(96,+4)** 进营地 C 区,
+  `baked_initial` 逐槽保持原值;帐篷仍是唯一新建。
+- 落地:`unity/Assets/Editor.Tools.Level/PrologueLevel.cs` —— `BuildSlots()` 改为
+  「引用 `P0ClinicLevel` 常量 + `ClinicOffsetX/Z = 96/4`」,不写第二份字面量;
+  `BuildContainers()` = 医馆柜(id 1L,平移到 (101,9))+ 药铺木箱 ×2 + 救助站书箱 ×1。
+- 夹具:`prologue_level_test` 3 → **6** 条(新增:纯平移双向单射 / 帐篷 (108,16) 字面量哨兵 /
+  柜随平移 + 可走)。**定向 6/6 PASS**(`unity/Logs/editmode-prologue-shift.xml`,13:45:56Z)。
+- 导出:**87 文件 / 80 片 nav** 不变;`world_buildslots_p0_prologue.json` = 18 条(核对逐格);
+  `world_containers_p0_prologue.json` = 4 条(id 1 → (101,0,9))。
+- 全量 EditMode:**7489 / 7452 / 0 / 37**(`unity/Logs/editmode-full-shift.xml`,`2026-11-12 13:50:01Z`,
+  127.6 s)@ `1a31c7f6` + 工作树。⚠️ 与 `2026-11-11 08:38Z` 的 7453 差 **+36** 未逐条分解
+  (本轮只 +3;其余来自 P1-a / poly-budget 修复等已提交批次),**不作等式断言**。
+- ⚠️ **待用户裁的冲突**:规格 `chapter-1-tent-clinic.md` §9.1-3 写「帐篷未建 ⇒ `isInClinic` 恒假」,
+  而甲案把 8 个建筑格(外壳 4 + 门 + 面板 + 开关 + 器具 + 陶罐)设为开档既有 ⇒
+  **营地开局 `isInClinic` 即真**,该条前提不成立(走查第 10–11 步的顺序性、52「医馆内」上下文门可达性都随之变)。
+- ⚠️ **另一处偏离**:规格 §5 第 5 行要求「保留 P1a 自由建造的 Shell 槽面」,甲案 = 纯平移不加槽 ⇒
+  **P1a 自由建造面为零**。
+- ✅ **两处已在规格就地加注(用户 2026-11-12「按这个处理」)**:头部落地注记 + §5 表后加注块
+  + §9.1-3 前提作废段。原文逐字保留。`isInClinic` 语义变更**未动**,候选项(屏蔽 / 改回
+  `baked_initial=false`)留在该条加注内待裁。
+  ⚠️ 时点订正:`isInClinic` 自 2026-11-05(`TD-randomevents-05`)起已是**真值**;
+  「营地开局即真」是 **P1-b2 canonical 换绑后**才生效的连带面,今日仍跑 16×16,**尚未生效**。
