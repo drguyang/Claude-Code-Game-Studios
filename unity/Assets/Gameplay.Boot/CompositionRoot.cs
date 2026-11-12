@@ -108,6 +108,38 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// ⚠️ 与 `PlayerController.SpawnPosition` **必须同值**(坠落重置的目标点)。</para>
         private static readonly WorldPos WorldSpawnCell = new WorldPos(18, 1, 21);
 
+        /// <summary>
+        /// 玩家出生格 —— **装配层的单一出处**(`BootRoot` 的初始摆位也读它)。
+        /// <para>⚠️ 表现层的 `PlayerController.SpawnPosition` 在另一个程序集、引用不到本类,
+        /// 两侧同值由 `player_spawn_wiring_test` 钉住。</para>
+        /// <para>🔁 2026-11-12(P1-b2):`BootRoot` 原先自带一份 `new Vector3(0f, 1f, 0f)` 字面量
+        /// —— 真包走查实测玩家出生在 `(0,0,0)`(区外不可走格)。本属性即那次「三处字面量各自漂移」
+        /// 的收口。</para>
+        /// </summary>
+        public static WorldPos SpawnCell => WorldSpawnCell;
+
+        /// <summary>骨架里所有 `Tent` 槽的格(装配期扫一次;确定性序 = `(X, Z)` 升序)。</summary>
+        /// <remarks>扫一次而不是每拍扫:骨架声明在运行期不可变,只有**占用状态**会变。</remarks>
+        private static WorldPos[] TentSlotCells(World world)
+        {
+            var cells = new List<WorldPos>();
+            foreach (WorldPos p in world.SlotCatalog.GetAllSlotPositions())
+            {
+                if (world.SlotCatalog.TryGetSlot(p, out BuildSlot slot) && slot.Allows(SlotType.Tent))
+                    cells.Add(slot.Position);
+            }
+            cells.Sort((a, b) => a.X != b.X ? a.X.CompareTo(b.X) : a.Z.CompareTo(b.Z));
+            return cells.ToArray();
+        }
+
+        /// <summary>给定格集合里是否有任一已被占用(帐篷建成 = 任一 Tent 槽被占)。</summary>
+        private static bool AnySlotOccupied(World world, WorldPos[] cells)
+        {
+            for (int i = 0; i < cells.Length; i++)
+                if (world.IsSlotOccupied(cells[i])) return true;
+            return false;
+        }
+
         /// <summary>拾取宽容半径(整数格,Chebyshev;S23-6 装配期常量,实值归数值轮)。</summary>
         private const int PickToleranceCells = 1;
 
@@ -529,9 +561,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 那不是投放门能判的对象,而下游 9 的「病种不在注册表内」fail-loud 会接手。
             Func<int, bool> isDiseaseAdmissible = admission.DiseaseAdmissible(registryById);
 
+            // ── 剧情阶段门:帐篷建成前不产病人(用户 2026-11-12 裁定「甲」)─────────
+            // 判据 = 世界骨架里**任一** `Tent` 槽已被占用(`World.IsSlotOccupied`)。
+            // ⚠️ **不能**用 `isInClinic`:甲案把 18 槽整体平移进营地且 `baked_initial` 逐槽保持
+            //   ⇒ 外壳 / 门 / 面板**开档即在** ⇒ `isInClinic` 开局即真,判不出「帐篷建了没」。
+            // ⚠️ 槽位集合在装配期**一次性**扫出(骨架不可变),占用状态**每拍现读**。
+            // ⚠️ 没有 Tent 槽(合成世界夹具 / `world == null`)⇒ `null` = **不设门**,
+            //   与接线前逐位相同 ⇒ 既有夹具零改动。
+            WorldPos[] tentSlots = world == null ? Array.Empty<WorldPos>() : TentSlotCells(world);
+            Func<bool> isTentBuilt = tentSlots.Length == 0
+                ? null
+                : () => AnySlotOccupied(world, tentSlots);
+
             var patientDriver = new PatientAppearedDriver(
                 spawner, presence, resolvedRegistry, registryIndex: registryIndex,
-                admit: admitEntry);
+                admit: admitEntry, canSpawn: isTentBuilt);
 
             // ── 病例开账写者 + 驱动(sprint-05 T1.2;🔁 2026-11-02 改为玩家动作驱动)──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
@@ -796,8 +840,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 链上的 `canSpawnPatient` **保留**(防御):两处判据同源于
                 //    `PatientAdmissionPolicy`,分叉即说明装配不一致 —— 那时链会响亮拒。
                 Func<int, bool> requiresPatient = EventPoolPatientSpawner.RequiresPatient(eventPool);
-                Func<int, bool> canSpawnPatient =
+                Func<int, bool> poolCanSpawn =
                     EventPoolPatientSpawner.CanSpawnPatient(eventPool, isDiseaseAdmissible);
+                // 🔁 2026-11-12(P1-b2 · 用户裁定「甲」):叠加**剧情阶段门** —— 与病人出现驱动
+                //    (`PatientAppearedDriver.canSpawn`)同一份判据 ⇒ 两条产病人路径不会一条开一条关。
+                Func<int, bool> canSpawnPatient = key =>
+                    (isTentBuilt == null || isTentBuilt()) && poolCanSpawn(key);
                 Func<int, bool> canProduceKey = key => !requiresPatient(key) || canSpawnPatient(key);
 
                 // 档 → 加权候选集。`HistoryMult ≡ 1`(P0 无 `HIST_W` 表,规则九;见 `EventWeighting`)。

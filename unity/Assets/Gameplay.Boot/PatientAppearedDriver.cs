@@ -77,6 +77,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly DiseaseRegistryEntry[] _rotation;
         /// <summary>投放资格判据(T4/T5)。<c>null</c> = 未接线 ⇒ 全部放行(与接线前逐位相同)。</summary>
         private readonly Func<DiseaseRegistryEntry, PatientDrawDecision> _admit;
+
+        /// <summary>
+        /// **剧情阶段门**(用户 2026-11-12 裁定「甲」):`null` = 不设门(与接线前逐位相同)。
+        /// <para>序章:病人只应在**帐篷建成之后**出现(`campaign-arc.md` 序章 —— 「十七个
+        /// 看着你的人」发生在建帐篷之后)。真包走查实测:无此门时开局 3 s 内就刷出 2 个病人。</para>
+        /// </summary>
+        private readonly Func<bool> _canSpawn;
         /// <summary>下一轮从哪一格开始扫(落选时停在原位,由下一次重新扫)。</summary>
         private int _rotationCursor;
         private long _lastSpawnTick = -1;
@@ -95,7 +102,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         public PatientAppearedDriver(PatientSpawner spawner, IPresenceWriter presence,
                                       IReadOnlyList<DiseaseRegistryEntry> registry,
                                       int registryIndex = 0,
-                                      Func<DiseaseRegistryEntry, PatientDrawDecision> admit = null)
+                                      Func<DiseaseRegistryEntry, PatientDrawDecision> admit = null,
+                                      Func<bool> canSpawn = null)
         {
             _spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
@@ -113,6 +121,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             for (int i = 0; i < registry.Count; i++)
                 _rotation[i] = registry[(registryIndex + i) % registry.Count];
             _admit = admit;
+            _canSpawn = canSpawn;
         }
 
         /// <summary>
@@ -124,6 +133,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             if (tick < 0)
                 throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
+
+            // 🔁 2026-11-12(P1-b2 · 用户裁定「甲」):剧情阶段门。放在最前且**不推进**
+            //    `_lastSpawnTick` —— 帐篷建成后的第一个 tick 就会立刻产病人(`firstTick` 分支),
+            //    不会因为「等门期间 tick 一直涨」而多等一个 `SpawnIntervalTicks`。
+            if (_canSpawn != null && !_canSpawn()) return;
+
             if (tick == _lastSpawnTick) return;
 
             // B 案(2026-10-10 用户裁定):首 tick 即 spawn 一个 —— 把「有病人在场」的可见性

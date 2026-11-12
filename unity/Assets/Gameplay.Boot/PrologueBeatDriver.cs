@@ -1,0 +1,157 @@
+// 序章节拍驱动 —— D1 的骨架(2026-11-13)。
+//
+// 权威来源:
+//   `design/levels/prologue-beat-script.md`(22 拍 · 每拍的触发与完成判据)
+//   `design/gdd/content/campaign-arc.md` §序章(2026-11-13 重写版)
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// 本类补的是什么
+// ─────────────────────────────────────────────────────────────────────────────
+// 此前项目里**没有任何「玩家走到某处 ⇒ 播一段叙事」的机制**:
+//   · 48 教学链(`TutorialTrigger`)只吃**事件流事实**(`predicateKind` = `EventKind` 成员名),
+//     空间与时间都不在它的谓词闭集里;
+//   · 52 随机事件是**掷骰**驱动 ⇒ 不可复现,不能承载脚本节拍(重放会得到另一条剧情)。
+// ⇒ 序章里靠「走到某处」的 8 拍(钟楼刻字 / 告示 / 登记簿 / 那一夜 …)没有任何载体。
+// 本类就是那个载体:**条件(空间 / 前置拍)⇒ 一次性动作(一行字幕)**。
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// 边界(三条硬线)
+// ─────────────────────────────────────────────────────────────────────────────
+// ① **不写三流**:只读玩家格与已完成集,输出字幕 —— 承 ADR-019 §三(只读消费者)。
+// ② **不进 sim 程序集**:`Sim` / `Sim.Contracts` 引用集一字不改(门 A 不受影响)。
+// ③ **只管「该不该显示」**:不冻结输入、不切相机、不推进时间 —— 那些归 N3(过场演出)。
+//    本类若开始管这些,就会长成第二个 `SkeuoRuntimeDriver`,而两者的时序不久即分家。
+
+using System;
+using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.UI.Skeuomorphic;   // ISubtitleSink / SubtitleLineData
+using DaYiJingCheng.Sim.Contracts;               // WorldPos
+
+namespace DaYiJingCheng.Gameplay.Boot
+{
+    /// <summary>一个叙事节拍:条件成立时**一次性**播一行字幕。</summary>
+    public readonly struct PrologueBeat
+    {
+        /// <summary>节拍 id(与节拍脚本的编号一致,如 `P1-02`;非空、全局唯一)。</summary>
+        public readonly string Id;
+
+        /// <summary>触发条件(**每 tick 求值一次**;不得有副作用 —— 会被反复调用)。</summary>
+        public readonly Func<bool> When;
+
+        /// <summary>前置节拍 id(`null` = 无前置)。前置未触发时本拍**不求值**。</summary>
+        public readonly string Requires;
+
+        /// <summary>要播的字幕;空串 = 本拍只有状态(不显示)。</summary>
+        public readonly string Narration;
+
+        /// <summary>构造一拍。</summary>
+        public PrologueBeat(string id, Func<bool> when, string narration, string requires = null)
+        {
+            if (string.IsNullOrEmpty(id)) throw new ArgumentException("节拍 id 不得为空", nameof(id));
+            Id = id;
+            When = when ?? throw new ArgumentNullException(nameof(when));
+            Narration = narration ?? string.Empty;
+            Requires = requires;
+        }
+    }
+
+    /// <summary>
+    /// 序章节拍驱动:每 tick 推进一格,条件成立即播一行字幕;一条在播时不叠加。
+    /// </summary>
+    /// <remarks>
+    /// <para>⚠️ **为什么串行**(一条在播时不触发下一拍):`ISubtitleSink.Show` 是**替换**语义,
+    /// 同时触发两拍会让前一句来不及被读到就消失。串行也让「字幕顺序」与节拍表顺序**恒等**,
+    /// 走查时读日志就能还原玩家看到过的顺序。</para>
+    /// <para>⚠️ **为什么每个 tick 只放一拍**:同一 tick 放两拍会退化成「后一拍覆盖前一拍」,
+    /// 与串行约束自相矛盾。</para>
+    /// </remarks>
+    public sealed class PrologueBeatDriver
+    {
+        /// <summary>一行字幕的默认停留时长(tick;20 Hz 下 = 5 s)。</summary>
+        public const int DefaultNarrationTicks = 100;
+
+        /// <summary>旁白的说话人栏(P0 无配音,留空)。</summary>
+        public const string NarratorSpeaker = "";
+
+        private readonly IReadOnlyList<PrologueBeat> _beats;
+        private readonly Func<WorldPos> _playerCell;
+        private readonly ISubtitleSink _subtitles;
+        private readonly int _narrationTicks;
+        private readonly HashSet<string> _fired = new HashSet<string>(StringComparer.Ordinal);
+        private long _lastTick = -1;
+        private string _showingId;
+        private long _hideAtTick = -1;
+
+        /// <summary>构造。</summary>
+        /// <param name="beats">节拍表(声明序 = 字幕的优先序)。</param>
+        /// <param name="playerCell">玩家当前逻辑格(每 tick 读;不得缓存 —— 玩家会走)。</param>
+        /// <param name="subtitles">字幕接收口(42 侧 `SubtitleLineView`)。</param>
+        /// <param name="narrationTicks">单行停留 tick 数(默认 100 = 5 s)。</param>
+        public PrologueBeatDriver(IReadOnlyList<PrologueBeat> beats,
+                                  Func<WorldPos> playerCell,
+                                  ISubtitleSink subtitles,
+                                  int narrationTicks = DefaultNarrationTicks)
+        {
+            _beats = beats ?? throw new ArgumentNullException(nameof(beats));
+            _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
+            _subtitles = subtitles ?? throw new ArgumentNullException(nameof(subtitles));
+            if (narrationTicks <= 0)
+                throw new ArgumentOutOfRangeException(nameof(narrationTicks), narrationTicks,
+                    "停留时长须 > 0 tick —— 0 会让字幕在同一个 tick 里显示又清空(玩家永远看不见)");
+            _narrationTicks = narrationTicks;
+        }
+
+        /// <summary>已触发的拍数。</summary>
+        public int FiredCount => _fired.Count;
+
+        /// <summary>当前正在显示字幕的拍 id(`null` = 无字幕)。</summary>
+        public string ShowingId => _showingId;
+
+        /// <summary>玩家格(供节拍表的条件闭包使用;与驱动内部同一份来源)。</summary>
+        public WorldPos PlayerCell => _playerCell();
+
+        /// <summary>某拍是否已触发。</summary>
+        public bool HasFired(string id) => _fired.Contains(id);
+
+        /// <summary>tick 边沿推进。</summary>
+        /// <exception cref="ArgumentOutOfRangeException">`tick` 为负。</exception>
+        public void OnTickEdge(long tick)
+        {
+            if (tick < 0)
+                throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
+            if (tick == _lastTick) return;
+            _lastTick = tick;
+
+            // ① 到点清字幕 —— 清完**本 tick 不再播新拍**:同一 tick 里 Hide + Show
+            //    会让字幕先空一帧再出现(闪烁),而且「一拍一 tick」的节奏会被清屏那拍吃掉。
+            if (_showingId != null && tick >= _hideAtTick)
+            {
+                _subtitles.Hide();
+                _showingId = null;
+                _hideAtTick = -1;
+                return;
+            }
+
+            // ② 一条在播 ⇒ 本 tick 不触发新拍(替换语义会让前一句看不见)
+            if (_showingId != null) return;
+
+            // ③ 按声明序找第一个满足条件的未触发拍;本 tick 只放一拍
+            for (int i = 0; i < _beats.Count; i++)
+            {
+                PrologueBeat beat = _beats[i];
+                if (_fired.Contains(beat.Id)) continue;
+                if (beat.Requires != null && !_fired.Contains(beat.Requires)) continue;
+                if (!beat.When()) continue;
+
+                _fired.Add(beat.Id);
+                if (!string.IsNullOrEmpty(beat.Narration))
+                {
+                    _subtitles.Show(new SubtitleLineData(NarratorSpeaker, beat.Narration));
+                    _showingId = beat.Id;
+                    _hideAtTick = tick + _narrationTicks;
+                }
+                return;
+            }
+        }
+    }
+}

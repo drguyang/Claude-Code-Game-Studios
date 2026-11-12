@@ -65,5 +65,30 @@ namespace DaYiJingCheng.Tests.LevelTool
                 $"出生格 ({assemblyCell.X},0,{assemblyCell.Z}) 在几何产物里**不可走** —— " +
                 "玩家一出生就掉出世界 / 或撞上阻挡");
         }
+
+        /// <summary>
+        /// `BootRoot` 的初始摆位**引用单一出处**,不得再写字面量。
+        /// <para>⚠️ 背景(真包走查实测 2026-11-12):出生点原有**三处**字面量
+        /// —— `CompositionRoot.WorldSpawnCell` / `PlayerController.SpawnPosition` /
+        /// `BootRoot` 的 `Teleport(new Vector3(0f, 1f, 0f))`。前两处改了、第三处漏改
+        /// ⇒ 玩家出生在 `(0,0,0)`(区外不可走格),走查第 1 步直接不达标。
+        /// 本条钉的就是「第三处不存在」—— 它拿不到反射面(方法内字面量),只能扫源码。</para>
+        /// </summary>
+        [Test]
+        public void test_bootRoot_referencesSingleSpawnSource_noHardcodedOrigin()
+        {
+            string repoRoot = System.IO.Path.GetFullPath(
+                System.IO.Path.Combine(UnityEngine.Application.dataPath, "..", ".."));
+            string path = System.IO.Path.Combine(
+                repoRoot, "unity", "Assets", "Gameplay.Boot", "BootRoot.cs");
+            Assert.IsTrue(System.IO.File.Exists(path), "找不到 BootRoot.cs:" + path);
+
+            string text = System.IO.File.ReadAllText(path);
+
+            Assert.That(text, Does.Not.Contain("Teleport(new Vector3(0f, 1f, 0f))"),
+                "`BootRoot` 又在写字面量出生点了 —— 它会与 `CompositionRoot.SpawnCell` 漂移");
+            Assert.That(text, Does.Contain("CompositionRoot.SpawnCell"),
+                "`BootRoot` 的初始摆位须引用 `CompositionRoot.SpawnCell`(单一出处)");
+        }
     }
 }

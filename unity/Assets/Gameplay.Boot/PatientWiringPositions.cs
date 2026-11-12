@@ -30,10 +30,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         public static int Count => Cells.Length;
 
         /// <summary>两个内角 —— 分居医馆对角的两个角落。</summary>
+        /// <remarks>
+        /// 🔁 **2026-11-12(P1-b2)**:原值 `(1,0,14)` / `(14,0,1)` 属于 P0 16×16 医馆;
+        /// 序章换绑后 `(14,0,1)` 落在**区外不可走格**(`walkable = 0`),真包走查实测
+        /// 病人 #2 站在那里。现值 = 营地帐篷 `(108,16)` 两侧的空格 —— 同时满足
+        /// 「可走」「非建造槽」「非容器格」(三者均以烘焙产物为准逐格核过)。
+        /// <para>笔架:**病人只应在帐篷建成之后出现**(用户 2026-11-12 裁定「甲」)——
+        /// 那道门不在本类,在 `PatientAppearedDriver` 的 `canSpawn` 与 52 的
+        /// `canSpawnPatient`(见 `CompositionRoot`)。本类只管「站哪」。</para>
+        /// </remarks>
         private static readonly WorldPos[] Cells =
         {
-            new WorldPos(1, 0, 14),
-            new WorldPos(14, 0, 1),
+            new WorldPos(106, 0, 15),
+            new WorldPos(110, 0, 20),
         };
 
         /// <summary>第 <paramref name="ordinal"/> 个病人的格(按上限取模,永不越界)。</summary>

@@ -122,6 +122,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 与 <see cref="_cueMarks"/> 同序:装配前构造(它是 `Assemble` 的入参),
         /// 装配后挂 UI 根。**不挂**则「屏幕上有字幕」这条判据在运行期不存在。</para></summary>
         private DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineView _subtitle;
+
+        /// <summary>序章节拍驱动(2026-11-13 · D1):条件成立 ⇒ 播一行字幕。</summary>
+        /// <remarks>⚠️ 在玩家生成**之后**创建 —— 它的判据读玩家格,玩家不存在时无从判。</remarks>
+        private PrologueBeatDriver _prologueBeats;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -733,8 +737,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.Encoder,
                 actorId);
 
-            // 落到世界原点上方 1 m(CharacterController 需落地;落地表现后续 PlayMode 验)。
-            _player.Teleport(new Vector3(0f, 1f, 0f));
+            // 落到出生格上方 1 m(CharacterController 需落地;落地表现后续 PlayMode 验)。
+            // 🔁 2026-11-12(P1-b2):由硬编码 `(0,1,0)` 改为**单一出处** `CompositionRoot.SpawnCell`
+            //    —— 序章换绑后原点落在区外不可走格;真包走查实测玩家出生在 (0,0,0)、寸步难行。
+            //    这是「三处出生点字面量各自漂移」的第三处(前两处见 CompositionRoot / PlayerController)。
+            WorldPos spawnCell = CompositionRoot.SpawnCell;
+            _player.Teleport(new Vector3(spawnCell.X, spawnCell.Y, spawnCell.Z));
+
+            // ── 序章节拍(2026-11-13 · D1)──────────────────────────────────
+            // 玩家格 + 字幕 ⇒ 「走到某处 ⇒ 播一句」。本段只接第一段的前五拍
+            // (P1-01 … P1-05),理由见 `PrologueBeats` 文件头。
+            // ⚠️ 不冻结输入、不切相机 —— 那是过场演出(N3)的事,不是节拍驱动的。
+            _prologueBeats = new PrologueBeatDriver(
+                PrologueBeats.BuildFirstAct(() => _player != null ? _player.Cell : default),
+                () => _player != null ? _player.Cell : default,
+                _subtitle);
 
             // ── 4.5. 玩家交互输入驱动(sprint-07 S2):E 查体 / F 急救,每帧由 Update 转发 ──
             // 🔁 2026-10-31 规则七方向②接线:`ModalGate` 此前**生产零构造**(缺 42 侧那半个门)
@@ -3053,6 +3070,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 _services.PatientAppearedDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
+
+            // 序章节拍(2026-11-13 · D1):同样只在本帧真推进 tick 时推进 ——
+            // 字幕的停留时长以 tick 计,拿渲染帧推进会让高帧率下的字幕一闪即过。
+            if (_tickDriver.CurrentTick > tickBefore && _prologueBeats != null)
+                _prologueBeats.OnTickEdge(_tickDriver.CurrentTick);
 
             // 🔁 2026-11-02 · 开册入口轮(结清 `TD-casebook-01`):**此处不再自动开案**。
             //   原为 `CaseOpenedDriver.OnTickEdge(tick)` —— 每 tick 对在场病人自动立案,
