@@ -1,9 +1,10 @@
 # Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
-> 🔁 **2026-11-12 当前状态指针**:本文件是**追加式日志**,最新状态在**文末「第 34 轮」**。
+> 🔁 **2026-11-12 当前状态指针**:本文件是**追加式日志**,最新状态在**文末「第 35 轮」**。
 > 上方标题是 **2026-10-25 那一轮的历史快照**,**不作现值**。
-> 一句话现值:3D 试点首轮已跑(4 件资产 + Unity 引擎实测 + 减面曲线),**试点不判 PASS**;
-> P0 场景已由 1 张改为 **3 张**;两份资产 spec 已落盘;工作树干净(四笔提交见第 34 轮)。
+> 一句话现值:3D 试点首轮已跑(4 件资产 + 引擎实测 + 减面曲线),**试点不判 PASS**;
+> **3D 面数门已落地并证明会红**(探针轮 Failure);MCP for Blender 已装并登记;
+> P0 场景已由 1 张改为 **3 张**;两份资产 spec 已落盘。
 
 ## 2026-10-29 · `TD-audio-109` 第二半按账面滞后结案(批 D,第 7 例)
 
@@ -18614,3 +18615,45 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   §8.10.6.5 只是规格);④ 角色须人工重拓扑(人日活);⑤ LOD / 碰撞未建;
   ⑥ 关卡工具的五份世界输入未按「三场景」重导出(七里路尚无 POI,52 的 `spawn_anchor` 无处落)。
 - **恢复清单**:断墙清理 → 角色重拓扑 → 建面数门(现已有 `budget_tier` 可读)。
+
+### 第 35 轮(2026-11-12 · 3D 面数门落地 + MCP for Blender)
+
+- **用户指令链**:「清断墙」→「建面数门」→「安装 blender-mcp 服务,晚点做绑骨/权重/运动规律」→
+  「登记,fetch 也顺手修了」→「提交」。
+- **面数门(实现 + 证明)**:
+  - `PolyBudgetGates.cs`(新)· 读 spec 的 `budget` 块(单一真源)· **8 条判据**
+    (family 闭集 / tier / hero 只对建筑模块 / 每场景 hero ≤3 / 三角面 ≤ 上界 /
+    声明 asset 不存在即红 / 重复声明即红 / 零声明即红)。
+  - `asset: pending` **只记未测,不算通过**;声明 / 实测 / 未测三数打进构建日志。
+  - 接进 `AssemblyGates.RunAll`(菜单 / reload / 构建前三处共用)。⚠️ 首版误接
+    `RunMenu`,`gate_wiring_manifest_test` 当场报「RunAll 掉线 / RunMenu 未声明」——
+    **接线测试自己抓出来的**,不是人看出来的。
+  - 夹具 **15/15**(首跑 14/15:测试字面量写 `"8001"` 而报文是 `"8,001"`,改断言不改门)。
+  - **探针轮**:插 `[PROBE]` → `Build Finished, Result: Failure`,失败门组「3D 面数」;
+    还原 SHA-256 `df1f1c0e…` 逐字节一致。
+  - 干净构建 `Success`,日志 `声明 2 / 实测 0 / 未测 2`。
+  - 全量 EditMode `7468/7431/0/37` @ `2026-11-12T05:11:52Z` · `831ad706`+工作树。
+  - 证据原件 `production/qa/evidence/impl-poly-budget-gate-2026-11-12.md`。
+- **MCP for Blender**:
+  - `blender-mcp` 已更名 `mcp-for-blender`(旧名兼容包装)。装了 `mcp-for-blender v2.2.7`
+    (`uv tool`,清华源)+ 插件 `~/.config/blender/4.5/scripts/addons/blender_mcp.py`
+    (309,487 B,sha256 `a7b3873a…`),已 enable + `save_userpref`(`check` = (True, True))。
+  - MCP 注册(user 级):`claude mcp add -s user blender -- ~/.local/bin/mcp-for-blender`
+    ⇒ `✔ Connected`。冒烟:GUI 起服务后 `127.0.0.1:9876` 可连(`PORT_OK`),进程已清理。
+  - ⚠️ **只在 GUI 模式可用**:插件在 `blender -b` 下主动拒绝(源码原话
+    「commands would never execute」)。本机无 `xvfb-run`,`DISPLAY=:0` 可用。
+  - 用途:后期**绑骨 / 权重 / 动画**的脚本化 bpy(脚本可入库可重跑;手点不可复现)。
+- **fetch MCP 修复(两层病因)**:
+  - ① 配置层:`command` 字段是**一个 NBSP(U+00A0)**,`npx` 被塞进 `args`
+    ⇒ `ENOENT: " "`。用 `claude mcp` 重建配置(不手改 JSON)。
+  - ② 启动层:npm 指向**失效本地代理** `127.0.0.1:7897` ⇒ `ECONNREFUSED`;
+    备份 `~/.npmrc` → 临时注释两行 → 全局装 `@kazuph/mcp-fetch@1.6.3` → **立即还原**(实测两行都在)。
+  - 最终改为**直调 `node …/dist/index.js`**,绕开 npx 的 registry 检查 ⇒ `✔ Connected`。
+  - ⚠️ 遗留:命令写死 nvm `v22.18.0` 的 node 绝对路径,换 Node 版本会坏。
+- **提交**:`a4e434aa`(feat(gates) 面数门 + 证据)· `d06ee50b`(docs(art) 登记 MCP + §8.10.6.5 改判)。
+  工作树干净。
+- **未闭项**:① 三角面**实测 0 条**(两件 spec 均 `pending`;真实资产接入时须补
+  「真 FBX → 计数 → 比较」夹具);② 面数门只覆盖资产声明面,未覆盖 LOD / 碰撞 / UV 重叠;
+  ③ Blender MCP 工具需**新会话**才出现在工具列表;④ `TD-art-01`(布边 alpha 卡片)仍 open。
+- **恢复清单**:接 3D 资产进工程 → 把 spec 的 `asset: pending` 换成真路径 → 补计数夹具 →
+  然后才谈绑骨。
