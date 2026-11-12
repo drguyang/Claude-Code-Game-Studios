@@ -1240,10 +1240,15 @@ anim_[actorclass]_[action]_[variant]
 > ⚠️ 「有门」的自述须给 `file:line` + **一条能证明它会红的命令**;
 > 注释里写「有校验」不算门(承 `coding-standards.md` §Review Evidence Standards)。
 
-> 🔴 **2026-11-12 实测:本表目前没有可执行门** —— `unity/Assets/Editor.Tools.Gates/` 下
-> **零** mesh/面数相关门(`grep -rn "vertexCount\|sharedMesh\|GetIndexCount" …/*.cs` 零命中)。
-> ⇒ §8.5 的档位表今天**只是一份规格**,**不是已生效的门**;按 `NOT-RUN` 记,
-> 不得以「表里有一行」当作已实现。建门归 Tooling 层,落地时须附「能证明会红」的夹具。
+> ✅ **2026-11-12:门已落地(原文「本表没有可执行门」作废,就地改写)** ——
+> `unity/Assets/Editor.Tools.Gates/PolyBudgetGates.cs`,接入 `AssemblyGates.RunAll`
+> (菜单 / reload / 构建前门**三处共用**)。
+> **会红的命令**:
+> `Unity -batchmode -quit -projectPath unity -executeMethod DaYiJingCheng.EditorTools.Bake.PlayerBuildCli.Build`
+> 探针轮实测 **`Build Finished, Result: Failure`**,失败门组 = **`3D 面数`**;
+> 还原后 SHA-256 逐字节一致(证据原件 `production/qa/evidence/impl-poly-budget-gate-2026-11-12.md`)。
+> ⚠️ **输入 = 各资产 spec 的 `budget` 块**;今日两件均 `asset: pending`
+> ⇒ 日志为 **`声明 2 / 实测 0 / 未测 2`** —— **三角面尚未被真正测量**,这不是通过。
 
 #### 8.10.6.6 可复现与版本
 - ComfyUI 版本、节点包版本、模型哈希、工作流 JSON、种子**全部入档**;
@@ -1424,7 +1429,7 @@ PY
    故 §8.10.6.6 的「同种子重跑」对该行**不适用**,改为记录「同一输入的 N 次重跑差异」;
 3. **数据出境**须逐图判断:只有用户明示同意上传的概念图可提交。
 
-#### 8.10.6.12 DCC 工具版本登记(2026-11-11 · 安装即锁)
+#### 8.10.6.12 DCC 工具版本登记(2026-11-11 · 安装即锁 · 含其自动化桥)
 
 > **规则**:DCC 工具**不进运行期、不进构建、不占系统编号**(系统号只发给运行期系统与
 > 项目自有 Tooling 代码,承 ADR-022 口径);它只在作者期存在。**安装即锁版本**;
@@ -1433,6 +1438,18 @@ PY
 | 工具 | 版本 | 构建 | 安装路径 | 包 SHA-256 | 来源 | 登记日 |
 |---|---|---|---|---|---|---|
 | **Blender** | **4.5.16 LTS**(build date 2026-11-10, commit `3f6797307da5`) | Linux x64 | `~/opt/blender-4.5.16-linux-x64/`(PATH:`~/.local/bin/blender` → 该目录的符号链接) | `23432b064977908beb1ab4b7f32f024e7331105c875c187dce002aff84b10c11`(tarball) | `https://mirrors.nju.edu.cn/blender/blender-release/Blender4.5/blender-4.5.16-linux-x64.tar.xz`;校验和取自同目录 `blender-4.5.16.sha256` | 2026-11-11 |
+| **MCP for Blender**(编辑期自动化桥) | `mcp-for-blender` **v2.2.7**(`blender-mcp` v2.0.0 = 兼容包装) · 插件 `blender_mcp.py` | — | 插件:`~/.config/blender/4.5/scripts/addons/blender_mcp.py`(309,487 B);MCP 服务:`~/.local/bin/mcp-for-blender` | `a7b3873aed8405bd2785292ab9b916a4392129f82a02a336b62ac14aa121828b`(插件) | PyPI(清华源)· `uv tool install mcp-for-blender` | 2026-11-12 |
+
+> **MCP for Blender 的定位**:它是 **DCC 的自动化桥**(MCP 客户端 ↔ Blender 的 bpy socket),
+> **不是 DCC 本体**,不进运行期、不进构建、不占系统编号 —— 与 Blender 本体同一口径。
+> **用途**:后期**绑骨 / 权重 / 动画**的脚本化执行。脚本可入库、可重跑、可对比;
+> 手点出来的绑定不可复现,这正是它值得登记的理由。
+>
+> ⚠️ **只在 GUI 模式可用**:插件在 `blender -b` 下**主动拒绝**启动,源码原话
+> 「commands would never execute」。冒烟判据(2026-11-12 实跑):
+> `blender --python <起服务脚本>` 后 `127.0.0.1:9876` 可建立连接(输出 `PORT_OK`)。
+> 无显示环境须装 `xvfb-run`(本机未装,`DISPLAY=:0` 可用)。
+> ⚠️ **升级即改哈希**:`uv tool upgrade mcp-for-blender` 会同时更新插件 ⇒ 须重登记本行。
 
 **冒烟判据(已跑,2026-11-11)**:
 
