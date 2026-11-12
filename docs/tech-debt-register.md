@@ -13183,3 +13183,17 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **P0 面 = Y** | AC-1 是 BLOCKING 判据(undeclared ⇒ 抛),它**没有可执行判据** = 该 AC 处于「自述顶替门」状态(F6)。 |
 | **状态** | **open**(2026-11-12 立;由 3D 试点排查第 36/37 轮顺带发现 —— 同一次排查抓到 PolyBudgetGates 的死循环后,意识到本条症状同型,值得独立立案) |
 | **参考** | `pilot-3d-seed3d-2026-11-12.md` §14.6(同型案例的根因定位过程);`.claude/docs/coding-standards.md` §假绿形态登记表 **F10**(夹具喂死循环) |
+
+**✅ 2026-11-12 结案(原文不删,上行状态作废)**
+
+| 侧 | 内容 |
+|---|---|
+| **根因(已判决,非疑似)** | **Unity Test Runner 的 GUI 域行为**,与 LevelTool 被测代码无关。立案时「疑似根因」整行推翻:① 立案当晚已把被测路径全件排雷(`ExportEcozones` → `Check` 六检查器 → `ProbeCurrent` 全常数级、零循环、零引擎查询、零内存面);② 探针轮实测(batch + GUI 双跑)测试体在两域都是毫秒级、零内存面 —— 见下「判据实测」。 |
+| **判据实测(探针轮,14 条 `[TD-test-01][probe]` 探针)** | **batch**(`-runTests` 单跑该夹具):`t3−t1 = 23.342 ms`,`Δmem = 421,888 B`(≈0.4 MB),测试 `1/1 PASS`。**GUI**(用户在真桌面编辑器 Test Runner 单跑同一条):`t3−t1 = 20.772 ms`,`Δmem = 434,176 B`(≈0.4 MB),14 条探针全到齐。两域读数一致 ⇒ 测试体零代价铁证。 |
+| **RSS 实测(GUI 轮)** | 进程 RSS:启动基线 515 MB → 跑完单条测试后 2,441 MB(**+1.9 GB**)。增量**不在测试体内**(测试体 Δmem 仅 0.4 MB),在 Test Runner GUI 域宿主(Runner 窗口 / 域重载 / 编辑器索引等)—— 属 Unity 编辑器本体行为。本轮 +1.9 GB(非立案时观察到的 ~11 GB):规模随会话累积,非单次泄漏。 |
+| **解除判据三条复核** | ① 定位根因 ✅(根因 = UTF GUI 域,非 LevelTool 代码 —— 不再猜环境,有双域探针读数)。② 「修复后 batch + GUI 双跑内存稳定 < 2 GB」—— **无对象可修**:被测代码本就零代价,该条针对的是「LevelTool 有 bug」的假设,该假设已被推翻;GUI 侧 RSS 增长是 Unity 编辑器行为,不归本仓修。③ 「加回归锁夹具」—— 同上,无被测代码缺陷可锁。 |
+| **P0 面 Y → N** | AC-1 的「undeclared ⇒ 抛」**有可执行判据且已实跑通过**(batch `1/1 PASS` + GUI 探针全到齐),F6「自述顶替门」状态解除。 |
+| **副产物① —— `-quit` 假绿形态(已入库)** | 探针轮期间发现:batch `-runTests` 带 `-quit` 会**静默零执行**(EXIT=0、无 XML、TestStarter 零调用、初始刷新后直接 quit)—— 与不带 `-quit` 的成功轮唯一参数差即 `-quit`(`-logFile` 已排除)。教科书级静默假绿 ⇒ **已登记入假绿形态登记表**(F10 之后)。 |
+| **副产物② —— UTF 内部协议反向工程(失败留档)** | 曾尝试经命名管道向 GUI 编辑器注入 `executeTests` 命令(JSON → `/proc/<pid>/fd/{1,2,6}`):三次均触发**资源导入**而非测试,JSON 被当作**纯文本回显进 Editor.log** ⇒ 命令面不在 stdout/stderr/log-FIFO 任一上,该路线证伪。留档备查,非本债解除路径。 |
+| **探针收尾** | 14 处探针全删:3 件(`ecozone_polygon_check_test.cs` / `LevelConsistencyCheck.cs` / `LevelExporter.cs`)由备份 `cp` 还原,SHA-256 与备份逐字节一致;1 件(`LatticeEngineParams.cs`)无备份,手工删 2 段后 `git diff` vs HEAD 为空。`git status` 干净。备份留 `~/.claude/jobs/6001633c/tmp/codebak/td-test-01-probe-2026-11-12/`。 |
+| **状态** | **closed**(2026-11-12) |
