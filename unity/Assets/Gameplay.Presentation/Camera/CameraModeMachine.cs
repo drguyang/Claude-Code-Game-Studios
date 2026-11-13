@@ -329,16 +329,41 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
     /// </summary>
     public sealed class PhysicsArmQuery : IArmCollisionQuery
     {
+        private readonly int _layerMask;
+
+        /// <summary>构造。</summary>
+        /// <param name="layerMask">碰撞层掩码;**生产须传 <see cref="CameraArmParams.CamCollideMask"/>**。
+        /// <para>🔁 2026-11-13:此前本类硬编码 `~0`(全层),既与 `CamCollideMask` 的登记白名单
+        /// 冲突(会把玩家 / 触发体一起算进遮挡 ⇒ 贴墙时相机被玩家的胶囊顶开),
+        /// 又让那个掩码守卫成了「只在校验、不在求值」的第二真源。现由调用方传入。</para></param>
+        public PhysicsArmQuery(int layerMask = ~0)
+        {
+            _layerMask = layerMask;
+        }
+
         public (bool hit, float distance) Cast(Vector3 origin, Vector3 dir, float radius, float maxDist)
         {
             // ⚠️ 显式 QueryTriggerInteraction.Ignore —— 触发体不顶相机(AC-2-15③)
             if (Physics.SphereCast(origin, radius, dir, out RaycastHit hit, maxDist,
-                                   ~0, QueryTriggerInteraction.Ignore))
+                                   _layerMask, QueryTriggerInteraction.Ignore))
             {
+                // 诊断读数(2026-11-13):臂长塌到下限时,「是谁挡的」是唯一能定位的量 ——
+                // 截图看不出是墙、地面还是某个误入该层的物体。只读,不参与判定。
+                LastHitName = hit.collider != null ? hit.collider.name : "(无 collider)";
+                LastOrigin = origin;
+                LastHitPoint = hit.point;
                 return (true, hit.distance);
             }
+            LastHitName = null;
             // 未命中 ⇒ (false, 0);调用方按 GDD F-2-4 主用例取 d_raw := ARM_LEN
             return (false, 0f);
         }
+
+        /// <summary>最近一次命中的碰撞体名(`null` = 未命中)。诊断用,不参与判定。</summary>
+        public string LastHitName { get; private set; }
+        /// <summary>最近一次查询的起点(诊断用)。</summary>
+        public Vector3 LastOrigin { get; private set; }
+        /// <summary>最近一次命中的世界点(诊断用)。</summary>
+        public Vector3 LastHitPoint { get; private set; }
     }
 }

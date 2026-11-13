@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                   PresenceRegistry presence, string channelState,
                                   int factCount, int seededSteps,
                                   string modal = null, string cameraMode = null,
-                                  string routed = null, string beat = null)
+                                  string routed = null, string beat = null, string cam = null)
         {
             var sb = new StringBuilder(160);
             sb.Append("[tutorialdiag] t=").Append(UnityEngine.Time.realtimeSinceStartup.ToString("F2"));
@@ -139,6 +139,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    实测「无字幕 82 / 有字幕 222」不能与「一片深色地面 342」区分)。
             //    本列只读驱动现状,**不参与任何逻辑**;不带 `-tutorialdiag` 时整段不进。
             sb.Append(" 节拍=").Append(beat ?? "未装配");
+            // 相机读数(2026-11-13):`臂=` = 避障后的有效臂长,`pY=` = 相机世界高度。
+            // 「画面贴地 / 钻墙」在截图上无法区分是臂长错、pitch 错还是位置错。
+            sb.Append(" 相机=").Append(cam ?? "未装配");
             UnityEngine.Debug.Log(sb.ToString());
         }
 

@@ -38,6 +38,7 @@ using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
 using DaYiJingCheng.Gameplay.Presentation.Tutorial;   // TutorialNarrationRow(走查仪表逐条复查口述)
+using DaYiJingCheng.Gameplay.Presentation.World;      // WorldWallGreybox(相机摇臂的世界几何层常量)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Tutorial;             // TutorialMediaIntent(同上)
 using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
@@ -72,6 +73,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         private Sim.TimeParams _timeParams;
         private PlayerController _player;
         private CameraRig _cameraRig;
+
+        /// <summary>玩家枢轴到脚底的距离(米)。`CharacterController.height = 1.8` / `center = 0`
+        /// ⇒ 枢轴在胶囊中心,脚底在 −0.9(见 `LocomotionEvaluator.LocomotionConfig`)。
+        /// <para>🔁 2026-11-13(甲案):相机轨道中心取**脚底**,不取枢轴。</para></summary>
+        private const float PlayerFeetOffset = 0.9f;
+
+        /// <summary>相机看向点相对脚底的高度(米)= 胸口高度。
+        /// <para>⚠️ 轨道中心在脚底 ⇒ 不单独抬看向点的话,相机会盯着地面。</para></summary>
+        private const float LookHeight = 1.5f;
 
         /// <summary>
         /// 39 的档位请求载体(`casebook/story-006`)。**也作 PlayMode 的观测面** ——
@@ -592,6 +602,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             var playerObject = new GameObject("Player");
             _player = playerObject.AddComponent<PlayerController>(); // RequireComponent 自动补 CharacterController
 
+            // 主角模型(2026-11-13):此前玩家**没有任何可视模型**,第三人称相机对着空气推。
+            // `local-only` 资产 ⇒ 缺席时本行只记一行日志,玩家维持不可见体积。
+            // ⚠️ 挂在玩家根下、零碰撞体、留在 Default 层(相机摇臂只查 WorldGeometry 层,
+            //    否则贴脸时相机会把玩家自己当墙)。
+            // pitchFix = 90:FBX 经 Unity 导入后模型**躺倒**(Blender 侧重新导入是站着的 ⇒ 两侧轴约定不一致)。
+            Gameplay.Presentation.Player.PlayerAvatar.Attach(playerObject.transform, pitchFixDegrees: -90f);
+
             // 玩家场景归属钉死:玩家常驻 Boot 场景 —— Phase 2 拆序第 5 步
             // `UnloadSceneAsync(World)` 不得波及玩家(ADR-023 §⑤;`new GameObject` 默认落在
             // 当前活动场景,World 刚 additive 加载后可能成为活动场景 ⇒ 须显式搬回 Boot)。
@@ -1054,6 +1071,28 @@ namespace DaYiJingCheng.Gameplay.Boot
             cameraObj.AddComponent<UnityEngine.Camera>();
             cameraObj.AddComponent<UnityEngine.AudioListener>();   // 运行时主相机 = 唯一听音点
             _cameraRig.SetModeForTest(CameraMode.Explore);
+
+            // ── 5.0a. 摇臂避障接线(story 004 · 2026-11-13)──────────────────
+            // 🔴 病因:`CameraArmSolver`(SphereCast 遮挡 + 瞬时收缩 / 阻尼回弹)与
+            //    `CameraEvaluationDriver` **全仓只有测试在构造** ⇒ 生产路径上「越肩第三人称」
+            //    只实现摆位、没实现避障;真包实测贴墙时相机穿进墙里。
+            // ⚠️ **掩码必须指得实**:`CamCollideMask` 的默认 `0b1010` 打的是第 1 / 3 层,
+            //    而世界几何此前全在 `Default(0)` ⇒ 照默认接会「接上了但永不收缩」(假阴性)。
+            //    故 `WorldWallGreybox` 把灰盒与真件统一放到 `WorldGeometry` 层(8),掩码据此。
+            // ⚠️ 数值全取 `CameraArmParams` 的**默认值**(用户 2026-11-13 指令「先按默认值接线」);
+            //    它同时经 `ValidateAll` fail-loud(空掩码 / 含角色层 / ARM_LEN ≤ 0 均抛)。
+            var armParams = new CameraArmParams
+            {
+                ArmLen = 4f,
+                ShoulderHeight = 1.5f,
+                CamRadius = 0.3f,
+                CamMinDist = 1.2f,   // 2026-11-13 用户裁定:0.5 在室内等于第一人称
+                RecoverSpeed = 4f,
+                CamCollideMask = 1 << WorldWallGreybox.WorldGeometryLayer,
+            };
+            armParams.ValidateAll();
+            var armQuery = new PhysicsArmQuery(armParams.CamCollideMask);
+            _cameraRig.BindArmSolver(new CameraArmSolver(armParams, armQuery), armParams, armQuery);
 
             // ── 5.0b. 急救档位意图的相机绑定(story-010 R-10.2 · 2026-11-02)──────
             // 10 的档位意图(Treatment / Explore)住所 = EmergencyChannelDriver,而它在本步**之前**
@@ -3188,7 +3227,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                         : "未建",
                     // 序章节拍读数(2026-11-13):真包里此前**看不见**「玩家看到过哪一句」——
                     // 字幕与场景重叠,截图暗像素数不可判。只读,不参与逻辑。
-                    _prologueBeats != null ? _prologueBeats.Summary : "未建");
+                    _prologueBeats != null ? _prologueBeats.Summary : "未建",
+                    // 相机读数(2026-11-13 · 摇臂接线):有效臂长 + 相机世界高度。
+                    // 「画面像贴地/钻墙」这类症状在截图上看不出是臂长错、pitch 错还是位置错,
+                    // 有这两个数才能定位。
+                    _cameraRig != null && _cameraRig.Camera != null
+                        ? (_cameraRig.EffectiveArmLength.ToString("F2") + "m/pY=" +
+                           _cameraRig.Camera.transform.position.y.ToString("F2") +
+                           "/hit=" + (_cameraRig.ArmHitName ?? "-") +
+                           "@" + _cameraRig.ArmHitPoint.ToString("F1") +
+                           " from " + _cameraRig.ArmCastOrigin.ToString("F1"))
+                        : "未建");
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):
@@ -3345,14 +3394,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 var cam = _cameraRig.Camera;
                 if (cam != null)
                 {
-                    Vector3 target = _player.transform.position;
+                    // 🔁 **2026-11-13(用户裁定「甲」)**:轨道中心由「胶囊中心」改为**脚底**。
+                    //    病因:此前 target = `transform.position`(胶囊中心,y = +0.9),
+                    //    而摇臂又加 `ShoulderHeight = 1.5` ⇒ 肩点 y = 2.4,**比角色头顶还高 0.6 m**
+                    //    (真包读数 `from (6.2, 2.4, 28.0)`)。改脚底后 1.5 恢复字面含义(胸口)。
+                    Vector3 target = _player.transform.position + Vector3.down * PlayerFeetOffset;
                     cam.transform.position = _cameraRig.GetCameraPosition(target);
                     // 🔁 **2026-11-01**:视线目标改走 `GetLookTarget`(倒下微倾的承载点)。
-                    //   常态下它**恒等于 `target`**(`TiltFraction == 0` ⇒ 零偏移)⇒ 行为不变;
-                    //   倒下时目标向下移 ⇒ 视线向下,**相机位置不动**。
-                    //    ⚠️ 为什么不能直接用 `LookAt(target)`:微倾若做进 pitch,相机位置会
-                    //    沿弧线**抬高**,与下沉反向抵消(图形走查实测,见 `GetLookTarget` 注)。
-                    cam.transform.LookAt(_cameraRig.GetLookTarget(target));
+                    //    ⚠️ 2026-11-13 甲案连带:轨道中心在**脚底** ⇒ 看向点必须自己抬到胸口
+                    //    (`LookHeight`),否则相机会盯着地面看,拉平后的取景又被打回俯视。
+                    cam.transform.LookAt(_cameraRig.GetLookTarget(
+                        target + Vector3.up * LookHeight));
                 }
             }
         }

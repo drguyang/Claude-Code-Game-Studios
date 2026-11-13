@@ -149,6 +149,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 go.transform.rotation = Quaternion.Euler(0f, p.YawDegrees, 0f);
                 go.transform.localScale = Vector3.one * p.Scale;
                 AddColliders(go);
+                WorldWallGreybox.ApplyWorldGeometryLayer(go);   // 相机摇臂按层查,真件须同层
                 PlacedCount++;
             }
 

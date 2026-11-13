@@ -46,6 +46,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <summary>占位底材质的 Resources 名(与病人 / 结构共用同一张资产)。</summary>
         public const string BaseMaterialResourcePath = "PatientPlaceholderMaterial";
 
+        /// <summary>世界几何所在的层(`ProjectSettings/TagManager.asset` 的 layer 8 = `WorldGeometry`)。
+        /// <para>🔁 2026-11-13(相机接线):相机摇臂的碰撞掩码是 `CameraArmParams.CamCollideMask`,
+        /// 默认 `0b1010` 打的是第 1 / 3 层 —— 而本项目的世界几何此前全在 `Default(0)`,
+        /// **默认掩码打不到任何东西** ⇒ 即使接上摇臂也永不收缩(假阴性)。故给世界几何开独立层,
+        /// 掩码从此指得实(见 `BootRoot` 的相机接线)。</para></summary>
+        public const int WorldGeometryLayer = 8;
+
+        /// <summary>把一棵子树的层设成世界几何层(渲染与碰撞的**同一个**层)。</summary>
+        public static void ApplyWorldGeometryLayer(GameObject root)
+        {
+            if (root == null) return;
+            Transform[] all = root.GetComponentsInChildren<Transform>(includeInactive: true);
+            for (int i = 0; i < all.Length; i++) all[i].gameObject.layer = WorldGeometryLayer;
+        }
+
         /// <summary>墙的色调(土灰;与病人的中性灰、结构的草木绿拉开一档)。</summary>
         public static readonly Color WallTint = new Color(0.62f, 0.60f, 0.55f);
 
@@ -134,6 +149,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             //      「看得见的墙」与「走不过去的墙」才是同一个东西。
             go.AddComponent<MeshCollider>().sharedMesh = mesh;
             _root = go;
+            ApplyWorldGeometryLayer(go);
             WallCells = cells;
             return cells;
         }
@@ -179,6 +195,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = _floorMaterial;
             go.transform.SetParent(_root.transform, false);
+            ApplyWorldGeometryLayer(go);
             FloorTiles = 1;
             return 1;
         }
@@ -222,6 +239,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             _markerMaterials.Add(mat);
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
             go.transform.SetParent(_root.transform, false);
+            ApplyWorldGeometryLayer(go);
             return 1;
         }
 

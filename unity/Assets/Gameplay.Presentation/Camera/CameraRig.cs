@@ -27,6 +27,46 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         [Header("Distance")]
         [SerializeField] private float _distance = 5f;
 
+        // ── 摇臂避障(story 004 · 2026-11-13 接线)──────────────────────────
+        // 🔴 本轮查出的形态:`CameraArmSolver`(SphereCast 遮挡 + 瞬时收缩/阻尼回弹)与
+        //    `CameraEvaluationDriver` **全仓只有测试在构造**,`CameraRig` 对它们零引用
+        //    ⇒ 生产路径上「越肩第三人称」只实现了**摆位**、没实现**避障**,
+        //    贴墙时相机直接穿进墙里(真包实测:玩家贴北墙,画面被灰盒墙糊满)。
+        // ⚠️ 未绑定(`null`)⇒ 行为与接线前**逐位一致**(62 处 EditMode 夹具直调本类)。
+        private CameraArmSolver _arm;
+        private CameraArmParams _armParams;
+        private IArmCollisionQuery _armQuery;
+
+        /// <summary>缩臂时相机相对轨道中心的**最低高度**(米)= 胸口。
+        /// <para>没有这一条,贴墙时相机会随臂长一起沉到角色脚边,镜头变成仰拍。</para></summary>
+        private const float MinCameraHeightAboveTarget = 1.2f;
+
+        /// <summary>绑定摇臂求解器(`null` = 不避障,行为同接线前)。</summary>
+        /// <param name="solver">求解器(story 004)。</param>
+        /// <param name="parameters">档位参数(组 5;数值归数值轮,本处只取默认值试跑)。</param>
+        public void BindArmSolver(CameraArmSolver solver, CameraArmParams parameters,
+                                  IArmCollisionQuery query = null)
+        {
+            _arm = solver;
+            _armParams = parameters;
+            _armQuery = query;
+            // 臂长的**唯一真源**搬到档位参数表:本类序列化字段随之对齐,
+            // 否则「求值用 4 m、调试读数显示 5 m」—— 两个数并存就是两份真源。
+            if (parameters != null) _distance = parameters.ArmLen;
+        }
+
+        /// <summary>当前生效的臂长(避障后);未绑定 ⇒ 等于序列化臂长。</summary>
+        public float EffectiveArmLength => _arm != null ? _arm.CurrentDistance : _distance;
+
+        /// <summary>最近一次遮挡命中的对象名(`null` = 未命中 / 未绑定 / 实现无此读数)。诊断用。</summary>
+        public string ArmHitName => (_armQuery as PhysicsArmQuery)?.LastHitName;
+
+        /// <summary>最近一次命中的世界点(诊断用;未命中为 `default`)。</summary>
+        public Vector3 ArmHitPoint => (_armQuery as PhysicsArmQuery)?.LastHitPoint ?? default;
+
+        /// <summary>最近一次查询的起点(诊断用)。</summary>
+        public Vector3 ArmCastOrigin => (_armQuery as PhysicsArmQuery)?.LastOrigin ?? default;
+
         // ── AC-2-06:档位与镜头效果归属(ADR-020 §六)────────────────
         // ⚠️ 效果**语义**归 8(数据表,经 ADR-014 烘焙);此处只持**渲染实现**的开关。
         //    `FirstPerson`(VR)⇒ 效果**全禁**(AC-ADR020-08)。
@@ -315,18 +355,37 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
             float cosPitch = Mathf.Cos(pitchRad);
             float sinPitch = Mathf.Sin(pitchRad);
 
-            Vector3 offset = new Vector3(
+            Vector3 dir = new Vector3(
                 Mathf.Sin(_yaw) * cosPitch,
                 sinPitch,
                 Mathf.Cos(_yaw) * cosPitch
-            ) * _distance;
+            );
+
+            // 摇臂避障:沿**同一条**方向查询,只改长度(方向归 yaw/pitch,不受避障影响)。
+            float armLen = _distance;
+            if (_arm != null && _armParams != null)
+            {
+                Vector3 shoulder = target + Vector3.up * _armParams.ShoulderHeight;
+                _arm.Step(shoulder, dir, Time.deltaTime);
+                armLen = _arm.CurrentDistance;
+            }
+
+            Vector3 offset = dir * armLen;
 
             // ── 倒下两段式 · 下沉(spec §9「先失去支撑(下沉 + 微倾)」)──────────────
             // ⚠️ **只沿世界 -Y**,不参与绕点(否则就是「绕着人转」= 视场旋转,spec §9 明禁)。
             // ⚠️ 用 `SagFraction`(0→1)乘幅度 ⇒ 相位机推进多少,位移就多少,**无速度突变**(禁甩镜)。
             Vector3 sag = new Vector3(0f, -CameraDownedDriver.SagDepth * _downed.SagFraction, 0f);
 
-            return target + offset + sag;
+            Vector3 pos = target + offset + sag;
+            // 🔁 2026-11-13(甲案连带):轨道中心在**脚底** ⇒ 臂长缩到 1.2 时相机也跟着掉到 0.6 m
+            //    —— 低于角色,变成仰拍天空(真包实测 `臂=1.20 pY=0.61`)。
+            //    ⇒ 缩臂时相机不得低于「目标 + 胸口」:贴墙时保留可用的越肩取景。
+            //    ⚠️ 只在**绑定摇臂**时生效(未绑定时行为与接线前逐位一致)。
+            if (_arm != null)
+                pos.y = Mathf.Max(pos.y, target.y + MinCameraHeightAboveTarget);
+
+            return pos;
         }
 
         /// <summary>
