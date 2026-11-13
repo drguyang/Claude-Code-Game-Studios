@@ -97,9 +97,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <param name="suppressedCells">该格是否已被真件覆盖(**覆盖则灰盒让位**;`null` = 不让位)。
         /// <para>🔁 2026-11-13(让位):真件与灰盒摆在同一格时,画面上是「灰盒挡着真件」,
         /// 而走查者会把它读成「美术不好用」。判据归 `ArtOverlay.IsCoveredByArt`(摆放表是唯一真源)。</para></param>
+        /// <param name="cellCut">该格要不要按**窗洞**拆开(`null` = 不拆)。
+        /// <para>🔁 2026-11-13(§8.11 开窗):窗台 1.10 / 窗顶 2.90,而灰盒墙是**整格通高**的
+        /// 2.6 m 体块 ⇒ 面板上开了洞,透过去看到的仍是这块灰板(0.5 m 外),读作「窗外是一堵灰墙」。
+        /// 命中时改出两块:**窗下墙**(0..y0)与**窗上墙**(y1..WallHeight),
+        /// 窗洞那一段既不渲染也不挡人 —— 但窗下那块仍在,所以走不过去。</para></param>
         /// <returns>铺出的墙体格数;材质取不到 ⇒ 0(不让半个世界凭空消失,由日志区分「没铺」)。</returns>
         public int BuildWalls(int sizeX, int sizeY, int sizeZ, int[] walkable,
-                              System.Func<int, int, bool> suppressedCells = null)
+                              System.Func<int, int, bool> suppressedCells = null,
+                              System.Func<int, int, Vector2?> cellCut = null)
         {
             DestroyAll();
             DestroyOrphanRoots();
@@ -120,9 +126,32 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                     if (!TouchesOpenCell(walkable, sizeX, sizeY, sizeZ, x, z)) continue;
                     if (suppressedCells != null && suppressedCells(x, z)) continue;
 
-                    AddBox(verts, normals, tris,
-                           new Vector3(x * MetersPerCell, WallHeight * 0.5f, z * MetersPerCell),
-                           new Vector3(0.5f * MetersPerCell, WallHeight * 0.5f, 0.5f * MetersPerCell));
+                    Vector2? cut = cellCut != null ? cellCut(x, z) : null;
+                    float cx = x * MetersPerCell;
+                    float cz = z * MetersPerCell;
+                    float half = 0.5f * MetersPerCell;
+                    if (cut.HasValue)
+                    {
+                        float y0 = Mathf.Clamp(cut.Value.x, 0f, WallHeight);
+                        float y1 = Mathf.Clamp(cut.Value.y, 0f, WallHeight);
+                        if (y0 > 0.001f)
+                        {
+                            AddBox(verts, normals, tris, new Vector3(cx, y0 * 0.5f, cz),
+                                   new Vector3(half, y0 * 0.5f, half));
+                        }
+                        if (y1 < WallHeight - 0.001f)
+                        {
+                            float h = (WallHeight - y1) * 0.5f;
+                            AddBox(verts, normals, tris, new Vector3(cx, y1 + h, cz),
+                                   new Vector3(half, h, half));
+                        }
+                    }
+                    else
+                    {
+                        AddBox(verts, normals, tris,
+                               new Vector3(cx, WallHeight * 0.5f, cz),
+                               new Vector3(half, WallHeight * 0.5f, half));
+                    }
                     cells++;
                 }
             }

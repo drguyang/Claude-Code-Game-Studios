@@ -2319,7 +2319,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                  geometryForWalls.SizeZ, geometryForWalls.Walkable,
                                                  // 让位:真件覆盖的格不再铺灰盒(否则真件被灰盒挡住,
                                                  // 而走查者会把它读成「美术不好用」)。
-                                                 ArtOverlay.IsCoveredByArt);
+                                                 ArtOverlay.IsCoveredByArt,
+                                                 // 🔁 2026-11-13(§8.11 开窗):窗洞那两格按「窗下墙 +
+                                                 // 窗上墙」拆开,否则面板上的洞后面仍是整格 2.6 m 灰板。
+                                                 InteriorWindows.CellCut);
                 int floorTiles = walls.BuildFloor(PrologueBeats.ChurchX0, PrologueBeats.ChurchZ0,
                                                   PrologueBeats.ChurchX1, PrologueBeats.ChurchZ1);
                 UnityEngine.Debug.Log(

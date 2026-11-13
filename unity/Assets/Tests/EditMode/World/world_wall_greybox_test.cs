@@ -178,6 +178,100 @@ namespace DaYiJingCheng.Tests.Unit.World
             walls.DestroyAll();
         }
 
+        /// <summary>**窗洞**:命中格由一整块拆成「窗下墙」,洞口高度以上不再有几何。
+        /// <para>🗝 立此条缘由(2026-11-13 · §8.11 开窗):面板上开洞后,若灰盒仍是整格通高,
+        /// 透过去看到的是 0.5 m 外那块 2.6 m 灰板 —— 窗读作「墙外一堵灰墙」。
+        /// 而窗下那块**必须留着**:它才是「走不过去」的那一半。</para>
+        /// <para>⚠️ 断言手法:用 `suppressedCells` 把**其余格全让位**,只留被命中的那一格 ——
+        /// 否则相邻格的角点会与这一格共用坐标,任何「按包围盒筛顶点」的写法都会把它们算进来
+        /// (首版就是这么绿的假象:其实测到的是邻格的 2.6 m)。</para></summary>
+        [Test]
+        public void test_cellCut_leavesSillBlock_andClearsAboveIt()
+        {
+            const float sill = 1.10f, head = 2.90f;   // 与 `InteriorWindows.West` 同量级
+            var walls = new WorldWallGreybox(_mat);
+            int cells = walls.BuildWalls(3, 1, 3, Grid(3, 3, (1, 1)),
+                                         suppressedCells: (x, z) => !(x == 1 && z == 0),
+                                         cellCut: (x, z) => (x == 1 && z == 0)
+                                             ? new Vector2(sill, head)
+                                             : (Vector2?)null);
+
+            Assert.That(cells, Is.EqualTo(1), "只留被命中的那一格(其余让位)");
+
+            var mesh = GameObject.Find(WorldWallGreybox.RootName).GetComponent<MeshFilter>().sharedMesh;
+            float maxY = float.NegativeInfinity;
+            bool hasSill = false;
+            foreach (Vector3 p in mesh.vertices)
+            {
+                if (p.y > maxY) maxY = p.y;
+                if (Mathf.Abs(p.y - sill) < 1e-3f) hasSill = true;
+            }
+
+            Assert.That(hasSill, Is.True, "窗下墙必须在(0..窗台)—— 它是挡住通行的那一半");
+            Assert.That(mesh.bounds.min.y, Is.EqualTo(0f).Within(1e-3f), "窗下墙从地面起");
+            Assert.That(maxY, Is.LessThanOrEqualTo(sill + 1e-3f),
+                "窗台以上不得再有几何,否则窗口后面仍是灰板");
+            Assert.That(head, Is.GreaterThan(WorldWallGreybox.WallHeight),
+                "本关的窗顶(2.9)高于灰盒墙高(2.6)⇒ 洞口上界截在墙顶,不生成「窗上墙」");
+
+            walls.DestroyAll();
+        }
+
+        /// <summary>窗顶**低于**墙高时,那一格必须拆成两块(窗下 + 窗上),否则洞上方会开天窗。</summary>
+        [Test]
+        public void test_cellCut_belowWallTop_producesTwoPieces()
+        {
+            const float sill = 1.10f, head = 1.80f;
+            var walls = new WorldWallGreybox(_mat);
+            int cells = walls.BuildWalls(3, 1, 3, Grid(3, 3, (1, 1)),
+                                         suppressedCells: (x, z) => !(x == 1 && z == 0),
+                                         cellCut: (x, z) => (x == 1 && z == 0)
+                                             ? new Vector2(sill, head)
+                                             : (Vector2?)null);
+            Assert.That(cells, Is.EqualTo(1));
+
+            var mesh = GameObject.Find(WorldWallGreybox.RootName).GetComponent<MeshFilter>().sharedMesh;
+            bool atSill = false, atHead = false, atTop = false;
+            foreach (Vector3 p in mesh.vertices)
+            {
+                if (Mathf.Abs(p.y - sill) < 1e-3f) atSill = true;
+                if (Mathf.Abs(p.y - head) < 1e-3f) atHead = true;
+                if (Mathf.Abs(p.y - WorldWallGreybox.WallHeight) < 1e-3f) atTop = true;
+            }
+
+            Assert.That(atSill, Is.True, "窗台那条边");
+            Assert.That(atHead, Is.True, "窗顶那条边");
+            Assert.That(atTop, Is.True, "窗上墙必须补回墙顶(否则洞上方开天窗)");
+
+            walls.DestroyAll();
+        }
+
+        /// <summary>窗洞的作者表与灰盒格对得上:西墙那两格(4,18)/(4,19)命中,其余不命中。
+        /// <para>这条钉的是「作者表 ↔ 灰盒格」的**对应关系**,不是画面。</para></summary>
+        [Test]
+        public void test_windowTable_mapsToWestWallCells()
+        {
+            InteriorWindows.Opening w = InteriorWindows.West;
+
+            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ0, out float y0a, out float y1a),
+                Is.True, "首格必须命中");
+            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ1, out float y0b, out float y1b),
+                Is.True, "末格必须命中");
+            Assert.That(y0a, Is.EqualTo(w.Y0).Within(1e-4f));
+            Assert.That(y1a, Is.EqualTo(w.Y1).Within(1e-4f));
+            Assert.That(y0b, Is.EqualTo(w.Y0).Within(1e-4f));
+            Assert.That(y1b, Is.EqualTo(w.Y1).Within(1e-4f));
+
+            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ0 - 1, out _, out _), Is.False,
+                "窗洞之外的格不得命中");
+            Assert.That(InteriorWindows.TryGetCellCut(w.CellX + 1, w.CellZ0, out _, out _), Is.False,
+                "只有那道墙的格命中");
+
+            // 面板洞口必须落在灰盒开口**之内**(否则窗角会露出灰板)
+            Assert.That(w.Z0, Is.GreaterThan(w.CellZ0 - 0.5f));
+            Assert.That(w.Z1, Is.LessThan(w.CellZ1 + 0.5f));
+        }
+
         /// <summary>地坪:闭区间矩形 ⇒ 半格内缩覆盖整格,且挂在墙体根之下。</summary>
         [Test]
         public void test_floor_coversInclusiveCellRect()

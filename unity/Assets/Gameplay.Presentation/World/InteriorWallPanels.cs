@@ -117,28 +117,126 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             }
 
             Debug.Log($"[美术] 内景墙 {created} 面已生成(每面一张 albedo;东墙塌口上方的墙按裂口轮廓下落)");
+            BuildWestWindowFrame(root.transform, shader);
             return created;
+        }
+
+        /// <summary>
+        /// 西墙窗洞的木框(2026-11-13 · §8.11)。
+        /// <para>没有框,墙上就只是一个**方洞**;概念图的窗有框、有中挺,正是它读作「窗」的原因。
+        /// 框落在面板与灰盒墙之间的空档里(x≈4.86),不挡视线也不参与通行。</para>
+        /// </summary>
+        private static void BuildWestWindowFrame(Transform parent, Shader shader)
+        {
+            InteriorWindows.Opening w = InteriorWindows.West;
+            const float barHalf = 0.06f;    // 框料半宽
+            const float depthHalf = 0.08f;  // 进深半厚
+            float zMid = (w.Z0 + w.Z1) * 0.5f;
+            float yMid = (w.Y0 + w.Y1) * 0.5f;
+            float x = InteriorWindows.WestFaceX - 0.16f;
+
+            var v = new List<Vector3>();
+            var t = new List<int>();
+            var uv = new List<Vector2>();
+
+            void Bar(float cy, float cz, float hy, float hz)
+                => Box(v, t, uv, new Vector3(x, cy, cz), new Vector3(depthHalf, hy, hz));
+
+            float halfSpan = (w.Z1 - w.Z0) * 0.5f + barHalf;
+            float halfJamb = (w.Y1 - w.Y0) * 0.5f;
+            Bar(w.Y0 - barHalf, zMid, barHalf, halfSpan);          // 下框
+            Bar(w.Y1 + barHalf, zMid, barHalf, halfSpan);          // 上框
+            Bar(yMid, w.Z0 - barHalf, halfJamb, barHalf);          // 左梃
+            Bar(yMid, w.Z1 + barHalf, halfJamb, barHalf);          // 右梃
+            Bar(yMid, zMid, halfJamb, 0.035f);                      // 竖中挺
+            Bar(yMid, zMid, 0.035f, (w.Z1 - w.Z0) * 0.5f);          // 横中挺
+
+            var mesh = new Mesh { name = "Wall_WestWindowFrame" };
+            mesh.SetVertices(v);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(t, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            var mat = new Material(shader) { name = "InteriorWall_WindowFrame" };
+            Texture2D wood = Resources.Load<Texture2D>(InteriorRoofFrame.WoodPath);
+            if (wood != null) mat.SetTexture("_BaseMap", wood);
+            mat.SetColor("_BaseColor", new Color(0.44f, 0.37f, 0.31f));
+            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f));
+            mat.SetFloat("_Smoothness", 0.06f);
+            mat.SetFloat("_Metallic", 0f);
+
+            var go = new GameObject("Wall_WestWindowFrame");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            go.layer = WorldWallGreybox.WorldGeometryLayer;
+
+            Debug.Log($"[美术] 西墙窗洞已开:{(w.Z1 - w.Z0):0.0} × {(w.Y1 - w.Y0):0.0} m,窗台 {w.Y0:0.00} m(带木框)");
+        }
+
+        /// <summary>轴对齐盒体(窗框用);UV 取米数,与木纹尺度一致。</summary>
+        private static void Box(List<Vector3> v, List<int> t, List<Vector2> uv,
+                                Vector3 c, Vector3 h)
+        {
+            void Face(Vector3 center, Vector3 uDir, Vector3 vDir, float hu, float hv)
+            {
+                int b = v.Count;
+                Vector3 du = uDir * hu, dv = vDir * hv;
+                Vector3[] p =
+                {
+                    center - du - dv, center + du - dv, center + du + dv, center - du + dv,
+                };
+                for (int i = 0; i < 4; i++) v.Add(p[i]);
+                uv.Add(new Vector2(0f, 0f));
+                uv.Add(new Vector2(hu * 2f, 0f));
+                uv.Add(new Vector2(hu * 2f, hv * 2f));
+                uv.Add(new Vector2(0f, hv * 2f));
+                t.Add(b); t.Add(b + 1); t.Add(b + 2);
+                t.Add(b); t.Add(b + 2); t.Add(b + 3);
+            }
+
+            Face(c + new Vector3(h.x, 0, 0), Vector3.forward, Vector3.up, h.z, h.y);
+            Face(c + new Vector3(-h.x, 0, 0), Vector3.back, Vector3.up, h.z, h.y);
+            Face(c + new Vector3(0, h.y, 0), Vector3.right, Vector3.forward, h.x, h.z);
+            Face(c + new Vector3(0, -h.y, 0), Vector3.right, Vector3.back, h.x, h.z);
+            Face(c + new Vector3(0, 0, h.z), Vector3.right, Vector3.up, h.x, h.y);
+            Face(c + new Vector3(0, 0, -h.z), Vector3.back, Vector3.up, h.x, h.y);
         }
 
         // ── 三个整面(0..H)──────────────────────────────────────────────────
 
-        private static Face WestFace() => new Face
+        private static Face WestFace()
         {
-            Name = "West",
-            TexturePath = "Art/church-interior/wall_west",
-            WidthM = Z1 - Z0,
-            UAlongX = false,
-            UOrigin = Z0,
-            UScale = 1f / (Z1 - Z0),
-            Normal = Vector3.right,
-            Quads = new List<Vector3[]>
+            const float x = X0 + Inset;
+            InteriorWindows.Opening w = InteriorWindows.West;
+            return new Face
             {
-                new[]
+                Name = "West",
+                TexturePath = "Art/church-interior/wall_west",
+                WidthM = Z1 - Z0,
+                UAlongX = false,
+                UOrigin = Z0,
+                UScale = 1f / (Z1 - Z0),
+                Normal = Vector3.right,
+                // 🔁 2026-11-13(§8.11 开窗):由「一整块」改成「洞口四周四块」。
+                //    UV 是**按位置**算的(见 BuildFace),所以拆开之后贴图在洞口四周连续,
+                //    不需要另作 UV 校正 —— 这也是这里敢直接切四块的原因。
+                Quads = new List<Vector3[]>
                 {
-                    new Vector3(X0 + Inset, 0f, Z0), new Vector3(X0 + Inset, 0f, Z1),
-                    new Vector3(X0 + Inset, Height, Z1), new Vector3(X0 + Inset, Height, Z0),
+                    RectZ(x, Z0, Z1, 0f, w.Y0),            // 窗下
+                    RectZ(x, Z0, Z1, w.Y1, Height),        // 窗上
+                    RectZ(x, Z0, w.Z0, w.Y0, w.Y1),        // 窗左(靠 Z0 一侧)
+                    RectZ(x, w.Z1, Z1, w.Y0, w.Y1),        // 窗右
                 },
-            },
+            };
+        }
+
+        /// <summary>东西向的墙面上的一块矩形:x 固定,z / y 给区间。角序与其它面一致(左下起逆时针)。</summary>
+        private static Vector3[] RectZ(float x, float z0, float z1, float y0, float y1) => new[]
+        {
+            new Vector3(x, y0, z0), new Vector3(x, y0, z1),
+            new Vector3(x, y1, z1), new Vector3(x, y1, z0),
         };
 
         private static Face NorthFace() => new Face
