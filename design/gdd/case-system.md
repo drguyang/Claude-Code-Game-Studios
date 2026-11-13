@@ -590,7 +590,7 @@ MemberSet(D)   := { CandidateSeq(D)[1..PATTERN_THRESHOLD] }       // 冻结于�
 ```
 ScriptedChain(D) := 内容条目显式列出的有序 patient_id 三元组
                     { ✅ 2026-09-20 落点:design/gdd/content/he-returns.md §四
-                      甲(教书先生)· 乙(挑夫)· 丙(守夜老人)—— 有序,同 D = 三次失血
+                      甲(写碑先生)· 乙(挑夫)· 丙(守夜老人)—— 有序,同 D = 三次失血
                       ✅ 2026-09-20 剧情落位正典:content/campaign-arc.md —— 三案嵌序章~第一幕;
                         ⚠️ W-1 见下注块 }
 ChainEligible(D) := 病例 c 满足  c.Patient ∈ ScriptedChain(D)
