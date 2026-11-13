@@ -36,9 +36,6 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <summary>回落贴图(五张面贴图缺席时用)。</summary>
         public const string AlbedoPath = "Art/church-interior/wall_back_albedo";
 
-        /// <summary>塌落砖石用的贴图路径(不含扩展名)。</summary>
-        public const string RubblePath = "Art/church-interior/brick_rubble";
-
         /// <summary>回落贴图覆盖的真实尺寸(米):14 m 宽 × 5.5 m 高(§7.9)。</summary>
         public const float TextureWidthM = 14f;
 
@@ -119,7 +116,6 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 return 0;
             }
 
-            created += BuildRubble(root.transform, shader);
             Debug.Log($"[美术] 内景墙 {created} 面已生成(每面一张 albedo;东墙塌口上方的墙按裂口轮廓下落)");
             return created;
         }
@@ -273,97 +269,5 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             return 1;
         }
 
-        // ═══ 塌落的砖石(§8.4)══════════════════════════════════════════════
-        //   两堆:南北两个墙垛的墙脚。贴图用 §7.9 自造的小砖,不用墙面 albedo
-        //   (那张带白灰剥落,拿来做碎块会像「一块块墙皮」)。
-
-        private struct Rock
-        {
-            public Vector3 Center, Half;
-            public float Yaw;
-        }
-
-        private static readonly Rock[] Rocks =
-        {
-            new Rock { Center = new Vector3(14.72f, 0.16f, 23.36f), Half = new Vector3(0.30f, 0.16f, 0.26f), Yaw = 18f },
-            new Rock { Center = new Vector3(15.06f, 0.10f, 23.64f), Half = new Vector3(0.22f, 0.10f, 0.18f), Yaw = -27f },
-            new Rock { Center = new Vector3(14.60f, 0.09f, 23.04f), Half = new Vector3(0.20f, 0.09f, 0.16f), Yaw = 42f },
-            new Rock { Center = new Vector3(15.32f, 0.13f, 23.20f), Half = new Vector3(0.24f, 0.13f, 0.22f), Yaw = -12f },
-            new Rock { Center = new Vector3(14.94f, 0.07f, 22.84f), Half = new Vector3(0.16f, 0.07f, 0.14f), Yaw = 63f },
-            new Rock { Center = new Vector3(14.78f, 0.15f, 19.74f), Half = new Vector3(0.28f, 0.15f, 0.24f), Yaw = -22f },
-            new Rock { Center = new Vector3(15.10f, 0.09f, 19.44f), Half = new Vector3(0.20f, 0.09f, 0.17f), Yaw = 33f },
-            new Rock { Center = new Vector3(14.58f, 0.08f, 20.04f), Half = new Vector3(0.18f, 0.08f, 0.15f), Yaw = 11f },
-            new Rock { Center = new Vector3(15.26f, 0.12f, 19.90f), Half = new Vector3(0.22f, 0.12f, 0.20f), Yaw = 50f },
-            new Rock { Center = new Vector3(14.88f, 0.06f, 20.26f), Half = new Vector3(0.15f, 0.06f, 0.13f), Yaw = -41f },
-        };
-
-        /// <summary>塌落砖石:一批网格。<returns>1 = 已生成;0 = 无贴图(跳过,不影响墙面)。</returns></summary>
-        private static int BuildRubble(Transform parent, Shader shader)
-        {
-            Texture2D brick = Resources.Load<Texture2D>(RubblePath);
-            if (brick == null)
-            {
-                Debug.Log($"[美术] 本地缺席:{RubblePath}(塌落砖石)—— 砖石堆跳过,墙面照常");
-                return 0;
-            }
-
-            var mat = new Material(shader) { name = "InteriorRubble_Mat" };
-            mat.SetTexture("_BaseMap", brick);
-            mat.SetFloat("_Smoothness", 0.08f);
-            mat.SetFloat("_Metallic", 0f);
-
-            var v = new List<Vector3>();
-            var t = new List<int>();
-            var uv = new List<Vector2>();
-            for (int i = 0; i < Rocks.Length; i++)
-            {
-                Rock r = Rocks[i];
-                AppendBox(v, t, uv, r.Center, r.Half, Quaternion.Euler(0f, r.Yaw, 0f));
-            }
-
-            var mesh = new Mesh { name = "InteriorRubbleMesh" };
-            mesh.SetVertices(v);
-            mesh.SetUVs(0, uv);
-            mesh.SetTriangles(t, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
-            var go = new GameObject("InteriorRubble");
-            go.transform.SetParent(parent, false);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
-            go.layer = WorldWallGreybox.WorldGeometryLayer;
-            return 1;
-        }
-
-        /// <summary>一块歪放的碎砖(盒体)。UV 按 2 m 一铺,与墙面砖的物理尺度一致。</summary>
-        private static void AppendBox(List<Vector3> v, List<int> t, List<Vector2> uv,
-                                      Vector3 c, Vector3 h, Quaternion q)
-        {
-            void Face(Vector3 center, Vector3 uDir, Vector3 vDir, float hu, float hv)
-            {
-                int b = v.Count;
-                Vector3 du = uDir * hu, dv = vDir * hv;
-                Vector3[] p =
-                {
-                    center - du - dv, center + du - dv, center + du + dv, center - du + dv,
-                };
-                const float s = 1f / 2f;
-                for (int i = 0; i < 4; i++) v.Add(q * (p[i] - c) + c);
-                uv.Add(new Vector2(0f, 0f));
-                uv.Add(new Vector2(hu * 2f * s, 0f));
-                uv.Add(new Vector2(hu * 2f * s, hv * 2f * s));
-                uv.Add(new Vector2(0f, hv * 2f * s));
-                t.Add(b); t.Add(b + 1); t.Add(b + 2);
-                t.Add(b); t.Add(b + 2); t.Add(b + 3);
-            }
-
-            Face(c + new Vector3(h.x, 0, 0), Vector3.forward, Vector3.up, h.z, h.y);
-            Face(c + new Vector3(-h.x, 0, 0), Vector3.back, Vector3.up, h.z, h.y);
-            Face(c + new Vector3(0, h.y, 0), Vector3.right, Vector3.forward, h.x, h.z);
-            Face(c + new Vector3(0, -h.y, 0), Vector3.right, Vector3.back, h.x, h.z);
-            Face(c + new Vector3(0, 0, h.z), Vector3.right, Vector3.up, h.x, h.y);
-            Face(c + new Vector3(0, 0, -h.z), Vector3.back, Vector3.up, h.x, h.y);
-        }
     }
 }
