@@ -102,16 +102,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             var list = new List<Face>
             {
                 // 西墙(后墙):x=5 内表面,朝向 +X,沿 +Z
-                new Face { Name = "West", A = new Vector3(x0 - Inset, 0f, z0),
-                    B = new Vector3(x0 - Inset, 0f, z1), Normal = Vector3.right,
+                new Face { Name = "West", A = new Vector3(x0 + Inset, 0f, z0),
+                    B = new Vector3(x0 + Inset, 0f, z1), Normal = Vector3.right,
                     UFrom = 0f, UTo = (z1 - z0) * uPerM },
 
                 // 东墙南段 / 北段:塌口 z∈[20,23] 留空
-                new Face { Name = "EastA", A = new Vector3(x1 + Inset, 0f, z1),
-                    B = new Vector3(x1 + Inset, 0f, 23f), Normal = Vector3.left,
+                new Face { Name = "EastA", A = new Vector3(x1 - Inset, 0f, z1),
+                    B = new Vector3(x1 - Inset, 0f, 23f), Normal = Vector3.left,
                     UFrom = 0f, UTo = (z1 - 23f) * uPerM },
-                new Face { Name = "EastB", A = new Vector3(x1 + Inset, 0f, 20f),
-                    B = new Vector3(x1 + Inset, 0f, z0), Normal = Vector3.left,
+                new Face { Name = "EastB", A = new Vector3(x1 - Inset, 0f, 20f),
+                    B = new Vector3(x1 - Inset, 0f, z0), Normal = Vector3.left,
                     UFrom = (z1 - z0) * uPerM - (20f - z0) * uPerM, UTo = (z1 - z0) * uPerM },
 
                 // 北墙(z=15,朝 +Z)/ 南墙(z=29,朝 −Z)

@@ -2353,6 +2353,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 与 `ArtOverlay` 同一条缺席纪律:贴图不在本机 ⇒ 跳过并记一行。
             InteriorWallPanels.Build();
 
+            // ── 内景屋架(2026-11-13)────────────────────────────────────────
+            // 横梁 + 残椽。没有它,四面墙再完整也只读作「露天的一圈矮墙」——
+            // 概念图的顶部本来就有五根梁与一片残椽(§8.1)。
+            InteriorRoofFrame.Build();
+
+            // ── 内景灯光(2026-11-13)────────────────────────────────────────
+            // 四壁是朝内的单面面片,没有光源时只吃环境光 ⇒ 贴图被吃掉大半。
+            // 要复现的是定稿概念图那道光:晨光从东墙塌口斜射进来,室内靠漫反射托底。
+            ChurchLighting.Build();
+
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
