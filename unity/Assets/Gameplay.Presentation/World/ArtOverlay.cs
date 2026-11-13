@@ -88,10 +88,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             // 6 m 见方 ⇒ 覆盖 x∈[15,21] / z∈[14,20];灰盒东墙 x=15 那一段整段让位。
             new ArtPlacement("Art/church-wall/church-wall", 18, 17, 90f, 1f, "教堂东墙南段",
                              coverHalfX: 3, coverHalfZ: 3),
-            // 内景墙模块(2.0 宽 × 5.5 高 × 0.34 厚;厚是模型自然比例,未拉厚 —— 见 specs/church-interior.md)。
-            // 正面朝 −Z ⇒ 摆在北墙 z=29、yaw 0 = 面朝室内;宽 2 m ⇒ 覆盖 x∈[8,10] 那一行。
-            new ArtPlacement("Art/church-interior/wall-window", 9, 29, 0f, 1f, "内景·北墙尖拱窗段",
-                             coverHalfX: 1, coverHalfZ: 0),
+
+            // 🔻 2026-11-13 **删除**:`Art/church-interior/wall-window` 原摆在此(9,29),
+            //    覆盖 x∈[8,10] / z=29。删因**两条实测**:
+            //    ① **它从来没见过**:模块正面在 z≈28.83,而内景南面板在 **z=28.98**
+            //       ⇒ 被面板整块挡住(它自己也正是被面板挡住才没在走查里暴露);
+            //    ② **它把南墙拆了**:`IsCoveredByArt` 让灰盒在 x=8/9/10 三格整块让位,
+            //       而灰盒是这份数据里**唯一**带 `MeshCollider` 的东西(内景面板零碰撞体,
+            //       见 `InteriorWallPanels` 头注)⇒ 实测从 (10,27) 按 W(南) 2.5 s 直接走到
+            //       **(9,33)**,即**穿墙出屋**。
+            //    ⇒ 该件与其「让位」一并去掉;墙体、碰撞体随灰盒恢复。
+            //    ⚠️ 若将来要在这面墙上做真窗,走 `InteriorWindows` 那条路(开洞 + 拆灰盒格),
+            //      不要再靠「整格让位」—— 那等于把墙删掉。
         };
 
         /// <summary>该格是否已被某件正式美术覆盖(**灰盒墙在这些格上必须让位**)。

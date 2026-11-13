@@ -48,6 +48,26 @@ namespace DaYiJingCheng.Tests.Unit.World
             Assert.That(p.Covers(9, 30), Is.False, "Z 向半径 0 ⇒ 邻行不算");
         }
 
+        /// <summary>**承重墙不得被美术让位** —— 灰盒是这份数据里唯一带 `MeshCollider` 的东西,
+        /// 让位 = 把那格墙**删掉**(不是挡住)。
+        /// <para>🗝 立此条缘由(2026-11-13 实测):`wall-window` 原摆在 (9,29)、覆盖 x∈[8,10],
+        /// 既被内景南面板挡住(看不见),又让灰盒把这三格整块让位 ⇒ 从 (10,27) 按 W(南)
+        /// 2.5 s 直接走到 **(9,33)**,**穿墙出屋**。该件已删,这条钉住「别再摆回来」。</para>
+        /// <para>⚠️ 东墙 x=15 **不在**断言面内 —— 那一段本来就由 `church-wall` 真件接管。</para></summary>
+        [Test]
+        public void test_churchEnclosure_isNeverSuppressedByArt()
+        {
+            for (int x = 5; x <= 14; x++)
+            {
+                Assert.That(ArtOverlay.IsCoveredByArt(x, 14), Is.False, $"北墙 (x={x}, z=14) 被让位");
+                Assert.That(ArtOverlay.IsCoveredByArt(x, 29), Is.False, $"南墙 (x={x}, z=29) 被让位");
+            }
+            for (int z = 15; z <= 28; z++)
+            {
+                Assert.That(ArtOverlay.IsCoveredByArt(4, z), Is.False, $"西墙 (x=4, z={z}) 被让位");
+            }
+        }
+
         /// <summary>生产表里的每件都必须声明覆盖范围(默认 0/0 = 只覆盖落位那一格)。</summary>
         [Test]
         public void test_productionPlacements_declareCoverage()
