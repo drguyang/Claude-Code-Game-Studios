@@ -39,7 +39,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         private static readonly Vector3 ShaftFrom = new Vector3(16.5f, 5.2f, 21.5f);
         private static readonly Vector3 ShaftTo = new Vector3(7.0f, 0.0f, 24.0f);
         private static readonly Color ShaftColor = new Color(1.00f, 0.93f, 0.80f);
-        private const float ShaftIntensity = 900f;
+        private const float ShaftIntensity = 2600f;
         private const float ShaftRange = 70f;
         private const float ShaftAngle = 14f;
 
@@ -49,7 +49,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         //      过 x=5 时落在 y=2.18 / z=19.17,在窗洞(z 17.6..19.4 / y 1.10..2.90)之内。
         private static readonly Vector3 WindowFrom = new Vector3(1.8f, 3.6f, 18.5f);
         private static readonly Vector3 WindowTo = new Vector3(9.0f, 0.4f, 20.0f);
-        private const float WindowIntensity = 200f;
+        private const float WindowIntensity = 520f;
         private const float WindowRange = 40f;
         private const float WindowAngle = 42f;
 
@@ -59,7 +59,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         //      在洞口(y 1.20..3.20)之内,x=10.5 也在(9.7..11.3)之内。
         private static readonly Vector3 NorthWindowFrom = new Vector3(10.5f, 3.0f, 12.2f);
         private static readonly Vector3 NorthWindowTo = new Vector3(10.5f, 0.6f, 19.0f);
-        private const float NorthWindowIntensity = 300f;
+        private const float NorthWindowIntensity = 700f;
         private const float NorthWindowRange = 40f;
         private const float NorthWindowAngle = 40f;
 
