@@ -65,7 +65,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             AddDesk(woodBatch, paperBatch, deskCellX, deskCellZ);
             AddPot(clayBatch, new Vector3(5.45f, 0f, 27.2f));
             AddMat(strawBatch, new Vector3(11.5f, 0f, 25.5f));
-            AddFallenBench(woodBatch, new Vector3(11.3f, 0f, 17.0f), 100f);
+            AddFallenBench(woodBatch, new Vector3(11.3f, 0f, 17.0f));
 
             int count = 0;
             count += woodBatch.Flush("Furniture_WoodMesh", wood, root.transform);
@@ -119,18 +119,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                        new Vector3(1.2f, 0f, 0.75f));
         }
 
-        /// <summary>翻倒的长椅:座板 + 两条腿,绕**长轴(X)**翻 100° —— 读作「被掀翻」。
-        /// <para>⚠️ 2026-11-13 实测修正:首版绕 **Z** 转 78°,一条腿转到地面以下
-        /// (包围盒 y 下探 −0.79)⇒ 画面上只剩座板边缘与一条腿竖在地里,像一根歪插的木棍。
-        /// 改为绕长轴翻倒,再把整件**下沉量归零**(`DropToFloor`),不靠手调枢轴猜高度。</para></summary>
-        private static void AddFallenBench(Batch b, Vector3 at, float degrees)
+        /// <summary>翻倒的长椅:侧躺 —— 座板立着(高 = 原来的进深),两条腿横支出去。
+        /// <para>🔁 2026-11-13 两次实测修正:① 绕 Z 转会把一条腿转到地下;
+        /// ② 绕长轴转 + `DropToFloor` 归一,包围盒反而整体抬高 1 m(`Furniture_WoodMesh`
+        /// 的 y 上界 1.78,而桌面只有 0.78)⇒ 画面里多出一根竖着的木棍。
+        /// **不再靠旋转与补偿**:直接按「已经躺下」的坐标摆三个盒体,落地面就是 0。</para></summary>
+        private static void AddFallenBench(Batch b, Vector3 at)
         {
-            int mark = b.Mark();
-            Quaternion rot = Quaternion.Euler(degrees, 0f, 0f);
-            b.AddBox(at + new Vector3(0f, 0.46f, 0f), new Vector3(0.90f, 0.035f, 0.17f), rot, at);
-            b.AddBox(at + new Vector3(-0.72f, 0.23f, 0f), new Vector3(0.035f, 0.21f, 0.15f), rot, at);
-            b.AddBox(at + new Vector3(0.72f, 0.23f, 0f), new Vector3(0.035f, 0.21f, 0.15f), rot, at);
-            b.DropToFloor(mark, 0f);
+            // 座板:1.8 长(X)× 0.34 高 × 0.07 厚(Z) —— 原来的 0.34 进深现在成了高度
+            b.AddBox(at + new Vector3(0f, 0.17f, 0f), new Vector3(0.90f, 0.17f, 0.035f));
+            // 两条腿:0.42 长,以前竖着,现在横着指向 +Z
+            b.AddBox(at + new Vector3(-0.72f, 0.035f, 0.21f), new Vector3(0.035f, 0.035f, 0.21f));
+            b.AddBox(at + new Vector3(0.72f, 0.035f, 0.21f), new Vector3(0.035f, 0.035f, 0.21f));
         }
 
         // ═══ 材质 ═══════════════════════════════════════════════════════════
@@ -174,21 +174,6 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             private readonly float _metersPerTile;
 
             public Batch(float metersPerTile) => _metersPerTile = metersPerTile;
-
-            /// <summary>记下当前顶点数 —— 供 <see cref="DropToFloor"/> 只调整之后加进来的件。</summary>
-            public int Mark() => _v.Count;
-
-            /// <summary>把 <paramref name="fromIndex"/> 之后的顶点整体沿 Y 平移,
-            /// 使这批件的最低点落在 <paramref name="floorY"/>。</summary>
-            public void DropToFloor(int fromIndex, float floorY)
-            {
-                float min = float.MaxValue;
-                for (int i = fromIndex; i < _v.Count; i++) min = Mathf.Min(min, _v[i].y);
-                if (min == float.MaxValue) return;
-                float dy = floorY - min;
-                for (int i = fromIndex; i < _v.Count; i++)
-                    _v[i] = new Vector3(_v[i].x, _v[i].y + dy, _v[i].z);
-            }
 
             /// <summary>盒体(可绕 <paramref name="pivot"/> 旋转 —— 长椅翻倒用)。</summary>
             public void AddBox(Vector3 c, Vector3 h, Quaternion? rot = null, Vector3 pivot = default)
