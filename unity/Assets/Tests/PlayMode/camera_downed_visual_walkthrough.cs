@@ -242,20 +242,47 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             // ⚠️ 判据**不能**用「settledFwd.y < baselineFwd.y」—— 下沉本身就会让俯角变化
             //    (相机降低 ⇒ 看向同一目标时俯角**变小**),两股变化混在一起,阈值没法定。
-            //    改用**对照重建**:若接线退回 `LookAt(target)`,躺定时朝向必然是
-            //    `normalize(playerPos - settledPos)`;实际朝向必须**明显更低**。
+            //
+            // 🔁 **2026-11-14 改为几何无关的判据**。旧版判「forward.y 比 `LookAt(player)`
+            //    重建值低 0.10」——那个**阈值是按旧臂长标定的**。`11b686fb`(摇臂避障 +
+            //    `MinCameraHeightAboveTarget`)让臂长与相机高度都来自求解器,同一个
+            //    `SagTiltDegrees = 10°` 落到 forward.y 的差值就从 0.133 掉到 **0.032**
+            //    ⇒ 阈值失效,而接线**并没有**被改坏(偏折仍在,只是变小)。
+            //    ⇒ 改为直接问 rig:**相机朝向是否等于它自己给出的微倾目标方向**。
+            //       若 `BootRoot` 的接线退回 `LookAt(target)`,朝向会指向玩家本体,
+            //       与微倾目标方向相差一个偏折角 ⇒ 本断言转红。几何怎么变都不影响。
             Transform playerT = ReadPlayerTransform();
             Assert.IsNotNull(playerT, "启动序应建 Player(否则相机没有跟随目标,BootRoot 相机段整段不跑)");
-            Vector3 noTiltFwd = (playerT.position - settledPos).normalized;
 
-            Assert.Less(settledFwd.y, noTiltFwd.y - 0.10f,
-                $"躺定时相机朝向 y 分量({settledFwd.y:0.000})须明显低于「微倾被丢弃」时的重建值" +
-                $"({noTiltFwd.y:0.000})。若接线退回 `cam.transform.LookAt(target)`,两者会相等 ⇒ 本断言转红" +
-                "(实测差 0.133,阈值 0.10 ⇒ 1.33× 余量;证伪轮 M6 已验:退回后差值恰为 0)");
+            // 复刻 `BootRoot` 的朝向实参(`BootRoot.cs:3422/3427-3428`):
+            //   target = player.position − up×PlayerFeetOffset(轨道中心在**脚底**)
+            //   看向点 = GetLookTarget(target + up×LookHeight)(自己抬到胸口)
+            // ⚠️ 两个偏移都是 `BootRoot` 私有 const ⇒ 反射读,不写死 —— 否则常量一改,
+            //    判据会以「接线读错了」的形态转红(那是夹具的错,不是生产的错)。
+            float feetOffset = ReadBootConst("PlayerFeetOffset");
+            float lookHeight = ReadBootConst("LookHeight");
+            Vector3 orbitTarget = playerT.position + Vector3.down * feetOffset;
+            Vector3 chest = orbitTarget + Vector3.up * lookHeight;
+
+            Vector3 lookTarget = _rig.GetLookTarget(chest);
+            Vector3 expectedFwd = (lookTarget - settledPos).normalized;
+            Vector3 noTiltFwd = (chest - settledPos).normalized;
+
+            float wiringAngle = Vector3.Angle(settledFwd, expectedFwd);
+            float tiltAngle = Vector3.Angle(expectedFwd, noTiltFwd);
+
+            Assert.Less(wiringAngle, 0.5f,
+                $"躺定时相机朝向须等于 `GetLookTarget(胸口)` 的方向(实测夹角 {wiringAngle:0.00}°)。" +
+                $"若 `BootRoot` 接线退回 `cam.transform.LookAt(target)`,朝向会指向胸口本体," +
+                $"与本方向相差微倾角({tiltAngle:0.00}°)⇒ 本断言转红");
+
+            Assert.Greater(tiltAngle, 0.5f,
+                $"微倾须**真的改变**朝向(实测 {tiltAngle:0.00}°)。" +
+                "退回 `LookAt(target)` 时恰为 0(证伪轮 M6 已验)");
 
             Debug.Log($"[CDW] 接线判据: ΔY={settledPos.y - baselinePos.y:0.000} m, " +
                       $"forward.y 基线 {baselineFwd.y:0.000} / 躺定 {settledFwd.y:0.000} / " +
-                      $"去微倾重建 {noTiltFwd.y:0.000}");
+                      $"胸口 {noTiltFwd.y:0.000} · 接线夹角 {wiringAngle:0.00}° · 微倾 {tiltAngle:0.00}°");
         }
 
         // ── 截图辅助(图形模式才产出;batch 结构性无 backbuffer)────────────
@@ -301,6 +328,19 @@ namespace DaYiJingCheng.Tests.PlayMode
             if (_boot == null) return null;
             var f = typeof(BootRoot).GetField("_services", BindingFlags.NonPublic | BindingFlags.Instance);
             return f?.GetValue(_boot) as CompositionRootServices;
+        }
+
+        /// <summary>
+        /// 读 `BootRoot` 的私有 <c>const</c>(如 `PlayerFeetOffset` / `LookHeight`)。
+        /// <para>⚠️ 反射读而**不写死**:这两个常量是朝向实参的一部分,写死会让常量一改就以
+        /// 「接线读错了」的形态转红 —— 那是夹具的错,不是生产的错。</para>
+        /// </summary>
+        private static float ReadBootConst(string name)
+        {
+            FieldInfo f = typeof(BootRoot).GetField(name,
+                BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(f, $"BootRoot 应存在私有 const `{name}` —— 改名即须同步本夹具");
+            return (float)f.GetRawConstantValue();
         }
 
         /// <summary>

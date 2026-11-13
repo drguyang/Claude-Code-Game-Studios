@@ -217,20 +217,42 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             Assert.AreEqual(ModalId.None, UiDriver.CurrentModal, "[前置] 启动态应无模态");
 
-            // ── Act 1:走近(与 ① 同一条手柄路径,不传送)──
+            // ── Act 1:就位 + 走近 ────────────────────────────────────────────────
+            // 🔁 2026-11-14(P1-b2 换绑后的前提漂移):出生点随 canonical 换到**教堂**
+            //    (≈18,33),而病人在**营地**(106,15),相距 88 格;且 `MovementFeed` 是
+            //    **世界相对**的(轴 → 世界 X/Z),原写死的 `stick(0,1)` 推的是 +Z ——
+            //    与「向病人走」方向相反。两头都不成立,故本段改为「先就位,再真走」:
+            //    ① 用 `PlayerController.Teleport` 就位到病人南侧 `ApproachCells` 格 ——
+            //       它正是 `TeleportCommandSink.RequestTeleport` 最终调用的**同一个方法**
+            //       (`TeleportCommandSink.cs:70`),不是翻 transform、不是旁路;
+            //    ② 再用真手柄摇杆走完最后一段,保住「走进交互半径」这个本意。
             PlayerController player = Player;
             Assert.IsNotNull(player, "[前置] 启动序应建出 PlayerController");
 
-            InjectStick(new Vector2(0f, 1f));
+            const int ApproachCells = 5;
+            WorldPos staging = new WorldPos(patientCell.X, patientCell.Y, patientCell.Z + ApproachCells);
+            player.Teleport(new Vector3(staging.X + 0.5f, staging.Y + 0.5f, staging.Z + 0.5f));
+            for (int i = 0; i < 10; i++) yield return null;   // 等跨格提交链刷新 `LastCommittedCell`
+            Assert.AreEqual(staging, player.LastCommittedCell,
+                "[前置] 传送后玩家格须已就位(未刷新 = 跨格提交链没跑)");
+
+            WorldPos beforeWalk = player.LastCommittedCell;
             int walkFrames = 0;
             while (walkFrames < WalkFrames
                    && Chebyshev(player.LastCommittedCell, patientCell) > 2)
             {
+                WorldPos c = player.LastCommittedCell;
+                float sx = (float)Math.Sign(patientCell.X - c.X);
+                float sz = (float)Math.Sign(patientCell.Z - c.Z);
+                InjectStick(new Vector2(sx, sz));            // 世界相对:轴 → 世界 X/Z
                 walkFrames++;
                 yield return null;
             }
             ReleaseGamepad();
             for (int i = 0; i < 8; i++) yield return null;
+
+            Assert.AreNotEqual(beforeWalk, player.LastCommittedCell,
+                "[自证] 手柄摇杆须**真的推动**玩家 —— 没动就说明测的是传送,不是「走进半径」");
 
             long distance = Chebyshev(player.LastCommittedCell, patientCell);
             Assert.LessOrEqual(distance, 2,
