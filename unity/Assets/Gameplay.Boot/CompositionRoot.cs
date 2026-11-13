@@ -2347,6 +2347,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 $"[美术] 已摆 {artPlaced} 件 / 缺席 {artOverlay.MissingCount} 件" +
                 "(local-only 资产,缺席为正常态;见 specs/church-wall.md)");
 
+            // ── 内景四壁面板(2026-11-13)────────────────────────────────────
+            // 第一批**不用 3D 资产**的内景美术:几何只是矩形,信息全在烘焙贴图里
+            // (规格 §7:投影 → PBR → 合成 → 加脏调色 → 小砖,烘成 albedo)。
+            // 与 `ArtOverlay` 同一条缺席纪律:贴图不在本机 ⇒ 跳过并记一行。
+            InteriorWallPanels.Build();
+
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
