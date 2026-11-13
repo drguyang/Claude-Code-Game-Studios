@@ -118,7 +118,112 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
 
             Debug.Log($"[美术] 内景墙 {created} 面已生成(每面一张 albedo;东墙塌口上方的墙按裂口轮廓下落)");
             BuildWestWindowFrame(root.transform, shader);
+            BuildNorthWindowFrame(root.transform, shader);
             return created;
+        }
+
+        /// <summary>
+        /// 北墙拱窗的木框(2026-11-13 · §8.12)。
+        /// <para>拱券做成**环带**(半径 r0..r0+0.10 的 180° 环),不是一排小方块 ——
+        /// 小方块拼拱在斜段上会露出台阶,读作「砌歪的砖」而不是木券。</para>
+        /// </summary>
+        private static void BuildNorthWindowFrame(Transform parent, Shader shader)
+        {
+            InteriorWindows.Opening w = InteriorWindows.North;
+            const float barHalf = 0.05f;
+            const float depth = 0.16f;
+            float zFront = InteriorWindows.NorthFaceZ - Inset - depth;   // 屋内侧那一面
+            float zBack = zFront + depth;
+            float zMid = zFront + depth * 0.5f;
+            float cx = (w.A0 + w.A1) * 0.5f;
+            // ⚠️ 框料必须**压进洞口**:首版把环带放在 r0..r0+0.10(全在洞外),
+            //    而它在面板**后面** ⇒ 从屋里什么也看不见,拱边光秃秃的(2026-11-13 实测)。
+            //    改成 r−0.10 .. r+0.02:十厘米在洞内(看得见),两厘米压住边(不露缝)。
+            float rHole = w.ArchRadius;
+            float r0 = rHole - 0.10f, r1 = rHole + 0.02f;
+
+            var v = new List<Vector3>();
+            var t = new List<int>();
+            var uv = new List<Vector2>();
+
+            // 窗台 + 左右梃(轴对齐盒体;同样压进洞口一半)
+            Box(v, t, uv, new Vector3(cx, w.Y0 + barHalf, zMid),
+                new Vector3(w.Width * 0.5f + barHalf, barHalf, depth * 0.5f));
+            Box(v, t, uv, new Vector3(w.A0 + barHalf, (w.Y0 + w.ArchY) * 0.5f, zMid),
+                new Vector3(barHalf, (w.ArchY - w.Y0) * 0.5f, depth * 0.5f));
+            Box(v, t, uv, new Vector3(w.A1 - barHalf, (w.Y0 + w.ArchY) * 0.5f, zMid),
+                new Vector3(barHalf, (w.ArchY - w.Y0) * 0.5f, depth * 0.5f));
+
+            // 拱券环带
+            const int segments = 14;
+            for (int i = 0; i < segments; i++)
+            {
+                float a0 = Mathf.PI * i / segments;
+                float a1 = Mathf.PI * (i + 1) / segments;
+                float am = (a0 + a1) * 0.5f;
+                Vector3 radial = new Vector3(Mathf.Cos(am), Mathf.Sin(am), 0f);
+
+                Vector3 P(float r, float ang, float z)
+                    => new Vector3(cx + Mathf.Cos(ang) * r, w.ArchY + Mathf.Sin(ang) * r, z);
+
+                // 屋里那一面(朝 +z)、墙里那一面(朝 −z)、外缘、内缘
+                Quad(v, t, uv, P(r0, a0, zFront), P(r1, a0, zFront),
+                                  P(r1, a1, zFront), P(r0, a1, zFront), Vector3.forward);
+                Quad(v, t, uv, P(r0, a0, zBack), P(r0, a1, zBack),
+                                  P(r1, a1, zBack), P(r1, a0, zBack), Vector3.back);
+                Quad(v, t, uv, P(r1, a0, zFront), P(r1, a0, zBack),
+                                  P(r1, a1, zBack), P(r1, a1, zFront), radial);
+                Quad(v, t, uv, P(r0, a0, zFront), P(r0, a1, zFront),
+                                  P(r0, a1, zBack), P(r0, a0, zBack), -radial);
+            }
+
+            var mesh = new Mesh { name = "Wall_NorthWindowFrame" };
+            mesh.SetVertices(v);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(t, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            var go = new GameObject("Wall_NorthWindowFrame");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = MakeWoodMaterial(shader);
+            go.layer = WorldWallGreybox.WorldGeometryLayer;
+
+            Debug.Log($"[美术] 北墙拱窗已开:{w.Width:0.0} m 宽,窗台 {w.Y0:0.00} / 起拱 {w.ArchY:0.00} / " +
+                      $"拱顶 {w.Y1:0.00} m(带木券)");
+        }
+
+        /// <summary>窗框用的木材质(与屋顶同一张木纹)。</summary>
+        private static Material MakeWoodMaterial(Shader shader)
+        {
+            var mat = new Material(shader) { name = "InteriorWall_WindowFrame" };
+            Texture2D wood = Resources.Load<Texture2D>(InteriorRoofFrame.WoodPath);
+            if (wood != null) mat.SetTexture("_BaseMap", wood);
+            mat.SetColor("_BaseColor", new Color(0.44f, 0.37f, 0.31f));
+            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f));
+            mat.SetFloat("_Smoothness", 0.06f);
+            mat.SetFloat("_Metallic", 0f);
+            return mat;
+        }
+
+        /// <summary>四边形(顶点顺序任意):按 <paramref name="wantedNormal"/> 自动定绕序。</summary>
+        private static void Quad(List<Vector3> v, List<int> t, List<Vector2> uv,
+                                 Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 wantedNormal)
+        {
+            if (Vector3.Dot(Vector3.Cross(b - a, c - a), wantedNormal) < 0f)
+            {
+                (b, d) = (d, b);   // 反序 ⇒ 法线翻到想要的一侧
+            }
+
+            int i0 = v.Count;
+            v.Add(a); v.Add(b); v.Add(c); v.Add(d);
+            uv.Add(new Vector2(0f, 0f));
+            uv.Add(new Vector2(Vector3.Distance(a, b), 0f));
+            uv.Add(new Vector2(Vector3.Distance(a, b), Vector3.Distance(b, c)));
+            uv.Add(new Vector2(0f, Vector3.Distance(b, c)));
+            t.Add(i0); t.Add(i0 + 1); t.Add(i0 + 2);
+            t.Add(i0); t.Add(i0 + 2); t.Add(i0 + 3);
         }
 
         /// <summary>
@@ -131,7 +236,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             InteriorWindows.Opening w = InteriorWindows.West;
             const float barHalf = 0.06f;    // 框料半宽
             const float depthHalf = 0.08f;  // 进深半厚
-            float zMid = (w.Z0 + w.Z1) * 0.5f;
+            float zMid = (w.A0 + w.A1) * 0.5f;
             float yMid = (w.Y0 + w.Y1) * 0.5f;
             float x = InteriorWindows.WestFaceX - 0.16f;
 
@@ -142,14 +247,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             void Bar(float cy, float cz, float hy, float hz)
                 => Box(v, t, uv, new Vector3(x, cy, cz), new Vector3(depthHalf, hy, hz));
 
-            float halfSpan = (w.Z1 - w.Z0) * 0.5f + barHalf;
+            float halfSpan = (w.A1 - w.A0) * 0.5f + barHalf;
             float halfJamb = (w.Y1 - w.Y0) * 0.5f;
             Bar(w.Y0 - barHalf, zMid, barHalf, halfSpan);          // 下框
             Bar(w.Y1 + barHalf, zMid, barHalf, halfSpan);          // 上框
-            Bar(yMid, w.Z0 - barHalf, halfJamb, barHalf);          // 左梃
-            Bar(yMid, w.Z1 + barHalf, halfJamb, barHalf);          // 右梃
+            Bar(yMid, w.A0 - barHalf, halfJamb, barHalf);          // 左梃
+            Bar(yMid, w.A1 + barHalf, halfJamb, barHalf);          // 右梃
             Bar(yMid, zMid, halfJamb, 0.035f);                      // 竖中挺
-            Bar(yMid, zMid, 0.035f, (w.Z1 - w.Z0) * 0.5f);          // 横中挺
+            Bar(yMid, zMid, 0.035f, (w.A1 - w.A0) * 0.5f);          // 横中挺
 
             var mesh = new Mesh { name = "Wall_WestWindowFrame" };
             mesh.SetVertices(v);
@@ -158,13 +263,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
-            var mat = new Material(shader) { name = "InteriorWall_WindowFrame" };
-            Texture2D wood = Resources.Load<Texture2D>(InteriorRoofFrame.WoodPath);
-            if (wood != null) mat.SetTexture("_BaseMap", wood);
-            mat.SetColor("_BaseColor", new Color(0.44f, 0.37f, 0.31f));
-            mat.SetTextureScale("_BaseMap", new Vector2(1f, 1f));
-            mat.SetFloat("_Smoothness", 0.06f);
-            mat.SetFloat("_Metallic", 0f);
+            var mat = MakeWoodMaterial(shader);
 
             var go = new GameObject("Wall_WestWindowFrame");
             go.transform.SetParent(parent, false);
@@ -172,7 +271,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
             go.layer = WorldWallGreybox.WorldGeometryLayer;
 
-            Debug.Log($"[美术] 西墙窗洞已开:{(w.Z1 - w.Z0):0.0} × {(w.Y1 - w.Y0):0.0} m,窗台 {w.Y0:0.00} m(带木框)");
+            Debug.Log($"[美术] 西墙窗洞已开:{(w.A1 - w.A0):0.0} × {(w.Y1 - w.Y0):0.0} m,窗台 {w.Y0:0.00} m(带木框)");
         }
 
         /// <summary>轴对齐盒体(窗框用);UV 取米数,与木纹尺度一致。</summary>
@@ -226,8 +325,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 {
                     RectZ(x, Z0, Z1, 0f, w.Y0),            // 窗下
                     RectZ(x, Z0, Z1, w.Y1, Height),        // 窗上
-                    RectZ(x, Z0, w.Z0, w.Y0, w.Y1),        // 窗左(靠 Z0 一侧)
-                    RectZ(x, w.Z1, Z1, w.Y0, w.Y1),        // 窗右
+                    RectZ(x, Z0, w.A0, w.Y0, w.Y1),        // 窗左(靠 Z0 一侧)
+                    RectZ(x, w.A1, Z1, w.Y0, w.Y1),        // 窗右
                 },
             };
         }
@@ -239,23 +338,60 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             new Vector3(x, y1, z1), new Vector3(x, y1, z0),
         };
 
-        private static Face NorthFace() => new Face
+        /// <summary>
+        /// 北墙:**拱窗**(§8.12)。
+        /// <para>洞口 = 矩形(窗台→起拱)+ 半圆(起拱→拱顶,半径 = 宽/2)。
+        /// 拆法是「下 / 左 / 右 + 拱上方的扇形」四组三角形 —— 扇形按弧线采样,
+        /// 每一段从弧上两点垂直拉到墙顶,恰好铺满「矩形挖掉半圆」的那块(即拱肩)。</para>
+        /// </summary>
+        private static Face NorthFace()
         {
-            Name = "North",
-            TexturePath = "Art/church-interior/wall_north",
-            WidthM = X1 - X0,
-            UAlongX = true,
-            UOrigin = X0,
-            UScale = 1f / (X1 - X0),
-            Normal = Vector3.forward,
-            Quads = new List<Vector3[]>
+            const float z = Z0 + Inset;
+            InteriorWindows.Opening w = InteriorWindows.North;
+            var quads = new List<Vector3[]>
             {
-                new[]
+                RectX(z, X0, X1, 0f, w.Y0),            // 窗下
+                RectX(z, X0, w.A0, w.Y0, Height),      // 左(靠 X0 一侧)
+                RectX(z, w.A1, X1, w.Y0, Height),      // 右
+            };
+
+            // 拱肩:沿半圆采样,每段两点拉到墙顶
+            float cx = (w.A0 + w.A1) * 0.5f;
+            float r = w.ArchRadius;
+            const int segments = 14;
+            for (int i = 0; i < segments; i++)
+            {
+                float a0 = Mathf.PI * i / segments;
+                float a1 = Mathf.PI * (i + 1) / segments;
+                float x0 = cx + Mathf.Cos(a0) * r;
+                float x1 = cx + Mathf.Cos(a1) * r;
+                float y0 = w.ArchY + Mathf.Sin(a0) * r;
+                float y1 = w.ArchY + Mathf.Sin(a1) * r;
+                quads.Add(new[]
                 {
-                    new Vector3(X0, 0f, Z0 + Inset), new Vector3(X1, 0f, Z0 + Inset),
-                    new Vector3(X1, Height, Z0 + Inset), new Vector3(X0, Height, Z0 + Inset),
-                },
-            },
+                    new Vector3(x0, y0, z), new Vector3(x1, y1, z),
+                    new Vector3(x1, Height, z), new Vector3(x0, Height, z),
+                });
+            }
+
+            return new Face
+            {
+                Name = "North",
+                TexturePath = "Art/church-interior/wall_north",
+                WidthM = X1 - X0,
+                UAlongX = true,
+                UOrigin = X0,
+                UScale = 1f / (X1 - X0),
+                Normal = Vector3.forward,
+                Quads = quads,
+            };
+        }
+
+        /// <summary>南北向的墙面上的一块矩形:z 固定,x / y 给区间。</summary>
+        private static Vector3[] RectX(float z, float x0, float x1, float y0, float y1) => new[]
+        {
+            new Vector3(x0, y0, z), new Vector3(x1, y0, z),
+            new Vector3(x1, y1, z), new Vector3(x0, y1, z),
         };
 
         private static Face SouthFace() => new Face

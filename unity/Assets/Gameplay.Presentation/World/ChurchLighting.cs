@@ -51,6 +51,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         private const float WindowRange = 40f;
         private const float WindowAngle = 42f;
 
+        // ── 北墙拱窗光(2026-11-13 · §8.12):第二扇窗,补一组**交叉光**
+        //    ⚠️ 对准窗洞复算:从 (10.5, 3.0, 12.2) 到 (10.5, 0.6, 19.0),
+        //      过 z=15.02(墙面)时 t=0.415 ⇒ y=3.0−0.415×2.4 = 2.00,
+        //      在洞口(y 1.20..3.20)之内,x=10.5 也在(9.7..11.3)之内。
+        private static readonly Vector3 NorthWindowFrom = new Vector3(10.5f, 3.0f, 12.2f);
+        private static readonly Vector3 NorthWindowTo = new Vector3(10.5f, 0.6f, 19.0f);
+        private const float NorthWindowIntensity = 700f;
+        private const float NorthWindowRange = 40f;
+        private const float NorthWindowAngle = 40f;
+
         // ── 补光:不投影,只把四壁的明度托到「看得见」,不制造第二处光斑
         private static readonly Vector3 FillFrom = new Vector3(11.0f, 3.4f, 21.5f);
         private static readonly Color FillColor = new Color(0.96f, 0.94f, 0.90f);
@@ -78,12 +88,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                       CornerFillRange, root.transform);
             MakeSpot("WindowLight", WindowFrom, WindowTo, ShaftColor, WindowIntensity,
                      WindowRange, WindowAngle, root.transform);
+            MakeSpot("NorthWindowLight", NorthWindowFrom, NorthWindowTo, ShaftColor,
+                     NorthWindowIntensity, NorthWindowRange, NorthWindowAngle, root.transform);
 
             // 光柱的几何由**同一对**起止点算出 —— 改灯的角度,柱子自动跟着走。
             ChurchLightShaft.Build(ShaftFrom, ShaftTo, ShaftAngle, root.transform);
 
             Debug.Log($"[光照] 内景灯光已建:塌口聚光 {ShaftIntensity} + 补光 ×2 + 光柱" +
-                      $" + 西墙窗光 {WindowIntensity};环境光已压到 0.17/0.12/0.05");
+                      $" + 窗光 ×2(西 {WindowIntensity} / 北 {NorthWindowIntensity});" +
+                      "环境光已压到 0.17/0.12/0.05");
         }
 
         /// <summary>环境光:三色渐变的低值。**全局副作用**,见类头注。</summary>

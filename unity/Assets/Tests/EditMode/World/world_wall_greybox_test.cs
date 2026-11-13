@@ -246,30 +246,44 @@ namespace DaYiJingCheng.Tests.Unit.World
             walls.DestroyAll();
         }
 
-        /// <summary>窗洞的作者表与灰盒格对得上:西墙那两格(4,18)/(4,19)命中,其余不命中。
-        /// <para>这条钉的是「作者表 ↔ 灰盒格」的**对应关系**,不是画面。</para></summary>
+        /// <summary>窗洞作者表 ↔ 灰盒格:每扇窗的每一格都命中,窗外一格不命中,洞口落在开口之内。
+        /// <para>这条钉的是**对应关系**,不是画面。拱窗另验「拱顶 = 起拱 + 半径」。</para></summary>
         [Test]
-        public void test_windowTable_mapsToWestWallCells()
+        public void test_windowTable_everyOpeningMapsToItsCells()
         {
-            InteriorWindows.Opening w = InteriorWindows.West;
+            Assert.That(InteriorWindows.All.Length, Is.GreaterThanOrEqualTo(2),
+                "西墙大窗 + 北墙拱窗");
 
-            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ0, out float y0a, out float y1a),
-                Is.True, "首格必须命中");
-            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ1, out float y0b, out float y1b),
-                Is.True, "末格必须命中");
-            Assert.That(y0a, Is.EqualTo(w.Y0).Within(1e-4f));
-            Assert.That(y1a, Is.EqualTo(w.Y1).Within(1e-4f));
-            Assert.That(y0b, Is.EqualTo(w.Y0).Within(1e-4f));
-            Assert.That(y1b, Is.EqualTo(w.Y1).Within(1e-4f));
+            foreach (InteriorWindows.Opening w in InteriorWindows.All)
+            {
+                for (int c = w.CellAlong0; c <= w.CellAlong1; c++)
+                {
+                    int x = w.Axis == InteriorWindows.WallAxis.AlongZ ? w.CellFixed : c;
+                    int z = w.Axis == InteriorWindows.WallAxis.AlongZ ? c : w.CellFixed;
 
-            Assert.That(InteriorWindows.TryGetCellCut(w.CellX, w.CellZ0 - 1, out _, out _), Is.False,
-                "窗洞之外的格不得命中");
-            Assert.That(InteriorWindows.TryGetCellCut(w.CellX + 1, w.CellZ0, out _, out _), Is.False,
-                "只有那道墙的格命中");
+                    Assert.That(InteriorWindows.TryGetCellCut(x, z, out float y0, out float y1),
+                        Is.True, $"{w.Name}:格 ({x},{z}) 应命中");
+                    Assert.That(y0, Is.EqualTo(w.Y0).Within(1e-4f), $"{w.Name}:窗台");
+                    Assert.That(y1, Is.EqualTo(w.Y1).Within(1e-4f), $"{w.Name}:洞顶");
+                }
 
-            // 面板洞口必须落在灰盒开口**之内**(否则窗角会露出灰板)
-            Assert.That(w.Z0, Is.GreaterThan(w.CellZ0 - 0.5f));
-            Assert.That(w.Z1, Is.LessThan(w.CellZ1 + 0.5f));
+                // 面板洞口必须落在灰盒开口**之内**(否则窗角会露出灰板)
+                Assert.That(w.A0, Is.GreaterThan(w.CellAlong0 - 0.5f), $"{w.Name}:起点");
+                Assert.That(w.A1, Is.LessThan(w.CellAlong1 + 0.5f), $"{w.Name}:终点");
+
+                // 窗外那一格不命中
+                int ox = w.Axis == InteriorWindows.WallAxis.AlongZ ? w.CellFixed : w.CellAlong0 - 1;
+                int oz = w.Axis == InteriorWindows.WallAxis.AlongZ ? w.CellAlong0 - 1 : w.CellFixed;
+                Assert.That(InteriorWindows.TryGetCellCut(ox, oz, out _, out _), Is.False,
+                    $"{w.Name}:窗外的格不得命中");
+
+                if (w.IsArched)
+                {
+                    Assert.That(w.ArchY, Is.GreaterThan(w.Y0), $"{w.Name}:起拱须高于窗台");
+                    Assert.That(w.Y1, Is.EqualTo(w.ArchY + w.ArchRadius).Within(1e-3f),
+                        $"{w.Name}:拱顶 = 起拱 + 半径(半圆)");
+                }
+            }
         }
 
         /// <summary>地坪:闭区间矩形 ⇒ 半格内缩覆盖整格,且挂在墙体根之下。</summary>
