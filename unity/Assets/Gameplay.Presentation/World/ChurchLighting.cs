@@ -37,7 +37,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         //    🔁 位置必须在**塌口正中**(z 21.5):放到 z 19 会被 1 m 厚的东墙整块挡掉,
         //    灯再亮也是一片死黑(墙是实体,灯在墙里,锥体先打在自己身上)。
         private static readonly Vector3 ShaftFrom = new Vector3(16.5f, 5.2f, 21.5f);
-        private static readonly Vector3 ShaftTo = new Vector3(7.0f, 0.0f, 24.0f);
+        // ⚠️ 2026-11-13:终点由地面 (7,0,24) 抬到 (7.5,1.9,23.0) —— 实测光斑整个砸在地上
+        //    (地面分区 166~218,概念图 73~127),抬高之后光落在**远墙下半与空中**。
+        private static readonly Vector3 ShaftTo = new Vector3(7.5f, 1.9f, 23.0f);
         private static readonly Color ShaftColor = new Color(1.00f, 0.93f, 0.80f);
         private const float ShaftIntensity = 2600f;
         private const float ShaftRange = 70f;
@@ -64,14 +66,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         private const float NorthWindowAngle = 40f;
 
         // ── 补光:不投影,只把四壁的明度托到「看得见」,不制造第二处光斑
-        private static readonly Vector3 FillFrom = new Vector3(11.0f, 3.4f, 21.5f);
+        private static readonly Vector3 FillFrom = new Vector3(11.0f, 4.3f, 21.5f);
         private static readonly Color FillColor = new Color(0.96f, 0.94f, 0.90f);
-        private const float FillIntensity = 1.5f;
+        private const float FillIntensity = 2.6f;
         private const float FillRange = 18f;
 
         // ── 西墙脚补光:后墙离塌口最远,只靠一盏会在墙角糊成黑
         private static readonly Vector3 CornerFill = new Vector3(7.0f, 1.8f, 21.5f);
-        private const float CornerFillIntensity = 1.0f;
+        private const float CornerFillIntensity = 1.6f;
         private const float CornerFillRange = 12f;
 
         // ── 屋顶反光(2026-11-13):望板与椽子的**下表面朝下**,拿不到任何方向光,
@@ -79,7 +81,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         //    这不是几何问题,是缺一盏"地面把光弹回去"的托底灯。
         private static readonly Vector3 RoofBounceFrom = new Vector3(10f, 4.55f, 22.0f);
         private static readonly Color RoofBounceColor = new Color(0.95f, 0.94f, 0.92f);
-        private const float RoofBounceIntensity = 7f;
+        private const float RoofBounceIntensity = 14f;
         private const float RoofBounceRange = 26f;
 
         /// <summary>建灯并挂到场景里。</summary>

@@ -60,7 +60,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             mat.SetTexture("_BaseMap", albedo);
             // 压暗一档:概念图里地面**比墙面深**,而贴图原值偏亮(均值 132)⇒ 不压的话
             // 地面会把整间屋子往上抬一档,墙上的剥落反而看不见了。
-            mat.SetColor("_BaseColor", new Color(0.62f, 0.61f, 0.59f));
+            mat.SetColor("_BaseColor", new Color(0.46f, 0.45f, 0.43f));
             mat.SetFloat("_Smoothness", 0.05f);
             mat.SetFloat("_Metallic", 0f);
             // 法线贴图:夯土的颗粒与踩踏坑是**面朝向**的差,不是颜色差 —— 只挂 albedo 的地坪
