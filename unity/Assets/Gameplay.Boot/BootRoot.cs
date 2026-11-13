@@ -1069,6 +1069,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             cameraObj.transform.SetParent(transform, worldPositionStays: false);
             _cameraRig = cameraObj.AddComponent<CameraRig>();
             cameraObj.AddComponent<UnityEngine.Camera>();
+
+            // ── 后处理接线(2026-11-13 · 内景美术 §8.10)─────────────────────
+            // 🔴 病因:**相机是这里建的**,而 `Boot.unity` 里那台 `Main Camera` 上面已被
+            //    `SetActive(false)` ⇒ 场景资产里的 `m_RenderPostProcessing: 0` 根本不生效,
+            //    本类又从未设过它 ⇒ 项目自带的 `DefaultVolumeProfile`(URP 默认体积,
+            //    已由 `URPDefaultVolumeProfileSettings` 挂为全局)**一直是死配置**:
+            //    Tonemapping=Off、ColorAdjustments 全 0、Bloom intensity=0。
+            // 📐 实测(内景同机位 1280×800,2026-11-13):
+            //    真包 mean 81.6 / p10 31 / p90 152 / std 45.1;
+            //    概念图 mean 114.6 / p10 7 / p90 218 / std 78.3。
+            //    离线复算 ACES +1.0 EV 后:mean 121.4 / p50 119 / p90 216 / std 63.4
+            //    ⇒ 亮度与高光那一半一次补齐;剩下的暗部差距(35 vs 7)曝光救不了,
+            //      归环境光的量级问题,不在本条。
+            // ⚠️ 内置 Volume **不是** custom Renderer Feature(不改 RenderGraph 拓扑),
+            //    ADR-023 §⑧ 不涉及;但这是 `Gameplay.Boot` 首次引 URP 运行期程序集,
+            //    已在 ADR-025 §① 的引用集上按「装配层加边」先例登记。
+            var urpCamera = cameraObj.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (urpCamera == null)
+                urpCamera = cameraObj.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            urpCamera.renderPostProcessing = true;
+
             cameraObj.AddComponent<UnityEngine.AudioListener>();   // 运行时主相机 = 唯一听音点
             _cameraRig.SetModeForTest(CameraMode.Explore);
 

@@ -39,7 +39,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         public static readonly Color ShaftColor = new Color(1.00f, 0.94f, 0.82f, 1f);
 
         /// <summary>墙面处的不透明度。高于 0.18 开始读作「一块发光的塑料」。</summary>
-        public const float ApertureAlpha = 0.05f;
+        public const float ApertureAlpha = 0.025f;
 
         /// <summary>近处淡出距离(米):相机贴到柱子身上时这一段直接归零,不糊屏。</summary>
         public const float NearFade = 3.0f;

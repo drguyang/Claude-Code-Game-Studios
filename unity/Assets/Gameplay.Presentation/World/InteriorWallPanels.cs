@@ -220,6 +220,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             mat.SetFloat("_Smoothness", 0.12f);
             mat.SetFloat("_Metallic", 0f);
 
+            // ── 法线贴图(2026-11-13 · §8.10 批 2)──────────────────────────
+            // 病因:五面材质此前**只挂 `_BaseMap`** ⇒ 墙没有任何表面朝向变化,
+            //   再好的 albedo 也只是一张贴纸 —— 抹灰的起伏、砖缝的凹陷全丢。
+            // `*_normal` 与 albedo 同源(同一张图当高度场算的),面与面之间不会串。
+            // 缺席 ⇒ 不挂(不报错):贴图是 local-only 资产,别机上本来就没有。
+            Texture2D bump = Resources.Load<Texture2D>(f.TexturePath + "_normal");
+            if (bump != null)
+            {
+                mat.SetTexture("_BumpMap", bump);
+                mat.SetFloat("_BumpScale", 1.6f);
+            }
+
             float uPerM = usingFallback ? 1f / TextureWidthM : 0f;
             float vPerM = usingFallback ? 1f / TextureHeightM : 1f / Height;
 
