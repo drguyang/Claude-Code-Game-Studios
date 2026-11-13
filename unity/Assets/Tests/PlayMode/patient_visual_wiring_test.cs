@@ -103,6 +103,8 @@ namespace DaYiJingCheng.Tests.PlayMode
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)
                 yield return null;
             Assert.IsTrue(ReadBooted(), "启动序须在超时内完成");
+            // 剧情阶段门(2026-11-12 裁定「甲」):先有帐篷,才有环境产病人。
+            PatientGateTestSupport.EnsureTentBuilt(_boot);
 
             // 强制编辑器帧节奏(与 landing 探针同纪律)
             Time.captureDeltaTime = 1f / 60f;
