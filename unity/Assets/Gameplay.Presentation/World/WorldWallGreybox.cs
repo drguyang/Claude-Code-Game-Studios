@@ -79,8 +79,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <param name="sizeY">世界 Y 格数(当前关卡为 1;本类只画 `y = 0` 那一层)。</param>
         /// <param name="sizeZ">世界 Z 格数。</param>
         /// <param name="walkable">可走性(0/1;下标 = `(x * sizeY + y) * sizeZ + z`)。</param>
+        /// <param name="suppressedCells">该格是否已被真件覆盖(**覆盖则灰盒让位**;`null` = 不让位)。
+        /// <para>🔁 2026-11-13(让位):真件与灰盒摆在同一格时,画面上是「灰盒挡着真件」,
+        /// 而走查者会把它读成「美术不好用」。判据归 `ArtOverlay.IsCoveredByArt`(摆放表是唯一真源)。</para></param>
         /// <returns>铺出的墙体格数;材质取不到 ⇒ 0(不让半个世界凭空消失,由日志区分「没铺」)。</returns>
-        public int BuildWalls(int sizeX, int sizeY, int sizeZ, int[] walkable)
+        public int BuildWalls(int sizeX, int sizeY, int sizeZ, int[] walkable,
+                              System.Func<int, int, bool> suppressedCells = null)
         {
             DestroyAll();
             DestroyOrphanRoots();
@@ -99,6 +103,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 {
                     if (IsWalkable(walkable, sizeX, sizeY, sizeZ, x, 0, z)) continue;
                     if (!TouchesOpenCell(walkable, sizeX, sizeY, sizeZ, x, z)) continue;
+                    if (suppressedCells != null && suppressedCells(x, z)) continue;
 
                     AddBox(verts, normals, tris,
                            new Vector3(x * MetersPerCell, WallHeight * 0.5f, z * MetersPerCell),

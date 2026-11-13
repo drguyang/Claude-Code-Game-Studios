@@ -129,6 +129,22 @@ namespace DaYiJingCheng.Tests.Unit.World
             second.DestroyAll();
         }
 
+        /// <summary>**让位**:被真件覆盖的格不铺灰盒(否则真件被灰盒挡住)。
+        /// <para>🗝 立此条缘由(2026-11-13 实测):`wall-window` 摆在北墙 z=29,与灰盒同格,
+        /// 画面上只剩一坨 2.6 m 高的灰墙 —— 走查者会据此判「美术不好用」。</para></summary>
+        [Test]
+        public void test_suppressedCells_yieldToArt()
+        {
+            var walls = new WorldWallGreybox(_mat);
+            Assert.That(walls.BuildWalls(3, 1, 3, Grid(3, 3, (1, 1))), Is.EqualTo(4));
+
+            int suppressed = walls.BuildWalls(3, 1, 3, Grid(3, 3, (1, 1)),
+                                              (x, z) => x == 1 && z == 0);
+            Assert.That(suppressed, Is.EqualTo(3), "被覆盖的格必须让位,其余照铺");
+
+            walls.DestroyAll();
+        }
+
         /// <summary>入参非法(空数组 / 尺寸为 0 / 长度不够)⇒ 返回 0 且**不留节点**。</summary>
         [Test]
         public void test_invalidInput_buildsNothing()

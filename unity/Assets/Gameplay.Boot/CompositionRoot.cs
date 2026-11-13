@@ -2316,7 +2316,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 var walls = new WorldWallGreybox();
                 WorldGeometryDataSet geometryForWalls = structureProvider.Load<WorldGeometryDataSet>();
                 int wallCells = walls.BuildWalls(geometryForWalls.SizeX, geometryForWalls.SizeY,
-                                                 geometryForWalls.SizeZ, geometryForWalls.Walkable);
+                                                 geometryForWalls.SizeZ, geometryForWalls.Walkable,
+                                                 // 让位:真件覆盖的格不再铺灰盒(否则真件被灰盒挡住,
+                                                 // 而走查者会把它读成「美术不好用」)。
+                                                 ArtOverlay.IsCoveredByArt);
                 int floorTiles = walls.BuildFloor(PrologueBeats.ChurchX0, PrologueBeats.ChurchZ0,
                                                   PrologueBeats.ChurchX1, PrologueBeats.ChurchZ1);
                 UnityEngine.Debug.Log(
@@ -2334,6 +2337,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 }
                 UnityEngine.Debug.Log($"[世界视觉] 可交互锚点 {markers} 件(台阶 / 告示 / 案头)");
             }
+
+            // ── 正式美术件的摆放(2026-11-13)──────────────────────────────────
+            // 与上面那段**不同**:美术件住 `Resources`(`local-only`),不依赖世界数据产物
+            // ⇒ 守卫条件也不同。资产不在本机时本类自己跳过并记一行,不抛、不影响装配。
+            var artOverlay = new ArtOverlay();
+            int artPlaced = artOverlay.Build();
+            UnityEngine.Debug.Log(
+                $"[美术] 已摆 {artPlaced} 件 / 缺席 {artOverlay.MissingCount} 件" +
+                "(local-only 资产,缺席为正常态;见 specs/church-wall.md)");
 
             var services = new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                resolvedRegistry,   // registry → 51 TelemetryReporter

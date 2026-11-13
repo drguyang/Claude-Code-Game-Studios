@@ -371,3 +371,16 @@ ref_valheim/
 production/qa/evidence/**/*.png
 production/qa/evidence/**/*.jpg
 production/qa/evidence/**/*.jpeg
+
+# ── AI 生成 3D 资产(local-only · 2026-11-13)───────────────────────────
+# 理由:火山方舟 ToS 仍未定(art-bible §8.10.6.11-A),而**仓库是 PUBLIC**。
+# 权威:design/assets/specs/church-wall.md 的 `asset_home: local-only`。
+# ⚠️ 窄 glob,**不整目录** —— `Gameplay.Presentation/Resources/` 与 `Art/` 下
+#   将来若有**真该入库**的资产,必须让它以未跟踪形态**可见**(整目录忽略会让它静默消失)。
+# ⚠️ 只忽略本件(fbx + .fbm 贴图夹 + tex_1)与其三级目录元数据。
+unity/Assets/Gameplay.Presentation/Resources.meta
+unity/Assets/Gameplay.Presentation/Resources/Art.meta
+unity/Assets/Gameplay.Presentation/Resources/Art/church-wall.meta
+unity/Assets/Gameplay.Presentation/Resources/Art/church-wall/**
+unity/Assets/Gameplay.Presentation/Resources/Art/church-interior.meta
+unity/Assets/Gameplay.Presentation/Resources/Art/church-interior/**
