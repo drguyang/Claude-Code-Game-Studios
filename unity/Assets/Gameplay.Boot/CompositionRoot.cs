@@ -2333,6 +2333,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 for (int i = 0; i < PrologueAnchors.FirstAct.Length; i++)
                 {
                     PrologueAnchor a = PrologueAnchors.FirstAct[i];
+                    // 真件替换灰盒:案头已有正式家具(§8.3)⇒ 不再铺方块,
+                    // 否则那个灰方块会从桌面与桌腿之间露出来。
+                    if (InteriorFurniture.Covers(a.MarkerName)) continue;
                     markers += walls.BuildMarker(a.MarkerName, a.CellX, a.CellZ, a.Size, a.Tint);
                 }
                 UnityEngine.Debug.Log($"[世界视觉] 可交互锚点 {markers} 件(台阶 / 告示 / 案头)");
@@ -2362,6 +2365,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 夯土 + 碎砖盖在灰盒地坪上 1 cm。地面是画面里面积最大的一块,
             // 它一直是纯色板时,四面墙做得再好也像一张没贴完的模型。
             InteriorFloor.Build();
+
+            // ── 内景家具(2026-11-13)────────────────────────────────────────
+            // 案头的格**从 `PrologueAnchors` 取得**,不由美术侧再写一份 ——
+            // 节拍判定与画面必须是同一处(§8.3)。
+            InteriorFurniture.Build(PrologueAnchors.Desk.CellX, PrologueAnchors.Desk.CellZ);
+
 
             // ── 内景灯光(2026-11-13)────────────────────────────────────────
             // 四壁是朝内的单面面片,没有光源时只吃环境光 ⇒ 贴图被吃掉大半。
