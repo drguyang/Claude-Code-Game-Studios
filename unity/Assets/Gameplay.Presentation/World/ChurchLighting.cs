@@ -24,28 +24,32 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
     /// <summary>教堂内景灯光(环境光 + 塌口聚光 + 两盏补光)。</summary>
     public static class ChurchLighting
     {
-        // ── 环境光:低、暖灰。太高会把剥落与砖缝冲平,太低墙会糊成一片黑。
-        private static readonly Color Sky = new Color(0.34f, 0.35f, 0.38f);
-        private static readonly Color Equator = new Color(0.30f, 0.29f, 0.27f);
-        private static readonly Color Ground = new Color(0.14f, 0.13f, 0.12f);
+        // ── 环境光:低、冷灰。太高会把剥落与砖缝冲平,太低墙会糊成一片黑。
+        //    🔁 2026-11-13 调低一档(0.34 → 0.17):原来的值是给「没有主光」准备的;
+        //    现在有了塌口晨光,环境光必须让位,否则四处一样亮 = 没有明暗关系(概念图的反面)。
+        private static readonly Color Sky = new Color(0.26f, 0.27f, 0.31f);
+        private static readonly Color Equator = new Color(0.21f, 0.20f, 0.19f);
+        private static readonly Color Ground = new Color(0.10f, 0.10f, 0.09f);
 
         // ── 塌口晨光:暖白,从东侧墙外斜射进来
-        private static readonly Vector3 ShaftFrom = new Vector3(20.0f, 6.0f, 21.5f);
-        private static readonly Vector3 ShaftTo = new Vector3(5.0f, 0.2f, 21.5f);
+        //    🔁 位置必须在**塌口正中**(z 21.5):放到 z 19 会被 1 m 厚的东墙整块挡掉,
+        //    灯再亮也是一片死黑(墙是实体,灯在墙里,锥体先打在自己身上)。
+        private static readonly Vector3 ShaftFrom = new Vector3(16.5f, 5.2f, 21.5f);
+        private static readonly Vector3 ShaftTo = new Vector3(7.0f, 0.0f, 24.0f);
         private static readonly Color ShaftColor = new Color(1.00f, 0.93f, 0.80f);
-        private const float ShaftIntensity = 220f;
-        private const float ShaftRange = 60f;
-        private const float ShaftAngle = 46f;
+        private const float ShaftIntensity = 900f;
+        private const float ShaftRange = 70f;
+        private const float ShaftAngle = 14f;
 
         // ── 补光:不投影,只把四壁的明度托到「看得见」,不制造第二处光斑
         private static readonly Vector3 FillFrom = new Vector3(11.0f, 3.4f, 21.5f);
         private static readonly Color FillColor = new Color(0.96f, 0.94f, 0.90f);
-        private const float FillIntensity = 10f;
+        private const float FillIntensity = 8f;
         private const float FillRange = 18f;
 
         // ── 西墙脚补光:后墙离塌口最远,只靠一盏会在墙角糊成黑
         private static readonly Vector3 CornerFill = new Vector3(7.0f, 1.8f, 21.5f);
-        private const float CornerFillIntensity = 7f;
+        private const float CornerFillIntensity = 5f;
         private const float CornerFillRange = 12f;
 
         /// <summary>建灯并挂到场景里。</summary>
@@ -63,7 +67,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             MakePoint("CornerFillLight", CornerFill, FillColor, CornerFillIntensity,
                       CornerFillRange, root.transform);
 
-            Debug.Log($"[光照] 内景灯光已建:塌口聚光 {ShaftIntensity} + 补光 ×2;环境光已调至低暖灰");
+            // 光柱的几何由**同一对**起止点算出 —— 改灯的角度,柱子自动跟着走。
+            ChurchLightShaft.Build(ShaftFrom, ShaftTo, ShaftAngle, root.transform);
+
+            Debug.Log($"[光照] 内景灯光已建:塌口聚光 {ShaftIntensity} + 补光 ×2 + 光柱;环境光已压到 0.17/0.12/0.05");
         }
 
         /// <summary>环境光:三色渐变的低值。**全局副作用**,见类头注。</summary>
