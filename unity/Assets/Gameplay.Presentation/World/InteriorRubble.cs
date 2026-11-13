@@ -47,6 +47,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             new Pile { X = 14.7f, Z = 19.2f, Radius = 0.85f, Height = 0.30f, Count = 44 },  // 东墙北垛
             new Pile { X = 14.7f, Z = 23.8f, Radius = 0.90f, Height = 0.32f, Count = 48 },  // 东墙南垛
             new Pile { X = 12.6f, Z = 15.5f, Radius = 0.75f, Height = 0.24f, Count = 34 },  // 北墙东段
+            // 2026-11-13 补:东墙塌口脚下**最大的一堆**(概念图右侧墙脚那条塌方带)。
+            // 原来塌口下面只有两处 0.85-0.90 m 的小堆,断口与地面之间是空的 ——
+            // 读作"墙凭空断了",而不是"塌下来的砖在地上"。
+            new Pile { X = 13.9f, Z = 21.4f, Radius = 1.65f, Height = 0.62f, Count = 150 },
         };
 
         /// <summary>断木板(手写:躺在地上,长短与朝向各不相同)。</summary>

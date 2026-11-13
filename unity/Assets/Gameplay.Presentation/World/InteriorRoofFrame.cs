@@ -52,6 +52,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
 
         // ── 坡屋面:檐口(墙顶)→ 屋脊
         private const float EaveY = 5.50f;
+
+        // ── 檐口**外挑**(2026-11-13 绿底诊断实测):原来屋面正好从墙线起坡,
+        //    而镜头往上斜看时,光线的仰角(30° + 2.6° 俯仰)比屋面坡度(19.8°)陡 ——
+        //    于是**越过墙顶、又从瓦檐上方跑了出去**,画面左上角是天空。
+        //    檐口外挑 0.5 m 并压低 0.10 m 之后,越过墙顶的光线一定先撞到瓦面。
+        //    顺带也符合真实做法:屋面本来就要挑出墙外做滴水。
+        private const float Overhang = 0.50f;
+        private const float OverhangDrop = 0.10f;
         private const float RidgeX = 10.0f;
         private const float RidgeY = 7.30f;
 
@@ -63,6 +71,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         // ── 望板:沿坡的条数步长、厚
         private const float DeckStepT = 0.26f;     // 沿坡每 0.26 m 一条(板宽 = 步长,对接无缝)
         private const float DeckThick = 0.020f;
+        private const float DeckSegZ = 0.80f;      // 沿 z 的分段长(塌落断口的横向分辨率)
 
         // ── 筒瓦:半径、沿 z 间距
         private const float TileRadius = 0.10f;
@@ -79,18 +88,57 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <summary>成片的破口(手写,确定性)。东侧靠塌口那片最大。</summary>
         private static readonly Hole[] Holes =
         {
-            // 东坡靠檐口、正对塌口(z 20~23)—— 采光就是从这儿进来的
-            new Hole { East = true,  T0 = 0.00f, T1 = 0.40f, Z0 = 19.4f, Z1 = 24.6f },
-            // 东坡靠屋脊的一处
-            new Hole { East = true,  T0 = 0.62f, T1 = 0.92f, Z0 = 25.4f, Z1 = 27.8f },
-            // 西坡一处中等破口
-            new Hole { East = false, T0 = 0.45f, T1 = 0.80f, Z0 = 16.0f, Z1 = 18.2f },
-            // 西坡靠檐口的一小片
-            new Hole { East = false, T0 = 0.00f, T1 = 0.22f, Z0 = 26.2f, Z1 = 28.4f },
+            // 东坡靠屋脊的一处(大片塌落之外的零碎)
+            new Hole { East = true,  T0 = 0.62f, T1 = 0.92f, Z0 = 25.4f, Z1 = 28.2f },
+            // 🔻 2026-11-13 **删除**:西坡 z 26.2~28.4 / t 0~0.22 的一小片破口。
+            //    它离主镜头(拍在 z=25.5)只有一米出头,在画面左侧被透视放大成**一大块白**,
+            //    读作"左墙没了"。破口的大小要按**在画面里的占比**判,不是按平米数。
         };
+
+        // ═══ 大片塌落(2026-11-13 第三版)════════════════════════════════════
+        //  上一版是**四个矩形洞**,画面读作「在瓦面上开了四个天窗」——洞边是直线,
+        //  而且每片洞都完整地悬在屋面里,没有一处连到檐口(真实坍塌一定从檐口开始撕)。
+        //  概念图是**整片没了**:东坡从檐口一路撕到坡中,边线是锯齿状的断口。
+        //  ⇒ 改成「每一条 z 带一个自己的塌落深度」:深度随带抖动(整数哈希,确定性),
+        //    两端逐渐收窄 —— 于是得到一个**连成一片、边缘锯齿**的大口子。
+        //  ⚠️ 仍然**没有随机源**:哈希只吃带号,同一份代码每次得到同一条断口边线,
+        //    截图能逐次比对(ADR-009 §四)。
+        private const float CollapseZ0 = 19.6f, CollapseZ1 = 26.6f, CollapseBandZ = 0.80f;
+
+        /// <summary>该 z 处**从哪一段开始**没有望板(坡向比例);`<= 0` = 这一带没塌。
+        /// <para>⚠️ 2026-11-13 第四版:塌落位置由「从檐口起」改为「**从坡中起,直到屋脊**」。
+        /// 实测从檐口起缺的一大片在画面里读成**左上角一块白**(天空从檐口边漏进来),
+        /// 而概念图的破口在**屋脊一线**、檐口那圈望板还在。物理上也对:檐口有墙压着,
+        /// 先断的总是中部与脊部。</para></summary>
+        private static float EastCollapseFrom(float z)
+        {
+            if (z < CollapseZ0 || z > CollapseZ1) return -1f;
+            int band = (int)((z - CollapseZ0) / CollapseBandZ);
+            float span = (z - CollapseZ0) / (CollapseZ1 - CollapseZ0);
+            float taper = Mathf.Min(1f, Mathf.Min(span, 1f - span) * 5f);   // 两端往回收
+            return 1f - (0.55f + 0.30f * Hash01(band * 17 + 3)) * taper;    // 0.45..0.15 起塌
+        }
+
+        /// <summary>西坡:2026-11-13 第四版**取消**。西坡正对镜头左半,一塌就是一大片白,
+        /// 概念图那一侧是**完整的屋面**(光是从东侧与屋顶缺口进来的)。</summary>
+        private static float WestCollapseFrom(float z) => -1f;
+
+        /// <summary>整数哈希 → [0,1)。乘性散列,无 `UnityEngine.Random`。</summary>
+        private static float Hash01(int n)
+        {
+            unchecked
+            {
+                uint h = (uint)n * 2654435761u;
+                h ^= h >> 15; h *= 2246822519u; h ^= h >> 13;
+                return (h & 0xFFFFFF) / 16777216f;
+            }
+        }
 
         private static bool InHole(bool east, float t, float z)
         {
+            float from = east ? EastCollapseFrom(z) : WestCollapseFrom(z);
+            if (from >= 0f && t >= from) return true;      // 坡中→屋脊那一段塌掉
+
             for (int i = 0; i < Holes.Length; i++)
             {
                 Hole h = Holes[i];
@@ -139,6 +187,23 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 new Vector3(0.09f, 0.09f, (Z1 - Z0) * 0.5f));
             parts++;
 
+            // ── 檐檩(2026-11-13 补「漏天」第二处):墙顶 5.5 / 屋面从 5.5 起坡,
+            //    而望板坐在椽子上皮(**比坡线高约 9 cm**)⇒ 沿墙顶有一条 9 cm 的通长缝,
+            //    抬头能从缝里看见外面的天。椽子每 0.7 m 才挡一次,挡不住。
+            //    这根通长檐檩正好压在缝上,同时是真实屋架里本来就有的构件。
+            for (int side = 0; side < 2; side++)
+            {
+                float x = side == 0 ? X0 : X1;
+                // ⚠️ 尺寸与位置是**堵缝**用的(2026-11-13 绿底诊断实测):
+                //   望板下皮在坡线以上约 0.09 m,墙顶正好在坡线上 ⇒ 两者之间有一条
+                //   通长 9 cm 的**水平缝**,抬头看过去是一条天。檐檩必须把这条缝整个盖住:
+                //   往屋里挪 6 cm(x = 墙线 + 0.06)、上下各 0.12 m(y 5.40–5.64)、
+                //   沿 x 厚 0.20 —— 小一圈就又从旁边漏。
+                Box(v, t, uv, new Vector3(x + (side == 0 ? 0.06f : -0.06f), EaveY + 0.02f, (Z0 + Z1) * 0.5f),
+                    new Vector3(0.10f, 0.12f, (Z1 - Z0) * 0.5f));
+                parts++;
+            }
+
             var slabMesh = new Mesh { name = "ChurchRoofFrameMesh" };
             slabMesh.SetVertices(v);
             slabMesh.SetUVs(0, uv);
@@ -150,7 +215,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             wood.transform.SetParent(root.transform, false);
             wood.AddComponent<MeshFilter>().sharedMesh = slabMesh;
             wood.AddComponent<MeshRenderer>().sharedMaterial =
-                MakeMaterial(shader, "RoofWood_Mat", WoodPath, new Color(0.44f, 0.37f, 0.31f),
+                MakeMaterial(shader, "RoofWood_Mat", WoodPath, new Color(0.42f, 0.37f, 0.31f),
                              new Color(0.24f, 0.19f, 0.15f), 0.06f, WoodTileMeters);
             wood.layer = WorldWallGreybox.WorldGeometryLayer;
 
@@ -178,8 +243,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 go.layer = WorldWallGreybox.WorldGeometryLayer;
             }
 
-            Debug.Log($"[美术] 屋架已建:横梁 {BeamZ.Length} 根 + 两坡斜椽/望板 {parts - BeamZ.Length} 件" +
-                      $" + 筒瓦 {tiles} 段(坡屋面,四处成片破口)");
+            Debug.Log($"[美术] 屋架已建:横梁 {BeamZ.Length} 根 + 檐檩 2 根 + 两坡斜椽/望板 {parts - BeamZ.Length - 2} 件" +
+                      $" + 筒瓦 {tiles} 段(坡屋面,东侧成片塌落 + 两处零碎破口)");
             return total;
         }
 
@@ -187,7 +252,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
 
         private static int BuildSlope(List<Vector3> v, List<int> t, List<Vector2> uv, bool east)
         {
-            Vector3 eave = new Vector3(east ? X1 : X0, EaveY, 0f);
+            Vector3 eave = new Vector3(east ? X1 + Overhang : X0 - Overhang, EaveY - OverhangDrop, 0f);
             Vector3 ridge = new Vector3(RidgeX, RidgeY, 0f);
             Vector3 dir = (ridge - eave).normalized;
             Vector3 n = Vector3.Cross(dir, Vector3.forward);
@@ -214,7 +279,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             //   按「本行起点 / 下一行起点」算半尺寸,不按固定宽度 —— 这样最后一行会**伸到屋脊**,
             //   不会因为 rows = floor(坡长 / 步长) 在脊下留一条通长的天窗(2026-11-13 实测踩到)。
             int rows = Mathf.CeilToInt(slopeLen / DeckStepT);
-            float segLen = (Z1 - Z0) / 3f;
+            // ⚠️ 沿 z 的分段在 2026-11-13 由「固定 3 段」改为 **0.8 m 一段**:3 段时每段 4.67 m,
+            //    锯齿状的塌落边线会被量化成三块大方块 —— 那正是上一版「四个矩形洞」的观感来源。
+            //    换成 18 段之后,断口才真的跟着 t 边界走。
+            int zSegs = Mathf.CeilToInt((Z1 - Z0) / DeckSegZ);
             for (int r = 0; r < rows; r++)
             {
                 float from = Mathf.Min(r * DeckStepT, slopeLen);
@@ -226,13 +294,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 Vector3 mid = Vector3.Lerp(eave, ridge, tMid) + n * (RafterThick * 0.5f + DeckThick * 0.5f);
                 // 每行错开贴图采样 ⇒ 相邻两条望板的木纹断开,读得出一条一条的板
                 Vector2 shift = new Vector2(0f, r * 0.37f);
-                for (int s = 0; s < 3; s++)
+                for (int s = 0; s < zSegs; s++)
                 {
-                    float zc = Z0 + segLen * (s + 0.5f);
+                    float za = Z0 + (Z1 - Z0) * s / zSegs;
+                    float zb = Z0 + (Z1 - Z0) * (s + 1) / zSegs;
+                    float zc = (za + zb) * 0.5f;
                     if (InHole(east, tMid, zc)) continue;
                     BoxOriented(v, t, uv,
                                 new Vector3(mid.x, mid.y, zc),
-                                new Vector3(segLen * 0.5f, DeckThick * 0.5f, half),
+                                new Vector3((zb - za) * 0.5f, DeckThick * 0.5f, half),
                                 frame, shift);
                     count++;
                 }
@@ -241,25 +311,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             return count;
         }
 
-        /// <summary>椽子是否缺:整根落在某个破口的 z 区间里就算断。</summary>
+        /// <summary>椽子是否缺:塌落深度超过四成坡长时,整根椽子一起落掉。</summary>
         private static bool BrokenRafter(bool east, float z)
         {
-            for (int i = 0; i < Holes.Length; i++)
-            {
-                Hole h = Holes[i];
-                if (!h.East) continue;
-                if (h.East == east && z >= h.Z0 && z <= h.Z1 && h.T0 <= 0.02f) return true;
-            }
-            // 西坡:只在最大破口处缺一根
-            if (!east && z > 16.0f && z < 16.8f) return true;
-            return false;
+            float from = east ? EastCollapseFrom(z) : WestCollapseFrom(z);
+            return from >= 0f && from < 0.42f;
         }
 
         // ═══ 一坡:筒瓦 ═══════════════════════════════════════════════════════
 
         private static int BuildTiles(List<Vector3> v, List<int> t, List<Vector2> uv, bool east)
         {
-            Vector3 eave = new Vector3(east ? X1 : X0, EaveY, 0f);
+            Vector3 eave = new Vector3(east ? X1 + Overhang : X0 - Overhang, EaveY - OverhangDrop, 0f);
             Vector3 ridge = new Vector3(RidgeX, RidgeY, 0f);
             Vector3 dir = (ridge - eave).normalized;
             Vector3 n = Vector3.Cross(dir, Vector3.forward);

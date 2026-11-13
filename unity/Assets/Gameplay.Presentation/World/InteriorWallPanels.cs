@@ -116,6 +116,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 return 0;
             }
 
+            BuildEastTear(root.transform);
             Debug.Log($"[美术] 内景墙 {created} 面已生成(每面一张 albedo;东墙塌口上方的墙按裂口轮廓下落)");
             BuildWestWindowFrame(root.transform, shader);
             BuildNorthWindowFrame(root.transform, shader);
@@ -374,6 +375,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 });
             }
 
+            // 山墙:墙顶以上到屋面下皮 —— 不收口就是一个三角天窗(2026-11-13 补)
+            AppendGable(quads, z);
+
             return new Face
             {
                 Name = "North",
@@ -394,24 +398,68 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             new Vector3(x1, y1, z), new Vector3(x0, y1, z),
         };
 
-        private static Face SouthFace() => new Face
+        // ── 山墙(2026-11-13 · 补「漏天」)──────────────────────────────────────
+        // 病因(实测):墙只砌到 `Height`(5.5 m),而屋面从檐口 5.5 **升到屋脊 7.3** ——
+        // 南北两端墙顶之上因此留出一个高 1.8 m 的**三角豁口**,抬头就能从天上看出去。
+        // 那不是"破口",是**没砌山墙**:概念图里两端是实心的(上半部只是被光打亮)。
+        // ⇒ 每端补一片三角墙,顶边贴着屋面下皮。
+        //
+        // ⚠️ 顶边**故意过顶 0.30 m**:贴图/几何不保证屋面与墙严丝合缝,差几厘米就又是一条
+        //    细长的天窗(比整块漏天更难发现)。多出来的部分藏在瓦垄里,看不见。
+        private const float RoofEaveY = 5.50f;
+        private const float RoofRidgeY = 7.30f;
+        private const float GableOvershoot = 0.30f;
+
+        private static float RoofUndersideY(float x)
         {
-            Name = "South",
-            TexturePath = "Art/church-interior/wall_south",
-            WidthM = X1 - X0,
-            UAlongX = true,
-            UOrigin = X1,
-            UScale = -1f / (X1 - X0),
-            Normal = Vector3.back,
-            Quads = new List<Vector3[]>
+            float half = (X1 - X0) * 0.5f;
+            float cx = (X0 + X1) * 0.5f;
+            float t = 1f - Mathf.Abs(x - cx) / half;      // 0 = 檐口,1 = 屋脊
+            return RoofEaveY + (RoofRidgeY - RoofEaveY) * Mathf.Clamp01(t) + GableOvershoot;
+        }
+
+        /// <summary>一端山墙:沿 x 切成 <paramref name="segments"/> 条竖带,顶边跟着屋面走。</summary>
+        private static void AppendGable(List<Vector3[]> quads, float z, int segments = 20)
+        {
+            float step = (X1 - X0) / segments;
+            for (int i = 0; i < segments; i++)
+            {
+                float x0 = X0 + step * i;
+                float x1 = x0 + step;
+                quads.Add(new[]
+                {
+                    new Vector3(x0, Height, z), new Vector3(x1, Height, z),
+                    new Vector3(x1, RoofUndersideY(x1), z), new Vector3(x0, RoofUndersideY(x0), z),
+                });
+            }
+        }
+
+        private static Face SouthFace()
+        {
+            const float z = Z1 - Inset;
+            var quads = new List<Vector3[]>
             {
                 new[]
                 {
-                    new Vector3(X1, 0f, Z1 - Inset), new Vector3(X0, 0f, Z1 - Inset),
-                    new Vector3(X0, Height, Z1 - Inset), new Vector3(X1, Height, Z1 - Inset),
+                    new Vector3(X1, 0f, z), new Vector3(X0, 0f, z),
+                    new Vector3(X0, Height, z), new Vector3(X1, Height, z),
                 },
-            },
-        };
+            };
+            // 山墙(与北端同一处置)
+            AppendGable(quads, z);
+
+            return new Face
+            {
+                Name = "South",
+                TexturePath = "Art/church-interior/wall_south",
+                WidthM = X1 - X0,
+                UAlongX = true,
+                UOrigin = X1,
+                UScale = -1f / (X1 - X0),
+                Normal = Vector3.back,
+                Quads = quads,
+            };
+        }
 
         /// <summary>东墙的一段:底边沿 z 走,顶边按 <paramref name="profile"/> 逐段下落。</summary>
         private static Face EastFace(string name, string texturePath, float widthM,
@@ -439,6 +487,84 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 Normal = Vector3.left,
                 Quads = quads,
             };
+        }
+
+        /// <summary>
+        /// 东墙塌口的**厚度**(2026-11-13 补「边缘读不出断裂」)。
+        /// <para>病因:整面墙是**一张零厚度的面片** —— 塌口的断口因此是一条数学意义上的线,
+        /// 从屋里斜看过去读作「墙到这儿就没了」,没有厚度、没有阴影、没有断面。
+        /// 概念图里那圈断口是有厚度的砖砌(能看到 40~50 cm 宽的墙芯与投在它上面的暗面)。</para>
+        /// <para>做法:沿 profile 每段加一片**墙顶面**(从屋内皮 x≈14.98 到墙外皮 15.50),
+        /// 再在塌口两端各补一片**竖向断面**(jamb)。不做外墙面 —— 从屋里看不到它,
+        /// 多做一层反而在窗外挡住天光。</para>
+        /// </summary>
+        private static void BuildEastTear(Transform parent)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) return;
+
+            const float xIn = X1 - Inset;
+            const float xOut = X1 + 0.50f;
+
+            var v = new List<Vector3>();
+            var t = new List<int>();
+            var uv = new List<Vector2>();
+
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int i = v.Count;
+                v.Add(a); v.Add(b); v.Add(c); v.Add(d);
+                uv.Add(new Vector2(a.z * 0.25f, a.y * 0.25f));
+                uv.Add(new Vector2(b.z * 0.25f, b.y * 0.25f));
+                uv.Add(new Vector2(c.z * 0.25f, c.y * 0.25f));
+                uv.Add(new Vector2(d.z * 0.25f, d.y * 0.25f));
+                t.Add(i); t.Add(i + 1); t.Add(i + 2);
+                t.Add(i); t.Add(i + 2); t.Add(i + 3);
+            }
+
+            void Cap(Vector2[] profile)
+            {
+                for (int i = 0; i < profile.Length - 1; i++)
+                {
+                    Vector2 a = profile[i], b = profile[i + 1];
+                    // 顶面:法线 +Y(朝上),角序从屋内往外
+                    Quad(new Vector3(xIn, a.y, a.x), new Vector3(xOut, a.y, a.x),
+                         new Vector3(xOut, b.y, b.x), new Vector3(xIn, b.y, b.x));
+                }
+            }
+
+            void Jamb(float z, float yTop)
+            {
+                // 断口立面:朝塌口那一侧,法线 ±Z
+                Quad(new Vector3(xIn, 0f, z), new Vector3(xOut, 0f, z),
+                     new Vector3(xOut, yTop, z), new Vector3(xIn, yTop, z));
+            }
+
+            Cap(EastSouthProfile);
+            Cap(EastNorthProfile);
+            Jamb(EastSouthProfile[EastSouthProfile.Length - 1].x,
+                 EastSouthProfile[EastSouthProfile.Length - 1].y);
+            Jamb(EastNorthProfile[0].x, EastNorthProfile[0].y);
+
+            var mesh = new Mesh { name = "Wall_EastTearMesh" };
+            mesh.SetVertices(v);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(t, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            var go = new GameObject("Wall_EastTear");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            var mat = new Material(shader) { name = "InteriorWall_EastTear" };
+            Texture2D tex = Resources.Load<Texture2D>("Art/church-interior/wall_easts");
+            if (tex != null) { mat.SetTexture("_BaseMap", tex); }
+            mat.SetColor("_BaseColor", new Color(0.72f, 0.70f, 0.67f));
+            mat.SetFloat("_Smoothness", 0.12f);
+            mat.SetFloat("_Metallic", 0f);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            go.layer = WorldWallGreybox.WorldGeometryLayer;
         }
 
         /// <summary>一批网格 + 一张材质。面贴图缺席时落到 <paramref name="fallback"/> 并按米取样。</summary>

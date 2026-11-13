@@ -23,8 +23,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         /// <summary>`Resources` 下的地坪贴图路径(不含扩展名)。</summary>
         public const string AlbedoPath = "Art/church-interior/floor_dirt";
 
-        /// <summary>贴图覆盖的真实边长(米)。</summary>
-        public const float TileMeters = 2f;
+        /// <summary>贴图覆盖的真实边长(米)。`0` = 一张图铺满整块地坪(不重复)。
+        /// <para>⚠️ **2026-11-13 由 2 m 改为 0(不重复)**。病因是**素材换成了 AI 生成的写实夯土**,
+        /// 而它**不是无缝贴图** —— 2 m 一铺会在整块地上打出格子状的接缝线。
+        /// 一张铺满则零接缝,且素材本身的真实尺寸(≈ 10 m × 14 m 的画面)正好等于这块地坪,
+        /// 碎砖块的直径也落在 0.2–0.3 m 这个可信区间(不再被 2 m 一铺放成 0.05 m 的碎屑)。
+        /// ⚠️ 代价:**纹素密度降一档**(1463 × 2048 铺 10 × 14 m ⇒ 约 146 px/m),
+        /// 近看地坪会比墙面软;换更高分辨率的地坪贴图可解,不是代码问题。</para></summary>
+        public const float TileMeters = 0f;
 
         /// <summary>面片抬升(米)。高于灰盒地坪的 0.02。</summary>
         public const float Lift = 0.03f;
@@ -54,11 +60,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             mat.SetTexture("_BaseMap", albedo);
             // 压暗一档:概念图里地面**比墙面深**,而贴图原值偏亮(均值 132)⇒ 不压的话
             // 地面会把整间屋子往上抬一档,墙上的剥落反而看不见了。
-            mat.SetColor("_BaseColor", new Color(0.70f, 0.68f, 0.63f));
+            mat.SetColor("_BaseColor", new Color(0.62f, 0.61f, 0.59f));
             mat.SetFloat("_Smoothness", 0.05f);
             mat.SetFloat("_Metallic", 0f);
+            // 法线贴图:夯土的颗粒与踩踏坑是**面朝向**的差,不是颜色差 —— 只挂 albedo 的地坪
+            // 在斜射光下是一片平纸。与墙同一处置(缺席即不挂,local-only 资产别机本来就没有)。
+            Texture2D bump = Resources.Load<Texture2D>(AlbedoPath + "_normal");
+            if (bump != null)
+            {
+                mat.SetTexture("_BumpMap", bump);
+                mat.SetFloat("_BumpScale", 0.9f);
+            }
 
-            float s = 1f / TileMeters;
             var mesh = new Mesh { name = "InteriorFloorMesh" };
             mesh.SetVertices(new[]
             {
@@ -68,12 +81,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 new Vector3(X0, Lift, Z1),
             });
             // UV 用世界米数:两块地坪(现在是这一块)纹理尺度一致,不随房间尺寸拉伸。
+            // `TileMeters == 0` ⇒ 一张图**铺满**整块地坪:U/V 各自的米数按整块地的尺寸归一,
+            // 既不重复也不把 1463 × 2048 的方图拉成 10 : 14。
+            float su = TileMeters > 0f ? 1f / TileMeters : 1f / (X1 - X0);
+            float sv = TileMeters > 0f ? 1f / TileMeters : 1f / (Z1 - Z0);
             mesh.SetUVs(0, new[]
             {
                 new Vector2(0f, 0f),
-                new Vector2((X1 - X0) * s, 0f),
-                new Vector2((X1 - X0) * s, (Z1 - Z0) * s),
-                new Vector2(0f, (Z1 - Z0) * s),
+                new Vector2((X1 - X0) * su, 0f),
+                new Vector2((X1 - X0) * su, (Z1 - Z0) * sv),
+                new Vector2(0f, (Z1 - Z0) * sv),
             });
             // 俯视逆时针 ⇒ 法线 +Y(与灰盒地坪同一绕序)。
             mesh.SetTriangles(new[] { 0, 2, 1, 0, 3, 2 }, 0);
@@ -85,7 +102,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
 
-            Debug.Log($"[美术] 内景地坪已生成:{(X1 - X0):0}×{(Z1 - Z0):0} m,贴图 {TileMeters:0} m 一铺");
+            Debug.Log($"[美术] 内景地坪已生成:{(X1 - X0):0}×{(Z1 - Z0):0} m," +
+                      (TileMeters > 0f ? $"贴图 {TileMeters:0} m 一铺" : "一张图铺满(不重复)"));
             return 1;
         }
     }

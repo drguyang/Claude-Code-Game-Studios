@@ -25,6 +25,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
         public const string WoodPath = "Art/church-interior/roof_wood";
         public const string StrawPath = "Art/church-interior/straw_mat";
         public const string ClayPath = "Art/church-interior/coarse_clay";
+        /// <summary>告示纸(2026-11-13 补):概念图左墙那张「告示」。</summary>
+        public const string NoticePath = "Art/church-interior/notice_paper";
 
         /// <summary>桌面高度(米)。与灰盒锚点 `Anchor_Desk` 的 0.78 同高 —— 真件要盖住它。</summary>
         public const float TableTopY = 0.78f;
@@ -51,8 +53,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             Material paper = MakeFlat(shader, "Furniture_Paper", new Color(0.72f, 0.68f, 0.57f), 0.03f);
             Material clay = MakeMaterial(shader, "Furniture_Clay", ClayPath,
                                          new Color(0.70f, 0.67f, 0.63f), new Color(0.27f, 0.23f, 0.20f), 0.10f);
+            // ⚠️ 2026-11-13:p87 实测草席是一块**过亮的金色板**(贴图 p50 149、暖度 +54,
+            //    再乘 0.90 的白 tint ⇒ 在实景布光下直接过曝)。压到 0.55 并去掉暖偏。
             Material straw = MakeMaterial(shader, "Furniture_Straw", StrawPath,
-                                          new Color(0.90f, 0.85f, 0.76f), new Color(0.45f, 0.39f, 0.27f), 0.05f);
+                                          new Color(0.55f, 0.50f, 0.41f), new Color(0.45f, 0.39f, 0.27f), 0.05f);
 
             var root = new GameObject("InteriorFurniture");
             if (parent != null) root.transform.SetParent(parent, worldPositionStays: false);
@@ -61,19 +65,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             var paperBatch = new Batch(1f);
             var clayBatch = new Batch(1f);
             var strawBatch = new Batch(2.4f);
+            // 告示纸:UV 直接 0..1(一张图贴一次),所以 metersPerTile 不参与
+            Material sign = MakeMaterial(shader, "Furniture_Notice", NoticePath, Color.white,
+                                         new Color(0.72f, 0.68f, 0.57f), 0.05f);
+            var signBatch = new Batch(1f);
 
             AddDesk(woodBatch, paperBatch, deskCellX, deskCellZ);
-            AddPot(clayBatch, new Vector3(5.45f, 0f, 27.2f));
-            AddMat(strawBatch, new Vector3(11.5f, 0f, 25.5f));
+
+            // ⚠️ 2026-11-13 实测修正:这四件**本来就有**,但三件的落位离主镜头构图很远
+            //   (陶罐在 (5.45, 27.2) = 镜头背后、草席在 (11.5, 25.5) = 镜头脚下),
+            //   所以对照概念图时读成「道具全缺」—— 缺的是**摆位**,不是模型。
+            AddPot(clayBatch, new Vector3(deskCellX + 1.9f, 0f, deskCellZ - 0.9f));
+            AddMat(strawBatch, new Vector3(deskCellX + 2.9f, 0f, deskCellZ - 0.2f));
             AddFallenBench(woodBatch, new Vector3(11.3f, 0f, 17.0f));
+            AddBench(woodBatch, new Vector3(5.42f, 0f, 21.0f), 2.2f);     // 西墙直立长椅
+            AddNotice(signBatch, 5.42f, 1.95f, 23.6f, 0.78f, 1.10f);     // 西墙告示
 
             int count = 0;
             count += woodBatch.Flush("Furniture_WoodMesh", wood, root.transform);
             count += paperBatch.Flush("Furniture_PaperMesh", paper, root.transform);
             count += clayBatch.Flush("Furniture_ClayMesh", clay, root.transform);
             count += strawBatch.Flush("Furniture_StrawMesh", straw, root.transform);
+            count += signBatch.Flush("Furniture_NoticeMesh", sign, root.transform);
 
-            Debug.Log($"[美术] 内景家具已建:{count} 批网格(案头 + 登记簿 + 陶罐 + 草席 + 翻倒长椅)");
+            Debug.Log($"[美术] 内景家具已建:{count} 批网格(案头 + 登记簿 + 陶罐 + 草席 + 长椅 ×2 + 告示)");
             return count;
         }
 
@@ -131,6 +146,39 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             // 两条腿:0.42 长,以前竖着,现在横着指向 +Z
             b.AddBox(at + new Vector3(-0.72f, 0.035f, 0.21f), new Vector3(0.035f, 0.035f, 0.21f));
             b.AddBox(at + new Vector3(0.72f, 0.035f, 0.21f), new Vector3(0.035f, 0.035f, 0.21f));
+        }
+
+        /// <summary>
+        /// 靠墙的**直立长椅**(2026-11-13 补)。概念图左墙那张:座板高 0.45、靠背到 0.98,
+        /// 沿 z 摆放,靠背贴墙。
+        /// <para>⚠️ 不带碰撞体:本类的通行由导航格决定(类头注),别在这里造第二真源。</para>
+        /// </summary>
+        private static void AddBench(Batch b, Vector3 at, float lengthZ)
+        {
+            const float depth = 0.40f, seatY = 0.45f, backTop = 0.98f;
+            float halfZ = lengthZ * 0.5f;
+
+            // 座板
+            b.AddBox(at + new Vector3(0f, seatY, 0f), new Vector3(depth * 0.5f, 0.025f, halfZ));
+            // 靠背(贴墙那侧,-X 是墙)
+            b.AddBox(at + new Vector3(-depth * 0.5f + 0.02f, (seatY + backTop) * 0.5f, 0f),
+                     new Vector3(0.022f, (backTop - seatY) * 0.5f, halfZ));
+            // 四条腿
+            for (int sz = -1; sz <= 1; sz += 2)
+                for (int sx = -1; sx <= 1; sx += 2)
+                    b.AddBox(at + new Vector3(sx * (depth * 0.5f - 0.04f), seatY * 0.5f, sz * (halfZ - 0.06f)),
+                             new Vector3(0.028f, seatY * 0.5f, 0.028f));
+        }
+
+        /// <summary>墙上贴的一张告示纸(单面片,UV 0..1,法线朝屋里 +X)。</summary>
+        private static void AddNotice(Batch b, float x, float y, float z, float w, float h)
+        {
+            float hw = w * 0.5f, hh = h * 0.5f;
+            // 角序:左下 → 左上 → 右上 → 右下 ⇒ 法线 +X(朝屋里)
+            b.AddQuadUv01(new Vector3(x, y - hh, z - hw),
+                          new Vector3(x, y + hh, z - hw),
+                          new Vector3(x, y + hh, z + hw),
+                          new Vector3(x, y - hh, z + hw));
         }
 
         // ═══ 材质 ═══════════════════════════════════════════════════════════
@@ -256,6 +304,20 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 _uv.Add(new Vector2(0f, half.z * 2f * s));
                 _t.Add(b); _t.Add(b + 2); _t.Add(b + 1);
                 _t.Add(b); _t.Add(b + 3); _t.Add(b + 2);
+            }
+
+            /// <summary>竖方片,UV **直接 0..1** —— 用于「一张图贴一次」的告示纸等。
+            /// <para>角序 a→b→c→d 逆时针(从 +X 方向看)⇒ 法线 +X。</para></summary>
+            public void AddQuadUv01(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int i = _v.Count;
+                _v.Add(a); _v.Add(b); _v.Add(c); _v.Add(d);
+                _uv.Add(new Vector2(0f, 0f));
+                _uv.Add(new Vector2(0f, 1f));
+                _uv.Add(new Vector2(1f, 1f));
+                _uv.Add(new Vector2(1f, 0f));
+                _t.Add(i); _t.Add(i + 1); _t.Add(i + 2);
+                _t.Add(i); _t.Add(i + 2); _t.Add(i + 3);
             }
 
             /// <summary>落成一张网格;空批返回 0(不产生空 GameObject)。</summary>
