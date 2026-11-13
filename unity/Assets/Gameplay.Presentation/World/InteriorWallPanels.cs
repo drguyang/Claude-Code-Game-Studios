@@ -3,21 +3,22 @@
 // 权威:
 //   `design/assets/specs/church-interior.md` §7(投影 → PBR → 合成 → 加脏调色 → 小砖 → 烘焙)
 //                                          §8.4(东墙塌口的形态)
+//                                          §8.5(每面一张 albedo)
 //   ADR-023 §②(运行期生成)· ADR-009 §四(视觉是派生态)
 //   `asset_home: local-only`(AI 生成件,条款未核 ⇒ 文件不入库)
 //
-// ═══ 为什么是「一块贴图铺四面」而不是四面各做一张 ═══════════════════════
-//   剥落图案本身来自概念图的后墙(§7.6),只有那一面有依据。其余三面**没有独立依据**,
-//   硬造四张不同的剥落图案 = 编造不存在的东西(比「同一张铺四面」更不诚实)。
-//   ⇒ 本版共用同一张 albedo,面上按**砖的物理尺度**重算 UV(见 `TextureWidthM`)。
-//   ⚠️ 代价:同一处剥落会在四面各出现一次。这是**已知的临时态**,§8.5 解。
+// ═══ 每面一张 albedo(§8.5)════════════════════════════════════════════════
+//   首版四面共用一张 ⇒ **同一处剥落在四面各出现一次**,一眼就看出是同一张图。
+//   现在五张(西 / 北 / 南 / 东-南段 / 东-北段),由 Blender 按面各烘一张:
+//   各自一张 mask 窗口(28 m 镜像拼幅上截取)+ 各自的脏污偏移 ⇒ 形状与脏度都不一样。
+//   ⚠️ 窗口是从**同一张概念图 mask** 截的,所以五面仍共享同一套「剥落语言」——
+//   这是有意的:多出来的「不同」若凭空生成,就是编造不存在的依据。
 //
 // ═══ 东墙塌口:为什么不是一块方洞(2026-11-13 · §8.4)════════════════════
-//   概念图里东墙是**整面塌掉**的,能看见外面的地平线。数据只给了 3 m 宽的地面开口
-//   (`walkable` 里 z∈[20,23] 那段可走)⇒ **地面开口不能画大**,画大了玩家会去走一处
-//   走不通的地方(通行由 `world_geometry` 定,不由这里定)。
+//   概念图里东墙是**整面塌掉**的。数据只给了 3 m 宽的地面开口(z∈[20,23] 可走)
+//   ⇒ **地面开口不能画大**,画大了玩家会去走一处走不通的地方(通行由 `world_geometry` 定)。
 //   ⇒ 本版改的是**开口上方**:两段墙的顶边按手写裂口轮廓逐段下落,到塌口边缘降到 2.6 m
-//   (灰盒墙的高度),于是「门上那一大片墙塌了、露出天」,而地面通行仍与数据一致。
+//   (灰盒墙高),于是「门上那一大片墙塌了、露出天」,而地面通行仍与数据一致。
 //
 // ═══ 摆位取值 ═══════════════════════════════════════════════════════════
 //   `world_geometry.json` 实测:教堂 x∈[4,15] / z∈[14,29];墙体各占一格(1 m 厚),
@@ -29,16 +30,16 @@ using UnityEngine;
 
 namespace DaYiJingCheng.Gameplay.Presentation.World
 {
-    /// <summary>教堂内景的四面墙面板(运行期生成)。</summary>
+    /// <summary>教堂内景的四面墙面板(运行期生成,每面一张贴图)。</summary>
     public static class InteriorWallPanels
     {
-        /// <summary>`Resources` 下的 albedo 路径(不含扩展名)。</summary>
+        /// <summary>回落贴图(五张面贴图缺席时用)。</summary>
         public const string AlbedoPath = "Art/church-interior/wall_back_albedo";
 
-        /// <summary>塌落砖石用的贴图路径(不含扩展名)。缺席 ⇒ 落到 albedo。</summary>
+        /// <summary>塌落砖石用的贴图路径(不含扩展名)。</summary>
         public const string RubblePath = "Art/church-interior/brick_rubble";
 
-        /// <summary>贴图覆盖的真实尺寸(米):14 m 宽 × 5.5 m 高(烘焙时定的,见 §7.9)。</summary>
+        /// <summary>回落贴图覆盖的真实尺寸(米):14 m 宽 × 5.5 m 高(§7.9)。</summary>
         public const float TextureWidthM = 14f;
 
         /// <summary>见 <see cref="TextureWidthM"/>。</summary>
@@ -49,6 +50,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
 
         /// <summary>面板距墙内表面的内缩(米)。</summary>
         public const float Inset = 0.02f;
+
+        private const float X0 = 5f, X1 = 15f, Z0 = 15f, Z1 = 29f;
 
         // ── 东墙裂口轮廓:(z, 该处的墙顶高)。手写,不用随机数(截图要能逐次比对)。
         //    两段都在**塌口一侧**降到 2.6 m(灰盒墙高),越往房间深处越高。
@@ -70,25 +73,24 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             new Vector2(15.0f, 5.50f),
         };
 
-        private struct Rect
+        /// <summary>一面墙的取样口径。</summary>
+        private struct Face
         {
-            public Vector3 A, B;   // 底边两点(世界),A→B 为 U 方向
+            public string Name;
+            public string TexturePath;
+            public float WidthM;        // 沿墙长度(米)
+            public bool UAlongX;        // true = U 沿 X(南北墙);false = 沿 Z(东西墙)
+            public float UOrigin;       // 平米数换算的起点
+            public float UScale;        // 每米 U 增量(可为负 —— 南墙与东墙方向相反)
+            public List<Vector3[]> Quads;   // 每块四边形:左下 / 右下 / 右上 / 左上
             public Vector3 Normal;
         }
 
         /// <summary>生成四面墙并挂到场景里。</summary>
         /// <param name="parent">父节点(可为 null)。</param>
-        /// <returns>生成的网格数(墙 1 + 塌落砖石 0/1);贴图缺席 ⇒ 0。</returns>
+        /// <returns>生成的网格数(墙 5 + 塌落砖石 0/1)。</returns>
         public static int Build(Transform parent = null)
         {
-            Texture2D albedo = Resources.Load<Texture2D>(AlbedoPath);
-            if (albedo == null)
-            {
-                Debug.Log($"[美术] 本地缺席:{AlbedoPath}(内景墙贴图)—— local-only 资产不在本机," +
-                          "四壁维持灰盒(不是接进来了)");
-                return 0;
-            }
-
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null)
             {
@@ -96,107 +98,183 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 return 0;
             }
 
-            var mat = new Material(shader) { name = "InteriorWall_Mat" };
-            mat.SetTexture("_BaseMap", albedo);
-            mat.SetFloat("_Smoothness", 0.12f);
-            mat.SetFloat("_Metallic", 0f);
+            Texture2D fallback = Resources.Load<Texture2D>(AlbedoPath);
 
             var root = new GameObject("InteriorWallPanels");
             if (parent != null) root.transform.SetParent(parent, worldPositionStays: false);
 
+            int created = 0;
+            created += BuildFace(root.transform, shader, fallback, WestFace());
+            created += BuildFace(root.transform, shader, fallback, NorthFace());
+            created += BuildFace(root.transform, shader, fallback, SouthFace());
+            created += BuildFace(root.transform, shader, fallback, EastFace("EastSouth",
+                "Art/church-interior/wall_easts", 6f, 29f, -1f / 6f, EastSouthProfile));
+            created += BuildFace(root.transform, shader, fallback, EastFace("EastNorth",
+                "Art/church-interior/wall_eastn", 5f, 15f, 1f / 5f, EastNorthProfile));
+
+            if (created == 0)
+            {
+                Debug.Log($"[美术] 本地缺席:{AlbedoPath}(内景墙贴图)—— local-only 资产不在本机," +
+                          "四壁维持灰盒(不是接进来了)");
+                return 0;
+            }
+
+            created += BuildRubble(root.transform, shader);
+            Debug.Log($"[美术] 内景墙 {created} 面已生成(每面一张 albedo;东墙塌口上方的墙按裂口轮廓下落)");
+            return created;
+        }
+
+        // ── 三个整面(0..H)──────────────────────────────────────────────────
+
+        private static Face WestFace() => new Face
+        {
+            Name = "West",
+            TexturePath = "Art/church-interior/wall_west",
+            WidthM = Z1 - Z0,
+            UAlongX = false,
+            UOrigin = Z0,
+            UScale = 1f / (Z1 - Z0),
+            Normal = Vector3.right,
+            Quads = new List<Vector3[]>
+            {
+                new[]
+                {
+                    new Vector3(X0 + Inset, 0f, Z0), new Vector3(X0 + Inset, 0f, Z1),
+                    new Vector3(X0 + Inset, Height, Z1), new Vector3(X0 + Inset, Height, Z0),
+                },
+            },
+        };
+
+        private static Face NorthFace() => new Face
+        {
+            Name = "North",
+            TexturePath = "Art/church-interior/wall_north",
+            WidthM = X1 - X0,
+            UAlongX = true,
+            UOrigin = X0,
+            UScale = 1f / (X1 - X0),
+            Normal = Vector3.forward,
+            Quads = new List<Vector3[]>
+            {
+                new[]
+                {
+                    new Vector3(X0, 0f, Z0 + Inset), new Vector3(X1, 0f, Z0 + Inset),
+                    new Vector3(X1, Height, Z0 + Inset), new Vector3(X0, Height, Z0 + Inset),
+                },
+            },
+        };
+
+        private static Face SouthFace() => new Face
+        {
+            Name = "South",
+            TexturePath = "Art/church-interior/wall_south",
+            WidthM = X1 - X0,
+            UAlongX = true,
+            UOrigin = X1,
+            UScale = -1f / (X1 - X0),
+            Normal = Vector3.back,
+            Quads = new List<Vector3[]>
+            {
+                new[]
+                {
+                    new Vector3(X1, 0f, Z1 - Inset), new Vector3(X0, 0f, Z1 - Inset),
+                    new Vector3(X0, Height, Z1 - Inset), new Vector3(X1, Height, Z1 - Inset),
+                },
+            },
+        };
+
+        /// <summary>东墙的一段:底边沿 z 走,顶边按 <paramref name="profile"/> 逐段下落。</summary>
+        private static Face EastFace(string name, string texturePath, float widthM,
+                                     float uOrigin, float uScale, Vector2[] profile)
+        {
+            var quads = new List<Vector3[]>();
+            const float x = X1 - Inset;
+            for (int i = 0; i < profile.Length - 1; i++)
+            {
+                Vector2 a = profile[i], b = profile[i + 1];
+                quads.Add(new[]
+                {
+                    new Vector3(x, 0f, a.x), new Vector3(x, 0f, b.x),
+                    new Vector3(x, b.y, b.x), new Vector3(x, a.y, a.x),
+                });
+            }
+            return new Face
+            {
+                Name = name,
+                TexturePath = texturePath,
+                WidthM = widthM,
+                UAlongX = false,
+                UOrigin = uOrigin,
+                UScale = uScale,
+                Normal = Vector3.left,
+                Quads = quads,
+            };
+        }
+
+        /// <summary>一批网格 + 一张材质。面贴图缺席时落到 <paramref name="fallback"/> 并按米取样。</summary>
+        private static int BuildFace(Transform parent, Shader shader, Texture2D fallback, Face f)
+        {
+            Texture2D tex = Resources.Load<Texture2D>(f.TexturePath);
+            bool usingFallback = tex == null;
+            if (usingFallback) tex = fallback;
+            if (tex == null) return 0;
+
+            var mat = new Material(shader) { name = "InteriorWall_" + f.Name };
+            mat.SetTexture("_BaseMap", tex);
+            mat.SetFloat("_Smoothness", 0.12f);
+            mat.SetFloat("_Metallic", 0f);
+
+            float uPerM = usingFallback ? 1f / TextureWidthM : 0f;
+            float vPerM = usingFallback ? 1f / TextureHeightM : 1f / Height;
+
             var v = new List<Vector3>();
             var t = new List<int>();
             var uv = new List<Vector2>();
+            for (int q = 0; q < f.Quads.Count; q++)
+            {
+                Vector3[] p = f.Quads[q];
+                int b = v.Count;
+                for (int i = 0; i < 4; i++) v.Add(p[i]);
+                for (int i = 0; i < 4; i++)
+                {
+                    float along = f.UAlongX ? p[i].x : p[i].z;
+                    float u = usingFallback ? along * uPerM : (along - f.UOrigin) * f.UScale;
+                    uv.Add(new Vector2(u, p[i].y * vPerM));
+                }
 
-            const float x0 = 5f, x1 = 15f, z0 = 15f, z1 = 29f;
-            AppendRect(v, t, uv, new Rect
-            {
-                A = new Vector3(x0 + Inset, 0f, z0), B = new Vector3(x0 + Inset, 0f, z1),
-                Normal = Vector3.right,
-            }, uAlongX: false);
-            AppendRect(v, t, uv, new Rect
-            {
-                A = new Vector3(x0, 0f, z0 + Inset), B = new Vector3(x1, 0f, z0 + Inset),
-                Normal = Vector3.forward,
-            }, uAlongX: true);
-            AppendRect(v, t, uv, new Rect
-            {
-                A = new Vector3(x1, 0f, z1 - Inset), B = new Vector3(x0, 0f, z1 - Inset),
-                Normal = Vector3.back,
-            }, uAlongX: true);
-            AppendJaggedEast(v, t, uv, EastSouthProfile);
-            AppendJaggedEast(v, t, uv, EastNorthProfile);
+                Vector3 n = Vector3.Cross(p[1] - p[0], p[2] - p[0]);
+                if (Vector3.Dot(n, f.Normal) >= 0f)
+                {
+                    t.Add(b); t.Add(b + 1); t.Add(b + 2);
+                    t.Add(b); t.Add(b + 2); t.Add(b + 3);
+                }
+                else
+                {
+                    t.Add(b); t.Add(b + 2); t.Add(b + 1);
+                    t.Add(b); t.Add(b + 3); t.Add(b + 2);
+                }
+            }
 
-            var mesh = new Mesh { name = "InteriorWallMesh" };
+            var mesh = new Mesh { name = "Wall_" + f.Name };
             mesh.SetVertices(v);
             mesh.SetUVs(0, uv);
             mesh.SetTriangles(t, 0);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
-            var go = new GameObject("Wall_FourSides");
-            go.transform.SetParent(root.transform, worldPositionStays: false);
+            var go = new GameObject("Wall_" + f.Name);
+            go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
             go.layer = WorldWallGreybox.WorldGeometryLayer;
 
-            int created = 1 + BuildRubble(root.transform, shader);
-            Debug.Log($"[美术] 内景墙 4 面已生成(东墙塌口上方的墙按裂口轮廓下落;塌落砖石 {created - 1} 批)");
-            return created;
-        }
-
-        /// <summary>一整块矩形墙(0..H)。</summary>
-        private static void AppendRect(List<Vector3> v, List<int> t, List<Vector2> uv, Rect r,
-                                       bool uAlongX)
-        {
-            Vector3 up = Vector3.up * Height;
-            AppendQuad(v, t, uv, new[] { r.A, r.B, r.B + up, r.A + up }, r.Normal, uAlongX);
-        }
-
-        /// <summary>东墙的一段:底边沿 z 走,顶边按 <paramref name="profile"/> 逐段下落。</summary>
-        private static void AppendJaggedEast(List<Vector3> v, List<int> t, List<Vector2> uv,
-                                             Vector2[] profile)
-        {
-            const float x = 15f - Inset;
-            for (int i = 0; i < profile.Length - 1; i++)
-            {
-                Vector2 a = profile[i], b = profile[i + 1];
-                Vector3 bottomA = new Vector3(x, 0f, a.x);
-                Vector3 bottomB = new Vector3(x, 0f, b.x);
-                Vector3 topA = new Vector3(x, a.y, a.x);
-                Vector3 topB = new Vector3(x, b.y, b.x);
-                AppendQuad(v, t, uv, new[] { bottomA, bottomB, topB, topA }, Vector3.left, uAlongX: false);
-            }
-        }
-
-        /// <summary>四个顶点 + 各自的 UV(按世界米数 / 贴图覆盖米数)。绕序按法线自检。</summary>
-        private static void AppendQuad(List<Vector3> v, List<int> t, List<Vector2> uv,
-                                       Vector3[] p, Vector3 normal, bool uAlongX)
-        {
-            int b = v.Count;
-            float uPerM = 1f / TextureWidthM;
-            float vPerM = 1f / TextureHeightM;
-            for (int i = 0; i < 4; i++) v.Add(p[i]);
-            // ⚠️ U 轴必须按墙的走向选:南北墙沿 X 铺,东西墙沿 Z 铺。
-            // 一律用 z 会把南北墙的整面贴图压成一列(2026-11-13 起草时踩到过)。
-            for (int i = 0; i < 4; i++)
-                uv.Add(new Vector2((uAlongX ? p[i].x : p[i].z) * uPerM, p[i].y * vPerM));
-
-            Vector3 n = Vector3.Cross(p[1] - p[0], p[2] - p[0]);
-            if (Vector3.Dot(n, normal) >= 0f)
-            {
-                t.Add(b); t.Add(b + 1); t.Add(b + 2);
-                t.Add(b); t.Add(b + 2); t.Add(b + 3);
-            }
-            else
-            {
-                t.Add(b); t.Add(b + 2); t.Add(b + 1);
-                t.Add(b); t.Add(b + 3); t.Add(b + 2);
-            }
+            if (usingFallback)
+                Debug.Log($"[美术] 本地缺席:{f.TexturePath} —— {f.Name} 面回落用的整墙贴图({AlbedoPath})");
+            return 1;
         }
 
         // ═══ 塌落的砖石(§8.4)══════════════════════════════════════════════
-        //   两堆:南北两个墙垛的墙脚。地块沿用 §7.9 自造的小砖贴图,不用墙面 albedo
+        //   两堆:南北两个墙垛的墙脚。贴图用 §7.9 自造的小砖,不用墙面 albedo
         //   (那张带白灰剥落,拿来做碎块会像「一块块墙皮」)。
 
         private struct Rock
@@ -207,13 +285,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
 
         private static readonly Rock[] Rocks =
         {
-            // 南垛(塌口 z=23 一侧)
             new Rock { Center = new Vector3(14.72f, 0.16f, 23.36f), Half = new Vector3(0.30f, 0.16f, 0.26f), Yaw = 18f },
             new Rock { Center = new Vector3(15.06f, 0.10f, 23.64f), Half = new Vector3(0.22f, 0.10f, 0.18f), Yaw = -27f },
             new Rock { Center = new Vector3(14.60f, 0.09f, 23.04f), Half = new Vector3(0.20f, 0.09f, 0.16f), Yaw = 42f },
             new Rock { Center = new Vector3(15.32f, 0.13f, 23.20f), Half = new Vector3(0.24f, 0.13f, 0.22f), Yaw = -12f },
             new Rock { Center = new Vector3(14.94f, 0.07f, 22.84f), Half = new Vector3(0.16f, 0.07f, 0.14f), Yaw = 63f },
-            // 北垛(塌口 z=20 一侧)
             new Rock { Center = new Vector3(14.78f, 0.15f, 19.74f), Half = new Vector3(0.28f, 0.15f, 0.24f), Yaw = -22f },
             new Rock { Center = new Vector3(15.10f, 0.09f, 19.44f), Half = new Vector3(0.20f, 0.09f, 0.17f), Yaw = 33f },
             new Rock { Center = new Vector3(14.58f, 0.08f, 20.04f), Half = new Vector3(0.18f, 0.08f, 0.15f), Yaw = 11f },
@@ -221,7 +297,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             new Rock { Center = new Vector3(14.88f, 0.06f, 20.26f), Half = new Vector3(0.15f, 0.06f, 0.13f), Yaw = -41f },
         };
 
-        /// <summary>塌落砖石:一批网格。<returns>1 = 已生成;0 = 无贴图可用。</returns></summary>
+        /// <summary>塌落砖石:一批网格。<returns>1 = 已生成;0 = 无贴图(跳过,不影响墙面)。</returns></summary>
         private static int BuildRubble(Transform parent, Shader shader)
         {
             Texture2D brick = Resources.Load<Texture2D>(RubblePath);
@@ -242,8 +318,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             for (int i = 0; i < Rocks.Length; i++)
             {
                 Rock r = Rocks[i];
-                Quaternion q = Quaternion.Euler(0f, r.Yaw, 0f);
-                AppendBox(v, t, uv, r.Center, r.Half, q);
+                AppendBox(v, t, uv, r.Center, r.Half, Quaternion.Euler(0f, r.Yaw, 0f));
             }
 
             var mesh = new Mesh { name = "InteriorRubbleMesh" };
@@ -261,7 +336,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
             return 1;
         }
 
-        /// <summary>一块歪放的碎砖(盒体)。UV 取**世界米数**,砖缝尺度与墙面一致。</summary>
+        /// <summary>一块歪放的碎砖(盒体)。UV 按 2 m 一铺,与墙面砖的物理尺度一致。</summary>
         private static void AppendBox(List<Vector3> v, List<int> t, List<Vector2> uv,
                                       Vector3 c, Vector3 h, Quaternion q)
         {
@@ -273,7 +348,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.World
                 {
                     center - du - dv, center + du - dv, center + du + dv, center - du + dv,
                 };
-                float s = 1f / 2f;   // 与 §7.9 的「2 m 一铺」同尺度
+                const float s = 1f / 2f;
                 for (int i = 0; i < 4; i++) v.Add(q * (p[i] - c) + c);
                 uv.Add(new Vector2(0f, 0f));
                 uv.Add(new Vector2(hu * 2f * s, 0f));
