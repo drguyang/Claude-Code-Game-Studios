@@ -200,6 +200,55 @@ what to do rather than what to avoid:
 
 ---
 
+## Phase 6: 归档与清理 —— 审核结论必须落到文件系统
+
+**触发**：一组概念图的**人工审核结束**（用户裁定「这张可以 / 这张不行」）。**每组做一次，落定即收口。**
+
+理由：一组图迭代到第 5 版是常态，而其中往往只有一版可用。全部留盘时，
+「哪张是定稿」只能靠记忆和文件名猜；全部删掉又不留因，下一轮会重犯同一批错。
+⇒ 定稿归档、废版删除、**判读表留下**，三件事一起做才算收口。
+
+### 两条硬规则
+
+| 审核结论 | 动作 |
+|---|---|
+| **纳入**（经审核采用） | 移入 `assets/design-references/<对象>/approved/<slug>.png`（连带 `-thumb`）。**归档即去版本号** —— `-v4` 改成 `<slug>` |
+| **不采用**（经审核否决） | **从盘上删除**（连带 `-thumb`）。**不建 `rejected/` 目录** —— 留一个没人看的回收站等于没删 |
+
+### 目录形态
+
+```
+assets/design-references/<对象>/
+├── approved/
+│   ├── <slug>.png            ← 定稿。此目录内**永不出现 -vN**
+│   └── <slug>-thumb.png
+├── <slug>.png                ← 在审版本(未裁 ⇒ 保留)
+└── <slug>-v2.png …           ← 迭代版(审核后按上表两条处置)
+```
+
+### 三条边界（防误删 / 防误档）
+
+1. **`审核` 的主体是用户，不是我的判读。** 我自己写「v4 可用 / v5 否决」**不构成审核** ——
+   未经用户开口的版本一律**保留**，挂着等裁。把自评当审核等于替用户做删除决定。
+2. **判读表是删除的前提，不是删除的替代。** 删之前，规格里必须已经有一张判读表写明
+   「哪一版、为什么被否、下一版改了什么」。**没有判读表的组，不得删除任何文件** ——
+   否则否因永久丢失，下一轮必然重犯（实测：`scene-interior-a` 的
+   v2 白斑 → v3 剥没了 → v4 才对，这条链只存在于 `church-interior.md` §4.1 里）。
+3. **只动本组目录、只动自己生成的文件。** 删除范围 = `design-references/<对象>/` 下、
+   本次迭代产出的 `.png` / `-thumb.png`。**不碰** `approved/` 之外的既有参考件、
+   不碰 `unity/Assets/`、不做 `find` 批量删除。
+
+### 归档 / 删除后必写回
+
+在规格的判读表里给每一版标出处置：`→ approved/<slug>.png` 或 `已删（审核不采用）`。
+`approved/` 里有什么，读文档就能推出来；盘上有什么，不必反查。
+
+> ⚠️ `assets/design-references/` 整体被 `.gitignore:241` 忽略（实测
+> `git check-ignore -v assets/design-references/church-interior/approved/scene-interior-a.png`
+> 命中同一行）⇒ `approved/` 同样不入库，删除用普通 `rm`（不是 `git rm`，该目录不被跟踪）。
+
+---
+
 ## Gotchas (learned the hard way)
 
 1. **`prompt_extend` fights you on i2i.** The extender takes "make it sparse" and
@@ -245,3 +294,6 @@ See `memory: project-addressable-assetsdata-never-commit` for the sibling rule a
 machine-generated Unity data.
 
 When a spec change is the real deliverable, commit **the spec edit** and leave the PNGs on disk.
+
+**定稿的落点是 `approved/`，不是仓库** —— 见 Phase 6。归档不等于入库：`approved/` 一样在
+`.gitignore` 里，它解决的是「哪一版是定稿」，不是「怎么分发」。
