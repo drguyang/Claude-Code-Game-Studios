@@ -142,10 +142,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ <b>P2-03(砸石头)刻意不在表里</b> —— 它的触发是**玩家按 `Attack`**,
         /// 而节拍驱动的条件闭包没有输入形参。硬把它写成 `() => true` 会让它在 P2-02 之后
         /// 下一 tick 就"完成",等于把一场战斗演成一句旁白。归 27 的敌人/战斗落地后再接。</para>
-        /// <para>⚠️ <b>四处仍被 52 挡住</b>:P2-02 的**野狗本体**(52 遭遇)、P2-06 的**地痞**、
-        /// P2-09 的**第二次遇狗** 都不存在于运行期 —— `TD-randomevents-05` 的上下文门
-        /// (`isOnExpedition` / `isInClinic` 硬编码 false)让 52 链恒 `NoContext`。
-        /// 本表里这几拍只承担**位置与顺序**,不声称 52 已经会响。</para>
+        /// <para>⚠️ <b>52 侧：门读真值，但「遇狗」本体仍未验</b>。`TD-randomevents-05`（三项旗标硬编码
+        /// false）已于 <b>2026-11-05 结案</b>，威胁档链于 2026-11-11 接线，本轮的
+        /// `random_event_context_gate_test` 把「门读的是玩家真格」钉成了夹具（变异 = 把
+        /// `playerActorId` 退回 `NoPlayer` ⇒ 该夹具当场红）。<b>仍不成立的是两件</b>：
+        /// ① 池里 10 条 `handler = encounter` 条目全部 `is_house_call = false` ⇒ `IsOnExpedition`
+        /// 恒 false（`TD-randomevents-06`，等 37 回填内容）；
+        /// ② 一条 encounter **降临之后**是否真的长出野狗，归 27 的遭遇实体，本表与上述夹具都不作证明。</para>
         /// <para>⚠️ P2-01 的判据写的是「`ResourceHarvested` ≥ 5」,**不是**脚本原话的
         /// 「5 个资源点全采完」。差别在关卡有 8 个点(3 止血草 + 5 木柱):按事件计数会把
         /// 采三株草算进去。**这是本表唯一的近似**,精化(改成查背包里木柱 ≥ 5)归 20/23 的读面。</para>
