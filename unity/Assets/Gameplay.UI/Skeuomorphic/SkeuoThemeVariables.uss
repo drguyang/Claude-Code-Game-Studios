@@ -151,6 +151,15 @@
     --skeuo-marks-fold-double-size: 8px;    /* 双线角尺寸 */
     --skeuo-marks-seal-padding: 2px;        /* 印(计入/卸出)内衬 */
 
+    /* ── 全屏遮罩(Mask)— 2026-11-14 用户裁定(序章 P1-06 / P3-05 等黑场)──
+       过场 / 章节卡 = 整屏压成**墨黑**,居中一行**题签**。
+       ⚠️ 只两个色:底色 + 题签字色。**不**加投影 / 圆角 / 渐变(「两栈皆禁」组
+       —— `skeuomorphic-ui.md` §二「现代 UI 手法禁用」:圆角卡片 + 投影在禁列)。
+       题签字色取纸色 `--skeuo-paper-bg` 同值 —— 黑底上的「纸白」是同一材质语言,
+       不是新色相。 */
+    --skeuo-mask-bg: #000000;
+    --skeuo-mask-fg: #f4ecd8;
+
     /* ── 焦点(Focus)— 载体 = 黄铜 2px(2026-10-05 用户裁定,原墨侧)── */
     --skeuo-focus-border: #B8863B;          /* 同 brass-bg;独立命名以承「改判可溯源」;SkeuoFocusVisible.uss border-color 锚仍引用 */
     --skeuo-focus-border-width: 2px;        /* ⚠️ 2026-10-08 绑定轮起**无 USS 引用**(2px 形状由黄铜环图独挑,

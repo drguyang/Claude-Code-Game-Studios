@@ -537,3 +537,31 @@
     background-color: var(--skeuo-paper-border);
     opacity: 0.45;
 }
+
+/* ── 全屏遮罩 · 标题卡(V-12 · 2026-11-14 用户裁定)────────────────────
+   过场 / 章节卡:绝对铺满,整屏墨黑,居中一行题签。
+   ⚠️ **只此两层**(遮罩 + 题签)—— 不挂九宫格纸纹、不加投影 / 圆角 / 渐变
+      (「两栈皆禁」组:`skeuomorphic-ui.md` §二「现代 UI 手法禁用」把
+      「圆角卡片 + 投影」列在禁列;遮罩是**换场**,不是卡片)。
+   ⚠️ `picking-mode: ignore` 由代码显式设(与 `.modal-host` 同一条理由:
+      铺满后默认会吞掉整块面板的指针拾取);此处只管几何与色。
+   ⚠️ 不透明度由 `FullScreenMask` 逐帧写 `style.opacity`(纯呈现,零计时器);
+      本类**不**写 transition —— 时长归 `MotionScaleHook`(钩子④),瞬切路径要确定。 */
+.full-screen-mask {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--skeuo-mask-bg);
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+}
+
+.full-screen-mask__title {
+    color: var(--skeuo-mask-fg);
+    font-size: var(--skeuo-font-size-lexeme);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
