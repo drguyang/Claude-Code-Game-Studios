@@ -7,7 +7,7 @@
 输出 : unity/Assets/Sim/StreamRouting.g.cs(Kind→StreamId 纯函数 switch)
 
 断言(任一失败 = 非零退出 = 构建失败):
-  A1 每支 Kind 恰有一个合法 stream ∈ {history, case, world}(禁双家/无家)
+  A1 每支 Kind 恰有一个合法 stream ∈ {history, case, world, quest}(禁双家/无家)
   A2 **严格形 · 载荷 struct 的字段类型 ∈ 整数域白名单**(✅ 2026-10-15 兑现,此前只登记未实现)
       对象 = `unity/Assets/Sim.Contracts/` 下 `<Kind>Payload` 的 **C# 字段声明**
       (非 registry 散文 —— ADR-024 §⑤ A2 原文即写「**字段类型** ∈ 整数域白名单」);
@@ -46,7 +46,7 @@ OUT_CS = REPO / "unity" / "Assets" / "Sim" / "StreamRouting.g.cs"
 SYSTEMS_INDEX = REPO / "design" / "gdd" / "systems-index.md"
 CONTRACTS_DIR = REPO / "unity" / "Assets" / "Sim.Contracts"
 
-STREAM_MAP = {"history": "History", "case": "Case", "world": "World"}
+STREAM_MAP = {"history": "History", "case": "Case", "world": "World", "quest": "Quest"}
 INT_TYPE_TOKENS = ("i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64")
 ARRAY_UNBOUNDED_OK = ("上界", "≤", "MAX", "cap", "有界")   # [] 出现须在 schema 里找到界证据
 
@@ -267,7 +267,7 @@ def a5_bidirectional(kinds, rep):
 
 
 def render(kinds):
-    order = {"history": 0, "case": 1, "world": 2}
+    order = {"history": 0, "case": 1, "world": 2, "quest": 3}   # ADR-045:任务流优先级 3
     rows = sorted(kinds, key=lambda k: (order.get(k["stream"], 9), k["kind"]))
     arms = "\n".join(
         f"            EventKind.{k['kind']} => StreamId.{STREAM_MAP[k['stream']]},"
@@ -286,7 +286,7 @@ def render(kinds):
 //   `throw new BuildContractException(kind)` 的该类型全案无定义件可依,
 //   以 InvalidOperationException 承位;若后续 ADR 具名该异常,替换属机械改。
 //
-// 生成参数: {counts['history']} history / {counts['case']} case / {counts['world']} world = {len(kinds)} 支
+// 生成参数: {counts['history']} history / {counts['case']} case / {counts['world']} world / {counts['quest']} quest = {len(kinds)} 支
 // ─────────────────────────────────────────────────────────────────────────────
 
 using DaYiJingCheng.Sim.Contracts;
@@ -314,8 +314,8 @@ def main():
 
     kinds = parse_registry()
     rep = []
-    if len(kinds) != 41:
-        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 41(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37;2026-10-30 ADR-035 TreatmentHarmOnset 起 37 → 38;2026-11-09 ADR-043 TechniqueUnlocked 起 38 → 39;2026-11-09 ADR-044 CaseReferred 起 39 → 40;2026-11-10 B1-b ChapterAdvanced 起 40 → 41)")
+    if len(kinds) != 43:
+        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 43(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35;2026-10-21 ADR-032 起 35 → 36;2026-10-25 HouseCallStarted 起 36 → 37;2026-10-30 ADR-035 TreatmentHarmOnset 起 37 → 38;2026-11-09 ADR-043 TechniqueUnlocked 起 38 → 39;2026-11-09 ADR-044 CaseReferred 起 39 → 40;2026-11-10 B1-b ChapterAdvanced 起 40 → 41;2026-11-14 ADR-045 AdventureAccepted / AdventureCompleted 起 41 → 43)")
     stats = {"structs": 0, "fields": 0}          # A2 非空跑证据(随成功行打印)
     a1_streams(kinds, rep)
     a2_payload_types(kinds, rep, stats)

@@ -10,7 +10,7 @@
 //   `throw new BuildContractException(kind)` 的该类型全案无定义件可依,
 //   以 InvalidOperationException 承位;若后续 ADR 具名该异常,替换属机械改。
 //
-// 生成参数: 18 history / 6 case / 17 world = 41 支
+// 生成参数: 18 history / 6 case / 17 world / 2 quest = 43 支
 // ─────────────────────────────────────────────────────────────────────────────
 
 using DaYiJingCheng.Sim.Contracts;
@@ -63,6 +63,8 @@ namespace DaYiJingCheng.Sim
             EventKind.StructureModified => StreamId.World,
             EventKind.StructurePlaced => StreamId.World,
             EventKind.StructureRemoved => StreamId.World,
+            EventKind.AdventureAccepted => StreamId.Quest,
+            EventKind.AdventureCompleted => StreamId.Quest,
             _ => throw new System.InvalidOperationException(
                 "不可达:Kind 白名单由 kindgen 穷举(ADR-024)。抵达即 registry 与产物脱钩 —— 重跑 kindgen。"),
         };

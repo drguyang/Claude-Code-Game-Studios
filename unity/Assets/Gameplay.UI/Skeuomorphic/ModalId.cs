@@ -1,8 +1,10 @@
 namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 {
-    /// <summary>模态界面标识闭集(9 员 + None)。</summary>
+    /// <summary>模态界面标识闭集(11 员 + None)。</summary>
     /// <remarks>
-    /// <para>闭集成员必须经本 ADR(ADR-013 §十 Amendment A / B / C)裁定后方可追加。</para>
+    /// <para>闭集成员必须经本 ADR(ADR-013 §十 Amendment A–H)裁定后方可追加。</para>
+    /// <para>🔁 **2026-11-14 §十-H Amendment G** 增第十一员 <see cref="Loot"/>(拾取面板)。
+    /// 原「10 员」口径作废,凡引用处按 **11 员**读。</para>
     /// <para>🔁 2026-10-31:**Amendment C** 增第八员 <see cref="Pause"/>(暂停壳 —— 存档位的正式入口)。
     /// 原「7 员」的口径就此作废,凡引用处按 8 员读。</para>
     /// <para>🔁 2026-11-02:**Amendment D(ADR-013 §十-E)** 增第九员 <see cref="Processing"/>
@@ -64,6 +66,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 而 GDD 的字面是「勾选」—— 形态裁定 = **纸面墨勾**(与折边 / 铅笔小勾同族的墨侧手法,
         /// 不是现代控件)。放在脉案内会让它挤进已经排满的五行焦点序;独立页保住两屏各自的焦点语言。</para>
         /// </summary>
-        CaseClose = 10
+        CaseClose = 10,
+
+        /// <summary>
+        /// 拾取面板(世界掉落的逐件 / 批量拿取;2026-11-14 **用户裁定**,闭集第十一员)。
+        /// <para>载体 = 用户当日口述形态:「掉落捡起时有物品栏,点击单个进入背包,
+        /// 物品栏下方有全部捡取可以批量进入背包」⇒ `design/ux/loot-42.md`。</para>
+        /// <para>⚠️ **为什么是模态而不是浮层**:它要挡住世界意图(否则面板开着还能走动 /
+        /// 采集 / 受击,而焦点在屏上)。规则七只认 `Modal ≠ None` —— 非模态叠层等于给同一种
+        /// 形态发明第二套抑制判据(ADR-013 §十-C Amendment C 的同一条理由)。</para>
+        /// <para>⚠️ 语义与 <see cref="InventoryContainer"/> **不同屏**:后者 = 「箱里有什么」
+        /// (归属已定的器物格);本屏 = 「地上有什么、拿哪一件」(归属未定、可逐件 / 批量入包)。</para>
+        /// </summary>
+        Loot = 11
     }
 }

@@ -2550,6 +2550,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.TechniqueUnlockWriter = new TechniqueUnlockWriter(
                 stream, encoder, techniqueUnlockQuery, knownTechniqueIds);
 
+            // ── 奇遇事件(2026-11-14 · ADR-045 §D3/§D6)────────────────────────────
+            //   唯一写者:任务流两条 Kind + 完成时的组件掉落(**同 tick**,玩家自行捡)。
+            //   ⚠️ 组件掉落走 `dropEventWriter`(**既有掉落路径**)—— 不新增库存谓词,
+            //      也不动 R18 的品级来源桶(ADR-045 §D6)。
+            services.AdventureWriter = new AdventureWriter(
+                stream, encoder, () => stream.Events, decoder, dropEventWriter);
+
             // 钩子病例的收场写者(2026-11-09 · ADR-044 §D2)。
             //   ⚠️ 本轮**零生产调用方**(§D7):玩家转诊交互不存在。装配它 = 让宿主就位时
             //      不必再改装配;**不**等于「转诊可用」。

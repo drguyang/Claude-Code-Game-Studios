@@ -256,6 +256,46 @@ namespace DaYiJingCheng.EditorTools.Level
                 //    判据 = 区域 × 采集次数,不依赖资源点)⇒ 这五个点**没有任何用处**,删掉。
                 //    ⚠️ 奇遇的「区域 + 次数」判据不需要资源点当锚:计数来自 `ResourceHarvested`,
                 //    区域来自玩家格 —— 删掉它们不影响 `PA-01…PA-03`。
+
+                // 🔁 **2026-11-14 本轮补:三个判据区域各放止血草**(用户裁定「补采集点,
+                //    废墟 A/B 和七里路各放几个止血草点」)。
+                //
+                //    ⚠️ **为什么条数 = 6 / 4 / 5(不是随手几个)**:奇遇阈值就是这三个数
+                //    (`AdventureSteps.PrologueFive` 的 `required`),而**一株节点一个再生窗口
+                //    只够采一次** —— `base_capacity = 5`、止血草 `qty_per_node = 3`
+                //    (`foraging_constants.json` / `item_database_items.json`),
+                //    采一次后 `remaining = 5 − 3 = 2 < 3` ⇒ 同一节点**当场采不了第二次**,
+                //    须等 `regrow_window_ticks = 1200`(60 s)再生。⇒ 若节点数少于阈值,
+                //    奇遇就必须**原地等一分钟**,那不是「采集教学」该有的节奏。
+                //    ⇒ 三个区域的节点数**故意与阈值相等**(A 6 / B 4 / 路 5),让三条一次走完。
+                //
+                //    ⚠️ 落点约束(已逐个核过):① 必须 `IsWalkable`(教堂只在内部、药铺避瓦砾
+                //    x26..30 / z5..7、七里路只在走廊 z14..25);② 必须在各自判据**矩形内**
+                //    且离边 ≥ 1 格(判据读**玩家格**);③ **避 POI / 病人出生格**
+                //    ((24,8) 药铺 POI · (25,9) 挑夫 · (45,22) 孩子)。
+                //    ⚠️ `ecozone_id` = **0**(`urban_ruins` = A+B 同区;营地的 1 = `field_camp`)。
+                //    生态区是 52 / 17 的判定输入 —— 写错会让「废墟里长营地草」。
+
+                // ── 废墟 A(教堂内部 x4..15 / z14..29 · PA-01 采 6 次)──
+                new ResourceSpec(4, P(7, 18), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(5, P(10, 17), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(6, P(13, 21), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(7, P(6, 24), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(8, P(11, 26), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(9, P(9, 21), itemKey: 4, ecozoneId: 0),
+
+                // ── 废墟 B(药铺一带 x21..27 / z5..11 · PA-02 采 4 次)──
+                new ResourceSpec(10, P(22, 6), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(11, P(22, 9), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(12, P(23, 10), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(13, P(25, 7), itemKey: 4, ecozoneId: 0),
+
+                // ── 七里路(走廊 x32..95 / z14..25 · PA-03 采 5 次)──
+                new ResourceSpec(14, P(36, 18), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(15, P(46, 20), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(16, P(55, 17), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(17, P(68, 22), itemKey: 4, ecozoneId: 0),
+                new ResourceSpec(18, P(82, 19), itemKey: 4, ecozoneId: 0),
             };
             return new ResourceSource(rows);
         }

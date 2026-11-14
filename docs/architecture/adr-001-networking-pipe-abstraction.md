@@ -13,6 +13,12 @@ Accepted
 > (F2 HOL 阻塞 + 第二 QoS 通道 · F3 线程模型 · F4 接口纪律 · F5 IL2CPP 冒烟)。
 > 独立评审由下一轮 `/architecture-review` 进行。
 >
+> **⚠️ 2026-11-14(ADR-045)**:逻辑流现为**四条**(`History 0 < Case 1 < World 2 < Quest 3`)。
+> 本件全文「三条逻辑流」是**历史陈述**,不改写。**第四流的联机语义本件不裁**
+> (ADR-045 §Risks R4 已把该问题登记给 45 的轮次)—— 本件只承诺「流合并排序按
+> `(Tick, StreamPriority, Patient, Seq)` 全序键」这条形状对**任意新流**继续成立
+> (`StreamPriority = (int)StreamId` 自动含 `Quest = 3`)。
+>
 > **🔧 2026-09-18 本次修订(44 GDD 首轮 `/design-review` 阻断 7;用户裁定 D-D = 现改本 ADR)**:
 > 44 的 §Dependencies 声明对本 ADR 的依赖,但**本 ADR 原文零处提及音频** ——
 > 「引用却无登记」的失败模式。三处补齐:

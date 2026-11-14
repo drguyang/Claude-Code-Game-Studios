@@ -396,6 +396,15 @@
   `TextureBindingGates.AssetResolves` 优先按 **USS 目录**解析相对路径(原只按仓库根,会把合法路径判悬空)。
   ⚠️ **只挂了存档册页**;其余页级容器仍无框 ⇒ `TD-skeuo-09`。冻结轮「重画即重测重冻」未执行 ⇒ `TD-skeuo-10`。
   Engine Knowledge Risk **LOW**(纯 USS 语法与资源解析,依据是实测日志而非文档推断)。
+  <!-- 2026-11-14 §十-H Amendment G -->
+  **⚠️ 2026-11-14 §十-H Amendment G(拾取面板)** —— 闭集 **十 → 十一**,增 **`Loot`**
+  (`ModalId.Loot = 11`)。用户 2026-11-14 裁定(原话):「掉落捡起时有物品栏,点击单个进入背包,
+  物品栏下方有全部捡取可以批量进入背包。列表范围 = 拾取半径内。」⇒ 改前「按 E 一按即拿一件」作废:
+  按 E 现在开屏,逐件 / 批量都经 `DriverLootActionSink` 转给**同一个** `TryClaimInstance`。
+  同步面六处(`ModalId` / `ModalScreenNames` / `ScreenFactories` / `LootScreen` / `AC-42-F1` ⑪ / 闭集门
+  `dto_boundary_and_modal_test` 12 值 · `modal_gate_test.ClosedSetMembers` · `dentch_input_test` 12/11)。
+  ⚠️ **`AC-42-F1` ⑪ 记 `NOT-RUN`**:`design/ux/loot-42.md` 本轮新写、未经 `/ux-review`,
+  手柄走查与事件绑定亦未跑。Engine Knowledge Risk **LOW**。
   **⚠️ 2026-11-10 §十-F Amendment E(T20 第二批 · 用户裁定「丙 · 独立结案页 + 纸面墨勾」)** ——
   闭集 **九 → 十**,增 **`CaseClose`**(37 的结案形态;载体 = `casebook-39.md:370` 的 `OQ-CB-7`)。
   「勾选」vs §5.3 禁「复选框」的裁定 = **纸面墨勾**(墨侧允许手法,屏上无复选框元素)。

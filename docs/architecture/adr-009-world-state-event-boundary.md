@@ -203,6 +203,12 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
 
 ### 二、三态分类表(具名案例)
 
+> **⚠️ 2026-11-14 `ADR-045` 追加第四流** —— 逻辑流由 **三条变四条**:
+> `History 0 < Case 1 < World 2 < Quest 3`。第四流承载奇遇的「接取 / 完成」两态
+> (`AdventureAccepted` / `AdventureCompleted`),**不折叠**(与 `Case` / `World` 同)。
+> 本节及全件「三流」措辞是**历史陈述**,不改写;新写一律按四流读。
+> 联机语义(第四流怎么传)**本处不裁** —— 归 45 的轮次(ADR-045 §Risks R4)。
+
 > **⚠️ 本节自 ADR-024(2026-09-20,Accepted)起不再是登记处** —— 三流 `Kind` 全集的唯一登记
 > 真源 = `design/registry/entities.yaml` 的 `SimEvent.Kind.*`。本节降级为**路由注记**(承载
 > 「域归属」语义,不再承载「哪些 Kind 存在」的家规地位),与 registry 不一致时**以 registry 为准**

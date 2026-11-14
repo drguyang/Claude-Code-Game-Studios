@@ -406,15 +406,25 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
             // 🔁 **2026-11-10(T20 第二批)**:闭集 9 员 → **10 员**(增 `CaseClose`,ADR-013 §十-F)。
             //    ⚠️ **本轮又漏改本处**(PlayMode 全量实测 `failed=1` 抓出)—— 上一轮也漏过,
             //    教训逐字不变:闭集增员的同步面**必须 grep 全部基数断言**,不能只改记得住的那几处。
+            // 🔁 **2026-11-14(Amendment G)**:闭集 10 员 → **11 员**(增 `Loot`)。
+            //    ⚠️ **第三次漏改本处**,但这次的根因与上两轮不同、且**值得记**:
+            //    前两轮是「记得改却没想起这一处」;本轮改前**确实 grep 了**
+            //    `ModalId.CaseClose` / `ModalId.Loot` 两串,而**本判据不写成员名** ——
+            //    它用 `Enum.GetNames(typeof(ModalId))` 取基数 ⇒ 任何按**成员名**的 grep
+            //    都**结构性**扫不到它。⇒ 同步面的正确搜法是 grep **`typeof(ModalId)`**
+            //    与 `Enum.GetNames` / `Enum.GetValues`(基数派生的两处形态),
+            //    而不是 grep 刚加的那个成员名。
             var names = Enum.GetNames(typeof(ModalId));
-            Assert.AreEqual(11, names.Length,
-                "ModalId = None + 10 员(🔁 原 None + 9;Amendment E 增 CaseClose)。");
-            Assert.AreEqual(10, names.Count(n => n != "None"), "闭集实员须为 10。");
+            Assert.AreEqual(12, names.Length,
+                "ModalId = None + 11 员(🔁 原 None + 9;Amendment E 增 CaseClose;Amendment G 增 Loot)。");
+            Assert.AreEqual(11, names.Count(n => n != "None"), "闭集实员须为 11。");
             Assert.That(names, Does.Contain("Pause"), "第八员必须是 Pause(Amendment C 裁定的那一个)");
             Assert.That(names, Does.Contain("Processing"),
                 "第九员必须是 Processing(Amendment D 裁定的那一个,`O-18-R6` 的载体)");
             Assert.That(names, Does.Contain("CaseClose"),
                 "第十员必须是 CaseClose(Amendment E 裁定的那一个,37 的结案形态)");
+            Assert.That(names, Does.Contain("Loot"),
+                "第十一员必须是 Loot(Amendment G 裁定的那一个,拾取面板)");
             Assert.That(names, Does.Not.Contain("Prescription").And.Not.Contain("Formula"),
                 "增员**不是**方笺(§十-B:方笺 = 脉案同一本书内的一页,不增员)");
         }

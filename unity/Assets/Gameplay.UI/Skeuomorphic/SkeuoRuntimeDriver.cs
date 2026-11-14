@@ -171,6 +171,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 [ModalId.Pause] = "Pause",          // 🔁 2026-10-31 Amendment C 第八员
                 [ModalId.Processing] = "Processing", // 🔁 2026-11-02 Amendment D 第九员
                 [ModalId.CaseClose] = "CaseClose",   // 🔁 2026-11-10 T20 第十员(37 的结案形态)
+                [ModalId.Loot] = "Loot",             // 🔁 2026-11-14 §十-H Amendment G 第十一员(拾取面板)
             };
 
         /// <summary>屏幕名 → Screen 查表(八个具名载体;名字是**序列化契约**,
@@ -188,6 +189,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 ["Pause"] = (root, lib) => new PauseScreen(root, lib),
                 ["Processing"] = (root, lib) => new Screens.Processing18Screen(root, lib),
                 ["CaseClose"] = (root, lib) => new Screens.CaseCloseScreen(root, lib),
+                ["Loot"] = (root, lib) => new Screens.LootScreen(root, lib),
                 // 🔁 2026-11-01:主菜单 = **场景级屏**,不是 `ModalId` 成员(不进 `ModalScreenNames`)。
                 //    它出现在世界装载之前 ⇒ 不参与「挡住世界」那套读面(`main-menu-42.md §1`)。
                 ["MainMenu"] = (root, lib) => new MainMenuScreen(root, lib),

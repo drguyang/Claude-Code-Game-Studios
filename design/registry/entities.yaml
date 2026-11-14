@@ -3399,3 +3399,35 @@ constants:
     constraint: "落**病史流**(章推进是玩家/世界级成长事实,与 TechniqueUnlocked / SkillGrown 同族 —— 世界流装的是世界状态)。**章号必须单调不减且为绝对量**:同一章号重复写 = no-op(不写、不抛),倒退 = 拒(倒退会让钩子配额凭空多出一格,而配额是防刷的判据)。**不做成存档头字段** —— 那是「状态」,与 ADR-005 唯一真源口径相抵(存档头只能存**可从流重建之物的缓存**,而本事件的成本就是重建本身)。**7a 折叠**:病人级折叠谓词 `Folded(p)` 不适用(本支 `Patient = None`),故无需折叠豁免条目;但**读档后章号必须能从流重建**(取最后一条 `ChapterAdvanced` 的 `chapter`,空流 ⇒ 0)。有界性 = |章|,与 tick 频率 / 帧率无关(章由叙事推进,非逐帧;扩展 ADR-008 §六,不重写)。⚠️ **本支落地 ≠ 每章 1 例已生效**:无生产者时章恒 0,钩子配额仍是整局 1 例 —— 解除条件是叙事轮接上生产者"
     added: 2026-11-10
     revised: ""
+
+  - name: SimEvent.Kind.AdventureAccepted
+    status: active
+    source: docs/architecture/adr-045-quest-stream.md   # 本件 §D2(命名首现归 ADR-045)
+    referenced_by:
+      - docs/architecture/adr-045-quest-stream.md        # D1 第四条流 / D2 两 Kind / D3 写者 / D5 唯一性 / D7 有界性 / D8 不折叠
+      - design/levels/prologue-beat-script.md            # §3.1 PA-01…PA-05(奇遇 = 章节骨架)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §二 三流 → 四流(由本件订正)
+      - docs/architecture/adr-005-deterministic-sim.md   # 唯一真源:进度从事件流重建
+    unit: kind
+    stream: quest
+    author: "52 随机事件导演(奇遇内容的**内容归属**沿用 ADR-039 / ChapterAdvanced 的口径;**机制**由 ADR-045 的 `AdventureWriter` 执行 —— 它是唯一的 Append 点,主机统一写入。⚠️ 本项目**没有**任务系统宿主:该归属是 A4(必须系统号开头)下的最近邻,不是「52 拥有奇遇」)"
+    payload_schema: "adventure_id: i32(奇遇 id,`adventure_steps.json` 的行序)· actor_id: i32(玩家 id 空间,ADR-006 Amendment B 适用面扩大)。全部整数域、零 Fix、零引用类型(ADR-024 A2)。⚠️ **无 tick / 无 seq / 无 patient_id** —— 前两者是事件头 SimEvent.Tick / Seq 的量(入载荷 = 第二真源);后者因奇遇是玩家级事实,`Patient = PatientId.None`(与 ADR-007 五支同格)"
+    constraint: "落**任务流**(ADR-045 §D1 —— 第四条逻辑流,优先级 3,排在 World 之后;**不折叠**)。**写者 = `AdventureWriter`**(唯一 Append 点,§D3)。**同一 (actor, adventure) 至多一条** —— 重复 = no-op(不写、不抛,§D5)。`Accepted` 与 `Completed` 是**两个独立事实**:完成不蕴含接取(读档后可能先见到 Completed)。**只证明「进入过该奇遇的计数范围」**,不承载任何进度数值(进度是 `ResourceHarvested` 的派生量,§D4)。有界性 = |adventures| × |actors|,与 tick 频率 / 帧率无关(扩展 ADR-008 §六,不重写)"
+    added: 2026-11-14
+    revised: ""
+
+  - name: SimEvent.Kind.AdventureCompleted
+    status: active
+    source: docs/architecture/adr-045-quest-stream.md   # 本件 §D2(命名首现归 ADR-045)
+    referenced_by:
+      - docs/architecture/adr-045-quest-stream.md        # D2 载荷 / D5 唯一性 / D6 组件落脚下 / D7 有界性 / D8 不折叠
+      - design/levels/prologue-beat-script.md            # §3.1 五件组件的唯一授予点
+      - docs/tech-debt-register.md                       # TD-building-07「丁」路径的解除载体
+      - docs/architecture/adr-010-persistence-save-format.md  # §三 义务:不折叠 / 不快照(由本件追加)
+    unit: kind
+    stream: quest
+    author: "52 随机事件导演(同 `AdventureAccepted` 的归属口径;Append 由 `AdventureWriter` 执行)"
+    payload_schema: "adventure_id: i32 · actor_id: i32 · item_key: i32(授予的组件;21a 物品表 ordinal)· qty: i32(≥1)。全部整数域、零 Fix、零引用类型(ADR-024 A2)。⚠️ **无 tick / 无 seq / 无 patient_id**(同 `AdventureAccepted`)。`item_key` / `qty` 入载荷是**刻意的**:完成事件必须自带「给了什么」—— 只记 adventure_id 会让「给了几件」变成读表推导,而表是作者态、会改(第二真源)"
+    constraint: "落**任务流**(ADR-045 §D1)。**写者 = `AdventureWriter`**(唯一 Append 点)。**同一 (actor, adventure) 至多一条** —— 重复完成 = no-op(§D5),这是「组件只给一次」的机制保证。**组件入包 = 完成同 tick 在玩家格发一条 `DropSpawned`**(§D6;玩家自行 `DropClaimed`,不新增库存谓词、不动 R18 品级来源桶)。**不折叠、不独立快照**(§D8);读档后由流重建。有界性同 `AdventureAccepted`。⚠️ 战斗型奇遇(`DefeatCount`)在 27 的遭遇实体接通前**无生产者** —— 本支落地 ≠ 五条都能完成(ADR-045 §R2)"
+    added: 2026-11-14
+    revised: ""

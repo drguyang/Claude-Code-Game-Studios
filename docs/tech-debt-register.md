@@ -13372,7 +13372,7 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 
 | # | 件 | 落点 | 判据 |
 |---|---|---|---|
-| **0** | 删 5 个非法木柱资源点 | `Editor.Tools.Level/PrologueLevel.cs`(方法体内注保留删除理由)+ 重导出 `world_resources.json` + 重烘 | 关卡资源点 = **3 行**(全是止血草,`item_key = 4`);按 E 的抛异常点消失 |
+| **0** | 删 5 个非法木柱资源点 | `Editor.Tools.Level/PrologueLevel.cs`(方法体内注保留删除理由)+ 重导出 `world_resources.json` + 重烘 | 关卡资源点 = **3 行**(全是止血草,`item_key = 4`);按 E 的抛异常点消失。🔁 **2026-11-14 当日稍后补点后为 18 行**(营地 3 + A 6 / B 4 / 路 5),见下方「仍未落 ①」 |
 | **1** | 五件组件的数据行 | `assets/data/item_database_items.json` ordinal **9–13**(门板 `door_panel` / 钉子 `iron_nail` / 房梁 `roof_beam` / 布 `cloth_bolt` / 油布 `oil_cloth`,全 `category = build_part`)+ `_ordinal_baseline.json` 同步 | 重烘 `item_database_items.cooked.bytes` |
 | **2** | 多材料扣料 | `build_modules.json` **schema 2→3**(`build_item_key` → `costs[]`)+ binder / writer / codec / catalog / `ModuleDefinition.Costs` / `BuildMaterialPlanner.PlanForCosts` / `InventoryFold.ApplyBuildCost` / 拆除返还逐件 / 缺口提示 | 帐篷 = 五件各 1(`Σ qty = cost = 5`);单材料模块路径**零改动**(构造器派生单行) |
 
@@ -13385,9 +13385,22 @@ N4 的「还缺 N 件」实际上永远不播。旧夹具 `build_shortfall_hint_
 (真实产物 2 条 + 纯函数 4 条)。证伪两发各红、SHA-256 逐字节还原:
 M1 `PlanForCostsCore` 忽略「某一件不够」⇒ 2 红;M2 缺口不点名(恒报第一件)⇒ 2 红。
 
-**仍未落(本条维持 `partial`)**:③ N5 奇遇链(判据 / 事件 / `Kind` 归属须另开 ADR)·
-④ 27 的遭遇实体接通(PA-04 / PA-05 的前置)。**在 ③ 之前,五件组件没有任何授予点** ——
-数据与扣料就位 ≠ 玩家拿得到。
+**仍未落(本条维持 `partial`)**:
+
+- ~~③ N5 奇遇链(`Kind` 归属须另开 ADR)~~ —— **🟡 2026-11-14 机制已落**(`ADR-045`):
+  第四条逻辑流 `Quest`(`StreamId.Quest = 3`,优先级排在 `World` 之后)+ 两个 `Kind`
+  (`AdventureAccepted` / `AdventureCompleted`)+ `AdventureWriter`(唯一写者 · 去重)+
+  `AdventureDriver`(增量游标 · 读 `ResourceHarvested`)+ 完成时组件 `DropSpawned` 落玩家脚下;
+  步骤表 = `Gameplay.Boot/AdventureSteps.cs`。夹具 `Tests/EditMode/Boot/adventure_chain_test.cs`
+  **8 条**;证伪轮三发各红(掉落物错件 / 事件带 `patient_id` / `Quest` 优先级撞 World),
+  SHA-256 逐字节还原。
+  ⚠️ **但「机制通」≠「玩家拿得到」—— 三个采集点已补,战斗面仍零目标,本条不得因此转 `closed`**:
+  ① ~~**PA-01/02/03 在真关卡里恒 0**~~ —— ✅ **2026-11-14 同轮补点(用户裁定)**:关卡资源点
+  **3 → 18 行**,废墟 A / 废墟 B / 七里路 各 **6 / 4 / 5** 个止血草点(`resource_id 4..18`,
+  `ecozone_id = 0`;`world_resources.json` 重导出 + `cooked.bytes` 456 B · `ConfigVersion 0x75CD36FA`);
+  **三个采集型奇遇在真关卡里可完成**。条数 = 阈值(一株节点一个再生窗口只够采一次)。
+- ④ 27 的遭遇实体接通(PA-04 / PA-05 的前置)。**在 ④ 之前,五件组件里两件(布 / 油布)仍没有玩家可达的授予点** ——
+  ✅ 另三件(门板 / 钉子 / 房梁)已可达(2026-11-14 补点后,PA-01/02/03 在真关卡里可完成)。
 
 #### 本债**不**主张的事
 

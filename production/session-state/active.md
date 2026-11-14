@@ -18788,3 +18788,40 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   ⚠️ P2-01 判据是「ResourceHarvested ≥ 5」,非脚本原话「5 个资源点」——本轮唯一近似,已登记
 - BootRoot:区域表合并两段 · 事实计数先于区域/节拍推进 · 孩子=麻疹(11)@(45,22) · 挑夫=伤寒(10)@(25,9)
 - 夹具 `prologue_second_act_test` 4 条;证伪轮:摘 P2-05 的 requires ⇒ 1 红(SHA-256 还原)
+
+## 2026-11-14 · ADR-045 任务流实现 + 拾取面板(`ModalId.Loot`)
+
+### A. ADR-045(N5 奇遇链)实现落盘
+- `StreamId.Quest = 3`(优先级排在 `World` 之后)· `AdventureAccepted` / `AdventureCompleted` 两 `Kind`
+  (kindgen 43 支 = 18/6/17/2)· `PayloadCodec.Quest.cs` · `AdventureWriter`(唯一写者,双去重)· 
+  `AdventureDriver`(增量游标,读 `ResourceHarvested` 按**玩家格**定区域)· `AdventureSteps.PrologueFive`(D9′ 住代码)
+- `entities.yaml` 两条(`stream: quest`)· `BootRoot` §4.4c 接线 · 关卡侧**未动**
+- 回写:ADR-009 §二 / ADR-010 义务 17 / ADR-001 / ADR-024 V-2 · `prologue-beat-script.md` §1.1 / §3.1
+- 夹具 `adventure_chain_test` **8 条**(V-1/V-4/V-5/V-6/V-7/V-8 有载体);证伪三发各红(掉错件 / 事件带 patient_id / Quest 撞 World)
+- ⚠️ **内容面未通**:废墟 A / 废墟 B / 七里路 三判据区域内**零采集点**(关卡只有营地 3 个止血草点)
+  ⇒ PA-01/02/03 在真关卡里**恒 0**;PA-04/05 无目标(`EnemySpawn` 零生产者)。`TD-building-07` 维持 `partial`
+
+### B. 拾取面板(用户 2026-11-14 口述形态)
+- `ModalId.Loot = 11`(ADR-013 §十-H Amendment G,闭集十 → 十一)· `Screens/LootScreen.cs`
+- 按 E 选中 Drop ⇒ 开屏(行 = **拾取半径内**地面实例);逐行「拾取」/ 末行「全部拾取」;拿完自动合屏
+- `DriverLootActionSink` 住装配层;逐件与批量**都走同一个** `TryClaimInstance`;开不成(无 UI / 零行)回落直拿
+- 夹具 `loot_screen_test` **6 条** + `driver_loot_action_sink_test` **3 条**
+- 同步面四处:闭集门 `dto_boundary_and_modal_test`(12 值)/ `modal_gate_test.ClosedSetMembers` / `dentch_input_test`(12/11)
+  ⚠️ **dentch 第三次漏改**,根因与前两次不同:它用 `Enum.GetNames(typeof(ModalId))` 取基数,按**成员名** grep 结构性扫不到
+  ⇒ 已在注释里记正确搜法(grep `typeof(ModalId)` / `Enum.GetNames`)
+- ⚠️ `AC-42-F1` ⑪ 记 `NOT-RUN`(`design/ux/loot-42.md` 新写未经 `/ux-review`;走查与事件绑定未跑)
+
+### C. 回归(三元组)
+- EditMode `7678 / 7641 / 0 / 0 / 37` @ `2026-11-14T05:41:11Z` · 全量 · `da334a4c` + 工作树
+  (其中 1 条是 Unity Addressables 包样例 `DocExampleCode.TestStub`,时有时无,非本项目)
+- PlayMode `392 / 387 / 0 / 2 / 3` @ `2026-11-14T05:42:34Z` · 全量 · `da334a4c` + 工作树(零回归)
+
+### D. 补采集点(用户 2026-11-14:「废墟 A/B 和七里路各放几个止血草点」)
+> 🔁 **订正上方 A 段的「内容面未通」**:该句是补点前的账面,现已不成立。
+- `PrologueLevel.BuildResources()` 3 → **18 行**:营地 3 不动;**废墟 A 6**(7,18)(10,17)(13,21)(6,24)(11,26)(9,21)·
+  **废墟 B 4**(22,6)(22,9)(23,10)(25,7)· **七里路 5**(36,18)(46,20)(55,17)(68,22)(82,19);全部 `item_key = 4` · `ecozone_id = 0`
+- 条数 = 阈值(6/4/5):`base_capacity 5` − `qty_per_node 3` = 2 < 3 ⇒ 一株节点一个再生窗口只够采一次
+- 落点已逐个核:可走 / 在判据矩形内 / 避 POI(24,8)与病人出生格((25,9)(45,22))
+- 重导出 `world_resources.json` + 重烘 `world_resources.cooked.bytes`(456 B · `ConfigVersion 0x75CD36FA`)
+- 结论:**PA-01/02/03 在真关卡里可完成**;PA-04/05 仍无目标(`EnemySpawn` 零生产者),`TD-building-07` 维持 `partial`
+- 回归:EditMode `7678 / 7641 / 0 / 0 / 37` @ `2026-11-14T06:05:44Z` · PlayMode `392 / 387 / 0 / 2 / 3` @ `2026-11-14T06:07:01Z` · `da334a4c` + 工作树

@@ -888,3 +888,53 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 `IModalGateState` 仍是「只有一个布尔」(4 侧仍看不到成员清单,AC-4-09)。
 
 **Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记 + 标准 `RegisterCallback`,零 post-cutoff API)。
+
+### 十-H、Amendment G(2026-11-14 · 用户裁定)—— 闭集第十一员 `Loot`(拾取面板)
+
+**Status**:维持 `Accepted`。本 Amendment **只增员 + 定屏载体**,不改 §一–§十-G 的任何裁决。
+
+**病因(用户原话)**:「掉落捡起时有物品栏,点击单个进入背包,物品栏下方有全部捡取可以批量进入背包。」
+改前口径 = 按 E **一按即拿一件**(`InteractionPressRouter` 的 Drop 分支直接调
+`DropClaimOrchestrator.TryClaimInstance`)—— 地上躺三件就要按三次,且**看不见地上有什么**。
+
+**裁决**:
+
+1. `ModalId.Loot = 11`(追加在末尾,既有成员**零位移**)—— 闭集 **十 → 十一**。
+2. 屏载体 `Gameplay.UI/Skeuomorphic/Screens/LootScreen.cs`:纸面竖排行(行文字由装配层给)+
+   末行「全部拾取」;行可获焦(手柄 `NavigationSubmitEvent`)、可点(指针 `ClickEvent`)。
+3. 行集 = **拾取半径内的地面实例** —— 与 `DropClaimOrchestrator.Tolerance` **同一道门**,
+   列表与结算**不会错配**(列出来的一定点得动)。
+4. 逐件 / 批量**都走同一个** `TryClaimInstance`:批量不另写合取,被拒的那件原地不动。
+5. 拿完(列表空)⇒ **合屏**:零行的拾取屏是死界面(焦点无处可落)。
+6. 装配层出口 = `DriverLootActionSink`(持 `DropClaimOrchestrator` + 四个取值闭包);
+   42 仍**零判定**(ADR-013 §9 C3)。
+7. 按 E 的语义改变:**非 null 时开屏**;`openLoot == null`(夹具 / 无 UI)才回落直拿 ——
+   与容器 / 炮制屏的 null 分支同款,**两条路径都走同一个结算**,不是第二判据。
+
+**为什么是模态而不是非模态浮层**:面板要挡住世界意图(否则开着屏还能走动 / 采集 / 受击)。
+规则七的门只认 `Modal ≠ None` —— 非模态叠层等于给同一种形态发明第二套抑制判据
+(与 §十-C Amendment C 的同一条理由)。
+
+**为什么不复用 `InventoryContainer` 屏**:后者语义 = 「箱里有什么」(归属已定、用于选料);
+本屏 = 「地上有什么、拿哪一件」(归属未定、逐件 / 批量入包)。两类语义共用一条焦点序
+正是 §十-E 当年否决「复用容器屏做炮制屏」的同一个理由。
+
+**同步面(六处,缺一即开不出 / 门红)**:
+
+| # | 落点 |
+|---|---|
+| 1 | `ModalId.Loot = 11` |
+| 2 | `SkeuoRuntimeDriver.ModalScreenNames` + `ScreenFactories` 各一行(键 `"Loot"`) |
+| 3 | 新屏 `Screens/LootScreen.cs` |
+| 4 | 装配层 `DriverLootActionSink` + `BootRoot.OpenLootPanel` / `BuildLootRows` |
+| 5 | `AC-42-F1` 闭集点名 **十 → 十一** |
+| 6 | 闭集门两处(`dto_boundary_and_modal_test` 11 → 12 值 · `modal_gate_test.ClosedSetMembers`) |
+
+**⚠️ 未做 / 不得借绿**:
+- **`design/ux/loot-42.md` 是本轮新写的 spec**,未经 `/ux-review` ⇒ **`AC-42-F1` ⑪ 记 `NOT-RUN`**,
+  按该 AC 的纪律**阻塞签核**(与 ⑨ 炮制屏 / ⑩ 结案页同一处境)。
+- **UI 事件绑定未经真事件验证**:EditMode 下无 `PanelSettings`(`panel == null`)⇒ `SendEvent` 不派发;
+  判据走屏上公开入口(`ActivateRow` / `ActivateTakeAll`)。真事件 = 真包走查,目前无走查件。
+- **世界不因此暂停**——「挡路模态冻世界」由 §十-C Amendment D 统一执行,本 Amendment 不另写判据。
+
+**Engine Knowledge Risk**:LOW(纯枚举成员 + 屏目录登记 + 标准 `RegisterCallback`,零 post-cutoff API)。

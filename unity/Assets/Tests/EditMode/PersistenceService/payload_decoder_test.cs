@@ -285,14 +285,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ V-6: 分派完备性(与 EncodeBoxed 双向差集归零)══════════
 
-        /// <summary>可由 Decode&lt;T&gt; 表达的 41 支(读侧无 Judgment 例外 —— §④;……2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced)。</summary>
+        /// <summary>可由 Decode&lt;T&gt; 表达的 43 支(读侧无 Judgment 例外 —— §④;……2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced;2026-11-14 ADR-045 起 41→43:加 AdventureAccepted / AdventureCompleted)。</summary>
         private static readonly EventKind[] DecodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>().ToArray();
 
         [Test]
         public void test_adr031_v6_dispatchCoversAll38Kinds()
         {
-            Assert.AreEqual(41, DecodableKinds.Length, "EventKind 须恰 41 支(……;2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced)");
+            Assert.AreEqual(43, DecodableKinds.Length, "EventKind 须恰 43 支(……;2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced;2026-11-14 ADR-045 起 41→43:加 AdventureAccepted / AdventureCompleted)");
 
             // 与 PayloadCodec 的具名 Decode 方法集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -337,11 +337,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 checkedCount++;
             }
 
-            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 41 支一律可用);
-            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 40/40,强于编码侧的 38。
+            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 43 支一律可用);
+            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 43/43,强于编码侧的 41。
             // (2026-10-30:37→38 / 35→36,ADR-035 加 TreatmentHarmOnset)
-            Assert.AreEqual(41, checkedCount,
-                $"须覆盖 41 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
+            Assert.AreEqual(43, checkedCount,
+                $"须覆盖 43 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
         }
 
         // ══════════ V-4 / V-10: b5 门补两项 ══════════

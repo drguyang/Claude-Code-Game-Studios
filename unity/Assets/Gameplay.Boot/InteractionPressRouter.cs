@@ -13,7 +13,8 @@
 // **一次 `Select` 定种类**,然后按 `InteractTarget.Kind` 分派:
 //   Patient     → `_visit(patientId)`(39 的就诊:立案 → 查体 → 开册)
 //   ForageSpot  → `HarvestInteractionDriver.TryHarvestTarget`(17)
-//   Drop        → `DropClaimOrchestrator.TryClaimInstance`(20;结算被选中的 instance_id)
+//   Drop        → 打开 `ModalId.Loot` 拾取面板(`_openLoot`;2026-11-14 起)——
+//                 null(夹具 / 无 UI)才回落 `DropClaimOrchestrator.TryClaimInstance` 直拿一件
 //   BuildSlot   → `_aimBuild(cell)`(23;进建造模式并对准该格 —— 见 `BuildInputDriver.AimAt`)
 //   Door / Switch → `StructureToggleDriver.Toggle`(23;两态 `Variant` → `StructureModified`)
 //   Container   → 打开 `ModalId.InventoryContainer`(20 / 42)
@@ -136,6 +137,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 不是「P0 常态」。</para></summary>
         private readonly Func<long, bool> _enterProcessing;
 
+        /// <summary>掉落的消费面(20 / 42;2026-11-14 · `ModalId.Loot`;可 null = 未接线)。
+        /// <para>实参 = 打开拾取面板并喂「拾取半径内的地面行」;**返回 false = 没开成**
+        /// (无 UI / 无行)⇒ 路由回落直拿。
+        /// ⚠️ 它**取代**「一按即拿一件」:返回 true 时按 E 只开面板,逐件 / 批量由玩家在屏上选;
+        /// null(夹具 / 无 UI)或返回 false 才回落到 `_drops.TryClaimInstance` 的直拿形态。</para></summary>
+        private readonly Func<long, bool> _openLoot;
+
         /// <summary>最近一次路由选中的种类(<c>null</c> = 未选中);观测 / 夹具面。</summary>
         public InteractableKind? LastRoutedKind { get; private set; }
 
@@ -167,7 +175,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             Action<long> openContainer = null,
             Func<long, bool> toggleSwitch = null,
             Action<long> openClinicPanel = null,
-            Func<long, bool> enterProcessing = null)
+            Func<long, bool> enterProcessing = null,
+            Func<long, bool> openLoot = null)
         {
             _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
             _tick = tick ?? throw new ArgumentNullException(nameof(tick));
@@ -184,6 +193,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _toggleSwitch = toggleSwitch;
             _openClinicPanel = openClinicPanel;
             _enterProcessing = enterProcessing;
+            _openLoot = openLoot;
         }
 
         /// <summary>
@@ -268,7 +278,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                     return _enterProcessing != null && _enterProcessing(target.StableId);
 
                 case InteractableKind.Drop:
-                    // 结算**被选中的那一件**(StableId = instance_id;不再「第一可拾」)。
+                    // 🔁 2026-11-14(用户裁定):按 E **打开拾取面板**(`ModalId.Loot`)——
+                    //    屏上逐件「拾取」/ 末行「全部拾取」,不再「一按即拿一件」。
+                    //    ⚠️ 开不成(无 UI / 地上零行)才回落直拿:那是**诚实降级**
+                    //    (与容器 / 炮制屏的 null 分支同款),不是第二条判据 —— 两条路径的
+                    //    结算都走**同一个** `TryClaimInstance`。
+                    if (_openLoot != null && _openLoot(target.StableId)) return true;
                     return _drops != null
                            && _drops.TryClaimInstance(_actorId, tick, cell, target.StableId);
 

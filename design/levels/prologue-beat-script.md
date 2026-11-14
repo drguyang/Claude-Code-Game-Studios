@@ -100,9 +100,18 @@
 引导把他推到 PA-01 的那一丛上 —— 「按 E 采集」这一课不是弹窗教的,是**门板把他逼到草丛前**。
 ⚠️ 这一句只钉**形态**(引导 + 采集),引导的具体载体(旁白 / 镜头 / 教学纸)归 48 的编排轮。
 
-**阻断面(如实登记,禁借绿)**:PA-04 / PA-05 需要**可击败的实体**,而全仓 `EnemySpawn`
-生产零命中 —— 52 的 `encounter` 条目只出声、不下怪。用户 2026-11-14 裁定:
-**先接 27 的遭遇实体**,接通前这两条**只有判据、没有目标**。
+**阻断面(如实登记,禁借绿)**:
+
+- **PA-04 / PA-05 需要可击败的实体**,而全仓 `EnemySpawn` 生产零命中 —— 52 的 `encounter`
+  条目只出声、不下怪。用户 2026-11-14 裁定:**先接 27 的遭遇实体**,接通前这两条**只有判据、没有目标**。
+- ~~**PA-01 / PA-02 / PA-03 需要判据区域内有采集点**~~ —— ✅ **2026-11-14 已补**(用户裁定):
+  关卡资源点 **3 → 18 行**,废墟 A / 废墟 B / 七里路 各得 **6 / 4 / 5** 个止血草点
+  (`resource_id 4..18`,`ecozone_id = 0`;营地原有 3 行不动)。条数 = 阈值不是随意:
+  一株节点**一个再生窗口只够采一次**(`base_capacity 5` − `qty_per_node 3` = `2 < 3`),
+  少于阈值就得原地等 `regrow_window_ticks = 1200`(60 s)。
+  落点已逐个核过:可走格 / 在判据矩形内 / 避 POI 与病人出生格 / 不避瓦砾。
+  ⚠️ **机制通 ≠ 内容可达** 那句话本句已不成立(2026-11-14 补点后三条都可达);
+  **五条里仍只有三条可完成** —— 剩下两条归上一条。
 
 **连带(实现轮,不在本文档面)**
 
@@ -110,13 +119,24 @@
   那五个 `item_key = 8`(木柱)的点既不是采集品(按 E 走到结算会抛 `InvalidOperationException`),
   也不再是奇遇锚点。奇遇判据靠「区域 + 计数」,不需要资源点当锚。
   关卡资源点现为 **3 行**(全 `item_key = 4` 止血草)。
+  🔁 **2026-11-14 当日稍后**:该句是**删点当刻**的账面;补点后现为 **18 行**(3 营地 + 15 三区),
+  见 §1.1 `N5` 行与下方「已落(N5 的采集面)」。
 - ✅ **2026-11-14 已落**:五件组件的数据行 = `item_database_items.json` 的 ordinal **9–13**
   (门板 / 钉子 / 房梁 / 布 / 油布,全 `category = build_part`),`_ordinal_baseline.json` 同步。
 - ✅ **2026-11-14 已落**:`build_modules.json` 的帐篷改成 **schema 3 的 `costs[]`**
   —— 五件各 1,`Σ qty = cost = 5`。单材料模块(其余 13 行)走构造器派生单行,**零改动**。
 - ⬜ **仍未落**:`P3-02a` 的提示仍只报**总数**(`还缺 N 件。`)—— 逐件点名要等 42 侧的
   文案通道接上 `BuildMaterialPlan.MissingByItem`;本轮只把**数据**备好。
-- ⬜ **仍未落**:N5 奇遇链本身(见 §1.1)。**在它之前,五件组件没有任何授予点**。
+- ✅ **2026-11-14 已落(机制)**:N5 奇遇链的**流与事件载体** ——
+  `ADR-045` 立第四条逻辑流 `Quest`(`StreamId.Quest = 3`,优先级排在 `World` 之后、不折叠),
+  两个 `Kind` `AdventureAccepted` / `AdventureCompleted`,唯一写者 `AdventureWriter`,
+  驱动 `AdventureDriver`(增量游标)。**存档布局零变更**(事件段本就是三流合一,新流只多一个分类值)。
+- ✅ **2026-11-14 已落(N5 的采集面)**:关卡资源点 **3 → 18 行** —— 废墟 A 6 / 废墟 B 4 /
+  七里路 5 个止血草点(`PrologueLevel.BuildResources()`,`ecozone_id = 0`),
+  重导出 `world_resources.json` + 重烘 `world_resources.cooked.bytes`(456 B · `ConfigVersion 0x75CD36FA`)。
+  ⇒ PA-01 / PA-02 / PA-03 **在真关卡里可完成**。
+- ⬜ **仍未落(N5 的战斗面)**:PA-04 / PA-05 无目标(`EnemySpawn` 零生产者)。
+  这**不是**机制缺口,是 27 的遭遇实体未接通(见 §1.1 `N5` 行)。
 
 ### 3.2 为什么本轮不立任务系统
 
@@ -144,7 +164,7 @@
 | **N2** | **剧情脚本事件(S)** | 「那一夜」「神父走」不是玩家事件,`EventKind` 表达不了 | 一次性触发:条件(`P1-04 完成`)+ 动作(播演出 / 推进时间) |
 | **N3** | **过场演出(C)** | 搭建演出、开场运镜、结尾淡出 | 播放器:冻结输入(`IInputFreeze` 已有)+ 时间线(逐件出现)+ 相机运镜 + 结束回调 |
 | **N4** | **材料不足反馈** | P3-02a;当前按 Enter 静默失败 | `BuildInputDriver` 暴露 `LastPlaceResult`,BootRoot 转成一行提示 |
-| **N5** | **奇遇链(五条)** | 五件组件没有来源;P3-02b 要求「五件齐」 | 一张表 `{id, 判据, 产出}` + **两种判据** `GatherCount(区域, n)` / `DefeatCount(类, n)` + 接取 / 完成两个事件。**Kind 归属与流的归属须另开 ADR**,本文档不裁 |
+| **N5** | **奇遇链(五条)** | 五件组件没有来源;P3-02b 要求「五件齐」 | 一张表 `{id, 判据, 产出}` + **两种判据** `GatherCount(区域, n)` / `DefeatCount(类, n)` + 接取 / 完成两个事件。**Kind 归属与流的归属已由 `ADR-045` 裁定**(第四条逻辑流 `Quest` + 两个 `Kind`),本表原写「须另开 ADR」已结清 |
 
 > ⚠️ **N1 / N2 / N3 都不进 sim**:它们是表现层与装配层的**只读驱动**(读玩家格 / 读事件流),
 > 不写三流 —— 承 ADR-019 §三(51 只读)与 ADR-020 §四(玩家位移是表现态)的同一条边界。
@@ -157,7 +177,7 @@
 | **N2** | ✅ **机制已落**(2026-11-14)· 动作侧只接了一个 | `PrologueBeat.Effect`(`Action`)+ 驱动在**标记触发之前、字幕之前**执行;抛异常 ⇒ 本拍不标记、下 tick 重试。第一个真实动作 = **P1-07 十七个难民**(`Gameplay.Presentation/World/PrologueCrowd.cs`,纯视觉、无碰撞、不建 `PatientState`)。夹具 `Tests/EditMode/Boot/prologue_beats_table_test.cs` **4 条**。证伪轮两发:摘 `Effect?.Invoke()` ⇒ 4 红;改成「先标记再执行」⇒ 1 红 |
 | **N3** | ⬜ 未开始 | — |
 | **N4** | ✅ **已落**(2026-11-14) | 两截:① `BuildController.LastMissingStock` —— 缺口数与判定**同源**(`BuildMaterialPlanner` 的 `RequiredQty − AvailableQty`,那张 plan 早就写着「缺口消息要用它」,而生产调用点此前是 `out _` 丢掉);② `BuildInputDriver.LastMissingStock` + `PlaceAttemptCount`(按下沿判据)⇒ `BuildRoot` 转成一行提示(`BuildShortfallHint.Format`),停留 40 tick(2 s)。夹具 `build_shortfall_hint_test` **3 条**;证伪轮把「缺口 ≤ 0 不播」摘掉 ⇒ 2 红 |
-| **N5** | ⬜ **未开始**(2026-11-14 设计落盘,零实现) | 设计面 = §3.1(五条奇遇 + 四条硬规则 + 教学钩子)。**三个未决点**:① 两个事件的 `Kind` 与流的归属须另开 ADR;② PA-04 / PA-05 依赖 27 的遭遇实体接通(`EnemySpawn` 生产零命中);③ 帐篷的**多材料扣料**(schema 2→3)与五件组件的数据行同批。**不得**在本条写成「五条奇遇已实现」 |
+| **N5** | 🟡 **机制已落**(2026-11-14 · `ADR-045`)· **采集三型内容已通** · 战斗两型未通 | **机制侧**:`StreamId.Quest = 3` + `AdventureAccepted` / `AdventureCompleted` 两 `Kind` + `AdventureWriter`(唯一 Append 点,去重)+ `AdventureDriver`(增量游标,读 `ResourceHarvested` 按玩家格定区域)+ 完成时在玩家格发 `DropSpawned`;步骤表 = `Gameplay.Boot/AdventureSteps.cs` 的 `PrologueFive`(D9′:住代码不住 JSON)。夹具 `Tests/EditMode/Boot/adventure_chain_test.cs` **8 条**。<br>**内容侧**:✅ **2026-11-14 补点**(用户裁定「补采集点,废墟 A/B 和七里路各放几个止血草点」)—— 关卡资源点 **3 → 18 行**,新增 **A 6 / B 4 / 路 5** 个止血草点(`resource_id 4..18`,`ecozone_id = 0`),条数**刻意等于各自阈值**(一株节点一个再生窗口只够采一次:`base_capacity 5` − `qty_per_node 3` = 2 < 3)。⇒ **PA-01 / PA-02 / PA-03 在真关卡里可完成**。<br>**❗仍不可完成**:**PA-04 / PA-05** —— 全仓 `EnemySpawn` 生产零命中(与下方 §3.1「阻断面」同因),二型只有判据、没有目标 |
 
 > ⚠️ **N1 落地后的两处口径**(写在这里防误读):
 > ① 驱动器暴露**两个**查询,不可互相替代:`IsInside`(此刻)给「站在这里按 E」的节拍用,

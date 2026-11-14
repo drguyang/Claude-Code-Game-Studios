@@ -409,7 +409,8 @@ namespace DaYiJingCheng.Tests.Interaction
             "Tutorial", "ClinicPanel", "PaperCloseup48",
             "Pause",  // 🔁 2026-10-31 ADR-013 §十-C Amendment C:7 员 → 8 员
             "Processing", // 🔁 2026-11-02 ADR-013 §十-E Amendment D:8 员 → 9 员
-            "CaseClose"   // 🔁 2026-11-10 T20(37 的结案形态):9 员 → 10 员
+            "CaseClose",  // 🔁 2026-11-10 T20(37 的结案形态):9 员 → 10 员
+            "Loot"        // 🔁 2026-11-14 ADR-013 §十-H Amendment G(拾取面板):10 员 → 11 员
         };
 
         /// <summary>可变状态扫描:非 readonly 实例字段 + static 非 const 字段(字段级,不扫属性)。

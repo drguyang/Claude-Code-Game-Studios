@@ -29,7 +29,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
-    /// <summary>41 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38→39:加 TechniqueUnlocked;2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced)。</summary>
+    /// <summary>43 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-30 ADR-035 起 37→38:加 TreatmentHarmOnset;2026-11-09 ADR-043 起 38→39:加 TechniqueUnlocked;2026-11-09 ADR-044 起 39→40:加 CaseReferred;2026-11-10 B1-b 起 40→41:加 ChapterAdvanced;2026-11-14 ADR-045 起 41→43:加 AdventureAccepted / AdventureCompleted)。</summary>
     public static partial class PayloadCodec
     {
         /// <summary>
@@ -100,8 +100,10 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.TechniqueUnlocked:         return DecodeTechniqueUnlocked(payloadBytes);
                 case EventKind.CaseReferred:              return DecodeCaseReferred(payloadBytes);
                 case EventKind.ChapterAdvanced:           return DecodeChapterAdvanced(payloadBytes);
+                case EventKind.AdventureAccepted:         return DecodeAdventureAccepted(payloadBytes);
+                case EventKind.AdventureCompleted:        return DecodeAdventureCompleted(payloadBytes);
                 default:
-                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 41 支闭集内 {DefaultPathMarker}");
+                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 43 支闭集内 {DefaultPathMarker}");
             }
         }
 

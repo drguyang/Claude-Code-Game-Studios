@@ -61,6 +61,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>null</c> = 未装配(与 <see cref="TechniqueUnlocks"/> 同格)。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.TechniqueUnlockWriter TechniqueUnlockWriter { get; internal set; }
 
+        /// <summary>奇遇事件的**唯一**写者端口(2026-11-14 · ADR-045 §D3)。
+        /// <para>任务流(`StreamId.Quest`)的 Append 单点;`AdventureDriver` 是它唯一的调用方。
+        /// <c>null</c> = 未装配。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.AdventureWriter AdventureWriter { get; internal set; }
+
+        /// <summary>奇遇判定驱动(2026-11-14 · ADR-045 §D4)。
+        /// <para>⚠️ <b>构造点不在 <c>Assemble</c></b> —— 它要玩家 id,而 id 是 `BootRoot`
+        /// 第 4 步才铸造的(与 <see cref="TechniqueUnlockDriver"/> 同格)。</para></summary>
+        public DaYiJingCheng.Gameplay.Boot.AdventureDriver AdventureDriver { get; internal set; }
+
         /// <summary>技法解锁的**触发驱动**(2026-11-09 · T9)。
         /// <para>每个 tick 边沿扫一遍事件流,把奇遇 / Boss / 病例翻成解锁请求
         /// (`TechniqueUnlockDriver`)。规则表今日为空 ⇒ 零扫描、零写入。</para>

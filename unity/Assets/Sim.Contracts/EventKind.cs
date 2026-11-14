@@ -1,4 +1,4 @@
-// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(41 支,stream 分布 18/6/17;
+// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(43 支,stream 分布 18/6/17/2;
 //          2026-11-10 `ChapterAdvanced` 入表 40 → 41 —— B1-b 章节状态载体)
 //          2026-10-25 `HouseCallStarted` 入表 36 → 37 —— TD-persist-04 动作② 结构裁定)
 //          · 成员级出处见各支 registry 条目的 source 字段(ADR-007 §三 / ADR-008 §三 /
@@ -12,7 +12,7 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary>三逻辑流全部 41 支具名事件 Kind(2026-11-10 B1-b 起;原 40 支见追加区注)。</summary>
+    /// <summary>四逻辑流全部 43 支具名事件 Kind(2026-11-14 ADR-045 起;原 41 支见追加区注)。</summary>
     public enum EventKind : int
     {
         // ── 病史流 History(15)────────────────────────────────────────────
@@ -79,5 +79,11 @@ namespace DaYiJingCheng.Sim.Contracts
         ChapterAdvanced,             // 2026-11-10 B1-b(章节推进 · 写者 = 叙事推进方 · 病史流;
                                      // 载荷 (chapter 绝对量, source_id) —— HookCasePolicy 的
                                      // 「每章 1 例」此前退化成「整局 1 例」,这是那个「章」的载体)
+        AdventureAccepted,           // ADR-045 §D2(奇遇接取 · 写者 = AdventureWriter · **任务流**;
+                                     // 载荷 (adventure_id, actor_id);Patient = None;
+                                     // 只证「进过计数范围」,不承载进度数值)
+        AdventureCompleted,          // ADR-045 §D2(奇遇完成 · 同上 · 任务流;
+                                     // 载荷 (adventure_id, actor_id, item_key, qty);
+                                     // 组件经同 tick 的 DropSpawned 落脚下 —— §D6)
     }
 }

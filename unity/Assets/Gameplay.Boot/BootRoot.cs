@@ -689,6 +689,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.Stream, _services.Decoder,
                 TechniqueUnlockRules.Default, _services.TechniqueUnlockWriter, actorId);
 
+            // ── 4.4c. 奇遇判定驱动(2026-11-14 · ADR-045 §D4)────────────────────
+            //   每 tick 只读:把「在区域内采集」翻成 `AdventureAccepted` / `AdventureCompleted`。
+            //   ⚠️ 玩家格用 `LastCommittedCell`(**经流确立**),不读 `transform.position`
+            //      (ADR-020 §四;与 911 行同一条口径)。
+            //   ⚠️ 必须在这里而不是 `CompositionRoot.Assemble`:驱动要玩家 id(第 4 步才铸造)。
+            //   ⚠️ **PA-04 / PA-05 是击败型,今日无生产者**(`EnemySpawn` 生产零命中)——
+            //      驱动的判据闭集里有这一支,但计数恒 0。**不得**把本行读成「五条都能完成」。
+            if (_services.AdventureWriter != null)
+            {
+                _services.AdventureDriver = new AdventureDriver(
+                    () => _services.Stream.Events, AdventureSteps.PrologueFive,
+                    _services.AdventureWriter,
+                    () => _player != null ? _player.LastCommittedCell : default,
+                    actorId);
+            }
+
             // ── 4.3a0. 37 同源检测 + 章推进(T20 · 2026-11-10)─────────────────────
             // 装配点在 `CompositionRoot`(`dataProvider` 有 37 旋钮产物才建);本步只做
             // **未装配的显式日志** —— 否则与「机制未启用」同形。
@@ -1020,7 +1036,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                         screen.Bind(recipeSource().Recipes, admission, actorId, qualities,
                                     _services.FurnaceBusy);
                         return true;
-                    });
+                    },
+                    // 掉落(20 / 42):🔁 **2026-11-14 用户裁定** —— 按 E 打开拾取面板
+                    // (ADR-013 §十-H Amendment G · `ModalId.Loot`)。屏上逐件「拾取」/
+                    // 末行「全部拾取」;行集 = **拾取半径内的地面实例**(与结算同一道
+                    // `DropClaimOrchestrator.Tolerance` 门 ⇒ 列出来的每一条都点得动)。
+                    focusInstanceId => OpenLootPanel(focusInstanceId, actorId));
             }
             else
             {
@@ -3278,6 +3299,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _prologueBeats != null)
                 _prologueBeats.OnTickEdge(_tickDriver.CurrentTick);
 
+            // 奇遇判定(ADR-045 §D4):只读事件流,增量游标 —— 不是全流扫描。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null
+                && _services.AdventureDriver != null)
+                _services.AdventureDriver.OnTickEdge(_tickDriver.CurrentTick);
+
             // 过场演出(N3):同样只在真推进 tick 时走 —— 演出时长以 tick 计。
             if (_tickDriver.CurrentTick > tickBefore && _cutscene != null)
                 _cutscene.OnTickEdge(_tickDriver.CurrentTick);
@@ -3764,6 +3790,131 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return new DaYiJingCheng.Sim.Contracts.InventoryContainerDto(
                 containerInstanceId, items, load, cap, isFull);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 拾取面板的数据面(20 / 42 · 2026-11-14 · ADR-013 §十-H Amendment G)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>物品显示名的惰性查表(`null` = 尚未建;无 data-core 时退化为「物品#N」)。</summary>
+        private Func<int, string> _itemNames;
+
+        /// <summary>
+        /// 打开拾取面板并喂「拾取半径内的地面行」。
+        /// </summary>
+        /// <param name="focusInstanceId">按 E 选中的那一件(落焦到它;不在行集里则落第一行)。</param>
+        /// <param name="actorId">玩家 id(20 的归属面)。</param>
+        /// <remarks>
+        /// <para>⚠️ <b>行集与结算同一道门</b>:`DropClaimOrchestrator.Tolerance` —— 列表若放宽,
+        /// 会出现「列了但点了拿不走」的错配(判距在 20,不在 42)。</para>
+        /// <para>⚠️ <b>零行不开屏</b>:地上没有可拾 ⇒ 按 E 什么都不发生(与「空箱不开空页」同纪律)。</para>
+        /// </remarks>
+        /// <returns><c>true</c> = 开成了(屏已摊开并喂了行);<c>false</c> = 没开成
+        /// (无 UI / 地上零行)⇒ 路由据此回落直拿。</returns>
+        private bool OpenLootPanel(long focusInstanceId, int actorId)
+        {
+            if (_uiDriver == null || _services?.DropClaimOrchestrator == null) return false;
+
+            System.Collections.Generic.List<UI.Skeuomorphic.Screens.LootRow> rows = BuildLootRows();
+            if (rows.Count == 0) return false;
+            if (!_uiDriver.OpenModal(UI.Skeuomorphic.ModalId.Loot)) return false;
+
+            var screen = _uiDriver.Screen as UI.Skeuomorphic.Screens.LootScreen;
+            if (screen == null) return false;
+
+            // 每次开屏新建 sink(它零状态 —— 玩家 id / 读取面对随本段闭包走)。
+            screen.Bind(new DriverLootActionSink(
+                _services.DropClaimOrchestrator, actorId,
+                () => _player != null ? _player.LastCommittedCell : default,
+                () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
+                BuildLootRows,
+                () => _uiDriver.Screen as UI.Skeuomorphic.Screens.LootScreen,
+                () => _uiDriver.CloseModal()));
+            screen.Present(rows);
+            screen.FocusInstance(focusInstanceId);
+            return true;
+        }
+
+        /// <summary>
+        /// 此刻地面上的可拾行(**拾取半径内**;按 `instance_id` 升序 —— 与投影同一序)。
+        /// </summary>
+        /// <remarks>
+        /// <para>锚点面**调 `DeathDropReclaimPolicy.TryGetSpawnAnchor` 本体**,不在此另写扫描 ——
+        /// 复制即第二真源(与 `GroundDropSource` 同一条纪律)。</para>
+        /// <para>判距用 Chebyshev(`int64` 拓宽后取绝对值 —— 承 F-4.1 d∞ 陷阱),
+        /// 与 `CanClaim` 同一个度量。</para>
+        /// </remarks>
+        private System.Collections.Generic.List<UI.Skeuomorphic.Screens.LootRow> BuildLootRows()
+        {
+            var rows = new System.Collections.Generic.List<UI.Skeuomorphic.Screens.LootRow>();
+            var inventoryLoad = _services?.InventoryLoad;
+            var drops = _services?.DropClaimOrchestrator;
+            if (inventoryLoad == null || drops == null) return rows;
+
+            DaYiJingCheng.Sim.InventoryProjection projection = inventoryLoad.Rebuild().Projection;
+            if (projection == null) return rows;
+
+            System.Collections.Generic.IReadOnlyList<long> ground =
+                projection.InstancesOf(DaYiJingCheng.Sim.InventoryProjection.NoOwner);
+            if (ground.Count == 0) return rows;
+
+            System.Collections.Generic.IReadOnlyList<DaYiJingCheng.Sim.Contracts.SimEvent> events =
+                _services.Stream.Events;
+            DaYiJingCheng.Sim.Contracts.WorldPos cell =
+                _player != null ? _player.LastCommittedCell : default;
+            int tolerance = drops.Tolerance;
+
+            for (int i = 0; i < ground.Count; i++)
+            {
+                long instanceId = ground[i];
+                if (!DaYiJingCheng.Sim.DeathDropReclaimPolicy.TryGetSpawnAnchor(
+                        events, _services.Decoder, instanceId, out DaYiJingCheng.Sim.Contracts.WorldPos anchor))
+                    continue;   // 流里查无出生 ⇒ 无位置(不编造坐标)
+                if (Chebyshev(cell, anchor) > tolerance) continue;
+                if (!projection.TryGet(instanceId, out DaYiJingCheng.Sim.InventoryRow row)) continue;
+                if (row.Qty <= 0) continue;
+
+                string name = ItemDisplayName(row.ItemOrdinal);
+                rows.Add(new UI.Skeuomorphic.Screens.LootRow(
+                    instanceId, row.Qty > 1 ? name + " ×" + row.Qty : name));
+            }
+            return rows;
+        }
+
+        /// <summary>物品显示名(21 的表;`null` / 空名 ⇒ 「物品#N」的诚实占位)。</summary>
+        private string ItemDisplayName(int ordinal)
+        {
+            _itemNames ??= BuildItemNameLookup();
+            return _itemNames(ordinal);
+        }
+
+        private Func<int, string> BuildItemNameLookup()
+        {
+            if (!_bootPreloaded)
+                return ordinal => "物品#" + ordinal;
+
+            DaYiJingCheng.Sim.Contracts.ItemDataSet set =
+                DataCorePreloader.Provider.Load<DaYiJingCheng.Sim.Contracts.ItemDataSet>();
+            if (set.Items == null || set.Items.Length == 0)
+                return ordinal => "物品#" + ordinal;
+
+            var map = new System.Collections.Generic.Dictionary<int, string>(set.Items.Length);
+            for (int i = 0; i < set.Items.Length; i++)
+                map[set.Items[i].Ordinal] = set.Items[i].DisplayName;
+            return ordinal => map.TryGetValue(ordinal, out string name) && !string.IsNullOrEmpty(name)
+                ? name
+                : "物品#" + ordinal;
+        }
+
+        /// <summary>两格 Chebyshev 距离(`int64` 拓宽 —— 与 `DropClaimOrchestrator` 同一度量)。</summary>
+        private static long Chebyshev(in DaYiJingCheng.Sim.Contracts.WorldPos a,
+                                      in DaYiJingCheng.Sim.Contracts.WorldPos b)
+        {
+            long dx = Math.Abs((long)a.X - b.X);
+            long dy = Math.Abs((long)a.Y - b.Y);
+            long dz = Math.Abs((long)a.Z - b.Z);
+            long m = dx > dy ? dx : dy;
+            return m > dz ? m : dz;
         }
 
         /// <summary>
