@@ -12,6 +12,8 @@
 
 **GDD**: `design/gdd/skeuomorphic-ui.md`
 **Requirement**: 无专属 TR(V-10 铜面+蚀刻 哑光面片)
+**UX Spec**: `design/ux/enemy-42.md`(2026-11-14 Draft,未经 `/ux-review`)
+**Asset Spec**: `design/assets/specs/enemy.md`(P0 兵痞 / 野狗占位)
 
 **ADR Governing Implementation**: ADR-013: 拟物 UI 框架
 **ADR Decision Summary**: 敌人读数条世界锚点 → billboard 面片;黄铜侧(哑光面片 + 蚀刻刻度);触发/状态归 27、值读既有 VitalsDto;淡入淡出;六态机映射
@@ -93,7 +95,7 @@
 **Story Type**: Visual/Feel
 **Required evidence**: `production/qa/evidence/enemy-vitals-bar-evidence.md` + screenshot + lead sign-off
 
-**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/SkeuomorphicUI/enemy_vitals_bar_test.cs`)
+**Status**: [x] Complete — 测试(`unity/Assets/Tests/EditMode/Boot/enemy_visuals_test.cs` + `unity/Assets/Tests/PlayMode/EnemyVisuals/enemy_visual_spawner_play_test.cs`)+ 实现证据(`production/qa/evidence/enemy-vitals-bar-evidence.md`);截图 / 人工签核留给美术轮(见证据 §5)
 
 ---
 

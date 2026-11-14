@@ -131,6 +131,9 @@
 | 2 | 蛇/熊/狼/野狗（野兽） | 可猎杀/驱赶/驯化 | random-events.md, enemy-ai.md |
 | 3 | 驯化动物（P1a） | 可招为护卫 | enemy-ai.md §七 |
 
+> **逐件规格**：`design/assets/specs/enemy.md`（P0 兵痞 / 野狗两原型；
+> 占位 = primitive 组合体已落，真资产未开）。
+
 ### Environment / Buildings (7)
 
 > ⚠️ **2026-11-12 用户裁定:P0 场景 1 → 3**(原「小镇街道（P0 小场景）」一条拆为三条;

@@ -93,6 +93,17 @@
 > ⚠️ **这五条不解,`AC-48-06` / `AC-48-15` 的 `[L]` 走查就跑不了** —— 不是「没测」,是**对象不存在**。
 > 复算:`grep -rn "OpenModal(ModalId.PaperCloseup48)" unity/Assets --include=*.cs | grep -v /Tests/` ⇒ **0**。
 
+### F. 敌人掉落物系统(2026-11-14 · 用户裁定「新立项」)
+
+> 病因:本轮(「完整可见」轮)落地的是**倒地野兽的取材微光**(42 的视觉增量)。
+> 用户同日追加裁定「根据剧情需要,人形敌人也可以掉落拾取」,并明确口径 = **真正的掉落物系统**
+> (选项 ③),**不是**把取材微光扩到人形 —— 两者是不同动词(「取材」≠「拾取」)。
+> 本册留痕,防「说过了但没人立项」。
+
+| ID | 来源 | 内容 | 归属轮 | 备注 |
+|---|---|---|---|---|
+| 27-掉落-1 | 用户裁定 2026-11-14 · `design/gdd/enemy-ai.md` §Visual 二① 追加段 · `OQ-27-8` | **敌人掉落物系统未立项** —— **已有半边**(勿重复造):42 拾取面板(`design/ux/loot-42.md`,Draft)+ 掉落链路(`DropSpawned` → `GroundDropSource` → `LootScreen` / `DriverLootActionSink`,奇遇完成时已在玩家格发 `DropSpawned`)。**缺另半边**:① 掉落表 schema(每原型 / 每遭遇 / 每波);② 首个掉落原型(P0 兵痞是否配掉落);③ **击败产出** —— `PrologueEncounterDriver` / `CombatDriver` 今日只写 `EncounterEnded(AllDowned)`,**零** `DropSpawned`;④ 与 25 倒地态(`Down` ≠ 消灭)的关系 —— **倒地即可拾取**还是**消灭才掉落**;⑤ 拾取交互路由(4 / 20 / 17 消费)。**scope 警告**:这是**物品实例 + 掉落表 + 拾取交互**的完整系统,不是 42 的视觉增量;不要塞进 42 的 story | 用户 + 20 + 17 + 4 + 27(新 story / 新 epic) | GDD 已留痕(`OQ-27-8`);**本轮实现不变**(取材微光仍只服务 `down_class = Salvageable` 的野狗) |
+
 ---
 
 ## 二、已结登记债(Closed · 留审计轨迹)

@@ -19,6 +19,7 @@
 | ⑦ | PaperCloseup48 | 教学纸近景 | `paper-closeup-48.md` | Approved | 族首件 |
 | ⑧ | Pause | 暂停壳 | `pause-shell-42.md` | Approved(2026-11-01) | 对齐族 |
 | — | —(非模态·场景级) | 主菜单 | `main-menu-42.md` | Approved(2026-11-01) · ✅ **已实现**(2026-11-01,AC 10/10) | 对齐族 |
+| — | —(非模态·世界空间) | 敌人呈现 | `enemy-42.md` | **Draft**(2026-11-14,未经 `/ux-review`)· 身体 + V-10 读数条 | 世界空间件 |
 
 > **ModalId 闭集来源**: `ADR-013 §十-B`(6 员,2026-09-21 第二十八批) → 2026-09-21 Amendment B 扩为 **7 员**(⑦ `PaperCloseup48`)
 > → 2026-10-31 **§十-C Amendment C** 扩为 **8 员**(⑧ `Pause`)。**主菜单不计入闭集** —— 它出现在世界装载之前,
