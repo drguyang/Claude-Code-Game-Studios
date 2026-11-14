@@ -13399,8 +13399,15 @@ M1 `PlanForCostsCore` 忽略「某一件不够」⇒ 2 红;M2 缺口不点名(�
   **3 → 18 行**,废墟 A / 废墟 B / 七里路 各 **6 / 4 / 5** 个止血草点(`resource_id 4..18`,
   `ecozone_id = 0`;`world_resources.json` 重导出 + `cooked.bytes` 456 B · `ConfigVersion 0x75CD36FA`);
   **三个采集型奇遇在真关卡里可完成**。条数 = 阈值(一株节点一个再生窗口只够采一次)。
-- ④ 27 的遭遇实体接通(PA-04 / PA-05 的前置)。**在 ④ 之前,五件组件里两件(布 / 油布)仍没有玩家可达的授予点** ——
-  ✅ 另三件(门板 / 钉子 / 房梁)已可达(2026-11-14 补点后,PA-01/02/03 在真关卡里可完成)。
+- ~~④ 27 的遭遇实体接通(PA-04 / PA-05 的前置)~~ —— ✅ **2026-11-14 已落(机制)**(用户裁定
+  「接 27 的遭遇实体」):`PrologueEncounterDriver.PrologueTwo`(废墟 B 1 兵痞 / 七里路 2 野狗)
+  + `CombatDriver`(一次出手 → `EnemyInjuryOnset` → 累计越阈 → `InjuryStateChanged(Coma)`
+  → 成员全倒地 → `EncounterEnded(AllDowned)`)⇒ `AdventureDriver` 的击败计数从恒 0 起活,
+  **PA-04 / PA-05 机制可完成,五件组件全部有玩家可达的授予点**。
+  夹具 `Tests/EditMode/Boot/enemy_encounter_test.cs` **19 条**。
+  ⚠️ **本条仍不得转 `closed`** —— 剩下的不是「授予点」而是**真启动序走查**:
+  敌人**不在地图上可见**(无身体 / 无站位表现)、**不还手**(27 的 Engage tick 循环未接)、
+  出手手感(9 击 / 0.5 s 冷怯)未人验 ⇒ 记 `NOT-RUN`。
 
 #### 本债**不**主张的事
 

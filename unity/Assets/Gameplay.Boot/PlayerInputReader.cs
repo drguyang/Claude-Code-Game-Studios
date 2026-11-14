@@ -30,6 +30,21 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public static class PlayerInputReader
     {
+        /// <summary>
+        /// **出手**读入(2026-11-14 · 最小战斗闭环)。
+        /// <para>键盘 / 鼠标 = **鼠标左键**;手柄 = <c>buttonSouth</c>(A/×)。</para>
+        /// <para>⚠️ 与既有两条读取同款:直读设备(ADR-011 §一 过渡最小面),
+        /// 动作资产侧(25 的 `Attack` action)待独立 story 迁入。边沿化归调用方。</para>
+        /// </summary>
+        public static bool AttackPressed()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.isPressed)
+                return true;
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.buttonSouth.isPressed;
+        }
+
         /// <summary>Interact 按下读入(当前按住;边沿化 = 调用方逐帧比对 wasPressed)。
         /// <para>键盘 = <c>E</c>(inputactions Interact 绑重);手柄 = <c>buttonNorth</c>(Y/△)。</para></summary>
         public static bool InteractPressed()

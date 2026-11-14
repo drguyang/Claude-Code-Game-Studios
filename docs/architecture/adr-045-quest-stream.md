@@ -238,6 +238,7 @@ dr_guyang(用户 · 2026-11-14 三项裁定)· technical-director(起草)
 |---|---|---|
 | **R1** | **「有了任务流」被误读成「任务系统已存在」** | 本件 §Status 与 §Summary 已明写;实现轮的 commit message 与证据件须重复这一句 |
 | **R2** | `PA-04` / `PA-05` 的**战斗型判据没有生产者**(`EnemySpawn` 生产零命中) | 用户 2026-11-14 裁定「先接 27 的遭遇实体」;在那之前 `DefeatCount` 恒 0 —— **五条里只有三条可完成**,不得声称「奇遇链能跑完」。🔁 **2026-11-14 同日**:采集三型的内容缺口已消解(关卡补 6/4/5 个止血草点)· **R2 本行不变**(它说的是战斗型) |
+| **R2 结案(2026-11-14 同日)** | ✅ **战斗型生产者已接**(用户裁定「接 27 的遭遇实体」):`PrologueEncounterDriver.PrologueTwo`(废墟 B 1 兵痞 / 七里路 2 野狗)+ `CombatDriver`(出手 → `EnemyInjuryOnset` → `COMA_THRESHOLD` → `InjuryStateChanged(Coma)` → `EncounterEnded(AllDowned)`),`AdventureDriver` 按 `EncounterStarted.ProtoId` 把倒地归到「类」⇒ `DefeatCount` 不再恒 0 | ⚠️ **仍不得声称「五条都能在真关卡跑完」**:敌人**不可见 / 不还手**(27 的 tick 循环未接),真启动序走查 `NOT-RUN`;夹具只证机制(`enemy_encounter_test` 19 条) |
 | **R3** | 新流被塞进越来越多的东西(奇遇 → 任务 → 剧情分支 → …) | 本件只定义**奇遇的两个 Kind**;任何第三个 Kind 须另裁(扩流 ≠ 扩 Kind 的自动许可) |
 | **R4** | 联机下任务流的权威归属未裁 | 本件**不裁**;45 的轮次。P0 = 单机,不阻塞 |
 

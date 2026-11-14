@@ -18825,3 +18825,28 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 重导出 `world_resources.json` + 重烘 `world_resources.cooked.bytes`(456 B · `ConfigVersion 0x75CD36FA`)
 - 结论:**PA-01/02/03 在真关卡里可完成**;PA-04/05 仍无目标(`EnemySpawn` 零生产者),`TD-building-07` 维持 `partial`
 - 回归:EditMode `7678 / 7641 / 0 / 0 / 37` @ `2026-11-14T06:05:44Z` · PlayMode `392 / 387 / 0 / 2 / 3` @ `2026-11-14T06:07:01Z` · `da334a4c` + 工作树
+
+### E. 27 遭遇实体接通(用户 2026-11-14:「接 27 的遭遇实体」· 范围裁「接一条最小战斗闭环」)
+- **写者三件**(`Sim/Enemies/`,全走 `IPayloadEncoder`,`Seq = -1` 未发号哨兵):
+  `EncounterStartWriter`(52 · 按 `encounter_id` 去重 · **`Patient` 头取成员 id 最大值** —— 高水位充要条件)·
+  `EncounterEndWriter`(27 · 去重 · `reason ∈ {0,1,2}` 闭集)·
+  `EnemyInjuryWriter`(25 · `dose_seq` 按 (target,tick) 纯函数派生)
+- **投影**:`EnemyRoster`(只读;`EncounterStarted` 定成员 / 原形 / 出生格,`EnemyInjuryOnset` 累 Σ magnitude,
+  `InjuryStateChanged` 定倒地,`EncounterEnded(AllDowned)` 兜底)
+- **编排 + 战斗**:`PrologueEncounterDriver.PrologueTwo`(废墟 B 矩形 (20,4)–(27,12) 1 兵痞 / 七里路 (32,14)–(95,25) 2 野狗;
+  id 经 `IIdAuthority` 与病人共空间)· `CombatDriver`(出手 → INJ_BLUNT=15 → `COMA_THRESHOLD` → Coma → 全体倒地 → `EncounterEnded(AllDowned)`)
+- **击败计数**:`AdventureDriver` 按 `EncounterStarted.ProtoId` 把倒地归到「类」⇒ PA-04/PA-05 判据不再恒 0
+- **输入**:`PlayerInputReader.AttackPressed()`(鼠标左键 / 手柄 `buttonSouth`),`BootRoot` 边沿化 + 世界冻结期间不出手
+- ⚠️ **抓到的真缺陷**:三个写者首版传 `Seq = 0L`,而 `EventStream` 的去重键是 `(Kind, Patient, Tick, Seq)`
+  ⇒ **同目标同 tick 的第二条 `EnemyInjuryOnset` 被静默吞掉**;改 `-1` 后专测钉住
+- **门**:`WriterExistenceGate` 撤三条豁免(`EncounterStarted` / `EncounterEnded` / `EnemyInjuryOnset`)——
+  全量首轮 5 红全是「仍有豁免」,撤净后 `Unit.Sim` 472/472 绿
+- **夹具**:`Tests/EditMode/Boot/enemy_encounter_test.cs` **19 条**
+- **证伪轮 6 发各红**(`M1` max→first / `M2` 去重删除 / `M3` 伤害不累加 / `M4` 不写 Ended / `M5` 忽略原型差 / `M6` 收场不兜底),
+  逐发 `cp` 还原 + SHA-256 逐字节一致;无 `MUTATION` 残留
+- **回归(三元组)**:EditMode `7697 / 7660 / 0 / 0 / 37` @ `2026-11-14T07:00:54Z`(基线 `7678/7641` ⇒ +19/+19)· 全量 ·
+  PlayMode `392 / 387 / 0 / 2 / 3` @ `2026-11-14T07:02:13Z` · 全量 · `0bae100a` + 工作树
+- **未做(不得借绿)**:敌人在关卡里**不可见**(无身体 / 站位表现)· **不还手**(27 的 Engage tick 循环未接 ·
+  25 §九 第 7 项仍无路径)· 真启动序走查 `NOT-RUN`
+- **文档**:`prologue-beat-script.md`(§3.1 阻断面 / 连带 / N5 行)· `adr-016` §二 落地注 · `adr-045` R2 结案行 ·
+  `tech-debt-register` `TD-building-07` ④

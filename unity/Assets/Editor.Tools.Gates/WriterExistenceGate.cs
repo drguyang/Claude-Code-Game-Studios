@@ -122,7 +122,11 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             // ── 25 格斗与武器线 ──
             ("InjuryOnset", "25 格斗伤害结算写者未落 —— 归 25 实现轮(伤害施加方 = 25,entities.yaml author 注)(2026-10-10)"),
-            ("EnemyInjuryOnset", "25 敌人伤情 onset 写者未落 —— 归 25 实现轮(落世界流,不污染病史流)(2026-10-10)"),
+            // ✅ 2026-11-14 撤 `EnemyInjuryOnset` 豁免(27 遭遇实体轮):
+            //   写者已落 —— `Sim/Enemies/EnemyInjuryWriter.cs`(25 · 落世界流)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表。
+            //   ⚠️「有写者 ≠ 可击杀」:今日唯一调用方 = `CombatDriver`(玩家出手),
+            //   25 的格斗结算驱动(`InjuryOnset` 那一支)仍未落。
 
             // ── 52 随机事件导演 / 27 敌人 AI ──
             // ✅ 2026-11-01 撤 `EventRolled` / `EventArrived` 豁免(S22-4 · 52 急召生成链落地):
@@ -140,8 +144,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             //   威胁 ∧ 医馆 ∧ 同日 → TryDefer;离开医馆 → TryClear(补发);跨日 tick →
             //   逐槽 TryClear(作废))归 52 的实现轮。
             ("HistoryFlagChanged", "52 病史旗标写者未落 —— 归 52 实现轮(2026-10-10)"),
-            ("EncounterStarted", "52 遭遇开启写者未落 —— 归 52 实现轮(ADR-016 §八:52 决定来不来)(2026-10-10)"),
-            ("EncounterEnded", "27 敌人 AI 遭遇结束写者未落 —— 归 27 实现轮(entities.yaml author 注:非 52)(2026-10-10)"),
+            // ✅ 2026-11-14 撤 `EncounterStarted` / `EncounterEnded` 两条豁免(27 遭遇实体轮):
+            //   写者已落 —— `Sim/Enemies/EncounterStartWriter.cs`(52)·
+            //   `Sim/Enemies/EncounterEndWriter.cs`(27);判据①「已存在写者的 Kind 仍挂豁免表 = 红」
+            //   强制同批撤表(承 `HouseCallStarted` / `Craft` 先例)。
+            //   ⚠️ **有写者 ≠ 已接线**:生产触发点 = `PrologueEncounterDriver`(序章脚本遭遇)
+            //   + `CombatDriver`(全倒地收场),两者都在 `BootRoot` §4.4d;52 的**随机链**仍未接通
+            //   (`TD-randomevents-05`),故「走进药铺 / 七里路」是今日唯一遭遇来源。
             // ✅ 2026-10-25 撤 `HouseCallStarted` 豁免(TD-randomevents-02 实现轮):
             //   写者已落 —— `Sim/HouseCallStartedWriter.cs`(52 出诊启动写者,世界流 ·
             //   Patient = None;前置在写者内复核,五具名结果码)。

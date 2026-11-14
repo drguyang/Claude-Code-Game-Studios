@@ -2557,6 +2557,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             services.AdventureWriter = new AdventureWriter(
                 stream, encoder, () => stream.Events, decoder, dropEventWriter);
 
+            // ── 27 遭遇实体(2026-11-14)──────────────────────────────────────────
+            //   三支写者各归其主:Started = 52 / Ended = 27 / EnemyInjuryOnset = 25。
+            //   ⚠️ 「有写者 ≠ 已接线」:决定何时开遭遇的是 `PrologueEncounterDriver`(BootRoot
+            //      §4.4d),出手判定是 `CombatDriver`(同一段) —— 两者都在本装配之外。
+            services.EncounterStarts = new DaYiJingCheng.Sim.EncounterStartWriter(
+                stream, encoder, () => stream.Events, decoder);
+            services.EncounterEnds = new DaYiJingCheng.Sim.EncounterEndWriter(
+                stream, encoder, () => stream.Events, decoder);
+            services.EnemyInjuries = new DaYiJingCheng.Sim.EnemyInjuryWriter(
+                stream, encoder, () => stream.Events, decoder);
+
             // 钩子病例的收场写者(2026-11-09 · ADR-044 §D2)。
             //   ⚠️ 本轮**零生产调用方**(§D7):玩家转诊交互不存在。装配它 = 让宿主就位时
             //      不必再改装配;**不**等于「转诊可用」。

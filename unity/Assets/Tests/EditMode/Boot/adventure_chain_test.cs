@@ -186,7 +186,7 @@ namespace DaYiJingCheng.Tests.Boot
             // 驱动读 `_playerCell()`;夹具用它模拟「玩家此刻站哪」。
             _cell = cell;
             return new AdventureDriver(() => _stream.Events, AdventureSteps.PrologueFive,
-                                       _writer, () => _cell, Player);
+                                       _writer, () => _cell, Player, _decoder);
         }
 
         private void Harvest(long tick, WorldPos cell)

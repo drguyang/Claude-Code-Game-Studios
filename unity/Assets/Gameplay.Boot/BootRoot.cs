@@ -177,6 +177,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
         private InteractionPressRouter _pressRouter;
+
+        /// <summary>序章两支脚本遭遇的编排(2026-11-14;未建 = 无世界装配)。</summary>
+        private PrologueEncounterDriver _prologueEncounters;
+
+        /// <summary>最小战斗闭环(2026-11-14;未建 = 无世界装配)。</summary>
+        private CombatDriver _combat;
+
+        /// <summary>出手键的上一帧按住态(边沿化;本类持有,`PlayerInputReader` 不持)。</summary>
+        private bool _attackHeld;
         // 🔁 2026-11-04(`TD-skeuo-06`):炮制屏的意图出口(点火 / 关屏)。
         //    此前 `IProcessingCommandSink` 生产实现数为零 ⇒ 屏上点火是**静默空操作**。
         private DriverProcessingCommandSink _processingSink;
@@ -702,6 +711,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                     () => _services.Stream.Events, AdventureSteps.PrologueFive,
                     _services.AdventureWriter,
                     () => _player != null ? _player.LastCommittedCell : default,
+                    actorId, _services.Decoder);
+
+                // ── 27 遭遇实体(2026-11-14)──────────────────────────────────────
+                //   序章两支脚本遭遇(P0):药铺废墟 1 兵痞 · 七里路 2 野狗。
+                //   ⚠️ 敌人 id 经 `_services.IdAuthority`(**与病人共空间**,ADR-016 §二)。
+                _prologueEncounters = new PrologueEncounterDriver(
+                    _services.EncounterStarts, _services.IdAuthority,
+                    PrologueEncounterDriver.PrologueTwo,
+                    () => _player != null ? _player.LastCommittedCell : default);
+
+                _combat = new CombatDriver(
+                    _services.EnemyInjuries,
+                    new DaYiJingCheng.Sim.InjuryStateChangedWriter(_services.Stream, _services.Encoder),
+                    _services.EncounterEnds,
+                    () => _services.Stream.Events, _services.Decoder,
+                    () => _player != null ? _player.LastCommittedCell : default,
+                    () => _services.TickDriver != null ? _services.TickDriver.CurrentTick : 0L,
                     actorId);
             }
 
@@ -3299,6 +3325,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _prologueBeats != null)
                 _prologueBeats.OnTickEdge(_tickDriver.CurrentTick);
 
+            // 序章遭遇编排(2026-11-14):玩家格落入药铺 / 七里路 ⇒ 开一支遭遇。
+            // ⚠️ 必须排在**奇遇判定之前**:`EncounterStarted` 是击败型奇遇读原型的输入,
+            //    同一边沿里晚写一拍 = 击败计数晚一个 tick。
+            if (_tickDriver.CurrentTick > tickBefore && _prologueEncounters != null)
+                _prologueEncounters.OnTickEdge(_tickDriver.CurrentTick);
+
             // 奇遇判定(ADR-045 §D4):只读事件流,增量游标 —— 不是全流扫描。
             if (_tickDriver.CurrentTick > tickBefore && _services != null
                 && _services.AdventureDriver != null)
@@ -3557,6 +3589,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 建造输入(S20-19 · 2026-10-28):B 开关 / Enter 放置 / R 旋转 / Delete 拆除。
             // ⚠️ 紧跟交互驱动:两者都读设备按下沿,互不依赖;建造在**非建造模式**下是纯 no-op。
             _buildDriver?.OnFrame();
+
+            // ── 出手(2026-11-14 · 最小战斗闭环)────────────────────────────────
+            // 与交互 / 建造同格:**按下沿**消费一次;挡路模态摊开(世界冻结)期间不出手。
+            // ⚠️ 边沿化在本类(`_attackHeld`)—— `PlayerInputReader` 是零状态读面。
+            // ⚠️ 无 `_combat`(无世界装配 / 夹具)⇒ 按键落空,**不**转译成别的动作。
+            {
+                bool attack = PlayerInputReader.AttackPressed();
+                if (attack && !_attackHeld && !worldFrozen) _combat?.Attack();
+                _attackHeld = attack;
+            }
 
             // ── N4(2026-11-14):材料不足的一行反馈(节拍脚本 P3-02a)──────────────
             // 「按了没反应」此前是**静默失败**。判据用 `PlaceAttemptCount` 的**增量**:

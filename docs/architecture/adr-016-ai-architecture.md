@@ -204,6 +204,23 @@ NavMesh 烘焙成本)| Feature | MEDIUM | 13 / 27」。它把三件不同层次�
 - **敌人伤情事件的流向**:敌人是**世界实体**,其伤情 / 昏迷状态变化**落世界流**(第三条流),
   **不污染病史流**(病史流是病人真源)。**逐 `Kind` 形状归 25 的 GDD** ——
   本 ADR 只定「住哪条流」这一定性,不越界定 `Kind` 名字与载荷。
+- **🔁 2026-11-14 落地注(首个敌人写者轮 · 序章最小战斗闭环)**:§二 的三件此前只有定性,
+  本轮首次有执行体,三处**实现期口径**在此登记(不改任何裁决):
+  ① **`EncounterStarted` 的 `Patient` 头取「本次全部成员 id 的最大值」** ——
+     `GetNextPatientId` 的高水位只扫 `SimEvent.Patient`(ADR-006 Amendment B),
+     一支遭遇带 N 个 actor 而事件头只有一位;取第一个 actor 会让后续成员号在读档后**被重发**。
+     取 max 是高水位不变的充要条件,代价是「事件头的 Patient 不指向某一个具体 actor」——
+     成员集合的唯一真源仍是载荷 `ActorIds`。
+  ② **两支 `Kind` 的 `Seq` 一律 `-1`(未发号哨兵 O-1)**:`EncounterStarted` / `EncounterEnded` /
+     `EnemyInjuryOnset` 三条写者与全库其它写者同口径。⚠️ 首版误传 `0L`,实测**同目标同 tick
+     的第二条 `EnemyInjuryOnset` 被 `EventStream` 的 (Kind, Patient, Tick, Seq) 去重键静默吞掉**
+     —— 由 `enemy_encounter_test.test_injuryWriter_doseSeqCountsPerTargetPerTick` 抓出。
+  ③ **P0 的敌人是「被动靶子」**:27 的六态机 / 感知 / 寻路 tick 循环**未接** ⇒ 敌人不移动、
+     不还手,只作为出手目标存在。⇒ 「别人可以杀你」仍无机制路径(25 §九 第 7 项)。
+     这不改变 §一 的分层:**决策**仍未进流,只是**今日没有决策**。
+  ④ **倒地判据复用 `StateMachine.COMA_THRESHOLD`**,不引入敌人专属 HP:**9 击**(CP=0 ⇒
+     每击 `MAG_FLOOR = 1/20`)后写一条 `InjuryStateChanged(Coma)`;**永不写 `Deceased`**
+     (`skill-system.md:394-395` 的「被误杀不可能」由此有执行体)。
 
 ### 三、感知输入 = 粗粒度整数格(禁读表现态位置)
 

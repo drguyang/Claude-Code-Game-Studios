@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -27,9 +28,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly AdventureWriter _writer;
         private readonly Func<WorldPos> _playerCell;
         private readonly int _actorId;
+        private readonly IPayloadDecoder _decoder;
 
         private readonly int[] _counts;
         private readonly bool[] _accepted;
+        /// <summary>敌人 actor → 原型(读 `EncounterStarted` 增量累积;读档清空重扫)。</summary>
+        private readonly Dictionary<int, int> _actorProto = new Dictionary<int, int>();
+        /// <summary>已计过击败的 actor(同一 actor 只计一次)。</summary>
+        private readonly HashSet<int> _defeatCounted = new HashSet<int>();
         private int _scanned;
         private long _lastTick = long.MinValue;
 
@@ -38,14 +44,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="writer">唯一写者。</param>
         /// <param name="playerCell">玩家**经流确立**的当前格。</param>
         /// <param name="actorId">本机玩家 id。</param>
+        /// <param name="decoder">载荷解码器(击败型判据读 `EncounterStarted` / `InjuryStateChanged`)。</param>
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
         public AdventureDriver(Func<IReadOnlyList<SimEvent>> events, IReadOnlyList<AdventureStep> steps,
-                               AdventureWriter writer, Func<WorldPos> playerCell, int actorId)
+                               AdventureWriter writer, Func<WorldPos> playerCell, int actorId,
+                               IPayloadDecoder decoder)
         {
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _steps = steps ?? throw new ArgumentNullException(nameof(steps));
             _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _playerCell = playerCell ?? throw new ArgumentNullException(nameof(playerCell));
+            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             if (actorId < 0) throw new ArgumentOutOfRangeException(nameof(actorId), actorId, "玩家 id 不得为负");
             _actorId = actorId;
             _counts = new int[steps.Count];
@@ -69,6 +78,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 Array.Clear(_counts, 0, _counts.Length);
                 Array.Clear(_accepted, 0, _accepted.Length);
+                _actorProto.Clear();
+                _defeatCounted.Clear();
                 _scanned = 0;
             }
             _lastTick = tick;
@@ -80,15 +91,45 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 Array.Clear(_counts, 0, _counts.Length);
                 Array.Clear(_accepted, 0, _accepted.Length);
+                _actorProto.Clear();
+                _defeatCounted.Clear();
                 _scanned = 0;
             }
 
             for (int i = _scanned; i < events.Count; i++)
             {
                 SimEvent e = events[i];
-                if (e.Kind != EventKind.ResourceHarvested) continue;
-                // 只认本机玩家的采集 —— 事件头无 actor,但 P0 单机(ADR-016 / 20 的归属面)。
-                AttributeOneHarvest(_playerCell(), tick);
+                switch (e.Kind)
+                {
+                    case EventKind.ResourceHarvested:
+                        // 只认本机玩家的采集 —— 事件头无 actor,但 P0 单机(ADR-016 / 20 的归属面)。
+                        AttributeOneHarvest(_playerCell(), tick);
+                        break;
+
+                    case EventKind.EncounterStarted:
+                    {
+                        // 敌人 id → 原型(击败型判据按**类**计数,不按遭遇)。
+                        EncounterStartedPayload p =
+                            _decoder.Decode<EncounterStartedPayload>(e.Kind, e.Payload);
+                        if (p.ActorIds != null)
+                            for (int a = 0; a < p.ActorIds.Length; a++)
+                                _actorProto[p.ActorIds[a]] = p.ProtoId;
+                        break;
+                    }
+
+                    case EventKind.InjuryStateChanged:
+                    {
+                        // 倒地 = Coma / Deceased;只对**遭遇成员**计数(病人不走本 Kind)。
+                        InjuryStateChangedPayload p =
+                            _decoder.Decode<InjuryStateChangedPayload>(e.Kind, e.Payload);
+                        if (p.NewState != (int)InjuryState.Coma
+                            && p.NewState != (int)InjuryState.Deceased) break;
+                        if (!_actorProto.TryGetValue(p.ActorId, out int proto)) break;
+                        if (!_defeatCounted.Add(p.ActorId)) break;
+                        AttributeOneDefeat(proto, tick, _playerCell());
+                        break;
+                    }
+                }
             }
             _scanned = events.Count;
         }
@@ -111,6 +152,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                 }
                 if (_counts[s] >= step.Required)
                     _writer.Complete(in step, _actorId, cell, tick);   // 去重在写者内
+            }
+        }
+
+        /// <summary>把一次击败归到所有匹配该原型的击败型奇遇(组件落在玩家脚下)。</summary>
+        private void AttributeOneDefeat(int protoId, long tick, WorldPos cell)
+        {
+            for (int s = 0; s < _steps.Count; s++)
+            {
+                AdventureStep step = _steps[s];
+                if (step.Condition != AdventureCondition.Defeat) continue;
+                if (step.EnemyKind != protoId) continue;
+                if (_counts[s] >= step.Required) continue;
+
+                _counts[s]++;
+                if (!_accepted[s])
+                    _accepted[s] = _writer.Accept(step.Id, _actorId, tick) || _accepted[s];
+                if (_counts[s] >= step.Required)
+                    _writer.Complete(in step, _actorId, cell, tick);
             }
         }
     }

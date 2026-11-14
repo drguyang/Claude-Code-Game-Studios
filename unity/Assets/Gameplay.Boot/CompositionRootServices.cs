@@ -66,6 +66,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <c>null</c> = 未装配。</para></summary>
         public DaYiJingCheng.Gameplay.Boot.AdventureWriter AdventureWriter { get; internal set; }
 
+        /// <summary>遭遇开启写者(52;2026-11-14)。`EncounterStarted` 的唯一 Append 点。</summary>
+        public DaYiJingCheng.Sim.EncounterStartWriter EncounterStarts { get; internal set; }
+
+        /// <summary>遭遇结束写者(27;2026-11-14)。`EncounterEnded` 的唯一 Append 点。</summary>
+        public DaYiJingCheng.Sim.EncounterEndWriter EncounterEnds { get; internal set; }
+
+        /// <summary>敌人伤情发作写者(25;2026-11-14)。`EnemyInjuryOnset` 的唯一 Append 点。</summary>
+        public DaYiJingCheng.Sim.EnemyInjuryWriter EnemyInjuries { get; internal set; }
+
         /// <summary>奇遇判定驱动(2026-11-14 · ADR-045 §D4)。
         /// <para>⚠️ <b>构造点不在 <c>Assemble</c></b> —— 它要玩家 id,而 id 是 `BootRoot`
         /// 第 4 步才铸造的(与 <see cref="TechniqueUnlockDriver"/> 同格)。</para></summary>

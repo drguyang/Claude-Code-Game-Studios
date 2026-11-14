@@ -93,8 +93,12 @@
 3. **掉落是普通材料,组件只给一次** —— 每次采集 / 击败照常产出它自己的普通材料;
    **达成条件的那一次,组件与普通材料同时到手**(用户原话:「获得任务材料时当然同时获得普通材料」)。
    组件**不可交易 / 不可合成 / 不可重复获得**,帐篷是它们唯一的去处。
-4. **PA-05 走 52 随机事件** —— 野狗不是固定刷怪点,是用户裁定里「大于 1 的那一条做成随机事件」。
-   ⚠️ 依赖 52 → 27 的遭遇实体接通(`TD-randomevents-03`)。
+4. **PA-05 的实体来源:P0 走脚本编排,随机链留给 P1** —— 设计意图仍是「野狗不是固定刷怪点,
+   > 1 的那一条做成随机事件」,但 52 的候选池今日只落 10 条、且**没有 `medical` → 病种映射**;
+   P0 由 `PrologueEncounterDriver.PrologueTwo` 在**七里路矩形内**开一支 2 只野狗的遭遇。
+   🔁 **2026-11-14 订正**:原文写「走 52 随机事件 ⇒ 依赖 `TD-randomevents-03`」——
+   该依赖仍成立(那是随机链的解除条件),但**不再是 PA-05 的前置**:脚本遭遇与随机遭遇
+   共用同一个写者(`EncounterStartWriter`)与同一支 `EncounterStarted`,只是「谁决定开」不同。
 
 **PA-01 是教学钩子**(用户同一裁定):序章含教学内容 ⇒ 玩家**第一次接触采集点**时,
 引导把他推到 PA-01 的那一丛上 —— 「按 E 采集」这一课不是弹窗教的,是**门板把他逼到草丛前**。
@@ -102,8 +106,19 @@
 
 **阻断面(如实登记,禁借绿)**:
 
-- **PA-04 / PA-05 需要可击败的实体**,而全仓 `EnemySpawn` 生产零命中 —— 52 的 `encounter`
-  条目只出声、不下怪。用户 2026-11-14 裁定:**先接 27 的遭遇实体**,接通前这两条**只有判据、没有目标**。
+- ~~**PA-04 / PA-05 需要可击败的实体**,而全仓 `EnemySpawn` 生产零命中~~ ——
+  ✅ **2026-11-14 已接**(用户裁定「接 27 的遭遇实体 · 最小战斗闭环」):
+  `PrologueEncounterDriver.PrologueTwo` 在**废墟 B 矩形**(20,4)–(27,12)开 1 兵痞、
+  在**七里路矩形**(32,14)–(95,25)开 2 野狗;敌人 id 经 `IIdAuthority` 与病人共空间;
+  出手 = 鼠标左键 / 手柄 A → `CombatDriver` → 一次 `EnemyInjuryOnset`(INJ_BLUNT)
+  → 累计 PS 越 `COMA_THRESHOLD` 写 `InjuryStateChanged(Coma)` → 成员全倒地写
+  `EncounterEnded(AllDowned)`。
+  ⚠️ **本轮敌人不还手**:27 的 Engage / 感知 / 寻路 tick 循环未接 ⇒ 它们是**被动靶子**;
+  「别人可以杀你」仍无机制路径(25 §九 第 7 项)。
+  ⚠️ **出手力度是地板值**:CP 今日 = 0(30 的格斗等级未投影到战斗侧)⇒ 每击 `MAG_FLOOR = 1/20`,
+  **9 击**倒地(算术见 `enemy_encounter_test.test_combat_downsAfterNineHits_andEndsEncounter`)。
+  ⚠️ 真关卡里**尚未走查**(谁站哪、按 E 后屏在哪都未实测)⇒ 本句证的是**机制可达**,
+  不是「人按得动」;真启动序走查仍记 `NOT-RUN`。
 - ~~**PA-01 / PA-02 / PA-03 需要判据区域内有采集点**~~ —— ✅ **2026-11-14 已补**(用户裁定):
   关卡资源点 **3 → 18 行**,废墟 A / 废墟 B / 七里路 各得 **6 / 4 / 5** 个止血草点
   (`resource_id 4..18`,`ecozone_id = 0`;营地原有 3 行不动)。条数 = 阈值不是随意:
@@ -135,8 +150,11 @@
   七里路 5 个止血草点(`PrologueLevel.BuildResources()`,`ecozone_id = 0`),
   重导出 `world_resources.json` + 重烘 `world_resources.cooked.bytes`(456 B · `ConfigVersion 0x75CD36FA`)。
   ⇒ PA-01 / PA-02 / PA-03 **在真关卡里可完成**。
-- ⬜ **仍未落(N5 的战斗面)**:PA-04 / PA-05 无目标(`EnemySpawn` 零生产者)。
-  这**不是**机制缺口,是 27 的遭遇实体未接通(见 §1.1 `N5` 行)。
+- ✅ **2026-11-14 已落(N5 的战斗面 · 机制)**:27 的遭遇实体 —— 见上方「阻断面」第二条。
+  **两支脚本遭遇 + 一套最小战斗闭环**(出手 / 命中 / 伤情 / 倒地 / 收场 / 击败计数)。
+  夹具 `Tests/EditMode/Boot/enemy_encounter_test.cs` **19 条**。
+  ⚠️ 仍**未落**:环境实体(敌人**不**在地图上站着、无身体胶囊)与
+  「别人可以杀你」的敌方出手 —— 前者是表现层、后者要 27 的 tick 循环。
 
 ### 3.2 为什么本轮不立任务系统
 
@@ -177,7 +195,7 @@
 | **N2** | ✅ **机制已落**(2026-11-14)· 动作侧只接了一个 | `PrologueBeat.Effect`(`Action`)+ 驱动在**标记触发之前、字幕之前**执行;抛异常 ⇒ 本拍不标记、下 tick 重试。第一个真实动作 = **P1-07 十七个难民**(`Gameplay.Presentation/World/PrologueCrowd.cs`,纯视觉、无碰撞、不建 `PatientState`)。夹具 `Tests/EditMode/Boot/prologue_beats_table_test.cs` **4 条**。证伪轮两发:摘 `Effect?.Invoke()` ⇒ 4 红;改成「先标记再执行」⇒ 1 红 |
 | **N3** | ⬜ 未开始 | — |
 | **N4** | ✅ **已落**(2026-11-14) | 两截:① `BuildController.LastMissingStock` —— 缺口数与判定**同源**(`BuildMaterialPlanner` 的 `RequiredQty − AvailableQty`,那张 plan 早就写着「缺口消息要用它」,而生产调用点此前是 `out _` 丢掉);② `BuildInputDriver.LastMissingStock` + `PlaceAttemptCount`(按下沿判据)⇒ `BuildRoot` 转成一行提示(`BuildShortfallHint.Format`),停留 40 tick(2 s)。夹具 `build_shortfall_hint_test` **3 条**;证伪轮把「缺口 ≤ 0 不播」摘掉 ⇒ 2 红 |
-| **N5** | 🟡 **机制已落**(2026-11-14 · `ADR-045`)· **采集三型内容已通** · 战斗两型未通 | **机制侧**:`StreamId.Quest = 3` + `AdventureAccepted` / `AdventureCompleted` 两 `Kind` + `AdventureWriter`(唯一 Append 点,去重)+ `AdventureDriver`(增量游标,读 `ResourceHarvested` 按玩家格定区域)+ 完成时在玩家格发 `DropSpawned`;步骤表 = `Gameplay.Boot/AdventureSteps.cs` 的 `PrologueFive`(D9′:住代码不住 JSON)。夹具 `Tests/EditMode/Boot/adventure_chain_test.cs` **8 条**。<br>**内容侧**:✅ **2026-11-14 补点**(用户裁定「补采集点,废墟 A/B 和七里路各放几个止血草点」)—— 关卡资源点 **3 → 18 行**,新增 **A 6 / B 4 / 路 5** 个止血草点(`resource_id 4..18`,`ecozone_id = 0`),条数**刻意等于各自阈值**(一株节点一个再生窗口只够采一次:`base_capacity 5` − `qty_per_node 3` = 2 < 3)。⇒ **PA-01 / PA-02 / PA-03 在真关卡里可完成**。<br>**❗仍不可完成**:**PA-04 / PA-05** —— 全仓 `EnemySpawn` 生产零命中(与下方 §3.1「阻断面」同因),二型只有判据、没有目标 |
+| **N5** | 🟡 **机制已落**(2026-11-14 · `ADR-045`)· **采集三型内容已通** · **战斗两型已接脚本遭遇**(2026-11-14 同日) | **机制侧**:`StreamId.Quest = 3` + `AdventureAccepted` / `AdventureCompleted` 两 `Kind` + `AdventureWriter`(唯一 Append 点,去重)+ `AdventureDriver`(增量游标,读 `ResourceHarvested` 按玩家格定区域)+ 完成时在玩家格发 `DropSpawned`;步骤表 = `Gameplay.Boot/AdventureSteps.cs` 的 `PrologueFive`(D9′:住代码不住 JSON)。夹具 `Tests/EditMode/Boot/adventure_chain_test.cs` **8 条**。<br>**内容侧**:✅ **2026-11-14 补点**(用户裁定「补采集点,废墟 A/B 和七里路各放几个止血草点」)—— 关卡资源点 **3 → 18 行**,新增 **A 6 / B 4 / 路 5** 个止血草点(`resource_id 4..18`,`ecozone_id = 0`),条数**刻意等于各自阈值**(一株节点一个再生窗口只够采一次:`base_capacity 5` − `qty_per_node 3` = 2 < 3)。⇒ **PA-01 / PA-02 / PA-03 在真关卡里可完成**。<br>**✅ 战斗两面(2026-11-14 同日)**:`PrologueEncounterDriver`(废墟 B 1 兵痞 / 七里路 2 野狗)+ `CombatDriver`(出手 → `EnemyInjuryOnset` → 倒地 → `EncounterEnded(AllDowned)`),`AdventureDriver` 按 `ProtoId` 计击败 ⇒ **PA-04 / PA-05 机制可完成**;<br>**❗仍未做**:敌人在关卡里**不可见**(无身体 / 无站位表现),且**不还手**;真启动序走查 `NOT-RUN` |
 
 > ⚠️ **N1 落地后的两处口径**(写在这里防误读):
 > ① 驱动器暴露**两个**查询,不可互相替代:`IsInside`(此刻)给「站在这里按 E」的节拍用,
