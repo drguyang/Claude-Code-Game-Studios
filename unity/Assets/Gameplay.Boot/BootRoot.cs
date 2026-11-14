@@ -157,6 +157,13 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>序章的**事件事实**计数器(第二段节拍的判据读它;增量扫描,不每 tick 全流)。</summary>
         private PrologueFactCounter _prologueFacts;
+
+        /// <summary>过场演出播放器(N3 · 2026-11-14)。**不持相机** —— 承节拍脚本 §2。</summary>
+        /// <remarks>⚠️ 冻结不归本类:`ModalInputFreeze` 的谓词把 `IsPlaying` 并进去即可(见构造处)。</remarks>
+        private CutscenePlayer _cutscene;
+
+        /// <summary>过场演出播放器的只读访问面(节拍动作 / 夹具用)。</summary>
+        public CutscenePlayer Cutscene => _cutscene;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -820,6 +827,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // (2000 条时 1135 ms/tick)。空计数即「还没发生」。
             _prologueFacts = new PrologueFactCounter();
 
+            // ── 过场演出(N3 · 2026-11-14)────────────────────────────────────
+            // 只建播放器:第一段/第二段的拍表今天**还没有用它的节拍**(P1-01 的开场运镜与
+            // P3-02b 的搭建演出都还没接),先让「演出期冻结输入」这条回路成立。
+            // ⚠️ 相机**不在此处** —— 承节拍脚本 §2:过场用独立机位,不得借用 `CameraMode` 五档。
+            _cutscene = new CutscenePlayer();
+
             // 病种 id 取自 `disease_registry.json` 的 key(`DIS_MEASLES` / `DIS_TYPHOID`)。
             // ⚠️ 局部常量须**先声明后用**(与局部函数不同)—— 这是编译器的规则,不是风格。
             const int ScriptedDiseaseChild = 11;
@@ -1046,7 +1059,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             _pressRouter?.BindMotorSuppression(
                 _player.MotorLease,
                 () => _uiDriver != null && _uiDriver.BlocksPlay);
-            _inputFreeze = new ModalInputFreeze(() => modalState.IsOpen);
+            _inputFreeze = new ModalInputFreeze(() =>
+                modalState.IsOpen || (_cutscene != null && _cutscene.IsPlaying));
 
             // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──
             // Attach = 挂 onAfterUpdate + Emergency 动作解析 fail-loud(FindAction 落空 ⇒
@@ -3246,6 +3260,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             if (_tickDriver.CurrentTick > tickBefore && _prologueBeats != null)
                 _prologueBeats.OnTickEdge(_tickDriver.CurrentTick);
+
+            // 过场演出(N3):同样只在真推进 tick 时走 —— 演出时长以 tick 计。
+            if (_tickDriver.CurrentTick > tickBefore && _cutscene != null)
+                _cutscene.OnTickEdge(_tickDriver.CurrentTick);
 
             // 🔁 2026-11-02 · 开册入口轮(结清 `TD-casebook-01`):**此处不再自动开案**。
             //   原为 `CaseOpenedDriver.OnTickEdge(tick)` —— 每 tick 对在场病人自动立案,
