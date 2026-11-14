@@ -860,9 +860,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 RegionTrigger[] a = PrologueAnchors.BuildFirstActRegions();
                 RegionTrigger[] b = SecondActAnchors.BuildRegions();
-                var all = new RegionTrigger[a.Length + b.Length];
+                RegionTrigger[] c = ThirdActAnchors.BuildRegions();
+                var all = new RegionTrigger[a.Length + b.Length + c.Length];
                 Array.Copy(a, 0, all, 0, a.Length);
                 Array.Copy(b, 0, all, a.Length, b.Length);
+                Array.Copy(c, 0, all, a.Length + b.Length, c.Length);
                 return all;
             }
 
@@ -883,6 +885,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     () => _scriptedPatients.Spawn(ScriptedDiseasePorter, new WorldPos(25, 0, 9))));
 
                 first.AddRange(second);
+
+                // 第三段(落脚):帐篷建成 ⇒ 病人出现 ⇒ 立案(序章结束)。
+                first.AddRange(PrologueBeats.BuildThirdAct(
+                    regions, _prologueFacts.Of, _prologueFacts.PlacedCount));
                 return first;
             }
 
@@ -3261,7 +3267,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _prologueFacts != null
                 && _services != null && _services.Stream != null)
             {
-                _prologueFacts.Sync(_services.Stream.Events);
+                // 2026-11-14(第三段):带上解码器 —— 「帐篷建成没」要按 `StructurePlaced` 的模块 id 分桶;
+                // 只对 `StructurePlaced` 解载荷,不是全流逐条解(ADR-036 的 1135 ms/tick 教训)。
+                _prologueFacts.Sync(_services.Stream.Events, _services.Decoder);
             }
 
             if (_tickDriver.CurrentTick > tickBefore && _prologueRegions != null)

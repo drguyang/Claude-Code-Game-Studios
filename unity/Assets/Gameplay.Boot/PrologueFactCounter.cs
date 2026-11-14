@@ -24,6 +24,8 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class PrologueFactCounter
     {
         private readonly Dictionary<EventKind, int> _counts = new Dictionary<EventKind, int>();
+        /// <summary>`StructurePlaced` 按**模块 id** 分桶(第三段「帐篷建成了没」)。</summary>
+        private readonly Dictionary<int, int> _structuresByModule = new Dictionary<int, int>();
         private int _scanned;
 
         /// <summary>已扫描到的事件条数(诊断 / 夹具用)。</summary>
@@ -32,7 +34,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>把这批事件里**新增**的部分计入。</summary>
         /// <param name="events">当前流的全量事件(按写入序)。</param>
         /// <exception cref="ArgumentNullException"><paramref name="events"/> 为 null。</exception>
-        public void Sync(IReadOnlyList<SimEvent> events)
+        public void Sync(IReadOnlyList<SimEvent> events) => Sync(events, null);
+
+        /// <summary>同 <see cref="Sync(IReadOnlyList{SimEvent})"/>,并额外按模块统计 `StructurePlaced`。</summary>
+        /// <param name="events">当前流的全量事件(按写入序)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031);`null` ⇒ 不统计模块(见 <see cref="PlacedCount"/>)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="events"/> 为 null。</exception>
+        public void Sync(IReadOnlyList<SimEvent> events, IPayloadDecoder decoder)
         {
             if (events == null) throw new ArgumentNullException(nameof(events));
 
@@ -40,20 +48,38 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (events.Count < _scanned)
             {
                 _counts.Clear();
+                _structuresByModule.Clear();
                 _scanned = 0;
             }
 
             for (int i = _scanned; i < events.Count; i++)
             {
-                EventKind kind = events[i].Kind;
-                _counts.TryGetValue(kind, out int n);
-                _counts[kind] = n + 1;
+                SimEvent e = events[i];
+                _counts.TryGetValue(e.Kind, out int n);
+                _counts[e.Kind] = n + 1;
+
+                // 只对「建造」解一次载荷 —— 全流逐条解码是 ADR-036 实测过的坑。
+                if (decoder != null && e.Kind == EventKind.StructurePlaced)
+                {
+                    StructurePlacedPayload p = decoder.Decode<StructurePlacedPayload>(
+                        EventKind.StructurePlaced, e.Payload);
+                    _structuresByModule.TryGetValue(p.ModuleId, out int m);
+                    _structuresByModule[p.ModuleId] = m + 1;
+                }
             }
             _scanned = events.Count;
         }
 
         /// <summary>某类事件已出现几次(未出现 = 0)。</summary>
         public int Of(EventKind kind) => _counts.TryGetValue(kind, out int n) ? n : 0;
+
+        /// <summary>
+        /// 某个模块被放置过几次(2026-11-14 · 第三段「帐篷建成」的判据)。
+        /// <para>⚠️ 需要 <see cref="Sync(IReadOnlyList{SimEvent}, IPayloadDecoder)"/> 那个**带解码器**的重载
+        /// 才会填;只调无解码器的重载 ⇒ 恒 0(如实返回「不知道」,不猜)。</para>
+        /// </summary>
+        public int PlacedCount(int moduleId)
+            => _structuresByModule.TryGetValue(moduleId, out int n) ? n : 0;
 
         /// <summary>诊断串:`Kind=次数` 若干。</summary>
         public string Summary

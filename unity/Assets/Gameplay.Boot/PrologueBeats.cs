@@ -202,6 +202,70 @@ namespace DaYiJingCheng.Gameplay.Boot
                     requires: "P2-08"),
             };
         }
+        /// <summary>
+        /// 组装第三段(落脚 · P3-01 … P3-05)的节拍。
+        /// </summary>
+        /// <param name="regions">区域触发驱动(三段同放一张表)。</param>
+        /// <param name="factOf">事件事实计数。</param>
+        /// <param name="placedOf">按模块统计的放置数(帐篷建成判据)。</param>
+        /// <remarks>
+        /// <para><b>2026-11-14 首建。</b></para>
+        /// <para>⚠️ <b>P3-02a 刻意不在表里</b>:它是**按 Enter 的即时反馈**(「还缺 N 件。」),
+        /// 不是一次性节拍 —— 同一屏上按两次就该提示两次,而节拍驱动的闩锁会让第二次静默。
+        /// 它已由 <see cref="BuildShortfallHint"/> 承载(N4)。</para>
+        /// <para>⚠️ <b>P3-03(听诊第一课)不在表里</b>:陈婆婆是「咳」的在场者,而她要不要被
+        /// 建成**病人**是内容裁定(甲′ 只裁了孩子与挑夫)。没有那个裁定,写出来的条件只能靠猜。</para>
+        /// <para>⚠️ P3-05 的判据写 `CaseOpened`(**立案**),而脚本原话是「被看过一次」——
+        /// 本仓的立案唯一触发就是「玩家对病人的交互」(`BootRoot` 4.5 段),故二者同事件。
+        /// 若将来立案改成别处触发,这里要跟着改。</para>
+        /// </remarks>
+        public static IReadOnlyList<PrologueBeat> BuildThirdAct(
+            RegionTriggerDriver regions,
+            Func<EventKind, int> factOf,
+            Func<int, int> placedOf)
+        {
+            if (regions == null) throw new ArgumentNullException(nameof(regions));
+            if (factOf == null) throw new ArgumentNullException(nameof(factOf));
+            if (placedOf == null) throw new ArgumentNullException(nameof(placedOf));
+
+            return new[]
+            {
+                // P3-01 到营地:走进田野营地范围。旁白逐字取自脚本。
+                new PrologueBeat("P3-01", () => regions.IsInside(ThirdActAnchors.CampBeatId),
+                    "一片被弃的田地。几棵树。",
+                    requires: "P2-09"),
+
+                // P3-02b 搭建:帐篷(模块 10)真的落了流。
+                new PrologueBeat("P3-02b",
+                    () => placedOf(ThirdActAnchors.TentModuleId) >= 1,
+                    "四根柱子,一块布。它立起来的时候,你才知道自己要在这儿待多久。",
+                    requires: "P3-01"),
+
+                // P3-04 人越来越多:第一个病人出现(阶段门在帐篷建成后解除)。
+                new PrologueBeat("P3-04", () => factOf(EventKind.DiseaseOnset) >= 1, null,
+                    requires: "P3-02b"),
+
+                // P3-05 序章结束:第一个病人被看过一次(= 立案)。
+                new PrologueBeat("P3-05", () => factOf(EventKind.CaseOpened) >= 1,
+                    "序章 · 神父走了", requires: "P3-04"),
+            };
+        }
+    }
+
+    /// <summary>第三段的区域与常量(2026-11-14)。</summary>
+    public static class ThirdActAnchors
+    {
+        /// <summary>营地区域触发器的 id(x ≥ 96,全 z 带;与 P2-09 同矩形但独立 id)。</summary>
+        public const string CampBeatId = "P3-01";
+
+        /// <summary>帐篷模块 id(`build_modules.json` 的 `Tent` = 10,cost 5)。</summary>
+        public const int TentModuleId = 10;
+
+        /// <summary>第三段的区域表。</summary>
+        public static RegionTrigger[] BuildRegions() => new[]
+        {
+            new RegionTrigger(CampBeatId, SecondActAnchors.CampXMin, 127, 0, PrologueBeats.ChurchZ1),
+        };
     }
 
     /// <summary>
