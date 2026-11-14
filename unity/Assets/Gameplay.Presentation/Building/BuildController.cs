@@ -77,6 +77,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         /// </summary>
         public int LastMissingStock { get; private set; }
 
+        /// <summary>
+        /// 最近一次 <see cref="TryPlace"/> 因**材料不足**失败时**逐件**的缺口
+        /// (`ItemKey` + 还差几份);其它情况为空数组。
+        /// <para>🔁 **2026-11-14(P3-02a 逐件点名)**:总数说不出「还缺哪几件」,
+        /// 而节拍脚本要的是「还缺:门板、钉子。」。取数自**同一次**选料裁决的
+        /// <see cref="BuildMaterialPlan.MissingByItem"/> —— 不是第二遍选料。</para>
+        /// <para>⚠️ 只有多材料路径会逐件填;单材料模块该数组可能为空 ⇒ 文案须回退到
+        /// <see cref="LastMissingStock"/> 的总数口径(见 `BuildShortfallHint`)。</para>
+        /// </summary>
+        public IReadOnlyList<ModuleCostLine> LastMissingByItem { get; private set; }
+            = Array.Empty<ModuleCostLine>();
+
         /// <param name="placeable">放置判定器(五条件,含库存门)。</param>
         /// <param name="demolish">拆除判定器。</param>
         /// <param name="modifiable">改朝向判定器。</param>
@@ -138,6 +150,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         public PlaceableResult TryPlace(int moduleId, WorldPos anchor, int orientation, int variant = 0)
         {
             LastMissingStock = 0;   // 每次尝试重置 —— 陈旧缺口会被读成「这次也缺」
+            LastMissingByItem = Array.Empty<ModuleCostLine>();
 
             // ① 五条件(含库存门 —— 其生产实装 `BuildStockQuery` 也走选料器,同源)
             PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);
@@ -147,7 +160,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
                 //    判定器只回答「够不够」,数在这里取 —— 来源仍是同一个选料器,
                 //    不是第二份判据(选料器自己就是 `HasStock` 的实现)。
                 if (check == PlaceableResult.InsufficientStock)
-                    LastMissingStock = MissingStockOf(moduleId);
+                    CaptureShortfall(moduleId);
                 return check;
             }
 
@@ -158,7 +171,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
                 return PlaceableResult.ModuleNotFound;
             if (planResult != BuildMaterialPlanResult.Success)
             {
-                LastMissingStock = MissingStockOf(moduleId);
+                CaptureShortfall(moduleId);
                 return PlaceableResult.InsufficientStock;
             }
 
@@ -168,18 +181,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         }
 
         /// <summary>
-        /// 缺多少份 = `RequiredQty − AvailableQty`(不足时为 &gt; 0;取数自**同一个**选料器)。
+        /// 记下缺口(总数 + 逐件明细);取数自**同一个**选料器,不另算第二遍。
         /// </summary>
         /// <remarks>
-        /// ⚠️ 模块不存在 / 不扣料的模块 ⇒ 0(没有缺口可报)。**不抛** —— 这里只服务
-        /// 一句提示文案,为一个已经判定为「放置失败」的动作再抛一次异常没有意义。
+        /// ⚠️ 模块不存在 / 不扣料的模块 ⇒ 两个字段保持 0 / 空(没有缺口可报)。**不抛** ——
+        /// 这里只服务一句提示文案,为一个已经判定为「放置失败」的动作再抛一次异常没有意义。
         /// </remarks>
-        private int MissingStockOf(int moduleId)
+        private void CaptureShortfall(int moduleId)
         {
             BuildMaterialPlanResult r = BuildMaterialPlanner.PlanForModule(
                 moduleId, _owner.Owner, _projection(), _modules, out BuildMaterialPlan plan);
             // 模块不在目录 ⇒ 没有缺口可报(这是「无从算」,不是「差 0 件」)
-            if (r == BuildMaterialPlanResult.ModuleNotFound) return 0;
+            if (r == BuildMaterialPlanResult.ModuleNotFound) return;
 
             // 🔁 **2026-11-14 修一处此前未被夹具覆盖的缺陷**:原写法是
             //    `if (r != Success) return 0;` —— 而「材料不够」恰恰就是 NotEnoughMaterial
@@ -190,10 +203,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
             int missing = 0;
             for (int i = 0; i < plan.MissingByItem.Length; i++)
                 missing += plan.MissingByItem[i].Qty;
-            if (missing > 0) return missing;
+            if (missing <= 0)
+            {
+                int fallback = plan.RequiredQty - plan.AvailableQty;
+                missing = fallback > 0 ? fallback : 0;
+            }
 
-            int fallback = plan.RequiredQty - plan.AvailableQty;
-            return fallback > 0 ? fallback : 0;
+            // 🔁 2026-11-14(P3-02a 逐件点名):两个字段**同一次**裁决写定 ——
+            //    总数与明细不得来自两次选料(中间库存变化会让二者互相矛盾)。
+            LastMissingStock = missing;
+            LastMissingByItem = plan.MissingByItem ?? Array.Empty<ModuleCostLine>();
         }
 
         /// <summary>

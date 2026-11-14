@@ -3616,7 +3616,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_buildDriver != null && _buildDriver.PlaceAttemptCount != _lastPlaceAttempt)
             {
                 _lastPlaceAttempt = _buildDriver.PlaceAttemptCount;
-                string hint = BuildShortfallHint.Format(_buildDriver.LastMissingStock);
+                string hint = BuildShortfallHint.Format(_buildDriver.LastMissingStock,
+                                                        _buildDriver.LastMissingByItem);
                 if (hint != null)
                 {
                     _subtitle?.Show(new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("", hint));

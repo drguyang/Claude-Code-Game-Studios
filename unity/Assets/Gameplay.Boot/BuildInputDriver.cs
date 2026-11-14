@@ -35,6 +35,7 @@
 //   ② **XR 组无读面**:P0 无 VR 建造(见 `BuildInputReader` 头注)。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Building;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
@@ -85,6 +86,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>取数自 `BuildController.LastMissingStock`(数与判定同源,本类不算第二遍)。</para>
         /// </summary>
         public int LastMissingStock { get; private set; }
+
+        /// <summary>
+        /// 最近一次放置因**材料不足**失败时**逐件**的缺口(`ItemKey` + Qty);其它情况空。
+        /// <para>🔁 **2026-11-14(P3-02a)**:与 <see cref="LastMissingStock"/> 同一次裁决 ——
+        /// 生产面 = `BuildController.LastMissingByItem`,本类只转发。</para>
+        /// </summary>
+        public IReadOnlyList<ModuleCostLine> LastMissingByItem { get; private set; }
+            = Array.Empty<ModuleCostLine>();
 
         /// <summary>放置尝试的累计次数(单调增)。**按下沿的判据** —— `LastPlaceResult` 会保持,
         /// 用它比较才能分清「这一次又按了」与「上一次还是没成」。</summary>
@@ -203,6 +212,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             LastMissingStock = LastPlaceResult == PlaceableResult.InsufficientStock
                 ? _controller.LastMissingStock
                 : 0;
+            // P3-02a 逐件点名:明细同样只在「材料不足」时有效。
+            LastMissingByItem = LastPlaceResult == PlaceableResult.InsufficientStock
+                ? _controller.LastMissingByItem
+                : Array.Empty<ModuleCostLine>();
             if (LastPlaceResult == PlaceableResult.Success)
                 NotifyCommitted();
             return LastPlaceResult;

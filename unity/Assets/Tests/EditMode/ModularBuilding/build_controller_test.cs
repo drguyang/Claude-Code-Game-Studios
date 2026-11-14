@@ -293,6 +293,35 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 "材料不足时不得先写后判 —— 高水位未动证明 `Place` 未被调用");
             Assert.That(_world.IsEffectivelyWalkable(new WorldPos(0, 0, 0)), Is.True,
                 "被拒的放置不得留下任何占用");
+
+            // 🔁 2026-11-14(P3-02a):缺口**逐件**带出(总数与明细同一次裁决)
+            Assert.That(_controller.LastMissingStock, Is.EqualTo(1),
+                "缺 1 份 — 总数口径");
+            Assert.That(_controller.LastMissingByItem, Has.Length.EqualTo(1),
+                "单材料路径也应逐件给出明细");
+            Assert.That(_controller.LastMissingByItem[0].ItemKey, Is.EqualTo(BuildItemKey));
+            Assert.That(_controller.LastMissingByItem[0].Qty, Is.EqualTo(1));
+        }
+
+        /// <summary>🔁 2026-11-14(P3-02a):`BuildInputDriver` 把逐件缺口原样转发;
+        /// 放置成功时两个字段都被清空(陈旧缺口会被读成「这次也缺」)。</summary>
+        [Test]
+        public void test_shortfall_driverForwardsMissingByItem_andClearsOnSuccess()
+        {
+            _projection = ProjectionFor(Owner, qty: Cost - 1);
+            var driver = DriverWith(() => false);
+            driver.SelectedModuleId = Module;
+
+            Assert.That(driver.DoPlace(), Is.EqualTo(PlaceableResult.InsufficientStock));
+            Assert.That(driver.LastMissingStock, Is.EqualTo(1));
+            Assert.That(driver.LastMissingByItem, Has.Length.EqualTo(1));
+            Assert.That(driver.LastMissingByItem[0].ItemKey, Is.EqualTo(BuildItemKey));
+
+            // 补足材料后再放 ⇒ 成功,且缺口字段清空
+            _projection = ProjectionFor(Owner, qty: Cost);
+            Assert.That(driver.DoPlace(), Is.EqualTo(PlaceableResult.Success));
+            Assert.That(driver.LastMissingStock, Is.Zero);
+            Assert.That(driver.LastMissingByItem, Is.Empty, "成功后不得残留上一次的缺口明细");
         }
 
         [Test]
