@@ -99,6 +99,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 用它比较才能分清「这一次又按了」与「上一次还是没成」。</summary>
         public int PlaceAttemptCount { get; private set; }
 
+        /// <summary>最近一次放置尝试的落点(格;无论成败都记)。
+        /// <para>🔁 **2026-11-14(P3-02b)**:搭建演出要知道「帐篷立在哪一格」;
+        /// 该格由本类在裁决前解析(`AimAt` 优先),消费方重算一遍 = 第二真源。</para></summary>
+        public WorldPos LastPlacedCell { get; private set; }
+
         /// <summary>最近一次拆除的判定结果(同上)。</summary>
         public DemolishResult LastRemoveResult { get; private set; } = DemolishResult.Success;
 
@@ -206,6 +211,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             // 锚点 = 外部瞄准格(若 E 指过槽位),否则玩家当前格。
             WorldPos cell = _aimCell ?? _cell();
+            LastPlacedCell = cell;
             LastPlaceResult = _controller.TryPlace(SelectedModuleId, cell, Orientation, 0);
             PlaceAttemptCount++;
             // N4:缺口数与判定**同源**(控制器算的是同一个选料器),这里只做转发。

@@ -32,6 +32,7 @@ using DaYiJingCheng.Gameplay.Interaction;          // ModalGate(规则七两向�
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
+using DaYiJingCheng.Gameplay.Presentation.Cutscene;    // P3-02b 搭建演出(N3 调用方,2026-11-14)
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;   // DiagnosisReadFloorEvaluator.TierIndex(L-2 切档缝日志)
 using DaYiJingCheng.Gameplay.Presentation.Input;      // DeviceSwitchTuningDataSet(第十一片取值缝)
 using DaYiJingCheng.Gameplay.Presentation.Player;
@@ -43,6 +44,7 @@ using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Gameplay.UI.Tutorial;             // TutorialMediaIntent(同上)
 using DaYiJingCheng.Sim.Codec;                        // SaveSlot(主菜单「继续最近档」读哪一档)
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
+using DaYiJingCheng.Sim.World;                        // PlaceableResult(P3-02b 触发判据)
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;                              // AudioMixer(story-018 装载缝形参)
@@ -164,6 +166,12 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>过场演出播放器的只读访问面(节拍动作 / 夹具用)。</summary>
         public CutscenePlayer Cutscene => _cutscene;
+
+        /// <summary>P3-02b 搭建演出(五件生长 + 独立机位;2026-11-14)。</summary>
+        private TentBuildCutscene _tentCutscene;
+
+        /// <summary>上一帧看到的放置尝试次数(搭建演出的**触发边沿**;与 N4 的提示判据同源不同用)。</summary>
+        private int _lastCutscenePlaceAttempt;
 
         /// <summary>材料不足提示的停留 tick(2 s @ 20 Hz;P3-02a 是「一行」,不是演出)。</summary>
         private const long HintTicks = 40;
@@ -883,6 +891,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // P3-02b 的搭建演出都还没接),先让「演出期冻结输入」这条回路成立。
             // ⚠️ 相机**不在此处** —— 承节拍脚本 §2:过场用独立机位,不得借用 `CameraMode` 五档。
             _cutscene = new CutscenePlayer();
+
+            // ── P3-02b 搭建演出(N3 的调用方 · 2026-11-14)──────────────────────
+            // 触发 = 帐篷(模块 10)放置**成功**的那一帧(输入驱动的事件边沿)。
+            // ⚠️ 不用节拍表当触发:读档重放 `StructurePlaced` 也会让「帐篷已落流」成立,
+            //    演出挂在节拍上 = 读一次档重演一次搭建(见 `TentBuildCutscene` 文件头)。
+            // ⚠️ 视觉体块**播完保留** —— 运行期放置的结构没有别的视觉载体。
+            // ⚠️ 相机是**独立机位**(自建 `Camera`,depth 100 盖住主相机),不碰 `ICameraRig`。
+            _tentCutscene = new TentBuildCutscene(
+                _cutscene,
+                new CutsceneCameraRig(),
+                Resources.Load<Material>(
+                    DaYiJingCheng.Gameplay.Presentation.Building.StructureVisualFactory
+                        .SharedPlaceholderMaterialResourcePath),
+                () => _tickDriver != null ? _tickDriver.CurrentTick : 0L);
 
             // 病种 id 取自 `disease_registry.json` 的 key(`DIS_MEASLES` / `DIS_TYPHOID`)。
             // ⚠️ 局部常量须**先声明后用**(与局部函数不同)—— 这是编译器的规则,不是风格。
@@ -2060,6 +2082,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services?.PatientVisualSpawner?.DestroyAll();
                 _services?.EnemyVisualSpawner?.DestroyAll();      // 敌人视觉 + 读数面片(「完整可见」轮)
                 _services?.StructureVisualSpawner?.DestroyAll();   // T22 批一(同一次显式清理,见 OnDestroy 注)
+                _tentCutscene?.Dispose();                          // P3-02b:机位 + 帐篷体块(否则主菜单上飘着一座帐篷)
             }
             catch (Exception e)
             {
@@ -3625,6 +3648,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                 }
             }
 
+            // ── P3-02b(2026-11-14):帐篷搭建演出 —— **成功**的那一次按下才开演 ──────
+            // 与 N4 同一触发面(`PlaceAttemptCount` 增量),判据相反:那次是「没成」,这次是「成了」。
+            // ⚠️ 模块 id 必须对得上 `TentModuleId` —— 别的结构放置不演(演出是这一拍的,
+            //    不是建造系统的通用反馈)。
+            if (_buildDriver != null && _buildDriver.PlaceAttemptCount != _lastCutscenePlaceAttempt)
+            {
+                _lastCutscenePlaceAttempt = _buildDriver.PlaceAttemptCount;
+                if (_tentCutscene != null
+                    && _buildDriver.LastPlaceResult == PlaceableResult.Success
+                    && _buildDriver.SelectedModuleId == TentBuildCutscene.TentModuleId)
+                {
+                    _tentCutscene.TryPlay(_buildDriver.LastPlacedCell);
+                }
+            }
+
+            // 搭建演出的逐帧补间(生长 + 机位)。没在演 ⇒ 纯 no-op。
+            _tentCutscene?.OnFrame(UnityEngine.Time.deltaTime);
+
             // 听诊精度档位(B 轮 2026-10-20):**按帧**推 ramp(档变才 SetTargets;未接 table ⇒ null)。
             // ⚠️ 不挂 tick 边沿 —— ramp 是逐帧平滑(GDD F-44.1 注 ≥ 50 ms),tick 边沿 20 Hz 会跳。
             _services?.AudioTierDriver?.Tick(UnityEngine.Time.deltaTime);
@@ -3721,6 +3762,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 🔁 2026-11-10 T22 批一:结构体块同理 —— 根节点同样自持(`StructureVisuals`),
             //    不卸载就会在下次进入世界时**叠出第二套**(画面上只是变亮一点,是静默的)。
             _services?.StructureVisualSpawner?.DestroyAll();
+
+            // 搭建演出(P3-02b,2026-11-14):独立机位是自建 `Camera` 物体,视觉根节点自持 ——
+            // 不销毁就会跨世界残留(相机不渲染但层级里多一台,视觉体块叠出第二座帐篷)。
+            _tentCutscene?.Dispose();
 
             // 急救直读通道卸挂(story-009):onAfterUpdate 是全局静态回调,必须在
             // BootRoot 销毁时显式 Detach,否则域内悬挂委托引用已弃通道(下次 Play 泄漏)。
