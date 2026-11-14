@@ -18752,3 +18752,13 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   本驱动首版抛「时间倒流」⇒ 改为**读档语义**(清成员集 / 保一次性闩锁 / 重定基),与 `PrologueBeatDriver` 一致
 - 回归:EditMode **7618/7581/0/37** @ 2026-11-14T00:25:24Z · PlayMode **390/385/0/2/3** @ 00:26:36Z
 - ⚠️ 未提交(git 工作树 6 改 6 新增);按纪律等用户说「提交」
+
+## Session Extract — N2 剧情脚本事件(2026-11-14 · 进行中)
+- 机制:`PrologueBeat.Effect`(Action)+ 驱动在**标记触发之前、字幕之前**执行;抛异常 ⇒ 本拍不标记、下 tick 重试
+- 第一个真实动作:P1-07 十七个难民 —— `Gameplay.Presentation/World/PrologueCrowd.cs`
+  (17 个写死格 / 自建根 `PrologueCrowd` / 无碰撞 / 材质取不到返回 0)
+- 新增两拍:P1-06 那一夜(纯台词,黑底+推门声+时间推进归 N3)、P1-07(无台词,只有动作)
+- 夹具:`Tests/EditMode/Boot/prologue_beats_table_test.cs` 4 条(Boot 命名空间 376/376 绿)
+- 证伪轮两发:M1 摘 `Effect?.Invoke()` ⇒ 4 红;M2 改成「先标记再执行」⇒ 1 红(仅异常重试那条)
+- ⚠️ 未做并登记:听诊器入包(需 21a 新物品行 + 授予入口)/ 推进时间到夜(sim 跳变 vs 纯呈现,待裁)/
+  三人教学纸(P1-07 自身内容)

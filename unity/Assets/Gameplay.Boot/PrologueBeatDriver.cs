@@ -52,11 +52,22 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>要播的字幕;空串 = 本拍只有状态(不显示)。</summary>
         public readonly string Narration;
 
+        /// <summary>
+        /// 触发时要执行的**副作用**(N2 剧情脚本事件 · 2026-11-14);`null` = 纯台词拍。
+        /// <para>字幕之外的「动作」(人群出现 / 入包 / 推进时间)走这里 —— 它们在结构上
+        /// 不可能表达成 `EventKind`(不是玩家事件),也不可能表达成字幕。</para>
+        /// <para>⚠️ **执行时机 = 标记已触发之前,且先于字幕**:动作抛异常 ⇒ 本拍**不算触发**,
+        /// 下一 tick 会重试(大声失败,不是静默吞掉)。若反过来先标记再执行,一次异常就让
+        /// 该拍永久丢失,而画面上已经播出了「事情发生了」的字幕 —— 那是最坏的一种不一致。</para>
+        /// <para>⚠️ **只能执行一次**:驱动在 `_fired` 闩锁下调用,重复触发不会发生。</para>
+        /// </summary>
+        public readonly Action Effect;
+
         /// <summary>构造(单前置;保留给「只依赖一拍」的常见形态)。</summary>
         public PrologueBeat(string id, Func<bool> when, string narration, string requires = null,
-                            bool requiresInteract = false)
+                            bool requiresInteract = false, Action effect = null)
             : this(id, when, narration,
-                   string.IsNullOrEmpty(requires) ? null : new[] { requires }, requiresInteract)
+                   string.IsNullOrEmpty(requires) ? null : new[] { requires }, requiresInteract, effect)
         {
         }
 
@@ -66,8 +77,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="narration">字幕。</param>
         /// <param name="requires">前置节拍 id 集(全部完成才求值;`null` = 无前置)。</param>
         /// <param name="requiresInteract">是否要求本拍窗口内有一次交互按键。</param>
+        /// <param name="effect">触发时的副作用(`null` = 纯台词拍;见 <see cref="Effect"/>)。</param>
         public PrologueBeat(string id, Func<bool> when, string narration, string[] requires,
-                            bool requiresInteract = false)
+                            bool requiresInteract = false, Action effect = null)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentException("节拍 id 不得为空", nameof(id));
             Id = id;
@@ -75,6 +87,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             Narration = narration ?? string.Empty;
             Requires = requires;
             RequiresInteract = requiresInteract;
+            Effect = effect;
         }
     }
 
@@ -193,6 +206,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (!RequiresMet(beat)) continue;
                 if (beat.RequiresInteract && !interact) continue;
                 if (!beat.When()) continue;
+
+                // N2(2026-11-14):先做动作,再做字幕;动作抛 ⇒ 本拍不标记触发(见 Effect 注释)。
+                beat.Effect?.Invoke();
 
                 _fired.Add(beat.Id);
                 if (!string.IsNullOrEmpty(beat.Narration))

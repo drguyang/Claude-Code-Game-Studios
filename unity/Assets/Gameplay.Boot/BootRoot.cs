@@ -140,6 +140,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>序章区域触发驱动(N1 · 2026-11-14):玩家格 ↔ 区域表,进/出各报一次。</summary>
         /// <remarks>⚠️ **先于** `_prologueBeats` 推进:tick 内次序颠倒 = 节拍看到上一 tick 的成员集。</remarks>
         private RegionTriggerDriver _prologueRegions;
+
+        /// <summary>序章十七个难民(N2 的第一个动作 · 2026-11-14):纯视觉,**不是病人**。</summary>
+        /// <remarks>⚠️ 只在 P1-07 触发时建一次;重复装配由 `PrologueCrowd.Build` 自清残留。</remarks>
+        private DaYiJingCheng.Gameplay.Presentation.World.PrologueCrowd _prologueCrowd;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -780,8 +784,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 PrologueAnchors.BuildFirstActRegions(),
                 () => _player != null ? _player.Cell : default);
 
+            // 🔁 2026-11-14(N2 剧情脚本事件):节拍从「只说一句」扩到「再说 + 再做」——
+            //    `PrologueBeat.Effect` 在标记触发**之前**执行,故抛异常会让该拍下个 tick 重试
+            //    (大声失败),而不是「字幕播了、事情没发生」。
+            //    第一个真实动作 = P1-07 的十七个难民(纯视觉,**不是病人** ——
+            //    `chapter-plan.md` §0.1 的 2026-11-14 裁定)。
+            _prologueCrowd = new DaYiJingCheng.Gameplay.Presentation.World.PrologueCrowd();
+
             _prologueBeats = new PrologueBeatDriver(
-                PrologueBeats.BuildFirstAct(_prologueRegions),
+                PrologueBeats.BuildFirstAct(_prologueRegions, () => _prologueCrowd.Build()),
                 () => _player != null ? _player.Cell : default,
                 _subtitle);
 

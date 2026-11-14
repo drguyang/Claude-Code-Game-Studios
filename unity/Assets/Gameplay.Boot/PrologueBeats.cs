@@ -50,6 +50,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 区域触发驱动(N1,2026-11-14 引入)。三拍的「走到某处」判定从此读它,
         /// **不再**各自捕获玩家格闭包。
         /// </param>
+        /// <param name="onSeventeenArrive">
+        /// P1-07 的**动作**(N2,2026-11-14):十七个难民出现。必需 —— 传 `null` 会让
+        /// 「人群出现」这一拍退化成纯字幕,而它本来就不是一句台词。
+        /// </param>
         /// <remarks>
         /// 🔁 **2026-11-13(乙)三处改判**,依据是真包走查的实测序列
         /// (`tick=980 (12,21) P1-04` → `tick=1080 (9,19) P1-05` → `tick=1180 (8,18) P1-02`):
@@ -65,9 +69,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 收到一个可复用、可测、有边的驱动器。⚠️ 这里刻意用 `IsInside`(此刻)而**不是**
         /// `HasEntered`(进过):这三拍的完成判据是「站在这儿按 E」,走开再回来按仍然算数。
         /// </remarks>
-        public static IReadOnlyList<PrologueBeat> BuildFirstAct(RegionTriggerDriver regions)
+        public static IReadOnlyList<PrologueBeat> BuildFirstAct(RegionTriggerDriver regions,
+                                                               Action onSeventeenArrive)
         {
             if (regions == null) throw new ArgumentNullException(nameof(regions));
+            if (onSeventeenArrive == null) throw new ArgumentNullException(nameof(onSeventeenArrive));
 
             // 锚点邻格判定 —— 与 `PrologueAnchors` 的体块位置**同源**(经 `ToRegion`)。
             //   判定无副作用,每 tick 会被反复调用。
@@ -104,6 +110,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                 new PrologueBeat("P1-05", () => true,
                     "那天晚上,他把听诊器挂在你脖子上,说了半句洋文。你只听懂两个词:留下,他们。",
                     requires: new[] { "P1-02", "P1-03", "P1-04" }),
+
+                // P1-06 那一夜(N2 引入,2026-11-14):纯台词拍。
+                //   ⚠️ 脚本的呈现是「黑底 + 推门声 + 镜头固定约 20 s」,**那些归 N3**;
+                //      本拍现在只有旁白。**推进时间到夜同样未做** —— 它要么是一次 sim tick 跳变
+                //      (病人在「一夜」里该不该恶化?没人裁过),要么是纯呈现的昼夜外观,
+                //      两条都不是本拍能自决的。见 `chapter-plan.md` §四。
+                new PrologueBeat("P1-06", () => true,
+                    "那一夜。天亮的时候,孩子哭了。你没有哭。",
+                    requires: "P1-05"),
+
+                // P1-07 十七个人(N2 的第一个真实动作):**人群出现**。
+                //   ⚠️ 人群不是病人(§0.1 裁定)⇒ 纯视觉,不写三流、不建 `PatientState`。
+                //   ⚠️ 本拍**没有台词** —— 脚本只写了「人群中三个可交互(各一张教学纸)」,
+                //      而那三张纸是 P1-07 自己的内容,尚未接。人群出现本身就是这一拍的内容。
+                new PrologueBeat("P1-07", () => true, null,
+                    requires: "P1-06", effect: onSeventeenArrive),
             };
         }
     }
