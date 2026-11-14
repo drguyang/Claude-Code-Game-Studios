@@ -92,6 +92,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Fix.FromRational(1L, 4L), Fix.One, cooldownTicks);
         }
 
+        /// <summary>
+        /// 脚本强制目标(迟绑定;2026-11-14 · P2-03 石头)。
+        /// <para>返回 ≥ 0 ⇒ 本次出手**跳过手长判距**,直接打该 id(未倒地时);−1 ⇒ 正常判距。</para>
+        /// <para>⚠️ 理由:石头是**投掷**。它仍走同一条 `EnemyInjuryOnset` 通道(25),
+        /// 不新开「远程伤害」路径 —— 差别只在「谁被选中」。</para>
+        /// </summary>
+        public Func<int> ScriptedTarget { get; set; }
+
         /// <summary>最近一次出手结果(观测面;null = 还没出过手)。</summary>
         public CombatAttackResult? LastResult { get; private set; }
 
@@ -112,12 +120,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             WorldPos cell = _playerCell();
             IReadOnlyList<EnemyActor> roster = EnemyRoster.Build(_eventsOf(), _decoder);
             EnemyActor? target = null;
-            for (int i = 0; i < roster.Count; i++)
+
+            // ②′ 脚本强制目标(石头):**跳过判距**,只要求未倒地。见 `ScriptedTarget` 注。
+            Func<int> scripted = ScriptedTarget;
+            int forced = scripted != null ? scripted() : -1;
+            if (forced >= 0)
             {
-                EnemyActor e = roster[i];
-                if (e.Downed) continue;
-                if (Chebyshev(cell, e.Cell) > _range) continue;
-                if (target == null || e.ActorId < target.Value.ActorId) target = e;
+                for (int i = 0; i < roster.Count; i++)
+                    if (roster[i].ActorId == forced && !roster[i].Downed) { target = roster[i]; break; }
+            }
+            else
+            {
+                for (int i = 0; i < roster.Count; i++)
+                {
+                    EnemyActor e = roster[i];
+                    if (e.Downed) continue;
+                    if (Chebyshev(cell, e.Cell) > _range) continue;
+                    if (target == null || e.ActorId < target.Value.ActorId) target = e;
+                }
             }
             if (target == null)
             {

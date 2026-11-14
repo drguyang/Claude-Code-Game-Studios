@@ -297,9 +297,9 @@ namespace DaYiJingCheng.Tests.Boot
 
             Assert.AreEqual(1, Count(EventKind.EncounterStarted), "一支遭遇一局只开一次");
             CollectionAssert.AreEqual(new[] { 1 }, drv.StartedIds);
-            CollectionAssert.AreEqual(new[] { 100 },
+            CollectionAssert.AreEqual(new[] { 100, 101, 102 },
                 Payload<EncounterStartedPayload>(First(EventKind.EncounterStarted)).ActorIds,
-                "敌人 id 经 IIdAuthority 铸造");
+                "P2-06 是**三个**地痞;敌人 id 经 IIdAuthority 铸造");
         }
 
         [Test]

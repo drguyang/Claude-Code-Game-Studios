@@ -86,6 +86,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 脚本位姿源(迟绑定;2026-11-14 · 第二段四拍)。
+        /// <para>⚠️ **迟绑定**的理由与 `TeleportSink.BindPlayer` 同格:本类在
+        /// `CompositionRoot` 里构造,而编排要玩家(第 4 步才铸造)⇒ 只能后置注入。</para>
+        /// <para>null / 返回 false ⇒ 全部按出生格 + <see cref="EnemyStateMachine.State.Patrol"/>;
+        /// 非脚本遭遇(掷骰池)恒走这条。</para>
+        /// </summary>
+        public Func<int, ScriptedEnemyPose?> ScriptedPose { get; set; }
+
+        /// <summary>
         /// tick 边沿驱动 —— 重投影花名册,增删/更新视觉实体。
         /// </summary>
         /// <param name="tick">本边沿的逻辑 tick(不得为负)。</param>
@@ -180,6 +189,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             var pose = new EnemyPose(row.ActorId, row.ProtoId, CellToWorld(row.Cell), 0f,
                                      EnemyStateMachine.State.Patrol, row.Downed,
                                      IsSalvageable(row), 0f, ReadPosition(row), BandOf(row));
+            if (TryResolveScripted(row.ActorId, out ScriptedEnemyPose scripted))
+                pose = new EnemyPose(row.ActorId, row.ProtoId, scripted.Position, scripted.YawDegrees,
+                                     scripted.State, row.Downed, IsSalvageable(row), 0f,
+                                     ReadPosition(row), BandOf(row));
 
             GameObject visual = _factory.Create(pose);
             if (visual == null) return null;   // factory 选择不建
@@ -198,14 +211,36 @@ namespace DaYiJingCheng.Gameplay.Boot
             var pose = new EnemyPose(row.ActorId, row.ProtoId, CellToWorld(row.Cell), 0f,
                                      EnemyStateMachine.State.Patrol, row.Downed,
                                      IsSalvageable(row), alpha, ReadPosition(row), BandOf(row));
+            float scale = 1f;
+            if (TryResolveScripted(row.ActorId, out ScriptedEnemyPose scripted))
+            {
+                pose = new EnemyPose(row.ActorId, row.ProtoId, scripted.Position, scripted.YawDegrees,
+                                     scripted.State, row.Downed, IsSalvageable(row), alpha,
+                                     ReadPosition(row), BandOf(row));
+                scale = scripted.Scale;
+            }
 
             entry.Rig?.Apply(pose, (float)_secondsPerTick);
+
+            // 缩放**在** `Apply` 之后乘 —— 位姿桥每帧把 localScale 重置成淡入插值,
+            // 这里再乘脚本缩放(幼崽 0.55)才是幂等的。
+            if (entry.Visual != null && !Mathf.Approximately(scale, 1f))
+                entry.Visual.transform.localScale *= scale;
 
             entry.Bar.Visible = true;
             entry.Bar.CurrentState = BarStateOf(row, pose.Band);   // 六态映射(27 的状态语义 → 42 的渲染形态)
             entry.Bar.RenderReading(pose.VitalsFill, BandWord(pose.Band), pose.Downed);
             entry.Bar.WorldPosition = pose.Position + new Vector3(0f, BillboardHeight, 0f);
             entry.Bar.FaceCamera(_camera?.Invoke());
+        }
+
+        private bool TryResolveScripted(int actorId, out ScriptedEnemyPose pose)
+        {
+            Func<int, ScriptedEnemyPose?> source = ScriptedPose;
+            if (source == null) { pose = default; return false; }
+            ScriptedEnemyPose? result = source(actorId);
+            pose = result ?? default;
+            return result.HasValue;
         }
 
         /// <summary>读数 0–1(值经 9 的 `VitalsDto` 通道;42 不解释战力)。</summary>

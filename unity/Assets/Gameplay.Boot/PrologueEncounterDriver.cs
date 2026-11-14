@@ -57,13 +57,21 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>序章两支脚本遭遇的编排驱动。</summary>
     public sealed class PrologueEncounterDriver
     {
-        /// <summary>P0 的两支(序章):药铺废墟 1 兵痞 · 七里路 2 野狗。</summary>
+        /// <summary>P0 的三支(序章第二段):药铺废墟 **3** 兵痞 · 七里路 2 野狗 · 回程 1 狗 + 幼崽。</summary>
+        /// <remarks>
+        /// <para>⚠️ 成员格**逐人一格**(`EncounterSpawnSpec.Cells`):药铺是「三个地痞」(P2-06),
+        /// 回程是「狗带幼崽」(P2-09)。⚠️ 但 `EncounterStartedPayload` 只带**一个** `SpawnCell`
+        /// (契约面),流里读不到逐人格 —— 逐人格只活在 `PrologueChoreography` 的队列里
+        /// (它是**呈现**的编排,不是流的事实)。</para>
+        /// </remarks>
         public static IReadOnlyList<EncounterSpawnSpec> PrologueTwo => new[]
         {
             new EncounterSpawnSpec(1, EnemyPrototypes.Thug, 20, 4, 27, 12,
-                new[] { new WorldPos(23, 0, 7) }),
+                new[] { new WorldPos(23, 0, 7), new WorldPos(24, 0, 6), new WorldPos(22, 0, 8) }),
             new EncounterSpawnSpec(2, EnemyPrototypes.WildDog, 32, 14, 95, 25,
                 new[] { new WorldPos(60, 0, 19), new WorldPos(61, 0, 20) }),
+            new EncounterSpawnSpec(3, EnemyPrototypes.WildDog, 96, 0, 127, 29,
+                new[] { new WorldPos(97, 0, 18), new WorldPos(98, 0, 19) }),
         };
 
         private readonly EncounterStartWriter _writer;

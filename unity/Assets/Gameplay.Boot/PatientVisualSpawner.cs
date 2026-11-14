@@ -80,6 +80,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 「此刻是否倒地」的呈现闸门(迟绑定;2026-11-14 · P2-02 孩子倒地)。
+        /// <para>null / false ⇒ 站立(与历史行为逐字相同)。倒地只演**姿态**(侧卧 + 贴地),
+        /// 不写任何事件 —— 倒地真值归 9 的状态机,本类只画。</para>
+        /// </summary>
+        public Func<int, bool> DownedPredicate { get; set; }
+
+        /// <summary>
         /// tick 边沿驱动 —— 对比在场集与视觉字典,为新病人 spawn 视觉实体。
         /// </summary>
         /// <param name="tick">本边沿自己的逻辑 tick(由帧泵回推,非末 tick)。</param>
@@ -91,8 +98,11 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             foreach (var patientId in _presence.PresentPatientIds())
             {
-                if (_visuals.ContainsKey(patientId))
+                if (_visuals.TryGetValue(patientId, out GameObject existing))
+                {
+                    ApplyDowned(existing, patientId);   // 已建也要每 tick 摆一次(倒地可能后到)
                     continue;
+                }
 
                 // ⚠️ 无锚点 ⇒ **不 spawn**(不是「spawn 到原点」)。
                 //    占位实现恒返回 true,故该分支今天不可达;真实锚点会用到它
@@ -110,7 +120,19 @@ namespace DaYiJingCheng.Gameplay.Boot
                 visual.transform.SetParent(VisualRoot.transform, false);
 
                 _visuals[patientId] = visual;
+                ApplyDowned(visual, patientId);
             }
+        }
+
+        /// <summary>倒地姿态(侧卧 90° + 贴地);无闸门 / 未倒地 ⇒ 站立。幂等。</summary>
+        private void ApplyDowned(GameObject visual, int patientId)
+        {
+            Func<int, bool> predicate = DownedPredicate;
+            if (predicate == null || visual == null) return;
+            bool downed = predicate(patientId);
+            visual.transform.rotation = downed
+                ? Quaternion.Euler(90f, 0f, 0f)
+                : Quaternion.identity;
         }
 
         /// <summary>整数格 → 世界连续坐标(含贴地 y 偏移)。

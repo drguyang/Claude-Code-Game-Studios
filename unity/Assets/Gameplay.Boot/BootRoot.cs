@@ -192,6 +192,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>最小战斗闭环(2026-11-14;未建 = 无世界装配)。</summary>
         private CombatDriver _combat;
 
+        /// <summary>第二段四拍的行为编排(2026-11-14;未建 = 无世界装配)。</summary>
+        /// <remarks>⚠️ 只对 3 支**脚本**遭遇生效(1 地痞 / 2 野狗 / 3 回程),掷骰池不经过它。</remarks>
+        private PrologueChoreography _choreography;
+
         /// <summary>出手键的上一帧按住态(边沿化;本类持有,`PlayerInputReader` 不持)。</summary>
         private bool _attackHeld;
         // 🔁 2026-11-04(`TD-skeuo-06`):炮制屏的意图出口(点火 / 关屏)。
@@ -739,6 +743,36 @@ namespace DaYiJingCheng.Gameplay.Boot
                     actorId);
             }
 
+            // ── 4.4c′. 第二段四拍的行为编排(2026-11-14)──────────────────────────
+            //   把节拍脚本 P2-02 / P2-03 / P2-06 / P2-09 的**行为**落到渲染面:
+            //   野狗扑孩子 / 石头砸中后松口逃 / 三个地痞的短对话 + 推你 1 格 / 狗带幼崽看你一眼走开。
+            //   ⚠️ 只演不判:写流仅两条 —— 「野狗离场」`EncounterEnded(Disengaged)`(经 27 写者)
+            //      与「推你 1 格」(`PlayerController.Teleport` 被放置路径)。
+            //   ⚠️ 三个迟绑定(本步才建得出,理由同 `TeleportSink.BindPlayer`):
+            //      视觉侧 `ScriptedPose` / `DownedPredicate`,战斗侧 `ScriptedTarget`(石头)。
+            if (_services.AdventureWriter != null)
+            {
+                _choreography = new PrologueChoreography(
+                    () => _services.Stream.Events, _services.Decoder, _services.EncounterEnds,
+                    () => _player != null ? _player.LastCommittedCell : default,
+                    () => _player != null ? _player.Position : default,
+                    position => _player?.Teleport(position),
+                    cell => _services.World == null || _services.World.IsEffectivelyWalkable(cell),
+                    line => _subtitle?.Show(
+                        new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("", line)),
+                    () => _prologueBeats != null && _prologueBeats.ShowingId != null);
+
+                if (_services.EnemyVisualSpawner != null)
+                    _services.EnemyVisualSpawner.ScriptedPose = actorId =>
+                        _choreography.TryGetPose(actorId, out ScriptedEnemyPose pose)
+                            ? (ScriptedEnemyPose?)pose
+                            : null;
+                if (_services.PatientVisualSpawner != null)
+                    _services.PatientVisualSpawner.DownedPredicate = _choreography.IsChildDowned;
+                if (_combat != null)
+                    _combat.ScriptedTarget = () => _choreography.ScriptedAttackTarget;
+            }
+
             // ── 4.3a0. 37 同源检测 + 章推进(T20 · 2026-11-10)─────────────────────
             // 装配点在 `CompositionRoot`(`dataProvider` 有 37 旋钮产物才建);本步只做
             // **未装配的显式日志** —— 否则与「机制未启用」同形。
@@ -943,7 +977,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     _prologueFacts.Of,
                     // P2-02:王嫂的孩子。病种 = 麻疹(11)—— 一岁孩子,非致命、自限,
                     //   与「你第一次包扎」不冲突:病不会当场要他的命,血会。
-                    () => _scriptedPatients.Spawn(ScriptedDiseaseChild, new WorldPos(45, 0, 22)),
+                    //   ⚠️ 生成的 id 同时交给编舞(野狗扑向**他**、倒地闸门只认他)。
+                    () =>
+                    {
+                        PatientId child = _scriptedPatients.Spawn(
+                            ScriptedDiseaseChild, new WorldPos(45, 0, 22));
+                        _choreography?.SetChild(child.Value);
+                    },
                     // P2-07:乙 · 挑夫。病种 = 伤寒(10)—— 营地里传得动、致死、不自限,
                     //   且体征(相对缓脉 / 玫瑰疹)是玩家自己看得出来的。
                     () => _scriptedPatients.Spawn(ScriptedDiseasePorter, new WorldPos(25, 0, 9))));
@@ -3354,6 +3394,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    同一边沿里晚写一拍 = 击败计数晚一个 tick。
             if (_tickDriver.CurrentTick > tickBefore && _prologueEncounters != null)
                 _prologueEncounters.OnTickEdge(_tickDriver.CurrentTick);
+
+            // 第二段四拍的行为编排(2026-11-14):**紧跟**遭遇驱动 —— 本拍新落的
+            // `EncounterStarted` 要当场被编舞看见(否则敌人先原地出生一 tick 再动)。
+            // ⚠️ 在视觉驱动**之前**:视觉读的是本拍编舞算出的位姿。
+            if (_tickDriver.CurrentTick > tickBefore && _choreography != null)
+                _choreography.OnTickEdge(_tickDriver.CurrentTick);
 
             // 奇遇判定(ADR-045 §D4):只读事件流,增量游标 —— 不是全流扫描。
             if (_tickDriver.CurrentTick > tickBefore && _services != null
