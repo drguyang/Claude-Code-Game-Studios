@@ -59,6 +59,17 @@
 > `AC-44-02 / 08` 听测 2026-10-29 用户裁定转 P2,`AC-44-01` 系归类错误[其为 `[A]` 机械断言])。
 > 索引表行数不变(217),状态翻转。复算:
 > `awk '/TD-INDEX:BEGIN/,/TD-INDEX:END/' docs/tech-debt-register.md | grep -c '^| \`TD-'`
+> 🔁 **2026-11-14(+1)**:新增 `TD-building-07`(`modular-building` / `open` / `P0 面 = Y`)——
+> 序章主链在**材料获取**一侧的断点:木柱(帐篷的 `build_item_key`)既采不到、也合不出。
+> 索引表实测 **212 → 213 行**;状态 `open 21 → 22`;`P0 面 Y 136 → 137`。复算:
+> ```bash
+> sed -n '/^<!-- TD-INDEX:BEGIN -->/,/^<!-- TD-INDEX:END -->/p' docs/tech-debt-register.md \
+>   | grep -cE '^\| `TD-'          # 期望 213
+> ```
+> ⚠️ **别用不带行首锚的 `/TD-INDEX:BEGIN/` 区间**(本册前面那条 awk 就是):叙述正文里
+> 提到该串的行会成为区间起点,量出来的不是索引块。上面这条用 `^` 锚在标记行上。
+> ⚠️ **2026-11-14 实测 = 213 行 / `open` 22 / `P0 面 Y` 137**,而上方同段落的时点值写「217 行」
+> —— 该差(**5 行**)在本轮之前既已存在,成因未查,**不归本轮**;本轮只报本行带来的 +1,不接手该对账。
 > ⚠️ 上方「99 条」是 **2026-10-21 的时点值**,不是现值;本册自陈「每一行都是该订那一刻的时点值」,
 > 现值一律以复算命令为准(见 `coding-standards.md` §数字须带可跑复算命令)。
 > **引用时须写明是哪一册的订次** —— 「八订」在本册 = 结案,在该册 = **不存在**。
@@ -483,6 +494,7 @@
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
 | `TD-building-05` | `modular-building` | partial | **Y** | R1 |
 | `TD-building-06` | `modular-building` | closed | **Y** | R1 |
+| `TD-building-07` | `modular-building` | open | **Y** | R4 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -13299,3 +13311,76 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | **副产物② —— UTF 内部协议反向工程(失败留档)** | 曾尝试经命名管道向 GUI 编辑器注入 `executeTests` 命令(JSON → `/proc/<pid>/fd/{1,2,6}`):三次均触发**资源导入**而非测试,JSON 被当作**纯文本回显进 Editor.log** ⇒ 命令面不在 stdout/stderr/log-FIFO 任一上,该路线证伪。留档备查,非本债解除路径。 |
 | **探针收尾** | 14 处探针全删:3 件(`ecozone_polygon_check_test.cs` / `LevelConsistencyCheck.cs` / `LevelExporter.cs`)由备份 `cp` 还原,SHA-256 与备份逐字节一致;1 件(`LatticeEngineParams.cs`)无备份,手工删 2 段后 `git diff` vs HEAD 为空。`git status` 干净。备份留 `~/.claude/jobs/6001633c/tmp/codebak/td-test-01-probe-2026-11-12/`。 |
 | **状态** | **closed**(2026-11-12) |
+
+### TD-building-07 —— 木柱(帐篷的 `build_item_key`)既采不到、也合不出 · modular-building · 2026-11-14 立
+
+| 字段 | 内容 |
+|---|---|
+| **归属 epic** | `modular-building` |
+| **状态** | **open**(2026-11-14) |
+| **`P0 面`** | **Y** —— 序章主链「帐篷 → 病人 → 立案」在 P0 上唯一的前置就是它 |
+| **发现方式** | 写序章端到端夹具(`Tests/PlayMode/prologue_end_to_end_test.cs`)时,第 ① 环「采 5 根木柱」走不通 |
+
+#### 病因(两条断点,互相独立)
+
+**断点甲 —— 采集链结构性拒收 `build_part`**
+
+`HarvestWorldQuery.GatherOf(itemKey)`(`Gameplay.Boot/HarvestWorldQuery.cs:115-125`)对
+**没有 `gather_profile` 的品种直接抛**:
+
+```
+[采集] item ordinal=8(base_id=wooden_post)非 material —— 没有 gather_profile,
+却出现在资源点上 ⇒ 关卡工具导出与 21a 分家
+```
+
+而 `item_database_items.json` 里 `wooden_post`(`ordinal = 8`,`category = build_part`)
+**确实没有** `gather_profile`。它不是漏填:17 的 P0 品种闭集
+(`AC-17-01b`,carrier `Tests/EditMode/Foraging/foraging_data_load_test.cs:666-708`)
+**只允许四味药材**,第 5 个 `gather_profile` 混入即红。⇒ 给木柱补分布 = **改一条 BLOCKING AC**,
+须裁定,不是实现动作。
+
+⚠️ 后果不是「采不到」,是**按 E 就抛**:`world_resources.json` 的所有行都被
+`CandidateSetLoader` 映射成 `ForageSpot`(`:72-73`),选中即进采集链,满时长结算时抛
+`InvalidOperationException`。当前关卡里这样的行有 **5 条**(`resource_id 4..8`)。
+
+**断点乙 —— 合成链没有生产 driver**
+
+`item_database_recipes.json` ordinal 3 是 `assemble_wooden_post`(3 × 干柳树皮 → 1 木柱),
+但 **`Craft` 在 `Gameplay.Boot` / `Gameplay.Presentation` 里零写入方**
+(`grep -rn "CraftPayload" … | grep -v /Tests/` 零命中)⇒ 玩家没有任何途径把柳树皮变成木柱。
+
+#### 造成的可见失败
+
+`BuildController.TryPlace(10 /* Tent */, …)` 对真玩家**永远**返回 `InsufficientStock`
+(缺 5 根),剧情阶段门因此永不打开 ⇒ 病人不出现 ⇒ P3-04 / P3-05 永不可达。
+⚠️ **这不是「帐篷建不起来」这一件事**,而是「序章第三段整段落不了地」。
+
+#### 解除条件(三条,择一即可,均须裁定)
+
+| 路径 | 动作 | 代价 / 风险 |
+|---|---|---|
+| **甲 · 扩采集闭集** | 给 `wooden_post` 补 `gather_profile` | **改 `AC-17-01b`(BLOCKING)** —— 四品种闭集是 17 的设计口径,不是数据笔误 |
+| **乙 · 开局携带** | 新局给玩家 5 根木柱(引导库存) | 新机制(开局库存),须 ADR 级裁定;与「零新埋点」无关但属于新真源面 |
+| **丙 · 接通合成** | 实现 craft driver,让 `assemble_wooden_post` 可跑 | 工作量最大,但**不动任何 AC**,且顺带补齐 21a 的 `owner=craft` 半边 |
+
+#### 本债**不**主张的事
+
+- **不**主张木柱「应该能采」—— 那是甲的裁定内容,不是事实。
+- **不**主张端到端夹具证明了整条链 —— 它证明的是「帐篷**建成之后**的那条链
+  (病人出现 → 立案 → 第三段三条事实)是通的」;第 ① 环(材料来源)是本债的边界。
+- `Tests/PlayMode/prologue_end_to_end_test.cs` 的头注已逐条写明这两处**不覆盖**。
+
+#### 复算命令
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+# 断点甲:木柱无 gather_profile,而关卡里有 5 个 item_key=8 的资源点
+python3 -c "
+import json
+items = json.load(open('assets/data/item_database_items.json'))['items']
+print('wooden_post.gather_profile =', [i.get('gather_profile') for i in items if i.get('ordinal') == 8])
+res = json.load(open('assets/data/world_resources.json'))
+print('item_key=8 的资源点数 =', sum(1 for r in res if r['item_key'] == 8))"
+# 断点乙:craft 零生产写入方
+grep -rn "CraftPayload" --include=*.cs unity/Assets/Gameplay.Boot unity/Assets/Gameplay.Presentation | grep -v "/Tests/" | wc -l   # 期望 0
+```
