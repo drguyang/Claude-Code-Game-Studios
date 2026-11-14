@@ -145,8 +145,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <remarks>⚠️ 只在 P1-07 触发时建一次;重复装配由 `PrologueCrowd.Build` 自清残留。</remarks>
         private DaYiJingCheng.Gameplay.Presentation.World.PrologueCrowd _prologueCrowd;
 
-        /// <summary>脚本产病人通道(N2 的第二个动作 · 2026-11-14):剧情点名的病人出现。</summary>
-        /// <remarks>
+        /// <summary>脚本产病人通道(N2 的第二个动作 · 2026-11-14):剧情点名的病人出现。</summary>        /// <remarks>
         /// ⚠️ **今天构造即就绪、尚无调用方** —— 第一个调用点是第二段(P2-04 孩子 / P2-07 挑夫),
         /// 那一拍的表还没建。构造本身仍有价值:缺 `PatientSpawner` / `Presence` 会当场抛,
         /// 而不是等到剧本写完才发现装配不全。
@@ -155,6 +154,9 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>脚本产病人通道的只读访问面(节拍动作 / 夹具用)。</summary>
         public ScriptedPatientSpawner ScriptedPatients => _scriptedPatients;
+
+        /// <summary>序章的**事件事实**计数器(第二段节拍的判据读它;增量扫描,不每 tick 全流)。</summary>
+        private PrologueFactCounter _prologueFacts;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -792,7 +794,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⚠️ 区域表与体块位置**同源**(`PrologueAnchors.BuildFirstActRegions`),
             //       不写第二份格坐标。
             _prologueRegions = new RegionTriggerDriver(
-                PrologueAnchors.BuildFirstActRegions(),
+                ConcatRegions(),
                 () => _player != null ? _player.Cell : default);
 
             // 🔁 2026-11-14(N2 剧情脚本事件):节拍从「只说一句」扩到「再说 + 再做」——
@@ -813,10 +815,55 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.Presence,
                 () => _tickDriver != null ? _tickDriver.CurrentTick : 0L);
 
+            // ── 第二段的事实读面(2026-11-14)──────────────────────────────────
+            // 增量计数(只吃本 tick 新写入的事件) —— 每 tick 全流扫描是 ADR-036 实测过的坑
+            // (2000 条时 1135 ms/tick)。空计数即「还没发生」。
+            _prologueFacts = new PrologueFactCounter();
+
+            // 病种 id 取自 `disease_registry.json` 的 key(`DIS_MEASLES` / `DIS_TYPHOID`)。
+            // ⚠️ 局部常量须**先声明后用**(与局部函数不同)—— 这是编译器的规则,不是风格。
+            const int ScriptedDiseaseChild = 11;
+            const int ScriptedDiseasePorter = 10;
+
             _prologueBeats = new PrologueBeatDriver(
-                PrologueBeats.BuildFirstAct(_prologueRegions, () => _prologueCrowd.Build()),
-                () => _player != null ? _player.Cell : default,
+                ConcatBeats(_prologueRegions),                () => _player != null ? _player.Cell : default,
                 _subtitle);
+
+            // ⚠️ 以下三个是**局部函数/常量**(不是类成员):它们只服务上面那段装配,
+            //    挪出去就得把 `_prologueCrowd` / `_scriptedPatients` / `_prologueFacts`
+            //    逐个当形参传 —— 那正是「装配知识散到别处」的形态。
+
+            // 第一段 + 第二段的区域表(一个驱动只该有一份成员集,见 `RegionTriggerDriver` 类首)。
+            RegionTrigger[] ConcatRegions()
+            {
+                RegionTrigger[] a = PrologueAnchors.BuildFirstActRegions();
+                RegionTrigger[] b = SecondActAnchors.BuildRegions();
+                var all = new RegionTrigger[a.Length + b.Length];
+                Array.Copy(a, 0, all, 0, a.Length);
+                Array.Copy(b, 0, all, a.Length, b.Length);
+                return all;
+            }
+
+            // 第一段 + 第二段的节拍表(声明序 = 字幕优先序)。
+            System.Collections.Generic.IReadOnlyList<PrologueBeat> ConcatBeats(RegionTriggerDriver regions)
+            {
+                var first = new List<PrologueBeat>(PrologueBeats.BuildFirstAct(
+                    regions, () => _prologueCrowd.Build()));
+
+                var second = new List<PrologueBeat>(PrologueBeats.BuildSecondAct(
+                    regions,
+                    _prologueFacts.Of,
+                    // P2-02:王嫂的孩子。病种 = 麻疹(11)—— 一岁孩子,非致命、自限,
+                    //   与「你第一次包扎」不冲突:病不会当场要他的命,血会。
+                    () => _scriptedPatients.Spawn(ScriptedDiseaseChild, new WorldPos(45, 0, 22)),
+                    // P2-07:乙 · 挑夫。病种 = 伤寒(10)—— 营地里传得动、致死、不自限,
+                    //   且体征(相对缓脉 / 玫瑰疹)是玩家自己看得出来的。
+                    () => _scriptedPatients.Spawn(ScriptedDiseasePorter, new WorldPos(25, 0, 9))));
+
+                first.AddRange(second);
+                return first;
+            }
+
 
             // ── 4.5. 玩家交互输入驱动(sprint-07 S2):E 查体 / F 急救,每帧由 Update 转发 ──
             // 🔁 2026-10-31 规则七方向②接线:`ModalGate` 此前**生产零构造**(缺 42 侧那半个门)
@@ -3187,6 +3234,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 序章节拍(2026-11-13 · D1):同样只在本帧真推进 tick 时推进 ——
             // 字幕的停留时长以 tick 计,拿渲染帧推进会让高帧率下的字幕一闪即过。
             // 🔁 2026-11-14(N1):区域驱动**必须先于**节拍推进(见构造处注释)。
+            // 🔁 2026-11-14(N2 第二段):事实计数**先于**两者 —— 节拍的条件闭包读它。
+            if (_tickDriver.CurrentTick > tickBefore && _prologueFacts != null
+                && _services != null && _services.Stream != null)
+            {
+                _prologueFacts.Sync(_services.Stream.Events);
+            }
+
             if (_tickDriver.CurrentTick > tickBefore && _prologueRegions != null)
                 _prologueRegions.OnTickEdge(_tickDriver.CurrentTick);
 

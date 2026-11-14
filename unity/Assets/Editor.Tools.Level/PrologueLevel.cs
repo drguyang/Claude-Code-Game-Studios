@@ -223,21 +223,38 @@ namespace DaYiJingCheng.EditorTools.Level
         // 资源(止血草 ×3;建材 / 草木灰待 21a 词条)
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>资源点:营地止血草 ×3。</summary>
+        /// <summary>资源点:营地止血草 ×3 + 沿路木柱 ×5。</summary>
         /// <remarks>
-        /// ⚠️ **本批只声明止血草**:`item_key` = 21a 物品表 ordinal,**止血草 = 4**(`_ordinal_baseline.json`)。
-        /// 规格 §5 列的「建材堆 ×3(B1)· 草木灰 ×1(C3)」**暂缺 21a 词条**
-        /// (门板 / 房梁 / 布 / 草木灰 均无 `item_key`),归 21a 实现轮补行 ——
-        /// **不得在此臆造 ordinal**(臆造的 key 会让采前闸算错 `qty`,且是第二真源)。
+        /// ⚠️ `item_key` = 21a 物品表 ordinal:**止血草 = 4**,**木柱 = 8**(`item_database_items.json`)。
+        /// <para>🔁 <b>2026-11-14(P2 第二段)</b>:补 5 个 **木柱** 点。病因是硬的 ——
+        /// 帐篷模块(`module_id = 10`)要 `build_item_key = 8` × `cost = 5`
+        /// (`build_modules.json`),而本表此前只有 3 个**止血草**点 ⇒ **帐篷根本建不起来**,
+        /// 序章第三段连带整条下游都开不了。</para>
+        /// <para>⚠️ 为什么 5 个点全是同一个 ordinal:节拍脚本 §材料口径 明写
+        /// 「叙事名各自不同(门板 / 房梁 / 布 / 钉子 / 油布),**数据层同一 `item_key = 8`**」——
+        /// 不给每件叙事名造一个物品行(那是五个只有名字的 21a 词条,成本高且无玩法差别)。</para>
+        /// <para>⚠️ 原注「门板 / 房梁 / 布 / 草木灰 均无 `item_key`,不得臆造」**仍然成立**,
+        /// 本批**没有**臆造任何 ordinal —— 用的就是表里已有的 `wooden_post = 8`。</para>
+        /// <para>⚠️ 五个格都验过:**可走**,且 3×3 邻域全可走(玩家要能走到跟前按 E)。
+        /// 复核命令见提交说明;`world_geometry.walkable` 的索引约定是 **`x * 40 + z`**(x 主序),
+        /// 不是 `z * 128 + x` —— 用错会把可走格读成墙。</para>
         /// </remarks>
         private static ResourceSource BuildResources()
         {
             static WorldPos P(int x, int z) => new WorldPos(x, 0, z);
             var rows = new List<ResourceSpec>
             {
+                // 营地:止血草(采集教学 / 17 的品种面)
                 new ResourceSpec(1, P(116, 20), itemKey: 4, ecozoneId: 1),
                 new ResourceSpec(2, P(118, 24), itemKey: 4, ecozoneId: 1),
                 new ResourceSpec(3, P(120, 22), itemKey: 4, ecozoneId: 1),
+
+                // 沿路:木柱 ×5(帐篷材料;A / B / C 三场景分散,承脚本 §第二段 P2-01 与 P2-09)
+                new ResourceSpec(4, P(18, 12),  itemKey: 8, ecozoneId: 0),   // 门板(城市,教堂南侧)
+                new ResourceSpec(5, P(26, 11),  itemKey: 8, ecozoneId: 0),   // 钉子(城市,药铺废墟旁)
+                new ResourceSpec(6, P(40, 20),  itemKey: 8, ecozoneId: 0),   // 房梁(路上)
+                new ResourceSpec(7, P(62, 18),  itemKey: 8, ecozoneId: 0),   // 布(路上)
+                new ResourceSpec(8, P(100, 20), itemKey: 8, ecozoneId: 1),   // 油布(营地边)
             };
             return new ResourceSource(rows);
         }

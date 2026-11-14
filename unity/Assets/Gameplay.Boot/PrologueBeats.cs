@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim.Contracts;   // EventKind(第二段的事实读面)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -128,5 +129,136 @@ namespace DaYiJingCheng.Gameplay.Boot
                     requires: "P1-06", effect: onSeventeenArrive),
             };
         }
+
+        /// <summary>
+        /// 组装第二段(上路 · P2-01 … P2-09)的节拍。
+        /// </summary>
+        /// <param name="regions">区域触发驱动(第一段与第二段的区域**同放一张表**)。</param>
+        /// <param name="factOf">事件事实计数(`PrologueFactCounter.Of`)。</param>
+        /// <param name="onChildArrives">P2-02:王嫂的孩子出现(脚本产病人)。</param>
+        /// <param name="onPorterArrives">P2-07:乙 · 挑夫出现(脚本产病人)。</param>
+        /// <remarks>
+        /// <para><b>2026-11-14 首建。</b>判据全部来自脚本 §第二段,没有一处自拟。</para>
+        /// <para>⚠️ <b>P2-03(砸石头)刻意不在表里</b> —— 它的触发是**玩家按 `Attack`**,
+        /// 而节拍驱动的条件闭包没有输入形参。硬把它写成 `() => true` 会让它在 P2-02 之后
+        /// 下一 tick 就"完成",等于把一场战斗演成一句旁白。归 27 的敌人/战斗落地后再接。</para>
+        /// <para>⚠️ <b>四处仍被 52 挡住</b>:P2-02 的**野狗本体**(52 遭遇)、P2-06 的**地痞**、
+        /// P2-09 的**第二次遇狗** 都不存在于运行期 —— `TD-randomevents-05` 的上下文门
+        /// (`isOnExpedition` / `isInClinic` 硬编码 false)让 52 链恒 `NoContext`。
+        /// 本表里这几拍只承担**位置与顺序**,不声称 52 已经会响。</para>
+        /// <para>⚠️ P2-01 的判据写的是「`ResourceHarvested` ≥ 5」,**不是**脚本原话的
+        /// 「5 个资源点全采完」。差别在关卡有 8 个点(3 止血草 + 5 木柱):按事件计数会把
+        /// 采三株草算进去。**这是本表唯一的近似**,精化(改成查背包里木柱 ≥ 5)归 20/23 的读面。</para>
+        /// </remarks>
+        public static IReadOnlyList<PrologueBeat> BuildSecondAct(
+            RegionTriggerDriver regions,
+            Func<EventKind, int> factOf,
+            Action onChildArrives,
+            Action onPorterArrives)
+        {
+            if (regions == null) throw new ArgumentNullException(nameof(regions));
+            if (factOf == null) throw new ArgumentNullException(nameof(factOf));
+            if (onChildArrives == null) throw new ArgumentNullException(nameof(onChildArrives));
+            if (onPorterArrives == null) throw new ArgumentNullException(nameof(onPorterArrives));
+
+            return new[]
+            {
+                // P2-01 拾材料 ×5:采满五件。
+                new PrologueBeat("P2-01", () => factOf(EventKind.ResourceHarvested) >= 5,
+                    "门板,房梁,一块布。你把它们捆在一起,才发现自己已经很久没为什么东西弯过腰了。",
+                    requires: "P1-07"),
+
+                // P2-02 野狗:走到路上那一段 ⇒ 孩子出现(被咬的是他 —— 狗的**攻击**归 52 / 27)。
+                new PrologueBeat("P2-02", () => regions.IsInside(SecondActAnchors.DogBeatId), null,
+                    requires: "P2-01", effect: onChildArrives),
+
+                // P2-04 第一次包扎:10 的止血真的落流。
+                new PrologueBeat("P2-04", () => factOf(EventKind.EmergencyTreatmentApplied) >= 1,
+                    "你只会缠布。你把他抱起来的时候,手在抖,但布缠得很紧。",
+                    requires: "P2-02"),
+
+                // P2-05 回城:走进城市入口(x ≤ 31)。旁白逐字取自脚本。
+                new PrologueBeat("P2-05", () => regions.IsInside(SecondActAnchors.CityGateBeatId),
+                    "你只会缠布。你答不上「这是什么病」。你需要一本书。",
+                    requires: "P2-04"),
+
+                // P2-06 地痞:进药铺废墟的范围。对话本体归 52(今日不响,见 remarks)。
+                new PrologueBeat("P2-06", () => regions.IsInside(SecondActAnchors.DrugshopBeatId), null,
+                    requires: "P2-05"),
+
+                // P2-07 挑夫:药铺旁的墙角 + 按 E ⇒ 乙 · 挑夫出现。
+                new PrologueBeat("P2-07", () => regions.IsInside(SecondActAnchors.PorterBeatId), null,
+                    requires: "P2-06", requiresInteract: true, effect: onPorterArrives),
+
+                // P2-08 半本手册:进救助站 + 按 E。
+                new PrologueBeat("P2-08", () => regions.IsInside(SecondActAnchors.AidStationBeatId), null,
+                    requires: "P2-07", requiresInteract: true),
+
+                // P2-09 回程:回到营地(x ≥ 96)。
+                new PrologueBeat("P2-09", () => regions.IsInside(SecondActAnchors.CampReturnBeatId), null,
+                    requires: "P2-08"),
+            };
+        }
+    }
+
+    /// <summary>
+    /// 第二段的区域(2026-11-14)。
+    /// <para>⚠️ **药铺废墟 / 救助站 / 营地火堆三处不是自拟坐标** —— 它们是关卡逻辑层里已有的
+    /// POI(`world_poi.json` 的 1 / 2 / 3)。坐标为副本,故有夹具钉「与烘焙数据逐格相同」
+    /// (`prologue_second_act_test`),漂移即红。</para>
+    /// <para>⚠️ 野狗段与墙角两处**没有**对应的关卡对象(野狗属 52 池、墙角是叙事位),
+    /// 这两处是节拍表自己的锚点,登记在此不假装是数据。</para>
+    /// </summary>
+    public static class SecondActAnchors
+    {
+        /// <summary>野狗段(P2-02):路上 x≈44。半径 3 —— 玩家沿路走必经过。</summary>
+        public const int DogX = 44;
+        /// <summary>见 <see cref="DogX"/>。</summary>
+        public const int DogZ = 22;
+
+        /// <summary>城市入口(P2-05 / P2-09 的反向):x ≤ 31,全 z 带(脚本逐字「x ≤ 31」)。</summary>
+        public const int CityGateXMax = 31;
+
+        /// <summary>药铺废墟(P2-06):关卡 POI 1。</summary>
+        public const int DrugshopX = 24;
+        /// <summary>见 <see cref="DrugshopX"/>。</summary>
+        public const int DrugshopZ = 8;
+
+        /// <summary>墙角(P2-07):药铺东侧一格,叙事位(关卡无对象)。</summary>
+        public const int PorterX = 25;
+        /// <summary>见 <see cref="PorterX"/>。</summary>
+        public const int PorterZ = 9;
+
+        /// <summary>坍塌救助站(P2-08):关卡 POI 2。</summary>
+        public const int AidStationX = 8;
+        /// <summary>见 <see cref="AidStationX"/>。</summary>
+        public const int AidStationZ = 8;
+
+        /// <summary>营地(P2-09):x ≥ 96,全 z 带。</summary>
+        public const int CampXMin = 96;
+
+        /// <summary>P2-02 的触发器 id。</summary>
+        public const string DogBeatId = "P2-02";
+        /// <summary>P2-05 的触发器 id。</summary>
+        public const string CityGateBeatId = "P2-05";
+        /// <summary>P2-06 的触发器 id。</summary>
+        public const string DrugshopBeatId = "P2-06";
+        /// <summary>P2-07 的触发器 id。</summary>
+        public const string PorterBeatId = "P2-07";
+        /// <summary>P2-08 的触发器 id。</summary>
+        public const string AidStationBeatId = "P2-08";
+        /// <summary>P2-09 的触发器 id。</summary>
+        public const string CampReturnBeatId = "P2-09";
+
+        /// <summary>第二段的区域表(**与第一段同放一张表** —— 一个驱动只该有一份成员集)。</summary>
+        public static RegionTrigger[] BuildRegions() => new[]
+        {
+            RegionTrigger.Around(DogBeatId, DogX, DogZ, radius: 3),
+            new RegionTrigger(CityGateBeatId, 0, CityGateXMax, 0, PrologueBeats.ChurchZ1),
+            RegionTrigger.Around(DrugshopBeatId, DrugshopX, DrugshopZ, radius: 2),
+            RegionTrigger.Around(PorterBeatId, PorterX, PorterZ, radius: 1),
+            RegionTrigger.Around(AidStationBeatId, AidStationX, AidStationZ, radius: 1),
+            new RegionTrigger(CampReturnBeatId, CampXMin, 127, 0, PrologueBeats.ChurchZ1),
+        };
     }
 }

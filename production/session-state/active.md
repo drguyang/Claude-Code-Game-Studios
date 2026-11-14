@@ -18774,3 +18774,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 接线:`BootRoot` 构造 + 公开只读属性 `ScriptedPatients`(⚠️ 暂**无调用方**,首个调用点 = 第二段 P2-04/P2-07)
 - 夹具 `Tests/EditMode/Boot/scripted_patient_spawn_test.cs` **8 条**;证伪轮两发:
   摘 `AddPresent` ⇒ 3 红;改成「先登记后创建」⇒ 2 红(均 SHA-256 还原)
+
+## Session Extract — 第二段节拍表(2026-11-14)
+- 先补关卡数据(用户裁定甲):`PrologueLevel.BuildResources()` 加 5 个 **木柱**(item_key=8)点
+  (18,12)/(26,11)/(40,20)/(62,18)/(100,20);病因 = 帐篷模块要 `build_item_key=8 × 5`,而关卡只有 3 个止血草点
+  ⇒ **帐篷此前根本建不起来**
+- 导出 `world_resources.json`(8 行)+ **重烘** `world_resources.cooked.bytes`(216 B,ConfigVersion 0x8B3B0720)
+  ⚠️ 不重烘会被 `cooked_drift_all_artifacts_test` 抓(96 B vs 216 B)—— 本轮实测抓到
+- 新增 `PrologueFactCounter`(增量 EventKind 计数;流变短=读档则清零重扫)
+- `PrologueBeats.BuildSecondAct` + `SecondActAnchors`:P2-01/02/04/05/06/07/08/09 八拍
+  ⚠️ **P2-03(砸石头)刻意不在表里** —— 触发是玩家按 Attack,条件闭包无输入形参
+  ⚠️ 四处仍被 52 挡(TD-randomevents-05):野狗本体 / 地痞 / 第二次遇狗
+  ⚠️ P2-01 判据是「ResourceHarvested ≥ 5」,非脚本原话「5 个资源点」——本轮唯一近似,已登记
+- BootRoot:区域表合并两段 · 事实计数先于区域/节拍推进 · 孩子=麻疹(11)@(45,22) · 挑夫=伤寒(10)@(25,9)
+- 夹具 `prologue_second_act_test` 4 条;证伪轮:摘 P2-05 的 requires ⇒ 1 红(SHA-256 还原)
