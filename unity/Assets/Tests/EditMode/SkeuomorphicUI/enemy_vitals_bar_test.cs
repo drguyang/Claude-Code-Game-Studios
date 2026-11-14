@@ -10,8 +10,10 @@
 //    Unity 只编译 unity/Assets/ 树 ⇒ **真身 = 本文件**;账本侧由 tests/unit/skeuomorphic-ui/README.md 互链。
 // ⚠️ 测试纪律:arrange/act/assert · 无随机 · 无时间依赖(禁 DateTime/Time)·
 //    夹具自持,不依赖文件系统/网络/数据库。
-// ⚠️ 本 story 要求视觉测试(截图 + lead sign-off),当前阶段 42 未实现,用 Assert.Inconclusive / [Ignore] 标记。
-// ⚠️ 当前阶段测试无验证价值:所有测试都是静态反射扫描,不是功能测试;实现后补充行为测试。
+// ⚠️ 2026-11-14(「完整可见」轮):42 侧已实现(`EnemyVitalsBar` / `EnemyVitalsBillboard`),
+//    行为判据在 `Assets/Tests/EditMode/Boot/enemy_visuals_test.cs` 与 PlayMode 夹具;
+//    本文件保留为**结构扫描**(命名/字段白名单),不再承担行为证明。
+//    Visual/Feel 要求的截图 + lead sign-off 仍未产出(占位资产),故 `[Ignore]` 保留。
 // ⚠️ 代码评审修复:B-1/B-2 保持 Inconclusive 添加注释;R-1 添加注释;R-2 添加注释;R-3 统一大小写不敏感;R-4 添加注释;R-5 添加 TODO 注释结构。
 
 using System;
@@ -273,7 +275,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         //    而**那个路径不存在**(production/qa/evidence/ 下 8 个声明的走查件一个都没有)
         //    ⇒「拿不存在的证据当出口」。本批只改口为「证据尚未产出」——
         //    不停在一个不存在的东西上;**不**顺带声称已走查。
-        [Ignore("42 未实现 - 待人工视觉测试;替代证据**尚未产出**(TD-epic-03:原指向的 production/qa/evidence/enemy-vitals-bar-evidence.md 不存在)")]
+        [Ignore("42 已实现(2026-11-14);截图 + lead sign-off 仍待人工视觉测试 —— 本批不代签")]
         public void test_visual_screenshot_leadSignOff()
         {
             // 实现后补充:

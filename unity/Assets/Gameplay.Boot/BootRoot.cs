@@ -2058,6 +2058,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             try
             {
                 _services?.PatientVisualSpawner?.DestroyAll();
+                _services?.EnemyVisualSpawner?.DestroyAll();      // 敌人视觉 + 读数面片(「完整可见」轮)
                 _services?.StructureVisualSpawner?.DestroyAll();   // T22 批一(同一次显式清理,见 OnDestroy 注)
             }
             catch (Exception e)
@@ -3514,6 +3515,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 敌人视觉实体(「完整可见」轮):与病人同节奏 —— 场上集合由 EnemyRoster 现算,
+            // 本类只做增删/更新。⚠️ 遭遇收场(EncounterEnded)**不**销毁视觉 ——
+            // 收场 ≠ 实体消失(GDD 规则二十二:归零 = 不动了 + 呼吸层)。
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.EnemyVisualSpawner != null)
+            {
+                _services.EnemyVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 一次性 cue 的归还泵(S15-5 · TD-audio-029):问 `isPlaying`,播完即把源还回池。
             // ⚠️ **挂在 tick 边沿上**(20 Hz),不是每帧 —— 与本文件其余驱动同一节奏,
             //    每帧一次会多出 2 倍的无收益遍历(素材最短也有数百毫秒)。
@@ -3705,6 +3715,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 病人视觉实体清理(sprint-05 T2.0):视觉根节点由 PatientVisualSpawner 自持,
             // 不靠层级继承(Boot 场景常驻,看不见 World 卸载)⇒ 显式调用销毁面。
             _services?.PatientVisualSpawner?.DestroyAll();
+            _services?.EnemyVisualSpawner?.DestroyAll();   // 敌人视觉根同样自持(`EnemyVisuals`)
 
             // 🔁 2026-11-10 T22 批一:结构体块同理 —— 根节点同样自持(`StructureVisuals`),
             //    不卸载就会在下次进入世界时**叠出第二套**(画面上只是变亮一点,是静默的)。

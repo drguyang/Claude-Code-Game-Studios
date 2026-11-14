@@ -23,6 +23,7 @@ using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Building;   // BuildController / BuildStockQuery / BuildOwnerSlot(S20-19)
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.Presentation.Enemies;     // 敌人视觉载体的组合体实现(「完整可见」轮)
 using DaYiJingCheng.Gameplay.Presentation.Patients;   // 病人视觉两接缝的占位实现(TD-prescription-06 兑换轮)
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
 using DaYiJingCheng.Gameplay.Presentation.Tutorial;    // TutorialContentTable(48 教学链 · S25-4c)
@@ -633,6 +634,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                     ? cell
                     : (WorldPos?)null);
             var patientVisuals = new PatientVisualSpawner(presence, patientVisualFactory, patientAnchors);
+
+            // ── 敌人最小可见实体(2026-11-14 · 「完整可见」轮)────────────────────────────
+            // 与病人同构:数据给「在哪 / 什么态」(EnemyRoster 纯投影),factory 给「长什么样」
+            // (人形 / 野兽组合体,零美术资产),42 的读数面片挂在视觉根上。
+            // ⚠️ 场上今日恒空:27 的遭遇事件**无生产构造点**(与 EnemyRoster 同境况)——
+            //    装配接上后本类一字不改即开始出现敌人。
+            // ⚠️ 体征值走**复合门面**:敌人 id 走 9 的 VitalsDto 同形投影,不新开通道。
+            var enemyVisuals = new EnemyVisualSpawner(
+                () => stream.Events, decoder,
+                new ComposedEnemyVisualFactory(),
+                new CompositeVitalsQuery(
+                    new VitalsQueryOrNone(vitals),
+                    new EnemyVitalsQuery(() => EnemyRoster.Build(stream.Events, decoder)),
+                    () => EnemyRoster.Build(stream.Events, decoder)),
+                () => UnityEngine.Camera.main);
 
             // ── tick 驱动(ADR-005 抽象点之一 · G2.2)──
             // tick 源全案唯一 ⇒ 由组合根创建并暴露,BootRoot 从服务袋取(不再自 new);
@@ -2240,6 +2256,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: EmergencyChannelDriver 装配产出 null");
             if (patientVisuals == null)
                 throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
+            if (enemyVisuals == null)
+                throw new InvalidOperationException("Assemble: EnemyVisualSpawner 装配产出 null");
             if (casebookSource == null)
                 throw new InvalidOperationException("Assemble: CasebookVitalsSource 装配产出 null");
             if (examinationLedger == null)
@@ -2388,6 +2406,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,
+                                               enemyVisuals,
                                                worldSeed, vitals, deathCandidates,
                                                deathConsumer, deathCooldown, playerActors,
                                                casebookSource, examinationLedger, examineDriver,

@@ -285,6 +285,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public PatientVisualSpawner PatientVisualSpawner { get; }
 
+        /// <summary>敌人最小可见实体驱动(「完整可见」轮)—— 按花名册 spawn 人形/野兽视觉 +
+        /// 黄铜读数面片;由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。
+        /// <para>⚠️ 可空(部分 EditMode 装配不建);生产装配根保证非空。</para></summary>
+        public EnemyVisualSpawner EnemyVisualSpawner { get; }
+
         /// <summary>建造槽位的占位体块生成器(T22 批一 · `TD-building-05`)—— 按
         /// `WorldBuildSlotsDataSet` **一次性**铺完(静态几何,不挂 tick 边沿)。
         /// <para>⚠️ null 合法(provider 不可用 / 夹具不装世界数据):此时场景里没有结构体块,
@@ -600,6 +605,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          EmergencyManualDriver emergencyManualDriver,
                                          EmergencyChannelDriver emergencyChannel,
                                          PatientVisualSpawner patientVisualSpawner,
+                                         EnemyVisualSpawner enemyVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
                                          IDeathCandidateSink deathCandidates,
                                          DeathCandidateConsumer deathConsumer,
@@ -662,6 +668,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             EmergencyManualDriver = emergencyManualDriver;
             EmergencyChannel = emergencyChannel;
             PatientVisualSpawner = patientVisualSpawner;
+            EnemyVisualSpawner = enemyVisualSpawner;
             StructureVisualSpawner = structureVisualSpawner;
             VitalsService = vitalsService;
             DeathCandidates = deathCandidates;
