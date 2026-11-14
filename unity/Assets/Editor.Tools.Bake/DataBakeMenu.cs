@@ -806,20 +806,26 @@ namespace DaYiJingCheng.EditorTools.Bake
             for (int i = 0; i < result.Bound.Rows.Count; i++)
             {
                 BuildModulesBinder.ModuleRow row = result.Bound.Rows[i];
-                if (!categoryByOrdinal.TryGetValue(row.BuildItemKey, out ItemCategory cat))
+                // 🔁 2026-11-14(schema 3):逐**成本行**判外键 —— 多材料(帐篷 5 件)时
+                //    `BuildItemKey` 是 -1 哨兵,拿它判会把帐篷整行误报成「不存在」。
+                for (int c = 0; c < row.Costs.Count; c++)
                 {
-                    errors.Add(
-                        $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
-                        $"build_item_key={row.BuildItemKey} 在物品表里**不存在** —— " +
-                        "建造扣料会指向一个不存在的物品(20 的 fold 找不到该 instance 从而静默少扣)。" +
-                        "要么修正该 ordinal,要么在 item_database_items.json 里补该条目");
-                }
-                else if (cat != ItemCategory.BuildPart)
-                {
-                    errors.Add(
-                        $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
-                        $"build_item_key={row.BuildItemKey} 指向的物品 category = {cat}," +
-                        "要求 build_part(modular-building.md:250「模块目录挂在 category = build_part 的物品表」)");
+                    int key = row.Costs[c].ItemKey;
+                    if (!categoryByOrdinal.TryGetValue(key, out ItemCategory cat))
+                    {
+                        errors.Add(
+                            $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
+                            $"costs[{c}].item_key={key} 在物品表里**不存在** —— " +
+                            "建造扣料会指向一个不存在的物品(20 的 fold 找不到该 instance 从而静默少扣)。" +
+                            "要么修正该 ordinal,要么在 item_database_items.json 里补该条目");
+                    }
+                    else if (cat != ItemCategory.BuildPart)
+                    {
+                        errors.Add(
+                            $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
+                            $"costs[{c}].item_key={key} 指向的物品 category = {cat}," +
+                            "要求 build_part(modular-building.md:250「模块目录挂在 category = build_part 的物品表」)");
+                    }
                 }
             }
 

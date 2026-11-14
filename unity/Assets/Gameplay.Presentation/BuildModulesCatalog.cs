@@ -114,9 +114,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// ⚠️ `Refundable` 传 `int`(0/1),与 `ModuleDefinition.Refundable` 同型,不开布尔特例。
         /// ⚠️ `Cost` 传 `row.Cost`(`int` 计数;2026-10-25 TD-building-01 (b) 起)。
         /// ⚠️ `BuildItemKey` 传 `row.BuildItemKey`(2026-10-26 起;qty 就是 `Cost`,**不**另存)。
+        /// 🔁 2026-11-14(schema 3):额外传 `costs` 行集 —— **材料真源**。`Cost` 仍传总量
+        /// (与 `Σ row.Costs.Qty` 相等,构造器会断言,不符即抛)。
         /// </remarks>
         private static ModuleDefinition ToDefinition(in BuildModuleRow row)
         {
+            var costs = new ModuleCostLine[row.Costs.Count];
+            for (int i = 0; i < costs.Length; i++)
+                costs[i] = new ModuleCostLine(row.Costs[i].ItemKey, row.Costs[i].Qty);
+
             return new ModuleDefinition(
                 moduleId: row.ModuleId,
                 slotType: (SlotType)row.ModuleType,
@@ -124,7 +130,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 validOrientations: OnlyZeroDegrees,
                 cost: row.Cost,
                 buildItemKey: row.BuildItemKey,
-                refundable: row.Refundable);
+                refundable: row.Refundable,
+                costs: costs);
         }
 
         /// <summary>唯一的合法朝向集(作者态无该字段 ⇒ 只允许 0 度;见文件头注)。</summary>

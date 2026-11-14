@@ -10,7 +10,10 @@
 //     i32 row_count
 //     row_count × { i32 module_id; i32 module_type; str module_type_name; str furn_type;
 //                   i32 occupancy_count; occupancy_count × { i32 x; i32 y; i32 z };
-//                   i32 cost; i32 refundable }
+//                   i32 cost; i32 refundable;
+//                   i32 build_item_key;
+//                   i32 cost_count; cost_count × { i32 item_key; i32 qty } }
+//                 // ← schema 2(2026-10-26)追加 build_item_key;schema 3(2026-11-14)追加 costs 行集
 //
 // ⚠️ **行序 = `module_id` 升序**而非声明序 —— 承 clinic 侧「行序一律全序」的教训:
 //   声明序在作者重排 `modules[]` 时会静默改变字节流(而目录是**集合**,重排无信息)。
@@ -65,8 +68,15 @@ namespace DaYiJingCheng.EditorTools.Bake
                     w.Write(r.Refundable ? 1 : 0);
                     // ⚠️ 新增字段一律**追加在行尾**(schema 2 起):既有字段序一字不动 ——
                     //    这样「旧字段读错了」只可能来自装配错误,不来自我们挪了位置。
-                    //    新增的字段:build_item_key(2026-10-26,TD-inventory-01 前置)。
-                    w.Write(r.BuildItemKey);
+                    //    新增的字段:build_item_key(2026-10-26,TD-inventory-01 前置)·
+                    //    costs 行集(2026-11-14 schema 3,多材料)。
+                    w.Write(r.BuildItemKey);          // 单材料 = 那个 key;多材料 = -1(派生哨兵)
+                    w.Write(r.Costs.Count);
+                    for (int c = 0; c < r.Costs.Count; c++)
+                    {
+                        w.Write(r.Costs[c].ItemKey);
+                        w.Write(r.Costs[c].Qty);
+                    }
                 }
                 w.Flush();
                 return ClinicMachineCookedWriter.FinishHeader(

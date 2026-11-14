@@ -13,6 +13,8 @@
 //                   i32 occupancy_count; occupancy_count × { i32 x; i32 y; i32 z };
 //                   i32 cost; i32 refundable;
 //                   i32 build_item_key }        // ← schema 2 追加在**行尾**(2026-10-26)
+//                   i32 cost_count; cost_count × { i32 item_key; i32 qty } }
+//                                               // ← schema 3 追加(2026-11-14,多材料)
 //
 // ⚠️ **行序 = `module_id` 升序**(写方已排序;读方**不依赖**读入序做任何计算,
 //   与写方注释「行序一律全序」同口径)。
@@ -57,11 +59,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>相对锚点的占用格(本地坐标)。</summary>
         public readonly IReadOnlyList<WorldPos> OccupancyLocal;
 
-        /// <summary>建造消耗的物品(21a 物品表 ordinal;`category = build_part`)。
-        /// <para>🔁 2026-10-26 新增(schema 2)。数量 = <see cref="Cost"/>,不另存。</para></summary>
+        /// <summary>建造成本的行集(`item_key` × `qty`;**唯一**的材料真源)。
+        /// <para>🔁 2026-11-14 新增(schema 3)。单材料恒 1 行,≤ <see cref="BuildModulesCookedCodec.MaxCostLines"/> 行。</para></summary>
+        public readonly IReadOnlyList<(int ItemKey, int Qty)> Costs;
+
+        /// <summary>建造消耗的物品(**单材料**时的便捷读法;多材料 = -1,由写方派生)。</summary>
         public readonly int BuildItemKey;
 
-        /// <summary>建造成本(`cost`)。</summary>
+        /// <summary>建造成本(`cost`;= `Σ Costs[i].Qty`)。</summary>
         public readonly int Cost;
 
         /// <summary>是否可返还(1 = 是)。</summary>
@@ -71,6 +76,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public BuildModuleRow(int moduleId, int moduleType, string moduleTypeName, string furnType,
                               IReadOnlyList<WorldPos> occupancyLocal, int cost, int refundable,
                               int buildItemKey)
+            : this(moduleId, moduleType, moduleTypeName, furnType, occupancyLocal, cost, refundable,
+                   buildItemKey, null)
+        {
+        }
+
+        /// <summary>构造一行(带回成本行集;schema 3 的主路径)。</summary>
+        public BuildModuleRow(int moduleId, int moduleType, string moduleTypeName, string furnType,
+                              IReadOnlyList<WorldPos> occupancyLocal, int cost, int refundable,
+                              int buildItemKey, IReadOnlyList<(int ItemKey, int Qty)> costs)
         {
             ModuleId = moduleId;
             ModuleType = moduleType;
@@ -80,6 +94,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
             Cost = cost;
             Refundable = refundable;
             BuildItemKey = buildItemKey;
+            Costs = (costs != null && costs.Count > 0)
+                ? costs
+                : new[] { (ItemKey: buildItemKey, Qty: cost) };
         }
     }
 
@@ -117,7 +134,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <see cref="CookedCodec.ExpectedItemSchemaVersion"/> 的先例)。
         /// <para>🔁 <b>2026-10-26:1 → 2</b> —— 行尾追加 <c>build_item_key</c>。
         /// 2 之前的产物**没有**该字段,按旧布局读会把行尾当成下一个字段 ⇒ 必须硬拒而非容忍。</para></summary>
-        public const uint ExpectedSchemaVersion = 2u;
+        public const uint ExpectedSchemaVersion = 3u;
+
+        /// <summary>成本行集上限(与 `BuildModulesBinder.MaxCcostLines` 同值;P0 实测最大 = 5 行)。</summary>
+        public const int MaxCostLines = 10;
 
         /// <summary>读模块目录。</summary>
         /// <param name="bytes">cooked 字节(含 20 字节头)。</param>
@@ -163,8 +183,46 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     int refundable = r.ReadInt32();
                     // 2026-10-26 追加在行尾(见写方同款注);schema 2 起存在。
                     int buildItemKey = r.ReadInt32();
+
+                    // 🔁 2026-11-14(schema 3):成本行集(多材料)。行尾再追加,行内既有字段序未动。
+                    int costCount = r.ReadInt32();
+                    if (costCount < 1 || costCount > MaxCostLines)
+                        throw new InvalidDataException(
+                            $"[cooked] {ProductName} rows[{i}](module_id={moduleId}).cost_count = " +
+                            $"{costCount} —— 须在 [1, {MaxCostLines}](0 = 建造成本无真源)");
+
+                    var costs = new (int ItemKey, int Qty)[costCount];
+                    int sum = 0;
+                    for (int c = 0; c < costCount; c++)
+                    {
+                        int itemKey = r.ReadInt32();
+                        int qty = r.ReadInt32();
+                        if (itemKey < 0)
+                            throw new InvalidDataException(
+                                $"[cooked] {ProductName} rows[{i}].costs[{c}].item_key = {itemKey} —— 须 ≥ 0");
+                        if (qty < 1)
+                            throw new InvalidDataException(
+                                $"[cooked] {ProductName} rows[{i}].costs[{c}].qty = {qty} —— 须 ≥ 1");
+                        costs[c] = (itemKey, qty);
+                        sum += qty;
+                    }
+
+                    // 与 `cost` 总量一致(同一条量不许存两份;写方 Binder 已判,这里读侧再判一次 ——
+                    // 读到分叉的产物 = 扣料与返还各算一套,必须启动期失败)
+                    if (sum != cost)
+                        throw new InvalidDataException(
+                            $"[cooked] {ProductName} rows[{i}](module_id={moduleId}) costs 总计 " +
+                            $"{sum} ≠ cost={cost} —— 产物自身分叉");
+
+                    // 单材料时 `build_item_key` 必须就是那一行的 key;多材料时必须是 -1(派生哨兵)
+                    int derivedKey = costCount == 1 ? costs[0].ItemKey : -1;
+                    if (buildItemKey != derivedKey)
+                        throw new InvalidDataException(
+                            $"[cooked] {ProductName} rows[{i}](module_id={moduleId}) build_item_key = " +
+                            $"{buildItemKey},但按 costs 应为 {derivedKey} —— 写方未按派生规则落盘");
+
                     rows[i] = new BuildModuleRow(moduleId, moduleType, moduleTypeName, furnType,
-                                                 occupancy, cost, refundable, buildItemKey);
+                                                 occupancy, cost, refundable, buildItemKey, costs);
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);

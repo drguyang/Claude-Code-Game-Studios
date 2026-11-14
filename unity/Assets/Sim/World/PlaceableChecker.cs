@@ -134,6 +134,25 @@ namespace DaYiJingCheng.Sim.World
         }
     }
 
+    /// <summary>建造成本的一行(材料 × 份数)。
+    /// <para>🔁 <b>2026-11-14(schema 3)</b>:帐篷的组件是**五件不同物品**(门板 / 钉子 / 房梁 / 布 / 油布),
+    /// 单一 <c>build_item_key + cost</c> 表达不了 ⇒ 成本变成**行集**。</para></summary>
+    public readonly struct ModuleCostLine
+    {
+        /// <summary>物品表 ordinal(21a `item_database_items`)。</summary>
+        public readonly int ItemKey;
+
+        /// <summary>份数(≥ 1)。</summary>
+        public readonly int Qty;
+
+        /// <summary>构造一行成本。</summary>
+        public ModuleCostLine(int itemKey, int qty)
+        {
+            ItemKey = itemKey;
+            Qty = qty;
+        }
+    }
+
     /// <summary>模块定义(从目录加载,数据归 21a)。</summary>
     public readonly struct ModuleDefinition
     {
@@ -142,8 +161,12 @@ namespace DaYiJingCheng.Sim.World
         public readonly IReadOnlyList<WorldPos> LocalOccupancy;  // 相对锚点的占用格(本地坐标)
         public readonly int[] ValidOrientations;                  // 允许的朝向集合(度: 0/90/180/270)
         public readonly int Refundable;                           // 是否可返还(1=是, 0=否)
-        public readonly int Cost;                                 // 建造成本 cost(m)(int 计数,D-21-17 同型)
-        public readonly int BuildItemKey;                         // 建造消耗的物品(21a 物品表 ordinal;qty = Cost)
+        public readonly int Cost;                                 // 建造成本 cost(m) = Σ Costs[i].Qty(int 计数,D-21-17 同型)
+        public readonly int BuildItemKey;                         // **单材料**模块的建材 ordinal;多材料时 = -1
+        /// <summary>成本行集(**唯一**的材料真源;`Σ Qty == Cost`)。
+        /// <para>🔁 <b>2026-11-14(schema 3)</b>:单材料模块恒 1 行,多材料(帐篷 = 5 件)多行。
+        /// 扣料 / 返还 / 缺口提示一律走本字段;`BuildItemKey` 只作单材料时的便捷读法。</para></summary>
+        public readonly IReadOnlyList<ModuleCostLine> Costs;
 
         /// <summary>
         /// 构造模块定义。
@@ -154,6 +177,9 @@ namespace DaYiJingCheng.Sim.World
         /// <para>🔁 **2026-10-26(TD-inventory-01 前置)**:六字段 → 七字段,补 <paramref name="buildItemKey"/>。
         /// 它回答「这个模块消耗**哪个**物品」;数量仍是 <paramref name="cost"/>
         /// (`modular-building.md:429` 已定 `cost(m)` = 建造材料数,**不另存 qty**)。</para>
+        /// <para>🔁 **2026-11-14(schema 3)**:新增可选 <paramref name="costs"/>。缺省 ⇒
+        /// 由 `(buildItemKey, cost)` **派生**一行 —— 既有单材料调用点与夹具**一行不改**。
+        /// 显式传入时校验 `Σ Qty == cost`,不符即抛(两处真源不许静默分叉)。</para>
         /// </summary>
         public ModuleDefinition(
             int moduleId,
@@ -162,7 +188,8 @@ namespace DaYiJingCheng.Sim.World
             int[] validOrientations,
             int cost,
             int buildItemKey,
-            int refundable = 1)
+            int refundable = 1,
+            IReadOnlyList<ModuleCostLine> costs = null)
         {
             ModuleId = moduleId;
             SlotType = slotType;
@@ -171,6 +198,22 @@ namespace DaYiJingCheng.Sim.World
             Refundable = refundable;
             Cost = cost;
             BuildItemKey = buildItemKey;
+
+            if (costs == null || costs.Count == 0)
+            {
+                // 单材料派生路径:老调用点(含全部既有夹具)走这里
+                Costs = new[] { new ModuleCostLine(buildItemKey, cost) };
+            }
+            else
+            {
+                int sum = 0;
+                for (int i = 0; i < costs.Count; i++) sum += costs[i].Qty;
+                if (sum != cost)
+                    throw new ArgumentException(
+                        $"module_id={moduleId} 的 costs 总计 {sum} ≠ cost={cost} —— " +
+                        "两处真源分叉会让「扣料」与「返还」算出不同的量(拒绝静默)", nameof(costs));
+                Costs = costs;
+            }
         }
 
         /// <summary>锚点格是否在 LocalOccupancy 中(目录校验 AC-23-08)。</summary>

@@ -43,12 +43,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         internal static readonly string[] RootKeys = { "schema_version", "_note", "modules" };
 
         /// <summary>行对象白名单。</summary>
-        /// <remarks>🔁 <b>2026-10-26(TD-inventory-01 前置):六字段 → 七字段,补 <c>build_item_key</c></b>。
-        /// 它补的是「该模块消耗**哪个** <c>build_part</c>」—— 此前 23 只说「需要 module_id 对应的
-        /// build_part 条目」而**无任何数据把 module_id 映到物品**(全库零引用),20 的建造扣料
-        /// (fold 的 <c>StructurePlaced</c> 支)因此无法定位扣哪一栈。</remarks>
+        /// <remarks>🔁 <b>2026-11-14(schema 3):<c>build_item_key</c> → <c>costs</c></b>。
+        /// 帐篷的组件是**五件不同物品**(`PA-01…PA-05` 的产出),单一 `build_item_key` 表达不了;
+        /// `costs` = `[{item_key, qty}, …]`,**`Σ qty` 必须等于 `cost`**(同一条总量,不存第二份)。
+        /// ⚠️ <c>build_item_key</c> 从此**不在白名单内** —— 留着它等于留一条静默的第二真源。</remarks>
         internal static readonly string[] RowKeys =
-            { "module_id", "module_type", "furn_type", "build_item_key", "occupancy_local", "cost", "refundable" };
+            { "module_id", "module_type", "furn_type", "costs", "occupancy_local", "cost", "refundable" };
 
         /// <summary>槽位类型名 → 枚举值(<c>BuildSlotCatalog.SlotType</c> 的**镜像**,不是第二真源)。
         /// <para>⚠️ 本表**刻意不含 `None`** —— `None` 是「无效 / 未分配」哨兵,不是合法的模块类型。
@@ -85,10 +85,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>占用格(相对锚点的整数偏移;`(0,0,0)` 必在其中)。</summary>
             public readonly IReadOnlyList<(int X, int Y, int Z)> OccupancyLocal;
 
-            /// <summary>建造消耗的物品(21a 物品表的 **ordinal**;`category = build_part`)。
-            /// <para>🔁 <b>2026-10-26 新增</b>(TD-inventory-01 前置)。⚠️ 数量**不**在此处 ——
-            /// 数量 = <see cref="Cost"/>(<c>modular-building.md:429</c> 已定 `cost(m)` = 建造材料数)。
-            /// 存两份会让「改一处忘改另一处」变成静默双扣/少扣。</para></summary>
+            /// <summary>建造成本的行集(`item_key` × `qty`;**唯一**的材料真源)。
+            /// <para>🔁 <b>2026-11-14(schema 3)新增</b>。单材料模块恒 1 行;多材料(帐篷 = 5 件)多行。
+            /// `Σ qty == ` <see cref="Cost"/> 由 <c>ParseRow</c> 断言。</para></summary>
+            public readonly IReadOnlyList<(int ItemKey, int Qty)> Costs;
+
+            /// <summary>建造消耗的物品(**单材料**时的便捷读法;多材料 = -1)。
+            /// <para>⚠️ 它不是真源 —— 真源是 <see cref="Costs"/>;本字段由它派生。</para></summary>
             public readonly int BuildItemKey;
 
             /// <summary>建造材料数(int ≥ 1;`F-23-3` 的 `cost(m)`)。</summary>
@@ -102,6 +105,16 @@ namespace DaYiJingCheng.EditorTools.Bake
                 int moduleId, int moduleType, string moduleTypeName, string furnType,
                 IReadOnlyList<(int, int, int)> occupancyLocal, int cost, bool refundable,
                 int buildItemKey)
+                : this(moduleId, moduleType, moduleTypeName, furnType, occupancyLocal, cost, refundable,
+                       buildItemKey, null)
+            {
+            }
+
+            /// <summary>构造一行(**行集**成本版;schema 3 的主路径)。</summary>
+            public ModuleRow(
+                int moduleId, int moduleType, string moduleTypeName, string furnType,
+                IReadOnlyList<(int, int, int)> occupancyLocal, int cost, bool refundable,
+                int buildItemKey, IReadOnlyList<(int ItemKey, int Qty)> costs)
             {
                 ModuleId = moduleId;
                 ModuleType = moduleType;
@@ -110,7 +123,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                 OccupancyLocal = occupancyLocal;
                 Cost = cost;
                 Refundable = refundable;
-                BuildItemKey = buildItemKey;
+                Costs = (costs != null && costs.Count > 0)
+                    ? costs
+                    : new[] { (ItemKey: buildItemKey, Qty: cost) };
+                // 派生,不是第二真源(多材料时没有「那一个」item_key,故 -1)
+                BuildItemKey = Costs.Count == 1 ? Costs[0].ItemKey : -1;
             }
         }
 
@@ -208,8 +225,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             var occupancy = new List<(int, int, int)>();
             if (!TryReadOccupancy(row, where, occupancy, errors)) ok = false;
 
-            int buildItemKey = 0;
-            if (!TryReadBuildItemKey(row, where, out buildItemKey, errors)) ok = false;
+            var costs = new List<(int ItemKey, int Qty)>();
+            if (!TryReadCosts(row, where, costs, errors)) ok = false;
 
             int cost = 0;
             if (!TryReadCost(row, where, out cost, errors)) ok = false;
@@ -217,16 +234,33 @@ namespace DaYiJingCheng.EditorTools.Bake
             bool refundable = false;
             if (!TryReadRefundable(row, where, out refundable, errors)) ok = false;
 
-            // ③ `refundable ⇒ cost ≥ ⌈1/R⌉`(EC-23-08;P0 R=1 时自动满足,但门必须在)
+            // ②′ `Σ costs.qty == cost`(2026-11-14 schema 3;同一条总量不许存两份)
+            if (ok)
+            {
+                int sum = 0;
+                for (int k = 0; k < costs.Count; k++) sum += costs[k].Qty;
+                if (sum != cost)
+                {
+                    errors.Add(
+                        $"{FileName}:{where}(module_id={moduleId}) costs 总计 {sum} ≠ cost={cost} —— " +
+                        "总量两处各写一次必然分叉(扣料用行集、返还用总量 ⇒ 建一次少扣或多返)");
+                    ok = false;
+                }
+            }
+
+            // ③ `refundable ⇒ 每行 qty ≥ ⌈1/R⌉`(EC-23-08;P0 R=1 时自动满足,但门必须在)
+            //    🔁 2026-11-14:判据从「总量」收紧到**逐行** —— 多材料时总量够而单行不够,
+            //    那一件仍会被截成 0 返还(「五件里返四件」正是这条要挡的形态)。
             if (ok && refundable)
             {
                 long minCost = (65536L + DemolishRefundRatioRaw - 1) / DemolishRefundRatioRaw;
-                if (cost < minCost)
+                for (int k = 0; k < costs.Count; k++)
                 {
+                    if (costs[k].Qty >= minCost) continue;
                     errors.Add(
-                        $"{FileName}:{where}(module_id={moduleId}) refundable=true 但 cost={cost} < " +
-                        $"⌈1/R⌉={minCost} —— 可返还模块的返还额会被截成 0(EC-23-08);" +
-                        "要么抬高 cost,要么置 refundable=false(消耗性件须显式声明,不是 bug)");
+                        $"{FileName}:{where}(module_id={moduleId}) refundable=true 但 costs[{k}]." +
+                        $"qty={costs[k].Qty} < ⌈1/R⌉={minCost} —— 该件的返还额会被截成 0(EC-23-08);" +
+                        "要么抬高 qty,要么置 refundable=false(消耗性件须显式声明,不是 bug)");
                     ok = false;
                 }
             }
@@ -242,7 +276,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             return new ModuleRow(
-                moduleId, moduleType, moduleTypeName, furnType, occupancy, cost, refundable, buildItemKey);
+                moduleId, moduleType, moduleTypeName, furnType, occupancy, cost, refundable,
+                buildItemKey: -1, costs: costs);
         }
 
         /// <summary>`module_id` —— 正整数(载荷同型 i32)。</summary>
@@ -321,41 +356,88 @@ namespace DaYiJingCheng.EditorTools.Bake
             return true;
         }
 
-        /// <summary>`build_item_key` —— **JSON 整数**(21a 物品表的 ordinal;非负)。
+        /// <summary>`costs` —— `[{item_key, qty}, …]`,**非空数组**(2026-11-14 schema 3)。
         /// <para>⚠️ 与 `module_id` 一样是 i32 载荷形,写成字符串会让两层无法对接。</para>
-        /// <para>⚠️ 本字段**只做域校验**;「该 ordinal 在物品表里存在且 <c>category = build_part</c>」
-        /// 是跨表门,归 <c>DataBakeMenu.BakeBuildModulesCore</c>(与 `furn_type ⊆ FURN_TYPES` 同位置、
-        /// 同理由:跨表判据只有在能同时看见两张表的调用点才成立,放进 Binder 会变成
-        /// 「表在哪都不知道还想判外键」)。</para>
+        /// <para>⚠️ 本字段**只做域校验**(形状 / 非空 / 重复键 / 域);「该 ordinal 在物品表里存在且
+        /// <c>category = build_part</c>」是跨表门,归 <c>DataBakeMenu.BakeBuildModulesCore</c>
+        /// (与 `furn_type ⊆ FURN_TYPES` 同位置、同理由:跨表判据只有在能同时看见两张表的调用点才成立)。</para>
         /// </summary>
-        private static bool TryReadBuildItemKey(
-            JsonNode row, string where, out int buildItemKey, List<string> errors)
+        private static bool TryReadCosts(
+            JsonNode row, string where, List<(int ItemKey, int Qty)> costs, List<string> errors)
         {
-            buildItemKey = 0;
-            if (!row.TryGet("build_item_key", out JsonNode n))
+            if (!row.TryGet("costs", out JsonNode n))
             {
                 errors.Add(
-                    $"{FileName}:{where} 缺 build_item_key —— 没有它就不知道该模块消耗哪个 " +
-                    "build_part 物品(20 的建造扣料无法定位扣哪一栈)");
+                    $"{FileName}:{where} 缺 costs —— 没有它就不知道该模块消耗哪些 " +
+                    "build_part 物品(20 的建造扣料无法定位扣哪几栈)");
                 return false;
             }
-            if (n.Kind != JsonNodeKind.Integer)
+            if (n.Kind != JsonNodeKind.Array)
+            {
+                errors.Add($"{FileName}:{where}.costs 须为数组(实得 {n.Kind}) —— 单材料也写一行");
+                return false;
+            }
+            if (n.Items.Count == 0)
             {
                 errors.Add(
-                    $"{FileName}:{where}.build_item_key 须为 JSON 整数(实得 {n.Kind}={n.RawText}) —— " +
-                    "它是物品表的 ordinal(i32 载荷形),写成字符串会让两层无法对接");
+                    $"{FileName}:{where}.costs 为空 —— 「不消耗材料」不是本表的合法形态;" +
+                    "真要零成本请显式声明并另裁(cost ≥ 1,modular-building.md:507)");
                 return false;
             }
-            if (n.Int < 0 || n.Int > int.MaxValue)
+            if (n.Items.Count > MaxCcostLines)
             {
                 errors.Add(
-                    $"{FileName}:{where}.build_item_key={n.Int} 须在 [0, {int.MaxValue}] —— " +
-                    "负号在物品表里是「未赋值 ordinal」的哨兵,不是合法键");
+                    $"{FileName}:{where}.costs 有 {n.Items.Count} 行,超过上限 {MaxCcostLines} —— " +
+                    "成本行集会被原样写进 cooked,体量爆炸前先挡");
                 return false;
             }
-            buildItemKey = (int)n.Int;
+
+            var seen = new HashSet<int>();
+            for (int i = 0; i < n.Items.Count; i++)
+            {
+                JsonNode line = n.Items[i];
+                string w = $"{where}.costs[{i}]";
+                if (line.Kind != JsonNodeKind.Object)
+                {
+                    errors.Add($"{FileName}:{w} 须为对象(实得 {line.Kind})");
+                    return false;
+                }
+                if (!line.TryGet("item_key", out JsonNode k) || k.Kind != JsonNodeKind.Integer)
+                {
+                    errors.Add($"{FileName}:{w}.item_key 缺失或非 JSON 整数 —— 它是物品表 ordinal(i32)");
+                    return false;
+                }
+                if (k.Int < 0 || k.Int > int.MaxValue)
+                {
+                    errors.Add(
+                        $"{FileName}:{w}.item_key={k.Int} 须在 [0, {int.MaxValue}] —— " +
+                        "负号在物品表里是「未赋值 ordinal」的哨兵,不是合法键");
+                    return false;
+                }
+                if (!line.TryGet("qty", out JsonNode q) || q.Kind != JsonNodeKind.Integer)
+                {
+                    errors.Add($"{FileName}:{w}.qty 缺失或非 JSON 整数 —— qty 是 int 计数(D-21-17)");
+                    return false;
+                }
+                if (q.Int < 1 || q.Int > int.MaxValue)
+                {
+                    errors.Add($"{FileName}:{w}.qty={q.Int} ∉ [1, {int.MaxValue}] —— 每行至少 1 件");
+                    return false;
+                }
+                if (!seen.Add((int)k.Int))
+                {
+                    errors.Add(
+                        $"{FileName}:{w}.item_key={(int)k.Int} 在同一模块内重复 —— " +
+                        "同一件写两行会让「扣哪一栈」取决于行序(静默);请合并成一行");
+                    return false;
+                }
+                costs.Add(((int)k.Int, (int)q.Int));
+            }
             return true;
         }
+
+        /// <summary>`costs` 行数上限(P0 实测最大 = 帐篷 5 行,留一倍余量)。</summary>
+        internal const int MaxCcostLines = 10;
 
         /// <summary>`occupancy_local` —— `[[x,y,z], …]`;须含 `(0,0,0)`(评审 B5)。</summary>
         private static bool TryReadOccupancy(

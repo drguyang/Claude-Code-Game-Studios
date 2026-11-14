@@ -439,13 +439,20 @@ namespace DaYiJingCheng.Sim.World
             // refundable = 0 ⇒ 消耗性家具,无返还(EC-23-08 的 `refundable = false` 档)
             if (def.Refundable == 0) return;
 
-            int refund = RefundCalculator.CalculateRefund(def.Cost, demolishRefundRatio);
-            if (refund <= 0) return;   // 零返还 ≠ 吞返还(qty=0 的实例不该存在)
+            // 🔁 **2026-11-14(schema 3)**:返还**逐件**算 —— 帐篷的五个组件不是同一个 ordinal,
+            //    用 `Cost` 合成一个数再返单一 item_key 会把五件折成一件。
+            //    `RefundCalculator.CalculateRefund` 仍按**每件自己的 qty** 走同一条公式。
+            for (int i = 0; i < def.Costs.Count; i++)
+            {
+                ModuleCostLine line = def.Costs[i];
+                int refund = RefundCalculator.CalculateRefund(line.Qty, demolishRefundRatio);
+                if (refund <= 0) continue;   // 零返还 ≠ 吞返还(qty=0 的实例不该存在)
 
-            // ⚠️ **自有写者自铸**:本类持 `DropEventWriter`(它持 `IIdAuthority`),
-            //    调 `RecordSpawned` 让 20 侧铸号 —— 23 不碰 `IIdAuthority`,
-            //    避免出现第二个铸造点(承 S20-15 R-3 双铸造点冲突的订正)。
-            _dropWriter.RecordSpawned(tick, inst.Anchor, def.BuildItemKey, refund);
+                // ⚠️ **自有写者自铸**:本类持 `DropEventWriter`(它持 `IIdAuthority`),
+                //    调 `RecordSpawned` 让 20 侧铸号 —— 23 不碰 `IIdAuthority`,
+                //    避免出现第二个铸造点(承 S20-15 R-3 双铸造点冲突的订正)。
+                _dropWriter.RecordSpawned(tick, inst.Anchor, line.ItemKey, refund);
+            }
         }
 
         /// <summary>修改模块(朝向/变体,Append StructureModified 事件)。</summary>

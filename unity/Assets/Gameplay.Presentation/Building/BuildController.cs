@@ -178,9 +178,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         {
             BuildMaterialPlanResult r = BuildMaterialPlanner.PlanForModule(
                 moduleId, _owner.Owner, _projection(), _modules, out BuildMaterialPlan plan);
-            if (r != BuildMaterialPlanResult.Success) return 0;
-            int missing = plan.RequiredQty - plan.AvailableQty;
-            return missing > 0 ? missing : 0;
+            // 模块不在目录 ⇒ 没有缺口可报(这是「无从算」,不是「差 0 件」)
+            if (r == BuildMaterialPlanResult.ModuleNotFound) return 0;
+
+            // 🔁 **2026-11-14 修一处此前未被夹具覆盖的缺陷**:原写法是
+            //    `if (r != Success) return 0;` —— 而「材料不够」恰恰就是 NotEnoughMaterial
+            //    ⇒ 缺口**恒 0** ⇒ P3-02a 的「还缺 N 件」实际上永远是「不播」。
+            //    旧夹具只测了文案格式(`build_shortfall_hint_test`),没测控制器算得对不对,
+            //    所以这条一直是绿的(假绿形态 F1:夹具自造断言、生产语义无人覆盖)。
+            //    现改为**逐件缺口求和** —— 多材料(帐篷 5 件)下它是唯一有意义的量。
+            int missing = 0;
+            for (int i = 0; i < plan.MissingByItem.Length; i++)
+                missing += plan.MissingByItem[i].Qty;
+            if (missing > 0) return missing;
+
+            int fallback = plan.RequiredQty - plan.AvailableQty;
+            return fallback > 0 ? fallback : 0;
         }
 
         /// <summary>

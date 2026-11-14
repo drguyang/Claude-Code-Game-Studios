@@ -17,7 +17,12 @@
         { "ordinal": 5, "base_id": "salicylic_acid", "processing_state": "extracted" },
         { "ordinal": 6, "base_id": "iron_scalpel", "processing_state": "raw" },
         { "ordinal": 7, "base_id": "wooden_splint", "processing_state": "raw" },
-        { "ordinal": 8, "base_id": "wooden_post", "processing_state": "raw" }
+        { "ordinal": 8, "base_id": "wooden_post", "processing_state": "raw" },
+        { "ordinal": 9, "base_id": "door_panel", "processing_state": "raw" },
+        { "ordinal": 10, "base_id": "iron_nail", "processing_state": "raw" },
+        { "ordinal": 11, "base_id": "roof_beam", "processing_state": "raw" },
+        { "ordinal": 12, "base_id": "cloth_bolt", "processing_state": "raw" },
+        { "ordinal": 13, "base_id": "oil_cloth", "processing_state": "raw" }
       ]
     },
     {

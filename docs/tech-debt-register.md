@@ -494,7 +494,7 @@
 | `TD-building-04` | `modular-building` | closed | **N** | R1 |
 | `TD-building-05` | `modular-building` | partial | **Y** | R1 |
 | `TD-building-06` | `modular-building` | closed | **Y** | R1 |
-| `TD-building-07` | `modular-building` | open | **Y** | R4 |
+| `TD-building-07` | `modular-building` | partial | **Y** | R4 |
 | `TD-ci-02` | `（跨 epic · 治理／数据管线菜单 -executeMethod 前置步）` | closed | **N** | R3-裁 |
 | `TD-skeuo-01` | `skeuomorphic-ui` | closed | **N** | R4 |
 | `TD-skeuo-02` | `skeuomorphic-ui` | closed | **N** | R4 |
@@ -13365,6 +13365,29 @@ M5 丢 `TopOffsetY` ⇒ 1 红。**M3 首枪是空 if(变异打错靶,0 红),M3b 
 | ~~乙 · 开局携带~~ | 新局给玩家 5 根木柱 | **未采纳** |
 | ~~丙 · 接通合成~~ | 实现 craft driver | **未采纳** |
 | **丁 · 五条支线奇遇** ✅ 已裁 | 帐篷改为**五件不同组件**(门板 / 钉子 / 房梁 / 布 / 油布),各由一条**支线奇遇**授予:三条采集型(在废墟 A 采 6 次 / 废墟 B 采 4 次 / 七里路采 5 次),两条战斗型(兵痞 1 / 野狗 2,后者走 52 随机事件)。判据只数**次数**、不绑定品种 ⇒ **不碰 `AC-17-01b`**;掉落仍是普通材料,组件在达成条件那一次与普通材料**同时**到手 | 设计面已落盘(`design/levels/prologue-beat-script.md` §3.1 PA-01…PA-05)。实现面四件:① 五件组件的数据行;② 帐篷**多材料扣料**(`build_modules` schema 2→3 + codec + 金标准 + 规划器 + 返还);③ **奇遇链 N5**(判据 / 事件,`Kind` 归属须另开 ADR);④ 27 的遭遇实体接通(PA-04 / PA-05 的前置,用户同批裁定「先接 27」) |
+
+#### ✅ 2026-11-14 实现轮(第 0 / 1 / 2 件已落 · 状态 `open` → **`partial`**)
+
+用户裁定「0 + 1 + 2 一起做」。三件逐条落盘:
+
+| # | 件 | 落点 | 判据 |
+|---|---|---|---|
+| **0** | 删 5 个非法木柱资源点 | `Editor.Tools.Level/PrologueLevel.cs`(方法体内注保留删除理由)+ 重导出 `world_resources.json` + 重烘 | 关卡资源点 = **3 行**(全是止血草,`item_key = 4`);按 E 的抛异常点消失 |
+| **1** | 五件组件的数据行 | `assets/data/item_database_items.json` ordinal **9–13**(门板 `door_panel` / 钉子 `iron_nail` / 房梁 `roof_beam` / 布 `cloth_bolt` / 油布 `oil_cloth`,全 `category = build_part`)+ `_ordinal_baseline.json` 同步 | 重烘 `item_database_items.cooked.bytes` |
+| **2** | 多材料扣料 | `build_modules.json` **schema 2→3**(`build_item_key` → `costs[]`)+ binder / writer / codec / catalog / `ModuleDefinition.Costs` / `BuildMaterialPlanner.PlanForCosts` / `InventoryFold.ApplyBuildCost` / 拆除返还逐件 / 缺口提示 | 帐篷 = 五件各 1(`Σ qty = cost = 5`);单材料模块路径**零改动**(构造器派生单行) |
+
+**同轮抓到并修掉一处此前未被夹具覆盖的缺陷**:`BuildController.MissingStockOf` 原写
+`if (r != Success) return 0;` —— 而「材料不够」正是 `NotEnoughMaterial` ⇒ **缺口恒 0** ⇒
+N4 的「还缺 N 件」实际上永远不播。旧夹具 `build_shortfall_hint_test` 只测文案格式,
+没测控制器算得对不对(假绿形态 F1)。现改为逐件缺口求和。
+
+**判据**:新夹具 `Tests/EditMode/ModularBuilding/multi_material_cost_test.cs` **6 条**
+(真实产物 2 条 + 纯函数 4 条)。证伪两发各红、SHA-256 逐字节还原:
+M1 `PlanForCostsCore` 忽略「某一件不够」⇒ 2 红;M2 缺口不点名(恒报第一件)⇒ 2 红。
+
+**仍未落(本条维持 `partial`)**:③ N5 奇遇链(判据 / 事件 / `Kind` 归属须另开 ADR)·
+④ 27 的遭遇实体接通(PA-04 / PA-05 的前置)。**在 ③ 之前,五件组件没有任何授予点** ——
+数据与扣料就位 ≠ 玩家拿得到。
 
 #### 本债**不**主张的事
 

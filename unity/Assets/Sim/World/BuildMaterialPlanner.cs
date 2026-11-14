@@ -69,15 +69,36 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>同 `item_key` 同 owner 的**可用总份数**(不论是否凑够 —— 缺口消息要用它)。</summary>
         public readonly int AvailableQty;
 
-        /// <summary>是否凑够(<see cref="RequiredQty"/> ≤ <see cref="AvailableQty"/>)。
-        /// `RequiredQty ≤ 0` 的模块恒 true(不扣料)。</summary>
-        public bool IsComplete => RequiredQty <= AvailableQty;
+        /// <summary>每件材料的缺口(`Qty` = 还差多少;只在**不完整**时非空)。
+        /// <para>🔁 <b>2026-11-14</b>:多材料模块(帐篷 = 5 件)的缺口必须**逐件**给出 ——
+        /// 一个总数说不出「还缺哪几件」,而 P3-02a 的提示要的就是名字。</para></summary>
+        public readonly ModuleCostLine[] MissingByItem;
 
-        internal BuildMaterialPlan(ConsumeLine[] lines, int requiredQty, int availableQty)
+        private readonly bool _complete;
+
+        /// <summary>是否凑够。单材料 = `RequiredQty ≤ AvailableQty`;多材料 = **每一件**都够。</summary>
+        public bool IsComplete => _complete;
+
+        internal BuildMaterialPlan(ConsumeLine[] lines, int requiredQty, int availableQty,
+                                   ModuleCostLine[] missingByItem = null)
         {
             Lines = lines;
             RequiredQty = requiredQty;
             AvailableQty = availableQty;
+            MissingByItem = missingByItem ?? Array.Empty<ModuleCostLine>();
+            // 单材料路径的判据(多材料由 PlanForCosts 显式覆盖)
+            _complete = requiredQty <= availableQty;
+        }
+
+        /// <summary>多材料路径的构造(完整性由调用方逐件判定)。</summary>
+        internal BuildMaterialPlan(ConsumeLine[] lines, int requiredQty, int availableQty,
+                                   bool complete, ModuleCostLine[] missingByItem)
+        {
+            Lines = lines;
+            RequiredQty = requiredQty;
+            AvailableQty = availableQty;
+            MissingByItem = missingByItem ?? Array.Empty<ModuleCostLine>();
+            _complete = complete;
         }
 
         /// <summary>空计划(= 不需要材料,或未凑够且已置空)。</summary>
@@ -148,8 +169,12 @@ namespace DaYiJingCheng.Sim.World
                 return new BuildMaterialPlan(Array.Empty<ConsumeLine>(), need, available);
 
             // 不够 ⇒ **整手拒绝**,不返回半份计划(规则九 Edge Case:不部分扣)。
+            // 🔁 2026-11-14:同时填**逐件缺口** —— 上层(缺料提示)要的是「还差多少件」,
+            //    单靠 `Required − Available` 在多材料下没有意义(跨物品求和)。
             if (available < need)
-                return new BuildMaterialPlan(Array.Empty<ConsumeLine>(), need, available);
+                return new BuildMaterialPlan(Array.Empty<ConsumeLine>(), need, available,
+                                             complete: false,
+                                             missingByItem: new[] { new ModuleCostLine(itemOrdinal, need - available) });
 
             var lines = new List<ConsumeLine>(ids.Count);
             int remaining = need;
@@ -191,10 +216,86 @@ namespace DaYiJingCheng.Sim.World
             }
 
             ModuleDefinition def = defOpt.Value;
-            plan = Plan(owner, def.BuildItemKey, def.Cost, projection);
+            plan = PlanForCosts(owner, def.Costs, projection);
             return plan.IsComplete
                 ? BuildMaterialPlanResult.Success
                 : BuildMaterialPlanResult.NotEnoughMaterial;
+        }
+
+        /// <summary>
+        /// 按**成本行集**选料(写前路径;多材料模块的唯一入口)。
+        /// </summary>
+        /// <param name="owner">扣料归属。</param>
+        /// <param name="costs">成本行集(`ModuleDefinition.Costs`;`Σ Qty == Cost` 由定义侧保证)。</param>
+        /// <param name="projection">库存投影(切点 = 本次建造**之前**)。</param>
+        /// <remarks>
+        /// <para><b>逐件判定,整手拒绝</b>:任一件不够 ⇒ `Lines` 为空(规则九「不部分扣」)。
+        /// 每件各自走 <see cref="Plan(int,int,int,InventoryProjection)"/> —— 与单材料路径**同一个**
+        /// 贪心,不写第二份。</para>
+        /// <para><see cref="BuildMaterialPlan.MissingByItem"/> 只在不够时填,逐件给出「还差多少」。</para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="projection"/> 为 null。</exception>
+        public static BuildMaterialPlan PlanForCosts(int owner, IReadOnlyList<ModuleCostLine> costs,
+                                                     InventoryProjection projection)
+        {
+            if (projection == null)
+                throw new ArgumentNullException(nameof(projection),
+                    "未传入库存投影 —— 拒绝以「没有材料」冒充「材料够」");
+            return PlanForCostsCore(owner, costs,
+                (itemKey, qty) => Plan(owner, itemKey, qty, projection));
+        }
+
+        /// <summary>按成本行集选料(**行表**版;fold 的重建路径 —— 与投影版同一核心)。</summary>
+        /// <param name="owner">扣料归属。</param>
+        /// <param name="costs">成本行集。</param>
+        /// <param name="rows">库存行表(键 = `instance_id`)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="rows"/> 为 null。</exception>
+        public static BuildMaterialPlan PlanForCosts(int owner, IReadOnlyList<ModuleCostLine> costs,
+                                                     IReadOnlyDictionary<long, InventoryRow> rows)
+        {
+            if (rows == null)
+                throw new ArgumentNullException(nameof(rows),
+                    "未传入库存行表 —— 拒绝以空表冒充「材料为空」");
+            return PlanForCostsCore(owner, costs,
+                (itemKey, qty) => Plan(owner, itemKey, qty, rows));
+        }
+
+        private static BuildMaterialPlan PlanForCostsCore(
+            int owner, IReadOnlyList<ModuleCostLine> costs, Func<int, int, BuildMaterialPlan> planOne)
+        {
+            if (costs == null || costs.Count == 0) return BuildMaterialPlan.Empty;
+
+            // 单材料 ⇒ 走原路径,保住既有的 `AvailableQty` 语义(既有夹具读它)。
+            if (costs.Count == 1)
+                return planOne(costs[0].ItemKey, costs[0].Qty);
+
+            var allLines = new List<ConsumeLine>();
+            var missing = new List<ModuleCostLine>();
+            int requiredTotal = 0;
+            int availableTotal = 0;
+            bool complete = true;
+
+            for (int i = 0; i < costs.Count; i++)
+            {
+                BuildMaterialPlan part = planOne(costs[i].ItemKey, costs[i].Qty);
+                requiredTotal += part.RequiredQty;
+                availableTotal += part.AvailableQty;
+                if (!part.IsComplete)
+                {
+                    complete = false;
+                    missing.Add(new ModuleCostLine(costs[i].ItemKey,
+                        costs[i].Qty - part.AvailableQty));
+                    continue;
+                }
+                allLines.AddRange(part.Lines);
+            }
+
+            if (!complete)
+                return new BuildMaterialPlan(Array.Empty<ConsumeLine>(), requiredTotal, availableTotal,
+                                             false, missing.ToArray());
+
+            return new BuildMaterialPlan(allLines.ToArray(), requiredTotal, availableTotal,
+                                         true, Array.Empty<ModuleCostLine>());
         }
     }
 }

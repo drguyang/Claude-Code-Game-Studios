@@ -1032,11 +1032,9 @@ namespace DaYiJingCheng.Sim
             }
 
             ModuleDefinition def = context.Modules.GetModuleDefinition(p.ModuleId).Value;
-            int need = def.Cost;
-            int itemOrdinal = def.BuildItemKey;
             int owner = context.SolePlayer.Value;
 
-            if (need <= 0) return;      // cost 为 0 的模块不扣料(目录 AC 已约束 cost ≥ 1,流里出现 0 不扣也不错)
+            if (def.Cost <= 0) return;  // cost 为 0 的模块不扣料(目录 AC 已约束 cost ≥ 1,流里出现 0 不扣也不错)
 
             // ── 规则六兜底序(同 item_key 多栈按 instance_id 升序)────────────────
             // 🔁 **2026-10-28(S20-19)**:选料算法改为**唯一实现点**
@@ -1044,13 +1042,22 @@ namespace DaYiJingCheng.Sim
             //    用的是同一函数。两条路径各写一份贪心 ⇒ 分歧时「主机验过 X 份、fold 扣了 Y 份」,
             //    而两边测试各自全绿(静默的材料凭空增减)。本行起两处同源。
             // ⚠️ 语义逐字不变:候选集 = 同 owner + 同 ordinal + qty > 0;不够则**整手不扣**。
-            BuildMaterialPlan plan = BuildMaterialPlanner.Plan(owner, itemOrdinal, need, rows);
+            // 🔁 **2026-11-14(schema 3)**:入口由单材料 `Plan` 换成 `PlanForCosts` ——
+            //    帐篷的五个组件**不是同一个 ordinal**,逐件各走那同一个贪心。
+            BuildMaterialPlan plan = BuildMaterialPlanner.PlanForCosts(owner, def.Costs, rows);
 
             if (!plan.IsComplete)
             {
+                var lacking = new System.Text.StringBuilder();
+                for (int i = 0; i < plan.MissingByItem.Length; i++)
+                {
+                    if (lacking.Length > 0) lacking.Append(", ");
+                    lacking.Append("item_key=").Append(plan.MissingByItem[i].ItemKey)
+                           .Append(" 缺 ").Append(plan.MissingByItem[i].Qty);
+                }
                 gaps.Add(Gap(InventoryFoldGapKind.BuildCostExceedsHolding, kind, at, 0L,
-                    "structure_id=" + p.StructureId + " 需 " + need + " 份 item_key=" + itemOrdinal +
-                    ",而 actor=" + owner + " 名下只有 " + plan.AvailableQty + " 份 —— " +
+                    "structure_id=" + p.StructureId + " 需 " + def.Cost + " 份(" + lacking +
+                    "),actor=" + owner + " 名下不足 —— " +
                     "主机应整体拒绝、世界流零事件;流里出现即畸形"));
                 return;
             }

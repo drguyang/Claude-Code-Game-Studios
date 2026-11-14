@@ -229,62 +229,94 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         [Test]
         public void test_buildModules_missingRefundable_isRejected()
             => AssertRejected(
-                "{\"schema_version\":2,\"modules\":[" +
+                "{\"schema_version\":3,\"modules\":[" +
                 "{\"module_id\":1,\"module_type\":\"Bed\",\"furn_type\":\"bed\"," +
-                "\"occupancy_local\":[[0,0,0]],\"cost\":4,\"build_item_key\":8}]}", "refundable");
+                "\"occupancy_local\":[[0,0,0]],\"cost\":4,\"costs\":[{\"item_key\":8,\"qty\":4}]}]}", "refundable");
 
         /// <summary>`furn_type` 缺席 ⇒ 拒(「没写」≠「明写 null」)。</summary>
         [Test]
         public void test_buildModules_missingFurnType_isRejected()
             => AssertRejected(
-                "{\"schema_version\":2,\"modules\":[" +
+                "{\"schema_version\":3,\"modules\":[" +
                 "{\"module_id\":1,\"module_type\":\"Bed\",\"occupancy_local\":[[0,0,0]]," +
-                "\"cost\":4,\"refundable\":true,\"build_item_key\":8}]}", "furn_type");
+                "\"cost\":4,\"refundable\":true,\"costs\":[{\"item_key\":8,\"qty\":4}]}]}", "furn_type");
 
         /// <summary>未知键 ⇒ 拒(ADR-014 §三)。</summary>
         [Test]
         public void test_buildModules_unknownKey_isRejected()
             => AssertRejected(
-                "{\"schema_version\":2,\"modules\":[" +
+                "{\"schema_version\":3,\"modules\":[" +
                 "{\"module_id\":1,\"module_type\":\"Bed\",\"furn_type\":\"bed\"," +
                 "\"occupancy_local\":[[0,0,0]],\"cost\":4,\"refundable\":true," +
-                "\"build_item_key\":8,\"tier\":2}]}",
+                "\"costs\":[{\"item_key\":8,\"qty\":4}],\"tier\":2}]}",
                 "未知键");
 
         /// <summary>空 `modules[]` ⇒ 拒(空目录让放置判定 ⑤ 恒失败)。</summary>
         [Test]
         public void test_buildModules_emptyTable_isRejected()
-            => AssertRejected("{\"schema_version\":2,\"modules\":[]}", "modules");
+            => AssertRejected("{\"schema_version\":3,\"modules\":[]}", "modules");
 
-        // ══════════════════ 二b · `build_item_key`(schema 2 新字段)══════════════════
+        // ══════════════════ 二b · `costs` 行集(schema 3)══════════════════
 
-        /// <summary>`build_item_key` 缺席 ⇒ 拒。
-        /// <para><b>判别力</b>:停用 `TryReadBuildItemKey` 的「缺席」分支(默认 0 放行)
-        /// ⇒ 本测红 —— 而那正是最坏的形态:0 是真种子里的 `willow_bark`(material),
-        /// 建造扣料会去扣一栈药材而不报错。</para></summary>
+        /// <summary>`costs` 缺席 ⇒ 拒。
+        /// <para><b>判别力</b>:停用 `TryReadCosts` 的「缺席」分支(默认空集放行)
+        /// ⇒ 本测红 —— 而那正是最坏的形态:没有成本行集,建造扣料无从定位。</para></summary>
         [Test]
-        public void test_buildModules_missingBuildItemKey_isRejected()
+        public void test_buildModules_missingCosts_isRejected()
             => AssertRejected(
-                "{\"schema_version\":2,\"modules\":[" +
+                "{\"schema_version\":3,\"modules\":[" +
                 "{\"module_id\":1,\"module_type\":\"Bed\",\"furn_type\":\"bed\"," +
                 "\"occupancy_local\":[[0,0,0]],\"cost\":4,\"refundable\":true}]}",
-                "build_item_key");
+                "costs");
 
-        /// <summary>`build_item_key` 写成字符串 ⇒ 拒(它是 i32 载荷形,不是名称)。
+        /// <summary>`costs` 为空数组 ⇒ 拒(「不消耗材料」不是本表的合法形态)。</summary>
+        [Test]
+        public void test_buildModules_emptyCosts_isRejected()
+            => AssertRejected(
+                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true, costsJson: "[]")),
+                "为空");
+
+        /// <summary>`Σ costs.qty ≠ cost` ⇒ 拒(同一条总量不许存两份)。</summary>
+        /// <remarks><b>判别力</b>:摘掉 ParseRow 的 `sum != cost` 断言 ⇒ 本测红。
+        /// 分叉后果 = 扣料按行集、返还按总量,建一次少扣或多返。</remarks>
+        [Test]
+        public void test_buildModules_costSumMismatch_isRejected()
+            => AssertRejected(
+                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true,
+                    costsJson: "[{\"item_key\":8,\"qty\":3}]")),
+                "≠ cost");
+
+        /// <summary>同一模块内 `item_key` 重复 ⇒ 拒(「扣哪一栈」会取决于行序)。</summary>
+        [Test]
+        public void test_buildModules_duplicateCostItemKey_isRejected()
+            => AssertRejected(
+                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true,
+                    costsJson: "[{\"item_key\":8,\"qty\":2},{\"item_key\":8,\"qty\":2}]")),
+                "重复");
+
+        /// <summary>`item_key` 写成字符串 ⇒ 拒(它是 i32 载荷形,不是名称)。
         /// <para><b>判别力</b>:容忍字符串会让作者以为是写物品名,而读方永远读不到。</para></summary>
         [Test]
-        public void test_buildModules_buildItemKeyAsString_isRejected()
+        public void test_buildModules_costItemKeyAsString_isRejected()
             => AssertRejected(
-                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true)
-                    .Replace("\"build_item_key\":8", "\"build_item_key\":\"wooden_post\"")),
-                "build_item_key");
+                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true,
+                    costsJson: "[{\"item_key\":\"wooden_post\",\"qty\":4}]")),
+                "item_key");
 
-        /// <summary>`build_item_key` 为负 ⇒ 拒(负号是「未赋值 ordinal」的哨兵,不是合法键)。</summary>
+        /// <summary>`item_key` 为负 ⇒ 拒(负号是「未赋值 ordinal」的哨兵,不是合法键)。</summary>
         [Test]
-        public void test_buildModules_negativeBuildItemKey_isRejected()
+        public void test_buildModules_negativeCostItemKey_isRejected()
             => AssertRejected(
                 SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true, buildItemKey: -1)),
-                "build_item_key");
+                "item_key");
+
+        /// <summary>`qty` 为 0 ⇒ 拒(每行至少 1 件)。</summary>
+        [Test]
+        public void test_buildModules_zeroCostQty_isRejected()
+            => AssertRejected(
+                SourceWith(Row(1, "Bed", "\"bed\"", "[[0,0,0]]", 4, true,
+                    costsJson: "[{\"item_key\":8,\"qty\":0}]")),
+                "qty");
 
         /// <summary>占用格三元组写成 2 项 ⇒ 拒。</summary>
         [Test]
@@ -406,24 +438,22 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 SourceWith(rows));
 
         /// <summary>单行 JSON 片段(`furnTypeJson` 由调用方带引号或写 `null`)。
-        /// <para>🔁 2026-10-26:schema 2 起每行**必带** `build_item_key`(21a 物品表 ordinal)。
-        /// 默认取 <see cref="BuildPartOrdinal"/> —— 真种子里唯一那条 `category = build_part` 的
-        /// `wooden_post`。本辅助**不走跨表门**(那条门只在 `DataBakeMenu.BakeBuildModulesCore` 里),
-        /// 故此处给的只是形状合法的 ordinal。</para></summary>
+        /// <para>🔁 2026-11-14:schema 3 起每行**必带** `costs` 行集(`Σ qty == cost`)。
+        /// 本辅助默认给**单行**成本,item_key 取 <see cref="BuildPartOrdinal"/>。</para></summary>
         private static string Row(
             int id, string moduleType, string furnTypeJson, string occupancy, int cost, bool refundable,
-            int? buildItemKey = null)
+            int? buildItemKey = null, string costsJson = null)
             => $"{{\"module_id\":{id},\"module_type\":\"{moduleType}\"," +
                $"\"furn_type\":{furnTypeJson},\"occupancy_local\":{occupancy}," +
                $"\"cost\":{cost},\"refundable\":{(refundable ? "true" : "false")}," +
-               $"\"build_item_key\":{buildItemKey ?? BuildPartOrdinal}}}";
+               $"\"costs\":{costsJson ?? $"[{{\"item_key\":{buildItemKey ?? BuildPartOrdinal},\"qty\":{cost}}}]"}}}";
 
         /// <summary>真种子里 `category = build_part` 的唯一物品(`wooden_post`)的 ordinal。</summary>
         private const int BuildPartOrdinal = 8;
 
-        /// <summary>包成完整源文本(schema 2 —— 行尾带 `build_item_key`)。</summary>
+        /// <summary>包成完整源文本(schema 3 —— 行尾带 `costs` 行集)。</summary>
         private static string SourceWith(params string[] rows)
-            => "{\"schema_version\":2,\"modules\":[" + string.Join(",", rows) + "]}";
+            => "{\"schema_version\":3,\"modules\":[" + string.Join(",", rows) + "]}";
 
         /// <summary>把真种子的 `modules[]` 倒序(用于行序判别)。</summary>
         private static string ReversedSeed()
