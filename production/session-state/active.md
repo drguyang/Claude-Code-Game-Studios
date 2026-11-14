@@ -18762,3 +18762,15 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
 - 证伪轮两发:M1 摘 `Effect?.Invoke()` ⇒ 4 红;M2 改成「先标记再执行」⇒ 1 红(仅异常重试那条)
 - ⚠️ 未做并登记:听诊器入包(需 21a 新物品行 + 授予入口)/ 推进时间到夜(sim 跳变 vs 纯呈现,待裁)/
   三人教学纸(P1-07 自身内容)
+
+## Session Extract — 裁定受伤实体模型 + 脚本产病人通道(2026-11-14)
+- 用户裁定 **甲′**:王嫂的孩子 / 乙·挑夫**本身就是病人**(真病种),伤是叙事。
+  依据三条:`PatientSpawner` 唯一建人入口 = `DiseaseOnset`(ADR-030 Q1)· 10 的
+  `EmergencyTreatmentAppliedPayload` **没有 injury id** · `InjuryOnset`/`EnemyInjuryOnset` **零写者**(归 25)
+- 文档:`chapter-plan.md` 新增 §0.4(裁定 + 三后果)+ 订正 §四 旧口径(「①会撞帐篷门」不成立)
+  · `prologue-beat-script.md` §5.4 加裁定注
+- 新增 `Gameplay.Boot/ScriptedPatientSpawner.cs`:脚本点名产病人,**无门 / 无节奏 / 无接线哨**;
+  构造 `(spawnCore, IPresenceWriter, Func<long> tickNow)`;创建后**必须** `AddPresent`(AC-15)
+- 接线:`BootRoot` 构造 + 公开只读属性 `ScriptedPatients`(⚠️ 暂**无调用方**,首个调用点 = 第二段 P2-04/P2-07)
+- 夹具 `Tests/EditMode/Boot/scripted_patient_spawn_test.cs` **8 条**;证伪轮两发:
+  摘 `AddPresent` ⇒ 3 红;改成「先登记后创建」⇒ 2 红(均 SHA-256 还原)

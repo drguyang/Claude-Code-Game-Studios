@@ -144,6 +144,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>序章十七个难民(N2 的第一个动作 · 2026-11-14):纯视觉,**不是病人**。</summary>
         /// <remarks>⚠️ 只在 P1-07 触发时建一次;重复装配由 `PrologueCrowd.Build` 自清残留。</remarks>
         private DaYiJingCheng.Gameplay.Presentation.World.PrologueCrowd _prologueCrowd;
+
+        /// <summary>脚本产病人通道(N2 的第二个动作 · 2026-11-14):剧情点名的病人出现。</summary>
+        /// <remarks>
+        /// ⚠️ **今天构造即就绪、尚无调用方** —— 第一个调用点是第二段(P2-04 孩子 / P2-07 挑夫),
+        /// 那一拍的表还没建。构造本身仍有价值:缺 `PatientSpawner` / `Presence` 会当场抛,
+        /// 而不是等到剧本写完才发现装配不全。
+        /// </remarks>
+        private ScriptedPatientSpawner _scriptedPatients;
+
+        /// <summary>脚本产病人通道的只读访问面(节拍动作 / 夹具用)。</summary>
+        public ScriptedPatientSpawner ScriptedPatients => _scriptedPatients;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -790,6 +801,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    第一个真实动作 = P1-07 的十七个难民(纯视觉,**不是病人** ——
             //    `chapter-plan.md` §0.1 的 2026-11-14 裁定)。
             _prologueCrowd = new DaYiJingCheng.Gameplay.Presentation.World.PrologueCrowd();
+
+            // ── N2 的第二个动作通道(2026-11-14 裁定「甲′」)─────────────────────
+            // 「王嫂的孩子 / 乙·挑夫」**本身就是病人**(有真病种),伤是叙事
+            // (`chapter-plan.md` §0.4)。故他们要出现,只需一条**不受帐篷门约束**的产人通道。
+            // ⚠️ 不复用 `PatientAppearedDriver` —— 那条路自带门 + 节奏 + 接线期上限哨,
+            //    三样都是「环境产病人」的属性,不是病人的属性。
+            // ⚠️ 首个调用点 = 第二段(P2-04 / P2-07),该段节拍表尚未建 ⇒ 本通道**暂时无调用方**。
+            _scriptedPatients = new ScriptedPatientSpawner(
+                _services.PatientSpawner.SpawnNext,
+                _services.Presence,
+                () => _tickDriver != null ? _tickDriver.CurrentTick : 0L);
 
             _prologueBeats = new PrologueBeatDriver(
                 PrologueBeats.BuildFirstAct(_prologueRegions, () => _prologueCrowd.Build()),
