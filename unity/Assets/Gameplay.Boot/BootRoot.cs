@@ -136,6 +136,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>序章节拍驱动(2026-11-13 · D1):条件成立 ⇒ 播一行字幕。</summary>
         /// <remarks>⚠️ 在玩家生成**之后**创建 —— 它的判据读玩家格,玩家不存在时无从判。</remarks>
         private PrologueBeatDriver _prologueBeats;
+
+        /// <summary>序章区域触发驱动(N1 · 2026-11-14):玩家格 ↔ 区域表,进/出各报一次。</summary>
+        /// <remarks>⚠️ **先于** `_prologueBeats` 推进:tick 内次序颠倒 = 节拍看到上一 tick 的成员集。</remarks>
+        private RegionTriggerDriver _prologueRegions;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -765,8 +769,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 玩家格 + 字幕 ⇒ 「走到某处 ⇒ 播一句」。本段只接第一段的前五拍
             // (P1-01 … P1-05),理由见 `PrologueBeats` 文件头。
             // ⚠️ 不冻结输入、不切相机 —— 那是过场演出(N3)的事,不是节拍驱动的。
+            //
+            // 🔁 2026-11-14(N1 区域触发):「走到某处」的空间判定从三条各写一份的闭包
+            //    收进 `RegionTriggerDriver`(表 + 每 tick 比对 + 进/出边沿 + 一次性闩锁)。
+            //    ⚠️ **次序**:区域驱动先跑,节拍后跑 —— 节拍的谓词读 `regions.IsInside`,
+            //       若节拍先读,它看到的是**上一 tick** 的成员集(静默偏差一个 tick)。
+            //    ⚠️ 区域表与体块位置**同源**(`PrologueAnchors.BuildFirstActRegions`),
+            //       不写第二份格坐标。
+            _prologueRegions = new RegionTriggerDriver(
+                PrologueAnchors.BuildFirstActRegions(),
+                () => _player != null ? _player.Cell : default);
+
             _prologueBeats = new PrologueBeatDriver(
-                PrologueBeats.BuildFirstAct(() => _player != null ? _player.Cell : default),
+                PrologueBeats.BuildFirstAct(_prologueRegions),
                 () => _player != null ? _player.Cell : default,
                 _subtitle);
 
@@ -3138,6 +3153,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 序章节拍(2026-11-13 · D1):同样只在本帧真推进 tick 时推进 ——
             // 字幕的停留时长以 tick 计,拿渲染帧推进会让高帧率下的字幕一闪即过。
+            // 🔁 2026-11-14(N1):区域驱动**必须先于**节拍推进(见构造处注释)。
+            if (_tickDriver.CurrentTick > tickBefore && _prologueRegions != null)
+                _prologueRegions.OnTickEdge(_tickDriver.CurrentTick);
+
             if (_tickDriver.CurrentTick > tickBefore && _prologueBeats != null)
                 _prologueBeats.OnTickEdge(_tickDriver.CurrentTick);
 
@@ -3248,7 +3267,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                         : "未建",
                     // 序章节拍读数(2026-11-13):真包里此前**看不见**「玩家看到过哪一句」——
                     // 字幕与场景重叠,截图暗像素数不可判。只读,不参与逻辑。
-                    _prologueBeats != null ? _prologueBeats.Summary : "未建",
+                    // 🔁 2026-11-14(N1):并上区域读数 —— 「走到台阶上按 E 没反应」这件事,
+                    //   此前分不出是「没进去」还是「进去了但节拍没触发」,现在两半都可见。
+                    _prologueBeats != null
+                        ? (_prologueBeats.Summary + " · " +
+                           (_prologueRegions != null ? _prologueRegions.Summary : "区域未建"))
+                        : "未建",
                     // 相机读数(2026-11-13 · 摇臂接线):有效臂长 + 相机世界高度。
                     // 「画面像贴地/钻墙」这类症状在截图上看不出是臂长错、pitch 错还是位置错,
                     // 有这两个数才能定位。

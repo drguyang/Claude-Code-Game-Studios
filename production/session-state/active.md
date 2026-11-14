@@ -18738,3 +18738,17 @@ M4 `Tent` 7→8 ⇒ 7 红。SHA-256 逐字节还原 **4/4**;`error CS` = 0。
   `baked_initial=false`)留在该条加注内待裁。
   ⚠️ 时点订正:`isInClinic` 自 2026-11-05(`TD-randomevents-05`)起已是**真值**;
   「营地开局即真」是 **P1-b2 canonical 换绑后**才生效的连带面,今日仍跑 16×16,**尚未生效**。
+
+## Session Extract — N1 区域触发(2026-11-14)
+- 新增:`Gameplay.Boot/RegionTrigger.cs`(闭区间格矩形 + `Around` 切比雪夫方框)
+  · `Gameplay.Boot/RegionTriggerDriver.cs`(每 tick 比对 / 进边沿 / 一次性闩锁 / `IsInside` vs `HasEntered`)
+- 接线:`PrologueAnchors.ToRegion()/BuildFirstActRegions()` · `PrologueBeats.BuildFirstAct(RegionTriggerDriver)`
+  · `BootRoot.cs`「序章节拍」段(区域驱动**先于**节拍驱动推进)+ `-tutorialdiag` 并上区域读数
+- 夹具:`Tests/EditMode/Boot/region_trigger_test.cs` 17 条
+- 证伪轮三发(均 SHA-256 逐字节还原):闭区间改开区间 ⇒ 4 红;摘同 tick 去重 ⇒ 1 红;摘 `Once` ⇒ 1 红
+- ⚠️ 全量 EditMode 首轮抓到**本轮自己早先写的 `patient_gate_test.cs:47`** 撞 `pm-teardown-find` 门
+  (`GameObject.Find` 只查 active)⇒ 改 `DestroyAllNamed`(`Resources.FindObjectsOfTypeAll` + `scene.IsValid`)
+- ⚠️ 全量 PlayMode 首轮抓到 **tick 倒流**:`adr041_bak_rescue_walkthrough` 读档后 `70 → 21`,
+  本驱动首版抛「时间倒流」⇒ 改为**读档语义**(清成员集 / 保一次性闩锁 / 重定基),与 `PrologueBeatDriver` 一致
+- 回归:EditMode **7618/7581/0/37** @ 2026-11-14T00:25:24Z · PlayMode **390/385/0/2/3** @ 00:26:36Z
+- ⚠️ 未提交(git 工作树 6 改 6 新增);按纪律等用户说「提交」

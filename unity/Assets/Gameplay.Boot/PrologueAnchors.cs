@@ -54,6 +54,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>玩家格是否在**本锚点的邻格**(含本格;切比雪夫距离 ≤ 1)。</summary>
         public bool IsNear(int cellX, int cellZ)
             => Mathf.Abs(cellX - CellX) <= 1 && Mathf.Abs(cellZ - CellZ) <= 1;
+
+        /// <summary>
+        /// 转成 N1 的区域触发器(邻格 3×3 · **一次性**)。
+        /// <para>⚠️ 与 <see cref="IsNear"/> **同源**:两边都读本锚点的 `CellX` / `CellZ`。
+        /// 写第二份格坐标 = 「看起来有个案头」与「按 E 有反应的地方」分叉 —— 那正是
+        /// 2026-11-13 立本表时要消灭的形态。</para>
+        /// <para>⚠️ `Once` 只决定**回调**报几次;节拍判定走 `IsInside`(此刻),
+        /// 与「进过」无关 —— 见 `RegionTriggerDriver` 类首。</para>
+        /// </summary>
+        public RegionTrigger ToRegion(bool once = true)
+            => RegionTrigger.Around(BeatId, CellX, CellZ, radius: 1, once: once);
     }
 
     /// <summary>序章第一段的三件实物。</summary>
@@ -79,5 +90,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>第一段的全部锚点(声明序 = 铺体块的顺序)。</summary>
         public static readonly PrologueAnchor[] FirstAct = { Steps, Notice, Desk };
+
+        /// <summary>第一段的区域表(声明序 = <see cref="FirstAct"/> 的序)。</summary>
+        /// <remarks>新建数组而非缓存:调用方(装配根)可以自由改返回值而不污染下一次。</remarks>
+        public static RegionTrigger[] BuildFirstActRegions()
+        {
+            var regions = new RegionTrigger[FirstAct.Length];
+            for (int i = 0; i < FirstAct.Length; i++)
+                regions[i] = FirstAct[i].ToRegion();
+            return regions;
+        }
     }
 }

@@ -24,7 +24,6 @@
 
 using System;
 using System.Collections.Generic;
-using DaYiJingCheng.Sim.Contracts;   // WorldPos
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -47,7 +46,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>
         /// 组装第一段的五拍。
         /// </summary>
-        /// <param name="playerCell">玩家当前格(区域判定用;每 tick 现读)。</param>
+        /// <param name="regions">
+        /// 区域触发驱动(N1,2026-11-14 引入)。三拍的「走到某处」判定从此读它,
+        /// **不再**各自捕获玩家格闭包。
+        /// </param>
         /// <remarks>
         /// 🔁 **2026-11-13(乙)三处改判**,依据是真包走查的实测序列
         /// (`tick=980 (12,21) P1-04` → `tick=1080 (9,19) P1-05` → `tick=1180 (8,18) P1-02`):
@@ -58,18 +60,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <item>`P1-05`(神父走)从「只要求 P1-04」改成**同时要求 P1-02 / P1-03 / P1-04** ——
         ///       否则神父会在玩家看台阶与告示之前就走了。</item>
         /// </list>
+        /// 🔁 **2026-11-14(N1)**:签名由 `Func&lt;WorldPos&gt; playerCell` 改为 `RegionTriggerDriver`。
+        /// 语义**不变**(仍是「此刻在锚点邻格」),变的是**谁持有那份格判定** —— 从三条各写一份的闭包
+        /// 收到一个可复用、可测、有边的驱动器。⚠️ 这里刻意用 `IsInside`(此刻)而**不是**
+        /// `HasEntered`(进过):这三拍的完成判据是「站在这儿按 E」,走开再回来按仍然算数。
         /// </remarks>
-        public static IReadOnlyList<PrologueBeat> BuildFirstAct(Func<WorldPos> playerCell)
+        public static IReadOnlyList<PrologueBeat> BuildFirstAct(RegionTriggerDriver regions)
         {
-            if (playerCell == null) throw new ArgumentNullException(nameof(playerCell));
+            if (regions == null) throw new ArgumentNullException(nameof(regions));
 
-            // 锚点邻格判定(切比雪夫半径 1;判定**无副作用**,每 tick 会被反复调用)。
+            // 锚点邻格判定 —— 与 `PrologueAnchors` 的体块位置**同源**(经 `ToRegion`)。
+            //   判定无副作用,每 tick 会被反复调用。
             Func<PrologueAnchor, Func<bool>> near =
-                anchor => () =>
-                {
-                    WorldPos c = playerCell();
-                    return anchor.IsNear(c.X, c.Z);
-                };
+                anchor => () => regions.IsInside(anchor.BeatId);
 
             return new[]
             {

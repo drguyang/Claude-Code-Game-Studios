@@ -44,9 +44,12 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            var player = GameObject.Find("Player");
-            if (player != null) UnityEngine.Object.Destroy(player);
-
+            // ⚠️ **不能用 `GameObject.Find`** —— 它只查 active 对象,被启动序 `SetActive(false)`
+            //    的预摆恰是 inactive ⇒ 清场静默失效 ⇒ 同名件跨测累积 ⇒ 后续
+            //    `BootRoot.FindInactiveInclusive` 按不稳定枚举序摘错 listener
+            //    (`AC-ADR020-10` 偶发红)。机械门 `pm-teardown-find` 判红的就是本形态
+            //    (2026-11-14 本轮全量 EditMode 抓到,红行指向本文件)。
+            DestroyAllNamed("Player");
             AsyncOperationHandle<SceneInstance> handle = default;
             bool valid = false;
             if (_boot != null)
@@ -153,8 +156,26 @@ namespace DaYiJingCheng.Tests.PlayMode
             return count;
         }
 
-        private bool ReadBooted()
+        /// <summary>
+        /// 销毁场景内所有同名的 GameObject(含 **inactive**)。
+        /// <para>`Resources.FindObjectsOfTypeAll` 连未激活的一起收;`go.scene.IsValid()`
+        /// 排除资产(非场景对象 —— 销毁它们会破坏工程资源)。</para>
+        /// <para>⚠️ 与 `save_slot_save_wiring_test` / `audio_wiring_test` 同一手法 ——
+        /// 三处各自需要,但不抽公共件:PlayMode 夹具跨文件共享 helper 会让
+        /// 「哪个文件依赖哪个」隐式化,而这三处加起来不到二十行。</para>
+        /// </summary>
+        private static void DestroyAllNamed(string name)
         {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                GameObject go = all[i];
+                if (go != null && go.name == name && go.scene.IsValid())
+                    UnityEngine.Object.Destroy(go);
+            }
+        }
+
+        private bool ReadBooted()        {
             if (_boot == null) return false;
             var field = typeof(BootRoot).GetField("_booted",
                 BindingFlags.NonPublic | BindingFlags.Instance);
