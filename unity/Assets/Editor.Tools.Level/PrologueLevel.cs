@@ -226,17 +226,15 @@ namespace DaYiJingCheng.EditorTools.Level
         /// <summary>资源点:营地止血草 ×3 + 沿路木柱 ×5。</summary>
         /// <remarks>
         /// ⚠️ `item_key` = 21a 物品表 ordinal:**止血草 = 4**,**木柱 = 8**(`item_database_items.json`)。
-        /// <para>🔁 <b>2026-11-14(P2 第二段)</b>:补 5 个 **木柱** 点。病因是硬的 ——
+        /// <para>🔁 <b>2026-11-14(第二段)</b>:曾补 5 个 **木柱** 点。病因是硬的 ——
         /// 帐篷模块(`module_id = 10`)要 `build_item_key = 8` × `cost = 5`
         /// (`build_modules.json`),而本表此前只有 3 个**止血草**点 ⇒ **帐篷根本建不起来**,
         /// 序章第三段连带整条下游都开不了。</para>
-        /// <para>⚠️ 为什么 5 个点全是同一个 ordinal:节拍脚本 §材料口径 明写
-        /// 「叙事名各自不同(门板 / 房梁 / 布 / 钉子 / 油布),**数据层同一 `item_key = 8`**」——
-        /// 不给每件叙事名造一个物品行(那是五个只有名字的 21a 词条,成本高且无玩法差别)。</para>
+        /// <para>🔁 <b>2026-11-14(当日稍后,用户裁定「五条支线奇遇」)那 5 个点已被删除</b> ——
+        /// 见方法体内注。原文保留:它记的是当时为什么加,以及「不臆造 ordinal」这条纪律。</para>
         /// <para>⚠️ 原注「门板 / 房梁 / 布 / 草木灰 均无 `item_key`,不得臆造」**仍然成立**,
         /// 本批**没有**臆造任何 ordinal —— 用的就是表里已有的 `wooden_post = 8`。</para>
-        /// <para>⚠️ 五个格都验过:**可走**,且 3×3 邻域全可走(玩家要能走到跟前按 E)。
-        /// 复核命令见提交说明;`world_geometry.walkable` 的索引约定是 **`x * 40 + z`**(x 主序),
+        /// <para>⚠️ `world_geometry.walkable` 的索引约定是 **`x * 40 + z`**(x 主序),
         /// 不是 `z * 128 + x` —— 用错会把可走格读成墙。</para>
         /// </remarks>
         private static ResourceSource BuildResources()
@@ -249,12 +247,15 @@ namespace DaYiJingCheng.EditorTools.Level
                 new ResourceSpec(2, P(118, 24), itemKey: 4, ecozoneId: 1),
                 new ResourceSpec(3, P(120, 22), itemKey: 4, ecozoneId: 1),
 
-                // 沿路:木柱 ×5(帐篷材料;A / B / C 三场景分散,承脚本 §第二段 P2-01 与 P2-09)
-                new ResourceSpec(4, P(18, 12),  itemKey: 8, ecozoneId: 0),   // 门板(城市,教堂南侧)
-                new ResourceSpec(5, P(26, 11),  itemKey: 8, ecozoneId: 0),   // 钉子(城市,药铺废墟旁)
-                new ResourceSpec(6, P(40, 20),  itemKey: 8, ecozoneId: 0),   // 房梁(路上)
-                new ResourceSpec(7, P(62, 18),  itemKey: 8, ecozoneId: 0),   // 布(路上)
-                new ResourceSpec(8, P(100, 20), itemKey: 8, ecozoneId: 1),   // 油布(营地边)
+                // 🔁 **2026-11-14 删除 resource_id 4..8**(原「木柱 ×5」五个 `item_key = 8` 点)。
+                //    病因:木柱是 `category = build_part`,21a 不给它 `gather_profile`,而
+                //    `HarvestWorldQuery.GatherOf` 对非 material **直接抛** ⇒ 玩家在点上按 E
+                //    走到结算即 `InvalidOperationException`。而「扩采集闭集」会破 `AC-17-01b`
+                //    的四品种闭集(见 `TD-building-07` 甲的驳回)。
+                //    用户 2026-11-14 裁定改走**五条支线奇遇**(门板 / 钉子 / 房梁 / 布 / 油布,
+                //    判据 = 区域 × 采集次数,不依赖资源点)⇒ 这五个点**没有任何用处**,删掉。
+                //    ⚠️ 奇遇的「区域 + 次数」判据不需要资源点当锚:计数来自 `ResourceHarvested`,
+                //    区域来自玩家格 —— 删掉它们不影响 `PA-01…PA-03`。
             };
             return new ResourceSource(rows);
         }
