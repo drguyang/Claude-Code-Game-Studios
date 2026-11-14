@@ -69,6 +69,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         private readonly Func<long> _tick;
         private readonly BuildOwnerSlot _owner;
 
+        /// <summary>
+        /// 最近一次 <see cref="TryPlace"/> 因**材料不足**失败时缺多少份(N4 · 2026-11-14)。
+        /// <para>`0` = 上一次放置不是「材料不足」,或已凑够。取数自
+        /// <see cref="BuildMaterialPlan.RequiredQty"/> − <see cref="BuildMaterialPlan.AvailableQty"/>
+        /// —— 那张 plan 的注释早就写着「缺口消息要用它」,而生产调用点此前是 `out _` 把它丢掉了。</para>
+        /// </summary>
+        public int LastMissingStock { get; private set; }
+
         /// <param name="placeable">放置判定器(五条件,含库存门)。</param>
         /// <param name="demolish">拆除判定器。</param>
         /// <param name="modifiable">改朝向判定器。</param>
@@ -129,10 +137,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
         /// <returns>判定结果;<see cref="PlaceableResult.Success"/> 表示已落流。</returns>
         public PlaceableResult TryPlace(int moduleId, WorldPos anchor, int orientation, int variant = 0)
         {
+            LastMissingStock = 0;   // 每次尝试重置 —— 陈旧缺口会被读成「这次也缺」
+
             // ① 五条件(含库存门 —— 其生产实装 `BuildStockQuery` 也走选料器,同源)
             PlaceableResult check = _placeable.Check(moduleId, anchor, orientation);
             if (check != PlaceableResult.Success)
+            {
+                // 🔁 2026-11-14(N4):库存门拒的时候**顺手把缺口算出来**。
+                //    判定器只回答「够不够」,数在这里取 —— 来源仍是同一个选料器,
+                //    不是第二份判据(选料器自己就是 `HasStock` 的实现)。
+                if (check == PlaceableResult.InsufficientStock)
+                    LastMissingStock = MissingStockOf(moduleId);
                 return check;
+            }
 
             // ② 选料(规则六 BL-23):不足 ⇒ 整手拒绝,**零事件**
             BuildMaterialPlanResult planResult = BuildMaterialPlanner.PlanForModule(
@@ -140,11 +157,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.Building
             if (planResult == BuildMaterialPlanResult.ModuleNotFound)
                 return PlaceableResult.ModuleNotFound;
             if (planResult != BuildMaterialPlanResult.Success)
+            {
+                LastMissingStock = MissingStockOf(moduleId);
                 return PlaceableResult.InsufficientStock;
+            }
 
             // ③ 落流(唯一事件 = StructurePlaced;扣减由 fold 派生)
             _writer.Place(anchor, moduleId, orientation, variant, _tick());
             return PlaceableResult.Success;
+        }
+
+        /// <summary>
+        /// 缺多少份 = `RequiredQty − AvailableQty`(不足时为 &gt; 0;取数自**同一个**选料器)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 模块不存在 / 不扣料的模块 ⇒ 0(没有缺口可报)。**不抛** —— 这里只服务
+        /// 一句提示文案,为一个已经判定为「放置失败」的动作再抛一次异常没有意义。
+        /// </remarks>
+        private int MissingStockOf(int moduleId)
+        {
+            BuildMaterialPlanResult r = BuildMaterialPlanner.PlanForModule(
+                moduleId, _owner.Owner, _projection(), _modules, out BuildMaterialPlan plan);
+            if (r != BuildMaterialPlanResult.Success) return 0;
+            int missing = plan.RequiredQty - plan.AvailableQty;
+            return missing > 0 ? missing : 0;
         }
 
         /// <summary>

@@ -80,6 +80,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>最近一次放置的判定结果(观测面 / 测试接缝)。</summary>
         public PlaceableResult LastPlaceResult { get; private set; } = PlaceableResult.Success;
 
+        /// <summary>
+        /// 最近一次放置因**材料不足**失败时缺多少份(N4 · 2026-11-14);其它情况恒 `0`。
+        /// <para>取数自 `BuildController.LastMissingStock`(数与判定同源,本类不算第二遍)。</para>
+        /// </summary>
+        public int LastMissingStock { get; private set; }
+
+        /// <summary>放置尝试的累计次数(单调增)。**按下沿的判据** —— `LastPlaceResult` 会保持,
+        /// 用它比较才能分清「这一次又按了」与「上一次还是没成」。</summary>
+        public int PlaceAttemptCount { get; private set; }
+
         /// <summary>最近一次拆除的判定结果(同上)。</summary>
         public DemolishResult LastRemoveResult { get; private set; } = DemolishResult.Success;
 
@@ -188,6 +198,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 锚点 = 外部瞄准格(若 E 指过槽位),否则玩家当前格。
             WorldPos cell = _aimCell ?? _cell();
             LastPlaceResult = _controller.TryPlace(SelectedModuleId, cell, Orientation, 0);
+            PlaceAttemptCount++;
+            // N4:缺口数与判定**同源**(控制器算的是同一个选料器),这里只做转发。
+            LastMissingStock = LastPlaceResult == PlaceableResult.InsufficientStock
+                ? _controller.LastMissingStock
+                : 0;
             if (LastPlaceResult == PlaceableResult.Success)
                 NotifyCommitted();
             return LastPlaceResult;

@@ -164,6 +164,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>过场演出播放器的只读访问面(节拍动作 / 夹具用)。</summary>
         public CutscenePlayer Cutscene => _cutscene;
+
+        /// <summary>材料不足提示的停留 tick(2 s @ 20 Hz;P3-02a 是「一行」,不是演出)。</summary>
+        private const long HintTicks = 40;
+
+        /// <summary>上一帧看到的放置尝试次数(N4 的按下沿判据)。</summary>
+        private int _lastPlaceAttempt;
+
+        /// <summary>提示应当消失的 tick(`-1` = 当前没有提示在屏上)。</summary>
+        private long _hintHideAtTick = -1;
         private InteractionInputDriver _interactionDriver;
         /// <summary>E 按下沿的统一路由(2026-11-02)。观测面:夹具读 `LastRoutedKind`
         /// 判「这一下打给了谁」—— 世界的查体已移除,`LastExaminedPatient` 不再由按键写。</summary>
@@ -3265,6 +3274,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _cutscene != null)
                 _cutscene.OnTickEdge(_tickDriver.CurrentTick);
 
+            // 材料不足提示(N4)的到期清理 —— 以 `tick / 2` 计,到期即收。
+            if (_tickDriver.CurrentTick > tickBefore && _hintHideAtTick >= 0
+                && _tickDriver.CurrentTick >= _hintHideAtTick)
+            {
+                _subtitle?.Hide();
+                _hintHideAtTick = -1;
+            }
+
             // 🔁 2026-11-02 · 开册入口轮(结清 `TD-casebook-01`):**此处不再自动开案**。
             //   原为 `CaseOpenedDriver.OnTickEdge(tick)` —— 每 tick 对在场病人自动立案,
             //   与 `case-system.md:176`「立案是一次玩家动作」/ `:927`「玩家没去 ⇒ 不立案」相反。
@@ -3506,6 +3523,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 建造输入(S20-19 · 2026-10-28):B 开关 / Enter 放置 / R 旋转 / Delete 拆除。
             // ⚠️ 紧跟交互驱动:两者都读设备按下沿,互不依赖;建造在**非建造模式**下是纯 no-op。
             _buildDriver?.OnFrame();
+
+            // ── N4(2026-11-14):材料不足的一行反馈(节拍脚本 P3-02a)──────────────
+            // 「按了没反应」此前是**静默失败**。判据用 `PlaceAttemptCount` 的**增量**:
+            // `LastPlaceResult` 会保持,拿它比较分不清「这次又按了」与「上次就没成」。
+            if (_buildDriver != null && _buildDriver.PlaceAttemptCount != _lastPlaceAttempt)
+            {
+                _lastPlaceAttempt = _buildDriver.PlaceAttemptCount;
+                string hint = BuildShortfallHint.Format(_buildDriver.LastMissingStock);
+                if (hint != null)
+                {
+                    _subtitle?.Show(new DaYiJingCheng.Gameplay.UI.Skeuomorphic.SubtitleLineData("", hint));
+                    _hintHideAtTick = (_tickDriver != null ? _tickDriver.CurrentTick : 0L) + HintTicks;
+                }
+            }
 
             // 听诊精度档位(B 轮 2026-10-20):**按帧**推 ramp(档变才 SetTargets;未接 table ⇒ null)。
             // ⚠️ 不挂 tick 边沿 —— ramp 是逐帧平滑(GDD F-44.1 注 ≥ 50 ms),tick 边沿 20 Hz 会跳。

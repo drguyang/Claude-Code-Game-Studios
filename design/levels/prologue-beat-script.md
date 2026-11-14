@@ -86,7 +86,7 @@
 | **N1** | ✅ **已落**(2026-11-14) | `Gameplay.Boot/RegionTrigger.cs` + `RegionTriggerDriver.cs`;表 = `PrologueAnchors.BuildFirstActRegions()`;接线 = `BootRoot.cs`「序章节拍」段(区域驱动**先于**节拍驱动推进)。夹具 `Tests/EditMode/Boot/region_trigger_test.cs` **17 条**。证伪轮三发:闭区间改开区间 ⇒ 4 红;摘同 tick 去重 ⇒ 1 红;摘 `Once` 闩锁 ⇒ 1 红(均 SHA-256 逐字节还原) |
 | **N2** | ✅ **机制已落**(2026-11-14)· 动作侧只接了一个 | `PrologueBeat.Effect`(`Action`)+ 驱动在**标记触发之前、字幕之前**执行;抛异常 ⇒ 本拍不标记、下 tick 重试。第一个真实动作 = **P1-07 十七个难民**(`Gameplay.Presentation/World/PrologueCrowd.cs`,纯视觉、无碰撞、不建 `PatientState`)。夹具 `Tests/EditMode/Boot/prologue_beats_table_test.cs` **4 条**。证伪轮两发:摘 `Effect?.Invoke()` ⇒ 4 红;改成「先标记再执行」⇒ 1 红 |
 | **N3** | ⬜ 未开始 | — |
-| **N4** | ⬜ 未开始 | — |
+| **N4** | ✅ **已落**(2026-11-14) | 两截:① `BuildController.LastMissingStock` —— 缺口数与判定**同源**(`BuildMaterialPlanner` 的 `RequiredQty − AvailableQty`,那张 plan 早就写着「缺口消息要用它」,而生产调用点此前是 `out _` 丢掉);② `BuildInputDriver.LastMissingStock` + `PlaceAttemptCount`(按下沿判据)⇒ `BuildRoot` 转成一行提示(`BuildShortfallHint.Format`),停留 40 tick(2 s)。夹具 `build_shortfall_hint_test` **3 条**;证伪轮把「缺口 ≤ 0 不播」摘掉 ⇒ 2 红 |
 
 > ⚠️ **N1 落地后的两处口径**(写在这里防误读):
 > ① 驱动器暴露**两个**查询,不可互相替代:`IsInside`(此刻)给「站在这里按 E」的节拍用,
